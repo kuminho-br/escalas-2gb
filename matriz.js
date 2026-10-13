@@ -1,7 +1,7 @@
 /**
  * ESCALA NA PLANILHA ("matriz" no código; na tela se diz "escala") — camada do Google Sheets
  * (lê as abas, desenha a escala do mês, confere).
- * A lógica de conversão está em nucleo.gs. Cole os dois arquivos no projeto.
+ * A lógica de conversão está em nucleo.js.
  *
  * Uso:  menu "Escalas - 2º GB" > "Mostrar Escala" abre o painel, que carrega a escala
  *       (mês em B1, seção em B2 da aba ESCALA DO MÊS) e salva as edições na tabela.
@@ -18,11 +18,11 @@ const CONFIG = {
   ABA_MILITARES: 'MILITARES',
   ABA_TURNOS: 'TURNOS',
   ABA_MATRIZ: 'ESCALA DO MÊS',          // chamava-se MATRIZ; abaDaEscala_ renomeia a antiga
-  TURNOS_BASE: ['A', 'B'],            // letras que sempre aparecem; outras entram se houver alocação
 
-  // layout da aba ESCALA DO MÊS
+  // layout da aba ESCALA DO MÊS (a linha é "militar + posição": não há coluna de turno)
   LINHA_MES: 1, LINHA_SECAO: 2, LINHA_SEMANA: 3, LINHA_CABECALHO: 4, PRIMEIRA_LINHA: 5,
-  COL_MAT: 1, COL_MILITAR: 2, COL_EQUIPE: 3, COL_TURNO: 4, PRIMEIRA_COL_DIA: 5,
+  COL_MAT: 1, COL_MILITAR: 2, COL_EQUIPE: 3, PRIMEIRA_COL_DIA: 4,
+  LARGURA_DIA: 92,                    // px; cabe "Defensoria 07–19" e "PE Seguro 16–00"
 
   // cor de cada serviço: [fundo, texto]. Serviço novo sem cor aparece sem cor (nada quebra).
   CORES: {
@@ -165,39 +165,51 @@ function lerParametros_(aba, ui, tz) {
   return { mes: mes, secao: secao };
 }
 
-/** Lê a escala que está na aba (ou null se a aba ainda não tem uma). */
+/** true se a aba tem a grade de uma versão anterior (com a coluna TURNO no lugar do 1º dia). Precisa ser recarregada. */
+function layoutAntigo_(aba) {
+  if (aba.getLastRow() < CONFIG.LINHA_CABECALHO) return false;
+  return normalizar_(aba.getRange(CONFIG.LINHA_CABECALHO, CONFIG.PRIMEIRA_COL_DIA).getValue()) === 'TURNO';
+}
+
+/** Lê a escala que está na aba (ou null se a aba ainda não tem uma, ou se é de uma versão anterior). */
 function lerMatrizAtual_(aba, tz) {
   const ult = aba.getLastRow(), ultC = aba.getLastColumn();
   if (ult < CONFIG.PRIMEIRA_LINHA || ultC < CONFIG.PRIMEIRA_COL_DIA) return null;
   if (normalizar_(aba.getRange(CONFIG.LINHA_CABECALHO, CONFIG.COL_MAT).getValue()) !== 'MATRICULA') return null;
+  if (layoutAntigo_(aba)) return null;
   const nl = ult - CONFIG.PRIMEIRA_LINHA + 1, nd = ultC - CONFIG.PRIMEIRA_COL_DIA + 1;
   const ident = aba.getRange(CONFIG.PRIMEIRA_LINHA, 1, nl, CONFIG.PRIMEIRA_COL_DIA - 1).getValues();
   const cab = aba.getRange(CONFIG.LINHA_CABECALHO, CONFIG.PRIMEIRA_COL_DIA, 1, nd).getValues()[0];
   const grade = aba.getRange(CONFIG.PRIMEIRA_LINHA, CONFIG.PRIMEIRA_COL_DIA, nl, nd).getValues();
   return {
     dias: cab.map(function (v) { return diaComoTexto_(v, tz); }),
-    linhas: ident.map(function (r) { return { mat: texto_(r[CONFIG.COL_MAT - 1]), turno: texto_(r[CONFIG.COL_TURNO - 1]) }; }),
+    linhas: ident.map(function (r) { return { mat: texto_(r[CONFIG.COL_MAT - 1]) }; }),
     celulas: grade
   };
 }
 
 /**
- * Compara a matriz que está na aba com a tabela, usando os dias da própria
- * matriz (assim funciona mesmo depois de você trocar o mês em B1).
+ * Compara a escala que está na aba com a tabela, usando os dias da própria
+ * escala (assim funciona mesmo depois de você trocar o mês em B1).
+ * Os serviços que não couberam na grade quando ela foi carregada (FORA na referência) não contam
+ * como "só na tabela": eles não aparecem na grade por escolha dos parâmetros, e continuam na tabela.
  */
-function diferencasDaMatrizAtual_(aba, alocsTabela, tz) {
+function diferencasDaMatrizAtual_(aba, alocsTabela, tz, rot) {
   const m = lerMatrizAtual_(aba, tz);
   if (!m) return null;
   const diasValidos = {};
   m.dias.forEach(function (d) { if (d) diasValidos[d] = true; });
-  const daTabela = alocsTabela.filter(function (a) { return diasValidos[a.dia]; });
-  const volta = desmontarMatriz_(m.linhas, m.dias, m.celulas);
-  return { cmp: compararAlocacoes_(daTabela, volta.alocs), orfas: volta.orfas };
+  const base = lerBase_(tz) || [];
+  const fora = Object.create(null);
+  base.forEach(function (b) { if (b.fora) fora[chaveAloc_(b)] = true; });
+  const daTabela = alocsTabela.filter(function (a) { return diasValidos[a.dia] && !fora[chaveAloc_(a)]; });
+  const volta = desmontarMatriz_(m.linhas, m.dias, m.celulas, rot);
+  return { cmp: compararAlocacoes_(daTabela, volta.alocs), orfas: volta.orfas + volta.ilegiveis.length };
 }
 
 /* ------------------------------------------------------------------ desenho */
 
-function renderizarMatriz_(aba, modelo, par, catalogo, tz) {
+function renderizarMatriz_(aba, modelo, par, rot, tz) {
   const nl = modelo.linhas.length, nd = modelo.dias.length;
   const r0 = CONFIG.PRIMEIRA_LINHA, c0 = CONFIG.PRIMEIRA_COL_DIA;
   const nCols = c0 + nd - 1;
@@ -222,44 +234,36 @@ function renderizarMatriz_(aba, modelo, par, catalogo, tz) {
   // cabeçalho
   const nomesSemana = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'];
   aba.getRange(CONFIG.LINHA_SEMANA, c0, 1, nd).setValues([modelo.dias.map(function (d) { return nomesSemana[diaDaSemana_(d)]; })]);
-  aba.getRange(CONFIG.LINHA_CABECALHO, 1, 1, c0 - 1).setValues([['MATRÍCULA', 'MILITAR', 'EQUIPE', 'TURNO']]);
+  aba.getRange(CONFIG.LINHA_CABECALHO, 1, 1, c0 - 1).setValues([['MATRÍCULA', 'MILITAR', 'EQUIPE']]);
   aba.getRange(CONFIG.LINHA_CABECALHO, c0, 1, nd)
     .setValues([modelo.dias.map(function (d) { return Utilities.parseDate(d, tz, 'yyyy-MM-dd'); })])
     .setNumberFormat('dd');
 
   // corpo
   aba.getRange(r0, CONFIG.COL_MAT, nl, 1).setNumberFormat('@');
-  aba.getRange(r0, 1, nl, c0 - 1).setValues(modelo.linhas.map(function (l) { return [l.mat, l.nome, l.grupo, l.turno]; }));
+  aba.getRange(r0, 1, nl, c0 - 1).setValues(modelo.linhas.map(function (l) { return [l.mat, l.nome, l.grupo]; }));
   aba.getRange(r0, c0, nl, nd).setValues(modelo.celulas);
 
-  // lista suspensa por linha: só os serviços que existem naquela letra de turno
-  const regras = {};
-  Object.keys(catalogo.porTurno).forEach(function (t) {
-    regras[t] = SpreadsheetApp.newDataValidation()
-      .requireValueInList(catalogo.porTurno[t], true)
+  // lista suspensa: uma só, igual para todas as linhas (serviço + horário, como na aba TURNOS)
+  if (rot.lista.length) {
+    const regra = SpreadsheetApp.newDataValidation()
+      .requireValueInList(rot.lista, true)
       .setAllowInvalid(false)
-      .setHelpText('Serviços possíveis no turno ' + t + ' (aba TURNOS).')
+      .setHelpText('Serviço e horário, como na aba TURNOS.')
       .build();
-  });
-  aba.getRange(r0, c0, nl, nd).setDataValidations(modelo.linhas.map(function (l) {
-    const r = regras[l.turno] || null;
-    const linha = [];
-    for (let j = 0; j < nd; j++) linha.push(r);
-    return linha;
-  }));
+    aba.getRange(r0, c0, nl, nd).setDataValidation(regra);
+  }
 
   // aparência
   aba.getRange(1, 1, nLinhasTotal, nCols).setFontFamily('Arial').setFontSize(10);
   aba.getRange(CONFIG.LINHA_CABECALHO, 1, 1, nCols)
     .setBackground('#2F5D50').setFontColor('#FFFFFF').setFontWeight('bold').setHorizontalAlignment('center');
   aba.getRange(CONFIG.LINHA_SEMANA, c0, 1, nd).setHorizontalAlignment('center').setFontColor('#5F6368').setFontSize(8);
-  aba.getRange(r0, CONFIG.COL_TURNO, nl, 1).setHorizontalAlignment('center');
   aba.getRange(r0, c0, nl, nd).setHorizontalAlignment('center');
   aba.setColumnWidth(CONFIG.COL_MAT, 85);
   aba.setColumnWidth(CONFIG.COL_MILITAR, 200);
   aba.setColumnWidth(CONFIG.COL_EQUIPE, 105);
-  aba.setColumnWidth(CONFIG.COL_TURNO, 55);
-  aba.setColumnWidths(c0, nd, 72);
+  aba.setColumnWidths(c0, nd, CONFIG.LARGURA_DIA);
 
   // fins de semana
   const colsFds = [], rotFds = [];
@@ -295,44 +299,37 @@ function renderizarMatriz_(aba, modelo, par, catalogo, tz) {
   });
 
   // cor por serviço
+  // a célula é "Serviço HH–HH": a cor vem do começo do texto (o nome do serviço seguido de espaço e dígito ou parêntese)
   const grade = aba.getRange(r0, c0, nl, nd);
+  const topo = aba.getRange(r0, c0).getA1Notation();
   aba.setConditionalFormatRules(Object.keys(CONFIG.CORES).map(function (nome) {
+    const padrao = '^' + nome.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/"/g, '""') + ' [0-9(]';
     return SpreadsheetApp.newConditionalFormatRule()
-      .whenTextEqualTo(nome)
+      .whenFormulaSatisfied('=REGEXMATCH(' + topo + ',"' + padrao + '")')
       .setBackground(CONFIG.CORES[nome][0]).setFontColor(CONFIG.CORES[nome][1])
       .setRanges([grade]).build();
   }));
 
-  // células em que a tabela tem mais de um serviço para a mesma chave
-  modelo.colisoes.forEach(function (c) {
-    aba.getRange(r0 + c.linha, c0 + c.coluna)
-      .setNote('Conflito na tabela ALOCAÇÕES TABULADAS: ' + c.valores.join(' / ') + '. A escala mostra só o primeiro.')
-      .setBorder(true, true, true, true, false, false, '#EA4335', SpreadsheetApp.BorderStyle.SOLID_MEDIUM);
-  });
-
   aba.setFrozenRows(CONFIG.LINHA_CABECALHO);
-  aba.setFrozenColumns(CONFIG.COL_TURNO);
+  aba.setFrozenColumns(CONFIG.COL_EQUIPE);
 }
 
 /* ------------------------------------------------------------- mensagens */
 
-function descreverChave_(chave) {
-  const p = chave.split('|');
-  return p[0] + ', ' + formatarDia_(p[1]) + ', turno ' + p[2];
+/** 'mat|dia|serviço|turno' -> 'SD BM JUAN, 05/11/2026, Pronto 08–20' */
+function descreverChave_(chave, rot, nomes) {
+  const p = partesDaChave_(chave);
+  return ((nomes && nomes[p.mat]) || ('matrícula ' + p.mat)) + ', ' + formatarDia_(p.dia) + ', ' + rotuloDe_(rot, p.servico, p.turno);
 }
 
-function textoDiferencas_(d) {
-  const c = d.cmp;
+function textoDiferencas_(d, rot) {
+  const c = d.cmp, nomes = nomesPorMatricula_();
   const linhas = [];
   if (c.soNaTabela.length) linhas.push('Na tabela e não na escala carregada (' + c.soNaTabela.length + '):');
-  c.soNaTabela.slice(0, 6).forEach(function (x) { linhas.push('   • ' + descreverChave_(x.chave) + ' — ' + x.servico); });
-  if (c.soNaMatriz.length) linhas.push('Na escala carregada e não na tabela (' + c.soNaMatriz.length + '):');
-  c.soNaMatriz.slice(0, 6).forEach(function (x) { linhas.push('   • ' + descreverChave_(x.chave) + ' — ' + x.servico); });
-  if (c.divergentes.length) linhas.push('Serviço diferente (' + c.divergentes.length + '):');
-  c.divergentes.slice(0, 6).forEach(function (x) { linhas.push('   • ' + descreverChave_(x.chave) + ' — tabela: ' + x.tabela + ' | escala: ' + x.matriz); });
-  if (c.conflitosNaTabela.length) linhas.push('A própria tabela tem serviços diferentes para a mesma chave (' + c.conflitosNaTabela.length + '):');
-  c.conflitosNaTabela.slice(0, 6).forEach(function (x) { linhas.push('   • ' + descreverChave_(x.chave) + ' — ' + x.valores.join(' / ')); });
-  if (d.orfas) linhas.push('Células preenchidas sem matrícula, turno ou data válidos: ' + d.orfas);
+  c.soNaTabela.slice(0, 6).forEach(function (x) { linhas.push('   • ' + descreverChave_(x.chave, rot, nomes)); });
+  if (c.soNaEscala.length) linhas.push('Na escala carregada e não na tabela (' + c.soNaEscala.length + '):');
+  c.soNaEscala.slice(0, 6).forEach(function (x) { linhas.push('   • ' + descreverChave_(x.chave, rot, nomes)); });
+  if (d.orfas) linhas.push('Células preenchidas sem matrícula ou data válidas, ou com texto que não se entende: ' + d.orfas);
   return linhas.join('\n');
 }
 
@@ -342,25 +339,23 @@ function textoDiferencas_(d) {
  * não contam: elas não se perdem ao recarregar. Sem cópia de referência (escala carregada
  * numa versão antiga), cai na comparação direta com a tabela. null se não há escala carregada.
  */
-function edicoesNaoSalvas_(aba, alocsTabela, tz) {
+function edicoesNaoSalvas_(aba, alocsTabela, tz, rot) {
   const m = lerMatrizAtual_(aba, tz);
   if (!m) return null;
   const base = lerBase_(tz);
-  if (!base) return diferencasDaMatrizAtual_(aba, alocsTabela, tz);
-  const volta = desmontarMatriz_(m.linhas, m.dias, m.celulas);
-  return { cmp: compararAlocacoes_(base, volta.alocs), orfas: volta.orfas };
+  if (!base) return diferencasDaMatrizAtual_(aba, alocsTabela, tz, rot);
+  const volta = desmontarMatriz_(m.linhas, m.dias, m.celulas, rot);
+  return { cmp: compararAlocacoes_(base.filter(function (b) { return !b.fora; }), volta.alocs), orfas: volta.orfas + volta.ilegiveis.length };
 }
 
-function textoEdicoes_(d) {
-  const c = d.cmp;
+function textoEdicoes_(d, rot) {
+  const c = d.cmp, nomes = nomesPorMatricula_();
   const linhas = [];
-  if (c.soNaMatriz.length) linhas.push('Incluídas (' + c.soNaMatriz.length + '):');
-  c.soNaMatriz.slice(0, 6).forEach(function (x) { linhas.push('   • ' + descreverChave_(x.chave) + ' — ' + x.servico); });
+  if (c.soNaEscala.length) linhas.push('Incluídas (' + c.soNaEscala.length + '):');
+  c.soNaEscala.slice(0, 6).forEach(function (x) { linhas.push('   • ' + descreverChave_(x.chave, rot, nomes)); });
   if (c.soNaTabela.length) linhas.push('Apagadas (' + c.soNaTabela.length + '):');
-  c.soNaTabela.slice(0, 6).forEach(function (x) { linhas.push('   • ' + descreverChave_(x.chave) + ' — era ' + x.servico); });
-  if (c.divergentes.length) linhas.push('Serviço trocado (' + c.divergentes.length + '):');
-  c.divergentes.slice(0, 6).forEach(function (x) { linhas.push('   • ' + descreverChave_(x.chave) + ' — ' + x.tabela + ' → ' + x.matriz); });
-  if (d.orfas) linhas.push('Células preenchidas sem matrícula, turno ou data válidos: ' + d.orfas);
+  c.soNaTabela.slice(0, 6).forEach(function (x) { linhas.push('   • ' + descreverChave_(x.chave, rot, nomes)); });
+  if (d.orfas) linhas.push('Células preenchidas sem matrícula ou data válidas, ou com texto que não se entende: ' + d.orfas);
   return linhas.join('\n');
 }
 
@@ -369,6 +364,12 @@ const MESES_ = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'jul
 /** 'Escala de novembro de 2026 da 1ª SB' */
 function tituloEscala_(mes, secao) {
   return 'Escala de ' + MESES_[Number(mes.slice(5)) - 1] + ' de ' + mes.slice(0, 4) + ' da ' + secao;
+}
+
+/** Os textos de célula (serviço + horário) a partir da aba TURNOS. */
+function lerRotulos_(catalogoPares) {
+  const hor = lerHorarios_();
+  return { rot: montarRotulos_(hor.porChave, catalogoPares), hor: hor };
 }
 
 /* --------------------------------------------------------- ações do menu */
@@ -385,38 +386,49 @@ function montarMatriz() {
     const lidas = lerAlocacoes_(tz);
     const militares = lerMilitares_();
     const catalogo = lerCatalogo_();
+    const lr = lerRotulos_(catalogo.pares);
+    const rot = lr.rot;
 
     // não descarta, sem avisar, edições suas que ainda não foram salvas na tabela
-    const antes = edicoesNaoSalvas_(aba, lidas.alocs, tz);
-    if (antes && (antes.cmp.total > 0 || antes.orfas > 0)) {
+    if (layoutAntigo_(aba)) {
       const r = ui.alert('Atenção',
-        'A escala carregada tem alterações que ainda não foram salvas na tabela:\n\n' + textoEdicoes_(antes) +
-        '\n\nCarregar a escala de novo descarta essas alterações (para guardá-las, escolha Não e use "Salvar alterações" no painel). Continuar?',
+        'A escala carregada é de uma versão anterior do sistema e precisa ser carregada de novo. ' +
+        'Se ela tiver alterações que não foram salvas na tabela, elas serão perdidas. Continuar?',
         ui.ButtonSet.YES_NO);
       if (r !== ui.Button.YES) return;
+    } else {
+      const antes = edicoesNaoSalvas_(aba, lidas.alocs, tz, rot);
+      if (antes && (antes.cmp.total > 0 || antes.orfas > 0)) {
+        const r = ui.alert('Atenção',
+          'A escala carregada tem alterações que ainda não foram salvas na tabela:\n\n' + textoEdicoes_(antes, rot) +
+          '\n\nCarregar a escala de novo descarta essas alterações (para guardá-las, escolha Não e use "Salvar alterações" no painel). Continuar?',
+          ui.ButtonSet.YES_NO);
+        if (r !== ui.Button.YES) return;
+      }
     }
 
+    const linhasPorMilitar = valorParametro_('LINHAS_POR_MILITAR', par.mes);
     const modelo = montarModeloMatriz_(lidas.alocs, militares,
-      { mes: par.mes, secao: par.secao, turnosBase: CONFIG.TURNOS_BASE, catalogo: catalogo.pares });
+      { mes: par.mes, secao: par.secao, linhas: linhasPorMilitar, rotulos: rot, horarios: lr.hor.porChave, catalogo: catalogo.pares });
     if (modelo.linhas.length === 0) throw new Error('Nenhum militar da seção "' + par.secao + '" e nenhuma alocação em ' + par.mes + '.');
-    Object.keys(modelo.letras.reduce(function (o, t) { if (!catalogo.porTurno[t]) o[t] = 1; return o; }, {})).forEach(function (t) {
-      modelo.avisos.push('Turno "' + t + '" não existe na aba TURNOS: as linhas desse turno ficam sem lista suspensa.');
-    });
+    if (!rot.lista.length) modelo.avisos.push('A aba TURNOS não tem nenhum turno com horário legível: a escala fica sem lista suspensa.');
+    lr.hor.avisos.forEach(function (t) { modelo.avisos.push(t); });
 
-    renderizarMatriz_(aba, modelo, par, catalogo, tz);
+    renderizarMatriz_(aba, modelo, par, rot, tz);
     SpreadsheetApp.flush();
-    registrarBase_(aba, tz);              // a matriz recém-desenhada vira a referência da sincronização
+    registrarBase_(aba, tz, rot, modelo.foraDaGrade);      // a escala recém-desenhada vira a referência da sincronização
     ss.setActiveSheet(aba);
 
     // leitura de volta, feita na própria planilha
-    const depois = diferencasDaMatrizAtual_(aba, lidas.alocs, tz);
+    const depois = diferencasDaMatrizAtual_(aba, lidas.alocs, tz, rot);
     const avisos = modelo.avisos.slice();
     if (lidas.semData) avisos.push(lidas.semData + ' linha(s) da tabela sem data reconhecível foram ignoradas.');
     if (lidas.incompletas) avisos.push(lidas.incompletas + ' linha(s) da tabela sem serviço ou turno foram ignoradas.');
 
-    let msg = '• ' + modelo.resumo.militares + ' militares, ' + modelo.linhas.length + ' linhas (turnos ' + modelo.letras.join('/') + '), ' + modelo.dias.length + ' dias\n' +
-      '• ' + modelo.resumo.alocacoesMes + ' alocações no mês → ' + modelo.resumo.celulasPreenchidas + ' células preenchidas\n' +
-      '• Conferência lendo a planilha de volta: ' + (depois ? (depois.cmp.total === 0 && !depois.orfas ? '0 diferenças' : '\n' + textoDiferencas_(depois)) : 'não foi possível conferir');
+    let msg = '• ' + modelo.resumo.militares + ' militares, ' + modelo.resumo.linhasPorMilitar + ' linha(s) cada, ' + modelo.dias.length + ' dias\n' +
+      '• ' + modelo.resumo.alocacoesMes + ' alocações no mês → ' + modelo.resumo.celulasPreenchidas + ' células preenchidas' +
+      (modelo.resumo.foraDaGrade ? ' (' + modelo.resumo.foraDaGrade + ' fora da grade)' : '') + '\n' +
+      '• Conferência lendo a planilha de volta: ' + (depois ? (depois.cmp.total === 0 && !depois.orfas ? '0 diferenças' : '\n' + textoDiferencas_(depois, rot)) : 'não foi possível conferir');
     if (avisos.length) msg += '\n\nAvisos:\n- ' + avisos.slice(0, 10).join('\n- ');
     ui.alert(tituloEscala_(par.mes, par.secao), msg, ui.ButtonSet.OK);
   } catch (e) {
@@ -430,10 +442,11 @@ function conferirMatriz() {
   try {
     const tz = ss.getSpreadsheetTimeZone();
     const aba = abaDaEscala_(ss, false);
-    const d = aba ? diferencasDaMatrizAtual_(aba, lerAlocacoes_(tz).alocs, tz) : null;
+    const rot = aba ? lerRotulos_(lerCatalogo_().pares).rot : null;
+    const d = aba ? diferencasDaMatrizAtual_(aba, lerAlocacoes_(tz).alocs, tz, rot) : null;
     if (!d) { ui.alert('Escalas', 'Ainda não há uma escala carregada. Use "Carregar escala" no painel Mostrar Escala.', ui.ButtonSet.OK); return; }
     ui.alert('Conferência escala carregada × tabela',
-      d.cmp.total === 0 && !d.orfas ? 'A escala carregada e a tabela estão iguais (0 diferenças).' : textoDiferencas_(d),
+      d.cmp.total === 0 && !d.orfas ? 'A escala carregada e a tabela estão iguais (0 diferenças).' : textoDiferencas_(d, rot),
       ui.ButtonSet.OK);
   } catch (e) {
     ui.alert('Não foi possível conferir', e.message, ui.ButtonSet.OK);

@@ -217,7 +217,7 @@ function formatarItemG_(i, nomes, tipo) {
 
 function resumoParaTelaG_(a, nomes) {
   const r = a.res, B = Object.create(null);
-  a.base.forEach(function (x) { B[chaveAloc_(x)] = x; });
+  a.base.forEach(function (x) { B[chaveBloco_(x)] = x; });
   const aplicar = [];
   r.inserir.forEach(function (x) { aplicar.push({ tipo: 'inclusao', mat: x.mat, dia: x.dia, turno: x.turno, texto: 'entra como ' + x.funcao + (x.unidade ? ' / ' + x.unidade : '') + ' (' + x.servico + ')' }); });
   r.atualizar.forEach(function (x) {

@@ -1,6 +1,6 @@
 /**
  * PAINEL DE INTEGRIDADE — camada do Google Sheets da checagem de choques.
- * Depende de nucleo.gs, matriz.gs, pre_escala.gs, sincronia.gs, sincronia_painel.gs e choques.gs.
+ * Depende de nucleo.js, matriz.js, pre_escala.js, sincronia.js, sincronia_painel.js e choques.js.
  * Tela: sidebar_integridade.html (crie como "HTML" com esse nome exato).
  *
  * Acesso: menu "Escalas - 2º GB" > "Conferir Integridade dos Dados".
@@ -94,17 +94,20 @@ function painelIntegridade(mes) {
   const hor = lerHorarios_();
   const det = detectarChoques_(alocsComExpediente_(lidas.alocs, hor, tz), hor.porChave, { mes: mes });
   const nomes = nomesPorMatricula_();
-  const rotulo = function (a) { return a.dia.slice(8) + '/' + a.dia.slice(5, 7) + ' ' + (a.implicito ? 'expediente (Adm)' : a.servico + ' ' + a.turno); };
+  const rot = montarRotulos_(hor.porChave, lerCatalogo_().pares);
+  const rotulo = function (a) { return a.dia.slice(8) + '/' + a.dia.slice(5, 7) + ' ' + (a.implicito ? 'expediente (Adm)' : rotuloDe_(rot, a.servico, a.turno)); };
   const itens = det.choques.map(function (c) {
     return { nome: nomes[c.mat] || ('matrícula ' + c.mat), tipo: c.tipo, a: rotulo(c.a), b: rotulo(c.b), horas: horasTexto_(c.minutos), ordem: c.a.dia };
   }).sort(function (x, y) { return x.nome < y.nome ? -1 : x.nome > y.nome ? 1 : (x.ordem < y.ordem ? -1 : 1); });
 
   let matriz = { existe: false, total: 0, linhas: [] };
   const aba = abaDaEscala_(ss, false);
-  const dif = aba ? diferencasDaMatrizAtual_(aba, lidas.alocs, tz) : null;
-  if (dif) {
+  const dif = aba ? diferencasDaMatrizAtual_(aba, lidas.alocs, tz, rot) : null;
+  if (aba && layoutAntigo_(aba)) {
+    matriz = { existe: true, total: 1, linhas: ['A escala carregada é de uma versão anterior do sistema. Carregue a escala de novo.'] };
+  } else if (dif) {
     const total = dif.cmp.total + dif.orfas;
-    matriz = { existe: true, total: total, linhas: total > 0 ? textoDiferencas_(dif).split('\n') : [] };
+    matriz = { existe: true, total: total, linhas: total > 0 ? textoDiferencas_(dif, rot).split('\n') : [] };
   }
 
   const ignoradas = [];

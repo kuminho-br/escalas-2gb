@@ -9,7 +9,8 @@
  * Pronto B (20–08) é a rotina.
  *
  * A letra do turno NÃO entra na conta: "A" do Bioma (00–08) e "A" do Pronto
- * (08–20) são horários diferentes. Tudo vem da aba TURNOS.
+ * (08–20) são horários diferentes. Tudo vem da aba TURNOS. Pelo mesmo motivo, a chave de uma
+ * alocação é matrícula + dia + serviço + turno (chaveAloc_, em sincronia.js).
  *
  * Além da sobreposição, há duas regras:
  *   - EMENDA: o militar não pode tirar JES e emendar com o Pronto (o JES termina na
@@ -44,22 +45,86 @@ function horarioCurto_(minutos) {
   return (h < 10 ? '0' : '') + h + 'h' + (m ? (m < 10 ? '0' : '') + m : '');
 }
 
+/** minutos desde 00:00 -> '08', '20', '00', '08:30' (hora no texto da célula da escala). */
+function horaRotulo_(minutos) {
+  const h = Math.floor(minutos / 60) % 24, m = minutos % 60;
+  return (h < 10 ? '0' : '') + h + (m ? ':' + (m < 10 ? '0' : '') + m : '');
+}
+
+/** 'Serviço|Turno' -> { servico, turno } (o turno é o que vem depois do último "|"). */
+function parDaChaveTurno_(k) {
+  const i = k.lastIndexOf('|');
+  return { servico: k.slice(0, i), turno: k.slice(i + 1) };
+}
+
+/**
+ * Texto da célula da escala: "Serviço HH–HH" (ex.: "Pronto 08–20", "PE Seguro 16–00"), montado
+ * com os horários da aba TURNOS. Nenhum horário fica escrito no código.
+ *   - duas linhas da aba TURNOS com o mesmo texto ganham a letra do turno: "Pronto 08–20 (B)";
+ *   - turno sem horário legível (ou fora do porChave, só no catálogo) vira "Serviço (turno)".
+ * porChave: o de montarHorarios_.   pares: (opcional) { 'Serviço|Turno': true }, o catálogo da aba TURNOS.
+ * Retorna { porPar: { 'Serviço|Turno': texto }, porRotulo: { texto: { servico, turno } }, lista: [texto] }
+ * (lista na ordem da aba TURNOS).
+ */
+function montarRotulos_(porChave, pares) {
+  const itens = [];
+  Object.keys(porChave).forEach(function (k) {
+    const p = parDaChaveTurno_(k), h = porChave[k];
+    itens.push({ chave: k, servico: p.servico, turno: p.turno, texto: p.servico + ' ' + horaRotulo_(h.ini) + '–' + horaRotulo_(h.fim) });
+  });
+  Object.keys(pares || {}).forEach(function (k) {
+    if (k in porChave) return;
+    const p = parDaChaveTurno_(k);
+    itens.push({ chave: k, servico: p.servico, turno: p.turno, texto: p.servico + ' (' + p.turno + ')' });
+  });
+  const repetidos = Object.create(null);
+  itens.forEach(function (x) { repetidos[x.texto] = (repetidos[x.texto] || 0) + 1; });
+  const res = { porPar: Object.create(null), porRotulo: Object.create(null), lista: [] };
+  itens.forEach(function (x) {
+    const texto = repetidos[x.texto] > 1 ? x.texto + ' (' + x.turno + ')' : x.texto;
+    res.porPar[x.chave] = texto;
+    res.porRotulo[chaveDoRotulo_(texto)] = { servico: x.servico, turno: x.turno };
+    res.lista.push(texto);
+  });
+  return res;
+}
+
+/** Compara textos de célula sem se importar com espaços repetidos nem com o tipo de traço. */
+function chaveDoRotulo_(texto) {
+  return String(texto == null ? '' : texto).trim().replace(/\s+/g, ' ').replace(/[-‐‑‒—]/g, '–');
+}
+
+/** Texto de célula -> { servico, turno }, ou null se não der para entender. */
+function parDoRotulo_(texto, rot) {
+  const t = chaveDoRotulo_(texto);
+  if (t in rot.porRotulo) return rot.porRotulo[t];
+  const m = /^(.+) \(([^()]+)\)$/.exec(t);          // "Serviço (turno)" e também textos de uma versão da aba TURNOS que mudou
+  return m ? { servico: m[1].trim(), turno: m[2].trim() } : null;
+}
+
+/** O texto da célula para um serviço e turno (nunca vazio). */
+function rotuloDe_(rot, servico, turno) {
+  return (rot && rot.porPar[servico + '|' + turno]) || (servico + ' (' + turno + ')');
+}
+
 /**
  * Legenda de turnos: agrupa o porChave de montarHorarios_ por serviço, na ordem em que
  * aparecem na aba TURNOS. cores = { 'Pronto': ['#fundo', '#texto'], ... } (opcional).
- * Retorna [{ servico, fundo, texto, turnos: [{ turno, inicio:'08h', fim:'20h', horas:'12' }] }].
+ * Retorna [{ servico, fundo, texto, turnos: [{ turno, rotulo, inicio:'08h', fim:'20h', horas:'12' }] }].
+ * "rotulo" é o texto que o escalante vê na célula.
  */
 function montarLegenda_(porChave, cores) {
   cores = cores || {};
+  const rot = montarRotulos_(porChave);
   const grupos = [], indice = Object.create(null);
   Object.keys(porChave).forEach(function (k) {
-    const p = k.split('|'), h = porChave[k];
-    if (!(p[0] in indice)) {
-      const c = cores[p[0]] || null;
-      indice[p[0]] = grupos.length;
-      grupos.push({ servico: p[0], fundo: c ? c[0] : '', texto: c ? c[1] : '', turnos: [] });
+    const p = parDaChaveTurno_(k), h = porChave[k];
+    if (!(p.servico in indice)) {
+      const c = cores[p.servico] || null;
+      indice[p.servico] = grupos.length;
+      grupos.push({ servico: p.servico, fundo: c ? c[0] : '', texto: c ? c[1] : '', turnos: [] });
     }
-    grupos[indice[p[0]]].turnos.push({ turno: p[1], inicio: horarioCurto_(h.ini), fim: horarioCurto_(h.fim), horas: horasTexto_(h.dur) });
+    grupos[indice[p.servico]].turnos.push({ turno: p.turno, rotulo: rotuloDe_(rot, p.servico, p.turno), inicio: horarioCurto_(h.ini), fim: horarioCurto_(h.fim), horas: horasTexto_(h.dur) });
   });
   return grupos;
 }
@@ -112,7 +177,7 @@ function detectarChoques_(alocs, horarios, op) {
     if (!h) { sem[k] = (sem[k] || 0) + 1; return; }
     const ini = numeroDoDia_(a.dia) * 1440 + h.ini;
     if (!porMat[a.mat]) porMat[a.mat] = [];
-    porMat[a.mat].push({ dia: a.dia, turno: a.turno, servico: a.servico, chave: a.mat + '|' + a.dia + '|' + a.turno + (a.implicito ? '|expediente' : ''), ini: ini, fim: ini + h.dur, implicito: !!a.implicito });
+    porMat[a.mat].push({ dia: a.dia, turno: a.turno, servico: a.servico, chave: chaveAloc_(a) + (a.implicito ? '|expediente' : ''), ini: ini, fim: ini + h.dur, implicito: !!a.implicito });
   });
 
   // o expediente implícito de um dia some se o militar tem Adm de verdade nesse dia ou um Saldo no mesmo horário
@@ -137,7 +202,7 @@ function detectarChoques_(alocs, horarios, op) {
         if (x.implicito && y.implicito) continue;
         choques.push({
           mat: mat,
-          tipo: (x.implicito || y.implicito) ? 'expediente' : ((x.chave === y.chave && x.servico === y.servico) ? 'duplicata' : 'sobreposicao'),
+          tipo: (x.implicito || y.implicito) ? 'expediente' : (x.chave === y.chave ? 'duplicata' : 'sobreposicao'),
           a: { dia: x.dia, turno: x.turno, servico: x.servico, chave: x.chave, implicito: x.implicito },
           b: { dia: y.dia, turno: y.turno, servico: y.servico, chave: y.chave, implicito: y.implicito },
           minutos: Math.min(x.fim, y.fim) - y.ini
