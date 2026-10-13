@@ -1,0 +1,19 @@
+{
+  "timeZone": "America/Sao_Paulo",
+  "dependencies": {
+  },
+  "exceptionLogging": "STACKDRIVER",
+  "runtimeVersion": "V8",
+  "sheets": {
+    "macros": [{
+      "menuName": "teste1",
+      "functionName": "teste1"
+    }, {
+      "menuName": "ZERATESTE",
+      "functionName": "ZERATESTE"
+    }, {
+      "menuName": "ZERAR",
+      "functionName": "ZERAR2"
+    }]
+  }
+}

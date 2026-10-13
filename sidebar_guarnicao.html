@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<base target="_top">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  :root { --verde:#2F5D50; --verde-claro:#E6EFEC; --texto:#202124; --suave:#5F6368; --linha:#DADCE0; --erro:#C5221F; --aviso:#B06000; }
+  * { box-sizing:border-box; }
+  body { margin:0; padding:14px 14px 24px; font:13px/1.45 Arial, sans-serif; color:var(--texto); }
+  h1 { font-size:16px; margin:0 0 2px; }
+  .sub { color:var(--suave); margin:0 0 14px; }
+  label { display:block; font-weight:bold; margin:10px 0 3px; font-size:12px; }
+  input, select { width:100%; padding:6px 8px; border:1px solid var(--linha); border-radius:4px; font:inherit; background:#fff; color:inherit; }
+  button { font:inherit; border:0; border-radius:4px; padding:8px 12px; cursor:pointer; width:100%; margin-top:10px; }
+  button.principal { background:var(--verde); color:#fff; font-weight:bold; }
+  button.secundario { background:var(--verde-claro); color:var(--verde); font-weight:bold; }
+  button:disabled { opacity:.45; cursor:default; }
+  .cartao { border:1px solid var(--linha); border-radius:6px; padding:10px; margin-top:12px; }
+  .cartao h2 { font-size:11px; letter-spacing:.04em; text-transform:uppercase; color:var(--suave); margin:0 0 6px; }
+  .contagens { display:flex; gap:6px; flex-wrap:wrap; }
+  .chip { background:var(--verde-claro); color:var(--verde); border-radius:10px; padding:2px 8px; font-size:12px; font-weight:bold; }
+  .chip.alerta { background:#FEF0CD; color:var(--aviso); }
+  .chip.zero { background:#F1F3F4; color:var(--suave); font-weight:normal; }
+  ul.itens { list-style:none; margin:8px 0 0; padding:0; }
+  ul.itens li { padding:4px 0; border-bottom:1px solid var(--linha); font-size:12px; }
+  ul.itens li:last-child { border-bottom:0; }
+  .tag { display:inline-block; min-width:62px; font-weight:bold; color:var(--verde); }
+  .tag.exclusao { color:var(--erro); }
+  .tag.funcao { color:var(--aviso); }
+  .nota { color:var(--suave); font-size:12px; margin-top:6px; }
+  .erro { color:var(--erro); background:#FCE8E6; border-radius:4px; padding:8px; margin-top:12px; }
+  .ok { color:#137333; background:#E6F4EA; border-radius:4px; padding:8px; margin-top:12px; }
+  .avisoBox { color:var(--aviso); background:#FEF7E0; border-radius:4px; padding:8px; margin-top:12px; }
+  .grande { font-size:15px; font-weight:bold; }
+  [hidden] { display:none !important; }
+</style>
+</head>
+<body>
+  <h1>Escalas de Serviço</h1>
+
+  <div id="erro" class="erro" hidden></div>
+
+  <div id="cartaoSetup" class="cartao" hidden>
+    <h2>Primeiro uso</h2>
+    <div>Faltam as abas <b>ESCALAS</b> e <b>MODELOS DE GUARNIÇÃO</b>.</div>
+    <button id="btnExemplos" class="principal">Criar abas com as 4 escalas de exemplo</button>
+  </div>
+
+  <div id="cartaoEscolha" hidden>
+    <label for="escala">Escala</label>
+    <select id="escala"></select>
+    <div id="infoEscala" class="nota"></div>
+    <label for="mes">Mês</label>
+    <input id="mes" type="month" placeholder="aaaa-mm">
+    <button id="btnMontar" class="secundario">Montar grade</button>
+  </div>
+
+  <div id="cartaoSituacao" class="cartao" hidden>
+    <h2 id="tituloSituacao">Grade atual</h2>
+    <div id="situacao" class="grande"></div>
+    <div id="situacaoNota" class="nota"></div>
+  </div>
+
+  <div id="cartao" class="cartao" hidden>
+    <h2>Alterações ainda não salvas</h2>
+    <div id="contagens" class="contagens"></div>
+    <ul id="lista" class="itens"></ul>
+    <div id="maisNota" class="nota" hidden></div>
+    <button id="btnSalvar" class="principal" disabled>Salvar alterações</button>
+    <button id="btnAtualizar" class="secundario">Atualizar</button>
+  </div>
+
+  <div id="cartaoConflitos" class="avisoBox" hidden>
+    <b>Conflitos (não gravados)</b>
+    <div class="nota">A tabela mudou nessas alocações. Monte a grade de novo.</div>
+    <ul id="listaConflitos" class="itens"></ul>
+  </div>
+
+  <div id="cartaoInvalidas" class="avisoBox" hidden>
+    <b>Não gravados (corrija a grade)</b>
+    <ul id="listaInvalidas" class="itens"></ul>
+  </div>
+
+  <div id="cartaoChoques" class="avisoBox" hidden>
+    <b>Choque de horário (não gravados)</b>
+    <ul id="listaChoques" class="itens"></ul>
+  </div>
+
+  <div id="avisos" class="avisoBox" hidden></div>
+  <div id="resultado" class="ok" hidden></div>
+
+  <div id="cartaoImprimir" class="cartao" hidden>
+    <h2>Documento</h2>
+    <div>Gera a aba <b>IMPRESSÃO</b> com o que está <b>gravado</b>.</div>
+    <button id="btnImprimir" class="secundario">Gerar escala para impressão</button>
+    <div id="resultadoImprimir" class="ok" hidden></div>
+  </div>
+
+<script>
+  var el = function (id) { return document.getElementById(id); };
+  var TIPOS = { inclusao: 'Inclusão', funcao: 'Função', exclusao: 'Exclusão' };
+  var atual = null;           // última prévia
+  var escalas = [];
+  var confirmando = null;     // temporizador do segundo clique
+  var ultimaAtualizacao = 0;
+  var trabalhando = false;
+
+  function mostrar(id, sim) { el(id).hidden = !sim; }
+  function ocupado(sim) {
+    trabalhando = sim;
+    if (!sim) ultimaAtualizacao = Date.now();
+    ['btnMontar', 'btnSalvar', 'btnAtualizar', 'btnImprimir', 'btnExemplos', 'mes', 'escala'].forEach(function (id) { el(id).disabled = sim; });
+    if (!sim && atual) el('btnSalvar').disabled = atual.aplicarTotal === 0;
+  }
+  function falha(e) {
+    ocupado(false);
+    ['cartao', 'cartaoConflitos', 'cartaoInvalidas', 'cartaoChoques', 'cartaoSituacao'].forEach(function (id) { mostrar(id, false); });
+    el('erro').textContent = (e && e.message) ? e.message.replace(/^Error:\s*/, '') : String(e);
+    mostrar('erro', true);
+  }
+  function limpar() { mostrar('erro', false); mostrar('resultado', false); mostrar('resultadoImprimir', false); }
+
+  function preencherLista(id, itens, comTipo) {
+    var ul = el(id);
+    ul.innerHTML = '';
+    itens.forEach(function (i) {
+      var li = document.createElement('li');
+      if (comTipo) {
+        var t = document.createElement('span');
+        t.className = 'tag ' + i.tipo; t.textContent = TIPOS[i.tipo];
+        li.appendChild(t);
+      }
+      li.appendChild(document.createTextNode(i.nome + ' · ' + i.dia + ' ' + i.turno + ' · ' + i.texto));
+      ul.appendChild(li);
+    });
+  }
+  function chip(txt, n, alerta) {
+    var c = document.createElement('span');
+    c.className = 'chip' + (n === 0 ? ' zero' : (alerta ? ' alerta' : ''));
+    c.textContent = n + ' ' + txt;
+    return c;
+  }
+
+  function mostrarPrevia(r) {
+    atual = r;
+    ultimaAtualizacao = Date.now();
+
+    el('tituloSituacao').textContent = 'Grade atual: ' + r.escala + ' · ' + r.mes;
+    el('situacao').textContent = r.situacao.preenchidas + ' de ' + r.situacao.vagas + ' vagas preenchidas';
+    el('situacaoNota').textContent = r.situacao.semFuncao > 0
+      ? r.situacao.semFuncao + ' militar(es) escalado(s) ainda sem posto (aparecem na coluna "sem função neste turno" da grade).'
+      : 'Nenhum escalado sem posto.';
+    mostrar('cartaoSituacao', true);
+
+    var c = el('contagens'); c.innerHTML = '';
+    c.appendChild(chip('inclusões', r.resumo.inclusoes));
+    c.appendChild(chip('funções', r.resumo.funcoes));
+    c.appendChild(chip('exclusões', r.resumo.exclusoes));
+    c.appendChild(chip('conflitos', r.resumo.conflitos, true));
+    c.appendChild(chip('inválidas', r.resumo.invalidas, true));
+    c.appendChild(chip('choques', r.resumo.choques, true));
+    preencherLista('lista', r.aplicar, true);
+    var mais = r.aplicarTotal - r.aplicar.length;
+    el('maisNota').textContent = mais > 0 ? 'e mais ' + mais + ' alteração(ões) não listada(s).' : '';
+    mostrar('maisNota', mais > 0);
+    el('btnSalvar').textContent = 'Salvar alterações';
+    el('btnSalvar').disabled = r.aplicarTotal === 0;
+    mostrar('cartao', true);
+
+    preencherLista('listaConflitos', r.conflitos, false); mostrar('cartaoConflitos', r.conflitos.length > 0);
+    preencherLista('listaInvalidas', r.invalidas, false); mostrar('cartaoInvalidas', r.invalidas.length > 0);
+    preencherLista('listaChoques', r.choques, false); mostrar('cartaoChoques', r.choques.length > 0);
+    var av = r.avisos.concat(r.avisosMotorista || []);
+    el('avisos').textContent = av.join(' '); mostrar('avisos', av.length > 0);
+    mostrar('cartaoImprimir', true);
+  }
+
+  function atualizar(silencioso) {
+    if (!silencioso) limpar();
+    if (confirmando) { clearTimeout(confirmando); confirmando = null; }
+    ocupado(true);
+    google.script.run
+      .withSuccessHandler(function (r) { ocupado(false); mostrarPrevia(r); if (silencioso) mostrar('erro', false); })
+      .withFailureHandler(falha)
+      .painelGuarnicaoPrevia();
+  }
+
+  function mostrarEscalas(d) {
+    escalas = d.escalas;
+    var sel = el('escala'); sel.innerHTML = '';
+    escalas.forEach(function (e) {
+      var o = document.createElement('option'); o.value = e.nome; o.textContent = e.nome; sel.appendChild(o);
+    });
+    if (d.escalaAtual) sel.value = d.escalaAtual;
+    infoEscala();
+    el('mes').value = d.mesSugerido || '';
+    mostrar('cartaoSetup', d.semAbas);
+    mostrar('cartaoEscolha', !d.semAbas && escalas.length > 0);
+    mostrar('cartaoImprimir', !d.semAbas && escalas.length > 0);
+    var av = d.avisos.slice();
+    if (!d.semAbas && escalas.length === 0) av.push('Nenhuma escala válida encontrada nas abas ESCALAS e MODELOS DE GUARNIÇÃO.');
+    el('avisos').textContent = av.join(' '); mostrar('avisos', av.length > 0);
+  }
+  function infoEscala() {
+    var e = escalas.filter(function (x) { return x.nome === el('escala').value; })[0];
+    el('infoEscala').textContent = e ? 'Serviços: ' + e.servicos + ' · militares: ' + e.militares + ' · ' + e.turnos + ' turno(s)' + (e.usaUnidade ? ' · com unidades' : '') : '';
+  }
+  el('escala').addEventListener('change', infoEscala);
+
+  el('btnExemplos').addEventListener('click', function () {
+    limpar(); ocupado(true);
+    google.script.run
+      .withSuccessHandler(function (r) {
+        ocupado(false);
+        el('resultado').textContent = r.criadas.length ? 'Abas criadas: ' + r.criadas.join(', ') + '.' : 'As abas já existiam; nada foi alterado.';
+        mostrar('resultado', true);
+        carregar();
+      })
+      .withFailureHandler(falha)
+      .painelGuarnicaoExemplos();
+  });
+
+  el('btnMontar').addEventListener('click', function () {
+    limpar(); ocupado(true);
+    google.script.run
+      .withSuccessHandler(function (r) { ocupado(false); if (r && r.cancelado) return; atualizar(false); })
+      .withFailureHandler(falha)
+      .painelGuarnicaoMontar(el('escala').value, el('mes').value);
+  });
+
+  el('btnAtualizar').addEventListener('click', function () { atualizar(false); });
+
+  // Gravar exige dois cliques: o primeiro pede confirmação (some depois de 6 s).
+  el('btnSalvar').addEventListener('click', function () {
+    var b = el('btnSalvar');
+    if (!confirmando) {
+      b.textContent = 'Confirmar: gravar ' + atual.aplicarTotal + ' alteração(ões)';
+      confirmando = setTimeout(function () { confirmando = null; b.textContent = 'Salvar alterações'; }, 6000);
+      return;
+    }
+    clearTimeout(confirmando); confirmando = null;
+    b.textContent = 'Salvar alterações';
+    limpar(); ocupado(true);
+    google.script.run
+      .withSuccessHandler(function (r) {
+        var g = r.gravadas;
+        var msg = 'Gravado: ' + g.inclusoes + ' inclusão(ões), ' + g.funcoes + ' função(ões), ' + g.exclusoes + ' exclusão(ões).';
+        msg += r.restantes === 0 ? ' Conferência: 0 diferenças pendentes.' : ' Atenção: ' + r.restantes + ' diferença(s) ainda pendente(s); atualize e confira.';
+        if (r.totalConflitos || r.totalInvalidas || r.totalChoques) msg += ' Não gravados: ' + r.totalConflitos + ' conflito(s), ' + r.totalInvalidas + ' inválida(s), ' + r.totalChoques + ' choque(s) de horário.';
+        el('resultado').textContent = msg;
+        mostrar('resultado', true);
+        atualizar(true);
+      })
+      .withFailureHandler(falha)
+      .painelGuarnicaoSalvar();
+  });
+
+  el('btnImprimir').addEventListener('click', function () {
+    limpar(); ocupado(true);
+    google.script.run
+      .withSuccessHandler(function (r) {
+        ocupado(false);
+        var msg = 'Aba IMPRESSÃO gerada com ' + r.linhas + ' linha(s).';
+        if (r.pendentes > 0) msg += ' Atenção: ' + r.pendentes + ' alteração(ões) da grade ainda não foram salvas e NÃO entraram no documento.';
+        el('resultadoImprimir').textContent = msg;
+        mostrar('resultadoImprimir', true);
+      })
+      .withFailureHandler(falha)
+      .painelGuarnicaoImprimir(el('escala').value, el('mes').value);
+  });
+
+  // Ao voltar para a planilha depois de editar, a lista se atualiza sozinha (no máximo a cada 5 s).
+  window.addEventListener('focus', function () {
+    if (atual && !trabalhando && !confirmando && Date.now() - ultimaAtualizacao > 5000) atualizar(true);
+  });
+
+  function carregar() {
+    google.script.run
+      .withSuccessHandler(function (d) {
+        mostrarEscalas(d);
+        if (d.escalaAtual) atualizar(false);
+      })
+      .withFailureHandler(falha)
+      .painelDadosGuarnicao();
+  }
+  carregar();
+</script>
+</body>
+</html>

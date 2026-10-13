@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<base target="_top">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  :root { --verde:#2F5D50; --verde-claro:#E6EFEC; --texto:#202124; --suave:#5F6368; --linha:#DADCE0; --erro:#C5221F; --aviso:#B06000; }
+  * { box-sizing:border-box; }
+  body { margin:0; padding:14px 14px 24px; font:13px/1.45 Arial, sans-serif; color:var(--texto); }
+  h1 { font-size:16px; margin:0 0 2px; }
+  .sub { color:var(--suave); margin:0 0 14px; }
+  label { display:block; font-weight:bold; margin:10px 0 3px; font-size:12px; }
+  input, select { width:100%; padding:6px 8px; border:1px solid var(--linha); border-radius:4px; font:inherit; background:#fff; color:inherit; }
+  button { font:inherit; border:0; border-radius:4px; padding:8px 12px; cursor:pointer; width:100%; margin-top:10px; }
+  button.principal { background:var(--verde); color:#fff; font-weight:bold; }
+  button.secundario { background:var(--verde-claro); color:var(--verde); font-weight:bold; }
+  button:disabled { opacity:.45; cursor:default; }
+  .cartao { border:1px solid var(--linha); border-radius:6px; padding:10px; margin-top:12px; }
+  .cartao h2 { font-size:11px; letter-spacing:.04em; text-transform:uppercase; color:var(--suave); margin:0 0 6px; }
+  .grande { font-size:20px; font-weight:bold; color:var(--verde); }
+  .nota { color:var(--suave); font-size:12px; margin-top:4px; }
+  table { width:100%; border-collapse:collapse; margin-top:4px; }
+  th, td { padding:3px 4px; text-align:right; border-bottom:1px solid var(--linha); }
+  th:first-child, td:first-child { text-align:left; }
+  th { font-size:11px; color:var(--suave); font-weight:normal; }
+  tr.total td { font-weight:bold; border-bottom:0; }
+  .erro { color:var(--erro); background:#FCE8E6; border-radius:4px; padding:8px; margin-top:12px; }
+  .ok { color:#137333; background:#E6F4EA; border-radius:4px; padding:8px; margin-top:12px; }
+  ul.avisos { margin:6px 0 0; padding-left:16px; color:var(--aviso); }
+  [hidden] { display:none !important; }
+</style>
+</head>
+<body>
+  <h1>Pré-escala</h1>
+  <p class="sub">Serviço ordinário do Pronto</p>
+
+  <label for="mes">Mês</label>
+  <input id="mes" type="month" placeholder="aaaa-mm">
+  <label for="secao">Seção</label>
+  <input id="secao" type="text">
+  <button id="btnAnalisar" class="secundario">Analisar</button>
+
+  <div id="erro" class="erro" hidden></div>
+
+  <div id="cartaoEquipe" class="cartao" hidden>
+    <h2>1. Pronto · equipe do dia 01</h2>
+    <div id="equipeGrande" class="grande"></div>
+    <div id="equipeNota" class="nota"></div>
+    <label for="equipe">Trocar a equipe do dia 01</label>
+    <select id="equipe"></select>
+  </div>
+
+  <div id="cartaoPrevia" class="cartao" hidden>
+    <h2>2. Pronto · o que será criado</h2>
+    <table>
+      <thead><tr><th>Equipe</th><th>Mil.</th><th>Dias</th><th>Aloc.</th></tr></thead>
+      <tbody id="tabela"></tbody>
+    </table>
+    <ul id="avisos" class="avisos"></ul>
+    <div class="nota">Só vagas livres são preenchidas. Nada que já existe é alterado. Afastamentos e trocas você ajusta depois, em Mostrar Escala.</div>
+    <button id="btnGerar" class="principal" disabled>Gerar pré-escala</button>
+  </div>
+
+  <div id="resultado" class="ok" hidden></div>
+
+  <div id="cartaoAdm" class="cartao" hidden>
+    <h2>3. Adm</h2>
+    <div id="admLinha1"></div>
+    <div id="admLinha2" class="nota"></div>
+    <ul id="admAvisos" class="avisos"></ul>
+    <button id="btnAdm" class="principal" hidden>Gerar Adm</button>
+  </div>
+  <div id="resultadoAdm" class="ok" hidden></div>
+
+  <button id="btnMatriz" class="secundario" hidden>Abrir escala do mês</button>
+
+<script>
+  var MESES = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
+  var EQUIPES = ['ALFA','BRAVO','CHARLIE','DELTA'];
+  var el = function (id) { return document.getElementById(id); };
+  var ultima = null;          // última prévia do Pronto
+  var ultimaAdm = null;       // última prévia do Adm
+  var confirmandoAdm = null;  // temporizador do segundo clique do Adm
+  var confirmando = null;     // temporizador do segundo clique
+
+  function nomeMes(aaaamm) { var p = aaaamm.split('-'); return MESES[Number(p[1]) - 1] + ' de ' + p[0]; }
+  function mostrar(id, sim) { el(id).hidden = !sim; }
+  function ocupado(sim) {
+    ['btnAnalisar', 'btnGerar', 'btnAdm', 'btnMatriz', 'mes', 'secao', 'equipe'].forEach(function (id) { el(id).disabled = sim; });
+    if (!sim && ultima) el('btnGerar').disabled = !(ultima.equipe && ultima.geracao && ultima.geracao.resumo.alocacoes > 0);
+    if (!sim && ultimaAdm) el('btnAdm').disabled = !(ultimaAdm.cumpre && ultimaAdm.novas > 0);
+  }
+  function falha(e) {
+    ocupado(false);
+    el('erro').textContent = (e && e.message) ? e.message.replace(/^Error:\s*/, '') : String(e);
+    mostrar('erro', true);
+  }
+  function limparMensagens() { mostrar('erro', false); mostrar('resultado', false); mostrar('resultadoAdm', false); mostrar('btnMatriz', false); }
+
+  function preencherEquipes(selecionada) {
+    var s = el('equipe');
+    s.innerHTML = '';
+    var vazio = document.createElement('option');
+    vazio.value = ''; vazio.textContent = 'Escolher…';
+    s.appendChild(vazio);
+    EQUIPES.forEach(function (e) {
+      var o = document.createElement('option');
+      o.value = e; o.textContent = e;
+      s.appendChild(o);
+    });
+    s.value = selecionada || '';
+  }
+
+  function mostrarPrevia(r) {
+    ultima = r;
+    var d = r.deteccao;
+    mostrar('cartaoEquipe', true);
+    if (r.equipe) {
+      el('equipeGrande').textContent = r.equipe;
+      if (r.manual) {
+        el('equipeNota').textContent = 'Escolhida por você. A detecção automática ' + (d.equipe ? 'apontava ' + d.equipe + '.' : 'não conseguiu decidir.');
+      } else {
+        var t = d.concordam + ' de ' + d.diasComVoto + ' dias de ' + nomeMes(d.mesAnterior) + ' apontam para ela.';
+        if (d.divergentes.length) t += ' Dias divergentes: ' + d.divergentes.map(function (x) { return x.slice(8); }).join(', ') + '.';
+        el('equipeNota').textContent = t;
+      }
+    } else {
+      el('equipeGrande').textContent = 'Não detectada';
+      el('equipeNota').textContent = d.motivo ? 'Motivo: ' + d.motivo + '. Escolha a equipe abaixo.' : 'Escolha a equipe abaixo.';
+    }
+    preencherEquipes(r.equipe);
+
+    if (!r.geracao) { mostrar('cartaoPrevia', false); return; }
+    var tb = el('tabela');
+    tb.innerHTML = '';
+    var tot = { m: 0, d: 0, a: 0 };
+    EQUIPES.forEach(function (e) {
+      var x = r.geracao.porEquipe[e];
+      var tr = document.createElement('tr');
+      [e, x.militares, x.dias, x.alocacoes].forEach(function (v) {
+        var td = document.createElement('td'); td.textContent = v; tr.appendChild(td);
+      });
+      tb.appendChild(tr);
+      tot.m += x.militares; tot.d += x.dias; tot.a += x.alocacoes;
+    });
+    var trt = document.createElement('tr'); trt.className = 'total';
+    ['Total', tot.m, r.geracao.resumo.dias, tot.a].forEach(function (v) {
+      var td = document.createElement('td'); td.textContent = v; trt.appendChild(td);
+    });
+    tb.appendChild(trt);
+
+    var ul = el('avisos');
+    ul.innerHTML = '';
+    r.geracao.avisos.forEach(function (a) { var li = document.createElement('li'); li.textContent = a; ul.appendChild(li); });
+    el('btnGerar').textContent = 'Gerar pré-escala';
+    el('btnGerar').disabled = r.geracao.resumo.alocacoes === 0;
+    if (r.geracao.resumo.alocacoes === 0) {
+      var li = document.createElement('li'); li.textContent = 'Nada a gerar: todas as vagas do Pronto já estão ocupadas.'; ul.appendChild(li);
+    }
+    mostrar('cartaoPrevia', true);
+  }
+
+  function analisar(equipeManual) {
+    limparMensagens();
+    if (confirmando) { clearTimeout(confirmando); confirmando = null; }
+    ocupado(true);
+    google.script.run
+      .withSuccessHandler(function (r) { ocupado(false); mostrarPrevia(r); })
+      .withFailureHandler(falha)
+      .painelPrevia(el('mes').value, el('secao').value, equipeManual || '');
+  }
+
+  function virgula(n) { return String(n).replace('.', ','); }
+  function feriadosTexto(r) {
+    return r.semAbaFeriados ? 'aba FERIADOS não criada' : (r.feriados.length ? 'feriados: ' + r.feriados.join(', ') : 'sem feriados neste mês');
+  }
+
+  function mostrarAdm(r) {
+    ultimaAdm = r;
+    var l1 = el('admLinha1'), l2 = el('admLinha2');
+    if (!r.cumpre) {
+      l1.textContent = 'Expediente em todos os ' + r.diasUteis + ' dias úteis (' + feriadosTexto(r) + ').';
+      l2.textContent = r.militares + ' militares · ' + r.saldos + ' saldos por militar (' + virgula(r.horasSaldos) + ' h), alocados por você. Nada a gerar.';
+    } else {
+      l1.textContent = r.militares + ' militares · ' + r.turnosPorMilitar + ' turnos de ' + virgula(r.horasTurno) + ' h cada · ' + r.diasUteis + ' dias úteis';
+      l2.textContent = 'Por dia: ' + (r.cobMin === r.cobMax ? r.cobMin : r.cobMin + ' a ' + r.cobMax) + ' militares · ' + r.novas + ' alocações novas · ' + feriadosTexto(r) + '.';
+    }
+    var ul = el('admAvisos'); ul.innerHTML = '';
+    r.avisos.forEach(function (a) { var li = document.createElement('li'); li.textContent = a; ul.appendChild(li); });
+    if (r.cumpre && r.novas === 0 && r.militares > 0) { var li2 = document.createElement('li'); li2.textContent = 'Nada a gerar: os turnos do Adm já estão distribuídos.'; ul.appendChild(li2); }
+    mostrar('btnAdm', r.cumpre);
+    el('btnAdm').textContent = 'Gerar Adm';
+    el('btnAdm').disabled = !(r.cumpre && r.novas > 0);
+    mostrar('cartaoAdm', true);
+  }
+
+  function analisarAdm() {
+    if (confirmandoAdm) { clearTimeout(confirmandoAdm); confirmandoAdm = null; }
+    google.script.run
+      .withSuccessHandler(function (r) { mostrarAdm(r); })
+      .withFailureHandler(function (e) {
+        ultimaAdm = null;
+        el('admLinha1').textContent = (e && e.message) ? e.message.replace(/^Error:\s*/, '') : String(e);
+        el('admLinha2').textContent = ''; el('admAvisos').innerHTML = '';
+        mostrar('btnAdm', false); mostrar('cartaoAdm', true);
+      })
+      .painelAdmPrevia(el('mes').value, el('secao').value);
+  }
+
+  // Gravar o Adm também exige dois cliques.
+  el('btnAdm').addEventListener('click', function () {
+    var b = el('btnAdm');
+    if (!confirmandoAdm) {
+      b.textContent = 'Confirmar: gravar ' + ultimaAdm.novas + ' alocações';
+      confirmandoAdm = setTimeout(function () { confirmandoAdm = null; b.textContent = 'Gerar Adm'; }, 6000);
+      return;
+    }
+    clearTimeout(confirmandoAdm); confirmandoAdm = null;
+    b.textContent = 'Gerar Adm';
+    limparMensagens();
+    ocupado(true);
+    google.script.run
+      .withSuccessHandler(function (r) {
+        ocupado(false);
+        el('resultadoAdm').textContent = r.gravadas + ' alocações do Adm gravadas em ALOCAÇÕES TABULADAS. Conferência: ' +
+          (r.restantes === 0 ? '0 turnos pendentes.' : r.restantes + ' turno(s) ainda pendente(s) (veja os avisos).');
+        mostrar('resultadoAdm', true);
+        mostrar('btnMatriz', true);
+        analisarAdm();
+      })
+      .withFailureHandler(falha)
+      .painelAdmGravar(el('mes').value, el('secao').value);
+  });
+
+  el('btnAnalisar').addEventListener('click', function () { ultima = null; analisar(''); analisarAdm(); });
+  el('equipe').addEventListener('change', function () { analisar(el('equipe').value); });
+
+  // Gravar exige dois cliques: o primeiro pede confirmação (some depois de 6 s).
+  el('btnGerar').addEventListener('click', function () {
+    var b = el('btnGerar');
+    if (!confirmando) {
+      b.textContent = 'Confirmar: gravar ' + ultima.geracao.resumo.alocacoes + ' alocações';
+      confirmando = setTimeout(function () { confirmando = null; b.textContent = 'Gerar pré-escala'; }, 6000);
+      return;
+    }
+    clearTimeout(confirmando); confirmando = null;
+    b.textContent = 'Gerar pré-escala';
+    limparMensagens();
+    ocupado(true);
+    google.script.run
+      .withSuccessHandler(function (r) {
+        ocupado(false);
+        var msg = r.mensagem;
+        if (r.gravadas > 0) msg += ' Conferência: ' + (r.pendentes === 0 ? '0 vagas pendentes.' : r.pendentes + ' vaga(s) ainda pendente(s). Rode a análise de novo.');
+        el('resultado').textContent = msg;
+        mostrar('resultado', true);
+        mostrar('btnMatriz', true);
+        el('btnGerar').disabled = true;
+      })
+      .withFailureHandler(falha)
+      .painelGerar(el('mes').value, el('secao').value, el('equipe').value);
+  });
+
+  el('btnMatriz').addEventListener('click', function () {
+    ocupado(true);
+    google.script.run
+      .withSuccessHandler(function () { ocupado(false); })
+      .withFailureHandler(falha)
+      .painelAbrirMatriz(el('mes').value, el('secao').value);
+  });
+
+  google.script.run
+    .withSuccessHandler(function (d) { el('mes').value = d.mesSugerido; el('secao').value = d.secao; preencherEquipes(''); })
+    .withFailureHandler(falha)
+    .painelDados();
+</script>
+</body>
+</html>

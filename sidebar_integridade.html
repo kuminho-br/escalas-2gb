@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<base target="_top">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  :root { --verde:#2F5D50; --verde-claro:#E6EFEC; --texto:#202124; --suave:#5F6368; --linha:#DADCE0; --erro:#C5221F; --aviso:#B06000; }
+  * { box-sizing:border-box; }
+  body { margin:0; padding:14px 14px 24px; font:13px/1.45 Arial, sans-serif; color:var(--texto); }
+  h1 { font-size:16px; margin:0 0 2px; }
+  .sub { color:var(--suave); margin:0 0 14px; }
+  label { display:block; font-weight:bold; margin:10px 0 3px; font-size:12px; }
+  label.linha { font-weight:normal; display:flex; gap:6px; align-items:center; margin:8px 0 0; }
+  input[type=month] { width:100%; padding:6px 8px; border:1px solid var(--linha); border-radius:4px; font:inherit; background:#fff; color:inherit; }
+  button { font:inherit; border:0; border-radius:4px; padding:8px 12px; cursor:pointer; width:100%; margin-top:10px; background:var(--verde); color:#fff; font-weight:bold; }
+  button:disabled { opacity:.45; cursor:default; }
+  .cartao { border:1px solid var(--linha); border-radius:6px; padding:10px; margin-top:12px; }
+  .cartao h2 { font-size:11px; letter-spacing:.04em; text-transform:uppercase; color:var(--suave); margin:0 0 6px; }
+  .situacao { font-weight:bold; }
+  .situacao.ok { color:#137333; }
+  .situacao.problema { color:var(--erro); }
+  .situacao.atencao { color:var(--aviso); }
+  ul.itens { list-style:none; margin:8px 0 0; padding:0; }
+  ul.itens li { padding:5px 0; border-bottom:1px solid var(--linha); font-size:12px; }
+  ul.itens li:last-child { border-bottom:0; }
+  ul.itens .nome { font-weight:bold; display:block; }
+  ul.itens .detalhe { color:var(--suave); }
+  .nota { color:var(--suave); font-size:12px; margin-top:6px; }
+  .erro { color:var(--erro); background:#FCE8E6; border-radius:4px; padding:8px; margin-top:12px; }
+  [hidden] { display:none !important; }
+</style>
+</head>
+<body>
+  <h1>Integridade dos Dados</h1>
+  <p class="sub">Só confere e relata. Não altera nada.</p>
+
+  <label for="mes">Mês</label>
+  <input id="mes" type="month" placeholder="aaaa-mm">
+  <label class="linha"><input id="todos" type="checkbox"> Todos os meses</label>
+  <button id="btnVerificar">Verificar</button>
+
+  <div id="erro" class="erro" hidden></div>
+
+  <div id="cartaoChoques" class="cartao" hidden>
+    <h2>Choques de horário</h2>
+    <div id="situacaoChoques" class="situacao"></div>
+    <ul id="listaChoques" class="itens"></ul>
+    <div id="maisChoques" class="nota" hidden></div>
+    <div class="nota">Horários que se cruzam, pela aba TURNOS (turnos que só se encostam não contam), JES emendado com Pronto e serviços no expediente do Adm.</div>
+  </div>
+
+  <div id="cartaoCatalogo" class="cartao" hidden>
+    <h2>Catálogo de turnos</h2>
+    <div id="situacaoCatalogo" class="situacao"></div>
+    <ul id="listaCatalogo" class="itens"></ul>
+  </div>
+
+  <div id="cartaoMatriz" class="cartao" hidden>
+    <h2>Escala carregada × tabela</h2>
+    <div id="situacaoMatriz" class="situacao"></div>
+    <ul id="listaMatriz" class="itens"></ul>
+  </div>
+
+  <div id="cartaoOutros" class="cartao" hidden>
+    <h2>Outros avisos</h2>
+    <ul id="listaOutros" class="itens"></ul>
+  </div>
+
+<script>
+  var el = function (id) { return document.getElementById(id); };
+  function mostrar(id, sim) { el(id).hidden = !sim; }
+  function ocupado(sim) { ['btnVerificar', 'mes', 'todos'].forEach(function (id) { el(id).disabled = sim; }); if (!sim) el('mes').disabled = el('todos').checked; }
+  function falha(e) {
+    ocupado(false);
+    ['cartaoChoques', 'cartaoCatalogo', 'cartaoMatriz', 'cartaoOutros'].forEach(function (id) { mostrar(id, false); });
+    el('erro').textContent = (e && e.message) ? e.message.replace(/^Error:\s*/, '') : String(e);
+    mostrar('erro', true);
+  }
+  function situacao(id, classe, texto) { var s = el(id); s.className = 'situacao ' + classe; s.textContent = texto; }
+  function lista(id, textos) {
+    var ul = el(id); ul.innerHTML = '';
+    textos.forEach(function (t) { var li = document.createElement('li'); li.textContent = t; ul.appendChild(li); });
+  }
+
+  function mostrarResultado(r) {
+    // choques
+    var ul = el('listaChoques'); ul.innerHTML = '';
+    if (r.totalChoques === 0) {
+      situacao('situacaoChoques', 'ok', 'Nenhum choque de horário' + (r.mes ? ' em ' + r.mes : '') + '.');
+    } else {
+      situacao('situacaoChoques', 'problema', r.totalChoques + (r.totalChoques === 1 ? ' choque encontrado.' : ' choques encontrados.'));
+      r.choques.forEach(function (c) {
+        var li = document.createElement('li');
+        var n = document.createElement('span'); n.className = 'nome'; n.textContent = c.nome;
+        var d = document.createElement('span'); d.className = 'detalhe';
+        d.textContent = c.tipo === 'duplicata' ? c.a + ' aparece repetida na tabela'
+          : c.tipo === 'emenda' ? c.a + '  →  ' + c.b + '  ·  JES não pode emendar com Pronto'
+          : c.a + '  ×  ' + c.b + '  ·  ' + c.horas + ' h';
+        li.appendChild(n); li.appendChild(d); ul.appendChild(li);
+      });
+    }
+    var mais = r.totalChoques - r.choques.length;
+    el('maisChoques').textContent = mais > 0 ? 'e mais ' + mais + ' choque(s) não listado(s).' : '';
+    mostrar('maisChoques', mais > 0);
+    mostrar('cartaoChoques', true);
+
+    // catálogo
+    var avisos = r.avisosTurnos.slice();
+    r.semHorario.forEach(function (s) { avisos.push(s.qtd + ' alocação(ões) de "' + s.servico + ' ' + s.turno + '" não têm horário na aba TURNOS e ficaram fora da checagem.'); });
+    if (avisos.length === 0) situacao('situacaoCatalogo', 'ok', 'Horários da aba TURNOS legíveis e coerentes.');
+    else situacao('situacaoCatalogo', 'atencao', avisos.length + ' ponto(s) para revisar.');
+    lista('listaCatalogo', avisos);
+    mostrar('cartaoCatalogo', true);
+
+    // escala carregada × tabela
+    if (!r.matriz.existe) {
+      situacao('situacaoMatriz', 'atencao', 'Não há escala carregada para comparar.');
+      lista('listaMatriz', []);
+    } else if (r.matriz.total === 0) {
+      situacao('situacaoMatriz', 'ok', 'A escala carregada e a tabela estão iguais (0 diferenças).');
+      lista('listaMatriz', []);
+    } else {
+      situacao('situacaoMatriz', 'atencao', r.matriz.total + ' diferença(s). Salve ou recarregue a escala pelo painel Mostrar Escala.');
+      lista('listaMatriz', r.matriz.linhas.filter(function (l) { return l.trim() !== ''; }));
+    }
+    mostrar('cartaoMatriz', true);
+
+    lista('listaOutros', r.ignoradas);
+    mostrar('cartaoOutros', r.ignoradas.length > 0);
+  }
+
+  function verificar() {
+    mostrar('erro', false);
+    ocupado(true);
+    google.script.run
+      .withSuccessHandler(function (r) { ocupado(false); mostrarResultado(r); })
+      .withFailureHandler(falha)
+      .painelIntegridade(el('todos').checked ? '' : el('mes').value);
+  }
+
+  el('btnVerificar').addEventListener('click', verificar);
+  el('todos').addEventListener('change', function () { el('mes').disabled = el('todos').checked; });
+
+  google.script.run
+    .withSuccessHandler(function (d) { el('mes').value = d.mes; verificar(); })
+    .withFailureHandler(falha)
+    .painelDadosIntegridade();
+</script>
+</body>
+</html>

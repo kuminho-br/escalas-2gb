@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<base target="_top">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  :root { --verde:#2F5D50; --verde-claro:#E6EFEC; --texto:#202124; --suave:#5F6368; --linha:#DADCE0; --erro:#C5221F; --aviso:#B06000; }
+  * { box-sizing:border-box; }
+  body { margin:0; padding:14px 14px 24px; font:13px/1.45 Arial, sans-serif; color:var(--texto); }
+  h1 { font-size:16px; margin:0 0 10px; }
+  input, select { padding:5px 7px; border:1px solid var(--linha); border-radius:4px; font:inherit; background:#fff; color:inherit; }
+  button { font:inherit; border:0; border-radius:4px; padding:5px 10px; cursor:pointer; background:var(--verde); color:#fff; }
+  button.leve { background:var(--verde-claro); color:var(--verde); }
+  button.link { background:none; color:var(--erro); padding:0 0 0 8px; font-size:12px; text-decoration:underline; }
+  button:disabled { opacity:.45; cursor:default; }
+  .topo { display:flex; align-items:center; gap:8px; }
+  .topo input { flex:1; }
+  .grupo { font-size:11px; letter-spacing:.04em; text-transform:uppercase; color:var(--suave); margin:16px 0 4px; border-bottom:1px solid var(--linha); padding-bottom:3px; }
+  .item { padding:6px 0; border-bottom:1px solid var(--linha); }
+  .item label { display:block; font-weight:bold; font-size:12px; margin-bottom:3px; }
+  .ctl { display:flex; gap:6px; }
+  .ctl input, .ctl select { flex:1; min-width:0; }
+  details { margin-top:4px; font-size:12px; color:var(--suave); }
+  details summary { cursor:pointer; }
+  details .vig { display:flex; align-items:center; gap:6px; margin:4px 0; }
+  details .vig input { flex:1; }
+  ul.hist { margin:4px 0 0; padding:0; list-style:none; }
+  ul.hist li { padding:2px 0; }
+  .resumo { background:var(--verde-claro); border-radius:6px; padding:8px 10px; margin-top:12px; font-size:12px; }
+  .resumo b { color:var(--verde); }
+  .linhaF { display:flex; justify-content:space-between; align-items:center; gap:8px; margin-top:6px; font-size:12px; }
+  .erro { color:var(--erro); background:#FCE8E6; border-radius:4px; padding:6px 8px; margin-top:8px; font-size:12px; }
+  .ok { color:#137333; background:#E6F4EA; border-radius:4px; padding:6px 8px; margin-top:8px; font-size:12px; }
+  .avisoBox { color:var(--aviso); background:#FEF7E0; border-radius:4px; padding:6px 8px; margin-top:8px; font-size:12px; }
+  [hidden] { display:none !important; }
+</style>
+</head>
+<body>
+  <h1>Configurações</h1>
+
+  <div class="topo"><span>Em vigor em</span><input id="mes" type="month"></div>
+
+  <div id="erro" class="erro" hidden></div>
+  <div id="ok" class="ok" hidden></div>
+  <div id="avisos" class="avisoBox" hidden></div>
+
+  <div id="carga"></div>
+  <div id="lista"></div>
+
+<script>
+  var el = function (id) { return document.getElementById(id); };
+  var estado = { mes: '' };
+
+  function mostrarErro(msg) { var e = el('erro'); e.textContent = msg || ''; e.hidden = !msg; if (msg) el('ok').hidden = true; }
+  function mostrarOk(msg) { var e = el('ok'); e.textContent = msg || ''; e.hidden = !msg; if (msg) el('erro').hidden = true; }
+  function falha(e) { mostrarErro((e && e.message ? e.message : String(e)).replace(/^Error:\s*/, '')); trava(false); }
+  function trava(sim) { var bs = document.querySelectorAll('button'); for (var i = 0; i < bs.length; i++) bs[i].disabled = sim; }
+  function criar(tag, texto, classe) {
+    var n = document.createElement(tag);
+    if (texto != null) n.textContent = texto;
+    if (classe) n.className = classe;
+    return n;
+  }
+  function virgula(n) { return String(n).replace('.', ','); }
+
+  function desenharResumo(d) {
+    var box = el('carga');
+    box.textContent = '';
+    var k = d.carga, f = d.feriados;
+    var c = criar('div', null, 'resumo');
+    var l1 = criar('div');
+    l1.appendChild(document.createTextNode('Adm: '));
+    if (k.cumpreCarga) {
+      l1.appendChild(criar('b', virgula(k.horasNormais) + ' h'));
+      l1.appendChild(document.createTextNode(' em serviço normal = '));
+      l1.appendChild(criar('b', k.turnosAdm + ' turnos'));
+      l1.appendChild(document.createTextNode(' de ' + virgula(k.horasTurno) + ' h · ' + k.diasUteis + ' dias úteis'));
+    } else {
+      l1.appendChild(document.createTextNode('expediente em todos os '));
+      l1.appendChild(criar('b', k.diasUteis + ' dias úteis'));
+      l1.appendChild(document.createTextNode(' · ' + k.saldos + ' saldos por militar (' + virgula(k.horasSaldos) + ' h)'));
+    }
+    c.appendChild(l1);
+    (k.avisos || []).forEach(function (t) { c.appendChild(criar('div', t, 'avisoBox')); });
+
+    var l2 = criar('div', null, 'linhaF');
+    l2.appendChild(criar('span', 'Feriados: ' + (f.dias.length ? f.dias.join(', ') : (f.existe ? 'nenhum neste mês' : 'aba não criada'))));
+    var b = criar('button', 'Abrir aba', 'leve');
+    b.addEventListener('click', function () {
+      trava(true);
+      google.script.run.withSuccessHandler(function () { trava(false); }).withFailureHandler(falha).painelFeriadosAbrir();
+    });
+    l2.appendChild(b);
+    c.appendChild(l2);
+    box.appendChild(c);
+  }
+
+  function desenhar(d) {
+    estado.mes = d.mes;
+    el('mes').value = d.mes;
+
+    var av = el('avisos');
+    av.textContent = '';
+    if (d.avisos && d.avisos.length) {
+      d.avisos.forEach(function (t) { av.appendChild(criar('div', t)); });
+    }
+    av.hidden = !(d.avisos && d.avisos.length);
+
+    desenharResumo(d);
+
+    var lista = el('lista');
+    lista.textContent = '';
+    var grupoAtual = null;
+    d.params.forEach(function (p) {
+      if (p.grupo !== grupoAtual) { grupoAtual = p.grupo; lista.appendChild(criar('div', grupoAtual, 'grupo')); }
+      var c = criar('div', null, 'item');
+      var lb = criar('label', p.rotulo);
+      lb.setAttribute('for', 'v_' + p.chave);
+      lb.title = p.descricao;
+      c.appendChild(lb);
+
+      var ctl = criar('div', null, 'ctl');
+      var iv;
+      if (p.tipo === 'simnao') {
+        iv = criar('select'); iv.id = 'v_' + p.chave;
+        ['SIM', 'NÃO'].forEach(function (t) { var o = criar('option', t); o.value = t; iv.appendChild(o); });
+      } else {
+        iv = criar('input'); iv.id = 'v_' + p.chave;
+        iv.type = (p.tipo === 'inteiro' || p.tipo === 'decimal') ? 'number' : 'text';
+        if (p.min != null) iv.min = p.min;
+        if (p.max != null) iv.max = p.max;
+        if (p.tipo === 'inteiro') iv.step = 1;
+      }
+      iv.value = p.valor;
+      ctl.appendChild(iv);
+      var b = criar('button', 'Salvar');
+      b.addEventListener('click', function () { salvar(p.chave); });
+      ctl.appendChild(b);
+      c.appendChild(ctl);
+
+      var det = criar('details');
+      var n = p.historico ? p.historico.length : 0;
+      det.appendChild(criar('summary', 'Vigência' + (n ? ' (' + n + ')' : '') + ' · em vigor ' + (p.desde === 'sempre' || p.desde === 'padrão do sistema' ? p.desde : 'desde ' + p.desde)));
+      var vig = criar('div', null, 'vig');
+      vig.appendChild(criar('span', 'a partir de'));
+      var ig = criar('input'); ig.id = 'g_' + p.chave; ig.type = 'month';
+      vig.appendChild(ig);
+      det.appendChild(vig);
+      det.appendChild(criar('div', 'Vazio troca o valor-base.'));
+      if (n) {
+        var h = criar('ul', null, 'hist');
+        p.historico.forEach(function (x) {
+          var li = criar('li', (x.vigencia ? x.vigencia : 'base') + ': ' + x.valor);
+          var r = criar('button', 'remover', 'link');
+          r.addEventListener('click', function () { remover(p.chave, x.vigencia); });
+          li.appendChild(r);
+          h.appendChild(li);
+        });
+        det.appendChild(h);
+      }
+      c.appendChild(det);
+      lista.appendChild(c);
+    });
+    trava(false);
+  }
+
+  function carregar(mes) {
+    mostrarErro('');
+    google.script.run.withSuccessHandler(desenhar).withFailureHandler(falha).painelParametrosDados(mes || '');
+  }
+
+  function salvar(chave) {
+    mostrarErro(''); mostrarOk('');
+    trava(true);
+    google.script.run
+      .withSuccessHandler(function (d) { desenhar(d); mostrarOk('Salvo.'); })
+      .withFailureHandler(falha)
+      .painelParametrosSalvar(chave, el('v_' + chave).value, el('g_' + chave).value, el('mes').value || estado.mes);
+  }
+
+  function remover(chave, vigencia) {
+    mostrarErro(''); mostrarOk('');
+    trava(true);
+    google.script.run
+      .withSuccessHandler(function (d) { desenhar(d); mostrarOk('Removido.'); })
+      .withFailureHandler(falha)
+      .painelParametrosRemover(chave, vigencia, el('mes').value || estado.mes);
+  }
+
+  el('mes').addEventListener('change', function () { if (el('mes').value) carregar(el('mes').value); });
+  carregar('');
+</script>
+</body>
+</html>
