@@ -64,7 +64,7 @@
     <div id="maisNota" class="nota" hidden></div>
     <button id="btnSalvar" class="principal" disabled>Salvar alterações</button>
     <button id="btnAtualizar" class="secundario">Atualizar</button>
-    <div class="nota">Ao trocar o serviço de uma célula, a função dessa alocação é apagada. Só é gravado o que você mudou desde que a escala foi carregada.</div>
+    <div class="nota">Ao trocar o serviço ou o horário de uma célula, a função dessa alocação é apagada; mover o mesmo serviço de uma linha para outra não muda nada. Só é gravado o que você mudou desde que a escala foi carregada.</div>
   </div>
 
   <div id="cartaoConflitos" class="avisoBox" hidden>
@@ -74,8 +74,8 @@
   </div>
 
   <div id="cartaoInvalidas" class="avisoBox" hidden>
-    <b>Serviço inválido para o turno (não gravados)</b>
-    <div class="nota">Esse serviço não existe nesse turno na aba TURNOS.</div>
+    <b>Célula não reconhecida (não gravada)</b>
+    <div class="nota">O texto da célula não corresponde a nenhum serviço e horário da aba TURNOS. Escolha um item da lista.</div>
     <ul id="listaInvalidas" class="itens"></ul>
   </div>
 
@@ -95,7 +95,7 @@
       <div id="legendaErro" class="nota" hidden></div>
       <div id="legendaLista"></div>
       <div id="legendaAvisos" class="nota" hidden></div>
-      <div class="nota">Horários lidos da aba TURNOS. O turno é a letra da linha; o horário depende do serviço.</div>
+      <div class="nota">Horários lidos da aba TURNOS. Na grade, cada célula mostra o serviço e o horário (ex.: Pronto 08–20); a linha do militar não define o turno.</div>
     </div>
   </details>
 
@@ -123,12 +123,12 @@
   function limpar() { mostrar('erro', false); mostrar('resultado', false); }
 
   function descricao(i) {
-    var s = i.nome + ' · ' + i.dia + ' ' + i.turno + ' · ';
+    var s = i.nome + ' · ' + i.dia + ' · ';
     if (i.choca) return s + i.para + ' · ' + i.choca;
     if (i.tipo === 'inclusao') return s + i.para;
     if (i.tipo === 'exclusao') return s + 'era ' + (i.de || '—');
     if (i.tipo === 'alteracao') return s + (i.de || '—') + ' → ' + i.para;
-    if (i.tabela !== '') return s + 'você: ' + (i.para || 'vazio') + ' · tabela: ' + i.tabela;
+    if (i.tabela) return s + 'você: ' + (i.para || 'vazio') + ' · tabela: ' + i.tabela;
     return s + (i.para || '—');
   }
   function preencherLista(id, itens, comTipo) {

@@ -29,6 +29,10 @@ const PARAM_CATALOGO_ = [
     descricao: 'NÃO: o Adm só cumpre os saldos e fica de expediente em todo dia útil (usado para checar choques). SIM: o Adm também cumpre a carga mensal, e a pré-escala distribui os turnos dele.'
   },
   {
+    chave: 'LINHAS_POR_MILITAR', grupo: 'Escala', rotulo: 'Linhas por militar na escala', tipo: 'inteiro', padrao: 2, min: 1, max: 6,
+    descricao: 'Quantas linhas cada militar tem na escala do mês: o espaço para o 1º, o 2º... serviço do dia. Vale na próxima vez que a escala for carregada.'
+  },
+  {
     chave: 'SECAO_PADRAO', grupo: 'Geral', rotulo: 'Seção padrão', tipo: 'texto', padrao: '1ª SB',
     descricao: 'Seção sugerida ao abrir os painéis.'
   }

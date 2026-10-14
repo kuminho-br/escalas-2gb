@@ -1,7 +1,7 @@
 /**
  * GUARNIÇÕES — lógica pura (sem SpreadsheetApp), testável fora do Sheets.
  * Depende de nucleo.gs (normalizar_, diasDoMes_, diaDaSemana_, nomeExibicao_),
- * sincronia.gs (chaveAloc_, bloquearPorChoque_) e choques.gs.
+ * sincronia.js (chaveAloc_, bloquearPorChoque_) e choques.js.
  *
  * IDEIA
  *   Cada ESCALA (Defensoria, PE Seguro, Bioma, CPRH, Pronto...) tem um molde:
@@ -50,6 +50,13 @@ function mesPorExtenso_(mes) {
   const p = mes.split('-');
   return GUARN_MESES_[Number(p[1]) - 1] + ' / ' + p[0];
 }
+
+/**
+ * Chave de um militar num bloco da grade (dia + letra do turno). A grade de guarnição agrupa por
+ * dia e letra de turno, não por serviço; por isso ela tem a própria chave e não usa chaveAloc_.
+ * Só na hora de checar choque é que se usa a chave completa (serviço incluído).
+ */
+function chaveBloco_(a) { return a.mat + '|' + a.dia + '|' + a.turno; }
 
 function chaveSlot_(unidade, funcao) { return normalizar_(unidade) + '|' + normalizar_(funcao); }
 
@@ -183,7 +190,7 @@ function montarGrade_(esc, mes, alocs) {
   const porBloco = Object.create(null), vistos = Object.create(null), base = [], avisos = [];
   alocs.forEach(function (a) {
     if (esc.servicos.indexOf(a.servico) < 0 || a.dia.slice(0, 7) !== mes) return;
-    const k = chaveAloc_(a);
+    const k = chaveBloco_(a);
     if (vistos[k]) { avisos.push('A tabela tem a mesma alocação repetida (' + a.mat + ' em ' + a.dia.slice(8) + '/' + a.dia.slice(5, 7) + ' turno ' + a.turno + '); só a primeira é usada.'); return; }
     vistos[k] = true;
     const b = a.dia + '|' + a.turno;
@@ -214,14 +221,14 @@ function montarGrade_(esc, mes, alocs) {
       });
       vagas += slots.length;
       preenchidas += ocupados.filter(Boolean).length;
-      resto.forEach(function (a) { fora[chaveAloc_(a)] = true; });
+      resto.forEach(function (a) { fora[chaveBloco_(a)] = true; });
       if (resto.length) {
         semFuncao[dia + '|' + turno] = resto.map(function (a) { return { mat: a.mat, funcao: a.funcao || '' }; });
         escaladosSemFuncao += resto.length;
       }
     });
   });
-  base.forEach(function (b) { if (fora[chaveAloc_(b)]) b.fora = true; });   // não coube em nenhum posto: a grade não a mostra
+  base.forEach(function (b) { if (fora[chaveBloco_(b)]) b.fora = true; });   // não coube em nenhum posto: a grade não a mostra
   return { linhas: linhas, semFuncao: semFuncao, base: base, avisos: avisos, vagas: vagas, preenchidas: preenchidas, escaladosSemFuncao: escaladosSemFuncao };
 }
 
@@ -248,13 +255,16 @@ function calcularGuarnicao_(base, grade, tabelaMes, esc, opcoes) {
   };
 
   const B = Object.create(null);
-  base.forEach(function (a) { const k = chaveAloc_(a); if (!(k in B)) B[k] = { servico: a.servico, e: est(a.funcao, a.unidade), fora: !!a.fora }; });
+  base.forEach(function (a) { const k = chaveBloco_(a); if (!(k in B)) B[k] = { servico: a.servico, e: est(a.funcao, a.unidade), fora: !!a.fora }; });
 
+  // Uma pessoa pode ter dois serviços na mesma letra de turno (ex.: Bioma A e Pronto A). Aqui vale o da
+  // escala; sem ele, o primeiro da tabela. As linhas guardadas são só as desse serviço.
   const T = Object.create(null);
-  tabelaMes.forEach(function (a) {
-    const k = chaveAloc_(a);
+  const foraDaEscala = function (a) { return esc.servicos.indexOf(a.servico) >= 0 ? 0 : 1; };
+  tabelaMes.slice().sort(function (x, y) { return foraDaEscala(x) - foraDaEscala(y); }).forEach(function (a) {
+    const k = chaveBloco_(a);
     if (!T[k]) T[k] = { servico: a.servico, f: a.funcao, u: a.unidade, linhas: [] };
-    T[k].linhas.push(a.linha);
+    if (T[k].servico === a.servico) T[k].linhas.push(a.linha);
   });
   const estadoTabela = function (k) {
     const t = T[k];
@@ -271,7 +281,7 @@ function calcularGuarnicao_(base, grade, tabelaMes, esc, opcoes) {
       if (r.texto) res.invalidas.push({ motivo: 'ilegivel', chave: '', mat: '', dia: r.dia, turno: r.turno, funcao: r.funcao, unidade: r.unidade, texto: r.texto });
       return;
     }
-    const k = chaveAloc_({ mat: r.mat, dia: r.dia, turno: r.turno });
+    const k = chaveBloco_({ mat: r.mat, dia: r.dia, turno: r.turno });
     if (!ocup[k]) ocup[k] = [];
     ocup[k].push(r);
   });
@@ -330,16 +340,23 @@ function calcularGuarnicao_(base, grade, tabelaMes, esc, opcoes) {
 
   // choque de horário: só as inclusões criam alocação nova (trocar a função não muda horário)
   if (opcoes.horarios && opcoes.todas && res.inserir.length) {
-    const posto = Object.create(null);
-    res.inserir.forEach(function (i) { posto[i.chave] = { funcao: i.funcao, unidade: i.unidade }; });
-    const r2 ={ inserir: res.inserir, atualizar: [], remover: res.remover, choques: [], aplicadas: res.aplicadas.map(function (a) { return a.chave; }) };
+    // a checagem de choque trabalha com a chave completa (serviço incluído); aqui a chave é a do bloco
+    const posto = Object.create(null), cheia = Object.create(null);
+    res.inserir.forEach(function (i) { const c = chaveAloc_(i); cheia[i.chave] = c; posto[c] = { funcao: i.funcao, unidade: i.unidade }; });
+    const r2 = {
+      inserir: res.inserir.map(function (i) { return Object.assign({}, i, { chave: cheia[i.chave], troca: '' }); }),
+      atualizar: [], remover: res.remover, choques: [],
+      aplicadas: res.aplicadas.map(function (a) { return cheia[a.chave] || a.chave; })
+    };
     bloquearPorChoque_(r2, Object.create(null), opcoes.todas, opcoes.horarios);
-    res.inserir = r2.inserir;
+    const passou = Object.create(null);
+    r2.inserir.forEach(function (i) { passou[i.chave] = true; });
+    res.inserir = res.inserir.filter(function (i) { return passou[cheia[i.chave]]; });
     res.choques = r2.choques;
     res.choques.forEach(function (c) { const p = posto[c.chave]; if (p) { c.funcao = p.funcao; c.unidade = p.unidade; } });
     const ok = Object.create(null);
     r2.aplicadas.forEach(function (k) { ok[k] = true; });
-    res.aplicadas = res.aplicadas.filter(function (a) { return ok[a.chave]; });
+    res.aplicadas = res.aplicadas.filter(function (a) { return ok[cheia[a.chave] || a.chave]; });
   }
 
   res.resumo = {
@@ -358,7 +375,7 @@ function calcularGuarnicao_(base, grade, tabelaMes, esc, opcoes) {
 /** Nova referência depois de salvar: só as chaves aplicadas avançam; conflitos e inválidas continuam pendentes. */
 function novaBaseGuarnicao_(base, res) {
   const B = Object.create(null);
-  base.forEach(function (a) { const k = chaveAloc_(a); if (!(k in B)) B[k] = a; });
+  base.forEach(function (a) { const k = chaveBloco_(a); if (!(k in B)) B[k] = a; });
   res.aplicadas.forEach(function (a) {
     if (a.estado === null) { delete B[a.chave]; return; }
     const p = a.chave.split('|');
