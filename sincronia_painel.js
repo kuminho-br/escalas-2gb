@@ -73,9 +73,12 @@ function analisarSincronia_(tz) {
   m.dias.forEach(function (d) { if (d) dias[d] = true; });
   const todas = lerAlocacoes_(tz).alocs;                     // todos os meses: o dia 31 precisa enxergar o dia 01
   const tabela = todas.filter(function (a) { return dias[a.dia]; });
+  const opcoesRegras = contextoDeRegras_();
   const res = calcularSincronizacao_(base, desm.alocs, tabela, catalogo.pares,
-    { horarios: hor.porChave, todas: alocsComExpediente_(todas, hor, tz), ilegiveis: desm.ilegiveis, regras: contextoDeRegras_() });
-  return { res: res, base: base, fora: fora, matriz: desm.alocs, orfas: desm.orfas, repetidas: desm.repetidas, dias: m.dias, avisosTurnos: hor.avisos, rot: rot };
+    { horarios: hor.porChave, todas: alocsComExpediente_(todas, hor, tz), ilegiveis: desm.ilegiveis, regras: opcoesRegras });
+  const ctxRegras = opcoesRegras;
+  const jesSemRegra = !ctxRegras.voluntariosJes && res.inserir.some(function (i) { return exigeVoluntarioJes_(i.servico); });
+  return { res: res, jesSemRegra: jesSemRegra, base: base, fora: fora, matriz: desm.alocs, orfas: desm.orfas, repetidas: desm.repetidas, dias: m.dias, avisosTurnos: hor.avisos, rot: rot };
 }
 
 function nomesPorMatricula_() {
@@ -122,6 +125,7 @@ function resumoParaTela_(a, nomes) {
   const avisos = (a.avisosTurnos || []).slice();
   if (a.orfas) avisos.push(a.orfas + ' célula(s) preenchida(s) em linha sem matrícula ou data foram ignoradas.');
   if (a.repetidas) avisos.push(a.repetidas + ' célula(s) repetem um serviço já lançado para o mesmo militar e dia; só a primeira vale.');
+  if (a.jesSemRegra) avisos.push('Há JES a gravar, mas a aba MILITARES não tem a coluna VOLUNTÁRIO JES: a regra RN-46 não foi aplicada.');
   if (a.fora && a.fora.length) avisos.push(a.fora.length + ' serviço(s) ficaram fora da grade quando a escala foi carregada (poucas linhas por militar). Continuam na tabela e não serão apagados.');
   return {
     resumo: r.resumo,

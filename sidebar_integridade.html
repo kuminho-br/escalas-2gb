@@ -55,7 +55,8 @@
     <div id="situacaoRegras" class="situacao"></div>
     <ul id="listaRegras" class="itens"></ul>
     <div id="maisRegras" class="nota" hidden></div>
-    <div class="nota">Saldo só para militar do Adm; no máximo uma diária por dia (a dobradinha é permitida).</div>
+    <div id="avisosRegras" class="nota" hidden></div>
+    <div class="nota">Saldo só para militar do Adm; no máximo uma diária por dia (a dobradinha é permitida); JES só para militar com VOLUNTÁRIO JES = sim.</div>
   </div>
 
   <div id="cartaoCatalogo" class="cartao" hidden>
@@ -129,6 +130,7 @@
     var maisR = r.totalRegras - r.regras.length;
     el('maisRegras').textContent = maisR > 0 ? 'e mais ' + maisR + ' violação(ões) não listada(s).' : '';
     mostrar('maisRegras', maisR > 0);
+    el('avisosRegras').textContent = (r.avisosRegras || []).join(' '); mostrar('avisosRegras', (r.avisosRegras || []).length > 0);
     mostrar('cartaoRegras', true);
 
     // catálogo

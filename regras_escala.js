@@ -5,11 +5,15 @@
  * Cada regra olha a lista de alocações e devolve as que a violam:
  *   RN-03  Saldo só para militar do Adm.
  *   RN-36  no máximo uma diária por militar por dia, contada pelo dia em que o turno COMEÇA;
- *   RN-37  a dobradinha é permitida (16h–00h do dia D + 00h–08h do dia D+1 começam em dias diferentes).
+ *   RN-37  a dobradinha é permitida (16h–00h do dia D + 00h–08h do dia D+1 começam em dias diferentes);
+ *   RN-46  JES só para militar com o atributo "voluntário JES" = sim (aba MILITARES); RN-39: só quem tem o
+ *          atributo pode preencher o formulário do mês (as linhas dos demais, no VOLUNTARIADO, são ignoradas).
  *
  * contexto (ctx), montado pela camada do Sheets (contextoDeRegras_):
  *   adm   : { matrícula: true }        militares da jornada Adm (aba MILITARES)
  *   tipos : { 'Serviço': 'Tipo' }      coluna TIPO DE SERVIÇO da aba TURNOS ("Diária" é o que importa)
+ *   voluntariosJes : { matrícula: true } | null   quem é voluntário JES; null = a aba MILITARES não tem a coluna
+ *                                      (a regra RN-46 fica desligada, com aviso na tela)
  * Depende de distribuicao_cotas.js (TIPO_DIARIA_) e nucleo.js (normalizar_).
  */
 
@@ -54,8 +58,40 @@ function violacoesDiariaUnica_(alocs, ctx) {
   return res;
 }
 
+// serviços que só militar voluntário pode cumprir (RN-46). Defensoria e CPRH, mesmo sendo PJES, ficam de fora até o SECRETARIADO decidir.
+const SERVICOS_SO_VOLUNTARIOS_ = ['JES'];
+
+function exigeVoluntarioJes_(servico) { return SERVICOS_SO_VOLUNTARIOS_.indexOf(normalizar_(servico)) >= 0; }
+
+/** RN-46: JES lançado para militar que não é voluntário. Sem a coluna (voluntariosJes null) a regra não age. */
+function violacoesJesVoluntario_(alocs, ctx) {
+  const vol = ctx.voluntariosJes;
+  if (!vol) return [];
+  const res = [];
+  alocs.forEach(function (a) {
+    if (!exigeVoluntarioJes_(a.servico) || vol[a.mat]) return;
+    res.push({ chave: chaveAloc_(a), mat: a.mat, dia: a.dia, servico: a.servico, turno: a.turno, rn: 'RN-46', texto: 'JES só para militar voluntário (VOLUNTÁRIO JES = sim) (RN-46)' });
+  });
+  return res;
+}
+
+/**
+ * RN-46 / RN-39: as linhas do VOLUNTARIADO de quem não é voluntário JES são ignoradas (e não contam como "preencheu
+ * o formulário"). voluntariosJes null (sem a coluna em MILITARES): nada é ignorado.
+ * linhas: [{ mat, ... }]. Retorna { linhas, ignoradas: { matrícula: quantidade } }.
+ */
+function separarVoluntariado_(linhas, voluntariosJes) {
+  if (!voluntariosJes) return { linhas: linhas.slice(), ignoradas: {} };
+  const ignoradas = Object.create(null), validas = [];
+  linhas.forEach(function (l) {
+    if (voluntariosJes[l.mat]) validas.push(l);
+    else ignoradas[l.mat] = (ignoradas[l.mat] || 0) + 1;
+  });
+  return { linhas: validas, ignoradas: ignoradas };
+}
+
 /** Todas as verificações, na ordem em que aparecem para o usuário. */
-const VERIFICACOES_ESCALA_ = [violacoesSaldo_, violacoesDiariaUnica_];
+const VERIFICACOES_ESCALA_ = [violacoesSaldo_, violacoesDiariaUnica_, violacoesJesVoluntario_];
 
 /** alocs: [{ mat, dia, servico, turno }]. Retorna [{ chave, mat, dia, servico, turno, rn, texto }]. Ignora o expediente implícito. */
 function violacoesDeRegras_(alocs, ctx) {

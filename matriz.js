@@ -116,7 +116,8 @@ function lerMilitares_() {
   const c = {
     mat: coluna_(t, 'MATRÍCULA', true), nome: coluna_(t, 'NOME DE GUERRA', true), secao: coluna_(t, 'SEÇÃO', true),
     posto: coluna_(t, 'POSTO/GRAD', false), jornada: coluna_(t, 'JORNADA', false),
-    equipe: coluna_(t, 'EQUIPE', false), antig: coluna_(t, 'ANTIG', false), motorista: coluna_(t, 'MOTORISTA', false)
+    equipe: coluna_(t, 'EQUIPE', false), antig: coluna_(t, 'ANTIG', false), motorista: coluna_(t, 'MOTORISTA', false),
+    vjes: coluna_(t, 'VOLUNTÁRIO JES', false)
   };
   const pega = function (l, i) { return i < 0 ? '' : l[i]; };
   const res = [];
@@ -128,7 +129,10 @@ function lerMilitares_() {
       jornada: texto_(pega(l, c.jornada)), equipe: texto_(pega(l, c.equipe)), antig: pega(l, c.antig), ordem: ordem,
       // true só se a coluna MOTORISTA existir e tiver algo como SIM/S/X (o "-" e o vazio contam como não)
       temColunaMotorista: c.motorista >= 0,
-      motorista: c.motorista >= 0 && ['SIM', 'S', 'X', 'MOTORISTA', '1', 'TRUE', 'VERDADEIRO'].indexOf(normalizar_(l[c.motorista])) >= 0
+      motorista: c.motorista >= 0 && ['SIM', 'S', 'X', 'MOTORISTA', '1', 'TRUE', 'VERDADEIRO'].indexOf(normalizar_(l[c.motorista])) >= 0,
+      // RN-46: atributo "voluntário JES" (sim/não). Só vale se a coluna existir; vazio e "não" contam como não.
+      temColunaVoluntarioJes: c.vjes >= 0,
+      voluntarioJes: c.vjes >= 0 && ['SIM', 'S', 'X', '1', 'TRUE', 'VERDADEIRO'].indexOf(normalizar_(l[c.vjes])) >= 0
     });
   });
   return res;

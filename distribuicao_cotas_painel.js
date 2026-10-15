@@ -109,16 +109,28 @@ function cotasCalcular_(mes, secao, tz) {
   const expediente = todasComExp.filter(function (a) { return a.implicito; });
 
   const secaoN = normalizar_(secao), vistos = Object.create(null), militares = [];
-  lerMilitares_().forEach(function (m) {
+  const cadastro = lerMilitares_();
+  cadastro.forEach(function (m) {
     if (normalizar_(m.secao) !== secaoN || vistos[m.mat]) return;
     vistos[m.mat] = true;
     militares.push({ mat: m.mat });
   });
 
+  // RN-46 / RN-39: só quem tem VOLUNTÁRIO JES = sim pode preencher o formulário; as linhas dos demais são ignoradas
+  const vjes = voluntariosJesDe_(cadastro);
+  const sep = separarVoluntariado_(vol.linhas, vjes);
+  const nomesCad = nomesPorMatricula_();
   const avisos = [].concat(mod.avisos || [], cotas.avisos, vol.avisos);
-  if (!cotas.existe) avisos.push('A aba COTAS não existe. Crie-a pelo botão "Criar abas COTAS e VOLUNTARIADO".');
+  if (!vjes) avisos.push('A aba MILITARES não tem a coluna VOLUNTÁRIO JES (RN-46): por ora todos os que preencheram o formulário contam como voluntários. Crie a coluna pelo botão "Criar abas e coluna que faltam" e preencha sim/não.');
+  const ign = Object.keys(sep.ignoradas);
+  if (ign.length) {
+    const qtd = ign.reduce(function (n, m) { return n + sep.ignoradas[m]; }, 0);
+    avisos.push('VOLUNTARIADO: ' + qtd + ' linha(s) de ' + ign.length + ' militar(es) ignorada(s) porque VOLUNTÁRIO JES não é "sim" em MILITARES (RN-46): ' +
+      ign.slice(0, 5).map(function (m) { return nomesCad[m] || m; }).join(', ') + (ign.length > 5 ? '…' : '') + '.');
+  }
+  if (!cotas.existe) avisos.push('A aba COTAS não existe. Crie-a pelo botão "Criar abas e coluna que faltam".');
   else if (!cotas.linhas.length) avisos.push('A aba COTAS não tem cotas de ' + secao + ' em ' + mes + '.');
-  if (!vol.existe) avisos.push('A aba VOLUNTARIADO não existe. Crie-a pelo botão "Criar abas COTAS e VOLUNTARIADO".');
+  if (!vol.existe) avisos.push('A aba VOLUNTARIADO não existe. Crie-a pelo botão "Criar abas e coluna que faltam".');
   if (mod.semAbas) avisos.push('As abas ESCALAS e MODELOS DE GUARNIÇÃO não existem; sem elas não há vagas por operação.');
 
   const diasMes = diasDoMes_(mes);
@@ -150,10 +162,10 @@ function cotasCalcular_(mes, secao, tz) {
   });
 
   const res = distribuirCotas_({
-    mes: mes, operacoes: operacoes, cotas: cotasEntrada, militares: militares, voluntariado: vol.linhas,
+    mes: mes, operacoes: operacoes, cotas: cotasEntrada, militares: militares, voluntariado: sep.linhas,
     alocacoes: reais, expediente: expediente, horarios: hor.porChave, tipos: tipos
   });
-  return { res: res, semAbas: !cotas.existe || !vol.existe, avisos: avisos.concat(res.avisos), operacoes: operacoes, voluntarios: Object.keys(vol.linhas.reduce(function (o, v) { o[v.mat] = 1; return o; }, {})).length };
+  return { res: res, semAbas: !cotas.existe || !vol.existe || !vjes, avisos: avisos.concat(res.avisos), operacoes: operacoes, voluntarios: Object.keys(sep.linhas.reduce(function (o, v) { o[v.mat] = 1; return o; }, {})).length };
 }
 
 function cotasResumo_(c) {
@@ -216,7 +228,25 @@ function painelCotasGravar(mes, secao) {
   }
 }
 
-/** Cria as abas COTAS e VOLUNTARIADO, com cabeçalho e uma linha de exemplo, sem tocar nas que já existem. */
+/**
+ * RN-46: cria a coluna VOLUNTÁRIO JES em MILITARES (só o cabeçalho e a lista sim/não; os valores ficam vazios
+ * para o usuário preencher). Não mexe se a coluna já existe. Retorna true se criou.
+ */
+function garantirColunaVoluntarioJes_() {
+  const aba = SpreadsheetApp.getActive().getSheetByName(CONFIG.ABA_MILITARES);
+  if (!aba) return false;
+  const nCols = aba.getLastColumn();
+  const cab = aba.getRange(1, 1, 1, nCols).getValues()[0].map(normalizar_);
+  if (cab.some(function (c) { return c.indexOf(normalizar_('VOLUNTÁRIO JES')) === 0; })) return false;
+  aba.getRange(1, nCols + 1).setValue('VOLUNTÁRIO JES').setFontWeight('bold');
+  const n = aba.getLastRow() - 1;
+  if (n > 0) {
+    aba.getRange(2, nCols + 1, n, 1).setDataValidation(SpreadsheetApp.newDataValidation().requireValueInList(['sim', 'não'], true).setAllowInvalid(true).build());
+  }
+  return true;
+}
+
+/** Cria as abas COTAS e VOLUNTARIADO (cabeçalho e uma linha de exemplo) e a coluna VOLUNTÁRIO JES de MILITARES, sem tocar no que já existe. */
 function painelCotasAbas() {
   const ss = SpreadsheetApp.getActive();
   const criadas = [];
@@ -229,5 +259,6 @@ function painelCotasAbas() {
     aba.setFrozenRows(1);
     criadas.push(x[0]);
   });
+  if (garantirColunaVoluntarioJes_()) criadas.push('coluna VOLUNTÁRIO JES (em MILITARES, vazia: preencha sim/não)');
   return { criadas: criadas };
 }

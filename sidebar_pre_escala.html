@@ -85,7 +85,7 @@
     <details id="cotasVazias" hidden><summary>Vagas sem ninguém</summary><ul id="cotasVaziasLista" class="avisos"></ul></details>
     <details id="cotasMilitares" hidden><summary>Por militar</summary><div id="cotasMilitaresLista" class="nota"></div></details>
     <button id="btnCotas" class="principal" hidden>Gerar operações</button>
-    <button id="btnCotasAbas" class="secundario" hidden>Criar abas COTAS e VOLUNTARIADO</button>
+    <button id="btnCotasAbas" class="secundario" hidden>Criar abas e coluna que faltam</button>
   </div>
   <div id="resultadoCotas" class="ok" hidden></div>
 
@@ -300,7 +300,7 @@
     ocupado(true);
     google.script.run.withSuccessHandler(function (r) {
       ocupado(false);
-      el('resultadoCotas').textContent = r.criadas.length ? 'Abas criadas: ' + r.criadas.join(', ') + '. Preencha e clique em Analisar.' : 'As abas já existem.';
+      el('resultadoCotas').textContent = r.criadas.length ? 'Criado: ' + r.criadas.join(', ') + '. Preencha e clique em Analisar.' : 'Tudo já existe (abas COTAS e VOLUNTARIADO e a coluna VOLUNTÁRIO JES).';
       mostrar('resultadoCotas', true);
     }).withFailureHandler(falha).painelCotasAbas();
   });

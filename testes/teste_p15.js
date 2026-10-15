@@ -2,7 +2,7 @@
 const fs = require('fs'), path = require('path');
 const dir = path.join(__dirname, '..');
 const fontes = ['abertura_automatica.js', 'distribuicao_cotas.js', 'regras_escala.js', 'choques.js', 'sincronia.js', 'nucleo.js', 'pre_escala.js', 'guarnicao.js'].map(f => fs.readFileSync(path.join(dir, f), 'utf8')).join('\n');
-const L = new Function(fontes + '\nreturn {violacoesDiariaUnica_, violacoesSaldo_, violacoesDeRegras_, listasDeCelula_, bloquearPorRegras_, editouAGradeDaEscala_, painelEscalaAberto_, linhasExtrasVazias_, montarHorarios_, montarRotulos_, montarModeloMatriz_, desmontarMatriz_, detectarChoques_, calcularSincronizacao_, chaveAloc_, partesDaChave_};')();
+const L = new Function(fontes + '\nreturn {violacoesJesVoluntario_, separarVoluntariado_, violacoesDiariaUnica_, violacoesSaldo_, violacoesDeRegras_, listasDeCelula_, bloquearPorRegras_, editouAGradeDaEscala_, painelEscalaAberto_, linhasExtrasVazias_, montarHorarios_, montarRotulos_, montarModeloMatriz_, desmontarMatriz_, detectarChoques_, calcularSincronizacao_, chaveAloc_, partesDaChave_};')();
 
 let ok = 0, falhas = 0;
 const ver = (n, c, x) => { if (c) { ok++; console.log('  ok   ' + n); } else { falhas++; console.log('  FALHA ' + n + (x !== undefined ? ' -> ' + JSON.stringify(x) : '')); } };
@@ -119,6 +119,34 @@ console.log('== B01 (RN-36, RN-37) uma diária por dia');
   r = L.calcularSincronizacao_([], [A('M1', '09', 'Pronto', 'A')], dupla, pares, { regras: ctx, todas: dupla });
   ver('salvar: violação antiga na tabela não bloqueia outra célula', r.inserir.length === 1 && r.regras.length === 0);
   ver('integridade vê a violação antiga (as duas alocações)', L.violacoesDeRegras_(dupla, ctx).length === 2);
+}
+
+console.log('== B23 (RN-46, RN-39) voluntário JES');
+{
+  const A = (mat, dia, servico, turno) => ({ mat, dia: '2026-11-' + dia, servico, turno });
+  const vol = { V1: true };
+  const ctx = { adm: {}, tipos: {}, voluntariosJes: vol };
+  ver('JES para voluntário: aceito', L.violacoesJesVoluntario_([A('V1', '05', 'JES', 'A')], ctx).length === 0);
+  const v = L.violacoesJesVoluntario_([A('N1', '05', 'JES', 'A')], ctx);
+  ver('JES para quem não é voluntário: violação RN-46', v.length === 1 && v[0].rn === 'RN-46' && v[0].mat === 'N1', v);
+  ver('outros serviços não exigem o atributo', L.violacoesJesVoluntario_([A('N1', '05', 'Pronto', 'A'), A('N1', '06', 'Bioma', 'A'), A('N1', '07', 'Defensoria', 'A')], ctx).length === 0);
+  ver('sem a coluna em MILITARES (null) a regra fica desligada', L.violacoesJesVoluntario_([A('N1', '05', 'JES', 'A')], { voluntariosJes: null }).length === 0);
+  ver('com a coluna e ninguém marcado, todo JES é violação', L.violacoesJesVoluntario_([A('V1', '05', 'JES', 'A')], { voluntariosJes: {} }).length === 1);
+
+  // salvar a escala
+  const pares = { 'JES|A': true, 'Pronto|A': true };
+  let r = L.calcularSincronizacao_([], [A('N1', '05', 'JES', 'A'), A('V1', '05', 'JES', 'A')], [], pares, { regras: ctx, todas: [] });
+  const ok_ = r.inserir.length === 1 && r.inserir[0].mat === 'V1' && r.regras.length === 1 && r.regras[0].mat === 'N1' && r.regras[0].motivos[0].rn === 'RN-46';
+  ver('salvar: JES do voluntário entra e o do não voluntário é bloqueado', ok_, r);
+  r = L.calcularSincronizacao_([], [A('N1', '05', 'JES', 'A')], [], pares, { regras: { voluntariosJes: null }, todas: [] });
+  ver('salvar sem a coluna: não bloqueia (aviso fica a cargo do painel)', r.inserir.length === 1 && r.regras.length === 0);
+
+  // formulário (VOLUNTARIADO)
+  const linhas = [{ mat: 'V1', dia: '2026-11-03' }, { mat: 'N1', dia: '2026-11-03' }, { mat: 'N1', dia: '2026-11-04' }, { mat: 'V1', dia: '2026-11-09' }];
+  const sep = L.separarVoluntariado_(linhas, vol);
+  ver('VOLUNTARIADO: linhas de quem não é voluntário são ignoradas e contadas', sep.linhas.length === 2 && sep.ignoradas.N1 === 2 && !sep.ignoradas.V1, sep);
+  ver('VOLUNTARIADO sem a coluna: nada é ignorado', L.separarVoluntariado_(linhas, null).linhas.length === 4);
+  ver('VOLUNTARIADO: voluntário sem nenhuma linha no mês não aparece (não entra na compulsória)', L.separarVoluntariado_([{ mat: 'N1', dia: '2026-11-03' }], { V1: true, V2: true }).linhas.every(x => x.mat !== 'V2'));
 }
 
 console.log(`\n${ok} ok, ${falhas} falha(s)`);
