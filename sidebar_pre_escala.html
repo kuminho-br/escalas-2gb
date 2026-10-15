@@ -73,6 +73,22 @@
   </div>
   <div id="resultadoAdm" class="ok" hidden></div>
 
+  <div id="cartaoCotas" class="cartao" hidden>
+    <h2>4. Operações</h2>
+    <div id="cotasLinha1"></div>
+    <table>
+      <thead><tr><th>Operação</th><th>Receb.</th><th>Distr.</th><th>Rest.</th></tr></thead>
+      <tbody id="cotasTabela"></tbody>
+    </table>
+    <div id="cotasExterno" class="nota"></div>
+    <ul id="cotasAvisos" class="avisos"></ul>
+    <details id="cotasVazias" hidden><summary>Vagas sem ninguém</summary><ul id="cotasVaziasLista" class="avisos"></ul></details>
+    <details id="cotasMilitares" hidden><summary>Por militar</summary><div id="cotasMilitaresLista" class="nota"></div></details>
+    <button id="btnCotas" class="principal" hidden>Gerar operações</button>
+    <button id="btnCotasAbas" class="secundario" hidden>Criar abas COTAS e VOLUNTARIADO</button>
+  </div>
+  <div id="resultadoCotas" class="ok" hidden></div>
+
   <button id="btnMatriz" class="secundario" hidden>Abrir escala do mês</button>
 
 <script>
@@ -80,6 +96,8 @@
   var EQUIPES = ['ALFA','BRAVO','CHARLIE','DELTA'];
   var el = function (id) { return document.getElementById(id); };
   var ultima = null;          // última prévia do Pronto
+  var ultimaCotas = null;     // última prévia das operações
+  var confirmandoCotas = null;
   var ultimaAdm = null;       // última prévia do Adm
   var confirmandoAdm = null;  // temporizador do segundo clique do Adm
   var confirmando = null;     // temporizador do segundo clique
@@ -87,8 +105,9 @@
   function nomeMes(aaaamm) { var p = aaaamm.split('-'); return MESES[Number(p[1]) - 1] + ' de ' + p[0]; }
   function mostrar(id, sim) { el(id).hidden = !sim; }
   function ocupado(sim) {
-    ['btnAnalisar', 'btnGerar', 'btnAdm', 'btnMatriz', 'mes', 'secao', 'equipe'].forEach(function (id) { el(id).disabled = sim; });
+    ['btnAnalisar', 'btnGerar', 'btnAdm', 'btnCotas', 'btnCotasAbas', 'btnMatriz', 'mes', 'secao', 'equipe'].forEach(function (id) { el(id).disabled = sim; });
     if (!sim && ultima) el('btnGerar').disabled = !(ultima.equipe && ultima.geracao && ultima.geracao.resumo.alocacoes > 0);
+    if (!sim && ultimaCotas) el('btnCotas').disabled = !(ultimaCotas.novas > 0);
     if (!sim && ultimaAdm) el('btnAdm').disabled = !(ultimaAdm.cumpre && ultimaAdm.novas > 0);
   }
   function falha(e) {
@@ -96,7 +115,7 @@
     el('erro').textContent = (e && e.message) ? e.message.replace(/^Error:\s*/, '') : String(e);
     mostrar('erro', true);
   }
-  function limparMensagens() { mostrar('erro', false); mostrar('resultado', false); mostrar('resultadoAdm', false); mostrar('btnMatriz', false); }
+  function limparMensagens() { mostrar('erro', false); mostrar('resultado', false); mostrar('resultadoAdm', false); mostrar('resultadoCotas', false); mostrar('btnMatriz', false); }
 
   function preencherEquipes(selecionada) {
     var s = el('equipe');
@@ -233,7 +252,84 @@
       .painelAdmGravar(el('mes').value, el('secao').value);
   });
 
-  el('btnAnalisar').addEventListener('click', function () { ultima = null; analisar(''); analisarAdm(); });
+  function linhaTabela(vals, classe) {
+    var tr = document.createElement('tr'); if (classe) tr.className = classe;
+    vals.forEach(function (v) { var td = document.createElement('td'); td.textContent = v; tr.appendChild(td); });
+    return tr;
+  }
+  function mostrarCotas(r) {
+    ultimaCotas = r;
+    el('cotasLinha1').textContent = r.novas + ' vagas a preencher (' + r.voluntarias + ' voluntárias, ' + r.compulsorias + ' compulsórias).';
+    var tb = el('cotasTabela'); tb.innerHTML = '';
+    r.porCota.filter(function (x) { return x.origem !== 'externa'; }).forEach(function (x) { tb.appendChild(linhaTabela([x.operacao, x.recebidas, x.distribuidas, x.restantes])); });
+    tb.appendChild(linhaTabela(['Total da SB', r.totalSB.recebidas, r.totalSB.distribuidas, r.totalSB.restantes], 'total'));
+    var ext = r.porCota.filter(function (x) { return x.origem === 'externa'; });
+    el('cotasExterno').textContent = ext.length ? 'Externas (fora da SB): ' + ext.map(function (x) { return x.operacao + ' ' + x.distribuidas + '/' + x.recebidas; }).join(' · ') : '';
+    var ul = el('cotasAvisos'); ul.innerHTML = '';
+    r.avisos.forEach(function (a) { var li = document.createElement('li'); li.textContent = a; ul.appendChild(li); });
+    if (r.semCota > 0) { var l2 = document.createElement('li'); l2.textContent = r.semCota + ' vaga(s) ficam sem ninguém porque a cota acabou.'; ul.appendChild(l2); }
+    var uv = el('cotasVaziasLista'); uv.innerHTML = '';
+    r.vazias.forEach(function (v) { var li = document.createElement('li'); li.textContent = v.operacao + ' · ' + v.dia + ' ' + v.turno + ' (faltam ' + v.faltam + '): ' + v.motivo; uv.appendChild(li); });
+    if (r.maisVazias > 0) { var l3 = document.createElement('li'); l3.textContent = 'e mais ' + r.maisVazias + ' vaga(s).'; uv.appendChild(l3); }
+    mostrar('cotasVazias', r.vazias.length > 0);
+    var dm = el('cotasMilitaresLista'); dm.textContent = r.porMilitar.map(function (o) {
+      return o.operacao + ': ' + o.militares.map(function (m) { return m.nome + ' ' + m.qtd; }).join(', ');
+    }).join('\n');
+    dm.style.whiteSpace = 'pre-wrap';
+    mostrar('cotasMilitares', r.porMilitar.some(function (o) { return o.militares.length > 0; }));
+    mostrar('btnCotas', true);
+    el('btnCotas').textContent = 'Gerar operações';
+    el('btnCotas').disabled = !(r.novas > 0);
+    mostrar('btnCotasAbas', !!r.semAbas);
+    mostrar('cartaoCotas', true);
+  }
+  function analisarCotas() {
+    if (confirmandoCotas) { clearTimeout(confirmandoCotas); confirmandoCotas = null; }
+    google.script.run
+      .withSuccessHandler(function (r) { mostrarCotas(r); })
+      .withFailureHandler(function (e) {
+        ultimaCotas = null;
+        el('cotasLinha1').textContent = (e && e.message) ? e.message.replace(/^Error:\s*/, '') : String(e);
+        el('cotasTabela').innerHTML = ''; el('cotasAvisos').innerHTML = ''; el('cotasExterno').textContent = '';
+        mostrar('cotasVazias', false); mostrar('cotasMilitares', false); mostrar('btnCotas', false);
+        mostrar('btnCotasAbas', true); mostrar('cartaoCotas', true);
+      })
+      .painelCotasPrevia(el('mes').value, el('secao').value);
+  }
+  el('btnCotasAbas').addEventListener('click', function () {
+    ocupado(true);
+    google.script.run.withSuccessHandler(function (r) {
+      ocupado(false);
+      el('resultadoCotas').textContent = r.criadas.length ? 'Abas criadas: ' + r.criadas.join(', ') + '. Preencha e clique em Analisar.' : 'As abas já existem.';
+      mostrar('resultadoCotas', true);
+    }).withFailureHandler(falha).painelCotasAbas();
+  });
+  // Gravar as operações também exige dois cliques.
+  el('btnCotas').addEventListener('click', function () {
+    var b = el('btnCotas');
+    if (!confirmandoCotas) {
+      b.textContent = 'Confirmar: gravar ' + ultimaCotas.novas + ' alocações';
+      confirmandoCotas = setTimeout(function () { confirmandoCotas = null; b.textContent = 'Gerar operações'; }, 6000);
+      return;
+    }
+    clearTimeout(confirmandoCotas); confirmandoCotas = null;
+    b.textContent = 'Gerar operações';
+    limparMensagens();
+    ocupado(true);
+    google.script.run
+      .withSuccessHandler(function (r) {
+        ocupado(false);
+        el('resultadoCotas').textContent = r.gravadas + ' alocações das operações gravadas em ALOCAÇÕES TABULADAS. Conferência: ' +
+          (r.restantes === 0 ? 'nada pendente.' : r.restantes + ' ainda pendente(s) (veja os avisos).');
+        mostrar('resultadoCotas', true);
+        mostrar('btnMatriz', true);
+        analisarCotas();
+      })
+      .withFailureHandler(falha)
+      .painelCotasGravar(el('mes').value, el('secao').value);
+  });
+
+  el('btnAnalisar').addEventListener('click', function () { ultima = null; analisar(''); analisarAdm(); analisarCotas(); });
   el('equipe').addEventListener('change', function () { analisar(el('equipe').value); });
 
   // Gravar exige dois cliques: o primeiro pede confirmação (some depois de 6 s).
