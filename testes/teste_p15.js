@@ -2,7 +2,7 @@
 const fs = require('fs'), path = require('path');
 const dir = path.join(__dirname, '..');
 const fontes = ['abertura_automatica.js', 'distribuicao_cotas.js', 'regras_escala.js', 'choques.js', 'sincronia.js', 'nucleo.js', 'pre_escala.js', 'guarnicao.js'].map(f => fs.readFileSync(path.join(dir, f), 'utf8')).join('\n');
-const L = new Function(fontes + '\nreturn {violacoesJesVoluntario_, separarVoluntariado_, violacoesDiariaUnica_, violacoesSaldo_, violacoesDeRegras_, listasDeCelula_, bloquearPorRegras_, editouAGradeDaEscala_, painelEscalaAberto_, linhasExtrasVazias_, montarHorarios_, montarRotulos_, montarModeloMatriz_, desmontarMatriz_, detectarChoques_, calcularSincronizacao_, chaveAloc_, partesDaChave_};')();
+const L = new Function(fontes + '\nreturn {diagnosticarOperacoes_, distribuirCotas_, COTAS_MOTIVOS_, violacoesJesVoluntario_, separarVoluntariado_, violacoesDiariaUnica_, violacoesSaldo_, violacoesDeRegras_, listasDeCelula_, bloquearPorRegras_, editouAGradeDaEscala_, painelEscalaAberto_, linhasExtrasVazias_, montarHorarios_, montarRotulos_, montarModeloMatriz_, desmontarMatriz_, detectarChoques_, calcularSincronizacao_, chaveAloc_, partesDaChave_};')();
 
 let ok = 0, falhas = 0;
 const ver = (n, c, x) => { if (c) { ok++; console.log('  ok   ' + n); } else { falhas++; console.log('  FALHA ' + n + (x !== undefined ? ' -> ' + JSON.stringify(x) : '')); } };
@@ -147,6 +147,44 @@ console.log('== B23 (RN-46, RN-39) voluntário JES');
   ver('VOLUNTARIADO: linhas de quem não é voluntário são ignoradas e contadas', sep.linhas.length === 2 && sep.ignoradas.N1 === 2 && !sep.ignoradas.V1, sep);
   ver('VOLUNTARIADO sem a coluna: nada é ignorado', L.separarVoluntariado_(linhas, null).linhas.length === 4);
   ver('VOLUNTARIADO: voluntário sem nenhuma linha no mês não aparece (não entra na compulsória)', L.separarVoluntariado_([{ mat: 'N1', dia: '2026-11-03' }], { V1: true, V2: true }).linhas.every(x => x.mat !== 'V2'));
+}
+
+console.log('== B24 (RN-81) por que "Gerar operações" não tem nada a gerar');
+{
+  const hor = L.montarHorarios_([['PE Seguro', 'A', '00:00', '08:00'], ['PE Seguro', 'B', '08:00', '16:00']].map(t => ({ servico: t[0], turno: t[1], inicio: t[2], fim: t[3] }))).porChave;
+  const dias = ['2026-11-01', '2026-11-02'];
+  const op = (extra) => Object.assign({ nome: 'PE Seguro', servico: 'PE Seguro', prioridade: 1, dias, turnos: [{ turno: 'A', vagas: 4 }, { turno: 'B', vagas: 4 }] }, extra || {});
+  const roda = (o, vol, mil) => {
+    const e = { mes: '2026-11', operacoes: [o], cotas: [{ id: 'C1', operacao: 'PE Seguro', quantidade: 160, origem: 'interna' }], militares: mil || [{ mat: 'M1' }], voluntariado: vol || [], alocacoes: [], expediente: [], horarios: hor, tipos: { 'PE Seguro': 'Diária' } };
+    return { e, res: L.distribuirCotas_(e) };
+  };
+  const diag = (o, r, v) => L.diagnosticarOperacoes_({ mes: '2026-11', secao: '1ª SB', operacoes: [o], res: r.res, horarios: hor, voluntariado: v || { linhasMes: 0, linhasSecao: 0, ignoradasJes: 0 } });
+
+  // o relato: cota 160 restante, nenhuma alocação a gerar
+  let o = op(), r = roda(o, []);
+  ver('reproduz o relato: 160 restantes, 0 novas, mas há vagas sem ninguém listadas', r.res.novas.length === 0 && r.res.porCota[0].restantes === 160 && r.res.vazias.length > 0, r.res.porCota);
+  let d = diag(o, r);
+  ver('VOLUNTARIADO sem linhas do mês: o painel diz isso e o que fazer', d.length === 1 && /não tem nenhuma linha de 2026-11/.test(d[0].texto) && /Preencha o VOLUNTARIADO/.test(d[0].texto), d);
+  d = diag(o, r, { linhasMes: 12, linhasSecao: 0, ignoradasJes: 0 });
+  ver('VOLUNTARIADO só com gente de outra seção: o painel diz', /12 linha\(s\) de 2026-11, mas nenhuma de militar da 1ª SB/.test(d[0].texto), d);
+  d = diag(o, r, { linhasMes: 12, linhasSecao: 0, ignoradasJes: 12 });
+  ver('linhas ignoradas por VOLUNTÁRIO JES = não: o painel explica (RN-46)', /12 linha\(s\) foram ignoradas porque VOLUNTÁRIO JES/.test(d[0].texto), d);
+
+  // sem dias / sem vagas / sem cadastro
+  o = op({ dias: [] }); r = roda(o, []);
+  d = diag(o, r);
+  ver('sem dias (SÓ ESCALADOS sem nada escalado): diz o que fazer', d.length === 1 && /sem dias/.test(d[0].texto) && /DIAS/.test(d[0].texto), d);
+  o = op({ turnos: [{ turno: 'C', vagas: 4 }] }); r = roda(o, []);
+  d = diag(o, r);
+  ver('turnos sem horário em TURNOS: "sem vagas", com a aba a corrigir', d.length === 1 && /"PE Seguro" sem vagas: cadastre os turnos e as funções em MODELOS DE GUARNIÇÃO/.test(d[0].texto), d);
+  o = op({ turnos: [], dias, problema: '"PE Seguro" sem vagas: cadastre os turnos e as funções dela em MODELOS DE GUARNIÇÃO.' }); r = roda(o, []);
+  d = diag(o, r);
+  ver('operação sem cadastro: usa o texto pronto e a cota continua como restante', d.length === 1 && /^"PE Seguro" sem vagas: cadastre os turnos/.test(d[0].texto) && r.res.porCota[0].restantes === 160, d);
+
+  // com cadastro completo e voluntários: gera (botão ativo) e não há diagnóstico
+  o = op(); r = roda(o, [{ mat: 'M1', dia: '2026-11-01', turno: 'A', servico: 'todos' }]);
+  ver('cadastro completo + voluntário: gera alocações e o diagnóstico fica vazio', r.res.novas.length > 0 && diag(o, r).length === 0, r.res.novas.length);
+  ver('sem cota restante nada é dito (nada a diagnosticar)', L.diagnosticarOperacoes_({ mes: '2026-11', secao: '1ª SB', operacoes: [o], res: { porOperacao: { 'PE Seguro': { novas: 0, restantes: 0 } }, vazias: [] }, horarios: hor }).length === 0);
 }
 
 console.log(`\n${ok} ok, ${falhas} falha(s)`);

@@ -137,11 +137,29 @@ function cotasCalcular_(mes, secao, tz) {
   const operacoes = [], cotasEntrada = [], ignoradas = Object.create(null);
   const nomes = [];
   cotas.linhas.forEach(function (c) { if (nomes.indexOf(c.operacao) < 0) nomes.push(c.operacao); });
+  // B24 (RN-81): uma operação com cota mas sem cadastro utilizável continua na tabela (a cota aparece como restante)
+  // e ganha um "problema" que diz exatamente o que falta cadastrar.
+  const semCadastro = function (nome, problema) {
+    const linhasCota = cotas.linhas.filter(function (c) { return normalizar_(c.operacao) === normalizar_(nome); });
+    const prio = linhasCota.reduce(function (p, c) { return c.prioridade !== '' && (p === '' || c.prioridade < p) ? c.prioridade : p; }, '');
+    operacoes.push({ nome: nome, servico: '', prioridade: prio, dias: [], turnos: [], problema: problema });
+    linhasCota.forEach(function (c) { cotasEntrada.push({ id: c.id, operacao: nome, quantidade: c.quantidade, origem: c.origem }); });
+  };
   nomes.forEach(function (nome) {
     const chave = Object.keys(mod.escalas).filter(function (k) { return normalizar_(k) === normalizar_(nome); })[0];
-    if (!chave) { avisos.push('COTAS: a operação "' + nome + '" não existe na aba ESCALAS (ou foi ignorada); suas cotas não foram distribuídas.'); return; }
+    if (!chave) {
+      const ignorada = (mod.avisos || []).filter(function (a) {
+        const m = /^ESCALAS: "(.+)" ignorada/.exec(a);
+        return m && normalizar_(m[1]) === normalizar_(nome);
+      })[0] || '';
+      if (mod.semAbas) semCadastro(nome, '"' + nome + '" sem vagas: crie as abas ESCALAS e MODELOS DE GUARNIÇÃO e cadastre a escala, os turnos e as funções.');
+      else if (ignorada.indexOf('MODELOS DE GUARNIÇÃO') >= 0) semCadastro(nome, '"' + nome + '" sem vagas: cadastre os turnos e as funções dela em MODELOS DE GUARNIÇÃO.');
+      else if (ignorada) semCadastro(nome, '"' + nome + '": a escala foi ignorada porque o serviço dela não existe na aba TURNOS. Confira a coluna SERVIÇOS em ESCALAS.');
+      else semCadastro(nome, '"' + nome + '" não está na aba ESCALAS: cadastre a escala (nome e serviço) em ESCALAS e os turnos e funções em MODELOS DE GUARNIÇÃO.');
+      return;
+    }
     const esc = mod.escalas[chave];
-    if (esc.servicos.length !== 1) { avisos.push('COTAS: a escala "' + esc.nome + '" tem mais de um serviço; use uma escala por serviço. Ignorada.'); return; }
+    if (esc.servicos.length !== 1) { semCadastro(nome, '"' + esc.nome + '" tem mais de um serviço em ESCALAS; use uma escala por serviço. Ignorada.'); return; }
     const servico = esc.servicos[0];
     let dias = diasMes;
     if (esc.dias === 'ESCALADOS') {            // só os dias em que a tabela já tem esse serviço
@@ -165,7 +183,13 @@ function cotasCalcular_(mes, secao, tz) {
     mes: mes, operacoes: operacoes, cotas: cotasEntrada, militares: militares, voluntariado: sep.linhas,
     alocacoes: reais, expediente: expediente, horarios: hor.porChave, tipos: tipos
   });
-  return { res: res, semAbas: !cotas.existe || !vol.existe || !vjes, avisos: avisos.concat(res.avisos), operacoes: operacoes, voluntarios: Object.keys(sep.linhas.reduce(function (o, v) { o[v.mat] = 1; return o; }, {})).length };
+  // B24: se uma operação com cota restante não gera nada, o painel diz o motivo e o que fazer
+  const daSecao = sep.linhas.filter(function (v) { return vistos[v.mat]; }).length;
+  const diagnostico = diagnosticarOperacoes_({
+    mes: mes, secao: secao, operacoes: operacoes, res: res, horarios: hor.porChave,
+    voluntariado: { linhasMes: vol.linhas.length, linhasSecao: daSecao, ignoradasJes: ign.reduce(function (n, m) { return n + sep.ignoradas[m]; }, 0) }
+  });
+  return { diagnostico: diagnostico, res: res, semAbas: !cotas.existe || !vol.existe || !vjes, avisos: avisos.concat(res.avisos), operacoes: operacoes, voluntarios: Object.keys(sep.linhas.reduce(function (o, v) { o[v.mat] = 1; return o; }, {})).length };
 }
 
 function cotasResumo_(c) {
@@ -195,6 +219,7 @@ function cotasResumo_(c) {
     porMilitar: porMilitar,
     vazias: vazias, maisVazias: Math.max(0, r.vazias.length - vazias.length), semCota: semCota,
     semAbas: c.semAbas,
+    diagnostico: c.diagnostico.map(function (d) { return d.texto; }),
     avisos: c.avisos.slice(0, 10)
   };
 }
