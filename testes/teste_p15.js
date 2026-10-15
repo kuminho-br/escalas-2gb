@@ -1,8 +1,8 @@
 // Testes da P15 (validações da escala). Uso: node testes/teste_p15.js  (a partir da pasta do repositório)
 const fs = require('fs'), path = require('path');
 const dir = path.join(__dirname, '..');
-const fontes = ['abertura_automatica.js', 'regras_escala.js', 'choques.js', 'sincronia.js', 'nucleo.js', 'pre_escala.js', 'guarnicao.js'].map(f => fs.readFileSync(path.join(dir, f), 'utf8')).join('\n');
-const L = new Function(fontes + '\nreturn {violacoesSaldo_, violacoesDeRegras_, listasDeCelula_, bloquearPorRegras_, editouAGradeDaEscala_, painelEscalaAberto_, linhasExtrasVazias_, montarHorarios_, montarRotulos_, montarModeloMatriz_, desmontarMatriz_, detectarChoques_, calcularSincronizacao_, chaveAloc_, partesDaChave_};')();
+const fontes = ['abertura_automatica.js', 'distribuicao_cotas.js', 'regras_escala.js', 'choques.js', 'sincronia.js', 'nucleo.js', 'pre_escala.js', 'guarnicao.js'].map(f => fs.readFileSync(path.join(dir, f), 'utf8')).join('\n');
+const L = new Function(fontes + '\nreturn {violacoesDiariaUnica_, violacoesSaldo_, violacoesDeRegras_, listasDeCelula_, bloquearPorRegras_, editouAGradeDaEscala_, painelEscalaAberto_, linhasExtrasVazias_, montarHorarios_, montarRotulos_, montarModeloMatriz_, desmontarMatriz_, detectarChoques_, calcularSincronizacao_, chaveAloc_, partesDaChave_};')();
 
 let ok = 0, falhas = 0;
 const ver = (n, c, x) => { if (c) { ok++; console.log('  ok   ' + n); } else { falhas++; console.log('  FALHA ' + n + (x !== undefined ? ' -> ' + JSON.stringify(x) : '')); } };
@@ -82,6 +82,43 @@ console.log('== B22 (RN-03) Saldo só para o Adm');
   const li = L.listasDeCelula_(rot);
   ver('lista do Adm tem Saldo', li.comSaldo.some(t => /^Saldo/.test(t)), li.comSaldo);
   ver('lista dos demais não tem Saldo e mantém o resto', !li.semSaldo.some(t => /^Saldo/.test(t)) && li.semSaldo.length === li.comSaldo.length - 1, li.semSaldo);
+}
+
+console.log('== B01 (RN-36, RN-37) uma diária por dia');
+{
+  const tipos = { Bioma: 'Diária', 'PE Seguro': 'Diária', 'Eleições': 'Diária', Pronto: 'Ordinário', Adm: 'Ordinário', JES: 'PJES' };
+  const ctx = { adm: {}, tipos };
+  const A = (mat, dia, servico, turno) => ({ mat, dia: '2026-11-' + dia, servico, turno });
+  const hor = L.montarHorarios_([['Bioma', 'A', '00:00', '08:00'], ['Bioma', 'B', '08:00', '16:00'], ['PE Seguro', 'C', '16:00', '00:00'], ['Pronto', 'A', '08:00', '20:00'], ['JES', 'A', '08:00', '20:00']].map(t => ({ servico: t[0], turno: t[1], inicio: t[2], fim: t[3] }))).porChave;
+  const pares = {}; Object.keys(hor).forEach(k => pares[k] = true);
+
+  let v = L.violacoesDiariaUnica_([A('M1', '05', 'Bioma', 'B'), A('M1', '05', 'PE Seguro', 'C')], ctx);
+  ver('Bioma 08–16 + PE Seguro 16–00 no mesmo dia: as duas apontadas (RN-36)', v.length === 2 && v.every(x => x.rn === 'RN-36'), v);
+  v = L.violacoesDiariaUnica_([A('M1', '05', 'PE Seguro', 'C'), A('M1', '06', 'Bioma', 'A')], ctx);
+  ver('dobradinha PE Seguro 16–00 (D) + Bioma 00–08 (D+1): aceita (RN-37)', v.length === 0, v);
+  ver('diárias de militares diferentes no mesmo dia: aceita', L.violacoesDiariaUnica_([A('M1', '05', 'Bioma', 'B'), A('M2', '05', 'PE Seguro', 'C')], ctx).length === 0);
+  ver('diária + serviço ordinário/PJES no mesmo dia: não é violação desta regra', L.violacoesDiariaUnica_([A('M1', '05', 'Bioma', 'B'), A('M1', '05', 'Pronto', 'A'), A('M1', '05', 'JES', 'A')], ctx).length === 0);
+  ver('a mesma alocação repetida não vira "duas diárias"', L.violacoesDiariaUnica_([A('M1', '05', 'Bioma', 'B'), A('M1', '05', 'Bioma', 'B')], ctx).length === 0);
+  ver('sem a coluna TIPO DE SERVIÇO a regra não age (nada é diária)', L.violacoesDiariaUnica_([A('M1', '05', 'Bioma', 'B'), A('M1', '05', 'PE Seguro', 'C')], { adm: {}, tipos: {} }).length === 0);
+  ver('o tipo vale com ou sem acento e caixa ("diaria")', L.violacoesDiariaUnica_([A('M1', '05', 'Bioma', 'B'), A('M1', '05', 'PE Seguro', 'C')], { tipos: { Bioma: 'diaria', 'PE Seguro': 'DIÁRIA' } }).length === 2);
+
+  // ao salvar a escala (sincronia)
+  let r = L.calcularSincronizacao_([], [A('M1', '05', 'Bioma', 'B'), A('M1', '05', 'PE Seguro', 'C')], [], pares, { regras: ctx, todas: [] });
+  ver('salvar: as duas diárias do mesmo dia são bloqueadas e nada entra', r.inserir.length === 0 && r.regras.length === 2 && r.regras[0].motivos[0].rn === 'RN-36', r);
+  r = L.calcularSincronizacao_([], [A('M1', '05', 'PE Seguro', 'C'), A('M1', '06', 'Bioma', 'A')], [], pares, { regras: ctx, todas: [] });
+  ver('salvar: a dobradinha entra', r.inserir.length === 2 && r.regras.length === 0, r);
+  // já existe uma diária na tabela e o escalante põe a segunda: só a nova é bloqueada
+  const tab = [{ mat: 'M1', dia: '2026-11-05', servico: 'Bioma', turno: 'B', linha: 7 }];
+  r = L.calcularSincronizacao_([A('M1', '05', 'Bioma', 'B')], [A('M1', '05', 'Bioma', 'B'), A('M1', '05', 'PE Seguro', 'C')], tab, pares, { regras: ctx, todas: tab });
+  ver('salvar: com uma diária já na tabela, só a nova é bloqueada', r.inserir.length === 0 && r.regras.length === 1 && r.regras[0].servico === 'PE Seguro', r.regras);
+  // trocar a diária do dia por outra diária: continua uma só
+  r = L.calcularSincronizacao_([A('M1', '05', 'Bioma', 'B')], [A('M1', '05', 'PE Seguro', 'C')], tab, pares, { regras: ctx, todas: tab });
+  ver('salvar: trocar a diária por outra diária no mesmo dia é permitido', r.inserir.length === 1 && r.remover.length === 1 && r.regras.length === 0, r);
+  // viola na tabela desde antes: não impede salvar outra coisa (aparece na integridade)
+  const dupla = [{ mat: 'M1', dia: '2026-11-05', servico: 'Bioma', turno: 'B', linha: 7 }, { mat: 'M1', dia: '2026-11-05', servico: 'PE Seguro', turno: 'C', linha: 8 }];
+  r = L.calcularSincronizacao_([], [A('M1', '09', 'Pronto', 'A')], dupla, pares, { regras: ctx, todas: dupla });
+  ver('salvar: violação antiga na tabela não bloqueia outra célula', r.inserir.length === 1 && r.regras.length === 0);
+  ver('integridade vê a violação antiga (as duas alocações)', L.violacoesDeRegras_(dupla, ctx).length === 2);
 }
 
 console.log(`\n${ok} ok, ${falhas} falha(s)`);

@@ -70,13 +70,13 @@ function alocsComExpediente_(alocs, hor, tz) {
 }
 
 /**
- * Contexto das regras da escala manual (regras_escala.js): quem é do Adm (jornada Adm em MILITARES).
- * Só lê a aba MILITARES.
+ * Contexto das regras da escala manual (regras_escala.js): quem é do Adm (jornada Adm em MILITARES)
+ * e o tipo de cada serviço (coluna TIPO DE SERVIÇO da aba TURNOS). Só lê.
  */
 function contextoDeRegras_() {
   const adm = Object.create(null);
   lerMilitares_().forEach(function (m) { if (grupoDoMilitar_(m) === 'ADM') adm[m.mat] = true; });
-  return { adm: adm };
+  return { adm: adm, tipos: lerTiposDeServico_() };
 }
 
 /**

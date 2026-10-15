@@ -4,9 +4,13 @@
  * Valem quando o escalante salva a escala (sincronia) e na conferência de integridade.
  * Cada regra olha a lista de alocações e devolve as que a violam:
  *   RN-03  Saldo só para militar do Adm.
+ *   RN-36  no máximo uma diária por militar por dia, contada pelo dia em que o turno COMEÇA;
+ *   RN-37  a dobradinha é permitida (16h–00h do dia D + 00h–08h do dia D+1 começam em dias diferentes).
  *
  * contexto (ctx), montado pela camada do Sheets (contextoDeRegras_):
- *   adm : { matrícula: true }   militares da jornada Adm (aba MILITARES)
+ *   adm   : { matrícula: true }        militares da jornada Adm (aba MILITARES)
+ *   tipos : { 'Serviço': 'Tipo' }      coluna TIPO DE SERVIÇO da aba TURNOS ("Diária" é o que importa)
+ * Depende de distribuicao_cotas.js (TIPO_DIARIA_) e nucleo.js (normalizar_).
  */
 
 const SERVICO_SALDO_ = 'SALDO';
@@ -24,8 +28,34 @@ function violacoesSaldo_(alocs, ctx) {
   return res;
 }
 
+/**
+ * RN-36 / RN-37: duas diárias do mesmo militar com início no mesmo dia. Diária é o serviço cujo tipo,
+ * na aba TURNOS, é "Diária". Todas as alocações do grupo são apontadas (a pessoa decide qual sai).
+ */
+function violacoesDiariaUnica_(alocs, ctx) {
+  const tipos = ctx.tipos || {};
+  const grupos = Object.create(null);
+  alocs.forEach(function (a) {
+    if (normalizar_(tipos[a.servico] || '') !== TIPO_DIARIA_) return;
+    const g = a.mat + '|' + a.dia;
+    const k = chaveAloc_(a);
+    if (!grupos[g]) grupos[g] = Object.create(null);
+    if (!(k in grupos[g])) grupos[g][k] = a;
+  });
+  const res = [];
+  Object.keys(grupos).forEach(function (g) {
+    const chaves = Object.keys(grupos[g]);
+    if (chaves.length < 2) return;
+    chaves.forEach(function (k) {
+      const a = grupos[g][k];
+      res.push({ chave: k, mat: a.mat, dia: a.dia, servico: a.servico, turno: a.turno, rn: 'RN-36', texto: 'Duas diárias começando no mesmo dia (RN-36)' });
+    });
+  });
+  return res;
+}
+
 /** Todas as verificações, na ordem em que aparecem para o usuário. */
-const VERIFICACOES_ESCALA_ = [violacoesSaldo_];
+const VERIFICACOES_ESCALA_ = [violacoesSaldo_, violacoesDiariaUnica_];
 
 /** alocs: [{ mat, dia, servico, turno }]. Retorna [{ chave, mat, dia, servico, turno, rn, texto }]. Ignora o expediente implícito. */
 function violacoesDeRegras_(alocs, ctx) {
