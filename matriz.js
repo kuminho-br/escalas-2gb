@@ -225,6 +225,7 @@ function renderizarMatriz_(aba, modelo, par, rot, tz) {
   aba.setConditionalFormatRules([]);
   aba.setFrozenRows(0);
   aba.setFrozenColumns(0);
+  aba.showRows(1, aba.getMaxRows());                 // RN-02: uma escala nova começa com todas as linhas visíveis
 
   // parâmetros
   aba.getRange(1, 1, 2, 1).setValues([['MÊS'], ['SEÇÃO']]).setFontWeight('bold');

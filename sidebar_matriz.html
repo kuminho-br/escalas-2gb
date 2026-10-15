@@ -54,6 +54,8 @@
   <label for="secao">Seção</label>
   <input id="secao" type="text">
   <button id="btnMontar" class="secundario">Carregar escala</button>
+  <button id="btnLinhas" class="secundario" hidden>Ocultar linhas vazias</button>
+  <div id="notaLinhas" class="nota" hidden></div>
 
   <div id="erro" class="erro" hidden></div>
 
@@ -111,7 +113,7 @@
   function ocupado(sim) {
     trabalhando = sim;
     if (!sim) ultimaAtualizacao = Date.now();
-    ['btnMontar', 'btnSalvar', 'btnAtualizar', 'mes', 'secao'].forEach(function (id) { el(id).disabled = sim; });
+    ['btnMontar', 'btnSalvar', 'btnAtualizar', 'btnLinhas', 'mes', 'secao'].forEach(function (id) { el(id).disabled = sim; });
     if (!sim && atual) el('btnSalvar').disabled = atual.aplicarTotal === 0;
   }
   function falha(e) {
@@ -176,12 +178,32 @@
     el('avisos').textContent = r.avisos.join(' '); mostrar('avisos', r.avisos.length > 0);
   }
 
+  // RN-02: o botão só oculta/mostra as linhas extras sem serviço; nada é apagado nem entra na sincronia.
+  function desenharLinhas(e) {
+    var tem = !!(e && e.temEscala && e.qtd > 0);
+    mostrar('btnLinhas', tem); mostrar('notaLinhas', tem);
+    if (!tem) return;
+    el('btnLinhas').textContent = e.ocultas ? 'Mostrar todas as linhas' : 'Ocultar linhas vazias';
+    el('notaLinhas').textContent = e.qtd + ' linha(s) extra(s) de militar sem nenhum serviço no mês' + (e.ocultas ? ' (ocultas).' : '.');
+  }
+  function atualizarLinhas() {
+    google.script.run.withSuccessHandler(desenharLinhas).withFailureHandler(function () { mostrar('btnLinhas', false); mostrar('notaLinhas', false); }).painelLinhasEstado();
+  }
+  el('btnLinhas').addEventListener('click', function () {
+    limpar();
+    ocupado(true);
+    google.script.run
+      .withSuccessHandler(function (e) { ocupado(false); desenharLinhas(e); })
+      .withFailureHandler(falha)
+      .painelLinhasAlternar();
+  });
+
   function atualizar(silencioso) {
     if (!silencioso) limpar();
     if (confirmando) { clearTimeout(confirmando); confirmando = null; }
     ocupado(true);
     google.script.run
-      .withSuccessHandler(function (r) { ocupado(false); mostrarPrevia(r); if (silencioso) mostrar('erro', false); })
+      .withSuccessHandler(function (r) { ocupado(false); mostrarPrevia(r); atualizarLinhas(); if (silencioso) mostrar('erro', false); })
       .withFailureHandler(falha)
       .painelSincPrevia();
   }

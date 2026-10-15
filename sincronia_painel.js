@@ -192,6 +192,46 @@ function painelSincSalvar() {
   }
 }
 
+/* ------------------------------------------------------------ ocultar linhas vazias (RN-02, B20) */
+
+/**
+ * As linhas extras vazias da escala carregada (números de linha da planilha).
+ * Só ocultar/mostrar: nenhuma linha é inserida ou apagada e a sincronia continua lendo a grade inteira.
+ */
+function linhasExtrasVaziasDaEscala_() {
+  const ss = SpreadsheetApp.getActive();
+  const tz = ss.getSpreadsheetTimeZone();
+  const aba = abaDaEscala_(ss, false);
+  const m = aba ? lerMatrizAtual_(aba, tz) : null;
+  if (!m) return { aba: aba, m: null, linhas: [] };
+  const idx = linhasExtrasVazias_(m.linhas, m.celulas);
+  return { aba: aba, m: m, linhas: idx.map(function (i) { return CONFIG.PRIMEIRA_LINHA + i; }) };
+}
+
+/** Estado do botão: há escala? quantas linhas dá para ocultar? já estão ocultas? */
+function painelLinhasEstado() {
+  const x = linhasExtrasVaziasDaEscala_();
+  return {
+    temEscala: !!x.m,
+    qtd: x.linhas.length,
+    ocultas: x.linhas.length > 0 && x.aba.isRowHiddenByUser(x.linhas[0])
+  };
+}
+
+/** Alterna: se as linhas vazias estão ocultas, mostra todas as linhas da grade; senão oculta as extras vazias. */
+function painelLinhasAlternar() {
+  const x = linhasExtrasVaziasDaEscala_();
+  if (!x.m) throw new Error('Não há escala carregada. Carregue a escala do mês primeiro.');
+  const ocultas = x.linhas.length > 0 && x.aba.isRowHiddenByUser(x.linhas[0]);
+  if (ocultas) {
+    x.aba.showRows(CONFIG.PRIMEIRA_LINHA, x.m.celulas.length);
+  } else {
+    faixasParaApagar_(x.linhas).forEach(function (f) { x.aba.hideRows(f.inicio, f.qtd); });
+  }
+  SpreadsheetApp.flush();
+  return painelLinhasEstado();
+}
+
 /* ------------------------------------------------------------ gravação */
 
 function colunasAlocacoes_(aba) {

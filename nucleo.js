@@ -238,3 +238,19 @@ function compararAlocacoes_(tabela, escala) {
   Object.keys(mm).forEach(function (c) { if (!(c in mt)) soNaEscala.push({ chave: c, servico: mm[c].servico, turno: mm[c].turno }); });
   return { soNaTabela: soNaTabela, soNaEscala: soNaEscala, total: soNaTabela.length + soNaEscala.length };
 }
+
+/**
+ * RN-02 (B20): quais linhas da grade podem ser ocultadas. São as linhas EXTRAS de cada militar
+ * (2ª em diante) que não têm nenhum serviço no mês carregado. A 1ª linha de cada militar nunca entra.
+ * linhas: [{ mat }] na ordem da grade;  celulas: a grade (uma linha por item de "linhas").
+ * Retorna os índices (base 0) dentro da grade.
+ */
+function linhasExtrasVazias_(linhas, celulas) {
+  const res = [];
+  for (let i = 1; i < linhas.length; i++) {
+    if (!linhas[i].mat || linhas[i].mat !== linhas[i - 1].mat) continue;     // 1ª linha do militar: nunca oculta
+    const vazia = (celulas[i] || []).every(function (v) { return String(v == null ? '' : v).trim() === ''; });
+    if (vazia) res.push(i);
+  }
+  return res;
+}
