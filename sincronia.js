@@ -43,7 +43,8 @@ function mapaServicos_(lista) {
  * base, escala: [{ mat, dia, servico, turno }]
  * tabela: [{ mat, dia, servico, turno, linha }]   (só as linhas dos dias da escala)
  * catalogoPares: { 'Serviço|Turno': true }   (vazio/ausente = não valida)
- * opcoes: { horarios, todas, ilegiveis }   horarios/todas ativam o bloqueio por choque;
+ * opcoes: { horarios, todas, ilegiveis, regras }   horarios/todas ativam o bloqueio por choque;
+ *         regras (o contexto de regras_escala.js) + todas ativam o bloqueio por regra da escala (RN-03...);
  *         ilegiveis: [{ mat, dia, texto }] células da escala cujo texto não foi entendido
  */
 function calcularSincronizacao_(base, escala, tabela, catalogoPares, opcoes) {
@@ -58,7 +59,7 @@ function calcularSincronizacao_(base, escala, tabela, catalogoPares, opcoes) {
   });
 
   const validar = !!catalogoPares && Object.keys(catalogoPares).length > 0;
-  const res = { inserir: [], remover: [], atualizar: [], conflitos: [], invalidas: [], choques: [], jaAplicadas: [], aplicadas: [] };
+  const res = { inserir: [], remover: [], atualizar: [], conflitos: [], invalidas: [], choques: [], regras: [], jaAplicadas: [], aplicadas: [] };
 
   const par = function (k) { const p = partesDaChave_(k); return { servico: p.servico, turno: p.turno }; };
   const item = function (k, tipo, de, para, extra) {
@@ -136,6 +137,9 @@ function calcularSincronizacao_(base, escala, tabela, catalogoPares, opcoes) {
   // choque de horário: só com horários e a tabela completa (todos os meses) em mãos
   if (opcoes.horarios && opcoes.todas) bloquearPorChoque_(res, B, opcoes.todas, opcoes.horarios);
 
+  // regras da escala manual (RN-03 e as seguintes): só com o contexto e a tabela completa em mãos
+  if (opcoes.regras && opcoes.todas) bloquearPorRegras_(res, opcoes.todas, opcoes.regras);
+
   res.resumo = {
     inclusoes: res.inserir.filter(function (i) { return !i.troca; }).length,
     exclusoes: res.remover.filter(function (r) { return !r.troca; }).length,
@@ -143,6 +147,7 @@ function calcularSincronizacao_(base, escala, tabela, catalogoPares, opcoes) {
     conflitos: res.conflitos.length,
     invalidas: res.invalidas.length,
     choques: res.choques.length,
+    regras: res.regras.length,
     jaAplicadas: res.jaAplicadas.length
   };
   return res;

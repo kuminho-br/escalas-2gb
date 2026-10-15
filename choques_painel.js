@@ -69,6 +69,28 @@ function alocsComExpediente_(alocs, hor, tz) {
   return alocs.concat(extra);
 }
 
+/**
+ * Contexto das regras da escala manual (regras_escala.js): quem é do Adm (jornada Adm em MILITARES).
+ * Só lê a aba MILITARES.
+ */
+function contextoDeRegras_() {
+  const adm = Object.create(null);
+  lerMilitares_().forEach(function (m) { if (grupoDoMilitar_(m) === 'ADM') adm[m.mat] = true; });
+  return { adm: adm };
+}
+
+/**
+ * RN-03: rede de segurança de toda gravação na tabela (pré-escala, Adm, operações, salvar a escala).
+ * Nenhuma automação lança Saldo para quem não é do Adm: se algum caminho tentar, a gravação é cancelada.
+ */
+function garantirSaldoSoDoAdm_(novas) {
+  if (!novas.some(function (a) { return ehSaldo_(a.servico); })) return;
+  const v = violacoesSaldo_(novas, contextoDeRegras_());
+  if (v.length === 0) return;
+  const mats = Array.from(new Set(v.map(function (x) { return x.mat; })));
+  throw new Error('Gravação cancelada (RN-03): Saldo só pode ser lançado para militar do Adm. Matrícula(s): ' + mats.join(', ') + '.');
+}
+
 /** Mês inicial da tela: o da escala carregada ou, sem matriz, o último mês que tem alocações. */
 function painelDadosIntegridade() {
   const ss = SpreadsheetApp.getActive();
@@ -100,6 +122,12 @@ function painelIntegridade(mes) {
     return { nome: nomes[c.mat] || ('matrícula ' + c.mat), tipo: c.tipo, a: rotulo(c.a), b: rotulo(c.b), horas: horasTexto_(c.minutos), ordem: c.a.dia };
   }).sort(function (x, y) { return x.nome < y.nome ? -1 : x.nome > y.nome ? 1 : (x.ordem < y.ordem ? -1 : 1); });
 
+  // regras da escala (RN-03 e as seguintes) sobre a tabela inteira
+  const regras = violacoesDeRegras_(lidas.alocs, contextoDeRegras_())
+    .filter(function (v) { return !mes || v.dia.slice(0, 7) === mes; })
+    .map(function (v) { return { nome: nomes[v.mat] || ('matrícula ' + v.mat), a: rotulo(v), texto: v.texto, ordem: v.dia }; })
+    .sort(function (x, y) { return x.nome < y.nome ? -1 : x.nome > y.nome ? 1 : (x.ordem < y.ordem ? -1 : 1); });
+
   let matriz = { existe: false, total: 0, linhas: [] };
   const aba = abaDaEscala_(ss, false);
   const dif = aba ? diferencasDaMatrizAtual_(aba, lidas.alocs, tz, rot) : null;
@@ -119,6 +147,8 @@ function painelIntegridade(mes) {
     totalAlocacoes: lidas.alocs.length,
     totalChoques: itens.length,
     choques: itens.slice(0, LIMITE_CHOQUES_),
+    totalRegras: regras.length,
+    regras: regras.slice(0, LIMITE_CHOQUES_),
     semHorario: det.semHorario,
     avisosTurnos: hor.avisos,
     matriz: matriz,

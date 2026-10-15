@@ -74,7 +74,7 @@ function analisarSincronia_(tz) {
   const todas = lerAlocacoes_(tz).alocs;                     // todos os meses: o dia 31 precisa enxergar o dia 01
   const tabela = todas.filter(function (a) { return dias[a.dia]; });
   const res = calcularSincronizacao_(base, desm.alocs, tabela, catalogo.pares,
-    { horarios: hor.porChave, todas: alocsComExpediente_(todas, hor, tz), ilegiveis: desm.ilegiveis });
+    { horarios: hor.porChave, todas: alocsComExpediente_(todas, hor, tz), ilegiveis: desm.ilegiveis, regras: contextoDeRegras_() });
   return { res: res, base: base, fora: fora, matriz: desm.alocs, orfas: desm.orfas, repetidas: desm.repetidas, dias: m.dias, avisosTurnos: hor.avisos, rot: rot };
 }
 
@@ -93,6 +93,7 @@ function formatarItem_(i, nomes, rot) {
     de: rotulo(i.de),
     para: rotulo(i.para),
     texto: i.texto || '',
+    motivo: (i.motivos || []).map(function (m) { return m.texto; }).join('; '),
     tabela: (i.tabelaPares || []).map(rotulo).join(' / '),
     temTabela: !!i.tabelaPares,
     choca: (i.com || []).map(function (c) {
@@ -129,6 +130,7 @@ function resumoParaTela_(a, nomes) {
     conflitos: cortar(r.conflitos),
     invalidas: cortar(r.invalidas),
     choques: cortar(r.choques),
+    regras: cortar(r.regras),
     avisos: avisos,
     mes: a.dias[0] ? a.dias[0].slice(0, 7) : ''
   };
@@ -182,9 +184,11 @@ function painelSincSalvar() {
       conflitos: tela.conflitos,
       invalidas: tela.invalidas,
       choques: tela.choques,
+      regras: tela.regras,
       totalConflitos: r.conflitos.length,
       totalInvalidas: r.invalidas.length,
       totalChoques: r.choques.length,
+      totalRegras: r.regras.length,
       restantes: restantes,
       avisos: tela.avisos
     };

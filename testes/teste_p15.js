@@ -1,8 +1,8 @@
 // Testes da P15 (validações da escala). Uso: node testes/teste_p15.js  (a partir da pasta do repositório)
 const fs = require('fs'), path = require('path');
 const dir = path.join(__dirname, '..');
-const fontes = ['abertura_automatica.js', 'choques.js', 'sincronia.js', 'nucleo.js', 'pre_escala.js', 'guarnicao.js'].map(f => fs.readFileSync(path.join(dir, f), 'utf8')).join('\n');
-const L = new Function(fontes + '\nreturn {editouAGradeDaEscala_, painelEscalaAberto_, linhasExtrasVazias_, montarHorarios_, montarRotulos_, montarModeloMatriz_, desmontarMatriz_, detectarChoques_, calcularSincronizacao_, chaveAloc_, partesDaChave_};')();
+const fontes = ['abertura_automatica.js', 'regras_escala.js', 'choques.js', 'sincronia.js', 'nucleo.js', 'pre_escala.js', 'guarnicao.js'].map(f => fs.readFileSync(path.join(dir, f), 'utf8')).join('\n');
+const L = new Function(fontes + '\nreturn {violacoesSaldo_, violacoesDeRegras_, listasDeCelula_, bloquearPorRegras_, editouAGradeDaEscala_, painelEscalaAberto_, linhasExtrasVazias_, montarHorarios_, montarRotulos_, montarModeloMatriz_, desmontarMatriz_, detectarChoques_, calcularSincronizacao_, chaveAloc_, partesDaChave_};')();
 
 let ok = 0, falhas = 0;
 const ver = (n, c, x) => { if (c) { ok++; console.log('  ok   ' + n); } else { falhas++; console.log('  FALHA ' + n + (x !== undefined ? ' -> ' + JSON.stringify(x) : '')); } };
@@ -38,6 +38,50 @@ console.log('== B21 (RN-31) quando abrir o painel');
   ver('pulso recente = aberto', L.painelEscalaAberto_(agora, String(agora - 4000)) === true);
   ver('pulso antigo = fechado', L.painelEscalaAberto_(agora, String(agora - 16000)) === false);
   ver('sem pulso (null) = fechado', L.painelEscalaAberto_(agora, null) === false);
+}
+
+console.log('== B22 (RN-03) Saldo só para o Adm');
+{
+  const ctx = { adm: { ADM1: true } };
+  const A = (mat, dia, servico, turno) => ({ mat, dia: '2026-11-' + dia, servico, turno });
+  ver('Saldo para militar do Adm: sem violação', L.violacoesSaldo_([A('ADM1', '05', 'Saldo', 'A')], ctx).length === 0);
+  const v = L.violacoesSaldo_([A('PRO1', '05', 'Saldo', 'A')], ctx);
+  ver('Saldo para militar do Pronto: violação RN-03', v.length === 1 && v[0].rn === 'RN-03' && v[0].mat === 'PRO1', v);
+  ver('militar fora do cadastro conta como não-Adm', L.violacoesSaldo_([A('XXX', '05', 'Saldo', 'A')], ctx).length === 1);
+  ver('"saldo" em minúsculas também vale', L.violacoesSaldo_([A('PRO1', '05', 'saldo', 'A')], ctx).length === 1);
+  ver('outros serviços não são tocados', L.violacoesSaldo_([A('PRO1', '05', 'Pronto', 'A'), A('PRO1', '06', 'Adm', 'A')], ctx).length === 0);
+  ver('expediente implícito é ignorado', L.violacoesDeRegras_([{ mat: 'PRO1', dia: '2026-11-05', servico: 'Saldo', turno: 'A', implicito: true }], ctx).length === 0);
+
+  // sincronia: o Saldo lançado para o Pronto é bloqueado; o do Adm passa
+  const pares = { 'Pronto|A': true, 'Saldo|A': true, 'Adm|A': true };
+  const base = [];
+  const escala = [A('PRO1', '05', 'Saldo', 'A'), A('ADM1', '05', 'Saldo', 'A')];
+  let r = L.calcularSincronizacao_(base, escala, [], pares, { regras: ctx, todas: [] });
+  ver('Saldo do Pronto bloqueado, com aviso na lista de regras', r.regras.length === 1 && r.regras[0].mat === 'PRO1' && r.regras[0].motivos[0].rn === 'RN-03', r.regras);
+  ver('Saldo do Adm segue normal', r.inserir.length === 1 && r.inserir[0].mat === 'ADM1', r.inserir);
+  ver('resumo conta o bloqueio', r.resumo.regras === 1 && r.resumo.inclusoes === 1, r.resumo);
+  ver('o bloqueado não vai para a base (continua pendente)', r.aplicadas.indexOf('PRO1|2026-11-05|Saldo|A') < 0 && r.aplicadas.indexOf('ADM1|2026-11-05|Saldo|A') >= 0, r.aplicadas);
+
+  // troca: Pronto A -> Saldo A para militar do Pronto: tudo ou nada (a linha antiga fica)
+  const tabela = [{ mat: 'PRO1', dia: '2026-11-07', servico: 'Pronto', turno: 'A', linha: 12 }];
+  r = L.calcularSincronizacao_([A('PRO1', '07', 'Pronto', 'A')], [A('PRO1', '07', 'Saldo', 'A')], tabela, pares, { regras: ctx, todas: tabela });
+  ver('troca bloqueada: nada entra e a linha antiga não sai', r.inserir.length === 0 && r.remover.length === 0 && r.regras.length === 1 && r.regras[0].tipo === 'alteracao', r);
+
+  // violação antiga na tabela não bloqueia outra gravação
+  const velha = [{ mat: 'PRO1', dia: '2026-11-02', servico: 'Saldo', turno: 'A', linha: 5 }];
+  r = L.calcularSincronizacao_([], [A('PRO1', '09', 'Pronto', 'A')], velha, pares, { regras: ctx, todas: velha });
+  ver('Saldo antigo de não-Adm não impede salvar outra célula', r.inserir.length === 1 && r.regras.length === 0, r);
+
+  // sem contexto de regras a sincronia é a de antes
+  r = L.calcularSincronizacao_([], escala, [], pares, {});
+  ver('sem contexto (testes antigos) nada muda', r.inserir.length === 2 && r.regras.length === 0);
+
+  // lista suspensa
+  const hor = L.montarHorarios_([{ servico: 'Pronto', turno: 'A', inicio: '08:00', fim: '20:00' }, { servico: 'Saldo', turno: 'A', inicio: '08:00', fim: '20:00' }, { servico: 'Adm', turno: 'A', inicio: '08:00', fim: '16:00' }]).porChave;
+  const rot = L.montarRotulos_(hor, { 'Pronto|A': true, 'Saldo|A': true, 'Adm|A': true });
+  const li = L.listasDeCelula_(rot);
+  ver('lista do Adm tem Saldo', li.comSaldo.some(t => /^Saldo/.test(t)), li.comSaldo);
+  ver('lista dos demais não tem Saldo e mantém o resto', !li.semSaldo.some(t => /^Saldo/.test(t)) && li.semSaldo.length === li.comSaldo.length - 1, li.semSaldo);
 }
 
 console.log(`\n${ok} ok, ${falhas} falha(s)`);

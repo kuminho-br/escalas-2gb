@@ -245,14 +245,21 @@ function renderizarMatriz_(aba, modelo, par, rot, tz) {
   aba.getRange(r0, 1, nl, c0 - 1).setValues(modelo.linhas.map(function (l) { return [l.mat, l.nome, l.grupo]; }));
   aba.getRange(r0, c0, nl, nd).setValues(modelo.celulas);
 
-  // lista suspensa: uma só, igual para todas as linhas (serviço + horário, como na aba TURNOS)
+  // lista suspensa: serviço + horário, como na aba TURNOS. RN-03: o Saldo só aparece nas linhas de militar do Adm.
   if (rot.lista.length) {
-    const regra = SpreadsheetApp.newDataValidation()
-      .requireValueInList(rot.lista, true)
-      .setAllowInvalid(false)
-      .setHelpText('Serviço e horário, como na aba TURNOS.')
-      .build();
-    aba.getRange(r0, c0, nl, nd).setDataValidation(regra);
+    const listas = listasDeCelula_(rot);
+    const regraDe = function (lista, ajuda) {
+      return SpreadsheetApp.newDataValidation().requireValueInList(lista, true).setAllowInvalid(false).setHelpText(ajuda).build();
+    };
+    const regraAdm = regraDe(listas.comSaldo, 'Serviço e horário, como na aba TURNOS.');
+    const regraOutros = regraDe(listas.semSaldo, 'Serviço e horário, como na aba TURNOS. Saldo só para militar do Adm.');
+    const ehAdm = function (i) { return modelo.linhas[i].grupo === 'ADM'; };
+    let ini = 0;                                           // faixas seguidas de linhas do mesmo tipo
+    for (let i = 1; i <= nl; i++) {
+      if (i < nl && ehAdm(i) === ehAdm(ini)) continue;
+      aba.getRange(r0 + ini, c0, i - ini, nd).setDataValidation(ehAdm(ini) ? regraAdm : regraOutros);
+      ini = i;
+    }
   }
 
   // aparência

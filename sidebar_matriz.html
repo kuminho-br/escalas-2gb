@@ -89,6 +89,12 @@
     <ul id="listaChoques" class="itens"></ul>
   </div>
 
+  <div id="cartaoRegras" class="avisoBox" hidden>
+    <b>Bloqueadas por regra (não gravadas)</b>
+    <div class="nota">A regra indicada não permite gravar essas células. Ajuste a célula e salve de novo.</div>
+    <ul id="listaRegras" class="itens"></ul>
+  </div>
+
   <div id="avisos" class="avisoBox" hidden></div>
   <div id="resultado" class="ok" hidden></div>
 
@@ -120,7 +126,7 @@
   }
   function falha(e) {
     ocupado(false);
-    mostrar('cartao', false); mostrar('cartaoConflitos', false); mostrar('cartaoInvalidas', false); mostrar('cartaoChoques', false);
+    mostrar('cartao', false); mostrar('cartaoConflitos', false); mostrar('cartaoInvalidas', false); mostrar('cartaoChoques', false); mostrar('cartaoRegras', false);
     el('erro').textContent = (e && e.message) ? e.message.replace(/^Error:\s*/, '') : String(e);
     mostrar('erro', true);
   }
@@ -129,6 +135,7 @@
   function descricao(i) {
     var s = i.nome + ' · ' + i.dia + ' · ';
     if (i.choca) return s + i.para + ' · ' + i.choca;
+    if (i.motivo) return s + i.para + ' · ' + i.motivo;
     if (i.tipo === 'inclusao') return s + i.para;
     if (i.tipo === 'exclusao') return s + 'era ' + (i.de || '—');
     if (i.tipo === 'alteracao') return s + (i.de || '—') + ' → ' + i.para;
@@ -166,6 +173,7 @@
     c.appendChild(chip('conflitos', r.resumo.conflitos, true));
     c.appendChild(chip('inválidas', r.resumo.invalidas, true));
     c.appendChild(chip('choques', r.resumo.choques, true));
+    c.appendChild(chip('regras', r.resumo.regras, true));
     preencherLista('lista', r.aplicar, true);
     var mais = r.aplicarTotal - r.aplicar.length;
     el('maisNota').textContent = mais > 0 ? 'e mais ' + mais + ' alteração(ões) não listada(s).' : '';
@@ -177,6 +185,7 @@
     preencherLista('listaConflitos', r.conflitos, false); mostrar('cartaoConflitos', r.conflitos.length > 0);
     preencherLista('listaInvalidas', r.invalidas, false); mostrar('cartaoInvalidas', r.invalidas.length > 0);
     preencherLista('listaChoques', r.choques, false); mostrar('cartaoChoques', r.choques.length > 0);
+    preencherLista('listaRegras', r.regras, false); mostrar('cartaoRegras', r.regras.length > 0);
     el('avisos').textContent = r.avisos.join(' '); mostrar('avisos', r.avisos.length > 0);
   }
 
@@ -229,7 +238,7 @@
         var g = r.gravadas;
         var msg = 'Gravado: ' + g.inclusoes + ' inclusão(ões), ' + g.exclusoes + ' exclusão(ões), ' + g.alteracoes + ' alteração(ões).';
         msg += r.restantes === 0 ? ' Conferência: 0 diferenças pendentes.' : ' Atenção: ' + r.restantes + ' diferença(s) ainda pendente(s); atualize e confira.';
-        if (r.totalConflitos || r.totalInvalidas || r.totalChoques) msg += ' Não gravados: ' + r.totalConflitos + ' conflito(s), ' + r.totalInvalidas + ' inválida(s), ' + r.totalChoques + ' choque(s) de horário.';
+        if (r.totalConflitos || r.totalInvalidas || r.totalChoques || r.totalRegras) msg += ' Não gravados: ' + r.totalConflitos + ' conflito(s), ' + r.totalInvalidas + ' inválida(s), ' + r.totalChoques + ' choque(s) de horário, ' + r.totalRegras + ' bloqueio(s) por regra.';
         el('resultado').textContent = msg;
         mostrar('resultado', true);
         atualizar(true);
