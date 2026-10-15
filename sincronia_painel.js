@@ -146,6 +146,7 @@ function painelDadosMatriz() {
     base.mesSugerido = m.dias[0].slice(0, 7);
     base.secao = texto_(aba.getRange(CONFIG.LINHA_SECAO, 2).getValue()) || base.secao;
   }
+  base.aberturaAutomatica = garantirGatilhoDeEdicao_();      // RN-31 (B21)
   return base;
 }
 

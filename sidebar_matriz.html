@@ -57,6 +57,8 @@
   <button id="btnLinhas" class="secundario" hidden>Ocultar linhas vazias</button>
   <div id="notaLinhas" class="nota" hidden></div>
 
+  <div id="notaAuto" class="nota" hidden></div>
+
   <div id="erro" class="erro" hidden></div>
 
   <div id="cartao" class="cartao" hidden>
@@ -288,8 +290,29 @@
     if (!trabalhando && !confirmando && Date.now() - ultimaAtualizacao > 5000) atualizar(true);
   });
 
+  // RN-31: com o painel aberto, o servidor sabe disso pelo pulso (a cada 5 s). Se houve edição na escala
+  // desde a última lista, a lista se atualiza sozinha (sem reabrir o painel).
+  var ultimaEdicao = null;
+  function pulso() {
+    google.script.run.withSuccessHandler(function (r) {
+      if (ultimaEdicao === null) { ultimaEdicao = r.edicao; return; }
+      if (r.edicao !== ultimaEdicao && !trabalhando && !confirmando) { ultimaEdicao = r.edicao; atualizar(true); }
+    }).withFailureHandler(function () {}).painelPulso();
+  }
+  setInterval(pulso, 5000);
+  window.addEventListener('pagehide', function () { google.script.run.painelFechando(); });
+
   google.script.run
-    .withSuccessHandler(function (d) { el('mes').value = d.mesSugerido; el('secao').value = d.secao; atualizar(false); })
+    .withSuccessHandler(function (d) {
+      el('mes').value = d.mesSugerido; el('secao').value = d.secao;
+      var a = d.aberturaAutomatica;
+      el('notaAuto').textContent = a && a.ativa
+        ? 'Este painel abre sozinho quando você altera a escala e há algo a salvar.'
+        : 'Abertura automática ao editar não está ativa' + (a && a.erro ? ' (' + a.erro + ')' : '') + '. Lembre-se de abrir este painel e salvar depois de editar.';
+      mostrar('notaAuto', true);
+      pulso();
+      atualizar(false);
+    })
     .withFailureHandler(falha)
     .painelDadosMatriz();
 </script>
