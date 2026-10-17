@@ -2,7 +2,7 @@
 const fs = require('fs'), path = require('path');
 const dir = path.join(__dirname, '..');
 const fontes = ['abertura_automatica.js', 'distribuicao_cotas.js', 'regras_escala.js', 'choques.js', 'sincronia.js', 'nucleo.js', 'pre_escala.js', 'guarnicao.js'].map(f => fs.readFileSync(path.join(dir, f), 'utf8')).join('\n');
-const L = new Function(fontes + '\nreturn {diagnosticarOperacoes_, distribuirCotas_, COTAS_MOTIVOS_, violacoesJesVoluntario_, separarVoluntariado_, violacoesDiariaUnica_, violacoesSaldo_, violacoesDeRegras_, listasDeCelula_, bloquearPorRegras_, editouAGradeDaEscala_, painelEscalaAberto_, linhasExtrasVazias_, montarHorarios_, montarRotulos_, montarModeloMatriz_, desmontarMatriz_, detectarChoques_, calcularSincronizacao_, chaveAloc_, partesDaChave_};')();
+const L = new Function(fontes + '\nreturn {diagnosticarOperacoes_, distribuirCotas_, COTAS_MOTIVOS_, violacoesJesVoluntario_, separarVoluntariado_, violacoesDiariaUnica_, violacoesSaldo_, violacoesDeRegras_, listasDeCelula_, bloquearPorRegras_, novaBase_, editouAGradeDaEscala_, painelEscalaAberto_, linhasExtrasVazias_, montarHorarios_, montarRotulos_, montarModeloMatriz_, desmontarMatriz_, detectarChoques_, calcularSincronizacao_, chaveAloc_, partesDaChave_};')();
 
 let ok = 0, falhas = 0;
 const ver = (n, c, x) => { if (c) { ok++; console.log('  ok   ' + n); } else { falhas++; console.log('  FALHA ' + n + (x !== undefined ? ' -> ' + JSON.stringify(x) : '')); } };
@@ -185,6 +185,43 @@ console.log('== B24 (RN-81) por que "Gerar operações" não tem nada a gerar');
   o = op(); r = roda(o, [{ mat: 'M1', dia: '2026-11-01', turno: 'A', servico: 'todos' }]);
   ver('cadastro completo + voluntário: gera alocações e o diagnóstico fica vazio', r.res.novas.length > 0 && diag(o, r).length === 0, r.res.novas.length);
   ver('sem cota restante nada é dito (nada a diagnosticar)', L.diagnosticarOperacoes_({ mes: '2026-11', secao: '1ª SB', operacoes: [o], res: { porOperacao: { 'PE Seguro': { novas: 0, restantes: 0 } }, vazias: [] }, horarios: hor }).length === 0);
+}
+
+console.log('== B35 (RN-36, RN-37) pendência não impede gravar o que está válido');
+{
+  const tipos = { Bioma: 'Diária', 'PE Seguro': 'Diária', Pronto: 'Ordinário' };
+  const ctx = { adm: {}, tipos };
+  const hor = L.montarHorarios_([['Pronto', 'A', '08:00', '20:00'], ['Bioma', 'A', '00:00', '08:00'], ['Bioma', 'B', '08:00', '16:00'], ['PE Seguro', 'C', '16:00', '00:00']]
+    .map(t => ({ servico: t[0], turno: t[1], inicio: t[2], fim: t[3] }))).porChave;
+  const pares = {}; Object.keys(hor).forEach(k => pares[k] = true);
+  const A = (mat, servico, turno, dia) => ({ mat, dia: '2026-11-' + (dia || '10'), servico, turno });
+
+  // uma gravação com uma alteração válida e uma de cada tipo de pendência
+  const tab = [{ mat: 'M3', dia: '2026-11-10', servico: 'Pronto', turno: 'A', linha: 2 },   // já na tabela: choca com o Bioma B novo
+               { mat: 'M4', dia: '2026-11-10', servico: 'Bioma', turno: 'B', linha: 3 }];   // já na tabela: 2ª diária do dia é bloqueada
+  const base = [A('M4', 'Bioma', 'B'), A('M5', 'Bioma', 'A')];
+  const escala = [A('M1', 'Pronto', 'A'),            // válida
+                  A('M2', 'Fantasma', 'Z'),          // par inexistente na aba TURNOS -> inválida
+                  A('M3', 'Bioma', 'B'),             // choque de horário com o Pronto da tabela
+                  A('M4', 'Bioma', 'B'), A('M4', 'PE Seguro', 'C'),  // 2ª diária no mesmo dia -> regra RN-36
+                  A('M5', 'Pronto', 'A')];           // troca cuja linha antiga não está mais na tabela -> conflito
+  const r = L.calcularSincronizacao_(base, escala, tab, pares, { horarios: hor, todas: tab, regras: ctx });
+  ver('a alocação válida é gravada', r.inserir.length === 1 && r.inserir[0].mat === 'M1', r.inserir);
+  ver('as quatro pendências ficam listadas (conflito, inválida, choque, regra)',
+    r.conflitos.length === 1 && r.invalidas.length === 1 && r.choques.length === 1 && r.regras.length === 1,
+    { c: r.conflitos.length, i: r.invalidas.length, ch: r.choques.length, g: r.regras.length });
+  ver('o resumo que a tela usa mostra 1 inclusão e as pendências', r.resumo.inclusoes === 1 && r.resumo.conflitos + r.resumo.invalidas + r.resumo.choques + r.resumo.regras === 4, r.resumo);
+  ver('nada da tabela é apagado por causa das pendências', r.remover.length === 0, r.remover);
+  ver('só a chave gravada avança na referência', r.aplicadas.length === 1 && r.aplicadas[0].indexOf('M1') === 0, r.aplicadas);
+  const nb = L.novaBase_(base, escala, r, []);
+  ver('a referência nova não registra as pendências (continuam pendentes no próximo salvar)',
+    nb.some(x => x.mat === 'M1') && !nb.some(x => x.mat === 'M2' || x.mat === 'M3') && !nb.some(x => x.mat === 'M4' && x.servico === 'PE Seguro') && !nb.some(x => x.mat === 'M5' && x.servico === 'Pronto'), nb);
+
+  // o mesmo salvamento rodado de novo (depois de gravar a válida) continua oferecendo as pendências
+  const tab2 = tab.concat([{ mat: 'M1', dia: '2026-11-10', servico: 'Pronto', turno: 'A', linha: 4 }]);
+  const r2 = L.calcularSincronizacao_(nb, escala, tab2, pares, { horarios: hor, todas: tab2, regras: ctx });
+  ver('no 2º salvar não há nada válido a gravar, mas as pendências continuam as mesmas',
+    r2.inserir.length === 0 && r2.conflitos.length + r2.invalidas.length + r2.choques.length + r2.regras.length === 4, r2.resumo);
 }
 
 console.log(`\n${ok} ok, ${falhas} falha(s)`);

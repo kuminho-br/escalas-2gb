@@ -68,6 +68,7 @@
     <div id="maisNota" class="nota" hidden></div>
     <button id="btnSalvar" class="principal" disabled>Salvar alterações</button>
     <button id="btnAtualizar" class="secundario">Atualizar</button>
+    <div id="notaSalvar" class="nota" hidden></div>
     <div class="nota">Ao trocar o serviço ou o horário de uma célula, a função dessa alocação é apagada; mover o mesmo serviço de uma linha para outra não muda nada. Só é gravado o que você mudou desde que a escala foi carregada.</div>
   </div>
 
@@ -178,8 +179,24 @@
     var mais = r.aplicarTotal - r.aplicar.length;
     el('maisNota').textContent = mais > 0 ? 'e mais ' + mais + ' alteração(ões) não listada(s).' : '';
     mostrar('maisNota', mais > 0);
-    el('btnSalvar').textContent = 'Salvar alterações';
-    el('btnSalvar').disabled = r.aplicarTotal === 0;
+    // B35 (RN-36, RN-37): pendência não impede salvar. O que está válido é gravado e o resto
+    // continua listado aqui; o botão só fica inativo quando não há NADA válido para gravar, e nesse
+    // caso a nota diz o motivo em vez de deixar o botão apagado sem explicação.
+    var pend = r.resumo.conflitos + r.resumo.invalidas + r.resumo.choques + r.resumo.regras;
+    var b = el('btnSalvar');
+    b.textContent = 'Salvar alterações';
+    b.disabled = r.aplicarTotal === 0;
+    if (r.aplicarTotal > 0) {
+      b.title = 'Grava as ' + r.aplicarTotal + ' alteração(ões) válida(s).' + (pend ? ' As ' + pend + ' pendência(s) continuam listadas.' : '');
+      el('notaSalvar').textContent = pend ? 'As ' + pend + ' pendência(s) abaixo não impedem o salvamento: as ' + r.aplicarTotal + ' alteração(ões) válida(s) são gravadas e elas continuam listadas aqui.' : '';
+    } else if (pend) {
+      b.title = 'Nada válido para gravar agora: as ' + pend + ' pendência(s) abaixo estão bloqueadas.';
+      el('notaSalvar').textContent = 'Nada a gravar agora: todas as ' + pend + ' alteração(ões) pendentes estão bloqueadas (veja abaixo). Ajuste ou desfaça essas células; o que estiver certo é gravado sem precisar resolver as outras.';
+    } else {
+      b.title = 'Nada a gravar: a grade está igual à tabela.';
+      el('notaSalvar').textContent = '';
+    }
+    mostrar('notaSalvar', !!el('notaSalvar').textContent);
     mostrar('cartao', true);
 
     preencherLista('listaConflitos', r.conflitos, false); mostrar('cartaoConflitos', r.conflitos.length > 0);
@@ -238,7 +255,7 @@
         var g = r.gravadas;
         var msg = 'Gravado: ' + g.inclusoes + ' inclusão(ões), ' + g.exclusoes + ' exclusão(ões), ' + g.alteracoes + ' alteração(ões).';
         msg += r.restantes === 0 ? ' Conferência: 0 diferenças pendentes.' : ' Atenção: ' + r.restantes + ' diferença(s) ainda pendente(s); atualize e confira.';
-        if (r.totalConflitos || r.totalInvalidas || r.totalChoques || r.totalRegras) msg += ' Não gravados: ' + r.totalConflitos + ' conflito(s), ' + r.totalInvalidas + ' inválida(s), ' + r.totalChoques + ' choque(s) de horário, ' + r.totalRegras + ' bloqueio(s) por regra.';
+        if (r.totalConflitos || r.totalInvalidas || r.totalChoques || r.totalRegras) msg += ' Continuam pendentes, sem impedir o que foi gravado: ' + r.totalConflitos + ' conflito(s), ' + r.totalInvalidas + ' inválida(s), ' + r.totalChoques + ' choque(s) de horário, ' + r.totalRegras + ' bloqueio(s) por regra.';
         el('resultado').textContent = msg;
         mostrar('resultado', true);
         atualizar(true);
