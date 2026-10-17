@@ -82,14 +82,19 @@ function texto_(v) { return String(v == null ? '' : v).trim(); }
 
 function ehData_(v) { return Object.prototype.toString.call(v) === '[object Date]' && !isNaN(v); }
 
-/** Data da célula -> 'aaaa-mm-dd' no fuso da planilha ('' se não for uma data reconhecível). */
+/**
+ * Data da célula -> 'aaaa-mm-dd' no fuso da planilha ('' se não for uma data reconhecível).
+ * B31 (RN-40): aceita também dia e mês com um só dígito ("5/1/2026"), que é como a planilha
+ * devolve a célula quando ela foi digitada como texto em vez de data.
+ */
 function diaComoTexto_(v, tz) {
   if (ehData_(v)) return Utilities.formatDate(v, tz, 'yyyy-MM-dd');
   const s = texto_(v);
-  let m = s.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
-  if (m) return m[3] + '-' + m[2] + '-' + m[1];
-  m = s.match(/^(\d{4})-(\d{2})-(\d{2})$/);
-  return m ? s : '';
+  const dois = function (x) { return ('0' + x).slice(-2); };
+  let m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (m) return m[3] + '-' + dois(m[2]) + '-' + dois(m[1]);
+  m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+  return m ? m[1] + '-' + dois(m[2]) + '-' + dois(m[3]) : '';
 }
 
 function lerAlocacoes_(tz) {

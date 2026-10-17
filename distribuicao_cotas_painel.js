@@ -9,7 +9,8 @@
  *                   OPERAÇÃO = nome da escala na aba ESCALAS. ORIGEM = interna (padrão) ou externa (RN-34/RN-35).
  *                   Linhas de JES da SB são aceitas e ignoradas nesta etapa.
  *                   PRIORIDADE: 1 é a primeira operação a ser preenchida; vazio vai por último.
- *   VOLUNTARIADO  MÊS | MATRÍCULA | DIA | TURNO | SERVIÇO ACEITO
+ *   VOLUNTARIADO  DATA | MATRÍCULA | TURNO | SERVIÇO ACEITO
+ *                   DATA é a data inteira do plantão (tipo data, dd/mm/aaaa); o mês vem dela (B31/RN-40).
  *                   Uma linha por dia e turno em que o militar se voluntariou (A, B ou C). SERVIÇO ACEITO: "todos" ou
  *                   o nome de um serviço. Quem tem ao menos uma linha no mês preencheu o formulário (RN-41).
  * Vagas por turno: aba MODELOS DE GUARNIÇÃO (soma das vagas de todas as funções do turno; as funções não entram agora).
@@ -76,23 +77,46 @@ function lerCotas_(mes, secao, tz) {
   return out;
 }
 
-/** Aba VOLUNTARIADO do mês, só de militares da lista. Retorna { existe, linhas: [{ mat, dia, turno, servico }], avisos }. */
+/**
+ * Aba VOLUNTARIADO do mês, só de militares da lista. Retorna { existe, linhas: [{ mat, dia, turno, servico }], avisos }.
+ *
+ * B31 (RN-40, RN-41, RN-39): o mês sai da coluna DATA, que tem a data inteira do plantão.
+ * Antes havia MÊS e DIA: o mês era extraído só de DIA e, quando DIA não trazia a data inteira,
+ * a linha era descartada em silêncio — o painel mostrava "0 linhas do mês" sem dizer por quê.
+ * Uma aba antiga (ainda com DIA) continua sendo lida, com aviso para renomear a coluna, e toda
+ * linha com data ilegível agora é contada e avisada em vez de desaparecer.
+ */
 function lerVoluntariado_(mes, tz) {
   const aba = SpreadsheetApp.getActive().getSheetByName(COTAS_ABA.VOLUNTARIADO);
   const out = { existe: !!aba, linhas: [], avisos: [] };
   if (!aba) return out;
   const t = lerAba_(COTAS_ABA.VOLUNTARIADO);
-  const c = { mat: coluna_(t, 'MATRÍCULA', true), dia: coluna_(t, 'DIA', true), turno: coluna_(t, 'TURNO', true), serv: coluna_(t, 'SERVIÇO ACEITO', false) };
-  let semTurno = 0;
+  let cData = coluna_(t, 'DATA', false);
+  if (cData < 0) {
+    cData = coluna_(t, 'DIA', false);
+    if (cData < 0) throw new Error('Não achei a coluna "DATA" na linha 1 da aba "' + COTAS_ABA.VOLUNTARIADO + '".');
+    out.avisos.push('VOLUNTARIADO: a coluna de data ainda se chama DIA. Renomeie-a para DATA e preencha a data inteira do plantão (dd/mm/aaaa); a coluna MÊS não é mais usada.');
+  }
+  const c = { data: cData, mat: coluna_(t, 'MATRÍCULA', true), turno: coluna_(t, 'TURNO', true), serv: coluna_(t, 'SERVIÇO ACEITO', false) };
+  let semTurno = 0, semData = 0, exemplo = '';
   t.linhas.forEach(function (l) {
     const mat = texto_(l[c.mat]);
     if (!mat) return;
-    const dia = diaComoTexto_(l[c.dia], tz);
-    if (!dia || dia.slice(0, 7) !== mes) return;
+    const dia = diaComoTexto_(l[c.data], tz);
+    if (!dia) {                                         // B31: não some mais em silêncio
+      if (texto_(l[c.data]) !== '' && !exemplo) exemplo = texto_(l[c.data]);
+      semData++;
+      return;
+    }
+    if (dia.slice(0, 7) !== mes) return;
     const turno = letraDoTurno_(l[c.turno]);
     if (!turno) { semTurno++; return; }
     out.linhas.push({ mat: mat, dia: dia, turno: turno, servico: c.serv < 0 ? '' : texto_(l[c.serv]) });
   });
+  if (semData) {
+    out.avisos.push('VOLUNTARIADO: ' + semData + ' linha(s) com DATA ilegível foram ignoradas' +
+      (exemplo ? ' (por exemplo "' + exemplo + '")' : '') + '. Preencha a data inteira do plantão, como 05/11/2026.');
+  }
   if (semTurno) out.avisos.push('VOLUNTARIADO: ' + semTurno + ' linha(s) com TURNO ilegível foram ignoradas.');
   return out;
 }
@@ -276,11 +300,14 @@ function painelCotasAbas() {
   const ss = SpreadsheetApp.getActive();
   const criadas = [];
   [[COTAS_ABA.COTAS, ['MÊS', 'SB', 'OPERAÇÃO', 'SERVIÇO', 'QUANTIDADE', 'ORIGEM', 'PRIORIDADE'], ['2026-11', '1ª SB', 'PE Seguro', 'PE Seguro', 0, 'interna', 1]],
-   [COTAS_ABA.VOLUNTARIADO, ['MÊS', 'MATRÍCULA', 'DIA', 'TURNO', 'SERVIÇO ACEITO'], ['2026-11', '', '', 'A', 'todos']]].forEach(function (x) {
+   // B31 (RN-40): uma coluna DATA com a data inteira do plantão, no lugar de MÊS + DIA
+   [COTAS_ABA.VOLUNTARIADO, ['DATA', 'MATRÍCULA', 'TURNO', 'SERVIÇO ACEITO'], ['', '', 'A', 'todos']]].forEach(function (x) {
     if (ss.getSheetByName(x[0])) return;
     const aba = ss.insertSheet(x[0]);
     aba.getRange(1, 1, 1, x[1].length).setValues([x[1]]).setFontWeight('bold').setBackground('#2F5D50').setFontColor('#FFFFFF');
     aba.getRange(2, 1, 1, x[2].length).setValues([x[2]]).setFontColor('#888888');
+    const cData = x[1].indexOf('DATA');
+    if (cData >= 0) aba.getRange(2, cData + 1, aba.getMaxRows() - 1, 1).setNumberFormat('dd/MM/yyyy');
     aba.setFrozenRows(1);
     criadas.push(x[0]);
   });
