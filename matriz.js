@@ -303,17 +303,23 @@ function renderizarMatriz_(aba, modelo, par, rot, tz) {
   });
   if (cinza.length) aba.getRangeList(cinza).setFontColor('#9AA0A6');
 
-  // linhas divisórias: fina entre militares, grossa entre grupos (equipes)
-  const fimMilitar = [], fimGrupo = [];
+  // Linhas divisórias: fina entre militares, grossa entre grupos (equipes).
+  // B34 (RN-02): a borda vai em CIMA da primeira linha de cada militar, não embaixo da última.
+  // A última linha de um militar pode estar oculta pelo botão "Ocultar linhas vazias", e com ela
+  // desaparecia a divisória; a primeira linha nunca é oculta, então o separador sempre aparece.
+  const inicioMilitar = [], inicioGrupo = [];
   modelo.linhas.forEach(function (l, i) {
-    const prox = modelo.linhas[i + 1];
-    if (l.ultimaDoMilitar) fimMilitar.push(aba.getRange(r0 + i, 1, 1, nCols).getA1Notation());
-    if (l.ultimaDoMilitar && (!prox || prox.grupo !== l.grupo)) fimGrupo.push(r0 + i);
+    const ant = modelo.linhas[i - 1];
+    if (!ant || ant.mat === l.mat) return;                 // só a primeira linha de cada militar
+    if (ant.grupo !== l.grupo) inicioGrupo.push(r0 + i);
+    else inicioMilitar.push(aba.getRange(r0 + i, 1, 1, nCols).getA1Notation());
   });
-  if (fimMilitar.length) aba.getRangeList(fimMilitar).setBorder(null, null, true, null, null, null);
-  fimGrupo.forEach(function (r) {
-    aba.getRange(r, 1, 1, nCols).setBorder(null, null, true, null, null, null, '#000000', SpreadsheetApp.BorderStyle.SOLID_MEDIUM);
+  if (inicioMilitar.length) aba.getRangeList(inicioMilitar).setBorder(true, null, null, null, null, null);
+  inicioGrupo.forEach(function (r) {
+    aba.getRange(r, 1, 1, nCols).setBorder(true, null, null, null, null, null, '#000000', SpreadsheetApp.BorderStyle.SOLID_MEDIUM);
   });
+  // fecha a tabela embaixo (a borda de fora não separa ninguém; se a última linha estiver oculta, só o contorno some)
+  aba.getRange(r0 + nl - 1, 1, 1, nCols).setBorder(null, null, true, null, null, null, '#000000', SpreadsheetApp.BorderStyle.SOLID_MEDIUM);
 
   // cor por serviço
   // a célula é "Serviço HH–HH": a cor vem do começo do texto (o nome do serviço seguido de espaço e dígito ou parêntese)
