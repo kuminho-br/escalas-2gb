@@ -67,6 +67,7 @@
     <ul id="lista" class="itens"></ul>
     <div id="maisNota" class="nota" hidden></div>
     <button id="btnSalvar" class="principal" disabled>Salvar alterações</button>
+    <button id="btnCancelar" class="secundario" hidden>Cancelar</button>
     <button id="btnAtualizar" class="secundario">Atualizar</button>
     <div id="notaSalvar" class="nota" hidden></div>
     <div class="nota">Ao trocar o serviço ou o horário de uma célula, a função dessa alocação é apagada; mover o mesmo serviço de uma linha para outra não muda nada. Só é gravado o que você mudou desde que a escala foi carregada.</div>
@@ -114,7 +115,10 @@
   var el = function (id) { return document.getElementById(id); };
   var TIPOS = { inclusao: 'Inclusão', exclusao: 'Exclusão', alteracao: 'Alteração' };
   var atual = null;           // última prévia
-  var confirmando = null;     // temporizador do segundo clique
+  // B35 (RN-36, RN-37): a confirmação do segundo clique NÃO expira mais. Com o temporizador de 6 s,
+  // um segundo clique fora da janela virava um novo primeiro clique e a gravação nunca acontecia,
+  // sem erro nenhum na tela.
+  var confirmando = false;
   var ultimaAtualizacao = 0;
   var trabalhando = false;    // há uma chamada ao servidor em andamento
 
@@ -131,7 +135,20 @@
     el('erro').textContent = (e && e.message) ? e.message.replace(/^Error:\s*/, '') : String(e);
     mostrar('erro', true);
   }
-  function limpar() { mostrar('erro', false); mostrar('resultado', false); }
+  function limpar() { mostrar('erro', false); mostrar('resultado', false); manterErro = false; }
+  // B35: aviso que sobrevive à atualização silenciosa que vem logo depois de gravar
+  var manterErro = false;
+  function erroNaTela(msg) {
+    ocupado(false);
+    el('erro').textContent = msg;
+    mostrar('erro', true);
+    manterErro = true;
+  }
+  function desarmar() {
+    confirmando = false;
+    el('btnSalvar').textContent = 'Salvar alterações';
+    mostrar('btnCancelar', false);
+  }
 
   function descricao(i) {
     var s = i.nome + ' · ' + i.dia + ' · ';
@@ -184,7 +201,7 @@
     // caso a nota diz o motivo em vez de deixar o botão apagado sem explicação.
     var pend = r.resumo.conflitos + r.resumo.invalidas + r.resumo.choques + r.resumo.regras;
     var b = el('btnSalvar');
-    b.textContent = 'Salvar alterações';
+    desarmar();
     b.disabled = r.aplicarTotal === 0;
     if (r.aplicarTotal > 0) {
       b.title = 'Grava as ' + r.aplicarTotal + ' alteração(ões) válida(s).' + (pend ? ' As ' + pend + ' pendência(s) continuam listadas.' : '');
@@ -228,32 +245,46 @@
 
   function atualizar(silencioso) {
     if (!silencioso) limpar();
-    if (confirmando) { clearTimeout(confirmando); confirmando = null; }
+    desarmar();
     ocupado(true);
     google.script.run
-      .withSuccessHandler(function (r) { ocupado(false); mostrarPrevia(r); atualizarLinhas(); if (silencioso) mostrar('erro', false); })
+      .withSuccessHandler(function (r) { ocupado(false); mostrarPrevia(r); atualizarLinhas(); if (silencioso && !manterErro) mostrar('erro', false); })
       .withFailureHandler(falha)
       .painelSincPrevia();
   }
 
   el('btnAtualizar').addEventListener('click', function () { atualizar(false); });
 
-  // Gravar exige dois cliques: o primeiro pede confirmação (some depois de 6 s).
+  // Gravar exige dois cliques: o primeiro pede confirmação, que fica armada até confirmar ou cancelar.
+  el('btnCancelar').addEventListener('click', desarmar);
   el('btnSalvar').addEventListener('click', function () {
-    var b = el('btnSalvar');
+    if (!atual || atual.aplicarTotal === 0) return;
     if (!confirmando) {
-      b.textContent = 'Confirmar: gravar ' + atual.aplicarTotal + ' alteração(ões)';
-      confirmando = setTimeout(function () { confirmando = null; b.textContent = 'Salvar alterações'; }, 6000);
+      confirmando = true;
+      el('btnSalvar').textContent = 'Confirmar: gravar ' + atual.aplicarTotal + ' alteração(ões)';
+      mostrar('btnCancelar', true);
       return;
     }
-    clearTimeout(confirmando); confirmando = null;
-    b.textContent = 'Salvar alterações';
+    var esperado = atual.aplicarTotal;
+    desarmar();
     limpar();
     ocupado(true);
     google.script.run
       .withSuccessHandler(function (r) {
         var g = r.gravadas;
+        // B35: a tela diz o que REALMENTE foi gravado; "nada gravado" nunca mais passa por sucesso.
+        if (r.desatualizado) {
+          erroNaTela('Nada foi gravado: a lista estava desatualizada (a escala foi recarregada ou outra pessoa já aplicou essas mudanças). A lista foi recarregada abaixo; confira e salve de novo.');
+          atualizar(true);
+          return;
+        }
+        if (r.naoGravadas > 0) {
+          erroNaTela('Atenção: ' + r.naoGravadas + ' alteração(ões) não chegaram à aba ALOCAÇÕES TABULADAS (' + r.detalheNaoGravadas.join('; ') + '). Confira se a aba não está protegida ou filtrada e avise a programação.');
+          atualizar(true);
+          return;
+        }
         var msg = 'Gravado: ' + g.inclusoes + ' inclusão(ões), ' + g.exclusoes + ' exclusão(ões), ' + g.alteracoes + ' alteração(ões).';
+        msg += r.operacoes === 0 ? ' Não havia nada a gravar.' : ' A lista de alterações foi zerada.';
         msg += r.restantes === 0 ? ' Conferência: 0 diferenças pendentes.' : ' Atenção: ' + r.restantes + ' diferença(s) ainda pendente(s); atualize e confira.';
         if (r.totalConflitos || r.totalInvalidas || r.totalChoques || r.totalRegras) msg += ' Continuam pendentes, sem impedir o que foi gravado: ' + r.totalConflitos + ' conflito(s), ' + r.totalInvalidas + ' inválida(s), ' + r.totalChoques + ' choque(s) de horário, ' + r.totalRegras + ' bloqueio(s) por regra.';
         el('resultado').textContent = msg;
@@ -261,7 +292,7 @@
         atualizar(true);
       })
       .withFailureHandler(falha)
-      .painelSincSalvar();
+      .painelSincSalvar(esperado);
   });
 
   el('btnMontar').addEventListener('click', function () {
