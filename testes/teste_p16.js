@@ -120,5 +120,54 @@ console.log('== B37 (RN-07 a RN-12, RN-93) cadastro das viaturas com vigência m
   ver('máximo em branco = sem limite', L.avaliarGuarnicao_(L.resolverViaturas_([l('', 'X', '', '', '', '', '', 'CHEFE', 1, '', 2)], '2026-10').porId['X'], { CHEFE: 9 }).vagas.CHEFE === null);
 }
 
+console.log('== B36 (RN-94, RN-96, RN-83) as funções de cada serviço vêm do cadastro');
+{
+  const L = new Function(['nucleo.js', 'choques.js', 'sincronia.js', 'guarnicao.js'].map(ler).join('\n') +
+    '\nreturn {montarModelosGuarnicao_, funcoesPorServico_, funcoesQueExigemCnh_, funcaoExigeCnh_};')();
+  const turnosPorServico = { Pronto: ['A', 'B'], 'PE Seguro': ['A', 'B', 'C'], 'Apoio Aquartelado': ['A'] };
+  const escalas = [
+    { escala: 'Pronto', servicos: 'Pronto', titulo: '', militares: 'ESCALADOS', dias: 'TODOS' },
+    { escala: 'PE Seguro', servicos: 'PE Seguro', titulo: '', militares: 'TODOS', dias: 'TODOS' },
+    { escala: 'Apoio Aquartelado', servicos: 'Apoio Aquartelado', titulo: '', militares: 'ESCALADOS', dias: 'TODOS' }
+  ];
+  const modelos = [
+    { escala: 'Pronto', turno: 'A', unidade: 'AR', funcao: 'MOTORISTA', vagas: 1, exigeCnh: 'SIM' },
+    { escala: 'Pronto', turno: 'A', unidade: 'AR', funcao: 'CHEFE', vagas: 1, exigeCnh: '' },
+    { escala: 'Pronto', turno: 'A', unidade: 'AR', funcao: 'SOCORRISTA', vagas: 3, exigeCnh: '' },
+    { escala: 'Pronto', turno: 'B', unidade: 'ABTS', funcao: 'MOTORISTA', vagas: 1, exigeCnh: 'SIM' },
+    { escala: 'Pronto', turno: 'B', unidade: 'ABTS', funcao: 'COMBATENTE', vagas: 2, exigeCnh: '' },
+    { escala: 'PE Seguro', turno: 'TODOS', unidade: '', funcao: 'CHEFE', vagas: 1, exigeCnh: '' },
+    // RN-96: o Apoio Operacional Aquartelado é cadastro como qualquer outra unidade (nada de 1+2+1 no código)
+    { escala: 'Apoio Aquartelado', turno: 'A', unidade: 'ACO', funcao: 'MOTORISTA ACO', vagas: 1, exigeCnh: 'SIM' },
+    { escala: 'Apoio Aquartelado', turno: 'A', unidade: '', funcao: 'DESPACHANTE DE CENTRO DE OPERAÇÕES', vagas: 2, exigeCnh: '' },
+    { escala: 'Apoio Aquartelado', turno: 'A', unidade: '', funcao: 'ADJUNTO DE DIA', vagas: 1, exigeCnh: '' }
+  ];
+  const mod = L.montarModelosGuarnicao_(escalas, modelos, turnosPorServico);
+  ver('cada serviço tem a sua lista de funções (RN-83)',
+    L.funcoesPorServico_(mod, 'Pronto', 'A').map(f => f.funcao).join() === 'MOTORISTA,CHEFE,SOCORRISTA' &&
+    L.funcoesPorServico_(mod, 'PE Seguro', 'A').map(f => f.funcao).join() === 'CHEFE', L.funcoesPorServico_(mod, 'Pronto', 'A'));
+  ver('cada turno tem a sua', L.funcoesPorServico_(mod, 'Pronto', 'B').map(f => f.funcao).join() === 'MOTORISTA,COMBATENTE');
+  ver('sem turno, todos os postos do serviço (o motorista de cada viatura conta separado)', L.funcoesPorServico_(mod, 'Pronto').length === 5, L.funcoesPorServico_(mod, 'Pronto'));
+  ver('turno que não existe na escala não devolve nada', L.funcoesPorServico_(mod, 'Pronto', 'C').length === 0);
+  ver('serviço sem cadastro não inventa função', L.funcoesPorServico_(mod, 'Adm', 'A').length === 0);
+  ver('o nome do serviço casa sem caixa/acento', L.funcoesPorServico_(mod, 'pe seguro', 'A').length === 1);
+  ver('a unidade do posto vem junto', L.funcoesPorServico_(mod, 'Pronto', 'A')[0].unidade === 'AR');
+  ver('RN-96: o Apoio Aquartelado é cadastro, com as funções que o escalante pôs',
+    L.funcoesPorServico_(mod, 'Apoio Aquartelado', 'A').map(f => f.funcao).join() === 'MOTORISTA ACO,DESPACHANTE DE CENTRO DE OPERAÇÕES,ADJUNTO DE DIA');
+  ver('cadastrar uma função nova faz ela aparecer, sem mexer no código',
+    L.funcoesPorServico_(L.montarModelosGuarnicao_(escalas, modelos.concat([{ escala: 'Pronto', turno: 'A', unidade: 'AR', funcao: 'AUXILIAR DE 1ª LINHA', vagas: 1, exigeCnh: '' }]), turnosPorServico), 'Pronto', 'A')
+      .some(f => f.funcao === 'AUXILIAR DE 1ª LINHA'));
+
+  // B36/B38: quais funções exigem CNH é cadastro, não nome no código
+  const comCnh = L.funcoesQueExigemCnh_(mod);
+  ver('EXIGE CNH = SIM marca a função no cadastro', comCnh['MOTORISTA'] === true && comCnh['MOTORISTAACO'] === true && !comCnh['CHEFE'], comCnh);
+  ver('com o cadastro preenchido, só ele decide', L.funcaoExigeCnh_('MOTORISTA ACO', comCnh) === true && L.funcaoExigeCnh_('CHEFE', comCnh) === false);
+  ver('função com MOTORISTA no nome mas não marcada no cadastro não exige CNH', L.funcaoExigeCnh_('AUXILIAR DO MOTORISTA', comCnh) === false);
+  ver('sem a coluna EXIGE CNH, a ponte antiga pelo nome continua valendo',
+    L.funcaoExigeCnh_('MOTORISTA', {}) === true && L.funcaoExigeCnh_('CHEFE', {}) === false);
+  const semCnh = L.funcoesQueExigemCnh_(L.montarModelosGuarnicao_(escalas, modelos.map(x => Object.assign({}, x, { exigeCnh: '' })), turnosPorServico));
+  ver('nenhuma função marcada: o cadastro fica vazio e vale a ponte', Object.keys(semCnh).length === 0);
+}
+
 console.log(`\n${ok} ok, ${falhas} falha(s)`);
 process.exit(falhas ? 1 : 0);

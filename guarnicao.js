@@ -140,9 +140,12 @@ function montarModelosGuarnicao_(linhasEscalas, linhasModelo, turnosPorServico) 
     }
     if (vagas > 20) vagas = 20;
 
+    // B36 (RN-94): se a função exige habilitação é cadastro (coluna EXIGE CNH), não nome escrito no código
+    const exigeCnh = ['SIM', 'S', 'X', '1', 'TRUE', 'VERDADEIRO'].indexOf(normalizar_(l.exigeCnh)) >= 0;
+
     alvo.forEach(function (turno) {
       if (!esc.slots[turno]) { avisos.push('MODELOS DE GUARNIÇÃO: o turno "' + turno + '" não existe nos serviços da escala "' + esc.nome + '"; ignorado.'); return; }
-      esc.slots[turno].push({ unidade: t(l.unidade), funcao: funcao, vagas: vagas });
+      esc.slots[turno].push({ unidade: t(l.unidade), funcao: funcao, vagas: vagas, exigeCnh: exigeCnh });
       if (t(l.unidade)) esc.usaUnidade = true;
     });
   });
@@ -157,6 +160,60 @@ function montarModelosGuarnicao_(linhasEscalas, linhasModelo, turnosPorServico) 
     }
   });
   return { escalas: escalas, ordem: ordem, avisos: avisos };
+}
+
+/**
+ * B36 (RN-94): as funções de um serviço vêm do cadastro (abas ESCALAS + MODELOS DE GUARNIÇÃO),
+ * nunca de uma lista escrita no código — cada serviço tem a sua (RN-83) e ela muda com o tempo.
+ * Com turno, só as funções daquele turno. Retorna [{ funcao, unidade, exigeCnh, escala }], sem repetir.
+ */
+function funcoesPorServico_(mod, servico, turno) {
+  const out = [], vistos = Object.create(null);
+  const alvo = normalizar_(servico);
+  Object.keys((mod && mod.escalas) || {}).forEach(function (nome) {
+    const e = mod.escalas[nome];
+    if (!e.servicos.some(function (s) { return normalizar_(s) === alvo; })) return;
+    let turnos;
+    if (turno) {
+      if (!e.slots[turno]) return;                       // esse turno não existe nesta escala
+      turnos = [turno];
+    } else {
+      turnos = e.turnos;
+    }
+    turnos.forEach(function (x) {
+      (e.slots[x] || []).forEach(function (s) {
+        const k = chaveSlot_(s.unidade, s.funcao);
+        if (vistos[k]) return;
+        vistos[k] = true;
+        out.push({ funcao: s.funcao, unidade: s.unidade, exigeCnh: !!s.exigeCnh, escala: e.nome });
+      });
+    });
+  });
+  return out;
+}
+
+/** B36/B38 (RN-94, RN-12): { FUNÇÃO normalizada: true } das funções que exigem CNH no cadastro. */
+function funcoesQueExigemCnh_(mod) {
+  const out = Object.create(null);
+  Object.keys((mod && mod.escalas) || {}).forEach(function (nome) {
+    const e = mod.escalas[nome];
+    e.turnos.forEach(function (x) {
+      (e.slots[x] || []).forEach(function (s) { if (s.exigeCnh) out[normalizar_(s.funcao)] = true; });
+    });
+  });
+  return out;
+}
+
+/**
+ * B36/B38 (RN-94, RN-12): a função do posto exige habilitação?
+ * Vale o cadastro (coluna EXIGE CNH da aba MODELOS DE GUARNIÇÃO). Enquanto ninguém marcar nada
+ * nessa coluna, cai na ponte com o cadastro antigo (o nome da função contém MOTORISTA) para não
+ * perder o aviso que já existia; o painel avisa para marcar a coluna.
+ */
+function funcaoExigeCnh_(funcao, funcoesComCnh) {
+  const n = normalizar_(funcao);
+  if (funcoesComCnh && Object.keys(funcoesComCnh).length) return !!funcoesComCnh[n];
+  return /MOTORISTA/.test(n);
 }
 
 /** Postos de um turno, um por vaga: [{ unidade, funcao, k, chave }] (k = 1, 2... entre postos iguais). */
@@ -239,9 +296,11 @@ function montarGrade_(esc, mes, alocs) {
  * grade     : [{ linha, dia, turno, unidade, funcao, texto, mat }]  a grade como está agora (mat '' = vaga vazia;
  *             texto preenchido sem mat = célula ilegível)
  * tabelaMes : [{ mat, dia, turno, servico, funcao, unidade, linha }]   a tabela agora (só o mês)
- * opcoes    : { horarios, todas, motoristas }   (todos opcionais)
+ * opcoes    : { horarios, todas, motoristas, funcoesComCnh, cnh, cnhPorUnidade }   (todos opcionais)
  *             horarios/todas: ativam o bloqueio por choque nas inclusões
  *             motoristas: { matrícula: true } — se vier, avisa motorista fora da lista
+ *             funcoesComCnh: { FUNÇÃO: true } do cadastro (B36/RN-94); sem ela vale a ponte pelo nome
+ *             cnh: { matrícula: ['B','D'] } e cnhPorUnidade: { VIATURA: ['D'] } — checagem do B38 (RN-12)
  *
  * Retorna { inserir, atualizar, remover, conflitos, invalidas, choques, jaAplicadas, aplicadas, avisosMotorista, resumo }
  */
@@ -274,7 +333,7 @@ function calcularGuarnicao_(base, grade, tabelaMes, esc, opcoes) {
   };
 
   // estado da grade por chave; duplicatas e células ilegíveis ficam de fora e viram "inválidas"
-  const res = { inserir: [], atualizar: [], remover: [], conflitos: [], invalidas: [], choques: [], jaAplicadas: [], aplicadas: [], avisosMotorista: [] };
+  const res = { inserir: [], atualizar: [], remover: [], conflitos: [], invalidas: [], choques: [], jaAplicadas: [], aplicadas: [], avisosMotorista: [], avisosCnh: [] };
   const G = Object.create(null), ocup = Object.create(null);
   grade.forEach(function (r) {
     if (!r.mat) {
@@ -289,7 +348,14 @@ function calcularGuarnicao_(base, grade, tabelaMes, esc, opcoes) {
     if (ocup[k].length === 1) G[k] = est(ocup[k][0].funcao, ocup[k][0].unidade);
     if (opcoes.motoristas) {
       ocup[k].forEach(function (r) {
-        if (/MOTORISTA/.test(normalizar_(r.funcao)) && !opcoes.motoristas[r.mat]) res.avisosMotorista.push({ mat: r.mat, dia: r.dia, turno: r.turno, funcao: r.funcao });
+        if (!funcaoExigeCnh_(r.funcao, opcoes.funcoesComCnh)) return;
+        // continua avisando quem está numa função de condutor sem estar no quadro de motoristas
+        if (!opcoes.motoristas[r.mat]) { res.avisosMotorista.push({ mat: r.mat, dia: r.dia, turno: r.turno, funcao: r.funcao }); return; }
+        // B38 (RN-12): e agora também quem está no quadro mas sem CNH compatível com a viatura
+        const exigida = (opcoes.cnhPorUnidade || Object.create(null))[normalizar_(r.unidade)] || [];
+        if (exigida.length && !cnhAtende_((opcoes.cnh || {})[r.mat] || [], exigida)) {
+          res.avisosCnh.push({ mat: r.mat, dia: r.dia, turno: r.turno, funcao: r.funcao, unidade: r.unidade, exigida: exigida.join('/') });
+        }
       });
     }
   });
@@ -367,7 +433,8 @@ function calcularGuarnicao_(base, grade, tabelaMes, esc, opcoes) {
     invalidas: res.invalidas.length,
     choques: res.choques.length,
     jaAplicadas: res.jaAplicadas.length,
-    motoristas: res.avisosMotorista.length
+    motoristas: res.avisosMotorista.length,
+    cnh: res.avisosCnh.length                            // B38 (RN-12)
   };
   return res;
 }

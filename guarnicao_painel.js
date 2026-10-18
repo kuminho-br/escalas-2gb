@@ -43,19 +43,22 @@ const GUARN_EXEMPLO_ESCALAS_ = [
   ['Bioma', 'Bioma', 'ESCALA OPERAÇÃO GUARDIÕES DO BIOMA', 'TODOS', 'TODOS'],
   ['CPRH', 'CPRH', 'ESCALA DE SERVIÇO CPRH', 'TODOS', 'SÓ ESCALADOS']
 ];
+// B36 (RN-94): isto é só a semente das abas de cadastro. Nenhuma função é lida do código:
+// o que vale é sempre o que estiver nas abas ESCALAS e MODELOS DE GUARNIÇÃO.
+// EXIGE CNH marca as funções de condutor (RN-12, B38).
 const GUARN_EXEMPLO_MODELOS_ = [
-  ['ESCALA', 'TURNO', 'UNIDADE', 'FUNÇÃO', 'VAGAS'],
-  ['Defensoria', 'TODOS', '', 'CHEFE', 1],
-  ['Defensoria', 'TODOS', '', 'AUXILIAR', 1],
-  ['PE Seguro', 'TODOS', '', 'MOTORISTA', 1],
-  ['PE Seguro', 'TODOS', '', 'CHEFE', 1],
-  ['PE Seguro', 'TODOS', '', 'SOCORRISTA', 2],
-  ['Bioma', 'TODOS', '', 'MOTORISTA', 1],
-  ['Bioma', 'TODOS', '', 'CHEFE', 1],
-  ['Bioma', 'TODOS', '', 'COMBATENTE', 2],
-  ['CPRH', 'TODOS', '', 'CHEFE', 1],
-  ['CPRH', 'TODOS', '', 'MOTORISTA', 1],
-  ['CPRH', 'TODOS', '', 'COMBATENTE', 1]
+  ['ESCALA', 'TURNO', 'UNIDADE', 'FUNÇÃO', 'VAGAS', 'EXIGE CNH'],
+  ['Defensoria', 'TODOS', '', 'CHEFE', 1, ''],
+  ['Defensoria', 'TODOS', '', 'AUXILIAR', 1, ''],
+  ['PE Seguro', 'TODOS', '', 'MOTORISTA', 1, 'SIM'],
+  ['PE Seguro', 'TODOS', '', 'CHEFE', 1, ''],
+  ['PE Seguro', 'TODOS', '', 'SOCORRISTA', 2, ''],
+  ['Bioma', 'TODOS', '', 'MOTORISTA', 1, 'SIM'],
+  ['Bioma', 'TODOS', '', 'CHEFE', 1, ''],
+  ['Bioma', 'TODOS', '', 'COMBATENTE', 2, ''],
+  ['CPRH', 'TODOS', '', 'CHEFE', 1, ''],
+  ['CPRH', 'TODOS', '', 'MOTORISTA', 1, 'SIM'],
+  ['CPRH', 'TODOS', '', 'COMBATENTE', 1, '']
 ];
 
 function abrirPainelGuarnicao() {
@@ -82,14 +85,16 @@ function lerModelosGuarnicao_() {
   }
   const tE = lerAba_(GUARN_ABA.ESCALAS), tM = lerAba_(GUARN_ABA.MODELOS);
   const e = { escala: coluna_(tE, 'ESCALA', true), servicos: coluna_(tE, 'SERVIÇOS', false), titulo: coluna_(tE, 'TÍTULO', false), militares: coluna_(tE, 'MILITARES', false), dias: coluna_(tE, 'DIAS', false) };
-  const m = { escala: coluna_(tM, 'ESCALA', true), turno: coluna_(tM, 'TURNO', false), unidade: coluna_(tM, 'UNIDADE', false), funcao: coluna_(tM, 'FUNÇÃO', true), vagas: coluna_(tM, 'VAGAS', false) };
+  // B36 (RN-94): EXIGE CNH é cadastro — diz quais funções são de condutor, sem nome escrito no código
+  const m = { escala: coluna_(tM, 'ESCALA', true), turno: coluna_(tM, 'TURNO', false), unidade: coluna_(tM, 'UNIDADE', false), funcao: coluna_(tM, 'FUNÇÃO', true), vagas: coluna_(tM, 'VAGAS', false), cnh: coluna_(tM, 'EXIGE CNH', false) };
   const pega = function (l, i) { return i < 0 ? '' : l[i]; };
   const mod = montarModelosGuarnicao_(
     tE.linhas.map(function (l) { return { escala: l[e.escala], servicos: pega(l, e.servicos), titulo: pega(l, e.titulo), militares: pega(l, e.militares), dias: pega(l, e.dias) }; }),
-    tM.linhas.map(function (l) { return { escala: l[m.escala], turno: pega(l, m.turno), unidade: pega(l, m.unidade), funcao: l[m.funcao], vagas: pega(l, m.vagas) }; }),
+    tM.linhas.map(function (l) { return { escala: l[m.escala], turno: pega(l, m.turno), unidade: pega(l, m.unidade), funcao: l[m.funcao], vagas: pega(l, m.vagas), exigeCnh: pega(l, m.cnh) }; }),
     turnosPorServico
   );
   mod.semAbas = false;
+  mod.temColunaExigeCnh = m.cnh >= 0;
   return mod;
 }
 
@@ -181,9 +186,43 @@ function analisarGuarnicao_(tz) {
     motoristas = Object.create(null);
     mil.forEach(function (m) { if (m.motorista) motoristas[m.mat] = true; });
   }
-  const res = calcularGuarnicao_(base, grade, tabelaMes, esc, { horarios: hor.porChave, todas: todas, motoristas: motoristas });
+  // B36/B38 (RN-94, RN-12): funções de condutor e CNH vêm do cadastro
+  const ctx = contextoDeCnh_(mod, mil, meta.mes, tz);
+  const res = calcularGuarnicao_(base, grade, tabelaMes, esc, {
+    horarios: hor.porChave, todas: todas, motoristas: motoristas,
+    funcoesComCnh: ctx.funcoesComCnh, cnh: ctx.cnh, cnhPorUnidade: ctx.cnhPorUnidade
+  });
   const atual = montarGrade_(esc, meta.mes, todas);
-  return { res: res, esc: esc, meta: meta, base: base, atual: atual, avisos: mod.avisos.concat(hor.avisos) };
+  return { res: res, esc: esc, meta: meta, base: base, atual: atual, avisos: mod.avisos.concat(hor.avisos, ctx.avisos) };
+}
+
+/**
+ * B36/B38 (RN-94, RN-12): o que o código precisa saber sobre condutores, tudo vindo de cadastro:
+ * quais funções exigem CNH (coluna EXIGE CNH de MODELOS DE GUARNIÇÃO), a CNH de cada militar
+ * (coluna CNH de MILITARES) e a categoria exigida por viatura (aba VIATURAS, no mês da grade).
+ */
+function contextoDeCnh_(mod, mil, mes, tz) {
+  const avisos = [];
+  const funcoesComCnh = funcoesQueExigemCnh_(mod);
+  const temFuncoes = Object.keys(funcoesComCnh).length > 0;
+  if (!mod.temColunaExigeCnh) {
+    avisos.push('A aba MODELOS DE GUARNIÇÃO não tem a coluna EXIGE CNH (RN-94): por ora vale a regra antiga, pelo nome da função ("MOTORISTA"). Crie a coluna pelo botão "Criar abas e colunas que faltam" e marque SIM nas funções de condutor.');
+  } else if (!temFuncoes) {
+    avisos.push('Nenhuma função está marcada com EXIGE CNH = SIM na aba MODELOS DE GUARNIÇÃO (RN-94): por ora vale a regra antiga, pelo nome da função.');
+  }
+
+  const temColunaCnh = mil.some(function (m) { return m.temColunaCnh; });
+  const cnh = Object.create(null);
+  mil.forEach(function (m) { if (!(m.mat in cnh)) cnh[m.mat] = m.cnh || []; });
+
+  const cnhPorUnidade = Object.create(null);
+  const viat = viaturasDoMes_(mes, tz);
+  viat.viaturas.forEach(function (v) { if (v.cnh.length) cnhPorUnidade[normalizar_(v.id)] = v.cnh; });
+  if (Object.keys(cnhPorUnidade).length && !temColunaCnh) {
+    avisos.push('Há viatura que exige categoria de CNH, mas a aba MILITARES não tem a coluna CNH (RN-12): a checagem de habilitação fica desligada (vale só o quadro de motoristas).');
+    return { funcoesComCnh: funcoesComCnh, cnh: cnh, cnhPorUnidade: Object.create(null), temColunaCnh: false, avisos: avisos };
+  }
+  return { funcoesComCnh: funcoesComCnh, cnh: cnh, cnhPorUnidade: cnhPorUnidade, temColunaCnh: temColunaCnh, avisos: avisos };
 }
 
 const LIMITE_LISTA_G_ = 40;
@@ -236,6 +275,11 @@ function resumoParaTelaG_(a, nomes) {
     return (nomes[x.mat] || x.mat) + ' em ' + x.funcao + ' (' + dm_(x.dia) + ' ' + x.turno + ') não está marcado como motorista na aba MILITARES.';
   });
   if (r.avisosMotorista.length > 10) avisosMot.push('e mais ' + (r.avisosMotorista.length - 10) + ' aviso(s) de motorista.');
+  // B38 (RN-12): quem está no quadro de motoristas mas sem CNH compatível com a viatura do posto
+  (r.avisosCnh || []).slice(0, 10).forEach(function (x) {
+    avisosMot.push((nomes[x.mat] || x.mat) + ' em ' + x.funcao + ' (' + dm_(x.dia) + ' ' + x.turno + ') não tem CNH ' + x.exigida + ', exigida pela viatura ' + x.unidade + ' (RN-12).');
+  });
+  if ((r.avisosCnh || []).length > 10) avisosMot.push('e mais ' + (r.avisosCnh.length - 10) + ' aviso(s) de CNH.');
   return {
     escala: a.meta.escala,
     mes: a.meta.mes,
@@ -274,7 +318,7 @@ function painelDadosGuarnicao() {
 function painelGuarnicaoExemplos() {
   const ss = SpreadsheetApp.getActive();
   const criadas = [];
-  [[GUARN_ABA.ESCALAS, GUARN_EXEMPLO_ESCALAS_, 5], [GUARN_ABA.MODELOS, GUARN_EXEMPLO_MODELOS_, 5]].forEach(function (x) {
+  [[GUARN_ABA.ESCALAS, GUARN_EXEMPLO_ESCALAS_, 5], [GUARN_ABA.MODELOS, GUARN_EXEMPLO_MODELOS_, 6]].forEach(function (x) {
     if (ss.getSheetByName(x[0])) return;
     const aba = ss.insertSheet(x[0]);
     aba.getRange(1, 1, x[1].length, x[2]).setValues(x[1]);
@@ -282,7 +326,25 @@ function painelGuarnicaoExemplos() {
     aba.setFrozenRows(1);
     criadas.push(x[0]);
   });
+  // B36 (RN-94): quem já tem a aba MODELOS ganha a coluna EXIGE CNH, vazia, para marcar as de condutor
+  if (garantirColunaExigeCnh_()) criadas.push('coluna EXIGE CNH (em MODELOS DE GUARNIÇÃO, vazia: marque SIM nas funções de condutor)');
   return { criadas: criadas };
+}
+
+/** Acrescenta a coluna EXIGE CNH à aba MODELOS DE GUARNIÇÃO, se faltar. Só o cabeçalho. */
+function garantirColunaExigeCnh_() {
+  const aba = SpreadsheetApp.getActive().getSheetByName(GUARN_ABA.MODELOS);
+  if (!aba) return false;
+  const nCols = aba.getLastColumn();
+  const cab = aba.getRange(1, 1, 1, nCols).getValues()[0].map(normalizar_);
+  if (cab.indexOf(normalizar_('EXIGE CNH')) >= 0) return false;
+  aba.getRange(1, nCols + 1).setValue('EXIGE CNH').setFontWeight('bold');
+  const n = aba.getLastRow() - 1;
+  if (n > 0) {
+    aba.getRange(2, nCols + 1, n, 1).setDataValidation(
+      SpreadsheetApp.newDataValidation().requireValueInList(['SIM', 'NÃO'], true).setAllowInvalid(true).build());
+  }
+  return true;
 }
 
 function painelGuarnicaoMontar(escala, mes) {
@@ -310,7 +372,7 @@ function painelGuarnicaoMontar(escala, mes) {
   const grade = montarGrade_(esc, mes, todas);
   const mil = lerMilitares_();
   const hor = lerHorarios_();
-  renderizarGrade_(esc, mes, grade, todas, mil, hor, tz);
+  renderizarGrade_(esc, mes, grade, todas, mil, hor, tz, contextoDeCnh_(mod, mil, mes, tz));
   salvarBaseGuarnicao_({ escala: esc.nome, mes: mes }, grade.base);
   SpreadsheetApp.flush();
   return { ok: true, vagas: grade.vagas, preenchidas: grade.preenchidas, semFuncao: grade.escaladosSemFuncao };
@@ -386,7 +448,7 @@ function aplicarGuarnicao_(res, tz) {
 
 /* ------------------------------------------------------------ a grade na planilha */
 
-function renderizarGrade_(esc, mes, grade, todas, mil, hor, tz) {
+function renderizarGrade_(esc, mes, grade, todas, mil, hor, tz, ctxCnh) {
   const ss = SpreadsheetApp.getActive();
   const aba = ss.getSheetByName(GUARN_ABA.GRADE) || ss.insertSheet(GUARN_ABA.GRADE);
   const L = GUARN_L;
@@ -431,9 +493,26 @@ function renderizarGrade_(esc, mes, grade, todas, mil, hor, tz) {
     regraGeral = SpreadsheetApp.newDataValidation().requireValueInRange(listaGeral, true).setAllowInvalid(false).build();
   }
   const regraPorBloco = Object.create(null);
+  // B38 (RN-12): num posto que exige CNH, a lista só traz quem está no quadro de motoristas e tem
+  // categoria compatível com a viatura (coluna UNIDADE) daquele posto. Sem viatura vinculada, vale
+  // só o quadro de motoristas. Nada disso está escrito no código: vem das abas de cadastro.
+  const cnhCtx = ctxCnh || { funcoesComCnh: Object.create(null), cnh: Object.create(null), cnhPorUnidade: Object.create(null) };
+  const todosOsMats = mil.map(function (m) { return m.mat; });
+  const condutoresDe = function (unidade, candidatos) {
+    const exigida = cnhCtx.cnhPorUnidade[normalizar_(unidade)] || [];
+    return candidatos.filter(function (mat) {
+      const m = milPorMat[mat];
+      if (!m || !m.motorista) return false;
+      return exigida.length === 0 || cnhAtende_(m.cnh, exigida);
+    });
+  };
+  const listaEmRegra = function (lista) {
+    return lista.length ? SpreadsheetApp.newDataValidation().requireValueInList(lista.map(rotulo).sort(), true).setAllowInvalid(false).build() : null;
+  };
   let anterior = '';
   grade.linhas.forEach(function (l) {
     const bloco = l.dia + '|' + l.turno;
+    const exigeCnh = funcaoExigeCnh_(l.funcao, cnhCtx.funcoesComCnh);
     let obs = '';
     if (bloco !== anterior && grade.semFuncao[bloco]) {
       obs = grade.semFuncao[bloco].map(function (x) {
@@ -444,12 +523,15 @@ function renderizarGrade_(esc, mes, grade, todas, mil, hor, tz) {
     anterior = bloco;
     rows.push([Utilities.parseDate(l.dia, tz, 'yyyy-MM-dd'), GUARN_DIAS_SEMANA_[diaDaSemana_(l.dia)], l.turno, horarioTurno[l.turno], l.unidade, l.funcao, l.mat ? rotulo(l.mat) : '', l.servico, obs]);
 
-    if (esc.militares === 'TODOS') regras.push([regraGeral]);
-    else {
-      if (!(bloco in regraPorBloco)) {
-        const lista = (escaladosNoBloco[bloco] || []).map(rotulo).sort();
-        regraPorBloco[bloco] = lista.length ? SpreadsheetApp.newDataValidation().requireValueInList(lista, true).setAllowInvalid(false).build() : null;
-      }
+    const candidatos = esc.militares === 'TODOS' ? todosOsMats : (escaladosNoBloco[bloco] || []);
+    if (exigeCnh) {                                       // B38 (RN-12)
+      const k = bloco + '#' + chaveSlot_(l.unidade, l.funcao);
+      if (!(k in regraPorBloco)) regraPorBloco[k] = listaEmRegra(condutoresDe(l.unidade, candidatos));
+      regras.push([regraPorBloco[k]]);
+    } else if (esc.militares === 'TODOS') {
+      regras.push([regraGeral]);
+    } else {
+      if (!(bloco in regraPorBloco)) regraPorBloco[bloco] = listaEmRegra(candidatos);
       regras.push([regraPorBloco[bloco]]);
     }
   });

@@ -42,6 +42,9 @@ function onOpen() {
     .addItem('Pré-escala', 'abrirPainel')
     .addItem('Mostrar Escala', 'abrirPainelMatriz')
     .addItem('Escalas de Serviço', 'abrirPainelGuarnicao')
+    // B36 (RN-94): o menu do Apps Script é montado aqui e não dá para habilitar conforme a célula
+    // selecionada; o item valida a célula ativa no clique (ver alocar_funcao.js).
+    .addItem('Alocar em Função', 'alocarEmFuncao')
     .addSeparator()
     .addItem('Configurações', 'abrirPainelParametros')
     .addItem('Conferir Integridade dos Dados', 'abrirPainelIntegridade')
