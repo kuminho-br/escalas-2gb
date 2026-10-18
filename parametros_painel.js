@@ -85,6 +85,7 @@ function painelParametrosDados(mes) {
     avisos: r.avisos,
     carga: paramCargaAdm_(r.valores, mes, tz),
     feriados: feriadosDoMes_(tz, mes),
+    viaturas: viaturasResumo_(mes, tz),                   // B37 (RN-07 a RN-12, RN-93): atalho e resumo do cadastro
     params: PARAM_CATALOGO_.map(function (d) {
       return {
         chave: d.chave, grupo: d.grupo || 'Geral', rotulo: d.rotulo, tipo: d.tipo, descricao: d.descricao, min: d.min == null ? null : d.min, max: d.max == null ? null : d.max,

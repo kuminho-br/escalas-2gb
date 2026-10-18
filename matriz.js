@@ -122,7 +122,7 @@ function lerMilitares_() {
     mat: coluna_(t, 'MATRÍCULA', true), nome: coluna_(t, 'NOME DE GUERRA', true), secao: coluna_(t, 'SEÇÃO', true),
     posto: coluna_(t, 'POSTO/GRAD', false), jornada: coluna_(t, 'JORNADA', false),
     equipe: coluna_(t, 'EQUIPE', false), antig: coluna_(t, 'ANTIG', false), motorista: coluna_(t, 'MOTORISTA', false),
-    vjes: coluna_(t, 'VOLUNTÁRIO JES', false)
+    vjes: coluna_(t, 'VOLUNTÁRIO JES', false), cnh: coluna_(t, 'CNH', false)
   };
   const pega = function (l, i) { return i < 0 ? '' : l[i]; };
   const res = [];
@@ -137,7 +137,10 @@ function lerMilitares_() {
       motorista: c.motorista >= 0 && ['SIM', 'S', 'X', 'MOTORISTA', '1', 'TRUE', 'VERDADEIRO'].indexOf(normalizar_(l[c.motorista])) >= 0,
       // RN-46: atributo "voluntário JES" (sim/não). Só vale se a coluna existir; vazio e "não" contam como não.
       temColunaVoluntarioJes: c.vjes >= 0,
-      voluntarioJes: c.vjes >= 0 && ['SIM', 'S', 'X', '1', 'TRUE', 'VERDADEIRO'].indexOf(normalizar_(l[c.vjes])) >= 0
+      voluntarioJes: c.vjes >= 0 && ['SIM', 'S', 'X', '1', 'TRUE', 'VERDADEIRO'].indexOf(normalizar_(l[c.vjes])) >= 0,
+      // RN-12: categoria(s) de CNH do militar, como estão na coluna CNH ("B, D"). Sem a coluna, lista vazia.
+      temColunaCnh: c.cnh >= 0,
+      cnh: c.cnh >= 0 ? viatLista_(pega(l, c.cnh)) : []
     });
   });
   return res;

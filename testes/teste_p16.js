@@ -51,5 +51,74 @@ console.log('== B35 (RN-36, RN-37) a gravação é conferida na própria tabela'
   ver('conta todas as que faltaram, mas detalha no máximo 5', c.naoGravadas === 9 && c.detalhe.length === 5, c);
 }
 
+console.log('== B37 (RN-07 a RN-12, RN-93) cadastro das viaturas com vigência mensal');
+{
+  const L = new Function(['nucleo.js', 'viaturas.js'].map(ler).join('\n') +
+    '\nreturn {resolverViaturas_, cnhAtende_, avaliarGuarnicao_, viaturaAceitaServico_, viaturaPorNome_, viatLista_};')();
+  // VIGÊNCIA, VIATURA, TIPO, ATIVAR, PRIORIDADE, TIPOS DE SERVIÇO, CNH, FUNÇÃO, MÍNIMO, MÁXIMO
+  const l = (vig, viatura, tipo, ativar, prio, servicos, cnh, funcao, min, max, linha) =>
+    ({ linha: linha, vigencia: vig, viatura: viatura, tipo: tipo, ativar: ativar, prioridade: prio, servicos: servicos, cnh: cnh, funcao: funcao, minimo: min, maximo: max });
+  // duas viaturas com CNH e guarnições diferentes
+  const base = [
+    l('', 'AR', 'Auto Resgate', 'SIM', 1, '', 'D', 'MOTORISTA', 1, 1, 2),
+    l('', 'AR', '', '', '', '', '', 'CHEFE', 1, 1, 3),
+    l('', 'AR', '', '', '', '', '', 'SOCORRISTA', 1, 3, 4),
+    l('', 'ABTS', 'Auto Bomba', 'SIM', 2, 'Pronto', 'C', 'MOTORISTA', 1, 1, 5),
+    l('', 'ABTS', '', '', '', '', '', 'COMBATENTE', 2, 4, 6),
+    l('', 'Quartel', 'Efetivo do quartel', 'NÃO', '', '', '', 'ADJUNTO DE DIA', 1, 1, 7)
+  ];
+  let r = L.resolverViaturas_(base, '2026-10');
+  ver('lê as três viaturas, sem aviso', r.viaturas.length === 3 && r.avisos.length === 0, r.avisos);
+  const ar = r.porId['AR'];
+  ver('AR: mínimo 3 (motorista, chefe, socorrista) e máximo 5 (RN-10, RN-11)',
+    ar.funcoes.reduce((s, f) => s + f.minimo, 0) === 3 && ar.funcoes.reduce((s, f) => s + f.maximo, 0) === 5, ar.funcoes);
+  ver('AR: dados da viatura vêm da 1ª linha e valem para as demais', ar.tipo === 'Auto Resgate' && ar.ativar === true && ar.prioridade === 1 && ar.cnh.join() === 'D', ar);
+  ver('ordem de ativação pela prioridade; sem prioridade vai por último (RN-08)',
+    r.viaturas.map(v => v.id).join() === 'AR,ABTS,Quartel', r.viaturas.map(v => v.id));
+  ver('ATIVAR NÃO é respeitado (RN-07)', r.porId['QUARTEL'].ativar === false && r.viaturas.filter(v => v.ativar).length === 2);
+  ver('TIPOS DE SERVIÇO: ABTS só aceita Pronto (RN-09)',
+    L.viaturaAceitaServico_(r.porId['ABTS'], 'Pronto') && !L.viaturaAceitaServico_(r.porId['ABTS'], 'Bioma'));
+  ver('sem lista de tipos de serviço a viatura aceita qualquer serviço', L.viaturaAceitaServico_(ar, 'Bioma') === true);
+  ver('serviço sem viatura: nada a cobrar e nenhum aviso', L.viaturaPorNome_(r, 'UTI móvel') === null && L.viaturaAceitaServico_(null, 'Bioma') === true && r.avisos.length === 0);
+
+  // RN-93: alterar a guarnição mínima não retroage
+  const comMudanca = base.concat([l('2026-11', 'AR', '', '', '', '', '', 'SOCORRISTA', 2, 3, 20)]);
+  ver('mês já fechado mantém o mínimo antigo (RN-93)', L.resolverViaturas_(comMudanca, '2026-10').porId['AR'].funcoes.find(f => f.funcao === 'SOCORRISTA').minimo === 1);
+  ver('o mês da vigência passa a usar o mínimo novo', L.resolverViaturas_(comMudanca, '2026-11').porId['AR'].funcoes.find(f => f.funcao === 'SOCORRISTA').minimo === 2);
+  ver('meses seguintes seguem com o valor novo', L.resolverViaturas_(comMudanca, '2027-03').porId['AR'].funcoes.find(f => f.funcao === 'SOCORRISTA').minimo === 2);
+  const trocaPrio = base.concat([l('2026-12', 'ABTS', '', '', 1, '', '', '', '', '', 21), l('2026-12', 'AR', '', '', 3, '', '', '', '', '', 22)]);
+  ver('a prioridade também tem vigência', L.resolverViaturas_(trocaPrio, '2026-10').viaturas[0].id === 'AR' && L.resolverViaturas_(trocaPrio, '2026-12').viaturas[0].id === 'ABTS');
+  ver('MÁXIMO 0 tira a função da viatura a partir da vigência',
+    L.resolverViaturas_(base.concat([l('2026-12', 'AR', '', '', '', '', '', 'SOCORRISTA', 0, 0, 23)]), '2026-12').porId['AR'].funcoes.map(f => f.funcao).join() === 'CHEFE,MOTORISTA');
+
+  // avisos de linha ruim
+  r = L.resolverViaturas_([l('13/2026', 'AR', '', '', '', '', '', 'CHEFE', 1, 1, 2)], '2026-10');
+  ver('vigência inválida: linha ignorada com aviso', r.viaturas.length === 0 && /vigência/.test(r.avisos[0]), r.avisos);
+  r = L.resolverViaturas_([l('', 'AR', '', '', '', '', '', 'CHEFE', 3, 1, 2)], '2026-10');
+  ver('máximo menor que o mínimo: linha ignorada com aviso', r.viaturas.length === 0 && /menor que o mínimo/.test(r.avisos[0]), r.avisos);
+  r = L.resolverViaturas_([l('', 'AR', '', '', '', '', '', 'CHEFE', 'dois', 1, 2)], '2026-10');
+  ver('mínimo não numérico: linha ignorada com aviso', r.viaturas.length === 0 && /números inteiros/.test(r.avisos[0]), r.avisos);
+
+  // RN-12: CNH
+  ver('CNH exigida D e militar com D: atende', L.cnhAtende_(['D'], ['D']) === true);
+  ver('CNH exigida D e militar com B: não atende', L.cnhAtende_(['B'], ['D']) === false);
+  ver('militar com "B, D" atende a D (a hierarquia é cadastro, não código)', L.cnhAtende_(L.viatLista_('B, D'), ['D']) === true);
+  ver('viatura sem CNH exigida: qualquer um atende', L.cnhAtende_([], []) === true && L.cnhAtende_(['B'], []) === true);
+  ver('militar sem CNH cadastrada não atende exigência', L.cnhAtende_([], ['D']) === false);
+
+  // RN-10 / RN-11
+  let g = L.avaliarGuarnicao_(ar, { MOTORISTA: 1, CHEFE: 1, SOCORRISTA: 1 });
+  ver('mínimo atendido: viatura ativa (RN-10)', g.ativa === true && g.faltando.length === 0, g);
+  g = L.avaliarGuarnicao_(ar, { MOTORISTA: 1, CHEFE: 1 });
+  ver('faltando socorrista: viatura não é ativada e o relatório diz o que falta (RN-10)',
+    g.ativa === false && g.faltando.length === 1 && g.faltando[0].funcao === 'SOCORRISTA' && g.faltando[0].falta === 1, g);
+  g = L.avaliarGuarnicao_(ar, { MOTORISTA: 1, CHEFE: 1, SOCORRISTA: 3 });
+  ver('no máximo não sobra vaga (RN-11)', g.vagas.SOCORRISTA === 0 && g.vagas.MOTORISTA === 0 && g.ativa === true, g.vagas);
+  g = L.avaliarGuarnicao_(ar, { MOTORISTA: 1, CHEFE: 1, SOCORRISTA: 4 });
+  ver('acima do máximo é apontado (RN-11)', g.excedendo.length === 1 && g.excedendo[0].funcao === 'SOCORRISTA', g.excedendo);
+  ver('viatura sem função cadastrada não bloqueia nada', L.avaliarGuarnicao_(null, {}).ativa === true);
+  ver('máximo em branco = sem limite', L.avaliarGuarnicao_(L.resolverViaturas_([l('', 'X', '', '', '', '', '', 'CHEFE', 1, '', 2)], '2026-10').porId['X'], { CHEFE: 9 }).vagas.CHEFE === null);
+}
+
 console.log(`\n${ok} ok, ${falhas} falha(s)`);
 process.exit(falhas ? 1 : 0);

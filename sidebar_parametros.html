@@ -46,6 +46,7 @@
   <div id="avisos" class="avisoBox" hidden></div>
 
   <div id="carga"></div>
+  <div id="viaturas"></div>
   <div id="lista"></div>
 
 <script>
@@ -96,6 +97,54 @@
     box.appendChild(c);
   }
 
+  // B37 (RN-07 a RN-12, RN-93): o cadastro é a aba VIATURAS; aqui fica só o atalho e um resumo do mês.
+  function desenharViaturas(v) {
+    var box = el('viaturas');
+    box.textContent = '';
+    if (!v) return;
+    var c = criar('div', null, 'resumo');
+    c.appendChild(criar('div', 'Viaturas (guarnição mínima e máxima, tipos de serviço e CNH)', 'grupo'));
+    if (!v.existe) {
+      c.appendChild(criar('div', 'A aba VIATURAS ainda não existe. O botão cria a aba com o cabeçalho e um exemplo.'));
+    } else if (v.total === 0) {
+      c.appendChild(criar('div', 'A aba VIATURAS existe, mas nenhuma viatura vale neste mês.'));
+    } else {
+      c.appendChild(criar('div', v.total + ' viatura(s) cadastrada(s) neste mês, ' + v.ativar + ' para ativar.'));
+      v.lista.forEach(function (x) {
+        var t = x.id + (x.tipo ? ' (' + x.tipo + ')' : '') + ': ' + (x.ativar ? 'ativar' : 'não ativar') +
+          (x.prioridade === '' ? '' : ', prioridade ' + x.prioridade) +
+          (x.cnh ? ', CNH ' + x.cnh : '') +
+          (x.funcoes ? ' · ' + x.funcoes : '');
+        c.appendChild(criar('div', t));
+      });
+      c.appendChild(criar('div', 'Mínimo e máximo valem a partir da VIGÊNCIA da linha: alterar não muda mês já fechado.'));
+    }
+    (v.avisos || []).forEach(function (t) { c.appendChild(criar('div', t, 'avisoBox')); });
+
+    var linha = criar('div', null, 'linhaF');
+    linha.appendChild(criar('span', v.existe ? 'Aba VIATURAS' : 'Aba VIATURAS (a criar)'));
+    var b = criar('button', 'Abrir aba', 'leve');
+    b.addEventListener('click', function () {
+      trava(true);
+      google.script.run.withSuccessHandler(function () { trava(false); carregar(estado.mes); }).withFailureHandler(falha).painelViaturasAbrir();
+    });
+    linha.appendChild(b);
+    if (!v.temColunaCnh) {
+      var bc = criar('button', 'Criar coluna CNH', 'leve');
+      bc.addEventListener('click', function () {
+        trava(true);
+        google.script.run.withSuccessHandler(function (r) {
+          trava(false);
+          mostrarOk(r && r.criada ? 'Coluna CNH criada na aba MILITARES (vazia: preencha as categorias).' : 'A coluna CNH já existe.');
+          carregar(estado.mes);
+        }).withFailureHandler(falha).painelViaturasColunaCnh();
+      });
+      linha.appendChild(bc);
+    }
+    c.appendChild(linha);
+    box.appendChild(c);
+  }
+
   function desenhar(d) {
     estado.mes = d.mes;
     el('mes').value = d.mes;
@@ -108,6 +157,7 @@
     av.hidden = !(d.avisos && d.avisos.length);
 
     desenharResumo(d);
+    desenharViaturas(d.viaturas);
 
     var lista = el('lista');
     lista.textContent = '';
