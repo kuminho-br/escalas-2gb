@@ -169,5 +169,42 @@ console.log('== B36 (RN-94, RN-96, RN-83) as funções de cada serviço vêm do 
   ver('nenhuma função marcada: o cadastro fica vazio e vale a ponte', Object.keys(semCnh).length === 0);
 }
 
+console.log('== B38 (RN-12) motorista precisa de CNH compatível com a viatura');
+{
+  const L = new Function(['nucleo.js', 'choques.js', 'sincronia.js', 'viaturas.js', 'guarnicao.js'].map(ler).join('\n') +
+    '\nreturn {calcularGuarnicao_};')();
+  const esc = {
+    nome: 'Pronto', servicos: ['Pronto'], militares: 'ESCALADOS', dias: 'TODOS', turnos: ['A'], usaUnidade: true,
+    slots: { A: [{ unidade: 'AR', funcao: 'MOTORISTA', vagas: 1, exigeCnh: true }, { unidade: 'AR', funcao: 'CHEFE', vagas: 1, exigeCnh: false }] }
+  };
+  const tabela = [
+    { mat: 'M1', dia: '2026-11-05', turno: 'A', servico: 'Pronto', funcao: '', unidade: '', linha: 10 },
+    { mat: 'M2', dia: '2026-11-05', turno: 'A', servico: 'Pronto', funcao: '', unidade: '', linha: 11 }
+  ];
+  const posto = (mat, funcao, unidade) => ({ linha: 6, dia: '2026-11-05', turno: 'A', unidade: unidade === undefined ? 'AR' : unidade, funcao: funcao, texto: mat, mat: mat });
+  const base = [];
+  const opc = extra => Object.assign({ motoristas: { M1: true }, funcoesComCnh: { MOTORISTA: true }, cnh: { M1: ['B'], M2: ['D'] }, cnhPorUnidade: { AR: ['D'] } }, extra || {});
+
+  let r = L.calcularGuarnicao_(base, [posto('M1', 'MOTORISTA')], tabela, esc, opc());
+  ver('motorista do quadro mas com CNH insuficiente é avisado (RN-12)',
+    r.avisosCnh.length === 1 && r.avisosCnh[0].mat === 'M1' && r.avisosCnh[0].exigida === 'D' && r.avisosMotorista.length === 0, [r.avisosCnh, r.avisosMotorista]);
+  r = L.calcularGuarnicao_(base, [posto('M2', 'MOTORISTA')], tabela, esc, opc({ motoristas: { M2: true } }));
+  ver('motorista com a categoria exigida não gera aviso', r.avisosCnh.length === 0 && r.avisosMotorista.length === 0, [r.avisosCnh, r.avisosMotorista]);
+  r = L.calcularGuarnicao_(base, [posto('M2', 'MOTORISTA')], tabela, esc, opc({ motoristas: {} }));
+  ver('fora do quadro de motoristas: continua o aviso que já existia, e só ele',
+    r.avisosMotorista.length === 1 && r.avisosCnh.length === 0, [r.avisosMotorista, r.avisosCnh]);
+  r = L.calcularGuarnicao_(base, [posto('M1', 'CHEFE')], tabela, esc, opc());
+  ver('função que não é de condutor não é checada', r.avisosCnh.length === 0 && r.avisosMotorista.length === 0);
+  r = L.calcularGuarnicao_(base, [posto('M1', 'MOTORISTA', '')], tabela, esc, opc());
+  ver('posto sem viatura vinculada: vale só o quadro de motoristas (RN-12)', r.avisosCnh.length === 0 && r.avisosMotorista.length === 0);
+  r = L.calcularGuarnicao_(base, [posto('M1', 'MOTORISTA')], tabela, esc, opc({ cnhPorUnidade: {} }));
+  ver('viatura sem CNH exigida: ninguém é barrado', r.avisosCnh.length === 0);
+  r = L.calcularGuarnicao_(base, [posto('M1', 'MOTORISTA')], tabela, esc, opc({ cnh: { M1: ['B', 'D'] } }));
+  ver('militar com "B, D" atende à exigência D', r.avisosCnh.length === 0);
+  r = L.calcularGuarnicao_(base, [posto('M1', 'MOTORISTA')], tabela, esc, opc({ funcoesComCnh: {} }));
+  ver('sem cadastro de EXIGE CNH, a ponte pelo nome mantém a checagem', r.avisosCnh.length === 1, r.avisosCnh);
+  ver('o resumo conta os avisos de CNH', L.calcularGuarnicao_(base, [posto('M1', 'MOTORISTA')], tabela, esc, opc()).resumo.cnh === 1);
+}
+
 console.log(`\n${ok} ok, ${falhas} falha(s)`);
 process.exit(falhas ? 1 : 0);
