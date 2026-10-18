@@ -112,6 +112,7 @@ function painelAbrirMatriz(mes, secao) {
  * formatação ou fórmulas soltas abaixo da tabela).
  */
 function gravarAlocacoes_(novas, tz) {
+  garantirSaldoSoDoAdm_(novas);                         // RN-03
   const aba = SpreadsheetApp.getActive().getSheetByName(CONFIG.ABA_ALOCACOES);
   if (!aba) throw new Error('Aba não encontrada: "' + CONFIG.ABA_ALOCACOES + '".');
   const nCols = aba.getLastColumn();

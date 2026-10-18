@@ -82,14 +82,19 @@ function texto_(v) { return String(v == null ? '' : v).trim(); }
 
 function ehData_(v) { return Object.prototype.toString.call(v) === '[object Date]' && !isNaN(v); }
 
-/** Data da célula -> 'aaaa-mm-dd' no fuso da planilha ('' se não for uma data reconhecível). */
+/**
+ * Data da célula -> 'aaaa-mm-dd' no fuso da planilha ('' se não for uma data reconhecível).
+ * B31 (RN-40): aceita também dia e mês com um só dígito ("5/1/2026"), que é como a planilha
+ * devolve a célula quando ela foi digitada como texto em vez de data.
+ */
 function diaComoTexto_(v, tz) {
   if (ehData_(v)) return Utilities.formatDate(v, tz, 'yyyy-MM-dd');
   const s = texto_(v);
-  let m = s.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
-  if (m) return m[3] + '-' + m[2] + '-' + m[1];
-  m = s.match(/^(\d{4})-(\d{2})-(\d{2})$/);
-  return m ? s : '';
+  const dois = function (x) { return ('0' + x).slice(-2); };
+  let m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (m) return m[3] + '-' + dois(m[2]) + '-' + dois(m[1]);
+  m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+  return m ? m[1] + '-' + dois(m[2]) + '-' + dois(m[3]) : '';
 }
 
 function lerAlocacoes_(tz) {
@@ -116,7 +121,8 @@ function lerMilitares_() {
   const c = {
     mat: coluna_(t, 'MATRÍCULA', true), nome: coluna_(t, 'NOME DE GUERRA', true), secao: coluna_(t, 'SEÇÃO', true),
     posto: coluna_(t, 'POSTO/GRAD', false), jornada: coluna_(t, 'JORNADA', false),
-    equipe: coluna_(t, 'EQUIPE', false), antig: coluna_(t, 'ANTIG', false), motorista: coluna_(t, 'MOTORISTA', false)
+    equipe: coluna_(t, 'EQUIPE', false), antig: coluna_(t, 'ANTIG', false), motorista: coluna_(t, 'MOTORISTA', false),
+    vjes: coluna_(t, 'VOLUNTÁRIO JES', false)
   };
   const pega = function (l, i) { return i < 0 ? '' : l[i]; };
   const res = [];
@@ -128,7 +134,10 @@ function lerMilitares_() {
       jornada: texto_(pega(l, c.jornada)), equipe: texto_(pega(l, c.equipe)), antig: pega(l, c.antig), ordem: ordem,
       // true só se a coluna MOTORISTA existir e tiver algo como SIM/S/X (o "-" e o vazio contam como não)
       temColunaMotorista: c.motorista >= 0,
-      motorista: c.motorista >= 0 && ['SIM', 'S', 'X', 'MOTORISTA', '1', 'TRUE', 'VERDADEIRO'].indexOf(normalizar_(l[c.motorista])) >= 0
+      motorista: c.motorista >= 0 && ['SIM', 'S', 'X', 'MOTORISTA', '1', 'TRUE', 'VERDADEIRO'].indexOf(normalizar_(l[c.motorista])) >= 0,
+      // RN-46: atributo "voluntário JES" (sim/não). Só vale se a coluna existir; vazio e "não" contam como não.
+      temColunaVoluntarioJes: c.vjes >= 0,
+      voluntarioJes: c.vjes >= 0 && ['SIM', 'S', 'X', '1', 'TRUE', 'VERDADEIRO'].indexOf(normalizar_(l[c.vjes])) >= 0
     });
   });
   return res;
@@ -225,6 +234,7 @@ function renderizarMatriz_(aba, modelo, par, rot, tz) {
   aba.setConditionalFormatRules([]);
   aba.setFrozenRows(0);
   aba.setFrozenColumns(0);
+  aba.showRows(1, aba.getMaxRows());                 // RN-02: uma escala nova começa com todas as linhas visíveis
 
   // parâmetros
   aba.getRange(1, 1, 2, 1).setValues([['MÊS'], ['SEÇÃO']]).setFontWeight('bold');
@@ -244,14 +254,21 @@ function renderizarMatriz_(aba, modelo, par, rot, tz) {
   aba.getRange(r0, 1, nl, c0 - 1).setValues(modelo.linhas.map(function (l) { return [l.mat, l.nome, l.grupo]; }));
   aba.getRange(r0, c0, nl, nd).setValues(modelo.celulas);
 
-  // lista suspensa: uma só, igual para todas as linhas (serviço + horário, como na aba TURNOS)
+  // lista suspensa: serviço + horário, como na aba TURNOS. RN-03: o Saldo só aparece nas linhas de militar do Adm.
   if (rot.lista.length) {
-    const regra = SpreadsheetApp.newDataValidation()
-      .requireValueInList(rot.lista, true)
-      .setAllowInvalid(false)
-      .setHelpText('Serviço e horário, como na aba TURNOS.')
-      .build();
-    aba.getRange(r0, c0, nl, nd).setDataValidation(regra);
+    const listas = listasDeCelula_(rot);
+    const regraDe = function (lista, ajuda) {
+      return SpreadsheetApp.newDataValidation().requireValueInList(lista, true).setAllowInvalid(false).setHelpText(ajuda).build();
+    };
+    const regraAdm = regraDe(listas.comSaldo, 'Serviço e horário, como na aba TURNOS.');
+    const regraOutros = regraDe(listas.semSaldo, 'Serviço e horário, como na aba TURNOS. Saldo só para militar do Adm.');
+    const ehAdm = function (i) { return modelo.linhas[i].grupo === 'ADM'; };
+    let ini = 0;                                           // faixas seguidas de linhas do mesmo tipo
+    for (let i = 1; i <= nl; i++) {
+      if (i < nl && ehAdm(i) === ehAdm(ini)) continue;
+      aba.getRange(r0 + ini, c0, i - ini, nd).setDataValidation(ehAdm(ini) ? regraAdm : regraOutros);
+      ini = i;
+    }
   }
 
   // aparência
@@ -286,17 +303,23 @@ function renderizarMatriz_(aba, modelo, par, rot, tz) {
   });
   if (cinza.length) aba.getRangeList(cinza).setFontColor('#9AA0A6');
 
-  // linhas divisórias: fina entre militares, grossa entre grupos (equipes)
-  const fimMilitar = [], fimGrupo = [];
+  // Linhas divisórias: fina entre militares, grossa entre grupos (equipes).
+  // B34 (RN-02): a borda vai em CIMA da primeira linha de cada militar, não embaixo da última.
+  // A última linha de um militar pode estar oculta pelo botão "Ocultar linhas vazias", e com ela
+  // desaparecia a divisória; a primeira linha nunca é oculta, então o separador sempre aparece.
+  const inicioMilitar = [], inicioGrupo = [];
   modelo.linhas.forEach(function (l, i) {
-    const prox = modelo.linhas[i + 1];
-    if (l.ultimaDoMilitar) fimMilitar.push(aba.getRange(r0 + i, 1, 1, nCols).getA1Notation());
-    if (l.ultimaDoMilitar && (!prox || prox.grupo !== l.grupo)) fimGrupo.push(r0 + i);
+    const ant = modelo.linhas[i - 1];
+    if (!ant || ant.mat === l.mat) return;                 // só a primeira linha de cada militar
+    if (ant.grupo !== l.grupo) inicioGrupo.push(r0 + i);
+    else inicioMilitar.push(aba.getRange(r0 + i, 1, 1, nCols).getA1Notation());
   });
-  if (fimMilitar.length) aba.getRangeList(fimMilitar).setBorder(null, null, true, null, null, null);
-  fimGrupo.forEach(function (r) {
-    aba.getRange(r, 1, 1, nCols).setBorder(null, null, true, null, null, null, '#000000', SpreadsheetApp.BorderStyle.SOLID_MEDIUM);
+  if (inicioMilitar.length) aba.getRangeList(inicioMilitar).setBorder(true, null, null, null, null, null);
+  inicioGrupo.forEach(function (r) {
+    aba.getRange(r, 1, 1, nCols).setBorder(true, null, null, null, null, null, '#000000', SpreadsheetApp.BorderStyle.SOLID_MEDIUM);
   });
+  // fecha a tabela embaixo (a borda de fora não separa ninguém; se a última linha estiver oculta, só o contorno some)
+  aba.getRange(r0 + nl - 1, 1, 1, nCols).setBorder(null, null, true, null, null, null, '#000000', SpreadsheetApp.BorderStyle.SOLID_MEDIUM);
 
   // cor por serviço
   // a célula é "Serviço HH–HH": a cor vem do começo do texto (o nome do serviço seguido de espaço e dígito ou parêntese)

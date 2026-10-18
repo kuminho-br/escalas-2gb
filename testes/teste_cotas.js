@@ -6,6 +6,26 @@ const L = new Function(fontes + '\nreturn {montarHorarios_, distribuirCotas_, ex
 let ok = 0, falhas = 0;
 const ver = (n, c, x) => { if (c) { ok++; console.log('  ok   ' + n); } else { falhas++; console.log('  FALHA ' + n + (x !== undefined ? ' -> ' + JSON.stringify(x).slice(0, 500) : '')); } };
 
+// Leitura da aba VOLUNTARIADO (B31): precisa de SpreadsheetApp e Utilities, então entra com dublês.
+function lerVoluntariadoDe_(cabecalho, linhas, mes) {
+  const fontes2 = ['nucleo.js', 'matriz.js', 'distribuicao_cotas_painel.js'].map(f => fs.readFileSync(path.join(dir, f), 'utf8')).join('\n');
+  const aba = {
+    getDataRange: () => ({ getValues: () => [cabecalho].concat(linhas) }),
+    getMaxRows: () => linhas.length + 1,
+    getRange: () => ({ setNumberFormat: () => {}, setValues: () => ({ setFontWeight: () => ({ setBackground: () => ({ setFontColor: () => {} }) }), setFontColor: () => {} }) })
+  };
+  const SpreadsheetApp = { getActive: () => ({ getSheetByName: n => (n === 'VOLUNTARIADO' ? aba : null), getSpreadsheetTimeZone: () => 'America/Recife' }) };
+  const Utilities = {
+    formatDate: (d, tz, f) => {
+      const p = n => String(n).padStart(2, '0');
+      return f === 'yyyy-MM' ? d.getFullYear() + '-' + p(d.getMonth() + 1)
+        : d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate());
+    }
+  };
+  const f = new Function('SpreadsheetApp', 'Utilities', fontes2 + '\nreturn lerVoluntariado_;')(SpreadsheetApp, Utilities);
+  return f(mes, 'America/Recife');
+}
+
 const T = [['Pronto','A','08:00','20:00'],['Pronto','B','20:00','08:00'],['Adm','A','08:00','16:00'],['JES','A','08:00','20:00'],['JES','B','20:00','08:00'],
   ['Bioma','A','00:00','08:00'],['Bioma','B','08:00','16:00'],['Bioma','C','16:00','00:00'],
   ['PE Seguro','A','00:00','08:00'],['PE Seguro','B','08:00','16:00'],['PE Seguro','C','16:00','00:00'],['Defensoria','A','07:00','19:00']];
@@ -94,6 +114,37 @@ e = base({ operacoes: [op('Bioma', 'Bioma', [3], 1, 2), op('PE Seguro', 'PE Segu
   militares: mils(1), voluntariado: [vol('m01', 3, 'A'), vol('m01', 3, 'B')] });
 r = L.distribuirCotas_(e);
 ver('PE Seguro (prioridade 1) fica com o único voluntário no turno A', r.novas.length >= 1 && r.novas[0].servico === 'PE Seguro', chaves(r));
+
+console.log('== B31 (RN-40, RN-41, RN-39) aba VOLUNTARIADO com uma coluna DATA');
+{
+  const CAB = ['DATA', 'MATRÍCULA', 'TURNO', 'SERVIÇO ACEITO'];
+  // data de verdade na célula (é o que a planilha devolve quando a coluna é do tipo data)
+  let v = lerVoluntariadoDe_(CAB, [[new Date(2026, 10, 5), '123', 'A', 'todos'], [new Date(2026, 10, 6), '123', 'B', 'todos']], '2026-11');
+  ver('lê as linhas com DATA do tipo data', v.linhas.length === 2 && v.linhas[0].dia === '2026-11-05' && v.linhas[0].turno === 'A', v);
+  ver('sem aviso quando está tudo certo', v.avisos.length === 0, v.avisos);
+
+  // texto dd/mm/aaaa e d/m/aaaa (o caso do bug: a linha era descartada)
+  v = lerVoluntariadoDe_(CAB, [['05/11/2026', '123', 'A', 'todos'], ['6/11/2026', '456', 'C', 'Bioma']], '2026-11');
+  ver('aceita 05/11/2026 e 6/11/2026 como texto', v.linhas.length === 2 && v.linhas[1].dia === '2026-11-06' && v.linhas[1].servico === 'Bioma', v);
+
+  v = lerVoluntariadoDe_(CAB, [['2026-11-07', '123', '1º turno', 'todos']], '2026-11');
+  ver('aceita aaaa-mm-dd e "1º turno"', v.linhas.length === 1 && v.linhas[0].dia === '2026-11-07' && v.linhas[0].turno === 'A', v);
+
+  // o mês vem da DATA, não de uma coluna MÊS
+  v = lerVoluntariadoDe_(CAB, [['05/10/2026', '123', 'A', 'todos'], ['05/11/2026', '123', 'A', 'todos']], '2026-11');
+  ver('fica só com as linhas do mês pedido', v.linhas.length === 1 && v.linhas[0].dia === '2026-11-05', v);
+
+  // nada de descarte em silêncio
+  v = lerVoluntariadoDe_(CAB, [['5', '123', 'A', 'todos'], [new Date(2026, 10, 5), '123', 'A', 'todos']], '2026-11');
+  ver('linha com DATA ilegível é contada e avisada (não some)', v.linhas.length === 1 && v.avisos.some(a => /1 linha\(s\) com DATA ilegível/.test(a) && /"5"/.test(a)), v);
+  v = lerVoluntariadoDe_(CAB, [[new Date(2026, 10, 5), '123', 'manhã', 'todos']], '2026-11');
+  ver('linha com TURNO ilegível continua avisada', v.linhas.length === 0 && v.avisos.some(a => /TURNO ilegível/.test(a)), v);
+  ver('linha sem matrícula é ignorada sem aviso', (() => { const x = lerVoluntariadoDe_(CAB, [[new Date(2026, 10, 5), '', 'A', 'todos']], '2026-11'); return x.linhas.length === 0 && x.avisos.length === 0; })());
+
+  // aba antiga (MÊS + DIA) continua sendo lida, com aviso para renomear
+  v = lerVoluntariadoDe_(['MÊS', 'MATRÍCULA', 'DIA', 'TURNO', 'SERVIÇO ACEITO'], [['2026-11', '123', '05/11/2026', 'A', 'todos']], '2026-11');
+  ver('aba antiga com DIA ainda é lida, pedindo para renomear para DATA', v.linhas.length === 1 && v.avisos.some(a => /ainda se chama DIA/.test(a)), v);
+}
 
 console.log('\n' + ok + ' ok, ' + falhas + ' falhas');
 process.exit(falhas ? 1 : 0);

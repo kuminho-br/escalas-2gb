@@ -9,7 +9,8 @@
  *                   OPERAÇÃO = nome da escala na aba ESCALAS. ORIGEM = interna (padrão) ou externa (RN-34/RN-35).
  *                   Linhas de JES da SB são aceitas e ignoradas nesta etapa.
  *                   PRIORIDADE: 1 é a primeira operação a ser preenchida; vazio vai por último.
- *   VOLUNTARIADO  MÊS | MATRÍCULA | DIA | TURNO | SERVIÇO ACEITO
+ *   VOLUNTARIADO  DATA | MATRÍCULA | TURNO | SERVIÇO ACEITO
+ *                   DATA é a data inteira do plantão (tipo data, dd/mm/aaaa); o mês vem dela (B31/RN-40).
  *                   Uma linha por dia e turno em que o militar se voluntariou (A, B ou C). SERVIÇO ACEITO: "todos" ou
  *                   o nome de um serviço. Quem tem ao menos uma linha no mês preencheu o formulário (RN-41).
  * Vagas por turno: aba MODELOS DE GUARNIÇÃO (soma das vagas de todas as funções do turno; as funções não entram agora).
@@ -76,23 +77,46 @@ function lerCotas_(mes, secao, tz) {
   return out;
 }
 
-/** Aba VOLUNTARIADO do mês, só de militares da lista. Retorna { existe, linhas: [{ mat, dia, turno, servico }], avisos }. */
+/**
+ * Aba VOLUNTARIADO do mês, só de militares da lista. Retorna { existe, linhas: [{ mat, dia, turno, servico }], avisos }.
+ *
+ * B31 (RN-40, RN-41, RN-39): o mês sai da coluna DATA, que tem a data inteira do plantão.
+ * Antes havia MÊS e DIA: o mês era extraído só de DIA e, quando DIA não trazia a data inteira,
+ * a linha era descartada em silêncio — o painel mostrava "0 linhas do mês" sem dizer por quê.
+ * Uma aba antiga (ainda com DIA) continua sendo lida, com aviso para renomear a coluna, e toda
+ * linha com data ilegível agora é contada e avisada em vez de desaparecer.
+ */
 function lerVoluntariado_(mes, tz) {
   const aba = SpreadsheetApp.getActive().getSheetByName(COTAS_ABA.VOLUNTARIADO);
   const out = { existe: !!aba, linhas: [], avisos: [] };
   if (!aba) return out;
   const t = lerAba_(COTAS_ABA.VOLUNTARIADO);
-  const c = { mat: coluna_(t, 'MATRÍCULA', true), dia: coluna_(t, 'DIA', true), turno: coluna_(t, 'TURNO', true), serv: coluna_(t, 'SERVIÇO ACEITO', false) };
-  let semTurno = 0;
+  let cData = coluna_(t, 'DATA', false);
+  if (cData < 0) {
+    cData = coluna_(t, 'DIA', false);
+    if (cData < 0) throw new Error('Não achei a coluna "DATA" na linha 1 da aba "' + COTAS_ABA.VOLUNTARIADO + '".');
+    out.avisos.push('VOLUNTARIADO: a coluna de data ainda se chama DIA. Renomeie-a para DATA e preencha a data inteira do plantão (dd/mm/aaaa); a coluna MÊS não é mais usada.');
+  }
+  const c = { data: cData, mat: coluna_(t, 'MATRÍCULA', true), turno: coluna_(t, 'TURNO', true), serv: coluna_(t, 'SERVIÇO ACEITO', false) };
+  let semTurno = 0, semData = 0, exemplo = '';
   t.linhas.forEach(function (l) {
     const mat = texto_(l[c.mat]);
     if (!mat) return;
-    const dia = diaComoTexto_(l[c.dia], tz);
-    if (!dia || dia.slice(0, 7) !== mes) return;
+    const dia = diaComoTexto_(l[c.data], tz);
+    if (!dia) {                                         // B31: não some mais em silêncio
+      if (texto_(l[c.data]) !== '' && !exemplo) exemplo = texto_(l[c.data]);
+      semData++;
+      return;
+    }
+    if (dia.slice(0, 7) !== mes) return;
     const turno = letraDoTurno_(l[c.turno]);
     if (!turno) { semTurno++; return; }
     out.linhas.push({ mat: mat, dia: dia, turno: turno, servico: c.serv < 0 ? '' : texto_(l[c.serv]) });
   });
+  if (semData) {
+    out.avisos.push('VOLUNTARIADO: ' + semData + ' linha(s) com DATA ilegível foram ignoradas' +
+      (exemplo ? ' (por exemplo "' + exemplo + '")' : '') + '. Preencha a data inteira do plantão, como 05/11/2026.');
+  }
   if (semTurno) out.avisos.push('VOLUNTARIADO: ' + semTurno + ' linha(s) com TURNO ilegível foram ignoradas.');
   return out;
 }
@@ -109,27 +133,57 @@ function cotasCalcular_(mes, secao, tz) {
   const expediente = todasComExp.filter(function (a) { return a.implicito; });
 
   const secaoN = normalizar_(secao), vistos = Object.create(null), militares = [];
-  lerMilitares_().forEach(function (m) {
+  const cadastro = lerMilitares_();
+  cadastro.forEach(function (m) {
     if (normalizar_(m.secao) !== secaoN || vistos[m.mat]) return;
     vistos[m.mat] = true;
     militares.push({ mat: m.mat });
   });
 
+  // RN-46 / RN-39: só quem tem VOLUNTÁRIO JES = sim pode preencher o formulário; as linhas dos demais são ignoradas
+  const vjes = voluntariosJesDe_(cadastro);
+  const sep = separarVoluntariado_(vol.linhas, vjes);
+  const nomesCad = nomesPorMatricula_();
   const avisos = [].concat(mod.avisos || [], cotas.avisos, vol.avisos);
-  if (!cotas.existe) avisos.push('A aba COTAS não existe. Crie-a pelo botão "Criar abas COTAS e VOLUNTARIADO".');
+  if (!vjes) avisos.push('A aba MILITARES não tem a coluna VOLUNTÁRIO JES (RN-46): por ora todos os que preencheram o formulário contam como voluntários. Crie a coluna pelo botão "Criar abas e coluna que faltam" e preencha sim/não.');
+  const ign = Object.keys(sep.ignoradas);
+  if (ign.length) {
+    const qtd = ign.reduce(function (n, m) { return n + sep.ignoradas[m]; }, 0);
+    avisos.push('VOLUNTARIADO: ' + qtd + ' linha(s) de ' + ign.length + ' militar(es) ignorada(s) porque VOLUNTÁRIO JES não é "sim" em MILITARES (RN-46): ' +
+      ign.slice(0, 5).map(function (m) { return nomesCad[m] || m; }).join(', ') + (ign.length > 5 ? '…' : '') + '.');
+  }
+  if (!cotas.existe) avisos.push('A aba COTAS não existe. Crie-a pelo botão "Criar abas e coluna que faltam".');
   else if (!cotas.linhas.length) avisos.push('A aba COTAS não tem cotas de ' + secao + ' em ' + mes + '.');
-  if (!vol.existe) avisos.push('A aba VOLUNTARIADO não existe. Crie-a pelo botão "Criar abas COTAS e VOLUNTARIADO".');
+  if (!vol.existe) avisos.push('A aba VOLUNTARIADO não existe. Crie-a pelo botão "Criar abas e coluna que faltam".');
   if (mod.semAbas) avisos.push('As abas ESCALAS e MODELOS DE GUARNIÇÃO não existem; sem elas não há vagas por operação.');
 
   const diasMes = diasDoMes_(mes);
   const operacoes = [], cotasEntrada = [], ignoradas = Object.create(null);
   const nomes = [];
   cotas.linhas.forEach(function (c) { if (nomes.indexOf(c.operacao) < 0) nomes.push(c.operacao); });
+  // B24 (RN-81): uma operação com cota mas sem cadastro utilizável continua na tabela (a cota aparece como restante)
+  // e ganha um "problema" que diz exatamente o que falta cadastrar.
+  const semCadastro = function (nome, problema) {
+    const linhasCota = cotas.linhas.filter(function (c) { return normalizar_(c.operacao) === normalizar_(nome); });
+    const prio = linhasCota.reduce(function (p, c) { return c.prioridade !== '' && (p === '' || c.prioridade < p) ? c.prioridade : p; }, '');
+    operacoes.push({ nome: nome, servico: '', prioridade: prio, dias: [], turnos: [], problema: problema });
+    linhasCota.forEach(function (c) { cotasEntrada.push({ id: c.id, operacao: nome, quantidade: c.quantidade, origem: c.origem }); });
+  };
   nomes.forEach(function (nome) {
     const chave = Object.keys(mod.escalas).filter(function (k) { return normalizar_(k) === normalizar_(nome); })[0];
-    if (!chave) { avisos.push('COTAS: a operação "' + nome + '" não existe na aba ESCALAS (ou foi ignorada); suas cotas não foram distribuídas.'); return; }
+    if (!chave) {
+      const ignorada = (mod.avisos || []).filter(function (a) {
+        const m = /^ESCALAS: "(.+)" ignorada/.exec(a);
+        return m && normalizar_(m[1]) === normalizar_(nome);
+      })[0] || '';
+      if (mod.semAbas) semCadastro(nome, '"' + nome + '" sem vagas: crie as abas ESCALAS e MODELOS DE GUARNIÇÃO e cadastre a escala, os turnos e as funções.');
+      else if (ignorada.indexOf('MODELOS DE GUARNIÇÃO') >= 0) semCadastro(nome, '"' + nome + '" sem vagas: cadastre os turnos e as funções dela em MODELOS DE GUARNIÇÃO.');
+      else if (ignorada) semCadastro(nome, '"' + nome + '": a escala foi ignorada porque o serviço dela não existe na aba TURNOS. Confira a coluna SERVIÇOS em ESCALAS.');
+      else semCadastro(nome, '"' + nome + '" não está na aba ESCALAS: cadastre a escala (nome e serviço) em ESCALAS e os turnos e funções em MODELOS DE GUARNIÇÃO.');
+      return;
+    }
     const esc = mod.escalas[chave];
-    if (esc.servicos.length !== 1) { avisos.push('COTAS: a escala "' + esc.nome + '" tem mais de um serviço; use uma escala por serviço. Ignorada.'); return; }
+    if (esc.servicos.length !== 1) { semCadastro(nome, '"' + esc.nome + '" tem mais de um serviço em ESCALAS; use uma escala por serviço. Ignorada.'); return; }
     const servico = esc.servicos[0];
     let dias = diasMes;
     if (esc.dias === 'ESCALADOS') {            // só os dias em que a tabela já tem esse serviço
@@ -150,10 +204,16 @@ function cotasCalcular_(mes, secao, tz) {
   });
 
   const res = distribuirCotas_({
-    mes: mes, operacoes: operacoes, cotas: cotasEntrada, militares: militares, voluntariado: vol.linhas,
+    mes: mes, operacoes: operacoes, cotas: cotasEntrada, militares: militares, voluntariado: sep.linhas,
     alocacoes: reais, expediente: expediente, horarios: hor.porChave, tipos: tipos
   });
-  return { res: res, semAbas: !cotas.existe || !vol.existe, avisos: avisos.concat(res.avisos), operacoes: operacoes, voluntarios: Object.keys(vol.linhas.reduce(function (o, v) { o[v.mat] = 1; return o; }, {})).length };
+  // B24: se uma operação com cota restante não gera nada, o painel diz o motivo e o que fazer
+  const daSecao = sep.linhas.filter(function (v) { return vistos[v.mat]; }).length;
+  const diagnostico = diagnosticarOperacoes_({
+    mes: mes, secao: secao, operacoes: operacoes, res: res, horarios: hor.porChave,
+    voluntariado: { linhasMes: vol.linhas.length, linhasSecao: daSecao, ignoradasJes: ign.reduce(function (n, m) { return n + sep.ignoradas[m]; }, 0) }
+  });
+  return { diagnostico: diagnostico, res: res, semAbas: !cotas.existe || !vol.existe || !vjes, avisos: avisos.concat(res.avisos), operacoes: operacoes, voluntarios: Object.keys(sep.linhas.reduce(function (o, v) { o[v.mat] = 1; return o; }, {})).length };
 }
 
 function cotasResumo_(c) {
@@ -183,6 +243,7 @@ function cotasResumo_(c) {
     porMilitar: porMilitar,
     vazias: vazias, maisVazias: Math.max(0, r.vazias.length - vazias.length), semCota: semCota,
     semAbas: c.semAbas,
+    diagnostico: c.diagnostico.map(function (d) { return d.texto; }),
     avisos: c.avisos.slice(0, 10)
   };
 }
@@ -216,18 +277,40 @@ function painelCotasGravar(mes, secao) {
   }
 }
 
-/** Cria as abas COTAS e VOLUNTARIADO, com cabeçalho e uma linha de exemplo, sem tocar nas que já existem. */
+/**
+ * RN-46: cria a coluna VOLUNTÁRIO JES em MILITARES (só o cabeçalho e a lista sim/não; os valores ficam vazios
+ * para o usuário preencher). Não mexe se a coluna já existe. Retorna true se criou.
+ */
+function garantirColunaVoluntarioJes_() {
+  const aba = SpreadsheetApp.getActive().getSheetByName(CONFIG.ABA_MILITARES);
+  if (!aba) return false;
+  const nCols = aba.getLastColumn();
+  const cab = aba.getRange(1, 1, 1, nCols).getValues()[0].map(normalizar_);
+  if (cab.some(function (c) { return c.indexOf(normalizar_('VOLUNTÁRIO JES')) === 0; })) return false;
+  aba.getRange(1, nCols + 1).setValue('VOLUNTÁRIO JES').setFontWeight('bold');
+  const n = aba.getLastRow() - 1;
+  if (n > 0) {
+    aba.getRange(2, nCols + 1, n, 1).setDataValidation(SpreadsheetApp.newDataValidation().requireValueInList(['sim', 'não'], true).setAllowInvalid(true).build());
+  }
+  return true;
+}
+
+/** Cria as abas COTAS e VOLUNTARIADO (cabeçalho e uma linha de exemplo) e a coluna VOLUNTÁRIO JES de MILITARES, sem tocar no que já existe. */
 function painelCotasAbas() {
   const ss = SpreadsheetApp.getActive();
   const criadas = [];
   [[COTAS_ABA.COTAS, ['MÊS', 'SB', 'OPERAÇÃO', 'SERVIÇO', 'QUANTIDADE', 'ORIGEM', 'PRIORIDADE'], ['2026-11', '1ª SB', 'PE Seguro', 'PE Seguro', 0, 'interna', 1]],
-   [COTAS_ABA.VOLUNTARIADO, ['MÊS', 'MATRÍCULA', 'DIA', 'TURNO', 'SERVIÇO ACEITO'], ['2026-11', '', '', 'A', 'todos']]].forEach(function (x) {
+   // B31 (RN-40): uma coluna DATA com a data inteira do plantão, no lugar de MÊS + DIA
+   [COTAS_ABA.VOLUNTARIADO, ['DATA', 'MATRÍCULA', 'TURNO', 'SERVIÇO ACEITO'], ['', '', 'A', 'todos']]].forEach(function (x) {
     if (ss.getSheetByName(x[0])) return;
     const aba = ss.insertSheet(x[0]);
     aba.getRange(1, 1, 1, x[1].length).setValues([x[1]]).setFontWeight('bold').setBackground('#2F5D50').setFontColor('#FFFFFF');
     aba.getRange(2, 1, 1, x[2].length).setValues([x[2]]).setFontColor('#888888');
+    const cData = x[1].indexOf('DATA');
+    if (cData >= 0) aba.getRange(2, cData + 1, aba.getMaxRows() - 1, 1).setNumberFormat('dd/MM/yyyy');
     aba.setFrozenRows(1);
     criadas.push(x[0]);
   });
+  if (garantirColunaVoluntarioJes_()) criadas.push('coluna VOLUNTÁRIO JES (em MILITARES, vazia: preencha sim/não)');
   return { criadas: criadas };
 }

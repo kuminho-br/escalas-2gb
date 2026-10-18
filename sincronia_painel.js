@@ -73,9 +73,12 @@ function analisarSincronia_(tz) {
   m.dias.forEach(function (d) { if (d) dias[d] = true; });
   const todas = lerAlocacoes_(tz).alocs;                     // todos os meses: o dia 31 precisa enxergar o dia 01
   const tabela = todas.filter(function (a) { return dias[a.dia]; });
+  const opcoesRegras = contextoDeRegras_();
   const res = calcularSincronizacao_(base, desm.alocs, tabela, catalogo.pares,
-    { horarios: hor.porChave, todas: alocsComExpediente_(todas, hor, tz), ilegiveis: desm.ilegiveis });
-  return { res: res, base: base, fora: fora, matriz: desm.alocs, orfas: desm.orfas, repetidas: desm.repetidas, dias: m.dias, avisosTurnos: hor.avisos, rot: rot };
+    { horarios: hor.porChave, todas: alocsComExpediente_(todas, hor, tz), ilegiveis: desm.ilegiveis, regras: opcoesRegras });
+  const ctxRegras = opcoesRegras;
+  const jesSemRegra = !ctxRegras.voluntariosJes && res.inserir.some(function (i) { return exigeVoluntarioJes_(i.servico); });
+  return { res: res, jesSemRegra: jesSemRegra, base: base, fora: fora, matriz: desm.alocs, orfas: desm.orfas, repetidas: desm.repetidas, dias: m.dias, avisosTurnos: hor.avisos, rot: rot };
 }
 
 function nomesPorMatricula_() {
@@ -93,6 +96,7 @@ function formatarItem_(i, nomes, rot) {
     de: rotulo(i.de),
     para: rotulo(i.para),
     texto: i.texto || '',
+    motivo: (i.motivos || []).map(function (m) { return m.texto; }).join('; '),
     tabela: (i.tabelaPares || []).map(rotulo).join(' / '),
     temTabela: !!i.tabelaPares,
     choca: (i.com || []).map(function (c) {
@@ -121,6 +125,7 @@ function resumoParaTela_(a, nomes) {
   const avisos = (a.avisosTurnos || []).slice();
   if (a.orfas) avisos.push(a.orfas + ' célula(s) preenchida(s) em linha sem matrícula ou data foram ignoradas.');
   if (a.repetidas) avisos.push(a.repetidas + ' célula(s) repetem um serviço já lançado para o mesmo militar e dia; só a primeira vale.');
+  if (a.jesSemRegra) avisos.push('Há JES a gravar, mas a aba MILITARES não tem a coluna VOLUNTÁRIO JES: a regra RN-46 não foi aplicada.');
   if (a.fora && a.fora.length) avisos.push(a.fora.length + ' serviço(s) ficaram fora da grade quando a escala foi carregada (poucas linhas por militar). Continuam na tabela e não serão apagados.');
   return {
     resumo: r.resumo,
@@ -129,6 +134,7 @@ function resumoParaTela_(a, nomes) {
     conflitos: cortar(r.conflitos),
     invalidas: cortar(r.invalidas),
     choques: cortar(r.choques),
+    regras: cortar(r.regras),
     avisos: avisos,
     mes: a.dias[0] ? a.dias[0].slice(0, 7) : ''
   };
@@ -146,6 +152,7 @@ function painelDadosMatriz() {
     base.mesSugerido = m.dias[0].slice(0, 7);
     base.secao = texto_(aba.getRange(CONFIG.LINHA_SECAO, 2).getValue()) || base.secao;
   }
+  base.aberturaAutomatica = garantirGatilhoDeEdicao_();      // RN-31 (B21)
   return base;
 }
 
@@ -181,15 +188,57 @@ function painelSincSalvar() {
       conflitos: tela.conflitos,
       invalidas: tela.invalidas,
       choques: tela.choques,
+      regras: tela.regras,
       totalConflitos: r.conflitos.length,
       totalInvalidas: r.invalidas.length,
       totalChoques: r.choques.length,
+      totalRegras: r.regras.length,
       restantes: restantes,
       avisos: tela.avisos
     };
   } finally {
     lock.releaseLock();
   }
+}
+
+/* ------------------------------------------------------------ ocultar linhas vazias (RN-02, B20) */
+
+/**
+ * As linhas extras vazias da escala carregada (números de linha da planilha).
+ * Só ocultar/mostrar: nenhuma linha é inserida ou apagada e a sincronia continua lendo a grade inteira.
+ */
+function linhasExtrasVaziasDaEscala_() {
+  const ss = SpreadsheetApp.getActive();
+  const tz = ss.getSpreadsheetTimeZone();
+  const aba = abaDaEscala_(ss, false);
+  const m = aba ? lerMatrizAtual_(aba, tz) : null;
+  if (!m) return { aba: aba, m: null, linhas: [] };
+  const idx = linhasExtrasVazias_(m.linhas, m.celulas);
+  return { aba: aba, m: m, linhas: idx.map(function (i) { return CONFIG.PRIMEIRA_LINHA + i; }) };
+}
+
+/** Estado do botão: há escala? quantas linhas dá para ocultar? já estão ocultas? */
+function painelLinhasEstado() {
+  const x = linhasExtrasVaziasDaEscala_();
+  return {
+    temEscala: !!x.m,
+    qtd: x.linhas.length,
+    ocultas: x.linhas.length > 0 && x.aba.isRowHiddenByUser(x.linhas[0])
+  };
+}
+
+/** Alterna: se as linhas vazias estão ocultas, mostra todas as linhas da grade; senão oculta as extras vazias. */
+function painelLinhasAlternar() {
+  const x = linhasExtrasVaziasDaEscala_();
+  if (!x.m) throw new Error('Não há escala carregada. Carregue a escala do mês primeiro.');
+  const ocultas = x.linhas.length > 0 && x.aba.isRowHiddenByUser(x.linhas[0]);
+  if (ocultas) {
+    x.aba.showRows(CONFIG.PRIMEIRA_LINHA, x.m.celulas.length);
+  } else {
+    faixasParaApagar_(x.linhas).forEach(function (f) { x.aba.hideRows(f.inicio, f.qtd); });
+  }
+  SpreadsheetApp.flush();
+  return painelLinhasEstado();
 }
 
 /* ------------------------------------------------------------ gravação */

@@ -50,6 +50,15 @@
     <div class="nota">Horários que se cruzam, pela aba TURNOS (turnos que só se encostam não contam), JES emendado com Pronto e serviços no expediente do Adm.</div>
   </div>
 
+  <div id="cartaoRegras" class="cartao" hidden>
+    <h2>Regras da escala</h2>
+    <div id="situacaoRegras" class="situacao"></div>
+    <ul id="listaRegras" class="itens"></ul>
+    <div id="maisRegras" class="nota" hidden></div>
+    <div id="avisosRegras" class="nota" hidden></div>
+    <div class="nota">Saldo só para militar do Adm; no máximo uma diária por dia (a dobradinha é permitida); JES só para militar com VOLUNTÁRIO JES = sim.</div>
+  </div>
+
   <div id="cartaoCatalogo" class="cartao" hidden>
     <h2>Catálogo de turnos</h2>
     <div id="situacaoCatalogo" class="situacao"></div>
@@ -73,7 +82,7 @@
   function ocupado(sim) { ['btnVerificar', 'mes', 'todos'].forEach(function (id) { el(id).disabled = sim; }); if (!sim) el('mes').disabled = el('todos').checked; }
   function falha(e) {
     ocupado(false);
-    ['cartaoChoques', 'cartaoCatalogo', 'cartaoMatriz', 'cartaoOutros'].forEach(function (id) { mostrar(id, false); });
+    ['cartaoChoques', 'cartaoRegras', 'cartaoCatalogo', 'cartaoMatriz', 'cartaoOutros'].forEach(function (id) { mostrar(id, false); });
     el('erro').textContent = (e && e.message) ? e.message.replace(/^Error:\s*/, '') : String(e);
     mostrar('erro', true);
   }
@@ -104,6 +113,25 @@
     el('maisChoques').textContent = mais > 0 ? 'e mais ' + mais + ' choque(s) não listado(s).' : '';
     mostrar('maisChoques', mais > 0);
     mostrar('cartaoChoques', true);
+
+    // regras da escala
+    var ur = el('listaRegras'); ur.innerHTML = '';
+    if (r.totalRegras === 0) {
+      situacao('situacaoRegras', 'ok', 'Nenhuma violação das regras da escala' + (r.mes ? ' em ' + r.mes : '') + '.');
+    } else {
+      situacao('situacaoRegras', 'problema', r.totalRegras + (r.totalRegras === 1 ? ' violação encontrada.' : ' violações encontradas.'));
+      r.regras.forEach(function (c) {
+        var li = document.createElement('li');
+        var n = document.createElement('span'); n.className = 'nome'; n.textContent = c.nome;
+        var d = document.createElement('span'); d.className = 'detalhe'; d.textContent = c.a + '  ·  ' + c.texto;
+        li.appendChild(n); li.appendChild(d); ur.appendChild(li);
+      });
+    }
+    var maisR = r.totalRegras - r.regras.length;
+    el('maisRegras').textContent = maisR > 0 ? 'e mais ' + maisR + ' violação(ões) não listada(s).' : '';
+    mostrar('maisRegras', maisR > 0);
+    el('avisosRegras').textContent = (r.avisosRegras || []).join(' '); mostrar('avisosRegras', (r.avisosRegras || []).length > 0);
+    mostrar('cartaoRegras', true);
 
     // catálogo
     var avisos = r.avisosTurnos.slice();

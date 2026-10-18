@@ -28,6 +28,8 @@
   .erro { color:var(--erro); background:#FCE8E6; border-radius:4px; padding:8px; margin-top:12px; }
   .ok { color:#137333; background:#E6F4EA; border-radius:4px; padding:8px; margin-top:12px; }
   ul.avisos { margin:6px 0 0; padding-left:16px; color:var(--aviso); }
+  .aviso { color:var(--aviso); background:#FEF7E0; border-radius:4px; padding:8px; margin-top:8px; font-size:12px; }
+  .aviso div + div { margin-top:6px; }
   [hidden] { display:none !important; }
 </style>
 </head>
@@ -76,6 +78,7 @@
   <div id="cartaoCotas" class="cartao" hidden>
     <h2>4. Operações</h2>
     <div id="cotasLinha1"></div>
+    <div id="cotasDiagnostico" class="aviso" hidden></div>
     <table>
       <thead><tr><th>Operação</th><th>Receb.</th><th>Distr.</th><th>Rest.</th></tr></thead>
       <tbody id="cotasTabela"></tbody>
@@ -85,7 +88,7 @@
     <details id="cotasVazias" hidden><summary>Vagas sem ninguém</summary><ul id="cotasVaziasLista" class="avisos"></ul></details>
     <details id="cotasMilitares" hidden><summary>Por militar</summary><div id="cotasMilitaresLista" class="nota"></div></details>
     <button id="btnCotas" class="principal" hidden>Gerar operações</button>
-    <button id="btnCotasAbas" class="secundario" hidden>Criar abas COTAS e VOLUNTARIADO</button>
+    <button id="btnCotasAbas" class="secundario" hidden>Criar abas e coluna que faltam</button>
   </div>
   <div id="resultadoCotas" class="ok" hidden></div>
 
@@ -272,6 +275,10 @@
     r.vazias.forEach(function (v) { var li = document.createElement('li'); li.textContent = v.operacao + ' · ' + v.dia + ' ' + v.turno + ' (faltam ' + v.faltam + '): ' + v.motivo; uv.appendChild(li); });
     if (r.maisVazias > 0) { var l3 = document.createElement('li'); l3.textContent = 'e mais ' + r.maisVazias + ' vaga(s).'; uv.appendChild(l3); }
     mostrar('cotasVazias', r.vazias.length > 0);
+    el('cotasVazias').open = r.novas === 0 && r.vazias.length > 0;      // B24: sem nada a gerar, o motivo já aparece aberto
+    var dg = el('cotasDiagnostico'); dg.innerHTML = '';
+    (r.diagnostico || []).forEach(function (t) { var p = document.createElement('div'); p.textContent = t; dg.appendChild(p); });
+    mostrar('cotasDiagnostico', (r.diagnostico || []).length > 0);
     var dm = el('cotasMilitaresLista'); dm.textContent = r.porMilitar.map(function (o) {
       return o.operacao + ': ' + o.militares.map(function (m) { return m.nome + ' ' + m.qtd; }).join(', ');
     }).join('\n');
@@ -280,6 +287,7 @@
     mostrar('btnCotas', true);
     el('btnCotas').textContent = 'Gerar operações';
     el('btnCotas').disabled = !(r.novas > 0);
+    el('btnCotas').title = r.novas > 0 ? '' : 'Nada a gravar agora: veja o motivo acima.';
     mostrar('btnCotasAbas', !!r.semAbas);
     mostrar('cartaoCotas', true);
   }
@@ -300,7 +308,7 @@
     ocupado(true);
     google.script.run.withSuccessHandler(function (r) {
       ocupado(false);
-      el('resultadoCotas').textContent = r.criadas.length ? 'Abas criadas: ' + r.criadas.join(', ') + '. Preencha e clique em Analisar.' : 'As abas já existem.';
+      el('resultadoCotas').textContent = r.criadas.length ? 'Criado: ' + r.criadas.join(', ') + '. Preencha e clique em Analisar.' : 'Tudo já existe (abas COTAS e VOLUNTARIADO e a coluna VOLUNTÁRIO JES).';
       mostrar('resultadoCotas', true);
     }).withFailureHandler(falha).painelCotasAbas();
   });

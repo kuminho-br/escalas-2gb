@@ -251,3 +251,57 @@ function distribuirCotas_(e) {
 
   return { novas: novas, porCota: porCota, porOperacao: porOperacao, vazias: vazias, semCota: semCota, avisos: avisos };
 }
+
+/**
+ * B24 (RN-81, RN-40, RN-41): por que uma operação com cota restante não gera nenhuma alocação, e o que fazer.
+ * Só fala das operações que têm cota restante e nenhuma alocação nova. Retorna [{ operacao, texto }].
+ *
+ * e: {
+ *   mes, secao,
+ *   operacoes: as da entrada de distribuirCotas_ ([{ nome, servico, dias, turnos: [{ turno, vagas }], problema? }])
+ *              problema = texto pronto quando a operação nem tem cadastro utilizável (falta ESCALAS/MODELOS)
+ *   res:       o retorno de distribuirCotas_
+ *   horarios:  o porChave de montarHorarios_
+ *   voluntariado: { linhasMes, linhasSecao, ignoradasJes }   quantas linhas do VOLUNTARIADO: no mês; no mês e da seção
+ *              (já sem as ignoradas pelo VOLUNTÁRIO JES); e quantas foram ignoradas por esse atributo (RN-46)
+ * }
+ */
+function diagnosticarOperacoes_(e) {
+  const res = [];
+  const vol = e.voluntariado || { linhasMes: 0, linhasSecao: 0, ignoradasJes: 0 };
+  (e.operacoes || []).forEach(function (o) {
+    const p = e.res.porOperacao[o.nome];
+    if (!p || p.novas > 0 || p.restantes <= 0) return;
+    const nome = '"' + o.nome + '"';
+    if (o.problema) { res.push({ operacao: o.nome, texto: o.problema }); return; }
+    if (!o.dias.length) {
+      res.push({ operacao: o.nome, texto: nome + ' sem dias: a escala só usa os dias já escalados (ESCALAS, coluna DIAS) e a tabela não tem nenhum em ' + e.mes + '. Escale esses dias ou mude DIAS para TODOS.' });
+      return;
+    }
+    const vagasPorDia = o.turnos.reduce(function (n, t) { return e.horarios[o.servico + '|' + t.turno] ? n + (Number(t.vagas) || 0) : n; }, 0);
+    if (vagasPorDia <= 0) {
+      res.push({ operacao: o.nome, texto: nome + ' sem vagas: cadastre os turnos e as funções em MODELOS DE GUARNIÇÃO (e confira se os turnos têm horário na aba TURNOS).' });
+      return;
+    }
+    // há vagas: ninguém pôde ocupá-las. O motivo que mais se repete explica o resto.
+    const mine = e.res.vazias.filter(function (v) { return v.operacao === o.nome; });
+    const faltam = mine.reduce(function (n, v) { return n + v.faltam; }, 0);
+    if (!mine.length) return;
+    const cont = Object.create(null);
+    mine.forEach(function (v) { cont[v.motivo] = (cont[v.motivo] || 0) + v.faltam; });
+    const motivo = Object.keys(cont).sort(function (a, b) { return cont[b] - cont[a]; })[0];
+    let causa;
+    if (motivo === COTAS_MOTIVOS_.semFormulario) {
+      if (vol.linhasMes === 0) causa = 'A aba VOLUNTARIADO não tem nenhuma linha de ' + e.mes + '.';
+      else causa = 'A aba VOLUNTARIADO tem ' + vol.linhasMes + ' linha(s) de ' + e.mes + ', mas nenhuma de militar da ' + e.secao + ' (confira a matrícula e a SEÇÃO em MILITARES).';
+      if (vol.ignoradasJes > 0) causa += ' ' + vol.ignoradasJes + ' linha(s) foram ignoradas porque VOLUNTÁRIO JES não é "sim" em MILITARES (RN-46).';
+      causa += ' Preencha o VOLUNTARIADO (uma linha por militar, dia e turno) e analise de novo.';
+    } else if (motivo === COTAS_MOTIVOS_.semVoluntario) {
+      causa = 'Ninguém se voluntariou para esses dias e turnos. Cadastre mais voluntários no VOLUNTARIADO.';
+    } else {
+      causa = 'Motivo mais comum: ' + motivo + '. Libere horários dos militares ou cadastre mais voluntários.';
+    }
+    res.push({ operacao: o.nome, texto: nome + ': ' + faltam + ' vaga(s) sem ninguém e nenhuma alocação a gerar. ' + causa });
+  });
+  return res;
+}
