@@ -337,6 +337,8 @@ function painelGuarnicaoExemplos() {
   if (garantirColunaExigeCnh_()) criadas.push('coluna EXIGE CNH (em MODELOS DE GUARNIÇÃO, vazia: marque SIM nas funções de condutor)');
   // B49 item 2 (RN-13): a origem do serviço passa a ser cadastro
   if (garantirColunaOrigem_()) criadas.push('coluna ORIGEM (em TURNOS; o JES já vem como PJES, como era no código)');
+  // B58 item 1 (RN-09): TIPOS DE SERVIÇO saiu do cadastro de GUARNIÇÕES; vazia, a coluna é apagada
+  if (cadgRetirarTiposDeServico_() === 'apagada') criadas.push('coluna TIPOS DE SERVIÇO apagada de GUARNIÇÕES (estava vazia e não é mais lida)');
   return { criadas: criadas };
 }
 

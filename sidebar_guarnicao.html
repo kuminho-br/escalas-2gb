@@ -103,7 +103,7 @@
        a planilha já em uso, não só no primeiro uso. O botão nunca apaga nem sobrescreve nada. -->
   <div id="cartaoSetup" class="cartao">
     <h2>Cadastro</h2>
-    <div class="nota">Cria as abas e as colunas de cadastro que ainda faltam na planilha. Não apaga nem sobrescreve nada que já existe.</div>
+    <div class="nota">Cria as abas e as colunas de cadastro que ainda faltam na planilha. Não apaga nenhum dado nem sobrescreve o que já existe.</div>
     <button id="btnExemplos" class="principal">Criar abas e colunas que faltam</button>
   </div>
 
@@ -244,7 +244,7 @@
     google.script.run
       .withSuccessHandler(function (r) {
         ocupado(false);
-        el('resultado').textContent = r.criadas.length ? 'Criado: ' + r.criadas.join('; ') + '.' : 'Nada faltava: as abas e as colunas já existiam, e nada foi alterado.';
+        el('resultado').textContent = r.criadas.length ? 'Feito: ' + r.criadas.join('; ') + '.' : 'Nada faltava: as abas e as colunas já existiam, e nada foi alterado.';
         mostrar('resultado', true);
         el('resultado').scrollIntoView({ behavior: 'smooth', block: 'center' });   // o botão fica no fim do painel
         carregar();

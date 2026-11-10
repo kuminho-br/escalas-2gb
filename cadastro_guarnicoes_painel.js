@@ -13,20 +13,22 @@
  */
 
 const CADG_ABA = 'GUARNIÇÕES';             // B52: chamava-se VIATURAS; abaAtual_ renomeia a antiga. Não confundir com MODELOS DE GUARNIÇÃO
-const CADG_CABECALHO_ = ['VIGÊNCIA (A PARTIR DE)', 'GUARNIÇÃO', 'VIATURA', 'TIPO', 'ATIVAR', 'PRIORIDADE', 'TIPOS DE SERVIÇO', 'CNH', 'FUNÇÃO', 'MÍNIMO', 'MÁXIMO'];
-const CADG_LARGURAS_ = [130, 200, 110, 150, 70, 90, 220, 90, 190, 80, 80];
+// B58 item 1 (RN-09): sem TIPOS DE SERVIÇO — quem atende cada escala é o vínculo em outra aba
+const CADG_CABECALHO_ = ['VIGÊNCIA (A PARTIR DE)', 'GUARNIÇÃO', 'VIATURA', 'TIPO', 'ATIVAR', 'PRIORIDADE', 'CNH', 'FUNÇÃO', 'MÍNIMO', 'MÁXIMO'];
+const CADG_LARGURAS_ = [130, 200, 110, 150, 70, 90, 90, 190, 80, 80];
+const CADG_COLUNA_RETIRADA_ = 'TIPOS DE SERVIÇO';
 
 /**
  * Exemplo: a configuração informada pelo usuário (AR, mínimo 3 e máximo 5) e uma guarnição SEM
  * viatura com motorista que exige CNH (o Apoio Operacional Aquartelado, RN-96).
  */
 const CADG_EXEMPLO_ = [
-  ['', 'AR', 'AR', 'Auto Resgate', 'SIM', 1, '', 'D', 'MOTORISTA', 1, 1],
-  ['', 'AR', '', '', '', '', '', '', 'CHEFE', 1, 1],
-  ['', 'AR', '', '', '', '', '', '', 'SOCORRISTA', 1, 3],
-  ['', 'SERVIÇO DE APOIO OPERACIONAL AQUARTELADO', '', 'Aquartelado', 'SIM', 2, '', 'D', 'MOTORISTA ACO', 1, 1],
-  ['', 'SERVIÇO DE APOIO OPERACIONAL AQUARTELADO', '', '', '', '', '', '', 'DESPACHANTE DE CENTRO DE OPERAÇÕES', 2, 2],
-  ['', 'SERVIÇO DE APOIO OPERACIONAL AQUARTELADO', '', '', '', '', '', '', 'ADJUNTO DE DIA', 1, 1]
+  ['', 'AR', 'AR', 'Auto Resgate', 'SIM', 1, 'D', 'MOTORISTA', 1, 1],
+  ['', 'AR', '', '', '', '', '', 'CHEFE', 1, 1],
+  ['', 'AR', '', '', '', '', '', 'SOCORRISTA', 1, 3],
+  ['', 'SERVIÇO DE APOIO OPERACIONAL AQUARTELADO', '', 'Aquartelado', 'SIM', 2, 'D', 'MOTORISTA ACO', 1, 1],
+  ['', 'SERVIÇO DE APOIO OPERACIONAL AQUARTELADO', '', '', '', '', '', 'DESPACHANTE DE CENTRO DE OPERAÇÕES', 2, 2],
+  ['', 'SERVIÇO DE APOIO OPERACIONAL AQUARTELADO', '', '', '', '', '', 'ADJUNTO DE DIA', 1, 1]
 ];
 
 /** Cria a aba GUARNIÇÕES (cabeçalho, exemplo e listas suspensas). Não mexe numa aba que já existe. */
@@ -58,7 +60,8 @@ function cadgLerLinhas_(tz) {
   const c = {
     vig: coluna_(t, 'VIGÊNCIA', false), guarnicao: coluna_(t, 'GUARNIÇÃO', false), viatura: coluna_(t, 'VIATURA', false),
     tipo: coluna_(t, 'TIPO', false), ativar: coluna_(t, 'ATIVAR', false), prio: coluna_(t, 'PRIORIDADE', false),
-    servicos: coluna_(t, 'TIPOS DE SERVIÇO', false), cnh: coluna_(t, 'CNH', false), funcao: coluna_(t, 'FUNÇÃO', false),
+    cnh: coluna_(t, 'CNH', false), funcao: coluna_(t, 'FUNÇÃO', false),
+    retirada: coluna_(t, CADG_COLUNA_RETIRADA_, false),          // B58 item 1: só para avisar, não é lida
     min: coluna_(t, 'MÍNIMO', false), max: coluna_(t, 'MÁXIMO', false)
   };
   if (c.guarnicao < 0 && c.viatura < 0) {
@@ -75,11 +78,12 @@ function cadgLerLinhas_(tz) {
     out.push({
       linha: i + 2, vigencia: texto_(vig), guarnicao: texto_(l[cNome]),
       viatura: texto_(pega(l, c.viatura)), tipo: texto_(pega(l, c.tipo)),
-      ativar: pega(l, c.ativar), prioridade: texto_(pega(l, c.prio)), servicos: texto_(pega(l, c.servicos)),
+      ativar: pega(l, c.ativar), prioridade: texto_(pega(l, c.prio)),
       cnh: texto_(pega(l, c.cnh)), funcao: texto_(pega(l, c.funcao)), minimo: texto_(pega(l, c.min)), maximo: texto_(pega(l, c.max))
     });
   });
   out.semColunaGuarnicao = semColunaGuarnicao;
+  out.tiposDeServicoPreenchidos = c.retirada < 0 ? 0 : t.linhas.filter(function (l) { return texto_(l[c.retirada]) !== ''; }).length;
   return out;
 }
 
@@ -92,6 +96,10 @@ function guarnicoesDoMes_(mes, tz) {
   const avisos = r.avisos.slice();
   if (linhas.semColunaGuarnicao) {
     avisos.push('A aba ' + CADG_ABA + ' ainda é o cadastro antigo, de viaturas: cada VIATURA está valendo como uma guarnição com o mesmo nome. Uma guarnição pode não ter viatura (RN-96), então use o botão "Migrar para guarnições" para criar a coluna GUARNIÇÃO.');
+  }
+  if (linhas.tiposDeServicoPreenchidos) {
+    avisos.push('A aba ' + CADG_ABA + ' ainda tem a coluna ' + CADG_COLUNA_RETIRADA_ + ', preenchida em ' + linhas.tiposDeServicoPreenchidos +
+      ' linha(s). Ela não é mais lida (B58, RN-09): quais escalas e turnos cada guarnição atende passa a ser o vínculo da outra aba de cadastro. Apague a coluna quando tiver passado esse vínculo adiante.');
   }
   return { existe: true, guarnicoes: r.guarnicoes, porId: r.porId, avisos: avisos, semColunaGuarnicao: !!linhas.semColunaGuarnicao };
 }
@@ -150,6 +158,26 @@ function cadgMigrarParaGuarnicoes_() {
   return { migrou: true, linhas: copiadas };
 }
 
+/**
+ * B58 item 1 (RN-09): apaga a coluna TIPOS DE SERVIÇO da aba GUARNIÇÕES, mas só se estiver vazia —
+ * vazia não guarda dado nenhum. Preenchida, fica onde está (o resumo avisa que ela não é mais lida).
+ * Retorna 'apagada', 'preenchida' ou '' (não havia a coluna).
+ */
+function cadgRetirarTiposDeServico_() {
+  const aba = abaAtual_(SpreadsheetApp.getActive(), CADG_ABA);
+  if (!aba) return '';
+  const nCols = aba.getLastColumn();
+  if (nCols < 1) return '';
+  const cab = aba.getRange(1, 1, 1, nCols).getValues()[0].map(normalizar_);
+  const i = cab.indexOf(normalizar_(CADG_COLUNA_RETIRADA_));
+  if (i < 0) return '';
+  const n = aba.getLastRow() - 1;
+  const cheia = n > 0 && aba.getRange(2, i + 1, n, 1).getDisplayValues().some(function (r) { return String(r[0]).trim() !== ''; });
+  if (cheia) return 'preenchida';
+  aba.deleteColumn(i + 1);
+  return 'apagada';
+}
+
 /* ------------------------------------------------------------ chamadas da tela */
 
 /** Abre a aba GUARNIÇÕES (criando, se não existir) — o ponto de entrada no painel de Configurações. */
@@ -201,7 +229,7 @@ function guarnicoesResumo_(mes, tz) {
     lista: v.guarnicoes.map(function (x) {
       return {
         id: x.id, viatura: x.viatura, tipo: x.tipo, ativar: x.ativar, prioridade: x.prioridade === null ? '' : x.prioridade,
-        cnh: x.cnh.join('/'), servicos: x.servicos.join(', '),
+        cnh: x.cnh.join('/'),
         minimo: x.funcoes.reduce(function (s, f) { return s + f.minimo; }, 0),
         maximo: x.funcoes.some(function (f) { return f.maximo === null; }) ? '' : x.funcoes.reduce(function (s, f) { return s + f.maximo; }, 0),
         funcoes: x.funcoes.map(function (f) { return f.funcao + ' ' + f.minimo + '-' + (f.maximo === null ? '∞' : f.maximo); }).join(', ')

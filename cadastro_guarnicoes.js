@@ -11,7 +11,7 @@
  * motorista que exige CNH (o motorista do ACO é o caso do usuário).
  *
  * Uma linha por GUARNIÇÃO + FUNÇÃO:
- *   VIGÊNCIA | GUARNIÇÃO | VIATURA | TIPO | ATIVAR | PRIORIDADE | TIPOS DE SERVIÇO | CNH | FUNÇÃO | MÍNIMO | MÁXIMO
+ *   VIGÊNCIA | GUARNIÇÃO | VIATURA | TIPO | ATIVAR | PRIORIDADE | CNH | FUNÇÃO | MÍNIMO | MÁXIMO
  *
  *   VIGÊNCIA         mês a partir do qual a linha vale ('aaaa-mm'; vazio = desde sempre)
  *   GUARNIÇÃO        identificação da guarnição; é o que liga o cadastro à coluna UNIDADE de
@@ -20,11 +20,15 @@
  *   TIPO             texto livre (tipo da guarnição ou da viatura): nada aqui é fixo no código
  *   ATIVAR           SIM/NÃO — se a guarnição deve ser ativada no mês (RN-07)
  *   PRIORIDADE       ordem de ativação; 1 é a primeira, vazio vai por último (RN-08)
- *   TIPOS DE SERVIÇO quais serviços podem incluir militares nela; vazio = todos (RN-09)
  *   CNH              categoria(s) exigida(s) do condutor, COM OU SEM viatura; vazio = não exige (RN-12)
  *   FUNÇÃO           função da guarnição (vazio: linha só com os dados da guarnição)
  *   MÍNIMO           abaixo dele a guarnição não é ativada (RN-10)
  *   MÁXIMO           acima dele não se aloca mais ninguém naquela função; vazio = sem limite (RN-11)
+ *
+ * B58 item 1 (RN-09): a coluna TIPOS DE SERVIÇO saiu. Quais escalas e turnos uma guarnição atende
+ * não é mais atributo da guarnição: é o vínculo explícito, linha a linha, de outra aba. Uma coluna
+ * TIPOS DE SERVIÇO que ainda exista na planilha não é lida (e o botão de criar colunas a apaga,
+ * se estiver vazia).
  *
  * A leitura é por nome de coluna, então acrescentar coluna depois não quebra nada — é assim que a
  * prioridade por função (B56) vai entrar, sem mudar a forma do cadastro.
@@ -86,9 +90,9 @@ function cnhAtende_(doMilitar, exigidas) {
 
 /**
  * Valores em vigor num mês, por guarnição.
- * linhas: [{ linha, vigencia, guarnicao, viatura, tipo, ativar, prioridade, servicos, cnh, funcao, minimo, maximo }]
+ * linhas: [{ linha, vigencia, guarnicao, viatura, tipo, ativar, prioridade, cnh, funcao, minimo, maximo }]
  * Retorna { guarnicoes: [...], porId: { CHAVE: guarnição }, avisos: [texto] }, cada guarnição =
- * { id, viatura, tipo, ativar, prioridade, servicos: [], cnh: [], funcoes: [{ funcao, minimo, maximo }] },
+ * { id, viatura, tipo, ativar, prioridade, cnh: [], funcoes: [{ funcao, minimo, maximo }] },
  * em ordem de prioridade de ativação (RN-08) e, empatando, pelo nome.
  */
 function resolverGuarnicoes_(linhas, mes) {
@@ -124,7 +128,7 @@ function resolverGuarnicoes_(linhas, mes) {
   validas.forEach(function (r) {
     let g = porId[r.chave];
     if (!g) {
-      g = porId[r.chave] = { id: r.id, viatura: null, tipo: '', ativar: null, prioridade: null, servicos: null, cnh: null, funcoes: [], _f: Object.create(null) };
+      g = porId[r.chave] = { id: r.id, viatura: null, tipo: '', ativar: null, prioridade: null, cnh: null, funcoes: [], _f: Object.create(null) };
       ordemEntrada.push(r.chave);
     }
     // dados da guarnição: vale o último informado até o mês (campo por campo)
@@ -132,7 +136,6 @@ function resolverGuarnicoes_(linhas, mes) {
     if (g.tipo === '' && String(r.l.tipo == null ? '' : r.l.tipo).trim() !== '') g.tipo = String(r.l.tipo).trim();
     if (g.ativar === null && normalizar_(r.l.ativar) !== '') g.ativar = cadgSimNao_(r.l.ativar, true);          // RN-07
     if (g.prioridade === null && r.prio !== null) g.prioridade = r.prio;                                       // RN-08
-    if (g.servicos === null && cadgLista_(r.l.servicos).length) g.servicos = cadgLista_(r.l.servicos);          // RN-09
     if (g.cnh === null && cadgLista_(r.l.cnh).length) g.cnh = cadgLista_(r.l.cnh);                              // RN-12, com ou sem viatura
     // guarnição mínima e máxima: por função (RN-10, RN-11)
     const f = String(r.l.funcao == null ? '' : r.l.funcao).trim();
@@ -146,7 +149,6 @@ function resolverGuarnicoes_(linhas, mes) {
     const g = porId[k];
     g.viatura = g.viatura || '';                         // vazio = guarnição sem viatura (RN-96)
     g.ativar = g.ativar === null ? true : g.ativar;      // RN-07: sem dizer nada, a guarnição é para ativar
-    g.servicos = g.servicos || [];                       // vazio = serve a qualquer serviço
     g.cnh = g.cnh || [];                                 // vazio = não exige categoria
     g.funcoes = Object.keys(g._f).map(function (kf) { return g._f[kf]; })
       .filter(function (f) { return f.maximo !== 0; })   // MÁXIMO 0 = função retirada dessa guarnição
@@ -161,12 +163,6 @@ function resolverGuarnicoes_(linhas, mes) {
     return a.id < b.id ? -1 : (a.id > b.id ? 1 : 0);
   });
   return { guarnicoes: guarnicoes, porId: porId, avisos: avisos };
-}
-
-/** A guarnição aceita militares deste serviço? (RN-09; sem lista cadastrada, aceita todos.) */
-function guarnicaoAceitaServico_(g, servico) {
-  if (!g || !g.servicos.length) return true;
-  return g.servicos.indexOf(normalizar_(servico)) >= 0;
 }
 
 /** Guarnição pelo nome (o mesmo texto da coluna UNIDADE de MODELOS DE GUARNIÇÃO / das alocações). */

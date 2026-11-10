@@ -105,8 +105,8 @@ console.log('== B52 as cinco abas renomeadas (migração sozinha, sem apagar nad
 console.log('== B37 revisado (RN-07 a RN-12, RN-93, RN-96) cadastro de guarnições, viatura opcional');
 {
   const L = new Function(['nucleo.js', 'cadastro_guarnicoes.js'].map(ler).join('\n') +
-    '\nreturn {resolverGuarnicoes_, cnhAtende_, avaliarGuarnicao_, guarnicaoAceitaServico_, guarnicaoPorNome_, cadgLista_};')();
-  // VIGÊNCIA, GUARNIÇÃO, VIATURA, TIPO, ATIVAR, PRIORIDADE, TIPOS DE SERVIÇO, CNH, FUNÇÃO, MÍNIMO, MÁXIMO
+    '\nreturn {resolverGuarnicoes_, cnhAtende_, avaliarGuarnicao_, guarnicaoPorNome_, cadgLista_};')();
+  // VIGÊNCIA, GUARNIÇÃO, VIATURA, TIPO, ATIVAR, PRIORIDADE, (TIPOS DE SERVIÇO, B58: não é mais lida), CNH, FUNÇÃO, MÍNIMO, MÁXIMO
   const l = (vig, guarnicao, viatura, tipo, ativar, prio, servicos, cnh, funcao, min, max, linha) =>
     ({ linha: linha, vigencia: vig, guarnicao: guarnicao, viatura: viatura, tipo: tipo, ativar: ativar, prioridade: prio, servicos: servicos, cnh: cnh, funcao: funcao, minimo: min, maximo: max });
   // uma guarnição COM viatura, uma SEM viatura (com motorista que exige CNH) e uma desativada
@@ -129,11 +129,10 @@ console.log('== B37 revisado (RN-07 a RN-12, RN-93, RN-96) cadastro de guarniç�
   ver('ordem de ativação pela prioridade; sem prioridade vai por último (RN-08)',
     r.guarnicoes.map(g => g.id).join() === 'AR,APOIO AQUARTELADO,ABTS', r.guarnicoes.map(g => g.id));
   ver('ATIVAR NÃO é respeitado (RN-07)', r.porId['ABTS'].ativar === false && r.guarnicoes.filter(g => g.ativar).length === 2);
-  ver('TIPOS DE SERVIÇO: o Apoio só aceita Pronto (RN-09)',
-    L.guarnicaoAceitaServico_(aco, 'Pronto') && !L.guarnicaoAceitaServico_(aco, 'Bioma'));
-  ver('sem lista de tipos de serviço a guarnição aceita qualquer serviço', L.guarnicaoAceitaServico_(ar, 'Bioma') === true);
+  ver('B58 item 1 (RN-09): TIPOS DE SERVIÇO não é mais lido (o Apoio tinha "Pronto" e a guarnição não guarda isso)',
+    !('servicos' in aco) && !('servicos' in ar), aco);
   ver('posto sem guarnição cadastrada: nada a cobrar e nenhum aviso',
-    L.guarnicaoPorNome_(r, 'UTI móvel') === null && L.guarnicaoAceitaServico_(null, 'Bioma') === true && r.avisos.length === 0);
+    L.guarnicaoPorNome_(r, 'UTI móvel') === null && r.avisos.length === 0);
   ver('a guarnição é achada pelo nome, sem caixa/acento', L.guarnicaoPorNome_(r, 'apoio aquartelado') === aco);
 
   // RN-93: alterar a guarnição mínima não retroage
@@ -373,12 +372,14 @@ console.log('== B37 revisado (camada do Sheets) cadastro antigo de viaturas e mi
       isSheetHidden: () => false, showSheet() {}, setColumnWidth() {}, setFrozenRows() {}, getLastRow() { return this.v.length; },
       getLastColumn() { return Math.max.apply(null, this.v.map(r => r.length)); },
       insertColumnBefore(i) { this.v.forEach(r => { while (r.length < i - 1) r.push(''); r.splice(i - 1, 0, ''); }); },
+      deleteColumn(i) { this.v.forEach(r => r.splice(i - 1, 1)); },
       getDataRange() { return this.getRange(1, 1, this.v.length, this.getLastColumn()); },
       getRange(r, c, nr, nc) {
         const s = this; nr = nr || 1; nc = nc || 1;
         const R = {
           getValues() { const o = []; for (let i = 0; i < nr; i++) { const row = []; for (let j = 0; j < nc; j++) row.push((s.v[r - 1 + i] || [])[c - 1 + j] === undefined ? '' : s.v[r - 1 + i][c - 1 + j]); o.push(row); } return o; },
           getValue() { return R.getValues()[0][0]; },
+          getDisplayValues() { return R.getValues().map(row => row.map(x => String(x))); },
           setValues(m) { m.forEach((row, i) => { while (s.v.length < r + i) s.v.push([]); row.forEach((x, j) => { const t = s.v[r - 1 + i]; while (t.length < c + j) t.push(''); t[c - 1 + j] = x; }); }); return P; },
           setValue(x) { return R.setValues([[x]]); }
         };
@@ -389,7 +390,7 @@ console.log('== B37 revisado (camada do Sheets) cadastro antigo de viaturas e mi
     const ss = { getSheets: () => [aba], getSheetByName: n => (aba.nome === n ? aba : null), getSpreadsheetTimeZone: () => 'America/Recife', insertSheet: n => { aba.nome = n; return aba; }, setActiveSheet() {} };
     const F = new Function('SpreadsheetApp', 'Utilities', 'LockService',
       ['nucleo.js', 'matriz.js', 'cadastro_guarnicoes.js', 'cadastro_guarnicoes_painel.js'].map(ler).join('\n') +
-      '\nreturn {cadgLerLinhas_, guarnicoesDoMes_, cadgMigrarParaGuarnicoes_, CADG_CABECALHO_};')(
+      '\nreturn {cadgLerLinhas_, guarnicoesDoMes_, cadgMigrarParaGuarnicoes_, cadgRetirarTiposDeServico_, CADG_CABECALHO_};')(
       { getActive: () => ss, newDataValidation: () => ({ requireValueInList() { return this; }, setAllowInvalid() { return this; }, build() { return {}; } }) },
       { formatDate: () => '' }, { getDocumentLock: () => ({ tryLock: () => true, releaseLock() {} }) });
     return { aba, ss, F };
@@ -411,7 +412,18 @@ console.log('== B37 revisado (camada do Sheets) cadastro antigo de viaturas e mi
   ver('migrar de novo não faz nada', W.F.cadgMigrarParaGuarnicoes_().migrou === false);
 
   // já no formato novo, com guarnição SEM viatura
-  W = planilha(W.F.CADG_CABECALHO_, [['', 'APOIO AQUARTELADO', '', 'Aquartelado', 'SIM', 1, '', 'D', 'MOTORISTA ACO', 1, 1]]);
+  // B58 item 1: TIPOS DE SERVIÇO ficou na planilha migrada, vazia; o botão de criar colunas a apaga
+  ver('B58 item 1: TIPOS DE SERVIÇO vazia é apagada, e o resto do cadastro fica igual',
+    W.F.cadgRetirarTiposDeServico_() === 'apagada' && W.aba.v[0].join('|') === W.F.CADG_CABECALHO_.join('|') &&
+    W.aba.v[1].join('|') === '|AR|AR|Auto Resgate|SIM|1|D|MOTORISTA|1|1' && W.F.guarnicoesDoMes_('2026-11', 'America/Recife').guarnicoes[0].cnh.join() === 'D', W.aba.v);
+  ver('B58 item 1: sem a coluna, nada a fazer', W.F.cadgRetirarTiposDeServico_() === '');
+  W = planilha(['VIGÊNCIA (A PARTIR DE)', 'GUARNIÇÃO', 'VIATURA', 'TIPO', 'ATIVAR', 'PRIORIDADE', 'TIPOS DE SERVIÇO', 'CNH', 'FUNÇÃO', 'MÍNIMO', 'MÁXIMO'], [['', 'AR', 'AR', '', 'SIM', 1, 'Pronto', 'D', 'MOTORISTA', 1, 1]]);
+  r = W.F.guarnicoesDoMes_('2026-11', 'America/Recife');
+  ver('B58 item 1: TIPOS DE SERVIÇO preenchida não é apagada, não é lida, e o resumo avisa',
+    W.F.cadgRetirarTiposDeServico_() === 'preenchida' && W.aba.v[0].length === 11 && r.guarnicoes[0].cnh.join() === 'D' &&
+    r.avisos.some(a => /TIPOS DE SERVIÇO, preenchida em 1 linha/.test(a) && /não é mais lida/.test(a)), r.avisos);
+
+  W = planilha(W.F.CADG_CABECALHO_, [['', 'APOIO AQUARTELADO', '', 'Aquartelado', 'SIM', 1, 'D', 'MOTORISTA ACO', 1, 1]]);
   r = W.F.guarnicoesDoMes_('2026-11', 'America/Recife');
   ver('guarnição sem viatura é lida e exige CNH (RN-96, RN-12)',
     r.guarnicoes[0].id === 'APOIO AQUARTELADO' && r.guarnicoes[0].viatura === '' && r.guarnicoes[0].cnh.join() === 'D' && !r.semColunaGuarnicao, r.guarnicoes);
