@@ -249,6 +249,13 @@ function contextoDeCnh_(mod, mil, mes, tz) {
   const temColunaCnh = mil.some(function (m) { return m.temColunaCnh; });
   const cnh = Object.create(null);
   mil.forEach(function (m) { if (!(m.mat in cnh)) cnh[m.mat] = m.cnh || []; });
+  // B59 (RN-12): CNH fora do padrão (só valem as letras A a E) não vira categoria; o painel diz quem é
+  const foraDoPadrao = mil.filter(function (m) { return m.cnhInvalida && m.cnhInvalida.length; });
+  if (foraDoPadrao.length) {
+    avisos.push(foraDoPadrao.length + ' militar(es) com CNH fora do padrão na aba MILITARES (só valem as categorias A, B, C, D e E, juntas como "AD" ou separadas como "A, D"): ' +
+      foraDoPadrao.slice(0, 5).map(function (m) { return (m.nome || m.mat) + ' ("' + m.cnhInvalida.join(', ') + '")'; }).join('; ') +
+      (foraDoPadrao.length > 5 ? '…' : '') + '. Essa parte não conta como categoria (RN-12).');
+  }
 
   // formato antigo: a CNH exigida é da GUARNIÇÃO cujo nome está na UNIDADE do posto
   const cnhPorUnidade = Object.create(null), unidadesCadastradas = Object.create(null);

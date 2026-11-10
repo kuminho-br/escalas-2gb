@@ -658,5 +658,26 @@ console.log('== B58 itens 2 e 3 (RN-09, RN-93, RN-10 a RN-12) GUARNIÇÕES POR E
     (() => { const y = L.converterVinculosAntigos_(['Defensoria', 'PE Seguro', 'Bioma', 'CPRH'].map(e => ({ escala: e, turno: 'TODOS', unidade: '' }))); return y.linhas.length === 0 && y.escalasSemVinculo.length === 4; })());
 }
 
+console.log('== B59 (RN-12) CNH na notação oficial: "AD" é A e D');
+{
+  const L = new Function(['nucleo.js', 'cadastro_guarnicoes.js'].map(ler).join('\n') + '\nreturn {categoriasCnh_, cnhAtende_};')();
+  const cat = x => L.categoriasCnh_(x).categorias.join();
+  ver('"AD" vira A e D; "AB", "AC", "AE" do mesmo jeito', cat('AD') === 'A,D' && cat('AB') === 'A,B' && cat('AC') === 'A,C' && cat('AE') === 'A,E');
+  ver('uma letra só continua uma categoria', cat('B') === 'B' && cat('D') === 'D');
+  ver('separado também vale ("A, D", "B/D", "A D"), e repetição não conta', cat('A, D') === 'A,D' && cat('B/D') === 'B,D' && cat('A D') === 'A,D' && cat('AD, D') === 'A,D');
+  ver('caixa e espaço não importam', cat(' ad ') === 'A,D');
+  ver('vazio e "-" não têm categoria nem aviso', cat('') === '' && cat('-') === '' && L.categoriasCnh_('-').invalidas.length === 0);
+  let r = L.categoriasCnh_('AX');
+  ver('só valem as letras A a E: "AX" não vira categoria nenhuma e volta como inválido', r.categorias.length === 0 && r.invalidas.join() === 'AX', r);
+  r = L.categoriasCnh_('NÃO');
+  ver('texto que não é categoria ("NÃO") é inválido', r.categorias.length === 0 && r.invalidas.join() === 'NÃO', r);
+  r = L.categoriasCnh_('AD, D1');
+  ver('o pedaço bom vale e o ruim é apontado', r.categorias.join() === 'A,D' && r.invalidas.join() === 'D1', r);
+  // aceite do adendo 4
+  ver('aceite: militar com "AD" é aceito em posto que exige A ou D', L.cnhAtende_(L.categoriasCnh_('AD').categorias, ['D']) && L.cnhAtende_(L.categoriasCnh_('AD').categorias, ['A']));
+  ver('aceite: militar com "B" não é aceito em posto que exige D', !L.cnhAtende_(L.categoriasCnh_('B').categorias, ['D']));
+  ver('a hierarquia continua fora do código: "D" não atende a exigência B', !L.cnhAtende_(L.categoriasCnh_('D').categorias, ['B']));
+}
+
 console.log(`\n${ok} ok, ${falhas} falha(s)`);
 process.exit(falhas ? 1 : 0);

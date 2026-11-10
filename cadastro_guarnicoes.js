@@ -70,6 +70,28 @@ function cadgLista_(bruto) {
     .filter(function (x, i, a) { return x !== '' && a.indexOf(x) === i; });
 }
 
+/**
+ * B59 (RN-12): as categorias de CNH de um MILITAR, como estão na coluna CNH de MILITARES.
+ * A notação oficial junta as letras: "AD" é A + D, "AB" é A + B. Então cada letra vale como uma
+ * categoria: "AD" → ['A','D']. Separadores também valem ("A, D", "B/D"), e repetição não conta.
+ * Só existem as categorias A, B, C, D e E: um pedaço com qualquer outra coisa ("X", "NÃO",
+ * "D1") não vira categoria e volta em invalidas, para o painel avisar.
+ * Retorna { categorias: ['A','D'], invalidas: ['texto original do pedaço'] }.
+ * A hierarquia entre categorias continua NÃO estando no código (B49 item 1, em aberto).
+ */
+const CNH_CATEGORIAS_ = 'ABCDE';
+function categoriasCnh_(bruto) {
+  const categorias = [], invalidas = [];
+  String(bruto == null ? '' : bruto).split(/[,;/\s]+/).forEach(function (pedaco) {
+    const p = String(pedaco).trim();
+    if (!p || p === '-') return;
+    const n = normalizar_(p);
+    if (!/^[A-Z]+$/.test(n) || n.split('').some(function (ch) { return CNH_CATEGORIAS_.indexOf(ch) < 0; })) { invalidas.push(p); return; }
+    n.split('').forEach(function (ch) { if (categorias.indexOf(ch) < 0) categorias.push(ch); });
+  });
+  return { categorias: categorias, invalidas: invalidas };
+}
+
 /** Inteiro >= 0 da célula; '' devolve null (não informado). */
 function cadgInteiro_(bruto) {
   const s = String(bruto == null ? '' : bruto).trim();
@@ -81,6 +103,7 @@ function cadgInteiro_(bruto) {
 /**
  * RN-12: a CNH do militar atende a exigida pela guarnição?
  * exigidas vazio = não exige. Atende quem tem ao menos uma das categorias exigidas.
+ * doMilitar já vem letra a letra (categoriasCnh_, B59): "AD" chega aqui como ['A','D'].
  * A hierarquia entre categorias NÃO está no código (nada de "D vale por B"): se na unidade
  * a D habilita a B, o escalante escreve as duas categorias na coluna CNH do militar.
  */

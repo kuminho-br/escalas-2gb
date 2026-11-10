@@ -195,10 +195,14 @@ function lerMilitares_() {
       // RN-46: atributo "voluntário JES" (sim/não). Só vale se a coluna existir; vazio e "não" contam como não.
       temColunaVoluntarioJes: c.vjes >= 0,
       voluntarioJes: c.vjes >= 0 && simDaCelula_(l[c.vjes], e[c.vjes]),
-      // RN-12: categoria(s) de CNH do militar, como estão na coluna CNH ("B, D"). Sem a coluna, lista vazia.
-      temColunaCnh: c.cnh >= 0,
-      cnh: c.cnh >= 0 ? cadgLista_(texto_(pega(l, c.cnh)) || texto_(pega(e, c.cnh))) : []
+      // RN-12: categoria(s) de CNH do militar. Sem a coluna, lista vazia.
+      // B59: letra a letra, na notação oficial ("AD" = A e D; "B, D" também vale); ver categoriasCnh_
+      temColunaCnh: c.cnh >= 0
     });
+    const m = res[res.length - 1];
+    const cat = categoriasCnh_(c.cnh >= 0 ? (texto_(pega(l, c.cnh)) || texto_(pega(e, c.cnh))) : '');
+    m.cnh = cat.categorias;
+    m.cnhInvalida = cat.invalidas;              // o que não é categoria (A a E): o painel avisa
   });
   if (!LOG_MILITARES_FEITO_) {                       // B57: uma vez por execução
     LOG_MILITARES_FEITO_ = true;
