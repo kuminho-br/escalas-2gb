@@ -8,7 +8,7 @@
  *   quais postos (função, e opcionalmente a unidade) existem em cada turno.
  *   A grade mostra, para cada dia e turno, uma linha por posto. Quem ocupa o
  *   posto fica gravado na própria alocação (colunas FUNÇÃO e UNIDADE da tabela
- *   ALOCAÇÕES TABULADAS): não existe uma segunda tabela de "quem faz o quê".
+ *   ALOCAÇÕES): não existe uma segunda tabela de "quem faz o quê".
  *
  *   MILITARES = ESCALADOS : só entram nos postos militares que JÁ têm alocação nesse
  *                           serviço, dia e turno (ex.: Pronto). Preencher o posto

@@ -12,13 +12,13 @@ function comPlanilha(alocacoes, exporta) {
   const cab = ['MATRÍCULA', 'DATA', 'SERVIÇO', 'TURNO', 'FUNÇÃO', 'UNIDADE'];
   const linhas = alocacoes.map(a => [a.mat, a.dia, a.servico, a.turno, a.funcao || '', a.unidade || '']);
   const aba = {
-    getName: () => 'ALOCAÇÕES TABULADAS',
+    getName: () => 'ALOCAÇÕES',
     getDataRange: () => ({ getValues: () => [cab].concat(linhas) }),
     getLastRow: () => linhas.length + 1, getLastColumn: () => cab.length, getMaxRows: () => linhas.length + 1,
     getRange: () => ({ getValues: () => [cab], setNumberFormat() { return this; }, setValues() { return this; } })
   };
   const SpreadsheetApp = {
-    getActive: () => ({ getSheetByName: n => (n === 'ALOCAÇÕES TABULADAS' ? aba : null), getSpreadsheetTimeZone: () => 'America/Recife' })
+    getActive: () => ({ getSheetByName: n => (n === 'ALOCAÇÕES' ? aba : null), getSpreadsheetTimeZone: () => 'America/Recife' })
   };
   const Utilities = { formatDate: () => '' };
   return new Function('SpreadsheetApp', 'Utilities', fontes + '\nreturn {' + exporta + '};')(SpreadsheetApp, Utilities);
@@ -49,6 +49,57 @@ console.log('== B35 (RN-36, RN-37) a gravação é conferida na própria tabela'
   for (let i = 0; i < 9; i++) muitas.push(Object.assign({ chave: k(A('X' + i, 'Pronto', 'A')) }, A('X' + i, 'Pronto', 'A')));
   c = L.conferirGravacao_({ inserir: muitas, remover: [] }, 'America/Recife', rot, {});
   ver('conta todas as que faltaram, mas detalha no máximo 5', c.naoGravadas === 9 && c.detalhe.length === 5, c);
+}
+
+console.log('== B52 as cinco abas renomeadas (migração sozinha, sem apagar nada)');
+{
+  const P = new Function(ler('nucleo.js') + '\nreturn {planoDeMigracaoDeAbas_, ABAS_NOMES_ANTIGOS_};')();
+  const antigos = ['ALOCAÇÕES TABULADAS', 'ESCALA DO MÊS', 'GUARNIÇÃO', 'ESCALA OPERACIONAL', 'VIATURAS', 'ESCALAS', 'MODELOS DE GUARNIÇÃO', 'MILITARES'];
+  let p = P.planoDeMigracaoDeAbas_(antigos);
+  ver('os cinco nomes antigos viram os cinco novos',
+    p.renomear.map(x => x.de + '>' + x.para).sort().join(' | ') ===
+    'ALOCAÇÕES TABULADAS>ALOCAÇÕES | ESCALA DO MÊS>GRADE GERAL | ESCALA OPERACIONAL>ESCALA DO ORDINÁRIO | GUARNIÇÃO>ESCALA | VIATURAS>GUARNIÇÕES' && p.avisos.length === 0, p);
+  ver('ESCALAS e MODELOS DE GUARNIÇÃO (nomes parecidos) não são tocadas',
+    p.renomear.every(x => x.de !== 'ESCALAS' && x.de !== 'MODELOS DE GUARNIÇÃO' && x.para !== 'ESCALAS'));
+  ver('cadeia inteira: MATRIZ termina como GRADE GERAL', JSON.stringify(P.planoDeMigracaoDeAbas_(['MATRIZ']).renomear) === '[{"de":"MATRIZ","para":"GRADE GERAL"}]');
+  p = P.planoDeMigracaoDeAbas_(['MATRIZ', 'ESCALA DO MÊS']);
+  ver('MATRIZ e ESCALA DO MÊS juntas: renomeia a mais recente e avisa da outra', p.renomear.length === 1 && p.renomear[0].de === 'ESCALA DO MÊS' && p.avisos.length === 1, p);
+  p = P.planoDeMigracaoDeAbas_(['ALOCAÇÕES', 'ALOCAÇÕES TABULADAS']);
+  ver('nova e antiga juntas: não renomeia nem apaga, usa a nova e avisa', p.renomear.length === 0 && /usa "ALOCAÇÕES"/.test(p.avisos[0]), p);
+  ver('planilha já com os nomes novos: nada a fazer', (() => { const x = P.planoDeMigracaoDeAbas_(Object.keys(P.ABAS_NOMES_ANTIGOS_)); return !x.renomear.length && !x.avisos.length; })());
+  ver('nenhuma das abas existe: nada a fazer', P.planoDeMigracaoDeAbas_(['MILITARES']).renomear.length === 0);
+  ver('uma aba só "ESCALAS" não é confundida com a antiga de ESCALA', P.planoDeMigracaoDeAbas_(['ESCALAS']).renomear.length === 0);
+
+  // camada do Sheets: abaAtual_ / migrarAbas_ sobre uma planilha de mentira
+  const planilha = nomes => {
+    const abas = nomes.map(n => ({ nome: n, dados: 'dados de ' + n, getName() { return this.nome; }, setName(x) { this.nome = x; } }));
+    const criadas = [];
+    const ss = {
+      getSheets: () => abas, getSheetByName: n => abas.filter(a => a.nome === n)[0] || null,
+      insertSheet: n => { const a = { nome: n, dados: '', getName() { return this.nome; }, setName(x) { this.nome = x; } }; abas.push(a); criadas.push(n); return a; }
+    };
+    const F = new Function('SpreadsheetApp', ['nucleo.js', 'matriz.js'].map(ler).join('\n') + '\nreturn {abaAtual_, migrarAbas_, avisosDeAbas_, abaDaEscala_, CONFIG};')({ getActive: () => ss });
+    return { ss, abas, criadas, F };
+  };
+  let W = planilha(antigos);
+  W.F.migrarAbas_();
+  ver('migrarAbas_: as cinco ficam com os nomes novos, com os dados intactos',
+    ['ALOCAÇÕES', 'GRADE GERAL', 'ESCALA', 'ESCALA DO ORDINÁRIO', 'GUARNIÇÕES'].every(n => W.ss.getSheetByName(n)) &&
+    W.ss.getSheetByName('ALOCAÇÕES').dados === 'dados de ALOCAÇÕES TABULADAS' && W.ss.getSheetByName('ESCALA').dados === 'dados de GUARNIÇÃO', W.abas.map(a => a.nome));
+  ver('nenhuma aba é criada e nenhuma fica com nome antigo', W.criadas.length === 0 && W.abas.length === antigos.length &&
+    !['ALOCAÇÕES TABULADAS', 'ESCALA DO MÊS', 'GUARNIÇÃO', 'ESCALA OPERACIONAL', 'VIATURAS'].some(n => W.ss.getSheetByName(n)));
+  ver('ESCALAS e MODELOS DE GUARNIÇÃO continuam como estavam', W.ss.getSheetByName('ESCALAS').dados === 'dados de ESCALAS' && !!W.ss.getSheetByName('MODELOS DE GUARNIÇÃO'));
+  W.F.migrarAbas_();
+  ver('rodar de novo não muda nada', W.abas.length === antigos.length && W.F.avisosDeAbas_().length === 0);
+  W = planilha(['MATRIZ']);
+  ver('abaDaEscala_ leva MATRIZ direto a GRADE GERAL', W.F.abaDaEscala_(W.ss, false).nome === 'GRADE GERAL' && W.abas[0].dados === 'dados de MATRIZ');
+  W = planilha(['ALOCAÇÕES', 'ALOCAÇÕES TABULADAS']);
+  ver('nova e antiga juntas: usa a nova, mantém a antiga e avisa',
+    W.F.abaAtual_(W.ss, 'ALOCAÇÕES').dados === 'dados de ALOCAÇÕES' && !!W.ss.getSheetByName('ALOCAÇÕES TABULADAS') && W.F.avisosDeAbas_().length === 1);
+  W = planilha(['MILITARES']);
+  ver('aba que não existe: null, e abaDaEscala_ cria já com o nome novo',
+    W.F.abaAtual_(W.ss, 'ALOCAÇÕES') === null && W.F.abaDaEscala_(W.ss, true).nome === 'GRADE GERAL' && W.criadas.join() === 'GRADE GERAL');
+  ver('aba fora da lista é só getSheetByName', planilha(['MILITARES']).F.abaAtual_(planilha(['MILITARES']).ss, 'TURNOS') === null);
 }
 
 console.log('== B37 (RN-07 a RN-12, RN-93) cadastro das viaturas com vigência mensal');

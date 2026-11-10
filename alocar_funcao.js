@@ -13,7 +13,7 @@
  * sempre visível e a validação acontece no clique: fora de uma célula de militar com serviço
  * alocado, ele só mostra um aviso curto e não faz nada.
  *
- * A função é gravada na própria alocação (coluna FUNÇÃO da ALOCAÇÕES TABULADAS), pela chave em
+ * A função é gravada na própria alocação (coluna FUNÇÃO da ALOCAÇÕES), pela chave em
  * vigor (matrícula | dia | serviço | turno) e pelo mesmo caminho de escrita da grade de guarnição
  * (aplicarGuarnicao_): não existe um segundo jeito de gravar função. A UNIDADE é relida e regravada
  * como está, então trocar a função aqui não apaga a unidade nem a alocação.
@@ -24,6 +24,7 @@ const ALOC_FUNC_AVISO_ = 'Selecione a célula de um militar com serviço alocado
 /** Item do menu: valida a célula ativa e abre o diálogo. */
 function alocarEmFuncao() {
   const ui = SpreadsheetApp.getUi();
+  migrarAbas_();                                         // B52
   const ctx = alocarEmFuncaoContexto();
   if (!ctx.ok) { ui.alert('Alocar em Função', ctx.erro, ui.ButtonSet.OK); return; }
   const html = HtmlService.createHtmlOutputFromFile('dialogo_funcao').setWidth(400).setHeight(320);

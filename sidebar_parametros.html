@@ -97,7 +97,7 @@
     box.appendChild(c);
   }
 
-  // B37 (RN-07 a RN-12, RN-93): o cadastro é a aba VIATURAS; aqui fica só o atalho e um resumo do mês.
+  // B37 (RN-07 a RN-12, RN-93): o cadastro é a aba GUARNIÇÕES; aqui fica só o atalho e um resumo do mês.
   function desenharViaturas(v) {
     var box = el('viaturas');
     box.textContent = '';
@@ -105,9 +105,9 @@
     var c = criar('div', null, 'resumo');
     c.appendChild(criar('div', 'Viaturas (guarnição mínima e máxima, tipos de serviço e CNH)', 'grupo'));
     if (!v.existe) {
-      c.appendChild(criar('div', 'A aba VIATURAS ainda não existe. O botão cria a aba com o cabeçalho e um exemplo.'));
+      c.appendChild(criar('div', 'A aba GUARNIÇÕES ainda não existe. O botão cria a aba com o cabeçalho e um exemplo.'));
     } else if (v.total === 0) {
-      c.appendChild(criar('div', 'A aba VIATURAS existe, mas nenhuma viatura vale neste mês.'));
+      c.appendChild(criar('div', 'A aba GUARNIÇÕES existe, mas nenhuma viatura vale neste mês.'));
     } else {
       c.appendChild(criar('div', v.total + ' viatura(s) cadastrada(s) neste mês, ' + v.ativar + ' para ativar.'));
       v.lista.forEach(function (x) {
@@ -122,7 +122,7 @@
     (v.avisos || []).forEach(function (t) { c.appendChild(criar('div', t, 'avisoBox')); });
 
     var linha = criar('div', null, 'linhaF');
-    linha.appendChild(criar('span', v.existe ? 'Aba VIATURAS' : 'Aba VIATURAS (a criar)'));
+    linha.appendChild(criar('span', v.existe ? 'Aba GUARNIÇÕES' : 'Aba GUARNIÇÕES (a criar)'));
     var b = criar('button', 'Abrir aba', 'leve');
     b.addEventListener('click', function () {
       trava(true);

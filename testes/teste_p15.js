@@ -23,16 +23,16 @@ console.log('== B20 (RN-02) linhas extras vazias');
 
 console.log('== B21 (RN-31) quando abrir o painel');
 {
-  const cfg = { aba: 'ESCALA DO MÊS', primeiraLinha: 5, primeiraColuna: 4 };
+  const cfg = { aba: 'GRADE GERAL', primeiraLinha: 5, primeiraColuna: 4 };
   const ed = (aba, linha, coluna, nl, nc) => ({ aba, linha, coluna, nLinhas: nl || 1, nColunas: nc || 1 });
-  ver('célula da grade abre', L.editouAGradeDaEscala_(ed('ESCALA DO MÊS', 5, 4), cfg) === true);
-  ver('célula no meio da grade abre', L.editouAGradeDaEscala_(ed('ESCALA DO MÊS', 30, 20), cfg) === true);
-  ver('cabeçalho (linha 4) não abre', L.editouAGradeDaEscala_(ed('ESCALA DO MÊS', 4, 10), cfg) === false);
-  ver('MÊS/SEÇÃO (B1, B2) não abre', L.editouAGradeDaEscala_(ed('ESCALA DO MÊS', 1, 2), cfg) === false && L.editouAGradeDaEscala_(ed('ESCALA DO MÊS', 2, 2), cfg) === false);
-  ver('colunas de identificação (A–C) não abrem', L.editouAGradeDaEscala_(ed('ESCALA DO MÊS', 8, 1), cfg) === false && L.editouAGradeDaEscala_(ed('ESCALA DO MÊS', 8, 3), cfg) === false);
-  ver('outra aba não abre', L.editouAGradeDaEscala_(ed('ALOCAÇÕES TABULADAS', 8, 8), cfg) === false);
-  ver('colar uma faixa que começa fora e entra na grade abre', L.editouAGradeDaEscala_(ed('ESCALA DO MÊS', 3, 1, 5, 5), cfg) === true);
-  ver('colar uma faixa só no cabeçalho não abre', L.editouAGradeDaEscala_(ed('ESCALA DO MÊS', 1, 1, 3, 10), cfg) === false);
+  ver('célula da grade abre', L.editouAGradeDaEscala_(ed('GRADE GERAL', 5, 4), cfg) === true);
+  ver('célula no meio da grade abre', L.editouAGradeDaEscala_(ed('GRADE GERAL', 30, 20), cfg) === true);
+  ver('cabeçalho (linha 4) não abre', L.editouAGradeDaEscala_(ed('GRADE GERAL', 4, 10), cfg) === false);
+  ver('MÊS/SEÇÃO (B1, B2) não abre', L.editouAGradeDaEscala_(ed('GRADE GERAL', 1, 2), cfg) === false && L.editouAGradeDaEscala_(ed('GRADE GERAL', 2, 2), cfg) === false);
+  ver('colunas de identificação (A–C) não abrem', L.editouAGradeDaEscala_(ed('GRADE GERAL', 8, 1), cfg) === false && L.editouAGradeDaEscala_(ed('GRADE GERAL', 8, 3), cfg) === false);
+  ver('outra aba não abre', L.editouAGradeDaEscala_(ed('ALOCAÇÕES', 8, 8), cfg) === false);
+  ver('colar uma faixa que começa fora e entra na grade abre', L.editouAGradeDaEscala_(ed('GRADE GERAL', 3, 1, 5, 5), cfg) === true);
+  ver('colar uma faixa só no cabeçalho não abre', L.editouAGradeDaEscala_(ed('GRADE GERAL', 1, 1, 3, 10), cfg) === false);
   ver('sem evento: não abre', L.editouAGradeDaEscala_(null, cfg) === false);
   const agora = 1000000;
   ver('pulso recente = aberto', L.painelEscalaAberto_(agora, String(agora - 4000)) === true);

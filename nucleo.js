@@ -254,3 +254,46 @@ function linhasExtrasVazias_(linhas, celulas) {
   }
   return res;
 }
+
+/* ------------------------------------------------------------ nomes das abas (B52) */
+
+/**
+ * B52: cinco abas mudaram de nome. Para cada nome novo, os nomes que a aba já teve, do mais
+ * recente para o mais antigo (uma planilha que ainda tenha MATRIZ termina com GRADE GERAL).
+ * A comparação é sempre pelo nome INTEIRO: "ESCALA" não é "ESCALAS" e "GUARNIÇÕES" não é
+ * "MODELOS DE GUARNIÇÃO".
+ */
+const ABAS_NOMES_ANTIGOS_ = {
+  'ALOCAÇÕES': ['ALOCAÇÕES TABULADAS'],
+  'GRADE GERAL': ['ESCALA DO MÊS', 'MATRIZ'],
+  'ESCALA': ['GUARNIÇÃO'],
+  'ESCALA DO ORDINÁRIO': ['ESCALA OPERACIONAL'],
+  'GUARNIÇÕES': ['VIATURAS']
+};
+
+/**
+ * O que fazer com as abas, dado o nome de todas as que existem na planilha.
+ * Retorna { renomear: [{ de, para }], avisos: [texto] }.
+ * - só o nome antigo existe: renomeia (o mais recente dos antigos; os demais ficam e são avisados);
+ * - o novo e algum antigo existem: não toca em nenhum, usa o novo e avisa;
+ * - nenhum existe: nada a fazer (quem precisar da aba a cria já com o nome novo).
+ */
+function planoDeMigracaoDeAbas_(existentes, so) {
+  const tem = Object.create(null);
+  (existentes || []).forEach(function (n) { tem[n] = true; });
+  const renomear = [], avisos = [];
+  Object.keys(ABAS_NOMES_ANTIGOS_).forEach(function (novo) {
+    if (so && so !== novo) return;
+    const antigas = ABAS_NOMES_ANTIGOS_[novo].filter(function (a) { return tem[a]; });
+    if (!antigas.length) return;
+    if (tem[novo]) {
+      avisos.push('Existem ao mesmo tempo as abas "' + novo + '" e "' + antigas.join('", "') + '" (nome antigo). O sistema usa "' + novo + '" e não apaga nenhuma: confira qual tem os dados certos e apague ou renomeie a outra.');
+      return;
+    }
+    renomear.push({ de: antigas[0], para: novo });
+    if (antigas.length > 1) {
+      avisos.push('A aba "' + antigas[0] + '" passou a se chamar "' + novo + '". Também existe "' + antigas.slice(1).join('", "') + '" (nome mais antigo ainda), que ficou como está: confira e apague se não for mais usada.');
+    }
+  });
+  return { renomear: renomear, avisos: avisos };
+}

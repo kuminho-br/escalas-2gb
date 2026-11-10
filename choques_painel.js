@@ -8,6 +8,7 @@
  */
 
 function abrirPainelIntegridade() {
+  migrarAbas_();                                         // B52: abas com nome antigo são renomeadas ao abrir o painel
   const html = HtmlService.createHtmlOutputFromFile('sidebar_integridade').setTitle('Integridade dos Dados');
   SpreadsheetApp.getUi().showSidebar(html);
 }

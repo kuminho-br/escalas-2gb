@@ -9,7 +9,7 @@
  * Comparação em TRÊS vias, sempre pela chave:
  *   base   = a escala como foi desenhada (cópia de referência guardada na aba oculta);
  *   escala = a escala como está agora (com as suas edições);
- *   tabela = ALOCAÇÕES TABULADAS como está agora.
+ *   tabela = ALOCAÇÕES como está agora.
  *
  * "O que você mudou" = escala × base. Cada mudança só é aplicada se a tabela ainda
  * estiver como estava na base para aquela chave.

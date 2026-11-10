@@ -4,7 +4,7 @@
  * A lógica de conversão está em nucleo.js.
  *
  * Uso:  menu "Escalas - 2º GB" > "Mostrar Escala" abre o painel, que carrega a escala
- *       (mês em B1, seção em B2 da aba ESCALA DO MÊS) e salva as edições na tabela.
+ *       (mês em B1, seção em B2 da aba GRADE GERAL) e salva as edições na tabela.
  *       menu "Escalas - 2º GB" > "Conferir Integridade dos Dados" abre o painel de integridade
  *       (choques de horário, catálogo de turnos e escala carregada × tabela; só lê e relata)
  *
@@ -14,12 +14,12 @@
  */
 
 const CONFIG = {
-  ABA_ALOCACOES: 'ALOCAÇÕES TABULADAS',
+  ABA_ALOCACOES: 'ALOCAÇÕES',             // B52: chamava-se ALOCAÇÕES TABULADAS; abaAtual_ renomeia a antiga
   ABA_MILITARES: 'MILITARES',
   ABA_TURNOS: 'TURNOS',
-  ABA_MATRIZ: 'ESCALA DO MÊS',          // chamava-se MATRIZ; abaDaEscala_ renomeia a antiga
+  ABA_MATRIZ: 'GRADE GERAL',            // B52: chamava-se MATRIZ e depois ESCALA DO MÊS; abaAtual_ renomeia a antiga
 
-  // layout da aba ESCALA DO MÊS (a linha é "militar + posição": não há coluna de turno)
+  // layout da aba GRADE GERAL (a linha é "militar + posição": não há coluna de turno)
   LINHA_MES: 1, LINHA_SECAO: 2, LINHA_SEMANA: 3, LINHA_CABECALHO: 4, PRIMEIRA_LINHA: 5,
   COL_MAT: 1, COL_MILITAR: 2, COL_EQUIPE: 3, PRIMEIRA_COL_DIA: 4,
   LARGURA_DIA: 92,                    // px; cabe "Defensoria 07–19" e "PE Seguro 16–00"
@@ -53,19 +53,44 @@ function onOpen() {
 
 /* ------------------------------------------------------------------ leitura */
 
-/** A aba da escala do mês. Se ainda tiver o nome antigo (MATRIZ), renomeia; com criar=true cria quando não existe. */
+/**
+ * B52: a aba com esse nome, renomeando sozinha a que ainda estiver com um nome antigo
+ * (ver ABAS_NOMES_ANTIGOS_ em nucleo.js). O usuário não renomeia nada à mão. Se a nova e a antiga
+ * existirem juntas, nenhuma é apagada: vale a nova, e avisosDeAbas_ conta isso aos painéis.
+ * A busca é sempre pelo nome inteiro (getSheetByName), nunca por "começa com" ou "contém".
+ * Para qualquer outra aba, é o mesmo que getSheetByName. null se não existe.
+ */
+function abaAtual_(ss, nome) {
+  const aba = ss.getSheetByName(nome);
+  if (aba || !ABAS_NOMES_ANTIGOS_[nome]) return aba;
+  const plano = planoDeMigracaoDeAbas_(ss.getSheets().map(function (s) { return s.getName(); }), nome);
+  if (!plano.renomear.length) return null;
+  const antiga = ss.getSheetByName(plano.renomear[0].de);
+  antiga.setName(nome);                                   // só o nome muda: dados, formatação e abas de referência ficam como estão
+  return antiga;
+}
+
+/** B52: renomeia de uma vez as cinco abas que ainda estiverem com nome antigo. Chamada ao abrir cada painel. */
+function migrarAbas_() {
+  const ss = SpreadsheetApp.getActive();
+  Object.keys(ABAS_NOMES_ANTIGOS_).forEach(function (nome) { abaAtual_(ss, nome); });
+}
+
+/** B52: avisos de aba nova e antiga existindo ao mesmo tempo (nenhuma é apagada). */
+function avisosDeAbas_() {
+  const ss = SpreadsheetApp.getActive();
+  return planoDeMigracaoDeAbas_(ss.getSheets().map(function (s) { return s.getName(); })).avisos;
+}
+
+/** A aba da grade geral (a escala do mês na planilha). Com criar=true cria quando não existe. */
 function abaDaEscala_(ss, criar) {
-  let aba = ss.getSheetByName(CONFIG.ABA_MATRIZ);
-  if (!aba) {
-    const antiga = ss.getSheetByName('MATRIZ');
-    if (antiga) { antiga.setName(CONFIG.ABA_MATRIZ); aba = antiga; }
-  }
+  let aba = abaAtual_(ss, CONFIG.ABA_MATRIZ);
   if (!aba && criar) aba = ss.insertSheet(CONFIG.ABA_MATRIZ);
   return aba;
 }
 
 function lerAba_(nome) {
-  const aba = SpreadsheetApp.getActive().getSheetByName(nome);
+  const aba = abaAtual_(SpreadsheetApp.getActive(), nome);
   if (!aba) throw new Error('Aba não encontrada: "' + nome + '".');
   const valores = aba.getDataRange().getValues();
   if (valores.length === 0) throw new Error('A aba "' + nome + '" está vazia.');
@@ -164,7 +189,7 @@ function lerCatalogo_() {
   return { porTurno: porTurno, pares: pares };
 }
 
-/** Mês e seção da aba ESCALA DO MÊS (B1 e B2). Se o mês não estiver preenchido, pergunta. */
+/** Mês e seção da aba GRADE GERAL (B1 e B2). Se o mês não estiver preenchido, pergunta. */
 function lerParametros_(aba, ui, tz) {
   const v = aba.getRange(CONFIG.LINHA_MES, 2).getValue();
   let mes = '';

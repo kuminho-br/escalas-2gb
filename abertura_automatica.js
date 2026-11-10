@@ -1,7 +1,7 @@
 /**
  * ABERTURA AUTOMÁTICA DO PAINEL "MOSTRAR ESCALA" AO EDITAR A ESCALA — RN-31 (B21).
  *
- * A escala (aba ESCALA DO MÊS) continua livre para edição; nada é travado. Quando o escalante muda uma
+ * A escala (aba GRADE GERAL) continua livre para edição; nada é travado. Quando o escalante muda uma
  * célula da grade e a mudança precisa ir para a tabela de alocações, o painel abre sozinho, já com a lista
  * de alterações pendentes e o botão Salvar. Assim nenhuma edição fica esquecida sem passar pela
  * sincronia e pela checagem de choques.
@@ -41,6 +41,7 @@ function painelEscalaAberto_(agora, ultimoPulso, validadeMs) {
 function aoEditarEscala(e) {
   try {
     if (!e || !e.range) return;
+    abaDaEscala_(SpreadsheetApp.getActive(), false);                    // B52: se a aba ainda tem nome antigo, renomeia antes de comparar
     const aba = e.range.getSheet();
     const ed = { aba: aba.getName(), linha: e.range.getRow(), coluna: e.range.getColumn(), nLinhas: e.range.getNumRows(), nColunas: e.range.getNumColumns() };
     if (!editouAGradeDaEscala_(ed, { aba: CONFIG.ABA_MATRIZ, primeiraLinha: CONFIG.PRIMEIRA_LINHA, primeiraColuna: CONFIG.PRIMEIRA_COL_DIA })) return;

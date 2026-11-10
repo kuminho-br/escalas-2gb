@@ -1,5 +1,5 @@
 /**
- * ESCALA OPERACIONAL (formato oficial) — lógica pura (sem SpreadsheetApp).
+ * ESCALA DO ORDINÁRIO (formato oficial) — lógica pura (sem SpreadsheetApp).
  * Depende de nucleo.gs (normalizar_, diasDoMes_, diaDaSemana_) e de guarnicao.gs (horaCompleta_).
  *
  * B40 (RN-05, RN-13, RN-49): monta a visualização da escala no formato do documento oficial

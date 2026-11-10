@@ -14,6 +14,7 @@ const MSG_RECARREGAR_ = 'Esta escala foi carregada antes da última atualizaçã
 const ABA_BASE_ = '_BASE_MATRIZ';
 
 function abrirPainelMatriz() {
+  migrarAbas_();                                         // B52: abas com nome antigo são renomeadas ao abrir o painel
   const html = HtmlService.createHtmlOutputFromFile('sidebar_matriz').setTitle('Mostrar Escala');
   SpreadsheetApp.getUi().showSidebar(html);
 }
@@ -122,7 +123,7 @@ function resumoParaTela_(a, nomes) {
       return { tipo: 'exclusao', mat: p.mat, dia: p.dia, de: parDe(x.chave), para: null };
     }));
   const cortar = function (lista) { return lista.slice(0, LIMITE_LISTA_).map(function (i) { return formatarItem_(i, nomes, rot); }); };
-  const avisos = (a.avisosTurnos || []).slice();
+  const avisos = avisosDeAbas_().concat(a.avisosTurnos || []);   // B52: aba nova e antiga juntas
   if (a.orfas) avisos.push(a.orfas + ' célula(s) preenchida(s) em linha sem matrícula ou data foram ignoradas.');
   if (a.repetidas) avisos.push(a.repetidas + ' célula(s) repetem um serviço já lançado para o mesmo militar e dia; só a primeira vale.');
   if (a.jesSemRegra) avisos.push('Há JES a gravar, mas a aba MILITARES não tem a coluna VOLUNTÁRIO JES: a regra RN-46 não foi aplicada.');
@@ -287,7 +288,7 @@ function colunasAlocacoes_(aba) {
 
 /** Apaga as linhas que saíram e acrescenta as novas. Nessa ordem: os números de linha ainda valem. */
 function aplicarSincronizacao_(res, tz) {
-  const aba = SpreadsheetApp.getActive().getSheetByName(CONFIG.ABA_ALOCACOES);
+  const aba = abaAtual_(SpreadsheetApp.getActive(), CONFIG.ABA_ALOCACOES);
   if (!aba) throw new Error('Aba não encontrada: "' + CONFIG.ABA_ALOCACOES + '".');
 
   // 1. exclusões (inclui a linha antiga de cada troca): de baixo para cima, em faixas contíguas

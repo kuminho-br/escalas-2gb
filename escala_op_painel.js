@@ -1,18 +1,18 @@
 /**
- * ESCALA OPERACIONAL (formato oficial) — camada do Google Sheets.
+ * ESCALA DO ORDINÁRIO (formato oficial) — camada do Google Sheets.
  * Depende de nucleo.gs, matriz.gs, choques.gs, guarnicao.gs, guarnicao_painel.gs (cabeçalho e
  * mesPorExtenso_), viaturas_painel.gs (ordem das unidades) e escala_op.gs (a montagem).
  * Botão no painel "Escalas de Serviço" (sidebar_guarnicao.html).
  *
- * B40 (RN-05, RN-13, RN-49): escreve a visualização na aba ESCALA OPERACIONAL, no formato do
+ * B40 (RN-05, RN-13, RN-49): escreve a visualização na aba ESCALA DO ORDINÁRIO, no formato do
  * documento oficial. Só lê alocações; não grava nada na tabela.
  */
 
-const ESCALA_OP_ABA = 'ESCALA OPERACIONAL';
+const ESCALA_OP_ABA = 'ESCALA DO ORDINÁRIO';   // B52: chamava-se ESCALA OPERACIONAL; abaAtual_ renomeia a antiga
 
 /**
  * Ordem das unidades táticas e das funções de cada uma, para a visualização sair na ordem do
- * cadastro e não em ordem alfabética: a prioridade de ativação da aba VIATURAS (RN-08) e a ordem
+ * cadastro e não em ordem alfabética: a prioridade de ativação da aba GUARNIÇÕES (RN-08) e a ordem
  * das linhas de MODELOS DE GUARNIÇÃO. O que não estiver cadastrado vai depois, em ordem alfabética.
  */
 function ordemDoCadastro_(mes, tz) {
@@ -48,7 +48,7 @@ function escalaOperacionalDoMes_(mes, tz) {
   });
 }
 
-/** Escreve a visualização na aba ESCALA OPERACIONAL e devolve o resumo para a tela. */
+/** Escreve a visualização na aba ESCALA DO ORDINÁRIO e devolve o resumo para a tela. */
 function painelEscalaOperacional(mes) {
   mes = String(mes == null ? '' : mes).trim();
   if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(mes)) throw new Error('Mês inválido: use o formato aaaa-mm.');
@@ -56,7 +56,7 @@ function painelEscalaOperacional(mes) {
   const tz = ss.getSpreadsheetTimeZone();
   const doc = escalaOperacionalDoMes_(mes, tz);
 
-  const aba = ss.getSheetByName(ESCALA_OP_ABA) || ss.insertSheet(ESCALA_OP_ABA);
+  const aba = abaAtual_(ss, ESCALA_OP_ABA) || ss.insertSheet(ESCALA_OP_ABA);
   aba.clear();
   aba.getRange(1, 1, aba.getMaxRows(), aba.getMaxColumns()).breakApart();
 

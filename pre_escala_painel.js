@@ -11,6 +11,7 @@
  */
 
 function abrirPainel() {
+  migrarAbas_();                                         // B52: abas com nome antigo são renomeadas ao abrir o painel
   const html = HtmlService.createHtmlOutputFromFile('sidebar_pre_escala').setTitle('Pré-escala');
   SpreadsheetApp.getUi().showSidebar(html);
 }
@@ -93,7 +94,7 @@ function painelGerar(mes, secao, equipe) {
   }
 }
 
-/** Carrega a escala do mês (usa as células B1/B2 da aba ESCALA DO MÊS, como o menu). */
+/** Carrega a escala do mês (usa as células B1/B2 da aba GRADE GERAL, como o menu). */
 function painelAbrirMatriz(mes, secao) {
   const v = validarEntrada_(mes, secao, '');
   const ss = SpreadsheetApp.getActive();
@@ -113,7 +114,7 @@ function painelAbrirMatriz(mes, secao) {
  */
 function gravarAlocacoes_(novas, tz) {
   garantirSaldoSoDoAdm_(novas);                         // RN-03
-  const aba = SpreadsheetApp.getActive().getSheetByName(CONFIG.ABA_ALOCACOES);
+  const aba = abaAtual_(SpreadsheetApp.getActive(), CONFIG.ABA_ALOCACOES);
   if (!aba) throw new Error('Aba não encontrada: "' + CONFIG.ABA_ALOCACOES + '".');
   const nCols = aba.getLastColumn();
   const cab = aba.getRange(1, 1, 1, nCols).getValues()[0].map(normalizar_);

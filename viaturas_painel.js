@@ -1,5 +1,5 @@
 /**
- * VIATURAS — camada do Google Sheets. Não tem painel próprio: o cadastro é a aba VIATURAS e o
+ * VIATURAS — camada do Google Sheets. Não tem painel próprio: o cadastro é a aba GUARNIÇÕES e o
  * painel de Configurações (sidebar_parametros.html) só dá o atalho para ela, como já faz com a
  * aba FERIADOS. Depende de nucleo.gs, matriz.gs (lerAba_, coluna_, texto_) e viaturas.gs.
  *
@@ -7,7 +7,7 @@
  * regra de resolução estão documentados em viaturas.gs.
  */
 
-const VIAT_ABA = 'VIATURAS';
+const VIAT_ABA = 'GUARNIÇÕES';             // B52: chamava-se VIATURAS; abaAtual_ renomeia a antiga. Não confundir com MODELOS DE GUARNIÇÃO
 const VIAT_CABECALHO_ = ['VIGÊNCIA (A PARTIR DE)', 'VIATURA', 'TIPO', 'ATIVAR', 'PRIORIDADE', 'TIPOS DE SERVIÇO', 'CNH', 'FUNÇÃO', 'MÍNIMO', 'MÁXIMO'];
 
 // Exemplo: a única configuração informada até agora (viatura AR, mínimo 3 e máximo 5).
@@ -17,10 +17,10 @@ const VIAT_EXEMPLO_ = [
   ['', 'AR', '', '', '', '', '', 'SOCORRISTA', 1, 3]
 ];
 
-/** Cria a aba VIATURAS (cabeçalho, exemplo e listas suspensas). Não mexe numa aba que já existe. */
+/** Cria a aba GUARNIÇÕES (cabeçalho, exemplo e listas suspensas). Não mexe numa aba que já existe. */
 function viatGarantirAba_() {
   const ss = SpreadsheetApp.getActive();
-  const existente = ss.getSheetByName(VIAT_ABA);
+  const existente = abaAtual_(ss, VIAT_ABA);
   if (existente) return { aba: existente, criada: false };
   const aba = ss.insertSheet(VIAT_ABA);
   const linhas = [VIAT_CABECALHO_].concat(VIAT_EXEMPLO_);
@@ -37,7 +37,7 @@ function viatGarantirAba_() {
 /** null se a aba não existe. Cada linha vira o formato que resolverViaturas_ espera. */
 function viatLerLinhas_(tz) {
   const ss = SpreadsheetApp.getActive();
-  if (!ss.getSheetByName(VIAT_ABA)) return null;
+  if (!abaAtual_(ss, VIAT_ABA)) return null;
   const t = lerAba_(VIAT_ABA);
   const c = {
     vig: coluna_(t, 'VIGÊNCIA', false), viatura: coluna_(t, 'VIATURA', true), tipo: coluna_(t, 'TIPO', false),
@@ -91,7 +91,7 @@ function garantirColunaCnh_() {
 
 /* ------------------------------------------------------------ chamadas da tela */
 
-/** Abre a aba VIATURAS (criando, se não existir) — o ponto de entrada no painel de Configurações. */
+/** Abre a aba GUARNIÇÕES (criando, se não existir) — o ponto de entrada no painel de Configurações. */
 function painelViaturasAbrir() {
   const r = viatGarantirAba_();
   if (r.aba.isSheetHidden()) r.aba.showSheet();

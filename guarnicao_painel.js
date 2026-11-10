@@ -10,21 +10,22 @@
  *   ESCALAS               ESCALA | SERVIÇOS | TÍTULO | MILITARES | DIAS
  *   MODELOS DE GUARNIÇÃO  ESCALA | TURNO | UNIDADE | FUNÇÃO | VAGAS
  * ABAS GERADAS:
- *   GUARNIÇÃO       a grade de edição (uma escala e um mês por vez)
+ *   ESCALA          a grade de edição (uma escala e um mês por vez)
  *   IMPRESSÃO       o documento no formato das escalas oficiais, para exportar em PDF
  *   _BASE_GUARNICAO, _LISTA_MILITARES   (ocultas) referência da grade e lista do dropdown
  *
  * A função (e a unidade, se houver) de cada militar fica na própria linha da tabela
- * ALOCAÇÕES TABULADAS, nas colunas FUNÇÃO e UNIDADE. UNIDADE só é necessária se algum
+ * ALOCAÇÕES, nas colunas FUNÇÃO e UNIDADE. UNIDADE só é necessária se algum
  * modelo usar unidade (ex.: Pronto: ACO, Incêndio, APH, Salvamento).
  */
 
 const GUARN_ABA = {
-  GRADE: 'GUARNIÇÃO', IMPRESSAO: 'IMPRESSÃO', ESCALAS: 'ESCALAS', MODELOS: 'MODELOS DE GUARNIÇÃO',
+  GRADE: 'ESCALA',                      // B52: chamava-se GUARNIÇÃO; abaAtual_ renomeia a antiga. Não confundir com a aba de cadastro ESCALAS
+  IMPRESSAO: 'IMPRESSÃO', ESCALAS: 'ESCALAS', MODELOS: 'MODELOS DE GUARNIÇÃO',
   BASE: '_BASE_GUARNICAO', LISTA: '_LISTA_MILITARES'
 };
 
-// layout da aba GUARNIÇÃO
+// layout da aba ESCALA (a grade de guarnição)
 const GUARN_L = {
   ESCALA: 1, MES: 2, SERVICOS: 3, MILITARES: 4, CAB: 5, PRIMEIRA: 6,
   DATA: 1, DIA: 2, TURNO: 3, HORARIO: 4, UNIDADE: 5, FUNCAO: 6, MILITAR: 7, SERVICO: 8, OBS: 9, NCOLS: 9
@@ -62,6 +63,7 @@ const GUARN_EXEMPLO_MODELOS_ = [
 ];
 
 function abrirPainelGuarnicao() {
+  migrarAbas_();                                         // B52: abas com nome antigo são renomeadas ao abrir o painel
   const html = HtmlService.createHtmlOutputFromFile('sidebar_guarnicao').setTitle('Escalas de Serviço');
   SpreadsheetApp.getUi().showSidebar(html);
 }
@@ -100,7 +102,7 @@ function lerModelosGuarnicao_() {
 
 /** Cabeçalho da tabela de alocações: confere se as colunas que a escala precisa existem. */
 function exigirColunasAlocacoes_(esc) {
-  const aba = SpreadsheetApp.getActive().getSheetByName(CONFIG.ABA_ALOCACOES);
+  const aba = abaAtual_(SpreadsheetApp.getActive(), CONFIG.ABA_ALOCACOES);
   if (!aba) throw new Error('Aba não encontrada: "' + CONFIG.ABA_ALOCACOES + '".');
   const cab = aba.getRange(1, 1, 1, aba.getLastColumn()).getValues()[0].map(normalizar_);
   if (cab.indexOf(normalizar_('FUNÇÃO')) < 0) throw new Error('Não achei a coluna "FUNÇÃO" na aba "' + CONFIG.ABA_ALOCACOES + '".');
@@ -112,7 +114,7 @@ function exigirColunasAlocacoes_(esc) {
 /* ------------------------------------------------------------ meta e referência */
 
 function lerMetaGrade_() {
-  const aba = SpreadsheetApp.getActive().getSheetByName(GUARN_ABA.GRADE);
+  const aba = abaAtual_(SpreadsheetApp.getActive(), GUARN_ABA.GRADE);
   if (!aba) return null;
   const escala = texto_(aba.getRange(GUARN_L.ESCALA, 2).getValue());
   const v = aba.getRange(GUARN_L.MES, 2).getValue();
@@ -166,7 +168,7 @@ function lerGrade_(aba, tz) {
 
 function analisarGuarnicao_(tz) {
   const ss = SpreadsheetApp.getActive();
-  const aba = ss.getSheetByName(GUARN_ABA.GRADE);
+  const aba = abaAtual_(ss, GUARN_ABA.GRADE);
   const meta = aba ? lerMetaGrade_() : null;
   if (!meta) throw new Error('Não há grade montada. Escolha a escala e o mês e clique em "Montar grade".');
   const mod = lerModelosGuarnicao_();
@@ -199,7 +201,7 @@ function analisarGuarnicao_(tz) {
 /**
  * B36/B38 (RN-94, RN-12): o que o código precisa saber sobre condutores, tudo vindo de cadastro:
  * quais funções exigem CNH (coluna EXIGE CNH de MODELOS DE GUARNIÇÃO), a CNH de cada militar
- * (coluna CNH de MILITARES) e a categoria exigida por viatura (aba VIATURAS, no mês da grade).
+ * (coluna CNH de MILITARES) e a categoria exigida por viatura (aba GUARNIÇÕES, no mês da grade).
  */
 function contextoDeCnh_(mod, mil, mes, tz) {
   const avisos = [];
@@ -308,7 +310,7 @@ function painelDadosGuarnicao() {
       const e = mod.escalas[n];
       return { nome: n, servicos: e.servicos.join(', '), militares: e.militares, turnos: e.turnos.length, usaUnidade: e.usaUnidade };
     }),
-    avisos: mod.avisos,
+    avisos: avisosDeAbas_().concat(mod.avisos),              // B52
     escalaAtual: meta ? meta.escala : '',
     mesSugerido: meta ? meta.mes : ultimo
   };
@@ -416,7 +418,7 @@ function painelGuarnicaoSalvar() {
 
 /** Atualiza função e unidade, apaga linhas e acrescenta as novas. Nessa ordem: os números de linha ainda valem. */
 function aplicarGuarnicao_(res, tz) {
-  const aba = SpreadsheetApp.getActive().getSheetByName(CONFIG.ABA_ALOCACOES);
+  const aba = abaAtual_(SpreadsheetApp.getActive(), CONFIG.ABA_ALOCACOES);
   if (!aba) throw new Error('Aba não encontrada: "' + CONFIG.ABA_ALOCACOES + '".');
   const c = colunasAlocacoes_(aba);
   if (c.cFunc < 0) throw new Error('Não achei a coluna "FUNÇÃO" na aba "' + CONFIG.ABA_ALOCACOES + '".');
@@ -450,7 +452,7 @@ function aplicarGuarnicao_(res, tz) {
 
 function renderizarGrade_(esc, mes, grade, todas, mil, hor, tz, ctxCnh) {
   const ss = SpreadsheetApp.getActive();
-  const aba = ss.getSheetByName(GUARN_ABA.GRADE) || ss.insertSheet(GUARN_ABA.GRADE);
+  const aba = abaAtual_(ss, GUARN_ABA.GRADE) || ss.insertSheet(GUARN_ABA.GRADE);
   const L = GUARN_L;
   aba.clear();
   aba.clearConditionalFormatRules();
