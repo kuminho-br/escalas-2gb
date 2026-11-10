@@ -13,6 +13,9 @@
  * Mudanças que vieram da tabela (outra pessoa, ou a pré-escala) não pedem confirmação.
  */
 
+/** B57: identifica o código que está rodando (aparece no diagnóstico e no log). */
+const VERSAO_DO_CODIGO_ = 'p16-funcoes-viaturas · B57';
+
 const CONFIG = {
   ABA_ALOCACOES: 'ALOCAÇÕES',             // B52: chamava-se ALOCAÇÕES TABULADAS; abaAtual_ renomeia a antiga
   ABA_MILITARES: 'MILITARES',
@@ -48,6 +51,7 @@ function onOpen() {
     .addSeparator()
     .addItem('Configurações', 'abrirPainelParametros')
     .addItem('Conferir Integridade dos Dados', 'abrirPainelIntegridade')
+    .addItem('Diagnóstico de motoristas', 'diagnosticoMotoristas')      // B57: temporário, sai quando a causa for confirmada
     .addToUi();
 }
 
@@ -89,12 +93,16 @@ function abaDaEscala_(ss, criar) {
   return aba;
 }
 
-function lerAba_(nome) {
+function lerAba_(nome, opcoes) {
   const aba = abaAtual_(SpreadsheetApp.getActive(), nome);
   if (!aba) throw new Error('Aba não encontrada: "' + nome + '".');
-  const valores = aba.getDataRange().getValues();
+  const faixa = aba.getDataRange();
+  const valores = faixa.getValues();
   if (valores.length === 0) throw new Error('A aba "' + nome + '" está vazia.');
-  return { nome: nome, cab: valores[0].map(normalizar_), linhas: valores.slice(1) };
+  const t = { nome: nome, cab: valores[0].map(normalizar_), linhas: valores.slice(1) };
+  // B57: o texto como aparece na tela, para as colunas sim/não e de categoria (ver lerMilitares_)
+  if (opcoes && opcoes.exibidos) t.exibidos = faixa.getDisplayValues().slice(1);
+  return t;
 }
 
 /** Acha a coluna pelo cabeçalho (sem acento/caixa/pontuação); aceita "começa com" (ex.: "ANTIG. (2°GB)"). */
@@ -144,8 +152,27 @@ function lerAlocacoes_(tz) {
   return { alocs: alocs, semData: semData, incompletas: incompletas };
 }
 
+/** Valores que contam como "sim" nas colunas MOTORISTA e VOLUNTÁRIO JES. */
+const SIM_MILITARES_ = ['SIM', 'S', 'X', '1', 'TRUE', 'VERDADEIRO'];
+
+/**
+ * B57 (RN-12): na sandbox, com "Sim" na coluna MOTORISTA, ninguém era lido como motorista — e o
+ * mesmo código, com os mesmos dados exportados, lê os 76. A aba MILITARES é uma Tabela do Sheets.
+ * Duas medidas enquanto a causa não é confirmada:
+ *   - a célula é aceita como "sim" pelo valor (getValues) OU pelo texto exibido (getDisplayValues);
+ *     se uma coluna tipada da Tabela devolver algo que não é o texto, o exibido ainda vale;
+ *   - instrumentação: na primeira leitura de cada execução, o console recebe o índice da coluna, o
+ *     cabeçalho e o valor bruto das primeiras linhas (ver diagnosticoMotoristas, em matriz.js).
+ * Ao confirmar a causa, a instrumentação sai (a leitura pelo texto exibido pode ficar).
+ */
+let LOG_MILITARES_FEITO_ = false;
+
+function simDaCelula_(valor, exibido) {
+  return SIM_MILITARES_.indexOf(normalizar_(valor)) >= 0 || SIM_MILITARES_.indexOf(normalizar_(exibido)) >= 0;
+}
+
 function lerMilitares_() {
-  const t = lerAba_(CONFIG.ABA_MILITARES);
+  const t = lerAba_(CONFIG.ABA_MILITARES, { exibidos: true });
   const c = {
     mat: coluna_(t, 'MATRÍCULA', true), nome: coluna_(t, 'NOME DE GUERRA', true), secao: coluna_(t, 'SEÇÃO', true),
     posto: coluna_(t, 'POSTO/GRAD', false), jornada: coluna_(t, 'JORNADA', false),
@@ -153,25 +180,80 @@ function lerMilitares_() {
     vjes: coluna_(t, 'VOLUNTÁRIO JES', false), cnh: coluna_(t, 'CNH', false)
   };
   const pega = function (l, i) { return i < 0 ? '' : l[i]; };
+  const exib = t.exibidos || [];
   const res = [];
   t.linhas.forEach(function (l, ordem) {
     const mat = texto_(l[c.mat]);
     if (!mat) return;
+    const e = exib[ordem] || [];
     res.push({
       mat: mat, nome: texto_(l[c.nome]), posto: texto_(pega(l, c.posto)), secao: texto_(l[c.secao]),
       jornada: texto_(pega(l, c.jornada)), equipe: texto_(pega(l, c.equipe)), antig: pega(l, c.antig), ordem: ordem,
       // true só se a coluna MOTORISTA existir e tiver algo como SIM/S/X (o "-" e o vazio contam como não)
       temColunaMotorista: c.motorista >= 0,
-      motorista: c.motorista >= 0 && ['SIM', 'S', 'X', 'MOTORISTA', '1', 'TRUE', 'VERDADEIRO'].indexOf(normalizar_(l[c.motorista])) >= 0,
+      motorista: c.motorista >= 0 && (simDaCelula_(l[c.motorista], e[c.motorista]) || normalizar_(l[c.motorista]) === 'MOTORISTA'),
       // RN-46: atributo "voluntário JES" (sim/não). Só vale se a coluna existir; vazio e "não" contam como não.
       temColunaVoluntarioJes: c.vjes >= 0,
-      voluntarioJes: c.vjes >= 0 && ['SIM', 'S', 'X', '1', 'TRUE', 'VERDADEIRO'].indexOf(normalizar_(l[c.vjes])) >= 0,
+      voluntarioJes: c.vjes >= 0 && simDaCelula_(l[c.vjes], e[c.vjes]),
       // RN-12: categoria(s) de CNH do militar, como estão na coluna CNH ("B, D"). Sem a coluna, lista vazia.
       temColunaCnh: c.cnh >= 0,
-      cnh: c.cnh >= 0 ? cadgLista_(pega(l, c.cnh)) : []
+      cnh: c.cnh >= 0 ? cadgLista_(texto_(pega(l, c.cnh)) || texto_(pega(e, c.cnh))) : []
     });
   });
+  if (!LOG_MILITARES_FEITO_) {                       // B57: uma vez por execução
+    LOG_MILITARES_FEITO_ = true;
+    try { console.log(JSON.stringify(relatorioMotoristas_(t, c, res))); } catch (err) { /* o log nunca derruba a leitura */ }
+  }
   return res;
+}
+
+/** B57: o que o código está vendo na coluna MOTORISTA (para o log e para diagnosticoMotoristas). */
+function relatorioMotoristas_(t, c, res) {
+  const exib = t.exibidos || [];
+  const bruto = function (x) {
+    return { valor: x, tipo: Object.prototype.toString.call(x), json: JSON.stringify(x), codigos: String(x == null ? '' : x).split('').map(function (ch) { return ch.charCodeAt(0); }), normalizado: normalizar_(x) };
+  };
+  const amostra = [];
+  for (let i = 0; i < t.linhas.length && amostra.length < 5; i++) {
+    const l = t.linhas[i];
+    if (texto_(l[c.mat]) === '') continue;
+    amostra.push({ linhaDaPlanilha: i + 2, mat: texto_(l[c.mat]), motorista: c.motorista >= 0 ? bruto(l[c.motorista]) : null, exibido: c.motorista >= 0 ? (exib[i] || [])[c.motorista] : null });
+  }
+  return {
+    b57: 'lerMilitares_', versao: VERSAO_DO_CODIGO_,
+    indiceMotorista: c.motorista, cabecalhoNesseIndice: c.motorista >= 0 ? t.cab[c.motorista] : null,
+    cabecalho: t.cab, linhas: t.linhas.length, militares: res.length,
+    motoristas: res.filter(function (m) { return m.motorista; }).length,
+    comCnh: res.filter(function (m) { return m.cnh.length; }).length,
+    amostra: amostra
+  };
+}
+
+/**
+ * B57: diagnóstico para rodar na sandbox (menu Escalas - 2º GB > Diagnóstico de motoristas, ou
+ * direto no editor do Apps Script). Mostra, e grava no log da execução, qual projeto está rodando,
+ * a versão do código e o que lerMilitares_ vê na coluna MOTORISTA.
+ */
+function diagnosticoMotoristas() {
+  const t = lerAba_(CONFIG.ABA_MILITARES, { exibidos: true });
+  const c = { mat: coluna_(t, 'MATRÍCULA', true), motorista: coluna_(t, 'MOTORISTA', false), cnh: coluna_(t, 'CNH', false) };
+  const res = lerMilitares_();
+  const rel = relatorioMotoristas_(t, c, res);
+  rel.scriptId = ScriptApp.getScriptId();
+  rel.planilha = SpreadsheetApp.getActive().getId();
+  console.log(JSON.stringify(rel));
+  const linhas = [
+    'Versão do código: ' + rel.versao,
+    'ID do projeto Apps Script: ' + rel.scriptId,
+    'Coluna MOTORISTA: índice ' + rel.indiceMotorista + ' (cabeçalho lido: ' + rel.cabecalhoNesseIndice + ')',
+    'Militares lidos: ' + rel.militares + ' · motoristas: ' + rel.motoristas + ' · com CNH: ' + rel.comCnh,
+    '',
+    'Primeiras linhas (valor bruto da coluna MOTORISTA):'
+  ].concat(rel.amostra.map(function (a) {
+    return 'linha ' + a.linhaDaPlanilha + ' · ' + a.mat + ' · valor ' + (a.motorista ? a.motorista.json + ' (' + a.motorista.tipo + ', códigos ' + a.motorista.codigos.join(' ') + ')' : '—') + ' · exibido "' + a.exibido + '"';
+  })).concat(['', 'O mesmo texto foi gravado no log da execução (Apps Script > Execuções). Copie e mande à Programação.']);
+  try { SpreadsheetApp.getUi().alert('Diagnóstico de motoristas (B57)', linhas.join('\n'), SpreadsheetApp.getUi().ButtonSet.OK); } catch (err) { /* rodando no editor, sem planilha aberta */ }
+  return rel;
 }
 
 /** Catálogo (aba TURNOS): quais serviços existem em cada letra de turno, e os pares válidos. */

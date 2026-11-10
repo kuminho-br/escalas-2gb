@@ -456,5 +456,20 @@ console.log('== B54 (RN-12, RN-81) a célula diz por que a lista suspensa está 
   ver('posto de condutor sem UNIDADE: a nota diz que não há guarnição para exigir categoria', /não tem UNIDADE/.test(t), t);
 }
 
+console.log('== B57 (RN-12) leitura do "sim" da coluna MOTORISTA');
+{
+  const L = new Function(['nucleo.js', 'cadastro_guarnicoes.js', 'matriz.js'].map(ler).join('\n') + '\nreturn {simDaCelula_, relatorioMotoristas_};')();
+  ver('"Sim", "SIM", "sim" e "S" contam como sim', ['Sim', 'SIM', 'sim', 'S', ' Sim '].every(x => L.simDaCelula_(x, '')));
+  ver('caixa de seleção marcada (true) conta como sim', L.simDaCelula_(true, 'TRUE'));
+  ver('"Não", "-", vazio e false não contam', ['Não', 'NÃO', '-', '', null, false].every(x => !L.simDaCelula_(x, '')));
+  ver('valor que não é texto, mas exibido como "Sim", conta (coluna tipada da Tabela)', L.simDaCelula_({ chip: 1 }, 'Sim') === true);
+  ver('o exibido "Não" não vira sim', L.simDaCelula_({ chip: 1 }, 'Não') === false);
+  const t = { cab: ['MATRICULA', 'MOTORISTA'], linhas: [['1', 'Sim'], ['', ''], ['2', 'Não']], exibidos: [['1', 'Sim'], ['', ''], ['2', 'Não']] };
+  const r = L.relatorioMotoristas_(t, { mat: 0, motorista: 1 }, [{ motorista: true, cnh: [] }, { motorista: false, cnh: ['D'] }]);
+  ver('o relatório do diagnóstico traz índice, cabeçalho, contagens e o valor bruto',
+    r.indiceMotorista === 1 && r.cabecalhoNesseIndice === 'MOTORISTA' && r.motoristas === 1 && r.comCnh === 1 &&
+    r.amostra.length === 2 && r.amostra[0].motorista.json === '"Sim"' && r.amostra[0].motorista.codigos.join() === '83,105,109' && r.amostra[1].linhaDaPlanilha === 4, r);
+}
+
 console.log(`\n${ok} ok, ${falhas} falha(s)`);
 process.exit(falhas ? 1 : 0);
