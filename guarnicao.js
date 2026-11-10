@@ -24,8 +24,8 @@
 
 const GUARN_DIAS_SEMANA_ = ['domingo', 'segunda-feira', 'terça-feira', 'quarta-feira', 'quinta-feira', 'sexta-feira', 'sábado'];
 const GUARN_MESES_ = ['JANEIRO', 'FEVEREIRO', 'MARÇO', 'ABRIL', 'MAIO', 'JUNHO', 'JULHO', 'AGOSTO', 'SETEMBRO', 'OUTUBRO', 'NOVEMBRO', 'DEZEMBRO'];
-/** Como o serviço aparece no nome da função nas escalas com mais de um serviço (ex.: "MOTORISTA - PJES"). */
-const GUARN_VINCULOS_ = { 'JES': 'PJES' };
+// B49 item 2 (RN-13, RN-94): o "JES aparece como PJES" saiu daqui e virou a coluna ORIGEM da aba
+// TURNOS (ver origemDoServico_ em nucleo.gs).
 
 /* ------------------------------------------------------------ pequenos utilitários */
 
@@ -497,11 +497,11 @@ function novaBaseGuarnicao_(base, res) {
 
 /**
  * Linhas do documento impresso (no formato das escalas oficiais), a partir de uma grade já montada.
- * mil: { matrícula: militar }   horarios: porChave de montarHorarios_
+ * mil: { matrícula: militar }   horarios: porChave de montarHorarios_   origens: de lerOrigens_ (B49 item 2)
  * Retorna [{ dia, semana, turno, bloco, unidade, funcao, grad, nome, mat }]
  * Escala com DIAS = ESCALADOS (ex.: CPRH) omite os dias sem ninguém.
  */
-function linhasParaImpressao_(grade, esc, mil, horarios) {
+function linhasParaImpressao_(grade, esc, mil, horarios, origens) {
   horarios = horarios || {};
   const comGente = Object.create(null);
   grade.linhas.forEach(function (l) { if (l.mat) comGente[l.dia] = true; });
@@ -518,7 +518,7 @@ function linhasParaImpressao_(grade, esc, mil, horarios) {
     if (esc.dias === 'ESCALADOS' && !comGente[l.dia]) return;
     const m = l.mat ? mil[l.mat] : null;
     let funcao = l.funcao;
-    if (esc.servicos.length > 1 && l.servico) funcao += ' - ' + (GUARN_VINCULOS_[l.servico] || l.servico).toUpperCase();
+    if (esc.servicos.length > 1 && l.servico) funcao += ' - ' + origemDoServico_(l.servico, origens, l.turno);   // B49 item 2: ORIGEM do cadastro
     out.push({
       dia: l.dia,
       semana: GUARN_DIAS_SEMANA_[diaDaSemana_(l.dia)],

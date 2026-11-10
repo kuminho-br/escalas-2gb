@@ -496,5 +496,27 @@ console.log('== B48 (RN-94, RN-81) a função aparece como nota na célula da gr
   ver('célula com texto que não é serviço não ganha nota', L.notasDeFuncao_([{ mat: 'M1' }], ['2026-11-03'], [['xyz']], rot, alocs)[0][0] === '');
 }
 
+console.log('== B49 item 2 (RN-13, RN-94) a origem do serviço vem da coluna ORIGEM de TURNOS');
+{
+  const L = new Function(['nucleo.js'].map(ler).join('\n') + '\nreturn {origemDoServico_};')();
+  const cad = { 'JES|A': 'PJES', 'JES': 'PJES', 'Saldo|A': 'SALDO ADM', 'Diária Bioma|A': 'DIÁRIA' };
+  ver('serviço com ORIGEM cadastrada usa a origem do cadastro', L.origemDoServico_('JES', cad, 'A') === 'PJES');
+  ver('o cadastro vale por turno', L.origemDoServico_('Saldo', cad, 'A') === 'SALDO ADM');
+  ver('turno sem ORIGEM própria usa a de outro turno do serviço', L.origemDoServico_('JES', cad, 'B') === 'PJES');
+  ver('serviço sem ORIGEM cadastrada mantém o comportamento atual: o próprio nome em maiúsculas',
+    L.origemDoServico_('Pronto', cad, 'A') === 'PRONTO' && L.origemDoServico_('Saldo', cad, 'B') === 'SALDO');
+  ver('sem cadastro nenhum, nada é inventado: JES aparece como JES', L.origemDoServico_('JES', {}, 'A') === 'JES');
+  ver('a comparação do serviço é sem caixa/acento', L.origemDoServico_('diaria bioma', cad, 'A') === 'DIÁRIA');
+  ver('uma origem nova cadastrada vale sem mexer no código', L.origemDoServico_('Eleições', { 'Eleições': 'TRE' }, 'A') === 'TRE');
+
+  const G = new Function(['nucleo.js', 'choques.js', 'sincronia.js', 'cadastro_guarnicoes.js', 'guarnicao.js'].map(ler).join('\n') + '\nreturn {linhasParaImpressao_};')();
+  const esc = { servicos: ['Pronto', 'JES'], turnos: ['A'], dias: 'TODOS' };
+  const grade = { linhas: [{ dia: '2026-11-03', turno: 'A', unidade: '', funcao: 'MOTORISTA', mat: 'M1', servico: 'JES' }, { dia: '2026-11-03', turno: 'A', unidade: '', funcao: 'CHEFE', mat: 'M2', servico: 'Pronto' }] };
+  let li = G.linhasParaImpressao_(grade, esc, {}, {}, { 'JES|A': 'PJES' });
+  ver('impressão: a função leva a origem do cadastro (MOTORISTA - PJES)', li[0].funcao === 'MOTORISTA - PJES' && li[1].funcao === 'CHEFE - PRONTO', li.map(x => x.funcao));
+  li = G.linhasParaImpressao_(grade, esc, {}, {}, {});
+  ver('impressão sem a coluna ORIGEM: o nome do serviço', li[0].funcao === 'MOTORISTA - JES', li.map(x => x.funcao));
+}
+
 console.log(`\n${ok} ok, ${falhas} falha(s)`);
 process.exit(falhas ? 1 : 0);

@@ -14,21 +14,14 @@
  * nunca por uma lista fixa. Função sem militar alocado não gera linha.
  *
  * ORIGEM (RN-13) é o serviço que levou o militar àquele posto (PRONTO, SALDO, PJES), no mesmo
- * formato que guarnicao.gs já usa no nome da função ("MOTORISTA - PJES"). Duas vagas da mesma
+ * formato que guarnicao.gs usa no nome da função ("MOTORISTA - PJES"). Vem da coluna ORIGEM da
+ * aba TURNOS (B49 item 2); sem ela, o próprio nome do serviço (origemDoServico_, nucleo.gs). Duas vagas da mesma
  * função E da mesma origem no mesmo turno ficam na MESMA linha, separadas por " | "; origens
  * diferentes viram linhas diferentes.
  *
  * Funções compostas ("MOTORISTA / CHEFE") e "MOTORISTA 12H" são exibidas como estão gravadas
  * (P-25 e P-26 em aberto): esta visualização não interpreta nome de função.
  */
-
-/** 'JES' -> 'PJES'; o resto vira o próprio nome em maiúsculas. origens = { JES: 'PJES' }. */
-function origemDoServico_(servico, origens) {
-  const k = normalizar_(servico);
-  const mapa = origens || {};
-  const achou = Object.keys(mapa).filter(function (x) { return normalizar_(x) === k; })[0];
-  return normalizar_(achou ? mapa[achou] : servico) === '' ? '' : String(achou ? mapa[achou] : servico).toUpperCase();
-}
 
 /** Ordem dos turnos pelo horário de início no catálogo: { A: 1, B: 2, C: 3 }. */
 function ordemDosTurnos_(horarios) {
@@ -81,7 +74,7 @@ function montarEscalaOperacional_(alocs, opcoes) {
     const u = d[unidade] = d[unidade] || Object.create(null);
     const t = u[a.turno] = u[a.turno] || { servicos: Object.create(null), linhas: Object.create(null) };
     t.servicos[a.servico] = (t.servicos[a.servico] || 0) + 1;
-    const origem = origemDoServico_(a.servico, opcoes.origens);
+    const origem = origemDoServico_(a.servico, opcoes.origens, a.turno);   // B49 item 2: da coluna ORIGEM de TURNOS
     const rotulo = (funcao || '(SEM FUNÇÃO)') + (origem ? ' - ' + origem : '');
     const l = t.linhas[rotulo] = t.linhas[rotulo] || { rotulo: rotulo, funcao: funcao, origem: origem, mats: [] };
     if (l.mats.indexOf(a.mat) < 0) l.mats.push(a.mat);

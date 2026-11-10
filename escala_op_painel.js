@@ -41,11 +41,14 @@ function escalaOperacionalDoMes_(mes, tz) {
   const mil = Object.create(null);
   lerMilitares_().forEach(function (m) { if (!(m.mat in mil)) mil[m.mat] = { posto: m.posto, nome: m.nome, antig: m.antig, ordem: m.ordem }; });
   const ord = ordemDoCadastro_(mes, tz);
-  return montarEscalaOperacional_(lerAlocacoes_(tz).alocs, {
+  const orig = lerOrigens_();
+  const doc = montarEscalaOperacional_(lerAlocacoes_(tz).alocs, {
     mes: mes, militares: mil, horarios: hor.porChave,
-    origens: GUARN_VINCULOS_,                      // RN-13: 'JES' aparece como 'PJES', como já era
+    origens: orig.origens,                         // B49 item 2 (RN-13): da coluna ORIGEM de TURNOS
     ordemUnidades: ord.ordemUnidades, ordemFuncoes: ord.ordemFuncoes
   });
+  doc.avisos = orig.avisos.concat(doc.avisos);
+  return doc;
 }
 
 /** Escreve a visualização na aba ESCALA DO ORDINÁRIO e devolve o resumo para a tela. */

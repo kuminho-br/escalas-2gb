@@ -335,6 +335,8 @@ function painelGuarnicaoExemplos() {
   });
   // B36 (RN-94): quem já tem a aba MODELOS ganha a coluna EXIGE CNH, vazia, para marcar as de condutor
   if (garantirColunaExigeCnh_()) criadas.push('coluna EXIGE CNH (em MODELOS DE GUARNIÇÃO, vazia: marque SIM nas funções de condutor)');
+  // B49 item 2 (RN-13): a origem do serviço passa a ser cadastro
+  if (garantirColunaOrigem_()) criadas.push('coluna ORIGEM (em TURNOS; o JES já vem como PJES, como era no código)');
   return { criadas: criadas };
 }
 
@@ -637,7 +639,7 @@ function painelGuarnicaoImprimir(escala, mes) {
   const mil = {};
   lerMilitares_().forEach(function (m) { if (!(m.mat in mil)) mil[m.mat] = m; });
   const hor = lerHorarios_();
-  const linhas = linhasParaImpressao_(grade, esc, mil, hor.porChave);
+  const linhas = linhasParaImpressao_(grade, esc, mil, hor.porChave, lerOrigens_().origens);   // B49 item 2
 
   // alterações da grade ainda não salvas não entram no documento: avisa
   let pendentes = 0;

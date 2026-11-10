@@ -327,3 +327,25 @@ function notasDeFuncao_(linhas, dias, celulas, rot, alocs) {
   });
 }
 
+/* ------------------------------------------------------------ origem do serviço (B49 item 2) */
+
+/**
+ * B49 item 2 (RN-13, RN-94): a ORIGEM de uma alocação — o rótulo que vai depois da função
+ * ("MOTORISTA - PJES") e no documento do ordinário — é cadastro: coluna ORIGEM da aba TURNOS.
+ * origens = { 'SERVIÇO|TURNO': 'PJES', 'SERVIÇO': 'PJES' } (montado por lerOrigens_).
+ * Vale, nessa ordem: a ORIGEM da linha do turno, a ORIGEM de qualquer turno do serviço e, sem
+ * nada cadastrado, o próprio nome do serviço em maiúsculas — que é o comportamento que já havia
+ * para Pronto e Saldo. Nada aqui está escrito no código: o JES -> PJES saiu de guarnicao.gs.
+ */
+function origemDoServico_(servico, origens, turno) {
+  const mapa = origens || {};
+  const nS = normalizar_(servico);
+  const procura = function (chave) {
+    const k = Object.keys(mapa).filter(function (x) { return normalizar_(x.split('|')[0]) === nS && (chave === null ? x.indexOf('|') < 0 : normalizar_(x.split('|')[1]) === normalizar_(chave)); })[0];
+    return k ? String(mapa[k]).trim() : '';
+  };
+  const achou = (turno ? procura(turno) : '') || procura(null);
+  const texto = achou || String(servico == null ? '' : servico).trim();
+  return normalizar_(texto) === '' ? '' : texto.toUpperCase();
+}
+
