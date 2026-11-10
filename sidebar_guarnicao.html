@@ -87,6 +87,7 @@
     <ul id="listaChoques" class="itens"></ul>
   </div>
 
+  <div id="avisosMontar" class="avisoBox" hidden></div>
   <div id="avisos" class="avisoBox" hidden></div>
   <div id="resultado" class="ok" hidden></div>
 
@@ -130,7 +131,7 @@
     el('erro').textContent = (e && e.message) ? e.message.replace(/^Error:\s*/, '') : String(e);
     mostrar('erro', true);
   }
-  function limpar() { mostrar('erro', false); mostrar('resultado', false); mostrar('resultadoImprimir', false); }
+  function limpar() { mostrar('erro', false); mostrar('resultado', false); mostrar('resultadoImprimir', false); mostrar('avisosMontar', false); }
 
   function preencherLista(id, itens, comTipo) {
     var ul = el(id);
@@ -236,7 +237,20 @@
   el('btnMontar').addEventListener('click', function () {
     limpar(); ocupado(true);
     google.script.run
-      .withSuccessHandler(function (r) { ocupado(false); if (r && r.cancelado) return; atualizar(false); })
+      .withSuccessHandler(function (r) {
+        ocupado(false);
+        if (r && r.cancelado) return;
+        atualizar(false);
+        // B54 (RN-12, RN-81): posto sem lista suspensa não fica em silêncio
+        var av = (r && r.avisos ? r.avisos.slice() : []);
+        if (r && r.semLista > 0) {
+          av.push(r.semLista + ' de ' + r.vagas + ' posto(s) ficaram sem lista suspensa' +
+            (r.postosDeCondutor ? ' (' + r.postosDeCondutor + ' deles são postos de condutor)' : '') +
+            '. A nota na célula do militar diz o motivo de cada um: passe o mouse nela.');
+        }
+        if (av.length) { el('avisosMontar').textContent = av.join(' '); mostrar('avisosMontar', true); }
+        else mostrar('avisosMontar', false);
+      })
       .withFailureHandler(falha)
       .painelGuarnicaoMontar(el('escala').value, el('mes').value);
   });
