@@ -204,6 +204,8 @@ function painelSincSalvar(esperado) {
     }
     // a referência avança nas chaves aplicadas (e nas que já estavam iguais na tabela)
     salvarBase_(novaBase_(a.base, a.matriz, r, a.fora));
+    // B48: trocar o serviço de uma célula apaga a função da alocação; a nota acompanha
+    if (total > 0) { try { atualizarNotasDeFuncao_(null, tz, a.rot); } catch (e) { /* a nota não derruba a gravação */ } }
     SpreadsheetApp.flush();
 
     const depois = analisarSincronia_(tz).res;

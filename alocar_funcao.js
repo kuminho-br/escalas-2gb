@@ -110,6 +110,8 @@ function alocarEmFuncaoGravar(chave, funcao) {
     if (!depois.length) throw new Error('A alocação desapareceu da tabela depois da gravação. Confira a aba ' + CONFIG.ABA_ALOCACOES + ' e avise a programação.');
     const gravou = depois.every(function (a) { return normalizar_(a.funcao) === normalizar_(escolhida); });
     if (!gravou) throw new Error('A função não foi gravada (a aba ' + CONFIG.ABA_ALOCACOES + ' pode estar protegida ou filtrada).');
+    // B48 (RN-94): a célula da grade geral passa a mostrar a função como nota
+    try { atualizarNotasDeFuncao_(null, tz); } catch (e) { /* a nota não derruba a gravação */ }
     const perdeuUnidade = depois.some(function (a, i) { return (alocs[i] ? (alocs[i].unidade || '') : '') !== (a.unidade || ''); });
     return {
       funcao: escolhida,

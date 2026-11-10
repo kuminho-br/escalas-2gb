@@ -471,5 +471,30 @@ console.log('== B57 (RN-12) leitura do "sim" da coluna MOTORISTA');
     r.amostra.length === 2 && r.amostra[0].motorista.json === '"Sim"' && r.amostra[0].motorista.codigos.join() === '83,105,109' && r.amostra[1].linhaDaPlanilha === 4, r);
 }
 
+console.log('== B48 (RN-94, RN-81) a função aparece como nota na célula da grade geral');
+{
+  const L = new Function(['nucleo.js', 'choques.js', 'sincronia.js'].map(ler).join('\n') + '\nreturn {notasDeFuncao_, montarRotulos_, montarHorarios_};')();
+  const hor = L.montarHorarios_([['Pronto', 'A', '08:00', '20:00'], ['Pronto', 'B', '20:00', '08:00'], ['JES', 'A', '08:00', '20:00']].map(t => ({ servico: t[0], turno: t[1], inicio: t[2], fim: t[3] }))).porChave;
+  const pares = {}; Object.keys(hor).forEach(k => pares[k] = true);
+  const rot = L.montarRotulos_(hor, pares);
+  const rotA = rot.lista.find(x => /^Pronto 08/.test(x)), rotB = rot.lista.find(x => /^Pronto 20/.test(x)), rotJ = rot.lista.find(x => /^JES/.test(x));
+  const linhas = [{ mat: 'M1' }, { mat: 'M1' }, { mat: 'M2' }];
+  const dias = ['2026-11-03', '2026-11-04'];
+  const cel = [[rotA, rotB], ['', rotJ], [rotA, '']];
+  const alocs = [
+    { mat: 'M1', dia: '2026-11-03', servico: 'Pronto', turno: 'A', funcao: 'MOTORISTA', unidade: 'AR' },
+    { mat: 'M1', dia: '2026-11-04', servico: 'Pronto', turno: 'B', funcao: '' },
+    { mat: 'M1', dia: '2026-11-04', servico: 'JES', turno: 'A', funcao: 'CHEFE' },
+    { mat: 'M2', dia: '2026-11-03', servico: 'Pronto', turno: 'A', funcao: 'COMBATENTE' }
+  ];
+  const n = L.notasDeFuncao_(linhas, dias, cel, rot, alocs);
+  ver('a nota traz a função (e a unidade, quando há)', n[0][0] === 'Função: MOTORISTA (AR)' && n[2][0] === 'Função: COMBATENTE', n);
+  ver('sem função atribuída, sem nota', n[0][1] === '');
+  ver('na 2ª linha do militar, a nota é da alocação daquela célula', n[1][1] === 'Função: CHEFE' && n[1][0] === '', n[1]);
+  ver('célula vazia não tem nota', n[2][1] === '');
+  ver('a matriz de notas tem o tamanho da grade', n.length === 3 && n.every(l => l.length === 2));
+  ver('célula com texto que não é serviço não ganha nota', L.notasDeFuncao_([{ mat: 'M1' }], ['2026-11-03'], [['xyz']], rot, alocs)[0][0] === '');
+}
+
 console.log(`\n${ok} ok, ${falhas} falha(s)`);
 process.exit(falhas ? 1 : 0);

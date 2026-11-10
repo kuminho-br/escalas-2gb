@@ -297,3 +297,33 @@ function planoDeMigracaoDeAbas_(existentes, so) {
   });
   return { renomear: renomear, avisos: avisos };
 }
+
+/* ------------------------------------------------------------ função como nota (B48) */
+
+/**
+ * B48 (RN-94, RN-81): a função de cada alocação aparece como NOTA na célula da grade geral (não
+ * como coluna). Monta a matriz de notas, do mesmo tamanho da grade: '' onde não há função.
+ * linhas: [{ mat }], dias: ['aaaa-mm-dd'], celulas: textos da grade, rot: rótulos de montarRotulos_,
+ * alocs: alocações com { mat, dia, servico, turno, funcao, unidade }.
+ * A nota só mostra o resultado; quem atribui a função é o menu "Alocar em Função" (B36).
+ */
+function notasDeFuncao_(linhas, dias, celulas, rot, alocs) {
+  const porChave = Object.create(null);
+  (alocs || []).forEach(function (a) {
+    const f = String(a.funcao == null ? '' : a.funcao).trim();
+    if (!f) return;
+    const k = a.mat + '|' + a.dia + '|' + a.servico + '|' + a.turno;
+    if (!(k in porChave)) porChave[k] = 'Função: ' + f + (String(a.unidade || '').trim() ? ' (' + String(a.unidade).trim() + ')' : '');
+  });
+  return celulas.map(function (linha, i) {
+    return linha.map(function (v, j) {
+      const texto = String(v == null ? '' : v).trim();
+      const l = linhas[i];
+      if (!texto || !l || !l.mat || !dias[j]) return '';
+      const p = parDoRotulo_(texto, rot);
+      if (!p) return '';
+      return porChave[l.mat + '|' + dias[j] + '|' + p.servico + '|' + p.turno] || '';
+    });
+  });
+}
+

@@ -510,6 +510,23 @@ function lerRotulos_(catalogoPares) {
 
 /* --------------------------------------------------------- ações do menu */
 
+/**
+ * B48 (RN-94, RN-81): regrava as notas de função de toda a grade geral a partir da tabela.
+ * Chamada ao carregar a escala, depois de salvar no painel Mostrar Escala e depois de "Alocar em
+ * Função". rot e alocs são opcionais (relidos quando faltam). Não mexe em valores nem validações.
+ */
+function atualizarNotasDeFuncao_(aba, tz, rot, alocs) {
+  aba = aba || abaDaEscala_(SpreadsheetApp.getActive(), false);
+  if (!aba) return 0;
+  const m = lerMatrizAtual_(aba, tz);
+  if (!m || !m.linhas.length || !m.dias.length) return 0;
+  if (!rot) rot = montarRotulos_(lerHorarios_().porChave, lerCatalogo_().pares);
+  if (!alocs) alocs = lerAlocacoes_(tz).alocs;
+  const notas = notasDeFuncao_(m.linhas, m.dias, m.celulas, rot, alocs);
+  aba.getRange(CONFIG.PRIMEIRA_LINHA, CONFIG.PRIMEIRA_COL_DIA, notas.length, notas[0].length).setNotes(notas);
+  return notas.reduce(function (n, l) { return n + l.filter(Boolean).length; }, 0);
+}
+
 function montarMatriz() {
   const ss = SpreadsheetApp.getActive();
   const ui = SpreadsheetApp.getUi();
@@ -551,6 +568,7 @@ function montarMatriz() {
     lr.hor.avisos.forEach(function (t) { modelo.avisos.push(t); });
 
     renderizarMatriz_(aba, modelo, par, rot, tz);
+    atualizarNotasDeFuncao_(aba, tz, rot, lidas.alocs);     // B48: a função vira nota na célula
     SpreadsheetApp.flush();
     registrarBase_(aba, tz, rot, modelo.foraDaGrade);      // a escala recém-desenhada vira a referência da sincronização
     ss.setActiveSheet(aba);
