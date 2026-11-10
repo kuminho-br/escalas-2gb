@@ -102,73 +102,82 @@ console.log('== B52 as cinco abas renomeadas (migração sozinha, sem apagar nad
   ver('aba fora da lista é só getSheetByName', planilha(['MILITARES']).F.abaAtual_(planilha(['MILITARES']).ss, 'TURNOS') === null);
 }
 
-console.log('== B37 (RN-07 a RN-12, RN-93) cadastro das viaturas com vigência mensal');
+console.log('== B37 revisado (RN-07 a RN-12, RN-93, RN-96) cadastro de guarnições, viatura opcional');
 {
-  const L = new Function(['nucleo.js', 'viaturas.js'].map(ler).join('\n') +
-    '\nreturn {resolverViaturas_, cnhAtende_, avaliarGuarnicao_, viaturaAceitaServico_, viaturaPorNome_, viatLista_};')();
-  // VIGÊNCIA, VIATURA, TIPO, ATIVAR, PRIORIDADE, TIPOS DE SERVIÇO, CNH, FUNÇÃO, MÍNIMO, MÁXIMO
-  const l = (vig, viatura, tipo, ativar, prio, servicos, cnh, funcao, min, max, linha) =>
-    ({ linha: linha, vigencia: vig, viatura: viatura, tipo: tipo, ativar: ativar, prioridade: prio, servicos: servicos, cnh: cnh, funcao: funcao, minimo: min, maximo: max });
-  // duas viaturas com CNH e guarnições diferentes
+  const L = new Function(['nucleo.js', 'cadastro_guarnicoes.js'].map(ler).join('\n') +
+    '\nreturn {resolverGuarnicoes_, cnhAtende_, avaliarGuarnicao_, guarnicaoAceitaServico_, guarnicaoPorNome_, cadgLista_};')();
+  // VIGÊNCIA, GUARNIÇÃO, VIATURA, TIPO, ATIVAR, PRIORIDADE, TIPOS DE SERVIÇO, CNH, FUNÇÃO, MÍNIMO, MÁXIMO
+  const l = (vig, guarnicao, viatura, tipo, ativar, prio, servicos, cnh, funcao, min, max, linha) =>
+    ({ linha: linha, vigencia: vig, guarnicao: guarnicao, viatura: viatura, tipo: tipo, ativar: ativar, prioridade: prio, servicos: servicos, cnh: cnh, funcao: funcao, minimo: min, maximo: max });
+  // uma guarnição COM viatura, uma SEM viatura (com motorista que exige CNH) e uma desativada
   const base = [
-    l('', 'AR', 'Auto Resgate', 'SIM', 1, '', 'D', 'MOTORISTA', 1, 1, 2),
-    l('', 'AR', '', '', '', '', '', 'CHEFE', 1, 1, 3),
-    l('', 'AR', '', '', '', '', '', 'SOCORRISTA', 1, 3, 4),
-    l('', 'ABTS', 'Auto Bomba', 'SIM', 2, 'Pronto', 'C', 'MOTORISTA', 1, 1, 5),
-    l('', 'ABTS', '', '', '', '', '', 'COMBATENTE', 2, 4, 6),
-    l('', 'Quartel', 'Efetivo do quartel', 'NÃO', '', '', '', 'ADJUNTO DE DIA', 1, 1, 7)
+    l('', 'AR', 'AR', 'Auto Resgate', 'SIM', 1, '', 'D', 'MOTORISTA', 1, 1, 2),
+    l('', 'AR', '', '', '', '', '', '', 'CHEFE', 1, 1, 3),
+    l('', 'AR', '', '', '', '', '', '', 'SOCORRISTA', 1, 3, 4),
+    l('', 'APOIO AQUARTELADO', '', 'Aquartelado', 'SIM', 2, 'Pronto', 'D', 'MOTORISTA ACO', 1, 1, 5),
+    l('', 'APOIO AQUARTELADO', '', '', '', '', '', '', 'ADJUNTO DE DIA', 1, 1, 6),
+    l('', 'ABTS', 'ABTS', 'Auto Bomba', 'NÃO', '', '', 'C', 'MOTORISTA', 1, 1, 7)
   ];
-  let r = L.resolverViaturas_(base, '2026-10');
-  ver('lê as três viaturas, sem aviso', r.viaturas.length === 3 && r.avisos.length === 0, r.avisos);
-  const ar = r.porId['AR'];
-  ver('AR: mínimo 3 (motorista, chefe, socorrista) e máximo 5 (RN-10, RN-11)',
+  let r = L.resolverGuarnicoes_(base, '2026-10');
+  ver('lê as três guarnições, sem aviso', r.guarnicoes.length === 3 && r.avisos.length === 0, r.avisos);
+  const ar = r.porId['AR'], aco = r.porId['APOIOAQUARTELADO'];
+  ver('guarnição com viatura: a viatura vem preenchida', ar.viatura === 'AR' && ar.tipo === 'Auto Resgate', ar);
+  ver('guarnição SEM viatura é válida e tem CNH própria (RN-96, RN-12)',
+    aco.viatura === '' && aco.cnh.join() === 'D' && aco.funcoes.length === 2, aco);
+  ver('AR: mínimo 3 e máximo 5 (RN-10, RN-11)',
     ar.funcoes.reduce((s, f) => s + f.minimo, 0) === 3 && ar.funcoes.reduce((s, f) => s + f.maximo, 0) === 5, ar.funcoes);
-  ver('AR: dados da viatura vêm da 1ª linha e valem para as demais', ar.tipo === 'Auto Resgate' && ar.ativar === true && ar.prioridade === 1 && ar.cnh.join() === 'D', ar);
   ver('ordem de ativação pela prioridade; sem prioridade vai por último (RN-08)',
-    r.viaturas.map(v => v.id).join() === 'AR,ABTS,Quartel', r.viaturas.map(v => v.id));
-  ver('ATIVAR NÃO é respeitado (RN-07)', r.porId['QUARTEL'].ativar === false && r.viaturas.filter(v => v.ativar).length === 2);
-  ver('TIPOS DE SERVIÇO: ABTS só aceita Pronto (RN-09)',
-    L.viaturaAceitaServico_(r.porId['ABTS'], 'Pronto') && !L.viaturaAceitaServico_(r.porId['ABTS'], 'Bioma'));
-  ver('sem lista de tipos de serviço a viatura aceita qualquer serviço', L.viaturaAceitaServico_(ar, 'Bioma') === true);
-  ver('serviço sem viatura: nada a cobrar e nenhum aviso', L.viaturaPorNome_(r, 'UTI móvel') === null && L.viaturaAceitaServico_(null, 'Bioma') === true && r.avisos.length === 0);
+    r.guarnicoes.map(g => g.id).join() === 'AR,APOIO AQUARTELADO,ABTS', r.guarnicoes.map(g => g.id));
+  ver('ATIVAR NÃO é respeitado (RN-07)', r.porId['ABTS'].ativar === false && r.guarnicoes.filter(g => g.ativar).length === 2);
+  ver('TIPOS DE SERVIÇO: o Apoio só aceita Pronto (RN-09)',
+    L.guarnicaoAceitaServico_(aco, 'Pronto') && !L.guarnicaoAceitaServico_(aco, 'Bioma'));
+  ver('sem lista de tipos de serviço a guarnição aceita qualquer serviço', L.guarnicaoAceitaServico_(ar, 'Bioma') === true);
+  ver('posto sem guarnição cadastrada: nada a cobrar e nenhum aviso',
+    L.guarnicaoPorNome_(r, 'UTI móvel') === null && L.guarnicaoAceitaServico_(null, 'Bioma') === true && r.avisos.length === 0);
+  ver('a guarnição é achada pelo nome, sem caixa/acento', L.guarnicaoPorNome_(r, 'apoio aquartelado') === aco);
 
   // RN-93: alterar a guarnição mínima não retroage
-  const comMudanca = base.concat([l('2026-11', 'AR', '', '', '', '', '', 'SOCORRISTA', 2, 3, 20)]);
-  ver('mês já fechado mantém o mínimo antigo (RN-93)', L.resolverViaturas_(comMudanca, '2026-10').porId['AR'].funcoes.find(f => f.funcao === 'SOCORRISTA').minimo === 1);
-  ver('o mês da vigência passa a usar o mínimo novo', L.resolverViaturas_(comMudanca, '2026-11').porId['AR'].funcoes.find(f => f.funcao === 'SOCORRISTA').minimo === 2);
-  ver('meses seguintes seguem com o valor novo', L.resolverViaturas_(comMudanca, '2027-03').porId['AR'].funcoes.find(f => f.funcao === 'SOCORRISTA').minimo === 2);
-  const trocaPrio = base.concat([l('2026-12', 'ABTS', '', '', 1, '', '', '', '', '', 21), l('2026-12', 'AR', '', '', 3, '', '', '', '', '', 22)]);
-  ver('a prioridade também tem vigência', L.resolverViaturas_(trocaPrio, '2026-10').viaturas[0].id === 'AR' && L.resolverViaturas_(trocaPrio, '2026-12').viaturas[0].id === 'ABTS');
-  ver('MÁXIMO 0 tira a função da viatura a partir da vigência',
-    L.resolverViaturas_(base.concat([l('2026-12', 'AR', '', '', '', '', '', 'SOCORRISTA', 0, 0, 23)]), '2026-12').porId['AR'].funcoes.map(f => f.funcao).join() === 'CHEFE,MOTORISTA');
+  const comMudanca = base.concat([l('2026-11', 'AR', '', '', '', '', '', '', 'SOCORRISTA', 2, 3, 20)]);
+  ver('mês já fechado mantém o mínimo antigo (RN-93)', L.resolverGuarnicoes_(comMudanca, '2026-10').porId['AR'].funcoes.find(f => f.funcao === 'SOCORRISTA').minimo === 1);
+  ver('o mês da vigência passa a usar o mínimo novo', L.resolverGuarnicoes_(comMudanca, '2026-11').porId['AR'].funcoes.find(f => f.funcao === 'SOCORRISTA').minimo === 2);
+  ver('meses seguintes seguem com o valor novo', L.resolverGuarnicoes_(comMudanca, '2027-03').porId['AR'].funcoes.find(f => f.funcao === 'SOCORRISTA').minimo === 2);
+  const trocaViatura = base.concat([l('2026-12', 'APOIO AQUARTELADO', 'ACO', '', '', '', '', '', '', '', '', 21)]);
+  ver('a viatura também tem vigência: a guarnição pode ganhar viatura depois',
+    L.resolverGuarnicoes_(trocaViatura, '2026-10').porId['APOIOAQUARTELADO'].viatura === '' &&
+    L.resolverGuarnicoes_(trocaViatura, '2026-12').porId['APOIOAQUARTELADO'].viatura === 'ACO');
+  const trocaPrio = base.concat([l('2026-12', 'ABTS', '', '', '', 1, '', '', '', '', '', 22), l('2026-12', 'AR', '', '', '', 3, '', '', '', '', '', 23)]);
+  ver('a prioridade também tem vigência', L.resolverGuarnicoes_(trocaPrio, '2026-10').guarnicoes[0].id === 'AR' && L.resolverGuarnicoes_(trocaPrio, '2026-12').guarnicoes[0].id === 'ABTS');
+  ver('MÁXIMO 0 tira a função da guarnição a partir da vigência',
+    L.resolverGuarnicoes_(base.concat([l('2026-12', 'AR', '', '', '', '', '', '', 'SOCORRISTA', 0, 0, 24)]), '2026-12').porId['AR'].funcoes.map(f => f.funcao).join() === 'CHEFE,MOTORISTA');
 
   // avisos de linha ruim
-  r = L.resolverViaturas_([l('13/2026', 'AR', '', '', '', '', '', 'CHEFE', 1, 1, 2)], '2026-10');
-  ver('vigência inválida: linha ignorada com aviso', r.viaturas.length === 0 && /vigência/.test(r.avisos[0]), r.avisos);
-  r = L.resolverViaturas_([l('', 'AR', '', '', '', '', '', 'CHEFE', 3, 1, 2)], '2026-10');
-  ver('máximo menor que o mínimo: linha ignorada com aviso', r.viaturas.length === 0 && /menor que o mínimo/.test(r.avisos[0]), r.avisos);
-  r = L.resolverViaturas_([l('', 'AR', '', '', '', '', '', 'CHEFE', 'dois', 1, 2)], '2026-10');
-  ver('mínimo não numérico: linha ignorada com aviso', r.viaturas.length === 0 && /números inteiros/.test(r.avisos[0]), r.avisos);
+  r = L.resolverGuarnicoes_([l('13/2026', 'AR', '', '', '', '', '', '', 'CHEFE', 1, 1, 2)], '2026-10');
+  ver('vigência inválida: linha ignorada com aviso', r.guarnicoes.length === 0 && /vigência/.test(r.avisos[0]) && /GUARNIÇÕES, linha 2/.test(r.avisos[0]), r.avisos);
+  r = L.resolverGuarnicoes_([l('', 'AR', '', '', '', '', '', '', 'CHEFE', 3, 1, 2)], '2026-10');
+  ver('máximo menor que o mínimo: linha ignorada com aviso', r.guarnicoes.length === 0 && /menor que o mínimo/.test(r.avisos[0]), r.avisos);
+  r = L.resolverGuarnicoes_([l('', 'AR', '', '', '', '', '', '', 'CHEFE', 'dois', 1, 2)], '2026-10');
+  ver('mínimo não numérico: linha ignorada com aviso', r.guarnicoes.length === 0 && /números inteiros/.test(r.avisos[0]), r.avisos);
+  ver('linha sem nome de guarnição é ignorada em silêncio', L.resolverGuarnicoes_([l('', '', 'AR', '', '', '', '', '', 'CHEFE', 1, 1, 2)], '2026-10').guarnicoes.length === 0);
 
   // RN-12: CNH
   ver('CNH exigida D e militar com D: atende', L.cnhAtende_(['D'], ['D']) === true);
   ver('CNH exigida D e militar com B: não atende', L.cnhAtende_(['B'], ['D']) === false);
-  ver('militar com "B, D" atende a D (a hierarquia é cadastro, não código)', L.cnhAtende_(L.viatLista_('B, D'), ['D']) === true);
-  ver('viatura sem CNH exigida: qualquer um atende', L.cnhAtende_([], []) === true && L.cnhAtende_(['B'], []) === true);
+  ver('militar com "B, D" atende a D (a hierarquia é cadastro, não código)', L.cnhAtende_(L.cadgLista_('B, D'), ['D']) === true);
+  ver('guarnição sem CNH exigida: qualquer um atende', L.cnhAtende_([], []) === true && L.cnhAtende_(['B'], []) === true);
   ver('militar sem CNH cadastrada não atende exigência', L.cnhAtende_([], ['D']) === false);
 
   // RN-10 / RN-11
   let g = L.avaliarGuarnicao_(ar, { MOTORISTA: 1, CHEFE: 1, SOCORRISTA: 1 });
-  ver('mínimo atendido: viatura ativa (RN-10)', g.ativa === true && g.faltando.length === 0, g);
+  ver('mínimo atendido: guarnição ativa (RN-10)', g.ativa === true && g.faltando.length === 0, g);
   g = L.avaliarGuarnicao_(ar, { MOTORISTA: 1, CHEFE: 1 });
-  ver('faltando socorrista: viatura não é ativada e o relatório diz o que falta (RN-10)',
+  ver('faltando socorrista: não é ativada e o relatório diz o que falta (RN-10)',
     g.ativa === false && g.faltando.length === 1 && g.faltando[0].funcao === 'SOCORRISTA' && g.faltando[0].falta === 1, g);
   g = L.avaliarGuarnicao_(ar, { MOTORISTA: 1, CHEFE: 1, SOCORRISTA: 3 });
   ver('no máximo não sobra vaga (RN-11)', g.vagas.SOCORRISTA === 0 && g.vagas.MOTORISTA === 0 && g.ativa === true, g.vagas);
   g = L.avaliarGuarnicao_(ar, { MOTORISTA: 1, CHEFE: 1, SOCORRISTA: 4 });
   ver('acima do máximo é apontado (RN-11)', g.excedendo.length === 1 && g.excedendo[0].funcao === 'SOCORRISTA', g.excedendo);
-  ver('viatura sem função cadastrada não bloqueia nada', L.avaliarGuarnicao_(null, {}).ativa === true);
-  ver('máximo em branco = sem limite', L.avaliarGuarnicao_(L.resolverViaturas_([l('', 'X', '', '', '', '', '', 'CHEFE', 1, '', 2)], '2026-10').porId['X'], { CHEFE: 9 }).vagas.CHEFE === null);
+  ver('guarnição sem função cadastrada não bloqueia nada', L.avaliarGuarnicao_(null, {}).ativa === true);
+  ver('máximo em branco = sem limite', L.avaliarGuarnicao_(L.resolverGuarnicoes_([l('', 'X', '', '', '', '', '', '', 'CHEFE', 1, '', 2)], '2026-10').porId['X'], { CHEFE: 9 }).vagas.CHEFE === null);
 }
 
 console.log('== B36 (RN-94, RN-96, RN-83) as funções de cada serviço vêm do cadastro');
@@ -222,7 +231,7 @@ console.log('== B36 (RN-94, RN-96, RN-83) as funções de cada serviço vêm do 
 
 console.log('== B38 (RN-12) motorista precisa de CNH compatível com a viatura');
 {
-  const L = new Function(['nucleo.js', 'choques.js', 'sincronia.js', 'viaturas.js', 'guarnicao.js'].map(ler).join('\n') +
+  const L = new Function(['nucleo.js', 'choques.js', 'sincronia.js', 'cadastro_guarnicoes.js', 'guarnicao.js'].map(ler).join('\n') +
     '\nreturn {calcularGuarnicao_};')();
   const esc = {
     nome: 'Pronto', servicos: ['Pronto'], militares: 'ESCALADOS', dias: 'TODOS', turnos: ['A'], usaUnidade: true,
@@ -351,6 +360,100 @@ console.log('== B40 (RN-05, RN-13, RN-49) visualização no formato oficial');
     JSON.stringify({ alocacoes: 2, diasComEscala: 2, militares: 2, semUnidade: 0, semFuncao: 0 }));
   ver('militar fora do cadastro aparece pela matrícula, sem quebrar',
     L.montarEscalaOperacional_([a('999', '01', 'Pronto', 'A', 'CHEFE', 'AR')], opc()).dias[0].blocos[0].linhas[0].texto === '999');
+}
+
+console.log('== B37 revisado (camada do Sheets) cadastro antigo de viaturas e migração');
+{
+  // planilha de mentira com a aba GUARNIÇÕES no formato ANTIGO (coluna VIATURA, sem GUARNIÇÃO)
+  const planilha = (cab, linhas) => {
+    const v = [cab].concat(linhas);
+    const aba = {
+      nome: 'GUARNIÇÕES', v: v,
+      getName() { return this.nome; }, setName(n) { this.nome = n; },
+      isSheetHidden: () => false, showSheet() {}, setColumnWidth() {}, setFrozenRows() {}, getLastRow() { return this.v.length; },
+      getLastColumn() { return Math.max.apply(null, this.v.map(r => r.length)); },
+      insertColumnBefore(i) { this.v.forEach(r => { while (r.length < i - 1) r.push(''); r.splice(i - 1, 0, ''); }); },
+      getDataRange() { return this.getRange(1, 1, this.v.length, this.getLastColumn()); },
+      getRange(r, c, nr, nc) {
+        const s = this; nr = nr || 1; nc = nc || 1;
+        const R = {
+          getValues() { const o = []; for (let i = 0; i < nr; i++) { const row = []; for (let j = 0; j < nc; j++) row.push((s.v[r - 1 + i] || [])[c - 1 + j] === undefined ? '' : s.v[r - 1 + i][c - 1 + j]); o.push(row); } return o; },
+          getValue() { return R.getValues()[0][0]; },
+          setValues(m) { m.forEach((row, i) => { while (s.v.length < r + i) s.v.push([]); row.forEach((x, j) => { const t = s.v[r - 1 + i]; while (t.length < c + j) t.push(''); t[c - 1 + j] = x; }); }); return P; },
+          setValue(x) { return R.setValues([[x]]); }
+        };
+        const P = new Proxy(R, { get(t, k) { if (k in t) return t[k]; return () => P; } });
+        return P;
+      }
+    };
+    const ss = { getSheets: () => [aba], getSheetByName: n => (aba.nome === n ? aba : null), getSpreadsheetTimeZone: () => 'America/Recife', insertSheet: n => { aba.nome = n; return aba; }, setActiveSheet() {} };
+    const F = new Function('SpreadsheetApp', 'Utilities', 'LockService',
+      ['nucleo.js', 'matriz.js', 'cadastro_guarnicoes.js', 'cadastro_guarnicoes_painel.js'].map(ler).join('\n') +
+      '\nreturn {cadgLerLinhas_, guarnicoesDoMes_, cadgMigrarParaGuarnicoes_, CADG_CABECALHO_};')(
+      { getActive: () => ss, newDataValidation: () => ({ requireValueInList() { return this; }, setAllowInvalid() { return this; }, build() { return {}; } }) },
+      { formatDate: () => '' }, { getDocumentLock: () => ({ tryLock: () => true, releaseLock() {} }) });
+    return { aba, ss, F };
+  };
+  const CAB_ANTIGO = ['VIGÊNCIA (A PARTIR DE)', 'VIATURA', 'TIPO', 'ATIVAR', 'PRIORIDADE', 'TIPOS DE SERVIÇO', 'CNH', 'FUNÇÃO', 'MÍNIMO', 'MÁXIMO'];
+  let W = planilha(CAB_ANTIGO, [['', 'AR', 'Auto Resgate', 'SIM', 1, '', 'D', 'MOTORISTA', 1, 1], ['', 'AR', '', '', '', '', '', 'CHEFE', 1, 1]]);
+  let r = W.F.guarnicoesDoMes_('2026-11', 'America/Recife');
+  ver('cadastro antigo: cada VIATURA vale como guarnição com o mesmo nome',
+    r.existe && r.guarnicoes.length === 1 && r.guarnicoes[0].id === 'AR' && r.guarnicoes[0].viatura === 'AR' && r.guarnicoes[0].cnh.join() === 'D', r.guarnicoes);
+  ver('e o painel avisa para migrar', r.semColunaGuarnicao === true && r.avisos.some(a => /cadastro antigo/.test(a)), r.avisos);
+
+  const m = W.F.cadgMigrarParaGuarnicoes_();
+  ver('migrar: cria a coluna GUARNIÇÃO antes da VIATURA e copia o nome', m.migrou === true && m.linhas === 2 &&
+    W.aba.v[0][1] === 'GUARNIÇÃO' && W.aba.v[0][2] === 'VIATURA' && W.aba.v[1][1] === 'AR' && W.aba.v[1][2] === 'AR', W.aba.v.slice(0, 2));
+  ver('nada é apagado: as outras colunas continuam na mesma ordem',
+    W.aba.v[0].join('|') === 'VIGÊNCIA (A PARTIR DE)|GUARNIÇÃO|VIATURA|TIPO|ATIVAR|PRIORIDADE|TIPOS DE SERVIÇO|CNH|FUNÇÃO|MÍNIMO|MÁXIMO', W.aba.v[0]);
+  r = W.F.guarnicoesDoMes_('2026-11', 'America/Recife');
+  ver('depois de migrar o aviso some e o cadastro é lido igual', r.semColunaGuarnicao === false && r.guarnicoes[0].id === 'AR' && r.avisos.length === 0, r);
+  ver('migrar de novo não faz nada', W.F.cadgMigrarParaGuarnicoes_().migrou === false);
+
+  // já no formato novo, com guarnição SEM viatura
+  W = planilha(W.F.CADG_CABECALHO_, [['', 'APOIO AQUARTELADO', '', 'Aquartelado', 'SIM', 1, '', 'D', 'MOTORISTA ACO', 1, 1]]);
+  r = W.F.guarnicoesDoMes_('2026-11', 'America/Recife');
+  ver('guarnição sem viatura é lida e exige CNH (RN-96, RN-12)',
+    r.guarnicoes[0].id === 'APOIO AQUARTELADO' && r.guarnicoes[0].viatura === '' && r.guarnicoes[0].cnh.join() === 'D' && !r.semColunaGuarnicao, r.guarnicoes);
+  ver('no formato novo não há aviso de migração', r.avisos.length === 0, r.avisos);
+  ver('sem a aba, o cadastro vem vazio e nada quebra', (() => {
+    const X = planilha(W.F.CADG_CABECALHO_, []); X.aba.nome = 'OUTRA';
+    const y = X.F.guarnicoesDoMes_('2026-11', 'America/Recife');
+    return y.existe === false && y.guarnicoes.length === 0;
+  })());
+}
+
+console.log('== B54 (RN-12, RN-81) a célula diz por que a lista suspensa está vazia');
+{
+  const L = new Function(['nucleo.js', 'choques.js', 'sincronia.js', 'cadastro_guarnicoes.js', 'guarnicao.js'].map(ler).join('\n') +
+    '\nreturn {motivoDaLista_};')();
+  const p = x => Object.assign({ funcao: 'CHEFE', unidade: 'AR', exigeCnh: false, escalaTodos: false, candidatos: 3, motoristas: 1, habilitados: 1, exigida: [], temColunaCnh: true }, x);
+
+  ver('posto comum com candidatos: nenhuma nota', L.motivoDaLista_(p()) === '');
+  let t = L.motivoDaLista_(p({ candidatos: 0 }));
+  ver('posto comum sem ninguém escalado: nota explica e diz o que fazer',
+    /Sem lista/.test(t) && /nenhum militar está escalado neste serviço, dia e turno/.test(t) && /monte a grade de novo/.test(t), t);
+  ver('escala TODOS sem ninguém: a nota não manda escalar', !/monte a grade de novo/.test(L.motivoDaLista_(p({ candidatos: 0, escalaTodos: true }))));
+
+  // posto de condutor (B38/RN-12): a nota sempre explica a restrição
+  t = L.motivoDaLista_(p({ exigeCnh: true, exigida: ['D'], habilitados: 2 }));
+  ver('posto de condutor com habilitados: diz a regra e quantos são',
+    /quadro de motoristas/.test(t) && /CNH D/.test(t) && /guarnição AR/.test(t) && /2 habilitado\(s\)/.test(t), t);
+  t = L.motivoDaLista_(p({ exigeCnh: true, exigida: ['D'], habilitados: 0, motoristas: 0, candidatos: 4 }));
+  ver('nenhum escalado é motorista: a nota diz isso', /Sem lista/.test(t) && /nenhum está marcado como motorista/.test(t) && /4 militares/.test(t), t);
+  t = L.motivoDaLista_(p({ exigeCnh: true, exigida: ['D'], habilitados: 0, motoristas: 2, candidatos: 4 }));
+  ver('motoristas sem a categoria: a nota diz qual categoria falta', /Sem lista/.test(t) && /nenhum tem CNH D/.test(t) && /2 motorista\(s\)/.test(t), t);
+  t = L.motivoDaLista_(p({ exigeCnh: true, exigida: ['D'], habilitados: 0, motoristas: 2, candidatos: 4, temColunaCnh: false }));
+  ver('sem a coluna CNH em MILITARES a nota diz que ninguém tem categoria cadastrada', /não tem a coluna CNH/.test(t), t);
+  t = L.motivoDaLista_(p({ exigeCnh: true, exigida: [], habilitados: 0, motoristas: 0, candidatos: 0 }));
+  ver('posto de condutor sem ninguém no turno: a nota começa pelo motivo', /Sem lista/.test(t) && /nenhum militar está escalado/.test(t), t);
+  t = L.motivoDaLista_(p({ exigeCnh: true, exigida: [], habilitados: 3, cadastrada: true }));
+  ver('guarnição cadastrada sem CNH exigida: a nota só fala do quadro de motoristas', /quadro de motoristas/.test(t) && !/CNH/.test(t), t);
+  t = L.motivoDaLista_(p({ exigeCnh: true, exigida: [], habilitados: 3, cadastrada: false, unidade: 'AR' }));
+  ver('UNIDADE do posto fora do cadastro: a nota aponta o nome que não casa',
+    /A guarnição "AR" do posto não está na aba GUARNIÇÕES/.test(t) && /UNIDADE em MODELOS DE GUARNIÇÃO/.test(t), t);
+  t = L.motivoDaLista_(p({ exigeCnh: true, exigida: [], habilitados: 3, cadastrada: false, unidade: '' }));
+  ver('posto de condutor sem UNIDADE: a nota diz que não há guarnição para exigir categoria', /não tem UNIDADE/.test(t), t);
 }
 
 console.log(`\n${ok} ok, ${falhas} falha(s)`);

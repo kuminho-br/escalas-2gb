@@ -1,7 +1,7 @@
 /**
  * ESCALA DO ORDINÁRIO (formato oficial) — camada do Google Sheets.
  * Depende de nucleo.gs, matriz.gs, choques.gs, guarnicao.gs, guarnicao_painel.gs (cabeçalho e
- * mesPorExtenso_), viaturas_painel.gs (ordem das unidades) e escala_op.gs (a montagem).
+ * mesPorExtenso_), cadastro_guarnicoes_painel.gs (ordem das unidades) e escala_op.gs (a montagem).
  * Botão no painel "Escalas de Serviço" (sidebar_guarnicao.html).
  *
  * B40 (RN-05, RN-13, RN-49): escreve a visualização na aba ESCALA DO ORDINÁRIO, no formato do
@@ -18,7 +18,7 @@ const ESCALA_OP_ABA = 'ESCALA DO ORDINÁRIO';   // B52: chamava-se ESCALA OPERAC
 function ordemDoCadastro_(mes, tz) {
   const ordemUnidades = Object.create(null), ordemFuncoes = Object.create(null);
   let i = 0;
-  viaturasDoMes_(mes, tz).viaturas.forEach(function (v) { ordemUnidades[normalizar_(v.id)] = ++i; });
+  guarnicoesDoMes_(mes, tz).guarnicoes.forEach(function (g) { ordemUnidades[normalizar_(g.id)] = ++i; });
   const mod = lerModelosGuarnicao_();
   Object.keys(mod.escalas || {}).forEach(function (nome) {
     const e = mod.escalas[nome];

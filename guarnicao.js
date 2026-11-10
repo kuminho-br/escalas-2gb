@@ -205,6 +205,48 @@ function funcoesQueExigemCnh_(mod) {
 }
 
 /**
+ * B54 (RN-12, RN-81): o texto da nota da célula do militar, dizendo por que a lista suspensa está
+ * vazia ou curta. Lista vazia não pode ser silenciosa: a célula explica o motivo.
+ *
+ * p = { funcao, unidade, exigeCnh, escalaTodos, candidatos, motoristas, habilitados, exigida: [], temColunaCnh, cadastrada }
+ *   candidatos  quantos militares podiam entrar no posto (numa escala ESCALADOS, só os que já estão
+ *               escalados naquele serviço, dia e turno; numa escala TODOS, o efetivo todo)
+ *   motoristas  quantos desses estão no quadro de motoristas (coluna MOTORISTA de MILITARES)
+ *   habilitados quantos sobraram depois da checagem de CNH (RN-12)
+ *   exigida     categorias exigidas pela guarnição do posto; vazio = a guarnição não exige
+ * Retorna '' quando não há nada a explicar (posto comum com lista cheia).
+ */
+function motivoDaLista_(p) {
+  p = p || {};
+  const quem = p.escalaTodos ? 'nenhum militar na aba MILITARES' : 'nenhum militar está escalado neste serviço, dia e turno';
+  const comoEscalar = p.escalaTodos ? '' : ' Escale alguém (pré-escala ou escala geral) e monte a grade de novo.';
+  if (!p.exigeCnh) {
+    if (p.candidatos > 0) return '';
+    return 'Sem lista: ' + quem + '.' + comoEscalar;
+  }
+  // posto de condutor: a lista é sempre restrita, então a célula sempre explica a restrição
+  let regra = 'Posto de condutor: a lista só traz quem está no quadro de motoristas (coluna MOTORISTA em MILITARES)' +
+    (p.exigida && p.exigida.length ? ' e tem CNH ' + p.exigida.join('/') + ', exigida pela guarnição ' + p.unidade : '') + '.';
+  // a UNIDADE do posto tem de ser o nome de uma guarnição do cadastro; se não for, não há CNH a exigir
+  if (!p.exigida || !p.exigida.length) {
+    if (p.unidade && p.cadastrada === false) {
+      regra += ' A guarnição "' + p.unidade + '" do posto não está na aba GUARNIÇÕES: confira se a UNIDADE em MODELOS DE GUARNIÇÃO é igual à coluna GUARNIÇÃO do cadastro. Sem isso, nenhuma categoria de CNH é exigida aqui.';
+    } else if (!p.unidade) {
+      regra += ' O posto não tem UNIDADE, então não há guarnição para dizer qual categoria exigir.';
+    }
+  }
+  if (p.habilitados > 0) return regra + ' ' + p.habilitados + ' habilitado(s) neste turno.';
+  let porque;
+  if (!p.candidatos) porque = quem + '.' + comoEscalar;
+  else if (!p.motoristas) porque = 'dos ' + p.candidatos + ' militares disponíveis neste turno, nenhum está marcado como motorista em MILITARES.';
+  else if (p.exigida && p.exigida.length) {
+    porque = 'dos ' + p.motoristas + ' motorista(s) disponíveis neste turno, nenhum tem CNH ' + p.exigida.join('/') +
+      (p.temColunaCnh ? '' : ' (a aba MILITARES não tem a coluna CNH, então ninguém tem categoria cadastrada)') + '.';
+  } else porque = 'nenhum motorista disponível neste turno.';
+  return 'Sem lista: ' + porque + ' ' + regra;
+}
+
+/**
  * B36/B38 (RN-94, RN-12): a função do posto exige habilitação?
  * Vale o cadastro (coluna EXIGE CNH da aba MODELOS DE GUARNIÇÃO). Enquanto ninguém marcar nada
  * nessa coluna, cai na ponte com o cadastro antigo (o nome da função contém MOTORISTA) para não
@@ -300,7 +342,7 @@ function montarGrade_(esc, mes, alocs) {
  *             horarios/todas: ativam o bloqueio por choque nas inclusões
  *             motoristas: { matrícula: true } — se vier, avisa motorista fora da lista
  *             funcoesComCnh: { FUNÇÃO: true } do cadastro (B36/RN-94); sem ela vale a ponte pelo nome
- *             cnh: { matrícula: ['B','D'] } e cnhPorUnidade: { VIATURA: ['D'] } — checagem do B38 (RN-12)
+ *             cnh: { matrícula: ['B','D'] } e cnhPorUnidade: { GUARNIÇÃO: ['D'] } — checagem do B38 (RN-12)
  *
  * Retorna { inserir, atualizar, remover, conflitos, invalidas, choques, jaAplicadas, aplicadas, avisosMotorista, resumo }
  */
@@ -351,7 +393,7 @@ function calcularGuarnicao_(base, grade, tabelaMes, esc, opcoes) {
         if (!funcaoExigeCnh_(r.funcao, opcoes.funcoesComCnh)) return;
         // continua avisando quem está numa função de condutor sem estar no quadro de motoristas
         if (!opcoes.motoristas[r.mat]) { res.avisosMotorista.push({ mat: r.mat, dia: r.dia, turno: r.turno, funcao: r.funcao }); return; }
-        // B38 (RN-12): e agora também quem está no quadro mas sem CNH compatível com a viatura
+        // B38 (RN-12): e agora também quem está no quadro mas sem CNH compatível com a guarnição
         const exigida = (opcoes.cnhPorUnidade || Object.create(null))[normalizar_(r.unidade)] || [];
         if (exigida.length && !cnhAtende_((opcoes.cnh || {})[r.mat] || [], exigida)) {
           res.avisosCnh.push({ mat: r.mat, dia: r.dia, turno: r.turno, funcao: r.funcao, unidade: r.unidade, exigida: exigida.join('/') });

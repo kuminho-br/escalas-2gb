@@ -168,7 +168,7 @@ function lerMilitares_() {
       voluntarioJes: c.vjes >= 0 && ['SIM', 'S', 'X', '1', 'TRUE', 'VERDADEIRO'].indexOf(normalizar_(l[c.vjes])) >= 0,
       // RN-12: categoria(s) de CNH do militar, como estão na coluna CNH ("B, D"). Sem a coluna, lista vazia.
       temColunaCnh: c.cnh >= 0,
-      cnh: c.cnh >= 0 ? viatLista_(pega(l, c.cnh)) : []
+      cnh: c.cnh >= 0 ? cadgLista_(pega(l, c.cnh)) : []
     });
   });
   return res;

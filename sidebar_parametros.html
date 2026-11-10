@@ -46,7 +46,7 @@
   <div id="avisos" class="avisoBox" hidden></div>
 
   <div id="carga"></div>
-  <div id="viaturas"></div>
+  <div id="guarnicoes"></div>
   <div id="lista"></div>
 
 <script>
@@ -97,21 +97,23 @@
     box.appendChild(c);
   }
 
-  // B37 (RN-07 a RN-12, RN-93): o cadastro é a aba GUARNIÇÕES; aqui fica só o atalho e um resumo do mês.
-  function desenharViaturas(v) {
-    var box = el('viaturas');
+  // B37 revisado (RN-07 a RN-12, RN-93, RN-96): o cadastro é a aba GUARNIÇÕES (a viatura é
+  // opcional); aqui fica só o atalho e um resumo do mês.
+  function desenharGuarnicoes(v) {
+    var box = el('guarnicoes');
     box.textContent = '';
     if (!v) return;
     var c = criar('div', null, 'resumo');
-    c.appendChild(criar('div', 'Viaturas (guarnição mínima e máxima, tipos de serviço e CNH)', 'grupo'));
+    c.appendChild(criar('div', 'Guarnições (viatura, guarnição mínima e máxima, tipos de serviço e CNH)', 'grupo'));
     if (!v.existe) {
-      c.appendChild(criar('div', 'A aba GUARNIÇÕES ainda não existe. O botão cria a aba com o cabeçalho e um exemplo.'));
+      c.appendChild(criar('div', 'A aba GUARNIÇÕES ainda não existe. O botão cria a aba com o cabeçalho e dois exemplos: uma guarnição com viatura e uma sem.'));
     } else if (v.total === 0) {
-      c.appendChild(criar('div', 'A aba GUARNIÇÕES existe, mas nenhuma viatura vale neste mês.'));
+      c.appendChild(criar('div', 'A aba GUARNIÇÕES existe, mas nenhuma guarnição vale neste mês.'));
     } else {
-      c.appendChild(criar('div', v.total + ' viatura(s) cadastrada(s) neste mês, ' + v.ativar + ' para ativar.'));
+      c.appendChild(criar('div', v.total + ' guarnição(ões) cadastrada(s) neste mês, ' + v.ativar + ' para ativar.'));
       v.lista.forEach(function (x) {
-        var t = x.id + (x.tipo ? ' (' + x.tipo + ')' : '') + ': ' + (x.ativar ? 'ativar' : 'não ativar') +
+        var t = x.id + (x.viatura ? ' [viatura ' + x.viatura + ']' : ' [sem viatura]') +
+          (x.tipo ? ' (' + x.tipo + ')' : '') + ': ' + (x.ativar ? 'ativar' : 'não ativar') +
           (x.prioridade === '' ? '' : ', prioridade ' + x.prioridade) +
           (x.cnh ? ', CNH ' + x.cnh : '') +
           (x.funcoes ? ' · ' + x.funcoes : '');
@@ -126,9 +128,23 @@
     var b = criar('button', 'Abrir aba', 'leve');
     b.addEventListener('click', function () {
       trava(true);
-      google.script.run.withSuccessHandler(function () { trava(false); carregar(estado.mes); }).withFailureHandler(falha).painelViaturasAbrir();
+      google.script.run.withSuccessHandler(function () { trava(false); carregar(estado.mes); }).withFailureHandler(falha).painelGuarnicoesAbrir();
     });
     linha.appendChild(b);
+    if (v.semColunaGuarnicao) {
+      var bm = criar('button', 'Migrar para guarnições', 'leve');
+      bm.addEventListener('click', function () {
+        trava(true);
+        google.script.run.withSuccessHandler(function (r) {
+          trava(false);
+          mostrarOk(r && r.migrou
+            ? 'Coluna GUARNIÇÃO criada na aba GUARNIÇÕES, com o nome da viatura copiado em ' + r.linhas + ' linha(s). Nada foi apagado: ajuste os nomes e apague a VIATURA das guarnições que não têm viatura.'
+            : 'O cadastro já está no formato de guarnições.');
+          carregar(estado.mes);
+        }).withFailureHandler(falha).painelGuarnicoesMigrar();
+      });
+      linha.appendChild(bm);
+    }
     if (!v.temColunaCnh) {
       var bc = criar('button', 'Criar coluna CNH', 'leve');
       bc.addEventListener('click', function () {
@@ -137,7 +153,7 @@
           trava(false);
           mostrarOk(r && r.criada ? 'Coluna CNH criada na aba MILITARES (vazia: preencha as categorias).' : 'A coluna CNH já existe.');
           carregar(estado.mes);
-        }).withFailureHandler(falha).painelViaturasColunaCnh();
+        }).withFailureHandler(falha).painelGuarnicoesColunaCnh();
       });
       linha.appendChild(bc);
     }
@@ -157,7 +173,7 @@
     av.hidden = !(d.avisos && d.avisos.length);
 
     desenharResumo(d);
-    desenharViaturas(d.viaturas);
+    desenharGuarnicoes(d.guarnicoes);
 
     var lista = el('lista');
     lista.textContent = '';

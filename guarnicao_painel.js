@@ -201,7 +201,7 @@ function analisarGuarnicao_(tz) {
 /**
  * B36/B38 (RN-94, RN-12): o que o código precisa saber sobre condutores, tudo vindo de cadastro:
  * quais funções exigem CNH (coluna EXIGE CNH de MODELOS DE GUARNIÇÃO), a CNH de cada militar
- * (coluna CNH de MILITARES) e a categoria exigida por viatura (aba GUARNIÇÕES, no mês da grade).
+ * (coluna CNH de MILITARES) e a categoria exigida pela guarnição (aba GUARNIÇÕES, no mês da grade).
  */
 function contextoDeCnh_(mod, mil, mes, tz) {
   const avisos = [];
@@ -217,14 +217,19 @@ function contextoDeCnh_(mod, mil, mes, tz) {
   const cnh = Object.create(null);
   mil.forEach(function (m) { if (!(m.mat in cnh)) cnh[m.mat] = m.cnh || []; });
 
-  const cnhPorUnidade = Object.create(null);
-  const viat = viaturasDoMes_(mes, tz);
-  viat.viaturas.forEach(function (v) { if (v.cnh.length) cnhPorUnidade[normalizar_(v.id)] = v.cnh; });
+  // B37 revisado: a CNH exigida é da GUARNIÇÃO, com ou sem viatura (o motorista do ACO é guarnição
+  // sem viatura). A chave é o nome da guarnição, que é o que a coluna UNIDADE do posto traz.
+  const cnhPorUnidade = Object.create(null), unidadesCadastradas = Object.create(null);
+  const cad = guarnicoesDoMes_(mes, tz);
+  cad.guarnicoes.forEach(function (g) {
+    unidadesCadastradas[normalizar_(g.id)] = true;
+    if (g.cnh.length) cnhPorUnidade[normalizar_(g.id)] = g.cnh;
+  });
   if (Object.keys(cnhPorUnidade).length && !temColunaCnh) {
-    avisos.push('Há viatura que exige categoria de CNH, mas a aba MILITARES não tem a coluna CNH (RN-12): a checagem de habilitação fica desligada (vale só o quadro de motoristas).');
-    return { funcoesComCnh: funcoesComCnh, cnh: cnh, cnhPorUnidade: Object.create(null), temColunaCnh: false, avisos: avisos };
+    avisos.push('Há guarnição que exige categoria de CNH, mas a aba MILITARES não tem a coluna CNH (RN-12): a checagem de habilitação fica desligada (vale só o quadro de motoristas).');
+    return { funcoesComCnh: funcoesComCnh, cnh: cnh, cnhPorUnidade: Object.create(null), unidadesCadastradas: unidadesCadastradas, temColunaCnh: false, avisos: avisos };
   }
-  return { funcoesComCnh: funcoesComCnh, cnh: cnh, cnhPorUnidade: cnhPorUnidade, temColunaCnh: temColunaCnh, avisos: avisos };
+  return { funcoesComCnh: funcoesComCnh, cnh: cnh, cnhPorUnidade: cnhPorUnidade, unidadesCadastradas: unidadesCadastradas, temColunaCnh: temColunaCnh, avisos: avisos };
 }
 
 const LIMITE_LISTA_G_ = 40;
@@ -277,7 +282,7 @@ function resumoParaTelaG_(a, nomes) {
     return (nomes[x.mat] || x.mat) + ' em ' + x.funcao + ' (' + dm_(x.dia) + ' ' + x.turno + ') não está marcado como motorista na aba MILITARES.';
   });
   if (r.avisosMotorista.length > 10) avisosMot.push('e mais ' + (r.avisosMotorista.length - 10) + ' aviso(s) de motorista.');
-  // B38 (RN-12): quem está no quadro de motoristas mas sem CNH compatível com a viatura do posto
+  // B38 (RN-12): quem está no quadro de motoristas mas sem CNH compatível com a guarnição do posto
   (r.avisosCnh || []).slice(0, 10).forEach(function (x) {
     avisosMot.push((nomes[x.mat] || x.mat) + ' em ' + x.funcao + ' (' + dm_(x.dia) + ' ' + x.turno + ') não tem CNH ' + x.exigida + ', exigida pela viatura ' + x.unidade + ' (RN-12).');
   });
@@ -374,10 +379,15 @@ function painelGuarnicaoMontar(escala, mes) {
   const grade = montarGrade_(esc, mes, todas);
   const mil = lerMilitares_();
   const hor = lerHorarios_();
-  renderizarGrade_(esc, mes, grade, todas, mil, hor, tz, contextoDeCnh_(mod, mil, mes, tz));
+  const ctxCnh = contextoDeCnh_(mod, mil, mes, tz);
+  const rend = renderizarGrade_(esc, mes, grade, todas, mil, hor, tz, ctxCnh);
   salvarBaseGuarnicao_({ escala: esc.nome, mes: mes }, grade.base);
   SpreadsheetApp.flush();
-  return { ok: true, vagas: grade.vagas, preenchidas: grade.preenchidas, semFuncao: grade.escaladosSemFuncao };
+  return {
+    ok: true, vagas: grade.vagas, preenchidas: grade.preenchidas, semFuncao: grade.escaladosSemFuncao,
+    semLista: rend.semLista, postosDeCondutor: rend.postosDeCondutor,   // B54
+    avisos: ctxCnh.avisos
+  };
 }
 
 function painelGuarnicaoPrevia() {
@@ -496,9 +506,10 @@ function renderizarGrade_(esc, mes, grade, todas, mil, hor, tz, ctxCnh) {
   }
   const regraPorBloco = Object.create(null);
   // B38 (RN-12): num posto que exige CNH, a lista só traz quem está no quadro de motoristas e tem
-  // categoria compatível com a viatura (coluna UNIDADE) daquele posto. Sem viatura vinculada, vale
-  // só o quadro de motoristas. Nada disso está escrito no código: vem das abas de cadastro.
-  const cnhCtx = ctxCnh || { funcoesComCnh: Object.create(null), cnh: Object.create(null), cnhPorUnidade: Object.create(null) };
+  // categoria compatível com a guarnição do posto (coluna UNIDADE casada com a coluna GUARNIÇÃO do
+  // cadastro — a guarnição pode não ter viatura). Sem exigência cadastrada, vale só o quadro de
+  // motoristas. Nada disso está escrito no código: vem das abas de cadastro.
+  const cnhCtx = ctxCnh || { funcoesComCnh: Object.create(null), cnh: Object.create(null), cnhPorUnidade: Object.create(null), unidadesCadastradas: Object.create(null) };
   const todosOsMats = mil.map(function (m) { return m.mat; });
   const condutoresDe = function (unidade, candidatos) {
     const exigida = cnhCtx.cnhPorUnidade[normalizar_(unidade)] || [];
@@ -511,6 +522,9 @@ function renderizarGrade_(esc, mes, grade, todas, mil, hor, tz, ctxCnh) {
   const listaEmRegra = function (lista) {
     return lista.length ? SpreadsheetApp.newDataValidation().requireValueInList(lista.map(rotulo).sort(), true).setAllowInvalid(false).build() : null;
   };
+  // B54 (RN-12, RN-81): nenhuma célula fica sem lista sem dizer por quê; a nota explica.
+  const notas = [];
+  let semLista = 0, postosDeCondutor = 0;
   let anterior = '';
   grade.linhas.forEach(function (l) {
     const bloco = l.dia + '|' + l.turno;
@@ -526,16 +540,31 @@ function renderizarGrade_(esc, mes, grade, todas, mil, hor, tz, ctxCnh) {
     rows.push([Utilities.parseDate(l.dia, tz, 'yyyy-MM-dd'), GUARN_DIAS_SEMANA_[diaDaSemana_(l.dia)], l.turno, horarioTurno[l.turno], l.unidade, l.funcao, l.mat ? rotulo(l.mat) : '', l.servico, obs]);
 
     const candidatos = esc.militares === 'TODOS' ? todosOsMats : (escaladosNoBloco[bloco] || []);
+    let regra, nota = '';
     if (exigeCnh) {                                       // B38 (RN-12)
+      postosDeCondutor++;
       const k = bloco + '#' + chaveSlot_(l.unidade, l.funcao);
-      if (!(k in regraPorBloco)) regraPorBloco[k] = listaEmRegra(condutoresDe(l.unidade, candidatos));
-      regras.push([regraPorBloco[k]]);
+      const habilitados = condutoresDe(l.unidade, candidatos);
+      if (!(k in regraPorBloco)) regraPorBloco[k] = listaEmRegra(habilitados);
+      regra = regraPorBloco[k];
+      nota = motivoDaLista_({
+        funcao: l.funcao, unidade: l.unidade, exigeCnh: true, escalaTodos: esc.militares === 'TODOS',
+        candidatos: candidatos.length,
+        motoristas: candidatos.filter(function (mat) { return milPorMat[mat] && milPorMat[mat].motorista; }).length,
+        habilitados: habilitados.length, exigida: cnhCtx.cnhPorUnidade[normalizar_(l.unidade)] || [],
+        temColunaCnh: !!cnhCtx.temColunaCnh,
+        cadastrada: !!(cnhCtx.unidadesCadastradas || {})[normalizar_(l.unidade)]
+      });
     } else if (esc.militares === 'TODOS') {
-      regras.push([regraGeral]);
+      regra = regraGeral;
     } else {
       if (!(bloco in regraPorBloco)) regraPorBloco[bloco] = listaEmRegra(candidatos);
-      regras.push([regraPorBloco[bloco]]);
+      regra = regraPorBloco[bloco];
+      nota = motivoDaLista_({ funcao: l.funcao, unidade: l.unidade, exigeCnh: false, escalaTodos: false, candidatos: candidatos.length });
     }
+    if (!regra) semLista++;
+    regras.push([regra]);
+    notas.push([nota]);
   });
 
   if (n > 0) {
@@ -543,6 +572,7 @@ function renderizarGrade_(esc, mes, grade, todas, mil, hor, tz, ctxCnh) {
     aba.getRange(r0, 1, n, L.NCOLS).setValues(rows);
     aba.getRange(r0, L.DATA, n, 1).setNumberFormat('dd/MM/yyyy');
     aba.getRange(r0, L.MILITAR, n, 1).setDataValidations(regras);
+    aba.getRange(r0, L.MILITAR, n, 1).setNotes(notas);                  // B54: a célula diz por que a lista está vazia ou curta
     aba.getRange(r0, L.OBS, n, 1).setFontColor('#B31412');
 
     // fim de semana em cinza e uma linha grossa entre os dias
@@ -568,6 +598,7 @@ function renderizarGrade_(esc, mes, grade, todas, mil, hor, tz, ctxCnh) {
   [90, 100, 60, 90, 170, 190, 230, 90, 300].forEach(function (w, k) { aba.setColumnWidth(k + 1, w); });
   aba.setFrozenRows(L.CAB);
   ss.setActiveSheet(aba);
+  return { semLista: semLista, postosDeCondutor: postosDeCondutor };
 }
 
 /** Lista de todos os militares (hoje: qualquer seção) numa aba oculta, para o dropdown das escalas "TODOS". */
