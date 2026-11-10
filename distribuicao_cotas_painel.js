@@ -13,7 +13,8 @@
  *                   DATA é a data inteira do plantão (tipo data, dd/mm/aaaa); o mês vem dela (B31/RN-40).
  *                   Uma linha por dia e turno em que o militar se voluntariou (A, B ou C). SERVIÇO ACEITO: "todos" ou
  *                   o nome de um serviço. Quem tem ao menos uma linha no mês preencheu o formulário (RN-41).
- * Vagas por turno: aba MODELOS DE GUARNIÇÃO (soma das vagas de todas as funções do turno; as funções não entram agora).
+ * Vagas por turno: as guarnições vinculadas em GUARNIÇÕES POR ESCALA (B58), soma das vagas (MÁXIMO) de
+ * todas as funções delas no cadastro de GUARNIÇÕES; as funções em si não entram agora.
  * Horários e tipo de serviço: aba TURNOS.
  */
 
@@ -125,7 +126,7 @@ function lerVoluntariado_(mes, tz) {
 function cotasCalcular_(mes, secao, tz) {
   const hor = lerHorarios_();
   const tipos = lerTiposDeServico_();
-  const mod = lerModelosGuarnicao_();
+  const mod = lerModelosGuarnicao_(mes, tz);
   const cotas = lerCotas_(mes, secao, tz);
   const vol = lerVoluntariado_(mes, tz);
   const todasComExp = alocsComExpediente_(lerAlocacoes_(tz).alocs, hor, tz);
@@ -155,7 +156,7 @@ function cotasCalcular_(mes, secao, tz) {
   if (!cotas.existe) avisos.push('A aba COTAS não existe. Crie-a pelo botão "Criar abas e coluna que faltam".');
   else if (!cotas.linhas.length) avisos.push('A aba COTAS não tem cotas de ' + secao + ' em ' + mes + '.');
   if (!vol.existe) avisos.push('A aba VOLUNTARIADO não existe. Crie-a pelo botão "Criar abas e coluna que faltam".');
-  if (mod.semAbas) avisos.push('As abas ESCALAS e MODELOS DE GUARNIÇÃO não existem; sem elas não há vagas por operação.');
+  if (mod.semAbas) avisos.push('As abas ESCALAS e GUARNIÇÕES POR ESCALA não existem; sem elas não há vagas por operação.');
 
   const diasMes = diasDoMes_(mes);
   const operacoes = [], cotasEntrada = [], ignoradas = Object.create(null);
@@ -176,10 +177,10 @@ function cotasCalcular_(mes, secao, tz) {
         const m = /^ESCALAS: "(.+)" ignorada/.exec(a);
         return m && normalizar_(m[1]) === normalizar_(nome);
       })[0] || '';
-      if (mod.semAbas) semCadastro(nome, '"' + nome + '" sem vagas: crie as abas ESCALAS e MODELOS DE GUARNIÇÃO e cadastre a escala, os turnos e as funções.');
-      else if (ignorada.indexOf('MODELOS DE GUARNIÇÃO') >= 0) semCadastro(nome, '"' + nome + '" sem vagas: cadastre os turnos e as funções dela em MODELOS DE GUARNIÇÃO.');
+      if (mod.semAbas) semCadastro(nome, '"' + nome + '" sem vagas: crie as abas ESCALAS e GUARNIÇÕES POR ESCALA, cadastre a escala e vincule as guarnições de cada turno.');
+      else if (ignorada.indexOf('GUARNIÇÕES POR ESCALA') >= 0) semCadastro(nome, '"' + nome + '" sem vagas: vincule as guarnições de cada turno dela em GUARNIÇÕES POR ESCALA (com as funções cadastradas em GUARNIÇÕES).');
       else if (ignorada) semCadastro(nome, '"' + nome + '": a escala foi ignorada porque o serviço dela não existe na aba TURNOS. Confira a coluna SERVIÇOS em ESCALAS.');
-      else semCadastro(nome, '"' + nome + '" não está na aba ESCALAS: cadastre a escala (nome e serviço) em ESCALAS e os turnos e funções em MODELOS DE GUARNIÇÃO.');
+      else semCadastro(nome, '"' + nome + '" não está na aba ESCALAS: cadastre a escala (nome e serviço) em ESCALAS e vincule as guarnições em GUARNIÇÕES POR ESCALA.');
       return;
     }
     const esc = mod.escalas[chave];

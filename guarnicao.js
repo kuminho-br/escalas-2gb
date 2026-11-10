@@ -5,7 +5,13 @@
  *
  * IDEIA
  *   Cada ESCALA (Defensoria, PE Seguro, Bioma, CPRH, Pronto...) tem um molde:
- *   quais postos (função, e opcionalmente a unidade) existem em cada turno.
+ *   quais postos (guarnição e função) existem em cada turno.
+ *
+ *   B58 (RN-07 a RN-12, RN-93, RN-96): o molde sai de DUAS abas, cada uma com um papel só.
+ *     GUARNIÇÕES           a composição de cada guarnição (função, mínimo, máximo, CNH)
+ *     GUARNIÇÕES POR ESCALA o vínculo: VIGÊNCIA | ESCALA | TURNO | GUARNIÇÃO
+ *   Cada guarnição vinculada a uma escala/turno vira um posto por vaga de cada função dela
+ *   (vinculosParaModelo_). A composição não se repete por escala: muda num lugar só.
  *   A grade mostra, para cada dia e turno, uma linha por posto. Quem ocupa o
  *   posto fica gravado na própria alocação (colunas FUNÇÃO e UNIDADE da tabela
  *   ALOCAÇÕES): não existe uma segunda tabela de "quem faz o quê".
@@ -62,16 +68,110 @@ function chaveSlot_(unidade, funcao) { return normalizar_(unidade) + '|' + norma
 
 /* ------------------------------------------------------------ modelos */
 
+const GUARN_VINCULO_ABA_ = 'GUARNIÇÕES POR ESCALA';
+
+/**
+ * B58 itens 2 e 3 (RN-09, RN-93, RN-10 a RN-12): do vínculo ESCALA/TURNO → GUARNIÇÃO para as
+ * linhas de posto que montarModelosGuarnicao_ entende.
+ *
+ * vinculos: [{ linha, vigencia, escala, turno, guarnicao }]   (aba GUARNIÇÕES POR ESCALA)
+ * cadastro: resultado de resolverGuarnicoes_ no MÊS pedido     (aba GUARNIÇÕES)
+ * mes     : 'aaaa-mm'
+ *
+ * VIGÊNCIA (RN-93), por ESCALA: vale o conjunto de linhas da vigência mais recente que não passa
+ * do mês. Mudar o vínculo de uma escala a partir de um mês = escrever de novo, com a vigência
+ * nova, as linhas dela (todas as que continuam valendo). Um mês já fechado continua lendo as
+ * antigas. Vazio = desde sempre.
+ *
+ * Cada função da guarnição vira uma linha de posto com:
+ *   vagas    = MÁXIMO (sem máximo: o MÍNIMO, e pelo menos 1) — é quantos postos a grade mostra
+ *   exigeCnh = a função tem CNH no cadastro (B58 item 3: é ela a de condutor)
+ *   cnh      = as categorias exigidas dessa função
+ * Guarnição que não está no cadastro, desativada no mês (RN-07) ou sem função: não gera posto, e
+ * avisa. Retorna { linhas: [{ escala, turno, unidade, funcao, vagas, exigeCnh, cnh, guarnicao }], avisos }.
+ */
+function vinculosParaModelo_(vinculos, cadastro, mes) {
+  const avisos = [], linhas = [];
+  const t = function (v) { return String(v == null ? '' : v).trim(); };
+  const onde = function (l) { return GUARN_VINCULO_ABA_ + ', linha ' + l.linha; };
+  const validas = [];
+  (vinculos || []).forEach(function (l) {
+    if (!t(l.escala) && !t(l.guarnicao)) return;                                  // linha vazia
+    if (!t(l.escala)) { avisos.push(onde(l) + ': GUARNIÇÃO "' + t(l.guarnicao) + '" sem ESCALA; linha ignorada.'); return; }
+    if (!t(l.guarnicao)) { avisos.push(onde(l) + ': a escala "' + t(l.escala) + '" está sem GUARNIÇÃO; linha ignorada.'); return; }
+    const vig = cadgVigencia_(l.vigencia);
+    if (!vig.ok) { avisos.push(onde(l) + ': vigência "' + t(l.vigencia) + '" inválida (use aaaa-mm); linha ignorada.'); return; }
+    if (vig.valor !== '' && vig.valor > mes) return;                              // ainda não vale (RN-93)
+    validas.push({ l: l, vig: vig.valor, esc: normalizar_(l.escala) });
+  });
+  // a vigência mais recente de cada escala
+  const vigDaEscala = Object.create(null);
+  validas.forEach(function (v) { if (!(v.esc in vigDaEscala) || v.vig > vigDaEscala[v.esc]) vigDaEscala[v.esc] = v.vig; });
+
+  const vistos = Object.create(null);
+  validas.filter(function (v) { return v.vig === vigDaEscala[v.esc]; }).forEach(function (v) {
+    const l = v.l;
+    const turno = t(l.turno) || 'TODOS';
+    const k = v.esc + '|' + normalizar_(turno) + '|' + normalizar_(l.guarnicao);
+    if (vistos[k]) { avisos.push(onde(l) + ': "' + t(l.guarnicao) + '" já está vinculada à escala "' + t(l.escala) + '" no turno ' + turno + '; a repetição foi ignorada.'); return; }
+    vistos[k] = true;
+    const g = cadastro && cadastro.porId ? cadastro.porId[normalizar_(l.guarnicao)] : null;
+    if (!g) {
+      avisos.push(onde(l) + ': a guarnição "' + t(l.guarnicao) + '" não está na aba GUARNIÇÕES em ' + mes + ' (confira se o nome é igual ao da coluna GUARNIÇÃO de lá). Ela não gera posto na escala "' + t(l.escala) + '".');
+      return;
+    }
+    if (!g.ativar) { avisos.push(onde(l) + ': a guarnição "' + g.id + '" está com ATIVAR = NÃO em ' + mes + ' (RN-07); ela não gera posto na escala "' + t(l.escala) + '".'); return; }
+    if (!g.funcoes.length) { avisos.push(onde(l) + ': a guarnição "' + g.id + '" não tem nenhuma função cadastrada em GUARNIÇÕES; ela não gera posto.'); return; }
+    g.funcoes.forEach(function (f) {
+      const vagas = f.maximo !== null ? f.maximo : Math.max(f.minimo, 1);
+      linhas.push({ escala: t(l.escala), turno: turno, unidade: g.id, funcao: f.funcao, vagas: vagas, exigeCnh: f.cnh.length > 0, cnh: f.cnh.slice(), guarnicao: g.id });
+    });
+  });
+  return { linhas: linhas, avisos: avisos };
+}
+
+/**
+ * B58 item 2: as linhas do formato antigo (ex-MODELOS DE GUARNIÇÃO) viram vínculos.
+ * linhas: [{ escala, turno, unidade }] — uma por função, como era. Cada ESCALA + TURNO + UNIDADE
+ * preenchida vira UM vínculo, com a UNIDADE como GUARNIÇÃO (o mesmo valor, coluna renomeada).
+ * Linha sem UNIDADE não tem guarnição para vincular e não vira nada.
+ * Retorna { linhas: [{ escala, turno, guarnicao }], semUnidade, escalasSemVinculo: [nomes] }.
+ */
+function converterVinculosAntigos_(linhas) {
+  const t = function (v) { return String(v == null ? '' : v).trim(); };
+  const out = [], vistos = Object.create(null), comVinculo = Object.create(null), escalas = [];
+  let semUnidade = 0;
+  (linhas || []).forEach(function (l) {
+    const esc = t(l.escala);
+    if (!esc) return;
+    if (escalas.indexOf(esc) < 0) escalas.push(esc);
+    const uni = t(l.unidade);
+    if (!uni) { semUnidade++; return; }
+    const turno = t(l.turno) || 'TODOS';
+    const k = normalizar_(esc) + '|' + normalizar_(turno) + '|' + normalizar_(uni);
+    comVinculo[esc] = true;
+    if (vistos[k]) return;
+    vistos[k] = true;
+    out.push({ escala: esc, turno: turno, guarnicao: uni });
+  });
+  return { linhas: out, semUnidade: semUnidade, escalasSemVinculo: escalas.filter(function (e) { return !comVinculo[e]; }) };
+}
+
 /**
  * linhasEscalas : [{ escala, servicos, titulo, militares, dias }]       (textos da aba ESCALAS)
- * linhasModelo  : [{ escala, turno, unidade, funcao, vagas }]           (textos da aba MODELOS DE GUARNIÇÃO)
+ * linhasModelo  : [{ escala, turno, unidade, funcao, vagas, exigeCnh, cnh }]
+ *                 B58: vêm de vinculosParaModelo_ (exigeCnh booleano, cnh = categorias da função).
+ *                 No formato antigo de GUARNIÇÕES POR ESCALA (ex-MODELOS DE GUARNIÇÃO: UNIDADE,
+ *                 FUNÇÃO, VAGAS, EXIGE CNH) vêm direto da aba, com exigeCnh em texto.
  * turnosPorServico : { 'Pronto': ['A','B'], ... }                      (aba TURNOS, na ordem em que aparecem)
+ * opcoes        : { aba } — o nome da aba de postos, para os avisos
  *
- * Retorna { escalas: { nome: {nome, servicos[], titulo, militares, dias, turnos[], slots:{turno:[{unidade,funcao,vagas}]}, usaUnidade} },
+ * Retorna { escalas: { nome: {nome, servicos[], titulo, militares, dias, turnos[], slots:{turno:[{unidade,funcao,vagas,exigeCnh,cnh}]}, usaUnidade} },
  *           ordem: [nomes], avisos: [texto] }
  * Escala com problema grave (serviço inexistente, sem molde) é descartada COM aviso.
  */
-function montarModelosGuarnicao_(linhasEscalas, linhasModelo, turnosPorServico) {
+function montarModelosGuarnicao_(linhasEscalas, linhasModelo, turnosPorServico, opcoes) {
+  const ABA = (opcoes && opcoes.aba) || GUARN_VINCULO_ABA_;
   const avisos = [], escalas = Object.create(null), ordem = [];
   const servicoPorNome = Object.create(null);
   Object.keys(turnosPorServico).forEach(function (s) { servicoPorNome[normalizar_(s)] = s; });
@@ -124,9 +224,9 @@ function montarModelosGuarnicao_(linhasEscalas, linhasModelo, turnosPorServico) 
     const nomeEsc = t(l.escala);
     if (!nomeEsc && !t(l.funcao)) return;                          // linha vazia
     const esc = achar(nomeEsc);
-    if (!esc) { avisos.push('MODELOS DE GUARNIÇÃO: a escala "' + nomeEsc + '" não existe (ou foi ignorada) na aba ESCALAS; essa linha foi ignorada.'); return; }
+    if (!esc) { avisos.push(ABA + ': a escala "' + nomeEsc + '" não existe (ou foi ignorada) na aba ESCALAS; essa linha foi ignorada.'); return; }
     const funcao = t(l.funcao);
-    if (!funcao) { avisos.push('MODELOS DE GUARNIÇÃO: linha sem FUNÇÃO na escala "' + esc.nome + '"; ignorada.'); return; }
+    if (!funcao) { avisos.push(ABA + ': linha sem FUNÇÃO na escala "' + esc.nome + '"; ignorada.'); return; }
 
     let alvo;
     const bruto = t(l.turno);
@@ -135,17 +235,19 @@ function montarModelosGuarnicao_(linhasEscalas, linhasModelo, turnosPorServico) 
 
     let vagas = parseInt(String(l.vagas == null ? '' : l.vagas).trim(), 10);
     if (!(vagas >= 1)) {
-      if (t(l.vagas) !== '') avisos.push('MODELOS DE GUARNIÇÃO: VAGAS inválido ("' + t(l.vagas) + '") em "' + esc.nome + ' / ' + funcao + '"; usando 1.');
+      if (t(l.vagas) !== '') avisos.push(ABA + ': VAGAS inválido ("' + t(l.vagas) + '") em "' + esc.nome + ' / ' + funcao + '"; usando 1.');
       vagas = 1;
     }
     if (vagas > 20) vagas = 20;
 
-    // B36 (RN-94): se a função exige habilitação é cadastro (coluna EXIGE CNH), não nome escrito no código
-    const exigeCnh = ['SIM', 'S', 'X', '1', 'TRUE', 'VERDADEIRO'].indexOf(normalizar_(l.exigeCnh)) >= 0;
+    // B36 (RN-94): se a função exige habilitação é cadastro, não nome escrito no código.
+    // B58 item 3: vem da CNH da função em GUARNIÇÕES (booleano); no formato antigo, da coluna EXIGE CNH.
+    const exigeCnh = typeof l.exigeCnh === 'boolean' ? l.exigeCnh : ['SIM', 'S', 'X', '1', 'TRUE', 'VERDADEIRO'].indexOf(normalizar_(l.exigeCnh)) >= 0;
+    const cnh = Array.isArray(l.cnh) ? l.cnh.slice() : null;      // null = formato antigo (a categoria vem da guarnição)
 
     alvo.forEach(function (turno) {
-      if (!esc.slots[turno]) { avisos.push('MODELOS DE GUARNIÇÃO: o turno "' + turno + '" não existe nos serviços da escala "' + esc.nome + '"; ignorado.'); return; }
-      esc.slots[turno].push({ unidade: t(l.unidade), funcao: funcao, vagas: vagas, exigeCnh: exigeCnh });
+      if (!esc.slots[turno]) { avisos.push(ABA + ': o turno "' + turno + '" não existe nos serviços da escala "' + esc.nome + '"; ignorado.'); return; }
+      esc.slots[turno].push({ unidade: t(l.unidade), funcao: funcao, vagas: vagas, exigeCnh: exigeCnh, cnh: cnh });
       if (t(l.unidade)) esc.usaUnidade = true;
     });
   });
@@ -154,7 +256,7 @@ function montarModelosGuarnicao_(linhasEscalas, linhasModelo, turnosPorServico) 
     const e = escalas[nome];
     const total = e.turnos.reduce(function (n, x) { return n + e.slots[x].length; }, 0);
     if (total === 0) {
-      avisos.push('ESCALAS: "' + nome + '" ignorada: não há linhas para ela na aba MODELOS DE GUARNIÇÃO.');
+      avisos.push('ESCALAS: "' + nome + '" ignorada: não há linhas para ela na aba ' + ABA + '.');
       delete escalas[nome];
       ordem.splice(ordem.indexOf(nome), 1);
     }
@@ -163,7 +265,7 @@ function montarModelosGuarnicao_(linhasEscalas, linhasModelo, turnosPorServico) 
 }
 
 /**
- * B36 (RN-94): as funções de um serviço vêm do cadastro (abas ESCALAS + MODELOS DE GUARNIÇÃO),
+ * B36 (RN-94): as funções de um serviço vêm do cadastro (abas ESCALAS + GUARNIÇÕES POR ESCALA + GUARNIÇÕES),
  * nunca de uma lista escrita no código — cada serviço tem a sua (RN-83) e ela muda com o tempo.
  * Com turno, só as funções daquele turno. Retorna [{ funcao, unidade, exigeCnh, escala }], sem repetir.
  */
@@ -227,12 +329,14 @@ function motivoDaLista_(p) {
   // posto de condutor: a lista é sempre restrita, então a célula sempre explica a restrição
   let regra = 'Posto de condutor: a lista só traz quem está no quadro de motoristas (coluna MOTORISTA em MILITARES)' +
     (p.exigida && p.exigida.length ? ' e tem CNH ' + p.exigida.join('/') + ', exigida pela guarnição ' + p.unidade : '') + '.';
-  // a UNIDADE do posto tem de ser o nome de uma guarnição do cadastro; se não for, não há CNH a exigir
+  // a guarnição do posto tem de estar no cadastro; se não estiver, não há CNH a exigir.
+  // B58: com o vínculo novo isso não acontece (guarnição fora do cadastro nem gera posto); fica
+  // para o formato antigo de GUARNIÇÕES POR ESCALA, em que a guarnição era a coluna UNIDADE.
   if (!p.exigida || !p.exigida.length) {
     if (p.unidade && p.cadastrada === false) {
-      regra += ' A guarnição "' + p.unidade + '" do posto não está na aba GUARNIÇÕES: confira se a UNIDADE em MODELOS DE GUARNIÇÃO é igual à coluna GUARNIÇÃO do cadastro. Sem isso, nenhuma categoria de CNH é exigida aqui.';
+      regra += ' A guarnição "' + p.unidade + '" do posto não está na aba GUARNIÇÕES: confira se o nome em GUARNIÇÕES POR ESCALA é igual à coluna GUARNIÇÃO do cadastro. Sem isso, nenhuma categoria de CNH é exigida aqui.';
     } else if (!p.unidade) {
-      regra += ' O posto não tem UNIDADE, então não há guarnição para dizer qual categoria exigir.';
+      regra += ' O posto não tem guarnição (a aba GUARNIÇÕES POR ESCALA ainda está no formato antigo, com a UNIDADE vazia), então não há categoria a exigir. Converta a aba pelo painel Escalas de Serviço.';
     }
   }
   if (p.habilitados > 0) return regra + ' ' + p.habilitados + ' habilitado(s) neste turno.';
@@ -247,8 +351,43 @@ function motivoDaLista_(p) {
 }
 
 /**
+ * B58 item 3 (RN-12): a regra de condutor de cada posto, pelo vínculo. { 'UNIDADE|FUNÇÃO': { exigeCnh, cnh } }
+ * só com os postos que vieram de GUARNIÇÕES POR ESCALA no formato novo (cnh !== null). No formato
+ * antigo o mapa fica vazio e valem funcoesComCnh + a CNH da guarnição (cnhPorUnidade).
+ */
+function postosDoModelo_(mod) {
+  const out = Object.create(null);
+  Object.keys((mod && mod.escalas) || {}).forEach(function (nome) {
+    const e = mod.escalas[nome];
+    e.turnos.forEach(function (x) {
+      (e.slots[x] || []).forEach(function (s) {
+        if (s.cnh === null || s.cnh === undefined) return;
+        out[chaveSlot_(s.unidade, s.funcao)] = { exigeCnh: !!s.exigeCnh, cnh: s.cnh };
+      });
+    });
+  });
+  return out;
+}
+
+/**
+ * B58 item 3 (RN-12): o posto (guarnição + função) é de condutor, e que categoria exige?
+ * ctx: { postos, funcoesComCnh, cnhPorUnidade } (de contextoDeCnh_). Retorna { exigeCnh, exigida: [] }.
+ * Com o vínculo novo, vale o que a função tem na guarnição do posto — o MOTORISTA do ABT exige D e
+ * o do PE Seguro pode não exigir nada, mesmo com o mesmo nome. Sem o posto no mapa, a regra antiga.
+ */
+function regraDoPosto_(ctx, unidade, funcao) {
+  ctx = ctx || {};
+  const p = ctx.postos ? ctx.postos[chaveSlot_(unidade, funcao)] : null;
+  if (p) return { exigeCnh: p.exigeCnh, exigida: p.cnh || [] };
+  return {
+    exigeCnh: funcaoExigeCnh_(funcao, ctx.funcoesComCnh),
+    exigida: (ctx.cnhPorUnidade || {})[normalizar_(unidade)] || []
+  };
+}
+
+/**
  * B36/B38 (RN-94, RN-12): a função do posto exige habilitação?
- * Vale o cadastro (coluna EXIGE CNH da aba MODELOS DE GUARNIÇÃO). Enquanto ninguém marcar nada
+ * Vale o cadastro (B58: a CNH da função em GUARNIÇÕES; no formato antigo, a coluna EXIGE CNH). Enquanto ninguém marcar nada
  * nessa coluna, cai na ponte com o cadastro antigo (o nome da função contém MOTORISTA) para não
  * perder o aviso que já existia; o painel avisa para marcar a coluna.
  */
@@ -306,12 +445,24 @@ function montarGrade_(esc, mes, alocs) {
       if (slots.length === 0) return;
       const bloco = (porBloco[dia + '|' + turno] || []).slice().sort(function (x, y) { return (x.linha || 0) - (y.linha || 0); });
       const ocupados = slots.map(function () { return null; }), resto = [];
+      const semUnidade = [];
       bloco.forEach(function (a) {
         let idx = -1;
         if (a.funcao) {
           const c = chaveSlot_(a.unidade || '', a.funcao);
           for (let i = 0; i < slots.length; i++) { if (slots[i].chave === c && !ocupados[i]) { idx = i; break; } }
         }
+        if (idx >= 0) ocupados[idx] = a;
+        else if (a.funcao && !a.unidade) semUnidade.push(a);
+        else resto.push(a);
+      });
+      // B58: alocação com FUNÇÃO e sem UNIDADE (gravada antes do vínculo por guarnição) entra no
+      // primeiro posto livre daquela função, de qualquer guarnição. A grade mostra a guarnição do
+      // posto, e salvar grava a UNIDADE na alocação (aparece como alteração de função).
+      semUnidade.forEach(function (a) {
+        const f = normalizar_(a.funcao);
+        let idx = -1;
+        for (let i = 0; i < slots.length; i++) { if (!ocupados[i] && normalizar_(slots[i].funcao) === f) { idx = i; break; } }
         if (idx >= 0) ocupados[idx] = a; else resto.push(a);
       });
       slots.forEach(function (s, i) {
@@ -338,11 +489,12 @@ function montarGrade_(esc, mes, alocs) {
  * grade     : [{ linha, dia, turno, unidade, funcao, texto, mat }]  a grade como está agora (mat '' = vaga vazia;
  *             texto preenchido sem mat = célula ilegível)
  * tabelaMes : [{ mat, dia, turno, servico, funcao, unidade, linha }]   a tabela agora (só o mês)
- * opcoes    : { horarios, todas, motoristas, funcoesComCnh, cnh, cnhPorUnidade }   (todos opcionais)
+ * opcoes    : { horarios, todas, motoristas, funcoesComCnh, cnh, cnhPorUnidade, postos }   (todos opcionais)
  *             horarios/todas: ativam o bloqueio por choque nas inclusões
  *             motoristas: { matrícula: true } — se vier, avisa motorista fora da lista
  *             funcoesComCnh: { FUNÇÃO: true } do cadastro (B36/RN-94); sem ela vale a ponte pelo nome
  *             cnh: { matrícula: ['B','D'] } e cnhPorUnidade: { GUARNIÇÃO: ['D'] } — checagem do B38 (RN-12)
+ *             postos: de postosDoModelo_ — B58 item 3: a regra de cada posto vem do vínculo (regraDoPosto_)
  *
  * Retorna { inserir, atualizar, remover, conflitos, invalidas, choques, jaAplicadas, aplicadas, avisosMotorista, resumo }
  */
@@ -390,11 +542,12 @@ function calcularGuarnicao_(base, grade, tabelaMes, esc, opcoes) {
     if (ocup[k].length === 1) G[k] = est(ocup[k][0].funcao, ocup[k][0].unidade);
     if (opcoes.motoristas) {
       ocup[k].forEach(function (r) {
-        if (!funcaoExigeCnh_(r.funcao, opcoes.funcoesComCnh)) return;
+        const regra = regraDoPosto_(opcoes, r.unidade, r.funcao);      // B58 item 3: pelo vínculo
+        if (!regra.exigeCnh) return;
         // continua avisando quem está numa função de condutor sem estar no quadro de motoristas
         if (!opcoes.motoristas[r.mat]) { res.avisosMotorista.push({ mat: r.mat, dia: r.dia, turno: r.turno, funcao: r.funcao }); return; }
         // B38 (RN-12): e agora também quem está no quadro mas sem CNH compatível com a guarnição
-        const exigida = (opcoes.cnhPorUnidade || Object.create(null))[normalizar_(r.unidade)] || [];
+        const exigida = regra.exigida;
         if (exigida.length && !cnhAtende_((opcoes.cnh || {})[r.mat] || [], exigida)) {
           res.avisosCnh.push({ mat: r.mat, dia: r.dia, turno: r.turno, funcao: r.funcao, unidade: r.unidade, exigida: exigida.join('/') });
         }

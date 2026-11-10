@@ -13,13 +13,14 @@ const ESCALA_OP_ABA = 'ESCALA DO ORDINÁRIO';   // B52: chamava-se ESCALA OPERAC
 /**
  * Ordem das unidades táticas e das funções de cada uma, para a visualização sair na ordem do
  * cadastro e não em ordem alfabética: a prioridade de ativação da aba GUARNIÇÕES (RN-08) e a ordem
- * das linhas de MODELOS DE GUARNIÇÃO. O que não estiver cadastrado vai depois, em ordem alfabética.
+ * das funções no molde das escalas (B58: as guarnições vinculadas em GUARNIÇÕES POR ESCALA, com as
+ * funções na ordem do cadastro de GUARNIÇÕES). O que não estiver cadastrado vai depois, em ordem alfabética.
  */
 function ordemDoCadastro_(mes, tz) {
   const ordemUnidades = Object.create(null), ordemFuncoes = Object.create(null);
   let i = 0;
   guarnicoesDoMes_(mes, tz).guarnicoes.forEach(function (g) { ordemUnidades[normalizar_(g.id)] = ++i; });
-  const mod = lerModelosGuarnicao_();
+  const mod = lerModelosGuarnicao_(mes, tz);
   Object.keys(mod.escalas || {}).forEach(function (nome) {
     const e = mod.escalas[nome];
     e.turnos.forEach(function (t) {

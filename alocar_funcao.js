@@ -64,12 +64,13 @@ function alocarEmFuncaoContexto() {
     return nao('Esta célula ainda não está na tabela de alocações. Salve a escala no painel "Mostrar Escala" e tente de novo.');
   }
 
-  // RN-94 / RN-96: as funções vêm do cadastro (ESCALAS + MODELOS DE GUARNIÇÃO), uma lista por serviço
-  const mod = lerModelosGuarnicao_();
+  // RN-94 / RN-96: as funções vêm do cadastro, uma lista por serviço. B58: das guarnições vinculadas
+  // à escala do serviço (GUARNIÇÕES POR ESCALA) com a composição de GUARNIÇÕES no mês da célula
+  const mod = lerModelosGuarnicao_(dia.slice(0, 7), tz);
   const funcoes = funcoesPorServico_(mod, p.servico, p.turno);
   const avisos = [];
-  if (mod.semAbas) avisos.push('As abas ESCALAS e MODELOS DE GUARNIÇÃO não existem: cadastre as funções do serviço no painel "Escalas de Serviço".');
-  else if (!funcoes.length) avisos.push('O serviço "' + p.servico + '" não tem função cadastrada para o turno ' + p.turno + ' em MODELOS DE GUARNIÇÃO (RN-94). Cadastre as funções e tente de novo.');
+  if (mod.semAbas) avisos.push('As abas ESCALAS e GUARNIÇÕES POR ESCALA não existem: crie-as no painel "Escalas de Serviço" e vincule as guarnições do serviço.');
+  else if (!funcoes.length) avisos.push('O serviço "' + p.servico + '" não tem função para o turno ' + p.turno + ' (RN-94): vincule uma guarnição à escala dele em GUARNIÇÕES POR ESCALA, com as funções cadastradas em GUARNIÇÕES, e tente de novo.');
 
   const nomes = nomesPorMatricula_();
   return {

@@ -12,7 +12,7 @@
  * guarnições" acrescenta a coluna GUARNIÇÃO copiando a VIATURA, sem apagar nada.
  */
 
-const CADG_ABA = 'GUARNIÇÕES';             // B52: chamava-se VIATURAS; abaAtual_ renomeia a antiga. Não confundir com MODELOS DE GUARNIÇÃO
+const CADG_ABA = 'GUARNIÇÕES';             // B52: chamava-se VIATURAS; abaAtual_ renomeia a antiga. Não confundir com GUARNIÇÕES POR ESCALA (B58)
 // B58 item 1 (RN-09): sem TIPOS DE SERVIÇO — quem atende cada escala é o vínculo em outra aba
 const CADG_CABECALHO_ = ['VIGÊNCIA (A PARTIR DE)', 'GUARNIÇÃO', 'VIATURA', 'TIPO', 'ATIVAR', 'PRIORIDADE', 'CNH', 'FUNÇÃO', 'MÍNIMO', 'MÁXIMO'];
 const CADG_LARGURAS_ = [130, 200, 110, 150, 70, 90, 90, 190, 80, 80];

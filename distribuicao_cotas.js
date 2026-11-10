@@ -280,7 +280,7 @@ function diagnosticarOperacoes_(e) {
     }
     const vagasPorDia = o.turnos.reduce(function (n, t) { return e.horarios[o.servico + '|' + t.turno] ? n + (Number(t.vagas) || 0) : n; }, 0);
     if (vagasPorDia <= 0) {
-      res.push({ operacao: o.nome, texto: nome + ' sem vagas: cadastre os turnos e as funções em MODELOS DE GUARNIÇÃO (e confira se os turnos têm horário na aba TURNOS).' });
+      res.push({ operacao: o.nome, texto: nome + ' sem vagas: vincule as guarnições de cada turno em GUARNIÇÕES POR ESCALA, com as funções em GUARNIÇÕES (e confira se os turnos têm horário na aba TURNOS).' });
       return;
     }
     // há vagas: ninguém pôde ocupá-las. O motivo que mais se repete explica o resto.

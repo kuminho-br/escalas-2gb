@@ -258,17 +258,19 @@ function linhasExtrasVazias_(linhas, celulas) {
 /* ------------------------------------------------------------ nomes das abas (B52) */
 
 /**
- * B52: cinco abas mudaram de nome. Para cada nome novo, os nomes que a aba já teve, do mais
- * recente para o mais antigo (uma planilha que ainda tenha MATRIZ termina com GRADE GERAL).
+ * B52: cinco abas mudaram de nome; B58 (RN-09), mais uma: MODELOS DE GUARNIÇÃO virou GUARNIÇÕES POR
+ * ESCALA. Para cada nome novo, os nomes que a aba já teve, do mais recente para o mais antigo (uma
+ * planilha que ainda tenha MATRIZ termina com GRADE GERAL).
  * A comparação é sempre pelo nome INTEIRO: "ESCALA" não é "ESCALAS" e "GUARNIÇÕES" não é
- * "MODELOS DE GUARNIÇÃO".
+ * "GUARNIÇÕES POR ESCALA".
  */
 const ABAS_NOMES_ANTIGOS_ = {
   'ALOCAÇÕES': ['ALOCAÇÕES TABULADAS'],
   'GRADE GERAL': ['ESCALA DO MÊS', 'MATRIZ'],
   'ESCALA': ['GUARNIÇÃO'],
   'ESCALA DO ORDINÁRIO': ['ESCALA OPERACIONAL'],
-  'GUARNIÇÕES': ['VIATURAS']
+  'GUARNIÇÕES': ['VIATURAS'],
+  'GUARNIÇÕES POR ESCALA': ['MODELOS DE GUARNIÇÃO']      // B58: só o nome muda aqui; o formato é convertido pelo painel
 };
 
 /**

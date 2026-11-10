@@ -14,13 +14,16 @@
  *   VIGÊNCIA | GUARNIÇÃO | VIATURA | TIPO | ATIVAR | PRIORIDADE | CNH | FUNÇÃO | MÍNIMO | MÁXIMO
  *
  *   VIGÊNCIA         mês a partir do qual a linha vale ('aaaa-mm'; vazio = desde sempre)
- *   GUARNIÇÃO        identificação da guarnição; é o que liga o cadastro à coluna UNIDADE de
- *                    MODELOS DE GUARNIÇÃO e das alocações
+ *   GUARNIÇÃO        identificação da guarnição; é o que liga o cadastro à coluna GUARNIÇÃO de
+ *                    GUARNIÇÕES POR ESCALA (B58) e à coluna UNIDADE das alocações
  *   VIATURA          a viatura da guarnição, quando tem; vazio = guarnição sem viatura (RN-96)
  *   TIPO             texto livre (tipo da guarnição ou da viatura): nada aqui é fixo no código
  *   ATIVAR           SIM/NÃO — se a guarnição deve ser ativada no mês (RN-07)
  *   PRIORIDADE       ordem de ativação; 1 é a primeira, vazio vai por último (RN-08)
- *   CNH              categoria(s) exigida(s) do condutor, COM OU SEM viatura; vazio = não exige (RN-12)
+ *   CNH              categoria(s) exigida(s) de quem ocupa a FUNÇÃO da linha, COM OU SEM viatura;
+ *                    vazio = a função não exige CNH (RN-12). B58 item 3: é POR FUNÇÃO — a função
+ *                    que tem CNH é a de condutor, e só ela é checada (o MOTORISTA do ABT exige D,
+ *                    o CHEFE não exige nada). Substitui a antiga coluna EXIGE CNH.
  *   FUNÇÃO           função da guarnição (vazio: linha só com os dados da guarnição)
  *   MÍNIMO           abaixo dele a guarnição não é ativada (RN-10)
  *   MÁXIMO           acima dele não se aloca mais ninguém naquela função; vazio = sem limite (RN-11)
@@ -92,8 +95,10 @@ function cnhAtende_(doMilitar, exigidas) {
  * Valores em vigor num mês, por guarnição.
  * linhas: [{ linha, vigencia, guarnicao, viatura, tipo, ativar, prioridade, cnh, funcao, minimo, maximo }]
  * Retorna { guarnicoes: [...], porId: { CHAVE: guarnição }, avisos: [texto] }, cada guarnição =
- * { id, viatura, tipo, ativar, prioridade, cnh: [], funcoes: [{ funcao, minimo, maximo }] },
+ * { id, viatura, tipo, ativar, prioridade, cnh: [], funcoes: [{ funcao, minimo, maximo, cnh: [] }] },
  * em ordem de prioridade de ativação (RN-08) e, empatando, pelo nome.
+ * As funções saem na ordem das linhas do cadastro (é a ordem dos postos na grade). A CNH da
+ * guarnição (g.cnh) é a junção das CNHs das funções, só para resumo.
  */
 function resolverGuarnicoes_(linhas, mes) {
   if (!CADG_MES_RE_.test(String(mes))) throw new Error('Mês inválido: use o formato aaaa-mm.');
@@ -128,7 +133,7 @@ function resolverGuarnicoes_(linhas, mes) {
   validas.forEach(function (r) {
     let g = porId[r.chave];
     if (!g) {
-      g = porId[r.chave] = { id: r.id, viatura: null, tipo: '', ativar: null, prioridade: null, cnh: null, funcoes: [], _f: Object.create(null) };
+      g = porId[r.chave] = { id: r.id, viatura: null, tipo: '', ativar: null, prioridade: null, cnh: null, funcoes: [], _f: Object.create(null), _cnhSemFuncao: null };
       ordemEntrada.push(r.chave);
     }
     // dados da guarnição: vale o último informado até o mês (campo por campo)
@@ -136,12 +141,17 @@ function resolverGuarnicoes_(linhas, mes) {
     if (g.tipo === '' && String(r.l.tipo == null ? '' : r.l.tipo).trim() !== '') g.tipo = String(r.l.tipo).trim();
     if (g.ativar === null && normalizar_(r.l.ativar) !== '') g.ativar = cadgSimNao_(r.l.ativar, true);          // RN-07
     if (g.prioridade === null && r.prio !== null) g.prioridade = r.prio;                                       // RN-08
-    if (g.cnh === null && cadgLista_(r.l.cnh).length) g.cnh = cadgLista_(r.l.cnh);                              // RN-12, com ou sem viatura
-    // guarnição mínima e máxima: por função (RN-10, RN-11)
+    // guarnição mínima e máxima: por função (RN-10, RN-11); a CNH também é por função (B58 item 3, RN-12)
     const f = String(r.l.funcao == null ? '' : r.l.funcao).trim();
+    const cnh = cadgLista_(r.l.cnh);
     if (f) {
       const kf = normalizar_(f);
-      if (!(kf in g._f)) g._f[kf] = { funcao: f, minimo: r.min === null ? 0 : r.min, maximo: r.max };
+      if (!(kf in g._f)) g._f[kf] = { funcao: f, minimo: r.min === null ? 0 : r.min, maximo: r.max, cnh: null, ordem: r.linha };
+      const fx = g._f[kf];
+      if (fx.cnh === null && cnh.length) fx.cnh = cnh;     // como os dados da guarnição: vale a última CNH informada
+      if (r.linha < fx.ordem) fx.ordem = r.linha;         // a posição da função é a da primeira linha dela
+    } else if (cnh.length && g._cnhSemFuncao === null) {
+      g._cnhSemFuncao = { linha: r.linha, cnh: cnh };
     }
   });
 
@@ -149,11 +159,17 @@ function resolverGuarnicoes_(linhas, mes) {
     const g = porId[k];
     g.viatura = g.viatura || '';                         // vazio = guarnição sem viatura (RN-96)
     g.ativar = g.ativar === null ? true : g.ativar;      // RN-07: sem dizer nada, a guarnição é para ativar
-    g.cnh = g.cnh || [];                                 // vazio = não exige categoria
     g.funcoes = Object.keys(g._f).map(function (kf) { return g._f[kf]; })
       .filter(function (f) { return f.maximo !== 0; })   // MÁXIMO 0 = função retirada dessa guarnição
-      .sort(function (a, b) { return a.funcao < b.funcao ? -1 : (a.funcao > b.funcao ? 1 : 0); });
-    delete g._f;
+      .sort(function (a, b) { return a.ordem - b.ordem; })
+      .map(function (f) { return { funcao: f.funcao, minimo: f.minimo, maximo: f.maximo, cnh: f.cnh || [] }; });
+    g.cnh = [];                                          // só para resumo: as categorias que alguma função exige
+    g.funcoes.forEach(function (f) { f.cnh.forEach(function (c) { if (g.cnh.indexOf(c) < 0) g.cnh.push(c); }); });
+    if (g._cnhSemFuncao) {
+      avisos.push('GUARNIÇÕES, linha ' + g._cnhSemFuncao.linha + ' (' + g.id + '): CNH "' + g._cnhSemFuncao.cnh.join('/') +
+        '" numa linha sem FUNÇÃO. A CNH é exigida de quem ocupa uma função (B58, RN-12): ponha a categoria na linha da função de condutor. Esta não vale para posto nenhum.');
+    }
+    delete g._f; delete g._cnhSemFuncao;
     return g;
   });
   // RN-08: prioridade 1 primeiro; sem prioridade vai por último
@@ -165,7 +181,7 @@ function resolverGuarnicoes_(linhas, mes) {
   return { guarnicoes: guarnicoes, porId: porId, avisos: avisos };
 }
 
-/** Guarnição pelo nome (o mesmo texto da coluna UNIDADE de MODELOS DE GUARNIÇÃO / das alocações). */
+/** Guarnição pelo nome (o mesmo texto da coluna GUARNIÇÃO de GUARNIÇÕES POR ESCALA / da UNIDADE das alocações). */
 function guarnicaoPorNome_(res, nome) {
   const k = normalizar_(nome);
   return k && res && res.porId[k] ? res.porId[k] : null;

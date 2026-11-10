@@ -73,7 +73,7 @@
     sel.disabled = false;
     el('btnGravar').disabled = false;
     el('nota').textContent = 'Só as funções cadastradas para ' + c.servico + ' no turno ' + c.turno +
-      ' (abas ESCALAS e MODELOS DE GUARNIÇÃO). A unidade e a alocação não são alteradas.' +
+      ' (abas ESCALAS, GUARNIÇÕES POR ESCALA e GUARNIÇÕES). A unidade e a alocação não são alteradas.' +
       (c.atual ? ' Função atual: ' + c.atual + '.' : ' Nenhuma função gravada ainda.');
     if (c.avisos && c.avisos.length) { el('avisos').textContent = c.avisos.join(' '); mostrar('avisos', true); }
   }

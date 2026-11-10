@@ -176,10 +176,10 @@ console.log('== B24 (RN-81) por que "Gerar operações" não tem nada a gerar');
   ver('sem dias (SÓ ESCALADOS sem nada escalado): diz o que fazer', d.length === 1 && /sem dias/.test(d[0].texto) && /DIAS/.test(d[0].texto), d);
   o = op({ turnos: [{ turno: 'C', vagas: 4 }] }); r = roda(o, []);
   d = diag(o, r);
-  ver('turnos sem horário em TURNOS: "sem vagas", com a aba a corrigir', d.length === 1 && /"PE Seguro" sem vagas: cadastre os turnos e as funções em MODELOS DE GUARNIÇÃO/.test(d[0].texto), d);
-  o = op({ turnos: [], dias, problema: '"PE Seguro" sem vagas: cadastre os turnos e as funções dela em MODELOS DE GUARNIÇÃO.' }); r = roda(o, []);
+  ver('turnos sem horário em TURNOS: "sem vagas", com a aba a corrigir', d.length === 1 && /"PE Seguro" sem vagas: vincule as guarnições de cada turno em GUARNIÇÕES POR ESCALA/.test(d[0].texto), d);
+  o = op({ turnos: [], dias, problema: '"PE Seguro" sem vagas: vincule as guarnições de cada turno dela em GUARNIÇÕES POR ESCALA.' }); r = roda(o, []);
   d = diag(o, r);
-  ver('operação sem cadastro: usa o texto pronto e a cota continua como restante', d.length === 1 && /^"PE Seguro" sem vagas: cadastre os turnos/.test(d[0].texto) && r.res.porCota[0].restantes === 160, d);
+  ver('operação sem cadastro: usa o texto pronto e a cota continua como restante', d.length === 1 && /^"PE Seguro" sem vagas: vincule as guarnições/.test(d[0].texto) && r.res.porCota[0].restantes === 160, d);
 
   // com cadastro completo e voluntários: gera (botão ativo) e não há diagnóstico
   o = op(); r = roda(o, [{ mat: 'M1', dia: '2026-11-01', turno: 'A', servico: 'todos' }]);

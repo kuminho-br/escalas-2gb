@@ -56,11 +56,14 @@ console.log('== B52 as cinco abas renomeadas (migração sozinha, sem apagar nad
   const P = new Function(ler('nucleo.js') + '\nreturn {planoDeMigracaoDeAbas_, ABAS_NOMES_ANTIGOS_};')();
   const antigos = ['ALOCAÇÕES TABULADAS', 'ESCALA DO MÊS', 'GUARNIÇÃO', 'ESCALA OPERACIONAL', 'VIATURAS', 'ESCALAS', 'MODELOS DE GUARNIÇÃO', 'MILITARES'];
   let p = P.planoDeMigracaoDeAbas_(antigos);
-  ver('os cinco nomes antigos viram os cinco novos',
+  ver('os cinco nomes antigos viram os cinco novos (e, B58, MODELOS DE GUARNIÇÃO vira GUARNIÇÕES POR ESCALA)',
     p.renomear.map(x => x.de + '>' + x.para).sort().join(' | ') ===
-    'ALOCAÇÕES TABULADAS>ALOCAÇÕES | ESCALA DO MÊS>GRADE GERAL | ESCALA OPERACIONAL>ESCALA DO ORDINÁRIO | GUARNIÇÃO>ESCALA | VIATURAS>GUARNIÇÕES' && p.avisos.length === 0, p);
-  ver('ESCALAS e MODELOS DE GUARNIÇÃO (nomes parecidos) não são tocadas',
-    p.renomear.every(x => x.de !== 'ESCALAS' && x.de !== 'MODELOS DE GUARNIÇÃO' && x.para !== 'ESCALAS'));
+    'ALOCAÇÕES TABULADAS>ALOCAÇÕES | ESCALA DO MÊS>GRADE GERAL | ESCALA OPERACIONAL>ESCALA DO ORDINÁRIO | GUARNIÇÃO>ESCALA | MODELOS DE GUARNIÇÃO>GUARNIÇÕES POR ESCALA | VIATURAS>GUARNIÇÕES' && p.avisos.length === 0, p);
+  ver('ESCALAS (nome parecido com ESCALA) não é tocada',
+    p.renomear.every(x => x.de !== 'ESCALAS' && x.para !== 'ESCALAS'));
+  ver('B58: GUARNIÇÕES e GUARNIÇÕES POR ESCALA não se confundem',
+    P.planoDeMigracaoDeAbas_(['GUARNIÇÕES', 'MODELOS DE GUARNIÇÃO']).renomear.map(x => x.de + '>' + x.para).join() === 'MODELOS DE GUARNIÇÃO>GUARNIÇÕES POR ESCALA' &&
+    P.planoDeMigracaoDeAbas_(['VIATURAS', 'GUARNIÇÕES POR ESCALA']).renomear.map(x => x.de + '>' + x.para).join() === 'VIATURAS>GUARNIÇÕES');
   ver('cadeia inteira: MATRIZ termina como GRADE GERAL', JSON.stringify(P.planoDeMigracaoDeAbas_(['MATRIZ']).renomear) === '[{"de":"MATRIZ","para":"GRADE GERAL"}]');
   p = P.planoDeMigracaoDeAbas_(['MATRIZ', 'ESCALA DO MÊS']);
   ver('MATRIZ e ESCALA DO MÊS juntas: renomeia a mais recente e avisa da outra', p.renomear.length === 1 && p.renomear[0].de === 'ESCALA DO MÊS' && p.avisos.length === 1, p);
@@ -83,12 +86,13 @@ console.log('== B52 as cinco abas renomeadas (migração sozinha, sem apagar nad
   };
   let W = planilha(antigos);
   W.F.migrarAbas_();
-  ver('migrarAbas_: as cinco ficam com os nomes novos, com os dados intactos',
-    ['ALOCAÇÕES', 'GRADE GERAL', 'ESCALA', 'ESCALA DO ORDINÁRIO', 'GUARNIÇÕES'].every(n => W.ss.getSheetByName(n)) &&
+  ver('migrarAbas_: as seis ficam com os nomes novos, com os dados intactos',
+    ['ALOCAÇÕES', 'GRADE GERAL', 'ESCALA', 'ESCALA DO ORDINÁRIO', 'GUARNIÇÕES', 'GUARNIÇÕES POR ESCALA'].every(n => W.ss.getSheetByName(n)) &&
+    W.ss.getSheetByName('GUARNIÇÕES POR ESCALA').dados === 'dados de MODELOS DE GUARNIÇÃO' &&
     W.ss.getSheetByName('ALOCAÇÕES').dados === 'dados de ALOCAÇÕES TABULADAS' && W.ss.getSheetByName('ESCALA').dados === 'dados de GUARNIÇÃO', W.abas.map(a => a.nome));
   ver('nenhuma aba é criada e nenhuma fica com nome antigo', W.criadas.length === 0 && W.abas.length === antigos.length &&
-    !['ALOCAÇÕES TABULADAS', 'ESCALA DO MÊS', 'GUARNIÇÃO', 'ESCALA OPERACIONAL', 'VIATURAS'].some(n => W.ss.getSheetByName(n)));
-  ver('ESCALAS e MODELOS DE GUARNIÇÃO continuam como estavam', W.ss.getSheetByName('ESCALAS').dados === 'dados de ESCALAS' && !!W.ss.getSheetByName('MODELOS DE GUARNIÇÃO'));
+    !['ALOCAÇÕES TABULADAS', 'ESCALA DO MÊS', 'GUARNIÇÃO', 'ESCALA OPERACIONAL', 'VIATURAS', 'MODELOS DE GUARNIÇÃO'].some(n => W.ss.getSheetByName(n)));
+  ver('ESCALAS continua como estava', W.ss.getSheetByName('ESCALAS').dados === 'dados de ESCALAS');
   W.F.migrarAbas_();
   ver('rodar de novo não muda nada', W.abas.length === antigos.length && W.F.avisosDeAbas_().length === 0);
   W = planilha(['MATRIZ']);
@@ -147,7 +151,7 @@ console.log('== B37 revisado (RN-07 a RN-12, RN-93, RN-96) cadastro de guarniç�
   const trocaPrio = base.concat([l('2026-12', 'ABTS', '', '', '', 1, '', '', '', '', '', 22), l('2026-12', 'AR', '', '', '', 3, '', '', '', '', '', 23)]);
   ver('a prioridade também tem vigência', L.resolverGuarnicoes_(trocaPrio, '2026-10').guarnicoes[0].id === 'AR' && L.resolverGuarnicoes_(trocaPrio, '2026-12').guarnicoes[0].id === 'ABTS');
   ver('MÁXIMO 0 tira a função da guarnição a partir da vigência',
-    L.resolverGuarnicoes_(base.concat([l('2026-12', 'AR', '', '', '', '', '', '', 'SOCORRISTA', 0, 0, 24)]), '2026-12').porId['AR'].funcoes.map(f => f.funcao).join() === 'CHEFE,MOTORISTA');
+    L.resolverGuarnicoes_(base.concat([l('2026-12', 'AR', '', '', '', '', '', '', 'SOCORRISTA', 0, 0, 24)]), '2026-12').porId['AR'].funcoes.map(f => f.funcao).join() === 'MOTORISTA,CHEFE');
 
   // avisos de linha ruim
   r = L.resolverGuarnicoes_([l('13/2026', 'AR', '', '', '', '', '', '', 'CHEFE', 1, 1, 2)], '2026-10');
@@ -463,9 +467,9 @@ console.log('== B54 (RN-12, RN-81) a célula diz por que a lista suspensa está 
   ver('guarnição cadastrada sem CNH exigida: a nota só fala do quadro de motoristas', /quadro de motoristas/.test(t) && !/CNH/.test(t), t);
   t = L.motivoDaLista_(p({ exigeCnh: true, exigida: [], habilitados: 3, cadastrada: false, unidade: 'AR' }));
   ver('UNIDADE do posto fora do cadastro: a nota aponta o nome que não casa',
-    /A guarnição "AR" do posto não está na aba GUARNIÇÕES/.test(t) && /UNIDADE em MODELOS DE GUARNIÇÃO/.test(t), t);
+    /A guarnição "AR" do posto não está na aba GUARNIÇÕES/.test(t) && /nome em GUARNIÇÕES POR ESCALA/.test(t), t);
   t = L.motivoDaLista_(p({ exigeCnh: true, exigida: [], habilitados: 3, cadastrada: false, unidade: '' }));
-  ver('posto de condutor sem UNIDADE: a nota diz que não há guarnição para exigir categoria', /não tem UNIDADE/.test(t), t);
+  ver('posto de condutor sem UNIDADE: a nota diz que não há guarnição para exigir categoria', /não tem guarnição/.test(t) && /formato antigo/.test(t), t);
 }
 
 console.log('== B57 (RN-12) leitura do "sim" da coluna MOTORISTA');
@@ -528,6 +532,130 @@ console.log('== B49 item 2 (RN-13, RN-94) a origem do serviço vem da coluna ORI
   ver('impressão: a função leva a origem do cadastro (MOTORISTA - PJES)', li[0].funcao === 'MOTORISTA - PJES' && li[1].funcao === 'CHEFE - PRONTO', li.map(x => x.funcao));
   li = G.linhasParaImpressao_(grade, esc, {}, {}, {});
   ver('impressão sem a coluna ORIGEM: o nome do serviço', li[0].funcao === 'MOTORISTA - JES', li.map(x => x.funcao));
+}
+
+console.log('== B58 itens 2 e 3 (RN-09, RN-93, RN-10 a RN-12) GUARNIÇÕES POR ESCALA: o vínculo, com a composição do cadastro');
+{
+  const L = new Function(['nucleo.js', 'choques.js', 'sincronia.js', 'cadastro_guarnicoes.js', 'guarnicao.js'].map(ler).join('\n') +
+    '\nreturn {resolverGuarnicoes_, vinculosParaModelo_, montarModelosGuarnicao_, converterVinculosAntigos_, postosDoModelo_, regraDoPosto_, funcoesPorServico_, montarGrade_, calcularGuarnicao_, expandirSlots_};')();
+  // o cadastro da sandbox (10/11): a CNH está na linha da função de condutor
+  const c = (vig, g, viat, ativar, prio, cnh, funcao, min, max, linha) => ({ linha, vigencia: vig, guarnicao: g, viatura: viat, tipo: '', ativar, prioridade: prio, cnh, funcao, minimo: min, maximo: max });
+  const cad = [
+    c('', 'ABT', 'ABT', 'SIM', 1, '', 'CHEFE', 1, 1, 2),
+    c('', 'ABT', 'ABT', 'SIM', 1, '', 'COMBATENTE', 1, 1, 3),
+    c('', 'ABT', 'ABT', 'SIM', 1, '', 'AUXILIAR DE LINHA', 0, 1, 4),
+    c('', 'ABT', 'ABT', 'SIM', 1, 'D', 'MOTORISTA', 1, 1, 5),
+    c('', 'AR', 'AR', 'SIM', 2, 'D', 'MOTORISTA', 1, 1, 6),
+    c('', 'AR', 'AR', 'SIM', 2, '', 'CHEFE', 1, 1, 7),
+    c('', 'AR', 'AR', 'SIM', 2, '', 'SOCORRISTA', 1, 3, 8),
+    c('', 'Apoio Aquartelado', '', 'SIM', 3, 'B', 'MOTORISTA DE ACO', 1, 1, 9),
+    c('', 'Apoio Aquartelado', '', 'SIM', 3, '', 'ADJUNTO', 1, 1, 10),
+    c('', 'PE SEGURO', '', 'SIM', 4, '', 'MOTORISTA', 1, 1, 11),
+    c('', 'PE SEGURO', '', 'SIM', 4, '', 'CHEFE', 1, 1, 12),
+    c('', 'RESERVA', '', 'NÃO', 5, '', 'CHEFE', 1, 1, 13)
+  ];
+  const r = L.resolverGuarnicoes_(cad, '2026-11');
+  const abt = r.porId['ABT'];
+  ver('B58 item 3: a CNH é da função — no ABT só o MOTORISTA exige D',
+    abt.funcoes.find(f => f.funcao === 'MOTORISTA').cnh.join() === 'D' && abt.funcoes.filter(f => f.cnh.length).length === 1, abt.funcoes);
+  ver('as funções saem na ordem das linhas do cadastro (a ordem dos postos)', abt.funcoes.map(f => f.funcao).join() === 'CHEFE,COMBATENTE,AUXILIAR DE LINHA,MOTORISTA');
+  ver('a CNH da guarnição (resumo) é a junção das funções', abt.cnh.join() === 'D' && r.porId['APOIOAQUARTELADO'].cnh.join() === 'B');
+  ver('uma linha nova só com o mínimo não apaga a CNH da função (vale a última informada)',
+    L.resolverGuarnicoes_(cad.concat([c('2026-12', 'AR', '', '', '', '', 'MOTORISTA', 1, 1, 30)]), '2026-12').porId['AR'].funcoes.find(f => f.funcao === 'MOTORISTA').cnh.join() === 'D');
+  const rSem = L.resolverGuarnicoes_([c('', 'X', '', 'SIM', 1, 'D', '', '', '', 2), c('', 'X', '', '', '', '', 'CHEFE', 1, 1, 3)], '2026-11');
+  ver('CNH numa linha sem FUNÇÃO: avisa que não vale para posto nenhum', rSem.porId['X'].funcoes[0].cnh.length === 0 && /linha sem FUNÇÃO/.test(rSem.avisos.join(' ')), rSem.avisos);
+
+  const v = (linha, vig, escala, turno, guarnicao) => ({ linha, vigencia: vig, escala, turno, guarnicao });
+  const vinc = [
+    v(2, '', 'Pronto', 'A', 'ABT'), v(3, '', 'Pronto', 'A', 'AR'), v(4, '', 'Pronto', 'B', 'AR'),
+    v(5, '', 'Apoio', 'TODOS', 'apoio aquartelado'), v(6, '', 'PE Seguro', '', 'PE SEGURO')
+  ];
+  let x = L.vinculosParaModelo_(vinc, r, '2026-11');
+  ver('cada guarnição vinculada vira as funções dela, sem aviso', x.avisos.length === 0 && x.linhas.length === 4 + 3 + 3 + 2 + 2, [x.avisos, x.linhas.length]);
+  const socA = x.linhas.find(l => l.turno === 'A' && l.unidade === 'AR' && l.funcao === 'SOCORRISTA');
+  ver('vagas = MÁXIMO do cadastro (socorrista do AR: 3)', socA.vagas === 3, socA);
+  ver('mínimo 0 e máximo 1 (auxiliar de linha): 1 posto', x.linhas.find(l => l.funcao === 'AUXILIAR DE LINHA').vagas === 1);
+  ver('o nome da guarnição casa sem caixa/acento, e o posto leva o nome do cadastro', x.linhas.some(l => l.escala === 'Apoio' && l.unidade === 'Apoio Aquartelado'));
+  ver('turno vazio vale TODOS', x.linhas.filter(l => l.escala === 'PE Seguro').every(l => l.turno === 'TODOS'));
+  ver('o posto de condutor e a categoria vêm da função na guarnição',
+    x.linhas.filter(l => l.exigeCnh).map(l => l.unidade + ':' + l.funcao + ':' + l.cnh.join()).join(' ') ===
+    'ABT:MOTORISTA:D AR:MOTORISTA:D AR:MOTORISTA:D Apoio Aquartelado:MOTORISTA DE ACO:B', x.linhas.filter(l => l.exigeCnh));
+  ver('MOTORISTA do PE Seguro sem CNH no cadastro: não é posto de condutor (o mesmo nome não basta)',
+    x.linhas.find(l => l.unidade === 'PE SEGURO' && l.funcao === 'MOTORISTA').exigeCnh === false);
+
+  x = L.vinculosParaModelo_([v(2, '', 'Pronto', 'A', 'UR'), v(3, '', 'Pronto', 'A', 'RESERVA'), v(4, '13/2026', 'Pronto', 'A', 'AR'), v(5, '', 'Pronto', 'A', ''), v(6, '', 'Pronto', 'A', 'ABT'), v(7, '', 'pronto', 'a', 'abt')], r, '2026-11');
+  ver('guarnição fora do cadastro: não gera posto e o aviso diz a linha e o nome',
+    /GUARNIÇÕES POR ESCALA, linha 2: a guarnição "UR" não está na aba GUARNIÇÕES em 2026-11/.test(x.avisos.join('\n')), x.avisos);
+  ver('ATIVAR = NÃO no mês: não gera posto, com aviso (RN-07)', /linha 3: a guarnição "RESERVA" está com ATIVAR = NÃO/.test(x.avisos.join('\n')));
+  ver('vigência inválida e linha sem GUARNIÇÃO: avisadas e ignoradas', /linha 4: vigência "13\/2026" inválida/.test(x.avisos.join('\n')) && /linha 5: a escala "Pronto" está sem GUARNIÇÃO/.test(x.avisos.join('\n')));
+  ver('o mesmo vínculo repetido conta uma vez só', x.linhas.length === 4 && /linha 7: "abt" já está vinculada/.test(x.avisos.join('\n')), [x.linhas.length, x.avisos]);
+
+  // RN-93: a vigência é por ESCALA — vale o conjunto da vigência mais recente
+  const comVig = [v(2, '', 'Pronto', 'A', 'ABT'), v(3, '', 'Pronto', 'A', 'AR'), v(4, '2026-12', 'Pronto', 'A', 'AR'), v(5, '', 'PE Seguro', 'TODOS', 'PE SEGURO')];
+  const un = (mes) => { const y = L.vinculosParaModelo_(comVig, L.resolverGuarnicoes_(cad, mes), mes); return Array.from(new Set(y.linhas.filter(l => l.escala === 'Pronto').map(l => l.unidade))).join(); };
+  ver('mês já fechado lê os vínculos antigos (ABT e AR) (RN-93)', un('2026-11') === 'ABT,AR', un('2026-11'));
+  ver('a partir da vigência nova, só o que foi reescrito (o ABT saiu)', un('2026-12') === 'AR' && un('2027-03') === 'AR');
+  ver('a vigência de uma escala não mexe nas outras', L.vinculosParaModelo_(comVig, L.resolverGuarnicoes_(cad, '2026-12'), '2026-12').linhas.some(l => l.escala === 'PE Seguro'));
+  ver('vínculo de vigência futura não vale antes', L.vinculosParaModelo_([v(2, '2027-01', 'Pronto', 'A', 'AR')], r, '2026-11').linhas.length === 0);
+
+  // montado como molde
+  const escalas = [{ escala: 'Pronto', servicos: 'Pronto', titulo: '', militares: 'ESCALADOS', dias: 'TODOS' }, { escala: 'PE Seguro', servicos: 'PE Seguro', titulo: '', militares: 'TODOS', dias: 'TODOS' }, { escala: 'Bioma', servicos: 'Bioma', titulo: '', militares: 'TODOS', dias: 'TODOS' }];
+  const tps = { Pronto: ['A', 'B'], 'PE Seguro': ['A', 'B', 'C'], Bioma: ['A'] };
+  const mod = L.montarModelosGuarnicao_(escalas, L.vinculosParaModelo_(vinc, r, '2026-11').linhas, tps);
+  ver('o molde do Pronto A: os postos das duas guarnições, na ordem do vínculo e do cadastro',
+    L.expandirSlots_(mod.escalas.Pronto, 'A').map(p => p.unidade + '/' + p.funcao).join(', ') ===
+    'ABT/CHEFE, ABT/COMBATENTE, ABT/AUXILIAR DE LINHA, ABT/MOTORISTA, AR/MOTORISTA, AR/CHEFE, AR/SOCORRISTA, AR/SOCORRISTA, AR/SOCORRISTA', L.expandirSlots_(mod.escalas.Pronto, 'A'));
+  ver('escala sem nenhuma guarnição vinculada é ignorada com aviso que aponta a aba nova',
+    !mod.escalas.Bioma && mod.avisos.some(a => /"Bioma" ignorada: não há linhas para ela na aba GUARNIÇÕES POR ESCALA/.test(a)), mod.avisos);
+  ver('Alocar em Função (B36) recebe as funções das guarnições vinculadas, com a guarnição',
+    L.funcoesPorServico_(mod, 'Pronto', 'B').map(f => f.funcao + '/' + f.unidade + (f.exigeCnh ? '*' : '')).join() === 'MOTORISTA/AR*,CHEFE/AR,SOCORRISTA/AR');
+
+  // B58 item 3: a regra de cada posto vem do vínculo
+  const postos = L.postosDoModelo_(mod);
+  ver('regraDoPosto_: MOTORISTA do AR exige D; MOTORISTA do PE Seguro não exige nada',
+    JSON.stringify(L.regraDoPosto_({ postos }, 'AR', 'MOTORISTA')) === '{"exigeCnh":true,"exigida":["D"]}' &&
+    L.regraDoPosto_({ postos }, 'PE SEGURO', 'MOTORISTA').exigeCnh === false, postos);
+  ver('regraDoPosto_: sem o posto no mapa (formato antigo), a regra de antes (nome + CNH da guarnição)',
+    JSON.stringify(L.regraDoPosto_({ postos: {}, funcoesComCnh: {}, cnhPorUnidade: { AR: ['D'] } }, 'AR', 'MOTORISTA')) === '{"exigeCnh":true,"exigida":["D"]}');
+
+  const escP = mod.escalas.Pronto;
+  const tab = [{ mat: 'M1', dia: '2026-11-05', turno: 'B', servico: 'Pronto', funcao: '', unidade: '', linha: 10 }];
+  const linhaG = (mat, unidade, funcao) => ({ linha: 6, dia: '2026-11-05', turno: 'B', unidade, funcao, texto: mat, mat });
+  const opc = { motoristas: { M1: true }, funcoesComCnh: {}, cnh: { M1: ['B'] }, cnhPorUnidade: {}, postos };
+  let g = L.calcularGuarnicao_([], [linhaG('M1', 'AR', 'MOTORISTA')], tab, escP, opc);
+  ver('calcularGuarnicao_: motorista com CNH B no posto do AR é avisado (exige D, pelo vínculo)', g.avisosCnh.length === 1 && g.avisosCnh[0].exigida === 'D' && g.avisosCnh[0].unidade === 'AR', g.avisosCnh);
+  g = L.calcularGuarnicao_([], [linhaG('M1', 'AR', 'CHEFE')], tab, escP, opc);
+  ver('calcularGuarnicao_: no CHEFE do AR nada é checado', g.avisosCnh.length === 0 && g.avisosMotorista.length === 0);
+
+  // montarGrade_: alocação gravada antes do vínculo (FUNÇÃO sem UNIDADE) cai no posto daquela função
+  const al = [
+    { mat: 'M1', dia: '2026-11-05', turno: 'A', servico: 'Pronto', funcao: 'MOTORISTA', unidade: '', linha: 10 },
+    { mat: 'M2', dia: '2026-11-05', turno: 'A', servico: 'Pronto', funcao: 'MOTORISTA', unidade: 'AR', linha: 11 },
+    { mat: 'M3', dia: '2026-11-05', turno: 'A', servico: 'Pronto', funcao: 'MOTORISTA', unidade: '', linha: 12 },
+    { mat: 'M4', dia: '2026-11-05', turno: 'A', servico: 'Pronto', funcao: 'COZINHEIRO', unidade: '', linha: 13 }
+  ];
+  const gr = L.montarGrade_(escP, '2026-11', al);
+  const no = mat => gr.linhas.filter(l => l.dia === '2026-11-05' && l.turno === 'A' && l.mat === mat).map(l => l.unidade + '/' + l.funcao).join();
+  ver('montarGrade_: com UNIDADE, vai ao posto da guarnição dela (M2 no AR)', no('M2') === 'AR/MOTORISTA', no('M2'));
+  ver('montarGrade_: FUNÇÃO sem UNIDADE vai ao primeiro posto livre daquela função (M1 no ABT)', no('M1') === 'ABT/MOTORISTA', no('M1'));
+  ver('montarGrade_: sem posto livre daquela função, fica em "sem função neste turno"', no('M3') === '' && gr.semFuncao['2026-11-05|A'].map(y => y.mat).sort().join() === 'M3,M4', gr.semFuncao['2026-11-05|A']);
+  const lerG = gr.linhas.filter(l => l.mat).map((l, i) => ({ linha: 6 + i, dia: l.dia, turno: l.turno, unidade: l.unidade, funcao: l.funcao, texto: l.mat, mat: l.mat }));
+  g = L.calcularGuarnicao_(gr.base, lerG, al, escP, {});
+  ver('salvar grava a guarnição na alocação antiga (aparece como alteração de função)',
+    g.atualizar.length === 1 && g.atualizar[0].chave.indexOf('M1|') === 0 && g.atualizar[0].unidade === 'ABT' && g.atualizar[0].funcao === 'MOTORISTA', g.atualizar);
+
+  // conversão do formato antigo
+  const conv = L.converterVinculosAntigos_([
+    { escala: 'Defensoria', turno: 'TODOS', unidade: '' }, { escala: 'Defensoria', turno: 'TODOS', unidade: '' },
+    { escala: 'Pronto', turno: 'A', unidade: 'AR' }, { escala: 'Pronto', turno: 'A', unidade: 'AR' }, { escala: 'Pronto', turno: '', unidade: 'ABT' },
+    { escala: '', turno: '', unidade: '' }
+  ]);
+  ver('conversão: uma linha por ESCALA + TURNO + UNIDADE, com a UNIDADE como GUARNIÇÃO',
+    conv.linhas.map(y => y.escala + '/' + y.turno + '/' + y.guarnicao).join() === 'Pronto/A/AR,Pronto/TODOS/ABT', conv.linhas);
+  ver('conversão: linhas sem UNIDADE são contadas e a escala que fica sem vínculo é apontada',
+    conv.semUnidade === 2 && conv.escalasSemVinculo.join() === 'Defensoria', conv);
+  ver('conversão da sandbox (UNIDADE vazia em tudo): nenhum vínculo, as quatro escalas apontadas',
+    (() => { const y = L.converterVinculosAntigos_(['Defensoria', 'PE Seguro', 'Bioma', 'CPRH'].map(e => ({ escala: e, turno: 'TODOS', unidade: '' }))); return y.linhas.length === 0 && y.escalasSemVinculo.length === 4; })());
 }
 
 console.log(`\n${ok} ok, ${falhas} falha(s)`);
