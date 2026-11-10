@@ -26,7 +26,10 @@
 
 const GUARN_ABA = {
   GRADE: 'ESCALA',                      // B52: chamava-se GUARNIÇÃO; abaAtual_ renomeia a antiga. Não confundir com a aba de cadastro ESCALAS
-  IMPRESSAO: 'IMPRESSÃO', ESCALAS: 'ESCALAS', VINCULOS: GUARN_VINCULO_ABA_,   // B58: ex-MODELOS DE GUARNIÇÃO; abaAtual_ renomeia a antiga
+  // B58: literal, não GUARN_VINCULO_ABA_ (guarnicao.gs). Os .gs são avaliados em ordem não garantida
+  // entre arquivos; um const de topo lendo o de outro arquivo pode cair na zona morta e derrubar a
+  // carga inteira (some o menu). Tem de ser igual a GUARN_VINCULO_ABA_.
+  IMPRESSAO: 'IMPRESSÃO', ESCALAS: 'ESCALAS', VINCULOS: 'GUARNIÇÕES POR ESCALA',   // ex-MODELOS DE GUARNIÇÃO; abaAtual_ renomeia a antiga
   BASE: '_BASE_GUARNICAO', LISTA: '_LISTA_MILITARES'
 };
 

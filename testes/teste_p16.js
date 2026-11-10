@@ -679,5 +679,23 @@ console.log('== B59 (RN-12) CNH na notação oficial: "AD" é A e D');
   ver('a hierarquia continua fora do código: "D" não atende a exigência B', !L.cnhAtende_(L.categoriasCnh_('D').categorias, ['B']));
 }
 
+console.log('== carga no Apps Script: nenhum const de topo depende de outro arquivo (senão o menu some)');
+{
+  // No Apps Script os .gs rodam numa ordem não garantida entre arquivos. Um const de topo que lê o
+  // const de outro arquivo pode cair na zona morta e derrubar a carga inteira — foi o que sumiu o
+  // menu depois de um clasp push (GUARN_ABA lendo GUARN_VINCULO_ABA_). Aqui cada arquivo é avaliado
+  // SOZINHO: os corpos de função não rodam (podem citar helpers de outros arquivos à vontade), mas
+  // um const de topo lendo identificador de fora estoura ReferenceError.
+  const vm = require('vm');
+  const soBuiltins = () => vm.createContext(Object.assign(Object.create(null),
+    { console: { log() {} }, Object, Array, Date, Math, String, Number, Set, Map, Error, JSON, isFinite, isNaN, parseInt, parseFloat, RegExp, Infinity }));
+  fs.readdirSync(dir).filter(f => f.endsWith('.js')).forEach(function (f) {
+    let erro = '';
+    try { vm.runInContext(ler(f), soBuiltins(), { timeout: 2000, filename: f }); }
+    catch (e) { if (e instanceof ReferenceError || /before initialization|is not defined/.test(e.message)) erro = e.message; }
+    ver(f + ': avaliado sozinho, sem ReferenceError de topo', erro === '', erro);
+  });
+}
+
 console.log(`\n${ok} ok, ${falhas} falha(s)`);
 process.exit(falhas ? 1 : 0);
