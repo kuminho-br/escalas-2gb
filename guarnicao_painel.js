@@ -395,7 +395,12 @@ function painelGuarnicaoPrevia() {
   return resumoParaTelaG_(analisarGuarnicao_(tz), nomesPorMatricula_());
 }
 
-function painelGuarnicaoSalvar() {
+/**
+ * esperado (B49 item 5, como no B35): quantas alterações a tela mostrava quando o usuário confirmou.
+ * Se a tela esperava gravar algo e na releitura não há nada, a lista estava desatualizada e a tela
+ * avisa, em vez de mostrar "Gravado: 0" como se fosse sucesso.
+ */
+function painelGuarnicaoSalvar(esperado) {
   const tz = SpreadsheetApp.getActive().getSpreadsheetTimeZone();
   const lock = LockService.getDocumentLock();
   if (!lock.tryLock(15000)) throw new Error('Outra pessoa está gravando agora. Tente de novo em instantes.');
@@ -417,7 +422,8 @@ function painelGuarnicaoSalvar() {
       totalConflitos: r.conflitos.length,
       totalInvalidas: r.invalidas.length,
       totalChoques: r.choques.length,
-      restantes: restantes
+      restantes: restantes,
+      desatualizado: total === 0 && parseInt(esperado, 10) > 0
     };
   } finally {
     lock.releaseLock();

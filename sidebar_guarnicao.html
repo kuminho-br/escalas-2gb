@@ -68,6 +68,7 @@
     <ul id="lista" class="itens"></ul>
     <div id="maisNota" class="nota" hidden></div>
     <button id="btnSalvar" class="principal" disabled>Salvar alterações</button>
+    <button id="btnCancelar" class="secundario" hidden>Cancelar</button>
     <button id="btnAtualizar" class="secundario">Atualizar</button>
   </div>
 
@@ -114,7 +115,16 @@
   var TIPOS = { inclusao: 'Inclusão', funcao: 'Função', exclusao: 'Exclusão' };
   var atual = null;           // última prévia
   var escalas = [];
-  var confirmando = null;     // temporizador do segundo clique
+  // B49 item 5 (RN-81), a mesma correção do B35 no Mostrar Escala: a confirmação do segundo clique
+  // NÃO expira mais. Com o temporizador de 6 s, um segundo clique fora da janela virava um novo
+  // primeiro clique e nada era gravado, sem erro na tela.
+  var confirmando = false;
+  var manterErro = false;     // aviso que sobrevive à atualização silenciosa logo depois de gravar
+  function desarmar() {
+    confirmando = false;
+    el('btnSalvar').textContent = 'Salvar alterações';
+    mostrar('btnCancelar', false);
+  }
   var ultimaAtualizacao = 0;
   var trabalhando = false;
 
@@ -176,7 +186,7 @@
     var mais = r.aplicarTotal - r.aplicar.length;
     el('maisNota').textContent = mais > 0 ? 'e mais ' + mais + ' alteração(ões) não listada(s).' : '';
     mostrar('maisNota', mais > 0);
-    el('btnSalvar').textContent = 'Salvar alterações';
+    desarmar();
     el('btnSalvar').disabled = r.aplicarTotal === 0;
     mostrar('cartao', true);
 
@@ -190,10 +200,10 @@
 
   function atualizar(silencioso) {
     if (!silencioso) limpar();
-    if (confirmando) { clearTimeout(confirmando); confirmando = null; }
+    desarmar();
     ocupado(true);
     google.script.run
-      .withSuccessHandler(function (r) { ocupado(false); mostrarPrevia(r); if (silencioso) mostrar('erro', false); })
+      .withSuccessHandler(function (r) { ocupado(false); mostrarPrevia(r); if (silencioso && !manterErro) mostrar('erro', false); manterErro = false; })
       .withFailureHandler(falha)
       .painelGuarnicaoPrevia();
   }
@@ -258,19 +268,31 @@
   el('btnAtualizar').addEventListener('click', function () { atualizar(false); });
 
   // Gravar exige dois cliques: o primeiro pede confirmação (some depois de 6 s).
+  // Gravar exige dois cliques: o primeiro pede confirmação, que fica armada até confirmar ou cancelar.
+  el('btnCancelar').addEventListener('click', desarmar);
   el('btnSalvar').addEventListener('click', function () {
-    var b = el('btnSalvar');
+    if (!atual || atual.aplicarTotal === 0) return;
     if (!confirmando) {
-      b.textContent = 'Confirmar: gravar ' + atual.aplicarTotal + ' alteração(ões)';
-      confirmando = setTimeout(function () { confirmando = null; b.textContent = 'Salvar alterações'; }, 6000);
+      confirmando = true;
+      el('btnSalvar').textContent = 'Confirmar: gravar ' + atual.aplicarTotal + ' alteração(ões)';
+      mostrar('btnCancelar', true);
       return;
     }
-    clearTimeout(confirmando); confirmando = null;
-    b.textContent = 'Salvar alterações';
+    var esperado = atual.aplicarTotal;
+    desarmar();
     limpar(); ocupado(true);
     google.script.run
       .withSuccessHandler(function (r) {
         var g = r.gravadas;
+        // como no B35: lista desatualizada não passa mais por gravação bem-sucedida
+        if (r.desatualizado) {
+          ocupado(false);
+          el('erro').textContent = 'Nada foi gravado: a lista estava desatualizada (a grade foi montada de novo ou outra pessoa já aplicou essas mudanças). A lista foi recarregada abaixo; confira e salve de novo.';
+          mostrar('erro', true);
+          manterErro = true;
+          atualizar(true);
+          return;
+        }
         var msg = 'Gravado: ' + g.inclusoes + ' inclusão(ões), ' + g.funcoes + ' função(ões), ' + g.exclusoes + ' exclusão(ões).';
         msg += r.restantes === 0 ? ' Conferência: 0 diferenças pendentes.' : ' Atenção: ' + r.restantes + ' diferença(s) ainda pendente(s); atualize e confira.';
         if (r.totalConflitos || r.totalInvalidas || r.totalChoques) msg += ' Não gravados: ' + r.totalConflitos + ' conflito(s), ' + r.totalInvalidas + ' inválida(s), ' + r.totalChoques + ' choque(s) de horário.';
@@ -279,7 +301,7 @@
         atualizar(true);
       })
       .withFailureHandler(falha)
-      .painelGuarnicaoSalvar();
+      .painelGuarnicaoSalvar(esperado);
   });
 
   el('btnImprimir').addEventListener('click', function () {
