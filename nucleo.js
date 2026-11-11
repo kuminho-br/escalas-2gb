@@ -254,3 +254,100 @@ function linhasExtrasVazias_(linhas, celulas) {
   }
   return res;
 }
+
+/* ------------------------------------------------------------ nomes das abas (B52) */
+
+/**
+ * B52: cinco abas mudaram de nome; B58 (RN-09), mais uma: MODELOS DE GUARNIÇÃO virou GUARNIÇÕES POR
+ * ESCALA. Para cada nome novo, os nomes que a aba já teve, do mais recente para o mais antigo (uma
+ * planilha que ainda tenha MATRIZ termina com GRADE GERAL).
+ * A comparação é sempre pelo nome INTEIRO: "ESCALA" não é "ESCALAS" e "GUARNIÇÕES" não é
+ * "GUARNIÇÕES POR ESCALA".
+ */
+const ABAS_NOMES_ANTIGOS_ = {
+  'ALOCAÇÕES': ['ALOCAÇÕES TABULADAS'],
+  'GRADE GERAL': ['ESCALA DO MÊS', 'MATRIZ'],
+  'ESCALA': ['GUARNIÇÃO'],
+  'ESCALA DO ORDINÁRIO': ['ESCALA OPERACIONAL'],
+  'GUARNIÇÕES': ['VIATURAS'],
+  'GUARNIÇÕES POR ESCALA': ['MODELOS DE GUARNIÇÃO']      // B58: só o nome muda aqui; o formato é convertido pelo painel
+};
+
+/**
+ * O que fazer com as abas, dado o nome de todas as que existem na planilha.
+ * Retorna { renomear: [{ de, para }], avisos: [texto] }.
+ * - só o nome antigo existe: renomeia (o mais recente dos antigos; os demais ficam e são avisados);
+ * - o novo e algum antigo existem: não toca em nenhum, usa o novo e avisa;
+ * - nenhum existe: nada a fazer (quem precisar da aba a cria já com o nome novo).
+ */
+function planoDeMigracaoDeAbas_(existentes, so) {
+  const tem = Object.create(null);
+  (existentes || []).forEach(function (n) { tem[n] = true; });
+  const renomear = [], avisos = [];
+  Object.keys(ABAS_NOMES_ANTIGOS_).forEach(function (novo) {
+    if (so && so !== novo) return;
+    const antigas = ABAS_NOMES_ANTIGOS_[novo].filter(function (a) { return tem[a]; });
+    if (!antigas.length) return;
+    if (tem[novo]) {
+      avisos.push('Existem ao mesmo tempo as abas "' + novo + '" e "' + antigas.join('", "') + '" (nome antigo). O sistema usa "' + novo + '" e não apaga nenhuma: confira qual tem os dados certos e apague ou renomeie a outra.');
+      return;
+    }
+    renomear.push({ de: antigas[0], para: novo });
+    if (antigas.length > 1) {
+      avisos.push('A aba "' + antigas[0] + '" passou a se chamar "' + novo + '". Também existe "' + antigas.slice(1).join('", "') + '" (nome mais antigo ainda), que ficou como está: confira e apague se não for mais usada.');
+    }
+  });
+  return { renomear: renomear, avisos: avisos };
+}
+
+/* ------------------------------------------------------------ função como nota (B48) */
+
+/**
+ * B48 (RN-94, RN-81): a função de cada alocação aparece como NOTA na célula da grade geral (não
+ * como coluna). Monta a matriz de notas, do mesmo tamanho da grade: '' onde não há função.
+ * linhas: [{ mat }], dias: ['aaaa-mm-dd'], celulas: textos da grade, rot: rótulos de montarRotulos_,
+ * alocs: alocações com { mat, dia, servico, turno, funcao, unidade }.
+ * A nota só mostra o resultado; quem atribui a função é o menu "Alocar em Função" (B36).
+ */
+function notasDeFuncao_(linhas, dias, celulas, rot, alocs) {
+  const porChave = Object.create(null);
+  (alocs || []).forEach(function (a) {
+    const f = String(a.funcao == null ? '' : a.funcao).trim();
+    if (!f) return;
+    const k = a.mat + '|' + a.dia + '|' + a.servico + '|' + a.turno;
+    if (!(k in porChave)) porChave[k] = 'Função: ' + f + (String(a.unidade || '').trim() ? ' (' + String(a.unidade).trim() + ')' : '');
+  });
+  return celulas.map(function (linha, i) {
+    return linha.map(function (v, j) {
+      const texto = String(v == null ? '' : v).trim();
+      const l = linhas[i];
+      if (!texto || !l || !l.mat || !dias[j]) return '';
+      const p = parDoRotulo_(texto, rot);
+      if (!p) return '';
+      return porChave[l.mat + '|' + dias[j] + '|' + p.servico + '|' + p.turno] || '';
+    });
+  });
+}
+
+/* ------------------------------------------------------------ origem do serviço (B49 item 2) */
+
+/**
+ * B49 item 2 (RN-13, RN-94): a ORIGEM de uma alocação — o rótulo que vai depois da função
+ * ("MOTORISTA - PJES") e no documento do ordinário — é cadastro: coluna ORIGEM da aba TURNOS.
+ * origens = { 'SERVIÇO|TURNO': 'PJES', 'SERVIÇO': 'PJES' } (montado por lerOrigens_).
+ * Vale, nessa ordem: a ORIGEM da linha do turno, a ORIGEM de qualquer turno do serviço e, sem
+ * nada cadastrado, o próprio nome do serviço em maiúsculas — que é o comportamento que já havia
+ * para Pronto e Saldo. Nada aqui está escrito no código: o JES -> PJES saiu de guarnicao.gs.
+ */
+function origemDoServico_(servico, origens, turno) {
+  const mapa = origens || {};
+  const nS = normalizar_(servico);
+  const procura = function (chave) {
+    const k = Object.keys(mapa).filter(function (x) { return normalizar_(x.split('|')[0]) === nS && (chave === null ? x.indexOf('|') < 0 : normalizar_(x.split('|')[1]) === normalizar_(chave)); })[0];
+    return k ? String(mapa[k]).trim() : '';
+  };
+  const achou = (turno ? procura(turno) : '') || procura(null);
+  const texto = achou || String(servico == null ? '' : servico).trim();
+  return normalizar_(texto) === '' ? '' : texto.toUpperCase();
+}
+

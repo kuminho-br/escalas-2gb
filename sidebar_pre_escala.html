@@ -245,7 +245,7 @@
     google.script.run
       .withSuccessHandler(function (r) {
         ocupado(false);
-        el('resultadoAdm').textContent = r.gravadas + ' alocações do Adm gravadas em ALOCAÇÕES TABULADAS. Conferência: ' +
+        el('resultadoAdm').textContent = r.gravadas + ' alocações do Adm gravadas em ALOCAÇÕES. Conferência: ' +
           (r.restantes === 0 ? '0 turnos pendentes.' : r.restantes + ' turno(s) ainda pendente(s) (veja os avisos).');
         mostrar('resultadoAdm', true);
         mostrar('btnMatriz', true);
@@ -327,7 +327,7 @@
     google.script.run
       .withSuccessHandler(function (r) {
         ocupado(false);
-        el('resultadoCotas').textContent = r.gravadas + ' alocações das operações gravadas em ALOCAÇÕES TABULADAS. Conferência: ' +
+        el('resultadoCotas').textContent = r.gravadas + ' alocações das operações gravadas em ALOCAÇÕES. Conferência: ' +
           (r.restantes === 0 ? 'nada pendente.' : r.restantes + ' ainda pendente(s) (veja os avisos).');
         mostrar('resultadoCotas', true);
         mostrar('btnMatriz', true);

@@ -4,7 +4,7 @@
  * A lógica de conversão está em nucleo.js.
  *
  * Uso:  menu "Escalas - 2º GB" > "Mostrar Escala" abre o painel, que carrega a escala
- *       (mês em B1, seção em B2 da aba ESCALA DO MÊS) e salva as edições na tabela.
+ *       (mês em B1, seção em B2 da aba GRADE GERAL) e salva as edições na tabela.
  *       menu "Escalas - 2º GB" > "Conferir Integridade dos Dados" abre o painel de integridade
  *       (choques de horário, catálogo de turnos e escala carregada × tabela; só lê e relata)
  *
@@ -13,13 +13,16 @@
  * Mudanças que vieram da tabela (outra pessoa, ou a pré-escala) não pedem confirmação.
  */
 
+/** B57: identifica o código que está rodando (aparece no diagnóstico e no log). */
+const VERSAO_DO_CODIGO_ = 'p16-funcoes-viaturas · B57';
+
 const CONFIG = {
-  ABA_ALOCACOES: 'ALOCAÇÕES TABULADAS',
+  ABA_ALOCACOES: 'ALOCAÇÕES',             // B52: chamava-se ALOCAÇÕES TABULADAS; abaAtual_ renomeia a antiga
   ABA_MILITARES: 'MILITARES',
   ABA_TURNOS: 'TURNOS',
-  ABA_MATRIZ: 'ESCALA DO MÊS',          // chamava-se MATRIZ; abaDaEscala_ renomeia a antiga
+  ABA_MATRIZ: 'GRADE GERAL',            // B52: chamava-se MATRIZ e depois ESCALA DO MÊS; abaAtual_ renomeia a antiga
 
-  // layout da aba ESCALA DO MÊS (a linha é "militar + posição": não há coluna de turno)
+  // layout da aba GRADE GERAL (a linha é "militar + posição": não há coluna de turno)
   LINHA_MES: 1, LINHA_SECAO: 2, LINHA_SEMANA: 3, LINHA_CABECALHO: 4, PRIMEIRA_LINHA: 5,
   COL_MAT: 1, COL_MILITAR: 2, COL_EQUIPE: 3, PRIMEIRA_COL_DIA: 4,
   LARGURA_DIA: 92,                    // px; cabe "Defensoria 07–19" e "PE Seguro 16–00"
@@ -42,31 +45,64 @@ function onOpen() {
     .addItem('Pré-escala', 'abrirPainel')
     .addItem('Mostrar Escala', 'abrirPainelMatriz')
     .addItem('Escalas de Serviço', 'abrirPainelGuarnicao')
+    // B36 (RN-94): o menu do Apps Script é montado aqui e não dá para habilitar conforme a célula
+    // selecionada; o item valida a célula ativa no clique (ver alocar_funcao.js).
+    .addItem('Alocar em Função', 'alocarEmFuncao')
     .addSeparator()
     .addItem('Configurações', 'abrirPainelParametros')
     .addItem('Conferir Integridade dos Dados', 'abrirPainelIntegridade')
+    .addItem('Diagnóstico de motoristas', 'diagnosticoMotoristas')      // B57: temporário, sai quando a causa for confirmada
     .addToUi();
 }
 
 /* ------------------------------------------------------------------ leitura */
 
-/** A aba da escala do mês. Se ainda tiver o nome antigo (MATRIZ), renomeia; com criar=true cria quando não existe. */
+/**
+ * B52: a aba com esse nome, renomeando sozinha a que ainda estiver com um nome antigo
+ * (ver ABAS_NOMES_ANTIGOS_ em nucleo.js). O usuário não renomeia nada à mão. Se a nova e a antiga
+ * existirem juntas, nenhuma é apagada: vale a nova, e avisosDeAbas_ conta isso aos painéis.
+ * A busca é sempre pelo nome inteiro (getSheetByName), nunca por "começa com" ou "contém".
+ * Para qualquer outra aba, é o mesmo que getSheetByName. null se não existe.
+ */
+function abaAtual_(ss, nome) {
+  const aba = ss.getSheetByName(nome);
+  if (aba || !ABAS_NOMES_ANTIGOS_[nome]) return aba;
+  const plano = planoDeMigracaoDeAbas_(ss.getSheets().map(function (s) { return s.getName(); }), nome);
+  if (!plano.renomear.length) return null;
+  const antiga = ss.getSheetByName(plano.renomear[0].de);
+  antiga.setName(nome);                                   // só o nome muda: dados, formatação e abas de referência ficam como estão
+  return antiga;
+}
+
+/** B52: renomeia de uma vez as cinco abas que ainda estiverem com nome antigo. Chamada ao abrir cada painel. */
+function migrarAbas_() {
+  const ss = SpreadsheetApp.getActive();
+  Object.keys(ABAS_NOMES_ANTIGOS_).forEach(function (nome) { abaAtual_(ss, nome); });
+}
+
+/** B52: avisos de aba nova e antiga existindo ao mesmo tempo (nenhuma é apagada). */
+function avisosDeAbas_() {
+  const ss = SpreadsheetApp.getActive();
+  return planoDeMigracaoDeAbas_(ss.getSheets().map(function (s) { return s.getName(); })).avisos;
+}
+
+/** A aba da grade geral (a escala do mês na planilha). Com criar=true cria quando não existe. */
 function abaDaEscala_(ss, criar) {
-  let aba = ss.getSheetByName(CONFIG.ABA_MATRIZ);
-  if (!aba) {
-    const antiga = ss.getSheetByName('MATRIZ');
-    if (antiga) { antiga.setName(CONFIG.ABA_MATRIZ); aba = antiga; }
-  }
+  let aba = abaAtual_(ss, CONFIG.ABA_MATRIZ);
   if (!aba && criar) aba = ss.insertSheet(CONFIG.ABA_MATRIZ);
   return aba;
 }
 
-function lerAba_(nome) {
-  const aba = SpreadsheetApp.getActive().getSheetByName(nome);
+function lerAba_(nome, opcoes) {
+  const aba = abaAtual_(SpreadsheetApp.getActive(), nome);
   if (!aba) throw new Error('Aba não encontrada: "' + nome + '".');
-  const valores = aba.getDataRange().getValues();
+  const faixa = aba.getDataRange();
+  const valores = faixa.getValues();
   if (valores.length === 0) throw new Error('A aba "' + nome + '" está vazia.');
-  return { nome: nome, cab: valores[0].map(normalizar_), linhas: valores.slice(1) };
+  const t = { nome: nome, cab: valores[0].map(normalizar_), linhas: valores.slice(1) };
+  // B57: o texto como aparece na tela, para as colunas sim/não e de categoria (ver lerMilitares_)
+  if (opcoes && opcoes.exibidos) t.exibidos = faixa.getDisplayValues().slice(1);
+  return t;
 }
 
 /** Acha a coluna pelo cabeçalho (sem acento/caixa/pontuação); aceita "começa com" (ex.: "ANTIG. (2°GB)"). */
@@ -116,31 +152,112 @@ function lerAlocacoes_(tz) {
   return { alocs: alocs, semData: semData, incompletas: incompletas };
 }
 
+/** Valores que contam como "sim" nas colunas MOTORISTA e VOLUNTÁRIO JES. */
+const SIM_MILITARES_ = ['SIM', 'S', 'X', '1', 'TRUE', 'VERDADEIRO'];
+
+/**
+ * B57 (RN-12): na sandbox, com "Sim" na coluna MOTORISTA, ninguém era lido como motorista — e o
+ * mesmo código, com os mesmos dados exportados, lê os 76. A aba MILITARES é uma Tabela do Sheets.
+ * Duas medidas enquanto a causa não é confirmada:
+ *   - a célula é aceita como "sim" pelo valor (getValues) OU pelo texto exibido (getDisplayValues);
+ *     se uma coluna tipada da Tabela devolver algo que não é o texto, o exibido ainda vale;
+ *   - instrumentação: na primeira leitura de cada execução, o console recebe o índice da coluna, o
+ *     cabeçalho e o valor bruto das primeiras linhas (ver diagnosticoMotoristas, em matriz.js).
+ * Ao confirmar a causa, a instrumentação sai (a leitura pelo texto exibido pode ficar).
+ */
+let LOG_MILITARES_FEITO_ = false;
+
+function simDaCelula_(valor, exibido) {
+  return SIM_MILITARES_.indexOf(normalizar_(valor)) >= 0 || SIM_MILITARES_.indexOf(normalizar_(exibido)) >= 0;
+}
+
 function lerMilitares_() {
-  const t = lerAba_(CONFIG.ABA_MILITARES);
+  const t = lerAba_(CONFIG.ABA_MILITARES, { exibidos: true });
   const c = {
     mat: coluna_(t, 'MATRÍCULA', true), nome: coluna_(t, 'NOME DE GUERRA', true), secao: coluna_(t, 'SEÇÃO', true),
     posto: coluna_(t, 'POSTO/GRAD', false), jornada: coluna_(t, 'JORNADA', false),
     equipe: coluna_(t, 'EQUIPE', false), antig: coluna_(t, 'ANTIG', false), motorista: coluna_(t, 'MOTORISTA', false),
-    vjes: coluna_(t, 'VOLUNTÁRIO JES', false)
+    vjes: coluna_(t, 'VOLUNTÁRIO JES', false), cnh: coluna_(t, 'CNH', false)
   };
   const pega = function (l, i) { return i < 0 ? '' : l[i]; };
+  const exib = t.exibidos || [];
   const res = [];
   t.linhas.forEach(function (l, ordem) {
     const mat = texto_(l[c.mat]);
     if (!mat) return;
+    const e = exib[ordem] || [];
     res.push({
       mat: mat, nome: texto_(l[c.nome]), posto: texto_(pega(l, c.posto)), secao: texto_(l[c.secao]),
       jornada: texto_(pega(l, c.jornada)), equipe: texto_(pega(l, c.equipe)), antig: pega(l, c.antig), ordem: ordem,
       // true só se a coluna MOTORISTA existir e tiver algo como SIM/S/X (o "-" e o vazio contam como não)
       temColunaMotorista: c.motorista >= 0,
-      motorista: c.motorista >= 0 && ['SIM', 'S', 'X', 'MOTORISTA', '1', 'TRUE', 'VERDADEIRO'].indexOf(normalizar_(l[c.motorista])) >= 0,
+      motorista: c.motorista >= 0 && (simDaCelula_(l[c.motorista], e[c.motorista]) || normalizar_(l[c.motorista]) === 'MOTORISTA'),
       // RN-46: atributo "voluntário JES" (sim/não). Só vale se a coluna existir; vazio e "não" contam como não.
       temColunaVoluntarioJes: c.vjes >= 0,
-      voluntarioJes: c.vjes >= 0 && ['SIM', 'S', 'X', '1', 'TRUE', 'VERDADEIRO'].indexOf(normalizar_(l[c.vjes])) >= 0
+      voluntarioJes: c.vjes >= 0 && simDaCelula_(l[c.vjes], e[c.vjes]),
+      // RN-12: categoria(s) de CNH do militar. Sem a coluna, lista vazia.
+      // B59: letra a letra, na notação oficial ("AD" = A e D; "B, D" também vale); ver categoriasCnh_
+      temColunaCnh: c.cnh >= 0
     });
+    const m = res[res.length - 1];
+    const cat = categoriasCnh_(c.cnh >= 0 ? (texto_(pega(l, c.cnh)) || texto_(pega(e, c.cnh))) : '');
+    m.cnh = cat.categorias;
+    m.cnhInvalida = cat.invalidas;              // o que não é categoria (A a E): o painel avisa
   });
+  if (!LOG_MILITARES_FEITO_) {                       // B57: uma vez por execução
+    LOG_MILITARES_FEITO_ = true;
+    try { console.log(JSON.stringify(relatorioMotoristas_(t, c, res))); } catch (err) { /* o log nunca derruba a leitura */ }
+  }
   return res;
+}
+
+/** B57: o que o código está vendo na coluna MOTORISTA (para o log e para diagnosticoMotoristas). */
+function relatorioMotoristas_(t, c, res) {
+  const exib = t.exibidos || [];
+  const bruto = function (x) {
+    return { valor: x, tipo: Object.prototype.toString.call(x), json: JSON.stringify(x), codigos: String(x == null ? '' : x).split('').map(function (ch) { return ch.charCodeAt(0); }), normalizado: normalizar_(x) };
+  };
+  const amostra = [];
+  for (let i = 0; i < t.linhas.length && amostra.length < 5; i++) {
+    const l = t.linhas[i];
+    if (texto_(l[c.mat]) === '') continue;
+    amostra.push({ linhaDaPlanilha: i + 2, mat: texto_(l[c.mat]), motorista: c.motorista >= 0 ? bruto(l[c.motorista]) : null, exibido: c.motorista >= 0 ? (exib[i] || [])[c.motorista] : null });
+  }
+  return {
+    b57: 'lerMilitares_', versao: VERSAO_DO_CODIGO_,
+    indiceMotorista: c.motorista, cabecalhoNesseIndice: c.motorista >= 0 ? t.cab[c.motorista] : null,
+    cabecalho: t.cab, linhas: t.linhas.length, militares: res.length,
+    motoristas: res.filter(function (m) { return m.motorista; }).length,
+    comCnh: res.filter(function (m) { return m.cnh.length; }).length,
+    amostra: amostra
+  };
+}
+
+/**
+ * B57: diagnóstico para rodar na sandbox (menu Escalas - 2º GB > Diagnóstico de motoristas, ou
+ * direto no editor do Apps Script). Mostra, e grava no log da execução, qual projeto está rodando,
+ * a versão do código e o que lerMilitares_ vê na coluna MOTORISTA.
+ */
+function diagnosticoMotoristas() {
+  const t = lerAba_(CONFIG.ABA_MILITARES, { exibidos: true });
+  const c = { mat: coluna_(t, 'MATRÍCULA', true), motorista: coluna_(t, 'MOTORISTA', false), cnh: coluna_(t, 'CNH', false) };
+  const res = lerMilitares_();
+  const rel = relatorioMotoristas_(t, c, res);
+  rel.scriptId = ScriptApp.getScriptId();
+  rel.planilha = SpreadsheetApp.getActive().getId();
+  console.log(JSON.stringify(rel));
+  const linhas = [
+    'Versão do código: ' + rel.versao,
+    'ID do projeto Apps Script: ' + rel.scriptId,
+    'Coluna MOTORISTA: índice ' + rel.indiceMotorista + ' (cabeçalho lido: ' + rel.cabecalhoNesseIndice + ')',
+    'Militares lidos: ' + rel.militares + ' · motoristas: ' + rel.motoristas + ' · com CNH: ' + rel.comCnh,
+    '',
+    'Primeiras linhas (valor bruto da coluna MOTORISTA):'
+  ].concat(rel.amostra.map(function (a) {
+    return 'linha ' + a.linhaDaPlanilha + ' · ' + a.mat + ' · valor ' + (a.motorista ? a.motorista.json + ' (' + a.motorista.tipo + ', códigos ' + a.motorista.codigos.join(' ') + ')' : '—') + ' · exibido "' + a.exibido + '"';
+  })).concat(['', 'O mesmo texto foi gravado no log da execução (Apps Script > Execuções). Copie e mande à Programação.']);
+  try { SpreadsheetApp.getUi().alert('Diagnóstico de motoristas (B57)', linhas.join('\n'), SpreadsheetApp.getUi().ButtonSet.OK); } catch (err) { /* rodando no editor, sem planilha aberta */ }
+  return rel;
 }
 
 /** Catálogo (aba TURNOS): quais serviços existem em cada letra de turno, e os pares válidos. */
@@ -158,7 +275,7 @@ function lerCatalogo_() {
   return { porTurno: porTurno, pares: pares };
 }
 
-/** Mês e seção da aba ESCALA DO MÊS (B1 e B2). Se o mês não estiver preenchido, pergunta. */
+/** Mês e seção da aba GRADE GERAL (B1 e B2). Se o mês não estiver preenchido, pergunta. */
 function lerParametros_(aba, ui, tz) {
   const v = aba.getRange(CONFIG.LINHA_MES, 2).getValue();
   let mes = '';
@@ -397,6 +514,23 @@ function lerRotulos_(catalogoPares) {
 
 /* --------------------------------------------------------- ações do menu */
 
+/**
+ * B48 (RN-94, RN-81): regrava as notas de função de toda a grade geral a partir da tabela.
+ * Chamada ao carregar a escala, depois de salvar no painel Mostrar Escala e depois de "Alocar em
+ * Função". rot e alocs são opcionais (relidos quando faltam). Não mexe em valores nem validações.
+ */
+function atualizarNotasDeFuncao_(aba, tz, rot, alocs) {
+  aba = aba || abaDaEscala_(SpreadsheetApp.getActive(), false);
+  if (!aba) return 0;
+  const m = lerMatrizAtual_(aba, tz);
+  if (!m || !m.linhas.length || !m.dias.length) return 0;
+  if (!rot) rot = montarRotulos_(lerHorarios_().porChave, lerCatalogo_().pares);
+  if (!alocs) alocs = lerAlocacoes_(tz).alocs;
+  const notas = notasDeFuncao_(m.linhas, m.dias, m.celulas, rot, alocs);
+  aba.getRange(CONFIG.PRIMEIRA_LINHA, CONFIG.PRIMEIRA_COL_DIA, notas.length, notas[0].length).setNotes(notas);
+  return notas.reduce(function (n, l) { return n + l.filter(Boolean).length; }, 0);
+}
+
 function montarMatriz() {
   const ss = SpreadsheetApp.getActive();
   const ui = SpreadsheetApp.getUi();
@@ -438,6 +572,7 @@ function montarMatriz() {
     lr.hor.avisos.forEach(function (t) { modelo.avisos.push(t); });
 
     renderizarMatriz_(aba, modelo, par, rot, tz);
+    atualizarNotasDeFuncao_(aba, tz, rot, lidas.alocs);     // B48: a função vira nota na célula
     SpreadsheetApp.flush();
     registrarBase_(aba, tz, rot, modelo.foraDaGrade);      // a escala recém-desenhada vira a referência da sincronização
     ss.setActiveSheet(aba);

@@ -14,6 +14,7 @@ const PARAM_ABA = 'CONFIGURAÇÕES';
 const PARAM_CABECALHO_ = ['CHAVE', 'VALOR', 'VIGÊNCIA (A PARTIR DE)', 'DESCRIÇÃO'];
 
 function abrirPainelParametros() {
+  migrarAbas_();                                         // B52: abas com nome antigo são renomeadas ao abrir o painel
   const html = HtmlService.createHtmlOutputFromFile('sidebar_parametros').setTitle('Configurações');
   SpreadsheetApp.getUi().showSidebar(html);
 }
@@ -82,9 +83,10 @@ function painelParametrosDados(mes) {
   return {
     mes: mes,
     semAba: linhas === null,
-    avisos: r.avisos,
+    avisos: avisosDeAbas_().concat(r.avisos),              // B52
     carga: paramCargaAdm_(r.valores, mes, tz),
     feriados: feriadosDoMes_(tz, mes),
+    guarnicoes: guarnicoesResumo_(mes, tz),               // B37 (RN-07 a RN-12, RN-93, RN-96): atalho e resumo do cadastro
     params: PARAM_CATALOGO_.map(function (d) {
       return {
         chave: d.chave, grupo: d.grupo || 'Geral', rotulo: d.rotulo, tipo: d.tipo, descricao: d.descricao, min: d.min == null ? null : d.min, max: d.max == null ? null : d.max,

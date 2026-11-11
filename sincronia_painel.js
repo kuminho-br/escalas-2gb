@@ -14,6 +14,7 @@ const MSG_RECARREGAR_ = 'Esta escala foi carregada antes da última atualizaçã
 const ABA_BASE_ = '_BASE_MATRIZ';
 
 function abrirPainelMatriz() {
+  migrarAbas_();                                         // B52: abas com nome antigo são renomeadas ao abrir o painel
   const html = HtmlService.createHtmlOutputFromFile('sidebar_matriz').setTitle('Mostrar Escala');
   SpreadsheetApp.getUi().showSidebar(html);
 }
@@ -122,7 +123,7 @@ function resumoParaTela_(a, nomes) {
       return { tipo: 'exclusao', mat: p.mat, dia: p.dia, de: parDe(x.chave), para: null };
     }));
   const cortar = function (lista) { return lista.slice(0, LIMITE_LISTA_).map(function (i) { return formatarItem_(i, nomes, rot); }); };
-  const avisos = (a.avisosTurnos || []).slice();
+  const avisos = avisosDeAbas_().concat(a.avisosTurnos || []);   // B52: aba nova e antiga juntas
   if (a.orfas) avisos.push(a.orfas + ' célula(s) preenchida(s) em linha sem matrícula ou data foram ignoradas.');
   if (a.repetidas) avisos.push(a.repetidas + ' célula(s) repetem um serviço já lançado para o mesmo militar e dia; só a primeira vale.');
   if (a.jesSemRegra) avisos.push('Há JES a gravar, mas a aba MILITARES não tem a coluna VOLUNTÁRIO JES: a regra RN-46 não foi aplicada.');
@@ -162,8 +163,31 @@ function painelSincPrevia() {
   return resumoParaTela_(analisarSincronia_(tz), nomesPorMatricula_());
 }
 
-/** Aplica as mudanças da matriz na tabela, atualiza a referência e confere. */
-function painelSincSalvar() {
+/**
+ * B35 (RN-36, RN-37): confere, lendo a tabela de volta, se cada inclusão pedida chegou lá e se
+ * cada exclusão pedida saiu. Sem isso uma gravação que não acontece passa por bem-sucedida.
+ */
+function conferirGravacao_(res, tz, rot, nomes) {
+  const agora = Object.create(null);
+  lerAlocacoes_(tz).alocs.forEach(function (a) { agora[chaveAloc_(a)] = true; });
+  const faltando = res.inserir.filter(function (i) { return !agora[i.chave]; }).map(function (i) { return i.chave; });
+  const sobrando = res.remover.filter(function (x) { return agora[x.chave]; }).map(function (x) { return x.chave; });
+  return {
+    naoGravadas: faltando.length + sobrando.length,
+    detalhe: faltando.map(function (k) { return 'não entrou: ' + descreverChave_(k, rot, nomes); })
+      .concat(sobrando.map(function (k) { return 'não saiu: ' + descreverChave_(k, rot, nomes); })).slice(0, 5)
+  };
+}
+
+/**
+ * Aplica as mudanças da matriz na tabela, atualiza a referência e confere.
+ *
+ * B35 (RN-36, RN-37): grava o que é válido mesmo havendo pendências, e devolve à tela o que foi
+ * realmente gravado — incluindo o caso em que a lista do painel estava desatualizada e já não havia
+ * nada a gravar (esperado > 0 e nada a aplicar), que antes terminava em silêncio.
+ * esperado: quantas alterações a tela estava mostrando quando o usuário clicou (opcional).
+ */
+function painelSincSalvar(esperado) {
   const tz = SpreadsheetApp.getActive().getSpreadsheetTimeZone();
   const lock = LockService.getDocumentLock();
   if (!lock.tryLock(15000)) throw new Error('Outra pessoa está gravando agora. Tente de novo em instantes.');
@@ -172,19 +196,29 @@ function painelSincSalvar() {
     const r = a.res;
     const nomes = nomesPorMatricula_();
     const total = r.inserir.length + r.remover.length;
+    let conf = { naoGravadas: 0, detalhe: [] };
     if (total > 0) {
       aplicarSincronizacao_(r, tz);
       SpreadsheetApp.flush();
+      conf = conferirGravacao_(r, tz, a.rot, nomes);         // B35: confere na própria tabela
     }
     // a referência avança nas chaves aplicadas (e nas que já estavam iguais na tabela)
     salvarBase_(novaBase_(a.base, a.matriz, r, a.fora));
+    // B48: trocar o serviço de uma célula apaga a função da alocação; a nota acompanha
+    if (total > 0) { try { atualizarNotasDeFuncao_(null, tz, a.rot); } catch (e) { /* a nota não derruba a gravação */ } }
     SpreadsheetApp.flush();
 
     const depois = analisarSincronia_(tz).res;
     const restantes = depois.inserir.length + depois.remover.length;
     const tela = resumoParaTela_(a, nomes);
+    const pedido = parseInt(esperado, 10);
     return {
       gravadas: { inclusoes: r.resumo.inclusoes, exclusoes: r.resumo.exclusoes, alteracoes: r.resumo.alteracoes },
+      operacoes: total,                                      // linhas de tabela mexidas (inclusões + exclusões, contando as trocas)
+      naoGravadas: conf.naoGravadas,
+      detalheNaoGravadas: conf.detalhe,
+      // a tela mostrava alterações a gravar, mas na releitura não havia nenhuma: lista desatualizada
+      desatualizado: total === 0 && pedido > 0,
       conflitos: tela.conflitos,
       invalidas: tela.invalidas,
       choques: tela.choques,
@@ -256,7 +290,7 @@ function colunasAlocacoes_(aba) {
 
 /** Apaga as linhas que saíram e acrescenta as novas. Nessa ordem: os números de linha ainda valem. */
 function aplicarSincronizacao_(res, tz) {
-  const aba = SpreadsheetApp.getActive().getSheetByName(CONFIG.ABA_ALOCACOES);
+  const aba = abaAtual_(SpreadsheetApp.getActive(), CONFIG.ABA_ALOCACOES);
   if (!aba) throw new Error('Aba não encontrada: "' + CONFIG.ABA_ALOCACOES + '".');
 
   // 1. exclusões (inclui a linha antiga de cada troca): de baixo para cima, em faixas contíguas

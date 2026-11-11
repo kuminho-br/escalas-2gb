@@ -8,6 +8,7 @@
  */
 
 function abrirPainelIntegridade() {
+  migrarAbas_();                                         // B52: abas com nome antigo são renomeadas ao abrir o painel
   const html = HtmlService.createHtmlOutputFromFile('sidebar_integridade').setTitle('Integridade dos Dados');
   SpreadsheetApp.getUi().showSidebar(html);
 }
@@ -33,6 +34,60 @@ function lerHorarios_() {
   return montarHorarios_(v.slice(1).map(function (l) {
     return { servico: texto_(l[cS]), turno: texto_(l[cT]), inicio: texto_(l[cI]), fim: texto_(l[cF]), duracao: cD < 0 ? '' : texto_(l[cD]) };
   }));
+}
+
+/**
+ * B49 item 2 (RN-13, RN-94): a coluna ORIGEM da aba TURNOS (opcional).
+ * Retorna { origens: { 'SERVIÇO|TURNO': 'PJES', 'SERVIÇO': 'PJES' }, temColuna, avisos }.
+ * Linha com ORIGEM vazia: a origem é o próprio nome do serviço, como já era para Pronto e Saldo.
+ */
+function lerOrigens_() {
+  const aba = abaAtual_(SpreadsheetApp.getActive(), CONFIG.ABA_TURNOS);
+  const out = { origens: Object.create(null), temColuna: false, avisos: [] };
+  if (!aba) return out;
+  const v = aba.getDataRange().getDisplayValues();
+  if (!v.length) return out;
+  const cab = v[0].map(normalizar_);
+  const cS = cab.indexOf(normalizar_('SERVIÇO')), cT = cab.indexOf('TURNO'), cO = cab.indexOf('ORIGEM');
+  if (cS < 0) return out;
+  out.temColuna = cO >= 0;
+  if (cO < 0) {
+    out.avisos.push('A aba TURNOS não tem a coluna ORIGEM (RN-13): a origem de cada alocação aparece com o nome do próprio serviço (o JES aparece como "JES", não "PJES"). Crie a coluna pelo botão "Criar abas e colunas que faltam" do painel Escalas de Serviço.');
+    return out;
+  }
+  v.slice(1).forEach(function (l) {
+    const s = texto_(l[cS]), o = texto_(l[cO]), t = cT < 0 ? '' : texto_(l[cT]);
+    if (!s || !o) return;
+    if (t) out.origens[s + '|' + t] = o;
+    if (!(s in out.origens)) out.origens[s] = o;
+  });
+  return out;
+}
+
+/**
+ * B49 item 2: cria a coluna ORIGEM na aba TURNOS, levando para o cadastro a regra que estava no
+ * código (JES aparece como PJES): só as linhas do serviço JES são preenchidas, com PJES; as demais
+ * ficam vazias (origem = o próprio serviço, como já era). Não mexe numa aba que já tem a coluna.
+ *
+ * B60 (RN-94): insertColumnAfter antes de setValue para que a Tabela do Sheets inclua a coluna nova.
+ */
+function garantirColunaOrigem_() {
+  const aba = abaAtual_(SpreadsheetApp.getActive(), CONFIG.ABA_TURNOS);
+  if (!aba) return false;
+  const nCols = aba.getLastColumn();
+  const cab = aba.getRange(1, 1, 1, nCols).getValues()[0].map(normalizar_);
+  if (cab.indexOf('ORIGEM') >= 0) return false;
+  const cS = cab.indexOf(normalizar_('SERVIÇO'));
+  // B60: insere a coluna na estrutura da aba para que a Tabela do Sheets a inclua
+  aba.insertColumnAfter(nCols);
+  aba.getRange(1, nCols + 1).setValue('ORIGEM').setFontWeight('bold');
+  const n = aba.getLastRow() - 1;
+  if (n > 0 && cS >= 0) {
+    const serv = aba.getRange(2, cS + 1, n, 1).getValues();
+    aba.getRange(2, nCols + 1, n, 1).setValues(serv.map(function (r) { return [normalizar_(r[0]) === 'JES' ? 'PJES' : '']; }));
+  }
+  SpreadsheetApp.flush();
+  return true;
 }
 
 /**
