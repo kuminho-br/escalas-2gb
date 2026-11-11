@@ -68,6 +68,8 @@ function lerOrigens_() {
  * B49 item 2: cria a coluna ORIGEM na aba TURNOS, levando para o cadastro a regra que estava no
  * código (JES aparece como PJES): só as linhas do serviço JES são preenchidas, com PJES; as demais
  * ficam vazias (origem = o próprio serviço, como já era). Não mexe numa aba que já tem a coluna.
+ *
+ * B60 (RN-94): insertColumnAfter antes de setValue para que a Tabela do Sheets inclua a coluna nova.
  */
 function garantirColunaOrigem_() {
   const aba = abaAtual_(SpreadsheetApp.getActive(), CONFIG.ABA_TURNOS);
@@ -76,12 +78,15 @@ function garantirColunaOrigem_() {
   const cab = aba.getRange(1, 1, 1, nCols).getValues()[0].map(normalizar_);
   if (cab.indexOf('ORIGEM') >= 0) return false;
   const cS = cab.indexOf(normalizar_('SERVIÇO'));
+  // B60: insere a coluna na estrutura da aba para que a Tabela do Sheets a inclua
+  aba.insertColumnAfter(nCols);
   aba.getRange(1, nCols + 1).setValue('ORIGEM').setFontWeight('bold');
   const n = aba.getLastRow() - 1;
   if (n > 0 && cS >= 0) {
     const serv = aba.getRange(2, cS + 1, n, 1).getValues();
     aba.getRange(2, nCols + 1, n, 1).setValues(serv.map(function (r) { return [normalizar_(r[0]) === 'JES' ? 'PJES' : '']; }));
   }
+  SpreadsheetApp.flush();
   return true;
 }
 

@@ -395,7 +395,7 @@ console.log('== B37 revisado (camada do Sheets) cadastro antigo de viaturas e mi
     const F = new Function('SpreadsheetApp', 'Utilities', 'LockService',
       ['nucleo.js', 'matriz.js', 'cadastro_guarnicoes.js', 'cadastro_guarnicoes_painel.js'].map(ler).join('\n') +
       '\nreturn {cadgLerLinhas_, guarnicoesDoMes_, cadgMigrarParaGuarnicoes_, cadgRetirarTiposDeServico_, CADG_CABECALHO_};')(
-      { getActive: () => ss, newDataValidation: () => ({ requireValueInList() { return this; }, setAllowInvalid() { return this; }, build() { return {}; } }) },
+      { getActive: () => ss, flush() {}, newDataValidation: () => ({ requireValueInList() { return this; }, setAllowInvalid() { return this; }, build() { return {}; } }) },
       { formatDate: () => '' }, { getDocumentLock: () => ({ tryLock: () => true, releaseLock() {} }) });
     return { aba, ss, F };
   };

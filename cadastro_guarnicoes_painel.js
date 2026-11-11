@@ -162,6 +162,9 @@ function cadgMigrarParaGuarnicoes_() {
  * B58 item 1 (RN-09): apaga a coluna TIPOS DE SERVIÇO da aba GUARNIÇÕES, mas só se estiver vazia —
  * vazia não guarda dado nenhum. Preenchida, fica onde está (o resumo avisa que ela não é mais lida).
  * Retorna 'apagada', 'preenchida' ou '' (não havia a coluna).
+ *
+ * B60 (RN-94): se a aba for uma Tabela do Sheets, deleteColumn pode falhar silenciosamente.
+ * Nesse caso, limpa o cabeçalho e os dados da coluna (a coluna vazia não atrapalha).
  */
 function cadgRetirarTiposDeServico_() {
   const aba = abaAtual_(SpreadsheetApp.getActive(), CADG_ABA);
@@ -174,7 +177,14 @@ function cadgRetirarTiposDeServico_() {
   const n = aba.getLastRow() - 1;
   const cheia = n > 0 && aba.getRange(2, i + 1, n, 1).getDisplayValues().some(function (r) { return String(r[0]).trim() !== ''; });
   if (cheia) return 'preenchida';
-  aba.deleteColumn(i + 1);
+  try {
+    aba.deleteColumn(i + 1);
+    SpreadsheetApp.flush();
+  } catch (e) {
+    // B60: Tabela do Sheets pode impedir deleteColumn; limpa a coluna inteira como alternativa
+    aba.getRange(1, i + 1, Math.max(aba.getLastRow(), 1), 1).clearContent();
+    SpreadsheetApp.flush();
+  }
   return 'apagada';
 }
 

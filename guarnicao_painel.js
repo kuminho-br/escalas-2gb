@@ -397,11 +397,19 @@ function painelGuarnicaoExemplos() {
   }
   // B58: sem GUARNIÇÕES não há composição; a aba nasce com o exemplo do cadastro
   if (cadgGarantirAba_().criada) criadas.push('GUARNIÇÕES');
-  if (garantirColunaUnidadeAlocacoes_()) criadas.push('coluna UNIDADE (em ' + CONFIG.ABA_ALOCACOES + ', guarda a guarnição de cada militar)');
+  // B60: cada operação de coluna fica em try-catch isolado para não impedir as demais
+  // (a Tabela do Sheets pode provocar erros inesperados em qualquer uma delas)
+  try {
+    if (garantirColunaUnidadeAlocacoes_()) criadas.push('coluna UNIDADE (em ' + CONFIG.ABA_ALOCACOES + ', guarda a guarnição de cada militar)');
+  } catch (e) { criadas.push('ERRO ao criar UNIDADE: ' + e.message); }
   // B49 item 2 (RN-13): a origem do serviço passa a ser cadastro
-  if (garantirColunaOrigem_()) criadas.push('coluna ORIGEM (em TURNOS; o JES já vem como PJES, como era no código)');
+  try {
+    if (garantirColunaOrigem_()) criadas.push('coluna ORIGEM (em TURNOS; o JES já vem como PJES, como era no código)');
+  } catch (e) { criadas.push('ERRO ao criar ORIGEM: ' + e.message); }
   // B58 item 1 (RN-09): TIPOS DE SERVIÇO saiu do cadastro de GUARNIÇÕES; vazia, a coluna é apagada
-  if (cadgRetirarTiposDeServico_() === 'apagada') criadas.push('coluna TIPOS DE SERVIÇO apagada de GUARNIÇÕES (estava vazia e não é mais lida)');
+  try {
+    if (cadgRetirarTiposDeServico_() === 'apagada') criadas.push('coluna TIPOS DE SERVIÇO apagada de GUARNIÇÕES (estava vazia e não é mais lida)');
+  } catch (e) { criadas.push('ERRO ao retirar TIPOS DE SERVIÇO: ' + e.message); }
   return { criadas: criadas };
 }
 
@@ -426,6 +434,10 @@ function validacoesDosVinculos_(aba) {
  * B58: acrescenta a coluna UNIDADE à aba ALOCAÇÕES, se faltar. Só o cabeçalho.
  * Usa a primeira coluna sem cabeçalho e sem dado depois da última coluna com cabeçalho (a aba da
  * sandbox tem uma assim, dentro da Tabela); se não houver, entra no fim.
+ *
+ * B60 (RN-94): a aba pode ser uma Tabela do Sheets. Escrever fora da fronteira da Tabela
+ * (nCols + 1) cria a célula na planilha mas a Tabela não a inclui — fica invisível.
+ * insertColumnAfter expande a Tabela antes de setValue; numa aba sem Tabela, funciona igual.
  */
 function garantirColunaUnidadeAlocacoes_() {
   const aba = abaAtual_(SpreadsheetApp.getActive(), CONFIG.ABA_ALOCACOES);
@@ -441,8 +453,11 @@ function garantirColunaUnidadeAlocacoes_() {
     const vazia = n < 1 || aba.getRange(2, i + 1, n, 1).getDisplayValues().every(function (r) { return String(r[0]).trim() === ''; });
     if (vazia) { col = i + 1; break; }
   }
+  // B60: se a coluna é além da última, insere para expandir a Tabela do Sheets
+  if (col > nCols) aba.insertColumnAfter(nCols);
   aba.getRange(1, col).setValue('UNIDADE').setFontWeight('bold');
   if (n > 0) aba.getRange(2, col, n, 1).setNumberFormat('@');
+  SpreadsheetApp.flush();
   return true;
 }
 
