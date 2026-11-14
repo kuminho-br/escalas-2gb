@@ -96,7 +96,9 @@ function garantirColunaOrigem_() {
  */
 function painelLegenda() {
   const hor = lerHorarios_();
-  return { grupos: montarLegenda_(hor.porChave, CONFIG.CORES), avisos: hor.avisos };
+  // P17 item 1 (RN-02): a mesma cor da grade geral, para todo serviço da aba TURNOS
+  const servicos = Object.keys(hor.porChave).map(function (k) { return parDaChaveTurno_(k).servico; });
+  return { grupos: montarLegenda_(hor.porChave, coresDosServicos_(servicos)), avisos: hor.avisos };
 }
 
 /**

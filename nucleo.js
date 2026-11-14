@@ -19,6 +19,50 @@
 
 const ORDEM_GRUPOS_ = ['ALFA', 'BRAVO', 'CHARLIE', 'DELTA', 'ADM', 'SEM EQUIPE', 'OUTRAS SEÇÕES', 'NÃO CADASTRADOS'];
 
+/**
+ * P17 item 1 (RN-02): a cor de cada serviço, [fundo, texto], pela chave normalizada do nome
+ * (normalizar_: sem acento, caixa ou espaço). A mesma cor vale na grade geral, na legenda e na grade
+ * de guarnição. Os serviços do Ordinário (Pronto, Saldo, JES) ficam em tons de verde parecidos
+ * entre si; nenhum outro serviço usa verde.
+ */
+const CORES_DOS_SERVICOS_ = {
+  PRONTO:     ['#B7E1CD', '#0B3D2E'],
+  SALDO:      ['#D9EAD3', '#274E13'],
+  JES:        ['#A8D5A2', '#1E4620'],
+  ADM:        ['#F4C7C3', '#5B0F00'],
+  DEFENSORIA: ['#F9CB9C', '#5B2C00'],
+  BIOMA:      ['#FFE599', '#4A3B00'],
+  PESEGURO:   ['#CFE2F3', '#0B2E59'],
+  ELEICOES:   ['#D9D2E9', '#2E1A47'],
+  CPRH:       ['#EAD1DC', '#4C1130']
+};
+
+/** Serviço fora da tabela acima: cor fixa, escolhida pelo nome (o mesmo nome dá sempre a mesma cor). Sem verdes. */
+const CORES_RESERVA_ = [
+  ['#FCE5CD', '#5B2C00'], ['#D0E0E3', '#0C343D'], ['#E6B8AF', '#5B0F00'],
+  ['#C9DAF8', '#1C2E5C'], ['#FFF2CC', '#4A3B00'], ['#EAD1DC', '#4C1130'], ['#D9D9D9', '#000000']
+];
+
+/** P17 item 1: [fundo, texto] do serviço; nunca vazio para um nome não vazio. null para nome vazio. */
+function corDoServico_(nome) {
+  const k = normalizar_(nome);
+  if (!k) return null;
+  if (CORES_DOS_SERVICOS_[k]) return CORES_DOS_SERVICOS_[k];
+  let h = 0;
+  for (let i = 0; i < k.length; i++) h = (h * 31 + k.charCodeAt(i)) % 1000003;
+  return CORES_RESERVA_[h % CORES_RESERVA_.length];
+}
+
+/** P17 item 1: { 'Nome como escrito': [fundo, texto] } para cada serviço da lista (repetidos contam uma vez). */
+function coresDosServicos_(nomes) {
+  const res = {};
+  (nomes || []).forEach(function (n) {
+    const s = String(n == null ? '' : n).trim();
+    if (s && !(s in res)) res[s] = corDoServico_(s);
+  });
+  return res;
+}
+
 /** 'Seção 1ª SB' e '1ºSB' viram '1SB': comparação sem acento, caixa ou pontuação. */
 function normalizar_(s) {
   return String(s == null ? '' : s)

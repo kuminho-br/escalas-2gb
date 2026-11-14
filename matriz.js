@@ -25,19 +25,8 @@ const CONFIG = {
   // layout da aba GRADE GERAL (a linha é "militar + posição": não há coluna de turno)
   LINHA_MES: 1, LINHA_SECAO: 2, LINHA_SEMANA: 3, LINHA_CABECALHO: 4, PRIMEIRA_LINHA: 5,
   COL_MAT: 1, COL_MILITAR: 2, COL_EQUIPE: 3, PRIMEIRA_COL_DIA: 4,
-  LARGURA_DIA: 92,                    // px; cabe "Defensoria 07–19" e "PE Seguro 16–00"
-
-  // cor de cada serviço: [fundo, texto]. Serviço novo sem cor aparece sem cor (nada quebra).
-  CORES: {
-    'Pronto':     ['#D9DEE3', '#000000'],
-    'Adm':        ['#F4C7C3', '#000000'],
-    'JES':        ['#FCE8B2', '#000000'],
-    'Defensoria': ['#F9CB9C', '#000000'],
-    'Bioma':      ['#D9EAD3', '#000000'],
-    'PE Seguro':  ['#CFE2F3', '#000000'],
-    'Eleições':   ['#D9D2E9', '#000000'],
-    'CPRH':       ['#38761D', '#FFFFFF']
-  }
+  LARGURA_DIA: 92                     // px; cabe "Defensoria 07–19" e "PE Seguro 16–00"
+  // P17 item 1: as cores dos serviços saíram daqui; ver CORES_DOS_SERVICOS_ e corDoServico_ (nucleo.js)
 };
 
 function onOpen() {
@@ -440,13 +429,17 @@ function renderizarMatriz_(aba, modelo, par, rot, tz) {
 
   // cor por serviço
   // a célula é "Serviço HH–HH": a cor vem do começo do texto (o nome do serviço seguido de espaço e dígito ou parêntese)
+  // P17 item 1 (RN-02): uma regra para CADA serviço da aba TURNOS (antes, só os que estavam numa lista
+  // fixa: o Saldo, por exemplo, ficava branco nos dias úteis e cinza no fim de semana). O nome casa sem
+  // diferença de maiúscula/minúscula, e a cor é a mesma da legenda e da grade de guarnição.
   const grade = aba.getRange(r0, c0, nl, nd);
   const topo = aba.getRange(r0, c0).getA1Notation();
-  aba.setConditionalFormatRules(Object.keys(CONFIG.CORES).map(function (nome) {
-    const padrao = '^' + nome.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/"/g, '""') + ' [0-9(]';
+  const cores = coresDosServicos_(Object.keys(rot.porRotulo).map(function (k) { return rot.porRotulo[k].servico; }));
+  aba.setConditionalFormatRules(Object.keys(cores).map(function (nome) {
+    const padrao = '(?i)^' + nome.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/"/g, '""') + ' [0-9(]';
     return SpreadsheetApp.newConditionalFormatRule()
       .whenFormulaSatisfied('=REGEXMATCH(' + topo + ',"' + padrao + '")')
-      .setBackground(CONFIG.CORES[nome][0]).setFontColor(CONFIG.CORES[nome][1])
+      .setBackground(cores[nome][0]).setFontColor(cores[nome][1])
       .setRanges([grade]).build();
   }));
 
