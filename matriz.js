@@ -35,7 +35,7 @@ const CONFIG = {
 
 function onOpen() {
   SpreadsheetApp.getUi().createMenu('Escalas - 2º GB')
-    .addItem('Pré-escala', 'abrirPainel')
+    .addItem('Escala Automática', 'abrirPainel')                   // P17 item 6: antes "Pré-escala"
     .addItem('Mostrar Grade Geral', 'abrirPainelMatriz')            // P17 item 3: antes "Mostrar Escala"
     .addItem('Escalas de Serviço', 'abrirPainelGuarnicao')
     // B36 (RN-94): o menu do Apps Script é montado aqui e não dá para habilitar conforme a célula

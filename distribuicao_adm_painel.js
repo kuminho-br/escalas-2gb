@@ -1,5 +1,5 @@
 /**
- * PRÉ-ESCALA DO ADM — camada do Google Sheets. É a etapa 3 do painel "Pré-escala"
+ * PRÉ-ESCALA DO ADM — camada do Google Sheets. É a etapa 3 do painel "Escala Automática"
  * (sidebar_pre_escala.html); não tem painel próprio.
  * Depende de nucleo.gs, matriz.gs, pre_escala.gs, pre_escala_painel.gs, choques.gs, choques_painel.gs,
  * parametros.gs, parametros_painel.gs e distribuicao_adm.gs.

@@ -209,5 +209,23 @@ console.log('== P17 item 5 (RN-02) dentro da equipe, os militares vêm por antig
     [...new Set(sbx.filter(m => m.posto && L.ordemDoPosto_(m.posto) === Infinity).map(m => m.posto))]);
 }
 
+console.log('== P17 item 6 o painel "Pré-escala" passa a ser "Escala Automática"');
+{
+  const itens = itensDoMenu();
+  ver('o menu tem "Escala Automática", ligado ao mesmo painel', itens.some(i => i[0] === 'Escala Automática' && i[1] === 'abrirPainel'), itens);
+  ver('e não tem mais "Pré-escala"', !itens.some(i => /pr[ée]-escala/i.test(i[0])));
+  ver('o menu continua com a mesma ordem: Escala Automática, Mostrar Grade Geral, Escalas de Serviço', itens.slice(0, 3).map(i => i[0]).join('|') === 'Escala Automática|Mostrar Grade Geral|Escalas de Serviço', itens);
+  const p = tituloDoPainel('pre_escala_painel.js', 'abrirPainel', 'sidebar_pre_escala.html');
+  ver('a barra lateral e o cabeçalho do painel dizem "Escala Automática"', p.titulo === 'Escala Automática' && p.h1 === 'Escala Automática', p);
+  const html = ler('sidebar_pre_escala.html');
+  const visivel = html.replace(/\/\/[^\n]*/g, '').replace(/\/\*[\s\S]*?\*\//g, '');
+  ver('a tela do painel não diz mais "pré-escala" em lugar nenhum', !/pr[ée]-escala/i.test(visivel), (visivel.match(/.{30}pr[ée]-escala.{30}/i) || [])[0]);
+  ver('o botão do Pronto segue o padrão dos outros ("Gerar Adm", "Gerar operações")', (html.match(/Gerar Pronto/g) || []).length === 4, (html.match(/Gerar Pronto/g) || []).length);
+  // textos que o servidor mostra ao usuário (strings), fora comentários
+  const strings = ['guarnicao.js', 'parametros.js', 'pre_escala_painel.js', 'distribuicao_adm_painel.js', 'distribuicao_cotas_painel.js']
+    .map(f => [f, (ler(f).replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/[^\n]*/g, '').match(/'[^'\n]*pr[ée]-escala[^'\n]*'/gi) || [])]).filter(x => x[1].length);
+  ver('nenhuma mensagem do servidor fala em "pré-escala"', strings.length === 0, strings);
+}
+
 console.log(`\n${ok} ok, ${falhas} falha(s)`);
 process.exit(falhas ? 1 : 0);
