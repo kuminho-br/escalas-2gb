@@ -387,17 +387,6 @@ function renderizarMatriz_(aba, modelo, par, rot, tz) {
     .setBackground('#2F5D50').setFontColor('#FFFFFF').setFontWeight('bold').setHorizontalAlignment('center');
   aba.getRange(CONFIG.LINHA_SEMANA, c0, 1, nd).setHorizontalAlignment('center').setFontColor('#5F6368').setFontSize(8);
   aba.getRange(r0, c0, nl, nd).setHorizontalAlignment('center');
-  // P17 item 2 (RN-02): cada coluna na largura do próprio conteúdo, para nada ficar cortado.
-  // Larguras fixas cortavam nomes longos e serviços como "Defensoria 07–19 (A)". O autoResize do
-  // Sheets não conta a seta da lista suspensa, daí a folga; o mínimo segura colunas vazias.
-  SpreadsheetApp.flush();
-  aba.autoResizeColumns(1, nCols);
-  for (let c = 1; c <= nCols; c++) {
-    const dia = c >= c0;
-    aba.setColumnWidth(c, Math.max(aba.getColumnWidth(c) + (dia ? CONFIG.FOLGA_DIA : CONFIG.FOLGA_IDENT),
-      dia ? CONFIG.LARGURA_MIN_DIA : CONFIG.LARGURA_MIN_IDENT));
-  }
-
   // fins de semana
   const colsFds = [], rotFds = [];
   modelo.dias.forEach(function (d, j) {
@@ -425,17 +414,15 @@ function renderizarMatriz_(aba, modelo, par, rot, tz) {
   // B34 (RN-02): a borda vai em CIMA da primeira linha de cada militar, não embaixo da última.
   // A última linha de um militar pode estar oculta pelo botão "Ocultar linhas vazias", e com ela
   // desaparecia a divisória; a primeira linha nunca é oculta, então o separador sempre aparece.
-  const inicioMilitar = [], inicioGrupo = [];
-  modelo.linhas.forEach(function (l, i) {
-    const ant = modelo.linhas[i - 1];
-    if (!ant || ant.mat === l.mat) return;                 // só a primeira linha de cada militar
-    if (ant.grupo !== l.grupo) inicioGrupo.push(r0 + i);
-    else inicioMilitar.push(aba.getRange(r0 + i, 1, 1, nCols).getA1Notation());
-  });
+  // P17 item 7 (RN-02): entre grupos (Alfa, Bravo, Charlie, Delta, Adm, sem equipe, outras seções) a
+  // borda passa de média a grossa, e o nome da equipe fica em negrito na 1ª linha de cada grupo.
+  const inicioMilitar = desenho.inicioMilitar.map(function (i) { return aba.getRange(r0 + i, 1, 1, nCols).getA1Notation(); });
   if (inicioMilitar.length) aba.getRangeList(inicioMilitar).setBorder(true, null, null, null, null, null);
-  inicioGrupo.forEach(function (r) {
-    aba.getRange(r, 1, 1, nCols).setBorder(true, null, null, null, null, null, '#000000', SpreadsheetApp.BorderStyle.SOLID_MEDIUM);
+  desenho.inicioGrupo.forEach(function (i) {
+    aba.getRange(r0 + i, 1, 1, nCols).setBorder(true, null, null, null, null, null, '#000000', SpreadsheetApp.BorderStyle.SOLID_THICK);
   });
+  const nomesDeGrupo = [0].concat(desenho.inicioGrupo).map(function (i) { return aba.getRange(r0 + i, CONFIG.COL_EQUIPE).getA1Notation(); });
+  aba.getRangeList(nomesDeGrupo).setFontWeight('bold');
   // fecha a tabela embaixo (a borda de fora não separa ninguém; se a última linha estiver oculta, só o contorno some)
   aba.getRange(r0 + nl - 1, 1, 1, nCols).setBorder(null, null, true, null, null, null, '#000000', SpreadsheetApp.BorderStyle.SOLID_MEDIUM);
 
@@ -454,6 +441,18 @@ function renderizarMatriz_(aba, modelo, par, rot, tz) {
       .setBackground(cores[nome][0]).setFontColor(cores[nome][1])
       .setRanges([grade]).build();
   }));
+
+  // P17 item 2 (RN-02): cada coluna na largura do próprio conteúdo, para nada ficar cortado.
+  // Fica por último: depende da fonte, do negrito e dos valores já aplicados.
+  // Larguras fixas cortavam nomes longos e serviços como "Defensoria 07–19 (A)". O autoResize do
+  // Sheets não conta a seta da lista suspensa, daí a folga; o mínimo segura colunas vazias.
+  SpreadsheetApp.flush();
+  aba.autoResizeColumns(1, nCols);
+  for (let c = 1; c <= nCols; c++) {
+    const dia = c >= c0;
+    aba.setColumnWidth(c, Math.max(aba.getColumnWidth(c) + (dia ? CONFIG.FOLGA_DIA : CONFIG.FOLGA_IDENT),
+      dia ? CONFIG.LARGURA_MIN_DIA : CONFIG.LARGURA_MIN_IDENT));
+  }
 
   aba.setFrozenRows(CONFIG.LINHA_CABECALHO);
   aba.setFrozenColumns(CONFIG.COL_EQUIPE);

@@ -227,5 +227,24 @@ console.log('== P17 item 6 o painel "Pré-escala" passa a ser "Escala Automátic
   ver('nenhuma mensagem do servidor fala em "pré-escala"', strings.length === 0, strings);
 }
 
+console.log('== P17 item 7 (RN-02) separação mais marcada entre os grupos da grade');
+{
+  const m = modelo(), aba = desenhar(m), d = L.desenhoDasLinhas_(m.linhas);
+  const nCols = 33, ult = colA1(nCols);
+  const grossas = aba.log.filter(x => x[0] === 'setBorder' && x[9] === 'SOLID_THICK').map(x => x[1]);
+  ver('borda grossa em cima da 1ª linha de cada grupo novo (Bravo e Adm), na largura toda',
+    grossas.length === d.inicioGrupo.length && d.inicioGrupo.length === 2 &&
+    d.inicioGrupo.every(i => grossas.indexOf('A' + (5 + i) + ':' + ult + (5 + i)) >= 0), [grossas, d.inicioGrupo]);
+  ver('a borda grossa é preta e só em cima', grossas.length > 0 && aba.log.filter(x => x[0] === 'setBorder' && x[9] === 'SOLID_THICK').every(x => x[2] === true && x[3] === null && x[4] === null && x[8] === '#000000'));
+  const finas = aba.log.filter(x => x[0] === 'setBorder' && x.length === 8).map(x => x[1]);
+  ver('entre militares da mesma equipe continua a divisória fina (B34)', d.inicioMilitar.every(i => finas.indexOf('A' + (5 + i) + ':' + ult + (5 + i)) >= 0) && finas.length === d.inicioMilitar.length, [finas, d.inicioMilitar]);
+  ver('nenhuma borda grossa fica entre militares da mesma equipe', d.inicioMilitar.every(i => grossas.indexOf('A' + (5 + i) + ':' + ult + (5 + i)) < 0));
+  const negrito = aba.log.filter(x => x[0] === 'setFontWeight' && x[2] === 'bold').map(x => x[1]);
+  ver('o nome da equipe fica em negrito na 1ª linha de cada grupo (inclusive o primeiro)', ['C5'].concat(d.inicioGrupo.map(i => 'C' + (5 + i))).every(a => negrito.indexOf(a) >= 0), negrito);
+  const iAuto = aba.log.findIndex(x => x[0] === 'autoResizeColumns');
+  const iUltimoFormato = aba.log.map(x => x[0]).lastIndexOf('setFontWeight');
+  ver('a largura é calculada depois de toda a formatação (negrito incluído)', iAuto > iUltimoFormato, [iAuto, iUltimoFormato]);
+}
+
 console.log(`\n${ok} ok, ${falhas} falha(s)`);
 process.exit(falhas ? 1 : 0);
