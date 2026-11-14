@@ -609,7 +609,7 @@ function calcularGuarnicao_(base, grade, tabelaMes, esc, opcoes) {
       atualizar: [], remover: res.remover, choques: [],
       aplicadas: res.aplicadas.map(function (a) { return cheia[a.chave] || a.chave; })
     };
-    bloquearPorChoque_(r2, Object.create(null), opcoes.todas, opcoes.horarios);
+    bloquearPorChoque_(r2, Object.create(null), opcoes.todas, opcoes.horarios, opcoes.tipos);   // P18 item 1
     const passou = Object.create(null);
     r2.inserir.forEach(function (i) { passou[i.chave] = true; });
     res.inserir = res.inserir.filter(function (i) { return passou[cheia[i.chave]]; });

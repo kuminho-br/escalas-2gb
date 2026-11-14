@@ -1,0 +1,56 @@
+// Testes da P18 (choque JES × expediente, diárias sem filtro de voluntário JES, escala com N serviços).
+// Uso: node testes/teste_p18.js
+const fs = require('fs'), path = require('path');
+const dir = path.join(__dirname, '..');
+const ler = f => fs.readFileSync(path.join(dir, f), 'utf8');
+
+let ok = 0, falhas = 0;
+const ver = (n, c, x) => { if (c) { ok++; console.log('  ok   ' + n); } else { falhas++; console.log('  FALHA ' + n + (x !== undefined ? ' -> ' + JSON.stringify(x).slice(0, 600) : '')); } };
+
+const fontes = ['abertura_automatica.js', 'distribuicao_cotas.js', 'regras_escala.js', 'choques.js', 'sincronia.js', 'nucleo.js', 'pre_escala.js', 'guarnicao.js', 'cadastro_guarnicoes.js'].map(ler).join('\n');
+const L = new Function(fontes + '\nreturn {detectarChoques_, montarHorarios_, calcularSincronizacao_, expedienteImplicito_, expedienteChocaCom_, distribuirCotas_};')();
+
+// a aba TURNOS da sandbox (o que importa: horários e TIPO DE SERVIÇO)
+const hor = L.montarHorarios_([
+  { servico: 'Pronto', turno: 'A', inicio: '08:00', fim: '20:00' }, { servico: 'Pronto', turno: 'B', inicio: '20:00', fim: '08:00' },
+  { servico: 'Adm', turno: 'A', inicio: '08:00', fim: '16:00' },
+  { servico: 'JES', turno: 'A', inicio: '08:00', fim: '20:00' }, { servico: 'JES', turno: 'B', inicio: '20:00', fim: '08:00' },
+  { servico: 'Defensoria', turno: 'A', inicio: '07:00', fim: '19:00' },
+  { servico: 'Bioma', turno: 'A', inicio: '06:00', fim: '18:00' }, { servico: 'PE Seguro', turno: 'A', inicio: '08:00', fim: '20:00' },
+  { servico: 'Saldo', turno: 'A', inicio: '08:00', fim: '20:00' }
+]).porChave;
+const TIPOS = { Pronto: 'Ordinário', Adm: 'Ordinário', Saldo: 'Ordinário', JES: 'PJES', Defensoria: 'PJES', CPRH: 'PJES', Bioma: 'Diária', 'PE Seguro': 'Diária', 'Eleições': 'Diária' };
+
+console.log('== P18 item 1 (B67; RN-25, RN-17) JES não choca com o expediente invisível do Adm; diária choca');
+{
+  // ST BM ADELSON BARROS (Adm, RN-17 desligada) · 06/10/2026 (terça, dia útil)
+  const exp = L.expedienteImplicito_({ mats: ['707170-1'], dias: ['2026-10-06'], servico: 'Adm', turno: 'A' });
+  const com = (servico, turno) => L.detectarChoques_(exp.concat([{ mat: '707170-1', dia: '2026-10-06', servico, turno }]), hor, { mes: '2026-10', tipos: TIPOS }).choques;
+
+  ver('o caso do relato: JES 08–20 no dia de expediente não é choque', com('JES', 'A').length === 0, com('JES', 'A'));
+  ver('Bioma (Diária) no mesmo dia continua chocando com o expediente', com('Bioma', 'A').length === 1 && com('Bioma', 'A')[0].tipo === 'expediente', com('Bioma', 'A'));
+  ver('PE Seguro (Diária) também', com('PE Seguro', 'A').length === 1);
+  ver('Defensoria (PJES) não choca com o expediente', com('Defensoria', 'A').length === 0);
+  ver('a escrita do tipo não importa ("DIARIA", "diária")', L.expedienteChocaCom_({ implicito: true }, { servico: 'X' }, { X: 'DIARIA' }) && L.expedienteChocaCom_({ servico: 'X' }, { implicito: true }, { X: 'diária' }));
+  ver('serviço sem tipo cadastrado não choca com o expediente', !L.expedienteChocaCom_({ implicito: true }, { servico: 'Novo' }, TIPOS));
+
+  // os choques reais continuam valendo
+  const doisReais = L.detectarChoques_([{ mat: 'm', dia: '2026-10-06', servico: 'JES', turno: 'A' }, { mat: 'm', dia: '2026-10-06', servico: 'Pronto', turno: 'A' }], hor, { tipos: TIPOS }).choques;
+  ver('JES × Pronto no mesmo horário continua sendo choque (só o expediente mudou)', doisReais.length === 1 && doisReais[0].tipo === 'sobreposicao', doisReais);
+  const emenda = L.detectarChoques_([{ mat: 'm', dia: '2026-10-06', servico: 'JES', turno: 'B' }, { mat: 'm', dia: '2026-10-07', servico: 'Pronto', turno: 'A' }], hor, { tipos: TIPOS }).choques;
+  ver('emenda JES → Pronto continua proibida', emenda.length === 1 && emenda[0].tipo === 'emenda', emenda);
+  ver('sem a lista de tipos, o comportamento antigo fica (nada some em silêncio)', L.detectarChoques_(exp.concat([{ mat: '707170-1', dia: '2026-10-06', servico: 'JES', turno: 'A' }]), hor, {}).choques.length === 1);
+
+  // de ponta a ponta: salvar no Mostrar Grade Geral (o caminho do relato)
+  const todas = exp.slice();
+  const salvar = (servico, turno) => L.calcularSincronizacao_([], [{ mat: '707170-1', dia: '2026-10-06', servico, turno }], [], {},
+    { horarios: hor, todas, regras: { adm: { '707170-1': true }, tipos: TIPOS, voluntariosJes: { '707170-1': true } } });
+  const rJes = salvar('JES', 'A');
+  ver('salvar o JES do relato: grava, sem "choca com o expediente do Adm"', rJes.inserir.length === 1 && rJes.choques.length === 0, { inserir: rJes.inserir, choques: rJes.choques, regras: rJes.regras });
+  const rBioma = salvar('Bioma', 'A');
+  ver('salvar um Bioma no mesmo dia: bloqueado por choque com o expediente', rBioma.inserir.length === 0 && rBioma.choques.length === 1 && rBioma.choques[0].com[0].implicito === true, rBioma.choques);
+}
+
+// -- fim das seções
+console.log(`\n${ok} ok, ${falhas} falha(s)`);
+process.exit(falhas ? 1 : 0);

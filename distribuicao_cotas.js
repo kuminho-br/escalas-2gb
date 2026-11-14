@@ -142,7 +142,7 @@ function distribuirCotas_(e) {
       if (!x.implicito && x.dia === cand.dia && eDiaria(cand.servico) && eDiaria(x.servico)) return 'diaria';
     }
     const perto = lista.filter(function (x) { return x.ini !== null && Math.abs(x.ini - ini) < 3 * 1440; });
-    const r = detectarChoques_(perto.concat([cand]), horarios, {});
+    const r = detectarChoques_(perto.concat([cand]), horarios, { tipos: tipos });   // P18 item 1 (B67): expediente só barra diária
     const minha = chaveAloc_(cand);
     const achou = r.choques.filter(function (c) { return c.a.chave === minha || c.b.chave === minha; });
     if (!achou.length) return null;
