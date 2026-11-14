@@ -76,9 +76,11 @@ function violacoesJesVoluntario_(alocs, ctx) {
 }
 
 /**
- * RN-46 / RN-39: as linhas do VOLUNTARIADO de quem não é voluntário JES são ignoradas (e não contam como "preencheu
- * o formulário"). voluntariosJes null (sem a coluna em MILITARES): nada é ignorado.
- * linhas: [{ mat, ... }]. Retorna { linhas, ignoradas: { matrícula: quantidade } }.
+ * RN-46: separa as linhas do VOLUNTARIADO de quem não é voluntário JES. voluntariosJes null (sem a coluna em
+ * MILITARES): nenhuma é separada. linhas: [{ mat, ... }]. Retorna { linhas, ignoradas: { matrícula: quantidade } }.
+ * P18 item 2 (B50; RN-04): "ignoradas" agora quer dizer só "não valem para o JES". A distribuição recebe TODAS as
+ * linhas (para diária basta o formulário do mês) e barra o JES sozinha (distribuirCotas_, voluntariosJes).
+ * O painel usa esta função só para o aviso.
  */
 function separarVoluntariado_(linhas, voluntariosJes) {
   if (!voluntariosJes) return { linhas: linhas.slice(), ignoradas: {} };

@@ -23,6 +23,7 @@ const COTAS_MOTIVOS_ = {
   emenda: 'JES não pode emendar com Pronto',
   expediente: 'choca com o expediente do Adm',
   diaria: 'o militar já tem diária nesse dia',
+  naoVoluntarioJes: 'JES só para militar com VOLUNTÁRIO JES = sim (RN-46)',
   semHorario: 'turno sem horário legível na aba TURNOS'
 };
 
@@ -44,6 +45,9 @@ function custoDaVaga_(operacao, vaga) { return 1; }
  *   expediente:  [{ mat, dia, servico, turno }]   expediente implícito do Adm (só para checar choques)
  *   horarios:    o porChave de montarHorarios_
  *   tipos:       { 'Serviço': 'Tipo' }   da aba TURNOS
+ *   voluntariosJes: { matrícula: true } de quem tem VOLUNTÁRIO JES = sim, ou null (sem a coluna: ninguém é barrado)
+ *                P18 item 2 (B50; RN-04, RN-46, RN-39): o atributo só barra as vagas de JES. Para diária basta ter
+ *                preenchido o formulário do mês, voluntário JES ou não.
  * }
  * Retorna {
  *   novas:    [{ mat, dia, servico, turno, operacao, fase: 'voluntaria'|'compulsoria' }]
@@ -166,6 +170,13 @@ function distribuirCotas_(e) {
   }
 
   function candidatos(slot, fase) {
+    // P18 item 2 (B50; RN-46): vaga de JES só para voluntário JES; as demais (diárias) aceitam quem preencheu o formulário
+    const soJes = e.voluntariosJes && exigeVoluntarioJes_(slot.op.def.servico);
+    const pode = function (mat) {
+      if (!soJes || e.voluntariosJes[mat]) return true;
+      slot.rej.naoVoluntarioJes = (slot.rej.naoVoluntarioJes || 0) + 1;
+      return false;
+    };
     if (fase === 'voluntaria') {
       const l = vol[slot.dia + '|' + slot.turno] || [];
       const serv = normalizar_(slot.op.def.servico);
@@ -173,9 +184,9 @@ function distribuirCotas_(e) {
       l.forEach(function (v) {
         if ((v.servico === '' || v.servico === 'TODOS' || v.servico === serv) && mats.indexOf(v.mat) < 0) mats.push(v.mat);
       });
-      return mats;
+      return mats.filter(pode);
     }
-    return Object.keys(noFormulario);
+    return Object.keys(noFormulario).filter(pode);
   }
 
   function preencher(slot, fase) {
@@ -262,8 +273,8 @@ function distribuirCotas_(e) {
  *              problema = texto pronto quando a operação nem tem cadastro utilizável (falta ESCALAS/MODELOS)
  *   res:       o retorno de distribuirCotas_
  *   horarios:  o porChave de montarHorarios_
- *   voluntariado: { linhasMes, linhasSecao, ignoradasJes }   quantas linhas do VOLUNTARIADO: no mês; no mês e da seção
- *              (já sem as ignoradas pelo VOLUNTÁRIO JES); e quantas foram ignoradas por esse atributo (RN-46)
+ *   voluntariado: { linhasMes, linhasSecao, ignoradasJes }   quantas linhas do VOLUNTARIADO: no mês; no mês e da seção;
+ *              e quantas são de militar sem VOLUNTÁRIO JES = sim (P18 item 2: valem para diária, não para JES)
  * }
  */
 function diagnosticarOperacoes_(e) {
@@ -294,7 +305,7 @@ function diagnosticarOperacoes_(e) {
     if (motivo === COTAS_MOTIVOS_.semFormulario) {
       if (vol.linhasMes === 0) causa = 'A aba VOLUNTARIADO não tem nenhuma linha de ' + e.mes + '.';
       else causa = 'A aba VOLUNTARIADO tem ' + vol.linhasMes + ' linha(s) de ' + e.mes + ', mas nenhuma de militar da ' + e.secao + ' (confira a matrícula e a SEÇÃO em MILITARES).';
-      if (vol.ignoradasJes > 0) causa += ' ' + vol.ignoradasJes + ' linha(s) foram ignoradas porque VOLUNTÁRIO JES não é "sim" em MILITARES (RN-46).';
+      // P18 item 2: as linhas de quem não é voluntário JES não são mais ignoradas (valem para diária); sem aviso aqui
       causa += ' Preencha o VOLUNTARIADO (uma linha por militar, dia e turno) e analise de novo.';
     } else if (motivo === COTAS_MOTIVOS_.semVoluntario) {
       causa = 'Ninguém se voluntariou para esses dias e turnos. Cadastre mais voluntários no VOLUNTARIADO.';

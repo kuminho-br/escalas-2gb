@@ -51,6 +51,44 @@ console.log('== P18 item 1 (B67; RN-25, RN-17) JES não choca com o expediente i
   ver('salvar um Bioma no mesmo dia: bloqueado por choque com o expediente', rBioma.inserir.length === 0 && rBioma.choques.length === 1 && rBioma.choques[0].com[0].implicito === true, rBioma.choques);
 }
 
+console.log('== P18 item 2 (B50; RN-04, RN-46, RN-39) diária não exige VOLUNTÁRIO JES; JES continua exigindo');
+{
+  const dias = ['2026-11-03', '2026-11-04'];
+  const roda = (servico, vol, voluntariosJes, extra) => L.distribuirCotas_(Object.assign({
+    mes: '2026-11',
+    operacoes: [{ nome: servico, servico, prioridade: 1, dias, turnos: [{ turno: 'A', vagas: 1 }] }],
+    cotas: [{ id: 'C1', operacao: servico, quantidade: 10, origem: 'interna' }],
+    militares: [{ mat: 'NAOVOL' }, { mat: 'VOL' }], voluntariado: vol, alocacoes: [], expediente: [],
+    horarios: hor, tipos: TIPOS, voluntariosJes
+  }, extra || {}));
+  const so = mat => dias.map(dia => ({ mat, dia, turno: 'A', servico: 'todos' }));
+  const vjes = { VOL: true };            // NAOVOL tem VOLUNTÁRIO JES = não
+
+  let r = roda('PE Seguro', so('NAOVOL'), vjes);
+  ver('o aceite: militar não voluntário JES que preencheu o formulário entra na diária (PE Seguro)',
+    r.novas.length === 2 && r.novas.every(n => n.mat === 'NAOVOL' && n.fase === 'voluntaria'), r.novas);
+  r = roda('Bioma', so('NAOVOL'), vjes);
+  ver('o mesmo vale para o Bioma', r.novas.length === 2 && r.novas.every(n => n.mat === 'NAOVOL'), r.novas);
+
+  r = roda('JES', so('NAOVOL'), vjes);
+  ver('JES: o não voluntário que se ofereceu NÃO entra', r.novas.length === 0, r.novas);
+  ver('e a vaga vazia diz o motivo (RN-46)', r.vazias.length === 2 && r.vazias.every(v => /VOLUNTÁRIO JES = sim \(RN-46\)/.test(v.motivo)), r.vazias);
+  r = roda('JES', so('NAOVOL').concat(so('VOL')), vjes);
+  ver('JES: entre os dois, só o voluntário entra', r.novas.length === 2 && r.novas.every(n => n.mat === 'VOL'), r.novas);
+  // fase compulsória (RN-41): quem preencheu o formulário, mesmo sem se oferecer naquele dia
+  r = roda('JES', [{ mat: 'NAOVOL', dia: '2026-11-20', turno: 'A', servico: 'todos' }], vjes);
+  ver('JES compulsório também não sorteia o não voluntário', r.novas.length === 0, r.novas);
+  r = roda('PE Seguro', [{ mat: 'NAOVOL', dia: '2026-11-20', turno: 'A', servico: 'todos' }], vjes);
+  ver('diária compulsória aceita o não voluntário JES que preencheu o formulário (RN-41)', r.novas.length === 2 && r.novas.every(n => n.fase === 'compulsoria'), r.novas);
+  r = roda('JES', so('NAOVOL'), null);
+  ver('sem a coluna VOLUNTÁRIO JES em MILITARES, ninguém é barrado (como antes)', r.novas.length === 2, r.novas);
+
+  // o painel não corta mais as linhas antes da distribuição
+  const painel = ler('distribuicao_cotas_painel.js');
+  ver('o painel passa TODAS as linhas do VOLUNTARIADO e a lista de voluntários JES para a distribuição',
+    /voluntariado: vol\.linhas/.test(painel) && /voluntariosJes: vjes/.test(painel) && !/voluntariado: sep\.linhas/.test(painel));
+}
+
 // -- fim das seções
 console.log(`\n${ok} ok, ${falhas} falha(s)`);
 process.exit(falhas ? 1 : 0);

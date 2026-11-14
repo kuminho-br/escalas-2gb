@@ -141,7 +141,8 @@ function cotasCalcular_(mes, secao, tz) {
     militares.push({ mat: m.mat });
   });
 
-  // RN-46 / RN-39: só quem tem VOLUNTÁRIO JES = sim pode preencher o formulário; as linhas dos demais são ignoradas
+  // P18 item 2 (B50; RN-04, RN-46, RN-39): para diária basta o formulário do mês; VOLUNTÁRIO JES só barra as vagas
+  // de JES, dentro de distribuirCotas_. Aqui "sep" serve só para o aviso.
   const vjes = voluntariosJesDe_(cadastro);
   const sep = separarVoluntariado_(vol.linhas, vjes);
   const nomesCad = nomesPorMatricula_();
@@ -150,7 +151,7 @@ function cotasCalcular_(mes, secao, tz) {
   const ign = Object.keys(sep.ignoradas);
   if (ign.length) {
     const qtd = ign.reduce(function (n, m) { return n + sep.ignoradas[m]; }, 0);
-    avisos.push('VOLUNTARIADO: ' + qtd + ' linha(s) de ' + ign.length + ' militar(es) ignorada(s) porque VOLUNTÁRIO JES não é "sim" em MILITARES (RN-46): ' +
+    avisos.push('VOLUNTARIADO: ' + qtd + ' linha(s) de ' + ign.length + ' militar(es) sem VOLUNTÁRIO JES = "sim" em MILITARES valem para as diárias, mas não para o JES (RN-04, RN-46): ' +
       ign.slice(0, 5).map(function (m) { return nomesCad[m] || m; }).join(', ') + (ign.length > 5 ? '…' : '') + '.');
   }
   if (!cotas.existe) avisos.push('A aba COTAS não existe. Crie-a pelo botão "Criar abas e coluna que faltam".');
@@ -205,11 +206,11 @@ function cotasCalcular_(mes, secao, tz) {
   });
 
   const res = distribuirCotas_({
-    mes: mes, operacoes: operacoes, cotas: cotasEntrada, militares: militares, voluntariado: sep.linhas,
-    alocacoes: reais, expediente: expediente, horarios: hor.porChave, tipos: tipos
+    mes: mes, operacoes: operacoes, cotas: cotasEntrada, militares: militares, voluntariado: vol.linhas,   // P18 item 2: todas as linhas
+    alocacoes: reais, expediente: expediente, horarios: hor.porChave, tipos: tipos, voluntariosJes: vjes
   });
   // B24: se uma operação com cota restante não gera nada, o painel diz o motivo e o que fazer
-  const daSecao = sep.linhas.filter(function (v) { return vistos[v.mat]; }).length;
+  const daSecao = vol.linhas.filter(function (v) { return vistos[v.mat]; }).length;
   const diagnostico = diagnosticarOperacoes_({
     mes: mes, secao: secao, operacoes: operacoes, res: res, horarios: hor.porChave,
     voluntariado: { linhasMes: vol.linhas.length, linhasSecao: daSecao, ignoradasJes: ign.reduce(function (n, m) { return n + sep.ignoradas[m]; }, 0) }
