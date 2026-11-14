@@ -110,5 +110,17 @@ console.log('== P17 item 1 (RN-02) cada serviço tem uma cor só, e os do Ordin�
   ver('a legenda usa a mesma cor', leg.find(g => g.servico === 'Pronto').fundo === L.corDoServico_('Pronto')[0] && leg.find(g => g.servico === 'Mergulho').fundo === L.corDoServico_('Mergulho')[0]);
 }
 
+console.log('== P17 item 2 (RN-02) a largura de cada coluna vem do conteúdo');
+{
+  const aba = desenhar();
+  const nCols = 3 + 30;
+  const auto = aba.log.find(x => x[0] === 'autoResizeColumns');
+  ver('autoResizeColumns em todas as colunas da grade (identificação + 30 dias)', auto && auto[1] === 1 && auto[2] === nCols, auto);
+  // o dublê põe 60 px depois do autoResize: a folga vem por cima
+  ver('dia: largura do conteúdo + folga da seta da lista', aba.larguras[4] === 60 + 24 && aba.larguras[nCols] === 84, aba.larguras);
+  ver('identificação: largura do conteúdo + folga menor', aba.larguras[1] === 72 && aba.larguras[2] === 72 && aba.larguras[3] === 72, aba.larguras);
+  ver('nenhuma coluna fica com largura fixa antiga (92 px, 200 px)', Object.values(aba.larguras).every(w => w !== 92 && w !== 200));
+}
+
 console.log(`\n${ok} ok, ${falhas} falha(s)`);
 process.exit(falhas ? 1 : 0);

@@ -25,7 +25,10 @@ const CONFIG = {
   // layout da aba GRADE GERAL (a linha é "militar + posição": não há coluna de turno)
   LINHA_MES: 1, LINHA_SECAO: 2, LINHA_SEMANA: 3, LINHA_CABECALHO: 4, PRIMEIRA_LINHA: 5,
   COL_MAT: 1, COL_MILITAR: 2, COL_EQUIPE: 3, PRIMEIRA_COL_DIA: 4,
-  LARGURA_DIA: 92                     // px; cabe "Defensoria 07–19" e "PE Seguro 16–00"
+  // P17 item 2: a largura vem do conteúdo (autoResizeColumns); estes são só os mínimos, em px
+  LARGURA_MIN_DIA: 40, LARGURA_MIN_IDENT: 60,
+  FOLGA_DIA: 24,                      // a seta da lista suspensa não entra na conta do autoResize
+  FOLGA_IDENT: 12
   // P17 item 1: as cores dos serviços saíram daqui; ver CORES_DOS_SERVICOS_ e corDoServico_ (nucleo.js)
 };
 
@@ -383,10 +386,16 @@ function renderizarMatriz_(aba, modelo, par, rot, tz) {
     .setBackground('#2F5D50').setFontColor('#FFFFFF').setFontWeight('bold').setHorizontalAlignment('center');
   aba.getRange(CONFIG.LINHA_SEMANA, c0, 1, nd).setHorizontalAlignment('center').setFontColor('#5F6368').setFontSize(8);
   aba.getRange(r0, c0, nl, nd).setHorizontalAlignment('center');
-  aba.setColumnWidth(CONFIG.COL_MAT, 85);
-  aba.setColumnWidth(CONFIG.COL_MILITAR, 200);
-  aba.setColumnWidth(CONFIG.COL_EQUIPE, 105);
-  aba.setColumnWidths(c0, nd, CONFIG.LARGURA_DIA);
+  // P17 item 2 (RN-02): cada coluna na largura do próprio conteúdo, para nada ficar cortado.
+  // Larguras fixas cortavam nomes longos e serviços como "Defensoria 07–19 (A)". O autoResize do
+  // Sheets não conta a seta da lista suspensa, daí a folga; o mínimo segura colunas vazias.
+  SpreadsheetApp.flush();
+  aba.autoResizeColumns(1, nCols);
+  for (let c = 1; c <= nCols; c++) {
+    const dia = c >= c0;
+    aba.setColumnWidth(c, Math.max(aba.getColumnWidth(c) + (dia ? CONFIG.FOLGA_DIA : CONFIG.FOLGA_IDENT),
+      dia ? CONFIG.LARGURA_MIN_DIA : CONFIG.LARGURA_MIN_IDENT));
+  }
 
   // fins de semana
   const colsFds = [], rotFds = [];
