@@ -28,7 +28,8 @@ const CONFIG = {
   // P17 item 2: a largura vem do conteúdo (autoResizeColumns); estes são só os mínimos, em px
   LARGURA_MIN_DIA: 40, LARGURA_MIN_IDENT: 60,
   FOLGA_DIA: 24,                      // a seta da lista suspensa não entra na conta do autoResize
-  FOLGA_IDENT: 12
+  FOLGA_IDENT: 12,
+  COR_REPETIDA: '#E8EAED'             // P17 item 4: texto quase branco do que se repete na identificação
   // P17 item 1: as cores dos serviços saíram daqui; ver CORES_DOS_SERVICOS_ e corDoServico_ (nucleo.js)
 };
 
@@ -411,12 +412,14 @@ function renderizarMatriz_(aba, modelo, par, rot, tz) {
     aba.getRangeList(rotFds).setFontColor('#C5221F');
   }
 
-  // 2ª e 3ª linha do mesmo militar: identificação em cinza (continua preenchida, para o filtro/ordenação não quebrar)
-  const cinza = [];
-  modelo.linhas.forEach(function (l, i) {
-    if (i > 0 && modelo.linhas[i - 1].mat === l.mat) cinza.push(aba.getRange(r0 + i, 1, 1, c0 - 1).getA1Notation());
-  });
-  if (cinza.length) aba.getRangeList(cinza).setFontColor('#9AA0A6');
+  // P17 item 4 (RN-02): o que se repete na identificação fica em tom quase branco, sem mesclar células
+  // (decisão de 14/11). Os valores continuam em todas as linhas, para o filtro e a ordenação não quebrarem.
+  // Antes era cinza médio (#9AA0A6) e só nas linhas extras do militar; agora a EQUIPE também, quando
+  // repete a da linha de cima.
+  const desenho = desenhoDasLinhas_(modelo.linhas);
+  const repetidas = desenho.repeteMilitar.map(function (i) { return aba.getRange(r0 + i, 1, 1, c0 - 1).getA1Notation(); })
+    .concat(desenho.repeteEquipe.map(function (i) { return aba.getRange(r0 + i, CONFIG.COL_EQUIPE).getA1Notation(); }));
+  if (repetidas.length) aba.getRangeList(repetidas).setFontColor(CONFIG.COR_REPETIDA);
 
   // Linhas divisórias: fina entre militares, grossa entre grupos (equipes).
   // B34 (RN-02): a borda vai em CIMA da primeira linha de cada militar, não embaixo da última.

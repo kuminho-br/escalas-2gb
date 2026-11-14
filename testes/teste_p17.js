@@ -55,7 +55,7 @@ function carregar(SpreadsheetApp) {
   const fontes = ['nucleo.js', 'choques.js', 'regras_escala.js', 'sincronia.js', 'matriz.js'].map(ler).join('\n');
   const Utilities = { parseDate: s => s, formatDate: () => '' };
   return new Function('SpreadsheetApp', 'Utilities', fontes +
-    '\nreturn {renderizarMatriz_, montarModeloMatriz_, montarRotulos_, montarHorarios_, montarLegenda_, corDoServico_, coresDosServicos_, CORES_DOS_SERVICOS_};')(SpreadsheetApp, Utilities);
+    '\nreturn {renderizarMatriz_, montarModeloMatriz_, montarRotulos_, montarHorarios_, montarLegenda_, corDoServico_, coresDosServicos_, CORES_DOS_SERVICOS_, desenhoDasLinhas_};')(SpreadsheetApp, Utilities);
 }
 
 const L = carregar({});
@@ -156,6 +156,30 @@ console.log('== P17 item 3 o painel "Mostrar Escala" passa a ser "Mostrar Grade 
   const todos = fs.readdirSync(dir).filter(f => /\.(js|html)$/.test(f)).map(f => [f, ler(f)]);
   const restos = todos.filter(([f, s]) => s.replace(/antes "Mostrar Escala"/g, '').indexOf('Mostrar Escala') >= 0).map(x => x[0]);
   ver('nenhum texto do sistema manda mais o usuário ao "Mostrar Escala"', restos.length === 0, restos);
+}
+
+console.log('== P17 item 4 (RN-02) o que se repete na identificação fica quase branco, sem mesclar');
+{
+  const lin = [{ mat: '1', grupo: 'ALFA' }, { mat: '1', grupo: 'ALFA' }, { mat: '2', grupo: 'ALFA' }, { mat: '2', grupo: 'ALFA' },
+    { mat: '3', grupo: 'BRAVO' }, { mat: '3', grupo: 'BRAVO' }, { mat: '4', grupo: 'BRAVO' }];
+  const d = L.desenhoDasLinhas_(lin);
+  ver('2ª linha do mesmo militar: as três colunas se repetem', d.repeteMilitar.join() === '1,3,5', d);
+  ver('1ª linha de outro militar da mesma equipe: só a EQUIPE se repete', d.repeteEquipe.join() === '2,6', d);
+  ver('1ª linha de grupo novo: nada se repete', d.repeteMilitar.indexOf(4) < 0 && d.repeteEquipe.indexOf(4) < 0);
+  ver('grade vazia não quebra', L.desenhoDasLinhas_([]).repeteMilitar.length === 0);
+
+  const m = modelo(), aba = desenhar(m);
+  const quaseBranco = aba.log.filter(x => x[0] === 'setFontColor' && x[2] === '#E8EAED').map(x => x[1]);
+  const esperado = L.desenhoDasLinhas_(m.linhas);
+  ver('a grade pinta de quase branco exatamente as repetições',
+    quaseBranco.length === esperado.repeteMilitar.length + esperado.repeteEquipe.length &&
+    esperado.repeteMilitar.every(i => quaseBranco.indexOf('A' + (5 + i) + ':C' + (5 + i)) >= 0) &&
+    esperado.repeteEquipe.every(i => quaseBranco.indexOf('C' + (5 + i)) >= 0), [quaseBranco, esperado]);
+  ver('a 1ª linha da grade não é pintada', quaseBranco.every(a => !/^[AC]5(:|$)/.test(a)), quaseBranco);
+  ver('nenhuma célula é mesclada', !aba.log.some(x => /merge/i.test(x[0])));
+  ver('o cinza médio antigo (#9AA0A6) saiu', !aba.log.some(x => x[0] === 'setFontColor' && x[2] === '#9AA0A6'));
+  const ident = m.linhas.map((l, i) => [aba.valores[(5 + i) + ',1'], aba.valores[(5 + i) + ',3']]);
+  ver('matrícula e equipe continuam escritas em todas as linhas (filtro e ordenação seguem valendo)', ident.every(x => x[0] && x[1]), ident);
 }
 
 console.log(`\n${ok} ok, ${falhas} falha(s)`);

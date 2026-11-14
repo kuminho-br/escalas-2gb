@@ -284,6 +284,28 @@ function compararAlocacoes_(tabela, escala) {
 }
 
 /**
+ * P17 itens 4 e 7 (RN-02): o desenho das colunas de identificação (MATRÍCULA, MILITAR, EQUIPE) e
+ * das divisórias, a partir das linhas da grade ([{ mat, grupo }], na ordem da grade). Índices base 0.
+ *   repeteMilitar: 2ª linha em diante do mesmo militar -> as três colunas em tom quase branco;
+ *   repeteEquipe:  1ª linha de um militar cuja equipe é a mesma da linha de cima -> só a EQUIPE em tom
+ *                  quase branco (a matrícula e o nome são de outra pessoa e ficam normais);
+ *   inicioMilitar: 1ª linha de um militar que não abre grupo (divisória fina em cima, B34);
+ *   inicioGrupo:   1ª linha de cada grupo, menos a primeira da grade (divisória grossa em cima).
+ * Nada é mesclado: os valores continuam em todas as linhas (filtro e ordenação seguem funcionando).
+ */
+function desenhoDasLinhas_(linhas) {
+  const res = { repeteMilitar: [], repeteEquipe: [], inicioMilitar: [], inicioGrupo: [] };
+  (linhas || []).forEach(function (l, i) {
+    const ant = linhas[i - 1];
+    if (!ant) return;
+    if (ant.mat === l.mat) { res.repeteMilitar.push(i); return; }
+    if (ant.grupo === l.grupo) { res.repeteEquipe.push(i); res.inicioMilitar.push(i); }
+    else res.inicioGrupo.push(i);
+  });
+  return res;
+}
+
+/**
  * RN-02 (B20): quais linhas da grade podem ser ocultadas. São as linhas EXTRAS de cada militar
  * (2ª em diante) que não têm nenhum serviço no mês carregado. A 1ª linha de cada militar nunca entra.
  * linhas: [{ mat }] na ordem da grade;  celulas: a grade (uma linha por item de "linhas").
