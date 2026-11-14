@@ -104,6 +104,22 @@ function antigNum_(v) {
   return isFinite(n) ? n : null;
 }
 
+/**
+ * P17 item 5 (RN-02): posição do posto/graduação na hierarquia, do mais antigo (0) ao mais moderno.
+ * Usada para ordenar os militares dentro da equipe. A coluna ANTIG. (2°GB) desempata dentro do mesmo
+ * posto — na sandbox ela está vazia em todas as linhas, e por isso a grade ficava na ordem do cadastro.
+ * Posto que não se reconhece vai para o fim (Infinity), sem quebrar nada.
+ */
+const POSTOS_POR_ANTIGUIDADE_ = ['CEL', 'TC', 'MAJ', 'CAP', '1TEN', '2TEN', 'ASP', 'ST', '1SGT', '2SGT', '3SGT', 'CB', 'SD'];
+const POSTOS_SINONIMOS_ = { TENCEL: 'TC', MAJOR: 'MAJ', CAPITAO: 'CAP', ASPOF: 'ASP', SUBTEN: 'ST', SUBTENENTE: 'ST', CABO: 'CB', SOLDADO: 'SD' };
+
+function ordemDoPosto_(posto) {
+  let k = normalizar_(posto).replace(/BM$/, '');              // '2º SGT BM' -> '2SGT'
+  if (POSTOS_SINONIMOS_[k]) k = POSTOS_SINONIMOS_[k];
+  const i = POSTOS_POR_ANTIGUIDADE_.indexOf(k);
+  return i < 0 ? Infinity : i;
+}
+
 function nomeExibicao_(m) {
   return [m.posto, m.nome].filter(Boolean).join(' ');
 }
@@ -145,7 +161,7 @@ function montarModeloMatriz_(alocs, militares, op) {
     if (secaoN && normalizar_(m.secao) !== secaoN) return;
     if (vistos[m.mat]) return;
     vistos[m.mat] = true;
-    lista.push({ mat: m.mat, nome: nomeExibicao_(m), grupo: grupoDoMilitar_(m), antig: antigNum_(m.antig), ordem: m.ordem });
+    lista.push({ mat: m.mat, nome: nomeExibicao_(m), grupo: grupoDoMilitar_(m), posto: ordemDoPosto_(m.posto), antig: antigNum_(m.antig), ordem: m.ordem });
   });
 
   const extras = Object.create(null);
@@ -156,8 +172,9 @@ function montarModeloMatriz_(alocs, militares, op) {
       mat: mat,
       nome: m ? nomeExibicao_(m) : '(não cadastrado)',
       grupo: m ? 'OUTRAS SEÇÕES' : 'NÃO CADASTRADOS',
-      antig: null,
-      ordem: 1e9
+      posto: m ? ordemDoPosto_(m.posto) : Infinity,
+      antig: m ? antigNum_(m.antig) : null,
+      ordem: m ? 1e6 + m.ordem : 1e9
     });
   });
   if (Object.keys(extras).length) {
@@ -167,6 +184,8 @@ function montarModeloMatriz_(alocs, militares, op) {
   lista.sort(function (x, y) {
     const gx = ORDEM_GRUPOS_.indexOf(x.grupo), gy = ORDEM_GRUPOS_.indexOf(y.grupo);
     if (gx !== gy) return gx - gy;
+    // P17 item 5 (RN-02): dentro da equipe, por antiguidade: posto/graduação, depois a ANTIG., depois o cadastro
+    if (x.posto !== y.posto) return x.posto < y.posto ? -1 : 1;
     const ax = x.antig === null ? Infinity : x.antig, ay = y.antig === null ? Infinity : y.antig;
     if (ax !== ay) return ax < ay ? -1 : 1;
     return x.ordem - y.ordem;

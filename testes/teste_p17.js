@@ -55,7 +55,7 @@ function carregar(SpreadsheetApp) {
   const fontes = ['nucleo.js', 'choques.js', 'regras_escala.js', 'sincronia.js', 'matriz.js'].map(ler).join('\n');
   const Utilities = { parseDate: s => s, formatDate: () => '' };
   return new Function('SpreadsheetApp', 'Utilities', fontes +
-    '\nreturn {renderizarMatriz_, montarModeloMatriz_, montarRotulos_, montarHorarios_, montarLegenda_, corDoServico_, coresDosServicos_, CORES_DOS_SERVICOS_, desenhoDasLinhas_};')(SpreadsheetApp, Utilities);
+    '\nreturn {renderizarMatriz_, montarModeloMatriz_, montarRotulos_, montarHorarios_, montarLegenda_, corDoServico_, coresDosServicos_, CORES_DOS_SERVICOS_, desenhoDasLinhas_, ordemDoPosto_};')(SpreadsheetApp, Utilities);
 }
 
 const L = carregar({});
@@ -180,6 +180,33 @@ console.log('== P17 item 4 (RN-02) o que se repete na identificação fica quase
   ver('o cinza médio antigo (#9AA0A6) saiu', !aba.log.some(x => x[0] === 'setFontColor' && x[2] === '#9AA0A6'));
   const ident = m.linhas.map((l, i) => [aba.valores[(5 + i) + ',1'], aba.valores[(5 + i) + ',3']]);
   ver('matrícula e equipe continuam escritas em todas as linhas (filtro e ordenação seguem valendo)', ident.every(x => x[0] && x[1]), ident);
+}
+
+console.log('== P17 item 5 (RN-02) dentro da equipe, os militares vêm por antiguidade');
+{
+  ver('hierarquia: ST > 1º SGT > 2º SGT > 3º SGT > CB > SD',
+    ['ST BM', '1º SGT BM', '2º SGT BM', '3º SGT BM', 'CB BM', 'SD BM'].map(L.ordemDoPosto_).every((v, i, a) => i === 0 || a[i - 1] < v));
+  ver('oficiais antes das praças', L.ordemDoPosto_('CAP BM') < L.ordemDoPosto_('ST BM') && L.ordemDoPosto_('1º TEN BM') < L.ordemDoPosto_('ST BM'));
+  ver('escrita sem "BM", sem "º" e por extenso também vale', L.ordemDoPosto_('2 SGT') === L.ordemDoPosto_('2º SGT BM') && L.ordemDoPosto_('Cabo') === L.ordemDoPosto_('CB BM') && L.ordemDoPosto_('Subtenente') === L.ordemDoPosto_('ST BM'));
+  ver('posto desconhecido ou vazio vai para o fim', L.ordemDoPosto_('') === Infinity && L.ordemDoPosto_('XYZ') === Infinity);
+
+  const ordem = m => m.linhas.filter((l, i, a) => i === 0 || a[i - 1].mat !== l.mat).map(l => l.nome);
+  ver('ALFA: ST, depois 3º SGT, depois SD (o cadastro tinha SD, ST, 3º SGT)',
+    ordem(modelo()).slice(0, 3).join() === 'ST BM BIA,3º SGT BM CAIO,SD BM ANA', ordem(modelo()));
+  ver('BRAVO: 1º SGT antes do CB', ordem(modelo()).slice(3, 5).join() === '1º SGT BM EDU,CB BM DANI', ordem(modelo()));
+  const mesmoPosto = [mil('7', 'GIL', 'SD BM', 'PRONTO', 'ALFA', 0, 12), mil('8', 'HUGO', 'SD BM', 'PRONTO', 'ALFA', 1, 3), mil('9', 'IVO', 'SD BM', 'PRONTO', 'ALFA', 2)];
+  const mp = L.montarModeloMatriz_([], mesmoPosto, { mes: '2026-11', secao: '1ª SB', linhas: 1, rotulos: rot, horarios: hor });
+  ver('mesmo posto: a ANTIG. desempata; sem ANTIG., o cadastro', mp.linhas.map(l => l.mat).join() === '8,7,9', mp.linhas.map(l => l.mat));
+  ver('as equipes continuam na ordem de sempre', modelo().linhas.map(l => l.grupo).filter((g, i, a) => a.indexOf(g) === i).join() === 'ALFA,BRAVO,ADM');
+
+  // a sandbox (anonimizada): ANTIG. vazia em todas as 208 linhas
+  const sbx = JSON.parse(fs.readFileSync(path.join(__dirname, 'militares_sandbox.json'), 'utf8'));
+  const ms = L.montarModeloMatriz_([], sbx, { mes: '2026-11', secao: '1ª SB', linhas: 1, rotulos: rot, horarios: hor });
+  const postoDe = Object.fromEntries(sbx.map(m => [m.mat, L.ordemDoPosto_(m.posto)]));
+  const foraDeOrdem = ms.linhas.filter((l, i, a) => i > 0 && a[i - 1].grupo === l.grupo && postoDe[a[i - 1].mat] > postoDe[l.mat]);
+  ver('sandbox: ' + ms.linhas.length + ' militares, nenhum mais moderno acima de um mais antigo na mesma equipe', ms.linhas.length > 0 && foraDeOrdem.length === 0, foraDeOrdem);
+  ver('sandbox: todo posto da aba MILITARES é reconhecido', sbx.filter(m => m.posto && L.ordemDoPosto_(m.posto) === Infinity).length === 0,
+    [...new Set(sbx.filter(m => m.posto && L.ordemDoPosto_(m.posto) === Infinity).map(m => m.posto))]);
 }
 
 console.log(`\n${ok} ok, ${falhas} falha(s)`);

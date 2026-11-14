@@ -1,0 +1,2082 @@
+[
+{
+"mat": "M000",
+"nome": "MILITAR 000",
+"posto": "ST BM",
+"secao": "1ª SB",
+"jornada": "ADM",
+"equipe": "",
+"antig": "",
+"ordem": 0
+},
+{
+"mat": "M001",
+"nome": "MILITAR 001",
+"posto": "2º SGT BM",
+"secao": "1ª SB",
+"jornada": "PRONTO",
+"equipe": "ALFA",
+"antig": "",
+"ordem": 1
+},
+{
+"mat": "M002",
+"nome": "MILITAR 002",
+"posto": "3º SGT BM",
+"secao": "1ª SB",
+"jornada": "PRONTO",
+"equipe": "ALFA",
+"antig": "",
+"ordem": 2
+},
+{
+"mat": "M003",
+"nome": "MILITAR 003",
+"posto": "3º SGT BM",
+"secao": "1ª SB",
+"jornada": "PRONTO",
+"equipe": "CHARLIE",
+"antig": "",
+"ordem": 3
+},
+{
+"mat": "M004",
+"nome": "MILITAR 004",
+"posto": "3º SGT BM",
+"secao": "2ª SB",
+"jornada": "",
+"equipe": "",
+"antig": "",
+"ordem": 4
+},
+{
+"mat": "M005",
+"nome": "MILITAR 005",
+"posto": "CB BM",
+"secao": "4ª SB",
+"jornada": "",
+"equipe": "",
+"antig": "",
+"ordem": 5
+},
+{
+"mat": "M006",
+"nome": "MILITAR 006",
+"posto": "CB BM",
+"secao": "4ª SB",
+"jornada": "",
+"equipe": "",
+"antig": "",
+"ordem": 6
+},
+{
+"mat": "M007",
+"nome": "MILITAR 007",
+"posto": "3º SGT BM",
+"secao": "6ª SB",
+"jornada": "",
+"equipe": "",
+"antig": "",
+"ordem": 7
+},
+{
+"mat": "M008",
+"nome": "MILITAR 008",
+"posto": "CB BM",
+"secao": "6ª SB",
+"jornada": "",
+"equipe": "",
+"antig": "",
+"ordem": 8
+},
+{
+"mat": "M009",
+"nome": "MILITAR 009",
+"posto": "SD BM",
+"secao": "6ª SB",
+"jornada": "",
+"equipe": "",
+"antig": "",
+"ordem": 9
+},
+{
+"mat": "M010",
+"nome": "MILITAR 010",
+"posto": "SD BM",
+"secao": "6ª SB",
+"jornada": "",
+"equipe": "",
+"antig": "",
+"ordem": 10
+},
+{
+"mat": "M011",
+"nome": "MILITAR 011",
+"posto": "ST BM",
+"secao": "7ª SB",
+"jornada": "",
+"equipe": "",
+"antig": "",
+"ordem": 11
+},
+{
+"mat": "M012",
+"nome": "MILITAR 012",
+"posto": "2º SGT BM",
+"secao": "7ª SB",
+"jornada": "",
+"equipe": "",
+"antig": "",
+"ordem": 12
+},
+{
+"mat": "M013",
+"nome": "MILITAR 013",
+"posto": "CB BM",
+"secao": "7ª SB",
+"jornada": "",
+"equipe": "",
+"antig": "",
+"ordem": 13
+},
+{
+"mat": "M014",
+"nome": "MILITAR 014",
+"posto": "SD BM",
+"secao": "7ª SB",
+"jornada": "",
+"equipe": "",
+"antig": "",
+"ordem": 14
+},
+{
+"mat": "M015",
+"nome": "MILITAR 015",
+"posto": "SD BM",
+"secao": "6ª SB",
+"jornada": "",
+"equipe": "",
+"antig": "",
+"ordem": 15
+},
+{
+"mat": "M016",
+"nome": "MILITAR 016",
+"posto": "3º SGT BM",
+"secao": "7ª SB",
+"jornada": "",
+"equipe": "",
+"antig": "",
+"ordem": 16
+},
+{
+"mat": "M017",
+"nome": "MILITAR 017",
+"posto": "SD BM",
+"secao": "7ª SB",
+"jornada": "",
+"equipe": "",
+"antig": "",
+"ordem": 17
+},
+{
+"mat": "M018",
+"nome": "MILITAR 018",
+"posto": "2º SGT BM",
+"secao": "1ª SB",
+"jornada": "ADM",
+"equipe": "",
+"antig": "",
+"ordem": 18
+},
+{
+"mat": "M019",
+"nome": "MILITAR 019",
+"posto": "SD BM",
+"secao": "1ª SB",
+"jornada": "PRONTO",
+"equipe": "ALFA",
+"antig": "",
+"ordem": 19
+},
+{
+"mat": "M020",
+"nome": "MILITAR 020",
+"posto": "3º SGT BM",
+"secao": "1ª SB",
+"jornada": "PRONTO",
+"equipe": "BRAVO",
+"antig": "",
+"ordem": 20
+},
+{
+"mat": "M021",
+"nome": "MILITAR 021",
+"posto": "3º SGT BM",
+"secao": "1ª SB",
+"jornada": "PRONTO",
+"equipe": "ALFA",
+"antig": "",
+"ordem": 21
+},
+{
+"mat": "M022",
+"nome": "MILITAR 022",
+"posto": "3º SGT BM",
+"secao": "1ª SB",
+"jornada": "PRONTO",
+"equipe": "BRAVO",
+"antig": "",
+"ordem": 22
+},
+{
+"mat": "M023",
+"nome": "MILITAR 023",
+"posto": "SD BM",
+"secao": "1ª SB",
+"jornada": "PRONTO",
+"equipe": "CHARLIE",
+"antig": "",
+"ordem": 23
+},
+{
+"mat": "M024",
+"nome": "MILITAR 024",
+"posto": "ST BM",
+"secao": "2ª SB",
+"jornada": "",
+"equipe": "",
+"antig": "",
+"ordem": 24
+},
+{
+"mat": "M025",
+"nome": "MILITAR 025",
+"posto": "1º SGT BM",
+"secao": "2ª SB",
+"jornada": "",
+"equipe": "",
+"antig": "",
+"ordem": 25
+},
+{
+"mat": "M026",
+"nome": "MILITAR 026",
+"posto": "1º SGT BM",
+"secao": "2ª SB",
+"jornada": "",
+"equipe": "",
+"antig": "",
+"ordem": 26
+},
+{
+"mat": "M027",
+"nome": "MILITAR 027",
+"posto": "1º SGT BM",
+"secao": "2ª SB",
+"jornada": "",
+"equipe": "",
+"antig": "",
+"ordem": 27
+},
+{
+"mat": "M028",
+"nome": "MILITAR 028",
+"posto": "1º SGT BM",
+"secao": "2ª SB",
+"jornada": "",
+"equipe": "",
+"antig": "",
+"ordem": 28
+},
+{
+"mat": "M029",
+"nome": "MILITAR 029",
+"posto": "2º SGT BM",
+"secao": "2ª SB",
+"jornada": "",
+"equipe": "",
+"antig": "",
+"ordem": 29
+},
+{
+"mat": "M030",
+"nome": "MILITAR 030",
+"posto": "1º SGT BM",
+"secao": "2ª SB",
+"jornada": "",
+"equipe": "",
+"antig": "",
+"ordem": 30
+},
+{
+"mat": "M031",
+"nome": "MILITAR 031",
+"posto": "1º SGT BM",
+"secao": "2ª SB",
+"jornada": "",
+"equipe": "",
+"antig": "",
+"ordem": 31
+},
+{
+"mat": "M032",
+"nome": "MILITAR 032",
+"posto": "3º SGT BM",
+"secao": "2ª SB",
+"jornada": "",
+"equipe": "",
+"antig": "",
+"ordem": 32
+},
+{
+"mat": "M033",
+"nome": "MILITAR 033",
+"posto": "SD BM",
+"secao": "2ª SB",
+"jornada": "",
+"equipe": "",
+"antig": "",
+"ordem": 33
+},
+{
+"mat": "M034",
+"nome": "MILITAR 034",
+"posto": "SD BM",
+"secao": "2ª SB",
+"jornada": "",
+"equipe": "",
+"antig": "",
+"ordem": 34
+},
+{
+"mat": "M035",
+"nome": "MILITAR 035",
+"posto": "1º SGT BM",
+"secao": "3ª SB",
+"jornada": "",
+"equipe": "",
+"antig": "",
+"ordem": 35
+},
+{
+"mat": "M036",
+"nome": "MILITAR 036",
+"posto": "3º SGT BM",
+"secao": "3ª SB",
+"jornada": "",
+"equipe": "",
+"antig": "",
+"ordem": 36
+},
+{
+"mat": "M037",
+"nome": "MILITAR 037",
+"posto": "3º SGT BM",
+"secao": "3ª SB",
+"jornada": "",
+"equipe": "",
+"antig": "",
+"ordem": 37
+},
+{
+"mat": "M038",
+"nome": "MILITAR 038",
+"posto": "CB BM",
+"secao": "3ª SB",
+"jornada": "",
+"equipe": "",
+"antig": "",
+"ordem": 38
+},
+{
+"mat": "M039",
+"nome": "MILITAR 039",
+"posto": "SD BM",
+"secao": "3ª SB",
+"jornada": "",
+"equipe": "",
+"antig": "",
+"ordem": 39
+},
+{
+"mat": "M040",
+"nome": "MILITAR 040",
+"posto": "SD BM",
+"secao": "3ª SB",
+"jornada": "",
+"equipe": "",
+"antig": "",
+"ordem": 40
+},
+{
+"mat": "M041",
+"nome": "MILITAR 041",
+"posto": "ST BM",
+"secao": "2ª SB",
+"jornada": "",
+"equipe": "",
+"antig": "",
+"ordem": 41
+},
+{
+"mat": "M042",
+"nome": "MILITAR 042",
+"posto": "1º SGT BM",
+"secao": "4ª SB",
+"jornada": "",
+"equipe": "",
+"antig": "",
+"ordem": 42
+},
+{
+"mat": "M043",
+"nome": "MILITAR 043",
+"posto": "1º SGT BM",
+"secao": "4ª SB",
+"jornada": "",
+"equipe": "",
+"antig": "",
+"ordem": 43
+},
+{
+"mat": "M044",
+"nome": "MILITAR 044",
+"posto": "2º SGT BM",
+"secao": "4ª SB",
+"jornada": "",
+"equipe": "",
+"antig": "",
+"ordem": 44
+},
+{
+"mat": "M045",
+"nome": "MILITAR 045",
+"posto": "3º SGT BM",
+"secao": "1ª SB",
+"jornada": "ADM",
+"equipe": "",
+"antig": "",
+"ordem": 45
+},
+{
+"mat": "M046",
+"nome": "MILITAR 046",
+"posto": "CB BM",
+"secao": "4ª SB",
+"jornada": "",
+"equipe": "",
+"antig": "",
+"ordem": 46
+},
+{
+"mat": "M047",
+"nome": "MILITAR 047",
+"posto": "CB BM",
+"secao": "4ª SB",
+"jornada": "",
+"equipe": "",
+"antig": "",
+"ordem": 47
+},
+{
+"mat": "M048",
+"nome": "MILITAR 048",
+"posto": "CB BM",
+"secao": "4ª SB",
+"jornada": "",
+"equipe": "",
+"antig": "",
+"ordem": 48
+},
+{
+"mat": "M049",
+"nome": "MILITAR 049",
+"posto": "CB BM",
+"secao": "5ª SB",
+"jornada": "",
+"equipe": "",
+"antig": "",
+"ordem": 49
+},
+{
+"mat": "M050",
+"nome": "MILITAR 050",
+"posto": "CB BM",
+"secao": "5ª SB",
+"jornada": "",
+"equipe": "",
+"antig": "",
+"ordem": 50
+},
+{
+"mat": "M051",
+"nome": "MILITAR 051",
+"posto": "CB BM",
+"secao": "5ª SB",
+"jornada": "",
+"equipe": "",
+"antig": "",
+"ordem": 51
+},
+{
+"mat": "M052",
+"nome": "MILITAR 052",
+"posto": "CB BM",
+"secao": "5ª SB",
+"jornada": "",
+"equipe": "",
+"antig": "",
+"ordem": 52
+},
+{
+"mat": "M053",
+"nome": "MILITAR 053",
+"posto": "CB BM",
+"secao": "5ª SB",
+"jornada": "",
+"equipe": "",
+"antig": "",
+"ordem": 53
+},
+{
+"mat": "M054",
+"nome": "MILITAR 054",
+"posto": "CB BM",
+"secao": "5ª SB",
+"jornada": "",
+"equipe": "",
+"antig": "",
+"ordem": 54
+},
+{
+"mat": "M055",
+"nome": "MILITAR 055",
+"posto": "CB BM",
+"secao": "5ª SB",
+"jornada": "",
+"equipe": "",
+"antig": "",
+"ordem": 55
+},
+{
+"mat": "M056",
+"nome": "MILITAR 056",
+"posto": "3º SGT BM",
+"secao": "6ª SB",
+"jornada": "ADM",
+"equipe": "",
+"antig": "",
+"ordem": 56
+},
+{
+"mat": "M057",
+"nome": "MILITAR 057",
+"posto": "SD BM",
+"secao": "7ª SB",
+"jornada": "",
+"equipe": "",
+"antig": "",
+"ordem": 57
+},
+{
+"mat": "M058",
+"nome": "MILITAR 058",
+"posto": "CB BM",
+"secao": "7ª SB",
+"jornada": "",
+"equipe": "",
+"antig": "",
+"ordem": 58
+},
+{
+"mat": "M059",
+"nome": "MILITAR 059",
+"posto": "3º SGT BM",
+"secao": "3ª SB",
+"jornada": "",
+"equipe": "",
+"antig": "",
+"ordem": 59
+},
+{
+"mat": "M060",
+"nome": "MILITAR 060",
+"posto": "3º SGT BM",
+"secao": "1ª SB",
+"jornada": "ADM",
+"equipe": "",
+"antig": "",
+"ordem": 60
+},
+{
+"mat": "M061",
+"nome": "MILITAR 061",
+"posto": "3º SGT BM",
+"secao": "1ª SB",
+"jornada": "ADM",
+"equipe": "",
+"antig": "",
+"ordem": 61
+},
+{
+"mat": "M062",
+"nome": "MILITAR 062",
+"posto": "CB BM",
+"secao": "1ª SB",
+"jornada": "ADM",
+"equipe": "",
+"antig": "",
+"ordem": 62
+},
+{
+"mat": "M063",
+"nome": "MILITAR 063",
+"posto": "CB BM",
+"secao": "1ª SB",
+"jornada": "",
+"equipe": "",
+"antig": "",
+"ordem": 63
+},
+{
+"mat": "M064",
+"nome": "MILITAR 064",
+"posto": "CB BM",
+"secao": "1ª SB",
+"jornada": "ADM",
+"equipe": "",
+"antig": "",
+"ordem": 64
+},
+{
+"mat": "M065",
+"nome": "MILITAR 065",
+"posto": "2º SGT BM",
+"secao": "1ª SB",
+"jornada": "ADM",
+"equipe": "",
+"antig": "",
+"ordem": 65
+},
+{
+"mat": "M066",
+"nome": "MILITAR 066",
+"posto": "CB BM",
+"secao": "4ª SB",
+"jornada": "",
+"equipe": "",
+"antig": "",
+"ordem": 66
+},
+{
+"mat": "M067",
+"nome": "MILITAR 067",
+"posto": "ST BM",
+"secao": "7ª SB",
+"jornada": "",
+"equipe": "",
+"antig": "",
+"ordem": 67
+},
+{
+"mat": "M068",
+"nome": "MILITAR 068",
+"posto": "2º SGT BM",
+"secao": "1ª SB",
+"jornada": "ADM",
+"equipe": "",
+"antig": "",
+"ordem": 68
+},
+{
+"mat": "M069",
+"nome": "MILITAR 069",
+"posto": "3º SGT BM",
+"secao": "1ª SB",
+"jornada": "ADM",
+"equipe": "",
+"antig": "",
+"ordem": 69
+},
+{
+"mat": "M070",
+"nome": "MILITAR 070",
+"posto": "CB BM",
+"secao": "1ª SB",
+"jornada": "ADM",
+"equipe": "",
+"antig": "",
+"ordem": 70
+},
+{
+"mat": "M071",
+"nome": "MILITAR 071",
+"posto": "CB BM",
+"secao": "1ª SB",
+"jornada": "ADM",
+"equipe": "",
+"antig": "",
+"ordem": 71
+},
+{
+"mat": "M072",
+"nome": "MILITAR 072",
+"posto": "CB BM",
+"secao": "1ª SB",
+"jornada": "PRONTO",
+"equipe": "DELTA",
+"antig": "",
+"ordem": 72
+},
+{
+"mat": "M073",
+"nome": "MILITAR 073",
+"posto": "3º SGT BM",
+"secao": "1ª SB",
+"jornada": "",
+"equipe": "",
+"antig": "",
+"ordem": 73
+},
+{
+"mat": "M074",
+"nome": "MILITAR 074",
+"posto": "SD BM",
+"secao": "6ª SB",
+"jornada": "",
+"equipe": "",
+"antig": "",
+"ordem": 74
+},
+{
+"mat": "M075",
+"nome": "MILITAR 075",
+"posto": "SD BM",
+"secao": "5ª SB",
+"jornada": "",
+"equipe": "",
+"antig": "",
+"ordem": 75
+},
+{
+"mat": "M076",
+"nome": "MILITAR 076",
+"posto": "ST BM",
+"secao": "1ª SB",
+"jornada": "PRONTO",
+"equipe": "CHARLIE",
+"antig": "",
+"ordem": 76
+},
+{
+"mat": "M077",
+"nome": "MILITAR 077",
+"posto": "ST BM",
+"secao": "1ª SB",
+"jornada": "ADM",
+"equipe": "",
+"antig": "",
+"ordem": 77
+},
+{
+"mat": "M078",
+"nome": "MILITAR 078",
+"posto": "SD BM",
+"secao": "1ª SB",
+"jornada": "",
+"equipe": "",
+"antig": "",
+"ordem": 78
+},
+{
+"mat": "M079",
+"nome": "MILITAR 079",
+"posto": "SD BM",
+"secao": "1ª SB",
+"jornada": "PRONTO",
+"equipe": "ALFA",
+"antig": "",
+"ordem": 79
+},
+{
+"mat": "M080",
+"nome": "MILITAR 080",
+"posto": "SD BM",
+"secao": "1ª SB",
+"jornada": "",
+"equipe": "",
+"antig": "",
+"ordem": 80
+},
+{
+"mat": "M081",
+"nome": "MILITAR 081",
+"posto": "SD BM",
+"secao": "1ª SB",
+"jornada": "PRONTO",
+"equipe": "ALFA",
+"antig": "",
+"ordem": 81
+},
+{
+"mat": "M082",
+"nome": "MILITAR 082",
+"posto": "SD BM",
+"secao": "1ª SB",
+"jornada": "PRONTO",
+"equipe": "BRAVO",
+"antig": "",
+"ordem": 82
+},
+{
+"mat": "M083",
+"nome": "MILITAR 083",
+"posto": "SD BM",
+"secao": "1ª SB",
+"jornada": "",
+"equipe": "",
+"antig": "",
+"ordem": 83
+},
+{
+"mat": "M084",
+"nome": "MILITAR 084",
+"posto": "ST BM",
+"secao": "1ª SB",
+"jornada": "PRONTO",
+"equipe": "BRAVO",
+"antig": "",
+"ordem": 84
+},
+{
+"mat": "M085",
+"nome": "MILITAR 085",
+"posto": "2º SGT BM",
+"secao": "1ª SB",
+"jornada": "PRONTO",
+"equipe": "CHARLIE",
+"antig": "",
+"ordem": 85
+},
+{
+"mat": "M086",
+"nome": "MILITAR 086",
+"posto": "2º SGT BM",
+"secao": "1ª SB",
+"jornada": "PRONTO",
+"equipe": "DELTA",
+"antig": "",
+"ordem": 86
+},
+{
+"mat": "M087",
+"nome": "MILITAR 087",
+"posto": "SD BM",
+"secao": "1ª SB",
+"jornada": "PRONTO",
+"equipe": "ALFA",
+"antig": "",
+"ordem": 87
+},
+{
+"mat": "M088",
+"nome": "MILITAR 088",
+"posto": "SD BM",
+"secao": "1ª SB",
+"jornada": "PRONTO",
+"equipe": "DELTA",
+"antig": "",
+"ordem": 88
+},
+{
+"mat": "M089",
+"nome": "MILITAR 089",
+"posto": "3º SGT BM",
+"secao": "1ª SB",
+"jornada": "PRONTO",
+"equipe": "DELTA",
+"antig": "",
+"ordem": 89
+},
+{
+"mat": "M090",
+"nome": "MILITAR 090",
+"posto": "3º SGT BM",
+"secao": "1ª SB",
+"jornada": "PRONTO",
+"equipe": "BRAVO",
+"antig": "",
+"ordem": 90
+},
+{
+"mat": "M091",
+"nome": "MILITAR 091",
+"posto": "3º SGT BM",
+"secao": "1ª SB",
+"jornada": "ADM",
+"equipe": "",
+"antig": "",
+"ordem": 91
+},
+{
+"mat": "M092",
+"nome": "MILITAR 092",
+"posto": "3º SGT BM",
+"secao": "1ª SB",
+"jornada": "PRONTO",
+"equipe": "BRAVO",
+"antig": "",
+"ordem": 92
+},
+{
+"mat": "M093",
+"nome": "MILITAR 093",
+"posto": "CB BM",
+"secao": "1ª SB",
+"jornada": "PRONTO",
+"equipe": "CHARLIE",
+"antig": "",
+"ordem": 93
+},
+{
+"mat": "M094",
+"nome": "MILITAR 094",
+"posto": "3º SGT BM",
+"secao": "1ª SB",
+"jornada": "PRONTO",
+"equipe": "DELTA",
+"antig": "",
+"ordem": 94
+},
+{
+"mat": "M095",
+"nome": "MILITAR 095",
+"posto": "SD BM",
+"secao": "1ª SB",
+"jornada": "PRONTO",
+"equipe": "BRAVO",
+"antig": "",
+"ordem": 95
+},
+{
+"mat": "M096",
+"nome": "MILITAR 096",
+"posto": "SD BM",
+"secao": "1ª SB",
+"jornada": "PRONTO",
+"equipe": "CHARLIE",
+"antig": "",
+"ordem": 96
+},
+{
+"mat": "M097",
+"nome": "MILITAR 097",
+"posto": "SD BM",
+"secao": "1ª SB",
+"jornada": "PRONTO",
+"equipe": "CHARLIE",
+"antig": "",
+"ordem": 97
+},
+{
+"mat": "M098",
+"nome": "MILITAR 098",
+"posto": "SD BM",
+"secao": "1ª SB",
+"jornada": "PRONTO",
+"equipe": "DELTA",
+"antig": "",
+"ordem": 98
+},
+{
+"mat": "M099",
+"nome": "MILITAR 099",
+"posto": "SD BM",
+"secao": "1ª SB",
+"jornada": "PRONTO",
+"equipe": "BRAVO",
+"antig": "",
+"ordem": 99
+},
+{
+"mat": "M100",
+"nome": "MILITAR 100",
+"posto": "SD BM",
+"secao": "1ª SB",
+"jornada": "PRONTO",
+"equipe": "BRAVO",
+"antig": "",
+"ordem": 100
+},
+{
+"mat": "M101",
+"nome": "MILITAR 101",
+"posto": "2º SGT BM",
+"secao": "2ª SB",
+"jornada": "",
+"equipe": "",
+"antig": "",
+"ordem": 101
+},
+{
+"mat": "M102",
+"nome": "MILITAR 102",
+"posto": "1º SGT BM",
+"secao": "2ª SB",
+"jornada": "",
+"equipe": "",
+"antig": "",
+"ordem": 102
+},
+{
+"mat": "M103",
+"nome": "MILITAR 103",
+"posto": "1º SGT BM",
+"secao": "2ª SB",
+"jornada": "",
+"equipe": "",
+"antig": "",
+"ordem": 103
+},
+{
+"mat": "M104",
+"nome": "MILITAR 104",
+"posto": "2º SGT BM",
+"secao": "2ª SB",
+"jornada": "",
+"equipe": "",
+"antig": "",
+"ordem": 104
+},
+{
+"mat": "M105",
+"nome": "MILITAR 105",
+"posto": "2º SGT BM",
+"secao": "2ª SB",
+"jornada": "",
+"equipe": "",
+"antig": "",
+"ordem": 105
+},
+{
+"mat": "M106",
+"nome": "MILITAR 106",
+"posto": "3º SGT BM",
+"secao": "2ª SB",
+"jornada": "",
+"equipe": "",
+"antig": "",
+"ordem": 106
+},
+{
+"mat": "M107",
+"nome": "MILITAR 107",
+"posto": "3º SGT BM",
+"secao": "2ª SB",
+"jornada": "",
+"equipe": "",
+"antig": "",
+"ordem": 107
+},
+{
+"mat": "M108",
+"nome": "MILITAR 108",
+"posto": "3º SGT BM",
+"secao": "2ª SB",
+"jornada": "",
+"equipe": "",
+"antig": "",
+"ordem": 108
+},
+{
+"mat": "M109",
+"nome": "MILITAR 109",
+"posto": "3º SGT BM",
+"secao": "2ª SB",
+"jornada": "",
+"equipe": "",
+"antig": "",
+"ordem": 109
+},
+{
+"mat": "M110",
+"nome": "MILITAR 110",
+"posto": "CB BM",
+"secao": "2ª SB",
+"jornada": "",
+"equipe": "",
+"antig": "",
+"ordem": 110
+},
+{
+"mat": "M111",
+"nome": "MILITAR 111",
+"posto": "CB BM",
+"secao": "2ª SB",
+"jornada": "",
+"equipe": "",
+"antig": "",
+"ordem": 111
+},
+{
+"mat": "M112",
+"nome": "MILITAR 112",
+"posto": "3º SGT BM",
+"secao": "2ª SB",
+"jornada": "",
+"equipe": "",
+"antig": "",
+"ordem": 112
+},
+{
+"mat": "M113",
+"nome": "MILITAR 113",
+"posto": "ST BM",
+"secao": "2ª SB",
+"jornada": "",
+"equipe": "",
+"antig": "",
+"ordem": 113
+},
+{
+"mat": "M114",
+"nome": "MILITAR 114",
+"posto": "CB BM",
+"secao": "2ª SB",
+"jornada": "",
+"equipe": "",
+"antig": "",
+"ordem": 114
+},
+{
+"mat": "M115",
+"nome": "MILITAR 115",
+"posto": "SD BM",
+"secao": "2ª SB",
+"jornada": "",
+"equipe": "",
+"antig": "",
+"ordem": 115
+},
+{
+"mat": "M116",
+"nome": "MILITAR 116",
+"posto": "SD BM",
+"secao": "2ª SB",
+"jornada": "",
+"equipe": "",
+"antig": "",
+"ordem": 116
+},
+{
+"mat": "M117",
+"nome": "MILITAR 117",
+"posto": "SD BM",
+"secao": "2ª SB",
+"jornada": "",
+"equipe": "",
+"antig": "",
+"ordem": 117
+},
+{
+"mat": "M118",
+"nome": "MILITAR 118",
+"posto": "SD BM",
+"secao": "2ª SB",
+"jornada": "",
+"equipe": "",
+"antig": "",
+"ordem": 118
+},
+{
+"mat": "M119",
+"nome": "MILITAR 119",
+"posto": "SD BM",
+"secao": "2ª SB",
+"jornada": "PRONTO",
+"equipe": "CHARLIE",
+"antig": "",
+"ordem": 119
+},
+{
+"mat": "M120",
+"nome": "MILITAR 120",
+"posto": "SD BM",
+"secao": "2ª SB",
+"jornada": "",
+"equipe": "",
+"antig": "",
+"ordem": 120
+},
+{
+"mat": "M121",
+"nome": "MILITAR 121",
+"posto": "SD BM",
+"secao": "2ª SB",
+"jornada": "",
+"equipe": "",
+"antig": "",
+"ordem": 121
+},
+{
+"mat": "M122",
+"nome": "MILITAR 122",
+"posto": "SD BM",
+"secao": "2ª SB",
+"jornada": "PRONTO",
+"equipe": "DELTA",
+"antig": "",
+"ordem": 122
+},
+{
+"mat": "M123",
+"nome": "MILITAR 123",
+"posto": "SD BM",
+"secao": "2ª SB",
+"jornada": "",
+"equipe": "",
+"antig": "",
+"ordem": 123
+},
+{
+"mat": "M124",
+"nome": "MILITAR 124",
+"posto": "SD BM",
+"secao": "2ª SB",
+"jornada": "",
+"equipe": "",
+"antig": "",
+"ordem": 124
+},
+{
+"mat": "M125",
+"nome": "MILITAR 125",
+"posto": "CB BM",
+"secao": "2ª SB",
+"jornada": "",
+"equipe": "",
+"antig": "",
+"ordem": 125
+},
+{
+"mat": "M126",
+"nome": "MILITAR 126",
+"posto": "CB BM",
+"secao": "2ª SB",
+"jornada": "",
+"equipe": "",
+"antig": "",
+"ordem": 126
+},
+{
+"mat": "M127",
+"nome": "MILITAR 127",
+"posto": "CB BM",
+"secao": "2ª SB",
+"jornada": "",
+"equipe": "",
+"antig": "",
+"ordem": 127
+},
+{
+"mat": "M128",
+"nome": "MILITAR 128",
+"posto": "2º SGT BM",
+"secao": "3ª SB",
+"jornada": "",
+"equipe": "",
+"antig": "",
+"ordem": 128
+},
+{
+"mat": "M129",
+"nome": "MILITAR 129",
+"posto": "2º SGT BM",
+"secao": "3ª SB",
+"jornada": "",
+"equipe": "",
+"antig": "",
+"ordem": 129
+},
+{
+"mat": "M130",
+"nome": "MILITAR 130",
+"posto": "3º SGT BM",
+"secao": "3ª SB",
+"jornada": "",
+"equipe": "",
+"antig": "",
+"ordem": 130
+},
+{
+"mat": "M131",
+"nome": "MILITAR 131",
+"posto": "3º SGT BM",
+"secao": "3ª SB",
+"jornada": "",
+"equipe": "",
+"antig": "",
+"ordem": 131
+},
+{
+"mat": "M132",
+"nome": "MILITAR 132",
+"posto": "3º SGT BM",
+"secao": "3ª SB",
+"jornada": "",
+"equipe": "",
+"antig": "",
+"ordem": 132
+},
+{
+"mat": "M133",
+"nome": "MILITAR 133",
+"posto": "CB BM",
+"secao": "3ª SB",
+"jornada": "",
+"equipe": "",
+"antig": "",
+"ordem": 133
+},
+{
+"mat": "M134",
+"nome": "MILITAR 134",
+"posto": "SD BM",
+"secao": "3ª SB",
+"jornada": "",
+"equipe": "",
+"antig": "",
+"ordem": 134
+},
+{
+"mat": "M135",
+"nome": "MILITAR 135",
+"posto": "SD BM",
+"secao": "3ª SB",
+"jornada": "",
+"equipe": "",
+"antig": "",
+"ordem": 135
+},
+{
+"mat": "M136",
+"nome": "MILITAR 136",
+"posto": "SD BM",
+"secao": "3ª SB",
+"jornada": "",
+"equipe": "",
+"antig": "",
+"ordem": 136
+},
+{
+"mat": "M137",
+"nome": "MILITAR 137",
+"posto": "SD BM",
+"secao": "3ª SB",
+"jornada": "",
+"equipe": "",
+"antig": "",
+"ordem": 137
+},
+{
+"mat": "M138",
+"nome": "MILITAR 138",
+"posto": "SD BM",
+"secao": "3ª SB",
+"jornada": "",
+"equipe": "",
+"antig": "",
+"ordem": 138
+},
+{
+"mat": "M139",
+"nome": "MILITAR 139",
+"posto": "SD BM",
+"secao": "3ª SB",
+"jornada": "",
+"equipe": "",
+"antig": "",
+"ordem": 139
+},
+{
+"mat": "M140",
+"nome": "MILITAR 140",
+"posto": "SD BM",
+"secao": "3ª SB",
+"jornada": "",
+"equipe": "",
+"antig": "",
+"ordem": 140
+},
+{
+"mat": "M141",
+"nome": "MILITAR 141",
+"posto": "SD BM",
+"secao": "3ª SB",
+"jornada": "",
+"equipe": "",
+"antig": "",
+"ordem": 141
+},
+{
+"mat": "M142",
+"nome": "MILITAR 142",
+"posto": "SD BM",
+"secao": "3ª SB",
+"jornada": "",
+"equipe": "",
+"antig": "",
+"ordem": 142
+},
+{
+"mat": "M143",
+"nome": "MILITAR 143",
+"posto": "SD BM",
+"secao": "3ª SB",
+"jornada": "",
+"equipe": "",
+"antig": "",
+"ordem": 143
+},
+{
+"mat": "M144",
+"nome": "MILITAR 144",
+"posto": "SD BM",
+"secao": "3ª SB",
+"jornada": "",
+"equipe": "",
+"antig": "",
+"ordem": 144
+},
+{
+"mat": "M145",
+"nome": "MILITAR 145",
+"posto": "1º SGT BM",
+"secao": "4ª SB",
+"jornada": "",
+"equipe": "",
+"antig": "",
+"ordem": 145
+},
+{
+"mat": "M146",
+"nome": "MILITAR 146",
+"posto": "3º SGT BM",
+"secao": "4ª SB",
+"jornada": "",
+"equipe": "",
+"antig": "",
+"ordem": 146
+},
+{
+"mat": "M147",
+"nome": "MILITAR 147",
+"posto": "CB BM",
+"secao": "4ª SB",
+"jornada": "",
+"equipe": "",
+"antig": "",
+"ordem": 147
+},
+{
+"mat": "M148",
+"nome": "MILITAR 148",
+"posto": "1º SGT BM",
+"secao": "4ª SB",
+"jornada": "",
+"equipe": "",
+"antig": "",
+"ordem": 148
+},
+{
+"mat": "M149",
+"nome": "MILITAR 149",
+"posto": "SD BM",
+"secao": "4ª SB",
+"jornada": "",
+"equipe": "",
+"antig": "",
+"ordem": 149
+},
+{
+"mat": "M150",
+"nome": "MILITAR 150",
+"posto": "SD BM",
+"secao": "4ª SB",
+"jornada": "",
+"equipe": "",
+"antig": "",
+"ordem": 150
+},
+{
+"mat": "M151",
+"nome": "MILITAR 151",
+"posto": "3º SGT BM",
+"secao": "4ª SB",
+"jornada": "",
+"equipe": "",
+"antig": "",
+"ordem": 151
+},
+{
+"mat": "M152",
+"nome": "MILITAR 152",
+"posto": "CB BM",
+"secao": "5ª SB",
+"jornada": "",
+"equipe": "",
+"antig": "",
+"ordem": 152
+},
+{
+"mat": "M153",
+"nome": "MILITAR 153",
+"posto": "2º SGT BM",
+"secao": "5ª SB",
+"jornada": "",
+"equipe": "",
+"antig": "",
+"ordem": 153
+},
+{
+"mat": "M154",
+"nome": "MILITAR 154",
+"posto": "2º SGT BM",
+"secao": "5ª SB",
+"jornada": "",
+"equipe": "",
+"antig": "",
+"ordem": 154
+},
+{
+"mat": "M155",
+"nome": "MILITAR 155",
+"posto": "3º SGT BM",
+"secao": "5ª SB",
+"jornada": "",
+"equipe": "",
+"antig": "",
+"ordem": 155
+},
+{
+"mat": "M156",
+"nome": "MILITAR 156",
+"posto": "3º SGT BM",
+"secao": "5ª SB",
+"jornada": "",
+"equipe": "",
+"antig": "",
+"ordem": 156
+},
+{
+"mat": "M157",
+"nome": "MILITAR 157",
+"posto": "CB BM",
+"secao": "5ª SB",
+"jornada": "",
+"equipe": "",
+"antig": "",
+"ordem": 157
+},
+{
+"mat": "M158",
+"nome": "MILITAR 158",
+"posto": "SD BM",
+"secao": "5ª SB",
+"jornada": "",
+"equipe": "",
+"antig": "",
+"ordem": 158
+},
+{
+"mat": "M159",
+"nome": "MILITAR 159",
+"posto": "SD BM",
+"secao": "5ª SB",
+"jornada": "",
+"equipe": "",
+"antig": "",
+"ordem": 159
+},
+{
+"mat": "M160",
+"nome": "MILITAR 160",
+"posto": "CB BM",
+"secao": "5ª SB",
+"jornada": "",
+"equipe": "",
+"antig": "",
+"ordem": 160
+},
+{
+"mat": "M161",
+"nome": "MILITAR 161",
+"posto": "SD BM",
+"secao": "5ª SB",
+"jornada": "",
+"equipe": "",
+"antig": "",
+"ordem": 161
+},
+{
+"mat": "M162",
+"nome": "MILITAR 162",
+"posto": "3º SGT BM",
+"secao": "6ª SB",
+"jornada": "",
+"equipe": "",
+"antig": "",
+"ordem": 162
+},
+{
+"mat": "M163",
+"nome": "MILITAR 163",
+"posto": "3º SGT BM",
+"secao": "5ª SB",
+"jornada": "",
+"equipe": "",
+"antig": "",
+"ordem": 163
+},
+{
+"mat": "M164",
+"nome": "MILITAR 164",
+"posto": "SD BM",
+"secao": "5ª SB",
+"jornada": "",
+"equipe": "",
+"antig": "",
+"ordem": 164
+},
+{
+"mat": "M165",
+"nome": "MILITAR 165",
+"posto": "CB BM",
+"secao": "6ª SB",
+"jornada": "",
+"equipe": "",
+"antig": "",
+"ordem": 165
+},
+{
+"mat": "M166",
+"nome": "MILITAR 166",
+"posto": "CB BM",
+"secao": "6ª SB",
+"jornada": "",
+"equipe": "",
+"antig": "",
+"ordem": 166
+},
+{
+"mat": "M167",
+"nome": "MILITAR 167",
+"posto": "CB BM",
+"secao": "6ª SB",
+"jornada": "",
+"equipe": "",
+"antig": "",
+"ordem": 167
+},
+{
+"mat": "M168",
+"nome": "MILITAR 168",
+"posto": "CB BM",
+"secao": "5ª SB",
+"jornada": "",
+"equipe": "",
+"antig": "",
+"ordem": 168
+},
+{
+"mat": "M169",
+"nome": "MILITAR 169",
+"posto": "CB BM",
+"secao": "6ª SB",
+"jornada": "",
+"equipe": "",
+"antig": "",
+"ordem": 169
+},
+{
+"mat": "M170",
+"nome": "MILITAR 170",
+"posto": "SD BM",
+"secao": "6ª SB",
+"jornada": "",
+"equipe": "",
+"antig": "",
+"ordem": 170
+},
+{
+"mat": "M171",
+"nome": "MILITAR 171",
+"posto": "SD BM",
+"secao": "5ª SB",
+"jornada": "",
+"equipe": "",
+"antig": "",
+"ordem": 171
+},
+{
+"mat": "M172",
+"nome": "MILITAR 172",
+"posto": "SD BM",
+"secao": "6ª SB",
+"jornada": "",
+"equipe": "",
+"antig": "",
+"ordem": 172
+},
+{
+"mat": "M173",
+"nome": "MILITAR 173",
+"posto": "SD BM",
+"secao": "6ª SB",
+"jornada": "",
+"equipe": "",
+"antig": "",
+"ordem": 173
+},
+{
+"mat": "M174",
+"nome": "MILITAR 174",
+"posto": "SD BM",
+"secao": "6ª SB",
+"jornada": "",
+"equipe": "",
+"antig": "",
+"ordem": 174
+},
+{
+"mat": "M175",
+"nome": "MILITAR 175",
+"posto": "SD BM",
+"secao": "6ª SB",
+"jornada": "",
+"equipe": "",
+"antig": "",
+"ordem": 175
+},
+{
+"mat": "M176",
+"nome": "MILITAR 176",
+"posto": "SD BM",
+"secao": "6ª SB",
+"jornada": "",
+"equipe": "",
+"antig": "",
+"ordem": 176
+},
+{
+"mat": "M177",
+"nome": "MILITAR 177",
+"posto": "3º SGT BM",
+"secao": "7ª SB",
+"jornada": "",
+"equipe": "",
+"antig": "",
+"ordem": 177
+},
+{
+"mat": "M178",
+"nome": "MILITAR 178",
+"posto": "3º SGT BM",
+"secao": "7ª SB",
+"jornada": "",
+"equipe": "",
+"antig": "",
+"ordem": 178
+},
+{
+"mat": "M179",
+"nome": "MILITAR 179",
+"posto": "CB BM",
+"secao": "7ª SB",
+"jornada": "",
+"equipe": "",
+"antig": "",
+"ordem": 179
+},
+{
+"mat": "M180",
+"nome": "MILITAR 180",
+"posto": "3º SGT BM",
+"secao": "6ª SB",
+"jornada": "",
+"equipe": "",
+"antig": "",
+"ordem": 180
+},
+{
+"mat": "M181",
+"nome": "MILITAR 181",
+"posto": "SD BM",
+"secao": "6ª SB",
+"jornada": "",
+"equipe": "",
+"antig": "",
+"ordem": 181
+},
+{
+"mat": "M182",
+"nome": "MILITAR 182",
+"posto": "SD BM",
+"secao": "6ª SB",
+"jornada": "",
+"equipe": "",
+"antig": "",
+"ordem": 182
+},
+{
+"mat": "M183",
+"nome": "MILITAR 183",
+"posto": "SD BM",
+"secao": "6ª SB",
+"jornada": "",
+"equipe": "",
+"antig": "",
+"ordem": 183
+},
+{
+"mat": "M184",
+"nome": "MILITAR 184",
+"posto": "SD BM",
+"secao": "4ª SB",
+"jornada": "",
+"equipe": "",
+"antig": "",
+"ordem": 184
+},
+{
+"mat": "M185",
+"nome": "MILITAR 185",
+"posto": "SD BM",
+"secao": "6ª SB",
+"jornada": "",
+"equipe": "",
+"antig": "",
+"ordem": 185
+},
+{
+"mat": "M186",
+"nome": "MILITAR 186",
+"posto": "SD BM",
+"secao": "6ª SB",
+"jornada": "",
+"equipe": "",
+"antig": "",
+"ordem": 186
+},
+{
+"mat": "M187",
+"nome": "MILITAR 187",
+"posto": "SD BM",
+"secao": "4ª SB",
+"jornada": "",
+"equipe": "",
+"antig": "",
+"ordem": 187
+},
+{
+"mat": "M188",
+"nome": "MILITAR 188",
+"posto": "SD BM",
+"secao": "5ª SB",
+"jornada": "",
+"equipe": "",
+"antig": "",
+"ordem": 188
+},
+{
+"mat": "M189",
+"nome": "MILITAR 189",
+"posto": "SD BM",
+"secao": "6ª SB",
+"jornada": "PRONTO",
+"equipe": "DELTA",
+"antig": "",
+"ordem": 189
+},
+{
+"mat": "M190",
+"nome": "MILITAR 190",
+"posto": "SD BM",
+"secao": "6ª SB",
+"jornada": "",
+"equipe": "",
+"antig": "",
+"ordem": 190
+},
+{
+"mat": "M191",
+"nome": "MILITAR 191",
+"posto": "SD BM",
+"secao": "5ª SB",
+"jornada": "",
+"equipe": "",
+"antig": "",
+"ordem": 191
+},
+{
+"mat": "M192",
+"nome": "MILITAR 192",
+"posto": "SD BM",
+"secao": "1ª SB",
+"jornada": "",
+"equipe": "",
+"antig": "",
+"ordem": 192
+},
+{
+"mat": "M193",
+"nome": "MILITAR 193",
+"posto": "SD BM",
+"secao": "5ª SB",
+"jornada": "",
+"equipe": "",
+"antig": "",
+"ordem": 193
+},
+{
+"mat": "M194",
+"nome": "MILITAR 194",
+"posto": "3º SGT BM",
+"secao": "1ª SB",
+"jornada": "PRONTO",
+"equipe": "ALFA",
+"antig": "",
+"ordem": 194
+},
+{
+"mat": "M195",
+"nome": "MILITAR 195",
+"posto": "",
+"secao": "1ª SB",
+"jornada": "PRONTO",
+"equipe": "BRAVO",
+"antig": "",
+"ordem": 195
+},
+{
+"mat": "M196",
+"nome": "MILITAR 196",
+"posto": "",
+"secao": "",
+"jornada": "",
+"equipe": "",
+"antig": "",
+"ordem": 196
+},
+{
+"mat": "M197",
+"nome": "MILITAR 197",
+"posto": "",
+"secao": "",
+"jornada": "",
+"equipe": "",
+"antig": "",
+"ordem": 197
+},
+{
+"mat": "M198",
+"nome": "MILITAR 198",
+"posto": "3º SGT BM",
+"secao": "1ª SB",
+"jornada": "PRONTO",
+"equipe": "CHARLIE",
+"antig": "",
+"ordem": 198
+},
+{
+"mat": "M199",
+"nome": "MILITAR 199",
+"posto": "ST BM",
+"secao": "2ª SB",
+"jornada": "",
+"equipe": "",
+"antig": "",
+"ordem": 199
+},
+{
+"mat": "M200",
+"nome": "MILITAR 200",
+"posto": "SD BM",
+"secao": "1ª SB",
+"jornada": "PRONTO",
+"equipe": "ALFA",
+"antig": "",
+"ordem": 200
+},
+{
+"mat": "M201",
+"nome": "MILITAR 201",
+"posto": "",
+"secao": "",
+"jornada": "ADM",
+"equipe": "",
+"antig": "",
+"ordem": 201
+},
+{
+"mat": "M202",
+"nome": "MILITAR 202",
+"posto": "",
+"secao": "",
+"jornada": "ADM",
+"equipe": "",
+"antig": "",
+"ordem": 202
+},
+{
+"mat": "M203",
+"nome": "MILITAR 203",
+"posto": "1º SGT BM",
+"secao": "",
+"jornada": "",
+"equipe": "",
+"antig": "",
+"ordem": 203
+},
+{
+"mat": "M204",
+"nome": "MILITAR 204",
+"posto": "3º SGT BM",
+"secao": "",
+"jornada": "",
+"equipe": "",
+"antig": "",
+"ordem": 204
+},
+{
+"mat": "M205",
+"nome": "MILITAR 205",
+"posto": "CB BM",
+"secao": "",
+"jornada": "",
+"equipe": "",
+"antig": "",
+"ordem": 205
+},
+{
+"mat": "M206",
+"nome": "MILITAR 206",
+"posto": "",
+"secao": "",
+"jornada": "",
+"equipe": "",
+"antig": "",
+"ordem": 206
+},
+{
+"mat": "M207",
+"nome": "MILITAR 207",
+"posto": "",
+"secao": "",
+"jornada": "",
+"equipe": "",
+"antig": "",
+"ordem": 207
+}
+]
