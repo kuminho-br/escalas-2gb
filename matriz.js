@@ -427,20 +427,24 @@ function renderizarMatriz_(aba, modelo, par, rot, tz) {
   aba.getRange(r0 + nl - 1, 1, 1, nCols).setBorder(null, null, true, null, null, null, '#000000', SpreadsheetApp.BorderStyle.SOLID_MEDIUM);
 
   // cor por serviço
-  // a célula é "Serviço HH–HH": a cor vem do começo do texto (o nome do serviço seguido de espaço e dígito ou parêntese)
-  // P17 item 1 (RN-02): uma regra para CADA serviço da aba TURNOS (antes, só os que estavam numa lista
-  // fixa: o Saldo, por exemplo, ficava branco nos dias úteis e cinza no fim de semana). O nome casa sem
-  // diferença de maiúscula/minúscula, e a cor é a mesma da legenda e da grade de guarnição.
+  // a célula é "Serviço HH–HH" (ou "Serviço (T)"): a cor vem do começo do texto, o nome do serviço + espaço.
+  // P17 item 1 (RN-02): uma regra para CADA serviço da aba TURNOS, com a mesma cor da legenda e da grade
+  // de guarnição.
+  // P17 correção: a regra é "o texto começa com", nativa do Sheets, e não mais uma fórmula REGEXMATCH.
+  // A fórmula era montada com "," e a planilha está em português, onde o separador é ";": o Sheets
+  // gravava a fórmula como texto e nenhuma célula era pintada (já acontecia antes da P17). A condição
+  // nativa não depende do idioma da planilha e já ignora maiúscula/minúscula. Nome mais longo primeiro,
+  // para "PE Seguro" não ser pego por um serviço que se chamasse só "PE" (vale a primeira regra que casa).
   const grade = aba.getRange(r0, c0, nl, nd);
-  const topo = aba.getRange(r0, c0).getA1Notation();
   const cores = coresDosServicos_(Object.keys(rot.porRotulo).map(function (k) { return rot.porRotulo[k].servico; }));
-  aba.setConditionalFormatRules(Object.keys(cores).map(function (nome) {
-    const padrao = '(?i)^' + nome.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/"/g, '""') + ' [0-9(]';
-    return SpreadsheetApp.newConditionalFormatRule()
-      .whenFormulaSatisfied('=REGEXMATCH(' + topo + ',"' + padrao + '")')
-      .setBackground(cores[nome][0]).setFontColor(cores[nome][1])
-      .setRanges([grade]).build();
-  }));
+  aba.setConditionalFormatRules(Object.keys(cores)
+    .sort(function (a, b) { return b.length - a.length || (a < b ? -1 : 1); })
+    .map(function (nome) {
+      return SpreadsheetApp.newConditionalFormatRule()
+        .whenTextStartsWith(nome + ' ')
+        .setBackground(cores[nome][0]).setFontColor(cores[nome][1])
+        .setRanges([grade]).build();
+    }));
 
   // P17 item 2 (RN-02): cada coluna na largura do próprio conteúdo, para nada ficar cortado.
   // Fica por último: depende da fonte, do negrito e dos valores já aplicados.

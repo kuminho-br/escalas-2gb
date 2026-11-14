@@ -99,12 +99,17 @@ console.log('== P17 item 1 (RN-02) cada serviço tem uma cor só, e os do Ordin�
   ver('nome vazio não tem cor', L.corDoServico_('') === null);
 
   const aba = desenhar();
-  const servicosComRegra = aba.regras.map(r => (r.feitos.find(f => f[0] === 'whenFormulaSatisfied') || [])[1]);
+  const prefixo = r => (r.feitos.find(f => f[0] === 'whenTextStartsWith') || [])[1];
+  const prefixos = aba.regras.map(prefixo);
   ver('a grade tem uma regra de cor para CADA serviço da aba TURNOS (inclusive Saldo e Mergulho)',
-    aba.regras.length === 9 && ['Saldo', 'Mergulho', 'Pronto'].every(s => servicosComRegra.some(f => f.indexOf('^' + s + ' ') >= 0)), servicosComRegra);
-  ver('a regra casa sem diferença de maiúscula/minúscula', servicosComRegra.every(f => f.indexOf('(?i)^') >= 0), servicosComRegra[0]);
-  const regraSaldo = aba.regras.find(r => r.feitos.some(f => f[0] === 'whenFormulaSatisfied' && f[1].indexOf('^Saldo ') >= 0));
-  ver('a cor da regra é a de corDoServico_', regraSaldo.feitos.some(f => f[0] === 'setBackground' && f[1] === L.corDoServico_('Saldo')[0]));
+    aba.regras.length === 9 && ['Saldo ', 'Mergulho ', 'Pronto ', 'PE Seguro '].every(p => prefixos.indexOf(p) >= 0), prefixos);
+  ver('correção: nenhuma regra usa fórmula (a fórmula com "," virava texto na planilha em português)',
+    aba.regras.every(r => !r.feitos.some(f => f[0] === 'whenFormulaSatisfied')), aba.regras.map(r => r.feitos.map(f => f[0])));
+  ver('o nome mais longo vem primeiro (vale a primeira regra que casa)', prefixos.every((p, i) => i === 0 || prefixos[i - 1].length >= p.length), prefixos);
+  const regraSaldo = aba.regras.find(r => prefixo(r) === 'Saldo ');
+  ver('a cor da regra é a de corDoServico_', regraSaldo.feitos.some(f => f[0] === 'setBackground' && f[1] === L.corDoServico_('Saldo')[0]) &&
+    regraSaldo.feitos.some(f => f[0] === 'setFontColor' && f[1] === L.corDoServico_('Saldo')[1]));
+  ver('a regra vale para a grade inteira de dias', regraSaldo.feitos.some(f => f[0] === 'setRanges' && f[1][0].getA1Notation() === 'D5:AG' + (4 + modelo().linhas.length)));
 
   const leg = L.montarLegenda_(hor, L.coresDosServicos_(['Pronto', 'Mergulho']));
   ver('a legenda usa a mesma cor', leg.find(g => g.servico === 'Pronto').fundo === L.corDoServico_('Pronto')[0] && leg.find(g => g.servico === 'Mergulho').fundo === L.corDoServico_('Mergulho')[0]);
