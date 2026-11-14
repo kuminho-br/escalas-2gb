@@ -185,8 +185,10 @@ function cotasCalcular_(mes, secao, tz) {
       return;
     }
     const esc = mod.escalas[chave];
-    if (esc.servicos.length !== 1) { semCadastro(nome, '"' + esc.nome + '" tem mais de um serviço em ESCALAS; use uma escala por serviço. Ignorada.'); return; }
-    const servico = esc.servicos[0];
+    // P18 item 3 (B63; RN-100): com N serviços na escala, a cota diz qual deles paga (servicoDaOperacao_)
+    const sv = servicoDaOperacao_(esc, cotas.linhas.filter(function (c) { return normalizar_(c.operacao) === normalizar_(nome); }));
+    if (sv.problema) { semCadastro(nome, sv.problema); return; }
+    const servico = sv.servico;
     let dias = diasMes;
     if (esc.dias === 'ESCALADOS') {            // só os dias em que a tabela já tem esse serviço
       const m = Object.create(null);

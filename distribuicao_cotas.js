@@ -28,6 +28,23 @@ const COTAS_MOTIVOS_ = {
 };
 
 /**
+ * P18 item 3 (B63; RN-100): o serviço que as alocações de uma operação recebem. Uma escala pode agrupar N
+ * serviços; com um só, é ele. Com vários, é o da coluna SERVIÇO da aba COTAS, que tem de ser um dos da escala
+ * e o mesmo em todas as linhas da operação.
+ * esc: { nome, servicos: [] };  linhasCota: [{ servico }] (só as dessa operação).
+ * Retorna { servico } ou { problema: texto pronto para o painel }.
+ */
+function servicoDaOperacao_(esc, linhasCota) {
+  if (esc.servicos.length === 1) return { servico: esc.servicos[0] };
+  const achados = (linhasCota || []).map(function (c) {
+    return esc.servicos.filter(function (s) { return normalizar_(s) === normalizar_(c.servico); })[0] || '';
+  });
+  const distintos = achados.filter(function (s, i) { return s && achados.indexOf(s) === i; });
+  if (distintos.length === 1 && achados.indexOf('') < 0) return { servico: distintos[0] };
+  return { problema: '"' + esc.nome + '" agrupa ' + esc.servicos.length + ' serviços (' + esc.servicos.join(', ') + '). Escreva na coluna SERVIÇO da aba COTAS qual deles a cota paga (um só, o mesmo em todas as linhas da operação).' };
+}
+
+/**
  * RN-82: quanto de cota uma vaga preenchida consome. Está "A esclarecer": hoje é 1 por militar por turno.
  * Para mudar a regra, mude só esta função.
  */

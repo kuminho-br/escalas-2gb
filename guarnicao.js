@@ -177,39 +177,66 @@ function montarModelosGuarnicao_(linhasEscalas, linhasModelo, turnosPorServico, 
   Object.keys(turnosPorServico).forEach(function (s) { servicoPorNome[normalizar_(s)] = s; });
   const t = function (v) { return String(v == null ? '' : v).trim(); };
 
+  // P18 item 3 (B63; RN-09, RN-100, RN-13, RN-83): uma escala agrupa N serviços, que disputam as mesmas
+  // guarnições. O nome da escala NÃO precisa ser nome de serviço ("Ordinário" = Pronto, JES e Saldo).
+  // Os serviços vêm da coluna SERVIÇOS, de duas formas que se somam:
+  //   - numa linha só, separados por vírgula ou ponto e vírgula ("Pronto, JES, Saldo");
+  //   - em várias linhas com a mesma ESCALA, uma por serviço (como a sandbox cadastrou).
+  // A ordem dos serviços é a do cadastro; o 1º é o que uma alocação NOVA recebe (grade de guarnição com
+  // MILITARES = TODOS), como na ordem da RN-13 (Pronto, depois JES, depois Saldo).
+  // TÍTULO, MILITARES e DIAS (publicação, RN-100) valem da 1ª linha que os preenche; outro valor numa
+  // linha seguinte é avisado e não vale.
+  const grupos = [], porChave = Object.create(null);
   linhasEscalas.forEach(function (l) {
     const nome = t(l.escala);
     if (!nome) return;
-    if (escalas[nome]) { avisos.push('ESCALAS: "' + nome + '" aparece mais de uma vez; vale a primeira.'); return; }
+    const k = normalizar_(nome);
+    let g = porChave[k];
+    if (!g) { g = porChave[k] = { nome: nome, pedidos: [], titulo: '', militares: '', dias: '', linhas: 0, semServicos: 0 }; grupos.push(g); }
+    g.linhas++;
+    const pedidos = t(l.servicos).split(/[,;]/).map(t).filter(Boolean);
+    if (pedidos.length === 0) g.semServicos++;
+    pedidos.forEach(function (p) { if (g.pedidos.indexOf(p) < 0) g.pedidos.push(p); });
+    [['titulo', 'TÍTULO'], ['militares', 'MILITARES'], ['dias', 'DIAS']].forEach(function (par) {
+      const v = t(l[par[0]]);
+      if (!v) return;
+      if (!g[par[0]]) g[par[0]] = v;
+      else if (normalizar_(g[par[0]]) !== normalizar_(v)) avisos.push('ESCALAS: "' + nome + '" tem ' + par[1] + ' diferente em linhas diferentes ("' + g[par[0]] + '" e "' + v + '"); vale o primeiro.');
+    });
+  });
 
-    let pedidos = t(l.servicos).split(/[,;]/).map(t).filter(Boolean);
-    if (pedidos.length === 0) pedidos = [nome];
+  grupos.forEach(function (g) {
+    const nome = g.nome;
+    // sem nenhum serviço escrito, vale o comportamento antigo: o serviço com o nome da escala
+    const pedidos = g.pedidos.length ? g.pedidos : [nome];
     const servicos = [], faltando = [];
     pedidos.forEach(function (p) {
       const c = servicoPorNome[normalizar_(p)];
       if (!c) faltando.push(p); else if (servicos.indexOf(c) < 0) servicos.push(c);
     });
     if (faltando.length) {
-      avisos.push('ESCALAS: "' + nome + '" ignorada: o serviço ' + faltando.map(function (x) { return '"' + x + '"'; }).join(', ') + ' não existe na aba TURNOS.');
+      const soONome = !g.pedidos.length;
+      avisos.push('ESCALAS: "' + nome + '" ignorada: ' + (soONome
+        ? 'a coluna SERVIÇOS está vazia e não existe serviço "' + nome + '" na aba TURNOS. Escreva em SERVIÇOS os serviços que compõem a escala (ex.: "Pronto, JES, Saldo"), numa linha só ou numa linha por serviço.'
+        : 'o serviço ' + faltando.map(function (x) { return '"' + x + '"'; }).join(', ') + ' não existe na aba TURNOS.'));
       return;
     }
+    if (g.semServicos && g.pedidos.length) avisos.push('ESCALAS: "' + nome + '" tem ' + g.semServicos + ' linha(s) com SERVIÇOS vazio; valem os serviços das outras linhas (' + servicos.join(', ') + ').');
 
-    let militares = normalizar_(l.militares) === 'TODOS' ? 'TODOS' : 'ESCALADOS';
-    if (t(l.militares) !== '' && ['TODOS', 'ESCALADOS'].indexOf(normalizar_(l.militares)) < 0) {
-      avisos.push('ESCALAS: "' + nome + '": MILITARES deve ser TODOS ou ESCALADOS (achei "' + t(l.militares) + '"); usando ESCALADOS.');
+    const militares = normalizar_(g.militares) === 'TODOS' ? 'TODOS' : 'ESCALADOS';
+    if (g.militares !== '' && ['TODOS', 'ESCALADOS'].indexOf(normalizar_(g.militares)) < 0) {
+      avisos.push('ESCALAS: "' + nome + '": MILITARES deve ser TODOS ou ESCALADOS (achei "' + g.militares + '"); usando ESCALADOS.');
     }
-    if (militares === 'TODOS' && servicos.length > 1) {
-      avisos.push('ESCALAS: "' + nome + '": MILITARES = TODOS só vale com um único serviço; usando ESCALADOS.');
-      militares = 'ESCALADOS';
-    }
-    const dias = normalizar_(l.dias).indexOf('SO') === 0 ? 'ESCALADOS' : 'TODOS';
+    // P18 item 3: MILITARES = TODOS vale também com N serviços (antes virava ESCALADOS): quem não está escalado
+    // e é posto na grade ganha uma alocação no 1º serviço da escala.
+    const dias = normalizar_(g.dias).indexOf('SO') === 0 ? 'ESCALADOS' : 'TODOS';
 
     const turnos = [];
     servicos.forEach(function (s) { turnosPorServico[s].forEach(function (x) { if (turnos.indexOf(x) < 0) turnos.push(x); }); });
     const slots = Object.create(null);
     turnos.forEach(function (x) { slots[x] = []; });
 
-    escalas[nome] = { nome: nome, servicos: servicos, titulo: t(l.titulo) || ('ESCALA ' + nome.toUpperCase()), militares: militares, dias: dias, turnos: turnos, slots: slots, usaUnidade: false };
+    escalas[nome] = { nome: nome, servicos: servicos, titulo: g.titulo || ('ESCALA ' + nome.toUpperCase()), militares: militares, dias: dias, turnos: turnos, slots: slots, usaUnidade: false };
     ordem.push(nome);
   });
 
