@@ -122,5 +122,41 @@ console.log('== P17 item 2 (RN-02) a largura de cada coluna vem do conteúdo');
   ver('nenhuma coluna fica com largura fixa antiga (92 px, 200 px)', Object.values(aba.larguras).every(w => w !== 92 && w !== 200));
 }
 
+/** Os itens do menu "Escalas - 2º GB", chamando o onOpen de verdade com um menu de mentira. */
+function itensDoMenu() {
+  const itens = [];
+  const menu = { addItem(t, f) { itens.push([t, f]); return menu; }, addSeparator() { return menu; }, addToUi() {} };
+  const fontes = ['nucleo.js', 'choques.js', 'regras_escala.js', 'sincronia.js', 'matriz.js'].map(ler).join('\n');
+  new Function('SpreadsheetApp', fontes + '\nreturn onOpen;')({ getUi: () => ({ createMenu: () => menu }) })();
+  return itens;
+}
+/** O título que cada painel põe na barra lateral (setTitle) e o <h1> do HTML. */
+function tituloDoPainel(arquivoJs, funcao, html) {
+  let titulo = '';
+  const out = { setTitle(t) { titulo = t; return out; }, setWidth() { return out; } };
+  const fontes = ['nucleo.js', 'choques.js', 'regras_escala.js', 'sincronia.js', 'matriz.js', arquivoJs].map(ler).join('\n');
+  try {
+    new Function('SpreadsheetApp', 'HtmlService', fontes + '\nreturn ' + funcao + ';')(
+      { getUi: () => ({ showSidebar() {} }), getActive: () => ({ getSheets: () => [], getSheetByName: () => null }) },
+      { createHtmlOutputFromFile: () => out, createTemplateFromFile: () => ({ evaluate: () => out }) })();
+  } catch (e) { /* o painel pode ler a planilha depois de pôr o título */ }
+  const h1 = (ler(html).match(/<h1>([^<]*)<\/h1>/) || [])[1];
+  return { titulo, h1 };
+}
+
+console.log('== P17 item 3 o painel "Mostrar Escala" passa a ser "Mostrar Grade Geral"');
+{
+  const itens = itensDoMenu();
+  ver('o menu tem "Mostrar Grade Geral", ligado ao mesmo painel', itens.some(i => i[0] === 'Mostrar Grade Geral' && i[1] === 'abrirPainelMatriz'), itens);
+  ver('e não tem mais "Mostrar Escala"', !itens.some(i => i[0] === 'Mostrar Escala'));
+  const p = tituloDoPainel('sincronia_painel.js', 'abrirPainelMatriz', 'sidebar_matriz.html');
+  ver('a barra lateral e o cabeçalho do painel dizem "Mostrar Grade Geral"', p.titulo === 'Mostrar Grade Geral' && p.h1 === 'Mostrar Grade Geral', p);
+  const html = ler('sidebar_matriz.html');
+  ver('o botão de carregar fala da grade geral', /Carregar grade geral<\/button>/.test(html) && !/Carregar escala<\/button>/.test(html));
+  const todos = fs.readdirSync(dir).filter(f => /\.(js|html)$/.test(f)).map(f => [f, ler(f)]);
+  const restos = todos.filter(([f, s]) => s.replace(/antes "Mostrar Escala"/g, '').indexOf('Mostrar Escala') >= 0).map(x => x[0]);
+  ver('nenhum texto do sistema manda mais o usuário ao "Mostrar Escala"', restos.length === 0, restos);
+}
+
 console.log(`\n${ok} ok, ${falhas} falha(s)`);
 process.exit(falhas ? 1 : 0);

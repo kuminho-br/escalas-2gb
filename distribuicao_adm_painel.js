@@ -9,7 +9,7 @@
  *                 dia útil; isso não é gravado, só usado para checar choques (JES, diárias etc.).
  *   SIM         : o Adm também cumpre a carga mensal. Os turnos do serviço normal são repartidos pelos dias úteis
  *                 (sem fins de semana e feriados da aba FERIADOS) e gravados na tabela como pré-escala;
- *                 o escalante ajusta depois em Mostrar Escala. Quantos turnos cada militar recebe vem da carga
+ *                 o escalante ajusta depois em Mostrar Grade Geral. Quantos turnos cada militar recebe vem da carga
  *                 mensal, dos saldos e do turno do Adm, lidos das Configurações e da aba TURNOS.
  */
 

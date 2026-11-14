@@ -46,14 +46,14 @@
 </style>
 </head>
 <body>
-  <h1>Mostrar Escala</h1>
-  <p class="sub">Edite as células na planilha e salve aqui.</p>
+  <h1>Mostrar Grade Geral</h1>
+  <p class="sub">A escala do mês de todos os militares, na aba GRADE GERAL. Edite as células lá e salve aqui.</p>
 
   <label for="mes">Mês</label>
   <input id="mes" type="month" placeholder="aaaa-mm">
   <label for="secao">Seção</label>
   <input id="secao" type="text">
-  <button id="btnMontar" class="secundario">Carregar escala</button>
+  <button id="btnMontar" class="secundario">Carregar grade geral</button>
   <button id="btnLinhas" class="secundario" hidden>Ocultar linhas vazias</button>
   <div id="notaLinhas" class="nota" hidden></div>
 
@@ -70,12 +70,12 @@
     <button id="btnCancelar" class="secundario" hidden>Cancelar</button>
     <button id="btnAtualizar" class="secundario">Atualizar</button>
     <div id="notaSalvar" class="nota" hidden></div>
-    <div class="nota">Ao trocar o serviço ou o horário de uma célula, a função dessa alocação é apagada; mover o mesmo serviço de uma linha para outra não muda nada. Só é gravado o que você mudou desde que a escala foi carregada.</div>
+    <div class="nota">Ao trocar o serviço ou o horário de uma célula, a função dessa alocação é apagada; mover o mesmo serviço de uma linha para outra não muda nada. Só é gravado o que você mudou desde que a grade geral foi carregada.</div>
   </div>
 
   <div id="cartaoConflitos" class="avisoBox" hidden>
     <b>Conflitos (não gravados)</b>
-    <div class="nota">A tabela foi alterada por outra pessoa nessa mesma célula. Carregue a escala de novo para ver o valor atual.</div>
+    <div class="nota">A tabela foi alterada por outra pessoa nessa mesma célula. Carregue a grade geral de novo para ver o valor atual.</div>
     <ul id="listaConflitos" class="itens"></ul>
   </div>
 
@@ -274,7 +274,7 @@
         var g = r.gravadas;
         // B35: a tela diz o que REALMENTE foi gravado; "nada gravado" nunca mais passa por sucesso.
         if (r.desatualizado) {
-          erroNaTela('Nada foi gravado: a lista estava desatualizada (a escala foi recarregada ou outra pessoa já aplicou essas mudanças). A lista foi recarregada abaixo; confira e salve de novo.');
+          erroNaTela('Nada foi gravado: a lista estava desatualizada (a grade geral foi recarregada ou outra pessoa já aplicou essas mudanças). A lista foi recarregada abaixo; confira e salve de novo.');
           atualizar(true);
           return;
         }
@@ -364,7 +364,7 @@
       el('mes').value = d.mesSugerido; el('secao').value = d.secao;
       var a = d.aberturaAutomatica;
       el('notaAuto').textContent = a && a.ativa
-        ? 'Este painel abre sozinho quando você altera a escala e há algo a salvar.'
+        ? 'Este painel abre sozinho quando você altera a grade geral e há algo a salvar.'
         : 'Abertura automática ao editar não está ativa' + (a && a.erro ? ' (' + a.erro + ')' : '') + '. Lembre-se de abrir este painel e salvar depois de editar.';
       mostrar('notaAuto', true);
       pulso();

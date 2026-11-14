@@ -3,7 +3,7 @@
  * (lê as abas, desenha a escala do mês, confere).
  * A lógica de conversão está em nucleo.js.
  *
- * Uso:  menu "Escalas - 2º GB" > "Mostrar Escala" abre o painel, que carrega a escala
+ * Uso:  menu "Escalas - 2º GB" > "Mostrar Grade Geral" (P17 item 3; antes "Mostrar Escala") abre o painel, que carrega a escala
  *       (mês em B1, seção em B2 da aba GRADE GERAL) e salva as edições na tabela.
  *       menu "Escalas - 2º GB" > "Conferir Integridade dos Dados" abre o painel de integridade
  *       (choques de horário, catálogo de turnos e escala carregada × tabela; só lê e relata)
@@ -35,7 +35,7 @@ const CONFIG = {
 function onOpen() {
   SpreadsheetApp.getUi().createMenu('Escalas - 2º GB')
     .addItem('Pré-escala', 'abrirPainel')
-    .addItem('Mostrar Escala', 'abrirPainelMatriz')
+    .addItem('Mostrar Grade Geral', 'abrirPainelMatriz')            // P17 item 3: antes "Mostrar Escala"
     .addItem('Escalas de Serviço', 'abrirPainelGuarnicao')
     // B36 (RN-94): o menu do Apps Script é montado aqui e não dá para habilitar conforme a célula
     // selecionada; o item valida a célula ativa no clique (ver alocar_funcao.js).
@@ -274,7 +274,7 @@ function lerParametros_(aba, ui, tz) {
   if (ehData_(v)) mes = Utilities.formatDate(v, tz, 'yyyy-MM');
   else if (/^\d{4}-\d{2}$/.test(texto_(v))) mes = texto_(v);
   if (!mes) {
-    const r = ui.prompt('Carregar escala', 'Mês da escala (aaaa-mm), por exemplo 2026-10:', ui.ButtonSet.OK_CANCEL);
+    const r = ui.prompt('Carregar grade geral', 'Mês da grade geral (aaaa-mm), por exemplo 2026-10:', ui.ButtonSet.OK_CANCEL);
     if (r.getSelectedButton() !== ui.Button.OK) return null;
     mes = r.getResponseText().trim();
     if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(mes)) throw new Error('Mês inválido: "' + mes + '". Use o formato aaaa-mm.');
@@ -467,9 +467,9 @@ function descreverChave_(chave, rot, nomes) {
 function textoDiferencas_(d, rot) {
   const c = d.cmp, nomes = nomesPorMatricula_();
   const linhas = [];
-  if (c.soNaTabela.length) linhas.push('Na tabela e não na escala carregada (' + c.soNaTabela.length + '):');
+  if (c.soNaTabela.length) linhas.push('Na tabela e não na grade geral carregada (' + c.soNaTabela.length + '):');
   c.soNaTabela.slice(0, 6).forEach(function (x) { linhas.push('   • ' + descreverChave_(x.chave, rot, nomes)); });
-  if (c.soNaEscala.length) linhas.push('Na escala carregada e não na tabela (' + c.soNaEscala.length + '):');
+  if (c.soNaEscala.length) linhas.push('Na grade geral carregada e não na tabela (' + c.soNaEscala.length + '):');
   c.soNaEscala.slice(0, 6).forEach(function (x) { linhas.push('   • ' + descreverChave_(x.chave, rot, nomes)); });
   if (d.orfas) linhas.push('Células preenchidas sem matrícula ou data válidas, ou com texto que não se entende: ' + d.orfas);
   return linhas.join('\n');
@@ -518,7 +518,7 @@ function lerRotulos_(catalogoPares) {
 
 /**
  * B48 (RN-94, RN-81): regrava as notas de função de toda a grade geral a partir da tabela.
- * Chamada ao carregar a escala, depois de salvar no painel Mostrar Escala e depois de "Alocar em
+ * Chamada ao carregar a escala, depois de salvar no painel Mostrar Grade Geral e depois de "Alocar em
  * Função". rot e alocs são opcionais (relidos quando faltam). Não mexe em valores nem validações.
  */
 function atualizarNotasDeFuncao_(aba, tz, rot, alocs) {
@@ -551,7 +551,7 @@ function montarMatriz() {
     // não descarta, sem avisar, edições suas que ainda não foram salvas na tabela
     if (layoutAntigo_(aba)) {
       const r = ui.alert('Atenção',
-        'A escala carregada é de uma versão anterior do sistema e precisa ser carregada de novo. ' +
+        'A grade geral carregada é de uma versão anterior do sistema e precisa ser carregada de novo. ' +
         'Se ela tiver alterações que não foram salvas na tabela, elas serão perdidas. Continuar?',
         ui.ButtonSet.YES_NO);
       if (r !== ui.Button.YES) return;
@@ -559,8 +559,8 @@ function montarMatriz() {
       const antes = edicoesNaoSalvas_(aba, lidas.alocs, tz, rot);
       if (antes && (antes.cmp.total > 0 || antes.orfas > 0)) {
         const r = ui.alert('Atenção',
-          'A escala carregada tem alterações que ainda não foram salvas na tabela:\n\n' + textoEdicoes_(antes, rot) +
-          '\n\nCarregar a escala de novo descarta essas alterações (para guardá-las, escolha Não e use "Salvar alterações" no painel). Continuar?',
+          'A grade geral carregada tem alterações que ainda não foram salvas na tabela:\n\n' + textoEdicoes_(antes, rot) +
+          '\n\nCarregar a grade geral de novo descarta essas alterações (para guardá-las, escolha Não e use "Salvar alterações" no painel). Continuar?',
           ui.ButtonSet.YES_NO);
         if (r !== ui.Button.YES) return;
       }
@@ -570,7 +570,7 @@ function montarMatriz() {
     const modelo = montarModeloMatriz_(lidas.alocs, militares,
       { mes: par.mes, secao: par.secao, linhas: linhasPorMilitar, rotulos: rot, horarios: lr.hor.porChave, catalogo: catalogo.pares });
     if (modelo.linhas.length === 0) throw new Error('Nenhum militar da seção "' + par.secao + '" e nenhuma alocação em ' + par.mes + '.');
-    if (!rot.lista.length) modelo.avisos.push('A aba TURNOS não tem nenhum turno com horário legível: a escala fica sem lista suspensa.');
+    if (!rot.lista.length) modelo.avisos.push('A aba TURNOS não tem nenhum turno com horário legível: a grade geral fica sem lista suspensa.');
     lr.hor.avisos.forEach(function (t) { modelo.avisos.push(t); });
 
     renderizarMatriz_(aba, modelo, par, rot, tz);
@@ -592,7 +592,7 @@ function montarMatriz() {
     if (avisos.length) msg += '\n\nAvisos:\n- ' + avisos.slice(0, 10).join('\n- ');
     ui.alert(tituloEscala_(par.mes, par.secao), msg, ui.ButtonSet.OK);
   } catch (e) {
-    ui.alert('Não foi possível carregar a escala', e.message, ui.ButtonSet.OK);
+    ui.alert('Não foi possível carregar a grade geral', e.message, ui.ButtonSet.OK);
   }
 }
 
@@ -604,9 +604,9 @@ function conferirMatriz() {
     const aba = abaDaEscala_(ss, false);
     const rot = aba ? lerRotulos_(lerCatalogo_().pares).rot : null;
     const d = aba ? diferencasDaMatrizAtual_(aba, lerAlocacoes_(tz).alocs, tz, rot) : null;
-    if (!d) { ui.alert('Escalas', 'Ainda não há uma escala carregada. Use "Carregar escala" no painel Mostrar Escala.', ui.ButtonSet.OK); return; }
-    ui.alert('Conferência escala carregada × tabela',
-      d.cmp.total === 0 && !d.orfas ? 'A escala carregada e a tabela estão iguais (0 diferenças).' : textoDiferencas_(d, rot),
+    if (!d) { ui.alert('Escalas', 'Ainda não há uma grade geral carregada. Use "Carregar grade geral" no painel Mostrar Grade Geral.', ui.ButtonSet.OK); return; }
+    ui.alert('Conferência grade geral carregada × tabela',
+      d.cmp.total === 0 && !d.orfas ? 'A grade geral carregada e a tabela estão iguais (0 diferenças).' : textoDiferencas_(d, rot),
       ui.ButtonSet.OK);
   } catch (e) {
     ui.alert('Não foi possível conferir', e.message, ui.ButtonSet.OK);

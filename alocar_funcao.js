@@ -61,7 +61,7 @@ function alocarEmFuncaoContexto() {
   const chave = chaveAloc_({ mat: mat, dia: dia, servico: p.servico, turno: p.turno });
   const alocs = lerAlocacoes_(tz).alocs.filter(function (a) { return chaveAloc_(a) === chave; });
   if (!alocs.length) {
-    return nao('Esta célula ainda não está na tabela de alocações. Salve a escala no painel "Mostrar Escala" e tente de novo.');
+    return nao('Esta célula ainda não está na tabela de alocações. Salve a grade geral no painel "Mostrar Grade Geral" e tente de novo.');
   }
 
   // RN-94 / RN-96: as funções vêm do cadastro, uma lista por serviço. B58: das guarnições vinculadas

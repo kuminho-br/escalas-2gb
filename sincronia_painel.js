@@ -1,5 +1,5 @@
 /**
- * PAINEL MOSTRAR ESCALA — camada do Google Sheets da sincronia planilha da escala -> tabela.
+ * PAINEL MOSTRAR GRADE GERAL (antes "Mostrar Escala"; P17 item 3) — camada do Google Sheets da sincronia planilha da escala -> tabela.
  * Depende de nucleo.js, matriz.js, pre_escala.js (painelDados, validarEntrada_), sincronia.js e choques_painel.js.
  * Tela: sidebar_matriz.html (crie como "HTML" com esse nome exato).
  *
@@ -9,13 +9,13 @@
  * militar quando a escala foi carregada: ele não está na grade, continua na tabela e nunca é apagado pelo salvamento.
  */
 
-const MSG_RECARREGAR_ = 'Esta escala foi carregada antes da última atualização do sistema (ou não tem referência salva). Carregue a escala de novo.';
+const MSG_RECARREGAR_ = 'Esta grade geral foi carregada antes da última atualização do sistema (ou não tem referência salva). Carregue a grade geral de novo.';
 
 const ABA_BASE_ = '_BASE_MATRIZ';
 
 function abrirPainelMatriz() {
   migrarAbas_();                                         // B52: abas com nome antigo são renomeadas ao abrir o painel
-  const html = HtmlService.createHtmlOutputFromFile('sidebar_matriz').setTitle('Mostrar Escala');
+  const html = HtmlService.createHtmlOutputFromFile('sidebar_matriz').setTitle('Mostrar Grade Geral');
   SpreadsheetApp.getUi().showSidebar(html);
 }
 
@@ -60,7 +60,7 @@ function analisarSincronia_(tz) {
   const aba = abaDaEscala_(ss, false);
   if (aba && layoutAntigo_(aba)) throw new Error(MSG_RECARREGAR_);
   const m = aba ? lerMatrizAtual_(aba, tz) : null;
-  if (!m) throw new Error('Não há escala carregada. Carregue a escala do mês primeiro.');
+  if (!m) throw new Error('Não há grade geral carregada. Carregue a grade geral do mês primeiro.');
   const todaBase = lerBase_(tz);
   if (!todaBase) throw new Error(MSG_RECARREGAR_);
   const base = todaBase.filter(function (b) { return !b.fora; });
@@ -127,7 +127,7 @@ function resumoParaTela_(a, nomes) {
   if (a.orfas) avisos.push(a.orfas + ' célula(s) preenchida(s) em linha sem matrícula ou data foram ignoradas.');
   if (a.repetidas) avisos.push(a.repetidas + ' célula(s) repetem um serviço já lançado para o mesmo militar e dia; só a primeira vale.');
   if (a.jesSemRegra) avisos.push('Há JES a gravar, mas a aba MILITARES não tem a coluna VOLUNTÁRIO JES: a regra RN-46 não foi aplicada.');
-  if (a.fora && a.fora.length) avisos.push(a.fora.length + ' serviço(s) ficaram fora da grade quando a escala foi carregada (poucas linhas por militar). Continuam na tabela e não serão apagados.');
+  if (a.fora && a.fora.length) avisos.push(a.fora.length + ' serviço(s) ficaram fora da grade quando ela foi carregada (poucas linhas por militar). Continuam na tabela e não serão apagados.');
   return {
     resumo: r.resumo,
     aplicar: cortar(aplicar),
@@ -264,7 +264,7 @@ function painelLinhasEstado() {
 /** Alterna: se as linhas vazias estão ocultas, mostra todas as linhas da grade; senão oculta as extras vazias. */
 function painelLinhasAlternar() {
   const x = linhasExtrasVaziasDaEscala_();
-  if (!x.m) throw new Error('Não há escala carregada. Carregue a escala do mês primeiro.');
+  if (!x.m) throw new Error('Não há grade geral carregada. Carregue a grade geral do mês primeiro.');
   const ocultas = x.linhas.length > 0 && x.aba.isRowHiddenByUser(x.linhas[0]);
   if (ocultas) {
     x.aba.showRows(CONFIG.PRIMEIRA_LINHA, x.m.celulas.length);
