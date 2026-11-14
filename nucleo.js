@@ -19,6 +19,50 @@
 
 const ORDEM_GRUPOS_ = ['ALFA', 'BRAVO', 'CHARLIE', 'DELTA', 'ADM', 'SEM EQUIPE', 'OUTRAS SEÇÕES', 'NÃO CADASTRADOS'];
 
+/**
+ * P17 item 1 (RN-02): a cor de cada serviço, [fundo, texto], pela chave normalizada do nome
+ * (normalizar_: sem acento, caixa ou espaço). A mesma cor vale na grade geral, na legenda e na grade
+ * de guarnição. Os serviços do Ordinário (Pronto, Saldo, JES) ficam em tons de verde parecidos
+ * entre si; nenhum outro serviço usa verde.
+ */
+const CORES_DOS_SERVICOS_ = {
+  PRONTO:     ['#B7E1CD', '#0B3D2E'],
+  SALDO:      ['#D9EAD3', '#274E13'],
+  JES:        ['#A8D5A2', '#1E4620'],
+  ADM:        ['#F4C7C3', '#5B0F00'],
+  DEFENSORIA: ['#F9CB9C', '#5B2C00'],
+  BIOMA:      ['#FFE599', '#4A3B00'],
+  PESEGURO:   ['#CFE2F3', '#0B2E59'],
+  ELEICOES:   ['#D9D2E9', '#2E1A47'],
+  CPRH:       ['#EAD1DC', '#4C1130']
+};
+
+/** Serviço fora da tabela acima: cor fixa, escolhida pelo nome (o mesmo nome dá sempre a mesma cor). Sem verdes. */
+const CORES_RESERVA_ = [
+  ['#FCE5CD', '#5B2C00'], ['#D0E0E3', '#0C343D'], ['#E6B8AF', '#5B0F00'],
+  ['#C9DAF8', '#1C2E5C'], ['#FFF2CC', '#4A3B00'], ['#EAD1DC', '#4C1130'], ['#D9D9D9', '#000000']
+];
+
+/** P17 item 1: [fundo, texto] do serviço; nunca vazio para um nome não vazio. null para nome vazio. */
+function corDoServico_(nome) {
+  const k = normalizar_(nome);
+  if (!k) return null;
+  if (CORES_DOS_SERVICOS_[k]) return CORES_DOS_SERVICOS_[k];
+  let h = 0;
+  for (let i = 0; i < k.length; i++) h = (h * 31 + k.charCodeAt(i)) % 1000003;
+  return CORES_RESERVA_[h % CORES_RESERVA_.length];
+}
+
+/** P17 item 1: { 'Nome como escrito': [fundo, texto] } para cada serviço da lista (repetidos contam uma vez). */
+function coresDosServicos_(nomes) {
+  const res = {};
+  (nomes || []).forEach(function (n) {
+    const s = String(n == null ? '' : n).trim();
+    if (s && !(s in res)) res[s] = corDoServico_(s);
+  });
+  return res;
+}
+
 /** 'Seção 1ª SB' e '1ºSB' viram '1SB': comparação sem acento, caixa ou pontuação. */
 function normalizar_(s) {
   return String(s == null ? '' : s)
@@ -58,6 +102,22 @@ function grupoDoMilitar_(m) {
 function antigNum_(v) {
   const n = parseFloat(String(v == null ? '' : v).replace(',', '.'));
   return isFinite(n) ? n : null;
+}
+
+/**
+ * P17 item 5 (RN-02): posição do posto/graduação na hierarquia, do mais antigo (0) ao mais moderno.
+ * Usada para ordenar os militares dentro da equipe. A coluna ANTIG. (2°GB) desempata dentro do mesmo
+ * posto — na sandbox ela está vazia em todas as linhas, e por isso a grade ficava na ordem do cadastro.
+ * Posto que não se reconhece vai para o fim (Infinity), sem quebrar nada.
+ */
+const POSTOS_POR_ANTIGUIDADE_ = ['CEL', 'TC', 'MAJ', 'CAP', '1TEN', '2TEN', 'ASP', 'ST', '1SGT', '2SGT', '3SGT', 'CB', 'SD'];
+const POSTOS_SINONIMOS_ = { TENCEL: 'TC', MAJOR: 'MAJ', CAPITAO: 'CAP', ASPOF: 'ASP', SUBTEN: 'ST', SUBTENENTE: 'ST', CABO: 'CB', SOLDADO: 'SD' };
+
+function ordemDoPosto_(posto) {
+  let k = normalizar_(posto).replace(/BM$/, '');              // '2º SGT BM' -> '2SGT'
+  if (POSTOS_SINONIMOS_[k]) k = POSTOS_SINONIMOS_[k];
+  const i = POSTOS_POR_ANTIGUIDADE_.indexOf(k);
+  return i < 0 ? Infinity : i;
 }
 
 function nomeExibicao_(m) {
@@ -101,7 +161,7 @@ function montarModeloMatriz_(alocs, militares, op) {
     if (secaoN && normalizar_(m.secao) !== secaoN) return;
     if (vistos[m.mat]) return;
     vistos[m.mat] = true;
-    lista.push({ mat: m.mat, nome: nomeExibicao_(m), grupo: grupoDoMilitar_(m), antig: antigNum_(m.antig), ordem: m.ordem });
+    lista.push({ mat: m.mat, nome: nomeExibicao_(m), grupo: grupoDoMilitar_(m), posto: ordemDoPosto_(m.posto), antig: antigNum_(m.antig), ordem: m.ordem });
   });
 
   const extras = Object.create(null);
@@ -112,8 +172,9 @@ function montarModeloMatriz_(alocs, militares, op) {
       mat: mat,
       nome: m ? nomeExibicao_(m) : '(não cadastrado)',
       grupo: m ? 'OUTRAS SEÇÕES' : 'NÃO CADASTRADOS',
-      antig: null,
-      ordem: 1e9
+      posto: m ? ordemDoPosto_(m.posto) : Infinity,
+      antig: m ? antigNum_(m.antig) : null,
+      ordem: m ? 1e6 + m.ordem : 1e9
     });
   });
   if (Object.keys(extras).length) {
@@ -123,6 +184,8 @@ function montarModeloMatriz_(alocs, militares, op) {
   lista.sort(function (x, y) {
     const gx = ORDEM_GRUPOS_.indexOf(x.grupo), gy = ORDEM_GRUPOS_.indexOf(y.grupo);
     if (gx !== gy) return gx - gy;
+    // P17 item 5 (RN-02): dentro da equipe, por antiguidade: posto/graduação, depois a ANTIG., depois o cadastro
+    if (x.posto !== y.posto) return x.posto < y.posto ? -1 : 1;
     const ax = x.antig === null ? Infinity : x.antig, ay = y.antig === null ? Infinity : y.antig;
     if (ax !== ay) return ax < ay ? -1 : 1;
     return x.ordem - y.ordem;
@@ -237,6 +300,28 @@ function compararAlocacoes_(tabela, escala) {
   Object.keys(mt).forEach(function (c) { if (!(c in mm)) soNaTabela.push({ chave: c, servico: mt[c].servico, turno: mt[c].turno }); });
   Object.keys(mm).forEach(function (c) { if (!(c in mt)) soNaEscala.push({ chave: c, servico: mm[c].servico, turno: mm[c].turno }); });
   return { soNaTabela: soNaTabela, soNaEscala: soNaEscala, total: soNaTabela.length + soNaEscala.length };
+}
+
+/**
+ * P17 itens 4 e 7 (RN-02): o desenho das colunas de identificação (MATRÍCULA, MILITAR, EQUIPE) e
+ * das divisórias, a partir das linhas da grade ([{ mat, grupo }], na ordem da grade). Índices base 0.
+ *   repeteMilitar: 2ª linha em diante do mesmo militar -> as três colunas em tom quase branco;
+ *   repeteEquipe:  1ª linha de um militar cuja equipe é a mesma da linha de cima -> só a EQUIPE em tom
+ *                  quase branco (a matrícula e o nome são de outra pessoa e ficam normais);
+ *   inicioMilitar: 1ª linha de um militar que não abre grupo (divisória fina em cima, B34);
+ *   inicioGrupo:   1ª linha de cada grupo, menos a primeira da grade (divisória grossa em cima).
+ * Nada é mesclado: os valores continuam em todas as linhas (filtro e ordenação seguem funcionando).
+ */
+function desenhoDasLinhas_(linhas) {
+  const res = { repeteMilitar: [], repeteEquipe: [], inicioMilitar: [], inicioGrupo: [] };
+  (linhas || []).forEach(function (l, i) {
+    const ant = linhas[i - 1];
+    if (!ant) return;
+    if (ant.mat === l.mat) { res.repeteMilitar.push(i); return; }
+    if (ant.grupo === l.grupo) { res.repeteEquipe.push(i); res.inicioMilitar.push(i); }
+    else res.inicioGrupo.push(i);
+  });
+  return res;
 }
 
 /**

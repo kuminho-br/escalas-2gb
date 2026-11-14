@@ -34,8 +34,8 @@
 </style>
 </head>
 <body>
-  <h1>Pré-escala</h1>
-  <p class="sub">Serviço ordinário do Pronto</p>
+  <h1>Escala Automática</h1>
+  <p class="sub">Preenche as vagas livres do mês, em etapas: Pronto, Adm e operações. O resultado é um rascunho que você ajusta depois, em Mostrar Grade Geral.</p>
 
   <label for="mes">Mês</label>
   <input id="mes" type="month" placeholder="aaaa-mm">
@@ -60,8 +60,8 @@
       <tbody id="tabela"></tbody>
     </table>
     <ul id="avisos" class="avisos"></ul>
-    <div class="nota">Só vagas livres são preenchidas. Nada que já existe é alterado. Afastamentos e trocas você ajusta depois, em Mostrar Escala.</div>
-    <button id="btnGerar" class="principal" disabled>Gerar pré-escala</button>
+    <div class="nota">Só vagas livres são preenchidas. Nada que já existe é alterado. Afastamentos e trocas você ajusta depois, em Mostrar Grade Geral.</div>
+    <button id="btnGerar" class="principal" disabled>Gerar Pronto</button>
   </div>
 
   <div id="resultado" class="ok" hidden></div>
@@ -92,7 +92,7 @@
   </div>
   <div id="resultadoCotas" class="ok" hidden></div>
 
-  <button id="btnMatriz" class="secundario" hidden>Abrir escala do mês</button>
+  <button id="btnMatriz" class="secundario" hidden>Carregar grade geral do mês</button>
 
 <script>
   var MESES = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
@@ -175,7 +175,7 @@
     var ul = el('avisos');
     ul.innerHTML = '';
     r.geracao.avisos.forEach(function (a) { var li = document.createElement('li'); li.textContent = a; ul.appendChild(li); });
-    el('btnGerar').textContent = 'Gerar pré-escala';
+    el('btnGerar').textContent = 'Gerar Pronto';
     el('btnGerar').disabled = r.geracao.resumo.alocacoes === 0;
     if (r.geracao.resumo.alocacoes === 0) {
       var li = document.createElement('li'); li.textContent = 'Nada a gerar: todas as vagas do Pronto já estão ocupadas.'; ul.appendChild(li);
@@ -345,11 +345,11 @@
     var b = el('btnGerar');
     if (!confirmando) {
       b.textContent = 'Confirmar: gravar ' + ultima.geracao.resumo.alocacoes + ' alocações';
-      confirmando = setTimeout(function () { confirmando = null; b.textContent = 'Gerar pré-escala'; }, 6000);
+      confirmando = setTimeout(function () { confirmando = null; b.textContent = 'Gerar Pronto'; }, 6000);
       return;
     }
     clearTimeout(confirmando); confirmando = null;
-    b.textContent = 'Gerar pré-escala';
+    b.textContent = 'Gerar Pronto';
     limparMensagens();
     ocupado(true);
     google.script.run

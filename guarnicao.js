@@ -321,7 +321,7 @@ function funcoesQueExigemCnh_(mod) {
 function motivoDaLista_(p) {
   p = p || {};
   const quem = p.escalaTodos ? 'nenhum militar na aba MILITARES' : 'nenhum militar está escalado neste serviço, dia e turno';
-  const comoEscalar = p.escalaTodos ? '' : ' Escale alguém (pré-escala ou escala geral) e monte a grade de novo.';
+  const comoEscalar = p.escalaTodos ? '' : ' Escale alguém (Escala Automática ou Mostrar Grade Geral) e monte a grade de novo.';
   if (!p.exigeCnh) {
     if (p.candidatos > 0) return '';
     return 'Sem lista: ' + quem + '.' + comoEscalar;

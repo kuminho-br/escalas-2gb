@@ -4,7 +4,7 @@
  * Tela: sidebar_integridade.html (crie como "HTML" com esse nome exato).
  *
  * Acesso: menu "Escalas - 2º GB" > "Conferir Integridade dos Dados".
- * Os choques também são checados na hora de salvar a matriz (painel "Mostrar Escala").
+ * Os choques também são checados na hora de salvar a matriz (painel "Mostrar Grade Geral").
  */
 
 function abrirPainelIntegridade() {
@@ -91,12 +91,14 @@ function garantirColunaOrigem_() {
 }
 
 /**
- * Legenda de turnos (seção recolhível do painel "Mostrar Escala"): serviço, turno e horário,
+ * Legenda de turnos (seção recolhível do painel "Mostrar Grade Geral"): serviço, turno e horário,
  * lidos da aba TURNOS, com a cor que o serviço tem na matriz. Só lê.
  */
 function painelLegenda() {
   const hor = lerHorarios_();
-  return { grupos: montarLegenda_(hor.porChave, CONFIG.CORES), avisos: hor.avisos };
+  // P17 item 1 (RN-02): a mesma cor da grade geral, para todo serviço da aba TURNOS
+  const servicos = Object.keys(hor.porChave).map(function (k) { return parDaChaveTurno_(k).servico; });
+  return { grupos: montarLegenda_(hor.porChave, coresDosServicos_(servicos)), avisos: hor.avisos };
 }
 
 /**

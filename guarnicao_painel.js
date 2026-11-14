@@ -751,8 +751,10 @@ function renderizarGrade_(esc, mes, grade, todas, mil, hor, tz, ctxCnh) {
 
     // cores do serviço (como na matriz) e vagas vazias em destaque
     const faixaServ = aba.getRange(r0, L.SERVICO, n, 1), faixaMil = aba.getRange(r0, L.MILITAR, n, 1);
-    const cf = esc.servicos.filter(function (s) { return CONFIG.CORES[s]; }).map(function (s) {
-      return SpreadsheetApp.newConditionalFormatRule().whenTextEqualTo(s).setBackground(CONFIG.CORES[s][0]).setFontColor(CONFIG.CORES[s][1]).setRanges([faixaServ]).build();
+    // P17 item 1 (RN-02): a mesma cor da grade geral, para todo serviço da escala
+    const coresEsc = coresDosServicos_(esc.servicos);
+    const cf = Object.keys(coresEsc).map(function (s) {
+      return SpreadsheetApp.newConditionalFormatRule().whenTextEqualTo(s).setBackground(coresEsc[s][0]).setFontColor(coresEsc[s][1]).setRanges([faixaServ]).build();
     });
     cf.push(SpreadsheetApp.newConditionalFormatRule().whenCellEmpty().setBackground('#FFF4D6').setRanges([faixaMil]).build());
     aba.setConditionalFormatRules(cf);

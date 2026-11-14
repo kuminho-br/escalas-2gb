@@ -149,7 +149,7 @@
       situacao('situacaoMatriz', 'ok', 'A escala carregada e a tabela estão iguais (0 diferenças).');
       lista('listaMatriz', []);
     } else {
-      situacao('situacaoMatriz', 'atencao', r.matriz.total + ' diferença(s). Salve ou recarregue a escala pelo painel Mostrar Escala.');
+      situacao('situacaoMatriz', 'atencao', r.matriz.total + ' diferença(s). Salve ou recarregue a grade geral pelo painel Mostrar Grade Geral.');
       lista('listaMatriz', r.matriz.linhas.filter(function (l) { return l.trim() !== ''; }));
     }
     mostrar('cartaoMatriz', true);

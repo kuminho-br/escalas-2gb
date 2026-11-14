@@ -26,7 +26,7 @@ const PARAM_CATALOGO_ = [
   },
   {
     chave: 'ADM_CUMPRE_CARGA', grupo: 'Adm', rotulo: 'Adm cumpre a carga mensal', tipo: 'simnao', padrao: false,
-    descricao: 'NÃO: o Adm só cumpre os saldos e fica de expediente em todo dia útil (usado para checar choques). SIM: o Adm também cumpre a carga mensal, e a pré-escala distribui os turnos dele.'
+    descricao: 'NÃO: o Adm só cumpre os saldos e fica de expediente em todo dia útil (usado para checar choques). SIM: o Adm também cumpre a carga mensal, e a Escala Automática distribui os turnos dele.'
   },
   {
     chave: 'LINHAS_POR_MILITAR', grupo: 'Escala', rotulo: 'Linhas por militar na escala', tipo: 'inteiro', padrao: 2, min: 1, max: 6,

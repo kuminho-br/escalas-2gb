@@ -1,5 +1,5 @@
 /**
- * PAINEL DA PRÉ-ESCALA — camada do Google Sheets (sidebar + leitura/gravação).
+ * PAINEL "ESCALA AUTOMÁTICA" (antes "Pré-escala"; P17 item 6) — camada do Google Sheets (sidebar + leitura/gravação).
  * Depende de nucleo.gs, matriz.gs (CONFIG, leitores) e pre_escala.gs (lógica).
  * A tela é o arquivo sidebar_pre_escala.html (crie-o como "HTML" no editor,
  * com o nome exato: sidebar_pre_escala).
@@ -12,7 +12,7 @@
 
 function abrirPainel() {
   migrarAbas_();                                         // B52: abas com nome antigo são renomeadas ao abrir o painel
-  const html = HtmlService.createHtmlOutputFromFile('sidebar_pre_escala').setTitle('Pré-escala');
+  const html = HtmlService.createHtmlOutputFromFile('sidebar_pre_escala').setTitle('Escala Automática');
   SpreadsheetApp.getUi().showSidebar(html);
 }
 

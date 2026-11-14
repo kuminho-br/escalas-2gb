@@ -3,7 +3,7 @@
  * (lê as abas, desenha a escala do mês, confere).
  * A lógica de conversão está em nucleo.js.
  *
- * Uso:  menu "Escalas - 2º GB" > "Mostrar Escala" abre o painel, que carrega a escala
+ * Uso:  menu "Escalas - 2º GB" > "Mostrar Grade Geral" (P17 item 3; antes "Mostrar Escala") abre o painel, que carrega a escala
  *       (mês em B1, seção em B2 da aba GRADE GERAL) e salva as edições na tabela.
  *       menu "Escalas - 2º GB" > "Conferir Integridade dos Dados" abre o painel de integridade
  *       (choques de horário, catálogo de turnos e escala carregada × tabela; só lê e relata)
@@ -25,25 +25,18 @@ const CONFIG = {
   // layout da aba GRADE GERAL (a linha é "militar + posição": não há coluna de turno)
   LINHA_MES: 1, LINHA_SECAO: 2, LINHA_SEMANA: 3, LINHA_CABECALHO: 4, PRIMEIRA_LINHA: 5,
   COL_MAT: 1, COL_MILITAR: 2, COL_EQUIPE: 3, PRIMEIRA_COL_DIA: 4,
-  LARGURA_DIA: 92,                    // px; cabe "Defensoria 07–19" e "PE Seguro 16–00"
-
-  // cor de cada serviço: [fundo, texto]. Serviço novo sem cor aparece sem cor (nada quebra).
-  CORES: {
-    'Pronto':     ['#D9DEE3', '#000000'],
-    'Adm':        ['#F4C7C3', '#000000'],
-    'JES':        ['#FCE8B2', '#000000'],
-    'Defensoria': ['#F9CB9C', '#000000'],
-    'Bioma':      ['#D9EAD3', '#000000'],
-    'PE Seguro':  ['#CFE2F3', '#000000'],
-    'Eleições':   ['#D9D2E9', '#000000'],
-    'CPRH':       ['#38761D', '#FFFFFF']
-  }
+  // P17 item 2: a largura vem do conteúdo (autoResizeColumns); estes são só os mínimos, em px
+  LARGURA_MIN_DIA: 40, LARGURA_MIN_IDENT: 60,
+  FOLGA_DIA: 24,                      // a seta da lista suspensa não entra na conta do autoResize
+  FOLGA_IDENT: 12,
+  COR_REPETIDA: '#E8EAED'             // P17 item 4: texto quase branco do que se repete na identificação
+  // P17 item 1: as cores dos serviços saíram daqui; ver CORES_DOS_SERVICOS_ e corDoServico_ (nucleo.js)
 };
 
 function onOpen() {
   SpreadsheetApp.getUi().createMenu('Escalas - 2º GB')
-    .addItem('Pré-escala', 'abrirPainel')
-    .addItem('Mostrar Escala', 'abrirPainelMatriz')
+    .addItem('Escala Automática', 'abrirPainel')                   // P17 item 6: antes "Pré-escala"
+    .addItem('Mostrar Grade Geral', 'abrirPainelMatriz')            // P17 item 3: antes "Mostrar Escala"
     .addItem('Escalas de Serviço', 'abrirPainelGuarnicao')
     // B36 (RN-94): o menu do Apps Script é montado aqui e não dá para habilitar conforme a célula
     // selecionada; o item valida a célula ativa no clique (ver alocar_funcao.js).
@@ -282,7 +275,7 @@ function lerParametros_(aba, ui, tz) {
   if (ehData_(v)) mes = Utilities.formatDate(v, tz, 'yyyy-MM');
   else if (/^\d{4}-\d{2}$/.test(texto_(v))) mes = texto_(v);
   if (!mes) {
-    const r = ui.prompt('Carregar escala', 'Mês da escala (aaaa-mm), por exemplo 2026-10:', ui.ButtonSet.OK_CANCEL);
+    const r = ui.prompt('Carregar grade geral', 'Mês da grade geral (aaaa-mm), por exemplo 2026-10:', ui.ButtonSet.OK_CANCEL);
     if (r.getSelectedButton() !== ui.Button.OK) return null;
     mes = r.getResponseText().trim();
     if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(mes)) throw new Error('Mês inválido: "' + mes + '". Use o formato aaaa-mm.');
@@ -394,11 +387,6 @@ function renderizarMatriz_(aba, modelo, par, rot, tz) {
     .setBackground('#2F5D50').setFontColor('#FFFFFF').setFontWeight('bold').setHorizontalAlignment('center');
   aba.getRange(CONFIG.LINHA_SEMANA, c0, 1, nd).setHorizontalAlignment('center').setFontColor('#5F6368').setFontSize(8);
   aba.getRange(r0, c0, nl, nd).setHorizontalAlignment('center');
-  aba.setColumnWidth(CONFIG.COL_MAT, 85);
-  aba.setColumnWidth(CONFIG.COL_MILITAR, 200);
-  aba.setColumnWidth(CONFIG.COL_EQUIPE, 105);
-  aba.setColumnWidths(c0, nd, CONFIG.LARGURA_DIA);
-
   // fins de semana
   const colsFds = [], rotFds = [];
   modelo.dias.forEach(function (d, j) {
@@ -413,42 +401,62 @@ function renderizarMatriz_(aba, modelo, par, rot, tz) {
     aba.getRangeList(rotFds).setFontColor('#C5221F');
   }
 
-  // 2ª e 3ª linha do mesmo militar: identificação em cinza (continua preenchida, para o filtro/ordenação não quebrar)
-  const cinza = [];
-  modelo.linhas.forEach(function (l, i) {
-    if (i > 0 && modelo.linhas[i - 1].mat === l.mat) cinza.push(aba.getRange(r0 + i, 1, 1, c0 - 1).getA1Notation());
-  });
-  if (cinza.length) aba.getRangeList(cinza).setFontColor('#9AA0A6');
+  // P17 item 4 (RN-02): o que se repete na identificação fica em tom quase branco, sem mesclar células
+  // (decisão de 14/11). Os valores continuam em todas as linhas, para o filtro e a ordenação não quebrarem.
+  // Antes era cinza médio (#9AA0A6) e só nas linhas extras do militar; agora a EQUIPE também, quando
+  // repete a da linha de cima.
+  const desenho = desenhoDasLinhas_(modelo.linhas);
+  const repetidas = desenho.repeteMilitar.map(function (i) { return aba.getRange(r0 + i, 1, 1, c0 - 1).getA1Notation(); })
+    .concat(desenho.repeteEquipe.map(function (i) { return aba.getRange(r0 + i, CONFIG.COL_EQUIPE).getA1Notation(); }));
+  if (repetidas.length) aba.getRangeList(repetidas).setFontColor(CONFIG.COR_REPETIDA);
 
   // Linhas divisórias: fina entre militares, grossa entre grupos (equipes).
   // B34 (RN-02): a borda vai em CIMA da primeira linha de cada militar, não embaixo da última.
   // A última linha de um militar pode estar oculta pelo botão "Ocultar linhas vazias", e com ela
   // desaparecia a divisória; a primeira linha nunca é oculta, então o separador sempre aparece.
-  const inicioMilitar = [], inicioGrupo = [];
-  modelo.linhas.forEach(function (l, i) {
-    const ant = modelo.linhas[i - 1];
-    if (!ant || ant.mat === l.mat) return;                 // só a primeira linha de cada militar
-    if (ant.grupo !== l.grupo) inicioGrupo.push(r0 + i);
-    else inicioMilitar.push(aba.getRange(r0 + i, 1, 1, nCols).getA1Notation());
-  });
+  // P17 item 7 (RN-02): entre grupos (Alfa, Bravo, Charlie, Delta, Adm, sem equipe, outras seções) a
+  // borda passa de média a grossa, e o nome da equipe fica em negrito na 1ª linha de cada grupo.
+  const inicioMilitar = desenho.inicioMilitar.map(function (i) { return aba.getRange(r0 + i, 1, 1, nCols).getA1Notation(); });
   if (inicioMilitar.length) aba.getRangeList(inicioMilitar).setBorder(true, null, null, null, null, null);
-  inicioGrupo.forEach(function (r) {
-    aba.getRange(r, 1, 1, nCols).setBorder(true, null, null, null, null, null, '#000000', SpreadsheetApp.BorderStyle.SOLID_MEDIUM);
+  desenho.inicioGrupo.forEach(function (i) {
+    aba.getRange(r0 + i, 1, 1, nCols).setBorder(true, null, null, null, null, null, '#000000', SpreadsheetApp.BorderStyle.SOLID_THICK);
   });
+  const nomesDeGrupo = [0].concat(desenho.inicioGrupo).map(function (i) { return aba.getRange(r0 + i, CONFIG.COL_EQUIPE).getA1Notation(); });
+  aba.getRangeList(nomesDeGrupo).setFontWeight('bold');
   // fecha a tabela embaixo (a borda de fora não separa ninguém; se a última linha estiver oculta, só o contorno some)
   aba.getRange(r0 + nl - 1, 1, 1, nCols).setBorder(null, null, true, null, null, null, '#000000', SpreadsheetApp.BorderStyle.SOLID_MEDIUM);
 
   // cor por serviço
-  // a célula é "Serviço HH–HH": a cor vem do começo do texto (o nome do serviço seguido de espaço e dígito ou parêntese)
+  // a célula é "Serviço HH–HH" (ou "Serviço (T)"): a cor vem do começo do texto, o nome do serviço + espaço.
+  // P17 item 1 (RN-02): uma regra para CADA serviço da aba TURNOS, com a mesma cor da legenda e da grade
+  // de guarnição.
+  // P17 correção: a regra é "o texto começa com", nativa do Sheets, e não mais uma fórmula REGEXMATCH.
+  // A fórmula era montada com "," e a planilha está em português, onde o separador é ";": o Sheets
+  // gravava a fórmula como texto e nenhuma célula era pintada (já acontecia antes da P17). A condição
+  // nativa não depende do idioma da planilha e já ignora maiúscula/minúscula. Nome mais longo primeiro,
+  // para "PE Seguro" não ser pego por um serviço que se chamasse só "PE" (vale a primeira regra que casa).
   const grade = aba.getRange(r0, c0, nl, nd);
-  const topo = aba.getRange(r0, c0).getA1Notation();
-  aba.setConditionalFormatRules(Object.keys(CONFIG.CORES).map(function (nome) {
-    const padrao = '^' + nome.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/"/g, '""') + ' [0-9(]';
-    return SpreadsheetApp.newConditionalFormatRule()
-      .whenFormulaSatisfied('=REGEXMATCH(' + topo + ',"' + padrao + '")')
-      .setBackground(CONFIG.CORES[nome][0]).setFontColor(CONFIG.CORES[nome][1])
-      .setRanges([grade]).build();
-  }));
+  const cores = coresDosServicos_(Object.keys(rot.porRotulo).map(function (k) { return rot.porRotulo[k].servico; }));
+  aba.setConditionalFormatRules(Object.keys(cores)
+    .sort(function (a, b) { return b.length - a.length || (a < b ? -1 : 1); })
+    .map(function (nome) {
+      return SpreadsheetApp.newConditionalFormatRule()
+        .whenTextStartsWith(nome + ' ')
+        .setBackground(cores[nome][0]).setFontColor(cores[nome][1])
+        .setRanges([grade]).build();
+    }));
+
+  // P17 item 2 (RN-02): cada coluna na largura do próprio conteúdo, para nada ficar cortado.
+  // Fica por último: depende da fonte, do negrito e dos valores já aplicados.
+  // Larguras fixas cortavam nomes longos e serviços como "Defensoria 07–19 (A)". O autoResize do
+  // Sheets não conta a seta da lista suspensa, daí a folga; o mínimo segura colunas vazias.
+  SpreadsheetApp.flush();
+  aba.autoResizeColumns(1, nCols);
+  for (let c = 1; c <= nCols; c++) {
+    const dia = c >= c0;
+    aba.setColumnWidth(c, Math.max(aba.getColumnWidth(c) + (dia ? CONFIG.FOLGA_DIA : CONFIG.FOLGA_IDENT),
+      dia ? CONFIG.LARGURA_MIN_DIA : CONFIG.LARGURA_MIN_IDENT));
+  }
 
   aba.setFrozenRows(CONFIG.LINHA_CABECALHO);
   aba.setFrozenColumns(CONFIG.COL_EQUIPE);
@@ -465,9 +473,9 @@ function descreverChave_(chave, rot, nomes) {
 function textoDiferencas_(d, rot) {
   const c = d.cmp, nomes = nomesPorMatricula_();
   const linhas = [];
-  if (c.soNaTabela.length) linhas.push('Na tabela e não na escala carregada (' + c.soNaTabela.length + '):');
+  if (c.soNaTabela.length) linhas.push('Na tabela e não na grade geral carregada (' + c.soNaTabela.length + '):');
   c.soNaTabela.slice(0, 6).forEach(function (x) { linhas.push('   • ' + descreverChave_(x.chave, rot, nomes)); });
-  if (c.soNaEscala.length) linhas.push('Na escala carregada e não na tabela (' + c.soNaEscala.length + '):');
+  if (c.soNaEscala.length) linhas.push('Na grade geral carregada e não na tabela (' + c.soNaEscala.length + '):');
   c.soNaEscala.slice(0, 6).forEach(function (x) { linhas.push('   • ' + descreverChave_(x.chave, rot, nomes)); });
   if (d.orfas) linhas.push('Células preenchidas sem matrícula ou data válidas, ou com texto que não se entende: ' + d.orfas);
   return linhas.join('\n');
@@ -516,7 +524,7 @@ function lerRotulos_(catalogoPares) {
 
 /**
  * B48 (RN-94, RN-81): regrava as notas de função de toda a grade geral a partir da tabela.
- * Chamada ao carregar a escala, depois de salvar no painel Mostrar Escala e depois de "Alocar em
+ * Chamada ao carregar a escala, depois de salvar no painel Mostrar Grade Geral e depois de "Alocar em
  * Função". rot e alocs são opcionais (relidos quando faltam). Não mexe em valores nem validações.
  */
 function atualizarNotasDeFuncao_(aba, tz, rot, alocs) {
@@ -549,7 +557,7 @@ function montarMatriz() {
     // não descarta, sem avisar, edições suas que ainda não foram salvas na tabela
     if (layoutAntigo_(aba)) {
       const r = ui.alert('Atenção',
-        'A escala carregada é de uma versão anterior do sistema e precisa ser carregada de novo. ' +
+        'A grade geral carregada é de uma versão anterior do sistema e precisa ser carregada de novo. ' +
         'Se ela tiver alterações que não foram salvas na tabela, elas serão perdidas. Continuar?',
         ui.ButtonSet.YES_NO);
       if (r !== ui.Button.YES) return;
@@ -557,8 +565,8 @@ function montarMatriz() {
       const antes = edicoesNaoSalvas_(aba, lidas.alocs, tz, rot);
       if (antes && (antes.cmp.total > 0 || antes.orfas > 0)) {
         const r = ui.alert('Atenção',
-          'A escala carregada tem alterações que ainda não foram salvas na tabela:\n\n' + textoEdicoes_(antes, rot) +
-          '\n\nCarregar a escala de novo descarta essas alterações (para guardá-las, escolha Não e use "Salvar alterações" no painel). Continuar?',
+          'A grade geral carregada tem alterações que ainda não foram salvas na tabela:\n\n' + textoEdicoes_(antes, rot) +
+          '\n\nCarregar a grade geral de novo descarta essas alterações (para guardá-las, escolha Não e use "Salvar alterações" no painel). Continuar?',
           ui.ButtonSet.YES_NO);
         if (r !== ui.Button.YES) return;
       }
@@ -568,7 +576,7 @@ function montarMatriz() {
     const modelo = montarModeloMatriz_(lidas.alocs, militares,
       { mes: par.mes, secao: par.secao, linhas: linhasPorMilitar, rotulos: rot, horarios: lr.hor.porChave, catalogo: catalogo.pares });
     if (modelo.linhas.length === 0) throw new Error('Nenhum militar da seção "' + par.secao + '" e nenhuma alocação em ' + par.mes + '.');
-    if (!rot.lista.length) modelo.avisos.push('A aba TURNOS não tem nenhum turno com horário legível: a escala fica sem lista suspensa.');
+    if (!rot.lista.length) modelo.avisos.push('A aba TURNOS não tem nenhum turno com horário legível: a grade geral fica sem lista suspensa.');
     lr.hor.avisos.forEach(function (t) { modelo.avisos.push(t); });
 
     renderizarMatriz_(aba, modelo, par, rot, tz);
@@ -590,7 +598,7 @@ function montarMatriz() {
     if (avisos.length) msg += '\n\nAvisos:\n- ' + avisos.slice(0, 10).join('\n- ');
     ui.alert(tituloEscala_(par.mes, par.secao), msg, ui.ButtonSet.OK);
   } catch (e) {
-    ui.alert('Não foi possível carregar a escala', e.message, ui.ButtonSet.OK);
+    ui.alert('Não foi possível carregar a grade geral', e.message, ui.ButtonSet.OK);
   }
 }
 
@@ -602,9 +610,9 @@ function conferirMatriz() {
     const aba = abaDaEscala_(ss, false);
     const rot = aba ? lerRotulos_(lerCatalogo_().pares).rot : null;
     const d = aba ? diferencasDaMatrizAtual_(aba, lerAlocacoes_(tz).alocs, tz, rot) : null;
-    if (!d) { ui.alert('Escalas', 'Ainda não há uma escala carregada. Use "Carregar escala" no painel Mostrar Escala.', ui.ButtonSet.OK); return; }
-    ui.alert('Conferência escala carregada × tabela',
-      d.cmp.total === 0 && !d.orfas ? 'A escala carregada e a tabela estão iguais (0 diferenças).' : textoDiferencas_(d, rot),
+    if (!d) { ui.alert('Escalas', 'Ainda não há uma grade geral carregada. Use "Carregar grade geral" no painel Mostrar Grade Geral.', ui.ButtonSet.OK); return; }
+    ui.alert('Conferência grade geral carregada × tabela',
+      d.cmp.total === 0 && !d.orfas ? 'A grade geral carregada e a tabela estão iguais (0 diferenças).' : textoDiferencas_(d, rot),
       ui.ButtonSet.OK);
   } catch (e) {
     ui.alert('Não foi possível conferir', e.message, ui.ButtonSet.OK);

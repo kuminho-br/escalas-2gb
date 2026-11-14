@@ -1,5 +1,5 @@
 /**
- * COTAS DAS OPERAÇÕES — camada do Google Sheets. É a etapa 4 do painel "Pré-escala"
+ * COTAS DAS OPERAÇÕES — camada do Google Sheets. É a etapa 4 do painel "Escala Automática"
  * (sidebar_pre_escala.html); não tem painel próprio. A lógica está em distribuicao_cotas.js.
  * Depende de nucleo.js, matriz.js, pre_escala.js, pre_escala_painel.js, choques.js, choques_painel.js,
  * parametros.js, parametros_painel.js, guarnicao.js, guarnicao_painel.js e distribuicao_adm_painel.js.
