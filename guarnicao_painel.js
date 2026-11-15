@@ -510,6 +510,9 @@ function painelGuarnicaoConverterVinculos() {
 
 const GUARN_VINCULOS_ANTIGA_ = 'GUARNIÇÕES POR ESCALA (FORMATO ANTIGO)';
 
+/** P19 item 2.3 (B68): o tom claro dos dias alternados na aba ESCALA (só nas colunas de identificação). */
+const GUARN_COR_DIA_ALTERNADO_ = '#EEF3F1';
+
 function painelGuarnicaoMontar(escala, mes) {
   mes = String(mes == null ? '' : mes).trim();
   if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(mes)) throw new Error('Mês inválido: use o formato aaaa-mm.');
@@ -659,7 +662,7 @@ function renderizarGrade_(esc, mes, grade, todas, mil, hor, tz, ctxCnh) {
   aba.getRange(1, 1, 4, 2).setValues([['ESCALA', esc.nome], ['MÊS', ''], ['SERVIÇOS', esc.servicos.join(', ')], ['MILITARES', textoMilitares]]);
   aba.getRange(L.MES, 2).setNumberFormat('@').setValue(mes);
   aba.getRange(1, 1, 4, 1).setFontWeight('bold');
-  const cab = ['DATA', 'DIA', 'TURNO', 'HORÁRIO', 'UNIDADE', 'FUNÇÃO', 'MILITAR', 'SERVIÇO', 'SEM FUNÇÃO NESTE TURNO'];
+  const cab = ['DATA', 'DIA', 'TURNO', 'HORÁRIO', 'UNIDADE', 'FUNÇÃO', 'MILITAR', 'SERVIÇO', 'SEM FUNÇÃO (TURNO × GUARNIÇÃO)'];   // P19 item 2.5
   aba.getRange(L.CAB, 1, 1, L.NCOLS).setValues([cab]).setBackground('#2F5D50').setFontColor('#FFFFFF').setFontWeight('bold');
 
   // linhas
@@ -691,20 +694,13 @@ function renderizarGrade_(esc, mes, grade, todas, mil, hor, tz, ctxCnh) {
   // B54 (RN-12, RN-81): nenhuma célula fica sem lista sem dizer por quê; a nota explica.
   const notas = [];
   let semLista = 0, postosDeCondutor = 0;
-  let anterior = '';
-  grade.linhas.forEach(function (l) {
+  // P19 itens 2.4 e 2.5 (B68): a lista "sem função" é por turno × guarnição, um militar por linha, por antiguidade
+  const obsPorLinha = textosSemFuncao_(grade.linhas, grade.semFuncao, milPorMat);
+  grade.linhas.forEach(function (l, idx) {
     const bloco = l.dia + '|' + l.turno;
     const regraCnh = regraDoPosto_(cnhCtx, l.unidade, l.funcao);
     const exigeCnh = regraCnh.exigeCnh;
-    let obs = '';
-    if (bloco !== anterior && grade.semFuncao[bloco]) {
-      obs = grade.semFuncao[bloco].map(function (x) {
-        const m = milPorMat[x.mat];
-        return (m ? m.nome : x.mat) + (x.funcao ? ' (' + x.funcao + ' fora do modelo)' : '');
-      }).join(', ');
-    }
-    anterior = bloco;
-    rows.push([Utilities.parseDate(l.dia, tz, 'yyyy-MM-dd'), GUARN_DIAS_SEMANA_[diaDaSemana_(l.dia)], l.turno, horarioTurno[l.turno], l.unidade, l.funcao, l.mat ? rotulo(l.mat) : '', l.servico, obs]);
+    rows.push([Utilities.parseDate(l.dia, tz, 'yyyy-MM-dd'), GUARN_DIAS_SEMANA_[diaDaSemana_(l.dia)], l.turno, horarioTurno[l.turno], l.unidade, l.funcao, l.mat ? rotulo(l.mat) : '', l.servico, obsPorLinha[idx]]);
 
     const candidatos = esc.militares === 'TODOS' ? todosOsMats : (escaladosNoBloco[bloco] || []);
     let regra, nota = '';
@@ -740,18 +736,19 @@ function renderizarGrade_(esc, mes, grade, todas, mil, hor, tz, ctxCnh) {
     aba.getRange(r0, L.DATA, n, 1).setNumberFormat('dd/MM/yyyy');
     aba.getRange(r0, L.MILITAR, n, 1).setDataValidations(regras);
     aba.getRange(r0, L.MILITAR, n, 1).setNotes(notas);                  // B54: a célula diz por que a lista está vazia ou curta
-    aba.getRange(r0, L.OBS, n, 1).setFontColor('#B31412');
+    // P19 item 2.4: um militar por linha da célula, alinhado em cima
+    aba.getRange(r0, L.OBS, n, 1).setFontColor('#B31412').setWrap(true).setVerticalAlignment('top');
 
-    // fim de semana em cinza e uma linha grossa entre os dias
-    let i = 0;
-    while (i < n) {
-      let j = i;
-      while (j + 1 < n && grade.linhas[j + 1].dia === grade.linhas[i].dia) j++;
-      const dow = diaDaSemana_(grade.linhas[i].dia);
-      if (dow === 0 || dow === 6) aba.getRange(r0 + i, L.DATA, j - i + 1, L.FUNCAO).setBackground('#F1F3F4');
-      aba.getRange(r0 + i, 1, 1, L.NCOLS).setBorder(true, false, false, false, false, false, '#000000', SpreadsheetApp.BorderStyle.SOLID_MEDIUM);
-      i = j + 1;
-    }
+    // P19 itens 2.1 a 2.3 (B68; RN-02): o desenho de dias e turnos vem de desenhoDaEscala_ (guarnicao.js)
+    const d = desenhoDaEscala_(grade.linhas);
+    // 2.3: dias alternados (um sem fundo, o seguinte em tom claro) só nas colunas de identificação
+    d.diasComFundo.forEach(function (b) { aba.getRange(r0 + b.de, L.DATA, b.ate - b.de + 1, L.FUNCAO).setBackground(GUARN_COR_DIA_ALTERNADO_); });
+    // fim de semana: a alternância vale para todos os dias; o fim de semana segue marcado na coluna DIA
+    d.fimDeSemana.forEach(function (b) { aba.getRange(r0 + b.de, L.DIA, b.ate - b.de + 1, 1).setFontColor('#C5221F').setFontWeight('bold'); });
+    // 2.1: tracejado cinza claro entre os turnos de um mesmo dia
+    d.inicioTurno.forEach(function (i) { aba.getRange(r0 + i, 1, 1, L.NCOLS).setBorder(true, null, null, null, null, null, '#BDBDBD', SpreadsheetApp.BorderStyle.DASHED); });
+    // 2.2: a linha entre os dias fica mais grossa (era SOLID_MEDIUM)
+    d.inicioDia.forEach(function (i) { aba.getRange(r0 + i, 1, 1, L.NCOLS).setBorder(true, null, null, null, null, null, '#000000', SpreadsheetApp.BorderStyle.SOLID_THICK); });
 
     // cores do serviço (como na matriz) e vagas vazias em destaque
     const faixaServ = aba.getRange(r0, L.SERVICO, n, 1), faixaMil = aba.getRange(r0, L.MILITAR, n, 1);

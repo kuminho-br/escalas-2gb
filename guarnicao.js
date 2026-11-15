@@ -445,7 +445,8 @@ function expandirSlots_(esc, turno) {
  *
  * Retorna {
  *   linhas:   [{ dia, turno, unidade, funcao, k, mat, servico }]   uma por vaga, em ordem de dia, turno, posto
- *   semFuncao:{ 'dia|turno': [{ mat, funcao }] }   escalados do bloco que não couberam em nenhum posto
+ *   semFuncao:{ 'dia|turno|unidade': [{ mat, funcao, unidade }] }   escalados do bloco que não couberam em nenhum
+ *             posto. P19 item 2.5 (B68): separados pela UNIDADE (guarnição) da alocação; '' = sem guarnição.
  *   base:     [{ mat, dia, turno, servico, funcao, unidade }]     referência (todas as alocações da escala no mês)
  *   avisos, vagas, preenchidas, escaladosSemFuncao
  * }
@@ -499,14 +500,109 @@ function montarGrade_(esc, mes, alocs) {
       vagas += slots.length;
       preenchidas += ocupados.filter(Boolean).length;
       resto.forEach(function (a) { fora[chaveBloco_(a)] = true; });
-      if (resto.length) {
-        semFuncao[dia + '|' + turno] = resto.map(function (a) { return { mat: a.mat, funcao: a.funcao || '' }; });
-        escaladosSemFuncao += resto.length;
-      }
+      // P19 item 2.5 (B68; RN-81): por turno × guarnição (a UNIDADE da alocação), não mais só por turno
+      resto.forEach(function (a) {
+        const k = dia + '|' + turno + '|' + (a.unidade || '');
+        (semFuncao[k] = semFuncao[k] || []).push({ mat: a.mat, funcao: a.funcao || '', unidade: a.unidade || '' });
+      });
+      escaladosSemFuncao += resto.length;
     });
   });
   base.forEach(function (b) { if (fora[chaveBloco_(b)]) b.fora = true; });   // não coube em nenhum posto: a grade não a mostra
   return { linhas: linhas, semFuncao: semFuncao, base: base, avisos: avisos, vagas: vagas, preenchidas: preenchidas, escaladosSemFuncao: escaladosSemFuncao };
+}
+
+/**
+ * P19 itens 2.1 a 2.3 (B68; RN-02): o desenho da aba ESCALA a partir das linhas da grade (montarGrade_).
+ * Índices base 0, na ordem das linhas.
+ *   inicioDia     : 1ª linha de cada dia (linha grossa em cima)
+ *   inicioTurno   : 1ª linha de cada turno que não é a 1ª do dia (tracejado cinza em cima)
+ *   diasComFundo  : [{ de, ate }] os dias 2º, 4º, 6º... da grade (fundo claro nas colunas de identificação)
+ *   fimDeSemana   : [{ de, ate }] sábados e domingos (marcados na coluna DIA)
+ */
+function desenhoDaEscala_(linhas) {
+  const r = { inicioDia: [], inicioTurno: [], diasComFundo: [], fimDeSemana: [] };
+  let nDia = -1, ini = 0;
+  const fecha = function (ate) {
+    if (nDia < 0) return;
+    if (nDia % 2 === 1) r.diasComFundo.push({ de: ini, ate: ate });
+    const w = diaDaSemana_(linhas[ini].dia);
+    if (w === 0 || w === 6) r.fimDeSemana.push({ de: ini, ate: ate });
+  };
+  (linhas || []).forEach(function (l, i) {
+    const ant = linhas[i - 1];
+    if (!ant || ant.dia !== l.dia) { fecha(i - 1); nDia++; ini = i; r.inicioDia.push(i); }
+    else if (ant.turno !== l.turno) r.inicioTurno.push(i);
+  });
+  if (linhas && linhas.length) fecha(linhas.length - 1);
+  return r;
+}
+
+/**
+ * P19 item 2.4 (B68; RN-02, RN-81): do mais antigo para o mais moderno, como na grade geral (P17):
+ * posto/graduação (ordemDoPosto_), depois a ANTIG., depois a ordem do cadastro. Militar fora do cadastro
+ * vai para o fim, pela matrícula. x e y: { mat, m } (m = registro de lerMilitares_, ou undefined).
+ */
+function compararAntiguidade_(x, y) {
+  const px = x.m ? ordemDoPosto_(x.m.posto) : Infinity, py = y.m ? ordemDoPosto_(y.m.posto) : Infinity;
+  if (px !== py) return px < py ? -1 : 1;
+  const ax = x.m ? antigNum_(x.m.antig) : null, ay = y.m ? antigNum_(y.m.antig) : null;
+  const nx = ax === null ? Infinity : ax, ny = ay === null ? Infinity : ay;
+  if (nx !== ny) return nx < ny ? -1 : 1;
+  const ox = x.m ? x.m.ordem : Infinity, oy = y.m ? y.m.ordem : Infinity;
+  if (ox !== oy) return ox < oy ? -1 : 1;
+  return x.mat < y.mat ? -1 : x.mat > y.mat ? 1 : 0;
+}
+
+/**
+ * P19 itens 2.4 e 2.5 (B68; RN-02, RN-81): o texto da coluna "SEM FUNÇÃO" de cada linha da grade.
+ * linhas    : grade.linhas (montarGrade_), na ordem da aba
+ * semFuncao : grade.semFuncao, por 'dia|turno|unidade'
+ * milPorMat : { matrícula: registro de lerMilitares_ }
+ * Retorna um texto por linha ('' quando a linha não tem lista).
+ *   - cada militar numa linha do texto (quebra de linha), no rótulo da coluna MILITAR (graduação, nome e
+ *     matrícula), do mais antigo para o mais moderno; com função fora do modelo, "(FUNÇÃO fora do modelo)";
+ *   - a lista de uma guarnição fica na 1ª linha do bloco daquela guarnição dentro do turno;
+ *   - quem não tem guarnição na alocação (ou tem uma que não está naquele turno) fica em "Sem guarnição:",
+ *     na 1ª linha do turno.
+ */
+function textosSemFuncao_(linhas, semFuncao, milPorMat) {
+  milPorMat = milPorMat || {};
+  const out = linhas.map(function () { return ''; });
+  const primeiraDoTurno = Object.create(null), primeiraDaGuarnicao = Object.create(null);
+  linhas.forEach(function (l, i) {
+    const t = l.dia + '|' + l.turno;
+    if (!(t in primeiraDoTurno)) primeiraDoTurno[t] = i;
+    const g = t + '|' + normalizar_(l.unidade);
+    if (l.unidade && !(g in primeiraDaGuarnicao)) primeiraDaGuarnicao[g] = i;
+  });
+  const porLinha = Object.create(null);        // índice -> { daGuarnicao: [], semGuarnicao: [] }
+  Object.keys(semFuncao || {}).forEach(function (k) {
+    const p = k.split('|'), t = p[0] + '|' + p[1], uni = p.slice(2).join('|');
+    const g = t + '|' + normalizar_(uni);
+    const naGuarnicao = !!uni && (g in primeiraDaGuarnicao);
+    const i = naGuarnicao ? primeiraDaGuarnicao[g] : primeiraDoTurno[t];
+    if (i === undefined) return;               // turno sem posto: montarGrade_ não gera lista nele
+    const alvo = porLinha[i] = porLinha[i] || { daGuarnicao: [], semGuarnicao: [] };
+    semFuncao[k].forEach(function (x) { (naGuarnicao ? alvo.daGuarnicao : alvo.semGuarnicao).push({ mat: x.mat, m: milPorMat[x.mat], funcao: x.funcao, unidade: x.unidade }); });
+  });
+  const texto = function (x) {
+    return rotuloMilitar_(x.m, x.mat) + (x.funcao ? ' (' + x.funcao + ' fora do modelo)' : '');
+  };
+  Object.keys(porLinha).forEach(function (i) {
+    const p = porLinha[i], partes = [];
+    p.daGuarnicao.sort(compararAntiguidade_);
+    p.semGuarnicao.sort(compararAntiguidade_);
+    p.daGuarnicao.forEach(function (x) { partes.push(texto(x)); });
+    if (p.semGuarnicao.length) {
+      partes.push('Sem guarnição:');
+      p.semGuarnicao.forEach(function (x) {
+        partes.push(texto(x) + (x.unidade ? ' (guarnição "' + x.unidade + '" fora deste turno)' : ''));
+      });
+    }
+    out[i] = partes.join('\n');
+  });
+  return out;
 }
 
 /* ------------------------------------------------------------ diferenças */

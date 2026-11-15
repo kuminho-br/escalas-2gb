@@ -553,7 +553,8 @@ console.log('== B58 itens 2 e 3 (RN-09, RN-93, RN-10 a RN-12) GUARNIÇÕES POR E
   const no = mat => gr.linhas.filter(l => l.dia === '2026-11-05' && l.turno === 'A' && l.mat === mat).map(l => l.unidade + '/' + l.funcao).join();
   ver('montarGrade_: com UNIDADE, vai ao posto da guarnição dela (M2 no AR)', no('M2') === 'AR/MOTORISTA', no('M2'));
   ver('montarGrade_: FUNÇÃO sem UNIDADE vai ao primeiro posto livre daquela função (M1 no ABT)', no('M1') === 'ABT/MOTORISTA', no('M1'));
-  ver('montarGrade_: sem posto livre daquela função, fica em "sem função neste turno"', no('M3') === '' && gr.semFuncao['2026-11-05|A'].map(y => y.mat).sort().join() === 'M3,M4', gr.semFuncao['2026-11-05|A']);
+  // P19 item 2.5: semFuncao passou a ser por 'dia|turno|unidade'; M3 e M4 não têm UNIDADE -> chave com unidade ''
+  ver('montarGrade_: sem posto livre daquela função, fica em "sem função" (sem guarnição)', no('M3') === '' && gr.semFuncao['2026-11-05|A|'].map(y => y.mat).sort().join() === 'M3,M4', gr.semFuncao);
   const lerG = gr.linhas.filter(l => l.mat).map((l, i) => ({ linha: 6 + i, dia: l.dia, turno: l.turno, unidade: l.unidade, funcao: l.funcao, texto: l.mat, mat: l.mat }));
   g = L.calcularGuarnicao_(gr.base, lerG, al, escP, {});
   ver('salvar grava a guarnição na alocação antiga (aparece como alteração de função)',

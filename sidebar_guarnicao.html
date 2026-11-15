@@ -174,7 +174,7 @@
     el('tituloSituacao').textContent = 'Grade atual: ' + r.escala + ' · ' + r.mes;
     el('situacao').textContent = r.situacao.preenchidas + ' de ' + r.situacao.vagas + ' vagas preenchidas';
     el('situacaoNota').textContent = r.situacao.semFuncao > 0
-      ? r.situacao.semFuncao + ' militar(es) escalado(s) ainda sem posto (aparecem na coluna "sem função neste turno" da grade).'
+      ? r.situacao.semFuncao + ' militar(es) escalado(s) ainda sem posto (aparecem na última coluna da grade, "sem função", separados por turno e guarnição).'
       : 'Nenhum escalado sem posto.';
     mostrar('cartaoSituacao', true);
 

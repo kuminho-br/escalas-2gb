@@ -149,7 +149,8 @@ console.log('== P18 item 3 (B63; RN-09, RN-100, RN-13, RN-83) uma escala agrupa 
   const abt = gr.linhas.filter(l => l.dia === dia && l.turno === 'A' && l.unidade === 'UTI - PRONTO' && l.mat);
   ver('o mesmo ABT tem o motorista no Pronto, o chefe no JES e o combatente no Saldo',
     abt.map(l => l.funcao + ':' + l.mat + '(' + l.servico + ')').join() === 'CHEFE:J1(JES),COMBATENTE:S1(Saldo),MOTORISTA:P1(Pronto)', abt);
-  ver('um 2º chefe (JES) não ganha um ABT a mais: fica "sem função" naquele turno', gr.semFuncao[dia + '|A'] && gr.semFuncao[dia + '|A'][0].mat === 'J2', gr.semFuncao);
+  // P19 item 2.5: semFuncao é por 'dia|turno|unidade'
+  ver('um 2º chefe (JES) não ganha um ABT a mais: fica "sem função" naquele turno, na guarnição dele', gr.semFuncao[dia + '|A|UTI - PRONTO'] && gr.semFuncao[dia + '|A|UTI - PRONTO'][0].mat === 'J2', gr.semFuncao);
   ver('alocação de serviço fora da escala (Bioma) não entra no Ordinário', !gr.linhas.some(l => l.mat === 'B1'));
   ver('as vagas do mês são as de UM conjunto de postos por dia e turno', gr.vagas === 30 * 2 * 15, gr.vagas);
 
