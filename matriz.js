@@ -44,6 +44,7 @@ function onOpen() {
     .addSeparator()
     .addItem('Configurações', 'abrirPainelParametros')
     .addItem('Conferir Integridade dos Dados', 'abrirPainelIntegridade')
+    .addItem('Atualizar estrutura', 'atualizarEstrutura')            // P19 item 4 (B69): todas as migrações num ponto só
     .addItem('Diagnóstico de motoristas', 'diagnosticoMotoristas')      // B57: temporário, sai quando a causa for confirmada
     .addToUi();
 }

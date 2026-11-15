@@ -1,0 +1,3 @@
+# P19 item 5 (B74): todo arquivo de texto fica com LF no repositório e na cópia de trabalho,
+# mesmo no Windows (o clasp pull e o editor gravavam CRLF e a main aparecia toda modificada).
+* text=auto eol=lf

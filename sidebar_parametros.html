@@ -106,7 +106,7 @@
     var c = criar('div', null, 'resumo');
     c.appendChild(criar('div', 'Guarnições (viatura, guarnição mínima e máxima, tipos de serviço e CNH)', 'grupo'));
     if (!v.existe) {
-      c.appendChild(criar('div', 'A aba GUARNIÇÕES ainda não existe. O botão cria a aba com o cabeçalho e dois exemplos: uma guarnição com viatura e uma sem.'));
+      c.appendChild(criar('div', 'A aba GUARNIÇÕES ainda não existe. Crie-a pelo menu Escalas - 2º GB > Atualizar estrutura (vem com o cabeçalho e dois exemplos: uma guarnição com viatura e uma sem).'));
     } else if (v.total === 0) {
       c.appendChild(criar('div', 'A aba GUARNIÇÕES existe, mas nenhuma guarnição vale neste mês.'));
     } else {
@@ -124,39 +124,13 @@
     (v.avisos || []).forEach(function (t) { c.appendChild(criar('div', t, 'avisoBox')); });
 
     var linha = criar('div', null, 'linhaF');
-    linha.appendChild(criar('span', v.existe ? 'Aba GUARNIÇÕES' : 'Aba GUARNIÇÕES (a criar)'));
+    linha.appendChild(criar('span', v.existe ? 'Aba GUARNIÇÕES' : 'Aba GUARNIÇÕES (não existe)'));
     var b = criar('button', 'Abrir aba', 'leve');
     b.addEventListener('click', function () {
       trava(true);
       google.script.run.withSuccessHandler(function () { trava(false); carregar(estado.mes); }).withFailureHandler(falha).painelGuarnicoesAbrir();
     });
     linha.appendChild(b);
-    if (v.semColunaGuarnicao) {
-      var bm = criar('button', 'Migrar para guarnições', 'leve');
-      bm.addEventListener('click', function () {
-        trava(true);
-        google.script.run.withSuccessHandler(function (r) {
-          trava(false);
-          mostrarOk(r && r.migrou
-            ? 'Coluna GUARNIÇÃO criada na aba GUARNIÇÕES, com o nome da viatura copiado em ' + r.linhas + ' linha(s). Nada foi apagado: ajuste os nomes e apague a VIATURA das guarnições que não têm viatura.'
-            : 'O cadastro já está no formato de guarnições.');
-          carregar(estado.mes);
-        }).withFailureHandler(falha).painelGuarnicoesMigrar();
-      });
-      linha.appendChild(bm);
-    }
-    if (!v.temColunaCnh) {
-      var bc = criar('button', 'Criar coluna CNH', 'leve');
-      bc.addEventListener('click', function () {
-        trava(true);
-        google.script.run.withSuccessHandler(function (r) {
-          trava(false);
-          mostrarOk(r && r.criada ? 'Coluna CNH criada na aba MILITARES (vazia: preencha as categorias).' : 'A coluna CNH já existe.');
-          carregar(estado.mes);
-        }).withFailureHandler(falha).painelGuarnicoesColunaCnh();
-      });
-      linha.appendChild(bc);
-    }
     c.appendChild(linha);
     box.appendChild(c);
   }

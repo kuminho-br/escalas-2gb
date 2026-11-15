@@ -88,7 +88,6 @@
     <details id="cotasVazias" hidden><summary>Vagas sem ninguém</summary><ul id="cotasVaziasLista" class="avisos"></ul></details>
     <details id="cotasMilitares" hidden><summary>Por militar</summary><div id="cotasMilitaresLista" class="nota"></div></details>
     <button id="btnCotas" class="principal" hidden>Gerar operações</button>
-    <button id="btnCotasAbas" class="secundario" hidden>Criar abas e coluna que faltam</button>
   </div>
   <div id="resultadoCotas" class="ok" hidden></div>
 
@@ -108,7 +107,7 @@
   function nomeMes(aaaamm) { var p = aaaamm.split('-'); return MESES[Number(p[1]) - 1] + ' de ' + p[0]; }
   function mostrar(id, sim) { el(id).hidden = !sim; }
   function ocupado(sim) {
-    ['btnAnalisar', 'btnGerar', 'btnAdm', 'btnCotas', 'btnCotasAbas', 'btnMatriz', 'mes', 'secao', 'equipe'].forEach(function (id) { el(id).disabled = sim; });
+    ['btnAnalisar', 'btnGerar', 'btnAdm', 'btnCotas', 'btnMatriz', 'mes', 'secao', 'equipe'].forEach(function (id) { el(id).disabled = sim; });
     if (!sim && ultima) el('btnGerar').disabled = !(ultima.equipe && ultima.geracao && ultima.geracao.resumo.alocacoes > 0);
     if (!sim && ultimaCotas) el('btnCotas').disabled = !(ultimaCotas.novas > 0);
     if (!sim && ultimaAdm) el('btnAdm').disabled = !(ultimaAdm.cumpre && ultimaAdm.novas > 0);
@@ -288,7 +287,6 @@
     el('btnCotas').textContent = 'Gerar operações';
     el('btnCotas').disabled = !(r.novas > 0);
     el('btnCotas').title = r.novas > 0 ? '' : 'Nada a gravar agora: veja o motivo acima.';
-    mostrar('btnCotasAbas', !!r.semAbas);
     mostrar('cartaoCotas', true);
   }
   function analisarCotas() {
@@ -300,18 +298,10 @@
         el('cotasLinha1').textContent = (e && e.message) ? e.message.replace(/^Error:\s*/, '') : String(e);
         el('cotasTabela').innerHTML = ''; el('cotasAvisos').innerHTML = ''; el('cotasExterno').textContent = '';
         mostrar('cotasVazias', false); mostrar('cotasMilitares', false); mostrar('btnCotas', false);
-        mostrar('btnCotasAbas', true); mostrar('cartaoCotas', true);
+        mostrar('cartaoCotas', true);
       })
       .painelCotasPrevia(el('mes').value, el('secao').value);
   }
-  el('btnCotasAbas').addEventListener('click', function () {
-    ocupado(true);
-    google.script.run.withSuccessHandler(function (r) {
-      ocupado(false);
-      el('resultadoCotas').textContent = r.criadas.length ? 'Criado: ' + r.criadas.join(', ') + '. Preencha e clique em Analisar.' : 'Tudo já existe (abas COTAS e VOLUNTARIADO e a coluna VOLUNTÁRIO JES).';
-      mostrar('resultadoCotas', true);
-    }).withFailureHandler(falha).painelCotasAbas();
-  });
   // Gravar as operações também exige dois cliques.
   el('btnCotas').addEventListener('click', function () {
     var b = el('btnCotas');

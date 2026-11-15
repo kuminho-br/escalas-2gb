@@ -14,7 +14,7 @@
  * B58 (RN-09): GUARNIÇÕES POR ESCALA é só o vínculo — quais guarnições atendem cada escala e
  * turno. Os postos de cada turno são as funções das guarnições vinculadas, lidas de GUARNIÇÕES no
  * mês da grade (vinculosParaModelo_). A aba no formato antigo (UNIDADE, FUNÇÃO, VAGAS, EXIGE CNH)
- * continua sendo lida como antes até o usuário clicar em "Converter para o formato novo".
+ * continua sendo lida como antes até o usuário rodar o menu "Atualizar estrutura" (P19; antes, o botão "Converter").
  * ABAS GERADAS:
  *   ESCALA          a grade de edição (uma escala e um mês por vez)
  *   IMPRESSÃO       o documento no formato das escalas oficiais, para exportar em PDF
@@ -105,7 +105,7 @@ function lerModelosGuarnicao_(mes, tz) {
       tM.linhas.map(function (l) { return { escala: l[m.escala], turno: pega(l, m.turno), unidade: pega(l, m.unidade), funcao: l[m.funcao], vagas: pega(l, m.vagas), exigeCnh: pega(l, m.cnh) }; }),
       turnosPorServico, { aba: GUARN_ABA.VINCULOS });
     mod.avisos.unshift('A aba ' + GUARN_ABA.VINCULOS + ' ainda está no formato antigo (UNIDADE, FUNÇÃO e VAGAS em cada linha) e está sendo lida como antes (B58). ' +
-      'No formato novo ela só vincula ESCALA e TURNO a uma GUARNIÇÃO cadastrada em GUARNIÇÕES, que é de onde passam a vir as funções, as vagas e a CNH. Use o botão "Converter para o formato novo" do painel Escalas de Serviço.');
+      'No formato novo ela só vincula ESCALA e TURNO a uma GUARNIÇÃO cadastrada em GUARNIÇÕES, que é de onde passam a vir as funções, as vagas e a CNH. Use o menu Escalas - 2º GB > Atualizar estrutura.');
     mod.semAbas = false; mod.formatoAntigo = true; mod.temColunaExigeCnh = m.cnh >= 0; mod.mes = mes;
     return mod;
   }
@@ -120,7 +120,7 @@ function lerModelosGuarnicao_(mes, tz) {
   const cad = guarnicoesDoMes_(mes, tz);
   const v = vinculosParaModelo_(vinculos, cad, mes);
   const mod = montarModelosGuarnicao_(escalas, v.linhas, turnosPorServico, { aba: GUARN_ABA.VINCULOS });
-  if (!cad.existe) mod.avisos.unshift('A aba GUARNIÇÕES não existe: sem ela nenhuma guarnição vinculada em ' + GUARN_ABA.VINCULOS + ' tem composição, e nenhuma escala tem posto. Crie a aba pelo botão "Criar abas e colunas que faltam".');
+  if (!cad.existe) mod.avisos.unshift('A aba GUARNIÇÕES não existe: sem ela nenhuma guarnição vinculada em ' + GUARN_ABA.VINCULOS + ' tem composição, e nenhuma escala tem posto. Crie a aba pelo menu Escalas - 2º GB > Atualizar estrutura.');
   // problemas do cadastro (vigência inválida, máximo < mínimo...) tiram posto da grade: aparecem aqui também
   mod.avisos = cad.avisos.concat(v.avisos, mod.avisos);
   mod.semAbas = false; mod.formatoAntigo = false; mod.temColunaExigeCnh = true; mod.mes = mes; mod.cadastro = cad;
@@ -137,7 +137,7 @@ function exigirColunasAlocacoes_(esc) {
   if (cab.indexOf(normalizar_('FUNÇÃO')) < 0) throw new Error('Não achei a coluna "FUNÇÃO" na aba "' + CONFIG.ABA_ALOCACOES + '".');
   if (esc.usaUnidade && cab.indexOf(normalizar_('UNIDADE')) < 0) {
     throw new Error('A escala "' + esc.nome + '" tem postos de guarnição, e a guarnição de cada militar é gravada na coluna UNIDADE da aba "' + CONFIG.ABA_ALOCACOES +
-      '", que não existe. Crie a coluna pelo botão "Criar abas e colunas que faltam" (no fim do painel) e tente de novo.');
+      '", que não existe. Crie a coluna pelo menu Escalas - 2º GB > Atualizar estrutura e tente de novo.');
   }
 }
 
@@ -361,7 +361,7 @@ function painelDadosGuarnicao() {
   const mod = lerModelosGuarnicao_(mesSugerido, tz);      // B58: o molde depende do mês (vigência e cadastro)
   return {
     semAbas: !!mod.semAbas,
-    formatoAntigo: !!mod.formatoAntigo,                    // B58: mostra o botão de converter
+    formatoAntigo: !!mod.formatoAntigo,                    // B58 (o aviso diz para usar o menu Atualizar estrutura)
     escalas: mod.ordem.map(function (n) {
       const e = mod.escalas[n];
       return { nome: n, servicos: e.servicos.join(', '), militares: e.militares, turnos: e.turnos.length, usaUnidade: e.usaUnidade };
@@ -377,40 +377,31 @@ function painelDadosGuarnicao() {
  * ESCALAS e GUARNIÇÕES POR ESCALA (com exemplos), GUARNIÇÕES (B58: é de lá que vem a composição),
  * a coluna UNIDADE em ALOCAÇÕES (guarda a guarnição do posto) e a ORIGEM em TURNOS (B49 item 2).
  */
-function painelGuarnicaoExemplos() {
-  const ss = SpreadsheetApp.getActive();
-  const criadas = [];
-  const novaAba = function (nome, linhas) {
-    const aba = ss.insertSheet(nome);
-    const n = linhas[0].length;
-    aba.getRange(1, 1, linhas.length, n).setValues(linhas);
-    aba.getRange(1, 1, 1, n).setFontWeight('bold').setBackground('#2F5D50').setFontColor('#FFFFFF');
-    aba.setFrozenRows(1);
-    return aba;
-  };
-  if (!ss.getSheetByName(GUARN_ABA.ESCALAS)) { novaAba(GUARN_ABA.ESCALAS, GUARN_EXEMPLO_ESCALAS_); criadas.push(GUARN_ABA.ESCALAS); }
-  if (!abaAtual_(ss, GUARN_ABA.VINCULOS)) {
-    const aba = novaAba(GUARN_ABA.VINCULOS, GUARN_EXEMPLO_VINCULOS_);
-    aba.getRange(2, 1, 300, 1).setNumberFormat('@');                    // vigência é texto (aaaa-mm)
-    validacoesDosVinculos_(aba);
-    criadas.push(GUARN_ABA.VINCULOS);
-  }
-  // B58: sem GUARNIÇÕES não há composição; a aba nasce com o exemplo do cadastro
-  if (cadgGarantirAba_().criada) criadas.push('GUARNIÇÕES');
-  // B60: cada operação de coluna fica em try-catch isolado para não impedir as demais
-  // (a Tabela do Sheets pode provocar erros inesperados em qualquer uma delas)
-  try {
-    if (garantirColunaUnidadeAlocacoes_()) criadas.push('coluna UNIDADE (em ' + CONFIG.ABA_ALOCACOES + ', guarda a guarnição de cada militar)');
-  } catch (e) { criadas.push('ERRO ao criar UNIDADE: ' + e.message); }
-  // B49 item 2 (RN-13): a origem do serviço passa a ser cadastro
-  try {
-    if (garantirColunaOrigem_()) criadas.push('coluna ORIGEM (em TURNOS; o JES já vem como PJES, como era no código)');
-  } catch (e) { criadas.push('ERRO ao criar ORIGEM: ' + e.message); }
-  // B58 item 1 (RN-09): TIPOS DE SERVIÇO saiu do cadastro de GUARNIÇÕES; vazia, a coluna é apagada
-  try {
-    if (cadgRetirarTiposDeServico_() === 'apagada') criadas.push('coluna TIPOS DE SERVIÇO apagada de GUARNIÇÕES (estava vazia e não é mais lida)');
-  } catch (e) { criadas.push('ERRO ao retirar TIPOS DE SERVIÇO: ' + e.message); }
-  return { criadas: criadas };
+
+/** P19 item 4: cria a aba com cabeçalho verde, 1ª linha congelada e as linhas dadas. */
+function guarnNovaAba_(nome, linhas) {
+  const aba = SpreadsheetApp.getActive().insertSheet(nome);
+  const n = linhas[0].length;
+  aba.getRange(1, 1, linhas.length, n).setValues(linhas);
+  aba.getRange(1, 1, 1, n).setFontWeight('bold').setBackground('#2F5D50').setFontColor('#FFFFFF');
+  aba.setFrozenRows(1);
+  return aba;
+}
+
+/** P19 item 4: a aba ESCALAS, com o exemplo. Não mexe numa que exista. Retorna true se criou. */
+function guarnGarantirAbaEscalas_() {
+  if (SpreadsheetApp.getActive().getSheetByName(GUARN_ABA.ESCALAS)) return false;
+  guarnNovaAba_(GUARN_ABA.ESCALAS, GUARN_EXEMPLO_ESCALAS_);
+  return true;
+}
+
+/** P19 item 4: a aba GUARNIÇÕES POR ESCALA, no formato novo, com o exemplo. Não mexe numa que exista. */
+function guarnGarantirAbaVinculos_() {
+  if (abaAtual_(SpreadsheetApp.getActive(), GUARN_ABA.VINCULOS)) return false;
+  const aba = guarnNovaAba_(GUARN_ABA.VINCULOS, GUARN_EXEMPLO_VINCULOS_);
+  aba.getRange(2, 1, 300, 1).setNumberFormat('@');                    // vigência é texto (aaaa-mm)
+  validacoesDosVinculos_(aba);
+  return true;
 }
 
 /** Listas suspensas da aba de vínculos: ESCALA vem de ESCALAS e GUARNIÇÃO de GUARNIÇÕES (aceita outro texto, com aviso). */
@@ -469,46 +460,42 @@ function garantirColunaUnidadeAlocacoes_() {
  * Nada se perde: a aba antiga é renomeada para GUARNIÇÕES POR ESCALA (FORMATO ANTIGO), com tudo
  * dentro, e a nova é criada ao lado. Pede confirmação antes.
  */
-function painelGuarnicaoConverterVinculos() {
+
+/**
+ * P19 item 4 (B69): a conversão, para o menu "Atualizar estrutura" (o único ponto que mexe em estrutura).
+ * confirmar(r) recebe o resultado de converterVinculosAntigos_ e devolve true para seguir (null = segue).
+ * Quem chama segura o LockService.
+ */
+function converterVinculos_(confirmar) {
   const ss = SpreadsheetApp.getActive();
-  const lock = LockService.getDocumentLock();
-  if (!lock.tryLock(15000)) throw new Error('Outra pessoa está gravando agora. Tente de novo em instantes.');
-  try {
-    const velha = abaAtual_(ss, GUARN_ABA.VINCULOS);
-    if (!velha) throw new Error('A aba ' + GUARN_ABA.VINCULOS + ' não existe. Use "Criar abas e colunas que faltam".');
-    const t = lerAba_(GUARN_ABA.VINCULOS);
-    if (coluna_(t, 'GUARNIÇÃO', false) >= 0) return { convertida: false, motivo: 'A aba já está no formato novo.' };
-    const c = { escala: coluna_(t, 'ESCALA', true), turno: coluna_(t, 'TURNO', false), unidade: coluna_(t, 'UNIDADE', false) };
-    const r = converterVinculosAntigos_(t.linhas.map(function (l) {
-      return { escala: texto_(l[c.escala]), turno: c.turno < 0 ? '' : texto_(l[c.turno]), unidade: c.unidade < 0 ? '' : texto_(l[c.unidade]) };
-    }));
+  const velha = abaAtual_(ss, GUARN_ABA.VINCULOS);
+  if (!velha) throw new Error('A aba ' + GUARN_ABA.VINCULOS + ' não existe. Use o menu Escalas - 2º GB > Atualizar estrutura.');
+  const t = lerAba_(GUARN_ABA.VINCULOS);
+  if (coluna_(t, 'GUARNIÇÃO', false) >= 0) return { convertida: false, motivo: 'A aba já está no formato novo.' };
+  const c = { escala: coluna_(t, 'ESCALA', true), turno: coluna_(t, 'TURNO', false), unidade: coluna_(t, 'UNIDADE', false) };
+  const r = converterVinculosAntigos_(t.linhas.map(function (l) {
+    return { escala: texto_(l[c.escala]), turno: c.turno < 0 ? '' : texto_(l[c.turno]), unidade: c.unidade < 0 ? '' : texto_(l[c.unidade]) };
+  }));
 
-    const ui = SpreadsheetApp.getUi();
-    const resp = ui.alert('Converter ' + GUARN_ABA.VINCULOS,
-      'A aba passa a só vincular ESCALA e TURNO a uma GUARNIÇÃO cadastrada em GUARNIÇÕES; as funções, vagas e CNH passam a vir de lá.\n\n' +
-      r.linhas.length + ' vínculo(s) criado(s) a partir da coluna UNIDADE.\n' +
-      (r.semUnidade ? r.semUnidade + ' linha(s) sem UNIDADE não têm guarnição a vincular' + (r.escalasSemVinculo.length ? ' (escalas ' + r.escalasSemVinculo.join(', ') + ')' : '') +
-        ': essas escalas ficam sem posto até você vincular uma guarnição a elas.\n' : '') +
-      '\nA aba atual é guardada, inteira, como "' + GUARN_VINCULOS_ANTIGA_ + '". Continuar?', ui.ButtonSet.YES_NO);
-    if (resp !== ui.Button.YES) return { convertida: false, cancelado: true };
+  if (confirmar && !confirmar(r)) return { convertida: false, cancelado: true };
 
-    if (ss.getSheetByName(GUARN_VINCULOS_ANTIGA_)) throw new Error('Já existe a aba "' + GUARN_VINCULOS_ANTIGA_ + '" (de uma conversão anterior). Renomeie ou apague essa aba e tente de novo.');
-    velha.setName(GUARN_VINCULOS_ANTIGA_);                // a antiga fica inteira, só muda de nome
-    const nova = ss.insertSheet(GUARN_ABA.VINCULOS, velha.getIndex());
-    const linhas = [GUARN_CABECALHO_VINCULOS_].concat(r.linhas.map(function (x) { return ['', x.escala, x.turno, x.guarnicao]; }));
-    nova.getRange(1, 1, Math.max(linhas.length, 300), 1).setNumberFormat('@');
-    nova.getRange(1, 1, linhas.length, GUARN_CABECALHO_VINCULOS_.length).setValues(linhas);
-    nova.getRange(1, 1, 1, GUARN_CABECALHO_VINCULOS_.length).setFontWeight('bold').setBackground('#2F5D50').setFontColor('#FFFFFF');
-    nova.setFrozenRows(1);
-    [130, 160, 90, 260].forEach(function (w, i) { nova.setColumnWidth(i + 1, w); });
-    validacoesDosVinculos_(nova);
-    return { convertida: true, vinculos: r.linhas.length, semUnidade: r.semUnidade, escalasSemVinculo: r.escalasSemVinculo, antiga: GUARN_VINCULOS_ANTIGA_ };
-  } finally {
-    lock.releaseLock();
-  }
+  if (ss.getSheetByName(GUARN_VINCULOS_ANTIGA_)) throw new Error('Já existe a aba "' + GUARN_VINCULOS_ANTIGA_ + '" (de uma conversão anterior). Renomeie ou apague essa aba e tente de novo.');
+  velha.setName(GUARN_VINCULOS_ANTIGA_);                // a antiga fica inteira, só muda de nome
+  const nova = ss.insertSheet(GUARN_ABA.VINCULOS, velha.getIndex());
+  const linhas = [GUARN_CABECALHO_VINCULOS_].concat(r.linhas.map(function (x) { return ['', x.escala, x.turno, x.guarnicao]; }));
+  nova.getRange(1, 1, Math.max(linhas.length, 300), 1).setNumberFormat('@');
+  nova.getRange(1, 1, linhas.length, GUARN_CABECALHO_VINCULOS_.length).setValues(linhas);
+  nova.getRange(1, 1, 1, GUARN_CABECALHO_VINCULOS_.length).setFontWeight('bold').setBackground('#2F5D50').setFontColor('#FFFFFF');
+  nova.setFrozenRows(1);
+  [130, 160, 90, 260].forEach(function (w, i) { nova.setColumnWidth(i + 1, w); });
+  validacoesDosVinculos_(nova);
+  return { convertida: true, vinculos: r.linhas.length, semUnidade: r.semUnidade, escalasSemVinculo: r.escalasSemVinculo, antiga: GUARN_VINCULOS_ANTIGA_ };
 }
 
 const GUARN_VINCULOS_ANTIGA_ = 'GUARNIÇÕES POR ESCALA (FORMATO ANTIGO)';
+
+/** P19 item 2.3 (B68): o tom claro dos dias alternados na aba ESCALA (só nas colunas de identificação). */
+const GUARN_COR_DIA_ALTERNADO_ = '#EEF3F1';
 
 function painelGuarnicaoMontar(escala, mes) {
   mes = String(mes == null ? '' : mes).trim();
@@ -659,11 +646,10 @@ function renderizarGrade_(esc, mes, grade, todas, mil, hor, tz, ctxCnh) {
   aba.getRange(1, 1, 4, 2).setValues([['ESCALA', esc.nome], ['MÊS', ''], ['SERVIÇOS', esc.servicos.join(', ')], ['MILITARES', textoMilitares]]);
   aba.getRange(L.MES, 2).setNumberFormat('@').setValue(mes);
   aba.getRange(1, 1, 4, 1).setFontWeight('bold');
-  const cab = ['DATA', 'DIA', 'TURNO', 'HORÁRIO', 'UNIDADE', 'FUNÇÃO', 'MILITAR', 'SERVIÇO', 'SEM FUNÇÃO NESTE TURNO'];
+  const cab = ['DATA', 'DIA', 'TURNO', 'HORÁRIO', 'UNIDADE', 'FUNÇÃO', 'MILITAR', 'SERVIÇO', 'SEM FUNÇÃO (TURNO × GUARNIÇÃO)'];   // P19 item 2.5
   aba.getRange(L.CAB, 1, 1, L.NCOLS).setValues([cab]).setBackground('#2F5D50').setFontColor('#FFFFFF').setFontWeight('bold');
 
   // linhas
-  const n = grade.linhas.length;
   const rows = [], regras = [];
   const listaGeral = listaDeMilitares_(mil);
   let regraGeral = null;
@@ -691,20 +677,22 @@ function renderizarGrade_(esc, mes, grade, todas, mil, hor, tz, ctxCnh) {
   // B54 (RN-12, RN-81): nenhuma célula fica sem lista sem dizer por quê; a nota explica.
   const notas = [];
   let semLista = 0, postosDeCondutor = 0;
-  let anterior = '';
-  grade.linhas.forEach(function (l) {
+  // P19 itens 2.4 e 2.5 (B68): a lista "sem função" é por turno × guarnição, UM MILITAR POR CÉLULA, por antiguidade.
+  // As linhas de exibição são as da grade mais linhas extras no fim do turno quando a lista não cabe (sem FUNÇÃO:
+  // lerGrade_ as ignora e elas não entram no salvar).
+  const exib = layoutSemFuncao_(grade.linhas, grade.semFuncao, milPorMat);
+  const linhasExib = exib.linhas, n = linhasExib.length;
+  linhasExib.forEach(function (l, idx) {
     const bloco = l.dia + '|' + l.turno;
+    if (l.extra) {                                       // linha extra: só a identificação do turno e o militar sem função
+      rows.push([Utilities.parseDate(l.dia, tz, 'yyyy-MM-dd'), GUARN_DIAS_SEMANA_[diaDaSemana_(l.dia)], l.turno, horarioTurno[l.turno], '', '', '', '', exib.textos[idx]]);
+      regras.push([null]);
+      notas.push(['']);
+      return;
+    }
     const regraCnh = regraDoPosto_(cnhCtx, l.unidade, l.funcao);
     const exigeCnh = regraCnh.exigeCnh;
-    let obs = '';
-    if (bloco !== anterior && grade.semFuncao[bloco]) {
-      obs = grade.semFuncao[bloco].map(function (x) {
-        const m = milPorMat[x.mat];
-        return (m ? m.nome : x.mat) + (x.funcao ? ' (' + x.funcao + ' fora do modelo)' : '');
-      }).join(', ');
-    }
-    anterior = bloco;
-    rows.push([Utilities.parseDate(l.dia, tz, 'yyyy-MM-dd'), GUARN_DIAS_SEMANA_[diaDaSemana_(l.dia)], l.turno, horarioTurno[l.turno], l.unidade, l.funcao, l.mat ? rotulo(l.mat) : '', l.servico, obs]);
+    rows.push([Utilities.parseDate(l.dia, tz, 'yyyy-MM-dd'), GUARN_DIAS_SEMANA_[diaDaSemana_(l.dia)], l.turno, horarioTurno[l.turno], l.unidade, l.funcao, l.mat ? rotulo(l.mat) : '', l.servico, exib.textos[idx]]);
 
     const candidatos = esc.militares === 'TODOS' ? todosOsMats : (escaladosNoBloco[bloco] || []);
     let regra, nota = '';
@@ -742,25 +730,32 @@ function renderizarGrade_(esc, mes, grade, todas, mil, hor, tz, ctxCnh) {
     aba.getRange(r0, L.MILITAR, n, 1).setNotes(notas);                  // B54: a célula diz por que a lista está vazia ou curta
     aba.getRange(r0, L.OBS, n, 1).setFontColor('#B31412');
 
-    // fim de semana em cinza e uma linha grossa entre os dias
-    let i = 0;
-    while (i < n) {
-      let j = i;
-      while (j + 1 < n && grade.linhas[j + 1].dia === grade.linhas[i].dia) j++;
-      const dow = diaDaSemana_(grade.linhas[i].dia);
-      if (dow === 0 || dow === 6) aba.getRange(r0 + i, L.DATA, j - i + 1, L.FUNCAO).setBackground('#F1F3F4');
-      aba.getRange(r0 + i, 1, 1, L.NCOLS).setBorder(true, false, false, false, false, false, '#000000', SpreadsheetApp.BorderStyle.SOLID_MEDIUM);
-      i = j + 1;
-    }
+    // P19 itens 2.1 a 2.3 (B68; RN-02): o desenho de dias e turnos vem de desenhoDaEscala_ (guarnicao.js)
+    const d = desenhoDaEscala_(linhasExib);
+    // 2.3: dias alternados (um sem fundo, o seguinte em tom claro) só nas colunas de identificação
+    d.diasComFundo.forEach(function (b) { aba.getRange(r0 + b.de, L.DATA, b.ate - b.de + 1, L.FUNCAO).setBackground(GUARN_COR_DIA_ALTERNADO_); });
+    // fim de semana: a alternância vale para todos os dias; o fim de semana segue marcado na coluna DIA
+    d.fimDeSemana.forEach(function (b) { aba.getRange(r0 + b.de, L.DIA, b.ate - b.de + 1, 1).setFontColor('#C5221F').setFontWeight('bold'); });
+    // 2.1: tracejado cinza claro entre os turnos de um mesmo dia
+    d.inicioTurno.forEach(function (i) { aba.getRange(r0 + i, 1, 1, L.NCOLS).setBorder(true, null, null, null, null, null, '#BDBDBD', SpreadsheetApp.BorderStyle.DASHED); });
+    // 2.2: a linha entre os dias fica mais grossa (era SOLID_MEDIUM)
+    d.inicioDia.forEach(function (i) { aba.getRange(r0 + i, 1, 1, L.NCOLS).setBorder(true, null, null, null, null, null, '#000000', SpreadsheetApp.BorderStyle.SOLID_THICK); });
 
     // cores do serviço (como na matriz) e vagas vazias em destaque
-    const faixaServ = aba.getRange(r0, L.SERVICO, n, 1), faixaMil = aba.getRange(r0, L.MILITAR, n, 1);
+    const faixaServ = aba.getRange(r0, L.SERVICO, n, 1);
+    // o destaque de vaga vazia vale só nas linhas de posto (as extras não são vaga)
+    const faixasMil = [];
+    let ini = -1;
+    linhasExib.forEach(function (l, k) {
+      if (!l.extra && ini < 0) ini = k;
+      if ((l.extra || k === n - 1) && ini >= 0) { const fim = l.extra ? k - 1 : k; faixasMil.push(aba.getRange(r0 + ini, L.MILITAR, fim - ini + 1, 1)); ini = -1; }
+    });
     // P17 item 1 (RN-02): a mesma cor da grade geral, para todo serviço da escala
     const coresEsc = coresDosServicos_(esc.servicos);
     const cf = Object.keys(coresEsc).map(function (s) {
       return SpreadsheetApp.newConditionalFormatRule().whenTextEqualTo(s).setBackground(coresEsc[s][0]).setFontColor(coresEsc[s][1]).setRanges([faixaServ]).build();
     });
-    cf.push(SpreadsheetApp.newConditionalFormatRule().whenCellEmpty().setBackground('#FFF4D6').setRanges([faixaMil]).build());
+    if (faixasMil.length) cf.push(SpreadsheetApp.newConditionalFormatRule().whenCellEmpty().setBackground('#FFF4D6').setRanges(faixasMil).build());
     aba.setConditionalFormatRules(cf);
   }
 

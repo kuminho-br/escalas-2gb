@@ -4,7 +4,7 @@
  * Depende de nucleo.js, matriz.js, pre_escala.js, pre_escala_painel.js, choques.js, choques_painel.js,
  * parametros.js, parametros_painel.js, guarnicao.js, guarnicao_painel.js e distribuicao_adm_painel.js.
  *
- * Abas lidas (criadas vazias, com cabeçalho e uma linha de exemplo, por painelCotasAbas):
+ * Abas lidas (criadas vazias, com cabeçalho e uma linha de exemplo, pelo menu "Atualizar estrutura" — cotasGarantirAba_):
  *   COTAS         MÊS | SB | OPERAÇÃO | SERVIÇO | QUANTIDADE | ORIGEM | PRIORIDADE
  *                   OPERAÇÃO = nome da escala na aba ESCALAS. ORIGEM = interna (padrão) ou externa (RN-34/RN-35).
  *                   Linhas de JES da SB são aceitas e ignoradas nesta etapa.
@@ -147,16 +147,16 @@ function cotasCalcular_(mes, secao, tz) {
   const sep = separarVoluntariado_(vol.linhas, vjes);
   const nomesCad = nomesPorMatricula_();
   const avisos = [].concat(mod.avisos || [], cotas.avisos, vol.avisos);
-  if (!vjes) avisos.push('A aba MILITARES não tem a coluna VOLUNTÁRIO JES (RN-46): por ora todos os que preencheram o formulário contam como voluntários. Crie a coluna pelo botão "Criar abas e coluna que faltam" e preencha sim/não.');
+  if (!vjes) avisos.push('A aba MILITARES não tem a coluna VOLUNTÁRIO JES (RN-46): por ora todos os que preencheram o formulário contam como voluntários. Crie a coluna pelo menu Escalas - 2º GB > Atualizar estrutura e preencha sim/não.');
   const ign = Object.keys(sep.ignoradas);
   if (ign.length) {
     const qtd = ign.reduce(function (n, m) { return n + sep.ignoradas[m]; }, 0);
     avisos.push('VOLUNTARIADO: ' + qtd + ' linha(s) de ' + ign.length + ' militar(es) sem VOLUNTÁRIO JES = "sim" em MILITARES valem para as diárias, mas não para o JES (RN-04, RN-46): ' +
       ign.slice(0, 5).map(function (m) { return nomesCad[m] || m; }).join(', ') + (ign.length > 5 ? '…' : '') + '.');
   }
-  if (!cotas.existe) avisos.push('A aba COTAS não existe. Crie-a pelo botão "Criar abas e coluna que faltam".');
+  if (!cotas.existe) avisos.push('A aba COTAS não existe. Crie-a pelo menu Escalas - 2º GB > Atualizar estrutura.');
   else if (!cotas.linhas.length) avisos.push('A aba COTAS não tem cotas de ' + secao + ' em ' + mes + '.');
-  if (!vol.existe) avisos.push('A aba VOLUNTARIADO não existe. Crie-a pelo botão "Criar abas e coluna que faltam".');
+  if (!vol.existe) avisos.push('A aba VOLUNTARIADO não existe. Crie-a pelo menu Escalas - 2º GB > Atualizar estrutura.');
   if (mod.semAbas) avisos.push('As abas ESCALAS e GUARNIÇÕES POR ESCALA não existem; sem elas não há vagas por operação.');
 
   const diasMes = diasDoMes_(mes);
@@ -291,30 +291,35 @@ function garantirColunaVoluntarioJes_() {
   const nCols = aba.getLastColumn();
   const cab = aba.getRange(1, 1, 1, nCols).getValues()[0].map(normalizar_);
   if (cab.some(function (c) { return c.indexOf(normalizar_('VOLUNTÁRIO JES')) === 0; })) return false;
+  // P19 item 4: MILITARES é uma Tabela do Sheets; como no B60, a coluna é inserida antes de escrever
+  aba.insertColumnAfter(nCols);
   aba.getRange(1, nCols + 1).setValue('VOLUNTÁRIO JES').setFontWeight('bold');
   const n = aba.getLastRow() - 1;
   if (n > 0) {
     aba.getRange(2, nCols + 1, n, 1).setDataValidation(SpreadsheetApp.newDataValidation().requireValueInList(['sim', 'não'], true).setAllowInvalid(true).build());
   }
+  SpreadsheetApp.flush();
   return true;
 }
 
-/** Cria as abas COTAS e VOLUNTARIADO (cabeçalho e uma linha de exemplo) e a coluna VOLUNTÁRIO JES de MILITARES, sem tocar no que já existe. */
-function painelCotasAbas() {
+/** P19 item 4: o molde das abas COTAS e VOLUNTARIADO: [nome, cabeçalho, linha de exemplo]. */
+const COTAS_MOLDES_ = [
+  [COTAS_ABA.COTAS, ['MÊS', 'SB', 'OPERAÇÃO', 'SERVIÇO', 'QUANTIDADE', 'ORIGEM', 'PRIORIDADE'], ['2026-11', '1ª SB', 'PE Seguro', 'PE Seguro', 0, 'interna', 1]],
+  // B31 (RN-40): uma coluna DATA com a data inteira do plantão, no lugar de MÊS + DIA
+  [COTAS_ABA.VOLUNTARIADO, ['DATA', 'MATRÍCULA', 'TURNO', 'SERVIÇO ACEITO'], ['', '', 'A', 'todos']]
+];
+
+/** P19 item 4: cria a aba COTAS ou VOLUNTARIADO (cabeçalho e uma linha de exemplo). Não mexe numa que exista. */
+function cotasGarantirAba_(nome) {
   const ss = SpreadsheetApp.getActive();
-  const criadas = [];
-  [[COTAS_ABA.COTAS, ['MÊS', 'SB', 'OPERAÇÃO', 'SERVIÇO', 'QUANTIDADE', 'ORIGEM', 'PRIORIDADE'], ['2026-11', '1ª SB', 'PE Seguro', 'PE Seguro', 0, 'interna', 1]],
-   // B31 (RN-40): uma coluna DATA com a data inteira do plantão, no lugar de MÊS + DIA
-   [COTAS_ABA.VOLUNTARIADO, ['DATA', 'MATRÍCULA', 'TURNO', 'SERVIÇO ACEITO'], ['', '', 'A', 'todos']]].forEach(function (x) {
-    if (ss.getSheetByName(x[0])) return;
-    const aba = ss.insertSheet(x[0]);
-    aba.getRange(1, 1, 1, x[1].length).setValues([x[1]]).setFontWeight('bold').setBackground('#2F5D50').setFontColor('#FFFFFF');
-    aba.getRange(2, 1, 1, x[2].length).setValues([x[2]]).setFontColor('#888888');
-    const cData = x[1].indexOf('DATA');
-    if (cData >= 0) aba.getRange(2, cData + 1, aba.getMaxRows() - 1, 1).setNumberFormat('dd/MM/yyyy');
-    aba.setFrozenRows(1);
-    criadas.push(x[0]);
-  });
-  if (garantirColunaVoluntarioJes_()) criadas.push('coluna VOLUNTÁRIO JES (em MILITARES, vazia: preencha sim/não)');
-  return { criadas: criadas };
+  const x = COTAS_MOLDES_.filter(function (m) { return m[0] === nome; })[0];
+  if (!x || ss.getSheetByName(x[0])) return false;
+  const aba = ss.insertSheet(x[0]);
+  aba.getRange(1, 1, 1, x[1].length).setValues([x[1]]).setFontWeight('bold').setBackground('#2F5D50').setFontColor('#FFFFFF');
+  aba.getRange(2, 1, 1, x[2].length).setValues([x[2]]).setFontColor('#888888');
+  const cData = x[1].indexOf('DATA');
+  if (cData >= 0) aba.getRange(2, cData + 1, aba.getMaxRows() - 1, 1).setNumberFormat('dd/MM/yyyy');
+  aba.setFrozenRows(1);
+  return true;
 }
+
