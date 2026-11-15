@@ -8,8 +8,8 @@
  * vigência (RN-93) estão documentados em cadastro_guarnicoes.gs.
  *
  * Aba antiga: enquanto a planilha estiver com a coluna VIATURA e sem a coluna GUARNIÇÃO, cada
- * viatura é lida como uma guarnição com o mesmo nome, e o painel avisa. O botão "Migrar para
- * guarnições" acrescenta a coluna GUARNIÇÃO copiando a VIATURA, sem apagar nada.
+ * viatura é lida como uma guarnição com o mesmo nome, e o painel avisa. O menu "Atualizar estrutura" (P19; antes, o botão
+ * "Migrar para guarnições") acrescenta a coluna GUARNIÇÃO copiando a VIATURA, sem apagar nada.
  */
 
 const CADG_ABA = 'GUARNIÇÕES';             // B52: chamava-se VIATURAS; abaAtual_ renomeia a antiga. Não confundir com GUARNIÇÕES POR ESCALA (B58)
@@ -95,7 +95,7 @@ function guarnicoesDoMes_(mes, tz) {
   const r = resolverGuarnicoes_(linhas, mes);
   const avisos = r.avisos.slice();
   if (linhas.semColunaGuarnicao) {
-    avisos.push('A aba ' + CADG_ABA + ' ainda é o cadastro antigo, de viaturas: cada VIATURA está valendo como uma guarnição com o mesmo nome. Uma guarnição pode não ter viatura (RN-96), então use o botão "Migrar para guarnições" para criar a coluna GUARNIÇÃO.');
+    avisos.push('A aba ' + CADG_ABA + ' ainda é o cadastro antigo, de viaturas: cada VIATURA está valendo como uma guarnição com o mesmo nome. Uma guarnição pode não ter viatura (RN-96), então use o menu Escalas - 2º GB > Atualizar estrutura para criar a coluna GUARNIÇÃO.');
   }
   if (linhas.tiposDeServicoPreenchidos) {
     avisos.push('A aba ' + CADG_ABA + ' ainda tem a coluna ' + CADG_COLUNA_RETIRADA_ + ', preenchida em ' + linhas.tiposDeServicoPreenchidos +
@@ -190,34 +190,16 @@ function cadgRetirarTiposDeServico_() {
 
 /* ------------------------------------------------------------ chamadas da tela */
 
-/** Abre a aba GUARNIÇÕES (criando, se não existir) — o ponto de entrada no painel de Configurações. */
+/**
+ * Abre a aba GUARNIÇÕES — o ponto de entrada no painel de Configurações.
+ * P19 (pedido do usuário): estrutura só pelo menu "Atualizar estrutura"; este botão só abre, não cria.
+ */
 function painelGuarnicoesAbrir() {
-  const r = cadgGarantirAba_();
-  if (r.aba.isSheetHidden()) r.aba.showSheet();
-  SpreadsheetApp.getActive().setActiveSheet(r.aba);
-  return { criada: r.criada };
-}
-
-/** Cria a coluna CNH em MILITARES, se faltar. */
-function painelGuarnicoesColunaCnh() {
-  const lock = LockService.getDocumentLock();
-  if (!lock.tryLock(15000)) throw new Error('Outra pessoa está gravando agora. Tente de novo em instantes.');
-  try {
-    return { criada: garantirColunaCnh_() };
-  } finally {
-    lock.releaseLock();
-  }
-}
-
-/** Acrescenta a coluna GUARNIÇÃO ao cadastro antigo, copiando a viatura. */
-function painelGuarnicoesMigrar() {
-  const lock = LockService.getDocumentLock();
-  if (!lock.tryLock(15000)) throw new Error('Outra pessoa está gravando agora. Tente de novo em instantes.');
-  try {
-    return cadgMigrarParaGuarnicoes_();
-  } finally {
-    lock.releaseLock();
-  }
+  const aba = abaAtual_(SpreadsheetApp.getActive(), CADG_ABA);
+  if (!aba) throw new Error('A aba GUARNIÇÕES não existe. Use o menu Escalas - 2º GB > Atualizar estrutura.');
+  if (aba.isSheetHidden()) aba.showSheet();
+  SpreadsheetApp.getActive().setActiveSheet(aba);
+  return { criada: false };
 }
 
 /** Resumo do cadastro para o painel de Configurações, no mês escolhido. */
@@ -228,7 +210,7 @@ function guarnicoesResumo_(mes, tz) {
   const exigem = v.guarnicoes.filter(function (x) { return x.ativar && x.cnh.length; });
   const avisos = v.avisos.slice();
   if (v.existe && !temCnh && exigem.length) {
-    avisos.push('Há guarnição que exige categoria de CNH, mas a aba MILITARES não tem a coluna CNH (RN-12): a checagem de habilitação fica desligada. Crie a coluna pelo botão ao lado.');
+    avisos.push('Há guarnição que exige categoria de CNH, mas a aba MILITARES não tem a coluna CNH (RN-12): a checagem de habilitação fica desligada. Crie a coluna pelo menu Escalas - 2º GB > Atualizar estrutura.');
   }
   return {
     existe: v.existe,

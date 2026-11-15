@@ -24,7 +24,7 @@ console.log('== P19 item 1 (B70) a visualização "ESCALA DO ORDINÁRIO" (B40) s
 console.log('== P19 item 2 (B68; RN-02, RN-81) o front da aba ESCALA');
 {
   const G = new Function(['nucleo.js', 'choques.js', 'sincronia.js', 'cadastro_guarnicoes.js', 'guarnicao.js'].map(ler).join('\n') +
-    '\nreturn {desenhoDaEscala_, textosSemFuncao_, compararAntiguidade_, montarGrade_};')();
+    '\nreturn {desenhoDaEscala_, layoutSemFuncao_, compararAntiguidade_, montarGrade_};')();
   // dois dias (03/11 terça e 07/11 sábado), dois turnos, duas guarnições no turno A
   const L = (dia, turno, unidade, funcao) => ({ dia: '2026-11-' + dia, turno, unidade, funcao, k: 1, mat: '', servico: '' });
   const linhas = [
@@ -50,16 +50,27 @@ console.log('== P19 item 2 (B68; RN-02, RN-81) o front da aba ESCALA');
     '2026-11-03|A|': [{ mat: '4', funcao: '', unidade: '' }, { mat: '9', funcao: '', unidade: '' }],
     '2026-11-07|B|UTS': [{ mat: '1', funcao: '', unidade: 'UTS' }]
   };
-  const t = G.textosSemFuncao_(linhas, sf, mil);
-  ver('2.4: um militar por linha da célula, com graduação, nome e matrícula, do mais antigo ao mais moderno (ST antes de SD)',
-    t[0].split('\n').slice(0, 2).join(' / ') === 'ST BM BIA (2) (COZINHEIRO fora do modelo) / SD BM ANA (1)', t[0]);
+  const lay = G.layoutSemFuncao_(linhas, sf, mil);
+  const t = lay.textos;
+  // dia 03 turno A: 3 linhas (ABT, ABT, AR). Lista do ABT: BIA, ANA (2 células, a partir da linha do ABT);
+  // a do AR começaria na linha do AR (índice 2), que está livre: CAIO; depois os sem guarnição: DANI e (9)
+  // -> não cabem nas 3 linhas do turno: entram 2 linhas extras no fim do turno A do dia 03
+  ver('2.4: UM militar por célula, com graduação, nome e matrícula, do mais antigo ao mais moderno (ST antes de SD)',
+    t[0] === 'ST BM BIA (2) (COZINHEIRO fora do modelo)' && t[1] === 'SD BM ANA (1)', t.slice(0, 6));
   ver('2.4: função fora do modelo continua avisada', /\(COZINHEIRO fora do modelo\)/.test(t[0]));
-  ver('2.5: a lista do AR fica na 1ª linha do bloco do AR, dentro do turno', t[2] === '3º SGT BM CAIO (3)', t);
-  ver('2.5: quem não tem guarnição fica em "Sem guarnição:", na 1ª linha do turno (depois da lista da 1ª guarnição)',
-    t[0].split('\n').slice(2).join(' / ') === 'Sem guarnição: / CB BM DANI (4) / (9)', t[0]);
-  ver('2.5: guarnição que não está naquele turno vai para "Sem guarnição", com o nome dela',
-    t[6] === 'Sem guarnição:\nSD BM ANA (1) (guarnição "UTS" fora deste turno)', t[6]);
-  ver('as outras linhas ficam sem texto', [1, 3, 4, 5].every(i => t[i] === ''), t);
+  ver('2.5: a lista do AR começa na linha do bloco do AR, dentro do turno', lay.linhas[2].unidade === 'AR' && t[2] === '3º SGT BM CAIO (3)', t.slice(0, 6));
+  ver('2.5: quem não tem guarnição vem depois das listas das guarnições, marcado "— sem guarnição"',
+    t[3] === 'CB BM DANI (4) — sem guarnição' && t[4] === '(9) — sem guarnição', t.slice(0, 6));
+  ver('lista maior que o turno: entram linhas EXTRAS no fim do turno (sem FUNÇÃO, para o salvar ignorar)',
+    lay.linhas.length === linhas.length + 2 && lay.linhas[3].extra && lay.linhas[4].extra && lay.linhas[3].funcao === '' &&
+    lay.linhas[3].dia === '2026-11-03' && lay.linhas[3].turno === 'A' && lay.linhas[5] === linhas[3], lay.linhas.map(l => (l.extra ? 'EXTRA ' : '') + l.dia.slice(8) + l.turno + l.unidade));
+  ver('as linhas de posto continuam todas, na mesma ordem', lay.linhas.filter(l => !l.extra).every((l, k) => l === linhas[k]));
+  const iUTS = lay.linhas.indexOf(linhas[6]);
+  ver('2.5: guarnição que não está naquele turno vai para o fim do turno, com o nome dela', t[iUTS] === 'SD BM ANA (1) — guarnição "UTS" fora deste turno', t[iUTS]);
+  ver('turno sem ninguém sem função: células vazias e nenhuma linha extra', lay.linhas.slice(5, 9).every((l, k) => !l.extra) && t[5] === '' && t[6] === '' && t[7] === '', t.slice(5));
+  // lista que cabe: não cria linha
+  const cabe = G.layoutSemFuncao_(linhas.slice(0, 3), { '2026-11-03|A|AR': [{ mat: '3', funcao: '', unidade: 'AR' }] }, mil);
+  ver('lista que cabe no turno não cria linha extra', cabe.linhas.length === 3 && cabe.textos.join('|') === '||3º SGT BM CAIO (3)', cabe.textos);
   ver('antiguidade: mesmo posto, a ANTIG. desempata; depois o cadastro; fora do cadastro vai por último',
     [{ mat: 'x', m: { posto: 'SD', antig: '', ordem: 1 } }, { mat: 'z' }, { mat: 'y', m: { posto: 'SD', antig: 3, ordem: 9 } }, { mat: 'w', m: { posto: 'SD', antig: '', ordem: 0 } }]
       .sort(G.compararAntiguidade_).map(x => x.mat).join() === 'y,w,x,z');
@@ -111,18 +122,22 @@ console.log('== P19 item 2 (B68) a aba ESCALA desenhada (planilha que registra a
   const grade = P.montarGrade_(esc, '2026-11', al);
   P.renderizarGrade_(esc, '2026-11', grade, al, mil, { porChave: {} }, 'America/Recife', null);
 
-  const r0 = 6, n = grade.linhas.length;                   // 30 dias × 3 postos
+  const r0 = 6;
   const bordas = estilo => log.filter(x => x[0] === 'setBorder' && x[9] === estilo).map(x => x[1]);   // setBorder(top..., cor, estilo): cor = x[8], estilo = x[9]
   ver('2.2: linha de dia SOLID_THICK, uma por dia (30), e nenhuma SOLID_MEDIUM entre dias', bordas('SOLID_THICK').length === 30 && bordas('SOLID_MEDIUM').length === 0, [bordas('SOLID_THICK').length, bordas('SOLID_MEDIUM').length]);
-  ver('2.1: tracejado cinza claro entre os turnos (30, um por dia), e em cima do turno B', bordas('DASHED').length === 30 && bordas('DASHED')[0] === (r0 + 2) + ',1:' + (r0 + 2) + ',9' &&
+  ver('2.1: tracejado cinza claro entre os turnos (30, um por dia), e em cima do turno B (depois da linha extra no dia 01)', bordas('DASHED').length === 30 && bordas('DASHED')[0] === (r0 + 3) + ',1:' + (r0 + 3) + ',9' &&
     log.filter(x => x[0] === 'setBorder' && x[9] === 'DASHED').every(x => x[8] === '#BDBDBD'), bordas('DASHED').slice(0, 2));
   const fundos = log.filter(x => x[0] === 'setBackground' && x[2] === '#EEF3F1').map(x => x[1]);
-  ver('2.3: dias alternados (15 de 30) com fundo claro, só nas colunas DATA a FUNÇÃO (1 a 6)', fundos.length === 15 && fundos[0] === (r0 + 3) + ',1:' + (r0 + 5) + ',6', fundos.slice(0, 2));
+  ver('2.3: dias alternados (15 de 30) com fundo claro, só nas colunas DATA a FUNÇÃO (1 a 6)', fundos.length === 15 && fundos[0] === (r0 + 4) + ',1:' + (r0 + 6) + ',6', fundos.slice(0, 2));
   ver('2.3: o cinza de fim de semana (#F1F3F4) não disputa mais as células', !log.some(x => x[0] === 'setBackground' && x[2] === '#F1F3F4'));
   const fds = log.filter(x => x[0] === 'setFontColor' && x[2] === '#C5221F').map(x => x[1]);
   ver('2.3: o fim de semana segue marcado na coluna DIA (vermelho), 9 dias em nov/2026', fds.length === 9 && fds.every(a => /,2(:|$)/.test(a) && /,2$/.test(a)), fds.slice(0, 3));
-  ver('2.4: a coluna "sem função" quebra linha e fica alinhada em cima', log.some(x => x[0] === 'setWrap' && x[1] === r0 + ',9:' + (r0 + n - 1) + ',9' && x[2] === true));
-  ver('2.4/2.5: a lista do AR (dia 01, turno A) está na linha do AR, ST antes de SD', valores[(r0 + 1) + ',9'] === 'ST BM BIA (2)\nSD BM ANA (1)', valores[(r0 + 1) + ',9']);
+  // dia 01, turno A: linhas ABT(0), AR(1); a lista do AR tem 2 militares -> AR(1) e uma linha extra (2), antes do turno B
+  ver('2.4/2.5: um militar por célula: a lista do AR começa na linha do AR, ST antes de SD, e desce para a linha seguinte',
+    valores[(r0 + 1) + ',9'] === 'ST BM BIA (2)' && valores[(r0 + 2) + ',9'] === 'SD BM ANA (1)', [valores[(r0 + 1) + ',9'], valores[(r0 + 2) + ',9']]);
+  ver('a linha extra tem dia e turno, mas não tem FUNÇÃO nem MILITAR (o salvar a ignora)',
+    valores[(r0 + 2) + ',3'] === 'A' && valores[(r0 + 2) + ',6'] === '' && valores[(r0 + 2) + ',7'] === '' && valores[(r0 + 3) + ',3'] === 'B', [valores[(r0 + 2) + ',3'], valores[(r0 + 2) + ',6'], valores[(r0 + 3) + ',3']]);
+  ver('a linha extra fica fora do destaque de vaga vazia', regrasCF.length === 2);
   ver('o cabeçalho da coluna fala em turno × guarnição', valores['5,9'] === 'SEM FUNÇÃO (TURNO × GUARNIÇÃO)', valores['5,9']);
   ver('as cores dos serviços e o destaque de vaga vazia continuam (MILITAR e SERVIÇO)', regrasCF.length === 2, regrasCF.length);
   ver('MILITAR e SERVIÇO não recebem o fundo dos dias alternados', !fundos.some(a => /,(7|8)(:|$)/.test(a.split(':')[0]) || /,(7|8)$/.test(a)));
@@ -200,7 +215,7 @@ console.log('== P19 item 4 (B69; RN-93) menu "Atualizar estrutura"');
   function carregar(ss) {
     const fontes = fs.readdirSync(dir).filter(f => f.endsWith('.js')).sort().map(ler).join('\n');
     return new Function('SpreadsheetApp', 'Utilities', 'LockService', 'HtmlService', fontes +
-      '\nreturn {atualizarEstrutura_, textoDaEstrutura_, MIGRACOES_, painelGuarnicaoExemplos, painelCotasAbas};')(
+      '\nreturn {atualizarEstrutura_, textoDaEstrutura_, MIGRACOES_};')(
       { getActive: () => ss, flush() {}, newDataValidation: regra, newConditionalFormatRule: regra },
       { formatDate: () => '2026-11', parseDate: s => s }, { getDocumentLock: () => ({ tryLock: () => true, releaseLock() {} }) }, {});
   }
@@ -256,11 +271,13 @@ console.log('== P19 item 4 (B69; RN-93) menu "Atualizar estrutura"');
   rel = E.atualizarEstrutura_(E.MIGRACOES_.filter(m => m.id === 'guarnicoes-sem-tipos-de-servico'));
   ver('coluna antiga ainda preenchida: "atenção", e nada é apagado', rel.passos[0].estado === 'atencao' && cab('GUARNIÇÕES').indexOf('TIPOS DE SERVIÇO') >= 0, rel.passos[0]);
 
-  // os botões dos painéis usam o mesmo ponto
-  ss = antiga(); E = carregar(ss);
-  const b = E.painelGuarnicaoExemplos();
-  ver('o botão "Criar abas e colunas que faltam" roda as mesmas migrações (menos a conversão, que tem botão próprio)',
-    b.criadas.length > 0 && ss.getSheetByName('MODELOS DE GUARNIÇÃO') === null && cab('GUARNIÇÕES POR ESCALA').indexOf('UNIDADE') >= 0 && !ss.getSheetByName('GUARNIÇÕES POR ESCALA (FORMATO ANTIGO)'), b.criadas);
+  // pedido do usuário (14/11): estrutura só pelo menu; os botões dos painéis saíram
+  const telas = ['sidebar_guarnicao.html', 'sidebar_pre_escala.html', 'sidebar_parametros.html'].map(ler).join('\n');
+  ver('nenhum painel tem botão de estrutura (Criar abas…, Converter, Migrar para guarnições, Criar coluna CNH)',
+    !/btnExemplos|btnConverter|btnCotasAbas|Migrar para guarnições|Criar coluna CNH|Criar abas e colunas? que faltam|Converter para o formato novo/.test(telas));
+  const servidor = fs.readdirSync(dir).filter(f => f.endsWith('.js')).map(ler).join('\n');
+  ver('as funções desses botões saíram do servidor', !/function (painelGuarnicaoExemplos|painelGuarnicaoConverterVinculos|painelCotasAbas|painelGuarnicoesColunaCnh|painelGuarnicoesMigrar)\(/.test(servidor));
+  ver('nenhum aviso manda mais o usuário a um botão de estrutura', !/pelo botão "Criar|Use o botão "Converter|botão "Migrar|pelo botão ao lado/.test(servidor));
   ver('o menu tem "Atualizar estrutura"', /addItem\('Atualizar estrutura', 'atualizarEstrutura'\)/.test(ler('matriz.js')));
 }
 

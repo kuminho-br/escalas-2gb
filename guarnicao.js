@@ -555,54 +555,69 @@ function compararAntiguidade_(x, y) {
 }
 
 /**
- * P19 itens 2.4 e 2.5 (B68; RN-02, RN-81): o texto da coluna "SEM FUNÇÃO" de cada linha da grade.
- * linhas    : grade.linhas (montarGrade_), na ordem da aba
+ * P19 itens 2.4 e 2.5 (B68; RN-02, RN-81): a coluna "SEM FUNÇÃO", com UM MILITAR POR CÉLULA.
+ * linhas    : grade.linhas (montarGrade_), na ordem da aba (cada turno é um bloco contíguo)
  * semFuncao : grade.semFuncao, por 'dia|turno|unidade'
  * milPorMat : { matrícula: registro de lerMilitares_ }
- * Retorna um texto por linha ('' quando a linha não tem lista).
- *   - cada militar numa linha do texto (quebra de linha), no rótulo da coluna MILITAR (graduação, nome e
- *     matrícula), do mais antigo para o mais moderno; com função fora do modelo, "(FUNÇÃO fora do modelo)";
- *   - a lista de uma guarnição fica na 1ª linha do bloco daquela guarnição dentro do turno;
- *   - quem não tem guarnição na alocação (ou tem uma que não está naquele turno) fica em "Sem guarnição:",
- *     na 1ª linha do turno.
+ * Retorna { linhas, textos }:
+ *   linhas : as linhas da grade, na mesma ordem, mais linhas EXTRAS ({ dia, turno, extra: true }) no fim de um
+ *            turno cuja lista não coube nas linhas dele. A linha extra não tem FUNÇÃO: lerGrade_ a ignora, e
+ *            ela não entra no salvar.
+ *   textos : um texto por linha de "linhas" ('' = célula vazia).
+ * Dentro de cada turno:
+ *   - a lista de cada guarnição começa na 1ª linha do bloco daquela guarnição e desce uma célula por militar;
+ *     se a lista anterior ainda estiver ocupando, começa logo depois dela;
+ *   - cada militar no rótulo da coluna MILITAR (graduação, nome e matrícula), do mais antigo ao mais moderno;
+ *     com função fora do modelo, "(FUNÇÃO fora do modelo)";
+ *   - quem não tem guarnição (ou tem uma que não está naquele turno) vem depois das listas das guarnições,
+ *     com "— sem guarnição" (ou "— guarnição X fora deste turno") no fim.
  */
-function textosSemFuncao_(linhas, semFuncao, milPorMat) {
+function layoutSemFuncao_(linhas, semFuncao, milPorMat) {
   milPorMat = milPorMat || {};
-  const out = linhas.map(function () { return ''; });
-  const primeiraDoTurno = Object.create(null), primeiraDaGuarnicao = Object.create(null);
-  linhas.forEach(function (l, i) {
-    const t = l.dia + '|' + l.turno;
-    if (!(t in primeiraDoTurno)) primeiraDoTurno[t] = i;
-    const g = t + '|' + normalizar_(l.unidade);
-    if (l.unidade && !(g in primeiraDaGuarnicao)) primeiraDaGuarnicao[g] = i;
-  });
-  const porLinha = Object.create(null);        // índice -> { daGuarnicao: [], semGuarnicao: [] }
-  Object.keys(semFuncao || {}).forEach(function (k) {
-    const p = k.split('|'), t = p[0] + '|' + p[1], uni = p.slice(2).join('|');
-    const g = t + '|' + normalizar_(uni);
-    const naGuarnicao = !!uni && (g in primeiraDaGuarnicao);
-    const i = naGuarnicao ? primeiraDaGuarnicao[g] : primeiraDoTurno[t];
-    if (i === undefined) return;               // turno sem posto: montarGrade_ não gera lista nele
-    const alvo = porLinha[i] = porLinha[i] || { daGuarnicao: [], semGuarnicao: [] };
-    semFuncao[k].forEach(function (x) { (naGuarnicao ? alvo.daGuarnicao : alvo.semGuarnicao).push({ mat: x.mat, m: milPorMat[x.mat], funcao: x.funcao, unidade: x.unidade }); });
-  });
-  const texto = function (x) {
-    return rotuloMilitar_(x.m, x.mat) + (x.funcao ? ' (' + x.funcao + ' fora do modelo)' : '');
-  };
-  Object.keys(porLinha).forEach(function (i) {
-    const p = porLinha[i], partes = [];
-    p.daGuarnicao.sort(compararAntiguidade_);
-    p.semGuarnicao.sort(compararAntiguidade_);
-    p.daGuarnicao.forEach(function (x) { partes.push(texto(x)); });
-    if (p.semGuarnicao.length) {
-      partes.push('Sem guarnição:');
-      p.semGuarnicao.forEach(function (x) {
-        partes.push(texto(x) + (x.unidade ? ' (guarnição "' + x.unidade + '" fora deste turno)' : ''));
-      });
+  semFuncao = semFuncao || {};
+  const outL = [], outT = [];
+  const rotulo = function (x) { return rotuloMilitar_(x.m, x.mat) + (x.funcao ? ' (' + x.funcao + ' fora do modelo)' : ''); };
+  let i = 0;
+  while (i < linhas.length) {
+    // o bloco do turno: linhas[i..j]
+    let j = i;
+    while (j + 1 < linhas.length && linhas[j + 1].dia === linhas[i].dia && linhas[j + 1].turno === linhas[i].turno) j++;
+    const t = linhas[i].dia + '|' + linhas[i].turno;
+    const inicioDaGuarnicao = Object.create(null), ordemGuarn = [];
+    for (let k = i; k <= j; k++) {
+      const g = normalizar_(linhas[k].unidade);
+      if (linhas[k].unidade && !(g in inicioDaGuarnicao)) { inicioDaGuarnicao[g] = k - i; ordemGuarn.push(g); }
     }
-    out[i] = partes.join('\n');
-  });
-  return out;
+    const listas = Object.create(null), sem = [];
+    Object.keys(semFuncao).forEach(function (chave) {
+      const p = chave.split('|');
+      if (p[0] + '|' + p[1] !== t) return;
+      const uni = p.slice(2).join('|'), g = normalizar_(uni);
+      semFuncao[chave].forEach(function (x) {
+        const item = { mat: x.mat, m: milPorMat[x.mat], funcao: x.funcao, unidade: x.unidade };
+        if (uni && (g in inicioDaGuarnicao)) (listas[g] = listas[g] || []).push(item);
+        else { item.fora = !!uni; sem.push(item); }
+      });
+    });
+    const celulas = [];                     // posição relativa no turno -> texto
+    let cursor = 0;
+    ordemGuarn.forEach(function (g) {
+      if (!listas[g]) return;
+      listas[g].sort(compararAntiguidade_);
+      let pos = Math.max(inicioDaGuarnicao[g], cursor);
+      listas[g].forEach(function (x) { celulas[pos++] = rotulo(x); });
+      cursor = pos;
+    });
+    sem.sort(compararAntiguidade_);
+    sem.forEach(function (x) { celulas[cursor++] = rotulo(x) + (x.fora ? ' — guarnição "' + x.unidade + '" fora deste turno' : ' — sem guarnição'); });
+    const n = j - i + 1, total = Math.max(n, celulas.length);
+    for (let k = 0; k < total; k++) {
+      outL.push(k < n ? linhas[i + k] : { dia: linhas[i].dia, turno: linhas[i].turno, unidade: '', funcao: '', mat: '', servico: '', extra: true });
+      outT.push(celulas[k] || '');
+    }
+    i = j + 1;
+  }
+  return { linhas: outL, textos: outT };
 }
 
 /* ------------------------------------------------------------ diferenças */

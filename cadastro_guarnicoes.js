@@ -30,7 +30,7 @@
  *
  * B58 item 1 (RN-09): a coluna TIPOS DE SERVIÇO saiu. Quais escalas e turnos uma guarnição atende
  * não é mais atributo da guarnição: é o vínculo explícito, linha a linha, de outra aba. Uma coluna
- * TIPOS DE SERVIÇO que ainda exista na planilha não é lida (e o botão de criar colunas a apaga,
+ * TIPOS DE SERVIÇO que ainda exista na planilha não é lida (e o menu "Atualizar estrutura" a apaga,
  * se estiver vazia).
  *
  * A leitura é por nome de coluna, então acrescentar coluna depois não quebra nada — é assim que a

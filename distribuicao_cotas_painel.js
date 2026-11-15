@@ -4,7 +4,7 @@
  * Depende de nucleo.js, matriz.js, pre_escala.js, pre_escala_painel.js, choques.js, choques_painel.js,
  * parametros.js, parametros_painel.js, guarnicao.js, guarnicao_painel.js e distribuicao_adm_painel.js.
  *
- * Abas lidas (criadas vazias, com cabeçalho e uma linha de exemplo, por painelCotasAbas):
+ * Abas lidas (criadas vazias, com cabeçalho e uma linha de exemplo, pelo menu "Atualizar estrutura" — cotasGarantirAba_):
  *   COTAS         MÊS | SB | OPERAÇÃO | SERVIÇO | QUANTIDADE | ORIGEM | PRIORIDADE
  *                   OPERAÇÃO = nome da escala na aba ESCALAS. ORIGEM = interna (padrão) ou externa (RN-34/RN-35).
  *                   Linhas de JES da SB são aceitas e ignoradas nesta etapa.
@@ -147,16 +147,16 @@ function cotasCalcular_(mes, secao, tz) {
   const sep = separarVoluntariado_(vol.linhas, vjes);
   const nomesCad = nomesPorMatricula_();
   const avisos = [].concat(mod.avisos || [], cotas.avisos, vol.avisos);
-  if (!vjes) avisos.push('A aba MILITARES não tem a coluna VOLUNTÁRIO JES (RN-46): por ora todos os que preencheram o formulário contam como voluntários. Crie a coluna pelo botão "Criar abas e coluna que faltam" e preencha sim/não.');
+  if (!vjes) avisos.push('A aba MILITARES não tem a coluna VOLUNTÁRIO JES (RN-46): por ora todos os que preencheram o formulário contam como voluntários. Crie a coluna pelo menu Escalas - 2º GB > Atualizar estrutura e preencha sim/não.');
   const ign = Object.keys(sep.ignoradas);
   if (ign.length) {
     const qtd = ign.reduce(function (n, m) { return n + sep.ignoradas[m]; }, 0);
     avisos.push('VOLUNTARIADO: ' + qtd + ' linha(s) de ' + ign.length + ' militar(es) sem VOLUNTÁRIO JES = "sim" em MILITARES valem para as diárias, mas não para o JES (RN-04, RN-46): ' +
       ign.slice(0, 5).map(function (m) { return nomesCad[m] || m; }).join(', ') + (ign.length > 5 ? '…' : '') + '.');
   }
-  if (!cotas.existe) avisos.push('A aba COTAS não existe. Crie-a pelo botão "Criar abas e coluna que faltam".');
+  if (!cotas.existe) avisos.push('A aba COTAS não existe. Crie-a pelo menu Escalas - 2º GB > Atualizar estrutura.');
   else if (!cotas.linhas.length) avisos.push('A aba COTAS não tem cotas de ' + secao + ' em ' + mes + '.');
-  if (!vol.existe) avisos.push('A aba VOLUNTARIADO não existe. Crie-a pelo botão "Criar abas e coluna que faltam".');
+  if (!vol.existe) avisos.push('A aba VOLUNTARIADO não existe. Crie-a pelo menu Escalas - 2º GB > Atualizar estrutura.');
   if (mod.semAbas) avisos.push('As abas ESCALAS e GUARNIÇÕES POR ESCALA não existem; sem elas não há vagas por operação.');
 
   const diasMes = diasDoMes_(mes);
@@ -323,17 +323,3 @@ function cotasGarantirAba_(nome) {
   return true;
 }
 
-/**
- * Cria as abas COTAS e VOLUNTARIADO e a coluna VOLUNTÁRIO JES de MILITARES, sem tocar no que já existe.
- * P19 item 4 (B69): o botão roda as mesmas migrações do menu "Atualizar estrutura" (só as das cotas).
- */
-function painelCotasAbas() {
-  const ids = ['aba-cotas', 'aba-voluntariado', 'militares-voluntario-jes'];
-  const rel = atualizarEstrutura_(MIGRACOES_.filter(function (m) { return ids.indexOf(m.id) >= 0; }));
-  const criadas = [];
-  rel.passos.forEach(function (p) {
-    if (p.estado === 'feito') criadas.push(p.resultado || p.descricao);
-    else if (p.estado === 'erro') criadas.push('ERRO em "' + p.descricao + '": ' + p.erro);
-  });
-  return { criadas: criadas };
-}

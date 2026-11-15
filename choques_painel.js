@@ -52,7 +52,7 @@ function lerOrigens_() {
   if (cS < 0) return out;
   out.temColuna = cO >= 0;
   if (cO < 0) {
-    out.avisos.push('A aba TURNOS não tem a coluna ORIGEM (RN-13): a origem de cada alocação aparece com o nome do próprio serviço (o JES aparece como "JES", não "PJES"). Crie a coluna pelo botão "Criar abas e colunas que faltam" do painel Escalas de Serviço.');
+    out.avisos.push('A aba TURNOS não tem a coluna ORIGEM (RN-13): a origem de cada alocação aparece com o nome do próprio serviço (o JES aparece como "JES", não "PJES"). Crie a coluna pelo menu Escalas - 2º GB > Atualizar estrutura.');
     return out;
   }
   v.slice(1).forEach(function (l) {

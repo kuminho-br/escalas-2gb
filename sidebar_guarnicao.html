@@ -44,7 +44,7 @@
   <!-- o cartão do primeiro uso: só quando faltam as abas de cadastro -->
   <div id="cartaoPrimeiroUso" class="cartao" hidden>
     <h2>Primeiro uso</h2>
-    <div>Faltam as abas de cadastro <b>ESCALAS</b> e <b>GUARNIÇÕES POR ESCALA</b>. Use o botão <b>Criar abas e colunas que faltam</b>, no fim do painel.</div>
+    <div>Faltam as abas de cadastro <b>ESCALAS</b> e <b>GUARNIÇÕES POR ESCALA</b>. Use o menu <b>Escalas - 2º GB &gt; Atualizar estrutura</b>.</div>
   </div>
 
   <div id="cartaoEscolha" hidden>
@@ -99,18 +99,6 @@
     <div id="resultadoImprimir" class="ok" hidden></div>
   </div>
 
-  <!-- Sempre visível: abas e colunas novas (ORIGEM em TURNOS, UNIDADE em ALOCAÇÕES...) chegam com
-       a planilha já em uso, não só no primeiro uso. O botão nunca apaga nem sobrescreve nada. -->
-  <div id="cartaoSetup" class="cartao">
-    <h2>Cadastro</h2>
-    <div class="nota">Cria as abas e as colunas de cadastro que ainda faltam na planilha. Não apaga nenhum dado nem sobrescreve o que já existe. É o mesmo que o menu <b>Escalas - 2º GB &gt; Atualizar estrutura</b>, que também converte GUARNIÇÕES POR ESCALA para o formato novo.</div>
-    <button id="btnExemplos" class="principal">Criar abas e colunas que faltam</button>
-    <!-- B58 item 2: só aparece enquanto GUARNIÇÕES POR ESCALA estiver no formato antigo -->
-    <div id="blocoConverter" hidden>
-      <div class="nota" style="margin-top:10px">A aba <b>GUARNIÇÕES POR ESCALA</b> está no formato antigo (UNIDADE, FUNÇÃO e VAGAS em cada linha). No novo ela só vincula ESCALA e TURNO a uma GUARNIÇÃO de <b>GUARNIÇÕES</b>, de onde vêm as funções, as vagas e a CNH. A aba atual é guardada inteira antes.</div>
-      <button id="btnConverter" class="secundario">Converter para o formato novo</button>
-    </div>
-  </div>
 
 
 <script>
@@ -135,7 +123,7 @@
   function ocupado(sim) {
     trabalhando = sim;
     if (!sim) ultimaAtualizacao = Date.now();
-    ['btnMontar', 'btnSalvar', 'btnAtualizar', 'btnImprimir', 'btnExemplos', 'btnConverter', 'mes', 'escala'].forEach(function (id) { el(id).disabled = sim; });
+    ['btnMontar', 'btnSalvar', 'btnAtualizar', 'btnImprimir', 'mes', 'escala'].forEach(function (id) { el(id).disabled = sim; });
     if (!sim && atual) el('btnSalvar').disabled = atual.aplicarTotal === 0;
   }
   function falha(e) {
@@ -221,7 +209,6 @@
     infoEscala();
     el('mes').value = d.mesSugerido || '';
     mostrar('cartaoPrimeiroUso', d.semAbas);
-    mostrar('blocoConverter', !!d.formatoAntigo);
     mostrar('cartaoEscolha', !d.semAbas && escalas.length > 0);
     mostrar('cartaoImprimir', !d.semAbas && escalas.length > 0);
     var av = d.avisos.slice();
@@ -234,40 +221,6 @@
   }
   el('escala').addEventListener('change', infoEscala);
 
-  el('btnExemplos').addEventListener('click', function () {
-    limpar(); ocupado(true);
-    google.script.run
-      .withSuccessHandler(function (r) {
-        ocupado(false);
-        el('resultado').textContent = r.criadas.length ? 'Feito: ' + r.criadas.join('; ') + '.' : 'Nada faltava: as abas e as colunas já existiam, e nada foi alterado.';
-        mostrar('resultado', true);
-        el('resultado').scrollIntoView({ behavior: 'smooth', block: 'center' });   // o botão fica no fim do painel
-        carregar();
-      })
-      .withFailureHandler(falha)
-      .painelGuarnicaoExemplos();
-  });
-
-  el('btnConverter').addEventListener('click', function () {
-    limpar(); ocupado(true);
-    google.script.run
-      .withSuccessHandler(function (r) {
-        ocupado(false);
-        if (r.cancelado) return;
-        if (!r.convertida) { el('resultado').textContent = r.motivo || 'Nada foi convertido.'; }
-        else {
-          var msg = 'Convertida: ' + r.vinculos + ' vínculo(s) criado(s) a partir da coluna UNIDADE. A aba antiga ficou guardada como "' + r.antiga + '".';
-          if (r.semUnidade) msg += ' ' + r.semUnidade + ' linha(s) não tinham UNIDADE e não viraram vínculo' +
-            (r.escalasSemVinculo.length ? ': as escalas ' + r.escalasSemVinculo.join(', ') + ' ficam sem posto até você vincular uma guarnição a elas' : '') + '.';
-          el('resultado').textContent = msg;
-        }
-        mostrar('resultado', true);
-        el('resultado').scrollIntoView({ behavior: 'smooth', block: 'center' });
-        carregar();
-      })
-      .withFailureHandler(falha)
-      .painelGuarnicaoConverterVinculos();
-  });
 
   el('btnMontar').addEventListener('click', function () {
     limpar(); ocupado(true);
