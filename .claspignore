@@ -1,2 +1,5 @@
 testes/**
 node_modules/**
+.gitattributes
+*.md
+*.bundle
