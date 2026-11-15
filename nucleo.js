@@ -348,12 +348,13 @@ function linhasExtrasVazias_(linhas, celulas) {
  * planilha que ainda tenha MATRIZ termina com GRADE GERAL).
  * A comparação é sempre pelo nome INTEIRO: "ESCALA" não é "ESCALAS" e "GUARNIÇÕES" não é
  * "GUARNIÇÕES POR ESCALA".
+ * P19 item 1 (B70): a ESCALA DO ORDINÁRIO (ex-ESCALA OPERACIONAL, B40) saiu do sistema; o código não
+ * cria nem renomeia mais essa aba. A que já existir na planilha fica como está, e o usuário apaga à mão.
  */
 const ABAS_NOMES_ANTIGOS_ = {
   'ALOCAÇÕES': ['ALOCAÇÕES TABULADAS'],
   'GRADE GERAL': ['ESCALA DO MÊS', 'MATRIZ'],
   'ESCALA': ['GUARNIÇÃO'],
-  'ESCALA DO ORDINÁRIO': ['ESCALA OPERACIONAL'],
   'GUARNIÇÕES': ['VIATURAS'],
   'GUARNIÇÕES POR ESCALA': ['MODELOS DE GUARNIÇÃO']      // B58: só o nome muda aqui; o formato é convertido pelo painel
 };
