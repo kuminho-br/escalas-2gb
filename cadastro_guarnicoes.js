@@ -77,9 +77,30 @@ function cadgLista_(bruto) {
  * Só existem as categorias A, B, C, D e E: um pedaço com qualquer outra coisa ("X", "NÃO",
  * "D1") não vira categoria e volta em invalidas, para o painel avisar.
  * Retorna { categorias: ['A','D'], invalidas: ['texto original do pedaço'] }.
- * A hierarquia entre categorias continua NÃO estando no código (B49 item 1, em aberto).
+ * A hierarquia entre categorias (D vale por C e B…) é aplicada depois, em cnhAtende_ (P19 item 3, B71).
  */
 const CNH_CATEGORIAS_ = 'ABCDE';
+
+/**
+ * P19 item 3 (B71; RN-12): hierarquia das categorias de CNH, pelo CTB. Fica no código, não no cadastro
+ * (decisão do usuário em 14/11): é lei e não muda. Cada categoria → as que ela habilita (inclusive ela mesma).
+ *   E → E, D, C, B   (nenhuma guarnição exige E hoje; a regra fica pronta)
+ *   D → D, C, B
+ *   C → C, B
+ *   B → B
+ *   A → A            (só a A habilita a A; não há escada entre A e as demais)
+ */
+const CNH_HABILITA_ = { E: ['E', 'D', 'C', 'B'], D: ['D', 'C', 'B'], C: ['C', 'B'], B: ['B'], A: ['A'] };
+
+/** P19 item 3 (B71): as categorias que o militar pode dirigir, pela hierarquia. ['A','D'] → ['A','D','C','B']. */
+function cnhHabilitadas_(doMilitar) {
+  const out = [];
+  (doMilitar || []).forEach(function (x) {
+    const c = normalizar_(x);
+    (CNH_HABILITA_[c] || [c]).forEach(function (h) { if (out.indexOf(h) < 0) out.push(h); });
+  });
+  return out;
+}
 function categoriasCnh_(bruto) {
   const categorias = [], invalidas = [];
   String(bruto == null ? '' : bruto).split(/[,;/\s]+/).forEach(function (pedaco) {
@@ -102,15 +123,14 @@ function cadgInteiro_(bruto) {
 
 /**
  * RN-12: a CNH do militar atende a exigida pela guarnição?
- * exigidas vazio = não exige. Atende quem tem ao menos uma das categorias exigidas.
- * doMilitar já vem letra a letra (categoriasCnh_, B59): "AD" chega aqui como ['A','D'].
- * A hierarquia entre categorias NÃO está no código (nada de "D vale por B"): se na unidade
- * a D habilita a B, o escalante escreve as duas categorias na coluna CNH do militar.
+ * exigidas vazio = não exige. Atende quem tem ao menos uma das categorias exigidas, OU uma categoria que
+ * a habilite (P19 item 3, B71): D atende B e C; C atende B; E atende B, C e D; só A atende A.
+ * doMilitar já vem letra a letra (categoriasCnh_, B59): "AD" chega aqui como ['A','D'] e vale A, D, C e B.
  */
 function cnhAtende_(doMilitar, exigidas) {
   const ex = (exigidas || []).slice();
   if (ex.length === 0) return true;
-  const tem = (doMilitar || []).map(function (x) { return normalizar_(x); });
+  const tem = cnhHabilitadas_(doMilitar);
   return ex.some(function (c) { return tem.indexOf(normalizar_(c)) >= 0; });
 }
 

@@ -128,6 +128,36 @@ console.log('== P19 item 2 (B68) a aba ESCALA desenhada (planilha que registra a
   ver('MILITAR e SERVIÇO não recebem o fundo dos dias alternados', !fundos.some(a => /,(7|8)(:|$)/.test(a.split(':')[0]) || /,(7|8)$/.test(a)));
 }
 
+console.log('== P19 item 3 (B71; RN-12) CNH hierárquica pelo CTB');
+{
+  const C = new Function(['nucleo.js', 'choques.js', 'sincronia.js', 'cadastro_guarnicoes.js', 'guarnicao.js'].map(ler).join('\n') +
+    '\nreturn {cnhAtende_, cnhHabilitadas_, categoriasCnh_, motivoDaLista_};')();
+  const pode = (cnh, exigida) => C.cnhAtende_(C.categoriasCnh_(cnh).categorias, exigida);
+  ver('D (ou AD) é aceito em posto que exige B', pode('D', ['B']) && pode('AD', ['B']));
+  ver('D (ou AD) é aceito em posto que exige C', pode('D', ['C']) && pode('AD', ['C']));
+  ver('C é aceito onde pede B', pode('C', ['B']) && pode('AC', ['B']));
+  ver('B não é aceito onde pede C ou D', !pode('B', ['C']) && !pode('B', ['D']) && !pode('AB', ['D']));
+  ver('C não é aceito onde pede D', !pode('C', ['D']));
+  ver('só A não é aceito em posto de carro (B, C, D)', !pode('A', ['B']) && !pode('A', ['C']) && !pode('A', ['D']));
+  ver('posto que exige A só aceita quem tem A (D, E e C não habilitam A)', pode('A', ['A']) && pode('AD', ['A']) && !pode('D', ['A']) && !pode('E', ['A']) && !pode('C', ['A']));
+  ver('E (CTB) habilita D, C e B', pode('E', ['D']) && pode('E', ['C']) && pode('E', ['B']) && pode('AE', ['D']));
+  ver('a notação junta do B59 continua: "AD" vale A, D, C e B', C.cnhHabilitadas_(C.categoriasCnh_('AD').categorias).sort().join() === 'A,B,C,D');
+  ver('posto sem exigência aceita qualquer um; militar sem CNH não atende posto que exige', pode('', []) && !pode('', ['B']));
+  ver('o posto continua aceitando "qualquer uma das listadas" (exige C ou D: C serve)', pode('C', ['C', 'D']) && !pode('B', ['C', 'D']));
+
+  // a sandbox: CNH dos 76 motoristas (AD 41, AB 16, B 8, C 6, AC 2, D 2, AE 1)
+  const sbx = [].concat(...[['AD', 41], ['AB', 16], ['B', 8], ['C', 6], ['AC', 2], ['D', 2], ['AE', 1]].map(([c, n]) => Array(n).fill(c)));
+  const conta = ex => sbx.filter(c => pode(c, ex)).length;
+  ver('sandbox: posto que pede B (ACO, UTS, Bioma, CPRH) passa de 24 para os 76 motoristas', conta(['B']) === 76, conta(['B']));
+  ver('sandbox: posto que pede D (ABT da UTI, AR da UTAPH, PE-Seguro) passa de 43 para 44 (o AE)', conta(['D']) === 44, conta(['D']));
+
+  // as notas da célula continuam explicando a lista vazia
+  const nota = C.motivoDaLista_({ funcao: 'MOTORISTA', unidade: 'UTI - PRONTO', exigeCnh: true, escalaTodos: false, candidatos: 3, motoristas: 2, habilitados: 0, exigida: ['D'], temColunaCnh: true, cadastrada: true });
+  ver('motivoDaLista_: sem habilitado, a nota diz a categoria exigida e a guarnição', /D/.test(nota) && /UTI - PRONTO/.test(nota), nota);
+  const sem = ler('cadastro_guarnicoes.js');
+  ver('os comentários não dizem mais que a hierarquia "não está no código"', !/hierarquia[^\n]*N[ÃA]O est[áa] no c[óo]digo/i.test(sem) && !/continua NÃO estando no código/.test(sem));
+}
+
 // -- fim das seções
 console.log(`\n${ok} ok, ${falhas} falha(s)`);
 process.exit(falhas ? 1 : 0);

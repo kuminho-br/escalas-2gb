@@ -592,7 +592,8 @@ console.log('== B59 (RN-12) CNH na notação oficial: "AD" é A e D');
   // aceite do adendo 4
   ver('aceite: militar com "AD" é aceito em posto que exige A ou D', L.cnhAtende_(L.categoriasCnh_('AD').categorias, ['D']) && L.cnhAtende_(L.categoriasCnh_('AD').categorias, ['A']));
   ver('aceite: militar com "B" não é aceito em posto que exige D', !L.cnhAtende_(L.categoriasCnh_('B').categorias, ['D']));
-  ver('a hierarquia continua fora do código: "D" não atende a exigência B', !L.cnhAtende_(L.categoriasCnh_('D').categorias, ['B']));
+  // P19 item 3 (B71): a hierarquia passou a ser do código (CTB): D atende B
+  ver('P19: a hierarquia é do código: "D" atende a exigência B', L.cnhAtende_(L.categoriasCnh_('D').categorias, ['B']));
 }
 
 console.log('== carga no Apps Script: nenhum const de topo depende de outro arquivo (senão o menu some)');
