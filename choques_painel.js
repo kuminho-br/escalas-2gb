@@ -180,7 +180,7 @@ function painelIntegridade(mes) {
 
   const lidas = lerAlocacoes_(tz);
   const hor = lerHorarios_();
-  const det = detectarChoques_(alocsComExpediente_(lidas.alocs, hor, tz), hor.porChave, { mes: mes });
+  const det = detectarChoques_(alocsComExpediente_(lidas.alocs, hor, tz), hor.porChave, { mes: mes, tipos: lerTiposDeServico_() });   // P18 item 1 (B67)
   const nomes = nomesPorMatricula_();
   const rot = montarRotulos_(hor.porChave, lerCatalogo_().pares);
   const rotulo = function (a) { return a.dia.slice(8) + '/' + a.dia.slice(5, 7) + ' ' + (a.implicito ? 'expediente (Adm)' : rotuloDe_(rot, a.servico, a.turno)); };

@@ -135,7 +135,7 @@ function calcularSincronizacao_(base, escala, tabela, catalogoPares, opcoes) {
   });
 
   // choque de horário: só com horários e a tabela completa (todos os meses) em mãos
-  if (opcoes.horarios && opcoes.todas) bloquearPorChoque_(res, B, opcoes.todas, opcoes.horarios);
+  if (opcoes.horarios && opcoes.todas) bloquearPorChoque_(res, B, opcoes.todas, opcoes.horarios, opcoes.regras && opcoes.regras.tipos);   // P18 item 1: tipos
 
   // regras da escala manual (RN-03 e as seguintes): só com o contexto e a tabela completa em mãos
   if (opcoes.regras && opcoes.todas) bloquearPorRegras_(res, opcoes.todas, opcoes.regras);
@@ -163,7 +163,7 @@ function calcularSincronizacao_(base, escala, tabela, catalogoPares, opcoes) {
  *
  * todas: TODAS as linhas da tabela, de todos os meses [{ mat, dia, turno, servico, linha }]
  */
-function bloquearPorChoque_(res, B, todas, horarios) {
+function bloquearPorChoque_(res, B, todas, horarios, tipos) {
   const mudadas = Object.create(null);
   res.inserir.forEach(function (i) { mudadas[i.chave] = true; });
   const mats = Object.create(null);
@@ -181,7 +181,7 @@ function bloquearPorChoque_(res, B, todas, horarios) {
   res.inserir.forEach(function (i) { estado.push({ mat: i.mat, dia: i.dia, turno: i.turno, servico: i.servico }); });
 
   const bloqueadas = Object.create(null);     // chave -> [com quem choca]
-  detectarChoques_(estado, horarios, {}).choques.forEach(function (c) {
+  detectarChoques_(estado, horarios, { tipos: tipos }).choques.forEach(function (c) {   // P18 item 1 (B67)
     [[c.a, c.b], [c.b, c.a]].forEach(function (par) {
       if (!mudadas[par[0].chave]) return;
       if (!bloqueadas[par[0].chave]) bloqueadas[par[0].chave] = [];

@@ -652,7 +652,11 @@ function renderizarGrade_(esc, mes, grade, todas, mil, hor, tz, ctxCnh) {
   });
 
   // metadados e cabeçalho
-  aba.getRange(1, 1, 4, 2).setValues([['ESCALA', esc.nome], ['MÊS', ''], ['SERVIÇOS', esc.servicos.join(', ')], ['MILITARES', esc.militares === 'TODOS' ? 'TODOS (preencher o posto cria a alocação)' : 'ESCALADOS (só quem já está escalado)']]);
+  // P18 item 3: com N serviços, o MILITARES = TODOS diz em qual serviço a alocação é criada
+  const textoMilitares = esc.militares === 'TODOS'
+    ? 'TODOS (preencher o posto cria a alocação' + (esc.servicos.length > 1 ? ' no ' + esc.servicos[0] : '') + ')'
+    : 'ESCALADOS (só quem já está escalado)';
+  aba.getRange(1, 1, 4, 2).setValues([['ESCALA', esc.nome], ['MÊS', ''], ['SERVIÇOS', esc.servicos.join(', ')], ['MILITARES', textoMilitares]]);
   aba.getRange(L.MES, 2).setNumberFormat('@').setValue(mes);
   aba.getRange(1, 1, 4, 1).setFontWeight('bold');
   const cab = ['DATA', 'DIA', 'TURNO', 'HORÁRIO', 'UNIDADE', 'FUNÇÃO', 'MILITAR', 'SERVIÇO', 'SEM FUNÇÃO NESTE TURNO'];

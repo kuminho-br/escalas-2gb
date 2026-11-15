@@ -19,6 +19,8 @@
  *     dia útil. Essas alocações "implícitas" (implicito: true) entram só na conferência e
  *     nunca são gravadas; um Saldo no mesmo horário ou um Adm de verdade no mesmo dia
  *     dispensa o expediente daquele dia.
+ *     P18 item 1 (B67; RN-25, RN-17): o expediente implícito só choca com DIÁRIA (tipo "Diária" na
+ *     coluna TIPO DE SERVIÇO da aba TURNOS). JES, PJES e o resto não chocam com ele.
  * Limites de trabalho contínuo e de descanso ficam para quando as regras estiverem definidas.
  */
 
@@ -160,6 +162,8 @@ function montarHorarios_(linhas) {
  * alocs    : [{ mat, dia, turno, servico }]  (passe TODOS os meses: assim o dia 31 enxerga o dia 01)
  * horarios : o porChave de montarHorarios_
  * op.mes   : (opcional) 'aaaa-mm' — só relata choques em que pelo menos uma das duas alocações é desse mês
+ * op.tipos : (opcional) { 'Serviço': 'Tipo' } da aba TURNOS. P18 item 1 (B67): com ele, o expediente
+ *            implícito do Adm só choca com serviço do tipo Diária. Sem ele (código antigo), choca com tudo.
  *
  * Retorna { choques: [{ mat, tipo, a, b, minutos }], semHorario: [{ servico, turno, qtd }] }
  *   tipo 'duplicata'   : a mesma alocação repetida
@@ -200,6 +204,7 @@ function detectarChoques_(alocs, horarios, op) {
         const x = l[i], y = l[j];
         if (op.mes && x.dia.slice(0, 7) !== op.mes && y.dia.slice(0, 7) !== op.mes) continue;
         if (x.implicito && y.implicito) continue;
+        if (!expedienteChocaCom_(x, y, op.tipos)) continue;           // P18 item 1 (B67)
         choques.push({
           mat: mat,
           tipo: (x.implicito || y.implicito) ? 'expediente' : (x.chave === y.chave ? 'duplicata' : 'sobreposicao'),
@@ -230,6 +235,18 @@ function detectarChoques_(alocs, horarios, op) {
     return { servico: p[0], turno: p[1], qtd: sem[k] };
   });
   return { choques: choques, semHorario: semHorario };
+}
+
+/**
+ * P18 item 1 (B67; RN-25, RN-17): o par (x, y) conta como choque do expediente implícito?
+ * Só quando o outro lado é DIÁRIA. Um JES no dia de expediente invisível do Adm não é choque.
+ * Par sem expediente implícito: sempre true (a regra não se aplica). tipos ausente: true (comportamento antigo).
+ */
+function expedienteChocaCom_(x, y, tipos) {
+  if (!x.implicito && !y.implicito) return true;
+  if (!tipos) return true;
+  const real = x.implicito ? y : x;
+  return normalizar_(tipos[real.servico] || '') === normalizar_('Diária');
 }
 
 /**

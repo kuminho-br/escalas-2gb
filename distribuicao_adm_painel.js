@@ -91,7 +91,7 @@ function admResumo_(c, mes, secao, tz) {
     // expediente em todo dia útil: relata o que já bate com ele neste mês
     const mats = Object.create(null);
     c.lista.forEach(function (m) { mats[m.mat] = true; });
-    const bate = detectarChoques_(alocsComExpediente_(c.todas, c.hor, tz), c.hor.porChave, { mes: mes })
+    const bate = detectarChoques_(alocsComExpediente_(c.todas, c.hor, tz), c.hor.porChave, { mes: mes, tipos: lerTiposDeServico_() })   // P18 item 1 (B67)
       .choques.filter(function (x) { return x.tipo === 'expediente' && mats[x.mat]; });
     const quem = Object.create(null);
     bate.forEach(function (x) { quem[x.mat] = true; });

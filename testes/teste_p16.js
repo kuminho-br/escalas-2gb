@@ -690,6 +690,14 @@ console.log('== carga no Apps Script: nenhum const de topo depende de outro arqu
   const soBuiltins = () => vm.createContext(Object.assign(Object.create(null),
     { console: { log() {} }, Object, Array, Date, Math, String, Number, Set, Map, Error, JSON, isFinite, isNaN, parseInt, parseFloat, RegExp, Infinity }));
   fs.readdirSync(dir).filter(f => f.endsWith('.js')).forEach(function (f) {
+    // P18: ANTES de avaliar, confere a sintaxe do arquivo inteiro (new vm.Script compila sem rodar).
+    // O clasp push quebrou com SyntaxError em guarnicao_painel.gs (um comentário caiu dentro de um
+    // setValues([...])) e nenhum teste compilava esse arquivo inteiro; o catch abaixo também engolia
+    // SyntaxError. Agora um erro de sintaxe derruba o teste, em qualquer arquivo .gs.
+    let sintaxe = '';
+    try { new vm.Script(ler(f), { filename: f }); }
+    catch (e) { sintaxe = e.message; }
+    ver(f + ': sem erro de sintaxe (compila como o Apps Script)', sintaxe === '', sintaxe);
     let erro = '';
     try { vm.runInContext(ler(f), soBuiltins(), { timeout: 2000, filename: f }); }
     catch (e) { if (e instanceof ReferenceError || /before initialization|is not defined/.test(e.message)) erro = e.message; }

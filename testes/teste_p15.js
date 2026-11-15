@@ -168,7 +168,9 @@ console.log('== B24 (RN-81) por que "Gerar operações" não tem nada a gerar');
   d = diag(o, r, { linhasMes: 12, linhasSecao: 0, ignoradasJes: 0 });
   ver('VOLUNTARIADO só com gente de outra seção: o painel diz', /12 linha\(s\) de 2026-11, mas nenhuma de militar da 1ª SB/.test(d[0].texto), d);
   d = diag(o, r, { linhasMes: 12, linhasSecao: 0, ignoradasJes: 12 });
-  ver('linhas ignoradas por VOLUNTÁRIO JES = não: o painel explica (RN-46)', /12 linha\(s\) foram ignoradas porque VOLUNTÁRIO JES/.test(d[0].texto), d);
+  // P18 item 2 (B50; RN-04): este teste dizia que as linhas de quem não é voluntário JES eram ignoradas numa DIÁRIA
+  // (PE Seguro). Isso era o bug: para diária basta o formulário. O diagnóstico não fala mais em linhas ignoradas.
+  ver('P18: numa diária, VOLUNTÁRIO JES = não não é mais motivo de linha ignorada (RN-04)', !/ignoradas porque VOLUNTÁRIO JES/.test(d[0].texto), d);
 
   // sem dias / sem vagas / sem cadastro
   o = op({ dias: [] }); r = roda(o, []);
