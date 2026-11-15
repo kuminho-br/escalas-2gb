@@ -158,6 +158,112 @@ console.log('== P19 item 3 (B71; RN-12) CNH hierárquica pelo CTB');
   ver('os comentários não dizem mais que a hierarquia "não está no código"', !/hierarquia[^\n]*N[ÃA]O est[áa] no c[óo]digo/i.test(sem) && !/continua NÃO estando no código/.test(sem));
 }
 
+console.log('== P19 item 4 (B69; RN-93) menu "Atualizar estrutura"');
+{
+  // planilha de mentira com dados de verdade: cada aba é uma matriz de valores
+  function novaAba(nome, linhas, opcoes) {
+    const aba = {
+      nome, v: (linhas || []).map(l => l.slice()), opcoes: opcoes || {}, ss: null,
+      getName() { return this.nome; }, setName(n) { this.nome = n; },
+      getIndex() { return this.ss.abas.indexOf(this) + 1; },
+      getLastRow() { return this.v.length; }, getMaxRows() { return Math.max(this.v.length, 1000); },
+      getLastColumn() { return this.v.reduce((m, l) => Math.max(m, l.length), 0); }, getMaxColumns() { return 26; },
+      insertColumnAfter(c) { if (this.opcoes.quebra) throw new Error('falha simulada na aba ' + this.nome); this.v.forEach(l => { while (l.length < c) l.push(''); l.splice(c, 0, ''); }); },
+      insertColumnBefore(c) { this.v.forEach(l => { while (l.length < c - 1) l.push(''); l.splice(c - 1, 0, ''); }); },
+      deleteColumn(c) { this.v.forEach(l => l.splice(c - 1, 1)); },
+      getDataRange() { return this.getRange(1, 1, Math.max(this.v.length, 1), Math.max(this.getLastColumn(), 1)); },
+      getRange(r, c, nr, nc) {
+        const s = this; nr = nr || 1; nc = nc || 1;
+        const R = {
+          getValues() { const o = []; for (let i = 0; i < nr; i++) { const l = []; for (let j = 0; j < nc; j++) { const x = (s.v[r - 1 + i] || [])[c - 1 + j]; l.push(x === undefined ? '' : x); } o.push(l); } return o; },
+          getDisplayValues() { return R.getValues().map(l => l.map(String)); },
+          setValues(m) { if (s.opcoes.quebra) throw new Error('falha simulada na aba ' + s.nome); m.forEach((l, i) => { while (s.v.length < r + i) s.v.push([]); l.forEach((x, j) => { const t = s.v[r - 1 + i]; while (t.length < c + j) t.push(''); t[c - 1 + j] = x; }); }); return P; },
+          setValue(x) { return R.setValues([[x]]); }
+        };
+        const P = new Proxy(R, { get(t, k) { if (k in t) return t[k]; return () => P; } });
+        return P;
+      }
+    };
+    return new Proxy(aba, { get(t, k) { if (k in t) return t[k]; return () => undefined; } });
+  }
+  function planilha(abas) {
+    const ss = { abas: [] };
+    Object.assign(ss, {
+      getSheets: () => ss.abas.slice(), getSheetByName: n => ss.abas.filter(a => a.getName() === n)[0] || null,
+      insertSheet(n, idx) { const a = novaAba(n, []); a.ss = ss; if (idx) ss.abas.splice(idx, 0, a); else ss.abas.push(a); return a; },
+      getSpreadsheetTimeZone: () => 'America/Recife'
+    });
+    abas.forEach(a => { a.ss = ss; ss.abas.push(a); });
+    return ss;
+  }
+  const regra = () => { const P = new Proxy({}, { get(t, k) { if (k === 'build') return () => ({}); return () => P; } }); return P; };
+  function carregar(ss) {
+    const fontes = fs.readdirSync(dir).filter(f => f.endsWith('.js')).sort().map(ler).join('\n');
+    return new Function('SpreadsheetApp', 'Utilities', 'LockService', 'HtmlService', fontes +
+      '\nreturn {atualizarEstrutura_, textoDaEstrutura_, MIGRACOES_, painelGuarnicaoExemplos, painelCotasAbas};')(
+      { getActive: () => ss, flush() {}, newDataValidation: regra, newConditionalFormatRule: regra },
+      { formatDate: () => '2026-11', parseDate: s => s }, { getDocumentLock: () => ({ tryLock: () => true, releaseLock() {} }) }, {});
+  }
+  // a sandbox ANTES das P16 a P19: nomes antigos, formato antigo, colunas faltando
+  const antiga = () => planilha([
+    novaAba('ALOCAÇÕES TABULADAS', [['', 'MATRÍCULA', 'DATA', 'SERVIÇO', 'TURNO', 'FUNÇÃO'], ['', '707170-1', '01/11/2026', 'Pronto', 'A', '']]),
+    novaAba('TURNOS', [['ID', 'TIPO DE SERVIÇO', 'SERVIÇO', 'TURNO', 'HORÁRIO INÍCIO', 'HORÁRIO FIM'], [1, 'Ordinário', 'Pronto', 'A', '08:00', '20:00'], [2, 'PJES', 'JES', 'A', '08:00', '20:00']]),
+    novaAba('MILITARES', [['MATRÍCULA', 'POSTO/GRAD', 'NOME DE GUERRA', 'SEÇÃO', 'MOTORISTA'], ['707170-1', 'ST BM', 'ADELSON', '1ª SB', 'Sim']]),
+    novaAba('VIATURAS', [['VIGÊNCIA (A PARTIR DE)', 'VIATURA', 'TIPO', 'ATIVAR', 'PRIORIDADE', 'TIPOS DE SERVIÇO', 'CNH', 'FUNÇÃO', 'MÍNIMO', 'MÁXIMO'], ['2026-01', 'ABT', 'Auto Bomba', 'SIM', 1, '', 'D', 'MOTORISTA', 1, 1]]),
+    novaAba('ESCALAS', [['ESCALA', 'SERVIÇOS', 'TÍTULO', 'MILITARES', 'DIAS'], ['Bioma', 'Bioma', '', 'TODOS', 'TODOS']]),
+    novaAba('MODELOS DE GUARNIÇÃO', [['ESCALA', 'TURNO', 'UNIDADE', 'FUNÇÃO', 'VAGAS', 'EXIGE CNH'], ['Bioma', '', 'ABT', 'MOTORISTA', 1, 'SIM'], ['Bioma', '', 'ABT', 'CHEFE', 1, '']])
+  ]);
+  let ss = antiga(), E = carregar(ss);
+  const ids = E.MIGRACOES_.map(m => m.id);
+  ver('cada passo tem id único, descrição, precisa e aplica', new Set(ids).size === ids.length && E.MIGRACOES_.every(m => m.descricao && typeof m.precisa === 'function' && typeof m.aplica === 'function'), ids);
+
+  const olhar = E.atualizarEstrutura_(E.MIGRACOES_, 'so-olhar');
+  ver('"só olhar" não muda nada na planilha', ss.getSheetByName('ALOCAÇÕES TABULADAS') && ss.getSheetByName('MODELOS DE GUARNIÇÃO') && olhar.feitos === 0 && olhar.pendentes > 0, olhar.passos.map(p => p.id + ':' + p.estado));
+
+  let rel = E.atualizarEstrutura_();
+  const estado = id => (rel.passos.find(p => p.id === id) || {}).estado;
+  ver('o aceite: a planilha antiga chega à estrutura atual, sem erro', rel.erros === 0 && rel.feitos >= 10, E.textoDaEstrutura_(rel));
+  ver('as abas de nome antigo foram renomeadas (com os dados)', ss.getSheetByName('ALOCAÇÕES') && ss.getSheetByName('GUARNIÇÕES') && ss.getSheetByName('ALOCAÇÕES').v[1][1] === '707170-1');
+  const cab = n => ss.getSheetByName(n).v[0].map(String);
+  ver('GUARNIÇÕES: ganhou a coluna GUARNIÇÃO antes da VIATURA (com o nome copiado) e perdeu a TIPOS DE SERVIÇO vazia',
+    cab('GUARNIÇÕES').indexOf('GUARNIÇÃO') === cab('GUARNIÇÕES').indexOf('VIATURA') - 1 && ss.getSheetByName('GUARNIÇÕES').v[1][1] === 'ABT' && cab('GUARNIÇÕES').indexOf('TIPOS DE SERVIÇO') < 0, cab('GUARNIÇÕES'));
+  ver('GUARNIÇÕES POR ESCALA convertida para o formato novo, e a antiga guardada inteira',
+    cab('GUARNIÇÕES POR ESCALA').join() === 'VIGÊNCIA (A PARTIR DE),ESCALA,TURNO,GUARNIÇÃO' && ss.getSheetByName('GUARNIÇÕES POR ESCALA (FORMATO ANTIGO)').v.length === 3, cab('GUARNIÇÕES POR ESCALA'));
+  ver('ALOCAÇÕES ganhou UNIDADE; TURNOS ganhou ORIGEM (JES → PJES); MILITARES ganhou CNH e VOLUNTÁRIO JES',
+    cab('ALOCAÇÕES').indexOf('UNIDADE') >= 0 && cab('TURNOS').indexOf('ORIGEM') >= 0 && ss.getSheetByName('TURNOS').v[2][cab('TURNOS').indexOf('ORIGEM')] === 'PJES' &&
+    cab('MILITARES').indexOf('CNH') >= 0 && cab('MILITARES').indexOf('VOLUNTÁRIO JES') >= 0, [cab('ALOCAÇÕES'), cab('TURNOS'), cab('MILITARES')]);
+  ver('a CNH entrou ao lado de MOTORISTA', cab('MILITARES').indexOf('CNH') === cab('MILITARES').indexOf('MOTORISTA') + 1, cab('MILITARES'));
+  ver('as abas que faltavam foram criadas (COTAS, VOLUNTARIADO, CONFIGURAÇÕES); a ESCALAS que existia ficou como estava',
+    ['COTAS', 'VOLUNTARIADO', 'CONFIGURAÇÕES'].every(n => ss.getSheetByName(n)) && estado('aba-escalas') === 'atual' && ss.getSheetByName('ESCALAS').v[1][0] === 'Bioma');
+  ver('nenhum dado foi perdido nas abas que já existiam', ss.getSheetByName('MILITARES').v[1].indexOf('ADELSON') >= 0 && ss.getSheetByName('TURNOS').v.length === 3);
+
+  rel = E.atualizarEstrutura_();
+  ver('o aceite: rodar de novo não tem nada a fazer (todos os passos "já estava")', rel.feitos === 0 && rel.erros === 0 && rel.passos.every(p => p.estado === 'atual'), rel.passos.map(p => p.id + ':' + p.estado));
+
+  // um passo que falha mostra o erro exato e não derruba os outros
+  ss = antiga();
+  ss.abas[1] = novaAba('TURNOS', ss.abas[1].v, { quebra: true }); ss.abas[1].ss = ss;
+  E = carregar(ss);
+  rel = E.atualizarEstrutura_();
+  const erroTurnos = rel.passos.find(p => p.id === 'turnos-origem');
+  ver('o aceite: o passo que falha aparece com o erro exato', erroTurnos.estado === 'erro' && /falha simulada na aba TURNOS/.test(erroTurnos.erro), erroTurnos);
+  ver('e os outros passos são feitos mesmo assim', rel.erros === 1 && rel.feitos >= 9 && ss.getSheetByName('COTAS') && cab('ALOCAÇÕES').indexOf('UNIDADE') >= 0, E.textoDaEstrutura_(rel));
+  ver('o relatório mostra o erro', /✖ ERRO — Criar a coluna ORIGEM em TURNOS[^\n]*falha simulada/.test(E.textoDaEstrutura_(rel)), E.textoDaEstrutura_(rel));
+
+  // TIPOS DE SERVIÇO preenchida: atenção, sem apagar nada
+  ss = planilha([novaAba('GUARNIÇÕES', [['GUARNIÇÃO', 'TIPOS DE SERVIÇO', 'FUNÇÃO'], ['ABT', 'Pronto', 'CHEFE']])]);
+  E = carregar(ss);
+  rel = E.atualizarEstrutura_(E.MIGRACOES_.filter(m => m.id === 'guarnicoes-sem-tipos-de-servico'));
+  ver('coluna antiga ainda preenchida: "atenção", e nada é apagado', rel.passos[0].estado === 'atencao' && cab('GUARNIÇÕES').indexOf('TIPOS DE SERVIÇO') >= 0, rel.passos[0]);
+
+  // os botões dos painéis usam o mesmo ponto
+  ss = antiga(); E = carregar(ss);
+  const b = E.painelGuarnicaoExemplos();
+  ver('o botão "Criar abas e colunas que faltam" roda as mesmas migrações (menos a conversão, que tem botão próprio)',
+    b.criadas.length > 0 && ss.getSheetByName('MODELOS DE GUARNIÇÃO') === null && cab('GUARNIÇÕES POR ESCALA').indexOf('UNIDADE') >= 0 && !ss.getSheetByName('GUARNIÇÕES POR ESCALA (FORMATO ANTIGO)'), b.criadas);
+  ver('o menu tem "Atualizar estrutura"', /addItem\('Atualizar estrutura', 'atualizarEstrutura'\)/.test(ler('matriz.js')));
+}
+
 // -- fim das seções
 console.log(`\n${ok} ok, ${falhas} falha(s)`);
 process.exit(falhas ? 1 : 0);

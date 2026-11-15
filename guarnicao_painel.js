@@ -378,39 +378,41 @@ function painelDadosGuarnicao() {
  * a coluna UNIDADE em ALOCAÇÕES (guarda a guarnição do posto) e a ORIGEM em TURNOS (B49 item 2).
  */
 function painelGuarnicaoExemplos() {
-  const ss = SpreadsheetApp.getActive();
+  // P19 item 4 (B69): o botão roda as mesmas migrações do menu "Atualizar estrutura", menos a conversão de
+  // GUARNIÇÕES POR ESCALA (que tem botão e confirmação próprios). Um passo que falha não impede os outros.
+  const rel = atualizarEstrutura_(MIGRACOES_.filter(function (m) { return m.id !== 'vinculos-formato-novo'; }));
   const criadas = [];
-  const novaAba = function (nome, linhas) {
-    const aba = ss.insertSheet(nome);
-    const n = linhas[0].length;
-    aba.getRange(1, 1, linhas.length, n).setValues(linhas);
-    aba.getRange(1, 1, 1, n).setFontWeight('bold').setBackground('#2F5D50').setFontColor('#FFFFFF');
-    aba.setFrozenRows(1);
-    return aba;
-  };
-  if (!ss.getSheetByName(GUARN_ABA.ESCALAS)) { novaAba(GUARN_ABA.ESCALAS, GUARN_EXEMPLO_ESCALAS_); criadas.push(GUARN_ABA.ESCALAS); }
-  if (!abaAtual_(ss, GUARN_ABA.VINCULOS)) {
-    const aba = novaAba(GUARN_ABA.VINCULOS, GUARN_EXEMPLO_VINCULOS_);
-    aba.getRange(2, 1, 300, 1).setNumberFormat('@');                    // vigência é texto (aaaa-mm)
-    validacoesDosVinculos_(aba);
-    criadas.push(GUARN_ABA.VINCULOS);
-  }
-  // B58: sem GUARNIÇÕES não há composição; a aba nasce com o exemplo do cadastro
-  if (cadgGarantirAba_().criada) criadas.push('GUARNIÇÕES');
-  // B60: cada operação de coluna fica em try-catch isolado para não impedir as demais
-  // (a Tabela do Sheets pode provocar erros inesperados em qualquer uma delas)
-  try {
-    if (garantirColunaUnidadeAlocacoes_()) criadas.push('coluna UNIDADE (em ' + CONFIG.ABA_ALOCACOES + ', guarda a guarnição de cada militar)');
-  } catch (e) { criadas.push('ERRO ao criar UNIDADE: ' + e.message); }
-  // B49 item 2 (RN-13): a origem do serviço passa a ser cadastro
-  try {
-    if (garantirColunaOrigem_()) criadas.push('coluna ORIGEM (em TURNOS; o JES já vem como PJES, como era no código)');
-  } catch (e) { criadas.push('ERRO ao criar ORIGEM: ' + e.message); }
-  // B58 item 1 (RN-09): TIPOS DE SERVIÇO saiu do cadastro de GUARNIÇÕES; vazia, a coluna é apagada
-  try {
-    if (cadgRetirarTiposDeServico_() === 'apagada') criadas.push('coluna TIPOS DE SERVIÇO apagada de GUARNIÇÕES (estava vazia e não é mais lida)');
-  } catch (e) { criadas.push('ERRO ao retirar TIPOS DE SERVIÇO: ' + e.message); }
+  rel.passos.forEach(function (p) {
+    if (p.estado === 'feito') criadas.push(p.resultado || p.descricao);
+    else if (p.estado === 'erro') criadas.push('ERRO em "' + p.descricao + '": ' + p.erro);
+  });
   return { criadas: criadas };
+}
+
+/** P19 item 4: cria a aba com cabeçalho verde, 1ª linha congelada e as linhas dadas. */
+function guarnNovaAba_(nome, linhas) {
+  const aba = SpreadsheetApp.getActive().insertSheet(nome);
+  const n = linhas[0].length;
+  aba.getRange(1, 1, linhas.length, n).setValues(linhas);
+  aba.getRange(1, 1, 1, n).setFontWeight('bold').setBackground('#2F5D50').setFontColor('#FFFFFF');
+  aba.setFrozenRows(1);
+  return aba;
+}
+
+/** P19 item 4: a aba ESCALAS, com o exemplo. Não mexe numa que exista. Retorna true se criou. */
+function guarnGarantirAbaEscalas_() {
+  if (SpreadsheetApp.getActive().getSheetByName(GUARN_ABA.ESCALAS)) return false;
+  guarnNovaAba_(GUARN_ABA.ESCALAS, GUARN_EXEMPLO_ESCALAS_);
+  return true;
+}
+
+/** P19 item 4: a aba GUARNIÇÕES POR ESCALA, no formato novo, com o exemplo. Não mexe numa que exista. */
+function guarnGarantirAbaVinculos_() {
+  if (abaAtual_(SpreadsheetApp.getActive(), GUARN_ABA.VINCULOS)) return false;
+  const aba = guarnNovaAba_(GUARN_ABA.VINCULOS, GUARN_EXEMPLO_VINCULOS_);
+  aba.getRange(2, 1, 300, 1).setNumberFormat('@');                    // vigência é texto (aaaa-mm)
+  validacoesDosVinculos_(aba);
+  return true;
 }
 
 /** Listas suspensas da aba de vínculos: ESCALA vem de ESCALAS e GUARNIÇÃO de GUARNIÇÕES (aceita outro texto, com aviso). */
@@ -470,42 +472,52 @@ function garantirColunaUnidadeAlocacoes_() {
  * dentro, e a nova é criada ao lado. Pede confirmação antes.
  */
 function painelGuarnicaoConverterVinculos() {
-  const ss = SpreadsheetApp.getActive();
   const lock = LockService.getDocumentLock();
   if (!lock.tryLock(15000)) throw new Error('Outra pessoa está gravando agora. Tente de novo em instantes.');
   try {
-    const velha = abaAtual_(ss, GUARN_ABA.VINCULOS);
-    if (!velha) throw new Error('A aba ' + GUARN_ABA.VINCULOS + ' não existe. Use "Criar abas e colunas que faltam".');
-    const t = lerAba_(GUARN_ABA.VINCULOS);
-    if (coluna_(t, 'GUARNIÇÃO', false) >= 0) return { convertida: false, motivo: 'A aba já está no formato novo.' };
-    const c = { escala: coluna_(t, 'ESCALA', true), turno: coluna_(t, 'TURNO', false), unidade: coluna_(t, 'UNIDADE', false) };
-    const r = converterVinculosAntigos_(t.linhas.map(function (l) {
-      return { escala: texto_(l[c.escala]), turno: c.turno < 0 ? '' : texto_(l[c.turno]), unidade: c.unidade < 0 ? '' : texto_(l[c.unidade]) };
-    }));
-
-    const ui = SpreadsheetApp.getUi();
-    const resp = ui.alert('Converter ' + GUARN_ABA.VINCULOS,
-      'A aba passa a só vincular ESCALA e TURNO a uma GUARNIÇÃO cadastrada em GUARNIÇÕES; as funções, vagas e CNH passam a vir de lá.\n\n' +
-      r.linhas.length + ' vínculo(s) criado(s) a partir da coluna UNIDADE.\n' +
-      (r.semUnidade ? r.semUnidade + ' linha(s) sem UNIDADE não têm guarnição a vincular' + (r.escalasSemVinculo.length ? ' (escalas ' + r.escalasSemVinculo.join(', ') + ')' : '') +
-        ': essas escalas ficam sem posto até você vincular uma guarnição a elas.\n' : '') +
-      '\nA aba atual é guardada, inteira, como "' + GUARN_VINCULOS_ANTIGA_ + '". Continuar?', ui.ButtonSet.YES_NO);
-    if (resp !== ui.Button.YES) return { convertida: false, cancelado: true };
-
-    if (ss.getSheetByName(GUARN_VINCULOS_ANTIGA_)) throw new Error('Já existe a aba "' + GUARN_VINCULOS_ANTIGA_ + '" (de uma conversão anterior). Renomeie ou apague essa aba e tente de novo.');
-    velha.setName(GUARN_VINCULOS_ANTIGA_);                // a antiga fica inteira, só muda de nome
-    const nova = ss.insertSheet(GUARN_ABA.VINCULOS, velha.getIndex());
-    const linhas = [GUARN_CABECALHO_VINCULOS_].concat(r.linhas.map(function (x) { return ['', x.escala, x.turno, x.guarnicao]; }));
-    nova.getRange(1, 1, Math.max(linhas.length, 300), 1).setNumberFormat('@');
-    nova.getRange(1, 1, linhas.length, GUARN_CABECALHO_VINCULOS_.length).setValues(linhas);
-    nova.getRange(1, 1, 1, GUARN_CABECALHO_VINCULOS_.length).setFontWeight('bold').setBackground('#2F5D50').setFontColor('#FFFFFF');
-    nova.setFrozenRows(1);
-    [130, 160, 90, 260].forEach(function (w, i) { nova.setColumnWidth(i + 1, w); });
-    validacoesDosVinculos_(nova);
-    return { convertida: true, vinculos: r.linhas.length, semUnidade: r.semUnidade, escalasSemVinculo: r.escalasSemVinculo, antiga: GUARN_VINCULOS_ANTIGA_ };
+    return converterVinculos_(function (r) {
+      const ui = SpreadsheetApp.getUi();
+      return ui.alert('Converter ' + GUARN_ABA.VINCULOS,
+        'A aba passa a só vincular ESCALA e TURNO a uma GUARNIÇÃO cadastrada em GUARNIÇÕES; as funções, vagas e CNH passam a vir de lá.\n\n' +
+        r.linhas.length + ' vínculo(s) criado(s) a partir da coluna UNIDADE.\n' +
+        (r.semUnidade ? r.semUnidade + ' linha(s) sem UNIDADE não têm guarnição a vincular' + (r.escalasSemVinculo.length ? ' (escalas ' + r.escalasSemVinculo.join(', ') + ')' : '') +
+          ': essas escalas ficam sem posto até você vincular uma guarnição a elas.\n' : '') +
+        '\nA aba atual é guardada, inteira, como "' + GUARN_VINCULOS_ANTIGA_ + '". Continuar?', ui.ButtonSet.YES_NO) === ui.Button.YES;
+    });
   } finally {
     lock.releaseLock();
   }
+}
+
+/**
+ * P19 item 4 (B69): o miolo da conversão, sem a caixa de diálogo, para o botão e para "Atualizar estrutura".
+ * confirmar(r) recebe o resultado de converterVinculosAntigos_ e devolve true para seguir (null = segue).
+ * Quem chama segura o LockService.
+ */
+function converterVinculos_(confirmar) {
+  const ss = SpreadsheetApp.getActive();
+  const velha = abaAtual_(ss, GUARN_ABA.VINCULOS);
+  if (!velha) throw new Error('A aba ' + GUARN_ABA.VINCULOS + ' não existe. Use "Criar abas e colunas que faltam".');
+  const t = lerAba_(GUARN_ABA.VINCULOS);
+  if (coluna_(t, 'GUARNIÇÃO', false) >= 0) return { convertida: false, motivo: 'A aba já está no formato novo.' };
+  const c = { escala: coluna_(t, 'ESCALA', true), turno: coluna_(t, 'TURNO', false), unidade: coluna_(t, 'UNIDADE', false) };
+  const r = converterVinculosAntigos_(t.linhas.map(function (l) {
+    return { escala: texto_(l[c.escala]), turno: c.turno < 0 ? '' : texto_(l[c.turno]), unidade: c.unidade < 0 ? '' : texto_(l[c.unidade]) };
+  }));
+
+  if (confirmar && !confirmar(r)) return { convertida: false, cancelado: true };
+
+  if (ss.getSheetByName(GUARN_VINCULOS_ANTIGA_)) throw new Error('Já existe a aba "' + GUARN_VINCULOS_ANTIGA_ + '" (de uma conversão anterior). Renomeie ou apague essa aba e tente de novo.');
+  velha.setName(GUARN_VINCULOS_ANTIGA_);                // a antiga fica inteira, só muda de nome
+  const nova = ss.insertSheet(GUARN_ABA.VINCULOS, velha.getIndex());
+  const linhas = [GUARN_CABECALHO_VINCULOS_].concat(r.linhas.map(function (x) { return ['', x.escala, x.turno, x.guarnicao]; }));
+  nova.getRange(1, 1, Math.max(linhas.length, 300), 1).setNumberFormat('@');
+  nova.getRange(1, 1, linhas.length, GUARN_CABECALHO_VINCULOS_.length).setValues(linhas);
+  nova.getRange(1, 1, 1, GUARN_CABECALHO_VINCULOS_.length).setFontWeight('bold').setBackground('#2F5D50').setFontColor('#FFFFFF');
+  nova.setFrozenRows(1);
+  [130, 160, 90, 260].forEach(function (w, i) { nova.setColumnWidth(i + 1, w); });
+  validacoesDosVinculos_(nova);
+  return { convertida: true, vinculos: r.linhas.length, semUnidade: r.semUnidade, escalasSemVinculo: r.escalasSemVinculo, antiga: GUARN_VINCULOS_ANTIGA_ };
 }
 
 const GUARN_VINCULOS_ANTIGA_ = 'GUARNIÇÕES POR ESCALA (FORMATO ANTIGO)';
