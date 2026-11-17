@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import type { Previa, ResultadoImportacao } from 'contratos';
-import { FileUp } from 'lucide-react';
+import { Download, FileUp } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
 import { enviarArquivo, mensagemDe } from '@/api/cliente';
 import { consultaEu } from '@/api/eu';
@@ -69,7 +69,17 @@ export function ImportarPlanilha({ cadastro, rotulo, aoConcluir }: { cadastro: s
 
         {etapa.tipo === 'escolher' && (
           <form onSubmit={verPrevia} className="grid gap-3">
-            <p className="text-sm text-apagado">Baixe a planilha sandbox em Arquivo › Fazer download › Microsoft Excel (.xlsx) e envie o arquivo aqui.</p>
+            <p className="text-sm text-apagado">
+              Baixe o modelo, cole os dados nas abas dele e envie o arquivo aqui. A planilha sandbox baixada em .xlsx também serve.
+            </p>
+            <a
+              href={`${caminho}/modelo`}
+              download
+              className="inline-flex w-fit items-center gap-2 text-sm font-medium text-vinho underline underline-offset-2"
+            >
+              <Download className="size-4" aria-hidden />
+              Baixar modelo
+            </a>
             <div className="grid gap-1.5">
               <Label htmlFor="arquivo-planilha">Arquivo da planilha (.xlsx)</Label>
               <input
