@@ -1,3 +1,5 @@
+import { mkdirSync } from 'node:fs';
+import { dirname } from 'node:path';
 import { PGlite } from '@electric-sql/pglite';
 import { btree_gist } from '@electric-sql/pglite/contrib/btree_gist';
 import { ltree } from '@electric-sql/pglite/contrib/ltree';
@@ -75,6 +77,7 @@ function consultaPglite(c: PgliteConsulta): Consulta {
 
 /** Sem pasta, o banco fica em memória. */
 export async function bancoPglite(pasta?: string): Promise<Banco> {
+  if (pasta) mkdirSync(dirname(pasta), { recursive: true });
   const db = await PGlite.create(pasta, { extensions: { ltree, btree_gist } });
   return {
     ...consultaPglite(db),

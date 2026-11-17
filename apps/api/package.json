@@ -5,7 +5,8 @@
   "scripts": {
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
-    "db:migrar": "tsx scripts/migrar.ts"
+    "db:migrar": "tsx scripts/migrar.ts",
+    "carga-exemplo": "tsx scripts/carga-exemplo.ts"
   },
   "dependencies": {
     "@electric-sql/pglite": "^0.5.16",

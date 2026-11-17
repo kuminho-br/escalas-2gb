@@ -1,0 +1,95 @@
+import type { Banco, Consulta } from '../banco/banco.ts';
+
+/**
+ * Carga FICTÍCIA para desenvolvimento (D7): 53 militares da 1ª SB com matrícula 990xxx-x,
+ * nas proporções da sandbox, e os serviços/turnos usados nos esboços.
+ * Nunca roda no ambiente de teste, onde estão os dados reais.
+ */
+
+const NOMES = [
+  'ANDRADE', 'BARRETO', 'CABRAL', 'DANTAS', 'ESTEVES', 'FALCAO', 'GUSMAO', 'HOLANDA', 'IVO', 'JATOBA',
+  'KLEBER', 'LACERDA', 'MOURA', 'NOBREGA', 'OTONI', 'PAIVA', 'QUEIROZ', 'RAMALHO', 'SAMPAIO', 'TELES',
+  'URBANO', 'VIEIRA', 'XAVIER', 'ZANETTI', 'ARAGAO', 'BEZERRA', 'CORDEIRO', 'DUARTE', 'ELOI', 'FONTES',
+  'GALVAO', 'HONORIO', 'ITALO', 'JUCA', 'LEMOS', 'MACEDO', 'NUNES', 'OLIVA', 'PRADO', 'QUINTELA',
+  'RESENDE', 'SALES', 'TAVORA', 'UCHOA', 'VALENCA', 'WANDERLEY', 'XIMENES', 'YURI', 'ZACARIAS', 'AMORIM',
+  'BRAGA', 'COUTINHO', 'DORNELAS',
+];
+
+type Grupo = { jornada: 'adm' | 'pronto'; equipe: string | null; postos: [string, number][] };
+
+const GRUPOS: Grupo[] = [
+  { jornada: 'adm', equipe: null, postos: [['ST BM', 2], ['2º SGT BM', 3], ['3º SGT BM', 6], ['CB BM', 4], ['SD BM', 2]] },
+  { jornada: 'pronto', equipe: 'Alfa', postos: [['2º SGT BM', 1], ['3º SGT BM', 3], ['SD BM', 5]] },
+  { jornada: 'pronto', equipe: 'Bravo', postos: [['ST BM', 1], ['3º SGT BM', 4], ['CB BM', 1], ['SD BM', 4]] },
+  { jornada: 'pronto', equipe: 'Charlie', postos: [['ST BM', 1], ['2º SGT BM', 1], ['3º SGT BM', 2], ['CB BM', 1], ['SD BM', 4]] },
+  { jornada: 'pronto', equipe: 'Delta', postos: [['2º SGT BM', 1], ['3º SGT BM', 2], ['CB BM', 1], ['SD BM', 4]] },
+];
+const EQUIPES = ['Alfa', 'Bravo', 'Charlie', 'Delta'];
+
+const SERVICOS: { nome: string; tipo: string; operacao: string | null; cor: string; turnos: [string, string, string][] }[] = [
+  { nome: 'Pronto', tipo: 'ordinario', operacao: null, cor: '#2F8F5B', turnos: [['A', '08:00', '20:00'], ['B', '20:00', '08:00']] },
+  { nome: 'Expediente', tipo: 'ordinario', operacao: null, cor: '#8A94A1', turnos: [['U', '08:00', '16:00']] },
+  { nome: 'JES', tipo: 'pjes', operacao: null, cor: '#6E56A8', turnos: [['A', '08:00', '20:00'], ['B', '20:00', '08:00']] },
+  { nome: 'Saldo', tipo: 'ordinario', operacao: null, cor: '#2B7BB9', turnos: [['A', '08:00', '20:00'], ['B', '20:00', '08:00']] },
+  { nome: 'Bioma', tipo: 'diaria', operacao: 'Guardiões do Bioma', cor: '#C08A1E', turnos: [['A', '00:00', '08:00'], ['B', '08:00', '16:00'], ['C', '16:00', '00:00']] },
+  { nome: 'PE Seguro', tipo: 'diaria', operacao: 'PE Seguro', cor: '#3C5F9C', turnos: [['A', '00:00', '08:00'], ['B', '08:00', '16:00'], ['C', '16:00', '00:00']] },
+  { nome: 'Defensoria', tipo: 'pjes', operacao: null, cor: '#8C4A7A', turnos: [['U', '07:00', '19:00']] },
+];
+
+// quem é motorista (posição na ordem de criação) e com qual CNH; quem é voluntário JES
+const MOTORISTAS: Record<number, string[]> = { 3: ['B'], 9: ['B'], 18: ['D'], 22: ['B'], 30: ['D'], 35: ['B'], 41: ['B'], 50: ['D'] };
+const VOLUNTARIOS_JES = new Set([2, 5, 11, 17, 20, 26, 33, 39, 44, 52]);
+
+async function id(tx: Consulta, sql: string, params: unknown[]): Promise<string> {
+  return (await tx.query<{ id: string }>(sql, params)).rows[0]!.id;
+}
+
+export async function cargaExemplo(banco: Banco, ambiente: string | undefined, mes: string): Promise<{ militares: number }> {
+  if (ambiente === 'teste') throw new Error('Carga de exemplo recusada no ambiente de teste');
+
+  return banco.transacao(async (tx) => {
+    const ja = await tx.query<{ n: number }>("select count(*)::int as n from militar where matricula like '990%'");
+    if (ja.rows[0]!.n > 0) return { militares: ja.rows[0]!.n };
+
+    const secao = await id(tx, "select id from unidade where sigla = '1ª SB'", []);
+    const postos = new Map(
+      (await tx.query<{ id: string; sigla: string }>('select id, sigla from posto_grad')).rows.map((p) => [p.sigla, p.id]),
+    );
+    const equipes = new Map<string, string>();
+    for (const [i, nome] of EQUIPES.entries()) {
+      equipes.set(nome, await id(tx, 'insert into equipe (unidade_id, nome, ordem_ciclo) values ($1, $2, $3) returning id', [secao, nome, i + 1]));
+    }
+
+    let n = 0;
+    for (const g of GRUPOS) {
+      for (const [posto, qtd] of g.postos) {
+        for (let k = 0; k < qtd; k++) {
+          n++;
+          const cnh = MOTORISTAS[n] ?? [];
+          const militar = await id(
+            tx,
+            `insert into militar (matricula, posto_grad_id, nome_guerra, antiguidade, motorista, cnh, voluntario_jes)
+             values ($1, $2, $3, $4, $5, $6, $7) returning id`,
+            [`990${String(n).padStart(3, '0')}-${n % 10}`, postos.get(posto), NOMES[n - 1], k + 1, cnh.length > 0, cnh, VOLUNTARIOS_JES.has(n)],
+          );
+          await tx.query(
+            'insert into lotacao (militar_id, unidade_id, equipe_id, jornada, desde) values ($1, $2, $3, $4, $5)',
+            [militar, secao, g.equipe ? equipes.get(g.equipe) : null, g.jornada, mes],
+          );
+        }
+      }
+    }
+
+    for (const s of SERVICOS) {
+      const servico = await id(
+        tx,
+        'insert into servico (unidade_id, nome, tipo, operacao, cor) values ($1, $2, $3, $4, $5) returning id',
+        [secao, s.nome, s.tipo, s.operacao, s.cor],
+      );
+      for (const [letra, inicio, fim] of s.turnos) {
+        await tx.query('insert into turno (servico_id, letra, inicio, fim) values ($1, $2, $3, $4)', [servico, letra, inicio, fim]);
+      }
+    }
+    return { militares: n };
+  });
+}
