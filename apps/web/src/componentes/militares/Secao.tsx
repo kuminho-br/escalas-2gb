@@ -1,14 +1,30 @@
-import type { ReactNode } from 'react';
+import { ChevronRight } from 'lucide-react';
+import { useState, type ReactNode } from 'react';
+import { cn } from '@/lib/utils';
 
-/** Bloco da ficha: título, conteúdo e, opcionalmente, ações à direita do título. */
-export function Secao({ titulo, acoes, children }: { titulo: string; acoes?: ReactNode; children: ReactNode }) {
+/**
+ * Bloco da ficha: título, conteúdo e, opcionalmente, ações à direita do título.
+ * Com `recolhida`, começa fechado: o título vira um botão que mostra o `resumo` e abre o conteúdo.
+ */
+export function Secao({ titulo, acoes, resumo, recolhida, children }: { titulo: string; acoes?: ReactNode; resumo?: string; recolhida?: boolean; children: ReactNode }) {
+  const [aberta, setAberta] = useState(!recolhida);
   return (
     <section className="rounded-xl border border-linha bg-superficie p-4">
-      <header className="mb-3 flex items-center justify-between gap-2">
-        <h3 className="font-cond text-lg font-semibold">{titulo}</h3>
-        {acoes}
+      <header className={cn('flex items-center justify-between gap-2', aberta && 'mb-3')}>
+        {recolhida ? (
+          <h3 className="min-w-0 flex-1 font-cond text-lg font-semibold">
+            <button type="button" aria-expanded={aberta} onClick={() => setAberta(!aberta)} className="flex w-full items-center gap-2 text-left">
+              <ChevronRight className={cn('size-4 shrink-0 transition-transform', aberta && 'rotate-90')} aria-hidden />
+              <span>{titulo}</span>
+              {resumo && <span className="truncate font-sans text-sm font-normal text-apagado">{resumo}</span>}
+            </button>
+          </h3>
+        ) : (
+          <h3 className="font-cond text-lg font-semibold">{titulo}</h3>
+        )}
+        {aberta && acoes}
       </header>
-      {children}
+      {aberta && children}
     </section>
   );
 }

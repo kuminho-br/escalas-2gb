@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { categoriaMaisAlta, pendenciasDoMilitar, situacaoNoMes } from '../src/cadastros/militares-regras.ts';
+import { categoriaMaisAlta, pendenciasDoMilitar, repetidasPorAntiguidade, situacaoNoMes } from '../src/cadastros/militares-regras.ts';
 
 describe('situação no mês', () => {
   it('Disponível', () => {
@@ -44,6 +44,32 @@ describe('pendências do militar', () => {
   });
   it('Sem antiguidade', () => {
     expect(pendenciasDoMilitar({ ...ok, antiguidade: null })).toEqual(['Sem antiguidade']);
+  });
+  it('Antiguidade repetida com ANDRADE, BARRETO', () => {
+    expect(pendenciasDoMilitar({ ...ok, repetidaCom: ['ANDRADE', 'BARRETO'] })).toEqual(['Antiguidade repetida com ANDRADE, BARRETO']);
+  });
+  it('repetidaCom vazio não é pendência', () => {
+    expect(pendenciasDoMilitar({ ...ok, repetidaCom: [] })).toEqual([]);
+  });
+});
+
+describe('antiguidade repetida', () => {
+  const m = (id: string, nomeGuerra: string, antiguidade: number | null) => ({ id, nomeGuerra, antiguidade });
+  it('sem repetição, o mapa fica vazio', () => {
+    expect(repetidasPorAntiguidade([m('1', 'A', 1), m('2', 'B', 2)]).size).toBe(0);
+  });
+  it('um par aponta um para o outro', () => {
+    const r = repetidasPorAntiguidade([m('1', 'A', 5), m('2', 'B', 5), m('3', 'C', 6)]);
+    expect(r.get('1')).toEqual(['B']);
+    expect(r.get('2')).toEqual(['A']);
+    expect(r.has('3')).toBe(false);
+  });
+  it('um trio lista os outros dois', () => {
+    const r = repetidasPorAntiguidade([m('1', 'A', 5), m('2', 'B', 5), m('3', 'C', 5)]);
+    expect(r.get('2')).toEqual(['A', 'C']);
+  });
+  it('antiguidade vazia nunca repete', () => {
+    expect(repetidasPorAntiguidade([m('1', 'A', null), m('2', 'B', null)]).size).toBe(0);
   });
 });
 

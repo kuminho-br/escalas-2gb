@@ -130,6 +130,15 @@ describe('importação de militares', () => {
     expect(outra.avisos).toContain(`IVO (990209-9): tem transferência marcada para ${mesPorExtenso(proximo)}; a lotação não foi mudada.`);
   });
 
+  it('antiguidade repetida na planilha vira aviso e as linhas entram', async () => {
+    const r = await importar([
+      ['990230-0', 'XAVIER', '1ª SB', 'SD BM', 'ADM', '', 50, '', '', ''],
+      ['990231-1', 'YURI', '1ª SB', 'SD BM', 'ADM', '', 50, '', '', ''],
+    ]);
+    expect(r.avisos).toContain('Antiguidade 50 repetida na planilha: XAVIER (990230-0) e YURI (990231-1).');
+    expect(r.novos.map((n: { chave: string }) => n.chave)).toEqual(['990230-0', '990231-1']);
+  });
+
   it('militar lotado em outra seção vira problema e não é trazido', async () => {
     const sd = (await api.banco.query<{ id: string }>("select id from posto_grad where sigla = 'SD BM'")).rows[0]!.id;
     const outra = await inserir(api.banco, 'unidade', { tipo: 'secao', sigla: '3ª SB', nome: '3ª Seção', mae_id: api.ids.gb, desde: '2026-11-01' });

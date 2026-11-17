@@ -13,10 +13,18 @@ import { Secao } from './Secao';
 
 const NOME_JORNADA = { pronto: 'Pronto', adm: 'Adm' } as const;
 
+/** Uma linha com a lotação que cobre o mês corrente. */
+function resumoDaLotacao(lotacoes: FichaMilitar['lotacoes']): string {
+  const mes = mesAtual();
+  const l = lotacoes.find((x) => x.desde.slice(0, 7) <= mes && (!x.ate || x.ate.slice(0, 7) >= mes));
+  if (!l) return 'Sem lotação';
+  return `${l.unidadeSigla}, ${NOME_JORNADA[l.jornada]}${l.equipe ? ` (${l.equipe})` : ''} desde ${mesPorExtenso(l.desde.slice(0, 7))}`;
+}
+
 export function Lotacoes({ ficha, unidadeId }: { ficha: FichaMilitar; unidadeId: string }) {
   const [transferindo, setTransferindo] = useState(false);
   return (
-    <Secao titulo="Lotação" acoes={<Button size="sm" variant="outline" onClick={() => setTransferindo(true)}>Registrar transferência</Button>}>
+    <Secao titulo="Lotação" recolhida resumo={resumoDaLotacao(ficha.lotacoes)} acoes={<Button size="sm" variant="outline" onClick={() => setTransferindo(true)}>Registrar transferência</Button>}>
       <ol className="relative grid gap-3 border-l-2 border-linha pl-4">
         {ficha.lotacoes.map((l, i) => (
           <li key={l.id} className="relative">

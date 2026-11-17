@@ -1,12 +1,18 @@
 // Importação da aba CONFIGURAÇÕES: parâmetros da unidade, por vigência.
 import { mesParaData, mesPorExtenso, type ItemPrevia, type ProblemaImportacao } from 'contratos';
-import { normalizar, paramDef, paramValidarLinhas, type ValorParametro } from 'dominio';
+import { normalizar, PARAM_CATALOGO, paramDef, paramValidarLinhas, type ValorParametro } from 'dominio';
 import { ESCREVE_PARAMETRO } from '../acesso.ts';
 import { CHAVES_SISTEMA } from '../cadastros/configuracoes.ts';
 import { coluna } from './planilha.ts';
-import type { Importador } from './tipos.ts';
+import type { ColunaModelo, Importador } from './tipos.ts';
 
 const ABA = 'CONFIGURAÇÕES';
+const COLUNAS = {
+  chave: { rotulo: 'CHAVE', obrigatoria: true, ajuda: 'Nome do parâmetro, como na lista abaixo.' },
+  valor: { rotulo: 'VALOR', obrigatoria: true, ajuda: 'Número, SIM ou NÃO, conforme o parâmetro.' },
+  vigencia: { rotulo: 'VIGÊNCIA', obrigatoria: false, ajuda: 'Mês a partir do qual o valor vale, no formato mm/aaaa. Vazio vale desde a criação da seção.' },
+  descricao: { rotulo: 'DESCRIÇÃO', obrigatoria: false, ajuda: 'Anotação sua. O sistema não lê esta coluna.' },
+} satisfies Record<string, ColunaModelo>;
 type Item = { chave: string; vigencia: string; valor: ValorParametro };
 
 // 'Linha 3 de CONFIGURAÇÕES (CHAVE): Use um número inteiro. Linha ignorada.' -> 'CHAVE: Use um número inteiro.'
@@ -32,9 +38,15 @@ const textoValor = (v: unknown) => (typeof v === 'boolean' ? (v ? 'Sim' : 'Não'
 export const importadorConfiguracoes: Importador<Item[]> = {
   abas: [ABA],
   papeis: ESCREVE_PARAMETRO,
+  modelo: {
+    abas: [{ nome: ABA, colunas: Object.values(COLUNAS) }],
+    async valores() {
+      return [{ titulo: 'Parâmetros que o sistema usa (coluna CHAVE)', itens: PARAM_CATALOGO.filter((d) => CHAVES_SISTEMA.includes(d.chave)).map((d) => `${d.chave}: ${d.descricao}`) }];
+    },
+  },
   async planejar(abas, { tx, unidadeId }) {
     const aba = abas[ABA]!;
-    const c = { chave: coluna(aba, 'CHAVE'), valor: coluna(aba, 'VALOR'), vigencia: coluna(aba, 'VIGENCIA') };
+    const c = { chave: coluna(aba, COLUNAS.chave.rotulo), valor: coluna(aba, COLUNAS.valor.rotulo), vigencia: coluna(aba, COLUNAS.vigencia.rotulo) };
     const problemas: ProblemaImportacao[] = [];
     const avisos: string[] = [];
     if (c.chave < 0 || c.valor < 0) {

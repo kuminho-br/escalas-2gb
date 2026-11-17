@@ -3,10 +3,24 @@ import { mesParaData, mesPorExtenso, type ItemPrevia, type ProblemaImportacao } 
 import { categoriasCnh, CICLO_EQUIPES, diasDoMes, normalizar } from 'dominio';
 import type { Consulta } from '../banco/banco.ts';
 import { coluna } from './planilha.ts';
-import type { Importador } from './tipos.ts';
+import type { ColunaModelo, Importador } from './tipos.ts';
 
 const ABA = 'MILITARES';
 const SIM = ['SIM', 'S', 'X', '1', 'TRUE', 'VERDADEIRO'];
+
+// rótulos lidos por planejar e escritos no cabeçalho do modelo: uma lista só
+const COLUNAS = {
+  mat: { rotulo: 'MATRÍCULA', obrigatoria: true, ajuda: '6 dígitos, hífen e 1 dígito (ex.: 123456-7). Sem o hífen, o sistema corrige e avisa.' },
+  nome: { rotulo: 'NOME DE GUERRA', obrigatoria: true, ajuda: 'Como o militar aparece na escala.' },
+  secao: { rotulo: 'SEÇÃO', obrigatoria: true, ajuda: 'Sigla da seção do militar, igual à da seção que está importando (ex.: 1ª SB). Militar de outra seção é pulado.' },
+  posto: { rotulo: 'POSTO/GRAD', obrigatoria: true, ajuda: 'Sigla do posto ou graduação, como na lista abaixo. "SD" vale como "SD BM".' },
+  jornada: { rotulo: 'JORNADA', obrigatoria: true, ajuda: 'PRONTO (turnos de 12h) ou ADM (expediente).', opcoes: ['PRONTO', 'ADM'] },
+  equipe: { rotulo: 'EQUIPE', obrigatoria: false, ajuda: 'Equipe do pronto (ex.: ALFA). Equipe que ainda não existe é criada. No ADM, deixe vazio.' },
+  antig: { rotulo: 'ANTIG', obrigatoria: false, ajuda: 'Número da antiguidade, a partir de 1. Não repita o número entre militares.' },
+  motorista: { rotulo: 'MOTORISTA', obrigatoria: false, ajuda: 'SIM se o militar está no quadro de motoristas.', opcoes: ['SIM', 'NÃO'] },
+  vjes: { rotulo: 'VOLUNTÁRIO JES', obrigatoria: false, ajuda: 'SIM se o militar é voluntário JES.', opcoes: ['SIM', 'NÃO'] },
+  cnh: { rotulo: 'CNH', obrigatoria: false, ajuda: 'Categorias da carteira, juntas (ex.: AD). Só vale para quem está no quadro de motoristas.' },
+} satisfies Record<string, ColunaModelo>;
 
 type Dados = {
   matricula: string;
@@ -84,13 +98,26 @@ async function existentes(tx: Consulta, mes: string): Promise<Map<string, Existe
 export const importadorMilitares: Importador<Plano> = {
   abas: [ABA],
 
+  modelo: {
+    abas: [{ nome: ABA, colunas: Object.values(COLUNAS) }],
+    async valores({ tx, unidadeId }) {
+      const unidade = (await tx.query<{ sigla: string }>('select sigla from unidade where id = $1', [unidadeId])).rows[0]!;
+      const postos = (await tx.query<{ sigla: string }>('select sigla from posto_grad order by ordem')).rows;
+      const equipes = (await tx.query<{ nome: string }>('select nome from equipe where unidade_id = $1 order by ordem_ciclo', [unidadeId])).rows;
+      return [
+        { titulo: 'Seção desta importação (coluna SEÇÃO)', itens: [unidade.sigla] },
+        { titulo: 'Postos e graduações (coluna POSTO/GRAD)', itens: postos.map((p) => p.sigla) },
+        {
+          titulo: 'Equipes da seção (coluna EQUIPE)',
+          itens: equipes.length ? equipes.map((e) => e.nome) : ['Ainda não há equipes: a importação cria as que aparecerem na coluna EQUIPE.'],
+        },
+      ];
+    },
+  },
+
   async planejar(abas, { tx, unidadeId, hoje }) {
     const aba = abas[ABA]!;
-    const col = (r: string) => coluna(aba, r);
-    const c = {
-      mat: col('MATRÍCULA'), nome: col('NOME DE GUERRA'), secao: col('SEÇÃO'), posto: col('POSTO/GRAD'), jornada: col('JORNADA'),
-      equipe: col('EQUIPE'), antig: col('ANTIG'), motorista: col('MOTORISTA'), vjes: col('VOLUNTÁRIO JES'), cnh: col('CNH'),
-    };
+    const c = Object.fromEntries(Object.entries(COLUNAS).map(([k, v]) => [k, coluna(aba, v.rotulo)])) as Record<keyof typeof COLUNAS, number>;
     const problemas: ProblemaImportacao[] = [];
     const avisos: string[] = [];
     const vazio = { previa: { novos: [], alterados: [], iguais: 0, problemas, avisos }, plano: { equipesNovas: [], itens: [], mes: hoje.slice(0, 7) } };
@@ -114,6 +141,7 @@ export const importadorMilitares: Importador<Plano> = {
     const novos: ItemPrevia[] = [];
     const alterados: ItemPrevia[] = [];
     const itens: ItemPlano[] = [];
+    const comAntiguidade: { antiguidade: number | null; nome: string; matricula: string }[] = [];
     let iguais = 0;
 
     for (const l of aba.linhas) {
@@ -196,6 +224,7 @@ export const importadorMilitares: Importador<Plano> = {
         problema(`${nomeGuerra} (${mat.valor}) está lotado na ${e.lotacao_sigla}.`, `Ele entra aqui quando a transferência for registrada por quem cuida da ${e.lotacao_sigla}.`);
         continue;
       }
+      comAntiguidade.push({ antiguidade, nome: nomeGuerra, matricula: mat.valor });
       if (!e) {
         novos.push({ chave: mat.valor, descricao });
         itens.push({ id: null, dados, mudouMilitar: true, lotacao: { acao: 'nova' } });
@@ -243,6 +272,13 @@ export const importadorMilitares: Importador<Plano> = {
       itens.push({ id: e.id, dados, mudouMilitar, lotacao });
     }
 
+    const porNumero = new Map<number, string[]>();
+    for (const x of comAntiguidade) {
+      if (x.antiguidade !== null) porNumero.set(x.antiguidade, [...(porNumero.get(x.antiguidade) ?? []), `${x.nome} (${x.matricula})`]);
+    }
+    for (const [n, quem] of porNumero) {
+      if (quem.length > 1) avisos.push(`Antiguidade ${n} repetida na planilha: ${quem.slice(0, -1).join(', ')} e ${quem[quem.length - 1]}.`);
+    }
     if (equipesNovas.length) avisos.push(`Equipes novas: ${equipesNovas.map((q) => q.nome).join(', ')}.`);
     const lotadosAqui = [...ja.values()].filter((e) => e.lotacao_unidade === unidadeId && !vistos.has(e.matricula)).length;
     if (lotadosAqui) avisos.push(`${lotadosAqui} militares do sistema não estão na planilha (nada foi apagado).`);

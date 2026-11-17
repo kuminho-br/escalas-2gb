@@ -1,3 +1,4 @@
+// GET /api/unidades/:u/importacao/:cadastro/modelo — planilha em branco, com a ajuda.
 // POST /api/unidades/:u/importacao/:cadastro — prévia (sem gravar) ou, com ?confirmar=1, gravação.
 // Sem estado: a confirmação recebe o mesmo arquivo e refaz o plano antes de gravar.
 import { Hono } from 'hono';
@@ -6,12 +7,29 @@ import { CADASTRO, exigirPapel, exigirSessao, type AmbienteApi } from '../acesso
 import type { Auth } from '../auth.ts';
 import { comUsuario, type Banco } from '../banco/banco.ts';
 import { hojeRecife } from '../datas.ts';
+import { gerarModelo } from './modelo.ts';
 import { lerPlanilha, type Aba } from './planilha.ts';
 import type { Importador } from './tipos.ts';
 
 export function rotasImportacao(dep: { banco: Banco; auth: Auth }, importadores: Record<string, Importador<unknown>>): Hono<AmbienteApi> {
   const r = new Hono<AmbienteApi>();
   r.use('/unidades/:u/importacao/*', exigirSessao(dep.banco, dep.auth));
+  r.get('/unidades/:u/importacao/:cadastro/modelo', async (c) => {
+    const unidadeId = c.req.param('u');
+    const cadastro = c.req.param('cadastro');
+    const imp = importadores[cadastro];
+    const negado = await exigirPapel(c, unidadeId, imp?.papeis ?? CADASTRO);
+    if (negado) return negado;
+    if (!imp) return c.json({ erro: 'Importação desconhecida.' }, 404);
+    const arquivo = await dep.banco.transacao(async (tx) => {
+      await tx.query('set transaction read only');
+      return gerarModelo(imp, { tx, unidadeId, hoje: hojeRecife() });
+    });
+    return c.body(arquivo, 200, {
+      'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'Content-Disposition': `attachment; filename="modelo-${cadastro}.xlsx"`,
+    });
+  });
   r.post('/unidades/:u/importacao/:cadastro', async (c) => {
     const unidadeId = c.req.param('u');
     const imp = importadores[c.req.param('cadastro')];
@@ -26,11 +44,11 @@ export function rotasImportacao(dep: { banco: Banco; auth: Auth }, importadores:
     try {
       abas = await lerPlanilha(await arquivo.arrayBuffer());
     } catch {
-      return c.json({ erro: 'Não foi possível ler o arquivo. Envie a planilha baixada em .xlsx.' }, 400);
+      return c.json({ erro: 'Não foi possível ler o arquivo. Se ele veio da sandbox inteira, o Google Planilhas pode ter exportado com defeito: baixe o modelo e cole só as abas nele.' }, 400);
     }
     const falta = imp.abas.find((a) => !(a in abas));
     if (falta) {
-      return c.json({ erro: `A planilha não tem a aba "${falta}". Baixe a sandbox inteira em .xlsx (Arquivo › Fazer download).` }, 400);
+      return c.json({ erro: `A planilha não tem a aba "${falta}". Baixe o modelo na tela de importação e cole os dados nele, ou confira o nome da aba.` }, 400);
     }
 
     const hoje = hojeRecife();

@@ -53,7 +53,7 @@ export function Motorista({ ficha }: { ficha: FichaMilitar }) {
           ))}
         </div>
         {quadro && (
-          <div className="grid grid-cols-5 gap-2" role="group" aria-label="Categorias da CNH">
+          <div className="grid w-1/2 min-w-[15rem] grid-cols-5 gap-1" role="group" aria-label="Categorias da CNH">
             {CATEGORIAS.map(([c, veiculo]) => {
               const naCarteira = carteira.includes(c);
               const pela = !naCarteira && habilitadas.includes(c) ? origemDe(c, carteira) : undefined;
@@ -66,15 +66,15 @@ export function Motorista({ ficha }: { ficha: FichaMilitar }) {
                   data-origem={naCarteira ? 'carteira' : pela ? 'hierarquia' : 'nenhuma'}
                   onClick={() => alternar(c)}
                   className={cn(
-                    'grid place-items-center rounded-lg border px-1 py-2 text-center',
+                    'grid place-items-center rounded-md border px-0.5 py-0.5 text-center',
                     naCarteira && 'border-tinta bg-tinta text-white',
                     pela && 'border-dashed border-tinta/60 text-tinta',
                     !naCarteira && !pela && 'border-linha text-apagado',
                   )}
                 >
-                  <span className="font-cond text-xl font-semibold">{c}</span>
-                  <span className="text-xs">{veiculo}</span>
-                  {pela && <span className="text-[11px]">pela {pela}</span>}
+                  <span className="font-cond text-lg leading-none font-semibold">{c}</span>
+                  <span className="text-[10px] leading-tight">{veiculo}</span>
+                  {pela && <span className="text-[9px] leading-tight">pela {pela}</span>}
                 </button>
               );
             })}

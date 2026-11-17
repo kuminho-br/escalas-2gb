@@ -35,6 +35,20 @@ const PREVIA = {
 };
 
 describe('importar da planilha', () => {
+  it('tem o link Baixar modelo apontando para o modelo do cadastro', async () => {
+    montar();
+    await userEvent.click(screen.getByRole('button', { name: 'Importar da planilha' }));
+    const link = screen.getByRole('link', { name: 'Baixar modelo' });
+    expect(link).toHaveAttribute('href', `${CAMINHO}/modelo`);
+    expect(link).toHaveAttribute('download');
+  });
+
+  it('o texto manda colar os dados nas abas do modelo', async () => {
+    montar();
+    await userEvent.click(screen.getByRole('button', { name: 'Importar da planilha' }));
+    expect(screen.getByText(/cole os dados nas abas dele/)).toBeInTheDocument();
+  });
+
   it('mostra a prévia e o botão com as contas', async () => {
     simularApi({ [`POST ${CAMINHO}`]: { status: 200, corpo: PREVIA } });
     montar();

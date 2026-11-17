@@ -120,3 +120,43 @@ Decisões tomadas com o usuário antes do plano da fase 3. O esquema e as telas 
   - **Gestor** (antigo papel `chefe`): faz o mesmo que o escalante, também na unidade dele e em todas as de baixo, e gerencia o nível. Cadastrar usuários e definir os gestores abaixo fica para a fase 7.
   - **Militar comum:** não tem papel cadastrado. É o usuário sem papel de escalante, gestor ou administrador. Vê só o que é dele: os próprios serviços ao longo dos dias, com quem compõe cada guarnição em que vai tirar serviço, e as escalas publicadas da unidade em que está lotado. Não vê cadastros. Abordagens consideradas: (C, escolhida) o que é dele mais as publicações da unidade, que é o que já circula hoje no documento impresso; (A) só o que é dele, descartada porque ele já recebe a escala publicada; (B) tudo para leitura, descartada por expor CNH, afastamentos e dados de todos (D7).
   - **Administrador:** superusuário do sistema todo; o papel só existe na unidade raiz.
+
+## Adendo (17/11/2026) — Modelo de planilha e ajustes da ficha do militar
+
+Decisões tomadas com o usuário depois de ver as entregas 1 e 2 funcionando no ambiente de teste.
+
+### Modelo de planilha para importar
+
+- **Intenção:** em toda tela com importação, o escalante baixa uma planilha `.xlsx` pronta: a aba de dados com o nome certo e o cabeçalho pronto, e uma aba `AJUDA` com as instruções escritas para o envio dar certo.
+- **Por quê:** a sandbox inteira em .xlsx falhou no ambiente de teste (`Não foi possível ler o arquivo`). A causa foi do Google Planilhas, que exporta corrompida uma sandbox muito grande. Com o modelo, cola-se só a aba que interessa e a importação funcionou (52 de 52 militares). O modelo evita o erro, em vez de só explicá-lo.
+- **Metas:** o escalante nunca precisa adivinhar nome de aba nem de coluna; a ajuda traz os valores que valem de verdade naquela unidade; modelo e leitura não podem divergir.
+- **Fora de escopo:** o modelo não traz linha de exemplo nem dado preenchido, porque a linha de exemplo seria importada. Não se muda o nome da aba: o sistema continua procurando exatamente `MILITARES`, `CONFIGURAÇÕES` etc. (decisão do usuário; "MILITARES (colar)" foi um caso isolado).
+- **Abordagens consideradas:**
+  - (A, escolhida) A API gera o arquivo na hora, com ExcelJS, e cada importador declara suas colunas uma só vez; a leitura e o modelo usam a mesma lista. Permite a aba `AJUDA` com os valores reais da unidade (por exemplo, postos e equipes no cadastro de militares; as chaves de parâmetro nas configurações).
+  - (B) Arquivos `.xlsx` prontos guardados no repositório. Descartada: divergem do código a cada coluna nova e não conhecem as equipes nem os tipos da unidade.
+  - (C) Gerar o arquivo no navegador. Descartada: repete no site o conhecimento das colunas e pesa mais o pacote do site.
+- **Onde fica a rota:** `GET /api/unidades/:u/importacao/:cadastro/modelo`, com a unidade, para a `AJUDA` listar os valores dela. Exige o mesmo papel da importação do cadastro. Alternativa descartada: rota sem unidade, que só permitiria ajuda genérica.
+- **Conteúdo do arquivo:**
+  - Uma aba por aba exigida pelo importador (por exemplo `TURNOS`, `ESCALAS` e `GUARNIÇÕES POR ESCALA` no importador de serviços e escalas), só com o cabeçalho, em negrito, linha congelada e largura razoável. Colunas de valor fechado e curto (JORNADA, MOTORISTA, VOLUNTÁRIO JES) vêm com lista de opções na célula.
+  - A aba `AJUDA`, por último: para que serve o arquivo; como preencher (colar a partir da sandbox ou digitar); uma tabela com uma linha por coluna (nome, obrigatória ou não, o que escrever, valores aceitos); os valores reais da unidade; e o que o sistema faz (linha com problema é pulada e o resto entra; importar de novo não duplica; a prévia mostra tudo antes de gravar). As importadoras ignoram a aba `AJUDA`.
+- **Mensagens de erro:** "aba que falta" passa a sugerir o modelo; "não foi possível ler" passa a dizer que sandbox grande pode sair corrompida do Google Planilhas e sugere colar só as abas no modelo.
+- **Sandbox inteira continua aceita.** O modelo é o caminho recomendado, não o único.
+- **Onde entra:** entrega 2.1 do plano da fase 3 (antes da entrega 3, porque as importações de guarnições, serviços e escalas, e cotas e feriados já nascem com o modelo). Importações das entregas 1 e 2 são adaptadas na mesma entrega.
+
+### Ficha do militar — ajustes
+
+Pedidos depois de usar a ficha:
+
+- **Lotação** vai para o fim da ficha e começa recolhida. O título mostra a lotação atual numa linha ("1ª SB, Adm desde novembro de 2026"). "Registrar transferência" aparece ao abrir. É informação de consulta, não de uso o tempo todo.
+- **Afastamentos:** a lista aparece sempre; o formulário de inclusão fica atrás do botão "Incluir afastamento" e fecha depois de gravar. O atalho "Mês inteiro" (e o campo "Mês do atalho") sai: poluía a tela por pouco uso. Isto substitui o que o adendo "Cadastros" e a especificação de telas diziam sobre o atalho.
+- **Motorista:** o desenho dos botões fica, com a metade do tamanho.
+- **Antiguidade repetida:** duas pessoas não podem ter a mesma antiguidade, mas o sistema **não renumera ninguém**: avisa. Os dois militares ganham a pendência "Antiguidade repetida com <nome de guerra>", mostrada na ficha e na lista; a gravação não é bloqueada (o escalante nunca é bloqueado). A comparação vale entre os militares lotados na mesma unidade no mês. A importação mostra o mesmo caso como aviso na prévia.
+  - Abordagens consideradas: (A, escolhida) só avisar; (B) renumerar os demais ao mudar um, descartada porque a antiguidade vem de um ranking do 2º GB inteiro e o sistema só tem parte dos militares: renumerar quebraria a correspondência com o ranking e seria desfeito na próxima importação; (C) bloquear a gravação, descartada pelo princípio de nunca bloquear o escalante.
+
+### Pendência registrada — antiguidade institucional (não implementar agora)
+
+- **Situação hoje:** a antiguidade cadastrada é o lugar do militar no ranking do 2º GB, numérico e sem repetição, vindo da sandbox.
+- **Problema:** com a institucionalização (fase 7) entram outros níveis hierárquicos (diretorias, DGO), e a antiguidade "no 2º GB" deixa de servir como critério em certos contextos.
+- **Ideia do usuário:** tomar como base a antiguidade dos postos e graduações nos almanaques (documentos institucionais; cópias locais em `docs/fontes de dados/`, que não vão para o repositório, por conterem dados pessoais — D7), e o sistema estabelecer a antiguidade no nível hierárquico em que a pessoa estiver.
+- **Por que fica para depois:** só pesa quando o escopo for institucional. Enquanto o sistema tratar uma seção ou um GB, a antiguidade da sandbox basta.
+- **Perguntas em aberto para quando chegar a hora:** como o almanaque entra (importação do PDF ou digitação), como a antiguidade por nível é derivada, e o que acontece com a antiguidade manual cadastrada hoje.

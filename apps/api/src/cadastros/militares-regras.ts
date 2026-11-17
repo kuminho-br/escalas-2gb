@@ -23,13 +23,36 @@ export function situacaoNoMes(afast: { tipo: string; inicio: string; fim: string
 }
 
 /** Avisos de cadastro incompleto. */
-export function pendenciasDoMilitar(m: { motorista: boolean; cnh: string[]; jornada: string | null; equipe: string | null; antiguidade: number | null }): string[] {
+export function pendenciasDoMilitar(m: {
+  motorista: boolean;
+  cnh: string[];
+  jornada: string | null;
+  equipe: string | null;
+  antiguidade: number | null;
+  /** nomes de guerra dos outros militares com a mesma antiguidade */
+  repetidaCom?: string[];
+}): string[] {
   const p: string[] = [];
   if (m.motorista && m.cnh.length === 0) p.push('Motorista sem categoria de CNH');
   if (m.jornada === 'pronto' && !m.equipe) p.push('Pronto sem equipe');
   if (m.jornada === null) p.push('Sem lotação');
   if (m.antiguidade === null) p.push('Sem antiguidade');
+  if (m.repetidaCom?.length) p.push(`Antiguidade repetida com ${m.repetidaCom.join(', ')}`);
   return p;
+}
+
+/** Para cada militar que divide a antiguidade com outros, os nomes de guerra desses outros. */
+export function repetidasPorAntiguidade(militares: { id: string; nomeGuerra: string; antiguidade: number | null }[]): Map<string, string[]> {
+  const porNumero = new Map<number, typeof militares>();
+  for (const m of militares) {
+    if (m.antiguidade !== null) porNumero.set(m.antiguidade, [...(porNumero.get(m.antiguidade) ?? []), m]);
+  }
+  const repetidas = new Map<string, string[]>();
+  for (const grupo of porNumero.values()) {
+    if (grupo.length < 2) continue;
+    for (const m of grupo) repetidas.set(m.id, grupo.filter((o) => o.id !== m.id).map((o) => o.nomeGuerra));
+  }
+  return repetidas;
 }
 
 const ORDEM_CNH = ['E', 'D', 'C', 'B', 'A'];

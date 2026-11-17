@@ -79,11 +79,12 @@ Um cadastro por vez, cada um com API, tela e importação da sandbox, num PR pr�
 
 1. **Configurações e tipos de afastamento:** parâmetros com norma de referência; catálogos do sistema (tipos de afastamento, atividades), editados pelo administrador.
 2. **Militares e afastamentos:** identificação, lotação com histórico, jornada, quadro de motoristas e CNH com hierarquia, afastamentos com tipo.
+   - **2.1 Modelo de planilha e ajustes da ficha (adendo de 17/11/2026):** em toda tela com importação, "Baixar modelo" entrega uma planilha com a aba nomeada, o cabeçalho pronto e uma aba AJUDA; as entregas 3 a 5 já nascem com ele. A ficha ganha lotação recolhida e por último, formulário de afastamento sob demanda, botões de motorista menores e o aviso de antiguidade repetida.
 3. **Atividades, funções e guarnições:** guarnição = atividade + composição, com viatura opcional e versões por vigência.
 4. **Serviços, turnos e escalas:** turnos dentro do serviço, com "Pede voluntariado em" pelo horário; escalas com serviços reunidos, publicação e guarnições por turno com vigência.
 5. **Cotas e feriados.**
 
-A importação é feita na tela, com prévia e confirmação; os dados reais vão direto para o banco de teste (D7).
+A importação é feita na tela, com prévia e confirmação; os dados reais vão direto para o banco de teste (D7). Cada importação oferece o modelo de planilha para baixar.
 
 **Entrega:** os cadastros da 1ª SB conferidos no sistema novo, iguais aos da sandbox.
 
@@ -119,6 +120,7 @@ A importação é feita na tela, com prévia e confirmação; os dados reais vã
 - Escalas, guarnições e cotas em qualquer nível, como a operação do GB.
 - Acesso por unidade, com um gestor por nível (chefe, diretor) que cadastra os usuários do seu nível e de todos os de baixo e define o gestor de cada nível abaixo.
 - Tela de Histórico, sobre o registro que existe desde a fase 1.
+- Antiguidade institucional: hoje é o lugar no ranking do 2º GB; com outros níveis hierárquicos, passa a vir dos almanaques, e a antiguidade por nível é derivada pelo sistema (pendência registrada no adendo de 17/11/2026 do design; só pesa quando o escopo for institucional).
 - Marcação de voluntariado pelo próprio militar.
 - Migração para o servidor do Estado: cópia do banco, implantação e retirada do ambiente de teste.
 
