@@ -14,8 +14,8 @@ const TextoOpcional = (limite: number) =>
     .nullable();
 
 export const LinhaComposicao = z
-  .object({ funcaoId: Id, minimo: Inteiro0, maximo: Inteiro0.nullable(), cnhExigida: CategoriaCnh.nullable() })
-  .refine((l) => l.maximo === null || l.maximo >= l.minimo, { path: ['maximo'], message: MSG_MAXIMO });
+  .object({ funcaoId: Id, minimo: Inteiro0, maximo: Inteiro0, cnhExigida: CategoriaCnh.nullable() })
+  .refine((l) => l.maximo >= l.minimo, { path: ['maximo'], message: MSG_MAXIMO });
 export type LinhaComposicao = z.infer<typeof LinhaComposicao>;
 
 export const VersaoGuarnicao = z
@@ -35,10 +35,10 @@ export const VersaoGuarnicao = z
   });
 export type VersaoGuarnicao = z.infer<typeof VersaoGuarnicao>;
 
-export const NovaGuarnicao = z.object({ nome: Nome, atividadeId: Id.nullable(), vigencia: Mes, versao: VersaoGuarnicao });
+export const NovaGuarnicao = z.object({ nome: Nome, vigencia: Mes, versao: VersaoGuarnicao });
 export type NovaGuarnicao = z.infer<typeof NovaGuarnicao>;
 
-export const EdicaoGuarnicao = z.object({ nome: Nome.optional(), atividadeId: Id.nullable().optional() });
+export const EdicaoGuarnicao = z.object({ nome: Nome.optional() });
 export type EdicaoGuarnicao = z.infer<typeof EdicaoGuarnicao>;
 
 export const NovaFuncao = z.object({ nome: Nome });
@@ -46,7 +46,7 @@ export type NovaFuncao = z.infer<typeof NovaFuncao>;
 
 export type Funcao = { id: string; nome: string; unidadeSigla: string; herdada: boolean };
 
-export type ComposicaoSalva = { funcaoId: string; funcao: string; minimo: number; maximo: number | null; cnhExigida: string | null };
+export type ComposicaoSalva = { funcaoId: string; funcao: string; minimo: number; maximo: number; cnhExigida: string | null };
 export type VersaoSalva = {
   /** aaaa-mm */
   vigencia: string;
@@ -60,22 +60,19 @@ export type VersaoSalva = {
 export type LinhaGuarnicao = {
   id: string;
   nome: string;
-  atividade: string | null;
   viatura: string | null;
   prioridade: number | null;
   ativa: boolean;
-  /** soma dos mínimos da composição */
-  vagasObrigatorias: number;
+  /** somas dos mínimos e dos máximos da composição */
+  minimo: number;
+  maximo: number;
   /** mês da primeira versão, quando nenhuma vale ainda no mês consultado */
   aPartirDe: string | null;
-  pendencias: string[];
 };
 
 export type FichaGuarnicao = {
   id: string;
   nome: string;
-  atividadeId: string | null;
-  atividade: string | null;
   /** mais recente primeiro */
   versoes: VersaoSalva[];
   usadaEm: { escalaId: string; escala: string; turnos: string[] }[];

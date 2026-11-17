@@ -2,7 +2,7 @@ import type { VersaoSalva } from 'contratos';
 import { describe, expect, it } from 'vitest';
 import { diferencasDeVersao, versaoNoMes } from '../src/cadastros/guarnicoes-regras.ts';
 
-const comp = (funcao: string, minimo = 1, maximo: number | null = 1, cnhExigida: string | null = null) => ({ funcaoId: `id-${funcao}`, funcao, minimo, maximo, cnhExigida });
+const comp = (funcao: string, minimo = 1, maximo = 1, cnhExigida: string | null = null) => ({ funcaoId: `id-${funcao}`, funcao, minimo, maximo, cnhExigida });
 const v = (extra: Partial<VersaoSalva> = {}): VersaoSalva => ({
   vigencia: '2026-11', viatura: 'ABT-01', tipoViatura: null, prioridade: 1, ativa: true, composicao: [comp('Combatente', 2, 3), comp('Motorista', 1, 1, 'D')], ...extra,
 });
@@ -25,8 +25,8 @@ describe('diferenças entre versões', () => {
   it('Combatente: mínimo 2 → 3', () => {
     expect(diferencasDeVersao(v(), v({ composicao: [comp('Combatente', 3, 3), comp('Motorista', 1, 1, 'D')] }))).toEqual(['Combatente: mínimo 2 → 3']);
   });
-  it('Combatente: máximo 3 → sem limite', () => {
-    expect(diferencasDeVersao(v(), v({ composicao: [comp('Combatente', 2, null), comp('Motorista', 1, 1, 'D')] }))).toEqual(['Combatente: máximo 3 → sem limite']);
+  it('Combatente: máximo 3 → 4', () => {
+    expect(diferencasDeVersao(v(), v({ composicao: [comp('Combatente', 2, 4), comp('Motorista', 1, 1, 'D')] }))).toEqual(['Combatente: máximo 3 → 4']);
   });
   it('Motorista: CNH D → C', () => {
     expect(diferencasDeVersao(v(), v({ composicao: [comp('Combatente', 2, 3), comp('Motorista', 1, 1, 'C')] }))).toEqual(['Motorista: CNH D → C']);

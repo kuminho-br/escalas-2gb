@@ -10,7 +10,7 @@ const ABA = 'GUARNIÇÕES';
 
 const COLUNAS = {
   vigencia: { rotulo: 'VIGÊNCIA', obrigatoria: false, ajuda: 'Mês a partir do qual a linha vale (aaaa-mm ou mm/aaaa). Vazio vale desde a criação da seção.' },
-  guarnicao: { rotulo: 'GUARNIÇÃO', obrigatoria: true, ajuda: 'Nome da guarnição. A atividade não vem da planilha: escolha na tela de Guarnições.' },
+  guarnicao: { rotulo: 'GUARNIÇÃO', obrigatoria: true, ajuda: 'Nome da guarnição.' },
   viatura: { rotulo: 'VIATURA', obrigatoria: false, ajuda: 'Sigla da viatura. Só informativa: não muda as vagas.' },
   tipo: { rotulo: 'TIPO', obrigatoria: false, ajuda: 'Tipo da viatura (ex.: Auto Resgate). Só informativo.' },
   ativar: { rotulo: 'ATIVAR', obrigatoria: false, ajuda: 'SIM se a guarnição entra na escala. Vazio vale SIM.', opcoes: ['SIM', 'NÃO'] },
@@ -18,7 +18,7 @@ const COLUNAS = {
   cnh: { rotulo: 'CNH', obrigatoria: false, ajuda: 'Categoria exigida de quem ocupa a função (ex.: D). Com mais de uma, vale a que as outras habilitam (C/D vira C).' },
   funcao: { rotulo: 'FUNÇÃO', obrigatoria: true, ajuda: 'Função na guarnição (ex.: Motorista). Função nova é criada no catálogo da seção.' },
   minimo: { rotulo: 'MÍNIMO', obrigatoria: false, ajuda: 'Vagas obrigatórias da função. Vazio vale 0.' },
-  maximo: { rotulo: 'MÁXIMO', obrigatoria: false, ajuda: 'Máximo de vagas. Vazio é sem limite; 0 retira a função naquela vigência.' },
+  maximo: { rotulo: 'MÁXIMO', obrigatoria: false, ajuda: 'Máximo de militares na função. Vazio vale igual ao mínimo; 0 retira a função naquela vigência.' },
 } satisfies Record<string, ColunaModelo>;
 
 type Versao = VersaoSalva & { redundante?: boolean };
@@ -97,6 +97,7 @@ export const importadorGuarnicoes: Importador<Plano> = {
     const doAviso: ProblemaImportacao[] = [];
     const porGuarnicao = new Map<string, { nome: string; versoes: Versao[] }>();
     const conflitos = new Set<string>();
+    const zerados = new Set<string>();
     for (const mes of [...meses].sort()) {
       const res = resolverGuarnicoes(linhas, mes);
       for (const a of res.avisos) {
@@ -126,7 +127,10 @@ export const importadorGuarnicoes: Importador<Plano> = {
               });
             }
           } else cnhExigida = unica.cnh;
-          return { funcaoId: '', funcao: f.funcao, minimo: f.minimo, maximo: f.maximo, cnhExigida };
+          // não há "sem limite" no sistema novo: máximo vazio vale o mínimo
+          const maximo = f.maximo ?? f.minimo;
+          if (maximo === 0) zerados.add(`${g.id}: ${f.funcao} ficou de 0 a 0 militares; confira MÍNIMO e MÁXIMO.`);
+          return { funcaoId: '', funcao: f.funcao, minimo: f.minimo, maximo, cnhExigida };
         });
         const versao: Versao = { vigencia: mes, viatura: g.viatura || null, tipoViatura: g.tipo || null, prioridade: g.prioridade, ativa: g.ativar, composicao };
         const entrada = porGuarnicao.get(chave) ?? { nome: g.id, versoes: [] };
@@ -140,7 +144,7 @@ export const importadorGuarnicoes: Importador<Plano> = {
     problemas.sort((a, b) => a.linha - b.linha);
 
     // contra o que já está no sistema
-    const existentes = (await tx.query<{ id: string; nome: string; atividade_id: string | null }>('select id, nome, atividade_id from guarnicao where unidade_id = $1', [unidadeId])).rows;
+    const existentes = (await tx.query<{ id: string; nome: string }>('select id, nome from guarnicao where unidade_id = $1', [unidadeId])).rows;
     const porChave = new Map(existentes.map((g) => [normalizar(g.nome), g]));
     const doSistema = await versoesDasGuarnicoes(tx, existentes.map((g) => g.id));
     const funcoes = await funcoesVisiveis(tx, unidadeId);
@@ -150,10 +154,8 @@ export const importadorGuarnicoes: Importador<Plano> = {
     const alterados: ItemPrevia[] = [];
     const plano: Plano = { funcoesNovas: [], guarnicoes: [] };
     let iguais = 0;
-    let semAtividade = 0;
     for (const [chave, g] of porGuarnicao) {
       const ex = porChave.get(chave);
-      if (!ex || !ex.atividade_id) semAtividade++;
       let paraGravar: Versao[];
       if (!ex) {
         paraGravar = g.versoes.filter((v) => !v.redundante);
@@ -193,8 +195,7 @@ export const importadorGuarnicoes: Importador<Plano> = {
     }
 
     if (plano.funcoesNovas.length) avisos.push(`Funções novas: ${plano.funcoesNovas.join(', ')}.`);
-    if (semAtividade === 1) avisos.push('1 guarnição sem atividade: escolha a atividade dela na tela de Guarnições.');
-    else if (semAtividade > 1) avisos.push(`${semAtividade} guarnições sem atividade: escolha a atividade de cada uma na tela de Guarnições.`);
+    avisos.push(...zerados);
     return { previa: { novos, alterados, iguais, problemas, avisos }, plano };
   },
 

@@ -90,8 +90,8 @@ export async function gravarVersao(tx: Consulta, guarnicaoId: string, vigencia: 
 
 async function carregarFicha(c: Consulta, id: string): Promise<FichaGuarnicao | null> {
   const g = (
-    await c.query<{ id: string; nome: string; atividade_id: string | null; atividade: string | null }>(
-      'select g.id, g.nome, g.atividade_id, a.nome as atividade from guarnicao g left join atividade a on a.id = g.atividade_id where g.id = $1',
+    await c.query<{ id: string; nome: string }>(
+      'select id, nome from guarnicao where id = $1',
       [id],
     )
   ).rows[0];
@@ -113,7 +113,7 @@ async function carregarFicha(c: Consulta, id: string): Promise<FichaGuarnicao | 
     if (!item) usadaEm.push((item = { escalaId: r.escalaId, escala: r.escala, turnos: [] }));
     item.turnos.push(r.turno_letra ?? 'todos');
   }
-  return { id: g.id, nome: g.nome, atividadeId: g.atividade_id, atividade: g.atividade, versoes, usadaEm };
+  return { id: g.id, nome: g.nome, versoes, usadaEm };
 }
 
 /** 400 por campo para as funções que a unidade não enxerga. */
@@ -126,8 +126,6 @@ async function funcoesForaDoCatalogo(c: Consulta, unidadeId: string, v: VersaoGu
   return campos;
 }
 
-const atividadeAtiva = async (c: Consulta, id: string) =>
-  ((await c.query<{ ativo: boolean }>('select ativo from atividade where id = $1', [id])).rows[0]?.ativo) === true;
 
 async function nomeJaUsado(c: Consulta, unidadeId: string, nome: string, exceto?: string): Promise<boolean> {
   const { rows } = await c.query<{ id: string; nome: string }>('select id, nome from guarnicao where unidade_id = $1', [unidadeId]);
@@ -186,8 +184,8 @@ export function rotasGuarnicoes(dep: { banco: Banco; auth: Auth }): Hono<Ambient
     if (negado) return negado;
     const mes = c.req.query('mes') ?? hojeRecife().slice(0, 7);
     if (!Mes.safeParse(mes).success) return c.json({ erro: 'Mês inválido: use o formato aaaa-mm.' }, 400);
-    const { rows } = await dep.banco.query<{ id: string; nome: string; atividade: string | null }>(
-      'select g.id, g.nome, a.nome as atividade from guarnicao g left join atividade a on a.id = g.atividade_id where g.unidade_id = $1',
+    const { rows } = await dep.banco.query<{ id: string; nome: string }>(
+      'select id, nome from guarnicao where unidade_id = $1',
       [u],
     );
     const versoes = await versoesDasGuarnicoes(dep.banco, rows.map((g) => g.id));
@@ -198,13 +196,12 @@ export function rotasGuarnicoes(dep: { banco: Banco; auth: Auth }): Hono<Ambient
       return {
         id: g.id,
         nome: g.nome,
-        atividade: g.atividade,
         viatura: v?.viatura ?? null,
         prioridade: v?.prioridade ?? null,
         ativa: v?.ativa ?? true,
-        vagasObrigatorias: v ? v.composicao.reduce((s, x) => s + x.minimo, 0) : 0,
+        minimo: v ? v.composicao.reduce((s, x) => s + x.minimo, 0) : 0,
+        maximo: v ? v.composicao.reduce((s, x) => s + x.maximo, 0) : 0,
         aPartirDe: !vigente && v ? v.vigencia : null,
-        pendencias: g.atividade ? [] : ['Sem atividade'],
       };
     });
     linhas.sort((a, b) => (a.prioridade ?? Infinity) - (b.prioridade ?? Infinity) || porNome(a, b));
@@ -221,13 +218,12 @@ export function rotasGuarnicoes(dep: { banco: Banco; auth: Auth }): Hono<Ambient
     const passado = mesPassado(c, d.vigencia);
     if (passado) return passado;
     const campos = await funcoesForaDoCatalogo(dep.banco, u, d.versao, 'versao.');
-    if (d.atividadeId && !(await atividadeAtiva(dep.banco, d.atividadeId))) campos.atividadeId = 'Escolha uma atividade ativa.';
     if (Object.keys(campos).length) return c.json({ erro: 'Confira os campos destacados.', campos }, 400);
     if (await nomeJaUsado(dep.banco, u, d.nome)) return c.json({ erro: MSG_NOME['23505'] }, 409);
     try {
       const ficha = await comUsuario(dep.banco, c.get('usuarioId'), async (tx) => {
         const id = (
-          await tx.query<{ id: string }>('insert into guarnicao (unidade_id, nome, atividade_id) values ($1, $2, $3) returning id', [u, d.nome, d.atividadeId])
+          await tx.query<{ id: string }>('insert into guarnicao (unidade_id, nome) values ($1, $2) returning id', [u, d.nome])
         ).rows[0]!.id;
         await gravarVersao(tx, id, d.vigencia, d.versao);
         return carregarFicha(tx, id);
@@ -252,16 +248,11 @@ export function rotasGuarnicoes(dep: { banco: Banco; auth: Auth }): Hono<Ambient
     const corpo = await lerCorpo(c, EdicaoGuarnicao);
     if (!corpo.ok) return corpo.resposta;
     const d = corpo.dados;
-    const atual = (await dep.banco.query<{ nome: string; atividade_id: string | null }>('select nome, atividade_id from guarnicao where id = $1', [id])).rows[0]!;
-    if (d.atividadeId && d.atividadeId !== atual.atividade_id && !(await atividadeAtiva(dep.banco, d.atividadeId))) {
-      return c.json({ erro: 'Confira os campos destacados.', campos: { atividadeId: 'Escolha uma atividade ativa.' } }, 400);
-    }
+    const atual = (await dep.banco.query<{ nome: string }>('select nome from guarnicao where id = $1', [id])).rows[0]!;
     if (d.nome && (await nomeJaUsado(dep.banco, acesso.unidadeId, d.nome, id))) return c.json({ erro: MSG_NOME['23505'] }, 409);
     try {
       const ficha = await comUsuario(dep.banco, c.get('usuarioId'), async (tx) => {
-        await tx.query('update guarnicao set nome = $2, atividade_id = $3 where id = $1', [
-          id, d.nome ?? atual.nome, d.atividadeId === undefined ? atual.atividade_id : d.atividadeId,
-        ]);
+        await tx.query('update guarnicao set nome = $2 where id = $1', [id, d.nome ?? atual.nome]);
         return carregarFicha(tx, id);
       });
       return c.json(ficha);

@@ -3,7 +3,6 @@ import type { VersaoSalva } from 'contratos';
 import { normalizar } from 'dominio';
 
 const ou = (v: string | number | null, vazio: string) => (v === null || v === '' ? vazio : String(v));
-const limite = (m: number | null) => (m === null ? 'sem limite' : String(m));
 
 /** Diferenças campo a campo, em português; com `antes` nulo a versão é só 'nova'. */
 export function diferencasDeVersao(antes: VersaoSalva | null, depois: VersaoSalva): string[] {
@@ -25,7 +24,7 @@ export function diferencasDeVersao(antes: VersaoSalva | null, depois: VersaoSalv
       continue;
     }
     if (a.minimo !== c.minimo) d.push(`${c.funcao}: mínimo ${a.minimo} → ${c.minimo}`);
-    if (a.maximo !== c.maximo) d.push(`${c.funcao}: máximo ${limite(a.maximo)} → ${limite(c.maximo)}`);
+    if (a.maximo !== c.maximo) d.push(`${c.funcao}: máximo ${a.maximo} → ${c.maximo}`);
     if (ou(a.cnhExigida, '') !== ou(c.cnhExigida, '')) d.push(`${c.funcao}: CNH ${ou(a.cnhExigida, 'nenhuma')} → ${ou(c.cnhExigida, 'nenhuma')}`);
   }
   for (const a of antes.composicao) if (!presentes.has(normalizar(a.funcao))) d.push(`${a.funcao}: retirada`);
