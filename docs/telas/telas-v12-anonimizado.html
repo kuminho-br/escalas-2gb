@@ -1,0 +1,987 @@
+<!DOCTYPE html>
+<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Escalas 2º GB</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Semi+Condensed:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --vinho:#8E1B1B; --fundo:#EDEFF2; --sup:#FFFFFF; --tinta:#1C2430; --apagado:#5B6675; --linha:#DCE0E6; --suave:#F6F7F9;
+  --pronto:#2F8F5B; --jes:#6E56A8; --saldo:#2B7BB9; --bioma:#C08A1E; --peseg:#3C5F9C; --adm:#8A94A1; --defens:#8C4A7A;
+  --sinal:#F2C200; --alerta:#B3261E; --ok:#2F8F5B;
+  --cond:"Barlow Semi Condensed",system-ui,sans-serif; --base:"Barlow",system-ui,sans-serif;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--fundo);color:var(--tinta);font:15px/1.45 var(--base)}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:3px solid var(--saldo);outline-offset:2px}
+.app{display:grid;grid-template-columns:84px 1fr;min-height:100vh}
+.trilho{background:var(--vinho);display:flex;flex-direction:column;align-items:center;padding:14px 0;gap:2px;position:sticky;top:0;height:100vh;overflow-y:auto}
+.brasao{width:42px;height:42px;border-radius:50%;background:var(--sinal);color:var(--vinho);display:grid;place-items:center;font:700 12px var(--cond);margin-bottom:14px;flex-shrink:0}
+.trilho button{width:72px;border:0;background:none;color:#F3D6D6;border-radius:10px;padding:7px 0 5px;font:500 11.5px/1.15 var(--cond);display:flex;flex-direction:column;align-items:center;gap:3px;flex-shrink:0}
+.trilho button svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.8}
+.trilho button[aria-current="page"]{background:rgba(255,255,255,.16);color:#fff}
+.trilho hr.div{border:0;height:1px;width:48px;background:rgba(255,255,255,.28);margin:10px 0;flex-shrink:0}
+main{padding:20px 28px 40px;min-width:0}
+.topo{display:flex;align-items:flex-end;gap:16px;flex-wrap:wrap;margin-bottom:16px}
+.topo h1{font:600 26px/1.1 var(--cond);margin:0;letter-spacing:-.01em}
+.topo p{margin:3px 0 0;color:var(--apagado);max-width:70ch}
+.topo .acoes{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.campo{background:var(--sup);border:1px solid var(--linha);border-radius:8px;padding:7px 12px;display:inline-flex;gap:8px;align-items:center;min-height:38px}
+.campo small{color:var(--apagado)}
+input.campo,select.campo{width:100%}
+.bt{border:0;border-radius:8px;padding:8px 16px;font-weight:600;min-height:38px}
+.bt.pri{background:var(--vinho);color:#fff}
+.bt.sec{background:var(--sup);color:var(--vinho);border:1px solid #D8B9B9}
+.bt.mini{min-height:30px;padding:4px 10px;font-size:14px}
+[hidden]{display:none!important}
+.tela{display:none}.tela.on{display:block}
+.painel{background:var(--sup);border:1px solid var(--linha);border-radius:12px;overflow:hidden}
+.etq{display:inline-block;border-radius:999px;padding:1px 9px;font:500 12.5px var(--cond);background:#EEF0F3;margin:2px 4px 2px 0;white-space:nowrap}
+.etq.azul{background:#E7EEF7;color:var(--peseg)}
+.etq.verde{background:#E3F2EA;color:#1F6B42}
+.etq.amb{background:#FCF1D6;color:#7A5A00}
+.etq.verm{background:#FBEAE8;color:#7E1B15}
+.vazio{color:var(--apagado)}
+.dica{color:var(--apagado);font-size:14px}
+
+/* blocos de serviço (régua) */
+.seq{display:flex;gap:2px;justify-content:center;min-height:20px;padding:2px;border-radius:5px}
+.seq.choque{box-shadow:inset 0 0 0 2px var(--alerta);background:#FDF1F0}
+.bl{width:16px;height:18px;border-radius:3px;color:#fff;font:700 11px/18px var(--cond);text-align:center}
+
+/* grade do militar */
+.grade-wrap{display:grid;grid-template-columns:1fr 340px;gap:16px;align-items:start}
+.grade{overflow-x:auto}
+.grade table{border-collapse:separate;border-spacing:0;width:100%;font-family:var(--cond)}
+.grade th{font:500 13px var(--cond);color:var(--apagado);padding:8px 2px 6px;text-align:center;border-bottom:1px solid var(--linha);background:var(--sup);position:sticky;top:0;z-index:1}
+.grade th b{display:block;font:600 16px var(--cond);color:var(--tinta)}
+.grade th.fer b{color:var(--alerta)}
+.grade .fds{background:var(--suave)}
+.grade th.nome,.grade td.nome{text-align:left;padding-left:16px;position:sticky;left:0;background:var(--sup);z-index:2;min-width:168px}
+.grade td{padding:5px 3px;border-bottom:1px solid #EEF0F3}
+.grade tr.eq td{background:#F1F3F6;font:600 13px var(--cond);color:var(--apagado);padding:6px 16px}
+.grade tr.mil{cursor:pointer}
+.grade tr.mil:hover td{background:#FBF3F3}
+.grade tr.mil.sel td{background:#F8E9E9}
+.nome strong{font:600 15px var(--cond);display:block;line-height:1.1}
+.nome span{font-size:12px;color:var(--apagado)}
+.tot{text-align:right;padding-right:14px!important;white-space:nowrap;font:600 14px var(--cond)}
+.horas{display:flex;align-items:center;gap:6px;justify-content:flex-end}
+.horas i{display:block;width:44px;height:6px;border-radius:3px;background:#E6E9EE;position:relative;overflow:hidden}
+.horas i u{position:absolute;inset:0 auto 0 0;background:var(--pronto)}
+.horas.acima{color:var(--alerta)}.horas.acima i u{background:var(--alerta)}
+.legenda{display:flex;gap:14px;flex-wrap:wrap;padding:10px 16px;border-top:1px solid var(--linha);font-size:13px;color:var(--apagado);align-items:center}
+.legenda span{display:inline-flex;align-items:center;gap:6px}
+.ficha{position:sticky;top:20px}
+.ficha header{padding:16px 18px 12px;border-bottom:1px solid var(--linha)}
+.ficha h2{font:600 22px/1.1 var(--cond);margin:0}
+.ficha header p{margin:4px 0 6px;color:var(--apagado);font-size:14px}
+.contas{display:grid;grid-template-columns:repeat(3,1fr);border-bottom:1px solid var(--linha)}
+.contas div{padding:10px 14px;border-right:1px solid var(--linha)}
+.contas div:last-child{border-right:0}
+.contas b{display:block;font:600 22px/1 var(--cond)}
+.contas small{color:var(--apagado)}
+.contas .acima b{color:var(--alerta)}
+.aviso{margin:12px 18px 0;padding:10px 12px;border-radius:8px;background:#FBEAE8;color:#7E1B15;font-size:14px}
+.dia-det{padding:12px 18px 16px}
+.dia-det h3{font:600 16px var(--cond);margin:0 0 8px}
+.item{display:flex;align-items:center;gap:10px;padding:8px 0;border-top:1px solid #EEF0F3}
+.item div{flex:1}.item strong{font:600 15px var(--cond);display:block}
+.item small{color:var(--apagado)}
+.lnk{border:0;background:none;color:var(--apagado);padding:4px 6px;border-radius:6px}
+.lnk:hover{background:#F1F3F6;color:var(--tinta)}
+.add{width:100%;border:1px dashed #C9CFD8;background:none;border-radius:8px;padding:8px 14px;color:var(--vinho);font-weight:600}
+
+/* composição */
+.resumo{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px}
+.resumo .campo b{font:600 18px var(--cond)}
+.dia{display:grid;grid-template-columns:96px 1fr;border-bottom:1px solid var(--linha)}
+.dia:last-child{border-bottom:0}
+.data{padding:14px 0 14px 18px}
+.data div{position:sticky;top:16px}
+.data b{display:block;font:600 44px/0.9 var(--cond);letter-spacing:-.02em}
+.data span{color:var(--apagado);font:500 14px var(--cond)}
+.data em{display:block;font:normal 600 12px var(--cond);color:var(--alerta);margin-top:4px}
+.data .pend{display:inline-block;margin-top:8px;background:var(--tinta);color:var(--sinal);border-radius:4px;padding:1px 6px;font:600 12px var(--cond)}
+.turno{display:grid;grid-template-columns:30px 1fr;border-left:1px solid var(--linha)}
+.turno+.turno{border-top:1px solid var(--linha)}
+.barra{writing-mode:vertical-rl;transform:rotate(180deg);text-align:center;font:600 12px var(--cond);padding:8px 0}
+.barra.d{background:#FFF6DA;color:#7A5A00}
+.barra.n{background:#24324F;color:#DCE3F2}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px;padding:12px 14px;align-content:start}
+.gu{border:1px solid var(--linha);border-radius:10px;padding:4px 10px 8px;background:var(--sup)}
+.gu.falta{border-color:#E8B4AF}
+.gu h4{display:flex;align-items:center;gap:10px;margin:6px 0 4px;padding:0 2px 6px;border-bottom:1px solid #EEF0F3;font:600 16px var(--cond)}
+.ic{margin-left:auto;width:20px;height:20px;display:inline-flex}
+.ic svg{width:20px;height:20px;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.ic.ok svg{fill:var(--ok)}
+.ic.al svg{fill:var(--alerta);stroke:var(--alerta)}
+.ic.al svg path+path{stroke:#fff}
+.gu h4 small{font:500 13px var(--cond);color:var(--apagado)}
+.vaga{display:grid;grid-template-columns:minmax(90px,38%) 1fr auto;align-items:center;gap:12px;padding:5px 8px;border-radius:6px;font-family:var(--cond)}
+.vaga:hover{background:var(--suave)}
+.vaga .fn{color:var(--apagado)}
+.vaga .fn i{font-style:normal;font-size:12px;border:1px solid #C9CFD8;border-radius:4px;padding:0 4px;margin-left:6px}
+.vaga .mi{font-weight:600}
+.vaga .mt{display:block;color:var(--apagado);font-weight:400;font-size:13px;font-variant-numeric:tabular-nums}
+.sv{justify-self:start;border-radius:999px;padding:0 9px;font:600 12px var(--cond);color:#fff}
+.vz{justify-self:start;border:0;border-radius:6px;padding:4px 12px;font:600 14px var(--cond);background:repeating-linear-gradient(135deg,var(--sinal) 0 8px,#FFE680 8px 16px);box-shadow:inset 0 0 0 1px #C9A100}
+.op{justify-self:start;border:1px dashed #C9CFD8;background:none;border-radius:6px;padding:3px 12px;color:var(--apagado);font:500 14px var(--cond)}
+.recolhido{padding:14px 18px;color:var(--apagado);border-left:1px solid var(--linha);font-family:var(--cond)}
+
+/* cadastros: lista + detalhe */
+.cad{display:grid;grid-template-columns:300px 1fr;gap:16px;align-items:start}
+.lista .gr{padding:10px 16px 4px;font:600 13px var(--cond);color:var(--apagado);background:var(--suave);border-bottom:1px solid var(--linha)}
+.lista button{display:flex;width:100%;align-items:center;gap:10px;border:0;border-bottom:1px solid #EEF0F3;background:none;padding:11px 16px;text-align:left}
+.lista button[aria-selected="true"]{background:#F8E9E9;box-shadow:inset 3px 0 0 var(--vinho)}
+.lista button b{flex:1;font:600 16px var(--cond)}
+.lista small{color:var(--apagado);font:500 13px var(--cond)}
+.sw{width:14px;height:14px;border-radius:4px;flex-shrink:0}
+.pri-n{width:24px;height:24px;border-radius:50%;background:#EEF0F3;display:grid;place-items:center;font:600 13px var(--cond)}
+.det header{padding:18px 20px;border-bottom:1px solid var(--linha);display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start}
+.det h2{margin:0;font:600 24px/1.1 var(--cond)}
+.det header p{margin:4px 0 0;color:var(--apagado)}
+.det header .acoes{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap}
+.sec{padding:16px 20px;border-bottom:1px solid var(--linha)}
+.sec:last-child{border-bottom:0}
+.sec h3{font:600 17px var(--cond);margin:0 0 10px}
+.form{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:12px 16px}
+.form label{display:flex;flex-direction:column;gap:4px;font:500 13px var(--cond);color:var(--apagado)}
+.form label .campo{color:var(--tinta);font:15px var(--base)}
+.seg-ctl{display:inline-flex;border:1px solid var(--linha);border-radius:8px;overflow:hidden;background:var(--sup)}
+.seg-ctl button{border:0;background:none;padding:6px 14px;font:500 14px var(--cond)}
+.seg-ctl button[aria-pressed="true"]{background:var(--tinta);color:#fff}
+.vig{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.vig ol{list-style:none;margin:0;padding:0;display:flex;align-items:center;flex-wrap:wrap}
+.vig li{display:flex;align-items:center;font:600 14px var(--cond);color:var(--apagado)}
+.vig li::before{content:"";width:24px;height:2px;background:var(--linha);margin:0 6px}
+.vig li:first-child::before{display:none}
+.vig li span{border:1px solid var(--linha);border-radius:999px;padding:2px 10px;background:var(--sup)}
+.vig li.atual span{background:var(--tinta);color:#fff;border-color:var(--tinta)}
+.vig li.futura span{border-style:dashed}
+.tb{width:100%;border-collapse:collapse;font-family:var(--cond)}
+.tb th{text-align:left;font:500 13px var(--cond);color:var(--apagado);padding:10px 16px;border-bottom:1px solid var(--linha);white-space:nowrap}
+.tb td{padding:9px 16px;border-bottom:1px solid #EEF0F3;font-size:15px}
+.tb tr:last-child td{border-bottom:0}
+.tb td.n{font-weight:600}
+.tb td.num,.tb th.num{text-align:right;font-variant-numeric:tabular-nums}
+.tb tbody tr:hover td{background:#FBF6F6}
+.tb tr.sel td{background:#F8E9E9}
+.num-ctl{display:inline-flex;align-items:center;border:1px solid var(--linha);border-radius:6px}
+.num-ctl button{border:0;background:none;width:26px;height:28px;color:var(--apagado)}
+.num-ctl b{width:26px;text-align:center}
+.filtros{display:flex;gap:8px;flex-wrap:wrap;padding:12px 16px;border-bottom:1px solid var(--linha);align-items:center}
+.filtros .campo{min-width:150px}
+.prog{display:flex;align-items:center;gap:8px;justify-content:flex-end}
+.prog i{width:70px;height:6px;border-radius:3px;background:#E6E9EE;position:relative;overflow:hidden;display:block}
+.prog i u{position:absolute;inset:0 auto 0 0;background:var(--pronto)}
+.matriz td,.matriz th{text-align:center}
+.matriz td:first-child,.matriz th:first-child{text-align:left}
+.tg{width:22px;height:22px;border-radius:6px;border:1.5px solid #C9CFD8;display:inline-grid;place-items:center;color:#fff;font-weight:700}
+.tg.on{background:var(--tinta);border-color:var(--tinta)}
+.cnh-cat{display:flex;gap:8px;flex-wrap:wrap}
+.cat{display:flex;flex-direction:column;align-items:center;width:92px;padding:8px 4px;border:1.5px solid var(--linha);border-radius:10px;background:var(--sup);font-family:var(--cond)}
+.cat b{font:700 22px/1 var(--cond)}
+.cat span{font-size:12px;color:var(--apagado)}
+.cat em{font-style:normal;font-size:11px;color:var(--peseg);margin-top:2px}
+.cat.on{background:var(--tinta);border-color:var(--tinta);color:#fff}
+.cat.on span{color:#C9D1DC}
+.cat.inc{border-style:dashed;border-color:#9DB3D3;background:#F3F6FB}
+.cnh-mini{display:inline-block;min-width:20px;text-align:center;border-radius:4px;background:var(--tinta);color:#fff;font:700 12px/18px var(--cond);margin-right:3px}
+.cnh-mini.a{background:#E6E9EE;color:var(--tinta)}
+.mil-cad{display:grid;grid-template-columns:1fr 380px;gap:16px;align-items:start}
+.cal-mini{display:grid;grid-template-columns:repeat(12,1fr);gap:3px;margin-top:8px}
+.cal-mini span{height:16px;border-radius:3px;background:#EEF0F3}
+.cal-mini span.f{background:var(--saldo)}
+
+/* efetivo do dia */
+.faixa-dias{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;margin-bottom:14px}
+.faixa-dias button{flex:0 0 auto;border:1px solid var(--linha);background:var(--sup);border-radius:8px;padding:5px 12px;text-align:center;font-family:var(--cond)}
+.faixa-dias small{display:block;font-size:12px;color:var(--apagado)}
+.faixa-dias b{font:600 18px var(--cond)}
+.faixa-dias button[aria-pressed="true"]{background:var(--tinta);border-color:var(--tinta);color:#fff}
+.faixa-dias button[aria-pressed="true"] small{color:#C9D1DC}
+.numeros{display:flex;flex-wrap:wrap;background:var(--sup);border:1px solid var(--linha);border-radius:12px;margin-bottom:18px}
+.numeros div{padding:10px 18px;border-right:1px solid var(--linha);display:flex;align-items:baseline;gap:8px}
+.numeros div:last-child{border-right:0}
+.numeros b{font:600 26px/1 var(--cond)}
+.numeros span{color:var(--apagado);font-size:14px}
+.numeros .al b{color:var(--alerta)}
+.sec-t{font:600 19px var(--cond);margin:22px 0 10px}
+.turnos2{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,440px),1fr));gap:14px}
+.thead{padding:10px 16px;font:600 17px var(--cond);display:flex;gap:10px;align-items:baseline}
+.thead span{font:500 14px var(--cond);opacity:.8}
+.thead.d{background:#FFF6DA;color:#5E4500}
+.thead.n{background:#24324F;color:#E6EBF5}
+.eg{padding:6px 16px 10px;border-top:1px solid var(--linha)}
+.eg h4{margin:8px 0 4px;font:600 15px var(--cond);display:flex;gap:8px;align-items:center}
+.eg h4 small{font-weight:500;color:var(--apagado)}
+.er{display:grid;grid-template-columns:20px 140px 1fr auto;gap:10px;padding:4px 0;font-family:var(--cond);align-items:baseline}
+.er .fn{color:var(--apagado)}
+.er input{width:18px;height:18px;margin:0;accent-color:var(--ok);align-self:center}
+.er:has(input:checked) b{color:var(--ok)}
+.perm{display:block;font-size:13px;color:var(--peseg)}
+.perm::before{content:"";display:inline-block;width:8px;height:8px;border-radius:2px;background:var(--peseg);margin-right:6px}
+.pres{margin-left:auto;font:500 14px var(--cond);opacity:.85}
+.pend-def{display:inline-block;margin-top:6px!important;background:#FCF1D6;color:#7A5A00;border-radius:6px;padding:3px 10px;font-size:14px}
+.cap{caption-side:bottom;text-align:left;padding:10px 16px;color:var(--apagado);font-size:13px}
+.er b{font-weight:600}
+.er .mt{color:var(--apagado);font-size:13px;margin-left:6px}
+.cnh-b{display:inline-block;min-width:22px;text-align:center;border-radius:4px;background:var(--tinta);color:#fff;font:700 12px/18px var(--cond)}
+/* voluntariado */
+.vol-wrap{display:grid;grid-template-columns:280px 1fr;gap:16px;align-items:start}
+.vol-lista button small{min-width:52px;text-align:right}
+.pincel{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+.cal{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px}
+.cal .ds{font:500 13px var(--cond);color:var(--apagado);text-align:center}
+.dcel{border:1px solid var(--linha);border-radius:8px;padding:6px;min-height:68px;background:var(--sup);display:flex;flex-direction:column;gap:5px}
+.dcel.fora{visibility:hidden}
+.dcel.fds{background:var(--suave)}
+.dcel.marc{border-color:var(--tinta)}
+.dcel .dn{border:0;background:none;padding:0;text-align:left;font:600 16px var(--cond)}
+.dcel .ts{display:flex;gap:4px;flex-wrap:wrap}
+.tt{border:1.5px solid #C9CFD8;background:var(--sup);border-radius:5px;width:28px;height:24px;font:700 12px var(--cond);color:var(--apagado)}
+.tt[aria-pressed="true"]{background:var(--tinta);border-color:var(--tinta);color:#fff}
+.tt.so[aria-pressed="true"]{background:var(--bioma);border-color:var(--bioma)}
+.atalhos{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+.atalhos .lnk{border:1px solid var(--linha);border-radius:999px;padding:4px 12px;color:var(--tinta)}
+.passos{list-style:none;padding:0;margin:0 0 16px;display:flex;flex-wrap:wrap;gap:0;counter-reset:p}
+.passos li{counter-increment:p;display:flex;flex-direction:column;padding:8px 18px 8px 44px;position:relative;font-family:var(--cond);color:var(--apagado)}
+.passos li::before{content:counter(p);position:absolute;left:12px;top:9px;width:24px;height:24px;border-radius:50%;border:1.5px solid #C9CFD8;display:grid;place-items:center;font:600 13px var(--cond)}
+.passos li b{font:600 15px var(--cond)}
+.passos li span{font-size:13px}
+.passos li.feito::before{content:"✓";background:var(--ok);border-color:var(--ok);color:#fff}
+.passos li.atual{color:var(--tinta)}
+.passos li.atual::before{background:var(--tinta);border-color:var(--tinta);color:#fff}
+@media print{.trilho,.topo .acoes,.faixa-dias{display:none}.app{display:block}body{background:#fff}}
+.aju{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:16px;align-items:start}
+.roteiro{list-style:none;margin:0;padding:0;counter-reset:r}
+.roteiro li{counter-increment:r;position:relative;padding:0 0 18px 46px}
+.roteiro li::before{content:counter(r);position:absolute;left:0;top:0;width:30px;height:30px;border-radius:50%;background:var(--tinta);color:#fff;display:grid;place-items:center;font:600 15px var(--cond)}
+.roteiro li::after{content:"";position:absolute;left:14px;top:32px;bottom:2px;width:2px;background:var(--linha)}
+.roteiro li:last-child::after{display:none}
+.roteiro b{display:block;font:600 17px var(--cond);margin-top:3px}
+.roteiro span{color:var(--apagado);max-width:60ch;display:block}
+.roteiro a,.faq a{color:var(--vinho);font-weight:600;cursor:pointer;text-decoration:underline}
+.faq{border-top:1px solid #EEF0F3;padding:10px 0}
+.faq summary{cursor:pointer;font-weight:600}
+.faq p{margin:8px 0 0;color:var(--apagado);max-width:65ch}
+.termos{margin:0 0 10px}
+.termos div{display:grid;grid-template-columns:100px 1fr;gap:10px;padding:6px 0;border-top:1px solid #EEF0F3}
+.termos dt{font:600 15px var(--cond)}
+.termos dd{margin:0;color:var(--apagado)}
+.unid-bar{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin:-4px 0 16px;padding-bottom:12px;border-bottom:1px solid var(--linha)}
+.trilha-u{display:flex;align-items:center;gap:4px;flex-wrap:wrap;font-family:var(--cond)}
+.trilha-u button{border:0;background:none;padding:3px 6px;border-radius:6px;color:var(--apagado);font:500 15px var(--cond)}
+.trilha-u button:hover{background:#E3E6EB;color:var(--tinta)}
+.trilha-u button.atual{background:var(--sup);border:1px solid var(--linha);color:var(--tinta);font-weight:600;padding:3px 10px}
+.trilha-u span{color:#A3ABB6}
+.lot{list-style:none;margin:0;padding:0 0 0 14px;border-left:2px solid var(--linha)}
+.lot li{position:relative;padding:4px 0 8px 12px;display:flex;gap:10px;align-items:baseline;flex-wrap:wrap;font-family:var(--cond)}
+.lot li::before{content:"";position:absolute;left:-21px;top:9px;width:12px;height:12px;border-radius:50%;background:var(--sup);border:2px solid #A3ABB6}
+.lot li.atual::before{background:var(--tinta);border-color:var(--tinta)}
+.lot b{font-size:16px}
+.lot span{color:var(--apagado);font-size:14px}
+.arvore .no{display:flex;align-items:baseline;gap:10px;padding:9px 16px;border-bottom:1px solid #EEF0F3;cursor:pointer;position:relative;font-family:var(--cond)}
+.arvore .no b{font-size:16px}
+.arvore .no small{color:var(--apagado);font-size:13px;margin-left:auto}
+.arvore .n1{padding-left:34px}.arvore .n2{padding-left:52px}.arvore .n3{padding-left:70px}.arvore .n4{padding-left:88px}
+.arvore .no:not(.n0)::before{content:"";position:absolute;top:0;bottom:50%;width:10px;border-left:1.5px solid #C9CFD8;border-bottom:1.5px solid #C9CFD8}
+.arvore .n1::before{left:20px}.arvore .n2::before{left:38px}.arvore .n3::before{left:56px}.arvore .n4::before{left:74px}
+.arvore .sel{background:#F8E9E9;box-shadow:inset 3px 0 0 var(--vinho)}
+.arvore .mais b{color:var(--apagado);font-weight:500}
+.hist td{vertical-align:top}
+.hist .antes{color:var(--apagado);text-decoration:line-through;text-decoration-color:#C9CFD8}
+.hist .depois{font-weight:600}
+@media (max-width:1100px){.grade-wrap,.cad,.mil-cad,.vol-wrap,.aju{grid-template-columns:1fr}.ficha{position:static}}
+@media (max-width:700px){.app{grid-template-columns:1fr}.trilho{position:static;height:auto;flex-direction:row;overflow-x:auto;padding:6px}.brasao,.trilho hr.div{display:none}
+ main{padding:16px}.dia{grid-template-columns:1fr}.data div{display:flex;gap:10px;align-items:baseline}.data b{font-size:30px}.vaga{grid-template-columns:1fr auto}.vaga .mt{display:none}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style></head>
+<body>
+<div class="app">
+  <nav class="trilho" aria-label="Seções">
+    <div class="brasao" aria-hidden="true">2ºGB</div>
+    <button data-t="grade" aria-current="page"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 4v17"/></svg>Grade geral</button>
+    <button data-t="comp"><svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h10"/></svg>Escala do mês</button>
+    <button data-t="efe"><svg viewBox="0 0 24 24"><path d="M12 3v3M5.6 5.6l2.1 2.1M3 12h3M18 12h3M16.3 7.7l2.1-2.1"/><circle cx="12" cy="14" r="5"/></svg>Efetivo do dia</button>
+    <hr class="div">
+    <button data-t="vol"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 14l2 2 4-4"/></svg>Voluntariado</button>
+    <button data-t="cot"><svg viewBox="0 0 24 24"><path d="M5 19L19 5"/><circle cx="7" cy="7" r="2.5"/><circle cx="17" cy="17" r="2.5"/></svg>Cotas</button>
+    <hr class="div">
+    <button data-t="mil"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c1-4 4-6 8-6s7 2 8 6"/></svg>Militares</button>
+    <button data-t="srv"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>Serviços</button>
+    <button data-t="gua"><svg viewBox="0 0 24 24"><path d="M3 15h13l3-4h2v4h-1M5 15v3m12-3v3M3 15V9h10v6"/></svg>Guarnições</button>
+    <button data-t="esc"><svg viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>Escalas</button>
+    <button data-t="fer"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4M12 14v3"/></svg>Feriados</button>
+    <hr class="div" style="margin-top:auto">
+    <button data-t="cfg"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/></svg>Configurações</button>
+    <button data-t="est"><svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="5" rx="1"/><rect x="2" y="16" width="6" height="5" rx="1"/><rect x="16" y="16" width="6" height="5" rx="1"/><path d="M12 8v4M5 16v-4h14v4"/></svg>Estrutura</button>
+    <button data-t="his"><svg viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5M12 7v5l3 2"/></svg>Histórico</button>
+    <button data-t="aju"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.7.3-1 .9-1 1.7M12 17v.5"/></svg>Ajuda</button>
+  </nav>
+
+  <main>
+  <div class="unid-bar">
+    <nav class="trilha-u" aria-label="Unidade">
+      <button>CBMPE</button><span>›</span><button>DGO</button><span>›</span><button>DInter/1</button><span>›</span><button>2º GB</button><span>›</span><button class="atual" aria-current="true">1ª SB ▾</button>
+    </nav>
+    <span class="dica">Fase de teste: unidade fixa na 1ª SB</span>
+  </div>
+  <!-- ===== MILITARES NO MÊS ===== -->
+  <section class="tela on" id="grade">
+    <div class="topo">
+      <div><h1>Grade geral de novembro de 2026</h1><p>1ª SB, 53 militares. Cada cor é um serviço e a letra é o turno, na ordem em que acontecem no dia.</p></div>
+      <div class="acoes"><span class="campo"><small>Mês</small>Novembro/2026</span><span class="campo">Pesquisar militar</span></div>
+    </div>
+    <div class="grade-wrap">
+      <div class="painel">
+        <div class="grade"><table id="tg"></table></div>
+        <div class="legenda" id="leg"></div>
+      </div>
+      <aside class="painel ficha" aria-label="Ficha do militar">
+        <header>
+          <h2>SD BM Andrade</h2>
+          <p>Matrícula 990001-2, equipe Alfa, jornada Pronto</p>
+          <span class="etq azul">Motorista, CNH D</span><span class="etq">Não é voluntário JES</span>
+        </header>
+        <div class="contas" style="grid-template-columns:repeat(2,1fr)"><div><b>5 <small>de 13</small></b><small>Diárias</small></div><div><b class="vazio">–</b><small>PJES</small></div></div>
+        <div class="dia-det">
+          <h3>Quinta, 05 de novembro</h3>
+          <div class="item"><span class="bl" style="background:var(--bioma)">A</span><div><strong>Bioma, turno A, 00h às 08h</strong><small>Guardiões do Bioma, motorista</small></div><button class="lnk">Trocar</button><button class="lnk">Remover</button></div>
+          <div class="item"><span class="bl" style="background:var(--pronto)">A</span><div><strong>Pronto, turno A, 08h às 20h</strong><small>UTI Pronto, motorista</small></div><button class="lnk">Trocar</button><button class="lnk">Remover</button></div>
+          <button class="add" style="margin-top:10px">Adicionar serviço neste dia</button>
+        </div>
+      </aside>
+    </div>
+  </section>
+
+  <!-- ===== ESCALA DO MÊS ===== -->
+  <section class="tela" id="comp">
+    <div class="topo">
+      <div><h1>Ordinário em novembro de 2026</h1><p>Pronto, JES e Saldo. Quatro guarnições por turno.</p></div>
+      <div class="acoes"><span class="campo"><small>Escala</small>Ordinário</span><span class="campo"><small>Mês</small>Novembro/2026</span><button class="bt sec">Mostrar só vagas vazias</button><button class="bt pri">Gerar documento</button></div>
+    </div>
+    <div class="resumo"><span class="campo"><b>812</b> de 840 vagas preenchidas</span><span class="campo"><b>6</b> vagas obrigatórias vazias</span></div>
+    <div class="painel" id="livro"></div>
+  </section>
+
+  <!-- ===== CADASTRO: MILITARES ===== -->
+  <section class="tela" id="mil">
+    <div class="topo">
+      <div><h1>Militares</h1><p>Quem pode ser escalado, com lotação, habilitação e afastamentos.</p></div>
+      <div class="acoes"><button class="bt sec">Importar planilha</button><button class="bt pri">Cadastrar militar</button></div>
+    </div>
+    <div class="mil-cad">
+      <div class="painel">
+        <div class="filtros">
+          <span class="campo"><small>Unidade</small>1ª SB e abaixo ▾</span><span class="campo"><small>Equipe</small>Todas ▾</span><span class="campo"><small>Jornada</small>Todas ▾</span><span class="campo" style="flex:1">Nome ou matrícula</span>
+        </div>
+        <table class="tb">
+          <thead><tr><th>Militar</th><th>Matrícula</th><th>Equipe</th><th>Jornada</th><th>Motorista</th><th>Voluntário JES</th><th>Situação no mês</th></tr></thead>
+          <tbody>
+            <tr><td class="n">ST BM Esteves</td><td>990002-3</td><td>Bravo</td><td>Pronto</td><td><span class="vazio">Não</span></td><td>Sim</td><td><span class="etq verde">Disponível</span></td></tr>
+            <tr><td class="n">2º SGT BM Gusmão</td><td>990003-4</td><td>–</td><td>Adm</td><td><span class="cnh-mini">B</span></td><td>Sim</td><td><span class="etq verde">Disponível</span></td></tr>
+            <tr><td class="n">3º SGT BM Falcão</td><td>990004-5</td><td>Bravo</td><td>Pronto</td><td><span class="cnh-mini">D</span><span class="cnh-mini a">A</span></td><td>Não</td><td><span class="etq amb">Férias até 10/11</span></td></tr>
+            <tr class="sel"><td class="n">SD BM Andrade</td><td>990001-2</td><td>Alfa</td><td>Pronto</td><td><span class="cnh-mini">D</span><span class="cnh-mini a">A</span></td><td>Não</td><td><span class="etq verde">Disponível</span></td></tr>
+            <tr><td class="n">SD BM Dantas</td><td>990005-6</td><td>Alfa</td><td>Pronto</td><td><span class="vazio">Não</span></td><td>Sim</td><td><span class="etq verm">LTS 03 a 17/11</span></td></tr>
+            <tr><td class="n">SD BM Cabral</td><td>990006-7</td><td>Alfa</td><td>Pronto</td><td><span class="cnh-mini">B</span></td><td>Sim</td><td><span class="etq verde">Disponível</span></td></tr>
+          </tbody>
+        </table>
+        <div class="legenda">Cadastro incompleto em 9 militares (sem seção ou sem OME). <a href="#" style="color:var(--vinho);font-weight:600">Ver quais</a></div>
+      </div>
+      <div class="painel det">
+        <header><div><h2>SD BM Andrade</h2><p>Cadastrado em out/2026</p></div><div class="acoes"><button class="bt pri">Salvar alterações</button></div></header>
+        <div class="sec"><h3>Identificação</h3>
+          <div class="form">
+            <label>Posto ou graduação<span class="campo">Soldado ▾</span></label>
+            <label>Nome de guerra<span class="campo">Andrade</span></label>
+            <label>Matrícula<span class="campo">990001-2</span></label>
+            <label>Antiguidade no 2º GB<span class="campo vazio">Não informada</span></label>
+            <label>Equipe<span class="campo">Alfa ▾</span></label>
+          </div>
+        </div>
+        <div class="sec"><h3>Lotação</h3>
+          <ol class="lot">
+            <li class="atual"><b>1ª SB, 2º GB</b><span>desde mar/2025</span></li>
+            <li><b>3ª SB, 2º GB</b><span>fev/2023 a fev/2025</span></li>
+            <li><b>Curso de formação</b><span>até jan/2023</span></li>
+          </ol>
+          <button class="add" style="width:auto;margin-top:8px">Registrar transferência</button>
+          <p class="dica" style="margin:8px 0 0">As escalas antigas continuam mostrando a lotação da época.</p>
+        </div>
+        <div class="sec"><h3>Jornada</h3>
+          <div class="form">
+            <label>Jornada<span class="seg-ctl"><button aria-pressed="true">Pronto</button><button aria-pressed="false">Adm</button></span></label>
+            <label>Voluntário JES<span class="seg-ctl"><button aria-pressed="false">Sim</button><button aria-pressed="true">Não</button></span></label>
+          </div>
+        </div>
+        <div class="sec"><h3>Motorista</h3>
+          <div class="form" style="margin-bottom:14px">
+            <label>Está no quadro de motoristas?<span class="seg-ctl"><button aria-pressed="true">Sim</button><button aria-pressed="false">Não</button></span></label>
+          </div>
+          <div style="font:500 13px var(--cond);color:var(--apagado);margin-bottom:6px">Categorias da CNH (marque as que constam na carteira)</div>
+          <div class="cnh-cat" role="group" aria-label="Categorias da CNH">
+            <button class="cat on" aria-pressed="true"><b>A</b><span>Moto</span></button>
+            <button class="cat inc" aria-pressed="false"><b>B</b><span>Carro</span><em>pela D</em></button>
+            <button class="cat inc" aria-pressed="false"><b>C</b><span>Caminhão</span><em>pela D</em></button>
+            <button class="cat on" aria-pressed="true"><b>D</b><span>Ônibus, micro</span></button>
+            <button class="cat" aria-pressed="false"><b>E</b><span>Articulado</span></button>
+          </div>
+          <p class="dica" style="margin:10px 0 0">Pode ocupar vagas de motorista que pedem A, B, C ou D.</p>
+        </div>
+        <div class="sec"><h3>Afastamentos</h3>
+          <table class="tb" style="margin:0 -16px;width:calc(100% + 32px)">
+            <tbody>
+              <tr><td class="n">Férias</td><td>04/01 a 02/02/2027</td><td style="text-align:right"><button class="lnk">Editar</button></td></tr>
+              <tr><td class="n">Dispensa médica</td><td>12 a 14/09/2026</td><td style="text-align:right"><button class="lnk">Editar</button></td></tr>
+            </tbody>
+          </table>
+          <button class="add" style="margin-top:10px">Registrar afastamento</button>
+          <p class="dica" style="margin:8px 0 0">No período do afastamento o militar não aparece como opção em nenhuma vaga.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== CADASTRO: SERVIÇOS ===== -->
+  <section class="tela" id="srv">
+    <div class="topo">
+      <div><h1>Serviços e turnos</h1><p>Cada serviço define de onde vêm as horas e como aparece na escala. Os turnos ficam dentro dele.</p></div>
+      <div class="acoes"><button class="bt pri">Novo serviço</button></div>
+    </div>
+    <div class="cad">
+      <div class="painel lista" role="listbox" aria-label="Serviços">
+        <div class="gr">Ordinário</div>
+        <button aria-selected="false"><span class="sw" style="background:var(--pronto)"></span><b>Pronto</b><small>A, B</small></button>
+        <button aria-selected="false"><span class="sw" style="background:var(--saldo)"></span><b>Saldo</b><small>A, B</small></button>
+        <button aria-selected="false"><span class="sw" style="background:var(--adm)"></span><b>Expediente Adm</b><small>único</small></button>
+        <div class="gr">PJES</div>
+        <button aria-selected="false"><span class="sw" style="background:var(--jes)"></span><b>JES</b><small>A, B</small></button>
+        <div class="gr">Diária</div>
+        <button aria-selected="true"><span class="sw" style="background:var(--bioma)"></span><b>Bioma</b><small>A, B, C</small></button>
+        <button aria-selected="false"><span class="sw" style="background:var(--peseg)"></span><b>PE Seguro</b><small>A, B</small></button>
+        <button aria-selected="false"><span class="sw" style="background:var(--defens)"></span><b>Defensoria</b><small>A</small></button>
+      </div>
+      <div class="painel det">
+        <header><div><h2>Bioma</h2><p>Diária de 8 horas da operação Guardiões do Bioma.</p></div><div class="acoes"><button class="bt pri">Salvar alterações</button></div></header>
+        <div class="sec"><h3>Dados do serviço</h3>
+          <div class="form">
+            <label>Nome<span class="campo">Bioma</span></label>
+            <label>Tipo<span class="seg-ctl"><button aria-pressed="false">Ordinário</button><button aria-pressed="false">PJES</button><button aria-pressed="true">Diária</button></span></label>
+            <label>Operação<span class="campo">Guardiões do Bioma ▾</span></label>
+            <label>Nome na impressão<span class="campo">Bioma</span></label>
+            <label>Cor na escala<span class="campo"><span class="sw" style="background:var(--bioma)"></span>Ocre ▾</span></label>
+          </div>
+          <p class="dica" style="margin:10px 0 0">Diárias não exigem voluntário JES: basta o militar ter preenchido o voluntariado do mês.</p>
+        </div>
+        <div class="sec"><h3>Turnos</h3>
+          <table class="tb" style="margin:0 -16px;width:calc(100% + 32px)">
+            <thead><tr><th>Turno</th><th>Início</th><th>Fim</th><th class="num">Duração</th><th>Como aparece</th><th></th></tr></thead>
+            <tbody>
+              <tr><td class="n">A</td><td><span class="campo">00:00</span></td><td><span class="campo">08:00</span></td><td class="num">8 h</td><td><span class="bl" style="background:var(--bioma);display:inline-block">A</span></td><td style="text-align:right"><button class="lnk">Remover</button></td></tr>
+              <tr><td class="n">B</td><td><span class="campo">08:00</span></td><td><span class="campo">16:00</span></td><td class="num">8 h</td><td><span class="bl" style="background:var(--bioma);display:inline-block">B</span></td><td style="text-align:right"><button class="lnk">Remover</button></td></tr>
+              <tr><td class="n">C</td><td><span class="campo">16:00</span></td><td><span class="campo">00:00</span></td><td class="num">8 h</td><td><span class="bl" style="background:var(--bioma);display:inline-block">C</span></td><td style="text-align:right"><button class="lnk">Remover</button></td></tr>
+            </tbody>
+          </table>
+          <button class="add" style="margin-top:10px;width:auto">Adicionar turno</button>
+        </div>
+        <div class="sec"><p class="dica" style="margin:0">Usado nas escalas <a href="#" style="color:var(--vinho);font-weight:600">Guardiões do Bioma</a>. 142 alocações em 2026.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== CADASTRO: GUARNIÇÕES ===== -->
+  <section class="tela" id="gua">
+    <div class="topo">
+      <div><h1>Guarnições</h1><p>Composição de cada guarnição. Mudanças valem a partir do mês escolhido, nunca para trás.</p></div>
+      <div class="acoes"><button class="bt pri">Nova guarnição</button></div>
+    </div>
+    <div class="cad">
+      <div class="painel lista" role="listbox" aria-label="Guarnições">
+        <div class="gr">Por ordem de ativação</div>
+        <button aria-selected="false"><span class="pri-n">1</span><b>UTI Pronto</b><small>ABT</small></button>
+        <button aria-selected="true"><span class="pri-n">2</span><b>UTAPH Pronto</b><small>AR</small></button>
+        <button aria-selected="false"><span class="pri-n">3</span><b>Apoio Aquartelado</b><small>ACO</small></button>
+        <button aria-selected="false"><span class="pri-n">4</span><b>UTS Pronto</b><small>ABSA</small></button>
+        <div class="gr">Operações</div>
+        <button aria-selected="false"><span class="pri-n">–</span><b>Guardiões do Bioma</b><small>ABSL</small></button>
+        <button aria-selected="false"><span class="pri-n">–</span><b>PE Seguro</b><small>AR</small></button>
+        <button aria-selected="false"><span class="pri-n">–</span><b>Defensoria</b><small>sem viatura</small></button>
+      </div>
+      <div class="painel det">
+        <header><div><h2>UTAPH Pronto</h2><p>Viatura AR, Auto Resgate. Ativada em segundo lugar.</p></div><div class="acoes"><button class="bt sec">Desativar</button><button class="bt pri">Salvar a partir de dez/2026</button></div></header>
+        <div class="sec vig"><span class="dica">Versões:</span><ol><li><span>out/2025</span></li><li class="atual"><span>jan/2026, em vigor</span></li><li class="futura"><span>dez/2026, rascunho</span></li></ol></div>
+        <table class="tb">
+          <thead><tr><th>Função</th><th>Mínimo</th><th>Máximo</th><th>CNH exigida</th><th></th></tr></thead>
+          <tbody>
+            <tr><td class="n">Motorista</td><td><span class="num-ctl"><button aria-label="Menos">−</button><b>1</b><button aria-label="Mais">+</button></span></td><td><span class="num-ctl"><button>−</button><b>1</b><button>+</button></span></td><td><span class="campo">D ▾</span></td><td style="text-align:right"><button class="lnk">Remover</button></td></tr>
+            <tr><td class="n">Chefe</td><td><span class="num-ctl"><button>−</button><b>1</b><button>+</button></span></td><td><span class="num-ctl"><button>−</button><b>1</b><button>+</button></span></td><td><span class="campo vazio">Nenhuma ▾</span></td><td style="text-align:right"><button class="lnk">Remover</button></td></tr>
+            <tr><td class="n">Socorrista</td><td><span class="num-ctl"><button>−</button><b>1</b><button>+</button></span></td><td><span class="num-ctl"><button>−</button><b>3</b><button>+</button></span></td><td><span class="campo vazio">Nenhuma ▾</span></td><td style="text-align:right"><button class="lnk">Remover</button></td></tr>
+          </tbody>
+        </table>
+        <div class="sec"><button class="add" style="width:auto">Adicionar função</button></div>
+        <div class="sec"><p class="dica" style="margin:0"><a data-ir="his" style="color:var(--vinho);font-weight:600;cursor:pointer;float:right">Ver histórico</a>Usada em <a href="#" style="color:var(--vinho);font-weight:600">Ordinário</a>, turnos A e B. Com a versão de dezembro, cada turno passa a ter de 3 a 5 vagas nesta guarnição.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== CADASTRO: ESCALAS ===== -->
+  <section class="tela" id="esc">
+    <div class="topo">
+      <div><h1>Escalas</h1><p>Uma escala reúne serviços que dividem as mesmas vagas e vira um documento publicado.</p></div>
+      <div class="acoes"><button class="bt pri">Nova escala</button></div>
+    </div>
+    <div class="cad">
+      <div class="painel lista" role="listbox" aria-label="Escalas">
+        <button aria-selected="true"><span class="sw" style="background:var(--pronto)"></span><b>Ordinário</b><small>3 serviços</small></button>
+        <button aria-selected="false"><span class="sw" style="background:var(--bioma)"></span><b>Guardiões do Bioma</b><small>1 serviço</small></button>
+        <button aria-selected="false"><span class="sw" style="background:var(--peseg)"></span><b>PE Seguro</b><small>1 serviço</small></button>
+        <button aria-selected="false"><span class="sw" style="background:var(--defens)"></span><b>Defensoria</b><small>1 serviço</small></button>
+      </div>
+      <div class="painel det">
+        <header><div><h2>Ordinário</h2><p>Título no documento: Escala de Serviço Ordinário da 1ª SB</p></div><div class="acoes"><button class="bt pri">Salvar a partir de dez/2026</button></div></header>
+        <div class="sec"><h3>Serviços reunidos</h3>
+          <p class="dica" style="margin:0 0 10px">As vagas são preenchidas nesta ordem. Arraste para mudar.</p>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+            <span class="campo"><span class="sw" style="background:var(--pronto)"></span>Pronto</span><span class="dica">então</span>
+            <span class="campo"><span class="sw" style="background:var(--jes)"></span>JES</span><span class="dica">então</span>
+            <span class="campo"><span class="sw" style="background:var(--saldo)"></span>Saldo</span>
+            <button class="add" style="width:auto">Adicionar serviço</button>
+          </div>
+        </div>
+        <div class="sec"><h3>Publicação</h3>
+          <div class="form">
+            <label>Militares no documento<span class="seg-ctl"><button aria-pressed="true">Todos da seção</button><button aria-pressed="false">Só os escalados</button></span></label>
+            <label>Dias no documento<span class="seg-ctl"><button aria-pressed="true">Todos</button><button aria-pressed="false">Só com escalados</button></span></label>
+            <label>Modelo de impressão<span class="campo">Escala por dia e guarnição ▾</span></label>
+          </div>
+        </div>
+        <div class="sec"><h3>Guarnições por turno</h3>
+          <div class="vig" style="margin-bottom:10px"><span class="dica">Versões:</span><ol><li class="atual"><span>out/2026, em vigor</span></li><li class="futura"><span>dez/2026, rascunho</span></li></ol></div>
+          <table class="tb matriz" style="margin:0 -16px;width:calc(100% + 32px)">
+            <thead><tr><th>Guarnição</th><th>Turno A, 08h às 20h</th><th>Turno B, 20h às 08h</th><th class="num">Vagas por turno</th></tr></thead>
+            <tbody>
+              <tr><td class="n">UTI Pronto</td><td><span class="tg on">✓</span></td><td><span class="tg on">✓</span></td><td class="num">3 a 4</td></tr>
+              <tr><td class="n">UTAPH Pronto</td><td><span class="tg on">✓</span></td><td><span class="tg on">✓</span></td><td class="num">3 a 5</td></tr>
+              <tr><td class="n">Apoio Aquartelado</td><td><span class="tg on">✓</span></td><td><span class="tg on">✓</span></td><td class="num">4</td></tr>
+              <tr><td class="n">UTS Pronto</td><td><span class="tg on">✓</span></td><td><span class="tg"></span></td><td class="num">1</td></tr>
+            </tbody>
+          </table>
+          <p class="dica" style="margin:10px 0 0">Por dia: 11 a 14 vagas no turno A e 10 a 13 no turno B.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== COTAS ===== -->
+  <section class="tela" id="cot">
+    <div class="topo">
+      <div><h1>Cotas de dezembro de 2026</h1><p>Quantas diárias e JES a seção recebeu no mês e quanto já foi distribuído.</p></div>
+      <div class="acoes"><span class="campo"><small>Mês</small>Dezembro/2026 ▾</span><button class="bt sec">Copiar do mês anterior</button><button class="bt pri">Adicionar cota</button></div>
+    </div>
+    <div class="painel">
+      <table class="tb">
+        <thead><tr><th>Prioridade</th><th>Serviço</th><th>Destino</th><th>Origem</th><th class="num">Recebidas</th><th class="num">Distribuídas</th><th></th></tr></thead>
+        <tbody>
+          <tr><td>1</td><td class="n"><span class="bl" style="background:var(--jes);display:inline-block;width:12px;height:12px;vertical-align:middle;margin-right:6px"></span>JES</td><td>1ª SB</td><td><span class="etq">Interna</span></td><td class="num">40</td><td><div class="prog">40<i><u style="width:100%"></u></i></div></td><td style="text-align:right"><button class="lnk">Editar</button></td></tr>
+          <tr><td>2</td><td class="n"><span class="bl" style="background:var(--bioma);display:inline-block;width:12px;height:12px;vertical-align:middle;margin-right:6px"></span>Bioma</td><td>Guardiões do Bioma</td><td><span class="etq">Interna</span></td><td class="num">93</td><td><div class="prog">71<i><u style="width:76%"></u></i></div></td><td style="text-align:right"><button class="lnk">Editar</button></td></tr>
+          <tr><td>3</td><td class="n"><span class="bl" style="background:var(--peseg);display:inline-block;width:12px;height:12px;vertical-align:middle;margin-right:6px"></span>PE Seguro</td><td>PE Seguro</td><td><span class="etq azul">Externa</span></td><td class="num">31</td><td><div class="prog">12<i><u style="width:39%"></u></i></div></td><td style="text-align:right"><button class="lnk">Editar</button></td></tr>
+          <tr><td>4</td><td class="n"><span class="bl" style="background:var(--defens);display:inline-block;width:12px;height:12px;vertical-align:middle;margin-right:6px"></span>Defensoria</td><td>Defensoria</td><td><span class="etq">Interna</span></td><td class="num">22</td><td><div class="prog">0<i><u style="width:0"></u></i></div></td><td style="text-align:right"><button class="lnk">Editar</button></td></tr>
+        </tbody>
+      </table>
+      <div class="legenda">Cotas externas não contam para a meta de ativação das guarnições.</div>
+    </div>
+  </section>
+
+  <!-- ===== FERIADOS ===== -->
+  <section class="tela" id="fer">
+    <div class="topo">
+      <div><h1>Feriados de 2026</h1><p>Em feriado não há expediente do Adm. Os dias aparecem destacados nas escalas.</p></div>
+      <div class="acoes"><span class="campo"><small>Ano</small>2026 ▾</span><button class="bt sec">Copiar feriados fixos de 2025</button><button class="bt pri">Adicionar feriado</button></div>
+    </div>
+    <div class="painel" style="max-width:720px">
+      <table class="tb">
+        <thead><tr><th>Data</th><th>Dia</th><th>Feriado</th><th></th></tr></thead>
+        <tbody>
+          <tr><td class="n">02/11</td><td>segunda-feira</td><td>Finados</td><td style="text-align:right"><button class="lnk">Remover</button></td></tr>
+          <tr><td class="n">15/11</td><td>domingo</td><td>Proclamação da República</td><td style="text-align:right"><button class="lnk">Remover</button></td></tr>
+          <tr><td class="n">20/11</td><td>sexta-feira</td><td>Dia da Consciência Negra</td><td style="text-align:right"><button class="lnk">Remover</button></td></tr>
+          <tr><td class="n">08/12</td><td>terça-feira</td><td>Nossa Senhora da Conceição (Recife)</td><td style="text-align:right"><button class="lnk">Remover</button></td></tr>
+          <tr><td class="n">25/12</td><td>sexta-feira</td><td>Natal</td><td style="text-align:right"><button class="lnk">Remover</button></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ===== CONFIGURAÇÕES ===== -->
+  <section class="tela" id="cfg">
+    <div class="topo">
+      <div><h1>Configurações</h1><p>Regras do processo, ligadas a normas e regulamentos. Mudam raramente e mudam o jeito como o sistema monta as escalas, não o que entra nelas.</p></div>
+    </div>
+    <div class="painel" style="max-width:900px">
+      <table class="tb">
+        <caption class="cap">Toda mudança fica registrada com a data e quem mudou. O histórico vale como registro para auditoria.</caption>
+        <thead><tr><th>Regra</th><th>Valor</th><th>Norma de referência</th><th>Desde</th><th></th></tr></thead>
+        <tbody>
+          <tr><td><b>Carga mensal</b><div class="dica">Horas que cada militar deve cumprir no mês.</div></td><td class="n">160 h</td><td><button class="lnk" style="color:var(--vinho)">Informar norma</button></td><td>sempre</td><td style="text-align:right"><button class="bt sec mini">Mudar a partir de…</button></td></tr>
+          <tr><td><b>Saldos por militar do Adm</b><div class="dica">Turnos do Pronto que cada militar do Adm cobre por mês.</div></td><td class="n">6</td><td><button class="lnk" style="color:var(--vinho)">Informar norma</button></td><td>sempre</td><td style="text-align:right"><button class="bt sec mini">Mudar a partir de…</button></td></tr>
+          <tr><td><b>Adm cumpre a carga mensal</b><div class="dica">Se não, o Adm cumpre só os saldos.</div></td><td><span class="seg-ctl"><button aria-pressed="false">Sim</button><button aria-pressed="true">Não</button></span></td><td><button class="lnk" style="color:var(--vinho)">Informar norma</button></td><td>sempre</td><td style="text-align:right"><button class="bt sec mini">Mudar a partir de…</button></td></tr>
+          <tr><td><b>Seção aberta por padrão</b><div class="dica">Seção que as telas mostram ao abrir.</div></td><td class="n">1ª SB</td><td class="vazio">Preferência do sistema</td><td>out/2026</td><td style="text-align:right"><button class="bt sec mini">Mudar</button></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+  <!-- ===== EFETIVO DO DIA ===== -->
+  <section class="tela" id="efe">
+    <div class="topo">
+      <div><h1>Efetivo de quinta, 05 de novembro</h1><p>Serviço das 08h de 05/11 às 08h de 06/11. Marque quem se apresentou. Permutas vêm da grade geral.</p></div>
+      <div class="acoes"><button class="bt pri">Imprimir efetivo do dia</button></div>
+    </div>
+    <div class="faixa-dias" role="group" aria-label="Dia de serviço">
+      <button><small>seg</small><b>02</b></button><button><small>ter</small><b>03</b></button><button><small>qua</small><b>04</b></button>
+      <button aria-pressed="true"><small>qui</small><b>05</b></button><button><small>sex</small><b>06</b></button><button><small>sáb</small><b>07</b></button><button><small>dom</small><b>08</b></button><button><small>seg</small><b>09</b></button>
+    </div>
+    <div class="numeros">
+      <div><b>31</b><span>militares de serviço</span></div>
+      <div><b>15</b><span>no turno A</span></div>
+      <div><b>13</b><span>no turno B</span></div>
+      <div><b>7</b><span>em operações</span></div>
+      <div class="al"><b>1</b><span>vaga obrigatória vazia</span></div>
+    </div>
+
+    <h2 class="sec-t">Ordinário</h2>
+    <div class="turnos2">
+      <div class="painel tcol"><div class="thead d">Turno A <span>08h às 20h de 05/11</span><span class="pres">9 de 10 apresentados</span></div><div id="efA"></div></div>
+      <div class="painel tcol"><div class="thead n">Turno B <span>20h de 05/11 às 08h de 06/11</span><span class="pres">0 de 9 apresentados</span></div><div id="efB"></div></div>
+    </div>
+
+    <h2 class="sec-t">Operações e diárias</h2>
+    <div class="painel"><table class="tb" id="efOp"></table></div>
+
+    <h2 class="sec-t">Motoristas de serviço</h2>
+    <div class="painel"><table class="tb" id="efMot"></table></div>
+    <p class="dica">Expediente do Adm: 12 militares das 08h às 16h. <a href="#" style="color:var(--vinho);font-weight:600">Ver lista</a></p>
+  </section>
+
+  <!-- ===== VOLUNTARIADO ===== -->
+  <section class="tela" id="vol">
+    <div class="topo">
+      <div><h1>Voluntariado de dezembro de 2026</h1><p>Dias e turnos em que cada militar aceita JES e diárias. O militar informa só o turno; o serviço é decidido na escala.</p><p class="pend-def">Em definição com o Chefe da SB: o novo formato do formulário.</p></div>
+      <div class="acoes"><span class="campo"><small>Mês</small>Dezembro/2026 ▾</span>
+        <span class="seg-ctl" role="tablist"><button aria-pressed="true" data-v="lan">Lançar à mão</button><button aria-pressed="false" data-v="imp">Importar do Google Forms</button></span></div>
+    </div>
+
+    <div id="v-lan" class="vol-wrap">
+      <div class="painel lista vol-lista">
+        <div class="filtros"><span class="campo" style="flex:1">Nome ou matrícula</span></div>
+        <div class="gr">Já lançados</div>
+        <button aria-selected="false"><b>SD BM Cabral</b><small>9 dias</small></button>
+        <button aria-selected="false"><b>ST BM Esteves</b><small>4 dias</small></button>
+        <div class="gr">Faltam lançar</div>
+        <button aria-selected="true"><b>SD BM Andrade</b><small>lançando</small></button>
+        <button aria-selected="false"><b>SD BM Dantas</b><small></small></button>
+        <button aria-selected="false"><b>3º SGT BM Falcão</b><small></small></button>
+        <button aria-selected="false"><b>2º SGT BM Gusmão</b><small></small></button>
+      </div>
+      <div class="painel det">
+        <header>
+          <div><h2>SD BM Andrade</h2><p>Equipe Alfa. Não é voluntário JES: as marcações valem só para diárias.</p></div>
+          <div class="acoes"><button class="bt sec">Limpar</button><button class="bt pri">Salvar e ir para o próximo</button></div>
+        </header>
+        <div class="sec pincel">
+          <span class="tt" aria-pressed="true" style="display:inline-grid;place-items:center">A</span><span class="dica">08h às 20h</span>
+          <span class="tt" aria-pressed="true" style="display:inline-grid;place-items:center">B</span><span class="dica">20h às 08h</span>
+          <span class="dica">Vale para qualquer operação ou diária que caiba no turno. Clique num turno para marcar. Clique no número do dia para marcar todos os turnos. Arraste para marcar vários dias.</span>
+        </div>
+        <div class="sec">
+          <div class="cal" id="cal"></div>
+          <div class="atalhos"><button class="lnk">Todos os sábados e domingos</button><button class="lnk">Dias de folga da equipe Alfa</button><button class="lnk">Copiar de novembro</button></div>
+        </div>
+        <div class="sec"><p class="dica" style="margin:0"><b style="color:var(--tinta)">11 turnos em 8 dias.</b> Atalhos de teclado: setas movem, espaço marca, Enter salva e passa ao próximo.</p></div>
+      </div>
+    </div>
+
+    <div id="v-imp" hidden>
+      <ol class="passos">
+        <li class="feito"><b>Enviar planilha</b><span>respostas_dezembro.xlsx, 46 respostas</span></li>
+        <li class="atual"><b>Ligar as colunas</b><span>dizer o que é cada coluna</span></li>
+        <li><b>Conferir</b><span>ver o que foi entendido</span></li>
+        <li><b>Importar</b></li>
+      </ol>
+      <div class="painel">
+        <table class="tb">
+          <thead><tr><th>Coluna da planilha</th><th>Exemplo da primeira resposta</th><th>Vira no sistema</th></tr></thead>
+          <tbody>
+            <tr><td class="n">Carimbo de data/hora</td><td>21/11/2026 09:14:02</td><td><span class="campo vazio">Ignorar ▾</span></td></tr>
+            <tr><td class="n">Matrícula</td><td>990001-2</td><td><span class="campo">Matrícula do militar ▾</span></td></tr>
+            <tr><td class="n">Nome de guerra</td><td>Andrade</td><td><span class="campo vazio">Só para conferência ▾</span></td></tr>
+            <tr><td class="n">Dias disponíveis no turno A (08h às 20h)</td><td>01, 05, 06, 12, 13</td><td><span class="campo">Dias do turno A ▾</span></td></tr>
+            <tr><td class="n">Dias disponíveis no turno B (20h às 08h)</td><td>05, 13</td><td><span class="campo">Dias do turno B ▾</span></td></tr>
+            <tr><td class="n">Alguma observação importante?</td><td>Ser escalado no máximo 10 dias</td><td><span class="campo">Observação para o escalante ▾</span></td></tr>
+          </tbody>
+        </table>
+        <div class="legenda">O sistema guarda essa ligação. No próximo mês, com o mesmo formulário, este passo já vem preenchido.</div>
+      </div>
+      <h2 class="sec-t">Prévia da conferência</h2>
+      <div class="numeros">
+        <div><b>43</b><span>respostas prontas</span></div>
+        <div class="al"><b>2</b><span>matrícula não encontrada</span></div>
+        <div class="al"><b>1</b><span>militar respondeu duas vezes</span></div>
+      </div>
+      <div class="painel">
+        <table class="tb">
+          <thead><tr><th>Resposta</th><th>Problema</th><th>O que fazer</th></tr></thead>
+          <tbody>
+            <tr><td class="n">Linha 12, matrícula 9900012</td><td>Matrícula sem hífen</td><td>Reconhecido como SD BM Andrade. <button class="lnk">Confirmar</button></td></tr>
+            <tr><td class="n">Linha 30, matrícula 990007-8</td><td>Não está no cadastro de militares</td><td><span class="campo">Escolher militar ▾</span> <button class="lnk">Ignorar linha</button></td></tr>
+            <tr><td class="n">Linhas 7 e 41, SD BM Dantas</td><td>Duas respostas</td><td><span class="seg-ctl"><button aria-pressed="true">Usar a mais recente</button><button aria-pressed="false">Somar as duas</button></span></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px"><button class="bt sec">Voltar</button><button class="bt pri">Conferir respostas</button></div>
+    </div>
+  </section>
+
+
+  <!-- ===== ESTRUTURA ===== -->
+  <section class="tela" id="est">
+    <div class="topo">
+      <div><h1>Estrutura</h1><p>Unidades da corporação, da Diretoria Geral às seções. Escalas, guarnições, cotas e lotações pertencem a uma destas unidades.</p></div>
+      <div class="acoes"><button class="bt pri">Nova unidade</button></div>
+    </div>
+    <div class="cad">
+      <div class="painel arvore" role="tree" aria-label="Unidades">
+        <div class="no n0" role="treeitem"><b>CBMPE</b><small>Corporação</small></div>
+        <div class="no n1" role="treeitem"><b>DGO</b><small>Diretoria Geral</small></div>
+        <div class="no n2" role="treeitem"><b>DIM</b><small>Diretoria Integrada</small></div>
+        <div class="no n2" role="treeitem"><b>DInter/1</b><small>Diretoria Integrada</small></div>
+        <div class="no n3 sel" role="treeitem" aria-selected="true"><b>2º GB</b><small>Grupamento</small></div>
+        <div class="no n4" role="treeitem"><b>1ª SB</b><small>53 militares</small></div>
+        <div class="no n4" role="treeitem"><b>2ª SB</b><small>31 militares</small></div>
+        <div class="no n4" role="treeitem"><b>3ª SB</b><small>28 militares</small></div>
+        <div class="no n4 mais" role="treeitem"><b>4ª a 7ª SB</b><small>96 militares</small></div>
+        <div class="no n2" role="treeitem"><b>DInter/2</b><small>Diretoria Integrada</small></div>
+        <p class="dica" style="padding:10px 16px;margin:0">Na fase de teste só o 2º GB tem dados. As demais unidades existem para o sistema crescer sem mudar a estrutura.</p>
+      </div>
+      <div class="painel det">
+        <header><div><h2>2º GB</h2><p>Grupamento de Bombeiros, subordinado à DInter/1.</p></div><div class="acoes"><a data-ir="his" class="bt sec" style="text-decoration:none;cursor:pointer">Ver histórico</a><button class="bt pri">Salvar a partir de dez/2026</button></div></header>
+        <div class="sec"><div class="form">
+          <label>Nome<span class="campo">2º Grupamento de Bombeiros</span></label>
+          <label>Sigla<span class="campo">2º GB</span></label>
+          <label>Tipo<span class="campo">Grupamento ▾</span></label>
+          <label>Subordinada a<span class="campo">DInter/1 ▾</span></label>
+        </div></div>
+        <div class="sec vig"><span class="dica">Versões:</span><ol><li class="atual"><span>jan/2020, em vigor</span></li></ol></div>
+        <div class="sec"><h3>Pertence a esta unidade</h3>
+          <table class="tb" style="margin:0 -16px;width:calc(100% + 32px)">
+            <thead><tr><th>O quê</th><th class="num">Na unidade</th><th class="num">Com as seções</th></tr></thead>
+            <tbody>
+              <tr><td class="n">Militares lotados</td><td class="num">4</td><td class="num">208</td></tr>
+              <tr><td class="n">Escalas</td><td class="num">2</td><td class="num">9</td></tr>
+              <tr><td class="n">Guarnições</td><td class="num">1</td><td class="num">11</td></tr>
+              <tr><td class="n">Cotas em dezembro</td><td class="num">1</td><td class="num">7</td></tr>
+            </tbody>
+          </table>
+          <p class="dica" style="margin:10px 0 0">Ex.: a escala do Oficial de Operações e a operação PE Seguro são do 2º GB, não de uma seção.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== HISTÓRICO ===== -->
+  <section class="tela" id="his">
+    <div class="topo">
+      <div><h1>Histórico de alterações</h1><p>Tudo o que foi criado, mudado ou apagado, por quem e em qual unidade. Os registros não podem ser editados.</p></div>
+      <div class="acoes"><button class="bt sec">Exportar planilha</button></div>
+    </div>
+    <div class="painel">
+      <div class="filtros">
+        <span class="campo"><small>Unidade</small>2º GB e abaixo ▾</span><span class="campo"><small>Quem</small>Todos ▾</span><span class="campo"><small>O quê</small>Tudo ▾</span><span class="campo"><small>Período</small>Novembro/2026 ▾</span>
+      </div>
+      <table class="tb hist">
+        <thead><tr><th>Quando</th><th>Quem</th><th>Unidade</th><th>O que mudou</th><th>Antes</th><th>Depois</th></tr></thead>
+        <tbody>
+          <tr><td class="n">16/11 14:32</td><td>Escalante 1ª SB</td><td>1ª SB</td><td>Escala do mês: UTAPH Pronto, 05/11 turno A, motorista</td><td class="antes">vazio</td><td class="depois">SD BM Moura</td></tr>
+          <tr><td class="n">16/11 10:05</td><td>Escalante 1ª SB</td><td>1ª SB</td><td>Grade geral: permuta em 05/11, Despachante 1</td><td class="antes">3º SGT BM Holanda</td><td class="depois">SD BM Queiroz</td></tr>
+          <tr><td class="n">15/11 18:47</td><td>Chefe 1ª SB</td><td>1ª SB</td><td>Guarnição UTAPH Pronto: socorrista, máximo (a partir de dez/2026)</td><td class="antes">2</td><td class="depois">3</td></tr>
+          <tr><td class="n">14/11 09:12</td><td>Escalante 2º GB</td><td>2º GB</td><td>Cotas de dezembro: PE Seguro, recebidas</td><td class="antes">28</td><td class="depois">31</td></tr>
+          <tr><td class="n">12/11 16:20</td><td>Escalante 1ª SB</td><td>1ª SB</td><td>Militar SD BM Dantas: afastamento LTS 03 a 17/11</td><td class="antes">não havia</td><td class="depois">registrado</td></tr>
+          <tr><td class="n">10/11 08:03</td><td>Administrador</td><td>CBMPE</td><td>Configuração: saldos por militar do Adm (a partir de dez/2026)</td><td class="antes">6</td><td class="depois">5</td></tr>
+        </tbody>
+      </table>
+      <div class="legenda">Mostrando 6 de 1.284 alterações. Abrir uma linha mostra o registro completo.</div>
+    </div>
+  </section>
+
+  <!-- ===== AJUDA ===== -->
+  <section class="tela" id="aju">
+    <div class="topo">
+      <div><h1>Ajuda</h1><p>Como fazer a escala do mês no sistema, do formulário de voluntariado ao envio da escala executada.</p></div>
+      <div class="acoes"><span class="campo" style="min-width:260px">Pesquisar na ajuda</span></div>
+    </div>
+    <div class="aju">
+      <div class="painel">
+        <div class="sec"><h3>O mês do escalante</h3>
+          <ol class="roteiro">
+            <li><b>Dia 20: abrir o voluntariado</b><span>Envie o formulário do mês seguinte e, ao receber as respostas, lance ou importe em <a data-ir="vol">Voluntariado</a>.</span></li>
+            <li><b>Lançar as cotas</b><span>Registre as JES e diárias recebidas em <a data-ir="cot">Cotas</a>.</span></li>
+            <li><b>Conferir o cadastro</b><span>Entradas, saídas e afastamentos em <a data-ir="mil">Militares</a>. Guarnições e escalas só mudam se a composição mudou.</span></li>
+            <li><b>Gerar a pré-escala</b><span>Em <a data-ir="comp">Escala do mês</a>, o sistema preenche Pronto, JES e Saldo. Use "Mostrar só vagas vazias" para completar o que faltou.</span></li>
+            <li><b>Distribuir as operações</b><span>As diárias entram pela fase voluntária e, se faltar gente, pela compulsória.</span></li>
+            <li><b>Conferência e publicação</b><span>O Chefe da SB confere. Depois, "Gerar documento" produz a escala no modelo oficial.</span></li>
+            <li><b>Ao longo do mês</b><span>Trocas e permutas na <a data-ir="grade">Grade geral</a>. Presença diária no <a data-ir="efe">Efetivo do dia</a>.</span></li>
+            <li><b>Até o dia 5 do mês seguinte</b><span>Gere e envie a escala executada.</span></li>
+          </ol>
+        </div>
+      </div>
+      <div style="display:grid;gap:16px;align-content:start">
+        <div class="painel"><div class="sec"><h3>Perguntas frequentes</h3>
+          <details class="faq"><summary>Por que um militar não aparece na lista ao escolher alguém para a vaga?</summary><p>A lista mostra só quem pode ocupar aquela vaga. Ficam de fora quem tem choque de horário, está afastado, não tem a CNH exigida ou, no caso de JES, não é voluntário. O rodapé da lista diz quantos ficaram de fora e por quê.</p></details>
+          <details class="faq"><summary>O que significam as listras amarelas?</summary><p>Vaga obrigatória sem militar. A guarnição não sai com o mínimo enquanto ela estiver vazia.</p></details>
+          <details class="faq"><summary>Mudei a composição de uma guarnição. Os meses anteriores mudam?</summary><p>Não. Toda mudança vale a partir do mês escolhido. O histórico fica em "Versões".</p></details>
+          <details class="faq"><summary>Como registro uma permuta?</summary><p>Na Grade geral, abra a ficha de um dos militares, troque o serviço e escolha "Permuta". O Efetivo do dia mostra a troca automaticamente.</p></details>
+        </div></div>
+        <div class="painel"><div class="sec"><h3>Termos</h3>
+          <dl class="termos">
+            <div><dt>Serviço</dt><dd>De onde vem a hora: Pronto, JES, Saldo, Diária.</dd></div>
+            <div><dt>Guarnição</dt><dd>Posto operacional com funções, mínimo e máximo. Pode não ter viatura.</dd></div>
+            <div><dt>Escala</dt><dd>Serviços que dividem as mesmas vagas e saem num documento só.</dd></div>
+            <div><dt>Saldo</dt><dd>Militar do Adm cobrindo um turno do Pronto.</dd></div>
+            <div><dt>Choque</dt><dd>Dois serviços do mesmo militar com horários sobrepostos.</dd></div>
+          </dl>
+          <a href="#" style="color:var(--vinho);font-weight:600">Ver o glossário completo</a>
+        </div></div>
+        <div class="painel"><div class="sec"><h3>Precisa de mais ajuda?</h3><p class="dica" style="margin:0 0 10px">Descreva o problema e em que tela aconteceu. A mensagem vai para o responsável pelo sistema.</p><button class="bt sec">Enviar dúvida ou problema</button></div></div>
+      </div>
+    </div>
+  </section>
+  </main>
+</div>
+
+<script>
+document.querySelectorAll('.trilho button[data-t]').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('.trilho button').forEach(x=>x.removeAttribute('aria-current'));b.setAttribute('aria-current','page');
+  document.querySelectorAll('.tela').forEach(t=>t.classList.toggle('on',t.id===b.dataset.t));window.scrollTo(0,0);
+});
+
+// ---------- militares no mês: blocos em sequência, com a letra do turno ----------
+const S={P:['Pronto','--pronto'],J:['JES','--jes'],S:['Saldo','--saldo'],Bi:['Bioma','--bioma'],PS:['PE Seguro','--peseg'],E:['Expediente','--adm']};
+const INI={P:{A:8,B:20},J:{A:8,B:20},S:{A:8,B:20},Bi:{A:0,B:8,C:16},PS:{A:16,B:0},E:{U:8}};
+const DUR={P:12,J:12,S:12,Bi:8,PS:8,E:8};
+const DIAS=14, sem=['dom','seg','ter','qua','qui','sex','sáb'], fer={2:'Finados'};
+const mil=[
+ {eq:'Alfa',n:'SD BM Cabral',m:'990006-7',ped:{PJ:2,DI:0},s:[[1,'P','A'],[1,'P','B'],[5,'P','A'],[5,'P','B'],[9,'P','A'],[9,'P','B'],[11,'J','A'],[13,'P','A'],[13,'P','B']]},
+ {eq:'Alfa',n:'SD BM Andrade',m:'990001-2',sel:1,ped:{PJ:null,DI:13},s:[[1,'P','A'],[1,'P','B'],[3,'Bi','B'],[4,'Bi','B'],[5,'Bi','A'],[5,'P','A'],[5,'P','B'],[7,'PS','A'],[9,'P','A'],[9,'P','B'],[11,'Bi','B'],[13,'P','A'],[13,'P','B']]},
+ {eq:'Alfa',n:'SD BM Dantas',m:'990005-6',ped:{PJ:0,DI:null},s:[[1,'P','A'],[1,'P','B'],[9,'P','A'],[9,'P','B'],[13,'P','A'],[13,'P','B']]},
+ {eq:'Bravo',n:'ST BM Esteves',m:'990002-3',ped:{PJ:3,DI:null},s:[[2,'P','A'],[2,'P','B'],[6,'P','A'],[6,'P','B'],[8,'J','B'],[10,'P','A'],[10,'P','B'],[14,'P','A'],[14,'P','B']]},
+ {eq:'Bravo',n:'3º SGT BM Falcão',m:'990004-5',ped:{PJ:null,DI:2},s:[[2,'P','A'],[2,'P','B'],[4,'PS','A'],[6,'P','A'],[6,'P','B'],[10,'P','A'],[10,'P','B'],[14,'P','A'],[14,'P','B']]},
+ {eq:'Adm',n:'2º SGT BM Gusmão',m:'990003-4',ped:{PJ:4,DI:null},s:[[3,'E','U'],[4,'E','U'],[5,'E','U'],[6,'E','U'],[7,'S','B'],[9,'E','U'],[10,'E','U'],[11,'E','U'],[12,'E','U'],[13,'E','U']]},
+ {eq:'Adm',n:'3º SGT BM Holanda',m:'990008-9',ped:{PJ:null,DI:null},s:[[3,'E','U'],[4,'E','U'],[5,'E','U'],[6,'E','U'],[9,'E','U'],[10,'E','U'],[11,'E','U'],[12,'S','A'],[12,'E','U'],[13,'E','U']],ch:[12]},
+];
+const dow=d=>(d-1)%7;
+const bloco=(sv,t)=>`<span class="bl" style="background:var(${S[sv][1]})" title="${S[sv][0]}, turno ${t==='U'?'único':t}">${t==='U'?'':t}</span>`;
+(function(){
+  let h='<tr><th class="nome">Militar</th>';
+  for(let d=1;d<=DIAS;d++){const w=dow(d);h+=`<th class="${fer[d]?'fer':''} ${w%6==0?'fds':''}" title="${fer[d]||''}">${sem[w]}<b>${String(d).padStart(2,'0')}</b></th>`}
+  h+='<th>…</th><th class="tot" title="pegas de pedidas">PJES</th><th class="tot" title="pegas de pedidas">Diárias</th></tr>';
+  let eq='';
+  mil.forEach(p=>{
+    if(p.eq!==eq){eq=p.eq;h+=`<tr class="eq"><td colspan="${DIAS+4}">${eq==='Adm'?'Expediente (Adm)':'Equipe '+eq}</td></tr>`}
+    const por={},n={PJ:0,DI:0};
+    p.s.forEach(([d,sv,t])=>{if(sv==='J')n.PJ++;if(sv==='Bi'||sv==='PS')n.DI++;(por[d]=por[d]||[]).push([INI[sv][t],sv,t])});
+    const cota=k=>p.ped[k]==null?'<span class="vazio">–</span>':`${n[k]}<small class="vazio"> de ${p.ped[k]}</small>`;
+    h+=`<tr class="mil${p.sel?' sel':''}"><td class="nome"><strong>${p.n}</strong><span>${p.m}</span></td>`;
+    for(let d=1;d<=DIAS;d++){
+      const l=(por[d]||[]).sort((a,b)=>a[0]-b[0]);const ch=(p.ch||[]).includes(d);
+      h+=`<td class="${dow(d)%6==0?'fds':''}"><div class="seq${ch?' choque':''}">${l.map(x=>bloco(x[1],x[2])).join('')}</div></td>`}
+    h+=`<td style="color:var(--apagado);text-align:center">…</td><td class="tot">${cota('PJ')}</td><td class="tot">${cota('DI')}</td></tr>`;
+  });
+  document.getElementById('tg').innerHTML=h;
+  document.getElementById('leg').innerHTML=Object.entries(S).map(([k,v])=>`<span><span class="bl" style="background:var(${v[1]})"></span>${v[0]}</span>`).join('')+`<span><span class="seq choque" style="width:22px;min-height:16px"></span>Choque de horário</span><span>Colunas da direita: cotas pegas de pedidas</span>`;
+})();
+
+// ---------- escala do mês ----------
+const G={
+ 'UTI Pronto':{v:'ABT',f:[['Motorista','D',1],['Chefe','',1],['Combatente','',1],['Auxiliar de linha','',0]]},
+ 'UTAPH Pronto':{v:'AR',f:[['Motorista','D',1],['Chefe','',1],['Socorrista','',1],['Socorrista','',0]]},
+ 'Apoio Aquartelado':{v:'ACO',f:[['Adjunto','',1],['Motorista de ACO','B',1],['Despachante 1','',1],['Despachante 2','',1]]},
+ 'UTS Pronto':{v:'ABSA',f:[['Motorista','B',1]]},
+};
+const dias=[
+ {d:'01',w:'domingo',t:{
+   A:{'UTI Pronto':[['SD BM Bezerra','990009-0','P'],['SD BM Cabral','990006-7','P'],['SD BM Ivo','990010-1','P'],null],
+      'UTAPH Pronto':['VAZIA',['3º SGT BM Falcão','990004-5','P'],['SD BM Dantas','990005-6','J'],null],
+      'Apoio Aquartelado':[['2º SGT BM Gusmão','990003-4','S'],['3º SGT BM Jatobá','990011-2','P'],['3º SGT BM Holanda','990008-9','P'],['3º SGT BM Lacerda','990012-3','P']],
+      'UTS Pronto':[['SD BM Moura','990013-4','P']]},
+   B:{'UTI Pronto':[['SD BM Nóbrega','990014-5','P'],['ST BM Esteves','990002-3','J'],['SD BM Ivo','990010-1','P'],null]}}},
+ {d:'02',w:'segunda-feira',fer:'Finados',txt:'Todas as vagas preenchidas. Clique para abrir os turnos A e B.'},
+ {d:'03',w:'terça-feira',pend:2,txt:'2 vagas obrigatórias vazias no turno B. Clique para abrir.'},
+];
+(function(){
+  let h='';
+  dias.forEach(dd=>{
+    h+=`<div class="dia"><div class="data"><div><b>${dd.d}</b><span>${dd.w}</span>${dd.fer?`<em>${dd.fer}</em>`:''}${dd.pend?`<span class="pend">${dd.pend} vazias</span>`:''}</div></div><div>`;
+    if(!dd.t){h+=`<div class="recolhido">${dd.txt}</div></div></div>`;return}
+    Object.entries(dd.t).forEach(([tn,gs])=>{
+      const n=tn==='B';
+      h+=`<div class="turno"><div class="barra ${n?'n':'d'}">Turno ${tn}, ${n?'20h às 08h':'08h às 20h'}</div><div class="cards">`;
+      Object.entries(gs).forEach(([g,oc])=>{
+        const df=G[g],obr=df.f.filter(f=>f[2]).length,ok=oc.filter((o,i)=>o&&o!=='VAZIA'&&df.f[i][2]).length;
+        h+=`<div class="gu${ok<obr?' falta':''}"><h4>${g}<small>${df.v}</small>${ok<obr?`<span class="ic al" role="img" aria-label="${obr-ok} vaga obrigatória vazia" title="${obr-ok} vaga obrigatória vazia"><svg viewBox="0 0 24 24"><path d="M12 3 2 21h20z"/><path d="M12 10v5M12 18v.5" stroke="#fff"/></svg></span>`:`<span class="ic ok" role="img" aria-label="Vagas obrigatórias preenchidas" title="Vagas obrigatórias preenchidas"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m7 12 3.5 3.5L17 9" stroke="#fff" fill="none"/></svg></span>`}</h4>`;
+        df.f.forEach((f,i)=>{
+          const o=oc[i],fn=`<span class="fn">${f[0]}${f[1]?`<i>CNH ${f[1]}</i>`:''}</span>`;
+          if(o==='VAZIA')h+=`<div class="vaga">${fn}<button class="vz">Escolher militar</button><span></span></div>`;
+          else if(!o)h+=`<div class="vaga">${fn}<button class="op">Escolher militar</button><span></span></div>`;
+          else h+=`<div class="vaga">${fn}<span class="mi">${o[0]}<span class="mt">${o[1]}</span></span><span class="sv" style="background:var(${S[o[2]][1]})">${S[o[2]][0]}</span></div>`;
+        });
+        h+='</div>';
+      });
+      h+='</div></div>';
+    });
+    h+='</div></div>';
+  });
+  document.getElementById('livro').innerHTML=h;
+})();
+
+// ---------- efetivo do dia ----------
+const EF={
+ A:[['UTI Pronto','ABT',[['Motorista','SD BM Bezerra','990009-0','P','D'],['Chefe','SD BM Cabral','990006-7','P'],['Combatente','SD BM Ivo','990010-1','P']]],
+    ['UTAPH Pronto','AR',[['Motorista',null,null,null,'D'],['Chefe','3º SGT BM Falcão','990004-5','P'],['Socorrista','SD BM Dantas','990005-6','J']]],
+    ['Apoio Aquartelado','ACO',[['Adjunto','2º SGT BM Gusmão','990003-4','S'],['Motorista de ACO','3º SGT BM Jatobá','990011-2','P','B'],['Despachante 1','SD BM Queiroz','990015-6','P',null,'3º SGT BM Holanda'],['Despachante 2','3º SGT BM Lacerda','990012-3','P']]],
+    ['UTS Pronto','ABSA',[['Motorista','SD BM Moura','990013-4','P','B']]]],
+ B:[['UTI Pronto','ABT',[['Motorista','3º SGT BM Otoni','990016-7','P','D'],['Chefe','ST BM Esteves','990002-3','J'],['Combatente','SD BM Nóbrega','990014-5','P']]],
+    ['UTAPH Pronto','AR',[['Motorista','SD BM Cabral','990006-7','J','D'],['Chefe','3º SGT BM Paiva','990017-8','P'],['Socorrista','SD BM Dantas','990005-6','P']]],
+    ['Apoio Aquartelado','ACO',[['Adjunto','2º SGT BM Gusmão','990003-4','S'],['Motorista de ACO','3º SGT BM Jatobá','990011-2','P','B'],['Despachante 1','3º SGT BM Holanda','990008-9','P']]]]
+};
+const efCol=t=>EF[t].map(([g,v,rs])=>{const falta=rs.some(r=>!r[1]);
+  return '<div class="eg"><h4>'+g+'<small>'+v+'</small>'+(falta?'<span class="ic al" title="1 vaga obrigatória vazia" style="margin-left:auto"><svg viewBox="0 0 24 24"><path d="M12 3 2 21h20z"/><path d="M12 10v5M12 18v.5" stroke="#fff"/></svg></span>':'')+'</h4>'+
+  rs.map((r,i)=>'<div class="er">'+(r[1]?'<input type="checkbox" aria-label="'+r[1]+' se apresentou"'+(t==='A'&&!(g==='UTI Pronto'&&i==2)?' checked':'')+'>':'<span></span>')+'<span class="fn">'+r[0]+'</span>'+(r[1]?'<span><b>'+r[1]+'</b><span class="mt">'+r[2]+'</span>'+(r[5]?'<span class="perm">Permuta no lugar de '+r[5]+'</span>':'')+'</span><span class="sv" style="background:var('+S[r[3]][1]+')">'+S[r[3]][0]+'</span>':'<button class="vz" style="justify-self:start">Escolher militar</button><span></span>')+'</div>').join('')+'</div>'}).join('');
+document.getElementById('efA').innerHTML=efCol('A');document.getElementById('efB').innerHTML=efCol('B');
+const OP=[['Bioma','B','08h às 16h','Guardiões do Bioma','Motorista','SD BM Andrade','990001-2'],['Bioma','B','08h às 16h','Guardiões do Bioma','Combatente','SD BM Rangel','990018-9'],
+ ['Defensoria','A','08h às 16h','Defensoria','Chefe','2º SGT BM Sampaio','990019-0'],['PE Seguro','A','16h às 24h','PE Seguro','Motorista','CB BM Teles','990020-1'],['PE Seguro','A','16h às 24h','PE Seguro','Socorrista','SD BM Uchoa','990021-2'],
+ ['Bioma','C','16h às 24h','Guardiões do Bioma','Motorista','CB BM Vieira','990022-3'],['Bioma','A','00h às 08h de 06/11','Guardiões do Bioma','Motorista','SD BM Xavier','990023-4']];
+const COP={Bioma:'--bioma','PE Seguro':'--peseg',Defensoria:'--defens'};
+document.getElementById('efOp').innerHTML='<thead><tr><th>Horário</th><th>Serviço</th><th>Função</th><th>Militar</th><th>Matrícula</th></tr></thead><tbody>'+
+ OP.map(o=>'<tr><td class="n">'+o[2]+'</td><td><span class="bl" style="background:var('+COP[o[0]]+');display:inline-block;margin-right:6px">'+o[1]+'</span>'+o[0]+'</td><td>'+o[4]+'</td><td class="n">'+o[5]+'</td><td>'+o[6]+'</td></tr>').join('')+'</tbody>';
+const MOT=[['D','SD BM Bezerra','UTI Pronto','Turno A'],['D','3º SGT BM Otoni','UTI Pronto','Turno B'],['D','SD BM Cabral','UTAPH Pronto','Turno B'],['B','3º SGT BM Jatobá','Apoio Aquartelado','Turnos A e B'],['B','SD BM Moura','UTS Pronto','Turno A'],['D','SD BM Andrade','Guardiões do Bioma','08h às 16h'],['D','CB BM Vieira','Guardiões do Bioma','16h às 24h'],['B','CB BM Teles','PE Seguro','16h às 24h']];
+document.getElementById('efMot').innerHTML='<thead><tr><th>CNH</th><th>Militar</th><th>Onde</th><th>Quando</th></tr></thead><tbody>'+MOT.map(m=>'<tr><td><span class="cnh-b">'+m[0]+'</span></td><td class="n">'+m[1]+'</td><td>'+m[2]+'</td><td>'+m[3]+'</td></tr>').join('')+'</tbody><tfoot><tr><td colspan="4" style="color:var(--alerta)">UTAPH Pronto, turno A: sem motorista com CNH D.</td></tr></tfoot>';
+
+// ---------- voluntariado ----------
+(function(){
+  const marc={5:'AB',6:'A',12:'A',13:'AB',19:'A',20:'A',26:'AB',27:'A'};
+  let c=['dom','seg','ter','qua','qui','sex','sáb'].map(d=>'<div class="ds">'+d+'</div>').join('');
+  // 01/12/2026 é terça
+  for(let i=0;i<2;i++)c+='<div class="dcel fora"></div>';
+  for(let d=1;d<=31;d++){const w=(d+1)%7,m=marc[d]||'';
+    c+='<div class="dcel'+(w==0||w==6?' fds':'')+(m?' marc':'')+'"><button class="dn" aria-label="Marcar todos os turnos do dia '+d+'">'+d+'</button><div class="ts">'+
+      ['A','B'].map(t=>'<button class="tt" aria-pressed="'+(m.includes(t))+'" aria-label="Dia '+d+', turno '+t+'">'+t+'</button>').join('')+'</div></div>'}
+  document.getElementById('cal').innerHTML=c;
+  document.querySelectorAll('#cal .tt').forEach(b=>b.onclick=()=>b.setAttribute('aria-pressed',b.getAttribute('aria-pressed')!=='true'));
+  document.querySelectorAll('[data-v]').forEach(b=>b.onclick=()=>{document.querySelectorAll('[data-v]').forEach(x=>x.setAttribute('aria-pressed',x===b));
+    document.getElementById('v-lan').hidden=b.dataset.v!=='lan';document.getElementById('v-imp').hidden=b.dataset.v!=='imp';});
+})();
+document.querySelectorAll('[data-ir]').forEach(a=>a.onclick=()=>document.querySelector('.trilho button[data-t="'+a.dataset.ir+'"]').click());
+</script>
+</body></html>

@@ -1,0 +1,471 @@
+# Esquema do banco — Sistema de Escalas 2º GB
+
+16/11/2026 · v0.1 · parte do design (`2026-11-16-migracao-design.md`)
+
+Ponto de partida: o "ER proposto" do documento *Modelo ER — Sistema de Escalas 2º GB* (v0.8). Acréscimos: unidades em árvore, lotação com vigência, vínculo de militar externo, usuários e papéis, modelos de impressão, documentos gerados e auditoria. Também entram as mudanças vindas dos esboços de tela (versão 12), que ainda podem mudar.
+
+## Convenções
+
+- **Banco:** PostgreSQL 15 ou superior (Supabase no teste, servidor do Estado depois). Extensões: `ltree` (caminho das unidades), `btree_gist` (impedir períodos sobrepostos), `pgcrypto` (`gen_random_uuid()`).
+- **Nomes:** tabelas e colunas em português, minúsculas, sem acento, com `_`.
+- **Chave primária:** `id uuid default gen_random_uuid()`. Exceção: `auditoria.id bigint` gerado, por ser uma tabela só de acréscimo e de grande volume.
+- **Mês de referência:** coluna `date` sempre no dia 1 (`check (extract(day from x) = 1)`). Nos nomes, aparece como `vigencia_desde`, `mes` ou `desde`.
+- **Períodos:** `desde date not null`, `ate date null` (null = em aberto). Sem sobreposição para a mesma chave, via `exclude using gist (... with =, daterange(desde, ate, '[]') with &&)`.
+- **Vigência sem retroagir (RN-93):** criar uma versão com `vigencia_desde` anterior ao mês corrente é recusado pela API. Versões passadas não se editam.
+- **Herança por unidade:** onde a regra diz "vale para a unidade e as de baixo", a unidade mais próxima na árvore vence (`unidade.caminho @> alvo.caminho`, ordenado pela profundidade, decrescente).
+- **Regras de domínio fora do banco:** choque de horário, elegibilidade de JES, CNH por hierarquia, mínimo e máximo por função. Ficam no motor de regras (`pacotes/dominio`), que a API chama antes de gravar. O banco garante só a integridade (chaves, unicidade, períodos, valores permitidos).
+
+## Diagrama
+
+```mermaid
+erDiagram
+  tipo_unidade ||--o{ unidade : classifica
+  unidade ||--o{ unidade : "mae de"
+  unidade ||--o{ equipe : tem
+  unidade ||--o{ lotacao : lota
+  militar ||--o{ lotacao : "lotado em"
+  equipe |o--o{ lotacao : agrupa
+  militar ||--o{ vinculo_externo : "externo em"
+  unidade ||--o{ vinculo_externo : aceita
+  posto_grad ||--o{ militar : classifica
+  militar ||--o{ afastamento : tem
+  militar ||--|| usuario : "e"
+  usuario ||--o{ papel_usuario : tem
+  unidade ||--o{ papel_usuario : "no ambito de"
+  unidade ||--o{ servico : "dona de"
+  servico ||--|{ turno : tem
+  unidade ||--o{ funcao : cataloga
+  unidade ||--o{ guarnicao : "dona de"
+  guarnicao ||--|{ guarnicao_versao : versiona
+  guarnicao_versao ||--o{ composicao : tem
+  funcao ||--o{ composicao : "exigida em"
+  unidade ||--o{ escala : "dona de"
+  escala ||--|{ escala_servico : reune
+  servico ||--o{ escala_servico : "entra em"
+  escala ||--o{ escala_vinculo_versao : versiona
+  escala_vinculo_versao ||--o{ escala_guarnicao : liga
+  guarnicao ||--o{ escala_guarnicao : serve
+  unidade ||--o{ cota : recebe
+  servico ||--o{ cota : "cotado em"
+  militar ||--o{ voluntariado : pede
+  militar ||--o{ alocacao : tem
+  escala ||--o{ alocacao : contem
+  turno ||--o{ alocacao : "horario de"
+  guarnicao |o--o{ alocacao : "vaga em"
+  funcao |o--o{ alocacao : "funcao em"
+  permuta ||--|{ permuta_item : troca
+  alocacao ||--o| permuta_item : "trocada em"
+  unidade ||--o{ parametro : define
+  unidade ||--o{ feriado : define
+  unidade ||--o{ modelo_impressao : usa
+  modelo_impressao ||--o{ documento_gerado : gera
+```
+
+## 1. Estrutura e pessoas
+
+### tipo_unidade
+Tipos de unidade, em tabela para que um nível novo (ex.: pelotão) não exija mudar o esquema.
+
+| Coluna | Tipo | Regra |
+|---|---|---|
+| codigo | text PK | `corporacao`, `diretoria_geral`, `diretoria_integrada`, `grupamento`, `secao` |
+| nome | text not null | "Grupamento" |
+| nivel | int not null | 0 a 4, ordem na árvore |
+
+### unidade
+| Coluna | Tipo | Regra |
+|---|---|---|
+| id | uuid PK | |
+| tipo | text FK → tipo_unidade | |
+| sigla | text not null | "2º GB", "1ª SB" |
+| nome | text not null | "2º Grupamento de Bombeiros" |
+| mae_id | uuid FK → unidade null | null só na raiz (CBMPE); uma única raiz |
+| caminho | ltree not null, único | mantido por gatilho a partir de `mae_id`; índice gist |
+| desde | date not null | mês de criação |
+| ate | date null | mês de extinção |
+
+Regra: o `nivel` do tipo da mãe é menor que o da filha.
+
+### posto_grad
+| Coluna | Tipo | Regra |
+|---|---|---|
+| id | uuid PK | |
+| sigla | text único | "SD BM", "3º SGT BM", "ST BM" |
+| nome | text | "Soldado" |
+| ordem | int único | ordena por hierarquia (RN-101) |
+
+### militar
+| Coluna | Tipo | Regra |
+|---|---|---|
+| id | uuid PK | |
+| matricula | text único | `^\d{6}-\d$` |
+| posto_grad_id | uuid FK | |
+| nome_guerra | text not null | |
+| antiguidade | int null | ordem dentro do posto (RN-101); vazia vai por último |
+| motorista | boolean not null default false | está no quadro de motoristas |
+| cnh | text[] not null default '{}' | subconjunto de {A,B,C,D,E}, só as que constam na carteira; vazio se `motorista = false` (check) |
+| voluntario_jes | boolean not null default false | RN-46 |
+| ativo | boolean not null default true | |
+
+A hierarquia de CNH (E habilita D, C e B; D habilita C, B e A; C habilita B e A; B habilita A) é regra de domínio, no código (RN-12). Não vai para tabela. TELEFONE não existe (D7).
+
+### equipe
+| Coluna | Tipo | Regra |
+|---|---|---|
+| id | uuid PK | |
+| unidade_id | uuid FK | em geral uma seção |
+| nome | text | "Alfa"; único por unidade |
+| ordem_ciclo | int | posição no ciclo do Pronto; única por unidade |
+
+### lotacao
+Onde o militar está, com qual equipe e qual jornada, em cada período. A escala de março continua mostrando a lotação de março.
+
+| Coluna | Tipo | Regra |
+|---|---|---|
+| id | uuid PK | |
+| militar_id | uuid FK | |
+| unidade_id | uuid FK | |
+| equipe_id | uuid FK null | equipe da mesma unidade (gatilho) |
+| jornada | text not null | `pronto` ou `adm` |
+| desde | date not null | dia 1 do mês |
+| ate | date null | |
+
+Regra: sem períodos sobrepostos por militar (exclude gist).
+
+### vinculo_externo
+Militar de outra unidade autorizado a tirar serviço aqui.
+
+| Coluna | Tipo | Regra |
+|---|---|---|
+| id | uuid PK | |
+| militar_id | uuid FK | |
+| unidade_id | uuid FK | unidade que aceita o militar |
+| desde / ate | date | sem sobreposição por (militar, unidade) |
+| observacao | text null | |
+
+Elegibilidade (domínio): um militar pode ser alocado numa escala se, na data, tem lotação na unidade da escala **ou** um vínculo externo ativo com ela. Na lista "Escolher militar", os externos aparecem depois dos lotados e marcados como externos.
+
+### afastamento
+| Coluna | Tipo | Regra |
+|---|---|---|
+| id | uuid PK | |
+| militar_id | uuid FK | |
+| tipo | text | `ferias`, `licenca`, `outro` (genérico, sem motivo de saúde; D7) |
+| inicio / fim | date | `fim >= inicio`; sem sobreposição por militar |
+
+Regra (domínio): no período, o militar não aparece como opção em nenhuma vaga.
+
+## 2. Usuários e papéis
+
+As tabelas de login são do Better Auth (D3): `usuario`, `sessao`, `conta` e `verificacao`, com os nomes configurados em português. Acréscimos na tabela `usuario`:
+
+| Coluna | Tipo | Regra |
+|---|---|---|
+| militar_id | uuid FK, único, not null | todo usuário é um militar |
+| ativo | boolean default true | |
+
+### papel_usuario
+| Coluna | Tipo | Regra |
+|---|---|---|
+| id | uuid PK | |
+| usuario_id | uuid FK | |
+| unidade_id | uuid FK | o papel vale para a unidade e as de baixo |
+| papel | text | `administrador`, `chefe`, `escalante` |
+| desde / ate | date | |
+
+### convite
+| Coluna | Tipo | Regra |
+|---|---|---|
+| id | uuid PK | |
+| email | text | |
+| militar_id | uuid FK | o convidado já precisa existir no cadastro de militares |
+| unidade_id / papel | | papel concedido ao aceitar |
+| enviado_por | uuid FK → usuario | |
+| expira_em | timestamptz | |
+| aceito_em | timestamptz null | |
+
+Não existe cadastro aberto. O primeiro administrador é criado por um comando de instalação.
+
+## 3. Serviços, turnos e funções
+
+### servico
+| Coluna | Tipo | Regra |
+|---|---|---|
+| id | uuid PK | |
+| unidade_id | uuid FK | dona |
+| nome | text | único por unidade |
+| tipo | text | `ordinario`, `pjes`, `diaria` (o expediente do Adm é `ordinario`) |
+| operacao | text null | só quando `tipo = 'diaria'` (check; RN-83) |
+| rotulo_impressao | text null | antiga coluna ORIGEM (B49); vazio = nome |
+| cor | text | hex `#RRGGBB`, usada nos blocos da grade e nas etiquetas |
+| ativo | boolean | |
+
+### turno
+| Coluna | Tipo | Regra |
+|---|---|---|
+| id | uuid PK | |
+| servico_id | uuid FK | |
+| letra | text | "A", "B", "C" ou "U" (único); única por serviço |
+| inicio / fim | time | `fim <= inicio` significa que atravessa a meia-noite; a duração é calculada |
+
+Regra de exibição: o turno aparece no dia em que começa. O dia de serviço vai das 08h de D às 08h de D+1 (efetivo do dia).
+
+### funcao
+| Coluna | Tipo | Regra |
+|---|---|---|
+| id | uuid PK | |
+| unidade_id | uuid FK | catálogo da unidade (RN-94); herdado pelas de baixo |
+| nome | text | "Motorista", "Chefe", "Socorrista"; único por unidade |
+
+## 4. Guarnições
+
+### guarnicao
+| Coluna | Tipo | Regra |
+|---|---|---|
+| id | uuid PK | |
+| unidade_id | uuid FK | dona; pode ser seção ou GB |
+| nome | text | único por unidade |
+
+### guarnicao_versao
+| Coluna | Tipo | Regra |
+|---|---|---|
+| id | uuid PK | |
+| guarnicao_id | uuid FK | |
+| vigencia_desde | date | dia 1; único por guarnição; sem retroagir |
+| viatura | text null | sigla, opcional (RN-96) |
+| tipo_viatura | text null | "Auto Resgate" |
+| prioridade | int null | ordem de ativação (RN-08); vazia vai por último (Q18) |
+| ativa | boolean | RN-07 |
+
+Vale, para um mês, a versão com o maior `vigencia_desde <= mês`.
+
+### composicao
+| Coluna | Tipo | Regra |
+|---|---|---|
+| id | uuid PK | |
+| guarnicao_versao_id | uuid FK | |
+| funcao_id | uuid FK | única por versão |
+| minimo | int not null | `>= 0` (RN-10) |
+| maximo | int null | null = sem limite; `>= minimo` (RN-11) |
+| cnh_exigida | text null | uma letra A a E; atendida pela hierarquia (RN-12) |
+| ordem | int | ordem das linhas na tela e no documento |
+
+Vagas obrigatórias = `minimo`; vagas acima do mínimo = `maximo - minimo` (sem rótulo na tela).
+
+## 5. Escalas
+
+### escala
+| Coluna | Tipo | Regra |
+|---|---|---|
+| id | uuid PK | |
+| unidade_id | uuid FK | dona; seção ou nível acima |
+| nome | text | único por unidade |
+| titulo | text | título no documento |
+| militares_doc | text | `todos` ou `escalados` |
+| dias_doc | text | `todos` ou `com_escalados` |
+| ativa | boolean | |
+
+### escala_servico
+Troca a lista em texto `ESCALAS.SERVIÇOS` (RN-100).
+
+| Coluna | Tipo | Regra |
+|---|---|---|
+| escala_id | uuid FK | PK composta |
+| servico_id | uuid FK | PK composta |
+| ordem | int | ordem de preenchimento (Pronto, então JES, então Saldo; RN-13); única por escala |
+
+### escala_vinculo_versao e escala_guarnicao
+Quais guarnições servem cada turno da escala, com vigência (RN-09, RN-93).
+
+| escala_vinculo_versao | Tipo | Regra |
+|---|---|---|
+| id | uuid PK | |
+| escala_id | uuid FK | |
+| vigencia_desde | date | único por escala; sem retroagir |
+
+| escala_guarnicao | Tipo | Regra |
+|---|---|---|
+| id | uuid PK | |
+| versao_id | uuid FK | |
+| guarnicao_id | uuid FK | |
+| turno_letra | text null | null = todos os turnos |
+
+Único por (versao_id, guarnicao_id, turno_letra).
+
+## 6. O mês
+
+### cota
+| Coluna | Tipo | Regra |
+|---|---|---|
+| id | uuid PK | |
+| mes | date | dia 1 |
+| unidade_id | uuid FK | quem recebe |
+| servico_id | uuid FK | serviço de tipo `pjes` ou `diaria` (não há cota de ordinário) |
+| quantidade | int | `> 0` |
+| origem | text | `interna` ou `externa` (RN-35) |
+| prioridade | int | 1 é preenchida primeiro |
+| conta_meta | boolean | conta para a meta de ativação (RN-95) |
+
+A operação deixa de existir na cota (resolve Q14): ela é atributo do serviço do tipo diária.
+
+### voluntariado
+| Coluna | Tipo | Regra |
+|---|---|---|
+| id | uuid PK | |
+| militar_id | uuid FK | |
+| data | date | |
+| turno_padrao | text | `A` (08h às 20h) ou `B` (20h às 08h), os turnos do ordinário. O militar não escolhe serviço. **Pendente:** como cada turno de serviço é ligado ao turno padrão (ex.: 16h às 00h) |
+| origem | text | `manual` ou `importacao` (e `militar`, no futuro) |
+
+Único por (militar_id, data, turno_padrao). As "pedidas" da grade geral contam, por tipo (PJES, Diária), os turnos marcados; um voluntário JES conta nos dois tipos, os demais só em Diária.
+
+### alocacao
+Fonte da verdade da escala.
+
+| Coluna | Tipo | Regra |
+|---|---|---|
+| id | uuid PK | |
+| militar_id | uuid FK | |
+| escala_id | uuid FK | |
+| servico_id | uuid FK | serviço da escala (gatilho: está em `escala_servico`) |
+| turno_id | uuid FK | turno do serviço (gatilho) |
+| data | date | dia em que o turno começa |
+| guarnicao_id | uuid FK null | vaga ocupada; null = sem posto |
+| funcao_id | uuid FK null | |
+| origem | text | `pre_escala`, `distribuicao`, `manual`, `permuta` |
+| presente | boolean null | marcação de presença no efetivo do dia |
+| presenca_por / presenca_em | uuid FK / timestamptz null | |
+
+Único por (militar_id, data, servico_id, turno_id), a chave atual da P13. A elegibilidade (lotação ou vínculo externo, afastamento, voluntário JES, CNH, choque) é verificada pelo motor antes de gravar.
+
+### permuta e permuta_item
+Só a troca já aprovada (E8): o escalante registra depois da aprovação do Chefe, feita fora do sistema.
+
+| permuta | Tipo | Regra |
+|---|---|---|
+| id | uuid PK | |
+| mes | date | as duas alocações são do mesmo mês (RN-87) |
+| registrada_por | uuid FK → usuario | |
+| registrada_em | timestamptz | |
+| observacao | text null | |
+
+| permuta_item | Tipo | Regra |
+|---|---|---|
+| id | uuid PK | |
+| permuta_id | uuid FK | exatamente 2 itens por permuta (RN-86) |
+| alocacao_id | uuid FK, único | a alocação passa a ter o substituto em `militar_id` |
+| militar_original_id | uuid FK | quem estava escalado; o efetivo do dia mostra "no lugar de" |
+
+## 7. Configurações e documentos
+
+### parametro
+| Coluna | Tipo | Regra |
+|---|---|---|
+| id | uuid PK | |
+| chave | text | catálogo fixo no código: `CARGA_MENSAL_HORAS`, `SALDOS_ADM_POR_MILITAR`, `ADM_CUMPRE_CARGA`, `LINHAS_POR_MILITAR` |
+| unidade_id | uuid FK | vale para a unidade e as de baixo |
+| vigencia_desde | date | dia 1 |
+| valor | jsonb | validado por chave na API |
+| norma_referencia | text null | ex.: portaria ou PCG |
+
+Único por (chave, unidade_id, vigencia_desde). Valor para (chave, unidade U, mês M): a unidade mais próxima de U na árvore que tenha a chave, na maior vigência `<= M`. `SECAO_PADRAO` sai: o seletor de unidade substitui.
+
+### feriado
+| Coluna | Tipo | Regra |
+|---|---|---|
+| id | uuid PK | |
+| unidade_id | uuid FK | nacional e estadual no CBMPE; municipal na unidade da cidade |
+| data | date | única por unidade |
+| descricao | text | |
+
+Um dia é feriado para U se houver feriado em U ou em qualquer unidade acima.
+
+### modelo_impressao
+| Coluna | Tipo | Regra |
+|---|---|---|
+| id | uuid PK | |
+| unidade_id | uuid FK | herdado pelas de baixo |
+| documento | text | `escala_publicada`, `efetivo_dia`, `escala_executada` |
+| versao | int | sequencial por (unidade, documento) |
+| arquivo | bytea | o .xlsx enviado |
+| marcadores | jsonb | marcadores encontrados na conferência do envio |
+| enviado_por / enviado_em | | |
+
+O modelo vigente é a maior versão. Na escala, o modelo usado é o do documento `escala_publicada` herdado pela unidade da escala.
+
+### documento_gerado
+| Coluna | Tipo | Regra |
+|---|---|---|
+| id | uuid PK | |
+| documento | text | como em `modelo_impressao` |
+| unidade_id | uuid FK | |
+| escala_id | uuid FK null | |
+| referencia | date | mês (escala) ou dia (efetivo) |
+| modelo_id | uuid FK | versão do modelo usada |
+| xlsx | bytea | |
+| pdf | bytea null | null se o serviço de PDF falhou ou ainda não existe |
+| gerado_por / gerado_em | | |
+
+Cada publicação e cada retificação ficam guardadas.
+
+## 8. Auditoria
+
+### auditoria
+| Coluna | Tipo | Regra |
+|---|---|---|
+| id | bigint gerado PK | |
+| em | timestamptz default now() | |
+| usuario_id | uuid null | lido de `current_setting('app.usuario_id', true)`; null = carga ou manutenção |
+| unidade_id | uuid null | unidade do registro alterado (direta ou pela escala/militar) |
+| tabela | text | |
+| registro_id | text | |
+| acao | text | `insert`, `update`, `delete` |
+| antes / depois | jsonb null | |
+
+- **Gravada pelo banco:** um gatilho genérico em todas as tabelas das seções 1 a 7 (menos as de sessão do Better Auth).
+- **Só acréscimos:** o papel da aplicação não tem `update` nem `delete` na tabela, e um gatilho recusa as duas operações mesmo para quem tiver.
+- **Usuário:** a API abre cada transação com `set local app.usuario_id = '<id>'`.
+- **Índices:** (unidade_id, em) e (tabela, registro_id).
+
+## Mudanças em relação ao ER proposto (v0.8)
+
+**Entram**
+- Unidades em árvore (`tipo_unidade`, `unidade`).
+- `lotacao` com vigência, `equipe` e jornada por período.
+- `vinculo_externo`.
+- Usuários, `papel_usuario`, `convite`.
+- Na escala: `escala_vinculo_versao` e `escala_guarnicao`.
+- No serviço: `cor` e `rotulo_impressao`.
+- No militar: `motorista` separado de `cnh` em conjunto.
+- Na alocação: presença, origem, guarnição e função.
+- `permuta_item` com o militar original.
+- No parâmetro: `norma_referencia` e unidade.
+- No feriado: unidade.
+- `modelo_impressao`, `documento_gerado`, `auditoria`.
+
+**Mudam**
+- `afastamento` com tipo genérico.
+- `voluntariado` por dia e turno padrão (A ou B), sem serviço, com origem.
+- `cota` sem operação, apontando para unidade e serviço.
+- `funcao` como catálogo por unidade.
+
+**Saem**
+- `TURNOS.ID` e `SERVIÇO_FK` (resolve Q3).
+- A lista em texto `ESCALAS.SERVIÇOS`.
+- `COTAS.OPERAÇÃO` (resolve Q14).
+- `SECAO_PADRAO`.
+- `TELEFONE`.
+- A questão das abas-Tabela do Sheets (Q16) deixa de existir.
+
+**Ficam para depois (sem tabela agora)**
+- `SITUACAO` (RN-42/RN-43, depende de decisão).
+- `META_ATIVACAO` / `ATIVACAO` e causas de não ativação.
+- `REGRA_DESCANSO` (RN-26).
+
+## Pendências que tocam o esquema
+
+- Voluntariado: turnos pedidos no formulário (A, B, C?) e formato da importação.
+- Q5: os tipos de afastamento (Férias, Licença, Outro) bastam?
+- Q6: o que eram as marcações antigas de permuta (PERMUTA, ENTROU, SÓ 1ºT, SÓ 2ºT). Pode exigir permuta de meio turno.
+- Q17: unidade tática (Incêndio, Pré-hospitalar, Salvamento), vista no painel de referência como agrupamento das guarnições. Pode virar uma coluna `grupo` em `guarnicao`.
+- Funções por serviço (RN-94) ou só por unidade: o esquema usa o catálogo por unidade.

@@ -3,3 +3,5 @@ node_modules/**
 .gitattributes
 *.md
 *.bundle
+.superpowers/**
+docs/**
