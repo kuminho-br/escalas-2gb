@@ -1,0 +1,20 @@
+{
+ "funcao": "cnhHabilitadas_",
+ "casos": [
+  {
+   "teste": "teste_p19.js",
+   "entrada": [
+    [
+     "A",
+     "D"
+    ]
+   ],
+   "saida": [
+    "A",
+    "D",
+    "C",
+    "B"
+   ]
+  }
+ ]
+}

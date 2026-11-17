@@ -1,0 +1,750 @@
+{
+ "funcao": "diagnosticarOperacoes_",
+ "casos": [
+  {
+   "teste": "teste_p15.js",
+   "entrada": [
+    {
+     "mes": "2026-11",
+     "secao": "1ª SB",
+     "operacoes": [
+      {
+       "nome": "PE Seguro",
+       "servico": "PE Seguro",
+       "prioridade": 1,
+       "dias": [
+        "2026-11-01",
+        "2026-11-02"
+       ],
+       "turnos": [],
+       "problema": "\"PE Seguro\" sem vagas: vincule as guarnições de cada turno dela em GUARNIÇÕES POR ESCALA."
+      }
+     ],
+     "res": {
+      "novas": [],
+      "porCota": [
+       {
+        "id": "C1",
+        "operacao": "PE Seguro",
+        "servico": "PE Seguro",
+        "origem": "interna",
+        "recebidas": 160,
+        "distribuidas": 0,
+        "restantes": 160
+       }
+      ],
+      "porOperacao": {
+       "PE Seguro": {
+        "servico": "PE Seguro",
+        "recebidas": 160,
+        "distribuidas": 0,
+        "restantes": 160,
+        "novas": 0,
+        "porMilitar": {}
+       }
+      },
+      "vazias": [],
+      "semCota": {},
+      "avisos": []
+     },
+     "horarios": {
+      "PE Seguro|A": {
+       "ini": 0,
+       "fim": 480,
+       "dur": 480
+      },
+      "PE Seguro|B": {
+       "ini": 480,
+       "fim": 960,
+       "dur": 480
+      }
+     },
+     "voluntariado": {
+      "linhasMes": 0,
+      "linhasSecao": 0,
+      "ignoradasJes": 0
+     }
+    }
+   ],
+   "saida": [
+    {
+     "operacao": "PE Seguro",
+     "texto": "\"PE Seguro\" sem vagas: vincule as guarnições de cada turno dela em GUARNIÇÕES POR ESCALA."
+    }
+   ]
+  },
+  {
+   "teste": "teste_p15.js",
+   "entrada": [
+    {
+     "mes": "2026-11",
+     "secao": "1ª SB",
+     "operacoes": [
+      {
+       "nome": "PE Seguro",
+       "servico": "PE Seguro",
+       "prioridade": 1,
+       "dias": [
+        "2026-11-01",
+        "2026-11-02"
+       ],
+       "turnos": [
+        {
+         "turno": "A",
+         "vagas": 4
+        },
+        {
+         "turno": "B",
+         "vagas": 4
+        }
+       ]
+      }
+     ],
+     "res": {
+      "novas": [],
+      "porCota": [
+       {
+        "id": "C1",
+        "operacao": "PE Seguro",
+        "servico": "PE Seguro",
+        "origem": "interna",
+        "recebidas": 160,
+        "distribuidas": 0,
+        "restantes": 160
+       }
+      ],
+      "porOperacao": {
+       "PE Seguro": {
+        "servico": "PE Seguro",
+        "recebidas": 160,
+        "distribuidas": 0,
+        "restantes": 160,
+        "novas": 0,
+        "porMilitar": {}
+       }
+      },
+      "vazias": [
+       {
+        "operacao": "PE Seguro",
+        "servico": "PE Seguro",
+        "dia": "2026-11-01",
+        "turno": "A",
+        "faltam": 4,
+        "motivo": "ninguém preencheu o formulário do mês"
+       },
+       {
+        "operacao": "PE Seguro",
+        "servico": "PE Seguro",
+        "dia": "2026-11-01",
+        "turno": "B",
+        "faltam": 4,
+        "motivo": "ninguém preencheu o formulário do mês"
+       },
+       {
+        "operacao": "PE Seguro",
+        "servico": "PE Seguro",
+        "dia": "2026-11-02",
+        "turno": "A",
+        "faltam": 4,
+        "motivo": "ninguém preencheu o formulário do mês"
+       },
+       {
+        "operacao": "PE Seguro",
+        "servico": "PE Seguro",
+        "dia": "2026-11-02",
+        "turno": "B",
+        "faltam": 4,
+        "motivo": "ninguém preencheu o formulário do mês"
+       }
+      ],
+      "semCota": {},
+      "avisos": []
+     },
+     "horarios": {
+      "PE Seguro|A": {
+       "ini": 0,
+       "fim": 480,
+       "dur": 480
+      },
+      "PE Seguro|B": {
+       "ini": 480,
+       "fim": 960,
+       "dur": 480
+      }
+     },
+     "voluntariado": {
+      "linhasMes": 0,
+      "linhasSecao": 0,
+      "ignoradasJes": 0
+     }
+    }
+   ],
+   "saida": [
+    {
+     "operacao": "PE Seguro",
+     "texto": "\"PE Seguro\": 16 vaga(s) sem ninguém e nenhuma alocação a gerar. A aba VOLUNTARIADO não tem nenhuma linha de 2026-11. Preencha o VOLUNTARIADO (uma linha por militar, dia e turno) e analise de novo."
+    }
+   ]
+  },
+  {
+   "teste": "teste_p15.js",
+   "entrada": [
+    {
+     "mes": "2026-11",
+     "secao": "1ª SB",
+     "operacoes": [
+      {
+       "nome": "PE Seguro",
+       "servico": "PE Seguro",
+       "prioridade": 1,
+       "dias": [
+        "2026-11-01",
+        "2026-11-02"
+       ],
+       "turnos": [
+        {
+         "turno": "A",
+         "vagas": 4
+        },
+        {
+         "turno": "B",
+         "vagas": 4
+        }
+       ]
+      }
+     ],
+     "res": {
+      "novas": [],
+      "porCota": [
+       {
+        "id": "C1",
+        "operacao": "PE Seguro",
+        "servico": "PE Seguro",
+        "origem": "interna",
+        "recebidas": 160,
+        "distribuidas": 0,
+        "restantes": 160
+       }
+      ],
+      "porOperacao": {
+       "PE Seguro": {
+        "servico": "PE Seguro",
+        "recebidas": 160,
+        "distribuidas": 0,
+        "restantes": 160,
+        "novas": 0,
+        "porMilitar": {}
+       }
+      },
+      "vazias": [
+       {
+        "operacao": "PE Seguro",
+        "servico": "PE Seguro",
+        "dia": "2026-11-01",
+        "turno": "A",
+        "faltam": 4,
+        "motivo": "ninguém preencheu o formulário do mês"
+       },
+       {
+        "operacao": "PE Seguro",
+        "servico": "PE Seguro",
+        "dia": "2026-11-01",
+        "turno": "B",
+        "faltam": 4,
+        "motivo": "ninguém preencheu o formulário do mês"
+       },
+       {
+        "operacao": "PE Seguro",
+        "servico": "PE Seguro",
+        "dia": "2026-11-02",
+        "turno": "A",
+        "faltam": 4,
+        "motivo": "ninguém preencheu o formulário do mês"
+       },
+       {
+        "operacao": "PE Seguro",
+        "servico": "PE Seguro",
+        "dia": "2026-11-02",
+        "turno": "B",
+        "faltam": 4,
+        "motivo": "ninguém preencheu o formulário do mês"
+       }
+      ],
+      "semCota": {},
+      "avisos": []
+     },
+     "horarios": {
+      "PE Seguro|A": {
+       "ini": 0,
+       "fim": 480,
+       "dur": 480
+      },
+      "PE Seguro|B": {
+       "ini": 480,
+       "fim": 960,
+       "dur": 480
+      }
+     },
+     "voluntariado": {
+      "linhasMes": 12,
+      "linhasSecao": 0,
+      "ignoradasJes": 0
+     }
+    }
+   ],
+   "saida": [
+    {
+     "operacao": "PE Seguro",
+     "texto": "\"PE Seguro\": 16 vaga(s) sem ninguém e nenhuma alocação a gerar. A aba VOLUNTARIADO tem 12 linha(s) de 2026-11, mas nenhuma de militar da 1ª SB (confira a matrícula e a SEÇÃO em MILITARES). Preencha o VOLUNTARIADO (uma linha por militar, dia e turno) e analise de novo."
+    }
+   ]
+  },
+  {
+   "teste": "teste_p15.js",
+   "entrada": [
+    {
+     "mes": "2026-11",
+     "secao": "1ª SB",
+     "operacoes": [
+      {
+       "nome": "PE Seguro",
+       "servico": "PE Seguro",
+       "prioridade": 1,
+       "dias": [
+        "2026-11-01",
+        "2026-11-02"
+       ],
+       "turnos": [
+        {
+         "turno": "A",
+         "vagas": 4
+        },
+        {
+         "turno": "B",
+         "vagas": 4
+        }
+       ]
+      }
+     ],
+     "res": {
+      "novas": [],
+      "porCota": [
+       {
+        "id": "C1",
+        "operacao": "PE Seguro",
+        "servico": "PE Seguro",
+        "origem": "interna",
+        "recebidas": 160,
+        "distribuidas": 0,
+        "restantes": 160
+       }
+      ],
+      "porOperacao": {
+       "PE Seguro": {
+        "servico": "PE Seguro",
+        "recebidas": 160,
+        "distribuidas": 0,
+        "restantes": 160,
+        "novas": 0,
+        "porMilitar": {}
+       }
+      },
+      "vazias": [
+       {
+        "operacao": "PE Seguro",
+        "servico": "PE Seguro",
+        "dia": "2026-11-01",
+        "turno": "A",
+        "faltam": 4,
+        "motivo": "ninguém preencheu o formulário do mês"
+       },
+       {
+        "operacao": "PE Seguro",
+        "servico": "PE Seguro",
+        "dia": "2026-11-01",
+        "turno": "B",
+        "faltam": 4,
+        "motivo": "ninguém preencheu o formulário do mês"
+       },
+       {
+        "operacao": "PE Seguro",
+        "servico": "PE Seguro",
+        "dia": "2026-11-02",
+        "turno": "A",
+        "faltam": 4,
+        "motivo": "ninguém preencheu o formulário do mês"
+       },
+       {
+        "operacao": "PE Seguro",
+        "servico": "PE Seguro",
+        "dia": "2026-11-02",
+        "turno": "B",
+        "faltam": 4,
+        "motivo": "ninguém preencheu o formulário do mês"
+       }
+      ],
+      "semCota": {},
+      "avisos": []
+     },
+     "horarios": {
+      "PE Seguro|A": {
+       "ini": 0,
+       "fim": 480,
+       "dur": 480
+      },
+      "PE Seguro|B": {
+       "ini": 480,
+       "fim": 960,
+       "dur": 480
+      }
+     },
+     "voluntariado": {
+      "linhasMes": 12,
+      "linhasSecao": 0,
+      "ignoradasJes": 12
+     }
+    }
+   ],
+   "saida": [
+    {
+     "operacao": "PE Seguro",
+     "texto": "\"PE Seguro\": 16 vaga(s) sem ninguém e nenhuma alocação a gerar. A aba VOLUNTARIADO tem 12 linha(s) de 2026-11, mas nenhuma de militar da 1ª SB (confira a matrícula e a SEÇÃO em MILITARES). Preencha o VOLUNTARIADO (uma linha por militar, dia e turno) e analise de novo."
+    }
+   ]
+  },
+  {
+   "teste": "teste_p15.js",
+   "entrada": [
+    {
+     "mes": "2026-11",
+     "secao": "1ª SB",
+     "operacoes": [
+      {
+       "nome": "PE Seguro",
+       "servico": "PE Seguro",
+       "prioridade": 1,
+       "dias": [
+        "2026-11-01",
+        "2026-11-02"
+       ],
+       "turnos": [
+        {
+         "turno": "A",
+         "vagas": 4
+        },
+        {
+         "turno": "B",
+         "vagas": 4
+        }
+       ]
+      }
+     ],
+     "res": {
+      "novas": [
+       {
+        "mat": "M1",
+        "dia": "2026-11-01",
+        "servico": "PE Seguro",
+        "turno": "A",
+        "operacao": "PE Seguro",
+        "fase": "voluntaria"
+       },
+       {
+        "mat": "M1",
+        "dia": "2026-11-02",
+        "servico": "PE Seguro",
+        "turno": "A",
+        "operacao": "PE Seguro",
+        "fase": "compulsoria"
+       }
+      ],
+      "porCota": [
+       {
+        "id": "C1",
+        "operacao": "PE Seguro",
+        "servico": "PE Seguro",
+        "origem": "interna",
+        "recebidas": 160,
+        "distribuidas": 2,
+        "restantes": 158
+       }
+      ],
+      "porOperacao": {
+       "PE Seguro": {
+        "servico": "PE Seguro",
+        "recebidas": 160,
+        "distribuidas": 2,
+        "restantes": 158,
+        "novas": 2,
+        "porMilitar": {
+         "M1": 2
+        }
+       }
+      },
+      "vazias": [
+       {
+        "operacao": "PE Seguro",
+        "servico": "PE Seguro",
+        "dia": "2026-11-01",
+        "turno": "A",
+        "faltam": 3,
+        "motivo": "sem voluntário para esse dia e turno"
+       },
+       {
+        "operacao": "PE Seguro",
+        "servico": "PE Seguro",
+        "dia": "2026-11-01",
+        "turno": "B",
+        "faltam": 4,
+        "motivo": "o militar já tem diária nesse dia"
+       },
+       {
+        "operacao": "PE Seguro",
+        "servico": "PE Seguro",
+        "dia": "2026-11-02",
+        "turno": "A",
+        "faltam": 3,
+        "motivo": "sem voluntário para esse dia e turno"
+       },
+       {
+        "operacao": "PE Seguro",
+        "servico": "PE Seguro",
+        "dia": "2026-11-02",
+        "turno": "B",
+        "faltam": 4,
+        "motivo": "o militar já tem diária nesse dia"
+       }
+      ],
+      "semCota": {},
+      "avisos": []
+     },
+     "horarios": {
+      "PE Seguro|A": {
+       "ini": 0,
+       "fim": 480,
+       "dur": 480
+      },
+      "PE Seguro|B": {
+       "ini": 480,
+       "fim": 960,
+       "dur": 480
+      }
+     },
+     "voluntariado": {
+      "linhasMes": 0,
+      "linhasSecao": 0,
+      "ignoradasJes": 0
+     }
+    }
+   ],
+   "saida": []
+  },
+  {
+   "teste": "teste_p15.js",
+   "entrada": [
+    {
+     "mes": "2026-11",
+     "secao": "1ª SB",
+     "operacoes": [
+      {
+       "nome": "PE Seguro",
+       "servico": "PE Seguro",
+       "prioridade": 1,
+       "dias": [
+        "2026-11-01",
+        "2026-11-02"
+       ],
+       "turnos": [
+        {
+         "turno": "A",
+         "vagas": 4
+        },
+        {
+         "turno": "B",
+         "vagas": 4
+        }
+       ]
+      }
+     ],
+     "res": {
+      "porOperacao": {
+       "PE Seguro": {
+        "novas": 0,
+        "restantes": 0
+       }
+      },
+      "vazias": []
+     },
+     "horarios": {
+      "PE Seguro|A": {
+       "ini": 0,
+       "fim": 480,
+       "dur": 480
+      },
+      "PE Seguro|B": {
+       "ini": 480,
+       "fim": 960,
+       "dur": 480
+      }
+     }
+    }
+   ],
+   "saida": []
+  },
+  {
+   "teste": "teste_p15.js",
+   "entrada": [
+    {
+     "mes": "2026-11",
+     "secao": "1ª SB",
+     "operacoes": [
+      {
+       "nome": "PE Seguro",
+       "servico": "PE Seguro",
+       "prioridade": 1,
+       "dias": [
+        "2026-11-01",
+        "2026-11-02"
+       ],
+       "turnos": [
+        {
+         "turno": "C",
+         "vagas": 4
+        }
+       ]
+      }
+     ],
+     "res": {
+      "novas": [],
+      "porCota": [
+       {
+        "id": "C1",
+        "operacao": "PE Seguro",
+        "servico": "PE Seguro",
+        "origem": "interna",
+        "recebidas": 160,
+        "distribuidas": 0,
+        "restantes": 160
+       }
+      ],
+      "porOperacao": {
+       "PE Seguro": {
+        "servico": "PE Seguro",
+        "recebidas": 160,
+        "distribuidas": 0,
+        "restantes": 160,
+        "novas": 0,
+        "porMilitar": {}
+       }
+      },
+      "vazias": [],
+      "semCota": {},
+      "avisos": [
+       "\"PE Seguro\": turno sem horário legível na aba TURNOS (PE Seguro C); turno ignorado."
+      ]
+     },
+     "horarios": {
+      "PE Seguro|A": {
+       "ini": 0,
+       "fim": 480,
+       "dur": 480
+      },
+      "PE Seguro|B": {
+       "ini": 480,
+       "fim": 960,
+       "dur": 480
+      }
+     },
+     "voluntariado": {
+      "linhasMes": 0,
+      "linhasSecao": 0,
+      "ignoradasJes": 0
+     }
+    }
+   ],
+   "saida": [
+    {
+     "operacao": "PE Seguro",
+     "texto": "\"PE Seguro\" sem vagas: vincule as guarnições de cada turno em GUARNIÇÕES POR ESCALA, com as funções em GUARNIÇÕES (e confira se os turnos têm horário na aba TURNOS)."
+    }
+   ]
+  },
+  {
+   "teste": "teste_p15.js",
+   "entrada": [
+    {
+     "mes": "2026-11",
+     "secao": "1ª SB",
+     "operacoes": [
+      {
+       "nome": "PE Seguro",
+       "servico": "PE Seguro",
+       "prioridade": 1,
+       "dias": [],
+       "turnos": [
+        {
+         "turno": "A",
+         "vagas": 4
+        },
+        {
+         "turno": "B",
+         "vagas": 4
+        }
+       ]
+      }
+     ],
+     "res": {
+      "novas": [],
+      "porCota": [
+       {
+        "id": "C1",
+        "operacao": "PE Seguro",
+        "servico": "PE Seguro",
+        "origem": "interna",
+        "recebidas": 160,
+        "distribuidas": 0,
+        "restantes": 160
+       }
+      ],
+      "porOperacao": {
+       "PE Seguro": {
+        "servico": "PE Seguro",
+        "recebidas": 160,
+        "distribuidas": 0,
+        "restantes": 160,
+        "novas": 0,
+        "porMilitar": {}
+       }
+      },
+      "vazias": [],
+      "semCota": {},
+      "avisos": []
+     },
+     "horarios": {
+      "PE Seguro|A": {
+       "ini": 0,
+       "fim": 480,
+       "dur": 480
+      },
+      "PE Seguro|B": {
+       "ini": 480,
+       "fim": 960,
+       "dur": 480
+      }
+     },
+     "voluntariado": {
+      "linhasMes": 0,
+      "linhasSecao": 0,
+      "ignoradasJes": 0
+     }
+    }
+   ],
+   "saida": [
+    {
+     "operacao": "PE Seguro",
+     "texto": "\"PE Seguro\" sem dias: a escala só usa os dias já escalados (ESCALAS, coluna DIAS) e a tabela não tem nenhum em 2026-11. Escale esses dias ou mude DIAS para TODOS."
+    }
+   ]
+  }
+ ]
+}

@@ -42,7 +42,7 @@
 - **Site e API no mesmo endereço**, num projeto Vercel: `api/index.ts` na raiz é um adaptador fino para `apps/api`. Isso dispensa CORS e cookie entre domínios.
 - **Prévias da Vercel não recebem banco.** As variáveis ficam só em Production, e a API das prévias responde 503. Isso honra a D7 (prévias sem dados reais).
 - **Manter o banco acordado** com um cron da Vercel a cada 3 dias em `/api/saude/banco`.
-- **Testes do protótipo vão para `prototipo/testes/`.** Eles leem os fontes com `path.join(__dirname, '..')`, então funcionam sem mudança. A troca da matrícula real `707170-1` continua na criação de `casos/` (fase 2, D7).
+- **Testes do protótipo vão para `prototipo/testes/`.** Eles leem os fontes com `path.join(__dirname, '..')`, então funcionam sem mudança. A troca da matrícula real continua na criação de `casos/` (fase 2, D7).
 
 ---
 

@@ -1,0 +1,68 @@
+{
+ "funcao": "ehSaldo_",
+ "casos": [
+  {
+   "teste": "teste_p15.js",
+   "entrada": [
+    "Adm"
+   ],
+   "saida": false
+  },
+  {
+   "teste": "teste_p15.js",
+   "entrada": [
+    "Pronto"
+   ],
+   "saida": false
+  },
+  {
+   "teste": "teste_p15.js",
+   "entrada": [
+    "Saldo"
+   ],
+   "saida": true
+  },
+  {
+   "teste": "teste_p17.js",
+   "entrada": [
+    "Bioma"
+   ],
+   "saida": false
+  },
+  {
+   "teste": "teste_p17.js",
+   "entrada": [
+    "CPRH"
+   ],
+   "saida": false
+  },
+  {
+   "teste": "teste_p17.js",
+   "entrada": [
+    "Defensoria"
+   ],
+   "saida": false
+  },
+  {
+   "teste": "teste_p17.js",
+   "entrada": [
+    "JES"
+   ],
+   "saida": false
+  },
+  {
+   "teste": "teste_p17.js",
+   "entrada": [
+    "Mergulho"
+   ],
+   "saida": false
+  },
+  {
+   "teste": "teste_p17.js",
+   "entrada": [
+    "PE Seguro"
+   ],
+   "saida": false
+  }
+ ]
+}

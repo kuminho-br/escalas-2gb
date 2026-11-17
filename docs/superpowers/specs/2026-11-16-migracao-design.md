@@ -75,7 +75,7 @@ Roadmap: `docs/superpowers/plans/2026-11-16-roadmap-migracao.md`
 - **Campos:** só o que o sistema usa (matrícula, posto, nome de guerra, unidade, equipe, jornada, quadro de motoristas e CNH, voluntário JES, afastamentos). TELEFONE não é carregado.
 - **Afastamentos:** guardados só com período e tipo genérico (Férias, Licença, Outro), sem motivo de saúde (dado sensível pela LGPD).
 - **Salvaguardas mantidas:**
-  - Desenvolvimento local, testes automáticos, GitHub e prévias usam um conjunto fictício: 53 militares inventados da 1ª SB com as proporções da sandbox, matrículas numa faixa inexistente (começando em `990`). Serviços, turnos, guarnições, escalas, cotas, feriados, configurações e estrutura são os reais, por não serem dados pessoais. A matrícula real `707170-1` (ADELSON) em `testes/teste_p18.js` e `testes/teste_p19.js` é trocada na criação de `casos/`.
+  - Desenvolvimento local, testes automáticos, GitHub e prévias usam um conjunto fictício: 53 militares inventados da 1ª SB com as proporções da sandbox, matrículas numa faixa inexistente (começando em `990`). Serviços, turnos, guarnições, escalas, cotas, feriados, configurações e estrutura são os reais, por não serem dados pessoais. A matrícula e o nome reais que estavam em `testes/teste_p18.js` e `testes/teste_p19.js` foram trocados na criação de `casos/` (fase 2).
   - A cópia semanal do banco (D2) é guardada criptografada fora do Supabase.
 - **Salvaguardas não adotadas:** apagar o banco de teste com data marcada; anuência escrita do Chefe da SB.
 
@@ -91,3 +91,11 @@ Ver `docs/superpowers/specs/2026-11-16-esquema-banco.md` (v0.1). Decisões de mo
 ## Telas
 
 Ver `docs/superpowers/specs/2026-11-16-telas.md` (v0.1) e a referência visual `docs/telas/telas-v12-anonimizado.html` (dados fictícios).
+
+## Adendo (17/11/2026) — Pré-escala automática e ajustes do escalante
+
+- **Intenção:** como no protótipo, o sistema gera a pré-escala e distribui saldos e operações (barreira de automação); o escalante trata os casos particulares em cima da prévia (barreira de suporte). Gerar de novo nunca sobrescreve o que já está escalado: só completa lacunas.
+- **Decisão do usuário:** gerar de novo **não devolve** um militar a um dia e turno de onde o escalante o removeu. A remoção vale para o militar (militar + dia + serviço + turno), não para a vaga: outro militar pode ocupar a vaga na próxima geração.
+- **Abordagens consideradas:** (A, escolhida) tabela própria de remoções, que a pré-escala e as distribuições consultam; (B) marcar a alocação como removida, descartada porque toda consulta teria de filtrar as removidas e um filtro esquecido poria no documento alguém já tirado; (C) deduzir da auditoria, descartada porque prende regra de negócio ao registro de histórico.
+- **Desfazer:** colocar o militar de volta à mão na mesma combinação apaga a remoção; a ficha também oferece "Desfazer remoção".
+- **Onde entra:** tabela `remocao` no esquema; regra no motor (fase 2: pré-escala, distribuição do Adm e distribuição de cotas pulam as combinações removidas); "Remover" e "Desfazer remoção" nas telas (fase 4).

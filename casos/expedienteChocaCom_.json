@@ -1,0 +1,58 @@
+{
+ "funcao": "expedienteChocaCom_",
+ "casos": [
+  {
+   "teste": "teste_p18.js",
+   "entrada": [
+    {
+     "implicito": true
+    },
+    {
+     "servico": "Novo"
+    },
+    {
+     "Pronto": "Ordinário",
+     "Adm": "Ordinário",
+     "Saldo": "Ordinário",
+     "JES": "PJES",
+     "Defensoria": "PJES",
+     "CPRH": "PJES",
+     "Bioma": "Diária",
+     "PE Seguro": "Diária",
+     "Eleições": "Diária"
+    }
+   ],
+   "saida": false
+  },
+  {
+   "teste": "teste_p18.js",
+   "entrada": [
+    {
+     "implicito": true
+    },
+    {
+     "servico": "X"
+    },
+    {
+     "X": "DIARIA"
+    }
+   ],
+   "saida": true
+  },
+  {
+   "teste": "teste_p18.js",
+   "entrada": [
+    {
+     "servico": "X"
+    },
+    {
+     "implicito": true
+    },
+    {
+     "X": "diária"
+    }
+   ],
+   "saida": true
+  }
+ ]
+}

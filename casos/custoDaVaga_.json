@@ -1,0 +1,17 @@
+{
+ "funcao": "custoDaVaga_",
+ "casos": [
+  {
+   "teste": "teste_motor.js",
+   "entrada": [
+    {
+     "nome": "Bioma"
+    },
+    {
+     "turno": "A"
+    }
+   ],
+   "saida": 1
+  }
+ ]
+}

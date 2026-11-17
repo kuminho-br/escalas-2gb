@@ -1,0 +1,270 @@
+{
+ "funcao": "avaliarGuarnicao_",
+ "casos": [
+  {
+   "teste": "teste_p16.js",
+   "entrada": [
+    null,
+    {}
+   ],
+   "saida": {
+    "ativa": true,
+    "faltando": [],
+    "excedendo": [],
+    "vagas": {}
+   }
+  },
+  {
+   "teste": "teste_p16.js",
+   "entrada": [
+    {
+     "id": "AR",
+     "viatura": "AR",
+     "tipo": "Auto Resgate",
+     "ativar": true,
+     "prioridade": 1,
+     "cnh": [
+      "D"
+     ],
+     "funcoes": [
+      {
+       "funcao": "MOTORISTA",
+       "minimo": 1,
+       "maximo": 1,
+       "cnh": [
+        "D"
+       ]
+      },
+      {
+       "funcao": "CHEFE",
+       "minimo": 1,
+       "maximo": 1,
+       "cnh": []
+      },
+      {
+       "funcao": "SOCORRISTA",
+       "minimo": 1,
+       "maximo": 3,
+       "cnh": []
+      }
+     ]
+    },
+    {
+     "MOTORISTA": 1,
+     "CHEFE": 1,
+     "SOCORRISTA": 1
+    }
+   ],
+   "saida": {
+    "ativa": true,
+    "faltando": [],
+    "excedendo": [],
+    "vagas": {
+     "MOTORISTA": 0,
+     "CHEFE": 0,
+     "SOCORRISTA": 2
+    }
+   }
+  },
+  {
+   "teste": "teste_p16.js",
+   "entrada": [
+    {
+     "id": "AR",
+     "viatura": "AR",
+     "tipo": "Auto Resgate",
+     "ativar": true,
+     "prioridade": 1,
+     "cnh": [
+      "D"
+     ],
+     "funcoes": [
+      {
+       "funcao": "MOTORISTA",
+       "minimo": 1,
+       "maximo": 1,
+       "cnh": [
+        "D"
+       ]
+      },
+      {
+       "funcao": "CHEFE",
+       "minimo": 1,
+       "maximo": 1,
+       "cnh": []
+      },
+      {
+       "funcao": "SOCORRISTA",
+       "minimo": 1,
+       "maximo": 3,
+       "cnh": []
+      }
+     ]
+    },
+    {
+     "MOTORISTA": 1,
+     "CHEFE": 1,
+     "SOCORRISTA": 3
+    }
+   ],
+   "saida": {
+    "ativa": true,
+    "faltando": [],
+    "excedendo": [],
+    "vagas": {
+     "MOTORISTA": 0,
+     "CHEFE": 0,
+     "SOCORRISTA": 0
+    }
+   }
+  },
+  {
+   "teste": "teste_p16.js",
+   "entrada": [
+    {
+     "id": "AR",
+     "viatura": "AR",
+     "tipo": "Auto Resgate",
+     "ativar": true,
+     "prioridade": 1,
+     "cnh": [
+      "D"
+     ],
+     "funcoes": [
+      {
+       "funcao": "MOTORISTA",
+       "minimo": 1,
+       "maximo": 1,
+       "cnh": [
+        "D"
+       ]
+      },
+      {
+       "funcao": "CHEFE",
+       "minimo": 1,
+       "maximo": 1,
+       "cnh": []
+      },
+      {
+       "funcao": "SOCORRISTA",
+       "minimo": 1,
+       "maximo": 3,
+       "cnh": []
+      }
+     ]
+    },
+    {
+     "MOTORISTA": 1,
+     "CHEFE": 1,
+     "SOCORRISTA": 4
+    }
+   ],
+   "saida": {
+    "ativa": true,
+    "faltando": [],
+    "excedendo": [
+     {
+      "funcao": "SOCORRISTA",
+      "maximo": 3,
+      "tem": 4
+     }
+    ],
+    "vagas": {
+     "MOTORISTA": 0,
+     "CHEFE": 0,
+     "SOCORRISTA": 0
+    }
+   }
+  },
+  {
+   "teste": "teste_p16.js",
+   "entrada": [
+    {
+     "id": "AR",
+     "viatura": "AR",
+     "tipo": "Auto Resgate",
+     "ativar": true,
+     "prioridade": 1,
+     "cnh": [
+      "D"
+     ],
+     "funcoes": [
+      {
+       "funcao": "MOTORISTA",
+       "minimo": 1,
+       "maximo": 1,
+       "cnh": [
+        "D"
+       ]
+      },
+      {
+       "funcao": "CHEFE",
+       "minimo": 1,
+       "maximo": 1,
+       "cnh": []
+      },
+      {
+       "funcao": "SOCORRISTA",
+       "minimo": 1,
+       "maximo": 3,
+       "cnh": []
+      }
+     ]
+    },
+    {
+     "MOTORISTA": 1,
+     "CHEFE": 1
+    }
+   ],
+   "saida": {
+    "ativa": false,
+    "faltando": [
+     {
+      "funcao": "SOCORRISTA",
+      "minimo": 1,
+      "tem": 0,
+      "falta": 1
+     }
+    ],
+    "excedendo": [],
+    "vagas": {
+     "MOTORISTA": 0,
+     "CHEFE": 0,
+     "SOCORRISTA": 3
+    }
+   }
+  },
+  {
+   "teste": "teste_p16.js",
+   "entrada": [
+    {
+     "id": "X",
+     "viatura": "",
+     "tipo": "",
+     "ativar": true,
+     "prioridade": null,
+     "cnh": [],
+     "funcoes": [
+      {
+       "funcao": "CHEFE",
+       "minimo": 1,
+       "maximo": null,
+       "cnh": []
+      }
+     ]
+    },
+    {
+     "CHEFE": 9
+    }
+   ],
+   "saida": {
+    "ativa": true,
+    "faltando": [],
+    "excedendo": [],
+    "vagas": {
+     "CHEFE": null
+    }
+   }
+  }
+ ]
+}

@@ -1,0 +1,773 @@
+{
+ "funcao": "montarHorarios_",
+ "casos": [
+  {
+   "teste": "teste_cotas.js",
+   "entrada": [
+    [
+     {
+      "servico": "Pronto",
+      "turno": "A",
+      "inicio": "08:00",
+      "fim": "20:00"
+     },
+     {
+      "servico": "Pronto",
+      "turno": "B",
+      "inicio": "20:00",
+      "fim": "08:00"
+     },
+     {
+      "servico": "Adm",
+      "turno": "A",
+      "inicio": "08:00",
+      "fim": "16:00"
+     },
+     {
+      "servico": "JES",
+      "turno": "A",
+      "inicio": "08:00",
+      "fim": "20:00"
+     },
+     {
+      "servico": "JES",
+      "turno": "B",
+      "inicio": "20:00",
+      "fim": "08:00"
+     },
+     {
+      "servico": "Bioma",
+      "turno": "A",
+      "inicio": "00:00",
+      "fim": "08:00"
+     },
+     {
+      "servico": "Bioma",
+      "turno": "B",
+      "inicio": "08:00",
+      "fim": "16:00"
+     },
+     {
+      "servico": "Bioma",
+      "turno": "C",
+      "inicio": "16:00",
+      "fim": "00:00"
+     },
+     {
+      "servico": "PE Seguro",
+      "turno": "A",
+      "inicio": "00:00",
+      "fim": "08:00"
+     },
+     {
+      "servico": "PE Seguro",
+      "turno": "B",
+      "inicio": "08:00",
+      "fim": "16:00"
+     },
+     {
+      "servico": "PE Seguro",
+      "turno": "C",
+      "inicio": "16:00",
+      "fim": "00:00"
+     },
+     {
+      "servico": "Defensoria",
+      "turno": "A",
+      "inicio": "07:00",
+      "fim": "19:00"
+     }
+    ]
+   ],
+   "saida": {
+    "porChave": {
+     "Pronto|A": {
+      "ini": 480,
+      "fim": 1200,
+      "dur": 720
+     },
+     "Pronto|B": {
+      "ini": 1200,
+      "fim": 480,
+      "dur": 720
+     },
+     "Adm|A": {
+      "ini": 480,
+      "fim": 960,
+      "dur": 480
+     },
+     "JES|A": {
+      "ini": 480,
+      "fim": 1200,
+      "dur": 720
+     },
+     "JES|B": {
+      "ini": 1200,
+      "fim": 480,
+      "dur": 720
+     },
+     "Bioma|A": {
+      "ini": 0,
+      "fim": 480,
+      "dur": 480
+     },
+     "Bioma|B": {
+      "ini": 480,
+      "fim": 960,
+      "dur": 480
+     },
+     "Bioma|C": {
+      "ini": 960,
+      "fim": 0,
+      "dur": 480
+     },
+     "PE Seguro|A": {
+      "ini": 0,
+      "fim": 480,
+      "dur": 480
+     },
+     "PE Seguro|B": {
+      "ini": 480,
+      "fim": 960,
+      "dur": 480
+     },
+     "PE Seguro|C": {
+      "ini": 960,
+      "fim": 0,
+      "dur": 480
+     },
+     "Defensoria|A": {
+      "ini": 420,
+      "fim": 1140,
+      "dur": 720
+     }
+    },
+    "avisos": []
+   }
+  },
+  {
+   "teste": "teste_p13.js",
+   "entrada": [
+    [
+     {
+      "servico": "Pronto",
+      "turno": "A",
+      "inicio": "08:00",
+      "fim": "20:00"
+     },
+     {
+      "servico": "Pronto",
+      "turno": "B",
+      "inicio": "20:00",
+      "fim": "08:00"
+     },
+     {
+      "servico": "JES",
+      "turno": "A",
+      "inicio": "08:00",
+      "fim": "20:00"
+     },
+     {
+      "servico": "JES",
+      "turno": "B",
+      "inicio": "20:00",
+      "fim": "08:00"
+     },
+     {
+      "servico": "Bioma",
+      "turno": "A",
+      "inicio": "00:00",
+      "fim": "08:00"
+     },
+     {
+      "servico": "Bioma",
+      "turno": "B",
+      "inicio": "08:00",
+      "fim": "16:00"
+     },
+     {
+      "servico": "Bioma",
+      "turno": "C",
+      "inicio": "16:00",
+      "fim": "00:00"
+     },
+     {
+      "servico": "PE Seguro",
+      "turno": "A",
+      "inicio": "00:00",
+      "fim": "08:00"
+     },
+     {
+      "servico": "PE Seguro",
+      "turno": "B",
+      "inicio": "08:00",
+      "fim": "16:00"
+     },
+     {
+      "servico": "PE Seguro",
+      "turno": "C",
+      "inicio": "16:00",
+      "fim": "00:00"
+     },
+     {
+      "servico": "Defensoria",
+      "turno": "A",
+      "inicio": "07:00",
+      "fim": "19:00"
+     },
+     {
+      "servico": "Adm",
+      "turno": "A",
+      "inicio": "08:00",
+      "fim": "16:00"
+     }
+    ]
+   ],
+   "saida": {
+    "porChave": {
+     "Pronto|A": {
+      "ini": 480,
+      "fim": 1200,
+      "dur": 720
+     },
+     "Pronto|B": {
+      "ini": 1200,
+      "fim": 480,
+      "dur": 720
+     },
+     "JES|A": {
+      "ini": 480,
+      "fim": 1200,
+      "dur": 720
+     },
+     "JES|B": {
+      "ini": 1200,
+      "fim": 480,
+      "dur": 720
+     },
+     "Bioma|A": {
+      "ini": 0,
+      "fim": 480,
+      "dur": 480
+     },
+     "Bioma|B": {
+      "ini": 480,
+      "fim": 960,
+      "dur": 480
+     },
+     "Bioma|C": {
+      "ini": 960,
+      "fim": 0,
+      "dur": 480
+     },
+     "PE Seguro|A": {
+      "ini": 0,
+      "fim": 480,
+      "dur": 480
+     },
+     "PE Seguro|B": {
+      "ini": 480,
+      "fim": 960,
+      "dur": 480
+     },
+     "PE Seguro|C": {
+      "ini": 960,
+      "fim": 0,
+      "dur": 480
+     },
+     "Defensoria|A": {
+      "ini": 420,
+      "fim": 1140,
+      "dur": 720
+     },
+     "Adm|A": {
+      "ini": 480,
+      "fim": 960,
+      "dur": 480
+     }
+    },
+    "avisos": []
+   }
+  },
+  {
+   "teste": "teste_p15.js",
+   "entrada": [
+    [
+     {
+      "servico": "Bioma",
+      "turno": "A",
+      "inicio": "00:00",
+      "fim": "08:00"
+     },
+     {
+      "servico": "Bioma",
+      "turno": "B",
+      "inicio": "08:00",
+      "fim": "16:00"
+     },
+     {
+      "servico": "PE Seguro",
+      "turno": "C",
+      "inicio": "16:00",
+      "fim": "00:00"
+     },
+     {
+      "servico": "Pronto",
+      "turno": "A",
+      "inicio": "08:00",
+      "fim": "20:00"
+     },
+     {
+      "servico": "JES",
+      "turno": "A",
+      "inicio": "08:00",
+      "fim": "20:00"
+     }
+    ]
+   ],
+   "saida": {
+    "porChave": {
+     "Bioma|A": {
+      "ini": 0,
+      "fim": 480,
+      "dur": 480
+     },
+     "Bioma|B": {
+      "ini": 480,
+      "fim": 960,
+      "dur": 480
+     },
+     "PE Seguro|C": {
+      "ini": 960,
+      "fim": 0,
+      "dur": 480
+     },
+     "Pronto|A": {
+      "ini": 480,
+      "fim": 1200,
+      "dur": 720
+     },
+     "JES|A": {
+      "ini": 480,
+      "fim": 1200,
+      "dur": 720
+     }
+    },
+    "avisos": []
+   }
+  },
+  {
+   "teste": "teste_p15.js",
+   "entrada": [
+    [
+     {
+      "servico": "PE Seguro",
+      "turno": "A",
+      "inicio": "00:00",
+      "fim": "08:00"
+     },
+     {
+      "servico": "PE Seguro",
+      "turno": "B",
+      "inicio": "08:00",
+      "fim": "16:00"
+     }
+    ]
+   ],
+   "saida": {
+    "porChave": {
+     "PE Seguro|A": {
+      "ini": 0,
+      "fim": 480,
+      "dur": 480
+     },
+     "PE Seguro|B": {
+      "ini": 480,
+      "fim": 960,
+      "dur": 480
+     }
+    },
+    "avisos": []
+   }
+  },
+  {
+   "teste": "teste_p15.js",
+   "entrada": [
+    [
+     {
+      "servico": "Pronto",
+      "turno": "A",
+      "inicio": "08:00",
+      "fim": "20:00"
+     },
+     {
+      "servico": "Bioma",
+      "turno": "A",
+      "inicio": "00:00",
+      "fim": "08:00"
+     },
+     {
+      "servico": "Bioma",
+      "turno": "B",
+      "inicio": "08:00",
+      "fim": "16:00"
+     },
+     {
+      "servico": "PE Seguro",
+      "turno": "C",
+      "inicio": "16:00",
+      "fim": "00:00"
+     }
+    ]
+   ],
+   "saida": {
+    "porChave": {
+     "Pronto|A": {
+      "ini": 480,
+      "fim": 1200,
+      "dur": 720
+     },
+     "Bioma|A": {
+      "ini": 0,
+      "fim": 480,
+      "dur": 480
+     },
+     "Bioma|B": {
+      "ini": 480,
+      "fim": 960,
+      "dur": 480
+     },
+     "PE Seguro|C": {
+      "ini": 960,
+      "fim": 0,
+      "dur": 480
+     }
+    },
+    "avisos": []
+   }
+  },
+  {
+   "teste": "teste_p15.js",
+   "entrada": [
+    [
+     {
+      "servico": "Pronto",
+      "turno": "A",
+      "inicio": "08:00",
+      "fim": "20:00"
+     },
+     {
+      "servico": "Saldo",
+      "turno": "A",
+      "inicio": "08:00",
+      "fim": "20:00"
+     },
+     {
+      "servico": "Adm",
+      "turno": "A",
+      "inicio": "08:00",
+      "fim": "16:00"
+     }
+    ]
+   ],
+   "saida": {
+    "porChave": {
+     "Pronto|A": {
+      "ini": 480,
+      "fim": 1200,
+      "dur": 720
+     },
+     "Saldo|A": {
+      "ini": 480,
+      "fim": 1200,
+      "dur": 720
+     },
+     "Adm|A": {
+      "ini": 480,
+      "fim": 960,
+      "dur": 480
+     }
+    },
+    "avisos": []
+   }
+  },
+  {
+   "teste": "teste_p16.js",
+   "entrada": [
+    [
+     {
+      "servico": "Pronto",
+      "turno": "A",
+      "inicio": "08:00",
+      "fim": "20:00"
+     },
+     {
+      "servico": "Pronto",
+      "turno": "B",
+      "inicio": "20:00",
+      "fim": "08:00"
+     },
+     {
+      "servico": "JES",
+      "turno": "A",
+      "inicio": "08:00",
+      "fim": "20:00"
+     }
+    ]
+   ],
+   "saida": {
+    "porChave": {
+     "Pronto|A": {
+      "ini": 480,
+      "fim": 1200,
+      "dur": 720
+     },
+     "Pronto|B": {
+      "ini": 1200,
+      "fim": 480,
+      "dur": 720
+     },
+     "JES|A": {
+      "ini": 480,
+      "fim": 1200,
+      "dur": 720
+     }
+    },
+    "avisos": []
+   }
+  },
+  {
+   "teste": "teste_p17.js",
+   "entrada": [
+    [
+     {
+      "servico": "Pronto",
+      "turno": "A",
+      "inicio": "08:00",
+      "fim": "20:00"
+     },
+     {
+      "servico": "Pronto",
+      "turno": "B",
+      "inicio": "20:00",
+      "fim": "08:00"
+     },
+     {
+      "servico": "Saldo",
+      "turno": "A",
+      "inicio": "08:00",
+      "fim": "20:00"
+     },
+     {
+      "servico": "JES",
+      "turno": "A",
+      "inicio": "07:00",
+      "fim": "19:00"
+     },
+     {
+      "servico": "Adm",
+      "turno": "A",
+      "inicio": "08:00",
+      "fim": "17:00"
+     },
+     {
+      "servico": "Bioma",
+      "turno": "A",
+      "inicio": "06:00",
+      "fim": "18:00"
+     },
+     {
+      "servico": "PE Seguro",
+      "turno": "A",
+      "inicio": "16:00",
+      "fim": "00:00"
+     },
+     {
+      "servico": "Defensoria",
+      "turno": "A",
+      "inicio": "07:00",
+      "fim": "19:00"
+     },
+     {
+      "servico": "CPRH",
+      "turno": "A",
+      "inicio": "08:00",
+      "fim": "17:00"
+     },
+     {
+      "servico": "Mergulho",
+      "turno": "A",
+      "inicio": "08:00",
+      "fim": "12:00"
+     }
+    ]
+   ],
+   "saida": {
+    "porChave": {
+     "Pronto|A": {
+      "ini": 480,
+      "fim": 1200,
+      "dur": 720
+     },
+     "Pronto|B": {
+      "ini": 1200,
+      "fim": 480,
+      "dur": 720
+     },
+     "Saldo|A": {
+      "ini": 480,
+      "fim": 1200,
+      "dur": 720
+     },
+     "JES|A": {
+      "ini": 420,
+      "fim": 1140,
+      "dur": 720
+     },
+     "Adm|A": {
+      "ini": 480,
+      "fim": 1020,
+      "dur": 540
+     },
+     "Bioma|A": {
+      "ini": 360,
+      "fim": 1080,
+      "dur": 720
+     },
+     "PE Seguro|A": {
+      "ini": 960,
+      "fim": 0,
+      "dur": 480
+     },
+     "Defensoria|A": {
+      "ini": 420,
+      "fim": 1140,
+      "dur": 720
+     },
+     "CPRH|A": {
+      "ini": 480,
+      "fim": 1020,
+      "dur": 540
+     },
+     "Mergulho|A": {
+      "ini": 480,
+      "fim": 720,
+      "dur": 240
+     }
+    },
+    "avisos": []
+   }
+  },
+  {
+   "teste": "teste_p18.js",
+   "entrada": [
+    [
+     {
+      "servico": "Pronto",
+      "turno": "A",
+      "inicio": "08:00",
+      "fim": "20:00"
+     },
+     {
+      "servico": "Pronto",
+      "turno": "B",
+      "inicio": "20:00",
+      "fim": "08:00"
+     },
+     {
+      "servico": "Adm",
+      "turno": "A",
+      "inicio": "08:00",
+      "fim": "16:00"
+     },
+     {
+      "servico": "JES",
+      "turno": "A",
+      "inicio": "08:00",
+      "fim": "20:00"
+     },
+     {
+      "servico": "JES",
+      "turno": "B",
+      "inicio": "20:00",
+      "fim": "08:00"
+     },
+     {
+      "servico": "Defensoria",
+      "turno": "A",
+      "inicio": "07:00",
+      "fim": "19:00"
+     },
+     {
+      "servico": "Bioma",
+      "turno": "A",
+      "inicio": "06:00",
+      "fim": "18:00"
+     },
+     {
+      "servico": "PE Seguro",
+      "turno": "A",
+      "inicio": "08:00",
+      "fim": "20:00"
+     },
+     {
+      "servico": "Saldo",
+      "turno": "A",
+      "inicio": "08:00",
+      "fim": "20:00"
+     }
+    ]
+   ],
+   "saida": {
+    "porChave": {
+     "Pronto|A": {
+      "ini": 480,
+      "fim": 1200,
+      "dur": 720
+     },
+     "Pronto|B": {
+      "ini": 1200,
+      "fim": 480,
+      "dur": 720
+     },
+     "Adm|A": {
+      "ini": 480,
+      "fim": 960,
+      "dur": 480
+     },
+     "JES|A": {
+      "ini": 480,
+      "fim": 1200,
+      "dur": 720
+     },
+     "JES|B": {
+      "ini": 1200,
+      "fim": 480,
+      "dur": 720
+     },
+     "Defensoria|A": {
+      "ini": 420,
+      "fim": 1140,
+      "dur": 720
+     },
+     "Bioma|A": {
+      "ini": 360,
+      "fim": 1080,
+      "dur": 720
+     },
+     "PE Seguro|A": {
+      "ini": 480,
+      "fim": 1200,
+      "dur": 720
+     },
+     "Saldo|A": {
+      "ini": 480,
+      "fim": 1200,
+      "dur": 720
+     }
+    },
+    "avisos": []
+   }
+  }
+ ]
+}

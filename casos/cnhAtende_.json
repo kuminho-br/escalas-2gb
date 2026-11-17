@@ -1,0 +1,428 @@
+{
+ "funcao": "cnhAtende_",
+ "casos": [
+  {
+   "teste": "teste_p16.js",
+   "entrada": [
+    [
+     "A",
+     "D"
+    ],
+    [
+     "A"
+    ]
+   ],
+   "saida": true
+  },
+  {
+   "teste": "teste_p16.js",
+   "entrada": [
+    [
+     "A",
+     "D"
+    ],
+    [
+     "D"
+    ]
+   ],
+   "saida": true
+  },
+  {
+   "teste": "teste_p16.js",
+   "entrada": [
+    [
+     "B",
+     "D"
+    ],
+    [
+     "D"
+    ]
+   ],
+   "saida": true
+  },
+  {
+   "teste": "teste_p16.js",
+   "entrada": [
+    [
+     "B"
+    ],
+    [
+     "D"
+    ]
+   ],
+   "saida": false
+  },
+  {
+   "teste": "teste_p16.js",
+   "entrada": [
+    [
+     "B"
+    ],
+    []
+   ],
+   "saida": true
+  },
+  {
+   "teste": "teste_p16.js",
+   "entrada": [
+    [
+     "D"
+    ],
+    [
+     "B"
+    ]
+   ],
+   "saida": true
+  },
+  {
+   "teste": "teste_p16.js",
+   "entrada": [
+    [
+     "D"
+    ],
+    [
+     "D"
+    ]
+   ],
+   "saida": true
+  },
+  {
+   "teste": "teste_p16.js",
+   "entrada": [
+    [],
+    [
+     "D"
+    ]
+   ],
+   "saida": false
+  },
+  {
+   "teste": "teste_p16.js",
+   "entrada": [
+    [],
+    []
+   ],
+   "saida": true
+  },
+  {
+   "teste": "teste_p19.js",
+   "entrada": [
+    [
+     "A",
+     "B"
+    ],
+    [
+     "B"
+    ]
+   ],
+   "saida": true
+  },
+  {
+   "teste": "teste_p19.js",
+   "entrada": [
+    [
+     "A",
+     "B"
+    ],
+    [
+     "D"
+    ]
+   ],
+   "saida": false
+  },
+  {
+   "teste": "teste_p19.js",
+   "entrada": [
+    [
+     "A",
+     "C"
+    ],
+    [
+     "B"
+    ]
+   ],
+   "saida": true
+  },
+  {
+   "teste": "teste_p19.js",
+   "entrada": [
+    [
+     "A",
+     "C"
+    ],
+    [
+     "D"
+    ]
+   ],
+   "saida": false
+  },
+  {
+   "teste": "teste_p19.js",
+   "entrada": [
+    [
+     "A",
+     "D"
+    ],
+    [
+     "B"
+    ]
+   ],
+   "saida": true
+  },
+  {
+   "teste": "teste_p19.js",
+   "entrada": [
+    [
+     "A",
+     "D"
+    ],
+    [
+     "C"
+    ]
+   ],
+   "saida": true
+  },
+  {
+   "teste": "teste_p19.js",
+   "entrada": [
+    [
+     "A",
+     "E"
+    ],
+    [
+     "B"
+    ]
+   ],
+   "saida": true
+  },
+  {
+   "teste": "teste_p19.js",
+   "entrada": [
+    [
+     "A",
+     "E"
+    ],
+    [
+     "D"
+    ]
+   ],
+   "saida": true
+  },
+  {
+   "teste": "teste_p19.js",
+   "entrada": [
+    [
+     "A"
+    ],
+    [
+     "A"
+    ]
+   ],
+   "saida": true
+  },
+  {
+   "teste": "teste_p19.js",
+   "entrada": [
+    [
+     "A"
+    ],
+    [
+     "B"
+    ]
+   ],
+   "saida": false
+  },
+  {
+   "teste": "teste_p19.js",
+   "entrada": [
+    [
+     "A"
+    ],
+    [
+     "C"
+    ]
+   ],
+   "saida": false
+  },
+  {
+   "teste": "teste_p19.js",
+   "entrada": [
+    [
+     "A"
+    ],
+    [
+     "D"
+    ]
+   ],
+   "saida": false
+  },
+  {
+   "teste": "teste_p19.js",
+   "entrada": [
+    [
+     "B"
+    ],
+    [
+     "B"
+    ]
+   ],
+   "saida": true
+  },
+  {
+   "teste": "teste_p19.js",
+   "entrada": [
+    [
+     "B"
+    ],
+    [
+     "C",
+     "D"
+    ]
+   ],
+   "saida": false
+  },
+  {
+   "teste": "teste_p19.js",
+   "entrada": [
+    [
+     "B"
+    ],
+    [
+     "C"
+    ]
+   ],
+   "saida": false
+  },
+  {
+   "teste": "teste_p19.js",
+   "entrada": [
+    [
+     "C"
+    ],
+    [
+     "A"
+    ]
+   ],
+   "saida": false
+  },
+  {
+   "teste": "teste_p19.js",
+   "entrada": [
+    [
+     "C"
+    ],
+    [
+     "B"
+    ]
+   ],
+   "saida": true
+  },
+  {
+   "teste": "teste_p19.js",
+   "entrada": [
+    [
+     "C"
+    ],
+    [
+     "C",
+     "D"
+    ]
+   ],
+   "saida": true
+  },
+  {
+   "teste": "teste_p19.js",
+   "entrada": [
+    [
+     "C"
+    ],
+    [
+     "D"
+    ]
+   ],
+   "saida": false
+  },
+  {
+   "teste": "teste_p19.js",
+   "entrada": [
+    [
+     "D"
+    ],
+    [
+     "A"
+    ]
+   ],
+   "saida": false
+  },
+  {
+   "teste": "teste_p19.js",
+   "entrada": [
+    [
+     "D"
+    ],
+    [
+     "C"
+    ]
+   ],
+   "saida": true
+  },
+  {
+   "teste": "teste_p19.js",
+   "entrada": [
+    [
+     "E"
+    ],
+    [
+     "A"
+    ]
+   ],
+   "saida": false
+  },
+  {
+   "teste": "teste_p19.js",
+   "entrada": [
+    [
+     "E"
+    ],
+    [
+     "B"
+    ]
+   ],
+   "saida": true
+  },
+  {
+   "teste": "teste_p19.js",
+   "entrada": [
+    [
+     "E"
+    ],
+    [
+     "C"
+    ]
+   ],
+   "saida": true
+  },
+  {
+   "teste": "teste_p19.js",
+   "entrada": [
+    [
+     "E"
+    ],
+    [
+     "D"
+    ]
+   ],
+   "saida": true
+  },
+  {
+   "teste": "teste_p19.js",
+   "entrada": [
+    [],
+    [
+     "B"
+    ]
+   ],
+   "saida": false
+  }
+ ]
+}

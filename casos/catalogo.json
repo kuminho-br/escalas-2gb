@@ -1,0 +1,11 @@
+{
+  "nucleo": ["normalizar_", "diasDoMes_", "diaDaSemana_", "grupoDoMilitar_", "antigNum_", "ordemDoPosto_", "origemDoServico_"],
+  "parametros": ["paramConverter_", "paramValidarLinhas_", "resolverParametros_", "historicoParametro_", "diasUteisDoMes_", "calcularCargaAdm_", "horasDoSaldo_"],
+  "cnh": ["cnhHabilitadas_", "categoriasCnh_", "cnhAtende_", "resolverGuarnicoes_", "guarnicaoPorNome_", "avaliarGuarnicao_"],
+  "choques": ["minutosDoDia_", "montarHorarios_", "detectarChoques_", "expedienteChocaCom_", "expedienteImplicito_"],
+  "regras": ["ehSaldo_", "violacoesSaldo_", "violacoesDiariaUnica_", "exigeVoluntarioJes_", "violacoesJesVoluntario_", "separarVoluntariado_", "violacoesDeRegras_"],
+  "pre-escala": ["numeroDoDia_", "equipeDoDia_", "mapaEquipes_", "detectarEquipeInicial_", "gerarPreEscala_"],
+  "distribuicao-adm": ["distribuirAdm_"],
+  "distribuicao-cotas": ["servicoDaOperacao_", "custoDaVaga_", "distribuirCotas_", "diagnosticarOperacoes_"],
+  "guarnicao": ["vinculosParaModelo_", "montarModelosGuarnicao_", "funcoesPorServico_", "funcoesQueExigemCnh_", "motivoDaLista_", "postosDoModelo_", "regraDoPosto_", "funcaoExigeCnh_", "expandirSlots_", "compararAntiguidade_", "calcularGuarnicao_", "novaBaseGuarnicao_"]
+}

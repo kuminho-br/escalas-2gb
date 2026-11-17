@@ -1,0 +1,2889 @@
+{
+ "funcao": "funcoesPorServico_",
+ "casos": [
+  {
+   "teste": "teste_p16.js",
+   "entrada": [
+    {
+     "escalas": {
+      "Pronto": {
+       "nome": "Pronto",
+       "servicos": [
+        "Pronto"
+       ],
+       "titulo": "ESCALA PRONTO",
+       "militares": "ESCALADOS",
+       "dias": "TODOS",
+       "turnos": [
+        "A",
+        "B"
+       ],
+       "slots": {
+        "A": [
+         {
+          "unidade": "ABT",
+          "funcao": "CHEFE",
+          "vagas": 1,
+          "exigeCnh": false,
+          "cnh": []
+         },
+         {
+          "unidade": "ABT",
+          "funcao": "COMBATENTE",
+          "vagas": 1,
+          "exigeCnh": false,
+          "cnh": []
+         },
+         {
+          "unidade": "ABT",
+          "funcao": "AUXILIAR DE LINHA",
+          "vagas": 1,
+          "exigeCnh": false,
+          "cnh": []
+         },
+         {
+          "unidade": "ABT",
+          "funcao": "MOTORISTA",
+          "vagas": 1,
+          "exigeCnh": true,
+          "cnh": [
+           "D"
+          ]
+         },
+         {
+          "unidade": "AR",
+          "funcao": "MOTORISTA",
+          "vagas": 1,
+          "exigeCnh": true,
+          "cnh": [
+           "D"
+          ]
+         },
+         {
+          "unidade": "AR",
+          "funcao": "CHEFE",
+          "vagas": 1,
+          "exigeCnh": false,
+          "cnh": []
+         },
+         {
+          "unidade": "AR",
+          "funcao": "SOCORRISTA",
+          "vagas": 3,
+          "exigeCnh": false,
+          "cnh": []
+         }
+        ],
+        "B": [
+         {
+          "unidade": "AR",
+          "funcao": "MOTORISTA",
+          "vagas": 1,
+          "exigeCnh": true,
+          "cnh": [
+           "D"
+          ]
+         },
+         {
+          "unidade": "AR",
+          "funcao": "CHEFE",
+          "vagas": 1,
+          "exigeCnh": false,
+          "cnh": []
+         },
+         {
+          "unidade": "AR",
+          "funcao": "SOCORRISTA",
+          "vagas": 3,
+          "exigeCnh": false,
+          "cnh": []
+         }
+        ]
+       },
+       "usaUnidade": true
+      },
+      "PE Seguro": {
+       "nome": "PE Seguro",
+       "servicos": [
+        "PE Seguro"
+       ],
+       "titulo": "ESCALA PE SEGURO",
+       "militares": "TODOS",
+       "dias": "TODOS",
+       "turnos": [
+        "A",
+        "B",
+        "C"
+       ],
+       "slots": {
+        "A": [
+         {
+          "unidade": "PE SEGURO",
+          "funcao": "MOTORISTA",
+          "vagas": 1,
+          "exigeCnh": false,
+          "cnh": []
+         },
+         {
+          "unidade": "PE SEGURO",
+          "funcao": "CHEFE",
+          "vagas": 1,
+          "exigeCnh": false,
+          "cnh": []
+         }
+        ],
+        "B": [
+         {
+          "unidade": "PE SEGURO",
+          "funcao": "MOTORISTA",
+          "vagas": 1,
+          "exigeCnh": false,
+          "cnh": []
+         },
+         {
+          "unidade": "PE SEGURO",
+          "funcao": "CHEFE",
+          "vagas": 1,
+          "exigeCnh": false,
+          "cnh": []
+         }
+        ],
+        "C": [
+         {
+          "unidade": "PE SEGURO",
+          "funcao": "MOTORISTA",
+          "vagas": 1,
+          "exigeCnh": false,
+          "cnh": []
+         },
+         {
+          "unidade": "PE SEGURO",
+          "funcao": "CHEFE",
+          "vagas": 1,
+          "exigeCnh": false,
+          "cnh": []
+         }
+        ]
+       },
+       "usaUnidade": true
+      }
+     },
+     "ordem": [
+      "Pronto",
+      "PE Seguro"
+     ],
+     "avisos": [
+      "GUARNIÇÕES POR ESCALA: a escala \"Apoio\" não existe (ou foi ignorada) na aba ESCALAS; essa linha foi ignorada.",
+      "GUARNIÇÕES POR ESCALA: a escala \"Apoio\" não existe (ou foi ignorada) na aba ESCALAS; essa linha foi ignorada.",
+      "ESCALAS: \"Bioma\" ignorada: não há linhas para ela na aba GUARNIÇÕES POR ESCALA."
+     ]
+    },
+    "Pronto",
+    "B"
+   ],
+   "saida": [
+    {
+     "funcao": "MOTORISTA",
+     "unidade": "AR",
+     "exigeCnh": true,
+     "escala": "Pronto"
+    },
+    {
+     "funcao": "CHEFE",
+     "unidade": "AR",
+     "exigeCnh": false,
+     "escala": "Pronto"
+    },
+    {
+     "funcao": "SOCORRISTA",
+     "unidade": "AR",
+     "exigeCnh": false,
+     "escala": "Pronto"
+    }
+   ]
+  },
+  {
+   "teste": "teste_p16.js",
+   "entrada": [
+    {
+     "escalas": {
+      "Pronto": {
+       "nome": "Pronto",
+       "servicos": [
+        "Pronto"
+       ],
+       "titulo": "ESCALA PRONTO",
+       "militares": "ESCALADOS",
+       "dias": "TODOS",
+       "turnos": [
+        "A",
+        "B"
+       ],
+       "slots": {
+        "A": [
+         {
+          "unidade": "AR",
+          "funcao": "MOTORISTA",
+          "vagas": 1,
+          "exigeCnh": true,
+          "cnh": null
+         },
+         {
+          "unidade": "AR",
+          "funcao": "CHEFE",
+          "vagas": 1,
+          "exigeCnh": false,
+          "cnh": null
+         },
+         {
+          "unidade": "AR",
+          "funcao": "SOCORRISTA",
+          "vagas": 3,
+          "exigeCnh": false,
+          "cnh": null
+         },
+         {
+          "unidade": "AR",
+          "funcao": "AUXILIAR DE 1ª LINHA",
+          "vagas": 1,
+          "exigeCnh": false,
+          "cnh": null
+         }
+        ],
+        "B": [
+         {
+          "unidade": "ABTS",
+          "funcao": "MOTORISTA",
+          "vagas": 1,
+          "exigeCnh": true,
+          "cnh": null
+         },
+         {
+          "unidade": "ABTS",
+          "funcao": "COMBATENTE",
+          "vagas": 2,
+          "exigeCnh": false,
+          "cnh": null
+         }
+        ]
+       },
+       "usaUnidade": true
+      },
+      "PE Seguro": {
+       "nome": "PE Seguro",
+       "servicos": [
+        "PE Seguro"
+       ],
+       "titulo": "ESCALA PE SEGURO",
+       "militares": "TODOS",
+       "dias": "TODOS",
+       "turnos": [
+        "A",
+        "B",
+        "C"
+       ],
+       "slots": {
+        "A": [
+         {
+          "unidade": "",
+          "funcao": "CHEFE",
+          "vagas": 1,
+          "exigeCnh": false,
+          "cnh": null
+         }
+        ],
+        "B": [
+         {
+          "unidade": "",
+          "funcao": "CHEFE",
+          "vagas": 1,
+          "exigeCnh": false,
+          "cnh": null
+         }
+        ],
+        "C": [
+         {
+          "unidade": "",
+          "funcao": "CHEFE",
+          "vagas": 1,
+          "exigeCnh": false,
+          "cnh": null
+         }
+        ]
+       },
+       "usaUnidade": false
+      },
+      "Apoio Aquartelado": {
+       "nome": "Apoio Aquartelado",
+       "servicos": [
+        "Apoio Aquartelado"
+       ],
+       "titulo": "ESCALA APOIO AQUARTELADO",
+       "militares": "ESCALADOS",
+       "dias": "TODOS",
+       "turnos": [
+        "A"
+       ],
+       "slots": {
+        "A": [
+         {
+          "unidade": "ACO",
+          "funcao": "MOTORISTA ACO",
+          "vagas": 1,
+          "exigeCnh": true,
+          "cnh": null
+         },
+         {
+          "unidade": "",
+          "funcao": "DESPACHANTE DE CENTRO DE OPERAÇÕES",
+          "vagas": 2,
+          "exigeCnh": false,
+          "cnh": null
+         },
+         {
+          "unidade": "",
+          "funcao": "ADJUNTO DE DIA",
+          "vagas": 1,
+          "exigeCnh": false,
+          "cnh": null
+         }
+        ]
+       },
+       "usaUnidade": true
+      }
+     },
+     "ordem": [
+      "Pronto",
+      "PE Seguro",
+      "Apoio Aquartelado"
+     ],
+     "avisos": []
+    },
+    "Pronto",
+    "A"
+   ],
+   "saida": [
+    {
+     "funcao": "MOTORISTA",
+     "unidade": "AR",
+     "exigeCnh": true,
+     "escala": "Pronto"
+    },
+    {
+     "funcao": "CHEFE",
+     "unidade": "AR",
+     "exigeCnh": false,
+     "escala": "Pronto"
+    },
+    {
+     "funcao": "SOCORRISTA",
+     "unidade": "AR",
+     "exigeCnh": false,
+     "escala": "Pronto"
+    },
+    {
+     "funcao": "AUXILIAR DE 1ª LINHA",
+     "unidade": "AR",
+     "exigeCnh": false,
+     "escala": "Pronto"
+    }
+   ]
+  },
+  {
+   "teste": "teste_p16.js",
+   "entrada": [
+    {
+     "escalas": {
+      "Pronto": {
+       "nome": "Pronto",
+       "servicos": [
+        "Pronto"
+       ],
+       "titulo": "ESCALA PRONTO",
+       "militares": "ESCALADOS",
+       "dias": "TODOS",
+       "turnos": [
+        "A",
+        "B"
+       ],
+       "slots": {
+        "A": [
+         {
+          "unidade": "AR",
+          "funcao": "MOTORISTA",
+          "vagas": 1,
+          "exigeCnh": true,
+          "cnh": null
+         },
+         {
+          "unidade": "AR",
+          "funcao": "CHEFE",
+          "vagas": 1,
+          "exigeCnh": false,
+          "cnh": null
+         },
+         {
+          "unidade": "AR",
+          "funcao": "SOCORRISTA",
+          "vagas": 3,
+          "exigeCnh": false,
+          "cnh": null
+         }
+        ],
+        "B": [
+         {
+          "unidade": "ABTS",
+          "funcao": "MOTORISTA",
+          "vagas": 1,
+          "exigeCnh": true,
+          "cnh": null
+         },
+         {
+          "unidade": "ABTS",
+          "funcao": "COMBATENTE",
+          "vagas": 2,
+          "exigeCnh": false,
+          "cnh": null
+         }
+        ]
+       },
+       "usaUnidade": true
+      },
+      "PE Seguro": {
+       "nome": "PE Seguro",
+       "servicos": [
+        "PE Seguro"
+       ],
+       "titulo": "ESCALA PE SEGURO",
+       "militares": "TODOS",
+       "dias": "TODOS",
+       "turnos": [
+        "A",
+        "B",
+        "C"
+       ],
+       "slots": {
+        "A": [
+         {
+          "unidade": "",
+          "funcao": "CHEFE",
+          "vagas": 1,
+          "exigeCnh": false,
+          "cnh": null
+         }
+        ],
+        "B": [
+         {
+          "unidade": "",
+          "funcao": "CHEFE",
+          "vagas": 1,
+          "exigeCnh": false,
+          "cnh": null
+         }
+        ],
+        "C": [
+         {
+          "unidade": "",
+          "funcao": "CHEFE",
+          "vagas": 1,
+          "exigeCnh": false,
+          "cnh": null
+         }
+        ]
+       },
+       "usaUnidade": false
+      },
+      "Apoio Aquartelado": {
+       "nome": "Apoio Aquartelado",
+       "servicos": [
+        "Apoio Aquartelado"
+       ],
+       "titulo": "ESCALA APOIO AQUARTELADO",
+       "militares": "ESCALADOS",
+       "dias": "TODOS",
+       "turnos": [
+        "A"
+       ],
+       "slots": {
+        "A": [
+         {
+          "unidade": "ACO",
+          "funcao": "MOTORISTA ACO",
+          "vagas": 1,
+          "exigeCnh": true,
+          "cnh": null
+         },
+         {
+          "unidade": "",
+          "funcao": "DESPACHANTE DE CENTRO DE OPERAÇÕES",
+          "vagas": 2,
+          "exigeCnh": false,
+          "cnh": null
+         },
+         {
+          "unidade": "",
+          "funcao": "ADJUNTO DE DIA",
+          "vagas": 1,
+          "exigeCnh": false,
+          "cnh": null
+         }
+        ]
+       },
+       "usaUnidade": true
+      }
+     },
+     "ordem": [
+      "Pronto",
+      "PE Seguro",
+      "Apoio Aquartelado"
+     ],
+     "avisos": []
+    },
+    "Adm",
+    "A"
+   ],
+   "saida": []
+  },
+  {
+   "teste": "teste_p16.js",
+   "entrada": [
+    {
+     "escalas": {
+      "Pronto": {
+       "nome": "Pronto",
+       "servicos": [
+        "Pronto"
+       ],
+       "titulo": "ESCALA PRONTO",
+       "militares": "ESCALADOS",
+       "dias": "TODOS",
+       "turnos": [
+        "A",
+        "B"
+       ],
+       "slots": {
+        "A": [
+         {
+          "unidade": "AR",
+          "funcao": "MOTORISTA",
+          "vagas": 1,
+          "exigeCnh": true,
+          "cnh": null
+         },
+         {
+          "unidade": "AR",
+          "funcao": "CHEFE",
+          "vagas": 1,
+          "exigeCnh": false,
+          "cnh": null
+         },
+         {
+          "unidade": "AR",
+          "funcao": "SOCORRISTA",
+          "vagas": 3,
+          "exigeCnh": false,
+          "cnh": null
+         }
+        ],
+        "B": [
+         {
+          "unidade": "ABTS",
+          "funcao": "MOTORISTA",
+          "vagas": 1,
+          "exigeCnh": true,
+          "cnh": null
+         },
+         {
+          "unidade": "ABTS",
+          "funcao": "COMBATENTE",
+          "vagas": 2,
+          "exigeCnh": false,
+          "cnh": null
+         }
+        ]
+       },
+       "usaUnidade": true
+      },
+      "PE Seguro": {
+       "nome": "PE Seguro",
+       "servicos": [
+        "PE Seguro"
+       ],
+       "titulo": "ESCALA PE SEGURO",
+       "militares": "TODOS",
+       "dias": "TODOS",
+       "turnos": [
+        "A",
+        "B",
+        "C"
+       ],
+       "slots": {
+        "A": [
+         {
+          "unidade": "",
+          "funcao": "CHEFE",
+          "vagas": 1,
+          "exigeCnh": false,
+          "cnh": null
+         }
+        ],
+        "B": [
+         {
+          "unidade": "",
+          "funcao": "CHEFE",
+          "vagas": 1,
+          "exigeCnh": false,
+          "cnh": null
+         }
+        ],
+        "C": [
+         {
+          "unidade": "",
+          "funcao": "CHEFE",
+          "vagas": 1,
+          "exigeCnh": false,
+          "cnh": null
+         }
+        ]
+       },
+       "usaUnidade": false
+      },
+      "Apoio Aquartelado": {
+       "nome": "Apoio Aquartelado",
+       "servicos": [
+        "Apoio Aquartelado"
+       ],
+       "titulo": "ESCALA APOIO AQUARTELADO",
+       "militares": "ESCALADOS",
+       "dias": "TODOS",
+       "turnos": [
+        "A"
+       ],
+       "slots": {
+        "A": [
+         {
+          "unidade": "ACO",
+          "funcao": "MOTORISTA ACO",
+          "vagas": 1,
+          "exigeCnh": true,
+          "cnh": null
+         },
+         {
+          "unidade": "",
+          "funcao": "DESPACHANTE DE CENTRO DE OPERAÇÕES",
+          "vagas": 2,
+          "exigeCnh": false,
+          "cnh": null
+         },
+         {
+          "unidade": "",
+          "funcao": "ADJUNTO DE DIA",
+          "vagas": 1,
+          "exigeCnh": false,
+          "cnh": null
+         }
+        ]
+       },
+       "usaUnidade": true
+      }
+     },
+     "ordem": [
+      "Pronto",
+      "PE Seguro",
+      "Apoio Aquartelado"
+     ],
+     "avisos": []
+    },
+    "Apoio Aquartelado",
+    "A"
+   ],
+   "saida": [
+    {
+     "funcao": "MOTORISTA ACO",
+     "unidade": "ACO",
+     "exigeCnh": true,
+     "escala": "Apoio Aquartelado"
+    },
+    {
+     "funcao": "DESPACHANTE DE CENTRO DE OPERAÇÕES",
+     "unidade": "",
+     "exigeCnh": false,
+     "escala": "Apoio Aquartelado"
+    },
+    {
+     "funcao": "ADJUNTO DE DIA",
+     "unidade": "",
+     "exigeCnh": false,
+     "escala": "Apoio Aquartelado"
+    }
+   ]
+  },
+  {
+   "teste": "teste_p16.js",
+   "entrada": [
+    {
+     "escalas": {
+      "Pronto": {
+       "nome": "Pronto",
+       "servicos": [
+        "Pronto"
+       ],
+       "titulo": "ESCALA PRONTO",
+       "militares": "ESCALADOS",
+       "dias": "TODOS",
+       "turnos": [
+        "A",
+        "B"
+       ],
+       "slots": {
+        "A": [
+         {
+          "unidade": "AR",
+          "funcao": "MOTORISTA",
+          "vagas": 1,
+          "exigeCnh": true,
+          "cnh": null
+         },
+         {
+          "unidade": "AR",
+          "funcao": "CHEFE",
+          "vagas": 1,
+          "exigeCnh": false,
+          "cnh": null
+         },
+         {
+          "unidade": "AR",
+          "funcao": "SOCORRISTA",
+          "vagas": 3,
+          "exigeCnh": false,
+          "cnh": null
+         }
+        ],
+        "B": [
+         {
+          "unidade": "ABTS",
+          "funcao": "MOTORISTA",
+          "vagas": 1,
+          "exigeCnh": true,
+          "cnh": null
+         },
+         {
+          "unidade": "ABTS",
+          "funcao": "COMBATENTE",
+          "vagas": 2,
+          "exigeCnh": false,
+          "cnh": null
+         }
+        ]
+       },
+       "usaUnidade": true
+      },
+      "PE Seguro": {
+       "nome": "PE Seguro",
+       "servicos": [
+        "PE Seguro"
+       ],
+       "titulo": "ESCALA PE SEGURO",
+       "militares": "TODOS",
+       "dias": "TODOS",
+       "turnos": [
+        "A",
+        "B",
+        "C"
+       ],
+       "slots": {
+        "A": [
+         {
+          "unidade": "",
+          "funcao": "CHEFE",
+          "vagas": 1,
+          "exigeCnh": false,
+          "cnh": null
+         }
+        ],
+        "B": [
+         {
+          "unidade": "",
+          "funcao": "CHEFE",
+          "vagas": 1,
+          "exigeCnh": false,
+          "cnh": null
+         }
+        ],
+        "C": [
+         {
+          "unidade": "",
+          "funcao": "CHEFE",
+          "vagas": 1,
+          "exigeCnh": false,
+          "cnh": null
+         }
+        ]
+       },
+       "usaUnidade": false
+      },
+      "Apoio Aquartelado": {
+       "nome": "Apoio Aquartelado",
+       "servicos": [
+        "Apoio Aquartelado"
+       ],
+       "titulo": "ESCALA APOIO AQUARTELADO",
+       "militares": "ESCALADOS",
+       "dias": "TODOS",
+       "turnos": [
+        "A"
+       ],
+       "slots": {
+        "A": [
+         {
+          "unidade": "ACO",
+          "funcao": "MOTORISTA ACO",
+          "vagas": 1,
+          "exigeCnh": true,
+          "cnh": null
+         },
+         {
+          "unidade": "",
+          "funcao": "DESPACHANTE DE CENTRO DE OPERAÇÕES",
+          "vagas": 2,
+          "exigeCnh": false,
+          "cnh": null
+         },
+         {
+          "unidade": "",
+          "funcao": "ADJUNTO DE DIA",
+          "vagas": 1,
+          "exigeCnh": false,
+          "cnh": null
+         }
+        ]
+       },
+       "usaUnidade": true
+      }
+     },
+     "ordem": [
+      "Pronto",
+      "PE Seguro",
+      "Apoio Aquartelado"
+     ],
+     "avisos": []
+    },
+    "PE Seguro",
+    "A"
+   ],
+   "saida": [
+    {
+     "funcao": "CHEFE",
+     "unidade": "",
+     "exigeCnh": false,
+     "escala": "PE Seguro"
+    }
+   ]
+  },
+  {
+   "teste": "teste_p16.js",
+   "entrada": [
+    {
+     "escalas": {
+      "Pronto": {
+       "nome": "Pronto",
+       "servicos": [
+        "Pronto"
+       ],
+       "titulo": "ESCALA PRONTO",
+       "militares": "ESCALADOS",
+       "dias": "TODOS",
+       "turnos": [
+        "A",
+        "B"
+       ],
+       "slots": {
+        "A": [
+         {
+          "unidade": "AR",
+          "funcao": "MOTORISTA",
+          "vagas": 1,
+          "exigeCnh": true,
+          "cnh": null
+         },
+         {
+          "unidade": "AR",
+          "funcao": "CHEFE",
+          "vagas": 1,
+          "exigeCnh": false,
+          "cnh": null
+         },
+         {
+          "unidade": "AR",
+          "funcao": "SOCORRISTA",
+          "vagas": 3,
+          "exigeCnh": false,
+          "cnh": null
+         }
+        ],
+        "B": [
+         {
+          "unidade": "ABTS",
+          "funcao": "MOTORISTA",
+          "vagas": 1,
+          "exigeCnh": true,
+          "cnh": null
+         },
+         {
+          "unidade": "ABTS",
+          "funcao": "COMBATENTE",
+          "vagas": 2,
+          "exigeCnh": false,
+          "cnh": null
+         }
+        ]
+       },
+       "usaUnidade": true
+      },
+      "PE Seguro": {
+       "nome": "PE Seguro",
+       "servicos": [
+        "PE Seguro"
+       ],
+       "titulo": "ESCALA PE SEGURO",
+       "militares": "TODOS",
+       "dias": "TODOS",
+       "turnos": [
+        "A",
+        "B",
+        "C"
+       ],
+       "slots": {
+        "A": [
+         {
+          "unidade": "",
+          "funcao": "CHEFE",
+          "vagas": 1,
+          "exigeCnh": false,
+          "cnh": null
+         }
+        ],
+        "B": [
+         {
+          "unidade": "",
+          "funcao": "CHEFE",
+          "vagas": 1,
+          "exigeCnh": false,
+          "cnh": null
+         }
+        ],
+        "C": [
+         {
+          "unidade": "",
+          "funcao": "CHEFE",
+          "vagas": 1,
+          "exigeCnh": false,
+          "cnh": null
+         }
+        ]
+       },
+       "usaUnidade": false
+      },
+      "Apoio Aquartelado": {
+       "nome": "Apoio Aquartelado",
+       "servicos": [
+        "Apoio Aquartelado"
+       ],
+       "titulo": "ESCALA APOIO AQUARTELADO",
+       "militares": "ESCALADOS",
+       "dias": "TODOS",
+       "turnos": [
+        "A"
+       ],
+       "slots": {
+        "A": [
+         {
+          "unidade": "ACO",
+          "funcao": "MOTORISTA ACO",
+          "vagas": 1,
+          "exigeCnh": true,
+          "cnh": null
+         },
+         {
+          "unidade": "",
+          "funcao": "DESPACHANTE DE CENTRO DE OPERAÇÕES",
+          "vagas": 2,
+          "exigeCnh": false,
+          "cnh": null
+         },
+         {
+          "unidade": "",
+          "funcao": "ADJUNTO DE DIA",
+          "vagas": 1,
+          "exigeCnh": false,
+          "cnh": null
+         }
+        ]
+       },
+       "usaUnidade": true
+      }
+     },
+     "ordem": [
+      "Pronto",
+      "PE Seguro",
+      "Apoio Aquartelado"
+     ],
+     "avisos": []
+    },
+    "Pronto",
+    "A"
+   ],
+   "saida": [
+    {
+     "funcao": "MOTORISTA",
+     "unidade": "AR",
+     "exigeCnh": true,
+     "escala": "Pronto"
+    },
+    {
+     "funcao": "CHEFE",
+     "unidade": "AR",
+     "exigeCnh": false,
+     "escala": "Pronto"
+    },
+    {
+     "funcao": "SOCORRISTA",
+     "unidade": "AR",
+     "exigeCnh": false,
+     "escala": "Pronto"
+    }
+   ]
+  },
+  {
+   "teste": "teste_p16.js",
+   "entrada": [
+    {
+     "escalas": {
+      "Pronto": {
+       "nome": "Pronto",
+       "servicos": [
+        "Pronto"
+       ],
+       "titulo": "ESCALA PRONTO",
+       "militares": "ESCALADOS",
+       "dias": "TODOS",
+       "turnos": [
+        "A",
+        "B"
+       ],
+       "slots": {
+        "A": [
+         {
+          "unidade": "AR",
+          "funcao": "MOTORISTA",
+          "vagas": 1,
+          "exigeCnh": true,
+          "cnh": null
+         },
+         {
+          "unidade": "AR",
+          "funcao": "CHEFE",
+          "vagas": 1,
+          "exigeCnh": false,
+          "cnh": null
+         },
+         {
+          "unidade": "AR",
+          "funcao": "SOCORRISTA",
+          "vagas": 3,
+          "exigeCnh": false,
+          "cnh": null
+         }
+        ],
+        "B": [
+         {
+          "unidade": "ABTS",
+          "funcao": "MOTORISTA",
+          "vagas": 1,
+          "exigeCnh": true,
+          "cnh": null
+         },
+         {
+          "unidade": "ABTS",
+          "funcao": "COMBATENTE",
+          "vagas": 2,
+          "exigeCnh": false,
+          "cnh": null
+         }
+        ]
+       },
+       "usaUnidade": true
+      },
+      "PE Seguro": {
+       "nome": "PE Seguro",
+       "servicos": [
+        "PE Seguro"
+       ],
+       "titulo": "ESCALA PE SEGURO",
+       "militares": "TODOS",
+       "dias": "TODOS",
+       "turnos": [
+        "A",
+        "B",
+        "C"
+       ],
+       "slots": {
+        "A": [
+         {
+          "unidade": "",
+          "funcao": "CHEFE",
+          "vagas": 1,
+          "exigeCnh": false,
+          "cnh": null
+         }
+        ],
+        "B": [
+         {
+          "unidade": "",
+          "funcao": "CHEFE",
+          "vagas": 1,
+          "exigeCnh": false,
+          "cnh": null
+         }
+        ],
+        "C": [
+         {
+          "unidade": "",
+          "funcao": "CHEFE",
+          "vagas": 1,
+          "exigeCnh": false,
+          "cnh": null
+         }
+        ]
+       },
+       "usaUnidade": false
+      },
+      "Apoio Aquartelado": {
+       "nome": "Apoio Aquartelado",
+       "servicos": [
+        "Apoio Aquartelado"
+       ],
+       "titulo": "ESCALA APOIO AQUARTELADO",
+       "militares": "ESCALADOS",
+       "dias": "TODOS",
+       "turnos": [
+        "A"
+       ],
+       "slots": {
+        "A": [
+         {
+          "unidade": "ACO",
+          "funcao": "MOTORISTA ACO",
+          "vagas": 1,
+          "exigeCnh": true,
+          "cnh": null
+         },
+         {
+          "unidade": "",
+          "funcao": "DESPACHANTE DE CENTRO DE OPERAÇÕES",
+          "vagas": 2,
+          "exigeCnh": false,
+          "cnh": null
+         },
+         {
+          "unidade": "",
+          "funcao": "ADJUNTO DE DIA",
+          "vagas": 1,
+          "exigeCnh": false,
+          "cnh": null
+         }
+        ]
+       },
+       "usaUnidade": true
+      }
+     },
+     "ordem": [
+      "Pronto",
+      "PE Seguro",
+      "Apoio Aquartelado"
+     ],
+     "avisos": []
+    },
+    "Pronto",
+    "B"
+   ],
+   "saida": [
+    {
+     "funcao": "MOTORISTA",
+     "unidade": "ABTS",
+     "exigeCnh": true,
+     "escala": "Pronto"
+    },
+    {
+     "funcao": "COMBATENTE",
+     "unidade": "ABTS",
+     "exigeCnh": false,
+     "escala": "Pronto"
+    }
+   ]
+  },
+  {
+   "teste": "teste_p16.js",
+   "entrada": [
+    {
+     "escalas": {
+      "Pronto": {
+       "nome": "Pronto",
+       "servicos": [
+        "Pronto"
+       ],
+       "titulo": "ESCALA PRONTO",
+       "militares": "ESCALADOS",
+       "dias": "TODOS",
+       "turnos": [
+        "A",
+        "B"
+       ],
+       "slots": {
+        "A": [
+         {
+          "unidade": "AR",
+          "funcao": "MOTORISTA",
+          "vagas": 1,
+          "exigeCnh": true,
+          "cnh": null
+         },
+         {
+          "unidade": "AR",
+          "funcao": "CHEFE",
+          "vagas": 1,
+          "exigeCnh": false,
+          "cnh": null
+         },
+         {
+          "unidade": "AR",
+          "funcao": "SOCORRISTA",
+          "vagas": 3,
+          "exigeCnh": false,
+          "cnh": null
+         }
+        ],
+        "B": [
+         {
+          "unidade": "ABTS",
+          "funcao": "MOTORISTA",
+          "vagas": 1,
+          "exigeCnh": true,
+          "cnh": null
+         },
+         {
+          "unidade": "ABTS",
+          "funcao": "COMBATENTE",
+          "vagas": 2,
+          "exigeCnh": false,
+          "cnh": null
+         }
+        ]
+       },
+       "usaUnidade": true
+      },
+      "PE Seguro": {
+       "nome": "PE Seguro",
+       "servicos": [
+        "PE Seguro"
+       ],
+       "titulo": "ESCALA PE SEGURO",
+       "militares": "TODOS",
+       "dias": "TODOS",
+       "turnos": [
+        "A",
+        "B",
+        "C"
+       ],
+       "slots": {
+        "A": [
+         {
+          "unidade": "",
+          "funcao": "CHEFE",
+          "vagas": 1,
+          "exigeCnh": false,
+          "cnh": null
+         }
+        ],
+        "B": [
+         {
+          "unidade": "",
+          "funcao": "CHEFE",
+          "vagas": 1,
+          "exigeCnh": false,
+          "cnh": null
+         }
+        ],
+        "C": [
+         {
+          "unidade": "",
+          "funcao": "CHEFE",
+          "vagas": 1,
+          "exigeCnh": false,
+          "cnh": null
+         }
+        ]
+       },
+       "usaUnidade": false
+      },
+      "Apoio Aquartelado": {
+       "nome": "Apoio Aquartelado",
+       "servicos": [
+        "Apoio Aquartelado"
+       ],
+       "titulo": "ESCALA APOIO AQUARTELADO",
+       "militares": "ESCALADOS",
+       "dias": "TODOS",
+       "turnos": [
+        "A"
+       ],
+       "slots": {
+        "A": [
+         {
+          "unidade": "ACO",
+          "funcao": "MOTORISTA ACO",
+          "vagas": 1,
+          "exigeCnh": true,
+          "cnh": null
+         },
+         {
+          "unidade": "",
+          "funcao": "DESPACHANTE DE CENTRO DE OPERAÇÕES",
+          "vagas": 2,
+          "exigeCnh": false,
+          "cnh": null
+         },
+         {
+          "unidade": "",
+          "funcao": "ADJUNTO DE DIA",
+          "vagas": 1,
+          "exigeCnh": false,
+          "cnh": null
+         }
+        ]
+       },
+       "usaUnidade": true
+      }
+     },
+     "ordem": [
+      "Pronto",
+      "PE Seguro",
+      "Apoio Aquartelado"
+     ],
+     "avisos": []
+    },
+    "Pronto",
+    "C"
+   ],
+   "saida": []
+  },
+  {
+   "teste": "teste_p16.js",
+   "entrada": [
+    {
+     "escalas": {
+      "Pronto": {
+       "nome": "Pronto",
+       "servicos": [
+        "Pronto"
+       ],
+       "titulo": "ESCALA PRONTO",
+       "militares": "ESCALADOS",
+       "dias": "TODOS",
+       "turnos": [
+        "A",
+        "B"
+       ],
+       "slots": {
+        "A": [
+         {
+          "unidade": "AR",
+          "funcao": "MOTORISTA",
+          "vagas": 1,
+          "exigeCnh": true,
+          "cnh": null
+         },
+         {
+          "unidade": "AR",
+          "funcao": "CHEFE",
+          "vagas": 1,
+          "exigeCnh": false,
+          "cnh": null
+         },
+         {
+          "unidade": "AR",
+          "funcao": "SOCORRISTA",
+          "vagas": 3,
+          "exigeCnh": false,
+          "cnh": null
+         }
+        ],
+        "B": [
+         {
+          "unidade": "ABTS",
+          "funcao": "MOTORISTA",
+          "vagas": 1,
+          "exigeCnh": true,
+          "cnh": null
+         },
+         {
+          "unidade": "ABTS",
+          "funcao": "COMBATENTE",
+          "vagas": 2,
+          "exigeCnh": false,
+          "cnh": null
+         }
+        ]
+       },
+       "usaUnidade": true
+      },
+      "PE Seguro": {
+       "nome": "PE Seguro",
+       "servicos": [
+        "PE Seguro"
+       ],
+       "titulo": "ESCALA PE SEGURO",
+       "militares": "TODOS",
+       "dias": "TODOS",
+       "turnos": [
+        "A",
+        "B",
+        "C"
+       ],
+       "slots": {
+        "A": [
+         {
+          "unidade": "",
+          "funcao": "CHEFE",
+          "vagas": 1,
+          "exigeCnh": false,
+          "cnh": null
+         }
+        ],
+        "B": [
+         {
+          "unidade": "",
+          "funcao": "CHEFE",
+          "vagas": 1,
+          "exigeCnh": false,
+          "cnh": null
+         }
+        ],
+        "C": [
+         {
+          "unidade": "",
+          "funcao": "CHEFE",
+          "vagas": 1,
+          "exigeCnh": false,
+          "cnh": null
+         }
+        ]
+       },
+       "usaUnidade": false
+      },
+      "Apoio Aquartelado": {
+       "nome": "Apoio Aquartelado",
+       "servicos": [
+        "Apoio Aquartelado"
+       ],
+       "titulo": "ESCALA APOIO AQUARTELADO",
+       "militares": "ESCALADOS",
+       "dias": "TODOS",
+       "turnos": [
+        "A"
+       ],
+       "slots": {
+        "A": [
+         {
+          "unidade": "ACO",
+          "funcao": "MOTORISTA ACO",
+          "vagas": 1,
+          "exigeCnh": true,
+          "cnh": null
+         },
+         {
+          "unidade": "",
+          "funcao": "DESPACHANTE DE CENTRO DE OPERAÇÕES",
+          "vagas": 2,
+          "exigeCnh": false,
+          "cnh": null
+         },
+         {
+          "unidade": "",
+          "funcao": "ADJUNTO DE DIA",
+          "vagas": 1,
+          "exigeCnh": false,
+          "cnh": null
+         }
+        ]
+       },
+       "usaUnidade": true
+      }
+     },
+     "ordem": [
+      "Pronto",
+      "PE Seguro",
+      "Apoio Aquartelado"
+     ],
+     "avisos": []
+    },
+    "Pronto"
+   ],
+   "saida": [
+    {
+     "funcao": "MOTORISTA",
+     "unidade": "AR",
+     "exigeCnh": true,
+     "escala": "Pronto"
+    },
+    {
+     "funcao": "CHEFE",
+     "unidade": "AR",
+     "exigeCnh": false,
+     "escala": "Pronto"
+    },
+    {
+     "funcao": "SOCORRISTA",
+     "unidade": "AR",
+     "exigeCnh": false,
+     "escala": "Pronto"
+    },
+    {
+     "funcao": "MOTORISTA",
+     "unidade": "ABTS",
+     "exigeCnh": true,
+     "escala": "Pronto"
+    },
+    {
+     "funcao": "COMBATENTE",
+     "unidade": "ABTS",
+     "exigeCnh": false,
+     "escala": "Pronto"
+    }
+   ]
+  },
+  {
+   "teste": "teste_p16.js",
+   "entrada": [
+    {
+     "escalas": {
+      "Pronto": {
+       "nome": "Pronto",
+       "servicos": [
+        "Pronto"
+       ],
+       "titulo": "ESCALA PRONTO",
+       "militares": "ESCALADOS",
+       "dias": "TODOS",
+       "turnos": [
+        "A",
+        "B"
+       ],
+       "slots": {
+        "A": [
+         {
+          "unidade": "AR",
+          "funcao": "MOTORISTA",
+          "vagas": 1,
+          "exigeCnh": true,
+          "cnh": null
+         },
+         {
+          "unidade": "AR",
+          "funcao": "CHEFE",
+          "vagas": 1,
+          "exigeCnh": false,
+          "cnh": null
+         },
+         {
+          "unidade": "AR",
+          "funcao": "SOCORRISTA",
+          "vagas": 3,
+          "exigeCnh": false,
+          "cnh": null
+         }
+        ],
+        "B": [
+         {
+          "unidade": "ABTS",
+          "funcao": "MOTORISTA",
+          "vagas": 1,
+          "exigeCnh": true,
+          "cnh": null
+         },
+         {
+          "unidade": "ABTS",
+          "funcao": "COMBATENTE",
+          "vagas": 2,
+          "exigeCnh": false,
+          "cnh": null
+         }
+        ]
+       },
+       "usaUnidade": true
+      },
+      "PE Seguro": {
+       "nome": "PE Seguro",
+       "servicos": [
+        "PE Seguro"
+       ],
+       "titulo": "ESCALA PE SEGURO",
+       "militares": "TODOS",
+       "dias": "TODOS",
+       "turnos": [
+        "A",
+        "B",
+        "C"
+       ],
+       "slots": {
+        "A": [
+         {
+          "unidade": "",
+          "funcao": "CHEFE",
+          "vagas": 1,
+          "exigeCnh": false,
+          "cnh": null
+         }
+        ],
+        "B": [
+         {
+          "unidade": "",
+          "funcao": "CHEFE",
+          "vagas": 1,
+          "exigeCnh": false,
+          "cnh": null
+         }
+        ],
+        "C": [
+         {
+          "unidade": "",
+          "funcao": "CHEFE",
+          "vagas": 1,
+          "exigeCnh": false,
+          "cnh": null
+         }
+        ]
+       },
+       "usaUnidade": false
+      },
+      "Apoio Aquartelado": {
+       "nome": "Apoio Aquartelado",
+       "servicos": [
+        "Apoio Aquartelado"
+       ],
+       "titulo": "ESCALA APOIO AQUARTELADO",
+       "militares": "ESCALADOS",
+       "dias": "TODOS",
+       "turnos": [
+        "A"
+       ],
+       "slots": {
+        "A": [
+         {
+          "unidade": "ACO",
+          "funcao": "MOTORISTA ACO",
+          "vagas": 1,
+          "exigeCnh": true,
+          "cnh": null
+         },
+         {
+          "unidade": "",
+          "funcao": "DESPACHANTE DE CENTRO DE OPERAÇÕES",
+          "vagas": 2,
+          "exigeCnh": false,
+          "cnh": null
+         },
+         {
+          "unidade": "",
+          "funcao": "ADJUNTO DE DIA",
+          "vagas": 1,
+          "exigeCnh": false,
+          "cnh": null
+         }
+        ]
+       },
+       "usaUnidade": true
+      }
+     },
+     "ordem": [
+      "Pronto",
+      "PE Seguro",
+      "Apoio Aquartelado"
+     ],
+     "avisos": []
+    },
+    "pe seguro",
+    "A"
+   ],
+   "saida": [
+    {
+     "funcao": "CHEFE",
+     "unidade": "",
+     "exigeCnh": false,
+     "escala": "PE Seguro"
+    }
+   ]
+  },
+  {
+   "teste": "teste_p18.js",
+   "entrada": [
+    {
+     "escalas": {
+      "Bioma": {
+       "nome": "Bioma",
+       "servicos": [
+        "Bioma"
+       ],
+       "titulo": "ESCALA DE SERVIÇO",
+       "militares": "TODOS",
+       "dias": "TODOS",
+       "turnos": [
+        "A",
+        "B",
+        "C"
+       ],
+       "slots": {
+        "A": [
+         {
+          "unidade": "Guardiões do Bioma",
+          "funcao": "MOTORISTA",
+          "vagas": 1,
+          "exigeCnh": true,
+          "cnh": [
+           "B"
+          ]
+         },
+         {
+          "unidade": "Guardiões do Bioma",
+          "funcao": "COMBATENTE",
+          "vagas": 2,
+          "exigeCnh": false,
+          "cnh": []
+         }
+        ],
+        "B": [
+         {
+          "unidade": "Guardiões do Bioma",
+          "funcao": "MOTORISTA",
+          "vagas": 1,
+          "exigeCnh": true,
+          "cnh": [
+           "B"
+          ]
+         },
+         {
+          "unidade": "Guardiões do Bioma",
+          "funcao": "COMBATENTE",
+          "vagas": 2,
+          "exigeCnh": false,
+          "cnh": []
+         }
+        ],
+        "C": [
+         {
+          "unidade": "Guardiões do Bioma",
+          "funcao": "MOTORISTA",
+          "vagas": 1,
+          "exigeCnh": true,
+          "cnh": [
+           "B"
+          ]
+         },
+         {
+          "unidade": "Guardiões do Bioma",
+          "funcao": "COMBATENTE",
+          "vagas": 2,
+          "exigeCnh": false,
+          "cnh": []
+         }
+        ]
+       },
+       "usaUnidade": true
+      },
+      "Ordinário": {
+       "nome": "Ordinário",
+       "servicos": [
+        "Pronto",
+        "JES",
+        "Saldo"
+       ],
+       "titulo": "ESCALA DE SERVIÇO",
+       "militares": "TODOS",
+       "dias": "TODOS",
+       "turnos": [
+        "A",
+        "B"
+       ],
+       "slots": {
+        "A": [
+         {
+          "unidade": "Apoio Aquartelado",
+          "funcao": "ADJUNTO",
+          "vagas": 1,
+          "exigeCnh": false,
+          "cnh": []
+         },
+         {
+          "unidade": "Apoio Aquartelado",
+          "funcao": "MOTORISTA DE ACO",
+          "vagas": 1,
+          "exigeCnh": true,
+          "cnh": [
+           "B"
+          ]
+         },
+         {
+          "unidade": "Apoio Aquartelado",
+          "funcao": "DESPACHANTE 1",
+          "vagas": 1,
+          "exigeCnh": false,
+          "cnh": []
+         },
+         {
+          "unidade": "Apoio Aquartelado",
+          "funcao": "DESPACHANTE 2",
+          "vagas": 1,
+          "exigeCnh": false,
+          "cnh": []
+         },
+         {
+          "unidade": "UTI - PRONTO",
+          "funcao": "CHEFE",
+          "vagas": 1,
+          "exigeCnh": false,
+          "cnh": []
+         },
+         {
+          "unidade": "UTI - PRONTO",
+          "funcao": "CHEFE DE 2ª LINHA",
+          "vagas": 1,
+          "exigeCnh": false,
+          "cnh": []
+         },
+         {
+          "unidade": "UTI - PRONTO",
+          "funcao": "COMBATENTE",
+          "vagas": 1,
+          "exigeCnh": false,
+          "cnh": []
+         },
+         {
+          "unidade": "UTI - PRONTO",
+          "funcao": "AUXILIAR DE LINHA",
+          "vagas": 1,
+          "exigeCnh": false,
+          "cnh": []
+         },
+         {
+          "unidade": "UTI - PRONTO",
+          "funcao": "MOTORISTA",
+          "vagas": 1,
+          "exigeCnh": true,
+          "cnh": [
+           "D"
+          ]
+         },
+         {
+          "unidade": "UTAPH - PRONTO",
+          "funcao": "MOTORISTA",
+          "vagas": 1,
+          "exigeCnh": true,
+          "cnh": [
+           "D"
+          ]
+         },
+         {
+          "unidade": "UTAPH - PRONTO",
+          "funcao": "CHEFE",
+          "vagas": 1,
+          "exigeCnh": false,
+          "cnh": []
+         },
+         {
+          "unidade": "UTAPH - PRONTO",
+          "funcao": "SOCORRISTA",
+          "vagas": 3,
+          "exigeCnh": false,
+          "cnh": []
+         },
+         {
+          "unidade": "UTS - PRONTO",
+          "funcao": "MOTORISTA",
+          "vagas": 1,
+          "exigeCnh": true,
+          "cnh": [
+           "B"
+          ]
+         }
+        ],
+        "B": [
+         {
+          "unidade": "Apoio Aquartelado",
+          "funcao": "ADJUNTO",
+          "vagas": 1,
+          "exigeCnh": false,
+          "cnh": []
+         },
+         {
+          "unidade": "Apoio Aquartelado",
+          "funcao": "MOTORISTA DE ACO",
+          "vagas": 1,
+          "exigeCnh": true,
+          "cnh": [
+           "B"
+          ]
+         },
+         {
+          "unidade": "Apoio Aquartelado",
+          "funcao": "DESPACHANTE 1",
+          "vagas": 1,
+          "exigeCnh": false,
+          "cnh": []
+         },
+         {
+          "unidade": "Apoio Aquartelado",
+          "funcao": "DESPACHANTE 2",
+          "vagas": 1,
+          "exigeCnh": false,
+          "cnh": []
+         },
+         {
+          "unidade": "UTI - PRONTO",
+          "funcao": "CHEFE",
+          "vagas": 1,
+          "exigeCnh": false,
+          "cnh": []
+         },
+         {
+          "unidade": "UTI - PRONTO",
+          "funcao": "CHEFE DE 2ª LINHA",
+          "vagas": 1,
+          "exigeCnh": false,
+          "cnh": []
+         },
+         {
+          "unidade": "UTI - PRONTO",
+          "funcao": "COMBATENTE",
+          "vagas": 1,
+          "exigeCnh": false,
+          "cnh": []
+         },
+         {
+          "unidade": "UTI - PRONTO",
+          "funcao": "AUXILIAR DE LINHA",
+          "vagas": 1,
+          "exigeCnh": false,
+          "cnh": []
+         },
+         {
+          "unidade": "UTI - PRONTO",
+          "funcao": "MOTORISTA",
+          "vagas": 1,
+          "exigeCnh": true,
+          "cnh": [
+           "D"
+          ]
+         },
+         {
+          "unidade": "UTAPH - PRONTO",
+          "funcao": "MOTORISTA",
+          "vagas": 1,
+          "exigeCnh": true,
+          "cnh": [
+           "D"
+          ]
+         },
+         {
+          "unidade": "UTAPH - PRONTO",
+          "funcao": "CHEFE",
+          "vagas": 1,
+          "exigeCnh": false,
+          "cnh": []
+         },
+         {
+          "unidade": "UTAPH - PRONTO",
+          "funcao": "SOCORRISTA",
+          "vagas": 3,
+          "exigeCnh": false,
+          "cnh": []
+         },
+         {
+          "unidade": "UTS - PRONTO",
+          "funcao": "MOTORISTA",
+          "vagas": 1,
+          "exigeCnh": true,
+          "cnh": [
+           "B"
+          ]
+         }
+        ]
+       },
+       "usaUnidade": true
+      }
+     },
+     "ordem": [
+      "Bioma",
+      "Ordinário"
+     ],
+     "avisos": []
+    },
+    "JES",
+    "A"
+   ],
+   "saida": [
+    {
+     "funcao": "ADJUNTO",
+     "unidade": "Apoio Aquartelado",
+     "exigeCnh": false,
+     "escala": "Ordinário"
+    },
+    {
+     "funcao": "MOTORISTA DE ACO",
+     "unidade": "Apoio Aquartelado",
+     "exigeCnh": true,
+     "escala": "Ordinário"
+    },
+    {
+     "funcao": "DESPACHANTE 1",
+     "unidade": "Apoio Aquartelado",
+     "exigeCnh": false,
+     "escala": "Ordinário"
+    },
+    {
+     "funcao": "DESPACHANTE 2",
+     "unidade": "Apoio Aquartelado",
+     "exigeCnh": false,
+     "escala": "Ordinário"
+    },
+    {
+     "funcao": "CHEFE",
+     "unidade": "UTI - PRONTO",
+     "exigeCnh": false,
+     "escala": "Ordinário"
+    },
+    {
+     "funcao": "CHEFE DE 2ª LINHA",
+     "unidade": "UTI - PRONTO",
+     "exigeCnh": false,
+     "escala": "Ordinário"
+    },
+    {
+     "funcao": "COMBATENTE",
+     "unidade": "UTI - PRONTO",
+     "exigeCnh": false,
+     "escala": "Ordinário"
+    },
+    {
+     "funcao": "AUXILIAR DE LINHA",
+     "unidade": "UTI - PRONTO",
+     "exigeCnh": false,
+     "escala": "Ordinário"
+    },
+    {
+     "funcao": "MOTORISTA",
+     "unidade": "UTI - PRONTO",
+     "exigeCnh": true,
+     "escala": "Ordinário"
+    },
+    {
+     "funcao": "MOTORISTA",
+     "unidade": "UTAPH - PRONTO",
+     "exigeCnh": true,
+     "escala": "Ordinário"
+    },
+    {
+     "funcao": "CHEFE",
+     "unidade": "UTAPH - PRONTO",
+     "exigeCnh": false,
+     "escala": "Ordinário"
+    },
+    {
+     "funcao": "SOCORRISTA",
+     "unidade": "UTAPH - PRONTO",
+     "exigeCnh": false,
+     "escala": "Ordinário"
+    },
+    {
+     "funcao": "MOTORISTA",
+     "unidade": "UTS - PRONTO",
+     "exigeCnh": true,
+     "escala": "Ordinário"
+    }
+   ]
+  },
+  {
+   "teste": "teste_p18.js",
+   "entrada": [
+    {
+     "escalas": {
+      "Bioma": {
+       "nome": "Bioma",
+       "servicos": [
+        "Bioma"
+       ],
+       "titulo": "ESCALA DE SERVIÇO",
+       "militares": "TODOS",
+       "dias": "TODOS",
+       "turnos": [
+        "A",
+        "B",
+        "C"
+       ],
+       "slots": {
+        "A": [
+         {
+          "unidade": "Guardiões do Bioma",
+          "funcao": "MOTORISTA",
+          "vagas": 1,
+          "exigeCnh": true,
+          "cnh": [
+           "B"
+          ]
+         },
+         {
+          "unidade": "Guardiões do Bioma",
+          "funcao": "COMBATENTE",
+          "vagas": 2,
+          "exigeCnh": false,
+          "cnh": []
+         }
+        ],
+        "B": [
+         {
+          "unidade": "Guardiões do Bioma",
+          "funcao": "MOTORISTA",
+          "vagas": 1,
+          "exigeCnh": true,
+          "cnh": [
+           "B"
+          ]
+         },
+         {
+          "unidade": "Guardiões do Bioma",
+          "funcao": "COMBATENTE",
+          "vagas": 2,
+          "exigeCnh": false,
+          "cnh": []
+         }
+        ],
+        "C": [
+         {
+          "unidade": "Guardiões do Bioma",
+          "funcao": "MOTORISTA",
+          "vagas": 1,
+          "exigeCnh": true,
+          "cnh": [
+           "B"
+          ]
+         },
+         {
+          "unidade": "Guardiões do Bioma",
+          "funcao": "COMBATENTE",
+          "vagas": 2,
+          "exigeCnh": false,
+          "cnh": []
+         }
+        ]
+       },
+       "usaUnidade": true
+      },
+      "Ordinário": {
+       "nome": "Ordinário",
+       "servicos": [
+        "Pronto",
+        "JES",
+        "Saldo"
+       ],
+       "titulo": "ESCALA DE SERVIÇO",
+       "militares": "TODOS",
+       "dias": "TODOS",
+       "turnos": [
+        "A",
+        "B"
+       ],
+       "slots": {
+        "A": [
+         {
+          "unidade": "Apoio Aquartelado",
+          "funcao": "ADJUNTO",
+          "vagas": 1,
+          "exigeCnh": false,
+          "cnh": []
+         },
+         {
+          "unidade": "Apoio Aquartelado",
+          "funcao": "MOTORISTA DE ACO",
+          "vagas": 1,
+          "exigeCnh": true,
+          "cnh": [
+           "B"
+          ]
+         },
+         {
+          "unidade": "Apoio Aquartelado",
+          "funcao": "DESPACHANTE 1",
+          "vagas": 1,
+          "exigeCnh": false,
+          "cnh": []
+         },
+         {
+          "unidade": "Apoio Aquartelado",
+          "funcao": "DESPACHANTE 2",
+          "vagas": 1,
+          "exigeCnh": false,
+          "cnh": []
+         },
+         {
+          "unidade": "UTI - PRONTO",
+          "funcao": "CHEFE",
+          "vagas": 1,
+          "exigeCnh": false,
+          "cnh": []
+         },
+         {
+          "unidade": "UTI - PRONTO",
+          "funcao": "CHEFE DE 2ª LINHA",
+          "vagas": 1,
+          "exigeCnh": false,
+          "cnh": []
+         },
+         {
+          "unidade": "UTI - PRONTO",
+          "funcao": "COMBATENTE",
+          "vagas": 1,
+          "exigeCnh": false,
+          "cnh": []
+         },
+         {
+          "unidade": "UTI - PRONTO",
+          "funcao": "AUXILIAR DE LINHA",
+          "vagas": 1,
+          "exigeCnh": false,
+          "cnh": []
+         },
+         {
+          "unidade": "UTI - PRONTO",
+          "funcao": "MOTORISTA",
+          "vagas": 1,
+          "exigeCnh": true,
+          "cnh": [
+           "D"
+          ]
+         },
+         {
+          "unidade": "UTAPH - PRONTO",
+          "funcao": "MOTORISTA",
+          "vagas": 1,
+          "exigeCnh": true,
+          "cnh": [
+           "D"
+          ]
+         },
+         {
+          "unidade": "UTAPH - PRONTO",
+          "funcao": "CHEFE",
+          "vagas": 1,
+          "exigeCnh": false,
+          "cnh": []
+         },
+         {
+          "unidade": "UTAPH - PRONTO",
+          "funcao": "SOCORRISTA",
+          "vagas": 3,
+          "exigeCnh": false,
+          "cnh": []
+         },
+         {
+          "unidade": "UTS - PRONTO",
+          "funcao": "MOTORISTA",
+          "vagas": 1,
+          "exigeCnh": true,
+          "cnh": [
+           "B"
+          ]
+         }
+        ],
+        "B": [
+         {
+          "unidade": "Apoio Aquartelado",
+          "funcao": "ADJUNTO",
+          "vagas": 1,
+          "exigeCnh": false,
+          "cnh": []
+         },
+         {
+          "unidade": "Apoio Aquartelado",
+          "funcao": "MOTORISTA DE ACO",
+          "vagas": 1,
+          "exigeCnh": true,
+          "cnh": [
+           "B"
+          ]
+         },
+         {
+          "unidade": "Apoio Aquartelado",
+          "funcao": "DESPACHANTE 1",
+          "vagas": 1,
+          "exigeCnh": false,
+          "cnh": []
+         },
+         {
+          "unidade": "Apoio Aquartelado",
+          "funcao": "DESPACHANTE 2",
+          "vagas": 1,
+          "exigeCnh": false,
+          "cnh": []
+         },
+         {
+          "unidade": "UTI - PRONTO",
+          "funcao": "CHEFE",
+          "vagas": 1,
+          "exigeCnh": false,
+          "cnh": []
+         },
+         {
+          "unidade": "UTI - PRONTO",
+          "funcao": "CHEFE DE 2ª LINHA",
+          "vagas": 1,
+          "exigeCnh": false,
+          "cnh": []
+         },
+         {
+          "unidade": "UTI - PRONTO",
+          "funcao": "COMBATENTE",
+          "vagas": 1,
+          "exigeCnh": false,
+          "cnh": []
+         },
+         {
+          "unidade": "UTI - PRONTO",
+          "funcao": "AUXILIAR DE LINHA",
+          "vagas": 1,
+          "exigeCnh": false,
+          "cnh": []
+         },
+         {
+          "unidade": "UTI - PRONTO",
+          "funcao": "MOTORISTA",
+          "vagas": 1,
+          "exigeCnh": true,
+          "cnh": [
+           "D"
+          ]
+         },
+         {
+          "unidade": "UTAPH - PRONTO",
+          "funcao": "MOTORISTA",
+          "vagas": 1,
+          "exigeCnh": true,
+          "cnh": [
+           "D"
+          ]
+         },
+         {
+          "unidade": "UTAPH - PRONTO",
+          "funcao": "CHEFE",
+          "vagas": 1,
+          "exigeCnh": false,
+          "cnh": []
+         },
+         {
+          "unidade": "UTAPH - PRONTO",
+          "funcao": "SOCORRISTA",
+          "vagas": 3,
+          "exigeCnh": false,
+          "cnh": []
+         },
+         {
+          "unidade": "UTS - PRONTO",
+          "funcao": "MOTORISTA",
+          "vagas": 1,
+          "exigeCnh": true,
+          "cnh": [
+           "B"
+          ]
+         }
+        ]
+       },
+       "usaUnidade": true
+      }
+     },
+     "ordem": [
+      "Bioma",
+      "Ordinário"
+     ],
+     "avisos": []
+    },
+    "Pronto",
+    "A"
+   ],
+   "saida": [
+    {
+     "funcao": "ADJUNTO",
+     "unidade": "Apoio Aquartelado",
+     "exigeCnh": false,
+     "escala": "Ordinário"
+    },
+    {
+     "funcao": "MOTORISTA DE ACO",
+     "unidade": "Apoio Aquartelado",
+     "exigeCnh": true,
+     "escala": "Ordinário"
+    },
+    {
+     "funcao": "DESPACHANTE 1",
+     "unidade": "Apoio Aquartelado",
+     "exigeCnh": false,
+     "escala": "Ordinário"
+    },
+    {
+     "funcao": "DESPACHANTE 2",
+     "unidade": "Apoio Aquartelado",
+     "exigeCnh": false,
+     "escala": "Ordinário"
+    },
+    {
+     "funcao": "CHEFE",
+     "unidade": "UTI - PRONTO",
+     "exigeCnh": false,
+     "escala": "Ordinário"
+    },
+    {
+     "funcao": "CHEFE DE 2ª LINHA",
+     "unidade": "UTI - PRONTO",
+     "exigeCnh": false,
+     "escala": "Ordinário"
+    },
+    {
+     "funcao": "COMBATENTE",
+     "unidade": "UTI - PRONTO",
+     "exigeCnh": false,
+     "escala": "Ordinário"
+    },
+    {
+     "funcao": "AUXILIAR DE LINHA",
+     "unidade": "UTI - PRONTO",
+     "exigeCnh": false,
+     "escala": "Ordinário"
+    },
+    {
+     "funcao": "MOTORISTA",
+     "unidade": "UTI - PRONTO",
+     "exigeCnh": true,
+     "escala": "Ordinário"
+    },
+    {
+     "funcao": "MOTORISTA",
+     "unidade": "UTAPH - PRONTO",
+     "exigeCnh": true,
+     "escala": "Ordinário"
+    },
+    {
+     "funcao": "CHEFE",
+     "unidade": "UTAPH - PRONTO",
+     "exigeCnh": false,
+     "escala": "Ordinário"
+    },
+    {
+     "funcao": "SOCORRISTA",
+     "unidade": "UTAPH - PRONTO",
+     "exigeCnh": false,
+     "escala": "Ordinário"
+    },
+    {
+     "funcao": "MOTORISTA",
+     "unidade": "UTS - PRONTO",
+     "exigeCnh": true,
+     "escala": "Ordinário"
+    }
+   ]
+  },
+  {
+   "teste": "teste_p18.js",
+   "entrada": [
+    {
+     "escalas": {
+      "Bioma": {
+       "nome": "Bioma",
+       "servicos": [
+        "Bioma"
+       ],
+       "titulo": "ESCALA DE SERVIÇO",
+       "militares": "TODOS",
+       "dias": "TODOS",
+       "turnos": [
+        "A",
+        "B",
+        "C"
+       ],
+       "slots": {
+        "A": [
+         {
+          "unidade": "Guardiões do Bioma",
+          "funcao": "MOTORISTA",
+          "vagas": 1,
+          "exigeCnh": true,
+          "cnh": [
+           "B"
+          ]
+         },
+         {
+          "unidade": "Guardiões do Bioma",
+          "funcao": "COMBATENTE",
+          "vagas": 2,
+          "exigeCnh": false,
+          "cnh": []
+         }
+        ],
+        "B": [
+         {
+          "unidade": "Guardiões do Bioma",
+          "funcao": "MOTORISTA",
+          "vagas": 1,
+          "exigeCnh": true,
+          "cnh": [
+           "B"
+          ]
+         },
+         {
+          "unidade": "Guardiões do Bioma",
+          "funcao": "COMBATENTE",
+          "vagas": 2,
+          "exigeCnh": false,
+          "cnh": []
+         }
+        ],
+        "C": [
+         {
+          "unidade": "Guardiões do Bioma",
+          "funcao": "MOTORISTA",
+          "vagas": 1,
+          "exigeCnh": true,
+          "cnh": [
+           "B"
+          ]
+         },
+         {
+          "unidade": "Guardiões do Bioma",
+          "funcao": "COMBATENTE",
+          "vagas": 2,
+          "exigeCnh": false,
+          "cnh": []
+         }
+        ]
+       },
+       "usaUnidade": true
+      },
+      "Ordinário": {
+       "nome": "Ordinário",
+       "servicos": [
+        "Pronto",
+        "JES",
+        "Saldo"
+       ],
+       "titulo": "ESCALA DE SERVIÇO",
+       "militares": "TODOS",
+       "dias": "TODOS",
+       "turnos": [
+        "A",
+        "B"
+       ],
+       "slots": {
+        "A": [
+         {
+          "unidade": "Apoio Aquartelado",
+          "funcao": "ADJUNTO",
+          "vagas": 1,
+          "exigeCnh": false,
+          "cnh": []
+         },
+         {
+          "unidade": "Apoio Aquartelado",
+          "funcao": "MOTORISTA DE ACO",
+          "vagas": 1,
+          "exigeCnh": true,
+          "cnh": [
+           "B"
+          ]
+         },
+         {
+          "unidade": "Apoio Aquartelado",
+          "funcao": "DESPACHANTE 1",
+          "vagas": 1,
+          "exigeCnh": false,
+          "cnh": []
+         },
+         {
+          "unidade": "Apoio Aquartelado",
+          "funcao": "DESPACHANTE 2",
+          "vagas": 1,
+          "exigeCnh": false,
+          "cnh": []
+         },
+         {
+          "unidade": "UTI - PRONTO",
+          "funcao": "CHEFE",
+          "vagas": 1,
+          "exigeCnh": false,
+          "cnh": []
+         },
+         {
+          "unidade": "UTI - PRONTO",
+          "funcao": "CHEFE DE 2ª LINHA",
+          "vagas": 1,
+          "exigeCnh": false,
+          "cnh": []
+         },
+         {
+          "unidade": "UTI - PRONTO",
+          "funcao": "COMBATENTE",
+          "vagas": 1,
+          "exigeCnh": false,
+          "cnh": []
+         },
+         {
+          "unidade": "UTI - PRONTO",
+          "funcao": "AUXILIAR DE LINHA",
+          "vagas": 1,
+          "exigeCnh": false,
+          "cnh": []
+         },
+         {
+          "unidade": "UTI - PRONTO",
+          "funcao": "MOTORISTA",
+          "vagas": 1,
+          "exigeCnh": true,
+          "cnh": [
+           "D"
+          ]
+         },
+         {
+          "unidade": "UTAPH - PRONTO",
+          "funcao": "MOTORISTA",
+          "vagas": 1,
+          "exigeCnh": true,
+          "cnh": [
+           "D"
+          ]
+         },
+         {
+          "unidade": "UTAPH - PRONTO",
+          "funcao": "CHEFE",
+          "vagas": 1,
+          "exigeCnh": false,
+          "cnh": []
+         },
+         {
+          "unidade": "UTAPH - PRONTO",
+          "funcao": "SOCORRISTA",
+          "vagas": 3,
+          "exigeCnh": false,
+          "cnh": []
+         },
+         {
+          "unidade": "UTS - PRONTO",
+          "funcao": "MOTORISTA",
+          "vagas": 1,
+          "exigeCnh": true,
+          "cnh": [
+           "B"
+          ]
+         }
+        ],
+        "B": [
+         {
+          "unidade": "Apoio Aquartelado",
+          "funcao": "ADJUNTO",
+          "vagas": 1,
+          "exigeCnh": false,
+          "cnh": []
+         },
+         {
+          "unidade": "Apoio Aquartelado",
+          "funcao": "MOTORISTA DE ACO",
+          "vagas": 1,
+          "exigeCnh": true,
+          "cnh": [
+           "B"
+          ]
+         },
+         {
+          "unidade": "Apoio Aquartelado",
+          "funcao": "DESPACHANTE 1",
+          "vagas": 1,
+          "exigeCnh": false,
+          "cnh": []
+         },
+         {
+          "unidade": "Apoio Aquartelado",
+          "funcao": "DESPACHANTE 2",
+          "vagas": 1,
+          "exigeCnh": false,
+          "cnh": []
+         },
+         {
+          "unidade": "UTI - PRONTO",
+          "funcao": "CHEFE",
+          "vagas": 1,
+          "exigeCnh": false,
+          "cnh": []
+         },
+         {
+          "unidade": "UTI - PRONTO",
+          "funcao": "CHEFE DE 2ª LINHA",
+          "vagas": 1,
+          "exigeCnh": false,
+          "cnh": []
+         },
+         {
+          "unidade": "UTI - PRONTO",
+          "funcao": "COMBATENTE",
+          "vagas": 1,
+          "exigeCnh": false,
+          "cnh": []
+         },
+         {
+          "unidade": "UTI - PRONTO",
+          "funcao": "AUXILIAR DE LINHA",
+          "vagas": 1,
+          "exigeCnh": false,
+          "cnh": []
+         },
+         {
+          "unidade": "UTI - PRONTO",
+          "funcao": "MOTORISTA",
+          "vagas": 1,
+          "exigeCnh": true,
+          "cnh": [
+           "D"
+          ]
+         },
+         {
+          "unidade": "UTAPH - PRONTO",
+          "funcao": "MOTORISTA",
+          "vagas": 1,
+          "exigeCnh": true,
+          "cnh": [
+           "D"
+          ]
+         },
+         {
+          "unidade": "UTAPH - PRONTO",
+          "funcao": "CHEFE",
+          "vagas": 1,
+          "exigeCnh": false,
+          "cnh": []
+         },
+         {
+          "unidade": "UTAPH - PRONTO",
+          "funcao": "SOCORRISTA",
+          "vagas": 3,
+          "exigeCnh": false,
+          "cnh": []
+         },
+         {
+          "unidade": "UTS - PRONTO",
+          "funcao": "MOTORISTA",
+          "vagas": 1,
+          "exigeCnh": true,
+          "cnh": [
+           "B"
+          ]
+         }
+        ]
+       },
+       "usaUnidade": true
+      }
+     },
+     "ordem": [
+      "Bioma",
+      "Ordinário"
+     ],
+     "avisos": []
+    },
+    "Saldo",
+    "A"
+   ],
+   "saida": [
+    {
+     "funcao": "ADJUNTO",
+     "unidade": "Apoio Aquartelado",
+     "exigeCnh": false,
+     "escala": "Ordinário"
+    },
+    {
+     "funcao": "MOTORISTA DE ACO",
+     "unidade": "Apoio Aquartelado",
+     "exigeCnh": true,
+     "escala": "Ordinário"
+    },
+    {
+     "funcao": "DESPACHANTE 1",
+     "unidade": "Apoio Aquartelado",
+     "exigeCnh": false,
+     "escala": "Ordinário"
+    },
+    {
+     "funcao": "DESPACHANTE 2",
+     "unidade": "Apoio Aquartelado",
+     "exigeCnh": false,
+     "escala": "Ordinário"
+    },
+    {
+     "funcao": "CHEFE",
+     "unidade": "UTI - PRONTO",
+     "exigeCnh": false,
+     "escala": "Ordinário"
+    },
+    {
+     "funcao": "CHEFE DE 2ª LINHA",
+     "unidade": "UTI - PRONTO",
+     "exigeCnh": false,
+     "escala": "Ordinário"
+    },
+    {
+     "funcao": "COMBATENTE",
+     "unidade": "UTI - PRONTO",
+     "exigeCnh": false,
+     "escala": "Ordinário"
+    },
+    {
+     "funcao": "AUXILIAR DE LINHA",
+     "unidade": "UTI - PRONTO",
+     "exigeCnh": false,
+     "escala": "Ordinário"
+    },
+    {
+     "funcao": "MOTORISTA",
+     "unidade": "UTI - PRONTO",
+     "exigeCnh": true,
+     "escala": "Ordinário"
+    },
+    {
+     "funcao": "MOTORISTA",
+     "unidade": "UTAPH - PRONTO",
+     "exigeCnh": true,
+     "escala": "Ordinário"
+    },
+    {
+     "funcao": "CHEFE",
+     "unidade": "UTAPH - PRONTO",
+     "exigeCnh": false,
+     "escala": "Ordinário"
+    },
+    {
+     "funcao": "SOCORRISTA",
+     "unidade": "UTAPH - PRONTO",
+     "exigeCnh": false,
+     "escala": "Ordinário"
+    },
+    {
+     "funcao": "MOTORISTA",
+     "unidade": "UTS - PRONTO",
+     "exigeCnh": true,
+     "escala": "Ordinário"
+    }
+   ]
+  }
+ ]
+}

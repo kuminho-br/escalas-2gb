@@ -1,0 +1,2355 @@
+{
+ "funcao": "normalizar_",
+ "casos": [
+  {
+   "teste": "teste_cotas.js",
+   "entrada": [
+    "1º turno"
+   ],
+   "saida": "1TURNO"
+  },
+  {
+   "teste": "teste_cotas.js",
+   "entrada": [
+    "A"
+   ],
+   "saida": "A"
+  },
+  {
+   "teste": "teste_cotas.js",
+   "entrada": [
+    "B"
+   ],
+   "saida": "B"
+  },
+  {
+   "teste": "teste_cotas.js",
+   "entrada": [
+    "C"
+   ],
+   "saida": "C"
+  },
+  {
+   "teste": "teste_cotas.js",
+   "entrada": [
+    "DATA",
+    0,
+    [
+     "DATA",
+     "MATRÍCULA",
+     "TURNO",
+     "SERVIÇO ACEITO"
+    ]
+   ],
+   "saida": "DATA"
+  },
+  {
+   "teste": "teste_cotas.js",
+   "entrada": [
+    "DATA"
+   ],
+   "saida": "DATA"
+  },
+  {
+   "teste": "teste_cotas.js",
+   "entrada": [
+    "DIA",
+    2,
+    [
+     "MÊS",
+     "MATRÍCULA",
+     "DIA",
+     "TURNO",
+     "SERVIÇO ACEITO"
+    ]
+   ],
+   "saida": "DIA"
+  },
+  {
+   "teste": "teste_cotas.js",
+   "entrada": [
+    "DIA"
+   ],
+   "saida": "DIA"
+  },
+  {
+   "teste": "teste_cotas.js",
+   "entrada": [
+    "MATRÍCULA",
+    1,
+    [
+     "DATA",
+     "MATRÍCULA",
+     "TURNO",
+     "SERVIÇO ACEITO"
+    ]
+   ],
+   "saida": "MATRICULA"
+  },
+  {
+   "teste": "teste_cotas.js",
+   "entrada": [
+    "MATRÍCULA",
+    1,
+    [
+     "MÊS",
+     "MATRÍCULA",
+     "DIA",
+     "TURNO",
+     "SERVIÇO ACEITO"
+    ]
+   ],
+   "saida": "MATRICULA"
+  },
+  {
+   "teste": "teste_cotas.js",
+   "entrada": [
+    "MATRÍCULA"
+   ],
+   "saida": "MATRICULA"
+  },
+  {
+   "teste": "teste_cotas.js",
+   "entrada": [
+    "MÊS",
+    0,
+    [
+     "MÊS",
+     "MATRÍCULA",
+     "DIA",
+     "TURNO",
+     "SERVIÇO ACEITO"
+    ]
+   ],
+   "saida": "MES"
+  },
+  {
+   "teste": "teste_cotas.js",
+   "entrada": [
+    "SERVIÇO ACEITO",
+    3,
+    [
+     "DATA",
+     "MATRÍCULA",
+     "TURNO",
+     "SERVIÇO ACEITO"
+    ]
+   ],
+   "saida": "SERVICOACEITO"
+  },
+  {
+   "teste": "teste_cotas.js",
+   "entrada": [
+    "SERVIÇO ACEITO",
+    4,
+    [
+     "MÊS",
+     "MATRÍCULA",
+     "DIA",
+     "TURNO",
+     "SERVIÇO ACEITO"
+    ]
+   ],
+   "saida": "SERVICOACEITO"
+  },
+  {
+   "teste": "teste_cotas.js",
+   "entrada": [
+    "SERVIÇO ACEITO"
+   ],
+   "saida": "SERVICOACEITO"
+  },
+  {
+   "teste": "teste_cotas.js",
+   "entrada": [
+    "TURNO",
+    2,
+    [
+     "DATA",
+     "MATRÍCULA",
+     "TURNO",
+     "SERVIÇO ACEITO"
+    ]
+   ],
+   "saida": "TURNO"
+  },
+  {
+   "teste": "teste_cotas.js",
+   "entrada": [
+    "TURNO",
+    3,
+    [
+     "MÊS",
+     "MATRÍCULA",
+     "DIA",
+     "TURNO",
+     "SERVIÇO ACEITO"
+    ]
+   ],
+   "saida": "TURNO"
+  },
+  {
+   "teste": "teste_cotas.js",
+   "entrada": [
+    "TURNO"
+   ],
+   "saida": "TURNO"
+  },
+  {
+   "teste": "teste_cotas.js",
+   "entrada": [
+    "manhã"
+   ],
+   "saida": "MANHA"
+  },
+  {
+   "teste": "teste_motor.js",
+   "entrada": [
+    "ELEICOES"
+   ],
+   "saida": "ELEICOES"
+  },
+  {
+   "teste": "teste_motor.js",
+   "entrada": [
+    "Eleições"
+   ],
+   "saida": "ELEICOES"
+  },
+  {
+   "teste": "teste_motor.js",
+   "entrada": [
+    "pe seguro"
+   ],
+   "saida": "PESEGURO"
+  },
+  {
+   "teste": "teste_motor.js",
+   "entrada": [
+    null
+   ],
+   "saida": ""
+  },
+  {
+   "teste": "teste_p13.js",
+   "entrada": [
+    "1ª SB"
+   ],
+   "saida": "1SB"
+  },
+  {
+   "teste": "teste_p16.js",
+   "entrada": [
+    " D"
+   ],
+   "saida": "D"
+  },
+  {
+   "teste": "teste_p16.js",
+   "entrada": [
+    " Sim "
+   ],
+   "saida": "SIM"
+  },
+  {
+   "teste": "teste_p16.js",
+   "entrada": [
+    ""
+   ],
+   "saida": ""
+  },
+  {
+   "teste": "teste_p16.js",
+   "entrada": [
+    "-"
+   ],
+   "saida": ""
+  },
+  {
+   "teste": "teste_p16.js",
+   "entrada": [
+    "ABT"
+   ],
+   "saida": "ABT"
+  },
+  {
+   "teste": "teste_p16.js",
+   "entrada": [
+    "AR"
+   ],
+   "saida": "AR"
+  },
+  {
+   "teste": "teste_p16.js",
+   "entrada": [
+    "ATIVAR",
+    3,
+    [
+     "VIGÊNCIA (A PARTIR DE)",
+     "VIATURA",
+     "TIPO",
+     "ATIVAR",
+     "PRIORIDADE",
+     "TIPOS DE SERVIÇO",
+     "CNH",
+     "FUNÇÃO",
+     "MÍNIMO",
+     "MÁXIMO"
+    ]
+   ],
+   "saida": "ATIVAR"
+  },
+  {
+   "teste": "teste_p16.js",
+   "entrada": [
+    "ATIVAR",
+    4,
+    [
+     "VIGÊNCIA (A PARTIR DE)",
+     "GUARNIÇÃO",
+     "VIATURA",
+     "TIPO",
+     "ATIVAR",
+     "PRIORIDADE",
+     "CNH",
+     "FUNÇÃO",
+     "MÍNIMO",
+     "MÁXIMO"
+    ]
+   ],
+   "saida": "ATIVAR"
+  },
+  {
+   "teste": "teste_p16.js",
+   "entrada": [
+    "ATIVAR",
+    4,
+    [
+     "VIGÊNCIA (A PARTIR DE)",
+     "GUARNIÇÃO",
+     "VIATURA",
+     "TIPO",
+     "ATIVAR",
+     "PRIORIDADE",
+     "TIPOS DE SERVIÇO",
+     "CNH",
+     "FUNÇÃO",
+     "MÍNIMO",
+     "MÁXIMO"
+    ]
+   ],
+   "saida": "ATIVAR"
+  },
+  {
+   "teste": "teste_p16.js",
+   "entrada": [
+    "ATIVAR"
+   ],
+   "saida": "ATIVAR"
+  },
+  {
+   "teste": "teste_p16.js",
+   "entrada": [
+    "AUXILIAR DE LINHA"
+   ],
+   "saida": "AUXILIARDELINHA"
+  },
+  {
+   "teste": "teste_p16.js",
+   "entrada": [
+    "CHEFE"
+   ],
+   "saida": "CHEFE"
+  },
+  {
+   "teste": "teste_p16.js",
+   "entrada": [
+    "CNH",
+    6,
+    [
+     "VIGÊNCIA (A PARTIR DE)",
+     "GUARNIÇÃO",
+     "VIATURA",
+     "TIPO",
+     "ATIVAR",
+     "PRIORIDADE",
+     "CNH",
+     "FUNÇÃO",
+     "MÍNIMO",
+     "MÁXIMO"
+    ]
+   ],
+   "saida": "CNH"
+  },
+  {
+   "teste": "teste_p16.js",
+   "entrada": [
+    "CNH",
+    6,
+    [
+     "VIGÊNCIA (A PARTIR DE)",
+     "VIATURA",
+     "TIPO",
+     "ATIVAR",
+     "PRIORIDADE",
+     "TIPOS DE SERVIÇO",
+     "CNH",
+     "FUNÇÃO",
+     "MÍNIMO",
+     "MÁXIMO"
+    ]
+   ],
+   "saida": "CNH"
+  },
+  {
+   "teste": "teste_p16.js",
+   "entrada": [
+    "CNH",
+    7,
+    [
+     "VIGÊNCIA (A PARTIR DE)",
+     "GUARNIÇÃO",
+     "VIATURA",
+     "TIPO",
+     "ATIVAR",
+     "PRIORIDADE",
+     "TIPOS DE SERVIÇO",
+     "CNH",
+     "FUNÇÃO",
+     "MÍNIMO",
+     "MÁXIMO"
+    ]
+   ],
+   "saida": "CNH"
+  },
+  {
+   "teste": "teste_p16.js",
+   "entrada": [
+    "CNH"
+   ],
+   "saida": "CNH"
+  },
+  {
+   "teste": "teste_p16.js",
+   "entrada": [
+    "COMBATENTE"
+   ],
+   "saida": "COMBATENTE"
+  },
+  {
+   "teste": "teste_p16.js",
+   "entrada": [
+    "COZINHEIRO"
+   ],
+   "saida": "COZINHEIRO"
+  },
+  {
+   "teste": "teste_p16.js",
+   "entrada": [
+    "DATA",
+    1,
+    [
+     "MATRÍCULA",
+     "DATA",
+     "SERVIÇO",
+     "TURNO",
+     "FUNÇÃO",
+     "UNIDADE"
+    ]
+   ],
+   "saida": "DATA"
+  },
+  {
+   "teste": "teste_p16.js",
+   "entrada": [
+    "FUNÇÃO",
+    4,
+    [
+     "MATRÍCULA",
+     "DATA",
+     "SERVIÇO",
+     "TURNO",
+     "FUNÇÃO",
+     "UNIDADE"
+    ]
+   ],
+   "saida": "FUNCAO"
+  },
+  {
+   "teste": "teste_p16.js",
+   "entrada": [
+    "FUNÇÃO",
+    7,
+    [
+     "VIGÊNCIA (A PARTIR DE)",
+     "GUARNIÇÃO",
+     "VIATURA",
+     "TIPO",
+     "ATIVAR",
+     "PRIORIDADE",
+     "CNH",
+     "FUNÇÃO",
+     "MÍNIMO",
+     "MÁXIMO"
+    ]
+   ],
+   "saida": "FUNCAO"
+  },
+  {
+   "teste": "teste_p16.js",
+   "entrada": [
+    "FUNÇÃO",
+    7,
+    [
+     "VIGÊNCIA (A PARTIR DE)",
+     "VIATURA",
+     "TIPO",
+     "ATIVAR",
+     "PRIORIDADE",
+     "TIPOS DE SERVIÇO",
+     "CNH",
+     "FUNÇÃO",
+     "MÍNIMO",
+     "MÁXIMO"
+    ]
+   ],
+   "saida": "FUNCAO"
+  },
+  {
+   "teste": "teste_p16.js",
+   "entrada": [
+    "FUNÇÃO",
+    8,
+    [
+     "VIGÊNCIA (A PARTIR DE)",
+     "GUARNIÇÃO",
+     "VIATURA",
+     "TIPO",
+     "ATIVAR",
+     "PRIORIDADE",
+     "TIPOS DE SERVIÇO",
+     "CNH",
+     "FUNÇÃO",
+     "MÍNIMO",
+     "MÁXIMO"
+    ]
+   ],
+   "saida": "FUNCAO"
+  },
+  {
+   "teste": "teste_p16.js",
+   "entrada": [
+    "FUNÇÃO"
+   ],
+   "saida": "FUNCAO"
+  },
+  {
+   "teste": "teste_p16.js",
+   "entrada": [
+    "GUARNIÇÃO",
+    1,
+    [
+     "VIGÊNCIA (A PARTIR DE)",
+     "GUARNIÇÃO",
+     "VIATURA",
+     "TIPO",
+     "ATIVAR",
+     "PRIORIDADE",
+     "CNH",
+     "FUNÇÃO",
+     "MÍNIMO",
+     "MÁXIMO"
+    ]
+   ],
+   "saida": "GUARNICAO"
+  },
+  {
+   "teste": "teste_p16.js",
+   "entrada": [
+    "GUARNIÇÃO",
+    1,
+    [
+     "VIGÊNCIA (A PARTIR DE)",
+     "GUARNIÇÃO",
+     "VIATURA",
+     "TIPO",
+     "ATIVAR",
+     "PRIORIDADE",
+     "TIPOS DE SERVIÇO",
+     "CNH",
+     "FUNÇÃO",
+     "MÍNIMO",
+     "MÁXIMO"
+    ]
+   ],
+   "saida": "GUARNICAO"
+  },
+  {
+   "teste": "teste_p16.js",
+   "entrada": [
+    "GUARNIÇÃO"
+   ],
+   "saida": "GUARNICAO"
+  },
+  {
+   "teste": "teste_p16.js",
+   "entrada": [
+    "MATRÍCULA",
+    0,
+    [
+     "MATRÍCULA",
+     "DATA",
+     "SERVIÇO",
+     "TURNO",
+     "FUNÇÃO",
+     "UNIDADE"
+    ]
+   ],
+   "saida": "MATRICULA"
+  },
+  {
+   "teste": "teste_p16.js",
+   "entrada": [
+    "MOTORISTA"
+   ],
+   "saida": "MOTORISTA"
+  },
+  {
+   "teste": "teste_p16.js",
+   "entrada": [
+    "MÁXIMO",
+    10,
+    [
+     "VIGÊNCIA (A PARTIR DE)",
+     "GUARNIÇÃO",
+     "VIATURA",
+     "TIPO",
+     "ATIVAR",
+     "PRIORIDADE",
+     "TIPOS DE SERVIÇO",
+     "CNH",
+     "FUNÇÃO",
+     "MÍNIMO",
+     "MÁXIMO"
+    ]
+   ],
+   "saida": "MAXIMO"
+  },
+  {
+   "teste": "teste_p16.js",
+   "entrada": [
+    "MÁXIMO",
+    9,
+    [
+     "VIGÊNCIA (A PARTIR DE)",
+     "GUARNIÇÃO",
+     "VIATURA",
+     "TIPO",
+     "ATIVAR",
+     "PRIORIDADE",
+     "CNH",
+     "FUNÇÃO",
+     "MÍNIMO",
+     "MÁXIMO"
+    ]
+   ],
+   "saida": "MAXIMO"
+  },
+  {
+   "teste": "teste_p16.js",
+   "entrada": [
+    "MÁXIMO",
+    9,
+    [
+     "VIGÊNCIA (A PARTIR DE)",
+     "VIATURA",
+     "TIPO",
+     "ATIVAR",
+     "PRIORIDADE",
+     "TIPOS DE SERVIÇO",
+     "CNH",
+     "FUNÇÃO",
+     "MÍNIMO",
+     "MÁXIMO"
+    ]
+   ],
+   "saida": "MAXIMO"
+  },
+  {
+   "teste": "teste_p16.js",
+   "entrada": [
+    "MÁXIMO"
+   ],
+   "saida": "MAXIMO"
+  },
+  {
+   "teste": "teste_p16.js",
+   "entrada": [
+    "MÍNIMO",
+    8,
+    [
+     "VIGÊNCIA (A PARTIR DE)",
+     "GUARNIÇÃO",
+     "VIATURA",
+     "TIPO",
+     "ATIVAR",
+     "PRIORIDADE",
+     "CNH",
+     "FUNÇÃO",
+     "MÍNIMO",
+     "MÁXIMO"
+    ]
+   ],
+   "saida": "MINIMO"
+  },
+  {
+   "teste": "teste_p16.js",
+   "entrada": [
+    "MÍNIMO",
+    8,
+    [
+     "VIGÊNCIA (A PARTIR DE)",
+     "VIATURA",
+     "TIPO",
+     "ATIVAR",
+     "PRIORIDADE",
+     "TIPOS DE SERVIÇO",
+     "CNH",
+     "FUNÇÃO",
+     "MÍNIMO",
+     "MÁXIMO"
+    ]
+   ],
+   "saida": "MINIMO"
+  },
+  {
+   "teste": "teste_p16.js",
+   "entrada": [
+    "MÍNIMO",
+    9,
+    [
+     "VIGÊNCIA (A PARTIR DE)",
+     "GUARNIÇÃO",
+     "VIATURA",
+     "TIPO",
+     "ATIVAR",
+     "PRIORIDADE",
+     "TIPOS DE SERVIÇO",
+     "CNH",
+     "FUNÇÃO",
+     "MÍNIMO",
+     "MÁXIMO"
+    ]
+   ],
+   "saida": "MINIMO"
+  },
+  {
+   "teste": "teste_p16.js",
+   "entrada": [
+    "MÍNIMO"
+   ],
+   "saida": "MINIMO"
+  },
+  {
+   "teste": "teste_p16.js",
+   "entrada": [
+    "NÃO"
+   ],
+   "saida": "NAO"
+  },
+  {
+   "teste": "teste_p16.js",
+   "entrada": [
+    "Não"
+   ],
+   "saida": "NAO"
+  },
+  {
+   "teste": "teste_p16.js",
+   "entrada": [
+    "PRIORIDADE",
+    4,
+    [
+     "VIGÊNCIA (A PARTIR DE)",
+     "VIATURA",
+     "TIPO",
+     "ATIVAR",
+     "PRIORIDADE",
+     "TIPOS DE SERVIÇO",
+     "CNH",
+     "FUNÇÃO",
+     "MÍNIMO",
+     "MÁXIMO"
+    ]
+   ],
+   "saida": "PRIORIDADE"
+  },
+  {
+   "teste": "teste_p16.js",
+   "entrada": [
+    "PRIORIDADE",
+    5,
+    [
+     "VIGÊNCIA (A PARTIR DE)",
+     "GUARNIÇÃO",
+     "VIATURA",
+     "TIPO",
+     "ATIVAR",
+     "PRIORIDADE",
+     "CNH",
+     "FUNÇÃO",
+     "MÍNIMO",
+     "MÁXIMO"
+    ]
+   ],
+   "saida": "PRIORIDADE"
+  },
+  {
+   "teste": "teste_p16.js",
+   "entrada": [
+    "PRIORIDADE",
+    5,
+    [
+     "VIGÊNCIA (A PARTIR DE)",
+     "GUARNIÇÃO",
+     "VIATURA",
+     "TIPO",
+     "ATIVAR",
+     "PRIORIDADE",
+     "TIPOS DE SERVIÇO",
+     "CNH",
+     "FUNÇÃO",
+     "MÍNIMO",
+     "MÁXIMO"
+    ]
+   ],
+   "saida": "PRIORIDADE"
+  },
+  {
+   "teste": "teste_p16.js",
+   "entrada": [
+    "PRIORIDADE"
+   ],
+   "saida": "PRIORIDADE"
+  },
+  {
+   "teste": "teste_p16.js",
+   "entrada": [
+    "Pronto"
+   ],
+   "saida": "PRONTO"
+  },
+  {
+   "teste": "teste_p16.js",
+   "entrada": [
+    "S"
+   ],
+   "saida": "S"
+  },
+  {
+   "teste": "teste_p16.js",
+   "entrada": [
+    "SERVIÇO",
+    2,
+    [
+     "MATRÍCULA",
+     "DATA",
+     "SERVIÇO",
+     "TURNO",
+     "FUNÇÃO",
+     "UNIDADE"
+    ]
+   ],
+   "saida": "SERVICO"
+  },
+  {
+   "teste": "teste_p16.js",
+   "entrada": [
+    "SERVIÇO"
+   ],
+   "saida": "SERVICO"
+  },
+  {
+   "teste": "teste_p16.js",
+   "entrada": [
+    "SIM"
+   ],
+   "saida": "SIM"
+  },
+  {
+   "teste": "teste_p16.js",
+   "entrada": [
+    "SOCORRISTA"
+   ],
+   "saida": "SOCORRISTA"
+  },
+  {
+   "teste": "teste_p16.js",
+   "entrada": [
+    "Sim"
+   ],
+   "saida": "SIM"
+  },
+  {
+   "teste": "teste_p16.js",
+   "entrada": [
+    "TIPO",
+    2,
+    [
+     "VIGÊNCIA (A PARTIR DE)",
+     "VIATURA",
+     "TIPO",
+     "ATIVAR",
+     "PRIORIDADE",
+     "TIPOS DE SERVIÇO",
+     "CNH",
+     "FUNÇÃO",
+     "MÍNIMO",
+     "MÁXIMO"
+    ]
+   ],
+   "saida": "TIPO"
+  },
+  {
+   "teste": "teste_p16.js",
+   "entrada": [
+    "TIPO",
+    3,
+    [
+     "VIGÊNCIA (A PARTIR DE)",
+     "GUARNIÇÃO",
+     "VIATURA",
+     "TIPO",
+     "ATIVAR",
+     "PRIORIDADE",
+     "CNH",
+     "FUNÇÃO",
+     "MÍNIMO",
+     "MÁXIMO"
+    ]
+   ],
+   "saida": "TIPO"
+  },
+  {
+   "teste": "teste_p16.js",
+   "entrada": [
+    "TIPO",
+    3,
+    [
+     "VIGÊNCIA (A PARTIR DE)",
+     "GUARNIÇÃO",
+     "VIATURA",
+     "TIPO",
+     "ATIVAR",
+     "PRIORIDADE",
+     "TIPOS DE SERVIÇO",
+     "CNH",
+     "FUNÇÃO",
+     "MÍNIMO",
+     "MÁXIMO"
+    ]
+   ],
+   "saida": "TIPO"
+  },
+  {
+   "teste": "teste_p16.js",
+   "entrada": [
+    "TIPO"
+   ],
+   "saida": "TIPO"
+  },
+  {
+   "teste": "teste_p16.js",
+   "entrada": [
+    "TIPOS DE SERVIÇO",
+    5,
+    [
+     "VIGÊNCIA (A PARTIR DE)",
+     "VIATURA",
+     "TIPO",
+     "ATIVAR",
+     "PRIORIDADE",
+     "TIPOS DE SERVIÇO",
+     "CNH",
+     "FUNÇÃO",
+     "MÍNIMO",
+     "MÁXIMO"
+    ]
+   ],
+   "saida": "TIPOSDESERVICO"
+  },
+  {
+   "teste": "teste_p16.js",
+   "entrada": [
+    "TIPOS DE SERVIÇO",
+    6,
+    [
+     "VIGÊNCIA (A PARTIR DE)",
+     "GUARNIÇÃO",
+     "VIATURA",
+     "TIPO",
+     "ATIVAR",
+     "PRIORIDADE",
+     "TIPOS DE SERVIÇO",
+     "CNH",
+     "FUNÇÃO",
+     "MÍNIMO",
+     "MÁXIMO"
+    ]
+   ],
+   "saida": "TIPOSDESERVICO"
+  },
+  {
+   "teste": "teste_p16.js",
+   "entrada": [
+    "TIPOS DE SERVIÇO"
+   ],
+   "saida": "TIPOSDESERVICO"
+  },
+  {
+   "teste": "teste_p16.js",
+   "entrada": [
+    "TODOS"
+   ],
+   "saida": "TODOS"
+  },
+  {
+   "teste": "teste_p16.js",
+   "entrada": [
+    "TURNO",
+    3,
+    [
+     "MATRÍCULA",
+     "DATA",
+     "SERVIÇO",
+     "TURNO",
+     "FUNÇÃO",
+     "UNIDADE"
+    ]
+   ],
+   "saida": "TURNO"
+  },
+  {
+   "teste": "teste_p16.js",
+   "entrada": [
+    "UNIDADE",
+    5,
+    [
+     "MATRÍCULA",
+     "DATA",
+     "SERVIÇO",
+     "TURNO",
+     "FUNÇÃO",
+     "UNIDADE"
+    ]
+   ],
+   "saida": "UNIDADE"
+  },
+  {
+   "teste": "teste_p16.js",
+   "entrada": [
+    "UNIDADE"
+   ],
+   "saida": "UNIDADE"
+  },
+  {
+   "teste": "teste_p16.js",
+   "entrada": [
+    "VIATURA",
+    1,
+    [
+     "VIGÊNCIA (A PARTIR DE)",
+     "VIATURA",
+     "TIPO",
+     "ATIVAR",
+     "PRIORIDADE",
+     "TIPOS DE SERVIÇO",
+     "CNH",
+     "FUNÇÃO",
+     "MÍNIMO",
+     "MÁXIMO"
+    ]
+   ],
+   "saida": "VIATURA"
+  },
+  {
+   "teste": "teste_p16.js",
+   "entrada": [
+    "VIATURA",
+    2,
+    [
+     "VIGÊNCIA (A PARTIR DE)",
+     "GUARNIÇÃO",
+     "VIATURA",
+     "TIPO",
+     "ATIVAR",
+     "PRIORIDADE",
+     "CNH",
+     "FUNÇÃO",
+     "MÍNIMO",
+     "MÁXIMO"
+    ]
+   ],
+   "saida": "VIATURA"
+  },
+  {
+   "teste": "teste_p16.js",
+   "entrada": [
+    "VIATURA",
+    2,
+    [
+     "VIGÊNCIA (A PARTIR DE)",
+     "GUARNIÇÃO",
+     "VIATURA",
+     "TIPO",
+     "ATIVAR",
+     "PRIORIDADE",
+     "TIPOS DE SERVIÇO",
+     "CNH",
+     "FUNÇÃO",
+     "MÍNIMO",
+     "MÁXIMO"
+    ]
+   ],
+   "saida": "VIATURA"
+  },
+  {
+   "teste": "teste_p16.js",
+   "entrada": [
+    "VIATURA"
+   ],
+   "saida": "VIATURA"
+  },
+  {
+   "teste": "teste_p16.js",
+   "entrada": [
+    "VIGÊNCIA (A PARTIR DE)",
+    0,
+    [
+     "VIGÊNCIA (A PARTIR DE)",
+     "GUARNIÇÃO",
+     "VIATURA",
+     "TIPO",
+     "ATIVAR",
+     "PRIORIDADE",
+     "CNH",
+     "FUNÇÃO",
+     "MÍNIMO",
+     "MÁXIMO"
+    ]
+   ],
+   "saida": "VIGENCIAAPARTIRDE"
+  },
+  {
+   "teste": "teste_p16.js",
+   "entrada": [
+    "VIGÊNCIA (A PARTIR DE)",
+    0,
+    [
+     "VIGÊNCIA (A PARTIR DE)",
+     "GUARNIÇÃO",
+     "VIATURA",
+     "TIPO",
+     "ATIVAR",
+     "PRIORIDADE",
+     "TIPOS DE SERVIÇO",
+     "CNH",
+     "FUNÇÃO",
+     "MÍNIMO",
+     "MÁXIMO"
+    ]
+   ],
+   "saida": "VIGENCIAAPARTIRDE"
+  },
+  {
+   "teste": "teste_p16.js",
+   "entrada": [
+    "VIGÊNCIA (A PARTIR DE)",
+    0,
+    [
+     "VIGÊNCIA (A PARTIR DE)",
+     "VIATURA",
+     "TIPO",
+     "ATIVAR",
+     "PRIORIDADE",
+     "TIPOS DE SERVIÇO",
+     "CNH",
+     "FUNÇÃO",
+     "MÍNIMO",
+     "MÁXIMO"
+    ]
+   ],
+   "saida": "VIGENCIAAPARTIRDE"
+  },
+  {
+   "teste": "teste_p16.js",
+   "entrada": [
+    "VIGÊNCIA"
+   ],
+   "saida": "VIGENCIA"
+  },
+  {
+   "teste": "teste_p16.js",
+   "entrada": [
+    "sim"
+   ],
+   "saida": "SIM"
+  },
+  {
+   "teste": "teste_p16.js",
+   "entrada": [
+    false
+   ],
+   "saida": "FALSE"
+  },
+  {
+   "teste": "teste_p16.js",
+   "entrada": [
+    true
+   ],
+   "saida": "TRUE"
+  },
+  {
+   "teste": "teste_p16.js",
+   "entrada": [
+    {
+     "chip": 1
+    }
+   ],
+   "saida": "OBJECTOBJECT"
+  },
+  {
+   "teste": "teste_p17.js",
+   "entrada": [
+    "2ª SB"
+   ],
+   "saida": "2SB"
+  },
+  {
+   "teste": "teste_p17.js",
+   "entrada": [
+    "3ª SB"
+   ],
+   "saida": "3SB"
+  },
+  {
+   "teste": "teste_p17.js",
+   "entrada": [
+    "4ª SB"
+   ],
+   "saida": "4SB"
+  },
+  {
+   "teste": "teste_p17.js",
+   "entrada": [
+    "5ª SB"
+   ],
+   "saida": "5SB"
+  },
+  {
+   "teste": "teste_p17.js",
+   "entrada": [
+    "6ª SB"
+   ],
+   "saida": "6SB"
+  },
+  {
+   "teste": "teste_p17.js",
+   "entrada": [
+    "7ª SB"
+   ],
+   "saida": "7SB"
+  },
+  {
+   "teste": "teste_p17.js",
+   "entrada": [
+    "Adm"
+   ],
+   "saida": "ADM"
+  },
+  {
+   "teste": "teste_p17.js",
+   "entrada": [
+    "Bioma"
+   ],
+   "saida": "BIOMA"
+  },
+  {
+   "teste": "teste_p17.js",
+   "entrada": [
+    "CPRH"
+   ],
+   "saida": "CPRH"
+  },
+  {
+   "teste": "teste_p17.js",
+   "entrada": [
+    "Defensoria"
+   ],
+   "saida": "DEFENSORIA"
+  },
+  {
+   "teste": "teste_p17.js",
+   "entrada": [
+    "JES"
+   ],
+   "saida": "JES"
+  },
+  {
+   "teste": "teste_p17.js",
+   "entrada": [
+    "Mergulho"
+   ],
+   "saida": "MERGULHO"
+  },
+  {
+   "teste": "teste_p17.js",
+   "entrada": [
+    "Operação Qualquer"
+   ],
+   "saida": "OPERACAOQUALQUER"
+  },
+  {
+   "teste": "teste_p17.js",
+   "entrada": [
+    "PE Seguro"
+   ],
+   "saida": "PESEGURO"
+  },
+  {
+   "teste": "teste_p17.js",
+   "entrada": [
+    "Saldo"
+   ],
+   "saida": "SALDO"
+  },
+  {
+   "teste": "teste_p17.js",
+   "entrada": [
+    "mergulho"
+   ],
+   "saida": "MERGULHO"
+  },
+  {
+   "teste": "teste_p18.js",
+   "entrada": [
+    "UTI - PRONTO"
+   ],
+   "saida": "UTIPRONTO"
+  },
+  {
+   "teste": "teste_p19.js",
+   "entrada": [
+    "",
+    0,
+    [
+     "",
+     "MATRÍCULA",
+     "DATA",
+     "SERVIÇO",
+     "TURNO",
+     "FUNÇÃO",
+     "UNIDADE"
+    ]
+   ],
+   "saida": ""
+  },
+  {
+   "teste": "teste_p19.js",
+   "entrada": [
+    "",
+    0,
+    [
+     "",
+     "MATRÍCULA",
+     "DATA",
+     "SERVIÇO",
+     "TURNO",
+     "FUNÇÃO"
+    ]
+   ],
+   "saida": ""
+  },
+  {
+   "teste": "teste_p19.js",
+   "entrada": [
+    "CNH",
+    5,
+    [
+     "MATRÍCULA",
+     "POSTO/GRAD",
+     "NOME DE GUERRA",
+     "SEÇÃO",
+     "MOTORISTA",
+     "CNH",
+     "VOLUNTÁRIO JES"
+    ]
+   ],
+   "saida": "CNH"
+  },
+  {
+   "teste": "teste_p19.js",
+   "entrada": [
+    "CNH",
+    5,
+    [
+     "MATRÍCULA",
+     "POSTO/GRAD",
+     "NOME DE GUERRA",
+     "SEÇÃO",
+     "MOTORISTA",
+     "CNH"
+    ]
+   ],
+   "saida": "CNH"
+  },
+  {
+   "teste": "teste_p19.js",
+   "entrada": [
+    "DATA",
+    2,
+    [
+     "",
+     "MATRÍCULA",
+     "DATA",
+     "SERVIÇO",
+     "TURNO",
+     "FUNÇÃO",
+     "UNIDADE"
+    ]
+   ],
+   "saida": "DATA"
+  },
+  {
+   "teste": "teste_p19.js",
+   "entrada": [
+    "DATA",
+    2,
+    [
+     "",
+     "MATRÍCULA",
+     "DATA",
+     "SERVIÇO",
+     "TURNO",
+     "FUNÇÃO"
+    ]
+   ],
+   "saida": "DATA"
+  },
+  {
+   "teste": "teste_p19.js",
+   "entrada": [
+    "DIAS",
+    4,
+    [
+     "ESCALA",
+     "SERVIÇOS",
+     "TÍTULO",
+     "MILITARES",
+     "DIAS"
+    ]
+   ],
+   "saida": "DIAS"
+  },
+  {
+   "teste": "teste_p19.js",
+   "entrada": [
+    "ESCALA",
+    0,
+    [
+     "ESCALA",
+     "SERVIÇOS",
+     "TÍTULO",
+     "MILITARES",
+     "DIAS"
+    ]
+   ],
+   "saida": "ESCALA"
+  },
+  {
+   "teste": "teste_p19.js",
+   "entrada": [
+    "ESCALA",
+    0,
+    [
+     "ESCALA",
+     "TURNO",
+     "UNIDADE",
+     "FUNÇÃO",
+     "VAGAS",
+     "EXIGE CNH"
+    ]
+   ],
+   "saida": "ESCALA"
+  },
+  {
+   "teste": "teste_p19.js",
+   "entrada": [
+    "ESCALA",
+    1,
+    [
+     "VIGÊNCIA (A PARTIR DE)",
+     "ESCALA",
+     "TURNO",
+     "GUARNIÇÃO"
+    ]
+   ],
+   "saida": "ESCALA"
+  },
+  {
+   "teste": "teste_p19.js",
+   "entrada": [
+    "ESCALA"
+   ],
+   "saida": "ESCALA"
+  },
+  {
+   "teste": "teste_p19.js",
+   "entrada": [
+    "EXIGE CNH",
+    5,
+    [
+     "ESCALA",
+     "TURNO",
+     "UNIDADE",
+     "FUNÇÃO",
+     "VAGAS",
+     "EXIGE CNH"
+    ]
+   ],
+   "saida": "EXIGECNH"
+  },
+  {
+   "teste": "teste_p19.js",
+   "entrada": [
+    "FUNÇÃO",
+    2,
+    [
+     "GUARNIÇÃO",
+     "TIPOS DE SERVIÇO",
+     "FUNÇÃO"
+    ]
+   ],
+   "saida": "FUNCAO"
+  },
+  {
+   "teste": "teste_p19.js",
+   "entrada": [
+    "FUNÇÃO",
+    3,
+    [
+     "ESCALA",
+     "TURNO",
+     "UNIDADE",
+     "FUNÇÃO",
+     "VAGAS",
+     "EXIGE CNH"
+    ]
+   ],
+   "saida": "FUNCAO"
+  },
+  {
+   "teste": "teste_p19.js",
+   "entrada": [
+    "FUNÇÃO",
+    5,
+    [
+     "",
+     "MATRÍCULA",
+     "DATA",
+     "SERVIÇO",
+     "TURNO",
+     "FUNÇÃO",
+     "UNIDADE"
+    ]
+   ],
+   "saida": "FUNCAO"
+  },
+  {
+   "teste": "teste_p19.js",
+   "entrada": [
+    "FUNÇÃO",
+    5,
+    [
+     "",
+     "MATRÍCULA",
+     "DATA",
+     "SERVIÇO",
+     "TURNO",
+     "FUNÇÃO"
+    ]
+   ],
+   "saida": "FUNCAO"
+  },
+  {
+   "teste": "teste_p19.js",
+   "entrada": [
+    "GUARNIÇÃO",
+    0,
+    [
+     "GUARNIÇÃO",
+     "TIPOS DE SERVIÇO",
+     "FUNÇÃO"
+    ]
+   ],
+   "saida": "GUARNICAO"
+  },
+  {
+   "teste": "teste_p19.js",
+   "entrada": [
+    "GUARNIÇÃO",
+    3,
+    [
+     "VIGÊNCIA (A PARTIR DE)",
+     "ESCALA",
+     "TURNO",
+     "GUARNIÇÃO"
+    ]
+   ],
+   "saida": "GUARNICAO"
+  },
+  {
+   "teste": "teste_p19.js",
+   "entrada": [
+    "HORÁRIO FIM",
+    5,
+    [
+     "ID",
+     "TIPO DE SERVIÇO",
+     "SERVIÇO",
+     "TURNO",
+     "HORÁRIO INÍCIO",
+     "HORÁRIO FIM",
+     "ORIGEM"
+    ]
+   ],
+   "saida": "HORARIOFIM"
+  },
+  {
+   "teste": "teste_p19.js",
+   "entrada": [
+    "HORÁRIO FIM",
+    5,
+    [
+     "ID",
+     "TIPO DE SERVIÇO",
+     "SERVIÇO",
+     "TURNO",
+     "HORÁRIO INÍCIO",
+     "HORÁRIO FIM"
+    ]
+   ],
+   "saida": "HORARIOFIM"
+  },
+  {
+   "teste": "teste_p19.js",
+   "entrada": [
+    "HORÁRIO INÍCIO",
+    4,
+    [
+     "ID",
+     "TIPO DE SERVIÇO",
+     "SERVIÇO",
+     "TURNO",
+     "HORÁRIO INÍCIO",
+     "HORÁRIO FIM",
+     "ORIGEM"
+    ]
+   ],
+   "saida": "HORARIOINICIO"
+  },
+  {
+   "teste": "teste_p19.js",
+   "entrada": [
+    "HORÁRIO INÍCIO",
+    4,
+    [
+     "ID",
+     "TIPO DE SERVIÇO",
+     "SERVIÇO",
+     "TURNO",
+     "HORÁRIO INÍCIO",
+     "HORÁRIO FIM"
+    ]
+   ],
+   "saida": "HORARIOINICIO"
+  },
+  {
+   "teste": "teste_p19.js",
+   "entrada": [
+    "ID",
+    0,
+    [
+     "ID",
+     "TIPO DE SERVIÇO",
+     "SERVIÇO",
+     "TURNO",
+     "HORÁRIO INÍCIO",
+     "HORÁRIO FIM",
+     "ORIGEM"
+    ]
+   ],
+   "saida": "ID"
+  },
+  {
+   "teste": "teste_p19.js",
+   "entrada": [
+    "ID",
+    0,
+    [
+     "ID",
+     "TIPO DE SERVIÇO",
+     "SERVIÇO",
+     "TURNO",
+     "HORÁRIO INÍCIO",
+     "HORÁRIO FIM"
+    ]
+   ],
+   "saida": "ID"
+  },
+  {
+   "teste": "teste_p19.js",
+   "entrada": [
+    "MATRÍCULA",
+    0,
+    [
+     "MATRÍCULA",
+     "POSTO/GRAD",
+     "NOME DE GUERRA",
+     "SEÇÃO",
+     "MOTORISTA",
+     "CNH",
+     "VOLUNTÁRIO JES"
+    ]
+   ],
+   "saida": "MATRICULA"
+  },
+  {
+   "teste": "teste_p19.js",
+   "entrada": [
+    "MATRÍCULA",
+    0,
+    [
+     "MATRÍCULA",
+     "POSTO/GRAD",
+     "NOME DE GUERRA",
+     "SEÇÃO",
+     "MOTORISTA",
+     "CNH"
+    ]
+   ],
+   "saida": "MATRICULA"
+  },
+  {
+   "teste": "teste_p19.js",
+   "entrada": [
+    "MATRÍCULA",
+    0,
+    [
+     "MATRÍCULA",
+     "POSTO/GRAD",
+     "NOME DE GUERRA",
+     "SEÇÃO",
+     "MOTORISTA"
+    ]
+   ],
+   "saida": "MATRICULA"
+  },
+  {
+   "teste": "teste_p19.js",
+   "entrada": [
+    "MATRÍCULA",
+    1,
+    [
+     "",
+     "MATRÍCULA",
+     "DATA",
+     "SERVIÇO",
+     "TURNO",
+     "FUNÇÃO",
+     "UNIDADE"
+    ]
+   ],
+   "saida": "MATRICULA"
+  },
+  {
+   "teste": "teste_p19.js",
+   "entrada": [
+    "MATRÍCULA",
+    1,
+    [
+     "",
+     "MATRÍCULA",
+     "DATA",
+     "SERVIÇO",
+     "TURNO",
+     "FUNÇÃO"
+    ]
+   ],
+   "saida": "MATRICULA"
+  },
+  {
+   "teste": "teste_p19.js",
+   "entrada": [
+    "MILITARES",
+    3,
+    [
+     "ESCALA",
+     "SERVIÇOS",
+     "TÍTULO",
+     "MILITARES",
+     "DIAS"
+    ]
+   ],
+   "saida": "MILITARES"
+  },
+  {
+   "teste": "teste_p19.js",
+   "entrada": [
+    "MOTORISTA",
+    4,
+    [
+     "MATRÍCULA",
+     "POSTO/GRAD",
+     "NOME DE GUERRA",
+     "SEÇÃO",
+     "MOTORISTA",
+     "CNH",
+     "VOLUNTÁRIO JES"
+    ]
+   ],
+   "saida": "MOTORISTA"
+  },
+  {
+   "teste": "teste_p19.js",
+   "entrada": [
+    "MOTORISTA",
+    4,
+    [
+     "MATRÍCULA",
+     "POSTO/GRAD",
+     "NOME DE GUERRA",
+     "SEÇÃO",
+     "MOTORISTA",
+     "CNH"
+    ]
+   ],
+   "saida": "MOTORISTA"
+  },
+  {
+   "teste": "teste_p19.js",
+   "entrada": [
+    "MOTORISTA",
+    4,
+    [
+     "MATRÍCULA",
+     "POSTO/GRAD",
+     "NOME DE GUERRA",
+     "SEÇÃO",
+     "MOTORISTA"
+    ]
+   ],
+   "saida": "MOTORISTA"
+  },
+  {
+   "teste": "teste_p19.js",
+   "entrada": [
+    "NOME DE GUERRA",
+    2,
+    [
+     "MATRÍCULA",
+     "POSTO/GRAD",
+     "NOME DE GUERRA",
+     "SEÇÃO",
+     "MOTORISTA",
+     "CNH",
+     "VOLUNTÁRIO JES"
+    ]
+   ],
+   "saida": "NOMEDEGUERRA"
+  },
+  {
+   "teste": "teste_p19.js",
+   "entrada": [
+    "NOME DE GUERRA",
+    2,
+    [
+     "MATRÍCULA",
+     "POSTO/GRAD",
+     "NOME DE GUERRA",
+     "SEÇÃO",
+     "MOTORISTA",
+     "CNH"
+    ]
+   ],
+   "saida": "NOMEDEGUERRA"
+  },
+  {
+   "teste": "teste_p19.js",
+   "entrada": [
+    "NOME DE GUERRA",
+    2,
+    [
+     "MATRÍCULA",
+     "POSTO/GRAD",
+     "NOME DE GUERRA",
+     "SEÇÃO",
+     "MOTORISTA"
+    ]
+   ],
+   "saida": "NOMEDEGUERRA"
+  },
+  {
+   "teste": "teste_p19.js",
+   "entrada": [
+    "ORIGEM",
+    6,
+    [
+     "ID",
+     "TIPO DE SERVIÇO",
+     "SERVIÇO",
+     "TURNO",
+     "HORÁRIO INÍCIO",
+     "HORÁRIO FIM",
+     "ORIGEM"
+    ]
+   ],
+   "saida": "ORIGEM"
+  },
+  {
+   "teste": "teste_p19.js",
+   "entrada": [
+    "ORIGEM"
+   ],
+   "saida": "ORIGEM"
+  },
+  {
+   "teste": "teste_p19.js",
+   "entrada": [
+    "POSTO/GRAD",
+    1,
+    [
+     "MATRÍCULA",
+     "POSTO/GRAD",
+     "NOME DE GUERRA",
+     "SEÇÃO",
+     "MOTORISTA",
+     "CNH",
+     "VOLUNTÁRIO JES"
+    ]
+   ],
+   "saida": "POSTOGRAD"
+  },
+  {
+   "teste": "teste_p19.js",
+   "entrada": [
+    "POSTO/GRAD",
+    1,
+    [
+     "MATRÍCULA",
+     "POSTO/GRAD",
+     "NOME DE GUERRA",
+     "SEÇÃO",
+     "MOTORISTA",
+     "CNH"
+    ]
+   ],
+   "saida": "POSTOGRAD"
+  },
+  {
+   "teste": "teste_p19.js",
+   "entrada": [
+    "POSTO/GRAD",
+    1,
+    [
+     "MATRÍCULA",
+     "POSTO/GRAD",
+     "NOME DE GUERRA",
+     "SEÇÃO",
+     "MOTORISTA"
+    ]
+   ],
+   "saida": "POSTOGRAD"
+  },
+  {
+   "teste": "teste_p19.js",
+   "entrada": [
+    "SERVIÇO",
+    2,
+    [
+     "ID",
+     "TIPO DE SERVIÇO",
+     "SERVIÇO",
+     "TURNO",
+     "HORÁRIO INÍCIO",
+     "HORÁRIO FIM",
+     "ORIGEM"
+    ]
+   ],
+   "saida": "SERVICO"
+  },
+  {
+   "teste": "teste_p19.js",
+   "entrada": [
+    "SERVIÇO",
+    2,
+    [
+     "ID",
+     "TIPO DE SERVIÇO",
+     "SERVIÇO",
+     "TURNO",
+     "HORÁRIO INÍCIO",
+     "HORÁRIO FIM"
+    ]
+   ],
+   "saida": "SERVICO"
+  },
+  {
+   "teste": "teste_p19.js",
+   "entrada": [
+    "SERVIÇO",
+    3,
+    [
+     "",
+     "MATRÍCULA",
+     "DATA",
+     "SERVIÇO",
+     "TURNO",
+     "FUNÇÃO",
+     "UNIDADE"
+    ]
+   ],
+   "saida": "SERVICO"
+  },
+  {
+   "teste": "teste_p19.js",
+   "entrada": [
+    "SERVIÇO",
+    3,
+    [
+     "",
+     "MATRÍCULA",
+     "DATA",
+     "SERVIÇO",
+     "TURNO",
+     "FUNÇÃO"
+    ]
+   ],
+   "saida": "SERVICO"
+  },
+  {
+   "teste": "teste_p19.js",
+   "entrada": [
+    "SERVIÇOS",
+    1,
+    [
+     "ESCALA",
+     "SERVIÇOS",
+     "TÍTULO",
+     "MILITARES",
+     "DIAS"
+    ]
+   ],
+   "saida": "SERVICOS"
+  },
+  {
+   "teste": "teste_p19.js",
+   "entrada": [
+    "SEÇÃO",
+    3,
+    [
+     "MATRÍCULA",
+     "POSTO/GRAD",
+     "NOME DE GUERRA",
+     "SEÇÃO",
+     "MOTORISTA",
+     "CNH",
+     "VOLUNTÁRIO JES"
+    ]
+   ],
+   "saida": "SECAO"
+  },
+  {
+   "teste": "teste_p19.js",
+   "entrada": [
+    "SEÇÃO",
+    3,
+    [
+     "MATRÍCULA",
+     "POSTO/GRAD",
+     "NOME DE GUERRA",
+     "SEÇÃO",
+     "MOTORISTA",
+     "CNH"
+    ]
+   ],
+   "saida": "SECAO"
+  },
+  {
+   "teste": "teste_p19.js",
+   "entrada": [
+    "SEÇÃO",
+    3,
+    [
+     "MATRÍCULA",
+     "POSTO/GRAD",
+     "NOME DE GUERRA",
+     "SEÇÃO",
+     "MOTORISTA"
+    ]
+   ],
+   "saida": "SECAO"
+  },
+  {
+   "teste": "teste_p19.js",
+   "entrada": [
+    "TIPO DE SERVIÇO",
+    1,
+    [
+     "ID",
+     "TIPO DE SERVIÇO",
+     "SERVIÇO",
+     "TURNO",
+     "HORÁRIO INÍCIO",
+     "HORÁRIO FIM",
+     "ORIGEM"
+    ]
+   ],
+   "saida": "TIPODESERVICO"
+  },
+  {
+   "teste": "teste_p19.js",
+   "entrada": [
+    "TIPO DE SERVIÇO",
+    1,
+    [
+     "ID",
+     "TIPO DE SERVIÇO",
+     "SERVIÇO",
+     "TURNO",
+     "HORÁRIO INÍCIO",
+     "HORÁRIO FIM"
+    ]
+   ],
+   "saida": "TIPODESERVICO"
+  },
+  {
+   "teste": "teste_p19.js",
+   "entrada": [
+    "TIPOS DE SERVIÇO",
+    1,
+    [
+     "GUARNIÇÃO",
+     "TIPOS DE SERVIÇO",
+     "FUNÇÃO"
+    ]
+   ],
+   "saida": "TIPOSDESERVICO"
+  },
+  {
+   "teste": "teste_p19.js",
+   "entrada": [
+    "TURNO",
+    1,
+    [
+     "ESCALA",
+     "TURNO",
+     "UNIDADE",
+     "FUNÇÃO",
+     "VAGAS",
+     "EXIGE CNH"
+    ]
+   ],
+   "saida": "TURNO"
+  },
+  {
+   "teste": "teste_p19.js",
+   "entrada": [
+    "TURNO",
+    2,
+    [
+     "VIGÊNCIA (A PARTIR DE)",
+     "ESCALA",
+     "TURNO",
+     "GUARNIÇÃO"
+    ]
+   ],
+   "saida": "TURNO"
+  },
+  {
+   "teste": "teste_p19.js",
+   "entrada": [
+    "TURNO",
+    3,
+    [
+     "ID",
+     "TIPO DE SERVIÇO",
+     "SERVIÇO",
+     "TURNO",
+     "HORÁRIO INÍCIO",
+     "HORÁRIO FIM",
+     "ORIGEM"
+    ]
+   ],
+   "saida": "TURNO"
+  },
+  {
+   "teste": "teste_p19.js",
+   "entrada": [
+    "TURNO",
+    3,
+    [
+     "ID",
+     "TIPO DE SERVIÇO",
+     "SERVIÇO",
+     "TURNO",
+     "HORÁRIO INÍCIO",
+     "HORÁRIO FIM"
+    ]
+   ],
+   "saida": "TURNO"
+  },
+  {
+   "teste": "teste_p19.js",
+   "entrada": [
+    "TURNO",
+    4,
+    [
+     "",
+     "MATRÍCULA",
+     "DATA",
+     "SERVIÇO",
+     "TURNO",
+     "FUNÇÃO",
+     "UNIDADE"
+    ]
+   ],
+   "saida": "TURNO"
+  },
+  {
+   "teste": "teste_p19.js",
+   "entrada": [
+    "TURNO",
+    4,
+    [
+     "",
+     "MATRÍCULA",
+     "DATA",
+     "SERVIÇO",
+     "TURNO",
+     "FUNÇÃO"
+    ]
+   ],
+   "saida": "TURNO"
+  },
+  {
+   "teste": "teste_p19.js",
+   "entrada": [
+    "TÍTULO",
+    2,
+    [
+     "ESCALA",
+     "SERVIÇOS",
+     "TÍTULO",
+     "MILITARES",
+     "DIAS"
+    ]
+   ],
+   "saida": "TITULO"
+  },
+  {
+   "teste": "teste_p19.js",
+   "entrada": [
+    "UNIDADE",
+    2,
+    [
+     "ESCALA",
+     "TURNO",
+     "UNIDADE",
+     "FUNÇÃO",
+     "VAGAS",
+     "EXIGE CNH"
+    ]
+   ],
+   "saida": "UNIDADE"
+  },
+  {
+   "teste": "teste_p19.js",
+   "entrada": [
+    "UNIDADE",
+    6,
+    [
+     "",
+     "MATRÍCULA",
+     "DATA",
+     "SERVIÇO",
+     "TURNO",
+     "FUNÇÃO",
+     "UNIDADE"
+    ]
+   ],
+   "saida": "UNIDADE"
+  },
+  {
+   "teste": "teste_p19.js",
+   "entrada": [
+    "UTS"
+   ],
+   "saida": "UTS"
+  },
+  {
+   "teste": "teste_p19.js",
+   "entrada": [
+    "VAGAS",
+    4,
+    [
+     "ESCALA",
+     "TURNO",
+     "UNIDADE",
+     "FUNÇÃO",
+     "VAGAS",
+     "EXIGE CNH"
+    ]
+   ],
+   "saida": "VAGAS"
+  },
+  {
+   "teste": "teste_p19.js",
+   "entrada": [
+    "VIGÊNCIA (A PARTIR DE)",
+    0,
+    [
+     "VIGÊNCIA (A PARTIR DE)",
+     "ESCALA",
+     "TURNO",
+     "GUARNIÇÃO"
+    ]
+   ],
+   "saida": "VIGENCIAAPARTIRDE"
+  },
+  {
+   "teste": "teste_p19.js",
+   "entrada": [
+    "VOLUNTÁRIO JES",
+    6,
+    [
+     "MATRÍCULA",
+     "POSTO/GRAD",
+     "NOME DE GUERRA",
+     "SEÇÃO",
+     "MOTORISTA",
+     "CNH",
+     "VOLUNTÁRIO JES"
+    ]
+   ],
+   "saida": "VOLUNTARIOJES"
+  },
+  {
+   "teste": "teste_p19.js",
+   "entrada": [
+    "VOLUNTÁRIO JES"
+   ],
+   "saida": "VOLUNTARIOJES"
+  }
+ ]
+}

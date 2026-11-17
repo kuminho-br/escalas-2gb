@@ -1,0 +1,110 @@
+{
+ "funcao": "calcularCargaAdm_",
+ "casos": [
+  {
+   "teste": "teste_motor.js",
+   "entrada": [
+    {
+     "carga": 160,
+     "saldos": 0,
+     "horasSaldo": 12,
+     "horasTurnoAdm": 0,
+     "diasUteis": 19
+    }
+   ],
+   "saida": {
+    "carga": 160,
+    "horasSaldos": 0,
+    "horasNormais": 160,
+    "turnosAdm": 0,
+    "diasUteis": 19,
+    "cabe": true,
+    "saldosDemais": false
+   }
+  },
+  {
+   "teste": "teste_motor.js",
+   "entrada": [
+    {
+     "carga": 160,
+     "saldos": 5,
+     "horasSaldo": 12,
+     "horasTurnoAdm": 8,
+     "diasUteis": 19
+    }
+   ],
+   "saida": {
+    "carga": 160,
+    "horasSaldos": 60,
+    "horasNormais": 100,
+    "turnosAdm": 13,
+    "diasUteis": 19,
+    "cabe": true,
+    "saldosDemais": false
+   }
+  },
+  {
+   "teste": "teste_motor.js",
+   "entrada": [
+    {
+     "carga": 160,
+     "saldos": 6,
+     "horasSaldo": 12,
+     "horasTurnoAdm": 8,
+     "diasUteis": 19
+    }
+   ],
+   "saida": {
+    "carga": 160,
+    "horasSaldos": 72,
+    "horasNormais": 88,
+    "turnosAdm": 11,
+    "diasUteis": 19,
+    "cabe": true,
+    "saldosDemais": false
+   }
+  },
+  {
+   "teste": "teste_motor.js",
+   "entrada": [
+    {
+     "carga": 200,
+     "saldos": 0,
+     "horasSaldo": 12,
+     "horasTurnoAdm": 8,
+     "diasUteis": 19
+    }
+   ],
+   "saida": {
+    "carga": 200,
+    "horasSaldos": 0,
+    "horasNormais": 200,
+    "turnosAdm": 25,
+    "diasUteis": 19,
+    "cabe": false,
+    "saldosDemais": false
+   }
+  },
+  {
+   "teste": "teste_motor.js",
+   "entrada": [
+    {
+     "carga": 60,
+     "saldos": 6,
+     "horasSaldo": 12,
+     "horasTurnoAdm": 8,
+     "diasUteis": 19
+    }
+   ],
+   "saida": {
+    "carga": 60,
+    "horasSaldos": 72,
+    "horasNormais": 0,
+    "turnosAdm": 0,
+    "diasUteis": 19,
+    "cabe": true,
+    "saldosDemais": true
+   }
+  }
+ ]
+}

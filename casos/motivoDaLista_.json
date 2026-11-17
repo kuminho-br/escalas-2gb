@@ -1,0 +1,275 @@
+{
+ "funcao": "motivoDaLista_",
+ "casos": [
+  {
+   "teste": "teste_p16.js",
+   "entrada": [
+    {
+     "funcao": "CHEFE",
+     "unidade": "",
+     "exigeCnh": true,
+     "escalaTodos": false,
+     "candidatos": 3,
+     "motoristas": 1,
+     "habilitados": 3,
+     "exigida": [],
+     "temColunaCnh": true,
+     "cadastrada": false
+    }
+   ],
+   "saida": "Posto de condutor: a lista só traz quem está no quadro de motoristas (coluna MOTORISTA em MILITARES). O posto não tem guarnição (a aba GUARNIÇÕES POR ESCALA ainda está no formato antigo, com a UNIDADE vazia), então não há categoria a exigir. Converta a aba pelo painel Escalas de Serviço. 3 habilitado(s) neste turno."
+  },
+  {
+   "teste": "teste_p16.js",
+   "entrada": [
+    {
+     "funcao": "CHEFE",
+     "unidade": "AR",
+     "exigeCnh": false,
+     "escalaTodos": false,
+     "candidatos": 0,
+     "motoristas": 1,
+     "habilitados": 1,
+     "exigida": [],
+     "temColunaCnh": true
+    }
+   ],
+   "saida": "Sem lista: nenhum militar está escalado neste serviço, dia e turno. Escale alguém (Escala Automática ou Mostrar Grade Geral) e monte a grade de novo."
+  },
+  {
+   "teste": "teste_p16.js",
+   "entrada": [
+    {
+     "funcao": "CHEFE",
+     "unidade": "AR",
+     "exigeCnh": false,
+     "escalaTodos": false,
+     "candidatos": 3,
+     "motoristas": 1,
+     "habilitados": 1,
+     "exigida": [],
+     "temColunaCnh": true
+    }
+   ],
+   "saida": ""
+  },
+  {
+   "teste": "teste_p16.js",
+   "entrada": [
+    {
+     "funcao": "CHEFE",
+     "unidade": "AR",
+     "exigeCnh": false,
+     "escalaTodos": true,
+     "candidatos": 0,
+     "motoristas": 1,
+     "habilitados": 1,
+     "exigida": [],
+     "temColunaCnh": true
+    }
+   ],
+   "saida": "Sem lista: nenhum militar na aba MILITARES."
+  },
+  {
+   "teste": "teste_p16.js",
+   "entrada": [
+    {
+     "funcao": "CHEFE",
+     "unidade": "AR",
+     "exigeCnh": true,
+     "escalaTodos": false,
+     "candidatos": 0,
+     "motoristas": 0,
+     "habilitados": 0,
+     "exigida": [],
+     "temColunaCnh": true
+    }
+   ],
+   "saida": "Sem lista: nenhum militar está escalado neste serviço, dia e turno. Escale alguém (Escala Automática ou Mostrar Grade Geral) e monte a grade de novo. Posto de condutor: a lista só traz quem está no quadro de motoristas (coluna MOTORISTA em MILITARES)."
+  },
+  {
+   "teste": "teste_p16.js",
+   "entrada": [
+    {
+     "funcao": "CHEFE",
+     "unidade": "AR",
+     "exigeCnh": true,
+     "escalaTodos": false,
+     "candidatos": 3,
+     "motoristas": 1,
+     "habilitados": 2,
+     "exigida": [
+      "D"
+     ],
+     "temColunaCnh": true
+    }
+   ],
+   "saida": "Posto de condutor: a lista só traz quem está no quadro de motoristas (coluna MOTORISTA em MILITARES) e tem CNH D, exigida pela guarnição AR. 2 habilitado(s) neste turno."
+  },
+  {
+   "teste": "teste_p16.js",
+   "entrada": [
+    {
+     "funcao": "CHEFE",
+     "unidade": "AR",
+     "exigeCnh": true,
+     "escalaTodos": false,
+     "candidatos": 3,
+     "motoristas": 1,
+     "habilitados": 3,
+     "exigida": [],
+     "temColunaCnh": true,
+     "cadastrada": false
+    }
+   ],
+   "saida": "Posto de condutor: a lista só traz quem está no quadro de motoristas (coluna MOTORISTA em MILITARES). A guarnição \"AR\" do posto não está na aba GUARNIÇÕES: confira se o nome em GUARNIÇÕES POR ESCALA é igual à coluna GUARNIÇÃO do cadastro. Sem isso, nenhuma categoria de CNH é exigida aqui. 3 habilitado(s) neste turno."
+  },
+  {
+   "teste": "teste_p16.js",
+   "entrada": [
+    {
+     "funcao": "CHEFE",
+     "unidade": "AR",
+     "exigeCnh": true,
+     "escalaTodos": false,
+     "candidatos": 3,
+     "motoristas": 1,
+     "habilitados": 3,
+     "exigida": [],
+     "temColunaCnh": true,
+     "cadastrada": true
+    }
+   ],
+   "saida": "Posto de condutor: a lista só traz quem está no quadro de motoristas (coluna MOTORISTA em MILITARES). 3 habilitado(s) neste turno."
+  },
+  {
+   "teste": "teste_p16.js",
+   "entrada": [
+    {
+     "funcao": "CHEFE",
+     "unidade": "AR",
+     "exigeCnh": true,
+     "escalaTodos": false,
+     "candidatos": 4,
+     "motoristas": 0,
+     "habilitados": 0,
+     "exigida": [
+      "D"
+     ],
+     "temColunaCnh": true
+    }
+   ],
+   "saida": "Sem lista: dos 4 militares disponíveis neste turno, nenhum está marcado como motorista em MILITARES. Posto de condutor: a lista só traz quem está no quadro de motoristas (coluna MOTORISTA em MILITARES) e tem CNH D, exigida pela guarnição AR."
+  },
+  {
+   "teste": "teste_p16.js",
+   "entrada": [
+    {
+     "funcao": "CHEFE",
+     "unidade": "AR",
+     "exigeCnh": true,
+     "escalaTodos": false,
+     "candidatos": 4,
+     "motoristas": 2,
+     "habilitados": 0,
+     "exigida": [
+      "D"
+     ],
+     "temColunaCnh": false
+    }
+   ],
+   "saida": "Sem lista: dos 2 motorista(s) disponíveis neste turno, nenhum tem CNH D (a aba MILITARES não tem a coluna CNH, então ninguém tem categoria cadastrada). Posto de condutor: a lista só traz quem está no quadro de motoristas (coluna MOTORISTA em MILITARES) e tem CNH D, exigida pela guarnição AR."
+  },
+  {
+   "teste": "teste_p16.js",
+   "entrada": [
+    {
+     "funcao": "CHEFE",
+     "unidade": "AR",
+     "exigeCnh": true,
+     "escalaTodos": false,
+     "candidatos": 4,
+     "motoristas": 2,
+     "habilitados": 0,
+     "exigida": [
+      "D"
+     ],
+     "temColunaCnh": true
+    }
+   ],
+   "saida": "Sem lista: dos 2 motorista(s) disponíveis neste turno, nenhum tem CNH D. Posto de condutor: a lista só traz quem está no quadro de motoristas (coluna MOTORISTA em MILITARES) e tem CNH D, exigida pela guarnição AR."
+  },
+  {
+   "teste": "teste_p19.js",
+   "entrada": [
+    {
+     "funcao": "CHEFE",
+     "unidade": "ABT",
+     "exigeCnh": false,
+     "escalaTodos": false,
+     "candidatos": 0
+    }
+   ],
+   "saida": "Sem lista: nenhum militar está escalado neste serviço, dia e turno. Escale alguém (Escala Automática ou Mostrar Grade Geral) e monte a grade de novo."
+  },
+  {
+   "teste": "teste_p19.js",
+   "entrada": [
+    {
+     "funcao": "CHEFE",
+     "unidade": "ABT",
+     "exigeCnh": false,
+     "escalaTodos": false,
+     "candidatos": 2
+    }
+   ],
+   "saida": ""
+  },
+  {
+   "teste": "teste_p19.js",
+   "entrada": [
+    {
+     "funcao": "CHEFE",
+     "unidade": "AR",
+     "exigeCnh": false,
+     "escalaTodos": false,
+     "candidatos": 0
+    }
+   ],
+   "saida": "Sem lista: nenhum militar está escalado neste serviço, dia e turno. Escale alguém (Escala Automática ou Mostrar Grade Geral) e monte a grade de novo."
+  },
+  {
+   "teste": "teste_p19.js",
+   "entrada": [
+    {
+     "funcao": "CHEFE",
+     "unidade": "AR",
+     "exigeCnh": false,
+     "escalaTodos": false,
+     "candidatos": 2
+    }
+   ],
+   "saida": ""
+  },
+  {
+   "teste": "teste_p19.js",
+   "entrada": [
+    {
+     "funcao": "MOTORISTA",
+     "unidade": "UTI - PRONTO",
+     "exigeCnh": true,
+     "escalaTodos": false,
+     "candidatos": 3,
+     "motoristas": 2,
+     "habilitados": 0,
+     "exigida": [
+      "D"
+     ],
+     "temColunaCnh": true,
+     "cadastrada": true
+    }
+   ],
+   "saida": "Sem lista: dos 2 motorista(s) disponíveis neste turno, nenhum tem CNH D. Posto de condutor: a lista só traz quem está no quadro de motoristas (coluna MOTORISTA em MILITARES) e tem CNH D, exigida pela guarnição UTI - PRONTO."
+  }
+ ]
+}

@@ -6,12 +6,14 @@
     "node": ">=22"
   },
   "scripts": {
-    "test": "node scripts/testes-prototipo.mjs && pnpm -r --workspace-concurrency=1 --if-present test",
+    "test": "node scripts/testes-prototipo.mjs && node casos/reproduzir-prototipo.mjs && pnpm -r --workspace-concurrency=1 --if-present test",
     "test:prototipo": "node scripts/testes-prototipo.mjs",
     "typecheck": "pnpm -r --if-present typecheck",
     "build": "pnpm -r --if-present build",
     "dev": "pnpm --parallel --filter api --filter web dev",
-    "build:vercel": "node scripts/build-vercel.mjs && node scripts/testar-saida-vercel.mjs"
+    "build:vercel": "node scripts/build-vercel.mjs && node scripts/testar-saida-vercel.mjs",
+    "casos:gravar": "node casos/gravar.mjs",
+    "casos:prototipo": "node casos/reproduzir-prototipo.mjs"
   },
   "devDependencies": {
     "esbuild": "^0.28.2"

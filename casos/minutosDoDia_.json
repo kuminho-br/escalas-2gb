@@ -1,0 +1,54 @@
+{
+ "funcao": "minutosDoDia_",
+ "casos": [
+  {
+   "teste": "teste_motor.js",
+   "entrada": [
+    ""
+   ],
+   "saida": null
+  },
+  {
+   "teste": "teste_motor.js",
+   "entrada": [
+    "08:00"
+   ],
+   "saida": 480
+  },
+  {
+   "teste": "teste_motor.js",
+   "entrada": [
+    "20h"
+   ],
+   "saida": 1200
+  },
+  {
+   "teste": "teste_motor.js",
+   "entrada": [
+    "24:00"
+   ],
+   "saida": 0
+  },
+  {
+   "teste": "teste_motor.js",
+   "entrada": [
+    "25:00"
+   ],
+   "saida": null
+  },
+  {
+   "teste": "teste_motor.js",
+   "entrada": [
+    "7h30"
+   ],
+   "saida": 450
+  },
+  {
+   "teste": "teste_motor.js",
+   "entrada": [
+    "abc"
+   ],
+   "saida": null
+  }
+ ]
+}

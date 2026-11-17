@@ -1,0 +1,429 @@
+{
+ "funcao": "resolverParametros_",
+ "casos": [
+  {
+   "teste": "teste_motor.js",
+   "entrada": [
+    [],
+    "11/2026"
+   ],
+   "erro": "Mês inválido: use o formato aaaa-mm."
+  },
+  {
+   "teste": "teste_motor.js",
+   "entrada": [
+    [],
+    "2026-11"
+   ],
+   "saida": {
+    "valores": {
+     "CARGA_MENSAL_HORAS": 160,
+     "SALDOS_ADM_POR_MILITAR": 6,
+     "ADM_CUMPRE_CARGA": false,
+     "LINHAS_POR_MILITAR": 2,
+     "SECAO_PADRAO": "1ª SB"
+    },
+    "origem": {
+     "CARGA_MENSAL_HORAS": {
+      "vigencia": "",
+      "linha": 0,
+      "padrao": true
+     },
+     "SALDOS_ADM_POR_MILITAR": {
+      "vigencia": "",
+      "linha": 0,
+      "padrao": true
+     },
+     "ADM_CUMPRE_CARGA": {
+      "vigencia": "",
+      "linha": 0,
+      "padrao": true
+     },
+     "LINHAS_POR_MILITAR": {
+      "vigencia": "",
+      "linha": 0,
+      "padrao": true
+     },
+     "SECAO_PADRAO": {
+      "vigencia": "",
+      "linha": 0,
+      "padrao": true
+     }
+    },
+    "avisos": []
+   }
+  },
+  {
+   "teste": "teste_motor.js",
+   "entrada": [
+    [
+     {
+      "linha": 2,
+      "chave": "CARGA_MENSAL_HORAS",
+      "valor": "160",
+      "vigencia": ""
+     },
+     {
+      "linha": 3,
+      "chave": "CARGA_MENSAL_HORAS",
+      "valor": "150",
+      "vigencia": "2026-11"
+     },
+     {
+      "linha": 4,
+      "chave": "CARGA_MENSAL_HORAS",
+      "valor": "140",
+      "vigencia": "01/2027"
+     },
+     {
+      "linha": 5,
+      "chave": "carga mensal horas",
+      "valor": "145",
+      "vigencia": "2026-11"
+     },
+     {
+      "linha": 6,
+      "chave": "ADM_CUMPRE_CARGA",
+      "valor": "sim",
+      "vigencia": "2026-12"
+     },
+     {
+      "linha": 7,
+      "chave": "NAO_EXISTE",
+      "valor": "1",
+      "vigencia": ""
+     },
+     {
+      "linha": 8,
+      "chave": "SALDOS_ADM_POR_MILITAR",
+      "valor": "6",
+      "vigencia": "13/2026"
+     },
+     {
+      "linha": 9,
+      "chave": "SALDOS_ADM_POR_MILITAR",
+      "valor": "seis",
+      "vigencia": ""
+     },
+     {
+      "linha": 10,
+      "chave": "SECAO_PADRAO",
+      "valor": "2ª SB",
+      "vigencia": "2026-01"
+     }
+    ],
+    "2026-10"
+   ],
+   "saida": {
+    "valores": {
+     "CARGA_MENSAL_HORAS": 160,
+     "SALDOS_ADM_POR_MILITAR": 6,
+     "ADM_CUMPRE_CARGA": false,
+     "LINHAS_POR_MILITAR": 2,
+     "SECAO_PADRAO": "2ª SB"
+    },
+    "origem": {
+     "CARGA_MENSAL_HORAS": {
+      "vigencia": "",
+      "linha": 2,
+      "padrao": false
+     },
+     "SALDOS_ADM_POR_MILITAR": {
+      "vigencia": "",
+      "linha": 0,
+      "padrao": true
+     },
+     "ADM_CUMPRE_CARGA": {
+      "vigencia": "",
+      "linha": 0,
+      "padrao": true
+     },
+     "LINHAS_POR_MILITAR": {
+      "vigencia": "",
+      "linha": 0,
+      "padrao": true
+     },
+     "SECAO_PADRAO": {
+      "vigencia": "2026-01",
+      "linha": 10,
+      "padrao": false
+     }
+    },
+    "avisos": [
+     "Linha 7 de CONFIGURAÇÕES: a chave \"NAO_EXISTE\" não existe; ignorada.",
+     "Linha 8 de CONFIGURAÇÕES (SALDOS_ADM_POR_MILITAR): vigência \"13/2026\" inválida; ignorada.",
+     "Linha 9 de CONFIGURAÇÕES (SALDOS_ADM_POR_MILITAR): Use um número inteiro. Linha ignorada."
+    ]
+   }
+  },
+  {
+   "teste": "teste_motor.js",
+   "entrada": [
+    [
+     {
+      "linha": 2,
+      "chave": "CARGA_MENSAL_HORAS",
+      "valor": "160",
+      "vigencia": ""
+     },
+     {
+      "linha": 3,
+      "chave": "CARGA_MENSAL_HORAS",
+      "valor": "150",
+      "vigencia": "2026-11"
+     },
+     {
+      "linha": 4,
+      "chave": "CARGA_MENSAL_HORAS",
+      "valor": "140",
+      "vigencia": "01/2027"
+     },
+     {
+      "linha": 5,
+      "chave": "carga mensal horas",
+      "valor": "145",
+      "vigencia": "2026-11"
+     },
+     {
+      "linha": 6,
+      "chave": "ADM_CUMPRE_CARGA",
+      "valor": "sim",
+      "vigencia": "2026-12"
+     },
+     {
+      "linha": 7,
+      "chave": "NAO_EXISTE",
+      "valor": "1",
+      "vigencia": ""
+     },
+     {
+      "linha": 8,
+      "chave": "SALDOS_ADM_POR_MILITAR",
+      "valor": "6",
+      "vigencia": "13/2026"
+     },
+     {
+      "linha": 9,
+      "chave": "SALDOS_ADM_POR_MILITAR",
+      "valor": "seis",
+      "vigencia": ""
+     },
+     {
+      "linha": 10,
+      "chave": "SECAO_PADRAO",
+      "valor": "2ª SB",
+      "vigencia": "2026-01"
+     }
+    ],
+    "2026-11"
+   ],
+   "saida": {
+    "valores": {
+     "CARGA_MENSAL_HORAS": 145,
+     "SALDOS_ADM_POR_MILITAR": 6,
+     "ADM_CUMPRE_CARGA": false,
+     "LINHAS_POR_MILITAR": 2,
+     "SECAO_PADRAO": "2ª SB"
+    },
+    "origem": {
+     "CARGA_MENSAL_HORAS": {
+      "vigencia": "2026-11",
+      "linha": 5,
+      "padrao": false
+     },
+     "SALDOS_ADM_POR_MILITAR": {
+      "vigencia": "",
+      "linha": 0,
+      "padrao": true
+     },
+     "ADM_CUMPRE_CARGA": {
+      "vigencia": "",
+      "linha": 0,
+      "padrao": true
+     },
+     "LINHAS_POR_MILITAR": {
+      "vigencia": "",
+      "linha": 0,
+      "padrao": true
+     },
+     "SECAO_PADRAO": {
+      "vigencia": "2026-01",
+      "linha": 10,
+      "padrao": false
+     }
+    },
+    "avisos": [
+     "Linha 7 de CONFIGURAÇÕES: a chave \"NAO_EXISTE\" não existe; ignorada.",
+     "Linha 8 de CONFIGURAÇÕES (SALDOS_ADM_POR_MILITAR): vigência \"13/2026\" inválida; ignorada.",
+     "Linha 9 de CONFIGURAÇÕES (SALDOS_ADM_POR_MILITAR): Use um número inteiro. Linha ignorada."
+    ]
+   }
+  },
+  {
+   "teste": "teste_motor.js",
+   "entrada": [
+    [
+     {
+      "linha": 2,
+      "chave": "CARGA_MENSAL_HORAS",
+      "valor": "160",
+      "vigencia": ""
+     },
+     {
+      "linha": 3,
+      "chave": "CARGA_MENSAL_HORAS",
+      "valor": "150",
+      "vigencia": "2026-11"
+     },
+     {
+      "linha": 4,
+      "chave": "CARGA_MENSAL_HORAS",
+      "valor": "140",
+      "vigencia": "01/2027"
+     },
+     {
+      "linha": 5,
+      "chave": "carga mensal horas",
+      "valor": "145",
+      "vigencia": "2026-11"
+     },
+     {
+      "linha": 6,
+      "chave": "ADM_CUMPRE_CARGA",
+      "valor": "sim",
+      "vigencia": "2026-12"
+     },
+     {
+      "linha": 7,
+      "chave": "NAO_EXISTE",
+      "valor": "1",
+      "vigencia": ""
+     },
+     {
+      "linha": 8,
+      "chave": "SALDOS_ADM_POR_MILITAR",
+      "valor": "6",
+      "vigencia": "13/2026"
+     },
+     {
+      "linha": 9,
+      "chave": "SALDOS_ADM_POR_MILITAR",
+      "valor": "seis",
+      "vigencia": ""
+     },
+     {
+      "linha": 10,
+      "chave": "SECAO_PADRAO",
+      "valor": "2ª SB",
+      "vigencia": "2026-01"
+     }
+    ],
+    "2026-13"
+   ],
+   "erro": "Mês inválido: use o formato aaaa-mm."
+  },
+  {
+   "teste": "teste_motor.js",
+   "entrada": [
+    [
+     {
+      "linha": 2,
+      "chave": "CARGA_MENSAL_HORAS",
+      "valor": "160",
+      "vigencia": ""
+     },
+     {
+      "linha": 3,
+      "chave": "CARGA_MENSAL_HORAS",
+      "valor": "150",
+      "vigencia": "2026-11"
+     },
+     {
+      "linha": 4,
+      "chave": "CARGA_MENSAL_HORAS",
+      "valor": "140",
+      "vigencia": "01/2027"
+     },
+     {
+      "linha": 5,
+      "chave": "carga mensal horas",
+      "valor": "145",
+      "vigencia": "2026-11"
+     },
+     {
+      "linha": 6,
+      "chave": "ADM_CUMPRE_CARGA",
+      "valor": "sim",
+      "vigencia": "2026-12"
+     },
+     {
+      "linha": 7,
+      "chave": "NAO_EXISTE",
+      "valor": "1",
+      "vigencia": ""
+     },
+     {
+      "linha": 8,
+      "chave": "SALDOS_ADM_POR_MILITAR",
+      "valor": "6",
+      "vigencia": "13/2026"
+     },
+     {
+      "linha": 9,
+      "chave": "SALDOS_ADM_POR_MILITAR",
+      "valor": "seis",
+      "vigencia": ""
+     },
+     {
+      "linha": 10,
+      "chave": "SECAO_PADRAO",
+      "valor": "2ª SB",
+      "vigencia": "2026-01"
+     }
+    ],
+    "2027-01"
+   ],
+   "saida": {
+    "valores": {
+     "CARGA_MENSAL_HORAS": 140,
+     "SALDOS_ADM_POR_MILITAR": 6,
+     "ADM_CUMPRE_CARGA": true,
+     "LINHAS_POR_MILITAR": 2,
+     "SECAO_PADRAO": "2ª SB"
+    },
+    "origem": {
+     "CARGA_MENSAL_HORAS": {
+      "vigencia": "2027-01",
+      "linha": 4,
+      "padrao": false
+     },
+     "SALDOS_ADM_POR_MILITAR": {
+      "vigencia": "",
+      "linha": 0,
+      "padrao": true
+     },
+     "ADM_CUMPRE_CARGA": {
+      "vigencia": "2026-12",
+      "linha": 6,
+      "padrao": false
+     },
+     "LINHAS_POR_MILITAR": {
+      "vigencia": "",
+      "linha": 0,
+      "padrao": true
+     },
+     "SECAO_PADRAO": {
+      "vigencia": "2026-01",
+      "linha": 10,
+      "padrao": false
+     }
+    },
+    "avisos": [
+     "Linha 7 de CONFIGURAÇÕES: a chave \"NAO_EXISTE\" não existe; ignorada.",
+     "Linha 8 de CONFIGURAÇÕES (SALDOS_ADM_POR_MILITAR): vigência \"13/2026\" inválida; ignorada.",
+     "Linha 9 de CONFIGURAÇÕES (SALDOS_ADM_POR_MILITAR): Use um número inteiro. Linha ignorada."
+    ]
+   }
+  }
+ ]
+}

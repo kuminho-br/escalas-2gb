@@ -1,0 +1,241 @@
+{
+ "funcao": "categoriasCnh_",
+ "casos": [
+  {
+   "teste": "teste_p16.js",
+   "entrada": [
+    " ad "
+   ],
+   "saida": {
+    "categorias": [
+     "A",
+     "D"
+    ],
+    "invalidas": []
+   }
+  },
+  {
+   "teste": "teste_p16.js",
+   "entrada": [
+    ""
+   ],
+   "saida": {
+    "categorias": [],
+    "invalidas": []
+   }
+  },
+  {
+   "teste": "teste_p16.js",
+   "entrada": [
+    "-"
+   ],
+   "saida": {
+    "categorias": [],
+    "invalidas": []
+   }
+  },
+  {
+   "teste": "teste_p16.js",
+   "entrada": [
+    "A D"
+   ],
+   "saida": {
+    "categorias": [
+     "A",
+     "D"
+    ],
+    "invalidas": []
+   }
+  },
+  {
+   "teste": "teste_p16.js",
+   "entrada": [
+    "A, D"
+   ],
+   "saida": {
+    "categorias": [
+     "A",
+     "D"
+    ],
+    "invalidas": []
+   }
+  },
+  {
+   "teste": "teste_p16.js",
+   "entrada": [
+    "AB"
+   ],
+   "saida": {
+    "categorias": [
+     "A",
+     "B"
+    ],
+    "invalidas": []
+   }
+  },
+  {
+   "teste": "teste_p16.js",
+   "entrada": [
+    "AC"
+   ],
+   "saida": {
+    "categorias": [
+     "A",
+     "C"
+    ],
+    "invalidas": []
+   }
+  },
+  {
+   "teste": "teste_p16.js",
+   "entrada": [
+    "AD"
+   ],
+   "saida": {
+    "categorias": [
+     "A",
+     "D"
+    ],
+    "invalidas": []
+   }
+  },
+  {
+   "teste": "teste_p16.js",
+   "entrada": [
+    "AD, D"
+   ],
+   "saida": {
+    "categorias": [
+     "A",
+     "D"
+    ],
+    "invalidas": []
+   }
+  },
+  {
+   "teste": "teste_p16.js",
+   "entrada": [
+    "AD, D1"
+   ],
+   "saida": {
+    "categorias": [
+     "A",
+     "D"
+    ],
+    "invalidas": [
+     "D1"
+    ]
+   }
+  },
+  {
+   "teste": "teste_p16.js",
+   "entrada": [
+    "AE"
+   ],
+   "saida": {
+    "categorias": [
+     "A",
+     "E"
+    ],
+    "invalidas": []
+   }
+  },
+  {
+   "teste": "teste_p16.js",
+   "entrada": [
+    "AX"
+   ],
+   "saida": {
+    "categorias": [],
+    "invalidas": [
+     "AX"
+    ]
+   }
+  },
+  {
+   "teste": "teste_p16.js",
+   "entrada": [
+    "B"
+   ],
+   "saida": {
+    "categorias": [
+     "B"
+    ],
+    "invalidas": []
+   }
+  },
+  {
+   "teste": "teste_p16.js",
+   "entrada": [
+    "B/D"
+   ],
+   "saida": {
+    "categorias": [
+     "B",
+     "D"
+    ],
+    "invalidas": []
+   }
+  },
+  {
+   "teste": "teste_p16.js",
+   "entrada": [
+    "D"
+   ],
+   "saida": {
+    "categorias": [
+     "D"
+    ],
+    "invalidas": []
+   }
+  },
+  {
+   "teste": "teste_p16.js",
+   "entrada": [
+    "NÃO"
+   ],
+   "saida": {
+    "categorias": [],
+    "invalidas": [
+     "NÃO"
+    ]
+   }
+  },
+  {
+   "teste": "teste_p19.js",
+   "entrada": [
+    "A"
+   ],
+   "saida": {
+    "categorias": [
+     "A"
+    ],
+    "invalidas": []
+   }
+  },
+  {
+   "teste": "teste_p19.js",
+   "entrada": [
+    "C"
+   ],
+   "saida": {
+    "categorias": [
+     "C"
+    ],
+    "invalidas": []
+   }
+  },
+  {
+   "teste": "teste_p19.js",
+   "entrada": [
+    "E"
+   ],
+   "saida": {
+    "categorias": [
+     "E"
+    ],
+    "invalidas": []
+   }
+  }
+ ]
+}

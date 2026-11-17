@@ -1,0 +1,194 @@
+{
+ "funcao": "compararAntiguidade_",
+ "casos": [
+  {
+   "teste": "teste_p19.js",
+   "entrada": [
+    {
+     "mat": "1",
+     "m": {
+      "mat": "1",
+      "posto": "SD BM",
+      "nome": "ANA",
+      "antig": "",
+      "ordem": 0,
+      "motorista": false,
+      "cnh": []
+     },
+     "funcao": "",
+     "unidade": "AR"
+    },
+    {
+     "mat": "2",
+     "m": {
+      "mat": "2",
+      "posto": "ST BM",
+      "nome": "BIA",
+      "antig": "",
+      "ordem": 1,
+      "motorista": false,
+      "cnh": []
+     },
+     "funcao": "",
+     "unidade": "AR"
+    }
+   ],
+   "saida": 1
+  },
+  {
+   "teste": "teste_p19.js",
+   "entrada": [
+    {
+     "mat": "2",
+     "m": {
+      "mat": "2",
+      "posto": "ST BM",
+      "nome": "BIA",
+      "antig": "",
+      "ordem": 1
+     },
+     "funcao": "COZINHEIRO",
+     "unidade": "ABT"
+    },
+    {
+     "mat": "1",
+     "m": {
+      "mat": "1",
+      "posto": "SD BM",
+      "nome": "ANA",
+      "antig": "",
+      "ordem": 0
+     },
+     "funcao": "",
+     "unidade": "ABT"
+    }
+   ],
+   "saida": -1
+  },
+  {
+   "teste": "teste_p19.js",
+   "entrada": [
+    {
+     "mat": "9",
+     "funcao": "",
+     "unidade": "",
+     "fora": false
+    },
+    {
+     "mat": "4",
+     "m": {
+      "mat": "4",
+      "posto": "CB BM",
+      "nome": "DANI",
+      "antig": "",
+      "ordem": 3
+     },
+     "funcao": "",
+     "unidade": "",
+     "fora": false
+    }
+   ],
+   "saida": 1
+  },
+  {
+   "teste": "teste_p19.js",
+   "entrada": [
+    {
+     "mat": "w",
+     "m": {
+      "posto": "SD",
+      "antig": "",
+      "ordem": 0
+     }
+    },
+    {
+     "mat": "x",
+     "m": {
+      "posto": "SD",
+      "antig": "",
+      "ordem": 1
+     }
+    }
+   ],
+   "saida": -1
+  },
+  {
+   "teste": "teste_p19.js",
+   "entrada": [
+    {
+     "mat": "w",
+     "m": {
+      "posto": "SD",
+      "antig": "",
+      "ordem": 0
+     }
+    },
+    {
+     "mat": "y",
+     "m": {
+      "posto": "SD",
+      "antig": 3,
+      "ordem": 9
+     }
+    }
+   ],
+   "saida": 1
+  },
+  {
+   "teste": "teste_p19.js",
+   "entrada": [
+    {
+     "mat": "y",
+     "m": {
+      "posto": "SD",
+      "antig": 3,
+      "ordem": 9
+     }
+    },
+    {
+     "mat": "x",
+     "m": {
+      "posto": "SD",
+      "antig": "",
+      "ordem": 1
+     }
+    }
+   ],
+   "saida": -1
+  },
+  {
+   "teste": "teste_p19.js",
+   "entrada": [
+    {
+     "mat": "y",
+     "m": {
+      "posto": "SD",
+      "antig": 3,
+      "ordem": 9
+     }
+    },
+    {
+     "mat": "z"
+    }
+   ],
+   "saida": -1
+  },
+  {
+   "teste": "teste_p19.js",
+   "entrada": [
+    {
+     "mat": "z"
+    },
+    {
+     "mat": "x",
+     "m": {
+      "posto": "SD",
+      "antig": "",
+      "ordem": 1
+     }
+    }
+   ],
+   "saida": 1
+  }
+ ]
+}

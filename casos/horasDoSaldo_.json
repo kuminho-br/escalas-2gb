@@ -1,0 +1,39 @@
+{
+ "funcao": "horasDoSaldo_",
+ "casos": [
+  {
+   "teste": "teste_motor.js",
+   "entrada": [
+    {
+     "Pronto|A": {
+      "dur": 720
+     },
+     "saldo|B": {
+      "dur": 480
+     },
+     "Saldo|A": {
+      "dur": 600
+     }
+    }
+   ],
+   "saida": {
+    "horas": 10,
+    "achou": true
+   }
+  },
+  {
+   "teste": "teste_motor.js",
+   "entrada": [
+    {
+     "Pronto|A": {
+      "dur": 720
+     }
+    }
+   ],
+   "saida": {
+    "horas": 12,
+    "achou": false
+   }
+  }
+ ]
+}

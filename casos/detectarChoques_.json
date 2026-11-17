@@ -1,0 +1,1623 @@
+{
+ "funcao": "detectarChoques_",
+ "casos": [
+  {
+   "teste": "teste_cotas.js",
+   "entrada": [
+    [
+     {
+      "mat": "m09",
+      "dia": "2026-11-01",
+      "servico": "PE Seguro",
+      "turno": "A"
+     },
+     {
+      "mat": "m01",
+      "dia": "2026-11-01",
+      "servico": "PE Seguro",
+      "turno": "A"
+     },
+     {
+      "mat": "m02",
+      "dia": "2026-11-01",
+      "servico": "PE Seguro",
+      "turno": "B"
+     },
+     {
+      "mat": "m03",
+      "dia": "2026-11-01",
+      "servico": "PE Seguro",
+      "turno": "B"
+     },
+     {
+      "mat": "m04",
+      "dia": "2026-11-01",
+      "servico": "PE Seguro",
+      "turno": "C"
+     },
+     {
+      "mat": "m05",
+      "dia": "2026-11-01",
+      "servico": "PE Seguro",
+      "turno": "C"
+     }
+    ],
+    {
+     "Pronto|A": {
+      "ini": 480,
+      "fim": 1200,
+      "dur": 720
+     },
+     "Pronto|B": {
+      "ini": 1200,
+      "fim": 480,
+      "dur": 720
+     },
+     "Adm|A": {
+      "ini": 480,
+      "fim": 960,
+      "dur": 480
+     },
+     "JES|A": {
+      "ini": 480,
+      "fim": 1200,
+      "dur": 720
+     },
+     "JES|B": {
+      "ini": 1200,
+      "fim": 480,
+      "dur": 720
+     },
+     "Bioma|A": {
+      "ini": 0,
+      "fim": 480,
+      "dur": 480
+     },
+     "Bioma|B": {
+      "ini": 480,
+      "fim": 960,
+      "dur": 480
+     },
+     "Bioma|C": {
+      "ini": 960,
+      "fim": 0,
+      "dur": 480
+     },
+     "PE Seguro|A": {
+      "ini": 0,
+      "fim": 480,
+      "dur": 480
+     },
+     "PE Seguro|B": {
+      "ini": 480,
+      "fim": 960,
+      "dur": 480
+     },
+     "PE Seguro|C": {
+      "ini": 960,
+      "fim": 0,
+      "dur": 480
+     },
+     "Defensoria|A": {
+      "ini": 420,
+      "fim": 1140,
+      "dur": 720
+     }
+    },
+    {}
+   ],
+   "saida": {
+    "choques": [],
+    "semHorario": []
+   }
+  },
+  {
+   "teste": "teste_p13.js",
+   "entrada": [
+    [
+     {
+      "mat": "M1",
+      "dia": "2026-11-06",
+      "servico": "Bioma",
+      "turno": "A"
+     },
+     {
+      "mat": "M1",
+      "dia": "2026-11-06",
+      "servico": "Pronto",
+      "turno": "A"
+     }
+    ],
+    {
+     "Pronto|A": {
+      "ini": 480,
+      "fim": 1200,
+      "dur": 720
+     },
+     "Pronto|B": {
+      "ini": 1200,
+      "fim": 480,
+      "dur": 720
+     },
+     "JES|A": {
+      "ini": 480,
+      "fim": 1200,
+      "dur": 720
+     },
+     "JES|B": {
+      "ini": 1200,
+      "fim": 480,
+      "dur": 720
+     },
+     "Bioma|A": {
+      "ini": 0,
+      "fim": 480,
+      "dur": 480
+     },
+     "Bioma|B": {
+      "ini": 480,
+      "fim": 960,
+      "dur": 480
+     },
+     "Bioma|C": {
+      "ini": 960,
+      "fim": 0,
+      "dur": 480
+     },
+     "PE Seguro|A": {
+      "ini": 0,
+      "fim": 480,
+      "dur": 480
+     },
+     "PE Seguro|B": {
+      "ini": 480,
+      "fim": 960,
+      "dur": 480
+     },
+     "PE Seguro|C": {
+      "ini": 960,
+      "fim": 0,
+      "dur": 480
+     },
+     "Defensoria|A": {
+      "ini": 420,
+      "fim": 1140,
+      "dur": 720
+     },
+     "Adm|A": {
+      "ini": 480,
+      "fim": 960,
+      "dur": 480
+     }
+    },
+    {}
+   ],
+   "saida": {
+    "choques": [],
+    "semHorario": []
+   }
+  },
+  {
+   "teste": "teste_p13.js",
+   "entrada": [
+    [
+     {
+      "mat": "M1",
+      "dia": "2026-11-06",
+      "servico": "Pronto",
+      "turno": "A"
+     },
+     {
+      "mat": "M1",
+      "dia": "2026-11-06",
+      "servico": "JES",
+      "turno": "B"
+     }
+    ],
+    {
+     "Pronto|A": {
+      "ini": 480,
+      "fim": 1200,
+      "dur": 720
+     },
+     "Pronto|B": {
+      "ini": 1200,
+      "fim": 480,
+      "dur": 720
+     },
+     "JES|A": {
+      "ini": 480,
+      "fim": 1200,
+      "dur": 720
+     },
+     "JES|B": {
+      "ini": 1200,
+      "fim": 480,
+      "dur": 720
+     },
+     "Bioma|A": {
+      "ini": 0,
+      "fim": 480,
+      "dur": 480
+     },
+     "Bioma|B": {
+      "ini": 480,
+      "fim": 960,
+      "dur": 480
+     },
+     "Bioma|C": {
+      "ini": 960,
+      "fim": 0,
+      "dur": 480
+     },
+     "PE Seguro|A": {
+      "ini": 0,
+      "fim": 480,
+      "dur": 480
+     },
+     "PE Seguro|B": {
+      "ini": 480,
+      "fim": 960,
+      "dur": 480
+     },
+     "PE Seguro|C": {
+      "ini": 960,
+      "fim": 0,
+      "dur": 480
+     },
+     "Defensoria|A": {
+      "ini": 420,
+      "fim": 1140,
+      "dur": 720
+     },
+     "Adm|A": {
+      "ini": 480,
+      "fim": 960,
+      "dur": 480
+     }
+    },
+    {}
+   ],
+   "saida": {
+    "choques": [],
+    "semHorario": []
+   }
+  },
+  {
+   "teste": "teste_p13.js",
+   "entrada": [
+    [
+     {
+      "mat": "M1",
+      "dia": "2026-11-07",
+      "servico": "Defensoria",
+      "turno": "A"
+     },
+     {
+      "mat": "M1",
+      "dia": "2026-11-07",
+      "servico": "PE Seguro",
+      "turno": "B"
+     }
+    ],
+    {
+     "Pronto|A": {
+      "ini": 480,
+      "fim": 1200,
+      "dur": 720
+     },
+     "Pronto|B": {
+      "ini": 1200,
+      "fim": 480,
+      "dur": 720
+     },
+     "JES|A": {
+      "ini": 480,
+      "fim": 1200,
+      "dur": 720
+     },
+     "JES|B": {
+      "ini": 1200,
+      "fim": 480,
+      "dur": 720
+     },
+     "Bioma|A": {
+      "ini": 0,
+      "fim": 480,
+      "dur": 480
+     },
+     "Bioma|B": {
+      "ini": 480,
+      "fim": 960,
+      "dur": 480
+     },
+     "Bioma|C": {
+      "ini": 960,
+      "fim": 0,
+      "dur": 480
+     },
+     "PE Seguro|A": {
+      "ini": 0,
+      "fim": 480,
+      "dur": 480
+     },
+     "PE Seguro|B": {
+      "ini": 480,
+      "fim": 960,
+      "dur": 480
+     },
+     "PE Seguro|C": {
+      "ini": 960,
+      "fim": 0,
+      "dur": 480
+     },
+     "Defensoria|A": {
+      "ini": 420,
+      "fim": 1140,
+      "dur": 720
+     },
+     "Adm|A": {
+      "ini": 480,
+      "fim": 960,
+      "dur": 480
+     }
+    },
+    {}
+   ],
+   "saida": {
+    "choques": [
+     {
+      "mat": "M1",
+      "tipo": "sobreposicao",
+      "a": {
+       "dia": "2026-11-07",
+       "turno": "A",
+       "servico": "Defensoria",
+       "chave": "M1|2026-11-07|Defensoria|A",
+       "implicito": false
+      },
+      "b": {
+       "dia": "2026-11-07",
+       "turno": "B",
+       "servico": "PE Seguro",
+       "chave": "M1|2026-11-07|PE Seguro|B",
+       "implicito": false
+      },
+      "minutos": 480
+     }
+    ],
+    "semHorario": []
+   }
+  },
+  {
+   "teste": "teste_p13.js",
+   "entrada": [
+    [
+     {
+      "mat": "M1",
+      "dia": "2026-11-07",
+      "servico": "JES",
+      "turno": "B"
+     },
+     {
+      "mat": "M1",
+      "dia": "2026-11-08",
+      "servico": "Pronto",
+      "turno": "A"
+     }
+    ],
+    {
+     "Pronto|A": {
+      "ini": 480,
+      "fim": 1200,
+      "dur": 720
+     },
+     "Pronto|B": {
+      "ini": 1200,
+      "fim": 480,
+      "dur": 720
+     },
+     "JES|A": {
+      "ini": 480,
+      "fim": 1200,
+      "dur": 720
+     },
+     "JES|B": {
+      "ini": 1200,
+      "fim": 480,
+      "dur": 720
+     },
+     "Bioma|A": {
+      "ini": 0,
+      "fim": 480,
+      "dur": 480
+     },
+     "Bioma|B": {
+      "ini": 480,
+      "fim": 960,
+      "dur": 480
+     },
+     "Bioma|C": {
+      "ini": 960,
+      "fim": 0,
+      "dur": 480
+     },
+     "PE Seguro|A": {
+      "ini": 0,
+      "fim": 480,
+      "dur": 480
+     },
+     "PE Seguro|B": {
+      "ini": 480,
+      "fim": 960,
+      "dur": 480
+     },
+     "PE Seguro|C": {
+      "ini": 960,
+      "fim": 0,
+      "dur": 480
+     },
+     "Defensoria|A": {
+      "ini": 420,
+      "fim": 1140,
+      "dur": 720
+     },
+     "Adm|A": {
+      "ini": 480,
+      "fim": 960,
+      "dur": 480
+     }
+    },
+    {}
+   ],
+   "saida": {
+    "choques": [
+     {
+      "mat": "M1",
+      "tipo": "emenda",
+      "a": {
+       "dia": "2026-11-07",
+       "turno": "B",
+       "servico": "JES",
+       "chave": "M1|2026-11-07|JES|B",
+       "implicito": false
+      },
+      "b": {
+       "dia": "2026-11-08",
+       "turno": "A",
+       "servico": "Pronto",
+       "chave": "M1|2026-11-08|Pronto|A",
+       "implicito": false
+      },
+      "minutos": 0
+     }
+    ],
+    "semHorario": []
+   }
+  },
+  {
+   "teste": "teste_p13.js",
+   "entrada": [
+    [
+     {
+      "mat": "M1",
+      "dia": "2026-11-14",
+      "turno": "A",
+      "servico": "JES"
+     }
+    ],
+    {
+     "Pronto|A": {
+      "ini": 480,
+      "fim": 1200,
+      "dur": 720
+     },
+     "Pronto|B": {
+      "ini": 1200,
+      "fim": 480,
+      "dur": 720
+     },
+     "JES|A": {
+      "ini": 480,
+      "fim": 1200,
+      "dur": 720
+     },
+     "JES|B": {
+      "ini": 1200,
+      "fim": 480,
+      "dur": 720
+     },
+     "Bioma|A": {
+      "ini": 0,
+      "fim": 480,
+      "dur": 480
+     },
+     "Bioma|B": {
+      "ini": 480,
+      "fim": 960,
+      "dur": 480
+     },
+     "Bioma|C": {
+      "ini": 960,
+      "fim": 0,
+      "dur": 480
+     },
+     "PE Seguro|A": {
+      "ini": 0,
+      "fim": 480,
+      "dur": 480
+     },
+     "PE Seguro|B": {
+      "ini": 480,
+      "fim": 960,
+      "dur": 480
+     },
+     "PE Seguro|C": {
+      "ini": 960,
+      "fim": 0,
+      "dur": 480
+     },
+     "Defensoria|A": {
+      "ini": 420,
+      "fim": 1140,
+      "dur": 720
+     },
+     "Adm|A": {
+      "ini": 480,
+      "fim": 960,
+      "dur": 480
+     }
+    },
+    {}
+   ],
+   "saida": {
+    "choques": [],
+    "semHorario": []
+   }
+  },
+  {
+   "teste": "teste_p15.js",
+   "entrada": [
+    [
+     {
+      "mat": "M3",
+      "dia": "2026-11-10",
+      "turno": "A",
+      "servico": "Pronto",
+      "implicito": false
+     },
+     {
+      "mat": "M4",
+      "dia": "2026-11-10",
+      "turno": "B",
+      "servico": "Bioma",
+      "implicito": false
+     },
+     {
+      "mat": "M1",
+      "dia": "2026-11-10",
+      "turno": "A",
+      "servico": "Pronto"
+     },
+     {
+      "mat": "M3",
+      "dia": "2026-11-10",
+      "turno": "B",
+      "servico": "Bioma"
+     },
+     {
+      "mat": "M4",
+      "dia": "2026-11-10",
+      "turno": "C",
+      "servico": "PE Seguro"
+     }
+    ],
+    {
+     "Pronto|A": {
+      "ini": 480,
+      "fim": 1200,
+      "dur": 720
+     },
+     "Bioma|A": {
+      "ini": 0,
+      "fim": 480,
+      "dur": 480
+     },
+     "Bioma|B": {
+      "ini": 480,
+      "fim": 960,
+      "dur": 480
+     },
+     "PE Seguro|C": {
+      "ini": 960,
+      "fim": 0,
+      "dur": 480
+     }
+    },
+    {
+     "tipos": {
+      "Bioma": "Diária",
+      "PE Seguro": "Diária",
+      "Pronto": "Ordinário"
+     }
+    }
+   ],
+   "saida": {
+    "choques": [
+     {
+      "mat": "M3",
+      "tipo": "sobreposicao",
+      "a": {
+       "dia": "2026-11-10",
+       "turno": "B",
+       "servico": "Bioma",
+       "chave": "M3|2026-11-10|Bioma|B",
+       "implicito": false
+      },
+      "b": {
+       "dia": "2026-11-10",
+       "turno": "A",
+       "servico": "Pronto",
+       "chave": "M3|2026-11-10|Pronto|A",
+       "implicito": false
+      },
+      "minutos": 480
+     }
+    ],
+    "semHorario": []
+   }
+  },
+  {
+   "teste": "teste_p15.js",
+   "entrada": [
+    [
+     {
+      "mat": "M3",
+      "dia": "2026-11-10",
+      "turno": "A",
+      "servico": "Pronto",
+      "implicito": false
+     },
+     {
+      "mat": "M4",
+      "dia": "2026-11-10",
+      "turno": "B",
+      "servico": "Bioma",
+      "implicito": false
+     },
+     {
+      "mat": "M3",
+      "dia": "2026-11-10",
+      "turno": "B",
+      "servico": "Bioma"
+     },
+     {
+      "mat": "M4",
+      "dia": "2026-11-10",
+      "turno": "C",
+      "servico": "PE Seguro"
+     }
+    ],
+    {
+     "Pronto|A": {
+      "ini": 480,
+      "fim": 1200,
+      "dur": 720
+     },
+     "Bioma|A": {
+      "ini": 0,
+      "fim": 480,
+      "dur": 480
+     },
+     "Bioma|B": {
+      "ini": 480,
+      "fim": 960,
+      "dur": 480
+     },
+     "PE Seguro|C": {
+      "ini": 960,
+      "fim": 0,
+      "dur": 480
+     }
+    },
+    {
+     "tipos": {
+      "Bioma": "Diária",
+      "PE Seguro": "Diária",
+      "Pronto": "Ordinário"
+     }
+    }
+   ],
+   "saida": {
+    "choques": [
+     {
+      "mat": "M3",
+      "tipo": "sobreposicao",
+      "a": {
+       "dia": "2026-11-10",
+       "turno": "B",
+       "servico": "Bioma",
+       "chave": "M3|2026-11-10|Bioma|B",
+       "implicito": false
+      },
+      "b": {
+       "dia": "2026-11-10",
+       "turno": "A",
+       "servico": "Pronto",
+       "chave": "M3|2026-11-10|Pronto|A",
+       "implicito": false
+      },
+      "minutos": 480
+     }
+    ],
+    "semHorario": []
+   }
+  },
+  {
+   "teste": "teste_p18.js",
+   "entrada": [
+    [
+     {
+      "mat": "990170-1",
+      "dia": "2026-10-06",
+      "turno": "A",
+      "servico": "Adm",
+      "implicito": true
+     },
+     {
+      "mat": "990170-1",
+      "dia": "2026-10-06",
+      "servico": "Bioma",
+      "turno": "A"
+     }
+    ],
+    {
+     "Pronto|A": {
+      "ini": 480,
+      "fim": 1200,
+      "dur": 720
+     },
+     "Pronto|B": {
+      "ini": 1200,
+      "fim": 480,
+      "dur": 720
+     },
+     "Adm|A": {
+      "ini": 480,
+      "fim": 960,
+      "dur": 480
+     },
+     "JES|A": {
+      "ini": 480,
+      "fim": 1200,
+      "dur": 720
+     },
+     "JES|B": {
+      "ini": 1200,
+      "fim": 480,
+      "dur": 720
+     },
+     "Defensoria|A": {
+      "ini": 420,
+      "fim": 1140,
+      "dur": 720
+     },
+     "Bioma|A": {
+      "ini": 360,
+      "fim": 1080,
+      "dur": 720
+     },
+     "PE Seguro|A": {
+      "ini": 480,
+      "fim": 1200,
+      "dur": 720
+     },
+     "Saldo|A": {
+      "ini": 480,
+      "fim": 1200,
+      "dur": 720
+     }
+    },
+    {
+     "mes": "2026-10",
+     "tipos": {
+      "Pronto": "Ordinário",
+      "Adm": "Ordinário",
+      "Saldo": "Ordinário",
+      "JES": "PJES",
+      "Defensoria": "PJES",
+      "CPRH": "PJES",
+      "Bioma": "Diária",
+      "PE Seguro": "Diária",
+      "Eleições": "Diária"
+     }
+    }
+   ],
+   "saida": {
+    "choques": [
+     {
+      "mat": "990170-1",
+      "tipo": "expediente",
+      "a": {
+       "dia": "2026-10-06",
+       "turno": "A",
+       "servico": "Bioma",
+       "chave": "990170-1|2026-10-06|Bioma|A",
+       "implicito": false
+      },
+      "b": {
+       "dia": "2026-10-06",
+       "turno": "A",
+       "servico": "Adm",
+       "chave": "990170-1|2026-10-06|Adm|A|expediente",
+       "implicito": true
+      },
+      "minutos": 480
+     }
+    ],
+    "semHorario": []
+   }
+  },
+  {
+   "teste": "teste_p18.js",
+   "entrada": [
+    [
+     {
+      "mat": "990170-1",
+      "dia": "2026-10-06",
+      "turno": "A",
+      "servico": "Adm",
+      "implicito": true
+     },
+     {
+      "mat": "990170-1",
+      "dia": "2026-10-06",
+      "servico": "Defensoria",
+      "turno": "A"
+     }
+    ],
+    {
+     "Pronto|A": {
+      "ini": 480,
+      "fim": 1200,
+      "dur": 720
+     },
+     "Pronto|B": {
+      "ini": 1200,
+      "fim": 480,
+      "dur": 720
+     },
+     "Adm|A": {
+      "ini": 480,
+      "fim": 960,
+      "dur": 480
+     },
+     "JES|A": {
+      "ini": 480,
+      "fim": 1200,
+      "dur": 720
+     },
+     "JES|B": {
+      "ini": 1200,
+      "fim": 480,
+      "dur": 720
+     },
+     "Defensoria|A": {
+      "ini": 420,
+      "fim": 1140,
+      "dur": 720
+     },
+     "Bioma|A": {
+      "ini": 360,
+      "fim": 1080,
+      "dur": 720
+     },
+     "PE Seguro|A": {
+      "ini": 480,
+      "fim": 1200,
+      "dur": 720
+     },
+     "Saldo|A": {
+      "ini": 480,
+      "fim": 1200,
+      "dur": 720
+     }
+    },
+    {
+     "mes": "2026-10",
+     "tipos": {
+      "Pronto": "Ordinário",
+      "Adm": "Ordinário",
+      "Saldo": "Ordinário",
+      "JES": "PJES",
+      "Defensoria": "PJES",
+      "CPRH": "PJES",
+      "Bioma": "Diária",
+      "PE Seguro": "Diária",
+      "Eleições": "Diária"
+     }
+    }
+   ],
+   "saida": {
+    "choques": [],
+    "semHorario": []
+   }
+  },
+  {
+   "teste": "teste_p18.js",
+   "entrada": [
+    [
+     {
+      "mat": "990170-1",
+      "dia": "2026-10-06",
+      "turno": "A",
+      "servico": "Adm",
+      "implicito": true
+     },
+     {
+      "mat": "990170-1",
+      "dia": "2026-10-06",
+      "servico": "JES",
+      "turno": "A"
+     }
+    ],
+    {
+     "Pronto|A": {
+      "ini": 480,
+      "fim": 1200,
+      "dur": 720
+     },
+     "Pronto|B": {
+      "ini": 1200,
+      "fim": 480,
+      "dur": 720
+     },
+     "Adm|A": {
+      "ini": 480,
+      "fim": 960,
+      "dur": 480
+     },
+     "JES|A": {
+      "ini": 480,
+      "fim": 1200,
+      "dur": 720
+     },
+     "JES|B": {
+      "ini": 1200,
+      "fim": 480,
+      "dur": 720
+     },
+     "Defensoria|A": {
+      "ini": 420,
+      "fim": 1140,
+      "dur": 720
+     },
+     "Bioma|A": {
+      "ini": 360,
+      "fim": 1080,
+      "dur": 720
+     },
+     "PE Seguro|A": {
+      "ini": 480,
+      "fim": 1200,
+      "dur": 720
+     },
+     "Saldo|A": {
+      "ini": 480,
+      "fim": 1200,
+      "dur": 720
+     }
+    },
+    {
+     "mes": "2026-10",
+     "tipos": {
+      "Pronto": "Ordinário",
+      "Adm": "Ordinário",
+      "Saldo": "Ordinário",
+      "JES": "PJES",
+      "Defensoria": "PJES",
+      "CPRH": "PJES",
+      "Bioma": "Diária",
+      "PE Seguro": "Diária",
+      "Eleições": "Diária"
+     }
+    }
+   ],
+   "saida": {
+    "choques": [],
+    "semHorario": []
+   }
+  },
+  {
+   "teste": "teste_p18.js",
+   "entrada": [
+    [
+     {
+      "mat": "990170-1",
+      "dia": "2026-10-06",
+      "turno": "A",
+      "servico": "Adm",
+      "implicito": true
+     },
+     {
+      "mat": "990170-1",
+      "dia": "2026-10-06",
+      "servico": "JES",
+      "turno": "A"
+     }
+    ],
+    {
+     "Pronto|A": {
+      "ini": 480,
+      "fim": 1200,
+      "dur": 720
+     },
+     "Pronto|B": {
+      "ini": 1200,
+      "fim": 480,
+      "dur": 720
+     },
+     "Adm|A": {
+      "ini": 480,
+      "fim": 960,
+      "dur": 480
+     },
+     "JES|A": {
+      "ini": 480,
+      "fim": 1200,
+      "dur": 720
+     },
+     "JES|B": {
+      "ini": 1200,
+      "fim": 480,
+      "dur": 720
+     },
+     "Defensoria|A": {
+      "ini": 420,
+      "fim": 1140,
+      "dur": 720
+     },
+     "Bioma|A": {
+      "ini": 360,
+      "fim": 1080,
+      "dur": 720
+     },
+     "PE Seguro|A": {
+      "ini": 480,
+      "fim": 1200,
+      "dur": 720
+     },
+     "Saldo|A": {
+      "ini": 480,
+      "fim": 1200,
+      "dur": 720
+     }
+    },
+    {}
+   ],
+   "saida": {
+    "choques": [
+     {
+      "mat": "990170-1",
+      "tipo": "expediente",
+      "a": {
+       "dia": "2026-10-06",
+       "turno": "A",
+       "servico": "Adm",
+       "chave": "990170-1|2026-10-06|Adm|A|expediente",
+       "implicito": true
+      },
+      "b": {
+       "dia": "2026-10-06",
+       "turno": "A",
+       "servico": "JES",
+       "chave": "990170-1|2026-10-06|JES|A",
+       "implicito": false
+      },
+      "minutos": 480
+     }
+    ],
+    "semHorario": []
+   }
+  },
+  {
+   "teste": "teste_p18.js",
+   "entrada": [
+    [
+     {
+      "mat": "990170-1",
+      "dia": "2026-10-06",
+      "turno": "A",
+      "servico": "Adm",
+      "implicito": true
+     },
+     {
+      "mat": "990170-1",
+      "dia": "2026-10-06",
+      "servico": "PE Seguro",
+      "turno": "A"
+     }
+    ],
+    {
+     "Pronto|A": {
+      "ini": 480,
+      "fim": 1200,
+      "dur": 720
+     },
+     "Pronto|B": {
+      "ini": 1200,
+      "fim": 480,
+      "dur": 720
+     },
+     "Adm|A": {
+      "ini": 480,
+      "fim": 960,
+      "dur": 480
+     },
+     "JES|A": {
+      "ini": 480,
+      "fim": 1200,
+      "dur": 720
+     },
+     "JES|B": {
+      "ini": 1200,
+      "fim": 480,
+      "dur": 720
+     },
+     "Defensoria|A": {
+      "ini": 420,
+      "fim": 1140,
+      "dur": 720
+     },
+     "Bioma|A": {
+      "ini": 360,
+      "fim": 1080,
+      "dur": 720
+     },
+     "PE Seguro|A": {
+      "ini": 480,
+      "fim": 1200,
+      "dur": 720
+     },
+     "Saldo|A": {
+      "ini": 480,
+      "fim": 1200,
+      "dur": 720
+     }
+    },
+    {
+     "mes": "2026-10",
+     "tipos": {
+      "Pronto": "Ordinário",
+      "Adm": "Ordinário",
+      "Saldo": "Ordinário",
+      "JES": "PJES",
+      "Defensoria": "PJES",
+      "CPRH": "PJES",
+      "Bioma": "Diária",
+      "PE Seguro": "Diária",
+      "Eleições": "Diária"
+     }
+    }
+   ],
+   "saida": {
+    "choques": [
+     {
+      "mat": "990170-1",
+      "tipo": "expediente",
+      "a": {
+       "dia": "2026-10-06",
+       "turno": "A",
+       "servico": "Adm",
+       "chave": "990170-1|2026-10-06|Adm|A|expediente",
+       "implicito": true
+      },
+      "b": {
+       "dia": "2026-10-06",
+       "turno": "A",
+       "servico": "PE Seguro",
+       "chave": "990170-1|2026-10-06|PE Seguro|A",
+       "implicito": false
+      },
+      "minutos": 480
+     }
+    ],
+    "semHorario": []
+   }
+  },
+  {
+   "teste": "teste_p18.js",
+   "entrada": [
+    [
+     {
+      "mat": "990170-1",
+      "dia": "2026-10-06",
+      "turno": "A",
+      "servico": "Adm",
+      "implicito": true
+     },
+     {
+      "mat": "990170-1",
+      "dia": "2026-10-06",
+      "turno": "A",
+      "servico": "Bioma"
+     }
+    ],
+    {
+     "Pronto|A": {
+      "ini": 480,
+      "fim": 1200,
+      "dur": 720
+     },
+     "Pronto|B": {
+      "ini": 1200,
+      "fim": 480,
+      "dur": 720
+     },
+     "Adm|A": {
+      "ini": 480,
+      "fim": 960,
+      "dur": 480
+     },
+     "JES|A": {
+      "ini": 480,
+      "fim": 1200,
+      "dur": 720
+     },
+     "JES|B": {
+      "ini": 1200,
+      "fim": 480,
+      "dur": 720
+     },
+     "Defensoria|A": {
+      "ini": 420,
+      "fim": 1140,
+      "dur": 720
+     },
+     "Bioma|A": {
+      "ini": 360,
+      "fim": 1080,
+      "dur": 720
+     },
+     "PE Seguro|A": {
+      "ini": 480,
+      "fim": 1200,
+      "dur": 720
+     },
+     "Saldo|A": {
+      "ini": 480,
+      "fim": 1200,
+      "dur": 720
+     }
+    },
+    {
+     "tipos": {
+      "Pronto": "Ordinário",
+      "Adm": "Ordinário",
+      "Saldo": "Ordinário",
+      "JES": "PJES",
+      "Defensoria": "PJES",
+      "CPRH": "PJES",
+      "Bioma": "Diária",
+      "PE Seguro": "Diária",
+      "Eleições": "Diária"
+     }
+    }
+   ],
+   "saida": {
+    "choques": [
+     {
+      "mat": "990170-1",
+      "tipo": "expediente",
+      "a": {
+       "dia": "2026-10-06",
+       "turno": "A",
+       "servico": "Bioma",
+       "chave": "990170-1|2026-10-06|Bioma|A",
+       "implicito": false
+      },
+      "b": {
+       "dia": "2026-10-06",
+       "turno": "A",
+       "servico": "Adm",
+       "chave": "990170-1|2026-10-06|Adm|A|expediente",
+       "implicito": true
+      },
+      "minutos": 480
+     }
+    ],
+    "semHorario": []
+   }
+  },
+  {
+   "teste": "teste_p18.js",
+   "entrada": [
+    [
+     {
+      "mat": "990170-1",
+      "dia": "2026-10-06",
+      "turno": "A",
+      "servico": "Adm",
+      "implicito": true
+     },
+     {
+      "mat": "990170-1",
+      "dia": "2026-10-06",
+      "turno": "A",
+      "servico": "JES"
+     }
+    ],
+    {
+     "Pronto|A": {
+      "ini": 480,
+      "fim": 1200,
+      "dur": 720
+     },
+     "Pronto|B": {
+      "ini": 1200,
+      "fim": 480,
+      "dur": 720
+     },
+     "Adm|A": {
+      "ini": 480,
+      "fim": 960,
+      "dur": 480
+     },
+     "JES|A": {
+      "ini": 480,
+      "fim": 1200,
+      "dur": 720
+     },
+     "JES|B": {
+      "ini": 1200,
+      "fim": 480,
+      "dur": 720
+     },
+     "Defensoria|A": {
+      "ini": 420,
+      "fim": 1140,
+      "dur": 720
+     },
+     "Bioma|A": {
+      "ini": 360,
+      "fim": 1080,
+      "dur": 720
+     },
+     "PE Seguro|A": {
+      "ini": 480,
+      "fim": 1200,
+      "dur": 720
+     },
+     "Saldo|A": {
+      "ini": 480,
+      "fim": 1200,
+      "dur": 720
+     }
+    },
+    {
+     "tipos": {
+      "Pronto": "Ordinário",
+      "Adm": "Ordinário",
+      "Saldo": "Ordinário",
+      "JES": "PJES",
+      "Defensoria": "PJES",
+      "CPRH": "PJES",
+      "Bioma": "Diária",
+      "PE Seguro": "Diária",
+      "Eleições": "Diária"
+     }
+    }
+   ],
+   "saida": {
+    "choques": [],
+    "semHorario": []
+   }
+  },
+  {
+   "teste": "teste_p18.js",
+   "entrada": [
+    [
+     {
+      "mat": "m",
+      "dia": "2026-10-06",
+      "servico": "JES",
+      "turno": "A"
+     },
+     {
+      "mat": "m",
+      "dia": "2026-10-06",
+      "servico": "Pronto",
+      "turno": "A"
+     }
+    ],
+    {
+     "Pronto|A": {
+      "ini": 480,
+      "fim": 1200,
+      "dur": 720
+     },
+     "Pronto|B": {
+      "ini": 1200,
+      "fim": 480,
+      "dur": 720
+     },
+     "Adm|A": {
+      "ini": 480,
+      "fim": 960,
+      "dur": 480
+     },
+     "JES|A": {
+      "ini": 480,
+      "fim": 1200,
+      "dur": 720
+     },
+     "JES|B": {
+      "ini": 1200,
+      "fim": 480,
+      "dur": 720
+     },
+     "Defensoria|A": {
+      "ini": 420,
+      "fim": 1140,
+      "dur": 720
+     },
+     "Bioma|A": {
+      "ini": 360,
+      "fim": 1080,
+      "dur": 720
+     },
+     "PE Seguro|A": {
+      "ini": 480,
+      "fim": 1200,
+      "dur": 720
+     },
+     "Saldo|A": {
+      "ini": 480,
+      "fim": 1200,
+      "dur": 720
+     }
+    },
+    {
+     "tipos": {
+      "Pronto": "Ordinário",
+      "Adm": "Ordinário",
+      "Saldo": "Ordinário",
+      "JES": "PJES",
+      "Defensoria": "PJES",
+      "CPRH": "PJES",
+      "Bioma": "Diária",
+      "PE Seguro": "Diária",
+      "Eleições": "Diária"
+     }
+    }
+   ],
+   "saida": {
+    "choques": [
+     {
+      "mat": "m",
+      "tipo": "sobreposicao",
+      "a": {
+       "dia": "2026-10-06",
+       "turno": "A",
+       "servico": "JES",
+       "chave": "m|2026-10-06|JES|A",
+       "implicito": false
+      },
+      "b": {
+       "dia": "2026-10-06",
+       "turno": "A",
+       "servico": "Pronto",
+       "chave": "m|2026-10-06|Pronto|A",
+       "implicito": false
+      },
+      "minutos": 720
+     }
+    ],
+    "semHorario": []
+   }
+  },
+  {
+   "teste": "teste_p18.js",
+   "entrada": [
+    [
+     {
+      "mat": "m",
+      "dia": "2026-10-06",
+      "servico": "JES",
+      "turno": "B"
+     },
+     {
+      "mat": "m",
+      "dia": "2026-10-07",
+      "servico": "Pronto",
+      "turno": "A"
+     }
+    ],
+    {
+     "Pronto|A": {
+      "ini": 480,
+      "fim": 1200,
+      "dur": 720
+     },
+     "Pronto|B": {
+      "ini": 1200,
+      "fim": 480,
+      "dur": 720
+     },
+     "Adm|A": {
+      "ini": 480,
+      "fim": 960,
+      "dur": 480
+     },
+     "JES|A": {
+      "ini": 480,
+      "fim": 1200,
+      "dur": 720
+     },
+     "JES|B": {
+      "ini": 1200,
+      "fim": 480,
+      "dur": 720
+     },
+     "Defensoria|A": {
+      "ini": 420,
+      "fim": 1140,
+      "dur": 720
+     },
+     "Bioma|A": {
+      "ini": 360,
+      "fim": 1080,
+      "dur": 720
+     },
+     "PE Seguro|A": {
+      "ini": 480,
+      "fim": 1200,
+      "dur": 720
+     },
+     "Saldo|A": {
+      "ini": 480,
+      "fim": 1200,
+      "dur": 720
+     }
+    },
+    {
+     "tipos": {
+      "Pronto": "Ordinário",
+      "Adm": "Ordinário",
+      "Saldo": "Ordinário",
+      "JES": "PJES",
+      "Defensoria": "PJES",
+      "CPRH": "PJES",
+      "Bioma": "Diária",
+      "PE Seguro": "Diária",
+      "Eleições": "Diária"
+     }
+    }
+   ],
+   "saida": {
+    "choques": [
+     {
+      "mat": "m",
+      "tipo": "emenda",
+      "a": {
+       "dia": "2026-10-06",
+       "turno": "B",
+       "servico": "JES",
+       "chave": "m|2026-10-06|JES|B",
+       "implicito": false
+      },
+      "b": {
+       "dia": "2026-10-07",
+       "turno": "A",
+       "servico": "Pronto",
+       "chave": "m|2026-10-07|Pronto|A",
+       "implicito": false
+      },
+      "minutos": 0
+     }
+    ],
+    "semHorario": []
+   }
+  }
+ ]
+}

@@ -1,0 +1,314 @@
+{
+ "funcao": "funcoesQueExigemCnh_",
+ "casos": [
+  {
+   "teste": "teste_p16.js",
+   "entrada": [
+    {
+     "escalas": {
+      "Pronto": {
+       "nome": "Pronto",
+       "servicos": [
+        "Pronto"
+       ],
+       "titulo": "ESCALA PRONTO",
+       "militares": "ESCALADOS",
+       "dias": "TODOS",
+       "turnos": [
+        "A",
+        "B"
+       ],
+       "slots": {
+        "A": [
+         {
+          "unidade": "AR",
+          "funcao": "MOTORISTA",
+          "vagas": 1,
+          "exigeCnh": false,
+          "cnh": null
+         },
+         {
+          "unidade": "AR",
+          "funcao": "CHEFE",
+          "vagas": 1,
+          "exigeCnh": false,
+          "cnh": null
+         },
+         {
+          "unidade": "AR",
+          "funcao": "SOCORRISTA",
+          "vagas": 3,
+          "exigeCnh": false,
+          "cnh": null
+         }
+        ],
+        "B": [
+         {
+          "unidade": "ABTS",
+          "funcao": "MOTORISTA",
+          "vagas": 1,
+          "exigeCnh": false,
+          "cnh": null
+         },
+         {
+          "unidade": "ABTS",
+          "funcao": "COMBATENTE",
+          "vagas": 2,
+          "exigeCnh": false,
+          "cnh": null
+         }
+        ]
+       },
+       "usaUnidade": true
+      },
+      "PE Seguro": {
+       "nome": "PE Seguro",
+       "servicos": [
+        "PE Seguro"
+       ],
+       "titulo": "ESCALA PE SEGURO",
+       "militares": "TODOS",
+       "dias": "TODOS",
+       "turnos": [
+        "A",
+        "B",
+        "C"
+       ],
+       "slots": {
+        "A": [
+         {
+          "unidade": "",
+          "funcao": "CHEFE",
+          "vagas": 1,
+          "exigeCnh": false,
+          "cnh": null
+         }
+        ],
+        "B": [
+         {
+          "unidade": "",
+          "funcao": "CHEFE",
+          "vagas": 1,
+          "exigeCnh": false,
+          "cnh": null
+         }
+        ],
+        "C": [
+         {
+          "unidade": "",
+          "funcao": "CHEFE",
+          "vagas": 1,
+          "exigeCnh": false,
+          "cnh": null
+         }
+        ]
+       },
+       "usaUnidade": false
+      },
+      "Apoio Aquartelado": {
+       "nome": "Apoio Aquartelado",
+       "servicos": [
+        "Apoio Aquartelado"
+       ],
+       "titulo": "ESCALA APOIO AQUARTELADO",
+       "militares": "ESCALADOS",
+       "dias": "TODOS",
+       "turnos": [
+        "A"
+       ],
+       "slots": {
+        "A": [
+         {
+          "unidade": "ACO",
+          "funcao": "MOTORISTA ACO",
+          "vagas": 1,
+          "exigeCnh": false,
+          "cnh": null
+         },
+         {
+          "unidade": "",
+          "funcao": "DESPACHANTE DE CENTRO DE OPERAÇÕES",
+          "vagas": 2,
+          "exigeCnh": false,
+          "cnh": null
+         },
+         {
+          "unidade": "",
+          "funcao": "ADJUNTO DE DIA",
+          "vagas": 1,
+          "exigeCnh": false,
+          "cnh": null
+         }
+        ]
+       },
+       "usaUnidade": true
+      }
+     },
+     "ordem": [
+      "Pronto",
+      "PE Seguro",
+      "Apoio Aquartelado"
+     ],
+     "avisos": []
+    }
+   ],
+   "saida": {}
+  },
+  {
+   "teste": "teste_p16.js",
+   "entrada": [
+    {
+     "escalas": {
+      "Pronto": {
+       "nome": "Pronto",
+       "servicos": [
+        "Pronto"
+       ],
+       "titulo": "ESCALA PRONTO",
+       "militares": "ESCALADOS",
+       "dias": "TODOS",
+       "turnos": [
+        "A",
+        "B"
+       ],
+       "slots": {
+        "A": [
+         {
+          "unidade": "AR",
+          "funcao": "MOTORISTA",
+          "vagas": 1,
+          "exigeCnh": true,
+          "cnh": null
+         },
+         {
+          "unidade": "AR",
+          "funcao": "CHEFE",
+          "vagas": 1,
+          "exigeCnh": false,
+          "cnh": null
+         },
+         {
+          "unidade": "AR",
+          "funcao": "SOCORRISTA",
+          "vagas": 3,
+          "exigeCnh": false,
+          "cnh": null
+         }
+        ],
+        "B": [
+         {
+          "unidade": "ABTS",
+          "funcao": "MOTORISTA",
+          "vagas": 1,
+          "exigeCnh": true,
+          "cnh": null
+         },
+         {
+          "unidade": "ABTS",
+          "funcao": "COMBATENTE",
+          "vagas": 2,
+          "exigeCnh": false,
+          "cnh": null
+         }
+        ]
+       },
+       "usaUnidade": true
+      },
+      "PE Seguro": {
+       "nome": "PE Seguro",
+       "servicos": [
+        "PE Seguro"
+       ],
+       "titulo": "ESCALA PE SEGURO",
+       "militares": "TODOS",
+       "dias": "TODOS",
+       "turnos": [
+        "A",
+        "B",
+        "C"
+       ],
+       "slots": {
+        "A": [
+         {
+          "unidade": "",
+          "funcao": "CHEFE",
+          "vagas": 1,
+          "exigeCnh": false,
+          "cnh": null
+         }
+        ],
+        "B": [
+         {
+          "unidade": "",
+          "funcao": "CHEFE",
+          "vagas": 1,
+          "exigeCnh": false,
+          "cnh": null
+         }
+        ],
+        "C": [
+         {
+          "unidade": "",
+          "funcao": "CHEFE",
+          "vagas": 1,
+          "exigeCnh": false,
+          "cnh": null
+         }
+        ]
+       },
+       "usaUnidade": false
+      },
+      "Apoio Aquartelado": {
+       "nome": "Apoio Aquartelado",
+       "servicos": [
+        "Apoio Aquartelado"
+       ],
+       "titulo": "ESCALA APOIO AQUARTELADO",
+       "militares": "ESCALADOS",
+       "dias": "TODOS",
+       "turnos": [
+        "A"
+       ],
+       "slots": {
+        "A": [
+         {
+          "unidade": "ACO",
+          "funcao": "MOTORISTA ACO",
+          "vagas": 1,
+          "exigeCnh": true,
+          "cnh": null
+         },
+         {
+          "unidade": "",
+          "funcao": "DESPACHANTE DE CENTRO DE OPERAÇÕES",
+          "vagas": 2,
+          "exigeCnh": false,
+          "cnh": null
+         },
+         {
+          "unidade": "",
+          "funcao": "ADJUNTO DE DIA",
+          "vagas": 1,
+          "exigeCnh": false,
+          "cnh": null
+         }
+        ]
+       },
+       "usaUnidade": true
+      }
+     },
+     "ordem": [
+      "Pronto",
+      "PE Seguro",
+      "Apoio Aquartelado"
+     ],
+     "avisos": []
+    }
+   ],
+   "saida": {
+    "MOTORISTA": true,
+    "MOTORISTAACO": true
+   }
+  }
+ ]
+}
