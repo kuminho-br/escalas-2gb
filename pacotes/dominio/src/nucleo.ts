@@ -90,3 +90,19 @@ export function origemDoServico(servico: unknown, origens?: Record<string, unkno
   const texto = achou || String(servico == null ? '' : servico).trim();
   return normalizar(texto) === '' ? '' : texto.toUpperCase();
 }
+
+/** Alocação como o motor a recebe. */
+export interface Alocacao {
+  mat: string;
+  dia: string;
+  servico: string;
+  turno: string;
+  funcao?: string;
+  implicito?: boolean;
+  [campo: string]: unknown;
+}
+
+/** Chave de uma alocação: matrícula + dia + serviço + turno (porte de chaveAloc_, de sincronia.js). */
+export function chaveAloc(a: { mat: string; dia: string; servico: string; turno: string }): string {
+  return `${a.mat}|${a.dia}|${a.servico}|${a.turno}`;
+}
