@@ -60,4 +60,26 @@ describe('distribuição de cotas com remoções', () => {
     expect(r.novas).toEqual([]);
     expect(r.vazias[0].motivo).toBe('ninguém preencheu o formulário do mês');
   });
+
+  it('serviço e turno da remoção sem diferença de caixa', () => {
+    const r = distribuirCotas(entrada({ remocoes: [{ mat: '990001-1', dia, servico: 'BIOMA', turno: 'a' }] }));
+    expect(quem(r)).toEqual(['990002-2']);
+  });
+
+  it('Pronto B no último dia do mês barra a diária do dia 1 seguinte', () => {
+    const r = distribuirCotas(entrada({
+      mes: '2026-12',
+      operacoes: [{ nome: 'Bioma', servico: 'Bioma', prioridade: 1, dias: ['2026-12-01'], turnos: [{ turno: 'A', vagas: 1 }] }],
+      horarios: montarHorarios([
+        { servico: 'Bioma', turno: 'A', inicio: '00:00', fim: '08:00' },
+        { servico: 'Pronto', turno: 'B', inicio: '20:00', fim: '08:00' },
+      ]).porChave,
+      voluntariado: [
+        { mat: '990001-1', dia: '2026-12-01', turno: 'A', servico: '' },
+        { mat: '990002-2', dia: '2026-12-01', turno: 'A', servico: '' },
+      ],
+      alocacoes: [{ mat: '990001-1', dia: '2026-11-30', servico: 'Pronto', turno: 'B' }],
+    }));
+    expect(quem(r)).toEqual(['990002-2']);
+  });
 });

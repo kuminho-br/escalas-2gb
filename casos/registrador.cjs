@@ -90,7 +90,8 @@ const FunctionOriginal = globalThis.Function;
 function FunctionGravador(...partes) {
   if (partes.length) {
     const corpo = String(partes[partes.length - 1]);
-    const presentes = [...nomes].filter((n) => corpo.includes(`function ${n}(`));
+    // nomes do catálogo só têm letras e "_": entram direto na expressão
+    const presentes = [...nomes].filter((n) => new RegExp(`\\bfunction\\s+${n}\\s*\\(`).test(corpo));
     const prefixo = presentes.map((n) => `${n} = __gravarCaso(${JSON.stringify(n)}, ${n});`).join('\n');
     partes[partes.length - 1] = `${prefixo}\n${corpo}`;
   }

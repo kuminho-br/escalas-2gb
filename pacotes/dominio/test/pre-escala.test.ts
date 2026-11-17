@@ -56,4 +56,18 @@ describe('pré-escala com remoções', () => {
     expect(r.resumo.dias).toBe(29);
     expect(tem(r.novas, '990001-1', '2028-02-29', 'B')).toBe(true);
   });
+
+  it('serviço e turno da remoção sem diferença de caixa', () => {
+    const remocoes: Remocao[] = [{ mat: doDia12, dia: '2026-11-12', servico: 'PRONTO', turno: 'a' }];
+    const r = gerarPreEscala([], militares, { ...op, remocoes });
+    expect(tem(r.novas, doDia12, '2026-11-12', 'A')).toBe(false);
+  });
+
+  it('resumo separa vagas ocupadas de vagas removidas', () => {
+    const remocoes: Remocao[] = [{ mat: doDia12, dia: '2026-11-12', servico: 'Pronto', turno: 'A' }];
+    const existentes = [{ mat: '990001-1', dia: '2026-11-01', servico: 'Bioma', turno: 'A' }];
+    const r = gerarPreEscala(existentes, militares, { ...op, remocoes });
+    expect(r.resumo.puladas).toBe(1);
+    expect(r.resumo.removidas).toBe(1);
+  });
 });

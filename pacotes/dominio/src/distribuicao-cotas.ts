@@ -91,7 +91,7 @@ export function distribuirCotas(e: EntradaCotas) {
   const eDiaria = (servico: string) => normalizar(tipos[servico] || '') === TIPO_DIARIA;
   const removida: Record<string, boolean> = Object.create(null);
   (e.remocoes || []).forEach((r) => {
-    removida[`${r.mat}|${r.dia}|${normalizar(r.servico)}|${r.turno}`] = true;
+    removida[`${r.mat}|${r.dia}|${normalizar(r.servico)}|${normalizar(r.turno)}`] = true;
   });
 
   // posição de cada militar da seção (desempate) e quem preencheu o formulário do mês (RN-41)
@@ -182,7 +182,7 @@ export function distribuirCotas(e: EntradaCotas) {
       if (!x.implicito && x.dia === cand.dia && x.servico === cand.servico && x.turno === cand.turno) return 'jaNaVaga';
       if (!x.implicito && x.dia === cand.dia && eDiaria(cand.servico) && eDiaria(x.servico)) return 'diaria';
     }
-    if (removida[`${mat}|${cand.dia}|${normalizar(cand.servico)}|${cand.turno}`]) return 'removido';
+    if (removida[`${mat}|${cand.dia}|${normalizar(cand.servico)}|${normalizar(cand.turno)}`]) return 'removido';
     const perto = lista.filter((x) => x.ini !== null && Math.abs(x.ini - ini) < 3 * 1440);
     const r = detectarChoques(perto.concat([cand as Registro]), horarios, { tipos });
     const minha = chaveAloc(cand);

@@ -31,7 +31,14 @@ for (const [modulo, funcoes] of Object.entries(catalogo)) {
           it(`${caso.teste} #${n}`, () => {
             const entrada = structuredClone(caso.entrada);
             if (caso.erro !== undefined) {
-              expect(() => fn(...entrada)).toThrow(caso.erro);
+              // a mensagem tem de ser a mesma, inteira (não basta conter o texto)
+              let mensagem: string | undefined;
+              try {
+                fn(...entrada);
+              } catch (e) {
+                mensagem = (e as Error).message;
+              }
+              expect(mensagem).toBe(caso.erro);
               return;
             }
             const saida = fn(...entrada);

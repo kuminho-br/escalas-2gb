@@ -75,7 +75,7 @@ Roadmap: `docs/superpowers/plans/2026-11-16-roadmap-migracao.md`
 - **Campos:** só o que o sistema usa (matrícula, posto, nome de guerra, unidade, equipe, jornada, quadro de motoristas e CNH, voluntário JES, afastamentos). TELEFONE não é carregado.
 - **Afastamentos:** guardados só com período e tipo genérico (Férias, Licença, Outro), sem motivo de saúde (dado sensível pela LGPD).
 - **Salvaguardas mantidas:**
-  - Desenvolvimento local, testes automáticos, GitHub e prévias usam um conjunto fictício: 53 militares inventados da 1ª SB com as proporções da sandbox, matrículas numa faixa inexistente (começando em `990`). Serviços, turnos, guarnições, escalas, cotas, feriados, configurações e estrutura são os reais, por não serem dados pessoais. A matrícula real `707170-1` (ADELSON) em `testes/teste_p18.js` e `testes/teste_p19.js` é trocada na criação de `casos/`.
+  - Desenvolvimento local, testes automáticos, GitHub e prévias usam um conjunto fictício: 53 militares inventados da 1ª SB com as proporções da sandbox, matrículas numa faixa inexistente (começando em `990`). Serviços, turnos, guarnições, escalas, cotas, feriados, configurações e estrutura são os reais, por não serem dados pessoais. A matrícula e o nome reais que estavam em `testes/teste_p18.js` e `testes/teste_p19.js` foram trocados na criação de `casos/` (fase 2).
   - A cópia semanal do banco (D2) é guardada criptografada fora do Supabase.
 - **Salvaguardas não adotadas:** apagar o banco de teste com data marcada; anuência escrita do Chefe da SB.
 

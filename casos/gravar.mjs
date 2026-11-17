@@ -12,6 +12,9 @@ const raiz = join(pastaCasos, '..');
 const pastaTestes = join(raiz, 'prototipo', 'testes');
 const catalogo = JSON.parse(readFileSync(join(pastaCasos, 'catalogo.json'), 'utf8'));
 const funcoes = Object.values(catalogo).flat();
+// funções do catálogo que nenhum teste do protótipo chama (têm teste próprio em pacotes/dominio)
+const SEM_CASOS_ESPERADO = ['novaBaseGuarnicao_'];
+const conflitos = [];
 
 const testes = readdirSync(pastaTestes).filter((f) => /^teste_.*\.js$/.test(f)).sort();
 const temp = mkdtempSync(join(tmpdir(), 'casos-'));
@@ -33,16 +36,32 @@ try {
     for (const c of dados.casos) {
       const chave = JSON.stringify(c.entrada);
       const casosDaFuncao = porFuncao.get(c.funcao);
-      if (casosDaFuncao.has(chave)) continue;
       const caso = { teste, entrada: c.entrada };
       if ('erro' in c) caso.erro = c.erro;
       else caso.saida = c.saida;
+      const ja = casosDaFuncao.get(chave);
+      if (ja) {
+        // a mesma entrada com outra resposta: o protótipo depende de algo fora da entrada
+        const resposta = (x) => JSON.stringify('erro' in x ? { erro: x.erro } : { saida: x.saida });
+        if (resposta(ja) !== resposta(caso)) conflitos.push(`${c.funcao}: ${ja.teste} e ${teste} dão respostas diferentes para a mesma entrada`);
+        continue;
+      }
       casosDaFuncao.set(chave, caso);
     }
     for (const [f, n] of Object.entries(dados.naoGravaveis)) naoGravaveis.set(f, naoGravaveis.get(f) + n);
   }
 } finally {
   rmSync(temp, { recursive: true, force: true });
+}
+
+const semCasos = funcoes.filter((f) => porFuncao.get(f).size === 0 && !SEM_CASOS_ESPERADO.includes(f));
+const comCasos = SEM_CASOS_ESPERADO.filter((f) => porFuncao.get(f).size > 0);
+if (conflitos.length || semCasos.length || comCasos.length) {
+  for (const c of conflitos) console.error(`conflito: ${c}`);
+  if (semCasos.length) console.error(`sem nenhum caso (o registrador não achou a função?): ${semCasos.join(', ')}`);
+  if (comCasos.length) console.error(`já têm casos, tire de SEM_CASOS_ESPERADO: ${comCasos.join(', ')}`);
+  console.error('Nada foi gravado.');
+  process.exit(1);
 }
 
 for (const f of readdirSync(pastaCasos)) {

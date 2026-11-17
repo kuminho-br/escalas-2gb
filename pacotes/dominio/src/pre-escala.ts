@@ -144,7 +144,7 @@ export function gerarPreEscala(
   });
   const removida: Record<string, boolean> = Object.create(null);
   (op.remocoes || []).forEach((r) => {
-    if (normalizar(r.servico) === normalizar(PRE_ESCALA.SERVICO)) removida[`${r.mat}|${r.dia}|${r.turno}`] = true;
+    if (normalizar(r.servico) === normalizar(PRE_ESCALA.SERVICO)) removida[`${r.mat}|${r.dia}|${normalizar(r.turno)}`] = true;
   });
 
   const novas: { mat: string; dia: string; servico: string; turno: string; funcao: string }[] = [];
@@ -155,6 +155,7 @@ export function gerarPreEscala(
   });
   let diasParciais = 0;
   let removidas = 0;
+  const eRemovida: Record<number, boolean> = Object.create(null); // índice em puladas -> é remoção
 
   dias.forEach((dia, i) => {
     const eq = equipeDoDia(op.equipeDia1, i);
@@ -169,8 +170,9 @@ export function gerarPreEscala(
           puladasDoDia++;
           return;
         }
-        if (removida[chave]) {
+        if (removida[`${mat}|${dia}|${normalizar(turno)}`]) {
           puladas.push({ chave, existente: 'removido' });
+          eRemovida[puladas.length - 1] = true;
           removidas++;
           return;
         }
@@ -188,7 +190,7 @@ export function gerarPreEscala(
   });
   const ocupadas = puladas.length - removidas;
   if (ocupadas) {
-    const outro = puladas.filter((p) => p.existente !== PRE_ESCALA.SERVICO && p.existente !== 'removido').length;
+    const outro = puladas.filter((p, i) => !eRemovida[i] && p.existente !== PRE_ESCALA.SERVICO).length;
     avisos.push(`${ocupadas} vaga(s) já estavam ocupadas e foram mantidas (${ocupadas - outro} já eram Pronto, ${outro} eram de outro serviço).`);
   }
   if (removidas) avisos.push(`${removidas} vaga(s) foram mantidas sem o militar porque o escalante o removeu.`);
@@ -198,7 +200,15 @@ export function gerarPreEscala(
     novas,
     puladas,
     porEquipe,
-    resumo: { alocacoes: novas.length, militares: Object.keys(equipeDe).length, puladas: puladas.length, dias: dias.length },
+    // puladas = vagas já ocupadas; removidas (só quando há) = vagas de onde o escalante tirou o militar.
+    // Sem remoções, o resumo é igual ao do protótipo.
+    resumo: {
+      alocacoes: novas.length,
+      militares: Object.keys(equipeDe).length,
+      puladas: ocupadas,
+      ...(removidas ? { removidas } : {}),
+      dias: dias.length,
+    },
     avisos,
   };
 }
