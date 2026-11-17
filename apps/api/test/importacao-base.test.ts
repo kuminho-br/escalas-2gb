@@ -10,6 +10,7 @@ import { formulario, planilha } from './planilha-teste.ts';
 // importador falso: cada linha da aba TESTE vira uma atividade
 const falso: Importador<string[]> = {
   abas: ['TESTE'],
+  modelo: { abas: [{ nome: 'TESTE', colunas: [{ rotulo: 'NOME', obrigatoria: true, ajuda: 'Nome da atividade.' }] }] },
   async planejar(abas, ctx) {
     const c = coluna(abas.TESTE!, 'NOME');
     const existentes = new Set((await ctx.tx.query<{ nome: string }>('select nome from atividade')).rows.map((r) => r.nome));
@@ -65,7 +66,7 @@ describe('importação', () => {
   it('aba que falta vira 400 com a instrução', async () => {
     const r = await api.pedir('escalante', 'POST', caminho(), formulario(await planilha({ OUTRA: [['X']] })));
     expect(r.status).toBe(400);
-    expect((await r.json()).erro).toBe('A planilha não tem a aba "TESTE". Baixe a sandbox inteira em .xlsx (Arquivo › Fazer download).');
+    expect((await r.json()).erro).toBe('A planilha não tem a aba "TESTE". Baixe o modelo na tela de importação e cole os dados nele, ou confira o nome da aba.');
   });
 
   it('cadastro desconhecido é 404', async () => {
