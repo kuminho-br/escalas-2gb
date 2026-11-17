@@ -69,6 +69,8 @@ Decidir uma coisa de cada vez, com opções e recomendação, e registrar cada d
 
 **Entrega:** os mesmos casos passam nos dois sistemas.
 
+**Como ficou (17/11/2026):** o motor está em `pacotes/dominio`. Os casos compartilhados não foram reescritos à mão: `pnpm casos:gravar` roda os testes do protótipo e grava cada chamada às funções do motor em `casos/<funcao_>.json`; `pnpm casos:prototipo` confere o protótipo contra eles e o Vitest do `dominio` confere o código novo. A pré-escala, a distribuição do Adm e os parâmetros não tinham teste no protótipo; ganharam testes de caracterização (`prototipo/testes/teste_motor.js`). A regra nova das remoções (adendo de 17/11/2026) está só no sistema novo, com testes próprios. A exposição do motor pela API passou para as fases 3 e 4, junto com as telas que a usam.
+
 ## Fase 3 — Cadastros
 
 - Militares: identificação, lotação com histórico, jornada, quadro de motoristas e CNH com hierarquia, afastamentos.
@@ -120,8 +122,8 @@ Decidir uma coisa de cada vez, com opções e recomendação, e registrar cada d
 
 1. A regra é catalogada (RN-XX) pela sessão REGRAS DE NEGÓCIO.
 2. É prototipada no Apps Script e validada na sandbox por você.
-3. Os casos validados viram arquivos de teste compartilhados.
-4. O módulo novo é ajustado até passar nos mesmos casos.
+3. Os casos validados viram arquivos de teste compartilhados: `pnpm casos:gravar` e conferir o `git diff casos`.
+4. O módulo novo (`pacotes/dominio`) é ajustado até passar nos mesmos casos (`pnpm --filter dominio test`).
 5. PR, revisão e merge com a sua anuência.
 
 ## Riscos

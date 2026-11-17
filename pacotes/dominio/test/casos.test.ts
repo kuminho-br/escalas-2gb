@@ -43,6 +43,6 @@ for (const [modulo, funcoes] of Object.entries(catalogo)) {
   });
 }
 
-it('pendentes', () => {
-  if (pendentes.length) console.log(`funções ainda sem port (${pendentes.length}): ${pendentes.join(', ')}`);
+it('toda função do catálogo tem port', () => {
+  expect(pendentes).toEqual([]);
 });
