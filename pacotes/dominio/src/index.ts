@@ -3,3 +3,4 @@ export * from './nucleo.ts';
 export * from './parametros.ts';
 export * from './cnh.ts';
 export * from './choques.ts';
+export * from './regras.ts';

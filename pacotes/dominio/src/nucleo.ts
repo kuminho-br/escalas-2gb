@@ -106,3 +106,6 @@ export interface Alocacao {
 export function chaveAloc(a: { mat: string; dia: string; servico: string; turno: string }): string {
   return `${a.mat}|${a.dia}|${a.servico}|${a.turno}`;
 }
+
+/** Tipo de serviço (cadastro de turnos) que marca uma diária, já normalizado. */
+export const TIPO_DIARIA = 'DIARIA';
