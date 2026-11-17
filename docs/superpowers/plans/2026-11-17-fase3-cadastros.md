@@ -67,7 +67,7 @@ apps/web/src/
 
 Branch `fase3-1-configuracoes`, a partir da `main`.
 
-### Tarefa 1: Migração dos cadastros
+### Task 1: Migração dos cadastros
 
 **Arquivos:**
 - Criar: `apps/api/banco/migracoes/0009_cadastros.sql`
@@ -110,7 +110,7 @@ it('tabelas novas entram na auditoria', async () => {
 - [ ] **Passo 4:** `pnpm --filter api test`. Esperado: tudo passa.
 - [ ] **Passo 5:** commit `Fase 3: migração dos cadastros (tipos de afastamento, atividades, feriado fixo)`.
 
-### Tarefa 2: Pacote de contratos
+### Task 2: Pacote de contratos
 
 **Arquivos:**
 - Criar: `pacotes/contratos/{package.json,tsconfig.json,vitest.config.ts,src/index.ts,src/comum.ts,src/configuracoes.ts}`
@@ -141,7 +141,7 @@ O pacote segue o modelo de `pacotes/dominio`: `exports: ./src/index.ts`, sem dep
 - [ ] **Passo 4:** `pnpm --filter contratos test && pnpm typecheck`. Esperado: PASSA.
 - [ ] **Passo 5:** commit `Fase 3: pacote de contratos compartilhado`.
 
-### Tarefa 3: Base da API (acesso, erros, unidade atual)
+### Task 3: Base da API (acesso, erros, unidade atual)
 
 **Arquivos:**
 - Criar: `apps/api/src/acesso.ts`, `apps/api/src/erros.ts`, `apps/api/src/unidade-atual.ts`, `apps/api/test/apoio-api.ts`, `apps/api/test/acesso.test.ts`
@@ -185,7 +185,7 @@ O pacote segue o modelo de `pacotes/dominio`: `exports: ./src/index.ts`, sem dep
 - [ ] **Passo 4:** `pnpm --filter api test`. Esperado: PASSA.
 - [ ] **Passo 5:** commit `Fase 3: base da API (sessão, papéis, erros, unidade atual)`.
 
-### Tarefa 4: Base da importação
+### Task 4: Base da importação
 
 **Arquivos:**
 - Criar: `apps/api/src/importacao/{planilha.ts,tipos.ts,rotas.ts}`, `pacotes/contratos/src/importacao.ts`, `apps/api/test/importacao-base.test.ts`, `apps/api/test/planilha-teste.ts`
@@ -223,7 +223,7 @@ O pacote segue o modelo de `pacotes/dominio`: `exports: ./src/index.ts`, sem dep
 - [ ] **Passo 4:** `pnpm --filter api test`. Esperado: PASSA.
 - [ ] **Passo 5:** commit `Fase 3: base da importação da planilha`.
 
-### Tarefa 5: Base do site
+### Task 5: Base do site
 
 **Arquivos:**
 - Criar: `apps/web/src/api/cliente.ts`, `apps/web/src/componentes/ListaDetalhe.tsx`, `apps/web/src/componentes/ImportarPlanilha.tsx`, `apps/web/src/__testes__/importar.test.tsx`
@@ -254,7 +254,7 @@ O pacote segue o modelo de `pacotes/dominio`: `exports: ./src/index.ts`, sem dep
 - [ ] **Passo 4:** `pnpm --filter web test && pnpm typecheck`. Esperado: PASSA.
 - [ ] **Passo 5:** commit `Fase 3: base do site (cliente da API, lista e detalhe, importar planilha)`.
 
-### Tarefa 6: API de Configurações
+### Task 6: API de Configurações
 
 **Arquivos:**
 - Criar: `apps/api/src/cadastros/configuracoes.ts`, `apps/api/test/configuracoes.test.ts`
@@ -289,7 +289,7 @@ O pacote segue o modelo de `pacotes/dominio`: `exports: ./src/index.ts`, sem dep
 - [ ] **Passo 4:** `pnpm --filter api test`. Esperado: PASSA.
 - [ ] **Passo 5:** commit `Fase 3: API de configurações, tipos de afastamento e atividades`.
 
-### Tarefa 7: Tela de Configurações
+### Task 7: Tela de Configurações
 
 **Arquivos:**
 - Criar: `apps/web/src/api/configuracoes.ts`, `apps/web/src/routes/_app/configuracoes.tsx`, `apps/web/src/__testes__/configuracoes.test.tsx`
@@ -311,7 +311,7 @@ O pacote segue o modelo de `pacotes/dominio`: `exports: ./src/index.ts`, sem dep
 - [ ] **Passo 4:** `pnpm --filter web test`. Esperado: PASSA.
 - [ ] **Passo 5:** commit `Fase 3: tela de configurações`.
 
-### Tarefa 8: Importação de Configurações
+### Task 8: Importação de Configurações
 
 **Arquivos:**
 - Criar: `apps/api/src/importacao/configuracoes.ts`, `apps/api/test/importacao-configuracoes.test.ts`
@@ -343,7 +343,7 @@ O pacote segue o modelo de `pacotes/dominio`: `exports: ./src/index.ts`, sem dep
 
 Branch `fase3-2-militares`, a partir da `main` com a entrega 1.
 
-### Tarefa 9: API de Militares
+### Task 9: API de Militares
 
 **Arquivos:**
 - Criar: `pacotes/contratos/src/militares.ts`, `apps/api/src/cadastros/militares.ts`, `apps/api/src/cadastros/militares-regras.ts`, `apps/api/test/militares.test.ts`, `apps/api/test/militares-regras.test.ts`
@@ -387,7 +387,7 @@ Branch `fase3-2-militares`, a partir da `main` com a entrega 1.
 - [ ] **Passo 4:** `pnpm --filter api test`. Esperado: PASSA.
 - [ ] **Passo 5:** commit `Fase 3: API de militares, lotações e afastamentos`.
 
-### Tarefa 10: Tela de Militares
+### Task 10: Tela de Militares
 
 **Arquivos:**
 - Criar: `apps/web/src/api/militares.ts`, `apps/web/src/routes/_app/militares.tsx`, `apps/web/src/routes/_app/militares/index.tsx`, `apps/web/src/routes/_app/militares/$id.tsx`, `apps/web/src/__testes__/militares.test.tsx`
@@ -416,7 +416,7 @@ Branch `fase3-2-militares`, a partir da `main` com a entrega 1.
 - [ ] **Passo 4:** `pnpm --filter web test`. Esperado: PASSA.
 - [ ] **Passo 5:** commit `Fase 3: tela de militares`.
 
-### Tarefa 11: Importação de Militares
+### Task 11: Importação de Militares
 
 **Arquivos:**
 - Criar: `apps/api/src/importacao/militares.ts`, `apps/api/test/importacao-militares.test.ts`
@@ -456,7 +456,7 @@ Branch `fase3-2-militares`, a partir da `main` com a entrega 1.
 
 Branch `fase3-3-guarnicoes`.
 
-### Tarefa 12: API de Funções e Guarnições
+### Task 12: API de Funções e Guarnições
 
 **Arquivos:**
 - Criar: `pacotes/contratos/src/guarnicoes.ts`, `apps/api/src/cadastros/guarnicoes.ts`, `apps/api/test/guarnicoes.test.ts`
@@ -495,7 +495,7 @@ Branch `fase3-3-guarnicoes`.
 - [ ] **Passo 4:** `pnpm --filter api test`. Esperado: PASSA.
 - [ ] **Passo 5:** commit `Fase 3: API de funções e guarnições`.
 
-### Tarefa 13: Tela de Guarnições
+### Task 13: Tela de Guarnições
 
 **Arquivos:**
 - Criar: `apps/web/src/api/guarnicoes.ts`, `apps/web/src/routes/_app/guarnicoes.tsx`, `.../guarnicoes/index.tsx`, `.../guarnicoes/$id.tsx`, `apps/web/src/__testes__/guarnicoes.test.tsx`
@@ -520,7 +520,7 @@ Branch `fase3-3-guarnicoes`.
 - [ ] **Passo 4:** `pnpm --filter web test`. Esperado: PASSA.
 - [ ] **Passo 5:** commit `Fase 3: tela de guarnições`.
 
-### Tarefa 14: Importação de Guarnições
+### Task 14: Importação de Guarnições
 
 **Arquivos:**
 - Criar: `apps/api/src/importacao/guarnicoes.ts`, `apps/api/test/importacao-guarnicoes.test.ts`
@@ -551,7 +551,7 @@ Branch `fase3-3-guarnicoes`.
 
 Branch `fase3-4-servicos-escalas`.
 
-### Tarefa 15: Regra do turno padrão no motor
+### Task 15: Regra do turno padrão no motor
 
 **Arquivos:**
 - Criar: `pacotes/dominio/src/voluntariado.ts`, `pacotes/dominio/test/voluntariado.test.ts`
@@ -587,7 +587,7 @@ it('duração de 24h', () => expect(duracaoMinutos('08:00', '08:00')).toBe(1440)
 - [ ] **Passo 4:** `pnpm --filter dominio test && pnpm --filter dominio typecheck`. Esperado: PASSA.
 - [ ] **Passo 5:** commit `Fase 3: turnos padrão exigidos pelo horário (regra do voluntariado)`.
 
-### Tarefa 16: API de Serviços e Escalas
+### Task 16: API de Serviços e Escalas
 
 **Arquivos:**
 - Criar: `pacotes/contratos/src/servicos.ts`, `pacotes/contratos/src/escalas.ts`, `apps/api/src/cadastros/servicos.ts`, `apps/api/src/cadastros/escalas.ts`, `apps/api/test/servicos.test.ts`, `apps/api/test/escalas.test.ts`
@@ -630,7 +630,7 @@ it('duração de 24h', () => expect(duracaoMinutos('08:00', '08:00')).toBe(1440)
 - [ ] **Passo 4:** `pnpm --filter api test`. Esperado: PASSA.
 - [ ] **Passo 5:** commit `Fase 3: API de serviços, turnos e escalas`.
 
-### Tarefa 17: Telas de Serviços e Escalas
+### Task 17: Telas de Serviços e Escalas
 
 **Arquivos:**
 - Criar: `apps/web/src/api/servicos.ts`, `apps/web/src/api/escalas.ts`, `apps/web/src/routes/_app/servicos.tsx` (+ `servicos/index.tsx`, `servicos/$id.tsx`), `apps/web/src/routes/_app/escalas.tsx` (+ `escalas/index.tsx`, `escalas/$id.tsx`), `apps/web/src/lib/turno-padrao.ts`, `apps/web/src/__testes__/servicos.test.tsx`, `apps/web/src/__testes__/escalas.test.tsx`
@@ -664,7 +664,7 @@ it('duração de 24h', () => expect(duracaoMinutos('08:00', '08:00')).toBe(1440)
 - [ ] **Passo 4:** `pnpm --filter web test`. Esperado: PASSA.
 - [ ] **Passo 5:** commit `Fase 3: telas de serviços e escalas`.
 
-### Tarefa 18: Importação de Serviços e Escalas
+### Task 18: Importação de Serviços e Escalas
 
 **Arquivos:**
 - Criar: `apps/api/src/importacao/servicos-escalas.ts`, `apps/api/test/importacao-servicos-escalas.test.ts`
@@ -699,7 +699,7 @@ it('duração de 24h', () => expect(duracaoMinutos('08:00', '08:00')).toBe(1440)
 
 Branch `fase3-5-cotas-feriados`.
 
-### Tarefa 19: API de Cotas e Feriados
+### Task 19: API de Cotas e Feriados
 
 **Arquivos:**
 - Criar: `pacotes/contratos/src/cotas-feriados.ts`, `apps/api/src/cadastros/cotas.ts`, `apps/api/src/cadastros/feriados.ts`, `apps/api/test/cotas.test.ts`, `apps/api/test/feriados.test.ts`
@@ -735,7 +735,7 @@ Branch `fase3-5-cotas-feriados`.
 - [ ] **Passo 4:** `pnpm --filter api test`. Esperado: PASSA.
 - [ ] **Passo 5:** commit `Fase 3: API de cotas e feriados`.
 
-### Tarefa 20: Telas de Cotas e Feriados
+### Task 20: Telas de Cotas e Feriados
 
 **Arquivos:**
 - Criar: `apps/web/src/api/cotas.ts`, `apps/web/src/api/feriados.ts`, `apps/web/src/routes/_app/cotas.tsx`, `apps/web/src/routes/_app/feriados.tsx`, `apps/web/src/__testes__/cotas.test.tsx`, `apps/web/src/__testes__/feriados.test.tsx`
@@ -762,7 +762,7 @@ Branch `fase3-5-cotas-feriados`.
 - [ ] **Passo 4:** `pnpm --filter web test`. Esperado: PASSA.
 - [ ] **Passo 5:** commit `Fase 3: telas de cotas e feriados`.
 
-### Tarefa 21: Importação de Cotas e Feriados, e fechamento da fase
+### Task 21: Importação de Cotas e Feriados, e fechamento da fase
 
 **Arquivos:**
 - Criar: `apps/api/src/importacao/cotas.ts`, `apps/api/src/importacao/feriados.ts`, `apps/api/test/importacao-cotas-feriados.test.ts`
