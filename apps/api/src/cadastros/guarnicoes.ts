@@ -50,7 +50,7 @@ export async function versoesDasGuarnicoes(c: Consulta, ids: string[]): Promise<
   );
   const cs = vs.rows.length
     ? (
-        await c.query<{ guarnicao_versao_id: string; funcao_id: string; funcao: string; minimo: number; maximo: number | null; cnh_exigida: string | null }>(
+        await c.query<{ guarnicao_versao_id: string; funcao_id: string; funcao: string; minimo: number; maximo: number; cnh_exigida: string | null }>(
           `select co.guarnicao_versao_id, co.funcao_id, f.nome as funcao, co.minimo, co.maximo, co.cnh_exigida
              from composicao co join funcao f on f.id = co.funcao_id
             where co.guarnicao_versao_id = any($1) order by co.ordem`,
