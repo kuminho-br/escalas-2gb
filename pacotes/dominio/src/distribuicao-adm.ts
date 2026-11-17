@@ -2,7 +2,8 @@
 // Reparte os turnos do serviço normal do Adm pelos dias úteis do mês, procurando equalizar, nesta
 // ordem: a cobertura de cada dia, a distribuição de cada militar pelas semanas, pelos dias da
 // semana e o espaçamento entre os turnos. Todos recebem o mesmo número de turnos. Determinístico.
-import { diaDaSemana } from './nucleo.ts';
+import { diaDaSemana, normalizar } from './nucleo.ts';
+import type { Remocao } from './pre-escala.ts';
 
 // quanto cada critério pesa na escolha (maior = mais importante)
 export const ADM_PESO = { cobertura: 10, semana: 3, diaSemana: 1, posicao: 0.5 };
@@ -20,8 +21,6 @@ export interface MilitarAdm {
   ocupados?: Record<string, unknown> | null;
   /** dias em que ele já está no Adm neste mês */
   jaTem?: string[] | null;
-  /** dias de onde o escalante o removeu do Adm (regra nova): não são escolhidos */
-  removidos?: string[] | null;
 }
 
 export interface EntradaAdm {
@@ -30,6 +29,11 @@ export interface EntradaAdm {
   /** turnos Adm que cada militar deve ter no mês (inclui os que já tem) */
   turnos: number;
   militares: MilitarAdm[];
+  /** serviço e turno do Adm: só as remoções deles contam (regra nova) */
+  servico?: string;
+  turno?: string;
+  /** vagas de onde o escalante tirou o militar; as do Adm não são escolhidas de novo */
+  remocoes?: Remocao[] | null;
 }
 
 interface Estado { mat: string; fixos: number[]; ja: number; livres: number[]; precisa: number; faltou: number; escolhidos: number[]; deslocamento: number }
@@ -52,6 +56,14 @@ export function distribuirAdm(entrada: EntradaAdm) {
     diasDow[dow[i]]++;
   }
 
+  // remoções do Adm: matrícula|dia (remoção de outro serviço não bloqueia o Adm)
+  const removida: Record<string, boolean> = Object.create(null);
+  (entrada.remocoes || []).forEach((r) => {
+    if (normalizar(r.servico) !== normalizar(entrada.servico)) return;
+    if (entrada.turno && normalizar(r.turno) !== normalizar(entrada.turno)) return;
+    removida[`${r.mat}|${r.dia}`] = true;
+  });
+
   const est: Estado[] = entrada.militares.map((m, q) => {
     const fixos: number[] = [];
     let fora = 0;
@@ -62,10 +74,9 @@ export function distribuirAdm(entrada: EntradaAdm) {
     });
     const ja = fixos.length + fora;
     let precisa = Math.max(0, entrada.turnos - ja);
-    const removidos = m.removidos || [];
     const livres: number[] = [];
     for (let i = 0; i < D; i++) {
-      if (fixos.indexOf(i) < 0 && !(m.ocupados && m.ocupados[dias[i]]) && removidos.indexOf(dias[i]) < 0) livres.push(i);
+      if (fixos.indexOf(i) < 0 && !(m.ocupados && m.ocupados[dias[i]]) && !removida[`${m.mat}|${dias[i]}`]) livres.push(i);
     }
     const faltou = Math.max(0, precisa - livres.length);
     precisa -= faltou;
