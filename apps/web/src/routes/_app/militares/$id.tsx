@@ -36,9 +36,9 @@ function Ficha() {
       </header>
       {/* key: ao trocar de militar, os formulários começam do zero */}
       <Identificacao key={`i-${ficha.id}`} ficha={ficha} />
-      <Lotacoes key={`l-${ficha.id}`} ficha={ficha} unidadeId={eu.unidade.id} />
       <Motorista key={`m-${ficha.id}`} ficha={ficha} />
       <Afastamentos key={`a-${ficha.id}`} ficha={ficha} />
+      <Lotacoes key={`l-${ficha.id}`} ficha={ficha} unidadeId={eu.unidade.id} />
     </article>
   );
 }

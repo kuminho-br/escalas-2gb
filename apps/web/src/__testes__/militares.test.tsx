@@ -95,18 +95,21 @@ describe('ficha do militar', () => {
     expect(screen.getByRole('button', { name: /^A\b/ })).toHaveAttribute('data-origem', 'nenhuma');
   });
 
-  it('mês inteiro preenche início e fim', async () => {
+  it('os campos de afastamento só aparecem depois de "Incluir afastamento"', async () => {
     api();
     abrir('/militares/m1');
-    fireEvent.change(await screen.findByLabelText('Mês do atalho'), { target: { value: '2027-02' } });
-    await userEvent.click(screen.getByRole('button', { name: 'Mês inteiro' }));
-    expect(screen.getByLabelText('Início')).toHaveValue('2027-02-01');
-    expect(screen.getByLabelText('Fim')).toHaveValue('2027-02-28');
+    expect(await screen.findByText('Férias')).toBeInTheDocument();
+    expect(screen.queryByLabelText('Início')).toBeNull();
+    expect(screen.queryByLabelText('Mês do atalho')).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Mês inteiro' })).toBeNull();
+    await userEvent.click(screen.getByRole('button', { name: 'Incluir afastamento' }));
+    expect(screen.getByLabelText('Início')).toBeInTheDocument();
   });
 
   it('só os tipos ativos aparecem para lançar', async () => {
     api();
     abrir('/militares/m1');
+    await userEvent.click(await screen.findByRole('button', { name: 'Incluir afastamento' }));
     const tipo = await screen.findByLabelText('Tipo de afastamento');
     expect(await within(tipo).findByRole('option', { name: 'Férias' })).toBeInTheDocument();
     expect(within(tipo).queryByRole('option', { name: 'Curso' })).toBeNull();
@@ -115,10 +118,49 @@ describe('ficha do militar', () => {
   it('afastamento sobreposto mostra a mensagem da API', async () => {
     api({ 'POST /api/militares/m1/afastamentos': { status: 409, corpo: { erro: 'As datas se sobrepõem a outro período já cadastrado.' } } });
     abrir('/militares/m1');
+    await userEvent.click(await screen.findByRole('button', { name: 'Incluir afastamento' }));
     fireEvent.change(await screen.findByLabelText('Início'), { target: { value: '2026-12-05' } });
     fireEvent.change(screen.getByLabelText('Fim'), { target: { value: '2026-12-08' } });
-    await userEvent.click(screen.getByRole('button', { name: 'Incluir afastamento' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Gravar' }));
     expect(await screen.findByText('As datas se sobrepõem a outro período já cadastrado.')).toBeInTheDocument();
+    expect(screen.getByLabelText('Início')).toBeInTheDocument();
+  });
+
+  it('o formulário fecha depois de gravar', async () => {
+    api({ 'POST /api/militares/m1/afastamentos': { status: 201, corpo: FICHA } });
+    abrir('/militares/m1');
+    await userEvent.click(await screen.findByRole('button', { name: 'Incluir afastamento' }));
+    fireEvent.change(await screen.findByLabelText('Início'), { target: { value: '2026-12-15' } });
+    fireEvent.change(screen.getByLabelText('Fim'), { target: { value: '2026-12-16' } });
+    await userEvent.click(screen.getByRole('button', { name: 'Gravar' }));
+    await waitFor(() => expect(screen.queryByLabelText('Início')).toBeNull());
+    expect(screen.getByRole('button', { name: 'Incluir afastamento' })).toBeInTheDocument();
+  });
+
+  it('cancelar fecha o formulário sem gravar', async () => {
+    api();
+    abrir('/militares/m1');
+    await userEvent.click(await screen.findByRole('button', { name: 'Incluir afastamento' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Cancelar' }));
+    expect(screen.queryByLabelText('Início')).toBeNull();
+  });
+
+  it('a lotação vem por último e recolhida, com o resumo', async () => {
+    api();
+    abrir('/militares/m1');
+    await screen.findByText('Férias');
+    const titulos = screen.getAllByRole('heading', { level: 3 }).map((h) => h.textContent ?? '');
+    const pos = (t: string) => titulos.findIndex((x) => x.startsWith(t));
+    expect(pos('Motorista')).toBeLessThan(pos('Afastamentos'));
+    expect(pos('Afastamentos')).toBeLessThan(pos('Lotação'));
+    expect(pos('Lotação')).toBe(titulos.length - 1);
+    const botao = screen.getByRole('button', { name: /Lotação/ });
+    expect(botao).toHaveAttribute('aria-expanded', 'false');
+    expect(within(botao).getByText('1ª SB, Pronto (Alfa) desde novembro de 2026')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Registrar transferência' })).toBeNull();
+    await userEvent.click(botao);
+    expect(botao).toHaveAttribute('aria-expanded', 'true');
+    expect(screen.getByRole('button', { name: 'Registrar transferência' })).toBeInTheDocument();
   });
 });
 

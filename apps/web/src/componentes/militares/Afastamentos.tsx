@@ -8,24 +8,26 @@ import { Selecao } from '@/componentes/Selecao';
 import { Button } from '@/componentes/ui/button';
 import { Input } from '@/componentes/ui/input';
 import { Label } from '@/componentes/ui/label';
-import { mesAtual } from '@/lib/meses';
 import { dataBr, Secao } from './Secao';
-
-const ultimoDia = (mes: string) => {
-  const [a, m] = mes.split('-').map(Number);
-  return `${mes}-${String(new Date(a!, m!, 0).getDate()).padStart(2, '0')}`;
-};
 
 export function Afastamentos({ ficha }: { ficha: FichaMilitar }) {
   const queryClient = useQueryClient();
   const tipos = useQuery(consultaCatalogo('tipos-afastamento'));
   const ativos = tipos.data?.filter((t) => t.ativo) ?? [];
   const [tipo, setTipo] = useState('');
-  const [mesAtalho, setMesAtalho] = useState(mesAtual());
+  const [aberto, setAberto] = useState(false);
   const [inicio, setInicio] = useState('');
   const [fim, setFim] = useState('');
   const [erro, setErro] = useState<string | null>(null);
   const tipoEscolhido = tipo || ativos[0]?.id || '';
+
+  function fechar() {
+    setAberto(false);
+    setTipo('');
+    setInicio('');
+    setFim('');
+    setErro(null);
+  }
 
   async function incluir(e: FormEvent) {
     e.preventDefault();
@@ -33,8 +35,7 @@ export function Afastamentos({ ficha }: { ficha: FichaMilitar }) {
     try {
       await criarAfastamento(ficha.id, { tipoAfastamentoId: tipoEscolhido, inicio, fim });
       atualizarMilitares(queryClient, ficha.id);
-      setInicio('');
-      setFim('');
+      fechar();
     } catch (err) {
       setErro(mensagemDe(err));
     }
@@ -62,47 +63,36 @@ export function Afastamentos({ ficha }: { ficha: FichaMilitar }) {
         ))}
         {ficha.afastamentos.length === 0 && <li className="text-sm text-apagado">Nenhum afastamento.</li>}
       </ul>
-      <form onSubmit={incluir} className="grid gap-3 border-t border-linha pt-3">
-        <div className="grid gap-3 sm:grid-cols-[1fr_auto]">
-          <div className="grid gap-1.5">
+      {erro && <p role="alert" className="mb-3 text-sm text-alerta">{erro}</p>}
+      {!aberto && (
+        <div>
+          <Button type="button" variant="outline" onClick={() => setAberto(true)}>Incluir afastamento</Button>
+        </div>
+      )}
+      {aberto && (
+        <form onSubmit={incluir} className="grid gap-3 border-t border-linha pt-3">
+          <div className="grid gap-1.5 sm:max-w-xs">
             <Label htmlFor="af-tipo">Tipo de afastamento</Label>
             <Selecao id="af-tipo" value={tipoEscolhido} onChange={(e) => setTipo(e.target.value)}>
               {ativos.map((t) => <option key={t.id} value={t.id}>{t.nome}</option>)}
             </Selecao>
           </div>
-          <div className="grid gap-1.5">
-            <Label htmlFor="af-mes">Mês do atalho</Label>
-            <div className="flex gap-2">
-              <Input id="af-mes" type="month" value={mesAtalho} onChange={(e) => setMesAtalho(e.target.value)} className="w-40" />
-              <Button
-                type="button"
-                variant="outline"
-                disabled={!mesAtalho}
-                onClick={() => {
-                  setInicio(`${mesAtalho}-01`);
-                  setFim(ultimoDia(mesAtalho));
-                }}
-              >
-                Mês inteiro
-              </Button>
+          <div className="grid grid-cols-2 gap-3 sm:max-w-md">
+            <div className="grid gap-1.5">
+              <Label htmlFor="af-inicio">Início</Label>
+              <Input id="af-inicio" type="date" value={inicio} onChange={(e) => setInicio(e.target.value)} required />
+            </div>
+            <div className="grid gap-1.5">
+              <Label htmlFor="af-fim">Fim</Label>
+              <Input id="af-fim" type="date" value={fim} onChange={(e) => setFim(e.target.value)} required />
             </div>
           </div>
-        </div>
-        <div className="grid grid-cols-2 gap-3 sm:max-w-md">
-          <div className="grid gap-1.5">
-            <Label htmlFor="af-inicio">Início</Label>
-            <Input id="af-inicio" type="date" value={inicio} onChange={(e) => setInicio(e.target.value)} required />
+          <div className="flex gap-2">
+            <Button type="submit" disabled={!tipoEscolhido}>Gravar</Button>
+            <Button type="button" variant="ghost" onClick={fechar}>Cancelar</Button>
           </div>
-          <div className="grid gap-1.5">
-            <Label htmlFor="af-fim">Fim</Label>
-            <Input id="af-fim" type="date" value={fim} onChange={(e) => setFim(e.target.value)} required />
-          </div>
-        </div>
-        {erro && <p role="alert" className="text-sm text-alerta">{erro}</p>}
-        <div>
-          <Button type="submit" disabled={!tipoEscolhido}>Incluir afastamento</Button>
-        </div>
-      </form>
+        </form>
+      )}
     </Secao>
   );
 }
