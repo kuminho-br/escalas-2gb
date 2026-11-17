@@ -4,3 +4,4 @@ export * from './parametros.ts';
 export * from './cnh.ts';
 export * from './choques.ts';
 export * from './regras.ts';
+export * from './pre-escala.ts';
