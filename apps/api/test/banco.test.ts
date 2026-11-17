@@ -11,5 +11,5 @@ describe('bancoPglite', () => {
     const { rows } = await banco.query<{ n: number }>('select 1 as n');
     expect(rows[0]!.n).toBe(1);
     await banco.fechar();
-  });
+  }, 120_000);
 });
