@@ -87,6 +87,33 @@ describe('auditoria', () => {
     expect(await linhas('escala_servico', `${e}:${s}`)).toHaveLength(1);
   });
 
+  it('unidade pelo militar, pelo servico, pela guarnicao e pela propria unidade', async () => {
+    const m = await militar();
+    await inserir(banco, 'lotacao', { militar_id: m, unidade_id: unidade, jornada: 'pronto', desde: '2026-11-01' });
+    const af = await inserir(banco, 'afastamento', { militar_id: m, tipo: 'ferias', inicio: '2026-11-10', fim: '2026-11-20' });
+    expect((await linhas('afastamento', af))[0]!.unidade_id).toBe(unidade);
+    await banco.query("update militar set nome_guerra = 'MUDOU' where id = $1", [m]);
+    expect((await linhas('militar', m)).at(-1)!.unidade_id).toBe(unidade);
+
+    const s = await inserir(banco, 'servico', { unidade_id: unidade, nome: 'Bioma', tipo: 'diaria', operacao: 'Op', cor: '#C08A1E' });
+    const t = await inserir(banco, 'turno', { servico_id: s, letra: 'A', inicio: '00:00', fim: '08:00' });
+    expect((await linhas('turno', t))[0]!.unidade_id).toBe(unidade);
+
+    const g = await inserir(banco, 'guarnicao', { unidade_id: unidade, nome: 'UR' });
+    const gv = await inserir(banco, 'guarnicao_versao', { guarnicao_id: g, vigencia_desde: '2026-11-01' });
+    expect((await linhas('guarnicao_versao', gv))[0]!.unidade_id).toBe(unidade);
+    const f = await inserir(banco, 'funcao', { unidade_id: unidade, nome: 'Chefe' });
+    const c = await inserir(banco, 'composicao', { guarnicao_versao_id: gv, funcao_id: f, minimo: 1 });
+    expect((await linhas('composicao', c))[0]!.unidade_id).toBe(unidade);
+
+    const e = await inserir(banco, 'escala', { unidade_id: unidade, nome: 'Op', titulo: 'Op', militares_doc: 'todos', dias_doc: 'todos' });
+    const v = await inserir(banco, 'escala_vinculo_versao', { escala_id: e, vigencia_desde: '2026-11-01' });
+    const eg = await inserir(banco, 'escala_guarnicao', { versao_id: v, guarnicao_id: g });
+    expect((await linhas('escala_guarnicao', eg))[0]!.unidade_id).toBe(unidade);
+
+    expect((await linhas('unidade', unidade))[0]!.unidade_id).toBe(unidade);
+  });
+
   it('auditoria nao aceita update', async () => {
     await expect(banco.query("update auditoria set acao = 'x'")).rejects.toThrow(/só de acréscimo/);
   });

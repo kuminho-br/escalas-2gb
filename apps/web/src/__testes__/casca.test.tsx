@@ -1,6 +1,29 @@
 import { screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
 import { abrir, EU_EXEMPLO, simularApi } from './apoio';
+
+async function clicarSair() {
+  await userEvent.click(await screen.findByRole('button', { name: /SD BM ANDRADE/ }));
+  await userEvent.click(await screen.findByRole('menuitem', { name: 'Sair' }));
+}
+
+describe('sair', () => {
+  it('sair com sucesso vai para entrar', async () => {
+    simularApi({ '/api/eu': { status: 200, corpo: EU_EXEMPLO }, '/api/auth/sign-out': { status: 200, corpo: { success: true } } });
+    const router = abrir('/');
+    await clicarSair();
+    await waitFor(() => expect(router.state.location.pathname).toBe('/entrar'));
+  });
+
+  it('sair sem conexao avisa e continua na tela', async () => {
+    simularApi({ '/api/eu': { status: 200, corpo: EU_EXEMPLO }, '/api/auth/sign-out': 'rede' });
+    const router = abrir('/');
+    await clicarSair();
+    expect(await screen.findByText('Não foi possível sair. Verifique a conexão e tente de novo.')).toBeInTheDocument();
+    expect(router.state.location.pathname).toBe('/');
+  });
+});
 
 describe('casca', () => {
   it('sem sessao vai para entrar', async () => {

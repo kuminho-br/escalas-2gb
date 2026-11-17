@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import type { Banco } from '../src/banco/banco.ts';
-import { cargaExemplo } from '../src/carga/exemplo.ts';
+import { cargaExemplo, motivoParaRecusarExemplo } from '../src/carga/exemplo.ts';
 import { bancoDeTeste } from './banco-teste.ts';
 
 let banco: Banco;
@@ -34,6 +34,21 @@ describe('carga base', () => {
       'SD BM', 'CB BM', '3º SGT BM', '2º SGT BM', '1º SGT BM', 'ST BM', 'ASP OF BM',
       '2º TEN BM', '1º TEN BM', 'CAP BM', 'MAJ BM', 'TEN CEL BM', 'CEL BM',
     ]);
+  });
+});
+
+describe('quando a carga de exemplo pode rodar', () => {
+  it('banco local (PGlite, sem DATABASE_URL) pode', () => {
+    expect(motivoParaRecusarExemplo({})).toBeNull();
+  });
+  it('banco remoto sem AMBIENTE é recusado', () => {
+    expect(motivoParaRecusarExemplo({ DATABASE_URL: 'postgres://x' })).toMatch(/AMBIENTE=desenvolvimento/);
+  });
+  it('banco remoto marcado como teste é recusado', () => {
+    expect(motivoParaRecusarExemplo({ DATABASE_URL: 'postgres://x', AMBIENTE: 'teste' })).toMatch(/recusada/);
+  });
+  it('banco remoto marcado como desenvolvimento pode', () => {
+    expect(motivoParaRecusarExemplo({ DATABASE_URL: 'postgres://x', AMBIENTE: 'desenvolvimento' })).toBeNull();
   });
 });
 

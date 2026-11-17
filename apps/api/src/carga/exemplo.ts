@@ -44,6 +44,19 @@ async function id(tx: Consulta, sql: string, params: unknown[]): Promise<string>
   return (await tx.query<{ id: string }>(sql, params)).rows[0]!.id;
 }
 
+/**
+ * Por que a carga de exemplo não pode rodar neste ambiente (null = pode).
+ * Banco local (PGlite) pode; banco remoto só com AMBIENTE=desenvolvimento declarado,
+ * para que esquecer a variável nunca misture militares fictícios com os reais.
+ */
+export function motivoParaRecusarExemplo(env: { DATABASE_URL?: string; AMBIENTE?: string }): string | null {
+  if (env.AMBIENTE === 'teste') return 'Carga de exemplo recusada no ambiente de teste';
+  if (env.DATABASE_URL && env.AMBIENTE !== 'desenvolvimento') {
+    return 'Carga de exemplo recusada: banco remoto sem AMBIENTE=desenvolvimento';
+  }
+  return null;
+}
+
 export async function cargaExemplo(banco: Banco, ambiente: string | undefined, mes: string): Promise<{ militares: number }> {
   if (ambiente === 'teste') throw new Error('Carga de exemplo recusada no ambiente de teste');
 

@@ -8,7 +8,9 @@
     "db:migrar": "tsx scripts/migrar.ts",
     "carga-exemplo": "tsx scripts/carga-exemplo.ts",
     "dev": "tsx watch src/servidor.ts",
-    "criar-admin": "tsx scripts/criar-admin.ts"
+    "criar-admin": "tsx scripts/criar-admin.ts",
+    "db:migrar:teste": "tsx --env-file=.env.teste scripts/migrar.ts",
+    "criar-admin:teste": "tsx --env-file=.env.teste scripts/criar-admin.ts"
   },
   "dependencies": {
     "@electric-sql/pglite": "^0.5.16",
