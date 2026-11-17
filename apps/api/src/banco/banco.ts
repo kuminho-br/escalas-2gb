@@ -14,6 +14,17 @@ export interface Banco extends Consulta {
   fechar(): Promise<void>;
 }
 
+/**
+ * Transação em nome de um usuário: a auditoria grava `usuario_id`.
+ * `set_config(..., true)` vale só até o fim da transação, então não sobra para a próxima.
+ */
+export function comUsuario<T>(banco: Banco, usuarioId: string, fn: (tx: Consulta) => Promise<T>): Promise<T> {
+  return banco.transacao(async (tx) => {
+    await tx.query("select set_config('app.usuario_id', $1, true)", [usuarioId]);
+    return fn(tx);
+  });
+}
+
 function consultaPg(c: pg.Pool | pg.PoolClient): Consulta {
   return {
     async query<T>(sql: string, params?: unknown[]) {
