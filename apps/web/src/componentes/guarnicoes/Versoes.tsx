@@ -49,7 +49,8 @@ export function Versoes({ ficha, unidadeId }: { ficha: FichaGuarnicao; unidadeId
 function Editor({ ficha, unidadeId, versao }: { ficha: FichaGuarnicao; unidadeId: string; versao: VersaoSalva | undefined }) {
   const queryClient = useQueryClient();
   const funcoes = useQuery(consultaFuncoes(unidadeId));
-  const [extras, setExtras] = useState<Funcao[]>([]);
+  // funções criadas ou renomeadas aqui, até a lista voltar do servidor
+  const [locais, setLocais] = useState<Funcao[]>([]);
   const [viatura, setViatura] = useState(versao?.viatura ?? '');
   const [tipoViatura, setTipoViatura] = useState(versao?.tipoViatura ?? '');
   const [prioridade, setPrioridade] = useState(versao?.prioridade == null ? '' : String(versao.prioridade));
@@ -61,7 +62,8 @@ function Editor({ ficha, unidadeId, versao }: { ficha: FichaGuarnicao; unidadeId
   const [desde, setDesde] = useState(versao && versao.vigencia > mesAtual() ? versao.vigencia : mesAtual());
   const [aviso, setAviso] = useState<{ erro: boolean; texto: string } | null>(null);
 
-  const opcoes = [...(funcoes.data ?? []), ...extras.filter((e) => !funcoes.data?.some((f) => f.id === e.id))];
+  const servidor = funcoes.data ?? [];
+  const opcoes = [...servidor.map((f) => locais.find((l) => l.id === f.id) ?? f), ...locais.filter((l) => !servidor.some((f) => f.id === l.id))];
 
   async function salvar() {
     setAviso(null);
@@ -89,7 +91,7 @@ function Editor({ ficha, unidadeId, versao }: { ficha: FichaGuarnicao; unidadeId
     <div className="grid gap-4">
       <div className="grid gap-3 sm:grid-cols-[1fr_1fr_7rem]">
         <div className="grid gap-1.5">
-          <Label htmlFor="gv-viatura">Viatura</Label>
+          <Label htmlFor="gv-viatura">Sigla da viatura</Label>
           <Input id="gv-viatura" value={viatura} onChange={(e) => setViatura(e.target.value)} />
         </div>
         <div className="grid gap-1.5">
@@ -109,7 +111,7 @@ function Editor({ ficha, unidadeId, versao }: { ficha: FichaGuarnicao; unidadeId
 
       <div className="grid gap-2">
         <h4 className="font-cond text-base font-semibold">Composição</h4>
-        <Composicao linhas={linhas} aoMudar={setLinhas} funcoes={opcoes} unidadeId={unidadeId} aoCriarFuncao={(f) => setExtras((x) => [...x, f])} />
+        <Composicao linhas={linhas} aoMudar={setLinhas} funcoes={opcoes} unidadeId={unidadeId} aoMudarFuncao={(f) => setLocais((x) => [...x.filter((y) => y.id !== f.id), f])} />
       </div>
 
       <div className="grid gap-3 border-t border-linha pt-3 sm:max-w-md">
