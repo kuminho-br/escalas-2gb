@@ -34,7 +34,7 @@ const BLOCOS: Item[][] = [
     { nome: 'Cotas', icone: PieChart, soCadastro: true },
   ],
   [
-    { nome: 'Militares', icone: Users, soCadastro: true },
+    { nome: 'Militares', icone: Users, para: '/militares', soCadastro: true },
     { nome: 'Serviços', icone: Clock, soCadastro: true },
     { nome: 'Guarnições', icone: Truck, soCadastro: true },
     { nome: 'Escalas', icone: FileText, soCadastro: true },

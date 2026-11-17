@@ -13,6 +13,9 @@ import { Route as AppRouteImport } from './routes/_app'
 import { Route as EntrarRouteImport } from './routes/entrar'
 import { Route as AppIndexRouteImport } from './routes/_app/index'
 import { Route as AppConfiguracoesRouteImport } from './routes/_app/configuracoes'
+import { Route as AppMilitaresRouteImport } from './routes/_app/militares'
+import { Route as AppMilitaresIndexRouteImport } from './routes/_app/militares/index'
+import { Route as AppMilitaresIdRouteImport } from './routes/_app/militares/$id'
 
 const AppRoute = AppRouteImport.update({
   id: '/_app',
@@ -33,30 +36,67 @@ const AppConfiguracoesRoute = AppConfiguracoesRouteImport.update({
   path: '/configuracoes',
   getParentRoute: () => AppRoute,
 } as any)
+const AppMilitaresRoute = AppMilitaresRouteImport.update({
+  id: '/militares',
+  path: '/militares',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppMilitaresIndexRoute = AppMilitaresIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AppMilitaresRoute,
+} as any)
+const AppMilitaresIdRoute = AppMilitaresIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => AppMilitaresRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AppIndexRoute
   '/entrar': typeof EntrarRoute
   '/configuracoes': typeof AppConfiguracoesRoute
+  '/militares': typeof AppMilitaresRouteWithChildren
+  '/militares/$id': typeof AppMilitaresIdRoute
+  '/militares/': typeof AppMilitaresIndexRoute
 }
 export interface FileRoutesByTo {
   '/entrar': typeof EntrarRoute
   '/configuracoes': typeof AppConfiguracoesRoute
   '/': typeof AppIndexRoute
+  '/militares/$id': typeof AppMilitaresIdRoute
+  '/militares': typeof AppMilitaresIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_app': typeof AppRouteWithChildren
   '/entrar': typeof EntrarRoute
   '/_app/configuracoes': typeof AppConfiguracoesRoute
+  '/_app/militares': typeof AppMilitaresRouteWithChildren
   '/_app/': typeof AppIndexRoute
+  '/_app/militares/$id': typeof AppMilitaresIdRoute
+  '/_app/militares/': typeof AppMilitaresIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/entrar' | '/configuracoes'
+  fullPaths:
+    | '/'
+    | '/entrar'
+    | '/configuracoes'
+    | '/militares'
+    | '/militares/$id'
+    | '/militares/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/entrar' | '/configuracoes' | '/'
-  id: '__root__' | '/_app' | '/entrar' | '/_app/configuracoes' | '/_app/'
+  to: '/entrar' | '/configuracoes' | '/' | '/militares/$id' | '/militares'
+  id:
+    | '__root__'
+    | '/_app'
+    | '/entrar'
+    | '/_app/configuracoes'
+    | '/_app/militares'
+    | '/_app/'
+    | '/_app/militares/$id'
+    | '/_app/militares/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -94,16 +134,53 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppConfiguracoesRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/militares': {
+      id: '/_app/militares'
+      path: '/militares'
+      fullPath: '/militares'
+      preLoaderRoute: typeof AppMilitaresRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/militares/': {
+      id: '/_app/militares/'
+      path: '/'
+      fullPath: '/militares/'
+      preLoaderRoute: typeof AppMilitaresIndexRouteImport
+      parentRoute: typeof AppMilitaresRoute
+    }
+    '/_app/militares/$id': {
+      id: '/_app/militares/$id'
+      path: '/$id'
+      fullPath: '/militares/$id'
+      preLoaderRoute: typeof AppMilitaresIdRouteImport
+      parentRoute: typeof AppMilitaresRoute
+    }
   }
 }
 
+interface AppMilitaresRouteChildren {
+  AppMilitaresIdRoute: typeof AppMilitaresIdRoute
+  AppMilitaresIndexRoute: typeof AppMilitaresIndexRoute
+}
+
+const AppMilitaresRouteChildren: AppMilitaresRouteChildren = {
+  AppMilitaresIdRoute: AppMilitaresIdRoute,
+  AppMilitaresIndexRoute: AppMilitaresIndexRoute,
+}
+
+const AppMilitaresRouteWithChildren = AppMilitaresRoute._addFileChildren(
+  AppMilitaresRouteChildren,
+)
+
 interface AppRouteChildren {
   AppConfiguracoesRoute: typeof AppConfiguracoesRoute
+  AppMilitaresRoute: typeof AppMilitaresRouteWithChildren
   AppIndexRoute: typeof AppIndexRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
   AppConfiguracoesRoute: AppConfiguracoesRoute,
+  AppMilitaresRoute: AppMilitaresRouteWithChildren,
   AppIndexRoute: AppIndexRoute,
 }
 

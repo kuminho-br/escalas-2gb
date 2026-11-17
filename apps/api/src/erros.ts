@@ -26,9 +26,13 @@ const MENSAGENS: Record<string, string> = {
   '23503': 'Não dá para apagar: o cadastro já está em uso.',
 };
 
-/** Erro do banco que o usuário pode resolver vira 409 legível; qualquer outro é relançado. */
-export function respostaDoErroDoBanco(c: Context, e: unknown): Response {
+/**
+ * Erro do banco que o usuário pode resolver vira 409 legível; qualquer outro é relançado.
+ * `mensagens` troca o texto padrão de um código (ex.: matrícula repetida).
+ */
+export function respostaDoErroDoBanco(c: Context, e: unknown, mensagens: Record<string, string> = {}): Response {
   const codigo = (e as { code?: string } | null)?.code;
+  if (codigo && codigo in mensagens) return c.json({ erro: mensagens[codigo]! }, 409);
   if (codigo && codigo in MENSAGENS) return c.json({ erro: MENSAGENS[codigo]! }, 409);
   if (codigo === 'P0001') return c.json({ erro: (e as Error).message }, 409);
   throw e;

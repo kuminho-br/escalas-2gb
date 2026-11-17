@@ -1,0 +1,91 @@
+import { useQueryClient } from '@tanstack/react-query';
+import type { EdicaoMilitar, FichaMilitar } from 'contratos';
+import { CNH_HABILITA, cnhHabilitadas } from 'dominio';
+import { useState } from 'react';
+import { mensagemDe } from '@/api/cliente';
+import { atualizarMilitares, editarMilitar } from '@/api/militares';
+import { Button } from '@/componentes/ui/button';
+import { cn } from '@/lib/utils';
+import { Secao } from './Secao';
+
+const CATEGORIAS = [
+  ['A', 'moto'],
+  ['B', 'carro'],
+  ['C', 'caminhão'],
+  ['D', 'ônibus'],
+  ['E', 'carreta'],
+] as const;
+const ORDEM = ['E', 'D', 'C', 'B', 'A'];
+
+/** Categoria da carteira que habilita x pela hierarquia (a mais alta). */
+const origemDe = (x: string, carteira: string[]) => ORDEM.find((c) => carteira.includes(c) && CNH_HABILITA[c]?.includes(x));
+
+export function Motorista({ ficha }: { ficha: FichaMilitar }) {
+  const queryClient = useQueryClient();
+  const [quadro, setQuadro] = useState(ficha.noQuadroDeMotoristas);
+  const [carteira, setCarteira] = useState<string[]>(ficha.cnh);
+  const [aviso, setAviso] = useState<{ erro: boolean; texto: string } | null>(null);
+  const habilitadas = cnhHabilitadas(carteira);
+
+  const alternar = (c: string) => setCarteira((atual) => (atual.includes(c) ? atual.filter((x) => x !== c) : [...atual, c].sort()));
+
+  async function salvar() {
+    setAviso(null);
+    try {
+      await editarMilitar(ficha.id, { motorista: quadro, cnh: quadro ? (carteira as NonNullable<EdicaoMilitar['cnh']>) : [] });
+      atualizarMilitares(queryClient, ficha.id);
+      setAviso({ erro: false, texto: 'Salvo.' });
+    } catch (err) {
+      setAviso({ erro: true, texto: mensagemDe(err) });
+    }
+  }
+
+  return (
+    <Secao titulo="Motorista">
+      <fieldset className="grid gap-3">
+        <legend className="mb-2 text-sm">Está no quadro de motoristas?</legend>
+        <div className="flex gap-4 text-sm">
+          {[true, false].map((v) => (
+            <label key={String(v)} className="flex items-center gap-2">
+              <input type="radio" name="quadro" checked={quadro === v} onChange={() => setQuadro(v)} className="size-4 accent-vinho" />
+              {v ? 'Sim' : 'Não'}
+            </label>
+          ))}
+        </div>
+        {quadro && (
+          <div className="grid grid-cols-5 gap-2" role="group" aria-label="Categorias da CNH">
+            {CATEGORIAS.map(([c, veiculo]) => {
+              const naCarteira = carteira.includes(c);
+              const pela = !naCarteira && habilitadas.includes(c) ? origemDe(c, carteira) : undefined;
+              return (
+                <button
+                  key={c}
+                  type="button"
+                  aria-label={`${c} ${veiculo}${pela ? ` pela ${pela}` : ''}`}
+                  aria-pressed={naCarteira}
+                  data-origem={naCarteira ? 'carteira' : pela ? 'hierarquia' : 'nenhuma'}
+                  onClick={() => alternar(c)}
+                  className={cn(
+                    'grid place-items-center rounded-lg border px-1 py-2 text-center',
+                    naCarteira && 'border-tinta bg-tinta text-white',
+                    pela && 'border-dashed border-tinta/60 text-tinta',
+                    !naCarteira && !pela && 'border-linha text-apagado',
+                  )}
+                >
+                  <span className="font-cond text-xl font-semibold">{c}</span>
+                  <span className="text-xs">{veiculo}</span>
+                  {pela && <span className="text-[11px]">pela {pela}</span>}
+                </button>
+              );
+            })}
+          </div>
+        )}
+        {quadro && <p className="text-xs text-apagado">Marque só as categorias da carteira. As tracejadas vêm pela hierarquia (a D habilita C e B).</p>}
+        <div className="flex items-center gap-3">
+          <Button type="button" variant="outline" onClick={salvar}>Salvar motorista</Button>
+          {aviso && <p role={aviso.erro ? 'alert' : 'status'} className={aviso.erro ? 'text-sm text-alerta' : 'text-sm text-apagado'}>{aviso.texto}</p>}
+        </div>
+      </fieldset>
+    </Secao>
+  );
+}

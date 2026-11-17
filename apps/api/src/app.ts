@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import type { Auth } from './auth.ts';
 import type { Banco } from './banco/banco.ts';
 import { rotasConfiguracoes } from './cadastros/configuracoes.ts';
+import { rotasMilitares } from './cadastros/militares.ts';
 import { IMPORTADORES } from './importacao/registro.ts';
 import { rotasImportacao } from './importacao/rotas.ts';
 import { rotasEu } from './rotas/eu.ts';
@@ -22,6 +23,7 @@ export function criarApp(dep: Dependencias): Hono {
     app.on(['GET', 'POST'], '/api/auth/*', (c) => auth.handler(c.req.raw));
     app.route('/api/eu', rotasEu(dep.banco, auth));
     app.route('/api', rotasConfiguracoes(comAuth));
+    app.route('/api', rotasMilitares(comAuth));
     app.route('/api', rotasImportacao(comAuth, IMPORTADORES));
   }
   return app;
