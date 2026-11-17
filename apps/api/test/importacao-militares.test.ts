@@ -1,4 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { mesPorExtenso, somarMeses } from 'contratos';
 import { hojeRecife } from '../src/datas.ts';
 import { inserir } from './banco-teste.ts';
 import { montarApi, type ApiDeTeste } from './apoio-api.ts';
@@ -110,5 +111,34 @@ describe('importação de militares', () => {
     expect(r.problemas).toEqual([
       { aba: 'MILITARES', linha: 3, mensagem: 'Matrícula 990201-1 repetida na planilha.', solucao: 'Deixe uma linha só por militar.' },
     ]);
+  });
+
+  it('reimportar não desfaz a transferência marcada para o mês seguinte', async () => {
+    const proximo = somarMeses(atual, 1);
+    const linha = ['990209-9', 'IVO', '1ª SB', 'SD BM', 'PRONTO', 'ALFA', 9, '', '', ''];
+    await importar([...LINHAS, linha], true);
+    const ivo = await militar('990209-9');
+    const bravo = (await api.banco.query<{ id: string }>("select id from equipe where nome = 'BRAVO'")).rows[0]!.id;
+    // o escalante marca a ida para BRAVO no mês que vem; a planilha continua dizendo ALFA
+    const r = await api.pedir('escalante', 'POST', `/api/militares/${ivo!.id}/lotacoes`, { unidadeId: api.ids.secao, equipeId: bravo, jornada: 'pronto', desde: proximo });
+    expect(r.status).toBe(201);
+    const res = await importar([...LINHAS, linha], true);
+    expect(res.alterados.find((x: { chave: string }) => x.chave === '990209-9')).toBeUndefined();
+    expect((await lotacoes(ivo!.id)).map((l) => [l.equipe, l.desde])).toEqual([['ALFA', atual], ['BRAVO', proximo]]);
+    // se a planilha pedir outra equipe para este mês, avisa e não mexe
+    const outra = await importar([...LINHAS, ['990209-9', 'IVO', '1ª SB', 'SD BM', 'ADM', '', 9, '', '', '']]);
+    expect(outra.avisos).toContain(`IVO (990209-9): tem transferência marcada para ${mesPorExtenso(proximo)}; a lotação não foi mudada.`);
+  });
+
+  it('militar lotado em outra seção vira problema e não é trazido', async () => {
+    const sd = (await api.banco.query<{ id: string }>("select id from posto_grad where sigla = 'SD BM'")).rows[0]!.id;
+    const outra = await inserir(api.banco, 'unidade', { tipo: 'secao', sigla: '3ª SB', nome: '3ª Seção', mae_id: api.ids.gb, desde: '2026-11-01' });
+    const m = await inserir(api.banco, 'militar', { matricula: '990208-8', posto_grad_id: sd, nome_guerra: 'HOLANDA', antiguidade: 1 });
+    await inserir(api.banco, 'lotacao', { militar_id: m, unidade_id: outra, jornada: 'adm', desde: '2026-01-01' });
+    const r = await importar([['990208-8', 'HOLANDA', '1ª SB', 'CB BM', 'ADM', '', 1, '', '', '']], true);
+    expect(r.problemas).toEqual([
+      { aba: 'MILITARES', linha: 2, mensagem: 'HOLANDA (990208-8) está lotado na 3ª SB.', solucao: 'Ele entra aqui quando a transferência for registrada por quem cuida da 3ª SB.' },
+    ]);
+    expect((await militar('990208-8'))!.posto).toBe('SD BM');
   });
 });

@@ -19,8 +19,9 @@ export const criarAfastamento = (militarId: string, d: NovoAfastamento) => pedir
 export const editarAfastamento = (id: string, d: EdicaoAfastamento) => pedir('PATCH', `/api/afastamentos/${id}`, d);
 export const apagarAfastamento = (id: string) => pedir('DELETE', `/api/afastamentos/${id}`);
 
-/** Depois de gravar: a lista e a ficha voltam a buscar. */
+/** Depois de gravar: lista, equipes (a importação cria) e fichas voltam a buscar. */
 export function atualizarMilitares(queryClient: QueryClient, id?: string) {
   void queryClient.invalidateQueries({ queryKey: ['militares'] });
-  if (id) void queryClient.invalidateQueries({ queryKey: ['militar', id] });
+  void queryClient.invalidateQueries({ queryKey: ['equipes'] });
+  void queryClient.invalidateQueries({ queryKey: id ? ['militar', id] : ['militar'] });
 }

@@ -1,7 +1,9 @@
 import type { FichaMilitar, LinhaMilitar } from 'contratos';
 import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it } from 'vitest';
+import { QueryClient } from '@tanstack/react-query';
+import { describe, expect, it, vi } from 'vitest';
+import { atualizarMilitares } from '@/api/militares';
 import { abrir, corpoEnviado, EU_EXEMPLO, simularApi } from './apoio';
 
 const linha = (l: Partial<LinhaMilitar>): LinhaMilitar => ({
@@ -117,5 +119,15 @@ describe('ficha do militar', () => {
     fireEvent.change(screen.getByLabelText('Fim'), { target: { value: '2026-12-08' } });
     await userEvent.click(screen.getByRole('button', { name: 'Incluir afastamento' }));
     expect(await screen.findByText('As datas se sobrepõem a outro período já cadastrado.')).toBeInTheDocument();
+  });
+});
+
+describe('depois de gravar', () => {
+  it('importação busca de novo equipes e fichas abertas', () => {
+    const qc = new QueryClient();
+    const espiao = vi.spyOn(qc, 'invalidateQueries');
+    atualizarMilitares(qc);
+    const chaves = espiao.mock.calls.map((c) => (c[0] as { queryKey: unknown[] }).queryKey);
+    expect(chaves).toEqual(expect.arrayContaining([['militares'], ['equipes'], ['militar']]));
   });
 });

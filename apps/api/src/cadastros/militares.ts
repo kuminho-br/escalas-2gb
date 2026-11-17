@@ -117,11 +117,28 @@ async function carregarFicha(c: Consulta, id: string, mes: string): Promise<Fich
   };
 }
 
-/** Confere o papel na unidade dona do registro; 404 se o registro não existe. */
+/**
+ * Confere o papel numa unidade do militar: as das lotações deste mês em diante (uma transferência
+ * marcada para o mês que vem não tira o acesso de quem cuida dele agora). Sem nenhuma, vale a
+ * lotação mais recente. 404 se o registro não existe.
+ */
 async function exigirPapelNoRegistro(c: Ctx, tabela: 'militar' | 'afastamento', id: string): Promise<Response | null> {
-  const unidade = await unidadeDoRegistro(c.get('banco'), tabela, id);
-  if (!unidade) return c.json({ erro: tabela === 'militar' ? 'Militar não encontrado.' : 'Afastamento não encontrado.' }, 404);
-  return exigirPapel(c, unidade, CADASTRO);
+  const banco = c.get('banco');
+  const naoAchou = () => c.json({ erro: tabela === 'militar' ? 'Militar não encontrado.' : 'Afastamento não encontrado.' }, 404);
+  if (!(await unidadeDoRegistro(banco, tabela, id))) return naoAchou();
+  const militarId = tabela === 'militar' ? id : (await banco.query<{ militar_id: string }>('select militar_id from afastamento where id = $1', [id])).rows[0]!.militar_id;
+  const inicioDoMes = `${hojeRecife().slice(0, 7)}-01`;
+  const { rows } = await banco.query<{ unidade_id: string }>(
+    'select distinct unidade_id from lotacao where militar_id = $1 and (ate is null or ate >= $2)',
+    [militarId, inicioDoMes],
+  );
+  const unidades = rows.length ? rows.map((r) => r.unidade_id) : [(await unidadeDoRegistro(banco, 'militar', militarId))!];
+  let negado: Response | null = null;
+  for (const u of unidades) {
+    negado = await exigirPapel(c, u, CADASTRO);
+    if (!negado) return null;
+  }
+  return negado;
 }
 
 /** Tipo de afastamento existente e ativo; senão, a resposta 400. */
@@ -261,6 +278,9 @@ export function rotasMilitares(dep: { banco: Banco; auth: Auth }): Hono<Ambiente
     const corpo = await lerCorpo(c, NovaLotacao);
     if (!corpo.ok) return corpo.resposta;
     const d = corpo.dados;
+    // a unidade de destino também precisa ser de quem registra
+    const negadoDestino = await exigirPapel(c, d.unidadeId, CADASTRO);
+    if (negadoDestino) return negadoDestino;
     const aberta = (await dep.banco.query<{ id: string; mes: string }>(
       "select id, to_char(desde, 'YYYY-MM') as mes from lotacao where militar_id = $1 and ate is null",
       [id],

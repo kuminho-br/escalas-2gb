@@ -1,6 +1,6 @@
 // Importação da aba MILITARES (leitura como lerMilitares_ do protótipo, prototipo/matriz.js).
-import { mesParaData, type ItemPrevia, type ProblemaImportacao } from 'contratos';
-import { categoriasCnh, CICLO_EQUIPES, normalizar } from 'dominio';
+import { mesParaData, mesPorExtenso, type ItemPrevia, type ProblemaImportacao } from 'contratos';
+import { categoriasCnh, CICLO_EQUIPES, diasDoMes, normalizar } from 'dominio';
 import type { Consulta } from '../banco/banco.ts';
 import { coluna } from './planilha.ts';
 import type { Importador } from './tipos.ts';
@@ -36,7 +36,11 @@ type Existente = {
   voluntario_jes: boolean;
   lotacao_id: string | null;
   lotacao_unidade: string | null;
+  lotacao_sigla: string | null;
   lotacao_desde: string | null;
+  lotacao_aberta: boolean | null;
+  /** mês da próxima lotação já registrada depois deste mês (transferência marcada) */
+  futura: string | null;
   equipe: string | null;
   jornada: 'pronto' | 'adm' | null;
 };
@@ -49,18 +53,30 @@ function matriculaDe(bruto: string): { valor: string | null; corrigida: boolean 
   return { valor: null, corrigida: false };
 }
 
+function diferencasDeLotacao(e: { equipe: string | null; jornada: string | null }, equipe: string | null, jornada: string): string[] {
+  const m: string[] = [];
+  if (normalizar(e.equipe ?? '') !== normalizar(equipe ?? '')) m.push(`equipe: ${e.equipe ?? 'sem equipe'} → ${equipe ?? 'sem equipe'}`);
+  if (e.jornada !== jornada) m.push(`jornada: ${e.jornada} → ${jornada}`);
+  return m;
+}
+
 const mesmaLista = (a: string[], b: string[]) => [...a].sort().join() === [...b].sort().join();
 const textoCnh = (c: string[]) => (c.length ? [...c].sort().join('') : 'nenhuma');
 
-async function existentes(tx: Consulta): Promise<Map<string, Existente>> {
+/** Militares do sistema, com a lotação que cobre o mês e a próxima já marcada (se houver). */
+async function existentes(tx: Consulta, mes: string): Promise<Map<string, Existente>> {
+  const dias = diasDoMes(mes);
   const { rows } = await tx.query<Existente>(
     `select m.id, m.matricula, m.posto_grad_id, p.sigla as posto, m.nome_guerra, m.antiguidade, m.motorista, m.cnh, m.voluntario_jes,
-            l.id as lotacao_id, l.unidade_id as lotacao_unidade, to_char(l.desde, 'YYYY-MM') as lotacao_desde, e.nome as equipe, l.jornada
+            l.id as lotacao_id, l.unidade_id as lotacao_unidade, un.sigla as lotacao_sigla, to_char(l.desde, 'YYYY-MM') as lotacao_desde,
+            l.ate is null as lotacao_aberta, e.nome as equipe, l.jornada,
+            (select to_char(min(f.desde), 'YYYY-MM') from lotacao f where f.militar_id = m.id and f.desde > $2) as futura
        from militar m
        join posto_grad p on p.id = m.posto_grad_id
-       left join lotacao l on l.militar_id = m.id and l.ate is null
+       left join lotacao l on l.militar_id = m.id and l.desde <= $2 and (l.ate is null or l.ate >= $1)
+       left join unidade un on un.id = l.unidade_id
        left join equipe e on e.id = l.equipe_id`,
-    [],
+    [dias[0], dias[dias.length - 1]],
   );
   return new Map(rows.map((r) => [r.matricula, r]));
 }
@@ -91,7 +107,7 @@ export const importadorMilitares: Importador<Plano> = {
     const equipePorChave = new Map(equipesExistentes.map((e) => [normalizar(e.nome), e.nome]));
     const equipesNovas: Plano['equipesNovas'] = [];
     let proximaOrdem = Math.max(CICLO_EQUIPES.length, ...equipesExistentes.map((e) => e.ordem_ciclo)) + 1;
-    const ja = await existentes(tx);
+    const ja = await existentes(tx, mes);
 
     const pega = (cel: string[], i: number) => (i < 0 ? '' : (cel[i] ?? '').trim());
     const vistos = new Set<string>();
@@ -175,6 +191,11 @@ export const importadorMilitares: Importador<Plano> = {
       };
       const descricao = `${posto.sigla} ${nomeGuerra}`;
       const e = ja.get(mat.valor);
+      if (e?.lotacao_unidade && e.lotacao_unidade !== unidadeId) {
+        // trazer de outra seção exige papel lá: a transferência é registrada por quem cuida dela
+        problema(`${nomeGuerra} (${mat.valor}) está lotado na ${e.lotacao_sigla}.`, `Ele entra aqui quando a transferência for registrada por quem cuida da ${e.lotacao_sigla}.`);
+        continue;
+      }
       if (!e) {
         novos.push({ chave: mat.valor, descricao });
         itens.push({ id: null, dados, mudouMilitar: true, lotacao: { acao: 'nova' } });
@@ -192,16 +213,25 @@ export const importadorMilitares: Importador<Plano> = {
 
       let lotacao: Lotacao | null = null;
       if (!e.lotacao_id) {
-        mudancas.push('lotação: nova');
-        lotacao = { acao: 'nova' };
+        if (e.futura) avisos.push(`${nomeGuerra} (${mat.valor}): já tem lotação marcada para ${mesPorExtenso(e.futura)}; a lotação não foi mudada.`);
+        else {
+          mudancas.push('lotação: nova');
+          lotacao = { acao: 'nova' };
+        }
       } else {
         const mesmaEquipe = normalizar(e.equipe ?? '') === normalizar(equipe ?? '');
-        if (e.lotacao_unidade !== unidadeId) mudancas.push(`lotação: outra unidade → ${unidade.sigla}`);
-        if (!mesmaEquipe) mudancas.push(`equipe: ${e.equipe ?? 'sem equipe'} → ${equipe ?? 'sem equipe'}`);
-        if (e.jornada !== jornada) mudancas.push(`jornada: ${e.jornada} → ${jornada}`);
-        if (e.lotacao_unidade !== unidadeId || !mesmaEquipe || e.jornada !== jornada) {
-          // lotação aberta que começou neste mês (ou depois) é corrigida; a de antes termina no mês anterior
-          lotacao = e.lotacao_desde! >= mes ? { acao: 'corrigir', id: e.lotacao_id } : { acao: 'transferir', id: e.lotacao_id };
+        if (!mesmaEquipe || e.jornada !== jornada) {
+          if (e.futura) {
+            // não sobrescreve a transferência que o escalante já marcou para depois
+            avisos.push(`${nomeGuerra} (${mat.valor}): tem transferência marcada para ${mesPorExtenso(e.futura)}; a lotação não foi mudada.`);
+          } else if (e.lotacao_desde! >= mes || !e.lotacao_aberta) {
+            // lotação que começou neste mês é corrigida; a de antes termina no mês anterior
+            mudancas.push(...diferencasDeLotacao(e, equipe, jornada));
+            lotacao = { acao: 'corrigir', id: e.lotacao_id };
+          } else {
+            mudancas.push(...diferencasDeLotacao(e, equipe, jornada));
+            lotacao = { acao: 'transferir', id: e.lotacao_id };
+          }
         }
       }
 

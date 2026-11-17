@@ -169,4 +169,19 @@ describe('motorista e permissões', () => {
     const { rows } = await api.banco.query<{ usuario_id: string }>("select usuario_id from auditoria where tabela = 'militar' and registro_id = $1", [m.id]);
     expect(rows[0]!.usuario_id).toBe(api.usuarios.escalante);
   });
+
+  it('transferência para unidade sem papel é 403', async () => {
+    const m = await criar('990114-4');
+    const r = await api.pedir('escalante', 'POST', `/api/militares/${m.id}/lotacoes`, { unidadeId: outraSecao, equipeId: null, jornada: 'adm', desde: proximo });
+    expect(r.status).toBe(403);
+  });
+
+  it('transferência marcada para o mês seguinte não tira o acesso da seção atual', async () => {
+    const m = await criar('990115-5');
+    // o administrador registra a ida para a 2ª SB no mês que vem
+    expect((await api.pedir('admin', 'POST', `/api/militares/${m.id}/lotacoes`, { unidadeId: outraSecao, equipeId: null, jornada: 'adm', desde: proximo })).status).toBe(201);
+    expect((await api.pedir('escalante', 'GET', `/api/militares/${m.id}`)).status).toBe(200);
+    const af = await api.pedir('escalante', 'POST', `/api/militares/${m.id}/afastamentos`, { tipoAfastamentoId: ferias, inicio: `${atual}-02`, fim: `${atual}-03` });
+    expect(af.status).toBe(201);
+  });
 });
