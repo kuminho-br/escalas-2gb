@@ -48,7 +48,8 @@ export async function cargaExemplo(banco: Banco, ambiente: string | undefined, m
   if (ambiente === 'teste') throw new Error('Carga de exemplo recusada no ambiente de teste');
 
   return banco.transacao(async (tx) => {
-    const ja = await tx.query<{ n: number }>("select count(*)::int as n from militar where matricula like '990%'");
+    // já carregada se as matrículas da carga (990001 a 990053) existem
+    const ja = await tx.query<{ n: number }>("select count(*)::int as n from militar where matricula between '990001-0' and '990053-9'");
     if (ja.rows[0]!.n > 0) return { militares: ja.rows[0]!.n };
 
     const secao = await id(tx, "select id from unidade where sigla = '1ª SB'", []);

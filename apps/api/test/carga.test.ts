@@ -44,7 +44,11 @@ describe('carga de exemplo', () => {
   });
 
   it('exemplo cria 53 militares', async () => {
+    // um militar 990 que não é da carga (ex.: o administrador local) não pode impedir a carga
+    const posto = (await banco.query<{ id: string }>("select id from posto_grad where sigla = 'CAP BM'")).rows[0]!.id;
+    await banco.query("insert into militar (matricula, posto_grad_id, nome_guerra) values ('990999-9', $1, 'DEV')", [posto]);
     expect(await cargaExemplo(banco, undefined, '2026-11-01')).toEqual({ militares: 53 });
+    await banco.query("delete from militar where matricula = '990999-9'");
     expect(await n('select count(*)::int as n from militar')).toBe(53);
     expect(await n("select count(*)::int as n from militar where matricula !~ '^990\\d{3}-\\d$'")).toBe(0);
     expect(await n("select count(*)::int as n from lotacao where jornada = 'adm'")).toBe(17);

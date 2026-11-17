@@ -1,0 +1,61 @@
+@import "tailwindcss";
+
+/* Identidade visual (docs/superpowers/specs/2026-11-16-telas.md) */
+@theme {
+  --color-vinho: #8E1B1B;
+  --color-vinho-escuro: #6F1414;
+  --color-fundo: #EDEFF2;
+  --color-superficie: #FFFFFF;
+  --color-tinta: #1C2430;
+  --color-apagado: #5B6675;
+  --color-linha: #D8DDE4;
+  --color-alerta: #B3261E;
+
+  --font-sans: "Barlow", system-ui, sans-serif;
+  --font-cond: "Barlow Semi Condensed", "Barlow", system-ui, sans-serif;
+
+  /* variáveis usadas pelos componentes shadcn/ui */
+  --color-background: var(--color-fundo);
+  --color-foreground: var(--color-tinta);
+  --color-primary: var(--color-vinho);
+  --color-primary-foreground: #FFFFFF;
+  --color-secondary: #E3E7EC;
+  --color-secondary-foreground: var(--color-tinta);
+  --color-muted: #E3E7EC;
+  --color-muted-foreground: var(--color-apagado);
+  --color-accent: #EEF1F4;
+  --color-accent-foreground: var(--color-tinta);
+  --color-destructive: var(--color-alerta);
+  --color-border: var(--color-linha);
+  --color-input: #C9CFD8;
+  --color-ring: var(--color-tinta);
+  --color-card: var(--color-superficie);
+  --color-card-foreground: var(--color-tinta);
+  --color-popover: var(--color-superficie);
+  --color-popover-foreground: var(--color-tinta);
+}
+
+@layer base {
+  html,
+  body {
+    background: var(--color-fundo);
+    color: var(--color-tinta);
+    font-family: var(--font-sans);
+  }
+  * {
+    border-color: var(--color-border);
+  }
+  :focus-visible {
+    outline: 2px solid var(--color-tinta);
+    outline-offset: 2px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition: none !important;
+    animation: none !important;
+  }
+}
