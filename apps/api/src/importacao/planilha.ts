@@ -54,3 +54,6 @@ export function coluna(aba: Aba, rotulo: string): number {
   const exato = cab.indexOf(alvo);
   return exato >= 0 ? exato : cab.findIndex((c) => c.startsWith(alvo));
 }
+
+/** Data que o Planilhas converteu ('01/12/2026') volta a ser o mês digitado ('2026-12'); o resto passa como veio. */
+export const mesDaCelula = (t: string): string => t.replace(/^\d{2}\/(\d{2})\/(\d{4})$/, '$2-$1');

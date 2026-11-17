@@ -1,0 +1,221 @@
+import { mesPorExtenso, somarMeses, type FichaGuarnicao, type Funcao, type LinhaGuarnicao } from 'contratos';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { hojeRecife } from '../src/datas.ts';
+import { inserir } from './banco-teste.ts';
+import { montarApi, type ApiDeTeste } from './apoio-api.ts';
+
+let api: ApiDeTeste;
+let incendio: string;
+let funcaoGb: string; // "Motorista", do 2º GB (herdada pela 1ª SB)
+let funcaoSb: string; // "Combatente", da 1ª SB
+let funcaoOutra: string; // "Chefe", de outra seção
+let outraSecao: string;
+const atual = hojeRecife().slice(0, 7);
+const proximo = somarMeses(atual, 1);
+const passado = somarMeses(atual, -1);
+
+const linha = (funcaoId: string, minimo = 1, maximo: number | null = 1, cnhExigida: string | null = null) => ({ funcaoId, minimo, maximo, cnhExigida });
+const versao = (composicao: unknown[], extra: Record<string, unknown> = {}) => ({ viatura: null, tipoViatura: null, prioridade: null, ativa: true, composicao, ...extra });
+const corpo = (nome: string, extra: Record<string, unknown> = {}) => ({
+  nome, atividadeId: incendio, vigencia: atual, versao: versao([linha(funcaoSb, 1, 3), linha(funcaoGb, 1, 1, 'D')]), ...extra,
+});
+const secao = () => `/api/unidades/${api.ids.secao}`;
+async function criar(nome: string, extra: Record<string, unknown> = {}): Promise<FichaGuarnicao> {
+  const r = await api.pedir('escalante', 'POST', `${secao()}/guarnicoes`, corpo(nome, extra));
+  expect(r.status).toBe(201);
+  return r.json();
+}
+const ficha = async (id: string): Promise<FichaGuarnicao> => (await api.pedir('escalante', 'GET', `/api/guarnicoes/${id}`)).json();
+const lista = async (mes = atual): Promise<LinhaGuarnicao[]> => (await api.pedir('escalante', 'GET', `${secao()}/guarnicoes?mes=${mes}`)).json();
+
+beforeAll(async () => {
+  api = await montarApi();
+  incendio = (await api.banco.query<{ id: string }>("select id from atividade where nome = 'Incêndio'")).rows[0]!.id;
+  outraSecao = await inserir(api.banco, 'unidade', { tipo: 'secao', sigla: '2ª SB', nome: '2ª Seção de Bombeiros', mae_id: api.ids.gb, desde: '2026-11-01' });
+  funcaoGb = await inserir(api.banco, 'funcao', { unidade_id: api.ids.gb, nome: 'Motorista' });
+  funcaoSb = await inserir(api.banco, 'funcao', { unidade_id: api.ids.secao, nome: 'Combatente' });
+  funcaoOutra = await inserir(api.banco, 'funcao', { unidade_id: outraSecao, nome: 'Chefe' });
+});
+afterAll(async () => {
+  await api.fechar();
+});
+
+describe('guarnições', () => {
+  it('cria guarnição com a primeira versão', async () => {
+    const f = await criar('Auto Bomba 1', { versao: versao([linha(funcaoSb, 1, 3), linha(funcaoGb, 1, 1, 'D')], { viatura: 'ABT-01', tipoViatura: 'Auto Bomba Tanque', prioridade: 1 }) });
+    expect(f).toMatchObject({ nome: 'Auto Bomba 1', atividadeId: incendio, atividade: 'Incêndio' });
+    expect(f.versoes).toEqual([
+      {
+        vigencia: atual, viatura: 'ABT-01', tipoViatura: 'Auto Bomba Tanque', prioridade: 1, ativa: true,
+        composicao: [
+          { funcaoId: funcaoSb, funcao: 'Combatente', minimo: 1, maximo: 3, cnhExigida: null },
+          { funcaoId: funcaoGb, funcao: 'Motorista', minimo: 1, maximo: 1, cnhExigida: 'D' },
+        ],
+      },
+    ]);
+    expect(f.usadaEm).toEqual([]);
+  });
+
+  it('lista do mês usa a versão vigente', async () => {
+    const f = await criar('Auto Resgate 1', { versao: versao([linha(funcaoSb, 2, 2)], { viatura: 'ABT-01', prioridade: 5 }) });
+    expect((await api.pedir('escalante', 'PUT', `/api/guarnicoes/${f.id}/versoes/${proximo}`, versao([linha(funcaoSb, 3, 3)], { viatura: 'ABT-02', prioridade: 5 }))).status).toBe(200);
+    const agora = (await lista(atual)).find((g) => g.id === f.id)!;
+    const depois = (await lista(proximo)).find((g) => g.id === f.id)!;
+    expect(agora).toMatchObject({ viatura: 'ABT-01', vagasObrigatorias: 2, aPartirDe: null, pendencias: [] });
+    expect(depois).toMatchObject({ viatura: 'ABT-02', vagasObrigatorias: 3, aPartirDe: null });
+  });
+
+  it('lista ordena por prioridade (vazia por último) e nome', async () => {
+    await criar('Ordem C', { versao: versao([linha(funcaoSb)], { prioridade: 2 }) });
+    await criar('Ordem B', { versao: versao([linha(funcaoSb)], { prioridade: 1 }) });
+    await criar('Ordem A', { versao: versao([linha(funcaoSb)], { prioridade: null }) });
+    const nomes = (await lista()).filter((g) => g.nome.startsWith('Ordem ')).map((g) => g.nome);
+    expect(nomes).toEqual(['Ordem B', 'Ordem C', 'Ordem A']);
+  });
+
+  it('guarnição que só começa no mês seguinte aparece com aPartirDe', async () => {
+    const f = await criar('Começa depois', { vigencia: proximo, versao: versao([linha(funcaoSb, 2, 2)]) });
+    expect((await lista(atual)).find((g) => g.id === f.id)).toMatchObject({ aPartirDe: proximo, vagasObrigatorias: 2 });
+    expect((await lista(proximo)).find((g) => g.id === f.id)!.aPartirDe).toBeNull();
+  });
+
+  it('salvar a partir do mês corrente substitui sem duplicar', async () => {
+    const f = await criar('Substitui');
+    const salvar = (v: unknown) => api.pedir('escalante', 'PUT', `/api/guarnicoes/${f.id}/versoes/${atual}`, v);
+    expect((await salvar(versao([linha(funcaoSb, 1, 1), linha(funcaoGb, 1, 1)]))).status).toBe(200);
+    const r = await salvar(versao([linha(funcaoGb, 2, 4)], { viatura: 'ABT-09' }));
+    expect(r.status).toBe(200);
+    const depois: FichaGuarnicao = await r.json();
+    expect(depois.versoes).toHaveLength(1);
+    expect(depois.versoes[0]).toMatchObject({ vigencia: atual, viatura: 'ABT-09', composicao: [{ funcao: 'Motorista', minimo: 2, maximo: 4 }] });
+    const n = (await api.banco.query<{ n: number }>(
+      'select count(*)::int as n from composicao c join guarnicao_versao v on v.id = c.guarnicao_versao_id where v.guarnicao_id = $1', [f.id],
+    )).rows[0]!.n;
+    expect(n).toBe(1);
+  });
+
+  it('versão de mês passado é 409 com o mês mínimo', async () => {
+    const f = await criar('Sem passado');
+    const r = await api.pedir('escalante', 'PUT', `/api/guarnicoes/${f.id}/versoes/${passado}`, versao([linha(funcaoSb)]));
+    expect(r.status).toBe(409);
+    expect((await r.json()).erro).toBe(`Só dá para mudar a partir de ${mesPorExtenso(atual)}.`);
+    const nova = await api.pedir('escalante', 'POST', `${secao()}/guarnicoes`, corpo('Nasce no passado', { vigencia: passado }));
+    expect(nova.status).toBe(409);
+  });
+
+  it('mês da rota mal formado é 400', async () => {
+    const f = await criar('Mês ruim');
+    expect((await api.pedir('escalante', 'PUT', `/api/guarnicoes/${f.id}/versoes/2026-13`, versao([]))).status).toBe(400);
+  });
+
+  it('guarnição sem atividade tem a pendência', async () => {
+    const f = await criar('Sem atividade', { atividadeId: null });
+    expect((await lista()).find((g) => g.id === f.id)).toMatchObject({ atividade: null, pendencias: ['Sem atividade'] });
+  });
+
+  it('função de outra seção é 400 no campo', async () => {
+    const f = await criar('Função alheia');
+    const r = await api.pedir('escalante', 'PUT', `/api/guarnicoes/${f.id}/versoes/${atual}`, versao([linha(funcaoSb), linha(funcaoOutra)]));
+    expect(r.status).toBe(400);
+    expect((await r.json()).campos['composicao.1.funcaoId']).toBe('Esta função não está no catálogo da seção.');
+    const nova = await api.pedir('escalante', 'POST', `${secao()}/guarnicoes`, corpo('Função alheia 2', { versao: versao([linha(funcaoOutra)]) }));
+    expect(nova.status).toBe(400);
+    expect((await nova.json()).campos['versao.composicao.0.funcaoId']).toBe('Esta função não está no catálogo da seção.');
+  });
+
+  it('função repetida na composição é 400 no campo', async () => {
+    const f = await criar('Repetida');
+    const r = await api.pedir('escalante', 'PUT', `/api/guarnicoes/${f.id}/versoes/${atual}`, versao([linha(funcaoSb), linha(funcaoSb)]));
+    expect(r.status).toBe(400);
+    expect((await r.json()).campos['composicao.1.funcaoId']).toBe('Esta função já está na composição.');
+  });
+
+  it('máximo menor que o mínimo é 400', async () => {
+    const f = await criar('Máximo ruim');
+    const r = await api.pedir('escalante', 'PUT', `/api/guarnicoes/${f.id}/versoes/${atual}`, versao([linha(funcaoSb, 3, 2)]));
+    expect(r.status).toBe(400);
+    expect((await r.json()).campos['composicao.0.maximo']).toBe('O máximo precisa ser igual ou maior que o mínimo.');
+  });
+
+  it('nome de guarnição repetido com outro acento é 409', async () => {
+    await criar('Ação Rápida');
+    const r = await api.pedir('escalante', 'POST', `${secao()}/guarnicoes`, corpo('acao rapida'));
+    expect(r.status).toBe(409);
+    expect((await r.json()).erro).toBe('Já existe uma guarnição com esse nome.');
+    const outra = await criar('Outra Ação');
+    const ren = await api.pedir('escalante', 'PATCH', `/api/guarnicoes/${outra.id}`, { nome: 'AÇÃO RÁPIDA' });
+    expect(ren.status).toBe(409);
+  });
+
+  it('atividade desativada não pode ser escolhida, mas a atual pode ficar', async () => {
+    const mergulho = await inserir(api.banco, 'atividade', { nome: 'Mergulho' });
+    const f = await criar('Mergulho 1', { atividadeId: mergulho });
+    await api.banco.query('update atividade set ativo = false where id = $1', [mergulho]);
+    const nova = await api.pedir('escalante', 'POST', `${secao()}/guarnicoes`, corpo('Mergulho 2', { atividadeId: mergulho }));
+    expect(nova.status).toBe(400);
+    expect((await nova.json()).campos.atividadeId).toBe('Escolha uma atividade ativa.');
+    expect((await api.pedir('escalante', 'PATCH', `/api/guarnicoes/${f.id}`, { nome: 'Mergulho renomeado' })).status).toBe(200);
+    expect((await api.pedir('escalante', 'PATCH', `/api/guarnicoes/${f.id}`, { atividadeId: mergulho })).status).toBe(200);
+    expect((await api.pedir('escalante', 'PATCH', `/api/guarnicoes/${f.id}`, { atividadeId: incendio })).status).toBe(200);
+  });
+
+  it('onde é usada lista a escala e os turnos', async () => {
+    const f = await criar('Usada');
+    const escala = await inserir(api.banco, 'escala', { unidade_id: api.ids.secao, nome: 'Ordinário', titulo: 'Escala Ordinária', militares_doc: 'todos', dias_doc: 'todos' });
+    const vinculo = await inserir(api.banco, 'escala_vinculo_versao', { escala_id: escala, vigencia_desde: `${atual}-01` });
+    await inserir(api.banco, 'escala_guarnicao', { versao_id: vinculo, guarnicao_id: f.id, turno_letra: 'B' });
+    await inserir(api.banco, 'escala_guarnicao', { versao_id: vinculo, guarnicao_id: f.id, turno_letra: 'A' });
+    expect((await ficha(f.id)).usadaEm).toEqual([{ escalaId: escala, escala: 'Ordinário', turnos: ['A', 'B'] }]);
+    const g = await criar('Usada sem turno');
+    await inserir(api.banco, 'escala_guarnicao', { versao_id: vinculo, guarnicao_id: g.id, turno_letra: null });
+    expect((await ficha(g.id)).usadaEm).toEqual([{ escalaId: escala, escala: 'Ordinário', turnos: ['todos'] }]);
+  });
+
+  it('guarnição desconhecida é 404', async () => {
+    expect((await api.pedir('escalante', 'GET', '/api/guarnicoes/00000000-0000-0000-0000-000000000000')).status).toBe(404);
+  });
+});
+
+describe('funções', () => {
+  it('função herdada do 2º GB aparece marcada', async () => {
+    const r = await api.pedir('escalante', 'GET', `${secao()}/funcoes`);
+    const funcoes: Funcao[] = await r.json();
+    expect(funcoes).toEqual(expect.arrayContaining([
+      expect.objectContaining({ id: funcaoGb, nome: 'Motorista', unidadeSigla: '2º GB', herdada: true }),
+      expect.objectContaining({ id: funcaoSb, nome: 'Combatente', unidadeSigla: '1ª SB', herdada: false }),
+    ]));
+    expect(funcoes.some((f) => f.id === funcaoOutra)).toBe(false);
+  });
+
+  it('cria função na seção', async () => {
+    const r = await api.pedir('escalante', 'POST', `${secao()}/funcoes`, { nome: 'Socorrista' });
+    expect(r.status).toBe(201);
+    expect(await r.json()).toMatchObject({ nome: 'Socorrista', unidadeSigla: '1ª SB', herdada: false });
+  });
+
+  it('nome de função repetido com outra caixa é 409', async () => {
+    const r = await api.pedir('escalante', 'POST', `${secao()}/funcoes`, { nome: 'motorista' });
+    expect(r.status).toBe(409);
+    expect((await r.json()).erro).toBe('Já existe a função "Motorista" (2º GB).');
+    expect((await api.pedir('escalante', 'POST', `${secao()}/funcoes`, { nome: 'COMBATENTE' })).status).toBe(409);
+  });
+});
+
+describe('permissões', () => {
+  it('escalante de outra seção recebe 403 e sem papel também', async () => {
+    expect((await api.pedir('escalante', 'POST', `/api/unidades/${outraSecao}/guarnicoes`, corpo('Alheia'))).status).toBe(403);
+    const alheia = await api.pedir('admin', 'POST', `/api/unidades/${outraSecao}/guarnicoes`, corpo('Alheia', { versao: versao([linha(funcaoOutra)]) }));
+    expect(alheia.status).toBe(201);
+    const id = (await alheia.json()).id;
+    expect((await api.pedir('escalante', 'GET', `/api/guarnicoes/${id}`)).status).toBe(403);
+    expect((await api.pedir('escalante', 'PUT', `/api/guarnicoes/${id}/versoes/${atual}`, versao([linha(funcaoOutra)]))).status).toBe(403);
+    expect((await api.pedir('semPapel', 'GET', `${secao()}/guarnicoes`)).status).toBe(403);
+    expect((await api.pedir('semPapel', 'POST', `${secao()}/funcoes`, { nome: 'X' })).status).toBe(403);
+  });
+
+  it('a gravação fica na auditoria com o usuário', async () => {
+    const f = await criar('Auditada');
+    const { rows } = await api.banco.query<{ usuario_id: string }>("select usuario_id from auditoria where tabela = 'guarnicao' and registro_id = $1", [f.id]);
+    expect(rows[0]!.usuario_id).toBe(api.usuarios.escalante);
+  });
+});
