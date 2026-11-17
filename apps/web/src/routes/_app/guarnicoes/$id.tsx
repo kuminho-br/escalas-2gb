@@ -35,7 +35,8 @@ function Ficha() {
       <Situacao key={`s-${ficha.id}`} ficha={ficha} />
       {/* key: ao trocar de guarnição, os formulários começam do zero */}
       <Identificacao key={`i-${ficha.id}`} ficha={ficha} />
-      <Versoes key={`v-${ficha.id}`} ficha={ficha} unidadeId={eu.unidade.id} />
+      {/* as versões entram na key: desativar, reativar ou salvar recarrega o editor com o que foi gravado */}
+      <Versoes key={`v-${ficha.id}-${ficha.versoes.map((v) => `${v.vigencia}:${v.ativa}`).join(',')}`} ficha={ficha} unidadeId={eu.unidade.id} />
       <UsadaEm ficha={ficha} />
     </article>
   );

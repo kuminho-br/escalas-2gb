@@ -228,6 +228,25 @@ describe('ficha da guarnição', () => {
     await waitFor(() => expect(corpoEnviado(f, 'POST /api/guarnicoes/g1/situacao')).toEqual({ ativa: false, aPartirDe: '2099-05' }));
   });
 
+  it('depois de desativar, o editor mostra a versão desativada', async () => {
+    const inativa: FichaGuarnicao = { ...FICHA, desativadaAPartirDe: '2026-01', versoes: FICHA.versoes.map((v) => ({ ...v, ativa: false })) };
+    const rotas: Parameters<typeof simularApi>[0] = {
+      '/api/eu': { status: 200, corpo: EU_EXEMPLO },
+      'GET /api/unidades/u-1sb/guarnicoes': { status: 200, corpo: LISTA },
+      'GET /api/unidades/u-1sb/funcoes': { status: 200, corpo: FUNCOES },
+      'GET /api/guarnicoes/g1': { status: 200, corpo: FICHA },
+      'POST /api/guarnicoes/g1/situacao': { status: 200, corpo: inativa },
+    };
+    simularApi(rotas);
+    abrir('/guarnicoes/g1');
+    const desativar = await screen.findByRole('button', { name: 'Desativar agora' });
+    expect(screen.getByRole('checkbox', { name: 'Ativa' })).toBeChecked();
+    rotas['GET /api/guarnicoes/g1'] = { status: 200, corpo: inativa };
+    await userEvent.click(desativar);
+    await screen.findByText('Desativada desde janeiro de 2026.');
+    await waitFor(() => expect(screen.getByRole('checkbox', { name: 'Ativa' })).not.toBeChecked());
+  });
+
   it('guarnição desativada mostra reativar agora', async () => {
     const f = api({
       'GET /api/guarnicoes/g8': { status: 200, corpo: { ...FICHA, id: 'g8', desativadaAPartirDe: '2026-01' } },
