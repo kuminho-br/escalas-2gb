@@ -4,7 +4,7 @@ import { queryOptions } from '@tanstack/react-query';
 export interface Eu {
   usuario: { id: string; nome: string; email: string };
   militar: { matricula: string; postoGrad: string; nomeGuerra: string };
-  papeis: { papel: 'administrador' | 'chefe' | 'escalante'; unidadeId: string; unidadeSigla: string }[];
+  papeis: { papel: 'administrador' | 'gestor' | 'escalante'; unidadeId: string; unidadeSigla: string }[];
 }
 
 /** Quem está logado; null se não houver sessão. */
