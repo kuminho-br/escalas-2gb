@@ -1,0 +1,73 @@
+import { PGlite } from '@electric-sql/pglite';
+import { btree_gist } from '@electric-sql/pglite/contrib/btree_gist';
+import { ltree } from '@electric-sql/pglite/contrib/ltree';
+import pg from 'pg';
+
+export interface Consulta {
+  query<T = Record<string, unknown>>(sql: string, params?: unknown[]): Promise<{ rows: T[] }>;
+  /** Vários comandos, sem parâmetros. */
+  exec(sql: string): Promise<void>;
+}
+
+export interface Banco extends Consulta {
+  transacao<T>(fn: (tx: Consulta) => Promise<T>): Promise<T>;
+  fechar(): Promise<void>;
+}
+
+function consultaPg(c: pg.Pool | pg.PoolClient): Consulta {
+  return {
+    async query<T>(sql: string, params?: unknown[]) {
+      const r = await c.query(sql, params as unknown[] | undefined);
+      return { rows: r.rows as T[] };
+    },
+    async exec(sql: string) {
+      await c.query(sql);
+    },
+  };
+}
+
+export function bancoPg(url: string): Banco {
+  const pool = new pg.Pool({ connectionString: url, max: 3 });
+  return {
+    ...consultaPg(pool),
+    async transacao(fn) {
+      const cliente = await pool.connect();
+      try {
+        await cliente.query('begin');
+        const r = await fn(consultaPg(cliente));
+        await cliente.query('commit');
+        return r;
+      } catch (e) {
+        await cliente.query('rollback');
+        throw e;
+      } finally {
+        cliente.release();
+      }
+    },
+    fechar: () => pool.end(),
+  };
+}
+
+type PgliteConsulta = Pick<PGlite, 'query' | 'exec'>;
+
+function consultaPglite(c: PgliteConsulta): Consulta {
+  return {
+    async query<T>(sql: string, params?: unknown[]) {
+      const r = await c.query<T>(sql, params);
+      return { rows: r.rows };
+    },
+    async exec(sql: string) {
+      await c.exec(sql);
+    },
+  };
+}
+
+/** Sem pasta, o banco fica em memória. */
+export async function bancoPglite(pasta?: string): Promise<Banco> {
+  const db = await PGlite.create(pasta, { extensions: { ltree, btree_gist } });
+  return {
+    ...consultaPglite(db),
+    transacao: (fn) => db.transaction((tx) => fn(consultaPglite(tx))),
+    fechar: () => db.close(),
+  };
+}
