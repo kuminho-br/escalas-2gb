@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "test": "vitest run",
-    "typecheck": "pnpm --filter dominio tipos && tsc --noEmit",
+    "typecheck": "tsc --noEmit",
     "db:migrar": "tsx scripts/migrar.ts",
     "carga-exemplo": "tsx scripts/carga-exemplo.ts",
     "dev": "tsx watch src/servidor.ts",

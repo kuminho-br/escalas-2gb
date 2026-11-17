@@ -5,8 +5,8 @@ import { formulario, planilha } from './planilha-teste.ts';
 let api: ApiDeTeste;
 const CAB = ['CHAVE', 'VALOR', 'VIGÊNCIA (A PARTIR DE)', 'DESCRIÇÃO'];
 const auditoria = async () => (await api.banco.query<{ n: number }>('select count(*)::int as n from auditoria')).rows[0]!.n;
-const importar = async (linhas: (string | number)[][], confirmar = false) => {
-  const r = await api.pedir('escalante', 'POST', `/api/unidades/${api.ids.secao}/importacao/configuracoes${confirmar ? '?confirmar=1' : ''}`,
+const importar = async (linhas: (string | number | Date)[][], confirmar = false) => {
+  const r = await api.pedir('admin', 'POST', `/api/unidades/${api.ids.secao}/importacao/configuracoes${confirmar ? '?confirmar=1' : ''}`,
     formulario(await planilha({ 'CONFIGURAÇÕES': [CAB, ...linhas] })));
   expect(r.status).toBe(200);
   return r.json();
@@ -62,5 +62,17 @@ describe('importação de configurações', () => {
     const r = await importar(linhas, true);
     expect(r).toMatchObject({ novos: [], alterados: [], iguais: 2, gravados: 0 });
     expect(await auditoria()).toBe(antes);
+  });
+
+  it('escalante não importa configurações (403)', async () => {
+    const r = await api.pedir('escalante', 'POST', `/api/unidades/${api.ids.secao}/importacao/configuracoes?confirmar=1`,
+      formulario(await planilha({ 'CONFIGURAÇÕES': [CAB, ['CARGA_MENSAL_HORAS', 120, '', '']] })));
+    expect(r.status).toBe(403);
+  });
+
+  it('vigência que a planilha guardou como data', async () => {
+    const r = await importar([['LINHAS_POR_MILITAR', 3, new Date(Date.UTC(2027, 0, 1)), '']]);
+    expect(r.problemas).toEqual([]);
+    expect(r.novos.map((n: { chave: string }) => n.chave)).toEqual(['LINHAS_POR_MILITAR|2027-01']);
   });
 });

@@ -10,8 +10,9 @@
   },
   "scripts": {
     "test": "vitest run",
-    "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.test.json",
-    "tipos": "tsc -p tsconfig.json --noEmit false --declaration --emitDeclarationOnly --rootDir src --outDir tipos"
+    "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.test.json && pnpm tipos",
+    "tipos": "tsc -p tsconfig.json --noEmit false --declaration --emitDeclarationOnly --rootDir src --outDir tipos",
+    "postinstall": "pnpm tipos"
   },
   "devDependencies": {
     "@types/node": "^26.6.6",

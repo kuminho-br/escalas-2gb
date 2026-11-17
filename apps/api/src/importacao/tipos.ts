@@ -1,4 +1,5 @@
 import type { Previa } from 'contratos';
+import type { Papel } from '../acesso.ts';
 import type { Consulta } from '../banco/banco.ts';
 import type { Aba } from './planilha.ts';
 
@@ -15,6 +16,8 @@ export interface Contexto {
  */
 export interface Importador<P> {
   abas: string[];
+  /** Papéis exigidos na unidade; sem dizer, os de cadastro (escalante, gestor, administrador). */
+  papeis?: Papel[];
   planejar(abas: Record<string, Aba>, ctx: Contexto): Promise<{ previa: Previa; plano: P }>;
   aplicar(plano: P, ctx: Contexto): Promise<number>;
 }

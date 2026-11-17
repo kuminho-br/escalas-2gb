@@ -1,6 +1,7 @@
 // Importação da aba CONFIGURAÇÕES: parâmetros da unidade, por vigência.
 import { mesParaData, mesPorExtenso, type ItemPrevia, type ProblemaImportacao } from 'contratos';
 import { normalizar, paramDef, paramValidarLinhas, type ValorParametro } from 'dominio';
+import { ESCREVE_PARAMETRO } from '../acesso.ts';
 import { CHAVES_SISTEMA } from '../cadastros/configuracoes.ts';
 import { coluna } from './planilha.ts';
 import type { Importador } from './tipos.ts';
@@ -17,10 +18,14 @@ function mensagemDoAviso(aviso: string): string {
     .replace(/; ignorada\.$/, '.');
 }
 
+// 'mm/aaaa' digitado na sandbox vira data no Planilhas e chega como '01/mm/aaaa' (como em parametros_painel.js)
+const vigenciaDaCelula = (t: string) => t.replace(/^\d{2}\/(\d{2})\/(\d{4})$/, '$2-$1');
+
 const textoValor = (v: unknown) => (typeof v === 'boolean' ? (v ? 'Sim' : 'Não') : String(v));
 
 export const importadorConfiguracoes: Importador<Item[]> = {
   abas: [ABA],
+  papeis: ESCREVE_PARAMETRO,
   async planejar(abas, { tx, unidadeId }) {
     const aba = abas[ABA]!;
     const c = { chave: coluna(aba, 'CHAVE'), valor: coluna(aba, 'VALOR'), vigencia: coluna(aba, 'VIGENCIA') };
@@ -40,7 +45,7 @@ export const importadorConfiguracoes: Importador<Item[]> = {
         if (!avisos.includes(aviso)) avisos.push(aviso);
         continue;
       }
-      const v = paramValidarLinhas([{ linha: l.linha, chave, valor: l.celulas[c.valor], vigencia: c.vigencia < 0 ? '' : l.celulas[c.vigencia] }]);
+      const v = paramValidarLinhas([{ linha: l.linha, chave, valor: l.celulas[c.valor], vigencia: c.vigencia < 0 ? '' : vigenciaDaCelula(l.celulas[c.vigencia]!) }]);
       const boa = v.boas[0];
       if (!boa || !CHAVES_SISTEMA.includes(boa.chave)) {
         problemas.push({
