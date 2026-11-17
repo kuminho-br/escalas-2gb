@@ -13,9 +13,6 @@ import {
   DropdownMenuTrigger,
 } from '@/componentes/ui/dropdown-menu';
 
-// Na fase de teste, a unidade é fixa (especificação de telas, "Navegação").
-const CAMINHO_UNIDADE = 'CBMPE › DGO › DInter/1 › 2º GB › 1ª SB';
-
 export function Topo({ eu, aoAbrirMenu }: { eu: Eu; aoAbrirMenu: () => void }) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -42,7 +39,7 @@ export function Topo({ eu, aoAbrirMenu }: { eu: Eu; aoAbrirMenu: () => void }) {
       <button type="button" onClick={aoAbrirMenu} className="-ml-1 rounded p-1.5 text-tinta md:hidden" aria-label="Abrir menu">
         <Menu className="size-5" aria-hidden />
       </button>
-      <p className="min-w-0 flex-1 truncate font-cond text-[15px] text-apagado">{CAMINHO_UNIDADE}</p>
+      <p className="min-w-0 flex-1 truncate font-cond text-[15px] text-apagado">{eu.unidade.caminho.join(' › ')}</p>
       {erroSair && (
         <p role="alert" className="absolute top-full right-4 mt-2 max-w-[calc(100%-2rem)] rounded-md border border-linha bg-superficie px-3 py-2 text-sm text-alerta shadow-sm md:right-8">
           {erroSair}
