@@ -178,6 +178,52 @@ describe('guarnições', () => {
   });
 });
 
+describe('desativar', () => {
+  const situacao = (id: string, ativa: boolean, aPartirDe: string) => api.pedir('escalante', 'POST', `/api/guarnicoes/${id}/situacao`, { ativa, aPartirDe });
+
+  it('desativar agora some da lista do mês e marca a ficha', async () => {
+    const f = await criar('Desliga agora');
+    const r = await situacao(f.id, false, atual);
+    expect(r.status).toBe(200);
+    const depois: FichaGuarnicao = await r.json();
+    expect(depois.desativadaAPartirDe).toBe(atual);
+    expect(depois.versoes).toHaveLength(1);
+    expect((await lista()).find((g) => g.id === f.id)!.ativa).toBe(false);
+  });
+
+  it('desativar a partir do mês seguinte mantém o mês corrente ativo', async () => {
+    const f = await criar('Desliga depois');
+    const depois: FichaGuarnicao = await (await situacao(f.id, false, proximo)).json();
+    expect(depois.desativadaAPartirDe).toBe(proximo);
+    expect(depois.versoes.map((v) => [v.vigencia, v.ativa])).toEqual([[proximo, false], [atual, true]]);
+    expect((await lista(atual)).find((g) => g.id === f.id)!.ativa).toBe(true);
+    expect((await lista(proximo)).find((g) => g.id === f.id)!.ativa).toBe(false);
+  });
+
+  it('desativar desliga também as versões futuras já cadastradas', async () => {
+    const f = await criar('Desliga futuras');
+    expect((await api.pedir('escalante', 'PUT', `/api/guarnicoes/${f.id}/versoes/${proximo}`, versao([linha(funcaoSb, 2, 2)]))).status).toBe(200);
+    const depois: FichaGuarnicao = await (await situacao(f.id, false, atual)).json();
+    expect(depois.versoes.every((v) => !v.ativa)).toBe(true);
+    expect((await lista(proximo)).find((g) => g.id === f.id)!.ativa).toBe(false);
+  });
+
+  it('reativar agora volta a guarnição', async () => {
+    const f = await criar('Religa');
+    await situacao(f.id, false, atual);
+    const depois: FichaGuarnicao = await (await situacao(f.id, true, atual)).json();
+    expect(depois.desativadaAPartirDe).toBeNull();
+    expect((await lista()).find((g) => g.id === f.id)!.ativa).toBe(true);
+  });
+
+  it('desativar no mês passado é 409', async () => {
+    const f = await criar('Desliga no passado');
+    const r = await situacao(f.id, false, passado);
+    expect(r.status).toBe(409);
+    expect((await r.json()).erro).toBe(`Só dá para mudar a partir de ${mesPorExtenso(atual)}.`);
+  });
+});
+
 describe('funções', () => {
   it('função herdada do 2º GB aparece marcada', async () => {
     const r = await api.pedir('escalante', 'GET', `${secao()}/funcoes`);
@@ -200,6 +246,42 @@ describe('funções', () => {
     expect(r.status).toBe(409);
     expect((await r.json()).erro).toBe('Já existe a função "Motorista" (2º GB).');
     expect((await api.pedir('escalante', 'POST', `${secao()}/funcoes`, { nome: 'COMBATENTE' })).status).toBe(409);
+  });
+});
+
+describe('renomear função', () => {
+  const novaFuncao = async (nome: string): Promise<string> => (await (await api.pedir('escalante', 'POST', `${secao()}/funcoes`, { nome })).json()).id;
+  const renomear = (id: string, nome: string, quem: 'escalante' | 'admin' = 'escalante') => api.pedir(quem, 'PATCH', `/api/funcoes/${id}`, { nome });
+
+  it('renomear função muda o nome em todas as guarnições', async () => {
+    const id = await novaFuncao('Bombeiro X');
+    const a = await criar('Usa X 1', { versao: versao([linha(id)]) });
+    const b = await criar('Usa X 2', { versao: versao([linha(id)]) });
+    const r = await renomear(id, 'Bombeiro Y');
+    expect(r.status).toBe(200);
+    expect(await r.json()).toMatchObject({ id, nome: 'Bombeiro Y', unidadeSigla: '1ª SB', herdada: false });
+    expect((await ficha(a.id)).versoes[0]!.composicao[0]!.funcao).toBe('Bombeiro Y');
+    expect((await ficha(b.id)).versoes[0]!.composicao[0]!.funcao).toBe('Bombeiro Y');
+  });
+
+  it('renomear só a caixa do próprio nome é permitido', async () => {
+    const id = await novaFuncao('CHEFE TESTE');
+    expect((await renomear(id, 'Chefe Teste')).status).toBe(200);
+  });
+
+  it('renomear para nome de outra função é 409', async () => {
+    const id = await novaFuncao('Auxiliar Z');
+    const r = await renomear(id, 'combatente');
+    expect(r.status).toBe(409);
+    expect((await r.json()).erro).toBe('Já existe a função "Combatente" (1ª SB).');
+  });
+
+  it('função herdada não se renomeia pela seção (403)', async () => {
+    expect((await renomear(funcaoGb, 'Condutor')).status).toBe(403);
+  });
+
+  it('função desconhecida é 404', async () => {
+    expect((await renomear('00000000-0000-0000-0000-000000000000', 'X')).status).toBe(404);
   });
 });
 

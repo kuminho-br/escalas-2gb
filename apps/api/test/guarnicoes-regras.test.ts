@@ -1,6 +1,6 @@
 import type { VersaoSalva } from 'contratos';
 import { describe, expect, it } from 'vitest';
-import { diferencasDeVersao, versaoNoMes } from '../src/cadastros/guarnicoes-regras.ts';
+import { desativadaAPartirDe, diferencasDeVersao, versaoNoMes } from '../src/cadastros/guarnicoes-regras.ts';
 
 const comp = (funcao: string, minimo = 1, maximo = 1, cnhExigida: string | null = null) => ({ funcaoId: `id-${funcao}`, funcao, minimo, maximo, cnhExigida });
 const v = (extra: Partial<VersaoSalva> = {}): VersaoSalva => ({
@@ -40,6 +40,16 @@ describe('diferenças entre versões', () => {
   it('funções comparadas pelo nome normalizado', () => {
     expect(diferencasDeVersao(v(), v({ composicao: [comp('combatente', 2, 3), comp('MOTORISTA', 1, 1, 'D')] }))).toEqual([]);
   });
+});
+
+describe('desativada a partir de', () => {
+  const v = (vigencia: string, ativa: boolean) => ({ vigencia, ativa });
+  it('tudo ativo é nulo', () => expect(desativadaAPartirDe([v('2026-11', true), v('2027-01', true)])).toBeNull());
+  it('só a última inativa', () => expect(desativadaAPartirDe([v('2027-01', false), v('2026-11', true)])).toBe('2027-01'));
+  it('as duas últimas inativas dá a primeira delas', () => {
+    expect(desativadaAPartirDe([v('2026-11', true), v('2026-12', false), v('2027-01', false)])).toBe('2026-12');
+  });
+  it('inativa no meio e ativa depois é nulo', () => expect(desativadaAPartirDe([v('2026-11', true), v('2026-12', false), v('2027-01', true)])).toBeNull());
 });
 
 describe('versão no mês', () => {

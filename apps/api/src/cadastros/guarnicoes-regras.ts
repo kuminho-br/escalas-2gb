@@ -37,3 +37,11 @@ export function versaoNoMes<T extends { vigencia: string }>(versoes: T[], mes: s
   for (const v of versoes) if (v.vigencia <= mes && (!melhor || v.vigencia > melhor.vigencia)) melhor = v;
   return melhor;
 }
+
+/** Menor vigência a partir da qual todas as versões estão inativas; null se a mais recente está ativa. */
+export function desativadaAPartirDe(versoes: { vigencia: string; ativa: boolean }[]): string | null {
+  const ordem = [...versoes].sort((a, b) => (a.vigencia < b.vigencia ? -1 : 1));
+  let desde: string | null = null;
+  for (let i = ordem.length - 1; i >= 0 && !ordem[i]!.ativa; i--) desde = ordem[i]!.vigencia;
+  return desde;
+}

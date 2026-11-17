@@ -44,6 +44,12 @@ export type EdicaoGuarnicao = z.infer<typeof EdicaoGuarnicao>;
 export const NovaFuncao = z.object({ nome: Nome });
 export type NovaFuncao = z.infer<typeof NovaFuncao>;
 
+export const EdicaoFuncao = z.object({ nome: Nome });
+export type EdicaoFuncao = z.infer<typeof EdicaoFuncao>;
+
+export const SituacaoGuarnicao = z.object({ ativa: z.boolean(), aPartirDe: Mes });
+export type SituacaoGuarnicao = z.infer<typeof SituacaoGuarnicao>;
+
 export type Funcao = { id: string; nome: string; unidadeSigla: string; herdada: boolean };
 
 export type ComposicaoSalva = { funcaoId: string; funcao: string; minimo: number; maximo: number; cnhExigida: string | null };
@@ -75,5 +81,7 @@ export type FichaGuarnicao = {
   nome: string;
   /** mais recente primeiro */
   versoes: VersaoSalva[];
+  /** menor mês a partir do qual todas as versões estão inativas; null se a mais recente está ativa */
+  desativadaAPartirDe: string | null;
   usadaEm: { escalaId: string; escala: string; turnos: string[] }[];
 };

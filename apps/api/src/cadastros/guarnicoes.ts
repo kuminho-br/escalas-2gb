@@ -1,11 +1,13 @@
 // Funções (catálogo da unidade, herdado pelas de baixo) e guarnições com versões por vigência.
 import {
+  EdicaoFuncao,
   EdicaoGuarnicao,
   Mes,
   mesParaData,
   mesPorExtenso,
   NovaFuncao,
   NovaGuarnicao,
+  SituacaoGuarnicao,
   VersaoGuarnicao,
   type ComposicaoSalva,
   type FichaGuarnicao,
@@ -20,7 +22,7 @@ import type { Auth } from '../auth.ts';
 import { comUsuario, type Banco, type Consulta } from '../banco/banco.ts';
 import { hojeRecife } from '../datas.ts';
 import { lerCorpo, respostaDoErroDoBanco } from '../erros.ts';
-import { versaoNoMes } from './guarnicoes-regras.ts';
+import { desativadaAPartirDe, versaoNoMes } from './guarnicoes-regras.ts';
 
 type Ctx = Context<AmbienteApi>;
 const MSG_NOME = { '23505': 'Já existe uma guarnição com esse nome.' };
@@ -113,7 +115,7 @@ async function carregarFicha(c: Consulta, id: string): Promise<FichaGuarnicao | 
     if (!item) usadaEm.push((item = { escalaId: r.escalaId, escala: r.escala, turnos: [] }));
     item.turnos.push(r.turno_letra ?? 'todos');
   }
-  return { id: g.id, nome: g.nome, versoes, usadaEm };
+  return { id: g.id, nome: g.nome, versoes, desativadaAPartirDe: desativadaAPartirDe(versoes), usadaEm };
 }
 
 /** 400 por campo para as funções que a unidade não enxerga. */
@@ -140,7 +142,7 @@ function mesPassado(c: Ctx, vigencia: string): Response | null {
 export function rotasGuarnicoes(dep: { banco: Banco; auth: Auth }): Hono<AmbienteApi> {
   const r = new Hono<AmbienteApi>();
   const sessao = exigirSessao(dep.banco, dep.auth);
-  for (const caminho of ['/unidades/:u/funcoes', '/unidades/:u/guarnicoes', '/guarnicoes/*']) r.use(caminho, sessao);
+  for (const caminho of ['/unidades/:u/funcoes', '/unidades/:u/guarnicoes', '/guarnicoes/*', '/funcoes/*']) r.use(caminho, sessao);
 
   /** Papel de cadastro na unidade da guarnição; 404 se ela não existe. */
   async function daGuarnicao(c: Ctx, id: string): Promise<{ resposta: Response } | { unidadeId: string }> {
@@ -176,6 +178,28 @@ export function rotasGuarnicoes(dep: { banco: Banco; auth: Auth }): Hono<Ambient
     } catch (e) {
       return respostaDoErroDoBanco(c, e);
     }
+  });
+
+  r.patch('/funcoes/:id', async (c) => {
+    const id = c.req.param('id');
+    const unidadeId = await unidadeDoRegistro(dep.banco, 'funcao', id);
+    if (!unidadeId) return c.json({ erro: 'Função não encontrada.' }, 404);
+    const negado = await exigirPapel(c, unidadeId, CADASTRO);
+    if (negado) return negado;
+    const corpo = await lerCorpo(c, EdicaoFuncao);
+    if (!corpo.ok) return corpo.resposta;
+    const visiveis = await funcoesVisiveis(dep.banco, unidadeId);
+    // mudar só a caixa ou o acento do próprio nome é permitido
+    const igual = visiveis.find((f) => f.id !== id && f.chave === normalizar(corpo.dados.nome));
+    if (igual) return c.json({ erro: `Já existe a função "${igual.nome}" (${igual.unidadeSigla}).` }, 409);
+    try {
+      await comUsuario(dep.banco, c.get('usuarioId'), (tx) => tx.query('update funcao set nome = $2 where id = $1', [id, corpo.dados.nome]));
+    } catch (e) {
+      return respostaDoErroDoBanco(c, e);
+    }
+    const sigla = visiveis.find((f) => f.id === id)!.unidadeSigla;
+    const funcao: Funcao = { id, nome: corpo.dados.nome, unidadeSigla: sigla, herdada: false };
+    return c.json(funcao);
   });
 
   r.get('/unidades/:u/guarnicoes', async (c) => {
@@ -259,6 +283,34 @@ export function rotasGuarnicoes(dep: { banco: Banco; auth: Auth }): Hono<Ambient
     } catch (e) {
       return respostaDoErroDoBanco(c, e, MSG_NOME);
     }
+  });
+
+  r.post('/guarnicoes/:id/situacao', async (c) => {
+    const id = c.req.param('id');
+    const acesso = await daGuarnicao(c, id);
+    if ('resposta' in acesso) return acesso.resposta;
+    const corpo = await lerCorpo(c, SituacaoGuarnicao);
+    if (!corpo.ok) return corpo.resposta;
+    const { ativa, aPartirDe } = corpo.dados;
+    const passado = mesPassado(c, aPartirDe);
+    if (passado) return passado;
+    const ficha = await comUsuario(dep.banco, c.get('usuarioId'), async (tx) => {
+      const versoes = (await versoesDasGuarnicoes(tx, [id])).get(id)!;
+      const base = versaoNoMes(versoes, aPartirDe);
+      // a versão em vigor no mês vira uma nova a partir dele; as posteriores seguem a mesma situação
+      if (base && base.vigencia !== aPartirDe) {
+        await gravarVersao(tx, id, aPartirDe, {
+          viatura: base.viatura,
+          tipoViatura: base.tipoViatura,
+          prioridade: base.prioridade,
+          ativa,
+          composicao: base.composicao.map((x) => ({ funcaoId: x.funcaoId, minimo: x.minimo, maximo: x.maximo, cnhExigida: x.cnhExigida as VersaoGuarnicao['composicao'][number]['cnhExigida'] })),
+        });
+      }
+      await tx.query('update guarnicao_versao set ativa = $2 where guarnicao_id = $1 and vigencia_desde >= $3', [id, ativa, mesParaData(aPartirDe)]);
+      return carregarFicha(tx, id);
+    });
+    return c.json(ficha);
   });
 
   r.put('/guarnicoes/:id/versoes/:mes', async (c) => {
