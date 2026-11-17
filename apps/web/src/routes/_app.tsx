@@ -19,7 +19,7 @@ function Casca() {
 
   return (
     <div className="min-h-dvh md:grid md:grid-cols-[232px_1fr]">
-      <Trilho aberto={menuAberto} aoFechar={() => setMenuAberto(false)} />
+      <Trilho eu={eu} aberto={menuAberto} aoFechar={() => setMenuAberto(false)} />
       <div className="flex min-w-0 flex-col">
         <Topo eu={eu} aoAbrirMenu={() => setMenuAberto(true)} />
         <main className="flex-1 px-4 py-6 md:px-8">

@@ -1,15 +1,20 @@
 import { Hono } from 'hono';
+import { papeisVigentes, type Papel } from '../acesso.ts';
 import type { Auth } from '../auth.ts';
 import type { Banco } from '../banco/banco.ts';
 import { hojeRecife } from '../datas.ts';
+import { unidadeAtual } from '../unidade-atual.ts';
 
 export interface Eu {
   usuario: { id: string; nome: string; email: string };
   militar: { matricula: string; postoGrad: string; nomeGuerra: string };
-  papeis: { papel: 'administrador' | 'chefe' | 'escalante'; unidadeId: string; unidadeSigla: string }[];
+  /** Vazio = militar comum. */
+  papeis: { papel: Papel; unidadeId: string; unidadeSigla: string }[];
+  /** Unidade em que as telas trabalham (fixa na fase de teste). */
+  unidade: { id: string; sigla: string; caminho: string[] };
 }
 
-/** GET /api/eu: quem está logado, o militar e os papéis vigentes hoje (fuso de Recife). */
+/** GET /api/eu: quem está logado, o militar, os papéis vigentes hoje (fuso de Recife) e a unidade. */
 export function rotasEu(banco: Banco, auth: Auth): Hono {
   const r = new Hono();
   r.get('/', async (c) => {
@@ -23,18 +28,12 @@ export function rotasEu(banco: Banco, auth: Auth): Hono {
     );
     const u = rows[0];
     if (!u) return c.json({ erro: 'Não autenticado' }, 401);
-    const hoje = hojeRecife();
-    const papeis = await banco.query<{ papel: Eu['papeis'][number]['papel']; unidade_id: string; sigla: string }>(
-      `select pu.papel, pu.unidade_id, un.sigla
-         from papel_usuario pu join unidade un on un.id = pu.unidade_id
-        where pu.usuario_id = $1 and pu.desde <= $2 and (pu.ate is null or pu.ate >= $2)
-        order by pu.papel, un.sigla`,
-      [u.id, hoje],
-    );
+    const papeis = await papeisVigentes(banco, u.id, hojeRecife());
     const eu: Eu = {
       usuario: { id: u.id, nome: u.nome, email: u.email },
       militar: { matricula: u.matricula, postoGrad: u.posto, nomeGuerra: u.nome_guerra },
-      papeis: papeis.rows.map((p) => ({ papel: p.papel, unidadeId: p.unidade_id, unidadeSigla: p.sigla })),
+      papeis: papeis.map((p) => ({ papel: p.papel, unidadeId: p.unidade_id, unidadeSigla: p.sigla })),
+      unidade: await unidadeAtual(banco),
     };
     return c.json(eu);
   });

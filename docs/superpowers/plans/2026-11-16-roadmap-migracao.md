@@ -47,7 +47,7 @@ Decidir uma coisa de cada vez, com opções e recomendação, e registrar cada d
 **Pendências de negócio que tocam as fases seguintes**
 - Voluntariado: formato do formulário e o que se marca por dia (turnos A, B e C). Bloqueia a fase 6; na fase 4 o lançamento é à mão.
 - Diagrama de atividades: E1 a E8 (quem dispara o formulário, assinatura do Chefe, aprovação da permuta, envio da escala executada).
-- ER: Q3, Q5 (tipos de afastamento), Q6 (permutas antigas), Q7 (militar de outra seção), Q14 (cota × operação), Q17, Q18.
+- ER: Q3, Q5 (tipos de afastamento), Q6 (permutas antigas), Q7 (militar de outra seção), Q14 (cota × operação), Q17, Q18. Em 17/11/2026 ficaram resolvidas Q5, Q17, RN-94 e a ligação do turno do serviço com o turno padrão (adendo do design, "Cadastros"); seguem abertas Q6 (fase 5) e o formato do formulário (fase 6).
 
 **Entrega:** documento de design aprovado (`docs/superpowers/specs/`), que serve de base para os planos das fases 1 a 4.
 
@@ -73,12 +73,17 @@ Decidir uma coisa de cada vez, com opções e recomendação, e registrar cada d
 
 ## Fase 3 — Cadastros
 
-- Militares: identificação, lotação com histórico, jornada, quadro de motoristas e CNH com hierarquia, afastamentos.
-- Serviços com turnos dentro (cor, letra, nome na impressão).
-- Guarnições com composição e versões por vigência.
-- Escalas: serviços reunidos, publicação, guarnições por turno com vigência.
-- Cotas do mês, Feriados, Configurações (com norma de referência).
-- Importação inicial a partir da planilha sandbox, conforme a D7.
+Atores (adendo do design): escalante, gestor (antigo chefe; vale para a unidade e as de baixo), militar comum (só leitura do que é dele e das publicações da unidade; não vê cadastros) e administrador (superusuário, na raiz).
+
+Um cadastro por vez, cada um com API, tela e importação da sandbox, num PR próprio que você confere no ambiente de teste (adendo do design, "Cadastros"):
+
+1. **Configurações e tipos de afastamento:** parâmetros com norma de referência; catálogos do sistema (tipos de afastamento, atividades), editados pelo administrador.
+2. **Militares e afastamentos:** identificação, lotação com histórico, jornada, quadro de motoristas e CNH com hierarquia, afastamentos com tipo.
+3. **Atividades, funções e guarnições:** guarnição = atividade + composição, com viatura opcional e versões por vigência.
+4. **Serviços, turnos e escalas:** turnos dentro do serviço, com "Pede voluntariado em" pelo horário; escalas com serviços reunidos, publicação e guarnições por turno com vigência.
+5. **Cotas e feriados.**
+
+A importação é feita na tela, com prévia e confirmação; os dados reais vão direto para o banco de teste (D7).
 
 **Entrega:** os cadastros da 1ª SB conferidos no sistema novo, iguais aos da sandbox.
 
@@ -88,6 +93,7 @@ Decidir uma coisa de cada vez, com opções e recomendação, e registrar cada d
 - Grade geral: blocos coloridos com a letra do turno, choques, cotas pegas de pedidas por PJES e Diária, ficha lateral com Trocar, Remover e Adicionar.
 - Voluntariado lançado à mão: calendário com marcação rápida e "Salvar e ir para o próximo".
 - Gerar documento: escala publicada a partir do modelo de impressão.
+- Minha escala, para o militar comum: os próprios serviços dia a dia, com quem compõe cada guarnição com ele, e as escalas publicadas da unidade dele.
 
 **Entrega e marco:** piloto na 1ª SB. Um mês real montado no sistema novo, em paralelo com as planilhas atuais, e comparado no fim.
 
@@ -111,7 +117,7 @@ Decidir uma coisa de cada vez, com opções e recomendação, e registrar cada d
 
 - Estrutura: árvore CBMPE › DGO › Diretorias › GB › Seção, com o seletor de unidade no topo das telas.
 - Escalas, guarnições e cotas em qualquer nível, como a operação do GB.
-- Acesso por unidade.
+- Acesso por unidade, com um gestor por nível (chefe, diretor) que cadastra os usuários do seu nível e de todos os de baixo e define o gestor de cada nível abaixo.
 - Tela de Histórico, sobre o registro que existe desde a fase 1.
 - Marcação de voluntariado pelo próprio militar.
 - Migração para o servidor do Estado: cópia do banco, implantação e retirada do ambiente de teste.

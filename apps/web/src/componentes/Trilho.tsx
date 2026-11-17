@@ -1,4 +1,4 @@
-import { Link } from '@tanstack/react-router';
+import { Link, type LinkProps } from '@tanstack/react-router';
 import {
   CalendarCheck,
   CalendarDays,
@@ -17,9 +17,10 @@ import {
   X,
   type LucideIcon,
 } from 'lucide-react';
+import { ehMilitarComum, type Eu } from '@/api/eu';
 import { cn } from '@/lib/utils';
 
-type Item = { nome: string; icone: LucideIcon; para?: '/' };
+type Item = { nome: string; icone: LucideIcon; para?: LinkProps['to']; soCadastro?: boolean };
 
 // Blocos da barra lateral (especificação de telas, "Navegação"). Só os itens com `para` existem nesta fase.
 const BLOCOS: Item[][] = [
@@ -29,19 +30,19 @@ const BLOCOS: Item[][] = [
     { nome: 'Efetivo do dia', icone: Sun },
   ],
   [
-    { nome: 'Voluntariado', icone: CalendarCheck },
-    { nome: 'Cotas', icone: PieChart },
+    { nome: 'Voluntariado', icone: CalendarCheck, soCadastro: true },
+    { nome: 'Cotas', icone: PieChart, soCadastro: true },
   ],
   [
-    { nome: 'Militares', icone: Users },
-    { nome: 'Serviços', icone: Clock },
-    { nome: 'Guarnições', icone: Truck },
-    { nome: 'Escalas', icone: FileText },
-    { nome: 'Feriados', icone: CalendarDays },
+    { nome: 'Militares', icone: Users, soCadastro: true },
+    { nome: 'Serviços', icone: Clock, soCadastro: true },
+    { nome: 'Guarnições', icone: Truck, soCadastro: true },
+    { nome: 'Escalas', icone: FileText, soCadastro: true },
+    { nome: 'Feriados', icone: CalendarDays, soCadastro: true },
   ],
 ];
 const PE: Item[] = [
-  { nome: 'Configurações', icone: Settings },
+  { nome: 'Configurações', icone: Settings, para: '/configuracoes', soCadastro: true },
   { nome: 'Estrutura', icone: Network },
   { nome: 'Histórico', icone: History },
   { nome: 'Ajuda', icone: CircleHelp },
@@ -58,7 +59,7 @@ function ItemTrilho({ item, aoNavegar }: { item: Item; aoNavegar: () => void }) 
         onClick={aoNavegar}
         className={cn(classeItem, 'text-white/85 hover:bg-white/10 hover:text-white')}
         activeProps={{ className: 'bg-white/15 font-medium text-white' }}
-        activeOptions={{ exact: true }}
+        activeOptions={{ exact: item.para === '/' }}
       >
         <Icone className="size-[18px]" aria-hidden />
         {item.nome}
@@ -73,7 +74,11 @@ function ItemTrilho({ item, aoNavegar }: { item: Item; aoNavegar: () => void }) 
   );
 }
 
-export function Trilho({ aberto, aoFechar }: { aberto: boolean; aoFechar: () => void }) {
+export function Trilho({ eu, aberto, aoFechar }: { eu: Eu; aberto: boolean; aoFechar: () => void }) {
+  // o militar comum não vê cadastros (adendo do design, "Atores")
+  const visivel = (i: Item) => !(i.soCadastro && ehMilitarComum(eu));
+  const blocos = BLOCOS.map((b) => b.filter(visivel)).filter((b) => b.length > 0);
+  const pe = PE.filter(visivel);
   return (
     <>
       {aberto && <div className="fixed inset-0 z-30 bg-tinta/40 md:hidden" onClick={aoFechar} aria-hidden />}
@@ -91,7 +96,7 @@ export function Trilho({ aberto, aoFechar }: { aberto: boolean; aoFechar: () => 
           </button>
         </div>
         <div className="flex flex-1 flex-col">
-          {BLOCOS.map((bloco, i) => (
+          {blocos.map((bloco, i) => (
             <ul key={i} className={cn('grid gap-0.5', i > 0 && 'mt-3 border-t border-white/15 pt-3')}>
               {bloco.map((item) => (
                 <li key={item.nome}>
@@ -101,7 +106,7 @@ export function Trilho({ aberto, aoFechar }: { aberto: boolean; aoFechar: () => 
             </ul>
           ))}
           <ul className="mt-auto grid gap-0.5 border-t border-white/15 pt-3">
-            {PE.map((item) => (
+            {pe.map((item) => (
               <li key={item.nome}>
                 <ItemTrilho item={item} aoNavegar={aoFechar} />
               </li>

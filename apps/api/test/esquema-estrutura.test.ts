@@ -60,7 +60,7 @@ describe('estrutura e pessoas', () => {
   it('afastamento com fim antes do inicio', async () => {
     const m = await militar();
     await expect(
-      inserir(banco, 'afastamento', { militar_id: m, tipo: 'ferias', inicio: '2026-11-10', fim: '2026-11-09' }),
+      inserir(banco, 'afastamento', { militar_id: m, tipo_afastamento_id: (await banco.query<{ id: string }>("select id from tipo_afastamento where nome = 'Férias'")).rows[0]!.id, inicio: '2026-11-10', fim: '2026-11-09' }),
     ).rejects.toThrow();
   });
 

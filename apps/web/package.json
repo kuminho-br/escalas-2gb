@@ -17,6 +17,8 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cn": "^0.5.2",
+    "contratos": "workspace:*",
+    "dominio": "workspace:*",
     "lucide-react": "^1.73.0",
     "radix-ui": "^1.8.1",
     "react": "^19.3.1",

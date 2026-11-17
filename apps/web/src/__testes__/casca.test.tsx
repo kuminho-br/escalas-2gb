@@ -42,4 +42,13 @@ describe('casca', () => {
     expect(screen.getByText('Escala do mês').closest('[aria-disabled="true"]')).not.toBeNull();
     expect(screen.getByText('A grade aparece aqui quando houver uma escala cadastrada.')).toBeInTheDocument();
   });
+
+  it('militar comum não vê os cadastros', async () => {
+    simularApi({ '/api/eu': { status: 200, corpo: { ...EU_EXEMPLO, papeis: [] } } });
+    abrir('/');
+    expect(await screen.findByText('SD BM ANDRADE')).toBeInTheDocument();
+    expect(screen.queryByText('Militares')).toBeNull();
+    expect(screen.queryByText('Configurações')).toBeNull();
+    expect(screen.getByRole('link', { name: 'Grade geral' })).toBeInTheDocument();
+  });
 });

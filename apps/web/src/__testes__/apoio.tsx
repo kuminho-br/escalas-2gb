@@ -8,17 +8,22 @@ import { criarRoteador } from '@/roteador';
 export const EU_EXEMPLO: Eu = {
   usuario: { id: 'u1', nome: 'SD BM ANDRADE', email: 'andrade@exemplo.test' },
   militar: { matricula: '990001-1', postoGrad: 'SD BM', nomeGuerra: 'ANDRADE' },
-  papeis: [{ papel: 'escalante', unidadeId: 'x', unidadeSigla: '1ª SB' }],
+  papeis: [{ papel: 'escalante', unidadeId: 'u-1sb', unidadeSigla: '1ª SB' }],
+  unidade: { id: 'u-1sb', sigla: '1ª SB', caminho: ['CBMPE', 'DGO', 'DInter/1', '2º GB', '1ª SB'] },
 };
 
 type Resposta = { status: number; corpo?: unknown } | 'rede';
 
-/** Simula a API: cada caminho devolve um status e um corpo JSON, ou falha de rede. */
+/**
+ * Simula a API: cada rota devolve um status e um corpo JSON, ou falha de rede.
+ * A chave é 'METODO /caminho' ou só '/caminho' (qualquer método); a query não conta.
+ */
 export function simularApi(rotas: Record<string, Resposta>) {
-  const fetchFalso = vi.fn(async (entrada: RequestInfo | URL) => {
+  const fetchFalso = vi.fn(async (entrada: RequestInfo | URL, init?: RequestInit) => {
     const url = typeof entrada === 'string' ? entrada : entrada instanceof URL ? entrada.href : entrada.url;
     const caminho = new URL(url, 'http://localhost').pathname;
-    const r = rotas[caminho] ?? { status: 404 };
+    const metodo = (init?.method ?? (entrada instanceof Request ? entrada.method : 'GET')).toUpperCase();
+    const r = rotas[`${metodo} ${caminho}`] ?? rotas[caminho] ?? { status: 404 };
     if (r === 'rede') throw new TypeError('Failed to fetch');
     return new Response(JSON.stringify(r.corpo ?? {}), { status: r.status, headers: { 'Content-Type': 'application/json' } });
   });
@@ -31,4 +36,15 @@ export function abrir(caminho: string) {
   const router = criarRoteador(queryClient, createMemoryHistory({ initialEntries: [caminho] }));
   render(<RouterProvider router={router} />);
   return router;
+}
+
+/** Corpo JSON da última chamada a 'METODO /caminho'. */
+export function corpoEnviado(fetchFalso: ReturnType<typeof simularApi>, rota: string): unknown {
+  const [metodo, caminho] = rota.split(' ');
+  const chamada = fetchFalso.mock.calls.filter(([e, init]) => {
+    const url = typeof e === 'string' ? e : e instanceof URL ? e.href : e.url;
+    return new URL(url, 'http://localhost').pathname === caminho && (init?.method ?? 'GET').toUpperCase() === metodo;
+  }).at(-1);
+  if (!chamada) throw new Error(`Nenhuma chamada a ${rota}`);
+  return JSON.parse(String(chamada[1]?.body));
 }

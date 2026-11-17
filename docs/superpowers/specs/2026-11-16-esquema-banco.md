@@ -29,6 +29,8 @@ erDiagram
   unidade ||--o{ vinculo_externo : aceita
   posto_grad ||--o{ militar : classifica
   militar ||--o{ afastamento : tem
+  tipo_afastamento ||--o{ afastamento : classifica
+  atividade |o--o{ guarnicao : "feita por"
   militar ||--|| usuario : "e"
   usuario ||--o{ papel_usuario : tem
   unidade ||--o{ papel_usuario : "no ambito de"
@@ -151,10 +153,19 @@ Elegibilidade (domínio): um militar pode ser alocado numa escala se, na data, t
 |---|---|---|
 | id | uuid PK | |
 | militar_id | uuid FK | |
-| tipo | text | `ferias`, `licenca`, `outro` (genérico, sem motivo de saúde; D7) |
-| inicio / fim | date | `fim >= inicio`; sem sobreposição por militar |
+| tipo_afastamento_id | uuid FK | tipo do catálogo do sistema (sem motivo de saúde; D7) |
+| inicio / fim | date | `fim >= inicio`; sem sobreposição por militar; qualquer intervalo, inclusive férias em partes |
 
 Regra (domínio): no período, o militar não aparece como opção em nenhuma vaga.
+
+### tipo_afastamento
+Catálogo do sistema todo (é institucional), editado pelo administrador na tela de Configurações (adendo de 17/11/2026, fase 3). Vem com Férias, LTS, Curso e Outro.
+
+| Coluna | Tipo | Regra |
+|---|---|---|
+| id | uuid PK | |
+| nome | text | único |
+| ativo | boolean | desativado não aparece para lançar, mas continua nos afastamentos antigos |
 
 ## 2. Usuários e papéis
 
@@ -171,8 +182,10 @@ As tabelas de login são do Better Auth (D3): `usuario`, `sessao`, `conta` e `ve
 | id | uuid PK | |
 | usuario_id | uuid FK | |
 | unidade_id | uuid FK | o papel vale para a unidade e as de baixo |
-| papel | text | `administrador`, `chefe`, `escalante` |
+| papel | text | `administrador` (só na unidade raiz; superusuário), `gestor` (antigo `chefe`), `escalante` |
 | desde / ate | date | |
+
+O **militar comum** não tem linha nesta tabela: é o usuário sem papel vigente. Ele vê os próprios serviços (com quem compõe cada guarnição) e as escalas publicadas da unidade da lotação dele, e não vê cadastros (adendo de 17/11/2026).
 
 ### convite
 | Coluna | Tipo | Regra |
@@ -207,9 +220,20 @@ Não existe cadastro aberto. O primeiro administrador é criado por um comando d
 | id | uuid PK | |
 | servico_id | uuid FK | |
 | letra | text | "A", "B", "C" ou "U" (único); única por serviço |
-| inicio / fim | time | `fim <= inicio` significa que atravessa a meia-noite; a duração é calculada |
+| inicio / fim | time | `fim < inicio` atravessa a meia-noite; `fim = inicio` é um turno de 24h; a duração é calculada |
 
 Regra de exibição: o turno aparece no dia em que começa. O dia de serviço vai das 08h de D às 08h de D+1 (efetivo do dia).
+
+Regra (domínio, adendo de 17/11/2026): o turno não tem ligação cadastrada com o turno padrão do voluntariado. Vale o **horário**: o militar precisa ter marcado **todo** turno padrão que o turno do serviço toca. A de D = 08h às 20h de D; B de D = 20h de D às 08h de D+1. Exemplos: 08h às 16h pede A de D; 16h às 00h pede A e B de D; 00h às 08h pede B de D−1; 07h às 19h pede B de D−1 e A de D; 24h a partir das 08h pede A e B de D.
+
+### atividade
+O que a guarnição faz (Incêndio, APH, Salvamento, Incêndio em vegetação, Apoio operacional…). Não confundir com **serviço**, que é de onde vem a hora (Pronto, PJES, Saldo, Diária). Catálogo do sistema todo, editado pelo administrador na tela de Configurações.
+
+| Coluna | Tipo | Regra |
+|---|---|---|
+| id | uuid PK | |
+| nome | text | único |
+| ativo | boolean | |
 
 ### funcao
 | Coluna | Tipo | Regra |
@@ -217,6 +241,8 @@ Regra de exibição: o turno aparece no dia em que começa. O dia de serviço va
 | id | uuid PK | |
 | unidade_id | uuid FK | catálogo da unidade (RN-94); herdado pelas de baixo |
 | nome | text | "Motorista", "Chefe", "Socorrista"; único por unidade |
+
+Quais funções um serviço usa não é cadastrado: sai das guarnições ligadas às escalas do serviço (decidido em 17/11/2026).
 
 ## 4. Guarnições
 
@@ -226,6 +252,9 @@ Regra de exibição: o turno aparece no dia em que começa. O dia de serviço va
 | id | uuid PK | |
 | unidade_id | uuid FK | dona; pode ser seção ou GB |
 | nome | text | único por unidade |
+| atividade_id | uuid FK null | o que a guarnição faz; vazia = cadastro incompleto (aviso na lista) |
+
+A guarnição é definida pela atividade e pela composição (funções com mínimo, máximo e CNH). Cada guarnição é um card na escala; não há agrupamento de cards (decidido em 17/11/2026). Ela pode servir a mais de uma escala.
 
 ### guarnicao_versao
 | Coluna | Tipo | Regra |
@@ -233,12 +262,14 @@ Regra de exibição: o turno aparece no dia em que começa. O dia de serviço va
 | id | uuid PK | |
 | guarnicao_id | uuid FK | |
 | vigencia_desde | date | dia 1; único por guarnição; sem retroagir |
-| viatura | text null | sigla, opcional (RN-96) |
-| tipo_viatura | text null | "Auto Resgate" |
+| viatura | text null | sigla, opcional (RN-96); só informativa |
+| tipo_viatura | text null | "Auto Resgate"; só informativo |
 | prioridade | int null | ordem de ativação (RN-08); vazia vai por último (Q18) |
 | ativa | boolean | RN-07 |
 
 Vale, para um mês, a versão com o maior `vigencia_desde <= mês`.
+
+A viatura é útil na tela e no documento, mas **não é fonte de regra**: a viatura usada muda no dia e durante o serviço, há guarnição sem viatura, e a mesma viatura serve a atividades diferentes (a ABSL sai numa guarnição de incêndio em vegetação ou numa de salvamento). Mínimo e máximo vêm só da composição.
 
 ### composicao
 | Coluna | Tipo | Regra |
@@ -315,7 +346,7 @@ A operação deixa de existir na cota (resolve Q14): ela é atributo do serviço
 | id | uuid PK | |
 | militar_id | uuid FK | |
 | data | date | |
-| turno_padrao | text | `A` (08h às 20h) ou `B` (20h às 08h), os turnos do ordinário. O militar não escolhe serviço. **Pendente:** como cada turno de serviço é ligado ao turno padrão (ex.: 16h às 00h) |
+| turno_padrao | text | `A` (08h às 20h) ou `B` (20h às 08h), os turnos do ordinário. O militar não escolhe serviço. A ligação com os turnos dos serviços é pelo horário (ver `turno`) |
 | origem | text | `manual` ou `importacao` (e `militar`, no futuro) |
 
 Único por (militar_id, data, turno_padrao). As "pedidas" da grade geral contam, por tipo (PJES, Diária), os turnos marcados; um voluntário JES conta nos dois tipos, os demais só em Diária.
@@ -394,6 +425,7 @@ Só a troca já aprovada (E8): o escalante registra depois da aprovação do Che
 | unidade_id | uuid FK | nacional e estadual no CBMPE; municipal na unidade da cidade |
 | data | date | única por unidade |
 | descricao | text | |
+| fixo | boolean default true | cai no mesmo dia todo ano; "Copiar feriados fixos" copia só estes (Carnaval e Paixão ficam `false`) |
 
 Um dia é feriado para U se houver feriado em U ou em qualquer unidade acima.
 
@@ -457,6 +489,7 @@ Cada publicação e cada retificação ficam guardadas.
 - Na alocação: presença, origem, guarnição e função.
 - `permuta_item` com o militar original.
 - `remocao` (adendo de 17/11/2026).
+- `tipo_afastamento` e `atividade`, catálogos do sistema; `guarnicao.atividade_id`; `feriado.fixo` (adendo de 17/11/2026, fase 3).
 - No parâmetro: `norma_referencia` e unidade.
 - No feriado: unidade.
 - `modelo_impressao`, `documento_gerado`, `auditoria`.
@@ -482,8 +515,11 @@ Cada publicação e cada retificação ficam guardadas.
 
 ## Pendências que tocam o esquema
 
-- Voluntariado: turnos pedidos no formulário (A, B, C?) e formato da importação.
-- Q5: os tipos de afastamento (Férias, Licença, Outro) bastam?
-- Q6: o que eram as marcações antigas de permuta (PERMUTA, ENTROU, SÓ 1ºT, SÓ 2ºT). Pode exigir permuta de meio turno.
-- Q17: unidade tática (Incêndio, Pré-hospitalar, Salvamento), vista no painel de referência como agrupamento das guarnições. Pode virar uma coluna `grupo` em `guarnicao`.
-- Funções por serviço (RN-94) ou só por unidade: o esquema usa o catálogo por unidade.
+- Voluntariado: formato do formulário e da importação (fase 6). O que se marca está decidido: dia e turno padrão A e/ou B.
+- Q6: o que eram as marcações antigas de permuta (PERMUTA, ENTROU, SÓ 1ºT, SÓ 2ºT). Pode exigir permuta de meio turno (fase 5).
+
+Resolvidas em 17/11/2026:
+- Q5: tipos de afastamento viram catálogo do sistema (`tipo_afastamento`).
+- Q17: sem agrupamento de cards; a unidade tática vira a **atividade** da guarnição.
+- RN-94: funções num catálogo por unidade; as de cada serviço saem das guarnições.
+- Ligação do turno do serviço com o turno padrão: pelo horário (ver `turno`).
