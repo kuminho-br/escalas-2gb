@@ -103,7 +103,7 @@ describe('auditoria', () => {
     const gv = await inserir(banco, 'guarnicao_versao', { guarnicao_id: g, vigencia_desde: '2026-11-01' });
     expect((await linhas('guarnicao_versao', gv))[0]!.unidade_id).toBe(unidade);
     const f = await inserir(banco, 'funcao', { unidade_id: unidade, nome: 'Chefe' });
-    const c = await inserir(banco, 'composicao', { guarnicao_versao_id: gv, funcao_id: f, minimo: 1 });
+    const c = await inserir(banco, 'composicao', { guarnicao_versao_id: gv, funcao_id: f, minimo: 1, maximo: 1 });
     expect((await linhas('composicao', c))[0]!.unidade_id).toBe(unidade);
 
     const e = await inserir(banco, 'escala', { unidade_id: unidade, nome: 'Op', titulo: 'Op', militares_doc: 'todos', dias_doc: 'todos' });

@@ -43,6 +43,7 @@
 8. **Nome repetido com outra caixa ou acento** (guarnição, função): 409 com frase legível, nunca 500 do índice único.
 9. **Função repetida na composição:** 400 no campo da repetição, nunca 500 da restrição `unique (guarnicao_versao_id, funcao_id)`.
 10. **Guarnição que só começa num mês futuro:** aparece na lista do mês corrente com "a partir de", em vez de sumir depois de criada.
+11. **Dados gravados antes da 3.1 com máximo vazio:** depois da migração, reimportar a mesma planilha dá tudo "igual".
 
 Cada item tem teste na tarefa dona do código (marcado com **[foco]**).
 
@@ -719,11 +720,154 @@ Branch `fase3-3-guarnicoes`, a partir da `main` com a entrega 2.1 (PR #17 mergea
 
 ---
 
+# Entrega 3.1 — Ajustes de guarnições
+
+Branch `fase3-3-1-guarnicoes`, a partir da `main` com a entrega 3 (PR #18 mergeado). Especificação: adendo "Guarnição como modelo (entrega 3.1)" do design.
+
+**Com migração (`0010_maximo_obrigatorio.sql`).** Depois do merge, o usuário roda `pnpm --filter api db:migrar:teste`: as composições importadas com máximo vazio passam a ter o máximo igual ao mínimo.
+
+**Decisões do usuário (17/11/2026):**
+- Guarnição é um **modelo**, instanciado com militares ao longo das escalas: a atividade sai da guarnição (tela, contratos, pendência e importação). A coluna `guarnicao.atividade_id` fica no banco, sem uso, e o catálogo de Atividades em Configurações não muda.
+- Guarnição sem nenhuma função mostra "sem composição".
+- A linha da composição: `Chefe   de [−] 1 [+] a [−] 1 [+] militares   □ Exige CNH   Remover`; marcada "Exige CNH", aparece a lista de categorias ao lado.
+- Não existe "sem limite": **máximo vazio é igual ao mínimo** (na importação, na migração dos dados já gravados e no contrato, que passa a exigir o máximo). O protótipo continua com a regra dele (vazio = sem limite); a mudança vale só para o sistema novo.
+- "Retirar" vira "Remover"; "Viatura" vira "Sigla da viatura".
+- Desativar: "Desativar agora" (a partir do mês corrente) e "Desativar a partir de…" (mês escolhido). Desativada no mês, a guarnição some da lista.
+- Renomear função pelo lápis ao lado dela, na composição. Padronizar nomes é escolha do usuário.
+- A caixa "Ativa" da versão continua.
+
+**Decisões minhas, ao detalhar** (o usuário pode mudar na revisão do plano):
+- A lista ganha, no rodapé, "Mostrar desativadas" (desligado por padrão): sem isso não haveria como abrir uma guarnição desativada para reativá-la.
+- Desativar a partir de M grava `ativa = false` na versão de M (criada como cópia da que vale em M, se não existir) **e em todas as versões posteriores**. Senão uma versão futura já cadastrada religaria a guarnição sem aviso. Reativar faz o mesmo com `ativa = true`.
+- Na importação, função com mínimo e máximo vazios fica "de 0 a 0" e gera o aviso `<guarnição>: <função> ficou de 0 a 0 militares; confira MÍNIMO e MÁXIMO.`
+- O lápis só aparece para funções da própria seção; as herdadas do 2º GB mostram a sigla e não se renomeiam pela seção (a API devolve 403).
+
+### Task 19: API — guarnição sem atividade, máximo obrigatório
+
+**Arquivos:**
+- Criar: `apps/api/banco/migracoes/0010_maximo_obrigatorio.sql`
+- Modificar: `pacotes/contratos/src/guarnicoes.ts`, `apps/api/src/cadastros/guarnicoes.ts`, `apps/api/src/cadastros/guarnicoes-regras.ts`, `apps/api/src/importacao/guarnicoes.ts`, e os testes `apps/api/test/{guarnicoes.test.ts,guarnicoes-regras.test.ts,importacao-guarnicoes.test.ts}`
+
+**Interfaces:**
+- Migração: `update composicao set maximo = minimo where maximo is null;` e `alter table composicao alter column maximo set not null;`.
+- Contratos:
+  - `LinhaComposicao.maximo`: inteiro `>= 0`, obrigatório (sem `null`), com o mesmo refinamento `maximo >= minimo`.
+  - Saem `NovaGuarnicao.atividadeId`, `EdicaoGuarnicao.atividadeId`, `LinhaGuarnicao.atividade`, `LinhaGuarnicao.pendencias`, `FichaGuarnicao.atividadeId` e `FichaGuarnicao.atividade`.
+  - `LinhaGuarnicao.vagasObrigatorias` vira `minimo: number` e `maximo: number` (somas da composição da versão mostrada).
+  - `ComposicaoSalva.maximo: number`.
+- `diferencasDeVersao`: sai o texto "sem limite" (o máximo é sempre número).
+- Rotas: `POST`/`PATCH` de guarnição sem atividade; a lista sem pendências.
+- Importação:
+  - Máximo vazio vira o mínimo, depois de `resolverGuarnicoes` (que continua tratando o 0 como "retira a função").
+  - Função que fica de 0 a 0 gera o aviso acima e entra assim.
+  - Sai o aviso de guarnições sem atividade.
+  - Ajudas do modelo: `GUARNIÇÃO` = "Nome da guarnição."; `MÁXIMO` = "Máximo de militares na função. Vazio vale igual ao mínimo; 0 retira a função naquela vigência."
+
+- [ ] **Passo 1: testes que falham** (adaptar os que citam atividade, pendência, `vagasObrigatorias` ou `null` no máximo):
+  - `guarnicoes.test.ts`:
+    - `lista traz o mínimo e o máximo somados` (Combatente 1 a 3 + Motorista 1 a 1 → `minimo: 2, maximo: 4`)
+    - `guarnição sem composição tem mínimo e máximo zero`
+    - `máximo nulo é 400 no campo` (`composicao.0.maximo`)
+    - Saem `guarnição sem atividade tem a pendência` e `atividade desativada não pode ser escolhida…`.
+  - `guarnicoes-regras.test.ts`: sai `Combatente: máximo 3 → sem limite`; entra `Combatente: máximo 3 → 4`.
+  - `importacao-guarnicoes.test.ts`:
+    - `máximo vazio vale igual ao mínimo` (MÍNIMO 2, MÁXIMO vazio → 2 a 2)
+    - `mínimo e máximo vazios ficam de 0 a 0 com aviso`
+    - `reimportar a planilha com máximo vazio depois da migração dá tudo igual` **[foco 11]**
+    - Sai o teste do aviso de atividade.
+  - Teste da migração em `guarnicoes.test.ts`: `a migração preenche o máximo vazio com o mínimo` (insere, com `inserir`, uma composição com `maximo: null` num banco com as migrações até a 0009, aplica a 0010 e confere). Se o apoio de testes não permitir parar na 0009, verificar a regra com um `update` igual ao da migração e registrar a decisão no ledger.
+- [ ] **Passo 2:** `pnpm --filter api test`. Esperado: FALHA.
+- [ ] **Passo 3:** implementar.
+- [ ] **Passo 4:** `pnpm --filter api test && pnpm typecheck`. Esperado: a API passa; o typecheck do site pode falhar até a Task 21 (os tipos mudaram). Registre no ledger e siga.
+- [ ] **Passo 5:** commit `Fase 3: guarnição sem atividade e máximo obrigatório`.
+
+### Task 20: API — desativar guarnição e renomear função
+
+**Arquivos:**
+- Modificar: `pacotes/contratos/src/guarnicoes.ts`, `apps/api/src/cadastros/guarnicoes.ts`, `apps/api/src/cadastros/guarnicoes-regras.ts`, `apps/api/test/guarnicoes.test.ts`, `apps/api/test/guarnicoes-regras.test.ts`
+
+**Interfaces:**
+- Contratos:
+  - `SituacaoGuarnicao = { ativa: boolean; aPartirDe: Mes }`
+  - `EdicaoFuncao = { nome: Nome }`
+  - `FichaGuarnicao.desativadaAPartirDe: string | null`
+- Regras (puro): `desativadaAPartirDe(versoes: { vigencia: string; ativa: boolean }[]): string | null`. É a menor vigência V tal que todas as versões com vigência `>= V` estão inativas; `null` se a versão mais recente está ativa.
+- Rotas:
+  - `POST /api/guarnicoes/:id/situacao` (`SituacaoGuarnicao`) → `FichaGuarnicao`.
+    - Mês anterior ao corrente: 409 `Só dá para mudar a partir de <mês por extenso>.`
+    - Se há versão em vigor em `aPartirDe` e nenhuma começa nesse mês, cria uma cópia dela em `aPartirDe` (`gravarVersao`).
+    - Depois, `ativa` em todas as versões com vigência `>= aPartirDe`.
+    - Sem versão em vigor em `aPartirDe` (a guarnição só começa depois), só atualiza as posteriores.
+  - `PATCH /api/funcoes/:id` (`EdicaoFuncao`) → `Funcao`.
+    - Papel `CADASTRO` na unidade da função (`unidadeDoRegistro(…, 'funcao', id)`); função desconhecida é 404 "Função não encontrada."; herdada, para quem só tem papel embaixo, é 403.
+    - Nome igual (normalizado) a outra função visível à unidade dela é 409 `Já existe a função "<nome>" (<sigla>).`; mudar só a caixa ou o acento do próprio nome é permitido.
+
+- [ ] **Passo 1: testes que falham:**
+  - `guarnicoes-regras.test.ts`: `desativadaAPartirDe` com tudo ativo (`null`); só a última inativa; duas últimas inativas (a primeira delas); inativa no meio e ativa depois (`null`).
+  - `guarnicoes.test.ts`:
+    - `desativar agora some da lista do mês e marca a ficha` (`ativa: false` na lista do mês corrente; `desativadaAPartirDe` = mês corrente)
+    - `desativar a partir do mês seguinte mantém o mês corrente ativo`
+    - `desativar desliga também as versões futuras já cadastradas`
+    - `reativar agora volta a guarnição`
+    - `desativar no mês passado é 409`
+    - `renomear função muda o nome em todas as guarnições`
+    - `renomear só a caixa do próprio nome é permitido` (`CHEFE` → `Chefe`)
+    - `renomear para nome de outra função é 409`
+    - `função herdada não se renomeia pela seção (403)`
+- [ ] **Passo 2:** `pnpm --filter api test`. Esperado: FALHA.
+- [ ] **Passo 3:** implementar.
+- [ ] **Passo 4:** `pnpm --filter api test`. Esperado: PASSA.
+- [ ] **Passo 5:** commit `Fase 3: desativar guarnição e renomear função`.
+
+### Task 21: Tela de Guarnições — ajustes
+
+**Arquivos:**
+- Modificar: `apps/web/src/api/guarnicoes.ts` (`mudarSituacao`, `renomearFuncao`), `apps/web/src/routes/_app/guarnicoes.tsx`, `apps/web/src/routes/_app/guarnicoes/$id.tsx`, `apps/web/src/componentes/guarnicoes/{Composicao.tsx,Versoes.tsx}`, `apps/web/src/__testes__/guarnicoes.test.tsx`
+
+**Interfaces:**
+- Consome: os contratos e as rotas das Tasks 19 e 20.
+- **Lista:**
+  - Cada item mostra a sigla da viatura e `de <minimo> a <maximo> militares`; com mínimo igual ao máximo, `<n> militares`; sem composição, `sem composição`.
+  - Sai o ícone de aviso.
+  - As desativadas no mês ficam escondidas. No rodapé da lista, a caixa "Mostrar desativadas" mostra as desativadas, com o rótulo "desativada".
+  - "Em ordem de ativação · N guarnições" ganha borda inferior e `pb-2`, separado da lista que rola.
+- **Ficha:**
+  - **Identificação:** só o nome, com "Salvar".
+  - **Cabeçalho**, conforme `desativadaAPartirDe`:
+    - `null`: botões "Desativar agora" e "Desativar a partir de…". O segundo abre um campo de mês (`min` = mês corrente) e o botão "Desativar a partir de <mês por extenso>".
+    - Mês `<=` corrente: "Desativada desde <mês por extenso>." e "Reativar agora".
+    - Mês `>` corrente: "Será desativada em <mês por extenso>." e "Cancelar desativação" (reativa a partir desse mês).
+  - **Versões:** o campo "Viatura" passa a se chamar "Sigla da viatura".
+- **Composição**, uma linha por função:
+  - função (`Selecao` `aria-label="Função <n>"`) e, se a função escolhida é da seção, o lápis (`aria-label="Renomear <função>"`). O lápis abre o campo `aria-label="Novo nome de <função>"`, o aviso "O nome muda em todas as guarnições.", e os botões "Salvar nome" e "Cancelar". Salvo, invalida `funcoes` e `guarnicao` e fecha o campo; o erro da API aparece abaixo.
+  - `de [−] n [+] a [−] n [+] militares`, com as mesmas regras de hoje (o mínimo não passa do máximo nem desce de 0; o máximo não desce do mínimo). Saem a caixa "Sem limite" e o rótulo `sem limite`.
+  - "Exige CNH" (caixa, `aria-label="Exige CNH para <função>"`). Desmarcada, nenhuma lista aparece e `cnhExigida` vai `null`. Marcada, a lista `aria-label="CNH exigida de <função>"` aparece, com A a E e a D pré-escolhida.
+  - "Remover" (`aria-label="Remover <função>"`).
+  - "Incluir função" acrescenta uma linha de 1 a 1, sem CNH.
+
+- [ ] **Passo 1: testes que falham** (adaptar os atuais que dependem de atividade, "Sem limite", "Retirar" ou "CNH: nenhuma"):
+  - `lista mostra os limites e sem composição` (`de 2 a 4 militares`, `3 militares`, `sem composição`)
+  - `desativada não aparece até marcar mostrar desativadas`
+  - `exige CNH mostra a lista e envia a categoria; desmarcar envia nulo`
+  - `remover tira a linha do envio`
+  - `renomear função envia PATCH e fecha o campo`
+  - `função herdada não tem lápis`
+  - `desativar agora envia o mês corrente`
+  - `desativar a partir de envia o mês escolhido`
+  - `guarnição desativada mostra reativar agora`
+  - Sai `sem limite deixa o máximo vazio…`; o de "atividade" sai.
+- [ ] **Passo 2:** `pnpm --filter web test`. Esperado: FALHA.
+- [ ] **Passo 3:** implementar.
+- [ ] **Passo 4:** `pnpm test && pnpm typecheck`. Esperado: tudo passa.
+- [ ] **Passo 5:** commit `Fase 3: ajustes da tela de guarnições`. Depois, abrir o PR "Fase 3 — Entrega 3.1: ajustes de guarnições" e **parar até o merge**. O PR lembra: **rodar `pnpm --filter api db:migrar:teste` depois do merge**.
+
+---
+
 # Entrega 4 — Serviços, turnos e escalas
 
 Branch `fase3-4-servicos-escalas`.
 
-### Task 19: Regra do turno padrão no motor
+### Task 22: Regra do turno padrão no motor
 
 **Arquivos:**
 - Criar: `pacotes/dominio/src/voluntariado.ts`, `pacotes/dominio/test/voluntariado.test.ts`
@@ -759,13 +903,13 @@ it('duração de 24h', () => expect(duracaoMinutos('08:00', '08:00')).toBe(1440)
 - [ ] **Passo 4:** `pnpm --filter dominio test && pnpm --filter dominio typecheck`. Esperado: PASSA.
 - [ ] **Passo 5:** commit `Fase 3: turnos padrão exigidos pelo horário (regra do voluntariado)`.
 
-### Task 20: API de Serviços e Escalas
+### Task 23: API de Serviços e Escalas
 
 **Arquivos:**
 - Criar: `pacotes/contratos/src/servicos.ts`, `pacotes/contratos/src/escalas.ts`, `apps/api/src/cadastros/servicos.ts`, `apps/api/src/cadastros/escalas.ts`, `apps/api/test/servicos.test.ts`, `apps/api/test/escalas.test.ts`
 
 **Interfaces:**
-- Consome: `TurnoPadrao`, `turnosPadraoExigidos` e `duracaoMinutos` (Tarefa 19). `contratos` passa a depender de `dominio` (`"dominio": "workspace:*"`) e reexporta o tipo `TurnoPadrao`.
+- Consome: `TurnoPadrao`, `turnosPadraoExigidos` e `duracaoMinutos` (Tarefa 22). `contratos` passa a depender de `dominio` (`"dominio": "workspace:*"`) e reexporta o tipo `TurnoPadrao`.
 - **Serviços (contratos):**
   - `NovoServico = { nome: Nome; tipo: 'ordinario'|'pjes'|'diaria'; operacao: string | null; rotuloImpressao: string | null; cor: /^#[0-9A-Fa-f]{6}$/ }`. Com refinamento: `operacao` só quando `tipo = 'diaria'`.
   - `EdicaoServico`: os mesmos campos, opcionais, mais `ativo`.
@@ -802,7 +946,7 @@ it('duração de 24h', () => expect(duracaoMinutos('08:00', '08:00')).toBe(1440)
 - [ ] **Passo 4:** `pnpm --filter api test`. Esperado: PASSA.
 - [ ] **Passo 5:** commit `Fase 3: API de serviços, turnos e escalas`.
 
-### Task 21: Telas de Serviços e Escalas
+### Task 24: Telas de Serviços e Escalas
 
 **Arquivos:**
 - Criar: `apps/web/src/api/servicos.ts`, `apps/web/src/api/escalas.ts`, `apps/web/src/routes/_app/servicos.tsx` (+ `servicos/index.tsx`, `servicos/$id.tsx`), `apps/web/src/routes/_app/escalas.tsx` (+ `escalas/index.tsx`, `escalas/$id.tsx`), `apps/web/src/lib/turno-padrao.ts`, `apps/web/src/__testes__/servicos.test.tsx`, `apps/web/src/__testes__/escalas.test.tsx`
@@ -836,7 +980,7 @@ it('duração de 24h', () => expect(duracaoMinutos('08:00', '08:00')).toBe(1440)
 - [ ] **Passo 4:** `pnpm --filter web test`. Esperado: PASSA.
 - [ ] **Passo 5:** commit `Fase 3: telas de serviços e escalas`.
 
-### Task 22: Importação de Serviços e Escalas
+### Task 25: Importação de Serviços e Escalas
 
 **Arquivos:**
 - Criar: `apps/api/src/importacao/servicos-escalas.ts`, `apps/api/test/importacao-servicos-escalas.test.ts`
@@ -872,7 +1016,7 @@ it('duração de 24h', () => expect(duracaoMinutos('08:00', '08:00')).toBe(1440)
 
 Branch `fase3-5-cotas-feriados`.
 
-### Task 23: API de Cotas e Feriados
+### Task 26: API de Cotas e Feriados
 
 **Arquivos:**
 - Criar: `pacotes/contratos/src/cotas-feriados.ts`, `apps/api/src/cadastros/cotas.ts`, `apps/api/src/cadastros/feriados.ts`, `apps/api/test/cotas.test.ts`, `apps/api/test/feriados.test.ts`
@@ -908,7 +1052,7 @@ Branch `fase3-5-cotas-feriados`.
 - [ ] **Passo 4:** `pnpm --filter api test`. Esperado: PASSA.
 - [ ] **Passo 5:** commit `Fase 3: API de cotas e feriados`.
 
-### Task 24: Telas de Cotas e Feriados
+### Task 27: Telas de Cotas e Feriados
 
 **Arquivos:**
 - Criar: `apps/web/src/api/cotas.ts`, `apps/web/src/api/feriados.ts`, `apps/web/src/routes/_app/cotas.tsx`, `apps/web/src/routes/_app/feriados.tsx`, `apps/web/src/__testes__/cotas.test.tsx`, `apps/web/src/__testes__/feriados.test.tsx`
@@ -935,7 +1079,7 @@ Branch `fase3-5-cotas-feriados`.
 - [ ] **Passo 4:** `pnpm --filter web test`. Esperado: PASSA.
 - [ ] **Passo 5:** commit `Fase 3: telas de cotas e feriados`.
 
-### Task 25: Importação de Cotas e Feriados, e fechamento da fase
+### Task 28: Importação de Cotas e Feriados, e fechamento da fase
 
 **Arquivos:**
 - Criar: `apps/api/src/importacao/cotas.ts`, `apps/api/src/importacao/feriados.ts`, `apps/api/test/importacao-cotas-feriados.test.ts`

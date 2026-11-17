@@ -45,8 +45,7 @@ describe('importação de guarnições', () => {
     const r = await importar(BASE, true);
     expect(r.gravados).toBe(1);
     const f = await ficha('Auto Bomba 1');
-    expect(f.atividadeId).toBeNull();
-    expect(f.versoes.map((v) => v.vigencia)).toEqual([FUTURO, criacao]);
+        expect(f.versoes.map((v) => v.vigencia)).toEqual([FUTURO, criacao]);
     expect(f.versoes[1]).toMatchObject({
       viatura: 'ABT-01', tipoViatura: 'Auto Bomba', prioridade: 1, ativa: true,
       composicao: [
@@ -98,12 +97,23 @@ describe('importação de guarnições', () => {
     expect((await ficha('Cnh Ruim')).versoes[0]!.composicao.find((c) => c.funcao === 'Motorista')!.cnhExigida).toBeNull();
   });
 
-  it('guarnição sem atividade gera o aviso', async () => {
-    const r = await importar([
-      ['', 'Sem Ativ 1', '', '', '', '', '', 'Motorista', 1, 1],
-      ['', 'Sem Ativ 2', '', '', '', '', '', 'Motorista', 1, 1],
-    ]);
-    expect(r.avisos).toContain('2 guarnições sem atividade: escolha a atividade de cada uma na tela de Guarnições.');
+  it('máximo vazio vale igual ao mínimo', async () => {
+    await importar([['', 'Máximo Vazio', '', '', '', '', '', 'Motorista', 2, '']], true);
+    expect((await ficha('Máximo Vazio')).versoes[0]!.composicao[0]).toMatchObject({ minimo: 2, maximo: 2 });
+  });
+
+  it('mínimo e máximo vazios ficam de 0 a 0 com aviso', async () => {
+    const r = await importar([['', 'Zero Zero', '', '', '', '', '', 'Motorista', '', '']]);
+    expect(r.avisos).toContain('Zero Zero: Motorista ficou de 0 a 0 militares; confira MÍNIMO e MÁXIMO.');
+    expect(r.avisos.some((a: string) => a.includes('sem atividade'))).toBe(false);
+    await importar([['', 'Zero Zero', '', '', '', '', '', 'Motorista', '', '']], true);
+    expect((await ficha('Zero Zero')).versoes[0]!.composicao[0]).toMatchObject({ minimo: 0, maximo: 0 });
+  });
+
+  it('reimportar a planilha com máximo vazio dá tudo igual', async () => {
+    const linhas: Linha[] = [['', 'Reimporta Vazio', '', '', '', '', '', 'Motorista', 1, ''], ['', 'Reimporta Vazio', '', '', '', '', '', 'Combatente', 2, '']];
+    await importar(linhas, true);
+    expect(await importar(linhas)).toMatchObject({ novos: [], alterados: [], iguais: 1 });
   });
 
   it('linha com mínimo inválido vira problema, sem códigos internos', async () => {

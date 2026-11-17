@@ -1,17 +1,16 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { createFileRoute, Link } from '@tanstack/react-router';
-import type { FichaGuarnicao } from 'contratos';
+import { mesPorExtenso, somarMeses, type FichaGuarnicao } from 'contratos';
 import { ArrowLeft } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
 import { mensagemDe } from '@/api/cliente';
-import { consultaCatalogo } from '@/api/configuracoes';
-import { atualizarGuarnicoes, consultaGuarnicao, editarGuarnicao } from '@/api/guarnicoes';
+import { atualizarGuarnicoes, consultaGuarnicao, editarGuarnicao, mudarSituacao } from '@/api/guarnicoes';
 import { Versoes } from '@/componentes/guarnicoes/Versoes';
 import { Secao } from '@/componentes/militares/Secao';
-import { Selecao } from '@/componentes/Selecao';
 import { Button } from '@/componentes/ui/button';
 import { Input } from '@/componentes/ui/input';
 import { Label } from '@/componentes/ui/label';
+import { mesAtual } from '@/lib/meses';
 
 export const Route = createFileRoute('/_app/guarnicoes/$id')({
   component: Ficha,
@@ -32,11 +31,12 @@ function Ficha() {
           <ArrowLeft className="size-5" aria-hidden />
         </Link>
         <h2 className="font-cond text-2xl font-semibold">{ficha.nome}</h2>
-        {!ficha.atividade && <p className="text-sm text-alerta">Cadastro incompleto: Sem atividade.</p>}
       </header>
+      <Situacao key={`s-${ficha.id}`} ficha={ficha} />
       {/* key: ao trocar de guarnição, os formulários começam do zero */}
       <Identificacao key={`i-${ficha.id}`} ficha={ficha} />
-      <Versoes key={`v-${ficha.id}`} ficha={ficha} unidadeId={eu.unidade.id} />
+      {/* as versões entram na key: desativar, reativar ou salvar recarrega o editor com o que foi gravado */}
+      <Versoes key={`v-${ficha.id}-${ficha.versoes.map((v) => `${v.vigencia}:${v.ativa}`).join(',')}`} ficha={ficha} unidadeId={eu.unidade.id} />
       <UsadaEm ficha={ficha} />
     </article>
   );
@@ -44,18 +44,14 @@ function Ficha() {
 
 function Identificacao({ ficha }: { ficha: FichaGuarnicao }) {
   const queryClient = useQueryClient();
-  const atividades = useQuery(consultaCatalogo('atividades'));
   const [nome, setNome] = useState(ficha.nome);
-  const [atividade, setAtividade] = useState(ficha.atividadeId ?? '');
   const [aviso, setAviso] = useState<{ erro: boolean; texto: string } | null>(null);
-  // só as ativas, mais a que a guarnição já tem (mesmo desativada)
-  const opcoes = atividades.data?.filter((a) => a.ativo || a.id === ficha.atividadeId) ?? [];
 
   async function salvar(e: FormEvent) {
     e.preventDefault();
     setAviso(null);
     try {
-      await editarGuarnicao(ficha.id, { nome: nome.trim(), atividadeId: atividade || null });
+      await editarGuarnicao(ficha.id, { nome: nome.trim() });
       atualizarGuarnicoes(queryClient, ficha.id);
       setAviso({ erro: false, texto: 'Alterações salvas.' });
     } catch (err) {
@@ -66,18 +62,9 @@ function Identificacao({ ficha }: { ficha: FichaGuarnicao }) {
   return (
     <Secao titulo="Identificação">
       <form onSubmit={salvar} className="grid gap-3">
-        <div className="grid gap-3 sm:grid-cols-2">
-          <div className="grid gap-1.5">
-            <Label htmlFor="gn-nome">Nome</Label>
-            <Input id="gn-nome" value={nome} onChange={(e) => setNome(e.target.value)} required />
-          </div>
-          <div className="grid gap-1.5">
-            <Label htmlFor="gn-atividade">Atividade</Label>
-            <Selecao id="gn-atividade" value={atividade} onChange={(e) => setAtividade(e.target.value)}>
-              <option value="">Sem atividade</option>
-              {opcoes.map((a) => <option key={a.id} value={a.id}>{a.nome}</option>)}
-            </Selecao>
-          </div>
+        <div className="grid gap-1.5 sm:max-w-md">
+          <Label htmlFor="gn-nome">Nome</Label>
+          <Input id="gn-nome" value={nome} onChange={(e) => setNome(e.target.value)} required />
         </div>
         <div className="flex items-center gap-3">
           <Button type="submit" variant="outline">Salvar</Button>
@@ -85,6 +72,64 @@ function Identificacao({ ficha }: { ficha: FichaGuarnicao }) {
         </div>
       </form>
     </Secao>
+  );
+}
+
+/** Desativar agora, a partir de um mês, ou reativar. */
+function Situacao({ ficha }: { ficha: FichaGuarnicao }) {
+  const queryClient = useQueryClient();
+  const mes = mesAtual();
+  const desde = ficha.desativadaAPartirDe;
+  const [escolhendo, setEscolhendo] = useState(false);
+  const [aPartirDe, setAPartirDe] = useState(somarMeses(mes, 1));
+  const [erro, setErro] = useState<string | null>(null);
+
+  async function mudar(ativa: boolean, mesEscolhido: string) {
+    setErro(null);
+    try {
+      await mudarSituacao(ficha.id, { ativa, aPartirDe: mesEscolhido });
+      atualizarGuarnicoes(queryClient, ficha.id);
+      setEscolhendo(false);
+    } catch (err) {
+      setErro(mensagemDe(err));
+    }
+  }
+
+  return (
+    <div className="grid gap-2 text-sm">
+      <div className="flex flex-wrap items-center gap-2">
+        {desde && desde <= mes && (
+          <>
+            <p className="font-medium text-alerta">Desativada desde {mesPorExtenso(desde)}.</p>
+            <Button type="button" size="sm" variant="outline" onClick={() => void mudar(true, mes)}>Reativar agora</Button>
+          </>
+        )}
+        {desde && desde > mes && (
+          <>
+            <p className="font-medium">Será desativada em {mesPorExtenso(desde)}.</p>
+            <Button type="button" size="sm" variant="outline" onClick={() => void mudar(true, desde)}>Cancelar desativação</Button>
+          </>
+        )}
+        {!desde && (
+          <>
+            <Button type="button" size="sm" variant="outline" onClick={() => void mudar(false, mes)}>Desativar agora</Button>
+            <Button type="button" size="sm" variant="ghost" onClick={() => setEscolhendo(!escolhendo)}>Desativar a partir de…</Button>
+          </>
+        )}
+      </div>
+      {escolhendo && !desde && (
+        <div className="flex flex-wrap items-end gap-2">
+          <div className="grid gap-1.5">
+            <Label htmlFor="gs-mes">Desativar a partir de</Label>
+            <Input id="gs-mes" type="month" value={aPartirDe} min={mes} onChange={(e) => setAPartirDe(e.target.value)} className="w-44" />
+          </div>
+          <Button type="button" size="sm" disabled={!aPartirDe} onClick={() => void mudar(false, aPartirDe)}>
+            Desativar a partir de {aPartirDe ? mesPorExtenso(aPartirDe) : '…'}
+          </Button>
+        </div>
+      )}
+      {erro && <p role="alert" className="text-alerta">{erro}</p>}
+    </div>
   );
 }
 

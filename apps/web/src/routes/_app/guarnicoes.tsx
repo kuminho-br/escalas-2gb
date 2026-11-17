@@ -1,14 +1,12 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { createFileRoute, Link, Outlet, useNavigate, useParams } from '@tanstack/react-router';
 import type { LinhaGuarnicao } from 'contratos';
-import { Plus, TriangleAlert } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
 import { mensagemDe } from '@/api/cliente';
-import { consultaCatalogo } from '@/api/configuracoes';
 import { atualizarGuarnicoes, consultaGuarnicoes, criarGuarnicao } from '@/api/guarnicoes';
 import { ImportarPlanilha } from '@/componentes/ImportarPlanilha';
 import { ListaDetalhe } from '@/componentes/ListaDetalhe';
-import { Selecao } from '@/componentes/Selecao';
 import { Button } from '@/componentes/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/componentes/ui/dialog';
 import { Input } from '@/componentes/ui/input';
@@ -49,21 +47,33 @@ function Guarnicoes() {
 
 function ListaDeGuarnicoes({ unidadeId, escolhida }: { unidadeId: string; escolhida?: string }) {
   const guarnicoes = useQuery(consultaGuarnicoes(unidadeId, mesAtual()));
+  const [desativadas, setDesativadas] = useState(false);
+  const visiveis = guarnicoes.data?.filter((g) => g.ativa || desativadas) ?? [];
   return (
     <div>
       {guarnicoes.isPending && <p className="p-4 text-apagado">Carregando…</p>}
       {guarnicoes.error && <p role="alert" className="p-4 text-alerta">{mensagemDe(guarnicoes.error)}</p>}
       {guarnicoes.data && (
         <>
-          <p className="px-4 pt-3 text-xs text-apagado">Em ordem de ativação · {guarnicoes.data.length} guarnições</p>
-          <ul className="max-h-[calc(100dvh-14rem)] overflow-y-auto p-2">
-            {guarnicoes.data.map((g) => <ItemGuarnicao key={g.id} g={g} escolhida={g.id === escolhida} />)}
+          <p className="border-b border-linha px-4 pt-3 pb-2 text-xs text-apagado">Em ordem de ativação · {visiveis.length} guarnições</p>
+          <ul className="max-h-[calc(100dvh-16rem)] overflow-y-auto p-2">
+            {visiveis.map((g) => <ItemGuarnicao key={g.id} g={g} escolhida={g.id === escolhida} />)}
             {guarnicoes.data.length === 0 && <li className="p-3 text-apagado">Nenhuma guarnição. Use "Nova guarnição" ou "Importar da planilha".</li>}
           </ul>
+          <label className="flex items-center gap-2 border-t border-linha px-4 py-2.5 text-xs text-apagado">
+            <input type="checkbox" checked={desativadas} onChange={(e) => setDesativadas(e.target.checked)} className="size-4 accent-vinho" />
+            Mostrar desativadas
+          </label>
         </>
       )}
     </div>
   );
+}
+
+/** "de 2 a 4 militares", "3 militares" ou "sem composição". */
+function limites(g: LinhaGuarnicao): string {
+  if (g.maximo === 0) return 'sem composição';
+  return g.minimo === g.maximo ? `${g.minimo} militares` : `de ${g.minimo} a ${g.maximo} militares`;
 }
 
 function ItemGuarnicao({ g, escolhida }: { g: LinhaGuarnicao; escolhida: boolean }) {
@@ -76,13 +86,11 @@ function ItemGuarnicao({ g, escolhida }: { g: LinhaGuarnicao; escolhida: boolean
       >
         <span className="flex items-center gap-2">
           <span className="font-cond text-base font-semibold">{g.nome}</span>
-          {g.pendencias.length > 0 && <TriangleAlert className="size-4 text-alerta" role="img" aria-label={`Cadastro incompleto: ${g.pendencias.join('; ')}`} />}
-          {!g.ativa && <span className="ml-auto rounded border border-linha px-1.5 text-xs">inativa</span>}
+          {!g.ativa && <span className="ml-auto rounded border border-linha px-1.5 text-xs">desativada</span>}
         </span>
         <span className="flex flex-wrap gap-x-3 text-xs text-apagado">
-          {g.atividade && <span>{g.atividade}</span>}
           {g.viatura && <span>{g.viatura}</span>}
-          <span>{g.vagasObrigatorias} vagas obrigatórias</span>
+          <span>{limites(g)}</span>
           {g.aPartirDe && <span className="font-medium text-tinta">a partir de {mesPorExtenso(g.aPartirDe)}</span>}
         </span>
       </Link>
@@ -93,7 +101,6 @@ function ItemGuarnicao({ g, escolhida }: { g: LinhaGuarnicao; escolhida: boolean
 function NovaGuarnicaoDialogo({ unidadeId, aoFechar }: { unidadeId: string; aoFechar: () => void }) {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
-  const atividades = useQuery(consultaCatalogo('atividades'));
   const [erro, setErro] = useState<string | null>(null);
   const [salvando, setSalvando] = useState(false);
 
@@ -105,7 +112,6 @@ function NovaGuarnicaoDialogo({ unidadeId, aoFechar }: { unidadeId: string; aoFe
     try {
       const ficha = await criarGuarnicao(unidadeId, {
         nome: String(f.get('nome')).trim(),
-        atividadeId: String(f.get('atividade')) || null,
         vigencia: String(f.get('desde')),
         versao: { viatura: null, tipoViatura: null, prioridade: null, ativa: true, composicao: [] },
       });
@@ -131,18 +137,9 @@ function NovaGuarnicaoDialogo({ unidadeId, aoFechar }: { unidadeId: string; aoFe
             <Label htmlFor="ng-nome">Nome da guarnição</Label>
             <Input id="ng-nome" name="nome" required />
           </div>
-          <div className="grid gap-3 sm:grid-cols-2">
-            <div className="grid gap-1.5">
-              <Label htmlFor="ng-atividade">Atividade</Label>
-              <Selecao id="ng-atividade" name="atividade" defaultValue="">
-                <option value="">Escolher depois</option>
-                {atividades.data?.filter((a) => a.ativo).map((a) => <option key={a.id} value={a.id}>{a.nome}</option>)}
-              </Selecao>
-            </div>
-            <div className="grid gap-1.5">
-              <Label htmlFor="ng-desde">Vale desde</Label>
-              <Input id="ng-desde" name="desde" type="month" defaultValue={mesAtual()} min={mesAtual()} required />
-            </div>
+          <div className="grid gap-1.5 sm:max-w-56">
+            <Label htmlFor="ng-desde">Vale desde</Label>
+            <Input id="ng-desde" name="desde" type="month" defaultValue={mesAtual()} min={mesAtual()} required />
           </div>
           {erro && <p role="alert" className="text-sm text-alerta">{erro}</p>}
           <DialogFooter>

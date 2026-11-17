@@ -160,3 +160,13 @@ Pedidos depois de usar a ficha:
 - **Ideia do usuário:** tomar como base a antiguidade dos postos e graduações nos almanaques (documentos institucionais; cópias locais em `docs/fontes de dados/`, que não vão para o repositório, por conterem dados pessoais — D7), e o sistema estabelecer a antiguidade no nível hierárquico em que a pessoa estiver.
 - **Por que fica para depois:** só pesa quando o escopo for institucional. Enquanto o sistema tratar uma seção ou um GB, a antiguidade da sandbox basta.
 - **Perguntas em aberto para quando chegar a hora:** como o almanaque entra (importação do PDF ou digitação), como a antiguidade por nível é derivada, e o que acontece com a antiguidade manual cadastrada hoje.
+
+## Adendo (17/11/2026) — Guarnição como modelo (entrega 3.1)
+
+Decisões do usuário depois de usar a tela de Guarnições no ambiente de teste.
+
+- **Guarnição é um modelo**, instanciado com militares ao longo das escalas. Por isso a atividade sai do cadastro da guarnição. Isto substitui, no adendo "Cadastros", a frase "Guarnição. Definida pela atividade e pela composição": agora ela é definida pela composição. A coluna `guarnicao.atividade_id` fica no banco, sem uso. O catálogo de Atividades em Configurações fica, e onde a atividade entra se decide quando a escala instanciar as guarnições (fase 4).
+- **Máximo vazio é igual ao mínimo.** Não há mais "sem limite" no sistema novo: o contrato exige o máximo, a importação preenche o vazio com o mínimo, e a migração 0010 corrige o que já foi gravado. O protótipo mantém a regra dele.
+- **Desativar:** "Desativar agora" ou "Desativar a partir de <mês>". A guarnição desativada no mês some da lista; "Mostrar desativadas" a traz de volta para reativar. Desativar a partir de um mês vale também para as versões posteriores já cadastradas.
+- **Renomear função:** pelo lápis ao lado da função, na composição. O nome muda em todas as guarnições. Padronizar os nomes é escolha do usuário.
+- **Tela:** a composição se lê como frase ("de 1 a 2 militares"), com "Exige CNH" antes da categoria, e "Remover". A lista mostra os limites ("de 4 a 5 militares") ou "sem composição". "Viatura" passa a "Sigla da viatura".
