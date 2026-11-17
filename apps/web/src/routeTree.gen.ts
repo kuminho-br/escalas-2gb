@@ -13,7 +13,10 @@ import { Route as AppRouteImport } from './routes/_app'
 import { Route as EntrarRouteImport } from './routes/entrar'
 import { Route as AppIndexRouteImport } from './routes/_app/index'
 import { Route as AppConfiguracoesRouteImport } from './routes/_app/configuracoes'
+import { Route as AppGuarnicoesRouteImport } from './routes/_app/guarnicoes'
 import { Route as AppMilitaresRouteImport } from './routes/_app/militares'
+import { Route as AppGuarnicoesIndexRouteImport } from './routes/_app/guarnicoes/index'
+import { Route as AppGuarnicoesIdRouteImport } from './routes/_app/guarnicoes/$id'
 import { Route as AppMilitaresIndexRouteImport } from './routes/_app/militares/index'
 import { Route as AppMilitaresIdRouteImport } from './routes/_app/militares/$id'
 
@@ -36,10 +39,25 @@ const AppConfiguracoesRoute = AppConfiguracoesRouteImport.update({
   path: '/configuracoes',
   getParentRoute: () => AppRoute,
 } as any)
+const AppGuarnicoesRoute = AppGuarnicoesRouteImport.update({
+  id: '/guarnicoes',
+  path: '/guarnicoes',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppMilitaresRoute = AppMilitaresRouteImport.update({
   id: '/militares',
   path: '/militares',
   getParentRoute: () => AppRoute,
+} as any)
+const AppGuarnicoesIndexRoute = AppGuarnicoesIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AppGuarnicoesRoute,
+} as any)
+const AppGuarnicoesIdRoute = AppGuarnicoesIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => AppGuarnicoesRoute,
 } as any)
 const AppMilitaresIndexRoute = AppMilitaresIndexRouteImport.update({
   id: '/',
@@ -56,15 +74,20 @@ export interface FileRoutesByFullPath {
   '/': typeof AppIndexRoute
   '/entrar': typeof EntrarRoute
   '/configuracoes': typeof AppConfiguracoesRoute
+  '/guarnicoes': typeof AppGuarnicoesRouteWithChildren
   '/militares': typeof AppMilitaresRouteWithChildren
+  '/guarnicoes/$id': typeof AppGuarnicoesIdRoute
   '/militares/$id': typeof AppMilitaresIdRoute
+  '/guarnicoes/': typeof AppGuarnicoesIndexRoute
   '/militares/': typeof AppMilitaresIndexRoute
 }
 export interface FileRoutesByTo {
   '/entrar': typeof EntrarRoute
   '/configuracoes': typeof AppConfiguracoesRoute
   '/': typeof AppIndexRoute
+  '/guarnicoes/$id': typeof AppGuarnicoesIdRoute
   '/militares/$id': typeof AppMilitaresIdRoute
+  '/guarnicoes': typeof AppGuarnicoesIndexRoute
   '/militares': typeof AppMilitaresIndexRoute
 }
 export interface FileRoutesById {
@@ -72,9 +95,12 @@ export interface FileRoutesById {
   '/_app': typeof AppRouteWithChildren
   '/entrar': typeof EntrarRoute
   '/_app/configuracoes': typeof AppConfiguracoesRoute
+  '/_app/guarnicoes': typeof AppGuarnicoesRouteWithChildren
   '/_app/militares': typeof AppMilitaresRouteWithChildren
   '/_app/': typeof AppIndexRoute
+  '/_app/guarnicoes/$id': typeof AppGuarnicoesIdRoute
   '/_app/militares/$id': typeof AppMilitaresIdRoute
+  '/_app/guarnicoes/': typeof AppGuarnicoesIndexRoute
   '/_app/militares/': typeof AppMilitaresIndexRoute
 }
 export interface FileRouteTypes {
@@ -83,19 +109,32 @@ export interface FileRouteTypes {
     | '/'
     | '/entrar'
     | '/configuracoes'
+    | '/guarnicoes'
     | '/militares'
+    | '/guarnicoes/$id'
     | '/militares/$id'
+    | '/guarnicoes/'
     | '/militares/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/entrar' | '/configuracoes' | '/' | '/militares/$id' | '/militares'
+  to:
+    | '/entrar'
+    | '/configuracoes'
+    | '/'
+    | '/guarnicoes/$id'
+    | '/militares/$id'
+    | '/guarnicoes'
+    | '/militares'
   id:
     | '__root__'
     | '/_app'
     | '/entrar'
     | '/_app/configuracoes'
+    | '/_app/guarnicoes'
     | '/_app/militares'
     | '/_app/'
+    | '/_app/guarnicoes/$id'
     | '/_app/militares/$id'
+    | '/_app/guarnicoes/'
     | '/_app/militares/'
   fileRoutesById: FileRoutesById
 }
@@ -134,12 +173,33 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppConfiguracoesRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/guarnicoes': {
+      id: '/_app/guarnicoes'
+      path: '/guarnicoes'
+      fullPath: '/guarnicoes'
+      preLoaderRoute: typeof AppGuarnicoesRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/militares': {
       id: '/_app/militares'
       path: '/militares'
       fullPath: '/militares'
       preLoaderRoute: typeof AppMilitaresRouteImport
       parentRoute: typeof AppRoute
+    }
+    '/_app/guarnicoes/': {
+      id: '/_app/guarnicoes/'
+      path: '/'
+      fullPath: '/guarnicoes/'
+      preLoaderRoute: typeof AppGuarnicoesIndexRouteImport
+      parentRoute: typeof AppGuarnicoesRoute
+    }
+    '/_app/guarnicoes/$id': {
+      id: '/_app/guarnicoes/$id'
+      path: '/$id'
+      fullPath: '/guarnicoes/$id'
+      preLoaderRoute: typeof AppGuarnicoesIdRouteImport
+      parentRoute: typeof AppGuarnicoesRoute
     }
     '/_app/militares/': {
       id: '/_app/militares/'
@@ -158,6 +218,20 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface AppGuarnicoesRouteChildren {
+  AppGuarnicoesIdRoute: typeof AppGuarnicoesIdRoute
+  AppGuarnicoesIndexRoute: typeof AppGuarnicoesIndexRoute
+}
+
+const AppGuarnicoesRouteChildren: AppGuarnicoesRouteChildren = {
+  AppGuarnicoesIdRoute: AppGuarnicoesIdRoute,
+  AppGuarnicoesIndexRoute: AppGuarnicoesIndexRoute,
+}
+
+const AppGuarnicoesRouteWithChildren = AppGuarnicoesRoute._addFileChildren(
+  AppGuarnicoesRouteChildren,
+)
+
 interface AppMilitaresRouteChildren {
   AppMilitaresIdRoute: typeof AppMilitaresIdRoute
   AppMilitaresIndexRoute: typeof AppMilitaresIndexRoute
@@ -174,12 +248,14 @@ const AppMilitaresRouteWithChildren = AppMilitaresRoute._addFileChildren(
 
 interface AppRouteChildren {
   AppConfiguracoesRoute: typeof AppConfiguracoesRoute
+  AppGuarnicoesRoute: typeof AppGuarnicoesRouteWithChildren
   AppMilitaresRoute: typeof AppMilitaresRouteWithChildren
   AppIndexRoute: typeof AppIndexRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
   AppConfiguracoesRoute: AppConfiguracoesRoute,
+  AppGuarnicoesRoute: AppGuarnicoesRouteWithChildren,
   AppMilitaresRoute: AppMilitaresRouteWithChildren,
   AppIndexRoute: AppIndexRoute,
 }
