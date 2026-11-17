@@ -8,7 +8,7 @@
 
 **Tecnologia:** Hono 4, Postgres (PGlite nos testes), zod 4, ExcelJS 4.4, React 19, TanStack Router/Query, Tailwind + shadcn/ui, Vitest 5.
 
-**Especificação:** `docs/superpowers/specs/2026-11-16-migracao-design.md` (adendo "Cadastros (fase 3)", D7), `docs/superpowers/specs/2026-11-16-esquema-banco.md`, `docs/superpowers/specs/2026-11-16-telas.md` (seções "Cadastros" e "Configurações").
+**Especificação:** `docs/superpowers/specs/2026-11-16-migracao-design.md` (adendos "Cadastros (fase 3)" e "Modelo de planilha e ajustes da ficha do militar", D7), `docs/superpowers/specs/2026-11-16-esquema-banco.md`, `docs/superpowers/specs/2026-11-16-telas.md` (seções "Cadastros" e "Configurações").
 
 ## Restrições globais
 
@@ -25,7 +25,8 @@
 - **Unidade da fase de teste:** fixa na 1ª SB. A API expõe a unidade em `GET /api/eu` (`unidade`), e o site não escreve sigla nem caminho fixos.
 - **Respostas de erro:** `{ erro: string, campos?: Record<string, string> }`. Os códigos são 400 (entrada inválida), 401, 403, 404 e 409 (conflito com o banco). A mensagem diz o que fazer.
 - **Textos de tela:** em português, sem jargão e sem siglas internas (RN-xx, Q17). Os botões dizem a ação ("Salvar a partir de dezembro", "Importar 48, pular 2").
-- **O escalante nunca é bloqueado:** linha com problema na importação é pulada e o resto entra.
+- **O escalante nunca é bloqueado:** linha com problema na importação é pulada e o resto entra. Antiguidade repetida só avisa.
+- **Modelo de planilha (entrega 2.1):** todo importador declara `modelo` (Tarefa 12) e lê as colunas pelos mesmos rótulos. Os importadores das entregas 3 a 5 já nascem com ele. O modelo nunca traz linha de dados, e o nome da aba continua exato (`MILITARES`, não "MILITARES (colar)").
 - **Testes:** API com `bancoDeTeste()` (PGlite em memória). Site com `simularApi`. Vitest com `maxWorkers: 2`. O comando da suíte é `pnpm test`, e o typecheck é `pnpm typecheck`.
 - **Commits:** em português, no estilo `Fase 3: <o quê>`, terminando com `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`.
 - **PRs:** um por entrega, com o merge só após a anuência do usuário. O executor para ao fim de cada entrega, depois de abrir o PR.
@@ -37,6 +38,8 @@
 3. **Conflitos do banco:** afastamento sobreposto, nome repetido ou turno em uso devolvem 409 com uma frase legível, nunca 500 nem o texto do Postgres.
 4. **Turnos que atravessam a meia-noite e de 24h:** a duração e o "Pede voluntariado em" saem certos para `16:00–00:00`, `00:00–08:00`, `08:00–08:00` e `20:00–20:00`.
 5. **Usuário sem papel na unidade:** recebe 403 em toda escrita, e quem tem papel deixa o próprio `usuario_id` na auditoria.
+6. **Modelo e leitura sempre em sincronia:** um teste percorre todos os importadores e confere que cada coluna do modelo é achada pela leitura, e que importar o modelo vazio não grava nada.
+7. **Antiguidade repetida não bloqueia:** gravar o segundo militar com o mesmo número passa (201); os dois ganham a pendência.
 
 Cada item tem teste na tarefa dona do código (marcado com **[foco]**).
 
@@ -53,7 +56,7 @@ apps/api/src/
   erros.ts             # erro do banco -> 409 legível; corpo inválido -> 400
   unidade-atual.ts     # unidade fixa da fase de teste
   cadastros/<cadastro>.ts   # rotas de cada cadastro
-  importacao/planilha.ts, importacao/rotas.ts, importacao/tipos.ts, importacao/<cadastro>.ts
+  importacao/planilha.ts, importacao/rotas.ts, importacao/tipos.ts, importacao/modelo.ts, importacao/<cadastro>.ts
 apps/api/test/apoio-api.ts  # app com banco, usuários de teste e pedir()
 apps/web/src/
   api/cliente.ts, api/<cadastro>.ts
@@ -401,7 +404,7 @@ Branch `fase3-2-militares`, a partir da `main` com a entrega 1.
   - lotação como linha do tempo, com "Registrar transferência";
   - jornada e voluntário JES;
   - "Está no quadro de motoristas?" e cinco botões A a E. As categorias da carteira ficam escuras; as que vêm pela hierarquia ficam tracejadas, com "pela D".
-  - afastamentos: tipo (só os ativos), início e fim, o atalho "Mês inteiro" (preenche do dia 1 ao último dia do mês escolhido) e "Apagar".
+  - afastamentos: tipo (só os ativos), início e fim, o atalho "Mês inteiro" (preenche do dia 1 ao último dia do mês escolhido) e "Apagar". *(Substituído na entrega 2.1: a lista fica à vista, o formulário abre por "Incluir afastamento" e o atalho sai.)*
 - O botão "Novo militar" abre o formulário com a primeira lotação.
 
 - [ ] **Passo 1: testes que falham:**
@@ -452,11 +455,119 @@ Branch `fase3-2-militares`, a partir da `main` com a entrega 1.
 
 ---
 
+# Entrega 2.1 — Modelo de planilha e ajustes da ficha
+
+Branch `fase3-2-1-modelo`, a partir da `main` com a entrega 2 (PR #16 já mergeado). Especificação: adendo "Modelo de planilha e ajustes da ficha do militar" do design. As importações das entregas 3 a 5 nascem já com o modelo, por isso esta entrega vem antes da 3.
+
+### Task 12: Modelo de planilha na API
+
+**Arquivos:**
+- Criar: `apps/api/src/importacao/modelo.ts`, `apps/api/test/importacao-modelo.test.ts`
+- Modificar: `apps/api/src/importacao/{tipos.ts,rotas.ts,configuracoes.ts,militares.ts}`
+
+**Interfaces:**
+- Produz (`tipos.ts`):
+  - `type ColunaModelo = { rotulo: string; obrigatoria: boolean; ajuda: string; opcoes?: string[] }`. `opcoes` é só para valor fechado e curto (vira lista de opções na célula).
+  - `type AbaModelo = { nome: string; colunas: ColunaModelo[] }`
+  - `Importador<P>` ganha `modelo: { abas: AbaModelo[]; valores?(ctx: Contexto): Promise<{ titulo: string; itens: string[] }[]> }`. Os nomes em `modelo.abas` são exatamente os de `abas`, na mesma ordem.
+- **Uma lista só:** cada importador lê as colunas pelos rótulos declarados em `modelo` (por exemplo, uma constante `COLUNAS` usada tanto em `modelo` quanto em `coluna(aba, COLUNAS.mat.rotulo)`). Modelo e leitura não podem divergir.
+- Produz (`modelo.ts`): `gerarModelo(imp: Importador<unknown>, ctx: Contexto): Promise<ArrayBuffer>`, com ExcelJS.
+  - Uma aba por `modelo.abas`: só o cabeçalho (negrito, linha congelada, largura pelo rótulo); nenhuma linha de dados. Colunas com `opcoes` recebem lista de opções nas linhas 2 a 1001.
+  - Aba `AJUDA`, sempre a última: (1) para que serve; (2) como preencher: colar a partir da sandbox ou digitar, sem mudar o nome da aba nem do cabeçalho; (3) tabela com uma linha por coluna: aba, coluna, "obrigatória" ou "opcional", o que escrever, valores aceitos; (4) um bloco por item de `valores(ctx)`; (5) "O que o sistema faz": mostra tudo antes de gravar; linha com problema é pulada e o resto entra; importar de novo não duplica; nada é apagado.
+  - Os importadores ignoram a aba `AJUDA`.
+- Produz (`rotas.ts`): `GET /api/unidades/:u/importacao/:cadastro/modelo`.
+  - Mesmo controle de acesso da importação do cadastro (`papeis ?? CADASTRO` na unidade). Cadastro desconhecido é 404.
+  - Resposta: o arquivo, com `Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet` e `Content-Disposition: attachment; filename="modelo-<cadastro>.xlsx"`.
+  - As mensagens de erro da importação mudam: aba que falta → `A planilha não tem a aba "X". Baixe o modelo na tela de importação e cole os dados nele, ou confira o nome da aba.`; arquivo ilegível → `Não foi possível ler o arquivo. Se ele veio da sandbox inteira, o Google Planilhas pode ter exportado com defeito: baixe o modelo e cole só as abas nele.`
+- **Importadores existentes:**
+  - `militares`: colunas `MATRÍCULA`, `NOME DE GUERRA`, `SEÇÃO`, `POSTO/GRAD`, `JORNADA` (opções PRONTO e ADM), `EQUIPE`, `ANTIG`, `MOTORISTA` e `VOLUNTÁRIO JES` (opções SIM e NÃO), `CNH`. Obrigatórias: matrícula, nome de guerra, seção, posto, jornada. `valores`: os postos (siglas, em ordem de hierarquia) e as equipes da unidade.
+  - `configuracoes`: colunas `CHAVE`, `VALOR`, `VIGÊNCIA`, `DESCRIÇÃO`. Obrigatórias: chave e valor. `valores`: as chaves de parâmetro que o sistema usa, cada uma com a descrição.
+
+- [ ] **Passo 1: testes que falham** (`importacao-modelo.test.ts`, percorrendo `IMPORTADORES` de `registro.ts`, para valer também para os importadores das próximas entregas):
+  - `o modelo tem as abas do importador e a AJUDA por último`
+  - `o cabeçalho do modelo é achado pela leitura, coluna a coluna` **[foco 6]**: para cada coluna, `coluna(aba, rotulo)` devolve o índice dela.
+  - `importar o modelo vazio não grava nem dá problema` **[foco 6]**: `planejar` sobre o modelo lido devolve prévia sem novos, alterados nem problemas.
+  - `o modelo não traz linha de dados`: cada aba de dados tem só o cabeçalho.
+  - `a AJUDA de militares traz os postos e as equipes da unidade`
+  - `JORNADA tem lista de opções` (a célula da linha 2 tem validação com PRONTO e ADM).
+  - `a rota entrega o .xlsx com o nome do cadastro`
+  - `modelo de configurações é 403 para escalante e 200 para gestor` **[foco 5]**
+  - `cadastro desconhecido é 404`
+  - `aba que falta sugere o modelo` e `arquivo ilegível sugere colar só as abas no modelo`
+- [ ] **Passo 2:** `pnpm --filter api test`. Esperado: FALHA.
+- [ ] **Passo 3:** implementar.
+- [ ] **Passo 4:** `pnpm --filter api test && pnpm typecheck`. Esperado: PASSA, e os testes de importação das entregas 1 e 2 continuam passando.
+- [ ] **Passo 5:** commit `Fase 3: modelo de planilha na API`.
+
+### Task 13: Baixar modelo no site
+
+**Arquivos:**
+- Modificar: `apps/web/src/componentes/ImportarPlanilha.tsx`, `apps/web/src/__testes__/importar.test.tsx`
+
+**Interfaces:**
+- Consome: a rota `GET <caminho>/modelo` da Tarefa 12, com o mesmo `caminho` que a importação já usa.
+- No primeiro passo do diálogo entra o link "Baixar modelo" (âncora com `href` e `download`, que leva o cookie da sessão). O texto de apoio passa a ser: "Baixe o modelo, cole os dados nas abas dele e envie o arquivo aqui. A planilha sandbox baixada em .xlsx também serve." O botão de escolher o arquivo não muda.
+
+- [ ] **Passo 1: testes que falham:**
+  - `tem o link Baixar modelo apontando para o modelo do cadastro` (`href` termina em `/importacao/militares/modelo`).
+  - `o texto manda colar os dados nas abas do modelo`
+- [ ] **Passo 2:** `pnpm --filter web test`. Esperado: FALHA.
+- [ ] **Passo 3:** implementar.
+- [ ] **Passo 4:** `pnpm --filter web test && pnpm typecheck`. Esperado: PASSA.
+- [ ] **Passo 5:** commit `Fase 3: Baixar modelo na importação`.
+
+### Task 14: Ajustes da ficha do militar
+
+**Arquivos:**
+- Modificar: `apps/web/src/routes/_app/militares/$id.tsx`, `apps/web/src/componentes/militares/{Secao,Lotacoes,Afastamentos,Motorista}.tsx`, `apps/web/src/__testes__/militares.test.tsx`
+
+**Interfaces:**
+- `Secao` ganha `recolhida?: boolean` e `resumo?: string`. Com `recolhida`, o título é um botão (`aria-expanded`) que mostra o `resumo` ao lado; o conteúdo e as `acoes` só aparecem depois de aberto.
+- Ordem das seções na ficha: identificação, motorista, afastamentos, lotação.
+- **Lotação:** recolhida, com `resumo` = `<sigla>, <Jornada>[ (<equipe>)] desde <mês por extenso>` da lotação aberta (exemplo: "1ª SB, Adm desde novembro de 2026"), ou "Sem lotação". Aberta, mostra a linha do tempo e "Registrar transferência", como hoje.
+- **Afastamentos:** a lista fica sempre. O botão "Incluir afastamento" abre o formulário (tipo, início, fim), cujo botão de gravar passa a se chamar "Gravar" e ao lado há "Cancelar". Depois de gravar com sucesso o formulário fecha e os campos voltam ao vazio. Sai o campo "Mês do atalho", o botão "Mês inteiro" e a função `ultimoDia`.
+- **Motorista:** mesmo desenho, com metade do tamanho: o conjunto de botões ocupa metade da largura e cada botão metade da altura; a letra cai um ponto. Confira no navegador (jsdom não mede tamanho).
+
+- [ ] **Passo 1: testes que falham** (em `militares.test.tsx`):
+  - Remover `mês inteiro preenche início e fim`.
+  - `os campos de afastamento só aparecem depois de "Incluir afastamento"`: a lista (com "Férias") aparece de cara e `queryByLabelText('Início')` é nulo até o clique.
+  - `o formulário fecha depois de gravar`
+  - `a lotação vem por último e recolhida, com o resumo`: o resumo aparece, "Registrar transferência" não, até clicar no título.
+  - Adaptar `só os tipos ativos aparecem para lançar` e `afastamento sobreposto mostra a mensagem da API` para abrir o formulário antes e gravar por "Gravar".
+- [ ] **Passo 2:** `pnpm --filter web test`. Esperado: FALHA.
+- [ ] **Passo 3:** implementar.
+- [ ] **Passo 4:** `pnpm --filter web test && pnpm typecheck`. Esperado: PASSA.
+- [ ] **Passo 5:** commit `Fase 3: ajustes da ficha do militar`.
+
+### Task 15: Aviso de antiguidade repetida
+
+**Arquivos:**
+- Modificar: `apps/api/src/cadastros/{militares.ts,militares-regras.ts}`, `apps/api/src/importacao/militares.ts`, `apps/api/test/{militares.test.ts,militares-regras.test.ts,importacao-militares.test.ts}`
+
+**Interfaces:**
+- Produz (`militares-regras.ts`, puro):
+  - `repetidasPorAntiguidade(militares: { id: string; nomeGuerra: string; antiguidade: number | null }[]): Map<string, string[]>`: para cada militar com antiguidade, os nomes de guerra dos outros que têm o mesmo número. Antiguidade vazia nunca repete.
+  - `pendenciasDoMilitar` ganha o campo opcional `repetidaCom?: string[]` e, quando não vazio, acrescenta no fim `Antiguidade repetida com <nomes separados por ", ">`.
+- A lista compara os militares ativos que ela mesma traz (lotados na unidade e abaixo no mês). A ficha compara os ativos lotados na unidade da lotação que cobre o mês corrente; sem lotação, não compara. A gravação nunca é bloqueada.
+- Importação: antiguidade repetida entre linhas da planilha vira o aviso `Antiguidade <n> repetida na planilha: <NOME> (<matrícula>) e <NOME> (<matrícula>).`, e as linhas entram normalmente.
+- A lista e a ficha do site já mostram `pendencias`; não há mudança no site.
+
+- [ ] **Passo 1: testes que falham:**
+  - `militares-regras.test.ts`: `repetidasPorAntiguidade` com nenhuma repetição, um par, um trio e antiguidade vazia; o texto da pendência.
+  - `militares.test.ts`: `dois militares com a mesma antiguidade ganham a pendência e a gravação passa` **[foco 7]** (o segundo `POST` devolve 201; a lista e a ficha dos dois trazem `Antiguidade repetida com <o outro>`); `militar inativo não conta como repetido`; `desfeita a repetição, a pendência some`.
+  - `importacao-militares.test.ts`: `antiguidade repetida na planilha vira aviso e as linhas entram`.
+- [ ] **Passo 2:** `pnpm --filter api test`. Esperado: FALHA.
+- [ ] **Passo 3:** implementar.
+- [ ] **Passo 4:** `pnpm test && pnpm typecheck`. Esperado: tudo passa.
+- [ ] **Passo 5:** commit `Fase 3: aviso de antiguidade repetida`. Depois, abrir o PR "Fase 3 — Entrega 2.1: modelo de planilha e ajustes da ficha" e **parar até o merge**. Lembrar o usuário de que **não há migração** nesta entrega.
+
+---
+
 # Entrega 3 — Atividades, funções e guarnições
 
 Branch `fase3-3-guarnicoes`.
 
-### Task 12: API de Funções e Guarnições
+### Task 16: API de Funções e Guarnições
 
 **Arquivos:**
 - Criar: `pacotes/contratos/src/guarnicoes.ts`, `apps/api/src/cadastros/guarnicoes.ts`, `apps/api/test/guarnicoes.test.ts`
@@ -495,7 +606,7 @@ Branch `fase3-3-guarnicoes`.
 - [ ] **Passo 4:** `pnpm --filter api test`. Esperado: PASSA.
 - [ ] **Passo 5:** commit `Fase 3: API de funções e guarnições`.
 
-### Task 13: Tela de Guarnições
+### Task 17: Tela de Guarnições
 
 **Arquivos:**
 - Criar: `apps/web/src/api/guarnicoes.ts`, `apps/web/src/routes/_app/guarnicoes.tsx`, `.../guarnicoes/index.tsx`, `.../guarnicoes/$id.tsx`, `apps/web/src/__testes__/guarnicoes.test.tsx`
@@ -520,13 +631,14 @@ Branch `fase3-3-guarnicoes`.
 - [ ] **Passo 4:** `pnpm --filter web test`. Esperado: PASSA.
 - [ ] **Passo 5:** commit `Fase 3: tela de guarnições`.
 
-### Task 14: Importação de Guarnições
+### Task 18: Importação de Guarnições
 
 **Arquivos:**
 - Criar: `apps/api/src/importacao/guarnicoes.ts`, `apps/api/test/importacao-guarnicoes.test.ts`
 
 **Interfaces:**
-- Consome: `resolverGuarnicoes` e `cadgVigencia` do `dominio`, que interpretam a aba como o protótipo.
+- Consome: `resolverGuarnicoes` e `cadgVigencia` do `dominio`, que interpretam a aba como o protótipo; `modelo` e `valores` (Tarefa 12).
+- **Modelo:** declara a aba `GUARNIÇÕES` com as colunas abaixo (obrigatórias: guarnição e função) e `valores` com as funções cadastradas e as atividades do sistema.
 - Aba `GUARNIÇÕES`, colunas `VIGÊNCIA`, `GUARNIÇÃO`, `VIATURA`, `TIPO`, `ATIVAR`, `PRIORIDADE`, `CNH`, `FUNÇÃO`, `MÍNIMO` e `MÁXIMO`.
 - **Versões:** para cada vigência distinta da aba, a vazia virando o mês de criação da unidade, `resolverGuarnicoes(linhas, vigencia)` dá o estado naquele mês. Cada guarnição vira uma versão com essa vigência, e uma versão igual à anterior não é gravada. Os `avisos` do resolvedor viram problemas.
 - **Funções:** criadas no catálogo da unidade quando faltam.
@@ -551,7 +663,7 @@ Branch `fase3-3-guarnicoes`.
 
 Branch `fase3-4-servicos-escalas`.
 
-### Task 15: Regra do turno padrão no motor
+### Task 19: Regra do turno padrão no motor
 
 **Arquivos:**
 - Criar: `pacotes/dominio/src/voluntariado.ts`, `pacotes/dominio/test/voluntariado.test.ts`
@@ -587,13 +699,13 @@ it('duração de 24h', () => expect(duracaoMinutos('08:00', '08:00')).toBe(1440)
 - [ ] **Passo 4:** `pnpm --filter dominio test && pnpm --filter dominio typecheck`. Esperado: PASSA.
 - [ ] **Passo 5:** commit `Fase 3: turnos padrão exigidos pelo horário (regra do voluntariado)`.
 
-### Task 16: API de Serviços e Escalas
+### Task 20: API de Serviços e Escalas
 
 **Arquivos:**
 - Criar: `pacotes/contratos/src/servicos.ts`, `pacotes/contratos/src/escalas.ts`, `apps/api/src/cadastros/servicos.ts`, `apps/api/src/cadastros/escalas.ts`, `apps/api/test/servicos.test.ts`, `apps/api/test/escalas.test.ts`
 
 **Interfaces:**
-- Consome: `TurnoPadrao`, `turnosPadraoExigidos` e `duracaoMinutos` (Tarefa 15). `contratos` passa a depender de `dominio` (`"dominio": "workspace:*"`) e reexporta o tipo `TurnoPadrao`.
+- Consome: `TurnoPadrao`, `turnosPadraoExigidos` e `duracaoMinutos` (Tarefa 19). `contratos` passa a depender de `dominio` (`"dominio": "workspace:*"`) e reexporta o tipo `TurnoPadrao`.
 - **Serviços (contratos):**
   - `NovoServico = { nome: Nome; tipo: 'ordinario'|'pjes'|'diaria'; operacao: string | null; rotuloImpressao: string | null; cor: /^#[0-9A-Fa-f]{6}$/ }`. Com refinamento: `operacao` só quando `tipo = 'diaria'`.
   - `EdicaoServico`: os mesmos campos, opcionais, mais `ativo`.
@@ -630,7 +742,7 @@ it('duração de 24h', () => expect(duracaoMinutos('08:00', '08:00')).toBe(1440)
 - [ ] **Passo 4:** `pnpm --filter api test`. Esperado: PASSA.
 - [ ] **Passo 5:** commit `Fase 3: API de serviços, turnos e escalas`.
 
-### Task 17: Telas de Serviços e Escalas
+### Task 21: Telas de Serviços e Escalas
 
 **Arquivos:**
 - Criar: `apps/web/src/api/servicos.ts`, `apps/web/src/api/escalas.ts`, `apps/web/src/routes/_app/servicos.tsx` (+ `servicos/index.tsx`, `servicos/$id.tsx`), `apps/web/src/routes/_app/escalas.tsx` (+ `escalas/index.tsx`, `escalas/$id.tsx`), `apps/web/src/lib/turno-padrao.ts`, `apps/web/src/__testes__/servicos.test.tsx`, `apps/web/src/__testes__/escalas.test.tsx`
@@ -664,12 +776,13 @@ it('duração de 24h', () => expect(duracaoMinutos('08:00', '08:00')).toBe(1440)
 - [ ] **Passo 4:** `pnpm --filter web test`. Esperado: PASSA.
 - [ ] **Passo 5:** commit `Fase 3: telas de serviços e escalas`.
 
-### Task 18: Importação de Serviços e Escalas
+### Task 22: Importação de Serviços e Escalas
 
 **Arquivos:**
 - Criar: `apps/api/src/importacao/servicos-escalas.ts`, `apps/api/test/importacao-servicos-escalas.test.ts`
 
 **Interfaces:**
+- **Modelo (Tarefa 12):** as três abas saem no modelo, cada uma com as colunas abaixo; `valores` traz os serviços e as guarnições cadastrados.
 - É um importador só (`servicos-escalas`) que processa, em ordem, as abas `TURNOS`, `ESCALAS` e `GUARNIÇÕES POR ESCALA`. As escalas dependem dos serviços, e os vínculos dependem das guarnições da entrega 3.
 - **TURNOS** (colunas `SERVIÇO`, `TURNO`, `HORÁRIO INÍCIO`, `HORÁRIO FIM`, `TIPO DE SERVIÇO`, `ORIGEM`):
   - **Tipo do serviço:** vem de `TIPO DE SERVIÇO` normalizado (ORDINÁRIO, PRONTO, SALDO ou EXPEDIENTE → `ordinario`; JES ou PJES → `pjes`; DIÁRIA → `diaria`). Sem ela, vem do nome, pelos mesmos termos. Se nada servir, o serviço entra como `diaria` com o aviso "Confira o tipo do serviço <nome>".
@@ -699,7 +812,7 @@ it('duração de 24h', () => expect(duracaoMinutos('08:00', '08:00')).toBe(1440)
 
 Branch `fase3-5-cotas-feriados`.
 
-### Task 19: API de Cotas e Feriados
+### Task 23: API de Cotas e Feriados
 
 **Arquivos:**
 - Criar: `pacotes/contratos/src/cotas-feriados.ts`, `apps/api/src/cadastros/cotas.ts`, `apps/api/src/cadastros/feriados.ts`, `apps/api/test/cotas.test.ts`, `apps/api/test/feriados.test.ts`
@@ -735,7 +848,7 @@ Branch `fase3-5-cotas-feriados`.
 - [ ] **Passo 4:** `pnpm --filter api test`. Esperado: PASSA.
 - [ ] **Passo 5:** commit `Fase 3: API de cotas e feriados`.
 
-### Task 20: Telas de Cotas e Feriados
+### Task 24: Telas de Cotas e Feriados
 
 **Arquivos:**
 - Criar: `apps/web/src/api/cotas.ts`, `apps/web/src/api/feriados.ts`, `apps/web/src/routes/_app/cotas.tsx`, `apps/web/src/routes/_app/feriados.tsx`, `apps/web/src/__testes__/cotas.test.tsx`, `apps/web/src/__testes__/feriados.test.tsx`
@@ -762,14 +875,15 @@ Branch `fase3-5-cotas-feriados`.
 - [ ] **Passo 4:** `pnpm --filter web test`. Esperado: PASSA.
 - [ ] **Passo 5:** commit `Fase 3: telas de cotas e feriados`.
 
-### Task 21: Importação de Cotas e Feriados, e fechamento da fase
+### Task 25: Importação de Cotas e Feriados, e fechamento da fase
 
 **Arquivos:**
 - Criar: `apps/api/src/importacao/cotas.ts`, `apps/api/src/importacao/feriados.ts`, `apps/api/test/importacao-cotas-feriados.test.ts`
 - Modificar: `docs/superpowers/plans/2026-11-16-roadmap-migracao.md` (nota "Como ficou" na fase 3) e `CLAUDE.md` local (estrutura e contagem de testes; o arquivo não é versionado)
 
 **Interfaces:**
-- Consome: `servicoDaOperacao` do `dominio` (mesmo critério do protótipo para achar o serviço da operação).
+- Consome: `servicoDaOperacao` do `dominio` (mesmo critério do protótipo para achar o serviço da operação); `modelo` e `valores` (Tarefa 12).
+- **Modelo:** cada importador (`cotas` e `feriados`) declara a aba com as colunas abaixo; `valores` traz os serviços PJES e diária da unidade.
 - **COTAS** (colunas `MÊS`, `SB`, `OPERAÇÃO`, `SERVIÇO`, `QUANTIDADE`, `ORIGEM`, `PRIORIDADE`):
   - **Mês:** `aaaa-mm` ou `mm/aaaa`.
   - **SB:** se for diferente da unidade, a linha vira o problema "Cota de outra seção".
@@ -799,5 +913,6 @@ Branch `fase3-5-cotas-feriados`.
 - Equipes e unidades (tela de Estrutura): fase 7. Na fase 3, as equipes nascem da importação e aparecem só para escolher.
 - Modelo de impressão da escala e "Gerar documento": fase 4.
 - "Ver histórico" da guarnição e tela de Histórico: fase 7. A auditoria já grava tudo.
+- Antiguidade institucional (base nos almanaques, antiguidade por nível derivada pelo sistema): fase 7, só quando o escopo for institucional. Registrada no adendo "Modelo de planilha e ajustes da ficha" do design, sem implementação.
 - Convites e cadastro de usuários: fase 7, junto com o gestor por nível.
 - Exposição do motor pela API (pré-escala, distribuições, quem pode ocupar a vaga): fase 4, com as telas que a usam.
