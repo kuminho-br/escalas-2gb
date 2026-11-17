@@ -1,4 +1,4 @@
-import { mesPorExtenso, somarMeses } from 'contratos';
+import { mesPorExtenso, somarMeses, type Parametro } from 'contratos';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { hojeRecife } from '../src/datas.ts';
 import { montarApi, type ApiDeTeste } from './apoio-api.ts';
@@ -15,7 +15,7 @@ afterAll(async () => {
 });
 
 const parametros = (u: string, mes = atual) => api.pedir('escalante', 'GET', `/api/unidades/${u}/parametros?mes=${mes}`);
-const doCatalogo = (lista: { chave: string }[], chave: string) => lista.find((p) => p.chave === chave)!;
+const doCatalogo = (lista: Parametro[], chave: string) => lista.find((p) => p.chave === chave)!;
 
 describe('tipos de afastamento e atividades', () => {
   it('lista os tipos e cria um novo (admin)', async () => {
@@ -83,7 +83,7 @@ describe('parâmetros', () => {
     expect(doCatalogo(await (await parametros(api.ids.secao)).json(), 'SALDOS_ADM_POR_MILITAR')).toMatchObject({ valor: 5, origem: 'herdada' });
     const noProximo = doCatalogo(await (await parametros(api.ids.secao, proximo)).json(), 'SALDOS_ADM_POR_MILITAR');
     expect(noProximo).toMatchObject({ valor: 4, origem: 'propria', unidadeSigla: '1ª SB' });
-    expect(noProximo.historico.map((h: { valor: number }) => h.valor)).toEqual([5, 4]);
+    expect(noProximo.historico.map((h) => h.valor)).toEqual([5, 4]);
   });
 
   it('parâmetro com vigência passada é 409', async () => {
