@@ -1,4 +1,5 @@
-import { bancoPg, bancoPglite } from '../src/banco/banco.ts';
+import { bancoPg } from '../src/banco/banco.ts';
+import { bancoPglite } from '../src/banco/pglite.ts';
 import { migrar } from '../src/banco/migrar.ts';
 import { cargaExemplo } from '../src/carga/exemplo.ts';
 import { hojeRecife, inicioDoMes } from '../src/datas.ts';

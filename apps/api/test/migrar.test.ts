@@ -2,7 +2,8 @@ import { mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { bancoPglite, type Banco } from '../src/banco/banco.ts';
+import type { Banco } from '../src/banco/banco.ts';
+import { bancoPglite } from '../src/banco/pglite.ts';
 import { migrar } from '../src/banco/migrar.ts';
 
 let banco: Banco;

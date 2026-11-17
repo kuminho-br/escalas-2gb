@@ -1,4 +1,5 @@
-import { bancoPglite, type Banco, type Consulta } from '../src/banco/banco.ts';
+import type { Banco, Consulta } from '../src/banco/banco.ts';
+import { bancoPglite } from '../src/banco/pglite.ts';
 import { migrar } from '../src/banco/migrar.ts';
 
 /** Banco novo em memória, com todas as migrações aplicadas. */

@@ -2,7 +2,7 @@ import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { bancoPglite } from '../src/banco/banco.ts';
+import { bancoPglite } from '../src/banco/pglite.ts';
 
 describe('bancoPglite', () => {
   it('cria as pastas que faltam no caminho', async () => {

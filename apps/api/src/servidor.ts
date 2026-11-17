@@ -2,7 +2,8 @@
 import { serve } from '@hono/node-server';
 import { criarApp } from './app.ts';
 import { criarAuth } from './auth.ts';
-import { bancoPg, bancoPglite } from './banco/banco.ts';
+import { bancoPg } from './banco/banco.ts';
+import { bancoPglite } from './banco/pglite.ts';
 import { PASTA_DADOS_LOCAL } from './banco/local.ts';
 import { migrar } from './banco/migrar.ts';
 

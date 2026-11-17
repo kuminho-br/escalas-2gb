@@ -3,7 +3,8 @@
 // A senha vem de SENHA_ADMIN ou é pedida no terminal. Usa DATABASE_URL (sem ela, o PGlite local).
 import { createInterface } from 'node:readline/promises';
 import { parseArgs } from 'node:util';
-import { bancoPg, bancoPglite } from '../src/banco/banco.ts';
+import { bancoPg } from '../src/banco/banco.ts';
+import { bancoPglite } from '../src/banco/pglite.ts';
 import { PASTA_DADOS_LOCAL } from '../src/banco/local.ts';
 import { migrar } from '../src/banco/migrar.ts';
 import { hojeRecife } from '../src/datas.ts';
