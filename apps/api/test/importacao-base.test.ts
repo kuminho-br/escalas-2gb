@@ -1,0 +1,103 @@
+import { Hono } from 'hono';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import type { AmbienteApi } from '../src/acesso.ts';
+import { coluna, lerPlanilha } from '../src/importacao/planilha.ts';
+import { rotasImportacao } from '../src/importacao/rotas.ts';
+import type { Importador } from '../src/importacao/tipos.ts';
+import { montarApi, type ApiDeTeste } from './apoio-api.ts';
+import { formulario, planilha } from './planilha-teste.ts';
+
+// importador falso: cada linha da aba TESTE vira uma atividade
+const falso: Importador<string[]> = {
+  abas: ['TESTE'],
+  async planejar(abas, ctx) {
+    const c = coluna(abas.TESTE!, 'NOME');
+    const existentes = new Set((await ctx.tx.query<{ nome: string }>('select nome from atividade')).rows.map((r) => r.nome));
+    const novos = abas.TESTE!.linhas.map((l) => l.celulas[c]!).filter((n) => !existentes.has(n));
+    return {
+      previa: { novos: novos.map((n) => ({ chave: n, descricao: n })), alterados: [], iguais: abas.TESTE!.linhas.length - novos.length, problemas: [], avisos: [] },
+      plano: novos,
+    };
+  },
+  async aplicar(plano, ctx) {
+    for (const n of plano) await ctx.tx.query('insert into atividade (nome) values ($1)', [n]);
+    return plano.length;
+  },
+};
+
+let api: ApiDeTeste;
+const auditoria = async () => (await api.banco.query<{ n: number }>('select count(*)::int as n from auditoria')).rows[0]!.n;
+
+beforeAll(async () => {
+  api = await montarApi(({ banco, auth }) => {
+    const app = new Hono<AmbienteApi>();
+    app.on(['GET', 'POST'], '/api/auth/*', (c) => auth.handler(c.req.raw));
+    app.route('/api', rotasImportacao({ banco, auth }, { teste: falso }));
+    return app;
+  });
+});
+afterAll(async () => {
+  await api.fechar();
+});
+
+const caminho = (cadastro = 'teste') => `/api/unidades/${api.ids.secao}/importacao/${cadastro}`;
+const arquivo = () => planilha({ TESTE: [['NOME'], ['Mergulho'], ['Altura'], ['APH']] });
+
+describe('importação', () => {
+  it('prévia não grava', async () => {
+    const antes = await auditoria();
+    const r = await api.pedir('escalante', 'POST', caminho(), formulario(await arquivo()));
+    expect(r.status).toBe(200);
+    const previa = await r.json();
+    expect(previa.novos.map((n: { chave: string }) => n.chave)).toEqual(['Mergulho', 'Altura']);
+    expect(previa.iguais).toBe(1);
+    expect(await auditoria()).toBe(antes);
+  });
+
+  it('confirmar grava e devolve gravados', async () => {
+    const r = await api.pedir('escalante', 'POST', `${caminho()}?confirmar=1`, formulario(await arquivo()));
+    expect(r.status).toBe(200);
+    expect((await r.json()).gravados).toBe(2);
+    const { rows } = await api.banco.query<{ usuario_id: string }>("select usuario_id from auditoria where tabela = 'atividade' order by id desc limit 1");
+    expect(rows[0]!.usuario_id).toBe(api.usuarios.escalante);
+  });
+
+  it('aba que falta vira 400 com a instrução', async () => {
+    const r = await api.pedir('escalante', 'POST', caminho(), formulario(await planilha({ OUTRA: [['X']] })));
+    expect(r.status).toBe(400);
+    expect((await r.json()).erro).toBe('A planilha não tem a aba "TESTE". Baixe a sandbox inteira em .xlsx (Arquivo › Fazer download).');
+  });
+
+  it('cadastro desconhecido é 404', async () => {
+    expect((await api.pedir('escalante', 'POST', caminho('nada'), formulario(await arquivo()))).status).toBe(404);
+  });
+
+  it('sem papel é 403', async () => {
+    expect((await api.pedir('semPapel', 'POST', caminho(), formulario(await arquivo()))).status).toBe(403);
+  });
+
+  it('arquivo que não é planilha é 400', async () => {
+    const fd = new FormData();
+    fd.append('arquivo', new File(['não sou xlsx'], 'x.xlsx'));
+    expect((await api.pedir('escalante', 'POST', caminho(), fd)).status).toBe(400);
+  });
+});
+
+describe('lerPlanilha', () => {
+  it('lerPlanilha lê data e hora como texto', async () => {
+    const abas = await lerPlanilha(
+      await planilha({ X: [['DATA', 'HORA', 'NUM'], [new Date(Date.UTC(2026, 11, 1)), '08:00', 7], [null, null, null], ['a', '', '']] }),
+    );
+    expect(abas.X!.cab).toEqual(['DATA', 'HORA', 'NUM']);
+    expect(abas.X!.linhas).toEqual([
+      { linha: 2, celulas: ['01/12/2026', '08:00', '7'] },
+      { linha: 4, celulas: ['a', '', ''] },
+    ]);
+  });
+
+  it('coluna aceita prefixo e ignora acento', async () => {
+    const abas = await lerPlanilha(await planilha({ C: [['CHAVE', 'VIGÊNCIA (A PARTIR DE)']] }));
+    expect(coluna(abas.C!, 'VIGENCIA')).toBe(1);
+    expect(coluna(abas.C!, 'NADA')).toBe(-1);
+  });
+});

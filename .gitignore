@@ -5,3 +5,4 @@ dist/
 .env*
 !.env.exemplo
 .vercel/
+pacotes/dominio/tipos/
