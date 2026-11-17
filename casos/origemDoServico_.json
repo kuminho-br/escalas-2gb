@@ -1,0 +1,176 @@
+{
+ "funcao": "origemDoServico_",
+ "casos": [
+  {
+   "teste": "teste_p16.js",
+   "entrada": [
+    "Eleições",
+    {
+     "Eleições": "TRE"
+    },
+    "A"
+   ],
+   "saida": "TRE"
+  },
+  {
+   "teste": "teste_p16.js",
+   "entrada": [
+    "JES",
+    {
+     "JES": "PJES"
+    }
+   ],
+   "saida": "PJES"
+  },
+  {
+   "teste": "teste_p16.js",
+   "entrada": [
+    "JES",
+    {
+     "JES|A": "PJES",
+     "JES": "PJES",
+     "Saldo|A": "SALDO ADM",
+     "Diária Bioma|A": "DIÁRIA"
+    },
+    "A"
+   ],
+   "saida": "PJES"
+  },
+  {
+   "teste": "teste_p16.js",
+   "entrada": [
+    "JES",
+    {
+     "JES|A": "PJES",
+     "JES": "PJES",
+     "Saldo|A": "SALDO ADM",
+     "Diária Bioma|A": "DIÁRIA"
+    },
+    "B"
+   ],
+   "saida": "PJES"
+  },
+  {
+   "teste": "teste_p16.js",
+   "entrada": [
+    "JES",
+    {
+     "JES|A": "PJES"
+    },
+    "A"
+   ],
+   "saida": "PJES"
+  },
+  {
+   "teste": "teste_p16.js",
+   "entrada": [
+    "JES",
+    {},
+    "A"
+   ],
+   "saida": "JES"
+  },
+  {
+   "teste": "teste_p16.js",
+   "entrada": [
+    "Pronto",
+    {
+     "JES": "PJES"
+    }
+   ],
+   "saida": "PRONTO"
+  },
+  {
+   "teste": "teste_p16.js",
+   "entrada": [
+    "Pronto",
+    {
+     "JES|A": "PJES",
+     "JES": "PJES",
+     "Saldo|A": "SALDO ADM",
+     "Diária Bioma|A": "DIÁRIA"
+    },
+    "A"
+   ],
+   "saida": "PRONTO"
+  },
+  {
+   "teste": "teste_p16.js",
+   "entrada": [
+    "Pronto",
+    {
+     "JES|A": "PJES"
+    },
+    "A"
+   ],
+   "saida": "PRONTO"
+  },
+  {
+   "teste": "teste_p16.js",
+   "entrada": [
+    "Pronto",
+    {},
+    "A"
+   ],
+   "saida": "PRONTO"
+  },
+  {
+   "teste": "teste_p16.js",
+   "entrada": [
+    "Saldo",
+    {
+     "JES|A": "PJES",
+     "JES": "PJES",
+     "Saldo|A": "SALDO ADM",
+     "Diária Bioma|A": "DIÁRIA"
+    },
+    "A"
+   ],
+   "saida": "SALDO ADM"
+  },
+  {
+   "teste": "teste_p16.js",
+   "entrada": [
+    "Saldo",
+    {
+     "JES|A": "PJES",
+     "JES": "PJES",
+     "Saldo|A": "SALDO ADM",
+     "Diária Bioma|A": "DIÁRIA"
+    },
+    "B"
+   ],
+   "saida": "SALDO"
+  },
+  {
+   "teste": "teste_p16.js",
+   "entrada": [
+    "Saldo",
+    {}
+   ],
+   "saida": "SALDO"
+  },
+  {
+   "teste": "teste_p16.js",
+   "entrada": [
+    "diaria bioma",
+    {
+     "JES|A": "PJES",
+     "JES": "PJES",
+     "Saldo|A": "SALDO ADM",
+     "Diária Bioma|A": "DIÁRIA"
+    },
+    "A"
+   ],
+   "saida": "DIÁRIA"
+  },
+  {
+   "teste": "teste_p19.js",
+   "entrada": [
+    "Pronto",
+    {}
+   ],
+   "saida": "PRONTO"
+  }
+ ]
+}

@@ -1,0 +1,222 @@
+{
+ "funcao": "diaDaSemana_",
+ "casos": [
+  {
+   "teste": "teste_motor.js",
+   "entrada": [
+    "2026-11-15"
+   ],
+   "saida": 0
+  },
+  {
+   "teste": "teste_motor.js",
+   "entrada": [
+    "2026-11-17"
+   ],
+   "saida": 2
+  },
+  {
+   "teste": "teste_motor.js",
+   "entrada": [
+    "2028-02-29"
+   ],
+   "saida": 2
+  },
+  {
+   "teste": "teste_p16.js",
+   "entrada": [
+    "2026-11-03"
+   ],
+   "saida": 2
+  },
+  {
+   "teste": "teste_p17.js",
+   "entrada": [
+    "2026-11-01"
+   ],
+   "saida": 0
+  },
+  {
+   "teste": "teste_p17.js",
+   "entrada": [
+    "2026-11-02"
+   ],
+   "saida": 1
+  },
+  {
+   "teste": "teste_p17.js",
+   "entrada": [
+    "2026-11-04"
+   ],
+   "saida": 3
+  },
+  {
+   "teste": "teste_p17.js",
+   "entrada": [
+    "2026-11-05"
+   ],
+   "saida": 4
+  },
+  {
+   "teste": "teste_p17.js",
+   "entrada": [
+    "2026-11-06"
+   ],
+   "saida": 5
+  },
+  {
+   "teste": "teste_p17.js",
+   "entrada": [
+    "2026-11-07"
+   ],
+   "saida": 6
+  },
+  {
+   "teste": "teste_p17.js",
+   "entrada": [
+    "2026-11-08"
+   ],
+   "saida": 0
+  },
+  {
+   "teste": "teste_p17.js",
+   "entrada": [
+    "2026-11-09"
+   ],
+   "saida": 1
+  },
+  {
+   "teste": "teste_p17.js",
+   "entrada": [
+    "2026-11-10"
+   ],
+   "saida": 2
+  },
+  {
+   "teste": "teste_p17.js",
+   "entrada": [
+    "2026-11-11"
+   ],
+   "saida": 3
+  },
+  {
+   "teste": "teste_p17.js",
+   "entrada": [
+    "2026-11-12"
+   ],
+   "saida": 4
+  },
+  {
+   "teste": "teste_p17.js",
+   "entrada": [
+    "2026-11-13"
+   ],
+   "saida": 5
+  },
+  {
+   "teste": "teste_p17.js",
+   "entrada": [
+    "2026-11-14"
+   ],
+   "saida": 6
+  },
+  {
+   "teste": "teste_p17.js",
+   "entrada": [
+    "2026-11-16"
+   ],
+   "saida": 1
+  },
+  {
+   "teste": "teste_p17.js",
+   "entrada": [
+    "2026-11-18"
+   ],
+   "saida": 3
+  },
+  {
+   "teste": "teste_p17.js",
+   "entrada": [
+    "2026-11-19"
+   ],
+   "saida": 4
+  },
+  {
+   "teste": "teste_p17.js",
+   "entrada": [
+    "2026-11-20"
+   ],
+   "saida": 5
+  },
+  {
+   "teste": "teste_p17.js",
+   "entrada": [
+    "2026-11-21"
+   ],
+   "saida": 6
+  },
+  {
+   "teste": "teste_p17.js",
+   "entrada": [
+    "2026-11-22"
+   ],
+   "saida": 0
+  },
+  {
+   "teste": "teste_p17.js",
+   "entrada": [
+    "2026-11-23"
+   ],
+   "saida": 1
+  },
+  {
+   "teste": "teste_p17.js",
+   "entrada": [
+    "2026-11-24"
+   ],
+   "saida": 2
+  },
+  {
+   "teste": "teste_p17.js",
+   "entrada": [
+    "2026-11-25"
+   ],
+   "saida": 3
+  },
+  {
+   "teste": "teste_p17.js",
+   "entrada": [
+    "2026-11-26"
+   ],
+   "saida": 4
+  },
+  {
+   "teste": "teste_p17.js",
+   "entrada": [
+    "2026-11-27"
+   ],
+   "saida": 5
+  },
+  {
+   "teste": "teste_p17.js",
+   "entrada": [
+    "2026-11-28"
+   ],
+   "saida": 6
+  },
+  {
+   "teste": "teste_p17.js",
+   "entrada": [
+    "2026-11-29"
+   ],
+   "saida": 0
+  },
+  {
+   "teste": "teste_p17.js",
+   "entrada": [
+    "2026-11-30"
+   ],
+   "saida": 1
+  }
+ ]
+}

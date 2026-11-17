@@ -1,0 +1,110 @@
+{
+ "funcao": "servicoDaOperacao_",
+ "casos": [
+  {
+   "teste": "teste_p18.js",
+   "entrada": [
+    {
+     "nome": "Bioma",
+     "servicos": [
+      "Bioma"
+     ]
+    },
+    []
+   ],
+   "saida": {
+    "servico": "Bioma"
+   }
+  },
+  {
+   "teste": "teste_p18.js",
+   "entrada": [
+    {
+     "nome": "Ordinário",
+     "servicos": [
+      "Pronto",
+      "JES",
+      "Saldo"
+     ]
+    },
+    [
+     {
+      "servico": ""
+     }
+    ]
+   ],
+   "saida": {
+    "problema": "\"Ordinário\" agrupa 3 serviços (Pronto, JES, Saldo). Escreva na coluna SERVIÇO da aba COTAS qual deles a cota paga (um só, o mesmo em todas as linhas da operação)."
+   }
+  },
+  {
+   "teste": "teste_p18.js",
+   "entrada": [
+    {
+     "nome": "Ordinário",
+     "servicos": [
+      "Pronto",
+      "JES",
+      "Saldo"
+     ]
+    },
+    [
+     {
+      "servico": "Bioma"
+     }
+    ]
+   ],
+   "saida": {
+    "problema": "\"Ordinário\" agrupa 3 serviços (Pronto, JES, Saldo). Escreva na coluna SERVIÇO da aba COTAS qual deles a cota paga (um só, o mesmo em todas as linhas da operação)."
+   }
+  },
+  {
+   "teste": "teste_p18.js",
+   "entrada": [
+    {
+     "nome": "Ordinário",
+     "servicos": [
+      "Pronto",
+      "JES",
+      "Saldo"
+     ]
+    },
+    [
+     {
+      "servico": "JES"
+     },
+     {
+      "servico": "Saldo"
+     }
+    ]
+   ],
+   "saida": {
+    "problema": "\"Ordinário\" agrupa 3 serviços (Pronto, JES, Saldo). Escreva na coluna SERVIÇO da aba COTAS qual deles a cota paga (um só, o mesmo em todas as linhas da operação)."
+   }
+  },
+  {
+   "teste": "teste_p18.js",
+   "entrada": [
+    {
+     "nome": "Ordinário",
+     "servicos": [
+      "Pronto",
+      "JES",
+      "Saldo"
+     ]
+    },
+    [
+     {
+      "servico": "jes"
+     },
+     {
+      "servico": "JES"
+     }
+    ]
+   ],
+   "saida": {
+    "servico": "JES"
+   }
+  }
+ ]
+}

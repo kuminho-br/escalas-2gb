@@ -1,0 +1,254 @@
+{
+ "funcao": "violacoesDiariaUnica_",
+ "casos": [
+  {
+   "teste": "teste_p15.js",
+   "entrada": [
+    [
+     {
+      "mat": "M1",
+      "dia": "2026-11-05",
+      "servico": "Bioma",
+      "turno": "B"
+     },
+     {
+      "mat": "M1",
+      "dia": "2026-11-05",
+      "servico": "Bioma",
+      "turno": "B"
+     }
+    ],
+    {
+     "adm": {},
+     "tipos": {
+      "Bioma": "Diária",
+      "PE Seguro": "Diária",
+      "Eleições": "Diária",
+      "Pronto": "Ordinário",
+      "Adm": "Ordinário",
+      "JES": "PJES"
+     }
+    }
+   ],
+   "saida": []
+  },
+  {
+   "teste": "teste_p15.js",
+   "entrada": [
+    [
+     {
+      "mat": "M1",
+      "dia": "2026-11-05",
+      "servico": "Bioma",
+      "turno": "B"
+     },
+     {
+      "mat": "M1",
+      "dia": "2026-11-05",
+      "servico": "PE Seguro",
+      "turno": "C"
+     }
+    ],
+    {
+     "adm": {},
+     "tipos": {
+      "Bioma": "Diária",
+      "PE Seguro": "Diária",
+      "Eleições": "Diária",
+      "Pronto": "Ordinário",
+      "Adm": "Ordinário",
+      "JES": "PJES"
+     }
+    }
+   ],
+   "saida": [
+    {
+     "chave": "M1|2026-11-05|Bioma|B",
+     "mat": "M1",
+     "dia": "2026-11-05",
+     "servico": "Bioma",
+     "turno": "B",
+     "rn": "RN-36",
+     "texto": "Duas diárias começando no mesmo dia (RN-36)"
+    },
+    {
+     "chave": "M1|2026-11-05|PE Seguro|C",
+     "mat": "M1",
+     "dia": "2026-11-05",
+     "servico": "PE Seguro",
+     "turno": "C",
+     "rn": "RN-36",
+     "texto": "Duas diárias começando no mesmo dia (RN-36)"
+    }
+   ]
+  },
+  {
+   "teste": "teste_p15.js",
+   "entrada": [
+    [
+     {
+      "mat": "M1",
+      "dia": "2026-11-05",
+      "servico": "Bioma",
+      "turno": "B"
+     },
+     {
+      "mat": "M1",
+      "dia": "2026-11-05",
+      "servico": "PE Seguro",
+      "turno": "C"
+     }
+    ],
+    {
+     "adm": {},
+     "tipos": {}
+    }
+   ],
+   "saida": []
+  },
+  {
+   "teste": "teste_p15.js",
+   "entrada": [
+    [
+     {
+      "mat": "M1",
+      "dia": "2026-11-05",
+      "servico": "Bioma",
+      "turno": "B"
+     },
+     {
+      "mat": "M1",
+      "dia": "2026-11-05",
+      "servico": "PE Seguro",
+      "turno": "C"
+     }
+    ],
+    {
+     "tipos": {
+      "Bioma": "diaria",
+      "PE Seguro": "DIÁRIA"
+     }
+    }
+   ],
+   "saida": [
+    {
+     "chave": "M1|2026-11-05|Bioma|B",
+     "mat": "M1",
+     "dia": "2026-11-05",
+     "servico": "Bioma",
+     "turno": "B",
+     "rn": "RN-36",
+     "texto": "Duas diárias começando no mesmo dia (RN-36)"
+    },
+    {
+     "chave": "M1|2026-11-05|PE Seguro|C",
+     "mat": "M1",
+     "dia": "2026-11-05",
+     "servico": "PE Seguro",
+     "turno": "C",
+     "rn": "RN-36",
+     "texto": "Duas diárias começando no mesmo dia (RN-36)"
+    }
+   ]
+  },
+  {
+   "teste": "teste_p15.js",
+   "entrada": [
+    [
+     {
+      "mat": "M1",
+      "dia": "2026-11-05",
+      "servico": "Bioma",
+      "turno": "B"
+     },
+     {
+      "mat": "M1",
+      "dia": "2026-11-05",
+      "servico": "Pronto",
+      "turno": "A"
+     },
+     {
+      "mat": "M1",
+      "dia": "2026-11-05",
+      "servico": "JES",
+      "turno": "A"
+     }
+    ],
+    {
+     "adm": {},
+     "tipos": {
+      "Bioma": "Diária",
+      "PE Seguro": "Diária",
+      "Eleições": "Diária",
+      "Pronto": "Ordinário",
+      "Adm": "Ordinário",
+      "JES": "PJES"
+     }
+    }
+   ],
+   "saida": []
+  },
+  {
+   "teste": "teste_p15.js",
+   "entrada": [
+    [
+     {
+      "mat": "M1",
+      "dia": "2026-11-05",
+      "servico": "Bioma",
+      "turno": "B"
+     },
+     {
+      "mat": "M2",
+      "dia": "2026-11-05",
+      "servico": "PE Seguro",
+      "turno": "C"
+     }
+    ],
+    {
+     "adm": {},
+     "tipos": {
+      "Bioma": "Diária",
+      "PE Seguro": "Diária",
+      "Eleições": "Diária",
+      "Pronto": "Ordinário",
+      "Adm": "Ordinário",
+      "JES": "PJES"
+     }
+    }
+   ],
+   "saida": []
+  },
+  {
+   "teste": "teste_p15.js",
+   "entrada": [
+    [
+     {
+      "mat": "M1",
+      "dia": "2026-11-05",
+      "servico": "PE Seguro",
+      "turno": "C"
+     },
+     {
+      "mat": "M1",
+      "dia": "2026-11-06",
+      "servico": "Bioma",
+      "turno": "A"
+     }
+    ],
+    {
+     "adm": {},
+     "tipos": {
+      "Bioma": "Diária",
+      "PE Seguro": "Diária",
+      "Eleições": "Diária",
+      "Pronto": "Ordinário",
+      "Adm": "Ordinário",
+      "JES": "PJES"
+     }
+    }
+   ],
+   "saida": []
+  }
+ ]
+}

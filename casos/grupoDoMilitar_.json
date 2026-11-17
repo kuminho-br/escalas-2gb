@@ -1,0 +1,1049 @@
+{
+ "funcao": "grupoDoMilitar_",
+ "casos": [
+  {
+   "teste": "teste_motor.js",
+   "entrada": [
+    {
+     "jornada": "PRONTO",
+     "equipe": "ECHO"
+    }
+   ],
+   "saida": "SEM EQUIPE"
+  },
+  {
+   "teste": "teste_motor.js",
+   "entrada": [
+    {
+     "jornada": "Pronto",
+     "equipe": "charlie"
+    }
+   ],
+   "saida": "CHARLIE"
+  },
+  {
+   "teste": "teste_motor.js",
+   "entrada": [
+    {
+     "jornada": "adm",
+     "equipe": "ALFA"
+    }
+   ],
+   "saida": "ADM"
+  },
+  {
+   "teste": "teste_motor.js",
+   "entrada": [
+    {}
+   ],
+   "saida": "SEM EQUIPE"
+  },
+  {
+   "teste": "teste_p13.js",
+   "entrada": [
+    {
+     "mat": "M1",
+     "nome": "UM",
+     "posto": "SD",
+     "secao": "1ª SB",
+     "equipe": "ALFA",
+     "jornada": "PRONTO",
+     "ordem": 0
+    }
+   ],
+   "saida": "ALFA"
+  },
+  {
+   "teste": "teste_p17.js",
+   "entrada": [
+    {
+     "mat": "1",
+     "nome": "ANA",
+     "posto": "SD BM",
+     "secao": "1ª SB",
+     "jornada": "PRONTO",
+     "equipe": "ALFA",
+     "antig": "",
+     "ordem": 0
+    }
+   ],
+   "saida": "ALFA"
+  },
+  {
+   "teste": "teste_p17.js",
+   "entrada": [
+    {
+     "mat": "2",
+     "nome": "BIA",
+     "posto": "ST BM",
+     "secao": "1ª SB",
+     "jornada": "PRONTO",
+     "equipe": "ALFA",
+     "antig": "",
+     "ordem": 1
+    }
+   ],
+   "saida": "ALFA"
+  },
+  {
+   "teste": "teste_p17.js",
+   "entrada": [
+    {
+     "mat": "3",
+     "nome": "CAIO",
+     "posto": "3º SGT BM",
+     "secao": "1ª SB",
+     "jornada": "PRONTO",
+     "equipe": "ALFA",
+     "antig": "",
+     "ordem": 2
+    }
+   ],
+   "saida": "ALFA"
+  },
+  {
+   "teste": "teste_p17.js",
+   "entrada": [
+    {
+     "mat": "4",
+     "nome": "DANI",
+     "posto": "CB BM",
+     "secao": "1ª SB",
+     "jornada": "PRONTO",
+     "equipe": "BRAVO",
+     "antig": "",
+     "ordem": 3
+    }
+   ],
+   "saida": "BRAVO"
+  },
+  {
+   "teste": "teste_p17.js",
+   "entrada": [
+    {
+     "mat": "5",
+     "nome": "EDU",
+     "posto": "1º SGT BM",
+     "secao": "1ª SB",
+     "jornada": "PRONTO",
+     "equipe": "BRAVO",
+     "antig": "",
+     "ordem": 4
+    }
+   ],
+   "saida": "BRAVO"
+  },
+  {
+   "teste": "teste_p17.js",
+   "entrada": [
+    {
+     "mat": "6",
+     "nome": "FIA",
+     "posto": "2º SGT BM",
+     "secao": "1ª SB",
+     "jornada": "ADM",
+     "equipe": "",
+     "antig": "",
+     "ordem": 5
+    }
+   ],
+   "saida": "ADM"
+  },
+  {
+   "teste": "teste_p17.js",
+   "entrada": [
+    {
+     "mat": "7",
+     "nome": "GIL",
+     "posto": "SD BM",
+     "secao": "1ª SB",
+     "jornada": "PRONTO",
+     "equipe": "ALFA",
+     "antig": 12,
+     "ordem": 0
+    }
+   ],
+   "saida": "ALFA"
+  },
+  {
+   "teste": "teste_p17.js",
+   "entrada": [
+    {
+     "mat": "8",
+     "nome": "HUGO",
+     "posto": "SD BM",
+     "secao": "1ª SB",
+     "jornada": "PRONTO",
+     "equipe": "ALFA",
+     "antig": 3,
+     "ordem": 1
+    }
+   ],
+   "saida": "ALFA"
+  },
+  {
+   "teste": "teste_p17.js",
+   "entrada": [
+    {
+     "mat": "9",
+     "nome": "IVO",
+     "posto": "SD BM",
+     "secao": "1ª SB",
+     "jornada": "PRONTO",
+     "equipe": "ALFA",
+     "antig": "",
+     "ordem": 2
+    }
+   ],
+   "saida": "ALFA"
+  },
+  {
+   "teste": "teste_p17.js",
+   "entrada": [
+    {
+     "mat": "M000",
+     "nome": "MILITAR 000",
+     "posto": "ST BM",
+     "secao": "1ª SB",
+     "jornada": "ADM",
+     "equipe": "",
+     "antig": "",
+     "ordem": 0
+    }
+   ],
+   "saida": "ADM"
+  },
+  {
+   "teste": "teste_p17.js",
+   "entrada": [
+    {
+     "mat": "M001",
+     "nome": "MILITAR 001",
+     "posto": "2º SGT BM",
+     "secao": "1ª SB",
+     "jornada": "PRONTO",
+     "equipe": "ALFA",
+     "antig": "",
+     "ordem": 1
+    }
+   ],
+   "saida": "ALFA"
+  },
+  {
+   "teste": "teste_p17.js",
+   "entrada": [
+    {
+     "mat": "M002",
+     "nome": "MILITAR 002",
+     "posto": "3º SGT BM",
+     "secao": "1ª SB",
+     "jornada": "PRONTO",
+     "equipe": "ALFA",
+     "antig": "",
+     "ordem": 2
+    }
+   ],
+   "saida": "ALFA"
+  },
+  {
+   "teste": "teste_p17.js",
+   "entrada": [
+    {
+     "mat": "M003",
+     "nome": "MILITAR 003",
+     "posto": "3º SGT BM",
+     "secao": "1ª SB",
+     "jornada": "PRONTO",
+     "equipe": "CHARLIE",
+     "antig": "",
+     "ordem": 3
+    }
+   ],
+   "saida": "CHARLIE"
+  },
+  {
+   "teste": "teste_p17.js",
+   "entrada": [
+    {
+     "mat": "M018",
+     "nome": "MILITAR 018",
+     "posto": "2º SGT BM",
+     "secao": "1ª SB",
+     "jornada": "ADM",
+     "equipe": "",
+     "antig": "",
+     "ordem": 18
+    }
+   ],
+   "saida": "ADM"
+  },
+  {
+   "teste": "teste_p17.js",
+   "entrada": [
+    {
+     "mat": "M019",
+     "nome": "MILITAR 019",
+     "posto": "SD BM",
+     "secao": "1ª SB",
+     "jornada": "PRONTO",
+     "equipe": "ALFA",
+     "antig": "",
+     "ordem": 19
+    }
+   ],
+   "saida": "ALFA"
+  },
+  {
+   "teste": "teste_p17.js",
+   "entrada": [
+    {
+     "mat": "M020",
+     "nome": "MILITAR 020",
+     "posto": "3º SGT BM",
+     "secao": "1ª SB",
+     "jornada": "PRONTO",
+     "equipe": "BRAVO",
+     "antig": "",
+     "ordem": 20
+    }
+   ],
+   "saida": "BRAVO"
+  },
+  {
+   "teste": "teste_p17.js",
+   "entrada": [
+    {
+     "mat": "M021",
+     "nome": "MILITAR 021",
+     "posto": "3º SGT BM",
+     "secao": "1ª SB",
+     "jornada": "PRONTO",
+     "equipe": "ALFA",
+     "antig": "",
+     "ordem": 21
+    }
+   ],
+   "saida": "ALFA"
+  },
+  {
+   "teste": "teste_p17.js",
+   "entrada": [
+    {
+     "mat": "M022",
+     "nome": "MILITAR 022",
+     "posto": "3º SGT BM",
+     "secao": "1ª SB",
+     "jornada": "PRONTO",
+     "equipe": "BRAVO",
+     "antig": "",
+     "ordem": 22
+    }
+   ],
+   "saida": "BRAVO"
+  },
+  {
+   "teste": "teste_p17.js",
+   "entrada": [
+    {
+     "mat": "M023",
+     "nome": "MILITAR 023",
+     "posto": "SD BM",
+     "secao": "1ª SB",
+     "jornada": "PRONTO",
+     "equipe": "CHARLIE",
+     "antig": "",
+     "ordem": 23
+    }
+   ],
+   "saida": "CHARLIE"
+  },
+  {
+   "teste": "teste_p17.js",
+   "entrada": [
+    {
+     "mat": "M045",
+     "nome": "MILITAR 045",
+     "posto": "3º SGT BM",
+     "secao": "1ª SB",
+     "jornada": "ADM",
+     "equipe": "",
+     "antig": "",
+     "ordem": 45
+    }
+   ],
+   "saida": "ADM"
+  },
+  {
+   "teste": "teste_p17.js",
+   "entrada": [
+    {
+     "mat": "M060",
+     "nome": "MILITAR 060",
+     "posto": "3º SGT BM",
+     "secao": "1ª SB",
+     "jornada": "ADM",
+     "equipe": "",
+     "antig": "",
+     "ordem": 60
+    }
+   ],
+   "saida": "ADM"
+  },
+  {
+   "teste": "teste_p17.js",
+   "entrada": [
+    {
+     "mat": "M061",
+     "nome": "MILITAR 061",
+     "posto": "3º SGT BM",
+     "secao": "1ª SB",
+     "jornada": "ADM",
+     "equipe": "",
+     "antig": "",
+     "ordem": 61
+    }
+   ],
+   "saida": "ADM"
+  },
+  {
+   "teste": "teste_p17.js",
+   "entrada": [
+    {
+     "mat": "M062",
+     "nome": "MILITAR 062",
+     "posto": "CB BM",
+     "secao": "1ª SB",
+     "jornada": "ADM",
+     "equipe": "",
+     "antig": "",
+     "ordem": 62
+    }
+   ],
+   "saida": "ADM"
+  },
+  {
+   "teste": "teste_p17.js",
+   "entrada": [
+    {
+     "mat": "M063",
+     "nome": "MILITAR 063",
+     "posto": "CB BM",
+     "secao": "1ª SB",
+     "jornada": "",
+     "equipe": "",
+     "antig": "",
+     "ordem": 63
+    }
+   ],
+   "saida": "SEM EQUIPE"
+  },
+  {
+   "teste": "teste_p17.js",
+   "entrada": [
+    {
+     "mat": "M064",
+     "nome": "MILITAR 064",
+     "posto": "CB BM",
+     "secao": "1ª SB",
+     "jornada": "ADM",
+     "equipe": "",
+     "antig": "",
+     "ordem": 64
+    }
+   ],
+   "saida": "ADM"
+  },
+  {
+   "teste": "teste_p17.js",
+   "entrada": [
+    {
+     "mat": "M065",
+     "nome": "MILITAR 065",
+     "posto": "2º SGT BM",
+     "secao": "1ª SB",
+     "jornada": "ADM",
+     "equipe": "",
+     "antig": "",
+     "ordem": 65
+    }
+   ],
+   "saida": "ADM"
+  },
+  {
+   "teste": "teste_p17.js",
+   "entrada": [
+    {
+     "mat": "M068",
+     "nome": "MILITAR 068",
+     "posto": "2º SGT BM",
+     "secao": "1ª SB",
+     "jornada": "ADM",
+     "equipe": "",
+     "antig": "",
+     "ordem": 68
+    }
+   ],
+   "saida": "ADM"
+  },
+  {
+   "teste": "teste_p17.js",
+   "entrada": [
+    {
+     "mat": "M069",
+     "nome": "MILITAR 069",
+     "posto": "3º SGT BM",
+     "secao": "1ª SB",
+     "jornada": "ADM",
+     "equipe": "",
+     "antig": "",
+     "ordem": 69
+    }
+   ],
+   "saida": "ADM"
+  },
+  {
+   "teste": "teste_p17.js",
+   "entrada": [
+    {
+     "mat": "M070",
+     "nome": "MILITAR 070",
+     "posto": "CB BM",
+     "secao": "1ª SB",
+     "jornada": "ADM",
+     "equipe": "",
+     "antig": "",
+     "ordem": 70
+    }
+   ],
+   "saida": "ADM"
+  },
+  {
+   "teste": "teste_p17.js",
+   "entrada": [
+    {
+     "mat": "M071",
+     "nome": "MILITAR 071",
+     "posto": "CB BM",
+     "secao": "1ª SB",
+     "jornada": "ADM",
+     "equipe": "",
+     "antig": "",
+     "ordem": 71
+    }
+   ],
+   "saida": "ADM"
+  },
+  {
+   "teste": "teste_p17.js",
+   "entrada": [
+    {
+     "mat": "M072",
+     "nome": "MILITAR 072",
+     "posto": "CB BM",
+     "secao": "1ª SB",
+     "jornada": "PRONTO",
+     "equipe": "DELTA",
+     "antig": "",
+     "ordem": 72
+    }
+   ],
+   "saida": "DELTA"
+  },
+  {
+   "teste": "teste_p17.js",
+   "entrada": [
+    {
+     "mat": "M073",
+     "nome": "MILITAR 073",
+     "posto": "3º SGT BM",
+     "secao": "1ª SB",
+     "jornada": "",
+     "equipe": "",
+     "antig": "",
+     "ordem": 73
+    }
+   ],
+   "saida": "SEM EQUIPE"
+  },
+  {
+   "teste": "teste_p17.js",
+   "entrada": [
+    {
+     "mat": "M076",
+     "nome": "MILITAR 076",
+     "posto": "ST BM",
+     "secao": "1ª SB",
+     "jornada": "PRONTO",
+     "equipe": "CHARLIE",
+     "antig": "",
+     "ordem": 76
+    }
+   ],
+   "saida": "CHARLIE"
+  },
+  {
+   "teste": "teste_p17.js",
+   "entrada": [
+    {
+     "mat": "M077",
+     "nome": "MILITAR 077",
+     "posto": "ST BM",
+     "secao": "1ª SB",
+     "jornada": "ADM",
+     "equipe": "",
+     "antig": "",
+     "ordem": 77
+    }
+   ],
+   "saida": "ADM"
+  },
+  {
+   "teste": "teste_p17.js",
+   "entrada": [
+    {
+     "mat": "M078",
+     "nome": "MILITAR 078",
+     "posto": "SD BM",
+     "secao": "1ª SB",
+     "jornada": "",
+     "equipe": "",
+     "antig": "",
+     "ordem": 78
+    }
+   ],
+   "saida": "SEM EQUIPE"
+  },
+  {
+   "teste": "teste_p17.js",
+   "entrada": [
+    {
+     "mat": "M079",
+     "nome": "MILITAR 079",
+     "posto": "SD BM",
+     "secao": "1ª SB",
+     "jornada": "PRONTO",
+     "equipe": "ALFA",
+     "antig": "",
+     "ordem": 79
+    }
+   ],
+   "saida": "ALFA"
+  },
+  {
+   "teste": "teste_p17.js",
+   "entrada": [
+    {
+     "mat": "M080",
+     "nome": "MILITAR 080",
+     "posto": "SD BM",
+     "secao": "1ª SB",
+     "jornada": "",
+     "equipe": "",
+     "antig": "",
+     "ordem": 80
+    }
+   ],
+   "saida": "SEM EQUIPE"
+  },
+  {
+   "teste": "teste_p17.js",
+   "entrada": [
+    {
+     "mat": "M081",
+     "nome": "MILITAR 081",
+     "posto": "SD BM",
+     "secao": "1ª SB",
+     "jornada": "PRONTO",
+     "equipe": "ALFA",
+     "antig": "",
+     "ordem": 81
+    }
+   ],
+   "saida": "ALFA"
+  },
+  {
+   "teste": "teste_p17.js",
+   "entrada": [
+    {
+     "mat": "M082",
+     "nome": "MILITAR 082",
+     "posto": "SD BM",
+     "secao": "1ª SB",
+     "jornada": "PRONTO",
+     "equipe": "BRAVO",
+     "antig": "",
+     "ordem": 82
+    }
+   ],
+   "saida": "BRAVO"
+  },
+  {
+   "teste": "teste_p17.js",
+   "entrada": [
+    {
+     "mat": "M083",
+     "nome": "MILITAR 083",
+     "posto": "SD BM",
+     "secao": "1ª SB",
+     "jornada": "",
+     "equipe": "",
+     "antig": "",
+     "ordem": 83
+    }
+   ],
+   "saida": "SEM EQUIPE"
+  },
+  {
+   "teste": "teste_p17.js",
+   "entrada": [
+    {
+     "mat": "M084",
+     "nome": "MILITAR 084",
+     "posto": "ST BM",
+     "secao": "1ª SB",
+     "jornada": "PRONTO",
+     "equipe": "BRAVO",
+     "antig": "",
+     "ordem": 84
+    }
+   ],
+   "saida": "BRAVO"
+  },
+  {
+   "teste": "teste_p17.js",
+   "entrada": [
+    {
+     "mat": "M085",
+     "nome": "MILITAR 085",
+     "posto": "2º SGT BM",
+     "secao": "1ª SB",
+     "jornada": "PRONTO",
+     "equipe": "CHARLIE",
+     "antig": "",
+     "ordem": 85
+    }
+   ],
+   "saida": "CHARLIE"
+  },
+  {
+   "teste": "teste_p17.js",
+   "entrada": [
+    {
+     "mat": "M086",
+     "nome": "MILITAR 086",
+     "posto": "2º SGT BM",
+     "secao": "1ª SB",
+     "jornada": "PRONTO",
+     "equipe": "DELTA",
+     "antig": "",
+     "ordem": 86
+    }
+   ],
+   "saida": "DELTA"
+  },
+  {
+   "teste": "teste_p17.js",
+   "entrada": [
+    {
+     "mat": "M087",
+     "nome": "MILITAR 087",
+     "posto": "SD BM",
+     "secao": "1ª SB",
+     "jornada": "PRONTO",
+     "equipe": "ALFA",
+     "antig": "",
+     "ordem": 87
+    }
+   ],
+   "saida": "ALFA"
+  },
+  {
+   "teste": "teste_p17.js",
+   "entrada": [
+    {
+     "mat": "M088",
+     "nome": "MILITAR 088",
+     "posto": "SD BM",
+     "secao": "1ª SB",
+     "jornada": "PRONTO",
+     "equipe": "DELTA",
+     "antig": "",
+     "ordem": 88
+    }
+   ],
+   "saida": "DELTA"
+  },
+  {
+   "teste": "teste_p17.js",
+   "entrada": [
+    {
+     "mat": "M089",
+     "nome": "MILITAR 089",
+     "posto": "3º SGT BM",
+     "secao": "1ª SB",
+     "jornada": "PRONTO",
+     "equipe": "DELTA",
+     "antig": "",
+     "ordem": 89
+    }
+   ],
+   "saida": "DELTA"
+  },
+  {
+   "teste": "teste_p17.js",
+   "entrada": [
+    {
+     "mat": "M090",
+     "nome": "MILITAR 090",
+     "posto": "3º SGT BM",
+     "secao": "1ª SB",
+     "jornada": "PRONTO",
+     "equipe": "BRAVO",
+     "antig": "",
+     "ordem": 90
+    }
+   ],
+   "saida": "BRAVO"
+  },
+  {
+   "teste": "teste_p17.js",
+   "entrada": [
+    {
+     "mat": "M091",
+     "nome": "MILITAR 091",
+     "posto": "3º SGT BM",
+     "secao": "1ª SB",
+     "jornada": "ADM",
+     "equipe": "",
+     "antig": "",
+     "ordem": 91
+    }
+   ],
+   "saida": "ADM"
+  },
+  {
+   "teste": "teste_p17.js",
+   "entrada": [
+    {
+     "mat": "M092",
+     "nome": "MILITAR 092",
+     "posto": "3º SGT BM",
+     "secao": "1ª SB",
+     "jornada": "PRONTO",
+     "equipe": "BRAVO",
+     "antig": "",
+     "ordem": 92
+    }
+   ],
+   "saida": "BRAVO"
+  },
+  {
+   "teste": "teste_p17.js",
+   "entrada": [
+    {
+     "mat": "M093",
+     "nome": "MILITAR 093",
+     "posto": "CB BM",
+     "secao": "1ª SB",
+     "jornada": "PRONTO",
+     "equipe": "CHARLIE",
+     "antig": "",
+     "ordem": 93
+    }
+   ],
+   "saida": "CHARLIE"
+  },
+  {
+   "teste": "teste_p17.js",
+   "entrada": [
+    {
+     "mat": "M094",
+     "nome": "MILITAR 094",
+     "posto": "3º SGT BM",
+     "secao": "1ª SB",
+     "jornada": "PRONTO",
+     "equipe": "DELTA",
+     "antig": "",
+     "ordem": 94
+    }
+   ],
+   "saida": "DELTA"
+  },
+  {
+   "teste": "teste_p17.js",
+   "entrada": [
+    {
+     "mat": "M095",
+     "nome": "MILITAR 095",
+     "posto": "SD BM",
+     "secao": "1ª SB",
+     "jornada": "PRONTO",
+     "equipe": "BRAVO",
+     "antig": "",
+     "ordem": 95
+    }
+   ],
+   "saida": "BRAVO"
+  },
+  {
+   "teste": "teste_p17.js",
+   "entrada": [
+    {
+     "mat": "M096",
+     "nome": "MILITAR 096",
+     "posto": "SD BM",
+     "secao": "1ª SB",
+     "jornada": "PRONTO",
+     "equipe": "CHARLIE",
+     "antig": "",
+     "ordem": 96
+    }
+   ],
+   "saida": "CHARLIE"
+  },
+  {
+   "teste": "teste_p17.js",
+   "entrada": [
+    {
+     "mat": "M097",
+     "nome": "MILITAR 097",
+     "posto": "SD BM",
+     "secao": "1ª SB",
+     "jornada": "PRONTO",
+     "equipe": "CHARLIE",
+     "antig": "",
+     "ordem": 97
+    }
+   ],
+   "saida": "CHARLIE"
+  },
+  {
+   "teste": "teste_p17.js",
+   "entrada": [
+    {
+     "mat": "M098",
+     "nome": "MILITAR 098",
+     "posto": "SD BM",
+     "secao": "1ª SB",
+     "jornada": "PRONTO",
+     "equipe": "DELTA",
+     "antig": "",
+     "ordem": 98
+    }
+   ],
+   "saida": "DELTA"
+  },
+  {
+   "teste": "teste_p17.js",
+   "entrada": [
+    {
+     "mat": "M099",
+     "nome": "MILITAR 099",
+     "posto": "SD BM",
+     "secao": "1ª SB",
+     "jornada": "PRONTO",
+     "equipe": "BRAVO",
+     "antig": "",
+     "ordem": 99
+    }
+   ],
+   "saida": "BRAVO"
+  },
+  {
+   "teste": "teste_p17.js",
+   "entrada": [
+    {
+     "mat": "M100",
+     "nome": "MILITAR 100",
+     "posto": "SD BM",
+     "secao": "1ª SB",
+     "jornada": "PRONTO",
+     "equipe": "BRAVO",
+     "antig": "",
+     "ordem": 100
+    }
+   ],
+   "saida": "BRAVO"
+  },
+  {
+   "teste": "teste_p17.js",
+   "entrada": [
+    {
+     "mat": "M192",
+     "nome": "MILITAR 192",
+     "posto": "SD BM",
+     "secao": "1ª SB",
+     "jornada": "",
+     "equipe": "",
+     "antig": "",
+     "ordem": 192
+    }
+   ],
+   "saida": "SEM EQUIPE"
+  },
+  {
+   "teste": "teste_p17.js",
+   "entrada": [
+    {
+     "mat": "M194",
+     "nome": "MILITAR 194",
+     "posto": "3º SGT BM",
+     "secao": "1ª SB",
+     "jornada": "PRONTO",
+     "equipe": "ALFA",
+     "antig": "",
+     "ordem": 194
+    }
+   ],
+   "saida": "ALFA"
+  },
+  {
+   "teste": "teste_p17.js",
+   "entrada": [
+    {
+     "mat": "M195",
+     "nome": "MILITAR 195",
+     "posto": "",
+     "secao": "1ª SB",
+     "jornada": "PRONTO",
+     "equipe": "BRAVO",
+     "antig": "",
+     "ordem": 195
+    }
+   ],
+   "saida": "BRAVO"
+  },
+  {
+   "teste": "teste_p17.js",
+   "entrada": [
+    {
+     "mat": "M198",
+     "nome": "MILITAR 198",
+     "posto": "3º SGT BM",
+     "secao": "1ª SB",
+     "jornada": "PRONTO",
+     "equipe": "CHARLIE",
+     "antig": "",
+     "ordem": 198
+    }
+   ],
+   "saida": "CHARLIE"
+  },
+  {
+   "teste": "teste_p17.js",
+   "entrada": [
+    {
+     "mat": "M200",
+     "nome": "MILITAR 200",
+     "posto": "SD BM",
+     "secao": "1ª SB",
+     "jornada": "PRONTO",
+     "equipe": "ALFA",
+     "antig": "",
+     "ordem": 200
+    }
+   ],
+   "saida": "ALFA"
+  }
+ ]
+}

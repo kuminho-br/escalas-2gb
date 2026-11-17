@@ -1,0 +1,175 @@
+{
+ "funcao": "regraDoPosto_",
+ "casos": [
+  {
+   "teste": "teste_p16.js",
+   "entrada": [
+    {
+     "postos": {
+      "ABT|CHEFE": {
+       "exigeCnh": false,
+       "cnh": []
+      },
+      "ABT|COMBATENTE": {
+       "exigeCnh": false,
+       "cnh": []
+      },
+      "ABT|AUXILIARDELINHA": {
+       "exigeCnh": false,
+       "cnh": []
+      },
+      "ABT|MOTORISTA": {
+       "exigeCnh": true,
+       "cnh": [
+        "D"
+       ]
+      },
+      "AR|MOTORISTA": {
+       "exigeCnh": true,
+       "cnh": [
+        "D"
+       ]
+      },
+      "AR|CHEFE": {
+       "exigeCnh": false,
+       "cnh": []
+      },
+      "AR|SOCORRISTA": {
+       "exigeCnh": false,
+       "cnh": []
+      },
+      "PESEGURO|MOTORISTA": {
+       "exigeCnh": false,
+       "cnh": []
+      },
+      "PESEGURO|CHEFE": {
+       "exigeCnh": false,
+       "cnh": []
+      }
+     }
+    },
+    "AR",
+    "MOTORISTA"
+   ],
+   "saida": {
+    "exigeCnh": true,
+    "exigida": [
+     "D"
+    ]
+   }
+  },
+  {
+   "teste": "teste_p16.js",
+   "entrada": [
+    {
+     "postos": {
+      "ABT|CHEFE": {
+       "exigeCnh": false,
+       "cnh": []
+      },
+      "ABT|COMBATENTE": {
+       "exigeCnh": false,
+       "cnh": []
+      },
+      "ABT|AUXILIARDELINHA": {
+       "exigeCnh": false,
+       "cnh": []
+      },
+      "ABT|MOTORISTA": {
+       "exigeCnh": true,
+       "cnh": [
+        "D"
+       ]
+      },
+      "AR|MOTORISTA": {
+       "exigeCnh": true,
+       "cnh": [
+        "D"
+       ]
+      },
+      "AR|CHEFE": {
+       "exigeCnh": false,
+       "cnh": []
+      },
+      "AR|SOCORRISTA": {
+       "exigeCnh": false,
+       "cnh": []
+      },
+      "PESEGURO|MOTORISTA": {
+       "exigeCnh": false,
+       "cnh": []
+      },
+      "PESEGURO|CHEFE": {
+       "exigeCnh": false,
+       "cnh": []
+      }
+     }
+    },
+    "PE SEGURO",
+    "MOTORISTA"
+   ],
+   "saida": {
+    "exigeCnh": false,
+    "exigida": []
+   }
+  },
+  {
+   "teste": "teste_p16.js",
+   "entrada": [
+    {
+     "postos": {},
+     "funcoesComCnh": {},
+     "cnhPorUnidade": {
+      "AR": [
+       "D"
+      ]
+     }
+    },
+    "AR",
+    "MOTORISTA"
+   ],
+   "saida": {
+    "exigeCnh": true,
+    "exigida": [
+     "D"
+    ]
+   }
+  },
+  {
+   "teste": "teste_p19.js",
+   "entrada": [
+    {
+     "funcoesComCnh": {},
+     "cnh": {},
+     "cnhPorUnidade": {},
+     "postos": {},
+     "unidadesCadastradas": {}
+    },
+    "ABT",
+    "CHEFE"
+   ],
+   "saida": {
+    "exigeCnh": false,
+    "exigida": []
+   }
+  },
+  {
+   "teste": "teste_p19.js",
+   "entrada": [
+    {
+     "funcoesComCnh": {},
+     "cnh": {},
+     "cnhPorUnidade": {},
+     "postos": {},
+     "unidadesCadastradas": {}
+    },
+    "AR",
+    "CHEFE"
+   ],
+   "saida": {
+    "exigeCnh": false,
+    "exigida": []
+   }
+  }
+ ]
+}

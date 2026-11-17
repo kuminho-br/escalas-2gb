@@ -1,0 +1,2270 @@
+{
+ "funcao": "calcularGuarnicao_",
+ "casos": [
+  {
+   "teste": "teste_p16.js",
+   "entrada": [
+    [],
+    [
+     {
+      "linha": 6,
+      "dia": "2026-11-05",
+      "turno": "A",
+      "unidade": "",
+      "funcao": "MOTORISTA",
+      "texto": "M1",
+      "mat": "M1"
+     }
+    ],
+    [
+     {
+      "mat": "M1",
+      "dia": "2026-11-05",
+      "turno": "A",
+      "servico": "Pronto",
+      "funcao": "",
+      "unidade": "",
+      "linha": 10
+     },
+     {
+      "mat": "M2",
+      "dia": "2026-11-05",
+      "turno": "A",
+      "servico": "Pronto",
+      "funcao": "",
+      "unidade": "",
+      "linha": 11
+     }
+    ],
+    {
+     "nome": "Pronto",
+     "servicos": [
+      "Pronto"
+     ],
+     "militares": "ESCALADOS",
+     "dias": "TODOS",
+     "turnos": [
+      "A"
+     ],
+     "usaUnidade": true,
+     "slots": {
+      "A": [
+       {
+        "unidade": "AR",
+        "funcao": "MOTORISTA",
+        "vagas": 1,
+        "exigeCnh": true
+       },
+       {
+        "unidade": "AR",
+        "funcao": "CHEFE",
+        "vagas": 1,
+        "exigeCnh": false
+       }
+      ]
+     }
+    },
+    {
+     "motoristas": {
+      "M1": true
+     },
+     "funcoesComCnh": {
+      "MOTORISTA": true
+     },
+     "cnh": {
+      "M1": [
+       "B"
+      ],
+      "M2": [
+       "D"
+      ]
+     },
+     "cnhPorUnidade": {
+      "AR": [
+       "D"
+      ]
+     }
+    }
+   ],
+   "saida": {
+    "inserir": [],
+    "atualizar": [],
+    "remover": [],
+    "conflitos": [
+     {
+      "chave": "M1|2026-11-05|A",
+      "mat": "M1",
+      "dia": "2026-11-05",
+      "turno": "A",
+      "de": null,
+      "para": {
+       "f": "MOTORISTA",
+       "u": ""
+      },
+      "funcao": "MOTORISTA",
+      "unidade": "",
+      "tabela": "sem função"
+     }
+    ],
+    "invalidas": [],
+    "choques": [],
+    "jaAplicadas": [],
+    "aplicadas": [],
+    "avisosMotorista": [],
+    "avisosCnh": [],
+    "resumo": {
+     "inclusoes": 0,
+     "funcoes": 0,
+     "exclusoes": 0,
+     "conflitos": 1,
+     "invalidas": 0,
+     "choques": 0,
+     "jaAplicadas": 0,
+     "motoristas": 0,
+     "cnh": 0
+    }
+   }
+  },
+  {
+   "teste": "teste_p16.js",
+   "entrada": [
+    [],
+    [
+     {
+      "linha": 6,
+      "dia": "2026-11-05",
+      "turno": "A",
+      "unidade": "AR",
+      "funcao": "CHEFE",
+      "texto": "M1",
+      "mat": "M1"
+     }
+    ],
+    [
+     {
+      "mat": "M1",
+      "dia": "2026-11-05",
+      "turno": "A",
+      "servico": "Pronto",
+      "funcao": "",
+      "unidade": "",
+      "linha": 10
+     },
+     {
+      "mat": "M2",
+      "dia": "2026-11-05",
+      "turno": "A",
+      "servico": "Pronto",
+      "funcao": "",
+      "unidade": "",
+      "linha": 11
+     }
+    ],
+    {
+     "nome": "Pronto",
+     "servicos": [
+      "Pronto"
+     ],
+     "militares": "ESCALADOS",
+     "dias": "TODOS",
+     "turnos": [
+      "A"
+     ],
+     "usaUnidade": true,
+     "slots": {
+      "A": [
+       {
+        "unidade": "AR",
+        "funcao": "MOTORISTA",
+        "vagas": 1,
+        "exigeCnh": true
+       },
+       {
+        "unidade": "AR",
+        "funcao": "CHEFE",
+        "vagas": 1,
+        "exigeCnh": false
+       }
+      ]
+     }
+    },
+    {
+     "motoristas": {
+      "M1": true
+     },
+     "funcoesComCnh": {
+      "MOTORISTA": true
+     },
+     "cnh": {
+      "M1": [
+       "B"
+      ],
+      "M2": [
+       "D"
+      ]
+     },
+     "cnhPorUnidade": {
+      "AR": [
+       "D"
+      ]
+     }
+    }
+   ],
+   "saida": {
+    "inserir": [],
+    "atualizar": [],
+    "remover": [],
+    "conflitos": [
+     {
+      "chave": "M1|2026-11-05|A",
+      "mat": "M1",
+      "dia": "2026-11-05",
+      "turno": "A",
+      "de": null,
+      "para": {
+       "f": "CHEFE",
+       "u": "AR"
+      },
+      "funcao": "CHEFE",
+      "unidade": "AR",
+      "tabela": "sem função"
+     }
+    ],
+    "invalidas": [],
+    "choques": [],
+    "jaAplicadas": [],
+    "aplicadas": [],
+    "avisosMotorista": [],
+    "avisosCnh": [],
+    "resumo": {
+     "inclusoes": 0,
+     "funcoes": 0,
+     "exclusoes": 0,
+     "conflitos": 1,
+     "invalidas": 0,
+     "choques": 0,
+     "jaAplicadas": 0,
+     "motoristas": 0,
+     "cnh": 0
+    }
+   }
+  },
+  {
+   "teste": "teste_p16.js",
+   "entrada": [
+    [],
+    [
+     {
+      "linha": 6,
+      "dia": "2026-11-05",
+      "turno": "A",
+      "unidade": "AR",
+      "funcao": "MOTORISTA",
+      "texto": "M1",
+      "mat": "M1"
+     }
+    ],
+    [
+     {
+      "mat": "M1",
+      "dia": "2026-11-05",
+      "turno": "A",
+      "servico": "Pronto",
+      "funcao": "",
+      "unidade": "",
+      "linha": 10
+     },
+     {
+      "mat": "M2",
+      "dia": "2026-11-05",
+      "turno": "A",
+      "servico": "Pronto",
+      "funcao": "",
+      "unidade": "",
+      "linha": 11
+     }
+    ],
+    {
+     "nome": "Pronto",
+     "servicos": [
+      "Pronto"
+     ],
+     "militares": "ESCALADOS",
+     "dias": "TODOS",
+     "turnos": [
+      "A"
+     ],
+     "usaUnidade": true,
+     "slots": {
+      "A": [
+       {
+        "unidade": "AR",
+        "funcao": "MOTORISTA",
+        "vagas": 1,
+        "exigeCnh": true
+       },
+       {
+        "unidade": "AR",
+        "funcao": "CHEFE",
+        "vagas": 1,
+        "exigeCnh": false
+       }
+      ]
+     }
+    },
+    {
+     "motoristas": {
+      "M1": true
+     },
+     "funcoesComCnh": {
+      "MOTORISTA": true
+     },
+     "cnh": {
+      "M1": [
+       "B",
+       "D"
+      ]
+     },
+     "cnhPorUnidade": {
+      "AR": [
+       "D"
+      ]
+     }
+    }
+   ],
+   "saida": {
+    "inserir": [],
+    "atualizar": [],
+    "remover": [],
+    "conflitos": [
+     {
+      "chave": "M1|2026-11-05|A",
+      "mat": "M1",
+      "dia": "2026-11-05",
+      "turno": "A",
+      "de": null,
+      "para": {
+       "f": "MOTORISTA",
+       "u": "AR"
+      },
+      "funcao": "MOTORISTA",
+      "unidade": "AR",
+      "tabela": "sem função"
+     }
+    ],
+    "invalidas": [],
+    "choques": [],
+    "jaAplicadas": [],
+    "aplicadas": [],
+    "avisosMotorista": [],
+    "avisosCnh": [],
+    "resumo": {
+     "inclusoes": 0,
+     "funcoes": 0,
+     "exclusoes": 0,
+     "conflitos": 1,
+     "invalidas": 0,
+     "choques": 0,
+     "jaAplicadas": 0,
+     "motoristas": 0,
+     "cnh": 0
+    }
+   }
+  },
+  {
+   "teste": "teste_p16.js",
+   "entrada": [
+    [],
+    [
+     {
+      "linha": 6,
+      "dia": "2026-11-05",
+      "turno": "A",
+      "unidade": "AR",
+      "funcao": "MOTORISTA",
+      "texto": "M1",
+      "mat": "M1"
+     }
+    ],
+    [
+     {
+      "mat": "M1",
+      "dia": "2026-11-05",
+      "turno": "A",
+      "servico": "Pronto",
+      "funcao": "",
+      "unidade": "",
+      "linha": 10
+     },
+     {
+      "mat": "M2",
+      "dia": "2026-11-05",
+      "turno": "A",
+      "servico": "Pronto",
+      "funcao": "",
+      "unidade": "",
+      "linha": 11
+     }
+    ],
+    {
+     "nome": "Pronto",
+     "servicos": [
+      "Pronto"
+     ],
+     "militares": "ESCALADOS",
+     "dias": "TODOS",
+     "turnos": [
+      "A"
+     ],
+     "usaUnidade": true,
+     "slots": {
+      "A": [
+       {
+        "unidade": "AR",
+        "funcao": "MOTORISTA",
+        "vagas": 1,
+        "exigeCnh": true
+       },
+       {
+        "unidade": "AR",
+        "funcao": "CHEFE",
+        "vagas": 1,
+        "exigeCnh": false
+       }
+      ]
+     }
+    },
+    {
+     "motoristas": {
+      "M1": true
+     },
+     "funcoesComCnh": {
+      "MOTORISTA": true
+     },
+     "cnh": {
+      "M1": [
+       "B"
+      ],
+      "M2": [
+       "D"
+      ]
+     },
+     "cnhPorUnidade": {
+      "AR": [
+       "D"
+      ]
+     }
+    }
+   ],
+   "saida": {
+    "inserir": [],
+    "atualizar": [],
+    "remover": [],
+    "conflitos": [
+     {
+      "chave": "M1|2026-11-05|A",
+      "mat": "M1",
+      "dia": "2026-11-05",
+      "turno": "A",
+      "de": null,
+      "para": {
+       "f": "MOTORISTA",
+       "u": "AR"
+      },
+      "funcao": "MOTORISTA",
+      "unidade": "AR",
+      "tabela": "sem função"
+     }
+    ],
+    "invalidas": [],
+    "choques": [],
+    "jaAplicadas": [],
+    "aplicadas": [],
+    "avisosMotorista": [],
+    "avisosCnh": [
+     {
+      "mat": "M1",
+      "dia": "2026-11-05",
+      "turno": "A",
+      "funcao": "MOTORISTA",
+      "unidade": "AR",
+      "exigida": "D"
+     }
+    ],
+    "resumo": {
+     "inclusoes": 0,
+     "funcoes": 0,
+     "exclusoes": 0,
+     "conflitos": 1,
+     "invalidas": 0,
+     "choques": 0,
+     "jaAplicadas": 0,
+     "motoristas": 0,
+     "cnh": 1
+    }
+   }
+  },
+  {
+   "teste": "teste_p16.js",
+   "entrada": [
+    [],
+    [
+     {
+      "linha": 6,
+      "dia": "2026-11-05",
+      "turno": "A",
+      "unidade": "AR",
+      "funcao": "MOTORISTA",
+      "texto": "M1",
+      "mat": "M1"
+     }
+    ],
+    [
+     {
+      "mat": "M1",
+      "dia": "2026-11-05",
+      "turno": "A",
+      "servico": "Pronto",
+      "funcao": "",
+      "unidade": "",
+      "linha": 10
+     },
+     {
+      "mat": "M2",
+      "dia": "2026-11-05",
+      "turno": "A",
+      "servico": "Pronto",
+      "funcao": "",
+      "unidade": "",
+      "linha": 11
+     }
+    ],
+    {
+     "nome": "Pronto",
+     "servicos": [
+      "Pronto"
+     ],
+     "militares": "ESCALADOS",
+     "dias": "TODOS",
+     "turnos": [
+      "A"
+     ],
+     "usaUnidade": true,
+     "slots": {
+      "A": [
+       {
+        "unidade": "AR",
+        "funcao": "MOTORISTA",
+        "vagas": 1,
+        "exigeCnh": true
+       },
+       {
+        "unidade": "AR",
+        "funcao": "CHEFE",
+        "vagas": 1,
+        "exigeCnh": false
+       }
+      ]
+     }
+    },
+    {
+     "motoristas": {
+      "M1": true
+     },
+     "funcoesComCnh": {
+      "MOTORISTA": true
+     },
+     "cnh": {
+      "M1": [
+       "B"
+      ],
+      "M2": [
+       "D"
+      ]
+     },
+     "cnhPorUnidade": {}
+    }
+   ],
+   "saida": {
+    "inserir": [],
+    "atualizar": [],
+    "remover": [],
+    "conflitos": [
+     {
+      "chave": "M1|2026-11-05|A",
+      "mat": "M1",
+      "dia": "2026-11-05",
+      "turno": "A",
+      "de": null,
+      "para": {
+       "f": "MOTORISTA",
+       "u": "AR"
+      },
+      "funcao": "MOTORISTA",
+      "unidade": "AR",
+      "tabela": "sem função"
+     }
+    ],
+    "invalidas": [],
+    "choques": [],
+    "jaAplicadas": [],
+    "aplicadas": [],
+    "avisosMotorista": [],
+    "avisosCnh": [],
+    "resumo": {
+     "inclusoes": 0,
+     "funcoes": 0,
+     "exclusoes": 0,
+     "conflitos": 1,
+     "invalidas": 0,
+     "choques": 0,
+     "jaAplicadas": 0,
+     "motoristas": 0,
+     "cnh": 0
+    }
+   }
+  },
+  {
+   "teste": "teste_p16.js",
+   "entrada": [
+    [],
+    [
+     {
+      "linha": 6,
+      "dia": "2026-11-05",
+      "turno": "A",
+      "unidade": "AR",
+      "funcao": "MOTORISTA",
+      "texto": "M1",
+      "mat": "M1"
+     }
+    ],
+    [
+     {
+      "mat": "M1",
+      "dia": "2026-11-05",
+      "turno": "A",
+      "servico": "Pronto",
+      "funcao": "",
+      "unidade": "",
+      "linha": 10
+     },
+     {
+      "mat": "M2",
+      "dia": "2026-11-05",
+      "turno": "A",
+      "servico": "Pronto",
+      "funcao": "",
+      "unidade": "",
+      "linha": 11
+     }
+    ],
+    {
+     "nome": "Pronto",
+     "servicos": [
+      "Pronto"
+     ],
+     "militares": "ESCALADOS",
+     "dias": "TODOS",
+     "turnos": [
+      "A"
+     ],
+     "usaUnidade": true,
+     "slots": {
+      "A": [
+       {
+        "unidade": "AR",
+        "funcao": "MOTORISTA",
+        "vagas": 1,
+        "exigeCnh": true
+       },
+       {
+        "unidade": "AR",
+        "funcao": "CHEFE",
+        "vagas": 1,
+        "exigeCnh": false
+       }
+      ]
+     }
+    },
+    {
+     "motoristas": {
+      "M1": true
+     },
+     "funcoesComCnh": {},
+     "cnh": {
+      "M1": [
+       "B"
+      ],
+      "M2": [
+       "D"
+      ]
+     },
+     "cnhPorUnidade": {
+      "AR": [
+       "D"
+      ]
+     }
+    }
+   ],
+   "saida": {
+    "inserir": [],
+    "atualizar": [],
+    "remover": [],
+    "conflitos": [
+     {
+      "chave": "M1|2026-11-05|A",
+      "mat": "M1",
+      "dia": "2026-11-05",
+      "turno": "A",
+      "de": null,
+      "para": {
+       "f": "MOTORISTA",
+       "u": "AR"
+      },
+      "funcao": "MOTORISTA",
+      "unidade": "AR",
+      "tabela": "sem função"
+     }
+    ],
+    "invalidas": [],
+    "choques": [],
+    "jaAplicadas": [],
+    "aplicadas": [],
+    "avisosMotorista": [],
+    "avisosCnh": [
+     {
+      "mat": "M1",
+      "dia": "2026-11-05",
+      "turno": "A",
+      "funcao": "MOTORISTA",
+      "unidade": "AR",
+      "exigida": "D"
+     }
+    ],
+    "resumo": {
+     "inclusoes": 0,
+     "funcoes": 0,
+     "exclusoes": 0,
+     "conflitos": 1,
+     "invalidas": 0,
+     "choques": 0,
+     "jaAplicadas": 0,
+     "motoristas": 0,
+     "cnh": 1
+    }
+   }
+  },
+  {
+   "teste": "teste_p16.js",
+   "entrada": [
+    [],
+    [
+     {
+      "linha": 6,
+      "dia": "2026-11-05",
+      "turno": "A",
+      "unidade": "AR",
+      "funcao": "MOTORISTA",
+      "texto": "M2",
+      "mat": "M2"
+     }
+    ],
+    [
+     {
+      "mat": "M1",
+      "dia": "2026-11-05",
+      "turno": "A",
+      "servico": "Pronto",
+      "funcao": "",
+      "unidade": "",
+      "linha": 10
+     },
+     {
+      "mat": "M2",
+      "dia": "2026-11-05",
+      "turno": "A",
+      "servico": "Pronto",
+      "funcao": "",
+      "unidade": "",
+      "linha": 11
+     }
+    ],
+    {
+     "nome": "Pronto",
+     "servicos": [
+      "Pronto"
+     ],
+     "militares": "ESCALADOS",
+     "dias": "TODOS",
+     "turnos": [
+      "A"
+     ],
+     "usaUnidade": true,
+     "slots": {
+      "A": [
+       {
+        "unidade": "AR",
+        "funcao": "MOTORISTA",
+        "vagas": 1,
+        "exigeCnh": true
+       },
+       {
+        "unidade": "AR",
+        "funcao": "CHEFE",
+        "vagas": 1,
+        "exigeCnh": false
+       }
+      ]
+     }
+    },
+    {
+     "motoristas": {
+      "M2": true
+     },
+     "funcoesComCnh": {
+      "MOTORISTA": true
+     },
+     "cnh": {
+      "M1": [
+       "B"
+      ],
+      "M2": [
+       "D"
+      ]
+     },
+     "cnhPorUnidade": {
+      "AR": [
+       "D"
+      ]
+     }
+    }
+   ],
+   "saida": {
+    "inserir": [],
+    "atualizar": [],
+    "remover": [],
+    "conflitos": [
+     {
+      "chave": "M2|2026-11-05|A",
+      "mat": "M2",
+      "dia": "2026-11-05",
+      "turno": "A",
+      "de": null,
+      "para": {
+       "f": "MOTORISTA",
+       "u": "AR"
+      },
+      "funcao": "MOTORISTA",
+      "unidade": "AR",
+      "tabela": "sem função"
+     }
+    ],
+    "invalidas": [],
+    "choques": [],
+    "jaAplicadas": [],
+    "aplicadas": [],
+    "avisosMotorista": [],
+    "avisosCnh": [],
+    "resumo": {
+     "inclusoes": 0,
+     "funcoes": 0,
+     "exclusoes": 0,
+     "conflitos": 1,
+     "invalidas": 0,
+     "choques": 0,
+     "jaAplicadas": 0,
+     "motoristas": 0,
+     "cnh": 0
+    }
+   }
+  },
+  {
+   "teste": "teste_p16.js",
+   "entrada": [
+    [],
+    [
+     {
+      "linha": 6,
+      "dia": "2026-11-05",
+      "turno": "A",
+      "unidade": "AR",
+      "funcao": "MOTORISTA",
+      "texto": "M2",
+      "mat": "M2"
+     }
+    ],
+    [
+     {
+      "mat": "M1",
+      "dia": "2026-11-05",
+      "turno": "A",
+      "servico": "Pronto",
+      "funcao": "",
+      "unidade": "",
+      "linha": 10
+     },
+     {
+      "mat": "M2",
+      "dia": "2026-11-05",
+      "turno": "A",
+      "servico": "Pronto",
+      "funcao": "",
+      "unidade": "",
+      "linha": 11
+     }
+    ],
+    {
+     "nome": "Pronto",
+     "servicos": [
+      "Pronto"
+     ],
+     "militares": "ESCALADOS",
+     "dias": "TODOS",
+     "turnos": [
+      "A"
+     ],
+     "usaUnidade": true,
+     "slots": {
+      "A": [
+       {
+        "unidade": "AR",
+        "funcao": "MOTORISTA",
+        "vagas": 1,
+        "exigeCnh": true
+       },
+       {
+        "unidade": "AR",
+        "funcao": "CHEFE",
+        "vagas": 1,
+        "exigeCnh": false
+       }
+      ]
+     }
+    },
+    {
+     "motoristas": {},
+     "funcoesComCnh": {
+      "MOTORISTA": true
+     },
+     "cnh": {
+      "M1": [
+       "B"
+      ],
+      "M2": [
+       "D"
+      ]
+     },
+     "cnhPorUnidade": {
+      "AR": [
+       "D"
+      ]
+     }
+    }
+   ],
+   "saida": {
+    "inserir": [],
+    "atualizar": [],
+    "remover": [],
+    "conflitos": [
+     {
+      "chave": "M2|2026-11-05|A",
+      "mat": "M2",
+      "dia": "2026-11-05",
+      "turno": "A",
+      "de": null,
+      "para": {
+       "f": "MOTORISTA",
+       "u": "AR"
+      },
+      "funcao": "MOTORISTA",
+      "unidade": "AR",
+      "tabela": "sem função"
+     }
+    ],
+    "invalidas": [],
+    "choques": [],
+    "jaAplicadas": [],
+    "aplicadas": [],
+    "avisosMotorista": [
+     {
+      "mat": "M2",
+      "dia": "2026-11-05",
+      "turno": "A",
+      "funcao": "MOTORISTA"
+     }
+    ],
+    "avisosCnh": [],
+    "resumo": {
+     "inclusoes": 0,
+     "funcoes": 0,
+     "exclusoes": 0,
+     "conflitos": 1,
+     "invalidas": 0,
+     "choques": 0,
+     "jaAplicadas": 0,
+     "motoristas": 1,
+     "cnh": 0
+    }
+   }
+  },
+  {
+   "teste": "teste_p16.js",
+   "entrada": [
+    [],
+    [
+     {
+      "linha": 6,
+      "dia": "2026-11-05",
+      "turno": "B",
+      "unidade": "AR",
+      "funcao": "CHEFE",
+      "texto": "M1",
+      "mat": "M1"
+     }
+    ],
+    [
+     {
+      "mat": "M1",
+      "dia": "2026-11-05",
+      "turno": "B",
+      "servico": "Pronto",
+      "funcao": "",
+      "unidade": "",
+      "linha": 10
+     }
+    ],
+    {
+     "nome": "Pronto",
+     "servicos": [
+      "Pronto"
+     ],
+     "titulo": "ESCALA PRONTO",
+     "militares": "ESCALADOS",
+     "dias": "TODOS",
+     "turnos": [
+      "A",
+      "B"
+     ],
+     "slots": {
+      "A": [
+       {
+        "unidade": "ABT",
+        "funcao": "CHEFE",
+        "vagas": 1,
+        "exigeCnh": false,
+        "cnh": []
+       },
+       {
+        "unidade": "ABT",
+        "funcao": "COMBATENTE",
+        "vagas": 1,
+        "exigeCnh": false,
+        "cnh": []
+       },
+       {
+        "unidade": "ABT",
+        "funcao": "AUXILIAR DE LINHA",
+        "vagas": 1,
+        "exigeCnh": false,
+        "cnh": []
+       },
+       {
+        "unidade": "ABT",
+        "funcao": "MOTORISTA",
+        "vagas": 1,
+        "exigeCnh": true,
+        "cnh": [
+         "D"
+        ]
+       },
+       {
+        "unidade": "AR",
+        "funcao": "MOTORISTA",
+        "vagas": 1,
+        "exigeCnh": true,
+        "cnh": [
+         "D"
+        ]
+       },
+       {
+        "unidade": "AR",
+        "funcao": "CHEFE",
+        "vagas": 1,
+        "exigeCnh": false,
+        "cnh": []
+       },
+       {
+        "unidade": "AR",
+        "funcao": "SOCORRISTA",
+        "vagas": 3,
+        "exigeCnh": false,
+        "cnh": []
+       }
+      ],
+      "B": [
+       {
+        "unidade": "AR",
+        "funcao": "MOTORISTA",
+        "vagas": 1,
+        "exigeCnh": true,
+        "cnh": [
+         "D"
+        ]
+       },
+       {
+        "unidade": "AR",
+        "funcao": "CHEFE",
+        "vagas": 1,
+        "exigeCnh": false,
+        "cnh": []
+       },
+       {
+        "unidade": "AR",
+        "funcao": "SOCORRISTA",
+        "vagas": 3,
+        "exigeCnh": false,
+        "cnh": []
+       }
+      ]
+     },
+     "usaUnidade": true
+    },
+    {
+     "motoristas": {
+      "M1": true
+     },
+     "funcoesComCnh": {},
+     "cnh": {
+      "M1": [
+       "B"
+      ]
+     },
+     "cnhPorUnidade": {},
+     "postos": {
+      "ABT|CHEFE": {
+       "exigeCnh": false,
+       "cnh": []
+      },
+      "ABT|COMBATENTE": {
+       "exigeCnh": false,
+       "cnh": []
+      },
+      "ABT|AUXILIARDELINHA": {
+       "exigeCnh": false,
+       "cnh": []
+      },
+      "ABT|MOTORISTA": {
+       "exigeCnh": true,
+       "cnh": [
+        "D"
+       ]
+      },
+      "AR|MOTORISTA": {
+       "exigeCnh": true,
+       "cnh": [
+        "D"
+       ]
+      },
+      "AR|CHEFE": {
+       "exigeCnh": false,
+       "cnh": []
+      },
+      "AR|SOCORRISTA": {
+       "exigeCnh": false,
+       "cnh": []
+      },
+      "PESEGURO|MOTORISTA": {
+       "exigeCnh": false,
+       "cnh": []
+      },
+      "PESEGURO|CHEFE": {
+       "exigeCnh": false,
+       "cnh": []
+      }
+     }
+    }
+   ],
+   "saida": {
+    "inserir": [],
+    "atualizar": [],
+    "remover": [],
+    "conflitos": [
+     {
+      "chave": "M1|2026-11-05|B",
+      "mat": "M1",
+      "dia": "2026-11-05",
+      "turno": "B",
+      "de": null,
+      "para": {
+       "f": "CHEFE",
+       "u": "AR"
+      },
+      "funcao": "CHEFE",
+      "unidade": "AR",
+      "tabela": "sem função"
+     }
+    ],
+    "invalidas": [],
+    "choques": [],
+    "jaAplicadas": [],
+    "aplicadas": [],
+    "avisosMotorista": [],
+    "avisosCnh": [],
+    "resumo": {
+     "inclusoes": 0,
+     "funcoes": 0,
+     "exclusoes": 0,
+     "conflitos": 1,
+     "invalidas": 0,
+     "choques": 0,
+     "jaAplicadas": 0,
+     "motoristas": 0,
+     "cnh": 0
+    }
+   }
+  },
+  {
+   "teste": "teste_p16.js",
+   "entrada": [
+    [],
+    [
+     {
+      "linha": 6,
+      "dia": "2026-11-05",
+      "turno": "B",
+      "unidade": "AR",
+      "funcao": "MOTORISTA",
+      "texto": "M1",
+      "mat": "M1"
+     }
+    ],
+    [
+     {
+      "mat": "M1",
+      "dia": "2026-11-05",
+      "turno": "B",
+      "servico": "Pronto",
+      "funcao": "",
+      "unidade": "",
+      "linha": 10
+     }
+    ],
+    {
+     "nome": "Pronto",
+     "servicos": [
+      "Pronto"
+     ],
+     "titulo": "ESCALA PRONTO",
+     "militares": "ESCALADOS",
+     "dias": "TODOS",
+     "turnos": [
+      "A",
+      "B"
+     ],
+     "slots": {
+      "A": [
+       {
+        "unidade": "ABT",
+        "funcao": "CHEFE",
+        "vagas": 1,
+        "exigeCnh": false,
+        "cnh": []
+       },
+       {
+        "unidade": "ABT",
+        "funcao": "COMBATENTE",
+        "vagas": 1,
+        "exigeCnh": false,
+        "cnh": []
+       },
+       {
+        "unidade": "ABT",
+        "funcao": "AUXILIAR DE LINHA",
+        "vagas": 1,
+        "exigeCnh": false,
+        "cnh": []
+       },
+       {
+        "unidade": "ABT",
+        "funcao": "MOTORISTA",
+        "vagas": 1,
+        "exigeCnh": true,
+        "cnh": [
+         "D"
+        ]
+       },
+       {
+        "unidade": "AR",
+        "funcao": "MOTORISTA",
+        "vagas": 1,
+        "exigeCnh": true,
+        "cnh": [
+         "D"
+        ]
+       },
+       {
+        "unidade": "AR",
+        "funcao": "CHEFE",
+        "vagas": 1,
+        "exigeCnh": false,
+        "cnh": []
+       },
+       {
+        "unidade": "AR",
+        "funcao": "SOCORRISTA",
+        "vagas": 3,
+        "exigeCnh": false,
+        "cnh": []
+       }
+      ],
+      "B": [
+       {
+        "unidade": "AR",
+        "funcao": "MOTORISTA",
+        "vagas": 1,
+        "exigeCnh": true,
+        "cnh": [
+         "D"
+        ]
+       },
+       {
+        "unidade": "AR",
+        "funcao": "CHEFE",
+        "vagas": 1,
+        "exigeCnh": false,
+        "cnh": []
+       },
+       {
+        "unidade": "AR",
+        "funcao": "SOCORRISTA",
+        "vagas": 3,
+        "exigeCnh": false,
+        "cnh": []
+       }
+      ]
+     },
+     "usaUnidade": true
+    },
+    {
+     "motoristas": {
+      "M1": true
+     },
+     "funcoesComCnh": {},
+     "cnh": {
+      "M1": [
+       "B"
+      ]
+     },
+     "cnhPorUnidade": {},
+     "postos": {
+      "ABT|CHEFE": {
+       "exigeCnh": false,
+       "cnh": []
+      },
+      "ABT|COMBATENTE": {
+       "exigeCnh": false,
+       "cnh": []
+      },
+      "ABT|AUXILIARDELINHA": {
+       "exigeCnh": false,
+       "cnh": []
+      },
+      "ABT|MOTORISTA": {
+       "exigeCnh": true,
+       "cnh": [
+        "D"
+       ]
+      },
+      "AR|MOTORISTA": {
+       "exigeCnh": true,
+       "cnh": [
+        "D"
+       ]
+      },
+      "AR|CHEFE": {
+       "exigeCnh": false,
+       "cnh": []
+      },
+      "AR|SOCORRISTA": {
+       "exigeCnh": false,
+       "cnh": []
+      },
+      "PESEGURO|MOTORISTA": {
+       "exigeCnh": false,
+       "cnh": []
+      },
+      "PESEGURO|CHEFE": {
+       "exigeCnh": false,
+       "cnh": []
+      }
+     }
+    }
+   ],
+   "saida": {
+    "inserir": [],
+    "atualizar": [],
+    "remover": [],
+    "conflitos": [
+     {
+      "chave": "M1|2026-11-05|B",
+      "mat": "M1",
+      "dia": "2026-11-05",
+      "turno": "B",
+      "de": null,
+      "para": {
+       "f": "MOTORISTA",
+       "u": "AR"
+      },
+      "funcao": "MOTORISTA",
+      "unidade": "AR",
+      "tabela": "sem função"
+     }
+    ],
+    "invalidas": [],
+    "choques": [],
+    "jaAplicadas": [],
+    "aplicadas": [],
+    "avisosMotorista": [],
+    "avisosCnh": [
+     {
+      "mat": "M1",
+      "dia": "2026-11-05",
+      "turno": "B",
+      "funcao": "MOTORISTA",
+      "unidade": "AR",
+      "exigida": "D"
+     }
+    ],
+    "resumo": {
+     "inclusoes": 0,
+     "funcoes": 0,
+     "exclusoes": 0,
+     "conflitos": 1,
+     "invalidas": 0,
+     "choques": 0,
+     "jaAplicadas": 0,
+     "motoristas": 0,
+     "cnh": 1
+    }
+   }
+  },
+  {
+   "teste": "teste_p16.js",
+   "entrada": [
+    [
+     {
+      "mat": "M1",
+      "dia": "2026-11-05",
+      "turno": "A",
+      "servico": "Pronto",
+      "funcao": "MOTORISTA",
+      "unidade": ""
+     },
+     {
+      "mat": "M2",
+      "dia": "2026-11-05",
+      "turno": "A",
+      "servico": "Pronto",
+      "funcao": "MOTORISTA",
+      "unidade": "AR"
+     },
+     {
+      "mat": "M3",
+      "dia": "2026-11-05",
+      "turno": "A",
+      "servico": "Pronto",
+      "funcao": "MOTORISTA",
+      "unidade": "",
+      "fora": true
+     },
+     {
+      "mat": "M4",
+      "dia": "2026-11-05",
+      "turno": "A",
+      "servico": "Pronto",
+      "funcao": "COZINHEIRO",
+      "unidade": "",
+      "fora": true
+     }
+    ],
+    [
+     {
+      "linha": 6,
+      "dia": "2026-11-05",
+      "turno": "A",
+      "unidade": "ABT",
+      "funcao": "MOTORISTA",
+      "texto": "M1",
+      "mat": "M1"
+     },
+     {
+      "linha": 7,
+      "dia": "2026-11-05",
+      "turno": "A",
+      "unidade": "AR",
+      "funcao": "MOTORISTA",
+      "texto": "M2",
+      "mat": "M2"
+     }
+    ],
+    [
+     {
+      "mat": "M1",
+      "dia": "2026-11-05",
+      "turno": "A",
+      "servico": "Pronto",
+      "funcao": "MOTORISTA",
+      "unidade": "",
+      "linha": 10
+     },
+     {
+      "mat": "M2",
+      "dia": "2026-11-05",
+      "turno": "A",
+      "servico": "Pronto",
+      "funcao": "MOTORISTA",
+      "unidade": "AR",
+      "linha": 11
+     },
+     {
+      "mat": "M3",
+      "dia": "2026-11-05",
+      "turno": "A",
+      "servico": "Pronto",
+      "funcao": "MOTORISTA",
+      "unidade": "",
+      "linha": 12
+     },
+     {
+      "mat": "M4",
+      "dia": "2026-11-05",
+      "turno": "A",
+      "servico": "Pronto",
+      "funcao": "COZINHEIRO",
+      "unidade": "",
+      "linha": 13
+     }
+    ],
+    {
+     "nome": "Pronto",
+     "servicos": [
+      "Pronto"
+     ],
+     "titulo": "ESCALA PRONTO",
+     "militares": "ESCALADOS",
+     "dias": "TODOS",
+     "turnos": [
+      "A",
+      "B"
+     ],
+     "slots": {
+      "A": [
+       {
+        "unidade": "ABT",
+        "funcao": "CHEFE",
+        "vagas": 1,
+        "exigeCnh": false,
+        "cnh": []
+       },
+       {
+        "unidade": "ABT",
+        "funcao": "COMBATENTE",
+        "vagas": 1,
+        "exigeCnh": false,
+        "cnh": []
+       },
+       {
+        "unidade": "ABT",
+        "funcao": "AUXILIAR DE LINHA",
+        "vagas": 1,
+        "exigeCnh": false,
+        "cnh": []
+       },
+       {
+        "unidade": "ABT",
+        "funcao": "MOTORISTA",
+        "vagas": 1,
+        "exigeCnh": true,
+        "cnh": [
+         "D"
+        ]
+       },
+       {
+        "unidade": "AR",
+        "funcao": "MOTORISTA",
+        "vagas": 1,
+        "exigeCnh": true,
+        "cnh": [
+         "D"
+        ]
+       },
+       {
+        "unidade": "AR",
+        "funcao": "CHEFE",
+        "vagas": 1,
+        "exigeCnh": false,
+        "cnh": []
+       },
+       {
+        "unidade": "AR",
+        "funcao": "SOCORRISTA",
+        "vagas": 3,
+        "exigeCnh": false,
+        "cnh": []
+       }
+      ],
+      "B": [
+       {
+        "unidade": "AR",
+        "funcao": "MOTORISTA",
+        "vagas": 1,
+        "exigeCnh": true,
+        "cnh": [
+         "D"
+        ]
+       },
+       {
+        "unidade": "AR",
+        "funcao": "CHEFE",
+        "vagas": 1,
+        "exigeCnh": false,
+        "cnh": []
+       },
+       {
+        "unidade": "AR",
+        "funcao": "SOCORRISTA",
+        "vagas": 3,
+        "exigeCnh": false,
+        "cnh": []
+       }
+      ]
+     },
+     "usaUnidade": true
+    },
+    {}
+   ],
+   "saida": {
+    "inserir": [],
+    "atualizar": [
+     {
+      "chave": "M1|2026-11-05|A",
+      "linhas": [
+       10
+      ],
+      "funcao": "MOTORISTA",
+      "unidade": "ABT"
+     }
+    ],
+    "remover": [],
+    "conflitos": [],
+    "invalidas": [],
+    "choques": [],
+    "jaAplicadas": [],
+    "aplicadas": [
+     {
+      "chave": "M1|2026-11-05|A",
+      "estado": {
+       "f": "MOTORISTA",
+       "u": "ABT"
+      },
+      "servico": "Pronto"
+     }
+    ],
+    "avisosMotorista": [],
+    "avisosCnh": [],
+    "resumo": {
+     "inclusoes": 0,
+     "funcoes": 1,
+     "exclusoes": 0,
+     "conflitos": 0,
+     "invalidas": 0,
+     "choques": 0,
+     "jaAplicadas": 0,
+     "motoristas": 0,
+     "cnh": 0
+    }
+   }
+  },
+  {
+   "teste": "teste_p18.js",
+   "entrada": [
+    [],
+    [
+     {
+      "linha": 6,
+      "dia": "2026-11-05",
+      "turno": "B",
+      "unidade": "UTI - PRONTO",
+      "funcao": "CHEFE",
+      "texto": "N1",
+      "mat": "N1"
+     }
+    ],
+    [],
+    {
+     "nome": "Ordinário",
+     "servicos": [
+      "Pronto",
+      "JES",
+      "Saldo"
+     ],
+     "titulo": "ESCALA DE SERVIÇO",
+     "militares": "TODOS",
+     "dias": "TODOS",
+     "turnos": [
+      "A",
+      "B"
+     ],
+     "slots": {
+      "A": [
+       {
+        "unidade": "Apoio Aquartelado",
+        "funcao": "ADJUNTO",
+        "vagas": 1,
+        "exigeCnh": false,
+        "cnh": []
+       },
+       {
+        "unidade": "Apoio Aquartelado",
+        "funcao": "MOTORISTA DE ACO",
+        "vagas": 1,
+        "exigeCnh": true,
+        "cnh": [
+         "B"
+        ]
+       },
+       {
+        "unidade": "Apoio Aquartelado",
+        "funcao": "DESPACHANTE 1",
+        "vagas": 1,
+        "exigeCnh": false,
+        "cnh": []
+       },
+       {
+        "unidade": "Apoio Aquartelado",
+        "funcao": "DESPACHANTE 2",
+        "vagas": 1,
+        "exigeCnh": false,
+        "cnh": []
+       },
+       {
+        "unidade": "UTI - PRONTO",
+        "funcao": "CHEFE",
+        "vagas": 1,
+        "exigeCnh": false,
+        "cnh": []
+       },
+       {
+        "unidade": "UTI - PRONTO",
+        "funcao": "CHEFE DE 2ª LINHA",
+        "vagas": 1,
+        "exigeCnh": false,
+        "cnh": []
+       },
+       {
+        "unidade": "UTI - PRONTO",
+        "funcao": "COMBATENTE",
+        "vagas": 1,
+        "exigeCnh": false,
+        "cnh": []
+       },
+       {
+        "unidade": "UTI - PRONTO",
+        "funcao": "AUXILIAR DE LINHA",
+        "vagas": 1,
+        "exigeCnh": false,
+        "cnh": []
+       },
+       {
+        "unidade": "UTI - PRONTO",
+        "funcao": "MOTORISTA",
+        "vagas": 1,
+        "exigeCnh": true,
+        "cnh": [
+         "D"
+        ]
+       },
+       {
+        "unidade": "UTAPH - PRONTO",
+        "funcao": "MOTORISTA",
+        "vagas": 1,
+        "exigeCnh": true,
+        "cnh": [
+         "D"
+        ]
+       },
+       {
+        "unidade": "UTAPH - PRONTO",
+        "funcao": "CHEFE",
+        "vagas": 1,
+        "exigeCnh": false,
+        "cnh": []
+       },
+       {
+        "unidade": "UTAPH - PRONTO",
+        "funcao": "SOCORRISTA",
+        "vagas": 3,
+        "exigeCnh": false,
+        "cnh": []
+       },
+       {
+        "unidade": "UTS - PRONTO",
+        "funcao": "MOTORISTA",
+        "vagas": 1,
+        "exigeCnh": true,
+        "cnh": [
+         "B"
+        ]
+       }
+      ],
+      "B": [
+       {
+        "unidade": "Apoio Aquartelado",
+        "funcao": "ADJUNTO",
+        "vagas": 1,
+        "exigeCnh": false,
+        "cnh": []
+       },
+       {
+        "unidade": "Apoio Aquartelado",
+        "funcao": "MOTORISTA DE ACO",
+        "vagas": 1,
+        "exigeCnh": true,
+        "cnh": [
+         "B"
+        ]
+       },
+       {
+        "unidade": "Apoio Aquartelado",
+        "funcao": "DESPACHANTE 1",
+        "vagas": 1,
+        "exigeCnh": false,
+        "cnh": []
+       },
+       {
+        "unidade": "Apoio Aquartelado",
+        "funcao": "DESPACHANTE 2",
+        "vagas": 1,
+        "exigeCnh": false,
+        "cnh": []
+       },
+       {
+        "unidade": "UTI - PRONTO",
+        "funcao": "CHEFE",
+        "vagas": 1,
+        "exigeCnh": false,
+        "cnh": []
+       },
+       {
+        "unidade": "UTI - PRONTO",
+        "funcao": "CHEFE DE 2ª LINHA",
+        "vagas": 1,
+        "exigeCnh": false,
+        "cnh": []
+       },
+       {
+        "unidade": "UTI - PRONTO",
+        "funcao": "COMBATENTE",
+        "vagas": 1,
+        "exigeCnh": false,
+        "cnh": []
+       },
+       {
+        "unidade": "UTI - PRONTO",
+        "funcao": "AUXILIAR DE LINHA",
+        "vagas": 1,
+        "exigeCnh": false,
+        "cnh": []
+       },
+       {
+        "unidade": "UTI - PRONTO",
+        "funcao": "MOTORISTA",
+        "vagas": 1,
+        "exigeCnh": true,
+        "cnh": [
+         "D"
+        ]
+       },
+       {
+        "unidade": "UTAPH - PRONTO",
+        "funcao": "MOTORISTA",
+        "vagas": 1,
+        "exigeCnh": true,
+        "cnh": [
+         "D"
+        ]
+       },
+       {
+        "unidade": "UTAPH - PRONTO",
+        "funcao": "CHEFE",
+        "vagas": 1,
+        "exigeCnh": false,
+        "cnh": []
+       },
+       {
+        "unidade": "UTAPH - PRONTO",
+        "funcao": "SOCORRISTA",
+        "vagas": 3,
+        "exigeCnh": false,
+        "cnh": []
+       },
+       {
+        "unidade": "UTS - PRONTO",
+        "funcao": "MOTORISTA",
+        "vagas": 1,
+        "exigeCnh": true,
+        "cnh": [
+         "B"
+        ]
+       }
+      ]
+     },
+     "usaUnidade": true
+    },
+    {}
+   ],
+   "saida": {
+    "inserir": [
+     {
+      "mat": "N1",
+      "dia": "2026-11-05",
+      "turno": "B",
+      "servico": "Pronto",
+      "funcao": "CHEFE",
+      "unidade": "UTI - PRONTO",
+      "chave": "N1|2026-11-05|B"
+     }
+    ],
+    "atualizar": [],
+    "remover": [],
+    "conflitos": [],
+    "invalidas": [],
+    "choques": [],
+    "jaAplicadas": [],
+    "aplicadas": [
+     {
+      "chave": "N1|2026-11-05|B",
+      "estado": {
+       "f": "CHEFE",
+       "u": "UTI - PRONTO"
+      },
+      "servico": "Pronto"
+     }
+    ],
+    "avisosMotorista": [],
+    "avisosCnh": [],
+    "resumo": {
+     "inclusoes": 1,
+     "funcoes": 0,
+     "exclusoes": 0,
+     "conflitos": 0,
+     "invalidas": 0,
+     "choques": 0,
+     "jaAplicadas": 0,
+     "motoristas": 0,
+     "cnh": 0
+    }
+   }
+  },
+  {
+   "teste": "teste_p18.js",
+   "entrada": [
+    [
+     {
+      "mat": "J9",
+      "dia": "2026-11-05",
+      "turno": "B",
+      "servico": "JES",
+      "funcao": "",
+      "unidade": ""
+     }
+    ],
+    [
+     {
+      "linha": 6,
+      "dia": "2026-11-05",
+      "turno": "B",
+      "unidade": "UTI - PRONTO",
+      "funcao": "CHEFE",
+      "texto": "J9",
+      "mat": "J9"
+     }
+    ],
+    [
+     {
+      "mat": "J9",
+      "dia": "2026-11-05",
+      "turno": "B",
+      "servico": "JES",
+      "funcao": "",
+      "unidade": "",
+      "linha": 20
+     }
+    ],
+    {
+     "nome": "Ordinário",
+     "servicos": [
+      "Pronto",
+      "JES",
+      "Saldo"
+     ],
+     "titulo": "ESCALA DE SERVIÇO",
+     "militares": "TODOS",
+     "dias": "TODOS",
+     "turnos": [
+      "A",
+      "B"
+     ],
+     "slots": {
+      "A": [
+       {
+        "unidade": "Apoio Aquartelado",
+        "funcao": "ADJUNTO",
+        "vagas": 1,
+        "exigeCnh": false,
+        "cnh": []
+       },
+       {
+        "unidade": "Apoio Aquartelado",
+        "funcao": "MOTORISTA DE ACO",
+        "vagas": 1,
+        "exigeCnh": true,
+        "cnh": [
+         "B"
+        ]
+       },
+       {
+        "unidade": "Apoio Aquartelado",
+        "funcao": "DESPACHANTE 1",
+        "vagas": 1,
+        "exigeCnh": false,
+        "cnh": []
+       },
+       {
+        "unidade": "Apoio Aquartelado",
+        "funcao": "DESPACHANTE 2",
+        "vagas": 1,
+        "exigeCnh": false,
+        "cnh": []
+       },
+       {
+        "unidade": "UTI - PRONTO",
+        "funcao": "CHEFE",
+        "vagas": 1,
+        "exigeCnh": false,
+        "cnh": []
+       },
+       {
+        "unidade": "UTI - PRONTO",
+        "funcao": "CHEFE DE 2ª LINHA",
+        "vagas": 1,
+        "exigeCnh": false,
+        "cnh": []
+       },
+       {
+        "unidade": "UTI - PRONTO",
+        "funcao": "COMBATENTE",
+        "vagas": 1,
+        "exigeCnh": false,
+        "cnh": []
+       },
+       {
+        "unidade": "UTI - PRONTO",
+        "funcao": "AUXILIAR DE LINHA",
+        "vagas": 1,
+        "exigeCnh": false,
+        "cnh": []
+       },
+       {
+        "unidade": "UTI - PRONTO",
+        "funcao": "MOTORISTA",
+        "vagas": 1,
+        "exigeCnh": true,
+        "cnh": [
+         "D"
+        ]
+       },
+       {
+        "unidade": "UTAPH - PRONTO",
+        "funcao": "MOTORISTA",
+        "vagas": 1,
+        "exigeCnh": true,
+        "cnh": [
+         "D"
+        ]
+       },
+       {
+        "unidade": "UTAPH - PRONTO",
+        "funcao": "CHEFE",
+        "vagas": 1,
+        "exigeCnh": false,
+        "cnh": []
+       },
+       {
+        "unidade": "UTAPH - PRONTO",
+        "funcao": "SOCORRISTA",
+        "vagas": 3,
+        "exigeCnh": false,
+        "cnh": []
+       },
+       {
+        "unidade": "UTS - PRONTO",
+        "funcao": "MOTORISTA",
+        "vagas": 1,
+        "exigeCnh": true,
+        "cnh": [
+         "B"
+        ]
+       }
+      ],
+      "B": [
+       {
+        "unidade": "Apoio Aquartelado",
+        "funcao": "ADJUNTO",
+        "vagas": 1,
+        "exigeCnh": false,
+        "cnh": []
+       },
+       {
+        "unidade": "Apoio Aquartelado",
+        "funcao": "MOTORISTA DE ACO",
+        "vagas": 1,
+        "exigeCnh": true,
+        "cnh": [
+         "B"
+        ]
+       },
+       {
+        "unidade": "Apoio Aquartelado",
+        "funcao": "DESPACHANTE 1",
+        "vagas": 1,
+        "exigeCnh": false,
+        "cnh": []
+       },
+       {
+        "unidade": "Apoio Aquartelado",
+        "funcao": "DESPACHANTE 2",
+        "vagas": 1,
+        "exigeCnh": false,
+        "cnh": []
+       },
+       {
+        "unidade": "UTI - PRONTO",
+        "funcao": "CHEFE",
+        "vagas": 1,
+        "exigeCnh": false,
+        "cnh": []
+       },
+       {
+        "unidade": "UTI - PRONTO",
+        "funcao": "CHEFE DE 2ª LINHA",
+        "vagas": 1,
+        "exigeCnh": false,
+        "cnh": []
+       },
+       {
+        "unidade": "UTI - PRONTO",
+        "funcao": "COMBATENTE",
+        "vagas": 1,
+        "exigeCnh": false,
+        "cnh": []
+       },
+       {
+        "unidade": "UTI - PRONTO",
+        "funcao": "AUXILIAR DE LINHA",
+        "vagas": 1,
+        "exigeCnh": false,
+        "cnh": []
+       },
+       {
+        "unidade": "UTI - PRONTO",
+        "funcao": "MOTORISTA",
+        "vagas": 1,
+        "exigeCnh": true,
+        "cnh": [
+         "D"
+        ]
+       },
+       {
+        "unidade": "UTAPH - PRONTO",
+        "funcao": "MOTORISTA",
+        "vagas": 1,
+        "exigeCnh": true,
+        "cnh": [
+         "D"
+        ]
+       },
+       {
+        "unidade": "UTAPH - PRONTO",
+        "funcao": "CHEFE",
+        "vagas": 1,
+        "exigeCnh": false,
+        "cnh": []
+       },
+       {
+        "unidade": "UTAPH - PRONTO",
+        "funcao": "SOCORRISTA",
+        "vagas": 3,
+        "exigeCnh": false,
+        "cnh": []
+       },
+       {
+        "unidade": "UTS - PRONTO",
+        "funcao": "MOTORISTA",
+        "vagas": 1,
+        "exigeCnh": true,
+        "cnh": [
+         "B"
+        ]
+       }
+      ]
+     },
+     "usaUnidade": true
+    },
+    {}
+   ],
+   "saida": {
+    "inserir": [],
+    "atualizar": [
+     {
+      "chave": "J9|2026-11-05|B",
+      "linhas": [
+       20
+      ],
+      "funcao": "CHEFE",
+      "unidade": "UTI - PRONTO"
+     }
+    ],
+    "remover": [],
+    "conflitos": [],
+    "invalidas": [],
+    "choques": [],
+    "jaAplicadas": [],
+    "aplicadas": [
+     {
+      "chave": "J9|2026-11-05|B",
+      "estado": {
+       "f": "CHEFE",
+       "u": "UTI - PRONTO"
+      },
+      "servico": "JES"
+     }
+    ],
+    "avisosMotorista": [],
+    "avisosCnh": [],
+    "resumo": {
+     "inclusoes": 0,
+     "funcoes": 1,
+     "exclusoes": 0,
+     "conflitos": 0,
+     "invalidas": 0,
+     "choques": 0,
+     "jaAplicadas": 0,
+     "motoristas": 0,
+     "cnh": 0
+    }
+   }
+  }
+ ]
+}

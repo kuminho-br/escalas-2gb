@@ -221,9 +221,9 @@ console.log('== P19 item 4 (B69; RN-93) menu "Atualizar estrutura"');
   }
   // a sandbox ANTES das P16 a P19: nomes antigos, formato antigo, colunas faltando
   const antiga = () => planilha([
-    novaAba('ALOCAÇÕES TABULADAS', [['', 'MATRÍCULA', 'DATA', 'SERVIÇO', 'TURNO', 'FUNÇÃO'], ['', '707170-1', '01/11/2026', 'Pronto', 'A', '']]),
+    novaAba('ALOCAÇÕES TABULADAS', [['', 'MATRÍCULA', 'DATA', 'SERVIÇO', 'TURNO', 'FUNÇÃO'], ['', '990170-1', '01/11/2026', 'Pronto', 'A', '']]),
     novaAba('TURNOS', [['ID', 'TIPO DE SERVIÇO', 'SERVIÇO', 'TURNO', 'HORÁRIO INÍCIO', 'HORÁRIO FIM'], [1, 'Ordinário', 'Pronto', 'A', '08:00', '20:00'], [2, 'PJES', 'JES', 'A', '08:00', '20:00']]),
-    novaAba('MILITARES', [['MATRÍCULA', 'POSTO/GRAD', 'NOME DE GUERRA', 'SEÇÃO', 'MOTORISTA'], ['707170-1', 'ST BM', 'ADELSON', '1ª SB', 'Sim']]),
+    novaAba('MILITARES', [['MATRÍCULA', 'POSTO/GRAD', 'NOME DE GUERRA', 'SEÇÃO', 'MOTORISTA'], ['990170-1', 'ST BM', 'FICTICIO', '1ª SB', 'Sim']]),
     novaAba('VIATURAS', [['VIGÊNCIA (A PARTIR DE)', 'VIATURA', 'TIPO', 'ATIVAR', 'PRIORIDADE', 'TIPOS DE SERVIÇO', 'CNH', 'FUNÇÃO', 'MÍNIMO', 'MÁXIMO'], ['2026-01', 'ABT', 'Auto Bomba', 'SIM', 1, '', 'D', 'MOTORISTA', 1, 1]]),
     novaAba('ESCALAS', [['ESCALA', 'SERVIÇOS', 'TÍTULO', 'MILITARES', 'DIAS'], ['Bioma', 'Bioma', '', 'TODOS', 'TODOS']]),
     novaAba('MODELOS DE GUARNIÇÃO', [['ESCALA', 'TURNO', 'UNIDADE', 'FUNÇÃO', 'VAGAS', 'EXIGE CNH'], ['Bioma', '', 'ABT', 'MOTORISTA', 1, 'SIM'], ['Bioma', '', 'ABT', 'CHEFE', 1, '']])
@@ -238,7 +238,7 @@ console.log('== P19 item 4 (B69; RN-93) menu "Atualizar estrutura"');
   let rel = E.atualizarEstrutura_();
   const estado = id => (rel.passos.find(p => p.id === id) || {}).estado;
   ver('o aceite: a planilha antiga chega à estrutura atual, sem erro', rel.erros === 0 && rel.feitos >= 10, E.textoDaEstrutura_(rel));
-  ver('as abas de nome antigo foram renomeadas (com os dados)', ss.getSheetByName('ALOCAÇÕES') && ss.getSheetByName('GUARNIÇÕES') && ss.getSheetByName('ALOCAÇÕES').v[1][1] === '707170-1');
+  ver('as abas de nome antigo foram renomeadas (com os dados)', ss.getSheetByName('ALOCAÇÕES') && ss.getSheetByName('GUARNIÇÕES') && ss.getSheetByName('ALOCAÇÕES').v[1][1] === '990170-1');
   const cab = n => ss.getSheetByName(n).v[0].map(String);
   ver('GUARNIÇÕES: ganhou a coluna GUARNIÇÃO antes da VIATURA (com o nome copiado) e perdeu a TIPOS DE SERVIÇO vazia',
     cab('GUARNIÇÕES').indexOf('GUARNIÇÃO') === cab('GUARNIÇÕES').indexOf('VIATURA') - 1 && ss.getSheetByName('GUARNIÇÕES').v[1][1] === 'ABT' && cab('GUARNIÇÕES').indexOf('TIPOS DE SERVIÇO') < 0, cab('GUARNIÇÕES'));
@@ -250,7 +250,7 @@ console.log('== P19 item 4 (B69; RN-93) menu "Atualizar estrutura"');
   ver('a CNH entrou ao lado de MOTORISTA', cab('MILITARES').indexOf('CNH') === cab('MILITARES').indexOf('MOTORISTA') + 1, cab('MILITARES'));
   ver('as abas que faltavam foram criadas (COTAS, VOLUNTARIADO, CONFIGURAÇÕES); a ESCALAS que existia ficou como estava',
     ['COTAS', 'VOLUNTARIADO', 'CONFIGURAÇÕES'].every(n => ss.getSheetByName(n)) && estado('aba-escalas') === 'atual' && ss.getSheetByName('ESCALAS').v[1][0] === 'Bioma');
-  ver('nenhum dado foi perdido nas abas que já existiam', ss.getSheetByName('MILITARES').v[1].indexOf('ADELSON') >= 0 && ss.getSheetByName('TURNOS').v.length === 3);
+  ver('nenhum dado foi perdido nas abas que já existiam', ss.getSheetByName('MILITARES').v[1].indexOf('FICTICIO') >= 0 && ss.getSheetByName('TURNOS').v.length === 3);
 
   rel = E.atualizarEstrutura_();
   ver('o aceite: rodar de novo não tem nada a fazer (todos os passos "já estava")', rel.feitos === 0 && rel.erros === 0 && rel.passos.every(p => p.estado === 'atual'), rel.passos.map(p => p.id + ':' + p.estado));

@@ -1,0 +1,54 @@
+{
+ "funcao": "funcaoExigeCnh_",
+ "casos": [
+  {
+   "teste": "teste_p16.js",
+   "entrada": [
+    "AUXILIAR DO MOTORISTA",
+    {
+     "MOTORISTA": true,
+     "MOTORISTAACO": true
+    }
+   ],
+   "saida": false
+  },
+  {
+   "teste": "teste_p16.js",
+   "entrada": [
+    "CHEFE",
+    {
+     "MOTORISTA": true,
+     "MOTORISTAACO": true
+    }
+   ],
+   "saida": false
+  },
+  {
+   "teste": "teste_p16.js",
+   "entrada": [
+    "CHEFE",
+    {}
+   ],
+   "saida": false
+  },
+  {
+   "teste": "teste_p16.js",
+   "entrada": [
+    "MOTORISTA ACO",
+    {
+     "MOTORISTA": true,
+     "MOTORISTAACO": true
+    }
+   ],
+   "saida": true
+  },
+  {
+   "teste": "teste_p16.js",
+   "entrada": [
+    "MOTORISTA",
+    {}
+   ],
+   "saida": true
+  }
+ ]
+}

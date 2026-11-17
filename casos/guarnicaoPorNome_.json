@@ -1,0 +1,370 @@
+{
+ "funcao": "guarnicaoPorNome_",
+ "casos": [
+  {
+   "teste": "teste_p16.js",
+   "entrada": [
+    {
+     "guarnicoes": [
+      {
+       "id": "AR",
+       "viatura": "AR",
+       "tipo": "Auto Resgate",
+       "ativar": true,
+       "prioridade": 1,
+       "cnh": [
+        "D"
+       ],
+       "funcoes": [
+        {
+         "funcao": "MOTORISTA",
+         "minimo": 1,
+         "maximo": 1,
+         "cnh": [
+          "D"
+         ]
+        },
+        {
+         "funcao": "CHEFE",
+         "minimo": 1,
+         "maximo": 1,
+         "cnh": []
+        },
+        {
+         "funcao": "SOCORRISTA",
+         "minimo": 1,
+         "maximo": 3,
+         "cnh": []
+        }
+       ]
+      },
+      {
+       "id": "APOIO AQUARTELADO",
+       "viatura": "",
+       "tipo": "Aquartelado",
+       "ativar": true,
+       "prioridade": 2,
+       "cnh": [
+        "D"
+       ],
+       "funcoes": [
+        {
+         "funcao": "MOTORISTA ACO",
+         "minimo": 1,
+         "maximo": 1,
+         "cnh": [
+          "D"
+         ]
+        },
+        {
+         "funcao": "ADJUNTO DE DIA",
+         "minimo": 1,
+         "maximo": 1,
+         "cnh": []
+        }
+       ]
+      },
+      {
+       "id": "ABTS",
+       "viatura": "ABTS",
+       "tipo": "Auto Bomba",
+       "ativar": false,
+       "prioridade": null,
+       "cnh": [
+        "C"
+       ],
+       "funcoes": [
+        {
+         "funcao": "MOTORISTA",
+         "minimo": 1,
+         "maximo": 1,
+         "cnh": [
+          "C"
+         ]
+        }
+       ]
+      }
+     ],
+     "porId": {
+      "ABTS": {
+       "id": "ABTS",
+       "viatura": "ABTS",
+       "tipo": "Auto Bomba",
+       "ativar": false,
+       "prioridade": null,
+       "cnh": [
+        "C"
+       ],
+       "funcoes": [
+        {
+         "funcao": "MOTORISTA",
+         "minimo": 1,
+         "maximo": 1,
+         "cnh": [
+          "C"
+         ]
+        }
+       ]
+      },
+      "APOIOAQUARTELADO": {
+       "id": "APOIO AQUARTELADO",
+       "viatura": "",
+       "tipo": "Aquartelado",
+       "ativar": true,
+       "prioridade": 2,
+       "cnh": [
+        "D"
+       ],
+       "funcoes": [
+        {
+         "funcao": "MOTORISTA ACO",
+         "minimo": 1,
+         "maximo": 1,
+         "cnh": [
+          "D"
+         ]
+        },
+        {
+         "funcao": "ADJUNTO DE DIA",
+         "minimo": 1,
+         "maximo": 1,
+         "cnh": []
+        }
+       ]
+      },
+      "AR": {
+       "id": "AR",
+       "viatura": "AR",
+       "tipo": "Auto Resgate",
+       "ativar": true,
+       "prioridade": 1,
+       "cnh": [
+        "D"
+       ],
+       "funcoes": [
+        {
+         "funcao": "MOTORISTA",
+         "minimo": 1,
+         "maximo": 1,
+         "cnh": [
+          "D"
+         ]
+        },
+        {
+         "funcao": "CHEFE",
+         "minimo": 1,
+         "maximo": 1,
+         "cnh": []
+        },
+        {
+         "funcao": "SOCORRISTA",
+         "minimo": 1,
+         "maximo": 3,
+         "cnh": []
+        }
+       ]
+      }
+     },
+     "avisos": []
+    },
+    "UTI móvel"
+   ],
+   "saida": null
+  },
+  {
+   "teste": "teste_p16.js",
+   "entrada": [
+    {
+     "guarnicoes": [
+      {
+       "id": "AR",
+       "viatura": "AR",
+       "tipo": "Auto Resgate",
+       "ativar": true,
+       "prioridade": 1,
+       "cnh": [
+        "D"
+       ],
+       "funcoes": [
+        {
+         "funcao": "MOTORISTA",
+         "minimo": 1,
+         "maximo": 1,
+         "cnh": [
+          "D"
+         ]
+        },
+        {
+         "funcao": "CHEFE",
+         "minimo": 1,
+         "maximo": 1,
+         "cnh": []
+        },
+        {
+         "funcao": "SOCORRISTA",
+         "minimo": 1,
+         "maximo": 3,
+         "cnh": []
+        }
+       ]
+      },
+      {
+       "id": "APOIO AQUARTELADO",
+       "viatura": "",
+       "tipo": "Aquartelado",
+       "ativar": true,
+       "prioridade": 2,
+       "cnh": [
+        "D"
+       ],
+       "funcoes": [
+        {
+         "funcao": "MOTORISTA ACO",
+         "minimo": 1,
+         "maximo": 1,
+         "cnh": [
+          "D"
+         ]
+        },
+        {
+         "funcao": "ADJUNTO DE DIA",
+         "minimo": 1,
+         "maximo": 1,
+         "cnh": []
+        }
+       ]
+      },
+      {
+       "id": "ABTS",
+       "viatura": "ABTS",
+       "tipo": "Auto Bomba",
+       "ativar": false,
+       "prioridade": null,
+       "cnh": [
+        "C"
+       ],
+       "funcoes": [
+        {
+         "funcao": "MOTORISTA",
+         "minimo": 1,
+         "maximo": 1,
+         "cnh": [
+          "C"
+         ]
+        }
+       ]
+      }
+     ],
+     "porId": {
+      "ABTS": {
+       "id": "ABTS",
+       "viatura": "ABTS",
+       "tipo": "Auto Bomba",
+       "ativar": false,
+       "prioridade": null,
+       "cnh": [
+        "C"
+       ],
+       "funcoes": [
+        {
+         "funcao": "MOTORISTA",
+         "minimo": 1,
+         "maximo": 1,
+         "cnh": [
+          "C"
+         ]
+        }
+       ]
+      },
+      "APOIOAQUARTELADO": {
+       "id": "APOIO AQUARTELADO",
+       "viatura": "",
+       "tipo": "Aquartelado",
+       "ativar": true,
+       "prioridade": 2,
+       "cnh": [
+        "D"
+       ],
+       "funcoes": [
+        {
+         "funcao": "MOTORISTA ACO",
+         "minimo": 1,
+         "maximo": 1,
+         "cnh": [
+          "D"
+         ]
+        },
+        {
+         "funcao": "ADJUNTO DE DIA",
+         "minimo": 1,
+         "maximo": 1,
+         "cnh": []
+        }
+       ]
+      },
+      "AR": {
+       "id": "AR",
+       "viatura": "AR",
+       "tipo": "Auto Resgate",
+       "ativar": true,
+       "prioridade": 1,
+       "cnh": [
+        "D"
+       ],
+       "funcoes": [
+        {
+         "funcao": "MOTORISTA",
+         "minimo": 1,
+         "maximo": 1,
+         "cnh": [
+          "D"
+         ]
+        },
+        {
+         "funcao": "CHEFE",
+         "minimo": 1,
+         "maximo": 1,
+         "cnh": []
+        },
+        {
+         "funcao": "SOCORRISTA",
+         "minimo": 1,
+         "maximo": 3,
+         "cnh": []
+        }
+       ]
+      }
+     },
+     "avisos": []
+    },
+    "apoio aquartelado"
+   ],
+   "saida": {
+    "id": "APOIO AQUARTELADO",
+    "viatura": "",
+    "tipo": "Aquartelado",
+    "ativar": true,
+    "prioridade": 2,
+    "cnh": [
+     "D"
+    ],
+    "funcoes": [
+     {
+      "funcao": "MOTORISTA ACO",
+      "minimo": 1,
+      "maximo": 1,
+      "cnh": [
+       "D"
+      ]
+     },
+     {
+      "funcao": "ADJUNTO DE DIA",
+      "minimo": 1,
+      "maximo": 1,
+      "cnh": []
+     }
+    ]
+   }
+  }
+ ]
+}

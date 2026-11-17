@@ -1,0 +1,5676 @@
+{
+ "funcao": "distribuirCotas_",
+ "casos": [
+  {
+   "teste": "teste_cotas.js",
+   "entrada": [
+    {
+     "mes": "2026-11",
+     "operacoes": [
+      {
+       "nome": "Bioma",
+       "servico": "Bioma",
+       "dias": [
+        "2026-11-03"
+       ],
+       "turnos": [
+        {
+         "turno": "A",
+         "vagas": 1
+        },
+        {
+         "turno": "B",
+         "vagas": 1
+        },
+        {
+         "turno": "C",
+         "vagas": 1
+        }
+       ]
+      }
+     ],
+     "cotas": [
+      {
+       "id": "c",
+       "operacao": "Bioma",
+       "quantidade": 3
+      }
+     ],
+     "militares": [
+      {
+       "mat": "m01"
+      },
+      {
+       "mat": "m02"
+      },
+      {
+       "mat": "m03"
+      },
+      {
+       "mat": "m04"
+      },
+      {
+       "mat": "m05"
+      },
+      {
+       "mat": "m06"
+      },
+      {
+       "mat": "m07"
+      },
+      {
+       "mat": "m08"
+      },
+      {
+       "mat": "m09"
+      },
+      {
+       "mat": "m10"
+      }
+     ],
+     "voluntariado": [],
+     "alocacoes": [],
+     "expediente": [],
+     "horarios": {
+      "Pronto|A": {
+       "ini": 480,
+       "fim": 1200,
+       "dur": 720
+      },
+      "Pronto|B": {
+       "ini": 1200,
+       "fim": 480,
+       "dur": 720
+      },
+      "Adm|A": {
+       "ini": 480,
+       "fim": 960,
+       "dur": 480
+      },
+      "JES|A": {
+       "ini": 480,
+       "fim": 1200,
+       "dur": 720
+      },
+      "JES|B": {
+       "ini": 1200,
+       "fim": 480,
+       "dur": 720
+      },
+      "Bioma|A": {
+       "ini": 0,
+       "fim": 480,
+       "dur": 480
+      },
+      "Bioma|B": {
+       "ini": 480,
+       "fim": 960,
+       "dur": 480
+      },
+      "Bioma|C": {
+       "ini": 960,
+       "fim": 0,
+       "dur": 480
+      },
+      "PE Seguro|A": {
+       "ini": 0,
+       "fim": 480,
+       "dur": 480
+      },
+      "PE Seguro|B": {
+       "ini": 480,
+       "fim": 960,
+       "dur": 480
+      },
+      "PE Seguro|C": {
+       "ini": 960,
+       "fim": 0,
+       "dur": 480
+      },
+      "Defensoria|A": {
+       "ini": 420,
+       "fim": 1140,
+       "dur": 720
+      }
+     },
+     "tipos": {
+      "Pronto": "Ordinário",
+      "Adm": "Ordinário",
+      "JES": "PJES",
+      "Defensoria": "PJES",
+      "Bioma": "Diária",
+      "PE Seguro": "Diária"
+     }
+    }
+   ],
+   "saida": {
+    "novas": [],
+    "porCota": [
+     {
+      "id": "c",
+      "operacao": "Bioma",
+      "servico": "Bioma",
+      "origem": "interna",
+      "recebidas": 3,
+      "distribuidas": 0,
+      "restantes": 3
+     }
+    ],
+    "porOperacao": {
+     "Bioma": {
+      "servico": "Bioma",
+      "recebidas": 3,
+      "distribuidas": 0,
+      "restantes": 3,
+      "novas": 0,
+      "porMilitar": {}
+     }
+    },
+    "vazias": [
+     {
+      "operacao": "Bioma",
+      "servico": "Bioma",
+      "dia": "2026-11-03",
+      "turno": "A",
+      "faltam": 1,
+      "motivo": "ninguém preencheu o formulário do mês"
+     },
+     {
+      "operacao": "Bioma",
+      "servico": "Bioma",
+      "dia": "2026-11-03",
+      "turno": "B",
+      "faltam": 1,
+      "motivo": "ninguém preencheu o formulário do mês"
+     },
+     {
+      "operacao": "Bioma",
+      "servico": "Bioma",
+      "dia": "2026-11-03",
+      "turno": "C",
+      "faltam": 1,
+      "motivo": "ninguém preencheu o formulário do mês"
+     }
+    ],
+    "semCota": {},
+    "avisos": []
+   }
+  },
+  {
+   "teste": "teste_cotas.js",
+   "entrada": [
+    {
+     "mes": "2026-11",
+     "operacoes": [
+      {
+       "nome": "Bioma",
+       "servico": "Bioma",
+       "dias": [
+        "2026-11-03"
+       ],
+       "turnos": [
+        {
+         "turno": "A",
+         "vagas": 1
+        },
+        {
+         "turno": "B",
+         "vagas": 1
+        },
+        {
+         "turno": "C",
+         "vagas": 1
+        }
+       ]
+      }
+     ],
+     "cotas": [
+      {
+       "id": "i",
+       "operacao": "Bioma",
+       "quantidade": 1,
+       "origem": "interna"
+      },
+      {
+       "id": "x",
+       "operacao": "Bioma",
+       "quantidade": 2,
+       "origem": "externa"
+      }
+     ],
+     "militares": [
+      {
+       "mat": "m01"
+      },
+      {
+       "mat": "m02"
+      },
+      {
+       "mat": "m03"
+      },
+      {
+       "mat": "m04"
+      },
+      {
+       "mat": "m05"
+      },
+      {
+       "mat": "m06"
+      },
+      {
+       "mat": "m07"
+      },
+      {
+       "mat": "m08"
+      },
+      {
+       "mat": "m09"
+      },
+      {
+       "mat": "m10"
+      }
+     ],
+     "voluntariado": [
+      {
+       "mat": "m01",
+       "dia": "2026-11-03",
+       "turno": "A",
+       "servico": "todos"
+      },
+      {
+       "mat": "m01",
+       "dia": "2026-11-03",
+       "turno": "B",
+       "servico": "todos"
+      },
+      {
+       "mat": "m01",
+       "dia": "2026-11-03",
+       "turno": "C",
+       "servico": "todos"
+      },
+      {
+       "mat": "m02",
+       "dia": "2026-11-03",
+       "turno": "A",
+       "servico": "todos"
+      },
+      {
+       "mat": "m02",
+       "dia": "2026-11-03",
+       "turno": "B",
+       "servico": "todos"
+      },
+      {
+       "mat": "m02",
+       "dia": "2026-11-03",
+       "turno": "C",
+       "servico": "todos"
+      },
+      {
+       "mat": "m03",
+       "dia": "2026-11-03",
+       "turno": "A",
+       "servico": "todos"
+      },
+      {
+       "mat": "m03",
+       "dia": "2026-11-03",
+       "turno": "B",
+       "servico": "todos"
+      },
+      {
+       "mat": "m03",
+       "dia": "2026-11-03",
+       "turno": "C",
+       "servico": "todos"
+      },
+      {
+       "mat": "m04",
+       "dia": "2026-11-03",
+       "turno": "A",
+       "servico": "todos"
+      },
+      {
+       "mat": "m04",
+       "dia": "2026-11-03",
+       "turno": "B",
+       "servico": "todos"
+      },
+      {
+       "mat": "m04",
+       "dia": "2026-11-03",
+       "turno": "C",
+       "servico": "todos"
+      },
+      {
+       "mat": "m05",
+       "dia": "2026-11-03",
+       "turno": "A",
+       "servico": "todos"
+      },
+      {
+       "mat": "m05",
+       "dia": "2026-11-03",
+       "turno": "B",
+       "servico": "todos"
+      },
+      {
+       "mat": "m05",
+       "dia": "2026-11-03",
+       "turno": "C",
+       "servico": "todos"
+      },
+      {
+       "mat": "m06",
+       "dia": "2026-11-03",
+       "turno": "A",
+       "servico": "todos"
+      },
+      {
+       "mat": "m06",
+       "dia": "2026-11-03",
+       "turno": "B",
+       "servico": "todos"
+      },
+      {
+       "mat": "m06",
+       "dia": "2026-11-03",
+       "turno": "C",
+       "servico": "todos"
+      },
+      {
+       "mat": "m07",
+       "dia": "2026-11-03",
+       "turno": "A",
+       "servico": "todos"
+      },
+      {
+       "mat": "m07",
+       "dia": "2026-11-03",
+       "turno": "B",
+       "servico": "todos"
+      },
+      {
+       "mat": "m07",
+       "dia": "2026-11-03",
+       "turno": "C",
+       "servico": "todos"
+      },
+      {
+       "mat": "m08",
+       "dia": "2026-11-03",
+       "turno": "A",
+       "servico": "todos"
+      },
+      {
+       "mat": "m08",
+       "dia": "2026-11-03",
+       "turno": "B",
+       "servico": "todos"
+      },
+      {
+       "mat": "m08",
+       "dia": "2026-11-03",
+       "turno": "C",
+       "servico": "todos"
+      },
+      {
+       "mat": "m09",
+       "dia": "2026-11-03",
+       "turno": "A",
+       "servico": "todos"
+      },
+      {
+       "mat": "m09",
+       "dia": "2026-11-03",
+       "turno": "B",
+       "servico": "todos"
+      },
+      {
+       "mat": "m09",
+       "dia": "2026-11-03",
+       "turno": "C",
+       "servico": "todos"
+      },
+      {
+       "mat": "m10",
+       "dia": "2026-11-03",
+       "turno": "A",
+       "servico": "todos"
+      },
+      {
+       "mat": "m10",
+       "dia": "2026-11-03",
+       "turno": "B",
+       "servico": "todos"
+      },
+      {
+       "mat": "m10",
+       "dia": "2026-11-03",
+       "turno": "C",
+       "servico": "todos"
+      }
+     ],
+     "alocacoes": [],
+     "expediente": [],
+     "horarios": {
+      "Pronto|A": {
+       "ini": 480,
+       "fim": 1200,
+       "dur": 720
+      },
+      "Pronto|B": {
+       "ini": 1200,
+       "fim": 480,
+       "dur": 720
+      },
+      "Adm|A": {
+       "ini": 480,
+       "fim": 960,
+       "dur": 480
+      },
+      "JES|A": {
+       "ini": 480,
+       "fim": 1200,
+       "dur": 720
+      },
+      "JES|B": {
+       "ini": 1200,
+       "fim": 480,
+       "dur": 720
+      },
+      "Bioma|A": {
+       "ini": 0,
+       "fim": 480,
+       "dur": 480
+      },
+      "Bioma|B": {
+       "ini": 480,
+       "fim": 960,
+       "dur": 480
+      },
+      "Bioma|C": {
+       "ini": 960,
+       "fim": 0,
+       "dur": 480
+      },
+      "PE Seguro|A": {
+       "ini": 0,
+       "fim": 480,
+       "dur": 480
+      },
+      "PE Seguro|B": {
+       "ini": 480,
+       "fim": 960,
+       "dur": 480
+      },
+      "PE Seguro|C": {
+       "ini": 960,
+       "fim": 0,
+       "dur": 480
+      },
+      "Defensoria|A": {
+       "ini": 420,
+       "fim": 1140,
+       "dur": 720
+      }
+     },
+     "tipos": {
+      "Pronto": "Ordinário",
+      "Adm": "Ordinário",
+      "JES": "PJES",
+      "Defensoria": "PJES",
+      "Bioma": "Diária",
+      "PE Seguro": "Diária"
+     }
+    }
+   ],
+   "saida": {
+    "novas": [
+     {
+      "mat": "m01",
+      "dia": "2026-11-03",
+      "servico": "Bioma",
+      "turno": "A",
+      "operacao": "Bioma",
+      "fase": "voluntaria"
+     },
+     {
+      "mat": "m02",
+      "dia": "2026-11-03",
+      "servico": "Bioma",
+      "turno": "B",
+      "operacao": "Bioma",
+      "fase": "voluntaria"
+     },
+     {
+      "mat": "m03",
+      "dia": "2026-11-03",
+      "servico": "Bioma",
+      "turno": "C",
+      "operacao": "Bioma",
+      "fase": "voluntaria"
+     }
+    ],
+    "porCota": [
+     {
+      "id": "i",
+      "operacao": "Bioma",
+      "servico": "Bioma",
+      "origem": "interna",
+      "recebidas": 1,
+      "distribuidas": 1,
+      "restantes": 0
+     },
+     {
+      "id": "x",
+      "operacao": "Bioma",
+      "servico": "Bioma",
+      "origem": "externa",
+      "recebidas": 2,
+      "distribuidas": 2,
+      "restantes": 0
+     }
+    ],
+    "porOperacao": {
+     "Bioma": {
+      "servico": "Bioma",
+      "recebidas": 3,
+      "distribuidas": 3,
+      "restantes": 0,
+      "novas": 3,
+      "porMilitar": {
+       "m01": 1,
+       "m02": 1,
+       "m03": 1
+      }
+     }
+    },
+    "vazias": [],
+    "semCota": {},
+    "avisos": []
+   }
+  },
+  {
+   "teste": "teste_cotas.js",
+   "entrada": [
+    {
+     "mes": "2026-11",
+     "operacoes": [
+      {
+       "nome": "Bioma",
+       "servico": "Bioma",
+       "dias": [
+        "2026-11-10",
+        "2026-11-11"
+       ],
+       "turnos": [
+        {
+         "turno": "A",
+         "vagas": 1
+        },
+        {
+         "turno": "B",
+         "vagas": 1
+        },
+        {
+         "turno": "C",
+         "vagas": 1
+        }
+       ]
+      }
+     ],
+     "cotas": [
+      {
+       "id": "c",
+       "operacao": "Bioma",
+       "quantidade": 3
+      }
+     ],
+     "militares": [
+      {
+       "mat": "m01"
+      },
+      {
+       "mat": "m02"
+      }
+     ],
+     "voluntariado": [
+      {
+       "mat": "m01",
+       "dia": "2026-11-10",
+       "turno": "C",
+       "servico": "todos"
+      },
+      {
+       "mat": "m01",
+       "dia": "2026-11-11",
+       "turno": "A",
+       "servico": "todos"
+      },
+      {
+       "mat": "m02",
+       "dia": "2026-11-11",
+       "turno": "A",
+       "servico": "todos"
+      }
+     ],
+     "alocacoes": [
+      {
+       "mat": "m02",
+       "dia": "2026-11-20",
+       "servico": "Bioma",
+       "turno": "A"
+      }
+     ],
+     "expediente": [],
+     "horarios": {
+      "Pronto|A": {
+       "ini": 480,
+       "fim": 1200,
+       "dur": 720
+      },
+      "Pronto|B": {
+       "ini": 1200,
+       "fim": 480,
+       "dur": 720
+      },
+      "Adm|A": {
+       "ini": 480,
+       "fim": 960,
+       "dur": 480
+      },
+      "JES|A": {
+       "ini": 480,
+       "fim": 1200,
+       "dur": 720
+      },
+      "JES|B": {
+       "ini": 1200,
+       "fim": 480,
+       "dur": 720
+      },
+      "Bioma|A": {
+       "ini": 0,
+       "fim": 480,
+       "dur": 480
+      },
+      "Bioma|B": {
+       "ini": 480,
+       "fim": 960,
+       "dur": 480
+      },
+      "Bioma|C": {
+       "ini": 960,
+       "fim": 0,
+       "dur": 480
+      },
+      "PE Seguro|A": {
+       "ini": 0,
+       "fim": 480,
+       "dur": 480
+      },
+      "PE Seguro|B": {
+       "ini": 480,
+       "fim": 960,
+       "dur": 480
+      },
+      "PE Seguro|C": {
+       "ini": 960,
+       "fim": 0,
+       "dur": 480
+      },
+      "Defensoria|A": {
+       "ini": 420,
+       "fim": 1140,
+       "dur": 720
+      }
+     },
+     "tipos": {
+      "Pronto": "Ordinário",
+      "Adm": "Ordinário",
+      "JES": "PJES",
+      "Defensoria": "PJES",
+      "Bioma": "Diária",
+      "PE Seguro": "Diária"
+     }
+    }
+   ],
+   "saida": {
+    "novas": [
+     {
+      "mat": "m01",
+      "dia": "2026-11-10",
+      "servico": "Bioma",
+      "turno": "C",
+      "operacao": "Bioma",
+      "fase": "voluntaria"
+     },
+     {
+      "mat": "m01",
+      "dia": "2026-11-11",
+      "servico": "Bioma",
+      "turno": "A",
+      "operacao": "Bioma",
+      "fase": "voluntaria"
+     }
+    ],
+    "porCota": [
+     {
+      "id": "c",
+      "operacao": "Bioma",
+      "servico": "Bioma",
+      "origem": "interna",
+      "recebidas": 3,
+      "distribuidas": 3,
+      "restantes": 0
+     }
+    ],
+    "porOperacao": {
+     "Bioma": {
+      "servico": "Bioma",
+      "recebidas": 3,
+      "distribuidas": 3,
+      "restantes": 0,
+      "novas": 2,
+      "porMilitar": {
+       "m02": 1,
+       "m01": 2
+      }
+     }
+    },
+    "vazias": [],
+    "semCota": {
+     "Bioma": 4
+    },
+    "avisos": []
+   }
+  },
+  {
+   "teste": "teste_cotas.js",
+   "entrada": [
+    {
+     "mes": "2026-11",
+     "operacoes": [
+      {
+       "nome": "Bioma",
+       "servico": "Bioma",
+       "prioridade": 2,
+       "dias": [
+        "2026-11-03"
+       ],
+       "turnos": [
+        {
+         "turno": "A",
+         "vagas": 1
+        },
+        {
+         "turno": "B",
+         "vagas": 1
+        },
+        {
+         "turno": "C",
+         "vagas": 1
+        }
+       ]
+      },
+      {
+       "nome": "PE Seguro",
+       "servico": "PE Seguro",
+       "prioridade": 1,
+       "dias": [
+        "2026-11-03"
+       ],
+       "turnos": [
+        {
+         "turno": "A",
+         "vagas": 1
+        },
+        {
+         "turno": "B",
+         "vagas": 1
+        },
+        {
+         "turno": "C",
+         "vagas": 1
+        }
+       ]
+      }
+     ],
+     "cotas": [
+      {
+       "id": "b",
+       "operacao": "Bioma",
+       "quantidade": 1
+      },
+      {
+       "id": "p",
+       "operacao": "PE Seguro",
+       "quantidade": 1
+      }
+     ],
+     "militares": [
+      {
+       "mat": "m01"
+      }
+     ],
+     "voluntariado": [
+      {
+       "mat": "m01",
+       "dia": "2026-11-03",
+       "turno": "A",
+       "servico": "todos"
+      },
+      {
+       "mat": "m01",
+       "dia": "2026-11-03",
+       "turno": "B",
+       "servico": "todos"
+      }
+     ],
+     "alocacoes": [],
+     "expediente": [],
+     "horarios": {
+      "Pronto|A": {
+       "ini": 480,
+       "fim": 1200,
+       "dur": 720
+      },
+      "Pronto|B": {
+       "ini": 1200,
+       "fim": 480,
+       "dur": 720
+      },
+      "Adm|A": {
+       "ini": 480,
+       "fim": 960,
+       "dur": 480
+      },
+      "JES|A": {
+       "ini": 480,
+       "fim": 1200,
+       "dur": 720
+      },
+      "JES|B": {
+       "ini": 1200,
+       "fim": 480,
+       "dur": 720
+      },
+      "Bioma|A": {
+       "ini": 0,
+       "fim": 480,
+       "dur": 480
+      },
+      "Bioma|B": {
+       "ini": 480,
+       "fim": 960,
+       "dur": 480
+      },
+      "Bioma|C": {
+       "ini": 960,
+       "fim": 0,
+       "dur": 480
+      },
+      "PE Seguro|A": {
+       "ini": 0,
+       "fim": 480,
+       "dur": 480
+      },
+      "PE Seguro|B": {
+       "ini": 480,
+       "fim": 960,
+       "dur": 480
+      },
+      "PE Seguro|C": {
+       "ini": 960,
+       "fim": 0,
+       "dur": 480
+      },
+      "Defensoria|A": {
+       "ini": 420,
+       "fim": 1140,
+       "dur": 720
+      }
+     },
+     "tipos": {
+      "Pronto": "Ordinário",
+      "Adm": "Ordinário",
+      "JES": "PJES",
+      "Defensoria": "PJES",
+      "Bioma": "Diária",
+      "PE Seguro": "Diária"
+     }
+    }
+   ],
+   "saida": {
+    "novas": [
+     {
+      "mat": "m01",
+      "dia": "2026-11-03",
+      "servico": "PE Seguro",
+      "turno": "A",
+      "operacao": "PE Seguro",
+      "fase": "voluntaria"
+     }
+    ],
+    "porCota": [
+     {
+      "id": "p",
+      "operacao": "PE Seguro",
+      "servico": "PE Seguro",
+      "origem": "interna",
+      "recebidas": 1,
+      "distribuidas": 1,
+      "restantes": 0
+     },
+     {
+      "id": "b",
+      "operacao": "Bioma",
+      "servico": "Bioma",
+      "origem": "interna",
+      "recebidas": 1,
+      "distribuidas": 0,
+      "restantes": 1
+     }
+    ],
+    "porOperacao": {
+     "PE Seguro": {
+      "servico": "PE Seguro",
+      "recebidas": 1,
+      "distribuidas": 1,
+      "restantes": 0,
+      "novas": 1,
+      "porMilitar": {
+       "m01": 1
+      }
+     },
+     "Bioma": {
+      "servico": "Bioma",
+      "recebidas": 1,
+      "distribuidas": 0,
+      "restantes": 1,
+      "novas": 0,
+      "porMilitar": {}
+     }
+    },
+    "vazias": [
+     {
+      "operacao": "Bioma",
+      "servico": "Bioma",
+      "dia": "2026-11-03",
+      "turno": "A",
+      "faltam": 1,
+      "motivo": "o militar já tem diária nesse dia"
+     },
+     {
+      "operacao": "Bioma",
+      "servico": "Bioma",
+      "dia": "2026-11-03",
+      "turno": "B",
+      "faltam": 1,
+      "motivo": "o militar já tem diária nesse dia"
+     },
+     {
+      "operacao": "Bioma",
+      "servico": "Bioma",
+      "dia": "2026-11-03",
+      "turno": "C",
+      "faltam": 1,
+      "motivo": "o militar já tem diária nesse dia"
+     }
+    ],
+    "semCota": {
+     "PE Seguro": 2
+    },
+    "avisos": []
+   }
+  },
+  {
+   "teste": "teste_cotas.js",
+   "entrada": [
+    {
+     "mes": "2026-11",
+     "operacoes": [
+      {
+       "nome": "Defensoria",
+       "servico": "Defensoria",
+       "dias": [
+        "2026-11-01",
+        "2026-11-02",
+        "2026-11-03",
+        "2026-11-04",
+        "2026-11-05",
+        "2026-11-06"
+       ],
+       "turnos": [
+        {
+         "turno": "A",
+         "vagas": 1
+        }
+       ]
+      }
+     ],
+     "cotas": [
+      {
+       "id": "c",
+       "operacao": "Defensoria",
+       "quantidade": 6
+      }
+     ],
+     "militares": [
+      {
+       "mat": "m01"
+      },
+      {
+       "mat": "m02"
+      },
+      {
+       "mat": "m03"
+      }
+     ],
+     "voluntariado": [
+      {
+       "mat": "m01",
+       "dia": "2026-11-01",
+       "turno": "A",
+       "servico": "todos"
+      },
+      {
+       "mat": "m02",
+       "dia": "2026-11-01",
+       "turno": "A",
+       "servico": "todos"
+      },
+      {
+       "mat": "m03",
+       "dia": "2026-11-01",
+       "turno": "A",
+       "servico": "todos"
+      },
+      {
+       "mat": "m01",
+       "dia": "2026-11-02",
+       "turno": "A",
+       "servico": "todos"
+      },
+      {
+       "mat": "m02",
+       "dia": "2026-11-02",
+       "turno": "A",
+       "servico": "todos"
+      },
+      {
+       "mat": "m03",
+       "dia": "2026-11-02",
+       "turno": "A",
+       "servico": "todos"
+      },
+      {
+       "mat": "m01",
+       "dia": "2026-11-03",
+       "turno": "A",
+       "servico": "todos"
+      },
+      {
+       "mat": "m02",
+       "dia": "2026-11-03",
+       "turno": "A",
+       "servico": "todos"
+      },
+      {
+       "mat": "m03",
+       "dia": "2026-11-03",
+       "turno": "A",
+       "servico": "todos"
+      },
+      {
+       "mat": "m01",
+       "dia": "2026-11-04",
+       "turno": "A",
+       "servico": "todos"
+      },
+      {
+       "mat": "m02",
+       "dia": "2026-11-04",
+       "turno": "A",
+       "servico": "todos"
+      },
+      {
+       "mat": "m03",
+       "dia": "2026-11-04",
+       "turno": "A",
+       "servico": "todos"
+      },
+      {
+       "mat": "m01",
+       "dia": "2026-11-05",
+       "turno": "A",
+       "servico": "todos"
+      },
+      {
+       "mat": "m02",
+       "dia": "2026-11-05",
+       "turno": "A",
+       "servico": "todos"
+      },
+      {
+       "mat": "m03",
+       "dia": "2026-11-05",
+       "turno": "A",
+       "servico": "todos"
+      },
+      {
+       "mat": "m01",
+       "dia": "2026-11-06",
+       "turno": "A",
+       "servico": "todos"
+      },
+      {
+       "mat": "m02",
+       "dia": "2026-11-06",
+       "turno": "A",
+       "servico": "todos"
+      },
+      {
+       "mat": "m03",
+       "dia": "2026-11-06",
+       "turno": "A",
+       "servico": "todos"
+      }
+     ],
+     "alocacoes": [],
+     "expediente": [],
+     "horarios": {
+      "Pronto|A": {
+       "ini": 480,
+       "fim": 1200,
+       "dur": 720
+      },
+      "Pronto|B": {
+       "ini": 1200,
+       "fim": 480,
+       "dur": 720
+      },
+      "Adm|A": {
+       "ini": 480,
+       "fim": 960,
+       "dur": 480
+      },
+      "JES|A": {
+       "ini": 480,
+       "fim": 1200,
+       "dur": 720
+      },
+      "JES|B": {
+       "ini": 1200,
+       "fim": 480,
+       "dur": 720
+      },
+      "Bioma|A": {
+       "ini": 0,
+       "fim": 480,
+       "dur": 480
+      },
+      "Bioma|B": {
+       "ini": 480,
+       "fim": 960,
+       "dur": 480
+      },
+      "Bioma|C": {
+       "ini": 960,
+       "fim": 0,
+       "dur": 480
+      },
+      "PE Seguro|A": {
+       "ini": 0,
+       "fim": 480,
+       "dur": 480
+      },
+      "PE Seguro|B": {
+       "ini": 480,
+       "fim": 960,
+       "dur": 480
+      },
+      "PE Seguro|C": {
+       "ini": 960,
+       "fim": 0,
+       "dur": 480
+      },
+      "Defensoria|A": {
+       "ini": 420,
+       "fim": 1140,
+       "dur": 720
+      }
+     },
+     "tipos": {
+      "Pronto": "Ordinário",
+      "Adm": "Ordinário",
+      "JES": "PJES",
+      "Defensoria": "PJES",
+      "Bioma": "Diária",
+      "PE Seguro": "Diária"
+     }
+    }
+   ],
+   "saida": {
+    "novas": [
+     {
+      "mat": "m01",
+      "dia": "2026-11-01",
+      "servico": "Defensoria",
+      "turno": "A",
+      "operacao": "Defensoria",
+      "fase": "voluntaria"
+     },
+     {
+      "mat": "m02",
+      "dia": "2026-11-02",
+      "servico": "Defensoria",
+      "turno": "A",
+      "operacao": "Defensoria",
+      "fase": "voluntaria"
+     },
+     {
+      "mat": "m03",
+      "dia": "2026-11-03",
+      "servico": "Defensoria",
+      "turno": "A",
+      "operacao": "Defensoria",
+      "fase": "voluntaria"
+     },
+     {
+      "mat": "m01",
+      "dia": "2026-11-04",
+      "servico": "Defensoria",
+      "turno": "A",
+      "operacao": "Defensoria",
+      "fase": "voluntaria"
+     },
+     {
+      "mat": "m02",
+      "dia": "2026-11-05",
+      "servico": "Defensoria",
+      "turno": "A",
+      "operacao": "Defensoria",
+      "fase": "voluntaria"
+     },
+     {
+      "mat": "m03",
+      "dia": "2026-11-06",
+      "servico": "Defensoria",
+      "turno": "A",
+      "operacao": "Defensoria",
+      "fase": "voluntaria"
+     }
+    ],
+    "porCota": [
+     {
+      "id": "c",
+      "operacao": "Defensoria",
+      "servico": "Defensoria",
+      "origem": "interna",
+      "recebidas": 6,
+      "distribuidas": 6,
+      "restantes": 0
+     }
+    ],
+    "porOperacao": {
+     "Defensoria": {
+      "servico": "Defensoria",
+      "recebidas": 6,
+      "distribuidas": 6,
+      "restantes": 0,
+      "novas": 6,
+      "porMilitar": {
+       "m01": 2,
+       "m02": 2,
+       "m03": 2
+      }
+     }
+    },
+    "vazias": [],
+    "semCota": {},
+    "avisos": []
+   }
+  },
+  {
+   "teste": "teste_cotas.js",
+   "entrada": [
+    {
+     "mes": "2026-11",
+     "operacoes": [
+      {
+       "nome": "PE Seguro",
+       "servico": "PE Seguro",
+       "dias": [
+        "2026-11-01",
+        "2026-11-02",
+        "2026-11-03"
+       ],
+       "turnos": [
+        {
+         "turno": "A",
+         "vagas": 2
+        },
+        {
+         "turno": "B",
+         "vagas": 2
+        },
+        {
+         "turno": "C",
+         "vagas": 2
+        }
+       ]
+      }
+     ],
+     "cotas": [
+      {
+       "id": "c1",
+       "operacao": "PE Seguro",
+       "quantidade": 5
+      }
+     ],
+     "militares": [
+      {
+       "mat": "m01"
+      },
+      {
+       "mat": "m02"
+      },
+      {
+       "mat": "m03"
+      },
+      {
+       "mat": "m04"
+      },
+      {
+       "mat": "m05"
+      },
+      {
+       "mat": "m06"
+      },
+      {
+       "mat": "m07"
+      },
+      {
+       "mat": "m08"
+      },
+      {
+       "mat": "m09"
+      },
+      {
+       "mat": "m10"
+      }
+     ],
+     "voluntariado": [
+      {
+       "mat": "m01",
+       "dia": "2026-11-01",
+       "turno": "A",
+       "servico": "todos"
+      },
+      {
+       "mat": "m01",
+       "dia": "2026-11-01",
+       "turno": "B",
+       "servico": "todos"
+      },
+      {
+       "mat": "m01",
+       "dia": "2026-11-01",
+       "turno": "C",
+       "servico": "todos"
+      },
+      {
+       "mat": "m01",
+       "dia": "2026-11-02",
+       "turno": "A",
+       "servico": "todos"
+      },
+      {
+       "mat": "m01",
+       "dia": "2026-11-02",
+       "turno": "B",
+       "servico": "todos"
+      },
+      {
+       "mat": "m01",
+       "dia": "2026-11-02",
+       "turno": "C",
+       "servico": "todos"
+      },
+      {
+       "mat": "m01",
+       "dia": "2026-11-03",
+       "turno": "A",
+       "servico": "todos"
+      },
+      {
+       "mat": "m01",
+       "dia": "2026-11-03",
+       "turno": "B",
+       "servico": "todos"
+      },
+      {
+       "mat": "m01",
+       "dia": "2026-11-03",
+       "turno": "C",
+       "servico": "todos"
+      },
+      {
+       "mat": "m02",
+       "dia": "2026-11-01",
+       "turno": "A",
+       "servico": "todos"
+      },
+      {
+       "mat": "m02",
+       "dia": "2026-11-01",
+       "turno": "B",
+       "servico": "todos"
+      },
+      {
+       "mat": "m02",
+       "dia": "2026-11-01",
+       "turno": "C",
+       "servico": "todos"
+      },
+      {
+       "mat": "m02",
+       "dia": "2026-11-02",
+       "turno": "A",
+       "servico": "todos"
+      },
+      {
+       "mat": "m02",
+       "dia": "2026-11-02",
+       "turno": "B",
+       "servico": "todos"
+      },
+      {
+       "mat": "m02",
+       "dia": "2026-11-02",
+       "turno": "C",
+       "servico": "todos"
+      },
+      {
+       "mat": "m02",
+       "dia": "2026-11-03",
+       "turno": "A",
+       "servico": "todos"
+      },
+      {
+       "mat": "m02",
+       "dia": "2026-11-03",
+       "turno": "B",
+       "servico": "todos"
+      },
+      {
+       "mat": "m02",
+       "dia": "2026-11-03",
+       "turno": "C",
+       "servico": "todos"
+      },
+      {
+       "mat": "m03",
+       "dia": "2026-11-01",
+       "turno": "A",
+       "servico": "todos"
+      },
+      {
+       "mat": "m03",
+       "dia": "2026-11-01",
+       "turno": "B",
+       "servico": "todos"
+      },
+      {
+       "mat": "m03",
+       "dia": "2026-11-01",
+       "turno": "C",
+       "servico": "todos"
+      },
+      {
+       "mat": "m03",
+       "dia": "2026-11-02",
+       "turno": "A",
+       "servico": "todos"
+      },
+      {
+       "mat": "m03",
+       "dia": "2026-11-02",
+       "turno": "B",
+       "servico": "todos"
+      },
+      {
+       "mat": "m03",
+       "dia": "2026-11-02",
+       "turno": "C",
+       "servico": "todos"
+      },
+      {
+       "mat": "m03",
+       "dia": "2026-11-03",
+       "turno": "A",
+       "servico": "todos"
+      },
+      {
+       "mat": "m03",
+       "dia": "2026-11-03",
+       "turno": "B",
+       "servico": "todos"
+      },
+      {
+       "mat": "m03",
+       "dia": "2026-11-03",
+       "turno": "C",
+       "servico": "todos"
+      },
+      {
+       "mat": "m04",
+       "dia": "2026-11-01",
+       "turno": "A",
+       "servico": "todos"
+      },
+      {
+       "mat": "m04",
+       "dia": "2026-11-01",
+       "turno": "B",
+       "servico": "todos"
+      },
+      {
+       "mat": "m04",
+       "dia": "2026-11-01",
+       "turno": "C",
+       "servico": "todos"
+      },
+      {
+       "mat": "m04",
+       "dia": "2026-11-02",
+       "turno": "A",
+       "servico": "todos"
+      },
+      {
+       "mat": "m04",
+       "dia": "2026-11-02",
+       "turno": "B",
+       "servico": "todos"
+      },
+      {
+       "mat": "m04",
+       "dia": "2026-11-02",
+       "turno": "C",
+       "servico": "todos"
+      },
+      {
+       "mat": "m04",
+       "dia": "2026-11-03",
+       "turno": "A",
+       "servico": "todos"
+      },
+      {
+       "mat": "m04",
+       "dia": "2026-11-03",
+       "turno": "B",
+       "servico": "todos"
+      },
+      {
+       "mat": "m04",
+       "dia": "2026-11-03",
+       "turno": "C",
+       "servico": "todos"
+      },
+      {
+       "mat": "m05",
+       "dia": "2026-11-01",
+       "turno": "A",
+       "servico": "todos"
+      },
+      {
+       "mat": "m05",
+       "dia": "2026-11-01",
+       "turno": "B",
+       "servico": "todos"
+      },
+      {
+       "mat": "m05",
+       "dia": "2026-11-01",
+       "turno": "C",
+       "servico": "todos"
+      },
+      {
+       "mat": "m05",
+       "dia": "2026-11-02",
+       "turno": "A",
+       "servico": "todos"
+      },
+      {
+       "mat": "m05",
+       "dia": "2026-11-02",
+       "turno": "B",
+       "servico": "todos"
+      },
+      {
+       "mat": "m05",
+       "dia": "2026-11-02",
+       "turno": "C",
+       "servico": "todos"
+      },
+      {
+       "mat": "m05",
+       "dia": "2026-11-03",
+       "turno": "A",
+       "servico": "todos"
+      },
+      {
+       "mat": "m05",
+       "dia": "2026-11-03",
+       "turno": "B",
+       "servico": "todos"
+      },
+      {
+       "mat": "m05",
+       "dia": "2026-11-03",
+       "turno": "C",
+       "servico": "todos"
+      },
+      {
+       "mat": "m06",
+       "dia": "2026-11-01",
+       "turno": "A",
+       "servico": "todos"
+      },
+      {
+       "mat": "m06",
+       "dia": "2026-11-01",
+       "turno": "B",
+       "servico": "todos"
+      },
+      {
+       "mat": "m06",
+       "dia": "2026-11-01",
+       "turno": "C",
+       "servico": "todos"
+      },
+      {
+       "mat": "m06",
+       "dia": "2026-11-02",
+       "turno": "A",
+       "servico": "todos"
+      },
+      {
+       "mat": "m06",
+       "dia": "2026-11-02",
+       "turno": "B",
+       "servico": "todos"
+      },
+      {
+       "mat": "m06",
+       "dia": "2026-11-02",
+       "turno": "C",
+       "servico": "todos"
+      },
+      {
+       "mat": "m06",
+       "dia": "2026-11-03",
+       "turno": "A",
+       "servico": "todos"
+      },
+      {
+       "mat": "m06",
+       "dia": "2026-11-03",
+       "turno": "B",
+       "servico": "todos"
+      },
+      {
+       "mat": "m06",
+       "dia": "2026-11-03",
+       "turno": "C",
+       "servico": "todos"
+      },
+      {
+       "mat": "m07",
+       "dia": "2026-11-01",
+       "turno": "A",
+       "servico": "todos"
+      },
+      {
+       "mat": "m07",
+       "dia": "2026-11-01",
+       "turno": "B",
+       "servico": "todos"
+      },
+      {
+       "mat": "m07",
+       "dia": "2026-11-01",
+       "turno": "C",
+       "servico": "todos"
+      },
+      {
+       "mat": "m07",
+       "dia": "2026-11-02",
+       "turno": "A",
+       "servico": "todos"
+      },
+      {
+       "mat": "m07",
+       "dia": "2026-11-02",
+       "turno": "B",
+       "servico": "todos"
+      },
+      {
+       "mat": "m07",
+       "dia": "2026-11-02",
+       "turno": "C",
+       "servico": "todos"
+      },
+      {
+       "mat": "m07",
+       "dia": "2026-11-03",
+       "turno": "A",
+       "servico": "todos"
+      },
+      {
+       "mat": "m07",
+       "dia": "2026-11-03",
+       "turno": "B",
+       "servico": "todos"
+      },
+      {
+       "mat": "m07",
+       "dia": "2026-11-03",
+       "turno": "C",
+       "servico": "todos"
+      },
+      {
+       "mat": "m08",
+       "dia": "2026-11-01",
+       "turno": "A",
+       "servico": "todos"
+      },
+      {
+       "mat": "m08",
+       "dia": "2026-11-01",
+       "turno": "B",
+       "servico": "todos"
+      },
+      {
+       "mat": "m08",
+       "dia": "2026-11-01",
+       "turno": "C",
+       "servico": "todos"
+      },
+      {
+       "mat": "m08",
+       "dia": "2026-11-02",
+       "turno": "A",
+       "servico": "todos"
+      },
+      {
+       "mat": "m08",
+       "dia": "2026-11-02",
+       "turno": "B",
+       "servico": "todos"
+      },
+      {
+       "mat": "m08",
+       "dia": "2026-11-02",
+       "turno": "C",
+       "servico": "todos"
+      },
+      {
+       "mat": "m08",
+       "dia": "2026-11-03",
+       "turno": "A",
+       "servico": "todos"
+      },
+      {
+       "mat": "m08",
+       "dia": "2026-11-03",
+       "turno": "B",
+       "servico": "todos"
+      },
+      {
+       "mat": "m08",
+       "dia": "2026-11-03",
+       "turno": "C",
+       "servico": "todos"
+      },
+      {
+       "mat": "m09",
+       "dia": "2026-11-01",
+       "turno": "A",
+       "servico": "todos"
+      },
+      {
+       "mat": "m09",
+       "dia": "2026-11-01",
+       "turno": "B",
+       "servico": "todos"
+      },
+      {
+       "mat": "m09",
+       "dia": "2026-11-01",
+       "turno": "C",
+       "servico": "todos"
+      },
+      {
+       "mat": "m09",
+       "dia": "2026-11-02",
+       "turno": "A",
+       "servico": "todos"
+      },
+      {
+       "mat": "m09",
+       "dia": "2026-11-02",
+       "turno": "B",
+       "servico": "todos"
+      },
+      {
+       "mat": "m09",
+       "dia": "2026-11-02",
+       "turno": "C",
+       "servico": "todos"
+      },
+      {
+       "mat": "m09",
+       "dia": "2026-11-03",
+       "turno": "A",
+       "servico": "todos"
+      },
+      {
+       "mat": "m09",
+       "dia": "2026-11-03",
+       "turno": "B",
+       "servico": "todos"
+      },
+      {
+       "mat": "m09",
+       "dia": "2026-11-03",
+       "turno": "C",
+       "servico": "todos"
+      },
+      {
+       "mat": "m10",
+       "dia": "2026-11-01",
+       "turno": "A",
+       "servico": "todos"
+      },
+      {
+       "mat": "m10",
+       "dia": "2026-11-01",
+       "turno": "B",
+       "servico": "todos"
+      },
+      {
+       "mat": "m10",
+       "dia": "2026-11-01",
+       "turno": "C",
+       "servico": "todos"
+      },
+      {
+       "mat": "m10",
+       "dia": "2026-11-02",
+       "turno": "A",
+       "servico": "todos"
+      },
+      {
+       "mat": "m10",
+       "dia": "2026-11-02",
+       "turno": "B",
+       "servico": "todos"
+      },
+      {
+       "mat": "m10",
+       "dia": "2026-11-02",
+       "turno": "C",
+       "servico": "todos"
+      },
+      {
+       "mat": "m10",
+       "dia": "2026-11-03",
+       "turno": "A",
+       "servico": "todos"
+      },
+      {
+       "mat": "m10",
+       "dia": "2026-11-03",
+       "turno": "B",
+       "servico": "todos"
+      },
+      {
+       "mat": "m10",
+       "dia": "2026-11-03",
+       "turno": "C",
+       "servico": "todos"
+      }
+     ],
+     "alocacoes": [],
+     "expediente": [],
+     "horarios": {
+      "Pronto|A": {
+       "ini": 480,
+       "fim": 1200,
+       "dur": 720
+      },
+      "Pronto|B": {
+       "ini": 1200,
+       "fim": 480,
+       "dur": 720
+      },
+      "Adm|A": {
+       "ini": 480,
+       "fim": 960,
+       "dur": 480
+      },
+      "JES|A": {
+       "ini": 480,
+       "fim": 1200,
+       "dur": 720
+      },
+      "JES|B": {
+       "ini": 1200,
+       "fim": 480,
+       "dur": 720
+      },
+      "Bioma|A": {
+       "ini": 0,
+       "fim": 480,
+       "dur": 480
+      },
+      "Bioma|B": {
+       "ini": 480,
+       "fim": 960,
+       "dur": 480
+      },
+      "Bioma|C": {
+       "ini": 960,
+       "fim": 0,
+       "dur": 480
+      },
+      "PE Seguro|A": {
+       "ini": 0,
+       "fim": 480,
+       "dur": 480
+      },
+      "PE Seguro|B": {
+       "ini": 480,
+       "fim": 960,
+       "dur": 480
+      },
+      "PE Seguro|C": {
+       "ini": 960,
+       "fim": 0,
+       "dur": 480
+      },
+      "Defensoria|A": {
+       "ini": 420,
+       "fim": 1140,
+       "dur": 720
+      }
+     },
+     "tipos": {
+      "Pronto": "Ordinário",
+      "Adm": "Ordinário",
+      "JES": "PJES",
+      "Defensoria": "PJES",
+      "Bioma": "Diária",
+      "PE Seguro": "Diária"
+     }
+    }
+   ],
+   "saida": {
+    "novas": [
+     {
+      "mat": "m01",
+      "dia": "2026-11-01",
+      "servico": "PE Seguro",
+      "turno": "A",
+      "operacao": "PE Seguro",
+      "fase": "voluntaria"
+     },
+     {
+      "mat": "m02",
+      "dia": "2026-11-01",
+      "servico": "PE Seguro",
+      "turno": "A",
+      "operacao": "PE Seguro",
+      "fase": "voluntaria"
+     },
+     {
+      "mat": "m03",
+      "dia": "2026-11-01",
+      "servico": "PE Seguro",
+      "turno": "B",
+      "operacao": "PE Seguro",
+      "fase": "voluntaria"
+     },
+     {
+      "mat": "m04",
+      "dia": "2026-11-01",
+      "servico": "PE Seguro",
+      "turno": "B",
+      "operacao": "PE Seguro",
+      "fase": "voluntaria"
+     },
+     {
+      "mat": "m05",
+      "dia": "2026-11-01",
+      "servico": "PE Seguro",
+      "turno": "C",
+      "operacao": "PE Seguro",
+      "fase": "voluntaria"
+     }
+    ],
+    "porCota": [
+     {
+      "id": "c1",
+      "operacao": "PE Seguro",
+      "servico": "PE Seguro",
+      "origem": "interna",
+      "recebidas": 5,
+      "distribuidas": 5,
+      "restantes": 0
+     }
+    ],
+    "porOperacao": {
+     "PE Seguro": {
+      "servico": "PE Seguro",
+      "recebidas": 5,
+      "distribuidas": 5,
+      "restantes": 0,
+      "novas": 5,
+      "porMilitar": {
+       "m01": 1,
+       "m02": 1,
+       "m03": 1,
+       "m04": 1,
+       "m05": 1
+      }
+     }
+    },
+    "vazias": [],
+    "semCota": {
+     "PE Seguro": 13
+    },
+    "avisos": []
+   }
+  },
+  {
+   "teste": "teste_cotas.js",
+   "entrada": [
+    {
+     "mes": "2026-11",
+     "operacoes": [
+      {
+       "nome": "PE Seguro",
+       "servico": "PE Seguro",
+       "dias": [
+        "2026-11-01",
+        "2026-11-02"
+       ],
+       "turnos": [
+        {
+         "turno": "A",
+         "vagas": 2
+        },
+        {
+         "turno": "B",
+         "vagas": 2
+        },
+        {
+         "turno": "C",
+         "vagas": 2
+        }
+       ]
+      }
+     ],
+     "cotas": [
+      {
+       "id": "c",
+       "operacao": "PE Seguro",
+       "quantidade": 6
+      }
+     ],
+     "militares": [
+      {
+       "mat": "m01"
+      },
+      {
+       "mat": "m02"
+      },
+      {
+       "mat": "m03"
+      },
+      {
+       "mat": "m04"
+      },
+      {
+       "mat": "m05"
+      },
+      {
+       "mat": "m06"
+      },
+      {
+       "mat": "m07"
+      },
+      {
+       "mat": "m08"
+      },
+      {
+       "mat": "m09"
+      },
+      {
+       "mat": "m10"
+      }
+     ],
+     "voluntariado": [
+      {
+       "mat": "m01",
+       "dia": "2026-11-01",
+       "turno": "A",
+       "servico": "todos"
+      },
+      {
+       "mat": "m01",
+       "dia": "2026-11-01",
+       "turno": "B",
+       "servico": "todos"
+      },
+      {
+       "mat": "m01",
+       "dia": "2026-11-01",
+       "turno": "C",
+       "servico": "todos"
+      },
+      {
+       "mat": "m01",
+       "dia": "2026-11-02",
+       "turno": "A",
+       "servico": "todos"
+      },
+      {
+       "mat": "m01",
+       "dia": "2026-11-02",
+       "turno": "B",
+       "servico": "todos"
+      },
+      {
+       "mat": "m01",
+       "dia": "2026-11-02",
+       "turno": "C",
+       "servico": "todos"
+      },
+      {
+       "mat": "m02",
+       "dia": "2026-11-01",
+       "turno": "A",
+       "servico": "todos"
+      },
+      {
+       "mat": "m02",
+       "dia": "2026-11-01",
+       "turno": "B",
+       "servico": "todos"
+      },
+      {
+       "mat": "m02",
+       "dia": "2026-11-01",
+       "turno": "C",
+       "servico": "todos"
+      },
+      {
+       "mat": "m02",
+       "dia": "2026-11-02",
+       "turno": "A",
+       "servico": "todos"
+      },
+      {
+       "mat": "m02",
+       "dia": "2026-11-02",
+       "turno": "B",
+       "servico": "todos"
+      },
+      {
+       "mat": "m02",
+       "dia": "2026-11-02",
+       "turno": "C",
+       "servico": "todos"
+      },
+      {
+       "mat": "m03",
+       "dia": "2026-11-01",
+       "turno": "A",
+       "servico": "todos"
+      },
+      {
+       "mat": "m03",
+       "dia": "2026-11-01",
+       "turno": "B",
+       "servico": "todos"
+      },
+      {
+       "mat": "m03",
+       "dia": "2026-11-01",
+       "turno": "C",
+       "servico": "todos"
+      },
+      {
+       "mat": "m03",
+       "dia": "2026-11-02",
+       "turno": "A",
+       "servico": "todos"
+      },
+      {
+       "mat": "m03",
+       "dia": "2026-11-02",
+       "turno": "B",
+       "servico": "todos"
+      },
+      {
+       "mat": "m03",
+       "dia": "2026-11-02",
+       "turno": "C",
+       "servico": "todos"
+      },
+      {
+       "mat": "m04",
+       "dia": "2026-11-01",
+       "turno": "A",
+       "servico": "todos"
+      },
+      {
+       "mat": "m04",
+       "dia": "2026-11-01",
+       "turno": "B",
+       "servico": "todos"
+      },
+      {
+       "mat": "m04",
+       "dia": "2026-11-01",
+       "turno": "C",
+       "servico": "todos"
+      },
+      {
+       "mat": "m04",
+       "dia": "2026-11-02",
+       "turno": "A",
+       "servico": "todos"
+      },
+      {
+       "mat": "m04",
+       "dia": "2026-11-02",
+       "turno": "B",
+       "servico": "todos"
+      },
+      {
+       "mat": "m04",
+       "dia": "2026-11-02",
+       "turno": "C",
+       "servico": "todos"
+      },
+      {
+       "mat": "m05",
+       "dia": "2026-11-01",
+       "turno": "A",
+       "servico": "todos"
+      },
+      {
+       "mat": "m05",
+       "dia": "2026-11-01",
+       "turno": "B",
+       "servico": "todos"
+      },
+      {
+       "mat": "m05",
+       "dia": "2026-11-01",
+       "turno": "C",
+       "servico": "todos"
+      },
+      {
+       "mat": "m05",
+       "dia": "2026-11-02",
+       "turno": "A",
+       "servico": "todos"
+      },
+      {
+       "mat": "m05",
+       "dia": "2026-11-02",
+       "turno": "B",
+       "servico": "todos"
+      },
+      {
+       "mat": "m05",
+       "dia": "2026-11-02",
+       "turno": "C",
+       "servico": "todos"
+      },
+      {
+       "mat": "m06",
+       "dia": "2026-11-01",
+       "turno": "A",
+       "servico": "todos"
+      },
+      {
+       "mat": "m06",
+       "dia": "2026-11-01",
+       "turno": "B",
+       "servico": "todos"
+      },
+      {
+       "mat": "m06",
+       "dia": "2026-11-01",
+       "turno": "C",
+       "servico": "todos"
+      },
+      {
+       "mat": "m06",
+       "dia": "2026-11-02",
+       "turno": "A",
+       "servico": "todos"
+      },
+      {
+       "mat": "m06",
+       "dia": "2026-11-02",
+       "turno": "B",
+       "servico": "todos"
+      },
+      {
+       "mat": "m06",
+       "dia": "2026-11-02",
+       "turno": "C",
+       "servico": "todos"
+      },
+      {
+       "mat": "m07",
+       "dia": "2026-11-01",
+       "turno": "A",
+       "servico": "todos"
+      },
+      {
+       "mat": "m07",
+       "dia": "2026-11-01",
+       "turno": "B",
+       "servico": "todos"
+      },
+      {
+       "mat": "m07",
+       "dia": "2026-11-01",
+       "turno": "C",
+       "servico": "todos"
+      },
+      {
+       "mat": "m07",
+       "dia": "2026-11-02",
+       "turno": "A",
+       "servico": "todos"
+      },
+      {
+       "mat": "m07",
+       "dia": "2026-11-02",
+       "turno": "B",
+       "servico": "todos"
+      },
+      {
+       "mat": "m07",
+       "dia": "2026-11-02",
+       "turno": "C",
+       "servico": "todos"
+      },
+      {
+       "mat": "m08",
+       "dia": "2026-11-01",
+       "turno": "A",
+       "servico": "todos"
+      },
+      {
+       "mat": "m08",
+       "dia": "2026-11-01",
+       "turno": "B",
+       "servico": "todos"
+      },
+      {
+       "mat": "m08",
+       "dia": "2026-11-01",
+       "turno": "C",
+       "servico": "todos"
+      },
+      {
+       "mat": "m08",
+       "dia": "2026-11-02",
+       "turno": "A",
+       "servico": "todos"
+      },
+      {
+       "mat": "m08",
+       "dia": "2026-11-02",
+       "turno": "B",
+       "servico": "todos"
+      },
+      {
+       "mat": "m08",
+       "dia": "2026-11-02",
+       "turno": "C",
+       "servico": "todos"
+      },
+      {
+       "mat": "m09",
+       "dia": "2026-11-01",
+       "turno": "A",
+       "servico": "todos"
+      },
+      {
+       "mat": "m09",
+       "dia": "2026-11-01",
+       "turno": "B",
+       "servico": "todos"
+      },
+      {
+       "mat": "m09",
+       "dia": "2026-11-01",
+       "turno": "C",
+       "servico": "todos"
+      },
+      {
+       "mat": "m09",
+       "dia": "2026-11-02",
+       "turno": "A",
+       "servico": "todos"
+      },
+      {
+       "mat": "m09",
+       "dia": "2026-11-02",
+       "turno": "B",
+       "servico": "todos"
+      },
+      {
+       "mat": "m09",
+       "dia": "2026-11-02",
+       "turno": "C",
+       "servico": "todos"
+      },
+      {
+       "mat": "m10",
+       "dia": "2026-11-01",
+       "turno": "A",
+       "servico": "todos"
+      },
+      {
+       "mat": "m10",
+       "dia": "2026-11-01",
+       "turno": "B",
+       "servico": "todos"
+      },
+      {
+       "mat": "m10",
+       "dia": "2026-11-01",
+       "turno": "C",
+       "servico": "todos"
+      },
+      {
+       "mat": "m10",
+       "dia": "2026-11-02",
+       "turno": "A",
+       "servico": "todos"
+      },
+      {
+       "mat": "m10",
+       "dia": "2026-11-02",
+       "turno": "B",
+       "servico": "todos"
+      },
+      {
+       "mat": "m10",
+       "dia": "2026-11-02",
+       "turno": "C",
+       "servico": "todos"
+      }
+     ],
+     "alocacoes": [
+      {
+       "mat": "m09",
+       "dia": "2026-11-01",
+       "servico": "PE Seguro",
+       "turno": "A"
+      },
+      {
+       "mat": "m01",
+       "dia": "2026-11-01",
+       "servico": "PE Seguro",
+       "turno": "A"
+      },
+      {
+       "mat": "m02",
+       "dia": "2026-11-01",
+       "servico": "PE Seguro",
+       "turno": "B"
+      },
+      {
+       "mat": "m03",
+       "dia": "2026-11-01",
+       "servico": "PE Seguro",
+       "turno": "B"
+      },
+      {
+       "mat": "m04",
+       "dia": "2026-11-01",
+       "servico": "PE Seguro",
+       "turno": "C"
+      },
+      {
+       "mat": "m05",
+       "dia": "2026-11-01",
+       "servico": "PE Seguro",
+       "turno": "C"
+      }
+     ],
+     "expediente": [],
+     "horarios": {
+      "Pronto|A": {
+       "ini": 480,
+       "fim": 1200,
+       "dur": 720
+      },
+      "Pronto|B": {
+       "ini": 1200,
+       "fim": 480,
+       "dur": 720
+      },
+      "Adm|A": {
+       "ini": 480,
+       "fim": 960,
+       "dur": 480
+      },
+      "JES|A": {
+       "ini": 480,
+       "fim": 1200,
+       "dur": 720
+      },
+      "JES|B": {
+       "ini": 1200,
+       "fim": 480,
+       "dur": 720
+      },
+      "Bioma|A": {
+       "ini": 0,
+       "fim": 480,
+       "dur": 480
+      },
+      "Bioma|B": {
+       "ini": 480,
+       "fim": 960,
+       "dur": 480
+      },
+      "Bioma|C": {
+       "ini": 960,
+       "fim": 0,
+       "dur": 480
+      },
+      "PE Seguro|A": {
+       "ini": 0,
+       "fim": 480,
+       "dur": 480
+      },
+      "PE Seguro|B": {
+       "ini": 480,
+       "fim": 960,
+       "dur": 480
+      },
+      "PE Seguro|C": {
+       "ini": 960,
+       "fim": 0,
+       "dur": 480
+      },
+      "Defensoria|A": {
+       "ini": 420,
+       "fim": 1140,
+       "dur": 720
+      }
+     },
+     "tipos": {
+      "Pronto": "Ordinário",
+      "Adm": "Ordinário",
+      "JES": "PJES",
+      "Defensoria": "PJES",
+      "Bioma": "Diária",
+      "PE Seguro": "Diária"
+     }
+    }
+   ],
+   "saida": {
+    "novas": [],
+    "porCota": [
+     {
+      "id": "c",
+      "operacao": "PE Seguro",
+      "servico": "PE Seguro",
+      "origem": "interna",
+      "recebidas": 6,
+      "distribuidas": 6,
+      "restantes": 0
+     }
+    ],
+    "porOperacao": {
+     "PE Seguro": {
+      "servico": "PE Seguro",
+      "recebidas": 6,
+      "distribuidas": 6,
+      "restantes": 0,
+      "novas": 0,
+      "porMilitar": {
+       "m09": 1,
+       "m01": 1,
+       "m02": 1,
+       "m03": 1,
+       "m04": 1,
+       "m05": 1
+      }
+     }
+    },
+    "vazias": [],
+    "semCota": {
+     "PE Seguro": 6
+    },
+    "avisos": []
+   }
+  },
+  {
+   "teste": "teste_cotas.js",
+   "entrada": [
+    {
+     "mes": "2026-11",
+     "operacoes": [
+      {
+       "nome": "PE Seguro",
+       "servico": "PE Seguro",
+       "dias": [
+        "2026-11-01",
+        "2026-11-02"
+       ],
+       "turnos": [
+        {
+         "turno": "A",
+         "vagas": 2
+        },
+        {
+         "turno": "B",
+         "vagas": 2
+        },
+        {
+         "turno": "C",
+         "vagas": 2
+        }
+       ]
+      }
+     ],
+     "cotas": [
+      {
+       "id": "c",
+       "operacao": "PE Seguro",
+       "quantidade": 6
+      }
+     ],
+     "militares": [
+      {
+       "mat": "m01"
+      },
+      {
+       "mat": "m02"
+      },
+      {
+       "mat": "m03"
+      },
+      {
+       "mat": "m04"
+      },
+      {
+       "mat": "m05"
+      },
+      {
+       "mat": "m06"
+      },
+      {
+       "mat": "m07"
+      },
+      {
+       "mat": "m08"
+      },
+      {
+       "mat": "m09"
+      },
+      {
+       "mat": "m10"
+      }
+     ],
+     "voluntariado": [
+      {
+       "mat": "m01",
+       "dia": "2026-11-01",
+       "turno": "A",
+       "servico": "todos"
+      },
+      {
+       "mat": "m01",
+       "dia": "2026-11-01",
+       "turno": "B",
+       "servico": "todos"
+      },
+      {
+       "mat": "m01",
+       "dia": "2026-11-01",
+       "turno": "C",
+       "servico": "todos"
+      },
+      {
+       "mat": "m01",
+       "dia": "2026-11-02",
+       "turno": "A",
+       "servico": "todos"
+      },
+      {
+       "mat": "m01",
+       "dia": "2026-11-02",
+       "turno": "B",
+       "servico": "todos"
+      },
+      {
+       "mat": "m01",
+       "dia": "2026-11-02",
+       "turno": "C",
+       "servico": "todos"
+      },
+      {
+       "mat": "m02",
+       "dia": "2026-11-01",
+       "turno": "A",
+       "servico": "todos"
+      },
+      {
+       "mat": "m02",
+       "dia": "2026-11-01",
+       "turno": "B",
+       "servico": "todos"
+      },
+      {
+       "mat": "m02",
+       "dia": "2026-11-01",
+       "turno": "C",
+       "servico": "todos"
+      },
+      {
+       "mat": "m02",
+       "dia": "2026-11-02",
+       "turno": "A",
+       "servico": "todos"
+      },
+      {
+       "mat": "m02",
+       "dia": "2026-11-02",
+       "turno": "B",
+       "servico": "todos"
+      },
+      {
+       "mat": "m02",
+       "dia": "2026-11-02",
+       "turno": "C",
+       "servico": "todos"
+      },
+      {
+       "mat": "m03",
+       "dia": "2026-11-01",
+       "turno": "A",
+       "servico": "todos"
+      },
+      {
+       "mat": "m03",
+       "dia": "2026-11-01",
+       "turno": "B",
+       "servico": "todos"
+      },
+      {
+       "mat": "m03",
+       "dia": "2026-11-01",
+       "turno": "C",
+       "servico": "todos"
+      },
+      {
+       "mat": "m03",
+       "dia": "2026-11-02",
+       "turno": "A",
+       "servico": "todos"
+      },
+      {
+       "mat": "m03",
+       "dia": "2026-11-02",
+       "turno": "B",
+       "servico": "todos"
+      },
+      {
+       "mat": "m03",
+       "dia": "2026-11-02",
+       "turno": "C",
+       "servico": "todos"
+      },
+      {
+       "mat": "m04",
+       "dia": "2026-11-01",
+       "turno": "A",
+       "servico": "todos"
+      },
+      {
+       "mat": "m04",
+       "dia": "2026-11-01",
+       "turno": "B",
+       "servico": "todos"
+      },
+      {
+       "mat": "m04",
+       "dia": "2026-11-01",
+       "turno": "C",
+       "servico": "todos"
+      },
+      {
+       "mat": "m04",
+       "dia": "2026-11-02",
+       "turno": "A",
+       "servico": "todos"
+      },
+      {
+       "mat": "m04",
+       "dia": "2026-11-02",
+       "turno": "B",
+       "servico": "todos"
+      },
+      {
+       "mat": "m04",
+       "dia": "2026-11-02",
+       "turno": "C",
+       "servico": "todos"
+      },
+      {
+       "mat": "m05",
+       "dia": "2026-11-01",
+       "turno": "A",
+       "servico": "todos"
+      },
+      {
+       "mat": "m05",
+       "dia": "2026-11-01",
+       "turno": "B",
+       "servico": "todos"
+      },
+      {
+       "mat": "m05",
+       "dia": "2026-11-01",
+       "turno": "C",
+       "servico": "todos"
+      },
+      {
+       "mat": "m05",
+       "dia": "2026-11-02",
+       "turno": "A",
+       "servico": "todos"
+      },
+      {
+       "mat": "m05",
+       "dia": "2026-11-02",
+       "turno": "B",
+       "servico": "todos"
+      },
+      {
+       "mat": "m05",
+       "dia": "2026-11-02",
+       "turno": "C",
+       "servico": "todos"
+      },
+      {
+       "mat": "m06",
+       "dia": "2026-11-01",
+       "turno": "A",
+       "servico": "todos"
+      },
+      {
+       "mat": "m06",
+       "dia": "2026-11-01",
+       "turno": "B",
+       "servico": "todos"
+      },
+      {
+       "mat": "m06",
+       "dia": "2026-11-01",
+       "turno": "C",
+       "servico": "todos"
+      },
+      {
+       "mat": "m06",
+       "dia": "2026-11-02",
+       "turno": "A",
+       "servico": "todos"
+      },
+      {
+       "mat": "m06",
+       "dia": "2026-11-02",
+       "turno": "B",
+       "servico": "todos"
+      },
+      {
+       "mat": "m06",
+       "dia": "2026-11-02",
+       "turno": "C",
+       "servico": "todos"
+      },
+      {
+       "mat": "m07",
+       "dia": "2026-11-01",
+       "turno": "A",
+       "servico": "todos"
+      },
+      {
+       "mat": "m07",
+       "dia": "2026-11-01",
+       "turno": "B",
+       "servico": "todos"
+      },
+      {
+       "mat": "m07",
+       "dia": "2026-11-01",
+       "turno": "C",
+       "servico": "todos"
+      },
+      {
+       "mat": "m07",
+       "dia": "2026-11-02",
+       "turno": "A",
+       "servico": "todos"
+      },
+      {
+       "mat": "m07",
+       "dia": "2026-11-02",
+       "turno": "B",
+       "servico": "todos"
+      },
+      {
+       "mat": "m07",
+       "dia": "2026-11-02",
+       "turno": "C",
+       "servico": "todos"
+      },
+      {
+       "mat": "m08",
+       "dia": "2026-11-01",
+       "turno": "A",
+       "servico": "todos"
+      },
+      {
+       "mat": "m08",
+       "dia": "2026-11-01",
+       "turno": "B",
+       "servico": "todos"
+      },
+      {
+       "mat": "m08",
+       "dia": "2026-11-01",
+       "turno": "C",
+       "servico": "todos"
+      },
+      {
+       "mat": "m08",
+       "dia": "2026-11-02",
+       "turno": "A",
+       "servico": "todos"
+      },
+      {
+       "mat": "m08",
+       "dia": "2026-11-02",
+       "turno": "B",
+       "servico": "todos"
+      },
+      {
+       "mat": "m08",
+       "dia": "2026-11-02",
+       "turno": "C",
+       "servico": "todos"
+      },
+      {
+       "mat": "m09",
+       "dia": "2026-11-01",
+       "turno": "A",
+       "servico": "todos"
+      },
+      {
+       "mat": "m09",
+       "dia": "2026-11-01",
+       "turno": "B",
+       "servico": "todos"
+      },
+      {
+       "mat": "m09",
+       "dia": "2026-11-01",
+       "turno": "C",
+       "servico": "todos"
+      },
+      {
+       "mat": "m09",
+       "dia": "2026-11-02",
+       "turno": "A",
+       "servico": "todos"
+      },
+      {
+       "mat": "m09",
+       "dia": "2026-11-02",
+       "turno": "B",
+       "servico": "todos"
+      },
+      {
+       "mat": "m09",
+       "dia": "2026-11-02",
+       "turno": "C",
+       "servico": "todos"
+      },
+      {
+       "mat": "m10",
+       "dia": "2026-11-01",
+       "turno": "A",
+       "servico": "todos"
+      },
+      {
+       "mat": "m10",
+       "dia": "2026-11-01",
+       "turno": "B",
+       "servico": "todos"
+      },
+      {
+       "mat": "m10",
+       "dia": "2026-11-01",
+       "turno": "C",
+       "servico": "todos"
+      },
+      {
+       "mat": "m10",
+       "dia": "2026-11-02",
+       "turno": "A",
+       "servico": "todos"
+      },
+      {
+       "mat": "m10",
+       "dia": "2026-11-02",
+       "turno": "B",
+       "servico": "todos"
+      },
+      {
+       "mat": "m10",
+       "dia": "2026-11-02",
+       "turno": "C",
+       "servico": "todos"
+      }
+     ],
+     "alocacoes": [
+      {
+       "mat": "m09",
+       "dia": "2026-11-01",
+       "servico": "PE Seguro",
+       "turno": "A"
+      }
+     ],
+     "expediente": [],
+     "horarios": {
+      "Pronto|A": {
+       "ini": 480,
+       "fim": 1200,
+       "dur": 720
+      },
+      "Pronto|B": {
+       "ini": 1200,
+       "fim": 480,
+       "dur": 720
+      },
+      "Adm|A": {
+       "ini": 480,
+       "fim": 960,
+       "dur": 480
+      },
+      "JES|A": {
+       "ini": 480,
+       "fim": 1200,
+       "dur": 720
+      },
+      "JES|B": {
+       "ini": 1200,
+       "fim": 480,
+       "dur": 720
+      },
+      "Bioma|A": {
+       "ini": 0,
+       "fim": 480,
+       "dur": 480
+      },
+      "Bioma|B": {
+       "ini": 480,
+       "fim": 960,
+       "dur": 480
+      },
+      "Bioma|C": {
+       "ini": 960,
+       "fim": 0,
+       "dur": 480
+      },
+      "PE Seguro|A": {
+       "ini": 0,
+       "fim": 480,
+       "dur": 480
+      },
+      "PE Seguro|B": {
+       "ini": 480,
+       "fim": 960,
+       "dur": 480
+      },
+      "PE Seguro|C": {
+       "ini": 960,
+       "fim": 0,
+       "dur": 480
+      },
+      "Defensoria|A": {
+       "ini": 420,
+       "fim": 1140,
+       "dur": 720
+      }
+     },
+     "tipos": {
+      "Pronto": "Ordinário",
+      "Adm": "Ordinário",
+      "JES": "PJES",
+      "Defensoria": "PJES",
+      "Bioma": "Diária",
+      "PE Seguro": "Diária"
+     }
+    }
+   ],
+   "saida": {
+    "novas": [
+     {
+      "mat": "m01",
+      "dia": "2026-11-01",
+      "servico": "PE Seguro",
+      "turno": "A",
+      "operacao": "PE Seguro",
+      "fase": "voluntaria"
+     },
+     {
+      "mat": "m02",
+      "dia": "2026-11-01",
+      "servico": "PE Seguro",
+      "turno": "B",
+      "operacao": "PE Seguro",
+      "fase": "voluntaria"
+     },
+     {
+      "mat": "m03",
+      "dia": "2026-11-01",
+      "servico": "PE Seguro",
+      "turno": "B",
+      "operacao": "PE Seguro",
+      "fase": "voluntaria"
+     },
+     {
+      "mat": "m04",
+      "dia": "2026-11-01",
+      "servico": "PE Seguro",
+      "turno": "C",
+      "operacao": "PE Seguro",
+      "fase": "voluntaria"
+     },
+     {
+      "mat": "m05",
+      "dia": "2026-11-01",
+      "servico": "PE Seguro",
+      "turno": "C",
+      "operacao": "PE Seguro",
+      "fase": "voluntaria"
+     }
+    ],
+    "porCota": [
+     {
+      "id": "c",
+      "operacao": "PE Seguro",
+      "servico": "PE Seguro",
+      "origem": "interna",
+      "recebidas": 6,
+      "distribuidas": 6,
+      "restantes": 0
+     }
+    ],
+    "porOperacao": {
+     "PE Seguro": {
+      "servico": "PE Seguro",
+      "recebidas": 6,
+      "distribuidas": 6,
+      "restantes": 0,
+      "novas": 5,
+      "porMilitar": {
+       "m09": 1,
+       "m01": 1,
+       "m02": 1,
+       "m03": 1,
+       "m04": 1,
+       "m05": 1
+      }
+     }
+    },
+    "vazias": [],
+    "semCota": {
+     "PE Seguro": 6
+    },
+    "avisos": []
+   }
+  },
+  {
+   "teste": "teste_cotas.js",
+   "entrada": [
+    {
+     "mes": "2026-11",
+     "operacoes": [
+      {
+       "nome": "PE Seguro",
+       "servico": "PE Seguro",
+       "dias": [
+        "2026-11-04"
+       ],
+       "turnos": [
+        {
+         "turno": "A",
+         "vagas": 1
+        },
+        {
+         "turno": "B",
+         "vagas": 1
+        },
+        {
+         "turno": "C",
+         "vagas": 1
+        }
+       ]
+      }
+     ],
+     "cotas": [
+      {
+       "id": "c",
+       "operacao": "PE Seguro",
+       "quantidade": 3
+      }
+     ],
+     "militares": [
+      {
+       "mat": "m01"
+      },
+      {
+       "mat": "m02"
+      }
+     ],
+     "voluntariado": [
+      {
+       "mat": "m01",
+       "dia": "2026-11-04",
+       "turno": "A",
+       "servico": "todos"
+      },
+      {
+       "mat": "m01",
+       "dia": "2026-11-04",
+       "turno": "B",
+       "servico": "todos"
+      },
+      {
+       "mat": "m01",
+       "dia": "2026-11-04",
+       "turno": "C",
+       "servico": "todos"
+      },
+      {
+       "mat": "m02",
+       "dia": "2026-11-04",
+       "turno": "A",
+       "servico": "todos"
+      }
+     ],
+     "alocacoes": [
+      {
+       "mat": "m01",
+       "dia": "2026-11-04",
+       "servico": "Pronto",
+       "turno": "A"
+      }
+     ],
+     "expediente": [],
+     "horarios": {
+      "Pronto|A": {
+       "ini": 480,
+       "fim": 1200,
+       "dur": 720
+      },
+      "Pronto|B": {
+       "ini": 1200,
+       "fim": 480,
+       "dur": 720
+      },
+      "Adm|A": {
+       "ini": 480,
+       "fim": 960,
+       "dur": 480
+      },
+      "JES|A": {
+       "ini": 480,
+       "fim": 1200,
+       "dur": 720
+      },
+      "JES|B": {
+       "ini": 1200,
+       "fim": 480,
+       "dur": 720
+      },
+      "Bioma|A": {
+       "ini": 0,
+       "fim": 480,
+       "dur": 480
+      },
+      "Bioma|B": {
+       "ini": 480,
+       "fim": 960,
+       "dur": 480
+      },
+      "Bioma|C": {
+       "ini": 960,
+       "fim": 0,
+       "dur": 480
+      },
+      "PE Seguro|A": {
+       "ini": 0,
+       "fim": 480,
+       "dur": 480
+      },
+      "PE Seguro|B": {
+       "ini": 480,
+       "fim": 960,
+       "dur": 480
+      },
+      "PE Seguro|C": {
+       "ini": 960,
+       "fim": 0,
+       "dur": 480
+      },
+      "Defensoria|A": {
+       "ini": 420,
+       "fim": 1140,
+       "dur": 720
+      }
+     },
+     "tipos": {
+      "Pronto": "Ordinário",
+      "Adm": "Ordinário",
+      "JES": "PJES",
+      "Defensoria": "PJES",
+      "Bioma": "Diária",
+      "PE Seguro": "Diária"
+     }
+    }
+   ],
+   "saida": {
+    "novas": [
+     {
+      "mat": "m01",
+      "dia": "2026-11-04",
+      "servico": "PE Seguro",
+      "turno": "A",
+      "operacao": "PE Seguro",
+      "fase": "voluntaria"
+     },
+     {
+      "mat": "m02",
+      "dia": "2026-11-04",
+      "servico": "PE Seguro",
+      "turno": "B",
+      "operacao": "PE Seguro",
+      "fase": "compulsoria"
+     }
+    ],
+    "porCota": [
+     {
+      "id": "c",
+      "operacao": "PE Seguro",
+      "servico": "PE Seguro",
+      "origem": "interna",
+      "recebidas": 3,
+      "distribuidas": 2,
+      "restantes": 1
+     }
+    ],
+    "porOperacao": {
+     "PE Seguro": {
+      "servico": "PE Seguro",
+      "recebidas": 3,
+      "distribuidas": 2,
+      "restantes": 1,
+      "novas": 2,
+      "porMilitar": {
+       "m01": 1,
+       "m02": 1
+      }
+     }
+    },
+    "vazias": [
+     {
+      "operacao": "PE Seguro",
+      "servico": "PE Seguro",
+      "dia": "2026-11-04",
+      "turno": "C",
+      "faltam": 1,
+      "motivo": "o militar já tem diária nesse dia"
+     }
+    ],
+    "semCota": {},
+    "avisos": []
+   }
+  },
+  {
+   "teste": "teste_cotas.js",
+   "entrada": [
+    {
+     "mes": "2026-11",
+     "operacoes": [
+      {
+       "nome": "PE Seguro",
+       "servico": "PE Seguro",
+       "dias": [
+        "2026-11-04"
+       ],
+       "turnos": [
+        {
+         "turno": "A",
+         "vagas": 1
+        },
+        {
+         "turno": "B",
+         "vagas": 1
+        },
+        {
+         "turno": "C",
+         "vagas": 1
+        }
+       ]
+      }
+     ],
+     "cotas": [
+      {
+       "id": "c",
+       "operacao": "PE Seguro",
+       "quantidade": 3
+      }
+     ],
+     "militares": [
+      {
+       "mat": "m01"
+      }
+     ],
+     "voluntariado": [
+      {
+       "mat": "m01",
+       "dia": "2026-11-04",
+       "turno": "B",
+       "servico": "todos"
+      }
+     ],
+     "alocacoes": [],
+     "expediente": [
+      {
+       "mat": "m01",
+       "dia": "2026-11-02",
+       "turno": "A",
+       "servico": "Adm",
+       "implicito": true
+      },
+      {
+       "mat": "m01",
+       "dia": "2026-11-03",
+       "turno": "A",
+       "servico": "Adm",
+       "implicito": true
+      },
+      {
+       "mat": "m01",
+       "dia": "2026-11-04",
+       "turno": "A",
+       "servico": "Adm",
+       "implicito": true
+      },
+      {
+       "mat": "m01",
+       "dia": "2026-11-05",
+       "turno": "A",
+       "servico": "Adm",
+       "implicito": true
+      },
+      {
+       "mat": "m01",
+       "dia": "2026-11-06",
+       "turno": "A",
+       "servico": "Adm",
+       "implicito": true
+      },
+      {
+       "mat": "m01",
+       "dia": "2026-11-09",
+       "turno": "A",
+       "servico": "Adm",
+       "implicito": true
+      },
+      {
+       "mat": "m01",
+       "dia": "2026-11-10",
+       "turno": "A",
+       "servico": "Adm",
+       "implicito": true
+      },
+      {
+       "mat": "m01",
+       "dia": "2026-11-11",
+       "turno": "A",
+       "servico": "Adm",
+       "implicito": true
+      },
+      {
+       "mat": "m01",
+       "dia": "2026-11-12",
+       "turno": "A",
+       "servico": "Adm",
+       "implicito": true
+      },
+      {
+       "mat": "m01",
+       "dia": "2026-11-13",
+       "turno": "A",
+       "servico": "Adm",
+       "implicito": true
+      },
+      {
+       "mat": "m01",
+       "dia": "2026-11-16",
+       "turno": "A",
+       "servico": "Adm",
+       "implicito": true
+      },
+      {
+       "mat": "m01",
+       "dia": "2026-11-17",
+       "turno": "A",
+       "servico": "Adm",
+       "implicito": true
+      },
+      {
+       "mat": "m01",
+       "dia": "2026-11-18",
+       "turno": "A",
+       "servico": "Adm",
+       "implicito": true
+      },
+      {
+       "mat": "m01",
+       "dia": "2026-11-19",
+       "turno": "A",
+       "servico": "Adm",
+       "implicito": true
+      },
+      {
+       "mat": "m01",
+       "dia": "2026-11-20",
+       "turno": "A",
+       "servico": "Adm",
+       "implicito": true
+      },
+      {
+       "mat": "m01",
+       "dia": "2026-11-23",
+       "turno": "A",
+       "servico": "Adm",
+       "implicito": true
+      },
+      {
+       "mat": "m01",
+       "dia": "2026-11-24",
+       "turno": "A",
+       "servico": "Adm",
+       "implicito": true
+      },
+      {
+       "mat": "m01",
+       "dia": "2026-11-25",
+       "turno": "A",
+       "servico": "Adm",
+       "implicito": true
+      },
+      {
+       "mat": "m01",
+       "dia": "2026-11-26",
+       "turno": "A",
+       "servico": "Adm",
+       "implicito": true
+      },
+      {
+       "mat": "m01",
+       "dia": "2026-11-27",
+       "turno": "A",
+       "servico": "Adm",
+       "implicito": true
+      },
+      {
+       "mat": "m01",
+       "dia": "2026-11-30",
+       "turno": "A",
+       "servico": "Adm",
+       "implicito": true
+      }
+     ],
+     "horarios": {
+      "Pronto|A": {
+       "ini": 480,
+       "fim": 1200,
+       "dur": 720
+      },
+      "Pronto|B": {
+       "ini": 1200,
+       "fim": 480,
+       "dur": 720
+      },
+      "Adm|A": {
+       "ini": 480,
+       "fim": 960,
+       "dur": 480
+      },
+      "JES|A": {
+       "ini": 480,
+       "fim": 1200,
+       "dur": 720
+      },
+      "JES|B": {
+       "ini": 1200,
+       "fim": 480,
+       "dur": 720
+      },
+      "Bioma|A": {
+       "ini": 0,
+       "fim": 480,
+       "dur": 480
+      },
+      "Bioma|B": {
+       "ini": 480,
+       "fim": 960,
+       "dur": 480
+      },
+      "Bioma|C": {
+       "ini": 960,
+       "fim": 0,
+       "dur": 480
+      },
+      "PE Seguro|A": {
+       "ini": 0,
+       "fim": 480,
+       "dur": 480
+      },
+      "PE Seguro|B": {
+       "ini": 480,
+       "fim": 960,
+       "dur": 480
+      },
+      "PE Seguro|C": {
+       "ini": 960,
+       "fim": 0,
+       "dur": 480
+      },
+      "Defensoria|A": {
+       "ini": 420,
+       "fim": 1140,
+       "dur": 720
+      }
+     },
+     "tipos": {
+      "Pronto": "Ordinário",
+      "Adm": "Ordinário",
+      "JES": "PJES",
+      "Defensoria": "PJES",
+      "Bioma": "Diária",
+      "PE Seguro": "Diária"
+     }
+    }
+   ],
+   "saida": {
+    "novas": [
+     {
+      "mat": "m01",
+      "dia": "2026-11-04",
+      "servico": "PE Seguro",
+      "turno": "A",
+      "operacao": "PE Seguro",
+      "fase": "compulsoria"
+     }
+    ],
+    "porCota": [
+     {
+      "id": "c",
+      "operacao": "PE Seguro",
+      "servico": "PE Seguro",
+      "origem": "interna",
+      "recebidas": 3,
+      "distribuidas": 1,
+      "restantes": 2
+     }
+    ],
+    "porOperacao": {
+     "PE Seguro": {
+      "servico": "PE Seguro",
+      "recebidas": 3,
+      "distribuidas": 1,
+      "restantes": 2,
+      "novas": 1,
+      "porMilitar": {
+       "m01": 1
+      }
+     }
+    },
+    "vazias": [
+     {
+      "operacao": "PE Seguro",
+      "servico": "PE Seguro",
+      "dia": "2026-11-04",
+      "turno": "B",
+      "faltam": 1,
+      "motivo": "choca com o expediente do Adm"
+     },
+     {
+      "operacao": "PE Seguro",
+      "servico": "PE Seguro",
+      "dia": "2026-11-04",
+      "turno": "C",
+      "faltam": 1,
+      "motivo": "o militar já tem diária nesse dia"
+     }
+    ],
+    "semCota": {},
+    "avisos": []
+   }
+  },
+  {
+   "teste": "teste_cotas.js",
+   "entrada": [
+    {
+     "mes": "2026-11",
+     "operacoes": [
+      {
+       "nome": "PE Seguro",
+       "servico": "PE Seguro",
+       "dias": [
+        "2026-11-05"
+       ],
+       "turnos": [
+        {
+         "turno": "A",
+         "vagas": 2
+        },
+        {
+         "turno": "B",
+         "vagas": 2
+        },
+        {
+         "turno": "C",
+         "vagas": 2
+        }
+       ]
+      }
+     ],
+     "cotas": [
+      {
+       "id": "c1",
+       "operacao": "PE Seguro",
+       "quantidade": 4
+      }
+     ],
+     "militares": [
+      {
+       "mat": "m01"
+      },
+      {
+       "mat": "m02"
+      },
+      {
+       "mat": "m03"
+      },
+      {
+       "mat": "m04"
+      },
+      {
+       "mat": "m05"
+      },
+      {
+       "mat": "m06"
+      },
+      {
+       "mat": "m07"
+      },
+      {
+       "mat": "m08"
+      },
+      {
+       "mat": "m09"
+      },
+      {
+       "mat": "m10"
+      }
+     ],
+     "voluntariado": [
+      {
+       "mat": "m01",
+       "dia": "2026-11-05",
+       "turno": "A",
+       "servico": "todos"
+      },
+      {
+       "mat": "m02",
+       "dia": "2026-11-09",
+       "turno": "C",
+       "servico": "todos"
+      }
+     ],
+     "alocacoes": [],
+     "expediente": [],
+     "horarios": {
+      "Pronto|A": {
+       "ini": 480,
+       "fim": 1200,
+       "dur": 720
+      },
+      "Pronto|B": {
+       "ini": 1200,
+       "fim": 480,
+       "dur": 720
+      },
+      "Adm|A": {
+       "ini": 480,
+       "fim": 960,
+       "dur": 480
+      },
+      "JES|A": {
+       "ini": 480,
+       "fim": 1200,
+       "dur": 720
+      },
+      "JES|B": {
+       "ini": 1200,
+       "fim": 480,
+       "dur": 720
+      },
+      "Bioma|A": {
+       "ini": 0,
+       "fim": 480,
+       "dur": 480
+      },
+      "Bioma|B": {
+       "ini": 480,
+       "fim": 960,
+       "dur": 480
+      },
+      "Bioma|C": {
+       "ini": 960,
+       "fim": 0,
+       "dur": 480
+      },
+      "PE Seguro|A": {
+       "ini": 0,
+       "fim": 480,
+       "dur": 480
+      },
+      "PE Seguro|B": {
+       "ini": 480,
+       "fim": 960,
+       "dur": 480
+      },
+      "PE Seguro|C": {
+       "ini": 960,
+       "fim": 0,
+       "dur": 480
+      },
+      "Defensoria|A": {
+       "ini": 420,
+       "fim": 1140,
+       "dur": 720
+      }
+     },
+     "tipos": {
+      "Pronto": "Ordinário",
+      "Adm": "Ordinário",
+      "JES": "PJES",
+      "Defensoria": "PJES",
+      "Bioma": "Diária",
+      "PE Seguro": "Diária"
+     }
+    }
+   ],
+   "saida": {
+    "novas": [
+     {
+      "mat": "m01",
+      "dia": "2026-11-05",
+      "servico": "PE Seguro",
+      "turno": "A",
+      "operacao": "PE Seguro",
+      "fase": "voluntaria"
+     },
+     {
+      "mat": "m02",
+      "dia": "2026-11-05",
+      "servico": "PE Seguro",
+      "turno": "A",
+      "operacao": "PE Seguro",
+      "fase": "compulsoria"
+     }
+    ],
+    "porCota": [
+     {
+      "id": "c1",
+      "operacao": "PE Seguro",
+      "servico": "PE Seguro",
+      "origem": "interna",
+      "recebidas": 4,
+      "distribuidas": 2,
+      "restantes": 2
+     }
+    ],
+    "porOperacao": {
+     "PE Seguro": {
+      "servico": "PE Seguro",
+      "recebidas": 4,
+      "distribuidas": 2,
+      "restantes": 2,
+      "novas": 2,
+      "porMilitar": {
+       "m01": 1,
+       "m02": 1
+      }
+     }
+    },
+    "vazias": [
+     {
+      "operacao": "PE Seguro",
+      "servico": "PE Seguro",
+      "dia": "2026-11-05",
+      "turno": "B",
+      "faltam": 2,
+      "motivo": "o militar já tem diária nesse dia"
+     },
+     {
+      "operacao": "PE Seguro",
+      "servico": "PE Seguro",
+      "dia": "2026-11-05",
+      "turno": "C",
+      "faltam": 2,
+      "motivo": "o militar já tem diária nesse dia"
+     }
+    ],
+    "semCota": {},
+    "avisos": []
+   }
+  },
+  {
+   "teste": "teste_p15.js",
+   "entrada": [
+    {
+     "mes": "2026-11",
+     "operacoes": [
+      {
+       "nome": "PE Seguro",
+       "servico": "PE Seguro",
+       "prioridade": 1,
+       "dias": [
+        "2026-11-01",
+        "2026-11-02"
+       ],
+       "turnos": [],
+       "problema": "\"PE Seguro\" sem vagas: vincule as guarnições de cada turno dela em GUARNIÇÕES POR ESCALA."
+      }
+     ],
+     "cotas": [
+      {
+       "id": "C1",
+       "operacao": "PE Seguro",
+       "quantidade": 160,
+       "origem": "interna"
+      }
+     ],
+     "militares": [
+      {
+       "mat": "M1"
+      }
+     ],
+     "voluntariado": [],
+     "alocacoes": [],
+     "expediente": [],
+     "horarios": {
+      "PE Seguro|A": {
+       "ini": 0,
+       "fim": 480,
+       "dur": 480
+      },
+      "PE Seguro|B": {
+       "ini": 480,
+       "fim": 960,
+       "dur": 480
+      }
+     },
+     "tipos": {
+      "PE Seguro": "Diária"
+     }
+    }
+   ],
+   "saida": {
+    "novas": [],
+    "porCota": [
+     {
+      "id": "C1",
+      "operacao": "PE Seguro",
+      "servico": "PE Seguro",
+      "origem": "interna",
+      "recebidas": 160,
+      "distribuidas": 0,
+      "restantes": 160
+     }
+    ],
+    "porOperacao": {
+     "PE Seguro": {
+      "servico": "PE Seguro",
+      "recebidas": 160,
+      "distribuidas": 0,
+      "restantes": 160,
+      "novas": 0,
+      "porMilitar": {}
+     }
+    },
+    "vazias": [],
+    "semCota": {},
+    "avisos": []
+   }
+  },
+  {
+   "teste": "teste_p15.js",
+   "entrada": [
+    {
+     "mes": "2026-11",
+     "operacoes": [
+      {
+       "nome": "PE Seguro",
+       "servico": "PE Seguro",
+       "prioridade": 1,
+       "dias": [
+        "2026-11-01",
+        "2026-11-02"
+       ],
+       "turnos": [
+        {
+         "turno": "A",
+         "vagas": 4
+        },
+        {
+         "turno": "B",
+         "vagas": 4
+        }
+       ]
+      }
+     ],
+     "cotas": [
+      {
+       "id": "C1",
+       "operacao": "PE Seguro",
+       "quantidade": 160,
+       "origem": "interna"
+      }
+     ],
+     "militares": [
+      {
+       "mat": "M1"
+      }
+     ],
+     "voluntariado": [],
+     "alocacoes": [],
+     "expediente": [],
+     "horarios": {
+      "PE Seguro|A": {
+       "ini": 0,
+       "fim": 480,
+       "dur": 480
+      },
+      "PE Seguro|B": {
+       "ini": 480,
+       "fim": 960,
+       "dur": 480
+      }
+     },
+     "tipos": {
+      "PE Seguro": "Diária"
+     }
+    }
+   ],
+   "saida": {
+    "novas": [],
+    "porCota": [
+     {
+      "id": "C1",
+      "operacao": "PE Seguro",
+      "servico": "PE Seguro",
+      "origem": "interna",
+      "recebidas": 160,
+      "distribuidas": 0,
+      "restantes": 160
+     }
+    ],
+    "porOperacao": {
+     "PE Seguro": {
+      "servico": "PE Seguro",
+      "recebidas": 160,
+      "distribuidas": 0,
+      "restantes": 160,
+      "novas": 0,
+      "porMilitar": {}
+     }
+    },
+    "vazias": [
+     {
+      "operacao": "PE Seguro",
+      "servico": "PE Seguro",
+      "dia": "2026-11-01",
+      "turno": "A",
+      "faltam": 4,
+      "motivo": "ninguém preencheu o formulário do mês"
+     },
+     {
+      "operacao": "PE Seguro",
+      "servico": "PE Seguro",
+      "dia": "2026-11-01",
+      "turno": "B",
+      "faltam": 4,
+      "motivo": "ninguém preencheu o formulário do mês"
+     },
+     {
+      "operacao": "PE Seguro",
+      "servico": "PE Seguro",
+      "dia": "2026-11-02",
+      "turno": "A",
+      "faltam": 4,
+      "motivo": "ninguém preencheu o formulário do mês"
+     },
+     {
+      "operacao": "PE Seguro",
+      "servico": "PE Seguro",
+      "dia": "2026-11-02",
+      "turno": "B",
+      "faltam": 4,
+      "motivo": "ninguém preencheu o formulário do mês"
+     }
+    ],
+    "semCota": {},
+    "avisos": []
+   }
+  },
+  {
+   "teste": "teste_p15.js",
+   "entrada": [
+    {
+     "mes": "2026-11",
+     "operacoes": [
+      {
+       "nome": "PE Seguro",
+       "servico": "PE Seguro",
+       "prioridade": 1,
+       "dias": [
+        "2026-11-01",
+        "2026-11-02"
+       ],
+       "turnos": [
+        {
+         "turno": "A",
+         "vagas": 4
+        },
+        {
+         "turno": "B",
+         "vagas": 4
+        }
+       ]
+      }
+     ],
+     "cotas": [
+      {
+       "id": "C1",
+       "operacao": "PE Seguro",
+       "quantidade": 160,
+       "origem": "interna"
+      }
+     ],
+     "militares": [
+      {
+       "mat": "M1"
+      }
+     ],
+     "voluntariado": [
+      {
+       "mat": "M1",
+       "dia": "2026-11-01",
+       "turno": "A",
+       "servico": "todos"
+      }
+     ],
+     "alocacoes": [],
+     "expediente": [],
+     "horarios": {
+      "PE Seguro|A": {
+       "ini": 0,
+       "fim": 480,
+       "dur": 480
+      },
+      "PE Seguro|B": {
+       "ini": 480,
+       "fim": 960,
+       "dur": 480
+      }
+     },
+     "tipos": {
+      "PE Seguro": "Diária"
+     }
+    }
+   ],
+   "saida": {
+    "novas": [
+     {
+      "mat": "M1",
+      "dia": "2026-11-01",
+      "servico": "PE Seguro",
+      "turno": "A",
+      "operacao": "PE Seguro",
+      "fase": "voluntaria"
+     },
+     {
+      "mat": "M1",
+      "dia": "2026-11-02",
+      "servico": "PE Seguro",
+      "turno": "A",
+      "operacao": "PE Seguro",
+      "fase": "compulsoria"
+     }
+    ],
+    "porCota": [
+     {
+      "id": "C1",
+      "operacao": "PE Seguro",
+      "servico": "PE Seguro",
+      "origem": "interna",
+      "recebidas": 160,
+      "distribuidas": 2,
+      "restantes": 158
+     }
+    ],
+    "porOperacao": {
+     "PE Seguro": {
+      "servico": "PE Seguro",
+      "recebidas": 160,
+      "distribuidas": 2,
+      "restantes": 158,
+      "novas": 2,
+      "porMilitar": {
+       "M1": 2
+      }
+     }
+    },
+    "vazias": [
+     {
+      "operacao": "PE Seguro",
+      "servico": "PE Seguro",
+      "dia": "2026-11-01",
+      "turno": "A",
+      "faltam": 3,
+      "motivo": "sem voluntário para esse dia e turno"
+     },
+     {
+      "operacao": "PE Seguro",
+      "servico": "PE Seguro",
+      "dia": "2026-11-01",
+      "turno": "B",
+      "faltam": 4,
+      "motivo": "o militar já tem diária nesse dia"
+     },
+     {
+      "operacao": "PE Seguro",
+      "servico": "PE Seguro",
+      "dia": "2026-11-02",
+      "turno": "A",
+      "faltam": 3,
+      "motivo": "sem voluntário para esse dia e turno"
+     },
+     {
+      "operacao": "PE Seguro",
+      "servico": "PE Seguro",
+      "dia": "2026-11-02",
+      "turno": "B",
+      "faltam": 4,
+      "motivo": "o militar já tem diária nesse dia"
+     }
+    ],
+    "semCota": {},
+    "avisos": []
+   }
+  },
+  {
+   "teste": "teste_p15.js",
+   "entrada": [
+    {
+     "mes": "2026-11",
+     "operacoes": [
+      {
+       "nome": "PE Seguro",
+       "servico": "PE Seguro",
+       "prioridade": 1,
+       "dias": [
+        "2026-11-01",
+        "2026-11-02"
+       ],
+       "turnos": [
+        {
+         "turno": "C",
+         "vagas": 4
+        }
+       ]
+      }
+     ],
+     "cotas": [
+      {
+       "id": "C1",
+       "operacao": "PE Seguro",
+       "quantidade": 160,
+       "origem": "interna"
+      }
+     ],
+     "militares": [
+      {
+       "mat": "M1"
+      }
+     ],
+     "voluntariado": [],
+     "alocacoes": [],
+     "expediente": [],
+     "horarios": {
+      "PE Seguro|A": {
+       "ini": 0,
+       "fim": 480,
+       "dur": 480
+      },
+      "PE Seguro|B": {
+       "ini": 480,
+       "fim": 960,
+       "dur": 480
+      }
+     },
+     "tipos": {
+      "PE Seguro": "Diária"
+     }
+    }
+   ],
+   "saida": {
+    "novas": [],
+    "porCota": [
+     {
+      "id": "C1",
+      "operacao": "PE Seguro",
+      "servico": "PE Seguro",
+      "origem": "interna",
+      "recebidas": 160,
+      "distribuidas": 0,
+      "restantes": 160
+     }
+    ],
+    "porOperacao": {
+     "PE Seguro": {
+      "servico": "PE Seguro",
+      "recebidas": 160,
+      "distribuidas": 0,
+      "restantes": 160,
+      "novas": 0,
+      "porMilitar": {}
+     }
+    },
+    "vazias": [],
+    "semCota": {},
+    "avisos": [
+     "\"PE Seguro\": turno sem horário legível na aba TURNOS (PE Seguro C); turno ignorado."
+    ]
+   }
+  },
+  {
+   "teste": "teste_p15.js",
+   "entrada": [
+    {
+     "mes": "2026-11",
+     "operacoes": [
+      {
+       "nome": "PE Seguro",
+       "servico": "PE Seguro",
+       "prioridade": 1,
+       "dias": [],
+       "turnos": [
+        {
+         "turno": "A",
+         "vagas": 4
+        },
+        {
+         "turno": "B",
+         "vagas": 4
+        }
+       ]
+      }
+     ],
+     "cotas": [
+      {
+       "id": "C1",
+       "operacao": "PE Seguro",
+       "quantidade": 160,
+       "origem": "interna"
+      }
+     ],
+     "militares": [
+      {
+       "mat": "M1"
+      }
+     ],
+     "voluntariado": [],
+     "alocacoes": [],
+     "expediente": [],
+     "horarios": {
+      "PE Seguro|A": {
+       "ini": 0,
+       "fim": 480,
+       "dur": 480
+      },
+      "PE Seguro|B": {
+       "ini": 480,
+       "fim": 960,
+       "dur": 480
+      }
+     },
+     "tipos": {
+      "PE Seguro": "Diária"
+     }
+    }
+   ],
+   "saida": {
+    "novas": [],
+    "porCota": [
+     {
+      "id": "C1",
+      "operacao": "PE Seguro",
+      "servico": "PE Seguro",
+      "origem": "interna",
+      "recebidas": 160,
+      "distribuidas": 0,
+      "restantes": 160
+     }
+    ],
+    "porOperacao": {
+     "PE Seguro": {
+      "servico": "PE Seguro",
+      "recebidas": 160,
+      "distribuidas": 0,
+      "restantes": 160,
+      "novas": 0,
+      "porMilitar": {}
+     }
+    },
+    "vazias": [],
+    "semCota": {},
+    "avisos": []
+   }
+  },
+  {
+   "teste": "teste_p18.js",
+   "entrada": [
+    {
+     "mes": "2026-11",
+     "operacoes": [
+      {
+       "nome": "Bioma",
+       "servico": "Bioma",
+       "prioridade": 1,
+       "dias": [
+        "2026-11-03",
+        "2026-11-04"
+       ],
+       "turnos": [
+        {
+         "turno": "A",
+         "vagas": 1
+        }
+       ]
+      }
+     ],
+     "cotas": [
+      {
+       "id": "C1",
+       "operacao": "Bioma",
+       "quantidade": 10,
+       "origem": "interna"
+      }
+     ],
+     "militares": [
+      {
+       "mat": "NAOVOL"
+      },
+      {
+       "mat": "VOL"
+      }
+     ],
+     "voluntariado": [
+      {
+       "mat": "NAOVOL",
+       "dia": "2026-11-03",
+       "turno": "A",
+       "servico": "todos"
+      },
+      {
+       "mat": "NAOVOL",
+       "dia": "2026-11-04",
+       "turno": "A",
+       "servico": "todos"
+      }
+     ],
+     "alocacoes": [],
+     "expediente": [],
+     "horarios": {
+      "Pronto|A": {
+       "ini": 480,
+       "fim": 1200,
+       "dur": 720
+      },
+      "Pronto|B": {
+       "ini": 1200,
+       "fim": 480,
+       "dur": 720
+      },
+      "Adm|A": {
+       "ini": 480,
+       "fim": 960,
+       "dur": 480
+      },
+      "JES|A": {
+       "ini": 480,
+       "fim": 1200,
+       "dur": 720
+      },
+      "JES|B": {
+       "ini": 1200,
+       "fim": 480,
+       "dur": 720
+      },
+      "Defensoria|A": {
+       "ini": 420,
+       "fim": 1140,
+       "dur": 720
+      },
+      "Bioma|A": {
+       "ini": 360,
+       "fim": 1080,
+       "dur": 720
+      },
+      "PE Seguro|A": {
+       "ini": 480,
+       "fim": 1200,
+       "dur": 720
+      },
+      "Saldo|A": {
+       "ini": 480,
+       "fim": 1200,
+       "dur": 720
+      }
+     },
+     "tipos": {
+      "Pronto": "Ordinário",
+      "Adm": "Ordinário",
+      "Saldo": "Ordinário",
+      "JES": "PJES",
+      "Defensoria": "PJES",
+      "CPRH": "PJES",
+      "Bioma": "Diária",
+      "PE Seguro": "Diária",
+      "Eleições": "Diária"
+     },
+     "voluntariosJes": {
+      "VOL": true
+     }
+    }
+   ],
+   "saida": {
+    "novas": [
+     {
+      "mat": "NAOVOL",
+      "dia": "2026-11-03",
+      "servico": "Bioma",
+      "turno": "A",
+      "operacao": "Bioma",
+      "fase": "voluntaria"
+     },
+     {
+      "mat": "NAOVOL",
+      "dia": "2026-11-04",
+      "servico": "Bioma",
+      "turno": "A",
+      "operacao": "Bioma",
+      "fase": "voluntaria"
+     }
+    ],
+    "porCota": [
+     {
+      "id": "C1",
+      "operacao": "Bioma",
+      "servico": "Bioma",
+      "origem": "interna",
+      "recebidas": 10,
+      "distribuidas": 2,
+      "restantes": 8
+     }
+    ],
+    "porOperacao": {
+     "Bioma": {
+      "servico": "Bioma",
+      "recebidas": 10,
+      "distribuidas": 2,
+      "restantes": 8,
+      "novas": 2,
+      "porMilitar": {
+       "NAOVOL": 2
+      }
+     }
+    },
+    "vazias": [],
+    "semCota": {},
+    "avisos": []
+   }
+  },
+  {
+   "teste": "teste_p18.js",
+   "entrada": [
+    {
+     "mes": "2026-11",
+     "operacoes": [
+      {
+       "nome": "JES",
+       "servico": "JES",
+       "prioridade": 1,
+       "dias": [
+        "2026-11-03",
+        "2026-11-04"
+       ],
+       "turnos": [
+        {
+         "turno": "A",
+         "vagas": 1
+        }
+       ]
+      }
+     ],
+     "cotas": [
+      {
+       "id": "C1",
+       "operacao": "JES",
+       "quantidade": 10,
+       "origem": "interna"
+      }
+     ],
+     "militares": [
+      {
+       "mat": "NAOVOL"
+      },
+      {
+       "mat": "VOL"
+      }
+     ],
+     "voluntariado": [
+      {
+       "mat": "NAOVOL",
+       "dia": "2026-11-03",
+       "turno": "A",
+       "servico": "todos"
+      },
+      {
+       "mat": "NAOVOL",
+       "dia": "2026-11-04",
+       "turno": "A",
+       "servico": "todos"
+      },
+      {
+       "mat": "VOL",
+       "dia": "2026-11-03",
+       "turno": "A",
+       "servico": "todos"
+      },
+      {
+       "mat": "VOL",
+       "dia": "2026-11-04",
+       "turno": "A",
+       "servico": "todos"
+      }
+     ],
+     "alocacoes": [],
+     "expediente": [],
+     "horarios": {
+      "Pronto|A": {
+       "ini": 480,
+       "fim": 1200,
+       "dur": 720
+      },
+      "Pronto|B": {
+       "ini": 1200,
+       "fim": 480,
+       "dur": 720
+      },
+      "Adm|A": {
+       "ini": 480,
+       "fim": 960,
+       "dur": 480
+      },
+      "JES|A": {
+       "ini": 480,
+       "fim": 1200,
+       "dur": 720
+      },
+      "JES|B": {
+       "ini": 1200,
+       "fim": 480,
+       "dur": 720
+      },
+      "Defensoria|A": {
+       "ini": 420,
+       "fim": 1140,
+       "dur": 720
+      },
+      "Bioma|A": {
+       "ini": 360,
+       "fim": 1080,
+       "dur": 720
+      },
+      "PE Seguro|A": {
+       "ini": 480,
+       "fim": 1200,
+       "dur": 720
+      },
+      "Saldo|A": {
+       "ini": 480,
+       "fim": 1200,
+       "dur": 720
+      }
+     },
+     "tipos": {
+      "Pronto": "Ordinário",
+      "Adm": "Ordinário",
+      "Saldo": "Ordinário",
+      "JES": "PJES",
+      "Defensoria": "PJES",
+      "CPRH": "PJES",
+      "Bioma": "Diária",
+      "PE Seguro": "Diária",
+      "Eleições": "Diária"
+     },
+     "voluntariosJes": {
+      "VOL": true
+     }
+    }
+   ],
+   "saida": {
+    "novas": [
+     {
+      "mat": "VOL",
+      "dia": "2026-11-03",
+      "servico": "JES",
+      "turno": "A",
+      "operacao": "JES",
+      "fase": "voluntaria"
+     },
+     {
+      "mat": "VOL",
+      "dia": "2026-11-04",
+      "servico": "JES",
+      "turno": "A",
+      "operacao": "JES",
+      "fase": "voluntaria"
+     }
+    ],
+    "porCota": [
+     {
+      "id": "C1",
+      "operacao": "JES",
+      "servico": "JES",
+      "origem": "interna",
+      "recebidas": 10,
+      "distribuidas": 2,
+      "restantes": 8
+     }
+    ],
+    "porOperacao": {
+     "JES": {
+      "servico": "JES",
+      "recebidas": 10,
+      "distribuidas": 2,
+      "restantes": 8,
+      "novas": 2,
+      "porMilitar": {
+       "VOL": 2
+      }
+     }
+    },
+    "vazias": [],
+    "semCota": {},
+    "avisos": []
+   }
+  },
+  {
+   "teste": "teste_p18.js",
+   "entrada": [
+    {
+     "mes": "2026-11",
+     "operacoes": [
+      {
+       "nome": "JES",
+       "servico": "JES",
+       "prioridade": 1,
+       "dias": [
+        "2026-11-03",
+        "2026-11-04"
+       ],
+       "turnos": [
+        {
+         "turno": "A",
+         "vagas": 1
+        }
+       ]
+      }
+     ],
+     "cotas": [
+      {
+       "id": "C1",
+       "operacao": "JES",
+       "quantidade": 10,
+       "origem": "interna"
+      }
+     ],
+     "militares": [
+      {
+       "mat": "NAOVOL"
+      },
+      {
+       "mat": "VOL"
+      }
+     ],
+     "voluntariado": [
+      {
+       "mat": "NAOVOL",
+       "dia": "2026-11-03",
+       "turno": "A",
+       "servico": "todos"
+      },
+      {
+       "mat": "NAOVOL",
+       "dia": "2026-11-04",
+       "turno": "A",
+       "servico": "todos"
+      }
+     ],
+     "alocacoes": [],
+     "expediente": [],
+     "horarios": {
+      "Pronto|A": {
+       "ini": 480,
+       "fim": 1200,
+       "dur": 720
+      },
+      "Pronto|B": {
+       "ini": 1200,
+       "fim": 480,
+       "dur": 720
+      },
+      "Adm|A": {
+       "ini": 480,
+       "fim": 960,
+       "dur": 480
+      },
+      "JES|A": {
+       "ini": 480,
+       "fim": 1200,
+       "dur": 720
+      },
+      "JES|B": {
+       "ini": 1200,
+       "fim": 480,
+       "dur": 720
+      },
+      "Defensoria|A": {
+       "ini": 420,
+       "fim": 1140,
+       "dur": 720
+      },
+      "Bioma|A": {
+       "ini": 360,
+       "fim": 1080,
+       "dur": 720
+      },
+      "PE Seguro|A": {
+       "ini": 480,
+       "fim": 1200,
+       "dur": 720
+      },
+      "Saldo|A": {
+       "ini": 480,
+       "fim": 1200,
+       "dur": 720
+      }
+     },
+     "tipos": {
+      "Pronto": "Ordinário",
+      "Adm": "Ordinário",
+      "Saldo": "Ordinário",
+      "JES": "PJES",
+      "Defensoria": "PJES",
+      "CPRH": "PJES",
+      "Bioma": "Diária",
+      "PE Seguro": "Diária",
+      "Eleições": "Diária"
+     },
+     "voluntariosJes": null
+    }
+   ],
+   "saida": {
+    "novas": [
+     {
+      "mat": "NAOVOL",
+      "dia": "2026-11-03",
+      "servico": "JES",
+      "turno": "A",
+      "operacao": "JES",
+      "fase": "voluntaria"
+     },
+     {
+      "mat": "NAOVOL",
+      "dia": "2026-11-04",
+      "servico": "JES",
+      "turno": "A",
+      "operacao": "JES",
+      "fase": "voluntaria"
+     }
+    ],
+    "porCota": [
+     {
+      "id": "C1",
+      "operacao": "JES",
+      "servico": "JES",
+      "origem": "interna",
+      "recebidas": 10,
+      "distribuidas": 2,
+      "restantes": 8
+     }
+    ],
+    "porOperacao": {
+     "JES": {
+      "servico": "JES",
+      "recebidas": 10,
+      "distribuidas": 2,
+      "restantes": 8,
+      "novas": 2,
+      "porMilitar": {
+       "NAOVOL": 2
+      }
+     }
+    },
+    "vazias": [],
+    "semCota": {},
+    "avisos": []
+   }
+  },
+  {
+   "teste": "teste_p18.js",
+   "entrada": [
+    {
+     "mes": "2026-11",
+     "operacoes": [
+      {
+       "nome": "JES",
+       "servico": "JES",
+       "prioridade": 1,
+       "dias": [
+        "2026-11-03",
+        "2026-11-04"
+       ],
+       "turnos": [
+        {
+         "turno": "A",
+         "vagas": 1
+        }
+       ]
+      }
+     ],
+     "cotas": [
+      {
+       "id": "C1",
+       "operacao": "JES",
+       "quantidade": 10,
+       "origem": "interna"
+      }
+     ],
+     "militares": [
+      {
+       "mat": "NAOVOL"
+      },
+      {
+       "mat": "VOL"
+      }
+     ],
+     "voluntariado": [
+      {
+       "mat": "NAOVOL",
+       "dia": "2026-11-03",
+       "turno": "A",
+       "servico": "todos"
+      },
+      {
+       "mat": "NAOVOL",
+       "dia": "2026-11-04",
+       "turno": "A",
+       "servico": "todos"
+      }
+     ],
+     "alocacoes": [],
+     "expediente": [],
+     "horarios": {
+      "Pronto|A": {
+       "ini": 480,
+       "fim": 1200,
+       "dur": 720
+      },
+      "Pronto|B": {
+       "ini": 1200,
+       "fim": 480,
+       "dur": 720
+      },
+      "Adm|A": {
+       "ini": 480,
+       "fim": 960,
+       "dur": 480
+      },
+      "JES|A": {
+       "ini": 480,
+       "fim": 1200,
+       "dur": 720
+      },
+      "JES|B": {
+       "ini": 1200,
+       "fim": 480,
+       "dur": 720
+      },
+      "Defensoria|A": {
+       "ini": 420,
+       "fim": 1140,
+       "dur": 720
+      },
+      "Bioma|A": {
+       "ini": 360,
+       "fim": 1080,
+       "dur": 720
+      },
+      "PE Seguro|A": {
+       "ini": 480,
+       "fim": 1200,
+       "dur": 720
+      },
+      "Saldo|A": {
+       "ini": 480,
+       "fim": 1200,
+       "dur": 720
+      }
+     },
+     "tipos": {
+      "Pronto": "Ordinário",
+      "Adm": "Ordinário",
+      "Saldo": "Ordinário",
+      "JES": "PJES",
+      "Defensoria": "PJES",
+      "CPRH": "PJES",
+      "Bioma": "Diária",
+      "PE Seguro": "Diária",
+      "Eleições": "Diária"
+     },
+     "voluntariosJes": {
+      "VOL": true
+     }
+    }
+   ],
+   "saida": {
+    "novas": [],
+    "porCota": [
+     {
+      "id": "C1",
+      "operacao": "JES",
+      "servico": "JES",
+      "origem": "interna",
+      "recebidas": 10,
+      "distribuidas": 0,
+      "restantes": 10
+     }
+    ],
+    "porOperacao": {
+     "JES": {
+      "servico": "JES",
+      "recebidas": 10,
+      "distribuidas": 0,
+      "restantes": 10,
+      "novas": 0,
+      "porMilitar": {}
+     }
+    },
+    "vazias": [
+     {
+      "operacao": "JES",
+      "servico": "JES",
+      "dia": "2026-11-03",
+      "turno": "A",
+      "faltam": 1,
+      "motivo": "JES só para militar com VOLUNTÁRIO JES = sim (RN-46)"
+     },
+     {
+      "operacao": "JES",
+      "servico": "JES",
+      "dia": "2026-11-04",
+      "turno": "A",
+      "faltam": 1,
+      "motivo": "JES só para militar com VOLUNTÁRIO JES = sim (RN-46)"
+     }
+    ],
+    "semCota": {},
+    "avisos": []
+   }
+  },
+  {
+   "teste": "teste_p18.js",
+   "entrada": [
+    {
+     "mes": "2026-11",
+     "operacoes": [
+      {
+       "nome": "JES",
+       "servico": "JES",
+       "prioridade": 1,
+       "dias": [
+        "2026-11-03",
+        "2026-11-04"
+       ],
+       "turnos": [
+        {
+         "turno": "A",
+         "vagas": 1
+        }
+       ]
+      }
+     ],
+     "cotas": [
+      {
+       "id": "C1",
+       "operacao": "JES",
+       "quantidade": 10,
+       "origem": "interna"
+      }
+     ],
+     "militares": [
+      {
+       "mat": "NAOVOL"
+      },
+      {
+       "mat": "VOL"
+      }
+     ],
+     "voluntariado": [
+      {
+       "mat": "NAOVOL",
+       "dia": "2026-11-20",
+       "turno": "A",
+       "servico": "todos"
+      }
+     ],
+     "alocacoes": [],
+     "expediente": [],
+     "horarios": {
+      "Pronto|A": {
+       "ini": 480,
+       "fim": 1200,
+       "dur": 720
+      },
+      "Pronto|B": {
+       "ini": 1200,
+       "fim": 480,
+       "dur": 720
+      },
+      "Adm|A": {
+       "ini": 480,
+       "fim": 960,
+       "dur": 480
+      },
+      "JES|A": {
+       "ini": 480,
+       "fim": 1200,
+       "dur": 720
+      },
+      "JES|B": {
+       "ini": 1200,
+       "fim": 480,
+       "dur": 720
+      },
+      "Defensoria|A": {
+       "ini": 420,
+       "fim": 1140,
+       "dur": 720
+      },
+      "Bioma|A": {
+       "ini": 360,
+       "fim": 1080,
+       "dur": 720
+      },
+      "PE Seguro|A": {
+       "ini": 480,
+       "fim": 1200,
+       "dur": 720
+      },
+      "Saldo|A": {
+       "ini": 480,
+       "fim": 1200,
+       "dur": 720
+      }
+     },
+     "tipos": {
+      "Pronto": "Ordinário",
+      "Adm": "Ordinário",
+      "Saldo": "Ordinário",
+      "JES": "PJES",
+      "Defensoria": "PJES",
+      "CPRH": "PJES",
+      "Bioma": "Diária",
+      "PE Seguro": "Diária",
+      "Eleições": "Diária"
+     },
+     "voluntariosJes": {
+      "VOL": true
+     }
+    }
+   ],
+   "saida": {
+    "novas": [],
+    "porCota": [
+     {
+      "id": "C1",
+      "operacao": "JES",
+      "servico": "JES",
+      "origem": "interna",
+      "recebidas": 10,
+      "distribuidas": 0,
+      "restantes": 10
+     }
+    ],
+    "porOperacao": {
+     "JES": {
+      "servico": "JES",
+      "recebidas": 10,
+      "distribuidas": 0,
+      "restantes": 10,
+      "novas": 0,
+      "porMilitar": {}
+     }
+    },
+    "vazias": [
+     {
+      "operacao": "JES",
+      "servico": "JES",
+      "dia": "2026-11-03",
+      "turno": "A",
+      "faltam": 1,
+      "motivo": "JES só para militar com VOLUNTÁRIO JES = sim (RN-46)"
+     },
+     {
+      "operacao": "JES",
+      "servico": "JES",
+      "dia": "2026-11-04",
+      "turno": "A",
+      "faltam": 1,
+      "motivo": "JES só para militar com VOLUNTÁRIO JES = sim (RN-46)"
+     }
+    ],
+    "semCota": {},
+    "avisos": []
+   }
+  },
+  {
+   "teste": "teste_p18.js",
+   "entrada": [
+    {
+     "mes": "2026-11",
+     "operacoes": [
+      {
+       "nome": "PE Seguro",
+       "servico": "PE Seguro",
+       "prioridade": 1,
+       "dias": [
+        "2026-11-03",
+        "2026-11-04"
+       ],
+       "turnos": [
+        {
+         "turno": "A",
+         "vagas": 1
+        }
+       ]
+      }
+     ],
+     "cotas": [
+      {
+       "id": "C1",
+       "operacao": "PE Seguro",
+       "quantidade": 10,
+       "origem": "interna"
+      }
+     ],
+     "militares": [
+      {
+       "mat": "NAOVOL"
+      },
+      {
+       "mat": "VOL"
+      }
+     ],
+     "voluntariado": [
+      {
+       "mat": "NAOVOL",
+       "dia": "2026-11-03",
+       "turno": "A",
+       "servico": "todos"
+      },
+      {
+       "mat": "NAOVOL",
+       "dia": "2026-11-04",
+       "turno": "A",
+       "servico": "todos"
+      }
+     ],
+     "alocacoes": [],
+     "expediente": [],
+     "horarios": {
+      "Pronto|A": {
+       "ini": 480,
+       "fim": 1200,
+       "dur": 720
+      },
+      "Pronto|B": {
+       "ini": 1200,
+       "fim": 480,
+       "dur": 720
+      },
+      "Adm|A": {
+       "ini": 480,
+       "fim": 960,
+       "dur": 480
+      },
+      "JES|A": {
+       "ini": 480,
+       "fim": 1200,
+       "dur": 720
+      },
+      "JES|B": {
+       "ini": 1200,
+       "fim": 480,
+       "dur": 720
+      },
+      "Defensoria|A": {
+       "ini": 420,
+       "fim": 1140,
+       "dur": 720
+      },
+      "Bioma|A": {
+       "ini": 360,
+       "fim": 1080,
+       "dur": 720
+      },
+      "PE Seguro|A": {
+       "ini": 480,
+       "fim": 1200,
+       "dur": 720
+      },
+      "Saldo|A": {
+       "ini": 480,
+       "fim": 1200,
+       "dur": 720
+      }
+     },
+     "tipos": {
+      "Pronto": "Ordinário",
+      "Adm": "Ordinário",
+      "Saldo": "Ordinário",
+      "JES": "PJES",
+      "Defensoria": "PJES",
+      "CPRH": "PJES",
+      "Bioma": "Diária",
+      "PE Seguro": "Diária",
+      "Eleições": "Diária"
+     },
+     "voluntariosJes": {
+      "VOL": true
+     }
+    }
+   ],
+   "saida": {
+    "novas": [
+     {
+      "mat": "NAOVOL",
+      "dia": "2026-11-03",
+      "servico": "PE Seguro",
+      "turno": "A",
+      "operacao": "PE Seguro",
+      "fase": "voluntaria"
+     },
+     {
+      "mat": "NAOVOL",
+      "dia": "2026-11-04",
+      "servico": "PE Seguro",
+      "turno": "A",
+      "operacao": "PE Seguro",
+      "fase": "voluntaria"
+     }
+    ],
+    "porCota": [
+     {
+      "id": "C1",
+      "operacao": "PE Seguro",
+      "servico": "PE Seguro",
+      "origem": "interna",
+      "recebidas": 10,
+      "distribuidas": 2,
+      "restantes": 8
+     }
+    ],
+    "porOperacao": {
+     "PE Seguro": {
+      "servico": "PE Seguro",
+      "recebidas": 10,
+      "distribuidas": 2,
+      "restantes": 8,
+      "novas": 2,
+      "porMilitar": {
+       "NAOVOL": 2
+      }
+     }
+    },
+    "vazias": [],
+    "semCota": {},
+    "avisos": []
+   }
+  },
+  {
+   "teste": "teste_p18.js",
+   "entrada": [
+    {
+     "mes": "2026-11",
+     "operacoes": [
+      {
+       "nome": "PE Seguro",
+       "servico": "PE Seguro",
+       "prioridade": 1,
+       "dias": [
+        "2026-11-03",
+        "2026-11-04"
+       ],
+       "turnos": [
+        {
+         "turno": "A",
+         "vagas": 1
+        }
+       ]
+      }
+     ],
+     "cotas": [
+      {
+       "id": "C1",
+       "operacao": "PE Seguro",
+       "quantidade": 10,
+       "origem": "interna"
+      }
+     ],
+     "militares": [
+      {
+       "mat": "NAOVOL"
+      },
+      {
+       "mat": "VOL"
+      }
+     ],
+     "voluntariado": [
+      {
+       "mat": "NAOVOL",
+       "dia": "2026-11-20",
+       "turno": "A",
+       "servico": "todos"
+      }
+     ],
+     "alocacoes": [],
+     "expediente": [],
+     "horarios": {
+      "Pronto|A": {
+       "ini": 480,
+       "fim": 1200,
+       "dur": 720
+      },
+      "Pronto|B": {
+       "ini": 1200,
+       "fim": 480,
+       "dur": 720
+      },
+      "Adm|A": {
+       "ini": 480,
+       "fim": 960,
+       "dur": 480
+      },
+      "JES|A": {
+       "ini": 480,
+       "fim": 1200,
+       "dur": 720
+      },
+      "JES|B": {
+       "ini": 1200,
+       "fim": 480,
+       "dur": 720
+      },
+      "Defensoria|A": {
+       "ini": 420,
+       "fim": 1140,
+       "dur": 720
+      },
+      "Bioma|A": {
+       "ini": 360,
+       "fim": 1080,
+       "dur": 720
+      },
+      "PE Seguro|A": {
+       "ini": 480,
+       "fim": 1200,
+       "dur": 720
+      },
+      "Saldo|A": {
+       "ini": 480,
+       "fim": 1200,
+       "dur": 720
+      }
+     },
+     "tipos": {
+      "Pronto": "Ordinário",
+      "Adm": "Ordinário",
+      "Saldo": "Ordinário",
+      "JES": "PJES",
+      "Defensoria": "PJES",
+      "CPRH": "PJES",
+      "Bioma": "Diária",
+      "PE Seguro": "Diária",
+      "Eleições": "Diária"
+     },
+     "voluntariosJes": {
+      "VOL": true
+     }
+    }
+   ],
+   "saida": {
+    "novas": [
+     {
+      "mat": "NAOVOL",
+      "dia": "2026-11-03",
+      "servico": "PE Seguro",
+      "turno": "A",
+      "operacao": "PE Seguro",
+      "fase": "compulsoria"
+     },
+     {
+      "mat": "NAOVOL",
+      "dia": "2026-11-04",
+      "servico": "PE Seguro",
+      "turno": "A",
+      "operacao": "PE Seguro",
+      "fase": "compulsoria"
+     }
+    ],
+    "porCota": [
+     {
+      "id": "C1",
+      "operacao": "PE Seguro",
+      "servico": "PE Seguro",
+      "origem": "interna",
+      "recebidas": 10,
+      "distribuidas": 2,
+      "restantes": 8
+     }
+    ],
+    "porOperacao": {
+     "PE Seguro": {
+      "servico": "PE Seguro",
+      "recebidas": 10,
+      "distribuidas": 2,
+      "restantes": 8,
+      "novas": 2,
+      "porMilitar": {
+       "NAOVOL": 2
+      }
+     }
+    },
+    "vazias": [],
+    "semCota": {},
+    "avisos": []
+   }
+  }
+ ]
+}

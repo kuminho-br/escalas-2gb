@@ -1,0 +1,226 @@
+{
+ "funcao": "postosDoModelo_",
+ "casos": [
+  {
+   "teste": "teste_p16.js",
+   "entrada": [
+    {
+     "escalas": {
+      "Pronto": {
+       "nome": "Pronto",
+       "servicos": [
+        "Pronto"
+       ],
+       "titulo": "ESCALA PRONTO",
+       "militares": "ESCALADOS",
+       "dias": "TODOS",
+       "turnos": [
+        "A",
+        "B"
+       ],
+       "slots": {
+        "A": [
+         {
+          "unidade": "ABT",
+          "funcao": "CHEFE",
+          "vagas": 1,
+          "exigeCnh": false,
+          "cnh": []
+         },
+         {
+          "unidade": "ABT",
+          "funcao": "COMBATENTE",
+          "vagas": 1,
+          "exigeCnh": false,
+          "cnh": []
+         },
+         {
+          "unidade": "ABT",
+          "funcao": "AUXILIAR DE LINHA",
+          "vagas": 1,
+          "exigeCnh": false,
+          "cnh": []
+         },
+         {
+          "unidade": "ABT",
+          "funcao": "MOTORISTA",
+          "vagas": 1,
+          "exigeCnh": true,
+          "cnh": [
+           "D"
+          ]
+         },
+         {
+          "unidade": "AR",
+          "funcao": "MOTORISTA",
+          "vagas": 1,
+          "exigeCnh": true,
+          "cnh": [
+           "D"
+          ]
+         },
+         {
+          "unidade": "AR",
+          "funcao": "CHEFE",
+          "vagas": 1,
+          "exigeCnh": false,
+          "cnh": []
+         },
+         {
+          "unidade": "AR",
+          "funcao": "SOCORRISTA",
+          "vagas": 3,
+          "exigeCnh": false,
+          "cnh": []
+         }
+        ],
+        "B": [
+         {
+          "unidade": "AR",
+          "funcao": "MOTORISTA",
+          "vagas": 1,
+          "exigeCnh": true,
+          "cnh": [
+           "D"
+          ]
+         },
+         {
+          "unidade": "AR",
+          "funcao": "CHEFE",
+          "vagas": 1,
+          "exigeCnh": false,
+          "cnh": []
+         },
+         {
+          "unidade": "AR",
+          "funcao": "SOCORRISTA",
+          "vagas": 3,
+          "exigeCnh": false,
+          "cnh": []
+         }
+        ]
+       },
+       "usaUnidade": true
+      },
+      "PE Seguro": {
+       "nome": "PE Seguro",
+       "servicos": [
+        "PE Seguro"
+       ],
+       "titulo": "ESCALA PE SEGURO",
+       "militares": "TODOS",
+       "dias": "TODOS",
+       "turnos": [
+        "A",
+        "B",
+        "C"
+       ],
+       "slots": {
+        "A": [
+         {
+          "unidade": "PE SEGURO",
+          "funcao": "MOTORISTA",
+          "vagas": 1,
+          "exigeCnh": false,
+          "cnh": []
+         },
+         {
+          "unidade": "PE SEGURO",
+          "funcao": "CHEFE",
+          "vagas": 1,
+          "exigeCnh": false,
+          "cnh": []
+         }
+        ],
+        "B": [
+         {
+          "unidade": "PE SEGURO",
+          "funcao": "MOTORISTA",
+          "vagas": 1,
+          "exigeCnh": false,
+          "cnh": []
+         },
+         {
+          "unidade": "PE SEGURO",
+          "funcao": "CHEFE",
+          "vagas": 1,
+          "exigeCnh": false,
+          "cnh": []
+         }
+        ],
+        "C": [
+         {
+          "unidade": "PE SEGURO",
+          "funcao": "MOTORISTA",
+          "vagas": 1,
+          "exigeCnh": false,
+          "cnh": []
+         },
+         {
+          "unidade": "PE SEGURO",
+          "funcao": "CHEFE",
+          "vagas": 1,
+          "exigeCnh": false,
+          "cnh": []
+         }
+        ]
+       },
+       "usaUnidade": true
+      }
+     },
+     "ordem": [
+      "Pronto",
+      "PE Seguro"
+     ],
+     "avisos": [
+      "GUARNIÇÕES POR ESCALA: a escala \"Apoio\" não existe (ou foi ignorada) na aba ESCALAS; essa linha foi ignorada.",
+      "GUARNIÇÕES POR ESCALA: a escala \"Apoio\" não existe (ou foi ignorada) na aba ESCALAS; essa linha foi ignorada.",
+      "ESCALAS: \"Bioma\" ignorada: não há linhas para ela na aba GUARNIÇÕES POR ESCALA."
+     ]
+    }
+   ],
+   "saida": {
+    "ABT|CHEFE": {
+     "exigeCnh": false,
+     "cnh": []
+    },
+    "ABT|COMBATENTE": {
+     "exigeCnh": false,
+     "cnh": []
+    },
+    "ABT|AUXILIARDELINHA": {
+     "exigeCnh": false,
+     "cnh": []
+    },
+    "ABT|MOTORISTA": {
+     "exigeCnh": true,
+     "cnh": [
+      "D"
+     ]
+    },
+    "AR|MOTORISTA": {
+     "exigeCnh": true,
+     "cnh": [
+      "D"
+     ]
+    },
+    "AR|CHEFE": {
+     "exigeCnh": false,
+     "cnh": []
+    },
+    "AR|SOCORRISTA": {
+     "exigeCnh": false,
+     "cnh": []
+    },
+    "PESEGURO|MOTORISTA": {
+     "exigeCnh": false,
+     "cnh": []
+    },
+    "PESEGURO|CHEFE": {
+     "exigeCnh": false,
+     "cnh": []
+    }
+   }
+  }
+ ]
+}

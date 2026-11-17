@@ -1,0 +1,19 @@
+{
+ "funcao": "exigeVoluntarioJes_",
+ "casos": [
+  {
+   "teste": "teste_motor.js",
+   "entrada": [
+    "Diária"
+   ],
+   "saida": false
+  },
+  {
+   "teste": "teste_motor.js",
+   "entrada": [
+    "JES"
+   ],
+   "saida": true
+  }
+ ]
+}

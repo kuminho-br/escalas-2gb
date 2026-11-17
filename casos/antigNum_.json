@@ -1,0 +1,59 @@
+{
+ "funcao": "antigNum_",
+ "casos": [
+  {
+   "teste": "teste_motor.js",
+   "entrada": [
+    ""
+   ],
+   "saida": null
+  },
+  {
+   "teste": "teste_motor.js",
+   "entrada": [
+    "12,5"
+   ],
+   "saida": 12.5
+  },
+  {
+   "teste": "teste_motor.js",
+   "entrada": [
+    "abc"
+   ],
+   "saida": null
+  },
+  {
+   "teste": "teste_motor.js",
+   "entrada": [
+    7
+   ],
+   "saida": 7
+  },
+  {
+   "teste": "teste_motor.js",
+   "entrada": [
+    null
+   ],
+   "saida": null
+  },
+  {
+   "teste": "teste_p13.js",
+   "entrada": [],
+   "saida": null
+  },
+  {
+   "teste": "teste_p17.js",
+   "entrada": [
+    12
+   ],
+   "saida": 12
+  },
+  {
+   "teste": "teste_p17.js",
+   "entrada": [
+    3
+   ],
+   "saida": 3
+  }
+ ]
+}

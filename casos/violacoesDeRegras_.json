@@ -1,0 +1,484 @@
+{
+ "funcao": "violacoesDeRegras_",
+ "casos": [
+  {
+   "teste": "teste_p15.js",
+   "entrada": [
+    [
+     {
+      "mat": "ADM1",
+      "dia": "2026-11-05",
+      "turno": "A",
+      "servico": "Saldo"
+     },
+     {
+      "mat": "PRO1",
+      "dia": "2026-11-05",
+      "turno": "A",
+      "servico": "Saldo"
+     }
+    ],
+    {
+     "adm": {
+      "ADM1": true
+     }
+    }
+   ],
+   "saida": [
+    {
+     "chave": "PRO1|2026-11-05|Saldo|A",
+     "mat": "PRO1",
+     "dia": "2026-11-05",
+     "servico": "Saldo",
+     "turno": "A",
+     "rn": "RN-03",
+     "texto": "Saldo só para militar do Adm (RN-03)"
+    }
+   ]
+  },
+  {
+   "teste": "teste_p15.js",
+   "entrada": [
+    [
+     {
+      "mat": "M1",
+      "dia": "2026-11-05",
+      "servico": "Bioma",
+      "turno": "B",
+      "linha": 7
+     },
+     {
+      "mat": "M1",
+      "dia": "2026-11-05",
+      "servico": "PE Seguro",
+      "turno": "C",
+      "linha": 8
+     }
+    ],
+    {
+     "adm": {},
+     "tipos": {
+      "Bioma": "Diária",
+      "PE Seguro": "Diária",
+      "Eleições": "Diária",
+      "Pronto": "Ordinário",
+      "Adm": "Ordinário",
+      "JES": "PJES"
+     }
+    }
+   ],
+   "saida": [
+    {
+     "chave": "M1|2026-11-05|Bioma|B",
+     "mat": "M1",
+     "dia": "2026-11-05",
+     "servico": "Bioma",
+     "turno": "B",
+     "rn": "RN-36",
+     "texto": "Duas diárias começando no mesmo dia (RN-36)"
+    },
+    {
+     "chave": "M1|2026-11-05|PE Seguro|C",
+     "mat": "M1",
+     "dia": "2026-11-05",
+     "servico": "PE Seguro",
+     "turno": "C",
+     "rn": "RN-36",
+     "texto": "Duas diárias começando no mesmo dia (RN-36)"
+    }
+   ]
+  },
+  {
+   "teste": "teste_p15.js",
+   "entrada": [
+    [
+     {
+      "mat": "M1",
+      "dia": "2026-11-05",
+      "turno": "B",
+      "servico": "Bioma"
+     },
+     {
+      "mat": "M1",
+      "dia": "2026-11-05",
+      "turno": "C",
+      "servico": "PE Seguro"
+     },
+     {
+      "mat": "M1",
+      "dia": "2026-11-09",
+      "turno": "A",
+      "servico": "Pronto"
+     }
+    ],
+    {
+     "adm": {},
+     "tipos": {
+      "Bioma": "Diária",
+      "PE Seguro": "Diária",
+      "Eleições": "Diária",
+      "Pronto": "Ordinário",
+      "Adm": "Ordinário",
+      "JES": "PJES"
+     }
+    }
+   ],
+   "saida": [
+    {
+     "chave": "M1|2026-11-05|Bioma|B",
+     "mat": "M1",
+     "dia": "2026-11-05",
+     "servico": "Bioma",
+     "turno": "B",
+     "rn": "RN-36",
+     "texto": "Duas diárias começando no mesmo dia (RN-36)"
+    },
+    {
+     "chave": "M1|2026-11-05|PE Seguro|C",
+     "mat": "M1",
+     "dia": "2026-11-05",
+     "servico": "PE Seguro",
+     "turno": "C",
+     "rn": "RN-36",
+     "texto": "Duas diárias começando no mesmo dia (RN-36)"
+    }
+   ]
+  },
+  {
+   "teste": "teste_p15.js",
+   "entrada": [
+    [
+     {
+      "mat": "M1",
+      "dia": "2026-11-05",
+      "turno": "B",
+      "servico": "Bioma"
+     },
+     {
+      "mat": "M1",
+      "dia": "2026-11-05",
+      "turno": "C",
+      "servico": "PE Seguro"
+     }
+    ],
+    {
+     "adm": {},
+     "tipos": {
+      "Bioma": "Diária",
+      "PE Seguro": "Diária",
+      "Eleições": "Diária",
+      "Pronto": "Ordinário",
+      "Adm": "Ordinário",
+      "JES": "PJES"
+     }
+    }
+   ],
+   "saida": [
+    {
+     "chave": "M1|2026-11-05|Bioma|B",
+     "mat": "M1",
+     "dia": "2026-11-05",
+     "servico": "Bioma",
+     "turno": "B",
+     "rn": "RN-36",
+     "texto": "Duas diárias começando no mesmo dia (RN-36)"
+    },
+    {
+     "chave": "M1|2026-11-05|PE Seguro|C",
+     "mat": "M1",
+     "dia": "2026-11-05",
+     "servico": "PE Seguro",
+     "turno": "C",
+     "rn": "RN-36",
+     "texto": "Duas diárias começando no mesmo dia (RN-36)"
+    }
+   ]
+  },
+  {
+   "teste": "teste_p15.js",
+   "entrada": [
+    [
+     {
+      "mat": "M1",
+      "dia": "2026-11-05",
+      "turno": "C",
+      "servico": "PE Seguro"
+     },
+     {
+      "mat": "M1",
+      "dia": "2026-11-06",
+      "turno": "A",
+      "servico": "Bioma"
+     }
+    ],
+    {
+     "adm": {},
+     "tipos": {
+      "Bioma": "Diária",
+      "PE Seguro": "Diária",
+      "Eleições": "Diária",
+      "Pronto": "Ordinário",
+      "Adm": "Ordinário",
+      "JES": "PJES"
+     }
+    }
+   ],
+   "saida": []
+  },
+  {
+   "teste": "teste_p15.js",
+   "entrada": [
+    [
+     {
+      "mat": "M1",
+      "dia": "2026-11-05",
+      "turno": "C",
+      "servico": "PE Seguro"
+     }
+    ],
+    {
+     "adm": {},
+     "tipos": {
+      "Bioma": "Diária",
+      "PE Seguro": "Diária",
+      "Eleições": "Diária",
+      "Pronto": "Ordinário",
+      "Adm": "Ordinário",
+      "JES": "PJES"
+     }
+    }
+   ],
+   "saida": []
+  },
+  {
+   "teste": "teste_p15.js",
+   "entrada": [
+    [
+     {
+      "mat": "M3",
+      "dia": "2026-11-10",
+      "turno": "A",
+      "servico": "Pronto"
+     },
+     {
+      "mat": "M4",
+      "dia": "2026-11-10",
+      "turno": "B",
+      "servico": "Bioma"
+     },
+     {
+      "mat": "M1",
+      "dia": "2026-11-10",
+      "turno": "A",
+      "servico": "Pronto"
+     },
+     {
+      "mat": "M4",
+      "dia": "2026-11-10",
+      "turno": "C",
+      "servico": "PE Seguro"
+     }
+    ],
+    {
+     "adm": {},
+     "tipos": {
+      "Bioma": "Diária",
+      "PE Seguro": "Diária",
+      "Pronto": "Ordinário"
+     }
+    }
+   ],
+   "saida": [
+    {
+     "chave": "M4|2026-11-10|Bioma|B",
+     "mat": "M4",
+     "dia": "2026-11-10",
+     "servico": "Bioma",
+     "turno": "B",
+     "rn": "RN-36",
+     "texto": "Duas diárias começando no mesmo dia (RN-36)"
+    },
+    {
+     "chave": "M4|2026-11-10|PE Seguro|C",
+     "mat": "M4",
+     "dia": "2026-11-10",
+     "servico": "PE Seguro",
+     "turno": "C",
+     "rn": "RN-36",
+     "texto": "Duas diárias começando no mesmo dia (RN-36)"
+    }
+   ]
+  },
+  {
+   "teste": "teste_p15.js",
+   "entrada": [
+    [
+     {
+      "mat": "N1",
+      "dia": "2026-11-05",
+      "turno": "A",
+      "servico": "JES"
+     },
+     {
+      "mat": "V1",
+      "dia": "2026-11-05",
+      "turno": "A",
+      "servico": "JES"
+     }
+    ],
+    {
+     "adm": {},
+     "tipos": {},
+     "voluntariosJes": {
+      "V1": true
+     }
+    }
+   ],
+   "saida": [
+    {
+     "chave": "N1|2026-11-05|JES|A",
+     "mat": "N1",
+     "dia": "2026-11-05",
+     "servico": "JES",
+     "turno": "A",
+     "rn": "RN-46",
+     "texto": "JES só para militar voluntário (VOLUNTÁRIO JES = sim) (RN-46)"
+    }
+   ]
+  },
+  {
+   "teste": "teste_p15.js",
+   "entrada": [
+    [
+     {
+      "mat": "N1",
+      "dia": "2026-11-05",
+      "turno": "A",
+      "servico": "JES"
+     }
+    ],
+    {
+     "voluntariosJes": null
+    }
+   ],
+   "saida": []
+  },
+  {
+   "teste": "teste_p15.js",
+   "entrada": [
+    [
+     {
+      "mat": "PRO1",
+      "dia": "2026-11-02",
+      "turno": "A",
+      "servico": "Saldo"
+     },
+     {
+      "mat": "PRO1",
+      "dia": "2026-11-09",
+      "turno": "A",
+      "servico": "Pronto"
+     }
+    ],
+    {
+     "adm": {
+      "ADM1": true
+     }
+    }
+   ],
+   "saida": [
+    {
+     "chave": "PRO1|2026-11-02|Saldo|A",
+     "mat": "PRO1",
+     "dia": "2026-11-02",
+     "servico": "Saldo",
+     "turno": "A",
+     "rn": "RN-03",
+     "texto": "Saldo só para militar do Adm (RN-03)"
+    }
+   ]
+  },
+  {
+   "teste": "teste_p15.js",
+   "entrada": [
+    [
+     {
+      "mat": "PRO1",
+      "dia": "2026-11-05",
+      "servico": "Saldo",
+      "turno": "A",
+      "implicito": true
+     }
+    ],
+    {
+     "adm": {
+      "ADM1": true
+     }
+    }
+   ],
+   "saida": []
+  },
+  {
+   "teste": "teste_p15.js",
+   "entrada": [
+    [
+     {
+      "mat": "PRO1",
+      "dia": "2026-11-07",
+      "turno": "A",
+      "servico": "Saldo"
+     }
+    ],
+    {
+     "adm": {
+      "ADM1": true
+     }
+    }
+   ],
+   "saida": [
+    {
+     "chave": "PRO1|2026-11-07|Saldo|A",
+     "mat": "PRO1",
+     "dia": "2026-11-07",
+     "servico": "Saldo",
+     "turno": "A",
+     "rn": "RN-03",
+     "texto": "Saldo só para militar do Adm (RN-03)"
+    }
+   ]
+  },
+  {
+   "teste": "teste_p18.js",
+   "entrada": [
+    [
+     {
+      "mat": "990170-1",
+      "dia": "2026-10-06",
+      "turno": "A",
+      "servico": "JES"
+     }
+    ],
+    {
+     "adm": {
+      "990170-1": true
+     },
+     "tipos": {
+      "Pronto": "Ordinário",
+      "Adm": "Ordinário",
+      "Saldo": "Ordinário",
+      "JES": "PJES",
+      "Defensoria": "PJES",
+      "CPRH": "PJES",
+      "Bioma": "Diária",
+      "PE Seguro": "Diária",
+      "Eleições": "Diária"
+     },
+     "voluntariosJes": {
+      "990170-1": true
+     }
+    }
+   ],
+   "saida": []
+  }
+ ]
+}

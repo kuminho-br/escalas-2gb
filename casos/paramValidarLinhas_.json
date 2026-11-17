@@ -1,0 +1,167 @@
+{
+ "funcao": "paramValidarLinhas_",
+ "casos": [
+  {
+   "teste": "teste_motor.js",
+   "entrada": [
+    [
+     {
+      "linha": 2,
+      "chave": "CARGA_MENSAL_HORAS",
+      "valor": "160",
+      "vigencia": ""
+     },
+     {
+      "linha": 3,
+      "chave": "CARGA_MENSAL_HORAS",
+      "valor": "150",
+      "vigencia": "2026-11"
+     },
+     {
+      "linha": 4,
+      "chave": "CARGA_MENSAL_HORAS",
+      "valor": "140",
+      "vigencia": "01/2027"
+     },
+     {
+      "linha": 5,
+      "chave": "carga mensal horas",
+      "valor": "145",
+      "vigencia": "2026-11"
+     },
+     {
+      "linha": 6,
+      "chave": "ADM_CUMPRE_CARGA",
+      "valor": "sim",
+      "vigencia": "2026-12"
+     },
+     {
+      "linha": 7,
+      "chave": "NAO_EXISTE",
+      "valor": "1",
+      "vigencia": ""
+     },
+     {
+      "linha": 8,
+      "chave": "SALDOS_ADM_POR_MILITAR",
+      "valor": "6",
+      "vigencia": "13/2026"
+     },
+     {
+      "linha": 9,
+      "chave": "SALDOS_ADM_POR_MILITAR",
+      "valor": "seis",
+      "vigencia": ""
+     },
+     {
+      "linha": 10,
+      "chave": "SECAO_PADRAO",
+      "valor": "2ª SB",
+      "vigencia": "2026-01"
+     }
+    ]
+   ],
+   "saida": {
+    "boas": [
+     {
+      "linha": 2,
+      "chave": "CARGA_MENSAL_HORAS",
+      "def": {
+       "chave": "CARGA_MENSAL_HORAS",
+       "grupo": "Carga mensal",
+       "rotulo": "Carga mensal (horas)",
+       "tipo": "inteiro",
+       "padrao": 160,
+       "min": 1,
+       "max": 744,
+       "descricao": "Horas que todo militar precisa cumprir no mês."
+      },
+      "valor": 160,
+      "vigencia": ""
+     },
+     {
+      "linha": 3,
+      "chave": "CARGA_MENSAL_HORAS",
+      "def": {
+       "chave": "CARGA_MENSAL_HORAS",
+       "grupo": "Carga mensal",
+       "rotulo": "Carga mensal (horas)",
+       "tipo": "inteiro",
+       "padrao": 160,
+       "min": 1,
+       "max": 744,
+       "descricao": "Horas que todo militar precisa cumprir no mês."
+      },
+      "valor": 150,
+      "vigencia": "2026-11"
+     },
+     {
+      "linha": 4,
+      "chave": "CARGA_MENSAL_HORAS",
+      "def": {
+       "chave": "CARGA_MENSAL_HORAS",
+       "grupo": "Carga mensal",
+       "rotulo": "Carga mensal (horas)",
+       "tipo": "inteiro",
+       "padrao": 160,
+       "min": 1,
+       "max": 744,
+       "descricao": "Horas que todo militar precisa cumprir no mês."
+      },
+      "valor": 140,
+      "vigencia": "2027-01"
+     },
+     {
+      "linha": 5,
+      "chave": "CARGA_MENSAL_HORAS",
+      "def": {
+       "chave": "CARGA_MENSAL_HORAS",
+       "grupo": "Carga mensal",
+       "rotulo": "Carga mensal (horas)",
+       "tipo": "inteiro",
+       "padrao": 160,
+       "min": 1,
+       "max": 744,
+       "descricao": "Horas que todo militar precisa cumprir no mês."
+      },
+      "valor": 145,
+      "vigencia": "2026-11"
+     },
+     {
+      "linha": 6,
+      "chave": "ADM_CUMPRE_CARGA",
+      "def": {
+       "chave": "ADM_CUMPRE_CARGA",
+       "grupo": "Adm",
+       "rotulo": "Adm cumpre a carga mensal",
+       "tipo": "simnao",
+       "padrao": false,
+       "descricao": "NÃO: o Adm só cumpre os saldos e fica de expediente em todo dia útil (usado para checar choques). SIM: o Adm também cumpre a carga mensal, e a Escala Automática distribui os turnos dele."
+      },
+      "valor": true,
+      "vigencia": "2026-12"
+     },
+     {
+      "linha": 10,
+      "chave": "SECAO_PADRAO",
+      "def": {
+       "chave": "SECAO_PADRAO",
+       "grupo": "Geral",
+       "rotulo": "Seção padrão",
+       "tipo": "texto",
+       "padrao": "1ª SB",
+       "descricao": "Seção sugerida ao abrir os painéis."
+      },
+      "valor": "2ª SB",
+      "vigencia": "2026-01"
+     }
+    ],
+    "avisos": [
+     "Linha 7 de CONFIGURAÇÕES: a chave \"NAO_EXISTE\" não existe; ignorada.",
+     "Linha 8 de CONFIGURAÇÕES (SALDOS_ADM_POR_MILITAR): vigência \"13/2026\" inválida; ignorada.",
+     "Linha 9 de CONFIGURAÇÕES (SALDOS_ADM_POR_MILITAR): Use um número inteiro. Linha ignorada."
+    ]
+   }
+  }
+ ]
+}

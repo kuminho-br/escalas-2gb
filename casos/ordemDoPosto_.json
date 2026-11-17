@@ -1,0 +1,185 @@
+{
+ "funcao": "ordemDoPosto_",
+ "casos": [
+  {
+   "teste": "teste_p13.js",
+   "entrada": [
+    "SD"
+   ],
+   "saida": 12
+  },
+  {
+   "teste": "teste_p17.js",
+   "entrada": [
+    "1º SGT BM",
+    1,
+    [
+     "ST BM",
+     "1º SGT BM",
+     "2º SGT BM",
+     "3º SGT BM",
+     "CB BM",
+     "SD BM"
+    ]
+   ],
+   "saida": 8
+  },
+  {
+   "teste": "teste_p17.js",
+   "entrada": [
+    "1º SGT BM"
+   ],
+   "saida": 8
+  },
+  {
+   "teste": "teste_p17.js",
+   "entrada": [
+    "1º TEN BM"
+   ],
+   "saida": 4
+  },
+  {
+   "teste": "teste_p17.js",
+   "entrada": [
+    "2 SGT"
+   ],
+   "saida": 9
+  },
+  {
+   "teste": "teste_p17.js",
+   "entrada": [
+    "2º SGT BM",
+    2,
+    [
+     "ST BM",
+     "1º SGT BM",
+     "2º SGT BM",
+     "3º SGT BM",
+     "CB BM",
+     "SD BM"
+    ]
+   ],
+   "saida": 9
+  },
+  {
+   "teste": "teste_p17.js",
+   "entrada": [
+    "2º SGT BM"
+   ],
+   "saida": 9
+  },
+  {
+   "teste": "teste_p17.js",
+   "entrada": [
+    "3º SGT BM",
+    3,
+    [
+     "ST BM",
+     "1º SGT BM",
+     "2º SGT BM",
+     "3º SGT BM",
+     "CB BM",
+     "SD BM"
+    ]
+   ],
+   "saida": 10
+  },
+  {
+   "teste": "teste_p17.js",
+   "entrada": [
+    "3º SGT BM"
+   ],
+   "saida": 10
+  },
+  {
+   "teste": "teste_p17.js",
+   "entrada": [
+    "CAP BM"
+   ],
+   "saida": 3
+  },
+  {
+   "teste": "teste_p17.js",
+   "entrada": [
+    "CB BM",
+    4,
+    [
+     "ST BM",
+     "1º SGT BM",
+     "2º SGT BM",
+     "3º SGT BM",
+     "CB BM",
+     "SD BM"
+    ]
+   ],
+   "saida": 11
+  },
+  {
+   "teste": "teste_p17.js",
+   "entrada": [
+    "CB BM"
+   ],
+   "saida": 11
+  },
+  {
+   "teste": "teste_p17.js",
+   "entrada": [
+    "Cabo"
+   ],
+   "saida": 11
+  },
+  {
+   "teste": "teste_p17.js",
+   "entrada": [
+    "SD BM",
+    5,
+    [
+     "ST BM",
+     "1º SGT BM",
+     "2º SGT BM",
+     "3º SGT BM",
+     "CB BM",
+     "SD BM"
+    ]
+   ],
+   "saida": 12
+  },
+  {
+   "teste": "teste_p17.js",
+   "entrada": [
+    "SD BM"
+   ],
+   "saida": 12
+  },
+  {
+   "teste": "teste_p17.js",
+   "entrada": [
+    "ST BM",
+    0,
+    [
+     "ST BM",
+     "1º SGT BM",
+     "2º SGT BM",
+     "3º SGT BM",
+     "CB BM",
+     "SD BM"
+    ]
+   ],
+   "saida": 7
+  },
+  {
+   "teste": "teste_p17.js",
+   "entrada": [
+    "ST BM"
+   ],
+   "saida": 7
+  },
+  {
+   "teste": "teste_p17.js",
+   "entrada": [
+    "Subtenente"
+   ],
+   "saida": 7
+  }
+ ]
+}

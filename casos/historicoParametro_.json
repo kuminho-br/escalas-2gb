@@ -1,0 +1,152 @@
+{
+ "funcao": "historicoParametro_",
+ "casos": [
+  {
+   "teste": "teste_motor.js",
+   "entrada": [
+    [
+     {
+      "linha": 2,
+      "chave": "CARGA_MENSAL_HORAS",
+      "valor": "160",
+      "vigencia": ""
+     },
+     {
+      "linha": 3,
+      "chave": "CARGA_MENSAL_HORAS",
+      "valor": "150",
+      "vigencia": "2026-11"
+     },
+     {
+      "linha": 4,
+      "chave": "CARGA_MENSAL_HORAS",
+      "valor": "140",
+      "vigencia": "01/2027"
+     },
+     {
+      "linha": 5,
+      "chave": "carga mensal horas",
+      "valor": "145",
+      "vigencia": "2026-11"
+     },
+     {
+      "linha": 6,
+      "chave": "ADM_CUMPRE_CARGA",
+      "valor": "sim",
+      "vigencia": "2026-12"
+     },
+     {
+      "linha": 7,
+      "chave": "NAO_EXISTE",
+      "valor": "1",
+      "vigencia": ""
+     },
+     {
+      "linha": 8,
+      "chave": "SALDOS_ADM_POR_MILITAR",
+      "valor": "6",
+      "vigencia": "13/2026"
+     },
+     {
+      "linha": 9,
+      "chave": "SALDOS_ADM_POR_MILITAR",
+      "valor": "seis",
+      "vigencia": ""
+     },
+     {
+      "linha": 10,
+      "chave": "SECAO_PADRAO",
+      "valor": "2ª SB",
+      "vigencia": "2026-01"
+     }
+    ],
+    "CARGA_MENSAL_HORAS"
+   ],
+   "saida": [
+    {
+     "linha": 2,
+     "vigencia": "",
+     "valor": 160
+    },
+    {
+     "linha": 3,
+     "vigencia": "2026-11",
+     "valor": 150
+    },
+    {
+     "linha": 5,
+     "vigencia": "2026-11",
+     "valor": 145
+    },
+    {
+     "linha": 4,
+     "vigencia": "2027-01",
+     "valor": 140
+    }
+   ]
+  },
+  {
+   "teste": "teste_motor.js",
+   "entrada": [
+    [
+     {
+      "linha": 2,
+      "chave": "CARGA_MENSAL_HORAS",
+      "valor": "160",
+      "vigencia": ""
+     },
+     {
+      "linha": 3,
+      "chave": "CARGA_MENSAL_HORAS",
+      "valor": "150",
+      "vigencia": "2026-11"
+     },
+     {
+      "linha": 4,
+      "chave": "CARGA_MENSAL_HORAS",
+      "valor": "140",
+      "vigencia": "01/2027"
+     },
+     {
+      "linha": 5,
+      "chave": "carga mensal horas",
+      "valor": "145",
+      "vigencia": "2026-11"
+     },
+     {
+      "linha": 6,
+      "chave": "ADM_CUMPRE_CARGA",
+      "valor": "sim",
+      "vigencia": "2026-12"
+     },
+     {
+      "linha": 7,
+      "chave": "NAO_EXISTE",
+      "valor": "1",
+      "vigencia": ""
+     },
+     {
+      "linha": 8,
+      "chave": "SALDOS_ADM_POR_MILITAR",
+      "valor": "6",
+      "vigencia": "13/2026"
+     },
+     {
+      "linha": 9,
+      "chave": "SALDOS_ADM_POR_MILITAR",
+      "valor": "seis",
+      "vigencia": ""
+     },
+     {
+      "linha": 10,
+      "chave": "SECAO_PADRAO",
+      "valor": "2ª SB",
+      "vigencia": "2026-01"
+     }
+    ],
+    "LINHAS_POR_MILITAR"
+   ],
+   "saida": []
+  }
+ ]
+}

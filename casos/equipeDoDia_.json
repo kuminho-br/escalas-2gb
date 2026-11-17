@@ -1,0 +1,301 @@
+{
+ "funcao": "equipeDoDia_",
+ "casos": [
+  {
+   "teste": "teste_motor.js",
+   "entrada": [
+    "ALFA",
+    0
+   ],
+   "saida": "ALFA"
+  },
+  {
+   "teste": "teste_motor.js",
+   "entrada": [
+    "ALFA",
+    11
+   ],
+   "saida": "DELTA"
+  },
+  {
+   "teste": "teste_motor.js",
+   "entrada": [
+    "ALFA",
+    1
+   ],
+   "saida": "BRAVO"
+  },
+  {
+   "teste": "teste_motor.js",
+   "entrada": [
+    "ALFA",
+    28
+   ],
+   "saida": "ALFA"
+  },
+  {
+   "teste": "teste_motor.js",
+   "entrada": [
+    "ALFA",
+    29
+   ],
+   "saida": "BRAVO"
+  },
+  {
+   "teste": "teste_motor.js",
+   "entrada": [
+    "ALFA",
+    2
+   ],
+   "saida": "CHARLIE"
+  },
+  {
+   "teste": "teste_motor.js",
+   "entrada": [
+    "ALFA",
+    30
+   ],
+   "saida": "CHARLIE"
+  },
+  {
+   "teste": "teste_motor.js",
+   "entrada": [
+    "ALFA",
+    3
+   ],
+   "saida": "DELTA"
+  },
+  {
+   "teste": "teste_motor.js",
+   "entrada": [
+    "ALFA",
+    4
+   ],
+   "saida": "ALFA"
+  },
+  {
+   "teste": "teste_motor.js",
+   "entrada": [
+    "ALFA",
+    7
+   ],
+   "saida": "DELTA"
+  },
+  {
+   "teste": "teste_motor.js",
+   "entrada": [
+    "BRAVO",
+    0
+   ],
+   "saida": "BRAVO"
+  },
+  {
+   "teste": "teste_motor.js",
+   "entrada": [
+    "BRAVO",
+    1
+   ],
+   "saida": "CHARLIE"
+  },
+  {
+   "teste": "teste_motor.js",
+   "entrada": [
+    "BRAVO",
+    28
+   ],
+   "saida": "BRAVO"
+  },
+  {
+   "teste": "teste_motor.js",
+   "entrada": [
+    "BRAVO",
+    29
+   ],
+   "saida": "CHARLIE"
+  },
+  {
+   "teste": "teste_motor.js",
+   "entrada": [
+    "BRAVO",
+    2
+   ],
+   "saida": "DELTA"
+  },
+  {
+   "teste": "teste_motor.js",
+   "entrada": [
+    "BRAVO",
+    30
+   ],
+   "saida": "DELTA"
+  },
+  {
+   "teste": "teste_motor.js",
+   "entrada": [
+    "BRAVO",
+    3
+   ],
+   "saida": "ALFA"
+  },
+  {
+   "teste": "teste_motor.js",
+   "entrada": [
+    "BRAVO",
+    4
+   ],
+   "saida": "BRAVO"
+  },
+  {
+   "teste": "teste_motor.js",
+   "entrada": [
+    "BRAVO",
+    7
+   ],
+   "saida": "ALFA"
+  },
+  {
+   "teste": "teste_motor.js",
+   "entrada": [
+    "CHARLIE",
+    0
+   ],
+   "saida": "CHARLIE"
+  },
+  {
+   "teste": "teste_motor.js",
+   "entrada": [
+    "CHARLIE",
+    1
+   ],
+   "saida": "DELTA"
+  },
+  {
+   "teste": "teste_motor.js",
+   "entrada": [
+    "CHARLIE",
+    28
+   ],
+   "saida": "CHARLIE"
+  },
+  {
+   "teste": "teste_motor.js",
+   "entrada": [
+    "CHARLIE",
+    29
+   ],
+   "saida": "DELTA"
+  },
+  {
+   "teste": "teste_motor.js",
+   "entrada": [
+    "CHARLIE",
+    2
+   ],
+   "saida": "ALFA"
+  },
+  {
+   "teste": "teste_motor.js",
+   "entrada": [
+    "CHARLIE",
+    30
+   ],
+   "saida": "ALFA"
+  },
+  {
+   "teste": "teste_motor.js",
+   "entrada": [
+    "CHARLIE",
+    3
+   ],
+   "saida": "BRAVO"
+  },
+  {
+   "teste": "teste_motor.js",
+   "entrada": [
+    "CHARLIE",
+    4
+   ],
+   "saida": "CHARLIE"
+  },
+  {
+   "teste": "teste_motor.js",
+   "entrada": [
+    "CHARLIE",
+    7
+   ],
+   "saida": "BRAVO"
+  },
+  {
+   "teste": "teste_motor.js",
+   "entrada": [
+    "DELTA",
+    0
+   ],
+   "saida": "DELTA"
+  },
+  {
+   "teste": "teste_motor.js",
+   "entrada": [
+    "DELTA",
+    1
+   ],
+   "saida": "ALFA"
+  },
+  {
+   "teste": "teste_motor.js",
+   "entrada": [
+    "DELTA",
+    28
+   ],
+   "saida": "DELTA"
+  },
+  {
+   "teste": "teste_motor.js",
+   "entrada": [
+    "DELTA",
+    29
+   ],
+   "saida": "ALFA"
+  },
+  {
+   "teste": "teste_motor.js",
+   "entrada": [
+    "DELTA",
+    2
+   ],
+   "saida": "BRAVO"
+  },
+  {
+   "teste": "teste_motor.js",
+   "entrada": [
+    "DELTA",
+    30
+   ],
+   "saida": "BRAVO"
+  },
+  {
+   "teste": "teste_motor.js",
+   "entrada": [
+    "DELTA",
+    3
+   ],
+   "saida": "CHARLIE"
+  },
+  {
+   "teste": "teste_motor.js",
+   "entrada": [
+    "DELTA",
+    4
+   ],
+   "saida": "DELTA"
+  },
+  {
+   "teste": "teste_motor.js",
+   "entrada": [
+    "DELTA",
+    7
+   ],
+   "saida": "CHARLIE"
+  }
+ ]
+}

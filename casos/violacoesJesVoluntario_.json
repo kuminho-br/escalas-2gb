@@ -1,0 +1,134 @@
+{
+ "funcao": "violacoesJesVoluntario_",
+ "casos": [
+  {
+   "teste": "teste_p15.js",
+   "entrada": [
+    [
+     {
+      "mat": "N1",
+      "dia": "2026-11-05",
+      "servico": "JES",
+      "turno": "A"
+     }
+    ],
+    {
+     "adm": {},
+     "tipos": {},
+     "voluntariosJes": {
+      "V1": true
+     }
+    }
+   ],
+   "saida": [
+    {
+     "chave": "N1|2026-11-05|JES|A",
+     "mat": "N1",
+     "dia": "2026-11-05",
+     "servico": "JES",
+     "turno": "A",
+     "rn": "RN-46",
+     "texto": "JES só para militar voluntário (VOLUNTÁRIO JES = sim) (RN-46)"
+    }
+   ]
+  },
+  {
+   "teste": "teste_p15.js",
+   "entrada": [
+    [
+     {
+      "mat": "N1",
+      "dia": "2026-11-05",
+      "servico": "JES",
+      "turno": "A"
+     }
+    ],
+    {
+     "voluntariosJes": null
+    }
+   ],
+   "saida": []
+  },
+  {
+   "teste": "teste_p15.js",
+   "entrada": [
+    [
+     {
+      "mat": "N1",
+      "dia": "2026-11-05",
+      "servico": "Pronto",
+      "turno": "A"
+     },
+     {
+      "mat": "N1",
+      "dia": "2026-11-06",
+      "servico": "Bioma",
+      "turno": "A"
+     },
+     {
+      "mat": "N1",
+      "dia": "2026-11-07",
+      "servico": "Defensoria",
+      "turno": "A"
+     }
+    ],
+    {
+     "adm": {},
+     "tipos": {},
+     "voluntariosJes": {
+      "V1": true
+     }
+    }
+   ],
+   "saida": []
+  },
+  {
+   "teste": "teste_p15.js",
+   "entrada": [
+    [
+     {
+      "mat": "V1",
+      "dia": "2026-11-05",
+      "servico": "JES",
+      "turno": "A"
+     }
+    ],
+    {
+     "adm": {},
+     "tipos": {},
+     "voluntariosJes": {
+      "V1": true
+     }
+    }
+   ],
+   "saida": []
+  },
+  {
+   "teste": "teste_p15.js",
+   "entrada": [
+    [
+     {
+      "mat": "V1",
+      "dia": "2026-11-05",
+      "servico": "JES",
+      "turno": "A"
+     }
+    ],
+    {
+     "voluntariosJes": {}
+    }
+   ],
+   "saida": [
+    {
+     "chave": "V1|2026-11-05|JES|A",
+     "mat": "V1",
+     "dia": "2026-11-05",
+     "servico": "JES",
+     "turno": "A",
+     "rn": "RN-46",
+     "texto": "JES só para militar voluntário (VOLUNTÁRIO JES = sim) (RN-46)"
+    }
+   ]
+  }
+ ]
+}

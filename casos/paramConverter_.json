@@ -1,0 +1,357 @@
+{
+ "funcao": "paramConverter_",
+ "casos": [
+  {
+   "teste": "teste_motor.js",
+   "entrada": [
+    {
+     "chave": "ADM_CUMPRE_CARGA",
+     "grupo": "Adm",
+     "rotulo": "Adm cumpre a carga mensal",
+     "tipo": "simnao",
+     "padrao": false,
+     "descricao": "NÃO: o Adm só cumpre os saldos e fica de expediente em todo dia útil (usado para checar choques). SIM: o Adm também cumpre a carga mensal, e a Escala Automática distribui os turnos dele."
+    },
+    "Sim"
+   ],
+   "saida": {
+    "ok": true,
+    "valor": true,
+    "erro": ""
+   }
+  },
+  {
+   "teste": "teste_motor.js",
+   "entrada": [
+    {
+     "chave": "ADM_CUMPRE_CARGA",
+     "grupo": "Adm",
+     "rotulo": "Adm cumpre a carga mensal",
+     "tipo": "simnao",
+     "padrao": false,
+     "descricao": "NÃO: o Adm só cumpre os saldos e fica de expediente em todo dia útil (usado para checar choques). SIM: o Adm também cumpre a carga mensal, e a Escala Automática distribui os turnos dele."
+    },
+    "não"
+   ],
+   "saida": {
+    "ok": true,
+    "valor": false,
+    "erro": ""
+   }
+  },
+  {
+   "teste": "teste_motor.js",
+   "entrada": [
+    {
+     "chave": "ADM_CUMPRE_CARGA",
+     "grupo": "Adm",
+     "rotulo": "Adm cumpre a carga mensal",
+     "tipo": "simnao",
+     "padrao": false,
+     "descricao": "NÃO: o Adm só cumpre os saldos e fica de expediente em todo dia útil (usado para checar choques). SIM: o Adm também cumpre a carga mensal, e a Escala Automática distribui os turnos dele."
+    },
+    "talvez"
+   ],
+   "saida": {
+    "ok": false,
+    "valor": null,
+    "erro": "Use SIM ou NÃO."
+   }
+  },
+  {
+   "teste": "teste_motor.js",
+   "entrada": [
+    {
+     "chave": "ADM_CUMPRE_CARGA",
+     "grupo": "Adm",
+     "rotulo": "Adm cumpre a carga mensal",
+     "tipo": "simnao",
+     "padrao": false,
+     "descricao": "NÃO: o Adm só cumpre os saldos e fica de expediente em todo dia útil (usado para checar choques). SIM: o Adm também cumpre a carga mensal, e a Escala Automática distribui os turnos dele."
+    },
+    "x"
+   ],
+   "saida": {
+    "ok": true,
+    "valor": true,
+    "erro": ""
+   }
+  },
+  {
+   "teste": "teste_motor.js",
+   "entrada": [
+    {
+     "chave": "CARGA_MENSAL_HORAS",
+     "grupo": "Carga mensal",
+     "rotulo": "Carga mensal (horas)",
+     "tipo": "inteiro",
+     "padrao": 160,
+     "min": 1,
+     "max": 744,
+     "descricao": "Horas que todo militar precisa cumprir no mês."
+    },
+    ""
+   ],
+   "saida": {
+    "ok": false,
+    "valor": null,
+    "erro": "Informe um valor."
+   }
+  },
+  {
+   "teste": "teste_motor.js",
+   "entrada": [
+    {
+     "chave": "CARGA_MENSAL_HORAS",
+     "grupo": "Carga mensal",
+     "rotulo": "Carga mensal (horas)",
+     "tipo": "inteiro",
+     "padrao": 160,
+     "min": 1,
+     "max": 744,
+     "descricao": "Horas que todo militar precisa cumprir no mês."
+    },
+    "0"
+   ],
+   "saida": {
+    "ok": false,
+    "valor": null,
+    "erro": "O mínimo é 1."
+   }
+  },
+  {
+   "teste": "teste_motor.js",
+   "entrada": [
+    {
+     "chave": "CARGA_MENSAL_HORAS",
+     "grupo": "Carga mensal",
+     "rotulo": "Carga mensal (horas)",
+     "tipo": "inteiro",
+     "padrao": 160,
+     "min": 1,
+     "max": 744,
+     "descricao": "Horas que todo militar precisa cumprir no mês."
+    },
+    "1,5"
+   ],
+   "saida": {
+    "ok": false,
+    "valor": null,
+    "erro": "Use um número inteiro."
+   }
+  },
+  {
+   "teste": "teste_motor.js",
+   "entrada": [
+    {
+     "chave": "CARGA_MENSAL_HORAS",
+     "grupo": "Carga mensal",
+     "rotulo": "Carga mensal (horas)",
+     "tipo": "inteiro",
+     "padrao": 160,
+     "min": 1,
+     "max": 744,
+     "descricao": "Horas que todo militar precisa cumprir no mês."
+    },
+    "160"
+   ],
+   "saida": {
+    "ok": true,
+    "valor": 160,
+    "erro": ""
+   }
+  },
+  {
+   "teste": "teste_motor.js",
+   "entrada": [
+    {
+     "chave": "CARGA_MENSAL_HORAS",
+     "grupo": "Carga mensal",
+     "rotulo": "Carga mensal (horas)",
+     "tipo": "inteiro",
+     "padrao": 160,
+     "min": 1,
+     "max": 744,
+     "descricao": "Horas que todo militar precisa cumprir no mês."
+    },
+    "160,0"
+   ],
+   "saida": {
+    "ok": true,
+    "valor": 160,
+    "erro": ""
+   }
+  },
+  {
+   "teste": "teste_motor.js",
+   "entrada": [
+    {
+     "chave": "CARGA_MENSAL_HORAS",
+     "grupo": "Carga mensal",
+     "rotulo": "Carga mensal (horas)",
+     "tipo": "inteiro",
+     "padrao": 160,
+     "min": 1,
+     "max": 744,
+     "descricao": "Horas que todo militar precisa cumprir no mês."
+    },
+    "800"
+   ],
+   "saida": {
+    "ok": false,
+    "valor": null,
+    "erro": "O máximo é 744."
+   }
+  },
+  {
+   "teste": "teste_motor.js",
+   "entrada": [
+    {
+     "chave": "CARGA_MENSAL_HORAS",
+     "grupo": "Carga mensal",
+     "rotulo": "Carga mensal (horas)",
+     "tipo": "inteiro",
+     "padrao": 160,
+     "min": 1,
+     "max": 744,
+     "descricao": "Horas que todo militar precisa cumprir no mês."
+    },
+    160
+   ],
+   "saida": {
+    "ok": true,
+    "valor": 160,
+    "erro": ""
+   }
+  },
+  {
+   "teste": "teste_motor.js",
+   "entrada": [
+    {
+     "chave": "CARGA_MENSAL_HORAS",
+     "grupo": "Carga mensal",
+     "rotulo": "Carga mensal (horas)",
+     "tipo": "inteiro",
+     "padrao": 160,
+     "min": 1,
+     "max": 744,
+     "descricao": "Horas que todo militar precisa cumprir no mês."
+    },
+    null
+   ],
+   "saida": {
+    "ok": false,
+    "valor": null,
+    "erro": "Informe um valor."
+   }
+  },
+  {
+   "teste": "teste_motor.js",
+   "entrada": [
+    {
+     "chave": "SECAO_PADRAO",
+     "grupo": "Geral",
+     "rotulo": "Seção padrão",
+     "tipo": "texto",
+     "padrao": "1ª SB",
+     "descricao": "Seção sugerida ao abrir os painéis."
+    },
+    "   "
+   ],
+   "saida": {
+    "ok": false,
+    "valor": null,
+    "erro": "Informe um valor."
+   }
+  },
+  {
+   "teste": "teste_motor.js",
+   "entrada": [
+    {
+     "chave": "SECAO_PADRAO",
+     "grupo": "Geral",
+     "rotulo": "Seção padrão",
+     "tipo": "texto",
+     "padrao": "1ª SB",
+     "descricao": "Seção sugerida ao abrir os painéis."
+    },
+    " 2ª SB "
+   ],
+   "saida": {
+    "ok": true,
+    "valor": "2ª SB",
+    "erro": ""
+   }
+  },
+  {
+   "teste": "teste_motor.js",
+   "entrada": [
+    {
+     "chave": "SECAO_PADRAO",
+     "grupo": "Geral",
+     "rotulo": "Seção padrão",
+     "tipo": "texto",
+     "padrao": "1ª SB",
+     "descricao": "Seção sugerida ao abrir os painéis."
+    },
+    "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+   ],
+   "saida": {
+    "ok": false,
+    "valor": null,
+    "erro": "Texto longo demais (máximo de 120 caracteres)."
+   }
+  },
+  {
+   "teste": "teste_motor.js",
+   "entrada": [
+    {
+     "chave": "X",
+     "tipo": "decimal",
+     "min": 0,
+     "max": 10
+    },
+    "11"
+   ],
+   "saida": {
+    "ok": false,
+    "valor": null,
+    "erro": "O máximo é 10."
+   }
+  },
+  {
+   "teste": "teste_motor.js",
+   "entrada": [
+    {
+     "chave": "X",
+     "tipo": "decimal",
+     "min": 0,
+     "max": 10
+    },
+    "2,5"
+   ],
+   "saida": {
+    "ok": true,
+    "valor": 2.5,
+    "erro": ""
+   }
+  },
+  {
+   "teste": "teste_motor.js",
+   "entrada": [
+    {
+     "chave": "X",
+     "tipo": "decimal",
+     "min": 0,
+     "max": 10
+    },
+    "abc"
+   ],
+   "saida": {
+    "ok": false,
+    "valor": null,
+    "erro": "Use um número."
+   }
+  }
+ ]
+}

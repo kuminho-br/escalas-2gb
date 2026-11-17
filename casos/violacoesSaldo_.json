@@ -1,0 +1,136 @@
+{
+ "funcao": "violacoesSaldo_",
+ "casos": [
+  {
+   "teste": "teste_p15.js",
+   "entrada": [
+    [
+     {
+      "mat": "ADM1",
+      "dia": "2026-11-05",
+      "servico": "Saldo",
+      "turno": "A"
+     }
+    ],
+    {
+     "adm": {
+      "ADM1": true
+     }
+    }
+   ],
+   "saida": []
+  },
+  {
+   "teste": "teste_p15.js",
+   "entrada": [
+    [
+     {
+      "mat": "PRO1",
+      "dia": "2026-11-05",
+      "servico": "Pronto",
+      "turno": "A"
+     },
+     {
+      "mat": "PRO1",
+      "dia": "2026-11-06",
+      "servico": "Adm",
+      "turno": "A"
+     }
+    ],
+    {
+     "adm": {
+      "ADM1": true
+     }
+    }
+   ],
+   "saida": []
+  },
+  {
+   "teste": "teste_p15.js",
+   "entrada": [
+    [
+     {
+      "mat": "PRO1",
+      "dia": "2026-11-05",
+      "servico": "Saldo",
+      "turno": "A"
+     }
+    ],
+    {
+     "adm": {
+      "ADM1": true
+     }
+    }
+   ],
+   "saida": [
+    {
+     "chave": "PRO1|2026-11-05|Saldo|A",
+     "mat": "PRO1",
+     "dia": "2026-11-05",
+     "servico": "Saldo",
+     "turno": "A",
+     "rn": "RN-03",
+     "texto": "Saldo só para militar do Adm (RN-03)"
+    }
+   ]
+  },
+  {
+   "teste": "teste_p15.js",
+   "entrada": [
+    [
+     {
+      "mat": "PRO1",
+      "dia": "2026-11-05",
+      "servico": "saldo",
+      "turno": "A"
+     }
+    ],
+    {
+     "adm": {
+      "ADM1": true
+     }
+    }
+   ],
+   "saida": [
+    {
+     "chave": "PRO1|2026-11-05|saldo|A",
+     "mat": "PRO1",
+     "dia": "2026-11-05",
+     "servico": "saldo",
+     "turno": "A",
+     "rn": "RN-03",
+     "texto": "Saldo só para militar do Adm (RN-03)"
+    }
+   ]
+  },
+  {
+   "teste": "teste_p15.js",
+   "entrada": [
+    [
+     {
+      "mat": "XXX",
+      "dia": "2026-11-05",
+      "servico": "Saldo",
+      "turno": "A"
+     }
+    ],
+    {
+     "adm": {
+      "ADM1": true
+     }
+    }
+   ],
+   "saida": [
+    {
+     "chave": "XXX|2026-11-05|Saldo|A",
+     "mat": "XXX",
+     "dia": "2026-11-05",
+     "servico": "Saldo",
+     "turno": "A",
+     "rn": "RN-03",
+     "texto": "Saldo só para militar do Adm (RN-03)"
+    }
+   ]
+  }
+ ]
+}
