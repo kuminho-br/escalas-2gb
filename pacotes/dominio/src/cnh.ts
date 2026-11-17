@@ -5,7 +5,7 @@ import { normalizar } from './nucleo.ts';
 const CADG_MES_RE = /^\d{4}-(0[1-9]|1[0-2])$/;
 
 /** '' (desde sempre) ou 'aaaa-mm'. Aceita também mm/aaaa. */
-function cadgVigencia(bruto: unknown): { ok: boolean; valor: string } {
+export function cadgVigencia(bruto: unknown): { ok: boolean; valor: string } {
   const s = String(bruto == null ? '' : bruto).trim();
   if (s === '') return { ok: true, valor: '' };
   if (CADG_MES_RE.test(s)) return { ok: true, valor: s };

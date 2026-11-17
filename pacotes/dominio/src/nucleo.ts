@@ -109,3 +109,9 @@ export function chaveAloc(a: { mat: string; dia: string; servico: string; turno:
 
 /** Tipo de serviço (cadastro de turnos) que marca uma diária, já normalizado. */
 export const TIPO_DIARIA = 'DIARIA';
+
+/** chave -> { mat, dia, servico, turno }. O serviço é tudo entre o dia e o último "|". */
+export function partesDaChave(k: string): { mat: string; dia: string; servico: string; turno: string } {
+  const p = k.split('|');
+  return { mat: p[0], dia: p[1], servico: p.slice(2, -1).join('|'), turno: p[p.length - 1] };
+}

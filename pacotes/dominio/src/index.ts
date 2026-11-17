@@ -7,3 +7,4 @@ export * from './regras.ts';
 export * from './pre-escala.ts';
 export * from './distribuicao-adm.ts';
 export * from './distribuicao-cotas.ts';
+export * from './guarnicao.ts';

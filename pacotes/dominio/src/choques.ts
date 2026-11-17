@@ -3,7 +3,7 @@
 // (dia + início do turno, com a duração de início a fim, atravessando a meia-noite quando for o
 // caso). Encostar não é choque. A letra do turno não entra na conta: os horários vêm do cadastro.
 // Regras extras: EMENDA (JES terminando quando o Pronto começa) e EXPEDIENTE implícito do Adm.
-import { chaveAloc, normalizar, numeroDoDia } from './nucleo.ts';
+import { chaveAloc, normalizar, numeroDoDia, partesDaChave } from './nucleo.ts';
 
 // emenda proibida: o serviço 'de' terminando exatamente quando o serviço 'para' começa
 export const EMENDA_PROIBIDA = { de: 'JES', para: 'PRONTO' };
@@ -162,4 +162,79 @@ export function expedienteImplicito(op: { mats: string[]; dias: string[]; servic
     op.dias.forEach((dia) => lista.push({ mat, dia, turno: op.turno, servico: op.servico, implicito: true }));
   });
   return lista;
+}
+
+export interface InclusaoSincronia { chave: string; mat: string; dia: string; turno: string; servico: string; troca?: string; [campo: string]: unknown }
+export interface BloqueioPorChoque {
+  chave: string;
+  mat: string;
+  dia: string;
+  servico: string;
+  turno: string;
+  tipo: 'alteracao' | 'inclusao';
+  de: { servico: string; turno: string } | null;
+  para: { servico: string; turno: string };
+  com: { dia: string; turno: string; servico: string; minutos: number; tipo: string; implicito: boolean }[];
+  [campo: string]: unknown;
+}
+
+/**
+ * Simula a tabela depois de aplicar as mudanças e bloqueia as inclusões (e trocas) que criariam
+ * um choque de horário (porte de bloquearPorChoque_, de sincronia.js). Choques que já existiam
+ * entre alocações não mexidas não bloqueiam nada. Duas mudanças que colidem entre si são as duas
+ * bloqueadas; numa troca bloqueada, a linha antiga fica como está. Altera res.
+ * todas: todas as linhas da tabela, de todos os meses.
+ */
+export function bloquearPorChoque(
+  res: { inserir: InclusaoSincronia[]; remover: { chave: string; linhas: unknown[] }[]; choques: BloqueioPorChoque[]; aplicadas: string[] },
+  todas: { mat: string; dia: string; turno: string; servico: string; linha?: unknown; implicito?: boolean }[],
+  horarios: Horarios,
+  tipos?: Record<string, string> | null,
+): void {
+  const mudadas: Record<string, boolean> = Object.create(null);
+  res.inserir.forEach((i) => {
+    mudadas[i.chave] = true;
+  });
+  const mats: Record<string, boolean> = Object.create(null);
+  Object.keys(mudadas).forEach((k) => {
+    mats[partesDaChave(k).mat] = true;
+  });
+  if (Object.keys(mudadas).length === 0) return;
+
+  const removidas: Record<string, boolean> = Object.create(null);
+  res.remover.forEach((r) => r.linhas.forEach((l) => {
+    removidas[String(l)] = true;
+  }));
+
+  const estado: AlocChoque[] = [];
+  todas.forEach((a) => {
+    if (!mats[a.mat] || removidas[String(a.linha)]) return;
+    estado.push({ mat: a.mat, dia: a.dia, turno: a.turno, servico: a.servico, implicito: !!a.implicito });
+  });
+  res.inserir.forEach((i) => estado.push({ mat: i.mat, dia: i.dia, turno: i.turno, servico: i.servico }));
+
+  const bloqueadas: Record<string, BloqueioPorChoque['com']> = Object.create(null);
+  detectarChoques(estado, horarios, { tipos }).choques.forEach((c) => {
+    [[c.a, c.b], [c.b, c.a]].forEach(([eu, outro]) => {
+      if (!mudadas[eu.chave]) return;
+      if (!bloqueadas[eu.chave]) bloqueadas[eu.chave] = [];
+      bloqueadas[eu.chave].push({ dia: outro.dia, turno: outro.turno, servico: outro.servico, minutos: c.minutos, tipo: c.tipo, implicito: !!outro.implicito });
+    });
+  });
+  if (Object.keys(bloqueadas).length === 0) return;
+
+  const antigas: Record<string, boolean> = Object.create(null);
+  res.inserir = res.inserir.filter((i) => {
+    if (!bloqueadas[i.chave]) return true;
+    const p = partesDaChave(i.chave);
+    const de = i.troca ? { servico: partesDaChave(i.troca).servico, turno: partesDaChave(i.troca).turno } : null;
+    if (i.troca) antigas[i.troca] = true;
+    res.choques.push({
+      chave: i.chave, mat: p.mat, dia: p.dia, servico: p.servico, turno: p.turno, tipo: i.troca ? 'alteracao' : 'inclusao', de, para: { servico: p.servico, turno: p.turno }, com: bloqueadas[i.chave],
+    });
+    return false;
+  });
+  res.remover = res.remover.filter((r) => !antigas[r.chave]);
+  res.aplicadas = res.aplicadas.filter((k) => !bloqueadas[k] && !antigas[k]);
+  res.choques.sort((x, y) => (x.chave < y.chave ? -1 : 1));
 }

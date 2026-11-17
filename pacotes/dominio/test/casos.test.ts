@@ -22,6 +22,10 @@ for (const [modulo, funcoes] of Object.entries(catalogo)) {
         continue;
       }
       const { casos } = JSON.parse(readFileSync(join(pastaCasos, `${funcao}.json`), 'utf8')) as { casos: Caso[] };
+      if (!casos.length) {
+        it.skip(`${funcao}: sem casos gravados (tem teste próprio)`);
+        continue;
+      }
       describe(funcao, () => {
         casos.forEach((caso, n) => {
           it(`${caso.teste} #${n}`, () => {
