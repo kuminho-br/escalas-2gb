@@ -252,7 +252,7 @@ Quais funções um serviço usa não é cadastrado: sai das guarnições ligadas
 | id | uuid PK | |
 | unidade_id | uuid FK | dona; pode ser seção ou GB |
 | nome | text | único por unidade |
-| atividade_id | uuid FK null | o que a guarnição faz; vazia = cadastro incompleto (aviso na lista) |
+| atividade_id | uuid FK null | sem uso desde a entrega 3.1: a guarnição é um modelo, sem atividade (17/11/2026) |
 
 A guarnição é definida pela atividade e pela composição (funções com mínimo, máximo e CNH). Cada guarnição é um card na escala; não há agrupamento de cards (decidido em 17/11/2026). Ela pode servir a mais de uma escala.
 
@@ -278,7 +278,7 @@ A viatura é útil na tela e no documento, mas **não é fonte de regra**: a via
 | guarnicao_versao_id | uuid FK | |
 | funcao_id | uuid FK | única por versão |
 | minimo | int not null | `>= 0` (RN-10) |
-| maximo | int null | null = sem limite; `>= minimo` (RN-11) |
+| maximo | int not null | `>= minimo` (RN-11); vazio na planilha vira o mínimo (migração 0010, 17/11/2026) |
 | cnh_exigida | text null | uma letra A a E; atendida pela hierarquia (RN-12) |
 | ordem | int | ordem das linhas na tela e no documento |
 
