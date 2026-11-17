@@ -25,10 +25,15 @@ describe('importação de configurações', () => {
       ['CARGA_MENSAL_HORAS', 160, '', 'x'],
       ['SALDOS_ADM_POR_MILITAR', 6, '2026-12', 'x'],
       ['SECAO_PADRAO', '1ª SB', '', 'x'],
+      ['LINHAS_POR_MILITAR', 3, '', 'x'],
     ], true);
     expect(r.novos).toHaveLength(2);
     expect(r.gravados).toBe(2);
-    expect(r.avisos).toContain('SECAO_PADRAO não é mais usada: o seletor de unidade substitui.');
+    expect(r.avisos).toEqual([
+      'SECAO_PADRAO não é mais usada: o seletor de unidade substitui.',
+      'LINHAS_POR_MILITAR era da planilha e não se aplica ao sistema novo.',
+    ]);
+    expect(r.problemas).toEqual([]);
     const { rows } = await api.banco.query<{ chave: string; vig: string; valor: unknown }>(
       "select chave, to_char(vigencia_desde, 'YYYY-MM') as vig, valor from parametro where unidade_id = $1 order by chave",
       [api.ids.secao],
@@ -42,12 +47,12 @@ describe('importação de configurações', () => {
 
   it('valor inválido vira problema e o resto entra', async () => {
     const r = await importar([
-      ['LINHAS_POR_MILITAR', 'muitas', '', ''],
+      ['SALDOS_ADM_POR_MILITAR', 'muitos', '2027-02', ''],
       ['ADM_CUMPRE_CARGA', 'SIM', '', ''],
     ]);
     expect(r.novos.map((n: { chave: string }) => n.chave)).toEqual(['ADM_CUMPRE_CARGA|2026-11']);
     expect(r.problemas).toEqual([
-      { aba: 'CONFIGURAÇÕES', linha: 2, mensagem: 'LINHAS_POR_MILITAR: Use um número inteiro.', solucao: 'Corrija a linha na sandbox e importe de novo.' },
+      { aba: 'CONFIGURAÇÕES', linha: 2, mensagem: 'SALDOS_ADM_POR_MILITAR: Use um número inteiro.', solucao: 'Corrija a linha na sandbox e importe de novo.' },
     ]);
   });
 
@@ -71,8 +76,8 @@ describe('importação de configurações', () => {
   });
 
   it('vigência que a planilha guardou como data', async () => {
-    const r = await importar([['LINHAS_POR_MILITAR', 3, new Date(Date.UTC(2027, 0, 1)), '']]);
+    const r = await importar([['SALDOS_ADM_POR_MILITAR', 3, new Date(Date.UTC(2027, 0, 1)), '']]);
     expect(r.problemas).toEqual([]);
-    expect(r.novos.map((n: { chave: string }) => n.chave)).toEqual(['LINHAS_POR_MILITAR|2027-01']);
+    expect(r.novos.map((n: { chave: string }) => n.chave)).toEqual(['SALDOS_ADM_POR_MILITAR|2027-01']);
   });
 });

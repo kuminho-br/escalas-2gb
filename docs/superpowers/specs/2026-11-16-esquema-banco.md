@@ -410,7 +410,7 @@ Só a troca já aprovada (E8): o escalante registra depois da aprovação do Che
 | Coluna | Tipo | Regra |
 |---|---|---|
 | id | uuid PK | |
-| chave | text | catálogo fixo no código: `CARGA_MENSAL_HORAS`, `SALDOS_ADM_POR_MILITAR`, `ADM_CUMPRE_CARGA`, `LINHAS_POR_MILITAR` |
+| chave | text | catálogo fixo no código: `CARGA_MENSAL_HORAS`, `SALDOS_ADM_POR_MILITAR`, `ADM_CUMPRE_CARGA` (`LINHAS_POR_MILITAR` era da planilha e não vem para o sistema novo) |
 | unidade_id | uuid FK | vale para a unidade e as de baixo |
 | vigencia_desde | date | dia 1 |
 | valor | jsonb | validado por chave na API |
