@@ -14,3 +14,16 @@ export type ErroApi = { erro: string; campos?: Record<string, string> };
 export function mesParaData(mes: string): string {
   return `${mes}-01`;
 }
+
+const MESES = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
+
+/** '2026-12' -> 'dezembro de 2026' */
+export function mesPorExtenso(mes: string): string {
+  return `${MESES[Number(mes.slice(5, 7)) - 1]} de ${mes.slice(0, 4)}`;
+}
+
+/** '2026-12' + 1 -> '2027-01' */
+export function somarMeses(mes: string, n: number): string {
+  const total = Number(mes.slice(0, 4)) * 12 + Number(mes.slice(5, 7)) - 1 + n;
+  return `${Math.floor(total / 12)}-${String((total % 12) + 1).padStart(2, '0')}`;
+}

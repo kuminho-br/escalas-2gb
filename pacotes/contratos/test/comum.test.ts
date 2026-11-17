@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { Data, Hora, Matricula, Mes, Nome, mesParaData } from '../src/index.ts';
+import { Data, Hora, Matricula, Mes, Nome, mesParaData, mesPorExtenso, somarMeses } from '../src/index.ts';
 
 describe('formatos comuns', () => {
   it('mês', () => {
@@ -24,5 +24,16 @@ describe('formatos comuns', () => {
   });
   it('mesParaData', () => {
     expect(mesParaData('2026-12')).toBe('2026-12-01');
+  });
+});
+
+describe('meses', () => {
+  it('mesPorExtenso', () => {
+    expect(mesPorExtenso('2026-12')).toBe('dezembro de 2026');
+    expect(mesPorExtenso('2027-03')).toBe('março de 2027');
+  });
+  it('somarMeses atravessa o ano', () => {
+    expect(somarMeses('2026-12', 1)).toBe('2027-01');
+    expect(somarMeses('2026-01', -1)).toBe('2025-12');
   });
 });
