@@ -70,6 +70,12 @@ export async function exigirPapel(c: Context<AmbienteApi>, unidadeId: string, pa
   return c.json({ erro }, 403);
 }
 
+/** Qualquer papel vigente (escalante, gestor ou administrador); o militar comum recebe 403. */
+export async function exigirAlgumPapel(c: Context<AmbienteApi>): Promise<Response | null> {
+  const papeis = await papeisVigentes(c.get('banco'), c.get('usuarioId'), hojeRecife());
+  return papeis.length ? null : c.json({ erro: 'Esta tela é dos escalantes e gestores.' }, 403);
+}
+
 /** Catálogos do sistema: só o administrador (que só existe na raiz). */
 export async function exigirAdministradorRaiz(c: Context<AmbienteApi>): Promise<Response | null> {
   const banco = c.get('banco');

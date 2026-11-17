@@ -1,8 +1,8 @@
 // Configurações: catálogos do sistema (tipos de afastamento, atividades) e parâmetros por unidade.
 import { EdicaoItemCatalogo, Mes, mesParaData, mesPorExtenso, NovoItemCatalogo, NovoParametro, type ItemCatalogo, type Parametro } from 'contratos';
 import { PARAM_CATALOGO, paramConverter, paramDef } from 'dominio';
-import { Hono, type Context } from 'hono';
-import { ESCREVE_PARAMETRO, exigirAdministradorRaiz, exigirPapel, exigirSessao, papeisVigentes, type AmbienteApi } from '../acesso.ts';
+import { Hono } from 'hono';
+import { ESCREVE_PARAMETRO, exigirAdministradorRaiz, exigirAlgumPapel, exigirPapel, exigirSessao, type AmbienteApi } from '../acesso.ts';
 import type { Auth } from '../auth.ts';
 import { comUsuario, type Banco } from '../banco/banco.ts';
 import { hojeRecife } from '../datas.ts';
@@ -15,12 +15,6 @@ import { lerCorpo, respostaDoErroDoBanco } from '../erros.ts';
 export const CHAVES_SISTEMA = ['CARGA_MENSAL_HORAS', 'SALDOS_ADM_POR_MILITAR', 'ADM_CUMPRE_CARGA'];
 
 const ordenarPorNome = <T extends { nome: string }>(l: T[]) => l.sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
-
-/** Ler os catálogos: qualquer papel (escalante, gestor, administrador). */
-async function exigirAlgumPapel(c: Context<AmbienteApi>): Promise<Response | null> {
-  const papeis = await papeisVigentes(c.get('banco'), c.get('usuarioId'), hojeRecife());
-  return papeis.length ? null : c.json({ erro: 'Esta tela é dos escalantes e gestores.' }, 403);
-}
 
 function rotasCatalogo(r: Hono<AmbienteApi>, caminho: string, tabela: 'tipo_afastamento' | 'atividade') {
   r.get(caminho, async (c) => {
