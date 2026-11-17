@@ -40,6 +40,9 @@
 5. **Usuário sem papel na unidade:** recebe 403 em toda escrita, e quem tem papel deixa o próprio `usuario_id` na auditoria.
 6. **Modelo e leitura sempre em sincronia:** um teste percorre todos os importadores e confere que cada coluna do modelo é achada pela leitura, e que importar o modelo vazio não grava nada.
 7. **Antiguidade repetida não bloqueia:** gravar o segundo militar com o mesmo número passa (201); os dois ganham a pendência.
+8. **Nome repetido com outra caixa ou acento** (guarnição, função): 409 com frase legível, nunca 500 do índice único.
+9. **Função repetida na composição:** 400 no campo da repetição, nunca 500 da restrição `unique (guarnicao_versao_id, funcao_id)`.
+10. **Guarnição que só começa num mês futuro:** aparece na lista do mês corrente com "a partir de", em vez de sumir depois de criada.
 
 Cada item tem teste na tarefa dona do código (marcado com **[foco]**).
 
@@ -55,7 +58,7 @@ apps/api/src/
   acesso.ts            # sessão, papéis, unidade de um registro
   erros.ts             # erro do banco -> 409 legível; corpo inválido -> 400
   unidade-atual.ts     # unidade fixa da fase de teste
-  cadastros/<cadastro>.ts   # rotas de cada cadastro
+  cadastros/<cadastro>.ts   # rotas de cada cadastro; regras puras em cadastros/<cadastro>-regras.ts
   importacao/planilha.ts, importacao/rotas.ts, importacao/tipos.ts, importacao/modelo.ts, importacao/<cadastro>.ts
 apps/api/test/apoio-api.ts  # app com banco, usuários de teste e pedir()
 apps/web/src/
@@ -565,97 +568,154 @@ Branch `fase3-2-1-modelo`, a partir da `main` com a entrega 2 (PR #16 já mergea
 
 # Entrega 3 — Atividades, funções e guarnições
 
-Branch `fase3-3-guarnicoes`.
+Branch `fase3-3-guarnicoes`, a partir da `main` com a entrega 2.1 (PR #17 mergeado).
 
-### Task 16: API de Funções e Guarnições
+**Sem migração.** As tabelas `funcao`, `guarnicao` (com `atividade_id`), `guarnicao_versao`, `composicao`, `escala_vinculo_versao` e `escala_guarnicao` já existem (migrações 0003 e 0009), com o gatilho de auditoria.
+
+**Decisões desta entrega** (tomadas ao detalhar o plano, sobre o que a especificação não fixa):
+- A lista mostra as guarnições **da própria unidade**. Guarnições de unidades acima entram com as escalas em qualquer nível (fase 7). As funções, ao contrário, são herdadas de cima já agora (RN-94).
+- Nome de guarnição e de função é único por unidade **sem diferenciar caixa nem acento** (comparação por `normalizar`), conferido na API; o banco só garante o nome exato. Função com nome igual a uma herdada também é recusada.
+- A mensagem de versão em mês passado é a mesma dos parâmetros: `Só dá para mudar a partir de <mês por extenso>.` (409).
+- Guarnição criada para um mês futuro aparece na lista do mês corrente com "a partir de <mês>", para não sumir depois de criada.
+- Não há tela de catálogo de funções: a função nasce em "Nova função…" na composição ou na importação. Renomear função fica para quando houver essa tela (sai a rota `PATCH /api/funcoes/:id` do plano anterior).
+- "Ver histórico" fica para a fase 7 (já está em "Fora desta fase").
+
+### Task 16: API de funções e guarnições
 
 **Arquivos:**
-- Criar: `pacotes/contratos/src/guarnicoes.ts`, `apps/api/src/cadastros/guarnicoes.ts`, `apps/api/test/guarnicoes.test.ts`
+- Criar: `pacotes/contratos/src/guarnicoes.ts`, `apps/api/src/cadastros/guarnicoes.ts`, `apps/api/src/cadastros/guarnicoes-regras.ts`, `apps/api/test/guarnicoes.test.ts`, `apps/api/test/guarnicoes-regras.test.ts`
+- Modificar: `pacotes/contratos/src/index.ts` (exporta), `apps/api/src/app.ts` (`app.route('/api', rotasGuarnicoes(comAuth))`)
 
 **Interfaces:**
-- Produz (contratos):
-  - `LinhaComposicao = { funcaoId: uuid; minimo: int>=0; maximo: int>=minimo | null; cnhExigida: 'A'..'E' | null }`
-  - `VersaoGuarnicao = { viatura: string | null; tipoViatura: string | null; prioridade: int | null; ativa: boolean; composicao: LinhaComposicao[] }` (com refinamento: funções sem repetição)
-  - `NovaGuarnicao = { nome: Nome; atividadeId: uuid | null; vigencia: Mes; versao: VersaoGuarnicao }`
-  - `EdicaoGuarnicao = { nome?: Nome; atividadeId?: uuid | null }`
-  - `LinhaGuarnicao = { id; nome; atividade: string | null; viatura: string | null; prioridade: number | null; ativa: boolean; vagasObrigatorias: number; pendencias: string[] }` (a pendência possível é `'Sem atividade'`)
-  - `FichaGuarnicao = { id; nome; atividadeId; versoes: { vigencia: string; viatura; tipoViatura; prioridade; ativa; composicao: (LinhaComposicao & { funcao: string; ordem: number })[] }[]; usadaEm: { escalaId; escala: string; turnos: string[] }[] }`
-  - `Funcao = { id; nome; unidadeSigla: string; herdada: boolean }`
-- Produz (rotas):
-  - `GET|POST /api/unidades/:u/funcoes` (próprias e herdadas de cima) e `PATCH /api/funcoes/:id`
-  - `GET /api/unidades/:u/guarnicoes?mes=` (versão vigente no mês; ordem por prioridade, nulos por último, e nome)
-  - `POST /api/unidades/:u/guarnicoes`
-  - `GET|PATCH /api/guarnicoes/:id`
-  - `PUT /api/guarnicoes/:id/versoes/:mes`: cria ou substitui a versão daquele mês e regrava a composição na ordem recebida.
+- Produz (contratos, zod):
+  - `Cnh = z.enum(['A','B','C','D','E'])`
+  - `LinhaComposicao = { funcaoId: Id; minimo: int >= 0; maximo: int >= 0 | null; cnhExigida: Cnh | null }`, com refinamento: `maximo >= minimo` (mensagem no campo `maximo`: "O máximo precisa ser igual ou maior que o mínimo.").
+  - `VersaoGuarnicao = { viatura: string (trim, até 40) | null; tipoViatura: string (trim, até 60) | null; prioridade: int >= 1 | null; ativa: boolean; composicao: LinhaComposicao[] }`, com refinamento: função repetida na composição dá, no campo `composicao.<i>.funcaoId` da repetição, "Esta função já está na composição." Texto vazio em viatura e tipo vira `null`.
+  - `NovaGuarnicao = { nome: Nome; atividadeId: Id | null; vigencia: Mes; versao: VersaoGuarnicao }`
+  - `EdicaoGuarnicao = { nome?: Nome; atividadeId?: Id | null }`
+  - `NovaFuncao = { nome: Nome }`
+  - `Funcao = { id: string; nome: string; unidadeSigla: string; herdada: boolean }`
+  - `ComposicaoSalva = { funcaoId: string; funcao: string; minimo: number; maximo: number | null; cnhExigida: string | null }` (na ordem gravada)
+  - `VersaoSalva = { vigencia: string /* aaaa-mm */; viatura: string | null; tipoViatura: string | null; prioridade: number | null; ativa: boolean; composicao: ComposicaoSalva[] }`
+  - `LinhaGuarnicao = { id; nome; atividade: string | null; viatura: string | null; prioridade: number | null; ativa: boolean; vagasObrigatorias: number; aPartirDe: string | null; pendencias: string[] }`. `vagasObrigatorias` é a soma dos mínimos; `aPartirDe` é o mês da primeira versão quando nenhuma vale ainda no mês consultado (senão `null`); a pendência possível é `'Sem atividade'`.
+  - `FichaGuarnicao = { id; nome; atividadeId: string | null; atividade: string | null; versoes: VersaoSalva[] /* mais recente primeiro */; usadaEm: { escalaId: string; escala: string; turnos: string[] }[] }`
+- Produz (`guarnicoes-regras.ts`, puro):
+  - `diferencasDeVersao(antes: VersaoSalva | null, depois: VersaoSalva): string[]`. Textos: `'viatura: ABT-01 → ABT-02'` (vazio vira `sem viatura`), `'tipo: …'`, `'prioridade: 1 → 2'` (vazio vira `sem prioridade`), `'ativa: sim → não'`, `'Combatente: incluída'`, `'Combatente: retirada'`, `'Combatente: mínimo 2 → 3'`, `'Combatente: máximo 3 → sem limite'`, `'Motorista: CNH D → C'` (vazio vira `nenhuma`). As funções são comparadas pelo nome normalizado. Com `antes = null`, devolve `['nova']`. Ordem da composição não conta como diferença.
+  - `versaoNoMes<T extends { vigencia: string }>(versoes: T[], mes: string): T | null`: a de maior `vigencia <= mes`.
+- Produz (`guarnicoes.ts`, além das rotas, para a Task 18):
+  - `funcoesVisiveis(c: Consulta, unidadeId: string): Promise<(Funcao & { chave: string })[]>`: as da unidade e das de cima (`caminho @>`), `chave = normalizar(nome)`, em ordem de nome.
+  - `versoesDasGuarnicoes(c: Consulta, ids: string[]): Promise<Map<string, VersaoSalva[]>>`: mais recente primeiro.
+  - `gravarVersao(tx: Consulta, guarnicaoId: string, vigencia: string, v: VersaoGuarnicao): Promise<void>`: `insert … on conflict (guarnicao_id, vigencia_desde) do update`, depois apaga a composição da versão e insere de novo com `ordem` = posição na lista.
+- Produz (rotas, todas com `CADASTRO` na unidade; para as rotas por id, a unidade vem de `unidadeDoRegistro(…, 'guarnicao', id)` e id desconhecido é 404 "Guarnição não encontrada."):
+  - `GET /api/unidades/:u/funcoes` → `Funcao[]`; `POST /api/unidades/:u/funcoes` (`NovaFuncao`) → 201 `Funcao`. Nome igual (normalizado) a uma função visível dá 409 `Já existe a função "<nome>" (<sigla>).`
+  - `GET /api/unidades/:u/guarnicoes?mes=` (mês corrente se faltar; inválido é 400) → `LinhaGuarnicao[]`, por prioridade (vazia por último), depois nome. Usa a versão vigente no mês ou, se não houver, a primeira (com `aPartirDe`).
+  - `POST /api/unidades/:u/guarnicoes` (`NovaGuarnicao`) → 201 `FichaGuarnicao`.
+  - `GET /api/guarnicoes/:id` → `FichaGuarnicao`; `PATCH /api/guarnicoes/:id` (`EdicaoGuarnicao`) → `FichaGuarnicao`.
+  - `PUT /api/guarnicoes/:id/versoes/:mes` (corpo `VersaoGuarnicao`) → `FichaGuarnicao`. Cria ou substitui a versão daquele mês.
 - Regras:
-  - Um mês anterior ao corrente devolve 409 "Versões passadas não se editam. Escolha <mês corrente> ou depois."
-  - A função precisa ser do catálogo visível à unidade; se não for, devolve 400 no campo `composicao.N.funcaoId`.
+  - Vigência (no `POST` e no `PUT`) anterior ao mês corrente (`hojeRecife()`) dá 409 `Só dá para mudar a partir de <mês por extenso>.`; `:mes` mal formado dá 400.
+  - Função fora do catálogo visível à unidade da guarnição dá 400 no campo `composicao.<i>.funcaoId`: "Esta função não está no catálogo da seção."
+  - Atividade inativa (ou inexistente) escolhida dá 400 no campo `atividadeId`: "Escolha uma atividade ativa." Manter a atividade que já estava, mesmo desativada, é permitido (o `PATCH` só confere quando o valor muda).
+  - Nome de guarnição igual (normalizado) a outra da mesma unidade dá 409 "Já existe uma guarnição com esse nome."
+  - `usadaEm`: escalas cuja versão de vínculos vigente no mês corrente inclui a guarnição; `turnos` é a lista de letras em ordem, e o vínculo sem letra vira `'todos'`.
   - A viatura não entra em nenhuma regra.
 
 - [ ] **Passo 1: testes que falham:**
-  - `cria guarnição com a primeira versão`
-  - `lista do mês usa a versão vigente`
-  - `salvar a partir do mês corrente substitui sem duplicar` **[foco 2]**
-  - `versão de mês passado é 409` **[foco 2]**
-  - `guarnição sem atividade tem a pendência`
-  - `função de outra unidade é 400`
-  - `função herdada do 2º GB aparece marcada`
-  - `máximo menor que o mínimo é 400`
-- [ ] **Passo 2:** `pnpm --filter api test`. Esperado: FALHA.
+  - `guarnicoes-regras.test.ts`: um `it` por texto de `diferencasDeVersao` acima, mais `antes nulo é nova`, `ordem diferente não é diferença`, e `versaoNoMes` com versões de 2026-11 e 2027-01 (dezembro pega a de novembro; outubro dá `null`).
+  - `guarnicoes.test.ts` (fixtures com `inserir`: uma função "Motorista" no 2º GB, uma função da 1ª SB e uma de outra seção):
+    - `cria guarnição com a primeira versão` (201; a ficha traz a versão do mês com a composição na ordem enviada)
+    - `lista do mês usa a versão vigente` (versão de agora e outra do mês seguinte: o mês seguinte mostra a nova viatura)
+    - `guarnição que só começa no mês seguinte aparece com aPartirDe` **[foco 10]**
+    - `salvar a partir do mês corrente substitui sem duplicar` **[foco 2]** (dois `PUT` no mesmo mês deixam uma versão só, com a composição do segundo)
+    - `versão de mês passado é 409 com o mês mínimo` **[foco 2]**
+    - `guarnição sem atividade tem a pendência`
+    - `função de outra seção é 400 no campo`
+    - `função repetida na composição é 400 no campo` **[foco 9]**
+    - `máximo menor que o mínimo é 400`
+    - `função herdada do 2º GB aparece marcada e pode compor`
+    - `nome de função repetido com outra caixa é 409` **[foco 8]** (`motorista` com "Motorista" no 2º GB)
+    - `nome de guarnição repetido com outro acento é 409` **[foco 8]**
+    - `atividade desativada não pode ser escolhida`
+    - `onde é usada lista a escala e os turnos` (insere escala, versão de vínculos do mês e dois `escala_guarnicao` com A e B)
+    - `escalante de outra unidade recebe 403 e sem papel também` **[foco 5]**
+- [ ] **Passo 2:** `pnpm --filter api test`. Esperado: FALHA (módulos inexistentes).
 - [ ] **Passo 3:** implementar.
-- [ ] **Passo 4:** `pnpm --filter api test`. Esperado: PASSA.
+- [ ] **Passo 4:** `pnpm --filter api test && pnpm typecheck`. Esperado: PASSA.
 - [ ] **Passo 5:** commit `Fase 3: API de funções e guarnições`.
 
 ### Task 17: Tela de Guarnições
 
 **Arquivos:**
-- Criar: `apps/web/src/api/guarnicoes.ts`, `apps/web/src/routes/_app/guarnicoes.tsx`, `.../guarnicoes/index.tsx`, `.../guarnicoes/$id.tsx`, `apps/web/src/__testes__/guarnicoes.test.tsx`
-- Modificar: `Trilho.tsx` (liga "Guarnições")
+- Criar: `apps/web/src/api/guarnicoes.ts`, `apps/web/src/routes/_app/guarnicoes.tsx`, `apps/web/src/routes/_app/guarnicoes/index.tsx`, `apps/web/src/routes/_app/guarnicoes/$id.tsx`, `apps/web/src/componentes/guarnicoes/{Composicao.tsx,Versoes.tsx}`, `apps/web/src/__testes__/guarnicoes.test.tsx`
+- Modificar: `apps/web/src/componentes/Trilho.tsx` (`para: '/guarnicoes'` em "Guarnições")
 
 **Interfaces:**
-- **Lista:** em ordem de ativação, com aviso nas que estão "Sem atividade".
-- **Detalhe:**
-  - nome, atividade (lista das ativas) e viatura e tipo de viatura (opcionais, com a dica "Só informativa: não muda as vagas");
-  - versões numa linha do tempo;
-  - composição com função (seleção, mais "Nova função…" que cria no catálogo da unidade), mínimo e máximo com − e +, e CNH exigida;
-  - o botão "Salvar a partir de <mês>", com o mês padrão sendo o corrente;
-  - "Onde é usada" (escalas e turnos).
+- Consome: as rotas e os tipos da Task 16; `consultaCatalogo('atividades')` de `api/configuracoes.ts`; `ListaDetalhe`, `ImportarPlanilha` (cadastro `guarnicoes`), `Secao`, `Selecao`.
+- Produz (`api/guarnicoes.ts`): `consultaGuarnicoes(unidadeId, mes)` (chave `['guarnicoes', unidadeId, mes]`), `consultaGuarnicao(id)` (`['guarnicao', id]`), `consultaFuncoes(unidadeId)` (`['funcoes', unidadeId]`), `criarGuarnicao`, `editarGuarnicao`, `salvarVersao(id, mes, v)`, `criarFuncao(unidadeId, nome)`, e `atualizarGuarnicoes(queryClient, id?)`, que invalida `guarnicoes`, `funcoes` e `guarnicao`.
+- **Lista** (como a de militares): ordem da API; cada item mostra nome, viatura, atividade, "inativa" quando for o caso, "a partir de <mês por extenso>" quando `aPartirDe`, e o ícone de aviso com `aria-label` "Cadastro incompleto: Sem atividade". Ações: "Importar da planilha" e "Nova guarnição" (diálogo com nome, atividade e mês de início, que cria a primeira versão vazia e abre a ficha).
+- **Ficha:**
+  - **Identificação:** nome e atividade (só as ativas, mais a atual se estiver desativada), com "Salvar" (`PATCH`).
+  - **Versões** (`Versoes.tsx`): a linha do tempo das vigências, a vigente em destaque; clicar numa carrega o editor com ela. O editor tem viatura e tipo de viatura (com a dica "Só informativa: não muda as vagas"), prioridade, "Ativa", a composição e, no fim, o mês (`type="month"`, `min` = mês corrente, padrão = mês corrente) e o botão "Salvar a partir de <mês por extenso>" (`PUT`). O erro da API aparece abaixo do botão.
+  - **Composição** (`Composicao.tsx`), uma linha por função, na ordem:
+    - função (`Selecao` com as funções; as herdadas mostram a sigla entre parênteses; a última opção é "Nova função…", que abre um campo e o botão "Criar"; criada, já fica escolhida);
+    - mínimo com − e + (`aria-label` "Diminuir mínimo de <função>" / "Aumentar mínimo de <função>"): não desce de 0 e não passa do máximo;
+    - máximo com − e + e a caixa "Sem limite": o − não desce do mínimo; marcar "Sem limite" põe `null`; desmarcar põe o mínimo;
+    - CNH exigida (`Selecao`: "Nenhuma", A a E);
+    - "Retirar".
+    - Abaixo, "Incluir função" acrescenta uma linha (função vazia, mínimo 1, máximo 1, sem CNH). Não há reordenação: a ordem é a das linhas.
+  - **Onde é usada:** as escalas com os turnos, ou "Ainda não está em nenhuma escala."
 
-- [ ] **Passo 1: testes que falham:**
+- [ ] **Passo 1: testes que falham** (`guarnicoes.test.tsx`, com `simularApi`):
   - `lista avisa guarnição sem atividade`
+  - `guarnição que começa depois mostra a partir de quando`
   - `mais e menos mudam o mínimo e não passam do máximo`
-  - `salvar a partir de envia PUT no mês escolhido`
+  - `sem limite deixa o máximo vazio e o mais do mínimo sobe livre`
+  - `salvar a partir de envia PUT no mês escolhido com a composição na ordem` (confere o corpo com `corpoEnviado`)
+  - `versão de mês passado mostra a mensagem da API`
   - `nova função cria e já seleciona`
+  - `atividade só lista as ativas e mantém a atual desativada`
 - [ ] **Passo 2:** `pnpm --filter web test`. Esperado: FALHA.
 - [ ] **Passo 3:** implementar.
-- [ ] **Passo 4:** `pnpm --filter web test`. Esperado: PASSA.
+- [ ] **Passo 4:** `pnpm --filter web test && pnpm typecheck`. Esperado: PASSA.
 - [ ] **Passo 5:** commit `Fase 3: tela de guarnições`.
 
-### Task 18: Importação de Guarnições
+### Task 18: Importação de guarnições
 
 **Arquivos:**
 - Criar: `apps/api/src/importacao/guarnicoes.ts`, `apps/api/test/importacao-guarnicoes.test.ts`
+- Modificar: `apps/api/src/importacao/registro.ts` (`guarnicoes`), `apps/api/src/importacao/planilha.ts` (recebe `mesDaCelula`), `apps/api/src/importacao/configuracoes.ts` (passa a usar `mesDaCelula`)
 
 **Interfaces:**
-- Consome: `resolverGuarnicoes` e `cadgVigencia` do `dominio`, que interpretam a aba como o protótipo; `modelo` e `valores` (Tarefa 12).
-- **Modelo:** declara a aba `GUARNIÇÕES` com as colunas abaixo (obrigatórias: guarnição e função) e `valores` com as funções cadastradas e as atividades do sistema.
-- Aba `GUARNIÇÕES`, colunas `VIGÊNCIA`, `GUARNIÇÃO`, `VIATURA`, `TIPO`, `ATIVAR`, `PRIORIDADE`, `CNH`, `FUNÇÃO`, `MÍNIMO` e `MÁXIMO`.
-- **Versões:** para cada vigência distinta da aba, a vazia virando o mês de criação da unidade, `resolverGuarnicoes(linhas, vigencia)` dá o estado naquele mês. Cada guarnição vira uma versão com essa vigência, e uma versão igual à anterior não é gravada. Os `avisos` do resolvedor viram problemas.
-- **Funções:** criadas no catálogo da unidade quando faltam.
-- **CNH:** com várias categorias, quando uma é atendida por todas as outras pela hierarquia, fica essa (`['C', 'D']` vira `C`). Senão, vira o problema "CNH "A/B" não cabe numa categoria só", com a solução "Escolha a categoria na tela de Guarnições"; a função entra sem CNH.
-- **Atividade:** fica vazia. O aviso final é "N guarnições sem atividade: escolha a atividade de cada uma na tela".
-- **Guarnição existente:** a chave é (unidade, nome normalizado), e a versão é comparada campo a campo.
+- Consome: `resolverGuarnicoes`, `CNH_HABILITA` e `normalizar` do `dominio`; `funcoesVisiveis`, `versoesDasGuarnicoes`, `gravarVersao` (Task 16); `diferencasDeVersao` (Task 16); `ColunaModelo` e `Importador` (Task 12).
+- Produz (`planilha.ts`): `mesDaCelula(t: string): string`, que transforma `'01/12/2026'` (data digitada que o Planilhas converte) em `'2026-12'` e devolve o resto como veio. É o `vigenciaDaCelula` que hoje está em `configuracoes.ts`, movido.
+- Produz (`importacao/guarnicoes.ts`): `cnhUnica(cats: string[]): { cnh: string | null } | { conflito: true }`. Lista vazia → `{ cnh: null }`; uma categoria → ela; várias → a categoria `c` da lista que todas as outras habilitam pela hierarquia (`CNH_HABILITA[o]` contém `c`), senão `{ conflito: true }`. Exemplos: `['C','D']` → `C`; `['B','C','D']` → `B`; `['A','B']` → conflito.
+- **Modelo:** aba `GUARNIÇÕES`, colunas na ordem `VIGÊNCIA`, `GUARNIÇÃO`, `VIATURA`, `TIPO`, `ATIVAR` (opções SIM e NÃO), `PRIORIDADE`, `CNH`, `FUNÇÃO`, `MÍNIMO`, `MÁXIMO`. Obrigatórias: guarnição e função. A ajuda de `GUARNIÇÃO` diz que a atividade se escolhe depois, na tela; a de `MÁXIMO`, que 0 retira a função naquela vigência e vazio é sem limite; a de `VIGÊNCIA`, que vazio vale desde a criação da seção. `valores`: as funções visíveis à unidade (com a sigla quando herdada) e as guarnições já cadastradas.
+- **Leitura:** cada linha da aba vira a entrada de `resolverGuarnicoes` (o tipo `LinhaGuarnicao` do `dominio`; importe-o com outro nome, como `LinhaDaAba`, porque `contratos` também tem um `LinhaGuarnicao`), com a vigência passada por `mesDaCelula`. Sem a coluna `GUARNIÇÃO`, a prévia traz só o problema "Falta a coluna GUARNIÇÃO.", com a solução "Use o modelo desta tela."
+- **Versões:** as vigências distintas da aba (a vazia vira o mês de criação da unidade, `unidade.desde`). Para cada uma, em ordem, `resolverGuarnicoes(linhas, vigencia)` dá o estado no mês. Para cada guarnição, uma versão igual (por `diferencasDeVersao(...).length === 0`) à da vigência anterior da própria planilha é descartada.
+- **Forma das versões da planilha:** cada uma é montada como `VersaoSalva` (viatura e tipo vazios viram `null`, `ativar` vira `ativa`). Função que ainda não existe fica com `funcaoId` vazio; a comparação de `diferencasDeVersao` é pelo nome, então isso não atrapalha. No `aplicar`, depois de criar as funções novas, os nomes viram ids para chamar `gravarVersao`.
+- **Comparação com o sistema:** a chave da guarnição é `normalizar(nome)` entre as da unidade. Cada versão da planilha é comparada com a versão do sistema **da mesma vigência**: não existe → entra; existe e difere → substitui; igual → conta como igual. Versões do sistema em outras vigências não são tocadas.
+- **Prévia:** guarnição nova vai em `novos` (`descricao`: nome e quantas versões); guarnição existente com alguma versão nova ou diferente vai em `alterados`, com `mudancas` = `'<mês por extenso>: <diferença>'` para cada diferença; o resto soma em `iguais` (uma por guarnição).
+- **Funções:** casadas por `normalizar` com `funcoesVisiveis`; as que faltam são criadas no catálogo da unidade, com o aviso `Funções novas: <nomes>.`
+- **CNH:** por `cnhUnica`. Conflito vira o problema `CNH "<A/B>" não cabe numa categoria só (<guarnição>, <função>).`, solução `Escolha a categoria na tela de Guarnições.`, na primeira linha da aba com essa guarnição, essa função e CNH preenchida. A função entra sem CNH (a linha não é pulada).
+- **Avisos do resolvedor:** viram problemas, sem repetir (o mesmo aviso sai uma vez por vigência). A linha vem do `linha N` do texto; a mensagem tira o prefixo `GUARNIÇÕES, linha N` e qualquer código interno (`B58`, `RN-12` e parênteses que fiquem vazios); a solução é `Corrija a linha na planilha e importe de novo.`
+- **Atividade:** nunca vem da planilha. O aviso final é `<N> guarnições sem atividade: escolha a atividade de cada uma na tela de Guarnições.`, contando as importadas (novas e existentes) que estão sem atividade.
+- **Aplicar:** cria as funções novas e as guarnições novas (`atividade_id` nulo), depois `gravarVersao` para cada versão nova ou diferente.
 
-- [ ] **Passo 1: testes que falham:**
-  - `importa guarnição com duas vigências`
+- [ ] **Passo 1: testes que falham** (`importacao-guarnicoes.test.ts`, planilha fictícia; o mês de criação vem do banco):
+  - `importa guarnição com duas vigências` (linhas sem vigência e uma linha de 2027-01 que muda o máximo do Combatente: duas versões, a segunda com máximo 4)
   - `máximo 0 retira a função`
   - `CNH C/D vira C`
   - `CNH A/B vira problema e a função entra sem CNH`
+  - `função nova entra no catálogo da seção, e a herdada do 2º GB é usada`
+  - `guarnição sem atividade gera o aviso`
+  - `linha com mínimo inválido vira problema, sem códigos internos` (a mensagem não casa com `/RN-|B\d{2}/`)
+  - `vigência digitada como data é lida como mês`
   - `importar duas vezes não grava nada` **[foco 1]**
-- [ ] **Passo 2:** `pnpm --filter api test`. Esperado: FALHA.
+  - `mudança numa vigência aparece campo a campo na prévia`
+- [ ] **Passo 2:** `pnpm --filter api test`. Esperado: FALHA (o teste do modelo da Task 12 também passa a cobrir `guarnicoes` assim que ela entra no registro).
 - [ ] **Passo 3:** implementar.
 - [ ] **Passo 4:** `pnpm test && pnpm typecheck`. Esperado: tudo passa.
-- [ ] **Passo 5:** commit `Fase 3: importação de guarnições`. Depois, abrir o PR "Fase 3 — Entrega 3: atividades, funções e guarnições" e **parar até o merge**.
+- [ ] **Passo 5:** commit `Fase 3: importação de guarnições`. Depois, abrir o PR "Fase 3 — Entrega 3: atividades, funções e guarnições" e **parar até o merge**. No PR, dizer que **não há migração** e que a ordem de importação no ambiente de teste é: Guarnições (aba GUARNIÇÕES); a atividade de cada guarnição se escolhe depois, na tela.
 
 ---
 
