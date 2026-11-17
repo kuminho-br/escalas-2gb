@@ -3,6 +3,8 @@ import { dirname } from 'node:path';
 import { PGlite } from '@electric-sql/pglite';
 import { btree_gist } from '@electric-sql/pglite/contrib/btree_gist';
 import { ltree } from '@electric-sql/pglite/contrib/ltree';
+import { PostgresDialect, type Dialect } from 'kysely';
+import { PGliteDialect } from 'kysely-pglite-dialect';
 import pg from 'pg';
 
 export interface Consulta {
@@ -14,6 +16,8 @@ export interface Consulta {
 export interface Banco extends Consulta {
   transacao<T>(fn: (tx: Consulta) => Promise<T>): Promise<T>;
   fechar(): Promise<void>;
+  /** Dialeto Kysely para o Better Auth, sobre a mesma conexão. */
+  dialeto: Dialect;
 }
 
 /**
@@ -58,6 +62,7 @@ export function bancoPg(url: string): Banco {
       }
     },
     fechar: () => pool.end(),
+    dialeto: new PostgresDialect({ pool }),
   };
 }
 
@@ -83,5 +88,6 @@ export async function bancoPglite(pasta?: string): Promise<Banco> {
     ...consultaPglite(db),
     transacao: (fn) => db.transaction((tx) => fn(consultaPglite(tx))),
     fechar: () => db.close(),
+    dialeto: new PGliteDialect(db),
   };
 }
