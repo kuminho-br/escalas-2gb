@@ -6,3 +6,4 @@ export * from './choques.ts';
 export * from './regras.ts';
 export * from './pre-escala.ts';
 export * from './distribuicao-adm.ts';
+export * from './distribuicao-cotas.ts';
