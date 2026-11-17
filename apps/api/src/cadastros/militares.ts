@@ -22,7 +22,7 @@ import type { Auth } from '../auth.ts';
 import { comUsuario, type Banco, type Consulta } from '../banco/banco.ts';
 import { hojeRecife } from '../datas.ts';
 import { lerCorpo, respostaDoErroDoBanco } from '../erros.ts';
-import { categoriaMaisAlta, pendenciasDoMilitar, situacaoNoMes } from './militares-regras.ts';
+import { categoriaMaisAlta, pendenciasDoMilitar, repetidasPorAntiguidade, situacaoNoMes } from './militares-regras.ts';
 
 type Ctx = Context<AmbienteApi>;
 const MSG_MATRICULA = { '23505': 'Já existe um militar com essa matrícula.', '23503': 'Posto, unidade ou equipe não encontrado.' };
@@ -58,7 +58,7 @@ async function afastamentosNoMes(c: Consulta, ids: string[], mes: string) {
   return rows;
 }
 
-function linhaDe(m: LinhaBanco, afast: { tipo: string; inicio: string; fim: string }[], mes: string): LinhaMilitar {
+function linhaDe(m: LinhaBanco, afast: { tipo: string; inicio: string; fim: string }[], mes: string, repetidaCom: string[] = []): LinhaMilitar {
   return {
     id: m.id,
     matricula: m.matricula,
@@ -70,7 +70,7 @@ function linhaDe(m: LinhaBanco, afast: { tipo: string; inicio: string; fim: stri
     voluntarioJes: m.voluntario_jes,
     ativo: m.ativo,
     situacao: situacaoNoMes(afast, mes),
-    pendencias: pendenciasDoMilitar({ motorista: m.motorista, cnh: m.cnh, jornada: m.jornada, equipe: m.equipe, antiguidade: m.antiguidade }),
+    pendencias: pendenciasDoMilitar({ motorista: m.motorista, cnh: m.cnh, jornada: m.jornada, equipe: m.equipe, antiguidade: m.antiguidade, repetidaCom }),
   };
 }
 
@@ -105,8 +105,19 @@ async function carregarFicha(c: Consulta, id: string, mes: string): Promise<Fich
     [id],
   );
   const cnh = m.motorista ? [...m.cnh].sort() : [];
+  // compara com os ativos lotados, no mês, na mesma unidade; sem lotação ou inativo, não compara
+  const colegas = await c.query<{ id: string; nome_guerra: string; antiguidade: number | null }>(
+    `select m2.id, m2.nome_guerra, m2.antiguidade
+       from lotacao l0
+       join lotacao l2 on l2.unidade_id = l0.unidade_id and l2.desde <= $3 and (l2.ate is null or l2.ate >= $2)
+       join militar m2 on m2.id = l2.militar_id and m2.ativo
+      where l0.militar_id = $1 and l0.desde <= $3 and (l0.ate is null or l0.ate >= $2)
+      order by m2.nome_guerra`,
+    [id, primeiro, ultimo],
+  );
+  const repetidaCom = repetidasPorAntiguidade(colegas.rows.map((x) => ({ id: x.id, nomeGuerra: x.nome_guerra, antiguidade: x.antiguidade }))).get(id) ?? [];
   return {
-    ...linhaDe(m, afastamentos.rows, mes),
+    ...linhaDe(m, afastamentos.rows, mes, repetidaCom),
     postoGradId: m.posto_grad_id,
     antiguidade: m.antiguidade,
     noQuadroDeMotoristas: m.motorista,
@@ -193,7 +204,8 @@ export function rotasMilitares(dep: { banco: Banco; auth: Auth }): Hono<Ambiente
       [u, primeiro, ultimo],
     );
     const afast = await afastamentosNoMes(dep.banco, rows.map((m) => m.id), mes);
-    return c.json(rows.map((m) => linhaDe(m, afast.filter((a) => a.militar_id === m.id), mes)));
+    const repetidas = repetidasPorAntiguidade(rows.filter((m) => m.ativo).map((m) => ({ id: m.id, nomeGuerra: m.nome_guerra, antiguidade: m.antiguidade })));
+    return c.json(rows.map((m) => linhaDe(m, afast.filter((a) => a.militar_id === m.id), mes, repetidas.get(m.id))));
   });
 
   r.post('/unidades/:u/militares', async (c) => {

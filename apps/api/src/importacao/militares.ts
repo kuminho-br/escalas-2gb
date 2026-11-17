@@ -141,6 +141,7 @@ export const importadorMilitares: Importador<Plano> = {
     const novos: ItemPrevia[] = [];
     const alterados: ItemPrevia[] = [];
     const itens: ItemPlano[] = [];
+    const comAntiguidade: { antiguidade: number | null; nome: string; matricula: string }[] = [];
     let iguais = 0;
 
     for (const l of aba.linhas) {
@@ -223,6 +224,7 @@ export const importadorMilitares: Importador<Plano> = {
         problema(`${nomeGuerra} (${mat.valor}) está lotado na ${e.lotacao_sigla}.`, `Ele entra aqui quando a transferência for registrada por quem cuida da ${e.lotacao_sigla}.`);
         continue;
       }
+      comAntiguidade.push({ antiguidade, nome: nomeGuerra, matricula: mat.valor });
       if (!e) {
         novos.push({ chave: mat.valor, descricao });
         itens.push({ id: null, dados, mudouMilitar: true, lotacao: { acao: 'nova' } });
@@ -270,6 +272,13 @@ export const importadorMilitares: Importador<Plano> = {
       itens.push({ id: e.id, dados, mudouMilitar, lotacao });
     }
 
+    const porNumero = new Map<number, string[]>();
+    for (const x of comAntiguidade) {
+      if (x.antiguidade !== null) porNumero.set(x.antiguidade, [...(porNumero.get(x.antiguidade) ?? []), `${x.nome} (${x.matricula})`]);
+    }
+    for (const [n, quem] of porNumero) {
+      if (quem.length > 1) avisos.push(`Antiguidade ${n} repetida na planilha: ${quem.slice(0, -1).join(', ')} e ${quem[quem.length - 1]}.`);
+    }
     if (equipesNovas.length) avisos.push(`Equipes novas: ${equipesNovas.map((q) => q.nome).join(', ')}.`);
     const lotadosAqui = [...ja.values()].filter((e) => e.lotacao_unidade === unidadeId && !vistos.has(e.matricula)).length;
     if (lotadosAqui) avisos.push(`${lotadosAqui} militares do sistema não estão na planilha (nada foi apagado).`);

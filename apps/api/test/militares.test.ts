@@ -142,6 +142,37 @@ describe('afastamentos', () => {
   });
 });
 
+describe('antiguidade repetida', () => {
+  const listaDaSecao = async (): Promise<LinhaMilitar[]> =>
+    (await api.pedir('escalante', 'GET', `/api/unidades/${api.ids.secao}/militares?mes=${atual}`)).json();
+
+  it('dois militares com a mesma antiguidade ganham a pendência e a gravação passa', async () => {
+    const a = await criar('990120-0', { nomeGuerra: 'REPETIDOA', antiguidade: 777 });
+    const b = await criar('990121-1', { nomeGuerra: 'REPETIDOB', antiguidade: 777 });
+    expect(b.pendencias).toContain('Antiguidade repetida com REPETIDOA');
+    expect((await ficha(a.id)).pendencias).toContain('Antiguidade repetida com REPETIDOB');
+    const lista = await listaDaSecao();
+    expect(lista.find((l) => l.id === a.id)!.pendencias).toContain('Antiguidade repetida com REPETIDOB');
+    expect(lista.find((l) => l.id === b.id)!.pendencias).toContain('Antiguidade repetida com REPETIDOA');
+  });
+
+  it('militar inativo não conta como repetido', async () => {
+    const c = await criar('990122-2', { nomeGuerra: 'REPETIDOC', antiguidade: 778 });
+    const d = await criar('990123-3', { nomeGuerra: 'REPETIDOD', antiguidade: 778 });
+    expect((await ficha(c.id)).pendencias).toContain('Antiguidade repetida com REPETIDOD');
+    expect((await api.pedir('escalante', 'PATCH', `/api/militares/${d.id}`, { ativo: false })).status).toBe(200);
+    expect((await ficha(c.id)).pendencias.some((p) => p.startsWith('Antiguidade repetida'))).toBe(false);
+  });
+
+  it('desfeita a repetição, a pendência some', async () => {
+    const e = await criar('990124-4', { nomeGuerra: 'REPETIDOE', antiguidade: 779 });
+    const f = await criar('990125-5', { nomeGuerra: 'REPETIDOF', antiguidade: 779 });
+    expect((await api.pedir('escalante', 'PATCH', `/api/militares/${f.id}`, { antiguidade: 780 })).status).toBe(200);
+    expect((await ficha(e.id)).pendencias.some((p) => p.startsWith('Antiguidade repetida'))).toBe(false);
+    expect((await ficha(f.id)).pendencias.some((p) => p.startsWith('Antiguidade repetida'))).toBe(false);
+  });
+});
+
 describe('motorista e permissões', () => {
   it('desmarcar motorista limpa a CNH', async () => {
     const m = await criar('990110-0', { motorista: true, cnh: ['D'] });
