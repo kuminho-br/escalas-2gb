@@ -15,6 +15,7 @@
 - **D7:** nenhum dado pessoal real no repositório, na CI ou nos testes. Matrículas de teste no formato `990xxx-x`, nomes fictícios. Planilhas de teste são montadas com ExcelJS dentro do próprio teste.
 - **Gravação:** toda escrita roda dentro de `comUsuario(banco, usuarioId, tx => …)` (`apps/api/src/banco/banco.ts`).
 - **Migrações:** arquivos novos numerados (`0009_…`). Nunca se edita uma migração já aplicada. Tabela nova recebe o gatilho `auditoria_registro` na mesma migração.
+- **Migração no ambiente de teste:** o deploy não aplica migrações. Todo PR com migração nova diz, no texto, "depois do merge, rodar `pnpm --filter api db:migrar:teste`" (o modelo de PR já traz a caixa). Enquanto faltar, a API responde 503 com a mensagem "banco desatualizado", e o site a mostra.
 - **Vigência (RN-93):** mês sempre no dia 1. A API recusa criar ou editar versão com vigência anterior ao mês corrente (`hojeRecife()`). A importação pode gravar vigências passadas, porque é carga histórica.
 - **Atores e permissões (adendo do design, "Atores"):**
   - Papéis: `escalante`, `gestor` (antigo `chefe`) e `administrador` (só na raiz).

@@ -5,6 +5,9 @@ import { bancoPg } from './banco/banco.ts';
 
 type Ambiente = Record<string, string | undefined>;
 
+// Lista dos .sql da pasta de migrações, embutida pelo build da Vercel (scripts/build-vercel.mjs).
+declare const __MIGRACOES_ESPERADAS__: string[] | undefined;
+
 /**
  * App montado a partir das variáveis de ambiente (Vercel).
  * Sem DATABASE_URL (prévias de branch, D7): só /api/saude responde; o resto devolve 503.
@@ -20,5 +23,6 @@ export function criarAppDoAmbiente(env: Ambiente): Hono {
   if (!env.BETTER_AUTH_URL) throw new Error('Defina BETTER_AUTH_URL.');
   const banco = bancoPg(env.DATABASE_URL);
   const auth = criarAuth({ banco, segredo: env.BETTER_AUTH_SECRET, urlBase: env.BETTER_AUTH_URL });
-  return criarApp({ banco, auth, cronSecret: env.CRON_SECRET });
+  const migracoesEsperadas = typeof __MIGRACOES_ESPERADAS__ === 'undefined' ? undefined : __MIGRACOES_ESPERADAS__;
+  return criarApp({ banco, auth, cronSecret: env.CRON_SECRET, migracoesEsperadas });
 }

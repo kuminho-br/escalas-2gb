@@ -16,7 +16,10 @@ export interface Eu {
 export async function buscarEu(): Promise<Eu | null> {
   const r = await fetch('/api/eu', { credentials: 'include' });
   if (r.status === 401) return null;
-  if (!r.ok) throw new Error(`Falha ao consultar a sessão (${r.status})`);
+  if (!r.ok) {
+    const corpo = (await r.json().catch(() => null)) as { erro?: string } | null;
+    throw new Error(corpo?.erro ?? `Falha ao consultar a sessão (${r.status})`);
+  }
   return (await r.json()) as Eu;
 }
 
