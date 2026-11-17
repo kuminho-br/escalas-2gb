@@ -42,7 +42,7 @@ const BLOCOS: Item[][] = [
   ],
 ];
 const PE: Item[] = [
-  { nome: 'Configurações', icone: Settings, soCadastro: true },
+  { nome: 'Configurações', icone: Settings, para: '/configuracoes', soCadastro: true },
   { nome: 'Estrutura', icone: Network },
   { nome: 'Histórico', icone: History },
   { nome: 'Ajuda', icone: CircleHelp },
