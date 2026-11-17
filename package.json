@@ -1,0 +1,13 @@
+{
+  "name": "escalas-2gb",
+  "private": true,
+  "packageManager": "pnpm@12.21.0",
+  "engines": { "node": ">=22" },
+  "scripts": {
+    "test": "node scripts/testes-prototipo.mjs && pnpm -r --if-present test",
+    "test:prototipo": "node scripts/testes-prototipo.mjs",
+    "typecheck": "pnpm -r --if-present typecheck",
+    "build": "pnpm -r --if-present build",
+    "dev": "pnpm --parallel --filter api --filter web dev"
+  }
+}
