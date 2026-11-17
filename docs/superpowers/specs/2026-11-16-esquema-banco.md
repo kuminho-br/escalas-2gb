@@ -49,6 +49,7 @@ erDiagram
   servico ||--o{ cota : "cotado em"
   militar ||--o{ voluntariado : pede
   militar ||--o{ alocacao : tem
+  militar ||--o{ remocao : "tirado de"
   escala ||--o{ alocacao : contem
   turno ||--o{ alocacao : "horario de"
   guarnicao |o--o{ alocacao : "vaga em"
@@ -338,6 +339,22 @@ Fonte da verdade da escala.
 
 Único por (militar_id, data, servico_id, turno_id), a chave atual da P13. A elegibilidade (lotação ou vínculo externo, afastamento, voluntário JES, CNH, choque) é verificada pelo motor antes de gravar.
 
+### remocao
+Militar tirado pelo escalante de um dia, serviço e turno (adendo de 17/11/2026). A pré-escala e as distribuições não o colocam de volta nessa combinação.
+
+| Coluna | Tipo | Regra |
+|---|---|---|
+| id | uuid PK | |
+| militar_id | uuid FK | |
+| escala_id | uuid FK | escala de onde foi tirado |
+| servico_id | uuid FK | |
+| turno_id | uuid FK | |
+| data | date | dia em que o turno começa |
+| removida_por | uuid FK → usuario null | |
+| removida_em | timestamptz | |
+
+Único por (militar_id, data, servico_id, turno_id), a mesma chave da alocação. Remover = apagar a alocação e gravar a remoção na mesma transação. Uma alocação nova com a mesma chave apaga a remoção (gatilho), o que também serve de "Desfazer remoção".
+
 ### permuta e permuta_item
 Só a troca já aprovada (E8): o escalante registra depois da aprovação do Chefe, feita fora do sistema.
 
@@ -439,6 +456,7 @@ Cada publicação e cada retificação ficam guardadas.
 - No militar: `motorista` separado de `cnh` em conjunto.
 - Na alocação: presença, origem, guarnição e função.
 - `permuta_item` com o militar original.
+- `remocao` (adendo de 17/11/2026).
 - No parâmetro: `norma_referencia` e unidade.
 - No feriado: unidade.
 - `modelo_impressao`, `documento_gerado`, `auditoria`.
