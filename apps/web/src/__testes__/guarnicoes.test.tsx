@@ -160,6 +160,14 @@ describe('ficha da guarnição', () => {
     await waitFor(() => expect(screen.getByLabelText('Função 3')).toHaveValue('f-new'));
   });
 
+  it('guarnição que só começa no futuro propõe salvar a partir do começo dela, sem marcar em vigor', async () => {
+    const futura = (v: string) => ({ ...FICHA.versoes[0]!, vigencia: v });
+    api({ 'GET /api/guarnicoes/g5': { status: 200, corpo: { ...FICHA, id: 'g5', versoes: [futura('2099-06'), futura('2099-01')] } } });
+    abrir('/guarnicoes/g5');
+    expect(await screen.findByLabelText('A partir de')).toHaveValue('2099-01');
+    expect(screen.queryByText('em vigor')).toBeNull();
+  });
+
   it('a função herdada mostra a sigla de onde vem', async () => {
     api();
     abrir('/guarnicoes/g1');

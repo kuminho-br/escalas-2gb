@@ -125,7 +125,31 @@ describe('importação de guarnições', () => {
 
   it('sem a coluna GUARNIÇÃO a prévia diz como corrigir', async () => {
     const r = await importar([['x']], false, ['VIATURA']);
-    expect(r.problemas).toEqual([{ aba: 'GUARNIÇÕES', linha: 1, mensagem: 'Falta a coluna GUARNIÇÃO.', solucao: 'Use o modelo desta tela.' }]);
+    expect(r.problemas).toEqual([
+      { aba: 'GUARNIÇÕES', linha: 1, mensagem: 'Falta a coluna GUARNIÇÃO.', solucao: 'Use o modelo desta tela.' },
+      { aba: 'GUARNIÇÕES', linha: 1, mensagem: 'Falta a coluna FUNÇÃO.', solucao: 'Use o modelo desta tela.' },
+    ]);
+  });
+
+  it('correção que iguala a versão anterior da planilha ainda atualiza o mês do sistema', async () => {
+    const JUNHO = '2099-06';
+    const antes: Linha[] = [['', 'Corrige', '', '', '', '', '', 'Motorista', 1, 1], [JUNHO, 'Corrige', '', '', '', '', '', 'Motorista', 2, 2]];
+    await importar(antes, true);
+    expect((await ficha('Corrige')).versoes.map((v) => v.vigencia)).toEqual([JUNHO, criacao]);
+    const depois: Linha[] = [antes[0]!, [JUNHO, 'Corrige', '', '', '', '', '', 'Motorista', 1, 1]];
+    const r = await importar(depois);
+    expect(r.alterados).toEqual([
+      { chave: 'Corrige', descricao: 'Corrige', mudancas: [`${mesPorExtenso(JUNHO)}: Motorista: mínimo 2 → 1`, `${mesPorExtenso(JUNHO)}: Motorista: máximo 2 → 1`] },
+    ]);
+    await importar(depois, true);
+    const junho = (await ficha('Corrige')).versoes.find((v) => v.vigencia === JUNHO)!;
+    expect(junho.composicao).toMatchObject([{ funcao: 'Motorista', minimo: 1, maximo: 1 }]);
+  });
+
+  it('sem a coluna FUNÇÃO a prévia diz como corrigir e não retira funções', async () => {
+    const r = await importar([['', 'Auto Bomba 1']], false, ['VIGÊNCIA', 'GUARNIÇÃO']);
+    expect(r.problemas).toEqual([{ aba: 'GUARNIÇÕES', linha: 1, mensagem: 'Falta a coluna FUNÇÃO.', solucao: 'Use o modelo desta tela.' }]);
+    expect(r).toMatchObject({ novos: [], alterados: [], iguais: 0 });
   });
 
   it('importar duas vezes não grava nada', async () => {

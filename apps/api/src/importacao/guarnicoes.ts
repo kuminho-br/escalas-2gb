@@ -21,7 +21,7 @@ const COLUNAS = {
   maximo: { rotulo: 'MÁXIMO', obrigatoria: false, ajuda: 'Máximo de vagas. Vazio é sem limite; 0 retira a função naquela vigência.' },
 } satisfies Record<string, ColunaModelo>;
 
-type Versao = VersaoSalva;
+type Versao = VersaoSalva & { redundante?: boolean };
 type ParaGravar = { nome: string; existenteId: string | null; versoes: Versao[] };
 type Plano = { funcoesNovas: string[]; guarnicoes: ParaGravar[] };
 
@@ -65,10 +65,10 @@ export const importadorGuarnicoes: Importador<Plano> = {
     const problemas: ProblemaImportacao[] = [];
     const avisos: string[] = [];
     const vazio = { previa: { novos: [], alterados: [], iguais: 0, problemas, avisos }, plano: { funcoesNovas: [], guarnicoes: [] } };
-    if (c.guarnicao < 0) {
-      problemas.push({ aba: ABA, linha: 1, mensagem: 'Falta a coluna GUARNIÇÃO.', solucao: 'Use o modelo desta tela.' });
-      return vazio;
+    for (const [falta, rotulo] of [[c.guarnicao, COLUNAS.guarnicao.rotulo], [c.funcao, COLUNAS.funcao.rotulo]] as const) {
+      if (falta < 0) problemas.push({ aba: ABA, linha: 1, mensagem: `Falta a coluna ${rotulo}.`, solucao: 'Use o modelo desta tela.' });
     }
+    if (problemas.length) return vazio;
 
     const pega = (cel: string[], i: number) => (i < 0 ? '' : (cel[i] ?? '').trim());
     const linhas: LinhaDaAba[] = aba.linhas.map((l) => ({
@@ -92,7 +92,7 @@ export const importadorGuarnicoes: Importador<Plano> = {
       if (l.guarnicao && v.ok && v.valor) meses.add(v.valor);
     }
 
-    // estado de cada guarnição em cada vigência; versão igual à anterior da própria planilha não vale
+    // estado de cada guarnição em cada vigência; a igual à anterior da própria planilha é redundante (só vale se o sistema já tem versão nesse mês)
     const vistos = new Set<string>();
     const doAviso: ProblemaImportacao[] = [];
     const porGuarnicao = new Map<string, { nome: string; versoes: Versao[] }>();
@@ -132,7 +132,8 @@ export const importadorGuarnicoes: Importador<Plano> = {
         const entrada = porGuarnicao.get(chave) ?? { nome: g.id, versoes: [] };
         porGuarnicao.set(chave, entrada);
         const anterior = entrada.versoes[entrada.versoes.length - 1] ?? null;
-        if (!anterior || diferencasDeVersao(anterior, versao).length > 0) entrada.versoes.push(versao);
+        versao.redundante = Boolean(anterior) && diferencasDeVersao(anterior, versao).length === 0;
+        entrada.versoes.push(versao);
       }
     }
     problemas.push(...doAviso);
@@ -155,14 +156,15 @@ export const importadorGuarnicoes: Importador<Plano> = {
       if (!ex || !ex.atividade_id) semAtividade++;
       let paraGravar: Versao[];
       if (!ex) {
-        novos.push({ chave: g.nome, descricao: g.versoes.length > 1 ? `${g.nome} (${g.versoes.length} versões)` : g.nome });
-        paraGravar = g.versoes;
+        paraGravar = g.versoes.filter((v) => !v.redundante);
+        novos.push({ chave: g.nome, descricao: paraGravar.length > 1 ? `${g.nome} (${paraGravar.length} versões)` : g.nome });
       } else {
         const noSistema = doSistema.get(ex.id)!;
         const mudancas: string[] = [];
         paraGravar = [];
         for (const v of g.versoes) {
           const atual = noSistema.find((s) => s.vigencia === v.vigencia);
+          if (!atual && v.redundante) continue;
           if (!atual) {
             mudancas.push(`${mesPorExtenso(v.vigencia)}: nova versão`);
             paraGravar.push(v);

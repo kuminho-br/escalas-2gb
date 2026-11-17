@@ -35,7 +35,7 @@ export function Versoes({ ficha, unidadeId }: { ficha: FichaGuarnicao; unidadeId
                 className={cn('rounded-md border px-2.5 py-1 text-sm', v.vigencia === versao?.vigencia ? 'border-tinta bg-tinta text-white' : 'border-linha')}
               >
                 {mesPorExtenso(v.vigencia)}
-                {v.vigencia === vigente?.vigencia && <span className="ml-1.5 text-xs opacity-80">em vigor</span>}
+                {v.vigencia === vigente?.vigencia && v.vigencia <= mes && <span className="ml-1.5 text-xs opacity-80">em vigor</span>}
               </button>
             </li>
           ))}
@@ -57,7 +57,8 @@ function Editor({ ficha, unidadeId, versao }: { ficha: FichaGuarnicao; unidadeId
   const [linhas, setLinhas] = useState<LinhaEdicao[]>(
     (versao?.composicao ?? []).map((c, i) => ({ chave: i + 1, funcaoId: c.funcaoId, minimo: c.minimo, maximo: c.maximo, cnh: c.cnhExigida ?? '' })),
   );
-  const [desde, setDesde] = useState(mesAtual());
+  // sugere o mês corrente, ou o começo da versão quando ela só vale no futuro
+  const [desde, setDesde] = useState(versao && versao.vigencia > mesAtual() ? versao.vigencia : mesAtual());
   const [aviso, setAviso] = useState<{ erro: boolean; texto: string } | null>(null);
 
   const opcoes = [...(funcoes.data ?? []), ...extras.filter((e) => !funcoes.data?.some((f) => f.id === e.id))];
