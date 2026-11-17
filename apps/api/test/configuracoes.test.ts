@@ -65,7 +65,7 @@ describe('parâmetros', () => {
     const r = await parametros(api.ids.secao);
     expect(r.status).toBe(200);
     const lista = await r.json();
-    expect(lista.map((p: { chave: string }) => p.chave)).toEqual(['CARGA_MENSAL_HORAS', 'SALDOS_ADM_POR_MILITAR', 'ADM_CUMPRE_CARGA', 'LINHAS_POR_MILITAR']);
+    expect(lista.map((p: { chave: string }) => p.chave)).toEqual(['CARGA_MENSAL_HORAS', 'SALDOS_ADM_POR_MILITAR', 'ADM_CUMPRE_CARGA']);
     expect(doCatalogo(lista, 'CARGA_MENSAL_HORAS')).toMatchObject({ valor: 160, origem: 'padrao', unidadeSigla: null, rotulo: 'Carga mensal (horas)' });
   });
 
@@ -95,11 +95,11 @@ describe('parâmetros', () => {
   });
 
   it('mesma vigência substitui', async () => {
-    const corpo = { chave: 'LINHAS_POR_MILITAR', vigencia: proximo };
-    await api.pedir('admin', 'POST', `/api/unidades/${api.ids.secao}/parametros`, { ...corpo, valor: '3' });
-    await api.pedir('admin', 'POST', `/api/unidades/${api.ids.secao}/parametros`, { ...corpo, valor: '4' });
-    const p = doCatalogo(await (await parametros(api.ids.secao, proximo)).json(), 'LINHAS_POR_MILITAR');
-    expect(p.valor).toBe(4);
+    const corpo = { chave: 'CARGA_MENSAL_HORAS', vigencia: proximo };
+    await api.pedir('admin', 'POST', `/api/unidades/${api.ids.secao}/parametros`, { ...corpo, valor: '150' });
+    await api.pedir('admin', 'POST', `/api/unidades/${api.ids.secao}/parametros`, { ...corpo, valor: '140' });
+    const p = doCatalogo(await (await parametros(api.ids.secao, proximo)).json(), 'CARGA_MENSAL_HORAS');
+    expect(p.valor).toBe(140);
     expect(p.historico).toHaveLength(1);
   });
 
@@ -110,8 +110,10 @@ describe('parâmetros', () => {
   });
 
   it('chave que saiu do sistema é 400', async () => {
-    const r = await api.pedir('admin', 'POST', `/api/unidades/${api.ids.secao}/parametros`, { chave: 'SECAO_PADRAO', valor: '1ª SB', vigencia: atual });
-    expect(r.status).toBe(400);
+    for (const [chave, valor] of [['SECAO_PADRAO', '1ª SB'], ['LINHAS_POR_MILITAR', '3']]) {
+      const r = await api.pedir('admin', 'POST', `/api/unidades/${api.ids.secao}/parametros`, { chave, valor, vigencia: atual });
+      expect(r.status).toBe(400);
+    }
   });
 
   it('escalante não muda parâmetro (403)', async () => {

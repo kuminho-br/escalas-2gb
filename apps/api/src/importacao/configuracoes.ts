@@ -21,6 +21,12 @@ function mensagemDoAviso(aviso: string): string {
 // 'mm/aaaa' digitado na sandbox vira data no Planilhas e chega como '01/mm/aaaa' (como em parametros_painel.js)
 const vigenciaDaCelula = (t: string) => t.replace(/^\d{2}\/(\d{2})\/(\d{4})$/, '$2-$1');
 
+// chaves da planilha que o sistema novo não usa: aviso, sem gravar
+const FORA_DO_SISTEMA: Record<string, string> = {
+  SECAOPADRAO: 'SECAO_PADRAO não é mais usada: o seletor de unidade substitui.',
+  LINHASPORMILITAR: 'LINHAS_POR_MILITAR era da planilha e não se aplica ao sistema novo.',
+};
+
 const textoValor = (v: unknown) => (typeof v === 'boolean' ? (v ? 'Sim' : 'Não') : String(v));
 
 export const importadorConfiguracoes: Importador<Item[]> = {
@@ -40,8 +46,8 @@ export const importadorConfiguracoes: Importador<Item[]> = {
     const porChave = new Map<string, Item>();
     for (const l of aba.linhas) {
       const chave = l.celulas[c.chave]!;
-      if (normalizar(chave) === 'SECAOPADRAO') {
-        const aviso = 'SECAO_PADRAO não é mais usada: o seletor de unidade substitui.';
+      const aviso = FORA_DO_SISTEMA[normalizar(chave)];
+      if (aviso) {
         if (!avisos.includes(aviso)) avisos.push(aviso);
         continue;
       }

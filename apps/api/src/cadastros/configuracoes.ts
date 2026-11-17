@@ -8,8 +8,11 @@ import { comUsuario, type Banco } from '../banco/banco.ts';
 import { hojeRecife } from '../datas.ts';
 import { lerCorpo, respostaDoErroDoBanco } from '../erros.ts';
 
-/** Chaves editáveis; SECAO_PADRAO saiu (o seletor de unidade substitui). */
-export const CHAVES_SISTEMA = ['CARGA_MENSAL_HORAS', 'SALDOS_ADM_POR_MILITAR', 'ADM_CUMPRE_CARGA', 'LINHAS_POR_MILITAR'];
+/**
+ * Chaves editáveis. Saíram: SECAO_PADRAO (o seletor de unidade substitui) e LINHAS_POR_MILITAR
+ * (espaço da grade na planilha; não se aplica ao sistema novo).
+ */
+export const CHAVES_SISTEMA = ['CARGA_MENSAL_HORAS', 'SALDOS_ADM_POR_MILITAR', 'ADM_CUMPRE_CARGA'];
 
 const ordenarPorNome = <T extends { nome: string }>(l: T[]) => l.sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
 
