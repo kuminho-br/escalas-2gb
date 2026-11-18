@@ -26,7 +26,7 @@ function Ficha() {
   if (error) return <p role="alert" className="p-4 text-alerta">{mensagemDe(error)}</p>;
   return (
     <ProvedorDePendencias>
-      <FichaPainel titulo={e.nome} voltarPara="/escalas" etiqueta={e.ativa ? undefined : 'desativada'} resumo={`Título no documento: ${e.titulo}.`} acoes={<Situacao e={e} />}>
+      <FichaPainel titulo={e.nome} voltarPara="/escalas" etiqueta={e.ativa ? undefined : 'desativada'} resumo={`Título no documento: ${e.titulo}.`} acoes={<Situacao key={`s-${e.id}`} e={e} />}>
         {/* os dados entram na key: outra gravação (ex.: importação) recarrega o formulário */}
         <Identificacao key={`i-${e.id}-${e.nome}-${e.titulo}-${e.militaresDoc}-${e.diasDoc}`} e={e} />
         <ServicosDaEscala key={`s-${e.id}-${e.servicos.map((s) => s.id).join(',')}`} escala={e} unidadeId={eu.unidade.id} />

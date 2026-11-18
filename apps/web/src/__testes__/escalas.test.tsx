@@ -314,3 +314,21 @@ describe('revisão final: matriz', () => {
     expect(within(caixa.closest('tr')!).queryByText('desativada')).toBeNull();
   });
 });
+
+describe('revisão 3: o erro de Desativar fica na ficha em que aconteceu', () => {
+  it('escala: voltar a outra escala que já estava no cache não traz o erro da anterior', async () => {
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+    api(escala(), {
+      'GET /api/escalas/e2': { status: 200, corpo: escala({ id: 'e2', nome: 'Nova', titulo: 'ESCALA NOVA' }) },
+      'POST /api/escalas/e1/situacao': { status: 409, corpo: { erro: 'Falhou ao desativar Ordinário.' } },
+    });
+    const router = abrir('/escalas/e2');
+    await screen.findByRole('heading', { name: 'Nova' });
+    await act(() => router.navigate({ to: '/escalas/$id', params: { id: 'e1' } }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Desativar' }));
+    expect(await screen.findByText('Falhou ao desativar Ordinário.')).toBeInTheDocument();
+    await act(() => router.navigate({ to: '/escalas/$id', params: { id: 'e2' } }));
+    await screen.findByRole('heading', { name: 'Nova' });
+    expect(screen.queryByText('Falhou ao desativar Ordinário.')).toBeNull();
+  });
+});

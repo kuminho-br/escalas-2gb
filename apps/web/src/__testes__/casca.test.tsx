@@ -97,3 +97,21 @@ describe('trilho', () => {
     expect(document.querySelector('[data-caminho-curto]')).toHaveTextContent('1ª SB');
   });
 });
+
+describe('revisão 3: falhas ao abrir o sistema', () => {
+  it('endereço que não existe mostra a página em português, com o caminho de volta', async () => {
+    simularApi({ '/api/eu': { status: 200, corpo: EU_EXEMPLO } });
+    abrir('/nao-existe');
+    expect(await screen.findByText('Esta página não existe.')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Voltar para o início' })).toHaveAttribute('href', '/');
+    expect(screen.queryByText('Not Found')).toBeNull();
+  });
+
+  it('erro ao carregar o sistema mostra o texto em português e "Tentar de novo"', async () => {
+    simularApi({ '/api/eu': { status: 500, corpo: { erro: 'Servidor fora do ar.' } } });
+    abrir('/');
+    expect(await screen.findByText('Não foi possível abrir o sistema.')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Tentar de novo' })).toBeInTheDocument();
+    expect(screen.queryByText(/Something went wrong/)).toBeNull();
+  });
+});

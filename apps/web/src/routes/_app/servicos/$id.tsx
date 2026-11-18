@@ -28,7 +28,7 @@ function Ficha() {
   if (error) return <p role="alert" className="p-4 text-alerta">{mensagemDe(error)}</p>;
   return (
     <ProvedorDePendencias>
-      <FichaPainel titulo={s.nome} voltarPara="/servicos" etiqueta={s.ativo ? undefined : 'desativado'} resumo={resumoDoServico(s)} acoes={<Situacao s={s} />}>
+      <FichaPainel titulo={s.nome} voltarPara="/servicos" etiqueta={s.ativo ? undefined : 'desativado'} resumo={resumoDoServico(s)} acoes={<Situacao key={`s-${s.id}`} s={s} />}>
         {/* os dados entram na key: outra gravação (ex.: importação) recarrega o formulário */}
         <Identificacao key={`i-${s.id}-${s.nome}-${s.tipo}-${s.operacao}-${s.rotuloImpressao}-${s.cor}`} s={s} />
         {/* só o serviço entra na key: cada linha de turno recomeça sozinha quando os dados dela mudam, e a edição pendente de outra linha continua */}

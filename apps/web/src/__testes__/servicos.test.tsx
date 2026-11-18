@@ -1,5 +1,5 @@
 import type { Servico } from 'contratos';
-import { fireEvent, screen, waitFor, within } from '@testing-library/react';
+import { act, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { textoDuracao } from '@/lib/turnos';
@@ -472,5 +472,20 @@ describe('revisão 3: Salvar do turno sem clique duplo', () => {
     fireEvent.click(salvar);
     soltar();
     await waitFor(() => expect(chamadasA(f, 'PATCH /api/turnos/t1')).toBe(1));
+  });
+});
+
+describe('revisão 3: o erro de Desativar fica na ficha em que aconteceu', () => {
+  it('serviço: voltar a outro serviço que já estava no cache não traz o erro do anterior', async () => {
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+    api({ 'GET /api/servicos/s1': { status: 200, corpo: LISTA[0] }, 'POST /api/servicos/s3/situacao': { status: 409, corpo: { erro: 'Falhou ao desativar Bioma.' } } });
+    const router = abrir('/servicos/s1');
+    await screen.findByRole('heading', { name: 'Pronto' });
+    await act(() => router.navigate({ to: '/servicos/$id', params: { id: 's3' } }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Desativar' }));
+    expect(await screen.findByText('Falhou ao desativar Bioma.')).toBeInTheDocument();
+    await act(() => router.navigate({ to: '/servicos/$id', params: { id: 's1' } }));
+    await screen.findByRole('heading', { name: 'Pronto' });
+    expect(screen.queryByText('Falhou ao desativar Bioma.')).toBeNull();
   });
 });
