@@ -2,9 +2,9 @@ import type { CardDaGuarnicao, DiaDaEscala, EscalaDoMes, FaixaDoDia, LinhaEscala
 import { somarMeses } from 'contratos';
 import { act, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { mesAtual } from '@/lib/meses';
-import { abrir, EU_EXEMPLO, simularApi } from './apoio';
+import { abrir, chamadasA, corpoEnviado, EU_EXEMPLO, simularApi, trava } from './apoio';
 
 // Escala fictícia de 3 dias, uma guarnição (ABT: Motorista 1–1 CNH D, Combatente 1–2), duas faixas por dia.
 const MES = mesAtual();
@@ -156,3 +156,140 @@ describe('escala do mês', () => {
     expect(within(aviso).getByRole('link', { name: 'Escalas' })).toHaveAttribute('href', '/escalas');
   });
 });
+
+describe('escolher militar e remover', () => {
+  const CANDIDATOS = {
+    aptos: [
+      { militarId: 'm-zulu', posto: 'SD BM', nomeGuerra: 'ZULU', matricula: '990002-2', equipe: 'Alfa', jornada: 'pronto', servicos: [{ servicoId: 's1', turnoId: 't-a', nome: 'Pronto' }] },
+      { militarId: 'm-yuri', posto: 'CB BM', nomeGuerra: 'YURI', matricula: '990003-3', equipe: null, jornada: 'adm', servicos: [{ servicoId: 's1', turnoId: 't-a', nome: 'Pronto' }, { servicoId: 's2', turnoId: 't-jes', nome: 'JES' }] },
+    ],
+    fora: [{ motivo: 'Afastado', quantidade: 3 }, { motivo: 'Sem a CNH exigida', quantidade: 2 }, { motivo: 'Choque de horário', quantidade: 1 }],
+  };
+  // a escala depois de escalar o ZULU de Combatente no dia 2, faixa do dia
+  const COM_ZULU: EscalaDoMes = {
+    ...ESCALA,
+    dias: ESCALA.dias.map((d, i) => (i !== 1 ? d : { ...d, obrigatoriasVazias: 0, faixas: [faixa(false, (() => { const c = card(true, true); c.funcoes[1]!.ocupantes = [ocupante('ZULU')]; return c; })()), d.faixas[1]!] })),
+  };
+  const rotaCandidatos = `GET /api/escalas/e1/mes/${MES}/candidatos`;
+  const abrirVaga = async () => {
+    const faixaDoDia = secaoDoDia(2).querySelector('[data-faixa]') as HTMLElement;
+    await userEvent.click(within(faixaDoDia).getAllByRole('button', { name: 'Escolher militar para Combatente de ABT' })[0]!);
+    return screen.findByRole('dialog', { name: 'Escolher militar' });
+  };
+
+  it('abrir a vaga consulta os candidatos do dia, da faixa, da guarnição e da função, e mostra aptos e quantos ficaram de fora', async () => {
+    const f = api(ESCALA, { [rotaCandidatos]: { status: 200, corpo: CANDIDATOS } });
+    abrir('/escala-do-mes');
+    await screen.findByRole('region', { name: 'Dia 2' });
+    const dialogo = await abrirVaga();
+    expect(await within(dialogo).findByRole('button', { name: /ZULU/ })).toBeInTheDocument();
+    expect(within(dialogo).getByRole('button', { name: /YURI/ })).toBeInTheDocument();
+    expect(within(dialogo).getByText('Ficaram de fora: 3 afastados, 2 sem a CNH exigida, 1 com choque de horário')).toBeInTheDocument();
+    const chamada = f.mock.calls.map(([e]) => new URL(String(e), 'http://x')).find((u) => u.pathname.endsWith('/candidatos'))!;
+    expect(Object.fromEntries(chamada.searchParams)).toEqual({ data: `${MES}-02`, inicio: '08:00', fim: '20:00', guarnicaoId: 'g-abt', funcaoId: 'f-comb' });
+  });
+
+  it('escolher manda a alocação, a linha passa a mostrar o militar e o diálogo fecha', async () => {
+    const f = api(ESCALA, { [rotaCandidatos]: { status: 200, corpo: CANDIDATOS }, 'POST /api/escalas/e1/alocacoes': { status: 201, corpo: COM_ZULU } });
+    abrir('/escala-do-mes');
+    await screen.findByRole('region', { name: 'Dia 2' });
+    const dialogo = await abrirVaga();
+    await userEvent.click(await within(dialogo).findByRole('button', { name: /ZULU/ }));
+    await waitFor(() =>
+      expect(corpoEnviado(f, 'POST /api/escalas/e1/alocacoes')).toEqual({ militarId: 'm-zulu', data: `${MES}-02`, turnoId: 't-a', guarnicaoId: 'g-abt', funcaoId: 'f-comb' }),
+    );
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    expect(within(secaoDoDia(2)).getAllByText('ZULU').length).toBeGreaterThan(0);
+  });
+
+  it('quem pode entrar em mais de um serviço escolhe o serviço; o primeiro vem marcado', async () => {
+    const f = api(ESCALA, { [rotaCandidatos]: { status: 200, corpo: CANDIDATOS }, 'POST /api/escalas/e1/alocacoes': { status: 201, corpo: COM_ZULU } });
+    abrir('/escala-do-mes');
+    await screen.findByRole('region', { name: 'Dia 2' });
+    const dialogo = await abrirVaga();
+    const servico = await within(dialogo).findByLabelText('Serviço de YURI');
+    expect(servico).toHaveValue('t-a');
+    fireEvent.change(servico, { target: { value: 't-jes' } });
+    await userEvent.click(within(dialogo).getByRole('button', { name: /YURI/ }));
+    await waitFor(() => expect((corpoEnviado(f, 'POST /api/escalas/e1/alocacoes') as { turnoId: string }).turnoId).toBe('t-jes'));
+  });
+
+  it('dois cliques mandam um pedido só', async () => {
+    const { espera, soltar } = trava();
+    const f = api(ESCALA, { [rotaCandidatos]: { status: 200, corpo: CANDIDATOS }, 'POST /api/escalas/e1/alocacoes': { status: 201, corpo: COM_ZULU, espera } });
+    abrir('/escala-do-mes');
+    await screen.findByRole('region', { name: 'Dia 2' });
+    const dialogo = await abrirVaga();
+    const zulu = await within(dialogo).findByRole('button', { name: /ZULU/ });
+    fireEvent.click(zulu);
+    fireEvent.click(zulu);
+    soltar();
+    await waitFor(() => expect(chamadasA(f, 'POST /api/escalas/e1/alocacoes')).toBe(1));
+  });
+
+  it('o 409 da API aparece no diálogo, que continua aberto', async () => {
+    api(ESCALA, { [rotaCandidatos]: { status: 200, corpo: CANDIDATOS }, 'POST /api/escalas/e1/alocacoes': { status: 409, corpo: { erro: 'A função Combatente já está completa nesta guarnição.' } } });
+    abrir('/escala-do-mes');
+    await screen.findByRole('region', { name: 'Dia 2' });
+    const dialogo = await abrirVaga();
+    await userEvent.click(await within(dialogo).findByRole('button', { name: /ZULU/ }));
+    expect(await within(dialogo).findByRole('alert')).toHaveTextContent('A função Combatente já está completa nesta guarnição.');
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+  });
+
+  it('sem ninguém apto, o diálogo diz isso e ainda mostra por que os outros ficaram de fora', async () => {
+    api(ESCALA, { [rotaCandidatos]: { status: 200, corpo: { aptos: [], fora: [{ motivo: 'Afastado', quantidade: 1 }] } } });
+    abrir('/escala-do-mes');
+    await screen.findByRole('region', { name: 'Dia 2' });
+    const dialogo = await abrirVaga();
+    expect(await within(dialogo).findByText('Ninguém pode ocupar esta vaga agora.')).toBeInTheDocument();
+    expect(within(dialogo).getByText('Ficaram de fora: 1 afastado')).toBeInTheDocument();
+  });
+
+  it('a busca filtra por nome ou matrícula', async () => {
+    api(ESCALA, { [rotaCandidatos]: { status: 200, corpo: CANDIDATOS } });
+    abrir('/escala-do-mes');
+    await screen.findByRole('region', { name: 'Dia 2' });
+    const dialogo = await abrirVaga();
+    await within(dialogo).findByRole('button', { name: /ZULU/ });
+    await userEvent.type(within(dialogo).getByLabelText('Buscar por nome ou matrícula'), '990003');
+    expect(within(dialogo).queryByRole('button', { name: /ZULU/ })).toBeNull();
+    expect(within(dialogo).getByRole('button', { name: /YURI/ })).toBeInTheDocument();
+  });
+
+  it('Remover pergunta antes; confirmando manda o DELETE e a escala nova entra', async () => {
+    const semMotor: EscalaDoMes = { ...ESCALA, dias: ESCALA.dias.map((d, i) => (i === 0 ? { ...d, faixas: [faixa(false, card(false, true)), d.faixas[1]!] } : d)) };
+    const f = api(ESCALA, { 'DELETE /api/alocacoes/a-MOTOR': { status: 200, corpo: semMotor } });
+    const confirmar = vi.spyOn(window, 'confirm').mockReturnValueOnce(false).mockReturnValueOnce(true);
+    abrir('/escala-do-mes');
+    const d1 = await screen.findByRole('region', { name: 'Dia 1' });
+    const remover = within(d1.querySelector('[data-faixa]') as HTMLElement).getByRole('button', { name: 'Remover MOTOR' });
+    await userEvent.click(remover);
+    expect(confirmar).toHaveBeenLastCalledWith('Remover MOTOR de ABT, dia 1? Ele não volta para este turno quando a pré-escala for gerada de novo.');
+    expect(chamadasA(f, 'DELETE /api/alocacoes/a-MOTOR')).toBe(0);
+    await userEvent.click(remover);
+    await waitFor(() => expect(chamadasA(f, 'DELETE /api/alocacoes/a-MOTOR')).toBe(1));
+    await waitFor(() => expect(within(secaoDoDia(1).querySelector('[data-faixa]') as HTMLElement).queryByRole('button', { name: 'Remover MOTOR' })).toBeNull());
+    confirmar.mockRestore();
+  });
+
+  it('"Desfazer" na linha dos removidos manda o DELETE da remoção', async () => {
+    const comRemovido: EscalaDoMes = { ...ESCALA, dias: ESCALA.dias.map((d, i) => (i === 2 ? { ...d, faixas: [faixa(false, card(true, true), { removidos: [{ remocaoId: 'r1', militarId: 'm-x', nomeGuerra: 'XAVIER', servico: 'Pronto' }] }), d.faixas[1]!] } : d)) };
+    const f = api(comRemovido, { 'DELETE /api/remocoes/r1': { status: 200, corpo: ESCALA } });
+    abrir('/escala-do-mes');
+    const d3 = await screen.findByRole('region', { name: 'Dia 3' });
+    expect(within(d3).getByText('Removidos:').closest('p')).toHaveTextContent('XAVIER');
+    await userEvent.click(within(d3).getByRole('button', { name: 'Desfazer remoção de XAVIER' }));
+    await waitFor(() => expect(chamadasA(f, 'DELETE /api/remocoes/r1')).toBe(1));
+  });
+
+  it('erro ao remover aparece na tela', async () => {
+    api(ESCALA, { 'DELETE /api/alocacoes/a-MOTOR': { status: 404, corpo: { erro: 'Alocação não encontrada.' } } });
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+    abrir('/escala-do-mes');
+    const d1 = await screen.findByRole('region', { name: 'Dia 1' });
+    await userEvent.click(within(d1.querySelector('[data-faixa]') as HTMLElement).getByRole('button', { name: 'Remover MOTOR' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('Alocação não encontrada.');
+  });
+});
+

@@ -6,19 +6,24 @@ import { cn } from '@/lib/utils';
 /** A vaga que a tela oferece ao escalante (preenchida pelo diálogo "Escolher militar"). */
 export type VagaDaTela = { data: string; inicio: string; fim: string; guarnicaoId: string; guarnicao: string; funcaoId: string; funcao: string; cnhExigida: FuncaoNoCard['cnhExigida'] };
 
-function Ocupante({ o }: { o: OcupanteDaVaga }) {
+function Ocupante({ o, aoRemover }: { o: OcupanteDaVaga; aoRemover?: (o: OcupanteDaVaga) => void }) {
   return (
     <li className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-sm">
       <span className="text-xs text-apagado">{o.posto}</span>
       <span className="font-cond text-base font-semibold">{o.nomeGuerra}</span>
       <span className="text-xs text-apagado">{o.matricula}</span>
       <span className="rounded px-1.5 text-xs font-medium" style={{ backgroundColor: o.servico.cor, color: corDoTexto(o.servico.cor) }}>{o.servico.nome}</span>
+      {aoRemover && (
+        <button type="button" aria-label={`Remover ${o.nomeGuerra}`} onClick={() => aoRemover(o)} className="ml-auto rounded px-1.5 text-xs text-apagado hover:bg-accent hover:text-tinta">
+          Remover
+        </button>
+      )}
     </li>
   );
 }
 
 /** Um card por guarnição: nome, viatura, o ícone de completa ou faltando e uma linha por vaga. */
-export function CardDaGuarnicao({ card, aoEscolher }: { card: Card; aoEscolher?: (vaga: Omit<VagaDaTela, 'data' | 'inicio' | 'fim'>) => void }) {
+export function CardDaGuarnicao({ card, aoEscolher, aoRemover }: { card: Card; aoEscolher?: (vaga: Omit<VagaDaTela, 'data' | 'inicio' | 'fim'>) => void; aoRemover?: (o: OcupanteDaVaga, guarnicao: string) => void }) {
   const frases = card.faltam.join('. ');
   return (
     <div className="grid content-start gap-2 rounded-lg border border-linha bg-superficie p-3">
@@ -45,7 +50,7 @@ export function CardDaGuarnicao({ card, aoEscolher }: { card: Card; aoEscolher?:
               {f.cnhExigida && <span> (CNH {f.cnhExigida})</span>}
             </p>
             <ul className="grid gap-1">
-              {f.ocupantes.map((o) => <Ocupante key={o.alocacaoId} o={o} />)}
+              {f.ocupantes.map((o) => <Ocupante key={o.alocacaoId} o={o} aoRemover={aoRemover && ((x) => aoRemover(x, card.nome))} />)}
               {Array.from({ length: Math.max(0, f.maximo - f.ocupantes.length) }, (_, i) => {
                 const obrigatoria = f.ocupantes.length + i < f.minimo;
                 return (

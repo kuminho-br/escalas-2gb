@@ -1,11 +1,13 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { Mes } from 'contratos';
 import { useState } from 'react';
 import { mensagemDe } from '@/api/cliente';
-import { consultaEscalaDoMes } from '@/api/escala-do-mes';
+import { consultaEscalaDoMes, desfazerRemocao, removerAlocacao } from '@/api/escala-do-mes';
 import { consultaEscalas } from '@/api/escalas';
+import type { VagaDaTela } from '@/componentes/escala-do-mes/CardDaGuarnicao';
 import { DiaDaEscalaVista } from '@/componentes/escala-do-mes/DiaDaEscala';
+import { EscolherMilitar } from '@/componentes/escala-do-mes/EscolherMilitar';
 import { Selecao } from '@/componentes/Selecao';
 import { Button } from '@/componentes/ui/button';
 import { Input } from '@/componentes/ui/input';
@@ -26,12 +28,33 @@ function EscalaDoMes() {
   const busca = Route.useSearch();
   const navigate = Route.useNavigate();
   const escalas = useQuery(consultaEscalas(eu.unidade.id));
+  const queryClient = useQueryClient();
   const [soVazias, setSoVazias] = useState(false);
+  const [vaga, setVaga] = useState<VagaDaTela | null>(null);
+  const [erro, setErro] = useState<string | null>(null);
   const ativas = escalas.data?.filter((e) => e.ativa) ?? [];
   const escalaId = busca.escala ?? ativas[0]?.id;
   const mes = busca.mes ?? mesAtual();
   const dados = useQuery({ ...consultaEscalaDoMes(escalaId ?? '', mes), enabled: Boolean(escalaId) });
   const opcoes = escalas.data?.filter((e) => e.ativa || e.id === escalaId) ?? [];
+
+  async function remover(o: { alocacaoId: string; nomeGuerra: string }, guarnicao: string, dia: number) {
+    if (!window.confirm(`Remover ${o.nomeGuerra} de ${guarnicao}, dia ${dia}? Ele não volta para este turno quando a pré-escala for gerada de novo.`)) return;
+    setErro(null);
+    try {
+      await removerAlocacao(queryClient, o.alocacaoId);
+    } catch (e) {
+      setErro(mensagemDe(e));
+    }
+  }
+  async function desfazer(remocaoId: string) {
+    setErro(null);
+    try {
+      await desfazerRemocao(queryClient, remocaoId);
+    } catch (e) {
+      setErro(mensagemDe(e));
+    }
+  }
 
   if (escalas.isPending) return <p className="text-apagado">Carregando…</p>;
   if (escalas.error) return <p role="alert" className="text-alerta">{mensagemDe(escalas.error)}</p>;
@@ -72,13 +95,15 @@ function EscalaDoMes() {
         </Button>
       </div>
 
+      {erro && <p role="alert" className="text-alerta">{erro}</p>}
       {dados.isPending && <p className="text-apagado">Carregando…</p>}
       {dados.error && <p role="alert" className="text-alerta">{mensagemDe(dados.error)}</p>}
       {dados.data && (
         <div className="grid gap-3">
-          {dados.data.dias.map((d) => <DiaDaEscalaVista key={d.data} dia={d} soVazias={soVazias} />)}
+          {dados.data.dias.map((d) => <DiaDaEscalaVista key={d.data} dia={d} soVazias={soVazias} aoEscolher={setVaga} aoRemover={(o, g, n) => void remover(o, g, n)} aoDesfazer={(id) => void desfazer(id)} />)}
         </div>
       )}
+      {vaga && <EscolherMilitar key={`${vaga.data}|${vaga.inicio}|${vaga.guarnicaoId}|${vaga.funcaoId}`} escalaId={escalaId} vaga={vaga} aoFechar={() => setVaga(null)} />}
     </section>
   );
 }
