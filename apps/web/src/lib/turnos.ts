@@ -10,34 +10,44 @@ export function textoDuracao(min: number): string {
 export const ORDEM_LETRAS = ['A', 'B', 'C', 'U'] as const;
 
 type TurnoHora = { letra: string; inicio: string; fim: string };
+/** Segmento da régua: minutos a partir das 00h do dia D; `fim` passa de 1440 quando o turno vai ao dia seguinte. */
 export type Segmento = { letra: string; ini: number; fim: number };
 
-/** Trechos do dia (minutos de 0 a 1440) que um turno ocupa: atravessar a meia-noite parte em dois, e 24h é o dia todo. */
-function trechos(t: TurnoHora): [number, number][] {
+/** O trecho que o turno ocupa a partir do dia D (sem partir na meia-noite); null se o horário não vale. */
+function trecho(t: TurnoHora): [number, number] | null {
   const ini = minutosDoDia(t.inicio);
   const fim = minutosDoDia(t.fim);
-  if (ini === null || fim === null) return [];
-  if (fim === ini) return [[0, 1440]];
-  if (fim > ini) return [[ini, fim]];
-  return fim === 0 ? [[ini, 1440]] : [[0, fim], [ini, 1440]];
+  if (ini === null || fim === null) return null;
+  return [ini, fim > ini ? fim : fim + 1440];
 }
 
 /** Segmentos da régua do dia, em ordem de início. */
 export function segmentosDoDia(turnos: TurnoHora[]): Segmento[] {
-  return turnos.flatMap((t) => trechos(t).map(([ini, fim]) => ({ letra: t.letra, ini, fim }))).sort((a, b) => a.ini - b.ini);
+  return turnos
+    .flatMap((t) => {
+      const x = trecho(t);
+      return x ? [{ letra: t.letra, ini: x[0], fim: x[1] }] : [];
+    })
+    .sort((a, b) => a.ini - b.ini);
 }
 
-/** Trechos em que dois turnos diferentes ocupam o mesmo horário (só se encostar não conta). */
+/** Onde termina a régua: o fim do último turno, no mínimo 24h (1440). */
+export function fimDaRegua(segmentos: Segmento[]): number {
+  return Math.max(1440, ...segmentos.map((s) => s.fim));
+}
+
+/** Trechos em que dois turnos diferentes ocupam o mesmo horário. Os turnos se repetem a cada dia, então o segundo também é comparado com o dia anterior e o seguinte. Só se encostar não conta. */
 export function sobreposicoes(turnos: TurnoHora[]): { letras: [string, string]; ini: number; fim: number }[] {
   const achados: { letras: [string, string]; ini: number; fim: number }[] = [];
   for (let i = 0; i < turnos.length; i++) {
     for (let j = i + 1; j < turnos.length; j++) {
-      for (const [a0, a1] of trechos(turnos[i]!)) {
-        for (const [b0, b1] of trechos(turnos[j]!)) {
-          const ini = Math.max(a0, b0);
-          const fim = Math.min(a1, b1);
-          if (fim > ini) achados.push({ letras: [turnos[i]!.letra, turnos[j]!.letra], ini, fim });
-        }
+      const a = trecho(turnos[i]!);
+      const b = trecho(turnos[j]!);
+      if (!a || !b) continue;
+      for (const dia of [-1440, 0, 1440]) {
+        const ini = Math.max(a[0], b[0] + dia);
+        const fim = Math.min(a[1], b[1] + dia);
+        if (fim > ini) achados.push({ letras: [turnos[i]!.letra, turnos[j]!.letra], ini, fim });
       }
     }
   }

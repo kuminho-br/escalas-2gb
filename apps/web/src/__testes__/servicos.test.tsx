@@ -86,6 +86,46 @@ describe('serviços', () => {
     expect(await screen.findByRole('img', { name: 'Turnos do dia: A das 00h às 08h' })).toBeInTheDocument();
   });
 
+  const PRONTO = servico({
+    id: 's3', nome: 'Bioma', tipo: 'diaria', cor: '#C08A1E',
+    turnos: [
+      { id: 't1', letra: 'A', inicio: '08:00', fim: '20:00', duracaoMinutos: 720, turnosPadrao: [] },
+      { id: 't2', letra: 'B', inicio: '20:00', fim: '08:00', duracaoMinutos: 720, turnosPadrao: [] },
+    ],
+  });
+  const comTurnos = (turnos: [string, string, string][]) =>
+    servico({ id: 's3', nome: 'Bioma', tipo: 'diaria', cor: '#C08A1E', turnos: turnos.map(([letra, inicio, fim], i) => ({ id: `t${i}`, letra: letra as 'A', inicio, fim, duracaoMinutos: 0, turnosPadrao: [] })) });
+
+  it('régua mostra o B até o dia seguinte', async () => {
+    api({ 'GET /api/servicos/s3': { status: 200, corpo: PRONTO } });
+    abrir('/servicos/s3');
+    const regua = await screen.findByRole('img', { name: /Turnos do dia/ });
+    const a = within(regua).getByText('A');
+    const b = within(regua).getByText('B');
+    expect(a).toHaveStyle({ left: '25%', width: '37.5%' });
+    expect(b).toHaveStyle({ left: '62.5%', width: '37.5%' });
+    expect(screen.getByText('dia seguinte')).toBeInTheDocument();
+  });
+
+  it('régua sem turno que passe da meia-noite não mostra dia seguinte', async () => {
+    api();
+    abrir('/servicos/s3');
+    await screen.findByRole('img', { name: /Turnos do dia/ });
+    expect(screen.queryByText('dia seguinte')).toBeNull();
+  });
+
+  it('sobreposição atravessando a meia-noite sai num trecho só', async () => {
+    api({ 'GET /api/servicos/s3': { status: 200, corpo: comTurnos([['A', '20:00', '08:00'], ['B', '22:00', '10:00']]) } });
+    abrir('/servicos/s3');
+    expect(await screen.findByText('Os turnos A e B se sobrepõem das 22h às 08h.')).toBeInTheDocument();
+  });
+
+  it('dois turnos de 24h sobrepostos dizem o dia todo', async () => {
+    api({ 'GET /api/servicos/s3': { status: 200, corpo: comTurnos([['A', '08:00', '08:00'], ['B', '08:00', '08:00']]) } });
+    abrir('/servicos/s3');
+    expect(await screen.findByText('Os turnos A e B se sobrepõem o dia todo.')).toBeInTheDocument();
+  });
+
   it('sobreposição aparece em texto', async () => {
     const SOBREPOE = servico({
       id: 's3', nome: 'Bioma', tipo: 'diaria', cor: '#C08A1E',
