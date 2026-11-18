@@ -59,12 +59,12 @@ function ListaDeServicos({ unidadeId, escolhido }: { unidadeId: string; escolhid
   const [desativados, setDesativados] = useState(false);
   const visiveis = servicos.data?.filter((s) => s.ativo || desativados) ?? [];
   return (
-    <div>
+    <div className="flex min-h-0 flex-1 flex-col">
       {servicos.isPending && <p className="p-4 text-apagado">Carregando…</p>}
       {servicos.error && <p role="alert" className="p-4 text-alerta">{mensagemDe(servicos.error)}</p>}
       {servicos.data && (
         <>
-          <div>
+          <div data-lista-rolavel className="min-h-0 flex-1 overflow-y-auto">
             {TipoServico.options.map((tipo) => {
               const doTipo = visiveis.filter((s) => s.tipo === tipo);
               if (!doTipo.length) return null;
@@ -79,7 +79,7 @@ function ListaDeServicos({ unidadeId, escolhido }: { unidadeId: string; escolhid
             })}
             {servicos.data.length === 0 && <p className="p-4 text-apagado">Nenhum serviço. Use "Novo serviço" ou "Importar da planilha".</p>}
           </div>
-          <label className="sticky bottom-0 flex items-center gap-2 border-t border-linha bg-superficie px-4 py-2.5 text-xs text-apagado">
+          <label className="flex shrink-0 items-center gap-2 border-t border-linha px-4 py-2.5 text-xs text-apagado">
             <input type="checkbox" checked={desativados} onChange={(e) => setDesativados(e.target.checked)} className="size-4 accent-vinho" />
             Mostrar desativados
           </label>
