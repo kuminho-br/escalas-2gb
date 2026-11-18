@@ -67,3 +67,14 @@ export const CORES_SERVICO: Record<string, string> = {
   Expediente: '#8A94A1',
 };
 export const COR_PADRAO_SERVICO = '#5B6675';
+
+/** '08:00' -> '08h', '07:30' -> '07h30'. */
+export function textoHora(hhmm: string): string {
+  const [h, m] = hhmm.split(':');
+  return m === '00' ? `${h}h` : `${h}h${m}`;
+}
+
+/** '08:00', '20:00' -> '08h–20h'. */
+export function textoFaixa(inicio: string, fim: string): string {
+  return `${textoHora(inicio)}–${textoHora(fim)}`;
+}

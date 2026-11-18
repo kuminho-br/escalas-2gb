@@ -1,6 +1,6 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { LetraTurno, type Servico, type TurnoSalvo } from 'contratos';
-import { duracaoMinutos, turnosPadraoExigidos } from 'dominio';
+import { duracaoMinutos } from 'dominio';
 import { useState } from 'react';
 import { mensagemDe } from '@/api/cliente';
 import { atualizarServicos, editarTurno, incluirTurno, removerTurno } from '@/api/servicos';
@@ -8,8 +8,9 @@ import { Secao } from '@/componentes/militares/Secao';
 import { Selecao } from '@/componentes/Selecao';
 import { Button } from '@/componentes/ui/button';
 import { Input } from '@/componentes/ui/input';
-import { descreverTurnosPadrao, textoDuracao } from '@/lib/turnos';
-import { Bloco } from '@/componentes/servicos/Bloco';
+import { ReguaDoDia } from '@/componentes/servicos/ReguaDoDia';
+import { corDoTexto } from '@/lib/cores';
+import { textoDuracao } from '@/lib/turnos';
 
 /** Turnos dentro do serviço: cada linha grava sozinha. */
 export function Turnos({ servico }: { servico: Servico }) {
@@ -17,6 +18,7 @@ export function Turnos({ servico }: { servico: Servico }) {
   const livre = LetraTurno.options.find((l) => !servico.turnos.some((t) => t.letra === l)) ?? 'A';
   return (
     <Secao titulo="Turnos">
+      <ReguaDoDia servico={servico} />
       <ul className="grid gap-2">
         {servico.turnos.map((t) => <LinhaTurno key={t.id} servico={servico} turno={t} />)}
         {novo && <LinhaTurno servico={servico} padrao={{ letra: livre, inicio: '08:00', fim: '20:00' }} aoCancelar={() => setNovo(false)} />}
@@ -31,13 +33,24 @@ export function Turnos({ servico }: { servico: Servico }) {
   );
 }
 
-/** Duração e "Pede voluntariado em" calculados pelo horário digitado; vazio se o horário ainda não vale. */
-function calculo(inicio: string, fim: string): { duracao: string; pede: string } | null {
+/** Duração calculada pelo horário digitado; null enquanto o horário não vale. */
+function duracaoDe(inicio: string, fim: string): string | null {
   try {
-    return { duracao: textoDuracao(duracaoMinutos(inicio, fim)), pede: descreverTurnosPadrao(turnosPadraoExigidos(inicio, fim)) };
+    return textoDuracao(duracaoMinutos(inicio, fim));
   } catch {
     return null;
   }
+}
+
+/** A duração em destaque, no bloco com a cor do serviço. */
+function BlocoDeDuracao({ cor, duracao }: { cor: string; duracao: string | null }) {
+  return duracao ? (
+    <span className="rounded px-2.5 py-0.5 font-cond text-base font-semibold" style={{ backgroundColor: cor, color: corDoTexto(cor) }}>
+      {duracao}
+    </span>
+  ) : (
+    <span className="rounded bg-fundo px-2.5 py-0.5 font-cond text-base font-semibold text-apagado">—</span>
+  );
 }
 
 function LinhaTurno({
@@ -58,7 +71,7 @@ function LinhaTurno({
   const [fim, setFim] = useState(base.fim);
   const [erro, setErro] = useState<string | null>(null);
   const nome = turno ? `turno ${turno.letra}` : 'turno novo';
-  const c = calculo(inicio, fim);
+  const duracao = duracaoDe(inicio, fim);
 
   async function salvar() {
     setErro(null);
@@ -90,9 +103,7 @@ function LinhaTurno({
         <Input aria-label={`Início do ${nome}`} type="time" value={inicio} onChange={(e) => setInicio(e.target.value)} className="w-28" />
         <span className="text-apagado">às</span>
         <Input aria-label={`Fim do ${nome}`} type="time" value={fim} onChange={(e) => setFim(e.target.value)} className="w-28" />
-        {c && <span className="font-medium">{c.duracao}</span>}
-        <Bloco cor={servico.cor} letra={letra} />
-        {c && <span className="text-apagado">Pede voluntariado em: {c.pede}</span>}
+        <BlocoDeDuracao cor={servico.cor} duracao={duracao} />
         <span className="ml-auto flex gap-2">
           <Button type="button" size="sm" variant="outline" onClick={() => void salvar()} aria-label={`Salvar ${nome}`}>
             Salvar
