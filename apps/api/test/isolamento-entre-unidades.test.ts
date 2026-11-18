@@ -42,6 +42,11 @@ beforeAll(async () => {
   const tipo = (await api.banco.query<{ id: string }>('select id from tipo_afastamento where ativo limit 1')).rows[0]!.id;
   const afastamento = await pelaRaiz('POST', `/api/militares/${militar.id}/afastamentos`, { tipoAfastamentoId: tipo, inicio: `${atual}-03`, fim: `${atual}-05` });
   ids.afastamentos = afastamento.id;
+  // alocação e remoção da escala da 2ª SB (Fase 4)
+  await inserir(api.banco, 'escala_servico', { escala_id: ids.escalas, servico_id: ids.servicos, ordem: 1 }, 'escala_id');
+  const chave = { militar_id: militar.id, escala_id: ids.escalas, servico_id: ids.servicos, turno_id: ids.turnos };
+  ids.alocacoes = await inserir(api.banco, 'alocacao', { ...chave, data: `${atual}-05`, origem: 'manual' });
+  ids.remocoes = await inserir(api.banco, 'remocao', { ...chave, data: `${atual}-06` });
 });
 afterAll(async () => {
   await api.fechar();

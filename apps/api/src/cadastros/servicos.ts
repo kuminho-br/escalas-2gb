@@ -179,6 +179,20 @@ export function rotasServicos(dep: { banco: Banco; auth: Auth }): Hono<AmbienteA
     const corpo = await lerCorpo(c, DadosTurno);
     if (!corpo.ok) return corpo.resposta;
     const d = corpo.dados;
+    // com militares escalados no turno, mudar a letra ou o horário desfaria a escala: o escalante remove antes
+    const atual = (
+      await dep.banco.query<{ letra: string; inicio: string; fim: string; servico: string }>(
+        `select t.letra, to_char(t.inicio, 'HH24:MI') as inicio, to_char(t.fim, 'HH24:MI') as fim, s.nome as servico from turno t join servico s on s.id = t.servico_id where t.id = $1`,
+        [id],
+      )
+    ).rows[0]!;
+    if (atual.letra !== d.letra || atual.inicio !== d.inicio || atual.fim !== d.fim) {
+      const n = (await dep.banco.query<{ n: number }>('select count(*)::int as n from alocacao where turno_id = $1', [id])).rows[0]!.n;
+      if (n > 0) {
+        const um = n === 1;
+        return c.json({ erro: `O turno ${atual.letra} de ${atual.servico} tem ${n} ${um ? 'militar escalado' : 'militares escalados'}. Remova-${um ? 'o' : 'os'} antes de mudar o horário ou a letra.` }, 409);
+      }
+    }
     try {
       const s = await comUsuario(dep.banco, c.get('usuarioId'), async (tx) => {
         const servicoId = (

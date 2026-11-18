@@ -161,3 +161,24 @@ describe('trocar o tipo de um serviço que tem cotas', () => {
   });
 });
 
+describe('turno com militares escalados', () => {
+  it('mudar o horário ou a letra de um turno com alocação é 409; sem alocação passa', async () => {
+    const s = await criar('Com alocação');
+    const comTurno: Servico = await (await turno(s.id, 'A', '08:00', '20:00')).json();
+    const turnoId = comTurno.turnos[0]!.id;
+    const escala = await inserir(api.banco, 'escala', { unidade_id: api.ids.secao, nome: 'Escala X', titulo: 'ESCALA', militares_doc: 'todos', dias_doc: 'todos' });
+    await inserir(api.banco, 'escala_servico', { escala_id: escala, servico_id: s.id, ordem: 1 }, 'escala_id');
+    const posto = await inserir(api.banco, 'posto_grad', { sigla: 'SD-T', nome: 'Soldado T', ordem: 940 });
+    const m = await inserir(api.banco, 'militar', { matricula: '990994-1', posto_grad_id: posto, nome_guerra: 'ESCALADO' });
+    const edicao = (extra: Record<string, string>) => api.pedir('escalante', 'PATCH', `/api/turnos/${turnoId}`, { letra: 'A', inicio: '08:00', fim: '20:00', ...extra });
+    expect((await edicao({ fim: '19:00' })).status).toBe(200);
+    await inserir(api.banco, 'alocacao', { militar_id: m, escala_id: escala, servico_id: s.id, turno_id: turnoId, data: '2026-12-05', origem: 'manual' });
+    const r = await edicao({ fim: '20:00' });
+    expect(r.status).toBe(409);
+    expect((await r.json()).erro).toBe('O turno A de Com alocação tem 1 militar escalado. Remova-o antes de mudar o horário ou a letra.');
+    expect((await edicao({ letra: 'B' })).status).toBe(409);
+    // gravar o mesmo horário e a mesma letra não muda nada e passa
+    expect((await edicao({ fim: '19:00' })).status).toBe(200);
+  });
+});
+
