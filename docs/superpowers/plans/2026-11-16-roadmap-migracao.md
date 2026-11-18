@@ -102,11 +102,25 @@ Ficou para as fases seguintes: a exposição do motor pela API (pré-escala, dis
 
 Os cadastros estão prontos, mas foram feitos em dez entregas, cada uma com pendências pequenas anotadas no PR. Antes de montar a escala em cima deles, três revisões, nesta ordem (decisão do usuário):
 
-1. **Revisão 1 — pendências.** Aplica a análise de interface de 18/11/2026 (as propostas aceitas estão no adendo do design "Revisões antes da fase 4") e as pendências menores anotadas nos PRs da fase 3 que uma pessoa pode encontrar ao usar as telas. As que já foram resolvidas saem da lista. As que só dizem respeito ao código (testes que faltam, código sem uso, recuo) ficam para a revisão 3. As que só aparecem com várias unidades ou com a escala gravando alocações ficam para as fases 4 e 7. Plano próprio: `docs/superpowers/plans/2026-11-18-revisao-1.md`.
-2. **Revisão 2 — testes com pessoas.** Alguns escalantes e militares usam os cadastros no ambiente de teste, com os dados da 1ª SB. O retorno vira uma rodada de ajustes, com plano próprio quando houver o que mudar.
-3. **Revisão 3 — revisão de código.** Leitura do sistema novo inteiro (API, site, motor e contratos), com as pendências internas separadas na revisão 1. Os problemas encontrados são corrigidos com teste antes da fase 4.
+1. **Revisão 1 — pendências.** Aplica a análise de interface de 18/11/2026 (as propostas aceitas estão no adendo do design "Revisões antes da fase 4") e as pendências menores anotadas nos PRs da fase 3 que uma pessoa pode encontrar ao usar as telas. As que já foram resolvidas saem da lista. As que só dizem respeito ao código (testes que faltam, código sem uso, recuo) ficam para a revisão 3. As que só aparecem com várias unidades ou com a escala gravando alocações ficam para as fases 4 e 7. Plano próprio: `docs/superpowers/plans/2026-11-18-revisao-1.md`. **Feita:** PRs #25 e #26, mesclados em 18/11/2026, sem migração.
+2. **Revisão 2 — testes com pessoas.** Alguns escalantes e militares usam os cadastros no ambiente de teste, com os dados da 1ª SB. O retorno vira uma rodada de ajustes, com plano próprio quando houver o que mudar. **Feita:** os testadores usaram o ambiente de teste e o retorno foi aplicado nos PRs #25 e #26 (régua do dia, caminho da unidade, brasão, ajustes de cadastro); nenhum plano próprio foi necessário.
+3. **Revisão 3 — revisão de código.** Leitura do sistema novo inteiro (API, site, motor e contratos), com as pendências internas separadas na revisão 1. Os problemas encontrados são corrigidos com teste antes da fase 4. Plano próprio: `docs/superpowers/plans/2026-11-18-revisao-3.md`.
 
 **Entrega:** a fase 4 começa com os cadastros testados por quem vai usá-los e com o código revisado.
+
+### Pendências registradas depois da revisão 1 (18/11/2026)
+
+**Revisão 3 (17 itens do código, mais a leitura do sistema inteiro):**
+- Corpo de envio malformado dá 500 (a importação lê o formulário sem tratar erro) e nenhuma rota limita o tamanho do envio.
+- `?mes` inválido no PATCH do militar dá 500 (as outras rotas respondem 400).
+- `importadores[cadastro]` usa objeto comum: `constructor` e `__proto__` dão 500.
+- A migração 0009 criou a regra "administrador só na raiz" por gatilho, que só vale para gravações novas: não confere administradores que já existiam fora da raiz.
+- Importação de guarnições: vigência vazia quando há vigência explícita anterior à criação da seção (regra `cadgVigencia`), e lista e ficha divergindo quando só a versão do mês está inativa e uma futura volta a ativa (sobra a importação com ATIVAR=NÃO).
+- Testes que faltam: versões extras intocadas na importação de guarnições; "Ação" × "Acao"; guarnição futura na ficha; `/situacao` com 403, 404 e guarnição futura; "ÚNICO vira A" na importação de serviços.
+- Pequenos: recuo em `importacao-guarnicoes.test.ts:48`; `textoHora('8')`; testes de rolagem que conferem estrutura em vez de comportamento; erros do editor num checkout novo antes de gerar os tipos (a confirmar).
+- Menores adiados da revisão 1: a tela deixa o máximo passar de 99 e a prioridade de 1000; "1 guarnições" no cabeçalho da lista; erro de campo sem `aria-describedby`/`aria-invalid`; número da ordem no nome do link da guarnição e versão futura sem texto para leitor de tela; `salvando` de `AcoesDoBloco` sem uso (dois cliques mandam dois pedidos); código morto (`?? vigBruta`, linha em branco dupla em `contratos/servicos.ts`).
+
+**Fases 4 e 7 (6 itens, só aparecem com várias unidades ou com alocações gravadas):** transferência sempre para a unidade do usuário (7); antiguidade comparada no caminho da unidade e na lotação (7); função igual criada na unidade de cima (7); catálogo de funções pela unidade do usuário, não da guarnição (7); renomear função sem conferir as unidades de baixo (7); mudar a letra de turno com militares escalados sem 409 (4, quando houver alocações). Também na fase 7: feriado criado numa unidade de baixo numa data que a de cima já tem, e a antiguidade institucional pelos almanaques.
 
 ## Fase 4 — Montagem da escala (1ª versão para os testadores)
 
