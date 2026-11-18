@@ -87,7 +87,7 @@ export async function exigirAdministradorRaiz(c: Context<AmbienteApi>): Promise<
   return c.json({ erro: 'Só o administrador do sistema altera esta lista.' }, 403);
 }
 
-type TabelaComUnidade = 'militar' | 'afastamento' | 'funcao' | 'guarnicao' | 'servico' | 'turno' | 'escala' | 'feriado' | 'cota';
+type TabelaComUnidade = 'militar' | 'afastamento' | 'funcao' | 'guarnicao' | 'servico' | 'turno' | 'escala' | 'feriado' | 'cota' | 'alocacao' | 'remocao';
 
 const SQL_UNIDADE: Record<TabelaComUnidade, string> = {
   militar: 'select unidade_id from lotacao where militar_id = $1 order by desde desc limit 1',
@@ -100,6 +100,8 @@ const SQL_UNIDADE: Record<TabelaComUnidade, string> = {
   escala: 'select unidade_id from escala where id = $1',
   feriado: 'select unidade_id from feriado where id = $1',
   cota: 'select unidade_id from cota where id = $1',
+  alocacao: 'select e.unidade_id from alocacao a join escala e on e.id = a.escala_id where a.id = $1',
+  remocao: 'select e.unidade_id from remocao r join escala e on e.id = r.escala_id where r.id = $1',
 };
 
 /** Unidade dona de um registro (para conferir o papel); null se não existe. */

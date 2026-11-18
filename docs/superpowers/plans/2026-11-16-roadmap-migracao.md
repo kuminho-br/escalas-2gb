@@ -152,6 +152,8 @@ Os cadastros estão prontos, mas foram feitos em dez entregas, cada uma com pend
 - Gerar documento: escala publicada a partir do modelo de impressão.
 - Minha escala, para o militar comum: os próprios serviços dia a dia, com quem compõe cada guarnição com ele, e as escalas publicadas da unidade dele.
 
+Plano próprio: `docs/superpowers/plans/2026-11-18-fase4-escala.md` (seis entregas; a 1 detalhada, as demais detalhadas antes de cada uma começar).
+
 **Entrega e marco:** piloto na 1ª SB. Um mês real montado no sistema novo, em paralelo com as planilhas atuais, e comparado no fim.
 
 ## Fase 5 — Operação diária

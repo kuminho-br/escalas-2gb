@@ -17,7 +17,7 @@ const SELECT = `select f.id, to_char(f.data, 'YYYY-MM-DD') as data, f.descricao,
                   join unidade alvo on alvo.id = $1`;
 
 /** Feriados do ano da unidade (próprios e herdados de cima), em ordem de data. */
-async function feriadosDoAno(c: Consulta, unidadeId: string, ano: number): Promise<Feriado[]> {
+export async function feriadosDoAno(c: Consulta, unidadeId: string, ano: number): Promise<Feriado[]> {
   const { rows } = await c.query<Feriado>(
     `${SELECT} where un.caminho @> alvo.caminho and extract(year from f.data) = $2 order by f.data, herdado desc, f.descricao`,
     [unidadeId, ano],

@@ -27,7 +27,7 @@ type Item = { nome: string; icone: LucideIcon; para?: LinkProps['to']; soCadastr
 const BLOCOS: Item[][] = [
   [
     { nome: 'Grade geral', icone: LayoutGrid, para: '/' },
-    { nome: 'Escala do mês', icone: ListTree },
+    { nome: 'Escala do mês', icone: ListTree, para: '/escala-do-mes' },
     { nome: 'Efetivo do dia', icone: Sun },
   ],
   [
