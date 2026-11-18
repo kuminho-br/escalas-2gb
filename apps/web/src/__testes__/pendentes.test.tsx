@@ -1,10 +1,11 @@
-import type { Escala, LinhaEscala, LinhaGuarnicao, Servico } from 'contratos';
-import { fireEvent, screen, waitFor } from '@testing-library/react';
+import type { Escala, FichaGuarnicao, FichaMilitar, LinhaEscala, LinhaGuarnicao, LinhaMilitar, Servico } from 'contratos';
+import { act, fireEvent, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { atualizarMilitares } from '@/api/militares';
 import { MENSAGEM_PENDENTE } from '@/componentes/AlteracoesPendentes';
 import { mesAtual } from '@/lib/meses';
-import { abrir, EU_EXEMPLO, simularApi } from './apoio';
+import { abrir, corpoEnviado, EU_EXEMPLO, simularApi } from './apoio';
 
 const LISTA: LinhaEscala[] = [
   { id: 'e1', nome: 'Ordinário', ativa: true, servicos: ['Pronto'] },
@@ -159,12 +160,17 @@ describe('alterações não salvas', () => {
       'GET /api/unidades/u-1sb/escalas': { status: 200, corpo: LISTA },
       'GET /api/unidades/u-1sb/guarnicoes': { status: 200, corpo: [g] },
       'GET /api/unidades/u-1sb/servicos': { status: 200, corpo: [] },
-      'GET /api/escalas/e1': { status: 200, corpo: escala({ faixas: [DIA, NOITE] }) },
+      'GET /api/escalas/e1': {
+        status: 200,
+        corpo: escala({ faixas: [DIA, NOITE], servicos: [{ id: 's1', nome: 'Pronto', cor: '#2F8F5B', ativo: true }, { id: 's2', nome: 'JES', cor: '#6E56A8', ativo: true }] }),
+      },
       'PUT /api/escalas/e1/servicos': { status: 200, corpo: escala({}) },
     };
     simularApi(rotas);
     abrir('/escalas/e1');
     await userEvent.click(await screen.findByLabelText('ABT em A (08h–20h)'));
+    // mudar a ordem dos serviços é o que acende o Salvar dos serviços
+    await userEvent.click(screen.getByRole('button', { name: 'Descer Pronto' }));
     // salvar os serviços muda as faixas que o servidor devolve
     rotas['GET /api/escalas/e1'] = { status: 200, corpo: escala({ faixas: [DIA] }) };
     await userEvent.click(screen.getByRole('button', { name: 'Salvar serviços' }));
@@ -194,5 +200,166 @@ describe('alterações não salvas', () => {
     await userEvent.click(screen.getByRole('button', { name: new RegExp(`janeiro de ${proximo.slice(0, 4)}`) }));
     expect(confirmar).toHaveBeenCalledWith(MENSAGEM_PENDENTE);
     expect(screen.getByLabelText('ABT em A (08h–20h)')).toBeChecked();
+  });
+});
+
+describe('Salvar que mostra o estado', () => {
+  const rotasDoServico = () => ({ ...apiRotas(), 'PATCH /api/servicos/s3': { status: 200, corpo: BIOMA } });
+  function apiRotas(): Parameters<typeof simularApi>[0] {
+    return {
+      '/api/eu': { status: 200, corpo: EU_EXEMPLO },
+      'GET /api/unidades/u-1sb/escalas': { status: 200, corpo: LISTA },
+      'GET /api/unidades/u-1sb/guarnicoes': { status: 200, corpo: [] },
+      'GET /api/unidades/u-1sb/servicos': { status: 200, corpo: [BIOMA] },
+      'GET /api/servicos/s3': { status: 200, corpo: BIOMA },
+    };
+  }
+
+  it('sem alteração, o Salvar fica apagado', async () => {
+    simularApi(rotasDoServico());
+    abrir('/servicos/s3');
+    await screen.findByLabelText('Nome');
+    expect(screen.getByRole('button', { name: 'Salvar' })).toBeDisabled();
+  });
+
+  it('com alteração, o Salvar acende', async () => {
+    simularApi(rotasDoServico());
+    abrir('/servicos/s3');
+    fireEvent.change(await screen.findByLabelText('Nome'), { target: { value: 'Bioma 2' } });
+    const salvar = screen.getByRole('button', { name: 'Salvar' });
+    expect(salvar).toBeEnabled();
+    expect(salvar).toHaveAttribute('data-variant', 'default');
+  });
+
+  it('o aviso de salvo some ao mexer de novo', async () => {
+    simularApi(rotasDoServico());
+    abrir('/servicos/s3');
+    const nome = await screen.findByLabelText('Nome');
+    fireEvent.change(nome, { target: { value: 'Bioma 2' } });
+    await userEvent.click(screen.getByRole('button', { name: 'Salvar' }));
+    expect(await screen.findByText('Alterações salvas.')).toBeInTheDocument();
+    expect(screen.queryByText('Alterações não salvas')).toBeNull();
+    fireEvent.change(nome, { target: { value: 'Bioma 3' } });
+    expect(screen.queryByText('Alterações salvas.')).toBeNull();
+    expect(screen.getByText('Alterações não salvas')).toBeInTheDocument();
+  });
+
+  it('a linha de turno só mostra Salvar quando muda', async () => {
+    simularApi(rotasDoServico());
+    abrir('/servicos/s3');
+    const inicio = await screen.findByLabelText('Início do turno A');
+    expect(screen.queryByRole('button', { name: 'Salvar turno A' })).toBeNull();
+    expect(screen.getByRole('button', { name: 'Remover turno A' })).toBeInTheDocument();
+    fireEvent.change(inicio, { target: { value: '01:00' } });
+    expect(screen.getByRole('button', { name: 'Salvar turno A' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Remover turno A' })).toBeInTheDocument();
+  });
+
+  describe('matriz da escala', () => {
+    const DIA = { inicio: '08:00', fim: '20:00', letras: ['A' as const], servicos: ['Pronto'] };
+    const g: LinhaGuarnicao = { id: 'g1', nome: 'ABT', viatura: null, prioridade: 1, ativa: true, minimo: 2, maximo: 4, aPartirDe: null };
+    const rotas = (e: Escala): Parameters<typeof simularApi>[0] => ({
+      ...apiRotas(),
+      'GET /api/unidades/u-1sb/guarnicoes': { status: 200, corpo: [g] },
+      'GET /api/escalas/e1': { status: 200, corpo: e },
+      'GET /api/escalas/e2': { status: 200, corpo: escala({ id: 'e2', nome: 'Nova', titulo: 'ESCALA NOVA', servicos: [] }) },
+      'PUT /api/escalas/e1/vinculos/2099-01': { status: 200, corpo: e },
+    });
+
+    it('na matriz, trocar só o mês não acende o Salvar', async () => {
+      simularApi(rotas(escala({ faixas: [DIA] })));
+      abrir('/escalas/e1');
+      const caixa = await screen.findByLabelText('ABT em A (08h–20h)');
+      fireEvent.change(screen.getByLabelText('Vale a partir de'), { target: { value: '2099-01' } });
+      const salvar = screen.getByRole('button', { name: 'Salvar a partir de janeiro de 2099' });
+      expect(salvar).toBeDisabled();
+      await userEvent.click(caixa);
+      expect(screen.getByRole('button', { name: 'Salvar a partir de janeiro de 2099' })).toBeEnabled();
+    });
+
+    it('salvar a matriz num mês novo não pergunta ao trocar de escala', async () => {
+      const salva = escala({
+        faixas: [DIA],
+        vinculos: [{ vigencia: '2099-01', itens: [{ guarnicaoId: 'g1', guarnicao: 'ABT', inicio: '08:00', fim: '20:00', ativaNoMes: true }] }],
+      });
+      const r = rotas(escala({ faixas: [DIA] }));
+      const f = simularApi(r);
+      const confirmar = vi.spyOn(window, 'confirm').mockReturnValue(false);
+      abrir('/escalas/e1');
+      await userEvent.click(await screen.findByLabelText('ABT em A (08h–20h)'));
+      fireEvent.change(screen.getByLabelText('Vale a partir de'), { target: { value: '2099-01' } });
+      r['GET /api/escalas/e1'] = { status: 200, corpo: salva };
+      await userEvent.click(screen.getByRole('button', { name: 'Salvar a partir de janeiro de 2099' }));
+      await waitFor(() => expect(corpoEnviado(f, 'PUT /api/escalas/e1/vinculos/2099-01')).toEqual({ itens: [{ guarnicaoId: 'g1', inicio: '08:00', fim: '20:00' }] }));
+      await irParaNova();
+      await waitFor(() => expect(screen.getByLabelText('Título no documento')).toHaveValue('ESCALA NOVA'));
+      expect(confirmar).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('fichas de militar e de guarnição', () => {
+    const linhaM = (l: Partial<LinhaMilitar>): LinhaMilitar => ({
+      id: 'm1', matricula: '990001-1', posto: 'SD BM', nomeGuerra: 'ANDRADE', equipe: 'Alfa', jornada: 'pronto', motorista: null,
+      voluntarioJes: false, ativo: true, situacao: 'Disponível', pendencias: [], ...l,
+    });
+    const FICHA_M: FichaMilitar = {
+      ...linhaM({}), postoGradId: 'p-sd', antiguidade: 3, noQuadroDeMotoristas: false, cnh: [], cnhPorHierarquia: [],
+      lotacoes: [{ id: 'l1', unidadeSigla: '1ª SB', equipe: 'Alfa', jornada: 'pronto', desde: '2020-01-01', ate: null }], afastamentos: [],
+    };
+    const rotasM = (): Parameters<typeof simularApi>[0] => ({
+      '/api/eu': { status: 200, corpo: EU_EXEMPLO },
+      'GET /api/unidades/u-1sb/militares': { status: 200, corpo: [linhaM({}), linhaM({ id: 'm2', matricula: '990002-2', nomeGuerra: 'BARRETO' })] },
+      'GET /api/unidades/u-1sb/equipes': { status: 200, corpo: [] },
+      'GET /api/postos': { status: 200, corpo: [{ id: 'p-sd', sigla: 'SD BM', nome: 'Soldado', ordem: 1 }] },
+      'GET /api/militares/m1': { status: 200, corpo: FICHA_M },
+      'GET /api/militares/m2': { status: 200, corpo: { ...FICHA_M, id: 'm2', nomeGuerra: 'BARRETO', matricula: '990002-2' } },
+      'GET /api/sistema/tipos-afastamento': { status: 200, corpo: [] },
+    });
+
+    it('trocar de militar com a identificação pendente pergunta', async () => {
+      simularApi(rotasM());
+      const confirmar = vi.spyOn(window, 'confirm').mockReturnValue(false);
+      abrir('/militares/m1');
+      const campo = await screen.findByLabelText('Nome de guerra');
+      fireEvent.change(campo, { target: { value: 'ANDRADE JR' } });
+      await userEvent.click(screen.getByRole('link', { name: /BARRETO/ }));
+      await waitFor(() => expect(confirmar).toHaveBeenCalledWith(MENSAGEM_PENDENTE));
+      expect(screen.getByLabelText('Nome de guerra')).toHaveValue('ANDRADE JR');
+    });
+
+    it('com a ficha do militar aberta, uma gravação de fora recarrega os campos', async () => {
+      const r = rotasM();
+      simularApi(r);
+      const confirmar = vi.spyOn(window, 'confirm').mockReturnValue(false);
+      const router = abrir('/militares/m1');
+      expect(await screen.findByLabelText('Nome de guerra')).toHaveValue('ANDRADE');
+      r['GET /api/militares/m1'] = { status: 200, corpo: { ...FICHA_M, nomeGuerra: 'ANDRADE NOVO' } };
+      await act(async () => {
+        atualizarMilitares(router.options.context.queryClient, 'm1');
+      });
+      await waitFor(() => expect(screen.getByLabelText('Nome de guerra')).toHaveValue('ANDRADE NOVO'));
+      expect(confirmar).not.toHaveBeenCalled();
+    });
+
+    it('trocar de guarnição com a composição pendente pergunta', async () => {
+      const ficha: FichaGuarnicao = {
+        id: 'g1', nome: 'Auto Bomba 1', desativadaAPartirDe: null,
+        versoes: [{ vigencia: '2026-01', viatura: null, tipoViatura: null, prioridade: 1, ativa: true, composicao: [] }], usadaEm: [],
+      };
+      const lista = (id: string, nome: string): LinhaGuarnicao => ({ id, nome, viatura: null, prioridade: 1, ativa: true, minimo: 0, maximo: 0, aPartirDe: null });
+      simularApi({
+        '/api/eu': { status: 200, corpo: EU_EXEMPLO },
+        'GET /api/unidades/u-1sb/guarnicoes': { status: 200, corpo: [lista('g1', 'Auto Bomba 1'), lista('g2', 'Resgate')] },
+        'GET /api/unidades/u-1sb/funcoes': { status: 200, corpo: [] },
+        'GET /api/guarnicoes/g1': { status: 200, corpo: ficha },
+        'GET /api/guarnicoes/g2': { status: 200, corpo: { ...ficha, id: 'g2', nome: 'Resgate' } },
+      });
+      const confirmar = vi.spyOn(window, 'confirm').mockReturnValue(false);
+      abrir('/guarnicoes/g1');
+      await userEvent.click(await screen.findByRole('button', { name: 'Incluir função' }));
+      await userEvent.click(screen.getByRole('link', { name: /Resgate/ }));
+      await waitFor(() => expect(confirmar).toHaveBeenCalledWith(MENSAGEM_PENDENTE));
+      expect(screen.getByRole('heading', { level: 2, name: 'Auto Bomba 1' })).toBeInTheDocument();
+    });
   });
 });

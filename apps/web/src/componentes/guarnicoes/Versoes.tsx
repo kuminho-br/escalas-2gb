@@ -3,10 +3,10 @@ import { mesPorExtenso, type FichaGuarnicao, type Funcao, type VersaoSalva } fro
 import { useState } from 'react';
 import { ErroApi, mensagemDe } from '@/api/cliente';
 import { atualizarGuarnicoes, consultaFuncoes, salvarVersao } from '@/api/guarnicoes';
+import { AcoesDoBloco, usePendencia } from '@/componentes/AlteracoesPendentes';
 import { Composicao, type LinhaEdicao } from '@/componentes/guarnicoes/Composicao';
 import { LinhaDoTempo } from '@/componentes/LinhaDoTempo';
 import { Secao } from '@/componentes/militares/Secao';
-import { Button } from '@/componentes/ui/button';
 import { Input } from '@/componentes/ui/input';
 import { Label } from '@/componentes/ui/label';
 import { versaoVigente } from '@/lib/guarnicoes';
@@ -43,6 +43,12 @@ function Editor({ ficha, unidadeId, versao }: { ficha: FichaGuarnicao; unidadeId
   // sugere o mês corrente, ou o começo da versão quando ela só vale no futuro
   const [desde, setDesde] = useState(versao && versao.vigencia > mesAtual() ? versao.vigencia : mesAtual());
   const [aviso, setAviso] = useState<{ erro: boolean; texto: string } | null>(null);
+  // o conteúdo da versão em texto: o que difere do último gravado é alteração pendente (o mês "a partir de" não conta)
+  const assinatura = () =>
+    JSON.stringify([viatura.trim(), tipoViatura.trim(), prioridade.trim(), ativa, linhas.map((l) => [l.funcaoId, l.minimo, l.maximo, l.cnh])]);
+  const [salvo, setSalvo] = useState(assinatura);
+  const sujo = assinatura() !== salvo;
+  usePendencia('versao', sujo);
 
   const servidor = funcoes.data ?? [];
   const opcoes = [...servidor.map((f) => locais.find((l) => l.id === f.id) ?? f), ...locais.filter((l) => !servidor.some((f) => f.id === l.id))];
@@ -61,6 +67,7 @@ function Editor({ ficha, unidadeId, versao }: { ficha: FichaGuarnicao; unidadeId
         ativa,
         composicao: linhas.map((l) => ({ funcaoId: l.funcaoId, minimo: l.minimo, maximo: l.maximo, cnhExigida: (l.cnh || null) as 'A' | 'B' | 'C' | 'D' | 'E' | null })),
       });
+      setSalvo(assinatura());
       atualizarGuarnicoes(queryClient, ficha.id);
       setAviso({ erro: false, texto: `Salvo a partir de ${mesPorExtenso(desde)}.` });
     } catch (err) {
@@ -101,12 +108,7 @@ function Editor({ ficha, unidadeId, versao }: { ficha: FichaGuarnicao; unidadeId
           <Label htmlFor="gv-desde">A partir de</Label>
           <Input id="gv-desde" type="month" value={desde} min={mesAtual()} onChange={(e) => setDesde(e.target.value)} />
         </div>
-        <div className="flex flex-wrap items-center gap-3">
-          <Button type="button" disabled={!desde} onClick={() => void salvar()}>
-            Salvar a partir de {desde ? mesPorExtenso(desde) : '…'}
-          </Button>
-          {aviso && <p role={aviso.erro ? 'alert' : 'status'} className={aviso.erro ? 'text-sm text-alerta' : 'text-sm text-apagado'}>{aviso.texto}</p>}
-        </div>
+        <AcoesDoBloco sujo={sujo} aviso={aviso} tipo="button" desabilitado={!desde} rotulo={`Salvar a partir de ${desde ? mesPorExtenso(desde) : '…'}`} aoSalvar={() => void salvar()} />
       </div>
     </div>
   );

@@ -4,7 +4,7 @@ import { useState, type FormEvent } from 'react';
 import { mensagemDe } from '@/api/cliente';
 import { atualizarMilitares, consultaPostos, editarMilitar } from '@/api/militares';
 import { Selecao } from '@/componentes/Selecao';
-import { Button } from '@/componentes/ui/button';
+import { AcoesDoBloco, usePendencia } from '@/componentes/AlteracoesPendentes';
 import { Input } from '@/componentes/ui/input';
 import { Label } from '@/componentes/ui/label';
 import { Secao } from './Secao';
@@ -18,6 +18,11 @@ export function Identificacao({ ficha }: { ficha: FichaMilitar }) {
   const [jes, setJes] = useState(ficha.voluntarioJes);
   const [ativo, setAtivo] = useState(ficha.ativo);
   const [aviso, setAviso] = useState<{ erro: boolean; texto: string } | null>(null);
+  const assinatura = (p: string, n: string, a: string, j: boolean, at: boolean) => JSON.stringify([p, n.trim().toUpperCase(), a.trim() ? Number(a) : null, j, at]);
+  // o último gravado (começa com o que veio do servidor): o que difere dele é alteração pendente
+  const [salvo, setSalvo] = useState(() => assinatura(ficha.postoGradId, ficha.nomeGuerra, ficha.antiguidade == null ? '' : String(ficha.antiguidade), ficha.voluntarioJes, ficha.ativo));
+  const sujo = assinatura(posto, nome, antiguidade, jes, ativo) !== salvo;
+  usePendencia('identificacao', sujo);
 
   async function salvar(e: FormEvent) {
     e.preventDefault();
@@ -30,6 +35,7 @@ export function Identificacao({ ficha }: { ficha: FichaMilitar }) {
         voluntarioJes: jes,
         ativo,
       });
+      setSalvo(assinatura(posto, nome, antiguidade, jes, ativo));
       atualizarMilitares(queryClient, ficha.id);
       setAviso({ erro: false, texto: 'Alterações salvas.' });
     } catch (err) {
@@ -66,10 +72,7 @@ export function Identificacao({ ficha }: { ficha: FichaMilitar }) {
             Ativo
           </label>
         </div>
-        <div className="flex items-center gap-3">
-          <Button type="submit" variant="outline">Salvar alterações</Button>
-          {aviso && <p role={aviso.erro ? 'alert' : 'status'} className={aviso.erro ? 'text-sm text-alerta' : 'text-sm text-apagado'}>{aviso.texto}</p>}
-        </div>
+        <AcoesDoBloco sujo={sujo} aviso={aviso} rotulo="Salvar alterações" />
       </form>
     </Secao>
   );

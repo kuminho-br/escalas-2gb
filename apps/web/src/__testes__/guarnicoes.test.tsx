@@ -174,6 +174,7 @@ describe('ficha da guarnição', () => {
     api({ 'PUT /api/guarnicoes/g1/versoes/2099-03': { status: 409, corpo: { erro: 'Só dá para mudar a partir de novembro de 2026.' } } });
     abrir('/guarnicoes/g1');
     await screen.findByLabelText('Mínimo de Combatente');
+    fireEvent.change(valor('Sigla da viatura'), { target: { value: 'ABT-02' } });
     await salvarEm('2099-03', 'março de 2099');
     expect(await screen.findByText('Só dá para mudar a partir de novembro de 2026.')).toBeInTheDocument();
   });

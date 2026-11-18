@@ -5,7 +5,7 @@ import { useState } from 'react';
 import { mensagemDe } from '@/api/cliente';
 import { atualizarEscalas, salvarServicosDaEscala } from '@/api/escalas';
 import { consultaServicos } from '@/api/servicos';
-import { EtiquetaPendente, usePendencia } from '@/componentes/AlteracoesPendentes';
+import { AcoesDoBloco, usePendencia } from '@/componentes/AlteracoesPendentes';
 import { Secao } from '@/componentes/militares/Secao';
 import { Selecao } from '@/componentes/Selecao';
 import { QuadradoDaCor } from '@/componentes/QuadradoDaCor';
@@ -82,9 +82,7 @@ export function ServicosDaEscala({ escala, unidadeId }: { escala: Escala; unidad
             {fora.map((s) => <option key={s.id} value={s.id}>{s.nome}</option>)}
           </Selecao>
         )}
-        <Button type="button" onClick={() => void salvar()}>Salvar serviços</Button>
-        <EtiquetaPendente sujo={sujo} />
-        {aviso && <p role={aviso.erro ? 'alert' : 'status'} className={aviso.erro ? 'text-sm text-alerta' : 'text-sm text-apagado'}>{aviso.texto}</p>}
+        <AcoesDoBloco sujo={sujo} aviso={aviso} tipo="button" rotulo="Salvar serviços" aoSalvar={() => void salvar()} />
       </div>
     </Secao>
   );

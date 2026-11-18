@@ -4,7 +4,7 @@ import { CNH_HABILITA, cnhHabilitadas } from 'dominio';
 import { useState } from 'react';
 import { mensagemDe } from '@/api/cliente';
 import { atualizarMilitares, editarMilitar } from '@/api/militares';
-import { Button } from '@/componentes/ui/button';
+import { AcoesDoBloco, usePendencia } from '@/componentes/AlteracoesPendentes';
 import { cn } from '@/lib/utils';
 import { Secao } from './Secao';
 
@@ -26,6 +26,11 @@ export function Motorista({ ficha }: { ficha: FichaMilitar }) {
   const [carteira, setCarteira] = useState<string[]>(ficha.cnh);
   const [aviso, setAviso] = useState<{ erro: boolean; texto: string } | null>(null);
   const habilitadas = cnhHabilitadas(carteira);
+  const assinatura = (q: boolean, c: string[]) => JSON.stringify([q, q ? [...c].sort() : []]);
+  // o último gravado (começa com o que veio do servidor): o que difere dele é alteração pendente
+  const [salvo, setSalvo] = useState(() => assinatura(ficha.noQuadroDeMotoristas, ficha.cnh));
+  const sujo = assinatura(quadro, carteira) !== salvo;
+  usePendencia('motorista', sujo);
 
   const alternar = (c: string) => setCarteira((atual) => (atual.includes(c) ? atual.filter((x) => x !== c) : [...atual, c].sort()));
 
@@ -33,6 +38,7 @@ export function Motorista({ ficha }: { ficha: FichaMilitar }) {
     setAviso(null);
     try {
       await editarMilitar(ficha.id, { motorista: quadro, cnh: quadro ? (carteira as NonNullable<EdicaoMilitar['cnh']>) : [] });
+      setSalvo(assinatura(quadro, carteira));
       atualizarMilitares(queryClient, ficha.id);
       setAviso({ erro: false, texto: 'Salvo.' });
     } catch (err) {
@@ -81,10 +87,7 @@ export function Motorista({ ficha }: { ficha: FichaMilitar }) {
           </div>
         )}
         {quadro && <p className="text-xs text-apagado">Marque só as categorias da carteira. As tracejadas vêm pela hierarquia (a D habilita C e B).</p>}
-        <div className="flex items-center gap-3">
-          <Button type="button" variant="outline" onClick={salvar}>Salvar motorista</Button>
-          {aviso && <p role={aviso.erro ? 'alert' : 'status'} className={aviso.erro ? 'text-sm text-alerta' : 'text-sm text-apagado'}>{aviso.texto}</p>}
-        </div>
+        <AcoesDoBloco sujo={sujo} aviso={aviso} rotulo="Salvar motorista" tipo="button" aoSalvar={() => void salvar()} />
       </fieldset>
     </Secao>
   );

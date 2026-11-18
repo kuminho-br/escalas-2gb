@@ -4,7 +4,7 @@ import { TipoServico, type Servico } from 'contratos';
 import { useState, type FormEvent } from 'react';
 import { mensagemDe } from '@/api/cliente';
 import { atualizarServicos, consultaServico, editarServico, mudarSituacaoServico } from '@/api/servicos';
-import { EtiquetaPendente, ProvedorDePendencias, usePendencia } from '@/componentes/AlteracoesPendentes';
+import { AcoesDoBloco, ProvedorDePendencias, usePendencia } from '@/componentes/AlteracoesPendentes';
 import { FichaPainel } from '@/componentes/ListaDetalhe';
 import { Secao } from '@/componentes/militares/Secao';
 import { Turnos } from '@/componentes/servicos/Turnos';
@@ -119,11 +119,7 @@ function Identificacao({ s }: { s: Servico }) {
             <SeletorDeCor id="sv-cor" valor={cor} aoMudar={setCor} />
           </div>
         </div>
-        <div className="flex items-center gap-3">
-          <Button type="submit" variant="outline">Salvar</Button>
-          <EtiquetaPendente sujo={sujo} />
-          {aviso && <p role={aviso.erro ? 'alert' : 'status'} className={aviso.erro ? 'text-sm text-alerta' : 'text-sm text-apagado'}>{aviso.texto}</p>}
-        </div>
+        <AcoesDoBloco sujo={sujo} aviso={aviso} />
       </form>
     </Secao>
   );

@@ -4,10 +4,9 @@ import { useState } from 'react';
 import { ErroApi, mensagemDe } from '@/api/cliente';
 import { atualizarEscalas, salvarVinculos } from '@/api/escalas';
 import { consultaGuarnicoes } from '@/api/guarnicoes';
-import { EtiquetaPendente, podeDescartar, usePendencia } from '@/componentes/AlteracoesPendentes';
+import { AcoesDoBloco, podeDescartar, usePendencia } from '@/componentes/AlteracoesPendentes';
 import { LinhaDoTempo } from '@/componentes/LinhaDoTempo';
 import { Secao } from '@/componentes/militares/Secao';
-import { Button } from '@/componentes/ui/button';
 import { Input } from '@/componentes/ui/input';
 import { Label } from '@/componentes/ui/label';
 import { limites } from '@/lib/guarnicoes';
@@ -163,13 +162,7 @@ function Editor({ escala, unidadeId, versao }: { escala: Escala; unidadeId: stri
           <Label htmlFor="em-desde">Vale a partir de</Label>
           <Input id="em-desde" type="month" value={desde} min={mes} onChange={(ev) => setDesde(ev.target.value)} />
         </div>
-        <div className="flex flex-wrap items-center gap-3">
-          <Button type="button" disabled={!desde} onClick={() => void salvar()}>
-            Salvar a partir de {desde ? mesPorExtenso(desde) : '…'}
-          </Button>
-          <EtiquetaPendente sujo={sujo} />
-          {aviso && <p role={aviso.erro ? 'alert' : 'status'} className={aviso.erro ? 'text-sm text-alerta' : 'text-sm text-apagado'}>{aviso.texto}</p>}
-        </div>
+        <AcoesDoBloco sujo={sujo} aviso={aviso} tipo="button" desabilitado={!desde} rotulo={`Salvar a partir de ${desde ? mesPorExtenso(desde) : '…'}`} aoSalvar={() => void salvar()} />
       </div>
     </div>
   );

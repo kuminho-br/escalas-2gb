@@ -4,6 +4,7 @@ import { mesPorExtenso, somarMeses, textoFaixa, type FichaGuarnicao } from 'cont
 import { useState, type FormEvent } from 'react';
 import { mensagemDe } from '@/api/cliente';
 import { atualizarGuarnicoes, consultaGuarnicao, editarGuarnicao, mudarSituacao } from '@/api/guarnicoes';
+import { AcoesDoBloco, ProvedorDePendencias, usePendencia } from '@/componentes/AlteracoesPendentes';
 import { Versoes } from '@/componentes/guarnicoes/Versoes';
 import { FichaPainel } from '@/componentes/ListaDetalhe';
 import { Secao } from '@/componentes/militares/Secao';
@@ -26,6 +27,7 @@ function Ficha() {
   if (error) return <p role="alert" className="p-4 text-alerta">{mensagemDe(error)}</p>;
 
   return (
+    <ProvedorDePendencias>
     <FichaPainel
       titulo={ficha.nome}
       voltarPara="/guarnicoes"
@@ -33,11 +35,12 @@ function Ficha() {
       acoes={<Situacao key={`s-${ficha.id}`} ficha={ficha} />}
     >
       {/* key: ao trocar de guarnição, os formulários começam do zero */}
-      <Identificacao key={`i-${ficha.id}`} ficha={ficha} />
+      <Identificacao key={`i-${ficha.id}-${ficha.nome}`} ficha={ficha} />
       {/* as versões entram na key: desativar, reativar ou salvar recarrega o editor com o que foi gravado */}
       <Versoes key={`v-${ficha.id}-${ficha.versoes.map((v) => `${v.vigencia}:${v.ativa}`).join(',')}`} ficha={ficha} unidadeId={eu.unidade.id} />
       <UsadaEm ficha={ficha} />
     </FichaPainel>
+    </ProvedorDePendencias>
   );
 }
 
@@ -45,12 +48,17 @@ function Identificacao({ ficha }: { ficha: FichaGuarnicao }) {
   const queryClient = useQueryClient();
   const [nome, setNome] = useState(ficha.nome);
   const [aviso, setAviso] = useState<{ erro: boolean; texto: string } | null>(null);
+  // o último gravado (começa com o que veio do servidor): o que difere dele é alteração pendente
+  const [salvo, setSalvo] = useState(ficha.nome);
+  const sujo = nome.trim() !== salvo;
+  usePendencia('identificacao', sujo);
 
   async function salvar(e: FormEvent) {
     e.preventDefault();
     setAviso(null);
     try {
       await editarGuarnicao(ficha.id, { nome: nome.trim() });
+      setSalvo(nome.trim());
       atualizarGuarnicoes(queryClient, ficha.id);
       setAviso({ erro: false, texto: 'Alterações salvas.' });
     } catch (err) {
@@ -65,10 +73,7 @@ function Identificacao({ ficha }: { ficha: FichaGuarnicao }) {
           <Label htmlFor="gn-nome">Nome</Label>
           <Input id="gn-nome" value={nome} onChange={(e) => setNome(e.target.value)} required />
         </div>
-        <div className="flex items-center gap-3">
-          <Button type="submit" variant="outline">Salvar</Button>
-          {aviso && <p role={aviso.erro ? 'alert' : 'status'} className={aviso.erro ? 'text-sm text-alerta' : 'text-sm text-apagado'}>{aviso.texto}</p>}
-        </div>
+        <AcoesDoBloco sujo={sujo} aviso={aviso} />
       </form>
     </Secao>
   );

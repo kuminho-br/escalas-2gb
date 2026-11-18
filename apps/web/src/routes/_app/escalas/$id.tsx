@@ -4,7 +4,7 @@ import { DiasDoc, MilitaresDoc, type Escala } from 'contratos';
 import { useState, type FormEvent } from 'react';
 import { mensagemDe } from '@/api/cliente';
 import { atualizarEscalas, consultaEscala, editarEscala, mudarSituacaoEscala } from '@/api/escalas';
-import { EtiquetaPendente, ProvedorDePendencias, usePendencia } from '@/componentes/AlteracoesPendentes';
+import { AcoesDoBloco, ProvedorDePendencias, usePendencia } from '@/componentes/AlteracoesPendentes';
 import { Matriz } from '@/componentes/escalas/Matriz';
 import { FichaPainel } from '@/componentes/ListaDetalhe';
 import { ServicosDaEscala } from '@/componentes/escalas/ServicosDaEscala';
@@ -114,11 +114,7 @@ function Identificacao({ e }: { e: Escala }) {
             </Selecao>
           </div>
         </div>
-        <div className="flex items-center gap-3">
-          <Button type="submit" variant="outline">Salvar</Button>
-          <EtiquetaPendente sujo={sujo} />
-          {aviso && <p role={aviso.erro ? 'alert' : 'status'} className={aviso.erro ? 'text-sm text-alerta' : 'text-sm text-apagado'}>{aviso.texto}</p>}
-        </div>
+        <AcoesDoBloco sujo={sujo} aviso={aviso} />
       </form>
     </Secao>
   );

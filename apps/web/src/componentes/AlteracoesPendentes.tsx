@@ -1,5 +1,6 @@
 import { useBlocker } from '@tanstack/react-router';
 import { createContext, useCallback, useContext, useEffect, type ReactNode } from 'react';
+import { Button } from '@/componentes/ui/button';
 
 export const MENSAGEM_PENDENTE = 'Há alterações não salvas nesta ficha. Sair mesmo assim?';
 
@@ -20,6 +21,10 @@ export function podeDescartar(chave?: string): boolean {
   return !haAlteracoesPendentes(chave) || window.confirm(MENSAGEM_PENDENTE);
 }
 
+// funções fixas: o bloqueio não é refeito a cada renderização
+// true bloqueia a navegação: sem pendência passa direto; com pendência, só segue se a pessoa confirmar
+const bloquearNavegacao = () => sujas.size > 0 && !window.confirm(MENSAGEM_PENDENTE);
+
 /**
  * Junta as alterações pendentes dos blocos da ficha. Com alguma pendente, trocar de ficha ou sair da tela
  * pergunta antes (MENSAGEM_PENDENTE), e fechar a aba ou recarregar usa o aviso do próprio navegador.
@@ -29,11 +34,7 @@ export function ProvedorDePendencias({ children }: { children: ReactNode }) {
     if (sujo) sujas.add(chave);
     else sujas.delete(chave);
   }, []);
-  useBlocker({
-    // true bloqueia a navegação: sem pendência passa direto; com pendência, só segue se a pessoa confirmar
-    shouldBlockFn: () => sujas.size > 0 && !window.confirm(MENSAGEM_PENDENTE),
-    enableBeforeUnload: () => sujas.size > 0,
-  });
+  useBlocker({ shouldBlockFn: bloquearNavegacao, enableBeforeUnload: haAlteracoesPendentes });
   return <Contexto.Provider value={registrar}>{children}</Contexto.Provider>;
 }
 
@@ -48,4 +49,41 @@ export function usePendencia(chave: string, sujo: boolean): void {
 /** "Alterações não salvas", ao lado do botão de salvar do bloco. */
 export function EtiquetaPendente({ sujo }: { sujo: boolean }) {
   return sujo ? <p role="status" className="text-xs text-alerta">Alterações não salvas</p> : null;
+}
+
+/**
+ * O fim de todo bloco que grava: o botão fica apagado sem alteração e acende em vinho quando há o que salvar.
+ * O "salvo" só aparece enquanto não há alteração nova; o erro fica até a próxima tentativa.
+ */
+export function AcoesDoBloco({
+  sujo,
+  salvando = false,
+  desabilitado = false,
+  aviso,
+  rotulo = 'Salvar',
+  tipo = 'submit',
+  aoSalvar,
+}: {
+  sujo: boolean;
+  salvando?: boolean;
+  /** outro motivo para não poder salvar (ex.: sem mês escolhido) */
+  desabilitado?: boolean;
+  aviso: { erro: boolean; texto: string } | null;
+  rotulo?: string;
+  tipo?: 'submit' | 'button';
+  aoSalvar?: () => void;
+}) {
+  return (
+    <div className="flex flex-wrap items-center gap-3">
+      <Button type={tipo} variant={sujo ? 'default' : 'outline'} disabled={!sujo || salvando || desabilitado} onClick={aoSalvar}>
+        {rotulo}
+      </Button>
+      <EtiquetaPendente sujo={sujo} />
+      {aviso && (aviso.erro || !sujo) && (
+        <p role={aviso.erro ? 'alert' : 'status'} className={aviso.erro ? 'text-sm text-alerta' : 'text-sm text-apagado'}>
+          {aviso.texto}
+        </p>
+      )}
+    </div>
+  );
 }
