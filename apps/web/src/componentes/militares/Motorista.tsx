@@ -4,7 +4,7 @@ import { CNH_HABILITA, cnhHabilitadas } from 'dominio';
 import { useState } from 'react';
 import { mensagemDe } from '@/api/cliente';
 import { atualizarMilitares, editarMilitar } from '@/api/militares';
-import { AcoesDoBloco, usePendencia, useTrava } from '@/componentes/AlteracoesPendentes';
+import { AcoesDoBloco, usePendencia, useTrava, useSincronizar } from '@/componentes/AlteracoesPendentes';
 import { cn } from '@/lib/utils';
 import { Secao } from './Secao';
 
@@ -31,6 +31,12 @@ export function Motorista({ ficha }: { ficha: FichaMilitar }) {
   const [salvo, setSalvo] = useState(() => assinatura(ficha.noQuadroDeMotoristas, ficha.cnh));
   const sujo = assinatura(quadro, carteira) !== salvo;
   usePendencia('motorista', sujo);
+  const doServidor = assinatura(ficha.noQuadroDeMotoristas, ficha.cnh);
+  useSincronizar(doServidor, sujo, () => {
+    setQuadro(ficha.noQuadroDeMotoristas);
+    setCarteira(ficha.cnh);
+    setSalvo(doServidor);
+  });
 
   const alternar = (c: string) => setCarteira((atual) => (atual.includes(c) ? atual.filter((x) => x !== c) : [...atual, c].sort()));
 

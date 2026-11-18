@@ -359,3 +359,37 @@ describe('revisão 3: menores da tela de militares', () => {
     await waitFor(() => expect(chamadasA(f, 'PATCH /api/militares/m1')).toBe(1));
   });
 });
+
+describe('revisão 3: o aviso de salvo e o afastamento', () => {
+  it('"Alterações salvas." continua na tela depois que a ficha volta do servidor com o valor novo', async () => {
+    const novo = { ...FICHA, nomeGuerra: 'ANDRADE JR' };
+    const f = api({ 'PATCH /api/militares/m1': { status: 200, corpo: novo } });
+    abrir('/militares/m1');
+    fireEvent.change(await screen.findByLabelText('Nome de guerra'), { target: { value: 'ANDRADE JR' } });
+    // a ficha que o servidor devolve depois de gravar já traz o nome novo
+    const original = f.getMockImplementation()!;
+    f.mockImplementation(async (entrada: RequestInfo | URL, init?: RequestInit) => {
+      const url = typeof entrada === 'string' ? entrada : entrada instanceof URL ? entrada.href : entrada.url;
+      if (new URL(url, 'http://localhost').pathname === '/api/militares/m1') return new Response(JSON.stringify(novo), { status: 200, headers: { 'Content-Type': 'application/json' } });
+      return original(entrada, init);
+    });
+    await userEvent.click(screen.getByRole('button', { name: 'Salvar alterações' }));
+    expect(await screen.findByText('Alterações salvas.')).toBeInTheDocument();
+    await new Promise((ok) => setTimeout(ok, 150));
+    expect(screen.getByText('Alterações salvas.')).toBeInTheDocument();
+  });
+
+  it('Salvar o afastamento com dois cliques manda um pedido só', async () => {
+    const { espera, soltar } = trava();
+    const f = api({ 'POST /api/militares/m1/afastamentos': { status: 201, corpo: { id: 'a9' }, espera } });
+    abrir('/militares/m1');
+    await userEvent.click(await screen.findByRole('button', { name: 'Incluir afastamento' }));
+    fireEvent.change(screen.getByLabelText('Início'), { target: { value: '2026-12-01' } });
+    fireEvent.change(screen.getByLabelText('Fim'), { target: { value: '2026-12-03' } });
+    const salvar = screen.getByRole('button', { name: 'Salvar' });
+    fireEvent.click(salvar);
+    fireEvent.click(salvar);
+    soltar();
+    await waitFor(() => expect(chamadasA(f, 'POST /api/militares/m1/afastamentos')).toBe(1));
+  });
+});

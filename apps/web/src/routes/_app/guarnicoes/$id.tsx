@@ -1,10 +1,10 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { mesPorExtenso, somarMeses, textoFaixa, type FichaGuarnicao } from 'contratos';
-import { useState} from 'react';
+import { useState } from 'react';
 import { mensagemDe } from '@/api/cliente';
 import { atualizarGuarnicoes, consultaGuarnicao, editarGuarnicao, mudarSituacao } from '@/api/guarnicoes';
-import { AcoesDoBloco, podeDescartar, ProvedorDePendencias, usePendencia, useTrava } from '@/componentes/AlteracoesPendentes';
+import { AcoesDoBloco, podeDescartar, ProvedorDePendencias, usePendencia, useTrava, useSincronizar } from '@/componentes/AlteracoesPendentes';
 import { Versoes } from '@/componentes/guarnicoes/Versoes';
 import { FichaPainel } from '@/componentes/ListaDetalhe';
 import { Secao } from '@/componentes/militares/Secao';
@@ -44,7 +44,7 @@ function Corpo({ ficha, unidadeId }: { ficha: FichaGuarnicao; unidadeId: string 
       acoes={<Situacao key={`s-${ficha.id}`} ficha={ficha} />}
     >
       {/* key: ao trocar de guarnição, os formulários começam do zero */}
-      <Identificacao key={`i-${ficha.id}-${ficha.nome}`} ficha={ficha} />
+      <Identificacao key={`i-${ficha.id}`} ficha={ficha} />
       {/* as versões entram na key: desativar, reativar ou salvar recarrega o editor com o que foi gravado */}
       <Versoes key={`v-${ficha.id}-${ficha.versoes.map((v) => `${v.vigencia}:${v.ativa}`).join(',')}`} ficha={ficha} unidadeId={unidadeId} escolhida={escolhida} aoEscolher={setEscolhida} />
       <UsadaEm ficha={ficha} />
@@ -60,6 +60,10 @@ function Identificacao({ ficha }: { ficha: FichaGuarnicao }) {
   const [salvo, setSalvo] = useState(ficha.nome);
   const sujo = nome.trim() !== salvo;
   usePendencia('identificacao', sujo);
+  useSincronizar(ficha.nome, sujo, () => {
+    setNome(ficha.nome);
+    setSalvo(ficha.nome);
+  });
 
   const { salvando, travar } = useTrava();
   const salvar = travar(gravar);

@@ -34,8 +34,8 @@ function Ficha() {
       aviso={ficha.pendencias.length > 0 && <AvisoDeCadastro ficha={ficha} />}
     >
       {/* key: ao trocar de militar, os formulários começam do zero; os dados entram nela para uma gravação de fora (ex.: importação) recarregar o bloco */}
-      <Identificacao key={`i-${ficha.id}-${ficha.postoGradId}-${ficha.nomeGuerra}-${ficha.antiguidade}-${ficha.voluntarioJes}-${ficha.ativo}`} ficha={ficha} />
-      <Motorista key={`m-${ficha.id}-${ficha.noQuadroDeMotoristas}-${ficha.cnh.join('')}`} ficha={ficha} />
+      <Identificacao key={`i-${ficha.id}`} ficha={ficha} />
+      <Motorista key={`m-${ficha.id}`} ficha={ficha} />
       <Afastamentos key={`a-${ficha.id}`} ficha={ficha} />
       <Lotacoes key={`l-${ficha.id}`} ficha={ficha} unidadeId={eu.unidade.id} />
     </FichaPainel>

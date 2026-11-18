@@ -5,7 +5,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { atualizarMilitares } from '@/api/militares';
 import { MENSAGEM_PENDENTE } from '@/componentes/AlteracoesPendentes';
 import { mesAtual } from '@/lib/meses';
-import { abrir, corpoEnviado, EU_EXEMPLO, simularApi } from './apoio';
+import { abrir, chamadasA, corpoEnviado, EU_EXEMPLO, simularApi } from './apoio';
 
 const LISTA: LinhaEscala[] = [
   { id: 'e1', nome: 'Ordinário', ativa: true, servicos: ['Pronto'] },
@@ -339,6 +339,38 @@ describe('Salvar que mostra o estado', () => {
       });
       await waitFor(() => expect(screen.getByLabelText('Nome de guerra')).toHaveValue('ANDRADE NOVO'));
       expect(confirmar).not.toHaveBeenCalled();
+    });
+
+    it('revisão 3: dado novo do servidor com a identificação pendente não apaga o que a pessoa digitou', async () => {
+      const r = rotasM();
+      const f = simularApi(r);
+      const confirmar = vi.spyOn(window, 'confirm').mockReturnValue(false);
+      const router = abrir('/militares/m1');
+      const campo = await screen.findByLabelText('Nome de guerra');
+      fireEvent.change(campo, { target: { value: 'ANDRADE JR' } });
+      const antes = chamadasA(f, 'GET /api/militares/m1');
+      r['GET /api/militares/m1'] = { status: 200, corpo: { ...FICHA_M, nomeGuerra: 'ANDRADE NOVO' } };
+      await act(async () => {
+        atualizarMilitares(router.options.context.queryClient, 'm1');
+      });
+      await waitFor(() => expect(chamadasA(f, 'GET /api/militares/m1')).toBeGreaterThan(antes));
+      await new Promise((ok) => setTimeout(ok, 50));
+      expect(screen.getByLabelText('Nome de guerra')).toHaveValue('ANDRADE JR');
+      expect(screen.getAllByText('Alterações não salvas').length).toBeGreaterThan(0);
+      expect(confirmar).not.toHaveBeenCalled();
+    });
+
+    it('revisão 3: incluir afastamento com as datas digitadas pergunta antes de trocar de militar', async () => {
+      const r = rotasM();
+      r['GET /api/sistema/tipos-afastamento'] = { status: 200, corpo: [{ id: 't-ferias', nome: 'Férias', ativo: true }] };
+      simularApi(r);
+      const confirmar = vi.spyOn(window, 'confirm').mockReturnValue(false);
+      abrir('/militares/m1');
+      await userEvent.click(await screen.findByRole('button', { name: 'Incluir afastamento' }));
+      fireEvent.change(screen.getByLabelText('Início'), { target: { value: '2026-12-01' } });
+      await userEvent.click(screen.getByRole('link', { name: /BARRETO/ }));
+      await waitFor(() => expect(confirmar).toHaveBeenCalledWith(MENSAGEM_PENDENTE));
+      expect(screen.getByLabelText('Início')).toHaveValue('2026-12-01');
     });
 
     it('trocar de guarnição com a composição pendente pergunta', async () => {

@@ -70,6 +70,19 @@ export function useTrava() {
   return { salvando, travar };
 }
 
+/**
+ * O servidor trouxe outro conteúdo para este bloco (outra gravação, importação, volta à janela): sem alteração
+ * pendente, `aoRecarregar` põe os campos no valor novo; com alteração, o que a pessoa digitou fica. O bloco não é
+ * recriado (a `key` leva só o id), então o aviso de "salvo" continua na tela.
+ */
+export function useSincronizar(doServidor: string, sujo: boolean, aoRecarregar: () => void) {
+  const [visto, setVisto] = useState(doServidor);
+  if (doServidor !== visto) {
+    setVisto(doServidor);
+    if (!sujo) aoRecarregar();
+  }
+}
+
 export function EtiquetaPendente({ sujo }: { sujo: boolean }) {
   return sujo ? <p role="status" className="text-xs text-alerta">Alterações não salvas</p> : null;
 }

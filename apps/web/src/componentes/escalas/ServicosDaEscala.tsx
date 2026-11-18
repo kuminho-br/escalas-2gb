@@ -6,7 +6,7 @@ import { useState } from 'react';
 import { mensagemDe } from '@/api/cliente';
 import { atualizarEscalas, salvarServicosDaEscala } from '@/api/escalas';
 import { consultaServicos } from '@/api/servicos';
-import { AcoesDoBloco, usePendencia, useTrava } from '@/componentes/AlteracoesPendentes';
+import { AcoesDoBloco, usePendencia, useTrava, useSincronizar } from '@/componentes/AlteracoesPendentes';
 import { Secao } from '@/componentes/militares/Secao';
 import { Selecao } from '@/componentes/Selecao';
 import { QuadradoDaCor } from '@/componentes/QuadradoDaCor';
@@ -24,6 +24,11 @@ export function ServicosDaEscala({ escala, unidadeId }: { escala: Escala; unidad
   const [salvo, setSalvo] = useState(() => escala.servicos.map((x) => x.id).join('|'));
   const sujo = itens.map((x) => x.id).join('|') !== salvo;
   usePendencia('servicos', sujo);
+  const doServidor = escala.servicos.map((x) => `${x.id}:${x.nome}:${x.cor}`).join('|');
+  useSincronizar(doServidor, sujo, () => {
+    setItens(escala.servicos);
+    setSalvo(escala.servicos.map((x) => x.id).join('|'));
+  });
   const fora = (servicos.data ?? []).filter((s) => s.ativo && !itens.some((i) => i.id === s.id));
 
   function mover(i: number, delta: number) {
