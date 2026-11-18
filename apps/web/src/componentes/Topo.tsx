@@ -42,7 +42,11 @@ export function Topo({ eu, aoAbrirMenu }: { eu: Eu; aoAbrirMenu: () => void }) {
       <button type="button" onClick={aoAbrirMenu} className="-ml-1 rounded p-1.5 text-tinta md:hidden" aria-label="Abrir menu">
         <Menu className="size-5" aria-hidden />
       </button>
-      <p className="min-w-0 flex-1 truncate font-cond text-[15px] text-apagado">{eu.unidade.caminho.join(' › ')}</p>
+      {/* no celular só a seção atual cabe; o caminho inteiro vale do computador em diante */}
+      <p className="min-w-0 flex-1 truncate font-cond text-[15px] text-apagado">
+        <span data-caminho-curto className="md:hidden">{eu.unidade.caminho.at(-1)}</span>
+        <span className="max-md:hidden">{eu.unidade.caminho.join(' › ')}</span>
+      </p>
       {erroSair && (
         <p role="alert" className="absolute top-full right-4 mt-2 max-w-[calc(100%-2rem)] rounded-md border border-linha bg-superficie px-3 py-2 text-sm text-alerta shadow-sm md:right-8">
           {erroSair}

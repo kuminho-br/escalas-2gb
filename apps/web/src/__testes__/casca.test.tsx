@@ -1,4 +1,4 @@
-import { screen, waitFor } from '@testing-library/react';
+import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
 import { abrir, EU_EXEMPLO, simularApi } from './apoio';
@@ -50,5 +50,47 @@ describe('casca', () => {
     expect(screen.queryByText('Militares')).toBeNull();
     expect(screen.queryByText('Configurações')).toBeNull();
     expect(screen.getByRole('link', { name: 'Grade geral' })).toBeInTheDocument();
+  });
+});
+
+describe('trilho', () => {
+  const NOMES = ['Grade geral', 'Escala do mês', 'Efetivo do dia', 'Voluntariado', 'Cotas', 'Militares', 'Serviços', 'Guarnições', 'Escalas', 'Feriados', 'Configurações', 'Estrutura', 'Histórico', 'Ajuda'];
+  const menu = () => screen.getByRole('navigation', { name: 'Navegação principal' });
+
+  it('no computador o menu é um trilho de 84 px', async () => {
+    simularApi({ '/api/eu': { status: 200, corpo: EU_EXEMPLO } });
+    abrir('/');
+    await screen.findByText('SD BM ANDRADE');
+    expect(menu().parentElement?.className).toContain('md:grid-cols-[84px_1fr]');
+    expect(menu().className).toContain('md:w-[84px]');
+  });
+
+  it('cada item do trilho mantém o nome', async () => {
+    simularApi({ '/api/eu': { status: 200, corpo: { ...EU_EXEMPLO, papeis: [{ papel: 'administrador', unidadeId: 'u-1sb', unidadeSigla: '1ª SB' }] } } });
+    abrir('/');
+    await screen.findByText('SD BM ANDRADE');
+    for (const nome of NOMES) expect(within(menu()).getByText(nome)).toBeInTheDocument();
+    expect(within(menu()).getByRole('link', { name: 'Militares' })).toHaveAttribute('href', '/militares');
+    expect(within(menu()).getByText('Escala do mês').closest('[aria-disabled="true"]')).not.toBeNull();
+    expect(within(menu()).queryByRole('link', { name: 'Escala do mês' })).toBeNull();
+  });
+
+  it('o menu do celular abre e fecha', async () => {
+    simularApi({ '/api/eu': { status: 200, corpo: EU_EXEMPLO } });
+    abrir('/');
+    await screen.findByText('SD BM ANDRADE');
+    expect(menu().className).toContain('-translate-x-full');
+    await userEvent.click(screen.getByRole('button', { name: 'Abrir menu' }));
+    expect(menu().className).toContain('translate-x-0');
+    expect(menu().className).not.toContain('-translate-x-full');
+    await userEvent.click(screen.getByRole('button', { name: 'Fechar menu' }));
+    expect(menu().className).toContain('-translate-x-full');
+  });
+
+  it('no celular o caminho mostra a seção atual', async () => {
+    simularApi({ '/api/eu': { status: 200, corpo: EU_EXEMPLO } });
+    abrir('/');
+    await screen.findByText('SD BM ANDRADE');
+    expect(document.querySelector('[data-caminho-curto]')).toHaveTextContent('1ª SB');
   });
 });
