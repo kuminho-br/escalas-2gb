@@ -128,7 +128,7 @@ function Editor({ escala, unidadeId, versao, aoSalvar }: { escala: Escala; unida
                 return (
                   <tr key={g.id} className="border-b border-linha/60">
                     <td className="sticky left-0 z-10 bg-superficie py-1.5 pr-4">
-                      <Link to="/guarnicoes/$id" params={{ id: g.id }} className="font-medium hover:underline">{g.nome}</Link>
+                      <Link to="/guarnicoes/$id" params={{ id: g.id }} className="font-medium text-vinho hover:underline">{g.nome}</Link>
                       {desativada.has(g.id) && <span className="ml-2 rounded border border-linha px-1.5 text-xs">desativada</span>}
                       {tamanho && <span className="block text-xs text-apagado">{limites(tamanho)}</span>}
                     </td>

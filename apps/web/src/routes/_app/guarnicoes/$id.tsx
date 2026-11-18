@@ -154,7 +154,7 @@ function UsadaEm({ ficha }: { ficha: FichaGuarnicao }) {
         <ul className="grid gap-1.5 text-sm">
           {ficha.usadaEm.map((u) => (
             <li key={u.escalaId} className="flex gap-3">
-              <Link to="/escalas/$id" params={{ id: u.escalaId }} className="font-medium hover:underline">{u.escala}</Link>
+              <Link to="/escalas/$id" params={{ id: u.escalaId }} className="font-medium text-vinho hover:underline">{u.escala}</Link>
               <span className="text-apagado">{u.faixas.map((f) => textoFaixa(f.inicio, f.fim)).join(', ')}</span>
             </li>
           ))}

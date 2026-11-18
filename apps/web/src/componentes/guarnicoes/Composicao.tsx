@@ -82,7 +82,7 @@ export function Composicao({ linhas, aoMudar, funcoes, unidadeId, aoMudarFuncao 
           return (
             <li key={l.chave} className="grid gap-2 rounded-lg border border-linha px-3 py-2">
               {/* no computador, cada função cabe numa linha: função, mínimo e máximo, CNH (largura reservada) e Remover */}
-              <div className="grid items-center gap-x-3 gap-y-2 text-sm sm:grid-cols-[minmax(12rem,1fr)_auto_9.5rem_auto]">
+              <div className="grid items-center gap-x-3 gap-y-2 text-sm sm:grid-cols-[minmax(12rem,1fr)_auto_10.5rem_auto]">
                 <span className="flex items-center gap-1">
                   <Selecao
                     aria-label={`Função ${i + 1}`}
@@ -131,7 +131,7 @@ export function Composicao({ linhas, aoMudar, funcoes, unidadeId, aoMudarFuncao 
                   militares
                 </span>
                 <span className="inline-flex items-center gap-2">
-                  <label className="inline-flex items-center gap-1.5">
+                  <label className="inline-flex items-center gap-1.5 whitespace-nowrap">
                     <input
                       type="checkbox"
                       aria-label={`Exige CNH para ${nome}`}

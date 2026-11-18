@@ -51,7 +51,7 @@ const PE: Item[] = [
 
 // celular: ícone e nome lado a lado; computador: o trilho de 84 px, com o ícone e o nome pequeno embaixo (esboço telas-v12)
 const classeItem =
-  'flex h-9 items-center gap-3 rounded-md px-3 text-[15px] focus-visible:outline-white md:h-auto md:w-[72px] md:flex-col md:justify-center md:gap-[3px] md:rounded-[10px] md:px-0.5 md:py-[7px] md:text-center md:font-cond md:text-[11.5px] md:leading-[1.15] md:font-medium';
+  'flex h-9 items-center gap-3 rounded-md px-3 text-[15px] focus-visible:outline-white md:h-auto md:w-[72px] md:flex-col md:justify-center md:gap-0.5 md:rounded-[10px] md:px-0.5 md:py-1 md:text-center md:font-cond md:text-[11.5px] md:leading-[1.15] md:font-medium';
 
 function ItemTrilho({ item, aoNavegar }: { item: Item; aoNavegar: () => void }) {
   const Icone = item.icone;
@@ -88,11 +88,11 @@ export function Trilho({ eu, aberto, aoFechar }: { eu: Eu; aberto: boolean; aoFe
       <nav
         aria-label="Navegação principal"
         className={cn(
-          'fixed inset-y-0 left-0 z-40 flex w-[232px] flex-col bg-vinho px-3 py-4 text-white transition-transform md:sticky md:top-0 md:h-dvh md:w-[84px] md:translate-x-0 md:items-center md:overflow-y-auto md:px-0 md:py-3.5',
+          'fixed inset-y-0 left-0 z-40 flex w-[232px] flex-col bg-vinho px-3 py-4 text-white transition-transform md:sticky md:top-0 md:h-dvh md:w-[84px] md:translate-x-0 md:items-center md:overflow-y-auto md:px-0 md:py-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden',
           aberto ? 'translate-x-0' : '-translate-x-full max-md:invisible',
         )}
       >
-        <div className="mb-4 flex items-center justify-between px-3 md:mb-3.5 md:justify-center md:px-0">
+        <div className="mb-4 flex items-center justify-between px-3 md:mb-2.5 md:justify-center md:px-0">
           <span className="font-cond text-lg font-semibold tracking-tight md:hidden">Escalas 2º GB</span>
           <span role="img" aria-label="Escalas 2º GB" className="hidden size-[42px] place-items-center rounded-full bg-[#F2C200] font-cond text-xs font-bold text-vinho md:grid">2º GB</span>
           <button type="button" onClick={aoFechar} className="rounded p-1 text-white/80 md:hidden" aria-label="Fechar menu">

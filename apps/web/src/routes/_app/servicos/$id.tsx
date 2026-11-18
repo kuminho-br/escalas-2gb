@@ -141,7 +141,7 @@ function UsadoEm({ s, unidadeId }: { s: Servico; unidadeId: string }) {
         <ul className="grid gap-1.5 text-sm">
           {reunem.map((e) => (
             <li key={e.id} className="flex items-center gap-2">
-              <Link to="/escalas/$id" params={{ id: e.id }} className="font-medium hover:underline">{e.nome}</Link>
+              <Link to="/escalas/$id" params={{ id: e.id }} className="font-medium text-vinho hover:underline">{e.nome}</Link>
               {!e.ativa && <span className="rounded border border-linha px-1.5 text-xs">desativada</span>}
             </li>
           ))}
