@@ -110,7 +110,7 @@ Regra: o `nivel` do tipo da mãe é menor que o da filha.
 | voluntario_jes | boolean not null default false | RN-46 |
 | ativo | boolean not null default true | |
 
-A hierarquia de CNH (E habilita D, C e B; D habilita C, B e A; C habilita B e A; B habilita A) é regra de domínio, no código (RN-12). Não vai para tabela. TELEFONE não existe (D7).
+A hierarquia de CNH (decisão de 18/11/2026, regra do CTB): A é uma categoria isolada: não habilita nenhuma outra e nenhuma outra a habilita. As demais seguem a cadeia B, C, D, E (regra do CTB): B habilita B; C habilita C e B; D habilita D e C (e, pela cadeia, B); E habilita E e D (e, pela cadeia, C e B). É regra de domínio, no código (RN-12; `CNH_HABILITA` em `pacotes/dominio/src/cnh.ts`). Não vai para tabela. TELEFONE não existe (D7).
 
 ### equipe
 | Coluna | Tipo | Regra |

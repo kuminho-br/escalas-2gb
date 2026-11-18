@@ -238,3 +238,14 @@ Entre a fase 3 e a fase 4 entram três revisões (roadmap, "Revisões antes da f
 ### Pendências menores dos PRs
 
 As pendências anotadas nos PRs da fase 3 são separadas em quatro grupos: as que uma pessoa pode encontrar nas telas entram na revisão 1; as já resolvidas saem; as internas (testes, código sem uso, recuo) vão para a revisão 3; as que só aparecem com várias unidades ou com alocações gravadas vão para as fases 4 e 7. A lista de cada grupo fica no plano da revisão 1.
+
+## Adendo (18/11/2026) — Hierarquia de CNH
+
+Decisão do usuário, que fecha a divergência achada na revisão 3 entre os documentos e o motor. A hierarquia vale como regra do CTB e fica fixa no código (RN-12), não no cadastro:
+
+- **A** é uma categoria isolada: não habilita nenhuma outra e nenhuma outra a habilita.
+- **B** habilita B; **C** habilita C e B; **D** habilita D e C; **E** habilita E e D. Pela cadeia B, C, D, E, D também habilita B, e E habilita D, C e B.
+
+O motor (`CNH_HABILITA`, `cnhHabilitadas`) e o protótipo já seguiam isso; o `CLAUDE.md` e o esquema do banco diziam, por engano, que D, C e B habilitavam A.
+
+**Tela do motorista (pendente de definição):** o usuário não quer marcar categoria por categoria (A, e depois B, C, D e E): ao clicar em E, as categorias que ela habilita devem já aparecer marcadas. Hoje a ficha guarda só as categorias da carteira e mostra as habilitadas tracejadas ("pela D"). A definir antes de mexer na tela: se o clique em E também marca o A, dado que A é isolada, e se as habilitadas ficam marcadas só na tela ou passam a ser gravadas.
