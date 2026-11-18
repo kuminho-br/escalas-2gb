@@ -9,6 +9,7 @@ import { atualizarGuarnicoes } from '@/api/guarnicoes';
 import { atualizarServicos, consultaServicos, criarServico } from '@/api/servicos';
 import { ImportarPlanilha } from '@/componentes/ImportarPlanilha';
 import { ListaDetalhe } from '@/componentes/ListaDetalhe';
+import { QuadradoDaCor } from '@/componentes/QuadradoDaCor';
 import { Selecao } from '@/componentes/Selecao';
 import { Button } from '@/componentes/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/componentes/ui/dialog';
@@ -97,7 +98,7 @@ function ItemServico({ s, escolhido }: { s: Servico; escolhido: boolean }) {
         params={{ id: s.id }}
         className={cn('flex items-center gap-2 rounded-lg px-3 py-2 hover:bg-accent', escolhido && 'bg-accent ring-1 ring-linha', !s.ativo && 'opacity-70')}
       >
-        <span aria-hidden className="size-3 shrink-0 rounded-sm" style={{ backgroundColor: s.cor }} />
+        <QuadradoDaCor cor={s.cor} />
         <span className="font-cond text-base font-semibold">{s.nome}</span>
         <span className="text-xs text-apagado">{s.turnos.map((t) => t.letra).join(' ')}</span>
         {!s.ativo && <span className="ml-auto rounded border border-linha px-1.5 text-xs">desativado</span>}

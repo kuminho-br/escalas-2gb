@@ -8,6 +8,7 @@ import { consultaServicos } from '@/api/servicos';
 import { EtiquetaPendente, usePendencia } from '@/componentes/AlteracoesPendentes';
 import { Secao } from '@/componentes/militares/Secao';
 import { Selecao } from '@/componentes/Selecao';
+import { QuadradoDaCor } from '@/componentes/QuadradoDaCor';
 import { Button } from '@/componentes/ui/button';
 
 type Item = { id: string; nome: string; cor: string };
@@ -49,7 +50,7 @@ export function ServicosDaEscala({ escala, unidadeId }: { escala: Escala; unidad
       <ol className="grid gap-1.5">
         {itens.map((s, i) => (
           <li key={s.id} className="flex items-center gap-2 rounded-lg border border-linha px-3 py-1.5 text-sm">
-            <span aria-hidden className="size-3 rounded-sm" style={{ backgroundColor: s.cor }} />
+            <QuadradoDaCor cor={s.cor} />
             <span className="font-medium">{s.nome}</span>
             <span className="ml-auto flex gap-1">
               <Button type="button" size="icon" variant="ghost" aria-label={`Subir ${s.nome}`} disabled={i === 0} onClick={() => mover(i, -1)}>
