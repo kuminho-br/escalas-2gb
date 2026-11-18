@@ -37,8 +37,9 @@ export function rotasImportacao(dep: { banco: Banco; auth: Auth }, importadores:
     if (negado) return negado;
     if (!imp) return c.json({ erro: 'Importação desconhecida.' }, 404);
 
-    const corpo = await c.req.parseBody();
-    const arquivo = corpo.arquivo;
+    // formulário quebrado (sem fronteira, truncado) é erro de quem enviou, não da API
+    const corpo = await c.req.parseBody().catch(() => null);
+    const arquivo = corpo?.arquivo;
     if (!(arquivo instanceof File)) return c.json({ erro: 'Escolha o arquivo .xlsx da planilha.' }, 400);
     let abas: Record<string, Aba>;
     try {
