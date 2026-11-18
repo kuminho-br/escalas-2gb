@@ -173,3 +173,36 @@ describe('depois de gravar', () => {
     expect(chaves).toEqual(expect.arrayContaining([['militares'], ['equipes'], ['militar']]));
   });
 });
+
+describe('ficha em painel único', () => {
+  it('a ficha do militar é um painel só com o resumo da lotação', async () => {
+    const antiga = { ...FICHA, lotacoes: [{ id: 'l1', unidadeSigla: '1ª SB', equipe: 'Alfa', jornada: 'pronto' as const, desde: '2020-01-01', ate: null }] };
+    api({ 'GET /api/militares/m1': { status: 200, corpo: antiga } });
+    abrir('/militares/m1');
+    const ficha = (await screen.findByRole('heading', { level: 2, name: /ANDRADE/ })).closest('[data-ficha]') as HTMLElement;
+    expect(ficha).not.toBeNull();
+    expect(ficha.tagName).toBe('ARTICLE');
+    expect(within(ficha).getByText('1ª SB, Pronto (Alfa) desde janeiro de 2020', { selector: 'p' })).toBeInTheDocument();
+    // os blocos não têm moldura própria: a ficha é um painel só, com linhas entre eles
+    expect(ficha.className).toContain('divide-y');
+    for (const s of ficha.querySelectorAll('section')) expect(s.className).not.toContain('border');
+  });
+
+  it('o item aberto na lista fica marcado', async () => {
+    api();
+    abrir('/militares/m1');
+    const link = (await screen.findAllByText('ANDRADE')).map((e) => e.closest('a')).find(Boolean)!;
+    expect(link).toHaveAttribute('aria-current', 'page');
+    expect(link.className).toContain('shadow-[inset_3px_0_0');
+  });
+
+  it('bloco recolhido aponta o conteúdo', async () => {
+    api();
+    abrir('/militares/m1');
+    const botao = await screen.findByRole('button', { name: /Lotação/ });
+    const id = botao.getAttribute('aria-controls');
+    expect(id).toBeTruthy();
+    await userEvent.click(botao);
+    expect(within(document.getElementById(id!)!).getByText('1ª SB, Pronto, equipe Alfa')).toBeInTheDocument();
+  });
+});

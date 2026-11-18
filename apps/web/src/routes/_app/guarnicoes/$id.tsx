@@ -1,15 +1,16 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { createFileRoute, Link } from '@tanstack/react-router';
+import { createFileRoute } from '@tanstack/react-router';
 import { mesPorExtenso, somarMeses, textoFaixa, type FichaGuarnicao } from 'contratos';
-import { ArrowLeft } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
 import { mensagemDe } from '@/api/cliente';
 import { atualizarGuarnicoes, consultaGuarnicao, editarGuarnicao, mudarSituacao } from '@/api/guarnicoes';
 import { Versoes } from '@/componentes/guarnicoes/Versoes';
+import { FichaPainel } from '@/componentes/ListaDetalhe';
 import { Secao } from '@/componentes/militares/Secao';
 import { Button } from '@/componentes/ui/button';
 import { Input } from '@/componentes/ui/input';
 import { Label } from '@/componentes/ui/label';
+import { resumoDaGuarnicao, versaoVigente } from '@/lib/guarnicoes';
 import { mesAtual } from '@/lib/meses';
 
 export const Route = createFileRoute('/_app/guarnicoes/$id')({
@@ -25,20 +26,18 @@ function Ficha() {
   if (error) return <p role="alert" className="p-4 text-alerta">{mensagemDe(error)}</p>;
 
   return (
-    <article className="grid gap-4">
-      <header className="flex items-baseline gap-3">
-        <Link to="/guarnicoes" className="lg:hidden" aria-label="Voltar para a lista">
-          <ArrowLeft className="size-5" aria-hidden />
-        </Link>
-        <h2 className="font-cond text-2xl font-semibold">{ficha.nome}</h2>
-      </header>
-      <Situacao key={`s-${ficha.id}`} ficha={ficha} />
+    <FichaPainel
+      titulo={ficha.nome}
+      voltarPara="/guarnicoes"
+      resumo={resumoDaGuarnicao(versaoVigente(ficha.versoes, mesAtual()))}
+      acoes={<Situacao key={`s-${ficha.id}`} ficha={ficha} />}
+    >
       {/* key: ao trocar de guarnição, os formulários começam do zero */}
       <Identificacao key={`i-${ficha.id}`} ficha={ficha} />
       {/* as versões entram na key: desativar, reativar ou salvar recarrega o editor com o que foi gravado */}
       <Versoes key={`v-${ficha.id}-${ficha.versoes.map((v) => `${v.vigencia}:${v.ativa}`).join(',')}`} ficha={ficha} unidadeId={eu.unidade.id} />
       <UsadaEm ficha={ficha} />
-    </article>
+    </FichaPainel>
   );
 }
 
@@ -96,8 +95,8 @@ function Situacao({ ficha }: { ficha: FichaGuarnicao }) {
   }
 
   return (
-    <div className="grid gap-2 text-sm">
-      <div className="flex flex-wrap items-center gap-2">
+    <div className="grid justify-items-end gap-2 text-sm">
+      <div className="flex flex-wrap items-center justify-end gap-2">
         {desde && desde <= mes && (
           <>
             <p className="font-medium text-alerta">Desativada desde {mesPorExtenso(desde)}.</p>

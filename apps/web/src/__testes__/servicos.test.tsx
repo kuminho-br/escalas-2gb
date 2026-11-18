@@ -1,7 +1,7 @@
 import type { Servico } from 'contratos';
 import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { textoDuracao } from '@/lib/turnos';
 import { abrir, corpoEnviado, EU_EXEMPLO, simularApi } from './apoio';
 
@@ -190,12 +190,14 @@ describe('serviços', () => {
   });
 
   it('desativar envia ativo false', async () => {
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
     const f = api({ 'POST /api/servicos/s3/situacao': { status: 200, corpo: { ...BIOMA, ativo: false } } });
     abrir('/servicos/s3');
     await userEvent.click(await screen.findByRole('button', { name: 'Desativar' }));
     await waitFor(() => expect(corpoEnviado(f, 'POST /api/servicos/s3/situacao')).toEqual({ ativo: false }));
   });
   it('revisão: a identificação recarrega quando o serviço muda no servidor', async () => {
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
     const rotas: Parameters<typeof simularApi>[0] = {
       '/api/eu': { status: 200, corpo: EU_EXEMPLO },
       'GET /api/unidades/u-1sb/servicos': { status: 200, corpo: LISTA },
@@ -209,5 +211,77 @@ describe('serviços', () => {
     rotas['GET /api/servicos/s3'] = { status: 200, corpo: { ...BIOMA, tipo: 'pjes', operacao: null } };
     await userEvent.click(screen.getByRole('button', { name: 'Desativar' }));
     await waitFor(() => expect(screen.getByLabelText('Tipo')).toHaveValue('pjes'));
+  });
+});
+
+describe('ficha do serviço em painel único', () => {
+  it('o resumo do serviço diz tipo, operação e turnos', async () => {
+    api();
+    abrir('/servicos/s3');
+    const ficha = (await screen.findByRole('heading', { level: 2, name: 'Bioma' })).closest('[data-ficha]') as HTMLElement;
+    expect(within(ficha).getByText('Diária da operação Guardiões do Bioma, 1 turno.')).toBeInTheDocument();
+  });
+
+  it('o resumo do serviço sem turnos', async () => {
+    api({ 'GET /api/servicos/s2': { status: 200, corpo: LISTA[1] } });
+    abrir('/servicos/s2');
+    expect(await screen.findByText('PJES, sem turnos.')).toBeInTheDocument();
+  });
+
+  it('serviço ativo não diz Desativado', async () => {
+    api();
+    abrir('/servicos/s3');
+    await screen.findByRole('heading', { level: 2, name: 'Bioma' });
+    expect(screen.queryByText(/Desativado/)).toBeNull();
+    expect(screen.getByRole('button', { name: 'Desativar' })).toBeInTheDocument();
+  });
+
+  it('Desativar pergunta e, confirmando, desativa', async () => {
+    const confirmar = vi.spyOn(window, 'confirm').mockReturnValue(true);
+    const f = api({ 'POST /api/servicos/s3/situacao': { status: 200, corpo: { ...BIOMA, ativo: false } } });
+    abrir('/servicos/s3');
+    await userEvent.click(await screen.findByRole('button', { name: 'Desativar' }));
+    expect(confirmar).toHaveBeenCalledWith('Desativar o serviço Bioma? Ele some da lista e continua nas escalas que já o reúnem.');
+    await waitFor(() => expect(corpoEnviado(f, 'POST /api/servicos/s3/situacao')).toEqual({ ativo: false }));
+    confirmar.mockRestore();
+  });
+
+  it('cancelando a pergunta, nada é enviado', async () => {
+    const confirmar = vi.spyOn(window, 'confirm').mockReturnValue(false);
+    const f = api({ 'POST /api/servicos/s3/situacao': { status: 200, corpo: { ...BIOMA, ativo: false } } });
+    abrir('/servicos/s3');
+    await userEvent.click(await screen.findByRole('button', { name: 'Desativar' }));
+    expect(confirmar).toHaveBeenCalled();
+    expect(f.mock.calls.some(([, init]) => init?.method === 'POST')).toBe(false);
+    confirmar.mockRestore();
+  });
+
+  it('serviço desativado mostra a etiqueta e Reativar, sem perguntar', async () => {
+    const confirmar = vi.spyOn(window, 'confirm');
+    const f = api({
+      'GET /api/servicos/s3': { status: 200, corpo: { ...BIOMA, ativo: false } },
+      'POST /api/servicos/s3/situacao': { status: 200, corpo: BIOMA },
+    });
+    abrir('/servicos/s3');
+    const ficha = (await screen.findByRole('heading', { level: 2, name: 'Bioma' })).closest('[data-ficha]') as HTMLElement;
+    expect(within(ficha).getByText('desativado')).toBeInTheDocument();
+    await userEvent.click(within(ficha).getByRole('button', { name: 'Reativar' }));
+    await waitFor(() => expect(corpoEnviado(f, 'POST /api/servicos/s3/situacao')).toEqual({ ativo: true }));
+    expect(confirmar).not.toHaveBeenCalled();
+    confirmar.mockRestore();
+  });
+
+  it('o item aberto na lista fica marcado', async () => {
+    api();
+    abrir('/servicos/s3');
+    const link = (await screen.findAllByText('Bioma')).map((e) => e.closest('a')).find(Boolean)!;
+    expect(link).toHaveAttribute('aria-current', 'page');
+    expect(link.className).toContain('shadow-[inset_3px_0_0');
+  });
+
+  it('todos desativados, a lista explica o que marcar', async () => {
+    api({ 'GET /api/unidades/u-1sb/servicos': { status: 200, corpo: LISTA.map((s) => ({ ...s, ativo: false })) } });
+    abrir('/servicos');
+    expect(await screen.findByText('Todos os serviços estão desativados. Marque "Mostrar desativados" para vê-los.')).toBeInTheDocument();
   });
 });

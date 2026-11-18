@@ -9,12 +9,8 @@ import { Secao } from '@/componentes/militares/Secao';
 import { Button } from '@/componentes/ui/button';
 import { Input } from '@/componentes/ui/input';
 import { Label } from '@/componentes/ui/label';
+import { versaoVigente } from '@/lib/guarnicoes';
 import { mesAtual } from '@/lib/meses';
-
-/** A versão em vigor no mês; sem nenhuma ainda, a primeira. As versões vêm da mais recente para a mais antiga. */
-function versaoVigente(versoes: VersaoSalva[], mes: string): VersaoSalva | undefined {
-  return versoes.find((v) => v.vigencia <= mes) ?? versoes[versoes.length - 1];
-}
 
 export function Versoes({ ficha, unidadeId }: { ficha: FichaGuarnicao; unidadeId: string }) {
   const mes = mesAtual();

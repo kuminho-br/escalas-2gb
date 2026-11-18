@@ -8,7 +8,7 @@ import { atualizarEscalas } from '@/api/escalas';
 import { atualizarGuarnicoes } from '@/api/guarnicoes';
 import { atualizarServicos, consultaServicos, criarServico } from '@/api/servicos';
 import { ImportarPlanilha } from '@/componentes/ImportarPlanilha';
-import { ListaDetalhe } from '@/componentes/ListaDetalhe';
+import { classeItemEscolhido, ListaDetalhe } from '@/componentes/ListaDetalhe';
 import { QuadradoDaCor } from '@/componentes/QuadradoDaCor';
 import { Selecao } from '@/componentes/Selecao';
 import { Button } from '@/componentes/ui/button';
@@ -79,6 +79,7 @@ function ListaDeServicos({ unidadeId, escolhido }: { unidadeId: string; escolhid
               );
             })}
             {servicos.data.length === 0 && <p className="p-4 text-apagado">Nenhum serviço. Use "Novo serviço" ou "Importar da planilha".</p>}
+            {servicos.data.length > 0 && visiveis.length === 0 && <p className="p-4 text-apagado">Todos os serviços estão desativados. Marque "Mostrar desativados" para vê-los.</p>}
           </div>
           <label className="flex shrink-0 items-center gap-2 border-t border-linha px-4 py-2.5 text-xs text-apagado">
             <input type="checkbox" checked={desativados} onChange={(e) => setDesativados(e.target.checked)} className="size-4 accent-vinho" />
@@ -96,7 +97,8 @@ function ItemServico({ s, escolhido }: { s: Servico; escolhido: boolean }) {
       <Link
         to="/servicos/$id"
         params={{ id: s.id }}
-        className={cn('flex items-center gap-2 rounded-lg px-3 py-2 hover:bg-accent', escolhido && 'bg-accent ring-1 ring-linha', !s.ativo && 'opacity-70')}
+        className={cn('flex items-center gap-2 rounded-lg px-3 py-2 hover:bg-accent', escolhido && classeItemEscolhido, !s.ativo && 'opacity-70')}
+        aria-current={escolhido ? 'page' : undefined}
       >
         <QuadradoDaCor cor={s.cor} />
         <span className="font-cond text-base font-semibold">{s.nome}</span>

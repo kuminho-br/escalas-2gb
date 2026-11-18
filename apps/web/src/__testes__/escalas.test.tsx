@@ -1,7 +1,7 @@
 import type { Escala, LinhaEscala, LinhaGuarnicao } from 'contratos';
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { mesAtual } from '@/lib/meses';
 import { mesPorExtenso } from 'contratos';
 import { abrir, corpoEnviado, EU_EXEMPLO, simularApi } from './apoio';
@@ -144,5 +144,48 @@ describe('escalas', () => {
     api(escala({ vinculos: [{ vigencia: mes, itens: [{ guarnicaoId: 'g1', guarnicao: 'ABT', ativaNoMes: true, inicio: '16:00', fim: '00:00' }] }] }));
     abrir('/escalas/e1');
     expect(await screen.findByText('A faixa 16h–00h não existe mais nos serviços desta escala: ABT. Salve a matriz para tirá-la.')).toBeInTheDocument();
+  });
+});
+
+describe('ficha da escala em painel único', () => {
+  it('o resumo da escala diz o título no documento', async () => {
+    api();
+    abrir('/escalas/e1');
+    const ficha = (await screen.findByRole('heading', { level: 2, name: 'Ordinário' })).closest('[data-ficha]') as HTMLElement;
+    expect(within(ficha).getByText('Título no documento: ESCALA ORDINÁRIO.')).toBeInTheDocument();
+  });
+
+  it('escala ativa só mostra Desativar, e pergunta antes', async () => {
+    const confirmar = vi.spyOn(window, 'confirm').mockReturnValue(true);
+    const f = api(escala(), { 'POST /api/escalas/e1/situacao': { status: 200, corpo: escala({ ativa: false }) } });
+    abrir('/escalas/e1');
+    await screen.findByRole('heading', { level: 2, name: 'Ordinário' });
+    expect(screen.queryByText(/Desativada/)).toBeNull();
+    await userEvent.click(screen.getByRole('button', { name: 'Desativar' }));
+    expect(confirmar).toHaveBeenCalledWith('Desativar a escala Ordinário? Ela some da lista.');
+    await waitFor(() => expect(corpoEnviado(f, 'POST /api/escalas/e1/situacao')).toEqual({ ativa: false }));
+    confirmar.mockRestore();
+  });
+
+  it('escala desativada mostra a etiqueta e Reativar', async () => {
+    api(escala({ ativa: false }));
+    abrir('/escalas/e1');
+    const ficha = (await screen.findByRole('heading', { level: 2, name: 'Ordinário' })).closest('[data-ficha]') as HTMLElement;
+    expect(within(ficha).getByText('desativada')).toBeInTheDocument();
+    expect(within(ficha).getByRole('button', { name: 'Reativar' })).toBeInTheDocument();
+  });
+
+  it('o item aberto na lista fica marcado', async () => {
+    api();
+    abrir('/escalas/e1');
+    const link = (await screen.findAllByText('Ordinário')).map((e) => e.closest('a')).find(Boolean)!;
+    expect(link).toHaveAttribute('aria-current', 'page');
+    expect(link.className).toContain('shadow-[inset_3px_0_0');
+  });
+
+  it('todas desativadas, a lista explica o que marcar', async () => {
+    api(escala(), { 'GET /api/unidades/u-1sb/escalas': { status: 200, corpo: LISTA.map((e) => ({ ...e, ativa: false })) } });
+    abrir('/escalas');
+    expect(await screen.findByText('Todas as escalas estão desativadas. Marque "Mostrar desativadas" para vê-las.')).toBeInTheDocument();
   });
 });

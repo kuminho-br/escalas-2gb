@@ -6,21 +6,20 @@ import { useMemo, useState, type FormEvent } from 'react';
 import { mensagemDe } from '@/api/cliente';
 import { atualizarMilitares, consultaEquipes, consultaMilitares, consultaPostos, criarMilitar } from '@/api/militares';
 import { ImportarPlanilha } from '@/componentes/ImportarPlanilha';
-import { ListaDetalhe } from '@/componentes/ListaDetalhe';
+import { classeItemEscolhido, ListaDetalhe } from '@/componentes/ListaDetalhe';
 import { Selecao } from '@/componentes/Selecao';
 import { Button } from '@/componentes/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/componentes/ui/dialog';
 import { Input } from '@/componentes/ui/input';
 import { Label } from '@/componentes/ui/label';
 import { mesAtual } from '@/lib/meses';
+import { NOME_JORNADA } from '@/lib/militares';
 import { normalizarBusca } from '@/lib/texto';
 import { cn } from '@/lib/utils';
 
 export const Route = createFileRoute('/_app/militares')({
   component: Militares,
 });
-
-export const NOME_JORNADA = { pronto: 'Pronto', adm: 'Adm' } as const;
 
 function Militares() {
   const { eu } = Route.useRouteContext();
@@ -113,7 +112,8 @@ function ItemMilitar({ m, escolhido }: { m: LinhaMilitar; escolhido: boolean }) 
       <Link
         to="/militares/$id"
         params={{ id: m.id }}
-        className={cn('grid gap-0.5 rounded-lg px-3 py-2 hover:bg-accent', escolhido && 'bg-accent ring-1 ring-linha')}
+        className={cn('grid gap-0.5 rounded-lg px-3 py-2 hover:bg-accent', escolhido && classeItemEscolhido)}
+        aria-current={escolhido ? 'page' : undefined}
       >
         <span className="flex items-center gap-2">
           <span className="font-cond text-[13px] text-apagado">{m.posto}</span>

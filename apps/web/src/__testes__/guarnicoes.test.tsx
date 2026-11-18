@@ -277,3 +277,42 @@ describe('ficha da guarnição', () => {
     expect(screen.queryByText('em vigor')).toBeNull();
   });
 });
+
+describe('ficha da guarnição em painel único', () => {
+  it('o resumo da guarnição diz viatura e ordem', async () => {
+    const v = FICHA.versoes[0]!;
+    api({ 'GET /api/guarnicoes/g1': { status: 200, corpo: { ...FICHA, versoes: [{ ...v, viatura: 'AR', tipoViatura: 'Auto Resgate', prioridade: 2 }] } } });
+    abrir('/guarnicoes/g1');
+    const ficha = (await screen.findByRole('heading', { level: 2, name: 'Auto Bomba 1' })).closest('[data-ficha]') as HTMLElement;
+    expect(within(ficha).getByText('Viatura AR, Auto Resgate. Ativada em 2º lugar.')).toBeInTheDocument();
+  });
+
+  it('o resumo sem viatura nem prioridade', async () => {
+    const v = FICHA.versoes[0]!;
+    api({ 'GET /api/guarnicoes/g1': { status: 200, corpo: { ...FICHA, versoes: [{ ...v, viatura: null, tipoViatura: null, prioridade: null }] } } });
+    abrir('/guarnicoes/g1');
+    expect(await screen.findByText('Sem viatura. Sem prioridade: vai por último na ativação.')).toBeInTheDocument();
+  });
+
+  it('a situação fica no cabeçalho da ficha', async () => {
+    api();
+    abrir('/guarnicoes/g1');
+    const ficha = (await screen.findByRole('heading', { level: 2, name: 'Auto Bomba 1' })).closest('[data-ficha]') as HTMLElement;
+    const cabecalho = ficha.querySelector('header') as HTMLElement;
+    expect(within(cabecalho).getByRole('button', { name: 'Desativar agora' })).toBeInTheDocument();
+  });
+
+  it('o item aberto na lista fica marcado', async () => {
+    api();
+    abrir('/guarnicoes/g1');
+    const link = (await screen.findAllByText('Auto Bomba 1')).map((e) => e.closest('a')).find(Boolean)!;
+    expect(link).toHaveAttribute('aria-current', 'page');
+    expect(link.className).toContain('shadow-[inset_3px_0_0');
+  });
+
+  it('todas desativadas, a lista explica o que marcar', async () => {
+    api({ 'GET /api/unidades/u-1sb/guarnicoes': { status: 200, corpo: LISTA.map((g) => ({ ...g, ativa: false })) } });
+    abrir('/guarnicoes');
+    expect(await screen.findByText('Todas as guarnições estão desativadas. Marque "Mostrar desativadas" para vê-las.')).toBeInTheDocument();
+  });
+});
