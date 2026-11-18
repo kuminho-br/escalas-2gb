@@ -5,4 +5,5 @@ export * from './importacao.ts';
 export * from './militares.ts';
 export * from './servicos.ts';
 export * from './escalas.ts';
+export * from './escala-do-mes.ts';
 export * from './cotas-feriados.ts';
