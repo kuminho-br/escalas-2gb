@@ -43,7 +43,7 @@ describe('listas dos cadastros: só os itens rolam', () => {
     abrir('/guarnicoes');
     expect(dentro(await screen.findByText('Auto Bomba 1'))).toBe(true);
     expect(dentro(screen.getByLabelText('Mostrar desativadas'))).toBe(false);
-    expect(dentro(screen.getByText(/\d+ guarnições?/))).toBe(false);
+    expect(dentro(screen.getByText(/\d+ guarni(ção|ções)/))).toBe(false);
   });
 
   it('serviços: "Mostrar desativados" fica fora da área que rola', async () => {
