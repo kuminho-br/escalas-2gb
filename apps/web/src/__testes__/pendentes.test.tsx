@@ -303,7 +303,7 @@ describe('Salvar que mostra o estado', () => {
       voluntarioJes: false, ativo: true, situacao: 'Disponível', pendencias: [], ...l,
     });
     const FICHA_M: FichaMilitar = {
-      ...linhaM({}), postoGradId: 'p-sd', antiguidade: 3, noQuadroDeMotoristas: false, cnh: [], cnhPorHierarquia: [],
+      ...linhaM({}), postoGradId: 'p-sd', antiguidade: 3, antiguidadeRepetidaCom: [], noQuadroDeMotoristas: false, cnh: [], cnhPorHierarquia: [],
       lotacoes: [{ id: 'l1', unidadeSigla: '1ª SB', equipe: 'Alfa', jornada: 'pronto', desde: '2020-01-01', ate: null }], afastamentos: [],
     };
     const rotasM = (): Parameters<typeof simularApi>[0] => ({

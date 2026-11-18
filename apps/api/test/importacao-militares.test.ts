@@ -139,6 +139,14 @@ describe('importação de militares', () => {
     expect(r.novos.map((n: { chave: string }) => n.chave)).toEqual(['990230-0', '990231-1']);
   });
 
+  it('prévia avisa antiguidade repetida com militar fora da planilha', async () => {
+    const sd = (await api.banco.query<{ id: string }>("select id from posto_grad where sigla = 'SD BM'")).rows[0]!.id;
+    const m = await inserir(api.banco, 'militar', { matricula: '990215-5', posto_grad_id: sd, nome_guerra: 'FORADAPLANILHA', antiguidade: 4321 });
+    await inserir(api.banco, 'lotacao', { militar_id: m, unidade_id: api.ids.secao, jornada: 'adm', desde: '2026-01-01' });
+    const r = await importar([['990216-6', 'NOVATO', '1ª SB', 'SD BM', 'ADM', '', 4321, '', '', '']]);
+    expect(r.avisos).toContain('NOVATO (990216-6): antiguidade 4321 repetida com FORADAPLANILHA (já no sistema, fora da planilha).');
+  });
+
   it('militar lotado em outra seção vira problema e não é trazido', async () => {
     const sd = (await api.banco.query<{ id: string }>("select id from posto_grad where sigla = 'SD BM'")).rows[0]!.id;
     const outra = await inserir(api.banco, 'unidade', { tipo: 'secao', sigla: '3ª SB', nome: '3ª Seção', mae_id: api.ids.gb, desde: '2026-11-01' });

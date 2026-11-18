@@ -45,6 +45,12 @@ describe('pendências do militar', () => {
   it('Sem antiguidade', () => {
     expect(pendenciasDoMilitar({ ...ok, antiguidade: null })).toEqual(['Sem antiguidade']);
   });
+  it('com três, a pendência dá os nomes', () => {
+    expect(pendenciasDoMilitar({ ...ok, repetidaCom: ['A', 'B', 'C'] })).toEqual(['Antiguidade repetida com A, B, C']);
+  });
+  it('com quatro repetidos, a pendência dá o número', () => {
+    expect(pendenciasDoMilitar({ ...ok, repetidaCom: ['A', 'B', 'C', 'D'] })).toEqual(['Antiguidade repetida com 4 militares']);
+  });
   it('Antiguidade repetida com ANDRADE, BARRETO', () => {
     expect(pendenciasDoMilitar({ ...ok, repetidaCom: ['ANDRADE', 'BARRETO'] })).toEqual(['Antiguidade repetida com ANDRADE, BARRETO']);
   });

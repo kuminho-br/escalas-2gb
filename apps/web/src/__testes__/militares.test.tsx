@@ -17,7 +17,7 @@ const LISTA = [
 ];
 const FICHA: FichaMilitar = {
   ...linha({ motorista: 'D' }),
-  postoGradId: 'p-sd', antiguidade: 3, noQuadroDeMotoristas: true, cnh: ['D'], cnhPorHierarquia: ['C', 'B'],
+  postoGradId: 'p-sd', antiguidade: 3, antiguidadeRepetidaCom: [], noQuadroDeMotoristas: true, cnh: ['D'], cnhPorHierarquia: ['C', 'B'],
   lotacoes: [{ id: 'l1', unidadeSigla: '1ª SB', equipe: 'Alfa', jornada: 'pronto', desde: '2026-11-01', ate: null }],
   afastamentos: [{ id: 'a1', tipo: 'Férias', tipoAfastamentoId: 't-ferias', inicio: '2026-12-01', fim: '2026-12-10' }],
 };
@@ -259,5 +259,52 @@ describe('remover, nomes das ações e erros por campo', () => {
     expect(await within(dialogo).findByText('Use um mês válido.')).toBeInTheDocument();
     expect(desde.parentElement).toContainElement(within(dialogo).getByText('Use um mês válido.'));
     expect(within(dialogo).getByLabelText('Posto ou graduação').parentElement).toContainElement(within(dialogo).getByText('Escolha o posto.'));
+  });
+});
+
+describe('aviso de cadastro incompleto', () => {
+  it('o resumo no alto filtra os incompletos', async () => {
+    api();
+    abrir('/militares');
+    expect(await screen.findByText('Cadastro incompleto em 1 militar.')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Ver quais' }));
+    expect(screen.queryByText('ANDRADE')).toBeNull();
+    expect(screen.getByText('BARRETO')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Ver todos' }));
+    expect(await screen.findByText('ANDRADE')).toBeInTheDocument();
+  });
+
+  it('sem pendência na lista, o resumo não aparece', async () => {
+    api({ 'GET /api/unidades/u-1sb/militares': { status: 200, corpo: [LISTA[0]!] } });
+    abrir('/militares');
+    await screen.findByText('ANDRADE');
+    expect(screen.queryByText(/Cadastro incompleto em/)).toBeNull();
+  });
+
+  it('o triângulo da pendência é âmbar, não vermelho', async () => {
+    api();
+    abrir('/militares');
+    const icone = await screen.findByLabelText('Cadastro incompleto: Sem antiguidade');
+    expect(icone.getAttribute('class')).toContain('text-pendencia');
+    expect(icone.getAttribute('class')).not.toContain('text-alerta');
+  });
+
+  it('disponível não aparece na linha; afastado aparece', async () => {
+    api();
+    abrir('/militares');
+    const andrade = (await screen.findByText('ANDRADE')).closest('li')!;
+    expect(within(andrade).queryByText('Disponível')).toBeNull();
+    expect(within((await screen.findByText('BARRETO')).closest('li')!).getByText('Férias até 12/12')).toBeInTheDocument();
+  });
+
+  it('Ver quais mostra os nomes da antiguidade repetida', async () => {
+    const nomes = ['AMORIM', 'CORDEIRO', 'DUARTE', 'FALCAO', 'HONORIO'];
+    api({ 'GET /api/militares/m1': { status: 200, corpo: { ...FICHA, pendencias: ['Antiguidade repetida com 5 militares'], antiguidadeRepetidaCom: nomes } } });
+    abrir('/militares/m1');
+    expect(await screen.findByText(/Antiguidade repetida com 5 militares/)).toBeInTheDocument();
+    expect(screen.queryByText(nomes.join(', ') + '.')).toBeNull();
+    const ficha = screen.getByRole('heading', { level: 2, name: /ANDRADE/ }).closest('[data-ficha]') as HTMLElement;
+    await userEvent.click(within(ficha).getByRole('button', { name: 'Ver quais' }));
+    expect(screen.getByText(nomes.join(', ') + '.')).toBeInTheDocument();
   });
 });

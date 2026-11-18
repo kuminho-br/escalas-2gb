@@ -48,6 +48,7 @@ type Existente = {
   motorista: boolean;
   cnh: string[];
   voluntario_jes: boolean;
+  ativo: boolean;
   lotacao_id: string | null;
   lotacao_unidade: string | null;
   lotacao_sigla: string | null;
@@ -81,7 +82,7 @@ const textoCnh = (c: string[]) => (c.length ? [...c].sort().join('') : 'nenhuma'
 async function existentes(tx: Consulta, mes: string): Promise<Map<string, Existente>> {
   const dias = diasDoMes(mes);
   const { rows } = await tx.query<Existente>(
-    `select m.id, m.matricula, m.posto_grad_id, p.sigla as posto, m.nome_guerra, m.antiguidade, m.motorista, m.cnh, m.voluntario_jes,
+    `select m.id, m.matricula, m.posto_grad_id, p.sigla as posto, m.nome_guerra, m.antiguidade, m.motorista, m.cnh, m.voluntario_jes, m.ativo,
             l.id as lotacao_id, l.unidade_id as lotacao_unidade, un.sigla as lotacao_sigla, to_char(l.desde, 'YYYY-MM') as lotacao_desde,
             l.ate is null as lotacao_aberta, e.nome as equipe, l.jornada,
             (select to_char(min(f.desde), 'YYYY-MM') from lotacao f where f.militar_id = m.id and f.desde > $2) as futura
@@ -278,6 +279,13 @@ export const importadorMilitares: Importador<Plano> = {
     }
     for (const [n, quem] of porNumero) {
       if (quem.length > 1) avisos.push(`Antiguidade ${n} repetida na planilha: ${quem.slice(0, -1).join(', ')} e ${quem[quem.length - 1]}.`);
+    }
+    // a mesma antiguidade de um militar ativo desta seção que não está na planilha (a importação não o muda)
+    const foraDaPlanilha = [...ja.values()].filter((e) => e.ativo && e.lotacao_unidade === unidadeId && e.antiguidade !== null && !vistos.has(e.matricula));
+    for (const x of comAntiguidade) {
+      for (const e of foraDaPlanilha.filter((o) => o.antiguidade === x.antiguidade)) {
+        avisos.push(`${x.nome} (${x.matricula}): antiguidade ${x.antiguidade} repetida com ${e.nome_guerra} (já no sistema, fora da planilha).`);
+      }
     }
     if (equipesNovas.length) avisos.push(`Equipes novas: ${equipesNovas.map((q) => q.nome).join(', ')}.`);
     const lotadosAqui = [...ja.values()].filter((e) => e.lotacao_unidade === unidadeId && !vistos.has(e.matricula)).length;

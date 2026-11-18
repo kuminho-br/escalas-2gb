@@ -55,16 +55,19 @@ function ListaDeMilitares({ unidadeId, escolhido }: { unidadeId: string; escolhi
   const [equipe, setEquipe] = useState('');
   const [jornada, setJornada] = useState('');
   const [busca, setBusca] = useState('');
+  const [soIncompletos, setSoIncompletos] = useState(false);
+  const incompletos = (militares.data ?? []).filter((m) => m.pendencias.length > 0).length;
 
   const filtrados = useMemo(() => {
     const b = normalizarBusca(busca);
     return (militares.data ?? []).filter(
       (m) =>
+        (!soIncompletos || m.pendencias.length > 0) &&
         (!equipe || m.equipe === equipe) &&
         (!jornada || m.jornada === jornada) &&
         (!b || normalizarBusca(`${m.nomeGuerra} ${m.matricula}`).includes(b)),
     );
-  }, [militares.data, equipe, jornada, busca]);
+  }, [militares.data, soIncompletos, equipe, jornada, busca]);
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -96,6 +99,14 @@ function ListaDeMilitares({ unidadeId, escolhido }: { unidadeId: string; escolhi
       {militares.data && (
         <>
           <p className="shrink-0 px-4 pt-3 text-xs text-apagado">{filtrados.length} de {militares.data.length} militares</p>
+          {incompletos > 0 && (
+            <p className="shrink-0 px-4 pt-1 text-xs text-pendencia">
+              Cadastro incompleto em {incompletos} {incompletos === 1 ? 'militar' : 'militares'}.{' '}
+              <button type="button" onClick={() => setSoIncompletos(!soIncompletos)} className="font-medium underline underline-offset-2">
+                {soIncompletos ? 'Ver todos' : 'Ver quais'}
+              </button>
+            </p>
+          )}
           <ul data-lista-rolavel className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-2">
             {filtrados.map((m) => <ItemMilitar key={m.id} m={m} escolhido={m.id === escolhido} />)}
             {militares.data.length === 0 && <li className="p-3 text-apagado">Nenhum militar lotado. Use "Novo militar" ou "Importar da planilha".</li>}
@@ -121,7 +132,7 @@ function ItemMilitar({ m, escolhido }: { m: LinhaMilitar; escolhido: boolean }) 
           <span className="font-cond text-base font-semibold">{m.nomeGuerra}</span>
           {m.pendencias.length > 0 && (
             <TriangleAlert
-              className="size-4 text-alerta"
+              className="size-4 text-pendencia"
               role="img"
               aria-label={`Cadastro incompleto: ${m.pendencias.join('; ')}`}
             />
@@ -131,7 +142,7 @@ function ItemMilitar({ m, escolhido }: { m: LinhaMilitar; escolhido: boolean }) 
         <span className="flex flex-wrap gap-x-3 text-xs text-apagado">
           <span>{m.matricula}</span>
           {m.jornada && <span>{NOME_JORNADA[m.jornada]}{m.equipe ? ` ${m.equipe}` : ''}</span>}
-          <span className={disponivel ? '' : 'font-medium text-tinta'}>{m.situacao}</span>
+          {!disponivel && <span className="font-medium text-tinta">{m.situacao}</span>}
         </span>
       </Link>
     </li>

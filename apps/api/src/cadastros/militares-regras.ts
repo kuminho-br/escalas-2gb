@@ -37,7 +37,8 @@ export function pendenciasDoMilitar(m: {
   if (m.jornada === 'pronto' && !m.equipe) p.push('Pronto sem equipe');
   if (m.jornada === null) p.push('Sem lotação');
   if (m.antiguidade === null) p.push('Sem antiguidade');
-  if (m.repetidaCom?.length) p.push(`Antiguidade repetida com ${m.repetidaCom.join(', ')}`);
+  // com muitos repetidos, os nomes não cabem: a ficha lista quais são e a pendência dá só o número
+  if (m.repetidaCom?.length) p.push(m.repetidaCom.length > 3 ? `Antiguidade repetida com ${m.repetidaCom.length} militares` : `Antiguidade repetida com ${m.repetidaCom.join(', ')}`);
   return p;
 }
 

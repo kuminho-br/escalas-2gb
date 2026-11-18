@@ -66,6 +66,8 @@ export type LinhaMilitar = {
 export type FichaMilitar = LinhaMilitar & {
   postoGradId: string;
   antiguidade: number | null;
+  /** Nomes de guerra dos outros militares da mesma seção com esta antiguidade. */
+  antiguidadeRepetidaCom: string[];
   noQuadroDeMotoristas: boolean;
   cnh: string[];
   /** Categorias que vêm pela hierarquia (com D: C e B), além das da carteira. */
