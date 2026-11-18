@@ -6,6 +6,7 @@ import {
   CORES_SERVICO,
   COR_PADRAO_SERVICO,
   mesPorExtenso,
+  textoFaixa,
   tituloPadraoEscala,
   type ItemPrevia,
   type LetraTurno,
@@ -13,6 +14,7 @@ import {
   type TipoServico,
 } from 'contratos';
 import { cadgVigencia, normalizar, normalizarHora } from 'dominio';
+import { faixasDosTurnos } from '../cadastros/escalas-regras.ts';
 import { gravarServicosDaEscala, gravarVinculos, mensagemServicoComAlocacao, servicoComAlocacaoQueSai } from '../cadastros/escalas.ts';
 import { versaoNoMes } from '../cadastros/guarnicoes-regras.ts';
 import { versoesDasGuarnicoes } from '../cadastros/guarnicoes.ts';
@@ -22,11 +24,11 @@ import type { ColunaModelo, Contexto, Importador } from './tipos.ts';
 const ABA_T = 'TURNOS';
 const ABA_E = 'ESCALAS';
 const ABA_V = 'GUARNIÇÕES POR ESCALA';
-const LETRAS: LetraTurno[] = ['A', 'B', 'C', 'U'];
+const LETRAS: LetraTurno[] = ['A', 'B', 'C'];
 
 const COLUNAS_T = {
   servico: { rotulo: 'SERVIÇO', obrigatoria: true, ajuda: 'Nome do serviço (ex.: Pronto). Uma linha por turno.' },
-  turno: { rotulo: 'TURNO', obrigatoria: true, ajuda: 'Letra do turno: A, B, C ou U (turno único).', opcoes: ['A', 'B', 'C', 'U'] },
+  turno: { rotulo: 'TURNO', obrigatoria: true, ajuda: 'Letra do turno: A, B ou C. Serviço de um turno só usa A.', opcoes: ['A', 'B', 'C'] },
   inicio: { rotulo: 'HORÁRIO INÍCIO', obrigatoria: true, ajuda: 'Hora de início (HH:MM, ex.: 08:00).' },
   fim: { rotulo: 'HORÁRIO FIM', obrigatoria: true, ajuda: 'Hora de fim (HH:MM). Menor que o início atravessa a meia-noite; igual dá 24h.' },
   tipo: { rotulo: 'TIPO DE SERVIÇO', obrigatoria: false, ajuda: 'ORDINÁRIO, PJES ou DIÁRIA. Vazio, o tipo sai do nome do serviço.', opcoes: ['ORDINÁRIO', 'PJES', 'DIÁRIA'] },
@@ -44,7 +46,7 @@ const COLUNAS_E = {
 const COLUNAS_V = {
   vigencia: { rotulo: 'VIGÊNCIA', obrigatoria: false, ajuda: 'Mês a partir do qual a linha vale (aaaa-mm ou mm/aaaa). Vazio vale desde a criação da seção.' },
   escala: { rotulo: 'ESCALA', obrigatoria: true, ajuda: 'Nome da escala (aba ESCALAS ou já cadastrada).' },
-  turno: { rotulo: 'TURNO', obrigatoria: false, ajuda: 'Letra do turno da escala. Vazio ou TODOS vale todos os turnos.', opcoes: ['A', 'B', 'C', 'U', 'TODOS'] },
+  turno: { rotulo: 'TURNO', obrigatoria: false, ajuda: 'Vazio ou TODOS: todas as faixas da escala. Letra (A, B, C) quando ela tem um horário só na escala, ou a faixa (ex.: 08:00-20:00). Várias, separadas por vírgula.' },
   guarnicao: { rotulo: 'GUARNIÇÃO', obrigatoria: true, ajuda: 'Nome da guarnição, como na tela de Guarnições.' },
 } satisfies Record<string, ColunaModelo>;
 
@@ -61,7 +63,7 @@ type EscalaPlano = {
   /** chaves dos serviços, na ordem; null mantém a lista */
   servicos: string[] | null;
 };
-type VinculoPlano = { escalaChave: string; vigencia: string; itens: { guarnicaoId: string; turnoLetra: LetraTurno | null }[] };
+type VinculoPlano = { escalaChave: string; vigencia: string; itens: { guarnicaoId: string; inicio: string; fim: string }[] };
 type Plano = { servicos: ServicoPlano[]; escalas: EscalaPlano[]; vinculos: VinculoPlano[] };
 
 const TIPO_POR_TERMO: Record<string, TipoServico> = {
@@ -77,7 +79,7 @@ function corDoNome(nome: string): string {
 
 function letraDe(texto: string): LetraTurno | null {
   const n = normalizar(texto);
-  if (n === 'UNICO') return 'U';
+  if (n === 'U' || n === 'UNICO') return 'A';
   return (LETRAS as string[]).includes(n) ? (n as LetraTurno) : null;
 }
 
@@ -201,8 +203,10 @@ export const importadorServicosEscalas: Importador<Plano> = {
       : [];
     const sistemaPorChave = new Map(servicosSistema.map((s) => [normalizar(s.nome), s]));
     /** letras de cada serviço depois da importação, pela chave normalizada */
-    const letrasDoServico = new Map<string, Set<LetraTurno>>();
-    for (const s of servicosSistema) letrasDoServico.set(normalizar(s.nome), new Set(turnosSistema.filter((t) => t.servico_id === s.id).map((t) => t.letra)));
+    const turnosDoServico = new Map<string, Map<LetraTurno, { inicio: string; fim: string }>>();
+    for (const s of servicosSistema) {
+      turnosDoServico.set(normalizar(s.nome), new Map(turnosSistema.filter((t) => t.servico_id === s.id).map((t) => [t.letra, { inicio: t.inicio, fim: t.fim }] as const)));
+    }
 
     for (const [chave, s] of lidos) {
       const ex = sistemaPorChave.get(chave);
@@ -211,10 +215,10 @@ export const importadorServicosEscalas: Importador<Plano> = {
       const rotulo = s.origem && normalizar(s.origem) !== chave ? s.origem : null;
       const turnos: TurnoPlano[] = [];
       const mudancas: string[] = [];
-      const letras = letrasDoServico.get(chave) ?? new Set<LetraTurno>();
-      letrasDoServico.set(chave, letras);
+      const horarios = turnosDoServico.get(chave) ?? new Map<LetraTurno, { inicio: string; fim: string }>();
+      turnosDoServico.set(chave, horarios);
       for (const [letra, t] of [...s.turnos].sort((a, b) => LETRAS.indexOf(a[0]) - LETRAS.indexOf(b[0]))) {
-        letras.add(letra);
+        horarios.set(letra, { inicio: t.inicio, fim: t.fim });
         const atual = ex ? turnosSistema.find((x) => x.servico_id === ex.id && x.letra === letra) : undefined;
         if (!atual) {
           turnos.push({ letra, ...t, existenteId: null });
@@ -349,12 +353,14 @@ export const importadorServicosEscalas: Importador<Plano> = {
     const guarnicoes = await guarnicoesDaUnidade(ctx);
     const guarnicaoPorChave = new Map(guarnicoes.map((g) => [normalizar(g.nome), g]));
     const nomeDaEscala = new Map<string, string>([...escalasSistema.map((e) => [normalizar(e.nome), e.nome] as const), ...[...grupos].map(([k, g]) => [k, g.nome] as const)]);
-    const letrasDaEscala = (chave: string) => {
-      const u = new Set<LetraTurno>();
-      for (const s of servicosDaEscala.get(chave) ?? []) for (const l of letrasDoServico.get(s) ?? []) u.add(l);
-      return u;
-    };
-    const versoes = new Map<string, Map<string, Map<string, { guarnicaoId: string; turnoLetra: LetraTurno | null; nome: string }>>>();
+    /** faixas da escala depois da importação: os turnos dos serviços dela, do sistema e da planilha */
+    const faixasDaEscalaImportada = (chave: string) =>
+      faixasDosTurnos(
+        (servicosDaEscala.get(chave) ?? []).flatMap((sv) =>
+          [...(turnosDoServico.get(sv) ?? new Map<LetraTurno, { inicio: string; fim: string }>())].map(([letra, h]) => ({ servico: nomeDoServico.get(sv) ?? sv, letra, ...h })),
+        ),
+      ).faixas;
+    const versoes = new Map<string, Map<string, Map<string, { guarnicaoId: string; inicio: string; fim: string; nome: string }>>>();
     const avisosDesativada = new Set<string>();
     for (const l of aV.linhas) {
       const nomeEsc = pega(l.celulas, cV.escala);
@@ -377,56 +383,81 @@ export const importadorServicosEscalas: Importador<Plano> = {
         problemas.push({ aba: ABA_V, linha: l.linha, mensagem: `Guarnição ${nomeG || '(vazia)'} não cadastrada`, solucao: 'Importe a aba GUARNIÇÕES (tela de Guarnições) e depois esta.' });
         continue;
       }
-      // como no protótipo, a célula pode trazer várias letras ("A, B", "A/B"); vazia ou TODOS vale todos os turnos
+      // a célula TURNO: vazia ou TODOS = todas as faixas da escala; senão faixas ("08:00-20:00") ou letras ("A", "A/B"), várias separadas por vírgula
+      const nomeEsc2 = nomeDaEscala.get(chave)!;
+      const faixasEscala = faixasDaEscalaImportada(chave);
+      if (!faixasEscala.length) {
+        problemas.push({ aba: ABA_V, linha: l.linha, mensagem: `A escala ${nomeEsc2} não tem turnos`, solucao: 'Cadastre os turnos dos serviços na aba TURNOS.' });
+        continue;
+      }
       const turnoBruto = pega(l.celulas, cV.turno);
-      const partes = turnoBruto.split(/[,;/\s]+/).filter(Boolean);
-      let letrasDaLinha: (LetraTurno | null)[] = [null];
+      const partes = turnoBruto.split(/[,;]/).map((x) => x.trim()).filter(Boolean);
+      let escolhidas = faixasEscala.map((f) => ({ inicio: f.inicio, fim: f.fim }));
+      let invalida: { mensagem: string; solucao: string } | null = null;
       if (partes.length && !partes.some((p) => normalizar(p) === 'TODOS')) {
-        const letras = partes.map(letraDe);
-        const validas = letrasDaEscala(chave);
-        if (letras.some((x) => !x || !validas.has(x))) {
-          problemas.push({ aba: ABA_V, linha: l.linha, mensagem: `Turno ${turnoBruto} não existe nos serviços da escala ${nomeDaEscala.get(chave)}`, solucao: 'Confira a coluna TURNO ou os SERVIÇOS da escala.' });
-          continue;
+        escolhidas = [];
+        for (const parte of partes) {
+          const m = /^(.+?)\s*(?:-|–|às|a)\s*(.+)$/i.exec(parte);
+          const ini = m ? normalizarHora(m[1]!) : null;
+          const fim = m ? normalizarHora(m[2]!) : null;
+          if (ini && fim) {
+            if (!faixasEscala.some((f) => f.inicio === ini && f.fim === fim)) {
+              invalida = { mensagem: `Faixa ${textoFaixa(ini, fim)} não existe nos serviços da escala ${nomeEsc2}`, solucao: 'Confira a coluna TURNO ou os horários na aba TURNOS.' };
+              break;
+            }
+            escolhidas.push({ inicio: ini, fim });
+            continue;
+          }
+          for (const letraTexto of parte.split(/[\s/]+/).filter(Boolean)) {
+            const letra = letraDe(letraTexto);
+            const dela = letra ? faixasEscala.filter((f) => f.letras.includes(letra)) : [];
+            if (dela.length === 0) {
+              invalida = { mensagem: `Turno ${letraTexto} não existe nos serviços da escala ${nomeEsc2}`, solucao: 'Confira a coluna TURNO ou os SERVIÇOS da escala.' };
+              break;
+            }
+            if (dela.length > 1) {
+              invalida = {
+                mensagem: `Turno ${letra} tem horários diferentes nos serviços da escala ${nomeEsc2} (${dela.map((f) => textoFaixa(f.inicio, f.fim)).join(', ')})`,
+                solucao: 'Escreva a faixa na coluna TURNO (ex.: 08:00-20:00).',
+              };
+              break;
+            }
+            escolhidas.push({ inicio: dela[0]!.inicio, fim: dela[0]!.fim });
+          }
+          if (invalida) break;
         }
-        letrasDaLinha = [...new Set(letras as LetraTurno[])];
+      }
+      if (invalida) {
+        problemas.push({ aba: ABA_V, linha: l.linha, ...invalida });
+        continue;
       }
       if (versaoNoMes(g.versoes, vigencia)?.ativa === false) avisosDesativada.add(`${g.nome} está desativada em ${mesPorExtenso(vigencia)}; o vínculo fica gravado.`);
       const porVig = versoes.get(chave) ?? new Map();
       versoes.set(chave, porVig);
       const itens = porVig.get(vigencia) ?? new Map();
       porVig.set(vigencia, itens);
-      for (const turnoLetra of letrasDaLinha) {
-        const k = `${g.id}|${turnoLetra ?? ''}`;
+      for (const f of escolhidas) {
+        const k = `${g.id}|${f.inicio}|${f.fim}`;
         if (itens.has(k)) {
-          avisos.push(`${nomeDaEscala.get(chave)}: ${g.nome} já está no turno ${turnoLetra ?? 'TODOS'} em ${mesPorExtenso(vigencia)}; a repetição foi ignorada.`);
+          avisos.push(`${nomeEsc2}: ${g.nome} já está na faixa ${textoFaixa(f.inicio, f.fim)} em ${mesPorExtenso(vigencia)}; a repetição foi ignorada.`);
           continue;
         }
-        itens.set(k, { guarnicaoId: g.id, turnoLetra, nome: g.nome });
-      }
-    }
-    // "Todos os turnos" exclui as letras avulsas da mesma guarnição (a API recusa a mistura)
-    for (const [chave, porVig] of versoes) {
-      for (const [vigencia, itens] of porVig) {
-        for (const [k, it] of itens) {
-          if (it.turnoLetra === null || !itens.has(`${it.guarnicaoId}|`)) continue;
-          itens.delete(k);
-          avisos.push(`${nomeDaEscala.get(chave)}: ${it.nome} está em todos os turnos e também no turno ${it.turnoLetra} em ${mesPorExtenso(vigencia)}; vale todos os turnos.`);
-        }
+        itens.set(k, { guarnicaoId: g.id, inicio: f.inicio, fim: f.fim, nome: g.nome });
       }
     }
     avisos.push(...avisosDesativada);
 
     const versoesSistema = escalasSistema.length
       ? (
-          await tx.query<{ escala_id: string; vigencia: string; guarnicao_id: string | null; turno_letra: string | null }>(
-            `select v.escala_id, to_char(v.vigencia_desde, 'YYYY-MM') as vigencia, eg.guarnicao_id, eg.turno_letra
+          await tx.query<{ escala_id: string; vigencia: string; guarnicao_id: string | null; inicio: string | null; fim: string | null }>(
+            `select v.escala_id, to_char(v.vigencia_desde, 'YYYY-MM') as vigencia, eg.guarnicao_id, to_char(eg.inicio, 'HH24:MI') as inicio, to_char(eg.fim, 'HH24:MI') as fim
                from escala_vinculo_versao v left join escala_guarnicao eg on eg.versao_id = v.id
               where v.escala_id = any($1)`,
             [escalasSistema.map((e) => e.id)],
           )
         ).rows
       : [];
-    const assinatura = (itens: { guarnicaoId: string; turnoLetra: string | null }[]) => itens.map((i) => `${i.guarnicaoId}|${i.turnoLetra ?? ''}`).sort().join(',');
+    const assinatura = (itens: { guarnicaoId: string; inicio: string; fim: string }[]) => itens.map((i) => `${i.guarnicaoId}|${i.inicio}|${i.fim}`).sort().join(',');
     for (const [chave, porVig] of versoes) {
       const ex = escalaSistemaPorChave.get(chave);
       const nome = nomeDaEscala.get(chave)!;
@@ -440,9 +471,11 @@ export const importadorServicosEscalas: Importador<Plano> = {
         anterior = ass;
         const doMes = ex ? versoesSistema.filter((v) => v.escala_id === ex.id && v.vigencia === vigencia) : [];
         if (!doMes.length && redundante) continue;
-        if (doMes.length && assinatura(doMes.filter((v) => v.guarnicao_id).map((v) => ({ guarnicaoId: v.guarnicao_id!, turnoLetra: v.turno_letra }))) === ass) continue;
-        mudancas.push(`${mesPorExtenso(vigencia)}: ${itens.map((i) => `${i.nome} (${i.turnoLetra ?? 'todos os turnos'})`).join(', ')}`);
-        plano.vinculos.push({ escalaChave: chave, vigencia, itens: itens.map(({ guarnicaoId, turnoLetra }) => ({ guarnicaoId, turnoLetra })) });
+        if (doMes.length && assinatura(doMes.filter((v) => v.guarnicao_id).map((v) => ({ guarnicaoId: v.guarnicao_id!, inicio: v.inicio!, fim: v.fim! }))) === ass) continue;
+        const porGuarnicao = new Map<string, string[]>();
+        for (const i of itens) porGuarnicao.set(i.nome, [...(porGuarnicao.get(i.nome) ?? []), textoFaixa(i.inicio, i.fim)]);
+        mudancas.push(`${mesPorExtenso(vigencia)}: ${[...porGuarnicao].map(([n, fs]) => `${n} (${fs.join(', ')})`).join(', ')}`);
+        plano.vinculos.push({ escalaChave: chave, vigencia, itens: itens.map(({ guarnicaoId, inicio, fim }) => ({ guarnicaoId, inicio, fim })) });
       }
       if (!mudancas.length) iguais++;
       else if (!ex || !versoesSistema.some((v) => v.escala_id === ex.id)) novos.push({ chave: `Guarnições de ${nome}`, descricao: `Guarnições de ${nome}: ${mudancas.join('; ')}` });

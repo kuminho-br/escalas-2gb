@@ -141,16 +141,15 @@ describe('guarnições', () => {
     expect(ren.status).toBe(409);
   });
 
-  it('onde é usada lista a escala e os turnos', async () => {
+  it('onde é usada lista a escala e as faixas de horário', async () => {
     const f = await criar('Usada');
     const escala = await inserir(api.banco, 'escala', { unidade_id: api.ids.secao, nome: 'Ordinário', titulo: 'Escala Ordinária', militares_doc: 'todos', dias_doc: 'todos' });
     const vinculo = await inserir(api.banco, 'escala_vinculo_versao', { escala_id: escala, vigencia_desde: `${atual}-01` });
-    await inserir(api.banco, 'escala_guarnicao', { versao_id: vinculo, guarnicao_id: f.id, turno_letra: 'B' });
-    await inserir(api.banco, 'escala_guarnicao', { versao_id: vinculo, guarnicao_id: f.id, turno_letra: 'A' });
-    expect((await ficha(f.id)).usadaEm).toEqual([{ escalaId: escala, escala: 'Ordinário', turnos: ['A', 'B'] }]);
-    const g = await criar('Usada sem turno');
-    await inserir(api.banco, 'escala_guarnicao', { versao_id: vinculo, guarnicao_id: g.id, turno_letra: null });
-    expect((await ficha(g.id)).usadaEm).toEqual([{ escalaId: escala, escala: 'Ordinário', turnos: ['todos'] }]);
+    await inserir(api.banco, 'escala_guarnicao', { versao_id: vinculo, guarnicao_id: f.id, inicio: '20:00', fim: '08:00' });
+    await inserir(api.banco, 'escala_guarnicao', { versao_id: vinculo, guarnicao_id: f.id, inicio: '08:00', fim: '20:00' });
+    expect((await ficha(f.id)).usadaEm).toEqual([
+      { escalaId: escala, escala: 'Ordinário', faixas: [{ inicio: '08:00', fim: '20:00' }, { inicio: '20:00', fim: '08:00' }] },
+    ]);
   });
 
   it('lista traz o mínimo e o máximo somados', async () => {

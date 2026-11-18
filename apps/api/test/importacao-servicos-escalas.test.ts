@@ -75,7 +75,7 @@ describe('importação de serviços, turnos e escalas', () => {
     await importar({}, true);
     expect(await servico('Pronto')).toMatchObject({ tipo: 'ordinario', cor: '#2F8F5B', rotuloImpressao: null, turnos: [{ letra: 'A', inicio: '08:00', fim: '20:00' }, { letra: 'B', inicio: '20:00', fim: '08:00' }] });
     expect(await servico('JES')).toMatchObject({ tipo: 'pjes', cor: '#6E56A8', rotuloImpressao: 'PJES' });
-    expect(await servico('Expediente')).toMatchObject({ tipo: 'ordinario', cor: '#8A94A1', turnos: [{ letra: 'U', inicio: '08:00', fim: '16:00' }] });
+    expect(await servico('Expediente')).toMatchObject({ tipo: 'ordinario', cor: '#8A94A1', turnos: [{ letra: 'A', inicio: '08:00', fim: '16:00' }] });
     expect(await servico('Bioma')).toMatchObject({ tipo: 'diaria', operacao: null, turnos: [{ letra: 'C', inicio: '16:00', fim: '00:00', duracaoMinutos: 480 }] });
   });
 
@@ -92,7 +92,8 @@ describe('importação de serviços, turnos e escalas', () => {
     const e = await escala('Ordinário');
     expect(e).toMatchObject({ titulo: 'ESCALA ORDINÁRIA', militaresDoc: 'todos', diasDoc: 'todos' });
     expect(e.servicos.map((s) => s.nome)).toEqual(['Pronto', 'JES', 'Expediente']);
-    expect(e.letras).toEqual(['A', 'B', 'U']);
+    expect(e.faixas.map((f) => `${f.inicio}-${f.fim}`)).toEqual(['08:00-16:00', '08:00-20:00', '20:00-08:00']);
+    expect(e.comLetra).toBe(false);
   });
 
   it('serviço que já existe mantém a cor', async () => {
@@ -135,7 +136,7 @@ describe('importação de serviços, turnos e escalas', () => {
     );
   });
 
-  it('TURNO vazio ou TODOS vira todos os turnos, e guarnição desativada entra com aviso', async () => {
+  it('TURNO vazio ou TODOS vira todas as faixas da escala, e guarnição desativada entra com aviso', async () => {
     const v = [[atual, 'Ordinário', '', 'ABT'], [atual, 'Defensoria', 'TODOS', 'AR'], [atual, 'Ordinário', 'B', 'AR']];
     const previa = await importar({ v });
     expect(previa.problemas).toEqual([]);
@@ -144,8 +145,10 @@ describe('importação de serviços, turnos e escalas', () => {
     const ord = await escala('Ordinário');
     expect(ord.vinculos).toHaveLength(1);
     expect(ord.vinculos[0]).toMatchObject({ vigencia: atual });
-    expect(ord.vinculos[0]!.itens.map((i) => [i.guarnicao, i.turnoLetra])).toEqual([['ABT', null], ['AR', 'B']]);
-    expect((await escala('Defensoria')).vinculos[0]!.itens).toEqual([expect.objectContaining({ guarnicao: 'AR', turnoLetra: null })]);
+    expect(ord.vinculos[0]!.itens.map((i) => [i.guarnicao, `${i.inicio}-${i.fim}`])).toEqual([
+      ['ABT', '08:00-16:00'], ['ABT', '08:00-20:00'], ['ABT', '20:00-08:00'], ['AR', '20:00-08:00'],
+    ]);
+    expect((await escala('Defensoria')).vinculos[0]!.itens).toEqual([expect.objectContaining({ guarnicao: 'AR', inicio: '07:00', fim: '19:00' })]);
   });
 
   it('falta a coluna GUARNIÇÃO: problema e nada planejado', async () => {
@@ -173,20 +176,61 @@ describe('importação de serviços, turnos e escalas', () => {
     const previa = await importar({ t });
     expect(previa.alterados).toEqual([{ chave: 'Serviço JES', descricao: 'JES', mudancas: ['Turno A: de 08:00–20:00 para 07:00–19:00'] }]);
   });
-  it('revisão: TODOS e letra avulsa da mesma guarnição viram só TODOS, com aviso', async () => {
+  it('TODOS junto com uma letra repete a faixa, e a repetição é ignorada com aviso', async () => {
     const v = [[atual, 'Defensoria', 'TODOS', 'ABT'], [atual, 'Defensoria', 'U', 'ABT']];
     const previa = await importar({ v });
-    expect(previa.avisos).toContain(`Defensoria: ABT está em todos os turnos e também no turno U em ${mesPorExtenso(atual)}; vale todos os turnos.`);
+    expect(previa.avisos).toContain(`Defensoria: ABT já está na faixa 07h–19h em ${mesPorExtenso(atual)}; a repetição foi ignorada.`);
     await importar({ v }, true);
-    expect((await escala('Defensoria')).vinculos[0]!.itens.filter((i) => i.guarnicao === 'ABT').map((i) => i.turnoLetra)).toEqual([null]);
+    expect((await escala('Defensoria')).vinculos[0]!.itens.filter((i) => i.guarnicao === 'ABT')).toHaveLength(1);
   });
 
-  it('revisão: TURNO com várias letras vira um vínculo por letra', async () => {
-    const v = [[atual, 'Ordinário', 'A, B', 'ABT'], [atual, 'Ordinário', 'B', 'AR']];
+  it('letra ambígua vira problema com a solução de escrever a faixa', async () => {
+    const previa = await importar({ v: [[atual, 'Ordinário', 'A', 'ABT']] });
+    expect(previa.problemas).toContainEqual({
+      aba: 'GUARNIÇÕES POR ESCALA', linha: 2,
+      mensagem: 'Turno A tem horários diferentes nos serviços da escala Ordinário (08h–16h, 08h–20h)',
+      solucao: 'Escreva a faixa na coluna TURNO (ex.: 08:00-20:00).',
+    });
+  });
+
+  it('faixa escrita na célula é aceita', async () => {
+    const v = [[atual, 'Ordinário', '08:00-20:00', 'ABT'], [atual, 'Ordinário', '20h às 08h', 'AR']];
     const previa = await importar({ v });
     expect(previa.problemas).toEqual([]);
     await importar({ v }, true);
-    expect((await escala('Ordinário')).vinculos[0]!.itens.map((i) => [i.guarnicao, i.turnoLetra])).toEqual([['ABT', 'A'], ['ABT', 'B'], ['AR', 'B']]);
+    expect((await escala('Ordinário')).vinculos[0]!.itens.map((i) => [i.guarnicao, `${i.inicio}-${i.fim}`])).toEqual([['ABT', '08:00-20:00'], ['AR', '20:00-08:00']]);
+  });
+
+  it('faixa que não existe vira problema', async () => {
+    const previa = await importar({ v: [[atual, 'Ordinário', '09:00-21:00', 'ABT']] });
+    expect(previa.problemas).toContainEqual({
+      aba: 'GUARNIÇÕES POR ESCALA', linha: 2,
+      mensagem: 'Faixa 09h–21h não existe nos serviços da escala Ordinário',
+      solucao: 'Confira a coluna TURNO ou os horários na aba TURNOS.',
+    });
+  });
+
+  it('TURNO com várias letras vira um vínculo por faixa', async () => {
+    const e = [...ESCALAS, ['Plantão', 'Pronto', '', '', '']];
+    const v = [[atual, 'Plantão', 'A, B', 'ABT'], [atual, 'Plantão', 'B', 'AR']];
+    const previa = await importar({ e, v });
+    expect(previa.problemas).toEqual([]);
+    await importar({ e, v }, true);
+    expect((await escala('Plantão')).vinculos[0]!.itens.map((i) => [i.guarnicao, `${i.inicio}-${i.fim}`])).toEqual([
+      ['ABT', '08:00-20:00'], ['ABT', '20:00-08:00'], ['AR', '20:00-08:00'],
+    ]);
+  });
+
+  // [foco 17]
+  it('reimportar com TURNO vazio dá igual', async () => {
+    const v = [[atual, 'Defensoria', '', 'ABT']];
+    await importar({ v }, true);
+    const antes = await auditoria();
+    const previa = await importar({ v });
+    expect(previa.novos).toEqual([]);
+    expect(previa.alterados).toEqual([]);
+    expect((await importar({ v }, true)).gravados).toBe(0);
+    expect(await auditoria()).toBe(antes);
   });
 
   it('revisão: tipo na prévia aparece por extenso', async () => {

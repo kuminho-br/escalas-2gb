@@ -96,8 +96,8 @@ describe('carga de exemplo', () => {
     );
     expect(rows).toEqual([
       { nome: 'Bioma', tipo: 'diaria', operacao: 'Guardiões do Bioma', cor: '#C08A1E', turnos: 'A 00-08, B 08-16, C 16-00' },
-      { nome: 'Defensoria', tipo: 'pjes', operacao: null, cor: '#8C4A7A', turnos: 'U 07-19' },
-      { nome: 'Expediente', tipo: 'ordinario', operacao: null, cor: '#8A94A1', turnos: 'U 08-16' },
+      { nome: 'Defensoria', tipo: 'pjes', operacao: null, cor: '#8C4A7A', turnos: 'A 07-19' },
+      { nome: 'Expediente', tipo: 'ordinario', operacao: null, cor: '#8A94A1', turnos: 'A 08-16' },
       { nome: 'JES', tipo: 'pjes', operacao: null, cor: '#6E56A8', turnos: 'A 08-20, B 20-08' },
       { nome: 'PE Seguro', tipo: 'diaria', operacao: 'PE Seguro', cor: '#3C5F9C', turnos: 'A 00-08, B 08-16, C 16-00' },
       { nome: 'Pronto', tipo: 'ordinario', operacao: null, cor: '#2F8F5B', turnos: 'A 08-20, B 20-08' },

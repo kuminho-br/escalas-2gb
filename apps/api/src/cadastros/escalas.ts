@@ -7,10 +7,10 @@ import {
   NovaEscala,
   ServicosDaEscala,
   SituacaoEscala,
+  textoFaixa,
   tituloPadraoEscala,
   VinculosDaEscala,
   type Escala,
-  type LetraTurno,
   type LinhaEscala,
   type VinculoSalvo,
 } from 'contratos';
@@ -21,10 +21,10 @@ import type { Auth } from '../auth.ts';
 import { comUsuario, type Banco, type Consulta } from '../banco/banco.ts';
 import { lerCorpo, respostaDoErroDoBanco } from '../erros.ts';
 import { mesPassado, versoesDasGuarnicoes } from './guarnicoes.ts';
+import { faixasDosTurnos } from './escalas-regras.ts';
 import { versaoNoMes } from './guarnicoes-regras.ts';
 
 type Ctx = Context<AmbienteApi>;
-const ORDEM_LETRAS: LetraTurno[] = ['A', 'B', 'C', 'U'];
 const porNome = (a: { nome: string }, b: { nome: string }) => a.nome.localeCompare(b.nome, 'pt-BR');
 
 /** Serviços da escala na ordem de preenchimento. */
@@ -38,11 +38,16 @@ async function servicosDaEscala(c: Consulta, escalaId: string) {
   ).rows;
 }
 
-/** União das letras dos turnos dos serviços, na ordem A, B, C, U. */
-export async function letrasDosServicos(c: Consulta, servicoIds: string[]): Promise<LetraTurno[]> {
-  if (!servicoIds.length) return [];
-  const { rows } = await c.query<{ letra: LetraTurno }>('select distinct letra from turno where servico_id = any($1)', [servicoIds]);
-  return ORDEM_LETRAS.filter((l) => rows.some((r) => r.letra === l));
+/** Faixas de horário dos turnos dos serviços (cada coluna da matriz) e se a letra acompanha a faixa. */
+export async function faixasDaEscala(c: Consulta, servicoIds: string[]) {
+  if (!servicoIds.length) return faixasDosTurnos([]);
+  const { rows } = await c.query<{ servico: string; letra: 'A' | 'B' | 'C'; inicio: string; fim: string }>(
+    `select s.nome as servico, t.letra, to_char(t.inicio, 'HH24:MI') as inicio, to_char(t.fim, 'HH24:MI') as fim
+       from turno t join servico s on s.id = t.servico_id
+      where t.servico_id = any($1)`,
+    [servicoIds],
+  );
+  return faixasDosTurnos(rows);
 }
 
 /** Versões de vínculos, a mais recente primeiro, com a situação da guarnição em cada vigência. */
@@ -55,10 +60,10 @@ async function vinculosDaEscala(c: Consulta, escalaId: string): Promise<Escala['
   ).rows;
   if (!vs.length) return [];
   const itens = (
-    await c.query<{ versao_id: string; guarnicao_id: string; guarnicao: string; turno_letra: LetraTurno | null }>(
-      `select eg.versao_id, eg.guarnicao_id, g.nome as guarnicao, eg.turno_letra
+    await c.query<{ versao_id: string; guarnicao_id: string; guarnicao: string; inicio: string; fim: string }>(
+      `select eg.versao_id, eg.guarnicao_id, g.nome as guarnicao, to_char(eg.inicio, 'HH24:MI') as inicio, to_char(eg.fim, 'HH24:MI') as fim
          from escala_guarnicao eg join guarnicao g on g.id = eg.guarnicao_id
-        where eg.versao_id = any($1) order by g.nome, eg.turno_letra nulls first`,
+        where eg.versao_id = any($1) order by g.nome, eg.inicio, eg.fim`,
       [vs.map((v) => v.id)],
     )
   ).rows;
@@ -73,7 +78,8 @@ async function vinculosDaEscala(c: Consulta, escalaId: string): Promise<Escala['
           guarnicao: i.guarnicao,
           // guarnição que só começa depois não está desativada
           ativaNoMes: versaoNoMes(versoesG.get(i.guarnicao_id) ?? [], v.vigencia)?.ativa ?? true,
-          turnoLetra: i.turno_letra,
+          inicio: i.inicio,
+          fim: i.fim,
         }),
       ),
   }));
@@ -95,7 +101,7 @@ async function carregarEscala(c: Consulta, id: string): Promise<Escala> {
     diasDoc: e.dias_doc,
     ativa: e.ativa,
     servicos,
-    letras: await letrasDosServicos(c, servicos.map((s) => s.id)),
+    ...(await faixasDaEscala(c, servicos.map((s) => s.id))),
     vinculos: await vinculosDaEscala(c, id),
   };
 }
@@ -138,7 +144,7 @@ export async function gravarVinculos(tx: Consulta, escalaId: string, vigencia: s
   ).rows[0]!.id;
   await tx.query('delete from escala_guarnicao where versao_id = $1', [id]);
   for (const it of itens) {
-    await tx.query('insert into escala_guarnicao (versao_id, guarnicao_id, turno_letra) values ($1, $2, $3)', [id, it.guarnicaoId, it.turnoLetra]);
+    await tx.query('insert into escala_guarnicao (versao_id, guarnicao_id, inicio, fim) values ($1, $2, $3, $4)', [id, it.guarnicaoId, it.inicio, it.fim]);
   }
 }
 
@@ -268,14 +274,15 @@ export function rotasEscalas(dep: { banco: Banco; auth: Auth }): Hono<AmbienteAp
     const passado = mesPassado(c, mes);
     if (passado) return passado;
     const itens = corpo.dados.itens;
-    const letras = await letrasDosServicos(dep.banco, (await servicosDaEscala(dep.banco, id)).map((s) => s.id));
+    const { faixas } = await faixasDaEscala(dep.banco, (await servicosDaEscala(dep.banco, id)).map((s) => s.id));
+    const existentes = new Set(faixas.map((f) => `${f.inicio}|${f.fim}`));
     const daUnidade = new Set(
       (await dep.banco.query<{ id: string }>('select id from guarnicao where unidade_id = $1 and id = any($2)', [acesso.unidadeId, itens.map((i) => i.guarnicaoId)])).rows.map((g) => g.id),
     );
     const campos: Record<string, string> = {};
     itens.forEach((it, i) => {
       if (!daUnidade.has(it.guarnicaoId)) campos[`itens.${i}.guarnicaoId`] = 'Use só guarnições cadastradas nesta seção.';
-      else if (it.turnoLetra && !letras.includes(it.turnoLetra)) campos[`itens.${i}.turnoLetra`] = `O turno ${it.turnoLetra} não existe nos serviços desta escala.`;
+      else if (!existentes.has(`${it.inicio}|${it.fim}`)) campos[`itens.${i}.inicio`] = `A faixa ${textoFaixa(it.inicio, it.fim)} não existe nos serviços desta escala.`;
     });
     if (Object.keys(campos).length) return c.json({ erro: 'Confira os campos destacados.', campos }, 400);
     const e = await comUsuario(dep.banco, c.get('usuarioId'), async (tx) => {

@@ -73,8 +73,8 @@ describe('serviços', () => {
 
   it('editar e remover turno sem alocação', async () => {
     const s = await criar('Editável');
-    const t = ((await (await turno(s.id, 'U', '08:00', '16:00')).json()) as Servico).turnos[0]!;
-    const e = await api.pedir('escalante', 'PATCH', `/api/turnos/${t.id}`, { letra: 'U', inicio: '07:00', fim: '19:00' });
+    const t = ((await (await turno(s.id, 'A', '08:00', '16:00')).json()) as Servico).turnos[0]!;
+    const e = await api.pedir('escalante', 'PATCH', `/api/turnos/${t.id}`, { letra: 'A', inicio: '07:00', fim: '19:00' });
     expect(e.status).toBe(200);
     expect(((await e.json()) as Servico).turnos[0]).toMatchObject({ inicio: '07:00', fim: '19:00', duracaoMinutos: 720 });
     const d = await api.pedir('escalante', 'DELETE', `/api/turnos/${t.id}`);
@@ -129,5 +129,12 @@ describe('serviços', () => {
     const s = await criar('Auditado');
     const { rows } = await api.banco.query<{ usuario_id: string }>("select usuario_id from auditoria where tabela = 'servico' and registro_id = $1", [s.id]);
     expect(rows[0]?.usuario_id).toBe(api.usuarios.escalante);
+  });
+
+  it('a letra U não existe mais', async () => {
+    const s = await criar('Sem Unico');
+    const r = await turno(s.id, 'U', '08:00', '16:00');
+    expect(r.status).toBe(400);
+    expect((await r.json()).campos).toHaveProperty('letra');
   });
 });

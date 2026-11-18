@@ -108,7 +108,7 @@ describe('auditoria', () => {
 
     const e = await inserir(banco, 'escala', { unidade_id: unidade, nome: 'Op', titulo: 'Op', militares_doc: 'todos', dias_doc: 'todos' });
     const v = await inserir(banco, 'escala_vinculo_versao', { escala_id: e, vigencia_desde: '2026-11-01' });
-    const eg = await inserir(banco, 'escala_guarnicao', { versao_id: v, guarnicao_id: g });
+    const eg = await inserir(banco, 'escala_guarnicao', { versao_id: v, guarnicao_id: g, inicio: '08:00', fim: '20:00' });
     expect((await linhas('escala_guarnicao', eg))[0]!.unidade_id).toBe(unidade);
 
     expect((await linhas('unidade', unidade))[0]!.unidade_id).toBe(unidade);

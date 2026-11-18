@@ -5,7 +5,7 @@ import { Hora, Nome } from './comum.ts';
 export const TipoServico = z.enum(['ordinario', 'pjes', 'diaria']);
 export type TipoServico = z.infer<typeof TipoServico>;
 
-export const LetraTurno = z.enum(['A', 'B', 'C', 'U']);
+export const LetraTurno = z.enum(['A', 'B', 'C']);
 export type LetraTurno = z.infer<typeof LetraTurno>;
 
 /** Turno padrão do voluntariado, com o dia relativo ao dia em que o turno do serviço começa. */
@@ -38,6 +38,10 @@ export type EdicaoServico = DadosServico;
 
 export const SituacaoServico = z.object({ ativo: z.boolean() });
 export type SituacaoServico = z.infer<typeof SituacaoServico>;
+
+/** Faixa de horário de um turno. */
+export const Faixa = z.object({ inicio: Hora, fim: Hora });
+export type Faixa = z.infer<typeof Faixa>;
 
 export const DadosTurno = z.object({ letra: LetraTurno, inicio: Hora, fim: Hora });
 export type DadosTurno = z.infer<typeof DadosTurno>;

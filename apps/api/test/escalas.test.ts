@@ -16,6 +16,8 @@ let guarnicaoAlheia: string;
 const atual = hojeRecife().slice(0, 7);
 const proximo = somarMeses(atual, 1);
 const passado = somarMeses(atual, -1);
+const F1 = { inicio: '08:00', fim: '20:00' };
+const F2 = { inicio: '20:00', fim: '08:00' };
 const secao = () => `/api/unidades/${api.ids.secao}`;
 
 async function servico(nome: string, tipo: string, turnos: [string, string, string][]): Promise<Servico> {
@@ -41,7 +43,7 @@ beforeAll(async () => {
   api = await montarApi();
   outraSecao = await inserir(api.banco, 'unidade', { tipo: 'secao', sigla: '2ª SB', nome: '2ª Seção de Bombeiros', mae_id: api.ids.gb, desde: '2026-11-01' });
   pronto = await servico('Pronto', 'ordinario', [['A', '08:00', '20:00'], ['B', '20:00', '08:00']]);
-  expediente = await servico('Expediente', 'ordinario', [['U', '08:00', '16:00']]);
+  expediente = await servico('Expediente', 'ordinario', [['A', '08:00', '16:00']]);
   bioma = await servico('Bioma', 'diaria', [['A', '00:00', '08:00'], ['B', '08:00', '16:00'], ['C', '16:00', '00:00']]);
   servicoAlheio = await inserir(api.banco, 'servico', { unidade_id: outraSecao, nome: 'Alheio', tipo: 'ordinario', cor: '#000000' });
   abt = await guarnicao('ABT');
@@ -55,7 +57,7 @@ afterAll(async () => {
 describe('escalas', () => {
   it('nova escala nasce com título ESCALA <NOME>, só escalados e todos os dias', async () => {
     const e = await criar('Defensoria');
-    expect(e).toMatchObject({ nome: 'Defensoria', titulo: 'ESCALA DEFENSORIA', militaresDoc: 'escalados', diasDoc: 'todos', ativa: true, servicos: [], letras: [], vinculos: [] });
+    expect(e).toMatchObject({ nome: 'Defensoria', titulo: 'ESCALA DEFENSORIA', militaresDoc: 'escalados', diasDoc: 'todos', ativa: true, servicos: [], faixas: [], comLetra: true, vinculos: [] });
     const lista: LinhaEscala[] = await (await api.pedir('escalante', 'GET', `${secao()}/escalas`)).json();
     expect(lista.find((x) => x.id === e.id)).toEqual({ id: e.id, nome: 'Defensoria', ativa: true, servicos: [] });
   });
@@ -67,13 +69,15 @@ describe('escalas', () => {
     expect(await r.json()).toMatchObject({ titulo: 'ESCALA DE SERVIÇO CPRH', militaresDoc: 'todos', diasDoc: 'com_escalados' });
   });
 
-  it('reúne serviços na ordem e devolve as letras', async () => {
+  it('reúne serviços na ordem e devolve as faixas', async () => {
     const e = await criar('Ordinário');
     const r = await servicosDa(e.id, [expediente.id, pronto.id]);
     expect(r.status).toBe(200);
     const f: Escala = await r.json();
     expect(f.servicos.map((s) => s.nome)).toEqual(['Expediente', 'Pronto']);
-    expect(f.letras).toEqual(['A', 'B', 'U']);
+    // o A do Expediente (08h–16h) e o A do Pronto (08h–20h) têm horários diferentes: a letra deixa de acompanhar as colunas
+    expect(f.faixas.map((x) => `${x.inicio}-${x.fim}`)).toEqual(['08:00-16:00', '08:00-20:00', '20:00-08:00']);
+    expect(f.comLetra).toBe(false);
     const outra: Escala = await (await servicosDa(e.id, [pronto.id, expediente.id])).json();
     expect(outra.servicos.map((s) => s.nome)).toEqual(['Pronto', 'Expediente']);
     const lista: LinhaEscala[] = await (await api.pedir('escalante', 'GET', `${secao()}/escalas`)).json();
@@ -98,35 +102,35 @@ describe('escalas', () => {
     expect((await r.json()).erro).toBe('O serviço Expediente já tem militares escalados nesta escala.');
   });
 
-  it('tirar serviço sem alocação deixa o vínculo da letra que sumiu', async () => {
+  it('tirar serviço sem alocação deixa o vínculo da faixa que sumiu', async () => {
     const e = await criar('Órfã');
     await servicosDa(e.id, [bioma.id]);
-    expect((await vinculos(e.id, atual, [{ guarnicaoId: abt, turnoLetra: 'C' }])).status).toBe(200);
+    expect((await vinculos(e.id, atual, [{ guarnicaoId: abt, inicio: '16:00', fim: '00:00' }])).status).toBe(200);
     const f: Escala = await (await servicosDa(e.id, [pronto.id])).json();
-    expect(f.letras).toEqual(['A', 'B']);
-    expect(f.vinculos[0]!.itens).toEqual([{ guarnicaoId: abt, guarnicao: 'ABT', ativaNoMes: true, turnoLetra: 'C' }]);
+    expect(f.faixas.map((x) => `${x.inicio}-${x.fim}`)).toEqual(['08:00-20:00', '20:00-08:00']);
+    expect(f.vinculos[0]!.itens).toEqual([{ guarnicaoId: abt, guarnicao: 'ABT', ativaNoMes: true, inicio: '16:00', fim: '00:00' }]);
   });
 
-  it('vínculo com letra fora da escala é 400', async () => {
+  it('vínculo com faixa fora da escala é 400', async () => {
     const e = await criar('Letra Fora');
     await servicosDa(e.id, [pronto.id]);
-    const r = await vinculos(e.id, atual, [{ guarnicaoId: abt, turnoLetra: 'C' }]);
+    const r = await vinculos(e.id, atual, [{ guarnicaoId: abt, inicio: '16:00', fim: '00:00' }]);
     expect(r.status).toBe(400);
-    expect((await r.json()).campos).toEqual({ 'itens.0.turnoLetra': 'O turno C não existe nos serviços desta escala.' });
+    expect((await r.json()).campos).toEqual({ 'itens.0.inicio': 'A faixa 16h–00h não existe nos serviços desta escala.' });
   });
 
-  it('"Todos os turnos" junto com letra na mesma guarnição é 400', async () => {
-    const e = await criar('Mistura');
+  it('a mesma faixa duas vezes para a guarnição é 400', async () => {
+    const e = await criar('Repetida');
     await servicosDa(e.id, [pronto.id]);
-    const r = await vinculos(e.id, atual, [{ guarnicaoId: abt, turnoLetra: null }, { guarnicaoId: abt, turnoLetra: 'A' }]);
+    const r = await vinculos(e.id, atual, [{ guarnicaoId: abt, ...F1 }, { guarnicaoId: abt, ...F1 }]);
     expect(r.status).toBe(400);
-    expect((await r.json()).campos).toEqual({ 'itens.1.turnoLetra': 'Com "Todos os turnos", não marque turnos avulsos.' });
+    expect((await r.json()).campos).toEqual({ 'itens.1.inicio': 'Esta guarnição já está nesta faixa.' });
   });
 
   it('guarnição de outra unidade é 400', async () => {
     const e = await criar('Guarnição Alheia');
     await servicosDa(e.id, [pronto.id]);
-    const r = await vinculos(e.id, atual, [{ guarnicaoId: guarnicaoAlheia, turnoLetra: 'A' }]);
+    const r = await vinculos(e.id, atual, [{ guarnicaoId: guarnicaoAlheia, ...F1 }]);
     expect(r.status).toBe(400);
     expect((await r.json()).campos).toHaveProperty('itens.0.guarnicaoId');
   });
@@ -134,13 +138,13 @@ describe('escalas', () => {
   it('vínculo com guarnição desativada é gravado e volta com ativaNoMes false', async () => {
     const e = await criar('Desativada');
     await servicosDa(e.id, [pronto.id]);
-    const r = await vinculos(e.id, atual, [{ guarnicaoId: ar, turnoLetra: null }, { guarnicaoId: abt, turnoLetra: 'A' }]);
+    const r = await vinculos(e.id, atual, [{ guarnicaoId: ar, ...F2 }, { guarnicaoId: abt, ...F1 }]);
     expect(r.status).toBe(200);
     const f: Escala = await r.json();
     expect(f.vinculos).toEqual([
       { vigencia: atual, itens: [
-        { guarnicaoId: abt, guarnicao: 'ABT', ativaNoMes: true, turnoLetra: 'A' },
-        { guarnicaoId: ar, guarnicao: 'AR', ativaNoMes: false, turnoLetra: null },
+        { guarnicaoId: abt, guarnicao: 'ABT', ativaNoMes: true, ...F1 },
+        { guarnicaoId: ar, guarnicao: 'AR', ativaNoMes: false, ...F2 },
       ] },
     ]);
   });
@@ -148,17 +152,17 @@ describe('escalas', () => {
   it('vínculos do mês corrente substituem', async () => {
     const e = await criar('Substitui');
     await servicosDa(e.id, [pronto.id]);
-    await vinculos(e.id, atual, [{ guarnicaoId: abt, turnoLetra: 'A' }]);
-    await vinculos(e.id, proximo, [{ guarnicaoId: abt, turnoLetra: 'B' }]);
-    const f: Escala = await (await vinculos(e.id, atual, [{ guarnicaoId: abt, turnoLetra: null }])).json();
+    await vinculos(e.id, atual, [{ guarnicaoId: abt, ...F1 }]);
+    await vinculos(e.id, proximo, [{ guarnicaoId: abt, ...F2 }]);
+    const f: Escala = await (await vinculos(e.id, atual, [{ guarnicaoId: abt, ...F1 }, { guarnicaoId: abt, ...F2 }])).json();
     expect(f.vinculos.map((v) => v.vigencia)).toEqual([proximo, atual]);
-    expect(f.vinculos[1]!.itens.map((i) => i.turnoLetra)).toEqual([null]);
+    expect(f.vinculos[1]!.itens.map((i) => `${i.inicio}-${i.fim}`)).toEqual(['08:00-20:00', '20:00-08:00']);
   });
 
   it('vínculo de mês passado é 409 com o mês mínimo', async () => {
     const e = await criar('Passado');
     await servicosDa(e.id, [pronto.id]);
-    const r = await vinculos(e.id, passado, [{ guarnicaoId: abt, turnoLetra: 'A' }]);
+    const r = await vinculos(e.id, passado, [{ guarnicaoId: abt, ...F1 }]);
     expect(r.status).toBe(409);
     expect((await r.json()).erro).toBe(`Só dá para mudar a partir de ${mesPorExtenso(atual)}.`);
   });
