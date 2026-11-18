@@ -195,3 +195,46 @@ Decisões do usuário depois de usar as telas de Serviços e Escalas no ambiente
 - **Régua do dia:** desenha sempre o dia de 0h a 24h e pinta só onde há turno. O turno que passa da meia-noite continua pelo dia seguinte até onde vai (o B das 20h às 08h é uma barra só, com o fim às 08h do dia seguinte). Substitui o desenho em duas partes da 4.1.
 - **Seletor de cor:** só o quadrado da cor no botão, na linha do "Nome na impressão".
 - **Rolagem dos cadastros:** a página não estica ao passar do fim, e a rolagem da lista não passa para a página.
+
+## Adendo (18/11/2026) — Revisões antes da fase 4
+
+Entre a fase 3 e a fase 4 entram três revisões (roadmap, "Revisões antes da fase 4"): pendências, testes com pessoas e revisão de código. Este adendo registra o que a revisão 1 muda nas telas, a partir da análise de interface de 18/11/2026 (código, esboços `telas-v12` e fotos das telas em 1366 px e 390 px).
+
+### Propostas aceitas
+
+- **Botão Salvar que mostra o estado (A).** Em cada bloco da ficha, o Salvar fica apagado quando não há alteração e acende em vinho quando há o que salvar. Na linha de turno, ele só aparece quando a linha muda. O aviso "Salvo" some na primeira alteração seguinte, para não aparecer junto de "Alterações não salvas". Cada bloco continua gravando sozinho.
+- **Aviso de cadastro incompleto (B).** Pendência é âmbar; vermelho fica para erro e choque. No alto da lista de militares, um resumo ("Cadastro incompleto em 9 militares. Ver quais") filtra a lista. Na ficha, a antiguidade repetida com mais de três militares vira "Antiguidade repetida com 20 militares. Ver quais", que abre os nomes. A lista mostra a situação no mês só de quem não está disponível.
+- **Ficha num painel só (D).** A ficha é um painel único, com os blocos separados por uma linha fina e, embaixo do nome, um resumo de uma linha (ex.: "Viatura AR, Auto Resgate. Ativada em 2º lugar."). "Desativar" e "Reativar" vão para o cabeçalho da ficha.
+- **Trilho estreito (E).** No computador, o menu vira um trilho de 84 px, com o ícone e o nome pequeno embaixo, como no esboço. No celular, continua o menu que abre pelo botão.
+
+### Correções (cada uma com uma saída só)
+
+- Campos, botões secundários e caixas de diálogo ficam brancos em qualquer tema do Windows. O site não tem modo escuro, e o tema escuro do sistema deixa de mudar só uma parte das cores. O botão secundário é branco com texto vinho.
+- Serviço e escala ativos mostram só "Desativar"; a explicação vai na pergunta de confirmação. Desativados, mostram "Desativado" e "Reativar".
+- "1 militar" no singular.
+- As fichas de militar e de guarnição também perguntam antes de sair com alterações não salvas.
+- Remover turno e remover afastamento perguntam antes.
+- A caixa "Ativa" sai das versões da guarnição; desativar fica só em "Desativar agora / a partir de…".
+- Configurações: Sim e Não numa lista que abre (não se escreve mais), e número em campo numérico.
+- Grade geral: "A grade geral chega na próxima fase."
+- Celular: o caminho da unidade corta pelo começo, para a seção atual ficar à vista; a coluna das guarnições da matriz fica parada ao rolar para o lado.
+- A frase da composição da guarnição cabe numa linha por função, no computador.
+- A mesma ação tem o mesmo nome: Salvar (não Gravar), Remover (não Apagar), Criar (não Cadastrar).
+
+### Detalhes do esboço recuperados
+
+- O item aberto na lista tem fundo rosado e uma barra vinho à esquerda.
+- As versões ficam ligadas por uma linha, em ordem; a que só vale no futuro tem borda tracejada.
+- A lista de guarnições mostra o número da ordem de ativação (ou "–" sem prioridade).
+- Os nomes levam à ficha: escalas em "Onde é usada" da guarnição, serviços e guarnições na ficha da escala. O serviço ganha "Usado nas escalas …".
+- Os textos de apoio passam de 12 px para 13 px.
+
+### Recusadas
+
+- Botões lado a lado para as escolhas curtas (C): as caixas, bolinhas e listas ficam como estão, e "Ativo" continua na Identificação do militar.
+- Marcar de qual serviço vem cada coluna da matriz (F).
+- Quadro "O que falta no cadastro" na página inicial (G).
+
+### Pendências menores dos PRs
+
+As pendências anotadas nos PRs da fase 3 são separadas em quatro grupos: as que uma pessoa pode encontrar nas telas entram na revisão 1; as já resolvidas saem; as internas (testes, código sem uso, recuo) vão para a revisão 3; as que só aparecem com várias unidades ou com alocações gravadas vão para as fases 4 e 7. A lista de cada grupo fica no plano da revisão 1.

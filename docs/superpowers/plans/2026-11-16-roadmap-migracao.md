@@ -22,6 +22,7 @@
 | 1. Fundação | Banco, API e site no ar, com login e auditoria | Você |
 | 2. Motor de regras | Regras do Apps Script portadas, com os testes passando | Você |
 | 3. Cadastros | Todas as telas de cadastro, com carga inicial da planilha | Você e os escalantes |
+| Revisões antes da fase 4 | Pendências aplicadas, telas testadas com pessoas e código revisado | Você e alguns usuários |
 | 4. Montagem da escala (**1ª versão**) | Montar, conferir e publicar a escala do mês | **~5 escalantes (piloto 1ª SB)** |
 | 5. Operação diária | Efetivo do dia, permutas, escala executada | Escalantes |
 | 6. Insumos automáticos e regras novas | Importação do Google Forms; regras validadas no laboratório | Escalantes |
@@ -96,6 +97,16 @@ A importação é feita na tela, com prévia e confirmação; os dados reais vã
 - **Contrato de datas:** a data do contrato recusa dia que não existe no calendário (antes passava e dava erro do banco).
 
 Ficou para as fases seguintes: a exposição do motor pela API (pré-escala, distribuições, quem pode ocupar a vaga) e o modelo de impressão (fase 4), a tela de Estrutura, o Histórico e o cadastro de usuários (fase 7), e a antiguidade institucional pelos almanaques (fase 7). "Distribuídas" nas cotas vale 0 até a fase 4, quando a escala passar a gravar alocações.
+
+## Revisões antes da fase 4 (adendo de 18/11/2026)
+
+Os cadastros estão prontos, mas foram feitos em dez entregas, cada uma com pendências pequenas anotadas no PR. Antes de montar a escala em cima deles, três revisões, nesta ordem (decisão do usuário):
+
+1. **Revisão 1 — pendências.** Aplica a análise de interface de 18/11/2026 (as propostas aceitas estão no adendo do design "Revisões antes da fase 4") e as pendências menores anotadas nos PRs da fase 3 que uma pessoa pode encontrar ao usar as telas. As que já foram resolvidas saem da lista. As que só dizem respeito ao código (testes que faltam, código sem uso, recuo) ficam para a revisão 3. As que só aparecem com várias unidades ou com a escala gravando alocações ficam para as fases 4 e 7. Plano próprio: `docs/superpowers/plans/2026-11-18-revisao-1.md`.
+2. **Revisão 2 — testes com pessoas.** Alguns escalantes e militares usam os cadastros no ambiente de teste, com os dados da 1ª SB. O retorno vira uma rodada de ajustes, com plano próprio quando houver o que mudar.
+3. **Revisão 3 — revisão de código.** Leitura do sistema novo inteiro (API, site, motor e contratos), com as pendências internas separadas na revisão 1. Os problemas encontrados são corrigidos com teste antes da fase 4.
+
+**Entrega:** a fase 4 começa com os cadastros testados por quem vai usá-los e com o código revisado.
 
 ## Fase 4 — Montagem da escala (1ª versão para os testadores)
 
