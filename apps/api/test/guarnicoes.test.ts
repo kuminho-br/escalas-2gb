@@ -315,3 +315,37 @@ describe('permissões', () => {
     expect(rows[0]!.usuario_id).toBe(api.usuarios.escalante);
   });
 });
+
+describe('guarnição que só vale no futuro', () => {
+  const situacao = (quem: 'escalante' | 'semPapel', id: string, ativa: boolean, aPartirDe: string) =>
+    api.pedir(quem, 'POST', `/api/guarnicoes/${id}/situacao`, { ativa, aPartirDe });
+
+  it('a ficha traz a versão futura e não aparece como desativada', async () => {
+    const f = await criar('So no futuro', { vigencia: proximo });
+    const lida = await ficha(f.id);
+    expect(lida.versoes.map((v) => [v.vigencia, v.ativa])).toEqual([[proximo, true]]);
+    expect(lida.desativadaAPartirDe).toBeNull();
+    expect(lida.usadaEm).toEqual([]);
+    expect((await lista(proximo)).find((g) => g.id === f.id)).toBeDefined();
+  });
+
+  it('desativar agora liga só a versão futura (nenhuma versão nova no passado) e reativar volta', async () => {
+    const f = await criar('So no futuro 2', { vigencia: proximo });
+    const off: FichaGuarnicao = await (await situacao('escalante', f.id, false, atual)).json();
+    expect(off.versoes.map((v) => [v.vigencia, v.ativa])).toEqual([[proximo, false]]);
+    expect(off.desativadaAPartirDe).toBe(proximo);
+    const on: FichaGuarnicao = await (await situacao('escalante', f.id, true, atual)).json();
+    expect(on.versoes.map((v) => [v.vigencia, v.ativa])).toEqual([[proximo, true]]);
+    expect(on.desativadaAPartirDe).toBeNull();
+  });
+
+  it('situação sem papel na unidade é 403 e de guarnição que não existe é 404', async () => {
+    const f = await criar('Situacao sem acesso');
+    const negada = await situacao('semPapel', f.id, false, atual);
+    expect(negada.status).toBe(403);
+    expect((await ficha(f.id)).versoes[0]!.ativa).toBe(true);
+    const inexistente = await situacao('escalante', '00000000-0000-0000-0000-000000000000', false, atual);
+    expect(inexistente.status).toBe(404);
+  });
+});
+

@@ -45,7 +45,7 @@ describe('importação de guarnições', () => {
     const r = await importar(BASE, true);
     expect(r.gravados).toBe(1);
     const f = await ficha('Auto Bomba 1');
-        expect(f.versoes.map((v) => v.vigencia)).toEqual([FUTURO, criacao]);
+    expect(f.versoes.map((v) => v.vigencia)).toEqual([FUTURO, criacao]);
     expect(f.versoes[1]).toMatchObject({
       viatura: 'ABT-01', tipoViatura: 'Auto Bomba', prioridade: 1, ativa: true,
       composicao: [
@@ -211,5 +211,42 @@ describe('importação de guarnições', () => {
     expect(r.alterados).toEqual([{ chave: 'Auto Bomba 1', descricao: 'Auto Bomba 1', mudancas: [`${mesPorExtenso(criacao)}: Combatente: máximo 3 → 5`] }]);
     await importar(mudada, true);
     expect((await ficha('Auto Bomba 1')).versoes.find((v) => v.vigencia === criacao)!.composicao.find((c) => c.funcao === 'Combatente')!.maximo).toBe(5);
+  });
+});
+
+describe('importação de guarnições: versões e funções que já existem', () => {
+  const linha = (vigencia: string, guarnicao: string, viatura: string, funcao: string, minimo: number, maximo: number): Linha =>
+    [vigencia, guarnicao, viatura, 'Tipo', 'SIM', 1, '', funcao, minimo, maximo];
+
+  it('a planilha com só uma vigência muda essa versão e deixa as outras do sistema como estão', async () => {
+    await importar([
+      linha('', 'Extras', 'V1', 'Combatente', 1, 1),
+      linha('2098-01', 'Extras', 'V2', 'Combatente', 2, 2),
+      linha(FUTURO, 'Extras', 'V3', 'Combatente', 3, 3),
+    ], true);
+    const antes = await ficha('Extras');
+    expect(antes.versoes.map((v) => v.vigencia)).toEqual([FUTURO, '2098-01', criacao]);
+
+    const previa = await importar([linha('2098-01', 'Extras', 'V2', 'Combatente', 2, 5)]);
+    expect(previa.alterados).toHaveLength(1);
+    expect(previa.alterados[0].mudancas.every((m: string) => m.startsWith(mesPorExtenso('2098-01')))).toBe(true);
+    await importar([linha('2098-01', 'Extras', 'V2', 'Combatente', 2, 5)], true);
+
+    const depois = await ficha('Extras');
+    expect(depois.versoes.map((v) => v.vigencia)).toEqual([FUTURO, '2098-01', criacao]);
+    expect(depois.versoes[1]!.composicao[0]).toMatchObject({ minimo: 2, maximo: 5 });
+    expect(depois.versoes[0]).toEqual(antes.versoes[0]);
+    expect(depois.versoes[2]).toEqual(antes.versoes[2]);
+  });
+
+  it('função com e sem acento é a mesma: "Acao" usa a "Ação" do catálogo e "Operação" usa a "Operacao"', async () => {
+    await inserir(api.banco, 'funcao', { unidade_id: api.ids.gb, nome: 'Ação' });
+    await inserir(api.banco, 'funcao', { unidade_id: api.ids.gb, nome: 'Operacao' });
+    const antes = (await api.banco.query<{ n: number }>('select count(*)::int as n from funcao')).rows[0]!.n;
+    const previa = await importar([linha('', 'Acentos', 'A1', 'Acao', 1, 1), linha('', 'Acentos', '', 'Operação', 1, 1)]);
+    expect(previa.avisos.join(' ')).not.toMatch(/Funções novas/);
+    await importar([linha('', 'Acentos', 'A1', 'Acao', 1, 1), linha('', 'Acentos', '', 'Operação', 1, 1)], true);
+    expect((await api.banco.query<{ n: number }>('select count(*)::int as n from funcao')).rows[0]!.n).toBe(antes);
+    expect(nomes(await ficha('Acentos')).sort()).toEqual(['Ação', 'Operacao']);
   });
 });

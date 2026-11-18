@@ -307,3 +307,20 @@ describe('importação de serviços, turnos e escalas', () => {
     ]);
   });
 });
+
+describe('turno único', () => {
+  it('ÚNICO, Único e U, em qualquer caixa, viram o turno A', async () => {
+    const t: Celula[][] = [
+      ['Serv Maiusculo', 'ÚNICO', '08:00', '16:00', 8, '', ''],
+      ['Serv Misto', 'Único', '08:00', '16:00', 8, '', ''],
+      ['Serv Letra', 'u', '08:00', '16:00', 8, '', ''],
+    ];
+    const previa = await importar({ t, e: [] });
+    expect(previa.problemas).toEqual([]);
+    await importar({ t, e: [] }, true);
+    for (const nome of ['Serv Maiusculo', 'Serv Misto', 'Serv Letra']) {
+      expect((await servico(nome)).turnos.map((x) => x.letra)).toEqual(['A']);
+    }
+  });
+});
+
