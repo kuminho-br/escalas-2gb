@@ -249,6 +249,9 @@ export function rotasMilitares(dep: { banco: Banco; auth: Auth }): Hono<Ambiente
     const id = c.req.param('id');
     const negado = await exigirPapelNoRegistro(c, 'militar', id);
     if (negado) return negado;
+    // o mês da ficha devolvida vale antes de gravar: mês quebrado não pode deixar a gravação pela metade
+    const mes = mesDaConsulta(c);
+    if (!Mes.safeParse(mes).success) return c.json({ erro: 'Mês inválido: use o formato aaaa-mm.' }, 400);
     const corpo = await lerCorpo(c, EdicaoMilitar);
     if (!corpo.ok) return corpo.resposta;
     const d = corpo.dados;
@@ -276,7 +279,7 @@ export function rotasMilitares(dep: { banco: Banco; auth: Auth }): Hono<Ambiente
             d.ativo ?? atual.ativo,
           ],
         );
-        return carregarFicha(tx, id, mesDaConsulta(c));
+        return carregarFicha(tx, id, mes);
       });
       return c.json(ficha);
     } catch (e) {

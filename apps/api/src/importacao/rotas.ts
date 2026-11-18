@@ -11,13 +11,18 @@ import { gerarModelo } from './modelo.ts';
 import { lerPlanilha, type Aba } from './planilha.ts';
 import type { Importador } from './tipos.ts';
 
+/** O importador pelo nome da rota; nome que só existe no objeto comum (`constructor`, `__proto__`) não é importação. */
+function importadorDe(importadores: Record<string, Importador<unknown>>, nome: string): Importador<unknown> | undefined {
+  return Object.hasOwn(importadores, nome) ? importadores[nome] : undefined;
+}
+
 export function rotasImportacao(dep: { banco: Banco; auth: Auth }, importadores: Record<string, Importador<unknown>>): Hono<AmbienteApi> {
   const r = new Hono<AmbienteApi>();
   r.use('/unidades/:u/importacao/*', exigirSessao(dep.banco, dep.auth));
   r.get('/unidades/:u/importacao/:cadastro/modelo', async (c) => {
     const unidadeId = c.req.param('u');
     const cadastro = c.req.param('cadastro');
-    const imp = importadores[cadastro];
+    const imp = importadorDe(importadores, cadastro);
     const negado = await exigirPapel(c, unidadeId, imp?.papeis ?? CADASTRO);
     if (negado) return negado;
     if (!imp) return c.json({ erro: 'Importação desconhecida.' }, 404);
@@ -32,7 +37,7 @@ export function rotasImportacao(dep: { banco: Banco; auth: Auth }, importadores:
   });
   r.post('/unidades/:u/importacao/:cadastro', async (c) => {
     const unidadeId = c.req.param('u');
-    const imp = importadores[c.req.param('cadastro')];
+    const imp = importadorDe(importadores, c.req.param('cadastro'));
     const negado = await exigirPapel(c, unidadeId, imp?.papeis ?? CADASTRO);
     if (negado) return negado;
     if (!imp) return c.json({ erro: 'Importação desconhecida.' }, 404);
