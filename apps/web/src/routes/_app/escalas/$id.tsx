@@ -34,7 +34,8 @@ function Ficha() {
         {!e.ativa && <span className="rounded border border-linha px-1.5 text-xs">desativada</span>}
       </header>
       <Situacao e={e} />
-      <Identificacao key={`i-${e.id}`} e={e} />
+      {/* os dados entram na key: outra gravação (ex.: importação) recarrega o formulário */}
+      <Identificacao key={`i-${e.id}-${e.nome}-${e.titulo}-${e.militaresDoc}-${e.diasDoc}`} e={e} />
       <ServicosDaEscala key={`s-${e.id}-${e.servicos.map((s) => s.id).join(',')}`} escala={e} unidadeId={eu.unidade.id} />
       {/* a assinatura das versões entra na key: salvar recarrega a matriz com o que foi gravado */}
       <Matriz key={`m-${e.id}-${e.letras.join('')}-${assinatura(e)}`} escala={e} unidadeId={eu.unidade.id} />

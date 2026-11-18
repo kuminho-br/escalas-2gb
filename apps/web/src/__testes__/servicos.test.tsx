@@ -98,4 +98,19 @@ describe('serviços', () => {
     await userEvent.click(await screen.findByRole('button', { name: 'Desativar' }));
     await waitFor(() => expect(corpoEnviado(f, 'POST /api/servicos/s3/situacao')).toEqual({ ativo: false }));
   });
+  it('revisão: a identificação recarrega quando o serviço muda no servidor', async () => {
+    const rotas: Parameters<typeof simularApi>[0] = {
+      '/api/eu': { status: 200, corpo: EU_EXEMPLO },
+      'GET /api/unidades/u-1sb/servicos': { status: 200, corpo: LISTA },
+      'GET /api/servicos/s3': { status: 200, corpo: BIOMA },
+      'POST /api/servicos/s3/situacao': { status: 200, corpo: BIOMA },
+    };
+    simularApi(rotas);
+    abrir('/servicos/s3');
+    expect(await screen.findByLabelText('Tipo')).toHaveValue('diaria');
+    // outra gravação (ex.: importação) muda o serviço; a ficha volta a buscar
+    rotas['GET /api/servicos/s3'] = { status: 200, corpo: { ...BIOMA, tipo: 'pjes', operacao: null } };
+    await userEvent.click(screen.getByRole('button', { name: 'Desativar' }));
+    await waitFor(() => expect(screen.getByLabelText('Tipo')).toHaveValue('pjes'));
+  });
 });

@@ -173,4 +173,44 @@ describe('importação de serviços, turnos e escalas', () => {
     const previa = await importar({ t });
     expect(previa.alterados).toEqual([{ chave: 'Serviço JES', descricao: 'JES', mudancas: ['Turno A: de 08:00–20:00 para 07:00–19:00'] }]);
   });
+  it('revisão: TODOS e letra avulsa da mesma guarnição viram só TODOS, com aviso', async () => {
+    const v = [[atual, 'Defensoria', 'TODOS', 'ABT'], [atual, 'Defensoria', 'U', 'ABT']];
+    const previa = await importar({ v });
+    expect(previa.avisos).toContain(`Defensoria: ABT está em todos os turnos e também no turno U em ${mesPorExtenso(atual)}; vale todos os turnos.`);
+    await importar({ v }, true);
+    expect((await escala('Defensoria')).vinculos[0]!.itens.filter((i) => i.guarnicao === 'ABT').map((i) => i.turnoLetra)).toEqual([null]);
+  });
+
+  it('revisão: TURNO com várias letras vira um vínculo por letra', async () => {
+    const v = [[atual, 'Ordinário', 'A, B', 'ABT'], [atual, 'Ordinário', 'B', 'AR']];
+    const previa = await importar({ v });
+    expect(previa.problemas).toEqual([]);
+    await importar({ v }, true);
+    expect((await escala('Ordinário')).vinculos[0]!.itens.map((i) => [i.guarnicao, i.turnoLetra])).toEqual([['ABT', 'A'], ['ABT', 'B'], ['AR', 'B']]);
+  });
+
+  it('revisão: tipo na prévia aparece por extenso', async () => {
+    const t = TURNOS.map((l) => (l[0] === 'Bioma' ? ['Bioma', 'C', '16:00', '24:00', 8, 'PJES', ''] : l));
+    const previa = await importar({ t });
+    expect(previa.alterados).toContainEqual({ chave: 'Serviço Bioma', descricao: 'Bioma', mudancas: ['Tipo: de Diária para PJES'] });
+  });
+
+  it('revisão: serviço só com linhas de problema não é criado e a escala dele é descartada', async () => {
+    const previa = await importar({ t: [...TURNOS, ['CPRH', 'D', '08:00', '20:00', 12, '', '']], e: [...ESCALAS, ['CPRH', 'CPRH', '', '', '']] });
+    expect(previa.novos.map((n: { chave: string }) => n.chave)).not.toContain('Serviço CPRH');
+    expect(previa.problemas).toContainEqual(expect.objectContaining({ aba: 'ESCALAS', mensagem: 'Escala CPRH: o serviço CPRH não existe' }));
+  });
+
+  it('revisão: textos maiores que o limite da tela viram problema', async () => {
+    const longo = 'X'.repeat(130);
+    const previa = await importar({ t: [...TURNOS, [longo, 'A', '08:00', '20:00', 12, 'Diária', ''], ['Saldo', 'A', '08:00', '20:00', 12, 'Ordinário', 'O'.repeat(61)]], e: [...ESCALAS, [longo, 'Pronto', '', '', '']] });
+    expect(previa.problemas).toEqual(
+      expect.arrayContaining([
+        { aba: 'TURNOS', linha: 8, mensagem: `Serviço "${longo.slice(0, 30)}…" tem mais de 120 caracteres`, solucao: 'Encurte o nome na coluna SERVIÇO.' },
+        { aba: 'TURNOS', linha: 9, mensagem: 'ORIGEM de Saldo tem mais de 60 caracteres', solucao: 'Encurte o texto na coluna ORIGEM.' },
+        { aba: 'ESCALAS', linha: 5, mensagem: `Escala "${longo.slice(0, 30)}…" tem mais de 120 caracteres`, solucao: 'Encurte o nome na coluna ESCALA.' },
+      ]),
+    );
+    expect(previa.novos.map((n: { chave: string }) => n.chave)).not.toContain(`Serviço ${longo}`);
+  });
 });

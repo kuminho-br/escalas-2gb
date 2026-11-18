@@ -32,7 +32,8 @@ function Ficha() {
         {!s.ativo && <span className="rounded border border-linha px-1.5 text-xs">desativado</span>}
       </header>
       <Situacao s={s} />
-      <Identificacao key={`i-${s.id}`} s={s} />
+      {/* os dados entram na key: outra gravação (ex.: importação) recarrega o formulário */}
+      <Identificacao key={`i-${s.id}-${s.nome}-${s.tipo}-${s.operacao}-${s.rotuloImpressao}-${s.cor}`} s={s} />
       <Turnos key={`t-${s.id}-${s.turnos.map((t) => `${t.id}:${t.letra}:${t.inicio}:${t.fim}`).join(',')}`} servico={s} />
     </article>
   );

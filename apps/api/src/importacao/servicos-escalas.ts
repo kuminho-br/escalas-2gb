@@ -84,6 +84,11 @@ function letraDe(texto: string): LetraTurno | null {
 const colunasDe = <K extends string>(aba: Aba, cols: Record<K, ColunaModelo>) =>
   Object.fromEntries(Object.entries(cols).map(([k, v]) => [k, coluna(aba, (v as ColunaModelo).rotulo)])) as Record<K, number>;
 const pega = (cel: string[], i: number) => (i < 0 ? '' : (cel[i] ?? '').trim());
+const NOME_TIPO: Record<TipoServico, string> = { ordinario: 'Ordinário', pjes: 'PJES', diaria: 'Diária' };
+/** Limites dos campos na tela (contratos `Nome` e o nome na impressão): o que entra pela planilha precisa caber neles. */
+const MAX_NOME = 120;
+const MAX_ROTULO = 60;
+const curto = (t: string) => (t.length > 30 ? `${t.slice(0, 30)}…` : t);
 const intervalo = (t: { inicio: string; fim: string }) => `${t.inicio}–${t.fim}`;
 const NOME_MILITARES = { todos: 'todos os militares', escalados: 'só os escalados' };
 const NOME_DIAS = { todos: 'todos os dias', com_escalados: 'só os dias com escalados' };
@@ -108,9 +113,8 @@ export const importadorServicosEscalas: Importador<Plano> = {
       const escalas = (await ctx.tx.query<{ nome: string }>('select nome from escala where unidade_id = $1 order by nome', [ctx.unidadeId])).rows;
       const mes = ctx.hoje.slice(0, 7);
       const ativas = (await guarnicoesDaUnidade(ctx)).filter((g) => versaoNoMes(g.versoes, mes)?.ativa).map((g) => g.nome).sort();
-      const TIPO = { ordinario: 'Ordinário', pjes: 'PJES', diaria: 'Diária' };
       return [
-        { titulo: 'Serviços cadastrados (coluna SERVIÇO e SERVIÇOS)', itens: servicos.length ? servicos.map((s) => `${s.nome} (${TIPO[s.tipo]})`) : ['Nenhum ainda.'] },
+        { titulo: 'Serviços cadastrados (coluna SERVIÇO e SERVIÇOS)', itens: servicos.length ? servicos.map((s) => `${s.nome} (${NOME_TIPO[s.tipo]})`) : ['Nenhum ainda.'] },
         { titulo: 'Escalas cadastradas (coluna ESCALA)', itens: escalas.length ? escalas.map((e) => e.nome) : ['Nenhuma ainda.'] },
         { titulo: 'Guarnições ativas (coluna GUARNIÇÃO)', itens: ativas.length ? ativas : ['Nenhuma ainda: importe a aba GUARNIÇÕES na tela de Guarnições.'] },
       ];
@@ -145,13 +149,14 @@ export const importadorServicosEscalas: Importador<Plano> = {
     for (const l of aT.linhas) {
       const nome = pega(l.celulas, cT.servico);
       if (!nome) continue;
-      const k = normalizar(nome);
-      const s = lidos.get(k) ?? { nome, tipoTexto: '', origem: '', temOrigem: cT.origem >= 0, turnos: new Map() };
-      lidos.set(k, s);
-      for (const [campo, rotulo, valor] of [['tipoTexto', 'TIPO DE SERVIÇO', pega(l.celulas, cT.tipo)], ['origem', 'ORIGEM', pega(l.celulas, cT.origem)]] as const) {
-        if (!valor) continue;
-        if (!s[campo]) s[campo] = valor;
-        else if (normalizar(s[campo]) !== normalizar(valor)) avisos.push(`${nome}: ${rotulo} diferente em linhas diferentes ("${s[campo]}" e "${valor}"); vale o primeiro.`);
+      if (nome.length > MAX_NOME) {
+        problemas.push({ aba: ABA_T, linha: l.linha, mensagem: `Serviço "${curto(nome)}" tem mais de ${MAX_NOME} caracteres`, solucao: 'Encurte o nome na coluna SERVIÇO.' });
+        continue;
+      }
+      const origemDaLinha = pega(l.celulas, cT.origem);
+      if (origemDaLinha.length > MAX_ROTULO) {
+        problemas.push({ aba: ABA_T, linha: l.linha, mensagem: `ORIGEM de ${nome} tem mais de ${MAX_ROTULO} caracteres`, solucao: 'Encurte o texto na coluna ORIGEM.' });
+        continue;
       }
       const bruta = pega(l.celulas, cT.turno);
       const letra = letraDe(bruta);
@@ -166,6 +171,15 @@ export const importadorServicosEscalas: Importador<Plano> = {
       if (!inicio || !termino) {
         problemas.push({ aba: ABA_T, linha: l.linha, mensagem: `Horário "${!inicio ? ini : fim}" de ${nome} ${letra}`, solucao: 'Use HH:MM (ex.: 08:00).' });
         continue;
+      }
+      // o serviço só entra com pelo menos uma linha válida: linha com problema não cria nada
+      const k = normalizar(nome);
+      const s = lidos.get(k) ?? { nome, tipoTexto: '', origem: '', temOrigem: cT.origem >= 0, turnos: new Map() };
+      lidos.set(k, s);
+      for (const [campo, rotulo, valor] of [['tipoTexto', 'TIPO DE SERVIÇO', pega(l.celulas, cT.tipo)], ['origem', 'ORIGEM', origemDaLinha]] as const) {
+        if (!valor) continue;
+        if (!s[campo]) s[campo] = valor;
+        else if (normalizar(s[campo]) !== normalizar(valor)) avisos.push(`${nome}: ${rotulo} diferente em linhas diferentes ("${s[campo]}" e "${valor}"); vale o primeiro.`);
       }
       if (s.turnos.has(letra)) {
         avisos.push(`${nome}: o turno ${letra} aparece em mais de uma linha; vale o primeiro.`);
@@ -222,7 +236,7 @@ export const importadorServicosEscalas: Importador<Plano> = {
       const tipo = doTexto ?? ex.tipo;
       const novoRotulo = s.temOrigem ? rotulo : ex.rotulo_impressao;
       const mudarDados = tipo !== ex.tipo || novoRotulo !== ex.rotulo_impressao;
-      if (tipo !== ex.tipo) mudancas.unshift(`Tipo: de ${ex.tipo} para ${tipo}`);
+      if (tipo !== ex.tipo) mudancas.unshift(`Tipo: de ${NOME_TIPO[ex.tipo]} para ${NOME_TIPO[tipo]}`);
       if (novoRotulo !== ex.rotulo_impressao) mudancas.unshift(`Nome na impressão: de "${ex.rotulo_impressao ?? ''}" para "${novoRotulo ?? ''}"`);
       if (mudancas.length) {
         alterados.push({ chave: `Serviço ${ex.nome}`, descricao: ex.nome, mudancas });
@@ -237,6 +251,16 @@ export const importadorServicosEscalas: Importador<Plano> = {
     for (const l of aE.linhas) {
       const nome = pega(l.celulas, cE.escala);
       if (!nome) continue;
+      const titulo = pega(l.celulas, cE.titulo);
+      if (nome.length > MAX_NOME || titulo.length > MAX_NOME) {
+        problemas.push({
+          aba: ABA_E,
+          linha: l.linha,
+          mensagem: nome.length > MAX_NOME ? `Escala "${curto(nome)}" tem mais de ${MAX_NOME} caracteres` : `TÍTULO de ${nome} tem mais de ${MAX_NOME} caracteres`,
+          solucao: nome.length > MAX_NOME ? 'Encurte o nome na coluna ESCALA.' : 'Encurte o texto na coluna TÍTULO.',
+        });
+        continue;
+      }
       const k = normalizar(nome);
       const g = grupos.get(k) ?? { nome, linha: l.linha, pedidos: [], titulo: '', militares: '', dias: '' };
       grupos.set(k, g);
@@ -353,27 +377,42 @@ export const importadorServicosEscalas: Importador<Plano> = {
         problemas.push({ aba: ABA_V, linha: l.linha, mensagem: `Guarnição ${nomeG || '(vazia)'} não cadastrada`, solucao: 'Importe a aba GUARNIÇÕES (tela de Guarnições) e depois esta.' });
         continue;
       }
+      // como no protótipo, a célula pode trazer várias letras ("A, B", "A/B"); vazia ou TODOS vale todos os turnos
       const turnoBruto = pega(l.celulas, cV.turno);
-      let turnoLetra: LetraTurno | null = null;
-      if (turnoBruto && normalizar(turnoBruto) !== 'TODOS') {
-        const letra = letraDe(turnoBruto);
-        if (!letra || !letrasDaEscala(chave).has(letra)) {
+      const partes = turnoBruto.split(/[,;/\s]+/).filter(Boolean);
+      let letrasDaLinha: (LetraTurno | null)[] = [null];
+      if (partes.length && !partes.some((p) => normalizar(p) === 'TODOS')) {
+        const letras = partes.map(letraDe);
+        const validas = letrasDaEscala(chave);
+        if (letras.some((x) => !x || !validas.has(x))) {
           problemas.push({ aba: ABA_V, linha: l.linha, mensagem: `Turno ${turnoBruto} não existe nos serviços da escala ${nomeDaEscala.get(chave)}`, solucao: 'Confira a coluna TURNO ou os SERVIÇOS da escala.' });
           continue;
         }
-        turnoLetra = letra;
+        letrasDaLinha = [...new Set(letras as LetraTurno[])];
       }
       if (versaoNoMes(g.versoes, vigencia)?.ativa === false) avisosDesativada.add(`${g.nome} está desativada em ${mesPorExtenso(vigencia)}; o vínculo fica gravado.`);
       const porVig = versoes.get(chave) ?? new Map();
       versoes.set(chave, porVig);
       const itens = porVig.get(vigencia) ?? new Map();
       porVig.set(vigencia, itens);
-      const k = `${g.id}|${turnoLetra ?? ''}`;
-      if (itens.has(k)) {
-        avisos.push(`${nomeDaEscala.get(chave)}: ${g.nome} já está no turno ${turnoLetra ?? 'TODOS'} em ${mesPorExtenso(vigencia)}; a repetição foi ignorada.`);
-        continue;
+      for (const turnoLetra of letrasDaLinha) {
+        const k = `${g.id}|${turnoLetra ?? ''}`;
+        if (itens.has(k)) {
+          avisos.push(`${nomeDaEscala.get(chave)}: ${g.nome} já está no turno ${turnoLetra ?? 'TODOS'} em ${mesPorExtenso(vigencia)}; a repetição foi ignorada.`);
+          continue;
+        }
+        itens.set(k, { guarnicaoId: g.id, turnoLetra, nome: g.nome });
       }
-      itens.set(k, { guarnicaoId: g.id, turnoLetra, nome: g.nome });
+    }
+    // "Todos os turnos" exclui as letras avulsas da mesma guarnição (a API recusa a mistura)
+    for (const [chave, porVig] of versoes) {
+      for (const [vigencia, itens] of porVig) {
+        for (const [k, it] of itens) {
+          if (it.turnoLetra === null || !itens.has(`${it.guarnicaoId}|`)) continue;
+          itens.delete(k);
+          avisos.push(`${nomeDaEscala.get(chave)}: ${it.nome} está em todos os turnos e também no turno ${it.turnoLetra} em ${mesPorExtenso(vigencia)}; vale todos os turnos.`);
+        }
+      }
     }
     avisos.push(...avisosDesativada);
 
