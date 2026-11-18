@@ -10,6 +10,14 @@ describe('formatos comuns', () => {
     expect(Data.safeParse('2026-12-01').success).toBe(true);
     expect(Data.safeParse('01/12/2026').success).toBe(false);
   });
+  // [foco 3] uma data que não existe no calendário passava e dava erro do banco
+  it('data que não existe no calendário é recusada', () => {
+    expect(Data.safeParse('2026-13-45').success).toBe(false);
+    expect(Data.safeParse('2026-02-30').success).toBe(false);
+    expect(Data.safeParse('2025-02-29').success).toBe(false);
+    expect(Data.safeParse('2024-02-29').success).toBe(true);
+    expect(Data.safeParse('2026-12-31').success).toBe(true);
+  });
   it('hora', () => {
     expect(Hora.safeParse('08:00').success).toBe(true);
     expect(Hora.safeParse('24:00').success).toBe(false);

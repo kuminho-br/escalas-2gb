@@ -2,7 +2,14 @@
 import { z } from 'zod';
 
 export const Mes = z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/, 'Use o mês no formato aaaa-mm.');
-export const Data = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Use a data no formato aaaa-mm-dd.');
+const dataExiste = (texto: string): boolean => {
+  const d = new Date(`${texto}T00:00:00Z`);
+  return !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === texto;
+};
+export const Data = z
+  .string()
+  .regex(/^\d{4}-\d{2}-\d{2}$/, 'Use a data no formato aaaa-mm-dd.')
+  .refine(dataExiste, 'Use uma data que exista no calendário.');
 export const Hora = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, 'Use a hora no formato HH:MM.');
 export const Matricula = z.string().regex(/^\d{6}-\d$/, 'Use 6 dígitos, hífen e 1 dígito (ex.: 123456-7).');
 export const Nome = z.string().trim().min(1, 'Preencha este campo.').max(120, 'Use no máximo 120 caracteres.');
