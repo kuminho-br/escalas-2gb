@@ -91,7 +91,10 @@ function Identificacao({ ficha }: { ficha: FichaGuarnicao }) {
 function Situacao({ ficha }: { ficha: FichaGuarnicao }) {
   const queryClient = useQueryClient();
   const mes = mesAtual();
-  const desde = ficha.desativadaAPartirDe;
+  // a lista olha a versão em vigor no mês; se só ela estiver inativa e uma futura voltar a ativa, `desativadaAPartirDe` vem nulo
+  // e a ficha precisa dizer a mesma coisa que a lista: desativada, com o mês em que a versão inativa passou a valer
+  const emVigor = ficha.versoes.find((v) => v.vigencia <= mes);
+  const desde = ficha.desativadaAPartirDe ?? (emVigor && !emVigor.ativa ? emVigor.vigencia : null);
   const [escolhendo, setEscolhendo] = useState(false);
   const [aPartirDe, setAPartirDe] = useState(somarMeses(mes, 1));
   const [erro, setErro] = useState<string | null>(null);

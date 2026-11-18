@@ -271,6 +271,19 @@ describe('ficha da guarnição', () => {
     await waitFor(() => expect(corpoEnviado(f, 'POST /api/guarnicoes/g9/situacao')).toEqual({ ativa: true, aPartirDe: '2099-01' }));
   });
 
+  it('revisão 3: versão do mês inativa com uma futura ativa aparece desativada, como na lista', async () => {
+    const v = FICHA.versoes[0]!;
+    const f = api({
+      'GET /api/guarnicoes/g10': { status: 200, corpo: { ...FICHA, id: 'g10', desativadaAPartirDe: null, versoes: [{ ...v, vigencia: '2099-01', ativa: true }, { ...v, vigencia: '2026-01', ativa: false }] } },
+      'POST /api/guarnicoes/g10/situacao': { status: 200, corpo: FICHA },
+    });
+    abrir('/guarnicoes/g10');
+    expect(await screen.findByText('Desativada desde janeiro de 2026.')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Desativar agora' })).toBeNull();
+    await userEvent.click(screen.getByRole('button', { name: 'Reativar agora' }));
+    await waitFor(() => expect(corpoEnviado(f, 'POST /api/guarnicoes/g10/situacao')).toEqual({ ativa: true, aPartirDe: mesAtual() }));
+  });
+
   it('guarnição que só começa no futuro propõe salvar a partir do começo dela, sem marcar em vigor', async () => {
     const futura = (v: string) => ({ ...FICHA.versoes[0]!, vigencia: v });
     api({ 'GET /api/guarnicoes/g5': { status: 200, corpo: { ...FICHA, id: 'g5', versoes: [futura('2099-06'), futura('2099-01')] } } });
