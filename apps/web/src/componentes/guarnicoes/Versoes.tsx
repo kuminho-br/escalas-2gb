@@ -3,7 +3,7 @@ import { mesPorExtenso, type FichaGuarnicao, type Funcao, type VersaoSalva } fro
 import { useState } from 'react';
 import { ErroApi, mensagemDe } from '@/api/cliente';
 import { atualizarGuarnicoes, consultaFuncoes, salvarVersao } from '@/api/guarnicoes';
-import { AcoesDoBloco, usePendencia } from '@/componentes/AlteracoesPendentes';
+import { AcoesDoBloco, podeDescartar, usePendencia } from '@/componentes/AlteracoesPendentes';
 import { Composicao, type LinhaEdicao } from '@/componentes/guarnicoes/Composicao';
 import { LinhaDoTempo } from '@/componentes/LinhaDoTempo';
 import { Secao } from '@/componentes/militares/Secao';
@@ -12,23 +12,23 @@ import { Label } from '@/componentes/ui/label';
 import { versaoVigente } from '@/lib/guarnicoes';
 import { mesAtual } from '@/lib/meses';
 
-export function Versoes({ ficha, unidadeId }: { ficha: FichaGuarnicao; unidadeId: string }) {
+/** `escolhida` vem de cima: a ficha recomeça este bloco a cada gravação, e a versão escolhida não se perde. */
+export function Versoes({ ficha, unidadeId, escolhida, aoEscolher }: { ficha: FichaGuarnicao; unidadeId: string; escolhida: string | undefined; aoEscolher: (v: string) => void }) {
   const mes = mesAtual();
   const vigente = versaoVigente(ficha.versoes, mes);
-  const [escolhida, setEscolhida] = useState(vigente?.vigencia ?? '');
   const versao = ficha.versoes.find((v) => v.vigencia === escolhida) ?? vigente;
 
   return (
     <Secao titulo="Versões">
       {ficha.versoes.length > 1 && (
-        <LinhaDoTempo vigencias={ficha.versoes.map((v) => v.vigencia)} escolhida={versao?.vigencia} aoEscolher={setEscolhida} />
+        <LinhaDoTempo vigencias={ficha.versoes.map((v) => v.vigencia)} escolhida={versao?.vigencia} aoEscolher={(v) => { if (podeDescartar('versao')) aoEscolher(v); }} />
       )}
-      <Editor key={`${ficha.id}-${versao?.vigencia ?? 'nova'}`} ficha={ficha} unidadeId={unidadeId} versao={versao} />
+      <Editor key={`${ficha.id}-${versao?.vigencia ?? 'nova'}`} ficha={ficha} unidadeId={unidadeId} versao={versao} aoSalvar={aoEscolher} />
     </Secao>
   );
 }
 
-function Editor({ ficha, unidadeId, versao }: { ficha: FichaGuarnicao; unidadeId: string; versao: VersaoSalva | undefined }) {
+function Editor({ ficha, unidadeId, versao, aoSalvar }: { ficha: FichaGuarnicao; unidadeId: string; versao: VersaoSalva | undefined; aoSalvar: (mes: string) => void }) {
   const queryClient = useQueryClient();
   const funcoes = useQuery(consultaFuncoes(unidadeId));
   // funções criadas ou renomeadas aqui, até a lista voltar do servidor
@@ -36,7 +36,8 @@ function Editor({ ficha, unidadeId, versao }: { ficha: FichaGuarnicao; unidadeId
   const [viatura, setViatura] = useState(versao?.viatura ?? '');
   const [tipoViatura, setTipoViatura] = useState(versao?.tipoViatura ?? '');
   const [prioridade, setPrioridade] = useState(versao?.prioridade == null ? '' : String(versao.prioridade));
-  const [ativa, setAtiva] = useState(versao?.ativa ?? true);
+  // a versão grava com o `ativa` com que abriu (desativar e reativar são no cabeçalho da ficha)
+  const ativa = versao?.ativa ?? true;
   const [linhas, setLinhas] = useState<LinhaEdicao[]>(
     (versao?.composicao ?? []).map((c, i) => ({ chave: i + 1, funcaoId: c.funcaoId, minimo: c.minimo, maximo: c.maximo, cnh: c.cnhExigida ?? '' })),
   );
@@ -45,7 +46,7 @@ function Editor({ ficha, unidadeId, versao }: { ficha: FichaGuarnicao; unidadeId
   const [aviso, setAviso] = useState<{ erro: boolean; texto: string } | null>(null);
   // o conteúdo da versão em texto: o que difere do último gravado é alteração pendente (o mês "a partir de" não conta)
   const assinatura = () =>
-    JSON.stringify([viatura.trim(), tipoViatura.trim(), prioridade.trim(), ativa, linhas.map((l) => [l.funcaoId, l.minimo, l.maximo, l.cnh])]);
+    JSON.stringify([viatura.trim(), tipoViatura.trim(), prioridade.trim(), linhas.map((l) => [l.funcaoId, l.minimo, l.maximo, l.cnh])]);
   const [salvo, setSalvo] = useState(assinatura);
   const sujo = assinatura() !== salvo;
   usePendencia('versao', sujo);
@@ -70,6 +71,7 @@ function Editor({ ficha, unidadeId, versao }: { ficha: FichaGuarnicao; unidadeId
       setSalvo(assinatura());
       atualizarGuarnicoes(queryClient, ficha.id);
       setAviso({ erro: false, texto: `Salvo a partir de ${mesPorExtenso(desde)}.` });
+      aoSalvar(desde);
     } catch (err) {
       const primeiro = err instanceof ErroApi && err.campos ? Object.values(err.campos)[0] : undefined;
       setAviso({ erro: true, texto: primeiro ? `${mensagemDe(err)} ${primeiro}` : mensagemDe(err) });
@@ -93,10 +95,6 @@ function Editor({ ficha, unidadeId, versao }: { ficha: FichaGuarnicao; unidadeId
         </div>
       </div>
       <p className="-mt-2 text-xs text-apagado">A viatura é só informativa: não muda as vagas. A prioridade define a ordem de ativação; sem prioridade, a guarnição vai por último.</p>
-      <label className="flex items-center gap-2 text-sm">
-        <input type="checkbox" checked={ativa} onChange={(e) => setAtiva(e.target.checked)} className="size-4 accent-vinho" />
-        Ativa
-      </label>
 
       <div className="grid gap-2">
         <h4 className="font-cond text-base font-semibold">Composição</h4>

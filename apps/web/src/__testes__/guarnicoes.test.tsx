@@ -241,11 +241,10 @@ describe('ficha da guarnição', () => {
     simularApi(rotas);
     abrir('/guarnicoes/g1');
     const desativar = await screen.findByRole('button', { name: 'Desativar agora' });
-    expect(screen.getByRole('checkbox', { name: 'Ativa' })).toBeChecked();
     rotas['GET /api/guarnicoes/g1'] = { status: 200, corpo: inativa };
     await userEvent.click(desativar);
     await screen.findByText('Desativada desde janeiro de 2026.');
-    await waitFor(() => expect(screen.getByRole('checkbox', { name: 'Ativa' })).not.toBeChecked());
+    expect(await screen.findByRole('button', { name: 'Reativar agora' })).toBeInTheDocument();
   });
 
   it('guarnição desativada mostra reativar agora', async () => {
@@ -315,5 +314,67 @@ describe('ficha da guarnição em painel único', () => {
     api({ 'GET /api/unidades/u-1sb/guarnicoes': { status: 200, corpo: LISTA.map((g) => ({ ...g, ativa: false })) } });
     abrir('/guarnicoes');
     expect(await screen.findByText('Todas as guarnições estão desativadas. Marque "Mostrar desativadas" para vê-las.')).toBeInTheDocument();
+  });
+});
+
+describe('guarnições: singular, ordem, versões e composição', () => {
+  it('uma guarnição de um militar diz 1 militar', async () => {
+    api({ 'GET /api/unidades/u-1sb/guarnicoes': { status: 200, corpo: [linha({ id: 'g9', nome: 'Solo', minimo: 1, maximo: 1 })] } });
+    abrir('/guarnicoes');
+    expect(within(await itemDe('Solo')).getByText('1 militar')).toBeInTheDocument();
+    expect(screen.queryByText('1 militares')).toBeNull();
+  });
+
+  it('as versões não têm a caixa Ativa', async () => {
+    api();
+    abrir('/guarnicoes/g1');
+    await screen.findByLabelText('Sigla da viatura');
+    expect(screen.queryByRole('checkbox', { name: 'Ativa' })).toBeNull();
+  });
+
+  it('a lista mostra o número da ordem de ativação', async () => {
+    api();
+    abrir('/guarnicoes');
+    expect(within(await itemDe('Auto Bomba 1')).getByText('1', { selector: 'span' })).toBeInTheDocument();
+    expect(within(await itemDe('Resgate')).getByText('–')).toBeInTheDocument();
+    expect(screen.getByText('4 guarnições')).toBeInTheDocument();
+  });
+
+  it('versão futura tem borda tracejada', async () => {
+    const v = FICHA.versoes[0]!;
+    api({ 'GET /api/guarnicoes/g1': { status: 200, corpo: { ...FICHA, versoes: [{ ...v, vigencia: '2099-01' }, v] } } });
+    abrir('/guarnicoes/g1');
+    const futura = await screen.findByRole('button', { name: /^janeiro de 2099/ });
+    expect(futura).toHaveAttribute('data-futura');
+    expect(futura.className).toContain('border-dashed');
+    expect(screen.getByRole('button', { name: /^janeiro de 2026/ })).not.toHaveAttribute('data-futura');
+  });
+
+  it('salvar num mês novo deixa a versão nova escolhida', async () => {
+    const v = FICHA.versoes[0]!;
+    const salva: FichaGuarnicao = { ...FICHA, versoes: [{ ...v, vigencia: '2099-03', viatura: 'ABT-02' }, v] };
+    const rotas: Parameters<typeof simularApi>[0] = {
+      '/api/eu': { status: 200, corpo: EU_EXEMPLO },
+      'GET /api/unidades/u-1sb/guarnicoes': { status: 200, corpo: LISTA },
+      'GET /api/unidades/u-1sb/funcoes': { status: 200, corpo: FUNCOES },
+      'GET /api/guarnicoes/g1': { status: 200, corpo: FICHA },
+      'PUT /api/guarnicoes/g1/versoes/2099-03': { status: 200, corpo: salva },
+    };
+    simularApi(rotas);
+    abrir('/guarnicoes/g1');
+    await screen.findByLabelText('Mínimo de Combatente');
+    fireEvent.change(valor('Sigla da viatura'), { target: { value: 'ABT-02' } });
+    rotas['GET /api/guarnicoes/g1'] = { status: 200, corpo: salva };
+    await salvarEm('2099-03', 'março de 2099');
+    const chip = await screen.findByRole('button', { name: /^março de 2099/ });
+    await waitFor(() => expect(chip).toHaveAttribute('aria-pressed', 'true'));
+    expect(screen.getByLabelText('Sigla da viatura')).toHaveValue('ABT-02');
+  });
+
+  it('a linha da composição é uma grade que não quebra no computador', async () => {
+    api();
+    abrir('/guarnicoes/g1');
+    const linhaMot = (await screen.findByLabelText('Exige CNH para Motorista')).closest('li')!;
+    expect(linhaMot.firstElementChild!.className).toContain('sm:grid-cols-[');
   });
 });

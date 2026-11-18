@@ -1,5 +1,5 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { createFileRoute } from '@tanstack/react-router';
+import { createFileRoute, Link } from '@tanstack/react-router';
 import { mesPorExtenso, somarMeses, textoFaixa, type FichaGuarnicao } from 'contratos';
 import { useState, type FormEvent } from 'react';
 import { mensagemDe } from '@/api/cliente';
@@ -28,6 +28,15 @@ function Ficha() {
 
   return (
     <ProvedorDePendencias>
+      <Corpo key={ficha.id} ficha={ficha} unidadeId={eu.unidade.id} />
+    </ProvedorDePendencias>
+  );
+}
+
+/** A versão escolhida fica aqui, acima das `key` dos blocos: gravar num mês novo recomeça os blocos e a escolha continua. */
+function Corpo({ ficha, unidadeId }: { ficha: FichaGuarnicao; unidadeId: string }) {
+  const [escolhida, setEscolhida] = useState<string | undefined>();
+  return (
     <FichaPainel
       titulo={ficha.nome}
       voltarPara="/guarnicoes"
@@ -37,10 +46,9 @@ function Ficha() {
       {/* key: ao trocar de guarnição, os formulários começam do zero */}
       <Identificacao key={`i-${ficha.id}-${ficha.nome}`} ficha={ficha} />
       {/* as versões entram na key: desativar, reativar ou salvar recarrega o editor com o que foi gravado */}
-      <Versoes key={`v-${ficha.id}-${ficha.versoes.map((v) => `${v.vigencia}:${v.ativa}`).join(',')}`} ficha={ficha} unidadeId={eu.unidade.id} />
+      <Versoes key={`v-${ficha.id}-${ficha.versoes.map((v) => `${v.vigencia}:${v.ativa}`).join(',')}`} ficha={ficha} unidadeId={unidadeId} escolhida={escolhida} aoEscolher={setEscolhida} />
       <UsadaEm ficha={ficha} />
     </FichaPainel>
-    </ProvedorDePendencias>
   );
 }
 
@@ -146,7 +154,7 @@ function UsadaEm({ ficha }: { ficha: FichaGuarnicao }) {
         <ul className="grid gap-1.5 text-sm">
           {ficha.usadaEm.map((u) => (
             <li key={u.escalaId} className="flex gap-3">
-              <span className="font-medium">{u.escala}</span>
+              <Link to="/escalas/$id" params={{ id: u.escalaId }} className="font-medium hover:underline">{u.escala}</Link>
               <span className="text-apagado">{u.faixas.map((f) => textoFaixa(f.inicio, f.fim)).join(', ')}</span>
             </li>
           ))}

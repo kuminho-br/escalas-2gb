@@ -1,4 +1,5 @@
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-query';
+import { Link } from '@tanstack/react-router';
 import { mesPorExtenso, textoFaixa, type Escala, type VinculosDaEscala } from 'contratos';
 import { useState } from 'react';
 import { ErroApi, mensagemDe } from '@/api/cliente';
@@ -21,17 +22,21 @@ export function Matriz({ escala, unidadeId }: { escala: Escala; unidadeId: strin
   return (
     <Secao titulo="Guarnições por turno">
       {escala.vinculos.length > 1 && <LinhaDoTempo vigencias={escala.vinculos.map((v) => v.vigencia)} escolhida={versao?.vigencia} aoEscolher={(v) => { if (podeDescartar('matriz')) setEscolhida(v); }} />}
-      <Editor key={versao?.vigencia ?? 'nova'} escala={escala} unidadeId={unidadeId} versao={versao} />
+      <Editor key={versao?.vigencia ?? 'nova'} escala={escala} unidadeId={unidadeId} versao={versao} aoSalvar={setEscolhida} />
     </Secao>
   );
 }
 
 const chave = (inicio: string, fim: string) => `${inicio}|${fim}`;
 
-function Editor({ escala, unidadeId, versao }: { escala: Escala; unidadeId: string; versao: Escala['vinculos'][number] | undefined }) {
+function Editor({ escala, unidadeId, versao, aoSalvar }: { escala: Escala; unidadeId: string; versao: Escala['vinculos'][number] | undefined; aoSalvar: (mes: string) => void }) {
   const queryClient = useQueryClient();
   const mes = mesAtual();
-  const guarnicoes = useQuery(consultaGuarnicoes(unidadeId, versao?.vigencia ?? mes));
+  // sugere o mês corrente, ou o começo da versão quando ela só vale no futuro
+  const [desde, setDesde] = useState(versao && versao.vigencia > mes ? versao.vigencia : mes);
+  // as linhas (guarnições ativas e a etiqueta "desativada") seguem o mês do "Vale a partir de"
+  // mantém as linhas à vista enquanto o mês novo carrega
+  const guarnicoes = useQuery({ ...consultaGuarnicoes(unidadeId, /^\d{4}-\d{2}$/.test(desde) ? desde : (versao?.vigencia ?? mes)), placeholderData: keepPreviousData });
   const itens = versao?.itens ?? [];
   // faixas marcadas de cada guarnição (chave "início|fim")
   const [marcas, setMarcas] = useState<Map<string, Set<string>>>(() => {
@@ -44,8 +49,6 @@ function Editor({ escala, unidadeId, versao }: { escala: Escala; unidadeId: stri
   const [salvo, setSalvo] = useState(() => assinatura(marcas));
   const sujo = assinatura(marcas) !== salvo;
   usePendencia('matriz', sujo);
-  // sugere o mês corrente, ou o começo da versão quando ela só vale no futuro
-  const [desde, setDesde] = useState(versao && versao.vigencia > mes ? versao.vigencia : mes);
   const [aviso, setAviso] = useState<{ erro: boolean; texto: string } | null>(null);
 
   // linhas: as guarnições ativas no mês, em ordem de ativação, mais as já vinculadas
@@ -88,6 +91,7 @@ function Editor({ escala, unidadeId, versao }: { escala: Escala; unidadeId: stri
       setSalvo(assinatura(marcas));
       atualizarEscalas(queryClient);
       setAviso({ erro: false, texto: `Salvo a partir de ${mesPorExtenso(desde)}.` });
+      aoSalvar(desde);
     } catch (err) {
       const primeiro = err instanceof ErroApi && err.campos ? Object.values(err.campos)[0] : undefined;
       setAviso({ erro: true, texto: primeiro ? `${mensagemDe(err)} ${primeiro}` : mensagemDe(err) });
@@ -104,12 +108,12 @@ function Editor({ escala, unidadeId, versao }: { escala: Escala; unidadeId: stri
       {escala.faixas.length === 0 && <p className="text-sm text-apagado">Reúna os serviços primeiro: as colunas são os horários dos turnos deles.</p>}
       {guarnicoes.isPending && <p className="text-apagado">Carregando…</p>}
       {guarnicoes.error && <p role="alert" className="text-alerta">{mensagemDe(guarnicoes.error)}</p>}
-      {guarnicoes.data && (
+      {guarnicoes.data && escala.faixas.length > 0 && (
         <div className="overflow-x-auto">
           <table className="w-full min-w-max text-sm">
             <thead>
               <tr className="border-b border-linha text-left">
-                <th className="py-2 pr-4 text-xs font-normal text-apagado">Guarnição</th>
+                <th className="sticky left-0 z-10 bg-superficie py-2 pr-4 text-xs font-normal text-apagado">Guarnição</th>
                 {escala.faixas.map((f) => (
                   <th key={chave(f.inicio, f.fim)} className="px-4 py-2 text-center font-normal">
                     {escala.comLetra && <span className="block font-cond text-base font-semibold text-tinta">{f.letras[0]}</span>}
@@ -123,8 +127,8 @@ function Editor({ escala, unidadeId, versao }: { escala: Escala; unidadeId: stri
                 const tamanho = lista.find((x) => x.id === g.id);
                 return (
                   <tr key={g.id} className="border-b border-linha/60">
-                    <td className="py-1.5 pr-4">
-                      <span className="font-medium">{g.nome}</span>
+                    <td className="sticky left-0 z-10 bg-superficie py-1.5 pr-4">
+                      <Link to="/guarnicoes/$id" params={{ id: g.id }} className="font-medium hover:underline">{g.nome}</Link>
                       {desativada.has(g.id) && <span className="ml-2 rounded border border-linha px-1.5 text-xs">desativada</span>}
                       {tamanho && <span className="block text-xs text-apagado">{limites(tamanho)}</span>}
                     </td>
@@ -149,7 +153,7 @@ function Editor({ escala, unidadeId, versao }: { escala: Escala; unidadeId: stri
             {linhas.length > 0 && (
               <tfoot>
                 <tr className="text-xs text-apagado">
-                  <td className="pt-2 pr-4">Mínimo de militares</td>
+                  <td className="sticky left-0 z-10 bg-superficie pt-2 pr-4">Mínimo de militares</td>
                   {escala.faixas.map((f) => <td key={chave(f.inicio, f.fim)} className="px-4 pt-2 text-center">mín. {minimoDaFaixa(chave(f.inicio, f.fim))}</td>)}
                 </tr>
               </tfoot>
@@ -162,7 +166,7 @@ function Editor({ escala, unidadeId, versao }: { escala: Escala; unidadeId: stri
           <Label htmlFor="em-desde">Vale a partir de</Label>
           <Input id="em-desde" type="month" value={desde} min={mes} onChange={(ev) => setDesde(ev.target.value)} />
         </div>
-        <AcoesDoBloco sujo={sujo} aviso={aviso} tipo="button" desabilitado={!desde} rotulo={`Salvar a partir de ${desde ? mesPorExtenso(desde) : '…'}`} aoSalvar={() => void salvar()} />
+        <AcoesDoBloco sujo={sujo} forcar={orfas.size > 0} aviso={aviso} tipo="button" desabilitado={!desde} rotulo={`Salvar a partir de ${desde ? mesPorExtenso(desde) : '…'}`} aoSalvar={() => void salvar()} />
       </div>
     </div>
   );

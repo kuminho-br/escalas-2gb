@@ -1,5 +1,6 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { Escala } from 'contratos';
+import { Link } from '@tanstack/react-router';
 import { ArrowDown, ArrowUp } from 'lucide-react';
 import { useState } from 'react';
 import { mensagemDe } from '@/api/cliente';
@@ -51,7 +52,7 @@ export function ServicosDaEscala({ escala, unidadeId }: { escala: Escala; unidad
         {itens.map((s, i) => (
           <li key={s.id} className="flex items-center gap-2 rounded-lg border border-linha px-3 py-1.5 text-sm">
             <QuadradoDaCor cor={s.cor} />
-            <span className="font-medium">{s.nome}</span>
+            <Link to="/servicos/$id" params={{ id: s.id }} className="font-medium hover:underline">{s.nome}</Link>
             <span className="ml-auto flex gap-1">
               <Button type="button" size="icon" variant="ghost" aria-label={`Subir ${s.nome}`} disabled={i === 0} onClick={() => mover(i, -1)}>
                 <ArrowUp aria-hidden />

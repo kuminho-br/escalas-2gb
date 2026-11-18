@@ -59,6 +59,7 @@ export function AcoesDoBloco({
   sujo,
   salvando = false,
   desabilitado = false,
+  forcar = false,
   aviso,
   rotulo = 'Salvar',
   tipo = 'submit',
@@ -68,6 +69,8 @@ export function AcoesDoBloco({
   salvando?: boolean;
   /** outro motivo para não poder salvar (ex.: sem mês escolhido) */
   desabilitado?: boolean;
+  /** há o que gravar mesmo sem alteração da pessoa (ex.: tirar uma faixa que não existe mais) */
+  forcar?: boolean;
   aviso: { erro: boolean; texto: string } | null;
   rotulo?: string;
   tipo?: 'submit' | 'button';
@@ -75,7 +78,7 @@ export function AcoesDoBloco({
 }) {
   return (
     <div className="flex flex-wrap items-center gap-3">
-      <Button type={tipo} variant={sujo ? 'default' : 'outline'} disabled={!sujo || salvando || desabilitado} onClick={aoSalvar}>
+      <Button type={tipo} variant={sujo || forcar ? 'default' : 'outline'} disabled={(!sujo && !forcar) || salvando || desabilitado} onClick={aoSalvar}>
         {rotulo}
       </Button>
       <EtiquetaPendente sujo={sujo} />

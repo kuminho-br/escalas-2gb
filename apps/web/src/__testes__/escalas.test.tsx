@@ -1,5 +1,5 @@
 import type { Escala, LinhaEscala, LinhaGuarnicao } from 'contratos';
-import { screen, waitFor, within } from '@testing-library/react';
+import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { mesAtual } from '@/lib/meses';
@@ -187,5 +187,71 @@ describe('ficha da escala em painel único', () => {
     api(escala(), { 'GET /api/unidades/u-1sb/escalas': { status: 200, corpo: LISTA.map((e) => ({ ...e, ativa: false })) } });
     abrir('/escalas');
     expect(await screen.findByText('Todas as escalas estão desativadas. Marque "Mostrar desativadas" para vê-las.')).toBeInTheDocument();
+  });
+});
+
+describe('matriz: mês, faixas, coluna parada e links', () => {
+  it('a matriz segue o mês do Vale a partir de', async () => {
+    const f = api(escala({ faixas: [DIA, NOITE] }));
+    abrir('/escalas/e1');
+    await screen.findByLabelText('ABT em A (08h–20h)');
+    fireEvent.change(screen.getByLabelText('Vale a partir de'), { target: { value: '2099-01' } });
+    await waitFor(() =>
+      expect(f.mock.calls.some(([e]) => String(typeof e === 'string' ? e : e instanceof URL ? e.href : (e as Request).url).includes('/guarnicoes?mes=2099-01'))).toBe(true),
+    );
+  });
+
+  it('escala sem faixas não desenha a tabela', async () => {
+    api(escala({ faixas: [], servicos: [] }));
+    abrir('/escalas/e1');
+    expect(await screen.findByText(/Reúna os serviços primeiro/)).toBeInTheDocument();
+    // espera as guarnições chegarem: só então a tabela existiria
+    await waitFor(() => expect(screen.queryByText('Carregando…')).toBeNull());
+    expect(screen.queryByRole('table')).toBeNull();
+  });
+
+  it('a coluna da guarnição fica parada ao rolar para o lado', async () => {
+    api(escala({ faixas: [DIA, NOITE] }));
+    abrir('/escalas/e1');
+    const tabela = (await screen.findByLabelText('ABT em A (08h–20h)')).closest('table')!;
+    expect(within(tabela).getByRole('columnheader', { name: 'Guarnição' }).className).toContain('sticky');
+    expect(within(tabela).getByText('ABT').closest('td')!.className).toContain('sticky');
+  });
+
+  it('os nomes levam às fichas', async () => {
+    api(escala({ faixas: [DIA, NOITE] }));
+    abrir('/escalas/e1');
+    expect(await screen.findByRole('link', { name: 'Pronto' })).toHaveAttribute('href', '/servicos/s1');
+    expect(await screen.findByRole('link', { name: 'ABT' })).toHaveAttribute('href', '/guarnicoes/g1');
+  });
+
+  it('faixa órfã deixa salvar para tirá-la', async () => {
+    const velha = { inicio: '10:00', fim: '12:00' };
+    api(escala({ faixas: [DIA], vinculos: [{ vigencia: mes, itens: [{ guarnicaoId: 'g1', guarnicao: 'ABT', ...velha, ativaNoMes: true }] }] }));
+    abrir('/escalas/e1');
+    await screen.findByText(/não existe mais nos serviços desta escala/);
+    expect(screen.getByRole('button', { name: `Salvar a partir de ${mesPorExtenso(mes)}` })).toBeEnabled();
+  });
+
+  it('salvar num mês novo deixa a versão nova escolhida', async () => {
+    const itens = [{ guarnicaoId: 'g1', guarnicao: 'ABT', inicio: '08:00', fim: '20:00', ativaNoMes: true }];
+    const base = escala({ faixas: [DIA, NOITE], vinculos: [{ vigencia: mes, itens: [] }] });
+    const salva = escala({ faixas: [DIA, NOITE], vinculos: [{ vigencia: '2099-01', itens }, { vigencia: mes, itens: [] }] });
+    const rotas: Parameters<typeof simularApi>[0] = {
+      '/api/eu': { status: 200, corpo: EU_EXEMPLO },
+      'GET /api/unidades/u-1sb/escalas': { status: 200, corpo: LISTA },
+      'GET /api/unidades/u-1sb/guarnicoes': { status: 200, corpo: GUARNICOES },
+      'GET /api/unidades/u-1sb/servicos': { status: 200, corpo: [] },
+      'GET /api/escalas/e1': { status: 200, corpo: base },
+      'PUT /api/escalas/e1/vinculos/2099-01': { status: 200, corpo: salva },
+    };
+    simularApi(rotas);
+    abrir('/escalas/e1');
+    await userEvent.click(await screen.findByLabelText('ABT em A (08h–20h)'));
+    fireEvent.change(screen.getByLabelText('Vale a partir de'), { target: { value: '2099-01' } });
+    rotas['GET /api/escalas/e1'] = { status: 200, corpo: salva };
+    await userEvent.click(screen.getByRole('button', { name: 'Salvar a partir de janeiro de 2099' }));
+    const chip = await screen.findByRole('button', { name: /^janeiro de 2099/ });
+    await waitFor(() => expect(chip).toHaveAttribute('aria-pressed', 'true'));
   });
 });
