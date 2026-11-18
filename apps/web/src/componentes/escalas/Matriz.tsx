@@ -46,14 +46,37 @@ function Editor({ escala, unidadeId, versao, aoSalvar }: { escala: Escala; unida
   });
   // marcações de todas as guarnições, em texto: o que difere do último gravado é alteração pendente (o mês não conta)
   const assinatura = (m: Map<string, Set<string>>) => [...m].flatMap(([g, fs]) => [...fs].map((f) => `${g}|${f}`)).sort().join(',');
+  const marcasDe = (v: Escala['vinculos'][number] | undefined) => {
+    const m = new Map<string, Set<string>>();
+    for (const i of v?.itens ?? []) m.set(i.guarnicaoId, (m.get(i.guarnicaoId) ?? new Set<string>()).add(chave(i.inicio, i.fim)));
+    return m;
+  };
   const [salvo, setSalvo] = useState(() => assinatura(marcas));
   const sujo = assinatura(marcas) !== salvo;
   usePendencia('matriz', sujo);
+  // o servidor trouxe outras marcações para esta versão (ex.: uma importação com a ficha aberta): sem alteração pendente, a matriz recarrega; com alteração, a marcação da pessoa fica
+  const doServidor = assinatura(marcasDe(versao));
+  const [visto, setVisto] = useState(doServidor);
+  if (doServidor !== visto) {
+    setVisto(doServidor);
+    if (!sujo) {
+      setMarcas(marcasDe(versao));
+      setSalvo(doServidor);
+    }
+  }
+  // gravar a partir de "desde" muda o que vale se as marcações diferem da versão em vigor nesse mês (ex.: uma versão antiga trazida de volta)
+  const mesDeVigor = /^\d{4}-\d{2}$/.test(desde) ? desde : mes;
+  const emVigor = escala.vinculos.find((v) => v.vigencia <= mesDeVigor);
+  const mudaOQueVale = assinatura(marcasDe(emVigor)) !== assinatura(marcas);
   const [aviso, setAviso] = useState<{ erro: boolean; texto: string } | null>(null);
 
   // linhas: as guarnições ativas no mês, em ordem de ativação, mais as já vinculadas
   const lista = guarnicoes.data ?? [];
-  const desativada = new Set([...lista.filter((g) => !g.ativa).map((g) => g.id), ...itens.filter((i) => !i.ativaNoMes).map((i) => i.guarnicaoId)]);
+  // a lista (consultada pelo mês do "Vale a partir de") diz quem está desativado; só quem não veio nela usa o que o item gravou no mês da versão
+  const desativada = new Set([
+    ...lista.filter((g) => !g.ativa).map((g) => g.id),
+    ...itens.filter((i) => !i.ativaNoMes && !lista.some((g) => g.id === i.guarnicaoId)).map((i) => i.guarnicaoId),
+  ]);
   const linhas = [
     ...lista.filter((g) => g.ativa || itens.some((i) => i.guarnicaoId === g.id)).map((g) => ({ id: g.id, nome: g.nome })),
     ...itens.filter((i) => !lista.some((g) => g.id === i.guarnicaoId)).map((i) => ({ id: i.guarnicaoId, nome: i.guarnicao })),
@@ -166,7 +189,7 @@ function Editor({ escala, unidadeId, versao, aoSalvar }: { escala: Escala; unida
           <Label htmlFor="em-desde">Vale a partir de</Label>
           <Input id="em-desde" type="month" value={desde} min={mes} onChange={(ev) => setDesde(ev.target.value)} />
         </div>
-        <AcoesDoBloco sujo={sujo} forcar={orfas.size > 0} aviso={aviso} tipo="button" desabilitado={!desde} rotulo={`Salvar a partir de ${desde ? mesPorExtenso(desde) : '…'}`} aoSalvar={() => void salvar()} />
+        <AcoesDoBloco sujo={sujo} forcar={orfas.size > 0 || mudaOQueVale} aviso={aviso} tipo="button" desabilitado={!desde} rotulo={`Salvar a partir de ${desde ? mesPorExtenso(desde) : '…'}`} aoSalvar={() => void salvar()} />
       </div>
     </div>
   );

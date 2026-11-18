@@ -4,7 +4,7 @@ import { mesPorExtenso, somarMeses, textoFaixa, type FichaGuarnicao } from 'cont
 import { useState, type FormEvent } from 'react';
 import { mensagemDe } from '@/api/cliente';
 import { atualizarGuarnicoes, consultaGuarnicao, editarGuarnicao, mudarSituacao } from '@/api/guarnicoes';
-import { AcoesDoBloco, ProvedorDePendencias, usePendencia } from '@/componentes/AlteracoesPendentes';
+import { AcoesDoBloco, podeDescartar, ProvedorDePendencias, usePendencia } from '@/componentes/AlteracoesPendentes';
 import { Versoes } from '@/componentes/guarnicoes/Versoes';
 import { FichaPainel } from '@/componentes/ListaDetalhe';
 import { Secao } from '@/componentes/militares/Secao';
@@ -97,6 +97,8 @@ function Situacao({ ficha }: { ficha: FichaGuarnicao }) {
   const [erro, setErro] = useState<string | null>(null);
 
   async function mudar(ativa: boolean, mesEscolhido: string) {
+    // desativar ou reativar recomeça o editor de versões: com composição pendente, pergunta antes
+    if (!podeDescartar('versao')) return;
     setErro(null);
     try {
       await mudarSituacao(ficha.id, { ativa, aPartirDe: mesEscolhido });

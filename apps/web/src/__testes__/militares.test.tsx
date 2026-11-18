@@ -1,5 +1,5 @@
 import type { FichaMilitar, LinhaMilitar } from 'contratos';
-import { fireEvent, screen, waitFor, within } from '@testing-library/react';
+import { act, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient } from '@tanstack/react-query';
 import { describe, expect, it, vi } from 'vitest';
@@ -306,5 +306,28 @@ describe('aviso de cadastro incompleto', () => {
     const ficha = screen.getByRole('heading', { level: 2, name: /ANDRADE/ }).closest('[data-ficha]') as HTMLElement;
     await userEvent.click(within(ficha).getByRole('button', { name: 'Ver quais' }));
     expect(screen.getByText(nomes.join(', ') + '.')).toBeInTheDocument();
+  });
+});
+
+describe('revisão final: filtro dos incompletos', () => {
+  it('depois de corrigir o último incompleto, o filtro não deixa a lista vazia sem saída', async () => {
+    const rotas: Parameters<typeof simularApi>[0] = {
+      '/api/eu': { status: 200, corpo: EU_EXEMPLO },
+      'GET /api/unidades/u-1sb/militares': { status: 200, corpo: LISTA },
+      'GET /api/unidades/u-1sb/equipes': { status: 200, corpo: [] },
+      'GET /api/postos': { status: 200, corpo: [] },
+    };
+    simularApi(rotas);
+    const router = abrir('/militares');
+    await userEvent.click(await screen.findByRole('button', { name: 'Ver quais' }));
+    expect(screen.queryByText('ANDRADE')).toBeNull();
+    // a pessoa corrige o cadastro: a lista volta sem nenhum incompleto
+    rotas['GET /api/unidades/u-1sb/militares'] = { status: 200, corpo: LISTA.map((m) => ({ ...m, pendencias: [] })) };
+    await act(async () => {
+      atualizarMilitares(router.options.context.queryClient);
+    });
+    expect(await screen.findByText('Nenhum cadastro incompleto.')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Ver todos' }));
+    expect(await screen.findByText('ANDRADE')).toBeInTheDocument();
   });
 });

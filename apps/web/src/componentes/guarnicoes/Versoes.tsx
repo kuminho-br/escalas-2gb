@@ -33,23 +33,52 @@ function Editor({ ficha, unidadeId, versao, aoSalvar }: { ficha: FichaGuarnicao;
   const funcoes = useQuery(consultaFuncoes(unidadeId));
   // funções criadas ou renomeadas aqui, até a lista voltar do servidor
   const [locais, setLocais] = useState<Funcao[]>([]);
-  const [viatura, setViatura] = useState(versao?.viatura ?? '');
-  const [tipoViatura, setTipoViatura] = useState(versao?.tipoViatura ?? '');
-  const [prioridade, setPrioridade] = useState(versao?.prioridade == null ? '' : String(versao.prioridade));
+  // os campos da versão, como o formulário os guarda (texto), a partir do que o servidor trouxe
+  const daVersao = (v: VersaoSalva | undefined) => ({
+    viatura: v?.viatura ?? '',
+    tipo: v?.tipoViatura ?? '',
+    prioridade: v?.prioridade == null ? '' : String(v.prioridade),
+    linhas: (v?.composicao ?? []).map((c, i): LinhaEdicao => ({ chave: i + 1, funcaoId: c.funcaoId, minimo: c.minimo, maximo: c.maximo, cnh: c.cnhExigida ?? '' })),
+  });
+  // o conteúdo da versão em texto: o que difere do último gravado é alteração pendente (o mês "a partir de" não conta)
+  const montar = (viatura: string, tipo: string, prioridade: string, linhas: LinhaEdicao[]) =>
+    JSON.stringify([viatura.trim(), tipo.trim(), prioridade.trim(), linhas.map((l) => [l.funcaoId, l.minimo, l.maximo, l.cnh])]);
+  const assinaturaDa = (v: VersaoSalva | undefined) => {
+    const d = daVersao(v);
+    return montar(d.viatura, d.tipo, d.prioridade, d.linhas);
+  };
+  const inicial = daVersao(versao);
+  const [viatura, setViatura] = useState(inicial.viatura);
+  const [tipoViatura, setTipoViatura] = useState(inicial.tipo);
+  const [prioridade, setPrioridade] = useState(inicial.prioridade);
   // a versão grava com o `ativa` com que abriu (desativar e reativar são no cabeçalho da ficha)
   const ativa = versao?.ativa ?? true;
-  const [linhas, setLinhas] = useState<LinhaEdicao[]>(
-    (versao?.composicao ?? []).map((c, i) => ({ chave: i + 1, funcaoId: c.funcaoId, minimo: c.minimo, maximo: c.maximo, cnh: c.cnhExigida ?? '' })),
-  );
+  const [linhas, setLinhas] = useState<LinhaEdicao[]>(inicial.linhas);
   // sugere o mês corrente, ou o começo da versão quando ela só vale no futuro
   const [desde, setDesde] = useState(versao && versao.vigencia > mesAtual() ? versao.vigencia : mesAtual());
   const [aviso, setAviso] = useState<{ erro: boolean; texto: string } | null>(null);
-  // o conteúdo da versão em texto: o que difere do último gravado é alteração pendente (o mês "a partir de" não conta)
-  const assinatura = () =>
-    JSON.stringify([viatura.trim(), tipoViatura.trim(), prioridade.trim(), linhas.map((l) => [l.funcaoId, l.minimo, l.maximo, l.cnh])]);
+  const assinatura = () => montar(viatura, tipoViatura, prioridade, linhas);
   const [salvo, setSalvo] = useState(assinatura);
   const sujo = assinatura() !== salvo;
   usePendencia('versao', sujo);
+
+  // o servidor trouxe outro conteúdo para esta versão (ex.: uma importação com a ficha aberta): sem alteração pendente, os campos recarregam; com alteração, a edição da pessoa fica
+  const doServidor = assinaturaDa(versao);
+  const [visto, setVisto] = useState(doServidor);
+  if (doServidor !== visto) {
+    setVisto(doServidor);
+    if (!sujo) {
+      setViatura(inicial.viatura);
+      setTipoViatura(inicial.tipo);
+      setPrioridade(inicial.prioridade);
+      setLinhas(inicial.linhas);
+      setSalvo(doServidor);
+    }
+  }
+  // gravar a partir de "desde" muda o que vale se o formulário difere da versão em vigor nesse mês (ex.: uma versão antiga trazida de volta)
+  const mesDeVigor = /^\d{4}-\d{2}$/.test(desde) ? desde : mesAtual();
+  const emVigor = versaoVigente(ficha.versoes, mesDeVigor);
+  const mudaOQueVale = Boolean(emVigor) && assinaturaDa(emVigor) !== assinatura();
 
   const servidor = funcoes.data ?? [];
   const opcoes = [...servidor.map((f) => locais.find((l) => l.id === f.id) ?? f), ...locais.filter((l) => !servidor.some((f) => f.id === l.id))];
@@ -106,7 +135,7 @@ function Editor({ ficha, unidadeId, versao, aoSalvar }: { ficha: FichaGuarnicao;
           <Label htmlFor="gv-desde">A partir de</Label>
           <Input id="gv-desde" type="month" value={desde} min={mesAtual()} onChange={(e) => setDesde(e.target.value)} />
         </div>
-        <AcoesDoBloco sujo={sujo} aviso={aviso} tipo="button" desabilitado={!desde} rotulo={`Salvar a partir de ${desde ? mesPorExtenso(desde) : '…'}`} aoSalvar={() => void salvar()} />
+        <AcoesDoBloco sujo={sujo} forcar={mudaOQueVale} aviso={aviso} tipo="button" desabilitado={!desde} rotulo={`Salvar a partir de ${desde ? mesPorExtenso(desde) : '…'}`} aoSalvar={() => void salvar()} />
       </div>
     </div>
   );

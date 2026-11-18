@@ -99,9 +99,9 @@ function ListaDeMilitares({ unidadeId, escolhido }: { unidadeId: string; escolhi
       {militares.data && (
         <>
           <p className="shrink-0 px-4 pt-3 text-xs text-apagado">{filtrados.length} de {militares.data.length} militares</p>
-          {incompletos > 0 && (
+          {(incompletos > 0 || soIncompletos) && (
             <p className="shrink-0 px-4 pt-1 text-xs text-pendencia">
-              Cadastro incompleto em {incompletos} {incompletos === 1 ? 'militar' : 'militares'}.{' '}
+              {incompletos > 0 ? `Cadastro incompleto em ${incompletos} ${incompletos === 1 ? 'militar' : 'militares'}.` : 'Nenhum cadastro incompleto.'}{' '}
               <button type="button" onClick={() => setSoIncompletos(!soIncompletos)} className="font-medium underline underline-offset-2">
                 {soIncompletos ? 'Ver todos' : 'Ver quais'}
               </button>

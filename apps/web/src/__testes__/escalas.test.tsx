@@ -1,9 +1,10 @@
 import type { Escala, LinhaEscala, LinhaGuarnicao } from 'contratos';
-import { fireEvent, screen, waitFor, within } from '@testing-library/react';
+import { act, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { mesAtual } from '@/lib/meses';
 import { mesPorExtenso } from 'contratos';
+import { atualizarEscalas } from '@/api/escalas';
 import { abrir, corpoEnviado, EU_EXEMPLO, simularApi } from './apoio';
 
 const LISTA: LinhaEscala[] = [
@@ -253,5 +254,63 @@ describe('matriz: mês, faixas, coluna parada e links', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Salvar a partir de janeiro de 2099' }));
     const chip = await screen.findByRole('button', { name: /^janeiro de 2099/ });
     await waitFor(() => expect(chip).toHaveAttribute('aria-pressed', 'true'));
+  });
+});
+
+describe('revisão final: matriz', () => {
+  const item = (g: string, nome: string, extra = {}) => ({ guarnicaoId: g, guarnicao: nome, inicio: '08:00', fim: '20:00', ativaNoMes: true, ...extra });
+  const rotasDe = (e: Escala): Parameters<typeof simularApi>[0] => ({
+    '/api/eu': { status: 200, corpo: EU_EXEMPLO },
+    'GET /api/unidades/u-1sb/escalas': { status: 200, corpo: LISTA },
+    'GET /api/unidades/u-1sb/guarnicoes': { status: 200, corpo: GUARNICOES },
+    'GET /api/unidades/u-1sb/servicos': { status: 200, corpo: [] },
+    'GET /api/escalas/e1': { status: 200, corpo: e },
+  });
+
+  it('uma importação com a ficha aberta recarrega as marcações', async () => {
+    const r = rotasDe(escala({ faixas: [DIA], vinculos: [{ vigencia: mes, itens: [] }] }));
+    simularApi(r);
+    const router = abrir('/escalas/e1');
+    expect(await screen.findByLabelText('ABT em A (08h–20h)')).not.toBeChecked();
+    r['GET /api/escalas/e1'] = { status: 200, corpo: escala({ faixas: [DIA], vinculos: [{ vigencia: mes, itens: [item('g1', 'ABT')] }] }) };
+    await act(async () => {
+      atualizarEscalas(router.options.context.queryClient);
+    });
+    await waitFor(() => expect(screen.getByLabelText('ABT em A (08h–20h)')).toBeChecked());
+    expect(screen.queryByText('Alterações não salvas')).toBeNull();
+  });
+
+  it('com marcação pendente, a importação não apaga o que a pessoa marcou', async () => {
+    const r = rotasDe(escala({ faixas: [DIA], vinculos: [{ vigencia: mes, itens: [] }] }));
+    simularApi(r);
+    const router = abrir('/escalas/e1');
+    await userEvent.click(await screen.findByLabelText('ABT em A (08h–20h)'));
+    r['GET /api/escalas/e1'] = { status: 200, corpo: escala({ faixas: [DIA], vinculos: [{ vigencia: mes, itens: [item('g2', 'APH')] }] }) };
+    await act(async () => {
+      atualizarEscalas(router.options.context.queryClient);
+    });
+    await new Promise((x) => setTimeout(x, 50));
+    expect(screen.getByLabelText('ABT em A (08h–20h)')).toBeChecked();
+    expect(screen.getByText('Alterações não salvas')).toBeInTheDocument();
+  });
+
+  it('trazer de volta uma versão antiga deixa salvar a partir do mês escolhido', async () => {
+    simularApi(rotasDe(escala({ faixas: [DIA], vinculos: [{ vigencia: '2021-01', itens: [item('g1', 'ABT')] }, { vigencia: '2020-01', itens: [] }] })));
+    abrir('/escalas/e1');
+    const salvar = () => screen.getByRole('button', { name: `Salvar a partir de ${mesPorExtenso(mes)}` });
+    expect(await screen.findByLabelText('ABT em A (08h–20h)')).toBeChecked();
+    expect(salvar()).toBeDisabled();
+    await userEvent.click(screen.getByRole('button', { name: /^janeiro de 2020/ }));
+    expect(screen.getByLabelText('ABT em A (08h–20h)')).not.toBeChecked();
+    expect(salvar()).toBeEnabled();
+    expect(screen.queryByText('Alterações não salvas')).toBeNull();
+  });
+
+  it('a etiqueta desativada segue o mês do "Vale a partir de": guarnição ativa na lista não leva a etiqueta da versão', async () => {
+    // a lista (consultada pelo mês do "Vale a partir de") diz que o ABT está ativo; o item foi gravado quando ele estava desativado
+    simularApi(rotasDe(escala({ faixas: [DIA], vinculos: [{ vigencia: mes, itens: [item('g1', 'ABT', { ativaNoMes: false })] }] })));
+    abrir('/escalas/e1');
+    const caixa = await screen.findByLabelText('ABT em A (08h–20h)');
+    expect(within(caixa.closest('tr')!).queryByText('desativada')).toBeNull();
   });
 });
