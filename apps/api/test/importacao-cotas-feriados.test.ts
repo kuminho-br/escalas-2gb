@@ -177,6 +177,12 @@ describe('importação de cotas', () => {
     ]);
   });
 
+  // [foco 3] o ano 0000 passava e dava erro 500 já na prévia
+  it('mês do ano 0000 vira problema, nunca erro do banco', async () => {
+    const previa = await importarCotas([['0000-05', '', '', 'JES', 1, '', 1]]);
+    expect(previa.problemas).toEqual([{ aba: 'COTAS', linha: 2, mensagem: 'Mês "0000-05" de JES', solucao: 'Use aaaa-mm ou mm/aaaa na coluna MÊS.' }]);
+  });
+
   it('linha repetida do mesmo serviço e origem no mês vira problema (vale a primeira)', async () => {
     const previa = await importarCotas([
       ['2027-12', '', '', 'JES', 5, 'interna', 1],
@@ -278,6 +284,22 @@ describe('importação de feriados', () => {
       { aba: 'FERIADOS', linha: 6, mensagem: 'Data "depois do carnaval" de Texto', solucao: 'Use dd/mm/aaaa (ex.: 07/09/2026) na coluna DATA.' },
       { aba: 'FERIADOS', linha: 7, mensagem: 'Data vazia em Sem data', solucao: 'Preencha a coluna DATA (dd/mm/aaaa).' },
     ]);
+  });
+
+  // [foco 3] o ano 0000 passava na prévia e derrubava a confirmação inteira
+  it('data do ano 0000 vira problema, nunca erro do banco', async () => {
+    const linhas = [['01/01/0000', 'Antigo'], ['10/10/2030', 'Dia de teste']];
+    const previa = await importarFeriados(linhas);
+    expect(previa.problemas).toEqual([{ aba: 'FERIADOS', linha: 2, mensagem: 'Data "01/01/0000" de Antigo', solucao: 'Use dd/mm/aaaa (ex.: 07/09/2026) na coluna DATA.' }]);
+    expect((await importarFeriados(linhas, true)).gravados).toBe(1);
+  });
+
+  // o que a importação aceita, a tela precisa conseguir salvar de novo
+  it('descrição com mais de 120 caracteres é problema', async () => {
+    const longa = 'X'.repeat(121);
+    const previa = await importarFeriados([['11/10/2030', longa], ['12/10/2030', 'X'.repeat(120)]]);
+    expect(previa.problemas).toEqual([{ aba: 'FERIADOS', linha: 2, mensagem: 'Descrição do feriado de 11/10/2030 tem mais de 120 caracteres', solucao: 'Encurte o texto na coluna DESCRIÇÃO.' }]);
+    expect(previa.novos).toHaveLength(1);
   });
 
   it('descrição vazia é problema', async () => {

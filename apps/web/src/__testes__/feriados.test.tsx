@@ -105,6 +105,24 @@ describe('feriados', () => {
     expect(await within(dialogo).findByRole('alert')).toHaveTextContent('Já existe um feriado nesta data');
   });
 
+  it('a mensagem do campo que a API recusou aparece no diálogo (nada fica sem explicação)', async () => {
+    api({ 'POST /api/unidades/u-1sb/feriados': { status: 400, corpo: { erro: 'Confira os campos destacados.', campos: { descricao: 'Use no máximo 120 caracteres.' } } } });
+    abrir('/feriados');
+    await userEvent.click(await screen.findByRole('button', { name: 'Novo feriado' }));
+    const dialogo = await screen.findByRole('dialog');
+    fireEvent.change(within(dialogo).getByLabelText('Data'), { target: { value: `${ano}-04-21` } });
+    await userEvent.type(within(dialogo).getByLabelText('Descrição'), 'Algo');
+    await userEvent.click(within(dialogo).getByRole('button', { name: 'Salvar' }));
+    expect(await within(dialogo).findByRole('alert')).toHaveTextContent('Confira os campos destacados. Use no máximo 120 caracteres.');
+  });
+
+  it('a descrição não passa de 120 caracteres na tela', async () => {
+    api();
+    abrir('/feriados');
+    await userEvent.click(await screen.findByRole('button', { name: 'Novo feriado' }));
+    expect(within(await screen.findByRole('dialog')).getByLabelText('Descrição')).toHaveAttribute('maxLength', '120');
+  });
+
   it('editar envia a data, a descrição e fixo', async () => {
     const f = api({ 'PATCH /api/feriados/f1': { status: 200, corpo: feriado({ descricao: 'Dia de Tiradentes' }) } });
     abrir('/feriados');

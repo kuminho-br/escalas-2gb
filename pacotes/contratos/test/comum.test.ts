@@ -18,6 +18,15 @@ describe('formatos comuns', () => {
     expect(Data.safeParse('2024-02-29').success).toBe(true);
     expect(Data.safeParse('2026-12-31').success).toBe(true);
   });
+  // [foco 3] o Postgres não tem o ano 0000: passar do contrato dava erro 500
+  it('ano abaixo de 1900 é recusado em mês e em data', () => {
+    expect(Mes.safeParse('0000-05').success).toBe(false);
+    expect(Mes.safeParse('1899-12').success).toBe(false);
+    expect(Mes.safeParse('1900-01').success).toBe(true);
+    expect(Data.safeParse('0000-03-01').success).toBe(false);
+    expect(Data.safeParse('0026-03-01').success).toBe(false);
+    expect(Data.safeParse('1900-01-01').success).toBe(true);
+  });
   it('hora', () => {
     expect(Hora.safeParse('08:00').success).toBe(true);
     expect(Hora.safeParse('24:00').success).toBe(false);

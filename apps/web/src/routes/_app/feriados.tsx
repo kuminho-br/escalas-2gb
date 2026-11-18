@@ -3,7 +3,7 @@ import { createFileRoute } from '@tanstack/react-router';
 import type { Feriado } from 'contratos';
 import { Pencil, Plus, Trash2 } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
-import { mensagemDe } from '@/api/cliente';
+import { mensagemComCampo, mensagemDe } from '@/api/cliente';
 import { atualizarFeriados, consultaFeriados, copiarFeriadosFixos, criarFeriado, editarFeriado, removerFeriado } from '@/api/feriados';
 import { ImportarPlanilha } from '@/componentes/ImportarPlanilha';
 import { Selecao } from '@/componentes/Selecao';
@@ -141,7 +141,7 @@ function FeriadoDialogo({ unidadeId, ano, feriado, aoFechar }: { unidadeId: stri
       atualizarFeriados(queryClient);
       aoFechar();
     } catch (err) {
-      setErro(mensagemDe(err));
+      setErro(mensagemComCampo(err));
     } finally {
       setSalvando(false);
     }
@@ -162,7 +162,7 @@ function FeriadoDialogo({ unidadeId, ano, feriado, aoFechar }: { unidadeId: stri
             </div>
             <div className="grid gap-1.5">
               <Label htmlFor="fr-descricao">Descrição</Label>
-              <Input id="fr-descricao" value={descricao} onChange={(e) => setDescricao(e.target.value)} required />
+              <Input id="fr-descricao" value={descricao} onChange={(e) => setDescricao(e.target.value)} maxLength={120} required />
             </div>
           </div>
           <label className="flex items-center gap-2 text-sm">

@@ -72,6 +72,13 @@ describe('feriados', () => {
     expect((await r.json()).campos).toHaveProperty('data');
   });
 
+  // [foco 3] o ano 0000 não existe no Postgres
+  it('data do ano 0000 é 400, nunca erro do banco', async () => {
+    const r = await api.pedir('escalante', 'POST', `${secao()}/feriados`, { data: '0000-03-01', descricao: 'Antigo', fixo: true });
+    expect(r.status).toBe(400);
+    expect((await r.json()).campos).toHaveProperty('data');
+  });
+
   it('copiar fixos pula o Carnaval, as datas já existentes e o 29 de fevereiro em ano comum', async () => {
     await criar('2024-04-21', 'Tiradentes', true);
     await criar('2024-12-25', 'Natal', true);

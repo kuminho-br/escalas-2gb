@@ -3,7 +3,7 @@ import { createFileRoute } from '@tanstack/react-router';
 import { mesPorExtenso, somarMeses, type Cota } from 'contratos';
 import { Pencil, Plus, Trash2 } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
-import { mensagemDe } from '@/api/cliente';
+import { mensagemComCampo, mensagemDe } from '@/api/cliente';
 import { atualizarCotas, consultaCotas, copiarCotas, criarCota, editarCota, removerCota } from '@/api/cotas';
 import { consultaServicos } from '@/api/servicos';
 import { ImportarPlanilha } from '@/componentes/ImportarPlanilha';
@@ -192,7 +192,7 @@ function CotaDialogo({ unidadeId, mes, cota, proximaPrioridade, aoFechar }: { un
       atualizarCotas(queryClient);
       aoFechar();
     } catch (err) {
-      setErro(mensagemDe(err));
+      setErro(mensagemComCampo(err));
     } finally {
       setSalvando(false);
     }

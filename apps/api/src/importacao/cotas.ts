@@ -1,6 +1,6 @@
 // Importação da aba COTAS (cotas das operações por mês), lida como lerCotas_ do protótipo. A regra nova: a cota
 // aponta direto para o serviço (PJES ou diária), e a operação deixa de existir como campo (adendo do design).
-import { mesParaData, mesPorExtenso, type ItemPrevia, type OrigemCota, type ProblemaImportacao } from 'contratos';
+import { Mes, mesParaData, mesPorExtenso, type ItemPrevia, type OrigemCota, type ProblemaImportacao } from 'contratos';
 import { cadgVigencia, normalizar, servicoDaOperacao } from 'dominio';
 import { coluna, mesDaCelula } from './planilha.ts';
 import type { ColunaModelo, Importador } from './tipos.ts';
@@ -118,7 +118,8 @@ export const importadorCotas: Importador<Plano> = {
         problema(`Mês vazio em ${alvo}`, 'Preencha o mês na coluna MÊS.');
         continue;
       }
-      if (!vig.ok || !vig.valor) {
+      // o mês passa pelo contrato: o ano 0000 (e anos como 0026) não chegam ao banco
+      if (!vig.ok || !vig.valor || !Mes.safeParse(vig.valor).success) {
         problema(`Mês "${mesBruto}" de ${alvo}`, 'Use aaaa-mm ou mm/aaaa na coluna MÊS.');
         continue;
       }

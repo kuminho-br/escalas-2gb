@@ -93,10 +93,15 @@ describe('cotas', () => {
   });
 
   it('quantidade e prioridade fora do limite são 400, nunca erro do banco', async () => {
-    for (const ruim of [{ quantidade: 0 }, { quantidade: 99999999999 }, { prioridade: 0 }, { prioridade: 5000000000 }, { mes: '2026-13' }]) {
+    for (const ruim of [{ quantidade: 0 }, { quantidade: 99999999999 }, { prioridade: 0 }, { prioridade: 5000000000 }, { mes: '2026-13' }, { mes: '0000-05' }]) {
       const r = await api.pedir('escalante', 'POST', `${secao()}/cotas`, corpo(bioma, { origem: 'externa', ...ruim }));
       expect(r.status).toBe(400);
     }
+  });
+
+  it('o mês do ano 0000 é 400 ao listar e ao copiar', async () => {
+    expect((await api.pedir('escalante', 'GET', `${secao()}/cotas?mes=0000-01`)).status).toBe(400);
+    expect((await api.pedir('escalante', 'POST', `${secao()}/cotas/copiar`, { de: '0000-01', para: atual })).status).toBe(400);
   });
 
   it('copiar do mês anterior não duplica o que o mês já tem', async () => {

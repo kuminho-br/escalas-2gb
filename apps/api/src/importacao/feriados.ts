@@ -1,12 +1,12 @@
 // Importação da aba FERIADOS (DATA, DESCRIÇÃO), lida como a aba do protótipo. O feriado de data móvel entra com
 // fixo falso (a descrição diz); o que a unidade de cima já tem não é repetido na seção.
-import type { ItemPrevia, ProblemaImportacao } from 'contratos';
+import { Data, type ItemPrevia, type ProblemaImportacao } from 'contratos';
 import { normalizar } from 'dominio';
-import { mesmoDiaEmOutroAno } from '../cadastros/feriados.ts';
 import { coluna } from './planilha.ts';
 import type { ColunaModelo, Importador } from './tipos.ts';
 
 const ABA = 'FERIADOS';
+const MAX_DESCRICAO = 120;
 
 const COLUNAS = {
   data: { rotulo: 'DATA', obrigatoria: true, ajuda: 'Dia do feriado (dd/mm/aaaa).' },
@@ -27,7 +27,8 @@ function lerData(texto: string): string | null {
   const [a, m, d] = br ? [br[3]!, br[2]!, br[1]!] : iso ? [iso[1]!, iso[2]!, iso[3]!] : [null, null, null];
   if (!a) return null;
   const data = `${a}-${m!.padStart(2, '0')}-${d!.padStart(2, '0')}`;
-  return mesmoDiaEmOutroAno(data, Number(a)) === data ? data : null;
+  // o contrato confere o calendário (31/02, 29/02 em ano comum) e o ano (o ano 0000 não existe no banco)
+  return Data.safeParse(data).success ? data : null;
 }
 
 export const importadorFeriados: Importador<Plano> = {
@@ -62,6 +63,11 @@ export const importadorFeriados: Importador<Plano> = {
       }
       if (!descricao) {
         problemas.push({ aba: ABA, linha: l.linha, mensagem: `Feriado de ${dataBr(data)} sem descrição`, solucao: 'Preencha a coluna DESCRIÇÃO.' });
+        continue;
+      }
+      // o que a importação aceita, a tela precisa conseguir salvar de novo (o limite do contrato é 120)
+      if (descricao.length > MAX_DESCRICAO) {
+        problemas.push({ aba: ABA, linha: l.linha, mensagem: `Descrição do feriado de ${dataBr(data)} tem mais de ${MAX_DESCRICAO} caracteres`, solucao: 'Encurte o texto na coluna DESCRIÇÃO.' });
         continue;
       }
       const antes = lidos.get(data);

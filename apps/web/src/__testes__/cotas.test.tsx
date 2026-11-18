@@ -119,6 +119,16 @@ describe('cotas', () => {
     expect(await within(dialogo).findByRole('alert')).toHaveTextContent('Já existe uma cota de JES (interna)');
   });
 
+  it('a mensagem do campo que a API recusou aparece no diálogo', async () => {
+    api({ 'POST /api/unidades/u-1sb/cotas': { status: 400, corpo: { erro: 'Confira os campos destacados.', campos: { servicoId: 'Use um serviço cadastrado nesta seção.' } } } });
+    abrir('/cotas');
+    await userEvent.click(await screen.findByRole('button', { name: 'Adicionar cota' }));
+    const dialogo = await screen.findByRole('dialog');
+    await userEvent.type(within(dialogo).getByLabelText('Quantidade'), '8');
+    await userEvent.click(within(dialogo).getByRole('button', { name: 'Salvar' }));
+    expect(await within(dialogo).findByRole('alert')).toHaveTextContent('Confira os campos destacados. Use um serviço cadastrado nesta seção.');
+  });
+
   it('editar a cota envia só o que a tela mostra', async () => {
     const f = api({ 'PATCH /api/cotas/c1': { status: 200, corpo: cota({ quantidade: 40 }) } });
     abrir('/cotas');
