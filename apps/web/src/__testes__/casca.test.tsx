@@ -40,7 +40,7 @@ describe('casca', () => {
     expect(screen.getByText('CBMPE › DGO › DInter/1 › 2º GB › 1ª SB')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Grade geral' })).toHaveAttribute('aria-current', 'page');
     expect(screen.getByText('Escala do mês').closest('[aria-disabled="true"]')).not.toBeNull();
-    expect(screen.getByText('A grade aparece aqui quando houver uma escala cadastrada.')).toBeInTheDocument();
+    expect(screen.getByText('A grade geral chega na próxima fase.')).toBeInTheDocument();
   });
 
   it('militar comum não vê os cadastros', async () => {
