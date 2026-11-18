@@ -105,7 +105,7 @@ function Identificacao({ s }: { s: Servico }) {
             </Selecao>
           </div>
         </div>
-        <div className="grid gap-3 sm:grid-cols-2">
+        <div className={tipo === 'diaria' ? 'grid gap-3 sm:grid-cols-[1fr_1fr_auto]' : 'grid gap-3 sm:grid-cols-[1fr_auto]'}>
           {tipo === 'diaria' && (
             <div className="grid gap-1.5">
               <Label htmlFor="sv-operacao">Operação</Label>
@@ -116,10 +116,10 @@ function Identificacao({ s }: { s: Servico }) {
             <Label htmlFor="sv-rotulo">Nome na impressão</Label>
             <Input id="sv-rotulo" value={rotulo} placeholder={nome} onChange={(e) => setRotulo(e.target.value)} />
           </div>
-        </div>
-        <div className="grid gap-1.5">
-          <Label htmlFor="sv-cor">Cor</Label>
-          <SeletorDeCor id="sv-cor" valor={cor} aoMudar={setCor} />
+          <div className="grid gap-1.5">
+            <Label htmlFor="sv-cor">Cor</Label>
+            <SeletorDeCor id="sv-cor" valor={cor} aoMudar={setCor} />
+          </div>
         </div>
         <div className="flex items-center gap-3">
           <Button type="submit" variant="outline">Salvar</Button>
