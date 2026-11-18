@@ -1298,9 +1298,102 @@ it('segmentos do mesmo turno não se sobrepõem', () => expect(sobreposicoes([{ 
 
 ---
 
+# Entrega 4.1.1 — Ajustes da tela depois do uso da 4.1
+
+Branch `fase3-4-1-1-ajustes`, a partir da `main` já com a 4.1 (merge do PR #21). Só tela, sem migração. Corrige o que o usuário viu no ambiente de teste (18/11/2026); por isso é "4.1.1" e não "4.2": a 4.2 continua sendo a entrega nova do vínculo por faixa, com migração.
+
+**Decisões do usuário (18/11/2026):**
+- **Rolagem:** ao chegar no fim da rolagem, a tela inteira (inclusive o menu) era puxada junto. Alternativa A (CSS) aprovada.
+- **Régua do dia:** sempre desenha o dia de 0h a 24h e pinta só onde há turno. Se um turno passa da meia-noite, a régua continua pelo dia seguinte (D+1) até onde o turno vai. O B das 20h às 08h aparece como uma barra só, indo até as 08h do dia seguinte.
+- **Cor:** só o quadrado da cor, sem o código, na mesma linha do "Nome na impressão".
+
+**Decisões minhas, ao detalhar** (o usuário pode mudar na revisão do plano):
+- **Fim da régua:** é o fim do último turno, no mínimo 24h. Pronto (A 08h–20h, B 20h–08h) vai de 0h a 32h; Bioma (00h–08h, 08h–16h, 16h–00h) fica em 0h–24h.
+- **Antes das 08h do dia D:** fica sem pintura. É a noite do dia anterior, e não se desenha na régua de D.
+- **O trecho do dia seguinte** tem fundo diferente e uma linha pontilhada na meia-noite, com a legenda "dia seguinte".
+- **Sobreposição:** passa a considerar o dia seguinte (o B das 20h às 08h encosta no turno das 06h às 10h do dia seguinte) e sai como um trecho só ("das 20h às 08h"). Turnos de 24h sobrepostos saem como "o dia todo". Isso resolve duas pendências menores da 4.1.
+- **Menu e barra do topo:** o menu lateral e a barra do topo já são fixos; o efeito vinha do "elástico" do navegador e da rolagem da lista passando para a página. Corrige-se com `overscroll-behavior`. Se persistir, a alternativa B (cada painel com rolagem própria e a página parada) fica para uma nova rodada.
+- **Quadrado da cor:** o código #RRGGBB sai do botão e continua no campo "Personalizada" da grade. O nome acessível do botão passa a ser "Cor: #RRGGBB".
+
+### Task 29: Rolagem sem elástico nem vazamento
+
+**Arquivos:**
+- Modificar: `apps/web/src/estilo.css`, `apps/web/src/routes/_app/{militares,guarnicoes,servicos,escalas}.tsx` e `apps/web/src/__testes__/lista-rolavel.test.tsx`.
+
+**Interfaces:**
+- `html` e `body` ganham `overscroll-behavior-y: none` em `estilo.css`: a página não estica nem puxa o menu ao passar do fim.
+- A área que rola da lista (`[data-lista-rolavel]`, nas quatro listas) ganha a classe `overscroll-contain`: chegar ao fim da lista não passa a rolagem para a página.
+
+- [ ] **Passo 1: teste que falha**, em `lista-rolavel.test.tsx`: em cada uma das quatro listas, `document.querySelector('[data-lista-rolavel]')` tem a classe `overscroll-contain`. Nome: `a área que rola não passa a rolagem para a página`.
+- [ ] **Passo 2:** `pnpm --filter web test -- lista-rolavel`. Esperado: FALHA.
+- [ ] **Passo 3:** implementar. Ledger: `Ruling: sem teste automático do elástico da página — é comportamento do navegador; conferência no ambiente de teste`.
+- [ ] **Passo 4:** `pnpm --filter web test && pnpm typecheck`. Esperado: PASSA.
+- [ ] **Passo 5:** commit `Fase 3: rolagem dos cadastros sem elástico nem vazamento`.
+
+### Task 30: Régua do dia com o dia seguinte
+
+**Arquivos:**
+- Modificar: `apps/web/src/lib/turnos.ts`, `apps/web/src/componentes/servicos/ReguaDoDia.tsx`, `apps/web/src/__testes__/turnos-lib.test.tsx` e `apps/web/src/__testes__/servicos.test.tsx`.
+
+**Interfaces:**
+- **`segmentosDoDia(turnos): Segmento[]`:** `Segmento = { letra: string; ini: number; fim: number }`, em minutos a partir das 00h do dia D, em ordem de `ini`.
+  - **Sem partir turnos:** `ini` fica entre 0 e 1439; `fim` fica depois de `ini` e chega a `ini + 1440`.
+  - **Fim depois da meia-noite:** `fim` menor que `ini` soma 1440 (20h às 08h vira 1200–1920).
+  - **Turno de 24h:** `fim` igual a `ini` vira `ini + 1440` (08h às 08h vira 480–1920).
+  - **Fim à meia-noite:** 16h às 00h vira 960–1440.
+- **`fimDaRegua(segmentos: Segmento[]): number`:** o maior `fim`, no mínimo 1440.
+- **`sobreposicoes(turnos)`:** o mesmo formato de antes. Os turnos se repetem a cada dia, então compara cada par com o segundo deslocado em −1440, 0 e +1440. O resultado fica em ordem de `ini`.
+- **`ReguaDoDia`:** o eixo vai de 0 a `fimDaRegua`.
+  - **Posição:** cada segmento fica em `left = ini/fim_da_regua` e `width = (fim−ini)/fim_da_regua`.
+  - **Dia seguinte:** o trecho depois de 1440 tem fundo diferente do resto, com uma linha pontilhada em 1440 e a legenda "dia seguinte" ao lado dela.
+  - **Marcas** de 6 em 6 horas até o fim da régua, escritas com `textoMinutos`, e 24h escrita como "24h".
+  - **Frase:** a sobreposição de 1440 minutos ou mais sai "o dia todo" (em vez de "das 08h às 08h").
+  - **`aria-label`:** continua sendo o texto dos turnos gravados.
+
+- [ ] **Passo 1: testes que falham:**
+  - Em `turnos-lib.test.tsx`, trocam-se os testes antigos de `segmentosDoDia` e entram:
+    - `Pronto: A de 480 a 1200 e B de 1200 a 1920, sem partir o B`
+    - `turno de 24h vai de 480 a 1920` **[foco 18]**
+    - `turno que termina à meia-noite fica em 960–1440`
+    - `fimDaRegua: Pronto 1920, Bioma 1440, vazio 1440`
+    - `sobreposição do turno que passa da meia-noite com o do dia seguinte`: `B` das 20h às 08h com `C` das 06h às 10h dá `[{ letras: ['B','C'], ini: 1800, fim: 1920 }]`
+    - os testes de sobreposição já existentes continuam, com os mesmos valores
+  - Em `servicos.test.tsx`:
+    - `régua mostra o B até o dia seguinte`: com A 08h–20h e B 20h–08h, o segmento "A" tem `left: 25%` e `width: 37.5%`, o "B" tem `left: 62.5%` e `width: 37.5%`, e aparece o texto "dia seguinte"
+    - `régua sem turno que passe da meia-noite não mostra dia seguinte` (BIOMA)
+    - `sobreposição atravessando a meia-noite sai num trecho só`: A 20h–08h e B 22h–10h dão "Os turnos A e B se sobrepõem das 22h às 08h."
+    - `dois turnos de 24h sobrepostos dizem o dia todo`
+    - o teste `sobreposição aparece em texto` (A 07h–19h e B 18h–08h) continua igual
+- [ ] **Passo 2:** `pnpm --filter web test`. Esperado: FALHA.
+- [ ] **Passo 3:** implementar.
+- [ ] **Passo 4:** `pnpm --filter web test && pnpm typecheck`. Esperado: PASSA.
+- [ ] **Passo 5:** commit `Fase 3: régua do dia vai até o dia seguinte`.
+
+### Task 31: Cor como quadrado, junto do nome na impressão
+
+**Arquivos:**
+- Modificar: `apps/web/src/componentes/SeletorDeCor.tsx`, `apps/web/src/routes/_app/servicos/$id.tsx` e `apps/web/src/__testes__/seletor-cor.test.tsx`.
+
+**Interfaces:**
+- **Botão do seletor:** só o quadrado da cor (`size-9`, com a borda e a seta pequena), sem o código. `aria-label={`Cor: ${atual}`}`. O `<Label>` "Cor" continua acima, para quem enxerga.
+- **Ficha do serviço:** uma linha só, com `Operação` (só em Diária), `Nome na impressão` (ocupa o espaço que sobra) e `Cor` (largura do quadrado).
+- A grade e o campo "Personalizada" não mudam.
+
+- [ ] **Passo 1: testes que falham**, em `seletor-cor.test.tsx` (ajustando os da 4.1):
+  - `o botão mostra só o quadrado, sem o código`: `getByRole('button', { name: 'Cor: #C08A1E' })` existe e `toHaveTextContent('')`.
+  - `escolher na grade e salvar envia a cor`: depois de escolher, o botão passa a se chamar `Cor: #4A86E8`.
+  - `cor personalizada ...`: as checagens do botão usam o nome `Cor: #C08A1E` e `Cor: #1A2B3C`.
+  - `a cor fica na mesma linha do nome na impressão`: o campo `Nome na impressão` e o botão da cor têm o mesmo `closest('.grid')` pai (a linha).
+- [ ] **Passo 2:** `pnpm --filter web test -- seletor-cor`. Esperado: FALHA.
+- [ ] **Passo 3:** implementar.
+- [ ] **Passo 4:** `pnpm test && pnpm typecheck`. Esperado: tudo passa.
+- [ ] **Passo 5:** commit `Fase 3: cor como quadrado, na linha do nome na impressão`. Depois, abrir o PR "Fase 3 — Entrega 4.1.1: ajustes da tela" e **parar até o merge**.
+
+---
+
 # Entrega 4.2 — Vínculo por faixa de horário
 
-Branch `fase3-4-2-faixas`, a partir da `main` já com a 4.1. **Tem migração (0011):** o PR lembra de rodar `pnpm --filter api db:migrar:teste` depois do merge. Especificação: o mesmo adendo de 18/11/2026.
+Branch `fase3-4-2-faixas`, a partir da `main` já com a 4.1 e a 4.1.1. **Tem migração (0011):** o PR lembra de rodar `pnpm --filter api db:migrar:teste` depois do merge. Especificação: o mesmo adendo de 18/11/2026.
 
 **Decisões do usuário (18/11/2026):**
 - Sem turno único: o U vira A.
@@ -1321,7 +1414,7 @@ Branch `fase3-4-2-faixas`, a partir da `main` já com a 4.1. **Tem migração (0
 - **Alterações não salvas:** valem nas fichas de serviço e de escala. As de militar e guarnição ficam como estão. A pergunta é a do navegador (`confirm`): "Há alterações não salvas nesta ficha. Sair mesmo assim?".
 - **"Onde é usada"** (ficha da guarnição) passa a listar as faixas ("08h–20h, 20h–08h").
 
-### Task 29: Banco, API e importação por faixa
+### Task 32: Banco, API e importação por faixa
 
 **Arquivos:**
 - Criar:
@@ -1395,7 +1488,7 @@ Branch `fase3-4-2-faixas`, a partir da `main` já com a 4.1. **Tem migração (0
 - [ ] **Passo 4:** `pnpm --filter api test && pnpm --filter contratos test && pnpm --filter api typecheck`. Esperado: PASSA. O site ainda não compila com os contratos novos; o ledger registra isso, como na Tarefa 19.
 - [ ] **Passo 5:** commit `Fase 3: vínculo da escala por faixa de horário (migração 0011)`.
 
-### Task 30: Matriz por faixa com totais
+### Task 33: Matriz por faixa com totais
 
 **Arquivos:**
 - Criar: `apps/web/src/lib/guarnicoes.ts`, com `limites(g)` tirado de `routes/_app/guarnicoes.tsx`.
@@ -1406,7 +1499,7 @@ Branch `fase3-4-2-faixas`, a partir da `main` já com a 4.1. **Tem migração (0
   - `apps/web/src/__testes__/{escalas,guarnicoes}.test.tsx`.
 
 **Interfaces:**
-- **Consome:** `Escala.faixas`, `Escala.comLetra` e `VinculoSalvo` com faixa (Tarefa 29), mais `textoFaixa` (Tarefa 27).
+- **Consome:** `Escala.faixas`, `Escala.comLetra` e `VinculoSalvo` com faixa (Tarefa 32), mais `textoFaixa` (Tarefa 27).
 - **Cabeçalho da coluna:** com `comLetra`, a letra (`font-cond text-base font-semibold`) e, embaixo, a faixa (`text-xs`); sem `comLetra`, só a faixa. A caixa tem `aria-label` "`<guarnição>` em A (08h–20h)", ou "`<guarnição>` em 08h–20h" sem letra.
 - **Linha:** nome, a etiqueta "desativada" quando for o caso e, em `text-xs text-apagado`, `limites(g)` ("de 4 a 5 militares", "3 militares", "sem composição").
 - **Rodapé:** em cada coluna, "mín. N", com a soma do `minimo` das guarnições marcadas naquela faixa. Guarnição sem linha na lista conta 0.
@@ -1427,7 +1520,7 @@ Branch `fase3-4-2-faixas`, a partir da `main` já com a 4.1. **Tem migração (0
 - [ ] **Passo 4:** `pnpm --filter web test && pnpm typecheck`. Esperado: PASSA.
 - [ ] **Passo 5:** commit `Fase 3: matriz da escala por faixa, com totais`.
 
-### Task 31: Aviso de alteração não salva
+### Task 34: Aviso de alteração não salva
 
 **Arquivos:**
 - Criar: `apps/web/src/componentes/AlteracoesPendentes.tsx` e `apps/web/src/__testes__/pendentes.test.tsx`
@@ -1461,7 +1554,7 @@ Branch `fase3-4-2-faixas`, a partir da `main` já com a 4.1. **Tem migração (0
 
 Branch `fase3-5-cotas-feriados`.
 
-### Task 32: API de Cotas e Feriados
+### Task 35: API de Cotas e Feriados
 
 **Arquivos:**
 - Criar: `pacotes/contratos/src/cotas-feriados.ts`, `apps/api/src/cadastros/cotas.ts`, `apps/api/src/cadastros/feriados.ts`, `apps/api/test/cotas.test.ts`, `apps/api/test/feriados.test.ts`
@@ -1497,7 +1590,7 @@ Branch `fase3-5-cotas-feriados`.
 - [ ] **Passo 4:** `pnpm --filter api test`. Esperado: PASSA.
 - [ ] **Passo 5:** commit `Fase 3: API de cotas e feriados`.
 
-### Task 33: Telas de Cotas e Feriados
+### Task 36: Telas de Cotas e Feriados
 
 **Arquivos:**
 - Criar: `apps/web/src/api/cotas.ts`, `apps/web/src/api/feriados.ts`, `apps/web/src/routes/_app/cotas.tsx`, `apps/web/src/routes/_app/feriados.tsx`, `apps/web/src/__testes__/cotas.test.tsx`, `apps/web/src/__testes__/feriados.test.tsx`
@@ -1524,7 +1617,7 @@ Branch `fase3-5-cotas-feriados`.
 - [ ] **Passo 4:** `pnpm --filter web test`. Esperado: PASSA.
 - [ ] **Passo 5:** commit `Fase 3: telas de cotas e feriados`.
 
-### Task 34: Importação de Cotas e Feriados, e fechamento da fase
+### Task 37: Importação de Cotas e Feriados, e fechamento da fase
 
 **Arquivos:**
 - Criar: `apps/api/src/importacao/cotas.ts`, `apps/api/src/importacao/feriados.ts`, `apps/api/test/importacao-cotas-feriados.test.ts`
