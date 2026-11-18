@@ -9,6 +9,7 @@ import { rotasEscalas } from './cadastros/escalas.ts';
 import { rotasMilitares } from './cadastros/militares.ts';
 import { rotasServicos } from './cadastros/servicos.ts';
 import { IMPORTADORES } from './importacao/registro.ts';
+import { limiteDeEnvio } from './limites.ts';
 import { rotasImportacao } from './importacao/rotas.ts';
 import { rotasEu } from './rotas/eu.ts';
 import { rotasSaude } from './rotas/saude.ts';
@@ -21,6 +22,7 @@ export interface Dependencias {
 
 export function criarApp(dep: Dependencias): Hono {
   const app = new Hono();
+  app.use('/api/*', limiteDeEnvio);
   app.route('/api/saude', rotasSaude(dep.banco, dep.cronSecret));
   if (dep.auth) {
     const auth = dep.auth;

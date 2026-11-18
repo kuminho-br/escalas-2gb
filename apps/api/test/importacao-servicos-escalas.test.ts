@@ -307,3 +307,40 @@ describe('importação de serviços, turnos e escalas', () => {
     ]);
   });
 });
+
+describe('turno único', () => {
+  it('ÚNICO, Único e U, em qualquer caixa, viram o turno A', async () => {
+    const t: Celula[][] = [
+      ['Serv Maiusculo', 'ÚNICO', '08:00', '16:00', 8, '', ''],
+      ['Serv Misto', 'Único', '08:00', '16:00', 8, '', ''],
+      ['Serv Letra', 'u', '08:00', '16:00', 8, '', ''],
+    ];
+    const previa = await importar({ t, e: [] });
+    expect(previa.problemas).toEqual([]);
+    await importar({ t, e: [] }, true);
+    for (const nome of ['Serv Maiusculo', 'Serv Misto', 'Serv Letra']) {
+      expect((await servico(nome)).turnos.map((x) => x.letra)).toEqual(['A']);
+    }
+  });
+});
+
+describe('serviço com cotas', () => {
+  it('trocar o tipo para ordinário pela planilha vira problema na linha e o serviço fica como está', async () => {
+    const t: Celula[][] = [['Operação Cotada', 'A', '08:00', '16:00', 8, 'Diária', '']];
+    await importar({ t, e: [] }, true);
+    const s = await servico('Operação Cotada');
+    await api.banco.query(
+      "insert into cota (mes, unidade_id, servico_id, quantidade, origem, prioridade) values ('2026-12-01', $1, $2, 2, 'interna', 1)",
+      [api.ids.secao, s.id],
+    );
+    const trocada: Celula[][] = [['Operação Cotada', 'A', '08:00', '16:00', 8, 'Ordinário', '']];
+    const previa = await importar({ t: trocada, e: [] });
+    expect(previa.problemas).toEqual([
+      { aba: 'TURNOS', linha: 2, mensagem: 'Operação Cotada: o serviço tem 1 cota de operações e não pode virar Ordinário', solucao: 'Apague a cota na tela de Cotas antes de mudar o tipo.' },
+    ]);
+    expect(previa.alterados).toEqual([]);
+    await importar({ t: trocada, e: [] }, true);
+    expect((await servico('Operação Cotada')).tipo).toBe('diaria');
+  });
+});
+

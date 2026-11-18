@@ -138,3 +138,26 @@ describe('serviços', () => {
     expect((await r.json()).campos).toHaveProperty('letra');
   });
 });
+
+describe('trocar o tipo de um serviço que tem cotas', () => {
+  const cota = (servicoId: string) => inserir(api.banco, 'cota', { mes: '2026-12-01', unidade_id: api.ids.secao, servico_id: servicoId, quantidade: 3, origem: 'interna', prioridade: 1 });
+
+  it('para ordinário é 409 com o que fazer, e o serviço continua como estava', async () => {
+    const s = await criar('Com cota', { tipo: 'diaria', operacao: 'Bioma' });
+    await cota(s.id);
+    const r = await api.pedir('escalante', 'PATCH', `/api/servicos/${s.id}`, dados('Com cota', { tipo: 'ordinario' }));
+    expect(r.status).toBe(409);
+    expect((await r.json()).erro).toBe('O serviço "Com cota" tem 1 cota de operações. Apague a cota na tela de Cotas antes de mudar o tipo para Ordinário.');
+    const depois: Servico = await (await api.pedir('escalante', 'GET', `/api/servicos/${s.id}`)).json();
+    expect(depois).toMatchObject({ tipo: 'diaria', operacao: 'Bioma' });
+  });
+
+  it('para PJES (que também tem cota) passa, e sem cota a troca para ordinário passa', async () => {
+    const a = await criar('Troca PJES', { tipo: 'diaria' });
+    await cota(a.id);
+    expect((await api.pedir('escalante', 'PATCH', `/api/servicos/${a.id}`, dados('Troca PJES', { tipo: 'pjes' }))).status).toBe(200);
+    const b = await criar('Sem cota', { tipo: 'diaria' });
+    expect((await api.pedir('escalante', 'PATCH', `/api/servicos/${b.id}`, dados('Sem cota', { tipo: 'ordinario' }))).status).toBe(200);
+  });
+});
+

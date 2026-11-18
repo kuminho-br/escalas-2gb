@@ -12,7 +12,8 @@ export const EU_EXEMPLO: Eu = {
   unidade: { id: 'u-1sb', sigla: '1ª SB', caminho: ['CBMPE', 'DGO', 'DInter/1', '2º GB', '1ª SB'] },
 };
 
-type Resposta = { status: number; corpo?: unknown } | 'rede';
+/** `espera`: a resposta só sai quando a promessa se resolve (para testar o que acontece enquanto grava). */
+type Resposta = { status: number; corpo?: unknown; espera?: Promise<unknown> } | 'rede';
 
 /**
  * Simula a API: cada rota devolve um status e um corpo JSON, ou falha de rede.
@@ -25,6 +26,7 @@ export function simularApi(rotas: Record<string, Resposta>) {
     const metodo = (init?.method ?? (entrada instanceof Request ? entrada.method : 'GET')).toUpperCase();
     const r = rotas[`${metodo} ${caminho}`] ?? rotas[caminho] ?? { status: 404 };
     if (r === 'rede') throw new TypeError('Failed to fetch');
+    if (r.espera) await r.espera;
     // 204 e afins não têm corpo (o Response recusa um)
     const semCorpo = [204, 205, 304].includes(r.status);
     return new Response(semCorpo ? null : JSON.stringify(r.corpo ?? {}), { status: r.status, headers: semCorpo ? undefined : { 'Content-Type': 'application/json' } });
@@ -49,4 +51,20 @@ export function corpoEnviado(fetchFalso: ReturnType<typeof simularApi>, rota: st
   }).at(-1);
   if (!chamada) throw new Error(`Nenhuma chamada a ${rota}`);
   return JSON.parse(String(chamada[1]?.body));
+}
+
+/** Quantas vezes 'METODO /caminho' foi chamado. */
+export function chamadasA(fetchFalso: ReturnType<typeof simularApi>, rota: string): number {
+  const [metodo, caminho] = rota.split(' ');
+  return fetchFalso.mock.calls.filter(([e, init]) => {
+    const url = typeof e === 'string' ? e : e instanceof URL ? e.href : e.url;
+    return new URL(url, 'http://localhost').pathname === caminho && (init?.method ?? 'GET').toUpperCase() === metodo;
+  }).length;
+}
+
+/** Uma promessa que se resolve quando `soltar()` é chamado. */
+export function trava(): { espera: Promise<void>; soltar: () => void } {
+  let soltar!: () => void;
+  const espera = new Promise<void>((r) => (soltar = r));
+  return { espera, soltar };
 }

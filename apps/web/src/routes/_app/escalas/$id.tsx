@@ -1,10 +1,10 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { createFileRoute } from '@tanstack/react-router';
 import { DiasDoc, MilitaresDoc, type Escala } from 'contratos';
-import { useState, type FormEvent } from 'react';
+import { useState } from 'react';
 import { mensagemDe } from '@/api/cliente';
 import { atualizarEscalas, consultaEscala, editarEscala, mudarSituacaoEscala } from '@/api/escalas';
-import { AcoesDoBloco, ProvedorDePendencias, usePendencia } from '@/componentes/AlteracoesPendentes';
+import { AcoesDoBloco, ProvedorDePendencias, usePendencia, useTrava, useSincronizar } from '@/componentes/AlteracoesPendentes';
 import { Matriz } from '@/componentes/escalas/Matriz';
 import { FichaPainel } from '@/componentes/ListaDetalhe';
 import { ServicosDaEscala } from '@/componentes/escalas/ServicosDaEscala';
@@ -26,10 +26,10 @@ function Ficha() {
   if (error) return <p role="alert" className="p-4 text-alerta">{mensagemDe(error)}</p>;
   return (
     <ProvedorDePendencias>
-      <FichaPainel titulo={e.nome} voltarPara="/escalas" etiqueta={e.ativa ? undefined : 'desativada'} resumo={`Título no documento: ${e.titulo}.`} acoes={<Situacao e={e} />}>
+      <FichaPainel titulo={e.nome} voltarPara="/escalas" etiqueta={e.ativa ? undefined : 'desativada'} resumo={`Título no documento: ${e.titulo}.`} acoes={<Situacao key={`s-${e.id}`} e={e} />}>
         {/* os dados entram na key: outra gravação (ex.: importação) recarrega o formulário */}
-        <Identificacao key={`i-${e.id}-${e.nome}-${e.titulo}-${e.militaresDoc}-${e.diasDoc}`} e={e} />
-        <ServicosDaEscala key={`s-${e.id}-${e.servicos.map((s) => s.id).join(',')}`} escala={e} unidadeId={eu.unidade.id} />
+        <Identificacao key={`i-${e.id}`} e={e} />
+        <ServicosDaEscala key={`s-${e.id}`} escala={e} unidadeId={eu.unidade.id} />
         {/* a matriz mantém as marcações pendentes quando os serviços mudam: só a ficha entra na key */}
         <Matriz key={`m-${e.id}`} escala={e} unidadeId={eu.unidade.id} />
       </FichaPainel>
@@ -73,9 +73,18 @@ function Identificacao({ e }: { e: Escala }) {
   const [salvo, setSalvo] = useState(() => JSON.stringify([e.nome, e.titulo, e.militaresDoc, e.diasDoc]));
   const sujo = assinatura() !== salvo;
   usePendencia('identificacao', sujo);
+  const doServidor = JSON.stringify([e.nome, e.titulo, e.militaresDoc, e.diasDoc]);
+  useSincronizar(doServidor, sujo, () => {
+    setNome(e.nome);
+    setTitulo(e.titulo);
+    setMilitares(e.militaresDoc);
+    setDias(e.diasDoc);
+    setSalvo(doServidor);
+  });
 
-  async function salvar(ev: FormEvent) {
-    ev.preventDefault();
+  const { salvando, travar } = useTrava();
+  const salvar = travar(gravar);
+  async function gravar() {
     setAviso(null);
     try {
       await editarEscala(e.id, { nome: nome.trim(), titulo: titulo.trim(), militaresDoc, diasDoc });
@@ -89,7 +98,7 @@ function Identificacao({ e }: { e: Escala }) {
 
   return (
     <Secao titulo="Identificação e publicação">
-      <form onSubmit={salvar} className="grid gap-3">
+      <form onSubmit={(e) => { e.preventDefault(); void salvar(); }} className="grid gap-3">
         <div className="grid gap-3 sm:grid-cols-2">
           <div className="grid gap-1.5">
             <Label htmlFor="es-nome">Nome</Label>
@@ -114,7 +123,7 @@ function Identificacao({ e }: { e: Escala }) {
             </Selecao>
           </div>
         </div>
-        <AcoesDoBloco sujo={sujo} aviso={aviso} />
+        <AcoesDoBloco salvando={salvando} sujo={sujo} aviso={aviso} />
       </form>
     </Secao>
   );

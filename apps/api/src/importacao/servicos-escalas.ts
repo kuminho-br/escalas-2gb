@@ -202,6 +202,10 @@ export const importadorServicosEscalas: Importador<Plano> = {
         ).rows
       : [];
     const sistemaPorChave = new Map(servicosSistema.map((s) => [normalizar(s.nome), s]));
+    // cota só existe para PJES e diária: o serviço com cotas não vira ordinário pela planilha
+    const cotasDoServico = new Map(
+      (await tx.query<{ servico_id: string; n: number }>('select servico_id, count(*)::int as n from cota where unidade_id = $1 group by servico_id', [unidadeId])).rows.map((r) => [r.servico_id, r.n] as const),
+    );
     /** letras de cada serviço depois da importação, pela chave normalizada */
     const turnosDoServico = new Map<string, Map<LetraTurno, { inicio: string; fim: string }>>();
     for (const s of servicosSistema) {
@@ -239,6 +243,17 @@ export const importadorServicosEscalas: Importador<Plano> = {
       }
       // serviço que já existe: o tipo só muda pela coluna TIPO DE SERVIÇO, e o rótulo só pela ORIGEM
       const tipo = doTexto ?? ex.tipo;
+      const cotas = cotasDoServico.get(ex.id) ?? 0;
+      if (tipo === 'ordinario' && ex.tipo !== 'ordinario' && cotas > 0) {
+        const linhasDoServico = [...s.turnos.values()].map((t) => t.linha);
+        problemas.push({
+          aba: ABA_T,
+          linha: linhasDoServico.length ? Math.min(...linhasDoServico) : 1,
+          mensagem: `${ex.nome}: o serviço tem ${cotas} ${cotas === 1 ? 'cota' : 'cotas'} de operações e não pode virar Ordinário`,
+          solucao: `Apague ${cotas === 1 ? 'a cota' : 'as cotas'} na tela de Cotas antes de mudar o tipo.`,
+        });
+        continue;
+      }
       if (s.tipoTexto && !doTexto) avisos.push(`Serviço ${s.nome}: TIPO DE SERVIÇO "${s.tipoTexto}" não reconhecido; vale ${NOME_TIPO[tipo]}.`);
       const novoRotulo = s.temOrigem ? rotulo : ex.rotulo_impressao;
       const mudarDados = tipo !== ex.tipo || novoRotulo !== ex.rotulo_impressao;

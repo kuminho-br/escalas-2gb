@@ -1,9 +1,9 @@
 import type { Servico } from 'contratos';
-import { fireEvent, screen, waitFor, within } from '@testing-library/react';
+import { act, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { textoDuracao } from '@/lib/turnos';
-import { abrir, corpoEnviado, EU_EXEMPLO, simularApi } from './apoio';
+import { abrir, chamadasA, corpoEnviado, EU_EXEMPLO, simularApi, trava } from './apoio';
 
 const servico = (s: Partial<Servico>): Servico => ({
   id: 's1', nome: 'Pronto', tipo: 'ordinario', operacao: null, rotuloImpressao: null, cor: '#2F8F5B', ativo: true, turnos: [], ...s,
@@ -445,5 +445,47 @@ describe('régua e seletor de cor', () => {
     api({ 'GET /api/unidades/u-1sb/escalas': { status: 200, corpo: [{ id: 'e2', nome: 'Ordinário', ativa: true, servicos: ['Pronto'] }] } });
     abrir('/servicos/s3');
     expect(await screen.findByText('Ainda não está em nenhuma escala.')).toBeInTheDocument();
+  });
+});
+
+describe('revisão 3: Salvar do turno sem clique duplo', () => {
+  it('turno novo com dois cliques manda um pedido só', async () => {
+    const { espera, soltar } = trava();
+    const f = api({ 'POST /api/servicos/s3/turnos': { status: 201, corpo: BIOMA, espera } });
+    abrir('/servicos/s3');
+    await userEvent.click(await screen.findByRole('button', { name: 'Incluir turno' }));
+    const salvar = screen.getByRole('button', { name: 'Salvar turno novo' });
+    fireEvent.click(salvar);
+    fireEvent.click(salvar);
+    expect(salvar).toBeDisabled();
+    soltar();
+    await waitFor(() => expect(chamadasA(f, 'POST /api/servicos/s3/turnos')).toBe(1));
+  });
+
+  it('turno existente com dois cliques manda um pedido só', async () => {
+    const { espera, soltar } = trava();
+    const f = api({ 'PATCH /api/turnos/t1': { status: 200, corpo: BIOMA, espera } });
+    abrir('/servicos/s3');
+    fireEvent.change(await screen.findByLabelText('Fim do turno A'), { target: { value: '09:00' } });
+    const salvar = screen.getByRole('button', { name: 'Salvar turno A' });
+    fireEvent.click(salvar);
+    fireEvent.click(salvar);
+    soltar();
+    await waitFor(() => expect(chamadasA(f, 'PATCH /api/turnos/t1')).toBe(1));
+  });
+});
+
+describe('revisão 3: o erro de Desativar fica na ficha em que aconteceu', () => {
+  it('serviço: voltar a outro serviço que já estava no cache não traz o erro do anterior', async () => {
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+    api({ 'GET /api/servicos/s1': { status: 200, corpo: LISTA[0] }, 'POST /api/servicos/s3/situacao': { status: 409, corpo: { erro: 'Falhou ao desativar Bioma.' } } });
+    const router = abrir('/servicos/s1');
+    await screen.findByRole('heading', { name: 'Pronto' });
+    await act(() => router.navigate({ to: '/servicos/$id', params: { id: 's3' } }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Desativar' }));
+    expect(await screen.findByText('Falhou ao desativar Bioma.')).toBeInTheDocument();
+    await act(() => router.navigate({ to: '/servicos/$id', params: { id: 's1' } }));
+    await screen.findByRole('heading', { name: 'Pronto' });
+    expect(screen.queryByText('Falhou ao desativar Bioma.')).toBeNull();
   });
 });

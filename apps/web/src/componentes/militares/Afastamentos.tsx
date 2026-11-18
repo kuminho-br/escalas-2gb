@@ -1,8 +1,9 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { FichaMilitar } from 'contratos';
-import { useState, type FormEvent } from 'react';
+import { useState } from 'react';
 import { mensagemDe } from '@/api/cliente';
 import { consultaCatalogo } from '@/api/configuracoes';
+import { usePendencia, useTrava } from '@/componentes/AlteracoesPendentes';
 import { apagarAfastamento, atualizarMilitares, criarAfastamento } from '@/api/militares';
 import { Selecao } from '@/componentes/Selecao';
 import { Button } from '@/componentes/ui/button';
@@ -20,6 +21,8 @@ export function Afastamentos({ ficha }: { ficha: FichaMilitar }) {
   const [fim, setFim] = useState('');
   const [erro, setErro] = useState<string | null>(null);
   const tipoEscolhido = tipo || ativos[0]?.id || '';
+  // o formulário aberto com uma data digitada é alteração pendente: trocar de ficha pergunta antes
+  usePendencia('afastamento', aberto && Boolean(inicio || fim));
 
   function fechar() {
     setAberto(false);
@@ -29,8 +32,9 @@ export function Afastamentos({ ficha }: { ficha: FichaMilitar }) {
     setErro(null);
   }
 
-  async function incluir(e: FormEvent) {
-    e.preventDefault();
+  const { salvando, travar } = useTrava();
+  const incluir = travar(gravar);
+  async function gravar() {
     setErro(null);
     try {
       await criarAfastamento(ficha.id, { tipoAfastamentoId: tipoEscolhido, inicio, fim });
@@ -71,7 +75,7 @@ export function Afastamentos({ ficha }: { ficha: FichaMilitar }) {
         </div>
       )}
       {aberto && (
-        <form onSubmit={incluir} className="grid gap-3 border-t border-linha pt-3">
+        <form onSubmit={(e) => { e.preventDefault(); void incluir(); }} className="grid gap-3 border-t border-linha pt-3">
           <div className="grid gap-1.5 sm:max-w-xs">
             <Label htmlFor="af-tipo">Tipo de afastamento</Label>
             <Selecao id="af-tipo" value={tipoEscolhido} onChange={(e) => setTipo(e.target.value)}>
@@ -89,7 +93,7 @@ export function Afastamentos({ ficha }: { ficha: FichaMilitar }) {
             </div>
           </div>
           <div className="flex gap-2">
-            <Button type="submit" disabled={!tipoEscolhido}>Salvar</Button>
+            <Button type="submit" disabled={!tipoEscolhido || salvando}>Salvar</Button>
             <Button type="button" variant="ghost" onClick={fechar}>Cancelar</Button>
           </div>
         </form>

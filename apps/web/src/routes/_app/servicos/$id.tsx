@@ -1,11 +1,11 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { TipoServico, type Servico } from 'contratos';
-import { useState, type FormEvent } from 'react';
+import { useState } from 'react';
 import { mensagemDe } from '@/api/cliente';
 import { consultaEscalas } from '@/api/escalas';
 import { atualizarServicos, consultaServico, editarServico, mudarSituacaoServico } from '@/api/servicos';
-import { AcoesDoBloco, ProvedorDePendencias, usePendencia } from '@/componentes/AlteracoesPendentes';
+import { AcoesDoBloco, ProvedorDePendencias, usePendencia, useTrava, useSincronizar } from '@/componentes/AlteracoesPendentes';
 import { FichaPainel } from '@/componentes/ListaDetalhe';
 import { Secao } from '@/componentes/militares/Secao';
 import { Turnos } from '@/componentes/servicos/Turnos';
@@ -28,9 +28,9 @@ function Ficha() {
   if (error) return <p role="alert" className="p-4 text-alerta">{mensagemDe(error)}</p>;
   return (
     <ProvedorDePendencias>
-      <FichaPainel titulo={s.nome} voltarPara="/servicos" etiqueta={s.ativo ? undefined : 'desativado'} resumo={resumoDoServico(s)} acoes={<Situacao s={s} />}>
-        {/* os dados entram na key: outra gravação (ex.: importação) recarrega o formulário */}
-        <Identificacao key={`i-${s.id}-${s.nome}-${s.tipo}-${s.operacao}-${s.rotuloImpressao}-${s.cor}`} s={s} />
+      <FichaPainel titulo={s.nome} voltarPara="/servicos" etiqueta={s.ativo ? undefined : 'desativado'} resumo={resumoDoServico(s)} acoes={<Situacao key={`s-${s.id}`} s={s} />}>
+        {/* só o id entra na key: outra gravação (ex.: importação) recarrega os campos sem perder a edição pendente */}
+        <Identificacao key={`i-${s.id}`} s={s} />
         {/* só o serviço entra na key: cada linha de turno recomeça sozinha quando os dados dela mudam, e a edição pendente de outra linha continua */}
         <Turnos key={`t-${s.id}`} servico={s} />
         <UsadoEm s={s} unidadeId={eu.unidade.id} />
@@ -77,9 +77,19 @@ function Identificacao({ s }: { s: Servico }) {
   const [salvo, setSalvo] = useState(() => assinatura({ nome: s.nome, tipo: s.tipo, operacao: s.operacao, rotuloImpressao: s.rotuloImpressao, cor: s.cor }));
   const sujo = assinatura(dados()) !== salvo;
   usePendencia('identificacao', sujo);
+  const doServidor = assinatura({ nome: s.nome, tipo: s.tipo, operacao: s.operacao, rotuloImpressao: s.rotuloImpressao, cor: s.cor });
+  useSincronizar(doServidor, sujo, () => {
+    setNome(s.nome);
+    setTipo(s.tipo);
+    setOperacao(s.operacao ?? '');
+    setRotulo(s.rotuloImpressao ?? '');
+    setCor(s.cor);
+    setSalvo(doServidor);
+  });
 
-  async function salvar(e: FormEvent) {
-    e.preventDefault();
+  const { salvando, travar } = useTrava();
+  const salvar = travar(gravar);
+  async function gravar() {
     setAviso(null);
     try {
       await editarServico(s.id, dados());
@@ -93,7 +103,7 @@ function Identificacao({ s }: { s: Servico }) {
 
   return (
     <Secao titulo="Identificação">
-      <form onSubmit={salvar} className="grid gap-3">
+      <form onSubmit={(e) => { e.preventDefault(); void salvar(); }} className="grid gap-3">
         <div className="grid gap-3 sm:grid-cols-[1fr_12rem]">
           <div className="grid gap-1.5">
             <Label htmlFor="sv-nome">Nome</Label>
@@ -122,7 +132,7 @@ function Identificacao({ s }: { s: Servico }) {
             <SeletorDeCor id="sv-cor" valor={cor} aoMudar={setCor} />
           </div>
         </div>
-        <AcoesDoBloco sujo={sujo} aviso={aviso} />
+        <AcoesDoBloco salvando={salvando} sujo={sujo} aviso={aviso} />
       </form>
     </Secao>
   );

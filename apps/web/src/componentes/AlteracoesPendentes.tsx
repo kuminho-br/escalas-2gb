@@ -1,5 +1,5 @@
 import { useBlocker } from '@tanstack/react-router';
-import { createContext, useCallback, useContext, useEffect, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 import { Button } from '@/componentes/ui/button';
 
 export const MENSAGEM_PENDENTE = 'Há alterações não salvas nesta ficha. Sair mesmo assim?';
@@ -47,6 +47,42 @@ export function usePendencia(chave: string, sujo: boolean): void {
 }
 
 /** "Alterações não salvas", ao lado do botão de salvar do bloco. */
+/**
+ * Trava o Salvar enquanto grava: `travar(f)` devolve uma função que, chamada de novo antes de `f` terminar,
+ * não faz nada; `salvando` desabilita o botão. Dois cliques seguidos mandam um pedido só.
+ */
+export function useTrava() {
+  const [salvando, setSalvando] = useState(false);
+  const ocupado = useRef(false);
+  const travar =
+    <A extends unknown[]>(f: (...a: A) => Promise<void>) =>
+    async (...a: A): Promise<void> => {
+      if (ocupado.current) return;
+      ocupado.current = true;
+      setSalvando(true);
+      try {
+        await f(...a);
+      } finally {
+        ocupado.current = false;
+        setSalvando(false);
+      }
+    };
+  return { salvando, travar };
+}
+
+/**
+ * O servidor trouxe outro conteúdo para este bloco (outra gravação, importação, volta à janela): sem alteração
+ * pendente, `aoRecarregar` põe os campos no valor novo; com alteração, o que a pessoa digitou fica. O bloco não é
+ * recriado (a `key` leva só o id), então o aviso de "salvo" continua na tela.
+ */
+export function useSincronizar(doServidor: string, sujo: boolean, aoRecarregar: () => void) {
+  const [visto, setVisto] = useState(doServidor);
+  if (doServidor !== visto) {
+    setVisto(doServidor);
+    if (!sujo) aoRecarregar();
+  }
+}
+
 export function EtiquetaPendente({ sujo }: { sujo: boolean }) {
   return sujo ? <p role="status" className="text-xs text-alerta">Alterações não salvas</p> : null;
 }

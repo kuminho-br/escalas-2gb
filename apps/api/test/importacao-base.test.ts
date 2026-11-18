@@ -26,6 +26,10 @@ const falso: Importador<string[]> = {
   },
 };
 
+// importadores que falham ao gravar, como o banco falharia: unicidade (duas confirmações ao mesmo tempo) e erro sem tradução
+const duplicado: Importador<string[]> = { ...falso, aplicar: async () => { throw Object.assign(new Error('duplicate key value violates unique constraint "x"'), { code: '23505' }); } };
+const quebrado: Importador<string[]> = { ...falso, aplicar: async () => { throw Object.assign(new Error('falha qualquer'), { code: '99999' }); } };
+
 let api: ApiDeTeste;
 const auditoria = async () => (await api.banco.query<{ n: number }>('select count(*)::int as n from auditoria')).rows[0]!.n;
 
@@ -33,7 +37,7 @@ beforeAll(async () => {
   api = await montarApi(({ banco, auth }) => {
     const app = new Hono<AmbienteApi>();
     app.on(['GET', 'POST'], '/api/auth/*', (c) => auth.handler(c.req.raw));
-    app.route('/api', rotasImportacao({ banco, auth }, { teste: falso }));
+    app.route('/api', rotasImportacao({ banco, auth }, { teste: falso, duplicado: duplicado as Importador<unknown>, quebrado: quebrado as Importador<unknown> }));
     return app;
   });
 });
@@ -114,4 +118,20 @@ describe('leitor de mês e de data da planilha', () => {
     ['07/09/2026', '2026-09-07'], ['7/9/2026', '2026-09-07'], ['07/09/26', '2026-09-07'], ['2026-09-07', '2026-09-07'], ['2026-9-7', '2026-09-07'], [' 07/09/2026 ', '2026-09-07'],
     ['31/02/2026', null], ['0000-01-01', null], ['01/01/0000', null], ['abc', null], ['', null], ['29/02/2027', null], ['29/02/2028', '2028-02-29'],
   ])('lerData(%j) = %j', (entrada, esperado) => expect(lerData(entrada)).toBe(esperado));
+
+  it('violação de unicidade ao confirmar vira 409 que manda enviar de novo, sem gravar', async () => {
+    const antes = await auditoria();
+    const r = await api.pedir('escalante', 'POST', `${caminho('duplicado')}?confirmar=1`, formulario(await arquivo()));
+    expect(r.status).toBe(409);
+    expect(await r.json()).toEqual({ erro: 'Outra gravação aconteceu ao mesmo tempo. Envie o arquivo de novo para ver a prévia atualizada.' });
+    expect(await auditoria()).toBe(antes);
+  });
+
+  it('erro do banco sem tradução ao confirmar responde JSON com o que fazer, não texto puro', async () => {
+    const r = await api.pedir('escalante', 'POST', `${caminho('quebrado')}?confirmar=1`, formulario(await arquivo()));
+    expect(r.status).toBe(500);
+    expect(r.headers.get('content-type')).toMatch(/json/);
+    expect(await r.json()).toEqual({ erro: 'Não foi possível gravar a importação. Nada foi gravado: envie o arquivo de novo.' });
+  });
 });
+

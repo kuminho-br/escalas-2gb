@@ -160,3 +160,19 @@ describe('cotas', () => {
     expect(rows[0]?.usuario_id).toBe(api.usuarios.escalante);
   });
 });
+
+describe('copiar sem o índice único (antes da migração 0013 ser aplicada)', () => {
+  it('copia do mesmo jeito, sem erro do banco', async () => {
+    await api.banco.query('drop index cota_unica');
+    try {
+      const mes = somarMeses(atual, 20);
+      await criar(jes, { mes, quantidade: 3, prioridade: 1 });
+      const r = await api.pedir('escalante', 'POST', `${secao()}/cotas/copiar`, { de: mes, para: somarMeses(mes, 1) });
+      expect(r.status).toBe(200);
+      expect(await r.json()).toEqual({ copiados: 1 });
+    } finally {
+      await api.banco.query('create unique index cota_unica on cota (unidade_id, mes, servico_id, origem)');
+    }
+  });
+});
+

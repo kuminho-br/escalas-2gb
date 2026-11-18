@@ -1,11 +1,11 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { FichaMilitar } from 'contratos';
-import { useState, type FormEvent } from 'react';
+import { useState } from 'react';
 import { camposDe, mensagemDe } from '@/api/cliente';
 import { atualizarMilitares, consultaPostos, editarMilitar } from '@/api/militares';
 import { Campo } from '@/componentes/Campo';
 import { Selecao } from '@/componentes/Selecao';
-import { AcoesDoBloco, usePendencia } from '@/componentes/AlteracoesPendentes';
+import { AcoesDoBloco, usePendencia, useTrava, useSincronizar } from '@/componentes/AlteracoesPendentes';
 import { Input } from '@/componentes/ui/input';
 import { Secao } from './Secao';
 
@@ -24,9 +24,20 @@ export function Identificacao({ ficha }: { ficha: FichaMilitar }) {
   const [salvo, setSalvo] = useState(() => assinatura(ficha.postoGradId, ficha.nomeGuerra, ficha.antiguidade == null ? '' : String(ficha.antiguidade), ficha.voluntarioJes, ficha.ativo));
   const sujo = assinatura(posto, nome, antiguidade, jes, ativo) !== salvo;
   usePendencia('identificacao', sujo);
+  const antiguidadeDoServidor = ficha.antiguidade == null ? '' : String(ficha.antiguidade);
+  const doServidor = assinatura(ficha.postoGradId, ficha.nomeGuerra, antiguidadeDoServidor, ficha.voluntarioJes, ficha.ativo);
+  useSincronizar(doServidor, sujo, () => {
+    setPosto(ficha.postoGradId);
+    setNome(ficha.nomeGuerra);
+    setAntiguidade(antiguidadeDoServidor);
+    setJes(ficha.voluntarioJes);
+    setAtivo(ficha.ativo);
+    setSalvo(doServidor);
+  });
 
-  async function salvar(e: FormEvent) {
-    e.preventDefault();
+  const { salvando, travar } = useTrava();
+  const salvar = travar(gravar);
+  async function gravar() {
     setAviso(null);
     setCampos({});
     try {
@@ -48,7 +59,7 @@ export function Identificacao({ ficha }: { ficha: FichaMilitar }) {
 
   return (
     <Secao titulo="Identificação">
-      <form onSubmit={salvar} className="grid gap-3">
+      <form onSubmit={(e) => { e.preventDefault(); void salvar(); }} className="grid gap-3">
         <div className="grid gap-3 sm:grid-cols-[10rem_1fr_7rem]">
           <Campo id="id-posto" rotulo="Posto ou graduação" erro={campos.postoGradId}>
             <Selecao id="id-posto" value={posto} onChange={(e) => setPosto(e.target.value)}>
@@ -72,7 +83,7 @@ export function Identificacao({ ficha }: { ficha: FichaMilitar }) {
             Ativo
           </label>
         </div>
-        <AcoesDoBloco sujo={sujo} aviso={aviso} rotulo="Salvar alterações" />
+        <AcoesDoBloco salvando={salvando} sujo={sujo} aviso={aviso} rotulo="Salvar alterações" />
       </form>
     </Secao>
   );

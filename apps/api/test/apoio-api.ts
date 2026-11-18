@@ -18,6 +18,8 @@ export interface ApiDeTeste {
   ids: { raiz: string; gb: string; secao: string };
   usuarios: Record<Quem, string>;
   pedir(quem: Quem, metodo: string, caminho: string, corpo?: unknown): Promise<Response>;
+  /** Corpo cru, com o tipo que a pessoa quiser (para entradas malformadas). */
+  pedirBruto(quem: Quem, metodo: string, caminho: string, tipo: string, corpo: BodyInit): Promise<Response>;
   fechar(): Promise<void>;
 }
 
@@ -69,6 +71,9 @@ export async function montarApi(fabricar?: (dep: { banco: Banco; auth: Auth }) =
         body = JSON.stringify(corpo);
       }
       return app.request(`${URL_BASE}${caminho}`, { method: metodo, headers, body });
+    },
+    async pedirBruto(quem, metodo, caminho, tipo, corpo) {
+      return app.request(`${URL_BASE}${caminho}`, { method: metodo, headers: { Cookie: cookies[quem]!, Origin: URL_BASE, 'Content-Type': tipo }, body: corpo });
     },
     fechar: () => banco.fechar(),
   };

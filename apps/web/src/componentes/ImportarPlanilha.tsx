@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import type { Previa, ResultadoImportacao } from 'contratos';
+import { LIMITE_DA_IMPORTACAO_MB, MENSAGEM_ARQUIVO_GRANDE, type Previa, type ResultadoImportacao } from 'contratos';
 import { Download, FileUp } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
 import { enviarArquivo, mensagemDe } from '@/api/cliente';
@@ -32,6 +32,11 @@ export function ImportarPlanilha({ cadastro, rotulo, aoConcluir }: { cadastro: s
   async function chamar(confirmar: boolean) {
     if (!arquivo) return;
     setErro(null);
+    // a hospedagem recusa envio acima de 4,5 MB sem dizer o que fazer: a tela avisa antes de enviar
+    if (arquivo.size > LIMITE_DA_IMPORTACAO_MB * 1024 * 1024) {
+      setErro(MENSAGEM_ARQUIVO_GRANDE);
+      return;
+    }
     setEnviando(true);
     try {
       if (confirmar) {

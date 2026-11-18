@@ -45,7 +45,7 @@ describe('importação de guarnições', () => {
     const r = await importar(BASE, true);
     expect(r.gravados).toBe(1);
     const f = await ficha('Auto Bomba 1');
-        expect(f.versoes.map((v) => v.vigencia)).toEqual([FUTURO, criacao]);
+    expect(f.versoes.map((v) => v.vigencia)).toEqual([FUTURO, criacao]);
     expect(f.versoes[1]).toMatchObject({
       viatura: 'ABT-01', tipoViatura: 'Auto Bomba', prioridade: 1, ativa: true,
       composicao: [
@@ -213,3 +213,58 @@ describe('importação de guarnições', () => {
     expect((await ficha('Auto Bomba 1')).versoes.find((v) => v.vigencia === criacao)!.composicao.find((c) => c.funcao === 'Combatente')!.maximo).toBe(5);
   });
 });
+
+describe('importação de guarnições: versões e funções que já existem', () => {
+  const linha = (vigencia: string, guarnicao: string, viatura: string, funcao: string, minimo: number, maximo: number): Linha =>
+    [vigencia, guarnicao, viatura, 'Tipo', 'SIM', 1, '', funcao, minimo, maximo];
+
+  it('a planilha com só uma vigência muda essa versão e deixa as outras do sistema como estão', async () => {
+    await importar([
+      linha('', 'Extras', 'V1', 'Combatente', 1, 1),
+      linha('2098-01', 'Extras', 'V2', 'Combatente', 2, 2),
+      linha(FUTURO, 'Extras', 'V3', 'Combatente', 3, 3),
+    ], true);
+    const antes = await ficha('Extras');
+    expect(antes.versoes.map((v) => v.vigencia)).toEqual([FUTURO, '2098-01', criacao]);
+
+    const previa = await importar([linha('2098-01', 'Extras', 'V2', 'Combatente', 2, 5)]);
+    expect(previa.alterados).toHaveLength(1);
+    expect(previa.alterados[0].mudancas.every((m: string) => m.startsWith(mesPorExtenso('2098-01')))).toBe(true);
+    await importar([linha('2098-01', 'Extras', 'V2', 'Combatente', 2, 5)], true);
+
+    const depois = await ficha('Extras');
+    expect(depois.versoes.map((v) => v.vigencia)).toEqual([FUTURO, '2098-01', criacao]);
+    expect(depois.versoes[1]!.composicao[0]).toMatchObject({ minimo: 2, maximo: 5 });
+    expect(depois.versoes[0]).toEqual(antes.versoes[0]);
+    expect(depois.versoes[2]).toEqual(antes.versoes[2]);
+  });
+
+  it('função com e sem acento é a mesma: "Acao" usa a "Ação" do catálogo e "Operação" usa a "Operacao"', async () => {
+    await inserir(api.banco, 'funcao', { unidade_id: api.ids.gb, nome: 'Ação' });
+    await inserir(api.banco, 'funcao', { unidade_id: api.ids.gb, nome: 'Operacao' });
+    const antes = (await api.banco.query<{ n: number }>('select count(*)::int as n from funcao')).rows[0]!.n;
+    const previa = await importar([linha('', 'Acentos', 'A1', 'Acao', 1, 1), linha('', 'Acentos', '', 'Operação', 1, 1)]);
+    expect(previa.avisos.join(' ')).not.toMatch(/Funções novas/);
+    await importar([linha('', 'Acentos', 'A1', 'Acao', 1, 1), linha('', 'Acentos', '', 'Operação', 1, 1)], true);
+    expect((await api.banco.query<{ n: number }>('select count(*)::int as n from funcao')).rows[0]!.n).toBe(antes);
+    expect(nomes(await ficha('Acentos')).sort()).toEqual(['Ação', 'Operacao']);
+  });
+});
+
+describe('importação de guarnições: vigência vazia e vigência anterior à criação', () => {
+  it('a vigência explícita anterior à criação vale por cima da linha sem vigência (que é a base, como no protótipo)', async () => {
+    const linhas: Linha[] = [
+      ['', 'Antiga', 'V1', 'Tipo', 'SIM', 1, '', 'Combatente', 1, 1],
+      ['2020-01', 'Antiga', 'V0', 'Tipo', 'SIM', 1, '', 'Combatente', 9, 9],
+    ];
+    const previa = await importar(linhas);
+    expect(previa.novos).toEqual([{ chave: 'Antiga', descricao: 'Antiga' }]);
+    expect(previa.problemas).toEqual([]);
+    expect((await importar(linhas, true)).gravados).toBe(1);
+    const f = await ficha('Antiga');
+    // uma versão só, a datada: a prévia disse "novo", a gravação gravou uma, e a ficha tem o que a planilha manda de 2020-01 em diante
+    expect(f.versoes).toHaveLength(1);
+    expect(f.versoes[0]).toMatchObject({ vigencia: '2020-01', viatura: 'V0', composicao: [expect.objectContaining({ funcao: 'Combatente', minimo: 9, maximo: 9 })] });
+  });
+});
+

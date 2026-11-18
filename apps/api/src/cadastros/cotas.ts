@@ -57,6 +57,8 @@ async function cotaIgual(c: Consulta, unidadeId: string, mes: string, servicoId:
   return rows.find((x) => x.id !== exceto) ?? null;
 }
 
+const MSG_COTA_REPETIDA = { '23505': 'Já existe uma cota deste serviço e origem neste mês.' };
+
 export function rotasCotas(dep: { banco: Banco; auth: Auth }): Hono<AmbienteApi> {
   const r = new Hono<AmbienteApi>();
   const sessao = exigirSessao(dep.banco, dep.auth);
@@ -102,8 +104,8 @@ export function rotasCotas(dep: { banco: Banco; auth: Auth }): Hono<AmbienteApi>
       });
       return c.json(cota, 201);
     } catch (e) {
-      // o gatilho do banco recusa cota de serviço ordinário, com a frase pronta
-      return respostaDoErroDoBanco(c, e);
+      // o gatilho do banco recusa cota de serviço ordinário, com a frase pronta; o índice único, a cota que já existe
+      return respostaDoErroDoBanco(c, e, MSG_COTA_REPETIDA);
     }
   });
 
@@ -137,7 +139,7 @@ export function rotasCotas(dep: { banco: Banco; auth: Auth }): Hono<AmbienteApi>
       });
       return c.json(cota);
     } catch (e) {
-      return respostaDoErroDoBanco(c, e);
+      return respostaDoErroDoBanco(c, e, MSG_COTA_REPETIDA);
     }
   });
 
@@ -165,6 +167,7 @@ export function rotasCotas(dep: { banco: Banco; auth: Auth }): Hono<AmbienteApi>
              from cota o
             where o.unidade_id = $1 and o.mes = $2::date
               and not exists (select 1 from cota x where x.unidade_id = o.unidade_id and x.mes = $3::date and x.servico_id = o.servico_id and x.origem = o.origem)
+           on conflict do nothing
            returning id`,
           [u, mesParaData(de), mesParaData(para)],
         );

@@ -1,5 +1,5 @@
 // Importação da aba MILITARES (leitura como lerMilitares_ do protótipo, prototipo/matriz.js).
-import { mesParaData, mesPorExtenso, type ItemPrevia, type ProblemaImportacao } from 'contratos';
+import { Antiguidade, mesParaData, mesPorExtenso, type ItemPrevia, type ProblemaImportacao } from 'contratos';
 import { categoriasCnh, CICLO_EQUIPES, diasDoMes, normalizar } from 'dominio';
 import type { Consulta } from '../banco/banco.ts';
 import { coluna } from './planilha.ts';
@@ -56,6 +56,8 @@ type Existente = {
   lotacao_aberta: boolean | null;
   /** mês da próxima lotação já registrada depois deste mês (transferência marcada) */
   futura: string | null;
+  /** seção de outra unidade em que ele está lotado neste mês ou tem lotação marcada para depois (a mais próxima) */
+  outra_sigla: string | null;
   equipe: string | null;
   jornada: 'pronto' | 'adm' | null;
 };
@@ -79,19 +81,21 @@ const mesmaLista = (a: string[], b: string[]) => [...a].sort().join() === [...b]
 const textoCnh = (c: string[]) => (c.length ? [...c].sort().join('') : 'nenhuma');
 
 /** Militares do sistema, com a lotação que cobre o mês e a próxima já marcada (se houver). */
-async function existentes(tx: Consulta, mes: string): Promise<Map<string, Existente>> {
+async function existentes(tx: Consulta, mes: string, unidadeId: string): Promise<Map<string, Existente>> {
   const dias = diasDoMes(mes);
   const { rows } = await tx.query<Existente>(
     `select m.id, m.matricula, m.posto_grad_id, p.sigla as posto, m.nome_guerra, m.antiguidade, m.motorista, m.cnh, m.voluntario_jes, m.ativo,
             l.id as lotacao_id, l.unidade_id as lotacao_unidade, un.sigla as lotacao_sigla, to_char(l.desde, 'YYYY-MM') as lotacao_desde,
             l.ate is null as lotacao_aberta, e.nome as equipe, l.jornada,
-            (select to_char(min(f.desde), 'YYYY-MM') from lotacao f where f.militar_id = m.id and f.desde > $2) as futura
+            (select to_char(min(f.desde), 'YYYY-MM') from lotacao f where f.militar_id = m.id and f.desde > $2) as futura,
+            (select ou.sigla from lotacao o join unidade ou on ou.id = o.unidade_id
+              where o.militar_id = m.id and o.unidade_id <> $3 and (o.ate is null or o.ate >= $1) order by o.desde limit 1) as outra_sigla
        from militar m
        join posto_grad p on p.id = m.posto_grad_id
        left join lotacao l on l.militar_id = m.id and l.desde <= $2 and (l.ate is null or l.ate >= $1)
        left join unidade un on un.id = l.unidade_id
        left join equipe e on e.id = l.equipe_id`,
-    [dias[0], dias[dias.length - 1]],
+    [dias[0], dias[dias.length - 1], unidadeId],
   );
   return new Map(rows.map((r) => [r.matricula, r]));
 }
@@ -135,7 +139,7 @@ export const importadorMilitares: Importador<Plano> = {
     const equipePorChave = new Map(equipesExistentes.map((e) => [normalizar(e.nome), e.nome]));
     const equipesNovas: Plano['equipesNovas'] = [];
     let proximaOrdem = Math.max(CICLO_EQUIPES.length, ...equipesExistentes.map((e) => e.ordem_ciclo)) + 1;
-    const ja = await existentes(tx, mes);
+    const ja = await existentes(tx, mes, unidadeId);
 
     const pega = (cel: string[], i: number) => (i < 0 ? '' : (cel[i] ?? '').trim());
     const vistos = new Set<string>();
@@ -189,8 +193,9 @@ export const importadorMilitares: Importador<Plano> = {
       const antigTxt = pega(cel, c.antig);
       let antiguidade: number | null = null;
       if (antigTxt) {
-        if (/^\d+$/.test(antigTxt) && Number(antigTxt) >= 1) antiguidade = Number(antigTxt);
-        else avisos.push(`${nomeGuerra} (${mat.valor}): antiguidade "${antigTxt}" ignorada (use um número a partir de 1).`);
+        // o mesmo limite do contrato (1 a 99999): o que a planilha traz, a tela precisa conseguir salvar de novo
+        if (/^\d+$/.test(antigTxt) && Antiguidade.safeParse(Number(antigTxt)).success) antiguidade = Number(antigTxt);
+        else avisos.push(`${nomeGuerra} (${mat.valor}): antiguidade "${antigTxt}" ignorada (use um número de 1 a 99999).`);
       }
       const motoristaTxt = normalizar(pega(cel, c.motorista));
       const motorista = SIM.includes(motoristaTxt) || motoristaTxt === 'MOTORISTA';
@@ -220,9 +225,10 @@ export const importadorMilitares: Importador<Plano> = {
       };
       const descricao = `${posto.sigla} ${nomeGuerra}`;
       const e = ja.get(mat.valor);
-      if (e?.lotacao_unidade && e.lotacao_unidade !== unidadeId) {
-        // trazer de outra seção exige papel lá: a transferência é registrada por quem cuida dela
-        problema(`${nomeGuerra} (${mat.valor}) está lotado na ${e.lotacao_sigla}.`, `Ele entra aqui quando a transferência for registrada por quem cuida da ${e.lotacao_sigla}.`);
+      if (e && e.lotacao_unidade !== unidadeId && e.outra_sigla) {
+        // trazer de outra seção exige papel lá: a transferência é registrada por quem cuida dela.
+        // Vale também para quem só tem lotação marcada para depois: o mesmo bloqueio que a ficha do militar aplica.
+        problema(`${nomeGuerra} (${mat.valor}) está lotado na ${e.outra_sigla}.`, `Ele entra aqui quando a transferência for registrada por quem cuida da ${e.outra_sigla}.`);
         continue;
       }
       comAntiguidade.push({ antiguidade, nome: nomeGuerra, matricula: mat.valor });

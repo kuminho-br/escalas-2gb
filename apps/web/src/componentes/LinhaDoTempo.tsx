@@ -24,6 +24,7 @@ export function LinhaDoTempo({ vigencias, escolhida, aoEscolher }: { vigencias: 
           >
             {mesPorExtenso(v)}
             {v === vigente && <span className="ml-1.5 text-xs opacity-80">em vigor</span>}
+            {v > mes && <span className="sr-only"> (ainda não vale)</span>}
           </button>
         </li>
       ))}

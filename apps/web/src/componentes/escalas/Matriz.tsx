@@ -5,7 +5,7 @@ import { useState } from 'react';
 import { ErroApi, mensagemDe } from '@/api/cliente';
 import { atualizarEscalas, salvarVinculos } from '@/api/escalas';
 import { consultaGuarnicoes } from '@/api/guarnicoes';
-import { AcoesDoBloco, podeDescartar, usePendencia } from '@/componentes/AlteracoesPendentes';
+import { AcoesDoBloco, podeDescartar, usePendencia, useTrava } from '@/componentes/AlteracoesPendentes';
 import { LinhaDoTempo } from '@/componentes/LinhaDoTempo';
 import { Secao } from '@/componentes/militares/Secao';
 import { Input } from '@/componentes/ui/input';
@@ -104,7 +104,9 @@ function Editor({ escala, unidadeId, versao, aoSalvar }: { escala: Escala; unida
     setMarcas(m);
   }
 
-  async function salvar() {
+  const { salvando, travar } = useTrava();
+  const salvar = travar(gravar);
+  async function gravar() {
     setAviso(null);
     const enviar = linhas.flatMap((l): VinculosDaEscala['itens'] =>
       escala.faixas.filter((f) => marcas.get(l.id)?.has(chave(f.inicio, f.fim))).map((f) => ({ guarnicaoId: l.id, inicio: f.inicio, fim: f.fim })),
@@ -189,7 +191,7 @@ function Editor({ escala, unidadeId, versao, aoSalvar }: { escala: Escala; unida
           <Label htmlFor="em-desde">Vale a partir de</Label>
           <Input id="em-desde" type="month" value={desde} min={mes} onChange={(ev) => setDesde(ev.target.value)} />
         </div>
-        <AcoesDoBloco sujo={sujo} forcar={orfas.size > 0 || mudaOQueVale} aviso={aviso} tipo="button" desabilitado={!desde} rotulo={`Salvar a partir de ${desde ? mesPorExtenso(desde) : '…'}`} aoSalvar={() => void salvar()} />
+        <AcoesDoBloco salvando={salvando} sujo={sujo} forcar={orfas.size > 0 || mudaOQueVale} aviso={aviso} tipo="button" desabilitado={!desde} rotulo={`Salvar a partir de ${desde ? mesPorExtenso(desde) : '…'}`} aoSalvar={() => void salvar()} />
       </div>
     </div>
   );

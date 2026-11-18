@@ -120,6 +120,14 @@ export function rotasServicos(dep: { banco: Banco; auth: Auth }): Hono<AmbienteA
     const d = corpo.dados;
     const igual = await servicoComNome(dep.banco, acesso.unidadeId, d.nome, id);
     if (igual) return c.json({ erro: `Já existe o serviço "${igual}".` }, 409);
+    // cota só existe para PJES e diária: virar ordinário deixaria cotas que ninguém consegue editar nem copiar
+    if (d.tipo === 'ordinario') {
+      const n = (await dep.banco.query<{ n: number }>('select count(*)::int as n from cota where servico_id = $1', [id])).rows[0]!.n;
+      if (n > 0) {
+        const [cotas, aCota] = n === 1 ? ['cota', 'a cota'] : ['cotas', 'as cotas'];
+        return c.json({ erro: `O serviço "${d.nome}" tem ${n} ${cotas} de operações. Apague ${aCota} na tela de Cotas antes de mudar o tipo para Ordinário.` }, 409);
+      }
+    }
     try {
       const s = await comUsuario(dep.banco, c.get('usuarioId'), async (tx) => {
         await tx.query('update servico set nome = $2, tipo = $3, operacao = $4, rotulo_impressao = $5, cor = $6 where id = $1', [

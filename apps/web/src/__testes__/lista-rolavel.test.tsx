@@ -5,6 +5,8 @@ import { abrir, EU_EXEMPLO, simularApi } from './apoio';
 
 // O jsdom não calcula layout: o que se confere é a estrutura. Só os itens ficam na área que rola;
 // filtros, contagem e o botão "Mostrar desativadas" ficam parados, à vista.
+// A rolagem de verdade (a lista longa rolando sozinha, sem a página) se confere à vista no ambiente de teste, no
+// computador e no celular: estes testes só impedem que a estrutura que a produz seja desfeita sem querer.
 const ROLA = '[data-lista-rolavel]';
 const dentro = (el: HTMLElement) => el.closest(ROLA) !== null;
 
@@ -41,7 +43,7 @@ describe('listas dos cadastros: só os itens rolam', () => {
     abrir('/guarnicoes');
     expect(dentro(await screen.findByText('Auto Bomba 1'))).toBe(true);
     expect(dentro(screen.getByLabelText('Mostrar desativadas'))).toBe(false);
-    expect(dentro(screen.getByText(/\d+ guarnições/))).toBe(false);
+    expect(dentro(screen.getByText(/\d+ guarni(ção|ções)/))).toBe(false);
   });
 
   it('serviços: "Mostrar desativados" fica fora da área que rola', async () => {

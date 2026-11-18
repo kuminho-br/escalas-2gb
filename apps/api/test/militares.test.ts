@@ -226,3 +226,19 @@ describe('motorista e permissões', () => {
     expect(af.status).toBe(201);
   });
 });
+
+describe('antiguidade fora do que o banco guarda', () => {
+  it('antiguidade enorme na criação e na edição dá 400 por campo, não 500', async () => {
+    const r = await api.pedir('escalante', 'POST', `/api/unidades/${api.ids.secao}/militares`, novo('990970-1', { antiguidade: 3_000_000_000 }));
+    expect(r.status).toBe(400);
+    expect((await r.json()).campos.antiguidade).toBe('Use um número de 1 a 99999.');
+    const f = await criar('990971-1');
+    const e = await api.pedir('escalante', 'PATCH', `/api/militares/${f.id}`, { antiguidade: 2 ** 31 });
+    expect(e.status).toBe(400);
+    expect((await e.json()).campos.antiguidade).toBe('Use um número de 1 a 99999.');
+    const v = await api.pedir('escalante', 'PATCH', `/api/militares/${f.id}`, { antiguidade: 1.5 });
+    expect(v.status).toBe(400);
+    expect((await v.json()).campos.antiguidade).toBe('Use um número inteiro.');
+  });
+});
+

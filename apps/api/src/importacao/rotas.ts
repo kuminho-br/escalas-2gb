@@ -11,13 +11,18 @@ import { gerarModelo } from './modelo.ts';
 import { lerPlanilha, type Aba } from './planilha.ts';
 import type { Importador } from './tipos.ts';
 
+/** O importador pelo nome da rota; nome que só existe no objeto comum (`constructor`, `__proto__`) não é importação. */
+function importadorDe(importadores: Record<string, Importador<unknown>>, nome: string): Importador<unknown> | undefined {
+  return Object.hasOwn(importadores, nome) ? importadores[nome] : undefined;
+}
+
 export function rotasImportacao(dep: { banco: Banco; auth: Auth }, importadores: Record<string, Importador<unknown>>): Hono<AmbienteApi> {
   const r = new Hono<AmbienteApi>();
   r.use('/unidades/:u/importacao/*', exigirSessao(dep.banco, dep.auth));
   r.get('/unidades/:u/importacao/:cadastro/modelo', async (c) => {
     const unidadeId = c.req.param('u');
     const cadastro = c.req.param('cadastro');
-    const imp = importadores[cadastro];
+    const imp = importadorDe(importadores, cadastro);
     const negado = await exigirPapel(c, unidadeId, imp?.papeis ?? CADASTRO);
     if (negado) return negado;
     if (!imp) return c.json({ erro: 'Importação desconhecida.' }, 404);
@@ -32,13 +37,14 @@ export function rotasImportacao(dep: { banco: Banco; auth: Auth }, importadores:
   });
   r.post('/unidades/:u/importacao/:cadastro', async (c) => {
     const unidadeId = c.req.param('u');
-    const imp = importadores[c.req.param('cadastro')];
+    const imp = importadorDe(importadores, c.req.param('cadastro'));
     const negado = await exigirPapel(c, unidadeId, imp?.papeis ?? CADASTRO);
     if (negado) return negado;
     if (!imp) return c.json({ erro: 'Importação desconhecida.' }, 404);
 
-    const corpo = await c.req.parseBody();
-    const arquivo = corpo.arquivo;
+    // formulário quebrado (sem fronteira, truncado) é erro de quem enviou, não da API
+    const corpo = await c.req.parseBody().catch(() => null);
+    const arquivo = corpo?.arquivo;
     if (!(arquivo instanceof File)) return c.json({ erro: 'Escolha o arquivo .xlsx da planilha.' }, 400);
     let abas: Record<string, Aba>;
     try {
@@ -59,12 +65,21 @@ export function rotasImportacao(dep: { banco: Banco; auth: Auth }, importadores:
       });
       return c.json(previa);
     }
-    const resultado: ResultadoImportacao = await comUsuario(dep.banco, c.get('usuarioId'), async (tx) => {
-      const ctx = { tx, unidadeId, hoje };
-      const { previa, plano } = await imp.planejar(abas, ctx);
-      return { ...previa, gravados: await imp.aplicar(plano, ctx) };
-    });
-    return c.json(resultado);
+    try {
+      const resultado: ResultadoImportacao = await comUsuario(dep.banco, c.get('usuarioId'), async (tx) => {
+        const ctx = { tx, unidadeId, hoje };
+        const { previa, plano } = await imp.planejar(abas, ctx);
+        return { ...previa, gravados: await imp.aplicar(plano, ctx) };
+      });
+      return c.json(resultado);
+    } catch (e) {
+      // a prévia pode ter dito "tudo certo" e o banco recusar na gravação (duas confirmações ao mesmo tempo, por exemplo): a transação voltou inteira
+      if ((e as { code?: string } | null)?.code === '23505') {
+        return c.json({ erro: 'Outra gravação aconteceu ao mesmo tempo. Envie o arquivo de novo para ver a prévia atualizada.' }, 409);
+      }
+      console.error(e);
+      return c.json({ erro: 'Não foi possível gravar a importação. Nada foi gravado: envie o arquivo de novo.' }, 500);
+    }
   });
   return r;
 }

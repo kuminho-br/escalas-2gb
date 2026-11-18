@@ -1,10 +1,10 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { mesPorExtenso, somarMeses, textoFaixa, type FichaGuarnicao } from 'contratos';
-import { useState, type FormEvent } from 'react';
+import { useState } from 'react';
 import { mensagemDe } from '@/api/cliente';
 import { atualizarGuarnicoes, consultaGuarnicao, editarGuarnicao, mudarSituacao } from '@/api/guarnicoes';
-import { AcoesDoBloco, podeDescartar, ProvedorDePendencias, usePendencia } from '@/componentes/AlteracoesPendentes';
+import { AcoesDoBloco, podeDescartar, ProvedorDePendencias, usePendencia, useTrava, useSincronizar } from '@/componentes/AlteracoesPendentes';
 import { Versoes } from '@/componentes/guarnicoes/Versoes';
 import { FichaPainel } from '@/componentes/ListaDetalhe';
 import { Secao } from '@/componentes/militares/Secao';
@@ -44,7 +44,7 @@ function Corpo({ ficha, unidadeId }: { ficha: FichaGuarnicao; unidadeId: string 
       acoes={<Situacao key={`s-${ficha.id}`} ficha={ficha} />}
     >
       {/* key: ao trocar de guarnição, os formulários começam do zero */}
-      <Identificacao key={`i-${ficha.id}-${ficha.nome}`} ficha={ficha} />
+      <Identificacao key={`i-${ficha.id}`} ficha={ficha} />
       {/* as versões entram na key: desativar, reativar ou salvar recarrega o editor com o que foi gravado */}
       <Versoes key={`v-${ficha.id}-${ficha.versoes.map((v) => `${v.vigencia}:${v.ativa}`).join(',')}`} ficha={ficha} unidadeId={unidadeId} escolhida={escolhida} aoEscolher={setEscolhida} />
       <UsadaEm ficha={ficha} />
@@ -60,9 +60,14 @@ function Identificacao({ ficha }: { ficha: FichaGuarnicao }) {
   const [salvo, setSalvo] = useState(ficha.nome);
   const sujo = nome.trim() !== salvo;
   usePendencia('identificacao', sujo);
+  useSincronizar(ficha.nome, sujo, () => {
+    setNome(ficha.nome);
+    setSalvo(ficha.nome);
+  });
 
-  async function salvar(e: FormEvent) {
-    e.preventDefault();
+  const { salvando, travar } = useTrava();
+  const salvar = travar(gravar);
+  async function gravar() {
     setAviso(null);
     try {
       await editarGuarnicao(ficha.id, { nome: nome.trim() });
@@ -76,12 +81,12 @@ function Identificacao({ ficha }: { ficha: FichaGuarnicao }) {
 
   return (
     <Secao titulo="Identificação">
-      <form onSubmit={salvar} className="grid gap-3">
+      <form onSubmit={(e) => { e.preventDefault(); void salvar(); }} className="grid gap-3">
         <div className="grid gap-1.5 sm:max-w-md">
           <Label htmlFor="gn-nome">Nome</Label>
           <Input id="gn-nome" value={nome} onChange={(e) => setNome(e.target.value)} required />
         </div>
-        <AcoesDoBloco sujo={sujo} aviso={aviso} />
+        <AcoesDoBloco salvando={salvando} sujo={sujo} aviso={aviso} />
       </form>
     </Secao>
   );
@@ -91,7 +96,10 @@ function Identificacao({ ficha }: { ficha: FichaGuarnicao }) {
 function Situacao({ ficha }: { ficha: FichaGuarnicao }) {
   const queryClient = useQueryClient();
   const mes = mesAtual();
-  const desde = ficha.desativadaAPartirDe;
+  // a lista olha a versão em vigor no mês; se só ela estiver inativa e uma futura voltar a ativa, `desativadaAPartirDe` vem nulo
+  // e a ficha precisa dizer a mesma coisa que a lista: desativada, com o mês em que a versão inativa passou a valer
+  const emVigor = ficha.versoes.find((v) => v.vigencia <= mes);
+  const desde = ficha.desativadaAPartirDe ?? (emVigor && !emVigor.ativa ? emVigor.vigencia : null);
   const [escolhendo, setEscolhendo] = useState(false);
   const [aPartirDe, setAPartirDe] = useState(somarMeses(mes, 1));
   const [erro, setErro] = useState<string | null>(null);
