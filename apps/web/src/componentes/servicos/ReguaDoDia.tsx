@@ -35,7 +35,8 @@ export function ReguaDoDia({ servico }: { servico: Servico }) {
             className="absolute inset-y-0 grid place-items-center border-r border-white/50 font-cond text-sm font-semibold"
             style={{ left: pct(s.ini), width: pct(s.fim - s.ini), backgroundColor: fundo, color: corDoTexto(fundo) }}
           >
-            {s.letra}
+            {/* a letra só cabe em trecho largo; fica acima do traço da meia-noite; o nome acessível da régua já a diz */}
+            {(s.fim - s.ini) / fim >= 0.06 && <span className="relative z-20">{s.letra}</span>}
           </span>
         ))}
         {temDiaSeguinte && <span aria-hidden className="pointer-events-none absolute inset-y-0 z-10 border-l border-dashed border-tinta/60" style={{ left: pct(1440) }} />}
@@ -47,7 +48,7 @@ export function ReguaDoDia({ servico }: { servico: Servico }) {
             className={cn('absolute', h === 0 ? 'translate-x-0' : h * 60 === fim ? '-translate-x-full' : '-translate-x-1/2')}
             style={{ left: pct(h * 60) }}
           >
-            {h <= 24 ? `${h}h` : textoMinutos(h * 60)}
+            {h <= 24 ? `${String(h).padStart(2, '0')}h` : textoMinutos(h * 60)}
           </span>
         ))}
       </div>

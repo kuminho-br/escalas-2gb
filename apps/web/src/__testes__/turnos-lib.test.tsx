@@ -57,6 +57,29 @@ describe('régua do dia', () => {
   // [foco 18]
   it('segmentos do mesmo turno não se sobrepõem', () => expect(sobreposicoes([{ letra: 'B', inicio: '20:00', fim: '08:00' }])).toEqual([]));
 
+  it('dois turnos de 24h se sobrepõem o dia todo, num trecho só', () =>
+    expect(sobreposicoes([{ letra: 'A', inicio: '00:00', fim: '00:00' }, { letra: 'B', inicio: '12:00', fim: '12:00' }])).toEqual([
+      { letras: ['A', 'B'], ini: 0, fim: 1440 },
+    ]));
+
+  it('o trecho que cruza a meia-noite sai inteiro, não em dois lados', () =>
+    expect(sobreposicoes([{ letra: 'A', inicio: '00:00', fim: '00:00' }, { letra: 'B', inicio: '20:00', fim: '08:00' }])).toEqual([
+      { letras: ['A', 'B'], ini: 1200, fim: 1920 },
+    ]));
+
+  it('os trechos saem em ordem de início, mesmo com vários pares', () => {
+    const r = sobreposicoes([
+      { letra: 'A', inicio: '08:00', fim: '20:00' },
+      { letra: 'B', inicio: '19:00', fim: '23:00' },
+      { letra: 'C', inicio: '07:00', fim: '09:00' },
+    ]);
+    expect(r.map((x) => x.ini)).toEqual([...r.map((x) => x.ini)].sort((a, b) => a - b));
+    expect(r).toEqual([
+      { letras: ['A', 'C'], ini: 480, fim: 540 },
+      { letras: ['A', 'B'], ini: 1140, fim: 1200 },
+    ]);
+  });
+
   it('turnos que só se encostam não se sobrepõem', () =>
     expect(sobreposicoes([{ letra: 'A', inicio: '08:00', fim: '20:00' }, { letra: 'B', inicio: '20:00', fim: '08:00' }])).toEqual([]));
 });

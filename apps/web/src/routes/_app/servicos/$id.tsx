@@ -1,8 +1,9 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { createFileRoute } from '@tanstack/react-router';
+import { createFileRoute, Link } from '@tanstack/react-router';
 import { TipoServico, type Servico } from 'contratos';
 import { useState, type FormEvent } from 'react';
 import { mensagemDe } from '@/api/cliente';
+import { consultaEscalas } from '@/api/escalas';
 import { atualizarServicos, consultaServico, editarServico, mudarSituacaoServico } from '@/api/servicos';
 import { AcoesDoBloco, ProvedorDePendencias, usePendencia } from '@/componentes/AlteracoesPendentes';
 import { FichaPainel } from '@/componentes/ListaDetalhe';
@@ -21,6 +22,7 @@ export const Route = createFileRoute('/_app/servicos/$id')({
 
 function Ficha() {
   const { id } = Route.useParams();
+  const { eu } = Route.useRouteContext();
   const { data: s, error, isPending } = useQuery(consultaServico(id));
   if (isPending) return <p className="p-4 text-apagado">Carregando…</p>;
   if (error) return <p role="alert" className="p-4 text-alerta">{mensagemDe(error)}</p>;
@@ -31,6 +33,7 @@ function Ficha() {
         <Identificacao key={`i-${s.id}-${s.nome}-${s.tipo}-${s.operacao}-${s.rotuloImpressao}-${s.cor}`} s={s} />
         {/* só o serviço entra na key: cada linha de turno recomeça sozinha quando os dados dela mudam, e a edição pendente de outra linha continua */}
         <Turnos key={`t-${s.id}`} servico={s} />
+        <UsadoEm s={s} unidadeId={eu.unidade.id} />
       </FichaPainel>
     </ProvedorDePendencias>
   );
@@ -121,6 +124,29 @@ function Identificacao({ s }: { s: Servico }) {
         </div>
         <AcoesDoBloco sujo={sujo} aviso={aviso} />
       </form>
+    </Secao>
+  );
+}
+
+/** As escalas da unidade que reúnem este serviço (a ligação é pelo nome, que é único na unidade). */
+function UsadoEm({ s, unidadeId }: { s: Servico; unidadeId: string }) {
+  const escalas = useQuery(consultaEscalas(unidadeId));
+  if (!escalas.data) return null;
+  const reunem = escalas.data.filter((e) => e.servicos.includes(s.nome));
+  return (
+    <Secao titulo="Onde é usado">
+      {reunem.length === 0 ? (
+        <p className="text-sm text-apagado">Ainda não está em nenhuma escala.</p>
+      ) : (
+        <ul className="grid gap-1.5 text-sm">
+          {reunem.map((e) => (
+            <li key={e.id} className="flex items-center gap-2">
+              <Link to="/escalas/$id" params={{ id: e.id }} className="font-medium hover:underline">{e.nome}</Link>
+              {!e.ativa && <span className="rounded border border-linha px-1.5 text-xs">desativada</span>}
+            </li>
+          ))}
+        </ul>
+      )}
     </Secao>
   );
 }
