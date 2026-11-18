@@ -6,6 +6,7 @@ import { useState, type FormEvent } from 'react';
 import { mensagemDe } from '@/api/cliente';
 import { atualizarCotas, consultaCotas, copiarCotas, criarCota, editarCota, removerCota } from '@/api/cotas';
 import { consultaServicos } from '@/api/servicos';
+import { ImportarPlanilha } from '@/componentes/ImportarPlanilha';
 import { Selecao } from '@/componentes/Selecao';
 import { Button } from '@/componentes/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/componentes/ui/dialog';
@@ -61,6 +62,7 @@ function Cotas() {
       <header className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="font-cond text-[28px] leading-tight font-semibold">Cotas</h1>
         <div className="flex flex-wrap gap-2">
+          <ImportarPlanilha cadastro="cotas" rotulo="as cotas" aoConcluir={() => atualizarCotas(queryClient)} />
           <Button variant="outline" onClick={() => void copiar()}>Copiar do mês anterior</Button>
           <Button onClick={() => setDialogo({})}>
             <Plus aria-hidden />

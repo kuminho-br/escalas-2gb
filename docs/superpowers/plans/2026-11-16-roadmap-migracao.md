@@ -88,6 +88,15 @@ A importação é feita na tela, com prévia e confirmação; os dados reais vã
 
 **Entrega:** os cadastros da 1ª SB conferidos no sistema novo, iguais aos da sandbox.
 
+**Como ficou (18/11/2026):** os cinco cadastros estão no sistema novo, cada um com API (Hono, contratos em zod compartilhados com o site), tela (lista e detalhe) e importação da planilha, com prévia, modelo para baixar e a regra de que linha com problema é pulada e o resto entra; importar o mesmo arquivo de novo não grava nada. O que mudou em relação ao plano acima, por decisão do usuário depois de usar as telas no ambiente de teste:
+- **Guarnição é um modelo** (adendo de 17/11/2026): a atividade saiu do cadastro dela, que é só nome, viatura informativa, prioridade e composição por versão. "Sem limite" deixou de existir: máximo vazio vale o mínimo. Excluir virou desativar (agora ou a partir de um mês), nas guarnições, nos serviços e nas escalas.
+- **Serviços e turnos:** "Pede voluntariado em" saiu da tela (a regra, `turnosPadraoExigidos`, fica no motor para o voluntariado, fase 4). O turno único deixou de existir: o serviço de um turno só usa o A. A ficha ganhou a régua do dia, que mostra o turno que passa da meia-noite até onde ele vai no dia seguinte, e a cor escolhida numa grade como a do Google Planilhas.
+- **Escalas:** o vínculo da guarnição é por faixa de horário, e não por letra de turno (adendo de 18/11/2026): a matriz tem uma coluna por horário distinto entre os serviços, mostra a letra junto quando ela não é ambígua, e "Todos os turnos" não existe mais. As fichas avisam "Alterações não salvas" antes de trocar de ficha ou sair.
+- **Cotas e feriados:** a cota aponta direto para o serviço (PJES ou diária), sem o campo operação; o feriado é da unidade e vem herdado de cima, e "Copiar feriados fixos" leva só os que caem no mesmo dia todo ano. A importação lê COTAS e FERIADOS como o protótipo, e o feriado de data móvel (Carnaval, Cinzas, Paixão, Sexta-feira Santa, Páscoa, Corpus Christi) entra como móvel, com aviso.
+- **Contrato de datas:** a data do contrato recusa dia que não existe no calendário (antes passava e dava erro do banco).
+
+Ficou para as fases seguintes: a exposição do motor pela API (pré-escala, distribuições, quem pode ocupar a vaga) e o modelo de impressão (fase 4), a tela de Estrutura, o Histórico e o cadastro de usuários (fase 7), e a antiguidade institucional pelos almanaques (fase 7). "Distribuídas" nas cotas vale 0 até a fase 4, quando a escala passar a gravar alocações.
+
 ## Fase 4 — Montagem da escala (1ª versão para os testadores)
 
 - Escala do mês: gerar pré-escala, tabela dia › turno › cards de guarnição, ícones de situação, "Escolher militar" com a lista já filtrada, vagas vazias em listras.

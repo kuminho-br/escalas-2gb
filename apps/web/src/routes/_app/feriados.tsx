@@ -5,6 +5,7 @@ import { Pencil, Plus, Trash2 } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
 import { mensagemDe } from '@/api/cliente';
 import { atualizarFeriados, consultaFeriados, copiarFeriadosFixos, criarFeriado, editarFeriado, removerFeriado } from '@/api/feriados';
+import { ImportarPlanilha } from '@/componentes/ImportarPlanilha';
 import { Selecao } from '@/componentes/Selecao';
 import { Button } from '@/componentes/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/componentes/ui/dialog';
@@ -61,6 +62,7 @@ function Feriados() {
       <header className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="font-cond text-[28px] leading-tight font-semibold">Feriados</h1>
         <div className="flex flex-wrap gap-2">
+          <ImportarPlanilha cadastro="feriados" rotulo="os feriados" aoConcluir={() => atualizarFeriados(queryClient)} />
           <Button variant="outline" onClick={() => void copiar()}>Copiar feriados fixos de {ano - 1}</Button>
           <Button onClick={() => setDialogo({})}>
             <Plus aria-hidden />

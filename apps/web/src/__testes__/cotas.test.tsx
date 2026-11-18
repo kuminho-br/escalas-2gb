@@ -160,4 +160,10 @@ describe('cotas', () => {
     fireEvent.change(campo, { target: { value: outro } });
     await waitFor(() => expect(f.mock.calls.some(([e]) => String(e).includes(`mes=${outro}`))).toBe(true));
   });
+
+  it('a tela traz o botão de importar da planilha', async () => {
+    api();
+    abrir('/cotas');
+    expect(await screen.findByRole('button', { name: /Importar da planilha/ })).toBeInTheDocument();
+  });
 });

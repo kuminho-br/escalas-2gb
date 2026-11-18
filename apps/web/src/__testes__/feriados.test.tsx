@@ -141,4 +141,10 @@ describe('feriados', () => {
     abrir('/feriados');
     expect(await screen.findByText(new RegExp(`Nenhum feriado em ${ano}`))).toBeInTheDocument();
   });
+
+  it('a tela traz o botão de importar da planilha', async () => {
+    api();
+    abrir('/feriados');
+    expect(await screen.findByRole('button', { name: /Importar da planilha/ })).toBeInTheDocument();
+  });
 });
