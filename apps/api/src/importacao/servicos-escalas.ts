@@ -362,6 +362,8 @@ export const importadorServicosEscalas: Importador<Plano> = {
       ).faixas;
     const versoes = new Map<string, Map<string, Map<string, { guarnicaoId: string; inicio: string; fim: string; nome: string }>>>();
     const avisosDesativada = new Set<string>();
+    /** guarnições cuja linha tem problema, por (escala, vigência): ficam com o que já tinham gravado, em vez de perder o vínculo */
+    const preservar = new Map<string, Map<string, string>>();
     for (const l of aV.linhas) {
       const nomeEsc = pega(l.celulas, cV.escala);
       const nomeG = pega(l.celulas, cV.guarnicao);
@@ -428,6 +430,8 @@ export const importadorServicosEscalas: Importador<Plano> = {
         }
       }
       if (invalida) {
+        const k = `${chave}|${vigencia}`;
+        preservar.set(k, (preservar.get(k) ?? new Map<string, string>()).set(g.id, g.nome));
         problemas.push({ aba: ABA_V, linha: l.linha, ...invalida });
         continue;
       }
@@ -464,12 +468,20 @@ export const importadorServicosEscalas: Importador<Plano> = {
       const mudancas: string[] = [];
       let anterior: string | null = null;
       for (const vigencia of [...porVig.keys()].sort()) {
-        const itens = [...porVig.get(vigencia)!.values()];
+        const doMes = ex ? versoesSistema.filter((v) => v.escala_id === ex.id && v.vigencia === vigencia) : [];
+        // a linha com problema não apaga o que já estava gravado: a guarnição mantém as faixas do sistema naquele mês
+        const mapa = porVig.get(vigencia)!;
+        for (const [gid, gnome] of preservar.get(`${chave}|${vigencia}`) ?? []) {
+          if ([...mapa.values()].some((i) => i.guarnicaoId === gid)) continue; // tem outra linha válida: vale a planilha
+          const dela = doMes.filter((v) => v.guarnicao_id === gid);
+          for (const r of dela) mapa.set(`${gid}|${r.inicio}|${r.fim}`, { guarnicaoId: gid, inicio: r.inicio!, fim: r.fim!, nome: gnome });
+          if (dela.length) avisos.push(`${nome}: ${gnome} manteve os horários que já tinha em ${mesPorExtenso(vigencia)}, porque a linha dela tem problema.`);
+        }
+        const itens = [...mapa.values()];
         const ass = assinatura(itens);
         // a igual à anterior da própria planilha é redundante: só vale se o sistema já tem versão nesse mês
         const redundante = anterior === ass;
         anterior = ass;
-        const doMes = ex ? versoesSistema.filter((v) => v.escala_id === ex.id && v.vigencia === vigencia) : [];
         if (!doMes.length && redundante) continue;
         if (doMes.length && assinatura(doMes.filter((v) => v.guarnicao_id).map((v) => ({ guarnicaoId: v.guarnicao_id!, inicio: v.inicio!, fim: v.fim! }))) === ass) continue;
         const porGuarnicao = new Map<string, string[]>();

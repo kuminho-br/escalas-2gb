@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { ErroApi, mensagemDe } from '@/api/cliente';
 import { atualizarEscalas, salvarVinculos } from '@/api/escalas';
 import { consultaGuarnicoes } from '@/api/guarnicoes';
-import { EtiquetaPendente, usePendencia } from '@/componentes/AlteracoesPendentes';
+import { EtiquetaPendente, podeDescartar, usePendencia } from '@/componentes/AlteracoesPendentes';
 import { LinhaDoTempo } from '@/componentes/LinhaDoTempo';
 import { Secao } from '@/componentes/militares/Secao';
 import { Button } from '@/componentes/ui/button';
@@ -21,7 +21,7 @@ export function Matriz({ escala, unidadeId }: { escala: Escala; unidadeId: strin
   const versao = escala.vinculos.find((v) => v.vigencia === escolhida) ?? vigente;
   return (
     <Secao titulo="Guarnições por turno">
-      {escala.vinculos.length > 1 && <LinhaDoTempo vigencias={escala.vinculos.map((v) => v.vigencia)} escolhida={versao?.vigencia} aoEscolher={setEscolhida} />}
+      {escala.vinculos.length > 1 && <LinhaDoTempo vigencias={escala.vinculos.map((v) => v.vigencia)} escolhida={versao?.vigencia} aoEscolher={(v) => { if (podeDescartar('matriz')) setEscolhida(v); }} />}
       <Editor key={versao?.vigencia ?? 'nova'} escala={escala} unidadeId={unidadeId} versao={versao} />
     </Secao>
   );

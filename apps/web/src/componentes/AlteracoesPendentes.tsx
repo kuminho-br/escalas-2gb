@@ -1,25 +1,38 @@
 import { useBlocker } from '@tanstack/react-router';
-import { createContext, useCallback, useContext, useEffect, useRef, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, type ReactNode } from 'react';
 
 export const MENSAGEM_PENDENTE = 'Há alterações não salvas nesta ficha. Sair mesmo assim?';
 
 type Registro = (chave: string, sujo: boolean) => void;
 const Contexto = createContext<Registro | null>(null);
 
+// Só há uma ficha aberta por vez. O conjunto fica aqui, e não no provedor, para quem está fora da ficha
+// (o botão Sair do topo) e para quem decide por conta própria (trocar de versão) poderem perguntar.
+const sujas = new Set<string>();
+
+/** Há alteração não salva na ficha aberta (ou, com `chave`, naquele bloco)? */
+export function haAlteracoesPendentes(chave?: string): boolean {
+  return chave ? sujas.has(chave) : sujas.size > 0;
+}
+
+/** Pergunta se pode descartar as alterações pendentes; sem pendência, deixa passar. */
+export function podeDescartar(chave?: string): boolean {
+  return !haAlteracoesPendentes(chave) || window.confirm(MENSAGEM_PENDENTE);
+}
+
 /**
  * Junta as alterações pendentes dos blocos da ficha. Com alguma pendente, trocar de ficha ou sair da tela
  * pergunta antes (MENSAGEM_PENDENTE), e fechar a aba ou recarregar usa o aviso do próprio navegador.
  */
 export function ProvedorDePendencias({ children }: { children: ReactNode }) {
-  const sujas = useRef(new Set<string>());
   const registrar = useCallback<Registro>((chave, sujo) => {
-    if (sujo) sujas.current.add(chave);
-    else sujas.current.delete(chave);
+    if (sujo) sujas.add(chave);
+    else sujas.delete(chave);
   }, []);
   useBlocker({
     // true bloqueia a navegação: sem pendência passa direto; com pendência, só segue se a pessoa confirmar
-    shouldBlockFn: () => sujas.current.size > 0 && !window.confirm(MENSAGEM_PENDENTE),
-    enableBeforeUnload: () => sujas.current.size > 0,
+    shouldBlockFn: () => sujas.size > 0 && !window.confirm(MENSAGEM_PENDENTE),
+    enableBeforeUnload: () => sujas.size > 0,
   });
   return <Contexto.Provider value={registrar}>{children}</Contexto.Provider>;
 }

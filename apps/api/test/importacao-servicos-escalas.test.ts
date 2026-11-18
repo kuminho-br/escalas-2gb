@@ -257,4 +257,20 @@ describe('importação de serviços, turnos e escalas', () => {
     );
     expect(previa.novos.map((n: { chave: string }) => n.chave)).not.toContain(`Serviço ${longo}`);
   });
+
+  // revisão final da 4.2: uma linha que deixou de ser válida não pode apagar o vínculo que já estava gravado
+  it('revisão: linha com problema mantém os horários que a guarnição já tinha naquele mês', async () => {
+    const e = [...ESCALAS, ['Mistura', 'Pronto, Expediente', '', '', '']];
+    await importar({ e, v: [[atual, 'Mistura', '08:00-20:00', 'ABT']] }, true);
+    // "A" é ambígua na escala (Pronto 08h–20h e Expediente 08h–16h): a linha da ABT vira problema
+    const v = [[atual, 'Mistura', 'A', 'ABT'], [atual, 'Mistura', '20:00-08:00', 'AR']];
+    const previa = await importar({ e, v });
+    expect(previa.problemas.map((p: { linha: number }) => p.linha)).toEqual([2]);
+    expect(previa.avisos).toContain(`Mistura: ABT manteve os horários que já tinha em ${mesPorExtenso(atual)}, porque a linha dela tem problema.`);
+    await importar({ e, v }, true);
+    expect((await escala('Mistura')).vinculos[0]!.itens.map((i) => [i.guarnicao, `${i.inicio}-${i.fim}`])).toEqual([
+      ['ABT', '08:00-20:00'],
+      ['AR', '20:00-08:00'],
+    ]);
+  });
 });

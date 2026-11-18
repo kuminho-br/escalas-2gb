@@ -3,6 +3,7 @@ import { useNavigate } from '@tanstack/react-router';
 import { ChevronDown, Menu } from 'lucide-react';
 import { useState } from 'react';
 import { consultaEu, type Eu } from '@/api/eu';
+import { podeDescartar } from '@/componentes/AlteracoesPendentes';
 import { authCliente } from '@/auth-cliente';
 import {
   DropdownMenu,
@@ -21,6 +22,8 @@ export function Topo({ eu, aoAbrirMenu }: { eu: Eu; aoAbrirMenu: () => void }) {
 
   // Só sai da tela quando o servidor confirmou: num computador compartilhado, a sessão não pode ficar válida.
   async function sair() {
+    // pergunta antes de encerrar a sessão: se a pessoa desistir, ela continua logada e com as alterações
+    if (!podeDescartar()) return;
     setErroSair(null);
     try {
       const { error } = await authCliente.signOut();
@@ -31,7 +34,7 @@ export function Topo({ eu, aoAbrirMenu }: { eu: Eu; aoAbrirMenu: () => void }) {
     }
     queryClient.clear();
     queryClient.setQueryData(consultaEu.queryKey, null);
-    await navigate({ to: '/entrar' });
+    await navigate({ to: '/entrar', ignoreBlocker: true });
   }
 
   return (

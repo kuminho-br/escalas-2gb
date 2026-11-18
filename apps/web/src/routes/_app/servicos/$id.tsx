@@ -37,7 +37,8 @@ function Ficha() {
       <Situacao s={s} />
       {/* os dados entram na key: outra gravação (ex.: importação) recarrega o formulário */}
       <Identificacao key={`i-${s.id}-${s.nome}-${s.tipo}-${s.operacao}-${s.rotuloImpressao}-${s.cor}`} s={s} />
-      <Turnos key={`t-${s.id}-${s.turnos.map((t) => `${t.id}:${t.letra}:${t.inicio}:${t.fim}`).join(',')}`} servico={s} />
+      {/* só o serviço entra na key: cada linha de turno recomeça sozinha quando os dados dela mudam, e a edição pendente de outra linha continua */}
+      <Turnos key={`t-${s.id}`} servico={s} />
     </article>
     </ProvedorDePendencias>
   );

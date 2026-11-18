@@ -21,7 +21,7 @@ export function Turnos({ servico }: { servico: Servico }) {
     <Secao titulo="Turnos">
       <ReguaDoDia servico={servico} />
       <ul className="grid gap-2">
-        {servico.turnos.map((t) => <LinhaTurno key={t.id} servico={servico} turno={t} />)}
+        {servico.turnos.map((t) => <LinhaTurno key={`${t.id}:${t.letra}:${t.inicio}:${t.fim}`} servico={servico} turno={t} />)}
         {novo && <LinhaTurno servico={servico} padrao={{ letra: livre, inicio: '08:00', fim: '20:00' }} aoCancelar={() => setNovo(false)} />}
       </ul>
       {servico.turnos.length === 0 && !novo && <p className="text-sm text-apagado">Nenhum turno ainda.</p>}

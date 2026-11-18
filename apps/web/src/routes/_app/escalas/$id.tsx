@@ -24,7 +24,6 @@ function Ficha() {
   const { data: e, error, isPending } = useQuery(consultaEscala(id));
   if (isPending) return <p className="p-4 text-apagado">Carregando…</p>;
   if (error) return <p role="alert" className="p-4 text-alerta">{mensagemDe(error)}</p>;
-  const assinatura = (x: Escala) => x.vinculos.map((v) => `${v.vigencia}:${v.itens.map((i) => `${i.guarnicaoId}/${i.inicio}${i.fim}`).join('+')}`).join(',');
   return (
     <ProvedorDePendencias>
     <article className="grid gap-4">
@@ -39,8 +38,8 @@ function Ficha() {
       {/* os dados entram na key: outra gravação (ex.: importação) recarrega o formulário */}
       <Identificacao key={`i-${e.id}-${e.nome}-${e.titulo}-${e.militaresDoc}-${e.diasDoc}`} e={e} />
       <ServicosDaEscala key={`s-${e.id}-${e.servicos.map((s) => s.id).join(',')}`} escala={e} unidadeId={eu.unidade.id} />
-      {/* a assinatura das versões entra na key: salvar recarrega a matriz com o que foi gravado */}
-      <Matriz key={`m-${e.id}-${e.faixas.map((f) => `${f.inicio}${f.fim}`).join('')}-${assinatura(e)}`} escala={e} unidadeId={eu.unidade.id} />
+      {/* a matriz mantém as marcações pendentes quando os serviços mudam: só a ficha entra na key */}
+      <Matriz key={`m-${e.id}`} escala={e} unidadeId={eu.unidade.id} />
     </article>
     </ProvedorDePendencias>
   );
