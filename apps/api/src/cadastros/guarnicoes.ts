@@ -134,7 +134,7 @@ async function nomeJaUsado(c: Consulta, unidadeId: string, nome: string, exceto?
   return rows.some((g) => g.id !== exceto && normalizar(g.nome) === normalizar(nome));
 }
 
-function mesPassado(c: Ctx, vigencia: string): Response | null {
+export function mesPassado(c: Ctx, vigencia: string): Response | null {
   const atual = hojeRecife().slice(0, 7);
   return vigencia < atual ? c.json({ erro: `Só dá para mudar a partir de ${mesPorExtenso(atual)}.` }, 409) : null;
 }

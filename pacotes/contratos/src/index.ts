@@ -3,3 +3,5 @@ export * from './configuracoes.ts';
 export * from './guarnicoes.ts';
 export * from './importacao.ts';
 export * from './militares.ts';
+export * from './servicos.ts';
+export * from './escalas.ts';
