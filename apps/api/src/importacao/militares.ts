@@ -1,5 +1,5 @@
 // Importação da aba MILITARES (leitura como lerMilitares_ do protótipo, prototipo/matriz.js).
-import { mesParaData, mesPorExtenso, type ItemPrevia, type ProblemaImportacao } from 'contratos';
+import { Antiguidade, mesParaData, mesPorExtenso, type ItemPrevia, type ProblemaImportacao } from 'contratos';
 import { categoriasCnh, CICLO_EQUIPES, diasDoMes, normalizar } from 'dominio';
 import type { Consulta } from '../banco/banco.ts';
 import { coluna } from './planilha.ts';
@@ -193,8 +193,9 @@ export const importadorMilitares: Importador<Plano> = {
       const antigTxt = pega(cel, c.antig);
       let antiguidade: number | null = null;
       if (antigTxt) {
-        if (/^\d+$/.test(antigTxt) && Number(antigTxt) >= 1) antiguidade = Number(antigTxt);
-        else avisos.push(`${nomeGuerra} (${mat.valor}): antiguidade "${antigTxt}" ignorada (use um número a partir de 1).`);
+        // o mesmo limite do contrato (1 a 99999): o que a planilha traz, a tela precisa conseguir salvar de novo
+        if (/^\d+$/.test(antigTxt) && Antiguidade.safeParse(Number(antigTxt)).success) antiguidade = Number(antigTxt);
+        else avisos.push(`${nomeGuerra} (${mat.valor}): antiguidade "${antigTxt}" ignorada (use um número de 1 a 99999).`);
       }
       const motoristaTxt = normalizar(pega(cel, c.motorista));
       const motorista = SIM.includes(motoristaTxt) || motoristaTxt === 'MOTORISTA';

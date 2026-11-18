@@ -173,5 +173,14 @@ describe('importação de militares', () => {
     expect(await militar('990219-9')).toMatchObject({ posto: 'SD BM', antiguidade: 7, voluntario_jes: false, motorista: false });
     expect((await lotacoes(m)).map((l) => l.jornada)).toEqual(['adm']);
   });
+
+  it('antiguidade grande demais na planilha vira aviso e a linha entra sem antiguidade, sem erro do banco', async () => {
+    const linha = ['990972-2', 'GIGANTE', '1ª SB', 'SD BM', 'ADM', '', '3000000000', '', '', ''];
+    const previa = await importar([linha]);
+    expect(previa.avisos).toContain('GIGANTE (990972-2): antiguidade "3000000000" ignorada (use um número de 1 a 99999).');
+    const r = await importar([linha], true);
+    expect(r.gravados).toBe(1);
+    expect((await militar('990972-2'))!.antiguidade).toBeNull();
+  });
 });
 

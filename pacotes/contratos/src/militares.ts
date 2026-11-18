@@ -4,7 +4,13 @@ import { Data, Id, Matricula, Mes, Nome } from './comum.ts';
 
 export const Jornada = z.enum(['pronto', 'adm']);
 export const CategoriaCnh = z.enum(['A', 'B', 'C', 'D', 'E']);
-const Antiguidade = z.number().int().min(1, 'Use um número a partir de 1.').nullable();
+/** Ordem do militar na seção: de 1 a 99999 (a coluna é inteira de 32 bits; um número enorme colado por engano não pode chegar ao banco). */
+export const Antiguidade = z
+  .number()
+  .int('Use um número inteiro.')
+  .min(1, 'Use um número a partir de 1.')
+  .max(99999, 'Use um número de 1 a 99999.')
+  .nullable();
 const MSG_CNH_SEM_MOTORISTA = 'Marque o quadro de motoristas antes de escolher a CNH.';
 
 export const NovaLotacao = z.object({ unidadeId: Id, equipeId: Id.nullable(), jornada: Jornada, desde: Mes });
