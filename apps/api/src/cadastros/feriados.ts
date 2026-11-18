@@ -35,6 +35,19 @@ async function feriadoNaData(c: Consulta, unidadeId: string, data: string, excet
   return rows.find((f) => f.id !== exceto) ?? null;
 }
 
+/** O feriado que uma unidade acima já tem nessa data (a mais próxima, se houver mais de uma). */
+async function feriadoDeCima(c: Consulta, unidadeId: string, data: string): Promise<{ descricao: string; sigla: string } | null> {
+  const { rows } = await c.query<{ descricao: string; sigla: string }>(
+    `select f.descricao, un.sigla
+       from feriado f join unidade un on un.id = f.unidade_id join unidade alvo on alvo.id = $1
+      where un.caminho @> alvo.caminho and f.unidade_id <> alvo.id and f.data = $2::date
+      order by nlevel(un.caminho) desc limit 1`,
+    [unidadeId, data],
+  );
+  return rows[0] ?? null;
+}
+const mensagemDeCima = (f: { descricao: string; sigla: string }) => `Este dia já é feriado vindo de ${f.sigla}: "${f.descricao}".`;
+
 /** O mesmo dia e mês no outro ano; null quando não existe (29 de fevereiro em ano comum). */
 export function mesmoDiaEmOutroAno(data: string, ano: number): string | null {
   const alvo = `${String(ano).padStart(4, '0')}${data.slice(4)}`;
@@ -73,6 +86,8 @@ export function rotasFeriados(dep: { banco: Banco; auth: Auth }): Hono<AmbienteA
     const d = corpo.dados;
     const igual = await feriadoNaData(dep.banco, u, d.data);
     if (igual) return c.json({ erro: `Já existe um feriado nesta data: "${igual.descricao}".` }, 409);
+    const deCima = await feriadoDeCima(dep.banco, u, d.data);
+    if (deCima) return c.json({ erro: mensagemDeCima(deCima) }, 409);
     try {
       const f = await comUsuario(dep.banco, c.get('usuarioId'), async (tx) => {
         const id = (await tx.query<{ id: string }>('insert into feriado (unidade_id, data, descricao, fixo) values ($1, $2::date, $3, $4) returning id', [u, d.data, d.descricao, d.fixo])).rows[0]!.id;
@@ -94,6 +109,8 @@ export function rotasFeriados(dep: { banco: Banco; auth: Auth }): Hono<AmbienteA
     if (d.data) {
       const igual = await feriadoNaData(dep.banco, acesso.unidadeId, d.data, id);
       if (igual) return c.json({ erro: `Já existe um feriado nesta data: "${igual.descricao}".` }, 409);
+      const deCima = await feriadoDeCima(dep.banco, acesso.unidadeId, d.data);
+      if (deCima) return c.json({ erro: mensagemDeCima(deCima) }, 409);
     }
     try {
       const f = await comUsuario(dep.banco, c.get('usuarioId'), async (tx) => {
@@ -133,6 +150,8 @@ export function rotasFeriados(dep: { banco: Banco; auth: Auth }): Hono<AmbienteA
       for (const f of rows) {
         const nova = mesmoDiaEmOutroAno(f.data, para);
         if (!nova) continue;
+        // a data que a unidade de cima já tem não se repete na seção
+        if (await feriadoDeCima(tx, u, nova)) continue;
         const feito = await tx.query('insert into feriado (unidade_id, data, descricao, fixo) values ($1, $2::date, $3, true) on conflict (unidade_id, data) do nothing returning id', [u, nova, f.descricao]);
         n += feito.rows.length;
       }

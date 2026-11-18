@@ -24,3 +24,5 @@ export const consultaEu = queryOptions({ queryKey: ['eu'], queryFn: buscarEu, st
 
 export const ehAdministrador = (eu: Eu) => eu.papeis.some((p) => p.papel === 'administrador');
 export const ehMilitarComum = (eu: Eu) => eu.papeis.length === 0;
+/** Quem muda os parâmetros: gestor ou administrador (espelha ESCREVE_PARAMETRO na API). */
+export const podeMudarParametro = (eu: Eu) => eu.papeis.some((p) => p.papel === 'gestor' || p.papel === 'administrador');

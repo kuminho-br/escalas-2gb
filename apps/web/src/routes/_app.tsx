@@ -18,7 +18,7 @@ function Casca() {
   const [menuAberto, setMenuAberto] = useState(false);
 
   return (
-    <div className="min-h-dvh md:grid md:grid-cols-[232px_1fr]">
+    <div className="min-h-dvh md:grid md:grid-cols-[84px_1fr]">
       <Trilho eu={eu} aberto={menuAberto} aoFechar={() => setMenuAberto(false)} />
       <div className="flex min-w-0 flex-col">
         <Topo eu={eu} aoAbrirMenu={() => setMenuAberto(true)} />

@@ -1,8 +1,8 @@
 // Importação da aba COTAS (cotas das operações por mês), lida como lerCotas_ do protótipo. A regra nova: a cota
 // aponta direto para o serviço (PJES ou diária), e a operação deixa de existir como campo (adendo do design).
-import { Mes, mesParaData, mesPorExtenso, type ItemPrevia, type OrigemCota, type ProblemaImportacao } from 'contratos';
-import { cadgVigencia, normalizar, servicoDaOperacao } from 'dominio';
-import { coluna, mesDaCelula } from './planilha.ts';
+import { mesParaData, mesPorExtenso, type ItemPrevia, type OrigemCota, type ProblemaImportacao } from 'contratos';
+import { normalizar, servicoDaOperacao } from 'dominio';
+import { coluna, lerMes } from './planilha.ts';
 import type { ColunaModelo, Importador } from './tipos.ts';
 
 const ABA = 'COTAS';
@@ -60,7 +60,7 @@ export const importadorCotas: Importador<Plano> = {
     if (problemas.length) return vazio;
 
     const sigla = (await tx.query<{ sigla: string }>('select sigla from unidade where id = $1', [unidadeId])).rows[0]!.sigla;
-    const servicos = (await tx.query<{ id: string; nome: string; tipo: string; operacao: string | null }>('select id, nome, tipo, operacao from servico where unidade_id = $1', [unidadeId])).rows;
+    const servicos = (await tx.query<{ id: string; nome: string; tipo: string; operacao: string | null; ativo: boolean }>('select id, nome, tipo, operacao, ativo from servico where unidade_id = $1', [unidadeId])).rows;
     // as escalas e os serviços delas: a operação do protótipo era o nome da escala
     const escalas = (
       await tx.query<{ nome: string; servicos: string[] }>(
@@ -112,18 +112,17 @@ export const importadorCotas: Importador<Plano> = {
         problema(`Cota de outra seção: ${sb}`, `Importe só as linhas da ${sigla}, ou tire esta linha.`);
         continue;
       }
-      const mesBruto = mesDaCelula(pega(l.celulas, c.mes));
-      const vig = cadgVigencia(mesBruto);
+      const mesBruto = pega(l.celulas, c.mes);
       if (!mesBruto) {
         problema(`Mês vazio em ${alvo}`, 'Preencha o mês na coluna MÊS.');
         continue;
       }
-      // o mês passa pelo contrato: o ano 0000 (e anos como 0026) não chegam ao banco
-      if (!vig.ok || !vig.valor || !Mes.safeParse(vig.valor).success) {
+      // o mês passa pelo leitor único: o ano 0000 (e anos como 0026) não chegam ao banco
+      const mes = lerMes(mesBruto);
+      if (!mes) {
         problema(`Mês "${mesBruto}" de ${alvo}`, 'Use aaaa-mm ou mm/aaaa na coluna MÊS.');
         continue;
       }
-      const mes = vig.valor;
       const achado = acharServico(servicoTexto, operacao);
       if ('problema' in achado) {
         problema(achado.problema.mensagem, achado.problema.solucao);
@@ -132,6 +131,10 @@ export const importadorCotas: Importador<Plano> = {
       const servico = achado.servico;
       if (servico.tipo === 'ordinario') {
         problema(`O serviço ${servico.nome} é ordinário: cota só existe para serviço PJES ou diária`, 'Use um serviço PJES ou diária na coluna SERVIÇO.');
+        continue;
+      }
+      if (!servico.ativo) {
+        problema(`Serviço ${servico.nome} está desativado`, 'Reative o serviço na tela de Serviços ou use outro.');
         continue;
       }
       const origemBruta = normalizar(pega(l.celulas, c.origem));

@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import type { AmbienteApi } from '../src/acesso.ts';
-import { coluna, lerPlanilha } from '../src/importacao/planilha.ts';
+import { coluna, lerData, lerMes, lerPlanilha } from '../src/importacao/planilha.ts';
 import { rotasImportacao } from '../src/importacao/rotas.ts';
 import type { Importador } from '../src/importacao/tipos.ts';
 import { montarApi, type ApiDeTeste } from './apoio-api.ts';
@@ -101,4 +101,17 @@ describe('lerPlanilha', () => {
     expect(coluna(abas.C!, 'VIGENCIA')).toBe(1);
     expect(coluna(abas.C!, 'NADA')).toBe(-1);
   });
+});
+
+describe('leitor de mês e de data da planilha', () => {
+  it.each([
+    ['2027-01', '2027-01'], ['2027-1', '2027-01'], ['01/2027', '2027-01'], ['1/2027', '2027-01'], ['12/26', '2026-12'], ['1/26', '2026-01'],
+    ['15/03/2027', '2027-03'], ['5/3/2027', '2027-03'], [' 2027-05 ', '2027-05'], ['', ''],
+    ['0000-01', null], ['13/2027', null], ['2027-13', null], ['abc', null], ['0/2027', null], ['1899-12', null], ['31/02/2027', null],
+  ])('lerMes(%j) = %j', (entrada, esperado) => expect(lerMes(entrada)).toBe(esperado));
+
+  it.each([
+    ['07/09/2026', '2026-09-07'], ['7/9/2026', '2026-09-07'], ['07/09/26', '2026-09-07'], ['2026-09-07', '2026-09-07'], ['2026-9-7', '2026-09-07'], [' 07/09/2026 ', '2026-09-07'],
+    ['31/02/2026', null], ['0000-01-01', null], ['01/01/0000', null], ['abc', null], ['', null], ['29/02/2027', null], ['29/02/2028', '2028-02-29'],
+  ])('lerData(%j) = %j', (entrada, esperado) => expect(lerData(entrada)).toBe(esperado));
 });

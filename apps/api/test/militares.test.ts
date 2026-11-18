@@ -156,6 +156,16 @@ describe('antiguidade repetida', () => {
     expect(lista.find((l) => l.id === b.id)!.pendencias).toContain('Antiguidade repetida com REPETIDOA');
   });
 
+  it('a ficha traz os nomes da antiguidade repetida, e a pendência vira número com mais de três', async () => {
+    const mil = [];
+    for (const [i, nome] of ['MULTIA', 'MULTIB', 'MULTIC', 'MULTID', 'MULTIE'].entries()) mil.push(await criar(`99013${i}-${i}`, { nomeGuerra: nome, antiguidade: 888 }));
+    const f = await ficha(mil[0]!.id);
+    expect(f.antiguidadeRepetidaCom).toEqual(['MULTIB', 'MULTIC', 'MULTID', 'MULTIE']);
+    expect(f.pendencias).toContain('Antiguidade repetida com 4 militares');
+    const sem = await ficha((await criar('990140-0', { nomeGuerra: 'SOZINHO', antiguidade: 889 })).id);
+    expect(sem.antiguidadeRepetidaCom).toEqual([]);
+  });
+
   it('militar inativo não conta como repetido', async () => {
     const c = await criar('990122-2', { nomeGuerra: 'REPETIDOC', antiguidade: 778 });
     const d = await criar('990123-3', { nomeGuerra: 'REPETIDOD', antiguidade: 778 });

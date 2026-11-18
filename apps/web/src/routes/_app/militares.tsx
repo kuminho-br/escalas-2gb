@@ -3,24 +3,24 @@ import { createFileRoute, Link, Outlet, useNavigate, useParams } from '@tanstack
 import type { LinhaMilitar } from 'contratos';
 import { TriangleAlert, UserPlus } from 'lucide-react';
 import { useMemo, useState, type FormEvent } from 'react';
-import { mensagemDe } from '@/api/cliente';
+import { camposDe, mensagemDe } from '@/api/cliente';
 import { atualizarMilitares, consultaEquipes, consultaMilitares, consultaPostos, criarMilitar } from '@/api/militares';
+import { Campo } from '@/componentes/Campo';
 import { ImportarPlanilha } from '@/componentes/ImportarPlanilha';
-import { ListaDetalhe } from '@/componentes/ListaDetalhe';
+import { classeItemEscolhido, ListaDetalhe } from '@/componentes/ListaDetalhe';
 import { Selecao } from '@/componentes/Selecao';
 import { Button } from '@/componentes/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/componentes/ui/dialog';
 import { Input } from '@/componentes/ui/input';
 import { Label } from '@/componentes/ui/label';
 import { mesAtual } from '@/lib/meses';
+import { NOME_JORNADA } from '@/lib/militares';
 import { normalizarBusca } from '@/lib/texto';
 import { cn } from '@/lib/utils';
 
 export const Route = createFileRoute('/_app/militares')({
   component: Militares,
 });
-
-export const NOME_JORNADA = { pronto: 'Pronto', adm: 'Adm' } as const;
 
 function Militares() {
   const { eu } = Route.useRouteContext();
@@ -55,16 +55,19 @@ function ListaDeMilitares({ unidadeId, escolhido }: { unidadeId: string; escolhi
   const [equipe, setEquipe] = useState('');
   const [jornada, setJornada] = useState('');
   const [busca, setBusca] = useState('');
+  const [soIncompletos, setSoIncompletos] = useState(false);
+  const incompletos = (militares.data ?? []).filter((m) => m.pendencias.length > 0).length;
 
   const filtrados = useMemo(() => {
     const b = normalizarBusca(busca);
     return (militares.data ?? []).filter(
       (m) =>
+        (!soIncompletos || m.pendencias.length > 0) &&
         (!equipe || m.equipe === equipe) &&
         (!jornada || m.jornada === jornada) &&
         (!b || normalizarBusca(`${m.nomeGuerra} ${m.matricula}`).includes(b)),
     );
-  }, [militares.data, equipe, jornada, busca]);
+  }, [militares.data, soIncompletos, equipe, jornada, busca]);
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -96,6 +99,14 @@ function ListaDeMilitares({ unidadeId, escolhido }: { unidadeId: string; escolhi
       {militares.data && (
         <>
           <p className="shrink-0 px-4 pt-3 text-xs text-apagado">{filtrados.length} de {militares.data.length} militares</p>
+          {(incompletos > 0 || soIncompletos) && (
+            <p className="shrink-0 px-4 pt-1 text-xs text-pendencia">
+              {incompletos > 0 ? `Cadastro incompleto em ${incompletos} ${incompletos === 1 ? 'militar' : 'militares'}.` : 'Nenhum cadastro incompleto.'}{' '}
+              <button type="button" onClick={() => setSoIncompletos(!soIncompletos)} className="font-medium underline underline-offset-2">
+                {soIncompletos ? 'Ver todos' : 'Ver quais'}
+              </button>
+            </p>
+          )}
           <ul data-lista-rolavel className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-2">
             {filtrados.map((m) => <ItemMilitar key={m.id} m={m} escolhido={m.id === escolhido} />)}
             {militares.data.length === 0 && <li className="p-3 text-apagado">Nenhum militar lotado. Use "Novo militar" ou "Importar da planilha".</li>}
@@ -113,14 +124,15 @@ function ItemMilitar({ m, escolhido }: { m: LinhaMilitar; escolhido: boolean }) 
       <Link
         to="/militares/$id"
         params={{ id: m.id }}
-        className={cn('grid gap-0.5 rounded-lg px-3 py-2 hover:bg-accent', escolhido && 'bg-accent ring-1 ring-linha')}
+        className={cn('grid gap-0.5 rounded-lg px-3 py-2 hover:bg-accent', escolhido && classeItemEscolhido)}
+        aria-current={escolhido ? 'page' : undefined}
       >
         <span className="flex items-center gap-2">
           <span className="font-cond text-[13px] text-apagado">{m.posto}</span>
           <span className="font-cond text-base font-semibold">{m.nomeGuerra}</span>
           {m.pendencias.length > 0 && (
             <TriangleAlert
-              className="size-4 text-alerta"
+              className="size-4 text-pendencia"
               role="img"
               aria-label={`Cadastro incompleto: ${m.pendencias.join('; ')}`}
             />
@@ -130,7 +142,7 @@ function ItemMilitar({ m, escolhido }: { m: LinhaMilitar; escolhido: boolean }) 
         <span className="flex flex-wrap gap-x-3 text-xs text-apagado">
           <span>{m.matricula}</span>
           {m.jornada && <span>{NOME_JORNADA[m.jornada]}{m.equipe ? ` ${m.equipe}` : ''}</span>}
-          <span className={disponivel ? '' : 'font-medium text-tinta'}>{m.situacao}</span>
+          {!disponivel && <span className="font-medium text-tinta">{m.situacao}</span>}
         </span>
       </Link>
     </li>
@@ -168,7 +180,7 @@ function NovoMilitarDialogo({ unidadeId, aoFechar }: { unidadeId: string; aoFech
       await navigate({ to: '/militares/$id', params: { id: ficha.id } });
     } catch (err) {
       setErro(mensagemDe(err));
-      setCampos((err as { campos?: Record<string, string> }).campos ?? {});
+      setCampos(camposDe(err));
     } finally {
       setSalvando(false);
     }
@@ -186,7 +198,7 @@ function NovoMilitarDialogo({ unidadeId, aoFechar }: { unidadeId: string; aoFech
             <Campo id="nm-matricula" rotulo="Matrícula" erro={campos.matricula}>
               <Input id="nm-matricula" name="matricula" placeholder="123456-7" required />
             </Campo>
-            <Campo id="nm-posto" rotulo="Posto ou graduação">
+            <Campo id="nm-posto" rotulo="Posto ou graduação" erro={campos.postoGradId}>
               <Selecao id="nm-posto" name="posto" required>
                 {postos.data?.map((p) => <option key={p.id} value={p.id}>{p.sigla}</option>)}
               </Selecao>
@@ -201,38 +213,28 @@ function NovoMilitarDialogo({ unidadeId, aoFechar }: { unidadeId: string; aoFech
             </Campo>
           </div>
           <div className="grid grid-cols-3 gap-3">
-            <Campo id="nm-equipe" rotulo="Equipe">
+            <Campo id="nm-equipe" rotulo="Equipe" erro={campos['lotacao.equipeId']}>
               <Selecao id="nm-equipe" name="equipe" defaultValue="">
                 <option value="">Sem equipe</option>
                 {equipes.data?.map((e) => <option key={e.id} value={e.id}>{e.nome}</option>)}
               </Selecao>
             </Campo>
-            <Campo id="nm-jornada" rotulo="Jornada">
+            <Campo id="nm-jornada" rotulo="Jornada" erro={campos['lotacao.jornada']}>
               <Selecao id="nm-jornada" name="jornada" defaultValue="pronto">
                 <option value="pronto">Pronto</option>
                 <option value="adm">Adm</option>
               </Selecao>
             </Campo>
-            <Campo id="nm-desde" rotulo="Lotado desde">
+            <Campo id="nm-desde" rotulo="Lotado desde" erro={campos['lotacao.desde']}>
               <Input id="nm-desde" name="desde" type="month" defaultValue={mesAtual()} required />
             </Campo>
           </div>
           {erro && <p role="alert" className="text-sm text-alerta">{erro}</p>}
           <DialogFooter>
-            <Button type="submit" disabled={salvando || !postos.data}>Cadastrar</Button>
+            <Button type="submit" disabled={salvando || !postos.data}>Criar</Button>
           </DialogFooter>
         </form>
       </DialogContent>
     </Dialog>
-  );
-}
-
-export function Campo({ id, rotulo, erro, children }: { id: string; rotulo: string; erro?: string; children: React.ReactNode }) {
-  return (
-    <div className="grid gap-1.5">
-      <Label htmlFor={id}>{rotulo}</Label>
-      {children}
-      {erro && <p className="text-xs text-alerta">{erro}</p>}
-    </div>
   );
 }

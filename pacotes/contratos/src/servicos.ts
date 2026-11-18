@@ -39,9 +39,6 @@ export type EdicaoServico = DadosServico;
 export const SituacaoServico = z.object({ ativo: z.boolean() });
 export type SituacaoServico = z.infer<typeof SituacaoServico>;
 
-/** Faixa de horário de um turno. */
-export const Faixa = z.object({ inicio: Hora, fim: Hora });
-export type Faixa = z.infer<typeof Faixa>;
 
 export const DadosTurno = z.object({ letra: LetraTurno, inicio: Hora, fim: Hora });
 export type DadosTurno = z.infer<typeof DadosTurno>;
@@ -56,7 +53,7 @@ export type Servico = {
   rotuloImpressao: string | null;
   cor: string;
   ativo: boolean;
-  /** na ordem A, B, C, U */
+  /** na ordem A, B, C */
   turnos: TurnoSalvo[];
 };
 

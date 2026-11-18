@@ -166,3 +166,43 @@ describe('feriados', () => {
     expect(await screen.findByRole('button', { name: /Importar da planilha/ })).toBeInTheDocument();
   });
 });
+
+describe('feriados: herdado e outro ano', () => {
+  it('o selo do herdado explica para o leitor de tela', async () => {
+    api();
+    abrir('/feriados');
+    const herdado = await linhaDe('Independência do Brasil');
+    expect(within(herdado).getByText('cadastrado em CBMPE; não se edita aqui')).toHaveClass('sr-only');
+  });
+
+  it('salvar feriado de outro ano mostra esse ano', async () => {
+    const proximo = ano + 1;
+    const novo = feriado({ id: 'f9', data: `${proximo}-01-01`, descricao: 'Confraternização' });
+    const rotas: Parameters<typeof simularApi>[0] = {
+      'POST /api/unidades/u-1sb/feriados': { status: 201, corpo: novo },
+    };
+    const f = api(rotas);
+    abrir('/feriados');
+    await userEvent.click(await screen.findByRole('button', { name: 'Novo feriado' }));
+    const dialogo = await screen.findByRole('dialog');
+    fireEvent.change(within(dialogo).getByLabelText('Data'), { target: { value: `${proximo}-01-01` } });
+    await userEvent.type(within(dialogo).getByLabelText('Descrição'), 'Confraternização');
+    await userEvent.click(within(dialogo).getByRole('button', { name: 'Salvar' }));
+    await waitFor(() => expect(corpoEnviado(f, 'POST /api/unidades/u-1sb/feriados')).toMatchObject({ data: `${proximo}-01-01` }));
+    expect(await screen.findByText(`Feriado salvo em ${proximo}.`)).toBeInTheDocument();
+    expect(screen.getByLabelText('Ano')).toHaveValue(String(proximo));
+  });
+
+  it('salvar feriado do mesmo ano não troca o ano nem avisa', async () => {
+    api({ 'POST /api/unidades/u-1sb/feriados': { status: 201, corpo: feriado({ id: 'f9', data: `${ano}-11-15` }) } });
+    abrir('/feriados');
+    await userEvent.click(await screen.findByRole('button', { name: 'Novo feriado' }));
+    const dialogo = await screen.findByRole('dialog');
+    fireEvent.change(within(dialogo).getByLabelText('Data'), { target: { value: `${ano}-11-15` } });
+    await userEvent.type(within(dialogo).getByLabelText('Descrição'), 'Proclamação');
+    await userEvent.click(within(dialogo).getByRole('button', { name: 'Salvar' }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    expect(screen.queryByText(/Feriado salvo em/)).toBeNull();
+    expect(screen.getByLabelText('Ano')).toHaveValue(String(ano));
+  });
+});

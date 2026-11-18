@@ -244,9 +244,31 @@ describe('importação de cotas', () => {
     const o = await api.pedir('escalante', 'POST', `/api/unidades/${outraSecao}/importacao/cotas`, formulario(await planilha({ COTAS: [CAB_C] })));
     expect(o.status).toBe(403);
   });
+
+  it('mês no formato do protótipo (m/aaaa) é lido', async () => {
+    const previa = await importarCotas([['3/2027', '', '', 'JES', 7, 'interna', 1]]);
+    expect(previa.problemas).toEqual([]);
+    expect(previa.novos).toHaveLength(1);
+  });
+
+  it('cota de serviço desativado vira problema', async () => {
+    await servico('Operação Velha', 'pjes');
+    await api.banco.query("update servico set ativo = false where unidade_id = $1 and nome = 'Operação Velha'", [api.ids.secao]);
+    const previa = await importarCotas([[MES, '', '', 'Operação Velha', 3, 'interna', 1]]);
+    expect(previa.problemas).toEqual([
+      { aba: 'COTAS', linha: 2, mensagem: 'Serviço Operação Velha está desativado', solucao: 'Reative o serviço na tela de Serviços ou use outro.' },
+    ]);
+    expect(previa.novos).toEqual([]);
+  });
 });
 
 describe('importação de feriados', () => {
+  it('data de um dígito (2026-9-7), dd/mm/aa e a data do Excel são lidas', async () => {
+    const previa = await importarFeriados([['2026-9-7', 'Um dígito'], ['08/09/26', 'Dois dígitos'], [new Date(Date.UTC(2026, 8, 9)), 'Do Excel']]);
+    expect(previa.problemas).toEqual([]);
+    expect(previa.novos.map((n: { chave: string }) => n.chave)).toEqual(['2026-09-07', '2026-09-08', '2026-09-09']);
+  });
+
   it('Carnaval entra como móvel com aviso, e os demais ficam fixos', async () => {
     const linhas = [
       ['01/05/2026', 'Dia do Trabalho'],
@@ -354,4 +376,5 @@ describe('importação de feriados', () => {
     const r = await api.pedir('semPapel', 'POST', `/api/unidades/${api.ids.secao}/importacao/feriados`, formulario(await planilha({ FERIADOS: [CAB_F] })));
     expect(r.status).toBe(403);
   });
+
 });

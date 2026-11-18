@@ -133,4 +133,36 @@ describe('feriados', () => {
     const { rows } = await api.banco.query<{ usuario_id: string }>("select usuario_id from auditoria where tabela = 'feriado' and registro_id = $1", [f.id]);
     expect(rows[0]?.usuario_id).toBe(api.usuarios.escalante);
   });
+
+  describe('data que já é feriado numa unidade acima', () => {
+    it('feriado numa data que vem de cima dá 409 com a unidade, ao criar e ao mudar a data', async () => {
+      await inserir(api.banco, 'feriado', { unidade_id: api.ids.raiz, data: '2032-11-15', descricao: 'Proclamação da República', fixo: true });
+      const r = await api.pedir('escalante', 'POST', `${secao()}/feriados`, { data: '2032-11-15', descricao: 'De novo', fixo: true });
+      expect(r.status).toBe(409);
+      expect((await r.json()).erro).toBe('Este dia já é feriado vindo de CBMPE: "Proclamação da República".');
+      const outro = await criar('2032-11-16', 'Outro dia');
+      const m = await api.pedir('escalante', 'PATCH', `/api/feriados/${outro.id}`, { data: '2032-11-15' });
+      expect(m.status).toBe(409);
+      expect((await m.json()).erro).toBe('Este dia já é feriado vindo de CBMPE: "Proclamação da República".');
+      // mudar só a descrição de um feriado próprio continua valendo
+      expect((await api.pedir('escalante', 'PATCH', `/api/feriados/${outro.id}`, { descricao: 'Outro dia, outro nome' })).status).toBe(200);
+    });
+
+    it('feriado da unidade vizinha ou de baixo não impede a data', async () => {
+      await inserir(api.banco, 'feriado', { unidade_id: outraSecao, data: '2032-12-01', descricao: 'Da vizinha', fixo: true });
+      expect((await api.pedir('escalante', 'POST', `${secao()}/feriados`, { data: '2032-12-01', descricao: 'Da 1ª SB', fixo: true })).status).toBe(201);
+    });
+
+    it('copiar fixos pula a data que vem de cima, e só conta o que gravou', async () => {
+      await inserir(api.banco, 'feriado', { unidade_id: api.ids.raiz, data: '2031-05-01', descricao: 'Dia do Trabalho', fixo: true });
+      await criar('2030-05-01', 'Dia do Trabalho (da seção)');
+      await criar('2030-06-02', 'Aniversário da seção');
+      const r = await api.pedir('escalante', 'POST', `${secao()}/feriados/copiar-fixos`, { de: 2030, para: 2031 });
+      expect(await r.json()).toEqual({ copiados: 1 });
+      const f = await lista(2031);
+      expect(f.filter((x) => x.data === '2031-05-01')).toHaveLength(1);
+      expect(f.find((x) => x.data === '2031-05-01')).toMatchObject({ herdado: true });
+      expect(f.find((x) => x.data === '2031-06-02')).toMatchObject({ descricao: 'Aniversário da seção', herdado: false });
+    });
+  });
 });

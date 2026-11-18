@@ -80,4 +80,24 @@ describe('importação de configurações', () => {
     expect(r.problemas).toEqual([]);
     expect(r.novos.map((n: { chave: string }) => n.chave)).toEqual(['SALDOS_ADM_POR_MILITAR|2027-01']);
   });
+
+  // [foco 4] o ano 0000 passava e derrubava a confirmação inteira
+  it('vigência do ano 0000 vira problema, nunca erro do banco', async () => {
+    const linhas = [['CARGA_MENSAL_HORAS', 150, '0000-05', 'x']];
+    const previa = await importar(linhas);
+    expect(previa.problemas).toEqual([
+      { aba: 'CONFIGURAÇÕES', linha: 2, mensagem: 'CARGA_MENSAL_HORAS: vigência "0000-05" inválida.', solucao: 'Corrija a linha na sandbox e importe de novo.' },
+    ]);
+    expect((await importar(linhas, true)).gravados).toBe(0);
+  });
+
+  it('vigência no formato do protótipo (m/aaaa) e a data do Excel são lidas', async () => {
+    const r = await importar([['CARGA_MENSAL_HORAS', 150, '1/2031', 'x'], ['SALDOS_ADM_POR_MILITAR', 4, new Date(Date.UTC(2031, 5, 1)), 'x']], true);
+    expect(r.problemas).toEqual([]);
+    const { rows } = await api.banco.query<{ chave: string; vig: string }>(
+      "select chave, to_char(vigencia_desde, 'YYYY-MM') as vig from parametro where unidade_id = $1 and vigencia_desde >= '2031-01-01' order by chave",
+      [api.ids.secao],
+    );
+    expect(rows).toEqual([{ chave: 'CARGA_MENSAL_HORAS', vig: '2031-01' }, { chave: 'SALDOS_ADM_POR_MILITAR', vig: '2031-06' }]);
+  });
 });

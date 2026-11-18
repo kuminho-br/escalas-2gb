@@ -1,13 +1,15 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { Escala } from 'contratos';
+import { Link } from '@tanstack/react-router';
 import { ArrowDown, ArrowUp } from 'lucide-react';
 import { useState } from 'react';
 import { mensagemDe } from '@/api/cliente';
 import { atualizarEscalas, salvarServicosDaEscala } from '@/api/escalas';
 import { consultaServicos } from '@/api/servicos';
-import { EtiquetaPendente, usePendencia } from '@/componentes/AlteracoesPendentes';
+import { AcoesDoBloco, usePendencia } from '@/componentes/AlteracoesPendentes';
 import { Secao } from '@/componentes/militares/Secao';
 import { Selecao } from '@/componentes/Selecao';
+import { QuadradoDaCor } from '@/componentes/QuadradoDaCor';
 import { Button } from '@/componentes/ui/button';
 
 type Item = { id: string; nome: string; cor: string };
@@ -49,8 +51,8 @@ export function ServicosDaEscala({ escala, unidadeId }: { escala: Escala; unidad
       <ol className="grid gap-1.5">
         {itens.map((s, i) => (
           <li key={s.id} className="flex items-center gap-2 rounded-lg border border-linha px-3 py-1.5 text-sm">
-            <span aria-hidden className="size-3 rounded-sm" style={{ backgroundColor: s.cor }} />
-            <span className="font-medium">{s.nome}</span>
+            <QuadradoDaCor cor={s.cor} />
+            <Link to="/servicos/$id" params={{ id: s.id }} className="font-medium text-vinho hover:underline">{s.nome}</Link>
             <span className="ml-auto flex gap-1">
               <Button type="button" size="icon" variant="ghost" aria-label={`Subir ${s.nome}`} disabled={i === 0} onClick={() => mover(i, -1)}>
                 <ArrowUp aria-hidden />
@@ -81,9 +83,7 @@ export function ServicosDaEscala({ escala, unidadeId }: { escala: Escala; unidad
             {fora.map((s) => <option key={s.id} value={s.id}>{s.nome}</option>)}
           </Selecao>
         )}
-        <Button type="button" onClick={() => void salvar()}>Salvar serviços</Button>
-        <EtiquetaPendente sujo={sujo} />
-        {aviso && <p role={aviso.erro ? 'alert' : 'status'} className={aviso.erro ? 'text-sm text-alerta' : 'text-sm text-apagado'}>{aviso.texto}</p>}
+        <AcoesDoBloco sujo={sujo} aviso={aviso} tipo="button" rotulo="Salvar serviços" aoSalvar={() => void salvar()} />
       </div>
     </Secao>
   );

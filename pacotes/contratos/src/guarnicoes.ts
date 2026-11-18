@@ -5,6 +5,15 @@ import { CategoriaCnh } from './militares.ts';
 
 const MSG_MAXIMO = 'O máximo precisa ser igual ou maior que o mínimo.';
 const Inteiro0 = z.number().int('Use um número inteiro.').min(0, 'Use um número a partir de 0.');
+/** Mínimo e máximo de militares de uma função: até 99 (cabe no banco e na tela). */
+export const QuantidadeDeMilitares = Inteiro0.max(99, 'Use um número até 99.');
+/** Ordem de ativação: de 1 a 1000, ou vazio (a guarnição vai por último). */
+export const Prioridade = z
+  .number()
+  .int('Use um número inteiro.')
+  .min(1, 'Use um número de 1 a 1000.')
+  .max(1000, 'Use um número de 1 a 1000.')
+  .nullable();
 const TextoOpcional = (limite: number) =>
   z
     .string()
@@ -14,7 +23,7 @@ const TextoOpcional = (limite: number) =>
     .nullable();
 
 export const LinhaComposicao = z
-  .object({ funcaoId: Id, minimo: Inteiro0, maximo: Inteiro0, cnhExigida: CategoriaCnh.nullable() })
+  .object({ funcaoId: Id, minimo: QuantidadeDeMilitares, maximo: QuantidadeDeMilitares, cnhExigida: CategoriaCnh.nullable() })
   .refine((l) => l.maximo >= l.minimo, { path: ['maximo'], message: MSG_MAXIMO });
 export type LinhaComposicao = z.infer<typeof LinhaComposicao>;
 
@@ -22,7 +31,7 @@ export const VersaoGuarnicao = z
   .object({
     viatura: TextoOpcional(40),
     tipoViatura: TextoOpcional(60),
-    prioridade: z.number().int('Use um número inteiro.').min(1, 'Use um número a partir de 1.').nullable(),
+    prioridade: Prioridade,
     ativa: z.boolean(),
     composicao: z.array(LinhaComposicao),
   })

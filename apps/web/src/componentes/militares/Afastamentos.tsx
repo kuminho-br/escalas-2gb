@@ -41,10 +41,11 @@ export function Afastamentos({ ficha }: { ficha: FichaMilitar }) {
     }
   }
 
-  async function apagar(id: string) {
+  async function apagar(a: FichaMilitar['afastamentos'][number]) {
+    if (!window.confirm(`Remover o afastamento ${a.tipo} de ${dataBr(a.inicio)} a ${dataBr(a.fim)}?`)) return;
     setErro(null);
     try {
-      await apagarAfastamento(id);
+      await apagarAfastamento(a.id);
       atualizarMilitares(queryClient, ficha.id);
     } catch (err) {
       setErro(mensagemDe(err));
@@ -58,7 +59,7 @@ export function Afastamentos({ ficha }: { ficha: FichaMilitar }) {
           <li key={a.id} className="flex items-center gap-3 text-sm">
             <span className="font-medium">{a.tipo}</span>
             <span className="text-apagado">de {dataBr(a.inicio)} a {dataBr(a.fim)}</span>
-            <Button size="xs" variant="ghost" className="ml-auto" onClick={() => void apagar(a.id)}>Apagar</Button>
+            <Button size="xs" variant="ghost" className="ml-auto" onClick={() => void apagar(a)}>Remover</Button>
           </li>
         ))}
         {ficha.afastamentos.length === 0 && <li className="text-sm text-apagado">Nenhum afastamento.</li>}
@@ -88,7 +89,7 @@ export function Afastamentos({ ficha }: { ficha: FichaMilitar }) {
             </div>
           </div>
           <div className="flex gap-2">
-            <Button type="submit" disabled={!tipoEscolhido}>Gravar</Button>
+            <Button type="submit" disabled={!tipoEscolhido}>Salvar</Button>
             <Button type="button" variant="ghost" onClick={fechar}>Cancelar</Button>
           </div>
         </form>

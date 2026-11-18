@@ -34,7 +34,27 @@ export function fimDaRegua(segmentos: Segmento[]): number {
   return Math.max(1440, ...segmentos.map((s) => s.fim));
 }
 
-/** Trechos em que dois turnos diferentes ocupam o mesmo horário. Os turnos se repetem a cada dia, então o segundo também é comparado com o dia anterior e o seguinte. Só se encostar não conta. */
+/** Junta trechos que se encostam, também por cima da meia-noite (o fim do último encosta no começo do primeiro, um dia depois). Nenhum passa de 24h. */
+function juntarTrechos(pecas: [number, number][]): [number, number][] {
+  const r: [number, number][] = [];
+  for (const [ini, fim] of [...pecas].sort((a, b) => a[0] - b[0])) {
+    const ultimo = r.at(-1);
+    if (ultimo && ini <= ultimo[1]) ultimo[1] = Math.max(ultimo[1], fim);
+    else r.push([ini, fim]);
+  }
+  const primeiro = r[0];
+  const ultimo = r.at(-1);
+  if (r.length > 1 && primeiro && ultimo && ultimo[1] >= primeiro[0] + 1440) {
+    ultimo[1] = Math.max(ultimo[1], primeiro[1] + 1440);
+    r.shift();
+  }
+  return r.map(([ini, fim]) => [ini, Math.min(fim, ini + 1440)]);
+}
+
+/**
+ * Trechos em que dois turnos diferentes ocupam o mesmo horário, em ordem de início. Os turnos se repetem a cada dia, então o segundo também é comparado com o dia anterior e o seguinte.
+ * Os pedaços de um mesmo par que se encostam (inclusive pela meia-noite) saem juntos; dois turnos de 24h dão um trecho de 24h. Só se encostar não conta.
+ */
 export function sobreposicoes(turnos: TurnoHora[]): { letras: [string, string]; ini: number; fim: number }[] {
   const achados: { letras: [string, string]; ini: number; fim: number }[] = [];
   for (let i = 0; i < turnos.length; i++) {
@@ -42,14 +62,16 @@ export function sobreposicoes(turnos: TurnoHora[]): { letras: [string, string]; 
       const a = trecho(turnos[i]!);
       const b = trecho(turnos[j]!);
       if (!a || !b) continue;
+      const pecas: [number, number][] = [];
       for (const dia of [-1440, 0, 1440]) {
         const ini = Math.max(a[0], b[0] + dia);
         const fim = Math.min(a[1], b[1] + dia);
-        if (fim > ini) achados.push({ letras: [turnos[i]!.letra, turnos[j]!.letra], ini, fim });
+        if (fim > ini) pecas.push([ini, fim]);
       }
+      for (const [ini, fim] of juntarTrechos(pecas)) achados.push({ letras: [turnos[i]!.letra, turnos[j]!.letra], ini, fim });
     }
   }
-  return achados.sort((a, b) => a.ini - b.ini);
+  return achados.sort((x, y) => x.ini - y.ini);
 }
 
 /** 420 -> '07h', 1440 -> '00h'. */

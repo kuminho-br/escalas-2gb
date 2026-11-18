@@ -7,6 +7,7 @@ import { mensagemComCampo, mensagemDe } from '@/api/cliente';
 import { atualizarCotas, consultaCotas, copiarCotas, criarCota, editarCota, removerCota } from '@/api/cotas';
 import { consultaServicos } from '@/api/servicos';
 import { ImportarPlanilha } from '@/componentes/ImportarPlanilha';
+import { QuadradoDaCor } from '@/componentes/QuadradoDaCor';
 import { Selecao } from '@/componentes/Selecao';
 import { Button } from '@/componentes/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/componentes/ui/dialog';
@@ -128,7 +129,7 @@ function LinhaCota({ c, aoEditar, aoRemover }: { c: Cota; aoEditar: () => void; 
       <td className="px-4 py-2.5 font-cond text-base font-semibold">{c.prioridade}</td>
       <td className="px-4 py-2.5">
         <span className="flex items-center gap-2">
-          <span aria-hidden className="size-3 shrink-0 rounded-sm" style={{ backgroundColor: c.cor }} />
+          <QuadradoDaCor cor={c.cor} />
           <span className="font-medium">{c.servico}</span>
         </span>
         {!c.contaMeta && <span className="block text-xs text-apagado">não conta para a meta</span>}

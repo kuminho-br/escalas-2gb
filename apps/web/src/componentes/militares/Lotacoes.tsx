@@ -9,17 +9,8 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from '@/componentes/ui/input';
 import { Label } from '@/componentes/ui/label';
 import { mesAtual } from '@/lib/meses';
+import { NOME_JORNADA, resumoDaLotacao } from '@/lib/militares';
 import { Secao } from './Secao';
-
-const NOME_JORNADA = { pronto: 'Pronto', adm: 'Adm' } as const;
-
-/** Uma linha com a lotação que cobre o mês corrente. */
-function resumoDaLotacao(lotacoes: FichaMilitar['lotacoes']): string {
-  const mes = mesAtual();
-  const l = lotacoes.find((x) => x.desde.slice(0, 7) <= mes && (!x.ate || x.ate.slice(0, 7) >= mes));
-  if (!l) return 'Sem lotação';
-  return `${l.unidadeSigla}, ${NOME_JORNADA[l.jornada]}${l.equipe ? ` (${l.equipe})` : ''} desde ${mesPorExtenso(l.desde.slice(0, 7))}`;
-}
 
 export function Lotacoes({ ficha, unidadeId }: { ficha: FichaMilitar; unidadeId: string }) {
   const [transferindo, setTransferindo] = useState(false);

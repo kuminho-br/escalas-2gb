@@ -118,6 +118,7 @@ async function carregarFicha(c: Consulta, id: string, mes: string): Promise<Fich
   const repetidaCom = repetidasPorAntiguidade(colegas.rows.map((x) => ({ id: x.id, nomeGuerra: x.nome_guerra, antiguidade: x.antiguidade }))).get(id) ?? [];
   return {
     ...linhaDe(m, afastamentos.rows, mes, repetidaCom),
+    antiguidadeRepetidaCom: repetidaCom,
     postoGradId: m.posto_grad_id,
     antiguidade: m.antiguidade,
     noQuadroDeMotoristas: m.motorista,

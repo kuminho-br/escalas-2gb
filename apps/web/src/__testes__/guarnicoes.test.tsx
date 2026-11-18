@@ -1,7 +1,9 @@
-import type { FichaGuarnicao, LinhaGuarnicao } from 'contratos';
-import { fireEvent, screen, waitFor, within } from '@testing-library/react';
+import { mesPorExtenso, type FichaGuarnicao, type LinhaGuarnicao } from 'contratos';
+import { act, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+import { MENSAGEM_PENDENTE } from '@/componentes/AlteracoesPendentes';
+import { atualizarGuarnicoes } from '@/api/guarnicoes';
 import { mesAtual } from '@/lib/meses';
 import { abrir, corpoEnviado, EU_EXEMPLO, simularApi } from './apoio';
 
@@ -174,6 +176,7 @@ describe('ficha da guarnição', () => {
     api({ 'PUT /api/guarnicoes/g1/versoes/2099-03': { status: 409, corpo: { erro: 'Só dá para mudar a partir de novembro de 2026.' } } });
     abrir('/guarnicoes/g1');
     await screen.findByLabelText('Mínimo de Combatente');
+    fireEvent.change(valor('Sigla da viatura'), { target: { value: 'ABT-02' } });
     await salvarEm('2099-03', 'março de 2099');
     expect(await screen.findByText('Só dá para mudar a partir de novembro de 2026.')).toBeInTheDocument();
   });
@@ -240,11 +243,10 @@ describe('ficha da guarnição', () => {
     simularApi(rotas);
     abrir('/guarnicoes/g1');
     const desativar = await screen.findByRole('button', { name: 'Desativar agora' });
-    expect(screen.getByRole('checkbox', { name: 'Ativa' })).toBeChecked();
     rotas['GET /api/guarnicoes/g1'] = { status: 200, corpo: inativa };
     await userEvent.click(desativar);
     await screen.findByText('Desativada desde janeiro de 2026.');
-    await waitFor(() => expect(screen.getByRole('checkbox', { name: 'Ativa' })).not.toBeChecked());
+    expect(await screen.findByRole('button', { name: 'Reativar agora' })).toBeInTheDocument();
   });
 
   it('guarnição desativada mostra reativar agora', async () => {
@@ -275,5 +277,185 @@ describe('ficha da guarnição', () => {
     abrir('/guarnicoes/g5');
     expect(await screen.findByLabelText('A partir de')).toHaveValue('2099-01');
     expect(screen.queryByText('em vigor')).toBeNull();
+  });
+});
+
+describe('ficha da guarnição em painel único', () => {
+  it('o resumo da guarnição diz viatura e ordem', async () => {
+    const v = FICHA.versoes[0]!;
+    api({ 'GET /api/guarnicoes/g1': { status: 200, corpo: { ...FICHA, versoes: [{ ...v, viatura: 'AR', tipoViatura: 'Auto Resgate', prioridade: 2 }] } } });
+    abrir('/guarnicoes/g1');
+    const ficha = (await screen.findByRole('heading', { level: 2, name: 'Auto Bomba 1' })).closest('[data-ficha]') as HTMLElement;
+    expect(within(ficha).getByText('Viatura AR, Auto Resgate. Ativada em 2º lugar.')).toBeInTheDocument();
+  });
+
+  it('o resumo sem viatura nem prioridade', async () => {
+    const v = FICHA.versoes[0]!;
+    api({ 'GET /api/guarnicoes/g1': { status: 200, corpo: { ...FICHA, versoes: [{ ...v, viatura: null, tipoViatura: null, prioridade: null }] } } });
+    abrir('/guarnicoes/g1');
+    expect(await screen.findByText('Sem viatura. Sem prioridade: vai por último na ativação.')).toBeInTheDocument();
+  });
+
+  it('a situação fica no cabeçalho da ficha', async () => {
+    api();
+    abrir('/guarnicoes/g1');
+    const ficha = (await screen.findByRole('heading', { level: 2, name: 'Auto Bomba 1' })).closest('[data-ficha]') as HTMLElement;
+    const cabecalho = ficha.querySelector('header') as HTMLElement;
+    expect(within(cabecalho).getByRole('button', { name: 'Desativar agora' })).toBeInTheDocument();
+  });
+
+  it('o item aberto na lista fica marcado', async () => {
+    api();
+    abrir('/guarnicoes/g1');
+    const link = (await screen.findAllByText('Auto Bomba 1')).map((e) => e.closest('a')).find(Boolean)!;
+    expect(link).toHaveAttribute('aria-current', 'page');
+    expect(link.className).toContain('shadow-[inset_3px_0_0');
+  });
+
+  it('todas desativadas, a lista explica o que marcar', async () => {
+    api({ 'GET /api/unidades/u-1sb/guarnicoes': { status: 200, corpo: LISTA.map((g) => ({ ...g, ativa: false })) } });
+    abrir('/guarnicoes');
+    expect(await screen.findByText('Todas as guarnições estão desativadas. Marque "Mostrar desativadas" para vê-las.')).toBeInTheDocument();
+  });
+});
+
+describe('guarnições: singular, ordem, versões e composição', () => {
+  it('uma guarnição de um militar diz 1 militar', async () => {
+    api({ 'GET /api/unidades/u-1sb/guarnicoes': { status: 200, corpo: [linha({ id: 'g9', nome: 'Solo', minimo: 1, maximo: 1 })] } });
+    abrir('/guarnicoes');
+    expect(within(await itemDe('Solo')).getByText('1 militar')).toBeInTheDocument();
+    expect(screen.queryByText('1 militares')).toBeNull();
+  });
+
+  it('as versões não têm a caixa Ativa', async () => {
+    api();
+    abrir('/guarnicoes/g1');
+    await screen.findByLabelText('Sigla da viatura');
+    expect(screen.queryByRole('checkbox', { name: 'Ativa' })).toBeNull();
+  });
+
+  it('a lista mostra o número da ordem de ativação', async () => {
+    api();
+    abrir('/guarnicoes');
+    expect(within(await itemDe('Auto Bomba 1')).getByText('1', { selector: 'span' })).toBeInTheDocument();
+    expect(within(await itemDe('Resgate')).getByText('–')).toBeInTheDocument();
+    expect(screen.getByText('4 guarnições')).toBeInTheDocument();
+  });
+
+  it('versão futura tem borda tracejada', async () => {
+    const v = FICHA.versoes[0]!;
+    api({ 'GET /api/guarnicoes/g1': { status: 200, corpo: { ...FICHA, versoes: [{ ...v, vigencia: '2099-01' }, v] } } });
+    abrir('/guarnicoes/g1');
+    const futura = await screen.findByRole('button', { name: /^janeiro de 2099/ });
+    expect(futura).toHaveAttribute('data-futura');
+    expect(futura.className).toContain('border-dashed');
+    expect(screen.getByRole('button', { name: /^janeiro de 2026/ })).not.toHaveAttribute('data-futura');
+  });
+
+  it('salvar num mês novo deixa a versão nova escolhida', async () => {
+    const v = FICHA.versoes[0]!;
+    const salva: FichaGuarnicao = { ...FICHA, versoes: [{ ...v, vigencia: '2099-03', viatura: 'ABT-02' }, v] };
+    const rotas: Parameters<typeof simularApi>[0] = {
+      '/api/eu': { status: 200, corpo: EU_EXEMPLO },
+      'GET /api/unidades/u-1sb/guarnicoes': { status: 200, corpo: LISTA },
+      'GET /api/unidades/u-1sb/funcoes': { status: 200, corpo: FUNCOES },
+      'GET /api/guarnicoes/g1': { status: 200, corpo: FICHA },
+      'PUT /api/guarnicoes/g1/versoes/2099-03': { status: 200, corpo: salva },
+    };
+    simularApi(rotas);
+    abrir('/guarnicoes/g1');
+    await screen.findByLabelText('Mínimo de Combatente');
+    fireEvent.change(valor('Sigla da viatura'), { target: { value: 'ABT-02' } });
+    rotas['GET /api/guarnicoes/g1'] = { status: 200, corpo: salva };
+    await salvarEm('2099-03', 'março de 2099');
+    const chip = await screen.findByRole('button', { name: /^março de 2099/ });
+    await waitFor(() => expect(chip).toHaveAttribute('aria-pressed', 'true'));
+    expect(screen.getByLabelText('Sigla da viatura')).toHaveValue('ABT-02');
+  });
+
+  it('a linha da composição é uma grade que não quebra no computador', async () => {
+    api();
+    abrir('/guarnicoes/g1');
+    const linhaMot = (await screen.findByLabelText('Exige CNH para Motorista')).closest('li')!;
+    expect(linhaMot.firstElementChild!.className).toContain('sm:grid-cols-[');
+  });
+});
+
+describe('revisão final: guarnição', () => {
+  it('Desativar agora com a composição pendente pergunta e, cancelando, não perde a edição', async () => {
+    const confirmar = vi.spyOn(window, 'confirm').mockReturnValue(false);
+    const f = api({ 'POST /api/guarnicoes/g1/situacao': { status: 200, corpo: FICHA } });
+    abrir('/guarnicoes/g1');
+    await userEvent.click(await screen.findByRole('button', { name: 'Incluir função' }));
+    expect(screen.getByText('Alterações não salvas')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Desativar agora' }));
+    expect(confirmar).toHaveBeenCalledWith(MENSAGEM_PENDENTE);
+    expect(f.mock.calls.some(([, init]) => init?.method === 'POST')).toBe(false);
+    expect(screen.getByText('Alterações não salvas')).toBeInTheDocument();
+    confirmar.mockRestore();
+  });
+
+  it('Desativar agora com a composição pendente, confirmando, desativa', async () => {
+    const confirmar = vi.spyOn(window, 'confirm').mockReturnValue(true);
+    const f = api({ 'POST /api/guarnicoes/g1/situacao': { status: 200, corpo: FICHA } });
+    abrir('/guarnicoes/g1');
+    await userEvent.click(await screen.findByRole('button', { name: 'Incluir função' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Desativar agora' }));
+    await waitFor(() => expect(corpoEnviado(f, 'POST /api/guarnicoes/g1/situacao')).toEqual({ ativa: false, aPartirDe: mesAtual() }));
+    confirmar.mockRestore();
+  });
+
+  it('uma importação com a ficha aberta recarrega os campos da versão', async () => {
+    const rotas: Parameters<typeof simularApi>[0] = {
+      '/api/eu': { status: 200, corpo: EU_EXEMPLO },
+      'GET /api/unidades/u-1sb/guarnicoes': { status: 200, corpo: LISTA },
+      'GET /api/unidades/u-1sb/funcoes': { status: 200, corpo: FUNCOES },
+      'GET /api/guarnicoes/g1': { status: 200, corpo: FICHA },
+    };
+    simularApi(rotas);
+    const router = abrir('/guarnicoes/g1');
+    expect(await screen.findByLabelText('Sigla da viatura')).toHaveValue('ABT-01');
+    rotas['GET /api/guarnicoes/g1'] = { status: 200, corpo: { ...FICHA, versoes: [{ ...FICHA.versoes[0]!, viatura: 'ABT-IMPORTADA', prioridade: 7 }] } };
+    await act(async () => {
+      atualizarGuarnicoes(router.options.context.queryClient, 'g1');
+    });
+    await waitFor(() => expect(screen.getByLabelText('Sigla da viatura')).toHaveValue('ABT-IMPORTADA'));
+    expect(screen.getByLabelText('Prioridade')).toHaveValue(7);
+    expect(screen.queryByText('Alterações não salvas')).toBeNull();
+  });
+
+  it('com edição pendente, a importação não apaga o que a pessoa digitou', async () => {
+    const rotas: Parameters<typeof simularApi>[0] = {
+      '/api/eu': { status: 200, corpo: EU_EXEMPLO },
+      'GET /api/unidades/u-1sb/guarnicoes': { status: 200, corpo: LISTA },
+      'GET /api/unidades/u-1sb/funcoes': { status: 200, corpo: FUNCOES },
+      'GET /api/guarnicoes/g1': { status: 200, corpo: FICHA },
+    };
+    simularApi(rotas);
+    const router = abrir('/guarnicoes/g1');
+    fireEvent.change(await screen.findByLabelText('Sigla da viatura'), { target: { value: 'DIGITADA' } });
+    rotas['GET /api/guarnicoes/g1'] = { status: 200, corpo: { ...FICHA, versoes: [{ ...FICHA.versoes[0]!, viatura: 'ABT-IMPORTADA' }] } };
+    await act(async () => {
+      atualizarGuarnicoes(router.options.context.queryClient, 'g1');
+    });
+    await new Promise((r) => setTimeout(r, 50));
+    expect(screen.getByLabelText('Sigla da viatura')).toHaveValue('DIGITADA');
+    expect(screen.getByText('Alterações não salvas')).toBeInTheDocument();
+  });
+
+  it('trazer de volta uma versão antiga deixa salvar a partir do mês escolhido', async () => {
+    const v = FICHA.versoes[0]!;
+    const velha = { ...v, vigencia: '2020-01', viatura: 'ANTIGA' };
+    const vigente = { ...v, vigencia: '2021-01', viatura: 'VIGENTE' };
+    api({ 'GET /api/guarnicoes/g1': { status: 200, corpo: { ...FICHA, versoes: [vigente, velha] } } });
+    abrir('/guarnicoes/g1');
+    const salvar = () => screen.getByRole('button', { name: `Salvar a partir de ${mesPorExtenso(mesAtual())}` });
+    expect(await screen.findByLabelText('Sigla da viatura')).toHaveValue('VIGENTE');
+    expect(salvar()).toBeDisabled();
+    await userEvent.click(screen.getByRole('button', { name: /^janeiro de 2020/ }));
+    expect(screen.getByLabelText('Sigla da viatura')).toHaveValue('ANTIGA');
+    expect(salvar()).toBeEnabled();
+    // sem nada mudado, não é "alteração não salva": sair da ficha não pergunta
+    expect(screen.queryByText('Alterações não salvas')).toBeNull();
   });
 });

@@ -23,8 +23,11 @@ export async function lerCorpo<T>(c: Context, esquema: z.ZodType<T>): Promise<{ 
 const MENSAGENS: Record<string, string> = {
   '23505': 'Já existe um cadastro com esse nome.',
   '23P01': 'As datas se sobrepõem a outro período já cadastrado.',
-  '23503': 'Não dá para apagar: o cadastro já está em uso.',
+  '23503': 'Não dá para remover: o cadastro já está em uso.',
 };
+
+// o Postgres diz "insert or update" quando a referência é de quem se grava e "update or delete" quando se tenta remover o que é referenciado
+const REFERENCIA_AO_GRAVAR = 'Um dos cadastros escolhidos não existe mais. Recarregue a tela e escolha de novo.';
 
 /**
  * Erro do banco que o usuário pode resolver vira 409 legível; qualquer outro é relançado.
@@ -33,6 +36,7 @@ const MENSAGENS: Record<string, string> = {
 export function respostaDoErroDoBanco(c: Context, e: unknown, mensagens: Record<string, string> = {}): Response {
   const codigo = (e as { code?: string } | null)?.code;
   if (codigo && codigo in mensagens) return c.json({ erro: mensagens[codigo]! }, 409);
+  if (codigo === '23503' && /^insert or update/i.test((e as Error).message ?? '')) return c.json({ erro: REFERENCIA_AO_GRAVAR }, 409);
   if (codigo && codigo in MENSAGENS) return c.json({ erro: MENSAGENS[codigo]! }, 409);
   if (codigo === 'P0001') return c.json({ erro: (e as Error).message }, 409);
   throw e;

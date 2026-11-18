@@ -1,5 +1,8 @@
 @import "tailwindcss";
 
+/* O site não tem modo escuro: as classes dark: só valem com a classe .dark, que não é usada. Sem isto, o tema escuro do Windows pintaria só parte das cores. */
+@custom-variant dark (&:where(.dark, .dark *));
+
 /* Identidade visual (docs/superpowers/specs/2026-11-16-telas.md) */
 @theme {
   --color-vinho: #8E1B1B;
@@ -10,12 +13,18 @@
   --color-apagado: #5B6675;
   --color-linha: #D8DDE4;
   --color-alerta: #B3261E;
+  --color-pendencia: #8A5A00;
+  --color-pendencia-fundo: #FCF1D6;
+
+  /* texto de apoio em 13 px (o padrão do Tailwind é 12) */
+  --text-xs: 0.8125rem;
 
   --font-sans: "Barlow", system-ui, sans-serif;
   --font-cond: "Barlow Semi Condensed", "Barlow", system-ui, sans-serif;
 
   /* variáveis usadas pelos componentes shadcn/ui */
-  --color-background: var(--color-fundo);
+  /* superfície dos componentes (campos, diálogos, botões): branca; o fundo da página é --color-fundo, no body */
+  --color-background: #FFFFFF;
   --color-foreground: var(--color-tinta);
   --color-primary: var(--color-vinho);
   --color-primary-foreground: #FFFFFF;
@@ -41,8 +50,6 @@
     background: var(--color-fundo);
     color: var(--color-tinta);
     font-family: var(--font-sans);
-    /* sem o "elástico" do navegador: ao passar do fim, a página (e o menu) não é puxada */
-    overscroll-behavior-y: none;
   }
   * {
     border-color: var(--color-border);
@@ -50,6 +57,15 @@
   :focus-visible {
     outline: 2px solid var(--color-tinta);
     outline-offset: 2px;
+  }
+}
+
+/* sem o "elástico" do navegador no computador: ao passar do fim, a página (e o menu) não é puxada.
+   No celular ele continua, para não perder o "puxar para atualizar". */
+@media (min-width: 48rem) {
+  html,
+  body {
+    overscroll-behavior-y: none;
   }
 }
 

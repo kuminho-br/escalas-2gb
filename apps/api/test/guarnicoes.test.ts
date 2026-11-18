@@ -175,6 +175,19 @@ describe('guarnições', () => {
   it('guarnição desconhecida é 404', async () => {
     expect((await api.pedir('escalante', 'GET', '/api/guarnicoes/00000000-0000-0000-0000-000000000000')).status).toBe(404);
   });
+
+  it('PUT de versão com prioridade acima de 1000 ou tamanho acima de 99 dá 400', async () => {
+    const f = await criar('Limites da Tela');
+    const salvar = (v: unknown) => api.pedir('escalante', 'PUT', `/api/guarnicoes/${f.id}/versoes/${atual}`, v);
+    const r = await salvar(versao([linha(funcaoSb)], { prioridade: 5000 }));
+    expect(r.status).toBe(400);
+    expect((await r.json()).campos.prioridade).toBe('Use um número de 1 a 1000.');
+    expect((await salvar(versao([linha(funcaoSb)], { prioridade: 99999999999 }))).status).toBe(400);
+    const g = await salvar(versao([linha(funcaoSb, 1, 100)]));
+    expect(g.status).toBe(400);
+    expect((await g.json()).campos['composicao.0.maximo']).toBe('Use um número até 99.');
+    expect((await salvar(versao([linha(funcaoSb, 1, 99)], { prioridade: 1000 }))).status).toBe(200);
+  });
 });
 
 describe('desativar', () => {

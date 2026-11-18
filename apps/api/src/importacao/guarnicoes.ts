@@ -1,9 +1,9 @@
 // Importação da aba GUARNIÇÕES (leitura como cadastro_guarnicoes.js do protótipo, via resolverGuarnicoes).
-import { mesPorExtenso, type ItemPrevia, type ProblemaImportacao, type VersaoGuarnicao, type VersaoSalva } from 'contratos';
+import { mesPorExtenso, Prioridade, QuantidadeDeMilitares, type ItemPrevia, type ProblemaImportacao, type VersaoGuarnicao, type VersaoSalva } from 'contratos';
 import { cadgVigencia, categoriasCnh, CNH_HABILITA, normalizar, resolverGuarnicoes, type LinhaGuarnicao as LinhaDaAba } from 'dominio';
 import { diferencasDeVersao } from '../cadastros/guarnicoes-regras.ts';
 import { funcoesVisiveis, gravarVersao, versoesDasGuarnicoes } from '../cadastros/guarnicoes.ts';
-import { coluna, mesDaCelula } from './planilha.ts';
+import { coluna, lerMes } from './planilha.ts';
 import type { ColunaModelo, Importador } from './tipos.ts';
 
 const ABA = 'GUARNIÇÕES';
@@ -44,6 +44,31 @@ function problemaDoAviso(aviso: string): ProblemaImportacao {
   return { aba: ABA, linha, mensagem: nome ? `${nome}: ${resto}` : capitaliza(resto), solucao: 'Corrija a linha na planilha e importe de novo.' };
 }
 
+/** Prioridade e tamanhos que o contrato da guarnição recusa, cada um com a linha da planilha e a mensagem do contrato como solução. */
+function recusasDoContrato(
+  nome: string,
+  chave: string,
+  prioridade: number | null,
+  composicao: { funcao: string; minimo: number; maximo: number }[],
+  linhas: LinhaDaAba[],
+): { linha: number; mensagem: string; solucao: string }[] {
+  const achados: { linha: number; mensagem: string; solucao: string }[] = [];
+  const daGuarnicao = linhas.filter((l) => normalizar(l.guarnicao) === chave);
+  const pr = Prioridade.safeParse(prioridade);
+  if (!pr.success) {
+    const linha = daGuarnicao.find((l) => String(l.prioridade ?? '') !== '')?.linha ?? daGuarnicao[0]?.linha ?? 1;
+    achados.push({ linha, mensagem: `Prioridade "${prioridade}" de ${nome}`, solucao: pr.error.issues[0]!.message });
+  }
+  for (const f of composicao) {
+    const linha = daGuarnicao.find((l) => normalizar(l.funcao) === normalizar(f.funcao))?.linha ?? daGuarnicao[0]?.linha ?? 1;
+    for (const [rotulo, valor] of [['Mínimo', f.minimo], ['Máximo', f.maximo]] as const) {
+      const q = QuantidadeDeMilitares.safeParse(valor);
+      if (!q.success) achados.push({ linha, mensagem: `${rotulo} "${valor}" de ${nome}`, solucao: q.error.issues[0]!.message });
+    }
+  }
+  return achados;
+}
+
 export const importadorGuarnicoes: Importador<Plano> = {
   abas: [ABA],
 
@@ -71,19 +96,29 @@ export const importadorGuarnicoes: Importador<Plano> = {
     if (problemas.length) return vazio;
 
     const pega = (cel: string[], i: number) => (i < 0 ? '' : (cel[i] ?? '').trim());
-    const linhas: LinhaDaAba[] = aba.linhas.map((l) => ({
-      linha: l.linha,
-      vigencia: mesDaCelula(pega(l.celulas, c.vigencia)),
-      guarnicao: pega(l.celulas, c.guarnicao),
-      viatura: pega(l.celulas, c.viatura),
-      tipo: pega(l.celulas, c.tipo),
-      ativar: pega(l.celulas, c.ativar),
-      prioridade: pega(l.celulas, c.prioridade),
-      cnh: pega(l.celulas, c.cnh),
-      funcao: pega(l.celulas, c.funcao),
-      minimo: pega(l.celulas, c.minimo),
-      maximo: pega(l.celulas, c.maximo),
-    }));
+    // a vigência passa pelo leitor único: o que não se lê (ou o ano 0000) vira problema e a linha fica de fora
+    const linhas: LinhaDaAba[] = [];
+    for (const l of aba.linhas) {
+      const bruta = pega(l.celulas, c.vigencia);
+      const vigencia = lerMes(bruta);
+      if (vigencia === null) {
+        problemas.push({ aba: ABA, linha: l.linha, mensagem: `Vigência "${bruta}" de ${pega(l.celulas, c.guarnicao) || '(vazia)'}`, solucao: 'Use aaaa-mm ou mm/aaaa na coluna VIGÊNCIA.' });
+        continue;
+      }
+      linhas.push({
+        linha: l.linha,
+        vigencia,
+        guarnicao: pega(l.celulas, c.guarnicao),
+        viatura: pega(l.celulas, c.viatura),
+        tipo: pega(l.celulas, c.tipo),
+        ativar: pega(l.celulas, c.ativar),
+        prioridade: pega(l.celulas, c.prioridade),
+        cnh: pega(l.celulas, c.cnh),
+        funcao: pega(l.celulas, c.funcao),
+        minimo: pega(l.celulas, c.minimo),
+        maximo: pega(l.celulas, c.maximo),
+      });
+    }
 
     const criacao = (await tx.query<{ mes: string }>("select to_char(desde, 'YYYY-MM') as mes from unidade where id = $1", [unidadeId])).rows[0]!.mes;
     const meses = new Set<string>([criacao]);
@@ -132,6 +167,18 @@ export const importadorGuarnicoes: Importador<Plano> = {
           if (maximo === 0) zerados.add(`${g.id}: ${f.funcao} ficou de 0 a 0 militares; confira MÍNIMO e MÁXIMO.`);
           return { funcaoId: '', funcao: f.funcao, minimo: f.minimo, maximo, cnhExigida };
         });
+        // os limites do contrato valem também aqui: o que a planilha traz, a tela precisa conseguir salvar de novo
+        const recusas = recusasDoContrato(g.id, chave, g.prioridade, composicao, linhas);
+        if (recusas.length) {
+          for (const r of recusas) {
+            const k = `${r.linha}|${r.mensagem}`;
+            if (!vistos.has(k)) {
+              vistos.add(k);
+              problemas.push({ aba: ABA, ...r });
+            }
+          }
+          continue;
+        }
         const versao: Versao = { vigencia: mes, viatura: g.viatura || null, tipoViatura: g.tipo || null, prioridade: g.prioridade, ativa: g.ativar, composicao };
         const entrada = porGuarnicao.get(chave) ?? { nome: g.id, versoes: [] };
         porGuarnicao.set(chave, entrada);

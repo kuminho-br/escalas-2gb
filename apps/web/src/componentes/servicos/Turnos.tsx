@@ -1,5 +1,5 @@
 import { useQueryClient } from '@tanstack/react-query';
-import { LetraTurno, type Servico, type TurnoSalvo } from 'contratos';
+import { LetraTurno, textoFaixa, type Servico, type TurnoSalvo } from 'contratos';
 import { duracaoMinutos } from 'dominio';
 import { useState } from 'react';
 import { mensagemDe } from '@/api/cliente';
@@ -92,6 +92,7 @@ function LinhaTurno({
     }
   }
   async function remover() {
+    if (!window.confirm(`Remover o turno ${turno!.letra} (${textoFaixa(turno!.inicio, turno!.fim)}) de ${servico.nome}?`)) return;
     setErro(null);
     try {
       await removerTurno(turno!.id);
@@ -113,9 +114,12 @@ function LinhaTurno({
         <BlocoDeDuracao cor={servico.cor} duracao={duracao} />
         <span className="ml-auto flex items-center gap-2">
           <EtiquetaPendente sujo={sujo} />
-          <Button type="button" size="sm" variant="outline" onClick={() => void salvar()} aria-label={`Salvar ${nome}`}>
-            Salvar
-          </Button>
+          {/* a linha gravada só mostra Salvar quando muda; a linha nova sempre */}
+          {(sujo || !turno) && (
+            <Button type="button" size="sm" variant="default" onClick={() => void salvar()} aria-label={`Salvar ${nome}`}>
+              Salvar
+            </Button>
+          )}
           {turno ? (
             <Button type="button" size="sm" variant="ghost" onClick={() => void remover()} aria-label={`Remover ${nome}`}>
               Remover

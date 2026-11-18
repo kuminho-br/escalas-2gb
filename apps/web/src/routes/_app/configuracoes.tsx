@@ -4,10 +4,11 @@ import { mesPorExtenso, somarMeses, type ItemCatalogo, type Parametro } from 'co
 import { useState, type FormEvent } from 'react';
 import { mensagemDe } from '@/api/cliente';
 import { consultaCatalogo, consultaParametros, editarNoCatalogo, incluirNoCatalogo, salvarParametro, type Catalogo } from '@/api/configuracoes';
-import { ehAdministrador } from '@/api/eu';
+import { ehAdministrador, podeMudarParametro } from '@/api/eu';
 import { ImportarPlanilha } from '@/componentes/ImportarPlanilha';
 import { Button } from '@/componentes/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/componentes/ui/dialog';
+import { Selecao } from '@/componentes/Selecao';
 import { Input } from '@/componentes/ui/input';
 import { Label } from '@/componentes/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/componentes/ui/table';
@@ -22,12 +23,13 @@ function Configuracoes() {
   const { eu } = Route.useRouteContext();
   const queryClient = useQueryClient();
   const admin = ehAdministrador(eu);
+  const podeMudar = podeMudarParametro(eu);
 
   return (
     <section>
       <header className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="font-cond text-[28px] leading-tight font-semibold">Configurações</h1>
-        <ImportarPlanilha cadastro="configuracoes" rotulo="as configurações" aoConcluir={() => queryClient.invalidateQueries({ queryKey: ['parametros'] })} />
+        {podeMudar && <ImportarPlanilha cadastro="configuracoes" rotulo="as configurações" aoConcluir={() => queryClient.invalidateQueries({ queryKey: ['parametros'] })} />}
       </header>
       <Tabs defaultValue="regras" className="mt-6">
         <TabsList>
@@ -36,7 +38,7 @@ function Configuracoes() {
           <TabsTrigger value="atividades">Atividades</TabsTrigger>
         </TabsList>
         <TabsContent value="regras">
-          <RegrasDoProcesso unidadeId={eu.unidade.id} sigla={eu.unidade.sigla} />
+          <RegrasDoProcesso unidadeId={eu.unidade.id} sigla={eu.unidade.sigla} podeMudar={podeMudar} />
         </TabsContent>
         <TabsContent value="tipos">
           <ListaDoCatalogo catalogo="tipos-afastamento" rotuloNovo="Novo tipo de afastamento" podeEditar={admin} />
@@ -51,7 +53,7 @@ function Configuracoes() {
 
 const textoDoValor = (p: Parametro) => (typeof p.valor === 'boolean' ? (p.valor ? 'Sim' : 'Não') : String(p.valor));
 
-function RegrasDoProcesso({ unidadeId, sigla }: { unidadeId: string; sigla: string }) {
+function RegrasDoProcesso({ unidadeId, sigla, podeMudar }: { unidadeId: string; sigla: string; podeMudar: boolean }) {
   const mes = mesAtual();
   const { data, error, isPending } = useQuery(consultaParametros(unidadeId, mes));
   const [mudando, setMudando] = useState<Parametro | null>(null);
@@ -62,7 +64,7 @@ function RegrasDoProcesso({ unidadeId, sigla }: { unidadeId: string; sigla: stri
   return (
     <div className="rounded-xl border border-linha bg-superficie">
       <p className="border-b border-linha px-4 py-3 text-sm text-apagado">
-        Valores em vigor em {mesPorExtenso(mes)} para {sigla}. Uma mudança vale a partir do mês escolhido, e os meses anteriores ficam como estavam.
+        Valores em vigor em {mesPorExtenso(mes)} para {sigla}. Uma mudança vale a partir do mês escolhido, e os meses anteriores ficam como estavam.{podeMudar ? '' : ' Só o gestor ou o administrador muda.'}
       </p>
       <Table>
         <TableHeader>
@@ -94,9 +96,11 @@ function RegrasDoProcesso({ unidadeId, sigla }: { unidadeId: string; sigla: stri
                 )}
               </TableCell>
               <TableCell className="text-right">
-                <Button variant="outline" size="sm" onClick={() => setMudando(p)}>
-                  Mudar a partir de…
-                </Button>
+                {podeMudar && (
+                  <Button variant="outline" size="sm" onClick={() => setMudando(p)}>
+                    Mudar a partir de…
+                  </Button>
+                )}
               </TableCell>
             </TableRow>
           ))}
@@ -140,8 +144,20 @@ function MudarParametro({ unidadeId, parametro, aoFechar }: { unidadeId: string;
         <form onSubmit={salvar} className="grid gap-4">
           <div className="grid gap-1.5">
             <Label htmlFor="param-valor">Novo valor</Label>
-            <Input id="param-valor" value={valor} onChange={(e) => setValor(e.target.value)} />
-            {parametro.tipo === 'simnao' && <p className="text-sm text-apagado">Escreva Sim ou Não.</p>}
+            {parametro.tipo === 'simnao' ? (
+              <Selecao id="param-valor" value={valor} onChange={(e) => setValor(e.target.value)}>
+                <option value="Sim">Sim</option>
+                <option value="Não">Não</option>
+              </Selecao>
+            ) : (
+              <Input
+                id="param-valor"
+                type={parametro.tipo === 'inteiro' || parametro.tipo === 'decimal' ? 'number' : 'text'}
+                step={parametro.tipo === 'inteiro' ? 1 : parametro.tipo === 'decimal' ? 'any' : undefined}
+                value={valor}
+                onChange={(e) => setValor(e.target.value)}
+              />
+            )}
           </div>
           <div className="grid gap-1.5">
             <Label htmlFor="param-mes">A partir de</Label>

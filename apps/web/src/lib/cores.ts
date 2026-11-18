@@ -9,6 +9,9 @@ function luminancia(hex: string): number {
   return 0.2126 * canal(0) + 0.7152 * canal(1) + 0.0722 * canal(2);
 }
 
+/** Cor tão clara que some sobre o fundo branco (precisa de borda). */
+export const corClara = (hex: string) => luminancia(hex) > 0.75;
+
 /** Texto branco ou escuro, o de maior contraste sobre o fundo (relação de contraste do WCAG). */
 export function corDoTexto(fundo: string): '#FFFFFF' | '#1C2430' {
   const l = luminancia(fundo);

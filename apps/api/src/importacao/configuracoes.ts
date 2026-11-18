@@ -3,7 +3,7 @@ import { mesParaData, mesPorExtenso, type ItemPrevia, type ProblemaImportacao } 
 import { normalizar, PARAM_CATALOGO, paramDef, paramValidarLinhas, type ValorParametro } from 'dominio';
 import { ESCREVE_PARAMETRO } from '../acesso.ts';
 import { CHAVES_SISTEMA } from '../cadastros/configuracoes.ts';
-import { coluna, mesDaCelula } from './planilha.ts';
+import { coluna, lerMes } from './planilha.ts';
 import type { ColunaModelo, Importador } from './tipos.ts';
 
 const ABA = 'CONFIGURAÇÕES';
@@ -60,7 +60,14 @@ export const importadorConfiguracoes: Importador<Item[]> = {
         if (!avisos.includes(aviso)) avisos.push(aviso);
         continue;
       }
-      const v = paramValidarLinhas([{ linha: l.linha, chave, valor: l.celulas[c.valor], vigencia: c.vigencia < 0 ? '' : mesDaCelula(l.celulas[c.vigencia]!) }]);
+      // a vigência passa pelo leitor único: o que não se lê (ou o ano 0000) vira problema, como o resto do que a linha tem de errado
+      const vigBruta = c.vigencia < 0 ? '' : (l.celulas[c.vigencia] ?? '').trim();
+      const vigLida = lerMes(vigBruta);
+      if (vigLida === null) {
+        problemas.push({ aba: ABA, linha: l.linha, mensagem: `${chave}: vigência "${vigBruta}" inválida.`, solucao: 'Corrija a linha na sandbox e importe de novo.' });
+        continue;
+      }
+      const v = paramValidarLinhas([{ linha: l.linha, chave, valor: l.celulas[c.valor], vigencia: vigLida ?? vigBruta }]);
       const boa = v.boas[0];
       if (!boa || !CHAVES_SISTEMA.includes(boa.chave)) {
         problemas.push({

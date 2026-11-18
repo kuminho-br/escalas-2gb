@@ -46,6 +46,14 @@ function Feriados() {
     }
   }
 
+  // o feriado de outro ano some da lista do ano que está aberta: troca para o ano dele e diz isso
+  function salvou(f: Feriado) {
+    const doAno = Number(f.data.slice(0, 4));
+    if (doAno === ano) return;
+    setAno(doAno);
+    setAviso({ erro: false, texto: `Feriado salvo em ${doAno}.` });
+  }
+
   async function remover(f: Feriado) {
     if (!window.confirm(`Remover o feriado "${f.descricao}" (${diaMes(f.data)})?`)) return;
     setAviso(null);
@@ -94,7 +102,7 @@ function Feriados() {
         )}
       </div>
 
-      {dialogo && <FeriadoDialogo key={dialogo.feriado?.id ?? 'novo'} unidadeId={eu.unidade.id} ano={ano} feriado={dialogo.feriado} aoFechar={() => setDialogo(null)} />}
+      {dialogo && <FeriadoDialogo key={dialogo.feriado?.id ?? 'novo'} unidadeId={eu.unidade.id} ano={ano} feriado={dialogo.feriado} aoFechar={() => setDialogo(null)} aoSalvar={salvou} />}
     </section>
   );
 }
@@ -107,7 +115,10 @@ function ItemFeriado({ f, aoEditar, aoRemover }: { f: Feriado; aoEditar: () => v
       <span className={f.herdado ? 'text-apagado' : 'font-medium'}>{f.descricao}</span>
       {!f.fixo && <span className="rounded border border-linha px-1.5 text-xs">móvel</span>}
       {f.herdado ? (
-        <span className="ml-auto rounded border border-linha px-1.5 text-xs text-apagado" title="Cadastrado numa unidade acima: não se edita aqui">{f.unidadeSigla}</span>
+        <span className="ml-auto rounded border border-linha px-1.5 text-xs text-apagado" title="Cadastrado numa unidade acima: não se edita aqui">
+          {f.unidadeSigla}
+          <span className="sr-only">cadastrado em {f.unidadeSigla}; não se edita aqui</span>
+        </span>
       ) : (
         <span className="ml-auto flex gap-1">
           <Button type="button" size="icon" variant="ghost" aria-label={`Editar ${f.descricao}`} onClick={aoEditar}>
@@ -122,7 +133,7 @@ function ItemFeriado({ f, aoEditar, aoRemover }: { f: Feriado; aoEditar: () => v
   );
 }
 
-function FeriadoDialogo({ unidadeId, ano, feriado, aoFechar }: { unidadeId: string; ano: number; feriado?: Feriado; aoFechar: () => void }) {
+function FeriadoDialogo({ unidadeId, ano, feriado, aoFechar, aoSalvar }: { unidadeId: string; ano: number; feriado?: Feriado; aoFechar: () => void; aoSalvar: (f: Feriado) => void }) {
   const queryClient = useQueryClient();
   const [data, setData] = useState(feriado?.data ?? `${ano}-01-01`);
   const [descricao, setDescricao] = useState(feriado?.descricao ?? '');
@@ -136,10 +147,10 @@ function FeriadoDialogo({ unidadeId, ano, feriado, aoFechar }: { unidadeId: stri
     setSalvando(true);
     const dados = { data, descricao: descricao.trim(), fixo };
     try {
-      if (feriado) await editarFeriado(feriado.id, dados);
-      else await criarFeriado(unidadeId, dados);
+      const salvo = feriado ? await editarFeriado(feriado.id, dados) : await criarFeriado(unidadeId, dados);
       atualizarFeriados(queryClient);
       aoFechar();
+      aoSalvar(salvo);
     } catch (err) {
       setErro(mensagemComCampo(err));
     } finally {

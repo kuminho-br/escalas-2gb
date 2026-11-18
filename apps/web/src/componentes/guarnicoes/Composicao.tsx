@@ -81,8 +81,9 @@ export function Composicao({ linhas, aoMudar, funcoes, unidadeId, aoMudarFuncao 
           const exige = l.cnh !== '';
           return (
             <li key={l.chave} className="grid gap-2 rounded-lg border border-linha px-3 py-2">
-              <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
-                <span className="flex min-w-[12rem] flex-1 items-center gap-1">
+              {/* no computador, cada função cabe numa linha: função, mínimo e máximo, CNH (largura reservada) e Remover */}
+              <div className="grid items-center gap-x-3 gap-y-2 text-sm sm:grid-cols-[minmax(12rem,1fr)_auto_10.5rem_auto]">
+                <span className="flex items-center gap-1">
                   <Selecao
                     aria-label={`Função ${i + 1}`}
                     value={l.funcaoId}
@@ -130,7 +131,7 @@ export function Composicao({ linhas, aoMudar, funcoes, unidadeId, aoMudarFuncao 
                   militares
                 </span>
                 <span className="inline-flex items-center gap-2">
-                  <label className="inline-flex items-center gap-1.5">
+                  <label className="inline-flex items-center gap-1.5 whitespace-nowrap">
                     <input
                       type="checkbox"
                       aria-label={`Exige CNH para ${nome}`}
@@ -146,7 +147,7 @@ export function Composicao({ linhas, aoMudar, funcoes, unidadeId, aoMudarFuncao 
                     </Selecao>
                   )}
                 </span>
-                <Button type="button" variant="ghost" size="xs" aria-label={`Remover ${nome}`} className="ml-auto" onClick={() => aoMudar(linhas.filter((x) => x.chave !== l.chave))}>
+                <Button type="button" variant="ghost" size="xs" aria-label={`Remover ${nome}`} className="justify-self-end" onClick={() => aoMudar(linhas.filter((x) => x.chave !== l.chave))}>
                   Remover
                 </Button>
               </div>

@@ -1,11 +1,12 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { TipoServico, type Servico } from 'contratos';
-import { ArrowLeft } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
 import { mensagemDe } from '@/api/cliente';
+import { consultaEscalas } from '@/api/escalas';
 import { atualizarServicos, consultaServico, editarServico, mudarSituacaoServico } from '@/api/servicos';
-import { EtiquetaPendente, ProvedorDePendencias, usePendencia } from '@/componentes/AlteracoesPendentes';
+import { AcoesDoBloco, ProvedorDePendencias, usePendencia } from '@/componentes/AlteracoesPendentes';
+import { FichaPainel } from '@/componentes/ListaDetalhe';
 import { Secao } from '@/componentes/militares/Secao';
 import { Turnos } from '@/componentes/servicos/Turnos';
 import { Selecao } from '@/componentes/Selecao';
@@ -13,7 +14,7 @@ import { SeletorDeCor } from '@/componentes/SeletorDeCor';
 import { Button } from '@/componentes/ui/button';
 import { Input } from '@/componentes/ui/input';
 import { Label } from '@/componentes/ui/label';
-import { NOME_TIPO } from '@/lib/servicos';
+import { NOME_TIPO, resumoDoServico } from '@/lib/servicos';
 
 export const Route = createFileRoute('/_app/servicos/$id')({
   component: Ficha,
@@ -21,33 +22,29 @@ export const Route = createFileRoute('/_app/servicos/$id')({
 
 function Ficha() {
   const { id } = Route.useParams();
+  const { eu } = Route.useRouteContext();
   const { data: s, error, isPending } = useQuery(consultaServico(id));
   if (isPending) return <p className="p-4 text-apagado">Carregando…</p>;
   if (error) return <p role="alert" className="p-4 text-alerta">{mensagemDe(error)}</p>;
   return (
     <ProvedorDePendencias>
-    <article className="grid gap-4">
-      <header className="flex items-baseline gap-3">
-        <Link to="/servicos" className="lg:hidden" aria-label="Voltar para a lista">
-          <ArrowLeft className="size-5" aria-hidden />
-        </Link>
-        <h2 className="font-cond text-2xl font-semibold">{s.nome}</h2>
-        {!s.ativo && <span className="rounded border border-linha px-1.5 text-xs">desativado</span>}
-      </header>
-      <Situacao s={s} />
-      {/* os dados entram na key: outra gravação (ex.: importação) recarrega o formulário */}
-      <Identificacao key={`i-${s.id}-${s.nome}-${s.tipo}-${s.operacao}-${s.rotuloImpressao}-${s.cor}`} s={s} />
-      {/* só o serviço entra na key: cada linha de turno recomeça sozinha quando os dados dela mudam, e a edição pendente de outra linha continua */}
-      <Turnos key={`t-${s.id}`} servico={s} />
-    </article>
+      <FichaPainel titulo={s.nome} voltarPara="/servicos" etiqueta={s.ativo ? undefined : 'desativado'} resumo={resumoDoServico(s)} acoes={<Situacao s={s} />}>
+        {/* os dados entram na key: outra gravação (ex.: importação) recarrega o formulário */}
+        <Identificacao key={`i-${s.id}-${s.nome}-${s.tipo}-${s.operacao}-${s.rotuloImpressao}-${s.cor}`} s={s} />
+        {/* só o serviço entra na key: cada linha de turno recomeça sozinha quando os dados dela mudam, e a edição pendente de outra linha continua */}
+        <Turnos key={`t-${s.id}`} servico={s} />
+        <UsadoEm s={s} unidadeId={eu.unidade.id} />
+      </FichaPainel>
     </ProvedorDePendencias>
   );
 }
 
+/** Desativar pergunta antes (o serviço some da lista); reativar não. */
 function Situacao({ s }: { s: Servico }) {
   const queryClient = useQueryClient();
   const [erro, setErro] = useState<string | null>(null);
   async function mudar() {
+    if (s.ativo && !window.confirm(`Desativar o serviço ${s.nome}? Ele some da lista e continua nas escalas que já o reúnem.`)) return;
     setErro(null);
     try {
       await mudarSituacaoServico(s.id, !s.ativo);
@@ -57,13 +54,12 @@ function Situacao({ s }: { s: Servico }) {
     }
   }
   return (
-    <div className="flex flex-wrap items-center gap-3 rounded-xl border border-linha bg-superficie px-4 py-3 text-sm">
-      <span className="text-apagado">{s.ativo ? 'Desativado, o serviço some da lista e continua nas escalas que já o reúnem.' : 'Desativado.'}</span>
+    <>
       <Button type="button" variant="outline" size="sm" onClick={() => void mudar()}>
         {s.ativo ? 'Desativar' : 'Reativar'}
       </Button>
-      {erro && <p role="alert" className="text-alerta">{erro}</p>}
-    </div>
+      {erro && <p role="alert" className="w-full text-right text-sm text-alerta">{erro}</p>}
+    </>
   );
 }
 
@@ -126,12 +122,31 @@ function Identificacao({ s }: { s: Servico }) {
             <SeletorDeCor id="sv-cor" valor={cor} aoMudar={setCor} />
           </div>
         </div>
-        <div className="flex items-center gap-3">
-          <Button type="submit" variant="outline">Salvar</Button>
-          <EtiquetaPendente sujo={sujo} />
-          {aviso && <p role={aviso.erro ? 'alert' : 'status'} className={aviso.erro ? 'text-sm text-alerta' : 'text-sm text-apagado'}>{aviso.texto}</p>}
-        </div>
+        <AcoesDoBloco sujo={sujo} aviso={aviso} />
       </form>
+    </Secao>
+  );
+}
+
+/** As escalas da unidade que reúnem este serviço (a ligação é pelo nome, que é único na unidade). */
+function UsadoEm({ s, unidadeId }: { s: Servico; unidadeId: string }) {
+  const escalas = useQuery(consultaEscalas(unidadeId));
+  if (!escalas.data) return null;
+  const reunem = escalas.data.filter((e) => e.servicos.includes(s.nome));
+  return (
+    <Secao titulo="Onde é usado">
+      {reunem.length === 0 ? (
+        <p className="text-sm text-apagado">Ainda não está em nenhuma escala.</p>
+      ) : (
+        <ul className="grid gap-1.5 text-sm">
+          {reunem.map((e) => (
+            <li key={e.id} className="flex items-center gap-2">
+              <Link to="/escalas/$id" params={{ id: e.id }} className="font-medium text-vinho hover:underline">{e.nome}</Link>
+              {!e.ativa && <span className="rounded border border-linha px-1.5 text-xs">desativada</span>}
+            </li>
+          ))}
+        </ul>
+      )}
     </Secao>
   );
 }

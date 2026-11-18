@@ -1,12 +1,12 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { createFileRoute, Link } from '@tanstack/react-router';
+import { createFileRoute } from '@tanstack/react-router';
 import { DiasDoc, MilitaresDoc, type Escala } from 'contratos';
-import { ArrowLeft } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
 import { mensagemDe } from '@/api/cliente';
 import { atualizarEscalas, consultaEscala, editarEscala, mudarSituacaoEscala } from '@/api/escalas';
-import { EtiquetaPendente, ProvedorDePendencias, usePendencia } from '@/componentes/AlteracoesPendentes';
+import { AcoesDoBloco, ProvedorDePendencias, usePendencia } from '@/componentes/AlteracoesPendentes';
 import { Matriz } from '@/componentes/escalas/Matriz';
+import { FichaPainel } from '@/componentes/ListaDetalhe';
 import { ServicosDaEscala } from '@/componentes/escalas/ServicosDaEscala';
 import { Secao } from '@/componentes/militares/Secao';
 import { Selecao } from '@/componentes/Selecao';
@@ -26,29 +26,23 @@ function Ficha() {
   if (error) return <p role="alert" className="p-4 text-alerta">{mensagemDe(error)}</p>;
   return (
     <ProvedorDePendencias>
-    <article className="grid gap-4">
-      <header className="flex items-baseline gap-3">
-        <Link to="/escalas" className="lg:hidden" aria-label="Voltar para a lista">
-          <ArrowLeft className="size-5" aria-hidden />
-        </Link>
-        <h2 className="font-cond text-2xl font-semibold">{e.nome}</h2>
-        {!e.ativa && <span className="rounded border border-linha px-1.5 text-xs">desativada</span>}
-      </header>
-      <Situacao e={e} />
-      {/* os dados entram na key: outra gravação (ex.: importação) recarrega o formulário */}
-      <Identificacao key={`i-${e.id}-${e.nome}-${e.titulo}-${e.militaresDoc}-${e.diasDoc}`} e={e} />
-      <ServicosDaEscala key={`s-${e.id}-${e.servicos.map((s) => s.id).join(',')}`} escala={e} unidadeId={eu.unidade.id} />
-      {/* a matriz mantém as marcações pendentes quando os serviços mudam: só a ficha entra na key */}
-      <Matriz key={`m-${e.id}`} escala={e} unidadeId={eu.unidade.id} />
-    </article>
+      <FichaPainel titulo={e.nome} voltarPara="/escalas" etiqueta={e.ativa ? undefined : 'desativada'} resumo={`Título no documento: ${e.titulo}.`} acoes={<Situacao e={e} />}>
+        {/* os dados entram na key: outra gravação (ex.: importação) recarrega o formulário */}
+        <Identificacao key={`i-${e.id}-${e.nome}-${e.titulo}-${e.militaresDoc}-${e.diasDoc}`} e={e} />
+        <ServicosDaEscala key={`s-${e.id}-${e.servicos.map((s) => s.id).join(',')}`} escala={e} unidadeId={eu.unidade.id} />
+        {/* a matriz mantém as marcações pendentes quando os serviços mudam: só a ficha entra na key */}
+        <Matriz key={`m-${e.id}`} escala={e} unidadeId={eu.unidade.id} />
+      </FichaPainel>
     </ProvedorDePendencias>
   );
 }
 
+/** Desativar pergunta antes (a escala some da lista); reativar não. */
 function Situacao({ e }: { e: Escala }) {
   const queryClient = useQueryClient();
   const [erro, setErro] = useState<string | null>(null);
   async function mudar() {
+    if (e.ativa && !window.confirm(`Desativar a escala ${e.nome}? Ela some da lista.`)) return;
     setErro(null);
     try {
       await mudarSituacaoEscala(e.id, !e.ativa);
@@ -58,13 +52,12 @@ function Situacao({ e }: { e: Escala }) {
     }
   }
   return (
-    <div className="flex flex-wrap items-center gap-3 rounded-xl border border-linha bg-superficie px-4 py-3 text-sm">
-      <span className="text-apagado">{e.ativa ? 'Desativada, a escala some da lista.' : 'Desativada.'}</span>
+    <>
       <Button type="button" variant="outline" size="sm" onClick={() => void mudar()}>
         {e.ativa ? 'Desativar' : 'Reativar'}
       </Button>
-      {erro && <p role="alert" className="text-alerta">{erro}</p>}
-    </div>
+      {erro && <p role="alert" className="w-full text-right text-sm text-alerta">{erro}</p>}
+    </>
   );
 }
 
@@ -121,11 +114,7 @@ function Identificacao({ e }: { e: Escala }) {
             </Selecao>
           </div>
         </div>
-        <div className="flex items-center gap-3">
-          <Button type="submit" variant="outline">Salvar</Button>
-          <EtiquetaPendente sujo={sujo} />
-          {aviso && <p role={aviso.erro ? 'alert' : 'status'} className={aviso.erro ? 'text-sm text-alerta' : 'text-sm text-apagado'}>{aviso.texto}</p>}
-        </div>
+        <AcoesDoBloco sujo={sujo} aviso={aviso} />
       </form>
     </Secao>
   );

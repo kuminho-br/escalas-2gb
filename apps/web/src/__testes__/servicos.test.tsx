@@ -1,7 +1,7 @@
 import type { Servico } from 'contratos';
 import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { textoDuracao } from '@/lib/turnos';
 import { abrir, corpoEnviado, EU_EXEMPLO, simularApi } from './apoio';
 
@@ -100,8 +100,9 @@ describe('serviços', () => {
     api({ 'GET /api/servicos/s3': { status: 200, corpo: PRONTO } });
     abrir('/servicos/s3');
     const regua = await screen.findByRole('img', { name: /Turnos do dia/ });
-    const a = within(regua).getByText('A');
-    const b = within(regua).getByText('B');
+    // a letra fica num span dentro do segmento, que leva a posição
+    const a = within(regua).getByText('A').parentElement!;
+    const b = within(regua).getByText('B').parentElement!;
     expect(a).toHaveStyle({ left: '25%', width: '37.5%' });
     expect(b).toHaveStyle({ left: '62.5%', width: '37.5%' });
     expect(screen.getByText('dia seguinte')).toBeInTheDocument();
@@ -127,7 +128,7 @@ describe('serviços', () => {
     api({ 'GET /api/servicos/s3': { status: 200, corpo: PRONTO } });
     abrir('/servicos/s3');
     // Pronto vai até 32h: a última marca (30h, "06h") fica centrada, não deslocada para a esquerda
-    const marca = await screen.findByText('06h');
+    const marca = (await screen.findAllByText('06h')).at(-1)!;
     expect(marca).toHaveClass('-translate-x-1/2');
     expect(marca).not.toHaveClass('last:-translate-x-full');
   });
@@ -183,6 +184,7 @@ describe('serviços', () => {
   });
 
   it('remover turno pede à API e mostra o erro dela', async () => {
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
     api({ 'DELETE /api/turnos/t1': { status: 409, corpo: { erro: 'O turno A de Bioma já tem militares escalados. Ele pode mudar de horário, mas não pode ser removido.' } } });
     abrir('/servicos/s3');
     await userEvent.click(await screen.findByRole('button', { name: 'Remover turno A' }));
@@ -190,12 +192,14 @@ describe('serviços', () => {
   });
 
   it('desativar envia ativo false', async () => {
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
     const f = api({ 'POST /api/servicos/s3/situacao': { status: 200, corpo: { ...BIOMA, ativo: false } } });
     abrir('/servicos/s3');
     await userEvent.click(await screen.findByRole('button', { name: 'Desativar' }));
     await waitFor(() => expect(corpoEnviado(f, 'POST /api/servicos/s3/situacao')).toEqual({ ativo: false }));
   });
   it('revisão: a identificação recarrega quando o serviço muda no servidor', async () => {
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
     const rotas: Parameters<typeof simularApi>[0] = {
       '/api/eu': { status: 200, corpo: EU_EXEMPLO },
       'GET /api/unidades/u-1sb/servicos': { status: 200, corpo: LISTA },
@@ -209,5 +213,198 @@ describe('serviços', () => {
     rotas['GET /api/servicos/s3'] = { status: 200, corpo: { ...BIOMA, tipo: 'pjes', operacao: null } };
     await userEvent.click(screen.getByRole('button', { name: 'Desativar' }));
     await waitFor(() => expect(screen.getByLabelText('Tipo')).toHaveValue('pjes'));
+  });
+});
+
+describe('ficha do serviço em painel único', () => {
+  it('o resumo do serviço diz tipo, operação e turnos', async () => {
+    api();
+    abrir('/servicos/s3');
+    const ficha = (await screen.findByRole('heading', { level: 2, name: 'Bioma' })).closest('[data-ficha]') as HTMLElement;
+    expect(within(ficha).getByText('Diária da operação Guardiões do Bioma, 1 turno.')).toBeInTheDocument();
+  });
+
+  it('o resumo do serviço sem turnos', async () => {
+    api({ 'GET /api/servicos/s2': { status: 200, corpo: LISTA[1] } });
+    abrir('/servicos/s2');
+    expect(await screen.findByText('PJES, sem turnos.')).toBeInTheDocument();
+  });
+
+  it('serviço ativo não diz Desativado', async () => {
+    api();
+    abrir('/servicos/s3');
+    await screen.findByRole('heading', { level: 2, name: 'Bioma' });
+    expect(screen.queryByText(/Desativado/)).toBeNull();
+    expect(screen.getByRole('button', { name: 'Desativar' })).toBeInTheDocument();
+  });
+
+  it('Desativar pergunta e, confirmando, desativa', async () => {
+    const confirmar = vi.spyOn(window, 'confirm').mockReturnValue(true);
+    const f = api({ 'POST /api/servicos/s3/situacao': { status: 200, corpo: { ...BIOMA, ativo: false } } });
+    abrir('/servicos/s3');
+    await userEvent.click(await screen.findByRole('button', { name: 'Desativar' }));
+    expect(confirmar).toHaveBeenCalledWith('Desativar o serviço Bioma? Ele some da lista e continua nas escalas que já o reúnem.');
+    await waitFor(() => expect(corpoEnviado(f, 'POST /api/servicos/s3/situacao')).toEqual({ ativo: false }));
+    confirmar.mockRestore();
+  });
+
+  it('cancelando a pergunta, nada é enviado', async () => {
+    const confirmar = vi.spyOn(window, 'confirm').mockReturnValue(false);
+    const f = api({ 'POST /api/servicos/s3/situacao': { status: 200, corpo: { ...BIOMA, ativo: false } } });
+    abrir('/servicos/s3');
+    await userEvent.click(await screen.findByRole('button', { name: 'Desativar' }));
+    expect(confirmar).toHaveBeenCalled();
+    expect(f.mock.calls.some(([, init]) => init?.method === 'POST')).toBe(false);
+    confirmar.mockRestore();
+  });
+
+  it('serviço desativado mostra a etiqueta e Reativar, sem perguntar', async () => {
+    const confirmar = vi.spyOn(window, 'confirm');
+    const f = api({
+      'GET /api/servicos/s3': { status: 200, corpo: { ...BIOMA, ativo: false } },
+      'POST /api/servicos/s3/situacao': { status: 200, corpo: BIOMA },
+    });
+    abrir('/servicos/s3');
+    const ficha = (await screen.findByRole('heading', { level: 2, name: 'Bioma' })).closest('[data-ficha]') as HTMLElement;
+    expect(within(ficha).getByText('desativado')).toBeInTheDocument();
+    await userEvent.click(within(ficha).getByRole('button', { name: 'Reativar' }));
+    await waitFor(() => expect(corpoEnviado(f, 'POST /api/servicos/s3/situacao')).toEqual({ ativo: true }));
+    expect(confirmar).not.toHaveBeenCalled();
+    confirmar.mockRestore();
+  });
+
+  it('o item aberto na lista fica marcado', async () => {
+    api();
+    abrir('/servicos/s3');
+    const link = (await screen.findAllByText('Bioma')).map((e) => e.closest('a')).find(Boolean)!;
+    expect(link).toHaveAttribute('aria-current', 'page');
+    expect(link.className).toContain('shadow-[inset_3px_0_0');
+  });
+
+  it('todos desativados, a lista explica o que marcar', async () => {
+    api({ 'GET /api/unidades/u-1sb/servicos': { status: 200, corpo: LISTA.map((s) => ({ ...s, ativo: false })) } });
+    abrir('/servicos');
+    expect(await screen.findByText('Todos os serviços estão desativados. Marque "Mostrar desativados" para vê-los.')).toBeInTheDocument();
+  });
+});
+
+describe('remover turno', () => {
+  it('remover turno pergunta e, cancelando, não envia', async () => {
+    const confirmar = vi.spyOn(window, 'confirm').mockReturnValue(false);
+    const f = api({ 'DELETE /api/turnos/t1': { status: 200, corpo: BIOMA } });
+    abrir('/servicos/s3');
+    await userEvent.click(await screen.findByRole('button', { name: 'Remover turno A' }));
+    expect(confirmar).toHaveBeenCalledWith('Remover o turno A (00h–08h) de Bioma?');
+    expect(f.mock.calls.some(([, init]) => init?.method === 'DELETE')).toBe(false);
+    confirmar.mockRestore();
+  });
+});
+
+describe('sobreposição: frases', () => {
+  const comTurnos = (turnos: [string, string, string][]) =>
+    servico({ id: 's3', nome: 'Bioma', tipo: 'diaria', cor: '#C08A1E', turnos: turnos.map(([letra, inicio, fim], i) => ({ id: `t${i}`, letra: letra as 'A', inicio, fim, duracaoMinutos: 0, turnosPadrao: [] })) });
+
+  it('um turno de 24h com um que cruza a meia-noite diz só o trecho que se sobrepõe', async () => {
+    api({ 'GET /api/servicos/s3': { status: 200, corpo: comTurnos([['A', '08:00', '08:00'], ['B', '20:00', '08:00']]) } });
+    abrir('/servicos/s3');
+    expect(await screen.findByText('Os turnos A e B se sobrepõem das 20h às 08h.')).toBeInTheDocument();
+  });
+
+  it('um turno de 24h inteiro com um que cruza a meia-noite junta os dois lados da meia-noite', async () => {
+    api({ 'GET /api/servicos/s3': { status: 200, corpo: comTurnos([['A', '00:00', '00:00'], ['B', '20:00', '08:00']]) } });
+    abrir('/servicos/s3');
+    expect(await screen.findByText('Os turnos A e B se sobrepõem das 20h às 08h.')).toBeInTheDocument();
+  });
+
+  it('dois turnos de 24h com horários diferentes dizem o dia todo', async () => {
+    api({ 'GET /api/servicos/s3': { status: 200, corpo: comTurnos([['A', '00:00', '00:00'], ['B', '12:00', '12:00']]) } });
+    abrir('/servicos/s3');
+    expect(await screen.findByText('Os turnos A e B se sobrepõem o dia todo.')).toBeInTheDocument();
+  });
+});
+
+describe('régua e seletor de cor', () => {
+  const comTurnos = (turnos: [string, string, string][]) =>
+    servico({ id: 's3', nome: 'Bioma', tipo: 'diaria', cor: '#C08A1E', turnos: turnos.map(([letra, inicio, fim], i) => ({ id: `t${i}`, letra: letra as 'A', inicio, fim, duracaoMinutos: 0, turnosPadrao: [] })) });
+
+  it('as marcas da régua têm sempre duas casas', async () => {
+    api();
+    abrir('/servicos/s3');
+    const regua = (await screen.findByRole('img', { name: /Turnos do dia/ })).parentElement!;
+    for (const h of ['00h', '06h', '12h', '18h', '24h']) expect(within(regua).getByText(h)).toBeInTheDocument();
+    expect(within(regua).queryByText('0h')).toBeNull();
+    expect(within(regua).queryByText('6h')).toBeNull();
+  });
+
+  it('turno de uma hora não mostra a letra na régua, e continua no nome acessível', async () => {
+    api({ 'GET /api/servicos/s3': { status: 200, corpo: comTurnos([['A', '08:00', '09:00'], ['B', '12:00', '20:00']]) } });
+    abrir('/servicos/s3');
+    const regua = await screen.findByRole('img', { name: /Turnos do dia/ });
+    expect(regua).toHaveAccessibleName(/A das 08h às 09h/);
+    expect(within(regua).queryByText('A')).toBeNull();
+    expect(within(regua).getByText('B')).toBeInTheDocument();
+  });
+
+  it('a letra fica acima do traço da meia-noite', async () => {
+    api({ 'GET /api/servicos/s3': { status: 200, corpo: comTurnos([['B', '20:00', '08:00']]) } });
+    abrir('/servicos/s3');
+    const regua = await screen.findByRole('img', { name: /Turnos do dia/ });
+    expect(within(regua).getByText('B').className).toContain('z-20');
+    expect(regua.querySelector('.border-dashed')!.className).toContain('z-10');
+  });
+
+  it('o gatilho anuncia a cor atual', async () => {
+    api();
+    abrir('/servicos/s3');
+    expect(await screen.findByRole('button', { name: 'Cor: #C08A1E' })).toBeInTheDocument();
+  });
+
+  it('o seletor nativo aplica a cor sem Usar esta cor, e o painel continua aberto', async () => {
+    api();
+    abrir('/servicos/s3');
+    await userEvent.click(await screen.findByRole('button', { name: 'Cor: #C08A1E' }));
+    fireEvent.change(await screen.findByLabelText('Escolher no seletor do navegador'), { target: { value: '#112233' } });
+    expect(await screen.findByRole('button', { name: 'Cor: #112233' })).toBeInTheDocument();
+    expect(screen.getByLabelText('Código da cor')).toBeInTheDocument();
+  });
+
+  it('a grade de cores tem uma parada de Tab e anda pelas setas', async () => {
+    api();
+    abrir('/servicos/s3');
+    await userEvent.click(await screen.findByRole('button', { name: 'Cor: #C08A1E' }));
+    const celulas = await screen.findAllByRole('button', { name: /^Cor #/ });
+    expect(celulas).toHaveLength(80);
+    expect(celulas.filter((c) => c.tabIndex === 0)).toHaveLength(1);
+    expect(celulas[0]).toHaveAttribute('tabindex', '0');
+    celulas[0]!.focus();
+    await userEvent.keyboard('{ArrowRight}');
+    expect(celulas[1]).toHaveFocus();
+    await userEvent.keyboard('{ArrowDown}');
+    expect(celulas[11]).toHaveFocus();
+    await userEvent.keyboard('{ArrowLeft}{ArrowUp}');
+    expect(celulas[0]).toHaveFocus();
+    expect(celulas.filter((c) => c.tabIndex === 0)).toHaveLength(1);
+  });
+
+  it('o serviço mostra as escalas que o reúnem', async () => {
+    api({
+      'GET /api/unidades/u-1sb/escalas': {
+        status: 200,
+        corpo: [
+          { id: 'e1', nome: 'Guardiões do Bioma', ativa: true, servicos: ['Bioma'] },
+          { id: 'e2', nome: 'Ordinário', ativa: true, servicos: ['Pronto', 'JES'] },
+        ],
+      },
+    });
+    abrir('/servicos/s3');
+    const link = await screen.findByRole('link', { name: 'Guardiões do Bioma' });
+    expect(link).toHaveAttribute('href', '/escalas/e1');
+    expect(screen.queryByRole('link', { name: 'Ordinário' })).toBeNull();
+  });
+
+  it('serviço que nenhuma escala reúne diz isso', async () => {
+    api({ 'GET /api/unidades/u-1sb/escalas': { status: 200, corpo: [{ id: 'e2', nome: 'Ordinário', ativa: true, servicos: ['Pronto'] }] } });
+    abrir('/servicos/s3');
+    expect(await screen.findByText('Ainda não está em nenhuma escala.')).toBeInTheDocument();
   });
 });
