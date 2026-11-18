@@ -4,12 +4,12 @@ import { useState } from 'react';
 import { ErroApi, mensagemDe } from '@/api/cliente';
 import { atualizarGuarnicoes, consultaFuncoes, salvarVersao } from '@/api/guarnicoes';
 import { Composicao, type LinhaEdicao } from '@/componentes/guarnicoes/Composicao';
+import { LinhaDoTempo } from '@/componentes/LinhaDoTempo';
 import { Secao } from '@/componentes/militares/Secao';
 import { Button } from '@/componentes/ui/button';
 import { Input } from '@/componentes/ui/input';
 import { Label } from '@/componentes/ui/label';
 import { mesAtual } from '@/lib/meses';
-import { cn } from '@/lib/utils';
 
 /** A versão em vigor no mês; sem nenhuma ainda, a primeira. As versões vêm da mais recente para a mais antiga. */
 function versaoVigente(versoes: VersaoSalva[], mes: string): VersaoSalva | undefined {
@@ -25,21 +25,7 @@ export function Versoes({ ficha, unidadeId }: { ficha: FichaGuarnicao; unidadeId
   return (
     <Secao titulo="Versões">
       {ficha.versoes.length > 1 && (
-        <ol className="mb-4 flex flex-wrap gap-2" aria-label="Versões por vigência">
-          {[...ficha.versoes].reverse().map((v) => (
-            <li key={v.vigencia}>
-              <button
-                type="button"
-                aria-pressed={v.vigencia === versao?.vigencia}
-                onClick={() => setEscolhida(v.vigencia)}
-                className={cn('rounded-md border px-2.5 py-1 text-sm', v.vigencia === versao?.vigencia ? 'border-tinta bg-tinta text-white' : 'border-linha')}
-              >
-                {mesPorExtenso(v.vigencia)}
-                {v.vigencia === vigente?.vigencia && v.vigencia <= mes && <span className="ml-1.5 text-xs opacity-80">em vigor</span>}
-              </button>
-            </li>
-          ))}
-        </ol>
+        <LinhaDoTempo vigencias={ficha.versoes.map((v) => v.vigencia)} escolhida={versao?.vigencia} aoEscolher={setEscolhida} />
       )}
       <Editor key={`${ficha.id}-${versao?.vigencia ?? 'nova'}`} ficha={ficha} unidadeId={unidadeId} versao={versao} />
     </Secao>

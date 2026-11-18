@@ -40,10 +40,14 @@
 5. **Usuário sem papel na unidade:** recebe 403 em toda escrita, e quem tem papel deixa o próprio `usuario_id` na auditoria.
 6. **Modelo e leitura sempre em sincronia:** um teste percorre todos os importadores e confere que cada coluna do modelo é achada pela leitura, e que importar o modelo vazio não grava nada.
 7. **Antiguidade repetida não bloqueia:** gravar o segundo militar com o mesmo número passa (201); os dois ganham a pendência.
-8. **Nome repetido com outra caixa ou acento** (guarnição, função): 409 com frase legível, nunca 500 do índice único.
+8. **Nome repetido com outra caixa ou acento** (guarnição, função, serviço, escala): 409 com frase legível, nunca 500 do índice único.
 9. **Função repetida na composição:** 400 no campo da repetição, nunca 500 da restrição `unique (guarnicao_versao_id, funcao_id)`.
 10. **Guarnição que só começa num mês futuro:** aparece na lista do mês corrente com "a partir de", em vez de sumir depois de criada.
 11. **Dados gravados antes da 3.1 com máximo vazio:** depois da migração, reimportar a mesma planilha dá tudo "igual".
+12. **ESCALAS como a sandbox escreve:** "SÓ ESCALADOS", MILITARES vazio e TÍTULO vazio dão o mesmo resultado que o protótipo (dias só com escalados, militares só escalados e título "ESCALA <NOME>").
+13. **Hora digitada de vários jeitos:** "8:00", "24:00" e a célula de hora do Excel viram "08:00" e "00:00". Texto inválido vira problema com solução, nunca 500.
+14. **Serviço tirado da escala com a letra ainda na matriz:** a gravação passa e a ficha avisa dos vínculos órfãos, sem apagá-los em silêncio.
+15. **Vínculo com guarnição desativada** (tela ou importação): fica gravado, com aviso, e a matriz mostra a guarnição com a etiqueta "desativada".
 
 Cada item tem teste na tarefa dona do código (marcado com **[foco]**).
 
@@ -865,7 +869,26 @@ Branch `fase3-3-1-guarnicoes`, a partir da `main` com a entrega 3 (PR #18 mergea
 
 # Entrega 4 — Serviços, turnos e escalas
 
-Branch `fase3-4-servicos-escalas`.
+Branch `fase3-4-servicos-escalas`, a partir da `main` já com a 3.1 (merge do PR #19).
+
+**Revisão de 17/11/2026, depois das entregas 1 a 3.1.** Esta entrega não tem migração: as tabelas `servico`, `turno`, `escala`, `escala_servico`, `escala_vinculo_versao` e `escala_guarnicao` existem desde a `0003`, e a auditoria já cobre todas elas (`0006`). Estas são as mudanças em relação à primeira versão desta entrega:
+- **Excluir vira desativar** (decisão da 3.1 para a guarnição). Serviço e escala ganham "Desativar" e "Reativar". O desativado some da lista e volta com "Mostrar desativados". Turno se remove ("Remover"), mas só enquanto ninguém foi escalado nele.
+- **Nome repetido com outra caixa ou acento** vira 409 legível antes de chegar ao índice do banco (o índice só compara o texto exato). É o padrão de `nomeJaUsado` em `cadastros/guarnicoes.ts`, e vale para serviço e escala.
+- **ESCALAS lida como no protótipo** (`prototipo/guarnicao.js`, `montarModelosGuarnicao` no motor). A sandbox escreve "SÓ ESCALADOS", e não "COM ESCALADOS". MILITARES vazio vale ESCALADOS. TÍTULO vazio vale "ESCALA <NOME>". Um serviço desconhecido descarta a escala inteira. A primeira versão do plano dizia outra coisa nesses quatro pontos.
+- **Vínculos como as versões da guarnição:** chips por vigência, "em vigor" só até o mês corrente, mês padrão do "Salvar a partir de" igual ao da versão quando ela é futura, editor recarregado depois de gravar (chave pela assinatura das versões). Na importação vale a regra do "redundante" (Tarefa 18).
+- **Vínculo com guarnição desativada:** fica gravado, com aviso, como a linha com ATIVAR = NÃO no protótipo. A matriz mostra a guarnição marcada "desativada".
+- **`TurnoPadrao` fica no `contratos`** como esquema próprio, e o `contratos` não passa a depender do `dominio`. A API converte a saída do motor, que tem o mesmo formato.
+- **Importação:** um importador (`servicos-escalas`) com as três abas no modelo, e o botão "Importar da planilha" nas duas telas. Coluna obrigatória ausente vira problema e nada é planejado (Tarefa 18). Os avisos do motor perdem os códigos internos (`problemaDoAviso`).
+
+**Decisões minhas, ao detalhar** (o usuário pode mudar na revisão do plano):
+- **Desativar o serviço ou a escala vale na hora**, sem vigência, porque as tabelas só têm `ativo`/`ativa`. A escala desativada some da lista; o serviço desativado continua nas escalas que já o reúnem.
+- **Serviço e escala são só os da própria seção.** Ao contrário das funções, não se herdam de unidades acima. Na matriz entram só as guarnições da própria seção.
+- **Escala nasce vazia.** O diálogo "Nova escala" pede só o nome. O título padrão é "ESCALA <NOME>", com militares "só escalados" e dias "todos", como no protótipo. Escala sem serviço mostra "sem serviços" na lista.
+- **"Todos os turnos" exclui as letras na mesma linha.** Marcar a coluna desmarca as letras da guarnição. A API recusa a mistura com 400.
+- **Vínculo órfão:** tirar da escala o serviço que trazia a letra C não apaga os vínculos em C. A ficha avisa "Turno C não existe mais nos serviços desta escala: <guarnições>. Salve a matriz para tirá-los." O bloqueio (409) fica só para o serviço com militares escalados, como antes.
+- **Mudar o horário de um turno com militares escalados** é permitido nesta fase. Na fase 3 ainda não há alocação feita pela tela, e a fase 4 decide (ver "Fora desta fase").
+- **Na importação, TURNOS nunca apaga nada:** turno ou serviço que está no sistema e falta na planilha fica como está. A cor de serviço que já existe não muda, porque a cor é editada na tela. A operação (Diária) não vem da planilha, e o escalante a preenche na tela.
+- **A coluna DURAÇÃO da sandbox é ignorada.** Vale o início e o fim, e a tela mostra a duração calculada.
 
 ### Task 22: Regra do turno padrão no motor
 
@@ -877,12 +900,17 @@ Branch `fase3-4-servicos-escalas`.
 - Consome: `minutosDoDia` (`choques.ts`).
 - Produz:
   - `type TurnoPadrao = { dia: -1 | 0 | 1; turno: 'A' | 'B' }`, com o dia relativo ao dia em que o turno do serviço começa.
-  - `turnosPadraoExigidos(inicio: string, fim: string): TurnoPadrao[]`. Exemplo: `fim` menor que `inicio` atravessa a meia-noite; igual dá 24h. As janelas são, em minutos a partir das 00h de D: B(−1) = [−240, 480), A(0) = [480, 1200), B(0) = [1200, 1920) e A(+1) = [1920, 2640). Entra toda janela com interseção de tamanho positivo, em ordem cronológica. Horário inválido lança `Horário inválido: "<texto>".`
+  - `turnosPadraoExigidos(inicio: string, fim: string): TurnoPadrao[]`:
+    - `fim` menor que `inicio` atravessa a meia-noite, e igual dá 24h;
+    - janelas em minutos a partir das 00h de D: B(−1) = [−240, 480), A(0) = [480, 1200), B(0) = [1200, 1920), A(+1) = [1920, 2640);
+    - entra toda janela com interseção de tamanho positivo, em ordem cronológica;
+    - horário inválido lança `Horário inválido: "<texto>".`
   - `duracaoMinutos(inicio: string, fim: string): number` (24h = 1440).
+  - `normalizarHora(texto: string): string | null`: `'8:00'` → `'08:00'`, `'24:00'` → `'00:00'`, inválido → `null`. É usada pela importação (Tarefa 25).
 
 Regra só do sistema novo (adendo do design): não grava caso compartilhado e testa só em `pacotes/dominio/test`.
 
-- [ ] **Passo 1: testes que falham** (**[foco 4]**):
+- [ ] **Passo 1: testes que falham** (**[foco 4]**, **[foco 13]**):
 
 ```ts
 it.each([
@@ -896,6 +924,8 @@ it.each([
 ])('%s às %s', (i, f, esperado) => expect(turnosPadraoExigidos(i, f)).toEqual(esperado));
 it('horário inválido', () => expect(() => turnosPadraoExigidos('25:00', '08:00')).toThrow('Horário inválido: "25:00".'));
 it('duração de 24h', () => expect(duracaoMinutos('08:00', '08:00')).toBe(1440));
+it.each([['8:00', '08:00'], ['24:00', '00:00'], ['07:30', '07:30'], ['8h', null], ['', null]])('normalizarHora(%s)', (t, esperado) =>
+  expect(normalizarHora(t)).toBe(esperado));
 ```
 
 - [ ] **Passo 2:** `pnpm --filter dominio test`. Esperado: FALHA.
@@ -907,108 +937,222 @@ it('duração de 24h', () => expect(duracaoMinutos('08:00', '08:00')).toBe(1440)
 
 **Arquivos:**
 - Criar: `pacotes/contratos/src/servicos.ts`, `pacotes/contratos/src/escalas.ts`, `apps/api/src/cadastros/servicos.ts`, `apps/api/src/cadastros/escalas.ts`, `apps/api/test/servicos.test.ts`, `apps/api/test/escalas.test.ts`
+- Modificar: `pacotes/contratos/src/index.ts`, `apps/api/src/app.ts` (monta as duas rotas como `rotasGuarnicoes`)
 
 **Interfaces:**
-- Consome: `TurnoPadrao`, `turnosPadraoExigidos` e `duracaoMinutos` (Tarefa 22). `contratos` passa a depender de `dominio` (`"dominio": "workspace:*"`) e reexporta o tipo `TurnoPadrao`.
-- **Serviços (contratos):**
-  - `NovoServico = { nome: Nome; tipo: 'ordinario'|'pjes'|'diaria'; operacao: string | null; rotuloImpressao: string | null; cor: /^#[0-9A-Fa-f]{6}$/ }`. Com refinamento: `operacao` só quando `tipo = 'diaria'`.
-  - `EdicaoServico`: os mesmos campos, opcionais, mais `ativo`.
-  - `NovoTurno = { letra: 'A'|'B'|'C'|'U'; inicio: Hora; fim: Hora }`
-  - `Servico = { id; nome; tipo; operacao; rotuloImpressao; cor; ativo; turnos: { id; letra; inicio; fim; duracaoMinutos; turnosPadrao: TurnoPadrao[] }[] }`
-- **Escalas (contratos):**
-  - `NovaEscala = { nome: Nome; titulo: Nome; militaresDoc: 'todos'|'escalados'; diasDoc: 'todos'|'com_escalados' }`
-  - `ServicosDaEscala = { servicoIds: uuid[] }`, na ordem de preenchimento.
-  - `VinculosDaEscala = { itens: { guarnicaoId: uuid; turnoLetra: 'A'|'B'|'C'|'U' | null }[] }`
-  - `Escala = { id; nome; titulo; militaresDoc; diasDoc; ativa; servicos: { id; nome; cor }[]; letras: string[]; vinculos: { vigencia: string; itens: { guarnicaoId; guarnicao: string; turnoLetra: string | null }[] }[] }`. `letras` é a união das letras dos turnos dos serviços da escala.
-- **Rotas de serviços:**
-  - `GET|POST /api/unidades/:u/servicos` e `PATCH /api/servicos/:id`
+- Consome:
+  - `turnosPadraoExigidos` e `duracaoMinutos` (Tarefa 22);
+  - de `cadastros/guarnicoes.ts`: `versoesDasGuarnicoes` e a regra `mesPassado`, que passa a ser exportada de lá sem mudar o texto;
+  - `exigirPapel`, `unidadeDoRegistro` (`'servico' | 'turno' | 'escala'`, que já existem), `respostaDoErroDoBanco`, `lerCorpo` e `comUsuario`.
+- **Contratos de serviços:**
+  - `TipoServico = z.enum(['ordinario', 'pjes', 'diaria'])` e `LetraTurno = z.enum(['A', 'B', 'C', 'U'])`.
+  - `TurnoPadrao = z.object({ dia: z.union([z.literal(-1), z.literal(0), z.literal(1)]), turno: z.enum(['A', 'B']) })`.
+  - `DadosServico = { nome: Nome; tipo: TipoServico; operacao: string | null; rotuloImpressao: string | null; cor: /^#[0-9A-Fa-f]{6}$/ }`. Texto vazio vira `null`, como `viatura` em `VersaoGuarnicao`. O refinamento põe "Operação só existe em serviço de diária." no campo `operacao`.
+  - `NovoServico = DadosServico`; `EdicaoServico = DadosServico`, com o objeto inteiro: a tela limpa a operação ao trocar o tipo.
+  - `SituacaoServico = { ativo: boolean }`.
+  - `DadosTurno = { letra: LetraTurno; inicio: Hora; fim: Hora }`.
+  - `TurnoSalvo = { id; letra; inicio; fim; duracaoMinutos: number; turnosPadrao: TurnoPadrao[] }`.
+  - `Servico = { id; nome; tipo; operacao; rotuloImpressao; cor; ativo; turnos: TurnoSalvo[] }`, com os turnos na ordem A, B, C, U.
+- **Contratos de escalas:**
+  - `DadosEscala = { nome: Nome; titulo: Nome; militaresDoc: 'todos'|'escalados'; diasDoc: 'todos'|'com_escalados' }`.
+  - `NovaEscala = { nome: Nome }`. O resto sai com os padrões da decisão acima.
+  - `EdicaoEscala = DadosEscala`; `SituacaoEscala = { ativa: boolean }`.
+  - `ServicosDaEscala = { servicoIds: Id[] }`, na ordem de preenchimento. Id repetido dá 400.
+  - `VinculosDaEscala = { itens: { guarnicaoId: Id; turnoLetra: LetraTurno | null }[] }`. O superRefine recusa:
+    - o par repetido: "Esta guarnição já está neste turno.";
+    - `null` junto com letra na mesma guarnição: "Com "Todos os turnos", não marque turnos avulsos.".
+  - `LinhaEscala = { id; nome; ativa; servicos: string[] }`, com os nomes na ordem.
+  - `Escala = { id; nome; titulo; militaresDoc; diasDoc; ativa; servicos: { id; nome; cor; ativo }[]; letras: LetraTurno[]; vinculos: { vigencia: Mes; itens: { guarnicaoId; guarnicao: string; ativaNoMes: boolean; turnoLetra: LetraTurno | null }[] }[] }`:
+    - `letras` é a união das letras dos turnos dos serviços, na ordem A, B, C, U;
+    - `vinculos` vem da vigência mais recente para a mais antiga, como `FichaGuarnicao.versoes`;
+    - `ativaNoMes` diz se a guarnição está ativa na vigência daquela versão.
+- **Rotas de serviços** (todas com `CADASTRO`, 404 antes de 403):
+  - `GET|POST /api/unidades/:u/servicos`: a lista traz os inativos também, e a tela filtra.
+  - `GET|PATCH /api/servicos/:id`
+  - `POST /api/servicos/:id/situacao`
   - `POST /api/servicos/:id/turnos` e `PATCH|DELETE /api/turnos/:id`
-  - Turno com alocação vira 409 pelo `respostaDoErroDoBanco`.
 - **Rotas de escalas:**
-  - `GET|POST /api/unidades/:u/escalas` e `GET|PATCH /api/escalas/:id`
-  - `PUT /api/escalas/:id/servicos`: substitui a lista e regrava `ordem` de 1 em diante. Tirar um serviço que tem alocação na escala devolve 409 "O serviço <nome> já tem militares escalados nesta escala."
-  - `PUT /api/escalas/:id/vinculos/:mes`: mesma regra de vigência da guarnição. A letra precisa estar em `letras`; se não estiver, devolve 400.
+  - `GET|POST /api/unidades/:u/escalas`, `GET|PATCH /api/escalas/:id` e `POST /api/escalas/:id/situacao`.
+  - `PUT /api/escalas/:id/servicos`: substitui a lista e regrava `ordem` de 1 em diante, apagando e inserindo na mesma transação por causa do `unique (escala_id, ordem)`. Serviço de outra unidade dá 400 no campo `servicoIds`.
+  - `PUT /api/escalas/:id/vinculos/:mes`: tem a mesma regra de vigência da guarnição (`mesPassado`), e grava por upsert da versão, apagando e inserindo os itens. Recusa com 400:
+    - letra que não está em `letras`: "O turno <x> não existe nos serviços desta escala.";
+    - guarnição de outra unidade.
+    Guarnição desativada no mês é aceita.
+- **Mensagens:**
+
+| Caso | Código | Mensagem |
+|---|---|---|
+| Nome de serviço repetido (normalizado) | 409 | `Já existe o serviço "<nome>".` |
+| Nome de escala repetido (normalizado) | 409 | `Já existe a escala "<nome>".` |
+| Letra de turno repetida no serviço | 409 | `Este serviço já tem o turno <letra>.` (código `23505` em `respostaDoErroDoBanco`) |
+| Apagar turno com alocação | 409 | `O turno <letra> de <serviço> já tem militares escalados. Ele pode mudar de horário, mas não pode ser removido.` |
+| Tirar da escala serviço com alocação nela | 409 | `O serviço <nome> já tem militares escalados nesta escala.` |
 
 - [ ] **Passo 1: testes que falham:**
   - Em `servicos.test.ts`:
-    - `cria serviço com turnos e devolve duração e turnos padrão` (16:00–00:00 dá 480 min, mais A e B) **[foco 4]**
-    - `operação em serviço que não é diária é 400`
-    - `letra repetida no serviço é 409`
-    - `apagar turno em uso é 409 legível` **[foco 3]**
+    - `cria serviço com turnos e devolve duração e turnos padrão` (16:00 a 00:00 dá 480 min, mais `[{0,A},{0,B}]`) **[foco 4]**
+    - `operação em serviço que não é diária é 400 no campo operacao`
+    - `nome repetido com outra caixa ou acento é 409` (`"Pé Seguro"` contra `"PE SEGURO"`) **[foco 8]**
+    - `letra repetida no serviço é 409 legível`
+    - `apagar turno com alocação é 409 legível` **[foco 3]**
+    - `desativar e reativar o serviço`
+    - `sem papel na unidade: 403 em criar, editar, situação e turnos` **[foco 5]**
+    - `serviço inexistente é 404 antes de 403`
   - Em `escalas.test.ts`:
-    - `cria escala, reúne serviços na ordem`
+    - `nova escala nasce com título ESCALA <NOME>, só escalados e todos os dias`
+    - `reúne serviços na ordem e devolve as letras` (Pronto A/B mais Expediente U dá `['A','B','U']`)
     - `tirar serviço com alocação é 409`
+    - `tirar serviço sem alocação deixa o vínculo da letra que sumiu` **[foco 14]**
     - `vínculo com letra fora da escala é 400`
+    - `"Todos os turnos" junto com letra na mesma guarnição é 400`
+    - `vínculo com guarnição desativada é gravado e volta com ativaNoMes false` **[foco 15]**
     - `vínculos do mês corrente substituem` **[foco 2]**
-    - `vínculo de mês passado é 409`
+    - `vínculo de mês passado é 409 com o mês mínimo`
+    - `nome repetido com outra caixa é 409` **[foco 8]**
+    - `sem papel na unidade: 403 em criar, serviços, vínculos e situação` **[foco 5]**
 - [ ] **Passo 2:** `pnpm --filter api test`. Esperado: FALHA.
-- [ ] **Passo 3:** implementar.
-- [ ] **Passo 4:** `pnpm --filter api test`. Esperado: PASSA.
+- [ ] **Passo 3:** implementar. Exportar `mesPassado` de `cadastros/guarnicoes.ts` sem mudar o comportamento.
+- [ ] **Passo 4:** `pnpm --filter api test && pnpm --filter contratos test && pnpm typecheck`. Esperado: PASSA.
 - [ ] **Passo 5:** commit `Fase 3: API de serviços, turnos e escalas`.
 
 ### Task 24: Telas de Serviços e Escalas
 
 **Arquivos:**
-- Criar: `apps/web/src/api/servicos.ts`, `apps/web/src/api/escalas.ts`, `apps/web/src/routes/_app/servicos.tsx` (+ `servicos/index.tsx`, `servicos/$id.tsx`), `apps/web/src/routes/_app/escalas.tsx` (+ `escalas/index.tsx`, `escalas/$id.tsx`), `apps/web/src/lib/turno-padrao.ts`, `apps/web/src/__testes__/servicos.test.tsx`, `apps/web/src/__testes__/escalas.test.tsx`
-- Modificar: `Trilho.tsx` (liga "Serviços" e "Escalas")
+- Criar:
+  - `apps/web/src/api/servicos.ts` e `apps/web/src/api/escalas.ts`;
+  - `apps/web/src/routes/_app/servicos.tsx`, `servicos/index.tsx` e `servicos/$id.tsx`;
+  - `apps/web/src/routes/_app/escalas.tsx`, `escalas/index.tsx` e `escalas/$id.tsx`;
+  - `apps/web/src/componentes/servicos/Turnos.tsx`;
+  - `apps/web/src/componentes/escalas/Matriz.tsx` e `apps/web/src/componentes/escalas/ServicosDaEscala.tsx`;
+  - `apps/web/src/componentes/LinhaDoTempo.tsx`, com os chips de vigência tirados de `guarnicoes/Versoes.tsx`;
+  - `apps/web/src/lib/turnos.ts`;
+  - `apps/web/src/__testes__/servicos.test.tsx` e `apps/web/src/__testes__/escalas.test.tsx`.
+- Modificar:
+  - `apps/web/src/componentes/guarnicoes/Versoes.tsx`, que passa a usar `LinhaDoTempo`;
+  - `apps/web/src/componentes/Trilho.tsx`, que liga "Serviços" e "Escalas";
+  - `routeTree.gen.ts` (gerado e commitado).
 
 **Interfaces:**
-- Produz (`turno-padrao.ts`): `descreverTurnosPadrao(t: TurnoPadrao[]): string`. Exemplos:
-  - `[{0,A}]` → `'A'`
-  - `[{-1,B},{0,A}]` → `'B da noite anterior e A'`
-  - `[{0,B},{1,A}]` → `'B e A do dia seguinte'`
+- Consome: as rotas e os contratos da Tarefa 23, mais `consultaGuarnicoes(unidadeId, mes)` (`api/guarnicoes.ts`), que dá as linhas da matriz.
+- Produz:
+  - `lib/turnos.ts`:
+    - `descreverTurnosPadrao(t: TurnoPadrao[]): string`:
+      - `[{0,A}]` → `'A'`;
+      - `[{0,A},{0,B}]` → `'A e B'`;
+      - `[{-1,B}]` → `'B da noite anterior'`;
+      - `[{-1,B},{0,A}]` → `'B da noite anterior e A'`;
+      - `[{0,B},{1,A}]` → `'B e A do dia seguinte'`.
+    - `textoDuracao(min: number): string`: `720` → `'12h'`, `510` → `'8h30'`, `1440` → `'24h'`.
+  - `LinhaDoTempo` recebe `{ vigencias: string[]; escolhida: string; aoEscolher(v: string): void }`. Marca "em vigor" só na vigente que já começou (vigência ≤ mês corrente).
 - **Tela de Serviços:**
-  - lista agrupada por tipo (Ordinário, PJES, Diária);
-  - detalhe com nome, tipo, operação (só em Diária), nome na impressão e cor;
-  - turnos dentro do serviço, com letra, início, fim, duração ("12h") e o bloco como na grade (a cor com a letra dentro);
-  - "Pede voluntariado em: …" em cada turno.
+  - **Lista:** agrupada por tipo (Ordinário, PJES, Diária), com o bloco de cor e as letras dos turnos ("A B"). Os inativos ficam escondidos e voltam com "Mostrar desativados" no rodapé, como em Guarnições. O cabeçalho do grupo tem o mesmo respiro (`pb-2`) do cabeçalho de Guarnições.
+  - **"Novo serviço":** diálogo com nome e tipo. A cor sugerida é a da especificação de telas quando o nome bate, e `#5B6675` nos demais.
+  - **Detalhe, Identificação:** nome, tipo, operação (só em Diária, e some e se limpa ao trocar o tipo), nome na impressão e cor (seletor de cor mais as sete cores da especificação como atalhos), com "Salvar".
+  - **Detalhe, Situação:** "Desativar" ou "Reativar".
+  - **Detalhe, Turnos:** uma linha por turno, assim:
+    `[A ▾]  08:00  às  20:00   12h   ▣A   Pede voluntariado em: A   Salvar  Remover`
+    - o bloco `▣A` é a cor do serviço com a letra dentro, como na grade;
+    - "Incluir turno" abre uma linha em branco;
+    - um erro da API aparece na própria linha.
 - **Tela de Escalas:**
-  - serviços reunidos na ordem de preenchimento, com subir e descer;
-  - publicação (militares: todos ou só escalados; dias: todos ou só com escalados);
-  - matriz guarnição × letra com caixas de marcar, mais uma coluna "Todos os turnos";
-  - o botão "Salvar a partir de <mês>".
+  - **Lista:** nome e serviços ("Pronto, JES, Saldo" ou "sem serviços"). As desativadas ficam escondidas, com "Mostrar desativadas".
+  - **"Nova escala":** diálogo só com o nome; abre a ficha depois de criar.
+  - **Detalhe, Identificação:** nome, título, militares (todos ou só escalados) e dias (todos ou só com escalados), com "Salvar".
+  - **Detalhe, Situação:** "Desativar" ou "Reativar".
+  - **Detalhe, Serviços:** lista na ordem de preenchimento, com subir, descer e "Remover", mais "Incluir serviço" (os serviços ativos que ainda não estão na escala) e "Salvar serviços".
+  - **Detalhe, Guarnições por turno:**
+    - `LinhaDoTempo` mais a matriz. As linhas são as guarnições ativas no mês da versão, em ordem de ativação, mais as já vinculadas (com a etiqueta "desativada"). As colunas são as `letras` mais "Todos os turnos".
+    - Marcar "Todos os turnos" desmarca as letras da linha, e marcar uma letra desmarca "Todos os turnos".
+    - Embaixo, o mês ("Vale a partir de"), com padrão igual ao da Tarefa 17, e o botão "Salvar a partir de <mês>". A matriz recarrega depois de gravar (chave pela assinatura das versões).
+    - O aviso de vínculo órfão aparece acima da matriz quando algum item tem letra fora de `letras`.
+  - O botão "Importar da planilha" aparece nas duas telas, com o mesmo importador (`cadastro="servicos-escalas"`, rótulo "os serviços, turnos e escalas"). Ao concluir, atualiza serviços, escalas e guarnições.
 
 - [ ] **Passo 1: testes que falham:**
-  - `descreverTurnosPadrao` com os três exemplos
-  - `turno das 16h às 00h mostra "A e B"`
-  - `operação só aparece para diária`
+  - `descreverTurnosPadrao` com os cinco exemplos e `textoDuracao` com os três
+  - `turno das 16h às 00h mostra "A e B" e 8h`
+  - `operação só aparece para diária e some ao trocar o tipo`
+  - `serviço desativado some da lista e volta com "Mostrar desativados"`
   - `subir serviço muda a ordem enviada`
   - `marcar na matriz envia o vínculo com a letra`
-  - `"Todos os turnos" envia turnoLetra null`
+  - `"Todos os turnos" envia turnoLetra null e desmarca as letras da linha`
+  - `guarnição vinculada e desativada aparece com a etiqueta` **[foco 15]**
+  - `vínculo em letra que saiu da escala mostra o aviso` **[foco 14]**
+  - Os testes de `guarnicoes.test.tsx` continuam passando com `LinhaDoTempo`.
 - [ ] **Passo 2:** `pnpm --filter web test`. Esperado: FALHA.
 - [ ] **Passo 3:** implementar.
-- [ ] **Passo 4:** `pnpm --filter web test`. Esperado: PASSA.
+- [ ] **Passo 4:** `pnpm --filter web test && pnpm typecheck`. Esperado: PASSA.
 - [ ] **Passo 5:** commit `Fase 3: telas de serviços e escalas`.
 
 ### Task 25: Importação de Serviços e Escalas
 
 **Arquivos:**
-- Criar: `apps/api/src/importacao/servicos-escalas.ts`, `apps/api/test/importacao-servicos-escalas.test.ts`
+- Criar: `apps/api/src/importacao/servicos-escalas.ts` e `apps/api/test/importacao-servicos-escalas.test.ts`
+- Modificar: `apps/api/src/importacao/registro.ts` (chave `'servicos-escalas'`)
 
 **Interfaces:**
-- **Modelo (Tarefa 12):** as três abas saem no modelo, cada uma com as colunas abaixo; `valores` traz os serviços e as guarnições cadastrados.
-- É um importador só (`servicos-escalas`) que processa, em ordem, as abas `TURNOS`, `ESCALAS` e `GUARNIÇÕES POR ESCALA`. As escalas dependem dos serviços, e os vínculos dependem das guarnições da entrega 3.
-- **TURNOS** (colunas `SERVIÇO`, `TURNO`, `HORÁRIO INÍCIO`, `HORÁRIO FIM`, `TIPO DE SERVIÇO`, `ORIGEM`):
-  - **Tipo do serviço:** vem de `TIPO DE SERVIÇO` normalizado (ORDINÁRIO, PRONTO, SALDO ou EXPEDIENTE → `ordinario`; JES ou PJES → `pjes`; DIÁRIA → `diaria`). Sem ela, vem do nome, pelos mesmos termos. Se nada servir, o serviço entra como `diaria` com o aviso "Confira o tipo do serviço <nome>".
+- Consome:
+  - `normalizarHora` (Tarefa 22) e `normalizar`, `cadgVigencia` do motor;
+  - `coluna`, `mesDaCelula` (`planilha.ts`);
+  - a forma de `problemaDoAviso`, da marca `redundante` e do problema de coluna obrigatória ausente, de `importacao/guarnicoes.ts`. O que for igual vira função exportada de lá, sem mudar o comportamento.
+- **Importador único** (`servicos-escalas`), com `abas: ['TURNOS', 'ESCALAS', 'GUARNIÇÕES POR ESCALA']` nessa ordem e uma só transação. Cada `COLUNAS` é declarada uma vez e usada pela leitura e pelo modelo. `valores(ctx)` lista os serviços (com o tipo), as escalas e as guarnições ativas da seção.
+- **TURNOS:**
+  - **Colunas:** `SERVIÇO`*, `TURNO`*, `HORÁRIO INÍCIO`*, `HORÁRIO FIM`*, `TIPO DE SERVIÇO` (opções ORDINÁRIO, PJES, DIÁRIA) e `ORIGEM`. O asterisco marca as obrigatórias.
+  - **Tipo:** vem de `TIPO DE SERVIÇO` normalizado:
+    - ORDINÁRIO, PRONTO, SALDO ou EXPEDIENTE → `ordinario`;
+    - JES ou PJES → `pjes`;
+    - DIÁRIA → `diaria`.
+    Sem a coluna, o tipo sai do nome, pelos mesmos termos. Se nada servir, o serviço entra como `diaria`, com o aviso "Confira o tipo do serviço <nome>".
+  - **Valores repetidos:** tipo e `ORIGEM` diferentes em linhas do mesmo serviço geram um aviso, e vale o primeiro.
   - **Rótulo de impressão:** `ORIGEM`, quando for diferente do nome.
-  - **Cor:** pelo nome, com os valores iniciais da especificação de telas (Pronto `#2F8F5B`, JES `#6E56A8`, Saldo `#2B7BB9`, Bioma `#C08A1E`, PE Seguro `#3C5F9C`, Defensoria `#8C4A7A`, Expediente `#8A94A1`). Os demais recebem `#5B6675`.
-  - **Letra:** precisa ser A, B, C ou U depois de `normalizar`. Se não for, vira o problema "Turno "<x>" de <serviço>", com a solução "Use A, B, C ou U na coluna TURNO".
-- **ESCALAS** (colunas `ESCALA`, `SERVIÇOS`, `TÍTULO`, `MILITARES`, `DIAS`):
-  - `SERVIÇOS` é uma lista separada por vírgula, na ordem de preenchimento. Um serviço desconhecido vira problema, e a escala entra sem ele.
-  - `MILITARES`: TODOS ou ESCALADOS. `DIAS`: TODOS ou COM ESCALADOS. Valor vazio vira `todos`. O título vazio vira o nome.
-- **GUARNIÇÕES POR ESCALA** (colunas `VIGÊNCIA`, `ESCALA`, `TURNO`, `GUARNIÇÃO`): agrupa por (escala, vigência), e a vigência vazia vira o mês de criação da unidade. Uma guarnição desconhecida vira o problema "Guarnição <x> não cadastrada", com a solução "Importe a aba GUARNIÇÕES (tela de Guarnições) e depois esta".
-- **Chaves naturais:** serviço é (unidade, nome); turno é (serviço, letra); escala é (unidade, nome); versão de vínculos é (escala, vigência), comparada como conjunto.
+  - **Cor de serviço novo:** pelo nome, com os valores da especificação de telas: Pronto `#2F8F5B`, JES `#6E56A8`, Saldo `#2B7BB9`, Bioma `#C08A1E`, PE Seguro `#3C5F9C`, Defensoria `#8C4A7A` e Expediente `#8A94A1`. Os demais recebem `#5B6675`. Serviço que já existe mantém a cor.
+  - **Letra:** normalizada; ÚNICO ou UNICO vira `U`. Fora de A, B, C ou U, é o problema "Turno "<x>" de <serviço>", com a solução "Use A, B, C ou U na coluna TURNO".
+  - **Horário:** passa por `normalizarHora`. Se for inválido, é o problema "Horário "<x>" de <serviço> <letra>", com a solução "Use HH:MM (ex.: 08:00)".
+  - **Comparação:** o turno que já existe é comparado por início e fim. Nada é apagado.
+- **ESCALAS:**
+  - **Colunas:** `ESCALA`*, `SERVIÇOS`, `TÍTULO`, `MILITARES` (opções TODOS, ESCALADOS) e `DIAS` (opções TODOS, SÓ ESCALADOS).
+  - **Agrupamento e serviços:**
+    - as linhas se agrupam pelo nome normalizado;
+    - `SERVIÇOS` é uma lista separada por `,` ou `;`, na ordem de preenchimento, somando todas as linhas da escala;
+    - vazia, vale o serviço com o nome da escala;
+    - a busca de serviço olha a aba TURNOS desta planilha e os serviços do sistema;
+    - serviço desconhecido descarta a escala, com o problema "Escala <e>: o serviço <s> não existe" e a solução "Cadastre o serviço na aba TURNOS ou corrija o nome em SERVIÇOS".
+  - **MILITARES:** TODOS → `todos`; qualquer outro valor, inclusive vazio, → `escalados`. Valor que não seja TODOS nem ESCALADOS gera aviso.
+  - **DIAS:** começa por SO depois de `normalizar` (SÓ ESCALADOS), ou é COM ESCALADOS → `com_escalados`; qualquer outro valor → `todos`.
+  - **TÍTULO:** vazio vira `ESCALA <NOME EM MAIÚSCULAS>`.
+  - **Valores diferentes entre linhas da mesma escala:** aviso, e vale o primeiro.
+  - **Escala que já existe:** é comparada por título, militares, dias e lista ordenada de serviços. Se tirar um serviço que já tem alocação nela, a escala inteira fica igual e vira problema com a mensagem da Tarefa 23.
+- **GUARNIÇÕES POR ESCALA:**
+  - **Colunas:** `VIGÊNCIA` (acha "VIGÊNCIA (A PARTIR DE)" pelo prefixo), `ESCALA`*, `TURNO` e `GUARNIÇÃO`*.
+  - **Turno:** vazio ou TODOS → `null`. Letra fora das `letras` da escala (como ficou depois da aba ESCALAS) é o problema "Turno <x> não existe nos serviços da escala <e>", com a solução "Confira a coluna TURNO ou os SERVIÇOS da escala".
+  - **Escala desconhecida** (nem na planilha nem no sistema, ou descartada acima): problema "Escala <e> não cadastrada", com a solução "Confira a aba ESCALAS".
+  - **Guarnição desconhecida:** problema "Guarnição <x> não cadastrada", com a solução "Importe a aba GUARNIÇÕES (tela de Guarnições) e depois esta".
+  - **Guarnição desativada no mês:** entra, com o aviso "<g> está desativada em <mês>; o vínculo fica gravado".
+  - **Linha repetida:** aviso, e a repetição é ignorada.
+  - **Versões:**
+    - as linhas se agrupam por (escala, vigência), e a vigência vazia vira o mês de criação da unidade (`unidade.desde`), como em GUARNIÇÕES;
+    - a versão é comparada como conjunto de pares (guarnição, letra);
+    - a versão igual à anterior da própria planilha é `redundante` e só é comparada se o sistema tiver versão naquele mês (como na Tarefa 18).
+- **Chaves naturais:** serviço é (unidade, nome normalizado); turno é (serviço, letra); escala é (unidade, nome normalizado); versão de vínculos é (escala, vigência).
+- **Ordem do `aplicar`:** serviços novos, depois turnos, depois escalas novas, depois serviços das escalas, depois versões de vínculos. Os ids dos criados passam adiante por nome normalizado.
 
-- [ ] **Passo 1: testes que falham:**
-  - `importa serviços e turnos com cor e tipo`
-  - `turno com letra inválida vira problema`
-  - `escala reúne serviços na ordem da lista`
+- [ ] **Passo 1: testes que falham** (planilhas montadas com ExcelJS no teste, só com dados fictícios ou não pessoais):
+  - `importa serviços e turnos com cor, tipo e rótulo de impressão` (JES com ORIGEM PJES → `rotuloImpressao` PJES)
+  - `hora como texto e como hora do Excel` ("8:00" e uma célula de hora do Excel → "08:00") **[foco 13]**
+  - `turno com letra inválida e horário inválido viram problemas com a solução`
+  - `serviço que já existe mantém a cor`
+  - `escala da sandbox: SÓ ESCALADOS, MILITARES vazio e TÍTULO vazio` (→ `com_escalados`, `escalados`, `ESCALA DEFENSORIA`) **[foco 12]**
+  - `escala reúne serviços na ordem, em várias linhas`
+  - `serviço desconhecido descarta a escala com a solução`
   - `vínculo com guarnição desconhecida vira problema com a solução`
-  - `importar duas vezes não grava nada` **[foco 1]**
+  - `vínculo com guarnição desativada entra com aviso` **[foco 15]**
+  - `TURNO vazio ou TODOS vira todos os turnos`
+  - `falta a coluna GUARNIÇÃO: problema e nada planejado`
+  - `importar duas vezes não grava nada (nem auditoria)` **[foco 1]**
+  - O teste de sincronia entre modelo e leitura (Tarefa 12) passa a cobrir este importador sem mudança **[foco 6]**.
 - [ ] **Passo 2:** `pnpm --filter api test`. Esperado: FALHA.
 - [ ] **Passo 3:** implementar.
 - [ ] **Passo 4:** `pnpm test && pnpm typecheck`. Esperado: tudo passa.
-- [ ] **Passo 5:** commit `Fase 3: importação de serviços, turnos e escalas`. Depois, abrir o PR "Fase 3 — Entrega 4: serviços, turnos e escalas" e **parar até o merge**.
+- [ ] **Passo 5:** commit `Fase 3: importação de serviços, turnos e escalas`. Depois, abrir o PR "Fase 3 — Entrega 4: serviços, turnos e escalas" e **parar até o merge**. Esta entrega não tem migração.
 
 ---
 
@@ -1119,4 +1263,5 @@ Branch `fase3-5-cotas-feriados`.
 - "Ver histórico" da guarnição e tela de Histórico: fase 7. A auditoria já grava tudo.
 - Antiguidade institucional (base nos almanaques, antiguidade por nível derivada pelo sistema): fase 7, só quando o escopo for institucional. Registrada no adendo "Modelo de planilha e ajustes da ficha" do design, sem implementação.
 - Convites e cadastro de usuários: fase 7, junto com o gestor por nível.
+- Mudar o horário de um turno que já tem militares escalados (versão do turno ou bloqueio): fase 4, quando a escala passar a gravar alocações pela tela.
 - Exposição do motor pela API (pré-escala, distribuições, quem pode ocupar a vaga): fase 4, com as telas que a usam.
