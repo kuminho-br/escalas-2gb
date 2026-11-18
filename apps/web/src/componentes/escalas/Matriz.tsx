@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { ErroApi, mensagemDe } from '@/api/cliente';
 import { atualizarEscalas, salvarVinculos } from '@/api/escalas';
 import { consultaGuarnicoes } from '@/api/guarnicoes';
+import { EtiquetaPendente, usePendencia } from '@/componentes/AlteracoesPendentes';
 import { LinhaDoTempo } from '@/componentes/LinhaDoTempo';
 import { Secao } from '@/componentes/militares/Secao';
 import { Button } from '@/componentes/ui/button';
@@ -39,6 +40,11 @@ function Editor({ escala, unidadeId, versao }: { escala: Escala; unidadeId: stri
     for (const i of itens) m.set(i.guarnicaoId, (m.get(i.guarnicaoId) ?? new Set<string>()).add(chave(i.inicio, i.fim)));
     return m;
   });
+  // marcações de todas as guarnições, em texto: o que difere do último gravado é alteração pendente (o mês não conta)
+  const assinatura = (m: Map<string, Set<string>>) => [...m].flatMap(([g, fs]) => [...fs].map((f) => `${g}|${f}`)).sort().join(',');
+  const [salvo, setSalvo] = useState(() => assinatura(marcas));
+  const sujo = assinatura(marcas) !== salvo;
+  usePendencia('matriz', sujo);
   // sugere o mês corrente, ou o começo da versão quando ela só vale no futuro
   const [desde, setDesde] = useState(versao && versao.vigencia > mes ? versao.vigencia : mes);
   const [aviso, setAviso] = useState<{ erro: boolean; texto: string } | null>(null);
@@ -80,6 +86,7 @@ function Editor({ escala, unidadeId, versao }: { escala: Escala; unidadeId: stri
     );
     try {
       await salvarVinculos(escala.id, desde, { itens: enviar });
+      setSalvo(assinatura(marcas));
       atualizarEscalas(queryClient);
       setAviso({ erro: false, texto: `Salvo a partir de ${mesPorExtenso(desde)}.` });
     } catch (err) {
@@ -160,6 +167,7 @@ function Editor({ escala, unidadeId, versao }: { escala: Escala; unidadeId: stri
           <Button type="button" disabled={!desde} onClick={() => void salvar()}>
             Salvar a partir de {desde ? mesPorExtenso(desde) : '…'}
           </Button>
+          <EtiquetaPendente sujo={sujo} />
           {aviso && <p role={aviso.erro ? 'alert' : 'status'} className={aviso.erro ? 'text-sm text-alerta' : 'text-sm text-apagado'}>{aviso.texto}</p>}
         </div>
       </div>

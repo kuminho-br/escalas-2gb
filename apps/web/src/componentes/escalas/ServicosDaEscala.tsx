@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { mensagemDe } from '@/api/cliente';
 import { atualizarEscalas, salvarServicosDaEscala } from '@/api/escalas';
 import { consultaServicos } from '@/api/servicos';
+import { EtiquetaPendente, usePendencia } from '@/componentes/AlteracoesPendentes';
 import { Secao } from '@/componentes/militares/Secao';
 import { Selecao } from '@/componentes/Selecao';
 import { Button } from '@/componentes/ui/button';
@@ -17,6 +18,10 @@ export function ServicosDaEscala({ escala, unidadeId }: { escala: Escala; unidad
   const servicos = useQuery(consultaServicos(unidadeId));
   const [itens, setItens] = useState<Item[]>(escala.servicos);
   const [aviso, setAviso] = useState<{ erro: boolean; texto: string } | null>(null);
+  // o último gravado (começa com o que veio do servidor): a ordem que difere dele é alteração pendente
+  const [salvo, setSalvo] = useState(() => escala.servicos.map((x) => x.id).join('|'));
+  const sujo = itens.map((x) => x.id).join('|') !== salvo;
+  usePendencia('servicos', sujo);
   const fora = (servicos.data ?? []).filter((s) => s.ativo && !itens.some((i) => i.id === s.id));
 
   function mover(i: number, delta: number) {
@@ -30,6 +35,7 @@ export function ServicosDaEscala({ escala, unidadeId }: { escala: Escala; unidad
     setAviso(null);
     try {
       await salvarServicosDaEscala(escala.id, itens.map((i) => i.id));
+      setSalvo(itens.map((i) => i.id).join('|'));
       atualizarEscalas(queryClient);
       setAviso({ erro: false, texto: 'Serviços salvos.' });
     } catch (err) {
@@ -76,6 +82,7 @@ export function ServicosDaEscala({ escala, unidadeId }: { escala: Escala; unidad
           </Selecao>
         )}
         <Button type="button" onClick={() => void salvar()}>Salvar serviços</Button>
+        <EtiquetaPendente sujo={sujo} />
         {aviso && <p role={aviso.erro ? 'alert' : 'status'} className={aviso.erro ? 'text-sm text-alerta' : 'text-sm text-apagado'}>{aviso.texto}</p>}
       </div>
     </Secao>

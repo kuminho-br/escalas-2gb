@@ -4,6 +4,7 @@ import { duracaoMinutos } from 'dominio';
 import { useState } from 'react';
 import { mensagemDe } from '@/api/cliente';
 import { atualizarServicos, editarTurno, incluirTurno, removerTurno } from '@/api/servicos';
+import { EtiquetaPendente, usePendencia } from '@/componentes/AlteracoesPendentes';
 import { Secao } from '@/componentes/militares/Secao';
 import { Selecao } from '@/componentes/Selecao';
 import { Button } from '@/componentes/ui/button';
@@ -70,6 +71,11 @@ function LinhaTurno({
   const [inicio, setInicio] = useState(base.inicio);
   const [fim, setFim] = useState(base.fim);
   const [erro, setErro] = useState<string | null>(null);
+  const assinatura = (l: string, i: string, f: string) => `${l}|${i}|${f}`;
+  // o último gravado: o que difere dele é alteração pendente
+  const [salvo, setSalvo] = useState(() => assinatura(base.letra, base.inicio, base.fim));
+  const sujo = assinatura(letra, inicio, fim) !== salvo;
+  usePendencia(`turno-${turno?.id ?? 'novo'}`, sujo);
   const nome = turno ? `turno ${turno.letra}` : 'turno novo';
   const duracao = duracaoDe(inicio, fim);
 
@@ -78,6 +84,7 @@ function LinhaTurno({
     try {
       if (turno) await editarTurno(turno.id, { letra, inicio, fim });
       else await incluirTurno(servico.id, { letra, inicio, fim });
+      setSalvo(assinatura(letra, inicio, fim));
       atualizarServicos(queryClient);
       aoCancelar?.();
     } catch (err) {
@@ -104,7 +111,8 @@ function LinhaTurno({
         <span className="text-apagado">às</span>
         <Input aria-label={`Fim do ${nome}`} type="time" value={fim} onChange={(e) => setFim(e.target.value)} className="w-28" />
         <BlocoDeDuracao cor={servico.cor} duracao={duracao} />
-        <span className="ml-auto flex gap-2">
+        <span className="ml-auto flex items-center gap-2">
+          <EtiquetaPendente sujo={sujo} />
           <Button type="button" size="sm" variant="outline" onClick={() => void salvar()} aria-label={`Salvar ${nome}`}>
             Salvar
           </Button>

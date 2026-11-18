@@ -5,6 +5,7 @@ import { ArrowLeft } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
 import { mensagemDe } from '@/api/cliente';
 import { atualizarEscalas, consultaEscala, editarEscala, mudarSituacaoEscala } from '@/api/escalas';
+import { EtiquetaPendente, ProvedorDePendencias, usePendencia } from '@/componentes/AlteracoesPendentes';
 import { Matriz } from '@/componentes/escalas/Matriz';
 import { ServicosDaEscala } from '@/componentes/escalas/ServicosDaEscala';
 import { Secao } from '@/componentes/militares/Secao';
@@ -25,6 +26,7 @@ function Ficha() {
   if (error) return <p role="alert" className="p-4 text-alerta">{mensagemDe(error)}</p>;
   const assinatura = (x: Escala) => x.vinculos.map((v) => `${v.vigencia}:${v.itens.map((i) => `${i.guarnicaoId}/${i.inicio}${i.fim}`).join('+')}`).join(',');
   return (
+    <ProvedorDePendencias>
     <article className="grid gap-4">
       <header className="flex items-baseline gap-3">
         <Link to="/escalas" className="lg:hidden" aria-label="Voltar para a lista">
@@ -40,6 +42,7 @@ function Ficha() {
       {/* a assinatura das versões entra na key: salvar recarrega a matriz com o que foi gravado */}
       <Matriz key={`m-${e.id}-${e.faixas.map((f) => `${f.inicio}${f.fim}`).join('')}-${assinatura(e)}`} escala={e} unidadeId={eu.unidade.id} />
     </article>
+    </ProvedorDePendencias>
   );
 }
 
@@ -73,12 +76,18 @@ function Identificacao({ e }: { e: Escala }) {
   const [militaresDoc, setMilitares] = useState(e.militaresDoc);
   const [diasDoc, setDias] = useState(e.diasDoc);
   const [aviso, setAviso] = useState<{ erro: boolean; texto: string } | null>(null);
+  const assinatura = () => JSON.stringify([nome.trim(), titulo.trim(), militaresDoc, diasDoc]);
+  // o último gravado (começa com o que veio do servidor): o que difere dele é alteração pendente
+  const [salvo, setSalvo] = useState(() => JSON.stringify([e.nome, e.titulo, e.militaresDoc, e.diasDoc]));
+  const sujo = assinatura() !== salvo;
+  usePendencia('identificacao', sujo);
 
   async function salvar(ev: FormEvent) {
     ev.preventDefault();
     setAviso(null);
     try {
       await editarEscala(e.id, { nome: nome.trim(), titulo: titulo.trim(), militaresDoc, diasDoc });
+      setSalvo(assinatura());
       atualizarEscalas(queryClient);
       setAviso({ erro: false, texto: 'Alterações salvas.' });
     } catch (err) {
@@ -115,6 +124,7 @@ function Identificacao({ e }: { e: Escala }) {
         </div>
         <div className="flex items-center gap-3">
           <Button type="submit" variant="outline">Salvar</Button>
+          <EtiquetaPendente sujo={sujo} />
           {aviso && <p role={aviso.erro ? 'alert' : 'status'} className={aviso.erro ? 'text-sm text-alerta' : 'text-sm text-apagado'}>{aviso.texto}</p>}
         </div>
       </form>

@@ -5,6 +5,7 @@ import { ArrowLeft } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
 import { mensagemDe } from '@/api/cliente';
 import { atualizarServicos, consultaServico, editarServico, mudarSituacaoServico } from '@/api/servicos';
+import { EtiquetaPendente, ProvedorDePendencias, usePendencia } from '@/componentes/AlteracoesPendentes';
 import { Secao } from '@/componentes/militares/Secao';
 import { Turnos } from '@/componentes/servicos/Turnos';
 import { Selecao } from '@/componentes/Selecao';
@@ -24,6 +25,7 @@ function Ficha() {
   if (isPending) return <p className="p-4 text-apagado">Carregando…</p>;
   if (error) return <p role="alert" className="p-4 text-alerta">{mensagemDe(error)}</p>;
   return (
+    <ProvedorDePendencias>
     <article className="grid gap-4">
       <header className="flex items-baseline gap-3">
         <Link to="/servicos" className="lg:hidden" aria-label="Voltar para a lista">
@@ -37,6 +39,7 @@ function Ficha() {
       <Identificacao key={`i-${s.id}-${s.nome}-${s.tipo}-${s.operacao}-${s.rotuloImpressao}-${s.cor}`} s={s} />
       <Turnos key={`t-${s.id}-${s.turnos.map((t) => `${t.id}:${t.letra}:${t.inicio}:${t.fim}`).join(',')}`} servico={s} />
     </article>
+    </ProvedorDePendencias>
   );
 }
 
@@ -71,18 +74,19 @@ function Identificacao({ s }: { s: Servico }) {
   const [rotulo, setRotulo] = useState(s.rotuloImpressao ?? '');
   const [cor, setCor] = useState(s.cor);
   const [aviso, setAviso] = useState<{ erro: boolean; texto: string } | null>(null);
+  const dados = () => ({ nome: nome.trim(), tipo, operacao: tipo === 'diaria' ? operacao.trim() || null : null, rotuloImpressao: rotulo.trim() || null, cor });
+  const assinatura = (d: ReturnType<typeof dados>) => JSON.stringify([d.nome, d.tipo, d.operacao, d.rotuloImpressao, d.cor]);
+  // o último gravado (começa com o que veio do servidor): o que difere dele é alteração pendente
+  const [salvo, setSalvo] = useState(() => assinatura({ nome: s.nome, tipo: s.tipo, operacao: s.operacao, rotuloImpressao: s.rotuloImpressao, cor: s.cor }));
+  const sujo = assinatura(dados()) !== salvo;
+  usePendencia('identificacao', sujo);
 
   async function salvar(e: FormEvent) {
     e.preventDefault();
     setAviso(null);
     try {
-      await editarServico(s.id, {
-        nome: nome.trim(),
-        tipo,
-        operacao: tipo === 'diaria' ? operacao.trim() || null : null,
-        rotuloImpressao: rotulo.trim() || null,
-        cor,
-      });
+      await editarServico(s.id, dados());
+      setSalvo(assinatura(dados()));
       atualizarServicos(queryClient);
       setAviso({ erro: false, texto: 'Alterações salvas.' });
     } catch (err) {
@@ -123,6 +127,7 @@ function Identificacao({ s }: { s: Servico }) {
         </div>
         <div className="flex items-center gap-3">
           <Button type="submit" variant="outline">Salvar</Button>
+          <EtiquetaPendente sujo={sujo} />
           {aviso && <p role={aviso.erro ? 'alert' : 'status'} className={aviso.erro ? 'text-sm text-alerta' : 'text-sm text-apagado'}>{aviso.texto}</p>}
         </div>
       </form>
