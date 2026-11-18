@@ -158,4 +158,20 @@ describe('importação de militares', () => {
     ]);
     expect((await militar('990208-8'))!.posto).toBe('SD BM');
   });
+
+  it('militar com lotação marcada só para o futuro em outra seção também é problema, e nada dele é gravado', async () => {
+    const sd = (await api.banco.query<{ id: string }>("select id from posto_grad where sigla = 'SD BM'")).rows[0]!.id;
+    const outra = await inserir(api.banco, 'unidade', { tipo: 'secao', sigla: '4ª SB', nome: '4ª Seção', mae_id: api.ids.gb, desde: '2026-11-01' });
+    const m = await inserir(api.banco, 'militar', { matricula: '990219-9', posto_grad_id: sd, nome_guerra: 'FUTURO', antiguidade: 7 });
+    await inserir(api.banco, 'lotacao', { militar_id: m, unidade_id: outra, jornada: 'adm', desde: `${somarMeses(atual, 1)}-01` });
+    const linha = ['990219-9', 'MUDADO PELA PRIMEIRA', '1ª SB', 'CB BM', 'ADM', '', 1, 'SIM', 'SIM', 'D'];
+    const previa = await importar([linha]);
+    expect(previa.problemas).toEqual([
+      { aba: 'MILITARES', linha: 2, mensagem: 'MUDADO PELA PRIMEIRA (990219-9) está lotado na 4ª SB.', solucao: 'Ele entra aqui quando a transferência for registrada por quem cuida da 4ª SB.' },
+    ]);
+    await importar([linha], true);
+    expect(await militar('990219-9')).toMatchObject({ posto: 'SD BM', antiguidade: 7, voluntario_jes: false, motorista: false });
+    expect((await lotacoes(m)).map((l) => l.jornada)).toEqual(['adm']);
+  });
 });
+

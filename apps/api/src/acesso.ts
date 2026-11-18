@@ -47,6 +47,9 @@ export function exigirSessao(banco: Banco, auth: Auth): MiddlewareHandler<Ambien
   return async (c, next) => {
     const sessao = await auth.api.getSession({ headers: c.req.raw.headers });
     if (!sessao) return c.json({ erro: 'Entre no sistema para continuar.' }, 401);
+    // usuário desativado perde o acesso na hora: a sessão já aberta não vale (o gancho do login só barra sessão nova)
+    const ativo = (await banco.query<{ ativo: boolean }>('select ativo from usuario where id = $1', [sessao.user.id])).rows[0]?.ativo;
+    if (!ativo) return c.json({ erro: 'Entre no sistema para continuar.' }, 401);
     c.set('usuarioId', sessao.user.id);
     c.set('banco', banco);
     await next();
