@@ -7,9 +7,12 @@ import {
   compararAntiguidade,
   detectarChoques,
   diaDaSemana,
+  ehSaldo,
   exigeVoluntarioJes,
   montarHorarios,
   turnosPadraoExigidos,
+  violacoesDiariaUnica,
+  violacoesSaldo,
   type AlocChoque,
   type Militar,
 } from 'dominio';
@@ -128,11 +131,15 @@ async function avaliar(c: Consulta, v: VagaConsultada, somenteMilitar?: string):
       m.jornada === 'adm'
         ? [-1, 0, 1].map((n) => somarDias(v.data, n)).filter(util).map((dia) => ({ mat: m.id, dia, turno: EXPEDIENTE.turno, servico: EXPEDIENTE.servico, implicito: true }))
         : [];
+    // o Adm entra pelo Saldo (cobre turno do Pronto): o serviço proposto é o Saldo, quando a faixa o tem
+    const ordemDosTurnos = m.jornada === 'adm' ? [...turnos].sort((a, b) => Number(ehSaldo(b.nome)) - Number(ehSaldo(a.nome))) : turnos;
     return pronto(
       null,
-      turnos.map((turno) => {
+      ordemDosTurnos.map((turno) => {
         let motivo: string | null = null;
-        if ((turno.tipo === 'pjes' || exigeVoluntarioJes(turno.nome)) && !m.voluntario_jes) motivo = 'Não é voluntário JES';
+        // RN-03: o Saldo é do Adm (a regra e a frase são do motor; aqui sem o código da regra)
+        if (violacoesSaldo([{ mat: m.id, dia: v.data, servico: turno.nome, turno: turno.letra }], { adm: m.jornada === 'adm' ? { [m.id]: true } : {} }).length) motivo = 'Saldo só para militar do Adm';
+        else if ((turno.tipo === 'pjes' || exigeVoluntarioJes(turno.nome)) && !m.voluntario_jes) motivo = 'Não é voluntário JES';
         else if (turno.tipo !== 'ordinario' && !turnosPadraoExigidos(turno.inicio, turno.fim).every((p) => voluntariado.has(`${m.id}|${somarDias(v.data, p.dia)}|${p.turno}`))) {
           motivo = 'Não marcou voluntariado neste horário';
         } else {
@@ -140,6 +147,8 @@ async function avaliar(c: Consulta, v: VagaConsultada, somenteMilitar?: string):
           const chave = chaveAloc(candidata);
           const { choques } = detectarChoques([...existentes, ...expediente, candidata], horarios, { tipos });
           if (choques.some((x) => x.a.chave === chave || x.b.chave === chave)) motivo = 'Choque de horário';
+          // RN-36: uma diária por dia para o mesmo militar
+          else if (violacoesDiariaUnica([...existentes, candidata], { tipos }).some((x) => x.chave === chave)) motivo = 'Já tem uma diária neste dia';
         }
         return { turno, motivo };
       }),

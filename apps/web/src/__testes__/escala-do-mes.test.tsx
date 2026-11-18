@@ -273,13 +273,13 @@ describe('escolher militar e remover', () => {
     confirmar.mockRestore();
   });
 
-  it('"Desfazer" na linha dos removidos manda o DELETE da remoção', async () => {
+  it('"Permitir de novo" na linha dos removidos manda o DELETE da remoção (libera a pré-escala; não escala ninguém)', async () => {
     const comRemovido: EscalaDoMes = { ...ESCALA, dias: ESCALA.dias.map((d, i) => (i === 2 ? { ...d, faixas: [faixa(false, card(true, true), { removidos: [{ remocaoId: 'r1', militarId: 'm-x', nomeGuerra: 'XAVIER', servico: 'Pronto' }] }), d.faixas[1]!] } : d)) };
     const f = api(comRemovido, { 'DELETE /api/remocoes/r1': { status: 200, corpo: ESCALA } });
     abrir('/escala-do-mes');
     const d3 = await screen.findByRole('region', { name: 'Dia 3' });
     expect(within(d3).getByText('Removidos:').closest('p')).toHaveTextContent('XAVIER');
-    await userEvent.click(within(d3).getByRole('button', { name: 'Desfazer remoção de XAVIER' }));
+    await userEvent.click(within(d3).getByRole('button', { name: 'Permitir de novo XAVIER neste turno' }));
     await waitFor(() => expect(chamadasA(f, 'DELETE /api/remocoes/r1')).toBe(1));
   });
 
@@ -290,6 +290,40 @@ describe('escolher militar e remover', () => {
     const d1 = await screen.findByRole('region', { name: 'Dia 1' });
     await userEvent.click(within(d1.querySelector('[data-faixa]') as HTMLElement).getByRole('button', { name: 'Remover MOTOR' }));
     expect(await screen.findByRole('alert')).toHaveTextContent('Alocação não encontrada.');
+  });
+
+  it('quem está em "Sem guarnição" também tem Remover', async () => {
+    const solto = ocupante('SOLTO');
+    const comSolto: EscalaDoMes = { ...ESCALA, dias: ESCALA.dias.map((d, i) => (i === 2 ? { ...d, faixas: [faixa(false, card(true, true), { semPosto: [solto] }), d.faixas[1]!] } : d)) };
+    const f = api(comSolto, { 'DELETE /api/alocacoes/a-SOLTO': { status: 200, corpo: ESCALA } });
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+    abrir('/escala-do-mes');
+    const d3 = await screen.findByRole('region', { name: 'Dia 3' });
+    const linha = within(d3).getByText('Sem guarnição:').closest('p')!;
+    expect(linha).toHaveTextContent('SOLTO');
+    await userEvent.click(within(d3).getByRole('button', { name: 'Remover SOLTO' }));
+    await waitFor(() => expect(chamadasA(f, 'DELETE /api/alocacoes/a-SOLTO')).toBe(1));
+  });
+
+  it('depois de um 409 ao escalar, a escala e a lista voltam a buscar (o colega pode ter ocupado a vaga)', async () => {
+    const f = api(ESCALA, { [rotaCandidatos]: { status: 200, corpo: CANDIDATOS }, 'POST /api/escalas/e1/alocacoes': { status: 409, corpo: { erro: 'A função Combatente já está completa nesta guarnição.' } } });
+    abrir('/escala-do-mes');
+    await screen.findByRole('region', { name: 'Dia 2' });
+    const dialogo = await abrirVaga();
+    await userEvent.click(await within(dialogo).findByRole('button', { name: /ZULU/ }));
+    await within(dialogo).findByRole('alert');
+    await waitFor(() => expect(chamadasA(f, `GET /api/escalas/e1/mes/${MES}`)).toBe(2));
+    await waitFor(() => expect(chamadasA(f, rotaCandidatos)).toBeGreaterThanOrEqual(2));
+  });
+
+  it('depois de um erro ao remover, a escala volta a buscar (a linha pode já ter sido tirada por outra pessoa)', async () => {
+    const f = api(ESCALA, { 'DELETE /api/alocacoes/a-MOTOR': { status: 404, corpo: { erro: 'Alocação não encontrada.' } } });
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+    abrir('/escala-do-mes');
+    const d1 = await screen.findByRole('region', { name: 'Dia 1' });
+    await userEvent.click(within(d1.querySelector('[data-faixa]') as HTMLElement).getByRole('button', { name: 'Remover MOTOR' }));
+    await screen.findByRole('alert');
+    await waitFor(() => expect(chamadasA(f, `GET /api/escalas/e1/mes/${MES}`)).toBe(2));
   });
 });
 

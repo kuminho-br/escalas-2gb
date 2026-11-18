@@ -43,4 +43,12 @@ describe('migração 0014: remoções', () => {
     await remocao('2026-12-10');
     await expect(remocao('2026-12-10')).rejects.toMatchObject({ code: '23505' });
   });
+
+  it('a remoção entra na auditoria, na criação e quando é desfeita', async () => {
+    const id = await remocao('2026-12-20');
+    await banco.query('delete from remocao where id = $1', [id]);
+    const acoes = (await banco.query<{ acao: string }>("select acao from auditoria where tabela = 'remocao' and registro_id = $1 order by id", [id])).rows.map((r) => r.acao);
+    expect(acoes).toEqual(['insert', 'delete']);
+  });
 });
+

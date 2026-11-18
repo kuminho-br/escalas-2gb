@@ -65,6 +65,8 @@ As condições que o design implica e que mais podem morder quem monta a escala;
 - **Militares externos:** ficam para a fase 7 (não há cadastro de vínculo externo); a lista traz só os lotados na seção no dia.
 - **Remoção:** "Remover" pede confirmação, apaga a alocação e grava a remoção na mesma transação; a faixa mostra "Removidos: NOME (desfazer)". Escalar o mesmo militar de novo na mesma combinação também desfaz (gatilho do banco).
 - **Dias completos recolhidos:** fora desta entrega; "Mostrar só vagas vazias" cobre o uso.
+- **Regras do motor na lista (revisão final):** Saldo só para militar do Adm (RN-03; o Adm entra pelo Saldo quando a faixa o tem) e uma diária por dia para o mesmo militar (RN-36) valem na lista e na gravação, com as frases "Saldo só para militar do Adm" e "Já tem uma diária neste dia".
+- **"Permitir de novo" (antes "Desfazer"):** na linha "Removidos", o botão só tira a marca de remoção (a pré-escala poderá escalar o militar neste turno de novo); não o põe de volta na vaga. Para ele voltar agora, escolhe-se o militar na vaga (isso também apaga a marca). A tabela `remocao` entra na auditoria.
 
 ## Arquivos
 

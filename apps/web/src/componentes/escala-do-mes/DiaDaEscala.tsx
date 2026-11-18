@@ -30,9 +30,18 @@ function Faixa({ faixa, dia, soVazias, aoEscolher, aoRemover, aoDesfazer }: { fa
           </div>
         )}
         {faixa.semPosto.length > 0 && (
-          <p className="text-sm">
-            <span className="text-apagado">Sem guarnição: </span>
-            {faixa.semPosto.map((o) => o.nomeGuerra).join(', ')}
+          <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
+            <span className="text-apagado">Sem guarnição:</span>
+            {faixa.semPosto.map((o) => (
+              <span key={o.alocacaoId} className="inline-flex items-center gap-1.5">
+                {o.nomeGuerra}
+                {aoRemover && (
+                  <button type="button" aria-label={`Remover ${o.nomeGuerra}`} onClick={() => aoRemover(o, 'Sem guarnição', Number(dia.slice(8)))} className="rounded px-1.5 text-xs text-apagado hover:bg-accent hover:text-tinta">
+                    Remover
+                  </button>
+                )}
+              </span>
+            ))}
           </p>
         )}
         {faixa.removidos.length > 0 && (
@@ -42,8 +51,14 @@ function Faixa({ faixa, dia, soVazias, aoEscolher, aoRemover, aoDesfazer }: { fa
               <span key={r.remocaoId} className="inline-flex items-center gap-1">
                 {r.nomeGuerra}
                 {aoDesfazer && (
-                  <button type="button" aria-label={`Desfazer remoção de ${r.nomeGuerra}`} onClick={() => aoDesfazer(r.remocaoId)} className="font-medium text-vinho underline underline-offset-2">
-                    Desfazer
+                  <button
+                    type="button"
+                    aria-label={`Permitir de novo ${r.nomeGuerra} neste turno`}
+                    title="Tira a marca de remoção: a pré-escala poderá escalar este militar neste turno de novo. Ele não volta para a vaga agora."
+                    onClick={() => aoDesfazer(r.remocaoId)}
+                    className="font-medium text-vinho underline underline-offset-2"
+                  >
+                    Permitir de novo
                   </button>
                 )}
               </span>

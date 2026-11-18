@@ -25,9 +25,19 @@ function guardar(queryClient: QueryClient, e: EscalaDoMes): EscalaDoMes {
   return e;
 }
 
-export const escalar = async (queryClient: QueryClient, escalaId: string, d: NovaAlocacao) =>
-  guardar(queryClient, await pedir<EscalaDoMes>('POST', `/api/escalas/${escalaId}/alocacoes`, d));
-export const removerAlocacao = async (queryClient: QueryClient, alocacaoId: string) =>
-  guardar(queryClient, await pedir<EscalaDoMes>('DELETE', `/api/alocacoes/${alocacaoId}`));
-export const desfazerRemocao = async (queryClient: QueryClient, remocaoId: string) =>
-  guardar(queryClient, await pedir<EscalaDoMes>('DELETE', `/api/remocoes/${remocaoId}`));
+/** A recusa (409, 404) quase sempre quer dizer que outra pessoa mexeu antes: a tela busca a escala e os candidatos de novo. */
+async function gravando(queryClient: QueryClient, pedido: Promise<EscalaDoMes>): Promise<EscalaDoMes> {
+  try {
+    return guardar(queryClient, await pedido);
+  } catch (e) {
+    void queryClient.invalidateQueries({ queryKey: ['escala-do-mes'] });
+    void queryClient.invalidateQueries({ queryKey: ['candidatos'] });
+    throw e;
+  }
+}
+
+export const escalar = (queryClient: QueryClient, escalaId: string, d: NovaAlocacao) =>
+  gravando(queryClient, pedir<EscalaDoMes>('POST', `/api/escalas/${escalaId}/alocacoes`, d));
+export const removerAlocacao = (queryClient: QueryClient, alocacaoId: string) => gravando(queryClient, pedir<EscalaDoMes>('DELETE', `/api/alocacoes/${alocacaoId}`));
+/** Tira a marca de remoção: a pré-escala pode escalar o militar neste turno de novo. Não o põe de volta na vaga. */
+export const desfazerRemocao = (queryClient: QueryClient, remocaoId: string) => gravando(queryClient, pedir<EscalaDoMes>('DELETE', `/api/remocoes/${remocaoId}`));

@@ -22,7 +22,7 @@ const proximo = somarMeses(atual, 1);
 const dia = (n: number) => `${atual}-${String(n).padStart(2, '0')}`;
 const D = dia(10);
 const ontem = (d: string) => new Date(new Date(`${d}T00:00:00Z`).getTime() - 86400000).toISOString().slice(0, 10);
-const FAIXA = { A: { inicio: '08:00', fim: '20:00' }, B: { inicio: '20:00', fim: '08:00' }, MADRUGADA: { inicio: '06:00', fim: '14:00' }, JES: { inicio: '09:00', fim: '17:00' }, BIOMA: { inicio: '08:00', fim: '16:00' } };
+const FAIXA = { BIOMA_C: { inicio: '16:00', fim: '00:00' }, A: { inicio: '08:00', fim: '20:00' }, B: { inicio: '20:00', fim: '08:00' }, MADRUGADA: { inicio: '06:00', fim: '14:00' }, JES: { inicio: '09:00', fim: '17:00' }, BIOMA: { inicio: '08:00', fim: '16:00' } };
 const secao = () => `/api/unidades/${api.ids.secao}`;
 const vaga = (data: string, faixa: { inicio: string; fim: string }, comMotorista = false) => ({
   escalaId, data, ...faixa, guarnicaoId: abt, funcaoId: comMotorista ? motorista : combatente,
@@ -66,13 +66,15 @@ beforeAll(async () => {
   await criarServico('Madrugada', 'ordinario', 'A', FAIXA.MADRUGADA);
   await criarServico('JES', 'pjes', 'A', FAIXA.JES);
   await criarServico('Bioma', 'diaria', 'A', FAIXA.BIOMA);
+  turno['Bioma C'] = (await (await api.pedir('escalante', 'POST', `/api/servicos/${servico.Bioma}/turnos`, { letra: 'C', ...FAIXA.BIOMA_C })).json()).turnos.find((t: { letra: string }) => t.letra === 'C').id;
+  await criarServico('Saldo', 'ordinario', 'A', FAIXA.A);
   const g = await api.pedir('escalante', 'POST', `${secao()}/guarnicoes`, {
     nome: 'ABT', vigencia: atual,
     versao: { viatura: null, tipoViatura: null, prioridade: 1, ativa: true, composicao: [{ funcaoId: motorista, minimo: 1, maximo: 1, cnhExigida: 'D' }, { funcaoId: combatente, minimo: 2, maximo: 3, cnhExigida: null }] },
   });
   abt = (await g.json()).id;
   escalaId = (await (await api.pedir('escalante', 'POST', `${secao()}/escalas`, { nome: 'Ordinário' })).json()).id;
-  expect((await api.pedir('escalante', 'PUT', `/api/escalas/${escalaId}/servicos`, { servicoIds: [servico.Pronto, servico.Madrugada, servico.JES, servico.Bioma] })).status).toBe(200);
+  expect((await api.pedir('escalante', 'PUT', `/api/escalas/${escalaId}/servicos`, { servicoIds: [servico.Pronto, servico.Madrugada, servico.JES, servico.Bioma, servico.Saldo] })).status).toBe(200);
   const posto = await inserir(api.banco, 'posto_grad', { sigla: 'SD-C', nome: 'Soldado C', ordem: 920 });
   const p = { posto };
   await criarMilitar('APTO', p);
@@ -87,6 +89,7 @@ beforeAll(async () => {
   await criarMilitar('NAOJES', p);
   await criarMilitar('INATIVO', { ...p, ativo: false });
   await criarMilitar('ADMIN', { ...p, jornada: 'adm' });
+  await criarMilitar('DIARIAS', p);
   const tipo = (await api.banco.query<{ id: string }>('select id from tipo_afastamento limit 1')).rows[0]!.id;
   expect((await api.pedir('escalante', 'POST', `/api/militares/${militar.AFASTADO}/afastamentos`, { tipoAfastamentoId: tipo, inicio: dia(8), fim: dia(12) })).status).toBe(201);
   await alocar('CHOQUE', 'Pronto', 'B', ontem(D));
@@ -101,7 +104,7 @@ afterAll(async () => {
 describe('quem pode ocupar a vaga', () => {
   it('o apto vem com o serviço da faixa; os demais ficam fora com o motivo agrupado', async () => {
     const r = await avaliarCandidatos(api.banco, vaga(D, FAIXA.A));
-    expect(nomes(r)).toEqual(['APTO', 'CHOQUE', 'CNHB', 'CNHE', 'JESSEM', 'JESVOL', 'NAOJES', 'VIRADA'].concat(['ADMIN']).sort());
+    expect(nomes(r)).toEqual(['APTO', 'CHOQUE', 'CNHB', 'CNHE', 'DIARIAS', 'JESSEM', 'JESVOL', 'NAOJES', 'VIRADA'].concat(['ADMIN']).sort());
     expect(r.aptos.find((a) => a.nomeGuerra === 'APTO')).toMatchObject({ matricula: expect.stringMatching(/^99\d{4}-\d$/), jornada: 'pronto', equipe: 'Alfa', servicos: [{ servicoId: servico.Pronto, turnoId: T('Pronto A'), nome: 'Pronto' }] });
     // quem só entra na seção no mês seguinte não pesa na contagem de "ficaram de fora"
     expect(r.fora).toEqual([{ motivo: 'Afastado', quantidade: 1 }, { motivo: 'Desativado', quantidade: 1 }]);
@@ -172,3 +175,29 @@ describe('quem pode ocupar a vaga', () => {
     expect((await sem.json()).erro).toBe('Esta faixa não existe nesta escala.');
   });
 });
+
+describe('regras do motor que a lista aplica: Saldo só para o Adm (RN-03) e uma diária por dia (RN-36)', () => {
+  it('o Saldo é recusado para quem não é do Adm e aceito para o Adm', async () => {
+    expect(await motivo('APTO', D, FAIXA.A, T('Saldo A'))).toBe('Saldo só para militar do Adm');
+    expect(await motivo('ADMIN', D, FAIXA.A, T('Saldo A'))).toBeNull();
+  });
+
+  it('na lista, o Adm vem com o Saldo como primeiro serviço e o do Pronto só com o Pronto', async () => {
+    const r = await avaliarCandidatos(api.banco, vaga(D, FAIXA.A));
+    expect(r.aptos.find((a) => a.nomeGuerra === 'ADMIN')!.servicos.map((s) => s.nome)).toEqual(['Saldo', 'Pronto']);
+    expect(r.aptos.find((a) => a.nomeGuerra === 'APTO')!.servicos.map((s) => s.nome)).toEqual(['Pronto']);
+  });
+
+  it('duas diárias começando no mesmo dia: a segunda é recusada; em outro dia passa', async () => {
+    const d = dia(18);
+    await voluntariar('DIARIAS', d, 'A');
+    await voluntariar('DIARIAS', d, 'B');
+    expect(await motivo('DIARIAS', d, FAIXA.BIOMA_C, T('Bioma C'))).toBeNull();
+    await alocar('DIARIAS', 'Bioma', 'A', d);
+    expect(await motivo('DIARIAS', d, FAIXA.BIOMA_C, T('Bioma C'))).toBe('Já tem uma diária neste dia');
+    await voluntariar('DIARIAS', dia(19), 'A');
+    await voluntariar('DIARIAS', dia(19), 'B');
+    expect(await motivo('DIARIAS', dia(19), FAIXA.BIOMA_C, T('Bioma C'))).toBeNull();
+  });
+});
+

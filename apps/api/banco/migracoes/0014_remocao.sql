@@ -23,3 +23,7 @@ end $$;
 
 create trigger alocacao_apaga_remocao after insert on alocacao
   for each row execute function alocacao_desfaz_remocao();
+
+-- a remoção também fica na auditoria (quem tirou o militar e quem liberou a vaga para a pré-escala)
+create trigger auditoria_registro after insert or update or delete on remocao
+  for each row execute function registrar_auditoria();
