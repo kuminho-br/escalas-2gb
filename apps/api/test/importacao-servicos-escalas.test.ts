@@ -108,7 +108,7 @@ describe('importação de serviços, turnos e escalas', () => {
     const previa = await importar({ t: [...TURNOS, ['Pronto', 'D', '08:00', '20:00', 12, '', ''], ['JES', 'B', '25:00', '08:00', 12, '', '']] });
     expect(previa.problemas).toEqual(
       expect.arrayContaining([
-        { aba: 'TURNOS', linha: 8, mensagem: 'Turno "D" de Pronto', solucao: 'Use A, B, C ou U na coluna TURNO.' },
+        { aba: 'TURNOS', linha: 8, mensagem: 'Turno "D" de Pronto', solucao: 'Use A, B ou C na coluna TURNO.' },
         { aba: 'TURNOS', linha: 9, mensagem: 'Horário "25:00" de JES B', solucao: 'Use HH:MM (ex.: 08:00).' },
       ]),
     );
@@ -199,6 +199,39 @@ describe('importação de serviços, turnos e escalas', () => {
     expect(previa.problemas).toEqual([]);
     await importar({ v }, true);
     expect((await escala('Ordinário')).vinculos[0]!.itens.map((i) => [i.guarnicao, `${i.inicio}-${i.fim}`])).toEqual([['ABT', '08:00-20:00'], ['AR', '20:00-08:00']]);
+  });
+
+  it.each(['08 as 20', '08-20', '08h às 20h', '8 a 20', '08:00 – 20:00', '8h as 20h'])('TURNO %j vira a faixa das 08h às 20h', async (celula) => {
+    const previa = await importar({ v: [[atual, 'Ordinário', celula, 'ABT']] });
+    expect(previa.problemas).toEqual([]);
+  });
+
+  it('TURNO com horário que não existe ou sem sentido vira problema de horário', async () => {
+    const previa = await importar({ v: [[atual, 'Ordinário', '08:00-25:00', 'ABT'], [atual, 'Ordinário', '08 até 20 horas', 'AR']] });
+    expect(previa.problemas).toEqual([
+      { aba: 'GUARNIÇÕES POR ESCALA', linha: 2, mensagem: 'Horário "08:00-25:00" de Ordinário', solucao: 'Escreva a faixa como 08:00-20:00.' },
+      { aba: 'GUARNIÇÕES POR ESCALA', linha: 3, mensagem: 'Horário "08 até 20 horas" de Ordinário', solucao: 'Escreva a faixa como 08:00-20:00.' },
+    ]);
+  });
+
+  it('DIAS COM ESCALADOS e SÓ ESCALADOS viram só os dias com escalados', async () => {
+    const e = [...ESCALAS, ['Dias Com', 'Pronto', '', '', 'COM ESCALADOS'], ['Dias Só', 'Pronto', '', '', 'SÓ ESCALADOS'], ['Dias Todos', 'Pronto', '', '', 'TODOS']];
+    await importar({ e }, true);
+    expect((await escala('Dias Com')).diasDoc).toBe('com_escalados');
+    expect((await escala('Dias Só')).diasDoc).toBe('com_escalados');
+    expect((await escala('Dias Todos')).diasDoc).toBe('todos');
+  });
+
+  it('vínculo de escala que ficou de fora diz por quê', async () => {
+    const previa = await importar({ e: [...ESCALAS, ['CPRH', 'CPRH', '', '', '']], v: [['', 'CPRH', 'A', 'ABT'], ['', 'Inexistente', 'A', 'ABT']] });
+    expect(previa.problemas).toContainEqual({ aba: 'GUARNIÇÕES POR ESCALA', linha: 2, mensagem: 'Escala CPRH ficou de fora', solucao: 'Resolva o problema dessa escala na aba ESCALAS.' });
+    expect(previa.problemas).toContainEqual({ aba: 'GUARNIÇÕES POR ESCALA', linha: 3, mensagem: 'Escala Inexistente não cadastrada', solucao: 'Confira a aba ESCALAS.' });
+  });
+
+  it('tipo de serviço desconhecido avisa, e vale o que o nome ou o sistema dizem', async () => {
+    const previa = await importar({ t: [...TURNOS, ['Saldo', 'A', '08:00', '20:00', 12, 'XYZ', ''], ['Operação Nova', 'A', '08:00', '20:00', 12, 'XYZ', '']] });
+    expect(previa.avisos).toContain('Serviço Saldo: TIPO DE SERVIÇO "XYZ" não reconhecido; vale Ordinário.');
+    expect(previa.avisos).toContain('Serviço Operação Nova: TIPO DE SERVIÇO "XYZ" não reconhecido; vale Diária.');
   });
 
   it('faixa que não existe vira problema', async () => {

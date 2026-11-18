@@ -18,7 +18,7 @@ export function turnoSalvo(t: { id: string; letra: LetraTurno; inicio: string; f
   return { ...t, duracaoMinutos: duracaoMinutos(t.inicio, t.fim), turnosPadrao: turnosPadraoExigidos(t.inicio, t.fim) };
 }
 
-/** Serviços pedidos (da unidade, ou pelos ids), com os turnos na ordem A, B, C, U. */
+/** Serviços pedidos (da unidade, ou pelos ids), com os turnos na ordem A, B, C. */
 export async function carregarServicos(c: Consulta, filtro: { unidadeId: string } | { ids: string[] }): Promise<Servico[]> {
   const { rows } = await c.query<LinhaServico>(
     `select id, nome, tipo, operacao, rotulo_impressao, cor, ativo from servico where ${'unidadeId' in filtro ? 'unidade_id = $1' : 'id = any($1)'}`,

@@ -8,7 +8,7 @@ let api: ApiDeTeste;
 let criacao: string; // mês de criação da 1ª SB (aaaa-mm)
 const FUTURO = '2099-01';
 const CAB = ['VIGÊNCIA', 'GUARNIÇÃO', 'VIATURA', 'TIPO', 'ATIVAR', 'PRIORIDADE', 'CNH', 'FUNÇÃO', 'MÍNIMO', 'MÁXIMO'];
-type Linha = (string | number)[];
+type Linha = (string | number | Date)[];
 
 const auditoria = async () => (await api.banco.query<{ n: number }>('select count(*)::int as n from auditoria')).rows[0]!.n;
 async function importar(linhas: Linha[], confirmar = false, cab: string[] = CAB) {
@@ -126,6 +126,39 @@ describe('importação de guarnições', () => {
       expect.objectContaining({ aba: 'GUARNIÇÕES', linha: 3, mensagem: expect.stringMatching(/^Mínimo Ruim: CNH "D" numa linha sem FUNÇÃO\./) }),
     ]);
     for (const p of r.problemas) expect(p.mensagem).not.toMatch(/RN-|B\d{2}/);
+  });
+
+  it('a célula de data do Excel continua lida como mês', async () => {
+    await importar([[new Date(Date.UTC(2099, 0, 1)), 'Vigência Excel', '', '', '', '', '', 'Motorista', 1, 1]], true);
+    expect((await ficha('Vigência Excel')).versoes.map((v) => v.vigencia)).toEqual([FUTURO]);
+  });
+
+  it('vigência no formato curto do protótipo (mm/aa) é lida', async () => {
+    await importar([['1/99', 'Vigência Curta', '', '', '', '', '', 'Motorista', 1, 1]], true);
+    expect((await ficha('Vigência Curta')).versoes.map((v) => v.vigencia)).toEqual([FUTURO]);
+  });
+
+  // [foco 4] o ano 0000 passava na prévia e derrubava a confirmação inteira
+  it('vigência do ano 0000 vira problema, nunca erro do banco', async () => {
+    const linhas: Linha[] = [['0000-05', 'Ano Zero', '', '', '', '', '', 'Motorista', 1, 1]];
+    const previa = await importar(linhas);
+    expect(previa.problemas).toEqual([{ aba: 'GUARNIÇÕES', linha: 2, mensagem: 'Vigência "0000-05" de Ano Zero', solucao: 'Use aaaa-mm ou mm/aaaa na coluna VIGÊNCIA.' }]);
+    expect((await importar(linhas, true)).gravados).toBe(0);
+  });
+
+  it('prioridade 0, enorme e tamanhos acima do limite viram problema com a solução', async () => {
+    const r = await importar([
+      ['', 'Prio Zero', '', '', '', 0, '', 'Motorista', 1, 1],
+      ['', 'Prio Enorme', '', '', '', 99999999999, '', 'Motorista', 1, 1],
+      ['', 'Tamanho Enorme', '', '', '', 1, '', 'Motorista', 1, 100],
+    ]);
+    expect(r.problemas).toEqual([
+      { aba: 'GUARNIÇÕES', linha: 2, mensagem: 'Prioridade "0" de Prio Zero', solucao: 'Use um número de 1 a 1000.' },
+      { aba: 'GUARNIÇÕES', linha: 3, mensagem: 'Prioridade "99999999999" de Prio Enorme', solucao: 'Use um número de 1 a 1000.' },
+      { aba: 'GUARNIÇÕES', linha: 4, mensagem: 'Máximo "100" de Tamanho Enorme', solucao: 'Use um número até 99.' },
+    ]);
+    expect(r.novos).toEqual([]);
+    expect((await importar([['', 'Prio Enorme', '', '', '', 99999999999, '', 'Motorista', 1, 1]], true)).gravados).toBe(0);
   });
 
   it('vigência digitada como data é lida como mês', async () => {

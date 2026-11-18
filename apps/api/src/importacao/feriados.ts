@@ -1,8 +1,8 @@
 // Importação da aba FERIADOS (DATA, DESCRIÇÃO), lida como a aba do protótipo. O feriado de data móvel entra com
 // fixo falso (a descrição diz); o que a unidade de cima já tem não é repetido na seção.
-import { Data, type ItemPrevia, type ProblemaImportacao } from 'contratos';
+import { type ItemPrevia, type ProblemaImportacao } from 'contratos';
 import { normalizar } from 'dominio';
-import { coluna } from './planilha.ts';
+import { coluna, lerData } from './planilha.ts';
 import type { ColunaModelo, Importador } from './tipos.ts';
 
 const ABA = 'FERIADOS';
@@ -21,16 +21,6 @@ type Plano = { novos: { data: string; descricao: string; fixo: boolean }[]; alte
 const dataBr = (d: string) => `${d.slice(8, 10)}/${d.slice(5, 7)}/${d.slice(0, 4)}`;
 
 /** 'dd/mm/aaaa' ou 'aaaa-mm-dd' -> 'aaaa-mm-dd'; null se não for uma data que existe. */
-function lerData(texto: string): string | null {
-  const br = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(texto);
-  const iso = /^(\d{4})-(\d{2})-(\d{2})$/.exec(texto);
-  const [a, m, d] = br ? [br[3]!, br[2]!, br[1]!] : iso ? [iso[1]!, iso[2]!, iso[3]!] : [null, null, null];
-  if (!a) return null;
-  const data = `${a}-${m!.padStart(2, '0')}-${d!.padStart(2, '0')}`;
-  // o contrato confere o calendário (31/02, 29/02 em ano comum) e o ano (o ano 0000 não existe no banco)
-  return Data.safeParse(data).success ? data : null;
-}
-
 export const importadorFeriados: Importador<Plano> = {
   abas: [ABA],
 

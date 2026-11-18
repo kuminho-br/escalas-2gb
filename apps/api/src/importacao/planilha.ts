@@ -1,4 +1,5 @@
 // Leitura do .xlsx baixado da sandbox: o texto de cada célula, como aparece na planilha.
+import { Data, Mes } from 'contratos';
 import { normalizar } from 'dominio';
 import ExcelJS from 'exceljs';
 
@@ -55,5 +56,43 @@ export function coluna(aba: Aba, rotulo: string): number {
   return exato >= 0 ? exato : cab.findIndex((c) => c.startsWith(alvo));
 }
 
-/** Data que o Planilhas converteu ('01/12/2026') volta a ser o mês digitado ('2026-12'); o resto passa como veio. */
-export const mesDaCelula = (t: string): string => t.replace(/^\d{2}\/(\d{2})\/(\d{4})$/, '$2-$1');
+const dois2 = (n: number | string) => String(n).padStart(2, '0');
+
+/** Ano de dois dígitos vira 20aa (a planilha de mês e dia é recente). */
+const anoCompleto = (a: string) => (a.length === 2 ? `20${a}` : a);
+
+/**
+ * O mês que a pessoa escreveu ou que o Planilhas converteu em data, como 'aaaa-mm'. Vazio dá ''; o que não se lê (ou o ano 0000,
+ * mês 13…) dá null. Aceita aaaa-mm, aaaa-m, mm/aaaa, m/aaaa, mm/aa, m/aa e dd/mm/aaaa (vira o mês da data).
+ */
+export function lerMes(texto: string): string | null {
+  const t = texto.trim();
+  if (t === '') return '';
+  let ano: string | undefined;
+  let mes: string | undefined;
+  let m: RegExpExecArray | null;
+  if ((m = /^(\d{4})-(\d{1,2})$/.exec(t))) [, ano, mes] = m;
+  else if ((m = /^(\d{1,2})\/(\d{4}|\d{2})$/.exec(t))) [, mes, ano] = m;
+  else if ((m = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(t))) {
+    // a data inteira tem de existir (31/02 não vira fevereiro)
+    if (!lerData(t)) return null;
+    [, , mes, ano] = m;
+  }
+  if (!ano || !mes) return null;
+  const candidato = `${anoCompleto(ano)}-${dois2(mes)}`;
+  return Mes.safeParse(candidato).success ? candidato : null;
+}
+
+/** A data como 'aaaa-mm-dd'; null se não se lê ou não existe (31/02, ano 0000). Aceita dd/mm/aaaa, d/m/aaaa, dd/mm/aa, aaaa-mm-dd e aaaa-m-d. */
+export function lerData(texto: string): string | null {
+  const t = texto.trim();
+  let d: string | undefined;
+  let mes: string | undefined;
+  let ano: string | undefined;
+  let m: RegExpExecArray | null;
+  if ((m = /^(\d{1,2})\/(\d{1,2})\/(\d{4}|\d{2})$/.exec(t))) [, d, mes, ano] = m;
+  else if ((m = /^(\d{4})-(\d{1,2})-(\d{1,2})$/.exec(t))) [, ano, mes, d] = m;
+  if (!ano || !mes || !d) return null;
+  const candidata = `${anoCompleto(ano)}-${dois2(mes)}-${dois2(d)}`;
+  return Data.safeParse(candidata).success ? candidata : null;
+}

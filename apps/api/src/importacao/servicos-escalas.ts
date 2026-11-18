@@ -13,12 +13,12 @@ import {
   type ProblemaImportacao,
   type TipoServico,
 } from 'contratos';
-import { cadgVigencia, normalizar, normalizarHora } from 'dominio';
+import { normalizar, normalizarHora } from 'dominio';
 import { faixasDosTurnos } from '../cadastros/escalas-regras.ts';
 import { gravarServicosDaEscala, gravarVinculos, mensagemServicoComAlocacao, servicoComAlocacaoQueSai } from '../cadastros/escalas.ts';
 import { versaoNoMes } from '../cadastros/guarnicoes-regras.ts';
 import { versoesDasGuarnicoes } from '../cadastros/guarnicoes.ts';
-import { coluna, mesDaCelula, type Aba } from './planilha.ts';
+import { coluna, lerMes, type Aba } from './planilha.ts';
 import type { ColunaModelo, Contexto, Importador } from './tipos.ts';
 
 const ABA_T = 'TURNOS';
@@ -163,7 +163,7 @@ export const importadorServicosEscalas: Importador<Plano> = {
       const bruta = pega(l.celulas, cT.turno);
       const letra = letraDe(bruta);
       if (!letra) {
-        problemas.push({ aba: ABA_T, linha: l.linha, mensagem: `Turno "${bruta}" de ${nome}`, solucao: 'Use A, B, C ou U na coluna TURNO.' });
+        problemas.push({ aba: ABA_T, linha: l.linha, mensagem: `Turno "${bruta}" de ${nome}`, solucao: 'Use A, B ou C na coluna TURNO.' });
         continue;
       }
       const ini = pega(l.celulas, cT.inicio);
@@ -230,7 +230,8 @@ export const importadorServicosEscalas: Importador<Plano> = {
       }
       if (!ex) {
         const tipo = doTexto ?? doNome ?? 'diaria';
-        if (!doTexto && !doNome) avisos.push(`Confira o tipo do serviço ${s.nome}: entrou como diária.`);
+        if (s.tipoTexto && !doTexto) avisos.push(`Serviço ${s.nome}: TIPO DE SERVIÇO "${s.tipoTexto}" não reconhecido; vale ${NOME_TIPO[tipo]}.`);
+        else if (!doTexto && !doNome) avisos.push(`Confira o tipo do serviço ${s.nome}: entrou como diária.`);
         const letrasTxt = [...s.turnos.keys()].sort((a, b) => LETRAS.indexOf(a) - LETRAS.indexOf(b)).join(', ');
         novos.push({ chave: `Serviço ${s.nome}`, descricao: letrasTxt ? `${s.nome} (turnos ${letrasTxt})` : s.nome });
         plano.servicos.push({ chave, nome: s.nome, existenteId: null, tipo, rotulo, cor: corDoNome(s.nome), mudarDados: false, turnos });
@@ -238,6 +239,7 @@ export const importadorServicosEscalas: Importador<Plano> = {
       }
       // serviço que já existe: o tipo só muda pela coluna TIPO DE SERVIÇO, e o rótulo só pela ORIGEM
       const tipo = doTexto ?? ex.tipo;
+      if (s.tipoTexto && !doTexto) avisos.push(`Serviço ${s.nome}: TIPO DE SERVIÇO "${s.tipoTexto}" não reconhecido; vale ${NOME_TIPO[tipo]}.`);
       const novoRotulo = s.temOrigem ? rotulo : ex.rotulo_impressao;
       const mudarDados = tipo !== ex.tipo || novoRotulo !== ex.rotulo_impressao;
       if (tipo !== ex.tipo) mudancas.unshift(`Tipo: de ${NOME_TIPO[ex.tipo]} para ${NOME_TIPO[tipo]}`);
@@ -250,6 +252,8 @@ export const importadorServicosEscalas: Importador<Plano> = {
     const nomeDoServico = new Map<string, string>([...servicosSistema.map((s) => [normalizar(s.nome), s.nome] as const), ...[...lidos].map(([k, s]) => [k, s.nome] as const)]);
 
     // ---------- ESCALAS ----------
+    /** escalas cuja linha em ESCALAS virou problema: os vínculos delas dizem que ficaram de fora */
+    const descartadas = new Set<string>();
     type Grupo = { nome: string; linha: number; pedidos: string[]; titulo: string; militares: string; dias: string };
     const grupos = new Map<string, Grupo>();
     for (const l of aE.linhas) {
@@ -263,6 +267,7 @@ export const importadorServicosEscalas: Importador<Plano> = {
           mensagem: nome.length > MAX_NOME ? `Escala "${curto(nome)}" tem mais de ${MAX_NOME} caracteres` : `TÍTULO de ${nome} tem mais de ${MAX_NOME} caracteres`,
           solucao: nome.length > MAX_NOME ? 'Encurte o nome na coluna ESCALA.' : 'Encurte o texto na coluna TÍTULO.',
         });
+        descartadas.add(normalizar(nome));
         continue;
       }
       const k = normalizar(nome);
@@ -296,7 +301,6 @@ export const importadorServicosEscalas: Importador<Plano> = {
     /** serviços (chaves) de cada escala depois da importação; serve para as letras dos vínculos */
     const servicosDaEscala = new Map<string, string[]>();
     for (const e of escalasSistema) servicosDaEscala.set(normalizar(e.nome), servicosDasEscalas.filter((x) => x.escala_id === e.id).map((x) => normalizar(x.nome)));
-    const descartadas = new Set<string>();
 
     for (const [chave, g] of grupos) {
       const pedidos = g.pedidos.length ? g.pedidos : [g.nome];
@@ -316,7 +320,8 @@ export const importadorServicosEscalas: Importador<Plano> = {
       if (g.militares && nm !== 'TODOS' && nm !== 'ESCALADOS') avisos.push(`Escala ${g.nome}: MILITARES deve ser TODOS ou ESCALADOS (achei "${g.militares}"); vale ESCALADOS.`);
       const militaresDoc = nm === 'TODOS' ? 'todos' : 'escalados';
       const nd = normalizar(g.dias);
-      const diasDoc = nd.startsWith('SO') || nd === 'COM ESCALADOS' ? 'com_escalados' : 'todos';
+      // normalizar tira os espaços: "SÓ ESCALADOS" vira SOESCALADOS e "COM ESCALADOS" vira COMESCALADOS
+      const diasDoc = nd.startsWith('SO') || nd.startsWith('COM') ? 'com_escalados' : 'todos';
       const titulo = g.titulo || tituloPadraoEscala(g.nome);
       const ex = escalaSistemaPorChave.get(chave);
       if (!ex) {
@@ -369,17 +374,21 @@ export const importadorServicosEscalas: Importador<Plano> = {
       const nomeG = pega(l.celulas, cV.guarnicao);
       if (!nomeEsc && !nomeG) continue;
       const chave = normalizar(nomeEsc);
-      if (!nomeEsc || descartadas.has(chave) || !servicosDaEscala.has(chave)) {
+      if (nomeEsc && descartadas.has(chave)) {
+        problemas.push({ aba: ABA_V, linha: l.linha, mensagem: `Escala ${nomeEsc} ficou de fora`, solucao: 'Resolva o problema dessa escala na aba ESCALAS.' });
+        continue;
+      }
+      if (!nomeEsc || !servicosDaEscala.has(chave)) {
         problemas.push({ aba: ABA_V, linha: l.linha, mensagem: `Escala ${nomeEsc || '(vazia)'} não cadastrada`, solucao: 'Confira a aba ESCALAS.' });
         continue;
       }
-      const vigBruta = mesDaCelula(pega(l.celulas, cV.vigencia));
-      const vig = cadgVigencia(vigBruta);
-      if (!vig.ok) {
+      const vigBruta = pega(l.celulas, cV.vigencia);
+      const vigLida = lerMes(vigBruta);
+      if (vigLida === null) {
         problemas.push({ aba: ABA_V, linha: l.linha, mensagem: `Vigência "${vigBruta}" de ${nomeDaEscala.get(chave)}`, solucao: 'Use aaaa-mm ou mm/aaaa.' });
         continue;
       }
-      const vigencia = vig.valor || criacao;
+      const vigencia = vigLida || criacao;
       const g = guarnicaoPorChave.get(normalizar(nomeG));
       if (!g) {
         problemas.push({ aba: ABA_V, linha: l.linha, mensagem: `Guarnição ${nomeG || '(vazia)'} não cadastrada`, solucao: 'Importe a aba GUARNIÇÕES (tela de Guarnições) e depois esta.' });
@@ -399,9 +408,16 @@ export const importadorServicosEscalas: Importador<Plano> = {
       if (partes.length && !partes.some((p) => normalizar(p) === 'TODOS')) {
         escolhidas = [];
         for (const parte of partes) {
-          const m = /^(.+?)\s*(?:-|–|às|a)\s*(.+)$/i.exec(parte);
-          const ini = m ? normalizarHora(m[1]!) : null;
-          const fim = m ? normalizarHora(m[2]!) : null;
+          // faixa: "08:00-20:00", "08-20", "08h às 20h", "8 as 20", "8 a 20"
+          const m = /^(.+?)(?:\s*[-–]\s*|\s+(?:às|as|a)\s+)(.+)$/i.exec(parte);
+          const hora = (x: string) => normalizarHora(/^\d{1,2}$/.test(x.trim()) ? `${x.trim()}:00` : x);
+          const ini = m ? hora(m[1]!) : null;
+          const fim = m ? hora(m[2]!) : null;
+          if (/\d/.test(parte) && !(ini && fim)) {
+            // tem número mas não forma uma faixa: horário que não existe ou escrito de um jeito que não se lê
+            invalida = { mensagem: `Horário "${parte}" de ${nomeEsc2}`, solucao: 'Escreva a faixa como 08:00-20:00.' };
+            break;
+          }
           if (ini && fim) {
             if (!faixasEscala.some((f) => f.inicio === ini && f.fim === fim)) {
               invalida = { mensagem: `Faixa ${textoFaixa(ini, fim)} não existe nos serviços da escala ${nomeEsc2}`, solucao: 'Confira a coluna TURNO ou os horários na aba TURNOS.' };
