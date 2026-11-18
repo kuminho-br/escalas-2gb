@@ -72,7 +72,7 @@ export const COR_PADRAO_SERVICO = '#5B6675';
 /** '08:00' -> '08h', '07:30' -> '07h30'. */
 export function textoHora(hhmm: string): string {
   const [h, m] = hhmm.split(':');
-  return m === '00' ? `${h}h` : `${h}h${m}`;
+  return m === undefined || m === '00' ? `${h}h` : `${h}h${m}`;
 }
 
 /** '08:00', '20:00' -> '08h–20h'. */
