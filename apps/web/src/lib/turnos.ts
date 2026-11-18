@@ -7,8 +7,6 @@ export function textoDuracao(min: number): string {
   return m ? `${h}h${String(m).padStart(2, '0')}` : `${h}h`;
 }
 
-export const ORDEM_LETRAS = ['A', 'B', 'C', 'U'] as const;
-
 type TurnoHora = { letra: string; inicio: string; fim: string };
 /** Segmento da régua: minutos a partir das 00h do dia D; `fim` passa de 1440 quando o turno vai ao dia seguinte. */
 export type Segmento = { letra: string; ini: number; fim: number };

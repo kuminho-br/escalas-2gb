@@ -11,6 +11,7 @@ import { Button } from '@/componentes/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/componentes/ui/dialog';
 import { Input } from '@/componentes/ui/input';
 import { Label } from '@/componentes/ui/label';
+import { limites } from '@/lib/guarnicoes';
 import { mesAtual } from '@/lib/meses';
 import { mesPorExtenso } from 'contratos';
 import { cn } from '@/lib/utils';
@@ -68,12 +69,6 @@ function ListaDeGuarnicoes({ unidadeId, escolhida }: { unidadeId: string; escolh
       )}
     </div>
   );
-}
-
-/** "de 2 a 4 militares", "3 militares" ou "sem composição". */
-function limites(g: LinhaGuarnicao): string {
-  if (g.maximo === 0) return 'sem composição';
-  return g.minimo === g.maximo ? `${g.minimo} militares` : `de ${g.minimo} a ${g.maximo} militares`;
 }
 
 function ItemGuarnicao({ g, escolhida }: { g: LinhaGuarnicao; escolhida: boolean }) {

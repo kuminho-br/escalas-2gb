@@ -26,7 +26,7 @@ const FICHA: FichaGuarnicao = {
       ],
     },
   ],
-  usadaEm: [{ escalaId: 'e1', escala: 'Ordinário', turnos: ['A', 'B'] }],
+  usadaEm: [{ escalaId: 'e1', escala: 'Ordinário', faixas: [{ inicio: '08:00', fim: '20:00' }, { inicio: '20:00', fim: '08:00' }] }],
 };
 const FUNCOES = [
   { id: 'f-comb', nome: 'Combatente', unidadeSigla: '1ª SB', herdada: false },
@@ -99,7 +99,7 @@ describe('ficha da guarnição', () => {
     abrir('/guarnicoes/g1');
     const secao = (await screen.findByRole('heading', { name: 'Onde é usada' })).closest('section')!;
     expect(within(secao).getByText('Ordinário')).toBeInTheDocument();
-    expect(within(secao).getByText('turnos A, B')).toBeInTheDocument();
+    expect(within(secao).getByText('08h–20h, 20h–08h')).toBeInTheDocument();
     expect(screen.getByLabelText('Sigla da viatura')).toHaveValue('ABT-01');
     expect(screen.queryByLabelText('Atividade')).toBeNull();
   });
