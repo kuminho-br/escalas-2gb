@@ -2,6 +2,8 @@ import { Hono } from 'hono';
 import type { Auth } from './auth.ts';
 import type { Banco } from './banco/banco.ts';
 import { rotasConfiguracoes } from './cadastros/configuracoes.ts';
+import { rotasCotas } from './cadastros/cotas.ts';
+import { rotasFeriados } from './cadastros/feriados.ts';
 import { rotasGuarnicoes } from './cadastros/guarnicoes.ts';
 import { rotasEscalas } from './cadastros/escalas.ts';
 import { rotasMilitares } from './cadastros/militares.ts';
@@ -29,6 +31,8 @@ export function criarApp(dep: Dependencias): Hono {
     app.route('/api', rotasGuarnicoes(comAuth));
     app.route('/api', rotasMilitares(comAuth));
     app.route('/api', rotasServicos(comAuth));
+    app.route('/api', rotasCotas(comAuth));
+    app.route('/api', rotasFeriados(comAuth));
     app.route('/api', rotasEscalas(comAuth));
     app.route('/api', rotasImportacao(comAuth, IMPORTADORES));
   }

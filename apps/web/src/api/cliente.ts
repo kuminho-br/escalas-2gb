@@ -48,3 +48,9 @@ export async function enviarArquivo<T>(caminho: string, arquivo: File): Promise<
 export function mensagemDe(e: unknown): string {
   return e instanceof ErroApi ? e.message : 'Algo deu errado. Tente de novo.';
 }
+
+/** A mensagem da API mais a do primeiro campo recusado ("Confira os campos destacados. Use no máximo 120 caracteres."). */
+export function mensagemComCampo(e: unknown): string {
+  const primeiro = e instanceof ErroApi && e.campos ? Object.values(e.campos)[0] : undefined;
+  return primeiro ? `${mensagemDe(e)} ${primeiro}` : mensagemDe(e);
+}

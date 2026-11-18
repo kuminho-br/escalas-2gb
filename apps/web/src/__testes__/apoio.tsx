@@ -25,7 +25,9 @@ export function simularApi(rotas: Record<string, Resposta>) {
     const metodo = (init?.method ?? (entrada instanceof Request ? entrada.method : 'GET')).toUpperCase();
     const r = rotas[`${metodo} ${caminho}`] ?? rotas[caminho] ?? { status: 404 };
     if (r === 'rede') throw new TypeError('Failed to fetch');
-    return new Response(JSON.stringify(r.corpo ?? {}), { status: r.status, headers: { 'Content-Type': 'application/json' } });
+    // 204 e afins não têm corpo (o Response recusa um)
+    const semCorpo = [204, 205, 304].includes(r.status);
+    return new Response(semCorpo ? null : JSON.stringify(r.corpo ?? {}), { status: r.status, headers: semCorpo ? undefined : { 'Content-Type': 'application/json' } });
   });
   vi.stubGlobal('fetch', fetchFalso);
   return fetchFalso;
