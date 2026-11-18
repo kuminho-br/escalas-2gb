@@ -250,3 +250,21 @@ describe('importação de guarnições: versões e funções que já existem', (
     expect(nomes(await ficha('Acentos')).sort()).toEqual(['Ação', 'Operacao']);
   });
 });
+
+describe('importação de guarnições: vigência vazia e vigência anterior à criação', () => {
+  it('a vigência explícita anterior à criação vale por cima da linha sem vigência (que é a base, como no protótipo)', async () => {
+    const linhas: Linha[] = [
+      ['', 'Antiga', 'V1', 'Tipo', 'SIM', 1, '', 'Combatente', 1, 1],
+      ['2020-01', 'Antiga', 'V0', 'Tipo', 'SIM', 1, '', 'Combatente', 9, 9],
+    ];
+    const previa = await importar(linhas);
+    expect(previa.novos).toEqual([{ chave: 'Antiga', descricao: 'Antiga' }]);
+    expect(previa.problemas).toEqual([]);
+    expect((await importar(linhas, true)).gravados).toBe(1);
+    const f = await ficha('Antiga');
+    // uma versão só, a datada: a prévia disse "novo", a gravação gravou uma, e a ficha tem o que a planilha manda de 2020-01 em diante
+    expect(f.versoes).toHaveLength(1);
+    expect(f.versoes[0]).toMatchObject({ vigencia: '2020-01', viatura: 'V0', composicao: [expect.objectContaining({ funcao: 'Combatente', minimo: 9, maximo: 9 })] });
+  });
+});
+
