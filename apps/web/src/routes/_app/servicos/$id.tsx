@@ -1,6 +1,6 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { createFileRoute, Link } from '@tanstack/react-router';
-import { CORES_SERVICO, TipoServico, type Servico } from 'contratos';
+import { TipoServico, type Servico } from 'contratos';
 import { ArrowLeft } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
 import { mensagemDe } from '@/api/cliente';
@@ -8,6 +8,7 @@ import { atualizarServicos, consultaServico, editarServico, mudarSituacaoServico
 import { Secao } from '@/componentes/militares/Secao';
 import { Turnos } from '@/componentes/servicos/Turnos';
 import { Selecao } from '@/componentes/Selecao';
+import { SeletorDeCor } from '@/componentes/SeletorDeCor';
 import { Button } from '@/componentes/ui/button';
 import { Input } from '@/componentes/ui/input';
 import { Label } from '@/componentes/ui/label';
@@ -118,21 +119,7 @@ function Identificacao({ s }: { s: Servico }) {
         </div>
         <div className="grid gap-1.5">
           <Label htmlFor="sv-cor">Cor</Label>
-          <div className="flex flex-wrap items-center gap-2">
-            <input id="sv-cor" type="color" value={cor} onChange={(e) => setCor(e.target.value.toUpperCase())} className="h-9 w-12 cursor-pointer rounded-md border border-linha bg-superficie" />
-            {Object.entries(CORES_SERVICO).map(([n, c]) => (
-              <button
-                key={n}
-                type="button"
-                title={n}
-                aria-label={`Cor de ${n}`}
-                aria-pressed={cor.toUpperCase() === c.toUpperCase()}
-                onClick={() => setCor(c)}
-                className="size-6 rounded ring-offset-2 aria-pressed:ring-2 aria-pressed:ring-tinta"
-                style={{ backgroundColor: c }}
-              />
-            ))}
-          </div>
+          <SeletorDeCor id="sv-cor" valor={cor} aoMudar={setCor} />
         </div>
         <div className="flex items-center gap-3">
           <Button type="submit" variant="outline">Salvar</Button>

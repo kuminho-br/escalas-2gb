@@ -67,8 +67,8 @@ function ListaDeMilitares({ unidadeId, escolhido }: { unidadeId: string; escolhi
   }, [militares.data, equipe, jornada, busca]);
 
   return (
-    <div>
-      <div className="grid gap-2 border-b border-linha p-3">
+    <div className="flex min-h-0 flex-1 flex-col">
+      <div className="grid shrink-0 gap-2 border-b border-linha p-3">
         <div className="grid gap-1">
           <Label htmlFor="busca-militar" className="sr-only">Buscar por nome ou matrícula</Label>
           <Input id="busca-militar" placeholder="Buscar por nome ou matrícula" value={busca} onChange={(e) => setBusca(e.target.value)} />
@@ -95,8 +95,8 @@ function ListaDeMilitares({ unidadeId, escolhido }: { unidadeId: string; escolhi
       {militares.error && <p role="alert" className="p-4 text-alerta">{mensagemDe(militares.error)}</p>}
       {militares.data && (
         <>
-          <p className="px-4 pt-3 text-xs text-apagado">{filtrados.length} de {militares.data.length} militares</p>
-          <ul className="max-h-[calc(100dvh-20rem)] overflow-y-auto p-2">
+          <p className="shrink-0 px-4 pt-3 text-xs text-apagado">{filtrados.length} de {militares.data.length} militares</p>
+          <ul data-lista-rolavel className="min-h-0 flex-1 overflow-y-auto p-2">
             {filtrados.map((m) => <ItemMilitar key={m.id} m={m} escolhido={m.id === escolhido} />)}
             {militares.data.length === 0 && <li className="p-3 text-apagado">Nenhum militar lotado. Use "Novo militar" ou "Importar da planilha".</li>}
           </ul>

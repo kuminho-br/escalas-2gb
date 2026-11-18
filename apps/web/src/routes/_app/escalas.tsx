@@ -57,17 +57,17 @@ function ListaDeEscalas({ unidadeId, escolhida }: { unidadeId: string; escolhida
   const [desativadas, setDesativadas] = useState(false);
   const visiveis = escalas.data?.filter((e) => e.ativa || desativadas) ?? [];
   return (
-    <div>
+    <div className="flex min-h-0 flex-1 flex-col">
       {escalas.isPending && <p className="p-4 text-apagado">Carregando…</p>}
       {escalas.error && <p role="alert" className="p-4 text-alerta">{mensagemDe(escalas.error)}</p>}
       {escalas.data && (
         <>
-          <p className="border-b border-linha px-4 pt-3 pb-2 text-xs text-apagado">{visiveis.length} escalas</p>
-          <ul className="max-h-[calc(100dvh-16rem)] overflow-y-auto p-2">
+          <p className="shrink-0 border-b border-linha px-4 pt-3 pb-2 text-xs text-apagado">{visiveis.length} escalas</p>
+          <ul data-lista-rolavel className="min-h-0 flex-1 overflow-y-auto p-2">
             {visiveis.map((e) => <ItemEscala key={e.id} e={e} escolhida={e.id === escolhida} />)}
             {escalas.data.length === 0 && <li className="p-3 text-apagado">Nenhuma escala. Use "Nova escala" ou "Importar da planilha".</li>}
           </ul>
-          <label className="flex items-center gap-2 border-t border-linha px-4 py-2.5 text-xs text-apagado">
+          <label className="flex shrink-0 items-center gap-2 border-t border-linha px-4 py-2.5 text-xs text-apagado">
             <input type="checkbox" checked={desativadas} onChange={(ev) => setDesativadas(ev.target.checked)} className="size-4 accent-vinho" />
             Mostrar desativadas
           </label>

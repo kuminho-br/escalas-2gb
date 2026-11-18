@@ -170,3 +170,22 @@ Decisões do usuário depois de usar a tela de Guarnições no ambiente de teste
 - **Desativar:** "Desativar agora" ou "Desativar a partir de <mês>". A guarnição desativada no mês some da lista; "Mostrar desativadas" a traz de volta para reativar. Desativar a partir de um mês vale também para as versões posteriores já cadastradas.
 - **Renomear função:** pelo lápis ao lado da função, na composição. O nome muda em todas as guarnições. Padronizar os nomes é escolha do usuário.
 - **Tela:** a composição se lê como frase ("de 1 a 2 militares"), com "Exige CNH" antes da categoria, e "Remover". A lista mostra os limites ("de 4 a 5 militares") ou "sem composição". "Viatura" passa a "Sigla da viatura".
+
+## Adendo (18/11/2026) — Serviços e escalas depois do uso (entregas 4.1 e 4.2)
+
+Decisões do usuário depois de usar as telas de Serviços e Escalas no ambiente de teste.
+
+- **Sem turno único.** A letra U deixa de existir: o serviço de um turno só tem o turno A. A migração 0011 troca U por A nos turnos (Expediente e Defensoria), e a importação lê U e ÚNICO como A.
+- **O vínculo da escala é por faixa de horário, não por letra.**
+  - **Problema:** a mesma letra pode ter horários diferentes em serviços da mesma escala (o A do Pronto vai das 08h às 20h; o A do Bioma, das 00h às 08h). Gravado pela letra, o vínculo juntava os dois.
+  - **Abordagens consideradas:**
+    - (A, escolhida) o vínculo guarda a faixa (início e fim). Cada coluna da matriz é uma faixa distinta entre os turnos dos serviços da escala, e serviços com a mesma faixa compartilham a coluna (Pronto, JES e Saldo das 08h às 20h).
+    - (B) catálogo de turnos com ligação M:N entre serviços e turnos, descartada por refazer turnos, alocações, a tela de Serviços e a importação, com o risco de um horário mudar em vários serviços sem querer.
+    - (C) vínculo por turno de cada serviço, descartada porque um serviço novo na escala ficaria sem guarnição até a matriz ser salva de novo.
+  - **Cabeçalho da coluna:** quando nenhuma letra é ambígua na escala (cada letra tem uma faixa só e cada faixa uma letra só), a coluna mostra a letra e a faixa ("A", "08h–20h"). Havendo ambiguidade, todas as colunas mostram só a faixa. As colunas vêm em ordem de início.
+  - **"Todos os turnos" deixa de existir.** Cada faixa é marcada separada. A migração 0011 expande o "todos os turnos" gravado em uma marcação por faixa, e o vínculo por letra numa marcação por cada faixa com aquela letra. Vínculo cuja letra já não existe nos serviços da escala (o órfão avisado na tela) é descartado.
+  - **Importação (GUARNIÇÕES POR ESCALA):** a coluna TURNO aceita vazio ou TODOS (todas as faixas da escala), letras ("A", "A, B"), quando não são ambíguas na escala, ou a faixa ("08:00-20:00"). Letra ambígua vira problema, com a solução de escrever a faixa.
+  - **Custo aceito:** mudar o horário de um turno deixa órfãos os vínculos da faixa antiga. A ficha da escala avisa, como já avisava para a letra.
+- **Serviços:** "Pede voluntariado em" sai da tela (a regra continua no motor, para o voluntariado). A duração ganha destaque no bloco com a cor do serviço, no lugar da letra. A ficha ganha uma régua do dia (0h a 24h) com os turnos desenhados e o aviso de sobreposição. A cor se escolhe numa grade como a do Google Planilhas, com as cores dos serviços e "Personalizada…".
+- **Cadastros:** a lista à esquerda fica parada enquanto o detalhe rola (as duas rolagens são independentes), em todas as telas de cadastro.
+- **Escalas:** a matriz mostra, em cada linha, o tamanho da guarnição ("de 4 a 5") e, embaixo de cada coluna, o mínimo de militares das guarnições marcadas. As fichas de serviço e de escala avisam "Alterações não salvas" e perguntam antes de sair com alterações pendentes.

@@ -2,7 +2,7 @@ import type { Servico } from 'contratos';
 import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
-import { descreverTurnosPadrao, textoDuracao } from '@/lib/turnos';
+import { textoDuracao } from '@/lib/turnos';
 import { abrir, corpoEnviado, EU_EXEMPLO, simularApi } from './apoio';
 
 const servico = (s: Partial<Servico>): Servico => ({
@@ -29,13 +29,6 @@ function api(extra: Parameters<typeof simularApi>[0] = {}) {
 }
 
 describe('textos dos turnos', () => {
-  it.each([
-    [[{ dia: 0, turno: 'A' }], 'A'],
-    [[{ dia: 0, turno: 'A' }, { dia: 0, turno: 'B' }], 'A e B'],
-    [[{ dia: -1, turno: 'B' }], 'B da noite anterior'],
-    [[{ dia: -1, turno: 'B' }, { dia: 0, turno: 'A' }], 'B da noite anterior e A'],
-    [[{ dia: 0, turno: 'B' }, { dia: 1, turno: 'A' }], 'B e A do dia seguinte'],
-  ] as const)('descreverTurnosPadrao %#', (t, texto) => expect(descreverTurnosPadrao([...t])).toBe(texto));
   it.each([[720, '12h'], [510, '8h30'], [1440, '24h']])('textoDuracao(%i)', (m, t) => expect(textoDuracao(m)).toBe(t));
 });
 
@@ -51,15 +44,22 @@ describe('serviços', () => {
     expect((await screen.findByText('Antigo')).closest('li')).toHaveTextContent('desativado');
   });
 
-  it('ficha mostra turno com duração, bloco e pede voluntariado', async () => {
+  it('turno não mostra "Pede voluntariado em"', async () => {
+    api();
+    abrir('/servicos/s3');
+    await screen.findByLabelText('Início do turno A');
+    expect(screen.queryByText(/Pede voluntariado/)).toBeNull();
+  });
+
+  it('duração aparece no bloco com a cor do serviço', async () => {
     api();
     abrir('/servicos/s3');
     const linha = (await screen.findByLabelText('Início do turno A')).closest('li')!;
-    expect(within(linha).getByText('8h')).toBeInTheDocument();
-    expect(within(linha).getByText('Pede voluntariado em: B da noite anterior')).toBeInTheDocument();
+    const bloco = within(linha).getByText('8h');
+    expect(bloco).toHaveStyle({ backgroundColor: 'rgb(192, 138, 30)' });
   });
 
-  it('turno das 16h às 00h mostra "A e B" e 8h', async () => {
+  it('turno das 16h às 00h mostra a duração de 8h', async () => {
     const f = api({ 'POST /api/servicos/s3/turnos': { status: 201, corpo: BIOMA } });
     abrir('/servicos/s3');
     await userEvent.click(await screen.findByRole('button', { name: 'Incluir turno' }));
@@ -68,9 +68,35 @@ describe('serviços', () => {
     fireEvent.change(screen.getByLabelText('Fim do turno novo'), { target: { value: '00:00' } });
     const linha = screen.getByLabelText('Início do turno novo').closest('li')!;
     expect(within(linha).getByText('8h')).toBeInTheDocument();
-    expect(within(linha).getByText('Pede voluntariado em: A e B')).toBeInTheDocument();
     await userEvent.click(within(linha).getByRole('button', { name: 'Salvar turno novo' }));
     await waitFor(() => expect(corpoEnviado(f, 'POST /api/servicos/s3/turnos')).toEqual({ letra: 'C', inicio: '16:00', fim: '00:00' }));
+  });
+
+  it('horário incompleto mostra traço', async () => {
+    api();
+    abrir('/servicos/s3');
+    const inicio = await screen.findByLabelText('Início do turno A');
+    fireEvent.change(inicio, { target: { value: '' } });
+    expect(within(inicio.closest('li')!).getByText('—')).toBeInTheDocument();
+  });
+
+  it('régua descreve os turnos do dia', async () => {
+    api();
+    abrir('/servicos/s3');
+    expect(await screen.findByRole('img', { name: 'Turnos do dia: A das 00h às 08h' })).toBeInTheDocument();
+  });
+
+  it('sobreposição aparece em texto', async () => {
+    const SOBREPOE = servico({
+      id: 's3', nome: 'Bioma', tipo: 'diaria', cor: '#C08A1E',
+      turnos: [
+        { id: 't1', letra: 'A', inicio: '07:00', fim: '19:00', duracaoMinutos: 720, turnosPadrao: [] },
+        { id: 't2', letra: 'B', inicio: '18:00', fim: '08:00', duracaoMinutos: 840, turnosPadrao: [] },
+      ],
+    });
+    api({ 'GET /api/servicos/s3': { status: 200, corpo: SOBREPOE } });
+    abrir('/servicos/s3');
+    expect(await screen.findByText('Os turnos A e B se sobrepõem das 07h às 08h e das 18h às 19h.')).toBeInTheDocument();
   });
 
   it('operação só aparece para diária e some ao trocar o tipo', async () => {
