@@ -48,6 +48,11 @@
 13. **Hora digitada de vários jeitos:** "8:00", "24:00" e a célula de hora do Excel viram "08:00" e "00:00". Texto inválido vira problema com solução, nunca 500.
 14. **Serviço tirado da escala com a letra ainda na matriz:** a gravação passa e a ficha avisa dos vínculos órfãos, sem apagá-los em silêncio.
 15. **Vínculo com guarnição desativada** (tela ou importação): fica gravado, com aviso, e a matriz mostra a guarnição com a etiqueta "desativada".
+16. **Migração 0011 com os dados reais:** "todos os turnos" numa escala com serviços de faixas iguais (Pronto, JES, Saldo) vira uma marcação por faixa, sem duplicar; o órfão some; serviço com A e U para a migração com a mensagem.
+17. **Reimportar a sandbox depois da 0011:** os vínculos com TURNO vazio dão "igual".
+18. **Turno de 24h e turno que atravessa a meia-noite na régua:** os segmentos saem certos e não há sobreposição falsa entre segmentos do mesmo turno.
+19. **Cor clara no bloco da duração** (amarelo, branco): o texto continua legível.
+20. **Trocar de escala com alteração pendente** pergunta antes; salvar limpa o aviso sem perguntar.
 
 Cada item tem teste na tarefa dona do código (marcado com **[foco]**).
 
@@ -1156,11 +1161,307 @@ it.each([['8:00', '08:00'], ['24:00', '00:00'], ['07:30', '07:30'], ['8h', null]
 
 ---
 
+# Entrega 4.1 — Tela de Serviços e rolagem dos cadastros
+
+Branch `fase3-4-1-servicos-tela`, a partir da `main` já com a entrega 4 (merge do PR #20). Só tela, sem migração. Especificação: adendo "Serviços e escalas depois do uso (entregas 4.1 e 4.2)" do design, de 18/11/2026.
+
+**Decisões do usuário (18/11/2026):**
+- "Pede voluntariado em" sai da tela.
+- A duração ganha destaque: o bloco com a cor do serviço passa a mostrar a duração, e a letra depois dela sai.
+- A cor se escolhe numa grade como a do Google Planilhas.
+- Nos cadastros, a lista da esquerda e o detalhe têm rolagens independentes, em todas as telas.
+- Melhoria aceita: régua do dia na ficha do serviço.
+
+**Decisões minhas, ao detalhar** (o usuário pode mudar na revisão do plano):
+- **Rolagem:** a lista vira um painel fixo (sticky), com rolagem própria, abaixo da barra do topo. O detalhe rola com a página. Para quem usa, as duas rolagens são independentes, e no celular nada muda, porque lá aparece um painel por vez.
+- **Régua do dia:** desenha os turnos gravados, não os que estão em edição. Sobreposição de turnos gera um aviso, sem bloquear. Buraco entre turnos não gera aviso, porque é o normal em diárias de um turno só.
+- **Texto do bloco:** fica branco ou escuro, o que tiver mais contraste com a cor do serviço. Com horário incompleto, o bloco mostra "—" em cinza.
+- **Grade de cores:** traz as 80 cores do Google Planilhas (10 colunas), a linha "Cores dos serviços" e "Personalizada…" (código #RRGGBB, mais o seletor do navegador).
+- **Remoções:** `descreverTurnosPadrao` e `Bloco` saem do site, porque ficam sem uso. A API continua devolvendo `turnosPadrao`, que o voluntariado vai usar.
+
+### Task 26: Rolagens independentes nos cadastros
+
+**Arquivos:**
+- Modificar: `apps/web/src/componentes/ListaDetalhe.tsx`
+- Modificar: `apps/web/src/routes/_app/{militares,guarnicoes,servicos,escalas}.tsx`, para tirar a altura máxima e o `overflow` das listas internas.
+
+**Interfaces:**
+- `ListaDetalhe` não muda de props.
+- A coluna da lista ganha estas classes, em telas grandes:
+  - `lg:sticky lg:top-20` (a barra do topo tem `h-14`, mais o respiro de 1,5rem);
+  - `lg:max-h-[calc(100dvh-6.5rem)]`;
+  - `lg:overflow-y-auto`.
+- Os rodapés "Mostrar desativadas" e "Mostrar desativados" ficam `sticky bottom-0 bg-superficie` dentro da coluna.
+
+- [ ] **Passo 1:** sem teste novo. É só CSS, e o jsdom não calcula layout. Ledger: `Ruling: sem teste automático para a rolagem — conferência visual no ambiente de teste`.
+- [ ] **Passo 2:** implementar.
+- [ ] **Passo 3:** `pnpm --filter web test && pnpm typecheck`. Esperado: PASSA. A suíte existente continua verde.
+- [ ] **Passo 4:** commit `Fase 3: lista dos cadastros com rolagem própria`.
+
+### Task 27: Turnos com a duração em destaque e régua do dia
+
+**Arquivos:**
+- Criar: `apps/web/src/lib/cores.ts`, `apps/web/src/componentes/servicos/ReguaDoDia.tsx` e `apps/web/src/__testes__/turnos-lib.test.ts`
+- Modificar: `pacotes/contratos/src/servicos.ts`, `apps/web/src/lib/turnos.ts`, `apps/web/src/componentes/servicos/Turnos.tsx` e `apps/web/src/__testes__/servicos.test.tsx`
+- Apagar: `apps/web/src/componentes/servicos/Bloco.tsx`, mais `descreverTurnosPadrao` e o teste dela.
+
+**Interfaces:**
+- **Produz (`contratos`)**, usado também na entrega 4.2:
+  - `textoHora(hhmm: string): string`: `'08:00'` → `'08h'`, `'07:30'` → `'07h30'`, `'00:00'` → `'00h'`.
+  - `textoFaixa(inicio: string, fim: string): string`: `'08:00','20:00'` → `'08h–20h'`, com traço meia-risca.
+- **Produz (`lib/cores.ts`):** `corDoTexto(fundo: string): '#FFFFFF' | '#1C2430'`. Escolhe o de maior contraste pela luminância relativa (WCAG).
+- **Produz (`lib/turnos.ts`):**
+  - `segmentosDoDia(turnos: { letra: string; inicio: string; fim: string }[]): { letra: string; ini: number; fim: number }[]`:
+    - minutos de 0 a 1440, ordenados por `ini`;
+    - um turno que atravessa a meia-noite vira dois segmentos;
+    - 24h vira um só, `{ini: 0, fim: 1440}`.
+  - `sobreposicoes(turnos): { letras: [string, string]; ini: number; fim: number }[]`: interseções de tamanho positivo entre segmentos de turnos diferentes, ordenadas por `ini`.
+- **Tela:** a linha do turno fica assim:
+  `[A ▾]  08:00 às 20:00  ▐ 12h ▌  Salvar  Remover`
+  - **Bloco:** `font-cond text-base font-semibold rounded px-2.5 py-0.5`, com fundo na cor do serviço e texto em `corDoTexto`.
+  - **Régua no topo da seção Turnos:**
+    - marcas em 0h, 6h, 12h, 18h e 24h, e cada segmento na cor do serviço, com a letra dentro;
+    - `role="img"` e `aria-label` como "Turnos do dia: A das 08h às 20h; B das 20h às 08h";
+    - embaixo, para cada par sobreposto: "Os turnos A e B se sobrepõem das 07h às 08h." (`role="status"`).
+
+- [ ] **Passo 1: testes que falham:**
+
+```ts
+// turnos-lib.test.ts
+it('textoHora e textoFaixa', () => {
+  expect(textoHora('07:30')).toBe('07h30');
+  expect(textoFaixa('08:00', '20:00')).toBe('08h–20h');
+});
+// [foco 19]
+it('corDoTexto', () => {
+  expect(corDoTexto('#6E56A8')).toBe('#FFFFFF');
+  expect(corDoTexto('#000000')).toBe('#FFFFFF');
+  expect(corDoTexto('#FFFF00')).toBe('#1C2430');
+  expect(corDoTexto('#FFFFFF')).toBe('#1C2430');
+});
+it('segmentos do Pronto', () =>
+  expect(segmentosDoDia([{ letra: 'A', inicio: '08:00', fim: '20:00' }, { letra: 'B', inicio: '20:00', fim: '08:00' }])).toEqual([
+    { letra: 'B', ini: 0, fim: 480 }, { letra: 'A', ini: 480, fim: 1200 }, { letra: 'B', ini: 1200, fim: 1440 },
+  ]));
+// [foco 18]
+it('turno de 24h é um segmento só', () => expect(segmentosDoDia([{ letra: 'A', inicio: '08:00', fim: '08:00' }])).toEqual([{ letra: 'A', ini: 0, fim: 1440 }]));
+it('sobreposição dos dois lados da meia-noite', () =>
+  expect(sobreposicoes([{ letra: 'A', inicio: '07:00', fim: '19:00' }, { letra: 'B', inicio: '18:00', fim: '08:00' }])).toEqual([
+    { letras: ['A', 'B'], ini: 420, fim: 480 }, { letras: ['A', 'B'], ini: 1080, fim: 1140 },
+  ]));
+it('segmentos do mesmo turno não se sobrepõem', () => expect(sobreposicoes([{ letra: 'B', inicio: '20:00', fim: '08:00' }])).toEqual([]));
+```
+
+  Em `servicos.test.tsx`, sai o teste de "Pede voluntariado em" e entram:
+  - `turno não mostra "Pede voluntariado em"`: `queryByText(/Pede voluntariado/)` é `null`.
+  - `duração aparece no bloco com a cor do serviço`: com BIOMA, `getByText('8h')` tem `style.backgroundColor === 'rgb(192, 138, 30)'`.
+  - `horário incompleto mostra traço`: depois de limpar "Início do turno A", aparece `'—'`.
+  - `régua descreve os turnos do dia`: `getByRole('img', { name: 'Turnos do dia: A das 00h às 08h' })`.
+  - `sobreposição aparece em texto`: um serviço com A de 07h às 19h e B de 18h às 08h mostra "Os turnos A e B se sobrepõem das 07h às 08h e das 18h às 19h.". Vários trechos do mesmo par vão numa frase só.
+- [ ] **Passo 2:** `pnpm --filter web test`. Esperado: FALHA.
+- [ ] **Passo 3:** implementar.
+- [ ] **Passo 4:** `pnpm --filter web test && pnpm --filter contratos test && pnpm typecheck`. Esperado: PASSA.
+- [ ] **Passo 5:** commit `Fase 3: turnos com duração em destaque e régua do dia`.
+
+### Task 28: Seletor de cor como o do Google Planilhas
+
+**Arquivos:**
+- Criar: `apps/web/src/componentes/SeletorDeCor.tsx` e `apps/web/src/__testes__/seletor-cor.test.tsx`
+- Modificar: `apps/web/src/lib/cores.ts` e `apps/web/src/routes/_app/servicos/$id.tsx`, onde o seletor substitui a cor atual.
+
+**Interfaces:**
+- **Consome:** `CORES_SERVICO` (`contratos`) e `Popover` de `radix-ui` (já é dependência).
+- **Produz `PALETA_PLANILHAS: string[][]`** em `lib/cores.ts`, com 8 linhas de 10:
+  - `#000000 #434343 #666666 #999999 #B7B7B7 #CCCCCC #D9D9D9 #EFEFEF #F3F3F3 #FFFFFF`
+  - `#980000 #FF0000 #FF9900 #FFFF00 #00FF00 #00FFFF #4A86E8 #0000FF #9900FF #FF00FF`
+  - `#E6B8AF #F4CCCC #FCE5CD #FFF2CC #D9EAD3 #D0E0E3 #C9DAF8 #CFE2F3 #D9D2E9 #EAD1DC`
+  - `#DD7E6B #EA9999 #F9CB9C #FFE599 #B6D7A8 #A2C4C9 #A4C2F4 #9FC5E8 #B4A7D6 #D5A6BD`
+  - `#CC4125 #E06666 #F6B26B #FFD966 #93C47D #76A5AF #6D9EEB #6FA8DC #8E7CC3 #C27BA0`
+  - `#A61C00 #CC0000 #E69138 #F1C232 #6AA84F #45818E #3C78D8 #3D85C6 #674EA7 #A64D79`
+  - `#85200C #990000 #B45F06 #BF9000 #38761D #134F5C #1155CC #0B5394 #351C75 #741B47`
+  - `#5B0F00 #660000 #783F04 #7F6000 #274E13 #0C343D #1C4587 #073763 #20124D #4C1130`
+- **Produz `SeletorDeCor({ id, valor, aoMudar }: { id: string; valor: string; aoMudar: (cor: string) => void })`:**
+  - **Gatilho:** um botão com a amostra da cor atual e uma seta, com `id` para o `<Label htmlFor>` "Cor".
+  - **Grade:** botões `aria-label="Cor #RRGGBB"`, com `aria-pressed` e um visto na cor escolhida. Escolher uma fecha a grade.
+  - **Cores dos serviços:** uma linha à parte, com `aria-label="Cor de <serviço>"`.
+  - **Personalizada…:** um campo `aria-label="Código da cor"`, mais o seletor nativo e o botão "Usar esta cor". Texto fora de `#RRGGBB` mostra "Use o formato #RRGGBB." e não muda a cor.
+  - A cor sai sempre em maiúsculas.
+
+- [ ] **Passo 1: testes que falham** (`seletor-cor.test.tsx`, montando a ficha do serviço como em `servicos.test.tsx`):
+  - `escolher na grade e salvar envia a cor`: clica em "Cor", depois em "Cor #4A86E8", depois em "Salvar". O corpo do PATCH tem `cor: '#4A86E8'`.
+  - `cores dos serviços aparecem na grade`: `getByRole('button', { name: 'Cor de Pronto' })`.
+  - `cor personalizada aceita #RRGGBB e recusa outro texto`: "azul" mostra a mensagem; "#1a2b3c" e "Usar esta cor" mudam a amostra para `#1A2B3C`.
+- [ ] **Passo 2:** `pnpm --filter web test`. Esperado: FALHA.
+- [ ] **Passo 3:** implementar.
+- [ ] **Passo 4:** `pnpm test && pnpm typecheck`. Esperado: tudo passa.
+- [ ] **Passo 5:** commit `Fase 3: seletor de cor como o do Google Planilhas`. Depois, abrir o PR "Fase 3 — Entrega 4.1: tela de serviços e rolagem dos cadastros" e **parar até o merge**.
+
+---
+
+# Entrega 4.2 — Vínculo por faixa de horário
+
+Branch `fase3-4-2-faixas`, a partir da `main` já com a 4.1. **Tem migração (0011):** o PR lembra de rodar `pnpm --filter api db:migrar:teste` depois do merge. Especificação: o mesmo adendo de 18/11/2026.
+
+**Decisões do usuário (18/11/2026):**
+- Sem turno único: o U vira A.
+- O vínculo da escala é por faixa de horário (abordagem A).
+- Quando nenhuma letra é ambígua, a coluna mostra a letra e a faixa; havendo ambiguidade, só a faixa.
+- Cada turno se marca separado, e "Todos os turnos" deixa de existir.
+- Melhorias aceitas: totais na matriz e aviso de alteração não salva.
+
+**Decisões minhas, ao detalhar:**
+- **A regra da letra vale para a matriz inteira:** `comLetra` só é verdadeiro se cada letra tem uma faixa só e cada faixa uma letra só. Assim não se misturam colunas com e sem letra.
+- **Ordem das colunas:** pelo início e, empatando, pelo fim.
+- **Migração:**
+  - o "todos os turnos" vira uma marcação para cada faixa dos serviços da escala;
+  - a letra vira uma marcação para cada faixa com aquela letra;
+  - o vínculo órfão (letra sem turno nos serviços) é descartado, porque a tela já o avisava como algo a tirar;
+  - um serviço com A e U ao mesmo tempo para a migração com uma mensagem. Nos dados de teste, só Expediente e Defensoria têm U, e nenhum tem A.
+- **Mínimo da coluna:** soma o mínimo das guarnições marcadas naquela faixa, pela composição em vigor no mês da versão da matriz. Ele recalcula enquanto se marca.
+- **Alterações não salvas:** valem nas fichas de serviço e de escala. As de militar e guarnição ficam como estão. A pergunta é a do navegador (`confirm`): "Há alterações não salvas nesta ficha. Sair mesmo assim?".
+- **"Onde é usada"** (ficha da guarnição) passa a listar as faixas ("08h–20h, 20h–08h").
+
+### Task 29: Banco, API e importação por faixa
+
+**Arquivos:**
+- Criar:
+  - `apps/api/banco/migracoes/0011_faixas.sql`;
+  - `apps/api/src/cadastros/escalas-regras.ts`;
+  - `apps/api/test/migracao-0011.test.ts` e `apps/api/test/escalas-regras.test.ts`.
+- Modificar:
+  - `pacotes/contratos/src/{servicos,escalas,guarnicoes}.ts`;
+  - `apps/api/src/cadastros/{servicos,escalas,guarnicoes}.ts`;
+  - `apps/api/src/importacao/servicos-escalas.ts` e `apps/api/src/carga/exemplo.ts` (U vira A);
+  - os testes de API que usam `turnoLetra`, `letras` ou a letra U.
+
+**Interfaces:**
+- **Migração `0011_faixas.sql`:**
+  1. Cria `escala_guarnicao.inicio` e `escala_guarnicao.fim`, preenchidos a partir de `turno_letra`:
+     - num `create temp table`, entram as faixas distintas de `turno` dos serviços da escala (via `escala_servico`) cuja letra é igual a `turno_letra`, ou todas, se `turno_letra` for nulo;
+     - depois apaga `escala_guarnicao`, remove `turno_letra` (a restrição única antiga cai junto), torna `inicio` e `fim` `not null`, cria `unique (versao_id, guarnicao_id, inicio, fim)` e reinsere.
+  2. Se algum serviço tem os turnos A e U, gera o erro `Há serviço com turno A e turno U: troque um deles antes de migrar.`.
+  3. `update turno set letra = 'A' where letra = 'U'` e recria `turno_letra_check` com `('A', 'B', 'C')`.
+- **Contratos:**
+  - `LetraTurno = z.enum(['A', 'B', 'C'])` e `Faixa = z.object({ inicio: Hora, fim: Hora })`.
+  - `VinculosDaEscala = { itens: { guarnicaoId: Id; inicio: Hora; fim: Hora }[] }`. O refinamento recusa a repetição com "Esta guarnição já está nesta faixa.".
+  - `FaixaDaEscala = { inicio: string; fim: string; letras: LetraTurno[]; servicos: string[] }`.
+  - `Escala`: sai `letras`; entram `faixas: FaixaDaEscala[]` e `comLetra: boolean`.
+  - `VinculoSalvo = { guarnicaoId; guarnicao; ativaNoMes; inicio; fim }`.
+  - `FichaGuarnicao.usadaEm = { escalaId; escala; faixas: { inicio: string; fim: string }[] }[]`.
+- **`escalas-regras.ts`:** `faixasDosTurnos(turnos: { servico: string; letra: LetraTurno; inicio: string; fim: string }[]): { faixas: FaixaDaEscala[]; comLetra: boolean }`, com a ordem e a regra da letra descritas acima.
+- **API:**
+  - `PUT /api/escalas/:id/vinculos/:mes` recusa com 400 em `itens.<i>.inicio` a faixa que não está em `faixas`: "A faixa 16h–00h não existe nos serviços desta escala." (`textoFaixa`).
+  - Os itens saem em ordem de nome da guarnição e depois de início.
+  - `gravarVinculos(tx, escalaId, vigencia, itens: { guarnicaoId: string; inicio: string; fim: string }[])`.
+- **Importação:**
+  - **TURNOS:** U e ÚNICO viram A. As opções passam a A, B e C, e a ajuda diz: "Letra do turno: A, B ou C. Serviço de um turno só usa A.".
+  - **GUARNIÇÕES POR ESCALA, coluna TURNO** (sem lista de opções). A ajuda diz: "Vazio ou TODOS: todas as faixas da escala. Letra (A, B, C) quando ela tem um horário só na escala, ou a faixa (ex.: 08:00-20:00). Várias, separadas por vírgula.".
+  - **Leitura da célula:** primeiro separa por `,` e `;`. Cada parte é uma faixa se casar `^(.+?)\s*(?:-|–|às|a)\s*(.+)$`, com as duas horas passando por `normalizarHora`; senão, é uma lista de letras separada por espaço ou `/`.
+  - **Problemas:**
+    - letra sem faixa na escala: o problema atual ("Turno X não existe nos serviços da escala E");
+    - letra com mais de uma faixa: "Turno A tem horários diferentes nos serviços da escala E (00h–08h, 08h–20h)", com a solução "Escreva a faixa na coluna TURNO (ex.: 08:00-20:00).";
+    - faixa ausente: "Faixa 09h–21h não existe nos serviços da escala E", com a solução "Confira a coluna TURNO ou os horários na aba TURNOS.".
+  - **Remoções e comparação:** sai a regra "TODOS e letra avulsa"; a expansão já tira as repetições. A assinatura da versão passa a ser o conjunto de (guarnição, início, fim).
+
+- [ ] **Passo 1: testes que falham:**
+  - `migracao-0011.test.ts` **[foco 16]**, no mesmo molde da 0010, com o banco migrado até a 0010:
+    - serviços Pronto (A 08–20, B 20–08), Expediente (U 08–16) e Bioma (A 00–08, B 08–16, C 16–00);
+    - escala com Pronto e Expediente, e uma versão com g1 `null`, g2 `'A'` e g3 `'C'`;
+    - depois da 0011:
+      - g1 fica com 08:00–16:00, 08:00–20:00 e 20:00–08:00;
+      - g2 fica com 08:00–20:00;
+      - g3 não fica com nada;
+      - o turno do Expediente tem letra A;
+      - `insert` de turno com letra U é rejeitado.
+  - O mesmo arquivo testa `serviço com A e U para a migração com a mensagem`.
+  - `escalas-regras.test.ts`:
+    - Pronto A/B mais JES A 08–20 dá `[{08:00–20:00, letras [A], servicos [Pronto, JES]}, {20:00–08:00, [B], [Pronto]}]`, com `comLetra` true;
+    - somando Bioma A 00–08, `comLetra` fica false e a ordem passa a 00–08, 08–20, 20–08.
+  - `escalas.test.ts`:
+    - `reúne serviços e devolve as faixas`;
+    - `vínculo com faixa fora da escala é 400`;
+    - `tirar serviço deixa o vínculo da faixa que sumiu`;
+    - saem os testes de "Todos os turnos" e da letra U.
+  - `servicos.test.ts`: `letra U é 400`.
+  - `importacao-servicos-escalas.test.ts`:
+    - `U e ÚNICO viram A`;
+    - `TURNO vazio vira todas as faixas da escala`;
+    - `letra ambígua vira problema com a solução de escrever a faixa`;
+    - `faixa escrita na célula é aceita` ("08:00-20:00" e "20h às 08h");
+    - `faixa que não existe vira problema`;
+    - `reimportar com TURNO vazio dá igual` **[foco 17]**.
+- [ ] **Passo 2:** `pnpm --filter api test`. Esperado: FALHA.
+- [ ] **Passo 3:** implementar.
+- [ ] **Passo 4:** `pnpm --filter api test && pnpm --filter contratos test && pnpm --filter api typecheck`. Esperado: PASSA. O site ainda não compila com os contratos novos; o ledger registra isso, como na Tarefa 19.
+- [ ] **Passo 5:** commit `Fase 3: vínculo da escala por faixa de horário (migração 0011)`.
+
+### Task 30: Matriz por faixa com totais
+
+**Arquivos:**
+- Criar: `apps/web/src/lib/guarnicoes.ts`, com `limites(g)` tirado de `routes/_app/guarnicoes.tsx`.
+- Modificar:
+  - `apps/web/src/componentes/escalas/Matriz.tsx`;
+  - `apps/web/src/routes/_app/guarnicoes.tsx` e `guarnicoes/$id.tsx` ("Onde é usada");
+  - `apps/web/src/lib/turnos.ts` (sem U);
+  - `apps/web/src/__testes__/{escalas,guarnicoes}.test.tsx`.
+
+**Interfaces:**
+- **Consome:** `Escala.faixas`, `Escala.comLetra` e `VinculoSalvo` com faixa (Tarefa 29), mais `textoFaixa` (Tarefa 27).
+- **Cabeçalho da coluna:** com `comLetra`, a letra (`font-cond text-base font-semibold`) e, embaixo, a faixa (`text-xs`); sem `comLetra`, só a faixa. A caixa tem `aria-label` "`<guarnição>` em A (08h–20h)", ou "`<guarnição>` em 08h–20h" sem letra.
+- **Linha:** nome, a etiqueta "desativada" quando for o caso e, em `text-xs text-apagado`, `limites(g)` ("de 4 a 5 militares", "3 militares", "sem composição").
+- **Rodapé:** em cada coluna, "mín. N", com a soma do `minimo` das guarnições marcadas naquela faixa. Guarnição sem linha na lista conta 0.
+- **Órfão:** "A faixa 16h–00h não existe mais nos serviços desta escala: ABT. Salve a matriz para tirá-la."
+- **Gravar:** envia `{ guarnicaoId, inicio, fim }` por marcação.
+
+- [ ] **Passo 1: testes que falham**, com fixtures no formato novo:
+  - `colunas mostram letra e faixa quando não há ambiguidade` (`'A'` e `'08h–20h'` no cabeçalho)
+  - `com letra ambígua, colunas mostram só a faixa`
+  - `não há coluna Todos os turnos`
+  - `marcar envia a faixa`
+  - `mínimo da coluna soma as guarnições marcadas` (ABT, mínimo 2, mais APH, mínimo 2, dão "mín. 4")
+  - `linha mostra o tamanho da guarnição`
+  - `faixa que saiu da escala mostra o aviso`
+  - `onde é usada mostra as faixas` (guarnicoes.test.tsx)
+- [ ] **Passo 2:** `pnpm --filter web test`. Esperado: FALHA.
+- [ ] **Passo 3:** implementar.
+- [ ] **Passo 4:** `pnpm --filter web test && pnpm typecheck`. Esperado: PASSA.
+- [ ] **Passo 5:** commit `Fase 3: matriz da escala por faixa, com totais`.
+
+### Task 31: Aviso de alteração não salva
+
+**Arquivos:**
+- Criar: `apps/web/src/componentes/AlteracoesPendentes.tsx` e `apps/web/src/__testes__/pendentes.test.tsx`
+- Modificar:
+  - `apps/web/src/routes/_app/servicos/$id.tsx`, `apps/web/src/componentes/servicos/Turnos.tsx`;
+  - `apps/web/src/routes/_app/escalas/$id.tsx`, `apps/web/src/componentes/escalas/{ServicosDaEscala,Matriz}.tsx`.
+
+**Interfaces:**
+- **Produz:**
+  - `ProvedorDePendencias({ children })`: guarda as chaves com alteração pendente e usa `useBlocker` do TanStack Router, com `shouldBlockFn` que pergunta por `window.confirm(MENSAGEM_PENDENTE)` quando há pendência e `enableBeforeUnload` nas mesmas condições.
+  - `usePendencia(chave: string, sujo: boolean): void`.
+  - `EtiquetaPendente({ sujo }: { sujo: boolean })`: mostra "Alterações não salvas" (`role="status"`, `text-xs text-alerta`), ao lado do botão de salvar do bloco.
+  - `MENSAGEM_PENDENTE = 'Há alterações não salvas nesta ficha. Sair mesmo assim?'`.
+- **Quando um bloco está sujo:** o estado é diferente dos dados com que ele abriu. Isso vale para a identificação, cada linha de turno (e a linha nova), os serviços da escala e as marcações da matriz. O mês "Vale a partir de" não conta. Depois de gravar, a `key` por dados remonta o bloco limpo.
+
+- [ ] **Passo 1: testes que falham** **[foco 20]**:
+  - `mudar o título mostra Alterações não salvas`
+  - `trocar de escala com alteração pendente pergunta e fica ao cancelar` (`vi.spyOn(window, 'confirm').mockReturnValue(false)`; clicar em outra escala da lista; o campo "Título no documento" mantém o texto digitado)
+  - `confirmando, troca de escala`
+  - `sem alteração, troca sem perguntar` (`confirm` não é chamado)
+  - `mudar o horário de um turno mostra Alterações não salvas`
+  - `depois de salvar, o aviso some sem perguntar`
+- [ ] **Passo 2:** `pnpm --filter web test`. Esperado: FALHA.
+- [ ] **Passo 3:** implementar.
+- [ ] **Passo 4:** `pnpm test && pnpm typecheck`. Esperado: tudo passa.
+- [ ] **Passo 5:** commit `Fase 3: aviso de alteração não salva nas fichas de serviço e escala`. Depois, abrir o PR "Fase 3 — Entrega 4.2: vínculo por faixa de horário" e **parar até o merge**. O PR lembra: **rodar `pnpm --filter api db:migrar:teste` depois do merge**.
+
+---
+
 # Entrega 5 — Cotas e feriados
 
 Branch `fase3-5-cotas-feriados`.
 
-### Task 26: API de Cotas e Feriados
+### Task 32: API de Cotas e Feriados
 
 **Arquivos:**
 - Criar: `pacotes/contratos/src/cotas-feriados.ts`, `apps/api/src/cadastros/cotas.ts`, `apps/api/src/cadastros/feriados.ts`, `apps/api/test/cotas.test.ts`, `apps/api/test/feriados.test.ts`
@@ -1196,7 +1497,7 @@ Branch `fase3-5-cotas-feriados`.
 - [ ] **Passo 4:** `pnpm --filter api test`. Esperado: PASSA.
 - [ ] **Passo 5:** commit `Fase 3: API de cotas e feriados`.
 
-### Task 27: Telas de Cotas e Feriados
+### Task 33: Telas de Cotas e Feriados
 
 **Arquivos:**
 - Criar: `apps/web/src/api/cotas.ts`, `apps/web/src/api/feriados.ts`, `apps/web/src/routes/_app/cotas.tsx`, `apps/web/src/routes/_app/feriados.tsx`, `apps/web/src/__testes__/cotas.test.tsx`, `apps/web/src/__testes__/feriados.test.tsx`
@@ -1223,7 +1524,7 @@ Branch `fase3-5-cotas-feriados`.
 - [ ] **Passo 4:** `pnpm --filter web test`. Esperado: PASSA.
 - [ ] **Passo 5:** commit `Fase 3: telas de cotas e feriados`.
 
-### Task 28: Importação de Cotas e Feriados, e fechamento da fase
+### Task 34: Importação de Cotas e Feriados, e fechamento da fase
 
 **Arquivos:**
 - Criar: `apps/api/src/importacao/cotas.ts`, `apps/api/src/importacao/feriados.ts`, `apps/api/test/importacao-cotas-feriados.test.ts`

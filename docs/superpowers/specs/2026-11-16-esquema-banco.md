@@ -219,7 +219,7 @@ Não existe cadastro aberto. O primeiro administrador é criado por um comando d
 |---|---|---|
 | id | uuid PK | |
 | servico_id | uuid FK | |
-| letra | text | "A", "B", "C" ou "U" (único); única por serviço |
+| letra | text | "A", "B" ou "C"; única por serviço (sem "U" desde a 0011: o turno único é o A) |
 | inicio / fim | time | `fim < inicio` atravessa a meia-noite; `fim = inicio` é um turno de 24h; a duração é calculada |
 
 Regra de exibição: o turno aparece no dia em que começa. O dia de serviço vai das 08h de D às 08h de D+1 (efetivo do dia).
@@ -320,9 +320,10 @@ Quais guarnições servem cada turno da escala, com vigência (RN-09, RN-93).
 | id | uuid PK | |
 | versao_id | uuid FK | |
 | guarnicao_id | uuid FK | |
-| turno_letra | text null | null = todos os turnos |
+| inicio | time | faixa de horário do turno (desde a 0011; antes, `turno_letra`) |
+| fim | time | |
 
-Único por (versao_id, guarnicao_id, turno_letra).
+Único por (versao_id, guarnicao_id, inicio, fim). A faixa vale para todo serviço da escala com um turno nesse horário. Não há "todos os turnos".
 
 ## 6. O mês
 
