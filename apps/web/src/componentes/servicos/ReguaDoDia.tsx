@@ -1,5 +1,6 @@
 import { textoHora, type Servico } from 'contratos';
 import { corDoTexto } from '@/lib/cores';
+import { cn } from '@/lib/utils';
 import { fimDaRegua, segmentosDoDia, sobreposicoes, textoMinutos } from '@/lib/turnos';
 
 /** "Os turnos A e B se sobrepõem das 07h às 08h e das 18h às 19h." — um par por frase; 24h seguidas saem "o dia todo". */
@@ -41,14 +42,24 @@ export function ReguaDoDia({ servico }: { servico: Servico }) {
       </div>
       <div aria-hidden className="relative mt-1 h-4 text-xs text-apagado">
         {marcas.map((h) => (
-          <span key={h} className="absolute -translate-x-1/2 first:translate-x-0 last:-translate-x-full" style={{ left: pct(h * 60) }}>
+          <span
+            key={h}
+            className={cn('absolute', h === 0 ? 'translate-x-0' : h * 60 === fim ? '-translate-x-full' : '-translate-x-1/2')}
+            style={{ left: pct(h * 60) }}
+          >
             {h <= 24 ? `${h}h` : textoMinutos(h * 60)}
           </span>
         ))}
       </div>
       {temDiaSeguinte && (
         <div aria-hidden className="relative h-4 text-xs text-apagado">
-          <span className="absolute pl-1" style={{ left: pct(1440) }}>dia seguinte</span>
+          {/* com pouco dia seguinte não há espaço ao lado da linha: a legenda fica no canto direito */}
+          <span
+            className={cn('absolute whitespace-nowrap', (fim - 1440) / fim < 0.15 ? 'right-0 text-right' : 'pl-1')}
+            style={(fim - 1440) / fim < 0.15 ? undefined : { left: pct(1440) }}
+          >
+            dia seguinte
+          </span>
         </div>
       )}
       {frasesDeSobreposicao(servico.turnos).map((f) => (

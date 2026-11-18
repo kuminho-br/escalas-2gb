@@ -107,6 +107,37 @@ describe('serviços', () => {
     expect(screen.getByText('dia seguinte')).toBeInTheDocument();
   });
 
+  it('revisão: a legenda do dia seguinte não quebra nem sai da régua quando o turno passa pouco da meia-noite', async () => {
+    api({ 'GET /api/servicos/s3': { status: 200, corpo: comTurnos([['A', '18:00', '02:00']]) } });
+    abrir('/servicos/s3');
+    const legenda = await screen.findByText('dia seguinte');
+    expect(legenda).toHaveClass('whitespace-nowrap');
+    expect(legenda).toHaveClass('right-0');
+  });
+
+  it('revisão: com bastante dia seguinte a legenda fica ao lado da linha da meia-noite', async () => {
+    api({ 'GET /api/servicos/s3': { status: 200, corpo: PRONTO } });
+    abrir('/servicos/s3');
+    const legenda = await screen.findByText('dia seguinte');
+    expect(legenda).toHaveClass('whitespace-nowrap');
+    expect(legenda).not.toHaveClass('right-0');
+  });
+
+  it('revisão: só o último rótulo que está no fim da régua fica alinhado à direita', async () => {
+    api({ 'GET /api/servicos/s3': { status: 200, corpo: PRONTO } });
+    abrir('/servicos/s3');
+    // Pronto vai até 32h: a última marca (30h, "06h") fica centrada, não deslocada para a esquerda
+    const marca = await screen.findByText('06h');
+    expect(marca).toHaveClass('-translate-x-1/2');
+    expect(marca).not.toHaveClass('last:-translate-x-full');
+  });
+
+  it('revisão: no dia de 24h o rótulo 24h fica alinhado ao fim da régua', async () => {
+    api();
+    abrir('/servicos/s3');
+    expect(await screen.findByText('24h')).toHaveClass('-translate-x-full');
+  });
+
   it('régua sem turno que passe da meia-noite não mostra dia seguinte', async () => {
     api();
     abrir('/servicos/s3');
