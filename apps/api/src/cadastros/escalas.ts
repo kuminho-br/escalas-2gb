@@ -51,7 +51,7 @@ export async function faixasDaEscala(c: Consulta, servicoIds: string[]) {
 }
 
 /** Versões de vínculos, a mais recente primeiro, com a situação da guarnição em cada vigência. */
-async function vinculosDaEscala(c: Consulta, escalaId: string): Promise<Escala['vinculos']> {
+export async function vinculosDaEscala(c: Consulta, escalaId: string): Promise<Escala['vinculos']> {
   const vs = (
     await c.query<{ id: string; vigencia: string }>(
       `select id, to_char(vigencia_desde, 'YYYY-MM') as vigencia from escala_vinculo_versao where escala_id = $1 order by vigencia_desde desc`,
