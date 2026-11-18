@@ -42,7 +42,7 @@ describe('casca', () => {
     expect(within(caminho).getAllByRole('listitem').at(-1)).toHaveAttribute('aria-current', 'location');
     expect(screen.getByRole('img', { name: 'Brasão do Corpo de Bombeiros Militar de Pernambuco' })).toHaveAttribute('src', '/brasao-cbmpe.png');
     expect(screen.getByRole('link', { name: 'Grade geral' })).toHaveAttribute('aria-current', 'page');
-    expect(screen.getByText('Escala do mês').closest('[aria-disabled="true"]')).not.toBeNull();
+    expect(screen.getByText('Efetivo do dia').closest('[aria-disabled="true"]')).not.toBeNull();
     expect(screen.getByText('A grade geral chega na próxima fase.')).toBeInTheDocument();
   });
 
@@ -74,8 +74,9 @@ describe('trilho', () => {
     await screen.findByText('SD BM ANDRADE');
     for (const nome of NOMES) expect(within(menu()).getByText(nome)).toBeInTheDocument();
     expect(within(menu()).getByRole('link', { name: 'Militares' })).toHaveAttribute('href', '/militares');
-    expect(within(menu()).getByText('Escala do mês').closest('[aria-disabled="true"]')).not.toBeNull();
-    expect(within(menu()).queryByRole('link', { name: 'Escala do mês' })).toBeNull();
+    expect(within(menu()).getByRole('link', { name: 'Escala do mês' })).toHaveAttribute('href', '/escala-do-mes');
+    expect(within(menu()).getByText('Efetivo do dia').closest('[aria-disabled="true"]')).not.toBeNull();
+    expect(within(menu()).queryByRole('link', { name: 'Efetivo do dia' })).toBeNull();
   });
 
   it('o menu do celular abre e fecha', async () => {
