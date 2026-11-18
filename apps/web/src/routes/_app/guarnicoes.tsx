@@ -56,11 +56,11 @@ function ListaDeGuarnicoes({ unidadeId, escolhida }: { unidadeId: string; escolh
       {guarnicoes.data && (
         <>
           <p className="border-b border-linha px-4 pt-3 pb-2 text-xs text-apagado">Em ordem de ativação · {visiveis.length} guarnições</p>
-          <ul className="max-h-[calc(100dvh-16rem)] overflow-y-auto p-2">
+          <ul className="p-2">
             {visiveis.map((g) => <ItemGuarnicao key={g.id} g={g} escolhida={g.id === escolhida} />)}
             {guarnicoes.data.length === 0 && <li className="p-3 text-apagado">Nenhuma guarnição. Use "Nova guarnição" ou "Importar da planilha".</li>}
           </ul>
-          <label className="flex items-center gap-2 border-t border-linha px-4 py-2.5 text-xs text-apagado">
+          <label className="sticky bottom-0 flex items-center gap-2 border-t border-linha bg-superficie px-4 py-2.5 text-xs text-apagado">
             <input type="checkbox" checked={desativadas} onChange={(e) => setDesativadas(e.target.checked)} className="size-4 accent-vinho" />
             Mostrar desativadas
           </label>

@@ -25,7 +25,15 @@ export function ListaDetalhe({
         {acoes && <div className="flex flex-wrap gap-2">{acoes}</div>}
       </header>
       <div className="mt-6 grid items-start gap-6 lg:grid-cols-[minmax(280px,380px)_1fr]">
-        <div className={cn('min-w-0 rounded-xl border border-linha bg-superficie', temDetalhe && 'max-lg:hidden')}>{lista}</div>
+        {/* a lista fica parada e rola sozinha: o detalhe rola com a página (rolagens independentes) */}
+        <div
+          className={cn(
+            'min-w-0 rounded-xl border border-linha bg-superficie lg:sticky lg:top-20 lg:max-h-[calc(100dvh-6.5rem)] lg:overflow-y-auto',
+            temDetalhe && 'max-lg:hidden',
+          )}
+        >
+          {lista}
+        </div>
         <div className={cn('min-w-0', !temDetalhe && 'max-lg:hidden')}>{detalhe}</div>
       </div>
     </section>

@@ -96,7 +96,7 @@ function ListaDeMilitares({ unidadeId, escolhido }: { unidadeId: string; escolhi
       {militares.data && (
         <>
           <p className="px-4 pt-3 text-xs text-apagado">{filtrados.length} de {militares.data.length} militares</p>
-          <ul className="max-h-[calc(100dvh-20rem)] overflow-y-auto p-2">
+          <ul className="p-2">
             {filtrados.map((m) => <ItemMilitar key={m.id} m={m} escolhido={m.id === escolhido} />)}
             {militares.data.length === 0 && <li className="p-3 text-apagado">Nenhum militar lotado. Use "Novo militar" ou "Importar da planilha".</li>}
           </ul>
