@@ -15,10 +15,13 @@ const guarnicao = (g: Partial<LinhaGuarnicao>): LinhaGuarnicao => ({
   id: 'g1', nome: 'ABT', viatura: null, prioridade: 1, ativa: true, minimo: 2, maximo: 4, aPartirDe: null, ...g,
 });
 const GUARNICOES = [guarnicao({}), guarnicao({ id: 'g2', nome: 'APH', prioridade: 2 }), guarnicao({ id: 'g3', nome: 'AR', ativa: false, prioridade: 3 })];
+const DIA = { inicio: '08:00', fim: '20:00', letras: ['A' as const], servicos: ['Pronto', 'JES'] };
+const NOITE = { inicio: '20:00', fim: '08:00', letras: ['B' as const], servicos: ['Pronto'] };
 const escala = (e: Partial<Escala> = {}): Escala => ({
   id: 'e1', nome: 'Ordinário', titulo: 'ESCALA ORDINÁRIO', militaresDoc: 'todos', diasDoc: 'todos', ativa: true,
   servicos: [{ id: 's1', nome: 'Pronto', cor: '#2F8F5B', ativo: true }, { id: 's2', nome: 'JES', cor: '#6E56A8', ativo: true }],
-  letras: ['A', 'B'],
+  faixas: [DIA, NOITE],
+  comLetra: true,
   vinculos: [],
   ...e,
 });
@@ -67,42 +70,79 @@ describe('escalas', () => {
     await waitFor(() => expect(corpoEnviado(f, 'PUT /api/escalas/e1/servicos')).toEqual({ servicoIds: ['s2', 's1'] }));
   });
 
-  it('marcar na matriz envia o vínculo com a letra', async () => {
-    const f = api();
+  it('colunas mostram letra e faixa quando não há ambiguidade', async () => {
+    api();
     abrir('/escalas/e1');
-    await userEvent.click(await screen.findByLabelText('ABT no turno A'));
-    await salvarMatriz();
-    await waitFor(() => expect(corpoEnviado(f, `PUT /api/escalas/e1/vinculos/${mes}`)).toEqual({ itens: [{ guarnicaoId: 'g1', turnoLetra: 'A' }] }));
+    const coluna = (await screen.findByText('08h–20h')).closest('th')!;
+    expect(within(coluna).getByText('A')).toBeInTheDocument();
+    const noite = screen.getByText('20h–08h').closest('th')!;
+    expect(within(noite).getByText('B')).toBeInTheDocument();
   });
 
-  it('"Todos os turnos" envia turnoLetra null e desmarca as letras da linha', async () => {
+  it('com letra ambígua, colunas mostram só a faixa', async () => {
+    const madrugada = { inicio: '00:00', fim: '08:00', letras: ['A' as const], servicos: ['Bioma'] };
+    api(escala({ faixas: [madrugada, DIA], comLetra: false }));
+    abrir('/escalas/e1');
+    const coluna = (await screen.findByText('00h–08h')).closest('th')!;
+    expect(within(coluna).queryByText('A')).toBeNull();
+    expect(screen.getByLabelText('ABT em 00h–08h')).toBeInTheDocument();
+  });
+
+  it('não há coluna Todos os turnos', async () => {
+    api();
+    abrir('/escalas/e1');
+    await screen.findByText('08h–20h');
+    expect(screen.queryByText('Todos os turnos')).toBeNull();
+    expect(screen.queryByLabelText(/em todos os turnos/)).toBeNull();
+  });
+
+  it('marcar envia a faixa', async () => {
     const f = api();
     abrir('/escalas/e1');
-    await userEvent.click(await screen.findByLabelText('APH no turno A'));
-    await userEvent.click(screen.getByLabelText('APH em todos os turnos'));
-    expect(screen.getByLabelText('APH no turno A')).not.toBeChecked();
+    await userEvent.click(await screen.findByLabelText('ABT em A (08h–20h)'));
+    await userEvent.click(screen.getByLabelText('ABT em B (20h–08h)'));
     await salvarMatriz();
-    await waitFor(() => expect(corpoEnviado(f, `PUT /api/escalas/e1/vinculos/${mes}`)).toEqual({ itens: [{ guarnicaoId: 'g2', turnoLetra: null }] }));
+    await waitFor(() =>
+      expect(corpoEnviado(f, `PUT /api/escalas/e1/vinculos/${mes}`)).toEqual({
+        itens: [{ guarnicaoId: 'g1', inicio: '08:00', fim: '20:00' }, { guarnicaoId: 'g1', inicio: '20:00', fim: '08:00' }],
+      }),
+    );
+  });
+
+  it('mínimo da coluna soma as guarnições marcadas', async () => {
+    api();
+    abrir('/escalas/e1');
+    await userEvent.click(await screen.findByLabelText('ABT em A (08h–20h)'));
+    expect(screen.getAllByText('mín. 0')).toHaveLength(1); // só a coluna da noite continua em zero
+    await userEvent.click(screen.getByLabelText('APH em A (08h–20h)'));
+    expect(screen.getByText('mín. 4')).toBeInTheDocument();
+  });
+
+  it('linha mostra o tamanho da guarnição', async () => {
+    api();
+    abrir('/escalas/e1');
+    const linha = (await screen.findByLabelText('ABT em A (08h–20h)')).closest('tr')!;
+    expect(within(linha).getByText('de 2 a 4 militares')).toBeInTheDocument();
   });
 
   it('guarnição desativada só aparece vinculada, com a etiqueta', async () => {
-    api(escala({ vinculos: [{ vigencia: mes, itens: [{ guarnicaoId: 'g3', guarnicao: 'AR', ativaNoMes: false, turnoLetra: 'B' }] }] }));
+    api(escala({ vinculos: [{ vigencia: mes, itens: [{ guarnicaoId: 'g3', guarnicao: 'AR', ativaNoMes: false, ...NOITE }] }] }));
     abrir('/escalas/e1');
-    const linha = (await screen.findByLabelText('AR no turno B')).closest('tr')!;
-    expect(screen.getByLabelText('AR no turno B')).toBeChecked();
-    expect(within(linha).getByText('desativada')).toBeInTheDocument();
+    const caixa = await screen.findByLabelText('AR em B (20h–08h)');
+    expect(caixa).toBeChecked();
+    expect(within(caixa.closest('tr')!).getByText('desativada')).toBeInTheDocument();
   });
 
   it('guarnição desativada sem vínculo não aparece na matriz', async () => {
     api();
     abrir('/escalas/e1');
-    await screen.findByLabelText('ABT no turno A');
-    expect(screen.queryByLabelText('AR no turno A')).toBeNull();
+    await screen.findByLabelText('ABT em A (08h–20h)');
+    expect(screen.queryByLabelText('AR em A (08h–20h)')).toBeNull();
   });
 
-  it('vínculo em letra que saiu da escala mostra o aviso', async () => {
-    api(escala({ vinculos: [{ vigencia: mes, itens: [{ guarnicaoId: 'g1', guarnicao: 'ABT', ativaNoMes: true, turnoLetra: 'C' }] }] }));
+  it('faixa que saiu da escala mostra o aviso', async () => {
+    api(escala({ vinculos: [{ vigencia: mes, itens: [{ guarnicaoId: 'g1', guarnicao: 'ABT', ativaNoMes: true, inicio: '16:00', fim: '00:00' }] }] }));
     abrir('/escalas/e1');
-    expect(await screen.findByText('Turno C não existe mais nos serviços desta escala: ABT. Salve a matriz para tirá-los.')).toBeInTheDocument();
+    expect(await screen.findByText('A faixa 16h–00h não existe mais nos serviços desta escala: ABT. Salve a matriz para tirá-la.')).toBeInTheDocument();
   });
 });

@@ -83,5 +83,5 @@ export type FichaGuarnicao = {
   versoes: VersaoSalva[];
   /** menor mês a partir do qual todas as versões estão inativas; null se a mais recente está ativa */
   desativadaAPartirDe: string | null;
-  usadaEm: { escalaId: string; escala: string; turnos: string[] }[];
+  usadaEm: { escalaId: string; escala: string; faixas: { inicio: string; fim: string }[] }[];
 };

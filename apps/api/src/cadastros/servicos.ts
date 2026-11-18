@@ -9,7 +9,7 @@ import { comUsuario, type Banco, type Consulta } from '../banco/banco.ts';
 import { lerCorpo, respostaDoErroDoBanco } from '../erros.ts';
 
 type Ctx = Context<AmbienteApi>;
-const ORDEM_LETRAS: LetraTurno[] = ['A', 'B', 'C', 'U'];
+const ORDEM_LETRAS: LetraTurno[] = ['A', 'B', 'C'];
 
 type LinhaServico = { id: string; nome: string; tipo: Servico['tipo']; operacao: string | null; rotulo_impressao: string | null; cor: string; ativo: boolean };
 

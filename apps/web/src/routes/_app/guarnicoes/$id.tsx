@@ -1,6 +1,6 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { createFileRoute, Link } from '@tanstack/react-router';
-import { mesPorExtenso, somarMeses, type FichaGuarnicao } from 'contratos';
+import { mesPorExtenso, somarMeses, textoFaixa, type FichaGuarnicao } from 'contratos';
 import { ArrowLeft } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
 import { mensagemDe } from '@/api/cliente';
@@ -143,7 +143,7 @@ function UsadaEm({ ficha }: { ficha: FichaGuarnicao }) {
           {ficha.usadaEm.map((u) => (
             <li key={u.escalaId} className="flex gap-3">
               <span className="font-medium">{u.escala}</span>
-              <span className="text-apagado">{u.turnos.includes('todos') ? 'todos os turnos' : `turnos ${u.turnos.join(', ')}`}</span>
+              <span className="text-apagado">{u.faixas.map((f) => textoFaixa(f.inicio, f.fim)).join(', ')}</span>
             </li>
           ))}
         </ul>

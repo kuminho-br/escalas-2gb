@@ -99,21 +99,21 @@ async function carregarFicha(c: Consulta, id: string): Promise<FichaGuarnicao | 
   ).rows[0];
   if (!g) return null;
   const versoes = (await versoesDasGuarnicoes(c, [id])).get(id)!;
-  const { rows } = await c.query<{ escalaId: string; escala: string; turno_letra: string | null }>(
-    `select e.id as "escalaId", e.nome as escala, eg.turno_letra
+  const { rows } = await c.query<{ escalaId: string; escala: string; inicio: string; fim: string }>(
+    `select e.id as "escalaId", e.nome as escala, to_char(eg.inicio, 'HH24:MI') as inicio, to_char(eg.fim, 'HH24:MI') as fim
        from escala_guarnicao eg
        join escala_vinculo_versao v on v.id = eg.versao_id
        join escala e on e.id = v.escala_id
       where eg.guarnicao_id = $1
         and v.vigencia_desde = (select max(v2.vigencia_desde) from escala_vinculo_versao v2 where v2.escala_id = v.escala_id and v2.vigencia_desde <= $2)
-      order by e.nome, eg.turno_letra`,
+      order by e.nome, eg.inicio, eg.fim`,
     [id, mesParaData(hojeRecife().slice(0, 7))],
   );
   const usadaEm: FichaGuarnicao['usadaEm'] = [];
   for (const r of rows) {
     let item = usadaEm.find((u) => u.escalaId === r.escalaId);
-    if (!item) usadaEm.push((item = { escalaId: r.escalaId, escala: r.escala, turnos: [] }));
-    item.turnos.push(r.turno_letra ?? 'todos');
+    if (!item) usadaEm.push((item = { escalaId: r.escalaId, escala: r.escala, faixas: [] }));
+    item.faixas.push({ inicio: r.inicio, fim: r.fim });
   }
   return { id: g.id, nome: g.nome, versoes, desativadaAPartirDe: desativadaAPartirDe(versoes), usadaEm };
 }

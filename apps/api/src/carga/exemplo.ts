@@ -28,12 +28,12 @@ const EQUIPES = ['Alfa', 'Bravo', 'Charlie', 'Delta'];
 
 const SERVICOS: { nome: string; tipo: string; operacao: string | null; cor: string; turnos: [string, string, string][] }[] = [
   { nome: 'Pronto', tipo: 'ordinario', operacao: null, cor: '#2F8F5B', turnos: [['A', '08:00', '20:00'], ['B', '20:00', '08:00']] },
-  { nome: 'Expediente', tipo: 'ordinario', operacao: null, cor: '#8A94A1', turnos: [['U', '08:00', '16:00']] },
+  { nome: 'Expediente', tipo: 'ordinario', operacao: null, cor: '#8A94A1', turnos: [['A', '08:00', '16:00']] },
   { nome: 'JES', tipo: 'pjes', operacao: null, cor: '#6E56A8', turnos: [['A', '08:00', '20:00'], ['B', '20:00', '08:00']] },
   { nome: 'Saldo', tipo: 'ordinario', operacao: null, cor: '#2B7BB9', turnos: [['A', '08:00', '20:00'], ['B', '20:00', '08:00']] },
   { nome: 'Bioma', tipo: 'diaria', operacao: 'Guardiões do Bioma', cor: '#C08A1E', turnos: [['A', '00:00', '08:00'], ['B', '08:00', '16:00'], ['C', '16:00', '00:00']] },
   { nome: 'PE Seguro', tipo: 'diaria', operacao: 'PE Seguro', cor: '#3C5F9C', turnos: [['A', '00:00', '08:00'], ['B', '08:00', '16:00'], ['C', '16:00', '00:00']] },
-  { nome: 'Defensoria', tipo: 'pjes', operacao: null, cor: '#8C4A7A', turnos: [['U', '07:00', '19:00']] },
+  { nome: 'Defensoria', tipo: 'pjes', operacao: null, cor: '#8C4A7A', turnos: [['A', '07:00', '19:00']] },
 ];
 
 // quem é motorista (posição na ordem de criação) e com qual CNH; quem é voluntário JES
