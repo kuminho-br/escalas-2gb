@@ -1,12 +1,12 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { FichaMilitar } from 'contratos';
 import { useState, type FormEvent } from 'react';
-import { mensagemDe } from '@/api/cliente';
+import { camposDe, mensagemDe } from '@/api/cliente';
 import { atualizarMilitares, consultaPostos, editarMilitar } from '@/api/militares';
+import { Campo } from '@/componentes/Campo';
 import { Selecao } from '@/componentes/Selecao';
 import { AcoesDoBloco, usePendencia } from '@/componentes/AlteracoesPendentes';
 import { Input } from '@/componentes/ui/input';
-import { Label } from '@/componentes/ui/label';
 import { Secao } from './Secao';
 
 export function Identificacao({ ficha }: { ficha: FichaMilitar }) {
@@ -18,6 +18,7 @@ export function Identificacao({ ficha }: { ficha: FichaMilitar }) {
   const [jes, setJes] = useState(ficha.voluntarioJes);
   const [ativo, setAtivo] = useState(ficha.ativo);
   const [aviso, setAviso] = useState<{ erro: boolean; texto: string } | null>(null);
+  const [campos, setCampos] = useState<Record<string, string>>({});
   const assinatura = (p: string, n: string, a: string, j: boolean, at: boolean) => JSON.stringify([p, n.trim().toUpperCase(), a.trim() ? Number(a) : null, j, at]);
   // o último gravado (começa com o que veio do servidor): o que difere dele é alteração pendente
   const [salvo, setSalvo] = useState(() => assinatura(ficha.postoGradId, ficha.nomeGuerra, ficha.antiguidade == null ? '' : String(ficha.antiguidade), ficha.voluntarioJes, ficha.ativo));
@@ -27,6 +28,7 @@ export function Identificacao({ ficha }: { ficha: FichaMilitar }) {
   async function salvar(e: FormEvent) {
     e.preventDefault();
     setAviso(null);
+    setCampos({});
     try {
       await editarMilitar(ficha.id, {
         postoGradId: posto,
@@ -39,6 +41,7 @@ export function Identificacao({ ficha }: { ficha: FichaMilitar }) {
       atualizarMilitares(queryClient, ficha.id);
       setAviso({ erro: false, texto: 'Alterações salvas.' });
     } catch (err) {
+      setCampos(camposDe(err));
       setAviso({ erro: true, texto: mensagemDe(err) });
     }
   }
@@ -47,20 +50,17 @@ export function Identificacao({ ficha }: { ficha: FichaMilitar }) {
     <Secao titulo="Identificação">
       <form onSubmit={salvar} className="grid gap-3">
         <div className="grid gap-3 sm:grid-cols-[10rem_1fr_7rem]">
-          <div className="grid gap-1.5">
-            <Label htmlFor="id-posto">Posto ou graduação</Label>
+          <Campo id="id-posto" rotulo="Posto ou graduação" erro={campos.postoGradId}>
             <Selecao id="id-posto" value={posto} onChange={(e) => setPosto(e.target.value)}>
               {postos.data?.map((p) => <option key={p.id} value={p.id}>{p.sigla}</option>)}
             </Selecao>
-          </div>
-          <div className="grid gap-1.5">
-            <Label htmlFor="id-nome">Nome de guerra</Label>
+          </Campo>
+          <Campo id="id-nome" rotulo="Nome de guerra" erro={campos.nomeGuerra}>
             <Input id="id-nome" value={nome} onChange={(e) => setNome(e.target.value)} />
-          </div>
-          <div className="grid gap-1.5">
-            <Label htmlFor="id-antig">Antiguidade</Label>
+          </Campo>
+          <Campo id="id-antig" rotulo="Antiguidade" erro={campos.antiguidade}>
             <Input id="id-antig" type="number" min={1} value={antiguidade} onChange={(e) => setAntiguidade(e.target.value)} />
-          </div>
+          </Campo>
         </div>
         <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm">
           <label className="flex items-center gap-2">

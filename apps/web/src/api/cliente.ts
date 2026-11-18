@@ -54,3 +54,8 @@ export function mensagemComCampo(e: unknown): string {
   const primeiro = e instanceof ErroApi && e.campos ? Object.values(e.campos)[0] : undefined;
   return primeiro ? `${mensagemDe(e)} ${primeiro}` : mensagemDe(e);
 }
+
+/** O que a API recusou, campo a campo (vazio quando o erro não é de campos). */
+export function camposDe(e: unknown): Record<string, string> {
+  return e instanceof ErroApi ? (e.campos ?? {}) : {};
+}

@@ -183,6 +183,7 @@ describe('serviços', () => {
   });
 
   it('remover turno pede à API e mostra o erro dela', async () => {
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
     api({ 'DELETE /api/turnos/t1': { status: 409, corpo: { erro: 'O turno A de Bioma já tem militares escalados. Ele pode mudar de horário, mas não pode ser removido.' } } });
     abrir('/servicos/s3');
     await userEvent.click(await screen.findByRole('button', { name: 'Remover turno A' }));
@@ -283,5 +284,17 @@ describe('ficha do serviço em painel único', () => {
     api({ 'GET /api/unidades/u-1sb/servicos': { status: 200, corpo: LISTA.map((s) => ({ ...s, ativo: false })) } });
     abrir('/servicos');
     expect(await screen.findByText('Todos os serviços estão desativados. Marque "Mostrar desativados" para vê-los.')).toBeInTheDocument();
+  });
+});
+
+describe('remover turno', () => {
+  it('remover turno pergunta e, cancelando, não envia', async () => {
+    const confirmar = vi.spyOn(window, 'confirm').mockReturnValue(false);
+    const f = api({ 'DELETE /api/turnos/t1': { status: 200, corpo: BIOMA } });
+    abrir('/servicos/s3');
+    await userEvent.click(await screen.findByRole('button', { name: 'Remover turno A' }));
+    expect(confirmar).toHaveBeenCalledWith('Remover o turno A (00h–08h) de Bioma?');
+    expect(f.mock.calls.some(([, init]) => init?.method === 'DELETE')).toBe(false);
+    confirmar.mockRestore();
   });
 });

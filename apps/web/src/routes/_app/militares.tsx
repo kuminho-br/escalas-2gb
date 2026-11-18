@@ -3,8 +3,9 @@ import { createFileRoute, Link, Outlet, useNavigate, useParams } from '@tanstack
 import type { LinhaMilitar } from 'contratos';
 import { TriangleAlert, UserPlus } from 'lucide-react';
 import { useMemo, useState, type FormEvent } from 'react';
-import { mensagemDe } from '@/api/cliente';
+import { camposDe, mensagemDe } from '@/api/cliente';
 import { atualizarMilitares, consultaEquipes, consultaMilitares, consultaPostos, criarMilitar } from '@/api/militares';
+import { Campo } from '@/componentes/Campo';
 import { ImportarPlanilha } from '@/componentes/ImportarPlanilha';
 import { classeItemEscolhido, ListaDetalhe } from '@/componentes/ListaDetalhe';
 import { Selecao } from '@/componentes/Selecao';
@@ -168,7 +169,7 @@ function NovoMilitarDialogo({ unidadeId, aoFechar }: { unidadeId: string; aoFech
       await navigate({ to: '/militares/$id', params: { id: ficha.id } });
     } catch (err) {
       setErro(mensagemDe(err));
-      setCampos((err as { campos?: Record<string, string> }).campos ?? {});
+      setCampos(camposDe(err));
     } finally {
       setSalvando(false);
     }
@@ -186,7 +187,7 @@ function NovoMilitarDialogo({ unidadeId, aoFechar }: { unidadeId: string; aoFech
             <Campo id="nm-matricula" rotulo="Matrícula" erro={campos.matricula}>
               <Input id="nm-matricula" name="matricula" placeholder="123456-7" required />
             </Campo>
-            <Campo id="nm-posto" rotulo="Posto ou graduação">
+            <Campo id="nm-posto" rotulo="Posto ou graduação" erro={campos.postoGradId}>
               <Selecao id="nm-posto" name="posto" required>
                 {postos.data?.map((p) => <option key={p.id} value={p.id}>{p.sigla}</option>)}
               </Selecao>
@@ -201,38 +202,28 @@ function NovoMilitarDialogo({ unidadeId, aoFechar }: { unidadeId: string; aoFech
             </Campo>
           </div>
           <div className="grid grid-cols-3 gap-3">
-            <Campo id="nm-equipe" rotulo="Equipe">
+            <Campo id="nm-equipe" rotulo="Equipe" erro={campos['lotacao.equipeId']}>
               <Selecao id="nm-equipe" name="equipe" defaultValue="">
                 <option value="">Sem equipe</option>
                 {equipes.data?.map((e) => <option key={e.id} value={e.id}>{e.nome}</option>)}
               </Selecao>
             </Campo>
-            <Campo id="nm-jornada" rotulo="Jornada">
+            <Campo id="nm-jornada" rotulo="Jornada" erro={campos['lotacao.jornada']}>
               <Selecao id="nm-jornada" name="jornada" defaultValue="pronto">
                 <option value="pronto">Pronto</option>
                 <option value="adm">Adm</option>
               </Selecao>
             </Campo>
-            <Campo id="nm-desde" rotulo="Lotado desde">
+            <Campo id="nm-desde" rotulo="Lotado desde" erro={campos['lotacao.desde']}>
               <Input id="nm-desde" name="desde" type="month" defaultValue={mesAtual()} required />
             </Campo>
           </div>
           {erro && <p role="alert" className="text-sm text-alerta">{erro}</p>}
           <DialogFooter>
-            <Button type="submit" disabled={salvando || !postos.data}>Cadastrar</Button>
+            <Button type="submit" disabled={salvando || !postos.data}>Criar</Button>
           </DialogFooter>
         </form>
       </DialogContent>
     </Dialog>
-  );
-}
-
-export function Campo({ id, rotulo, erro, children }: { id: string; rotulo: string; erro?: string; children: React.ReactNode }) {
-  return (
-    <div className="grid gap-1.5">
-      <Label htmlFor={id}>{rotulo}</Label>
-      {children}
-      {erro && <p className="text-xs text-alerta">{erro}</p>}
-    </div>
   );
 }

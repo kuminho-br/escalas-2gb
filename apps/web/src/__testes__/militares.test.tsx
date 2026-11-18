@@ -74,7 +74,7 @@ describe('lista de militares', () => {
     await userEvent.selectOptions(within(dialogo).getByLabelText('Equipe'), 'Bravo');
     await userEvent.selectOptions(within(dialogo).getByLabelText('Jornada'), 'Adm');
     fireEvent.change(within(dialogo).getByLabelText('Lotado desde'), { target: { value: '2026-12' } });
-    await userEvent.click(within(dialogo).getByRole('button', { name: 'Cadastrar' }));
+    await userEvent.click(within(dialogo).getByRole('button', { name: 'Criar' }));
     await waitFor(() =>
       expect(corpoEnviado(f, 'POST /api/unidades/u-1sb/militares')).toEqual({
         matricula: '990010-0', postoGradId: 'p-cb', nomeGuerra: 'NOVO', antiguidade: null, motorista: false, cnh: [], voluntarioJes: false,
@@ -121,7 +121,7 @@ describe('ficha do militar', () => {
     await userEvent.click(await screen.findByRole('button', { name: 'Incluir afastamento' }));
     fireEvent.change(await screen.findByLabelText('Início'), { target: { value: '2026-12-05' } });
     fireEvent.change(screen.getByLabelText('Fim'), { target: { value: '2026-12-08' } });
-    await userEvent.click(screen.getByRole('button', { name: 'Gravar' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Salvar' }));
     expect(await screen.findByText('As datas se sobrepõem a outro período já cadastrado.')).toBeInTheDocument();
     expect(screen.getByLabelText('Início')).toBeInTheDocument();
   });
@@ -132,7 +132,7 @@ describe('ficha do militar', () => {
     await userEvent.click(await screen.findByRole('button', { name: 'Incluir afastamento' }));
     fireEvent.change(await screen.findByLabelText('Início'), { target: { value: '2026-12-15' } });
     fireEvent.change(screen.getByLabelText('Fim'), { target: { value: '2026-12-16' } });
-    await userEvent.click(screen.getByRole('button', { name: 'Gravar' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Salvar' }));
     await waitFor(() => expect(screen.queryByLabelText('Início')).toBeNull());
     expect(screen.getByRole('button', { name: 'Incluir afastamento' })).toBeInTheDocument();
   });
@@ -204,5 +204,60 @@ describe('ficha em painel único', () => {
     expect(id).toBeTruthy();
     await userEvent.click(botao);
     expect(within(document.getElementById(id!)!).getByText('1ª SB, Pronto, equipe Alfa')).toBeInTheDocument();
+  });
+});
+
+describe('remover, nomes das ações e erros por campo', () => {
+  it('remover afastamento pergunta e, confirmando, envia o DELETE', async () => {
+    const confirmar = vi.spyOn(window, 'confirm').mockReturnValue(true);
+    const f = api({ 'DELETE /api/afastamentos/a1': { status: 204 } });
+    abrir('/militares/m1');
+    await userEvent.click(await screen.findByRole('button', { name: 'Remover' }));
+    expect(confirmar).toHaveBeenCalledWith('Remover o afastamento Férias de 01/12/2026 a 10/12/2026?');
+    await waitFor(() => expect(f.mock.calls.some(([, init]) => init?.method === 'DELETE')).toBe(true));
+    confirmar.mockRestore();
+  });
+
+  it('remover afastamento, cancelando a pergunta, não envia', async () => {
+    const confirmar = vi.spyOn(window, 'confirm').mockReturnValue(false);
+    const f = api({ 'DELETE /api/afastamentos/a1': { status: 204 } });
+    abrir('/militares/m1');
+    await userEvent.click(await screen.findByRole('button', { name: 'Remover' }));
+    expect(confirmar).toHaveBeenCalled();
+    expect(f.mock.calls.some(([, init]) => init?.method === 'DELETE')).toBe(false);
+    confirmar.mockRestore();
+  });
+
+  it('o formulário de afastamento salva com Salvar', async () => {
+    api();
+    abrir('/militares/m1');
+    await userEvent.click(await screen.findByRole('button', { name: 'Incluir afastamento' }));
+    expect(screen.getByRole('button', { name: 'Salvar' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Gravar' })).toBeNull();
+  });
+
+  it('erro do nome de guerra aparece embaixo do campo', async () => {
+    api({ 'PATCH /api/militares/m1': { status: 400, corpo: { erro: 'Confira os campos destacados.', campos: { nomeGuerra: 'Use até 30 letras.', antiguidade: 'Use um número a partir de 1.' } } } });
+    abrir('/militares/m1');
+    const campo = await screen.findByLabelText('Nome de guerra');
+    fireEvent.change(campo, { target: { value: 'ANDRADE JR' } });
+    await userEvent.click(screen.getByRole('button', { name: 'Salvar alterações' }));
+    expect(await screen.findByText('Use até 30 letras.')).toBeInTheDocument();
+    expect(screen.getByText('Use um número a partir de 1.')).toBeInTheDocument();
+    expect(campo.parentElement).toContainElement(screen.getByText('Use até 30 letras.'));
+  });
+
+  it('novo militar mostra o erro da data de lotação ao lado do campo', async () => {
+    api({ 'POST /api/unidades/u-1sb/militares': { status: 400, corpo: { erro: 'Confira os campos destacados.', campos: { 'lotacao.desde': 'Use um mês válido.', postoGradId: 'Escolha o posto.' } } } });
+    abrir('/militares');
+    await userEvent.click(await screen.findByRole('button', { name: 'Novo militar' }));
+    const dialogo = await screen.findByRole('dialog');
+    await userEvent.type(within(dialogo).getByLabelText('Matrícula'), '990010-0');
+    await userEvent.type(within(dialogo).getByLabelText('Nome de guerra'), 'NOVO');
+    await userEvent.click(within(dialogo).getByRole('button', { name: 'Criar' }));
+    const desde = within(dialogo).getByLabelText('Lotado desde');
+    expect(await within(dialogo).findByText('Use um mês válido.')).toBeInTheDocument();
+    expect(desde.parentElement).toContainElement(within(dialogo).getByText('Use um mês válido.'));
+    expect(within(dialogo).getByLabelText('Posto ou graduação').parentElement).toContainElement(within(dialogo).getByText('Escolha o posto.'));
   });
 });

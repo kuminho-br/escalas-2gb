@@ -1,5 +1,5 @@
 import { useQueryClient } from '@tanstack/react-query';
-import { LetraTurno, type Servico, type TurnoSalvo } from 'contratos';
+import { LetraTurno, textoFaixa, type Servico, type TurnoSalvo } from 'contratos';
 import { duracaoMinutos } from 'dominio';
 import { useState } from 'react';
 import { mensagemDe } from '@/api/cliente';
@@ -92,6 +92,7 @@ function LinhaTurno({
     }
   }
   async function remover() {
+    if (!window.confirm(`Remover o turno ${turno!.letra} (${textoFaixa(turno!.inicio, turno!.fim)}) de ${servico.nome}?`)) return;
     setErro(null);
     try {
       await removerTurno(turno!.id);
