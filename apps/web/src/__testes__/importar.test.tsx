@@ -75,4 +75,25 @@ describe('importar da planilha', () => {
     await enviarArquivo();
     expect(await screen.findByText('A planilha não tem a aba "MILITARES".')).toBeInTheDocument();
   });
+
+  it('revisão 3: arquivo acima de 4 MB nem é enviado e a tela manda baixar o modelo', async () => {
+    const f = simularApi({ [`POST ${CAMINHO}`]: { status: 200, corpo: PREVIA } });
+    montar();
+    await userEvent.click(screen.getByRole('button', { name: 'Importar da planilha' }));
+    await userEvent.upload(screen.getByLabelText('Arquivo da planilha (.xlsx)'), new File([new Uint8Array(5 * 1024 * 1024)], 'sandbox.xlsx'));
+    await userEvent.click(screen.getByRole('button', { name: 'Ver o que vai entrar' }));
+    expect(await screen.findByText(/O arquivo é grande demais \(o limite é 4 MB\)\. Baixe o modelo/)).toBeInTheDocument();
+    expect(f.mock.calls.some(([e, init]) => (init?.method ?? 'GET') === 'POST')).toBe(false);
+  });
+
+  it('revisão 3: 413 sem corpo JSON (recusa da hospedagem) mostra o texto de envio grande, não "Erro inesperado"', async () => {
+    vi.stubGlobal('fetch', vi.fn(async (entrada: RequestInfo | URL) => {
+      const url = typeof entrada === 'string' ? entrada : entrada instanceof URL ? entrada.href : entrada.url;
+      return url.includes('/importacao/') ? new Response('Request Entity Too Large', { status: 413 }) : new Response('{}', { status: 200, headers: { 'Content-Type': 'application/json' } });
+    }));
+    montar();
+    await enviarArquivo();
+    expect(await screen.findByText('O envio é grande demais. Confira os dados e tente de novo.')).toBeInTheDocument();
+    expect(screen.queryByText(/Erro inesperado/)).toBeNull();
+  });
 });

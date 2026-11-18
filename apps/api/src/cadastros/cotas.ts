@@ -167,7 +167,7 @@ export function rotasCotas(dep: { banco: Banco; auth: Auth }): Hono<AmbienteApi>
              from cota o
             where o.unidade_id = $1 and o.mes = $2::date
               and not exists (select 1 from cota x where x.unidade_id = o.unidade_id and x.mes = $3::date and x.servico_id = o.servico_id and x.origem = o.origem)
-           on conflict (unidade_id, mes, servico_id, origem) do nothing
+           on conflict do nothing
            returning id`,
           [u, mesParaData(de), mesParaData(para)],
         );

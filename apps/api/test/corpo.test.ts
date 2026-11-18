@@ -31,9 +31,9 @@ describe('envio malformado e envio grande', () => {
     expect((await r.json()).erro).toMatch(/grande demais/);
   });
 
-  it('arquivo de 11 MB na importação dá 413 com a orientação do modelo', async () => {
+  it('arquivo acima de 4 MB na importação dá 413 com a orientação do modelo (a Vercel recusa corpo acima de 4,5 MB antes de chamar a API)', async () => {
     const f = new FormData();
-    f.set('arquivo', new File([new Uint8Array(11 * MB)], 'sandbox.xlsx'));
+    f.set('arquivo', new File([new Uint8Array(5 * MB)], 'sandbox.xlsx'));
     const r = await api.pedir('escalante', 'POST', importacao(), f);
     expect(r.status).toBe(413);
     expect((await r.json()).erro).toMatch(/modelo/);
@@ -45,5 +45,12 @@ describe('envio malformado e envio grande', () => {
     const r = await api.pedir('escalante', 'POST', importacao(), f);
     expect(r.status).toBe(400);
     expect((await r.json()).erro).toMatch(/Não foi possível ler o arquivo/);
+  });
+
+  it('arquivo de 3 MB ainda é lido (e recusado por não ser xlsx), sem 413', async () => {
+    const f = new FormData();
+    f.set('arquivo', new File([new Uint8Array(3 * MB)], 'x.xlsx'));
+    const r = await api.pedir('escalante', 'POST', importacao(), f);
+    expect(r.status).toBe(400);
   });
 });
