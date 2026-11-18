@@ -105,23 +105,61 @@ describe('serviços', () => {
     const b = within(regua).getByText('B').parentElement!;
     expect(a).toHaveStyle({ left: '25%', width: '37.5%' });
     expect(b).toHaveStyle({ left: '62.5%', width: '37.5%' });
-    expect(screen.getByText('dia seguinte')).toBeInTheDocument();
+    expect(screen.getByText('D')).toBeInTheDocument();
+    expect(screen.getByText('D+1')).toBeInTheDocument();
+    expect(screen.queryByText('dia seguinte')).toBeNull();
   });
 
-  it('revisão: a legenda do dia seguinte não quebra nem sai da régua quando o turno passa pouco da meia-noite', async () => {
+  it('revisão: o início e o fim do dia têm linha vinho cheia, mesmo sem D+1', async () => {
+    api();
+    abrir('/servicos/s3');
+    await screen.findByRole('img', { name: /Turnos do dia/ });
+    const linhas = [...document.querySelectorAll('[data-limite-do-dia]')];
+    expect(linhas).toHaveLength(2);
+    expect(linhas[0]).toHaveStyle({ left: '0%' });
+    expect(linhas[1]).toHaveStyle({ left: '100%' });
+    for (const l of linhas) {
+      expect(l).toHaveClass('bg-vinho');
+      expect(l).not.toHaveClass('border-dashed');
+    }
+  });
+
+  it('revisão: com D+1 a linha do fim do dia fica nas 24h', async () => {
+    api({ 'GET /api/servicos/s3': { status: 200, corpo: PRONTO } });
+    abrir('/servicos/s3');
+    await screen.findByRole('img', { name: /Turnos do dia/ });
+    expect(document.querySelectorAll('[data-limite-do-dia]')[1]).toHaveStyle({ left: '75%' });
+  });
+
+  it('revisão: passar o mouse num turno mostra os horários dele', async () => {
+    api({ 'GET /api/servicos/s3': { status: 200, corpo: PRONTO } });
+    abrir('/servicos/s3');
+    const regua = await screen.findByRole('img', { name: /Turnos do dia/ });
+    expect(screen.queryByRole('tooltip')).toBeNull();
+    const b = within(regua).getByText('B').parentElement!;
+    await userEvent.hover(b);
+    expect(screen.getByRole('tooltip')).toHaveTextContent('Turno B, das 20h às 08h');
+    await userEvent.unhover(b);
+    expect(screen.queryByRole('tooltip')).toBeNull();
+  });
+
+  it('revisão: o D+1 não quebra nem sai da régua quando o turno passa pouco da meia-noite', async () => {
     api({ 'GET /api/servicos/s3': { status: 200, corpo: comTurnos([['A', '18:00', '02:00']]) } });
     abrir('/servicos/s3');
-    const legenda = await screen.findByText('dia seguinte');
+    const legenda = await screen.findByText('D+1');
     expect(legenda).toHaveClass('whitespace-nowrap');
     expect(legenda).toHaveClass('right-0');
   });
 
-  it('revisão: com bastante dia seguinte a legenda fica ao lado da linha da meia-noite', async () => {
+  it('revisão: com bastante D+1 o D e o D+1 ficam centrados embaixo do seu trecho', async () => {
     api({ 'GET /api/servicos/s3': { status: 200, corpo: PRONTO } });
     abrir('/servicos/s3');
-    const legenda = await screen.findByText('dia seguinte');
+    const legenda = await screen.findByText('D+1');
     expect(legenda).toHaveClass('whitespace-nowrap');
     expect(legenda).not.toHaveClass('right-0');
+    // Pronto vai até 32h: o D+1 (24h a 32h) centra em 87,5%; o D (0h a 24h) em 37,5%
+    expect(legenda).toHaveStyle({ left: '87.5%' });
+    expect(screen.getByText('D')).toHaveStyle({ left: '37.5%' });
   });
 
   it('revisão: só o último rótulo que está no fim da régua fica alinhado à direita', async () => {
@@ -139,11 +177,12 @@ describe('serviços', () => {
     expect(await screen.findByText('24h')).toHaveClass('-translate-x-full');
   });
 
-  it('régua sem turno que passe da meia-noite não mostra dia seguinte', async () => {
+  it('régua sem turno que passe da meia-noite não mostra D nem D+1', async () => {
     api();
     abrir('/servicos/s3');
     await screen.findByRole('img', { name: /Turnos do dia/ });
-    expect(screen.queryByText('dia seguinte')).toBeNull();
+    expect(screen.queryByText('D')).toBeNull();
+    expect(screen.queryByText('D+1')).toBeNull();
   });
 
   it('sobreposição atravessando a meia-noite sai num trecho só', async () => {
@@ -330,7 +369,7 @@ describe('régua e seletor de cor', () => {
   it('as marcas da régua têm sempre duas casas', async () => {
     api();
     abrir('/servicos/s3');
-    const regua = (await screen.findByRole('img', { name: /Turnos do dia/ })).parentElement!;
+    const regua = (await screen.findByRole('img', { name: /Turnos do dia/ })).closest('div.mb-4') as HTMLElement;
     for (const h of ['00h', '06h', '12h', '18h', '24h']) expect(within(regua).getByText(h)).toBeInTheDocument();
     expect(within(regua).queryByText('0h')).toBeNull();
     expect(within(regua).queryByText('6h')).toBeNull();
@@ -345,12 +384,12 @@ describe('régua e seletor de cor', () => {
     expect(within(regua).getByText('B')).toBeInTheDocument();
   });
 
-  it('a letra fica acima do traço da meia-noite', async () => {
+  it('a letra fica acima da linha da meia-noite', async () => {
     api({ 'GET /api/servicos/s3': { status: 200, corpo: comTurnos([['B', '20:00', '08:00']]) } });
     abrir('/servicos/s3');
     const regua = await screen.findByRole('img', { name: /Turnos do dia/ });
     expect(within(regua).getByText('B').className).toContain('z-20');
-    expect(regua.querySelector('.border-dashed')!.className).toContain('z-10');
+    expect(regua.parentElement!.querySelectorAll('[data-limite-do-dia]')[1]!.className).toContain('z-10');
   });
 
   it('o gatilho anuncia a cor atual', async () => {

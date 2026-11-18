@@ -37,7 +37,10 @@ describe('casca', () => {
     simularApi({ '/api/eu': { status: 200, corpo: EU_EXEMPLO } });
     abrir('/');
     expect(await screen.findByText('SD BM ANDRADE')).toBeInTheDocument();
-    expect(screen.getByText('CBMPE › DGO › DInter/1 › 2º GB › 1ª SB')).toBeInTheDocument();
+    const caminho = screen.getByRole('navigation', { name: 'Unidade' });
+    expect(within(caminho).getAllByRole('listitem').map((li) => li.textContent)).toEqual(['CBMPE', 'DGO', 'DInter/1', '2º GB', '1ª SB']);
+    expect(within(caminho).getAllByRole('listitem').at(-1)).toHaveAttribute('aria-current', 'location');
+    expect(screen.getByRole('img', { name: 'Brasão do Corpo de Bombeiros Militar de Pernambuco' })).toHaveAttribute('src', '/brasao-cbmpe.png');
     expect(screen.getByRole('link', { name: 'Grade geral' })).toHaveAttribute('aria-current', 'page');
     expect(screen.getByText('Escala do mês').closest('[aria-disabled="true"]')).not.toBeNull();
     expect(screen.getByText('A grade geral chega na próxima fase.')).toBeInTheDocument();

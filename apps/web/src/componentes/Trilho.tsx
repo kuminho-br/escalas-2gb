@@ -93,8 +93,18 @@ export function Trilho({ eu, aberto, aoFechar }: { eu: Eu; aberto: boolean; aoFe
         )}
       >
         <div className="mb-4 flex items-center justify-between px-3 md:mb-2.5 md:justify-center md:px-0">
-          <span className="font-cond text-lg font-semibold tracking-tight md:hidden">Escalas 2º GB</span>
-          <span role="img" aria-label="Escalas 2º GB" className="hidden size-[42px] place-items-center rounded-full bg-[#F2C200] font-cond text-xs font-bold text-vinho md:grid">2º GB</span>
+          {/* brasão do CBMPE (a hierarquia máxima) com a unidade do sistema embaixo, no mesmo estilo dos itens */}
+          <span className="flex items-center gap-2.5 md:flex-col md:gap-1">
+            <img
+              src="/brasao-cbmpe.png"
+              alt="Brasão do Corpo de Bombeiros Militar de Pernambuco"
+              width={44}
+              height={44}
+              className="size-8 rounded-full ring-2 ring-white/80 md:size-11"
+            />
+            <span className="font-cond text-lg font-semibold tracking-tight md:hidden">Escalas 2º GB</span>
+            <span aria-hidden className="hidden font-cond text-[11.5px] leading-none font-semibold text-white md:block">2º GB</span>
+          </span>
           <button type="button" onClick={aoFechar} className="rounded p-1 text-white/80 md:hidden" aria-label="Fechar menu">
             <X className="size-5" aria-hidden />
           </button>

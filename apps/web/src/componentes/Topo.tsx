@@ -1,6 +1,6 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
-import { ChevronDown, Menu } from 'lucide-react';
+import { ChevronDown, ChevronRight, Menu } from 'lucide-react';
 import { useState } from 'react';
 import { consultaEu, type Eu } from '@/api/eu';
 import { podeDescartar } from '@/componentes/AlteracoesPendentes';
@@ -43,10 +43,20 @@ export function Topo({ eu, aoAbrirMenu }: { eu: Eu; aoAbrirMenu: () => void }) {
         <Menu className="size-5" aria-hidden />
       </button>
       {/* no celular só a seção atual cabe; o caminho inteiro vale do computador em diante */}
-      <p className="min-w-0 flex-1 truncate font-cond text-[15px] text-apagado">
-        <span data-caminho-curto className="md:hidden">{eu.unidade.caminho.at(-1)}</span>
-        <span className="max-md:hidden">{eu.unidade.caminho.join(' › ')}</span>
-      </p>
+      <nav aria-label="Unidade" className="min-w-0 flex-1 font-cond text-[15px] text-apagado">
+        <span data-caminho-curto aria-hidden className="truncate font-medium text-tinta md:hidden">{eu.unidade.caminho.at(-1)}</span>
+        <ol className="flex min-w-0 items-center gap-2 max-md:sr-only">
+          {eu.unidade.caminho.map((sigla, i, todas) => {
+            const atual = i === todas.length - 1;
+            return (
+              <li key={i} aria-current={atual ? 'location' : undefined} className={atual ? 'flex min-w-0 items-center gap-2 font-medium text-tinta' : 'flex shrink-0 items-center gap-2'}>
+                {i > 0 && <ChevronRight aria-hidden className="size-3.5 shrink-0 text-apagado/60" />}
+                <span className="truncate">{sigla}</span>
+              </li>
+            );
+          })}
+        </ol>
+      </nav>
       {erroSair && (
         <p role="alert" className="absolute top-full right-4 mt-2 max-w-[calc(100%-2rem)] rounded-md border border-linha bg-superficie px-3 py-2 text-sm text-alerta shadow-sm md:right-8">
           {erroSair}
