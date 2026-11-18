@@ -4,7 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { QueryClient } from '@tanstack/react-query';
 import { describe, expect, it, vi } from 'vitest';
 import { atualizarMilitares } from '@/api/militares';
-import { abrir, corpoEnviado, EU_EXEMPLO, simularApi } from './apoio';
+import { abrir, chamadasA, corpoEnviado, EU_EXEMPLO, simularApi, trava } from './apoio';
 
 const linha = (l: Partial<LinhaMilitar>): LinhaMilitar => ({
   id: 'm1', matricula: '990001-1', posto: 'SD BM', nomeGuerra: 'ANDRADE', equipe: 'Alfa', jornada: 'pronto', motorista: null,
@@ -329,5 +329,33 @@ describe('revisão final: filtro dos incompletos', () => {
     expect(await screen.findByText('Nenhum cadastro incompleto.')).toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', { name: 'Ver todos' }));
     expect(await screen.findByText('ANDRADE')).toBeInTheDocument();
+  });
+});
+
+describe('revisão 3: menores da tela de militares', () => {
+  it('campo com erro da API fica marcado como inválido e ligado ao texto do erro', async () => {
+    api({ 'PATCH /api/militares/m1': { status: 400, corpo: { erro: 'Confira os campos destacados.', campos: { nomeGuerra: 'Use até 30 letras.' } } } });
+    abrir('/militares/m1');
+    const campo = await screen.findByLabelText('Nome de guerra');
+    expect(campo).not.toHaveAttribute('aria-invalid');
+    fireEvent.change(campo, { target: { value: 'ANDRADE JR' } });
+    await userEvent.click(screen.getByRole('button', { name: 'Salvar alterações' }));
+    const erro = await screen.findByText('Use até 30 letras.');
+    expect(campo).toHaveAttribute('aria-invalid', 'true');
+    expect(campo).toHaveAccessibleDescription('Use até 30 letras.');
+    expect(erro).toBeInTheDocument();
+  });
+
+  it('Salvar alterações com dois cliques manda um pedido só', async () => {
+    const { espera, soltar } = trava();
+    const f = api({ 'PATCH /api/militares/m1': { status: 200, corpo: FICHA, espera } });
+    abrir('/militares/m1');
+    fireEvent.change(await screen.findByLabelText('Nome de guerra'), { target: { value: 'ANDRADE JR' } });
+    const salvar = screen.getByRole('button', { name: 'Salvar alterações' });
+    fireEvent.click(salvar);
+    fireEvent.click(salvar);
+    expect(salvar).toBeDisabled();
+    soltar();
+    await waitFor(() => expect(chamadasA(f, 'PATCH /api/militares/m1')).toBe(1));
   });
 });

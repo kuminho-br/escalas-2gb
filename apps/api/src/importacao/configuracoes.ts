@@ -67,7 +67,7 @@ export const importadorConfiguracoes: Importador<Item[]> = {
         problemas.push({ aba: ABA, linha: l.linha, mensagem: `${chave}: vigência "${vigBruta}" inválida.`, solucao: 'Corrija a linha na sandbox e importe de novo.' });
         continue;
       }
-      const v = paramValidarLinhas([{ linha: l.linha, chave, valor: l.celulas[c.valor], vigencia: vigLida ?? vigBruta }]);
+      const v = paramValidarLinhas([{ linha: l.linha, chave, valor: l.celulas[c.valor], vigencia: vigLida }]);
       const boa = v.boas[0];
       if (!boa || !CHAVES_SISTEMA.includes(boa.chave)) {
         problemas.push({

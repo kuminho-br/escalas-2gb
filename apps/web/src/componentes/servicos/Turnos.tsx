@@ -4,7 +4,7 @@ import { duracaoMinutos } from 'dominio';
 import { useState } from 'react';
 import { mensagemDe } from '@/api/cliente';
 import { atualizarServicos, editarTurno, incluirTurno, removerTurno } from '@/api/servicos';
-import { EtiquetaPendente, usePendencia } from '@/componentes/AlteracoesPendentes';
+import { EtiquetaPendente, usePendencia, useTrava } from '@/componentes/AlteracoesPendentes';
 import { Secao } from '@/componentes/militares/Secao';
 import { Selecao } from '@/componentes/Selecao';
 import { Button } from '@/componentes/ui/button';
@@ -79,7 +79,9 @@ function LinhaTurno({
   const nome = turno ? `turno ${turno.letra}` : 'turno novo';
   const duracao = duracaoDe(inicio, fim);
 
-  async function salvar() {
+  const { salvando, travar } = useTrava();
+  const salvar = travar(gravar);
+  async function gravar() {
     setErro(null);
     try {
       if (turno) await editarTurno(turno.id, { letra, inicio, fim });
@@ -116,7 +118,7 @@ function LinhaTurno({
           <EtiquetaPendente sujo={sujo} />
           {/* a linha gravada só mostra Salvar quando muda; a linha nova sempre */}
           {(sujo || !turno) && (
-            <Button type="button" size="sm" variant="default" onClick={() => void salvar()} aria-label={`Salvar ${nome}`}>
+            <Button type="button" size="sm" variant="default" disabled={salvando} onClick={() => void salvar()} aria-label={`Salvar ${nome}`}>
               Salvar
             </Button>
           )}

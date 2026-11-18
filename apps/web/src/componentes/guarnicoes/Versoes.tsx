@@ -1,9 +1,10 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { mesPorExtenso, type FichaGuarnicao, type Funcao, type VersaoSalva } from 'contratos';
+import { mesPorExtenso, Prioridade, type FichaGuarnicao, type Funcao, type VersaoSalva } from 'contratos';
 import { useState } from 'react';
 import { ErroApi, mensagemDe } from '@/api/cliente';
 import { atualizarGuarnicoes, consultaFuncoes, salvarVersao } from '@/api/guarnicoes';
-import { AcoesDoBloco, podeDescartar, usePendencia } from '@/componentes/AlteracoesPendentes';
+import { AcoesDoBloco, podeDescartar, usePendencia, useTrava } from '@/componentes/AlteracoesPendentes';
+import { Campo } from '@/componentes/Campo';
 import { Composicao, type LinhaEdicao } from '@/componentes/guarnicoes/Composicao';
 import { LinhaDoTempo } from '@/componentes/LinhaDoTempo';
 import { Secao } from '@/componentes/militares/Secao';
@@ -80,11 +81,17 @@ function Editor({ ficha, unidadeId, versao, aoSalvar }: { ficha: FichaGuarnicao;
   const emVigor = versaoVigente(ficha.versoes, mesDeVigor);
   const mudaOQueVale = Boolean(emVigor) && assinaturaDa(emVigor) !== assinatura();
 
+  // a mesma regra que a API aplica (contrato `Prioridade`): vazio vale "por último"; o resto é de 1 a 1000
+  const erroDaPrioridade = prioridade.trim() ? Prioridade.safeParse(Number(prioridade)).error?.issues[0]?.message : undefined;
+
   const servidor = funcoes.data ?? [];
   const opcoes = [...servidor.map((f) => locais.find((l) => l.id === f.id) ?? f), ...locais.filter((l) => !servidor.some((f) => f.id === l.id))];
 
-  async function salvar() {
+  const { salvando, travar } = useTrava();
+  const salvar = travar(gravar);
+  async function gravar() {
     setAviso(null);
+    if (erroDaPrioridade) return;
     if (linhas.some((l) => !l.funcaoId)) {
       setAviso({ erro: true, texto: 'Escolha a função de cada linha.' });
       return;
@@ -118,10 +125,9 @@ function Editor({ ficha, unidadeId, versao, aoSalvar }: { ficha: FichaGuarnicao;
           <Label htmlFor="gv-tipo">Tipo de viatura</Label>
           <Input id="gv-tipo" value={tipoViatura} onChange={(e) => setTipoViatura(e.target.value)} />
         </div>
-        <div className="grid gap-1.5">
-          <Label htmlFor="gv-prioridade">Prioridade</Label>
+        <Campo id="gv-prioridade" rotulo="Prioridade" erro={erroDaPrioridade}>
           <Input id="gv-prioridade" type="number" min={1} value={prioridade} onChange={(e) => setPrioridade(e.target.value)} />
-        </div>
+        </Campo>
       </div>
       <p className="-mt-2 text-xs text-apagado">A viatura é só informativa: não muda as vagas. A prioridade define a ordem de ativação; sem prioridade, a guarnição vai por último.</p>
 
@@ -135,7 +141,7 @@ function Editor({ ficha, unidadeId, versao, aoSalvar }: { ficha: FichaGuarnicao;
           <Label htmlFor="gv-desde">A partir de</Label>
           <Input id="gv-desde" type="month" value={desde} min={mesAtual()} onChange={(e) => setDesde(e.target.value)} />
         </div>
-        <AcoesDoBloco sujo={sujo} forcar={mudaOQueVale} aviso={aviso} tipo="button" desabilitado={!desde} rotulo={`Salvar a partir de ${desde ? mesPorExtenso(desde) : '…'}`} aoSalvar={() => void salvar()} />
+        <AcoesDoBloco salvando={salvando} sujo={sujo} forcar={mudaOQueVale} aviso={aviso} tipo="button" desabilitado={!desde || Boolean(erroDaPrioridade)} rotulo={`Salvar a partir de ${desde ? mesPorExtenso(desde) : '…'}`} aoSalvar={() => void salvar()} />
       </div>
     </div>
   );

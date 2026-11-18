@@ -1,5 +1,5 @@
 import { useQueryClient } from '@tanstack/react-query';
-import type { Funcao } from 'contratos';
+import { QuantidadeDeMilitares, type Funcao } from 'contratos';
 import { Pencil } from 'lucide-react';
 import { useState } from 'react';
 import { mensagemDe } from '@/api/cliente';
@@ -124,7 +124,8 @@ export function Composicao({ linhas, aoMudar, funcoes, unidadeId, aoMudarFuncao 
                     nome={nome}
                     valor={l.maximo}
                     menosOff={l.maximo <= l.minimo}
-                    maisOff={false}
+                    // o contrato limita a quantidade (99): o botão para ali, em vez de a API recusar ao salvar
+                    maisOff={!QuantidadeDeMilitares.safeParse(l.maximo + 1).success}
                     onMenos={() => mudar(l.chave, { maximo: l.maximo - 1 })}
                     onMais={() => mudar(l.chave, { maximo: l.maximo + 1 })}
                   />

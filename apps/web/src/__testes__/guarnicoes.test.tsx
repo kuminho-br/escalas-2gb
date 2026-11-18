@@ -5,7 +5,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { MENSAGEM_PENDENTE } from '@/componentes/AlteracoesPendentes';
 import { atualizarGuarnicoes } from '@/api/guarnicoes';
 import { mesAtual } from '@/lib/meses';
-import { abrir, corpoEnviado, EU_EXEMPLO, simularApi } from './apoio';
+import { abrir, chamadasA, corpoEnviado, EU_EXEMPLO, simularApi, trava } from './apoio';
 
 const linha = (l: Partial<LinhaGuarnicao>): LinhaGuarnicao => ({
   id: 'g1', nome: 'Auto Bomba 1', viatura: 'ABT-01', prioridade: 1, ativa: true, minimo: 2, maximo: 4, aPartirDe: null, ...l,
@@ -470,5 +470,85 @@ describe('revisão final: guarnição', () => {
     expect(salvar()).toBeEnabled();
     // sem nada mudado, não é "alteração não salva": sair da ficha não pergunta
     expect(screen.queryByText('Alterações não salvas')).toBeNull();
+  });
+});
+
+describe('revisão 3: menores da tela de guarnições', () => {
+  const comMaximo = (maximo: number): FichaGuarnicao => ({
+    ...FICHA, id: 'g11',
+    versoes: [{ ...FICHA.versoes[0]!, composicao: [{ funcaoId: 'f-comb', funcao: 'Combatente', minimo: 1, maximo, cnhExigida: null }] }],
+  });
+
+  it('o botão de aumentar o máximo para no limite do contrato (99)', async () => {
+    api({ 'GET /api/guarnicoes/g11': { status: 200, corpo: comMaximo(99) } });
+    abrir('/guarnicoes/g11');
+    expect(await screen.findByRole('button', { name: 'Aumentar máximo de Combatente' })).toBeDisabled();
+  });
+
+  it('abaixo do limite o botão de aumentar o máximo continua ativo', async () => {
+    api({ 'GET /api/guarnicoes/g11': { status: 200, corpo: comMaximo(98) } });
+    abrir('/guarnicoes/g11');
+    expect(await screen.findByRole('button', { name: 'Aumentar máximo de Combatente' })).toBeEnabled();
+  });
+
+  it('prioridade acima de 1000 mostra a mensagem do contrato e trava o Salvar', async () => {
+    api({ 'GET /api/guarnicoes/g11': { status: 200, corpo: comMaximo(2) } });
+    abrir('/guarnicoes/g11');
+    const campo = await screen.findByLabelText('Prioridade');
+    fireEvent.change(campo, { target: { value: '1001' } });
+    expect(screen.getByText('Use um número de 1 a 1000.')).toBeInTheDocument();
+    expect(campo).toHaveAttribute('aria-invalid', 'true');
+    expect(screen.getByRole('button', { name: /Salvar a partir de/ })).toBeDisabled();
+    fireEvent.change(campo, { target: { value: '1000' } });
+    expect(screen.queryByText('Use um número de 1 a 1000.')).toBeNull();
+    expect(screen.getByRole('button', { name: /Salvar a partir de/ })).toBeEnabled();
+  });
+
+  it('a lista diz "1 guarnição" no singular', async () => {
+    api({ 'GET /api/unidades/u-1sb/guarnicoes': { status: 200, corpo: [linha({})] } });
+    abrir('/guarnicoes');
+    expect(await screen.findByText('1 guarnição')).toBeInTheDocument();
+    expect(screen.queryByText('1 guarnições')).toBeNull();
+  });
+
+  it('o número da ordem não entra no nome do link da guarnição', async () => {
+    api();
+    abrir('/guarnicoes');
+    const link = await screen.findByRole('link', { name: /Auto Bomba 1/ });
+    expect(link).toHaveAccessibleName(expect.stringMatching(/^Auto Bomba 1/));
+  });
+
+  it('a versão que só vale no futuro diz isso também para o leitor de tela', async () => {
+    const futura = (v: string) => ({ ...FICHA.versoes[0]!, vigencia: v });
+    api({ 'GET /api/guarnicoes/g5': { status: 200, corpo: { ...FICHA, id: 'g5', versoes: [futura('2099-06'), futura('2099-01')] } } });
+    abrir('/guarnicoes/g5');
+    const chip = await screen.findByRole('button', { name: /^janeiro de 2099/ });
+    expect(chip).toHaveAccessibleName(expect.stringMatching(/ainda não vale/));
+  });
+
+  it('Salvar o nome da guarnição com dois cliques manda um pedido só e trava até a resposta', async () => {
+    const { espera, soltar } = trava();
+    const f = api({ 'GET /api/guarnicoes/g1': { status: 200, corpo: FICHA }, 'PATCH /api/guarnicoes/g1': { status: 200, corpo: { ...FICHA, nome: 'Auto Bomba 9' }, espera } });
+    abrir('/guarnicoes/g1');
+    fireEvent.change(await screen.findByLabelText('Nome'), { target: { value: 'Auto Bomba 9' } });
+    const salvar = screen.getByRole('button', { name: 'Salvar' });
+    fireEvent.click(salvar);
+    fireEvent.click(salvar);
+    expect(salvar).toBeDisabled();
+    soltar();
+    await waitFor(() => expect(chamadasA(f, 'PATCH /api/guarnicoes/g1')).toBe(1));
+  });
+
+  it('Salvar a versão com dois cliques manda um pedido só', async () => {
+    const { espera, soltar } = trava();
+    const rota = `PUT /api/guarnicoes/g1/versoes/${mesAtual()}`;
+    const f = api({ 'GET /api/guarnicoes/g1': { status: 200, corpo: FICHA }, [rota]: { status: 200, corpo: FICHA, espera } });
+    abrir('/guarnicoes/g1');
+    fireEvent.change(await screen.findByLabelText('Prioridade'), { target: { value: '7' } });
+    const salvar = screen.getByRole('button', { name: /Salvar a partir de/ });
+    fireEvent.click(salvar);
+    fireEvent.click(salvar);
+    soltar();
+    await waitFor(() => expect(chamadasA(f, rota)).toBe(1));
   });
 });

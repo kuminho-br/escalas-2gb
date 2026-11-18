@@ -1,10 +1,10 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { mesPorExtenso, somarMeses, textoFaixa, type FichaGuarnicao } from 'contratos';
-import { useState, type FormEvent } from 'react';
+import { useState} from 'react';
 import { mensagemDe } from '@/api/cliente';
 import { atualizarGuarnicoes, consultaGuarnicao, editarGuarnicao, mudarSituacao } from '@/api/guarnicoes';
-import { AcoesDoBloco, podeDescartar, ProvedorDePendencias, usePendencia } from '@/componentes/AlteracoesPendentes';
+import { AcoesDoBloco, podeDescartar, ProvedorDePendencias, usePendencia, useTrava } from '@/componentes/AlteracoesPendentes';
 import { Versoes } from '@/componentes/guarnicoes/Versoes';
 import { FichaPainel } from '@/componentes/ListaDetalhe';
 import { Secao } from '@/componentes/militares/Secao';
@@ -61,8 +61,9 @@ function Identificacao({ ficha }: { ficha: FichaGuarnicao }) {
   const sujo = nome.trim() !== salvo;
   usePendencia('identificacao', sujo);
 
-  async function salvar(e: FormEvent) {
-    e.preventDefault();
+  const { salvando, travar } = useTrava();
+  const salvar = travar(gravar);
+  async function gravar() {
     setAviso(null);
     try {
       await editarGuarnicao(ficha.id, { nome: nome.trim() });
@@ -76,12 +77,12 @@ function Identificacao({ ficha }: { ficha: FichaGuarnicao }) {
 
   return (
     <Secao titulo="Identificação">
-      <form onSubmit={salvar} className="grid gap-3">
+      <form onSubmit={(e) => { e.preventDefault(); void salvar(); }} className="grid gap-3">
         <div className="grid gap-1.5 sm:max-w-md">
           <Label htmlFor="gn-nome">Nome</Label>
           <Input id="gn-nome" value={nome} onChange={(e) => setNome(e.target.value)} required />
         </div>
-        <AcoesDoBloco sujo={sujo} aviso={aviso} />
+        <AcoesDoBloco salvando={salvando} sujo={sujo} aviso={aviso} />
       </form>
     </Secao>
   );

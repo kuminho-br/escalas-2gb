@@ -1,10 +1,10 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { createFileRoute } from '@tanstack/react-router';
 import { DiasDoc, MilitaresDoc, type Escala } from 'contratos';
-import { useState, type FormEvent } from 'react';
+import { useState} from 'react';
 import { mensagemDe } from '@/api/cliente';
 import { atualizarEscalas, consultaEscala, editarEscala, mudarSituacaoEscala } from '@/api/escalas';
-import { AcoesDoBloco, ProvedorDePendencias, usePendencia } from '@/componentes/AlteracoesPendentes';
+import { AcoesDoBloco, ProvedorDePendencias, usePendencia, useTrava } from '@/componentes/AlteracoesPendentes';
 import { Matriz } from '@/componentes/escalas/Matriz';
 import { FichaPainel } from '@/componentes/ListaDetalhe';
 import { ServicosDaEscala } from '@/componentes/escalas/ServicosDaEscala';
@@ -74,8 +74,9 @@ function Identificacao({ e }: { e: Escala }) {
   const sujo = assinatura() !== salvo;
   usePendencia('identificacao', sujo);
 
-  async function salvar(ev: FormEvent) {
-    ev.preventDefault();
+  const { salvando, travar } = useTrava();
+  const salvar = travar(gravar);
+  async function gravar() {
     setAviso(null);
     try {
       await editarEscala(e.id, { nome: nome.trim(), titulo: titulo.trim(), militaresDoc, diasDoc });
@@ -89,7 +90,7 @@ function Identificacao({ e }: { e: Escala }) {
 
   return (
     <Secao titulo="Identificação e publicação">
-      <form onSubmit={salvar} className="grid gap-3">
+      <form onSubmit={(e) => { e.preventDefault(); void salvar(); }} className="grid gap-3">
         <div className="grid gap-3 sm:grid-cols-2">
           <div className="grid gap-1.5">
             <Label htmlFor="es-nome">Nome</Label>
@@ -114,7 +115,7 @@ function Identificacao({ e }: { e: Escala }) {
             </Selecao>
           </div>
         </div>
-        <AcoesDoBloco sujo={sujo} aviso={aviso} />
+        <AcoesDoBloco salvando={salvando} sujo={sujo} aviso={aviso} />
       </form>
     </Secao>
   );

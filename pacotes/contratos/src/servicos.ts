@@ -39,7 +39,6 @@ export type EdicaoServico = DadosServico;
 export const SituacaoServico = z.object({ ativo: z.boolean() });
 export type SituacaoServico = z.infer<typeof SituacaoServico>;
 
-
 export const DadosTurno = z.object({ letra: LetraTurno, inicio: Hora, fim: Hora });
 export type DadosTurno = z.infer<typeof DadosTurno>;
 

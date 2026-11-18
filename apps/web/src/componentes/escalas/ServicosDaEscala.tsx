@@ -6,7 +6,7 @@ import { useState } from 'react';
 import { mensagemDe } from '@/api/cliente';
 import { atualizarEscalas, salvarServicosDaEscala } from '@/api/escalas';
 import { consultaServicos } from '@/api/servicos';
-import { AcoesDoBloco, usePendencia } from '@/componentes/AlteracoesPendentes';
+import { AcoesDoBloco, usePendencia, useTrava } from '@/componentes/AlteracoesPendentes';
 import { Secao } from '@/componentes/militares/Secao';
 import { Selecao } from '@/componentes/Selecao';
 import { QuadradoDaCor } from '@/componentes/QuadradoDaCor';
@@ -33,7 +33,9 @@ export function ServicosDaEscala({ escala, unidadeId }: { escala: Escala; unidad
     [n[i], n[j]] = [n[j]!, n[i]!];
     setItens(n);
   }
-  async function salvar() {
+  const { salvando, travar } = useTrava();
+  const salvar = travar(gravar);
+  async function gravar() {
     setAviso(null);
     try {
       await salvarServicosDaEscala(escala.id, itens.map((i) => i.id));
@@ -83,7 +85,7 @@ export function ServicosDaEscala({ escala, unidadeId }: { escala: Escala; unidad
             {fora.map((s) => <option key={s.id} value={s.id}>{s.nome}</option>)}
           </Selecao>
         )}
-        <AcoesDoBloco sujo={sujo} aviso={aviso} tipo="button" rotulo="Salvar serviços" aoSalvar={() => void salvar()} />
+        <AcoesDoBloco salvando={salvando} sujo={sujo} aviso={aviso} tipo="button" rotulo="Salvar serviços" aoSalvar={() => void salvar()} />
       </div>
     </Secao>
   );
