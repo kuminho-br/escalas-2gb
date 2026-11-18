@@ -65,12 +65,21 @@ export function rotasImportacao(dep: { banco: Banco; auth: Auth }, importadores:
       });
       return c.json(previa);
     }
-    const resultado: ResultadoImportacao = await comUsuario(dep.banco, c.get('usuarioId'), async (tx) => {
-      const ctx = { tx, unidadeId, hoje };
-      const { previa, plano } = await imp.planejar(abas, ctx);
-      return { ...previa, gravados: await imp.aplicar(plano, ctx) };
-    });
-    return c.json(resultado);
+    try {
+      const resultado: ResultadoImportacao = await comUsuario(dep.banco, c.get('usuarioId'), async (tx) => {
+        const ctx = { tx, unidadeId, hoje };
+        const { previa, plano } = await imp.planejar(abas, ctx);
+        return { ...previa, gravados: await imp.aplicar(plano, ctx) };
+      });
+      return c.json(resultado);
+    } catch (e) {
+      // a prévia pode ter dito "tudo certo" e o banco recusar na gravação (duas confirmações ao mesmo tempo, por exemplo): a transação voltou inteira
+      if ((e as { code?: string } | null)?.code === '23505') {
+        return c.json({ erro: 'Outra gravação aconteceu ao mesmo tempo. Envie o arquivo de novo para ver a prévia atualizada.' }, 409);
+      }
+      console.error(e);
+      return c.json({ erro: 'Não foi possível gravar a importação. Nada foi gravado: envie o arquivo de novo.' }, 500);
+    }
   });
   return r;
 }
