@@ -189,3 +189,9 @@ Decisões do usuário depois de usar as telas de Serviços e Escalas no ambiente
 - **Serviços:** "Pede voluntariado em" sai da tela (a regra continua no motor, para o voluntariado). A duração ganha destaque no bloco com a cor do serviço, no lugar da letra. A ficha ganha uma régua do dia (0h a 24h) com os turnos desenhados e o aviso de sobreposição. A cor se escolhe numa grade como a do Google Planilhas, com as cores dos serviços e "Personalizada…".
 - **Cadastros:** a lista à esquerda fica parada enquanto o detalhe rola (as duas rolagens são independentes), em todas as telas de cadastro.
 - **Escalas:** a matriz mostra, em cada linha, o tamanho da guarnição ("de 4 a 5") e, embaixo de cada coluna, o mínimo de militares das guarnições marcadas. As fichas de serviço e de escala avisam "Alterações não salvas" e perguntam antes de sair com alterações pendentes.
+
+### Ajustes da entrega 4.1 (18/11/2026, entrega 4.1.1)
+
+- **Régua do dia:** desenha sempre o dia de 0h a 24h e pinta só onde há turno. O turno que passa da meia-noite continua pelo dia seguinte até onde vai (o B das 20h às 08h é uma barra só, com o fim às 08h do dia seguinte). Substitui o desenho em duas partes da 4.1.
+- **Seletor de cor:** só o quadrado da cor no botão, na linha do "Nome na impressão".
+- **Rolagem dos cadastros:** a página não estica ao passar do fim, e a rolagem da lista não passa para a página.

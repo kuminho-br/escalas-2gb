@@ -64,7 +64,7 @@ function ListaDeServicos({ unidadeId, escolhido }: { unidadeId: string; escolhid
       {servicos.error && <p role="alert" className="p-4 text-alerta">{mensagemDe(servicos.error)}</p>}
       {servicos.data && (
         <>
-          <div data-lista-rolavel className="min-h-0 flex-1 overflow-y-auto">
+          <div data-lista-rolavel className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
             {TipoServico.options.map((tipo) => {
               const doTipo = visiveis.filter((s) => s.tipo === tipo);
               if (!doTipo.length) return null;

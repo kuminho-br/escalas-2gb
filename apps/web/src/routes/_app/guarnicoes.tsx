@@ -56,7 +56,7 @@ function ListaDeGuarnicoes({ unidadeId, escolhida }: { unidadeId: string; escolh
       {guarnicoes.data && (
         <>
           <p className="shrink-0 border-b border-linha px-4 pt-3 pb-2 text-xs text-apagado">Em ordem de ativação · {visiveis.length} guarnições</p>
-          <ul data-lista-rolavel className="min-h-0 flex-1 overflow-y-auto p-2">
+          <ul data-lista-rolavel className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-2">
             {visiveis.map((g) => <ItemGuarnicao key={g.id} g={g} escolhida={g.id === escolhida} />)}
             {guarnicoes.data.length === 0 && <li className="p-3 text-apagado">Nenhuma guarnição. Use "Nova guarnição" ou "Importar da planilha".</li>}
           </ul>

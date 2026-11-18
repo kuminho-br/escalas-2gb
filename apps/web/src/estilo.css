@@ -41,6 +41,8 @@
     background: var(--color-fundo);
     color: var(--color-tinta);
     font-family: var(--font-sans);
+    /* sem o "elástico" do navegador: ao passar do fim, a página (e o menu) não é puxada */
+    overscroll-behavior-y: none;
   }
   * {
     border-color: var(--color-border);

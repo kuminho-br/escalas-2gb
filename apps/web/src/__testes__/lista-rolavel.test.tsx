@@ -57,4 +57,14 @@ describe('listas dos cadastros: só os itens rolam', () => {
     expect(dentro(await screen.findByText('Ordinário'))).toBe(true);
     expect(dentro(screen.getByLabelText('Mostrar desativadas'))).toBe(false);
   });
+
+  it.each([['/militares', 'ALVES'], ['/guarnicoes', 'Auto Bomba 1'], ['/servicos', 'Pronto'], ['/escalas', 'Ordinário']])(
+    'a área que rola de %s não passa a rolagem para a página',
+    async (caminho, texto) => {
+      api();
+      abrir(caminho);
+      await screen.findByText(texto);
+      expect(document.querySelector(ROLA)).toHaveClass('overscroll-contain');
+    },
+  );
 });

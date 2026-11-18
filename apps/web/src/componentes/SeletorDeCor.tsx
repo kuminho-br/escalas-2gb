@@ -46,10 +46,14 @@ export function SeletorDeCor({ id, valor, aoMudar }: { id: string; valor: string
   return (
     <Popover.Root open={aberto} onOpenChange={(v) => { setAberto(v); if (v) { setTexto(valor); setErro(null); } }}>
       <Popover.Trigger asChild>
-        <button id={id} type="button" className="flex h-9 w-fit items-center gap-2 rounded-md border border-input bg-superficie px-2.5 text-sm shadow-xs focus-visible:ring-[3px] focus-visible:ring-ring/50">
-          <span aria-hidden className="size-5 rounded border border-black/10" style={{ backgroundColor: valor }} />
-          <span className="font-cond text-base">{atual}</span>
-          <ChevronDown className="size-4 text-apagado" aria-hidden />
+        <button
+          id={id}
+          type="button"
+          aria-label={`Cor: ${atual}`}
+          className="relative size-9 shrink-0 rounded-md border border-black/15 shadow-xs focus-visible:ring-[3px] focus-visible:ring-ring/50"
+          style={{ backgroundColor: valor }}
+        >
+          <ChevronDown className="absolute right-0.5 bottom-0.5 size-3" style={{ color: corDoTexto(valor) }} aria-hidden />
         </button>
       </Popover.Trigger>
       <Popover.Portal>
