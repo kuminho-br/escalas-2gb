@@ -1,5 +1,6 @@
 // Voluntariado lançado à mão: as marcações do mês como conjunto de chaves "aaaa-mm-dd|A", e o que sai delas.
 import type { MarcaDeVoluntariado, MilitarDoVoluntariado } from 'contratos';
+import { diaDaSemana, diasDoMes } from 'dominio';
 
 export type Marcas = Set<string>;
 
@@ -24,17 +25,34 @@ export function textoDoRodape(c: Marcas): string {
   return `${turnos} ${turnos === 1 ? 'turno' : 'turnos'} em ${dias} ${dias === 1 ? 'dia' : 'dias'}.`;
 }
 
-/** Os dois turnos marcados no dia? Desmarca os dois; senão marca os dois. */
-export function alternarDia(c: Marcas, dia: string): Marcas {
+/** Marca (ou desmarca) A e B do dia. */
+export function aplicarAoDia(c: Marcas, dia: string, acao: 'marcar' | 'desmarcar'): Marcas {
   const novo = new Set(c);
-  if (novo.has(`${dia}|A`) && novo.has(`${dia}|B`)) {
-    novo.delete(`${dia}|A`);
-    novo.delete(`${dia}|B`);
-  } else {
-    novo.add(`${dia}|A`);
-    novo.add(`${dia}|B`);
-  }
+  for (const t of ['A', 'B']) acao === 'marcar' ? novo.add(`${dia}|${t}`) : novo.delete(`${dia}|${t}`);
   return novo;
+}
+
+/** O dia está com os dois turnos marcados? Desmarca os dois; senão marca os dois. */
+export const acaoDoDia = (c: Marcas, dia: string): 'marcar' | 'desmarcar' => (c.has(`${dia}|A`) && c.has(`${dia}|B`) ? 'desmarcar' : 'marcar');
+export const alternarDia = (c: Marcas, dia: string): Marcas => aplicarAoDia(c, dia, acaoDoDia(c, dia));
+
+/** Os sábados e domingos do mês. */
+export const fimDeSemana = (mes: string): string[] => diasDoMes(mes).filter((d) => diaDaSemana(d) === 0 || diaDaSemana(d) === 6);
+
+/** Acrescenta A e B dos dias ao que já está marcado. */
+export function marcarDias(c: Marcas, dias: string[]): Marcas {
+  return dias.reduce((acc, d) => aplicarAoDia(acc, d, 'marcar'), new Set(c));
+}
+
+/** O dia N do mês anterior vira o dia N do mês; dia que não existe no mês (31 de outubro em novembro) é descartado. */
+export function copiarDoMes(anterior: MarcaDeVoluntariado[], mes: string): Marcas {
+  const existentes = new Set(diasDoMes(mes));
+  const marcas: Marcas = new Set();
+  for (const m of anterior) {
+    const dia = `${mes}-${m.data.slice(8)}`;
+    if (existentes.has(dia)) marcas.add(`${dia}|${m.turno}`);
+  }
+  return marcas;
 }
 
 /** O próximo militar que ainda falta lançar, na ordem da lista: o primeiro depois do atual; sem nenhum depois, o primeiro do começo; ninguém, null. */
