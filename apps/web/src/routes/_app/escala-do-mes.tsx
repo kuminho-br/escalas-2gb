@@ -9,6 +9,7 @@ import { consultaEscalas } from '@/api/escalas';
 import type { VagaDaTela } from '@/componentes/escala-do-mes/CardDaGuarnicao';
 import { DiaDaEscalaVista } from '@/componentes/escala-do-mes/DiaDaEscala';
 import { EscolherMilitar } from '@/componentes/escala-do-mes/EscolherMilitar';
+import { GerarPreEscala } from '@/componentes/escala-do-mes/GerarPreEscala';
 import { CampoDeMes } from '@/componentes/CampoDeMes';
 import { Selecao } from '@/componentes/Selecao';
 import { Button } from '@/componentes/ui/button';
@@ -33,6 +34,8 @@ function EscalaDoMes() {
   const [soVazias, setSoVazias] = useState(false);
   const [vaga, setVaga] = useState<VagaDaTela | null>(null);
   const [erro, setErro] = useState<string | null>(null);
+  const [gerando, setGerando] = useState(false);
+  const [gravadas, setGravadas] = useState<number | null>(null);
   const ativas = escalas.data?.filter((e) => e.ativa) ?? [];
   const escalaId = busca.escala ?? ativas[0]?.id;
   const mes = busca.mes ?? mesAtual();
@@ -97,11 +100,15 @@ function EscalaDoMes() {
             <span className={cn(resumo.obrigatoriasVazias > 0 && 'font-medium text-pendencia')}>{resumo.obrigatoriasVazias} vazias</span>
           </p>
         )}
-        <Button type="button" variant="outline" aria-pressed={soVazias} onClick={() => setSoVazias(!soVazias)} className="ml-auto">
+        <Button type="button" onClick={() => setGerando(true)} className="ml-auto">
+          Gerar pré-escala
+        </Button>
+        <Button type="button" variant="outline" aria-pressed={soVazias} onClick={() => setSoVazias(!soVazias)}>
           Mostrar só vagas vazias
         </Button>
       </div>
 
+      {gravadas !== null && <p role="status" className="text-sm text-apagado">Pré-escala gravada: {gravadas} {gravadas === 1 ? 'serviço' : 'serviços'}.</p>}
       {erro && <p role="alert" className="text-alerta">{erro}</p>}
       {dados.isPending && <p className="text-apagado">Carregando…</p>}
       {dados.error && <p role="alert" className="text-alerta">{mensagemDe(dados.error)}</p>}
@@ -110,6 +117,7 @@ function EscalaDoMes() {
           {dados.data.dias.map((d) => <DiaDaEscalaVista key={d.data} dia={d} soVazias={soVazias} aoEscolher={setVaga} aoRemover={(o, g, n, v) => void remover(o, g, n, v)} aoDesfazer={(id) => void desfazer(id)} />)}
         </div>
       )}
+      {gerando && <GerarPreEscala escalaId={escalaId} mes={mes} aoFechar={() => setGerando(false)} aoGravar={setGravadas} />}
       {vaga && <EscolherMilitar key={`${vaga.data}|${vaga.inicio}|${vaga.guarnicaoId}|${vaga.funcaoId}`} escalaId={escalaId} vaga={vaga} aoFechar={() => setVaga(null)} />}
     </section>
   );
