@@ -220,14 +220,17 @@ export function CalendarioDoVoluntariado({
           {`Copiar de ${mesPorExtenso(anterior)}`}
         </Button>
       </div>
-      <p className="text-sm text-apagado">{textoDoRodape(marcas)}</p>
-      <p className="text-xs text-apagado">Atalhos de teclado: setas movem, espaço marca, Enter salva e passa ao próximo.</p>
-      <div className="flex flex-wrap items-center gap-2">
-        <Button type="button" variant="outline" onClick={() => setMarcas(new Map())} disabled={salvando}>Limpar</Button>
-        <Button type="button" onClick={() => void gravar()} disabled={salvando}>Salvar e ir para o próximo</Button>
-        <EtiquetaPendente sujo={sujo} />
+      {/* no celular o resumo e o Salvar ficam numa barra fixa embaixo: o botão não fica depois das 31 linhas */}
+      <div data-barra-de-salvar className={cn('grid gap-2', celular && 'sticky bottom-0 z-10 -mx-4 -mb-4 border-t border-linha bg-superficie px-4 py-3')}>
+        <p className="text-sm text-apagado">{textoDoRodape(marcas)}</p>
+        {!celular && <p className="text-xs text-apagado">Atalhos de teclado: setas movem, espaço marca, Enter salva e passa ao próximo.</p>}
+        <div className="flex flex-wrap items-center gap-2">
+          <Button type="button" variant="outline" onClick={() => setMarcas(new Map())} disabled={salvando}>Limpar</Button>
+          <Button type="button" onClick={() => void gravar()} disabled={salvando}>{celular ? 'Salvar' : 'Salvar e ir para o próximo'}</Button>
+          <EtiquetaPendente sujo={sujo} />
+        </div>
+        {erro && <p role="alert" className="text-sm text-alerta">{erro}</p>}
       </div>
-      {erro && <p role="alert" className="text-sm text-alerta">{erro}</p>}
     </section>
   );
 }

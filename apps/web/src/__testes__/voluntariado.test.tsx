@@ -2,7 +2,8 @@ import type { FaixaDeDisponibilidade, MilitarDoVoluntariado, VoluntariadoDoMes, 
 import { mesPorExtenso, somarMeses } from 'contratos';
 import { act, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { MENSAGEM_PENDENTE } from '@/componentes/AlteracoesPendentes';
 import { mesAtual } from '@/lib/meses';
 import { abrir, chamadasA, corpoEnviado, EU_EXEMPLO, simularApi, trava } from './apoio';
 
@@ -223,7 +224,8 @@ describe('voluntariado: celular', () => {
   it('no celular, a tela mostra um dia por linha e a faixa de rótulos só com os cortes (00h, 08h, 16h, 20h, 24h)', async () => {
     emCelular(true);
     api();
-    abrir('/voluntariado');
+    // no celular a lista vem primeiro (modo foco): o militar é aberto pela URL, como acontece ao tocar no nome
+    abrir('/voluntariado?militar=m3');
     await screen.findByRole('heading', { name: 'SD BM ANDRADE' });
     expect(calendario()).toHaveAttribute('data-disposicao', 'linhas');
     const rotulos = within(document.querySelector('[data-rotulos-dos-cortes]') as HTMLElement).getAllByText(/^\d\dh$/).map((e) => e.textContent);
@@ -233,7 +235,8 @@ describe('voluntariado: celular', () => {
   it('no celular, a faixa de rótulos fica parada na rolagem e tem as mesmas colunas e bordas das linhas dos dias (rótulos sobre os cortes)', async () => {
     emCelular(true);
     api();
-    abrir('/voluntariado');
+    // no celular a lista vem primeiro (modo foco): o militar é aberto pela URL, como acontece ao tocar no nome
+    abrir('/voluntariado?militar=m3');
     await screen.findByRole('heading', { name: 'SD BM ANDRADE' });
     const rotulos = document.querySelector('[data-rotulos-dos-cortes]') as HTMLElement;
     const linhaDeRotulos = rotulos.parentElement as HTMLElement;
@@ -248,7 +251,8 @@ describe('voluntariado: celular', () => {
   it('no celular, cada dia é uma linha: o número e o dia da semana à esquerda, os blocos à direita', async () => {
     emCelular(true);
     api();
-    abrir('/voluntariado');
+    // no celular a lista vem primeiro (modo foco): o militar é aberto pela URL, como acontece ao tocar no nome
+    abrir('/voluntariado?militar=m3');
     await screen.findByRole('heading', { name: 'SD BM ANDRADE' });
     const linha = bloco(5, '08h', '16h').closest('[data-linha-do-dia]') as HTMLElement;
     expect(linha).not.toBeNull();
@@ -263,7 +267,8 @@ describe('voluntariado: celular', () => {
   it('no celular, o toque que vira rolagem não marca nada: nem bloco, nem dia (o clique do toque é que marca)', async () => {
     emCelular(true);
     api();
-    abrir('/voluntariado');
+    // no celular a lista vem primeiro (modo foco): o militar é aberto pela URL, como acontece ao tocar no nome
+    abrir('/voluntariado?militar=m3');
     await screen.findByRole('heading', { name: 'SD BM ANDRADE' });
     const b = bloco(5, '08h', '16h');
     // o dedo encosta no bloco e desliza: o navegador cancela o toque e não há clique
@@ -279,7 +284,8 @@ describe('voluntariado: celular', () => {
   it('no celular, um toque sem rolagem (pointerdown seguido de clique) marca o bloco tocado', async () => {
     emCelular(true);
     api();
-    abrir('/voluntariado');
+    // no celular a lista vem primeiro (modo foco): o militar é aberto pela URL, como acontece ao tocar no nome
+    abrir('/voluntariado?militar=m3');
     await screen.findByRole('heading', { name: 'SD BM ANDRADE' });
     const b = bloco(5, '08h', '16h');
     fireEvent.pointerDown(b, { pointerType: 'touch', pointerId: 1, button: 0 });
@@ -306,6 +312,89 @@ describe('voluntariado: celular', () => {
     abrir('/voluntariado');
     await screen.findByRole('heading', { name: 'SD BM ANDRADE' });
     expect(calendario()).toHaveAttribute('data-disposicao', 'calendario');
+  });
+});
+
+describe('voluntariado: modo foco no celular', () => {
+  afterEach(() => emCelular(false));
+  const DEPOIS_DO_DANTAS: VoluntariadoDoMes = { ...LISTA, militares: LISTA.militares.map((m) => (m.militarId === 'm4' ? { ...m, lancado: true, horas: 8, dias: 1 } : m)) };
+  const listaDeFaltam = () => screen.findByRole('region', { name: 'Faltam lançar' });
+
+  it('ao abrir, só a lista aparece: nenhum militar abre sozinho e não há calendário', async () => {
+    emCelular(true);
+    api();
+    abrir('/voluntariado');
+    await listaDeFaltam();
+    expect(screen.getByRole('region', { name: 'Já lançados' })).toBeInTheDocument();
+    expect(screen.queryByRole('group', { name: 'Calendário do voluntariado' })).not.toBeInTheDocument();
+  });
+
+  it('tocar num nome mostra só o calendário dele, com "‹ Militares" e sem a lista, e a página vai ao topo', async () => {
+    emCelular(true);
+    const topo = vi.fn();
+    window.scrollTo = topo as unknown as typeof window.scrollTo;
+    api();
+    abrir('/voluntariado');
+    await userEvent.click(await screen.findByRole('link', { name: /DANTAS/ }));
+    await screen.findByRole('heading', { name: 'SD BM DANTAS' });
+    expect(calendario()).toBeInTheDocument();
+    expect(screen.queryByRole('region', { name: 'Faltam lançar' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('region', { name: 'Já lançados' })).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: '‹ Militares' })).toBeInTheDocument();
+    expect(topo).toHaveBeenCalled();
+  });
+
+  it('o botão é "Salvar": grava e volta à lista, com o militar já lançado (no computador seria "Salvar e ir para o próximo")', async () => {
+    emCelular(true);
+    const f = api({ [`PUT /api/militares/m4/voluntariado/${MES}`]: { status: 200, corpo: DEPOIS_DO_DANTAS } });
+    abrir(`/voluntariado?militar=m4`);
+    await screen.findByRole('heading', { name: 'SD BM DANTAS' });
+    expect(screen.queryByRole('button', { name: 'Salvar e ir para o próximo' })).not.toBeInTheDocument();
+    await userEvent.click(bloco(5, '08h', '16h'));
+    await userEvent.click(screen.getByRole('button', { name: 'Salvar' }));
+    await waitFor(() => expect(corpoEnviado(f, `PUT /api/militares/m4/voluntariado/${MES}`)).toEqual({ faixas: [faixa(dia(5), '08:00', '16:00')] }));
+    const lancados = await screen.findByRole('region', { name: 'Já lançados' });
+    expect(within(lancados).getByText('DANTAS').closest('li')).toHaveTextContent('1 dia');
+    expect(screen.queryByRole('group', { name: 'Calendário do voluntariado' })).not.toBeInTheDocument();
+  });
+
+  it('a barra de baixo fica fixa e traz o resumo e o Salvar', async () => {
+    emCelular(true);
+    api();
+    abrir('/voluntariado?militar=m4');
+    await screen.findByRole('heading', { name: 'SD BM DANTAS' });
+    await userEvent.click(bloco(5, '08h', '16h'));
+    const barra = screen.getByRole('button', { name: 'Salvar' }).closest('[data-barra-de-salvar]') as HTMLElement;
+    expect(barra).not.toBeNull();
+    expect(barra).toHaveClass('sticky', 'bottom-0');
+    expect(barra).toHaveTextContent('8 horas em 1 dia.');
+  });
+
+  it('com marcação pendente, "‹ Militares" pergunta antes de descartar; negar mantém o calendário e confirmar volta à lista (Review Focus 5)', async () => {
+    emCelular(true);
+    const confirmar = vi.spyOn(window, 'confirm').mockReturnValue(false);
+    api();
+    abrir('/voluntariado?militar=m4');
+    await screen.findByRole('heading', { name: 'SD BM DANTAS' });
+    await userEvent.click(bloco(5, '08h', '16h'));
+    await userEvent.click(screen.getByRole('link', { name: '‹ Militares' }));
+    await waitFor(() => expect(confirmar).toHaveBeenCalledWith(MENSAGEM_PENDENTE));
+    expect(calendario()).toBeInTheDocument();
+    confirmar.mockReturnValue(true);
+    await userEvent.click(screen.getByRole('link', { name: '‹ Militares' }));
+    await listaDeFaltam();
+    expect(screen.queryByRole('group', { name: 'Calendário do voluntariado' })).not.toBeInTheDocument();
+    confirmar.mockRestore();
+  });
+
+  it('no computador nada muda: lista e painel lado a lado, o primeiro que falta abre sozinho e o botão é "Salvar e ir para o próximo"', async () => {
+    emCelular(false);
+    api();
+    abrir('/voluntariado');
+    await screen.findByRole('heading', { name: 'SD BM ANDRADE' });
+    expect(screen.getByRole('region', { name: 'Faltam lançar' })).toBeInTheDocument();
+    expect(salvar()).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: '‹ Militares' })).not.toBeInTheDocument();
   });
 });
 
