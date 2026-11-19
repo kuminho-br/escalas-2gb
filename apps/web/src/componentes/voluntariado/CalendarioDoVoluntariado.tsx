@@ -13,7 +13,6 @@ const SEMANA = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'];
 const hh = (min: number) => `${String(Math.floor(min / 60)).padStart(2, '0')}h`;
 const minutosDe = (hora: string): number => Number(hora.slice(0, 2)) * 60 + Number(hora.slice(3));
 const fmt = (f: { inicio: string; fim: string }) => `${hh(minutosDe(f.inicio))} às ${hh(minutosDe(f.fim))}`;
-const ehNoturno = (b: Faixa) => b.inicio >= 1200 || b.fim <= 480;
 
 /**
  * O mês do militar em blocos: cada dia tem uma faixa com os blocos do dia (tirados dos serviços que pedem voluntariado), em largura
@@ -177,7 +176,6 @@ export function CalendarioDoVoluntariado({
                       aria-pressed={e === 'cheio' ? true : e === 'parcial' ? 'mixed' : false}
                       title={`${hh(b.inicio)} às ${hh(b.fim)}`}
                       data-estado={e}
-                      data-noturno={ehNoturno(b) ? '' : undefined}
                       onPointerDown={(ev) => {
                         if (ev.button !== 0) return;
                         ponteiro.current = ev.pointerType;
@@ -199,7 +197,7 @@ export function CalendarioDoVoluntariado({
                         'group relative min-w-0 border-r border-linha first:rounded-l last:rounded-r last:border-r-0',
                         e === 'cheio' && 'bg-vinho',
                         e === 'parcial' && 'bg-[repeating-linear-gradient(135deg,var(--color-vinho)_0_4px,#fff_4px_8px)]',
-                        e === 'vazio' && (ehNoturno(b) ? 'bg-noite' : 'bg-superficie'),
+                        e === 'vazio' && 'bg-superficie',
                         'hover:brightness-95 focus-visible:z-10',
                       )}
                     >

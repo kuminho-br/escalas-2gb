@@ -202,12 +202,20 @@ describe('voluntariado: blocos por horário (computador)', () => {
     expect(cortados).toEqual([]);
   });
 
-  it('a faixa das 20h às 24h do dia 5 é noturna (sombreada); o dia 5 de dia (08–16) não é', async () => {
+  it('bloco vazio é sempre branco, também à noite e no fim de semana (a cor "bg-noite" nunca existiu no tema)', async () => {
     api();
     abrir('/voluntariado');
     await screen.findByRole('heading', { name: 'SD BM ANDRADE' });
-    expect(bloco(5, '20h', '24h')).toHaveAttribute('data-noturno');
-    expect(bloco(5, '08h', '16h')).not.toHaveAttribute('data-noturno');
+    const sabado = diasDoMes(MES).find((d) => new Date(`${d}T00:00:00Z`).getUTCDay() === 6)!;
+    const util = diasDoMes(MES).find((d) => new Date(`${d}T00:00:00Z`).getUTCDay() === 2)!;
+    for (const d of [sabado, util]) {
+      for (const [de, ate] of [['00h', '08h'], ['08h', '16h'], ['16h', '20h'], ['20h', '24h']]) {
+        const b = bloco(Number(d.slice(8)), de!, ate!);
+        if (b.getAttribute('aria-pressed') === 'false') expect(b).toHaveClass('bg-superficie');
+      }
+    }
+    expect(calendario().querySelector('[data-noturno]')).toBeNull();
+    expect(calendario().querySelector('.bg-noite')).toBeNull();
   });
 
   it('o militar já lançado com horários mostra o que tem marcado nos blocos', async () => {
