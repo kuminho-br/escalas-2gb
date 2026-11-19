@@ -59,6 +59,7 @@ export function turnoCoberto(faixasDoDia: (data: string) => Faixa[], data: strin
   const flex = Math.max(0, Math.min(flexibilidadeMin, (duracao - 60) / 2));
   const i = minutos(inicio) + flex;
   const f = minutos(inicio) + duracao - flex;
-  if (!cobre(faixasDoDia(data), i, Math.min(f, DIA))) return false;
-  return f <= DIA || cobre(faixasDoDia(diaSeguinte(data)), 0, f - DIA);
+  // o trecho conferido pode começar já depois da meia-noite (turno das 23h com 1h de flexibilidade): então nada é exigido no dia em que o turno começa
+  if (i < DIA && !cobre(faixasDoDia(data), i, Math.min(f, DIA))) return false;
+  return f <= DIA || cobre(faixasDoDia(diaSeguinte(data)), Math.max(i, DIA) - DIA, f - DIA);
 }

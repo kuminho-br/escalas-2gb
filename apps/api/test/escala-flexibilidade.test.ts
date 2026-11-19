@@ -104,4 +104,18 @@ describe('flexibilidade do voluntariado na lista "Escolher militar"', () => {
     await flexibilidade(api.ids.secao, atual, 1);
     expect(await motivo('CHOQUE', D, ELEICOES, turno['Eleições A']!)).toBe('Choque de horário');
   });
+
+  it('turno que começa às 23h (como o das eleições): com 1h, quem só marcou 00h–06h do dia seguinte é apto (achado da revisão final)', async () => {
+    await criarServico('Noite23', 'diaria', 'A', { inicio: '23:00', fim: '07:00' });
+    expect((await api.pedir('escalante', 'PUT', `/api/escalas/${escalaId}/servicos`, { servicoIds: [servico.Pronto, servico['Eleições'], servico['Plantão'], servico.Noite23] })).status).toBe(200);
+    const posto = (await api.banco.query<{ id: string }>("select id from posto_grad where sigla = 'SD-F'")).rows[0]!.id;
+    militar.MEIANOITE = await inserir(api.banco, 'militar', { matricula: '994099-9', posto_grad_id: posto, nome_guerra: 'MEIANOITE', motorista: false, cnh: [], voluntario_jes: false, ativo: true });
+    await inserir(api.banco, 'lotacao', { militar_id: militar.MEIANOITE, unidade_id: api.ids.secao, equipe_id: (await api.banco.query<{ id: string }>('select id from equipe limit 1')).rows[0]!.id, jornada: 'pronto', desde: `${atual}-01` });
+    await faixaMarcada('MEIANOITE', amanha(D), 0, 360);
+    const noite = { inicio: '23:00', fim: '07:00' };
+    expect(await motivo('MEIANOITE', D, noite, turno['Noite23 A']!)).toBe(SEM_VOLUNTARIADO);
+    await flexibilidade(api.ids.secao, atual, 1);
+    expect(await motivo('MEIANOITE', D, noite, turno['Noite23 A']!)).toBeNull();
+  });
 });
+
