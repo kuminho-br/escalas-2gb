@@ -1,10 +1,24 @@
 // Voluntariado lançado à mão: a lista do mês (quem já foi lançado e quem falta) e as marcações de um militar.
-import { mesParaData, type MarcaDeVoluntariado, type MilitarDoVoluntariado, type VoluntariadoDoMes, type VoluntariadoDoMilitar } from 'contratos';
-import { CICLO_EQUIPES, detectarEquipeInicial, diasDoMes, equipeDoDia, grupoDoMilitar, mesAnterior, PRE_ESCALA, type Militar } from 'dominio';
+import { mesParaData, type FaixaDeDisponibilidade, type MilitarDoVoluntariado, type VoluntariadoDoMes, type VoluntariadoDoMilitar } from 'contratos';
+import { blocosDoDia, CICLO_EQUIPES, cortesDoDia, detectarEquipeInicial, diasDoMes, equipeDoDia, grupoDoMilitar, mesAnterior, PRE_ESCALA, unirFaixas, type Faixa, type Militar } from 'dominio';
 import { unidadeDoRegistro } from '../acesso.ts';
 import type { Consulta } from '../banco/banco.ts';
 
-type Lotado = Omit<MilitarDoVoluntariado, 'lancado' | 'turnos' | 'dias'>;
+type Lotado = Omit<MilitarDoVoluntariado, 'lancado' | 'horas' | 'dias'>;
+
+/** 480 -> "08:00"; 1440 -> "24:00". */
+export const horaDe = (min: number): string => `${String(Math.floor(min / 60)).padStart(2, '0')}:${String(min % 60).padStart(2, '0')}`;
+
+/** Os blocos do dia da seção: cortados nos horários dos turnos dos serviços ativos que pedem voluntariado (PJES e diária); sem nenhum, o dia é um bloco só. */
+export async function blocosDaSecao(c: Consulta, unidadeId: string): Promise<Faixa[]> {
+  const { rows } = await c.query<{ inicio: string; fim: string }>(
+    `select to_char(t.inicio, 'HH24:MI') as inicio, to_char(t.fim, 'HH24:MI') as fim
+       from turno t join servico s on s.id = t.servico_id
+      where s.unidade_id = $1 and s.ativo and s.tipo in ('pjes', 'diaria')`,
+    [unidadeId],
+  );
+  return blocosDoDia(cortesDoDia(rows));
+}
 
 /** Militares ativos com lotação na seção em algum dia do mês; com duas lotações no mês vale a que cobre o maior trecho (empate: a mais recente). */
 export async function lotadosNoMes(c: Consulta, unidadeId: string, mes: string, somente?: string): Promise<Lotado[]> {
@@ -36,29 +50,37 @@ export async function voluntariadoDoMes(c: Consulta, unidadeId: string, mes: str
   if (!lotados.length) return { mes, militares: [] };
   const ids = lotados.map((m) => m.militarId);
   const inicio = mesParaData(mes);
-  const contagem = new Map(
-    (
-      await c.query<{ militar_id: string; turnos: number; dias: number }>(
-        `select militar_id, count(*)::int as turnos, count(distinct data)::int as dias from voluntariado
-          where militar_id = any($1) and data >= $2::date and data < ($2::date + interval '1 month') group by militar_id`,
-        [ids, inicio],
-      )
-    ).rows.map((r) => [r.militar_id, r]),
+  const { rows: faixas } = await c.query<{ militar_id: string; data: string; inicio_min: number; fim_min: number }>(
+    `select militar_id, to_char(data, 'YYYY-MM-DD') as data, inicio_min, fim_min from disponibilidade
+      where militar_id = any($1) and data >= $2::date and data < ($2::date + interval '1 month')`,
+    [ids, inicio],
   );
+  // por militar e dia, as faixas unidas: as horas contam uma vez só
+  const porDia = new Map<string, Faixa[]>();
+  for (const r of faixas) porDia.set(`${r.militar_id}|${r.data}`, [...(porDia.get(`${r.militar_id}|${r.data}`) ?? []), { inicio: r.inicio_min, fim: r.fim_min }]);
+  const contagem = new Map<string, { minutos: number; dias: number }>();
+  for (const [k, lista] of porDia) {
+    const id = k.split('|')[0]!;
+    const atual = contagem.get(id) ?? { minutos: 0, dias: 0 };
+    contagem.set(id, { minutos: atual.minutos + unirFaixas(lista).reduce((t, f) => t + (f.fim - f.inicio), 0), dias: atual.dias + 1 });
+  }
   const lancados = new Set((await c.query<{ militar_id: string }>('select militar_id from voluntariado_lancamento where militar_id = any($1) and mes = $2::date', [ids, inicio])).rows.map((r) => r.militar_id));
   return {
     mes,
-    militares: lotados.map((m): MilitarDoVoluntariado => ({ ...m, lancado: lancados.has(m.militarId), turnos: contagem.get(m.militarId)?.turnos ?? 0, dias: contagem.get(m.militarId)?.dias ?? 0 })),
+    militares: lotados.map((m): MilitarDoVoluntariado => ({ ...m, lancado: lancados.has(m.militarId), horas: (contagem.get(m.militarId)?.minutos ?? 0) / 60, dias: contagem.get(m.militarId)?.dias ?? 0 })),
   };
 }
 
-async function marcasDoMes(c: Consulta, militarId: string, mes: string): Promise<MarcaDeVoluntariado[]> {
-  const { rows } = await c.query<MarcaDeVoluntariado>(
-    `select to_char(data, 'YYYY-MM-DD') as data, turno_padrao as turno from voluntariado
-      where militar_id = $1 and data >= $2::date and data < ($2::date + interval '1 month') order by data, turno_padrao`,
+/** A disponibilidade do militar no mês, as faixas de cada dia unidas, em ordem de data. */
+async function faixasDoMes(c: Consulta, militarId: string, mes: string): Promise<FaixaDeDisponibilidade[]> {
+  const { rows } = await c.query<{ data: string; inicio_min: number; fim_min: number }>(
+    `select to_char(data, 'YYYY-MM-DD') as data, inicio_min, fim_min from disponibilidade
+      where militar_id = $1 and data >= $2::date and data < ($2::date + interval '1 month') order by data, inicio_min`,
     [militarId, mesParaData(mes)],
   );
-  return rows;
+  const dias = new Map<string, Faixa[]>();
+  for (const r of rows) dias.set(r.data, [...(dias.get(r.data) ?? []), { inicio: r.inicio_min, fim: r.fim_min }]);
+  return [...dias.entries()].flatMap(([data, lista]) => unirFaixas(lista).map((f) => ({ data, inicio: horaDe(f.inicio), fim: horaDe(f.fim) })));
 }
 
 /** Os dias do mês em que a equipe do militar não está de serviço, pelo ciclo do motor; null quando não dá para saber. */
@@ -84,8 +106,9 @@ export async function voluntariadoDoMilitar(c: Consulta, unidadeId: string, mili
   return {
     militarId,
     mes,
-    marcas: await marcasDoMes(c, militarId, mes),
-    doMesAnterior: await marcasDoMes(c, militarId, mesAnterior(mes)),
+    faixas: await faixasDoMes(c, militarId, mes),
+    doMesAnterior: await faixasDoMes(c, militarId, mesAnterior(mes)),
+    blocos: (await blocosDaSecao(c, unidadeId)).map((b) => ({ inicio: horaDe(b.inicio), fim: horaDe(b.fim) })),
     folgas: doMilitar ? await folgasDoMilitar(c, unidadeId, mes, doMilitar) : null,
   };
 }

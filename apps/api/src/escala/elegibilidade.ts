@@ -10,7 +10,9 @@ import {
   ehSaldo,
   exigeVoluntarioJes,
   montarHorarios,
-  turnosPadraoExigidos,
+  turnoCoberto,
+  unirFaixas,
+  type Faixa,
   violacoesDiariaUnica,
   violacoesSaldo,
   type AlocChoque,
@@ -98,16 +100,15 @@ async function avaliar(c: Consulta, v: VagaConsultada, somenteMilitar?: string):
         )
       ).rows
     : [];
-  const voluntariado = new Set(
-    ids.length
-      ? (
-          await c.query<{ militar_id: string; data: string; turno_padrao: string }>(
-            "select militar_id, to_char(data, 'YYYY-MM-DD') as data, turno_padrao from voluntariado where militar_id = any($1) and data between $2::date - 1 and $2::date + 1",
-            [ids, v.data],
-          )
-        ).rows.map((r) => `${r.militar_id}|${r.data}|${r.turno_padrao}`)
-      : [],
-  );
+  // a disponibilidade lançada no dia e no dia seguinte (o turno pertence ao dia em que começa; o que passa da meia-noite usa o dia seguinte)
+  const disponibilidade = new Map<string, Faixa[]>();
+  if (ids.length) {
+    const { rows } = await c.query<{ militar_id: string; data: string; inicio_min: number; fim_min: number }>(
+      "select militar_id, to_char(data, 'YYYY-MM-DD') as data, inicio_min, fim_min from disponibilidade where militar_id = any($1) and data between $2::date and $2::date + 1",
+      [ids, v.data],
+    );
+    for (const r of rows) disponibilidade.set(`${r.militar_id}|${r.data}`, [...(disponibilidade.get(`${r.militar_id}|${r.data}`) ?? []), { inicio: r.inicio_min, fim: r.fim_min }]);
+  }
   const feriados = new Set<string>();
   for (const ano of new Set([somarDias(v.data, -1), somarDias(v.data, 1)].map((d) => Number(d.slice(0, 4))))) {
     for (const f of await feriadosDoAno(c, unidadeId, ano)) feriados.add(f.data);
@@ -143,7 +144,7 @@ async function avaliar(c: Consulta, v: VagaConsultada, somenteMilitar?: string):
         // RN-03: o Saldo é do Adm (a regra e a frase são do motor; aqui sem o código da regra)
         if (violacoesSaldo([{ mat: m.id, dia: v.data, servico: turno.nome, turno: turno.letra }], { adm: m.jornada === 'adm' ? { [m.id]: true } : {} }).length) motivo = 'Saldo só para militar do Adm';
         else if ((turno.tipo === 'pjes' || exigeVoluntarioJes(turno.nome)) && !m.voluntario_jes) motivo = 'Não é voluntário JES';
-        else if (turno.tipo !== 'ordinario' && !turnosPadraoExigidos(turno.inicio, turno.fim).every((p) => voluntariado.has(`${m.id}|${somarDias(v.data, p.dia)}|${p.turno}`))) {
+        else if (turno.tipo !== 'ordinario' && !turnoCoberto((dia) => unirFaixas(disponibilidade.get(`${m.id}|${dia}`) ?? []), v.data, turno.inicio, turno.fim)) {
           motivo = 'Não marcou voluntariado neste horário';
         } else {
           const candidata: AlocChoque = { mat: m.id, dia: v.data, turno: turno.letra, servico: turno.nome };

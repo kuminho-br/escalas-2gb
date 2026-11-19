@@ -53,8 +53,17 @@ const alocar = (nome: string, servicoNome: string, letra: string, data: string) 
   inserir(api.banco, 'alocacao', {
     militar_id: militar[nome], escala_id: escalaId, servico_id: servico[servicoNome], turno_id: turno[`${servicoNome} ${letra}`], data, origem: 'manual',
   });
-const voluntariar = (nome: string, data: string, padrao: 'A' | 'B') =>
-  inserir(api.banco, 'voluntariado', { militar_id: militar[nome], data, turno_padrao: padrao, origem: 'manual' });
+const amanha = (d: string) => new Date(new Date(`${d}T00:00:00Z`).getTime() + 86400000).toISOString().slice(0, 10);
+const faixaMarcada = (nome: string, data: string, inicio: number, fim: number) =>
+  inserir(api.banco, 'disponibilidade', { militar_id: militar[nome], data, inicio_min: inicio, fim_min: fim, origem: 'manual' });
+// o que antes era o turno padrão A (08h às 20h) e B (20h às 08h) vira faixas: B = 20h às 24h do dia e 00h às 08h do dia seguinte
+const voluntariar = async (nome: string, data: string, padrao: 'A' | 'B') => {
+  if (padrao === 'A') await faixaMarcada(nome, data, 480, 1200);
+  else {
+    await faixaMarcada(nome, data, 1200, 1440);
+    await faixaMarcada(nome, amanha(data), 0, 480);
+  }
+};
 
 beforeAll(async () => {
   api = await montarApi();
@@ -148,9 +157,9 @@ describe('quem pode ocupar a vaga', () => {
   });
 
   it('o voluntariado lançado à mão vale na hora para a lista, e lançar vazio tira (Fase 4.2)', async () => {
-    const lancar = (marcas: { data: string; turno: 'A' | 'B' }[]) => api.pedir('escalante', 'PUT', `/api/militares/${militar.JESSEM}/voluntariado/${atual}`, { marcas });
+    const lancar = (faixas: { data: string; inicio: string; fim: string }[]) => api.pedir('escalante', 'PUT', `/api/militares/${militar.JESSEM}/voluntariado/${atual}`, { faixas });
     expect(await motivo('JESSEM', D, FAIXA.JES, T('JES A'))).toBe('Não marcou voluntariado neste horário');
-    expect((await lancar([{ data: D, turno: 'A' }])).status).toBe(200);
+    expect((await lancar([{ data: D, inicio: '08:00', fim: '20:00' }])).status).toBe(200);
     expect(await motivo('JESSEM', D, FAIXA.JES, T('JES A'))).toBeNull();
     expect((await lancar([])).status).toBe(200);
     expect(await motivo('JESSEM', D, FAIXA.JES, T('JES A'))).toBe('Não marcou voluntariado neste horário');

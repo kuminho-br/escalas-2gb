@@ -57,11 +57,12 @@ describe('erros esperados', () => {
     ).rejects.toThrow();
   });
 
-  it('voluntariado so A ou B', async () => {
+  it('disponibilidade: o fim depois do início e dentro do dia', async () => {
     const m = await militar();
-    await expect(
-      inserir(banco, 'voluntariado', { militar_id: m, data: '2026-11-05', turno_padrao: 'C', origem: 'manual' }),
-    ).rejects.toThrow();
+    const faixa = (inicio_min: number, fim_min: number) => inserir(banco, 'disponibilidade', { militar_id: m, data: '2026-11-05', inicio_min, fim_min, origem: 'manual' });
+    await expect(faixa(600, 500)).rejects.toThrow();
+    await expect(faixa(600, 1500)).rejects.toThrow();
+    await expect(faixa(-1, 100)).rejects.toThrow();
   });
 
   it('alocacao de servico fora da escala', async () => {
