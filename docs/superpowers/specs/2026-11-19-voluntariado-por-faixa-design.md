@@ -136,3 +136,62 @@ O grupo fica fechado por padrão, para não poluir. Só a disponibilidade marcad
   - `matchMedia` no Safari antigo e teste que não restaura (M5).
   
   Os demais (M3, M6, M7, M8) ficam para quando a área for tocada.
+
+---
+
+## Adendo de 19/11/2026 (depois da entrega 2.3): retorno da sandbox
+
+Retorno do usuário depois de testar a entrega 2.3 na sandbox. Propostas da PROGRAMAÇÃO, a confirmar pelo usuário antes do plano.
+
+### A barra cinza do dia 24 sumiu (confirmado)
+
+O usuário confirmou na sandbox que a barra não aparece mais. A causa era o destaque do mouse no botão do número do dia, que esticava na largura da célula. Assunto encerrado.
+
+### Fins de semana: o 1º e o 4º bloco cinzas, os do meio brancos (defeito, causa achada)
+
+- **O que o usuário vê:** nos fins de semana, com 4 blocos, o primeiro e o último ficam cinzas e os dois do meio brancos. Não faz sentido para quem marca.
+- **Causa:** os blocos da noite (00–08 e 20–24) usam a cor `bg-noite`, que **nunca foi definida** no tema (`apps/web/src/estilo.css`). Sem cor, eles ficam transparentes e mostram o fundo da célula. No fim de semana esse fundo é cinza; nos dias úteis é quase branco, por isso só aparece no fim de semana.
+- **Proposta:** bloco vazio é sempre branco. O sombreado de noite sai, porque o horário já aparece ao passar o mouse e no guia "Como marcar" (abaixo). O fim de semana continua marcado só no fundo da célula. Alternativa: definir de fato uma cor de noite, mas um bloco "acinzentado" lê como indisponível, que é o contrário do que ele significa.
+
+### Computador: a régua de horários sai; entra o guia "Como marcar" (proposta)
+
+- **O usuário:** no computador, a explicação das horas da grade deve sair, porque o hover já mostra o horário de cada bloco. No celular, ela fica (lá não há mouse). Ele sugeriu algo como um "mockup" do esquema de preenchimento, ou outra solução que sirva às duas telas.
+- **Proposta: um guia "Como marcar", igual no computador e no celular.** É um dia de exemplo desenhado com os blocos reais da seção, de modo que ele acompanha as escalas que o gestor marcou. Cada bloco leva o horário embaixo. Duas setas curtas dizem o que cada parte faz:
+
+  ```
+  Como marcar                                           [Entendi]
+   ┌──┐ ┌────────┬──────────┬──────┬──────┐
+   │5 │ │        │          │      │      │
+   └──┘ └────────┴──────────┴──────┴──────┘
+    │    00h–08h  08h–16h    16h–20h 20h–24h
+    └ o número marca o dia inteiro      └ o bloco marca só esse horário
+   No computador: arraste para marcar vários dias.
+  ```
+
+  - O guia fica acima do calendário, numa caixa discreta. "Entendi" fecha a caixa, e o navegador lembra disso (por pessoa e por aparelho). Um link "Como marcar" ao lado do nome do militar abre o guia de novo.
+  - No computador, ele substitui a régua do topo. No celular, a régua de rótulos parada no topo continua (é a referência durante a rolagem), e o guia fica fechado depois do primeiro "Entendi".
+  - O texto muda pela tela: "toque" no celular, "clique" e "arraste" no computador.
+
+### O número do dia precisa parecer um botão (proposta)
+
+- **O usuário:** clicar no número do dia marca o dia inteiro, mas isso não é intuitivo. O número precisa parecer mais um botão, e o clique precisa ser mais claro.
+- **Decisão do usuário:** o número só precisa **parecer um botão**, para induzir o clique. Não precisa mudar de estilo conforme o dia está marcado ou não.
+- **Proposta (mockup `docs/telas/mockup-entrega-2-4.html`):**
+  - Uma tecla com borda e uma sombra embaixo, igual em qualquer estado.
+  - Ao passar o mouse, a tecla fica com um fundo leve; ao clicar, ela "afunda" 1 px.
+  - A dica "Marcar o dia inteiro" aparece no mouse.
+  - O tamanho é de alvo de toque: 28 px no computador e 40 px no celular.
+- O guia "Como marcar" ensina o gesto. O nome lido pelo leitor de tela continua "Dia N: marcar o dia inteiro".
+
+## Escala do mês: as guarnições do mesmo turno se ajustam à largura em todas as escalas
+
+- **O usuário (corrigido):** a questão é que as **diferentes guarnições do mesmo turno** se ajustem à largura em todas as escalas, e não só no Ordinário. Não se trata de pôr turnos diferentes lado a lado.
+- **Causa (investigada com o print da escala Bioma de 19/11):**
+  - A regra de colunas é a mesma em todas as escalas.
+  - Na Bioma, cada turno do dia tem **uma guarnição só**: 270 vagas obrigatórias no mês = 3 turnos × 3 funções × 30 dias.
+  - Os cards já ficam em 2 colunas nessa largura, mas o card único ocupa meia linha, as vagas dele (Motorista, Chefe, Combatente) se empilham dentro do card, e o resto da linha fica vazio.
+  - No Ordinário isso não aparece, porque cada turno tem várias guarnições para encher a linha.
+- **Solução (plano da 2.4):**
+  - A grade de cards do turno estica os cards para ocupar a linha (`auto-fit`, coluna mínima de ~18rem), em vez de deixar coluna vazia. Uma guarnição sozinha ocupa a linha inteira; com várias, elas se distribuem como hoje e quebram em linhas.
+  - Dentro do card, as funções ficam em colunas quando há espaço (coluna mínima de ~11rem). O card da Bioma mostra Motorista, Chefe e Combatente lado a lado numa tela larga, e um embaixo do outro no celular.
+  - Turnos diferentes continuam um embaixo do outro (decisão do usuário).

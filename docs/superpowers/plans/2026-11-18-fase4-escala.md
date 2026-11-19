@@ -45,8 +45,9 @@ As condições que o design implica e que mais podem morder quem monta a escala;
 | **2 — Voluntariado lançado à mão** | Calendário do mês por militar com A e B por dia, "já lançados" e "faltam lançar", atalhos e "Salvar e ir para o próximo". | — |
 | **2.2 — Voluntariado por faixa** | A disponibilidade passa a ser marcada em blocos do dia tirados dos horários dos serviços que pedem voluntariado (hoje 00–08, 08–16, 16–20, 20–24), guardada em horários; calendário no computador, um dia por linha no celular. | 2 |
 | **2.3 — Ajustes do voluntariado** | Flexibilidade do voluntariado em horas (gestor, qualquer nível); o gestor escolhe as escalas que montam os blocos do dia; "Mostrar" quem ficou de fora só por voluntariado; modo foco no celular. | 2.2 |
+| **2.4 — Acabamento do voluntariado e da escala do mês** | Bloco vazio sempre branco; guia "Como marcar"; número do dia com cara de botão; guarnições do mesmo turno se ajustando à largura do painel na Escala do mês, em todas as escalas. | 2.3 |
 | **2.1 — Ordem de escala** | Tela da escala com as vagas de cada guarnição em quadrados para numerar a vez de cada uma (vigência por mês); os cards da escala do mês seguem a ordem. Substitui a prioridade da guarnição (RN-08). | 1 |
-| **3 — Pré-escala e distribuições** | "Gerar pré-escala" (Pronto pelo ciclo das equipes), saldos do Adm e operações pelas cotas, com o que ficou de fora e por quê. Gerar de novo só completa lacunas e respeita as remoções. Os militares entram nas vagas seguindo a ordem de escala à risca (o mais antigo apto em cada vaga). | 1, 2, 2.1, 2.2 e 2.3 |
+| **3 — Pré-escala e distribuições** | "Gerar pré-escala" (Pronto pelo ciclo das equipes), saldos do Adm e operações pelas cotas, com o que ficou de fora e por quê. Gerar de novo só completa lacunas e respeita as remoções. Os militares entram nas vagas seguindo a ordem de escala à risca (o mais antigo apto em cada vaga). | 1, 2, 2.1, 2.2, 2.3 e 2.4 |
 | **4 — Grade geral** | Uma linha por militar, uma coluna por dia, blocos na cor do serviço com a letra, choques em vermelho, pegas de pedidas por PJES e Diária, ficha lateral com Trocar, Remover e Adicionar. | 1, 2 |
 | **5 — Gerar documento** | Configurações › Modelos de impressão (enviar e baixar o .xlsx com marcadores) e "Gerar documento" da escala publicada em .xlsx; cada geração fica guardada. | 1 |
 | **6 — Minha escala** | O militar comum vê os próprios serviços do mês, com quem compõe a guarnição, e as escalas publicadas da unidade dele. | 1, 5 |
@@ -772,11 +773,142 @@ As condições que o design implica e que mais podem morder quem monta a escala;
 
 ---
 
+# Entrega 2.4 — Acabamento do voluntariado e da escala do mês
+
+**Branch:** `fase4-2-4-acabamento-do-voluntariado` (já criada a partir da `main` depois do merge do PR #35; os primeiros commits são o adendo do design e o mockup). **Sem migração.** Commits `Fase 4.2.4: …`; PR "Fase 4 — Entrega 2.4: acabamento do voluntariado e da escala do mês".
+
+**Spec:** adendo "depois da entrega 2.3" em `docs/superpowers/specs/2026-11-19-voluntariado-por-faixa-design.md` (blocos vazios, guia "Como marcar", número do dia, Escala do mês). **Mockup aprovado:** `docs/telas/mockup-entrega-2-4.html`.
+
+**Execução (decisão do usuário):** **Sonnet, esforço high**, em linha (superpowers:executing-plans, ledger `.superpowers/sdd/2026-11-18-fase4-escala/progress.md`). A revisão final do branch é uma só, por um Agent com `model: "opus"` e `effort: "medium"` explícitos. Não trocar de modelo no meio da execução.
+
+**Contagens de partida:** protótipo 589, contratos 14, motor 796 (+1 ignorado), API 593, site 390. Só o site muda nesta entrega.
+
+**Ambiente desta máquina:** pouca memória. Rodar uma suíte por vez; o site com `cd apps/web && npx vitest run --maxWorkers=1`. Antes do typecheck e do build, conferir se não há `tsc`, `vitest` ou `vite` esquecidos rodando. Se um worker cair (134, `cannot allocate memory`), é ambiente: rodar de novo e registrar.
+
+**Review Focus da entrega 2.4** (cada um tem teste na tarefa dona):
+
+1. **Navegador sem armazenamento** (modo privado, `localStorage` lançando erro): o guia aparece, "Entendi" fecha na sessão e nada quebra. Tarefa 30.
+2. **Blocos que o gestor mudou** (6 blocos, ou o dia num bloco só de 00h a 24h): o guia desenha os blocos reais, com "00h" no fim. Tarefa 30.
+3. **Teclado no número do dia:** Tab chega na tecla; espaço e Enter continuam funcionando como antes (espaço marca o dia; Enter salva); o nome lido continua "Dia N: marcar o dia inteiro". Tarefa 29.
+4. **Guarnição sozinha no turno e turno com muitas guarnições:** a sozinha ocupa a linha, com as funções em colunas; cinco guarnições quebram em linhas; turnos diferentes continuam um embaixo do outro. Tarefa 31.
+5. **Celular:** a régua parada no topo, o guia e a barra fixa de baixo convivem; o guia some depois do "Entendi" e volta pelo "Como marcar". Tarefa 30.
+
+### Task 28: Bloco vazio sempre branco
+
+**Files:**
+- Modify: `apps/web/src/componentes/voluntariado/CalendarioDoVoluntariado.tsx` (tirar `ehNoturno`, `data-noturno` e a classe `bg-noite`, que nunca existiu no tema)
+- Test: `apps/web/src/__testes__/voluntariado.test.tsx`
+
+**Interfaces:**
+- Produces: todo bloco vazio usa `bg-superficie`, em qualquer dia e horário. O fim de semana continua só no fundo da célula. Os blocos marcados (vinho) e parciais (listrados) não mudam.
+
+- [ ] **Step 1: Write the failing test** que substitui o teste "a faixa das 20h às 24h do dia 5 é noturna (sombreada)…":
+  - "bloco vazio é sempre branco, também à noite e no fim de semana": num dia útil e num sábado do mês do cenário, `bloco(n, '00h', '08h')` e `bloco(n, '20h', '24h')` têm a classe `bg-superficie`;
+  - nenhum bloco do calendário tem o atributo `data-noturno`.
+- [ ] **Step 2: Run** `cd apps/web && npx vitest run src/__testes__/voluntariado.test.tsx --maxWorkers=1`. Expected: FAIL.
+- [ ] **Step 3: Implement.**
+- [ ] **Step 4: Run** o mesmo arquivo. Expected: passa.
+- [ ] **Step 5: Commit** `Fase 4.2.4: bloco vazio sempre branco`.
+
+### Task 29: Número do dia com cara de botão
+
+**Files:**
+- Modify: `apps/web/src/componentes/voluntariado/CalendarioDoVoluntariado.tsx`
+- Test: `apps/web/src/__testes__/voluntariado.test.tsx`
+
+**Interfaces:**
+- Produces: o botão do número do dia é uma "tecla", **igual em qualquer estado** (decisão do usuário), como no mockup:
+  - borda `border-input`, fundo `bg-superficie`, `rounded-md`, sombra embaixo `shadow-[0_1px_0_var(--color-input)]`;
+  - no mouse, `hover:bg-accent`; ao apertar, `active:translate-y-px active:shadow-none`; anel de foco visível;
+  - altura mínima de 28px no computador (`min-h-7 min-w-8`) e 40px no celular (`h-10`);
+  - `title` "Marcar o dia inteiro" ou "Desmarcar o dia inteiro", conforme o `aria-label`, que não muda.
+
+  No celular, o dia da semana continua dentro da tecla. O `justify-self-start` da 2.3 fica.
+
+- [ ] **Step 1: Write the failing tests:**
+  - "o número do dia tem cara de botão": a tecla do dia 5 tem as classes `border`, `bg-superficie`, `rounded-md` e `shadow-[0_1px_0_var(--color-input)]`, e o `title` "Marcar o dia inteiro";
+  - "a tecla é igual em qualquer estado": depois de marcar o dia 5 inteiro, o `className` da tecla do dia 5 é igual ao da tecla do dia 6 (vazio), e o `title` vira "Desmarcar o dia inteiro";
+  - "no celular, a tecla tem 40px": com `emCelular(true)`, a tecla tem a classe `h-10`.
+- [ ] **Step 2: Run** o arquivo. Expected: FAIL nos três.
+- [ ] **Step 3: Implement.**
+- [ ] **Step 4: Run** o arquivo. Expected: passa (os testes de teclado da entrega 2, recolocados na 2.3, continuam passando: Review Focus 3).
+- [ ] **Step 5: Commit** `Fase 4.2.4: número do dia com cara de botão`.
+
+### Task 30: Guia "Como marcar" (e a régua só no celular)
+
+**Files:**
+- Create: `apps/web/src/componentes/voluntariado/GuiaComoMarcar.tsx`
+- Modify: `apps/web/src/componentes/voluntariado/CalendarioDoVoluntariado.tsx`
+- Test: `apps/web/src/__testes__/voluntariado.test.tsx`
+
+**Interfaces:**
+- Produces: `GuiaComoMarcar({ blocos, celular, aberto, aoFechar })`. É um dia de exemplo **desenhado, não clicável** (`aria-hidden` no desenho), com:
+  - uma tecla "5" igual à do número do dia e uma faixa com os blocos reais em largura proporcional;
+  - os horários dos cortes embaixo, com "00h" no fim e as pontas na borda (a mesma regra dos rótulos da 2.3);
+  - duas frases: "{Clicar|Tocar} no número marca o dia inteiro." e "{Clicar|Tocar} num bloco marca só esse horário.";
+  - uma dica: no computador, "Arraste com o mouse para marcar vários de uma vez. Passe o mouse num bloco para ver o horário."; no celular, "Deslizar o dedo rola a página e não marca nada.";
+  - o título "Como marcar" e o botão "Entendi".
+- Produces: no `CalendarioDoVoluntariado`:
+  - o guia fica acima do calendário;
+  - no cabeçalho, ao lado da equipe, um botão com aparência de link "Como marcar" reabre o guia;
+  - o estado vem de `localStorage['voluntariado.guia'] === 'fechado'` (leitura e escrita em `try/catch`; sem armazenamento, o guia começa aberto e "Entendi" fecha só na sessão);
+  - **no computador, a régua de rótulos do topo (`data-rotulos-dos-cortes`) sai**; no celular, ela fica como está.
+
+- [ ] **Step 1: Write the failing tests:**
+  - "no computador, a régua do topo saiu e o guia mostra os blocos com os horários": não há `[data-rotulos-dos-cortes]`; o guia (região "Como marcar") tem os horários `['00h', '08h', '16h', '20h', '00h']` e a frase "Clicar no número marca o dia inteiro.". Substitui o teste da legenda do computador da 2.3.
+  - "'Entendi' fecha o guia, o navegador lembra, e 'Como marcar' abre de novo": depois de "Entendi", a região some; ao abrir a tela de novo (outro `abrir`), continua fechada; o botão "Como marcar" a mostra outra vez. Limpar o `localStorage` num `afterEach`.
+  - "sem armazenamento, o guia aparece e fecha na sessão (Review Focus 1)": `vi.spyOn(Storage.prototype, 'getItem')` e `setItem` lançando erro; a tela abre, o guia aparece, "Entendi" fecha sem erro.
+  - "o guia acompanha os blocos do gestor (Review Focus 2)": com `blocos` 00–08, 08–16 e 16–24, os horários do guia são `['00h', '08h', '16h', '00h']`; com o dia num bloco só (00:00–24:00), `['00h', '00h']`.
+  - "no celular, a régua fica e o guia fala de toque (Review Focus 5)": com `emCelular(true)`, há `[data-rotulos-dos-cortes]`, o guia diz "Tocar no número marca o dia inteiro." e "Deslizar o dedo rola a página e não marca nada.", e a barra `[data-barra-de-salvar]` continua lá.
+  - "o desenho do guia não é clicável e não entra no calendário": o grupo "Calendário do voluntariado" não contém botões do guia, e clicar no desenho não muda o rodapé.
+- [ ] **Step 2: Run** o arquivo. Expected: FAIL.
+- [ ] **Step 3: Implement.**
+- [ ] **Step 4: Run** o arquivo. Expected: passa.
+- [ ] **Step 5: Commit** `Fase 4.2.4: guia "Como marcar" e régua só no celular`.
+
+### Task 31: Escala do mês — a guarnição ocupa a linha e as funções ficam em colunas
+
+**Files:**
+- Modify: `apps/web/src/componentes/escala-do-mes/DiaDaEscala.tsx` (grade dos cards do turno)
+- Modify: `apps/web/src/componentes/escala-do-mes/CardDaGuarnicao.tsx` (lista das funções)
+- Test: `apps/web/src/__testes__/escala-do-mes.test.tsx`
+
+**Interfaces:**
+- Produces: a grade de cards do turno troca `sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4` por `grid-cols-[repeat(auto-fit,minmax(min(100%,18rem),1fr))]`. Com uma guarnição só, o card estica e ocupa a linha; com várias, elas se distribuem pela largura do painel e quebram em linhas. Marque a grade com `data-cards-do-turno`.
+- Produces: a lista de funções do card (`<ul>` de primeiro nível) troca `grid gap-2` por `grid gap-x-4 gap-y-2 grid-cols-[repeat(auto-fill,minmax(11rem,1fr))]`, para que as funções fiquem lado a lado quando o card é largo. Marque a lista com `data-funcoes`.
+- Turnos diferentes continuam um embaixo do outro (decisão do usuário).
+
+- [ ] **Step 1: Write the failing tests** (o jsdom não calcula layout; os testes fixam a regra das colunas, e a conferência visual fica para o usuário na sandbox):
+  - "os cards do turno esticam para ocupar a linha, em qualquer escala": a grade `[data-cards-do-turno]` do dia 2 tem a classe `grid-cols-[repeat(auto-fit,minmax(min(100%,18rem),1fr))]` e não tem `sm:grid-cols-2`;
+  - "dentro do card, as funções ficam em colunas quando cabem": a lista `[data-funcoes]` do card ABT tem `grid-cols-[repeat(auto-fill,minmax(11rem,1fr))]`;
+  - "turnos diferentes continuam um embaixo do outro": o contêiner das faixas do dia continua `grid` de uma coluna (sem `grid-cols-` de várias colunas).
+- [ ] **Step 2: Run** `cd apps/web && npx vitest run src/__testes__/escala-do-mes.test.tsx --maxWorkers=1`. Expected: FAIL.
+- [ ] **Step 3: Implement.**
+- [ ] **Step 4: Run** `pnpm test && pnpm typecheck && pnpm build:vercel`, uma suíte por vez se a memória não deixar, e registrar. Expected: passa.
+- [ ] **Step 5: Commit** `Fase 4.2.4: guarnição ocupa a linha na escala do mês`.
+
+**Fechamento da entrega 2.4:**
+- Revisão final do branch por um Agent com `model: "opus"` e `effort: "medium"`. Passe o pacote (`review-package`), o plano, a spec, o mockup, o Review Focus acima e os `Ruling:` do ledger.
+- Uma passada de correções, com teste vermelho → verde.
+- Atualizar as contagens no `CLAUDE.md` local.
+- Push e PR com:
+  - o que entrou;
+  - **sem migração**;
+  - o que conferir na sandbox:
+    - fins de semana com os quatro blocos brancos;
+    - o número do dia com cara de tecla;
+    - o guia "Como marcar" ("Entendi" fecha e "Como marcar" reabre), no computador e no celular;
+    - a escala Bioma com o card ocupando a linha e Motorista, Chefe e Combatente lado a lado numa tela larga.
+- **Parar até o merge.**
+
+---
+
 # Entregas 3 a 6 (a detalhar antes de cada uma)
 
 Cada uma ganha aqui as suas tarefas, no formato da entrega 1, depois do merge da anterior e da conversa com o usuário sobre o que a entrega 1 mostrou em uso.
 
 - **Entrega 2.3 — Ajustes do voluntariado:** detalhada acima (Tarefas 22 a 27). A pré-escala (3) usa a flexibilidade ao filtrar quem pode ocupar cada vaga e nunca escala quem está fora do voluntariado.
+- **Entrega 2.4 — Acabamento do voluntariado e da escala do mês:** detalhada acima (Tarefas 28 a 31).
 - **Entrega 3 — Pré-escala e distribuições:** camada que traduz o mês para o motor (militares, alocações de três meses, remoções, horários, voluntariado, cotas, modelos de guarnição pelas faixas) e de volta para ids; "Gerar pré-escala" (equipe do dia 1 detectada por `detectarEquipeInicial`, com escolha manual), saldos do Adm (`distribuirAdm`, com `servico` e `turno` sempre preenchidos), operações pelas cotas (`distribuirCotas` e `diagnosticarOperacoes`) e encaixe nas guarnições (`calcularGuarnicao`); prévia do que entra e do que ficou de fora antes de gravar; nada sobrescreve o que já está escalado. Pendências do motor (`turnosPadraoExigidos` no turno noturno de 24h, nomes normalizados uma vez na entrada) resolvidas aqui, com teste no motor.
 - **Entrega 4 — Grade geral:** consulta do mês por militar (agrupada por equipe, Adm à parte), blocos por serviço com a letra em ordem de início, turno que atravessa a meia-noite só no dia em que começa, choques do motor com contorno vermelho, feriados e fins de semana, pegas de pedidas por PJES e Diária; ficha lateral com Trocar, Remover e "Adicionar serviço neste dia", reaproveitando as rotas da entrega 1.
 - **Entrega 5 — Gerar documento:** Configurações › Modelos de impressão (enviar com conferência dos marcadores, baixar o atual, versões); geração da escala publicada com ExcelJS a partir do modelo vigente da unidade, respeitando `militares_doc` e `dias_doc` da escala; `documento_gerado` guardado e baixável; PDF fica para quando o serviço existir.

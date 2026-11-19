@@ -8,12 +8,12 @@ import { Button } from '@/componentes/ui/button';
 import { alternarBloco, copiarDoMes, estadoDoBloco, faixasParaEnviar, fimDeSemana, marcarDias, marcasDoServidor, textoDoRodape, tirarBloco, type Estado, type Marcas } from '@/lib/voluntariado';
 import { cn } from '@/lib/utils';
 import { useEhCelular } from '@/lib/useEhCelular';
+import { CLASSE_DA_TECLA, GuiaComoMarcar } from './GuiaComoMarcar';
 
 const SEMANA = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'];
 const hh = (min: number) => `${String(Math.floor(min / 60)).padStart(2, '0')}h`;
 const minutosDe = (hora: string): number => Number(hora.slice(0, 2)) * 60 + Number(hora.slice(3));
 const fmt = (f: { inicio: string; fim: string }) => `${hh(minutosDe(f.inicio))} às ${hh(minutosDe(f.fim))}`;
-const ehNoturno = (b: Faixa) => b.inicio >= 1200 || b.fim <= 480;
 
 /**
  * O mês do militar em blocos: cada dia tem uma faixa com os blocos do dia (tirados dos serviços que pedem voluntariado), em largura
@@ -26,6 +26,9 @@ export function CalendarioDoVoluntariado({
   aoSalvar,
   focarAoAbrir = false,
   aoAbrir,
+  guiaAberto = true,
+  aoAbrirGuia,
+  aoFecharGuia,
 }: {
   militar: MilitarDoVoluntariado;
   mes: string;
@@ -35,6 +38,10 @@ export function CalendarioDoVoluntariado({
   /** veio de "Salvar e ir para o próximo": o foco vai para o dia 1, e o teclado segue de onde parou */
   focarAoAbrir?: boolean;
   aoAbrir?: () => void;
+  /** o guia "Como marcar" é da tela (não do militar): fechado, não volta ao passar para o próximo */
+  guiaAberto?: boolean;
+  aoAbrirGuia?: () => void;
+  aoFecharGuia?: () => void;
 }) {
   const doServidor = marcasDoServidor(dados.faixas);
   const [marcas, setMarcas] = useState<Marcas>(doServidor);
@@ -103,14 +110,17 @@ export function CalendarioDoVoluntariado({
       <header className="grid gap-1">
         <h2 className="font-cond text-2xl leading-tight font-semibold">{`${militar.posto} ${militar.nomeGuerra}`}</h2>
         <p className="text-sm text-apagado">{`${equipe}${aviso}`}</p>
+        <button type="button" onClick={() => aoAbrirGuia?.()} className="justify-self-start rounded text-sm text-vinho underline underline-offset-2">Como marcar</button>
       </header>
 
-      {/* a legenda do dia: os cortes dos serviços, na mesma escala dos blocos de baixo */}
-      {/* no celular, a faixa de rótulos fica parada no topo da rolagem e tem as mesmas colunas e bordas das linhas dos dias */}
-      <div aria-hidden className={cn('grid gap-1', celular && 'sticky top-0 z-10 bg-superficie')}>
-        <div className={cn(celular && 'grid grid-cols-[3.5rem_1fr] gap-2 rounded-md border border-transparent p-1.5')}>
-          {celular && <span />}
-          <div data-rotulos-dos-cortes className={cn('relative h-4 text-xs text-apagado', celular && 'border border-transparent')}>
+      {guiaAberto && <GuiaComoMarcar blocos={blocos} celular={celular} aoFechar={() => aoFecharGuia?.()} />}
+
+      {/* só no celular: a régua dos cortes, parada no topo da rolagem, com as mesmas colunas e bordas das linhas dos dias (no computador, o horário aparece ao passar o mouse e no guia) */}
+      {celular && (
+      <div aria-hidden className="sticky top-0 z-10 grid gap-1 bg-superficie">
+        <div className="grid grid-cols-[3.5rem_1fr] gap-2 rounded-md border border-transparent p-1.5">
+          <span />
+          <div data-rotulos-dos-cortes className="relative h-4 border border-transparent text-xs text-apagado">
             {cortes.map((c, i) => {
               // as pontas ficam na borda da faixa (o último corte é a meia-noite do dia seguinte: "00h"); os do meio, centrados no corte
               const ultimo = i === cortes.length - 1;
@@ -121,6 +131,7 @@ export function CalendarioDoVoluntariado({
           </div>
         </div>
       </div>
+      )}
 
       <div ref={grade} role="group" aria-label="Calendário do voluntariado" data-disposicao={celular ? 'linhas' : 'calendario'} onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); void gravar(); } }} className={cn(celular ? 'grid gap-2' : 'grid grid-cols-7 gap-2')}>
         {!celular && SEMANA.map((s) => <span key={s} aria-hidden className="text-center text-xs text-apagado">{s}</span>)}
@@ -145,6 +156,7 @@ export function CalendarioDoVoluntariado({
                 type="button"
                 data-dia={d}
                 aria-label={`Dia ${n}: ${todos.every((e) => e === 'cheio') ? 'desmarcar' : 'marcar'} o dia inteiro`}
+                title={`${todos.every((e) => e === 'cheio') ? 'Desmarcar' : 'Marcar'} o dia inteiro`}
                 onPointerDown={(e) => {
                   if (e.button !== 0) return;
                   ponteiro.current = e.pointerType;
@@ -161,7 +173,12 @@ export function CalendarioDoVoluntariado({
                 // o clique do mouse já foi tratado ao apertar; o do toque, do teclado e dos leitores de tela marca aqui
                 onClick={(e) => (e.detail === 0 || ponteiro.current !== 'mouse') && setMarcas((m) => marcarOuTirar(m, d, blocos, todos.every((x) => x === 'cheio') ? 'desmarcar' : 'marcar'))}
                 onKeyDown={(e) => aoTeclar(e, d)}
-                className="justify-self-start rounded px-1.5 py-0.5 text-left font-cond text-base leading-none font-semibold hover:bg-accent"
+                className={cn(
+                  // uma tecla: igual em qualquer estado do dia; ao apertar "afunda"
+                  CLASSE_DA_TECLA,
+                  'justify-self-start hover:border-apagado hover:bg-accent active:translate-y-px active:shadow-none',
+                  celular ? 'h-10' : 'min-h-7 min-w-8',
+                )}
               >
                 {n}
                 {celular && <span data-diasemana className="ml-1 text-xs font-normal text-apagado">{SEMANA[diaDaSemana(d)]}</span>}
@@ -177,7 +194,6 @@ export function CalendarioDoVoluntariado({
                       aria-pressed={e === 'cheio' ? true : e === 'parcial' ? 'mixed' : false}
                       title={`${hh(b.inicio)} às ${hh(b.fim)}`}
                       data-estado={e}
-                      data-noturno={ehNoturno(b) ? '' : undefined}
                       onPointerDown={(ev) => {
                         if (ev.button !== 0) return;
                         ponteiro.current = ev.pointerType;
@@ -199,7 +215,7 @@ export function CalendarioDoVoluntariado({
                         'group relative min-w-0 border-r border-linha first:rounded-l last:rounded-r last:border-r-0',
                         e === 'cheio' && 'bg-vinho',
                         e === 'parcial' && 'bg-[repeating-linear-gradient(135deg,var(--color-vinho)_0_4px,#fff_4px_8px)]',
-                        e === 'vazio' && (ehNoturno(b) ? 'bg-noite' : 'bg-superficie'),
+                        e === 'vazio' && 'bg-superficie',
                         'hover:brightness-95 focus-visible:z-10',
                       )}
                     >

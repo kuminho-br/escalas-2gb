@@ -1,6 +1,6 @@
 import type { FaixaDeDisponibilidade, MilitarDoVoluntariado, VoluntariadoDoMes, VoluntariadoDoMilitar } from 'contratos';
 import { mesPorExtenso, somarMeses } from 'contratos';
-import { act, fireEvent, screen, waitFor, within } from '@testing-library/react';
+import { act, cleanup, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { diasDoMes } from 'dominio';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -110,6 +110,28 @@ describe('voluntariado: calendário e salvar', () => {
 });
 
 describe('voluntariado: blocos por horário (computador)', () => {
+  it('o número do dia tem cara de botão: borda, fundo branco, cantos e sombra de tecla, com a dica "Marcar o dia inteiro"', async () => {
+    api();
+    abrir('/voluntariado');
+    await screen.findByRole('heading', { name: 'SD BM ANDRADE' });
+    const tecla = within(calendario()).getByRole('button', { name: /^Dia 5: / });
+    expect(tecla).toHaveClass('border', 'bg-superficie', 'rounded-md', 'shadow-[0_1px_0_var(--color-input)]');
+    expect(tecla).toHaveAttribute('title', 'Marcar o dia inteiro');
+  });
+
+  it('a tecla é igual em qualquer estado: marcar o dia só troca a dica, e a aparência não muda', async () => {
+    api();
+    abrir('/voluntariado');
+    await screen.findByRole('heading', { name: 'SD BM ANDRADE' });
+    const dia5 = () => within(calendario()).getByRole('button', { name: /^Dia 5: / });
+    const antes = dia5().className;
+    await userEvent.click(dia5());
+    expect(bloco(5, '08h', '16h')).toHaveAttribute('aria-pressed', 'true');
+    expect(dia5().className).toBe(antes);
+    expect(dia5()).toHaveAttribute('title', 'Desmarcar o dia inteiro');
+    expect(dia5().className).toBe(within(calendario()).getByRole('button', { name: /^Dia 6: / }).className);
+  });
+
   it('o botão do número do dia não estica na largura da célula: o destaque do mouse cobre só o número (a "barra cinza" do dia 24)', async () => {
     api();
     abrir('/voluntariado');
@@ -127,17 +149,95 @@ describe('voluntariado: blocos por horário (computador)', () => {
     expect(bloco(5, '20h', '24h')).toBeInTheDocument();
   });
 
-  it('a legenda do dia mostra os cortes dos serviços (00h, 08h, 16h, 20h e 00h do dia seguinte), com os das pontas alinhados à borda (M2)', async () => {
+  it('no computador, a régua do topo saiu e o guia "Como marcar" mostra os blocos com os horários', async () => {
     api();
     abrir('/voluntariado');
     await screen.findByRole('heading', { name: 'SD BM ANDRADE' });
-    const rotulos = [...(document.querySelector('[data-rotulos-dos-cortes]') as HTMLElement).querySelectorAll('span')];
-    expect(rotulos.map((e) => e.textContent)).toEqual(['00h', '08h', '16h', '20h', '00h']);
-    expect(rotulos[0]).toHaveStyle({ left: '0%' });
-    expect(rotulos[0]).not.toHaveClass('-translate-x-1/2');
-    expect(rotulos.at(-1)).toHaveStyle({ right: '0px' });
-    expect(rotulos.at(-1)).not.toHaveClass('-translate-x-1/2');
-    expect(rotulos[1]).toHaveClass('-translate-x-1/2');
+    expect(document.querySelector('[data-rotulos-dos-cortes]')).toBeNull();
+    const guia = screen.getByRole('region', { name: 'Como marcar' });
+    const horas = [...guia.querySelectorAll('[data-hora-do-guia]')].map((e) => e.textContent);
+    expect(horas).toEqual(['00h', '08h', '16h', '20h', '00h']);
+    expect(within(guia).getByText('Clicar no número marca o dia inteiro.')).toBeInTheDocument();
+    expect(within(guia).getByText('Clicar num bloco marca só esse horário.')).toBeInTheDocument();
+    expect(within(guia).getByText(/Arraste com o mouse/)).toBeInTheDocument();
+  });
+
+  it('"Entendi" fecha o guia, o navegador lembra, e "Como marcar" abre de novo', async () => {
+    api();
+    abrir('/voluntariado');
+    await screen.findByRole('heading', { name: 'SD BM ANDRADE' });
+    await userEvent.click(screen.getByRole('button', { name: 'Entendi' }));
+    expect(screen.queryByRole('region', { name: 'Como marcar' })).not.toBeInTheDocument();
+    cleanup();
+    api();
+    abrir('/voluntariado');
+    await screen.findByRole('heading', { name: 'SD BM ANDRADE' });
+    expect(screen.queryByRole('region', { name: 'Como marcar' })).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Como marcar' }));
+    expect(screen.getByRole('region', { name: 'Como marcar' })).toBeInTheDocument();
+  });
+
+  it('sem armazenamento (modo privado), o guia aparece e "Entendi" fecha na sessão sem quebrar a tela (Review Focus 1)', async () => {
+    vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
+      throw new Error('sem armazenamento');
+    });
+    vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      throw new Error('sem armazenamento');
+    });
+    api();
+    abrir('/voluntariado');
+    await screen.findByRole('heading', { name: 'SD BM ANDRADE' });
+    expect(screen.getByRole('region', { name: 'Como marcar' })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Entendi' }));
+    expect(screen.queryByRole('region', { name: 'Como marcar' })).not.toBeInTheDocument();
+    vi.restoreAllMocks();
+  });
+
+  it('sem armazenamento, depois do "Entendi" o guia não volta ao passar para o próximo militar (achado da revisão final)', async () => {
+    vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
+      throw new Error('sem armazenamento');
+    });
+    vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      throw new Error('sem armazenamento');
+    });
+    try {
+      api({ [`PUT /api/militares/m3/voluntariado/${MES}`]: { status: 200, corpo: DEPOIS_DO_ANDRADE } });
+      abrir('/voluntariado');
+      await screen.findByRole('heading', { name: 'SD BM ANDRADE' });
+      await userEvent.click(screen.getByRole('button', { name: 'Entendi' }));
+      await userEvent.click(salvar());
+      await screen.findByRole('heading', { name: 'SD BM DANTAS' });
+      expect(screen.queryByRole('region', { name: 'Como marcar' })).not.toBeInTheDocument();
+    } finally {
+      vi.restoreAllMocks();
+    }
+  });
+
+  it('o guia acompanha os blocos do gestor: três blocos ou um bloco só (Review Focus 2)', async () => {
+    const tres = [{ inicio: '00:00', fim: '08:00' }, { inicio: '08:00', fim: '16:00' }, { inicio: '16:00', fim: '24:00' }];
+    api(doMilitarComo('m3', { blocos: tres }));
+    abrir('/voluntariado');
+    await screen.findByRole('heading', { name: 'SD BM ANDRADE' });
+    const horasDe = () => [...screen.getByRole('region', { name: 'Como marcar' }).querySelectorAll('[data-hora-do-guia]')].map((e) => e.textContent);
+    expect(horasDe()).toEqual(['00h', '08h', '16h', '00h']);
+    cleanup();
+    api(doMilitarComo('m3', { blocos: [{ inicio: '00:00', fim: '24:00' }] }));
+    abrir('/voluntariado');
+    await screen.findByRole('heading', { name: 'SD BM ANDRADE' });
+    expect(horasDe()).toEqual(['00h', '00h']);
+  });
+
+  it('o desenho do guia não é clicável: não entra no calendário nem muda o rodapé', async () => {
+    api();
+    abrir('/voluntariado');
+    await screen.findByRole('heading', { name: 'SD BM ANDRADE' });
+    const guia = screen.getByRole('region', { name: 'Como marcar' });
+    expect(within(calendario()).queryByRole('region', { name: 'Como marcar' })).not.toBeInTheDocument();
+    const desenho = guia.querySelector('[data-desenho-do-guia]') as HTMLElement;
+    expect(desenho).toHaveAttribute('aria-hidden', 'true');
+    expect(within(desenho).queryAllByRole('button')).toHaveLength(0);
+    fireEvent.click(desenho.querySelector('span') as HTMLElement);
+    expect(screen.getByText('Nenhum horário marcado.')).toBeInTheDocument();
   });
 
   it('clicar num bloco marca só ele; o rodapé conta as horas e os dias', async () => {
@@ -202,12 +302,20 @@ describe('voluntariado: blocos por horário (computador)', () => {
     expect(cortados).toEqual([]);
   });
 
-  it('a faixa das 20h às 24h do dia 5 é noturna (sombreada); o dia 5 de dia (08–16) não é', async () => {
+  it('bloco vazio é sempre branco, também à noite e no fim de semana (a cor "bg-noite" nunca existiu no tema)', async () => {
     api();
     abrir('/voluntariado');
     await screen.findByRole('heading', { name: 'SD BM ANDRADE' });
-    expect(bloco(5, '20h', '24h')).toHaveAttribute('data-noturno');
-    expect(bloco(5, '08h', '16h')).not.toHaveAttribute('data-noturno');
+    const sabado = diasDoMes(MES).find((d) => new Date(`${d}T00:00:00Z`).getUTCDay() === 6)!;
+    const util = diasDoMes(MES).find((d) => new Date(`${d}T00:00:00Z`).getUTCDay() === 2)!;
+    for (const d of [sabado, util]) {
+      for (const [de, ate] of [['00h', '08h'], ['08h', '16h'], ['16h', '20h'], ['20h', '24h']]) {
+        const b = bloco(Number(d.slice(8)), de!, ate!);
+        if (b.getAttribute('aria-pressed') === 'false') expect(b).toHaveClass('bg-superficie');
+      }
+    }
+    expect(calendario().querySelector('[data-noturno]')).toBeNull();
+    expect(calendario().querySelector('.bg-noite')).toBeNull();
   });
 
   it('o militar já lançado com horários mostra o que tem marcado nos blocos', async () => {
@@ -225,6 +333,11 @@ describe('voluntariado: blocos por horário (computador)', () => {
 const matchMediaOriginal = window.matchMedia;
 afterEach(() => {
   window.matchMedia = matchMediaOriginal;
+  try {
+    window.localStorage.clear();
+  } catch {
+    /* sem armazenamento */
+  }
 });
 
 function emCelular(ligado: boolean) {
@@ -250,6 +363,28 @@ describe('voluntariado: celular', () => {
     expect(calendario()).toHaveAttribute('data-disposicao', 'linhas');
     const rotulos = within(document.querySelector('[data-rotulos-dos-cortes]') as HTMLElement).getAllByText(/^\d\dh$/).map((e) => e.textContent);
     expect(rotulos).toEqual(['00h', '08h', '16h', '20h', '00h']);
+    // as pontas ficam na borda da faixa; os do meio, centrados no corte (achado M2 da revisão da 2.2)
+    const spans = [...(document.querySelector('[data-rotulos-dos-cortes]') as HTMLElement).querySelectorAll('span')];
+    expect(spans[0]).toHaveStyle({ left: '0%' });
+    expect(spans[0]).not.toHaveClass('-translate-x-1/2');
+    expect(spans.at(-1)).toHaveStyle({ right: '0px' });
+    expect(spans.at(-1)).not.toHaveClass('-translate-x-1/2');
+    expect(spans[1]).toHaveClass('-translate-x-1/2');
+  });
+
+  it('no celular, a régua fica e o guia fala de toque, com a barra de salvar fixa (Review Focus 5)', async () => {
+    emCelular(true);
+    api();
+    abrir('/voluntariado?militar=m3');
+    await screen.findByRole('heading', { name: 'SD BM ANDRADE' });
+    expect(document.querySelector('[data-rotulos-dos-cortes]')).not.toBeNull();
+    const guia = screen.getByRole('region', { name: 'Como marcar' });
+    expect(within(guia).getByText('Tocar no número marca o dia inteiro.')).toBeInTheDocument();
+    expect(within(guia).getByText('Deslizar o dedo rola a página e não marca nada.')).toBeInTheDocument();
+    expect(document.querySelector('[data-barra-de-salvar]')).not.toBeNull();
+    await userEvent.click(within(guia).getByRole('button', { name: 'Entendi' }));
+    expect(screen.queryByRole('region', { name: 'Como marcar' })).not.toBeInTheDocument();
+    expect(document.querySelector('[data-rotulos-dos-cortes]')).not.toBeNull();
   });
 
   it('no celular, a faixa de rótulos fica parada na rolagem e tem as mesmas colunas e bordas das linhas dos dias (rótulos sobre os cortes)', async () => {
@@ -266,6 +401,14 @@ describe('voluntariado: celular', () => {
     const linhaDoDia = bloco(5, '08h', '16h').closest('[data-linha-do-dia]') as HTMLElement;
     expect(linhaDoDia).toHaveClass('grid-cols-[3.5rem_1fr]', 'border', 'p-1.5');
     expect((bloco(5, '08h', '16h').parentElement as HTMLElement)).toHaveClass('border');
+  });
+
+  it('no celular, a tecla do número do dia tem o tamanho do dedo (40px)', async () => {
+    emCelular(true);
+    api();
+    abrir('/voluntariado?militar=m3');
+    await screen.findByRole('heading', { name: 'SD BM ANDRADE' });
+    expect(within(calendario()).getByRole('button', { name: /^Dia 5: / })).toHaveClass('h-10');
   });
 
   it('no celular, cada dia é uma linha: o número e o dia da semana à esquerda, os blocos à direita', async () => {

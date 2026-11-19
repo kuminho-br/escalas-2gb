@@ -23,7 +23,7 @@ function Faixa({ faixa, dia, soVazias, aoEscolher, aoRemover, aoDesfazer }: { fa
           <span>{textoFaixa(faixa.inicio, faixa.fim)}</span> <span className="font-normal text-apagado">{letras} · {servicos}</span>
         </p>
         {cards.length > 0 && (
-          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+          <div data-cards-do-turno className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,18rem),1fr))] gap-3">
             {cards.map((g) => (
               <CardDaGuarnicao key={g.guarnicaoId} card={g} aoEscolher={aoEscolher && ((v) => aoEscolher({ ...v, data: dia, inicio: faixa.inicio, fim: faixa.fim }))} aoRemover={aoRemover && ((o, guarnicao, vaga) => aoRemover(o, guarnicao, Number(dia.slice(8)), vaga))} />
             ))}
