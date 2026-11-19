@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { alternarBloco, copiarDoMes, estadoDoBloco, faixasParaEnviar, fimDeSemana, marcarDias, proximoQueFalta, textoDoRodape, type Marcas } from '@/lib/voluntariado';
+import { alternarBloco, copiarDoMes, estadoDoBloco, faixasParaEnviar, fimDeSemana, marcarDias, proximoQueFalta, textoDoRodape, tirarBloco, type Marcas } from '@/lib/voluntariado';
 
 // Cenário fictício: os blocos da 1ª SB de hoje são 00–08, 08–16, 16–20 e 20–24 (cortes 0, 480, 960, 1200 e 1440).
 const BLOCO_08_20 = { inicio: 480, fim: 1200 };
@@ -61,3 +61,37 @@ describe('atalhos e rodapé', () => {
     expect(proximoQueFalta(lista.map((x) => ({ ...x, lancado: x.militarId !== 'c' })), 'c')).toBeNull();
   });
 });
+
+describe('tirar um bloco (arrastar para desmarcar, achado M1 da revisão da 2.2)', () => {
+  const BLOCO_16_24 = { inicio: 960, fim: 1440 };
+
+  it('sobre um bloco parcial, tira o pedaço marcado em vez de marcar o bloco inteiro', () => {
+    const parcial = com('2026-11-06', BLOCO_16_20);
+    expect(estadoDoBloco(parcial, '2026-11-06', BLOCO_16_24)).toBe('parcial');
+    const tirado = tirarBloco(parcial, '2026-11-06', BLOCO_16_24);
+    expect(estadoDoBloco(tirado, '2026-11-06', BLOCO_16_24)).toBe('vazio');
+  });
+
+  it('tira só o bloco: o que está marcado ao lado fica', () => {
+    const tirado = tirarBloco(com('2026-11-06', BLOCO_08_20), '2026-11-06', BLOCO_16_24);
+    expect(faixasParaEnviar(tirado)).toEqual([{ data: '2026-11-06', inicio: '08:00', fim: '16:00' }]);
+  });
+
+  it('bloco vazio não muda nada', () => {
+    const m = com('2026-11-06', BLOCO_08_16);
+    expect(faixasParaEnviar(tirarBloco(m, '2026-11-06', BLOCO_16_20))).toEqual(faixasParaEnviar(m));
+  });
+});
+
+describe('o rodapé mostra os minutos quando há (achado M4 da revisão da 2.2)', () => {
+  const rodape = (minutos: number) => textoDoRodape(com('2026-11-05', { inicio: 480, fim: 480 + minutos }));
+
+  it('7 horas e 30 minutos; 1 hora e 30 minutos; 30 minutos; 1 hora; 8 horas', () => {
+    expect(rodape(450)).toBe('7 horas e 30 minutos em 1 dia.');
+    expect(rodape(90)).toBe('1 hora e 30 minutos em 1 dia.');
+    expect(rodape(30)).toBe('30 minutos em 1 dia.');
+    expect(rodape(60)).toBe('1 hora em 1 dia.');
+    expect(rodape(480)).toBe('8 horas em 1 dia.');
+  });
+});
+

@@ -2,6 +2,7 @@ import type { FaixaDeDisponibilidade, MilitarDoVoluntariado, VoluntariadoDoMes, 
 import { mesPorExtenso, somarMeses } from 'contratos';
 import { act, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { diasDoMes } from 'dominio';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { MENSAGEM_PENDENTE } from '@/componentes/AlteracoesPendentes';
 import { mesAtual } from '@/lib/meses';
@@ -109,6 +110,13 @@ describe('voluntariado: calendário e salvar', () => {
 });
 
 describe('voluntariado: blocos por horário (computador)', () => {
+  it('o botão do número do dia não estica na largura da célula: o destaque do mouse cobre só o número (a "barra cinza" do dia 24)', async () => {
+    api();
+    abrir('/voluntariado');
+    await screen.findByRole('heading', { name: 'SD BM ANDRADE' });
+    expect(within(calendario()).getByRole('button', { name: /^Dia 24: / })).toHaveClass('justify-self-start');
+  });
+
   it('cada dia mostra os blocos do dia com o horário no nome: 00h às 08h, 08h às 16h, 16h às 20h e 20h às 24h', async () => {
     api();
     abrir('/voluntariado');
@@ -119,11 +127,17 @@ describe('voluntariado: blocos por horário (computador)', () => {
     expect(bloco(5, '20h', '24h')).toBeInTheDocument();
   });
 
-  it('a legenda do dia mostra os cortes dos serviços (00h, 08h, 16h, 20h e 24h)', async () => {
+  it('a legenda do dia mostra os cortes dos serviços (00h, 08h, 16h, 20h e 00h do dia seguinte), com os das pontas alinhados à borda (M2)', async () => {
     api();
     abrir('/voluntariado');
     await screen.findByRole('heading', { name: 'SD BM ANDRADE' });
-    for (const c of ['00h', '08h', '16h', '20h', '24h']) expect(screen.getAllByText(c).length).toBeGreaterThan(0);
+    const rotulos = [...(document.querySelector('[data-rotulos-dos-cortes]') as HTMLElement).querySelectorAll('span')];
+    expect(rotulos.map((e) => e.textContent)).toEqual(['00h', '08h', '16h', '20h', '00h']);
+    expect(rotulos[0]).toHaveStyle({ left: '0%' });
+    expect(rotulos[0]).not.toHaveClass('-translate-x-1/2');
+    expect(rotulos.at(-1)).toHaveStyle({ right: '0px' });
+    expect(rotulos.at(-1)).not.toHaveClass('-translate-x-1/2');
+    expect(rotulos[1]).toHaveClass('-translate-x-1/2');
   });
 
   it('clicar num bloco marca só ele; o rodapé conta as horas e os dias', async () => {
@@ -207,6 +221,12 @@ describe('voluntariado: blocos por horário (computador)', () => {
 });
 
 // celular: a largura da tela passa a ser de celular (matchMedia simulado; sem ele, a tela é de computador)
+// o jsdom não tem matchMedia: cada teste termina devolvendo o que havia, para um teste de celular não vazar para o seguinte
+const matchMediaOriginal = window.matchMedia;
+afterEach(() => {
+  window.matchMedia = matchMediaOriginal;
+});
+
 function emCelular(ligado: boolean) {
   window.matchMedia = ((consulta: string) => ({
     matches: ligado && consulta === '(max-width: 767px)',
@@ -221,7 +241,7 @@ function emCelular(ligado: boolean) {
 }
 
 describe('voluntariado: celular', () => {
-  it('no celular, a tela mostra um dia por linha e a faixa de rótulos só com os cortes (00h, 08h, 16h, 20h, 24h)', async () => {
+  it('no celular, a tela mostra um dia por linha e a faixa de rótulos só com os cortes (00h, 08h, 16h, 20h, 00h)', async () => {
     emCelular(true);
     api();
     // no celular a lista vem primeiro (modo foco): o militar é aberto pela URL, como acontece ao tocar no nome
@@ -229,7 +249,7 @@ describe('voluntariado: celular', () => {
     await screen.findByRole('heading', { name: 'SD BM ANDRADE' });
     expect(calendario()).toHaveAttribute('data-disposicao', 'linhas');
     const rotulos = within(document.querySelector('[data-rotulos-dos-cortes]') as HTMLElement).getAllByText(/^\d\dh$/).map((e) => e.textContent);
-    expect(rotulos).toEqual(['00h', '08h', '16h', '20h', '24h']);
+    expect(rotulos).toEqual(['00h', '08h', '16h', '20h', '00h']);
   });
 
   it('no celular, a faixa de rótulos fica parada na rolagem e tem as mesmas colunas e bordas das linhas dos dias (rótulos sobre os cortes)', async () => {
@@ -395,6 +415,234 @@ describe('voluntariado: modo foco no celular', () => {
     expect(screen.getByRole('region', { name: 'Faltam lançar' })).toBeInTheDocument();
     expect(salvar()).toBeInTheDocument();
     expect(screen.queryByRole('link', { name: '‹ Militares' })).not.toBeInTheDocument();
+  });
+});
+
+describe('voluntariado: matchMedia antigo (achado M5 da revisão da 2.2)', () => {
+  it('um matchMedia só com addListener (Safari antigo) não derruba a tela e é ouvido', async () => {
+    const addListener = vi.fn();
+    window.matchMedia = ((consulta: string) => ({ matches: consulta === '(max-width: 767px)', media: consulta, onchange: null, addListener, removeListener: () => {}, dispatchEvent: () => false })) as unknown as typeof window.matchMedia;
+    api();
+    abrir('/voluntariado?militar=m3');
+    await screen.findByRole('heading', { name: 'SD BM ANDRADE' });
+    expect(addListener).toHaveBeenCalled();
+  });
+});
+
+// Os comportamentos da entrega 2 que seguem valendo com os blocos (a revisão final da 2.2 apontou que saíram na reescrita da tela).
+describe('voluntariado: comportamentos da entrega 2 sobre os blocos', () => {
+  const numero = (n: number) => within(calendario()).getByRole('button', { name: new RegExp(`^Dia ${n}: `) });
+  const mouse = { pointerType: 'mouse', pointerId: 1, button: 0 } as const;
+  const anterior = somarMeses(MES, -1);
+  const todosOsBlocos = (n: number) => [['00h', '08h'], ['08h', '16h'], ['16h', '20h'], ['20h', '24h']].map(([de, ate]) => bloco(n, de!, ate!));
+  const abrirAndrade = async (rota = '/voluntariado') => {
+    abrir(rota);
+    await screen.findByRole('heading', { name: 'SD BM ANDRADE' });
+  };
+
+  it('"Limpar" zera o que está marcado', async () => {
+    api();
+    await abrirAndrade();
+    await userEvent.click(bloco(5, '08h', '16h'));
+    await userEvent.click(screen.getByRole('button', { name: 'Limpar' }));
+    expect(screen.getByText('Nenhum horário marcado.')).toBeInTheDocument();
+  });
+
+  it('salvar sem nenhum horário também lança (lista vazia)', async () => {
+    const f = api({ [`PUT /api/militares/m3/voluntariado/${MES}`]: { status: 200, corpo: DEPOIS_DO_ANDRADE } });
+    await abrirAndrade();
+    await userEvent.click(salvar());
+    await waitFor(() => expect(corpoEnviado(f, `PUT /api/militares/m3/voluntariado/${MES}`)).toEqual({ faixas: [] }));
+  });
+
+  it('dois cliques em Salvar mandam um pedido só', async () => {
+    const { espera, soltar } = trava();
+    const f = api({ [`PUT /api/militares/m3/voluntariado/${MES}`]: { status: 200, corpo: DEPOIS_DO_ANDRADE, espera } });
+    await abrirAndrade();
+    const botao = salvar();
+    fireEvent.click(botao);
+    fireEvent.click(botao);
+    soltar();
+    await waitFor(() => expect(chamadasA(f, `PUT /api/militares/m3/voluntariado/${MES}`)).toBe(1));
+  });
+
+  it('o erro da API aparece e as marcações ficam', async () => {
+    api({ [`PUT /api/militares/m3/voluntariado/${MES}`]: { status: 409, corpo: { erro: 'Este militar não está lotado na seção.' } } });
+    await abrirAndrade();
+    await userEvent.click(bloco(5, '08h', '16h'));
+    await userEvent.click(salvar());
+    expect(await screen.findByRole('alert')).toHaveTextContent('Este militar não está lotado na seção.');
+    expect(bloco(5, '08h', '16h')).toHaveAttribute('aria-pressed', 'true');
+  });
+
+  it('quando não sobra ninguém para lançar, a tela diz isso e fica no militar', async () => {
+    const todos: VoluntariadoDoMes = { ...LISTA, militares: LISTA.militares.map((m) => ({ ...m, lancado: true })) };
+    api({ [`PUT /api/militares/m3/voluntariado/${MES}`]: { status: 200, corpo: todos } }, { ...LISTA, militares: LISTA.militares.map((m) => (m.militarId === 'm3' ? m : { ...m, lancado: true })) });
+    await abrirAndrade('/voluntariado?militar=m3');
+    await userEvent.click(salvar());
+    expect(await screen.findByText('Todos os militares deste mês foram lançados.')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'SD BM ANDRADE' })).toBeInTheDocument();
+  });
+
+  it('trocar de militar com marcação não salva pergunta antes; cancelando, fica no mesmo (Review Focus 5)', async () => {
+    api();
+    const confirmar = vi.spyOn(window, 'confirm').mockReturnValue(false);
+    const router = abrir('/voluntariado');
+    await screen.findByRole('heading', { name: 'SD BM ANDRADE' });
+    await userEvent.click(bloco(5, '08h', '16h'));
+    await userEvent.click(within(screen.getByRole('region', { name: 'Faltam lançar' })).getByRole('link', { name: /DANTAS/ }));
+    expect(confirmar).toHaveBeenCalledWith(MENSAGEM_PENDENTE);
+    expect(screen.getByRole('heading', { name: 'SD BM ANDRADE' })).toBeInTheDocument();
+    expect((router.state.location.search as { militar?: string }).militar).not.toBe('m4');
+    confirmar.mockReturnValue(true);
+    await userEvent.click(within(screen.getByRole('region', { name: 'Faltam lançar' })).getByRole('link', { name: /DANTAS/ }));
+    await screen.findByRole('heading', { name: 'SD BM DANTAS' });
+    confirmar.mockRestore();
+  });
+
+  it('"Todos os sábados e domingos" marca os blocos dos fins de semana, somando ao que já está marcado', async () => {
+    api();
+    await abrirAndrade();
+    await userEvent.click(bloco(3, '08h', '16h'));
+    await userEvent.click(screen.getByRole('button', { name: 'Todos os sábados e domingos' }));
+    const fds = diasDoMes(MES).filter((d) => [0, 6].includes(new Date(`${d}T00:00:00Z`).getUTCDay()));
+    const tresEhFds = fds.includes(dia(3));
+    const horas = fds.length * 24 + (tresEhFds ? 0 : 8);
+    expect(screen.getByText(`${horas} horas em ${fds.length + (tresEhFds ? 0 : 1)} dias.`)).toBeInTheDocument();
+    expect(bloco(3, '08h', '16h')).toHaveAttribute('aria-pressed', 'true');
+    for (const d of fds) for (const b of todosOsBlocos(Number(d.slice(8)))) expect(b).toHaveAttribute('aria-pressed', 'true');
+  });
+
+  it('"Dias de folga da equipe Alfa" marca o dia inteiro das folgas; sem folgas conhecidas (null), o atalho não aparece', async () => {
+    api(doMilitarComo('m3', { folgas: [dia(2), dia(3)] }));
+    await abrirAndrade();
+    await userEvent.click(await screen.findByRole('button', { name: 'Dias de folga da equipe Alfa' }));
+    for (const n of [2, 3]) for (const b of todosOsBlocos(n)) expect(b).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByText('48 horas em 2 dias.')).toBeInTheDocument();
+  });
+
+  it('sem folgas conhecidas, não há atalho de folgas', async () => {
+    api();
+    abrir('/voluntariado?militar=m4');
+    await screen.findByRole('heading', { name: 'SD BM DANTAS' });
+    expect(screen.queryByRole('button', { name: /Dias de folga/ })).toBeNull();
+  });
+
+  it('"Copiar de <mês anterior>" substitui o que está marcado pelo mês anterior, dia por dia', async () => {
+    api(doMilitarComo('m3', { doMesAnterior: [faixa(`${anterior}-10`, '08:00', '16:00'), faixa(`${anterior}-12`, '20:00', '24:00')] }));
+    await abrirAndrade();
+    await userEvent.click(bloco(5, '08h', '16h'));
+    await userEvent.click(await screen.findByRole('button', { name: `Copiar de ${mesPorExtenso(anterior)}` }));
+    expect(bloco(5, '08h', '16h')).toHaveAttribute('aria-pressed', 'false');
+    expect(bloco(10, '08h', '16h')).toHaveAttribute('aria-pressed', 'true');
+    expect(bloco(12, '20h', '24h')).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByText('12 horas em 2 dias.')).toBeInTheDocument();
+  });
+
+  it('sem marcações no mês anterior, "Copiar de …" fica desabilitado', async () => {
+    api();
+    await abrirAndrade();
+    expect(await screen.findByRole('button', { name: `Copiar de ${mesPorExtenso(anterior)}` })).toBeDisabled();
+  });
+
+  it('arrastar do dia 3 ao dia 5 com o mouse aplica a mesma ação aos três dias; depois de soltar, passar por cima não marca', async () => {
+    api();
+    await abrirAndrade();
+    const [d3, d4, d5, d6] = [3, 4, 5, 6].map(numero);
+    fireEvent.pointerDown(d3!, mouse);
+    fireEvent.pointerEnter(d4!, mouse);
+    fireEvent.pointerEnter(d5!, mouse);
+    fireEvent.pointerUp(d5!, mouse);
+    fireEvent.pointerEnter(d6!, mouse);
+    for (const n of [3, 4, 5]) for (const b of todosOsBlocos(n)) expect(b).toHaveAttribute('aria-pressed', 'true');
+    expect(bloco(6, '08h', '16h')).toHaveAttribute('aria-pressed', 'false');
+    expect(screen.getByText('72 horas em 3 dias.')).toBeInTheDocument();
+  });
+
+  it('o clique simples no número alterna uma vez só (o arrastar não duplica)', async () => {
+    api();
+    await abrirAndrade();
+    await userEvent.click(numero(9));
+    expect(bloco(9, '08h', '16h')).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByText('24 horas em 1 dia.')).toBeInTheDocument();
+  });
+
+  it('as setas andam pelos dias (esquerda e direita: um dia; cima e baixo: uma semana), sem sair do mês', async () => {
+    api();
+    await abrirAndrade();
+    numero(5).focus();
+    await userEvent.keyboard('{ArrowRight}');
+    expect(document.activeElement).toHaveAttribute('data-dia', dia(6));
+    await userEvent.keyboard('{ArrowDown}');
+    expect(document.activeElement).toHaveAttribute('data-dia', dia(13));
+    await userEvent.keyboard('{ArrowUp}{ArrowLeft}');
+    expect(document.activeElement).toHaveAttribute('data-dia', dia(5));
+    numero(1).focus();
+    await userEvent.keyboard('{ArrowLeft}{ArrowUp}');
+    expect(document.activeElement).toHaveAttribute('data-dia', dia(1));
+  });
+
+  it('espaço no número alterna o dia inteiro; Enter salva e passa ao próximo, sem alternar o dia', async () => {
+    const f = api({ [`PUT /api/militares/m3/voluntariado/${MES}`]: { status: 200, corpo: DEPOIS_DO_ANDRADE } });
+    await abrirAndrade();
+    numero(12).focus();
+    await userEvent.keyboard(' ');
+    for (const b of todosOsBlocos(12)) expect(b).toHaveAttribute('aria-pressed', 'true');
+    await userEvent.keyboard('{Enter}');
+    await waitFor(() => expect(corpoEnviado(f, `PUT /api/militares/m3/voluntariado/${MES}`)).toEqual({ faixas: [faixa(dia(12), '00:00', '24:00')] }));
+    await screen.findByRole('heading', { name: 'SD BM DANTAS' });
+  });
+
+  it('a dica de teclado está na tela', async () => {
+    api();
+    abrir('/voluntariado');
+    expect(await screen.findByText('Atalhos de teclado: setas movem, espaço marca, Enter salva e passa ao próximo.')).toBeInTheDocument();
+  });
+
+  it('depois de salvar e ir para o próximo, o foco vai para o dia 1 do próximo militar (o teclado segue)', async () => {
+    api({ [`PUT /api/militares/m3/voluntariado/${MES}`]: { status: 200, corpo: DEPOIS_DO_ANDRADE } });
+    await abrirAndrade();
+    numero(5).focus();
+    await userEvent.keyboard('{Enter}');
+    await screen.findByRole('heading', { name: 'SD BM DANTAS' });
+    await waitFor(() => expect(document.activeElement).toHaveAttribute('data-dia', dia(1)));
+  });
+
+  it('abrir sem ?militar= e lançar o último que falta: a tela fica nele, com o aviso (não pula para outro militar)', async () => {
+    const soDantas: VoluntariadoDoMes = { ...LISTA, militares: LISTA.militares.map((m) => ({ ...m, lancado: m.militarId !== 'm4', horas: m.militarId === 'm4' ? 0 : 24, dias: m.militarId === 'm4' ? 0 : 2 })) };
+    const todos: VoluntariadoDoMes = { ...soDantas, militares: soDantas.militares.map((m) => ({ ...m, lancado: true })) };
+    api({ [`PUT /api/militares/m4/voluntariado/${MES}`]: { status: 200, corpo: todos } }, soDantas);
+    const router = abrir('/voluntariado');
+    await screen.findByRole('heading', { name: 'SD BM DANTAS' });
+    await waitFor(() => expect((router.state.location.search as { militar?: string }).militar).toBe('m4'));
+    await userEvent.click(salvar());
+    expect(await screen.findByText('Todos os militares deste mês foram lançados.')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'SD BM DANTAS' })).toBeInTheDocument();
+  });
+
+  it('soltar o mouse logo depois de entrar no último dia não desmarca esse dia (a ação é lida na hora do evento)', async () => {
+    api();
+    await abrirAndrade();
+    const [d3, d4] = [numero(3), numero(4)];
+    fireEvent.pointerDown(d3, mouse);
+    act(() => {
+      fireEvent.pointerEnter(d4, mouse);
+      fireEvent.pointerUp(window, mouse);
+    });
+    for (const b of todosOsBlocos(4)) expect(b).toHaveAttribute('aria-pressed', 'true');
+  });
+
+  it('arrastar para desmarcar sobre um bloco parcial tira o pedaço, em vez de marcar o bloco inteiro (M1)', async () => {
+    // os serviços mudaram: o bloco das 16h às 24h agora é um só, e o dia 6 só tem 16h às 20h marcado (parcial)
+    const blocosNovos = [{ inicio: '00:00', fim: '08:00' }, { inicio: '08:00', fim: '16:00' }, { inicio: '16:00', fim: '24:00' }];
+    api(doMilitarComo('m3', { blocos: blocosNovos, faixas: [faixa(dia(5), '16:00', '24:00'), faixa(dia(6), '16:00', '20:00')] }));
+    await abrirAndrade();
+    expect(bloco(6, '16h', '24h')).toHaveAttribute('aria-pressed', 'mixed');
+    fireEvent.pointerDown(bloco(5, '16h', '24h'), mouse); // cheio: a ação é "desmarcar"
+    fireEvent.pointerEnter(bloco(6, '16h', '24h'), mouse);
+    fireEvent.pointerUp(window, mouse);
+    expect(bloco(5, '16h', '24h')).toHaveAttribute('aria-pressed', 'false');
+    expect(bloco(6, '16h', '24h')).toHaveAttribute('aria-pressed', 'false');
   });
 });
 
