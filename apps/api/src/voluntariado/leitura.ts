@@ -1,6 +1,7 @@
 // Voluntariado lançado à mão: a lista do mês (quem já foi lançado e quem falta) e as marcações de um militar.
 import { mesParaData, type MarcaDeVoluntariado, type MilitarDoVoluntariado, type VoluntariadoDoMes, type VoluntariadoDoMilitar } from 'contratos';
 import { CICLO_EQUIPES, detectarEquipeInicial, diasDoMes, equipeDoDia, grupoDoMilitar, mesAnterior, PRE_ESCALA, type Militar } from 'dominio';
+import { unidadeDoRegistro } from '../acesso.ts';
 import type { Consulta } from '../banco/banco.ts';
 
 type Lotado = Omit<MilitarDoVoluntariado, 'lancado' | 'turnos' | 'dias'>;
@@ -87,4 +88,22 @@ export async function voluntariadoDoMilitar(c: Consulta, unidadeId: string, mili
     doMesAnterior: await marcasDoMes(c, militarId, mesAnterior(mes)),
     folgas: doMilitar ? await folgasDoMilitar(c, unidadeId, mes, doMilitar) : null,
   };
+}
+
+/**
+ * A seção em que o militar está no mês: a lotação que cobre o maior trecho dele (empate: a mais recente). Quem tem transferência
+ * cadastrada para o mês seguinte continua sendo da seção atual neste mês; sem lotação no mês, vale a última cadastrada.
+ */
+export async function unidadeDoMilitarNoMes(c: Consulta, militarId: string, mes: string): Promise<string | null> {
+  const ultima = await unidadeDoRegistro(c, 'militar', militarId);
+  if (!ultima) return null;
+  const inicio = mesParaData(mes);
+  const { rows } = await c.query<{ unidade_id: string }>(
+    `select l.unidade_id from lotacao l
+      where l.militar_id = $1 and l.desde <= ($2::date + interval '1 month' - interval '1 day')::date and (l.ate is null or l.ate >= $2::date)
+      order by (least(coalesce(l.ate, date '9999-12-31'), ($2::date + interval '1 month' - interval '1 day')::date) - greatest(l.desde, $2::date)) desc, l.desde desc
+      limit 1`,
+    [militarId, inicio],
+  );
+  return rows[0]?.unidade_id ?? ultima;
 }

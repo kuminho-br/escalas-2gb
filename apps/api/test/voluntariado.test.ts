@@ -173,3 +173,18 @@ describe('lançar o voluntariado do mês', () => {
     expect((await doMilitar('BRAVO1')).marcas).toEqual([{ data: `${mes}-07`, turno: 'B' }]);
   });
 });
+
+describe('militar com transferência cadastrada (Fase 4.2, revisão final)', () => {
+  it('com a transferência no mês seguinte, o escalante da seção atual ainda lê e lança o mês corrente; no mês da transferência a seção é a outra', async () => {
+    const outra = await inserir(api.banco, 'unidade', { tipo: 'secao', sigla: '2ª SB-V', nome: 'Seção V', mae_id: api.ids.gb, desde: '2026-11-01' });
+    await criarMilitar('TRANSF', { equipe: 'Delta', ate: `${mes}-${String(diasNoMes(mes)).padStart(2, '0')}` });
+    await inserir(api.banco, 'lotacao', { militar_id: militar.TRANSF, unidade_id: outra, jornada: 'adm', desde: `${somarMeses(mes, 1)}-01` });
+    expect((await api.pedir('escalante', 'GET', `/api/militares/${militar.TRANSF}/voluntariado/${mes}`)).status).toBe(200);
+    const lancou = await lancar('TRANSF', [{ data: `${mes}-05`, turno: 'A' }]);
+    expect(lancou.status).toBe(200);
+    expect(daLista(await lancou.json(), 'TRANSF').turnos).toBe(1);
+    // a partir do mês seguinte ele é da outra seção: o escalante desta já não mexe
+    expect((await api.pedir('escalante', 'GET', `/api/militares/${militar.TRANSF}/voluntariado/${somarMeses(mes, 1)}`)).status).toBe(403);
+    expect((await lancar('TRANSF', [], 'escalante', somarMeses(mes, 1))).status).toBe(403);
+  });
+});

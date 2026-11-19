@@ -1,6 +1,6 @@
 import type { MilitarDoVoluntariado, VoluntariadoDoMes, VoluntariadoDoMilitar } from 'contratos';
 import { mesPorExtenso, somarMeses } from 'contratos';
-import { fireEvent, screen, waitFor, within } from '@testing-library/react';
+import { act, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { mesAtual } from '@/lib/meses';
@@ -316,5 +316,45 @@ describe('voluntariado: atalhos, arrastar e teclado', () => {
     api();
     abrir('/voluntariado');
     expect(await screen.findByText('Atalhos de teclado: setas movem, espaço marca, Enter salva e passa ao próximo.')).toBeInTheDocument();
+  });
+});
+
+describe('voluntariado: revisão final', () => {
+  const numero = (n: number) => within(calendario()).getByRole('button', { name: new RegExp(`^Dia ${n}: `) });
+
+  it('depois de salvar e ir para o próximo, o foco vai para o dia 1 do próximo militar (o teclado segue)', async () => {
+    api({ [`PUT /api/militares/m3/voluntariado/${MES}`]: { status: 200, corpo: DEPOIS_DO_ANDRADE } });
+    abrir('/voluntariado');
+    await screen.findByRole('heading', { name: 'SD BM ANDRADE' });
+    numero(5).focus();
+    await userEvent.keyboard('{Enter}');
+    await screen.findByRole('heading', { name: 'SD BM DANTAS' });
+    await waitFor(() => expect(document.activeElement).toHaveAttribute('data-dia', dia(1)));
+  });
+
+  it('abrir sem ?militar= e lançar o último que falta: a tela fica nele, com o aviso (não pula para outro militar)', async () => {
+    const soDantas: VoluntariadoDoMes = { ...LISTA, militares: LISTA.militares.map((m) => ({ ...m, lancado: m.militarId !== 'm4', turnos: m.militarId === 'm4' ? 0 : 3, dias: m.militarId === 'm4' ? 0 : 2 })) };
+    const todos: VoluntariadoDoMes = { ...soDantas, militares: soDantas.militares.map((m) => ({ ...m, lancado: true })) };
+    api({ [`PUT /api/militares/m4/voluntariado/${MES}`]: { status: 200, corpo: todos } }, soDantas);
+    const router = abrir('/voluntariado');
+    await screen.findByRole('heading', { name: 'SD BM DANTAS' });
+    await waitFor(() => expect((router.state.location.search as { militar?: string }).militar).toBe('m4'));
+    await userEvent.click(screen.getByRole('button', { name: 'Salvar e ir para o próximo' }));
+    expect(await screen.findByText('Todos os militares deste mês foram lançados.')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'SD BM DANTAS' })).toBeInTheDocument();
+  });
+
+  it('soltar o mouse logo depois de entrar no último dia não desmarca esse dia (a ação é lida na hora do evento)', async () => {
+    api();
+    abrir('/voluntariado');
+    await screen.findByRole('heading', { name: 'SD BM ANDRADE' });
+    const [d3, d4] = [numero(3), numero(4)];
+    fireEvent.pointerDown(d3);
+    act(() => {
+      fireEvent.pointerEnter(d4);
+      fireEvent.pointerUp(window);
+    });
+    expect(turno(4, 'A')).toHaveAttribute('aria-pressed', 'true');
+    expect(turno(4, 'B')).toHaveAttribute('aria-pressed', 'true');
   });
 });

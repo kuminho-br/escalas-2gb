@@ -1,7 +1,7 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { createFileRoute } from '@tanstack/react-router';
 import { Mes, somarMeses } from 'contratos';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { mensagemDe } from '@/api/cliente';
 import { consultaVoluntariadoDoMes, consultaVoluntariadoDoMilitar, lancarVoluntariado } from '@/api/voluntariado';
 import { ProvedorDePendencias } from '@/componentes/AlteracoesPendentes';
@@ -32,6 +32,11 @@ function Voluntariado() {
   const [todosLancados, setTodosLancados] = useState(false);
   const militares = lista.data?.militares ?? [];
   const aberto = militares.find((m) => m.militarId === busca.militar) ?? militares.find((m) => !m.lancado) ?? militares[0];
+  // o militar aberto fica na URL: se a lista mudar (outro escalante lançou, a tela voltou ao foco), a tela não pula para outro militar
+  useEffect(() => {
+    if (aberto && busca.militar !== aberto.militarId) void navigate({ search: { mes, militar: aberto.militarId }, replace: true });
+  }, [aberto?.militarId, busca.militar, mes]); // eslint-disable-line react-hooks/exhaustive-deps
+  const focoAoAbrir = useRef(false);
   const dados = useQuery({ ...consultaVoluntariadoDoMilitar(aberto?.militarId ?? '', mes), enabled: Boolean(aberto) });
 
   return (
@@ -57,12 +62,17 @@ function Voluntariado() {
                   militar={aberto}
                   mes={mes}
                   dados={dados.data}
+                  focarAoAbrir={focoAoAbrir.current}
+                  aoAbrir={() => (focoAoAbrir.current = false)}
                   aoSalvar={async (marcas, soltarPendencia) => {
                     setTodosLancados(false);
                     const nova = await lancarVoluntariado(queryClient, eu.unidade.id, aberto.militarId, mes, marcas);
                     soltarPendencia();
                     const proximo = proximoQueFalta(nova.militares, aberto.militarId);
-                    if (proximo) await navigate({ search: { mes, militar: proximo } });
+                    if (proximo) {
+                      focoAoAbrir.current = true;
+                      await navigate({ search: { mes, militar: proximo } });
+                    }
                     else setTodosLancados(true);
                   }}
                 />

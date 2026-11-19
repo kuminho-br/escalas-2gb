@@ -1,12 +1,12 @@
 // Voluntariado lançado à mão: ler a lista do mês e as marcações de um militar, e lançar o mês de um militar.
 import { LancamentoDeVoluntariado, Mes, mesPorExtenso } from 'contratos';
 import { Hono } from 'hono';
-import { CADASTRO, exigirPapel, exigirSessao, unidadeDoRegistro, type AmbienteApi } from '../acesso.ts';
+import { CADASTRO, exigirPapel, exigirSessao, type AmbienteApi } from '../acesso.ts';
 import type { Auth } from '../auth.ts';
 import { comUsuario, type Banco } from '../banco/banco.ts';
 import { lerCorpo, respostaDoErroDoBanco } from '../erros.ts';
 import { lancar } from './lancamento.ts';
-import { lotadosNoMes, voluntariadoDoMes, voluntariadoDoMilitar } from './leitura.ts';
+import { lotadosNoMes, unidadeDoMilitarNoMes, voluntariadoDoMes, voluntariadoDoMilitar } from './leitura.ts';
 
 const MES_INVALIDO = 'Mês inválido: use o formato aaaa-mm.';
 
@@ -25,24 +25,24 @@ export function rotasVoluntariado(dep: { banco: Banco; auth: Auth }): Hono<Ambie
 
   r.get('/militares/:id/voluntariado/:mes', async (c) => {
     const id = c.req.param('id');
-    const unidadeId = await unidadeDoRegistro(dep.banco, 'militar', id);
+    const mes = c.req.param('mes');
+    if (!Mes.safeParse(mes).success) return c.json({ erro: MES_INVALIDO }, 400);
+    const unidadeId = await unidadeDoMilitarNoMes(dep.banco, id, mes);
     if (!unidadeId) return c.json({ erro: 'Militar não encontrado.' }, 404);
     const negado = await exigirPapel(c, unidadeId, CADASTRO);
     if (negado) return negado;
-    const mes = c.req.param('mes');
-    if (!Mes.safeParse(mes).success) return c.json({ erro: MES_INVALIDO }, 400);
     return c.json(await voluntariadoDoMilitar(dep.banco, unidadeId, id, mes));
   });
 
   /** Lança o mês inteiro do militar (substitui o que havia) e devolve a lista do mês para a tela passar ao próximo. */
   r.put('/militares/:id/voluntariado/:mes', async (c) => {
     const id = c.req.param('id');
-    const unidadeId = await unidadeDoRegistro(dep.banco, 'militar', id);
+    const mes = c.req.param('mes');
+    if (!Mes.safeParse(mes).success) return c.json({ erro: MES_INVALIDO }, 400);
+    const unidadeId = await unidadeDoMilitarNoMes(dep.banco, id, mes);
     if (!unidadeId) return c.json({ erro: 'Militar não encontrado.' }, 404);
     const negado = await exigirPapel(c, unidadeId, CADASTRO);
     if (negado) return negado;
-    const mes = c.req.param('mes');
-    if (!Mes.safeParse(mes).success) return c.json({ erro: MES_INVALIDO }, 400);
     const corpo = await lerCorpo(c, LancamentoDeVoluntariado);
     if (!corpo.ok) return corpo.resposta;
     const campos: Record<string, string> = {};

@@ -16,12 +16,17 @@ export function CalendarioDoVoluntariado({
   mes,
   dados,
   aoSalvar,
+  focarAoAbrir = false,
+  aoAbrir,
 }: {
   militar: MilitarDoVoluntariado;
   mes: string;
   dados: VoluntariadoDoMilitar;
   /** grava e segue; `soltarPendencia` tira o aviso de alteração pendente antes de navegar */
   aoSalvar: (marcas: ReturnType<typeof marcasDoConjunto>, soltarPendencia: () => void) => Promise<void>;
+  /** veio de "Salvar e ir para o próximo": o foco vai para o dia 1, e o teclado segue de onde parou */
+  focarAoAbrir?: boolean;
+  aoAbrir?: () => void;
 }) {
   const doServidor = conjuntoDeMarcas(dados.marcas);
   const [marcas, setMarcas] = useState<Marcas>(doServidor);
@@ -58,6 +63,13 @@ export function CalendarioDoVoluntariado({
   }, []);
   const dias = diasDoMes(mes);
   const irPara = (dia: string) => grade.current?.querySelector<HTMLElement>(`[data-dia="${dia}"]`)?.focus();
+  useEffect(() => {
+    if (!focarAoAbrir) return;
+    irPara(dias[0]!);
+    aoAbrir?.();
+    // só ao montar
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const aoTeclar = (e: React.KeyboardEvent, dia: string) => {
     const passo = { ArrowRight: 1, ArrowLeft: -1, ArrowDown: 7, ArrowUp: -7 }[e.key];
     if (passo === undefined) return;
@@ -117,7 +129,11 @@ export function CalendarioDoVoluntariado({
                   arrasto.current = acao;
                   setMarcas((m) => aplicarAoDia(m, d, acao));
                 }}
-                onPointerEnter={() => arrasto.current && setMarcas((m) => aplicarAoDia(m, d, arrasto.current!))}
+                onPointerEnter={() => {
+                  // a ação é lida agora: a atualização roda depois, quando o botão do mouse já pode ter sido solto
+                  const acao = arrasto.current;
+                  if (acao) setMarcas((m) => aplicarAoDia(m, d, acao));
+                }}
                 // clique do mouse ou do toque já foi tratado ao apertar; o do teclado (e dos leitores de tela) vem sem `detail`
                 onClick={(e) => e.detail === 0 && setMarcas((m) => aplicarAoDia(m, d, acaoDoDia(m, d)))}
                 onKeyDown={(e) => aoTeclar(e, d)}
