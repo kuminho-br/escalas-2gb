@@ -14,6 +14,7 @@ import { vinculosDaEscala } from '../cadastros/escalas.ts';
 import { feriadosDoAno } from '../cadastros/feriados.ts';
 import { versaoNoMes } from '../cadastros/guarnicoes-regras.ts';
 import { versoesDasGuarnicoes } from '../cadastros/guarnicoes.ts';
+import { nomeDaVaga } from './vagas.ts';
 
 type TurnoDaEscala = { id: string; servicoId: string; servico: string; cor: string; letra: 'A' | 'B' | 'C'; inicio: string; fim: string };
 type AlocacaoDoMes = OcupanteDaVaga & { data: string; turnoId: string; guarnicaoId: string | null; funcaoId: string | null };
@@ -97,6 +98,46 @@ export async function montarEscalaDoMes(c: Consulta, escalaId: string, mes: stri
       servico: { id: t.servicoId, nome: t.servico, cor: t.cor }, letra: t.letra, data: a.data, turnoId: a.turno_id, guarnicaoId: a.guarnicao_id, funcaoId: a.funcao_id,
     }];
   });
+  // acúmulos: cada um vira mais um ocupante (na vaga acumulada) do mesmo militar e da mesma alocação
+  const acumulos = alocacoes.length
+    ? (
+        await c.query<{ id: string; alocacao_id: string; guarnicao_id: string; funcao_id: string }>(
+          'select id, alocacao_id, guarnicao_id, funcao_id from alocacao_acumulo where alocacao_id = any($1)',
+          [alocacoes.map((a) => a.alocacaoId)],
+        )
+      ).rows
+    : [];
+  const modeloDaGuarnicao = new Map([...modeloPorFaixa.values()].flat().map((g) => [g.guarnicaoId, g]));
+  // posição de uma vaga na faixa: guarnições na ordem dos cards, funções na ordem da composição (só vale o que aparece num card dessa faixa)
+  const posicaoNaFaixa = (k: string, guarnicaoId: string | null, funcaoId: string | null): number | null => {
+    const modelos = modeloPorFaixa.get(k) ?? [];
+    const gi = modelos.findIndex((g) => g.guarnicaoId === guarnicaoId);
+    const fi = gi < 0 ? -1 : modelos[gi]!.composicao.findIndex((f) => f.funcaoId === funcaoId);
+    return gi < 0 || fi < 0 ? null : gi * 1000 + fi;
+  };
+  const nomeDaVagaNaFaixa = (k: string, guarnicaoId: string, funcaoId: string): string => {
+    const m = (modeloPorFaixa.get(k) ?? []).find((g) => g.guarnicaoId === guarnicaoId)!;
+    return nomeDaVaga(m.nome, m.composicao.find((f) => f.funcaoId === funcaoId)!.funcao, m.composicao.length);
+  };
+  const ocupantes: AlocacaoDoMes[] = alocacoes.flatMap((a) => {
+    const k = faixaDoTurno.get(a.turnoId)!;
+    const vagas = [
+      { acumuloId: null as string | null, guarnicaoId: a.guarnicaoId, funcaoId: a.funcaoId },
+      ...acumulos.filter((x) => x.alocacao_id === a.alocacaoId).flatMap((x) => (posicaoNaFaixa(k, x.guarnicao_id, x.funcao_id) === null ? [] : [{ acumuloId: x.id, guarnicaoId: x.guarnicao_id as string | null, funcaoId: x.funcao_id as string | null }])),
+    ];
+    // as vagas do militar na faixa que aparecem num card, na ordem dos cards: "acumula com" lista as outras
+    const comCard = vagas.flatMap((v) => {
+      const pos = posicaoNaFaixa(k, v.guarnicaoId, v.funcaoId);
+      return pos === null ? [] : [{ ...v, pos, nome: nomeDaVagaNaFaixa(k, v.guarnicaoId!, v.funcaoId!) }];
+    }).sort((x, y) => x.pos - y.pos);
+    return vagas.map((v) => ({
+      ...a,
+      acumuloId: v.acumuloId,
+      guarnicaoId: v.guarnicaoId,
+      funcaoId: v.funcaoId,
+      acumulaCom: comCard.filter((o) => o.acumuloId !== v.acumuloId).map((o) => o.nome),
+    }));
+  });
   const remocoes: RemocaoDoMes[] = (
     await c.query<{ id: string; militar_id: string; nome_guerra: string; servico: string; data: string; turno_id: string }>(
       `select r.id, r.militar_id, m.nome_guerra, s.nome as servico, to_char(r.data, 'YYYY-MM-DD') as data, r.turno_id
@@ -113,7 +154,7 @@ export async function montarEscalaDoMes(c: Consulta, escalaId: string, mes: stri
   let obrigatoriasVazias = 0;
   const dias: DiaDaEscala[] = diasDoMes(mes).map((data) => {
     let vaziasDoDia = 0;
-    const doDia = alocacoes.filter((a) => a.data === data);
+    const doDia = ocupantes.filter((a) => a.data === data);
     const faixasDoDia: FaixaDoDia[] = faixas.map((f) => {
       const daFaixa = doDia.filter((a) => faixaDoTurno.get(a.turnoId) === f.k);
       const guarnicoes: CardDaGuarnicao[] = (modeloPorFaixa.get(f.k) ?? []).map((g) => {
@@ -130,14 +171,14 @@ export async function montarEscalaDoMes(c: Consulta, escalaId: string, mes: stri
         return { guarnicaoId: g.guarnicaoId, nome: g.nome, viatura: g.viatura, prioridade: g.prioridade, funcoes, completa: faltam.length === 0, faltam };
       });
       // quem está na faixa sem vaga num card (sem guarnição, ou guarnição que já não aparece aqui) fica em "sem posto"
-      const noCard = new Set(guarnicoes.flatMap((g) => g.funcoes.flatMap((fn) => fn.ocupantes.map((o) => o.alocacaoId))));
+      const noCard = new Set(guarnicoes.flatMap((g) => g.funcoes.flatMap((fn) => fn.ocupantes.map((o) => `${o.alocacaoId}|${o.acumuloId}`))));
       return {
         inicio: f.inicio,
         fim: f.fim,
         noturna: ehNoturna(f.inicio, f.fim),
         turnos: f.ts.map((t) => ({ turnoId: t.id, servicoId: t.servicoId, servico: t.servico, letra: t.letra })),
         guarnicoes,
-        semPosto: daFaixa.filter((a) => !noCard.has(a.alocacaoId)).map(({ data: _d, turnoId: _t, guarnicaoId: _g, funcaoId: _f, ...o }) => o),
+        semPosto: daFaixa.filter((a) => a.acumuloId === null && !noCard.has(`${a.alocacaoId}|${a.acumuloId}`)).map(({ data: _d, turnoId: _t, guarnicaoId: _g, funcaoId: _f, ...o }) => o),
         removidos: remocoes.filter((r) => r.data === data && faixaDoTurno.get(r.turnoId) === f.k).map((r) => ({ remocaoId: r.remocaoId, militarId: r.militarId, nomeGuerra: r.nomeGuerra, servico: r.servico })),
       };
     });

@@ -1,12 +1,12 @@
 // Escala do mês: leitura (aqui) e, nas tarefas seguintes, candidatos, escalar e remover.
-import { Data, Hora, Id, Mes, NovaAlocacao } from 'contratos';
+import { Data, Hora, Id, Mes, NovaAlocacao, NovoAcumulo } from 'contratos';
 import { z } from 'zod';
 import { Hono } from 'hono';
 import { CADASTRO, exigirPapel, exigirSessao, unidadeDoRegistro, type AmbienteApi } from '../acesso.ts';
 import type { Auth } from '../auth.ts';
 import { comUsuario, type Banco } from '../banco/banco.ts';
 import { lerCorpo, respostaDoErroDoBanco } from '../erros.ts';
-import { desfazerRemocao, escalar, Recusa, remover } from './alocacoes.ts';
+import { acumular, desfazerRemocao, escalar, Recusa, remover, tirarAcumulo } from './alocacoes.ts';
 import { avaliarCandidatos } from './elegibilidade.ts';
 import { montarEscalaDoMes } from './leitura.ts';
 
@@ -15,7 +15,7 @@ const ConsultaDeCandidatos = z.object({ data: Data, inicio: Hora, fim: Hora, gua
 export function rotasEscalaDoMes(dep: { banco: Banco; auth: Auth }): Hono<AmbienteApi> {
   const r = new Hono<AmbienteApi>();
   const sessao = exigirSessao(dep.banco, dep.auth);
-  for (const caminho of ['/escalas/:id/mes/*', '/escalas/:id/alocacoes', '/alocacoes/*', '/remocoes/*']) r.use(caminho, sessao);
+  for (const caminho of ['/escalas/:id/mes/*', '/escalas/:id/alocacoes', '/alocacoes/*', '/remocoes/*', '/acumulos/*']) r.use(caminho, sessao);
 
   r.get('/escalas/:id/mes/:mes', async (c) => {
     const id = c.req.param('id');
@@ -98,6 +98,35 @@ export function rotasEscalaDoMes(dep: { banco: Banco; auth: Auth }): Hono<Ambien
     const negado = await exigirPapel(c, unidadeId, CADASTRO);
     if (negado) return negado;
     const { escalaId, mes } = await comUsuario(dep.banco, c.get('usuarioId'), (tx) => desfazerRemocao(tx, id));
+    return c.json(await montarEscalaDoMes(dep.banco, escalaId, mes));
+  });
+
+  /** O militar de uma alocação acumula mais uma vaga da mesma faixa; devolve a escala do mês. */
+  r.post('/alocacoes/:id/acumulos', async (c) => {
+    const id = c.req.param('id');
+    const unidadeId = await unidadeDoRegistro(dep.banco, 'alocacao', id);
+    if (!unidadeId) return c.json({ erro: 'Alocação não encontrada.' }, 404);
+    const negado = await exigirPapel(c, unidadeId, CADASTRO);
+    if (negado) return negado;
+    const corpo = await lerCorpo(c, NovoAcumulo);
+    if (!corpo.ok) return corpo.resposta;
+    try {
+      const { escalaId, mes } = await comUsuario(dep.banco, c.get('usuarioId'), (tx) => acumular(tx, id, corpo.dados));
+      return c.json(await montarEscalaDoMes(dep.banco, escalaId, mes), 201);
+    } catch (e) {
+      if (e instanceof Recusa) return c.json({ erro: e.message }, 409);
+      return respostaDoErroDoBanco(c, e);
+    }
+  });
+
+  /** Tira só a vaga acumulada (o militar continua na vaga original; não há remoção). */
+  r.delete('/acumulos/:id', async (c) => {
+    const id = c.req.param('id');
+    const unidadeId = await unidadeDoRegistro(dep.banco, 'acumulo', id);
+    if (!unidadeId) return c.json({ erro: 'Acúmulo não encontrado.' }, 404);
+    const negado = await exigirPapel(c, unidadeId, CADASTRO);
+    if (negado) return negado;
+    const { escalaId, mes } = await comUsuario(dep.banco, c.get('usuarioId'), (tx) => tirarAcumulo(tx, id));
     return c.json(await montarEscalaDoMes(dep.banco, escalaId, mes));
   });
 

@@ -20,6 +20,7 @@ import type { Consulta } from '../banco/banco.ts';
 import { feriadosDoAno } from '../cadastros/feriados.ts';
 import { versaoNoMes } from '../cadastros/guarnicoes-regras.ts';
 import { versoesDasGuarnicoes } from '../cadastros/guarnicoes.ts';
+import { nomeDaVaga } from './vagas.ts';
 
 export type VagaConsultada = { escalaId: string; data: string; inicio: string; fim: string; guarnicaoId: string | null; funcaoId: string | null };
 
@@ -29,6 +30,7 @@ type Avaliado = { candidato: Omit<Candidato, 'servicos'>; militarMotivo: string 
 
 const NOME_DO_TIPO: Record<Tipo, string> = { ordinario: 'Ordinário', pjes: 'PJES', diaria: 'Diária' };
 const NAO_LOTADO = 'Não está lotado na seção neste dia';
+const JA_ESCALADO = 'Já escalado neste horário';
 /** Expediente do Adm (08h às 16h), implícito nos dias úteis; vale o turno A do serviço Expediente se a seção o tiver cadastrado. */
 const EXPEDIENTE = { servico: 'Expediente', turno: 'A', ini: 480, fim: 960 };
 
@@ -125,7 +127,7 @@ async function avaliar(c: Consulta, v: VagaConsultada, somenteMilitar?: string):
     if (afastados.has(m.id)) return pronto('Afastado');
     if (exigida && !cnhHabilitadas(m.cnh).includes(exigida)) return pronto('Sem a CNH exigida');
     const dele = janela.filter((a) => a.militar_id === m.id);
-    if (dele.some((a) => a.data === v.data && a.inicio === v.inicio && a.fim === v.fim)) return pronto('Já escalado neste horário');
+    if (dele.some((a) => a.data === v.data && a.inicio === v.inicio && a.fim === v.fim)) return pronto(JA_ESCALADO);
     const existentes: AlocChoque[] = dele.map((a) => ({ mat: m.id, dia: a.data, turno: a.letra, servico: a.nome }));
     const expediente: AlocChoque[] =
       m.jornada === 'adm'
@@ -159,30 +161,71 @@ async function avaliar(c: Consulta, v: VagaConsultada, somenteMilitar?: string):
 
 const motivoFinal = (a: Avaliado): string | null => a.militarMotivo ?? (a.porTurno.some((t) => t.motivo === null) ? null : (a.porTurno[0]?.motivo ?? 'Não há serviço nesta faixa'));
 
-/** Os que podem ocupar a vaga (Pronto antes do Adm, depois por posto e antiguidade) e quantos ficaram de fora, por motivo. */
+const porAntiguidade = (x: Avaliado, y: Avaliado) =>
+  compararAntiguidade(
+    { mat: x.candidato.matricula, m: { mat: x.candidato.matricula, posto: x.candidato.posto, antig: x.antig } as Militar },
+    { mat: y.candidato.matricula, m: { mat: y.candidato.matricula, posto: y.candidato.posto, antig: y.antig } as Militar },
+  );
+
+/**
+ * Quem já está escalado nesta faixa (desta escala, com vaga de guarnição) e pode acumular esta vaga: cumpre os requisitos dela
+ * (a CNH é conferida antes de "já escalado") e ainda não ocupa essa função nessa guarnição, nem como posto nem como acúmulo.
+ */
+async function quemPodeAcumular(c: Consulta, v: VagaConsultada, avaliados: Avaliado[]): Promise<{ a: Avaliado; alocacaoId: string; vaga: string }[]> {
+  const doFaixa = (
+    await c.query<{ id: string; militar_id: string; guarnicao_id: string; funcao_id: string }>(
+      `select a.id, a.militar_id, a.guarnicao_id, a.funcao_id from alocacao a join turno t on t.id = a.turno_id
+        where a.escala_id = $1 and a.data = $2::date and t.inicio = $3::time and t.fim = $4::time and a.guarnicao_id is not null and a.funcao_id is not null`,
+      [v.escalaId, v.data, v.inicio, v.fim],
+    )
+  ).rows;
+  if (!doFaixa.length) return [];
+  const ocupa = (
+    await c.query<{ alocacao_id: string; guarnicao_id: string; funcao_id: string }>('select alocacao_id, guarnicao_id, funcao_id from alocacao_acumulo where alocacao_id = any($1)', [doFaixa.map((a) => a.id)])
+  ).rows;
+  const guarnicaoIds = [...new Set(doFaixa.map((a) => a.guarnicao_id))];
+  const nomes = new Map((await c.query<{ id: string; nome: string }>('select id, nome from guarnicao where id = any($1)', [guarnicaoIds])).rows.map((g) => [g.id, g.nome]));
+  const versoes = await versoesDasGuarnicoes(c, guarnicaoIds);
+  const mes = v.data.slice(0, 7);
+  const lista: { a: Avaliado; alocacaoId: string; vaga: string }[] = [];
+  const jaVistos = new Set<string>();
+  for (const al of doFaixa) {
+    const a = avaliados.find((x) => x.candidato.militarId === al.militar_id);
+    if (!a || a.militarMotivo !== JA_ESCALADO || jaVistos.has(al.militar_id)) continue;
+    const mesmaVaga = (g: string, f: string) => g === v.guarnicaoId && f === v.funcaoId;
+    if (mesmaVaga(al.guarnicao_id, al.funcao_id) || ocupa.some((x) => x.alocacao_id === al.id && mesmaVaga(x.guarnicao_id, x.funcao_id))) continue;
+    const versao = versaoNoMes(versoes.get(al.guarnicao_id) ?? [], mes);
+    const funcao = versao?.ativa ? versao.composicao.find((f) => f.funcaoId === al.funcao_id) : undefined;
+    if (!versao || !funcao) continue;
+    jaVistos.add(al.militar_id);
+    lista.push({ a, alocacaoId: al.id, vaga: nomeDaVaga(nomes.get(al.guarnicao_id) ?? '', funcao.funcao, versao.composicao.length) });
+  }
+  return lista.sort((x, y) => porAntiguidade(x.a, y.a));
+}
+
+/** Os que podem ocupar a vaga (Pronto antes do Adm, depois por posto e antiguidade), os que podem acumulá-la e quantos ficaram de fora, por motivo. */
 export async function avaliarCandidatos(c: Consulta, v: VagaConsultada): Promise<Candidatos> {
   const { avaliados } = await avaliar(c, v);
+  const acumulando = v.guarnicaoId && v.funcaoId ? await quemPodeAcumular(c, v, avaliados) : [];
+  const idsAcumulando = new Set(acumulando.map((x) => x.a.candidato.militarId));
   const aptos = avaliados
     .filter((a) => motivoFinal(a) === null)
-    .sort(
-      (x, y) =>
-        Number(x.candidato.jornada === 'adm') - Number(y.candidato.jornada === 'adm') ||
-        compararAntiguidade(
-          { mat: x.candidato.matricula, m: { mat: x.candidato.matricula, posto: x.candidato.posto, antig: x.antig } as Militar },
-          { mat: y.candidato.matricula, m: { mat: y.candidato.matricula, posto: y.candidato.posto, antig: y.antig } as Militar },
-        ),
-    )
+    .sort((x, y) => Number(x.candidato.jornada === 'adm') - Number(y.candidato.jornada === 'adm') || porAntiguidade(x, y))
     .map((a): Candidato => ({
       ...a.candidato,
       servicos: a.porTurno.filter((t) => t.motivo === null).map((t) => ({ servicoId: t.turno.servicoId, turnoId: t.turno.turnoId, nome: t.turno.nome })),
     }));
   const contagem = new Map<string, number>();
   for (const a of avaliados) {
+    if (idsAcumulando.has(a.candidato.militarId)) continue; // quem pode acumular aparece na outra lista, não como "de fora"
     const m = motivoFinal(a);
     if (m) contagem.set(m, (contagem.get(m) ?? 0) + 1);
   }
   const fora = [...contagem.entries()].map(([motivo, quantidade]) => ({ motivo, quantidade })).sort((a, b) => b.quantidade - a.quantidade || a.motivo.localeCompare(b.motivo, 'pt-BR'));
-  return { aptos, fora, acumular: [] };
+  const acumular = acumulando.map(({ a, alocacaoId, vaga }) => ({
+    alocacaoId, militarId: a.candidato.militarId, posto: a.candidato.posto, nomeGuerra: a.candidato.nomeGuerra, matricula: a.candidato.matricula, vaga,
+  }));
+  return { aptos, fora, acumular };
 }
 
 /** Por que o militar não pode ocupar a vaga neste turno (a frase que a tela mostra); null se pode. */
