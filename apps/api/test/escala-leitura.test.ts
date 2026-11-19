@@ -132,4 +132,16 @@ describe('leitura da escala do mês', () => {
     expect(mal.status).toBe(400);
     expect((await mal.json()).erro).toBe('Mês inválido: use o formato aaaa-mm.');
   });
+
+  it('a ordem de escala define a ordem dos cards; sem ordem, vale a prioridade e o nome de sempre (Fase 4.2.1)', async () => {
+    const nomes = async () => faixa(await escalaDoMes(), 3, FAIXA_A).guarnicoes.map((g) => g.nome);
+    expect(await nomes()).toEqual(['ABT', 'AR']);
+    // a AR passa na frente: a vez dela (Combatente 1) vem antes da vez do Motorista da ABT
+    const g = await api.pedir('escalante', 'PUT', `/api/escalas/${escalaId}/ordem/${atual}`, { itens: [{ guarnicaoId: ar, funcaoId: combatente, vaga: 1 }, { guarnicaoId: abt, funcaoId: motorista, vaga: 1 }] });
+    expect(g.status).toBe(200);
+    expect(await nomes()).toEqual(['AR', 'ABT']);
+    // o mês seguinte herda a ordem, mas as guarnições são outras (ABT e Nova): a que não está na ordem vai depois
+    const proximoMes = faixa(await escalaDoMes(proximo), 3, FAIXA_A).guarnicoes.map((x) => x.nome);
+    expect(proximoMes).toEqual(['ABT', 'Nova']);
+  });
 });
