@@ -9,9 +9,9 @@ import { consultaEscalas } from '@/api/escalas';
 import type { VagaDaTela } from '@/componentes/escala-do-mes/CardDaGuarnicao';
 import { DiaDaEscalaVista } from '@/componentes/escala-do-mes/DiaDaEscala';
 import { EscolherMilitar } from '@/componentes/escala-do-mes/EscolherMilitar';
+import { CampoDeMes } from '@/componentes/CampoDeMes';
 import { Selecao } from '@/componentes/Selecao';
 import { Button } from '@/componentes/ui/button';
-import { Input } from '@/componentes/ui/input';
 import { Label } from '@/componentes/ui/label';
 import { mesAtual } from '@/lib/meses';
 import { cn } from '@/lib/utils';
@@ -89,7 +89,7 @@ function EscalaDoMes() {
         </div>
         <div className="grid gap-1.5">
           <Label htmlFor="em-mes">Mês</Label>
-          <Input id="em-mes" type="month" value={mes} onChange={(e) => e.target.value && void navigate({ search: (s) => ({ ...s, mes: e.target.value }) })} className="w-44" />
+          <CampoDeMes id="em-mes" valor={mes} aoMudar={(m) => void navigate({ search: (s) => ({ ...s, mes: m }) })} />
         </div>
         {resumo && (
           <p className="text-sm">
