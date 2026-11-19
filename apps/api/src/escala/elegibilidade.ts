@@ -29,8 +29,8 @@ import { nomeDaVaga } from './vagas.ts';
 export type VagaConsultada = { escalaId: string; data: string; inicio: string; fim: string; guarnicaoId: string | null; funcaoId: string | null };
 
 type Tipo = 'ordinario' | 'pjes' | 'diaria';
-type TurnoDaFaixa = { turnoId: string; servicoId: string; nome: string; tipo: Tipo; letra: 'A' | 'B' | 'C'; inicio: string; fim: string };
-type Avaliado = { candidato: Omit<Candidato, 'servicos'>; militarMotivo: string | null; porTurno: { turno: TurnoDaFaixa; motivo: string | null }[]; antig: number | null };
+export type TurnoDaFaixa = { turnoId: string; servicoId: string; nome: string; tipo: Tipo; letra: 'A' | 'B' | 'C'; inicio: string; fim: string };
+export type Avaliado = { candidato: Omit<Candidato, 'servicos'>; militarMotivo: string | null; porTurno: { turno: TurnoDaFaixa; motivo: string | null }[]; antig: number | null; cnh: string[] };
 
 const NOME_DO_TIPO: Record<Tipo, string> = { ordinario: 'Ordinário', pjes: 'PJES', diaria: 'Diária' };
 const NAO_LOTADO = 'Não está lotado na seção neste dia';
@@ -42,7 +42,8 @@ const EXPEDIENTE = { servico: 'Expediente', turno: 'A', ini: 480, fim: 960 };
 
 const somarDias = (data: string, n: number) => new Date(new Date(`${data}T00:00:00Z`).getTime() + n * 86400000).toISOString().slice(0, 10);
 
-async function avaliar(c: Consulta, v: VagaConsultada, somenteMilitar?: string): Promise<{ turnos: TurnoDaFaixa[]; avaliados: Avaliado[] }> {
+/** Avalia, para uma faixa e um dia, cada militar lotado na seção: o motivo de não poder (ou nulo) e, por turno da faixa, o motivo de cada turno. */
+export async function avaliarFaixa(c: Consulta, v: VagaConsultada, somenteMilitar?: string): Promise<{ turnos: TurnoDaFaixa[]; avaliados: Avaliado[] }> {
   const unidadeId = (await c.query<{ unidade_id: string }>('select unidade_id from escala where id = $1', [v.escalaId])).rows[0]!.unidade_id;
   const turnos = (
     await c.query<{ id: string; servico_id: string; nome: string; tipo: Tipo; letra: 'A' | 'B' | 'C'; inicio: string; fim: string }>(
@@ -128,7 +129,7 @@ async function avaliar(c: Consulta, v: VagaConsultada, somenteMilitar?: string):
 
   const avaliados = militares.map((m): Avaliado => {
     const base = { militarId: m.id, posto: m.posto, nomeGuerra: m.nome_guerra, matricula: m.matricula, equipe: m.equipe, jornada: m.jornada };
-    const pronto = (militarMotivo: string | null, porTurno: Avaliado['porTurno'] = []): Avaliado => ({ candidato: base, militarMotivo, porTurno, antig: m.antiguidade });
+    const pronto = (militarMotivo: string | null, porTurno: Avaliado['porTurno'] = []): Avaliado => ({ candidato: base, militarMotivo, porTurno, antig: m.antiguidade, cnh: m.cnh });
     if (!m.lotado_no_dia) return pronto(NAO_LOTADO);
     if (!m.ativo) return pronto('Desativado');
     if (afastados.has(m.id)) return pronto('Afastado');
@@ -168,7 +169,7 @@ async function avaliar(c: Consulta, v: VagaConsultada, somenteMilitar?: string):
 
 const motivoFinal = (a: Avaliado): string | null => a.militarMotivo ?? (a.porTurno.some((t) => t.motivo === null) ? null : (a.porTurno[0]?.motivo ?? 'Não há serviço nesta faixa'));
 
-const porAntiguidade = (x: Avaliado, y: Avaliado) =>
+export const porAntiguidade = (x: Avaliado, y: Avaliado) =>
   compararAntiguidade(
     { mat: x.candidato.matricula, m: { mat: x.candidato.matricula, posto: x.candidato.posto, antig: x.antig } as Militar },
     { mat: y.candidato.matricula, m: { mat: y.candidato.matricula, posto: y.candidato.posto, antig: y.antig } as Militar },
@@ -215,7 +216,7 @@ async function quemPodeAcumular(c: Consulta, v: VagaConsultada, avaliados: Avali
 
 /** Os que podem ocupar a vaga (Pronto antes do Adm, depois por posto e antiguidade), os que podem acumulá-la e quantos ficaram de fora, por motivo. */
 export async function avaliarCandidatos(c: Consulta, v: VagaConsultada): Promise<Candidatos> {
-  const { avaliados } = await avaliar(c, v);
+  const { avaliados } = await avaliarFaixa(c, v);
   const acumulando = v.guarnicaoId && v.funcaoId ? await quemPodeAcumular(c, v, avaliados) : [];
   const idsAcumulando = new Set(acumulando.map((x) => x.a.candidato.militarId));
   const ordem = (x: Avaliado, y: Avaliado) => Number(x.candidato.jornada === 'adm') - Number(y.candidato.jornada === 'adm') || porAntiguidade(x, y);
@@ -244,7 +245,7 @@ export async function avaliarCandidatos(c: Consulta, v: VagaConsultada): Promise
 
 /** Por que o militar não pode ocupar a vaga neste turno (a frase que a tela mostra); null se pode. */
 export async function motivoDeFora(c: Consulta, v: VagaConsultada & { militarId: string; turnoId: string }): Promise<string | null> {
-  const { avaliados } = await avaliar(c, v, v.militarId);
+  const { avaliados } = await avaliarFaixa(c, v, v.militarId);
   const a = avaliados[0];
   if (!a) return NAO_LOTADO;
   if (a.militarMotivo) return a.militarMotivo;
