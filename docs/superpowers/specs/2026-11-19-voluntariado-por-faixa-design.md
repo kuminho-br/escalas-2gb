@@ -175,23 +175,21 @@ O usuário confirmou na sandbox que a barra não aparece mais. A causa era o des
 ### O número do dia precisa parecer um botão (proposta)
 
 - **O usuário:** clicar no número do dia marca o dia inteiro, mas isso não é intuitivo. O número precisa parecer mais um botão, e o clique precisa ser mais claro.
-- **Proposta: o número vira uma pastilha com borda, com o estado do dia:**
-  - **Nada marcado:** borda fina e número escuro.
-  - **Parte do dia marcada:** borda vinho.
-  - **Dia inteiro marcado:** pastilha vinho cheia, número branco.
-  - **Ao passar o mouse ou focar:** fundo leve e a dica "Marcar o dia inteiro" (ou "Desmarcar o dia inteiro").
-- A pastilha tem tamanho de alvo de toque (ao menos 28 px no computador e 40 px no celular), e o guia "Como marcar" ensina o gesto. O nome lido pelo leitor de tela continua "Dia N: marcar o dia inteiro".
+- **Decisão do usuário:** o número só precisa **parecer um botão**, para induzir o clique. Não precisa mudar de estilo conforme o dia está marcado ou não.
+- **Proposta (mockup `docs/telas/mockup-entrega-2-4.html`):**
+  - Uma tecla com borda e uma sombra embaixo, igual em qualquer estado.
+  - Ao passar o mouse, a tecla fica com um fundo leve; ao clicar, ela "afunda" 1 px.
+  - A dica "Marcar o dia inteiro" aparece no mouse.
+  - O tamanho é de alvo de toque: 28 px no computador e 40 px no celular.
+- O guia "Como marcar" ensina o gesto. O nome lido pelo leitor de tela continua "Dia N: marcar o dia inteiro".
 
-## Escala do mês: os painéis de turno se ajustam à largura em todas as escalas (proposta)
+## Escala do mês: as guarnições do mesmo turno se ajustam à largura em todas as escalas (proposta)
 
-- **O usuário:** os painéis dos turnos ficam responsivos na escala Ordinário, mas não na montagem das outras escalas.
-- **Leitura da PROGRAMAÇÃO (a confirmar):**
-  - Hoje cada turno do dia ocupa uma linha inteira, e os cards de guarnição se distribuem em 2 a 4 colunas dentro dela.
-  - No Ordinário, cada turno tem várias guarnições e a linha fica cheia.
-  - Nas escalas de operação, cada turno tem uma ou duas guarnições, então a linha fica quase vazia e os turnos se empilham. Parece que nada se ajusta à tela.
-- **Proposta: os turnos do dia ficam lado a lado quando cabem.**
-  - Os turnos do dia passam a fluir numa grade, com cerca de 20rem por coluna.
-  - O turno com mais cards do que cabe numa coluna ocupa a linha inteira, como hoje.
-  - Uma operação com 3 turnos de uma guarnição cada mostra os 3 lado a lado numa tela larga e um embaixo do outro no celular.
-  - O Ordinário não muda.
-
+- **O usuário (corrigido):** a questão é que as **diferentes guarnições do mesmo turno** se ajustem à largura em todas as escalas, e não só no Ordinário. Não se trata de pôr turnos diferentes lado a lado.
+- **Como está hoje:**
+  - A regra já é a mesma para todas as escalas: os cards de um turno ficam em 2, 3 ou 4 colunas, conforme a **largura da tela inteira** (pontos de corte `sm`, `xl` e `2xl`).
+  - A causa provável de "não se ajustar" nas outras escalas é essa conta. As colunas não dependem do espaço que sobra no painel, que tem a coluna do dia e o trilho do lado.
+  - **A confirmar com um print de uma escala que não é o Ordinário.**
+- **Proposta (mockup, aba "Escala do mês"):**
+  - Os cards do turno ocupam colunas de pelo menos ~15rem, tantas quantas couberem **no espaço do painel** (`repeat(auto-fill, minmax(15rem, 1fr))`), em qualquer escala.
+  - No mockup, um controle de largura mostra o turno passando de 1 a 4 colunas.

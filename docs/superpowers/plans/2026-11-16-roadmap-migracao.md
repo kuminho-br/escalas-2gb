@@ -166,8 +166,8 @@ Plano próprio: `docs/superpowers/plans/2026-11-18-fase4-escala.md` (seis entreg
 - a barra cinza do dia 24 sumiu (confirmado);
 - os blocos da noite ficam cinzas no fim de semana porque a cor `bg-noite` nunca existiu; a proposta é bloco vazio sempre branco;
 - no computador, a régua de horários sai e entra um guia "Como marcar", com um dia de exemplo, que vale nas duas telas;
-- o número do dia vira uma pastilha que parece botão, com o estado do dia;
-- na Escala do mês, os turnos do dia ficam lado a lado quando cabem, em todas as escalas.
+- o número do dia passa a parecer um botão, igual em qualquer estado;
+- na Escala do mês, as guarnições do mesmo turno se ajustam à largura do painel, em todas as escalas.
 
 Entra como **entrega 2.4, antes da 3**, porque a pré-escala é montada nessa tela. As propostas esperam a confirmação do usuário. Design: adendo "depois da entrega 2.3" em `docs/superpowers/specs/2026-11-19-voluntariado-por-faixa-design.md`.
 

@@ -1,0 +1,332 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mockup — entrega 2.4</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Semi+Condensed:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --vinho: #8E1B1B; --vinho-escuro: #6F1414; --fundo: #EDEFF2; --superficie: #FFFFFF; --tinta: #1C2430;
+    --apagado: #5B6675; --linha: #D8DDE4; --input: #C9CFD8; --accent: #EEF1F4; --fds: #F4F5F7; --pendencia: #8A5A00;
+    --cond: "Barlow Semi Condensed", "Barlow", system-ui, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--fundo); color: var(--tinta); font: 15px/1.45 "Barlow", system-ui, sans-serif; }
+  main { max-width: 1180px; margin: 0 auto; padding: 24px 16px 64px; }
+  h1 { font-family: var(--cond); font-size: 30px; line-height: 1.1; margin: 0 0 4px; font-weight: 600; }
+  .nota { color: var(--apagado); max-width: 72ch; margin: 0 0 20px; }
+  .abas { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 16px; }
+  .abas button { font: 600 15px var(--cond); border: 1px solid var(--linha); background: var(--superficie); color: var(--tinta); padding: 8px 14px; border-radius: 8px; cursor: pointer; }
+  .abas button[aria-selected="true"] { background: var(--vinho); border-color: var(--vinho); color: #fff; }
+  .painel[hidden] { display: none; }
+  .cartao { background: var(--superficie); border: 1px solid var(--linha); border-radius: 12px; padding: 16px; }
+  .cab { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; margin-bottom: 12px; }
+  .cab h2 { font: 600 24px/1.1 var(--cond); margin: 0; }
+  .cab .sub { color: var(--apagado); font-size: 14px; }
+  .link { background: none; border: 0; padding: 0; font: inherit; font-size: 14px; color: var(--vinho); text-decoration: underline; text-underline-offset: 2px; cursor: pointer; }
+  .explica { margin: 10px 0 0; padding: 10px 12px; border-left: 3px solid var(--pendencia); background: #FCF1D6; font-size: 14px; max-width: 80ch; }
+
+  /* guia "Como marcar" */
+  .guia { border: 1px dashed var(--input); border-radius: 10px; padding: 12px 14px; margin-bottom: 14px; background: #FAFBFC; }
+  .guia[hidden] { display: none; }
+  .guia-topo { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 10px; }
+  .guia-topo strong { font: 600 16px var(--cond); }
+  .entendi { font: 600 14px var(--cond); border: 1px solid var(--linha); background: var(--superficie); border-radius: 6px; padding: 4px 12px; cursor: pointer; }
+  .exemplo { display: grid; grid-template-columns: auto 1fr; gap: 6px 10px; align-items: center; max-width: 560px; }
+  .exemplo .horas { grid-column: 2; position: relative; height: 16px; font-size: 12px; color: var(--apagado); }
+  .exemplo .horas span { position: absolute; transform: translateX(-50%); white-space: nowrap; }
+  .exemplo .horas span.ponta-esq { transform: none; }
+  .exemplo .horas span.ponta-dir { transform: translateX(-100%); }
+  .setas { grid-column: 1 / -1; display: grid; grid-template-columns: auto 1fr; gap: 10px; font-size: 13px; color: var(--tinta); }
+  .setas span::before { content: "↑ "; color: var(--vinho); font-weight: 600; }
+  .guia .dica { font-size: 13px; color: var(--apagado); margin: 8px 0 0; }
+
+  /* número do dia: parece botão (o mesmo em qualquer estado) */
+  .num {
+    font: 600 15px/1 var(--cond); color: var(--tinta); background: var(--superficie);
+    border: 1px solid var(--input); border-radius: 6px; box-shadow: 0 1px 0 var(--input);
+    min-width: 30px; height: 28px; padding: 0 7px; cursor: pointer; justify-self: start; position: relative;
+  }
+  .num:hover { background: var(--accent); border-color: #9AA4B2; }
+  .num:active { transform: translateY(1px); box-shadow: none; }
+  .num:focus-visible, .bloco:focus-visible { outline: 2px solid var(--tinta); outline-offset: 2px; z-index: 2; }
+  .num .sem { font-weight: 400; font-size: 12px; color: var(--apagado); margin-left: 4px; }
+
+  /* blocos: vazio sempre branco; marcado vinho; parcial listrado */
+  .faixa { display: flex; height: 28px; border: 1px solid var(--linha); border-radius: 5px; background: var(--superficie); }
+  .bloco { position: relative; min-width: 0; border: 0; border-right: 1px solid var(--linha); background: var(--superficie); cursor: pointer; padding: 0; }
+  .bloco:first-child { border-radius: 4px 0 0 4px; }
+  .bloco:last-child { border-right: 0; border-radius: 0 4px 4px 0; }
+  .bloco:hover { background: var(--accent); }
+  .bloco[aria-pressed="true"] { background: var(--vinho); }
+  .bloco[aria-pressed="true"]:hover { background: var(--vinho-escuro); }
+  .bloco .dica-h { display: none; position: absolute; bottom: calc(100% + 4px); left: 50%; transform: translateX(-50%); background: var(--tinta); color: #fff; font-size: 12px; padding: 2px 6px; border-radius: 4px; white-space: nowrap; z-index: 5; pointer-events: none; }
+  .bloco:hover .dica-h, .bloco:focus-visible .dica-h { display: block; }
+
+  /* calendário (computador) */
+  .semana, .grade { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 8px; }
+  .semana span { text-align: center; font-size: 12px; color: var(--apagado); }
+  .dia { display: grid; gap: 6px; border: 1px solid var(--linha); border-radius: 8px; padding: 6px; background: var(--superficie); user-select: none; }
+  .dia.fds { background: var(--fds); }
+  .dia.algum { border-color: var(--tinta); }
+  .rodape { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 14px; }
+  .rodape p { margin: 0; color: var(--apagado); font-size: 14px; flex: 1 1 100%; }
+  .btn { font: 600 15px var(--cond); border-radius: 8px; padding: 8px 14px; cursor: pointer; border: 1px solid var(--linha); background: var(--superficie); color: var(--tinta); }
+  .btn.primario { background: var(--vinho); border-color: var(--vinho); color: #fff; }
+
+  /* celular */
+  .aparelho { width: 390px; max-width: 100%; margin: 0 auto; border: 10px solid #2A313C; border-radius: 34px; background: var(--fundo); overflow: hidden; }
+  .tela { height: 720px; overflow-y: auto; padding: 12px; position: relative; }
+  .tela .cartao { padding: 12px; }
+  .voltar { display: inline-block; font: 600 14px var(--cond); border: 1px solid var(--linha); border-radius: 8px; padding: 6px 10px; background: var(--superficie); margin-bottom: 10px; color: var(--tinta); text-decoration: none; }
+  .regua { position: sticky; top: -12px; z-index: 6; background: var(--superficie); margin: 0 -12px; padding: 6px 12px; border-bottom: 1px solid var(--linha); display: grid; grid-template-columns: 3.75rem 1fr; gap: 8px; }
+  .regua .horas { position: relative; height: 16px; font-size: 12px; color: var(--apagado); border: 1px solid transparent; }
+  .regua .horas span { position: absolute; transform: translateX(-50%); }
+  .regua .horas span.ponta-esq { transform: none; }
+  .regua .horas span.ponta-dir { transform: translateX(-100%); }
+  .linhas { display: grid; gap: 6px; margin-top: 8px; }
+  .linha { display: grid; grid-template-columns: 3.75rem 1fr; gap: 8px; align-items: center; border: 1px solid var(--linha); border-radius: 8px; padding: 6px; background: var(--superficie); user-select: none; }
+  .linha.fds { background: var(--fds); }
+  .linha .num { height: 40px; min-width: 100%; padding: 0 6px; display: flex; align-items: center; justify-content: flex-start; gap: 4px; }
+  .linha .faixa { height: 40px; touch-action: manipulation; }
+  .barra { position: sticky; bottom: -12px; margin: 12px -12px -12px; background: var(--superficie); border-top: 1px solid var(--linha); padding: 10px 12px; display: grid; gap: 8px; }
+  .barra p { margin: 0; color: var(--apagado); font-size: 14px; }
+  .barra div { display: flex; gap: 8px; }
+
+  /* escala do mês */
+  .controle { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-bottom: 12px; font-size: 14px; }
+  .controle input { width: 260px; max-width: 100%; }
+  .dia-escala { display: grid; grid-template-columns: 5rem 1fr; gap: 12px; border: 1px solid var(--linha); border-radius: 12px; padding: 12px; background: #F7F8FA; max-width: 100%; }
+  .dia-escala .n { font: 600 36px/1 var(--cond); }
+  .dia-escala .s { font-size: 12px; color: var(--apagado); }
+  .turno { display: flex; gap: 12px; }
+  .turno .tarja { width: 6px; border-radius: 6px; background: #E8D9A3; flex: none; }
+  .turno h3 { font: 600 15px var(--cond); margin: 0 0 8px; }
+  .turno h3 span { font-weight: 500; color: var(--apagado); }
+  .cards { display: grid; gap: 10px; }
+  .cards.proposta { grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr)); }
+  .cards.hoje { grid-template-columns: 1fr; }
+  .gu { background: var(--superficie); border: 1px solid var(--linha); border-radius: 10px; padding: 10px; }
+  .gu h4 { font: 600 16px var(--cond); margin: 0 0 6px; display: flex; justify-content: space-between; gap: 8px; }
+  .gu h4 small { font: 500 12px "Barlow"; color: var(--apagado); }
+  .gu ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; font-size: 14px; }
+  .gu li { display: flex; gap: 6px; align-items: baseline; }
+  .gu .f { color: var(--apagado); font-size: 12px; min-width: 5.5rem; }
+  .vazia { flex: 1; height: 20px; border-radius: 4px; background: repeating-linear-gradient(135deg, #E9ECF0 0 6px, #F7F8FA 6px 12px); }
+  .lado { display: grid; gap: 16px; }
+  .rot { font: 600 14px var(--cond); color: var(--apagado); margin: 0 0 6px; }
+  @media (max-width: 760px) { .semana, .grade { gap: 4px; } .dia { padding: 4px; } }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+<main>
+  <h1>Entrega 2.4 — mockup</h1>
+  <p class="nota">Dados fictícios. Os blocos são os de hoje da 1ª SB (00–08, 08–16, 16–20, 20–24). Tudo é clicável: bloco, número do dia, arrastar com o mouse e o guia "Como marcar".</p>
+
+  <div class="abas" role="tablist">
+    <button role="tab" aria-selected="true" data-aba="pc">Voluntariado — computador</button>
+    <button role="tab" aria-selected="false" data-aba="cel">Voluntariado — celular</button>
+    <button role="tab" aria-selected="false" data-aba="esc">Escala do mês</button>
+  </div>
+
+  <section class="painel" id="pc">
+    <div class="cartao">
+      <div class="cab">
+        <h2>CB BM MOREIRA</h2><span class="sub">Equipe Bravo. Dezembro de 2026.</span>
+        <button class="link" data-reabrir="pc">Como marcar</button>
+      </div>
+      <div class="guia" data-guia="pc"></div>
+      <div class="semana" aria-hidden="true"></div>
+      <div class="grade" data-grade="pc"></div>
+      <div class="rodape">
+        <p data-total="pc">Nenhum horário marcado.</p>
+        <button class="btn">Todos os sábados e domingos</button>
+        <button class="btn">Copiar de novembro de 2026</button>
+        <button class="btn">Limpar</button>
+        <button class="btn primario">Salvar e ir para o próximo</button>
+      </div>
+    </div>
+    <p class="explica">No computador a régua de horários do topo sai: o horário de cada bloco aparece ao passar o mouse, e o guia "Como marcar" mostra o esquema com o dia de exemplo. O número do dia tem cara de botão (borda e sombra de tecla), igual em qualquer estado. Bloco vazio é sempre branco, também no fim de semana.</p>
+  </section>
+
+  <section class="painel" id="cel" hidden>
+    <div class="aparelho"><div class="tela">
+      <a class="voltar" href="#" onclick="return false">‹ Militares</a>
+      <div class="cartao">
+        <div class="cab"><h2>CB BM MOREIRA</h2><span class="sub">Equipe Bravo.</span><button class="link" data-reabrir="cel">Como marcar</button></div>
+        <div class="guia" data-guia="cel"></div>
+        <div class="regua" aria-hidden="true"><span></span><div class="horas" data-horas-regua></div></div>
+        <div class="linhas" data-grade="cel"></div>
+        <div class="barra">
+          <p data-total="cel">Nenhum horário marcado.</p>
+          <div><button class="btn">Limpar</button><button class="btn primario">Salvar</button></div>
+        </div>
+      </div>
+    </div></div>
+    <p class="explica">No celular a régua parada no topo continua (é a referência durante a rolagem). O guia é o mesmo do computador, com o texto do toque; depois do "Entendi" ele fica fechado e volta pelo "Como marcar". O número do dia é a mesma tecla, com o tamanho do dedo.</p>
+  </section>
+
+  <section class="painel" id="esc" hidden>
+    <div class="controle">
+      <label for="largura">Largura do painel</label>
+      <input id="largura" type="range" min="320" max="1140" value="1140">
+      <span data-largura>1140 px</span>
+    </div>
+    <div class="lado">
+      <div>
+        <p class="rot">Proposta: as guarnições do turno se ajustam à largura do painel, em qualquer escala</p>
+        <div class="dia-escala" data-dia-escala>
+          <div><div class="n">5</div><div class="s">sábado</div></div>
+          <div class="turno"><div class="tarja"></div><div style="flex:1;min-width:0">
+            <h3>08h às 16h <span>A, PE Seguro</span></h3>
+            <div class="cards proposta" data-cards></div>
+          </div></div>
+        </div>
+      </div>
+    </div>
+    <p class="explica">Arraste a largura: as guarnições do mesmo turno passam para 1, 2, 3 ou 4 colunas conforme o espaço do painel, e não conforme a tela inteira. É a leitura que faço do que você viu ("só no Ordinário fica responsivo"): a confirmar com um print de outra escala, porque a regra de hoje já é a mesma para todas.</p>
+  </section>
+</main>
+
+<script>
+  const BLOCOS = [[0, 480], [480, 960], [960, 1200], [1200, 1440]];
+  const hh = (m) => String(Math.floor((m % 1440) / 60)).padStart(2, '0') + 'h';
+  const SEMANA = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'];
+  const MES = '2026-12';
+  const DIAS = 31;
+  const diaSem = (n) => new Date(Date.UTC(2026, 11, n)).getUTCDay();
+  const marcas = { pc: new Map(), cel: new Map() };
+  const chave = (n, b) => n + '|' + b;
+  let arrasto = null;
+  window.addEventListener('pointerup', () => (arrasto = null));
+
+  function guardado(nome) { try { return localStorage.getItem(nome); } catch { return null; } }
+  function guardar(nome, v) { try { localStorage.setItem(nome, v); } catch { /* sem armazenamento: o guia só volta a aparecer */ } }
+
+  function blocoEl(onde, n, i, alto) {
+    const [a, b] = BLOCOS[i];
+    const el = document.createElement('button');
+    el.type = 'button';
+    el.className = 'bloco';
+    el.style.flex = String(b - a);
+    el.setAttribute('aria-label', `Dia ${n}, ${hh(a)} às ${hh(b) === '00h' ? '24h' : hh(b)}`);
+    el.setAttribute('aria-pressed', 'false');
+    el.innerHTML = `<span class="dica-h">${hh(a)} às ${hh(b)}</span>`;
+    el.dataset.k = chave(n, i);
+    el.addEventListener('pointerdown', (e) => {
+      if (e.pointerType !== 'mouse') return;
+      const acao = marcas[onde].has(el.dataset.k) ? 'tirar' : 'pôr';
+      arrasto = { onde, acao };
+      aplicar(onde, el.dataset.k, acao);
+    });
+    el.addEventListener('pointerenter', (e) => { if (arrasto && arrasto.onde === onde && e.pointerType === 'mouse') aplicar(onde, el.dataset.k, arrasto.acao); });
+    el.addEventListener('click', (e) => { if (e.detail === 0 || e.pointerType !== 'mouse' && onde === 'cel') alternar(onde, el.dataset.k); });
+    return el;
+  }
+  function numEl(onde, n) {
+    const el = document.createElement('button');
+    el.type = 'button';
+    el.className = 'num';
+    el.title = 'Marcar o dia inteiro';
+    el.innerHTML = onde === 'cel' ? `${n}<span class="sem">${SEMANA[diaSem(n)]}</span>` : String(n);
+    el.setAttribute('aria-label', `Dia ${n}: marcar o dia inteiro`);
+    el.addEventListener('click', () => {
+      const todos = BLOCOS.every((_, i) => marcas[onde].has(chave(n, i)));
+      BLOCOS.forEach((_, i) => aplicar(onde, chave(n, i), todos ? 'tirar' : 'pôr'));
+    });
+    return el;
+  }
+  function aplicar(onde, k, acao) { acao === 'pôr' ? marcas[onde].set(k, true) : marcas[onde].delete(k); pintar(onde); }
+  function alternar(onde, k) { aplicar(onde, k, marcas[onde].has(k) ? 'tirar' : 'pôr'); }
+  function pintar(onde) {
+    document.querySelectorAll(`[data-grade="${onde}"] .bloco, [data-guia="${onde}"] .bloco`).forEach((b) => b.setAttribute('aria-pressed', String(marcas[onde].has(b.dataset.k))));
+    document.querySelectorAll(`[data-grade="${onde}"] [data-dia]`).forEach((d) => d.classList.toggle('algum', BLOCOS.some((_, i) => marcas[onde].has(chave(d.dataset.dia, i)))));
+    let min = 0; const dias = new Set();
+    for (const k of marcas[onde].keys()) { const [n, i] = k.split('|'); if (n === 'ex') continue; dias.add(n); min += BLOCOS[i][1] - BLOCOS[i][0]; }
+    const h = min / 60;
+    document.querySelector(`[data-total="${onde}"]`).textContent = min ? `${h} ${h === 1 ? 'hora' : 'horas'} em ${dias.size} ${dias.size === 1 ? 'dia' : 'dias'}.` : 'Nenhum horário marcado.';
+  }
+
+  function guia(onde) {
+    const caixa = document.querySelector(`[data-guia="${onde}"]`);
+    const toque = onde === 'cel';
+    caixa.innerHTML = `
+      <div class="guia-topo"><strong>Como marcar</strong><button class="entendi" type="button">Entendi</button></div>
+      <div class="exemplo">
+        <span data-num-ex></span><div class="faixa" data-faixa-ex></div>
+        <div class="horas" data-horas-ex></div>
+        <div class="setas"><span>${toque ? 'tocar' : 'clicar'} no número marca o dia inteiro</span><span>${toque ? 'tocar' : 'clicar'} num bloco marca só esse horário</span></div>
+      </div>
+      <p class="dica">${toque ? 'Deslizar o dedo rola a página e não marca nada.' : 'Arraste com o mouse por cima dos blocos ou dos números para marcar vários de uma vez. Passe o mouse num bloco para ver o horário.'}</p>`;
+    const num = numEl(onde, 'ex'); num.innerHTML = '5'; num.title = 'Marcar o dia inteiro (exemplo)';
+    caixa.querySelector('[data-num-ex]').replaceWith(num);
+    const faixa = caixa.querySelector('[data-faixa-ex]');
+    BLOCOS.forEach((_, i) => faixa.appendChild(blocoEl(onde, 'ex', i)));
+    horas(caixa.querySelector('[data-horas-ex]'));
+    const fechar = () => { caixa.hidden = true; guardar('guia-' + onde, 'fechado'); };
+    caixa.querySelector('.entendi').addEventListener('click', fechar);
+    caixa.hidden = guardado('guia-' + onde) === 'fechado';
+    document.querySelector(`[data-reabrir="${onde}"]`).addEventListener('click', () => { caixa.hidden = false; });
+  }
+  function horas(el) {
+    const cortes = [0, 480, 960, 1200, 1440];
+    el.innerHTML = cortes.map((c, i) => `<span class="${i === 0 ? 'ponta-esq' : i === cortes.length - 1 ? 'ponta-dir' : ''}" style="left:${(c / 1440) * 100}%">${hh(c)}</span>`).join('');
+  }
+
+  // computador
+  document.querySelector('.semana').innerHTML = SEMANA.map((s) => `<span>${s}</span>`).join('');
+  const gradePc = document.querySelector('[data-grade="pc"]');
+  for (let i = 0; i < diaSem(1); i++) gradePc.appendChild(document.createElement('span'));
+  for (let n = 1; n <= DIAS; n++) {
+    const d = document.createElement('div');
+    d.className = 'dia' + ([0, 6].includes(diaSem(n)) ? ' fds' : '');
+    d.dataset.dia = n;
+    const faixa = document.createElement('div'); faixa.className = 'faixa';
+    BLOCOS.forEach((_, i) => faixa.appendChild(blocoEl('pc', n, i)));
+    d.append(numEl('pc', n), faixa);
+    gradePc.appendChild(d);
+  }
+  // celular
+  const gradeCel = document.querySelector('[data-grade="cel"]');
+  for (let n = 1; n <= DIAS; n++) {
+    const d = document.createElement('div');
+    d.className = 'linha' + ([0, 6].includes(diaSem(n)) ? ' fds' : '');
+    d.dataset.dia = n;
+    const faixa = document.createElement('div'); faixa.className = 'faixa';
+    BLOCOS.forEach((_, i) => faixa.appendChild(blocoEl('cel', n, i)));
+    d.append(numEl('cel', n), faixa);
+    gradeCel.appendChild(d);
+  }
+  horas(document.querySelector('[data-horas-regua]'));
+  guia('pc'); guia('cel');
+  // marcações de exemplo, para ver os estados (inclusive no fim de semana)
+  [[4, 1], [4, 2], [5, 0], [5, 1], [5, 2], [5, 3], [12, 3], [13, 0]].forEach(([n, i]) => { marcas.pc.set(chave(n, i), true); marcas.cel.set(chave(n, i), true); });
+  pintar('pc'); pintar('cel');
+
+  // escala do mês
+  const GU = [
+    ['Viatura 1', 'faltando', [['Motorista', 'SD BM ARRUDA'], ['Chefe', 'CB BM SOUTO'], ['Patrulheiro', null]]],
+    ['Viatura 2', 'completa', [['Motorista', 'SD BM QUEIROZ'], ['Chefe', '3º SGT BM LIMA']]],
+    ['Moto 1', 'completa', [['Motociclista', 'SD BM VALE']]],
+    ['Apoio', 'faltando', [['Motorista', null], ['Auxiliar', 'SD BM TELES']]],
+    ['Base', 'completa', [['Operador', 'CB BM MOTA']]],
+  ];
+  document.querySelector('[data-cards]').innerHTML = GU.map(([nome, sit, funcoes]) => `
+    <article class="gu"><h4>${nome}<small>${sit === 'completa' ? 'completa' : 'falta gente'}</small></h4>
+      <ul>${funcoes.map(([f, quem]) => `<li><span class="f">${f}</span>${quem ? `<span>${quem}</span>` : '<span class="vazia" aria-label="vaga vazia"></span>'}</li>`).join('')}</ul></article>`).join('');
+  const faixaLarg = document.getElementById('largura');
+  const caixaDia = document.querySelector('[data-dia-escala]');
+  const ajustar = () => { caixaDia.style.width = faixaLarg.value + 'px'; document.querySelector('[data-largura]').textContent = faixaLarg.value + ' px'; };
+  faixaLarg.addEventListener('input', ajustar); ajustar();
+
+  // abas
+  document.querySelectorAll('[data-aba]').forEach((b) => b.addEventListener('click', () => {
+    document.querySelectorAll('[data-aba]').forEach((x) => x.setAttribute('aria-selected', String(x === b)));
+    document.querySelectorAll('.painel').forEach((p) => (p.hidden = p.id !== b.dataset.aba));
+  }));
+</script>
+</body>
+</html>

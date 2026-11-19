@@ -45,7 +45,7 @@ As condições que o design implica e que mais podem morder quem monta a escala;
 | **2 — Voluntariado lançado à mão** | Calendário do mês por militar com A e B por dia, "já lançados" e "faltam lançar", atalhos e "Salvar e ir para o próximo". | — |
 | **2.2 — Voluntariado por faixa** | A disponibilidade passa a ser marcada em blocos do dia tirados dos horários dos serviços que pedem voluntariado (hoje 00–08, 08–16, 16–20, 20–24), guardada em horários; calendário no computador, um dia por linha no celular. | 2 |
 | **2.3 — Ajustes do voluntariado** | Flexibilidade do voluntariado em horas (gestor, qualquer nível); o gestor escolhe as escalas que montam os blocos do dia; "Mostrar" quem ficou de fora só por voluntariado; modo foco no celular. | 2.2 |
-| **2.4 — Acabamento do voluntariado e da escala do mês** | Bloco vazio sempre branco; guia "Como marcar"; número do dia como pastilha; turnos do dia lado a lado na Escala do mês em todas as escalas. | 2.3 |
+| **2.4 — Acabamento do voluntariado e da escala do mês** | Bloco vazio sempre branco; guia "Como marcar"; número do dia com cara de botão; guarnições do mesmo turno se ajustando à largura do painel na Escala do mês, em todas as escalas. | 2.3 |
 | **2.1 — Ordem de escala** | Tela da escala com as vagas de cada guarnição em quadrados para numerar a vez de cada uma (vigência por mês); os cards da escala do mês seguem a ordem. Substitui a prioridade da guarnição (RN-08). | 1 |
 | **3 — Pré-escala e distribuições** | "Gerar pré-escala" (Pronto pelo ciclo das equipes), saldos do Adm e operações pelas cotas, com o que ficou de fora e por quê. Gerar de novo só completa lacunas e respeita as remoções. Os militares entram nas vagas seguindo a ordem de escala à risca (o mais antigo apto em cada vaga). | 1, 2, 2.1, 2.2, 2.3 e 2.4 |
 | **4 — Grade geral** | Uma linha por militar, uma coluna por dia, blocos na cor do serviço com a letra, choques em vermelho, pegas de pedidas por PJES e Diária, ficha lateral com Trocar, Remover e Adicionar. | 1, 2 |
@@ -781,8 +781,8 @@ Cada uma ganha aqui as suas tarefas, no formato da entrega 1, depois do merge da
 - **Entrega 2.4 — Acabamento do voluntariado e da escala do mês** (antes da 3; detalhar quando começar e depois de o usuário confirmar as propostas):
   - bloco vazio sempre branco (a cor `bg-noite` não existia);
   - guia "Como marcar" com um dia de exemplo, no lugar da régua no computador (a régua fica no celular);
-  - número do dia como pastilha com o estado do dia;
-  - turnos do dia lado a lado na Escala do mês, quando cabem.
+  - número do dia com cara de botão (igual em qualquer estado);
+  - guarnições do mesmo turno se ajustando à largura do painel na Escala do mês, em todas as escalas.
 
   Design: adendo "depois da entrega 2.3" em `docs/superpowers/specs/2026-11-19-voluntariado-por-faixa-design.md`.
 - **Entrega 3 — Pré-escala e distribuições:** camada que traduz o mês para o motor (militares, alocações de três meses, remoções, horários, voluntariado, cotas, modelos de guarnição pelas faixas) e de volta para ids; "Gerar pré-escala" (equipe do dia 1 detectada por `detectarEquipeInicial`, com escolha manual), saldos do Adm (`distribuirAdm`, com `servico` e `turno` sempre preenchidos), operações pelas cotas (`distribuirCotas` e `diagnosticarOperacoes`) e encaixe nas guarnições (`calcularGuarnicao`); prévia do que entra e do que ficou de fora antes de gravar; nada sobrescreve o que já está escalado. Pendências do motor (`turnosPadraoExigidos` no turno noturno de 24h, nomes normalizados uma vez na entrada) resolvidas aqui, com teste no motor.
