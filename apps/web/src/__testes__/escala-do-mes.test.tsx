@@ -78,6 +78,34 @@ describe('escala do mês', () => {
     expect(within(secaoDoDia(2)).getByText('2')).not.toHaveClass('text-alerta');
   });
 
+  it('os cards do turno esticam para ocupar a linha, em qualquer escala: uma guarnição sozinha não deixa coluna vazia', async () => {
+    api();
+    abrir('/escala-do-mes');
+    const d1 = await screen.findByRole('region', { name: 'Dia 1' });
+    const grade = d1.querySelector('[data-faixa] [data-cards-do-turno]') as HTMLElement;
+    expect(grade).not.toBeNull();
+    expect(grade).toHaveClass('grid-cols-[repeat(auto-fit,minmax(min(100%,18rem),1fr))]');
+    expect(grade.className).not.toMatch(/(^|\s)(sm|xl|2xl):grid-cols-/);
+  });
+
+  it('dentro do card, as funções ficam em colunas quando cabem', async () => {
+    api();
+    abrir('/escala-do-mes');
+    const d1 = await screen.findByRole('region', { name: 'Dia 1' });
+    const funcoes = d1.querySelector('[data-faixa] [data-funcoes]') as HTMLElement;
+    expect(funcoes).not.toBeNull();
+    expect(funcoes).toHaveClass('grid-cols-[repeat(auto-fill,minmax(11rem,1fr))]');
+  });
+
+  it('turnos diferentes do dia continuam um embaixo do outro (uma coluna só)', async () => {
+    api();
+    abrir('/escala-do-mes');
+    const d1 = await screen.findByRole('region', { name: 'Dia 1' });
+    const contêiner = (d1.querySelector('[data-faixa]') as HTMLElement).parentElement as HTMLElement;
+    expect(contêiner).toHaveClass('grid');
+    expect(contêiner.className).not.toMatch(/grid-cols-/);
+  });
+
   it('a faixa da noite fica marcada e a do dia não', async () => {
     api();
     abrir('/escala-do-mes');
