@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from 'react';
 import { mensagemDe } from '@/api/cliente';
 import { consultaVoluntariadoDoMes, consultaVoluntariadoDoMilitar, lancarVoluntariado } from '@/api/voluntariado';
 import { ProvedorDePendencias } from '@/componentes/AlteracoesPendentes';
-import { Input } from '@/componentes/ui/input';
+import { CampoDeMes } from '@/componentes/CampoDeMes';
 import { Label } from '@/componentes/ui/label';
 import { CalendarioDoVoluntariado } from '@/componentes/voluntariado/CalendarioDoVoluntariado';
 import { ListaDoVoluntariado } from '@/componentes/voluntariado/ListaDoVoluntariado';
@@ -45,7 +45,7 @@ function Voluntariado() {
         <h1 className="font-cond text-[28px] leading-tight font-semibold">Voluntariado</h1>
         <div className="grid gap-1.5">
           <Label htmlFor="vo-mes">Mês</Label>
-          <Input id="vo-mes" type="month" value={mes} onChange={(e) => e.target.value && void navigate({ search: { mes: e.target.value } })} className="w-44" />
+          <CampoDeMes id="vo-mes" valor={mes} aoMudar={(m) => void navigate({ search: { mes: m } })} />
         </div>
         {lista.isPending && <p className="text-apagado">Carregando…</p>}
         {lista.error && <p role="alert" className="text-alerta">{mensagemDe(lista.error)}</p>}

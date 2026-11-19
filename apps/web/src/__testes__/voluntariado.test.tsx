@@ -358,3 +358,36 @@ describe('voluntariado: revisão final', () => {
     expect(turno(4, 'B')).toHaveAttribute('aria-pressed', 'true');
   });
 });
+
+describe('voluntariado: campo de mês (ajuste)', () => {
+  const atual = mesAtual();
+  const rotaDoMes = (m: string) => `GET /api/unidades/u-1sb/voluntariado/${m}`;
+  const noMesAtual = (extra: Parameters<typeof simularApi>[0] = {}) => api({ [rotaDoMes(atual)]: { status: 200, corpo: { mes: atual, militares: [] } }, ...extra });
+
+  it('"Mês anterior" volta um mês e consulta o mês novo; "Próximo mês" avança', async () => {
+    const f = noMesAtual();
+    const router = abrir('/voluntariado');
+    await screen.findByRole('heading', { name: 'SD BM ANDRADE' });
+    await userEvent.click(screen.getByRole('button', { name: 'Mês anterior' }));
+    await waitFor(() => expect((router.state.location.search as { mes?: string }).mes).toBe(atual));
+    await waitFor(() => expect(chamadasA(f, rotaDoMes(atual))).toBe(1));
+    expect(screen.getByLabelText('Mês')).toHaveValue(atual);
+    await userEvent.click(screen.getByRole('button', { name: 'Próximo mês' }));
+    await waitFor(() => expect((router.state.location.search as { mes?: string }).mes).toBe(MES));
+  });
+
+  it('em navegador que mostra o campo como texto, digitar um mês pela metade não volta ao padrão', async () => {
+    noMesAtual();
+    const router = abrir('/voluntariado');
+    await screen.findByRole('heading', { name: 'SD BM ANDRADE' });
+    const campo = screen.getByLabelText('Mês');
+    // como o Firefox de computador, que não tem o campo de mês e o mostra como texto (o React reaplica type="month" a cada renderização: trava a propriedade)
+    campo.setAttribute('type', 'text');
+    Object.defineProperty(campo, 'type', { get: () => 'text', set: () => {}, configurable: true });
+    fireEvent.change(campo, { target: { value: `${atual.slice(0, 4)}-1` } });
+    expect(campo).toHaveValue(`${atual.slice(0, 4)}-1`);
+    fireEvent.change(campo, { target: { value: atual } });
+    await waitFor(() => expect((router.state.location.search as { mes?: string }).mes).toBe(atual));
+    expect(campo).toHaveValue(atual);
+  });
+});
