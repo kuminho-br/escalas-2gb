@@ -183,6 +183,34 @@ describe('acumular funções', () => {
     expect(faixa(e, 16).semPosto.map((o) => o.nomeGuerra)).toEqual(['ESCALADOR']);
   });
 
+  it('guarnição que saiu da faixa no mês: a original vai para "Sem guarnição" e não acumula; o acúmulo de uma guarnição que saiu some sem esconder a original', async () => {
+    const vinculos = (...guarnicoes: string[]) =>
+      api.pedir('escalante', 'PUT', `/api/escalas/${escalaId}/vinculos/${atual}`, { itens: guarnicoes.map((guarnicaoId) => ({ guarnicaoId, ...FAIXA })) });
+    await escalar('CHEFE', dia(18), VAGAS().chefe);
+    expect((await acumular('CHEFE', dia(18), VAGAS().graduado)).status).toBe(201);
+    await escalar('COMB', dia(19), VAGAS().combatente);
+    try {
+      // a ABT sai da faixa neste mês: os chefes e combatentes dela passam a "Sem guarnição"
+      expect((await vinculos(grad)).status).toBe(200);
+      const e = await mesCompleto();
+      expect(faixa(e, 18).semPosto.map((o) => o.nomeGuerra)).toEqual(['CHEFE']);
+      expect(ocupantes(e, 18, 'Graduado de dia', 'Graduado').map((o) => [o.nomeGuerra, o.acumuloId !== null])).toEqual([['CHEFE', true]]);
+      // quem está sem vaga de guarnição não é oferecido para acumular nem aceito
+      expect((await candidatos(19, VAGAS().graduado)).acumular).toEqual([]);
+      const recusa = await acumular('COMB', dia(19), VAGAS().graduado);
+      expect(recusa.status).toBe(409);
+      expect((await recusa.json()).erro).toBe('Escolha uma vaga de guarnição para este militar antes de acumular.');
+      // o contrário: o "Graduado de dia" sai da faixa; o acúmulo some da tela e a original continua na ABT
+      expect((await vinculos(abt)).status).toBe(200);
+      const depois = await mesCompleto();
+      expect(ocupantes(depois, 18, 'ABT', 'Chefe').map((o) => [o.nomeGuerra, o.acumulaCom])).toEqual([['CHEFE', []]]);
+      expect(faixa(depois, 18).guarnicoes.find((g) => g.nome === 'Graduado de dia')).toBeUndefined();
+      expect(faixa(depois, 18).semPosto).toEqual([]);
+    } finally {
+      expect((await vinculos(abt, grad)).status).toBe(200);
+    }
+  });
+
   it('acesso: quem não é escalante recebe 403 nas duas rotas e o acúmulo que não existe dá 404', async () => {
     await escalar('CHEFE', dia(17), VAGAS().chefe);
     const r = await acumular('CHEFE', dia(17), VAGAS().graduado, 'semPapel');

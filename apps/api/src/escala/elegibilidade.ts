@@ -17,6 +17,7 @@ import {
   type Militar,
 } from 'dominio';
 import type { Consulta } from '../banco/banco.ts';
+import { vinculosDaEscala } from '../cadastros/escalas.ts';
 import { feriadosDoAno } from '../cadastros/feriados.ts';
 import { versaoNoMes } from '../cadastros/guarnicoes-regras.ts';
 import { versoesDasGuarnicoes } from '../cadastros/guarnicoes.ts';
@@ -187,6 +188,8 @@ async function quemPodeAcumular(c: Consulta, v: VagaConsultada, avaliados: Avali
   const nomes = new Map((await c.query<{ id: string; nome: string }>('select id, nome from guarnicao where id = any($1)', [guarnicaoIds])).rows.map((g) => [g.id, g.nome]));
   const versoes = await versoesDasGuarnicoes(c, guarnicaoIds);
   const mes = v.data.slice(0, 7);
+  // só conta como vaga de card a que ainda está vinculada a esta faixa neste mês (a original de quem ficou sem guarnição aparece em "Sem guarnição")
+  const vinculo = (await vinculosDaEscala(c, v.escalaId)).find((x) => x.vigencia <= mes);
   const lista: { a: Avaliado; alocacaoId: string; vaga: string }[] = [];
   const jaVistos = new Set<string>();
   for (const al of doFaixa) {
@@ -194,6 +197,7 @@ async function quemPodeAcumular(c: Consulta, v: VagaConsultada, avaliados: Avali
     if (!a || a.militarMotivo !== JA_ESCALADO || jaVistos.has(al.militar_id)) continue;
     const mesmaVaga = (g: string, f: string) => g === v.guarnicaoId && f === v.funcaoId;
     if (mesmaVaga(al.guarnicao_id, al.funcao_id) || ocupa.some((x) => x.alocacao_id === al.id && mesmaVaga(x.guarnicao_id, x.funcao_id))) continue;
+    if (!vinculo?.itens.some((i) => i.guarnicaoId === al.guarnicao_id && i.inicio === v.inicio && i.fim === v.fim)) continue;
     const versao = versaoNoMes(versoes.get(al.guarnicao_id) ?? [], mes);
     const funcao = versao?.ativa ? versao.composicao.find((f) => f.funcaoId === al.funcao_id) : undefined;
     if (!versao || !funcao) continue;

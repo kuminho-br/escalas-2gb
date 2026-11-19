@@ -117,6 +117,10 @@ export async function acumular(tx: Consulta, alocacaoId: string, d: NovoAcumulo)
   ).rows[0]!;
   const mes = a.data.slice(0, 7);
   if (!a.guarnicao_id || !a.funcao_id) throw new Recusa('Escolha uma vaga de guarnição para este militar antes de acumular.');
+  // a vaga que ele já ocupa precisa ser de um card (vinculada à faixa neste mês, guarnição ativa, função na composição); senão ele está em "Sem guarnição"
+  await conferirVaga(tx, a.escala_id, mes, a, a.guarnicao_id, a.funcao_id).catch((e) => {
+    throw e instanceof Recusa ? new Recusa('Escolha uma vaga de guarnição para este militar antes de acumular.') : e;
+  });
   const vaga = await conferirVaga(tx, a.escala_id, mes, a, d.guarnicaoId, d.funcaoId);
 
   await travaDaFaixa(tx, a.escala_id, a.data, a);
