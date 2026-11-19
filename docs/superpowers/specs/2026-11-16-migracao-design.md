@@ -249,3 +249,16 @@ Decisão do usuário, que fecha a divergência achada na revisão 3 entre os doc
 O motor (`CNH_HABILITA`, `cnhHabilitadas`) e o protótipo já seguiam isso; o `CLAUDE.md` e o esquema do banco diziam, por engano, que D, C e B habilitavam A.
 
 **Tela do motorista (pendente de definição):** o usuário não quer marcar categoria por categoria (A, e depois B, C, D e E): ao clicar em E, as categorias que ela habilita devem já aparecer marcadas. Hoje a ficha guarda só as categorias da carteira e mostra as habilitadas tracejadas ("pela D"). A definir antes de mexer na tela: se o clique em E também marca o A, dado que A é isolada, e se as habilitadas ficam marcadas só na tela ou passam a ser gravadas.
+
+## Adendo (19/11/2026) — Nome do sistema e módulos
+
+Registro do usuário, para lembrar no futuro:
+
+- **O nome do sistema inteiro é "Sistema de Gestão - 2º GB".**
+- **O módulo em desenvolvimento agora é o de confecção de escalas:** cadastros, voluntariado lançado pelo escalante, escala do mês, pré-escala, grade geral e documento.
+- **O módulo previsto depois é o de visualização de escalas**, com duas partes:
+  - **as publicações**, ou seja, as escalas publicadas da unidade;
+  - **a área do próprio militar**, onde ele marca o próprio voluntariado e vê as próprias escalas ("Minha escala").
+
+A "Minha escala" (entrega 6 da fase 4) e o militar marcando o próprio voluntariado (fase 7) já são as primeiras peças desse segundo módulo.
+

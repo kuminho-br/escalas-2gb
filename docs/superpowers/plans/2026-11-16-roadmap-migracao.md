@@ -2,6 +2,8 @@
 
 16/11/2026 · aprovado em 16/11/2026
 
+**Nome e módulos (19/11/2026):** o sistema inteiro se chama **"Sistema de Gestão - 2º GB"**. O módulo em desenvolvimento é o de **confecção de escalas** (fases 3 a 6). O módulo previsto depois é o de **visualização de escalas**: as publicações e a área do próprio militar (voluntariado, minhas escalas). Detalhe no adendo de 19/11 do design da migração.
+
 **Objetivo:** levar o sistema do protótipo em Apps Script + Sheets para uma aplicação própria (banco relacional, API, interface web), primeiro numa fase de teste com cerca de 5 escalantes e depois no servidor institucional do Estado.
 
 **Como ler:** cada fase termina numa entrega que dá para usar ou conferir. Cada fase ganha o seu próprio plano detalhado (tarefas, testes, commits) só quando for começar. Não há datas: o desenvolvimento é de uma pessoa, e a ordem importa mais que o prazo.
@@ -159,6 +161,15 @@ Plano próprio: `docs/superpowers/plans/2026-11-18-fase4-escala.md` (seis entreg
 **Decisão do usuário (19/11/2026): voluntariado por faixa de horário.** Depois de conversar com os militares: a disponibilidade deixa de ser turno padrão A/B e passa a ser marcada em blocos do dia tirados dos horários dos serviços que pedem voluntariado (hoje 00–08, 08–16, 16–20, 20–24), guardada em horários (início e fim) por dia; o militar não escolhe operação. Calendário com blocos proporcionais no computador; um dia por linha, só toque, no celular. Entra como entrega 2.2, depois da 2.1 (a ordem de escala foi executada primeiro). Design: `docs/superpowers/specs/2026-11-19-voluntariado-por-faixa-design.md`; mockup: `docs/telas/mockup-voluntariado-faixas.html`.
 
 **Decisão do usuário (19/11/2026, depois da 2.2): ajustes do voluntariado.** Os turnos do CPRH e das eleições (07h, 15h, 19h, 23h) encheram o dia de faixinhas de 1h. Entra a **flexibilidade do voluntariado**: horas escolhidas pelo gestor, em Configurações, em qualquer nível hierárquico; o turno é conferido sem as N primeiras e as N últimas horas; buraco no meio continua barrando; não afrouxa choque nem descanso; a pré-escala segue a flexibilidade. O escalante sempre pode escalar quem não se voluntariou: hoje a lista esconde essa pessoa, então ganha um "Mostrar". No celular, entra o **modo foco**: ao abrir um militar, a lista some; ao salvar, volta. Os blocos do dia vêm das escalas: o gestor escolhe quais escalas entram na montagem (uma escala "fantasma", sem ninguém escalado, é só um jeito de usar isso). A flexibilidade vale só em horas cheias. Entra como **entrega 2.3, antes da 3**, porque a pré-escala já nasce usando a flexibilidade. Design: adendo de 19/11 em `docs/superpowers/specs/2026-11-19-voluntariado-por-faixa-design.md`.
+
+**Retorno da sandbox da 2.3 (19/11/2026): acabamento do voluntariado e da escala do mês.** São cinco pontos:
+- a barra cinza do dia 24 sumiu (confirmado);
+- os blocos da noite ficam cinzas no fim de semana porque a cor `bg-noite` nunca existiu; a proposta é bloco vazio sempre branco;
+- no computador, a régua de horários sai e entra um guia "Como marcar", com um dia de exemplo, que vale nas duas telas;
+- o número do dia vira uma pastilha que parece botão, com o estado do dia;
+- na Escala do mês, os turnos do dia ficam lado a lado quando cabem, em todas as escalas.
+
+Entra como **entrega 2.4, antes da 3**, porque a pré-escala é montada nessa tela. As propostas esperam a confirmação do usuário. Design: adendo "depois da entrega 2.3" em `docs/superpowers/specs/2026-11-19-voluntariado-por-faixa-design.md`.
 
 **Entrega e marco:** piloto na 1ª SB. Um mês real montado no sistema novo, em paralelo com as planilhas atuais, e comparado no fim.
 
