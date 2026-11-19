@@ -11,7 +11,7 @@ const MES = mesAtual();
 const LISTA: LinhaEscala[] = [{ id: 'e1', nome: 'Ordinário', ativa: true, servicos: ['Pronto'] }, { id: 'e9', nome: 'Velha', ativa: false, servicos: [] }];
 
 const ocupante = (nome: string): OcupanteDaVaga => ({
-  alocacaoId: `a-${nome}`, militarId: `m-${nome}`, posto: 'SD BM', nomeGuerra: nome, matricula: '990001-1', servico: { id: 's1', nome: 'Pronto', cor: '#2F8F5B' }, letra: 'A',
+  alocacaoId: `a-${nome}`, acumuloId: null, acumulaCom: [], militarId: `m-${nome}`, posto: 'SD BM', nomeGuerra: nome, matricula: '990001-1', servico: { id: 's1', nome: 'Pronto', cor: '#2F8F5B' }, letra: 'A',
 });
 const card = (motorista: boolean, combatente: boolean): CardDaGuarnicao => {
   const faltam = [...(motorista ? [] : ['Falta 1 Motorista (CNH D)']), ...(combatente ? [] : ['Falta 1 Combatente'])];
@@ -163,7 +163,7 @@ describe('escolher militar e remover', () => {
       { militarId: 'm-zulu', posto: 'SD BM', nomeGuerra: 'ZULU', matricula: '990002-2', equipe: 'Alfa', jornada: 'pronto', servicos: [{ servicoId: 's1', turnoId: 't-a', nome: 'Pronto' }] },
       { militarId: 'm-yuri', posto: 'CB BM', nomeGuerra: 'YURI', matricula: '990003-3', equipe: null, jornada: 'adm', servicos: [{ servicoId: 's1', turnoId: 't-a', nome: 'Pronto' }, { servicoId: 's2', turnoId: 't-jes', nome: 'JES' }] },
     ],
-    fora: [{ motivo: 'Afastado', quantidade: 3 }, { motivo: 'Sem a CNH exigida', quantidade: 2 }, { motivo: 'Choque de horário', quantidade: 1 }],
+    fora: [{ motivo: 'Afastado', quantidade: 3 }, { motivo: 'Sem a CNH exigida', quantidade: 2 }, { motivo: 'Choque de horário', quantidade: 1 }], acumular: [],
   };
   // a escala depois de escalar o ZULU de Combatente no dia 2, faixa do dia
   const COM_ZULU: EscalaDoMes = {
@@ -238,7 +238,7 @@ describe('escolher militar e remover', () => {
   });
 
   it('sem ninguém apto, o diálogo diz isso e ainda mostra por que os outros ficaram de fora', async () => {
-    api(ESCALA, { [rotaCandidatos]: { status: 200, corpo: { aptos: [], fora: [{ motivo: 'Afastado', quantidade: 1 }] } } });
+    api(ESCALA, { [rotaCandidatos]: { status: 200, corpo: { aptos: [], fora: [{ motivo: 'Afastado', quantidade: 1 }], acumular: [] } } });
     abrir('/escala-do-mes');
     await screen.findByRole('region', { name: 'Dia 2' });
     const dialogo = await abrirVaga();
@@ -327,3 +327,116 @@ describe('escolher militar e remover', () => {
   });
 });
 
+
+describe('acumular funções', () => {
+  const sgt = { alocacaoId: 'a-CHEFE', militarId: 'm-chefe', posto: 'SGT BM', nomeGuerra: 'CHEFE', matricula: '990010-1', vaga: 'Chefe ABT' };
+  const CANDIDATOS = {
+    aptos: [{ militarId: 'm-zulu', posto: 'SD BM', nomeGuerra: 'ZULU', matricula: '990002-2', equipe: 'Alfa', jornada: 'pronto', servicos: [{ servicoId: 's1', turnoId: 't-a', nome: 'Pronto' }] }],
+    fora: [],
+    acumular: [sgt],
+  };
+  const rotaCandidatos = `GET /api/escalas/e1/mes/${MES}/candidatos`;
+  const abrirVaga = async () => {
+    const faixaDoDia = secaoDoDia(2).querySelector('[data-faixa]') as HTMLElement;
+    await userEvent.click(within(faixaDoDia).getAllByRole('button', { name: 'Escolher militar para Combatente de ABT' })[0]!);
+    return screen.findByRole('dialog', { name: 'Escolher militar' });
+  };
+  // o dia 2, faixa do dia, depois de o CHEFE acumular o Combatente
+  const comAcumulo: EscalaDoMes = {
+    ...ESCALA,
+    dias: ESCALA.dias.map((d, i) =>
+      i !== 1 ? d : { ...d, obrigatoriasVazias: 0, faixas: [faixa(false, (() => { const c = card(true, true); c.funcoes[1]!.ocupantes = [{ ...ocupante('CHEFE'), alocacaoId: 'a-CHEFE', acumuloId: 'x1', acumulaCom: ['Chefe ABT'] }]; return c; })()), d.faixas[1]!] },
+    ),
+  };
+
+  it('o diálogo oferece "Acumular com quem já está na faixa", com a vaga que o militar já ocupa', async () => {
+    api(ESCALA, { [rotaCandidatos]: { status: 200, corpo: CANDIDATOS } });
+    abrir('/escala-do-mes');
+    await screen.findByRole('region', { name: 'Dia 2' });
+    const dialogo = await abrirVaga();
+    expect(await within(dialogo).findByText('Acumular com quem já está na faixa')).toBeInTheDocument();
+    const linha = within(dialogo).getByRole('button', { name: /CHEFE/ });
+    expect(linha).toHaveTextContent('hoje em Chefe ABT');
+  });
+
+  it('sem ninguém para acumular, a seção não aparece', async () => {
+    api(ESCALA, { [rotaCandidatos]: { status: 200, corpo: { ...CANDIDATOS, acumular: [] } } });
+    abrir('/escala-do-mes');
+    await screen.findByRole('region', { name: 'Dia 2' });
+    const dialogo = await abrirVaga();
+    await within(dialogo).findByRole('button', { name: /ZULU/ });
+    expect(within(dialogo).queryByText('Acumular com quem já está na faixa')).toBeNull();
+  });
+
+  it('só com gente para acumular (nenhum apto), a frase "Ninguém pode ocupar" não aparece', async () => {
+    api(ESCALA, { [rotaCandidatos]: { status: 200, corpo: { ...CANDIDATOS, aptos: [] } } });
+    abrir('/escala-do-mes');
+    await screen.findByRole('region', { name: 'Dia 2' });
+    const dialogo = await abrirVaga();
+    await within(dialogo).findByRole('button', { name: /CHEFE/ });
+    expect(within(dialogo).queryByText('Ninguém pode ocupar esta vaga agora.')).toBeNull();
+  });
+
+  it('clicar em quem acumula manda o POST, o diálogo fecha e o card mostra "acumula com Chefe ABT"', async () => {
+    const f = api(ESCALA, { [rotaCandidatos]: { status: 200, corpo: CANDIDATOS }, 'POST /api/alocacoes/a-CHEFE/acumulos': { status: 201, corpo: comAcumulo } });
+    abrir('/escala-do-mes');
+    await screen.findByRole('region', { name: 'Dia 2' });
+    const dialogo = await abrirVaga();
+    await userEvent.click(await within(dialogo).findByRole('button', { name: /CHEFE/ }));
+    await waitFor(() => expect(corpoEnviado(f, 'POST /api/alocacoes/a-CHEFE/acumulos')).toEqual({ guarnicaoId: 'g-abt', funcaoId: 'f-comb' }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    expect(within(secaoDoDia(2)).getByText('acumula com Chefe ABT')).toBeInTheDocument();
+  });
+
+  it('dois cliques mandam um pedido só', async () => {
+    const { espera, soltar } = trava();
+    const f = api(ESCALA, { [rotaCandidatos]: { status: 200, corpo: CANDIDATOS }, 'POST /api/alocacoes/a-CHEFE/acumulos': { status: 201, corpo: comAcumulo, espera } });
+    abrir('/escala-do-mes');
+    await screen.findByRole('region', { name: 'Dia 2' });
+    const dialogo = await abrirVaga();
+    const chefe = await within(dialogo).findByRole('button', { name: /CHEFE/ });
+    fireEvent.click(chefe);
+    fireEvent.click(chefe);
+    soltar();
+    await waitFor(() => expect(chamadasA(f, 'POST /api/alocacoes/a-CHEFE/acumulos')).toBe(1));
+  });
+
+  it('o 409 aparece no diálogo, que continua aberto', async () => {
+    api(ESCALA, { [rotaCandidatos]: { status: 200, corpo: CANDIDATOS }, 'POST /api/alocacoes/a-CHEFE/acumulos': { status: 409, corpo: { erro: 'Sem a CNH exigida' } } });
+    abrir('/escala-do-mes');
+    await screen.findByRole('region', { name: 'Dia 2' });
+    const dialogo = await abrirVaga();
+    await userEvent.click(await within(dialogo).findByRole('button', { name: /CHEFE/ }));
+    expect(await within(dialogo).findByRole('alert')).toHaveTextContent('Sem a CNH exigida');
+  });
+
+  it('com duas outras vagas, a marca lista as duas', async () => {
+    const duas: EscalaDoMes = { ...comAcumulo, dias: comAcumulo.dias.map((d, i) => (i !== 1 ? d : { ...d, faixas: [faixa(false, (() => { const c = card(true, true); c.funcoes[1]!.ocupantes = [{ ...ocupante('CHEFE'), acumuloId: 'x1', acumulaCom: ['Chefe ABT', 'Graduado de dia'] }]; return c; })()), d.faixas[1]!] })) };
+    api(duas);
+    abrir('/escala-do-mes');
+    await screen.findByRole('region', { name: 'Dia 2' });
+    expect(within(secaoDoDia(2)).getByText('acumula com Chefe ABT e Graduado de dia')).toBeInTheDocument();
+  });
+
+  it('Remover num acúmulo pergunta "Tirar…" e manda o DELETE do acúmulo, não o da alocação', async () => {
+    const f = api(comAcumulo, { 'DELETE /api/acumulos/x1': { status: 200, corpo: ESCALA } });
+    const confirmar = vi.spyOn(window, 'confirm').mockReturnValue(true);
+    abrir('/escala-do-mes');
+    const d2 = await screen.findByRole('region', { name: 'Dia 2' });
+    await userEvent.click(within(d2).getByRole('button', { name: 'Tirar CHEFE de Combatente ABT' }));
+    expect(confirmar).toHaveBeenLastCalledWith('Tirar CHEFE de Combatente ABT? Ele continua em Chefe ABT.');
+    await waitFor(() => expect(chamadasA(f, 'DELETE /api/acumulos/x1')).toBe(1));
+    expect(chamadasA(f, 'DELETE /api/alocacoes/a-CHEFE')).toBe(0);
+  });
+
+  it('Remover na vaga original de quem acumula avisa de onde ele sai também', async () => {
+    const original: EscalaDoMes = { ...ESCALA, dias: ESCALA.dias.map((d, i) => (i !== 2 ? d : { ...d, faixas: [faixa(false, (() => { const c = card(true, true); c.funcoes[0]!.ocupantes = [{ ...ocupante('CHEFE'), alocacaoId: 'a-CHEFE', acumulaCom: ['Graduado de dia'] }]; return c; })()), d.faixas[1]!] })) };
+    const f = api(original, { 'DELETE /api/alocacoes/a-CHEFE': { status: 200, corpo: ESCALA } });
+    const confirmar = vi.spyOn(window, 'confirm').mockReturnValue(true);
+    abrir('/escala-do-mes');
+    const d3 = await screen.findByRole('region', { name: 'Dia 3' });
+    await userEvent.click(within(d3).getByRole('button', { name: 'Remover CHEFE' }));
+    expect(confirmar).toHaveBeenLastCalledWith('Remover CHEFE de ABT, dia 3? Ele não volta para este turno quando a pré-escala for gerada de novo. Sai também de: Graduado de dia.');
+    await waitFor(() => expect(chamadasA(f, 'DELETE /api/alocacoes/a-CHEFE')).toBe(1));
+  });
+});

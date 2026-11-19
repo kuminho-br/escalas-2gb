@@ -8,7 +8,7 @@
 
 **Tech Stack:** pnpm monorepo; API Hono + Postgres (PGlite nos testes); site React 19, TanStack Router e Query, Tailwind 4/shadcn; contratos zod 4; motor `pacotes/dominio`; ExcelJS (documento).
 
-**Spec:** `docs/superpowers/specs/2026-11-16-migracao-design.md` (adendos de 17/11 "Pré-escala automática e ajustes do escalante" e de 18/11 "Hierarquia de CNH"), `docs/superpowers/specs/2026-11-16-telas.md` (Grade geral, Escala do mês, Minha escala, Voluntariado), `docs/superpowers/specs/2026-11-16-esquema-banco.md` (seção 6 "O mês" e 7 "Configurações e documentos"), `docs/superpowers/plans/2026-11-16-roadmap-migracao.md` (Fase 4 e "Resultado da revisão 3").
+**Spec:** `docs/superpowers/specs/2026-11-18-ordem-de-escala-e-acumulo-design.md` (entregas 1.1 e 2.1), `docs/superpowers/specs/2026-11-16-migracao-design.md` (adendos de 17/11 "Pré-escala automática e ajustes do escalante" e de 18/11 "Hierarquia de CNH"), `docs/superpowers/specs/2026-11-16-telas.md` (Grade geral, Escala do mês, Minha escala, Voluntariado), `docs/superpowers/specs/2026-11-16-esquema-banco.md` (seção 6 "O mês" e 7 "Configurações e documentos"), `docs/superpowers/plans/2026-11-16-roadmap-migracao.md` (Fase 4 e "Resultado da revisão 3").
 
 ## Global Constraints
 
@@ -41,8 +41,10 @@ As condições que o design implica e que mais podem morder quem monta a escala;
 | Entrega | O que a pessoa ganha | Depende de |
 |---|---|---|
 | **1 — Escala do mês, à mão** | Abrir uma escala e um mês, ver dia › turno › cards de guarnição com ícone de completa ou faltando, escolher militar na lista já filtrada (CNH, choque, afastamento, voluntariado, lotação) e remover (com "Desfazer remoção"). | — |
+| **1.1 — Acúmulo de funções** | Na vaga vazia, escolher um militar já escalado na mesma faixa (inclusive de outra guarnição) para acumular; a CNH da vaga é conferida; o card mostra "acumula com Chefe ABT". | 1 |
 | **2 — Voluntariado lançado à mão** | Calendário do mês por militar com A e B por dia, "já lançados" e "faltam lançar", atalhos e "Salvar e ir para o próximo". | — |
-| **3 — Pré-escala e distribuições** | "Gerar pré-escala" (Pronto pelo ciclo das equipes), saldos do Adm e operações pelas cotas, com o que ficou de fora e por quê. Gerar de novo só completa lacunas e respeita as remoções. Os militares entram nas guarnições pelo motor (`calcularGuarnicao`). | 1 e 2 |
+| **2.1 — Ordem de escala** | Tela da escala com as vagas de cada guarnição em quadrados para numerar a vez de cada uma (vigência por mês); os cards da escala do mês seguem a ordem. Substitui a prioridade da guarnição (RN-08). | 1 |
+| **3 — Pré-escala e distribuições** | "Gerar pré-escala" (Pronto pelo ciclo das equipes), saldos do Adm e operações pelas cotas, com o que ficou de fora e por quê. Gerar de novo só completa lacunas e respeita as remoções. Os militares entram nas vagas seguindo a ordem de escala à risca (o mais antigo apto em cada vaga). | 1, 2 e 2.1 |
 | **4 — Grade geral** | Uma linha por militar, uma coluna por dia, blocos na cor do serviço com a letra, choques em vermelho, pegas de pedidas por PJES e Diária, ficha lateral com Trocar, Remover e Adicionar. | 1, 2 |
 | **5 — Gerar documento** | Configurações › Modelos de impressão (enviar e baixar o .xlsx com marcadores) e "Gerar documento" da escala publicada em .xlsx; cada geração fica guardada. | 1 |
 | **6 — Minha escala** | O militar comum vê os próprios serviços do mês, com quem compõe a guarnição, e as escalas publicadas da unidade dele. | 1, 5 |
@@ -207,6 +209,154 @@ As condições que o design implica e que mais podem morder quem monta a escala;
 - [ ] **Step 3: Implement** o diálogo e as ações.
 - [ ] **Step 4: Run** `pnpm test && pnpm typecheck && pnpm build:vercel`. Expected: passa.
 - [ ] **Step 5: Commit** `Fase 4.1: escolher militar e remover`. Revisão final do branch (Opus), correções, push e PR "Fase 4.1: escala do mês, à mão" com: o que entrou, **tem migração (0014)** e o lembrete `pnpm --filter api db:migrar:teste`, o que conferir no ambiente de teste (abrir a escala Ordinário do mês, escolher militar numa vaga com CNH, conferir que o afastado não aparece, remover e desfazer, turno B do último dia) e as decisões desta entrega para o usuário confirmar. **Parar até o merge.**
+
+---
+
+# Entrega 1.1 — Acúmulo de funções
+
+**Branch:** `fase4-1-1-acumulo`, a partir da `main` depois do merge do PR #28. **Tem migração** (0015). Commits `Fase 4.1.1: …`; PR "Fase 4 — Entrega 1.1: acúmulo de funções".
+
+**Spec desta entrega e da 2.1:** `docs/superpowers/specs/2026-11-18-ordem-de-escala-e-acumulo-design.md` (Parte 2 aqui, Parte 1 na 2.1). Contagens de partida: protótipo 589, contratos 14, motor 771 (+1 ignorado), API 515, site 293.
+
+**Review Focus das entregas 1.1 e 2.1** (cada uma tem teste na tarefa dona):
+
+1. **Função no máximo por causa de um acúmulo**: escalar ou acumular numa função cujo máximo já está ocupado (contando acúmulos) → 409 "já está completa", nunca passa do máximo. Tarefa 8.
+2. **Remover o militar com acúmulos**: a alocação some com os acúmulos dela, a marca de remoção é só da vaga original; tirar só um acúmulo não cria marca e o militar continua na vaga original. Tarefa 8.
+3. **Militar escalado na mesma faixa de outra escala** (ou em "Sem guarnição", ou na mesma função da mesma guarnição) não aparece em "Acumular". Tarefa 8.
+4. **Guarnição ou composição muda depois de a ordem ser salva**: vaga que deixou de existir sai da lista e as posições se compactam (1, 2, 3… sem buraco); vaga nova fica sem número e vai para "Falta". Tarefa 10.
+5. **Ordem entre meses**: ordem salva a partir de dezembro vale em janeiro (`vigencia: '2026-12'`); num mês anterior a qualquer ordem vale a ordem padrão (`vigencia: null`). Tarefa 11.
+
+### Task 7: Acúmulo no banco e nos contratos
+
+**Files:**
+- Create: `apps/api/banco/migracoes/0015_acumulo.sql`
+- Modify: `pacotes/contratos/src/escala-do-mes.ts`, `apps/api/src/acesso.ts` (`TabelaComUnidade` + `acumulo`)
+- Test: `apps/api/test/migracao-0015.test.ts`
+
+**Interfaces:**
+- Produces:
+  - Tabela `alocacao_acumulo (id uuid pk default gen_random_uuid(), alocacao_id uuid not null references alocacao (id) on delete cascade, guarnicao_id uuid not null references guarnicao (id), funcao_id uuid not null references funcao (id), unique (alocacao_id, guarnicao_id, funcao_id))`, índice em `alocacao_id`, gatilho `auditoria_registro` como na 0014.
+  - `NovoAcumulo = z.object({ guarnicaoId: Id, funcaoId: Id })` (a alocação vem na rota).
+  - `OcupanteDaVaga` ganha `acumuloId: string | null` (null = vaga original da alocação) e `acumulaCom: string[]` (as outras vagas do mesmo militar na faixa; nome da vaga = função + espaço + guarnição, como `"Chefe ABT"`, ou só o nome da guarnição quando a composição dela tem uma função só, como `"Graduado de dia"`).
+  - `Candidatos` ganha `acumular: { alocacaoId: string; militarId: string; posto: string; nomeGuerra: string; matricula: string; vaga: string }[]` (`vaga` = a vaga original, no mesmo formato `"Chefe ABT"`).
+  - `unidadeDoRegistro(c, 'acumulo', id)`: `select e.unidade_id from alocacao_acumulo x join alocacao a on a.id = x.alocacao_id join escala e on e.id = a.escala_id where x.id = $1`.
+
+- [ ] **Step 1: Write the failing test** `migracao-0015.test.ts`: depois de migrar, inserir um acúmulo para uma alocação; inserir o mesmo (alocação, guarnição, função) de novo → erro 23505; apagar a alocação apaga o acúmulo; a gravação aparece em `auditoria`.
+- [ ] **Step 2: Run** `pnpm --filter api vitest run test/migracao-0015.test.ts`. Expected: FAIL (tabela não existe).
+- [ ] **Step 3: Implement** a migração, os contratos e a linha do `acesso.ts`. Nos lugares que montam `OcupanteDaVaga` hoje (`leitura.ts`), preencher `acumuloId: null, acumulaCom: []` por enquanto; `avaliarCandidatos` devolve `acumular: []`.
+- [ ] **Step 4: Run** `pnpm --filter api test && pnpm typecheck`. Expected: passa (ajustar os testes de leitura e do site que comparam objetos inteiros para os campos novos).
+- [ ] **Step 5: Commit** `Fase 4.1.1: acúmulo no banco e nos contratos`.
+
+### Task 8: Ler, sugerir, acumular e tirar (API)
+
+**Files:**
+- Modify: `apps/api/src/escala/leitura.ts`, `apps/api/src/escala/elegibilidade.ts`, `apps/api/src/escala/alocacoes.ts`, `apps/api/src/escala/rotas.ts`
+- Test: `apps/api/test/escala-acumulo.test.ts`, `apps/api/test/isolamento-entre-unidades.test.ts` (fixture do acúmulo)
+
+**Interfaces:**
+- Consumes: Tarefa 7.
+- Produces:
+  - **Leitura**: cada acúmulo do mês vira um ocupante (com `acumuloId`, o mesmo `alocacaoId` e o serviço e letra da alocação) na função do card da guarnição dele, na faixa do turno da alocação; conta em `preenchidas` e tira a vaga das vazias. `acumulaCom` de cada ocupante = as outras vagas do militar na faixa (original e acúmulos), na ordem dos cards. Acúmulo cuja vaga não está em nenhum card da faixa não aparece (o militar continua na vaga original).
+  - **Candidatos** (`avaliarCandidatos` com `guarnicaoId` e `funcaoId` preenchidos; sem eles, `acumular: []`): militares com alocação **desta escala** neste dia e nesta faixa **com guarnição e função**, que ainda não ocupam (na original nem em acúmulo) esta mesma função nesta mesma guarnição. Quem cumpre a CNH exigida da vaga (`cnhHabilitadas`) entra em `acumular`, na ordem de antiguidade; quem não cumpre conta em `fora` como `"Sem a CNH exigida"` em vez de `"Já escalado neste horário"`. Os demais escalados na faixa seguem como hoje.
+  - `POST /api/alocacoes/:id/acumulos` com `NovoAcumulo` → 201 com o `EscalaDoMes` do mês. Na mesma transação e com a mesma trava (`pg_advisory_xact_lock` da faixa) de `escalar`. Recusas 409: alocação sem guarnição → `"Escolha uma vaga de guarnição para este militar antes de acumular."`; guarnição fora da faixa no mês e função fora da composição (as frases de `escalar`); mesma função na mesma guarnição → `"Este militar já ocupa uma vaga de <função> nesta guarnição."`; CNH → `"Sem a CNH exigida"`; função no máximo → a frase de `escalar`.
+  - `escalar` passa a contar acúmulos no máximo da função (Review Focus 1).
+  - `DELETE /api/acumulos/:id` → 200 com o `EscalaDoMes`; não grava `remocao`.
+  - `DELETE /api/alocacoes/:id` continua igual (a cascata leva os acúmulos; a `remocao` é só da vaga original).
+  - Acesso: papel de cadastro na unidade da escala (via `unidadeDoRegistro` de `alocacao` e `acumulo`).
+
+- [ ] **Step 1: Write the failing tests** em `escala-acumulo.test.ts` (faixa 08–20 com ABT e AR; Chefe ABT, Motorista AR com CNH D, Graduado de dia):
+  - acumular o Chefe ABT como Graduado de dia → 201; o card do Graduado mostra o mesmo militar com `acumuloId` e `acumulaCom: ['Chefe ABT']`, e o do Chefe ABT mostra `acumulaCom: ['Graduado de dia']` (guarnição de uma função só); `resumo.preenchidas` sobe 1;
+  - candidatos do Motorista AR: militar escalado com CNH E aparece em `acumular`; com CNH B não aparece e `fora` traz `"Sem a CNH exigida"`; o mesmo militar em "Sem guarnição" e um escalado na mesma faixa de outra escala não aparecem em `acumular` (Review Focus 3);
+  - acumular a mesma função da mesma guarnição → 409 `"Este militar já ocupa uma vaga de Combatente nesta guarnição."`; alocação sem posto → 409 com a frase;
+  - função de máximo 1 já ocupada por um acúmulo: `POST /api/escalas/:id/alocacoes` nela → 409 "já está completa" (Review Focus 1);
+  - `DELETE /api/acumulos/:id` → o militar some só da vaga acumulada e `removidos` fica vazio; `DELETE /api/alocacoes/:id` da original → somem as duas vagas e `removidos` traz o militar uma vez (Review Focus 2);
+  - escalante de outra seção → 403 nas duas rotas novas (também em `isolamento-entre-unidades.test.ts`).
+- [ ] **Step 2: Run** `pnpm --filter api vitest run test/escala-acumulo.test.ts`. Expected: FAIL.
+- [ ] **Step 3: Implement** leitura, candidatos, as duas rotas e a contagem do máximo.
+- [ ] **Step 4: Run** `pnpm --filter api test`. Expected: passa.
+- [ ] **Step 5: Commit** `Fase 4.1.1: acumular e tirar acúmulo`.
+
+### Task 9: Acumular na tela
+
+**Files:**
+- Modify: `apps/web/src/api/escala-do-mes.ts`, `apps/web/src/componentes/escala-do-mes/EscolherMilitar.tsx`, `apps/web/src/componentes/escala-do-mes/CardDaGuarnicao.tsx`
+- Test: `apps/web/src/__testes__/escala-do-mes.test.tsx`
+
+**Interfaces:**
+- Consumes: Tarefas 7 e 8; `useTrava`.
+- Produces: `acumular(queryClient, alocacaoId: string, d: NovoAcumulo): Promise<EscalaDoMes>` e `tirarAcumulo(queryClient, acumuloId: string): Promise<EscalaDoMes>`, no padrão de `escalar` (gravam o `EscalaDoMes` devolvido e invalidam no erro).
+- Diálogo "Escolher militar": abaixo dos aptos, a seção **"Acumular com quem já está na faixa"** (só quando `acumular` não está vazio), cada linha com posto e nome, matrícula e "hoje em Chefe ABT"; clicar acumula (com `useTrava`) e fecha; 409 aparece no diálogo. Lista de aptos vazia mas `acumular` com gente: a frase "Ninguém pode ocupar esta vaga agora." não aparece.
+- Card: ocupante com `acumulaCom` não vazio ganha, discreto, "acumula com Chefe ABT" (várias: "acumula com Chefe ABT e Graduado de dia"). Na linha de um acúmulo, "Remover" pergunta "Tirar NOME de <vaga>? Ele continua em <primeira de acumulaCom>." e chama `tirarAcumulo`. Na linha original com acúmulos, a pergunta de remover acrescenta "Sai também de: <acumulaCom>.".
+
+- [ ] **Step 1: Write the failing tests**: o diálogo mostra a seção "Acumular com quem já está na faixa" com "hoje em Chefe ABT"; clicar manda `POST /api/alocacoes/a1/acumulos` com `{ guarnicaoId, funcaoId }` da vaga e a vaga passa a mostrar o militar; dois cliques mandam um pedido só; o card mostra "acumula com Chefe ABT"; "Remover" no acúmulo pergunta "Tirar …" e manda `DELETE /api/acumulos/x1`; "Remover" na original com acúmulo mostra "Sai também de: Graduado de dia".
+- [ ] **Step 2: Run** `pnpm --filter web vitest run src/__testes__/escala-do-mes.test.tsx`. Expected: FAIL.
+- [ ] **Step 3: Implement** as funções da API do site, a seção do diálogo e a marca no card.
+- [ ] **Step 4: Run** `pnpm test && pnpm typecheck && pnpm build:vercel`. Expected: passa.
+- [ ] **Step 5: Commit** `Fase 4.1.1: acumular na tela`. Revisão final do branch (Opus), correções, push e PR com: o que entrou, **tem migração (0015)** e o lembrete `pnpm --filter api db:migrar:teste`, o que conferir no ambiente de teste (acumular o chefe da ABT como graduado de dia; conferir que quem não tem a CNH não aparece para motorista; remover o original e ver os dois sumirem) e as decisões para o usuário. **Parar até o merge.**
+
+---
+
+# Entrega 2.1 — Ordem de escala
+
+**Branch:** `fase4-2-1-ordem-de-escala`, a partir da `main` depois do merge da entrega 2. **Tem migração** (0016; se a entrega 2 criar migração, esta vira a seguinte). Commits `Fase 4.2.1: …`; PR "Fase 4 — Entrega 2.1: ordem de escala".
+
+### Task 10: Ordem de escala no banco, nos contratos e a regra das vagas
+
+**Files:**
+- Create: `apps/api/banco/migracoes/0016_ordem_de_escala.sql`, `pacotes/contratos/src/ordem-de-escala.ts` (exportado no `index.ts`), `apps/api/src/escala/ordem.ts`
+- Test: `apps/api/test/migracao-0016.test.ts`, `apps/api/test/ordem-de-escala-regras.test.ts`
+
+**Interfaces:**
+- Produces:
+  - Tabelas `ordem_escala_versao (id uuid pk, escala_id uuid not null references escala (id), vigencia_desde date not null check (extract(day from vigencia_desde) = 1), unique (escala_id, vigencia_desde))` e `ordem_escala_item (versao_id uuid not null references ordem_escala_versao (id) on delete cascade, posicao int not null check (posicao >= 1), guarnicao_id uuid not null references guarnicao (id), funcao_id uuid not null references funcao (id), vaga int not null check (vaga >= 1), primary key (versao_id, posicao), unique (versao_id, guarnicao_id, funcao_id, vaga))`; gatilhos de auditoria.
+  - Contratos: `VagaDaOrdem = z.object({ guarnicaoId: Id, funcaoId: Id, vaga: z.number().int().min(1) })`; `OrdemDeEscalaEntrada = z.object({ itens: z.array(VagaDaOrdem) })` com refine "Esta vaga aparece duas vezes na ordem." (posição = índice + 1; lista vazia é aceita); tipo `VagaNaTela = { guarnicaoId: string; guarnicao: string; funcaoId: string; funcao: string; vaga: number; obrigatoria: boolean; posicao: number | null }`; tipo `OrdemDeEscala = { escalaId: string; mes: string; vigencia: string | null; vagas: VagaNaTela[] }` (`vigencia` = mês da versão em vigor; `null` = ordem padrão; `vagas` na ordem de exibição: guarnições pela ordem dos cards, funções pela composição, vaga 1, 2…).
+  - Em `ordem.ts`, funções puras:
+    - `vagasDoMes(modelos: { guarnicaoId: string; guarnicao: string; prioridade: number | null; composicao: { funcaoId: string; funcao: string; minimo: number; maximo: number }[] }[]): Omit<VagaNaTela, 'posicao'>[]` — cada guarnição uma vez (as de todas as faixas juntas), cada função vira `maximo` vagas, `obrigatoria = vaga <= minimo`; ordem de exibição: prioridade (nula por último), depois nome, depois composição.
+    - `aplicarOrdem(vagas, itens: VagaDaOrdem[] | null): VagaNaTela[]` — `null` = ordem padrão (posição 1…n na ordem de exibição); com itens, cada vaga existente recebe a posição relativa dos itens, compactada (1, 2, 3… sem buraco, itens de vagas que não existem mais são ignorados); vaga sem item fica `posicao: null`.
+    - `sequenciaDePreenchimento(vagas: VagaNaTela[]): VagaNaTela[]` — as numeradas por posição, depois as sem número na ordem de exibição (é o que a pré-escala da entrega 3 percorre).
+
+- [ ] **Step 1: Write the failing tests**: `migracao-0016` (versão única por escala e mês; item repetido → 23505; apagar a versão apaga os itens). `ordem-de-escala-regras`: função de mínimo 2 e máximo 4 → 4 vagas, 2 obrigatórias; guarnição em duas faixas aparece uma vez; sem itens → posições 1…n pela prioridade e nome; itens `[AR Chefe 1, ABT Chefe 1]` → AR Chefe 1 tem posição 1; item de vaga que sumiu (máximo diminuiu) → ignorado e as posições ficam 1, 2, 3 (Review Focus 4); vaga nova sem item → `posicao: null` e entra no fim de `sequenciaDePreenchimento`.
+- [ ] **Step 2: Run** `pnpm --filter api vitest run test/migracao-0016.test.ts test/ordem-de-escala-regras.test.ts`. Expected: FAIL.
+- [ ] **Step 3: Implement** a migração, os contratos e as três funções.
+- [ ] **Step 4: Run** `pnpm --filter api test && pnpm --filter contratos test && pnpm typecheck`. Expected: passa.
+- [ ] **Step 5: Commit** `Fase 4.2.1: ordem de escala no banco e regra das vagas`.
+
+### Task 11: Ler e gravar a ordem (API) e cards na ordem
+
+**Files:**
+- Modify: `apps/api/src/escala/rotas.ts` (ou `apps/api/src/cadastros/escalas.ts`, junto dos vínculos), `apps/api/src/escala/leitura.ts`
+- Test: `apps/api/test/ordem-de-escala.test.ts`, `apps/api/test/escala-leitura.test.ts`, `apps/api/test/isolamento-entre-unidades.test.ts`
+
+**Interfaces:**
+- Consumes: Tarefa 10; `vinculosDaEscala`, `versoesDasGuarnicoes`, `versaoNoMes`, `mesPassado`.
+- Produces:
+  - `ordemDoMes(c: Consulta, escalaId: string, mes: string): Promise<OrdemDeEscala>` — vínculo vigente no mês e versões das guarnições no mês (ativas), versão da ordem com maior vigência `<= mes`.
+  - `GET /api/escalas/:id/ordem/:mes` → 200 `OrdemDeEscala`.
+  - `PUT /api/escalas/:id/ordem/:mes` com `OrdemDeEscalaEntrada` → 200 `OrdemDeEscala` do mês; substitui a versão do mesmo mês ou cria uma; mês passado → a recusa de `mesPassado`; item de vaga que não existe no mês → 400 `{ erro: 'Confira os campos destacados.', campos: { 'itens.N': 'Esta vaga não existe nesta escala em <mês por extenso>.' } }`; repetida → 400 do refine. Papel de cadastro na unidade da escala.
+  - `montarEscalaDoMes`: os cards de cada faixa passam a seguir a menor posição das vagas da guarnição em `sequenciaDePreenchimento(ordemDoMes(...).vagas)`; sem ordem cadastrada, o resultado é o de hoje (prioridade, depois nome).
+- [ ] **Step 1: Write the failing tests** em `ordem-de-escala.test.ts`: GET sem ordem → `vigencia: null` e posições pela prioridade; PUT a partir de `2026-12` → GET de `2027-01` traz `vigencia: '2026-12'` e as posições gravadas, GET de `2026-11` traz `vigencia: null` (Review Focus 5); PUT com vaga 3 de uma função de máximo 2 → 400 com `itens.0`; PUT de mês passado → 400; outra seção → 403. Em `escala-leitura.test.ts`: com a ordem `[AR Chefe 1, ABT Chefe 1]`, o card AR vem antes do ABT; sem ordem, a ordem de hoje se mantém.
+- [ ] **Step 2: Run** os arquivos. Expected: FAIL.
+- [ ] **Step 3: Implement** `ordemDoMes`, as duas rotas e a ordem dos cards.
+- [ ] **Step 4: Run** `pnpm --filter api test`. Expected: passa.
+- [ ] **Step 5: Commit** `Fase 4.2.1: ler e gravar a ordem de escala`.
+
+### Task 12: Tela da ordem de escala
+
+**Files:**
+- Create: `apps/web/src/api/ordem-de-escala.ts`, `apps/web/src/routes/_app/escalas/$id.ordem.tsx` (busca `?mes=`), `apps/web/src/componentes/escalas/OrdemDeEscala.tsx`
+- Modify: `apps/web/src/routes/_app/escalas/$id.tsx` (link "Ordem de escala" na ficha), `apps/web/src/componentes/guarnicoes/Versoes.tsx` e a lista de guarnições (sai o campo e o número de prioridade)
+- Test: `apps/web/src/__testes__/ordem-de-escala.test.tsx`, ajustes nos testes de guarnições
+
+**Interfaces:**
+- Consumes: Tarefas 10 e 11; `useTrava`, `usePendencia`, `useSincronizar`, `AcoesDoBloco`.
+- Produces: `consultaOrdemDeEscala(escalaId, mes)` (queryKey `['ordem-de-escala', escalaId, mes]`), `gravarOrdemDeEscala(queryClient, escalaId, mes, itens: VagaDaOrdem[])` (grava o devolvido no cache e invalida `['escala-do-mes', escalaId]`).
+- Tela (spec Parte 1): título "Ordem de escala — <escala>", "Vale a partir de" (mês, padrão o mês atual), "Limpar" e "Salvar"; cada guarnição numa linha com um quadrado por vaga (`button`, nome acessível "Chefe ABT, vaga 1" e, numerada, "…, posição 4"), obrigatórias cheias e extras tracejadas; clicar num sem número dá o próximo número; clicar num numerado tira e os seguintes sobem um; ao lado, a lista numerada com "Subir" e "Descer"; rodapé "9 de 10 vagas na ordem. Falta: Combatente 3 da ABT." (sem falta: "Todas as vagas estão na ordem."); com `vigencia: null`, a frase "Ainda sem ordem cadastrada: a sugestão abaixo segue a prioridade antiga das guarnições."; teclado: setas movem o foco entre quadrados, espaço numera ou tira; alteração pendente avisa ao sair (`usePendencia`).
+- Guarnições: o campo "Prioridade" sai do formulário da versão e o número sai da lista (a API continua aceitando o campo para a importação, que alimenta a ordem padrão).
+- [ ] **Step 1: Write the failing tests**: a ficha da escala tem o link "Ordem de escala"; a tela mostra os quadrados com as posições do GET; clicar num sem número dá o próximo número e o rodapé muda; clicar num numerado tira e o seguinte sobe; "Descer" troca dois vizinhos; "Salvar" manda `PUT /api/escalas/e1/ordem/2026-12` com `itens` na ordem e dois cliques mandam um pedido só; 400 mostra a frase; `vigencia: null` mostra a frase da sugestão; espaço num quadrado focado numera; o formulário da guarnição não tem mais "Prioridade".
+- [ ] **Step 2: Run** `pnpm --filter web vitest run src/__testes__/ordem-de-escala.test.tsx`. Expected: FAIL.
+- [ ] **Step 3: Implement** a rota, a consulta, o componente e a saída da prioridade.
+- [ ] **Step 4: Run** `pnpm test && pnpm typecheck && pnpm build:vercel`. Expected: passa.
+- [ ] **Step 5: Commit** `Fase 4.2.1: tela da ordem de escala`. Revisão final do branch (Opus), correções, push e PR com: o que entrou, **tem migração** e o lembrete `pnpm --filter api db:migrar:teste`, o que conferir (montar a ordem do Ordinário a partir do mês que vem, conferir os cards na nova ordem, mudar uma composição e ver a vaga nova em "Falta") e as decisões para o usuário. **Parar até o merge.** Lembrar no PR: atualizar o catálogo RN-XX (regra nova da ordem de escala; RN-08 substituída).
 
 ---
 

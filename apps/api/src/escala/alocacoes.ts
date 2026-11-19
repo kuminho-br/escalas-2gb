@@ -1,6 +1,7 @@
 // Escalar, remover e desfazer a remoção (telas: "Escolher militar", "Remover", "Desfazer").
 // A conferência e a gravação acontecem na mesma transação; a recusa sai como Recusa (409) com a frase que a tela mostra.
-import type { NovaAlocacao } from 'contratos';
+import type { NovaAlocacao, NovoAcumulo } from 'contratos';
+import { cnhHabilitadas } from 'dominio';
 import type { Consulta } from '../banco/banco.ts';
 import { vinculosDaEscala } from '../cadastros/escalas.ts';
 import { versaoNoMes } from '../cadastros/guarnicoes-regras.ts';
@@ -12,6 +13,37 @@ export class Recusa extends Error {
     super(mensagem);
   }
 }
+
+type VagaConferida = { funcao: string; maximo: number; cnhExigida: string | null };
+
+/** A vaga existe nesta faixa neste mês: guarnição vinculada à faixa (vínculo vigente), ativa, e função da composição dela. */
+async function conferirVaga(tx: Consulta, escalaId: string, mes: string, faixa: { inicio: string; fim: string }, guarnicaoId: string, funcaoId: string): Promise<VagaConferida> {
+  const vinculo = (await vinculosDaEscala(tx, escalaId)).find((v) => v.vigencia <= mes);
+  const naFaixa = vinculo?.itens.some((i) => i.guarnicaoId === guarnicaoId && i.inicio === faixa.inicio && i.fim === faixa.fim);
+  const versao = versaoNoMes((await versoesDasGuarnicoes(tx, [guarnicaoId])).get(guarnicaoId) ?? [], mes);
+  if (!naFaixa || !versao?.ativa) throw new Recusa('Esta guarnição não está nesta faixa neste mês.');
+  const f = versao.composicao.find((x) => x.funcaoId === funcaoId);
+  if (!f) throw new Recusa('Esta função não está na composição da guarnição.');
+  return { funcao: f.funcao, maximo: f.maximo, cnhExigida: f.cnhExigida };
+}
+
+/** Quantos ocupam a vaga na faixa do dia: as alocações com ela como posto e os acúmulos dela (um acúmulo ocupa a função como qualquer outro). */
+async function ocupantesDaFuncao(tx: Consulta, escalaId: string, data: string, faixa: { inicio: string; fim: string }, guarnicaoId: string, funcaoId: string): Promise<number> {
+  const { rows } = await tx.query<{ n: number }>(
+    `select (
+       (select count(*) from alocacao a join turno t on t.id = a.turno_id
+         where a.escala_id = $1 and a.data = $2::date and a.guarnicao_id = $3 and a.funcao_id = $4 and t.inicio = $5::time and t.fim = $6::time)
+     + (select count(*) from alocacao_acumulo x join alocacao a on a.id = x.alocacao_id join turno t on t.id = a.turno_id
+         where a.escala_id = $1 and a.data = $2::date and x.guarnicao_id = $3 and x.funcao_id = $4 and t.inicio = $5::time and t.fim = $6::time)
+     )::int as n`,
+    [escalaId, data, guarnicaoId, funcaoId, faixa.inicio, faixa.fim],
+  );
+  return rows[0]!.n;
+}
+
+const travaDaFaixa = (tx: Consulta, escalaId: string, data: string, faixa: { inicio: string; fim: string }) =>
+  // dois escalantes na mesma vaga ao mesmo tempo: o segundo espera o primeiro e confere de novo
+  tx.query('select pg_advisory_xact_lock(hashtext($1))', [`${escalaId}|${data}|${faixa.inicio}|${faixa.fim}`]);
 
 /** Escala o militar na vaga e devolve o mês da alocação. */
 export async function escalar(tx: Consulta, escalaId: string, d: NovaAlocacao): Promise<string> {
@@ -26,27 +58,11 @@ export async function escalar(tx: Consulta, escalaId: string, d: NovaAlocacao): 
   const mes = d.data.slice(0, 7);
 
   // a vaga: guarnição vinculada a esta faixa no mês (vínculo vigente), ativa, e função da composição dela
-  let funcaoDaVaga: { funcao: string; maximo: number } | null = null;
-  if (d.guarnicaoId && d.funcaoId) {
-    const vinculo = (await vinculosDaEscala(tx, escalaId)).find((v) => v.vigencia <= mes);
-    const naFaixa = vinculo?.itens.some((i) => i.guarnicaoId === d.guarnicaoId && i.inicio === turno.inicio && i.fim === turno.fim);
-    const versao = versaoNoMes((await versoesDasGuarnicoes(tx, [d.guarnicaoId])).get(d.guarnicaoId) ?? [], mes);
-    if (!naFaixa || !versao?.ativa) throw new Recusa('Esta guarnição não está nesta faixa neste mês.');
-    const f = versao.composicao.find((x) => x.funcaoId === d.funcaoId);
-    if (!f) throw new Recusa('Esta função não está na composição da guarnição.');
-    funcaoDaVaga = { funcao: f.funcao, maximo: f.maximo };
-  }
+  const funcaoDaVaga = d.guarnicaoId && d.funcaoId ? await conferirVaga(tx, escalaId, mes, turno, d.guarnicaoId, d.funcaoId) : null;
 
-  // dois escalantes na mesma vaga ao mesmo tempo: o segundo espera o primeiro e confere de novo
-  await tx.query('select pg_advisory_xact_lock(hashtext($1))', [`${escalaId}|${d.data}|${turno.inicio}|${turno.fim}`]);
-  if (funcaoDaVaga) {
-    const n = (
-      await tx.query<{ n: number }>(
-        `select count(*)::int as n from alocacao a join turno t on t.id = a.turno_id
-          where a.escala_id = $1 and a.data = $2::date and a.guarnicao_id = $3 and a.funcao_id = $4 and t.inicio = $5::time and t.fim = $6::time`,
-        [escalaId, d.data, d.guarnicaoId, d.funcaoId, turno.inicio, turno.fim],
-      )
-    ).rows[0]!.n;
+  await travaDaFaixa(tx, escalaId, d.data, turno);
+  if (funcaoDaVaga && d.guarnicaoId && d.funcaoId) {
+    const n = await ocupantesDaFuncao(tx, escalaId, d.data, turno, d.guarnicaoId, d.funcaoId);
     if (n >= funcaoDaVaga.maximo) throw new Recusa(`A função ${funcaoDaVaga.funcao} já está completa nesta guarnição.`);
   }
   const igual = (
@@ -88,4 +104,51 @@ export async function remover(tx: Consulta, alocacaoId: string, usuarioId: strin
 export async function desfazerRemocao(tx: Consulta, remocaoId: string): Promise<{ escalaId: string; mes: string }> {
   const r = (await tx.query<{ escala_id: string; data: string }>(`delete from remocao where id = $1 returning escala_id, to_char(data, 'YYYY-MM-DD') as data`, [remocaoId])).rows[0]!;
   return { escalaId: r.escala_id, mes: r.data.slice(0, 7) };
+}
+
+/** O militar de uma alocação ocupa também esta vaga (acúmulo de funções). Devolve a escala e o mês. */
+export async function acumular(tx: Consulta, alocacaoId: string, d: NovoAcumulo): Promise<{ escalaId: string; mes: string }> {
+  const a = (
+    await tx.query<{ escala_id: string; data: string; guarnicao_id: string | null; funcao_id: string | null; cnh: string[]; inicio: string; fim: string }>(
+      `select a.escala_id, to_char(a.data, 'YYYY-MM-DD') as data, a.guarnicao_id, a.funcao_id, m.cnh, to_char(t.inicio, 'HH24:MI') as inicio, to_char(t.fim, 'HH24:MI') as fim
+         from alocacao a join turno t on t.id = a.turno_id join militar m on m.id = a.militar_id where a.id = $1`,
+      [alocacaoId],
+    )
+  ).rows[0]!;
+  const mes = a.data.slice(0, 7);
+  if (!a.guarnicao_id || !a.funcao_id) throw new Recusa('Escolha uma vaga de guarnição para este militar antes de acumular.');
+  // a vaga que ele já ocupa precisa ser de um card (vinculada à faixa neste mês, guarnição ativa, função na composição); senão ele está em "Sem guarnição"
+  await conferirVaga(tx, a.escala_id, mes, a, a.guarnicao_id, a.funcao_id).catch((e) => {
+    throw e instanceof Recusa ? new Recusa('Escolha uma vaga de guarnição para este militar antes de acumular.') : e;
+  });
+  const vaga = await conferirVaga(tx, a.escala_id, mes, a, d.guarnicaoId, d.funcaoId);
+
+  await travaDaFaixa(tx, a.escala_id, a.data, a);
+  const jaOcupaMsg = `Este militar já ocupa uma vaga de ${vaga.funcao} nesta guarnição.`;
+  const naOriginal = a.guarnicao_id === d.guarnicaoId && a.funcao_id === d.funcaoId;
+  const emAcumulo = (await tx.query('select 1 from alocacao_acumulo where alocacao_id = $1 and guarnicao_id = $2 and funcao_id = $3', [alocacaoId, d.guarnicaoId, d.funcaoId])).rows.length > 0;
+  if (naOriginal || emAcumulo) throw new Recusa(jaOcupaMsg);
+  if (vaga.cnhExigida && !cnhHabilitadas(a.cnh).includes(vaga.cnhExigida)) throw new Recusa('Sem a CNH exigida');
+  if ((await ocupantesDaFuncao(tx, a.escala_id, a.data, a, d.guarnicaoId, d.funcaoId)) >= vaga.maximo) {
+    throw new Recusa(`A função ${vaga.funcao} já está completa nesta guarnição.`);
+  }
+  try {
+    await tx.query('insert into alocacao_acumulo (alocacao_id, guarnicao_id, funcao_id) values ($1, $2, $3)', [alocacaoId, d.guarnicaoId, d.funcaoId]);
+  } catch (e) {
+    if ((e as { code?: string } | null)?.code === '23505') throw new Recusa(jaOcupaMsg);
+    throw e;
+  }
+  return { escalaId: a.escala_id, mes };
+}
+
+/** Tira só a vaga acumulada: o militar continua na vaga original e não há remoção. Devolve a escala e o mês. */
+export async function tirarAcumulo(tx: Consulta, acumuloId: string): Promise<{ escalaId: string; mes: string }> {
+  const a = (
+    await tx.query<{ escala_id: string; data: string }>(
+      `select a.escala_id, to_char(a.data, 'YYYY-MM-DD') as data from alocacao_acumulo x join alocacao a on a.id = x.alocacao_id where x.id = $1`,
+      [acumuloId],
+    )
+  ).rows[0]!;
+  await tx.query('delete from alocacao_acumulo where id = $1', [acumuloId]);
+  return { escalaId: a.escala_id, mes: a.data.slice(0, 7) };
 }

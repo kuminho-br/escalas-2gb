@@ -1,5 +1,5 @@
 import { queryOptions, type QueryClient } from '@tanstack/react-query';
-import type { Candidatos, EscalaDoMes, NovaAlocacao } from 'contratos';
+import type { Candidatos, EscalaDoMes, NovaAlocacao, NovoAcumulo } from 'contratos';
 import { pedir } from './cliente';
 
 export const consultaEscalaDoMes = (escalaId: string, mes: string) =>
@@ -41,3 +41,9 @@ export const escalar = (queryClient: QueryClient, escalaId: string, d: NovaAloca
 export const removerAlocacao = (queryClient: QueryClient, alocacaoId: string) => gravando(queryClient, pedir<EscalaDoMes>('DELETE', `/api/alocacoes/${alocacaoId}`));
 /** Tira a marca de remoção: a pré-escala pode escalar o militar neste turno de novo. Não o põe de volta na vaga. */
 export const desfazerRemocao = (queryClient: QueryClient, remocaoId: string) => gravando(queryClient, pedir<EscalaDoMes>('DELETE', `/api/remocoes/${remocaoId}`));
+
+/** O militar de uma alocação ocupa também esta vaga da mesma faixa (acúmulo de funções). */
+export const acumular = (queryClient: QueryClient, alocacaoId: string, d: NovoAcumulo) =>
+  gravando(queryClient, pedir<EscalaDoMes>('POST', `/api/alocacoes/${alocacaoId}/acumulos`, d));
+/** Tira só a vaga acumulada: o militar continua na vaga original. */
+export const tirarAcumulo = (queryClient: QueryClient, acumuloId: string) => gravando(queryClient, pedir<EscalaDoMes>('DELETE', `/api/acumulos/${acumuloId}`));

@@ -16,14 +16,22 @@ export const NovaAlocacao = z.object({
 });
 export type NovaAlocacao = z.infer<typeof NovaAlocacao>;
 
+/** Acumular: o militar de uma alocação ocupa também esta vaga (a alocação vem na rota). */
+export const NovoAcumulo = z.object({ guarnicaoId: Id, funcaoId: Id });
+export type NovoAcumulo = z.infer<typeof NovoAcumulo>;
+
 export type OcupanteDaVaga = {
   alocacaoId: string;
+  /** null = a vaga original da alocação; senão, o id do acúmulo */
+  acumuloId: string | null;
   militarId: string;
   posto: string;
   nomeGuerra: string;
   matricula: string;
   servico: { id: string; nome: string; cor: string };
   letra: LetraTurno;
+  /** as outras vagas do mesmo militar na faixa: "Chefe ABT" (função e guarnição) ou só o nome da guarnição quando ela tem uma função só */
+  acumulaCom: string[];
 };
 
 export type FuncaoNoCard = {
@@ -89,4 +97,6 @@ export type Candidato = {
 export type Candidatos = {
   aptos: Candidato[];
   fora: { motivo: string; quantidade: number }[];
+  /** já escalados nesta faixa, com guarnição e função, que cumprem os requisitos desta vaga; `vaga` = a vaga que já ocupam */
+  acumular: { alocacaoId: string; militarId: string; posto: string; nomeGuerra: string; matricula: string; vaga: string }[];
 };

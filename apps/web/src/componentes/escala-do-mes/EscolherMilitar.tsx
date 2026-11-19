@@ -2,7 +2,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { mesPorExtenso, textoFaixa } from 'contratos';
 import { useState } from 'react';
 import { mensagemDe } from '@/api/cliente';
-import { consultaCandidatos, escalar } from '@/api/escala-do-mes';
+import { acumular, consultaCandidatos, escalar } from '@/api/escala-do-mes';
 import { useTrava } from '@/componentes/AlteracoesPendentes';
 import { Selecao } from '@/componentes/Selecao';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/componentes/ui/dialog';
@@ -31,8 +31,20 @@ export function EscolherMilitar({ escalaId, vaga, aoFechar }: { escalaId: string
     }
   });
 
+  const acumulando = travar(async (alocacaoId: string) => {
+    setErro(null);
+    try {
+      await acumular(queryClient, alocacaoId, { guarnicaoId: vaga.guarnicaoId, funcaoId: vaga.funcaoId });
+      aoFechar();
+    } catch (e) {
+      setErro(mensagemDe(e));
+    }
+  });
+
   const texto = busca.trim().toLowerCase();
-  const aptos = (candidatos.data?.aptos ?? []).filter((c) => !texto || c.nomeGuerra.toLowerCase().includes(texto) || c.matricula.includes(texto));
+  const combina = (c: { nomeGuerra: string; matricula: string }) => !texto || c.nomeGuerra.toLowerCase().includes(texto) || c.matricula.includes(texto);
+  const aptos = (candidatos.data?.aptos ?? []).filter(combina);
+  const paraAcumular = (candidatos.data?.acumular ?? []).filter(combina);
 
   return (
     <Dialog open onOpenChange={(v) => !v && aoFechar()}>
@@ -49,9 +61,9 @@ export function EscolherMilitar({ escalaId, vaga, aoFechar }: { escalaId: string
         {candidatos.error && <p role="alert" className="text-alerta">{mensagemDe(candidatos.error)}</p>}
         {candidatos.data && (
           <>
-            {candidatos.data.aptos.length === 0 ? (
+            {candidatos.data.aptos.length === 0 && candidatos.data.acumular.length === 0 ? (
               <p className="text-apagado">Ninguém pode ocupar esta vaga agora.</p>
-            ) : (
+            ) : candidatos.data.aptos.length > 0 && (
               <ul className="grid max-h-80 gap-1.5 overflow-y-auto">
                 {aptos.map((c) => {
                   const turnoId = turnoDe[c.militarId] ?? c.servicos[0]!.turnoId;
@@ -77,6 +89,28 @@ export function EscolherMilitar({ escalaId, vaga, aoFechar }: { escalaId: string
                   );
                 })}
               </ul>
+            )}
+            {paraAcumular.length > 0 && (
+              <section aria-labelledby="acumular-titulo" className="grid gap-1.5">
+                <h3 id="acumular-titulo" className="text-sm font-medium">Acumular com quem já está na faixa</h3>
+                <ul className="grid max-h-60 gap-1.5 overflow-y-auto">
+                  {paraAcumular.map((c) => (
+                    <li key={c.alocacaoId}>
+                      <button
+                        type="button"
+                        disabled={salvando}
+                        onClick={() => void acumulando(c.alocacaoId)}
+                        className="flex w-full min-w-0 flex-wrap items-baseline gap-x-2 rounded-md border border-linha px-3 py-2 text-left hover:bg-accent disabled:opacity-60"
+                      >
+                        <span className="text-xs text-apagado">{c.posto}</span>
+                        <span className="font-cond text-base font-semibold">{c.nomeGuerra}</span>
+                        <span className="text-xs text-apagado">{c.matricula}</span>
+                        <span className="text-xs text-apagado">hoje em {c.vaga}</span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </section>
             )}
             {candidatos.data.fora.length > 0 && <p className="text-xs text-apagado">Ficaram de fora: {frasesDeFora(candidatos.data.fora)}</p>}
           </>
