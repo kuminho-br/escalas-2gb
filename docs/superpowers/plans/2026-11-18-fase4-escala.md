@@ -1015,7 +1015,7 @@ Se um worker cair (código 134, `scrypt derivation failed`, `cannot allocate mem
   ```
 - Produces (API):
   - `equipeDoDia1(c, unidadeId, mes): Promise<{ equipeId: string | null; motivo: string }>`. Traduz o Pronto turno A do mês anterior e as equipes por `ordem_ciclo` para o `detectarEquipeInicial`, e devolve a equipe cadastrada.
-  - `planejarPreEscala(c, escalaId, mes, equipeDia1Id: string | null): Promise<{ previa: PreviaDaPreEscala; novas: NovaAlocacao[] }>`, onde `NovaAlocacao = { militarId, data, servicoId, turnoId, guarnicaoId: string | null, funcaoId: string | null }`.
+  - `planejarPreEscala(c, escalaId, mes, equipeDia1Id: string | null): Promise<{ previa: PreviaDaPreEscala; novas: AlocacaoPlanejada[] }>`, onde `AlocacaoPlanejada = { militarId, data, servicoId, turnoId, guarnicaoId: string | null, funcaoId: string | null }`.
 
   Para cada dia do mês, a equipe do dia é `equipeDoDia(equipeDia1, i)`. Para cada turno A e B do Pronto:
   - **Vagas:** as da ordem do mês (`sequenciaDePreenchimento`), só das guarnições vinculadas àquela faixa no vínculo vigente. Saem as já ocupadas: as primeiras `n` vagas de cada guarnição e função, onde `n` são os ocupantes, contando acúmulos (a mesma conta de `ocupantesDaFuncao`).
