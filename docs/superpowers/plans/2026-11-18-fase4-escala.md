@@ -43,7 +43,7 @@ As condições que o design implica e que mais podem morder quem monta a escala;
 | **1 — Escala do mês, à mão** | Abrir uma escala e um mês, ver dia › turno › cards de guarnição com ícone de completa ou faltando, escolher militar na lista já filtrada (CNH, choque, afastamento, voluntariado, lotação) e remover (com "Desfazer remoção"). | — |
 | **1.1 — Acúmulo de funções** | Na vaga vazia, escolher um militar já escalado na mesma faixa (inclusive de outra guarnição) para acumular; a CNH da vaga é conferida; o card mostra "acumula com Chefe ABT". | 1 |
 | **2 — Voluntariado lançado à mão** | Calendário do mês por militar com A e B por dia, "já lançados" e "faltam lançar", atalhos e "Salvar e ir para o próximo". | — |
-| **2.2 — Voluntariado por faixa** (antes da 2.1) | A disponibilidade passa a ser marcada em blocos do dia tirados dos horários dos serviços que pedem voluntariado (hoje 00–08, 08–16, 16–20, 20–24), guardada em horários; calendário no computador, um dia por linha no celular. | 2 |
+| **2.2 — Voluntariado por faixa** | A disponibilidade passa a ser marcada em blocos do dia tirados dos horários dos serviços que pedem voluntariado (hoje 00–08, 08–16, 16–20, 20–24), guardada em horários; calendário no computador, um dia por linha no celular. | 2 |
 | **2.1 — Ordem de escala** | Tela da escala com as vagas de cada guarnição em quadrados para numerar a vez de cada uma (vigência por mês); os cards da escala do mês seguem a ordem. Substitui a prioridade da guarnição (RN-08). | 1 |
 | **3 — Pré-escala e distribuições** | "Gerar pré-escala" (Pronto pelo ciclo das equipes), saldos do Adm e operações pelas cotas, com o que ficou de fora e por quê. Gerar de novo só completa lacunas e respeita as remoções. Os militares entram nas vagas seguindo a ordem de escala à risca (o mais antigo apto em cada vaga). | 1, 2, 2.1 e 2.2 |
 | **4 — Grade geral** | Uma linha por militar, uma coluna por dia, blocos na cor do serviço com a letra, choques em vermelho, pegas de pedidas por PJES e Diária, ficha lateral com Trocar, Remover e Adicionar. | 1, 2 |
@@ -402,7 +402,7 @@ As condições que o design implica e que mais podem morder quem monta a escala;
 
 # Entrega 2.2 — Voluntariado por faixa de horário
 
-**Executada antes da 2.1** (a ordem de escala espera). **Branch:** `fase4-2-2-voluntariado-por-faixa`, a partir da `main`. **Tem migração** (0017: converte o que existe e troca a tabela `voluntariado` por `disponibilidade`). Commits `Fase 4.2.2: …`; PR "Fase 4 — Entrega 2.2: voluntariado por faixa de horário".
+**Executada depois da 2.1** (a ordem de escala foi executada primeiro; as migrações são 0017 da 2.1 e 0018 desta). **Branch:** `fase4-2-2-voluntariado-por-faixa`, a partir da `main`. **Tem migração** (0018: converte o que existe e troca a tabela `voluntariado` por `disponibilidade`). Commits `Fase 4.2.2: …`; PR "Fase 4 — Entrega 2.2: voluntariado por faixa de horário".
 
 **Spec:** `docs/superpowers/specs/2026-11-19-voluntariado-por-faixa-design.md` (e o mockup `docs/telas/mockup-voluntariado-faixas.html`). Contagens de partida: protótipo 589, contratos 14, motor 771 (+1 ignorado), API 543, site 340 (com o PR #32).
 
@@ -438,9 +438,9 @@ As condições que o design implica e que mais podem morder quem monta a escala;
 ### Task 15: Disponibilidade no banco, conversão, contratos e API do voluntariado
 
 **Files:**
-- Create: `apps/api/banco/migracoes/0017_disponibilidade.sql`
+- Create: `apps/api/banco/migracoes/0018_disponibilidade.sql`
 - Modify: `pacotes/contratos/src/voluntariado.ts`, `apps/api/src/voluntariado/leitura.ts`, `apps/api/src/voluntariado/lancamento.ts`, `apps/api/src/voluntariado/rotas.ts`
-- Test: `apps/api/test/migracao-0017.test.ts`, `apps/api/test/voluntariado.test.ts`, `apps/api/test/migracao-0016.test.ts` (se depender de `voluntariado`)
+- Test: `apps/api/test/migracao-0018.test.ts`, `apps/api/test/voluntariado.test.ts`, `apps/api/test/migracao-0016.test.ts` (se depender de `voluntariado`)
 
 **Interfaces:**
 - Consumes: Tarefa 14.
@@ -451,8 +451,8 @@ As condições que o design implica e que mais podem morder quem monta a escala;
   - `lancar(tx, militarId, mes, faixas, usuarioId)`: apaga as faixas do militar com data no mês, grava `unirFaixas` de cada dia (`origem = 'manual'`) e o lançamento, como hoje.
   - `PUT /api/militares/:id/voluntariado/:mes` com `{ faixas }`: faixa com data fora do mês → 400 em `faixas.N` ("Use um dia de <mês por extenso>."); o resto como na entrega 2.
 
-- [ ] **Step 1: Write the failing tests**: `migracao-0017` (antes de migrar, marcações A em 05/11 e B em 05/11 e em 30/11; depois: (05/11, 480–1200), (05/11, 1200–1440), (06/11, 0–480), (30/11, 1200–1440), (01/12, 0–480) — Review Focus 2 —; a tabela `voluntariado` não existe mais; fim antes do início é recusado). Em `voluntariado.test.ts` (adaptar o existente às faixas): `horas` e `dias` certos (08–16 e 16–20 no dia 5 = 12 horas em 1 dia); `GET` do militar traz `faixas` unidas e `blocos` `[00:00–08:00, 08:00–16:00, 16:00–20:00, 20:00–24:00]` com os serviços do cenário; lançar `[08:00–16:00, 16:00–20:00]` grava uma faixa só (480–1200) (Review Focus 3); lançar substitui o mês; faixa de outro mês → 400; `[]` → lançado com 0 horas.
-- [ ] **Step 2: Run** `pnpm --filter api vitest run test/migracao-0017.test.ts test/voluntariado.test.ts`. Expected: FAIL.
+- [ ] **Step 1: Write the failing tests**: `migracao-0018` (antes de migrar, marcações A em 05/11 e B em 05/11 e em 30/11; depois: (05/11, 480–1200), (05/11, 1200–1440), (06/11, 0–480), (30/11, 1200–1440), (01/12, 0–480) — Review Focus 2 —; a tabela `voluntariado` não existe mais; fim antes do início é recusado). Em `voluntariado.test.ts` (adaptar o existente às faixas): `horas` e `dias` certos (08–16 e 16–20 no dia 5 = 12 horas em 1 dia); `GET` do militar traz `faixas` unidas e `blocos` `[00:00–08:00, 08:00–16:00, 16:00–20:00, 20:00–24:00]` com os serviços do cenário; lançar `[08:00–16:00, 16:00–20:00]` grava uma faixa só (480–1200) (Review Focus 3); lançar substitui o mês; faixa de outro mês → 400; `[]` → lançado com 0 horas.
+- [ ] **Step 2: Run** `pnpm --filter api vitest run test/migracao-0018.test.ts test/voluntariado.test.ts`. Expected: FAIL.
 - [ ] **Step 3: Implement** a migração, os contratos, a leitura, `blocosDaSecao` e o lançamento.
 - [ ] **Step 4: Run** `pnpm --filter api test && pnpm --filter contratos test && pnpm typecheck`. Expected: a API passa; o site ainda não compila com os contratos novos — rodar `pnpm --filter api typecheck` e `pnpm --filter contratos typecheck` nesta tarefa (o site é a Tarefa 17).
 - [ ] **Step 5: Commit** `Fase 4.2.2: disponibilidade por faixa no banco e na API`.
@@ -506,19 +506,19 @@ As condições que o design implica e que mais podem morder quem monta a escala;
 - [ ] **Step 2: Run** o arquivo. Expected: FAIL.
 - [ ] **Step 3: Implement** o gancho e a disposição em linhas.
 - [ ] **Step 4: Run** `pnpm test && pnpm typecheck && pnpm build:vercel`. Expected: passa.
-- [ ] **Step 5: Commit** `Fase 4.2.2: voluntariado no celular`. Revisão final do branch (Opus), correções, push e PR com: o que entrou, **tem migração (0017)** e o lembrete `pnpm --filter api db:migrar:teste` (converte o que foi lançado em A e B), o que conferir (no computador e no celular: marcar blocos, ver o horário do bloco, dia inteiro pelo número, salvar e passar ao próximo; na "Escolher militar", uma diária das 16h às 00h só aparece para quem marcou 16–20 e 20–24; o dia 1 das 00h às 08h aparece para quem marcou o próprio dia 1) e as decisões para o usuário (cortes só dos serviços que pedem voluntariado; turno B do último dia na conversão). **Parar até o merge.**
+- [ ] **Step 5: Commit** `Fase 4.2.2: voluntariado no celular`. Revisão final do branch (Opus), correções, push e PR com: o que entrou, **tem migração (0018)** e o lembrete `pnpm --filter api db:migrar:teste` (converte o que foi lançado em A e B), o que conferir (no computador e no celular: marcar blocos, ver o horário do bloco, dia inteiro pelo número, salvar e passar ao próximo; na "Escolher militar", uma diária das 16h às 00h só aparece para quem marcou 16–20 e 20–24; o dia 1 das 00h às 08h aparece para quem marcou o próprio dia 1) e as decisões para o usuário (cortes só dos serviços que pedem voluntariado; turno B do último dia na conversão). **Parar até o merge.**
 
 ---
 
 # Entrega 2.1 — Ordem de escala
 
-**Branch:** `fase4-2-1-ordem-de-escala`, a partir da `main` depois do merge da entrega 2. **Tem migração** (0018). Commits `Fase 4.2.1: …`; PR "Fase 4 — Entrega 2.1: ordem de escala".
+**Branch:** `fase4-2-1-ordem-de-escala`, a partir da `main` depois do merge da entrega 2. **Tem migração** (0017). Commits `Fase 4.2.1: …`; PR "Fase 4 — Entrega 2.1: ordem de escala".
 
 ### Task 19: Ordem de escala no banco, nos contratos e a regra das vagas
 
 **Files:**
-- Create: `apps/api/banco/migracoes/0016_ordem_de_escala.sql`, `pacotes/contratos/src/ordem-de-escala.ts` (exportado no `index.ts`), `apps/api/src/escala/ordem.ts`
-- Test: `apps/api/test/migracao-0016.test.ts`, `apps/api/test/ordem-de-escala-regras.test.ts`
+- Create: `apps/api/banco/migracoes/0017_ordem_de_escala.sql`, `pacotes/contratos/src/ordem-de-escala.ts` (exportado no `index.ts`), `apps/api/src/escala/ordem.ts`
+- Test: `apps/api/test/migracao-0017.test.ts`, `apps/api/test/ordem-de-escala-regras.test.ts`
 
 **Interfaces:**
 - Produces:
@@ -529,8 +529,8 @@ As condições que o design implica e que mais podem morder quem monta a escala;
     - `aplicarOrdem(vagas, itens: VagaDaOrdem[] | null): VagaNaTela[]` — `null` = ordem padrão (posição 1…n na ordem de exibição); com itens, cada vaga existente recebe a posição relativa dos itens, compactada (1, 2, 3… sem buraco, itens de vagas que não existem mais são ignorados); vaga sem item fica `posicao: null`.
     - `sequenciaDePreenchimento(vagas: VagaNaTela[]): VagaNaTela[]` — as numeradas por posição, depois as sem número na ordem de exibição (é o que a pré-escala da entrega 3 percorre).
 
-- [ ] **Step 1: Write the failing tests**: `migracao-0016` (versão única por escala e mês; item repetido → 23505; apagar a versão apaga os itens). `ordem-de-escala-regras`: função de mínimo 2 e máximo 4 → 4 vagas, 2 obrigatórias; guarnição em duas faixas aparece uma vez; sem itens → posições 1…n pela prioridade e nome; itens `[AR Chefe 1, ABT Chefe 1]` → AR Chefe 1 tem posição 1; item de vaga que sumiu (máximo diminuiu) → ignorado e as posições ficam 1, 2, 3 (Review Focus 4); vaga nova sem item → `posicao: null` e entra no fim de `sequenciaDePreenchimento`.
-- [ ] **Step 2: Run** `pnpm --filter api vitest run test/migracao-0016.test.ts test/ordem-de-escala-regras.test.ts`. Expected: FAIL.
+- [ ] **Step 1: Write the failing tests**: `migracao-0017` (versão única por escala e mês; item repetido → 23505; apagar a versão apaga os itens). `ordem-de-escala-regras`: função de mínimo 2 e máximo 4 → 4 vagas, 2 obrigatórias; guarnição em duas faixas aparece uma vez; sem itens → posições 1…n pela prioridade e nome; itens `[AR Chefe 1, ABT Chefe 1]` → AR Chefe 1 tem posição 1; item de vaga que sumiu (máximo diminuiu) → ignorado e as posições ficam 1, 2, 3 (Review Focus 4); vaga nova sem item → `posicao: null` e entra no fim de `sequenciaDePreenchimento`.
+- [ ] **Step 2: Run** `pnpm --filter api vitest run test/migracao-0017.test.ts test/ordem-de-escala-regras.test.ts`. Expected: FAIL.
 - [ ] **Step 3: Implement** a migração, os contratos e as três funções.
 - [ ] **Step 4: Run** `pnpm --filter api test && pnpm --filter contratos test && pnpm typecheck`. Expected: passa.
 - [ ] **Step 5: Commit** `Fase 4.2.1: ordem de escala no banco e regra das vagas`.
