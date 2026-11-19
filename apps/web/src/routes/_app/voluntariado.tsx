@@ -64,9 +64,9 @@ function Voluntariado() {
                   dados={dados.data}
                   focarAoAbrir={focoAoAbrir.current}
                   aoAbrir={() => (focoAoAbrir.current = false)}
-                  aoSalvar={async (marcas, soltarPendencia) => {
+                  aoSalvar={async (faixas, soltarPendencia) => {
                     setTodosLancados(false);
-                    const nova = await lancarVoluntariado(queryClient, eu.unidade.id, aberto.militarId, mes, marcas);
+                    const nova = await lancarVoluntariado(queryClient, eu.unidade.id, aberto.militarId, mes, faixas);
                     soltarPendencia();
                     const proximo = proximoQueFalta(nova.militares, aberto.militarId);
                     if (proximo) {
