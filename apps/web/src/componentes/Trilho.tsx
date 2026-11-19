@@ -31,7 +31,7 @@ const BLOCOS: Item[][] = [
     { nome: 'Efetivo do dia', icone: Sun },
   ],
   [
-    { nome: 'Voluntariado', icone: CalendarCheck, soCadastro: true },
+    { nome: 'Voluntariado', icone: CalendarCheck, para: '/voluntariado', soCadastro: true },
     { nome: 'Cotas', icone: PieChart, para: '/cotas', soCadastro: true },
   ],
   [

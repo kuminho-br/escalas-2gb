@@ -147,6 +147,15 @@ describe('quem pode ocupar a vaga', () => {
     expect(nomes(r)).toEqual(['JESVOL']);
   });
 
+  it('o voluntariado lançado à mão vale na hora para a lista, e lançar vazio tira (Fase 4.2)', async () => {
+    const lancar = (marcas: { data: string; turno: 'A' | 'B' }[]) => api.pedir('escalante', 'PUT', `/api/militares/${militar.JESSEM}/voluntariado/${atual}`, { marcas });
+    expect(await motivo('JESSEM', D, FAIXA.JES, T('JES A'))).toBe('Não marcou voluntariado neste horário');
+    expect((await lancar([{ data: D, turno: 'A' }])).status).toBe(200);
+    expect(await motivo('JESSEM', D, FAIXA.JES, T('JES A'))).toBeNull();
+    expect((await lancar([])).status).toBe(200);
+    expect(await motivo('JESSEM', D, FAIXA.JES, T('JES A'))).toBe('Não marcou voluntariado neste horário');
+  });
+
   it('o expediente do Adm só choca com diária, e só em dia útil', async () => {
     const util = diasDoMes(atual).find((d) => d > dia(16) && diaDaSemana(d) >= 1 && diaDaSemana(d) <= 5)!;
     const fim = diasDoMes(atual).find((d) => d > dia(16) && (diaDaSemana(d) === 0 || diaDaSemana(d) === 6))!;

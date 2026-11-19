@@ -12,6 +12,7 @@ import { IMPORTADORES } from './importacao/registro.ts';
 import { limiteDeEnvio } from './limites.ts';
 import { rotasImportacao } from './importacao/rotas.ts';
 import { rotasEscalaDoMes } from './escala/rotas.ts';
+import { rotasVoluntariado } from './voluntariado/rotas.ts';
 import { rotasEu } from './rotas/eu.ts';
 import { rotasSaude } from './rotas/saude.ts';
 
@@ -38,6 +39,7 @@ export function criarApp(dep: Dependencias): Hono {
     app.route('/api', rotasFeriados(comAuth));
     app.route('/api', rotasEscalas(comAuth));
     app.route('/api', rotasEscalaDoMes(comAuth));
+    app.route('/api', rotasVoluntariado(comAuth));
     app.route('/api', rotasImportacao(comAuth, IMPORTADORES));
   }
   return app;
