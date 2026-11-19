@@ -51,10 +51,14 @@ const cobre = (faixas: Faixa[], inicio: number, fim: number) => unirFaixas(faixa
 /**
  * O turno de serviço, que começa em `data`, cabe na disponibilidade? Toda a duração precisa estar coberta; o que passa da meia-noite
  * usa o dia seguinte (o turno pertence ao dia em que começa). `faixasDoDia` devolve as faixas marcadas num dia.
+ * `flexibilidadeMin` (horas cheias, em minutos) deixa de conferir as primeiras e as últimas horas do turno; sempre sobra ao menos
+ * 1h no meio, e um buraco no meio do turno continua barrando.
  */
-export function turnoCoberto(faixasDoDia: (data: string) => Faixa[], data: string, inicio: string, fim: string): boolean {
-  const i = minutos(inicio);
-  const f = i + duracaoMinutos(inicio, fim);
+export function turnoCoberto(faixasDoDia: (data: string) => Faixa[], data: string, inicio: string, fim: string, flexibilidadeMin = 0): boolean {
+  const duracao = duracaoMinutos(inicio, fim);
+  const flex = Math.max(0, Math.min(flexibilidadeMin, (duracao - 60) / 2));
+  const i = minutos(inicio) + flex;
+  const f = minutos(inicio) + duracao - flex;
   if (!cobre(faixasDoDia(data), i, Math.min(f, DIA))) return false;
   return f <= DIA || cobre(faixasDoDia(diaSeguinte(data)), 0, f - DIA);
 }
