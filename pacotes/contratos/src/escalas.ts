@@ -17,6 +17,10 @@ export type EdicaoEscala = DadosEscala;
 export const SituacaoEscala = z.object({ ativa: z.boolean() });
 export type SituacaoEscala = z.infer<typeof SituacaoEscala>;
 
+/** O gestor escolhe se a escala entra na montagem dos blocos do dia no voluntariado. */
+export const MarcaDeBlocos = z.object({ montaBlocos: z.boolean() });
+export type MarcaDeBlocos = z.infer<typeof MarcaDeBlocos>;
+
 export const ServicosDaEscala = z
   .object({ servicoIds: z.array(Id) })
   .refine((s) => new Set(s.servicoIds).size === s.servicoIds.length, { path: ['servicoIds'], message: 'Este serviço já está na escala.' });
@@ -37,7 +41,7 @@ export type VinculosDaEscala = z.infer<typeof VinculosDaEscala>;
 /** Uma coluna da matriz: um horário distinto entre os turnos dos serviços da escala. */
 export type FaixaDaEscala = { inicio: string; fim: string; letras: LetraTurno[]; servicos: string[] };
 
-export type LinhaEscala = { id: string; nome: string; ativa: boolean; servicos: string[] };
+export type LinhaEscala = { id: string; nome: string; ativa: boolean; servicos: string[]; montaBlocosVoluntariado: boolean };
 
 export type VinculoSalvo = { guarnicaoId: string; guarnicao: string; ativaNoMes: boolean; inicio: string; fim: string };
 
@@ -48,6 +52,8 @@ export type Escala = {
   militaresDoc: z.infer<typeof MilitaresDoc>;
   diasDoc: z.infer<typeof DiasDoc>;
   ativa: boolean;
+  /** os serviços desta escala que pedem voluntariado cortam o dia em blocos no voluntariado */
+  montaBlocosVoluntariado: boolean;
   servicos: { id: string; nome: string; cor: string; ativo: boolean }[];
   /** faixas distintas dos turnos dos serviços, em ordem de início */
   faixas: FaixaDaEscala[];

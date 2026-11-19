@@ -12,6 +12,9 @@ export const mudarSituacaoEscala = (id: string, ativa: boolean) => pedir<Escala>
 export const salvarServicosDaEscala = (id: string, servicoIds: string[]) => pedir<Escala>('PUT', `/api/escalas/${id}/servicos`, { servicoIds });
 export const salvarVinculos = (id: string, mes: string, d: VinculosDaEscala) => pedir<Escala>('PUT', `/api/escalas/${id}/vinculos/${mes}`, d);
 
+/** O gestor decide se a escala monta os blocos do dia no voluntariado. */
+export const marcarBlocosDoVoluntariado = (id: string, montaBlocos: boolean) => pedir<Escala>('PATCH', `/api/escalas/${id}/blocos-do-voluntariado`, { montaBlocos });
+
 export function atualizarEscalas(queryClient: QueryClient) {
   void queryClient.invalidateQueries({ queryKey: ['escalas'] });
   void queryClient.invalidateQueries({ queryKey: ['escala'] });

@@ -8,7 +8,7 @@ import { abrir, chamadasA, corpoEnviado, EU_EXEMPLO, simularApi, trava } from '.
 
 // Escala fictícia de 3 dias, uma guarnição (ABT: Motorista 1–1 CNH D, Combatente 1–2), duas faixas por dia.
 const MES = mesAtual();
-const LISTA: LinhaEscala[] = [{ id: 'e1', nome: 'Ordinário', ativa: true, servicos: ['Pronto'] }, { id: 'e9', nome: 'Velha', ativa: false, servicos: [] }];
+const LISTA: LinhaEscala[] = [{ id: 'e1', nome: 'Ordinário', ativa: true, servicos: ['Pronto'], montaBlocosVoluntariado: true }, { id: 'e9', nome: 'Velha', ativa: false, servicos: [], montaBlocosVoluntariado: true }];
 
 const ocupante = (nome: string): OcupanteDaVaga => ({
   alocacaoId: `a-${nome}`, acumuloId: null, acumulaCom: [], militarId: `m-${nome}`, posto: 'SD BM', nomeGuerra: nome, matricula: '990001-1', servico: { id: 's1', nome: 'Pronto', cor: '#2F8F5B' }, letra: 'A',

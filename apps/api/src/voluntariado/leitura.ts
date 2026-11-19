@@ -9,12 +9,19 @@ type Lotado = Omit<MilitarDoVoluntariado, 'lancado' | 'horas' | 'dias'>;
 /** 480 -> "08:00"; 1440 -> "24:00". */
 export const horaDe = (min: number): string => `${String(Math.floor(min / 60)).padStart(2, '0')}:${String(min % 60).padStart(2, '0')}`;
 
-/** Os blocos do dia da seção: cortados nos horários dos turnos dos serviços ativos que pedem voluntariado (PJES e diária); sem nenhum, o dia é um bloco só. */
+/**
+ * Os blocos do dia da seção: cortados nos horários dos turnos dos serviços ativos que pedem voluntariado (PJES e diária) e estão em
+ * alguma escala ativa que o gestor marcou para montar os blocos; sem nenhum, o dia é um bloco só.
+ */
 export async function blocosDaSecao(c: Consulta, unidadeId: string): Promise<Faixa[]> {
   const { rows } = await c.query<{ inicio: string; fim: string }>(
     `select to_char(t.inicio, 'HH24:MI') as inicio, to_char(t.fim, 'HH24:MI') as fim
        from turno t join servico s on s.id = t.servico_id
-      where s.unidade_id = $1 and s.ativo and s.tipo in ('pjes', 'diaria')`,
+      where s.unidade_id = $1 and s.ativo and s.tipo in ('pjes', 'diaria')
+        and exists (
+          select 1 from escala_servico es join escala e on e.id = es.escala_id
+           where es.servico_id = s.id and e.ativa and e.monta_blocos_voluntariado
+        )`,
     [unidadeId],
   );
   return blocosDoDia(cortesDoDia(rows));

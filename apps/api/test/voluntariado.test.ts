@@ -50,7 +50,7 @@ beforeAll(async () => {
   const cprh = (await (await api.pedir('escalante', 'POST', `${secao()}/servicos`, { nome: 'CPRH', tipo: 'pjes', operacao: null, rotuloImpressao: null, cor: '#4A5562' })).json()) as { id: string };
   await api.pedir('escalante', 'POST', `/api/servicos/${cprh.id}/turnos`, { letra: 'A', inicio: '08:00', fim: '20:00' });
   escala = (await (await api.pedir('escalante', 'POST', `${secao()}/escalas`, { nome: 'Ordinário' })).json()).id;
-  await api.pedir('escalante', 'PUT', `/api/escalas/${escala}/servicos`, { servicoIds: [pronto] });
+  await api.pedir('escalante', 'PUT', `/api/escalas/${escala}/servicos`, { servicoIds: [pronto, pe.id, cprh.id] });
   await criarMilitar('ANDRADE', { equipe: 'Alfa' });
   await criarMilitar('BRAVO1', { equipe: 'Bravo' });
   await criarMilitar('CHARLIE1', { equipe: 'Charlie' });
@@ -104,6 +104,49 @@ describe('voluntariado do mês', () => {
     expect(await blocosDaSecao(api.banco, api.ids.secao)).toHaveLength(4);
     const vazia = await inserir(api.banco, 'unidade', { tipo: 'secao', sigla: 'SEC-Z', nome: 'Seção sem serviços', mae_id: api.ids.gb, desde: '2026-11-01' });
     expect(await blocosDaSecao(api.banco, vazia)).toEqual([{ inicio: 0, fim: 1440 }]);
+  });
+
+  describe('as escalas que montam os blocos do dia', () => {
+    const marcar = (id: string, montaBlocos: boolean) => api.pedir('admin', 'PATCH', `/api/escalas/${id}/blocos-do-voluntariado`, { montaBlocos });
+    const blocos = async () => (await doMilitar('ANDRADE')).blocos;
+    const QUATRO = [{ inicio: '00:00', fim: '08:00' }, { inicio: '08:00', fim: '16:00' }, { inicio: '16:00', fim: '20:00' }, { inicio: '20:00', fim: '24:00' }];
+
+    it('uma escala marcada acrescenta os cortes dos serviços dela; desmarcada ou desativada, eles somem e os quatro blocos voltam', async () => {
+      const eleicoes = (await (await api.pedir('escalante', 'POST', `${secao()}/servicos`, { nome: 'Eleições', tipo: 'diaria', operacao: null, rotuloImpressao: null, cor: '#8A5A00' })).json()) as { id: string };
+      await api.pedir('escalante', 'POST', `/api/servicos/${eleicoes.id}/turnos`, { letra: 'A', inicio: '07:00', fim: '15:00' });
+      const nova = (await (await api.pedir('escalante', 'POST', `${secao()}/escalas`, { nome: 'Eleições' })).json()).id as string;
+      await api.pedir('escalante', 'PUT', `/api/escalas/${nova}/servicos`, { servicoIds: [eleicoes.id] });
+      expect(await blocos()).toEqual([
+        { inicio: '00:00', fim: '07:00' }, { inicio: '07:00', fim: '08:00' }, { inicio: '08:00', fim: '15:00' }, { inicio: '15:00', fim: '16:00' }, { inicio: '16:00', fim: '20:00' }, { inicio: '20:00', fim: '24:00' },
+      ]);
+      const tirou = await marcar(nova, false);
+      expect(tirou.status).toBe(200);
+      expect(await blocos()).toEqual(QUATRO);
+      await marcar(nova, true);
+      expect(await blocos()).toHaveLength(6);
+      await api.pedir('escalante', 'POST', `/api/escalas/${nova}/situacao`, { ativa: false });
+      expect(await blocos()).toEqual(QUATRO);
+      await marcar(nova, false);
+    });
+
+    it('um serviço que não está em nenhuma escala não corta o dia', async () => {
+      const solto = await inserir(api.banco, 'servico', { unidade_id: api.ids.secao, nome: 'Diária solta', tipo: 'diaria', cor: '#222222' });
+      await inserir(api.banco, 'turno', { servico_id: solto, letra: 'A', inicio: '06:00', fim: '12:00' });
+      expect(await blocos()).toEqual(QUATRO);
+    });
+
+    it('com nenhuma escala marcada, o dia é um bloco só e o lançamento continua funcionando (Review Focus 4)', async () => {
+      await marcar(escala, false);
+      try {
+        expect(await blocos()).toEqual([{ inicio: '00:00', fim: '24:00' }]);
+        const r = await api.pedir('escalante', 'PUT', `/api/militares/${militar.BRAVO1}/voluntariado/${mes}`, { faixas: [f(`${mes}-05`, '08:00', '16:00')] });
+        expect(r.status).toBe(200);
+        expect((await doMilitar('BRAVO1')).faixas).toEqual([f(`${mes}-05`, '08:00', '16:00')]);
+      } finally {
+        await marcar(escala, true);
+      }
+      expect(await blocos()).toEqual(QUATRO);
+    });
   });
 
   it('as folgas vêm do ciclo: com o BRAVO de serviço no último dia, o dia 1 é da CHARLIE e a folga dela é o resto', async () => {
