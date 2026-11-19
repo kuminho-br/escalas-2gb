@@ -175,6 +175,18 @@ describe('voluntariado: blocos por horário (computador)', () => {
     expect(within(b).getByRole('tooltip')).toHaveTextContent('16h às 20h');
   });
 
+  it('a dica de horário não é cortada pela faixa do dia (nenhum ancestral até o calendário tem overflow-hidden)', async () => {
+    api();
+    abrir('/voluntariado');
+    await screen.findByRole('heading', { name: 'SD BM ANDRADE' });
+    const dica = within(bloco(5, '16h', '20h')).getByRole('tooltip');
+    const cortados: string[] = [];
+    for (let el = dica.parentElement; el && el !== calendario(); el = el.parentElement) {
+      if (el.classList.contains('overflow-hidden')) cortados.push(el.outerHTML.slice(0, 80));
+    }
+    expect(cortados).toEqual([]);
+  });
+
   it('a faixa das 20h às 24h do dia 5 é noturna (sombreada); o dia 5 de dia (08–16) não é', async () => {
     api();
     abrir('/voluntariado');
@@ -218,6 +230,21 @@ describe('voluntariado: celular', () => {
     expect(rotulos).toEqual(['00h', '08h', '16h', '20h', '24h']);
   });
 
+  it('no celular, a faixa de rótulos fica parada na rolagem e tem as mesmas colunas e bordas das linhas dos dias (rótulos sobre os cortes)', async () => {
+    emCelular(true);
+    api();
+    abrir('/voluntariado');
+    await screen.findByRole('heading', { name: 'SD BM ANDRADE' });
+    const rotulos = document.querySelector('[data-rotulos-dos-cortes]') as HTMLElement;
+    const linhaDeRotulos = rotulos.parentElement as HTMLElement;
+    expect(linhaDeRotulos.parentElement).toHaveClass('sticky', 'top-0');
+    expect(linhaDeRotulos).toHaveClass('grid-cols-[3.5rem_1fr]', 'border', 'p-1.5');
+    expect(rotulos).toHaveClass('border');
+    const linhaDoDia = bloco(5, '08h', '16h').closest('[data-linha-do-dia]') as HTMLElement;
+    expect(linhaDoDia).toHaveClass('grid-cols-[3.5rem_1fr]', 'border', 'p-1.5');
+    expect((bloco(5, '08h', '16h').parentElement as HTMLElement)).toHaveClass('border');
+  });
+
   it('no celular, cada dia é uma linha: o número e o dia da semana à esquerda, os blocos à direita', async () => {
     emCelular(true);
     api();
@@ -233,16 +260,31 @@ describe('voluntariado: celular', () => {
     expect(linha.querySelector('[data-diasemana]')).toHaveTextContent(semana!);
   });
 
-  it('no celular, arrastar por cima de outro bloco não marca nada (só o toque vale)', async () => {
+  it('no celular, o toque que vira rolagem não marca nada: nem bloco, nem dia (o clique do toque é que marca)', async () => {
     emCelular(true);
     api();
     abrir('/voluntariado');
     await screen.findByRole('heading', { name: 'SD BM ANDRADE' });
     const b = bloco(5, '08h', '16h');
-    // o toque no primeiro bloco marca só ele; o dedo que desliza para o próximo não marca nada
+    // o dedo encosta no bloco e desliza: o navegador cancela o toque e não há clique
     fireEvent.pointerDown(b, { pointerType: 'touch', pointerId: 1, button: 0 });
-    fireEvent.pointerEnter(bloco(5, '16h', '20h'), { pointerType: 'touch', pointerId: 1 });
-    fireEvent.pointerUp(window, { pointerType: 'touch', pointerId: 1 });
+    fireEvent.pointerCancel(b, { pointerType: 'touch', pointerId: 1 });
+    expect(b).toHaveAttribute('aria-pressed', 'false');
+    // o dia também: encostar no número e rolar não marca o dia inteiro
+    fireEvent.pointerDown(within(calendario()).getByRole('button', { name: /^Dia 5:/ }), { pointerType: 'touch', pointerId: 2, button: 0 });
+    fireEvent.pointerCancel(window, { pointerType: 'touch', pointerId: 2 });
+    expect(bloco(5, '08h', '16h')).toHaveAttribute('aria-pressed', 'false');
+  });
+
+  it('no celular, um toque sem rolagem (pointerdown seguido de clique) marca o bloco tocado', async () => {
+    emCelular(true);
+    api();
+    abrir('/voluntariado');
+    await screen.findByRole('heading', { name: 'SD BM ANDRADE' });
+    const b = bloco(5, '08h', '16h');
+    fireEvent.pointerDown(b, { pointerType: 'touch', pointerId: 1, button: 0 });
+    fireEvent.pointerUp(b, { pointerType: 'touch', pointerId: 1 });
+    fireEvent.click(b, { detail: 1 });
     expect(b).toHaveAttribute('aria-pressed', 'true');
     expect(bloco(5, '16h', '20h')).toHaveAttribute('aria-pressed', 'false');
   });

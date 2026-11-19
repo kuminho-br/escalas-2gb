@@ -60,6 +60,8 @@ export function CalendarioDoVoluntariado({
 
   // arrastar pelos blocos: a ação (marcar ou desmarcar) é a do primeiro bloco e vale até soltar
   const arrasto = useRef<'marcar' | 'desmarcar' | null>(null);
+  // tipo do último ponteiro apertado: o toque marca no clique (sem rolagem), não no apertar
+  const ponteiro = useRef<string>('mouse');
   const grade = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const soltar = () => (arrasto.current = null);
@@ -104,11 +106,15 @@ export function CalendarioDoVoluntariado({
       </header>
 
       {/* a legenda do dia: os cortes dos serviços, na mesma escala dos blocos de baixo */}
-      <div aria-hidden className="grid gap-1">
-        <div data-rotulos-dos-cortes className="relative h-4 text-xs text-apagado">
-          {cortes.map((c) => (
-            <span key={c} className="absolute -translate-x-1/2" style={{ left: `${(c / 1440) * 100}%` }}>{hh(c)}</span>
-          ))}
+      {/* no celular, a faixa de rótulos fica parada no topo da rolagem e tem as mesmas colunas e bordas das linhas dos dias */}
+      <div aria-hidden className={cn('grid gap-1', celular && 'sticky top-0 z-10 bg-superficie')}>
+        <div className={cn(celular && 'grid grid-cols-[3.5rem_1fr] gap-2 rounded-md border border-transparent p-1.5')}>
+          {celular && <span />}
+          <div data-rotulos-dos-cortes className={cn('relative h-4 text-xs text-apagado', celular && 'border border-transparent')}>
+            {cortes.map((c) => (
+              <span key={c} className="absolute -translate-x-1/2" style={{ left: `${(c / 1440) * 100}%` }}>{hh(c)}</span>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -137,24 +143,26 @@ export function CalendarioDoVoluntariado({
                 aria-label={`Dia ${n}: ${todos.every((e) => e === 'cheio') ? 'desmarcar' : 'marcar'} o dia inteiro`}
                 onPointerDown={(e) => {
                   if (e.button !== 0) return;
-                  const cheio = todos.every((x) => x === 'cheio');
-                  const acao = cheio ? 'desmarcar' : 'marcar';
-                  arrasto.current = e.pointerType === 'mouse' ? acao : null;
+                  ponteiro.current = e.pointerType;
+                  arrasto.current = null;
+                  if (e.pointerType !== 'mouse') return;
+                  const acao = todos.every((x) => x === 'cheio') ? 'desmarcar' : 'marcar';
+                  arrasto.current = acao;
                   setMarcas((m) => marcarOuTirar(m, d, blocos, acao));
                 }}
                 onPointerEnter={(ev) => {
                   const acao = arrasto.current;
                   if (acao && ev.pointerType === 'mouse') setMarcas((m) => marcarOuTirar(m, d, blocos, acao));
                 }}
-                // clique do mouse ou do toque já foi tratado ao apertar; o do teclado (e dos leitores de tela) vem sem `detail`
-                onClick={(e) => e.detail === 0 && setMarcas((m) => marcarOuTirar(m, d, blocos, todos.every((x) => x === 'cheio') ? 'desmarcar' : 'marcar'))}
+                // o clique do mouse já foi tratado ao apertar; o do toque, do teclado e dos leitores de tela marca aqui
+                onClick={(e) => (e.detail === 0 || ponteiro.current !== 'mouse') && setMarcas((m) => marcarOuTirar(m, d, blocos, todos.every((x) => x === 'cheio') ? 'desmarcar' : 'marcar'))}
                 onKeyDown={(e) => aoTeclar(e, d)}
                 className="rounded text-left font-cond text-base leading-none font-semibold hover:bg-accent"
               >
                 {n}
                 {celular && <span data-diasemana className="ml-1 text-xs font-normal text-apagado">{SEMANA[diaDaSemana(d)]}</span>}
               </button>
-              <div className="flex h-7 overflow-hidden rounded border border-linha" style={{ touchAction: 'manipulation' }}>
+              <div className="flex h-7 rounded border border-linha" style={{ touchAction: 'manipulation' }}>
                 {blocos.map((b, k) => {
                   const e = todos[k]!;
                   return (
@@ -168,20 +176,23 @@ export function CalendarioDoVoluntariado({
                       data-noturno={ehNoturno(b) ? '' : undefined}
                       onPointerDown={(ev) => {
                         if (ev.button !== 0) return;
+                        ponteiro.current = ev.pointerType;
+                        arrasto.current = null;
+                        // no toque, a marcação vem no clique (se o dedo rolar a página, nada é marcado)
+                        if (ev.pointerType !== 'mouse') return;
                         const acao: 'marcar' | 'desmarcar' = e === 'cheio' ? 'desmarcar' : 'marcar';
-                        // no toque, só o bloco tocado; o arrasto (que começa com o mouse) continua pelos blocos
-                        arrasto.current = ev.pointerType === 'mouse' ? acao : null;
+                        arrasto.current = acao;
                         setMarcas((m) => alternarSe(m, d, b, acao));
                       }}
                       onPointerEnter={(ev) => {
                         const acao = arrasto.current;
                         if (acao && ev.pointerType === 'mouse') setMarcas((m) => alternarSe(m, d, b, acao));
                       }}
-                      onClick={(ev) => ev.detail === 0 && setMarcas((m) => alternarBloco(m, d, b))}
+                      onClick={(ev) => (ev.detail === 0 || ponteiro.current !== 'mouse') && setMarcas((m) => alternarBloco(m, d, b))}
                       onKeyDown={(ev) => aoTeclar(ev, d)}
                       style={{ flex: b.fim - b.inicio }}
                       className={cn(
-                        'group relative min-w-0 border-r border-linha last:border-r-0',
+                        'group relative min-w-0 border-r border-linha first:rounded-l last:rounded-r last:border-r-0',
                         e === 'cheio' && 'bg-vinho',
                         e === 'parcial' && 'bg-[repeating-linear-gradient(135deg,var(--color-vinho)_0_4px,#fff_4px_8px)]',
                         e === 'vazio' && (ehNoturno(b) ? 'bg-noite' : 'bg-superficie'),
