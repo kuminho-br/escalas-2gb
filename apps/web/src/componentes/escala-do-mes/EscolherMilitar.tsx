@@ -1,5 +1,5 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { mesPorExtenso, textoFaixa } from 'contratos';
+import { mesPorExtenso, textoFaixa, type Candidato } from 'contratos';
 import { useState } from 'react';
 import { mensagemDe } from '@/api/cliente';
 import { acumular, consultaCandidatos, escalar } from '@/api/escala-do-mes';
@@ -16,6 +16,7 @@ export function EscolherMilitar({ escalaId, vaga, aoFechar }: { escalaId: string
   const mes = vaga.data.slice(0, 7);
   const candidatos = useQuery(consultaCandidatos(escalaId, mes, { data: vaga.data, inicio: vaga.inicio, fim: vaga.fim, guarnicaoId: vaga.guarnicaoId, funcaoId: vaga.funcaoId }));
   const [busca, setBusca] = useState('');
+  const [mostrandoSemVoluntariado, setMostrandoSemVoluntariado] = useState(false);
   const [turnoDe, setTurnoDe] = useState<Record<string, string>>({});
   const [erro, setErro] = useState<string | null>(null);
   const { salvando, travar } = useTrava();
@@ -44,7 +45,33 @@ export function EscolherMilitar({ escalaId, vaga, aoFechar }: { escalaId: string
   const texto = busca.trim().toLowerCase();
   const combina = (c: { nomeGuerra: string; matricula: string }) => !texto || c.nomeGuerra.toLowerCase().includes(texto) || c.matricula.includes(texto);
   const aptos = (candidatos.data?.aptos ?? []).filter(combina);
+  const semVoluntariado = (candidatos.data?.semVoluntariado ?? []).filter(combina);
   const paraAcumular = (candidatos.data?.acumular ?? []).filter(combina);
+
+  /** Uma linha da lista (apto ou de quem só não marcou voluntariado): o botão de escolher e, havendo mais de um serviço, a troca de serviço. */
+  const itemDe = (c: Candidato) => {
+    const turnoId = turnoDe[c.militarId] ?? c.servicos[0]!.turnoId;
+    return (
+      <li key={c.militarId} className="flex items-center gap-2">
+        <button
+          type="button"
+          disabled={salvando}
+          onClick={() => void escolher(c.militarId, turnoId)}
+          className="flex min-w-0 flex-1 flex-wrap items-baseline gap-x-2 rounded-md border border-linha px-3 py-2 text-left hover:bg-accent disabled:opacity-60"
+        >
+          <span className="text-xs text-apagado">{c.posto}</span>
+          <span className="font-cond text-base font-semibold">{c.nomeGuerra}</span>
+          <span className="text-xs text-apagado">{c.matricula}</span>
+          <span className="text-xs text-apagado">{c.equipe ?? 'Adm'}</span>
+        </button>
+        {c.servicos.length > 1 && (
+          <Selecao aria-label={`Serviço de ${c.nomeGuerra}`} value={turnoId} onChange={(e) => setTurnoDe({ ...turnoDe, [c.militarId]: e.target.value })} className="w-28">
+            {c.servicos.map((s) => <option key={s.turnoId} value={s.turnoId}>{s.nome}</option>)}
+          </Selecao>
+        )}
+      </li>
+    );
+  };
 
   return (
     <Dialog open onOpenChange={(v) => !v && aoFechar()}>
@@ -65,29 +92,7 @@ export function EscolherMilitar({ escalaId, vaga, aoFechar }: { escalaId: string
               <p className="text-apagado">Ninguém pode ocupar esta vaga agora.</p>
             ) : candidatos.data.aptos.length > 0 && (
               <ul className="grid max-h-80 gap-1.5 overflow-y-auto">
-                {aptos.map((c) => {
-                  const turnoId = turnoDe[c.militarId] ?? c.servicos[0]!.turnoId;
-                  return (
-                    <li key={c.militarId} className="flex items-center gap-2">
-                      <button
-                        type="button"
-                        disabled={salvando}
-                        onClick={() => void escolher(c.militarId, turnoId)}
-                        className="flex min-w-0 flex-1 flex-wrap items-baseline gap-x-2 rounded-md border border-linha px-3 py-2 text-left hover:bg-accent disabled:opacity-60"
-                      >
-                        <span className="text-xs text-apagado">{c.posto}</span>
-                        <span className="font-cond text-base font-semibold">{c.nomeGuerra}</span>
-                        <span className="text-xs text-apagado">{c.matricula}</span>
-                        <span className="text-xs text-apagado">{c.equipe ?? 'Adm'}</span>
-                      </button>
-                      {c.servicos.length > 1 && (
-                        <Selecao aria-label={`Serviço de ${c.nomeGuerra}`} value={turnoId} onChange={(e) => setTurnoDe({ ...turnoDe, [c.militarId]: e.target.value })} className="w-28">
-                          {c.servicos.map((s) => <option key={s.turnoId} value={s.turnoId}>{s.nome}</option>)}
-                        </Selecao>
-                      )}
-                    </li>
-                  );
-                })}
+                {aptos.map(itemDe)}
               </ul>
             )}
             {paraAcumular.length > 0 && (
@@ -112,7 +117,22 @@ export function EscolherMilitar({ escalaId, vaga, aoFechar }: { escalaId: string
                 </ul>
               </section>
             )}
-            {candidatos.data.fora.length > 0 && <p className="text-xs text-apagado">Ficaram de fora: {frasesDeFora(candidatos.data.fora)}</p>}
+            {candidatos.data.fora.length > 0 && (
+              <p className="text-xs text-apagado">
+                Ficaram de fora: {frasesDeFora(candidatos.data.fora)}
+                {candidatos.data.semVoluntariado.length > 0 && (
+                  <button type="button" onClick={() => setMostrandoSemVoluntariado((v) => !v)} className="ml-2 rounded text-xs font-medium text-vinho underline underline-offset-2">
+                    {mostrandoSemVoluntariado ? 'Esconder' : 'Mostrar'}
+                  </button>
+                )}
+              </p>
+            )}
+            {mostrandoSemVoluntariado && semVoluntariado.length > 0 && (
+              <section aria-labelledby="sem-voluntariado-titulo" className="grid gap-1.5">
+                <h3 id="sem-voluntariado-titulo" className="text-sm font-medium">Sem voluntariado neste horário</h3>
+                <ul className="grid max-h-60 gap-1.5 overflow-y-auto">{semVoluntariado.map(itemDe)}</ul>
+              </section>
+            )}
           </>
         )}
         {erro && <p role="alert" className="text-sm text-alerta">{erro}</p>}

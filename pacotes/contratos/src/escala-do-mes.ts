@@ -96,6 +96,8 @@ export type Candidato = {
 
 export type Candidatos = {
   aptos: Candidato[];
+  /** só não marcaram o horário no voluntariado (todas as outras regras passam): o escalante pode escalá-los combinando direto */
+  semVoluntariado: Candidato[];
   fora: { motivo: string; quantidade: number }[];
   /** já escalados nesta faixa, com guarnição e função, que cumprem os requisitos desta vaga; `vaga` = a vaga que já ocupam */
   acumular: { alocacaoId: string; militarId: string; posto: string; nomeGuerra: string; matricula: string; vaga: string }[];

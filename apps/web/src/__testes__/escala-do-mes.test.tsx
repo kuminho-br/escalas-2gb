@@ -163,6 +163,7 @@ describe('escolher militar e remover', () => {
       { militarId: 'm-zulu', posto: 'SD BM', nomeGuerra: 'ZULU', matricula: '990002-2', equipe: 'Alfa', jornada: 'pronto', servicos: [{ servicoId: 's1', turnoId: 't-a', nome: 'Pronto' }] },
       { militarId: 'm-yuri', posto: 'CB BM', nomeGuerra: 'YURI', matricula: '990003-3', equipe: null, jornada: 'adm', servicos: [{ servicoId: 's1', turnoId: 't-a', nome: 'Pronto' }, { servicoId: 's2', turnoId: 't-jes', nome: 'JES' }] },
     ],
+    semVoluntariado: [],
     fora: [{ motivo: 'Afastado', quantidade: 3 }, { motivo: 'Sem a CNH exigida', quantidade: 2 }, { motivo: 'Choque de horário', quantidade: 1 }], acumular: [],
   };
   // a escala depois de escalar o ZULU de Combatente no dia 2, faixa do dia
@@ -238,12 +239,64 @@ describe('escolher militar e remover', () => {
   });
 
   it('sem ninguém apto, o diálogo diz isso e ainda mostra por que os outros ficaram de fora', async () => {
-    api(ESCALA, { [rotaCandidatos]: { status: 200, corpo: { aptos: [], fora: [{ motivo: 'Afastado', quantidade: 1 }], acumular: [] } } });
+    api(ESCALA, { [rotaCandidatos]: { status: 200, corpo: { aptos: [], semVoluntariado: [], fora: [{ motivo: 'Afastado', quantidade: 1 }], acumular: [] } } });
     abrir('/escala-do-mes');
     await screen.findByRole('region', { name: 'Dia 2' });
     const dialogo = await abrirVaga();
     expect(await within(dialogo).findByText('Ninguém pode ocupar esta vaga agora.')).toBeInTheDocument();
     expect(within(dialogo).getByText('Ficaram de fora: 1 afastado')).toBeInTheDocument();
+  });
+
+  describe('quem só não marcou o voluntariado (o escalante pode combinar direto)', () => {
+    const SEM_VOL = 'Não marcou voluntariado neste horário';
+    const dantas = { militarId: 'm-dantas', posto: 'SD BM', nomeGuerra: 'DANTAS', matricula: '990004-4', equipe: 'Alfa', jornada: 'pronto', servicos: [{ servicoId: 's2', turnoId: 't-jes', nome: 'JES' }] };
+    const COM_GRUPO = { ...CANDIDATOS, semVoluntariado: [dantas], fora: [{ motivo: SEM_VOL, quantidade: 1 }] };
+
+    it('sem ninguém nesse grupo, não há botão "Mostrar"', async () => {
+      api(ESCALA, { [rotaCandidatos]: { status: 200, corpo: CANDIDATOS } });
+      abrir('/escala-do-mes');
+      await screen.findByRole('region', { name: 'Dia 2' });
+      const dialogo = await abrirVaga();
+      await within(dialogo).findByRole('button', { name: /ZULU/ });
+      expect(within(dialogo).queryByRole('button', { name: 'Mostrar' })).not.toBeInTheDocument();
+    });
+
+    it('com gente no grupo, aparece "Mostrar" junto de "Ficaram de fora" e o grupo começa fechado; tocar abre, e de novo fecha', async () => {
+      api(ESCALA, { [rotaCandidatos]: { status: 200, corpo: COM_GRUPO } });
+      abrir('/escala-do-mes');
+      await screen.findByRole('region', { name: 'Dia 2' });
+      const dialogo = await abrirVaga();
+      await within(dialogo).findByRole('button', { name: /ZULU/ });
+      expect(within(dialogo).getByText('Ficaram de fora: 1 sem voluntariado neste horário')).toBeInTheDocument();
+      expect(within(dialogo).queryByRole('button', { name: /DANTAS/ })).not.toBeInTheDocument();
+      await userEvent.click(within(dialogo).getByRole('button', { name: 'Mostrar' }));
+      expect(within(dialogo).getByText('Sem voluntariado neste horário')).toBeInTheDocument();
+      expect(within(dialogo).getByRole('button', { name: /DANTAS/ })).toBeInTheDocument();
+      await userEvent.click(within(dialogo).getByRole('button', { name: 'Esconder' }));
+      expect(within(dialogo).queryByRole('button', { name: /DANTAS/ })).not.toBeInTheDocument();
+    });
+
+    it('escolher alguém do grupo manda a mesma alocação dos aptos, com o serviço do turno dele', async () => {
+      const f = api(ESCALA, { [rotaCandidatos]: { status: 200, corpo: COM_GRUPO }, 'POST /api/escalas/e1/alocacoes': { status: 201, corpo: COM_ZULU } });
+      abrir('/escala-do-mes');
+      await screen.findByRole('region', { name: 'Dia 2' });
+      const dialogo = await abrirVaga();
+      await userEvent.click(await within(dialogo).findByRole('button', { name: 'Mostrar' }));
+      await userEvent.click(within(dialogo).getByRole('button', { name: /DANTAS/ }));
+      await waitFor(() =>
+        expect(corpoEnviado(f, 'POST /api/escalas/e1/alocacoes')).toEqual({ militarId: 'm-dantas', data: `${MES}-02`, turnoId: 't-jes', guarnicaoId: 'g-abt', funcaoId: 'f-comb' }),
+      );
+    });
+
+    it('o grupo respeita a busca por nome', async () => {
+      api(ESCALA, { [rotaCandidatos]: { status: 200, corpo: COM_GRUPO } });
+      abrir('/escala-do-mes');
+      await screen.findByRole('region', { name: 'Dia 2' });
+      const dialogo = await abrirVaga();
+      await userEvent.click(await within(dialogo).findByRole('button', { name: 'Mostrar' }));
+      await userEvent.type(within(dialogo).getByLabelText('Buscar por nome ou matrícula'), 'zulu');
+      expect(within(dialogo).queryByRole('button', { name: /DANTAS/ })).not.toBeInTheDocument();
+    });
   });
 
   it('a busca filtra por nome ou matrícula', async () => {
@@ -332,6 +385,7 @@ describe('acumular funções', () => {
   const sgt = { alocacaoId: 'a-CHEFE', militarId: 'm-chefe', posto: 'SGT BM', nomeGuerra: 'CHEFE', matricula: '990010-1', vaga: 'Chefe ABT' };
   const CANDIDATOS = {
     aptos: [{ militarId: 'm-zulu', posto: 'SD BM', nomeGuerra: 'ZULU', matricula: '990002-2', equipe: 'Alfa', jornada: 'pronto', servicos: [{ servicoId: 's1', turnoId: 't-a', nome: 'Pronto' }] }],
+    semVoluntariado: [],
     fora: [],
     acumular: [sgt],
   };
