@@ -1,5 +1,5 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { mesPorExtenso, Prioridade, type FichaGuarnicao, type Funcao, type VersaoSalva } from 'contratos';
+import { mesPorExtenso, type FichaGuarnicao, type Funcao, type VersaoSalva } from 'contratos';
 import { useState } from 'react';
 import { ErroApi, mensagemDe } from '@/api/cliente';
 import { atualizarGuarnicoes, consultaFuncoes, salvarVersao } from '@/api/guarnicoes';
@@ -38,27 +38,27 @@ function Editor({ ficha, unidadeId, versao, aoSalvar }: { ficha: FichaGuarnicao;
   const daVersao = (v: VersaoSalva | undefined) => ({
     viatura: v?.viatura ?? '',
     tipo: v?.tipoViatura ?? '',
-    prioridade: v?.prioridade == null ? '' : String(v.prioridade),
     linhas: (v?.composicao ?? []).map((c, i): LinhaEdicao => ({ chave: i + 1, funcaoId: c.funcaoId, minimo: c.minimo, maximo: c.maximo, cnh: c.cnhExigida ?? '' })),
   });
   // o conteúdo da versão em texto: o que difere do último gravado é alteração pendente (o mês "a partir de" não conta)
-  const montar = (viatura: string, tipo: string, prioridade: string, linhas: LinhaEdicao[]) =>
-    JSON.stringify([viatura.trim(), tipo.trim(), prioridade.trim(), linhas.map((l) => [l.funcaoId, l.minimo, l.maximo, l.cnh])]);
+  const montar = (viatura: string, tipo: string, linhas: LinhaEdicao[]) =>
+    JSON.stringify([viatura.trim(), tipo.trim(), linhas.map((l) => [l.funcaoId, l.minimo, l.maximo, l.cnh])]);
   const assinaturaDa = (v: VersaoSalva | undefined) => {
     const d = daVersao(v);
-    return montar(d.viatura, d.tipo, d.prioridade, d.linhas);
+    return montar(d.viatura, d.tipo, d.linhas);
   };
   const inicial = daVersao(versao);
   const [viatura, setViatura] = useState(inicial.viatura);
   const [tipoViatura, setTipoViatura] = useState(inicial.tipo);
-  const [prioridade, setPrioridade] = useState(inicial.prioridade);
+  // a prioridade não se edita mais aqui (a ordem agora é da escala), mas o valor que já existe segue com a versão: é a ordem padrão das escalas sem ordem cadastrada
+  const prioridade = versao?.prioridade ?? null;
   // a versão grava com o `ativa` com que abriu (desativar e reativar são no cabeçalho da ficha)
   const ativa = versao?.ativa ?? true;
   const [linhas, setLinhas] = useState<LinhaEdicao[]>(inicial.linhas);
   // sugere o mês corrente, ou o começo da versão quando ela só vale no futuro
   const [desde, setDesde] = useState(versao && versao.vigencia > mesAtual() ? versao.vigencia : mesAtual());
   const [aviso, setAviso] = useState<{ erro: boolean; texto: string } | null>(null);
-  const assinatura = () => montar(viatura, tipoViatura, prioridade, linhas);
+  const assinatura = () => montar(viatura, tipoViatura, linhas);
   const [salvo, setSalvo] = useState(assinatura);
   const sujo = assinatura() !== salvo;
   usePendencia('versao', sujo);
@@ -71,7 +71,6 @@ function Editor({ ficha, unidadeId, versao, aoSalvar }: { ficha: FichaGuarnicao;
     if (!sujo) {
       setViatura(inicial.viatura);
       setTipoViatura(inicial.tipo);
-      setPrioridade(inicial.prioridade);
       setLinhas(inicial.linhas);
       setSalvo(doServidor);
     }
@@ -81,8 +80,6 @@ function Editor({ ficha, unidadeId, versao, aoSalvar }: { ficha: FichaGuarnicao;
   const emVigor = versaoVigente(ficha.versoes, mesDeVigor);
   const mudaOQueVale = Boolean(emVigor) && assinaturaDa(emVigor) !== assinatura();
 
-  // a mesma regra que a API aplica (contrato `Prioridade`): vazio vale "por último"; o resto é de 1 a 1000
-  const erroDaPrioridade = prioridade.trim() ? Prioridade.safeParse(Number(prioridade)).error?.issues[0]?.message : undefined;
 
   const servidor = funcoes.data ?? [];
   const opcoes = [...servidor.map((f) => locais.find((l) => l.id === f.id) ?? f), ...locais.filter((l) => !servidor.some((f) => f.id === l.id))];
@@ -91,7 +88,6 @@ function Editor({ ficha, unidadeId, versao, aoSalvar }: { ficha: FichaGuarnicao;
   const salvar = travar(gravar);
   async function gravar() {
     setAviso(null);
-    if (erroDaPrioridade) return;
     if (linhas.some((l) => !l.funcaoId)) {
       setAviso({ erro: true, texto: 'Escolha a função de cada linha.' });
       return;
@@ -100,7 +96,7 @@ function Editor({ ficha, unidadeId, versao, aoSalvar }: { ficha: FichaGuarnicao;
       await salvarVersao(ficha.id, desde, {
         viatura: viatura.trim() || null,
         tipoViatura: tipoViatura.trim() || null,
-        prioridade: prioridade.trim() ? Number(prioridade) : null,
+        prioridade,
         ativa,
         composicao: linhas.map((l) => ({ funcaoId: l.funcaoId, minimo: l.minimo, maximo: l.maximo, cnhExigida: (l.cnh || null) as 'A' | 'B' | 'C' | 'D' | 'E' | null })),
       });
@@ -125,11 +121,8 @@ function Editor({ ficha, unidadeId, versao, aoSalvar }: { ficha: FichaGuarnicao;
           <Label htmlFor="gv-tipo">Tipo de viatura</Label>
           <Input id="gv-tipo" value={tipoViatura} onChange={(e) => setTipoViatura(e.target.value)} />
         </div>
-        <Campo id="gv-prioridade" rotulo="Prioridade" erro={erroDaPrioridade}>
-          <Input id="gv-prioridade" type="number" min={1} value={prioridade} onChange={(e) => setPrioridade(e.target.value)} />
-        </Campo>
       </div>
-      <p className="-mt-2 text-xs text-apagado">A viatura é só informativa: não muda as vagas. A prioridade define a ordem de ativação; sem prioridade, a guarnição vai por último.</p>
+      <p className="-mt-2 text-xs text-apagado">A viatura é só informativa: não muda as vagas. A ordem em que as vagas são preenchidas é definida na escala, em "Ordem de escala".</p>
 
       <div className="grid gap-2">
         <h4 className="font-cond text-base font-semibold">Composição</h4>
@@ -141,7 +134,7 @@ function Editor({ ficha, unidadeId, versao, aoSalvar }: { ficha: FichaGuarnicao;
           <Label htmlFor="gv-desde">A partir de</Label>
           <Input id="gv-desde" type="month" value={desde} min={mesAtual()} onChange={(e) => setDesde(e.target.value)} />
         </div>
-        <AcoesDoBloco salvando={salvando} sujo={sujo} forcar={mudaOQueVale} aviso={aviso} tipo="button" desabilitado={!desde || Boolean(erroDaPrioridade)} rotulo={`Salvar a partir de ${desde ? mesPorExtenso(desde) : '…'}`} aoSalvar={() => void salvar()} />
+        <AcoesDoBloco salvando={salvando} sujo={sujo} forcar={mudaOQueVale} aviso={aviso} tipo="button" desabilitado={!desde} rotulo={`Salvar a partir de ${desde ? mesPorExtenso(desde) : '…'}`} aoSalvar={() => void salvar()} />
       </div>
     </div>
   );

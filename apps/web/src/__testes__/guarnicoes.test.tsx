@@ -294,19 +294,19 @@ describe('ficha da guarnição', () => {
 });
 
 describe('ficha da guarnição em painel único', () => {
-  it('o resumo da guarnição diz viatura e ordem', async () => {
+  it('o resumo da guarnição diz só a viatura (a ordem agora é da escala)', async () => {
     const v = FICHA.versoes[0]!;
     api({ 'GET /api/guarnicoes/g1': { status: 200, corpo: { ...FICHA, versoes: [{ ...v, viatura: 'AR', tipoViatura: 'Auto Resgate', prioridade: 2 }] } } });
     abrir('/guarnicoes/g1');
     const ficha = (await screen.findByRole('heading', { level: 2, name: 'Auto Bomba 1' })).closest('[data-ficha]') as HTMLElement;
-    expect(within(ficha).getByText('Viatura AR, Auto Resgate. Ativada em 2º lugar.')).toBeInTheDocument();
+    expect(within(ficha).getByText('Viatura AR, Auto Resgate.')).toBeInTheDocument();
   });
 
-  it('o resumo sem viatura nem prioridade', async () => {
+  it('o resumo sem viatura', async () => {
     const v = FICHA.versoes[0]!;
     api({ 'GET /api/guarnicoes/g1': { status: 200, corpo: { ...FICHA, versoes: [{ ...v, viatura: null, tipoViatura: null, prioridade: null }] } } });
     abrir('/guarnicoes/g1');
-    expect(await screen.findByText('Sem viatura. Sem prioridade: vai por último na ativação.')).toBeInTheDocument();
+    expect(await screen.findByText('Sem viatura.')).toBeInTheDocument();
   });
 
   it('a situação fica no cabeçalho da ficha', async () => {
@@ -347,11 +347,11 @@ describe('guarnições: singular, ordem, versões e composição', () => {
     expect(screen.queryByRole('checkbox', { name: 'Ativa' })).toBeNull();
   });
 
-  it('a lista mostra o número da ordem de ativação', async () => {
+  it('a lista já não mostra número de ordem de ativação (a ordem agora é da escala)', async () => {
     api();
     abrir('/guarnicoes');
-    expect(within(await itemDe('Auto Bomba 1')).getByText('1', { selector: 'span' })).toBeInTheDocument();
-    expect(within(await itemDe('Resgate')).getByText('–')).toBeInTheDocument();
+    expect(within(await itemDe('Auto Bomba 1')).queryByText('1', { selector: 'span' })).toBeNull();
+    expect(within(await itemDe('Resgate')).queryByText('–')).toBeNull();
     expect(screen.getByText('4 guarnições')).toBeInTheDocument();
   });
 
@@ -433,7 +433,7 @@ describe('revisão final: guarnição', () => {
       atualizarGuarnicoes(router.options.context.queryClient, 'g1');
     });
     await waitFor(() => expect(screen.getByLabelText('Sigla da viatura')).toHaveValue('ABT-IMPORTADA'));
-    expect(screen.getByLabelText('Prioridade')).toHaveValue(7);
+    expect(screen.queryByLabelText('Prioridade')).toBeNull();
     expect(screen.queryByText('Alterações não salvas')).toBeNull();
   });
 
@@ -491,17 +491,11 @@ describe('revisão 3: menores da tela de guarnições', () => {
     expect(await screen.findByRole('button', { name: 'Aumentar máximo de Combatente' })).toBeEnabled();
   });
 
-  it('prioridade acima de 1000 mostra a mensagem do contrato e trava o Salvar', async () => {
+  it('o formulário da versão não tem mais o campo Prioridade (a ordem agora é da escala)', async () => {
     api({ 'GET /api/guarnicoes/g11': { status: 200, corpo: comMaximo(2) } });
     abrir('/guarnicoes/g11');
-    const campo = await screen.findByLabelText('Prioridade');
-    fireEvent.change(campo, { target: { value: '1001' } });
-    expect(screen.getByText('Use um número de 1 a 1000.')).toBeInTheDocument();
-    expect(campo).toHaveAttribute('aria-invalid', 'true');
-    expect(screen.getByRole('button', { name: /Salvar a partir de/ })).toBeDisabled();
-    fireEvent.change(campo, { target: { value: '1000' } });
-    expect(screen.queryByText('Use um número de 1 a 1000.')).toBeNull();
-    expect(screen.getByRole('button', { name: /Salvar a partir de/ })).toBeEnabled();
+    await screen.findByLabelText('Sigla da viatura');
+    expect(screen.queryByLabelText('Prioridade')).toBeNull();
   });
 
   it('a lista diz "1 guarnição" no singular', async () => {
@@ -509,13 +503,6 @@ describe('revisão 3: menores da tela de guarnições', () => {
     abrir('/guarnicoes');
     expect(await screen.findByText('1 guarnição')).toBeInTheDocument();
     expect(screen.queryByText('1 guarnições')).toBeNull();
-  });
-
-  it('o número da ordem não entra no nome do link da guarnição', async () => {
-    api();
-    abrir('/guarnicoes');
-    const link = await screen.findByRole('link', { name: /Auto Bomba 1/ });
-    expect(link).toHaveAccessibleName(expect.stringMatching(/^Auto Bomba 1/));
   });
 
   it('a versão que só vale no futuro diz isso também para o leitor de tela', async () => {
@@ -544,7 +531,7 @@ describe('revisão 3: menores da tela de guarnições', () => {
     const rota = `PUT /api/guarnicoes/g1/versoes/${mesAtual()}`;
     const f = api({ 'GET /api/guarnicoes/g1': { status: 200, corpo: FICHA }, [rota]: { status: 200, corpo: FICHA, espera } });
     abrir('/guarnicoes/g1');
-    fireEvent.change(await screen.findByLabelText('Prioridade'), { target: { value: '7' } });
+    fireEvent.change(await screen.findByLabelText('Sigla da viatura'), { target: { value: 'ABT-77' } });
     const salvar = screen.getByRole('button', { name: /Salvar a partir de/ });
     fireEvent.click(salvar);
     fireEvent.click(salvar);

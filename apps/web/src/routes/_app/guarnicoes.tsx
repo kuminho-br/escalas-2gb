@@ -82,9 +82,6 @@ function ItemGuarnicao({ g, escolhida }: { g: LinhaGuarnicao; escolhida: boolean
         aria-current={escolhida ? 'page' : undefined}
       >
         <span className="flex items-center gap-2">
-          <span aria-hidden title={g.prioridade ? `Ativada em ${g.prioridade}º lugar` : 'Sem prioridade: vai por último na ativação'} className="grid size-6 shrink-0 place-items-center rounded-full bg-fundo font-cond text-[13px] font-semibold">
-            {g.prioridade ?? '–'}
-          </span>
           <span className="font-cond text-base font-semibold">{g.nome}</span>
           {!g.ativa && <span className="ml-auto rounded border border-linha px-1.5 text-xs">desativada</span>}
         </span>
