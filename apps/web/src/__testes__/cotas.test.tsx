@@ -171,6 +171,30 @@ describe('cotas', () => {
     await waitFor(() => expect(f.mock.calls.some(([e]) => String(e).includes(`mes=${outro}`))).toBe(true));
   });
 
+  it('"Mês anterior" e "Próximo mês" trocam o mês e buscam as cotas dele', async () => {
+    const f = api();
+    abrir('/cotas');
+    await screen.findByLabelText('Mês');
+    await userEvent.click(screen.getByRole('button', { name: 'Mês anterior' }));
+    await waitFor(() => expect(f.mock.calls.some(([e]) => String(e).includes(`mes=${anterior}`))).toBe(true));
+    expect(screen.getByLabelText('Mês')).toHaveValue(anterior);
+    await userEvent.click(screen.getByRole('button', { name: 'Próximo mês' }));
+    await waitFor(() => expect(screen.getByLabelText('Mês')).toHaveValue(mes));
+  });
+
+  it('em navegador que mostra o campo como texto, digitar um mês pela metade não volta ao mês de antes', async () => {
+    api();
+    abrir('/cotas');
+    const campo = await screen.findByLabelText('Mês');
+    // como o Firefox de computador, que não tem o campo de mês e o mostra como texto (o React reaplica type="month" a cada renderização: trava a propriedade)
+    campo.setAttribute('type', 'text');
+    Object.defineProperty(campo, 'type', { get: () => 'text', set: () => {}, configurable: true });
+    fireEvent.change(campo, { target: { value: `${anterior.slice(0, 4)}-0` } });
+    expect(campo).toHaveValue(`${anterior.slice(0, 4)}-0`);
+    fireEvent.change(campo, { target: { value: anterior } });
+    await waitFor(() => expect(campo).toHaveValue(anterior));
+  });
+
   it('a tela traz o botão de importar da planilha', async () => {
     api();
     abrir('/cotas');
