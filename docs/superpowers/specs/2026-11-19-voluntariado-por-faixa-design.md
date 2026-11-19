@@ -195,3 +195,34 @@ O usuário confirmou na sandbox que a barra não aparece mais. A causa era o des
   - A grade de cards do turno estica os cards para ocupar a linha (`auto-fit`, coluna mínima de ~18rem), em vez de deixar coluna vazia. Uma guarnição sozinha ocupa a linha inteira; com várias, elas se distribuem como hoje e quebram em linhas.
   - Dentro do card, as funções ficam em colunas quando há espaço (coluna mínima de ~11rem). O card da Bioma mostra Motorista, Chefe e Combatente lado a lado numa tela larga, e um embaixo do outro no celular.
   - Turnos diferentes continuam um embaixo do outro (decisão do usuário).
+
+---
+
+## Adendo de 19/11/2026 (depois da entrega 2.4): a Escala do mês de verdade (pendência para a entrega 3)
+
+O usuário viu a 2.4 na sandbox (escala Bioma) e **corrigiu de novo o que queria**, porque havia se confundido antes. Registro para a entrega 3 (pré-escala), que mexe na mesma tela.
+
+### O que o usuário quer (decisão)
+
+- **Não quer que o card da guarnição ocupe a linha inteira.** A mudança da 2.4 (a guarnição sozinha esticar até a borda, com Motorista, Chefe e Combatente lado a lado) é o contrário do pedido.
+- **Quer que os turnos do mesmo dia se agrupem na horizontal, de forma responsiva.** Numa escala como a Bioma, cada turno tem **uma guarnição só**: os três turnos do dia (00h–08h, 08h–16h, 16h–00h) deveriam ficar **lado a lado** quando a tela é larga, e passar a um embaixo do outro quando ela estreita.
+- Isso é o contrário da posição anterior ("turnos diferentes continuam um embaixo do outro"), que o usuário confirmou ter sido fruto de confusão.
+
+### Como está hoje (depois da 2.4)
+
+- Os turnos do dia ficam num `grid` de uma coluna só, um embaixo do outro.
+- Dentro de cada turno, a grade dos cards usa `auto-fit minmax(min(100%,18rem),1fr)`, o que **estica** a guarnição sozinha até a borda, e as funções do card usam `auto-fill minmax(min(100%,11rem),1fr)`, lado a lado dentro do card.
+- No print da Bioma, isso deixa cada turno com um card largo e quase vazio, e a página fica longa (3 turnos × 30 dias).
+
+### Proposta (para a entrega 3; a confirmar com o usuário antes do plano)
+
+- **Os turnos do dia fluem numa grade responsiva**, com cerca de 20rem por coluna. Numa tela larga, os 3 turnos da Bioma ficam lado a lado; numa tela média, 2 e 1; no celular, um embaixo do outro.
+- **O turno com várias guarnições** (como no Ordinário) **ocupa a linha inteira**, com as guarnições se distribuindo dentro dele, como antes da 2.4. Assim o Ordinário não muda e as operações ganham a disposição pedida.
+- **O card volta a ter largura natural** (não estica) e as funções voltam a ficar uma embaixo da outra dentro do card, para o card caber numa coluna de ~20rem. O ajuste de `min(100%,11rem)` da 2.4 sai.
+- **A faixa colorida de cada turno** (clara de dia, escura de noite) e o título do turno continuam no alto de cada turno, para a leitura "00h–08h A · Bioma" não se perder lado a lado.
+- A régua entre dias, o número do dia parado à esquerda e o tamanho dos cards no celular não mudam.
+
+### Por que na entrega 3
+
+A pré-escala (entrega 3) é montada nesta tela e vai encher os turnos de gente. Faz sentido acertar a disposição junto dela, em vez de uma entrega só para isso.
+
