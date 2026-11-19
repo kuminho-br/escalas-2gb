@@ -156,7 +156,7 @@ export function CalendarioDoVoluntariado({
                         if (ev.button !== 0) return;
                         const acao: 'marcar' | 'desmarcar' = e === 'cheio' ? 'desmarcar' : 'marcar';
                         arrasto.current = acao;
-                        setMarcas((m) => alternarBloco(m, d, b) && (acao === 'marcar' ? alternarSe(m, d, b, 'marcar') : alternarSe(m, d, b, 'desmarcar')));
+                        setMarcas((m) => alternarSe(m, d, b, acao));
                       }}
                       onPointerEnter={() => {
                         const acao = arrasto.current;
