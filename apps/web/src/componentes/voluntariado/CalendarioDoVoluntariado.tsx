@@ -144,6 +144,7 @@ export function CalendarioDoVoluntariado({
                 type="button"
                 data-dia={d}
                 aria-label={`Dia ${n}: ${todos.every((e) => e === 'cheio') ? 'desmarcar' : 'marcar'} o dia inteiro`}
+                title={`${todos.every((e) => e === 'cheio') ? 'Desmarcar' : 'Marcar'} o dia inteiro`}
                 onPointerDown={(e) => {
                   if (e.button !== 0) return;
                   ponteiro.current = e.pointerType;
@@ -160,7 +161,11 @@ export function CalendarioDoVoluntariado({
                 // o clique do mouse já foi tratado ao apertar; o do toque, do teclado e dos leitores de tela marca aqui
                 onClick={(e) => (e.detail === 0 || ponteiro.current !== 'mouse') && setMarcas((m) => marcarOuTirar(m, d, blocos, todos.every((x) => x === 'cheio') ? 'desmarcar' : 'marcar'))}
                 onKeyDown={(e) => aoTeclar(e, d)}
-                className="justify-self-start rounded px-1.5 py-0.5 text-left font-cond text-base leading-none font-semibold hover:bg-accent"
+                className={cn(
+                  // uma tecla: borda, sombra embaixo e "afunda" ao apertar; igual em qualquer estado do dia
+                  'justify-self-start rounded-md border border-input bg-superficie px-2 text-left font-cond text-base leading-none font-semibold shadow-[0_1px_0_var(--color-input)] hover:border-apagado hover:bg-accent active:translate-y-px active:shadow-none',
+                  celular ? 'h-10' : 'min-h-7 min-w-8',
+                )}
               >
                 {n}
                 {celular && <span data-diasemana className="ml-1 text-xs font-normal text-apagado">{SEMANA[diaDaSemana(d)]}</span>}

@@ -110,6 +110,28 @@ describe('voluntariado: calendário e salvar', () => {
 });
 
 describe('voluntariado: blocos por horário (computador)', () => {
+  it('o número do dia tem cara de botão: borda, fundo branco, cantos e sombra de tecla, com a dica "Marcar o dia inteiro"', async () => {
+    api();
+    abrir('/voluntariado');
+    await screen.findByRole('heading', { name: 'SD BM ANDRADE' });
+    const tecla = within(calendario()).getByRole('button', { name: /^Dia 5: / });
+    expect(tecla).toHaveClass('border', 'bg-superficie', 'rounded-md', 'shadow-[0_1px_0_var(--color-input)]');
+    expect(tecla).toHaveAttribute('title', 'Marcar o dia inteiro');
+  });
+
+  it('a tecla é igual em qualquer estado: marcar o dia só troca a dica, e a aparência não muda', async () => {
+    api();
+    abrir('/voluntariado');
+    await screen.findByRole('heading', { name: 'SD BM ANDRADE' });
+    const dia5 = () => within(calendario()).getByRole('button', { name: /^Dia 5: / });
+    const antes = dia5().className;
+    await userEvent.click(dia5());
+    expect(bloco(5, '08h', '16h')).toHaveAttribute('aria-pressed', 'true');
+    expect(dia5().className).toBe(antes);
+    expect(dia5()).toHaveAttribute('title', 'Desmarcar o dia inteiro');
+    expect(dia5().className).toBe(within(calendario()).getByRole('button', { name: /^Dia 6: / }).className);
+  });
+
   it('o botão do número do dia não estica na largura da célula: o destaque do mouse cobre só o número (a "barra cinza" do dia 24)', async () => {
     api();
     abrir('/voluntariado');
@@ -274,6 +296,14 @@ describe('voluntariado: celular', () => {
     const linhaDoDia = bloco(5, '08h', '16h').closest('[data-linha-do-dia]') as HTMLElement;
     expect(linhaDoDia).toHaveClass('grid-cols-[3.5rem_1fr]', 'border', 'p-1.5');
     expect((bloco(5, '08h', '16h').parentElement as HTMLElement)).toHaveClass('border');
+  });
+
+  it('no celular, a tecla do número do dia tem o tamanho do dedo (40px)', async () => {
+    emCelular(true);
+    api();
+    abrir('/voluntariado?militar=m3');
+    await screen.findByRole('heading', { name: 'SD BM ANDRADE' });
+    expect(within(calendario()).getByRole('button', { name: /^Dia 5: / })).toHaveClass('h-10');
   });
 
   it('no celular, cada dia é uma linha: o número e o dia da semana à esquerda, os blocos à direita', async () => {
