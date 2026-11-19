@@ -193,6 +193,26 @@ describe('voluntariado: blocos por horário (computador)', () => {
     vi.restoreAllMocks();
   });
 
+  it('sem armazenamento, depois do "Entendi" o guia não volta ao passar para o próximo militar (achado da revisão final)', async () => {
+    vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
+      throw new Error('sem armazenamento');
+    });
+    vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      throw new Error('sem armazenamento');
+    });
+    try {
+      api({ [`PUT /api/militares/m3/voluntariado/${MES}`]: { status: 200, corpo: DEPOIS_DO_ANDRADE } });
+      abrir('/voluntariado');
+      await screen.findByRole('heading', { name: 'SD BM ANDRADE' });
+      await userEvent.click(screen.getByRole('button', { name: 'Entendi' }));
+      await userEvent.click(salvar());
+      await screen.findByRole('heading', { name: 'SD BM DANTAS' });
+      expect(screen.queryByRole('region', { name: 'Como marcar' })).not.toBeInTheDocument();
+    } finally {
+      vi.restoreAllMocks();
+    }
+  });
+
   it('o guia acompanha os blocos do gestor: três blocos ou um bloco só (Review Focus 2)', async () => {
     const tres = [{ inicio: '00:00', fim: '08:00' }, { inicio: '08:00', fim: '16:00' }, { inicio: '16:00', fim: '24:00' }];
     api(doMilitarComo('m3', { blocos: tres }));

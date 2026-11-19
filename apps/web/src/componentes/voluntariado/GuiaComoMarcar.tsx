@@ -6,6 +6,23 @@ import { cn } from '@/lib/utils';
 export const CLASSE_DA_TECLA =
   'rounded-md border border-input bg-superficie px-2 text-left font-cond text-base leading-none font-semibold shadow-[0_1px_0_var(--color-input)]';
 
+const CHAVE_DO_GUIA = 'voluntariado.guia';
+// o navegador lembra que a pessoa já entendeu; sem armazenamento (modo privado) o fechamento vale enquanto a tela estiver aberta (o estado fica na rota)
+export const guiaJaFechado = (): boolean => {
+  try {
+    return window.localStorage.getItem(CHAVE_DO_GUIA) === 'fechado';
+  } catch {
+    return false;
+  }
+};
+export const lembrarGuiaFechado = () => {
+  try {
+    window.localStorage.setItem(CHAVE_DO_GUIA, 'fechado');
+  } catch {
+    /* sem armazenamento: vale só nesta sessão */
+  }
+};
+
 const hh = (min: number) => `${String(Math.floor((min % 1440) / 60)).padStart(2, '0')}h`;
 
 /**

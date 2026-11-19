@@ -10,23 +10,6 @@ import { cn } from '@/lib/utils';
 import { useEhCelular } from '@/lib/useEhCelular';
 import { CLASSE_DA_TECLA, GuiaComoMarcar } from './GuiaComoMarcar';
 
-const CHAVE_DO_GUIA = 'voluntariado.guia';
-// o navegador lembra que a pessoa já entendeu; sem armazenamento (modo privado) o guia só volta a aparecer na próxima visita
-const guiaJaFechado = (): boolean => {
-  try {
-    return window.localStorage.getItem(CHAVE_DO_GUIA) === 'fechado';
-  } catch {
-    return false;
-  }
-};
-const lembrarGuiaFechado = () => {
-  try {
-    window.localStorage.setItem(CHAVE_DO_GUIA, 'fechado');
-  } catch {
-    /* sem armazenamento: vale só nesta sessão */
-  }
-};
-
 const SEMANA = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'];
 const hh = (min: number) => `${String(Math.floor(min / 60)).padStart(2, '0')}h`;
 const minutosDe = (hora: string): number => Number(hora.slice(0, 2)) * 60 + Number(hora.slice(3));
@@ -43,6 +26,9 @@ export function CalendarioDoVoluntariado({
   aoSalvar,
   focarAoAbrir = false,
   aoAbrir,
+  guiaAberto = true,
+  aoAbrirGuia,
+  aoFecharGuia,
 }: {
   militar: MilitarDoVoluntariado;
   mes: string;
@@ -52,6 +38,10 @@ export function CalendarioDoVoluntariado({
   /** veio de "Salvar e ir para o próximo": o foco vai para o dia 1, e o teclado segue de onde parou */
   focarAoAbrir?: boolean;
   aoAbrir?: () => void;
+  /** o guia "Como marcar" é da tela (não do militar): fechado, não volta ao passar para o próximo */
+  guiaAberto?: boolean;
+  aoAbrirGuia?: () => void;
+  aoFecharGuia?: () => void;
 }) {
   const doServidor = marcasDoServidor(dados.faixas);
   const [marcas, setMarcas] = useState<Marcas>(doServidor);
@@ -114,17 +104,16 @@ export function CalendarioDoVoluntariado({
   const rotuloDoBloco = (dia: number, b: Faixa) => `Dia ${dia}, ${hh(b.inicio)} às ${hh(b.fim === 1440 ? 1440 : b.fim)}`;
   // celular: um dia por linha, só toque (o arrasto não vale: deslizar o dedo rola a página)
   const celular = useEhCelular();
-  const [guiaAberto, setGuiaAberto] = useState(() => !guiaJaFechado());
 
   return (
     <section className="grid content-start gap-4 rounded-xl border border-linha bg-superficie p-4">
       <header className="grid gap-1">
         <h2 className="font-cond text-2xl leading-tight font-semibold">{`${militar.posto} ${militar.nomeGuerra}`}</h2>
         <p className="text-sm text-apagado">{`${equipe}${aviso}`}</p>
-        <button type="button" onClick={() => setGuiaAberto(true)} className="justify-self-start rounded text-sm text-vinho underline underline-offset-2">Como marcar</button>
+        <button type="button" onClick={() => aoAbrirGuia?.()} className="justify-self-start rounded text-sm text-vinho underline underline-offset-2">Como marcar</button>
       </header>
 
-      {guiaAberto && <GuiaComoMarcar blocos={blocos} celular={celular} aoFechar={() => { setGuiaAberto(false); lembrarGuiaFechado(); }} />}
+      {guiaAberto && <GuiaComoMarcar blocos={blocos} celular={celular} aoFechar={() => aoFecharGuia?.()} />}
 
       {/* só no celular: a régua dos cortes, parada no topo da rolagem, com as mesmas colunas e bordas das linhas dos dias (no computador, o horário aparece ao passar o mouse e no guia) */}
       {celular && (

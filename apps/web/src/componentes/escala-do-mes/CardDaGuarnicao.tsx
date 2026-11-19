@@ -50,7 +50,7 @@ export function CardDaGuarnicao({ card, aoEscolher, aoRemover }: { card: Card; a
           </span>
         )}
       </header>
-      <ul data-funcoes className="grid grid-cols-[repeat(auto-fill,minmax(11rem,1fr))] gap-x-4 gap-y-2">
+      <ul data-funcoes className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,11rem),1fr))] gap-x-4 gap-y-2">
         {card.funcoes.map((f) => (
           <li key={f.funcaoId} className="grid gap-1">
             <p className="text-xs font-medium text-apagado">

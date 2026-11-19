@@ -94,7 +94,8 @@ describe('escala do mês', () => {
     const d1 = await screen.findByRole('region', { name: 'Dia 1' });
     const funcoes = d1.querySelector('[data-faixa] [data-funcoes]') as HTMLElement;
     expect(funcoes).not.toBeNull();
-    expect(funcoes).toHaveClass('grid-cols-[repeat(auto-fill,minmax(11rem,1fr))]');
+    // o mínimo da coluna nunca passa da largura do card: no celular de 320px o card não estoura o quadro do dia (achado da revisão final)
+    expect(funcoes).toHaveClass('grid-cols-[repeat(auto-fill,minmax(min(100%,11rem),1fr))]');
   });
 
   it('turnos diferentes do dia continuam um embaixo do outro (uma coluna só)', async () => {

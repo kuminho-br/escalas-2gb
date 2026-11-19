@@ -8,6 +8,7 @@ import { ProvedorDePendencias } from '@/componentes/AlteracoesPendentes';
 import { CampoDeMes } from '@/componentes/CampoDeMes';
 import { Label } from '@/componentes/ui/label';
 import { CalendarioDoVoluntariado } from '@/componentes/voluntariado/CalendarioDoVoluntariado';
+import { guiaJaFechado, lembrarGuiaFechado } from '@/componentes/voluntariado/GuiaComoMarcar';
 import { ListaDoVoluntariado } from '@/componentes/voluntariado/ListaDoVoluntariado';
 import { mesAtual } from '@/lib/meses';
 import { useEhCelular } from '@/lib/useEhCelular';
@@ -31,6 +32,8 @@ function Voluntariado() {
   const lista = useQuery(consultaVoluntariadoDoMes(eu.unidade.id, mes));
   const [texto, setTexto] = useState('');
   const [todosLancados, setTodosLancados] = useState(false);
+  // o guia "Como marcar" é da tela: o calendário é montado de novo a cada militar, e o "Entendi" não pode se perder (sem armazenamento, vale até sair da tela)
+  const [guiaAberto, setGuiaAberto] = useState(() => !guiaJaFechado());
   const militares = lista.data?.militares ?? [];
   // no celular, a lista vem primeiro: só abre o militar que a pessoa tocou (modo foco); no computador, o primeiro que falta já vem aberto
   const celular = useEhCelular();
@@ -76,6 +79,12 @@ function Voluntariado() {
                   dados={dados.data}
                   focarAoAbrir={focoAoAbrir.current}
                   aoAbrir={() => (focoAoAbrir.current = false)}
+                  guiaAberto={guiaAberto}
+                  aoAbrirGuia={() => setGuiaAberto(true)}
+                  aoFecharGuia={() => {
+                    setGuiaAberto(false);
+                    lembrarGuiaFechado();
+                  }}
                   aoSalvar={async (faixas, soltarPendencia) => {
                     setTodosLancados(false);
                     const nova = await lancarVoluntariado(queryClient, eu.unidade.id, aberto.militarId, mes, faixas);
