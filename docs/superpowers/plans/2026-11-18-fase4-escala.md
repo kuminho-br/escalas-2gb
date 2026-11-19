@@ -223,8 +223,8 @@ As condições que o design implica e que mais podem morder quem monta a escala;
 1. **Função no máximo por causa de um acúmulo**: escalar ou acumular numa função cujo máximo já está ocupado (contando acúmulos) → 409 "já está completa", nunca passa do máximo. Tarefa 8.
 2. **Remover o militar com acúmulos**: a alocação some com os acúmulos dela, a marca de remoção é só da vaga original; tirar só um acúmulo não cria marca e o militar continua na vaga original. Tarefa 8.
 3. **Militar escalado na mesma faixa de outra escala** (ou em "Sem guarnição", ou na mesma função da mesma guarnição) não aparece em "Acumular". Tarefa 8.
-4. **Guarnição ou composição muda depois de a ordem ser salva**: vaga que deixou de existir sai da lista e as posições se compactam (1, 2, 3… sem buraco); vaga nova fica sem número e vai para "Falta". Tarefa 10.
-5. **Ordem entre meses**: ordem salva a partir de dezembro vale em janeiro (`vigencia: '2026-12'`); num mês anterior a qualquer ordem vale a ordem padrão (`vigencia: null`). Tarefa 11.
+4. **Guarnição ou composição muda depois de a ordem ser salva**: vaga que deixou de existir sai da lista e as posições se compactam (1, 2, 3… sem buraco); vaga nova fica sem número e vai para "Falta". Tarefa 14.
+5. **Ordem entre meses**: ordem salva a partir de dezembro vale em janeiro (`vigencia: '2026-12'`); num mês anterior a qualquer ordem vale a ordem padrão (`vigencia: null`). Tarefa 15.
 
 ### Task 7: Acúmulo no banco e nos contratos
 
@@ -296,11 +296,114 @@ As condições que o design implica e que mais podem morder quem monta a escala;
 
 ---
 
+# Entrega 2 — Voluntariado lançado à mão
+
+**Branch:** `fase4-2-voluntariado`, a partir da `main` depois do merge do PR #29. **Tem migração** (0016). Commits `Fase 4.2: …`; PR "Fase 4 — Entrega 2: voluntariado lançado à mão".
+
+**Spec:** `docs/superpowers/specs/2026-11-16-telas.md`, seção "Voluntariado" (aba "Lançar à mão"; a aba "Importar do Google Forms" é da fase 6), e o print aprovado pelo usuário (calendário do mês por militar). Contagens de partida: protótipo 589, contratos 14, motor 771 (+1 ignorado), API 526, site 302.
+
+**O que a pessoa ganha:** o escalante lança, militar por militar, os dias e turnos padrão (A 08h às 20h, B 20h às 08h) em que cada um aceita serviço extra no mês; a lista "Escolher militar" passa a usar esses lançamentos (a regra já existe: `voluntariado` + `turnosPadraoExigidos`).
+
+**Review Focus da entrega 2** (cada um tem teste na tarefa dona):
+
+1. **Salvar sem nenhuma marcação**: o militar passa a "já lançados" com 0 dias (não volta para "faltam lançar") e deixa de contar como voluntário em qualquer turno do mês. Tarefa 11.
+2. **Lançar de novo substitui, não soma**: o segundo lançamento troca todas as marcações do mês daquele militar (inclusive as que vieram de importação); as de outros meses ficam intactas. Tarefa 11.
+3. **"Copiar do mês anterior" entre meses de tamanhos diferentes**: o dia 31 de outubro não vira 31 de novembro; dias que não existem no mês são descartados. Tarefa 13.
+4. **Militar transferido no meio do mês**: aparece na lista do mês em que tem lotação na seção (em qualquer dia); quem só chega no mês seguinte não aparece, e lançar para ele dá 409. Tarefas 10 e 11.
+5. **Trocar de militar com marcações não salvas**: a tela pergunta antes de descartar (como nos cadastros). Tarefa 12.
+
+### Task 10: Lançamento no banco, contratos e leitura do mês (API)
+
+**Files:**
+- Create: `apps/api/banco/migracoes/0016_voluntariado_lancamento.sql`, `pacotes/contratos/src/voluntariado.ts` (exportado no `index.ts`), `apps/api/src/voluntariado/leitura.ts`, `apps/api/src/voluntariado/rotas.ts` (registrado em `app.ts`)
+- Test: `apps/api/test/migracao-0016.test.ts`, `apps/api/test/voluntariado.test.ts`
+
+**Interfaces:**
+- Produces:
+  - Tabela `voluntariado_lancamento (id uuid pk default gen_random_uuid(), militar_id uuid not null references militar (id), mes date not null check (extract(day from mes) = 1), lancado_por uuid references usuario (id), lancado_em timestamptz not null default now(), unique (militar_id, mes))` com gatilho `auditoria_registro` (a auditoria usa a coluna `id`). Serve para "já lançado" mesmo com zero marcações.
+  - Contratos: `TurnoPadrao = z.enum(['A', 'B'])`; `MarcaDeVoluntariado = z.object({ data: Data, turno: TurnoPadrao })`; `LancamentoDeVoluntariado = z.object({ marcas: z.array(MarcaDeVoluntariado) })` com refine "Esta marcação aparece duas vezes." (mesma data e turno); tipos `MilitarDoVoluntariado = { militarId: string; posto: string; nomeGuerra: string; matricula: string; equipe: string | null; jornada: 'pronto' | 'adm'; voluntarioJes: boolean; lancado: boolean; turnos: number; dias: number }`, `VoluntariadoDoMes = { mes: string; militares: MilitarDoVoluntariado[] }`, `VoluntariadoDoMilitar = { militarId: string; mes: string; marcas: MarcaDeVoluntariado[]; doMesAnterior: MarcaDeVoluntariado[]; folgas: string[] | null }`.
+  - `voluntariadoDoMes(c: Consulta, unidadeId: string, mes: string): Promise<VoluntariadoDoMes>` — militares ativos com lotação na seção em algum dia do mês (a lotação que cobre o maior trecho do mês dá equipe e jornada; empate, a mais recente), em ordem de nome de guerra (`localeCompare('pt-BR')`); `lancado` = há `voluntariado_lancamento` do mês; `turnos` = marcações do mês; `dias` = datas distintas.
+  - `voluntariadoDoMilitar(c: Consulta, unidadeId: string, militarId: string, mes: string): Promise<VoluntariadoDoMilitar>` — marcações do mês e do mês anterior em ordem de data e turno; `folgas` = os dias do mês em que a equipe do militar (Pronto, equipe ALFA a DELTA pelo nome, sem caixa) **não** está de serviço, pelo ciclo do motor (`detectarEquipeInicial` com as alocações de Pronto turno A do mês anterior na seção, `equipeDoDia`); `null` quando o militar é do Adm, não tem equipe do ciclo ou a equipe do dia 1 não pôde ser descoberta.
+  - `GET /api/unidades/:u/voluntariado/:mes` → 200 `VoluntariadoDoMes`; `GET /api/militares/:id/voluntariado/:mes` → 200 `VoluntariadoDoMilitar`. Papel de cadastro na unidade (o militar pela unidade da lotação, `unidadeDoRegistro('militar')`); mês inválido → 400 "Mês inválido: use o formato aaaa-mm.".
+
+- [ ] **Step 1: Write the failing tests**:
+  - `migracao-0016`: o mesmo (militar, mês) não entra duas vezes (23505); mês que não é dia 1 é recusado; a gravação entra na auditoria.
+  - `voluntariado.test.ts`, com o mês seguinte ao atual (`somarMeses(atual, 1)`) e militares fictícios: a lista traz quem tem lotação no mês, em ordem de nome, com `lancado`, `turnos` e `dias` certos (2 marcações no mesmo dia = 2 turnos em 1 dia); quem é transferido para a seção no dia 15 aparece; quem só chega no mês depois não aparece (Review Focus 4); `GET` do militar traz `marcas` e `doMesAnterior`; com um militar BRAVO escalado no Pronto turno A no último dia do mês anterior, a equipe do dia 1 é CHARLIE e as `folgas` de um militar CHARLIE não incluem os dias 1, 5, 9…; `folgas` é `null` para o Adm e quando o mês anterior não tem Pronto; escalante de outra seção → 403 nas duas rotas.
+- [ ] **Step 2: Run** `pnpm --filter api vitest run test/migracao-0016.test.ts test/voluntariado.test.ts`. Expected: FAIL.
+- [ ] **Step 3: Implement** a migração, os contratos, a leitura e as duas rotas `GET`.
+- [ ] **Step 4: Run** `pnpm --filter api test && pnpm --filter contratos test && pnpm typecheck`. Expected: passa (o teste de isolamento entre unidades cobre as rotas novas sozinho).
+- [ ] **Step 5: Commit** `Fase 4.2: voluntariado no banco e leitura do mês`.
+
+### Task 11: Gravar o lançamento (API)
+
+**Files:**
+- Create: `apps/api/src/voluntariado/lancamento.ts`
+- Modify: `apps/api/src/voluntariado/rotas.ts`
+- Test: `apps/api/test/voluntariado.test.ts`, `apps/api/test/escala-candidatos.test.ts`
+
+**Interfaces:**
+- Consumes: Tarefa 10.
+- Produces:
+  - `lancar(tx: Consulta, militarId: string, mes: string, marcas: MarcaDeVoluntariado[], usuarioId: string): Promise<void>` — na mesma transação: apaga **todas** as marcações do militar no mês (qualquer origem), grava as novas com `origem = 'manual'` e grava ou atualiza o `voluntariado_lancamento` (`lancado_por`, `lancado_em = now()`).
+  - `PUT /api/militares/:id/voluntariado/:mes` com `LancamentoDeVoluntariado` → 200 `VoluntariadoDoMes` da unidade (a tela troca a lista e passa ao próximo). Marcação fora do mês → 400 `{ erro: 'Confira os campos destacados.', campos: { 'marcas.N': 'Use um dia de <mês por extenso>.' } }`; militar sem lotação na seção em nenhum dia do mês → 409 `"Este militar não está lotado na seção em <mês por extenso>."`; lista vazia é aceita. Qualquer mês é aceito (o escalante corrige o mês corrente se precisar). Papel de cadastro.
+  - As alocações já feitas não mudam quando o voluntariado muda (a lista "Escolher militar" passa a refletir o novo lançamento).
+
+- [ ] **Step 1: Write the failing tests** em `voluntariado.test.ts`: lançar 3 marcações → `turnos: 3`, `lancado: true`; lançar de novo com 1 → `turnos: 1` (substitui) e uma marcação de origem `importacao` do mesmo mês também some, a do mês anterior fica (Review Focus 2); lançar `[]` → `lancado: true, turnos: 0, dias: 0` (Review Focus 1); marcação de outro mês → 400 com `marcas.0`; repetida → 400; militar que só chega no mês seguinte → 409 com a frase (Review Focus 4); outra seção → 403. Em `escala-candidatos.test.ts`: um militar não voluntário de uma diária passa a apto depois de lançar A no dia, e volta a "Não marcou voluntariado neste horário" depois de lançar `[]`.
+- [ ] **Step 2: Run** os dois arquivos. Expected: FAIL.
+- [ ] **Step 3: Implement** `lancar` e a rota `PUT` (`comUsuario`, para a auditoria saber quem lançou).
+- [ ] **Step 4: Run** `pnpm --filter api test`. Expected: passa.
+- [ ] **Step 5: Commit** `Fase 4.2: gravar o lançamento do voluntariado`.
+
+### Task 12: Tela do voluntariado (lista, calendário e salvar)
+
+**Files:**
+- Create: `apps/web/src/api/voluntariado.ts`, `apps/web/src/routes/_app/voluntariado.tsx` (busca `?mes=&militar=`), `apps/web/src/componentes/voluntariado/ListaDoVoluntariado.tsx`, `apps/web/src/componentes/voluntariado/CalendarioDoVoluntariado.tsx`
+- Modify: `apps/web/src/componentes/Trilho.tsx` (`para: '/voluntariado'`)
+- Test: `apps/web/src/__testes__/voluntariado.test.tsx`, ajuste em `casca.test.tsx`
+
+**Interfaces:**
+- Consumes: Tarefas 10 e 11; `useTrava`, `usePendencia`, `podeDescartar`, `ProvedorDePendencias`, `mesPorExtenso`, `somarMeses`.
+- Produces: `consultaVoluntariadoDoMes(unidadeId, mes)` (queryKey `['voluntariado', unidadeId, mes]`), `consultaVoluntariadoDoMilitar(militarId, mes)` (queryKey `['voluntariado-militar', militarId, mes]`), `lancarVoluntariado(queryClient, unidadeId, militarId, mes, marcas): Promise<VoluntariadoDoMes>` (grava a lista devolvida no cache, invalida `['voluntariado-militar', militarId, mes]` e `['candidatos']`).
+- Tela (print aprovado): mês no topo (padrão: **o mês seguinte ao atual**); à esquerda, a busca "Nome ou matrícula" e a lista em duas partes, "Já lançados" (com "N dias") e "Faltam lançar" (o aberto mostra "lançando"); sem `?militar=`, abre o primeiro de "Faltam lançar". À direita: título posto + nome; linha "Equipe Alfa." ou "Adm."; para quem não é voluntário JES, "Não é voluntário JES: as marcações valem só para diárias."; legenda "A 08h às 20h" e "B 20h às 08h"; o calendário de domingo a sábado, um quadro por dia com o número (botão que marca ou desmarca os dois turnos do dia, nome acessível "Dia 5: marcar os dois turnos" ou "…desmarcar…") e os botões A e B (`aria-pressed`, nome "Dia 5, turno A"), fim de semana com o quadro destacado; rodapé "11 turnos em 8 dias." (sem marcação: "Nenhum turno marcado."); "Limpar" (zera) e "Salvar e ir para o próximo" (com `useTrava`): grava e abre o próximo de "Faltam lançar" depois do atual (o seguinte na lista; sem próximo, fica no atual e mostra "Todos os militares deste mês foram lançados."); erro da API aparece acima dos botões.
+- Alteração pendente (`usePendencia`): trocar de militar ou de mês com marcações não salvas pergunta antes (`podeDescartar`) (Review Focus 5).
+
+- [ ] **Step 1: Write the failing tests** em `voluntariado.test.ts` (fixtures fictícios: 2 lançados, 3 faltando; mês seguinte com 30 dias): o trilho leva a "Voluntariado" no mês seguinte; a lista mostra "Já lançados" com "9 dias" e "Faltam lançar" com o primeiro como "lançando"; o cabeçalho mostra equipe e o aviso de não voluntário JES; clicar em "Dia 5, turno A" marca (`aria-pressed=true`) e o rodapé diz "1 turno em 1 dia."; clicar no número do dia marca os dois; "Limpar" zera; "Salvar e ir para o próximo" manda `PUT /api/militares/m3/voluntariado/<mês>` com as marcações e abre o seguinte; dois cliques mandam um pedido só; 400 mostra a frase; trocar de militar com marcação pendente chama `window.confirm` e, cancelando, fica no mesmo.
+- [ ] **Step 2: Run** `pnpm --filter web vitest run src/__testes__/voluntariado.test.tsx`. Expected: FAIL.
+- [ ] **Step 3: Implement** a rota, as consultas e os dois componentes.
+- [ ] **Step 4: Run** `pnpm --filter web test && pnpm typecheck`. Expected: passa (o teste da casca que via "Voluntariado" desabilitado passa a ver o link).
+- [ ] **Step 5: Commit** `Fase 4.2: tela do voluntariado`.
+
+### Task 13: Atalhos, arrastar e teclado
+
+**Files:**
+- Create: `apps/web/src/lib/voluntariado.ts`
+- Modify: `apps/web/src/componentes/voluntariado/CalendarioDoVoluntariado.tsx`, `apps/web/src/routes/_app/voluntariado.tsx`
+- Test: `apps/web/src/__testes__/voluntariado.test.tsx`, `apps/web/src/__testes__/voluntariado-regras.test.ts`
+
+**Interfaces:**
+- Consumes: Tarefa 12.
+- Produces (funções puras em `lib/voluntariado.ts`, sobre `Set<string>` de chaves `aaaa-mm-dd|A`):
+  - `fimDeSemana(mes: string): string[]` (sábados e domingos);
+  - `marcarDias(marcas: Set<string>, dias: string[]): Set<string>` (acrescenta A e B dos dias);
+  - `alternarDia(marcas, dia): Set<string>` (os dois marcados → desmarca os dois; senão marca os dois);
+  - `copiarDoMes(anterior: MarcaDeVoluntariado[], mes: string): Set<string>` (o dia N do mês anterior vira o dia N do mês; dias que não existem no mês são descartados).
+- Atalhos abaixo do calendário (somam ao que está marcado, menos "Copiar", que substitui): "Todos os sábados e domingos"; "Dias de folga da equipe Alfa" (só aparece com `folgas` não nulo; marca A e B das folgas); "Copiar de <mês anterior por extenso>" (desabilitado sem marcações no mês anterior).
+- Arrastar: pressionar no número de um dia e passar por outros aplica a todos a mesma ação do primeiro (marcar os dois turnos ou desmarcar os dois), até soltar (eventos de ponteiro).
+- Teclado: o foco anda pelos números dos dias com as setas (esquerda e direita: um dia; cima e baixo: uma semana; sem sair do mês); espaço no número alterna o dia; Enter em qualquer ponto do calendário é "Salvar e ir para o próximo". O rodapé ganha "Atalhos de teclado: setas movem, espaço marca, Enter salva e passa ao próximo.".
+
+- [ ] **Step 1: Write the failing tests**: `voluntariado-regras`: `fimDeSemana('2026-11')` traz os 9 sábados e domingos; `alternarDia` com só A marcado marca os dois; com os dois marcados desmarca; `copiarDoMes` de marcações em 30 e 31 de outubro para `2026-11` traz só o 30 (Review Focus 3); `marcarDias` não duplica. `voluntariado.test.tsx`: "Todos os sábados e domingos" marca A e B dos fins de semana e o rodapé muda; "Dias de folga da equipe Alfa" marca as folgas do `GET` e não aparece para quem tem `folgas: null`; "Copiar de outubro" substitui as marcações; arrastar do dia 3 ao dia 5 (pointerdown no 3, pointerenter no 4 e no 5, pointerup) marca os três dias; com o foco no dia 5, seta para a direita leva ao dia 6 e seta para baixo ao 12; espaço marca o dia focado; Enter manda o `PUT`.
+- [ ] **Step 2: Run** `pnpm --filter web vitest run src/__testes__/voluntariado.test.tsx src/__testes__/voluntariado-regras.test.ts`. Expected: FAIL.
+- [ ] **Step 3: Implement** as funções, os atalhos, o arrastar e o teclado.
+- [ ] **Step 4: Run** `pnpm test && pnpm typecheck && pnpm build:vercel`. Expected: passa.
+- [ ] **Step 5: Commit** `Fase 4.2: atalhos, arrastar e teclado no voluntariado`. Revisão final do branch (Opus), correções, push e PR com: o que entrou, **tem migração (0016)** e o lembrete `pnpm --filter api db:migrar:teste`, o que conferir no ambiente de teste (lançar um militar, salvar e passar ao próximo, salvar um sem marcação, copiar do mês anterior, ver na "Escolher militar" de uma diária quem marcou o turno) e as decisões para o usuário. **Parar até o merge.**
+
+---
+
 # Entrega 2.1 — Ordem de escala
 
-**Branch:** `fase4-2-1-ordem-de-escala`, a partir da `main` depois do merge da entrega 2. **Tem migração** (0016; se a entrega 2 criar migração, esta vira a seguinte). Commits `Fase 4.2.1: …`; PR "Fase 4 — Entrega 2.1: ordem de escala".
+**Branch:** `fase4-2-1-ordem-de-escala`, a partir da `main` depois do merge da entrega 2. **Tem migração** (0017). Commits `Fase 4.2.1: …`; PR "Fase 4 — Entrega 2.1: ordem de escala".
 
-### Task 10: Ordem de escala no banco, nos contratos e a regra das vagas
+### Task 14: Ordem de escala no banco, nos contratos e a regra das vagas
 
 **Files:**
 - Create: `apps/api/banco/migracoes/0016_ordem_de_escala.sql`, `pacotes/contratos/src/ordem-de-escala.ts` (exportado no `index.ts`), `apps/api/src/escala/ordem.ts`
@@ -321,14 +424,14 @@ As condições que o design implica e que mais podem morder quem monta a escala;
 - [ ] **Step 4: Run** `pnpm --filter api test && pnpm --filter contratos test && pnpm typecheck`. Expected: passa.
 - [ ] **Step 5: Commit** `Fase 4.2.1: ordem de escala no banco e regra das vagas`.
 
-### Task 11: Ler e gravar a ordem (API) e cards na ordem
+### Task 15: Ler e gravar a ordem (API) e cards na ordem
 
 **Files:**
 - Modify: `apps/api/src/escala/rotas.ts` (ou `apps/api/src/cadastros/escalas.ts`, junto dos vínculos), `apps/api/src/escala/leitura.ts`
 - Test: `apps/api/test/ordem-de-escala.test.ts`, `apps/api/test/escala-leitura.test.ts`, `apps/api/test/isolamento-entre-unidades.test.ts`
 
 **Interfaces:**
-- Consumes: Tarefa 10; `vinculosDaEscala`, `versoesDasGuarnicoes`, `versaoNoMes`, `mesPassado`.
+- Consumes: Tarefa 14; `vinculosDaEscala`, `versoesDasGuarnicoes`, `versaoNoMes`, `mesPassado`.
 - Produces:
   - `ordemDoMes(c: Consulta, escalaId: string, mes: string): Promise<OrdemDeEscala>` — vínculo vigente no mês e versões das guarnições no mês (ativas), versão da ordem com maior vigência `<= mes`.
   - `GET /api/escalas/:id/ordem/:mes` → 200 `OrdemDeEscala`.
@@ -340,7 +443,7 @@ As condições que o design implica e que mais podem morder quem monta a escala;
 - [ ] **Step 4: Run** `pnpm --filter api test`. Expected: passa.
 - [ ] **Step 5: Commit** `Fase 4.2.1: ler e gravar a ordem de escala`.
 
-### Task 12: Tela da ordem de escala
+### Task 16: Tela da ordem de escala
 
 **Files:**
 - Create: `apps/web/src/api/ordem-de-escala.ts`, `apps/web/src/routes/_app/escalas/$id.ordem.tsx` (busca `?mes=`), `apps/web/src/componentes/escalas/OrdemDeEscala.tsx`
@@ -348,7 +451,7 @@ As condições que o design implica e que mais podem morder quem monta a escala;
 - Test: `apps/web/src/__testes__/ordem-de-escala.test.tsx`, ajustes nos testes de guarnições
 
 **Interfaces:**
-- Consumes: Tarefas 10 e 11; `useTrava`, `usePendencia`, `useSincronizar`, `AcoesDoBloco`.
+- Consumes: Tarefas 14 e 15; `useTrava`, `usePendencia`, `useSincronizar`, `AcoesDoBloco`.
 - Produces: `consultaOrdemDeEscala(escalaId, mes)` (queryKey `['ordem-de-escala', escalaId, mes]`), `gravarOrdemDeEscala(queryClient, escalaId, mes, itens: VagaDaOrdem[])` (grava o devolvido no cache e invalida `['escala-do-mes', escalaId]`).
 - Tela (spec Parte 1): título "Ordem de escala — <escala>", "Vale a partir de" (mês, padrão o mês atual), "Limpar" e "Salvar"; cada guarnição numa linha com um quadrado por vaga (`button`, nome acessível "Chefe ABT, vaga 1" e, numerada, "…, posição 4"), obrigatórias cheias e extras tracejadas; clicar num sem número dá o próximo número; clicar num numerado tira e os seguintes sobem um; ao lado, a lista numerada com "Subir" e "Descer"; rodapé "9 de 10 vagas na ordem. Falta: Combatente 3 da ABT." (sem falta: "Todas as vagas estão na ordem."); com `vigencia: null`, a frase "Ainda sem ordem cadastrada: a sugestão abaixo segue a prioridade antiga das guarnições."; teclado: setas movem o foco entre quadrados, espaço numera ou tira; alteração pendente avisa ao sair (`usePendencia`).
 - Guarnições: o campo "Prioridade" sai do formulário da versão e o número sai da lista (a API continua aceitando o campo para a importação, que alimenta a ordem padrão).
@@ -360,11 +463,10 @@ As condições que o design implica e que mais podem morder quem monta a escala;
 
 ---
 
-# Entregas 2 a 6 (a detalhar antes de cada uma)
+# Entregas 3 a 6 (a detalhar antes de cada uma)
 
 Cada uma ganha aqui as suas tarefas, no formato da entrega 1, depois do merge da anterior e da conversa com o usuário sobre o que a entrega 1 mostrou em uso.
 
-- **Entrega 2 — Voluntariado lançado à mão:** API de voluntariado do mês (listar por militar, gravar o mês de um militar de uma vez, copiar do mês anterior); tela com "já lançados" e "faltam lançar", calendário com A e B por dia (clicar no turno, no número do dia, arrastar), legenda dos horários, atalhos (fins de semana, folgas da equipe, copiar do mês anterior) e "Salvar e ir para o próximo" pelo teclado. As "pedidas" da grade geral saem daqui.
 - **Entrega 3 — Pré-escala e distribuições:** camada que traduz o mês para o motor (militares, alocações de três meses, remoções, horários, voluntariado, cotas, modelos de guarnição pelas faixas) e de volta para ids; "Gerar pré-escala" (equipe do dia 1 detectada por `detectarEquipeInicial`, com escolha manual), saldos do Adm (`distribuirAdm`, com `servico` e `turno` sempre preenchidos), operações pelas cotas (`distribuirCotas` e `diagnosticarOperacoes`) e encaixe nas guarnições (`calcularGuarnicao`); prévia do que entra e do que ficou de fora antes de gravar; nada sobrescreve o que já está escalado. Pendências do motor (`turnosPadraoExigidos` no turno noturno de 24h, nomes normalizados uma vez na entrada) resolvidas aqui, com teste no motor.
 - **Entrega 4 — Grade geral:** consulta do mês por militar (agrupada por equipe, Adm à parte), blocos por serviço com a letra em ordem de início, turno que atravessa a meia-noite só no dia em que começa, choques do motor com contorno vermelho, feriados e fins de semana, pegas de pedidas por PJES e Diária; ficha lateral com Trocar, Remover e "Adicionar serviço neste dia", reaproveitando as rotas da entrega 1.
 - **Entrega 5 — Gerar documento:** Configurações › Modelos de impressão (enviar com conferência dos marcadores, baixar o atual, versões); geração da escala publicada com ExcelJS a partir do modelo vigente da unidade, respeitando `militares_doc` e `dias_doc` da escala; `documento_gerado` guardado e baixável; PDF fica para quando o serviço existir.
