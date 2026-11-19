@@ -43,8 +43,9 @@ As condições que o design implica e que mais podem morder quem monta a escala;
 | **1 — Escala do mês, à mão** | Abrir uma escala e um mês, ver dia › turno › cards de guarnição com ícone de completa ou faltando, escolher militar na lista já filtrada (CNH, choque, afastamento, voluntariado, lotação) e remover (com "Desfazer remoção"). | — |
 | **1.1 — Acúmulo de funções** | Na vaga vazia, escolher um militar já escalado na mesma faixa (inclusive de outra guarnição) para acumular; a CNH da vaga é conferida; o card mostra "acumula com Chefe ABT". | 1 |
 | **2 — Voluntariado lançado à mão** | Calendário do mês por militar com A e B por dia, "já lançados" e "faltam lançar", atalhos e "Salvar e ir para o próximo". | — |
+| **2.2 — Voluntariado por faixa** (antes da 2.1) | A disponibilidade passa a ser marcada em blocos do dia tirados dos horários dos serviços que pedem voluntariado (hoje 00–08, 08–16, 16–20, 20–24), guardada em horários; calendário no computador, um dia por linha no celular. | 2 |
 | **2.1 — Ordem de escala** | Tela da escala com as vagas de cada guarnição em quadrados para numerar a vez de cada uma (vigência por mês); os cards da escala do mês seguem a ordem. Substitui a prioridade da guarnição (RN-08). | 1 |
-| **3 — Pré-escala e distribuições** | "Gerar pré-escala" (Pronto pelo ciclo das equipes), saldos do Adm e operações pelas cotas, com o que ficou de fora e por quê. Gerar de novo só completa lacunas e respeita as remoções. Os militares entram nas vagas seguindo a ordem de escala à risca (o mais antigo apto em cada vaga). | 1, 2 e 2.1 |
+| **3 — Pré-escala e distribuições** | "Gerar pré-escala" (Pronto pelo ciclo das equipes), saldos do Adm e operações pelas cotas, com o que ficou de fora e por quê. Gerar de novo só completa lacunas e respeita as remoções. Os militares entram nas vagas seguindo a ordem de escala à risca (o mais antigo apto em cada vaga). | 1, 2, 2.1 e 2.2 |
 | **4 — Grade geral** | Uma linha por militar, uma coluna por dia, blocos na cor do serviço com a letra, choques em vermelho, pegas de pedidas por PJES e Diária, ficha lateral com Trocar, Remover e Adicionar. | 1, 2 |
 | **5 — Gerar documento** | Configurações › Modelos de impressão (enviar e baixar o .xlsx com marcadores) e "Gerar documento" da escala publicada em .xlsx; cada geração fica guardada. | 1 |
 | **6 — Minha escala** | O militar comum vê os próprios serviços do mês, com quem compõe a guarnição, e as escalas publicadas da unidade dele. | 1, 5 |
@@ -223,8 +224,8 @@ As condições que o design implica e que mais podem morder quem monta a escala;
 1. **Função no máximo por causa de um acúmulo**: escalar ou acumular numa função cujo máximo já está ocupado (contando acúmulos) → 409 "já está completa", nunca passa do máximo. Tarefa 8.
 2. **Remover o militar com acúmulos**: a alocação some com os acúmulos dela, a marca de remoção é só da vaga original; tirar só um acúmulo não cria marca e o militar continua na vaga original. Tarefa 8.
 3. **Militar escalado na mesma faixa de outra escala** (ou em "Sem guarnição", ou na mesma função da mesma guarnição) não aparece em "Acumular". Tarefa 8.
-4. **Guarnição ou composição muda depois de a ordem ser salva**: vaga que deixou de existir sai da lista e as posições se compactam (1, 2, 3… sem buraco); vaga nova fica sem número e vai para "Falta". Tarefa 14.
-5. **Ordem entre meses**: ordem salva a partir de dezembro vale em janeiro (`vigencia: '2026-12'`); num mês anterior a qualquer ordem vale a ordem padrão (`vigencia: null`). Tarefa 15.
+4. **Guarnição ou composição muda depois de a ordem ser salva**: vaga que deixou de existir sai da lista e as posições se compactam (1, 2, 3… sem buraco); vaga nova fica sem número e vai para "Falta". Tarefa 19.
+5. **Ordem entre meses**: ordem salva a partir de dezembro vale em janeiro (`vigencia: '2026-12'`); num mês anterior a qualquer ordem vale a ordem padrão (`vigencia: null`). Tarefa 20.
 
 ### Task 7: Acúmulo no banco e nos contratos
 
@@ -399,11 +400,121 @@ As condições que o design implica e que mais podem morder quem monta a escala;
 
 ---
 
+# Entrega 2.2 — Voluntariado por faixa de horário
+
+**Executada antes da 2.1** (a ordem de escala espera). **Branch:** `fase4-2-2-voluntariado-por-faixa`, a partir da `main`. **Tem migração** (0017: converte o que existe e troca a tabela `voluntariado` por `disponibilidade`). Commits `Fase 4.2.2: …`; PR "Fase 4 — Entrega 2.2: voluntariado por faixa de horário".
+
+**Spec:** `docs/superpowers/specs/2026-11-19-voluntariado-por-faixa-design.md` (e o mockup `docs/telas/mockup-voluntariado-faixas.html`). Contagens de partida: protótipo 589, contratos 14, motor 771 (+1 ignorado), API 543, site 340 (com o PR #32).
+
+**Review Focus da entrega 2.2** (cada um tem teste na tarefa dona):
+
+1. **Turno que atravessa a meia-noite** (20h às 08h, 16h às 00h): pede o dia em que começa até 24h e o dia seguinte desde 00h; no último dia do mês, o dia seguinte é do mês que vem. Tarefas 14 e 16.
+2. **Conversão do turno B do último dia do mês**: o pedaço das 00h às 08h vai para o dia 1 do mês seguinte, sem criar "já lançado" e sem perder nada. Tarefa 15.
+3. **Faixas encostadas** (08–16 e 16–20 marcadas em separado) cobrem um serviço das 08h às 20h; ao gravar, viram uma faixa só. Tarefas 14 e 15.
+4. **Bloco parcial**: com um corte a menos, um bloco maior coberto só em parte aparece listrado e clicar nele marca o bloco inteiro. Tarefa 17.
+5. **No celular, deslizar não marca**: só o toque no bloco inteiro; a página rola. Tarefa 18.
+
+### Task 14: Regras da disponibilidade no motor
+
+**Files:**
+- Create: `pacotes/dominio/src/disponibilidade.ts` (exportado no `index.ts`)
+- Test: `pacotes/dominio/test/disponibilidade.test.ts`
+
+**Interfaces:**
+- Produces (funções puras, minutos do dia de 0 a 1440):
+  - `type Faixa = { inicio: number; fim: number }`
+  - `cortesDoDia(turnos: { inicio: string; fim: string }[]): number[]` — os minutos de início e de fim de cada turno ('00:00' de fim vale 0 e 1440), mais 0 e 1440, sem repetição, em ordem.
+  - `blocosDoDia(cortes: number[]): Faixa[]` — os intervalos entre cortes vizinhos.
+  - `unirFaixas(faixas: Faixa[]): Faixa[]` — em ordem, unindo as encostadas e as sobrepostas.
+  - `turnoCoberto(faixasDoDia: (data: string) => Faixa[], data: string, inicio: string, fim: string): boolean` — o turno começa em `data`; o que passa de 1440 usa o dia seguinte (`somarDias`); usa `duracaoMinutos` (turno de 24h = 1440 minutos).
+- Regra só do sistema novo: sem caso gravado do protótipo.
+
+- [ ] **Step 1: Write the failing tests**: `cortesDoDia` dos turnos de hoje (PE Seguro 00–08, 08–16, 16–00; Bioma 08–16; CPRH 08–20) = `[0, 480, 960, 1200, 1440]`; com um turno das 06h às 12h, entram 360 e 720; um turno das 20h às 08h corta em 1200 e 480; `blocosDoDia` dá 4 blocos com as durações 480, 480, 240, 240; `unirFaixas([{960,1200},{480,960},{1200,1440}])` = `[{480,1440}]`; `turnoCoberto` com 08–20 marcado: 08–16 sim, 16–00 não; com 16–24 marcado, 16–00 sim; 20–08 do dia 30/11 com 20–24 do dia 30 e 00–08 de 01/12 sim, sem o dia 01/12 não (Review Focus 1); faixas 480–960 e 960–1200 cobrem 08–20 (Review Focus 3); 08–08 (24h) pede 08–24 do dia e 00–08 do seguinte.
+- [ ] **Step 2: Run** `pnpm --filter dominio test`. Expected: FAIL.
+- [ ] **Step 3: Implement** as quatro funções.
+- [ ] **Step 4: Run** `pnpm --filter dominio test && pnpm --filter dominio typecheck`. Expected: passa.
+- [ ] **Step 5: Commit** `Fase 4.2.2: regras da disponibilidade no motor`.
+
+### Task 15: Disponibilidade no banco, conversão, contratos e API do voluntariado
+
+**Files:**
+- Create: `apps/api/banco/migracoes/0017_disponibilidade.sql`
+- Modify: `pacotes/contratos/src/voluntariado.ts`, `apps/api/src/voluntariado/leitura.ts`, `apps/api/src/voluntariado/lancamento.ts`, `apps/api/src/voluntariado/rotas.ts`
+- Test: `apps/api/test/migracao-0017.test.ts`, `apps/api/test/voluntariado.test.ts`, `apps/api/test/migracao-0016.test.ts` (se depender de `voluntariado`)
+
+**Interfaces:**
+- Consumes: Tarefa 14.
+- Produces:
+  - Tabela `disponibilidade (id uuid pk, militar_id uuid not null references militar (id), data date not null, inicio_min int not null, fim_min int not null, origem text not null check (origem in ('manual', 'importacao', 'militar')), check (inicio_min >= 0 and inicio_min < fim_min and fim_min <= 1440), unique (militar_id, data, inicio_min))`, índice `(militar_id, data)`, auditoria. A migração copia `voluntariado`: A do dia D → (D, 480, 1200); B do dia D → (D, 1200, 1440) e (D+1, 0, 480), com a origem de origem; depois apaga a tabela `voluntariado`. `voluntariado_lancamento` não muda.
+  - Contratos: `Hora24` (como `Hora`, aceitando também `"24:00"`); `FaixaDeDisponibilidade = z.object({ data: Data, inicio: Hora, fim: Hora24 })` com refine "O fim precisa ser depois do início."; `LancamentoDeVoluntariado = z.object({ faixas: z.array(FaixaDeDisponibilidade) })` (sobreposição é aceita: a API une); `MilitarDoVoluntariado` troca `turnos` por `horas: number` (soma das faixas do mês, em horas, depois de unir); `VoluntariadoDoMilitar = { militarId; mes; faixas: FaixaDeDisponibilidade[]; doMesAnterior: FaixaDeDisponibilidade[]; blocos: { inicio: string; fim: string }[]; folgas: string[] | null }` (`blocos` = os blocos do dia em `"HH:MM"`, com `"24:00"`). Saem `LetraDoTurnoPadrao` e `MarcaDeVoluntariado`.
+  - `blocosDaSecao(c: Consulta, unidadeId: string): Promise<Faixa[]>` — `blocosDoDia(cortesDoDia(...))` dos turnos dos serviços **ativos** da seção com `tipo` `pjes` ou `diaria`; sem nenhum, um bloco só (0–1440).
+  - `lancar(tx, militarId, mes, faixas, usuarioId)`: apaga as faixas do militar com data no mês, grava `unirFaixas` de cada dia (`origem = 'manual'`) e o lançamento, como hoje.
+  - `PUT /api/militares/:id/voluntariado/:mes` com `{ faixas }`: faixa com data fora do mês → 400 em `faixas.N` ("Use um dia de <mês por extenso>."); o resto como na entrega 2.
+
+- [ ] **Step 1: Write the failing tests**: `migracao-0017` (antes de migrar, marcações A em 05/11 e B em 05/11 e em 30/11; depois: (05/11, 480–1200), (05/11, 1200–1440), (06/11, 0–480), (30/11, 1200–1440), (01/12, 0–480) — Review Focus 2 —; a tabela `voluntariado` não existe mais; fim antes do início é recusado). Em `voluntariado.test.ts` (adaptar o existente às faixas): `horas` e `dias` certos (08–16 e 16–20 no dia 5 = 12 horas em 1 dia); `GET` do militar traz `faixas` unidas e `blocos` `[00:00–08:00, 08:00–16:00, 16:00–20:00, 20:00–24:00]` com os serviços do cenário; lançar `[08:00–16:00, 16:00–20:00]` grava uma faixa só (480–1200) (Review Focus 3); lançar substitui o mês; faixa de outro mês → 400; `[]` → lançado com 0 horas.
+- [ ] **Step 2: Run** `pnpm --filter api vitest run test/migracao-0017.test.ts test/voluntariado.test.ts`. Expected: FAIL.
+- [ ] **Step 3: Implement** a migração, os contratos, a leitura, `blocosDaSecao` e o lançamento.
+- [ ] **Step 4: Run** `pnpm --filter api test && pnpm --filter contratos test && pnpm typecheck`. Expected: a API passa; o site ainda não compila com os contratos novos — rodar `pnpm --filter api typecheck` e `pnpm --filter contratos typecheck` nesta tarefa (o site é a Tarefa 17).
+- [ ] **Step 5: Commit** `Fase 4.2.2: disponibilidade por faixa no banco e na API`.
+
+### Task 16: A lista "Escolher militar" usa as faixas
+
+**Files:**
+- Modify: `apps/api/src/escala/elegibilidade.ts`
+- Test: `apps/api/test/escala-candidatos.test.ts` (o ajudante `voluntariar` passa a gravar faixas), `apps/api/test/escala-acumulo.test.ts` e outros que gravem `voluntariado`
+
+**Interfaces:**
+- Consumes: `turnoCoberto` (Tarefa 14), tabela `disponibilidade` (Tarefa 15).
+- Produces: para serviço que não é ordinário, o motivo `"Não marcou voluntariado neste horário"` sai quando `turnoCoberto` é falso, com as faixas do dia e do dia seguinte (a consulta lê `data` entre o dia e o dia seguinte). O resto da conferência não muda.
+
+- [ ] **Step 1: Write the failing tests** em `escala-candidatos.test.ts`: uma diária das 16h às 00h — militar com 16–20 e 20–24 marcados é apto; com só 08–20 marcado (o antigo "A") fica "Não marcou voluntariado neste horário" (o defeito que motivou a mudança); um serviço das 00h às 08h no dia 1 é coberto pelo bloco 00–08 do próprio dia 1 (sem depender do mês anterior); um turno 20–08 do último dia pede o 00–08 do dia 1 do mês seguinte (Review Focus 1). Os testes existentes passam a gravar faixas (A = 480–1200; B = 1200–1440 e 0–480 do dia seguinte).
+- [ ] **Step 2: Run** `pnpm --filter api vitest run test/escala-candidatos.test.ts`. Expected: FAIL.
+- [ ] **Step 3: Implement** a troca na elegibilidade.
+- [ ] **Step 4: Run** `pnpm --filter api test`. Expected: passa.
+- [ ] **Step 5: Commit** `Fase 4.2.2: a lista de candidatos usa as faixas`.
+
+### Task 17: Tela do voluntariado por blocos (computador)
+
+**Files:**
+- Modify: `apps/web/src/lib/voluntariado.ts`, `apps/web/src/componentes/voluntariado/CalendarioDoVoluntariado.tsx`, `apps/web/src/api/voluntariado.ts`, `apps/web/src/routes/_app/voluntariado.tsx`
+- Test: `apps/web/src/__testes__/voluntariado.test.tsx`, `apps/web/src/__testes__/voluntariado-regras.test.tsx`
+
+**Interfaces:**
+- Consumes: Tarefa 15 (contratos e rotas).
+- Produces:
+  - `lib/voluntariado.ts` sobre faixas por dia (`Map<string, Faixa[]>` em minutos): `estadoDoBloco(faixas, bloco): 'cheio' | 'parcial' | 'vazio'`; `alternarBloco(m, dia, bloco)` (cheio → tira; parcial ou vazio → marca o bloco inteiro); `alternarDia(m, dia)` (dia todo coberto → limpa; senão 0–1440); `marcarDias(m, dias)` (dia inteiro); `copiarDoMes(anterior, mes)` (pelo número do dia, descartando o que não existe); `textoDoRodape(m)`: "N horas em M dias." ("1 hora", "1 dia"; vazio: "Nenhum horário marcado."); `faixasParaEnviar(m)`: as faixas de cada dia unidas, em `"HH:MM"`.
+  - Tela (spec "Computador"): acima do calendário, a régua-legenda do dia com os blocos proporcionais e os horários dos cortes; em cada dia, o número e a faixa com os blocos em largura proporcional à duração (`flex` pela duração; noite sombreada), botão por bloco com `aria-pressed` (parcial: `aria-pressed="mixed"`, listrado) e nome "Dia 5, 08h às 16h"; **a dica com o horário** aparece ao passar o mouse e ao focar (texto visível, não só `title`); arrastar marca vários (mesma ação do primeiro); os atalhos, o teclado (setas nos números, espaço, Enter), "Limpar", "Salvar e ir para o próximo", o foco no dia 1 do próximo e o aviso de alteração pendente continuam como na entrega 2; legenda "A 08h às 20h / B 20h às 08h" sai.
+
+- [ ] **Step 1: Write the failing tests**: regras (`estadoDoBloco` com o bloco 08–20 coberto só de 08–16 = parcial — Review Focus 4 —; `alternarBloco` no parcial marca o bloco inteiro; `faixasParaEnviar` une 08–16 e 16–20; rodapé no singular e no plural); tela: os 4 blocos do dia com os nomes "Dia 5, 00h às 08h" … "Dia 5, 20h às 24h"; clicar em "Dia 5, 16h às 20h" marca só ele e o rodapé diz "4 horas em 1 dia."; o número do dia marca os 4 blocos; focar um bloco mostra o texto "16h às 20h"; um bloco parcial vem com `aria-pressed="mixed"`; "Salvar e ir para o próximo" manda `{ faixas: [{ data, inicio: '16:00', fim: '20:00' }] }`; atalhos e arrastar com os blocos.
+- [ ] **Step 2: Run** `pnpm --filter web vitest run src/__testes__/voluntariado.test.tsx src/__testes__/voluntariado-regras.test.tsx`. Expected: FAIL.
+- [ ] **Step 3: Implement** a lib e o calendário por blocos.
+- [ ] **Step 4: Run** `pnpm --filter web test && pnpm typecheck`. Expected: passa.
+- [ ] **Step 5: Commit** `Fase 4.2.2: tela do voluntariado por blocos`.
+
+### Task 18: Tela do voluntariado no celular
+
+**Files:**
+- Create: `apps/web/src/lib/useEhCelular.ts`
+- Modify: `apps/web/src/componentes/voluntariado/CalendarioDoVoluntariado.tsx`
+- Test: `apps/web/src/__testes__/voluntariado.test.tsx`
+
+**Interfaces:**
+- Consumes: Tarefa 17.
+- Produces: `useEhCelular(): boolean` (`matchMedia('(max-width: 767px)')`, atualiza ao mudar; sem `matchMedia`, falso). No celular (spec "Celular"): um dia por linha (número e dia da semana à esquerda, os blocos proporcionais à direita), os **rótulos só dos cortes** (00h, 08h, 16h, 20h, 00h) numa faixa no topo, alinhados aos cortes e parados durante a rolagem (`sticky`); **sem arrastar**: o arrasto só vale para ponteiro de mouse (`pointerType === 'mouse'`), e os blocos usam `touch-action: manipulation` (a página rola). Os atalhos, o rodapé e os botões são os mesmos.
+
+- [ ] **Step 1: Write the failing tests** (com `matchMedia` simulado para celular): a tela mostra um dia por linha (`data-disposicao="linhas"`) e a faixa de rótulos com exatamente os textos "00h", "08h", "16h", "20h", "00h"; tocar num bloco marca só ele; `pointerdown` de toque num bloco seguido de `pointerenter` em outro não marca o segundo (Review Focus 5); sem o simulado (computador), a disposição é o calendário (`data-disposicao="calendario"`).
+- [ ] **Step 2: Run** o arquivo. Expected: FAIL.
+- [ ] **Step 3: Implement** o gancho e a disposição em linhas.
+- [ ] **Step 4: Run** `pnpm test && pnpm typecheck && pnpm build:vercel`. Expected: passa.
+- [ ] **Step 5: Commit** `Fase 4.2.2: voluntariado no celular`. Revisão final do branch (Opus), correções, push e PR com: o que entrou, **tem migração (0017)** e o lembrete `pnpm --filter api db:migrar:teste` (converte o que foi lançado em A e B), o que conferir (no computador e no celular: marcar blocos, ver o horário do bloco, dia inteiro pelo número, salvar e passar ao próximo; na "Escolher militar", uma diária das 16h às 00h só aparece para quem marcou 16–20 e 20–24; o dia 1 das 00h às 08h aparece para quem marcou o próprio dia 1) e as decisões para o usuário (cortes só dos serviços que pedem voluntariado; turno B do último dia na conversão). **Parar até o merge.**
+
+---
+
 # Entrega 2.1 — Ordem de escala
 
-**Branch:** `fase4-2-1-ordem-de-escala`, a partir da `main` depois do merge da entrega 2. **Tem migração** (0017). Commits `Fase 4.2.1: …`; PR "Fase 4 — Entrega 2.1: ordem de escala".
+**Branch:** `fase4-2-1-ordem-de-escala`, a partir da `main` depois do merge da entrega 2. **Tem migração** (0018). Commits `Fase 4.2.1: …`; PR "Fase 4 — Entrega 2.1: ordem de escala".
 
-### Task 14: Ordem de escala no banco, nos contratos e a regra das vagas
+### Task 19: Ordem de escala no banco, nos contratos e a regra das vagas
 
 **Files:**
 - Create: `apps/api/banco/migracoes/0016_ordem_de_escala.sql`, `pacotes/contratos/src/ordem-de-escala.ts` (exportado no `index.ts`), `apps/api/src/escala/ordem.ts`
@@ -424,14 +535,14 @@ As condições que o design implica e que mais podem morder quem monta a escala;
 - [ ] **Step 4: Run** `pnpm --filter api test && pnpm --filter contratos test && pnpm typecheck`. Expected: passa.
 - [ ] **Step 5: Commit** `Fase 4.2.1: ordem de escala no banco e regra das vagas`.
 
-### Task 15: Ler e gravar a ordem (API) e cards na ordem
+### Task 20: Ler e gravar a ordem (API) e cards na ordem
 
 **Files:**
 - Modify: `apps/api/src/escala/rotas.ts` (ou `apps/api/src/cadastros/escalas.ts`, junto dos vínculos), `apps/api/src/escala/leitura.ts`
 - Test: `apps/api/test/ordem-de-escala.test.ts`, `apps/api/test/escala-leitura.test.ts`, `apps/api/test/isolamento-entre-unidades.test.ts`
 
 **Interfaces:**
-- Consumes: Tarefa 14; `vinculosDaEscala`, `versoesDasGuarnicoes`, `versaoNoMes`, `mesPassado`.
+- Consumes: Tarefa 19; `vinculosDaEscala`, `versoesDasGuarnicoes`, `versaoNoMes`, `mesPassado`.
 - Produces:
   - `ordemDoMes(c: Consulta, escalaId: string, mes: string): Promise<OrdemDeEscala>` — vínculo vigente no mês e versões das guarnições no mês (ativas), versão da ordem com maior vigência `<= mes`.
   - `GET /api/escalas/:id/ordem/:mes` → 200 `OrdemDeEscala`.
@@ -443,7 +554,7 @@ As condições que o design implica e que mais podem morder quem monta a escala;
 - [ ] **Step 4: Run** `pnpm --filter api test`. Expected: passa.
 - [ ] **Step 5: Commit** `Fase 4.2.1: ler e gravar a ordem de escala`.
 
-### Task 16: Tela da ordem de escala
+### Task 21: Tela da ordem de escala
 
 **Files:**
 - Create: `apps/web/src/api/ordem-de-escala.ts`, `apps/web/src/routes/_app/escalas/$id.ordem.tsx` (busca `?mes=`), `apps/web/src/componentes/escalas/OrdemDeEscala.tsx`
@@ -451,7 +562,7 @@ As condições que o design implica e que mais podem morder quem monta a escala;
 - Test: `apps/web/src/__testes__/ordem-de-escala.test.tsx`, ajustes nos testes de guarnições
 
 **Interfaces:**
-- Consumes: Tarefas 14 e 15; `useTrava`, `usePendencia`, `useSincronizar`, `AcoesDoBloco`.
+- Consumes: Tarefas 19 e 20; `useTrava`, `usePendencia`, `useSincronizar`, `AcoesDoBloco`.
 - Produces: `consultaOrdemDeEscala(escalaId, mes)` (queryKey `['ordem-de-escala', escalaId, mes]`), `gravarOrdemDeEscala(queryClient, escalaId, mes, itens: VagaDaOrdem[])` (grava o devolvido no cache e invalida `['escala-do-mes', escalaId]`).
 - Tela (spec Parte 1): título "Ordem de escala — <escala>", "Vale a partir de" (mês, padrão o mês atual), "Limpar" e "Salvar"; cada guarnição numa linha com um quadrado por vaga (`button`, nome acessível "Chefe ABT, vaga 1" e, numerada, "…, posição 4"), obrigatórias cheias e extras tracejadas; clicar num sem número dá o próximo número; clicar num numerado tira e os seguintes sobem um; ao lado, a lista numerada com "Subir" e "Descer"; rodapé "9 de 10 vagas na ordem. Falta: Combatente 3 da ABT." (sem falta: "Todas as vagas estão na ordem."); com `vigencia: null`, a frase "Ainda sem ordem cadastrada: a sugestão abaixo segue a prioridade antiga das guarnições."; teclado: setas movem o foco entre quadrados, espaço numera ou tira; alteração pendente avisa ao sair (`usePendencia`).
 - Guarnições: o campo "Prioridade" sai do formulário da versão e o número sai da lista (a API continua aceitando o campo para a importação, que alimenta a ordem padrão).

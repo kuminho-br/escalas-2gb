@@ -1,0 +1,330 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Voluntariado por faixa — opções 4 e 5</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Semi+Condensed:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --vinho: #8E1B1B; --vinho-escuro: #6F1414; --vinho-claro: #F4E4E4;
+    --fundo: #EDEFF2; --superficie: #FFFFFF; --tinta: #1C2430; --apagado: #5B6675; --linha: #D8DDE4;
+    --noite: #E4E8EE; --pendencia: #8A5A00; --pendencia-fundo: #FCF1D6;
+    --cond: "Barlow Semi Condensed", "Barlow", system-ui, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--fundo); color: var(--tinta); font: 15px/1.5 "Barlow", system-ui, sans-serif; }
+  :focus-visible { outline: 2px solid var(--tinta); outline-offset: 2px; }
+  .pagina { max-width: 1280px; margin: 0 auto; padding: 24px 16px 64px; }
+  h1 { font: 600 28px/1.15 var(--cond); margin: 0 0 4px; }
+  .sub { color: var(--apagado); margin: 0 0 20px; max-width: 72ch; }
+
+  /* alternância entre as opções */
+  .abas { display: inline-flex; background: var(--superficie); border: 1px solid var(--linha); border-radius: 10px; padding: 4px; gap: 4px; margin-bottom: 18px; }
+  .abas button { border: 0; background: none; padding: 8px 14px; border-radius: 7px; font: 600 15px var(--cond); color: var(--apagado); cursor: pointer; }
+  .abas button[aria-selected="true"] { background: var(--vinho); color: #fff; }
+
+  .tela { display: grid; grid-template-columns: 240px 1fr 260px; gap: 16px; align-items: start; }
+  @media (max-width: 1100px) { .tela { grid-template-columns: 1fr; } .lista { display: none; } }
+  .caixa { background: var(--superficie); border: 1px solid var(--linha); border-radius: 12px; padding: 16px; }
+
+  /* lista de militares (igual à tela atual, só como contexto) */
+  .lista h2, .lado h2 { font: 500 13px var(--cond); color: var(--apagado); margin: 12px 0 6px; }
+  .lista h2:first-child { margin-top: 0; }
+  .mil { display: flex; align-items: baseline; gap: 6px; border: 1px solid var(--linha); border-radius: 8px; padding: 7px 10px; margin-bottom: 5px; font-size: 13px; }
+  .mil b { font: 600 15px var(--cond); }
+  .mil span:last-child { margin-left: auto; color: var(--apagado); font-size: 12px; }
+  .mil.aberto { border-color: var(--vinho); background: var(--vinho-claro); }
+
+  .cabeca h2 { font: 600 24px/1.1 var(--cond); margin: 0; }
+  .cabeca p { margin: 2px 0 12px; color: var(--apagado); font-size: 14px; }
+
+  /* a régua-legenda: o dia de 0h a 24h, proporcional, com a noite sombreada */
+  .legenda { margin: 4px 0 14px; }
+  .legenda .trilha { position: relative; height: 34px; border-radius: 6px; overflow: hidden; display: flex; border: 1px solid var(--linha); }
+  .legenda .seg { display: grid; place-items: center; font: 600 13px var(--cond); color: var(--apagado); border-right: 1px solid var(--linha); }
+  .legenda .seg:last-child { border-right: 0; }
+  .legenda .seg.noite { background: var(--noite); }
+  .legenda .horas { position: relative; height: 18px; font: 500 12px var(--cond); color: var(--apagado); }
+  .legenda .horas span { position: absolute; transform: translateX(-50%); top: 2px; }
+  .legenda .nota { font-size: 13px; color: var(--apagado); margin-top: 4px; }
+
+  /* opção 4: calendário com faixa proporcional por dia */
+  .semana { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
+  .semana .dds { text-align: center; font-size: 12px; color: var(--apagado); }
+  .dia4 { border: 1px solid var(--linha); border-radius: 8px; padding: 6px; display: grid; gap: 5px; background: var(--superficie); }
+  .dia4.fds { background: #F6F7F9; }
+  .dia4.tem { border-color: var(--tinta); }
+  .dia4.foco { box-shadow: 0 0 0 2px var(--vinho); }
+  .num { all: unset; cursor: pointer; font: 600 17px/1 var(--cond); padding: 2px 3px; border-radius: 4px; width: fit-content; }
+  .num:hover { background: var(--fundo); }
+  .faixa { display: flex; height: 26px; border-radius: 5px; overflow: hidden; border: 1px solid var(--linha); user-select: none; touch-action: none; }
+  .bloco { border: 0; border-right: 1px solid var(--linha); background: var(--superficie); cursor: pointer; padding: 0; }
+  .bloco:last-child { border-right: 0; }
+  .bloco.noite { background: var(--noite); }
+  .bloco[aria-pressed="true"] { background: var(--vinho); border-right-color: var(--vinho-escuro); }
+
+  /* opção 5: um dia por linha, régua de 24h pintável */
+  .linhas { display: grid; gap: 4px; }
+  .linha5 { display: grid; grid-template-columns: 64px 1fr; gap: 10px; align-items: center; }
+  .linha5 .rot { font: 600 15px var(--cond); }
+  .linha5 .rot small { display: block; font: 500 11px "Barlow"; color: var(--apagado); }
+  .linha5.fds .rot { color: var(--vinho); }
+  .regua { position: relative; height: 30px; border-radius: 5px; border: 1px solid var(--linha); background: var(--superficie); cursor: crosshair; touch-action: none; user-select: none; overflow: hidden; }
+  .regua .sombra { position: absolute; top: 0; bottom: 0; background: var(--noite); }
+  .regua .tick { position: absolute; top: 0; bottom: 0; width: 1px; background: #EEF0F3; }
+  .regua .tick.forte { background: #C5CCD6; }
+  .regua .pinta { position: absolute; top: 4px; bottom: 4px; background: var(--vinho); border-radius: 3px; }
+  .regua .pinta.solta { background: repeating-linear-gradient(135deg, var(--pendencia) 0 5px, #B7801A 5px 10px); }
+  .regua .pinta .x { position: absolute; right: 2px; top: 50%; transform: translateY(-50%); border: 0; background: rgba(255,255,255,.25); color: #fff; border-radius: 3px; width: 16px; height: 16px; font-size: 11px; line-height: 16px; cursor: pointer; padding: 0; }
+  .linha5.foco .regua { box-shadow: 0 0 0 2px var(--vinho); }
+  .eixo { display: grid; grid-template-columns: 64px 1fr; gap: 10px; }
+  .eixo .horas { position: relative; height: 16px; font: 500 12px var(--cond); color: var(--apagado); }
+  .eixo .horas span { position: absolute; transform: translateX(-50%); }
+
+  .atalhos { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0 8px; }
+  .bt { border: 1px solid var(--linha); background: var(--superficie); border-radius: 7px; padding: 7px 12px; font: 500 14px "Barlow"; color: var(--tinta); cursor: pointer; }
+  .bt:hover { background: var(--fundo); }
+  .bt.principal { background: var(--vinho); color: #fff; border-color: var(--vinho); font-weight: 600; }
+  .rodape { color: var(--apagado); font-size: 14px; }
+  .acoes { display: flex; gap: 8px; margin-top: 10px; }
+
+  /* painel lateral: o que a disponibilidade do dia aceita */
+  .lado .dia-foco { font: 600 20px var(--cond); margin: 0; }
+  .servico { display: flex; align-items: center; gap: 8px; padding: 6px 0; border-bottom: 1px solid var(--linha); font-size: 14px; }
+  .servico:last-child { border-bottom: 0; }
+  .servico i { width: 10px; height: 10px; border-radius: 3px; flex: none; }
+  .servico .h { margin-left: auto; font: 500 13px var(--cond); color: var(--apagado); }
+  .servico.nao { color: var(--apagado); }
+  .servico.nao i { opacity: .35; }
+  .aviso { background: var(--pendencia-fundo); color: var(--pendencia); border-radius: 8px; padding: 8px 10px; font-size: 13px; margin-top: 10px; }
+  .pros { margin: 0; padding-left: 18px; font-size: 13px; color: var(--apagado); }
+  .pros li { margin: 3px 0; }
+  .pros strong { color: var(--tinta); font-weight: 600; }
+  [hidden] { display: none !important; }
+  @media (prefers-reduced-motion: no-preference) { .bloco, .regua .pinta { transition: background-color .12s; } }
+</style>
+</head>
+<body>
+<main class="pagina">
+  <h1>Voluntariado por faixa de horário</h1>
+  <p class="sub">Mockup para comparar as duas formas de lançar a disponibilidade sem perguntar a operação. Os horários e serviços são os da 1ª SB; o militar e as marcações são fictícios. Tudo aqui é clicável.</p>
+
+  <div class="abas" role="tablist" aria-label="Opção">
+    <button role="tab" aria-selected="true" data-aba="4">Opção 4: blocos dos serviços</button>
+    <button role="tab" aria-selected="false" data-aba="5">Opção 5: régua de 24h</button>
+  </div>
+
+  <div class="tela">
+    <aside class="caixa lista" aria-label="Militares">
+      <h2>Já lançados</h2>
+      <div class="mil"><span>3º SGT BM</span><b>ALVES</b><span>9 dias</span></div>
+      <div class="mil"><span>SD BM</span><b>BRITO</b><span>6 dias</span></div>
+      <h2>Faltam lançar</h2>
+      <div class="mil aberto"><span>CB BM</span><b>MOREIRA</b><span>lançando</span></div>
+      <div class="mil"><span>SD BM</span><b>NUNES</b><span></span></div>
+      <div class="mil"><span>2º SGT BM</span><b>PAIVA</b><span></span></div>
+    </aside>
+
+    <section class="caixa">
+      <div class="cabeca">
+        <h2>CB BM MOREIRA</h2>
+        <p>Equipe Bravo · novembro de 2026</p>
+      </div>
+
+      <!-- OPÇÃO 4 -->
+      <div id="op4">
+        <div class="legenda" aria-hidden="true">
+          <div class="trilha" id="leg4"></div>
+          <div class="horas" id="leg4h"></div>
+          <p class="nota">Os cortes do dia saem dos horários dos serviços cadastrados (00h, 08h, 16h e 20h hoje). Um serviço novo das 06h às 12h criaria os cortes de 06h e 12h sozinho.</p>
+        </div>
+        <div class="semana" id="cal4"></div>
+      </div>
+
+      <!-- OPÇÃO 5 -->
+      <div id="op5" hidden>
+        <div class="eixo" aria-hidden="true"><span></span><div class="horas" id="eixo5"></div></div>
+        <div class="linhas" id="cal5"></div>
+        <p class="rodape" style="margin-top:8px">Arraste na régua para pintar; arraste sobre uma faixa pintada para apagar. O pincel encaixa de hora em hora; as linhas mais fortes são os horários dos serviços.</p>
+      </div>
+
+      <div class="atalhos">
+        <button class="bt" id="fds">Todos os sábados e domingos</button>
+        <button class="bt" id="folgas">Dias de folga da equipe Bravo</button>
+        <button class="bt" id="copiar">Copiar de outubro de 2026</button>
+      </div>
+      <p class="rodape" id="resumo"></p>
+      <div class="acoes"><button class="bt" id="limpar">Limpar</button><button class="bt principal">Salvar e ir para o próximo</button></div>
+    </section>
+
+    <aside class="caixa lado" aria-live="polite">
+      <p class="dia-foco" id="foco-titulo"></p>
+      <h2>Cabe em</h2>
+      <div id="cabe"></div>
+      <div id="aviso"></div>
+      <h2 style="margin-top:18px">Esta opção</h2>
+      <ul class="pros" id="pros"></ul>
+    </aside>
+  </div>
+</main>
+
+<script>
+// Serviços da seção (início e fim em horas; fim <= início atravessa a meia-noite).
+const SERVICOS = [
+  { nome: 'Pronto A', cor: '#2F8F5B', i: 8, f: 20 },
+  { nome: 'Pronto B', cor: '#2F8F5B', i: 20, f: 8 },
+  { nome: 'PE Seguro', cor: '#3C5F9C', i: 0, f: 8 },
+  { nome: 'PE Seguro', cor: '#3C5F9C', i: 8, f: 16 },
+  { nome: 'PE Seguro', cor: '#3C5F9C', i: 16, f: 24 },
+  { nome: 'Bioma', cor: '#B7791F', i: 8, f: 16 },
+  { nome: 'CPRH', cor: '#4A5562', i: 8, f: 20 },
+];
+// cortes do dia = todos os inícios e fins dos turnos
+const CORTES = [...new Set(SERVICOS.flatMap((s) => [s.i, s.f % 24]).concat([0, 24]))].sort((a, b) => a - b);
+const BLOCOS = CORTES.slice(0, -1).map((h, k) => ({ i: h, f: CORTES[k + 1] }));
+const noite = (i, f) => i >= 20 || f <= 8;
+const hh = (h) => String(h % 24).padStart(2, '0') + 'h';
+const DIAS = 30, PRIMEIRO = 0; // novembro de 2026 começa num domingo
+const SEMANA = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'];
+const dds = (d) => (PRIMEIRO + d - 1) % 7;
+const folgaBravo = (d) => (d - 1) % 4 !== 1; // a Bravo trabalha nos dias 2, 6, 10…
+
+// Estado único das duas opções: por dia, uma lista de horas marcadas (0..23). Os blocos marcam várias horas de uma vez.
+let horas = Array.from({ length: DIAS + 1 }, () => new Set());
+let foco = 7;
+const marca = (d, i, f, on) => { for (let h = i; h < f; h++) on ? horas[d].add(h) : horas[d].delete(h); };
+// exemplo inicial: fins de semana à tarde e noite, e uma faixa solta das 13h às 15h no dia 18 (só a régua deixa fazer isso)
+[1, 7, 8].forEach((d) => marca(d, 16, 24, true));
+marca(4, 8, 16, true); marca(12, 0, 8, true); marca(18, 13, 15, true);
+
+// um turno [i, f) cabe se todas as horas estiverem marcadas (atravessando a meia-noite, usa o dia seguinte)
+function cabe(d, s) {
+  const fim = s.f <= s.i ? s.f + 24 : s.f;
+  for (let h = s.i; h < fim; h++) {
+    const dia = h >= 24 ? d + 1 : d;
+    if (dia > DIAS || !horas[dia].has(h % 24)) return false;
+  }
+  return true;
+}
+// faixas marcadas do dia que não formam nenhum turno inteiro (só acontecem na régua)
+function soltas(d) {
+  const usadas = new Set();
+  for (const s of SERVICOS) if (cabe(d, s)) { const fim = s.f <= s.i ? 24 : s.f; for (let h = s.i; h < fim; h++) usadas.add(h); }
+  // a hora de madrugada pode servir ao turno que começou na véspera
+  for (const s of SERVICOS) if (s.f <= s.i && d > 1 && cabe(d - 1, s)) for (let h = 0; h < s.f; h++) usadas.add(h);
+  return [...horas[d]].filter((h) => !usadas.has(h)).sort((a, b) => a - b);
+}
+const intervalos = (lista) => lista.reduce((acc, h) => { const u = acc[acc.length - 1]; if (u && u.f === h) u.f = h + 1; else acc.push({ i: h, f: h + 1 }); return acc; }, []);
+
+let aba = '4';
+function legenda() {
+  document.getElementById('leg4').innerHTML = BLOCOS.map((b) => `<div class="seg${noite(b.i, b.f) ? ' noite' : ''}" style="flex:${b.f - b.i}">${hh(b.i)}–${hh(b.f)}</div>`).join('');
+  document.getElementById('leg4h').innerHTML = CORTES.map((h) => `<span style="left:${(h / 24) * 100}%">${hh(h)}</span>`).join('');
+  document.getElementById('eixo5').innerHTML = [0, 4, 8, 12, 16, 20, 24].map((h) => `<span style="left:${(h / 24) * 100}%">${hh(h)}</span>`).join('');
+}
+
+// ---------- opção 4 ----------
+let arrasto4 = null;
+function render4() {
+  const cal = document.getElementById('cal4');
+  let html = SEMANA.map((s) => `<div class="dds">${s}</div>`).join('') + '<div></div>'.repeat(PRIMEIRO);
+  for (let d = 1; d <= DIAS; d++) {
+    const fds = [0, 6].includes(dds(d));
+    const blocos = BLOCOS.map((b, k) => {
+      const on = [...Array(b.f - b.i).keys()].every((x) => horas[d].has(b.i + x));
+      return `<button class="bloco${noite(b.i, b.f) ? ' noite' : ''}" style="flex:${b.f - b.i}" data-d="${d}" data-k="${k}" aria-pressed="${on}" aria-label="Dia ${d}, ${hh(b.i)} às ${hh(b.f)}"></button>`;
+    }).join('');
+    html += `<div class="dia4${fds ? ' fds' : ''}${horas[d].size ? ' tem' : ''}${d === foco ? ' foco' : ''}">
+      <button class="num" data-dia="${d}" aria-label="Dia ${d}: marcar ou desmarcar o dia todo">${d}</button>
+      <div class="faixa">${blocos}</div></div>`;
+  }
+  cal.innerHTML = html;
+}
+function aplicar4(d, k, on) { const b = BLOCOS[k]; marca(d, b.i, b.f, on); }
+document.getElementById('cal4').addEventListener('pointerdown', (e) => {
+  const b = e.target.closest('.bloco'), n = e.target.closest('.num');
+  if (b) { const d = +b.dataset.d, k = +b.dataset.k; const on = b.getAttribute('aria-pressed') !== 'true'; arrasto4 = on; foco = d; aplicar4(d, k, on); tudo(); }
+  if (n) { const d = +n.dataset.dia; const cheio = horas[d].size === 24; marca(d, 0, 24, !cheio); foco = d; tudo(); }
+});
+document.getElementById('cal4').addEventListener('pointerover', (e) => {
+  const b = e.target.closest('.bloco'); if (arrasto4 === null || !b) return;
+  aplicar4(+b.dataset.d, +b.dataset.k, arrasto4); foco = +b.dataset.d; tudo();
+});
+
+// ---------- opção 5 ----------
+let pincel = null;
+function render5() {
+  const cal = document.getElementById('cal5');
+  let html = '';
+  for (let d = 1; d <= DIAS; d++) {
+    const fds = [0, 6].includes(dds(d));
+    const sombra = `<div class="sombra" style="left:0;width:${(8 / 24) * 100}%"></div><div class="sombra" style="left:${(20 / 24) * 100}%;width:${(4 / 24) * 100}%"></div>`;
+    const ticks = [...Array(25).keys()].map((h) => `<div class="tick${CORTES.includes(h) ? ' forte' : ''}" style="left:${(h / 24) * 100}%"></div>`).join('');
+    const solto = new Set(soltas(d));
+    const pintas = intervalos([...horas[d]].sort((a, b) => a - b)).map((r) => {
+      const ruim = [...Array(r.f - r.i).keys()].every((x) => solto.has(r.i + x));
+      return `<div class="pinta${ruim ? ' solta' : ''}" style="left:${(r.i / 24) * 100}%;width:${((r.f - r.i) / 24) * 100}%" title="${hh(r.i)} às ${hh(r.f)}${ruim ? ': não forma nenhum turno de serviço' : ''}"><button class="x" data-d="${d}" data-i="${r.i}" data-f="${r.f}" aria-label="Apagar ${hh(r.i)} às ${hh(r.f)} do dia ${d}">×</button></div>`;
+    }).join('');
+    html += `<div class="linha5${fds ? ' fds' : ''}${d === foco ? ' foco' : ''}"><div class="rot">${d}<small>${SEMANA[dds(d)]}</small></div>
+      <div class="regua" data-d="${d}" role="slider" tabindex="0" aria-label="Dia ${d}: horários de 0h a 24h" aria-valuetext="${horas[d].size} horas marcadas">${sombra}${ticks}${pintas}</div></div>`;
+  }
+  cal.innerHTML = html;
+}
+const horaDe = (ev, el) => Math.max(0, Math.min(23, Math.floor(((ev.clientX - el.getBoundingClientRect().left) / el.clientWidth) * 24)));
+document.getElementById('cal5').addEventListener('pointerdown', (e) => {
+  const x = e.target.closest('.x');
+  if (x) { marca(+x.dataset.d, +x.dataset.i, +x.dataset.f, false); tudo(); return; }
+  const r = e.target.closest('.regua'); if (!r) return;
+  const d = +r.dataset.d, h = horaDe(e, r);
+  pincel = { d, de: h, on: !horas[d].has(h) };
+  foco = d; marca(d, h, h + 1, pincel.on); tudo();
+});
+document.getElementById('cal5').addEventListener('pointermove', (e) => {
+  if (!pincel) return;
+  const r = document.querySelector(`.regua[data-d="${pincel.d}"]`); const h = horaDe(e, r);
+  marca(pincel.d, Math.min(pincel.de, h), Math.max(pincel.de, h) + 1, pincel.on); tudo();
+});
+window.addEventListener('pointerup', () => { arrasto4 = null; pincel = null; });
+// teclado (e leitor de tela): o clique sem ponteiro alterna o bloco ou o dia
+document.getElementById('cal4').addEventListener('click', (e) => {
+  if (e.detail !== 0) return;
+  const b = e.target.closest('.bloco'), n = e.target.closest('.num');
+  if (b) { foco = +b.dataset.d; aplicar4(foco, +b.dataset.k, b.getAttribute('aria-pressed') !== 'true'); tudo(); }
+  if (n) { foco = +n.dataset.dia; marca(foco, 0, 24, horas[foco].size !== 24); tudo(); }
+});
+
+// ---------- painel, atalhos e alternância ----------
+function painel() {
+  document.getElementById('foco-titulo').textContent = `Dia ${foco}, ${SEMANA[dds(foco)]}`;
+  document.getElementById('cabe').innerHTML = SERVICOS.map((s) => {
+    const ok = cabe(foco, s);
+    return `<div class="servico${ok ? '' : ' nao'}"><i style="background:${s.cor}"></i>${s.nome}<span class="h">${hh(s.i)}–${hh(s.f)}${ok ? '' : ' · não'}</span></div>`;
+  }).join('');
+  const s = intervalos(soltas(foco));
+  document.getElementById('aviso').innerHTML = s.length
+    ? `<div class="aviso">${s.map((r) => `${hh(r.i)} às ${hh(r.f)}`).join(' e ')} não forma nenhum turno de serviço: esse horário não vai servir para escalar.</div>`
+    : '';
+  const totalH = horas.reduce((t, x) => t + x.size, 0), dias = horas.filter((x) => x.size).length;
+  document.getElementById('resumo').textContent = totalH ? `${totalH} horas em ${dias} dias.` : 'Nenhum horário marcado.';
+  document.getElementById('pros').innerHTML = aba === '4'
+    ? `<li><strong>Sempre casa com um serviço:</strong> não há como marcar um pedaço que não serve.</li><li><strong>Poucos cliques:</strong> 4 blocos por dia hoje; o número marca o dia inteiro.</li><li><strong>Teclado e formulário:</strong> cada bloco é um botão; no formulário do militar, uma pergunta por bloco.</li><li>Contra: um serviço com horário novo divide um bloco em dois (o já marcado se divide junto).</li>`
+    : `<li><strong>Liberdade total:</strong> qualquer trecho, vários por dia (veja o dia 18).</li><li><strong>Visual:</strong> o mês inteiro vira uma linha do tempo, boa para ver padrões.</li><li>Contra: permite marcar trecho que não serve para nenhum serviço (aviso em âmbar).</li><li>Contra: arrastar com precisão é difícil no celular; teclado precisa de atalhos próprios.</li>`;
+}
+function tudo() { if (aba === '4') render4(); else render5(); painel(); }
+document.querySelectorAll('[data-aba]').forEach((b) => b.addEventListener('click', () => {
+  aba = b.dataset.aba;
+  document.querySelectorAll('[data-aba]').forEach((x) => x.setAttribute('aria-selected', String(x === b)));
+  document.getElementById('op4').hidden = aba !== '4';
+  document.getElementById('op5').hidden = aba !== '5';
+  tudo();
+}));
+document.getElementById('fds').onclick = () => { for (let d = 1; d <= DIAS; d++) if ([0, 6].includes(dds(d))) marca(d, 0, 24, true); tudo(); };
+document.getElementById('folgas').onclick = () => { for (let d = 1; d <= DIAS; d++) if (folgaBravo(d)) marca(d, 8, 20, true); tudo(); };
+document.getElementById('copiar').onclick = () => { horas = horas.map(() => new Set()); [3, 10, 17, 24].forEach((d) => marca(d, 20, 24, true)); tudo(); };
+document.getElementById('limpar').onclick = () => { horas = horas.map(() => new Set()); tudo(); };
+legenda(); tudo();
+</script>
+</body>
+</html>
