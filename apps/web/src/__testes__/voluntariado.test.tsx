@@ -193,6 +193,80 @@ describe('voluntariado: blocos por horário (computador)', () => {
   });
 });
 
+// celular: a largura da tela passa a ser de celular (matchMedia simulado; sem ele, a tela é de computador)
+function emCelular(ligado: boolean) {
+  window.matchMedia = ((consulta: string) => ({
+    matches: ligado && consulta === '(max-width: 767px)',
+    media: consulta,
+    onchange: null,
+    addEventListener: () => {},
+    removeEventListener: () => {},
+    addListener: () => {},
+    removeListener: () => {},
+    dispatchEvent: () => false,
+  })) as unknown as typeof window.matchMedia;
+}
+
+describe('voluntariado: celular', () => {
+  it('no celular, a tela mostra um dia por linha e a faixa de rótulos só com os cortes (00h, 08h, 16h, 20h, 24h)', async () => {
+    emCelular(true);
+    api();
+    abrir('/voluntariado');
+    await screen.findByRole('heading', { name: 'SD BM ANDRADE' });
+    expect(calendario()).toHaveAttribute('data-disposicao', 'linhas');
+    const rotulos = within(document.querySelector('[data-rotulos-dos-cortes]') as HTMLElement).getAllByText(/^\d\dh$/).map((e) => e.textContent);
+    expect(rotulos).toEqual(['00h', '08h', '16h', '20h', '24h']);
+  });
+
+  it('no celular, cada dia é uma linha: o número e o dia da semana à esquerda, os blocos à direita', async () => {
+    emCelular(true);
+    api();
+    abrir('/voluntariado');
+    await screen.findByRole('heading', { name: 'SD BM ANDRADE' });
+    const linha = bloco(5, '08h', '16h').closest('[data-linha-do-dia]') as HTMLElement;
+    expect(linha).not.toBeNull();
+    expect(linha).toHaveAttribute('data-linha-do-dia', dia(5));
+    // o número do dia e o dia da semana ficam na linha, antes dos blocos
+    expect(within(linha).getByRole('button', { name: /^Dia 5:/ })).toBeInTheDocument();
+    // o dia da semana é o do dia 5 do mês do cenário (não de hoje)
+    const semana = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'][new Date(`${dia(5)}T00:00:00Z`).getUTCDay()];
+    expect(linha.querySelector('[data-diasemana]')).toHaveTextContent(semana!);
+  });
+
+  it('no celular, arrastar por cima de outro bloco não marca nada (só o toque vale)', async () => {
+    emCelular(true);
+    api();
+    abrir('/voluntariado');
+    await screen.findByRole('heading', { name: 'SD BM ANDRADE' });
+    const b = bloco(5, '08h', '16h');
+    // o toque no primeiro bloco marca só ele; o dedo que desliza para o próximo não marca nada
+    fireEvent.pointerDown(b, { pointerType: 'touch', pointerId: 1, button: 0 });
+    fireEvent.pointerEnter(bloco(5, '16h', '20h'), { pointerType: 'touch', pointerId: 1 });
+    fireEvent.pointerUp(window, { pointerType: 'touch', pointerId: 1 });
+    expect(b).toHaveAttribute('aria-pressed', 'true');
+    expect(bloco(5, '16h', '20h')).toHaveAttribute('aria-pressed', 'false');
+  });
+
+  it('no computador, arrastar por cima de outro bloco marca os dois (o contraste com o celular)', async () => {
+    emCelular(false);
+    api();
+    abrir('/voluntariado');
+    await screen.findByRole('heading', { name: 'SD BM ANDRADE' });
+    fireEvent.pointerDown(bloco(5, '08h', '16h'), { pointerType: 'mouse', pointerId: 1, button: 0 });
+    fireEvent.pointerEnter(bloco(5, '16h', '20h'), { pointerType: 'mouse', pointerId: 1 });
+    fireEvent.pointerUp(window, { pointerType: 'mouse', pointerId: 1 });
+    expect(bloco(5, '16h', '20h')).toHaveAttribute('aria-pressed', 'true');
+  });
+
+  it('no computador, a disposição é o calendário (sem a faixa de rótulos de celular)', async () => {
+    emCelular(false);
+    api();
+    abrir('/voluntariado');
+    await screen.findByRole('heading', { name: 'SD BM ANDRADE' });
+    expect(calendario()).toHaveAttribute('data-disposicao', 'calendario');
+  });
+});
+
 describe('voluntariado: campo de mês (ajuste)', () => {
   const atual = mesAtual();
   const rotaDoMes = (m: string) => `GET /api/unidades/u-1sb/voluntariado/${m}`;

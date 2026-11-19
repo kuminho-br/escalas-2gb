@@ -7,6 +7,7 @@ import { EtiquetaPendente, usePendencia, useSincronizar, useTrava } from '@/comp
 import { Button } from '@/componentes/ui/button';
 import { alternarBloco, copiarDoMes, estadoDoBloco, faixasParaEnviar, fimDeSemana, marcarDias, marcasDoServidor, textoDoRodape, type Estado, type Marcas } from '@/lib/voluntariado';
 import { cn } from '@/lib/utils';
+import { useEhCelular } from '@/lib/useEhCelular';
 
 const SEMANA = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'];
 const hh = (min: number) => `${String(Math.floor(min / 60)).padStart(2, '0')}h`;
@@ -92,6 +93,8 @@ export function CalendarioDoVoluntariado({
   const aviso = militar.voluntarioJes ? '' : ' Não é voluntário JES: os horários valem só para diárias.';
   const cortes = [...new Set(blocos.flatMap((b) => [b.inicio, b.fim]))].sort((a, b) => a - b);
   const rotuloDoBloco = (dia: number, b: Faixa) => `Dia ${dia}, ${hh(b.inicio)} às ${hh(b.fim === 1440 ? 1440 : b.fim)}`;
+  // celular: um dia por linha, só toque (o arrasto não vale: deslizar o dedo rola a página)
+  const celular = useEhCelular();
 
   return (
     <section className="grid content-start gap-4 rounded-xl border border-linha bg-superficie p-4">
@@ -102,23 +105,32 @@ export function CalendarioDoVoluntariado({
 
       {/* a legenda do dia: os cortes dos serviços, na mesma escala dos blocos de baixo */}
       <div aria-hidden className="grid gap-1">
-        <div className="relative h-4 text-xs text-apagado">
+        <div data-rotulos-dos-cortes className="relative h-4 text-xs text-apagado">
           {cortes.map((c) => (
             <span key={c} className="absolute -translate-x-1/2" style={{ left: `${(c / 1440) * 100}%` }}>{hh(c)}</span>
           ))}
         </div>
       </div>
 
-      <div ref={grade} role="group" aria-label="Calendário do voluntariado" onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); void gravar(); } }} className="grid grid-cols-7 gap-2">
-        {SEMANA.map((s) => <span key={s} aria-hidden className="text-center text-xs text-apagado">{s}</span>)}
-        {Array.from({ length: brancos }, (_, i) => <span key={`b${i}`} aria-hidden />)}
+      <div ref={grade} role="group" aria-label="Calendário do voluntariado" data-disposicao={celular ? 'linhas' : 'calendario'} onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); void gravar(); } }} className={cn(celular ? 'grid gap-2' : 'grid grid-cols-7 gap-2')}>
+        {!celular && SEMANA.map((s) => <span key={s} aria-hidden className="text-center text-xs text-apagado">{s}</span>)}
+        {!celular && Array.from({ length: brancos }, (_, i) => <span key={`b${i}`} aria-hidden />)}
         {dias.map((d) => {
           const n = Number(d.slice(8));
           const fds = [0, 6].includes(diaDaSemana(d));
           const todos = blocos.map((b) => estadoDoBloco(marcas, d, b));
           const algum = todos.some((e) => e !== 'vazio');
           return (
-            <div key={d} className={cn('grid gap-1.5 rounded-md border p-1.5', fds && 'bg-black/[0.03]', algum ? 'border-tinta' : 'border-linha')}>
+            <div
+              key={d}
+              data-linha-do-dia={d}
+              className={cn(
+                celular ? 'grid grid-cols-[3.5rem_1fr] items-center gap-2 rounded-md border p-1.5' : 'grid gap-1.5 rounded-md border p-1.5',
+                fds && 'bg-black/[0.03]',
+                algum ? 'border-tinta' : 'border-linha',
+              )}
+            >
+
               <button
                 type="button"
                 data-dia={d}
@@ -126,12 +138,13 @@ export function CalendarioDoVoluntariado({
                 onPointerDown={(e) => {
                   if (e.button !== 0) return;
                   const cheio = todos.every((x) => x === 'cheio');
-                  arrasto.current = cheio ? 'desmarcar' : 'marcar';
-                  setMarcas((m) => marcarOuTirar(m, d, blocos, arrasto.current!));
+                  const acao = cheio ? 'desmarcar' : 'marcar';
+                  arrasto.current = e.pointerType === 'mouse' ? acao : null;
+                  setMarcas((m) => marcarOuTirar(m, d, blocos, acao));
                 }}
-                onPointerEnter={() => {
+                onPointerEnter={(ev) => {
                   const acao = arrasto.current;
-                  if (acao) setMarcas((m) => marcarOuTirar(m, d, blocos, acao));
+                  if (acao && ev.pointerType === 'mouse') setMarcas((m) => marcarOuTirar(m, d, blocos, acao));
                 }}
                 // clique do mouse ou do toque já foi tratado ao apertar; o do teclado (e dos leitores de tela) vem sem `detail`
                 onClick={(e) => e.detail === 0 && setMarcas((m) => marcarOuTirar(m, d, blocos, todos.every((x) => x === 'cheio') ? 'desmarcar' : 'marcar'))}
@@ -139,6 +152,7 @@ export function CalendarioDoVoluntariado({
                 className="rounded text-left font-cond text-base leading-none font-semibold hover:bg-accent"
               >
                 {n}
+                {celular && <span data-diasemana className="ml-1 text-xs font-normal text-apagado">{SEMANA[diaDaSemana(d)]}</span>}
               </button>
               <div className="flex h-7 overflow-hidden rounded border border-linha" style={{ touchAction: 'manipulation' }}>
                 {blocos.map((b, k) => {
@@ -155,12 +169,13 @@ export function CalendarioDoVoluntariado({
                       onPointerDown={(ev) => {
                         if (ev.button !== 0) return;
                         const acao: 'marcar' | 'desmarcar' = e === 'cheio' ? 'desmarcar' : 'marcar';
-                        arrasto.current = acao;
+                        // no toque, só o bloco tocado; o arrasto (que começa com o mouse) continua pelos blocos
+                        arrasto.current = ev.pointerType === 'mouse' ? acao : null;
                         setMarcas((m) => alternarSe(m, d, b, acao));
                       }}
-                      onPointerEnter={() => {
+                      onPointerEnter={(ev) => {
                         const acao = arrasto.current;
-                        if (acao) setMarcas((m) => alternarSe(m, d, b, acao));
+                        if (acao && ev.pointerType === 'mouse') setMarcas((m) => alternarSe(m, d, b, acao));
                       }}
                       onClick={(ev) => ev.detail === 0 && setMarcas((m) => alternarBloco(m, d, b))}
                       onKeyDown={(ev) => aoTeclar(ev, d)}
