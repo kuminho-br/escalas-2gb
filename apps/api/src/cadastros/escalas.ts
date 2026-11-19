@@ -6,6 +6,7 @@ import {
   mesParaData,
   NovaEscala,
   ServicosDaEscala,
+  MarcaDeBlocos,
   SituacaoEscala,
   textoFaixa,
   tituloPadraoEscala,
@@ -16,7 +17,7 @@ import {
 } from 'contratos';
 import { normalizar } from 'dominio';
 import { Hono, type Context } from 'hono';
-import { CADASTRO, exigirPapel, exigirSessao, unidadeDoRegistro, type AmbienteApi } from '../acesso.ts';
+import { CADASTRO, ESCREVE_PARAMETRO, exigirPapel, exigirSessao, unidadeDoRegistro, type AmbienteApi } from '../acesso.ts';
 import type { Auth } from '../auth.ts';
 import { comUsuario, type Banco, type Consulta } from '../banco/banco.ts';
 import { lerCorpo, respostaDoErroDoBanco } from '../erros.ts';
@@ -87,8 +88,8 @@ export async function vinculosDaEscala(c: Consulta, escalaId: string): Promise<E
 
 async function carregarEscala(c: Consulta, id: string): Promise<Escala> {
   const e = (
-    await c.query<{ id: string; nome: string; titulo: string; militares_doc: Escala['militaresDoc']; dias_doc: Escala['diasDoc']; ativa: boolean }>(
-      'select id, nome, titulo, militares_doc, dias_doc, ativa from escala where id = $1',
+    await c.query<{ id: string; nome: string; titulo: string; militares_doc: Escala['militaresDoc']; dias_doc: Escala['diasDoc']; ativa: boolean; monta_blocos_voluntariado: boolean }>(
+      'select id, nome, titulo, militares_doc, dias_doc, ativa, monta_blocos_voluntariado from escala where id = $1',
       [id],
     )
   ).rows[0]!;
@@ -100,6 +101,7 @@ async function carregarEscala(c: Consulta, id: string): Promise<Escala> {
     militaresDoc: e.militares_doc,
     diasDoc: e.dias_doc,
     ativa: e.ativa,
+    montaBlocosVoluntariado: e.monta_blocos_voluntariado,
     servicos,
     ...(await faixasDaEscala(c, servicos.map((s) => s.id))),
     vinculos: await vinculosDaEscala(c, id),
@@ -164,7 +166,12 @@ export function rotasEscalas(dep: { banco: Banco; auth: Auth }): Hono<AmbienteAp
     const u = c.req.param('u');
     const negado = await exigirPapel(c, u, CADASTRO);
     if (negado) return negado;
-    const escalas = (await dep.banco.query<{ id: string; nome: string; ativa: boolean }>('select id, nome, ativa from escala where unidade_id = $1', [u])).rows;
+    const escalas = (
+      await dep.banco.query<{ id: string; nome: string; ativa: boolean; montaBlocosVoluntariado: boolean }>(
+        'select id, nome, ativa, monta_blocos_voluntariado as "montaBlocosVoluntariado" from escala where unidade_id = $1',
+        [u],
+      )
+    ).rows;
     const servicos = (
       await dep.banco.query<{ escala_id: string; nome: string }>(
         `select es.escala_id, s.nome from escala_servico es join servico s on s.id = es.servico_id
@@ -238,6 +245,22 @@ export function rotasEscalas(dep: { banco: Banco; auth: Auth }): Hono<AmbienteAp
     if (!corpo.ok) return corpo.resposta;
     const e = await comUsuario(dep.banco, c.get('usuarioId'), async (tx) => {
       await tx.query('update escala set ativa = $2 where id = $1', [id, corpo.dados.ativa]);
+      return carregarEscala(tx, id);
+    });
+    return c.json(e);
+  });
+
+  // só o gestor e o administrador decidem quais escalas montam os blocos do dia no voluntariado
+  r.patch('/escalas/:id/blocos-do-voluntariado', async (c) => {
+    const id = c.req.param('id');
+    const unidadeId = await unidadeDoRegistro(dep.banco, 'escala', id);
+    if (!unidadeId) return c.json({ erro: 'Escala não encontrada.' }, 404);
+    const negado = await exigirPapel(c, unidadeId, ESCREVE_PARAMETRO);
+    if (negado) return negado;
+    const corpo = await lerCorpo(c, MarcaDeBlocos);
+    if (!corpo.ok) return corpo.resposta;
+    const e = await comUsuario(dep.banco, c.get('usuarioId'), async (tx) => {
+      await tx.query('update escala set monta_blocos_voluntariado = $2 where id = $1', [id, corpo.dados.montaBlocos]);
       return carregarEscala(tx, id);
     });
     return c.json(e);

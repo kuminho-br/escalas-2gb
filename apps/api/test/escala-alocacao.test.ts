@@ -14,6 +14,8 @@ let combatente: string;
 let pronto: string;
 let turnoA: string;
 let turnoB: string;
+let turnoJes: string;
+let jes: string;
 const militar: Record<string, string> = {};
 const atual = hojeRecife().slice(0, 7);
 const dia = (n: number) => `${atual}-${String(n).padStart(2, '0')}`;
@@ -28,10 +30,10 @@ const faixaA = (e: EscalaDoMes, d: number) => e.dias[d - 1]!.faixas.find((f) => 
 const alocacoes = async (nome: string) => (await api.banco.query<{ id: string }>('select id from alocacao where militar_id = $1', [militar[nome]])).rows;
 
 let seq = 0;
-async function criarMilitar(nome: string, cnh: string[] = []) {
+async function criarMilitar(nome: string, cnh: string[] = [], voluntarioJes = false) {
   seq++;
   const id = await inserir(api.banco, 'militar', {
-    matricula: `99${String(4000 + seq).padStart(4, '0')}-${seq % 10}`, posto_grad_id: posto, nome_guerra: nome, motorista: cnh.length > 0, cnh,
+    matricula: `99${String(4000 + seq).padStart(4, '0')}-${seq % 10}`, posto_grad_id: posto, nome_guerra: nome, motorista: cnh.length > 0, cnh, voluntario_jes: voluntarioJes,
   });
   militar[nome] = id;
   await inserir(api.banco, 'lotacao', { militar_id: id, unidade_id: api.ids.secao, equipe_id: equipe, jornada: 'pronto', desde: `${atual}-01` });
@@ -54,18 +56,39 @@ beforeAll(async () => {
   abt = await guarnicao('ABT', [{ funcaoId: motorista, minimo: 1, maximo: 1, cnhExigida: 'D' }, { funcaoId: combatente, minimo: 1, maximo: 2, cnhExigida: null }]);
   outra = await guarnicao('Outra', [{ funcaoId: combatente, minimo: 1, maximo: 1, cnhExigida: null }]);
   escalaId = (await (await api.pedir('escalante', 'POST', `${secao()}/escalas`, { nome: 'Ordinário' })).json()).id;
-  await api.pedir('escalante', 'PUT', `/api/escalas/${escalaId}/servicos`, { servicoIds: [pronto] });
+  // um PJES na mesma faixa do dia: pede voluntariado e o atributo "voluntário JES"
+  jes = ((await (await api.pedir('escalante', 'POST', `${secao()}/servicos`, { nome: 'JES', tipo: 'pjes', operacao: null, rotuloImpressao: null, cor: '#6E56A8' })).json()) as { id: string }).id;
+  turnoJes = (await (await api.pedir('escalante', 'POST', `/api/servicos/${jes}/turnos`, { letra: 'A', ...FAIXA_A })).json()).turnos[0].id;
+  await api.pedir('escalante', 'PUT', `/api/escalas/${escalaId}/servicos`, { servicoIds: [pronto, jes] });
   // a ABT está nas duas faixas; a Outra só na do dia
   expect((await api.pedir('escalante', 'PUT', `/api/escalas/${escalaId}/vinculos/${atual}`, { itens: [{ guarnicaoId: abt, ...FAIXA_A }, { guarnicaoId: abt, ...FAIXA_B }, { guarnicaoId: outra, ...FAIXA_A }] })).status).toBe(200);
   for (const nome of ['UM', 'DOIS', 'TRES', 'QUATRO', 'REMOVIDO', 'VOLTA']) await criarMilitar(nome);
   await criarMilitar('CNHB', ['B']);
   await criarMilitar('CNHD', ['D']);
   await criarMilitar('AFASTADO');
+  await criarMilitar('JESSEM', [], true);
+  await criarMilitar('NAOJES');
   const tipo = (await api.banco.query<{ id: string }>('select id from tipo_afastamento limit 1')).rows[0]!.id;
   await api.pedir('escalante', 'POST', `/api/militares/${militar.AFASTADO}/afastamentos`, { tipoAfastamentoId: tipo, inicio: dia(1), fim: dia(28) });
 });
 afterAll(async () => {
   await api.fechar();
+});
+
+describe('escalar quem não marcou voluntariado', () => {
+  it('o escalante pode: quem é voluntário JES e não marcou o horário é escalado no PJES (201), com o serviço certo', async () => {
+    const r = await escalar('JESSEM', dia(26), { turnoId: turnoJes });
+    expect(r.status).toBe(201);
+    const linha = (await api.banco.query<{ servico_id: string }>('select servico_id from alocacao where militar_id = $1', [militar.JESSEM])).rows;
+    expect(linha).toEqual([{ servico_id: jes }]);
+  });
+
+  it('as outras regras continuam: quem não é voluntário JES é recusado no PJES (409) e nada é gravado', async () => {
+    const r = await escalar('NAOJES', dia(26), { turnoId: turnoJes });
+    expect(r.status).toBe(409);
+    expect((await r.json()).erro).toBe('Não é voluntário JES');
+    expect(await alocacoes('NAOJES')).toEqual([]);
+  });
 });
 
 describe('escalar', () => {

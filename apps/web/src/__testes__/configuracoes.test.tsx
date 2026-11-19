@@ -1,7 +1,7 @@
-import { mesPorExtenso, somarMeses, type Parametro } from 'contratos';
+import { mesPorExtenso, somarMeses, type LinhaEscala, type Parametro } from 'contratos';
 import { screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { abrir, corpoEnviado, EU_EXEMPLO, simularApi } from './apoio';
 
 const PARAMS = '/api/unidades/u-1sb/parametros';
@@ -19,7 +19,19 @@ const LISTA = [
   parametro({}),
   parametro({ chave: 'SALDOS_ADM_POR_MILITAR', rotulo: 'Saldos por militar do Adm', valor: 5, vigencia: '2026-11', origem: 'herdada', unidadeSigla: '2º GB', normaReferencia: 'Portaria 12/2026' }),
 ];
+const FLEXIBILIDADE = parametro({
+  chave: 'FLEXIBILIDADE_VOLUNTARIADO_HORAS', rotulo: 'Flexibilidade do voluntariado (horas)', valor: 0,
+  descricao: 'Horas que podem faltar no começo ou no fim do turno para o militar ainda contar como voluntário. Buraco no meio do turno não conta.',
+});
 const TIPOS = [{ id: 't1', nome: 'Férias', ativo: true }, { id: 't2', nome: 'Curso', ativo: false }];
+
+const ESCALAS = '/api/unidades/u-1sb/escalas';
+const escalaDaLista = (e: Partial<LinhaEscala>): LinhaEscala => ({ id: 'e1', nome: 'Ordinário', ativa: true, servicos: ['Pronto'], montaBlocosVoluntariado: true, ...e });
+const ESCALAS_LISTA = [
+  escalaDaLista({}),
+  escalaDaLista({ id: 'e2', nome: 'CPRH Eleições', servicos: ['CPRH'] }),
+  escalaDaLista({ id: 'e3', nome: 'Velha', ativa: false, servicos: [] }),
+];
 
 const GESTOR = { ...EU_EXEMPLO, papeis: [{ papel: 'gestor' as const, unidadeId: 'u-1sb', unidadeSigla: '1ª SB' }] };
 
@@ -43,6 +55,20 @@ describe('configurações', () => {
     expect(within(linha).getByText('Portaria 12/2026')).toBeInTheDocument();
     const padrao = screen.getByText('Carga mensal (horas)').closest('tr')!;
     expect(within(padrao).getByText('padrão do sistema')).toBeInTheDocument();
+  });
+
+  it('mostra a flexibilidade do voluntariado e o gestor muda a partir de um mês, em horas', async () => {
+    const f = api({ [`GET ${PARAMS}`]: { status: 200, corpo: [...LISTA, FLEXIBILIDADE] }, [`POST ${PARAMS}`]: { status: 201, corpo: {} } }, GESTOR);
+    abrir('/configuracoes');
+    const linha = (await screen.findByText('Flexibilidade do voluntariado (horas)')).closest('tr')!;
+    expect(within(linha).getByText(/Buraco no meio do turno não conta/)).toBeInTheDocument();
+    expect(within(linha).getByText('padrão do sistema')).toBeInTheDocument();
+    await userEvent.click(within(linha).getByRole('button', { name: 'Mudar a partir de…' }));
+    await userEvent.clear(screen.getByLabelText('Novo valor'));
+    await userEvent.type(screen.getByLabelText('Novo valor'), '1');
+    const proximo = somarMeses(mesAtual(), 1);
+    await userEvent.click(screen.getByRole('button', { name: `Salvar a partir de ${mesPorExtenso(proximo)}` }));
+    expect(corpoEnviado(f, `POST ${PARAMS}`)).toMatchObject({ chave: 'FLEXIBILIDADE_VOLUNTARIADO_HORAS', valor: '1', vigencia: proximo });
   });
 
   it('mudar a partir de envia vigencia e norma', async () => {
@@ -149,3 +175,50 @@ describe('configurações: papéis e campos', () => {
     expect(screen.queryByText(/quando houver uma escala cadastrada/)).toBeNull();
   });
 });
+
+describe('configurações: blocos do voluntariado', () => {
+  const aba = async () => {
+    abrir('/configuracoes');
+    await userEvent.click(await screen.findByRole('tab', { name: 'Voluntariado' }));
+  };
+  const interruptor = (nome: string) => screen.findByRole('checkbox', { name: `${nome}: entra nos blocos do voluntariado` });
+
+  it('a aba lista as escalas ativas, cada uma com o interruptor ligado; a escala desativada não aparece', async () => {
+    api({ [`GET ${ESCALAS}`]: { status: 200, corpo: ESCALAS_LISTA } }, GESTOR);
+    await aba();
+    expect(await interruptor('Ordinário')).toBeChecked();
+    expect(await interruptor('CPRH Eleições')).toBeChecked();
+    expect(screen.queryByRole('checkbox', { name: /Velha/ })).not.toBeInTheDocument();
+  });
+
+  it('o gestor desliga uma escala: manda o PATCH com montaBlocos falso e refaz a lista', async () => {
+    const f = api({
+      [`GET ${ESCALAS}`]: { status: 200, corpo: ESCALAS_LISTA },
+      'PATCH /api/escalas/e2/blocos-do-voluntariado': { status: 200, corpo: { id: 'e2', montaBlocosVoluntariado: false } },
+    }, GESTOR);
+    await aba();
+    await userEvent.click(await interruptor('CPRH Eleições'));
+    await vi.waitFor(() => expect(corpoEnviado(f, 'PATCH /api/escalas/e2/blocos-do-voluntariado')).toEqual({ montaBlocos: false }));
+    const buscasDaLista = () => f.mock.calls.filter(([e, init]) => String(typeof e === 'string' ? e : e instanceof URL ? e.href : e.url).endsWith(ESCALAS) && (init?.method ?? 'GET') === 'GET').length;
+    await vi.waitFor(() => expect(buscasDaLista()).toBe(2));
+  });
+
+  it('o escalante vê os interruptores desabilitados e a frase de quem pode mudar', async () => {
+    api({ [`GET ${ESCALAS}`]: { status: 200, corpo: ESCALAS_LISTA } });
+    await aba();
+    expect(await interruptor('Ordinário')).toBeDisabled();
+    expect(screen.getByText(/Só o gestor ou o administrador muda/)).toBeInTheDocument();
+  });
+
+  it('erro da API aparece e o interruptor volta ao que estava', async () => {
+    api({
+      [`GET ${ESCALAS}`]: { status: 200, corpo: ESCALAS_LISTA },
+      'PATCH /api/escalas/e1/blocos-do-voluntariado': { status: 403, corpo: { erro: 'Você não tem permissão nesta seção.' } },
+    }, GESTOR);
+    await aba();
+    await userEvent.click(await interruptor('Ordinário'));
+    expect(await screen.findByRole('alert')).toHaveTextContent('Você não tem permissão nesta seção.');
+    expect(await interruptor('Ordinário')).toBeChecked();
+  });
+});
+

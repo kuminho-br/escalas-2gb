@@ -6,7 +6,7 @@ import type { Consulta } from '../banco/banco.ts';
 import { vinculosDaEscala } from '../cadastros/escalas.ts';
 import { versaoNoMes } from '../cadastros/guarnicoes-regras.ts';
 import { versoesDasGuarnicoes } from '../cadastros/guarnicoes.ts';
-import { motivoDeFora } from './elegibilidade.ts';
+import { motivoDeFora, SEM_VOLUNTARIADO } from './elegibilidade.ts';
 
 export class Recusa extends Error {
   constructor(mensagem: string) {
@@ -70,7 +70,8 @@ export async function escalar(tx: Consulta, escalaId: string, d: NovaAlocacao): 
   ).rows.length;
   if (igual) throw new Recusa('Este militar já está escalado neste turno.');
   const motivo = await motivoDeFora(tx, { escalaId, data: d.data, inicio: turno.inicio, fim: turno.fim, guarnicaoId: d.guarnicaoId, funcaoId: d.funcaoId, militarId: d.militarId, turnoId: d.turnoId });
-  if (motivo) throw new Recusa(motivo);
+  // só o voluntariado pode ser contornado: o escalante combina direto com o militar; as demais regras continuam recusando
+  if (motivo && motivo !== SEM_VOLUNTARIADO) throw new Recusa(motivo);
 
   try {
     await tx.query(

@@ -44,8 +44,9 @@ As condições que o design implica e que mais podem morder quem monta a escala;
 | **1.1 — Acúmulo de funções** | Na vaga vazia, escolher um militar já escalado na mesma faixa (inclusive de outra guarnição) para acumular; a CNH da vaga é conferida; o card mostra "acumula com Chefe ABT". | 1 |
 | **2 — Voluntariado lançado à mão** | Calendário do mês por militar com A e B por dia, "já lançados" e "faltam lançar", atalhos e "Salvar e ir para o próximo". | — |
 | **2.2 — Voluntariado por faixa** | A disponibilidade passa a ser marcada em blocos do dia tirados dos horários dos serviços que pedem voluntariado (hoje 00–08, 08–16, 16–20, 20–24), guardada em horários; calendário no computador, um dia por linha no celular. | 2 |
+| **2.3 — Ajustes do voluntariado** | Flexibilidade do voluntariado em horas (gestor, qualquer nível); o gestor escolhe as escalas que montam os blocos do dia; "Mostrar" quem ficou de fora só por voluntariado; modo foco no celular. | 2.2 |
 | **2.1 — Ordem de escala** | Tela da escala com as vagas de cada guarnição em quadrados para numerar a vez de cada uma (vigência por mês); os cards da escala do mês seguem a ordem. Substitui a prioridade da guarnição (RN-08). | 1 |
-| **3 — Pré-escala e distribuições** | "Gerar pré-escala" (Pronto pelo ciclo das equipes), saldos do Adm e operações pelas cotas, com o que ficou de fora e por quê. Gerar de novo só completa lacunas e respeita as remoções. Os militares entram nas vagas seguindo a ordem de escala à risca (o mais antigo apto em cada vaga). | 1, 2, 2.1 e 2.2 |
+| **3 — Pré-escala e distribuições** | "Gerar pré-escala" (Pronto pelo ciclo das equipes), saldos do Adm e operações pelas cotas, com o que ficou de fora e por quê. Gerar de novo só completa lacunas e respeita as remoções. Os militares entram nas vagas seguindo a ordem de escala à risca (o mais antigo apto em cada vaga). | 1, 2, 2.1, 2.2 e 2.3 |
 | **4 — Grade geral** | Uma linha por militar, uma coluna por dia, blocos na cor do serviço com a letra, choques em vermelho, pegas de pedidas por PJES e Diária, ficha lateral com Trocar, Remover e Adicionar. | 1, 2 |
 | **5 — Gerar documento** | Configurações › Modelos de impressão (enviar e baixar o .xlsx com marcadores) e "Gerar documento" da escala publicada em .xlsx; cada geração fica guardada. | 1 |
 | **6 — Minha escala** | O militar comum vê os próprios serviços do mês, com quem compõe a guarnição, e as escalas publicadas da unidade dele. | 1, 5 |
@@ -574,10 +575,208 @@ As condições que o design implica e que mais podem morder quem monta a escala;
 
 ---
 
+# Entrega 2.3 — Ajustes do voluntariado
+
+**Branch:** `fase4-2-3-ajustes-do-voluntariado` (já criada a partir da `main` depois do merge do PR #34; o primeiro commit é o adendo do design). **Tem migração** (0019: marca de escala que entra nos blocos). Commits `Fase 4.2.3: …`; PR "Fase 4 — Entrega 2.3: ajustes do voluntariado".
+
+**Spec:** adendo de 19/11/2026 em `docs/superpowers/specs/2026-11-19-voluntariado-por-faixa-design.md` (seções "Flexibilidade", "O escalante sempre pode passar por cima", "De onde vêm os blocos", "Celular" e "Outros pontos").
+
+**Execução (decisão do usuário):** executar com **Sonnet, esforço high** (`/model sonnet`, `/effort high`), em linha (superpowers:executing-plans, ledger `.superpowers/sdd/2026-11-18-fase4-escala/progress.md`). A revisão final do branch é uma só, por um Agent com `model: "opus"` e `effort: "medium"` explícitos. Não trocar de modelo no meio da execução.
+
+**Contagens de partida:** protótipo 589, contratos 14, motor 786 (+1 ignorado), API 569, site 349.
+
+**Ambiente desta máquina:** pouca memória. Rodar uma suíte por vez; API com `cd apps/api && npx vitest run --maxWorkers=1`; site com `cd apps/web && npx vitest run --maxWorkers=1`. Se um worker cair (código 134, "PGlite failed to initialize", "scrypt derivation failed", `cannot allocate memory`), é ambiente: rodar de novo o arquivo sozinho e registrar no ledger. Antes do typecheck e do build, conferir se não há `tsc`, `vitest` ou `vite` esquecidos rodando.
+
+**Review Focus da entrega 2.3** (cada um tem teste na tarefa dona):
+
+1. **Flexibilidade num turno que atravessa a meia-noite, no último dia do mês.** Com 1h, o 19h–07h do dia 30/11 é conferido como 20h do dia 30 até 06h do dia 01/12. Tarefas 22 e 23.
+2. **Parâmetro herdado e com vigência.** A flexibilidade gravada no GB vale para a seção. Uma mudança com vigência em dezembro não altera a lista de novembro. Tarefa 23.
+3. **Quem ficou de fora só por voluntariado, mas tem choque ou é de outra regra, continua de fora.** Não aparece no "Mostrar", e a gravação recusa. Tarefa 25.
+4. **Nenhuma escala marcada para os blocos.** O dia vira um bloco só (00h às 24h), e o lançamento continua funcionando. Tarefa 24.
+5. **Celular com alteração pendente.** "‹ Militares" e o botão voltar do celular perguntam antes de descartar. No computador nada muda: lista e painel lado a lado, e o primeiro que falta abre sozinho. Tarefa 26.
+
+### Task 22: Flexibilidade no motor e o parâmetro do sistema novo
+
+**Files:**
+- Modify: `pacotes/dominio/src/disponibilidade.ts`
+- Create: `pacotes/dominio/src/parametros-sistema-novo.ts` (exportar em `pacotes/dominio/src/index.ts`)
+- Test: `pacotes/dominio/test/disponibilidade.test.ts`, `pacotes/dominio/test/parametros-sistema-novo.test.ts`
+
+**Interfaces:**
+- Produces: `turnoCoberto(faixasDoDia, data, inicio, fim, flexibilidadeMin = 0): boolean`. O trecho conferido vai de `i + flex` a `i + dur − flex`, com `flex = min(flexibilidadeMin, (dur − 60) / 2)` (sempre sobra ao menos 1h no meio). O resto segue igual: o que passa de 24h usa o dia seguinte; buraco no meio barra.
+- Produces: `PARAM_SISTEMA_NOVO: DefParametro[]` com `{ chave: 'FLEXIBILIDADE_VOLUNTARIADO_HORAS', grupo: 'Voluntariado', rotulo: 'Flexibilidade do voluntariado (horas)', tipo: 'inteiro', padrao: 0, min: 0, max: 3, descricao: 'Horas que podem faltar no começo ou no fim do turno para o militar ainda contar como voluntário. Buraco no meio do turno não conta.' }` e `defDoSistema(chave): DefParametro | null`, que procura em `PARAM_CATALOGO` e depois em `PARAM_SISTEMA_NOVO`. **Não mexer em `PARAM_CATALOGO`**: ele é porte do protótipo e tem casos gravados (`resolverParametros_`).
+
+- [ ] **Step 1: Write the failing tests** em `disponibilidade.test.ts`:
+  - 07:00–15:00, faixas do dia `[480, 960]`: `false` sem flexibilidade e `true` com 60.
+  - 08:00–20:00, faixas `[480, 720]` e `[780, 1200]`, flexibilidade 60: `false` (buraco no meio).
+  - 19:00–07:00 no dia `2026-11-30`, faixas `[1200, 1440]` no dia 30 e `[0, 360]` em `2026-12-01`, flexibilidade 60: `true`. Com a mesma flexibilidade e o dia 01/12 só `[0, 300]`: `false`.
+  - Turno 10:00–16:00 com flexibilidade 180 (o turno tem 6h): `flex = min(180, 150) = 150`, e o trecho conferido é 12h30–13h30. Com faixas `[750, 810]`: `true`. Com `[600, 660]`: `false`.
+
+  Em `parametros-sistema-novo.test.ts`:
+  - `defDoSistema('FLEXIBILIDADE_VOLUNTARIADO_HORAS')` existe, com `padrao` 0 e `max` 3.
+  - `paramConverter(def, '1,5')` falha com "Use um número inteiro." (só horas cheias); `paramConverter(def, '4')` falha com "O máximo é 3.".
+  - `defDoSistema('CARGA_MENSAL_HORAS')` continua vindo do catálogo antigo.
+- [ ] **Step 2: Run** `pnpm --filter dominio test`. Expected: FAIL (parâmetro e flexibilidade inexistentes).
+- [ ] **Step 3: Implement** os dois.
+- [ ] **Step 4: Run** `pnpm --filter dominio test && node casos/reproduzir-prototipo.mjs`. Expected: passa, e os casos continuam ok (nenhum caso gravado muda).
+- [ ] **Step 5: Commit** `Fase 4.2.3: flexibilidade do voluntariado no motor`.
+
+### Task 23: A flexibilidade em Configurações e na lista "Escolher militar"
+
+**Files:**
+- Modify: `apps/api/src/cadastros/configuracoes.ts` (`CHAVES_SISTEMA` ganha a chave nova; `resolver` percorre `[...PARAM_CATALOGO, ...PARAM_SISTEMA_NOVO]`; o POST usa `defDoSistema`)
+- Modify: `apps/api/src/escala/elegibilidade.ts`
+- Test: `apps/api/test/configuracoes.test.ts` (ou o arquivo de parâmetros existente), `apps/api/test/escala-candidatos.test.ts`, `apps/web/src/__testes__/configuracoes.test.tsx`
+
+**Interfaces:**
+- Consumes: Tarefa 22.
+- Produces: `parametroEmVigor(c: Consulta, unidadeId: string, chave: string, mes: string): Promise<ValorParametro>`, exportada de `configuracoes.ts`. Usa a mesma consulta da rota GET, ou seja, o valor da unidade mais próxima com vigência até o mês, ou o padrão. `avaliar` lê `FLEXIBILIDADE_VOLUNTARIADO_HORAS` da unidade da escala no mês da vaga e passa `horas * 60` para `turnoCoberto`.
+
+- [ ] **Step 1: Write the failing tests:**
+  - **API, configurações:** GET `/api/unidades/:u/parametros` lista "Flexibilidade do voluntariado (horas)" com valor 0 e origem `padrao`. O POST do gestor com `1` grava; com `1.5` volta 400 ("Use um número inteiro."); o escalante recebe 403.
+  - **API, candidatos:** crie no cenário uma diária "Eleições" com turno 07:00–15:00 (fictícia). O militar com 08–16 marcado:
+    - fica de fora com "Não marcou voluntariado neste horário" sem flexibilidade;
+    - aparece com a flexibilidade 1 gravada **no nível de cima** da seção (Review Focus 2);
+    - continua de fora, na lista de novembro, com a flexibilidade gravada em dezembro.
+  - **API, virada do mês (Review Focus 1):** com flexibilidade 1, um turno 19:00–07:00 no último dia do mês aparece para quem marcou 20–24 nesse dia e 00–08 no dia 1 do mês seguinte.
+  - **API, choque (spec: a flexibilidade não afrouxa choque):** quem está no Pronto B do dia anterior (20h–08h) continua de fora do 07:00–15:00, com "Choque de horário", mesmo com flexibilidade 1.
+  - **Site:** a tela Configurações mostra a linha "Flexibilidade do voluntariado (horas)" com o valor.
+- [ ] **Step 2: Run** os arquivos da API um por vez e o do site. Expected: FAIL.
+- [ ] **Step 3: Implement.** Se a tela de Configurações já desenha qualquer parâmetro vindo da API, o site não precisa de código novo; o teste confirma.
+- [ ] **Step 4: Run** `cd apps/api && npx vitest run --maxWorkers=1` e depois `cd apps/web && npx vitest run --maxWorkers=1`. Expected: passa.
+- [ ] **Step 5: Commit** `Fase 4.2.3: flexibilidade do voluntariado em Configurações e na lista`.
+
+### Task 24: O gestor escolhe as escalas que montam os blocos do dia
+
+**Files:**
+- Create: `apps/api/banco/migracoes/0019_escala_blocos_voluntariado.sql`
+- Modify: `pacotes/contratos/src/escalas.ts`, `apps/api/src/cadastros/escalas.ts`, `apps/api/src/voluntariado/leitura.ts` (`blocosDaSecao`)
+- Modify: `apps/web/src/routes/_app/configuracoes.tsx`, `apps/web/src/api/configuracoes.ts` (ou `api/escalas.ts`)
+- Test: `apps/api/test/migracao-0019.test.ts`, `apps/api/test/voluntariado.test.ts`, `apps/api/test/escalas.test.ts` (o de escalas existente), `apps/web/src/__testes__/configuracoes.test.tsx`
+
+**Interfaces:**
+- Produces: a coluna `escala.monta_blocos_voluntariado boolean not null default true`, auditada como as outras colunas da escala.
+- Produces: `LinhaEscala` e `Escala` ganham `montaBlocosVoluntariado: boolean`, e o contrato ganha `MarcaDeBlocos = z.object({ montaBlocos: z.boolean() })`.
+- Produces: a rota `PATCH /api/escalas/:id/blocos-do-voluntariado` com corpo `MarcaDeBlocos`. Papéis em `ESCREVE_PARAMETRO` (gestor e administrador); o escalante recebe 403. Devolve a escala atualizada.
+- Produces: `blocosDaSecao` passa a ler os turnos dos serviços `pjes` e `diaria` ativos que estão em `escala_servico` de alguma escala **ativa** da unidade com `monta_blocos_voluntariado`. Sem nenhuma, o dia fica com um bloco (00h às 24h).
+- Produces: a tela Configurações ganha a seção "Voluntariado", só leitura para o escalante, com:
+  - a flexibilidade (a linha da Tarefa 23);
+  - a lista das escalas ativas da unidade, cada uma com um interruptor "Entra nos blocos do voluntariado".
+
+- [ ] **Step 1: Write the failing tests:**
+  - **Migração 0019:** escalas existentes ficam com `true`.
+  - **Voluntariado:** os blocos do cenário com todas marcadas continuam 00–08, 08–16, 16–20 e 20–24.
+    - Uma escala "CPRH Eleições" (fictícia) com uma diária 07:00–15:00 faz aparecer os cortes 07h e 15h.
+    - Depois de `PATCH … { montaBlocos: false }` nela, os cortes 07h e 15h somem e os quatro blocos voltam.
+    - Com todas desmarcadas, `blocos` é `[{ inicio: '00:00', fim: '24:00' }]` (Review Focus 4), e o PUT do lançamento de uma faixa 08:00–16:00 continua gravando.
+  - **Escalas:** o escalante recebe 403 na rota nova; o gestor recebe 200.
+  - **Site:** o gestor vê "Voluntariado" com as escalas e o interruptor ligado. Desligar chama a rota com `{ montaBlocos: false }`. O escalante vê o interruptor desabilitado.
+- [ ] **Step 2: Run.** Expected: FAIL.
+- [ ] **Step 3: Implement.** O interruptor grava na hora (sem botão Salvar), com `useTrava`, e invalida a consulta do voluntariado do mês.
+- [ ] **Step 4: Run** as suítes da API e do site, uma por vez. Expected: passa.
+- [ ] **Step 5: Commit** `Fase 4.2.3: escalas que montam os blocos do voluntariado`.
+
+### Task 25: "Mostrar" quem ficou de fora só por voluntariado
+
+**Files:**
+- Modify: `apps/api/src/escala/elegibilidade.ts`, `apps/api/src/escala/alocacoes.ts`, `pacotes/contratos/src/escala-do-mes.ts`
+- Modify: `apps/web/src/componentes/escala-do-mes/EscolherMilitar.tsx`
+- Test: `apps/api/test/escala-candidatos.test.ts`, `apps/api/test/escala-alocacao.test.ts`, `apps/web/src/__testes__/escala-do-mes.test.tsx`
+
+**Interfaces:**
+- Produces: em `avaliar`, a conferência da disponibilidade passa a ser **a última** de cada turno, depois do Saldo, do voluntário JES, do choque e da diária única. Assim o motivo `SEM_VOLUNTARIADO = 'Não marcou voluntariado neste horário'` (constante exportada) quer dizer que todas as outras regras passaram.
+- Produces: `Candidatos` ganha `semVoluntariado: Candidato[]`. São os militares sem motivo de militar e sem nenhum turno livre, com ao menos um turno cujo único motivo é `SEM_VOLUNTARIADO`. `servicos` traz esses turnos. A ordem é a mesma dos aptos, e `fora` continua contando esses militares.
+- Produces: o POST de escalar (`alocacoes.ts`) aceita quando `motivoDeFora` devolve `SEM_VOLUNTARIADO`, e recusa os outros motivos como hoje.
+- Produces: em "Escolher militar", quando `semVoluntariado` não está vazia, a frase "Ficaram de fora…" ganha um botão "Mostrar". Ao tocar, abre o grupo "Sem voluntariado neste horário", com os mesmos botões de escolher dos aptos. O grupo começa fechado.
+
+- [ ] **Step 1: Write the failing tests:**
+  - **API, candidatos:** o militar sem disponibilidade, sem choque, vem em `semVoluntariado`. Quem não marcou e também tem choque **não** vem (Review Focus 3), nem quem não é voluntário JES numa vaga de PJES.
+  - **API, alocação:** escalar o primeiro dá 201. Escalar o que tem choque dá 409 com "Choque de horário".
+  - **Site:** "Mostrar" aparece só com `semVoluntariado` preenchida. Tocar mostra o grupo, e escolher alguém dele manda o mesmo pedido de escalar dos aptos.
+- [ ] **Step 2: Run.** Expected: FAIL.
+- [ ] **Step 3: Implement.**
+- [ ] **Step 4: Run** as suítes da API e do site, uma por vez. Expected: passa.
+- [ ] **Step 5: Commit** `Fase 4.2.3: escalar quem não marcou voluntariado`.
+
+### Task 26: Modo foco no celular
+
+**Files:**
+- Modify: `apps/web/src/routes/_app/voluntariado.tsx`, `apps/web/src/componentes/voluntariado/CalendarioDoVoluntariado.tsx`
+- Test: `apps/web/src/__testes__/voluntariado.test.tsx` (com o `emCelular` que existe)
+
+**Interfaces:**
+- Consumes: `useEhCelular()` e `ProvedorDePendencias` (o `useBlocker` já pergunta antes de descartar ao navegar).
+- Produces: no celular, conforme a spec, seção "Celular":
+  - Sem `?militar=`, só a lista aparece, e nada abre sozinho.
+  - Tocar num nome navega para `?militar=` (empilhando no histórico) e entra no modo foco: a lista some, a página vai ao topo, e o painel ganha "‹ Militares" no alto, que navega para a lista sem `militar`.
+  - A barra de baixo fica fixa (`sticky bottom-0`), com o rodapé "N horas em M dias." e o botão **"Salvar"**.
+  - Salvar grava e volta à lista.
+- Produces: no computador, nada muda: lista e painel lado a lado, o primeiro que falta abre sozinho, e o botão continua "Salvar e ir para o próximo".
+
+- [ ] **Step 1: Write the failing tests:**
+  - **Celular:**
+    - ao abrir `/voluntariado`, a lista aparece e não há calendário;
+    - tocar em "DANTAS" mostra só o calendário dele e o botão "‹ Militares", sem a lista;
+    - "Salvar" grava (o mesmo PUT) e a lista volta;
+    - com uma marcação pendente, "‹ Militares" pergunta antes de descartar (Review Focus 5), e negar mantém o calendário.
+  - **Computador:** os testes atuais continuam passando, e o primeiro que falta abre sozinho.
+- [ ] **Step 2: Run.** Expected: FAIL.
+- [ ] **Step 3: Implement.**
+- [ ] **Step 4: Run** a suíte do site. Expected: passa.
+- [ ] **Step 5: Commit** `Fase 4.2.3: modo foco do voluntariado no celular`.
+
+### Task 27: Barra cinza ao arrastar, menores da revisão da 2.2 e testes da entrega 2 de volta
+
+**Files:**
+- Modify: `apps/web/src/componentes/voluntariado/CalendarioDoVoluntariado.tsx`, `apps/web/src/lib/voluntariado.ts`, `apps/web/src/lib/useEhCelular.ts`
+- Test: `apps/web/src/__testes__/voluntariado.test.tsx`, `apps/web/src/__testes__/voluntariado-regras.test.tsx`
+
+**Interfaces:**
+- **Barra cinza no dia 24.** Hipótese principal: é a seleção de texto do navegador ao arrastar com o mouse (cinza-azulado, sem as divisórias). A tela não lê feriados. Use superpowers:systematic-debugging. Se confirmar, o calendário ganha `select-none`; se não, registre a causa achada no ledger antes de corrigir. Teste: o grupo "Calendário do voluntariado" tem `select-none`. No PR, peça ao usuário para conferir na sandbox arrastando sobre um dia.
+- **M1.** Arrastar com "desmarcar" sobre um bloco parcial tira o pedaço do bloco. Nova `tirarBloco(m: Marcas, dia: string, b: Faixa): Marcas` em `lib/voluntariado.ts`, usada por `alternarSe` quando a ação é desmarcar.
+- **M2.** O último rótulo da régua é "00h", não "24h". O primeiro rótulo fica alinhado à esquerda e o último à direita, sem sair da borda.
+- **M4.** O rodapé mostra os minutos quando houver: "7 horas e 30 minutos em 2 dias." (e "1 hora" no singular).
+- **M5.** `useEhCelular` usa `addListener`/`removeListener` quando `addEventListener` não existe. O `emCelular` dos testes é restaurado num `afterEach`.
+- **Testes da entrega 2 de volta** (achado I3 da revisão da 2.2), reescritos com `bloco(...)` e "Dia N: marcar o dia inteiro":
+  - dois cliques em Salvar mandam um pedido só;
+  - o erro da API mantém as marcações;
+  - "Todos os militares deste mês foram lançados";
+  - a pergunta de alteração pendente ao trocar de militar;
+  - "Todos os sábados e domingos", "Dias de folga da equipe", "Copiar de <mês>" e "Copiar" desabilitado sem mês anterior;
+  - setas, espaço e Enter;
+  - "Limpar" e salvar vazio;
+  - o foco vai para o dia 1 depois de salvar;
+  - abrir sem `?militar=` lança o último que falta;
+  - soltar o mouse logo depois de entrar no último dia.
+
+- [ ] **Step 1: Write the failing tests** de M1, M2, M4, M5 e `select-none`. Os testes recolocados devem passar de primeira, porque o comportamento já existe. Para cada um, faça a mutação que o derruba (desligar a trava, apagar o foco no dia 1…) e registre no ledger.
+- [ ] **Step 2: Run.** Expected: os novos falham, os recolocados passam.
+- [ ] **Step 3: Implement.**
+- [ ] **Step 4: Run** `pnpm test && pnpm typecheck && pnpm build:vercel` (uma suíte por vez se a memória não deixar; registrar). Expected: passa.
+- [ ] **Step 5: Commit** `Fase 4.2.3: barra ao arrastar, menores da revisão da 2.2 e testes da entrega 2`.
+
+**Fechamento da entrega 2.3:**
+- Revisão final do branch por um Agent com `model: "opus"` e `effort: "medium"`. Passe o pacote (`review-package`), o plano, a spec, o Review Focus acima e os `Ruling:` do ledger.
+- Uma passada de correções, com teste vermelho → verde.
+- Atualizar as contagens no `CLAUDE.md` local.
+- Push e PR com:
+  - o que entrou;
+  - **tem migração (0019)**, com o lembrete `pnpm --filter api db:migrar:teste`;
+  - o que conferir:
+    - em Configurações › Voluntariado, desligar a escala do CPRH e ver os blocos voltarem a quatro;
+    - com flexibilidade 1, quem marcou 08–16 aparece no 07h–15h;
+    - "Mostrar" no "Escolher militar";
+    - no celular, tocar num nome, salvar e voltar à lista;
+    - arrastar no computador sem a barra cinza.
+- **Parar até o merge.**
+
+---
+
 # Entregas 3 a 6 (a detalhar antes de cada uma)
 
 Cada uma ganha aqui as suas tarefas, no formato da entrega 1, depois do merge da anterior e da conversa com o usuário sobre o que a entrega 1 mostrou em uso.
 
+- **Entrega 2.3 — Ajustes do voluntariado:** detalhada acima (Tarefas 22 a 27). A pré-escala (3) usa a flexibilidade ao filtrar quem pode ocupar cada vaga e nunca escala quem está fora do voluntariado.
 - **Entrega 3 — Pré-escala e distribuições:** camada que traduz o mês para o motor (militares, alocações de três meses, remoções, horários, voluntariado, cotas, modelos de guarnição pelas faixas) e de volta para ids; "Gerar pré-escala" (equipe do dia 1 detectada por `detectarEquipeInicial`, com escolha manual), saldos do Adm (`distribuirAdm`, com `servico` e `turno` sempre preenchidos), operações pelas cotas (`distribuirCotas` e `diagnosticarOperacoes`) e encaixe nas guarnições (`calcularGuarnicao`); prévia do que entra e do que ficou de fora antes de gravar; nada sobrescreve o que já está escalado. Pendências do motor (`turnosPadraoExigidos` no turno noturno de 24h, nomes normalizados uma vez na entrada) resolvidas aqui, com teste no motor.
 - **Entrega 4 — Grade geral:** consulta do mês por militar (agrupada por equipe, Adm à parte), blocos por serviço com a letra em ordem de início, turno que atravessa a meia-noite só no dia em que começa, choques do motor com contorno vermelho, feriados e fins de semana, pegas de pedidas por PJES e Diária; ficha lateral com Trocar, Remover e "Adicionar serviço neste dia", reaproveitando as rotas da entrega 1.
 - **Entrega 5 — Gerar documento:** Configurações › Modelos de impressão (enviar com conferência dos marcadores, baixar o atual, versões); geração da escala publicada com ExcelJS a partir do modelo vigente da unidade, respeitando `militares_doc` e `dias_doc` da escala; `documento_gerado` guardado e baixável; PDF fica para quando o serviço existir.

@@ -19,6 +19,7 @@ import {
   type Militar,
 } from 'dominio';
 import type { Consulta } from '../banco/banco.ts';
+import { parametroEmVigor } from '../cadastros/configuracoes.ts';
 import { vinculosDaEscala } from '../cadastros/escalas.ts';
 import { feriadosDoAno } from '../cadastros/feriados.ts';
 import { versaoNoMes } from '../cadastros/guarnicoes-regras.ts';
@@ -34,6 +35,8 @@ type Avaliado = { candidato: Omit<Candidato, 'servicos'>; militarMotivo: string 
 const NOME_DO_TIPO: Record<Tipo, string> = { ordinario: 'Ordinário', pjes: 'PJES', diaria: 'Diária' };
 const NAO_LOTADO = 'Não está lotado na seção neste dia';
 const JA_ESCALADO = 'Já escalado neste horário';
+/** O motivo "só falta marcar o horário": é a última conferência de cada turno, então ele quer dizer que todas as outras regras passaram. */
+export const SEM_VOLUNTARIADO = 'Não marcou voluntariado neste horário';
 /** Expediente do Adm (08h às 16h), implícito nos dias úteis; vale o turno A do serviço Expediente se a seção o tiver cadastrado. */
 const EXPEDIENTE = { servico: 'Expediente', turno: 'A', ini: 480, fim: 960 };
 
@@ -114,6 +117,8 @@ async function avaliar(c: Consulta, v: VagaConsultada, somenteMilitar?: string):
     for (const f of await feriadosDoAno(c, unidadeId, ano)) feriados.add(f.data);
   }
   const util = (d: string) => diaDaSemana(d) >= 1 && diaDaSemana(d) <= 5 && !feriados.has(d);
+  // flexibilidade do voluntariado (horas cheias que podem faltar nas pontas do turno), em vigor no mês da vaga; só afrouxa o voluntariado
+  const flexibilidadeMin = Number(await parametroEmVigor(c, unidadeId, 'FLEXIBILIDADE_VOLUNTARIADO_HORAS', v.data.slice(0, 7))) * 60;
 
   let exigida: string | null = null;
   if (v.guarnicaoId && v.funcaoId) {
@@ -144,15 +149,15 @@ async function avaliar(c: Consulta, v: VagaConsultada, somenteMilitar?: string):
         // RN-03: o Saldo é do Adm (a regra e a frase são do motor; aqui sem o código da regra)
         if (violacoesSaldo([{ mat: m.id, dia: v.data, servico: turno.nome, turno: turno.letra }], { adm: m.jornada === 'adm' ? { [m.id]: true } : {} }).length) motivo = 'Saldo só para militar do Adm';
         else if ((turno.tipo === 'pjes' || exigeVoluntarioJes(turno.nome)) && !m.voluntario_jes) motivo = 'Não é voluntário JES';
-        else if (turno.tipo !== 'ordinario' && !turnoCoberto((dia) => unirFaixas(disponibilidade.get(`${m.id}|${dia}`) ?? []), v.data, turno.inicio, turno.fim)) {
-          motivo = 'Não marcou voluntariado neste horário';
-        } else {
+        else {
           const candidata: AlocChoque = { mat: m.id, dia: v.data, turno: turno.letra, servico: turno.nome };
           const chave = chaveAloc(candidata);
           const { choques } = detectarChoques([...existentes, ...expediente, candidata], horarios, { tipos });
           if (choques.some((x) => x.a.chave === chave || x.b.chave === chave)) motivo = 'Choque de horário';
           // RN-36: uma diária por dia para o mesmo militar
           else if (violacoesDiariaUnica([...existentes, candidata], { tipos }).some((x) => x.chave === chave)) motivo = 'Já tem uma diária neste dia';
+          // por último: só o voluntariado pode ser contornado pelo escalante (com a flexibilidade do gestor já aplicada)
+          else if (turno.tipo !== 'ordinario' && !turnoCoberto((dia) => unirFaixas(disponibilidade.get(`${m.id}|${dia}`) ?? []), v.data, turno.inicio, turno.fim, flexibilidadeMin)) motivo = SEM_VOLUNTARIADO;
         }
         return { turno, motivo };
       }),
@@ -213,13 +218,17 @@ export async function avaliarCandidatos(c: Consulta, v: VagaConsultada): Promise
   const { avaliados } = await avaliar(c, v);
   const acumulando = v.guarnicaoId && v.funcaoId ? await quemPodeAcumular(c, v, avaliados) : [];
   const idsAcumulando = new Set(acumulando.map((x) => x.a.candidato.militarId));
-  const aptos = avaliados
-    .filter((a) => motivoFinal(a) === null)
-    .sort((x, y) => Number(x.candidato.jornada === 'adm') - Number(y.candidato.jornada === 'adm') || porAntiguidade(x, y))
-    .map((a): Candidato => ({
-      ...a.candidato,
-      servicos: a.porTurno.filter((t) => t.motivo === null).map((t) => ({ servicoId: t.turno.servicoId, turnoId: t.turno.turnoId, nome: t.turno.nome })),
-    }));
+  const ordem = (x: Avaliado, y: Avaliado) => Number(x.candidato.jornada === 'adm') - Number(y.candidato.jornada === 'adm') || porAntiguidade(x, y);
+  const comServicos = (a: Avaliado, motivo: string | null): Candidato => ({
+    ...a.candidato,
+    servicos: a.porTurno.filter((t) => t.motivo === motivo).map((t) => ({ servicoId: t.turno.servicoId, turnoId: t.turno.turnoId, nome: t.turno.nome })),
+  });
+  const aptos = avaliados.filter((a) => motivoFinal(a) === null).sort(ordem).map((a) => comServicos(a, null));
+  // sem turno livre, mas com ao menos um turno em que só falta o voluntariado
+  const semVoluntariado = avaliados
+    .filter((a) => a.militarMotivo === null && motivoFinal(a) !== null && a.porTurno.some((t) => t.motivo === SEM_VOLUNTARIADO))
+    .sort(ordem)
+    .map((a) => comServicos(a, SEM_VOLUNTARIADO));
   const contagem = new Map<string, number>();
   for (const a of avaliados) {
     if (idsAcumulando.has(a.candidato.militarId)) continue; // quem pode acumular aparece na outra lista, não como "de fora"
@@ -230,7 +239,7 @@ export async function avaliarCandidatos(c: Consulta, v: VagaConsultada): Promise
   const acumular = acumulando.map(({ a, alocacaoId, vaga }) => ({
     alocacaoId, militarId: a.candidato.militarId, posto: a.candidato.posto, nomeGuerra: a.candidato.nomeGuerra, matricula: a.candidato.matricula, vaga,
   }));
-  return { aptos, fora, acumular };
+  return { aptos, semVoluntariado, fora, acumular };
 }
 
 /** Por que o militar não pode ocupar a vaga neste turno (a frase que a tela mostra); null se pode. */

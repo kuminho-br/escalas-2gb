@@ -8,9 +8,9 @@ import { atualizarEscalas } from '@/api/escalas';
 import { abrir, corpoEnviado, EU_EXEMPLO, simularApi } from './apoio';
 
 const LISTA: LinhaEscala[] = [
-  { id: 'e1', nome: 'Ordinário', ativa: true, servicos: ['Pronto', 'JES'] },
-  { id: 'e2', nome: 'Nova', ativa: true, servicos: [] },
-  { id: 'e3', nome: 'Velha', ativa: false, servicos: [] },
+  { id: 'e1', nome: 'Ordinário', ativa: true, servicos: ['Pronto', 'JES'], montaBlocosVoluntariado: true },
+  { id: 'e2', nome: 'Nova', ativa: true, servicos: [], montaBlocosVoluntariado: true },
+  { id: 'e3', nome: 'Velha', ativa: false, servicos: [], montaBlocosVoluntariado: true },
 ];
 const guarnicao = (g: Partial<LinhaGuarnicao>): LinhaGuarnicao => ({
   id: 'g1', nome: 'ABT', viatura: null, prioridade: 1, ativa: true, minimo: 2, maximo: 4, aPartirDe: null, ...g,
@@ -19,7 +19,7 @@ const GUARNICOES = [guarnicao({}), guarnicao({ id: 'g2', nome: 'APH', prioridade
 const DIA = { inicio: '08:00', fim: '20:00', letras: ['A' as const], servicos: ['Pronto', 'JES'] };
 const NOITE = { inicio: '20:00', fim: '08:00', letras: ['B' as const], servicos: ['Pronto'] };
 const escala = (e: Partial<Escala> = {}): Escala => ({
-  id: 'e1', nome: 'Ordinário', titulo: 'ESCALA ORDINÁRIO', militaresDoc: 'todos', diasDoc: 'todos', ativa: true,
+  id: 'e1', nome: 'Ordinário', titulo: 'ESCALA ORDINÁRIO', militaresDoc: 'todos', diasDoc: 'todos', ativa: true, montaBlocosVoluntariado: true,
   servicos: [{ id: 's1', nome: 'Pronto', cor: '#2F8F5B', ativo: true }, { id: 's2', nome: 'JES', cor: '#6E56A8', ativo: true }],
   faixas: [DIA, NOITE],
   comLetra: true,

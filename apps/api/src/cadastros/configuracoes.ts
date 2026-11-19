@@ -1,10 +1,10 @@
 // Configurações: catálogos do sistema (tipos de afastamento, atividades) e parâmetros por unidade.
 import { EdicaoItemCatalogo, Mes, mesParaData, mesPorExtenso, NovoItemCatalogo, NovoParametro, type ItemCatalogo, type Parametro } from 'contratos';
-import { PARAM_CATALOGO, paramConverter, paramDef } from 'dominio';
+import { defDoSistema, PARAM_CATALOGO, PARAM_SISTEMA_NOVO, paramConverter, type DefParametro, type ValorParametro } from 'dominio';
 import { Hono } from 'hono';
 import { ESCREVE_PARAMETRO, exigirAdministradorRaiz, exigirAlgumPapel, exigirPapel, exigirSessao, type AmbienteApi } from '../acesso.ts';
 import type { Auth } from '../auth.ts';
-import { comUsuario, type Banco } from '../banco/banco.ts';
+import { comUsuario, type Banco, type Consulta } from '../banco/banco.ts';
 import { hojeRecife } from '../datas.ts';
 import { lerCorpo, respostaDoErroDoBanco } from '../erros.ts';
 
@@ -12,7 +12,8 @@ import { lerCorpo, respostaDoErroDoBanco } from '../erros.ts';
  * Chaves editáveis. Saíram: SECAO_PADRAO (o seletor de unidade substitui) e LINHAS_POR_MILITAR
  * (espaço da grade na planilha; não se aplica ao sistema novo).
  */
-export const CHAVES_SISTEMA = ['CARGA_MENSAL_HORAS', 'SALDOS_ADM_POR_MILITAR', 'ADM_CUMPRE_CARGA'];
+export const CHAVES_SISTEMA = ['CARGA_MENSAL_HORAS', 'SALDOS_ADM_POR_MILITAR', 'ADM_CUMPRE_CARGA', 'FLEXIBILIDADE_VOLUNTARIADO_HORAS'];
+const DEFINICOES: DefParametro[] = [...PARAM_CATALOGO, ...PARAM_SISTEMA_NOVO].filter((d) => CHAVES_SISTEMA.includes(d.chave));
 
 const ordenarPorNome = <T extends { nome: string }>(l: T[]) => l.sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
 
@@ -63,12 +64,30 @@ function rotasCatalogo(r: Hono<AmbienteApi>, caminho: string, tabela: 'tipo_afas
 
 type LinhaParam = { chave: string; vigencia: string; valor: unknown; norma_referencia: string | null; sigla: string; nivel: number; propria: boolean };
 
-/** Valor em vigor no mês: a unidade mais próxima com a chave (vigência <= mês), na maior vigência. */
+const SELECT_PARAMETROS = `select p.chave, to_char(p.vigencia_desde, 'YYYY-MM') as vigencia, p.valor, p.norma_referencia,
+              a.sigla, nlevel(a.caminho) as nivel, a.id = $1 as propria
+         from parametro p
+         join unidade a on a.id = p.unidade_id
+         join unidade u on u.id = $1
+        where a.caminho @> u.caminho`;
+
+/** A linha em vigor no mês: a unidade mais próxima com a chave (vigência <= mês), na maior vigência. */
+const linhaEmVigor = (daChave: LinhaParam[], mes: string) =>
+  daChave.filter((l) => l.vigencia <= mes).sort((a, b) => b.nivel - a.nivel || (a.vigencia < b.vigencia ? 1 : -1))[0];
+
+/** O valor de um parâmetro numa unidade e mês: o próprio ou o herdado do nível de cima, ou o padrão do sistema. */
+export async function parametroEmVigor(c: Consulta, unidadeId: string, chave: string, mes: string): Promise<ValorParametro> {
+  const def = defDoSistema(chave);
+  const { rows } = await c.query<LinhaParam>(`${SELECT_PARAMETROS} and p.chave = $2`, [unidadeId, chave]);
+  const v = linhaEmVigor(rows, mes);
+  return (v ? v.valor : def?.padrao) as ValorParametro;
+}
+
+/** Valor em vigor no mês de cada parâmetro editável. */
 function resolver(linhas: LinhaParam[], mes: string): Parametro[] {
-  return PARAM_CATALOGO.filter((d) => CHAVES_SISTEMA.includes(d.chave)).map((def) => {
+  return DEFINICOES.map((def) => {
     const daChave = linhas.filter((l) => l.chave === def.chave);
-    const validas = daChave.filter((l) => l.vigencia <= mes).sort((a, b) => b.nivel - a.nivel || (a.vigencia < b.vigencia ? 1 : -1));
-    const v = validas[0];
+    const v = linhaEmVigor(daChave, mes);
     const historico = [...daChave]
       .sort((a, b) => (a.vigencia === b.vigencia ? a.nivel - b.nivel : a.vigencia < b.vigencia ? -1 : 1))
       .map((l) => ({ vigencia: l.vigencia, valor: l.valor, normaReferencia: l.norma_referencia, unidadeSigla: l.sigla }));
@@ -101,15 +120,7 @@ export function rotasConfiguracoes(dep: { banco: Banco; auth: Auth }): Hono<Ambi
     if (negado) return negado;
     const mes = c.req.query('mes') ?? hojeRecife().slice(0, 7);
     if (!Mes.safeParse(mes).success) return c.json({ erro: 'Mês inválido: use o formato aaaa-mm.' }, 400);
-    const { rows } = await c.get('banco').query<LinhaParam>(
-      `select p.chave, to_char(p.vigencia_desde, 'YYYY-MM') as vigencia, p.valor, p.norma_referencia,
-              a.sigla, nlevel(a.caminho) as nivel, a.id = $1 as propria
-         from parametro p
-         join unidade a on a.id = p.unidade_id
-         join unidade u on u.id = $1
-        where a.caminho @> u.caminho`,
-      [u],
-    );
+    const { rows } = await c.get('banco').query<LinhaParam>(SELECT_PARAMETROS, [u]);
     return c.json(resolver(rows, mes));
   });
 
@@ -120,7 +131,7 @@ export function rotasConfiguracoes(dep: { banco: Banco; auth: Auth }): Hono<Ambi
     const corpo = await lerCorpo(c, NovoParametro);
     if (!corpo.ok) return corpo.resposta;
     const { chave, valor, vigencia, normaReferencia } = corpo.dados;
-    const def = CHAVES_SISTEMA.includes(chave) ? paramDef(chave) : null;
+    const def = CHAVES_SISTEMA.includes(chave) ? defDoSistema(chave) : null;
     if (!def) return c.json({ erro: 'Esta configuração não existe.', campos: { chave: 'Esta configuração não existe.' } }, 400);
     const conv = paramConverter(def, valor);
     if (!conv.ok) return c.json({ erro: conv.erro, campos: { valor: conv.erro } }, 400);

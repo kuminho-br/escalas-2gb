@@ -89,3 +89,53 @@ describe('um turno de serviço cabe na disponibilidade?', () => {
     expect(turnoCoberto(marcado({}), '2026-11-05', '08:00', '16:00')).toBe(false);
   });
 });
+
+describe('flexibilidade: horas que podem faltar nas pontas do turno', () => {
+  const marcado = (porDia: Record<string, Faixa[]>) => (data: string) => porDia[data] ?? [];
+
+  it('07h às 15h com 08–16 marcado: não cabe sem flexibilidade e cabe com 1h', () => {
+    const f = marcado({ '2026-11-05': [{ inicio: 480, fim: 960 }] });
+    expect(turnoCoberto(f, '2026-11-05', '07:00', '15:00')).toBe(false);
+    expect(turnoCoberto(f, '2026-11-05', '07:00', '15:00', 0)).toBe(false);
+    expect(turnoCoberto(f, '2026-11-05', '07:00', '15:00', 60)).toBe(true);
+  });
+
+  it('buraco no meio do turno continua barrando, mesmo com flexibilidade', () => {
+    const f = marcado({ '2026-11-05': [{ inicio: 480, fim: 720 }, { inicio: 780, fim: 1200 }] });
+    expect(turnoCoberto(f, '2026-11-05', '08:00', '20:00', 60)).toBe(false);
+  });
+
+  it('turno que atravessa a meia-noite no último dia do mês: 19h às 07h com 1h confere 20h do dia 30 até 06h do dia 01/12 (Review Focus 1)', () => {
+    const completo = marcado({ '2026-11-30': [{ inicio: 1200, fim: 1440 }], '2026-12-01': [{ inicio: 0, fim: 360 }] });
+    expect(turnoCoberto(completo, '2026-11-30', '19:00', '07:00', 60)).toBe(true);
+    const curto = marcado({ '2026-11-30': [{ inicio: 1200, fim: 1440 }], '2026-12-01': [{ inicio: 0, fim: 300 }] });
+    expect(turnoCoberto(curto, '2026-11-30', '19:00', '07:00', 60)).toBe(false);
+  });
+
+  it('a flexibilidade nunca come o turno inteiro: num turno de 6h com 3h de cada lado, sempre se confere 1h no meio (12h30 às 13h30)', () => {
+    expect(turnoCoberto(marcado({ '2026-11-05': [{ inicio: 750, fim: 810 }] }), '2026-11-05', '10:00', '16:00', 180)).toBe(true);
+    expect(turnoCoberto(marcado({ '2026-11-05': [{ inicio: 600, fim: 660 }] }), '2026-11-05', '10:00', '16:00', 180)).toBe(false);
+    // sem a trava, bastaria uma faixa de 10 minutos às 13h
+    expect(turnoCoberto(marcado({ '2026-11-05': [{ inicio: 780, fim: 790 }] }), '2026-11-05', '10:00', '16:00', 180)).toBe(false);
+  });
+
+  it('turno que começa às 23h: com 1h o conferido é 00h–06h do dia seguinte, sem exigir nada no dia em que começa (achado da revisão final)', () => {
+    const f = marcado({ '2026-11-05': [], '2026-11-06': [{ inicio: 0, fim: 360 }] });
+    expect(turnoCoberto(f, '2026-11-05', '23:00', '07:00', 60)).toBe(true);
+    // sem flexibilidade o 23h–24h do dia 5 é exigido
+    expect(turnoCoberto(f, '2026-11-05', '23:00', '07:00', 0)).toBe(false);
+    // o dia seguinte precisa cobrir 00h–06h inteiro
+    expect(turnoCoberto(marcado({ '2026-11-06': [{ inicio: 0, fim: 300 }] }), '2026-11-05', '23:00', '07:00', 60)).toBe(false);
+  });
+
+  it('turno 23h–07h com 2h: confere 01h–05h do dia seguinte; turno 22h–06h com 2h: confere 00h–04h', () => {
+    expect(turnoCoberto(marcado({ '2026-11-06': [{ inicio: 60, fim: 300 }] }), '2026-11-05', '23:00', '07:00', 120)).toBe(true);
+    expect(turnoCoberto(marcado({ '2026-11-06': [{ inicio: 60, fim: 240 }] }), '2026-11-05', '23:00', '07:00', 120)).toBe(false);
+    expect(turnoCoberto(marcado({ '2026-11-06': [{ inicio: 0, fim: 240 }] }), '2026-11-05', '22:00', '06:00', 120)).toBe(true);
+  });
+
+  it('turno 23h–07h no último dia do mês usa o dia 1 do mês seguinte (Review Focus 1)', () => {
+    expect(turnoCoberto(marcado({ '2026-12-01': [{ inicio: 0, fim: 360 }] }), '2026-11-30', '23:00', '07:00', 60)).toBe(true);
+  });
+});
+

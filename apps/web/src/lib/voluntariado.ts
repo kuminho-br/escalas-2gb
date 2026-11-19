@@ -23,19 +23,29 @@ export function estadoDoBloco(c: Marcas, dia: string, bloco: Faixa): Estado {
   return dentro === bloco.fim - bloco.inicio ? 'cheio' : 'parcial';
 }
 
-/** Cheio tira o bloco; vazio ou parcial marca o bloco inteiro. */
-export function alternarBloco(c: Marcas, dia: string, bloco: Faixa): Marcas {
-  const novo: Marcas = new Map(c);
-  const { inicio, fim } = bloco;
-  const resto = (novo.get(dia) ?? []).flatMap((f) => {
+/** As faixas sem o trecho do bloco (o que passa das pontas do bloco fica). */
+const semOBloco = (faixas: Faixa[], { inicio, fim }: Faixa): Faixa[] =>
+  faixas.flatMap((f) => {
     if (f.fim <= inicio || f.inicio >= fim) return [f];
     const pedacos: Faixa[] = [];
     if (f.inicio < inicio) pedacos.push({ inicio: f.inicio, fim: inicio });
     if (f.fim > fim) pedacos.push({ inicio: fim, fim: f.fim });
     return pedacos;
   });
-  if (estadoDoBloco(c, dia, bloco) !== 'cheio') resto.push({ inicio, fim });
+
+/** Cheio tira o bloco; vazio ou parcial marca o bloco inteiro. */
+export function alternarBloco(c: Marcas, dia: string, bloco: Faixa): Marcas {
+  const novo: Marcas = new Map(c);
+  const resto = semOBloco(novo.get(dia) ?? [], bloco);
+  if (estadoDoBloco(c, dia, bloco) !== 'cheio') resto.push({ inicio: bloco.inicio, fim: bloco.fim });
   novo.set(dia, unirFaixas(resto));
+  return novo;
+}
+
+/** Tira o bloco, esteja ele cheio ou parcial (arrastar para desmarcar não pode marcar o que estava pela metade). */
+export function tirarBloco(c: Marcas, dia: string, bloco: Faixa): Marcas {
+  const novo: Marcas = new Map(c);
+  novo.set(dia, unirFaixas(semOBloco(novo.get(dia) ?? [], bloco)));
   return novo;
 }
 
@@ -65,7 +75,7 @@ export function faixasParaEnviar(c: Marcas): FaixaDeDisponibilidade[] {
   return [...c.keys()].sort().flatMap((data) => doDia(c, data).map((f) => ({ data, inicio: horaDe(f.inicio), fim: horaDe(f.fim) === '00:00' ? '24:00' : horaDe(f.fim) })));
 }
 
-/** Horas e dias do mês marcados: "12 horas em 2 dias.", "1 hora em 1 dia.", "Nenhum horário marcado.". */
+/** Horas e dias do mês marcados: "12 horas em 2 dias.", "7 horas e 30 minutos em 1 dia.", "Nenhum horário marcado.". */
 export function textoDoRodape(c: Marcas): string {
   let minutos = 0;
   let dias = 0;
@@ -76,8 +86,10 @@ export function textoDoRodape(c: Marcas): string {
     minutos += faixas.reduce((t, f) => t + (f.fim - f.inicio), 0);
   }
   if (minutos === 0) return 'Nenhum horário marcado.';
-  const horas = Math.round(minutos / 60);
-  return `${horas} ${horas === 1 ? 'hora' : 'horas'} em ${dias} ${dias === 1 ? 'dia' : 'dias'}.`;
+  const horas = Math.floor(minutos / 60);
+  const resto = minutos % 60;
+  const partes = [horas > 0 ? `${horas} ${horas === 1 ? 'hora' : 'horas'}` : '', resto > 0 ? `${resto} ${resto === 1 ? 'minuto' : 'minutos'}` : ''].filter(Boolean);
+  return `${partes.join(' e ')} em ${dias} ${dias === 1 ? 'dia' : 'dias'}.`;
 }
 
 /** Os dias do mês em que a disponibilidade não está marcada no dia (para o atalho de folgas). */

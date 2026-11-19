@@ -3,8 +3,10 @@ import { createFileRoute } from '@tanstack/react-router';
 import { mesPorExtenso, somarMeses, type ItemCatalogo, type Parametro } from 'contratos';
 import { useState, type FormEvent } from 'react';
 import { mensagemDe } from '@/api/cliente';
+import { atualizarEscalas, consultaEscalas, marcarBlocosDoVoluntariado } from '@/api/escalas';
 import { consultaCatalogo, consultaParametros, editarNoCatalogo, incluirNoCatalogo, salvarParametro, type Catalogo } from '@/api/configuracoes';
 import { ehAdministrador, podeMudarParametro } from '@/api/eu';
+import { useTrava } from '@/componentes/AlteracoesPendentes';
 import { ImportarPlanilha } from '@/componentes/ImportarPlanilha';
 import { Button } from '@/componentes/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/componentes/ui/dialog';
@@ -34,11 +36,15 @@ function Configuracoes() {
       <Tabs defaultValue="regras" className="mt-6">
         <TabsList>
           <TabsTrigger value="regras">Regras do processo</TabsTrigger>
+          <TabsTrigger value="voluntariado">Voluntariado</TabsTrigger>
           <TabsTrigger value="tipos">Tipos de afastamento</TabsTrigger>
           <TabsTrigger value="atividades">Atividades</TabsTrigger>
         </TabsList>
         <TabsContent value="regras">
           <RegrasDoProcesso unidadeId={eu.unidade.id} sigla={eu.unidade.sigla} podeMudar={podeMudar} />
+        </TabsContent>
+        <TabsContent value="voluntariado">
+          <BlocosDoVoluntariado unidadeId={eu.unidade.id} podeMudar={podeMudar} />
         </TabsContent>
         <TabsContent value="tipos">
           <ListaDoCatalogo catalogo="tipos-afastamento" rotuloNovo="Novo tipo de afastamento" podeEditar={admin} />
@@ -48,6 +54,61 @@ function Configuracoes() {
         </TabsContent>
       </Tabs>
     </section>
+  );
+}
+
+/** Quais escalas montam os blocos do dia no voluntariado: cada interruptor grava na hora. */
+function BlocosDoVoluntariado({ unidadeId, podeMudar }: { unidadeId: string; podeMudar: boolean }) {
+  const queryClient = useQueryClient();
+  const { data, error, isPending } = useQuery(consultaEscalas(unidadeId));
+  const { salvando, travar } = useTrava();
+  const [erroAoMudar, setErroAoMudar] = useState<string | null>(null);
+  const mudar = travar(async (id: string, montaBlocos: boolean) => {
+    setErroAoMudar(null);
+    try {
+      await marcarBlocosDoVoluntariado(id, montaBlocos);
+      atualizarEscalas(queryClient);
+      void queryClient.invalidateQueries({ queryKey: ['voluntariado'] });
+      void queryClient.invalidateQueries({ queryKey: ['voluntariado-militar'] });
+    } catch (e) {
+      setErroAoMudar(mensagemDe(e));
+    }
+  });
+
+  if (isPending) return <p className="py-6 text-apagado">Carregando…</p>;
+  if (error) return <p role="alert" className="py-6 text-alerta">{mensagemDe(error)}</p>;
+  const ativas = data.filter((e) => e.ativa);
+
+  return (
+    <div className="rounded-xl border border-linha bg-superficie">
+      <p className="border-b border-linha px-4 py-3 text-sm text-apagado">
+        Os blocos do dia no voluntariado vêm dos horários dos serviços de PJES e diária das escalas marcadas aqui. Tire a marca de uma escala para os horários dela deixarem de cortar o dia.
+        A flexibilidade do voluntariado fica em “Regras do processo”.{podeMudar ? '' : ' Só o gestor ou o administrador muda.'}
+      </p>
+      {ativas.length === 0 && <p className="px-4 py-6 text-apagado">Nenhuma escala ativa nesta seção.</p>}
+      <ul className="divide-y divide-linha">
+        {ativas.map((e) => (
+          <li key={e.id} className="flex items-center justify-between gap-3 px-4 py-3">
+            <span className="min-w-0">
+              <span className="font-medium">{e.nome}</span>
+              <span className="block text-sm text-apagado">{e.servicos.join(', ') || 'sem serviços'}</span>
+            </span>
+            <label className="flex shrink-0 items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                aria-label={`${e.nome}: entra nos blocos do voluntariado`}
+                checked={e.montaBlocosVoluntariado}
+                disabled={!podeMudar || salvando}
+                onChange={(ev) => void mudar(e.id, ev.target.checked)}
+                className="size-4 accent-vinho"
+              />
+              Entra nos blocos
+            </label>
+          </li>
+        ))}
+      </ul>
+      {erroAoMudar && <p role="alert" className="border-t border-linha px-4 py-3 text-sm text-alerta">{erroAoMudar}</p>}
+    </div>
   );
 }
 

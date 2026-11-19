@@ -16,7 +16,7 @@ const MILITAR: LinhaMilitar = {
 };
 const GUARNICAO: LinhaGuarnicao = { id: 'g1', nome: 'Auto Bomba 1', viatura: null, prioridade: 1, ativa: true, minimo: 1, maximo: 2, aPartirDe: null };
 const SERVICO: Servico = { id: 's1', nome: 'Pronto', tipo: 'ordinario', operacao: null, rotuloImpressao: null, cor: '#2F8F5B', ativo: true, turnos: [] };
-const ESCALA: LinhaEscala = { id: 'e1', nome: 'Ordinário', ativa: true, servicos: ['Pronto'] };
+const ESCALA: LinhaEscala = { id: 'e1', nome: 'Ordinário', ativa: true, servicos: ['Pronto'], montaBlocosVoluntariado: true };
 
 function api() {
   return simularApi({

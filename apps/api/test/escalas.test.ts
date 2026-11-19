@@ -57,9 +57,9 @@ afterAll(async () => {
 describe('escalas', () => {
   it('nova escala nasce com título ESCALA <NOME>, só escalados e todos os dias', async () => {
     const e = await criar('Defensoria');
-    expect(e).toMatchObject({ nome: 'Defensoria', titulo: 'ESCALA DEFENSORIA', militaresDoc: 'escalados', diasDoc: 'todos', ativa: true, servicos: [], faixas: [], comLetra: true, vinculos: [] });
+    expect(e).toMatchObject({ nome: 'Defensoria', titulo: 'ESCALA DEFENSORIA', militaresDoc: 'escalados', diasDoc: 'todos', ativa: true, servicos: [], faixas: [], comLetra: true, vinculos: [], montaBlocosVoluntariado: true });
     const lista: LinhaEscala[] = await (await api.pedir('escalante', 'GET', `${secao()}/escalas`)).json();
-    expect(lista.find((x) => x.id === e.id)).toEqual({ id: e.id, nome: 'Defensoria', ativa: true, servicos: [] });
+    expect(lista.find((x) => x.id === e.id)).toEqual({ id: e.id, nome: 'Defensoria', ativa: true, servicos: [], montaBlocosVoluntariado: true });
   });
 
   it('editar identificação', async () => {
@@ -193,3 +193,30 @@ describe('escalas', () => {
     expect((await api.pedir('semPapel', 'GET', '/api/escalas/00000000-0000-0000-0000-000000000000')).status).toBe(404);
   });
 });
+
+describe('escalas que montam os blocos do voluntariado', () => {
+  const marca = (id: string, corpo: unknown, quem: 'admin' | 'escalante' = 'admin') => api.pedir(quem, 'PATCH', `/api/escalas/${id}/blocos-do-voluntariado`, corpo);
+
+  it('o administrador tira e põe a escala dos blocos; a escala e a lista mostram a marca', async () => {
+    const e = await criar('Blocos');
+    const tirou = await marca(e.id, { montaBlocos: false });
+    expect(tirou.status).toBe(200);
+    expect(await tirou.json()).toMatchObject({ id: e.id, montaBlocosVoluntariado: false });
+    const lista: LinhaEscala[] = await (await api.pedir('escalante', 'GET', `${secao()}/escalas`)).json();
+    expect(lista.find((x) => x.id === e.id)?.montaBlocosVoluntariado).toBe(false);
+    expect((await (await marca(e.id, { montaBlocos: true })).json()).montaBlocosVoluntariado).toBe(true);
+  });
+
+  it('o escalante não muda a marca (403) e nada é gravado', async () => {
+    const e = await criar('Blocos do escalante');
+    expect((await marca(e.id, { montaBlocos: false }, 'escalante')).status).toBe(403);
+    expect((await (await api.pedir('escalante', 'GET', `/api/escalas/${e.id}`)).json()).montaBlocosVoluntariado).toBe(true);
+  });
+
+  it('corpo inválido é 400 e escala que não existe é 404', async () => {
+    const e = await criar('Blocos inválidos');
+    expect((await marca(e.id, { montaBlocos: 'sim' })).status).toBe(400);
+    expect((await marca('00000000-0000-0000-0000-000000000000', { montaBlocos: false })).status).toBe(404);
+  });
+});
+

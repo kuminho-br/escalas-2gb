@@ -71,3 +71,68 @@ Rodapé: "N horas em M dias." (ou "Nenhum horário marcado."). Os botões, o tec
 - Nomes de tabela, colunas e funções; formato das horas no contrato (sugestão: `"HH:MM"`, com `"24:00"` para o fim do dia).
 - Como detectar o celular (largura da tela) e o ponto de corte, dentro do padrão do site.
 - O desenho exato do bloco parcial e da dica de horário.
+
+---
+
+## Adendo de 19/11/2026 (depois da entrega 2.2): flexibilidade, blocos do gestor e celular
+
+Conversa com o usuário depois de usar a entrega 2.2 na sandbox. O que motivou: o CPRH e as eleições têm turnos que começam ou terminam às 07h, 15h, 19h e 23h. Cada horário vira um corte, e o dia ganhou faixinhas de 1h (07–08, 15–16, 19–20, 23–24): blocos de ~8px, difíceis de acertar no clique e no toque, rótulos encavalados ("07h 08h") e oito blocos por dia, que escondem o desenho manhã–tarde–noite.
+
+### Flexibilidade do voluntariado (decidido)
+
+- **O que é.** Um número de horas escolhido pelo gestor. Com 0h, a regra é estrita, como hoje: o militar precisa cobrir o turno inteiro. Com N horas, também fica apto quem deixa até N horas sem cobrir **no começo ou no fim** do turno.
+- **Como conta.** O turno é conferido sem as N primeiras e as N últimas horas: com 1h, o 07h–15h é conferido como 08h–14h, e quem marcou 08–16 entra. **Um buraco no meio do turno continua barrando** (decisão do usuário). A falta não é somada (reprovado: conta desnecessária).
+- **Onde fica.** Um parâmetro em Configurações, com vigência, **em qualquer nível hierárquico**, não só na seção (decisão do usuário). Usa o mecanismo que já existe: tabela `parametro`, com o valor próprio ou herdado do nível de cima. O padrão é 0h.
+- **Quem usa.** A escalação automática (pré-escala, entrega 3) **segue a flexibilidade** definida pelo gestor. A lista "Escolher militar" também.
+- **O que ela não afrouxa.** A flexibilidade só vale para o voluntariado. Choque de horário, descanso e as outras regras de elegibilidade continuam estritos. Exemplo: quem sai do Pronto às 08h e marcou 08–16 não entra no 07h–15h, nem com 1h de flexibilidade, porque às 07h ainda está no Pronto.
+- **Sem aviso de falta na lista** (reprovado: polui a tela e piora o uso).
+- **Só horas cheias** (decisão do usuário): o parâmetro não aceita minutos.
+- **Chamada da PROGRAMAÇÃO.** O valor vai de 0 a 3. Se a flexibilidade comer o turno inteiro (um turno de 6h com 3h de cada lado), ainda se confere 1h no meio do turno: nenhum turno fica sem conferência.
+
+### O escalante sempre pode passar por cima do voluntariado (decidido; falta na tela de hoje)
+
+O escalante pode escalar quem não se voluntariou, porque combina direto com o militar (decisão do usuário). **Hoje a tela não deixa:** o "Escolher militar" tira da lista quem não marcou voluntariado e só mostra a contagem ("Ficaram de fora: 1 sem voluntariado"). Proposta da PROGRAMAÇÃO, a confirmar:
+
+```
+Ficaram de fora: 2 sem voluntariado neste horário  [Mostrar]
+  └ ao tocar: CB BM DANTAS, SD BM FALCAO — escolhíveis, num grupo à parte
+```
+
+O grupo fica fechado por padrão, para não poluir. Só a disponibilidade marcada pode ser contornada. Choque de horário, afastamento, CNH, "uma diária por dia", Saldo só do Adm e o atributo **voluntário JES** do cadastro continuam tirando o militar da lista, e a gravação também confere essas regras. A pré-escala nunca escala quem está fora do voluntariado (com a flexibilidade aplicada).
+
+### De onde vêm os blocos do dia (decidido)
+
+- **Pelas escalas** (decisão do usuário). Além da flexibilidade, o gestor decide **quais escalas entram na montagem dos blocos**. Os cortes passam a vir dos turnos dos serviços que pedem voluntariado (PJES e diária, ativos) que estão em **alguma escala ativa da seção marcada para entrar**. Por padrão, todas entram, que é o comportamento de hoje.
+- **Reprovado:** "divide o dia" no cadastro do serviço (parece gambiarra).
+- **Escala fantasma é só um jeito de usar o sistema, não uma função nova** (esclarecimento do usuário). O gestor pode criar uma escala que não é real, com os turnos que quer ver como blocos, marcá-la para entrar na montagem e tirar as do CPRH e das eleições. Ninguém é escalado nela. O sistema não trata essa escala de modo especial.
+- **Chamadas da PROGRAMAÇÃO:**
+  - A marcação fica na própria escala, sem vigência, como os turnos.
+  - Só o gestor e o administrador mudam a marcação. A tela é Configurações, numa seção "Voluntariado" junto da flexibilidade.
+  - Se nenhuma escala marcada tiver serviço que pede voluntariado, o dia fica com um bloco só (00h às 24h).
+  - Um serviço que não está em nenhuma escala marcada deixa de cortar o dia.
+
+### Celular: o painel do militar abre lá embaixo (decidido: modo foco)
+
+- **O problema.** No celular, a lista de militares vem antes do calendário. Tocar num nome abre o painel depois de todos os nomes, fora da tela.
+- **Opções consideradas:**
+  - **Modo foco** (ideia do usuário, escolhida). Ao abrir um militar no celular, a lista some e só o painel dele aparece, com a página no topo. Ao salvar, a lista volta. É o padrão lista → detalhe dos aplicativos, e a tela fica limpa.
+  - **Painel deslizante de baixo.** Disputa o gesto de rolagem com as 31 linhas do calendário. Descartado.
+  - **Abrir o calendário logo abaixo do nome tocado.** Empurra os outros nomes para fora da tela e confunde a rolagem. Descartado.
+- **Complementos propostos pela PROGRAMAÇÃO (a confirmar):**
+  - **"‹ Militares" no topo do painel.** Volta à lista sem salvar, respeitando o aviso de alteração pendente. O botão voltar do celular faz o mesmo, porque a tela já guarda o militar aberto no endereço (`?militar=`).
+  - **Barra fixa no rodapé da tela**, com o resumo ("N horas em M dias.") e o botão de salvar. Hoje o botão fica depois das 31 linhas e dos atalhos, longe do dedo.
+  - **No celular, o botão vira "Salvar" e volta à lista**, como o usuário pediu. O próximo que falta lançar fica no alto de "Faltam lançar". No computador, continua "Salvar e ir para o próximo".
+- **Só no celular** (a mesma largura de corte da entrega 2.2, 767px). No computador, lista e painel continuam lado a lado.
+- **Chamada da PROGRAMAÇÃO:** no celular, a tela não abre sozinha o primeiro que falta lançar (no computador, abre). A lista aparece primeiro, e tocar num nome entra no modo foco.
+
+### Outros pontos levantados
+
+- **Dia 24 (feriado) com barra cinza, sem blocos.** A tela do voluntariado não lê feriados, então a barra não vem do feriado: é provável defeito. Investigar na entrega 2.3, com teste que reproduza.
+- **Achados menores adiados da revisão da 2.2**, que entram na 2.3 porque mexem na mesma tela:
+  - recolocar os testes da entrega 2 que saíram na reescrita (dois cliques em Salvar, erro mantém as marcações, pendência, atalhos, teclado, foco no dia 1, último que falta);
+  - arrastar para desmarcar sobre bloco parcial marca o bloco inteiro (M1);
+  - o último rótulo é "24h", mas a spec diz 00h (M2);
+  - o rodapé arredonda minutos (M4);
+  - `matchMedia` no Safari antigo e teste que não restaura (M5).
+  
+  Os demais (M3, M6, M7, M8) ficam para quando a área for tocada.

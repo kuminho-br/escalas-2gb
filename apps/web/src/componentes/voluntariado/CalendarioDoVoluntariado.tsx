@@ -5,7 +5,7 @@ import { flushSync } from 'react-dom';
 import { mensagemDe } from '@/api/cliente';
 import { EtiquetaPendente, usePendencia, useSincronizar, useTrava } from '@/componentes/AlteracoesPendentes';
 import { Button } from '@/componentes/ui/button';
-import { alternarBloco, copiarDoMes, estadoDoBloco, faixasParaEnviar, fimDeSemana, marcarDias, marcasDoServidor, textoDoRodape, type Estado, type Marcas } from '@/lib/voluntariado';
+import { alternarBloco, copiarDoMes, estadoDoBloco, faixasParaEnviar, fimDeSemana, marcarDias, marcasDoServidor, textoDoRodape, tirarBloco, type Estado, type Marcas } from '@/lib/voluntariado';
 import { cn } from '@/lib/utils';
 import { useEhCelular } from '@/lib/useEhCelular';
 
@@ -111,9 +111,13 @@ export function CalendarioDoVoluntariado({
         <div className={cn(celular && 'grid grid-cols-[3.5rem_1fr] gap-2 rounded-md border border-transparent p-1.5')}>
           {celular && <span />}
           <div data-rotulos-dos-cortes className={cn('relative h-4 text-xs text-apagado', celular && 'border border-transparent')}>
-            {cortes.map((c) => (
-              <span key={c} className="absolute -translate-x-1/2" style={{ left: `${(c / 1440) * 100}%` }}>{hh(c)}</span>
-            ))}
+            {cortes.map((c, i) => {
+              // as pontas ficam na borda da faixa (o último corte é a meia-noite do dia seguinte: "00h"); os do meio, centrados no corte
+              const ultimo = i === cortes.length - 1;
+              return (
+                <span key={c} className={cn('absolute', i > 0 && !ultimo && '-translate-x-1/2')} style={ultimo ? { right: 0 } : { left: `${(c / 1440) * 100}%` }}>{hh(c % 1440)}</span>
+              );
+            })}
           </div>
         </div>
       </div>
@@ -157,7 +161,7 @@ export function CalendarioDoVoluntariado({
                 // o clique do mouse já foi tratado ao apertar; o do toque, do teclado e dos leitores de tela marca aqui
                 onClick={(e) => (e.detail === 0 || ponteiro.current !== 'mouse') && setMarcas((m) => marcarOuTirar(m, d, blocos, todos.every((x) => x === 'cheio') ? 'desmarcar' : 'marcar'))}
                 onKeyDown={(e) => aoTeclar(e, d)}
-                className="rounded text-left font-cond text-base leading-none font-semibold hover:bg-accent"
+                className="justify-self-start rounded px-1.5 py-0.5 text-left font-cond text-base leading-none font-semibold hover:bg-accent"
               >
                 {n}
                 {celular && <span data-diasemana className="ml-1 text-xs font-normal text-apagado">{SEMANA[diaDaSemana(d)]}</span>}
@@ -220,14 +224,17 @@ export function CalendarioDoVoluntariado({
           {`Copiar de ${mesPorExtenso(anterior)}`}
         </Button>
       </div>
-      <p className="text-sm text-apagado">{textoDoRodape(marcas)}</p>
-      <p className="text-xs text-apagado">Atalhos de teclado: setas movem, espaço marca, Enter salva e passa ao próximo.</p>
-      <div className="flex flex-wrap items-center gap-2">
-        <Button type="button" variant="outline" onClick={() => setMarcas(new Map())} disabled={salvando}>Limpar</Button>
-        <Button type="button" onClick={() => void gravar()} disabled={salvando}>Salvar e ir para o próximo</Button>
-        <EtiquetaPendente sujo={sujo} />
+      {/* no celular o resumo e o Salvar ficam numa barra fixa embaixo: o botão não fica depois das 31 linhas */}
+      <div data-barra-de-salvar className={cn('grid gap-2', celular && 'sticky bottom-0 z-10 -mx-4 -mb-4 border-t border-linha bg-superficie px-4 py-3')}>
+        <p className="text-sm text-apagado">{textoDoRodape(marcas)}</p>
+        {!celular && <p className="text-xs text-apagado">Atalhos de teclado: setas movem, espaço marca, Enter salva e passa ao próximo.</p>}
+        <div className="flex flex-wrap items-center gap-2">
+          <Button type="button" variant="outline" onClick={() => setMarcas(new Map())} disabled={salvando}>Limpar</Button>
+          <Button type="button" onClick={() => void gravar()} disabled={salvando}>{celular ? 'Salvar' : 'Salvar e ir para o próximo'}</Button>
+          <EtiquetaPendente sujo={sujo} />
+        </div>
+        {erro && <p role="alert" className="text-sm text-alerta">{erro}</p>}
       </div>
-      {erro && <p role="alert" className="text-sm text-alerta">{erro}</p>}
     </section>
   );
 }
@@ -239,9 +246,9 @@ function marcarOuTirar(m: Marcas, dia: string, blocos: Faixa[], acao: 'marcar' |
   return atual;
 }
 
-/** Aplica uma ação a um bloco (marcar ou desmarcar), sem inverter o que já está como a ação pede. */
+/** Aplica uma ação a um bloco (marcar ou desmarcar), sem inverter o que já está como a ação pede; desmarcar um bloco parcial tira o pedaço. */
 function alternarSe(m: Marcas, dia: string, b: Faixa, acao: 'marcar' | 'desmarcar'): Marcas {
   const estado: Estado = estadoDoBloco(m, dia, b);
-  const precisa = acao === 'marcar' ? estado !== 'cheio' : estado !== 'vazio';
-  return precisa ? alternarBloco(m, dia, b) : m;
+  if (acao === 'desmarcar') return estado === 'vazio' ? m : tirarBloco(m, dia, b);
+  return estado === 'cheio' ? m : alternarBloco(m, dia, b);
 }

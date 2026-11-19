@@ -246,3 +246,40 @@ describe('regras do motor que a lista aplica: Saldo só para o Adm (RN-03) e uma
   });
 });
 
+describe('quem ficou de fora só por falta de voluntariado (o escalante pode combinar direto com o militar)', () => {
+  const SEM_VOLUNTARIADO = 'Não marcou voluntariado neste horário';
+
+  it('vem em semVoluntariado, com o serviço do turno, e continua contado em "ficaram de fora"', async () => {
+    const r = await avaliarCandidatos(api.banco, vaga(D, FAIXA.JES));
+    expect(r.semVoluntariado.map((c) => c.nomeGuerra)).toEqual(['JESSEM']);
+    expect(r.semVoluntariado[0]).toMatchObject({ servicos: [{ servicoId: servico.JES, turnoId: T('JES A'), nome: 'JES' }] });
+    expect(nomes(r)).toEqual(['JESVOL']);
+    expect(r.fora).toContainEqual({ motivo: SEM_VOLUNTARIADO, quantidade: 1 });
+  });
+
+  it('quem não é voluntário JES numa vaga de PJES não vem, mesmo sem ter marcado nada', async () => {
+    const r = await avaliarCandidatos(api.banco, vaga(D, FAIXA.JES));
+    expect(r.semVoluntariado.map((c) => c.nomeGuerra)).not.toContain('NAOJES');
+    expect(await motivo('NAOJES', D, FAIXA.JES, T('JES A'))).toBe('Não é voluntário JES');
+  });
+
+  it('quem não marcou e também tem choque de horário fica de fora de vez (Review Focus 3)', async () => {
+    const posto = (await api.banco.query<{ id: string }>("select id from posto_grad where sigla = 'SD-C'")).rows[0]!.id;
+    await criarMilitar('SEMCHOQUE', { posto, jes: true });
+    await alocar('SEMCHOQUE', 'Madrugada', 'A', dia(24));
+    expect(await motivo('SEMCHOQUE', dia(24), FAIXA.JES, T('JES A'))).toBe('Choque de horário');
+    const r = await avaliarCandidatos(api.banco, vaga(dia(24), FAIXA.JES));
+    expect(r.semVoluntariado.map((c) => c.nomeGuerra)).not.toContain('SEMCHOQUE');
+    expect(nomes(r)).not.toContain('SEMCHOQUE');
+  });
+
+  it('a rota devolve semVoluntariado junto dos aptos', async () => {
+    const q = `data=${D}&inicio=${FAIXA.JES.inicio}&fim=${FAIXA.JES.fim}&guarnicaoId=${abt}&funcaoId=${combatente}`;
+    const corpo = await (await api.pedir('escalante', 'GET', `/api/escalas/${escalaId}/mes/${atual}/candidatos?${q}`)).json();
+    const sem = corpo.semVoluntariado.map((c: { nomeGuerra: string }) => c.nomeGuerra);
+    expect(sem).toContain('JESSEM');
+    expect(sem).not.toContain('JESVOL');
+    expect(sem).not.toContain('NAOJES');
+  });
+});
+
