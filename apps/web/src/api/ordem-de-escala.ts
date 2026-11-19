@@ -13,3 +13,8 @@ export async function gravarOrdemDeEscala(queryClient: QueryClient, escalaId: st
   void queryClient.invalidateQueries({ queryKey: ['escala-do-mes', escalaId] });
   return nova;
 }
+
+/** A composição ou os vínculos mudaram: as vagas da ordem de qualquer mês podem ter mudado. */
+export function atualizarOrdemDeEscala(queryClient: QueryClient, escalaId: string) {
+  void queryClient.invalidateQueries({ queryKey: ['ordem-de-escala', escalaId] });
+}

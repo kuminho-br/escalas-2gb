@@ -35,24 +35,28 @@ export function OrdemDeEscala({ escalaId, mes, dados }: { escalaId: string; mes:
   const [aviso, setAviso] = useState<{ erro: boolean; texto: string } | null>(null);
 
   const porChave = new Map(dados.vagas.map((v) => [chave(v), v]));
-  const posicaoDe = (v: VagaNaTela) => ordem.indexOf(chave(v)) + 1 || null;
-  const alternar = (v: VagaNaTela) => setOrdem((o) => (o.includes(chave(v)) ? o.filter((k) => k !== chave(v)) : [...o, chave(v)]));
+  // a composição ou o vínculo podem mudar com a tela aberta (ou a ordem vir do cache): vaga que já não existe sai da ordem e as posições se fecham
+  const existentes = (o: string[]) => o.filter((k) => porChave.has(k));
+  const ativa = existentes(ordem);
+  const posicaoDe = (v: VagaNaTela) => ativa.indexOf(chave(v)) + 1 || null;
+  const alternar = (v: VagaNaTela) => setOrdem((o) => (existentes(o).includes(chave(v)) ? existentes(o).filter((k) => k !== chave(v)) : [...existentes(o), chave(v)]));
   const mover = (i: number, passo: -1 | 1) =>
     setOrdem((o) => {
-      const novo = [...o];
+      const novo = existentes(o);
       [novo[i], novo[i + passo]] = [novo[i + passo]!, novo[i]!];
       return novo;
     });
 
   const salvar = travar(async () => {
     setAviso(null);
-    const itens = ordem.map((k): VagaDaOrdem => {
+    const itens = ativa.map((k): VagaDaOrdem => {
       const v = porChave.get(k)!;
       return { guarnicaoId: v.guarnicaoId, funcaoId: v.funcaoId, vaga: v.vaga };
     });
     try {
       await gravarOrdemDeEscala(queryClient, escalaId, mes, itens);
-      setSalvo(ordem.join(','));
+      setOrdem(ativa);
+      setSalvo(ativa.join(','));
       setAviso({ erro: false, texto: 'Ordem salva.' });
     } catch (e) {
       setAviso({ erro: true, texto: mensagemComCampo(e) });
@@ -70,7 +74,7 @@ export function OrdemDeEscala({ escalaId, mes, dados }: { escalaId: string; mes:
   const rotuloCurto = (v: VagaNaTela) => (vagasDaFuncao(v) > 1 ? `${v.funcao} ${v.vaga}` : v.funcao);
 
   // o que falta, por guarnição: "Combatente 2 e Combatente 3 da ABT"
-  const fora = dados.vagas.filter((v) => !ordem.includes(chave(v)));
+  const fora = dados.vagas.filter((v) => !ativa.includes(chave(v)));
   const falta = guarnicoes.flatMap((g) => {
     const delas = fora.filter((v) => v.guarnicaoId === g.id);
     return delas.length ? [`${listaComE(delas.map(rotuloCurto))} da ${g.nome}`] : [];
@@ -78,7 +82,7 @@ export function OrdemDeEscala({ escalaId, mes, dados }: { escalaId: string; mes:
   const rodape =
     fora.length === 0
       ? 'Todas as vagas estão na ordem.'
-      : `${ordem.length} de ${dados.vagas.length} vagas na ordem.${ordem.length > 0 ? ` Falta: ${listaComE(falta)}.` : ''}`;
+      : `${ativa.length} de ${dados.vagas.length} vagas na ordem.${ativa.length > 0 ? ` Falta: ${listaComE(falta)}.` : ''}`;
 
   const aoTeclar = (e: KeyboardEvent<HTMLDivElement>) => {
     const passo = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 }[e.key];
@@ -127,18 +131,18 @@ export function OrdemDeEscala({ escalaId, mes, dados }: { escalaId: string; mes:
         </div>
         <aside className="grid gap-2 rounded-lg border border-linha bg-superficie p-3">
           <h2 className="font-cond text-base font-semibold">Ordem de preenchimento</h2>
-          {ordem.length === 0 ? (
+          {ativa.length === 0 ? (
             <p className="text-sm text-apagado">Nenhuma vaga na ordem ainda.</p>
           ) : (
             <ol aria-label="Ordem de preenchimento" className="grid gap-1">
-              {ordem.map((k, i) => {
+              {ativa.map((k, i) => {
                 const v = porChave.get(k)!;
                 return (
                   <li key={k} className="flex items-center gap-1.5 text-sm">
                     <span className="w-6 text-right font-cond font-semibold">{i + 1}</span>
                     <span className="min-w-0 flex-1">{nomeDaVaga(v)}</span>
                     <Button type="button" variant="ghost" size="icon" aria-label={`Subir ${nomeDaVaga(v)}`} disabled={i === 0} onClick={() => mover(i, -1)}><ArrowUp aria-hidden /></Button>
-                    <Button type="button" variant="ghost" size="icon" aria-label={`Descer ${nomeDaVaga(v)}`} disabled={i === ordem.length - 1} onClick={() => mover(i, 1)}><ArrowDown aria-hidden /></Button>
+                    <Button type="button" variant="ghost" size="icon" aria-label={`Descer ${nomeDaVaga(v)}`} disabled={i === ativa.length - 1} onClick={() => mover(i, 1)}><ArrowDown aria-hidden /></Button>
                   </li>
                 );
               })}
