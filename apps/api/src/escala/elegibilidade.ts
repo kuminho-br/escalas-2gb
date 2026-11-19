@@ -19,6 +19,7 @@ import {
   type Militar,
 } from 'dominio';
 import type { Consulta } from '../banco/banco.ts';
+import { parametroEmVigor } from '../cadastros/configuracoes.ts';
 import { vinculosDaEscala } from '../cadastros/escalas.ts';
 import { feriadosDoAno } from '../cadastros/feriados.ts';
 import { versaoNoMes } from '../cadastros/guarnicoes-regras.ts';
@@ -114,6 +115,8 @@ async function avaliar(c: Consulta, v: VagaConsultada, somenteMilitar?: string):
     for (const f of await feriadosDoAno(c, unidadeId, ano)) feriados.add(f.data);
   }
   const util = (d: string) => diaDaSemana(d) >= 1 && diaDaSemana(d) <= 5 && !feriados.has(d);
+  // flexibilidade do voluntariado (horas cheias que podem faltar nas pontas do turno), em vigor no mês da vaga; só afrouxa o voluntariado
+  const flexibilidadeMin = Number(await parametroEmVigor(c, unidadeId, 'FLEXIBILIDADE_VOLUNTARIADO_HORAS', v.data.slice(0, 7))) * 60;
 
   let exigida: string | null = null;
   if (v.guarnicaoId && v.funcaoId) {
@@ -144,7 +147,7 @@ async function avaliar(c: Consulta, v: VagaConsultada, somenteMilitar?: string):
         // RN-03: o Saldo é do Adm (a regra e a frase são do motor; aqui sem o código da regra)
         if (violacoesSaldo([{ mat: m.id, dia: v.data, servico: turno.nome, turno: turno.letra }], { adm: m.jornada === 'adm' ? { [m.id]: true } : {} }).length) motivo = 'Saldo só para militar do Adm';
         else if ((turno.tipo === 'pjes' || exigeVoluntarioJes(turno.nome)) && !m.voluntario_jes) motivo = 'Não é voluntário JES';
-        else if (turno.tipo !== 'ordinario' && !turnoCoberto((dia) => unirFaixas(disponibilidade.get(`${m.id}|${dia}`) ?? []), v.data, turno.inicio, turno.fim)) {
+        else if (turno.tipo !== 'ordinario' && !turnoCoberto((dia) => unirFaixas(disponibilidade.get(`${m.id}|${dia}`) ?? []), v.data, turno.inicio, turno.fim, flexibilidadeMin)) {
           motivo = 'Não marcou voluntariado neste horário';
         } else {
           const candidata: AlocChoque = { mat: m.id, dia: v.data, turno: turno.letra, servico: turno.nome };

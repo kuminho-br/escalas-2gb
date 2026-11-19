@@ -19,6 +19,10 @@ const LISTA = [
   parametro({}),
   parametro({ chave: 'SALDOS_ADM_POR_MILITAR', rotulo: 'Saldos por militar do Adm', valor: 5, vigencia: '2026-11', origem: 'herdada', unidadeSigla: '2º GB', normaReferencia: 'Portaria 12/2026' }),
 ];
+const FLEXIBILIDADE = parametro({
+  chave: 'FLEXIBILIDADE_VOLUNTARIADO_HORAS', rotulo: 'Flexibilidade do voluntariado (horas)', valor: 0,
+  descricao: 'Horas que podem faltar no começo ou no fim do turno para o militar ainda contar como voluntário. Buraco no meio do turno não conta.',
+});
 const TIPOS = [{ id: 't1', nome: 'Férias', ativo: true }, { id: 't2', nome: 'Curso', ativo: false }];
 
 const GESTOR = { ...EU_EXEMPLO, papeis: [{ papel: 'gestor' as const, unidadeId: 'u-1sb', unidadeSigla: '1ª SB' }] };
@@ -43,6 +47,20 @@ describe('configurações', () => {
     expect(within(linha).getByText('Portaria 12/2026')).toBeInTheDocument();
     const padrao = screen.getByText('Carga mensal (horas)').closest('tr')!;
     expect(within(padrao).getByText('padrão do sistema')).toBeInTheDocument();
+  });
+
+  it('mostra a flexibilidade do voluntariado e o gestor muda a partir de um mês, em horas', async () => {
+    const f = api({ [`GET ${PARAMS}`]: { status: 200, corpo: [...LISTA, FLEXIBILIDADE] }, [`POST ${PARAMS}`]: { status: 201, corpo: {} } }, GESTOR);
+    abrir('/configuracoes');
+    const linha = (await screen.findByText('Flexibilidade do voluntariado (horas)')).closest('tr')!;
+    expect(within(linha).getByText(/Buraco no meio do turno não conta/)).toBeInTheDocument();
+    expect(within(linha).getByText('padrão do sistema')).toBeInTheDocument();
+    await userEvent.click(within(linha).getByRole('button', { name: 'Mudar a partir de…' }));
+    await userEvent.clear(screen.getByLabelText('Novo valor'));
+    await userEvent.type(screen.getByLabelText('Novo valor'), '1');
+    const proximo = somarMeses(mesAtual(), 1);
+    await userEvent.click(screen.getByRole('button', { name: `Salvar a partir de ${mesPorExtenso(proximo)}` }));
+    expect(corpoEnviado(f, `POST ${PARAMS}`)).toMatchObject({ chave: 'FLEXIBILIDADE_VOLUNTARIADO_HORAS', valor: '1', vigencia: proximo });
   });
 
   it('mudar a partir de envia vigencia e norma', async () => {

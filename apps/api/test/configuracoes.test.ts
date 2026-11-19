@@ -65,7 +65,7 @@ describe('parâmetros', () => {
     const r = await parametros(api.ids.secao);
     expect(r.status).toBe(200);
     const lista = await r.json();
-    expect(lista.map((p: { chave: string }) => p.chave)).toEqual(['CARGA_MENSAL_HORAS', 'SALDOS_ADM_POR_MILITAR', 'ADM_CUMPRE_CARGA']);
+    expect(lista.map((p: { chave: string }) => p.chave)).toEqual(['CARGA_MENSAL_HORAS', 'SALDOS_ADM_POR_MILITAR', 'ADM_CUMPRE_CARGA', 'FLEXIBILIDADE_VOLUNTARIADO_HORAS']);
     expect(doCatalogo(lista, 'CARGA_MENSAL_HORAS')).toMatchObject({ valor: 160, origem: 'padrao', unidadeSigla: null, rotulo: 'Carga mensal (horas)' });
   });
 
@@ -114,6 +114,31 @@ describe('parâmetros', () => {
       const r = await api.pedir('admin', 'POST', `/api/unidades/${api.ids.secao}/parametros`, { chave, valor, vigencia: atual });
       expect(r.status).toBe(400);
     }
+  });
+
+  it('a flexibilidade do voluntariado aparece com o padrão 0 e o rótulo em horas', async () => {
+    const lista = await (await parametros(api.ids.secao)).json();
+    expect(doCatalogo(lista, 'FLEXIBILIDADE_VOLUNTARIADO_HORAS')).toMatchObject({
+      valor: 0, origem: 'padrao', rotulo: 'Flexibilidade do voluntariado (horas)', tipo: 'inteiro',
+    });
+  });
+
+  it('a flexibilidade grava só horas cheias de 0 a 3 (o administrador grava; minutos e valores altos são 400)', async () => {
+    const corpo = (valor: string) => ({ chave: 'FLEXIBILIDADE_VOLUNTARIADO_HORAS', valor, vigencia: proximo });
+    const url = `/api/unidades/${api.ids.secao}/parametros`;
+    expect((await api.pedir('admin', 'POST', url, corpo('1'))).status).toBe(201);
+    expect(doCatalogo(await (await parametros(api.ids.secao, proximo)).json(), 'FLEXIBILIDADE_VOLUNTARIADO_HORAS')).toMatchObject({ valor: 1, origem: 'propria' });
+    const quebrado = await api.pedir('admin', 'POST', url, corpo('1,5'));
+    expect(quebrado.status).toBe(400);
+    expect(await quebrado.json()).toMatchObject({ erro: 'Use um número inteiro.' });
+    const alto = await api.pedir('admin', 'POST', url, corpo('4'));
+    expect(alto.status).toBe(400);
+    expect(await alto.json()).toMatchObject({ erro: 'O máximo é 3.' });
+  });
+
+  it('o escalante não muda a flexibilidade (403)', async () => {
+    const r = await api.pedir('escalante', 'POST', `/api/unidades/${api.ids.secao}/parametros`, { chave: 'FLEXIBILIDADE_VOLUNTARIADO_HORAS', valor: '1', vigencia: proximo });
+    expect(r.status).toBe(403);
   });
 
   it('escalante não muda parâmetro (403)', async () => {
