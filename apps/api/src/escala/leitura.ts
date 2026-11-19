@@ -93,7 +93,7 @@ export async function montarEscalaDoMes(c: Consulta, escalaId: string, mes: stri
     const t = turnos.find((x) => x.id === a.turno_id);
     if (!t) return [];
     return [{
-      alocacaoId: a.id, militarId: a.militar_id, posto: a.posto, nomeGuerra: a.nome_guerra, matricula: a.matricula,
+      alocacaoId: a.id, acumuloId: null, acumulaCom: [], militarId: a.militar_id, posto: a.posto, nomeGuerra: a.nome_guerra, matricula: a.matricula,
       servico: { id: t.servicoId, nome: t.servico, cor: t.cor }, letra: t.letra, data: a.data, turnoId: a.turno_id, guarnicaoId: a.guarnicao_id, funcaoId: a.funcao_id,
     }];
   });

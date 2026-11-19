@@ -182,7 +182,7 @@ export async function avaliarCandidatos(c: Consulta, v: VagaConsultada): Promise
     if (m) contagem.set(m, (contagem.get(m) ?? 0) + 1);
   }
   const fora = [...contagem.entries()].map(([motivo, quantidade]) => ({ motivo, quantidade })).sort((a, b) => b.quantidade - a.quantidade || a.motivo.localeCompare(b.motivo, 'pt-BR'));
-  return { aptos, fora };
+  return { aptos, fora, acumular: [] };
 }
 
 /** Por que o militar não pode ocupar a vaga neste turno (a frase que a tela mostra); null se pode. */

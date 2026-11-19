@@ -11,7 +11,7 @@ const MES = mesAtual();
 const LISTA: LinhaEscala[] = [{ id: 'e1', nome: 'Ordinário', ativa: true, servicos: ['Pronto'] }, { id: 'e9', nome: 'Velha', ativa: false, servicos: [] }];
 
 const ocupante = (nome: string): OcupanteDaVaga => ({
-  alocacaoId: `a-${nome}`, militarId: `m-${nome}`, posto: 'SD BM', nomeGuerra: nome, matricula: '990001-1', servico: { id: 's1', nome: 'Pronto', cor: '#2F8F5B' }, letra: 'A',
+  alocacaoId: `a-${nome}`, acumuloId: null, acumulaCom: [], militarId: `m-${nome}`, posto: 'SD BM', nomeGuerra: nome, matricula: '990001-1', servico: { id: 's1', nome: 'Pronto', cor: '#2F8F5B' }, letra: 'A',
 });
 const card = (motorista: boolean, combatente: boolean): CardDaGuarnicao => {
   const faltam = [...(motorista ? [] : ['Falta 1 Motorista (CNH D)']), ...(combatente ? [] : ['Falta 1 Combatente'])];
@@ -163,7 +163,7 @@ describe('escolher militar e remover', () => {
       { militarId: 'm-zulu', posto: 'SD BM', nomeGuerra: 'ZULU', matricula: '990002-2', equipe: 'Alfa', jornada: 'pronto', servicos: [{ servicoId: 's1', turnoId: 't-a', nome: 'Pronto' }] },
       { militarId: 'm-yuri', posto: 'CB BM', nomeGuerra: 'YURI', matricula: '990003-3', equipe: null, jornada: 'adm', servicos: [{ servicoId: 's1', turnoId: 't-a', nome: 'Pronto' }, { servicoId: 's2', turnoId: 't-jes', nome: 'JES' }] },
     ],
-    fora: [{ motivo: 'Afastado', quantidade: 3 }, { motivo: 'Sem a CNH exigida', quantidade: 2 }, { motivo: 'Choque de horário', quantidade: 1 }],
+    fora: [{ motivo: 'Afastado', quantidade: 3 }, { motivo: 'Sem a CNH exigida', quantidade: 2 }, { motivo: 'Choque de horário', quantidade: 1 }], acumular: [],
   };
   // a escala depois de escalar o ZULU de Combatente no dia 2, faixa do dia
   const COM_ZULU: EscalaDoMes = {
@@ -238,7 +238,7 @@ describe('escolher militar e remover', () => {
   });
 
   it('sem ninguém apto, o diálogo diz isso e ainda mostra por que os outros ficaram de fora', async () => {
-    api(ESCALA, { [rotaCandidatos]: { status: 200, corpo: { aptos: [], fora: [{ motivo: 'Afastado', quantidade: 1 }] } } });
+    api(ESCALA, { [rotaCandidatos]: { status: 200, corpo: { aptos: [], fora: [{ motivo: 'Afastado', quantidade: 1 }], acumular: [] } } });
     abrir('/escala-do-mes');
     await screen.findByRole('region', { name: 'Dia 2' });
     const dialogo = await abrirVaga();
