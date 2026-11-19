@@ -86,7 +86,8 @@ Conversa com o usuário depois de usar a entrega 2.2 na sandbox. O que motivou: 
 - **Quem usa.** A escalação automática (pré-escala, entrega 3) **segue a flexibilidade** definida pelo gestor. A lista "Escolher militar" também.
 - **O que ela não afrouxa.** A flexibilidade só vale para o voluntariado. Choque de horário, descanso e as outras regras de elegibilidade continuam estritos. Exemplo: quem sai do Pronto às 08h e marcou 08–16 não entra no 07h–15h, nem com 1h de flexibilidade, porque às 07h ainda está no Pronto.
 - **Sem aviso de falta na lista** (reprovado: polui a tela e piora o uso).
-- **Chamada da PROGRAMAÇÃO (a confirmar).** Horas inteiras, de 0 a 3, para que o turno conferido nunca fique vazio: um turno de 8h com 4h de cada lado não conferiria nada.
+- **Só horas cheias** (decisão do usuário): o parâmetro não aceita minutos.
+- **Chamada da PROGRAMAÇÃO.** O valor vai de 0 a 3. Se a flexibilidade comer o turno inteiro (um turno de 6h com 3h de cada lado), ainda se confere 1h no meio do turno: nenhum turno fica sem conferência.
 
 ### O escalante sempre pode passar por cima do voluntariado (decidido; falta na tela de hoje)
 
@@ -97,20 +98,18 @@ Ficaram de fora: 2 sem voluntariado neste horário  [Mostrar]
   └ ao tocar: CB BM DANTAS, SD BM FALCAO — escolhíveis, num grupo à parte
 ```
 
-O grupo fica fechado por padrão, para não poluir. Só o voluntariado pode ser contornado: choque de horário, afastamento e CNH continuam tirando o militar da lista.
+O grupo fica fechado por padrão, para não poluir. Só a disponibilidade marcada pode ser contornada. Choque de horário, afastamento, CNH, "uma diária por dia", Saldo só do Adm e o atributo **voluntário JES** do cadastro continuam tirando o militar da lista, e a gravação também confere essas regras. A pré-escala nunca escala quem está fora do voluntariado (com a flexibilidade aplicada).
 
-### De onde vêm os blocos do dia (pendente: decisão do usuário)
+### De onde vêm os blocos do dia (decidido)
 
-- **Reprovado:** "divide o dia" ligado ou desligado no cadastro do serviço (parece gambiarra).
-- **Ideia do usuário:** uma escala fantasma "Voluntariado", sem cotas e sem guarnições, cujos turnos desenham os blocos. A PROGRAMAÇÃO aponta três custos:
-  - ela apareceria nas telas de escalas, cotas e escala do mês;
-  - o sistema teria de reconhecê-la de algum jeito, e pelo nome é frágil;
-  - pela regra de hoje, ela **somaria** cortes aos do CPRH em vez de substituí-los.
-- **Caminhos:**
-  - **A. Escala marcada "define os blocos do voluntariado".** A ideia do usuário, com uma marcação em vez do nome. Quando ela existe, os blocos vêm só dela. Precisa ser escondida nas outras telas.
-  - **B. Parâmetro "Horários do voluntariado"** (recomendação da PROGRAMAÇÃO). Fica ao lado da flexibilidade, em Configurações, por nível hierárquico e com vigência, por exemplo `00h, 08h, 16h, 20h`. Vazio quer dizer automático, a partir dos serviços, como hoje. Não cria entidade fantasma, e o gestor ajusta tudo num lugar só.
-  - **C. Automático pela flexibilidade.** Some o corte que cria bloco menor que a flexibilidade. Não precisa de configuração, mas o sistema teria de adivinhar qual corte apagar (07h ou 08h?).
-- **Juntos, os blocos do gestor e a flexibilidade resolvem o caso do CPRH e das eleições:** o dia volta a ter 4 blocos, e 1h de flexibilidade mantém essa gente apta.
+- **Pelas escalas** (decisão do usuário). Além da flexibilidade, o gestor decide **quais escalas entram na montagem dos blocos**. Os cortes passam a vir dos turnos dos serviços que pedem voluntariado (PJES e diária, ativos) que estão em **alguma escala ativa da seção marcada para entrar**. Por padrão, todas entram, que é o comportamento de hoje.
+- **Reprovado:** "divide o dia" no cadastro do serviço (parece gambiarra).
+- **Escala fantasma é só um jeito de usar o sistema, não uma função nova** (esclarecimento do usuário). O gestor pode criar uma escala que não é real, com os turnos que quer ver como blocos, marcá-la para entrar na montagem e tirar as do CPRH e das eleições. Ninguém é escalado nela. O sistema não trata essa escala de modo especial.
+- **Chamadas da PROGRAMAÇÃO:**
+  - A marcação fica na própria escala, sem vigência, como os turnos.
+  - Só o gestor e o administrador mudam a marcação. A tela é Configurações, numa seção "Voluntariado" junto da flexibilidade.
+  - Se nenhuma escala marcada tiver serviço que pede voluntariado, o dia fica com um bloco só (00h às 24h).
+  - Um serviço que não está em nenhuma escala marcada deixa de cortar o dia.
 
 ### Celular: o painel do militar abre lá embaixo (decidido: modo foco)
 
@@ -124,6 +123,7 @@ O grupo fica fechado por padrão, para não poluir. Só o voluntariado pode ser 
   - **Barra fixa no rodapé da tela**, com o resumo ("N horas em M dias.") e o botão de salvar. Hoje o botão fica depois das 31 linhas e dos atalhos, longe do dedo.
   - **No celular, o botão vira "Salvar" e volta à lista**, como o usuário pediu. O próximo que falta lançar fica no alto de "Faltam lançar". No computador, continua "Salvar e ir para o próximo".
 - **Só no celular** (a mesma largura de corte da entrega 2.2, 767px). No computador, lista e painel continuam lado a lado.
+- **Chamada da PROGRAMAÇÃO:** no celular, a tela não abre sozinha o primeiro que falta lançar (no computador, abre). A lista aparece primeiro, e tocar num nome entra no modo foco.
 
 ### Outros pontos levantados
 
