@@ -8,6 +8,24 @@ import { Button } from '@/componentes/ui/button';
 import { alternarBloco, copiarDoMes, estadoDoBloco, faixasParaEnviar, fimDeSemana, marcarDias, marcasDoServidor, textoDoRodape, tirarBloco, type Estado, type Marcas } from '@/lib/voluntariado';
 import { cn } from '@/lib/utils';
 import { useEhCelular } from '@/lib/useEhCelular';
+import { CLASSE_DA_TECLA, GuiaComoMarcar } from './GuiaComoMarcar';
+
+const CHAVE_DO_GUIA = 'voluntariado.guia';
+// o navegador lembra que a pessoa já entendeu; sem armazenamento (modo privado) o guia só volta a aparecer na próxima visita
+const guiaJaFechado = (): boolean => {
+  try {
+    return window.localStorage.getItem(CHAVE_DO_GUIA) === 'fechado';
+  } catch {
+    return false;
+  }
+};
+const lembrarGuiaFechado = () => {
+  try {
+    window.localStorage.setItem(CHAVE_DO_GUIA, 'fechado');
+  } catch {
+    /* sem armazenamento: vale só nesta sessão */
+  }
+};
 
 const SEMANA = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'];
 const hh = (min: number) => `${String(Math.floor(min / 60)).padStart(2, '0')}h`;
@@ -96,20 +114,24 @@ export function CalendarioDoVoluntariado({
   const rotuloDoBloco = (dia: number, b: Faixa) => `Dia ${dia}, ${hh(b.inicio)} às ${hh(b.fim === 1440 ? 1440 : b.fim)}`;
   // celular: um dia por linha, só toque (o arrasto não vale: deslizar o dedo rola a página)
   const celular = useEhCelular();
+  const [guiaAberto, setGuiaAberto] = useState(() => !guiaJaFechado());
 
   return (
     <section className="grid content-start gap-4 rounded-xl border border-linha bg-superficie p-4">
       <header className="grid gap-1">
         <h2 className="font-cond text-2xl leading-tight font-semibold">{`${militar.posto} ${militar.nomeGuerra}`}</h2>
         <p className="text-sm text-apagado">{`${equipe}${aviso}`}</p>
+        <button type="button" onClick={() => setGuiaAberto(true)} className="justify-self-start rounded text-sm text-vinho underline underline-offset-2">Como marcar</button>
       </header>
 
-      {/* a legenda do dia: os cortes dos serviços, na mesma escala dos blocos de baixo */}
-      {/* no celular, a faixa de rótulos fica parada no topo da rolagem e tem as mesmas colunas e bordas das linhas dos dias */}
-      <div aria-hidden className={cn('grid gap-1', celular && 'sticky top-0 z-10 bg-superficie')}>
-        <div className={cn(celular && 'grid grid-cols-[3.5rem_1fr] gap-2 rounded-md border border-transparent p-1.5')}>
-          {celular && <span />}
-          <div data-rotulos-dos-cortes className={cn('relative h-4 text-xs text-apagado', celular && 'border border-transparent')}>
+      {guiaAberto && <GuiaComoMarcar blocos={blocos} celular={celular} aoFechar={() => { setGuiaAberto(false); lembrarGuiaFechado(); }} />}
+
+      {/* só no celular: a régua dos cortes, parada no topo da rolagem, com as mesmas colunas e bordas das linhas dos dias (no computador, o horário aparece ao passar o mouse e no guia) */}
+      {celular && (
+      <div aria-hidden className="sticky top-0 z-10 grid gap-1 bg-superficie">
+        <div className="grid grid-cols-[3.5rem_1fr] gap-2 rounded-md border border-transparent p-1.5">
+          <span />
+          <div data-rotulos-dos-cortes className="relative h-4 border border-transparent text-xs text-apagado">
             {cortes.map((c, i) => {
               // as pontas ficam na borda da faixa (o último corte é a meia-noite do dia seguinte: "00h"); os do meio, centrados no corte
               const ultimo = i === cortes.length - 1;
@@ -120,6 +142,7 @@ export function CalendarioDoVoluntariado({
           </div>
         </div>
       </div>
+      )}
 
       <div ref={grade} role="group" aria-label="Calendário do voluntariado" data-disposicao={celular ? 'linhas' : 'calendario'} onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); void gravar(); } }} className={cn(celular ? 'grid gap-2' : 'grid grid-cols-7 gap-2')}>
         {!celular && SEMANA.map((s) => <span key={s} aria-hidden className="text-center text-xs text-apagado">{s}</span>)}
@@ -162,8 +185,9 @@ export function CalendarioDoVoluntariado({
                 onClick={(e) => (e.detail === 0 || ponteiro.current !== 'mouse') && setMarcas((m) => marcarOuTirar(m, d, blocos, todos.every((x) => x === 'cheio') ? 'desmarcar' : 'marcar'))}
                 onKeyDown={(e) => aoTeclar(e, d)}
                 className={cn(
-                  // uma tecla: borda, sombra embaixo e "afunda" ao apertar; igual em qualquer estado do dia
-                  'justify-self-start rounded-md border border-input bg-superficie px-2 text-left font-cond text-base leading-none font-semibold shadow-[0_1px_0_var(--color-input)] hover:border-apagado hover:bg-accent active:translate-y-px active:shadow-none',
+                  // uma tecla: igual em qualquer estado do dia; ao apertar "afunda"
+                  CLASSE_DA_TECLA,
+                  'justify-self-start hover:border-apagado hover:bg-accent active:translate-y-px active:shadow-none',
                   celular ? 'h-10' : 'min-h-7 min-w-8',
                 )}
               >
