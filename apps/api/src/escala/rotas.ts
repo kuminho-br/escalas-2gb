@@ -1,5 +1,5 @@
 // Escala do mês: leitura (aqui) e, nas tarefas seguintes, candidatos, escalar e remover.
-import { Data, Hora, Id, Mes, NovaAlocacao, NovoAcumulo, OrdemDeEscalaEntrada, mesPorExtenso } from 'contratos';
+import { Data, Hora, Id, Mes, NovaAlocacao, NovaPreEscala, NovoAcumulo, OrdemDeEscalaEntrada, mesPorExtenso } from 'contratos';
 import { z } from 'zod';
 import { Hono } from 'hono';
 import { CADASTRO, exigirPapel, exigirSessao, unidadeDoRegistro, type AmbienteApi } from '../acesso.ts';
@@ -11,6 +11,7 @@ import { acumular, desfazerRemocao, escalar, Recusa, remover, tirarAcumulo } fro
 import { avaliarCandidatos } from './elegibilidade.ts';
 import { montarEscalaDoMes } from './leitura.ts';
 import { gravarOrdem, ordemDoMes } from './ordem-do-mes.ts';
+import { planejarPreEscala, PreEscalaInvalida } from './pre-escala.ts';
 
 const ConsultaDeCandidatos = z.object({ data: Data, inicio: Hora, fim: Hora, guarnicaoId: Id.optional(), funcaoId: Id.optional() });
 
@@ -28,6 +29,60 @@ export function rotasEscalaDoMes(dep: { banco: Banco; auth: Auth }): Hono<Ambien
     const mes = c.req.param('mes');
     if (!Mes.safeParse(mes).success) return c.json({ erro: 'Mês inválido: use o formato aaaa-mm.' }, 400);
     return c.json(await montarEscalaDoMes(dep.banco, id, mes));
+  });
+
+  /** A prévia da pré-escala do Pronto: o que a gravação criaria, o que ficaria de fora e a equipe do dia 1 (a escolhida em `?equipe=` ou a detectada). */
+  r.get('/escalas/:id/mes/:mes/pre-escala', async (c) => {
+    const id = c.req.param('id');
+    const unidadeId = await unidadeDoRegistro(dep.banco, 'escala', id);
+    if (!unidadeId) return c.json({ erro: 'Escala não encontrada.' }, 404);
+    const negado = await exigirPapel(c, unidadeId, CADASTRO);
+    if (negado) return negado;
+    const mes = c.req.param('mes');
+    if (!Mes.safeParse(mes).success) return c.json({ erro: 'Mês inválido: use o formato aaaa-mm.' }, 400);
+    const equipe = c.req.query('equipe');
+    if (equipe !== undefined && !Id.safeParse(equipe).success) return c.json({ erro: 'Equipe inválida.', campos: { equipe: 'Equipe inválida.' } }, 400);
+    try {
+      return c.json((await planejarPreEscala(dep.banco, id, mes, equipe ?? null)).previa);
+    } catch (e) {
+      if (e instanceof PreEscalaInvalida) return c.json({ erro: e.message, campos: { equipe: e.message } }, 400);
+      throw e;
+    }
+  });
+
+  /**
+   * Grava a pré-escala do Pronto. Calcula de novo dentro da transação, com trava por escala e mês (a escala pode ter mudado desde a
+   * prévia e dois cliques ao mesmo tempo não duplicam): só entra o que ainda cabe, e quem já estava escalado não é mexido.
+   */
+  r.post('/escalas/:id/mes/:mes/pre-escala', async (c) => {
+    const id = c.req.param('id');
+    const unidadeId = await unidadeDoRegistro(dep.banco, 'escala', id);
+    if (!unidadeId) return c.json({ erro: 'Escala não encontrada.' }, 404);
+    const negado = await exigirPapel(c, unidadeId, CADASTRO);
+    if (negado) return negado;
+    const mes = c.req.param('mes');
+    if (!Mes.safeParse(mes).success) return c.json({ erro: 'Mês inválido: use o formato aaaa-mm.' }, 400);
+    const corpo = await lerCorpo(c, NovaPreEscala);
+    if (!corpo.ok) return corpo.resposta;
+    try {
+      const gravadas = await comUsuario(dep.banco, c.get('usuarioId'), async (tx) => {
+        await tx.query('select pg_advisory_xact_lock(hashtext($1))', [`pre-escala|${id}|${mes}`]);
+        const { novas } = await planejarPreEscala(tx, id, mes, corpo.dados.equipeDia1Id);
+        if (!novas.length) return 0;
+        const { rows } = await tx.query<{ id: string }>(
+          `insert into alocacao (militar_id, escala_id, servico_id, turno_id, data, guarnicao_id, funcao_id, origem)
+           select x.m, $1, x.s, x.t, x.d, x.g, x.f, 'pre_escala'
+             from unnest($2::uuid[], $3::uuid[], $4::uuid[], $5::date[], $6::uuid[], $7::uuid[]) as x(m, s, t, d, g, f)
+           on conflict do nothing returning id`,
+          [id, novas.map((n) => n.militarId), novas.map((n) => n.servicoId), novas.map((n) => n.turnoId), novas.map((n) => n.data), novas.map((n) => n.guarnicaoId), novas.map((n) => n.funcaoId)],
+        );
+        return rows.length;
+      });
+      return c.json({ escala: await montarEscalaDoMes(dep.banco, id, mes), gravadas }, 201);
+    } catch (e) {
+      if (e instanceof PreEscalaInvalida) return c.json({ erro: e.message, campos: { equipeDia1Id: e.message } }, 400);
+      return respostaDoErroDoBanco(c, e);
+    }
   });
 
   /** Quem pode ocupar a vaga (dia, faixa, guarnição e função) e quantos ficaram de fora e por quê. */

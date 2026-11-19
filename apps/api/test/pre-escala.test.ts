@@ -205,3 +205,70 @@ describe('gerar de novo (Review Focus 1)', () => {
     expect(previa.removidosQueNaoVoltam).toBe(1);
   });
 });
+
+describe('as rotas da prévia e da gravação', () => {
+  const url = (id: string, m = mes) => `/api/escalas/${id}/mes/${m}/pre-escala`;
+  const gravadasNoBanco = async (m: string) =>
+    (await api.banco.query<{ n: number }>(`select count(*)::int as n from alocacao where origem = 'pre_escala' and data >= $1::date and data < ($1::date + interval '1 month')`, [`${m}-01`])).rows[0]!.n;
+
+  it('a prévia pela rota é a mesma do planejamento, e sem equipe escolhida usa a detectada', async () => {
+    const { previa } = await planejarPreEscala(api.banco, escala, mes, equipe.Alfa!);
+    const r = await api.pedir('escalante', 'GET', `${url(escala)}?equipe=${equipe.Alfa}`);
+    expect(r.status).toBe(200);
+    expect(await r.json()).toEqual(previa);
+    const detectada = await (await api.pedir('escalante', 'GET', url(escala))).json();
+    expect(detectada.equipeUsada).toEqual({ id: equipe.Charlie, nome: 'Charlie' });
+  });
+
+  it('equipe inválida na prévia é 400; mês inválido é 400; quem não tem papel recebe 403', async () => {
+    expect((await api.pedir('escalante', 'GET', `${url(escala)}?equipe=nao-e-um-id`)).status).toBe(400);
+    expect((await api.pedir('escalante', 'GET', url(escala, '2026-13'))).status).toBe(400);
+    expect((await api.pedir('semPapel', 'GET', url(escala))).status).toBe(403);
+    expect((await api.pedir('escalante', 'GET', url('00000000-0000-0000-0000-000000000000'))).status).toBe(404);
+  });
+
+  it('gravar cria as alocações do Pronto (origem pré-escala) e a escala do mês mostra os ocupantes e os sem guarnição', async () => {
+    const { previa } = await planejarPreEscala(api.banco, escala, mes, equipe.Alfa!);
+    const r = await api.pedir('escalante', 'POST', url(escala), { equipeDia1Id: equipe.Alfa });
+    expect(r.status).toBe(201);
+    const corpo = await r.json();
+    expect(corpo.gravadas).toBe(previa.entram);
+    expect(await gravadasNoBanco(mes)).toBe(previa.entram);
+    const dia2 = corpo.escala.dias[1].faixas.find((f: { inicio: string }) => f.inicio === '08:00');
+    expect(dia2.semPosto.map((o: { nomeGuerra: string }) => o.nomeGuerra).sort()).toEqual(['B4', 'B5']);
+  });
+
+  it('gravar de novo não duplica nem tira ninguém (Review Focus 1)', async () => {
+    const antes = await gravadasNoBanco(mes);
+    const r = await api.pedir('escalante', 'POST', url(escala), { equipeDia1Id: equipe.Alfa });
+    expect(r.status).toBe(201);
+    expect((await r.json()).gravadas).toBe(0);
+    expect(await gravadasNoBanco(mes)).toBe(antes);
+  });
+
+  it('duas gravações ao mesmo tempo somam as alocações de uma só, sem erro (outro mês, mesmas regras)', async () => {
+    const mes2 = somarMeses(mes, 1);
+    const { previa } = await planejarPreEscala(api.banco, escala, mes2, equipe.Alfa!);
+    expect(previa.entram).toBeGreaterThan(0);
+    const [x, y] = await Promise.all([1, 2].map(() => api.pedir('escalante', 'POST', url(escala, mes2), { equipeDia1Id: equipe.Alfa })));
+    expect([x!.status, y!.status]).toEqual([201, 201]);
+    const soma = (await x!.json()).gravadas + (await y!.json()).gravadas;
+    expect(soma).toBe(previa.entram);
+    expect(await gravadasNoBanco(mes2)).toBe(previa.entram);
+  });
+
+  it('sem equipe do dia 1 é 400 com o campo; equipe de outra seção também (Review Focus 2); sem papel é 403 e nada é gravado', async () => {
+    const semCorpo = await api.pedir('escalante', 'POST', url(escala), {});
+    expect(semCorpo.status).toBe(400);
+    expect((await semCorpo.json()).campos).toHaveProperty('equipeDia1Id');
+    const outra = await inserir(api.banco, 'unidade', { tipo: 'secao', sigla: '9ª SB', nome: '9ª Seção', mae_id: api.ids.gb, desde: '2026-11-01' });
+    const deOutra = await inserir(api.banco, 'equipe', { unidade_id: outra, nome: 'Alfa', ordem_ciclo: 1 });
+    const recusada = await api.pedir('escalante', 'POST', url(escala), { equipeDia1Id: deOutra });
+    expect(recusada.status).toBe(400);
+    expect((await recusada.json()).campos).toHaveProperty('equipeDia1Id');
+    const antes = await gravadasNoBanco(mes);
+    expect((await api.pedir('semPapel', 'POST', url(escala), { equipeDia1Id: equipe.Alfa })).status).toBe(403);
+    expect(await gravadasNoBanco(mes)).toBe(antes);
+  });
+});
+
