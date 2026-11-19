@@ -47,7 +47,7 @@ As condições que o design implica e que mais podem morder quem monta a escala;
 | **2.3 — Ajustes do voluntariado** | Flexibilidade do voluntariado em horas (gestor, qualquer nível); o gestor escolhe as escalas que montam os blocos do dia; "Mostrar" quem ficou de fora só por voluntariado; modo foco no celular. | 2.2 |
 | **2.4 — Acabamento do voluntariado e da escala do mês** | Bloco vazio sempre branco; guia "Como marcar"; número do dia com cara de botão; guarnições do mesmo turno se ajustando à largura do painel na Escala do mês, em todas as escalas. | 2.3 |
 | **2.1 — Ordem de escala** | Tela da escala com as vagas de cada guarnição em quadrados para numerar a vez de cada uma (vigência por mês); os cards da escala do mês seguem a ordem. Substitui a prioridade da guarnição (RN-08). | 1 |
-| **3 — Pré-escala e distribuições** | "Gerar pré-escala" (Pronto pelo ciclo das equipes), saldos do Adm e operações pelas cotas, com o que ficou de fora e por quê. Gerar de novo só completa lacunas e respeita as remoções. Os militares entram nas vagas seguindo a ordem de escala à risca (o mais antigo apto em cada vaga). | 1, 2, 2.1, 2.2, 2.3 e 2.4 |
+| **3 — Pré-escala e distribuições (3.1 e 3.2)** | "Gerar pré-escala" (Pronto pelo ciclo das equipes), saldos do Adm e operações pelas cotas, com o que ficou de fora e por quê. Gerar de novo só completa lacunas e respeita as remoções. Os militares entram nas vagas seguindo a ordem de escala à risca (o mais antigo apto em cada vaga). | 1, 2, 2.1, 2.2, 2.3 e 2.4 |
 | **4 — Grade geral** | Uma linha por militar, uma coluna por dia, blocos na cor do serviço com a letra, choques em vermelho, pegas de pedidas por PJES e Diária, ficha lateral com Trocar, Remover e Adicionar. | 1, 2 |
 | **5 — Gerar documento** | Configurações › Modelos de impressão (enviar e baixar o .xlsx com marcadores) e "Gerar documento" da escala publicada em .xlsx; cada geração fica guardada. | 1 |
 | **6 — Minha escala** | O militar comum vê os próprios serviços do mês, com quem compõe a guarnição, e as escalas publicadas da unidade dele. | 1, 5 |
@@ -903,14 +903,243 @@ As condições que o design implica e que mais podem morder quem monta a escala;
 
 ---
 
+# Entrega 3 — Pré-escala e distribuições (dividida em 3.1 e 3.2)
+
+Decisão do usuário (19/11/2026): a entrega 3 sai em duas, cada uma com o seu PR. A 3.1 é validada na sandbox antes de a 3.2 começar.
+
+- **3.1 — Pré-escala do Pronto:** a equipe do dia 1 (detectada pelo mês anterior, com escolha manual), o preenchimento das vagas pela ordem de escala (o mais antigo apto em cada vaga), a prévia do que entra e do que fica de fora, e a gravação. Gerar de novo só completa lacunas e respeita as remoções.
+- **3.2 — Buracos, saldos e operações:** completar as vagas que sobraram (JES e Saldo), as operações pelas cotas e a disposição da Escala do mês com os turnos lado a lado (pendência da 2.4). **As regras de negócio da 3.2 ainda dependem do usuário** (lista no fim desta seção); ela é detalhada depois do merge da 3.1, com as respostas.
+
+**Spec:**
+- `docs/superpowers/specs/2026-11-16-migracao-design.md`, adendo de 17/11 "Pré-escala automática e ajustes do escalante": gerar de novo nunca sobrescreve; o removido não volta, mas outro militar pode ocupar a vaga.
+- `docs/superpowers/specs/2026-11-18-ordem-de-escala-e-acumulo-design.md`, Parte 1, "Quem vai em cada vaga":
+  - a pré-escala segue a ordem à risca e, na vez de cada vaga, põe o mais antigo apto;
+  - quando falta gente, sobram vazias as últimas vagas;
+  - numa faixa, valem só as vagas das guarnições presentes nela;
+  - as vagas sem número vêm depois das numeradas.
+- `docs/superpowers/specs/2026-11-19-voluntariado-por-faixa-design.md`, adendo "depois da entrega 2.4": a disposição da Escala do mês (3.2).
+- `docs/superpowers/plans/2026-11-16-roadmap-migracao.md`, Fase 4.
+
+**Execução (as duas subentregas):** **Sonnet, esforço high**, em linha (superpowers:executing-plans, ledger `.superpowers/sdd/2026-11-18-fase4-escala/progress.md`). A revisão final de cada branch é uma só, por um Agent com `model: "opus"` e `effort: "medium"` explícitos. Não trocar de modelo no meio da execução.
+
+**Ambiente desta máquina:** pouca memória. Rodar uma suíte por vez:
+- API: `cd apps/api && npx vitest run --maxWorkers=1`;
+- site: `cd apps/web && npx vitest run --maxWorkers=1`.
+
+Se um worker cair (código 134, `scrypt derivation failed`, `cannot allocate memory`), é ambiente: rodar o arquivo sozinho de novo e registrar. Antes do typecheck e do build, conferir se não há `tsc`, `vitest` ou `vite` esquecidos rodando. Depois de mudar exports do `dominio`, rodar `pnpm --filter dominio tipos` (as declarações são ignoradas pelo Git).
+
+**Contagens de partida:** protótipo 589, contratos 14, motor 796 (+1 ignorado), API 593, site 402.
+
+---
+
+# Entrega 3.1 — Pré-escala do Pronto
+
+**Branch:** `fase4-3-1-pre-escala-do-pronto`. Os primeiros commits são a pendência da Escala do mês e este plano. **Sem migração:** `alocacao.origem` já aceita `'pre_escala'`. Commits `Fase 4.3.1: …`; PR "Fase 4 — Entrega 3.1: pré-escala do Pronto".
+
+**Decisões desta entrega** (chamadas da PROGRAMAÇÃO; o usuário revisa no plano):
+- **Toda a equipe do dia entra no Pronto A e B**, como no protótipo: o Pronto é o serviço ordinário da equipe. As vagas das guarnições de cada turno são preenchidas na ordem de escala, com o mais antigo apto. Quem da equipe não couber em nenhuma vaga entra no Pronto **sem guarnição** (a linha "Sem guarnição" da Escala do mês já existe).
+- **O Pronto é o serviço `ordinario` da escala chamado "Pronto"**, comparado sem caixa nem acento, e seus turnos A e B, como no motor (`PRE_ESCALA`). Uma escala sem esse serviço recebe a prévia vazia, com um aviso.
+- **A equipe do dia é a do ciclo** (`equipe.ordem_ciclo` de 1 a 4, igual a ALFA, BRAVO, CHARLIE e DELTA do motor). O dia 1 é detectado pelo mês anterior (`detectarEquipeInicial`). Quando não dá para detectar (mês anterior vazio ou empate), o escalante escolhe. Ele também pode trocar a equipe detectada.
+- **Prévia antes de gravar:** a prévia só calcula. A gravação calcula de novo, na mesma transação e com trava, porque a escala pode ter mudado entre as duas.
+- **Pendências do motor:** `turnosPadraoExigidos` não é mais usado desde a 2.2 (o voluntariado é por faixa). Os nomes deixam de ser comparados ora normalizados ora exatos porque a tradução trabalha com ids. As duas ficam registradas como resolvidas, sem código.
+
+**Review Focus da entrega 3.1** (cada um tem teste na tarefa dona):
+
+1. **Gerar de novo.** Não duplica, não tira ninguém e não devolve o removido (outro militar pode ocupar a vaga dele). As vagas já ocupadas à mão ficam como estão. Tarefas 33 e 34.
+2. **Equipe do dia 1 que não dá para detectar** (mês anterior sem Pronto, ou empate). A prévia vem sem equipe e com o motivo; a tela exige a escolha; gravar sem equipe dá 400. Tarefas 33, 34 e 35.
+3. **Militar afastado, transferido ou desativado no meio do mês.** Fica de fora só nos dias em que não pode; nos outros dias a equipe dele entra normalmente. Tarefa 33.
+4. **Vaga com CNH exigida.** O mais antigo sem a CNH é pulado nessa vaga e vai para a vaga seguinte ou para "Sem guarnição". Tarefas 32 e 33.
+5. **Mais vagas que gente, e mais gente que vagas.** No primeiro caso sobram vazias as últimas da ordem; no segundo sobram militares "Sem guarnição", e a antiguidade decide quem fica com vaga. Uma faixa só considera as guarnições vinculadas a ela. Tarefas 32 e 33.
+
+### Task 32: Preencher as vagas na ordem (motor)
+
+**Files:**
+- Create: `pacotes/dominio/src/preencher-vagas.ts` (exportar em `src/index.ts`)
+- Test: `pacotes/dominio/test/preencher-vagas.test.ts`
+
+**Interfaces:**
+- Produces:
+  ```ts
+  export type VagaParaPreencher = { chave: string; cnhExigida: string | null };
+  export type CandidatoDaVaga = { id: string; cnh: string[] };
+  export function preencherVagas(vagas: VagaParaPreencher[], candidatos: CandidatoDaVaga[]):
+    { atribuicoes: { chave: string; id: string }[]; semVaga: string[]; vazias: string[] };
+  ```
+  - `vagas` chega **na ordem de preenchimento** e já sem as ocupadas.
+  - `candidatos` chega **do mais antigo para o mais novo** e já sem os que não podem no turno.
+  - Na vez de cada vaga, a função põe o primeiro candidato ainda livre que tenha a CNH exigida (`cnhHabilitadas`, hierarquia do CTB). Sem ninguém assim, a vaga vai para `vazias`.
+  - Um candidato ocupa no máximo uma vaga. Quem sobra vai para `semVaga`, na ordem de antiguidade.
+  - É regra só do sistema novo: testa em `pacotes/dominio/test`, sem caso gravado.
+
+- [ ] **Step 1: Write the failing tests:**
+  - 3 vagas sem CNH e 2 candidatos: os dois primeiros ficam com os candidatos, na ordem (o mais antigo na 1ª vaga); a 3ª vai para `vazias`; `semVaga` fica vazio.
+  - 2 vagas e 4 candidatos: o 3º e o 4º vão para `semVaga`, nessa ordem.
+  - CNH: a 1ª vaga exige `D`, o 1º candidato tem `['B']` e o 2º tem `['E']`. A 1ª vaga fica com o 2º (E habilita D); o 1º fica com a 2ª vaga (sem CNH).
+  - CNH `A` é isolada: candidato com `['E']` não serve para vaga que exige `A`.
+  - Lista vazia de vagas: todos os candidatos vão para `semVaga`. Lista vazia de candidatos: todas as vagas vão para `vazias`.
+- [ ] **Step 2: Run** `pnpm --filter dominio test`. Expected: FAIL (módulo inexistente).
+- [ ] **Step 3: Implement.**
+- [ ] **Step 4: Run** `pnpm --filter dominio test && node casos/reproduzir-prototipo.mjs`. Expected: passa, e os casos continuam ok.
+- [ ] **Step 5: Commit** `Fase 4.3.1: preencher as vagas na ordem (motor)`.
+
+### Task 33: A prévia da pré-escala do Pronto (API)
+
+**Files:**
+- Create: `apps/api/src/escala/pre-escala.ts`
+- Modify: `apps/api/src/escala/elegibilidade.ts` (exportar `avaliar` como `avaliarFaixa`, sem mudar o que faz)
+- Create: `pacotes/contratos/src/pre-escala.ts` (exportar em `index.ts`)
+- Test: `apps/api/test/pre-escala.test.ts`
+
+**Interfaces:**
+- Consumes:
+  - `preencherVagas` (Tarefa 32);
+  - `avaliarFaixa(c, vaga, somenteMilitar?)` (elegibilidade), com a vaga `{ escalaId, data, inicio, fim, guarnicaoId: null, funcaoId: null }`;
+  - `ordemDoMes` e `sequenciaDePreenchimento` (ordem de escala);
+  - `vinculosDaEscala` e `versoesDasGuarnicoes`;
+  - `detectarEquipeInicial`, `equipeDoDia` e `CICLO_EQUIPES` (motor);
+  - `compararAntiguidade` (via `porAntiguidade` de `elegibilidade.ts`).
+- Produces (contratos):
+  ```ts
+  export type PreviaDaPreEscala = {
+    mes: string;
+    equipes: { id: string; nome: string }[];            // as do ciclo, por ordem_ciclo
+    equipeDetectada: { equipeId: string | null; motivo: string };  // motivo '' quando detectou
+    equipeUsada: { id: string; nome: string } | null;    // a escolhida ou, sem escolha, a detectada
+    entram: number;                                     // serviços de Pronto que a gravação criaria
+    vazias: { data: string; faixa: string; vaga: string }[];          // ex.: "08h–20h", "Motorista ABT"
+    semGuarnicao: { data: string; faixa: string; nomeGuerra: string }[];
+    removidosQueNaoVoltam: number;
+    avisos: string[];
+  };
+  export const NovaPreEscala = z.object({ equipeDia1Id: Id });
+  ```
+- Produces (API):
+  - `equipeDoDia1(c, unidadeId, mes): Promise<{ equipeId: string | null; motivo: string }>`. Traduz o Pronto turno A do mês anterior e as equipes por `ordem_ciclo` para o `detectarEquipeInicial`, e devolve a equipe cadastrada.
+  - `planejarPreEscala(c, escalaId, mes, equipeDia1Id: string | null): Promise<{ previa: PreviaDaPreEscala; novas: NovaAlocacao[] }>`, onde `NovaAlocacao = { militarId, data, servicoId, turnoId, guarnicaoId: string | null, funcaoId: string | null }`.
+
+  Para cada dia do mês, a equipe do dia é `equipeDoDia(equipeDia1, i)`. Para cada turno A e B do Pronto:
+  - **Vagas:** as da ordem do mês (`sequenciaDePreenchimento`), só das guarnições vinculadas àquela faixa no vínculo vigente. Saem as já ocupadas: as primeiras `n` vagas de cada guarnição e função, onde `n` são os ocupantes, contando acúmulos (a mesma conta de `ocupantesDaFuncao`).
+  - **Candidatos:** os militares da equipe do dia (`jornada = 'pronto'`) com `militarMotivo === null` e motivo `null` no turno do Pronto, em `avaliarFaixa`. Saem os removidos daquele dia, serviço e turno. A ordem é de antiguidade.
+  - O resultado de `preencherVagas` vira as `novas`: atribuições com guarnição e função; `semVaga` com as duas nulas.
+
+- [ ] **Step 1: Write the failing tests** (cenário fictício, D7: seção com 4 equipes; Pronto A 08–20 e B 20–08; guarnições ABT com Motorista CNH D 1–1 e Combatente 1–2, e AR com Chefe 1–1, vinculadas às duas faixas; ordem cadastrada Motorista ABT → Chefe AR → Combatente ABT 1 → Combatente ABT 2; equipe ALFA com 3 militares, um deles com CNH E):
+  - **Equipe do dia 1 detectada:** com o mês anterior tendo Pronto A da BRAVO nos últimos dias, de modo que o dia 1 do mês seja da CHARLIE, `equipeDoDia1` devolve a CHARLIE. Sem alocações no mês anterior, devolve `equipeId: null` e o motivo `'sem Pronto turno A no mês anterior'` (Review Focus 2).
+  - **Ordem e antiguidade:** num dia da ALFA, a vaga de Motorista ABT fica com o militar de CNH E, mesmo que ele não seja o mais antigo. O mais antigo fica com o Chefe AR e o terceiro com o Combatente ABT 1. O Combatente ABT 2 vai para `vazias` como "Combatente ABT", com a faixa "08h–20h" (Review Focus 4 e 5).
+  - **Mais gente que vagas:** com 5 militares na equipe, os 2 mais novos aparecem em `semGuarnicao` nas duas faixas, e `entram` conta as duas faixas dos 5 (Review Focus 5).
+  - **Faixa só com as guarnições dela:** com a AR vinculada só ao turno A, no turno B não há vaga de Chefe AR.
+  - **Afastado:** um militar da ALFA afastado do dia 8 ao 12 não aparece nesses dias e aparece nos outros dias da ALFA (Review Focus 3).
+  - **Gerar de novo e removidos:**
+    - com um militar já escalado à mão no Combatente ABT 1 de um dia, a prévia não mexe nele e não usa aquela vaga;
+    - com uma remoção de um militar da ALFA num dia e turno do Pronto, ele não aparece naquele dia e turno, outro ocupa a vaga, e `removidosQueNaoVoltam` conta 1 (Review Focus 1).
+  - **Sem Pronto:** uma escala sem o serviço "Pronto" devolve `entram: 0` e o aviso "Esta escala não tem o serviço Pronto: não há o que gerar."
+- [ ] **Step 2: Run** `cd apps/api && npx vitest run test/pre-escala.test.ts --maxWorkers=1`. Expected: FAIL.
+- [ ] **Step 3: Implement.**
+- [ ] **Step 4: Run** o arquivo novo e `test/escala-candidatos.test.ts` (o `avaliar` só mudou de nome). Expected: passa.
+- [ ] **Step 5: Commit** `Fase 4.3.1: prévia da pré-escala do Pronto`.
+
+### Task 34: Rotas da prévia e da gravação
+
+**Files:**
+- Modify: `apps/api/src/escala/rotas.ts`, `apps/api/src/escala/pre-escala.ts`
+- Test: `apps/api/test/pre-escala.test.ts`
+
+**Interfaces:**
+- Consumes: `planejarPreEscala` e `equipeDoDia1` (Tarefa 33); `montarEscalaDoMes` (leitura).
+- Produces:
+  - `GET /api/escalas/:id/mes/:mes/pre-escala?equipe=<equipeId>` devolve `PreviaDaPreEscala`. Sem `equipe`, usa a detectada; quando não há detectada, `equipeUsada: null`, `entram: 0` e o aviso "Escolha a equipe do dia 1."
+  - `POST /api/escalas/:id/mes/:mes/pre-escala` com corpo `NovaPreEscala` devolve `{ escala: EscalaDoMes; gravadas: number }`. Dentro de `comUsuario`:
+    - trava a escala e o mês (`pg_advisory_xact_lock(hashtext('pre-escala|<escalaId>|<mes>'))`);
+    - chama `planejarPreEscala` de novo;
+    - insere as `novas` com `origem = 'pre_escala'` e `on conflict do nothing`.
+  - Papéis em `CADASTRO`. Mês inválido dá 400; equipe que não é do ciclo da unidade dá 400 com o campo `equipeDia1Id`; quem não tem papel recebe 403.
+
+- [ ] **Step 1: Write the failing tests:**
+  - A prévia pela rota devolve o mesmo resumo da Tarefa 33.
+  - Gravar cria as alocações com `origem = 'pre_escala'`, e a Escala do mês devolvida mostra os ocupantes nas vagas e a linha "Sem guarnição".
+  - **Gravar duas vezes** (Review Focus 1): a segunda chamada devolve `gravadas: 0`, e o número de alocações não muda.
+  - **Gravar ao mesmo tempo:** duas gravações em paralelo (`Promise.all`) somam as alocações de uma só, nunca 500.
+  - Sem `equipeDia1Id` dá 400; com uma equipe de outra unidade dá 400 (Review Focus 2); o militar comum recebe 403.
+- [ ] **Step 2: Run** o arquivo. Expected: FAIL.
+- [ ] **Step 3: Implement.**
+- [ ] **Step 4: Run** `cd apps/api && npx vitest run --maxWorkers=1`. Expected: passa.
+- [ ] **Step 5: Commit** `Fase 4.3.1: gravar a pré-escala do Pronto`.
+
+### Task 35: "Gerar pré-escala" na Escala do mês (site)
+
+**Files:**
+- Create: `apps/web/src/componentes/escala-do-mes/GerarPreEscala.tsx`
+- Modify: `apps/web/src/routes/_app/escala-do-mes.tsx`, `apps/web/src/api/escala-do-mes.ts`
+- Test: `apps/web/src/__testes__/pre-escala.test.tsx`
+
+**Interfaces:**
+- Consumes: as rotas da Tarefa 34.
+- Produces:
+  - No topo da Escala do mês, ao lado de "Mostrar só vagas vazias", o botão **"Gerar pré-escala"** abre um diálogo com:
+    - **"Equipe do dia 1"**, uma seleção com as equipes do ciclo, já com a detectada. Abaixo, a frase "Pelo mês anterior, o dia 1 é da equipe Bravo." ou, sem detecção, "Não deu para saber pelo mês anterior (<motivo>). Escolha a equipe do dia 1."
+    - **O resumo da prévia**, refeito ao trocar a equipe: "Entram N serviços de Pronto." e "Ficam V vagas vazias e S militares sem guarnição." Quando houver, "R removidos não voltam."
+    - **"Ver o que ficou de fora"**, uma lista recolhível com as vagas vazias e quem ficou sem guarnição, por dia e faixa.
+    - Os avisos.
+    - **"Gravar pré-escala"**, desabilitado sem equipe e com `useTrava` (dois cliques fazem um pedido só).
+  - Gravar fecha o diálogo, atualiza a Escala do mês (as consultas que dependem dela) e mostra "Pré-escala gravada: N serviços."
+  - Erro da API aparece no diálogo, e o diálogo fica aberto.
+
+- [ ] **Step 1: Write the failing tests:**
+  - O diálogo abre com a equipe detectada e o resumo.
+  - Sem detecção: aparece a frase com o motivo, e "Gravar" fica desabilitado até escolher (Review Focus 2).
+  - Trocar a equipe refaz a prévia com `?equipe=`.
+  - "Gravar" manda `{ equipeDia1Id }`, fecha o diálogo e mostra "Pré-escala gravada: N serviços.".
+  - Dois cliques em "Gravar" mandam um pedido só.
+  - O erro 400 aparece no diálogo.
+  - "Ver o que ficou de fora" lista as vagas vazias e os sem guarnição.
+- [ ] **Step 2: Run** o arquivo. Expected: FAIL.
+- [ ] **Step 3: Implement.**
+- [ ] **Step 4: Run** `pnpm test && pnpm typecheck && pnpm build:vercel`, uma suíte por vez se a memória não deixar, e registrar. Expected: passa.
+- [ ] **Step 5: Commit** `Fase 4.3.1: gerar a pré-escala na tela`.
+
+**Fechamento da entrega 3.1:**
+- Revisão final do branch por um Agent com `model: "opus"` e `effort: "medium"`. Passe o pacote, o plano, as specs, o Review Focus acima e os `Ruling:` do ledger.
+- Uma passada de correções, com teste vermelho → verde.
+- Atualizar as contagens no `CLAUDE.md` local.
+- Push e PR com:
+  - **sem migração**;
+  - as decisões desta entrega para o usuário confirmar;
+  - o que conferir na sandbox:
+    - gerar a pré-escala do Ordinário de dezembro;
+    - conferir a equipe do dia 1;
+    - ver as vagas vazias e os sem guarnição;
+    - gerar de novo e ver que nada muda;
+    - remover um militar, gerar de novo e ver que ele não volta.
+- **Parar até o merge.**
+
+---
+
+# Entrega 3.2 — Buracos, saldos, operações e a disposição da Escala do mês (a detalhar depois da 3.1)
+
+**Branch:** `fase4-3-2-distribuicoes`, a partir da `main` depois do merge da 3.1. As tarefas se detalham com as respostas do usuário às decisões abaixo. As tarefas previstas, a partir da Tarefa 36:
+
+- **Completar os buracos do Pronto.** As vagas que a 3.1 deixou vazias são completadas na mesma ordem de escala, com quem pode no turno. A prévia e a gravação seguem o padrão da 3.1, e a flexibilidade do voluntariado já vale aqui.
+- **Saldos do Adm.** `distribuirAdm` é adaptado às vagas, sempre com `servico` e `turno` preenchidos (pendência do motor).
+- **Operações pelas cotas.** As escalas de PJES e diária são preenchidas pelas cotas do mês. `distribuirCotas` é adaptado às vagas das guarnições e ao voluntariado por faixa; `diagnosticarOperacoes` explica o que ficou de fora.
+- **Disposição da Escala do mês** (pendência da 2.4, já decidida):
+  - os turnos do dia passam a uma grade responsiva de ~20rem;
+  - o turno com várias guarnições ocupa a linha inteira;
+  - o card volta à largura natural, com as funções uma embaixo da outra.
+
+**Decisões que faltam (do usuário, antes de detalhar a 3.2):**
+1. **Ordem dos buracos do Pronto.** O design marca como "a confirmar": depois do Pronto da equipe, primeiro o JES e por último o Saldo (o "tapa-buraco")? Ou o Saldo, que é a obrigação de 6 por militar do Adm, entra antes do JES?
+2. **Saldo que não cabe.** Se as vagas acabarem antes de o militar do Adm completar os 6 saldos do mês, ele fica com menos (e a prévia avisa)? Ou o saldo entra em "Sem guarnição", como o Pronto que sobra?
+3. **Cota contra vaga, nas operações.** A cota (ex.: Bioma, N turnos no mês para a 1ª SB) limita quantas vagas da escala da operação a seção preenche? Quando a cota acaba antes das vagas, as vagas que sobram ficam vazias?
+4. **Voluntária e compulsória.** Primeiro quem marcou o horário no voluntariado (com a flexibilidade) e, se a cota não fechar, a compulsória entre quem pode, igualando quem tem menos, como no protótipo (RN-41 e RN-43)? Ou só a voluntária nesta versão?
+
+---
+
 # Entregas 3 a 6 (a detalhar antes de cada uma)
 
 Cada uma ganha aqui as suas tarefas, no formato da entrega 1, depois do merge da anterior e da conversa com o usuário sobre o que a entrega 1 mostrou em uso.
 
 - **Entrega 2.3 — Ajustes do voluntariado:** detalhada acima (Tarefas 22 a 27). A pré-escala (3) usa a flexibilidade ao filtrar quem pode ocupar cada vaga e nunca escala quem está fora do voluntariado.
 - **Entrega 2.4 — Acabamento do voluntariado e da escala do mês:** detalhada acima (Tarefas 28 a 31).
-- **Entrega 3 — Pré-escala e distribuições:** camada que traduz o mês para o motor (militares, alocações de três meses, remoções, horários, voluntariado, cotas, modelos de guarnição pelas faixas) e de volta para ids; "Gerar pré-escala" (equipe do dia 1 detectada por `detectarEquipeInicial`, com escolha manual), saldos do Adm (`distribuirAdm`, com `servico` e `turno` sempre preenchidos), operações pelas cotas (`distribuirCotas` e `diagnosticarOperacoes`) e encaixe nas guarnições (`calcularGuarnicao`); prévia do que entra e do que ficou de fora antes de gravar; nada sobrescreve o que já está escalado. Pendências do motor (`turnosPadraoExigidos` no turno noturno de 24h, nomes normalizados uma vez na entrada) resolvidas aqui, com teste no motor.
-  **Também entra na entrega 3 (pendência da 2.4):** a disposição da Escala do mês. Os turnos do dia ficam **lado a lado, de forma responsiva** (o turno com várias guarnições ocupa a linha inteira), o card da guarnição volta à largura natural e a mudança de esticar o card da 2.4 sai. Design: adendo "depois da entrega 2.4" em `docs/superpowers/specs/2026-11-19-voluntariado-por-faixa-design.md`.
+- **Entrega 3 — Pré-escala e distribuições:** dividida em 3.1 (detalhada acima, Tarefas 32 a 35) e 3.2 (tarefas previstas e decisões que faltam acima).
 - **Entrega 4 — Grade geral:** consulta do mês por militar (agrupada por equipe, Adm à parte), blocos por serviço com a letra em ordem de início, turno que atravessa a meia-noite só no dia em que começa, choques do motor com contorno vermelho, feriados e fins de semana, pegas de pedidas por PJES e Diária; ficha lateral com Trocar, Remover e "Adicionar serviço neste dia", reaproveitando as rotas da entrega 1.
 - **Entrega 5 — Gerar documento:** Configurações › Modelos de impressão (enviar com conferência dos marcadores, baixar o atual, versões); geração da escala publicada com ExcelJS a partir do modelo vigente da unidade, respeitando `militares_doc` e `dias_doc` da escala; `documento_gerado` guardado e baixável; PDF fica para quando o serviço existir.
 - **Entrega 6 — Minha escala:** rota e tela do militar comum (os próprios serviços do mês, com serviço, turno, horário e quem compõe a guarnição com ele) e acesso às escalas publicadas (documentos gerados) da unidade em que ele está lotado; o trilho do militar comum mostra só isso.
