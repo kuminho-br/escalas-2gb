@@ -6,7 +6,7 @@ const DIA_DA_SEMANA = ['domingo', 'segunda', 'terça', 'quarta', 'quinta', 'sext
 
 type Acoes = {
   aoEscolher?: (vaga: VagaDaTela) => void;
-  aoRemover?: (o: OcupanteDaVaga, guarnicao: string, dia: number) => void;
+  aoRemover?: (o: OcupanteDaVaga, guarnicao: string, dia: number, vaga: string) => void;
   aoDesfazer?: (remocaoId: string) => void;
 };
 
@@ -25,7 +25,7 @@ function Faixa({ faixa, dia, soVazias, aoEscolher, aoRemover, aoDesfazer }: { fa
         {cards.length > 0 && (
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
             {cards.map((g) => (
-              <CardDaGuarnicao key={g.guarnicaoId} card={g} aoEscolher={aoEscolher && ((v) => aoEscolher({ ...v, data: dia, inicio: faixa.inicio, fim: faixa.fim }))} aoRemover={aoRemover && ((o, guarnicao) => aoRemover(o, guarnicao, Number(dia.slice(8))))} />
+              <CardDaGuarnicao key={g.guarnicaoId} card={g} aoEscolher={aoEscolher && ((v) => aoEscolher({ ...v, data: dia, inicio: faixa.inicio, fim: faixa.fim }))} aoRemover={aoRemover && ((o, guarnicao, vaga) => aoRemover(o, guarnicao, Number(dia.slice(8)), vaga))} />
             ))}
           </div>
         )}
@@ -36,7 +36,7 @@ function Faixa({ faixa, dia, soVazias, aoEscolher, aoRemover, aoDesfazer }: { fa
               <span key={o.alocacaoId} className="inline-flex items-center gap-1.5">
                 {o.nomeGuerra}
                 {aoRemover && (
-                  <button type="button" aria-label={`Remover ${o.nomeGuerra}`} onClick={() => aoRemover(o, 'Sem guarnição', Number(dia.slice(8)))} className="rounded px-1.5 text-xs text-apagado hover:bg-accent hover:text-tinta">
+                  <button type="button" aria-label={`Remover ${o.nomeGuerra}`} onClick={() => aoRemover(o, 'Sem guarnição', Number(dia.slice(8)), 'Sem guarnição')} className="rounded px-1.5 text-xs text-apagado hover:bg-accent hover:text-tinta">
                     Remover
                   </button>
                 )}

@@ -1,9 +1,10 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { createFileRoute, Link } from '@tanstack/react-router';
-import { Mes } from 'contratos';
+import { Mes, type OcupanteDaVaga } from 'contratos';
 import { useState } from 'react';
 import { mensagemDe } from '@/api/cliente';
-import { consultaEscalaDoMes, desfazerRemocao, removerAlocacao } from '@/api/escala-do-mes';
+import { consultaEscalaDoMes, desfazerRemocao, removerAlocacao, tirarAcumulo } from '@/api/escala-do-mes';
+import { listaComE } from '@/lib/escala';
 import { consultaEscalas } from '@/api/escalas';
 import type { VagaDaTela } from '@/componentes/escala-do-mes/CardDaGuarnicao';
 import { DiaDaEscalaVista } from '@/componentes/escala-do-mes/DiaDaEscala';
@@ -38,11 +39,17 @@ function EscalaDoMes() {
   const dados = useQuery({ ...consultaEscalaDoMes(escalaId ?? '', mes), enabled: Boolean(escalaId) });
   const opcoes = escalas.data?.filter((e) => e.ativa || e.id === escalaId) ?? [];
 
-  async function remover(o: { alocacaoId: string; nomeGuerra: string }, guarnicao: string, dia: number) {
-    if (!window.confirm(`Remover ${o.nomeGuerra} de ${guarnicao}, dia ${dia}? Ele não volta para este turno quando a pré-escala for gerada de novo.`)) return;
+  async function remover(o: OcupanteDaVaga, guarnicao: string, dia: number, vaga: string) {
+    // um acúmulo sai sozinho (o militar continua na vaga original); a original leva os acúmulos junto
+    const acumulo = o.acumuloId !== null;
+    const pergunta = acumulo
+      ? `Tirar ${o.nomeGuerra} de ${vaga}? Ele continua em ${o.acumulaCom[0] ?? 'sua vaga'}.`
+      : `Remover ${o.nomeGuerra} de ${guarnicao}, dia ${dia}? Ele não volta para este turno quando a pré-escala for gerada de novo.` +
+        (o.acumulaCom.length ? ` Sai também de: ${listaComE(o.acumulaCom)}.` : '');
+    if (!window.confirm(pergunta)) return;
     setErro(null);
     try {
-      await removerAlocacao(queryClient, o.alocacaoId);
+      await (acumulo ? tirarAcumulo(queryClient, o.acumuloId!) : removerAlocacao(queryClient, o.alocacaoId));
     } catch (e) {
       setErro(mensagemDe(e));
     }
@@ -100,7 +107,7 @@ function EscalaDoMes() {
       {dados.error && <p role="alert" className="text-alerta">{mensagemDe(dados.error)}</p>}
       {dados.data && (
         <div className="grid gap-3">
-          {dados.data.dias.map((d) => <DiaDaEscalaVista key={d.data} dia={d} soVazias={soVazias} aoEscolher={setVaga} aoRemover={(o, g, n) => void remover(o, g, n)} aoDesfazer={(id) => void desfazer(id)} />)}
+          {dados.data.dias.map((d) => <DiaDaEscalaVista key={d.data} dia={d} soVazias={soVazias} aoEscolher={setVaga} aoRemover={(o, g, n, v) => void remover(o, g, n, v)} aoDesfazer={(id) => void desfazer(id)} />)}
         </div>
       )}
       {vaga && <EscolherMilitar key={`${vaga.data}|${vaga.inicio}|${vaga.guarnicaoId}|${vaga.funcaoId}`} escalaId={escalaId} vaga={vaga} aoFechar={() => setVaga(null)} />}

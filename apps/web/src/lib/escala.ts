@@ -18,3 +18,13 @@ export function frasesDeFora(fora: { motivo: string; quantidade: number }[]): st
     })
     .join(', ');
 }
+
+/** "Chefe ABT" (função e guarnição) ou só o nome da guarnição quando ela tem uma função só ("Graduado de dia"); a mesma regra da API. */
+export function nomeDaVaga(guarnicao: string, funcao: string, funcoesNaComposicao: number): string {
+  return funcoesNaComposicao <= 1 ? guarnicao : `${funcao} ${guarnicao}`;
+}
+
+/** "A", "A e B", "A, B e C". */
+export function listaComE(itens: string[]): string {
+  return itens.length <= 1 ? (itens[0] ?? '') : `${itens.slice(0, -1).join(', ')} e ${itens[itens.length - 1]}`;
+}
