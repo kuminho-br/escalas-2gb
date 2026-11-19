@@ -7,3 +7,4 @@ export * from './servicos.ts';
 export * from './escalas.ts';
 export * from './escala-do-mes.ts';
 export * from './cotas-feriados.ts';
+export * from './voluntariado.ts';

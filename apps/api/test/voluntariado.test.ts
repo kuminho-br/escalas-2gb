@@ -1,0 +1,115 @@
+import { somarMeses, type VoluntariadoDoMes, type VoluntariadoDoMilitar } from 'contratos';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { hojeRecife } from '../src/datas.ts';
+import { inserir } from './banco-teste.ts';
+import { montarApi, type ApiDeTeste } from './apoio-api.ts';
+
+// Cenário fictício (D7): mês de lançamento = o mês seguinte ao atual; Pronto A (08h às 20h) escalado no último dia do mês atual.
+let api: ApiDeTeste;
+let posto: string;
+let pronto: string;
+let turnoA: string;
+let escala: string;
+const equipe: Record<string, string> = {};
+const militar: Record<string, string> = {};
+const atual = hojeRecife().slice(0, 7);
+const mes = somarMeses(atual, 1);
+const secao = () => `/api/unidades/${api.ids.secao}`;
+const doMes = async (m = mes): Promise<VoluntariadoDoMes> => (await api.pedir('escalante', 'GET', `${secao()}/voluntariado/${m}`)).json();
+const doMilitar = async (nome: string, m = mes): Promise<VoluntariadoDoMilitar> => (await api.pedir('escalante', 'GET', `/api/militares/${militar[nome]}/voluntariado/${m}`)).json();
+const diasNoMes = (m: string) => new Date(Date.UTC(Number(m.slice(0, 4)), Number(m.slice(5)), 0)).getUTCDate();
+const ultimoDia = `${atual}-${String(diasNoMes(atual)).padStart(2, '0')}`;
+
+let seq = 0;
+async function criarMilitar(nome: string, o: { jornada?: 'pronto' | 'adm'; equipe?: string; desde?: string; ate?: string | null; ativo?: boolean } = {}) {
+  seq++;
+  const id = await inserir(api.banco, 'militar', {
+    matricula: `99${String(6000 + seq).padStart(4, '0')}-${seq % 10}`, posto_grad_id: posto, nome_guerra: nome, ativo: o.ativo ?? true,
+  });
+  militar[nome] = id;
+  await inserir(api.banco, 'lotacao', {
+    militar_id: id, unidade_id: api.ids.secao, equipe_id: o.equipe ? equipe[o.equipe] : null, jornada: o.jornada ?? 'pronto', desde: o.desde ?? `${atual}-01`, ate: o.ate ?? null,
+  });
+}
+const marcar = (nome: string, data: string, turno: 'A' | 'B') => inserir(api.banco, 'voluntariado', { militar_id: militar[nome], data, turno_padrao: turno, origem: 'manual' });
+
+beforeAll(async () => {
+  api = await montarApi();
+  posto = await inserir(api.banco, 'posto_grad', { sigla: 'SD-VO', nome: 'Soldado VO', ordem: 932 });
+  for (const [i, nome] of ['Alfa', 'Bravo', 'Charlie', 'Delta'].entries()) equipe[nome] = await inserir(api.banco, 'equipe', { unidade_id: api.ids.secao, nome, ordem_ciclo: i + 1 });
+  const s = (await (await api.pedir('escalante', 'POST', `${secao()}/servicos`, { nome: 'Pronto', tipo: 'ordinario', operacao: null, rotuloImpressao: null, cor: '#2F8F5B' })).json()) as { id: string };
+  pronto = s.id;
+  turnoA = (await (await api.pedir('escalante', 'POST', `/api/servicos/${pronto}/turnos`, { letra: 'A', inicio: '08:00', fim: '20:00' })).json()).turnos[0].id;
+  escala = (await (await api.pedir('escalante', 'POST', `${secao()}/escalas`, { nome: 'Ordinário' })).json()).id;
+  await api.pedir('escalante', 'PUT', `/api/escalas/${escala}/servicos`, { servicoIds: [pronto] });
+  await criarMilitar('ANDRADE', { equipe: 'Alfa' });
+  await criarMilitar('BRAVO1', { equipe: 'Bravo' });
+  await criarMilitar('CHARLIE1', { equipe: 'Charlie' });
+  await criarMilitar('ADM1', { jornada: 'adm' });
+  await criarMilitar('SAINDO', { equipe: 'Delta', ate: `${mes}-15` });
+  await criarMilitar('FUTURO', { equipe: 'Delta', desde: `${somarMeses(mes, 1)}-01` });
+  await criarMilitar('DESATIVADO', { equipe: 'Delta', ativo: false });
+  // o BRAVO1 está de serviço (Pronto A) no último dia do mês atual: no dia 1 do mês seguinte a equipe é a CHARLIE
+  await inserir(api.banco, 'alocacao', { militar_id: militar.BRAVO1, escala_id: escala, servico_id: pronto, turno_id: turnoA, data: ultimoDia, origem: 'manual' });
+  // marcações do ANDRADE: 2 turnos no dia 5 e 1 no dia 6 do mês; 1 no mês atual
+  await marcar('ANDRADE', `${mes}-05`, 'A');
+  await marcar('ANDRADE', `${mes}-05`, 'B');
+  await marcar('ANDRADE', `${mes}-06`, 'A');
+  await marcar('ANDRADE', `${atual}-20`, 'B');
+  await inserir(api.banco, 'voluntariado_lancamento', { militar_id: militar.ANDRADE, mes: `${mes}-01` });
+});
+afterAll(async () => {
+  await api.fechar();
+});
+
+describe('voluntariado do mês', () => {
+  it('a lista traz quem tem lotação na seção em algum dia do mês, em ordem de nome, com lançado, turnos e dias', async () => {
+    const r = await doMes();
+    expect(r.mes).toBe(mes);
+    expect(r.militares.map((m) => m.nomeGuerra)).toEqual(['ADM1', 'ANDRADE', 'BRAVO1', 'CHARLIE1', 'SAINDO']);
+    const andrade = r.militares.find((m) => m.nomeGuerra === 'ANDRADE')!;
+    expect([andrade.lancado, andrade.turnos, andrade.dias, andrade.equipe, andrade.jornada]).toEqual([true, 3, 2, 'Alfa', 'pronto']);
+    const bravo = r.militares.find((m) => m.nomeGuerra === 'BRAVO1')!;
+    expect([bravo.lancado, bravo.turnos, bravo.dias]).toEqual([false, 0, 0]);
+    expect(r.militares.find((m) => m.nomeGuerra === 'ADM1')).toMatchObject({ equipe: null, jornada: 'adm' });
+  });
+
+  it('quem só chega depois do mês e quem está desativado não aparecem; quem sai no meio do mês aparece (Review Focus 4)', async () => {
+    const nomes = (await doMes()).militares.map((m) => m.nomeGuerra);
+    expect(nomes).toContain('SAINDO');
+    expect(nomes).not.toContain('FUTURO');
+    expect(nomes).not.toContain('DESATIVADO');
+  });
+
+  it('as marcações do militar vêm em ordem de data e turno, com as do mês anterior à parte', async () => {
+    const r = await doMilitar('ANDRADE');
+    expect(r.marcas).toEqual([{ data: `${mes}-05`, turno: 'A' }, { data: `${mes}-05`, turno: 'B' }, { data: `${mes}-06`, turno: 'A' }]);
+    expect(r.doMesAnterior).toEqual([{ data: `${atual}-20`, turno: 'B' }]);
+  });
+
+  it('as folgas vêm do ciclo: com o BRAVO de serviço no último dia, o dia 1 é da CHARLIE e a folga dela é o resto', async () => {
+    const r = await doMilitar('CHARLIE1');
+    const total = diasNoMes(mes);
+    expect(r.folgas).not.toBeNull();
+    expect(r.folgas).not.toContain(`${mes}-01`);
+    expect(r.folgas).not.toContain(`${mes}-05`);
+    expect(r.folgas).toContain(`${mes}-02`);
+    expect(r.folgas!.length).toBe(total - (Math.floor((total - 1) / 4) + 1));
+    // outra equipe tem folga nos dias da CHARLIE
+    const alfa = await doMilitar('ANDRADE');
+    expect(alfa.folgas).toContain(`${mes}-01`);
+  });
+
+  it('sem folgas para o Adm, nem quando o mês anterior não tem Pronto', async () => {
+    expect((await doMilitar('ADM1')).folgas).toBeNull();
+    expect((await doMilitar('CHARLIE1', somarMeses(atual, 3))).folgas).toBeNull();
+  });
+
+  it('mês inválido é 400 e quem não é escalante recebe 403 nas duas rotas', async () => {
+    const ruim = await api.pedir('escalante', 'GET', `${secao()}/voluntariado/2026-13`);
+    expect(ruim.status).toBe(400);
+    expect((await ruim.json()).erro).toBe('Mês inválido: use o formato aaaa-mm.');
+    expect((await api.pedir('semPapel', 'GET', `${secao()}/voluntariado/${mes}`)).status).toBe(403);
+    expect((await api.pedir('semPapel', 'GET', `/api/militares/${militar.ANDRADE}/voluntariado/${mes}`)).status).toBe(403);
+  });
+});
