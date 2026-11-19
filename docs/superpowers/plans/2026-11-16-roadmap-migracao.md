@@ -169,7 +169,7 @@ Plano próprio: `docs/superpowers/plans/2026-11-18-fase4-escala.md` (seis entreg
 - o número do dia passa a parecer um botão, igual em qualquer estado;
 - na Escala do mês, as guarnições do mesmo turno se ajustam à largura do painel, em todas as escalas.
 
-Entra como **entrega 2.4, antes da 3**, porque a pré-escala é montada nessa tela. As propostas esperam a confirmação do usuário. Design: adendo "depois da entrega 2.3" em `docs/superpowers/specs/2026-11-19-voluntariado-por-faixa-design.md`.
+Entra como **entrega 2.4, antes da 3**, porque a pré-escala é montada nessa tela. As propostas foram aprovadas com o mockup (`docs/telas/mockup-entrega-2-4.html`), e o plano está no plano da fase 4 (Tarefas 28 a 31). Design: adendo "depois da entrega 2.3" em `docs/superpowers/specs/2026-11-19-voluntariado-por-faixa-design.md`.
 
 **Entrega e marco:** piloto na 1ª SB. Um mês real montado no sistema novo, em paralelo com as planilhas atuais, e comparado no fim.
 

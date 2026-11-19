@@ -183,13 +183,15 @@ O usuário confirmou na sandbox que a barra não aparece mais. A causa era o des
   - O tamanho é de alvo de toque: 28 px no computador e 40 px no celular.
 - O guia "Como marcar" ensina o gesto. O nome lido pelo leitor de tela continua "Dia N: marcar o dia inteiro".
 
-## Escala do mês: as guarnições do mesmo turno se ajustam à largura em todas as escalas (proposta)
+## Escala do mês: as guarnições do mesmo turno se ajustam à largura em todas as escalas
 
 - **O usuário (corrigido):** a questão é que as **diferentes guarnições do mesmo turno** se ajustem à largura em todas as escalas, e não só no Ordinário. Não se trata de pôr turnos diferentes lado a lado.
-- **Como está hoje:**
-  - A regra já é a mesma para todas as escalas: os cards de um turno ficam em 2, 3 ou 4 colunas, conforme a **largura da tela inteira** (pontos de corte `sm`, `xl` e `2xl`).
-  - A causa provável de "não se ajustar" nas outras escalas é essa conta. As colunas não dependem do espaço que sobra no painel, que tem a coluna do dia e o trilho do lado.
-  - **A confirmar com um print de uma escala que não é o Ordinário.**
-- **Proposta (mockup, aba "Escala do mês"):**
-  - Os cards do turno ocupam colunas de pelo menos ~15rem, tantas quantas couberem **no espaço do painel** (`repeat(auto-fill, minmax(15rem, 1fr))`), em qualquer escala.
-  - No mockup, um controle de largura mostra o turno passando de 1 a 4 colunas.
+- **Causa (investigada com o print da escala Bioma de 19/11):**
+  - A regra de colunas é a mesma em todas as escalas.
+  - Na Bioma, cada turno do dia tem **uma guarnição só**: 270 vagas obrigatórias no mês = 3 turnos × 3 funções × 30 dias.
+  - Os cards já ficam em 2 colunas nessa largura, mas o card único ocupa meia linha, as vagas dele (Motorista, Chefe, Combatente) se empilham dentro do card, e o resto da linha fica vazio.
+  - No Ordinário isso não aparece, porque cada turno tem várias guarnições para encher a linha.
+- **Solução (plano da 2.4):**
+  - A grade de cards do turno estica os cards para ocupar a linha (`auto-fit`, coluna mínima de ~18rem), em vez de deixar coluna vazia. Uma guarnição sozinha ocupa a linha inteira; com várias, elas se distribuem como hoje e quebram em linhas.
+  - Dentro do card, as funções ficam em colunas quando há espaço (coluna mínima de ~11rem). O card da Bioma mostra Motorista, Chefe e Combatente lado a lado numa tela larga, e um embaixo do outro no celular.
+  - Turnos diferentes continuam um embaixo do outro (decisão do usuário).
