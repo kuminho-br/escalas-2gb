@@ -46,13 +46,13 @@ export function rotasVoluntariado(dep: { banco: Banco; auth: Auth }): Hono<Ambie
     const corpo = await lerCorpo(c, LancamentoDeVoluntariado);
     if (!corpo.ok) return corpo.resposta;
     const campos: Record<string, string> = {};
-    corpo.dados.marcas.forEach((m, i) => {
-      if (m.data.slice(0, 7) !== mes) campos[`marcas.${i}`] = `Use um dia de ${mesPorExtenso(mes)}.`;
+    corpo.dados.faixas.forEach((f, i) => {
+      if (f.data.slice(0, 7) !== mes) campos[`faixas.${i}`] = `Use um dia de ${mesPorExtenso(mes)}.`;
     });
     if (Object.keys(campos).length) return c.json({ erro: 'Confira os campos destacados.', campos }, 400);
     if (!(await lotadosNoMes(dep.banco, unidadeId, mes, id)).length) return c.json({ erro: `Este militar não está lotado na seção em ${mesPorExtenso(mes)}.` }, 409);
     try {
-      await comUsuario(dep.banco, c.get('usuarioId'), (tx) => lancar(tx, id, mes, corpo.dados.marcas, c.get('usuarioId')));
+      await comUsuario(dep.banco, c.get('usuarioId'), (tx) => lancar(tx, id, mes, corpo.dados.faixas, c.get('usuarioId')));
     } catch (e) {
       return respostaDoErroDoBanco(c, e);
     }

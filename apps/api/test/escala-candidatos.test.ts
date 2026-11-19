@@ -53,8 +53,17 @@ const alocar = (nome: string, servicoNome: string, letra: string, data: string) 
   inserir(api.banco, 'alocacao', {
     militar_id: militar[nome], escala_id: escalaId, servico_id: servico[servicoNome], turno_id: turno[`${servicoNome} ${letra}`], data, origem: 'manual',
   });
-const voluntariar = (nome: string, data: string, padrao: 'A' | 'B') =>
-  inserir(api.banco, 'voluntariado', { militar_id: militar[nome], data, turno_padrao: padrao, origem: 'manual' });
+const amanha = (d: string) => new Date(new Date(`${d}T00:00:00Z`).getTime() + 86400000).toISOString().slice(0, 10);
+const faixaMarcada = (nome: string, data: string, inicio: number, fim: number) =>
+  inserir(api.banco, 'disponibilidade', { militar_id: militar[nome], data, inicio_min: inicio, fim_min: fim, origem: 'manual' });
+// o que antes era o turno padrão A (08h às 20h) e B (20h às 08h) vira faixas: B = 20h às 24h do dia e 00h às 08h do dia seguinte
+const voluntariar = async (nome: string, data: string, padrao: 'A' | 'B') => {
+  if (padrao === 'A') await faixaMarcada(nome, data, 480, 1200);
+  else {
+    await faixaMarcada(nome, data, 1200, 1440);
+    await faixaMarcada(nome, amanha(data), 0, 480);
+  }
+};
 
 beforeAll(async () => {
   api = await montarApi();
@@ -68,13 +77,16 @@ beforeAll(async () => {
   await criarServico('Bioma', 'diaria', 'A', FAIXA.BIOMA);
   turno['Bioma C'] = (await (await api.pedir('escalante', 'POST', `/api/servicos/${servico.Bioma}/turnos`, { letra: 'C', ...FAIXA.BIOMA_C })).json()).turnos.find((t: { letra: string }) => t.letra === 'C').id;
   await criarServico('Saldo', 'ordinario', 'A', FAIXA.A);
+  // PE Seguro: diária com turno A das 00h às 08h e B das 20h às 08h
+  await criarServico('PE Seguro', 'diaria', 'A', { inicio: '00:00', fim: '08:00' });
+  turno['PE Seguro B'] = (await (await api.pedir('escalante', 'POST', `/api/servicos/${servico['PE Seguro']}/turnos`, { letra: 'B', inicio: '20:00', fim: '08:00' })).json()).turnos.find((t: { letra: string }) => t.letra === 'B').id;
   const g = await api.pedir('escalante', 'POST', `${secao()}/guarnicoes`, {
     nome: 'ABT', vigencia: atual,
     versao: { viatura: null, tipoViatura: null, prioridade: 1, ativa: true, composicao: [{ funcaoId: motorista, minimo: 1, maximo: 1, cnhExigida: 'D' }, { funcaoId: combatente, minimo: 2, maximo: 3, cnhExigida: null }] },
   });
   abt = (await g.json()).id;
   escalaId = (await (await api.pedir('escalante', 'POST', `${secao()}/escalas`, { nome: 'Ordinário' })).json()).id;
-  expect((await api.pedir('escalante', 'PUT', `/api/escalas/${escalaId}/servicos`, { servicoIds: [servico.Pronto, servico.Madrugada, servico.JES, servico.Bioma, servico.Saldo] })).status).toBe(200);
+  expect((await api.pedir('escalante', 'PUT', `/api/escalas/${escalaId}/servicos`, { servicoIds: [servico.Pronto, servico.Madrugada, servico.JES, servico.Bioma, servico.Saldo, servico['PE Seguro']] })).status).toBe(200);
   const posto = await inserir(api.banco, 'posto_grad', { sigla: 'SD-C', nome: 'Soldado C', ordem: 920 });
   const p = { posto };
   await criarMilitar('APTO', p);
@@ -148,9 +160,9 @@ describe('quem pode ocupar a vaga', () => {
   });
 
   it('o voluntariado lançado à mão vale na hora para a lista, e lançar vazio tira (Fase 4.2)', async () => {
-    const lancar = (marcas: { data: string; turno: 'A' | 'B' }[]) => api.pedir('escalante', 'PUT', `/api/militares/${militar.JESSEM}/voluntariado/${atual}`, { marcas });
+    const lancar = (faixas: { data: string; inicio: string; fim: string }[]) => api.pedir('escalante', 'PUT', `/api/militares/${militar.JESSEM}/voluntariado/${atual}`, { faixas });
     expect(await motivo('JESSEM', D, FAIXA.JES, T('JES A'))).toBe('Não marcou voluntariado neste horário');
-    expect((await lancar([{ data: D, turno: 'A' }])).status).toBe(200);
+    expect((await lancar([{ data: D, inicio: '08:00', fim: '20:00' }])).status).toBe(200);
     expect(await motivo('JESSEM', D, FAIXA.JES, T('JES A'))).toBeNull();
     expect((await lancar([])).status).toBe(200);
     expect(await motivo('JESSEM', D, FAIXA.JES, T('JES A'))).toBe('Não marcou voluntariado neste horário');
@@ -195,6 +207,30 @@ describe('regras do motor que a lista aplica: Saldo só para o Adm (RN-03) e uma
     const r = await avaliarCandidatos(api.banco, vaga(D, FAIXA.A));
     expect(r.aptos.find((a) => a.nomeGuerra === 'ADMIN')!.servicos.map((s) => s.nome)).toEqual(['Saldo', 'Pronto']);
     expect(r.aptos.find((a) => a.nomeGuerra === 'APTO')!.servicos.map((s) => s.nome)).toEqual(['Pronto']);
+  });
+
+  it('o horário das faixas decide o voluntariado: quem só marcou 08h às 20h não cobre a diária das 16h às 00h (o defeito que motivou a mudança)', async () => {
+    const d = dia(21);
+    await faixaMarcada('DIARIAS', d, 480, 1200);
+    expect(await motivo('DIARIAS', d, FAIXA.BIOMA_C, T('Bioma C'))).toBe('Não marcou voluntariado neste horário');
+    await faixaMarcada('DIARIAS', d, 1200, 1440);
+    expect(await motivo('DIARIAS', d, FAIXA.BIOMA_C, T('Bioma C'))).toBeNull();
+  });
+
+  it('um serviço das 00h às 08h do dia 1 é coberto pelo bloco 00–08 do próprio dia 1, sem depender do mês anterior (Review Focus 1)', async () => {
+    const d = dia(1);
+    await faixaMarcada('DIARIAS', d, 0, 480);
+    // a madrugada das 00h às 08h é o turno A do PE Seguro (diária): pede voluntariado
+    const madrugada = { inicio: '00:00', fim: '08:00' };
+    expect(await motivo('DIARIAS', d, madrugada, T('PE Seguro A'))).toBeNull();
+  });
+
+  it('um turno de diária das 20h às 08h do último dia pede o 00–08 do dia 1 do mês seguinte (Review Focus 1)', async () => {
+    const ultimo = dia(new Date(Date.UTC(Number(atual.slice(0, 4)), Number(atual.slice(5)), 0)).getUTCDate());
+    await faixaMarcada('DIARIAS', ultimo, 1200, 1440);
+    expect(await motivo('DIARIAS', ultimo, FAIXA.B, T('PE Seguro B'))).toBe('Não marcou voluntariado neste horário');
+    await faixaMarcada('DIARIAS', amanha(ultimo), 0, 480);
+    expect(await motivo('DIARIAS', ultimo, FAIXA.B, T('PE Seguro B'))).toBeNull();
   });
 
   it('duas diárias começando no mesmo dia: a segunda é recusada; em outro dia passa', async () => {

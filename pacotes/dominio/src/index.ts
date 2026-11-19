@@ -9,3 +9,4 @@ export * from './distribuicao-adm.ts';
 export * from './distribuicao-cotas.ts';
 export * from './guarnicao.ts';
 export * from './voluntariado.ts';
+export * from './disponibilidade.ts';

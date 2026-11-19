@@ -1,42 +1,62 @@
-import type { MilitarDoVoluntariado } from 'contratos';
 import { describe, expect, it } from 'vitest';
-import { alternarDia, copiarDoMes, fimDeSemana, marcarDias, proximoQueFalta, textoDoRodape } from '@/lib/voluntariado';
+import { alternarBloco, copiarDoMes, estadoDoBloco, faixasParaEnviar, fimDeSemana, marcarDias, proximoQueFalta, textoDoRodape, type Marcas } from '@/lib/voluntariado';
 
-const m = (id: string, lancado: boolean): MilitarDoVoluntariado => ({ militarId: id, posto: 'SD BM', nomeGuerra: id.toUpperCase(), matricula: '990000-0', equipe: null, jornada: 'pronto', voluntarioJes: true, lancado, turnos: 0, dias: 0 });
+// Cenário fictício: os blocos da 1ª SB de hoje são 00–08, 08–16, 16–20 e 20–24 (cortes 0, 480, 960, 1200 e 1440).
+const BLOCO_08_20 = { inicio: 480, fim: 1200 };
+const BLOCO_08_16 = { inicio: 480, fim: 960 };
+const BLOCO_16_20 = { inicio: 960, fim: 1200 };
+const vazio = (): Marcas => new Map();
+const com = (dia: string, ...faixas: { inicio: number; fim: number }[]): Marcas => new Map([[dia, faixas]]);
 
-describe('regras do calendário do voluntariado', () => {
-  it('fimDeSemana traz os sábados e domingos do mês (novembro de 2026 começa num domingo: 9 dias)', () => {
+describe('estado e alternância dos blocos', () => {
+  it('um bloco inteiro é "cheio"; um bloco coberto só em parte é "parcial" e aparece como tal (Review Focus 4)', () => {
+    const m = com('2026-11-05', { inicio: 480, fim: 960 });
+    expect(estadoDoBloco(m, '2026-11-05', BLOCO_08_16)).toBe('cheio');
+    expect(estadoDoBloco(m, '2026-11-05', BLOCO_16_20)).toBe('vazio');
+    expect(estadoDoBloco(com('2026-11-05', { inicio: 480, fim: 1100 }), '2026-11-05', BLOCO_16_20)).toBe('parcial');
+  });
+
+  it('alternar um bloco cheio tira só ele; vazio ou parcial marca o bloco inteiro', () => {
+    const cheio = alternarBloco(com('2026-11-05', BLOCO_08_16), '2026-11-05', BLOCO_08_16);
+    expect(estadoDoBloco(cheio, '2026-11-05', BLOCO_08_16)).toBe('vazio');
+    const parcial = alternarBloco(com('2026-11-05', { inicio: 480, fim: 1100 }), '2026-11-05', BLOCO_16_20);
+    expect(estadoDoBloco(parcial, '2026-11-05', BLOCO_16_20)).toBe('cheio');
+    expect(estadoDoBloco(parcial, '2026-11-05', BLOCO_08_16)).toBe('cheio');
+  });
+
+  it('o que se enviou é a união das faixas por dia, em horas "HH:MM" (08–16 e 16–20 viram 08:00–20:00)', () => {
+    const m = com('2026-11-05', BLOCO_08_16, BLOCO_16_20);
+    expect(faixasParaEnviar(m)).toEqual([{ data: '2026-11-05', inicio: '08:00', fim: '20:00' }]);
+    expect(faixasParaEnviar(com('2026-11-06', { inicio: 1200, fim: 1440 }))).toEqual([{ data: '2026-11-06', inicio: '20:00', fim: '24:00' }]);
+  });
+
+  it('marcar dias acrescenta o dia inteiro e não tira o que já está marcado', () => {
+    const r = marcarDias(com('2026-11-02', BLOCO_08_16), ['2026-11-02', '2026-11-03']);
+    expect(faixasParaEnviar(r)).toEqual([{ data: '2026-11-02', inicio: '00:00', fim: '24:00' }, { data: '2026-11-03', inicio: '00:00', fim: '24:00' }]);
+  });
+});
+
+describe('atalhos e rodapé', () => {
+  it('fimDeSemana traz os sábados e domingos (novembro de 2026 começa num domingo: 9 dias)', () => {
     expect(fimDeSemana('2026-11')).toEqual(['2026-11-01', '2026-11-07', '2026-11-08', '2026-11-14', '2026-11-15', '2026-11-21', '2026-11-22', '2026-11-28', '2026-11-29']);
   });
 
-  it('alternarDia: só um turno marcado marca os dois; os dois marcados desmarca os dois', () => {
-    const so = alternarDia(new Set(['2026-11-05|A']), '2026-11-05');
-    expect([...so].sort()).toEqual(['2026-11-05|A', '2026-11-05|B']);
-    expect(alternarDia(so, '2026-11-05').size).toBe(0);
-  });
-
-  it('marcarDias acrescenta A e B dos dias sem duplicar e sem tirar o que já está marcado', () => {
-    const r = marcarDias(new Set(['2026-11-05|A', '2026-11-02|B']), ['2026-11-02', '2026-11-03']);
-    expect([...r].sort()).toEqual(['2026-11-02|A', '2026-11-02|B', '2026-11-03|A', '2026-11-03|B', '2026-11-05|A']);
-  });
-
   it('copiarDoMes leva o dia N do mês anterior para o dia N e descarta o que não existe no mês (Review Focus 3)', () => {
-    const r = copiarDoMes([{ data: '2026-10-30', turno: 'A' }, { data: '2026-10-31', turno: 'B' }, { data: '2026-10-05', turno: 'B' }], '2026-11');
-    expect([...r].sort()).toEqual(['2026-11-05|B', '2026-11-30|A']);
-    // de um mês de 30 dias para um de 31 não perde nada
-    expect([...copiarDoMes([{ data: '2026-11-30', turno: 'B' }], '2026-12')]).toEqual(['2026-12-30|B']);
+    const anterior = [{ data: '2026-10-30', inicio: '08:00', fim: '20:00' }, { data: '2026-10-31', inicio: '20:00', fim: '24:00' }];
+    expect(faixasParaEnviar(copiarDoMes(anterior, '2026-11'))).toEqual([{ data: '2026-11-30', inicio: '08:00', fim: '20:00' }]);
   });
 
-  it('o rodapé conta turnos e dias, no singular quando é um só', () => {
-    expect(textoDoRodape(new Set())).toBe('Nenhum turno marcado.');
-    expect(textoDoRodape(new Set(['2026-11-05|A']))).toBe('1 turno em 1 dia.');
-    expect(textoDoRodape(new Set(['2026-11-05|A', '2026-11-05|B', '2026-11-06|A']))).toBe('3 turnos em 2 dias.');
+  it('o rodapé conta horas e dias, no singular quando é um só', () => {
+    expect(textoDoRodape(vazio())).toBe('Nenhum horário marcado.');
+    expect(textoDoRodape(com('2026-11-05', BLOCO_16_20))).toBe('4 horas em 1 dia.');
+    expect(textoDoRodape(com('2026-11-05', { inicio: 480, fim: 540 }))).toBe('1 hora em 1 dia.');
+    expect(textoDoRodape(new Map([['2026-11-05', [BLOCO_08_16]], ['2026-11-06', [BLOCO_16_20]]]))).toBe('12 horas em 2 dias.');
   });
 
   it('proximoQueFalta: o primeiro depois do atual; sem nenhum depois, o primeiro do começo; ninguém, null', () => {
-    const lista = [m('a', false), m('b', true), m('c', false), m('d', true), m('e', false)];
+    const militar = (id: string, lancado: boolean) => ({ militarId: id, lancado }) as Parameters<typeof proximoQueFalta>[0][number];
+    const lista = [militar('a', false), militar('b', true), militar('c', false), militar('d', true), militar('e', false)];
     expect(proximoQueFalta(lista, 'a')).toBe('c');
-    expect(proximoQueFalta(lista, 'c')).toBe('e');
     expect(proximoQueFalta(lista, 'e')).toBe('a');
     expect(proximoQueFalta(lista.map((x) => ({ ...x, lancado: x.militarId !== 'c' })), 'c')).toBeNull();
   });

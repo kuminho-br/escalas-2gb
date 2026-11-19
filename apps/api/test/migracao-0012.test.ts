@@ -28,24 +28,31 @@ async function usuario(banco: Banco, matricula: string): Promise<string> {
 }
 const unidade = async (banco: Banco, sigla: string) => (await banco.query<{ id: string }>('select id from unidade where sigla = $1', [sigla])).rows[0]!.id;
 
+// cada teste fecha o banco no fim: três bancos em memória abertos ao mesmo tempo derrubavam a inicialização do terceiro em máquina com pouca RAM
+async function comBanco(teste: (banco: Banco) => Promise<void>) {
+  const banco = await bancoAte0011();
+  try {
+    await teste(banco);
+  } finally {
+    await banco.fechar();
+  }
+}
+
 describe('migração 0012', () => {
-  it('num banco sem administrador fora da raiz, passa', async () => {
-    const banco = await bancoAte0011();
+  it('num banco sem administrador fora da raiz, passa', () => comBanco(async (banco) => {
     const u = await usuario(banco, '990960-1');
     await inserir(banco, 'papel_usuario', { usuario_id: u, unidade_id: await unidade(banco, 'CBMPE'), papel: 'administrador', desde: '2026-01-01' });
     await expect(aplicar0012(banco)).resolves.not.toThrow();
-  });
+  }));
 
-  it('administrador numa unidade filha, já gravado, faz a migração parar dizendo quantos', async () => {
-    const banco = await bancoAte0011();
+  it('administrador numa unidade filha, já gravado, faz a migração parar dizendo quantos', () => comBanco(async (banco) => {
     const u = await usuario(banco, '990961-1');
     await banco.query('alter table papel_usuario disable trigger papel_administrador');
     await inserir(banco, 'papel_usuario', { usuario_id: u, unidade_id: await unidade(banco, '1ª SB'), papel: 'administrador', desde: '2026-01-01' });
     await expect(aplicar0012(banco)).rejects.toThrow(/administrador fora da unidade raiz.*1/);
-  });
+  }));
 
-  it('convite de administrador numa unidade filha também faz parar', async () => {
-    const banco = await bancoAte0011();
+  it('convite de administrador numa unidade filha também faz parar', () => comBanco(async (banco) => {
     const u = await usuario(banco, '990962-1');
     const convidado = await usuario(banco, '990963-1');
     const militar = (await banco.query<{ militar_id: string }>('select militar_id from usuario where id = $1', [convidado])).rows[0]!.militar_id;
@@ -54,5 +61,5 @@ describe('migração 0012', () => {
       email: 'c@exemplo.test', militar_id: militar, unidade_id: await unidade(banco, '1ª SB'), papel: 'administrador', enviado_por: u, expira_em: '2030-01-01',
     });
     await expect(aplicar0012(banco)).rejects.toThrow(/administrador fora da unidade raiz/);
-  });
+  }));
 });
