@@ -6,7 +6,7 @@ import type { Consulta } from '../banco/banco.ts';
 type Lotado = Omit<MilitarDoVoluntariado, 'lancado' | 'turnos' | 'dias'>;
 
 /** Militares ativos com lotação na seção em algum dia do mês; com duas lotações no mês vale a que cobre o maior trecho (empate: a mais recente). */
-async function lotadosNoMes(c: Consulta, unidadeId: string, mes: string, somente?: string): Promise<Lotado[]> {
+export async function lotadosNoMes(c: Consulta, unidadeId: string, mes: string, somente?: string): Promise<Lotado[]> {
   const inicio = mesParaData(mes);
   const { rows } = await c.query<{
     id: string; matricula: string; nome_guerra: string; voluntario_jes: boolean; posto: string; jornada: 'pronto' | 'adm'; equipe: string | null; trecho: number; desde: string;

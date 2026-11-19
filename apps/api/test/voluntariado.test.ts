@@ -1,4 +1,4 @@
-import { somarMeses, type VoluntariadoDoMes, type VoluntariadoDoMilitar } from 'contratos';
+import { mesPorExtenso, somarMeses, type MarcaDeVoluntariado, type VoluntariadoDoMes, type VoluntariadoDoMilitar } from 'contratos';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { hojeRecife } from '../src/datas.ts';
 import { inserir } from './banco-teste.ts';
@@ -111,5 +111,65 @@ describe('voluntariado do mês', () => {
     expect((await ruim.json()).erro).toBe('Mês inválido: use o formato aaaa-mm.');
     expect((await api.pedir('semPapel', 'GET', `${secao()}/voluntariado/${mes}`)).status).toBe(403);
     expect((await api.pedir('semPapel', 'GET', `/api/militares/${militar.ANDRADE}/voluntariado/${mes}`)).status).toBe(403);
+  });
+});
+
+const lancar = (nome: string, marcas: MarcaDeVoluntariado[], quem: 'escalante' | 'semPapel' = 'escalante', m = mes) =>
+  api.pedir(quem, 'PUT', `/api/militares/${militar[nome]}/voluntariado/${m}`, { marcas });
+const daLista = (r: VoluntariadoDoMes, nome: string) => r.militares.find((x) => x.nomeGuerra === nome)!;
+
+describe('lançar o voluntariado do mês', () => {
+  it('lançar grava as marcações, devolve a lista do mês e registra quem lançou', async () => {
+    const r = await lancar('BRAVO1', [{ data: `${mes}-03`, turno: 'A' }, { data: `${mes}-03`, turno: 'B' }, { data: `${mes}-04`, turno: 'A' }]);
+    expect(r.status).toBe(200);
+    const lista: VoluntariadoDoMes = await r.json();
+    expect([daLista(lista, 'BRAVO1').lancado, daLista(lista, 'BRAVO1').turnos, daLista(lista, 'BRAVO1').dias]).toEqual([true, 3, 2]);
+    const quem = (await api.banco.query<{ lancado_por: string }>('select lancado_por from voluntariado_lancamento where militar_id = $1', [militar.BRAVO1])).rows;
+    expect(quem).toEqual([{ lancado_por: api.usuarios.escalante }]);
+    expect((await api.banco.query("select origem from voluntariado where militar_id = $1 and data >= $2::date", [militar.BRAVO1, `${mes}-01`])).rows.every((x) => x.origem === 'manual')).toBe(true);
+  });
+
+  it('lançar de novo substitui o mês inteiro, inclusive o que veio de importação; o mês anterior fica (Review Focus 2)', async () => {
+    await inserir(api.banco, 'voluntariado', { militar_id: militar.BRAVO1, data: `${mes}-10`, turno_padrao: 'A', origem: 'importacao' });
+    await inserir(api.banco, 'voluntariado', { militar_id: militar.BRAVO1, data: `${atual}-22`, turno_padrao: 'A', origem: 'manual' });
+    const r = await lancar('BRAVO1', [{ data: `${mes}-07`, turno: 'B' }]);
+    expect(r.status).toBe(200);
+    const m = await doMilitar('BRAVO1');
+    expect(m.marcas).toEqual([{ data: `${mes}-07`, turno: 'B' }]);
+    expect(m.doMesAnterior).toEqual([{ data: `${atual}-22`, turno: 'A' }]);
+  });
+
+  it('salvar sem nenhuma marcação conta como lançado, com 0 dias (Review Focus 1)', async () => {
+    expect(daLista(await doMes(), 'CHARLIE1').lancado).toBe(false);
+    const r = await lancar('CHARLIE1', []);
+    expect(r.status).toBe(200);
+    const c = daLista(await r.json(), 'CHARLIE1');
+    expect([c.lancado, c.turnos, c.dias]).toEqual([true, 0, 0]);
+    // limpar quem já tinha marcações
+    const limpo = daLista(await (await lancar('ANDRADE', [])).json(), 'ANDRADE');
+    expect([limpo.lancado, limpo.turnos, limpo.dias]).toEqual([true, 0, 0]);
+  });
+
+  it('marcação de outro mês é 400 com o campo; marcação repetida também', async () => {
+    const fora = await lancar('BRAVO1', [{ data: `${mes}-03`, turno: 'A' }, { data: `${somarMeses(mes, 1)}-01`, turno: 'A' }]);
+    expect(fora.status).toBe(400);
+    expect((await fora.json()).campos).toEqual({ 'marcas.1': `Use um dia de ${mesPorExtenso(mes)}.` });
+    const repetida = await lancar('BRAVO1', [{ data: `${mes}-03`, turno: 'A' }, { data: `${mes}-03`, turno: 'A' }]);
+    expect(repetida.status).toBe(400);
+    expect((await repetida.json()).campos.marcas).toBe('Esta marcação aparece duas vezes.');
+    // nada foi gravado pelos pedidos recusados
+    expect((await doMilitar('BRAVO1')).marcas).toEqual([{ data: `${mes}-07`, turno: 'B' }]);
+  });
+
+  it('militar que só chega depois do mês não pode ser lançado: 409 com a frase (Review Focus 4)', async () => {
+    const r = await lancar('FUTURO', [{ data: `${mes}-03`, turno: 'A' }]);
+    expect(r.status).toBe(409);
+    expect((await r.json()).erro).toBe(`Este militar não está lotado na seção em ${mesPorExtenso(mes)}.`);
+    expect((await api.banco.query('select 1 from voluntariado where militar_id = $1', [militar.FUTURO])).rows).toHaveLength(0);
+  });
+
+  it('quem não é escalante recebe 403 e nada é gravado', async () => {
+    expect((await lancar('BRAVO1', [{ data: `${mes}-08`, turno: 'A' }], 'semPapel')).status).toBe(403);
+    expect((await doMilitar('BRAVO1')).marcas).toEqual([{ data: `${mes}-07`, turno: 'B' }]);
   });
 });
