@@ -14,6 +14,8 @@ import { vinculosDaEscala } from '../cadastros/escalas.ts';
 import { feriadosDoAno } from '../cadastros/feriados.ts';
 import { versaoNoMes } from '../cadastros/guarnicoes-regras.ts';
 import { versoesDasGuarnicoes } from '../cadastros/guarnicoes.ts';
+import { ordemDoMes } from './ordem-do-mes.ts';
+import { sequenciaDePreenchimento } from './ordem.ts';
 import { nomeDaVaga } from './vagas.ts';
 
 type TurnoDaEscala = { id: string; servicoId: string; servico: string; cor: string; letra: 'A' | 'B' | 'C'; inicio: string; fim: string };
@@ -74,8 +76,14 @@ export async function montarEscalaDoMes(c: Consulta, escalaId: string, mes: stri
     const k = chaveDaFaixa(it.inicio, it.fim);
     modeloPorFaixa.set(k, [...(modeloPorFaixa.get(k) ?? []), { guarnicaoId: it.guarnicaoId, nome: it.guarnicao, viatura: v.viatura, prioridade: v.prioridade, composicao: v.composicao }]);
   }
+  // os cards seguem a ordem de escala: a guarnição vale pela primeira vez das vagas dela (sem ordem cadastrada: prioridade e nome, como sempre)
+  const vezDaGuarnicao = new Map<string, number>();
+  sequenciaDePreenchimento((await ordemDoMes(c, escalaId, mes)).vagas).forEach((v, i) => {
+    if (!vezDaGuarnicao.has(v.guarnicaoId)) vezDaGuarnicao.set(v.guarnicaoId, i);
+  });
+  const ultima = Number.MAX_SAFE_INTEGER;
   for (const lista of modeloPorFaixa.values()) {
-    lista.sort((a, b) => (a.prioridade ?? Infinity) - (b.prioridade ?? Infinity) || a.nome.localeCompare(b.nome, 'pt-BR'));
+    lista.sort((a, b) => (vezDaGuarnicao.get(a.guarnicaoId) ?? ultima) - (vezDaGuarnicao.get(b.guarnicaoId) ?? ultima) || a.nome.localeCompare(b.nome, 'pt-BR'));
   }
 
   const inicioDoMes = mesParaData(mes);

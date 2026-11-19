@@ -11,9 +11,7 @@ export function versaoVigente(versoes: VersaoSalva[], mes: string): VersaoSalva 
   return versoes.find((v) => v.vigencia <= mes) ?? versoes[versoes.length - 1];
 }
 
-/** "Viatura AR, Auto Resgate. Ativada em 2º lugar." — o que a versão em vigor diz da guarnição. */
+/** "Viatura AR, Auto Resgate." — o que a versão em vigor diz da guarnição (a ordem de ativação agora é da escala). */
 export function resumoDaGuarnicao(v: VersaoSalva | undefined): string {
-  const viatura = v?.viatura ? `Viatura ${v.viatura}${v.tipoViatura ? `, ${v.tipoViatura}` : ''}.` : 'Sem viatura.';
-  const ordem = v?.prioridade != null ? `Ativada em ${v.prioridade}º lugar.` : 'Sem prioridade: vai por último na ativação.';
-  return `${viatura} ${ordem}`;
+  return v?.viatura ? `Viatura ${v.viatura}${v.tipoViatura ? `, ${v.tipoViatura}` : ''}.` : 'Sem viatura.';
 }

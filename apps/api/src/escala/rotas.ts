@@ -1,21 +1,23 @@
 // Escala do mês: leitura (aqui) e, nas tarefas seguintes, candidatos, escalar e remover.
-import { Data, Hora, Id, Mes, NovaAlocacao, NovoAcumulo } from 'contratos';
+import { Data, Hora, Id, Mes, NovaAlocacao, NovoAcumulo, OrdemDeEscalaEntrada, mesPorExtenso } from 'contratos';
 import { z } from 'zod';
 import { Hono } from 'hono';
 import { CADASTRO, exigirPapel, exigirSessao, unidadeDoRegistro, type AmbienteApi } from '../acesso.ts';
 import type { Auth } from '../auth.ts';
 import { comUsuario, type Banco } from '../banco/banco.ts';
+import { mesPassado } from '../cadastros/guarnicoes.ts';
 import { lerCorpo, respostaDoErroDoBanco } from '../erros.ts';
 import { acumular, desfazerRemocao, escalar, Recusa, remover, tirarAcumulo } from './alocacoes.ts';
 import { avaliarCandidatos } from './elegibilidade.ts';
 import { montarEscalaDoMes } from './leitura.ts';
+import { gravarOrdem, ordemDoMes } from './ordem-do-mes.ts';
 
 const ConsultaDeCandidatos = z.object({ data: Data, inicio: Hora, fim: Hora, guarnicaoId: Id.optional(), funcaoId: Id.optional() });
 
 export function rotasEscalaDoMes(dep: { banco: Banco; auth: Auth }): Hono<AmbienteApi> {
   const r = new Hono<AmbienteApi>();
   const sessao = exigirSessao(dep.banco, dep.auth);
-  for (const caminho of ['/escalas/:id/mes/*', '/escalas/:id/alocacoes', '/alocacoes/*', '/remocoes/*', '/acumulos/*']) r.use(caminho, sessao);
+  for (const caminho of ['/escalas/:id/mes/*', '/escalas/:id/alocacoes', '/alocacoes/*', '/remocoes/*', '/acumulos/*', '/escalas/:id/ordem/*']) r.use(caminho, sessao);
 
   r.get('/escalas/:id/mes/:mes', async (c) => {
     const id = c.req.param('id');
@@ -128,6 +130,45 @@ export function rotasEscalaDoMes(dep: { banco: Banco; auth: Auth }): Hono<Ambien
     if (negado) return negado;
     const { escalaId, mes } = await comUsuario(dep.banco, c.get('usuarioId'), (tx) => tirarAcumulo(tx, id));
     return c.json(await montarEscalaDoMes(dep.banco, escalaId, mes));
+  });
+
+  /** A ordem de escala em vigor no mês, com as vagas da escala e a vez de cada uma. */
+  r.get('/escalas/:id/ordem/:mes', async (c) => {
+    const id = c.req.param('id');
+    const unidadeId = await unidadeDoRegistro(dep.banco, 'escala', id);
+    if (!unidadeId) return c.json({ erro: 'Escala não encontrada.' }, 404);
+    const negado = await exigirPapel(c, unidadeId, CADASTRO);
+    if (negado) return negado;
+    const mes = c.req.param('mes');
+    if (!Mes.safeParse(mes).success) return c.json({ erro: 'Mês inválido: use o formato aaaa-mm.' }, 400);
+    return c.json(await ordemDoMes(dep.banco, id, mes));
+  });
+
+  /** Grava a ordem a partir do mês (substitui a do mesmo mês); a vez de cada vaga é a posição na lista. */
+  r.put('/escalas/:id/ordem/:mes', async (c) => {
+    const id = c.req.param('id');
+    const unidadeId = await unidadeDoRegistro(dep.banco, 'escala', id);
+    if (!unidadeId) return c.json({ erro: 'Escala não encontrada.' }, 404);
+    const negado = await exigirPapel(c, unidadeId, CADASTRO);
+    if (negado) return negado;
+    const mes = c.req.param('mes');
+    if (!Mes.safeParse(mes).success) return c.json({ erro: 'Mês inválido: use o formato aaaa-mm.' }, 400);
+    const corpo = await lerCorpo(c, OrdemDeEscalaEntrada);
+    if (!corpo.ok) return corpo.resposta;
+    const passado = mesPassado(c, mes);
+    if (passado) return passado;
+    const existentes = new Set((await ordemDoMes(dep.banco, id, mes)).vagas.map((v) => `${v.guarnicaoId}|${v.funcaoId}|${v.vaga}`));
+    const campos: Record<string, string> = {};
+    corpo.dados.itens.forEach((it, i) => {
+      if (!existentes.has(`${it.guarnicaoId}|${it.funcaoId}|${it.vaga}`)) campos[`itens.${i}`] = `Esta vaga não existe nesta escala em ${mesPorExtenso(mes)}.`;
+    });
+    if (Object.keys(campos).length) return c.json({ erro: 'Confira os campos destacados.', campos }, 400);
+    try {
+      await comUsuario(dep.banco, c.get('usuarioId'), (tx) => gravarOrdem(tx, id, mes, corpo.dados.itens));
+    } catch (e) {
+      return respostaDoErroDoBanco(c, e);
+    }
+    return c.json(await ordemDoMes(dep.banco, id, mes));
   });
 
   return r;

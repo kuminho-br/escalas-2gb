@@ -156,6 +156,8 @@ Plano próprio: `docs/superpowers/plans/2026-11-18-fase4-escala.md` (seis entreg
 
 **Decisão do usuário (18/11/2026): ordem de escala e acúmulo de funções.** A prioridade de ativação passa a ser a **ordem de escala**: uma lista por escala, com vigência por mês, da vez de cada vaga (guarnição + função + nº da vaga), editável numa tela de quadrados; a pré-escala segue a ordem à risca (o mais antigo apto em cada vaga) e substitui a prioridade da guarnição (RN-08). Quando falta gente, o escalante **acumula funções** à mão num militar já escalado na mesma faixa, inclusive de outra guarnição, com a CNH da vaga conferida. Entram como entregas 1.1 (acúmulo) e 2.1 (ordem), antes da 3. Design: `docs/superpowers/specs/2026-11-18-ordem-de-escala-e-acumulo-design.md`. Pendente para depois: regras próprias por vaga (graduado de dia = o mais antigo do dia, exceto Adm; chefe = o mais antigo da guarnição).
 
+**Decisão do usuário (19/11/2026): voluntariado por faixa de horário.** Depois de conversar com os militares: a disponibilidade deixa de ser turno padrão A/B e passa a ser marcada em blocos do dia tirados dos horários dos serviços que pedem voluntariado (hoje 00–08, 08–16, 16–20, 20–24), guardada em horários (início e fim) por dia; o militar não escolhe operação. Calendário com blocos proporcionais no computador; um dia por linha, só toque, no celular. Entra como entrega 2.2, depois da 2.1 (a ordem de escala foi executada primeiro). Design: `docs/superpowers/specs/2026-11-19-voluntariado-por-faixa-design.md`; mockup: `docs/telas/mockup-voluntariado-faixas.html`.
+
 **Entrega e marco:** piloto na 1ª SB. Um mês real montado no sistema novo, em paralelo com as planilhas atuais, e comparado no fim.
 
 ## Fase 5 — Operação diária
