@@ -3,11 +3,13 @@
 16/11/2026 · aprovado em 16/11/2026
 
 **Nome e módulos (19/11/2026):** o sistema inteiro se chama **"Sistema de Gestão - 2º GB"** e tem três módulos.
-- **Confecção de escalas:** em desenvolvimento, nas fases 3 a 6.
-- **Visualização de escalas:** as publicações e a área do próprio militar (voluntariado, minhas escalas). Entra quando os tipos de usuário forem diferenciados, junto com a tela inicial que mostra os módulos.
-- **Pecúlio do 2º GB:** as fichas de registro de todos os militares. Entra com a reestruturação do cadastro de militares.
+- **Confecção de escalas:** fases 3 e 4, e de novo da fase 8 em diante.
+- **Pecúlio do 2º GB:** as fichas de registro de todos os militares. Fase 5.
+- **Visualização de escalas:** as publicações e a área do próprio militar (voluntariado, Minha escala). Fase 7, depois dos tipos de usuário (fase 6).
 
-A tela de login nova entra na entrega 3.3 da fase 4 (era a 3.2; renumerada em 20/11/2026). Os detalhes estão nos adendos de 19/11 do design da migração ("Nome do sistema e módulos" e "Login, tela inicial, módulos e Pecúlio"). O mockup aprovado está em `docs/telas/login-e-inicio/mockup.html`.
+A tela de login nova entrou na entrega 3.3 da fase 4. Os detalhes estão nos adendos de 19/11 do design da migração ("Nome do sistema e módulos" e "Login, tela inicial, módulos e Pecúlio"). O mockup aprovado está em `docs/telas/login-e-inicio/mockup.html`.
+
+**Reorganização de 20/11/2026 (decisão do usuário):** o desenvolvimento andou mais rápido que o previsto e ainda não é hora de montar a escala de um mês real. Antes de voltar à Confecção, entram o **Pecúlio** (a base de dados dos militares do 2º GB inteiro), os **tipos de usuário** com a tela inicial dos módulos e a **Visualização de escalas**. O Gerar documento e as distribuições automáticas passam para a fase 8 (primeiro mês real). O piloto continua sendo a diretriz geral, mas não fixa a ordem de tudo. Motivo e abordagens: adendo "Reorganização do roadmap: Pecúlio primeiro" em `docs/superpowers/specs/2026-11-16-migracao-design.md`.
 
 **Objetivo:** levar o sistema do protótipo em Apps Script + Sheets para uma aplicação própria (banco relacional, API, interface web), primeiro numa fase de teste com cerca de 5 escalantes e depois no servidor institucional do Estado.
 
@@ -18,8 +20,9 @@ A tela de login nova entra na entrega 3.3 da fase 4 (era a 3.2; renumerada em 20
 - **O protótipo continua sendo o laboratório de regras.** Uma regra nova ou complexa é prototipada e validada na sandbox do Apps Script. Só depois de aprovada ela é portada para o sistema novo.
 - **As regras têm um teste só para os dois sistemas.** Os casos de teste viram arquivos de dados (entrada e resultado esperado) que rodam contra o protótipo e contra o sistema novo. Uma regra é considerada portada quando passa nos mesmos casos.
 - **Tudo deve poder ir para o servidor do Estado sem retrabalho.** Banco Postgres padrão, sem depender de recursos exclusivos de um fornecedor de nuvem.
-- **A auditoria existe desde o primeiro dia.** O registro de alterações é gravado pelo banco desde a fase 1, mesmo que a tela de histórico só chegue na fase 7.
+- **A auditoria existe desde o primeiro dia.** O registro de alterações é gravado pelo banco desde a fase 1, mesmo que a tela de histórico só chegue na fase 11.
 - **Dados reais só com decisão explícita.** O tratamento de dados pessoais na fase de teste é uma decisão da fase 0.
+- **A validação não trava o roadmap** (decisão do usuário, 20/11/2026). Cada entrega é validada na sandbox pela sessão de VALIDAÇÃO, ao mesmo tempo em que a programação segue para a próxima. O retorno da validação (pendências e ajustes) entra no roadmap no momento mais oportuno, como a 4.1 e a 4.2 entraram depois da validação da 3.3. Uma entrega "mesclada" não quer dizer "validada", e o roadmap não espera uma para começar a outra.
 
 ## Visão geral
 
@@ -30,12 +33,16 @@ A tela de login nova entra na entrega 3.3 da fase 4 (era a 3.2; renumerada em 20
 | 2. Motor de regras | Regras do Apps Script portadas, com os testes passando | Você |
 | 3. Cadastros | Todas as telas de cadastro, com carga inicial da planilha | Você e os escalantes |
 | Revisões antes da fase 4 | Pendências aplicadas, telas testadas com pessoas e código revisado | Você e alguns usuários |
-| 4. Montagem da escala (**1ª versão**) | Montar, conferir e publicar a escala do mês | **~5 escalantes (piloto 1ª SB)** |
-| 5. Operação diária | Efetivo do dia, permutas, escala executada | Escalantes |
-| 6. Insumos automáticos e regras novas | Importação do Google Forms; regras validadas no laboratório | Escalantes |
-| 7. Institucionalização | Estrutura em vários níveis, acesso por unidade, histórico, servidor do Estado | Corporação |
-| Tipos de usuário e módulos (momento a definir) | Os quatro tipos de usuário diferenciados, a tela inicial com os módulos e a Visualização de escalas, com a Minha escala | Todos os militares |
-| Cadastro de militares e Pecúlio (momento a definir) | O cadastro de militares reestruturado com a estrutura de dados da corporação, e o módulo Pecúlio | A definir |
+| 4. Montagem da escala | Montar e conferir a escala do mês à mão, nas quatro telas de trabalho | Você e os escalantes |
+| 5. Pecúlio | A base de militares do 2º GB inteiro, importada do Pecúlio, e o módulo Pecúlio | Você e a administração do GB |
+| 6. Usuários e módulos | Os quatro tipos de usuário, contas para os militares, acesso por lotação e a tela inicial com os módulos | Todos os militares |
+| 7. Visualização de escalas | Publicar a escala no sistema, as publicações, a Minha escala e o próprio voluntariado | Todos os militares |
+| 8. Primeiro mês real | Distribuições automáticas, Gerar documento, Escala por militar e o **piloto** | **~5 escalantes (piloto 1ª SB)** |
+| 9. Operação diária (era a 5) | Efetivo por dia na operação, permutas, escala executada | Escalantes |
+| 10. Regras novas (era a 6) | Regras validadas no laboratório e a tela de Ajuda | Escalantes |
+| 11. Institucionalização (era a 7) | Níveis acima do GB, histórico, servidor do Estado | Corporação |
+
+As fases 5 a 11 foram reorganizadas em 20/11/2026. Até então, a fase 5 era a Operação diária, a 6 os Insumos automáticos e a 7 a Institucionalização, e o Pecúlio e os tipos de usuário não tinham fase.
 
 ## Fase 0 — Decisões e especificação
 
@@ -131,6 +138,8 @@ Os cadastros estão prontos, mas foram feitos em dez entregas, cada uma com pend
 
 **Fases 4 e 7 (6 itens, só aparecem com várias unidades ou com alocações gravadas):** transferência sempre para a unidade do usuário (7); antiguidade comparada no caminho da unidade e na lotação (7); função igual criada na unidade de cima (7); catálogo de funções pela unidade do usuário, não da guarnição (7); renomear função sem conferir as unidades de baixo (7); mudar a letra de turno com militares escalados sem 409 (4, quando houver alocações). Também na fase 7: feriado criado numa unidade de baixo numa data que a de cima já tem, e a antiguidade institucional pelos almanaques.
 
+*Reorganização de 20/11/2026:* os itens marcados "(7)" acima passam a aparecer **na fase 5**, quando o 2º GB ganhar as nove lotações, e entram no design dela: transferência, antiguidade no caminho da unidade, funções na unidade de cima, catálogo de funções, renomear função e feriado repetido. A antiguidade pelos almanaques continua na fase 11, só acima do GB.
+
 ### Resultado da revisão 3 (18/11/2026)
 
 **Corrigido, cada item com teste que falhava antes:**
@@ -158,7 +167,7 @@ Os cadastros estão prontos, mas foram feitos em dez entregas, cada uma com pend
 - Escala do mês: gerar pré-escala, tabela dia › turno › cards de guarnição, ícones de situação, "Escolher militar" com a lista já filtrada, vagas vazias em listras.
 - Grade geral (entrega 4; design de 20/11/2026 em `docs/superpowers/specs/2026-11-20-grade-geral-design.md`): visão de todo o efetivo por equipe, como painel interativo; o clique é na célula (militar e dia) e abre o painel do dia com Adicionar, Trocar e Remover; filtro de equipes; colunas PJES e Diárias (número com barra comparativa) e Voluntariado (horas tiradas de pedidas); "Trocar" pode ser com quem já está escalado (mostra onde ele está), e entre dois ordinários é uma permuta.
 - Voluntariado lançado à mão: calendário com marcação rápida e "Salvar e ir para o próximo".
-- Gerar documento: escala publicada a partir do modelo de impressão.
+- Gerar documento: escala publicada a partir do modelo de impressão. **Passou para a fase 8** (reorganização de 20/11/2026).
 - Tela de login nova, com o brasão do 2º GB e a foto do quartel (entrega 3.3).
 - Meta de ativação e Efetivo do dia do escalante (entrega 3.2, decisão de 20/11/2026); a tela vira **Efetivo por dia**, de trabalho, na entrega 3.3 (decisão de 20/11/2026, depois da 3.2.2).
 
@@ -166,8 +175,8 @@ Plano próprio: `docs/superpowers/plans/2026-11-18-fase4-escala.md` (cinco entre
 
 **Decisão do usuário (19/11/2026): login, módulos e Minha escala.**
 - A tela de login ganha o visual do mockup aprovado na **entrega 3.3** (era a 3.2). Muda só a aparência.
-- A **Minha escala** (era a entrega 6) **sai da fase 4**. Ela vai junto com a Visualização de escalas e a tela inicial com os módulos, no momento em que os tipos de usuário forem diferenciados (seção "Etapas sem fase marcada", abaixo).
-- A fase 4 termina na entrega 5, e o piloto continua sendo dos escalantes.
+- A **Minha escala** (era a entrega 6) **sai da fase 4**. Ela vai junto com a Visualização de escalas e a tela inicial com os módulos, no momento em que os tipos de usuário forem diferenciados (hoje a fase 7, Visualização de escalas, depois dos tipos de usuário na fase 6).
+- A fase 4 termina na entrega 5, e o piloto continua sendo dos escalantes. *Mudou em 20/11/2026:* a fase 4 fecha na 4.3, e o Gerar documento e o piloto vão para a fase 8.
 
 Design: adendo "Login, tela inicial, módulos e Pecúlio" em `docs/superpowers/specs/2026-11-16-migracao-design.md`.
 
@@ -218,58 +227,64 @@ Design: adendo "Efetivo por dia" em `docs/superpowers/specs/2026-11-20-meta-de-a
 
 Design: adendo "validação da 3.3" em `docs/superpowers/specs/2026-11-20-meta-de-ativacao-design.md`.
 
+**Reorganização de 20/11/2026: como a fase 4 fecha.** A entrega 4 (Grade geral, PR #44) foi mesclada e segue em validação, sem travar a ordem (princípio acima). A fase 4 fecha com:
+- **4.1 e 4.2**, do retorno da validação da 3.3 (meta do dia: desativar, reativar e adicionar; Efetivo por dia e Escala do mês em grade). Plano no PR #45.
+- **4.3 — limpeza das pendências da fase 3**, que estava prevista para a 3.3 e ficou de fora: o campo de mês das Cotas (PR #32), o aviso de migração faltando (refazer o PR #15), a CNH habilitada marcada só na tela, a edição do militar gravando só o que mudou, a confirmação do "Desativar agora" e a cota recusada para serviço desativado. Design: `docs/superpowers/specs/2026-11-20-limpeza-da-fase-3-design.md`. Entram junto os menores da mesma natureza que a validação das entregas 3.2.2 e 4 listou: "Voltar ao padrão" sem confirmação (M7), troca recusada sem dizer de qual dos dois militares é o problema e o cabeçalho dos dias da Grade sem ficar fixo ao rolar. Também entra a medição do tempo de abertura do painel do dia (100 a 200 consultas).
+
+**Saíram da fase 4 e foram para a fase 8 (primeiro mês real):**
+- a **entrega 5, Gerar documento**;
+- a **5.1, o mesmo modelo mais de uma vez no dia** (PR #45);
+- as **distribuições automáticas**: completar com JES, saldos do Adm, operações pelas cotas e buracos do Pronto, com as quatro decisões de regra que faltam.
+
+**Entrega:** os escalantes conseguem montar e conferir a escala de um mês à mão, nas quatro telas de trabalho, sem os tropeços conhecidos. O piloto passou para a fase 8.
+
+## Fase 5 — Pecúlio (reorganização de 20/11/2026)
+
+O Pecúlio do 2º GB hoje é uma planilha (`BACKUP DO PECÚLIO 2ºGB (04NOV26).xlsx`, guardada em `docs/fontes de dados/`, fora do Git). Ele é a base de dados dos militares do GB inteiro, e é dela que dependem os acessos (fase 6) e a Minha escala (fase 7): cada usuário do sistema já é um militar do cadastro (`usuario.militar_id`). Levantamento da planilha e decisões no adendo "Reorganização do roadmap: Pecúlio primeiro" do design da migração.
+
+- **Estrutura do 2º GB:** as nove lotações do Pecúlio (SEDE, SCSv e 1ª a 7ª SB) viram unidades abaixo do 2º GB. É a parte da Estrutura que estava na fase 7, limitada ao GB.
+- **Ficha do militar ampliada e importação do Pecúlio:** os cerca de 184 militares do GB, com os campos do Pecúlio, menos o CPF e o ano de nascimento (decisão D7 revista, opção a). A importação segue o padrão da fase 3: prévia, problemas com solução e importar de novo sem duplicar.
+- **Antiguidade pela "Ordem" do Pecúlio:** a antiguidade no 2º GB passa a vir da coluna "Ordem". Resolve a pendência da antiguidade institucional dentro do GB; acima do GB, segue na fase 11.
+- **Afastamentos vindos do Pecúlio:** férias (com o BGE e as reprogramações), L.E, LTS e DTS passam a alimentar os afastamentos que a escala já usa, sem lançamento à mão.
+- **Telas do módulo Pecúlio:** lista e ficha de todos os militares do GB. O que mais entra (aniversariantes, números do efetivo com previsto, existente e déficit, missões extra por portaria) é decidido no design da fase.
+
+**Decisões que faltam antes do design:**
+1. A ficha do Pecúlio e a ficha de Militares são a mesma ficha, com mais campos, ou duas coisas separadas?
+2. Depois da importação, quem é a fonte dos dados: o sistema (a planilha é aposentada) ou a planilha (importada de novo de tempos em tempos)?
+3. Quais abas além da principal entram no módulo (Números efetivo; Missões extra por portaria).
+4. Como o militar comum vai entrar no sistema: o Pecúlio não tem e-mail, e o login hoje é por e-mail. Se a resposta pedir um campo novo (e-mail, por exemplo), ele já nasce na ficha desta fase.
+
+**Entrega:** os militares do 2º GB inteiro no sistema, com a ficha do Pecúlio, a antiguidade e os afastamentos, conferidos contra a planilha.
+
+## Fase 6 — Usuários e módulos (reorganização de 20/11/2026)
+
+- **Os quatro tipos de usuário:** administrador, gestor, auxiliar administrativo (escalante) e militar comum. Hoje escalante, gestor e administrador já estão gravados, e o militar comum é quem não tem papel.
+- **Contas para os militares:** cada militar do Pecúlio pode ter acesso, pelo jeito decidido na fase 5 (decisão 4).
+- **Cadastro de usuários:** o gestor cadastra os usuários do seu nível e de todos os de baixo e define o gestor de cada nível abaixo. Vem da fase 7 antiga, limitado ao 2º GB.
+- **Acesso por lotação:** cada um vê a sua unidade e as de baixo; o seletor de unidade no topo deixa de ser fixo na 1ª SB para quem tem acesso a mais de uma.
+- **Tela inicial com os módulos,** do mockup aprovado (`docs/telas/login-e-inicio/mockup.html`), com a **transição do login** das mangueiras (design de 20/11/2026, `docs/superpowers/specs/2026-11-20-transicao-login-design.md`). As fotos sorteadas das boas-vindas saíram: a cena final da transição ocupa o lugar delas.
+
+**A decidir no design da fase:** quem vê cada módulo (por exemplo, se o militar comum vê a Confecção) e se "auxiliar administrativo" substitui "escalante" nas telas.
+
+**Entrega:** qualquer militar do 2º GB entra no sistema e vê os módulos do seu tipo de usuário.
+
+## Fase 7 — Visualização de escalas (reorganização de 20/11/2026)
+
+- **Publicar a escala no sistema:** o passo que torna a escala do mês visível para os militares. Se a escala publicada fica travada e como se corrige depois de publicada é decidido no design da fase. O documento em .xlsx continua na fase 8.
+- **Publicações da unidade:** as escalas publicadas da unidade em que o militar está lotado.
+- **Minha escala:** os próprios serviços no mês, dia a dia, com quem compõe cada guarnição. É a Escala por militar com um militar só, e a tela das duas é desenhada junto (fase 8).
+- **O próprio voluntariado:** o militar marca a sua disponibilidade no calendário por faixa de horário que o escalante já usa. O lançamento à mão pelo escalante continua. Com isso, a importação do Google Forms (fase 6 antiga) deixa de ser necessária.
+
+**Entrega:** o militar vê a escala publicada e a sua própria escala, e marca o próprio voluntariado.
+
+## Fase 8 — Primeiro mês real (reorganização de 20/11/2026)
+
+- **Distribuições automáticas:** completar com JES num dia ou período escolhido pelo chefe, saldos do Adm, operações pelas cotas e buracos do Pronto. O motor já tem `distribuirCotas` e `distribuirAdm` portados e conferidos contra o protótipo; falta ligá-los às vagas, com prévia e gravação no padrão da pré-escala do Pronto (3.1). Antes, as quatro decisões de regra do plano da fase 4 (ordem dos buracos, saldo que não cabe, cota contra vaga, compulsória).
+- **Gerar documento** (era a entrega 5 da fase 4): modelos de impressão em Configurações, a escala publicada em .xlsx a partir do modelo vigente e o histórico dos documentos gerados. Antes, as respostas sobre o modelo atual de impressão e sobre se a escala publicada traz só o Ordinário ou também as operações.
+- **O mesmo modelo mais de uma vez no dia** (era a 5.1 da fase 4).
+- **Escala por militar,** a quarta tela principal (seção própria abaixo).
+
 **Entrega e marco:** piloto na 1ª SB. Um mês real montado no sistema novo, em paralelo com as planilhas atuais, e comparado no fim.
-
-## Fase 5 — Operação diária
-
-- Efetivo do dia (o Efetivo por dia, tela de trabalho do escalante, nasce nas entregas 3.2 e 3.3 da fase 4; aqui entra a operação): turnos A e B lado a lado, operações do período das 08h de D às 08h de D+1, motoristas de serviço, marcação de presença, impressão.
-- Permutas registradas na Grade geral e mostradas no Efetivo do dia.
-- Escala executada: gerar e enviar até o dia 5 do mês seguinte.
-
-**Entrega:** o escalante passa o mês inteiro no sistema, do dia 1 ao envio da escala executada.
-
-## Fase 6 — Insumos automáticos e regras novas
-
-- Importação do Google Forms em quatro passos (enviar, ligar colunas, conferir, importar), com a ligação de colunas guardada. Depende da pendência do formato do formulário.
-- Regras validadas no laboratório entram aqui, na ordem em que forem aprovadas: distribuição de operações por função (B38/RN-81), equilíbrio de situações boas e ruins na compulsória (RN-43), causas de não ativação (viatura, calendário).
-- Tela de Ajuda com o roteiro do mês.
-
-**Entrega:** o voluntariado do mês entra pela importação, e cada regra nova chega já com os casos de teste compartilhados.
-
-## Fase 7 — Institucionalização
-
-- Estrutura: árvore CBMPE › DGO › Diretorias › GB › Seção, com o seletor de unidade no topo das telas.
-- Escalas, guarnições e cotas em qualquer nível, como a operação do GB.
-- Acesso por unidade, com um gestor por nível (chefe, diretor) que cadastra os usuários do seu nível e de todos os de baixo e define o gestor de cada nível abaixo.
-- Tela de Histórico, sobre o registro que existe desde a fase 1.
-- Antiguidade institucional: hoje é o lugar no ranking do 2º GB; com outros níveis hierárquicos, passa a vir dos almanaques, e a antiguidade por nível é derivada pelo sistema (pendência registrada no adendo de 17/11/2026 do design; só pesa quando o escopo for institucional).
-- Marcação de voluntariado pelo próprio militar.
-- Migração para o servidor do Estado: cópia do banco, implantação e retirada do ambiente de teste.
-
-**Entrega:** sistema em produção institucional.
-
-## Etapas sem fase marcada (decisões de 19 e 20/11/2026)
-
-Três etapas decididas pelo usuário, com o momento ainda em aberto. Cada uma ganha a sua conversa de design e o seu plano quando for começar. Detalhes no adendo "Login, tela inicial, módulos e Pecúlio" do design da migração.
-
-### Tipos de usuário e módulos
-
-Começa quando o usuário diferenciar os quatro tipos de usuário: **administrador, gestor, auxiliar administrativo (escalante) e militar comum**.
-
-O que entra:
-- a tela inicial depois do login, com um cartão por módulo e a faixa de boas-vindas com foto sorteada de um banco de fotos do quartel;
-- o módulo de **Visualização de escalas**: as escalas publicadas da unidade e a **Minha escala** (os próprios serviços, com quem compõe cada guarnição);
-- a área do próprio militar. A marcação do próprio voluntariado, hoje listada na fase 7, também é parte desse módulo.
-
-Hoje os papéis existem em parte: escalante, gestor e administrador estão gravados, e o militar comum é quem não tem papel. O cadastro de usuários estava previsto para a fase 7.
-
-A decidir quando começar: em que fase entra, quem vê cada módulo, de onde vêm as fotos e se "auxiliar administrativo" substitui "escalante" nas telas.
-
-### Cadastro de militares e Pecúlio
-
-O cadastro de militares de hoje é simples. O usuário vai reestruturá-lo, importando a estrutura de dados real usada na corporação, e nesse mesmo momento nasce o módulo **Pecúlio do 2º GB**, com as fichas de registro de todos os militares.
-
-A decidir quando começar: se a ficha do Pecúlio e a de Militares são a mesma ficha, com mais campos, e quem vê cada informação (D7).
 
 ### Escala por militar e as quatro telas principais (decisão de 20/11/2026)
 
@@ -282,7 +297,34 @@ Tela nova: o escalante seleciona militares e vê como estão distribuídos ao lo
 | Efetivo por dia | todas as escalas da área | um dia |
 | Escala por militar | militares escolhidos | o mês |
 
-É uma entrega maior. A sessão de **PLANEJAMENTO** estuda a estrutura das quatro telas e propõe em que fase ela entra. A decidir: o que se compara entre os militares (serviços, folgas, choques, horas), quantos militares por vez, se a tela também escala ou só mostra, e como as quatro telas se ligam entre si.
+A Minha escala (fase 7) é o caso de um militar só, e a Grade geral (entrega 4) já dá a base da linha por militar. A decidir no design: o que se compara entre os militares (serviços, folgas, choques, horas), quantos militares por vez, se a tela também escala ou só mostra, e como as quatro telas se ligam entre si. Hipótese a conferir com o usuário: o cruzamento de dois militares lembra a **permuta** (fase 9); se for esse o uso, a tela pode ir junto com as permutas.
+
+## Fase 9 — Operação diária (era a fase 5)
+
+- Efetivo por dia na operação (a tela de trabalho do escalante nasceu nas entregas 3.2 e 3.3 da fase 4): turnos A e B lado a lado, operações do período das 08h de D às 08h de D+1, motoristas de serviço, marcação de presença, impressão.
+- Permutas registradas e mostradas no Efetivo por dia. A Grade geral já trata a troca entre dois ordinários como permuta (entrega 4); aqui entra o registro formal.
+- Escala executada: gerar e enviar até o dia 5 do mês seguinte.
+
+**Entrega:** o escalante passa o mês inteiro no sistema, do dia 1 ao envio da escala executada.
+
+## Fase 10 — Regras novas (era a fase 6)
+
+- Regras validadas no laboratório entram aqui, na ordem em que forem aprovadas: distribuição de operações por função (B38/RN-81), equilíbrio de situações boas e ruins na compulsória (RN-43), causas de não ativação (viatura, calendário).
+- Tela de Ajuda com o roteiro do mês.
+- **Saiu (20/11/2026):** a importação do Google Forms. O próprio militar marca o voluntariado na fase 7. Ela só volta se a marcação pelo militar não pegar.
+
+**Entrega:** cada regra nova chega já com os casos de teste compartilhados.
+
+## Fase 11 — Institucionalização (era a fase 7)
+
+- Estrutura acima do GB: árvore CBMPE › DGO › Diretorias › GB, com o seletor de unidade no topo das telas. As unidades dentro do 2º GB entram na fase 5.
+- Escalas, guarnições e cotas em qualquer nível, como a operação do GB.
+- Acesso por unidade acima do GB, com um gestor por nível (diretor e acima). Dentro do GB, o cadastro de usuários e o gestor por nível entram na fase 6.
+- Tela de Histórico, sobre o registro que existe desde a fase 1.
+- Antiguidade institucional acima do GB, pelos almanaques, com a antiguidade por nível derivada pelo sistema (pendência do adendo de 17/11/2026 do design). Dentro do GB, ela vem da "Ordem" do Pecúlio (fase 5).
+- Migração para o servidor do Estado: cópia do banco, implantação e retirada do ambiente de teste. É aqui que o CPF e a data de nascimento completa entram (D7, revisão de 20/11/2026).
+
+**Entrega:** sistema em produção institucional.
 
 ## Fluxo de uma regra nova (vale a partir da fase 2)
 
@@ -297,4 +339,6 @@ Tela nova: o escalante seleciona militares e vê como estão distribuídos ao lo
 - **A interface da Escala do mês e da Grade geral é a parte mais cara.** Por isso ela só começa na fase 4, com o motor e os cadastros prontos.
 - **Os dois sistemas podem divergir.** Os casos de teste compartilhados são a defesa: nenhuma regra é portada sem eles.
 - **Ambiente de teste gratuito:** pausa por inatividade e limites do plano. Isso é tratado na D2.
-- **Dados pessoais numa nuvem comercial durante o teste.** Isso é tratado na D7.
+- **Dados pessoais numa nuvem comercial durante o teste.** Isso é tratado na D7, revista em 20/11/2026 para o Pecúlio: sem CPF e sem o ano de nascimento até o servidor do Estado.
+- **O Pecúlio aumenta o escopo de uma seção para o GB inteiro.** São 184 militares em nove lotações, e o acesso por lotação (fase 6) precisa estar certo antes de o militar comum entrar.
+- **O militar comum ainda não tem como entrar.** O login é por e-mail e o Pecúlio não tem e-mail. É a decisão 4 da fase 5.
