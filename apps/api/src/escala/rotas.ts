@@ -1,5 +1,5 @@
 // Escala do mês: leitura (aqui) e, nas tarefas seguintes, candidatos, escalar e remover.
-import { Data, Hora, Id, Mes, NovaAlocacao, NovaPreEscala, NovoAcumulo, OrdemDeEscalacaoEntrada, mesPorExtenso } from 'contratos';
+import { Data, Hora, Id, Mes, NovaAlocacao, NovaPreEscala, NovoAcumulo, OrdemDeEscalacaoEntrada, Troca, mesPorExtenso } from 'contratos';
 import { z } from 'zod';
 import { Hono } from 'hono';
 import { CADASTRO, exigirPapel, exigirSessao, unidadeDoRegistro, type AmbienteApi } from '../acesso.ts';
@@ -12,6 +12,7 @@ import { avaliarCandidatos } from './elegibilidade.ts';
 import { montarEscalaDoMes } from './leitura.ts';
 import { gravarOrdem, ordemDoMes } from './ordem-do-mes.ts';
 import { planejarPreEscala, PreEscalaInvalida } from './pre-escala.ts';
+import { NaoEncontrada, opcoesDeTroca, trocar } from './trocar.ts';
 
 const ConsultaDeCandidatos = z.object({ data: Data, inicio: Hora, fim: Hora, guarnicaoId: Id.optional(), funcaoId: Id.optional() });
 
@@ -158,6 +159,37 @@ export function rotasEscalaDoMes(dep: { banco: Banco; auth: Auth }): Hono<Ambien
     if (negado) return negado;
     const { escalaId, mes } = await comUsuario(dep.banco, c.get('usuarioId'), (tx) => desfazerRemocao(tx, id));
     return c.json(await montarEscalaDoMes(dep.banco, escalaId, mes));
+  });
+
+  /** Quem pode ocupar a vaga de uma alocação (livres) e quem já está escalado no mesmo dia (para trocar de lugar). */
+  r.get('/alocacoes/:id/trocas', async (c) => {
+    const id = c.req.param('id');
+    const unidadeId = await unidadeDoRegistro(dep.banco, 'alocacao', id);
+    if (!unidadeId) return c.json({ erro: 'Alocação não encontrada.' }, 404);
+    const negado = await exigirPapel(c, unidadeId, CADASTRO);
+    if (negado) return negado;
+    const opcoes = await opcoesDeTroca(dep.banco, id);
+    if (!opcoes) return c.json({ erro: 'Alocação não encontrada.' }, 404);
+    return c.json(opcoes);
+  });
+
+  /** Troca a alocação: por um militar livre ou de lugar com quem já está escalado (entre dois ordinários, é uma permuta). */
+  r.post('/alocacoes/:id/trocar', async (c) => {
+    const id = c.req.param('id');
+    const unidadeId = await unidadeDoRegistro(dep.banco, 'alocacao', id);
+    if (!unidadeId) return c.json({ erro: 'Alocação não encontrada.' }, 404);
+    const negado = await exigirPapel(c, unidadeId, CADASTRO);
+    if (negado) return negado;
+    const corpo = await lerCorpo(c, Troca);
+    if (!corpo.ok) return corpo.resposta;
+    try {
+      const escalas = await comUsuario(dep.banco, c.get('usuarioId'), (tx) => trocar(tx, id, corpo.dados, c.get('usuarioId')));
+      return c.json({ escalas });
+    } catch (e) {
+      if (e instanceof NaoEncontrada) return c.json({ erro: 'Alocação não encontrada.' }, 404);
+      if (e instanceof Recusa) return c.json({ erro: e.message }, 409);
+      return respostaDoErroDoBanco(c, e);
+    }
   });
 
   /** O militar de uma alocação acumula mais uma vaga da mesma faixa; devolve a escala do mês. */

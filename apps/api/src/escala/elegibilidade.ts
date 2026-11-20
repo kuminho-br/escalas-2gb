@@ -33,7 +33,7 @@ export type TurnoDaFaixa = { turnoId: string; servicoId: string; nome: string; t
 export type Avaliado = { candidato: Omit<Candidato, 'servicos'>; militarMotivo: string | null; porTurno: { turno: TurnoDaFaixa; motivo: string | null }[]; antig: number | null; cnh: string[] };
 
 const NAO_LOTADO = 'Não está lotado na seção neste dia';
-const JA_ESCALADO = 'Já escalado neste horário';
+export const JA_ESCALADO = 'Já escalado neste horário';
 /** O motivo "só falta marcar o horário": é a última conferência de cada turno, então ele quer dizer que todas as outras regras passaram. */
 export const SEM_VOLUNTARIADO = 'Não marcou voluntariado neste horário';
 

@@ -102,3 +102,21 @@ export type Candidatos = {
   /** já escalados nesta faixa, com guarnição e função, que cumprem os requisitos desta vaga; `vaga` = a vaga que já ocupam */
   acumular: { alocacaoId: string; militarId: string; posto: string; nomeGuerra: string; matricula: string; vaga: string }[];
 };
+
+/** Trocar uma alocação: pôr um militar livre no lugar (com o turno escolhido, da mesma faixa) ou trocar de lugar com quem já está escalado no dia. */
+export const Troca = z.union([z.object({ militarId: Id, turnoId: Id }), z.object({ comAlocacaoId: Id })]);
+export type Troca = z.infer<typeof Troca>;
+
+/** Um militar já escalado no dia, com onde ele está ("Ordinário, 20h–08h, Motorista do ABT"); `permuta` quando os dois serviços são ordinários. */
+export type EscaladoNoDia = {
+  militarId: string;
+  posto: string;
+  nomeGuerra: string;
+  matricula: string;
+  alocacoes: { alocacaoId: string; onde: string; permuta: boolean }[];
+};
+
+export type OpcoesDeTroca = { livres: Candidatos; escalados: EscaladoNoDia[] };
+
+/** As escalas mexidas pela troca: a tela busca de novo o que depende delas. */
+export type ResultadoDaTroca = { escalas: { escalaId: string; mes: string }[] };
