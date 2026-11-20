@@ -88,23 +88,36 @@ describe('escala do mês', () => {
     expect(grade.className).not.toMatch(/(^|\s)(sm|xl|2xl):grid-cols-/);
   });
 
-  it('dentro do card, as funções ficam em colunas quando cabem', async () => {
+  it('no card, as funções ficam uma embaixo da outra (o card cabe numa coluna de ~20rem)', async () => {
     api();
     abrir('/escala-do-mes');
     const d1 = await screen.findByRole('region', { name: 'Dia 1' });
     const funcoes = d1.querySelector('[data-faixa] [data-funcoes]') as HTMLElement;
     expect(funcoes).not.toBeNull();
-    // o mínimo da coluna nunca passa da largura do card: no celular de 320px o card não estoura o quadro do dia (achado da revisão final)
-    expect(funcoes).toHaveClass('grid-cols-[repeat(auto-fill,minmax(min(100%,11rem),1fr))]');
+    expect(funcoes.className).not.toMatch(/auto-fill/);
   });
 
-  it('turnos diferentes do dia continuam um embaixo do outro (uma coluna só)', async () => {
+  it('os turnos do dia ficam lado a lado numa grade de ~20rem, e o turno com uma guarnição não ocupa a linha inteira', async () => {
     api();
     abrir('/escala-do-mes');
     const d1 = await screen.findByRole('region', { name: 'Dia 1' });
-    const contêiner = (d1.querySelector('[data-faixa]') as HTMLElement).parentElement as HTMLElement;
-    expect(contêiner).toHaveClass('grid');
-    expect(contêiner.className).not.toMatch(/grid-cols-/);
+    const grade = d1.querySelector('[data-faixas-do-dia]') as HTMLElement;
+    expect(grade).not.toBeNull();
+    expect(grade).toHaveClass('grid-cols-[repeat(auto-fill,minmax(min(100%,20rem),1fr))]');
+    expect(grade.querySelectorAll(':scope > [data-faixa]')).toHaveLength(2);
+    expect(grade.querySelector('[data-larga]')).toBeNull();
+  });
+
+  it('o turno com mais de uma guarnição ocupa a linha inteira', async () => {
+    const outro = { ...card(true, true), guarnicaoId: 'g-aco', nome: 'ACO' };
+    const terceiro = { ...card(true, true), guarnicaoId: 'g-res', nome: 'Resgate' };
+    api({ ...ESCALA, dias: [dia(1, null, [faixa(false, card(true, true), { guarnicoes: [card(true, true), outro, terceiro] }), faixa(true, card(true, true))])] });
+    abrir('/escala-do-mes');
+    const d1 = await screen.findByRole('region', { name: 'Dia 1' });
+    const faixas = d1.querySelectorAll('[data-faixa]');
+    expect(faixas[0]).toHaveAttribute('data-larga');
+    expect(faixas[0]).toHaveClass('col-span-full');
+    expect(faixas[1]).not.toHaveAttribute('data-larga');
   });
 
   it('a faixa da noite fica marcada e a do dia não', async () => {

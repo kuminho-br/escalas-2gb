@@ -1,15 +1,7 @@
 // Meta de ativação no banco: a meta padrão (versões por data) e os dias diferentes (lista própria por dia).
 import type { ItemDaMeta, MetaDoDia, VersaoDaMetaPadrao } from 'contratos';
 import type { Consulta } from '../banco/banco.ts';
-
-/** Quantos dias, contando o primeiro, uma alteração pode cobrir de uma vez. */
-export const MAXIMO_DE_DIAS_DA_META = 31;
-const DIA_EM_MS = 86_400_000;
-
-/** Dias de `de` até `ate`, contando os dois (1 quando são o mesmo dia). */
-export function diasContados(de: string, ate: string): number {
-  return Math.round((Date.parse(`${ate}T00:00:00Z`) - Date.parse(`${de}T00:00:00Z`)) / DIA_EM_MS) + 1;
-}
+import { Recusa, remover, tirarAcumulo } from '../escala/alocacoes.ts';
 
 /** Os ids que não são modelos desta seção (a mensagem do campo, ou null se está tudo certo). */
 export async function modelosForaDaSecao(c: Consulta, unidadeId: string, ids: string[]): Promise<string | null> {
@@ -58,21 +50,41 @@ export async function gravarMetaPadrao(tx: Consulta, unidadeId: string, desde: s
   );
 }
 
-/** Dá a mesma lista própria aos dias de `de` até `ate`, no lugar da que eles já tinham. Lista vazia vale: dia sem meta. */
-export async function gravarMetaDoDia(tx: Consulta, unidadeId: string, de: string, ate: string, guarnicoes: string[]): Promise<void> {
-  await tx.query('delete from meta_dia where unidade_id = $1 and data between $2::date and $3::date', [unidadeId, de, ate]);
-  const dias = (
-    await tx.query<{ id: string }>(
-      "insert into meta_dia (unidade_id, data) select $1, d::date from generate_series($2::date, $3::date, interval '1 day') as d returning id",
-      [unidadeId, de, ate],
-    )
-  ).rows;
+/** Dá ao dia a lista própria, no lugar da que ele já tinha. Lista vazia vale: dia sem meta. */
+export async function gravarMetaDoDia(tx: Consulta, unidadeId: string, data: string, guarnicoes: string[]): Promise<void> {
+  await tx.query('delete from meta_dia where unidade_id = $1 and data = $2::date', [unidadeId, data]);
+  const id = (await tx.query<{ id: string }>('insert into meta_dia (unidade_id, data) values ($1, $2::date) returning id', [unidadeId, data])).rows[0]!.id;
   if (!guarnicoes.length) return;
   await tx.query(
-    `insert into meta_dia_item (meta_dia_id, guarnicao_id, ordem)
-     select m.id, x.g, x.p::int from unnest($1::uuid[]) as m(id) cross join unnest($2::uuid[]) with ordinality as x(g, p)`,
-    [dias.map((d) => d.id), guarnicoes],
+    'insert into meta_dia_item (meta_dia_id, guarnicao_id, ordem) select $1, x.g, x.p::int from unnest($2::uuid[]) with ordinality as x(g, p)',
+    [id, guarnicoes],
   );
+}
+
+/**
+ * Tira a guarnição da meta do dia (o dia que seguia o padrão passa a ter lista própria, o padrão sem ela; pode ficar vazia). Com
+ * `desescalar`, saem também os acúmulos nela e as alocações do dia nela, em qualquer escala da seção, com a marca de remoção.
+ */
+export async function tirarDaMeta(tx: Consulta, unidadeId: string, data: string, guarnicaoId: string, desescalar: boolean, usuarioId: string): Promise<void> {
+  const atual = await metaDoDia(tx, unidadeId, data);
+  if (!atual.guarnicoes.some((g) => g.guarnicaoId === guarnicaoId)) throw new Recusa('Esta guarnição não está na meta deste dia.');
+  await gravarMetaDoDia(tx, unidadeId, data, atual.guarnicoes.map((g) => g.guarnicaoId).filter((id) => id !== guarnicaoId));
+  if (!desescalar) return;
+  const acumulos = (
+    await tx.query<{ id: string }>(
+      `select x.id from alocacao_acumulo x join alocacao a on a.id = x.alocacao_id join escala e on e.id = a.escala_id
+        where e.unidade_id = $1 and a.data = $2::date and x.guarnicao_id = $3`,
+      [unidadeId, data, guarnicaoId],
+    )
+  ).rows;
+  for (const x of acumulos) await tirarAcumulo(tx, x.id);
+  const alocacoes = (
+    await tx.query<{ id: string }>(
+      `select a.id from alocacao a join escala e on e.id = a.escala_id where e.unidade_id = $1 and a.data = $2::date and a.guarnicao_id = $3`,
+      [unidadeId, data, guarnicaoId],
+    )
+  ).rows;
+  for (const a of alocacoes) await remover(tx, a.id, usuarioId);
 }
 
 /** Tira a lista própria do dia: ele volta a valer a meta padrão. */

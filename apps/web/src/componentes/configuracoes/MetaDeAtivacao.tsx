@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { mensagemComCampo, mensagemDe } from '@/api/cliente';
 import { consultaMetaPadrao, gravarMetaPadrao } from '@/api/efetivo-do-dia';
 import { useTrava } from '@/componentes/AlteracoesPendentes';
-import { EditorDaMeta, useModelosDaMeta } from '@/componentes/efetivo-do-dia/EditorDaMeta';
+import { EditorDaMeta, useModelosDaMeta } from '@/componentes/efetivo-por-dia/EditorDaMeta';
 import { Button } from '@/componentes/ui/button';
 import { Input } from '@/componentes/ui/input';
 import { Label } from '@/componentes/ui/label';

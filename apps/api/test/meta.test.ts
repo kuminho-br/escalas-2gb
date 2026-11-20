@@ -1,4 +1,4 @@
-import type { MetaDoDia, VersaoDaMetaPadrao } from 'contratos';
+import type { EfetivoDoDia, MetaDoDia, VersaoDaMetaPadrao } from 'contratos';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { hojeRecife } from '../src/datas.ts';
 import { inserir } from './banco-teste.ts';
@@ -22,8 +22,10 @@ const metaDe = async (data: string, quem: 'admin' | 'escalante' = 'escalante'): 
 };
 const gravarPadrao = (desde: string, guarnicoes: string[], quem: 'admin' | 'escalante' | 'semPapel' = 'admin') =>
   api.pedir(quem, 'PUT', `${secao()}/meta-padrao`, { desde, guarnicoes });
-const gravarDia = (data: string, guarnicoes: string[], ate?: string, quem: 'admin' | 'escalante' = 'admin') =>
-  api.pedir(quem, 'PUT', `${secao()}/meta-do-dia/${data}`, ate ? { ate, guarnicoes } : { guarnicoes });
+const gravarDia = (data: string, guarnicoes: string[], quem: 'admin' | 'escalante' | 'semPapel' = 'admin') =>
+  api.pedir(quem, 'PUT', `${secao()}/meta-do-dia/${data}`, { guarnicoes });
+const tirar = (data: string, guarnicaoId: string, desescalar: boolean, quem: 'admin' | 'escalante' | 'semPapel' = 'escalante') =>
+  api.pedir(quem, 'POST', `${secao()}/meta-do-dia/${data}/tirar`, { guarnicaoId, desescalar });
 
 beforeAll(async () => {
   api = await montarApi();
@@ -104,12 +106,11 @@ describe('meta padrão', () => {
 });
 
 describe('dia diferente', () => {
-  it('grava os dias do intervalo com a lista própria, e mudar a meta padrão depois não muda esses dias', async () => {
-    const r = await gravarDia(dia(40), [aco], dia(42));
+  it('grava o dia com a lista própria, e mudar a meta padrão depois não muda esse dia', async () => {
+    const r = await gravarDia(dia(41), [aco]);
     expect(r.status).toBe(200);
-    expect(await r.json()).toEqual({ data: dia(40), origem: 'dia', guarnicoes: [{ guarnicaoId: aco, nome: 'ACO' }] });
-    for (const n of [40, 41, 42]) expect(await metaDe(dia(n))).toMatchObject({ origem: 'dia', guarnicoes: [{ nome: 'ACO' }] });
-    expect(await metaDe(dia(43))).toMatchObject({ origem: 'padrao' });
+    expect(await r.json()).toEqual({ data: dia(41), origem: 'dia', guarnicoes: [{ guarnicaoId: aco, nome: 'ACO' }] });
+    expect(await metaDe(dia(42))).toMatchObject({ origem: 'padrao' });
 
     expect((await gravarPadrao(dia(41), [resgate])).status).toBe(200);
     expect(await metaDe(dia(41))).toMatchObject({ origem: 'dia', guarnicoes: [{ nome: 'ACO' }] });
@@ -117,7 +118,14 @@ describe('dia diferente', () => {
     expect(nomes(await metaDe(dia(39)))).toEqual(['ACO', 'ABT']);
   });
 
-  it('só a data, sem "até", grava um dia só', async () => {
+  it('"até" no corpo é ignorado: grava só o dia da rota', async () => {
+    const r = await api.pedir('admin', 'PUT', `${secao()}/meta-do-dia/${dia(60)}`, { ate: dia(62), guarnicoes: [abt] });
+    expect(r.status).toBe(200);
+    expect(await metaDe(dia(60))).toMatchObject({ origem: 'dia' });
+    expect(await metaDe(dia(61))).toMatchObject({ origem: 'padrao' });
+  });
+
+  it('grava um dia só', async () => {
     expect((await gravarDia(dia(45), [abt, resgate])).status).toBe(200);
     expect(nomes(await metaDe(dia(45)))).toEqual(['ABT', 'Resgate']);
     expect(await metaDe(dia(46))).toMatchObject({ origem: 'padrao' });
@@ -141,18 +149,6 @@ describe('dia diferente', () => {
     expect(await metaDe(dia(50))).toMatchObject({ origem: 'padrao' });
   });
 
-  it('"até" antes do dia é 400 em ate; 32 dias também; 31 dias passam', async () => {
-    const antes = await gravarDia(dia(60), [abt], dia(59));
-    expect(antes.status).toBe(400);
-    expect((await antes.json()).campos.ate).toBe('O último dia não pode ser antes do primeiro.');
-    const longo = await gravarDia(dia(60), [abt], dia(91));
-    expect(longo.status).toBe(400);
-    expect((await longo.json()).campos.ate).toBe('Altere no máximo 31 dias de uma vez.');
-    expect((await gravarDia(dia(60), [abt], dia(90))).status).toBe(200);
-    expect(await metaDe(dia(90))).toMatchObject({ origem: 'dia' });
-    expect(await metaDe(dia(91))).toMatchObject({ origem: 'padrao' });
-  });
-
   it('modelo de outra seção ou repetido é 400 também no dia', async () => {
     expect((await gravarDia(dia(100), [alheia])).status).toBe(400);
     expect((await gravarDia(dia(100), [abt, abt])).status).toBe(400);
@@ -166,11 +162,12 @@ describe('dia diferente', () => {
 });
 
 describe('acesso', () => {
-  it('o escalante lê e não grava', async () => {
+  it('o escalante lê, grava a meta do dia e volta ao padrão, mas não grava a meta padrão', async () => {
     expect((await api.pedir('escalante', 'GET', `${secao()}/meta-padrao`)).status).toBe(200);
     expect((await gravarPadrao(dia(200), [abt], 'escalante')).status).toBe(403);
-    expect((await gravarDia(dia(200), [abt], undefined, 'escalante')).status).toBe(403);
-    expect((await api.pedir('escalante', 'DELETE', `${secao()}/meta-do-dia/${dia(40)}`)).status).toBe(403);
+    expect((await gravarDia(dia(200), [abt], 'escalante')).status).toBe(200);
+    expect(await metaDe(dia(200))).toMatchObject({ origem: 'dia' });
+    expect((await api.pedir('escalante', 'DELETE', `${secao()}/meta-do-dia/${dia(200)}`)).status).toBe(200);
     expect(await metaDe(dia(200))).toMatchObject({ origem: 'padrao' });
   });
 
@@ -178,6 +175,8 @@ describe('acesso', () => {
     expect((await api.pedir('semPapel', 'GET', `${secao()}/meta-padrao`)).status).toBe(403);
     expect((await api.pedir('semPapel', 'GET', `${secao()}/meta-do-dia/${dia(1)}`)).status).toBe(403);
     expect((await gravarPadrao(dia(200), [abt], 'semPapel')).status).toBe(403);
+    expect((await gravarDia(dia(200), [abt], 'semPapel')).status).toBe(403);
+    expect((await tirar(dia(200), abt, false, 'semPapel')).status).toBe(403);
   });
 
   it('outra seção é 403 para o escalante da 1ª SB', async () => {
@@ -185,5 +184,82 @@ describe('acesso', () => {
     expect((await api.pedir('escalante', 'GET', `${o}/meta-padrao`)).status).toBe(403);
     expect((await api.pedir('escalante', 'GET', `${o}/meta-do-dia/${dia(1)}`)).status).toBe(403);
     expect((await api.pedir('escalante', 'PUT', `${o}/meta-padrao`, { desde: dia(1), guarnicoes: [] })).status).toBe(403);
+  });
+});
+
+describe('tirar da meta (Review Focus 4 e 5)', () => {
+  let escala: string;
+  let pronto: string;
+  let turno: string;
+  let funcao: string;
+  const militares: Record<string, string> = {};
+  const alocar = (militar: string, data: string, guarnicao: string) =>
+    inserir(api.banco, 'alocacao', { militar_id: militares[militar], escala_id: escala, servico_id: pronto, turno_id: turno, data, guarnicao_id: guarnicao, funcao_id: funcao, origem: 'manual' });
+  const existe = async (tabela: string, id: string) => (await api.banco.query(`select 1 from ${tabela} where id = $1`, [id])).rows.length === 1;
+
+  beforeAll(async () => {
+    // a partir do dia 300, a meta padrão é [ABT, Resgate]
+    expect((await gravarPadrao(dia(300), [abt, resgate])).status).toBe(200);
+    funcao = (await api.banco.query<{ id: string }>("select id from funcao where unidade_id = $1 and nome = 'Motorista'", [api.ids.secao])).rows[0]!.id;
+    pronto = await inserir(api.banco, 'servico', { unidade_id: api.ids.secao, nome: 'Plantão', tipo: 'ordinario', cor: '#2F8F5B' });
+    turno = await inserir(api.banco, 'turno', { servico_id: pronto, letra: 'A', inicio: '08:00', fim: '20:00' });
+    escala = (await (await api.pedir('escalante', 'POST', `${secao()}/escalas`, { nome: 'Ordinário' })).json()).id as string;
+    expect((await api.pedir('escalante', 'PUT', `/api/escalas/${escala}/servicos`, { servicoIds: [pronto] })).status).toBe(200);
+    const posto = await inserir(api.banco, 'posto_grad', { sigla: 'SD-M', nome: 'Soldado M', ordem: 930 });
+    for (const [i, nome] of ['ALFA', 'BRAVO', 'CHARLIE'].entries()) militares[nome] = await inserir(api.banco, 'militar', { matricula: `99091${i}-${i}`, posto_grad_id: posto, nome_guerra: nome });
+  });
+
+  it('num dia que segue o padrão, o dia passa a ter meta própria (o padrão sem ela), e o dia seguinte não muda', async () => {
+    const r = await tirar(dia(301), abt, false);
+    expect(r.status).toBe(200);
+    expect(await metaDe(dia(301))).toMatchObject({ origem: 'dia', guarnicoes: [{ nome: 'Resgate' }] });
+    expect(nomes(await metaDe(dia(302)))).toEqual(['ABT', 'Resgate']);
+  });
+
+  it('tirar a última guarnição deixa o dia sem meta, e "Voltar ao padrão" desfaz', async () => {
+    expect((await gravarDia(dia(303), [abt])).status).toBe(200);
+    expect((await tirar(dia(303), abt, false)).status).toBe(200);
+    expect(await metaDe(dia(303))).toEqual({ data: dia(303), origem: 'dia', guarnicoes: [] });
+    expect((await api.pedir('escalante', 'DELETE', `${secao()}/meta-do-dia/${dia(303)}`)).status).toBe(200);
+    expect(nomes(await metaDe(dia(303)))).toEqual(['ABT', 'Resgate']);
+  });
+
+  it('sem desescalar, as alocações ficam e a guarnição aparece fora da meta, sem número', async () => {
+    expect((await gravarDia(dia(304), [abt])).status).toBe(200);
+    const alocacao = await alocar('ALFA', dia(304), abt);
+    const r = await tirar(dia(304), abt, false);
+    expect(r.status).toBe(200);
+    const e = (await r.json()) as EfetivoDoDia;
+    expect(e.guarnicoes.map((g) => [g.nome, g.ordem])).toEqual([['ABT', null]]);
+    expect(await existe('alocacao', alocacao)).toBe(true);
+  });
+
+  it('tirar e desescalar: as alocações saem com a marca de remoção, e quem está por acúmulo perde só o acúmulo', async () => {
+    expect((await gravarDia(dia(305), [abt, resgate])).status).toBe(200);
+    const alfa = await alocar('ALFA', dia(305), abt);
+    const bravo = await alocar('BRAVO', dia(305), resgate);
+    const acumulo = await inserir(api.banco, 'alocacao_acumulo', { alocacao_id: bravo, guarnicao_id: abt, funcao_id: funcao });
+    const charlie = await alocar('CHARLIE', dia(306), abt);
+    const r = await tirar(dia(305), abt, true);
+    expect(r.status).toBe(200);
+    expect(await existe('alocacao', alfa)).toBe(false);
+    const remocoes = await api.banco.query('select 1 from remocao where militar_id = $1 and data = $2::date', [militares.ALFA, dia(305)]);
+    expect(remocoes.rows).toHaveLength(1);
+    expect(await existe('alocacao', bravo)).toBe(true);
+    expect(await existe('alocacao_acumulo', acumulo)).toBe(false);
+    // outro dia não muda
+    expect(await existe('alocacao', charlie)).toBe(true);
+    expect(nomes(await metaDe(dia(305)))).toEqual(['Resgate']);
+  });
+
+  it('guarnição que não está na meta do dia é 409 com o motivo', async () => {
+    expect((await gravarDia(dia(307), [resgate])).status).toBe(200);
+    const r = await tirar(dia(307), abt, true);
+    expect(r.status).toBe(409);
+    expect((await r.json()).erro).toBe('Esta guarnição não está na meta deste dia.');
+  });
+
+  it('corpo inválido é 400', async () => {
+    expect((await api.pedir('escalante', 'POST', `${secao()}/meta-do-dia/${dia(308)}/tirar`, { guarnicaoId: abt })).status).toBe(400);
   });
 });

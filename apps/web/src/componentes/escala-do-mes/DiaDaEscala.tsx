@@ -16,7 +16,8 @@ function Faixa({ faixa, dia, soVazias, aoEscolher, aoRemover, aoDesfazer }: { fa
   const letras = [...new Set(faixa.turnos.map((t) => t.letra))].join(', ');
   const servicos = [...new Set(faixa.turnos.map((t) => t.servico))].join(', ');
   return (
-    <div data-faixa data-noturna={faixa.noturna ? '' : undefined} className="flex gap-3">
+    // o turno com mais de uma guarnição (como no Ordinário) ocupa a linha inteira; o de uma só fica lado a lado com os outros
+    <div data-faixa data-noturna={faixa.noturna ? '' : undefined} data-larga={faixa.guarnicoes.length > 1 ? '' : undefined} className={cn('flex min-w-0 gap-3', faixa.guarnicoes.length > 1 && 'col-span-full')}>
       <div aria-hidden className={cn('w-1.5 shrink-0 rounded-full', faixa.noturna ? 'bg-[#24324F]' : 'bg-[#E8D9A3]')} />
       <div className="min-w-0 flex-1 grid gap-2">
         <p className="font-cond text-sm font-semibold">
@@ -82,7 +83,8 @@ export function DiaDaEscalaVista({ dia, soVazias, aoEscolher, aoRemover, aoDesfa
         <span className="block text-xs text-apagado">{DIA_DA_SEMANA[dia.diaDaSemana]}</span>
         {dia.feriado && <span className="block text-xs font-medium text-alerta">{dia.feriado}</span>}
       </div>
-      <div className="grid gap-4">
+      {/* os turnos do dia lado a lado, numa grade de ~20rem (adendo de 19/11 depois da 2.4): no celular, um embaixo do outro */}
+      <div data-faixas-do-dia className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,20rem),1fr))] gap-4">
         {dia.faixas.map((f) => <Faixa key={`${f.inicio}|${f.fim}`} faixa={f} dia={dia.data} soVazias={soVazias} aoEscolher={aoEscolher} aoRemover={aoRemover} aoDesfazer={aoDesfazer} />)}
       </div>
     </section>

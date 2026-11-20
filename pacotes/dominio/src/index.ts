@@ -13,3 +13,4 @@ export * from './voluntariado.ts';
 export * from './preencher-vagas.ts';
 export * from './disponibilidade.ts';
 export * from './ativacao.ts';
+export * from './linhas-do-tempo.ts';

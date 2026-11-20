@@ -10,6 +10,15 @@ async function preencherEEntrar() {
 }
 
 describe('entrar', () => {
+  it('a tela tem o título do sistema, o brasão do 2º GB e o cartão "Entrar"', async () => {
+    simularApi({ '/api/eu': { status: 401 } });
+    abrir('/entrar');
+    expect(await screen.findByRole('heading', { level: 1, name: 'Sistema de Gestão - 2º GB' })).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: 'Brasão do 2º GB' })).toHaveAttribute('src', '/brasao-2gb.png');
+    expect(screen.getByText('2º Grupamento de Bombeiros · Corpo de Bombeiros Militar de Pernambuco')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 2, name: 'Entrar' })).toBeInTheDocument();
+  });
+
   it('entrar mostra erro com senha errada', async () => {
     simularApi({ '/api/eu': { status: 401 }, '/api/auth/sign-in/email': { status: 401, corpo: { code: 'INVALID_EMAIL_OR_PASSWORD' } } });
     abrir('/entrar');
