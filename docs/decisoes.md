@@ -8,6 +8,8 @@ Siglas dos documentos: **Design** = `superpowers/specs/2026-11-16-migracao-desig
 
 | Data | Decisão | Onde está |
 |---|---|---|
+| 20/11/2026 | Fluxo de entrega: a DESENVOLVIMENTO envia o branch; a PLANEJAMENTO abre o PR, mescla e avisa a VALIDAÇÃO, que monta os testes de navegador. | Roadmap, Como ler |
+| 20/11/2026 | A entrega 4.6 junta o segundo lote de pendências simples, enquanto o modelo do Pecúlio é fechado. | Roadmap, Fase 4 |
 | 20/11/2026 | A entrega 4.5 junta pendências simples, sem decisão aberta, para a programação seguir enquanto o modelo do Pecúlio é fechado. | Roadmap, Fase 4 |
 | 20/11/2026 | Plano de entrega pedido pelo usuário já autoriza o PR, o merge e a ordem de execução (Sonnet executa, Opus revisa). | Roadmap, Como ler |
 | 20/11/2026 | "Otimizar o painel do dia" entra na fase 8: na 4.4 a medida foi a 42 consultas, acima do limite de 40. | Roadmap, Fase 8 |
