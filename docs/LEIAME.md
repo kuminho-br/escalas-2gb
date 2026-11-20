@@ -30,7 +30,8 @@
 
 | Documento | Para que serve | Quem cuida | Situação |
 |---|---|---|---|
-| [superpowers/specs/2026-11-16-migracao-design.md](superpowers/specs/2026-11-16-migracao-design.md) | Decisões técnicas (D1 a D7) e adendos de cada etapa | PLANEJAMENTO | vigente (a consolidar) |
+| [decisoes.md](decisoes.md) | Registro de decisões: uma linha por decisão, da mais nova para a mais velha, com onde está o resultado | PLANEJAMENTO | vigente |
+| [superpowers/specs/2026-11-16-migracao-design.md](superpowers/specs/2026-11-16-migracao-design.md) | Como o sistema é pensado hoje: decisões técnicas (D1 a D7), atores, cadastros, montagem da escala e módulos | PLANEJAMENTO | vigente |
 | [superpowers/specs/2026-11-16-esquema-banco.md](superpowers/specs/2026-11-16-esquema-banco.md) | Esquema do banco: diagrama ER e uma seção por tabela | PROGRAMAÇÃO | vigente (em dia até a migração 0022) |
 | [superpowers/specs/2026-11-16-telas.md](superpowers/specs/2026-11-16-telas.md) | Identidade visual, navegação e cada tela | PLANEJAMENTO | vigente |
 | [superpowers/specs/2026-11-18-ordem-de-escala-e-acumulo-design.md](superpowers/specs/2026-11-18-ordem-de-escala-e-acumulo-design.md) | Ordem de escala e acúmulo de funções | PLANEJAMENTO | concluído |
@@ -40,6 +41,7 @@
 | [superpowers/specs/2026-11-20-grade-geral-ux-design.md](superpowers/specs/2026-11-20-grade-geral-ux-design.md) | Ajustes de interface da grade geral | PLANEJAMENTO | em execução |
 | [superpowers/specs/2026-11-20-sintese-design-e-roadmap-design.md](superpowers/specs/2026-11-20-sintese-design-e-roadmap-design.md) | Intervenção para sintetizar o design e o roadmap | DOCUMENTAÇÃO (desenho); PLANEJAMENTO (execução) | vigente |
 | [superpowers/specs/2026-11-20-limpeza-da-fase-3-design.md](superpowers/specs/2026-11-20-limpeza-da-fase-3-design.md) | Limpeza das pendências da fase 3 | PLANEJAMENTO | vigente |
+| [superpowers/specs/2026-11-20-peculio-design.md](superpowers/specs/2026-11-20-peculio-design.md) | Pecúlio do 2º GB (fase 5): levantamento da planilha e decisões em aberto | PLANEJAMENTO | rascunho |
 
 ## Controle da documentação
 
@@ -52,7 +54,7 @@
 
 | Documento | Para que serve | Quem cuida | Situação |
 |---|---|---|---|
-| [superpowers/plans/2026-11-16-roadmap-migracao.md](superpowers/plans/2026-11-16-roadmap-migracao.md) | Roadmap das fases e decisões de cada etapa | PLANEJAMENTO | vigente (a enxugar) |
+| [superpowers/plans/2026-11-16-roadmap-migracao.md](superpowers/plans/2026-11-16-roadmap-migracao.md) | Roadmap: a ordem das fases, a situação de cada entrega e as pendências conhecidas | PLANEJAMENTO | vigente |
 | [superpowers/plans/2026-11-16-fase1-fundacao.md](superpowers/plans/2026-11-16-fase1-fundacao.md) | Fase 1: fundação | PROGRAMAÇÃO | concluído |
 | [superpowers/plans/2026-11-17-fase2-motor.md](superpowers/plans/2026-11-17-fase2-motor.md) | Fase 2: motor de regras | PROGRAMAÇÃO | concluído |
 | [superpowers/plans/2026-11-17-fase3-cadastros.md](superpowers/plans/2026-11-17-fase3-cadastros.md) | Fase 3: cadastros | PROGRAMAÇÃO | concluído |
