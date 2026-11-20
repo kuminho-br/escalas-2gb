@@ -14,6 +14,7 @@ import { Route as EntrarRouteImport } from './routes/entrar'
 import { Route as AppIndexRouteImport } from './routes/_app/index'
 import { Route as AppConfiguracoesRouteImport } from './routes/_app/configuracoes'
 import { Route as AppCotasRouteImport } from './routes/_app/cotas'
+import { Route as AppEfetivoDoDiaRouteImport } from './routes/_app/efetivo-do-dia'
 import { Route as AppEscalaDoMesRouteImport } from './routes/_app/escala-do-mes'
 import { Route as AppEscalasRouteImport } from './routes/_app/escalas'
 import { Route as AppFeriadosRouteImport } from './routes/_app/feriados'
@@ -53,6 +54,11 @@ const AppConfiguracoesRoute = AppConfiguracoesRouteImport.update({
 const AppCotasRoute = AppCotasRouteImport.update({
   id: '/cotas',
   path: '/cotas',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppEfetivoDoDiaRoute = AppEfetivoDoDiaRouteImport.update({
+  id: '/efetivo-do-dia',
+  path: '/efetivo-do-dia',
   getParentRoute: () => AppRoute,
 } as any)
 const AppEscalaDoMesRoute = AppEscalaDoMesRouteImport.update({
@@ -142,6 +148,7 @@ export interface FileRoutesByFullPath {
   '/entrar': typeof EntrarRoute
   '/configuracoes': typeof AppConfiguracoesRoute
   '/cotas': typeof AppCotasRoute
+  '/efetivo-do-dia': typeof AppEfetivoDoDiaRoute
   '/escala-do-mes': typeof AppEscalaDoMesRoute
   '/escalas': typeof AppEscalasRouteWithChildren
   '/feriados': typeof AppFeriadosRoute
@@ -163,6 +170,7 @@ export interface FileRoutesByTo {
   '/entrar': typeof EntrarRoute
   '/configuracoes': typeof AppConfiguracoesRoute
   '/cotas': typeof AppCotasRoute
+  '/efetivo-do-dia': typeof AppEfetivoDoDiaRoute
   '/escala-do-mes': typeof AppEscalaDoMesRoute
   '/feriados': typeof AppFeriadosRoute
   '/voluntariado': typeof AppVoluntariadoRoute
@@ -184,6 +192,7 @@ export interface FileRoutesById {
   '/entrar': typeof EntrarRoute
   '/_app/configuracoes': typeof AppConfiguracoesRoute
   '/_app/cotas': typeof AppCotasRoute
+  '/_app/efetivo-do-dia': typeof AppEfetivoDoDiaRoute
   '/_app/escala-do-mes': typeof AppEscalaDoMesRoute
   '/_app/escalas': typeof AppEscalasRouteWithChildren
   '/_app/feriados': typeof AppFeriadosRoute
@@ -209,6 +218,7 @@ export interface FileRouteTypes {
     | '/entrar'
     | '/configuracoes'
     | '/cotas'
+    | '/efetivo-do-dia'
     | '/escala-do-mes'
     | '/escalas'
     | '/feriados'
@@ -230,6 +240,7 @@ export interface FileRouteTypes {
     | '/entrar'
     | '/configuracoes'
     | '/cotas'
+    | '/efetivo-do-dia'
     | '/escala-do-mes'
     | '/feriados'
     | '/voluntariado'
@@ -250,6 +261,7 @@ export interface FileRouteTypes {
     | '/entrar'
     | '/_app/configuracoes'
     | '/_app/cotas'
+    | '/_app/efetivo-do-dia'
     | '/_app/escala-do-mes'
     | '/_app/escalas'
     | '/_app/feriados'
@@ -309,6 +321,13 @@ declare module '@tanstack/react-router' {
       path: '/cotas'
       fullPath: '/cotas'
       preLoaderRoute: typeof AppCotasRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/efetivo-do-dia': {
+      id: '/_app/efetivo-do-dia'
+      path: '/efetivo-do-dia'
+      fullPath: '/efetivo-do-dia'
+      preLoaderRoute: typeof AppEfetivoDoDiaRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/escala-do-mes': {
@@ -471,6 +490,7 @@ const AppServicosRouteWithChildren = AppServicosRoute._addFileChildren(
 interface AppRouteChildren {
   AppConfiguracoesRoute: typeof AppConfiguracoesRoute
   AppCotasRoute: typeof AppCotasRoute
+  AppEfetivoDoDiaRoute: typeof AppEfetivoDoDiaRoute
   AppEscalaDoMesRoute: typeof AppEscalaDoMesRoute
   AppEscalasRoute: typeof AppEscalasRouteWithChildren
   AppFeriadosRoute: typeof AppFeriadosRoute
@@ -487,6 +507,7 @@ interface AppRouteChildren {
 const AppRouteChildren: AppRouteChildren = {
   AppConfiguracoesRoute: AppConfiguracoesRoute,
   AppCotasRoute: AppCotasRoute,
+  AppEfetivoDoDiaRoute: AppEfetivoDoDiaRoute,
   AppEscalaDoMesRoute: AppEscalaDoMesRoute,
   AppEscalasRoute: AppEscalasRouteWithChildren,
   AppFeriadosRoute: AppFeriadosRoute,

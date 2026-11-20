@@ -27,7 +27,7 @@ const BLOCOS: Item[][] = [
   [
     { nome: 'Grade geral', icone: LayoutGrid, para: '/' },
     { nome: 'Escala do mês', icone: ListTree, para: '/escala-do-mes' },
-    { nome: 'Efetivo do dia', icone: Sun },
+    { nome: 'Efetivo do dia', icone: Sun, para: '/efetivo-do-dia', soCadastro: true },
   ],
   [
     { nome: 'Voluntariado', icone: CalendarCheck, para: '/voluntariado', soCadastro: true },

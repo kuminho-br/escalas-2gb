@@ -1,7 +1,7 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { createFileRoute, Link } from '@tanstack/react-router';
-import { Mes, type OcupanteDaVaga } from 'contratos';
-import { useState } from 'react';
+import { Data, Mes, type OcupanteDaVaga } from 'contratos';
+import { useEffect, useState } from 'react';
 import { mensagemDe } from '@/api/cliente';
 import { consultaEscalaDoMes, desfazerRemocao, removerAlocacao, tirarAcumulo } from '@/api/escala-do-mes';
 import { listaComE } from '@/lib/escala';
@@ -18,9 +18,11 @@ import { mesAtual } from '@/lib/meses';
 import { cn } from '@/lib/utils';
 
 export const Route = createFileRoute('/_app/escala-do-mes')({
-  validateSearch: (s: Record<string, unknown>): { escala?: string; mes?: string } => ({
+  validateSearch: (s: Record<string, unknown>): { escala?: string; mes?: string; dia?: string } => ({
     escala: typeof s.escala === 'string' ? s.escala : undefined,
     mes: typeof s.mes === 'string' && Mes.safeParse(s.mes).success ? s.mes : undefined,
+    // o atalho do Efetivo do dia: a escala abre já rolada até este dia
+    dia: typeof s.dia === 'string' && Data.safeParse(s.dia).success ? s.dia : undefined,
   }),
   component: EscalaDoMes,
 });
@@ -41,6 +43,11 @@ function EscalaDoMes() {
   const mes = busca.mes ?? mesAtual();
   const dados = useQuery({ ...consultaEscalaDoMes(escalaId ?? '', mes), enabled: Boolean(escalaId) });
   const opcoes = escalas.data?.filter((e) => e.ativa || e.id === escalaId) ?? [];
+  // rola uma vez ao carregar a escala (não a cada gravação, que troca os dados mas não a escala nem o mês)
+  const carregada = dados.data ? `${dados.data.escalaId}|${dados.data.mes}` : null;
+  useEffect(() => {
+    if (busca.dia && carregada) document.getElementById(`dia-${busca.dia}`)?.scrollIntoView({ block: 'start' });
+  }, [busca.dia, carregada]);
 
   async function remover(o: OcupanteDaVaga, guarnicao: string, dia: number, vaga: string) {
     // um acúmulo sai sozinho (o militar continua na vaga original); a original leva os acúmulos junto
