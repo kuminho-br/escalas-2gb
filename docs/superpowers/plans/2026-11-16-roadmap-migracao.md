@@ -2,7 +2,12 @@
 
 16/11/2026 · aprovado em 16/11/2026
 
-**Nome e módulos (19/11/2026):** o sistema inteiro se chama **"Sistema de Gestão - 2º GB"**. O módulo em desenvolvimento é o de **confecção de escalas** (fases 3 a 6). O módulo previsto depois é o de **visualização de escalas**: as publicações e a área do próprio militar (voluntariado, minhas escalas). Detalhe no adendo de 19/11 do design da migração.
+**Nome e módulos (19/11/2026):** o sistema inteiro se chama **"Sistema de Gestão - 2º GB"** e tem três módulos.
+- **Confecção de escalas:** em desenvolvimento, nas fases 3 a 6.
+- **Visualização de escalas:** as publicações e a área do próprio militar (voluntariado, minhas escalas). Entra quando os tipos de usuário forem diferenciados, junto com a tela inicial que mostra os módulos.
+- **Pecúlio do 2º GB:** as fichas de registro de todos os militares. Entra com a reestruturação do cadastro de militares.
+
+A tela de login nova entra na entrega 3.3 da fase 4 (era a 3.2; renumerada em 20/11/2026). Os detalhes estão nos adendos de 19/11 do design da migração ("Nome do sistema e módulos" e "Login, tela inicial, módulos e Pecúlio"). O mockup aprovado está em `docs/telas/login-e-inicio/mockup.html`.
 
 **Objetivo:** levar o sistema do protótipo em Apps Script + Sheets para uma aplicação própria (banco relacional, API, interface web), primeiro numa fase de teste com cerca de 5 escalantes e depois no servidor institucional do Estado.
 
@@ -29,6 +34,8 @@
 | 5. Operação diária | Efetivo do dia, permutas, escala executada | Escalantes |
 | 6. Insumos automáticos e regras novas | Importação do Google Forms; regras validadas no laboratório | Escalantes |
 | 7. Institucionalização | Estrutura em vários níveis, acesso por unidade, histórico, servidor do Estado | Corporação |
+| Tipos de usuário e módulos (momento a definir) | Os quatro tipos de usuário diferenciados, a tela inicial com os módulos e a Visualização de escalas, com a Minha escala | Todos os militares |
+| Cadastro de militares e Pecúlio (momento a definir) | O cadastro de militares reestruturado com a estrutura de dados da corporação, e o módulo Pecúlio | A definir |
 
 ## Fase 0 — Decisões e especificação
 
@@ -152,9 +159,17 @@ Os cadastros estão prontos, mas foram feitos em dez entregas, cada uma com pend
 - Grade geral: blocos coloridos com a letra do turno, choques, cotas pegas de pedidas por PJES e Diária, ficha lateral com Trocar, Remover e Adicionar.
 - Voluntariado lançado à mão: calendário com marcação rápida e "Salvar e ir para o próximo".
 - Gerar documento: escala publicada a partir do modelo de impressão.
-- Minha escala, para o militar comum: os próprios serviços dia a dia, com quem compõe cada guarnição com ele, e as escalas publicadas da unidade dele.
+- Tela de login nova, com o brasão do 2º GB e a foto do quartel (entrega 3.3).
+- Meta de ativação e Efetivo do dia do escalante (entrega 3.2, decisão de 20/11/2026).
 
-Plano próprio: `docs/superpowers/plans/2026-11-18-fase4-escala.md` (seis entregas; a 1 detalhada, as demais detalhadas antes de cada uma começar).
+Plano próprio: `docs/superpowers/plans/2026-11-18-fase4-escala.md` (cinco entregas; a 1 detalhada, as demais detalhadas antes de cada uma começar).
+
+**Decisão do usuário (19/11/2026): login, módulos e Minha escala.**
+- A tela de login ganha o visual do mockup aprovado na **entrega 3.3** (era a 3.2). Muda só a aparência.
+- A **Minha escala** (era a entrega 6) **sai da fase 4**. Ela vai junto com a Visualização de escalas e a tela inicial com os módulos, no momento em que os tipos de usuário forem diferenciados (seção "Etapas sem fase marcada", abaixo).
+- A fase 4 termina na entrega 5, e o piloto continua sendo dos escalantes.
+
+Design: adendo "Login, tela inicial, módulos e Pecúlio" em `docs/superpowers/specs/2026-11-16-migracao-design.md`.
 
 **Decisão do usuário (18/11/2026): ordem de escala e acúmulo de funções.** A prioridade de ativação passa a ser a **ordem de escala**: uma lista por escala, com vigência por mês, da vez de cada vaga (guarnição + função + nº da vaga), editável numa tela de quadrados; a pré-escala segue a ordem à risca (o mais antigo apto em cada vaga) e substitui a prioridade da guarnição (RN-08). Quando falta gente, o escalante **acumula funções** à mão num militar já escalado na mesma faixa, inclusive de outra guarnição, com a CNH da vaga conferida. Entram como entregas 1.1 (acúmulo) e 2.1 (ordem), antes da 3. Design: `docs/superpowers/specs/2026-11-18-ordem-de-escala-e-acumulo-design.md`. Pendente para depois: regras próprias por vaga (graduado de dia = o mais antigo do dia, exceto Adm; chefe = o mais antigo da guarnição).
 
@@ -179,11 +194,18 @@ Entra como **entrega 2.4, antes da 3**, porque a pré-escala é montada nessa te
 
 A 3.1 é validada na sandbox antes de a 3.2 começar, e a 3.2 tem quatro decisões de regra pendentes, listadas no plano da fase 4.
 
+**Decisão do usuário (20/11/2026): meta de ativação e Efetivo do dia; a antiga 3.2 vira 3.3.** A escala ordinária existe para cumprir a **meta de ativação**: a lista de guarnições que a seção deve ativar em cada dia, com a ordem de ativação. A meta padrão é configuração do nível hierárquico, e o chefe altera qualquer dia como quiser. A guarnição só está ativada se fechar ao longo de todo o serviço, e dois militares de turnos menores podem fechar juntos a função de um turno maior. "Ordem de escala" passa a se chamar **ordem de escalação**. "Guarnições" passam a ser **modelos de guarnição** e vão para Configurações. Pronto, Saldo, JES e Expediente viram **serviços fixos**, criados pelo sistema. A entrega 3 fica assim:
+- **3.2.1 — arrumação:** serviços fixos, ordem de escalação, modelos de guarnição em Configurações, sem "conta para a meta" na cota.
+- **3.2.2 — meta e Efetivo do dia:** meta padrão e dias diferentes, o painel do escalante (só mostra, com atalho para a Escala do mês) e as cotas restantes na Escala do mês e no Efetivo do dia.
+- **3.3 (era a 3.2):** alocar no Efetivo do dia, "completar com JES" num dia ou período escolhido pelo chefe, saldos do Adm, operações pelas cotas, turnos lado a lado e a tela de login nova.
+
+Design: `docs/superpowers/specs/2026-11-20-meta-de-ativacao-design.md`.
+
 **Entrega e marco:** piloto na 1ª SB. Um mês real montado no sistema novo, em paralelo com as planilhas atuais, e comparado no fim.
 
 ## Fase 5 — Operação diária
 
-- Efetivo do dia: turnos A e B lado a lado, operações do período das 08h de D às 08h de D+1, motoristas de serviço, marcação de presença, impressão.
+- Efetivo do dia (o painel de planejamento do escalante já nasce na entrega 3.2 da fase 4; aqui entra a operação): turnos A e B lado a lado, operações do período das 08h de D às 08h de D+1, motoristas de serviço, marcação de presença, impressão.
 - Permutas registradas na Grade geral e mostradas no Efetivo do dia.
 - Escala executada: gerar e enviar até o dia 5 do mês seguinte.
 
@@ -208,6 +230,29 @@ A 3.1 é validada na sandbox antes de a 3.2 começar, e a 3.2 tem quatro decisõ
 - Migração para o servidor do Estado: cópia do banco, implantação e retirada do ambiente de teste.
 
 **Entrega:** sistema em produção institucional.
+
+## Etapas sem fase marcada (decisões de 19/11/2026)
+
+Duas etapas decididas pelo usuário, com o momento ainda em aberto. Cada uma ganha a sua conversa de design e o seu plano quando for começar. Detalhes no adendo "Login, tela inicial, módulos e Pecúlio" do design da migração.
+
+### Tipos de usuário e módulos
+
+Começa quando o usuário diferenciar os quatro tipos de usuário: **administrador, gestor, auxiliar administrativo (escalante) e militar comum**.
+
+O que entra:
+- a tela inicial depois do login, com um cartão por módulo e a faixa de boas-vindas com foto sorteada de um banco de fotos do quartel;
+- o módulo de **Visualização de escalas**: as escalas publicadas da unidade e a **Minha escala** (os próprios serviços, com quem compõe cada guarnição);
+- a área do próprio militar. A marcação do próprio voluntariado, hoje listada na fase 7, também é parte desse módulo.
+
+Hoje os papéis existem em parte: escalante, gestor e administrador estão gravados, e o militar comum é quem não tem papel. O cadastro de usuários estava previsto para a fase 7.
+
+A decidir quando começar: em que fase entra, quem vê cada módulo, de onde vêm as fotos e se "auxiliar administrativo" substitui "escalante" nas telas.
+
+### Cadastro de militares e Pecúlio
+
+O cadastro de militares de hoje é simples. O usuário vai reestruturá-lo, importando a estrutura de dados real usada na corporação, e nesse mesmo momento nasce o módulo **Pecúlio do 2º GB**, com as fichas de registro de todos os militares.
+
+A decidir quando começar: se a ficha do Pecúlio e a de Militares são a mesma ficha, com mais campos, e quem vê cada informação (D7).
 
 ## Fluxo de uma regra nova (vale a partir da fase 2)
 

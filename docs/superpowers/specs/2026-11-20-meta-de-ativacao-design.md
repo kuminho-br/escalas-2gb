@@ -1,0 +1,154 @@
+# Meta de ativação e Efetivo do dia — design
+
+20/11/2026 · decisões do usuário em conversa de 19 e 20/11/2026 · aprovado em 20/11/2026 (o usuário pediu os planos de implementação)
+
+## Por que
+
+A escala ordinária existe para cumprir a **meta de ativação**: um certo número de guarnições que a seção precisa pôr na rua a cada dia. A meta vem de um escalão acima, e a seção pode cumpri-la ou não. Até aqui o sistema girava em torno da "escala", e isso confundia duas coisas: a escala é **publicação e prestação de contas**, mas o que importa no dia a dia é **ativar guarnições**. Os serviços (Pronto, Saldo, JES, diárias) são os meios e as restrições: dizem de onde vem a hora, quem pode cumprir e em que horário.
+
+O chefe da seção configura a meta, e o escalante aloca os militares para cumpri-la. O objetivo é ativar o máximo de guarnições da meta, ao longo do mês, na ordem de ativação.
+
+## Vocabulário (vale a partir de agora)
+
+| Termo | O que é |
+|---|---|
+| **Meta de ativação** | A lista de guarnições que devem ser ativadas num dia, com a ordem de ativação de cada uma. |
+| **Meta padrão** | A meta que todo dia recebe. É configuração do nível hierárquico. |
+| **Dia diferente** | Um dia cuja meta o chefe alterou. Ele passa a ter a meta própria. |
+| **Ordem de ativação** | A prioridade de cada guarnição dentro da meta: qual pesa mais quando falta gente. |
+| **Ordem de escalação** | Novo nome da antiga "ordem de escala": a sequência em que o sistema preenche as vagas para aproveitar melhor os recursos. |
+| **Modelo de guarnição** | O que hoje se cadastra em "Guarnições": a composição (funções, mínimo, máximo, CNH). É um molde. |
+| **Guarnição (do dia)** | A instância: um modelo que ganhou militares alocados num dia. |
+| **Efetivo do dia** | O painel do sistema em que se vê o efetivo de um dia. |
+| **Escala do dia** | O documento que publica quem está de serviço num dia, incluindo as permutas (módulo de visualização, fora deste design). |
+| **Escala** | Agrupamento de serviços para a prestação de contas mensal e lugar onde se diz quais serviços guarnecem quais modelos. A fonte da escala (quem a pede) fica fora do sistema. |
+| **Cota** | Limite mensal de quantas vezes se pode escalar militares num serviço de PJES ou diária. |
+
+**Ordem de ativação × ordem de escalação, em uma frase:** uma guarnição ser mais importante que outra não quer dizer que todos os militares da guarnição mais importante devam ser alocados antes. A ordem de escalação atual é tratada como teste, e a relação entre as duas fica **adiada** (decisão do usuário).
+
+## Objetivos
+
+- O chefe configura a meta padrão e altera qualquer dia como quiser, sem preencher 30 dias à mão.
+- O escalante vê, no Efetivo do dia, as guarnições da meta, se cada uma foi ativada e, se não, o que falta e em que horário.
+- As cotas restantes aparecem na Escala do mês e no Efetivo do dia (barreira de suporte).
+- A automação deixa de depender de nomes digitados pelo usuário.
+
+## Não objetivos (desta etapa)
+
+- Alocar militares direto no Efetivo do dia (vai para a 3.3).
+- "Completar com JES" num dia ou período escolhido pelo chefe (barreira de automação, vai para a 3.3).
+- Relacionar ordem de ativação e ordem de escalação.
+- Presença e impressão do efetivo do dia (fase 5) e o documento "escala do dia" (módulo de visualização).
+- Reorganizar o menu inteiro (ideia guardada para depois, abaixo).
+
+## Anti-objetivos
+
+- O sistema decidir sozinho em que dias gastar as cotas. Os dias são decisão do chefe.
+- Uma guarnição mudar de lugar no painel por não estar ativada. A não ativação não muda a posição dela (decisão do usuário).
+- Bloquear o escalante. Guarnição não ativada é aviso, nunca impede de fechar a escala.
+
+## Abordagens consideradas
+
+**Como guardar a meta de cada dia**
+- **Meta padrão + dias diferentes (escolhida).** Todo dia nasce com a meta padrão; o chefe altera um dia ou um intervalo, e esses dias guardam a meta própria. Quando a meta padrão muda, vale dali em diante. Os dias passados e os dias alterados à mão não mudam.
+- **Copiar a meta para todos os dias do mês.** Funciona, mas cada mudança definitiva obrigaria a reescrever os dias restantes e a decidir o que fazer com os já alterados.
+- **Só "a partir de tal dia".** Reprovada pelo usuário: a meta muda de várias formas, e o chefe precisa mexer em qualquer dia.
+
+Custo computacional: dez guarnições por dia são umas 3.650 linhas por seção por ano, bem menos que as alocações. Não pesa.
+
+**Onde ficam os modelos de guarnição**
+- **A. Só os modelos vão para Configurações (escolhida para a 3.2).** Saem do menu e entram em Configurações, ao lado da meta padrão. A tela de detalhe com as versões continua, só muda de lugar.
+- **B. Reorganizar o menu inteiro.** Serviços, Escalas e Feriados também são configuração; o menu ficaria só com o dia a dia (Escala do mês, Efetivo do dia, Voluntariado, Cotas, Militares). Guardada como ideia para depois, para não inchar a entrega.
+
+**O que o Efetivo do dia faz na 3.2**
+- **Só mostra, com atalho para a Escala do mês (escolhida para a 3.2).** Cada buraco abre a Escala do mês daquela escala, naquele dia.
+- **Alocar no painel.** Decidido pelo usuário, mas na **3.3**, junto com o "completar", porque as duas usam a mesma peça (escolher militar fora de uma escala e de um turno fixos).
+
+**Como evitar que a automação dependa de nomes**
+- **Serviços fixos (escolhida, ideia do usuário).** O sistema cria Pronto, Saldo, JES e Expediente em cada seção, e o usuário não pode mudar o nome deles.
+- **Campo "quem cumpre" no serviço ordinário.** Proposta anterior, trocada pela dos serviços fixos, que não pede cadastro novo.
+
+## O que foi decidido
+
+### 1. Meta de ativação
+
+- A meta é uma **lista de modelos de guarnição com a ordem de ativação**. Vale **por dia**, não por turno, porque os turnos variam.
+- **Meta padrão:** configuração do nível hierárquico, em Configurações. Mudar a meta padrão vale dali em diante; os dias passados e os dias diferentes não mudam.
+- **Dia diferente:** o chefe altera um dia ou um intervalo de dias (acrescenta, tira ou reordena guarnições). Um dia diferente pode voltar ao padrão.
+- *Minha decisão:* cada nível hierárquico define a sua meta padrão com os seus próprios modelos, sem herdar a do nível de cima (a meta é de quem ativa as guarnições).
+- *Minha decisão:* a meta padrão e os dias diferentes são editados por quem já edita os parâmetros da seção.
+- *Minha decisão:* a meta padrão é editada em Configurações, e o dia diferente é editado no próprio Efetivo do dia.
+
+### 2. Quando uma guarnição está ativada
+
+- A guarnição só conta como **ativada** se **fechar ao longo de todo o serviço** (decisão do usuário): toda função obrigatória com o mínimo de militares em todos os momentos.
+- *Minha decisão:* "todo o serviço" é a soma dos horários em que o modelo está vinculado naquele dia, em qualquer escala. Um Resgate vinculado ao Ordinário de 08–20 e de 20–08 precisa fechar as 24 horas. O turno que atravessa a meia-noite pertence ao dia em que começa.
+- **Uma viatura só:** se o mesmo modelo está vinculado em duas escalas no mesmo dia (ex.: Resgate no Ordinário e no PE Seguro), é uma guarnição só, com militares do Pronto e da diária misturados (decisão do usuário).
+- **Dois militares na mesma função:** numa função de um turno maior podem entrar dois militares de turnos menores (decisão do usuário). Ex.: o militar da diária de 08–16 mais outro de 16–00 fecham a vaga do Pronto de 08–20. A conta passa de "cabeças por turno" para "horário coberto". O banco já permite (a alocação não tem número de vaga).
+- *Minha decisão:* o acúmulo de funções (entrega 1.1) também cobre a função, no horário da alocação de quem acumula.
+
+### 3. Efetivo do dia (painel do escalante)
+
+- Mostra as guarnições da meta do dia **na ordem de ativação**. A posição não muda pelo estado (ativada ou não).
+- Em cada guarnição: se está ativada; se não, qual função falta e em que horário; e cada militar com a função, o horário e o serviço por onde entrou.
+- Cada buraco tem um atalho para a Escala do mês da escala que vincula aquela guarnição naquele horário, já no dia.
+- No topo, as cotas restantes do mês e quantas guarnições da meta foram ativadas.
+
+```
+Efetivo do dia: 12/11        JES: restam 26 de 40 | Bioma: restam 14 de 20
+Meta do dia: 3 guarnições, 1 ativada                 [Alterar a meta deste dia]
+
+1º Resgate   ativada
+   Motorista   Sd Alfa     08–20   Pronto
+   Auxiliar    Sd Bravo    08–16   PE Seguro
+               Sd Charlie  16–20   Saldo
+2º ABT       não ativada: motorista descoberto 20–08     [Abrir na Escala do mês]
+3º ACO       não ativada: faltam 2 auxiliares 08–20      [Abrir na Escala do mês]
+```
+
+### 4. Cotas
+
+- As cotas são mensais e dizem quantas vezes se pode escalar militares num serviço. O chefe gerencia esses serviços ao longo do mês para ativar o máximo de guarnições.
+- Na 3.2, as **cotas restantes** aparecem na Escala do mês (as dos serviços da escala) e no Efetivo do dia (as da seção), no formato "JES: restam 26 de 40".
+- *Minha decisão:* restante = quantidade da cota do mês − alocações do mês naquele serviço, somando as origens interna e externa.
+- O campo **"conta para a meta"** da cota sai: todo serviço conta para a meta.
+- Na 3.3: o chefe escolhe um dia ou período e pede "completar com JES"; o sistema preenche as guarnições pela ordem de ativação e desconta da cota.
+
+### 5. Serviços fixos
+
+- O sistema cria **Pronto, Saldo, JES e Expediente** em cada seção. O código depende deles: pré-escala (Pronto), saldo do Adm (Saldo), só voluntário e emenda proibida JES → Pronto (JES), e jornada Adm (Expediente).
+- **Trava:** nome, tipo e exclusão. **Fica livre:** horários dos turnos, cor e vínculo com escalas. O usuário pode desvincular o serviço de uma escala.
+- *Minha decisão:* os que já existem com esses nomes são marcados como fixos, sem criar duplicados; os que faltam são criados.
+- Diárias e PJES (Bioma, PE Seguro) continuam cadastro livre; a regra delas vem do tipo.
+- Os mecanismos ficam no código: jornada Pronto entra pela equipe, no ciclo; jornada Adm cumpre N saldos por mês (parâmetro); PJES e diária são voluntários, até a cota.
+
+### 6. Modelos de guarnição em Configurações
+
+- "Guarnições" passa a se chamar **"Modelos de guarnição"** e sai do menu para uma aba de Configurações, ao lado da aba **"Meta de ativação"**. A tela de detalhe com versões continua, no novo endereço.
+- *Minha decisão:* o endereço antigo redireciona para o novo.
+
+### 7. Ordem de escalação
+
+- "Ordem de escala" passa a se chamar **"ordem de escalação"** em toda a tela e no código (30 ocorrências em 14 arquivos).
+- *Minha decisão:* as tabelas do banco mantêm o nome atual, para não ter migração só de nome.
+
+## Divisão em entregas
+
+- **3.2.1 — Arrumação:** serviços fixos, "ordem de escalação" e modelos de guarnição em Configurações. Remove "conta para a meta".
+- **3.2.2 — Meta e Efetivo do dia:** meta padrão, dias diferentes, regra de ativação por horário coberto, o painel e as cotas restantes na Escala do mês e no Efetivo do dia.
+- **3.3 (era a 3.2):** alocar no Efetivo do dia, "completar com JES" num dia ou período, saldos do Adm, operações pelas cotas, turnos lado a lado na Escala do mês e a tela de login nova.
+
+*Minha decisão:* a tela de login nova acompanha o resto da antiga 3.2 e vai para a 3.3.
+
+## Pendências e ideias guardadas
+
+- Relação entre ordem de ativação e ordem de escalação (adiada pelo usuário).
+- Decisões da antiga 3.2, para detalhar a 3.3. A da ordem dos buracos ficou em parte respondida: no modelo atual do Ordinário, o Saldo vem antes do JES, e isso é configuração, não código.
+- Reorganização do menu inteiro (opção B).
+- **Guarnição escalada sem estar na meta** (decisão do usuário, 20/11/2026): aparece no painel normalmente, sem rótulo e sem contar para a meta. Nada muda por ela não estar na meta, assim como nada muda para a guarnição da meta que não foi ativada (fica na posição comum dela). *Minha decisão:* como não tem ordem de ativação, a posição comum dela é depois das guarnições da meta, na ordem do nome do modelo.
+
+## O que fica para quem for planejar
+
+- Nomes de tabelas e rotas da meta (padrão com vigência por data, dias diferentes por data).
+- Como calcular a cobertura por horário: reaproveitar os minutos usados no voluntariado por faixa.
+- A forma dos controles de "Alterar a meta deste dia" e da aba "Meta de ativação", seguindo as telas de quadrados da ordem de escalação.

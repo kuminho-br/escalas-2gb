@@ -50,11 +50,11 @@ As condições que o design implica e que mais podem morder quem monta a escala;
 | **3 — Pré-escala e distribuições (3.1 e 3.2)** | "Gerar pré-escala" (Pronto pelo ciclo das equipes), saldos do Adm e operações pelas cotas, com o que ficou de fora e por quê. Gerar de novo só completa lacunas e respeita as remoções. Os militares entram nas vagas seguindo a ordem de escala à risca (o mais antigo apto em cada vaga). | 1, 2, 2.1, 2.2, 2.3 e 2.4 |
 | **4 — Grade geral** | Uma linha por militar, uma coluna por dia, blocos na cor do serviço com a letra, choques em vermelho, pegas de pedidas por PJES e Diária, ficha lateral com Trocar, Remover e Adicionar. | 1, 2 |
 | **5 — Gerar documento** | Configurações › Modelos de impressão (enviar e baixar o .xlsx com marcadores) e "Gerar documento" da escala publicada em .xlsx; cada geração fica guardada. | 1 |
-| **6 — Minha escala** | O militar comum vê os próprios serviços do mês, com quem compõe a guarnição, e as escalas publicadas da unidade dele. | 1, 5 |
+| ~~**6 — Minha escala**~~ | **Saiu da fase 4** (decisão do usuário, 19/11/2026). Vai junto com a Visualização de escalas e a tela inicial com os módulos, quando os tipos de usuário forem diferenciados (roadmap, "Etapas sem fase marcada"). | — |
 
 **Marco da fase:** um mês real da 1ª SB montado no sistema, em paralelo com as planilhas, e comparado no fim (o usuário conduz).
 
-**Fora da fase 4 (já no roadmap):** Efetivo do dia, permutas e escala executada (fase 5); importação do Google Forms e regras novas (fase 6); militares externos por vínculo, outros níveis e o próprio militar marcar voluntariado (fase 7). PDF: se o serviço de PDF não estiver pronto, a fase 4 entrega o .xlsx e o PDF sai pelo "Salvar como PDF" de quem abrir (D5).
+**Fora da fase 4 (já no roadmap):** Minha escala, a tela inicial com os módulos e a Visualização de escalas (etapa "Tipos de usuário e módulos", decisão de 19/11/2026); Efetivo do dia, permutas e escala executada (fase 5); importação do Google Forms e regras novas (fase 6); militares externos por vínculo, outros níveis e o próprio militar marcar voluntariado (fase 7). PDF: se o serviço de PDF não estiver pronto, a fase 4 entrega o .xlsx e o PDF sai pelo "Salvar como PDF" de quem abrir (D5).
 
 **Pendências que entram:** mudar letra ou horário de turno com militares escalados passa a dar 409 (entrega 1); `distribuirAdm` sem `servico` com remoções, `turnosPadraoExigidos` no turno noturno de 24h e nomes comparados ora normalizados ora exatos (entrega 3, na camada que traduz para o motor).
 
@@ -903,12 +903,13 @@ As condições que o design implica e que mais podem morder quem monta a escala;
 
 ---
 
-# Entrega 3 — Pré-escala e distribuições (dividida em 3.1 e 3.2)
+# Entrega 3 — Pré-escala e distribuições (dividida em 3.1, 3.2 e 3.3)
 
-Decisão do usuário (19/11/2026): a entrega 3 sai em duas, cada uma com o seu PR. A 3.1 é validada na sandbox antes de a 3.2 começar.
+Decisão do usuário (19/11/2026): a entrega 3 sai em duas, cada uma com o seu PR. A 3.1 é validada na sandbox antes de a 3.2 começar. **Em 20/11/2026** entrou uma nova 3.2 (meta de ativação e Efetivo do dia), e a 3.2 descrita abaixo passou a ser a **3.3**.
 
 - **3.1 — Pré-escala do Pronto:** a equipe do dia 1 (detectada pelo mês anterior, com escolha manual), o preenchimento das vagas pela ordem de escala (o mais antigo apto em cada vaga), a prévia do que entra e do que fica de fora, e a gravação. Gerar de novo só completa lacunas e respeita as remoções.
-- **3.2 — Buracos, saldos e operações:** completar as vagas que sobraram (JES e Saldo), as operações pelas cotas e a disposição da Escala do mês com os turnos lado a lado (pendência da 2.4). **As regras de negócio da 3.2 ainda dependem do usuário** (lista no fim desta seção); ela é detalhada depois do merge da 3.1, com as respostas.
+- **3.2 — Meta de ativação e Efetivo do dia** (nova, 20/11/2026): em 3.2.1 e 3.2.2, seção própria abaixo.
+- **3.3 (era a 3.2) — Buracos, saldos e operações:** completar as vagas que sobraram (JES e Saldo), as operações pelas cotas, a disposição da Escala do mês com os turnos lado a lado (pendência da 2.4) e a tela de login nova (decisão de 19/11/2026). **As regras de negócio da 3.2 ainda dependem do usuário** (lista no fim desta seção); ela é detalhada depois do merge da 3.1, com as respostas.
 
 **Spec:**
 - `docs/superpowers/specs/2026-11-16-migracao-design.md`, adendo de 17/11 "Pré-escala automática e ajustes do escalante": gerar de novo nunca sobrescreve; o removido não volta, mas outro militar pode ocupar a vaga.
@@ -1113,9 +1114,406 @@ Se um worker cair (código 134, `scrypt derivation failed`, `cannot allocate mem
 
 ---
 
-# Entrega 3.2 — Buracos, saldos, operações e a disposição da Escala do mês (a detalhar depois da 3.1)
+# Entrega 3.2 — Meta de ativação e Efetivo do dia
 
-**Branch:** `fase4-3-2-distribuicoes`, a partir da `main` depois do merge da 3.1. As tarefas se detalham com as respostas do usuário às decisões abaixo. As tarefas previstas, a partir da Tarefa 36:
+Decisão do usuário (20/11/2026). Sai em duas subentregas, cada uma com o seu branch e PR, a partir da `main` atualizada. A 3.2.2 começa depois do merge da 3.2.1.
+
+- **3.2.1 — Arrumação** (Tarefas 36 a 40): serviços fixos, "ordem de escalação", modelos de guarnição em Configurações e a cota sem "conta para a meta".
+- **3.2.2 — Meta e Efetivo do dia** (Tarefas 41 a 45): a regra de ativação por horário coberto, a meta (padrão e dias diferentes), o painel Efetivo do dia e as cotas restantes.
+
+**Spec:** `docs/superpowers/specs/2026-11-20-meta-de-ativacao-design.md` (vocabulário, decisões e "minhas decisões" marcadas). O roadmap e as decisões de 20/11 estão em `docs/superpowers/plans/2026-11-16-roadmap-migracao.md`, Fase 4.
+
+**Execução (as duas subentregas):** **Sonnet, esforço high**, em linha (superpowers:executing-plans, o mesmo ledger `.superpowers/sdd/2026-11-18-fase4-escala/progress.md`). A revisão final de cada branch é uma só, por um Agent com `model: "opus"` e `effort: "medium"` explícitos. Não trocar de modelo no meio da execução. O ambiente e os comandos são os da entrega 3 (uma suíte por vez, `--maxWorkers=1`, `pnpm --filter dominio tipos` depois de mudar exports do motor).
+
+**Contagens de partida:** protótipo 589, contratos 14, motor 802 (+1 ignorado), API 613, site 411.
+
+**Copy fixa (vale nas duas):** "Modelos de guarnição", "Novo modelo", "Ordem de escalação", "Meta de ativação", "Efetivo do dia", "ativada", "não ativada", "Alterar a meta deste dia", "Voltar ao padrão", "Abrir na Escala do mês", "Sem horário vinculado neste dia", e as cotas como "JES: restam 26 de 40".
+
+---
+
+## Entrega 3.2.1 — Arrumação
+
+**Branch:** `fase4-3-2-1-arrumacao`, a partir da `main` atualizada (com a 3.1). O primeiro commit leva os documentos de 20/11 (design, roadmap e este plano). Commits `Fase 4.3.2.1: …`; PR "Fase 4 — Entrega 3.2.1: arrumação para a meta de ativação". **Migrações 0020 e 0021:** o PR avisa `pnpm --filter api db:migrar:teste`.
+
+**Decisões desta entrega** (chamadas da PROGRAMAÇÃO, já no design):
+- **Serviço fixo é reconhecido pelo nome**, sem caixa e sem espaços nas pontas: `pronto`, `saldo` e `expediente` (tipo ordinário) e `jes` (tipo PJES). Uma trava no banco marca `fixo` ao gravar e recusa mudar nome, tipo ou situação de um fixo. A API responde antes, com a frase legível.
+- **"O sistema cria"** = a migração cria os que faltam em cada seção que já tem algum serviço (a sandbox). Hoje nenhuma tela cria seção. Uma seção sem serviço nenhum (a base dos testes) não recebe nada, e a carga de exemplo continua criando os seus. Os criados vêm com os turnos e as cores da carga de exemplo: Pronto, Saldo e JES com A 08–20 e B 20–08, e Expediente com A 08–16. As cores vêm de `CORES_SERVICO`.
+- **Fixo desativado volta a ficar ativo** na migração, porque depois ninguém poderia reativá-lo.
+- **Ordem de escalação:** muda na tela, nos nomes do código e nos nomes de arquivo. As tabelas do banco (`ordem_escala_*`) e o endereço `/escalas/:id/ordem` ficam como estão.
+- **Modelos de guarnição:** a lista vira uma aba de Configurações (`/configuracoes?aba=modelos`), e a ficha fica em `/configuracoes/modelos-de-guarnicao/:id`. `/guarnicoes` e `/guarnicoes/:id` redirecionam para lá. A coluna "Guarnições" da matriz de Escalas não muda.
+
+**Review Focus da 3.2.1** (cada um tem teste na tarefa dona):
+1. **Base com "pronto " (caixa e espaço diferentes).** O serviço é marcado como fixo, sem criar um "Pronto" duplicado. Tarefa 36.
+2. **Base com um fixo de tipo errado** (ex.: JES ordinário). A migração para com a frase "Há serviço fixo com o tipo errado: JES (ordinario). Corrija o tipo antes de migrar." Tarefa 36.
+3. **Importação da planilha tentando mudar o tipo de um fixo.** A prévia aponta o problema na linha, e nada é gravado. Tarefa 36.
+4. **Endereço antigo da guarnição** (favorito ou link da matriz de Escalas). Abre a ficha do modelo. Tarefa 39.
+5. **Cliente antigo que ainda manda `contaMeta`.** A cota é gravada (o campo é ignorado) e a lista não mostra mais "não conta para a meta". Tarefa 40.
+
+### Task 36: Serviços fixos no banco e na API
+
+**Files:**
+- Create: `apps/api/banco/migracoes/0020_servicos_fixos.sql`
+- Modify: `pacotes/contratos/src/servicos.ts` (`Servico.fixo: boolean`), `apps/api/src/cadastros/servicos.ts`, `apps/api/src/importacao/servicos-escalas.ts`
+- Test: `apps/api/test/migracao-0020.test.ts`, `apps/api/test/servicos.test.ts`, `apps/api/test/importacao-servicos-escalas.test.ts`
+
+**Interfaces:**
+- Produces: `servico.fixo boolean not null`; `Servico.fixo` em toda leitura de serviço; `SERVICOS_FIXOS` em `pacotes/contratos/src/servicos.ts`:
+  ```ts
+  export const SERVICOS_FIXOS: Record<string, TipoServico> = { pronto: 'ordinario', saldo: 'ordinario', expediente: 'ordinario', jes: 'pjes' };
+  export function tipoDoServicoFixo(nome: string): TipoServico | null; // nome.trim().toLowerCase()
+  ```
+- Migração (ordem): (1) `do $$` que para com a frase do Review Focus 2 se houver um fixo de tipo errado; (2) `add column fixo`; (3) marca os existentes e reativa os desativados; (4) cria os que faltam (com turnos) nas seções que já têm algum serviço; (5) função e gatilho `before insert or update on servico` que define `fixo` pelo nome e recusa com `raise exception`: tipo errado num nome fixo ("O serviço % é fixo e precisa ser do tipo %."), e mudar nome, tipo ou `ativo = false` de um fixo ("O serviço % é fixo: o nome, o tipo e a situação não mudam.").
+
+- [ ] **Step 1: Write the failing tests:**
+  - `migracao-0020`, no padrão de `migracao-0019.test.ts` (migrar até `0020`, montar o cenário e migrar o resto). Na 1ª SB, `pronto ` (ordinário, desativado) e `Bioma` (diária); numa segunda seção fictícia, nenhum serviço. Depois da migração:
+    - `pronto ` fica `fixo = true` e ativo, e não há outro Pronto;
+    - existem `Saldo`, `JES` e `Expediente` fixos, com os turnos da decisão (ex.: Expediente com um turno A 08:00–16:00);
+    - `Bioma` fica `fixo = false`;
+    - a segunda seção continua sem serviços;
+    - inserir `JES` do tipo `ordinario` numa seção falha com "precisa ser do tipo pjes";
+    - um cenário à parte com JES ordinário antes da migração faz a migração falhar com "Há serviço fixo com o tipo errado".
+  - `servicos.test.ts`:
+    - `GET` devolve `fixo: true` para Pronto e `false` para Bioma;
+    - `PATCH` mudando o nome (inclusive só a caixa) ou o tipo de um fixo dá 409 com "é fixo";
+    - `PATCH` mudando só a cor e o rótulo de um fixo dá 200;
+    - turno de um fixo pode ser criado, editado e removido (200);
+    - `POST /servicos/:id/situacao {ativo:false}` num fixo dá 409 "O serviço \"Pronto\" é fixo e não pode ser desativado.";
+    - `POST` de `jes` com tipo ordinário dá 409 "O serviço \"jes\" é fixo e precisa ser do tipo PJES.".
+  - `importacao-servicos-escalas.test.ts`: uma planilha com JES como ordinário, sobre uma base com JES (PJES), dá um problema nessa linha ("O serviço JES é fixo: o tipo não muda."), e aplicar não muda o tipo.
+- [ ] **Step 2: Run** `cd apps/api && npx vitest run --maxWorkers=1 test/migracao-0020.test.ts test/servicos.test.ts test/importacao-servicos-escalas.test.ts`. Expected: FAIL (coluna e regras inexistentes).
+- [ ] **Step 3: Implement** a migração, as respostas da API (antes do banco, com as frases acima) e o problema na prévia da importação (onde ela decide `mudarDados`).
+- [ ] **Step 4: Run** os mesmos testes. Expected: PASS. Depois, a suíte inteira da API em segundo plano (`--no-file-parallelism`). Testes antigos que renomeiam ou desativam "Pronto", "JES", "Saldo" ou "Expediente", ou que os criam com o tipo errado, passam a usar um nome livre (ex.: "Plantão"), com `Ruling:` no ledger.
+- [ ] **Step 5: Commit** `Fase 4.3.2.1: serviços fixos no banco e na API`.
+
+### Task 37: Serviços fixos na tela
+
+**Files:**
+- Modify: `apps/web/src/routes/_app/servicos/$id.tsx`, `apps/web/src/routes/_app/servicos.tsx` (item da lista)
+- Test: `apps/web/src/__testes__/servicos.test.tsx` (o ajudante `servico()` ganha `fixo: false`)
+
+**Interfaces:** Consumes `Servico.fixo` (Tarefa 36).
+
+- [ ] **Step 1: Write the failing tests:**
+  - na ficha de um serviço com `fixo: true`, os campos "Nome" e "Tipo" estão desabilitados, aparece "Serviço fixo do sistema: o nome e o tipo não mudam.", e não há botão "Desativar";
+  - na lista, o item fixo mostra a marca "fixo";
+  - num serviço com `fixo: false`, tudo segue como antes.
+- [ ] **Step 2: Run** `cd apps/web && npx vitest run --maxWorkers=1 src/__testes__/servicos.test.tsx`. Expected: FAIL.
+- [ ] **Step 3: Implement.** Cor, rótulo, operação e turnos seguem editáveis.
+- [ ] **Step 4: Run** o mesmo arquivo. Expected: PASS.
+- [ ] **Step 5: Commit** `Fase 4.3.2.1: serviços fixos na tela`.
+
+### Task 38: "Ordem de escala" vira "ordem de escalação"
+
+**Files:**
+- Rename: `pacotes/contratos/src/ordem-de-escala.ts` → `ordem-de-escalacao.ts`, `apps/web/src/api/ordem-de-escala.ts` → `ordem-de-escalacao.ts`, `apps/web/src/__testes__/ordem-de-escala.test.tsx` → `ordem-de-escalacao.test.tsx`, `apps/api/test/ordem-de-escala.test.ts` → `ordem-de-escalacao.test.ts`, `apps/api/test/ordem-de-escala-regras.test.ts` → `ordem-de-escalacao-regras.test.ts`
+- Modify: os arquivos listados por `grep -rln "rdem de escala\|rdemDeEscala\|ordem-de-escala" apps/api/src apps/web/src pacotes` (14 hoje)
+
+**Interfaces:** Produces `OrdemDeEscalacao`, `OrdemDeEscalacaoEntrada`, `consultaOrdemDeEscalacao`, `gravarOrdemDeEscalacao`, `atualizarOrdemDeEscalacao` (os antigos `…OrdemDeEscala…` deixam de existir).
+
+- [ ] **Step 1: Write the failing test:** em `ordem-de-escala.test.tsx`, trocar as expectativas de texto para "Ordem de escalação" (título da tela, link na ficha da escala e na Escala do mês).
+- [ ] **Step 2: Run** `cd apps/web && npx vitest run --maxWorkers=1 src/__testes__/ordem-de-escala.test.tsx`. Expected: FAIL nos textos.
+- [ ] **Step 3: Implement** a troca de textos, nomes e arquivos (inclusive comentários). Ficam de fora as migrações antigas, os nomes de tabela e a URL `/ordem`.
+- [ ] **Step 4: Run:**
+  - `grep -rnE "rdem de escala([^çc]|$)|rdemDeEscala([^c]|$)|ordem-de-escala([^c]|$)" apps/api/src apps/web/src apps/api/test pacotes/*/src pacotes/*/test` → nada;
+  - `pnpm typecheck`;
+  - as suítes de contratos, site e API (uma por vez).
+
+  Expected: tudo passa.
+- [ ] **Step 5: Commit** `Fase 4.3.2.1: ordem de escalação`.
+
+### Task 39: Modelos de guarnição em Configurações
+
+**Files:**
+- Create: `apps/web/src/routes/_app/configuracoes_.modelos-de-guarnicao.$id.tsx` (o conteúdo de `guarnicoes/$id.tsx`, com `voltarPara` em `/configuracoes?aba=modelos`), `apps/web/src/componentes/guarnicoes/ListaDeModelos.tsx` (a lista, "Novo modelo" e "Importar da planilha", vindos de `guarnicoes.tsx`)
+- Modify: `apps/web/src/routes/_app/configuracoes.tsx` (`validateSearch` com `aba?: string`, aba controlada, nova aba "Modelos de guarnição" com `value="modelos"`), `apps/web/src/componentes/Trilho.tsx` (sai o item "Guarnições"), `apps/web/src/componentes/escalas/Matriz.tsx` (link novo), `apps/web/src/routes/_app/guarnicoes.tsx` e `guarnicoes/$id.tsx` (viram só `beforeLoad: redirect`), `apps/web/src/routeTree.gen.ts` (regerado pelo plugin do router)
+- Delete: `apps/web/src/routes/_app/guarnicoes/index.tsx`
+- Test: `apps/web/src/__testes__/guarnicoes.test.tsx` e os demais que abrem `/guarnicoes`
+
+**Interfaces:** Produces as rotas `/configuracoes?aba=modelos` e `/configuracoes/modelos-de-guarnicao/$id`.
+
+- [ ] **Step 1: Write the failing tests:**
+  - `abrir('/configuracoes?aba=modelos')` mostra a lista ("N modelos", botão "Novo modelo");
+  - clicar num modelo abre a ficha em `/configuracoes/modelos-de-guarnicao/:id` com a composição;
+  - "Voltar" volta para a aba;
+  - `abrir('/guarnicoes/g1')` termina na ficha nova;
+  - o trilho não tem "Guarnições";
+  - criar um modelo navega para a ficha nova.
+- [ ] **Step 2: Run** `cd apps/web && npx vitest run --maxWorkers=1 src/__testes__/guarnicoes.test.tsx`. Expected: FAIL.
+- [ ] **Step 3: Implement.** Os textos trocam "guarnição" por "modelo" na lista e no diálogo: "Nome do modelo", "Nenhum modelo de guarnição. Use \"Novo modelo\" ou \"Importar da planilha\"." e "Escolha um modelo na lista para ver a composição." (este, se a tela ainda mostrar).
+- [ ] **Step 4: Run** a suíte do site e `pnpm --filter web typecheck`. Expected: PASS (atualizar os testes que abriam `/guarnicoes`).
+- [ ] **Step 5: Commit** `Fase 4.3.2.1: modelos de guarnição em Configurações`.
+
+### Task 40: Cota sem "conta para a meta"
+
+**Files:**
+- Create: `apps/api/banco/migracoes/0021_cota_sem_conta_meta.sql` (`alter table cota drop column conta_meta;`)
+- Modify: `pacotes/contratos/src/cotas-feriados.ts` (sai `contaMeta` de `NovaCota`), `apps/api/src/cadastros/cotas.ts`, `apps/api/src/importacao/cotas.ts` (o comentário), `apps/web/src/routes/_app/cotas.tsx`
+- Test: `apps/api/test/cotas.test.ts`, `apps/web/src/__testes__/cotas.test.tsx`, os que citam `contaMeta` (`isolamento-entre-unidades`, `importacao-cotas-feriados`)
+
+- [ ] **Step 1: Write the failing tests:**
+  - API: `POST` com `contaMeta: false` extra dá 201, e a cota lida não tem `contaMeta`. A cópia do mês anterior continua copiando.
+  - Site: a lista não mostra "não conta para a meta", o diálogo não tem a caixa "Conta para a meta de ativação", e o corpo enviado não tem `contaMeta`.
+- [ ] **Step 2: Run** os dois arquivos. Expected: FAIL.
+- [ ] **Step 3: Implement.**
+- [ ] **Step 4: Run** as suítes de contratos, API e site (uma por vez) e `pnpm typecheck`. Expected: PASS.
+- [ ] **Step 5: Commit** `Fase 4.3.2.1: cota sem "conta para a meta"`. No fim da subentrega: atualizar as contagens no `CLAUDE.md` local e rodar `pnpm test && pnpm typecheck && pnpm build:vercel` antes do PR.
+
+---
+
+## Entrega 3.2.2 — Meta e Efetivo do dia
+
+**Branch:** `fase4-3-2-2-meta-e-efetivo`, a partir da `main` depois do merge da 3.2.1. Commits `Fase 4.3.2.2: …`; PR "Fase 4 — Entrega 3.2.2: meta de ativação e Efetivo do dia". **Migração 0022:** o PR avisa `pnpm --filter api db:migrar:teste`.
+
+**Decisões desta entrega** (do design; as marcadas como "minha decisão" lá valem aqui):
+- **Minutos do dia:** um horário vira minutos a partir das 00h do dia em que o turno começa. O turno que atravessa a meia-noite vai além de 1440 (20:00–08:00 = 1200–1920), e o turno de 24h vai de 480 a 1920. Na tela, os horários aparecem como "20h–08h".
+- **Horários da guarnição no dia:** a união das faixas em que ela está vinculada, nas escalas ativas da seção, pela versão de vínculo vigente no mês do dia.
+- **Quem cobre:** as alocações daquele dia (data = o dia) com essa guarnição e função, em qualquer escala da seção, e os acúmulos nessa guarnição e função, com o horário do turno da alocação.
+- **Composição:** a versão do modelo vigente no mês. Função com mínimo 0 não pesa na ativação.
+- **Ativada** = tem horário vinculado no dia e nenhuma falta. Sem horário vinculado (sem vínculo no dia, ou modelo desativado), a guarnição aparece como "não ativada", com "Sem horário vinculado neste dia".
+- **Ordem no painel:** primeiro as guarnições da meta, na ordem de ativação (com o número, "1º", "2º"…). Depois, as que têm alguém alocado no dia e não estão na meta, pelo nome do modelo, sem número e sem contar. O estado nunca muda a posição.
+- **Meta padrão:** versões com `desde` (uma data), cada uma com uma lista ordenada de modelos da própria seção. A que vale num dia é a de maior `desde` até ele. Gravar exige `desde` a partir de hoje (Recife), e gravar de novo no mesmo `desde` substitui a lista.
+- **Dia diferente:** uma lista própria para o dia, que pode ser vazia (dia sem meta). Gravar aceita "até" (no máximo 31 dias, contando o primeiro), e "Voltar ao padrão" apaga a lista de um dia.
+- **Quem edita:** gestor e administrador (`ESCREVE_PARAMETRO`). **Quem lê:** `CADASTRO`.
+- **Cotas restantes:** por serviço, a soma das quantidades das cotas do mês e a soma das distribuídas (`cotasDoMes`), como "JES: restam 26 de 40".
+
+**Review Focus da 3.2.2** (cada um tem teste na tarefa dona):
+1. **Turno que atravessa a meia-noite.** O buraco de 20:00 às 08:00 é calculado e mostrado como "20h–08h", e quem entra às 20h do dia anterior não cobre o dia. Tarefas 41 e 43.
+2. **O mesmo modelo em duas escalas no mesmo dia** (Ordinário e PE Seguro). Aparece um card só, com militares das duas, e a diária de 08–16 mais o Saldo de 16–20 fecham a função do Pronto de 08–20. Tarefa 43.
+3. **Modelo da meta sem vínculo no dia, ou desativado.** Não quebra o painel: aparece como "não ativada", com "Sem horário vinculado neste dia". Tarefas 43 e 44.
+4. **Mudar a meta padrão com dias diferentes já gravados.** Os dias diferentes e os dias antes do novo `desde` não mudam. Tarefa 42.
+5. **Alocações que se encostam ou se sobrepõem** (08–16 e 16–20; duas pessoas em 08–20 para mínimo 1). Encostar não abre buraco, e sobrar gente não gera falta nem conta em dobro. Tarefa 41.
+
+### Task 41: Horário coberto e ativação (motor)
+
+**Files:**
+- Create: `pacotes/dominio/src/ativacao.ts` (exportar em `src/index.ts`)
+- Test: `pacotes/dominio/test/ativacao.test.ts` (regra só do sistema novo, sem caso gravado)
+
+**Interfaces:**
+- Produces:
+  ```ts
+  export type Intervalo = { inicio: number; fim: number }; // minutos desde 00h do dia; fim pode passar de 1440
+  export function intervaloDoTurno(inicio: string, fim: string): Intervalo;
+  export type FuncaoExigida = { funcaoId: string; funcao: string; minimo: number };
+  export type Ocupacao = Intervalo & { funcaoId: string };
+  export type Falta = Intervalo & { funcaoId: string; funcao: string; faltam: number };
+  export function avaliarAtivacao(horarios: Intervalo[], composicao: FuncaoExigida[], ocupacoes: Ocupacao[]): { ativada: boolean; faltas: Falta[] };
+  ```
+  - `horarios` pode vir com sobreposição: vale a união.
+  - Uma falta é um trecho contínuo, dentro dos horários, em que a função tem menos que o mínimo, com o mesmo número faltando.
+  - As faltas vêm na ordem da composição e depois por início. A ocupação fora dos horários é ignorada.
+
+- [ ] **Step 1: Write the failing tests:**
+  - `intervaloDoTurno('20:00','08:00')` → `{inicio:1200, fim:1920}`; `('08:00','08:00')` → `{480, 1920}`; `('08:00','16:00')` → `{480, 960}`.
+  - Horários `[08–20, 20–08]`, motorista mínimo 1 coberto só 08–20 → não ativada, uma falta `{funcao:'Motorista', faltam:1, inicio:1200, fim:1920}`.
+  - Horário 08–20, auxiliar mínimo 1 coberto por 08–16 e 16–20 → ativada, sem faltas.
+  - Mínimo 2 com 08–20 e 08–14 → falta `faltam:1` de 840 a 1200.
+  - Duas pessoas em 08–20 para mínimo 1 → ativada.
+  - Função com mínimo 0 e ninguém → não gera falta.
+  - Horários vazios → `{ativada:false, faltas:[]}`.
+  - Ocupação de 06–08 com horário 08–20 → não cobre nada.
+- [ ] **Step 2: Run** `pnpm --filter dominio test`. Expected: FAIL (módulo inexistente).
+- [ ] **Step 3: Implement** varrendo os pontos de início e fim dentro da união.
+- [ ] **Step 4: Run** `pnpm --filter dominio test && pnpm --filter dominio tipos`. Expected: PASS.
+- [ ] **Step 5: Commit** `Fase 4.3.2.2: horário coberto e ativação (motor)`.
+
+### Task 42: Meta no banco, nos contratos e na API
+
+**Files:**
+- Create: `apps/api/banco/migracoes/0022_meta_de_ativacao.sql`, `pacotes/contratos/src/meta.ts` (exportar em `index.ts`), `apps/api/src/efetivo/meta.ts`, `apps/api/src/efetivo/rotas.ts` (`rotasEfetivo`, registrada em `apps/api/src/app.ts`)
+- Test: `apps/api/test/meta.test.ts`
+
+**Interfaces:**
+- Tabelas (com o gatilho `auditoria_registro` em todas, como na 0017):
+  - `meta_padrao_versao (id, unidade_id, desde date, unique (unidade_id, desde))`;
+  - `meta_padrao_item (id, versao_id on delete cascade, guarnicao_id, ordem int >= 1, unique (versao_id, guarnicao_id), unique (versao_id, ordem))`;
+  - `meta_dia (id, unidade_id, data date, unique (unidade_id, data))`;
+  - `meta_dia_item (id, meta_dia_id on delete cascade, guarnicao_id, ordem, os mesmos unique)`.
+- Contratos:
+  ```ts
+  export const NovaMetaPadrao = z.object({ desde: Data, guarnicoes: z.array(Id).max(100) }); // sem ids repetidos (refine, path guarnicoes)
+  export const NovaMetaDoDia = z.object({ ate: Data.optional(), guarnicoes: z.array(Id).max(100) }); // idem
+  export type ItemDaMeta = { guarnicaoId: string; nome: string };
+  export type VersaoDaMetaPadrao = { desde: string; guarnicoes: ItemDaMeta[] };
+  export type MetaDoDia = { data: string; origem: 'padrao' | 'dia'; guarnicoes: ItemDaMeta[] };
+  ```
+- API (`apps/api/src/efetivo/meta.ts`): `metaDoDia(c: Consulta, unidadeId: string, data: string): Promise<MetaDoDia>` e as rotas:
+  - `GET /api/unidades/:u/meta-padrao` → `VersaoDaMetaPadrao[]`, da mais nova para a mais antiga;
+  - `PUT /api/unidades/:u/meta-padrao` → a mesma lista;
+  - `GET /api/unidades/:u/meta-do-dia/:data` → `MetaDoDia`;
+  - `PUT /api/unidades/:u/meta-do-dia/:data` → `MetaDoDia` do `:data`;
+  - `DELETE /api/unidades/:u/meta-do-dia/:data` → `MetaDoDia` (agora do padrão).
+
+- [ ] **Step 1: Write the failing tests** (`meta.test.ts`, com modelos fictícios ABT, ACO e Resgate na 1ª SB):
+  - **Sem nada gravado:** `GET meta-do-dia` → `origem:'padrao'`, `guarnicoes:[]`.
+  - **Meta padrão:**
+    - admin grava a meta padrão desde hoje com [Resgate, ABT]; `GET meta-do-dia` de amanhã devolve essa lista, nessa ordem;
+    - gravar desde daqui a 10 dias com [ABT] não muda os dias antes disso, e muda os de depois;
+    - gravar de novo no mesmo `desde` substitui a lista;
+    - `desde` ontem → 400 em `desde` com "A meta padrão muda de hoje em diante.";
+    - modelo de outra seção → 400 em `guarnicoes` com "Use modelos de guarnição desta seção.";
+    - id repetido → 400.
+  - **Dia diferente:**
+    - `PUT meta-do-dia` com [ACO] e `ate` 2 dias depois grava os 3 dias (`origem:'dia'`);
+    - depois disso, mudar a meta padrão não muda esses dias;
+    - lista vazia grava um dia sem meta (`origem:'dia'`, `guarnicoes:[]`);
+    - `ate` antes de `data`, ou intervalo com mais de 31 dias → 400 em `ate`;
+    - `DELETE` volta o dia ao padrão.
+  - **Acesso:**
+    - escalante lê (200) e não grava (403);
+    - militar sem papel → 403;
+    - outra seção → 403 (como em `isolamento-entre-unidades`).
+- [ ] **Step 2: Run** `cd apps/api && npx vitest run --maxWorkers=1 test/meta.test.ts`. Expected: FAIL.
+- [ ] **Step 3: Implement** (a gravação numa transação com `comUsuario`, para a auditoria).
+- [ ] **Step 4: Run** o arquivo e depois `test/migrar.test.ts test/auditoria.test.ts`. Expected: PASS.
+- [ ] **Step 5: Commit** `Fase 4.3.2.2: meta de ativação no banco e na API`.
+
+### Task 43: Efetivo do dia (API)
+
+**Files:**
+- Create: `pacotes/contratos/src/efetivo-do-dia.ts` (exportar em `index.ts`), `apps/api/src/efetivo/efetivo-do-dia.ts`
+- Modify: `apps/api/src/efetivo/rotas.ts` (a rota), `apps/api/src/cadastros/cotas.ts` (exportar `cotasDoMes`)
+- Test: `apps/api/test/efetivo-do-dia.test.ts` (cenários montados como em `escala-leitura.test.ts` e `pre-escala.test.ts`)
+
+**Interfaces:**
+- Consumes: `avaliarAtivacao` e `intervaloDoTurno` (Tarefa 41); `metaDoDia` (Tarefa 42); `vinculosDaEscala`, `versoesDasGuarnicoes`, `versaoNoMes` e `cotasDoMes`.
+- Produces:
+  ```ts
+  export type CotaRestante = { servicoId: string; servico: string; cor: string; quantidade: number; usadas: number };
+  export type MilitarNoEfetivo = { militarId: string; posto: string; nomeGuerra: string; funcaoId: string; funcao: string; inicio: string; fim: string; servico: { id: string; nome: string; cor: string }; acumulo: boolean };
+  export type FaltaNoEfetivo = { funcao: string; faltam: number; inicio: string; fim: string; escalaId: string | null };
+  export type GuarnicaoNoEfetivo = { guarnicaoId: string; nome: string; viatura: string | null; ordem: number | null; ativada: boolean; horarios: { inicio: string; fim: string }[]; faltas: FaltaNoEfetivo[]; militares: MilitarNoEfetivo[] };
+  export type EfetivoDoDia = { data: string; meta: { origem: 'padrao' | 'dia'; total: number; ativadas: number }; guarnicoes: GuarnicaoNoEfetivo[]; cotas: CotaRestante[] };
+  export async function montarEfetivoDoDia(c: Consulta, unidadeId: string, data: string): Promise<EfetivoDoDia>;
+  ```
+  - Rota `GET /api/unidades/:u/efetivo-do-dia/:data` (`CADASTRO`).
+  - `ordem` é a posição na meta (1, 2…), ou `null` fora da meta.
+  - `FaltaNoEfetivo.escalaId` é a primeira escala, pelo nome, cujo vínculo da guarnição se sobrepõe ao buraco (é o atalho "Abrir na Escala do mês").
+  - Os militares vêm na ordem da composição e depois por início.
+  - Horários em "HH:MM", com o fim depois da meia-noite já de volta ao relógio (1920 → "08:00").
+
+- [ ] **Step 1: Write the failing tests:**
+  - **Resgate na meta com vínculo no Ordinário de 08–20 e de 20–08, e motorista só de 08–20:**
+    - não ativada;
+    - falta `{funcao:'Motorista', faltam:1, inicio:'20:00', fim:'08:00'}`, com o `escalaId` do Ordinário;
+    - um motorista alocado às 20h **do dia anterior** não muda isso.
+  - **Resgate também vinculado ao PE Seguro (diária 08–16):**
+    - um card só;
+    - auxiliar da diária 08–16 e Saldo 16–20 cobrem o auxiliar do dia;
+    - com o motorista cobrindo 24h, fica ativada;
+    - os militares aparecem com o serviço de cada um.
+  - **Acúmulo:** um militar do Pronto que acumula a função de auxiliar no Resgate cobre o horário do turno dele (`acumulo: true`).
+  - **Ordem:**
+    - meta [ACO, Resgate], com ACO não ativada e Resgate ativado → ordem [ACO 1, Resgate 2];
+    - ABT, fora da meta e com alguém alocado, vem depois, com `ordem:null`;
+    - `meta.total` 2 e `meta.ativadas` 1.
+  - **Modelo da meta sem vínculo no dia:** `ativada:false`, `horarios:[]`, `faltas:[]`.
+  - **Cotas:** com uma cota JES de 40 no mês e 2 alocações de JES → `{servico:'JES', quantidade:40, usadas:2}`.
+  - **Acesso:** escalante 200; militar sem papel e outra seção → 403.
+- [ ] **Step 2: Run** `cd apps/api && npx vitest run --maxWorkers=1 test/efetivo-do-dia.test.ts`. Expected: FAIL.
+- [ ] **Step 3: Implement.**
+- [ ] **Step 4: Run** o arquivo e depois a suíte inteira da API em segundo plano. Expected: PASS.
+- [ ] **Step 5: Commit** `Fase 4.3.2.2: efetivo do dia (API)`.
+
+### Task 44: Tela do Efetivo do dia
+
+**Files:**
+- Create:
+  - `apps/web/src/routes/_app/efetivo-do-dia.tsx` (`validateSearch` com `data?: string`; sem data, é hoje);
+  - `apps/web/src/api/efetivo-do-dia.ts`: `consultaEfetivoDoDia`, `consultaMetaPadrao`, `gravarMetaPadrao`, `gravarMetaDoDia` e `voltarMetaAoPadrao`. Ao gravar, invalida `['efetivo-do-dia']` e `['meta-padrao']`;
+  - `apps/web/src/componentes/efetivo-do-dia/CardDoEfetivo.tsx`;
+  - `apps/web/src/componentes/efetivo-do-dia/AlterarMetaDoDia.tsx`;
+  - `apps/web/src/componentes/CotasRestantes.tsx` (`CotasRestantes({ cotas }: { cotas: CotaRestante[] })`, usado também na Tarefa 45).
+- Modify:
+  - `apps/web/src/componentes/Trilho.tsx` ("Efetivo do dia" com `para: '/efetivo-do-dia'`, `soCadastro: true`);
+  - `apps/web/src/routes/_app/escala-do-mes.tsx` (`dia?: string` na busca, rolando até o dia ao carregar);
+  - `apps/web/src/componentes/escala-do-mes/DiaDaEscala.tsx` (`id={`dia-${data}`}` no bloco do dia);
+  - `apps/web/src/lib/meses.ts` (`hoje(): string`, se ainda não existir);
+  - `routeTree.gen.ts`.
+- Test: `apps/web/src/__testes__/efetivo-do-dia.test.tsx`
+
+**Interfaces:** Consumes `EfetivoDoDia`, `MetaDoDia` e as rotas das Tarefas 42 e 43.
+
+O que a tela mostra, de cima para baixo (esboço no design, seção 3):
+1. Data, com dia anterior e seguinte.
+2. "Meta do dia: N guarnições, M ativadas". Quando a origem é `'dia'`, também "Meta alterada neste dia" e o botão "Voltar ao padrão".
+3. `CotasRestantes`, como "JES: restam 26 de 40".
+4. Os cards, nesta ordem. Cada card tem:
+   - o número (só na meta) e o nome;
+   - "ativada" ou "não ativada";
+   - cada falta como "Falta 1 Motorista 20h–08h", com o link "Abrir na Escala do mês" (`/escala-do-mes?escala=…&mes=…&dia=…`);
+   - os militares, com função, horário e serviço (com a cor);
+   - sem horário vinculado, "Sem horário vinculado neste dia".
+5. "Alterar a meta deste dia", só para quem pode mudar parâmetro. É um diálogo com:
+   - os modelos ativos da seção para marcar;
+   - "Subir" e "Descer" para ordenar;
+   - "Até" (data opcional);
+   - o botão "Salvar".
+
+- [ ] **Step 1: Write the failing tests** (com `simularApi`):
+  - **Os cards:**
+    - aparecem na ordem da API, com "1º ACO", "não ativada" e "Falta 1 Motorista 20h–08h";
+    - o link da falta aponta para `/escala-do-mes?escala=e-ord&mes=2026-12&dia=2026-12-12`;
+    - o card fora da meta não tem número;
+    - o card sem horário mostra "Sem horário vinculado neste dia".
+  - **O topo:**
+    - mostra "Meta do dia: 2 guarnições, 1 ativada" e "JES: restam 38 de 40";
+    - o dia seguinte troca a data na busca e pede a rota do novo dia.
+  - **A meta do dia:**
+    - o gestor altera a meta do dia, marcando dois modelos e subindo o segundo; o corpo enviado é `{ guarnicoes: ['g2','g1'] }`;
+    - "Voltar ao padrão" chama o `DELETE`;
+    - o escalante não vê "Alterar a meta deste dia".
+  - **Navegação:**
+    - o trilho leva a `/efetivo-do-dia`;
+    - abrir `/escala-do-mes?…&dia=2026-12-12` rola até `#dia-2026-12-12` (`scrollIntoView` chamado).
+- [ ] **Step 2: Run** `cd apps/web && npx vitest run --maxWorkers=1 src/__testes__/efetivo-do-dia.test.tsx`. Expected: FAIL.
+- [ ] **Step 3: Implement**, no visual das telas atuais (cards como os da Escala do mês, celular primeiro).
+- [ ] **Step 4: Run** a suíte do site e `pnpm --filter web typecheck`. Expected: PASS.
+- [ ] **Step 5: Commit** `Fase 4.3.2.2: tela do efetivo do dia`.
+
+### Task 45: Meta padrão em Configurações e cotas restantes na Escala do mês
+
+**Files:**
+- Create: `apps/web/src/componentes/configuracoes/MetaDeAtivacao.tsx`
+- Modify: `apps/web/src/routes/_app/configuracoes.tsx` (aba "Meta de ativação", `value="meta"`), `apps/web/src/routes/_app/escala-do-mes.tsx` (`CotasRestantes` com as cotas dos serviços da escala)
+- Test: `apps/web/src/__testes__/configuracoes.test.tsx`, `apps/web/src/__testes__/escala-do-mes.test.tsx`
+
+**Interfaces:**
+- Consumes: `consultaMetaPadrao` e `gravarMetaPadrao` (Tarefa 44); `consultaCotas` (existente); `CotasRestantes` (Tarefa 44).
+- Produces: `restantesPorServico(cotas: Cota[], servicoIds?: string[]): CotaRestante[]` em `apps/web/src/lib/cotas.ts`. Agrupa por serviço (soma `quantidade` e `distribuidas`) e filtra pelos serviços dados.
+
+**A aba "Meta de ativação"** mostra a meta padrão que vale hoje e as futuras, cada uma como "A partir de 20/11/2026: 1º Resgate, 2º ABT". O editor tem:
+- os modelos ativos para marcar;
+- "Subir" e "Descer" para ordenar;
+- "Vale a partir de", uma data que começa em hoje e não aceita dia passado;
+- o botão "Salvar".
+
+Quem não pode mudar parâmetro só vê.
+
+**Na Escala do mês**, a linha de cotas fica abaixo do resumo das vagas. Os serviços da escala são os que aparecem nos turnos das faixas do mês.
+
+- [ ] **Step 1: Write the failing tests:**
+  - **Configurações › Meta de ativação:**
+    - lista as versões;
+    - o gestor grava [g2, g1] a partir de hoje, e o corpo é `{ desde: hoje, guarnicoes: ['g2','g1'] }`;
+    - o escalante não vê "Salvar".
+  - **Escala do mês:**
+    - com cotas de JES (40, 2 distribuídas) e Bioma (escala sem Bioma), mostra só "JES: restam 38 de 40";
+    - sem cotas para os serviços da escala, não mostra a linha.
+  - **`restantesPorServico`** (teste de unidade): duas cotas de JES (interna 30 e externa 10, com 5 e 0 distribuídas) viram uma só, com `quantidade` 40 e `usadas` 5.
+- [ ] **Step 2: Run** os dois arquivos. Expected: FAIL.
+- [ ] **Step 3: Implement.**
+- [ ] **Step 4: Run** a suíte do site, `pnpm typecheck` e `pnpm build:vercel`. Expected: PASS.
+- [ ] **Step 5: Commit** `Fase 4.3.2.2: meta padrão em Configurações e cotas restantes`. No fim da subentrega: atualizar as contagens no `CLAUDE.md` local e rodar `pnpm test && pnpm typecheck` antes do PR.
+
+---
+
+# Entrega 3.3 — Alocar no Efetivo do dia, buracos, saldos, operações e a disposição da Escala do mês (era a 3.2; a detalhar depois da 3.2)
+
+**Branch:** `fase4-3-3-distribuicoes`, a partir da `main` depois do merge da 3.2. As tarefas se detalham com as respostas do usuário às decisões abaixo. As tarefas previstas (numeração depois das da 3.2):
+
+- **Alocar no Efetivo do dia** (decisão de 20/11/2026): o escalante clica na vaga e escolhe o serviço e o militar no próprio painel.
+- **Completar com JES** (decisão de 20/11/2026): o chefe escolhe um dia ou período, e o sistema preenche as guarnições da meta pela ordem de ativação e desconta da cota.
 
 - **Completar os buracos do Pronto.** As vagas que a 3.1 deixou vazias são completadas na mesma ordem de escala, com quem pode no turno. A prévia e a gravação seguem o padrão da 3.1, e a flexibilidade do voluntariado já vale aqui.
 - **Saldos do Adm.** `distribuirAdm` é adaptado às vagas, sempre com `servico` e `turno` preenchidos (pendência do motor).
@@ -1124,11 +1522,19 @@ Se um worker cair (código 134, `scrypt derivation failed`, `cannot allocate mem
   - os turnos do dia passam a uma grade responsiva de ~20rem;
   - o turno com várias guarnições ocupa a linha inteira;
   - o card volta à largura natural, com as funções uma embaixo da outra.
+- **Tela de login nova** (decisão de 19/11/2026, já decidida; mockup aprovado em `docs/telas/login-e-inicio/mockup.html`). Muda só a aparência de `apps/web/src/routes/entrar.tsx`, e o login segue igual: e-mail, senha e as mesmas mensagens de erro.
+  - **Fundo:** a foto do quartel com a bandeira, coberta de vinho do lado esquerdo.
+  - **Lado esquerdo:** o brasão do 2º GB, o título "Sistema de Gestão - 2º GB" e a linha "2º Grupamento de Bombeiros · Corpo de Bombeiros Militar de Pernambuco".
+  - **Lado direito:** o cartão de login atual.
+  - **No celular:** a foto em cima, com o brasão e o título, e o cartão subindo sobre ela, com campos e botão mais altos.
+  - **Arquivos:** o brasão do 2º GB e a foto vão para `apps/web/public`.
+  - **Fora desta tarefa:** "Esqueci minha senha" e a tela inicial com os módulos.
+  - **Testes:** os de `entrar` continuam passando, e o título novo aparece na tela.
 
-**Decisões que faltam (do usuário, antes de detalhar a 3.2):**
-1. **Ordem dos buracos do Pronto.** O design marca como "a confirmar": depois do Pronto da equipe, primeiro o JES e por último o Saldo (o "tapa-buraco")? Ou o Saldo, que é a obrigação de 6 por militar do Adm, entra antes do JES?
+**Decisões que faltam (do usuário, antes de detalhar a 3.3):**
+1. **Ordem dos buracos do Pronto.** Em parte respondida em 20/11/2026: no modelo atual do Ordinário o Saldo vem antes do JES, e isso é configuração, não código. Falta decidir onde essa ordem é configurada.
 2. **Saldo que não cabe.** Se as vagas acabarem antes de o militar do Adm completar os 6 saldos do mês, ele fica com menos (e a prévia avisa)? Ou o saldo entra em "Sem guarnição", como o Pronto que sobra?
-3. **Cota contra vaga, nas operações.** A cota (ex.: Bioma, N turnos no mês para a 1ª SB) limita quantas vagas da escala da operação a seção preenche? Quando a cota acaba antes das vagas, as vagas que sobram ficam vazias?
+3. **Cota contra vaga, nas operações.** (Em 20/11/2026: a cota é mensal, diz quantas vezes se pode escalar no serviço, e o chefe decide os dias.) A cota (ex.: Bioma, N turnos no mês para a 1ª SB) limita quantas vagas da escala da operação a seção preenche? Quando a cota acaba antes das vagas, as vagas que sobram ficam vazias?
 4. **Voluntária e compulsória.** Primeiro quem marcou o horário no voluntariado (com a flexibilidade) e, se a cota não fechar, a compulsória entre quem pode, igualando quem tem menos, como no protótipo (RN-41 e RN-43)? Ou só a voluntária nesta versão?
 
 ---
@@ -1139,7 +1545,7 @@ Cada uma ganha aqui as suas tarefas, no formato da entrega 1, depois do merge da
 
 - **Entrega 2.3 — Ajustes do voluntariado:** detalhada acima (Tarefas 22 a 27). A pré-escala (3) usa a flexibilidade ao filtrar quem pode ocupar cada vaga e nunca escala quem está fora do voluntariado.
 - **Entrega 2.4 — Acabamento do voluntariado e da escala do mês:** detalhada acima (Tarefas 28 a 31).
-- **Entrega 3 — Pré-escala e distribuições:** dividida em 3.1 (detalhada acima, Tarefas 32 a 35) e 3.2 (tarefas previstas e decisões que faltam acima).
+- **Entrega 3 — Pré-escala e distribuições:** 3.1 (detalhada acima, Tarefas 32 a 35), 3.2 (meta de ativação e Efetivo do dia, em 3.2.1 e 3.2.2, a detalhar) e 3.3 (a antiga 3.2: tarefas previstas e decisões que faltam acima).
 - **Entrega 4 — Grade geral:** consulta do mês por militar (agrupada por equipe, Adm à parte), blocos por serviço com a letra em ordem de início, turno que atravessa a meia-noite só no dia em que começa, choques do motor com contorno vermelho, feriados e fins de semana, pegas de pedidas por PJES e Diária; ficha lateral com Trocar, Remover e "Adicionar serviço neste dia", reaproveitando as rotas da entrega 1.
 - **Entrega 5 — Gerar documento:** Configurações › Modelos de impressão (enviar com conferência dos marcadores, baixar o atual, versões); geração da escala publicada com ExcelJS a partir do modelo vigente da unidade, respeitando `militares_doc` e `dias_doc` da escala; `documento_gerado` guardado e baixável; PDF fica para quando o serviço existir.
-- **Entrega 6 — Minha escala:** rota e tela do militar comum (os próprios serviços do mês, com serviço, turno, horário e quem compõe a guarnição com ele) e acesso às escalas publicadas (documentos gerados) da unidade em que ele está lotado; o trilho do militar comum mostra só isso.
+- ~~**Entrega 6 — Minha escala**~~: saiu da fase 4 (decisão do usuário, 19/11/2026). O conteúdo previsto continua valendo e vai para a etapa "Tipos de usuário e módulos" do roadmap: a rota e a tela do militar comum (os próprios serviços do mês, com serviço, turno, horário e quem compõe a guarnição com ele) e o acesso às escalas publicadas da unidade em que ele está lotado.
