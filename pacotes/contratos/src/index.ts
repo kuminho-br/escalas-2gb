@@ -10,3 +10,4 @@ export * from './cotas-feriados.ts';
 export * from './voluntariado.ts';
 export * from './ordem-de-escalacao.ts';
 export * from './pre-escala.ts';
+export * from './meta.ts';
