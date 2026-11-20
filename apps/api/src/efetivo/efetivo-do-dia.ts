@@ -130,6 +130,11 @@ export async function montarEfetivoDoDia(c: Consulta, unidadeId: string, data: s
   );
   const versoes = await versoesDasGuarnicoes(c, todas);
 
+  // "Função Guarnição" de cada entrada; no acúmulo, a vaga original da alocação; na vaga original, os acúmulos dela
+  const vagaDe = (e: Entrada) => `${funcoes.get(e.funcaoId) ?? ''} ${nomes.get(e.guarnicaoId) ?? ''}`.trim();
+  const acumulaCom = (e: Entrada): string[] =>
+    entradas.filter((x) => x.alocacaoId === e.alocacaoId && x.acumulo !== e.acumulo).map(vagaDe);
+
   const montar = (guarnicaoId: string, ordem: number | null): GuarnicaoNoEfetivo => {
     const versao = versaoNoMes(versoes.get(guarnicaoId) ?? [], mes);
     // modelo desativado (ou ainda sem versão no mês) não tem horário no dia: aparece como "não ativada", sem faltas
@@ -158,7 +163,7 @@ export async function montarEfetivoDoDia(c: Consulta, unidadeId: string, data: s
           const alocacoes: AlocacaoNoTrecho[] = t.indices
             .map((i) => dela[i]!)
             .sort((a, b) => a.intervalo.inicio - b.intervalo.inicio)
-            .map((e) => ({ alocacaoId: e.alocacaoId, acumuloId: e.acumuloId, inicio: e.inicio, fim: e.fim }));
+            .map((e) => ({ alocacaoId: e.alocacaoId, acumuloId: e.acumuloId, inicio: e.inicio, fim: e.fim, acumulaCom: acumulaCom(e) }));
           return {
             inicio: t.inicio, fim: t.fim, opcoes: [],
             ocupante: { militarId: primeira.militarId, posto: primeira.posto, nomeGuerra: primeira.nomeGuerra, servico: primeira.servico, acumulo: primeira.acumulo, alocacoes },

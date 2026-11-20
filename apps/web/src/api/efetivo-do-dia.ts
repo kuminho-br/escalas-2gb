@@ -9,17 +9,20 @@ export const consultaEfetivoDoDia = (unidadeId: string, data: string) =>
 export const consultaMetaPadrao = (unidadeId: string) =>
   queryOptions({ queryKey: ['meta-padrao', unidadeId], queryFn: () => pedir<VersaoDaMetaPadrao[]>('GET', `/api/unidades/${unidadeId}/meta-padrao`) });
 
-/** Mexer na meta muda o painel de vários dias: o efetivo e a meta padrão voltam a ser buscados. */
-function atualizar(queryClient: QueryClient) {
-  void queryClient.invalidateQueries({ queryKey: ['efetivo-do-dia'] });
+/**
+ * Mexer na meta muda o painel de vários dias: o efetivo e a meta padrão voltam a ser buscados. Espera o efetivo chegar: a tela monta a
+ * próxima lista (Subir, Descer, Adicionar) a partir dele, e com a lista velha desfaria a gravação anterior (achado da revisão final).
+ */
+async function atualizar(queryClient: QueryClient) {
   void queryClient.invalidateQueries({ queryKey: ['meta-padrao'] });
+  await queryClient.invalidateQueries({ queryKey: ['efetivo-do-dia'] });
 }
 
 async function gravando<T>(queryClient: QueryClient, pedido: Promise<T>): Promise<T> {
   try {
     return await pedido;
   } finally {
-    atualizar(queryClient);
+    await atualizar(queryClient);
   }
 }
 
@@ -34,8 +37,8 @@ export async function tirarDaMeta(queryClient: QueryClient, unidadeId: string, d
   try {
     return await pedir<EfetivoDoDia>('POST', `/api/unidades/${unidadeId}/meta-do-dia/${data}/tirar`, d);
   } finally {
-    atualizar(queryClient);
     for (const queryKey of [['escala-do-mes'], ['cotas'], ['candidatos']]) void queryClient.invalidateQueries({ queryKey });
+    await atualizar(queryClient);
   }
 }
 export const voltarMetaAoPadrao = (queryClient: QueryClient, unidadeId: string, data: string) =>

@@ -11,7 +11,7 @@ import { abrir, chamadasA, corpoEnviado, EU_EXEMPLO, simularApi } from './apoio'
 const DIA = '2026-12-12';
 const SEGUINTE = '2026-12-13';
 const PRONTO = { id: 's-pronto', nome: 'Pronto', cor: '#2F8F5B' };
-const ocupado = (nomeGuerra: string, inicio: number, fim: number, alocacoes: AlocacaoNoTrecho[] = [{ alocacaoId: `a-${nomeGuerra}`, acumuloId: null, inicio: '08:00', fim: '20:00' }]): TrechoNoEfetivo => ({
+const ocupado = (nomeGuerra: string, inicio: number, fim: number, alocacoes: AlocacaoNoTrecho[] = [{ alocacaoId: `a-${nomeGuerra}`, acumuloId: null, inicio: '08:00', fim: '20:00', acumulaCom: [] }]): TrechoNoEfetivo => ({
   inicio, fim, opcoes: [], ocupante: { militarId: `m-${nomeGuerra}`, posto: 'SD BM', nomeGuerra, servico: PRONTO, acumulo: false, alocacoes },
 });
 const vaga = (inicio: number, fim: number, opcoes = [{ escalaId: 'e-ord', escala: 'Ordinário', inicio: '20:00', fim: '08:00' }]): TrechoNoEfetivo => ({ inicio, fim, ocupante: null, opcoes });
@@ -28,7 +28,7 @@ const EFETIVO: EfetivoDoDia = {
       funcoes: [{
         funcaoId: 'f-Motorista', funcao: 'Motorista', minimo: 2, cnhExigida: 'D',
         linhas: [
-          [ocupado('ALFA', 480, 1920, [{ alocacaoId: 'a-1', acumuloId: null, inicio: '08:00', fim: '20:00' }, { alocacaoId: 'a-2', acumuloId: null, inicio: '20:00', fim: '08:00' }])],
+          [ocupado('ALFA', 480, 1920, [{ alocacaoId: 'a-1', acumuloId: null, inicio: '08:00', fim: '20:00', acumulaCom: [] }, { alocacaoId: 'a-2', acumuloId: null, inicio: '20:00', fim: '08:00', acumulaCom: ['Chefe ABT'] }])],
           [ocupado('BRAVO', 480, 1200), vaga(1200, 1920)],
         ],
       }],
@@ -220,6 +220,45 @@ describe('efetivo por dia: a meta do dia pela própria tela', () => {
     await waitFor(() => expect(corpoEnviado(f, TIRAR)).toEqual({ guarnicaoId: 'g2', desescalar: false }));
   });
 
+  it('enquanto o efetivo do dia é buscado de novo depois de gravar, os controles da meta ficam travados (achado da revisão final)', async () => {
+    let soltar!: () => void;
+    const f = api(EFETIVO, EU_EXEMPLO, rotas);
+    abrir(`/efetivo-por-dia?data=${DIA}`);
+    const resgate = await screen.findByRole('region', { name: '2º Resgate' });
+    // a próxima busca do efetivo demora: a tela ainda mostra a lista antiga
+    const rota = f.getMockImplementation()!;
+    f.mockImplementation(async (entrada, init) => {
+      const url = String(entrada);
+      if (url.includes('/efetivo-do-dia/') && (!init?.method || init.method === 'GET')) await new Promise<void>((r) => (soltar = r));
+      return rota(entrada, init);
+    });
+    await userEvent.click(within(resgate).getByRole('button', { name: 'Subir Resgate' }));
+    await waitFor(() => expect(chamadasA(f, PUT)).toBe(1));
+    await waitFor(() => expect(soltar).toBeDefined());
+    expect(within(cartao('2º Resgate')).getByRole('button', { name: 'Subir Resgate' })).toBeDisabled();
+    expect(within(cartao('1º ACO')).getByRole('button', { name: 'Tirar da meta' })).toBeDisabled();
+    soltar();
+    await waitFor(() => expect(within(cartao('2º Resgate')).getByRole('button', { name: 'Subir Resgate' })).toBeEnabled());
+  });
+
+  it('a recusa ao tirar aparece dentro do diálogo (achado da revisão final)', async () => {
+    api(EFETIVO, EU_EXEMPLO, { ...rotas, [TIRAR]: { status: 409, corpo: { erro: 'Esta guarnição não está na meta deste dia.' } } });
+    abrir(`/efetivo-por-dia?data=${DIA}`);
+    await userEvent.click(within(await screen.findByRole('region', { name: '1º ACO' })).getByRole('button', { name: 'Tirar da meta' }));
+    const dialogo = await screen.findByRole('dialog');
+    await userEvent.click(within(dialogo).getByRole('button', { name: 'Tirar e desescalar' }));
+    expect(await within(dialogo).findByRole('alert')).toHaveTextContent('Esta guarnição não está na meta deste dia.');
+  });
+
+  it('a recusa ao adicionar aparece dentro do diálogo (achado da revisão final)', async () => {
+    api(EFETIVO, EU_EXEMPLO, { ...rotas, [PUT]: { status: 400, corpo: { erro: 'Confira os campos destacados.', campos: { guarnicoes: 'Use modelos de guarnição desta seção.' } } } });
+    abrir(`/efetivo-por-dia?data=${DIA}`);
+    await userEvent.click(await screen.findByRole('button', { name: 'Adicionar guarnição' }));
+    const dialogo = await screen.findByRole('dialog', { name: 'Adicionar guarnição' });
+    await userEvent.click(await within(dialogo).findByRole('button', { name: 'ABT' }));
+    expect(await within(dialogo).findByRole('alert')).toBeInTheDocument();
+  });
+
   it('"Cancelar" não manda nada', async () => {
     const f = api(EFETIVO, EU_EXEMPLO, rotas);
     abrir(`/efetivo-por-dia?data=${DIA}`);
@@ -382,13 +421,16 @@ describe('efetivo por dia: escalar e remover', () => {
     await userEvent.click(await screen.findByRole('button', { name: 'Motorista: SD BM ALFA, 08h–08h, Pronto' }));
     const dialogo = await screen.findByRole('dialog', { name: 'SD BM ALFA' });
     expect(within(dialogo).getByText('08h–20h')).toBeInTheDocument();
+    // os mesmos avisos da Escala do mês (achado da revisão final)
+    expect(within(dialogo).getAllByText('Ele não volta para este turno quando a pré-escala for gerada de novo.')).toHaveLength(2);
+    expect(within(dialogo).getByText('Sai também de: Chefe ABT.')).toBeInTheDocument();
     await userEvent.click(within(dialogo).getByRole('button', { name: 'Remover 20h–08h' }));
     await waitFor(() => expect(chamadasA(f, 'DELETE /api/alocacoes/a-2')).toBe(1));
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
   });
 
   it('no trecho de acúmulo, "Tirar acúmulo" tira só o acúmulo', async () => {
-    const acumulo: TrechoNoEfetivo = { ...ocupado('ECHO', 480, 1200, [{ alocacaoId: 'a-9', acumuloId: 'ac-1', inicio: '08:00', fim: '20:00' }]) };
+    const acumulo: TrechoNoEfetivo = { ...ocupado('ECHO', 480, 1200, [{ alocacaoId: 'a-9', acumuloId: 'ac-1', inicio: '08:00', fim: '20:00', acumulaCom: ['Motorista ABT'] }]) };
     acumulo.ocupante!.acumulo = true;
     const f = api({ ...EFETIVO, guarnicoes: [guarnicao({ guarnicaoId: 'g7', nome: 'Resgate', funcoes: [{ funcaoId: 'f-aux', funcao: 'Auxiliar', minimo: 1, cnhExigida: null, linhas: [[acumulo]] }] })] }, EU_EXEMPLO, {
       'DELETE /api/acumulos/ac-1': { status: 200, corpo: ESCALA_VAZIA('e-ord') },
@@ -397,6 +439,7 @@ describe('efetivo por dia: escalar e remover', () => {
     await userEvent.click(await screen.findByRole('button', { name: 'Auxiliar: SD BM ECHO, 08h–20h, Pronto' }));
     const dialogo = await screen.findByRole('dialog', { name: 'SD BM ECHO' });
     expect(within(dialogo).queryByRole('button', { name: /^Remover/ })).toBeNull();
+    expect(within(dialogo).getByText('Ele continua em Motorista ABT.')).toBeInTheDocument();
     await userEvent.click(within(dialogo).getByRole('button', { name: 'Tirar acúmulo 08h–20h' }));
     await waitFor(() => expect(chamadasA(f, 'DELETE /api/acumulos/ac-1')).toBe(1));
   });

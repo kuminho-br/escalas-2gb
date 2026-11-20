@@ -6,6 +6,7 @@ import { removerAlocacao, tirarAcumulo } from '@/api/escala-do-mes';
 import { useTrava } from '@/componentes/AlteracoesPendentes';
 import { Button } from '@/componentes/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/componentes/ui/dialog';
+import { listaComE } from '@/lib/escala';
 
 /**
  * Um trecho ocupado: as alocações dele (uma por turno emendado), cada uma com "Remover" ou, se for acúmulo, "Tirar acúmulo" — as
@@ -40,11 +41,22 @@ export function AlocacoesDoTrecho({ funcao, trecho, aoFechar }: { funcao: string
             const faixa = textoFaixa(a.inicio, a.fim);
             const acao = a.acumuloId ? 'Tirar acúmulo' : 'Remover';
             return (
-              <li key={a.acumuloId ?? a.alocacaoId} className="flex items-center gap-3">
-                <span className="flex-1">{faixa}</span>
-                <Button type="button" variant="outline" size="sm" disabled={salvando} aria-label={`${acao} ${faixa}`} onClick={() => void agir(a)}>
-                  {acao}
-                </Button>
+              <li key={a.acumuloId ?? a.alocacaoId} className="grid gap-1">
+                <div className="flex items-center gap-3">
+                  <span className="flex-1">{faixa}</span>
+                  <Button type="button" variant="outline" size="sm" disabled={salvando} aria-label={`${acao} ${faixa}`} onClick={() => void agir(a)}>
+                    {acao}
+                  </Button>
+                </div>
+                {/* os mesmos avisos da Escala do mês */}
+                {a.acumuloId ? (
+                  <p className="text-xs text-apagado">Ele continua em {a.acumulaCom[0] ?? 'sua vaga'}.</p>
+                ) : (
+                  <>
+                    <p className="text-xs text-apagado">Ele não volta para este turno quando a pré-escala for gerada de novo.</p>
+                    {a.acumulaCom.length > 0 && <p className="text-xs text-apagado">Sai também de: {listaComE(a.acumulaCom)}.</p>}
+                  </>
+                )}
               </li>
             );
           })}

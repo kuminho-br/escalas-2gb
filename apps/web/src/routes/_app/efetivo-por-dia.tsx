@@ -43,6 +43,8 @@ function EfetivoPorDia() {
   const dados = useQuery(consultaEfetivoDoDia(eu.unidade.id, data));
   const [adicionando, setAdicionando] = useState(false);
   const [tirando, setTirando] = useState<GuarnicaoNoEfetivo | null>(null);
+  // o erro de uma gravação feita num diálogo aparece no próprio diálogo (achado da revisão final)
+  const [erroNoDialogo, setErroNoDialogo] = useState<string | null>(null);
   // escalar: a vaga clicada (e, quando ela cai em mais de uma escala, a escolhida); remover: o trecho ocupado clicado
   const [vaga, setVaga] = useState<VagaClicada | null>(null);
   const [opcao, setOpcao] = useState<OpcaoDaVaga | null>(null);
@@ -72,13 +74,14 @@ function EfetivoPorDia() {
   const janela = e ? janelaDoDia(e.guarnicoes) : null;
   // a meta do dia muda pela própria tela (decisão de 20/11/2026): subir, descer, adicionar e tirar gravam a lista do dia
   const naMeta = (e?.guarnicoes ?? []).filter((g) => g.ordem !== null).map((g) => g.guarnicaoId);
-  const gravarMeta = travar(async (lista: string[]) => {
+  const gravarMeta = travar(async (lista: string[], noDialogo = false) => {
     setErro(null);
+    setErroNoDialogo(null);
     try {
       await gravarMetaDoDia(queryClient, eu.unidade.id, data, lista);
       setAdicionando(false);
     } catch (x) {
-      setErro(mensagemDe(x));
+      (noDialogo ? setErroNoDialogo : setErro)(mensagemDe(x));
     }
   });
   const mover = (i: number, passo: -1 | 1) => {
@@ -86,13 +89,14 @@ function EfetivoPorDia() {
     [lista[i], lista[i + passo]] = [lista[i + passo]!, lista[i]!];
     void gravarMeta(lista);
   };
-  const tirar = travar(async (g: GuarnicaoNoEfetivo, desescalar: boolean) => {
+  const tirar = travar(async (g: GuarnicaoNoEfetivo, desescalar: boolean, noDialogo = false) => {
     setErro(null);
+    setErroNoDialogo(null);
     try {
       await tirarDaMeta(queryClient, eu.unidade.id, data, { guarnicaoId: g.guarnicaoId, desescalar });
       setTirando(null);
     } catch (x) {
-      setErro(mensagemDe(x));
+      (noDialogo ? setErroNoDialogo : setErro)(mensagemDe(x));
     }
   });
   const controlesDa = (g: GuarnicaoNoEfetivo) => {
@@ -102,7 +106,11 @@ function EfetivoPorDia() {
       aoSubir: i > 0 ? () => mover(i, -1) : undefined,
       aoDescer: i < naMeta.length - 1 ? () => mover(i, 1) : undefined,
       // sem ninguém escalado no dia, tira direto; com gente, pergunta (decisão 1-b)
-      aoTirar: () => (g.alocados === 0 ? void tirar(g, false) : setTirando(g)),
+      aoTirar: () => {
+        setErroNoDialogo(null);
+        if (g.alocados === 0) void tirar(g, false);
+        else setTirando(g);
+      },
       salvando,
     };
   };
@@ -155,7 +163,17 @@ function EfetivoPorDia() {
             </div>
           )}
           <div>
-            <Button type="button" variant="outline" disabled={salvando} onClick={() => setAdicionando(true)}>Adicionar guarnição</Button>
+            <Button
+              type="button"
+              variant="outline"
+              disabled={salvando}
+              onClick={() => {
+                setErroNoDialogo(null);
+                setAdicionando(true);
+              }}
+            >
+              Adicionar guarnição
+            </Button>
           </div>
           {vaga && !opcao && vaga.trecho.opcoes.length > 1 && <EscolherEscalaDaVaga opcoes={vaga.trecho.opcoes} aoEscolher={setOpcao} aoFechar={fecharVaga} />}
           {vaga && opcao && (
@@ -175,12 +193,13 @@ function EfetivoPorDia() {
               data={data}
               naMeta={naMeta}
               salvando={salvando}
-              aoEscolher={(id) => void gravarMeta([...naMeta, id])}
+              erro={erroNoDialogo}
+              aoEscolher={(id) => void gravarMeta([...naMeta, id], true)}
               aoFechar={() => setAdicionando(false)}
             />
           )}
           {tirando && (
-            <TirarDaMeta nome={tirando.nome} alocados={tirando.alocados} salvando={salvando} aoEscolher={(d) => void tirar(tirando, d)} aoFechar={() => setTirando(null)} />
+            <TirarDaMeta nome={tirando.nome} alocados={tirando.alocados} salvando={salvando} erro={erroNoDialogo} aoEscolher={(d) => void tirar(tirando, d, true)} aoFechar={() => setTirando(null)} />
           )}
         </>
       )}

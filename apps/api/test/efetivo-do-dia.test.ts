@@ -193,8 +193,9 @@ describe('acúmulo (decisão do design)', () => {
 
   it('o trecho de acúmulo traz o acumuloId, e o da vaga original não', async () => {
     const e = await ler(d);
-    expect(card(e, 'ACO').funcoes[0]!.linhas[0]![0]!.ocupante!.alocacoes).toEqual([{ alocacaoId, acumuloId, inicio: '08:00', fim: '20:00' }]);
-    expect(card(e, 'ABT').funcoes[0]!.linhas[0]![0]!.ocupante!.alocacoes).toEqual([{ alocacaoId, acumuloId: null, inicio: '08:00', fim: '20:00' }]);
+    // acumulaCom: no acúmulo, a vaga original; na vaga original, os acúmulos (os avisos do "Remover", como na Escala do mês)
+    expect(card(e, 'ACO').funcoes[0]!.linhas[0]![0]!.ocupante!.alocacoes).toEqual([{ alocacaoId, acumuloId, inicio: '08:00', fim: '20:00', acumulaCom: ['Motorista ABT'] }]);
+    expect(card(e, 'ABT').funcoes[0]!.linhas[0]![0]!.ocupante!.alocacoes).toEqual([{ alocacaoId, acumuloId: null, inicio: '08:00', fim: '20:00', acumulaCom: ['Auxiliar ACO'] }]);
     expect(card(e, 'ACO').alocados).toBe(1);
   });
 });

@@ -11,6 +11,8 @@ export type AlocacaoNoTrecho = {
   /** HH:MM do turno da alocação */
   inicio: string;
   fim: string;
+  /** os avisos do "Remover", como na Escala do mês: no acúmulo, a vaga original; na vaga original, os acúmulos ("Função Guarnição") */
+  acumulaCom: string[];
 };
 
 /** Por onde se escala uma vaga: a escala e a faixa (HH:MM) de um vínculo da guarnição que cobre a vaga. */
