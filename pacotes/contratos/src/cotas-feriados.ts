@@ -35,7 +35,6 @@ export const NovaCota = z.object({
   quantidade: z.number().int('Use um número inteiro.').min(1, 'Use um número a partir de 1.').max(10000, 'Use no máximo 10000.'),
   origem: OrigemCota,
   prioridade: z.number().int('Use um número inteiro.').min(1, 'Use um número a partir de 1.').max(1000, 'Use no máximo 1000.'),
-  contaMeta: z.boolean(),
 });
 export type NovaCota = z.infer<typeof NovaCota>;
 export const EdicaoCota = NovaCota.omit({ mes: true }).partial();

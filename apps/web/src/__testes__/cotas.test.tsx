@@ -8,11 +8,11 @@ import { abrir, corpoEnviado, EU_EXEMPLO, simularApi } from './apoio';
 const mes = mesAtual();
 const anterior = somarMeses(mes, -1);
 const cota = (c: Partial<Cota>): Cota => ({
-  id: 'c1', mes, servicoId: 'sv-jes', quantidade: 30, origem: 'interna', prioridade: 1, contaMeta: true, servico: 'JES', cor: '#6E56A8', distribuidas: 12, ...c,
+  id: 'c1', mes, servicoId: 'sv-jes', quantidade: 30, origem: 'interna', prioridade: 1, servico: 'JES', cor: '#6E56A8', distribuidas: 12, ...c,
 });
 const COTAS: Cota[] = [
   cota({}),
-  cota({ id: 'c2', servicoId: 'sv-pe', servico: 'PE Seguro', cor: '#3C5F9C', quantidade: 10, origem: 'externa', prioridade: 2, distribuidas: 13, contaMeta: false }),
+  cota({ id: 'c2', servicoId: 'sv-pe', servico: 'PE Seguro', cor: '#3C5F9C', quantidade: 10, origem: 'externa', prioridade: 2, distribuidas: 13 }),
 ];
 const servico = (s: Partial<Servico>): Servico => ({ id: 'x', nome: 'X', tipo: 'diaria', operacao: null, rotuloImpressao: null, cor: '#000000', ativo: true, fixo: false, turnos: [], ...s });
 const SERVICOS = [
@@ -43,7 +43,7 @@ describe('cotas', () => {
     expect(within(jes).getByText('1')).toBeInTheDocument();
     const pe = await linhaDe('PE Seguro');
     expect(within(pe).getByText('Externa')).toBeInTheDocument();
-    expect(within(pe).getByText('não conta para a meta')).toBeInTheDocument();
+    expect(screen.queryByText('não conta para a meta')).toBeNull();
   });
 
   it('barra de progresso com recebidas e distribuídas', async () => {
@@ -95,9 +95,10 @@ describe('cotas', () => {
     fireEvent.change(await within(dialogo).findByLabelText('Serviço'), { target: { value: 'sv-pe' } });
     await userEvent.type(within(dialogo).getByLabelText('Quantidade'), '8');
     expect(within(dialogo).getByLabelText('Prioridade')).toHaveValue(3); // a seguinte às que já existem
+    expect(within(dialogo).queryByLabelText('Conta para a meta de ativação')).toBeNull();
     await userEvent.click(within(dialogo).getByRole('button', { name: 'Salvar' }));
     await waitFor(() =>
-      expect(corpoEnviado(f, 'POST /api/unidades/u-1sb/cotas')).toEqual({ mes, servicoId: 'sv-pe', quantidade: 8, origem: 'interna', prioridade: 3, contaMeta: true }),
+      expect(corpoEnviado(f, 'POST /api/unidades/u-1sb/cotas')).toEqual({ mes, servicoId: 'sv-pe', quantidade: 8, origem: 'interna', prioridade: 3 }),
     );
   });
 
@@ -140,7 +141,7 @@ describe('cotas', () => {
     await userEvent.type(qtd, '40');
     await userEvent.click(within(dialogo).getByRole('button', { name: 'Salvar' }));
     await waitFor(() =>
-      expect(corpoEnviado(f, 'PATCH /api/cotas/c1')).toEqual({ servicoId: 'sv-jes', quantidade: 40, origem: 'interna', prioridade: 1, contaMeta: true }),
+      expect(corpoEnviado(f, 'PATCH /api/cotas/c1')).toEqual({ servicoId: 'sv-jes', quantidade: 40, origem: 'interna', prioridade: 1 }),
     );
   });
 
