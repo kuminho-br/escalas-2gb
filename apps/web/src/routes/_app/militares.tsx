@@ -11,6 +11,7 @@ import { classeItemEscolhido, ListaDetalhe } from '@/componentes/ListaDetalhe';
 import { Selecao } from '@/componentes/Selecao';
 import { Button } from '@/componentes/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/componentes/ui/dialog';
+import { LISTA_NAO_CARREGOU } from '@/componentes/militares/Secao';
 import { Input } from '@/componentes/ui/input';
 import { Label } from '@/componentes/ui/label';
 import { mesAtual } from '@/lib/meses';
@@ -198,7 +199,7 @@ function NovoMilitarDialogo({ unidadeId, aoFechar }: { unidadeId: string; aoFech
             <Campo id="nm-matricula" rotulo="Matrícula" erro={campos.matricula}>
               <Input id="nm-matricula" name="matricula" placeholder="123456-7" required />
             </Campo>
-            <Campo id="nm-posto" rotulo="Posto ou graduação" erro={campos.postoGradId}>
+            <Campo id="nm-posto" rotulo="Posto ou graduação" erro={campos.postoGradId ?? (postos.isError ? LISTA_NAO_CARREGOU : undefined)}>
               <Selecao id="nm-posto" name="posto" required>
                 {postos.data?.map((p) => <option key={p.id} value={p.id}>{p.sigla}</option>)}
               </Selecao>
