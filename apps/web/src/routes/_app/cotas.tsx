@@ -34,15 +34,15 @@ function Cotas() {
   async function copiar() {
     setAviso(null);
     try {
-      const { copiados } = await copiarCotas(eu.unidade.id, anterior, mes);
+      const { copiados, puladas } = await copiarCotas(eu.unidade.id, anterior, mes);
       atualizarCotas(queryClient);
-      setAviso({
-        erro: false,
-        texto:
-          copiados === 0
-            ? `Nenhuma cota nova: ${mesPorExtenso(anterior)} não tem cotas, ou elas já estão em ${mesPorExtenso(mes)}.`
-            : `${copiados} ${copiados === 1 ? 'cota copiada' : 'cotas copiadas'} de ${mesPorExtenso(anterior)}.`,
-      });
+      const deAntes = mesPorExtenso(anterior);
+      const deFora = puladas === 1 ? '1 de serviço desativado ficou de fora.' : `${puladas} de serviço desativado ficaram de fora.`;
+      let texto: string;
+      if (copiados > 0) texto = `${copiados} ${copiados === 1 ? 'cota copiada' : 'cotas copiadas'} de ${deAntes}.${puladas > 0 ? ` ${deFora}` : ''}`;
+      else if (puladas > 0) texto = `Nenhuma cota copiada: ${puladas === 1 ? 'a única' : `as ${puladas}`} de ${deAntes} ${puladas === 1 ? 'é' : 'são'} de serviço desativado.`;
+      else texto = `Nenhuma cota nova: ${deAntes} não tem cotas, ou elas já estão em ${mesPorExtenso(mes)}.`;
+      setAviso({ erro: false, texto });
     } catch (err) {
       setAviso({ erro: true, texto: mensagemDe(err) });
     }

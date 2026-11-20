@@ -74,7 +74,7 @@ describe('cotas', () => {
   });
 
   it('copiar do mês anterior envia de e para e mostra quantas entraram', async () => {
-    const f = api({ 'POST /api/unidades/u-1sb/cotas/copiar': { status: 200, corpo: { copiados: 2 } } });
+    const f = api({ 'POST /api/unidades/u-1sb/cotas/copiar': { status: 200, corpo: { copiados: 2, puladas: 0 } } });
     abrir('/cotas');
     await userEvent.click(await screen.findByRole('button', { name: 'Copiar do mês anterior' }));
     await waitFor(() => expect(corpoEnviado(f, 'POST /api/unidades/u-1sb/cotas/copiar')).toEqual({ de: anterior, para: mes }));
@@ -82,10 +82,38 @@ describe('cotas', () => {
   });
 
   it('copiar sem nada novo explica o motivo', async () => {
-    api({ 'POST /api/unidades/u-1sb/cotas/copiar': { status: 200, corpo: { copiados: 0 } } });
+    api({ 'POST /api/unidades/u-1sb/cotas/copiar': { status: 200, corpo: { copiados: 0, puladas: 0 } } });
     abrir('/cotas');
     await userEvent.click(await screen.findByRole('button', { name: 'Copiar do mês anterior' }));
     expect(await screen.findByText(`Nenhuma cota nova: ${mesPorExtenso(anterior)} não tem cotas, ou elas já estão em ${mesPorExtenso(mes)}.`)).toBeInTheDocument();
+  });
+
+  it('copiar com cota de serviço desativado diz quantas ficaram de fora', async () => {
+    api({ 'POST /api/unidades/u-1sb/cotas/copiar': { status: 200, corpo: { copiados: 1, puladas: 1 } } });
+    abrir('/cotas');
+    await userEvent.click(await screen.findByRole('button', { name: 'Copiar do mês anterior' }));
+    expect(await screen.findByText(`1 cota copiada de ${mesPorExtenso(anterior)}. 1 de serviço desativado ficou de fora.`)).toBeInTheDocument();
+  });
+
+  it('com várias de fora o texto vai para o plural', async () => {
+    api({ 'POST /api/unidades/u-1sb/cotas/copiar': { status: 200, corpo: { copiados: 2, puladas: 2 } } });
+    abrir('/cotas');
+    await userEvent.click(await screen.findByRole('button', { name: 'Copiar do mês anterior' }));
+    expect(await screen.findByText(`2 cotas copiadas de ${mesPorExtenso(anterior)}. 2 de serviço desativado ficaram de fora.`)).toBeInTheDocument();
+  });
+
+  it('copiar quando todas são de serviço desativado explica o motivo', async () => {
+    api({ 'POST /api/unidades/u-1sb/cotas/copiar': { status: 200, corpo: { copiados: 0, puladas: 2 } } });
+    abrir('/cotas');
+    await userEvent.click(await screen.findByRole('button', { name: 'Copiar do mês anterior' }));
+    expect(await screen.findByText(`Nenhuma cota copiada: as 2 de ${mesPorExtenso(anterior)} são de serviço desativado.`)).toBeInTheDocument();
+  });
+
+  it('com uma só de serviço desativado, o texto fica no singular', async () => {
+    api({ 'POST /api/unidades/u-1sb/cotas/copiar': { status: 200, corpo: { copiados: 0, puladas: 1 } } });
+    abrir('/cotas');
+    await userEvent.click(await screen.findByRole('button', { name: 'Copiar do mês anterior' }));
+    expect(await screen.findByText(`Nenhuma cota copiada: a única de ${mesPorExtenso(anterior)} é de serviço desativado.`)).toBeInTheDocument();
   });
 
   it('adicionar cota envia o mês, o serviço, a quantidade, a origem e a prioridade', async () => {

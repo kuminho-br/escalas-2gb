@@ -22,6 +22,8 @@ async function criar(servicoId: string, extra: Record<string, unknown> = {}): Pr
   return r.json();
 }
 const servico = (unidade: string, nome: string, tipo: string, cor: string) => inserir(api.banco, 'servico', { unidade_id: unidade, nome, tipo, cor });
+const desativar = (id: string) => api.banco.query('update servico set ativo = false where id = $1', [id]);
+const reativar = (id: string) => api.banco.query('update servico set ativo = true where id = $1', [id]);
 
 beforeAll(async () => {
   api = await montarApi();
@@ -120,11 +122,73 @@ describe('cotas', () => {
     await criar(jes, { mes: dest, quantidade: 99, prioridade: 1 }); // já existe a JES interna no destino
     const r = await api.pedir('escalante', 'POST', `${secao()}/cotas/copiar`, { de: somarMeses(atual, 2), para: dest });
     expect(r.status).toBe(200);
-    expect(await r.json()).toEqual({ copiados: 1 });
+    expect(await r.json()).toEqual({ copiados: 1, puladas: 0 });
     const l = await lista(dest);
     expect(l.map((c) => [c.servico, c.origem, c.quantidade])).toEqual([['JES', 'interna', 99], ['PE Seguro', 'externa', 4]]);
     // copiar de novo não duplica
-    expect(await (await api.pedir('escalante', 'POST', `${secao()}/cotas/copiar`, { de: somarMeses(atual, 2), para: dest })).json()).toEqual({ copiados: 0 });
+    expect(await (await api.pedir('escalante', 'POST', `${secao()}/cotas/copiar`, { de: somarMeses(atual, 2), para: dest })).json()).toEqual({ copiados: 0, puladas: 0 });
+  });
+
+  it('criar cota de serviço desativado é 400 no campo servicoId', async () => {
+    await desativar(bioma);
+    try {
+      const r = await api.pedir('escalante', 'POST', `${secao()}/cotas`, corpo(bioma, { mes: somarMeses(atual, 35), origem: 'externa' }));
+      expect(r.status).toBe(400);
+      expect(await r.json()).toEqual({
+        erro: 'Confira os campos destacados.',
+        campos: { servicoId: 'O serviço Bioma está desativado. Reative-o na tela de Serviços ou escolha outro.' },
+      });
+    } finally {
+      await reativar(bioma);
+    }
+  });
+
+  it('trocar o serviço da cota para um desativado é 400; mudar só a quantidade de uma cota antiga dele passa', async () => {
+    const mes = somarMeses(atual, 30);
+    const antiga = await criar(bioma, { mes, quantidade: 5, origem: 'interna' }); // criada quando o Bioma ainda estava ativo
+    const outra = await criar(jes, { mes, quantidade: 3, origem: 'externa', prioridade: 2 });
+    await desativar(bioma);
+    try {
+      const troca = await api.pedir('escalante', 'PATCH', `/api/cotas/${outra.id}`, { servicoId: bioma });
+      expect(troca.status).toBe(400);
+      expect((await troca.json()).campos).toEqual({ servicoId: 'O serviço Bioma está desativado. Reative-o na tela de Serviços ou escolha outro.' });
+      const soQuantidade = await api.pedir('escalante', 'PATCH', `/api/cotas/${antiga.id}`, { quantidade: 12 });
+      expect(soQuantidade.status).toBe(200);
+      expect(await soQuantidade.json()).toMatchObject({ servico: 'Bioma', quantidade: 12 });
+    } finally {
+      await reativar(bioma);
+    }
+  });
+
+  it('copiar pula as cotas de serviço desativado e diz quantas', async () => {
+    const origem = somarMeses(atual, 31);
+    const destino = somarMeses(atual, 32);
+    await criar(jes, { mes: origem, quantidade: 7, prioridade: 1 });
+    await criar(bioma, { mes: origem, quantidade: 5, prioridade: 2 });
+    await desativar(bioma);
+    try {
+      const r = await api.pedir('escalante', 'POST', `${secao()}/cotas/copiar`, { de: origem, para: destino });
+      expect(r.status).toBe(200);
+      expect(await r.json()).toEqual({ copiados: 1, puladas: 1 });
+      expect((await lista(destino)).map((c) => c.servico)).toEqual(['JES']);
+    } finally {
+      await reativar(bioma);
+    }
+  });
+
+  it('copiar quando todas são de serviço desativado', async () => {
+    const origem = somarMeses(atual, 33);
+    const destino = somarMeses(atual, 34);
+    await criar(bioma, { mes: origem, quantidade: 5, origem: 'interna', prioridade: 1 });
+    await criar(bioma, { mes: origem, quantidade: 2, origem: 'externa', prioridade: 2 });
+    await desativar(bioma);
+    try {
+      const r = await api.pedir('escalante', 'POST', `${secao()}/cotas/copiar`, { de: origem, para: destino });
+      expect(await r.json()).toEqual({ copiados: 0, puladas: 2 });
+      expect(await lista(destino)).toEqual([]);
+    } finally {
+      await reativar(bioma);
+    }
   });
 
   it('distribuídas conta as alocações do serviço no mês, em escalas da seção, na ordem das cotas', async () => {
@@ -178,7 +242,7 @@ describe('copiar sem o índice único (antes da migração 0013 ser aplicada)', 
       await criar(jes, { mes, quantidade: 3, prioridade: 1 });
       const r = await api.pedir('escalante', 'POST', `${secao()}/cotas/copiar`, { de: mes, para: somarMeses(mes, 1) });
       expect(r.status).toBe(200);
-      expect(await r.json()).toEqual({ copiados: 1 });
+      expect(await r.json()).toEqual({ copiados: 1, puladas: 0 });
     } finally {
       await api.banco.query('create unique index cota_unica on cota (unidade_id, mes, servico_id, origem)');
     }

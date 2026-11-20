@@ -1,6 +1,6 @@
 // Cotas das operações: por mês e por serviço (PJES ou diária), com origem interna ou externa e prioridade.
 // A chave natural é (mês, unidade, serviço, origem): a tabela não a impõe, então a API confere.
-import { CopiaDeCotas, EdicaoCota, mesParaData, mesPorExtenso, NovaCota, Mes, type Cota, type ResultadoDaCopia } from 'contratos';
+import { CopiaDeCotas, EdicaoCota, mesParaData, mesPorExtenso, NovaCota, Mes, type Cota, type ResultadoDaCopiaDeCotas } from 'contratos';
 import { Hono, type Context } from 'hono';
 import { CADASTRO, exigirPapel, exigirSessao, unidadeDoRegistro, type AmbienteApi } from '../acesso.ts';
 import type { Auth } from '../auth.ts';
@@ -47,6 +47,14 @@ async function servicoForaDaUnidade(c: Consulta, unidadeId: string, servicoId: s
   return rows.length ? null : { servicoId: MSG_SERVICO };
 }
 
+/** O nome do serviço se ele está desativado (não se aceita cota nova nele); null se está ativo. */
+async function servicoDesativado(c: Consulta, servicoId: string): Promise<string | null> {
+  const { rows } = await c.query<{ nome: string }>('select nome from servico where id = $1 and not ativo', [servicoId]);
+  return rows[0]?.nome ?? null;
+}
+
+const msgServicoDesativado = (nome: string) => ({ servicoId: `O serviço ${nome} está desativado. Reative-o na tela de Serviços ou escolha outro.` });
+
 /** A cota do mês com o mesmo serviço e origem (fora a `exceto`), se houver. */
 async function cotaIgual(c: Consulta, unidadeId: string, mes: string, servicoId: string, origem: string, exceto?: string): Promise<{ servico: string } | null> {
   const { rows } = await c.query<{ id: string; servico: string }>(
@@ -90,6 +98,8 @@ export function rotasCotas(dep: { banco: Banco; auth: Auth }): Hono<AmbienteApi>
     const d = corpo.dados;
     const fora = await servicoForaDaUnidade(dep.banco, u, d.servicoId);
     if (fora) return c.json({ erro: 'Confira os campos destacados.', campos: fora }, 400);
+    const desativado = await servicoDesativado(dep.banco, d.servicoId);
+    if (desativado) return c.json({ erro: 'Confira os campos destacados.', campos: msgServicoDesativado(desativado) }, 400);
     const igual = await cotaIgual(dep.banco, u, d.mes, d.servicoId, d.origem);
     if (igual) return c.json({ erro: `Já existe uma cota de ${igual.servico} (${d.origem}) em ${mesPorExtenso(d.mes)}.` }, 409);
     try {
@@ -119,6 +129,9 @@ export function rotasCotas(dep: { banco: Banco; auth: Auth }): Hono<AmbienteApi>
     if (d.servicoId) {
       const fora = await servicoForaDaUnidade(dep.banco, acesso.unidadeId, d.servicoId);
       if (fora) return c.json({ erro: 'Confira os campos destacados.', campos: fora }, 400);
+      // trocar o serviço da cota para um desativado não vale; mudar só a quantidade de uma cota antiga dele continua valendo
+      const desativado = await servicoDesativado(dep.banco, d.servicoId);
+      if (desativado) return c.json({ erro: 'Confira os campos destacados.', campos: msgServicoDesativado(desativado) }, 400);
     }
     if (d.servicoId || d.origem) {
       const atual = (
@@ -159,21 +172,28 @@ export function rotasCotas(dep: { banco: Banco; auth: Auth }): Hono<AmbienteApi>
     if (!corpo.ok) return corpo.resposta;
     const { de, para } = corpo.dados;
     try {
-      const copiados = await comUsuario(dep.banco, c.get('usuarioId'), async (tx) => {
-        // as do mês de origem, menos as que o destino já tem (mesmo serviço e origem)
+      const resultado = await comUsuario(dep.banco, c.get('usuarioId'), async (tx): Promise<ResultadoDaCopiaDeCotas> => {
+        // as do mês de origem de serviço ativo, menos as que o destino já tem (mesmo serviço e origem)
         const feito = await tx.query(
           `insert into cota (mes, unidade_id, servico_id, quantidade, origem, prioridade)
            select $3::date, o.unidade_id, o.servico_id, o.quantidade, o.origem, o.prioridade
-             from cota o
+             from cota o join servico s on s.id = o.servico_id and s.ativo
             where o.unidade_id = $1 and o.mes = $2::date
               and not exists (select 1 from cota x where x.unidade_id = o.unidade_id and x.mes = $3::date and x.servico_id = o.servico_id and x.origem = o.origem)
            on conflict do nothing
            returning id`,
           [u, mesParaData(de), mesParaData(para)],
         );
-        return feito.rows.length;
+        // as de serviço desativado ficam de fora, e a tela precisa saber quantas (mesma condição de destino, na mesma transação)
+        const puladas = await tx.query<{ n: number }>(
+          `select count(*)::int as n
+             from cota o join servico s on s.id = o.servico_id and not s.ativo
+            where o.unidade_id = $1 and o.mes = $2::date
+              and not exists (select 1 from cota x where x.unidade_id = o.unidade_id and x.mes = $3::date and x.servico_id = o.servico_id and x.origem = o.origem)`,
+          [u, mesParaData(de), mesParaData(para)],
+        );
+        return { copiados: feito.rows.length, puladas: puladas.rows[0]!.n };
       });
-      const resultado: ResultadoDaCopia = { copiados };
       return c.json(resultado);
     } catch (e) {
       return respostaDoErroDoBanco(c, e);
