@@ -1855,6 +1855,269 @@ Os itens que esperam essas decisões:
 ---
 
 
+# Entrega 4 — Grade geral
+
+**Branch:** `fase4-4-grade-geral`, a partir da `main` (depois do PR #42). Commits `Fase 4.4: …`; PR "Fase 4 — Entrega 4: Grade geral". **Sem migração.**
+
+**Spec:** `docs/superpowers/specs/2026-11-20-grade-geral-design.md`. Ela vale por cima da seção "Grade geral" de `docs/superpowers/specs/2026-11-16-telas.md`. O visual de base é o do mockup `docs/telas/telas-v12-anonimizado.html`, na parte "grade do militar".
+
+**Decisões desta entrega** (do design; as marcadas como "minha decisão" lá valem aqui):
+- **A grade é leitura.** O clique é na célula (militar e dia) e abre o painel do dia, onde se adiciona, troca e remove. As ações reaproveitam as rotas da Escala do mês: `POST /escalas/:e/alocacoes`, `DELETE /alocacoes/:id`, `DELETE /acumulos/:id` e a lista de candidatos.
+- **Colunas finais:**
+  - PJES (número de alocações do tipo `pjes` no mês);
+  - Diárias (número de alocações do tipo `diaria`);
+  - Voluntariado, no formato "24h de 60h": horas tiradas nesses dois tipos contra as horas marcadas na disponibilidade do mês.
+  - Nas colunas PJES e Diárias, a barra atrás do número tem como máximo o maior valor da coluna em todo o efetivo da grade.
+- **Grupos:** as equipes pela `ordem_ciclo`, depois o Adm (jornada `adm`), depois "Outras seções" (escalados aqui, lotados em outra unidade). Dentro de cada grupo, por antiguidade (`compararAntiguidade` de `dominio`). A lotação que vale é a do dia 1 do mês; se não houver, a primeira lotação dele no mês.
+- **Filtro de equipes:** chips "Todas", um por equipe, "Adm" e "Outras seções". Fica na busca (`equipe`). Só esconde grupos.
+- **Expediente do Adm:** bloco implícito cinza nos dias úteis (segunda a sexta, sem feriado), quando ele está lotado e não está afastado.
+- **Choques:** `detectarChoques` com o expediente implícito do Adm, com a mesma montagem de horários e tipos da elegibilidade. As células dos dias envolvidos ganham contorno vermelho.
+- **Trocar com um militar já escalado** troca as duas alocações de lugar, numa transação, e cada militar passa pelo `escalar` na vaga do outro. Com os dois serviços ordinários, a tela chama a troca de "Permuta"; o registro formal da permuta fica para a fase 5. Com um militar livre, é uma substituição: o atual sai com a marca de remoção (`remover`) e o novo entra (`escalar`). Um acúmulo em qualquer das alocações recusa a troca com "Tire os acúmulos antes de trocar."
+- **Atualizações:** as gravações da Escala do mês e do Efetivo por dia passam a invalidar também `['grade']`. As da grade invalidam `['grade']`, `['escala-do-mes']`, `['efetivo-do-dia']`, `['cotas']` e `['candidatos']`.
+
+**Review Focus da entrega 4** (cada um tem teste na tarefa dona):
+1. **Turno que atravessa a meia-noite e a virada do mês:** o turno B do dia 31 aparece só no dia 31. O choque dele com a manhã do dia 1 do mês seguinte não quebra a grade. O choque entre o dia 30 e o dia 31 marca as duas células. Tarefa 54.
+2. **Militar transferido no meio do mês, e militar de outra seção escalado aqui:** cada um aparece uma vez, no grupo certo. Tarefa 54.
+3. **Trocar com quem não pode ocupar a vaga do outro** (sem a CNH, ou não voluntário JES para PJES): 409 com o motivo, e nada muda, nem o primeiro lado da troca. Tarefa 56.
+4. **Trocar com quem está em dois serviços no dia:** a lista mostra os dois lugares, e o escalante escolhe qual troca. Tarefas 56 e 59.
+5. **Painel do dia aberto quando outra pessoa já mexeu:** a recusa (404 ou 409) aparece dentro do painel e a grade volta a ser buscada. Tarefas 58 e 59.
+
+### Task 54: A grade do mês (API)
+
+**Files:**
+- Create: `pacotes/contratos/src/grade.ts` (exportar no `index.ts`), `apps/api/src/grade/grade.ts`, `apps/api/src/grade/rotas.ts` (registrar em `apps/api/src/app.ts`)
+- Modify: `apps/api/src/escala/elegibilidade.ts`. Extrair para `apps/api/src/escala/horarios.ts`: `horariosDaUnidade(c, unidadeId): Promise<{ horarios: Horarios; tipos: Record<string, string> }>`, com o expediente, e `EXPEDIENTE`. A elegibilidade passa a usar os dois.
+- Test: `apps/api/test/grade.test.ts`
+
+**Interfaces:**
+- Produces (contratos):
+  ```ts
+  export type BlocoDaGrade = { alocacaoId: string | null; servico: { id: string; nome: string; cor: string; tipo: 'ordinario' | 'pjes' | 'diaria' } | null; letra: string | null; inicio: string; fim: string; expediente: boolean };
+  export type LinhaDaGrade = {
+    militarId: string; posto: string; nomeGuerra: string; matricula: string; jornada: 'pronto' | 'adm';
+    dias: Record<string, BlocoDaGrade[]>;   // só os dias com bloco; blocos por início
+    choques: string[];                      // datas com choque
+    pjes: number; diarias: number; horasTiradas: number; horasPedidas: number; // horas em minutos
+  };
+  export type GrupoDaGrade = { chave: string; nome: string; linhas: LinhaDaGrade[] }; // chave = equipeId | 'adm' | 'outras'
+  export type GradeDoMes = { mes: string; dias: { data: string; diaDaSemana: number; feriado: string | null }[]; grupos: GrupoDaGrade[] };
+  ```
+- Rota `GET /api/unidades/:u/grade/:mes` (`CADASTRO`). Mês inválido: 400 "Mês inválido: use o formato aaaa-mm.".
+
+- [ ] **Step 1: Write the failing tests** (cenário fictício D7, como em `efetivo-do-dia.test.ts`):
+  - `agrupa por equipe na ordem do ciclo, depois Adm, depois Outras seções, e por antiguidade dentro do grupo`.
+  - `o turno B do último dia aparece só no último dia, com a letra e a cor do serviço`.
+  - `o expediente do Adm é um bloco sem letra nos dias úteis, nem no feriado nem no afastamento`.
+  - `choque entre dois serviços no mesmo dia marca o dia; o B do dia 30 com o A das 06h do dia 31 marca os dois` (Review Focus 1).
+  - `militar transferido no dia 15 aparece uma vez, na equipe da lotação do dia 1; o de outra seção escalado aqui vai para Outras seções` (Review Focus 2).
+  - `pjes, diarias, horasTiradas (minutos) e horasPedidas (minutos da disponibilidade do mês)`.
+  - `mês inválido é 400; sem papel é 403`.
+  - A suíte da elegibilidade (`candidatos`, `escalar`) continua passando depois da extração.
+- [ ] **Step 2: Run** `cd apps/api && npx vitest run --maxWorkers=1 test/grade.test.ts`. Expected: FAIL.
+- [ ] **Step 3: Implement.** Primeiro a extração dos horários, com a suíte da elegibilidade verde; depois `montarGradeDoMes(c, unidadeId, mes): Promise<GradeDoMes>`.
+  - A janela de alocações para os choques vai do último dia do mês anterior ao primeiro do seguinte.
+  - Passar `mes` a `detectarChoques`, que relata só os choques que tocam o mês.
+- [ ] **Step 4: Run** o arquivo, a suíte da API (`--no-file-parallelism`) e `pnpm typecheck`. Expected: PASS.
+- [ ] **Step 5: Commit** `Fase 4.4: grade do mês (API)`.
+
+### Task 55: O painel do dia (API)
+
+**Files:**
+- Create: `apps/api/src/grade/dia.ts`
+- Modify: `pacotes/contratos/src/grade.ts`, `apps/api/src/grade/rotas.ts`
+- Test: `apps/api/test/grade-dia.test.ts`
+
+**Interfaces:**
+- Consumes: `avaliarFaixa(c, vaga, somenteMilitar)` e `SEM_VOLUNTARIADO` (elegibilidade); `cnhHabilitadas` de `dominio`; `vinculosDaEscala`, `versaoNoMes`, `versoesDasGuarnicoes`.
+- Produces:
+  ```ts
+  export type ServicoNoDia = { alocacaoId: string; escalaId: string; escala: string; servico: { id: string; nome: string; cor: string; tipo: string }; letra: string; inicio: string; fim: string; guarnicao: string | null; funcao: string | null; acumulaCom: string[] };
+  export type OpcaoDeServico = { escalaId: string; escala: string; inicio: string; fim: string; guarnicaoId: string | null; guarnicao: string | null; funcaoId: string | null; funcao: string | null; servicos: { servicoId: string; turnoId: string; nome: string }[]; semVoluntariado: boolean };
+  export type PainelDoDia = {
+    militar: { militarId: string; posto: string; nomeGuerra: string; matricula: string; equipe: string | null; jornada: 'pronto' | 'adm'; cnh: string[]; voluntarioJes: boolean };
+    data: string; afastamento: string | null;           // "Férias", "Licença", "Afastado"
+    disponibilidade: { inicio: string; fim: string }[]; // HH:MM, o que ele marcou no voluntariado
+    servicos: ServicoNoDia[]; choques: string[];         // frases do motor, sem código de regra
+    opcoes: OpcaoDeServico[];                           // "Adicionar serviço neste dia"
+  };
+  ```
+- Rota `GET /api/unidades/:u/grade/:mes/militares/:militarId/dias/:data` (`CADASTRO`). A data precisa ser do mês: 400 "A data precisa ser do mês da grade.".
+- **Opções:** para cada escala ativa da seção e cada faixa dos turnos dela, chamar `avaliarFaixa` uma vez com `guarnicaoId: null` e `somenteMilitar`. Os turnos aproveitáveis são os que têm `motivo` null ou `SEM_VOLUNTARIADO`, e este último marca `semVoluntariado`. Depois cruzar com as guarnições vinculadas àquela faixa no mês:
+  - uma opção por função da composição, tirando as completas (ocupantes ≥ máximo) e as de CNH que ele não tem;
+  - mais a opção "Sem guarnição" (`guarnicaoId: null`).
+
+- [ ] **Step 1: Write the failing tests:**
+  - `traz o militar, os serviços do dia com escala, horário, guarnição, função e acumulaCom, e os horários marcados`.
+  - `afastado no dia mostra o afastamento e nenhuma opção`.
+  - `as opções são só as que ele pode: sem a função de CNH D para quem só tem B, sem função completa, com "Sem guarnição"`.
+  - `quem não marcou o horário aparece com semVoluntariado; o Saldo só aparece para o Adm`.
+  - `um choque do dia vem como frase`.
+  - `data de outro mês é 400`.
+- [ ] **Step 2: Run** o arquivo. Expected: FAIL.
+- [ ] **Step 3: Implement** `montarPainelDoDia(c, unidadeId, militarId, data): Promise<PainelDoDia>`.
+- [ ] **Step 4: Run** o arquivo, a suíte da API e `pnpm typecheck`. Expected: PASS.
+- [ ] **Step 5: Commit** `Fase 4.4: painel do dia (API)`.
+
+### Task 56: Trocar (API)
+
+**Files:**
+- Create: `apps/api/src/escala/trocar.ts`
+- Modify: `pacotes/contratos/src/escala-do-mes.ts`, `apps/api/src/escala/rotas.ts`
+- Test: `apps/api/test/trocar.test.ts`
+
+**Interfaces:**
+- Produces:
+  ```ts
+  export const Troca = z.union([
+    z.object({ militarId: Id, turnoId: Id }),   // substituir por um militar livre
+    z.object({ comAlocacaoId: Id }),            // trocar de lugar com quem já está escalado
+  ]);
+  export type EscaladoNoDia = { militarId: string; posto: string; nomeGuerra: string; matricula: string;
+    alocacoes: { alocacaoId: string; onde: string; permuta: boolean }[] }; // onde = "Ordinário, 20h–08h, Motorista do ABT"
+  export type OpcoesDeTroca = { livres: Candidatos; escalados: EscaladoNoDia[] };
+  ```
+- `GET /api/alocacoes/:id/trocas`:
+  - `livres` = `avaliarCandidatos` da vaga da alocação, sem o próprio militar;
+  - `escalados` = os outros militares com alocação na seção no mesmo dia, por antiguidade;
+  - `permuta` = os dois serviços são do tipo `ordinario`.
+- `POST /api/alocacoes/:id/trocar` → 200 com `{ escalaId, mes }` das escalas mexidas; a tela invalida as consultas.
+  - Substituição: `remover(tx, id, usuario)` e depois `escalar(tx, escala, { militarId, data, turnoId, guarnicaoId, funcaoId })`, tudo numa transação.
+  - Troca: recusa se alguma das duas alocações tem acúmulo. Depois apaga as duas (sem marca de remoção) e chama `escalar` duas vezes, cada militar na vaga do outro (escala, data, turno, guarnição e função da outra alocação). Uma `Recusa` desfaz tudo e vira 409.
+  - A alocação inexistente é 404, e as duas precisam ser da mesma seção.
+
+- [ ] **Step 1: Write the failing tests:**
+  - `trocas lista os livres e os escalados do dia com onde e permuta`.
+  - `substituir: o atual sai com marca de remoção e o novo entra no turno escolhido`.
+  - `trocar dois ordinários troca os lugares (permuta) sem marca de remoção`.
+  - `trocar com quem não tem a CNH da vaga do outro é 409 com o motivo e nada muda` (Review Focus 3).
+  - `com acúmulo é 409 "Tire os acúmulos antes de trocar."`.
+  - `quem está em dois serviços no dia aparece com as duas alocações, e a troca usa a escolhida` (Review Focus 4).
+- [ ] **Step 2: Run** o arquivo. Expected: FAIL.
+- [ ] **Step 3: Implement.**
+- [ ] **Step 4: Run** o arquivo, a suíte da API e `pnpm typecheck`. Expected: PASS.
+- [ ] **Step 5: Commit** `Fase 4.4: trocar (API)`.
+
+### Task 57: Tela da Grade geral
+
+**Files:**
+- Create:
+  - `apps/web/src/api/grade.ts` (`consultaGrade(unidadeId, mes)`, chave `['grade', unidadeId, mes]`);
+  - `apps/web/src/componentes/grade/TabelaDaGrade.tsx`;
+  - `apps/web/src/componentes/grade/CelulaDaGrade.tsx`;
+  - `apps/web/src/componentes/grade/BarraComparativa.tsx`.
+- Modify:
+  - `apps/web/src/routes/_app/index.tsx`, que deixa de ser o aviso. `validateSearch`: `mes?`, `equipe?`, `militar?` e `dia?`.
+  - `apps/web/src/api/escala-do-mes.ts` e `apps/web/src/api/efetivo-do-dia.ts`: as gravações invalidam também `['grade']`.
+- Test: `apps/web/src/__testes__/grade.test.tsx`
+
+**Interfaces:** Consumes `GradeDoMes` (Tarefa 54).
+
+**A tela:**
+- **Topo:** título "Grade geral", o seletor de mês (como o da Escala do mês) e os chips de equipe.
+- **Tabela:**
+  - o nome fica fixo à esquerda (posto, nome de guerra);
+  - uma coluna por dia, com o número (vermelho no feriado) e a inicial do dia da semana;
+  - uma linha de grupo por equipe;
+  - no fim, as colunas PJES, Diárias e Voluntariado.
+- **Célula:** um botão com os blocos em ordem.
+  - Nome acessível: "SD BM ALFA, dia 12: Pronto A, JES A", ou "SD BM ALFA, dia 12: sem serviço".
+  - Com choque, contorno vermelho e ", choque" no nome.
+  - Fim de semana com fundo sombreado.
+  - A célula escolhida (busca `militar` e `dia`) fica destacada.
+- **`BarraComparativa({ valor, maximo })`:** o número sobre uma barra de largura `valor / maximo` (0 quando o máximo é 0).
+- **Celular:** rolagem horizontal com o nome fixo.
+
+- [ ] **Step 1: Write the failing tests:**
+  - **Estrutura:**
+    - `mostra os grupos na ordem da API e as linhas com os blocos (letra e cor)`;
+    - `o feriado tem o número em vermelho e o fim de semana o fundo sombreado`;
+    - `a célula com choque tem contorno e "choque" no nome`;
+    - `o expediente é um bloco sem letra`.
+  - **Colunas finais:**
+    - `PJES e Diárias mostram o número com a barra proporcional ao maior da coluna em toda a grade`, por exemplo 4 de máximo 8 dá 50%;
+    - `Voluntariado mostra "24h de 60h"`.
+  - **Filtro:** `o chip "Equipe B" esconde os outros grupos e mantém a barra comparando com todos; fica na busca`.
+  - **Clique:** `clicar na célula põe militar e dia na busca`.
+  - **Invalidação:** `escalar na Escala do mês invalida a grade`. Escalar com `simularApi` e conferir uma segunda busca de `/grade/` com a grade aberta.
+- [ ] **Step 2: Run** `cd apps/web && npx vitest run --maxWorkers=1 src/__testes__/grade.test.tsx`. Expected: FAIL.
+- [ ] **Step 3: Implement.** Use `frontend-design` para a tabela. Siga o mockup v12 e os tokens atuais: vermelho só para choque e erro, âmbar para pendência.
+- [ ] **Step 4: Run** a suíte do site e `pnpm typecheck`. Expected: PASS.
+- [ ] **Step 5: Commit** `Fase 4.4: tela da grade geral`.
+
+### Task 58: O painel do dia na grade (ver, adicionar e remover)
+
+**Files:**
+- Create: `apps/web/src/componentes/grade/PainelDoDia.tsx`, `apps/web/src/componentes/grade/AdicionarServico.tsx`
+- Modify: `apps/web/src/api/grade.ts` (`consultaPainelDoDia(unidadeId, mes, militarId, data)`, chave `['grade', 'dia', …]`), `apps/web/src/routes/_app/index.tsx`
+- Test: `apps/web/src/__testes__/grade.test.tsx`
+
+**Interfaces:** Consumes `PainelDoDia` e `OpcaoDeServico` (Tarefa 55); `escalar`, `removerAlocacao` e `tirarAcumulo` de `api/escala-do-mes.ts`.
+
+**O painel:**
+- Fica à direita no computador e ocupa a tela no celular, no estilo do `FichaPainel`. Fecha com "Fechar", tirando `militar` e `dia` da busca.
+- **Título:** posto e nome, com a matrícula ao lado. Em seguida, a equipe e a jornada, e as etiquetas de motorista (CNH) e de voluntário JES.
+- **O dia:** a data por extenso; o afastamento, se houver; os horários marcados ("Marcou 08h–20h", ou "Não marcou voluntariado neste dia"); os choques em vermelho.
+- **Cada serviço:** escala, serviço (com a cor), horário, guarnição e função, com "Trocar" (Tarefa 59) e "Remover" ou "Tirar acúmulo". Os avisos são os mesmos do Efetivo por dia: "Ele não volta para este turno…" e "Sai também de…".
+- **"Adicionar serviço neste dia":**
+  - as opções agrupadas por escala, como "08h–20h · ABT · Motorista";
+  - com mais de um serviço, um seletor;
+  - "não marcou voluntariado" quando for o caso;
+  - escolher chama `escalar` (`POST /escalas/:e/alocacoes`);
+  - sem opções: "Nenhum serviço disponível para ele neste dia.".
+- **Erro:** aparece dentro do painel (`role="alert"`).
+
+- [ ] **Step 1: Write the failing tests:**
+  - **Abertura:** `abrir /?militar=m1&dia=… mostra o painel com os dados, os horários marcados e os serviços`.
+  - **Adicionar:**
+    - `"Adicionar serviço neste dia" lista as opções; escolher a do ABT Motorista manda o POST certo e busca a grade de novo`;
+    - `com dois serviços na opção, o seletor escolhe o turno`.
+  - **Remover:** `"Remover" chama o DELETE e mostra os avisos`.
+  - **Erros:** `a recusa 409 ao adicionar aparece dentro do painel e a grade volta a ser buscada` (Review Focus 5).
+  - **Fechar:** `"Fechar" tira militar e dia da busca`.
+- [ ] **Step 2: Run** o arquivo. Expected: FAIL.
+- [ ] **Step 3: Implement.**
+- [ ] **Step 4: Run** a suíte do site e `pnpm typecheck`. Expected: PASS.
+- [ ] **Step 5: Commit** `Fase 4.4: painel do dia na grade`.
+
+### Task 59: Trocar no painel do dia
+
+**Files:**
+- Create: `apps/web/src/componentes/grade/TrocarServico.tsx`
+- Modify: `apps/web/src/api/escala-do-mes.ts` (`consultaTrocas(alocacaoId)`, `trocar(queryClient, alocacaoId, troca)`), `apps/web/src/componentes/grade/PainelDoDia.tsx`
+- Test: `apps/web/src/__testes__/grade.test.tsx`
+
+**Interfaces:**
+- Consumes: `OpcoesDeTroca` e `Troca`, mais `GET /alocacoes/:id/trocas` e `POST /alocacoes/:id/trocar` (Tarefa 56).
+- `trocar` invalida `['grade']`, `['escala-do-mes']`, `['efetivo-do-dia']`, `['cotas']` e `['candidatos']`.
+
+**O diálogo "Trocar":**
+- Mostra duas listas:
+  - "Livres", como em "Escolher militar", com o serviço quando há mais de um;
+  - "Já escalados neste dia", cada um com os lugares onde está.
+- **Escolher um livre:** confirmação "Trocar ALFA por CHARLIE?".
+- **Escolher um lugar de um escalado:**
+  - confirmação "BRAVO está no Ordinário, 20h–08h, Motorista do ABT.";
+  - com `permuta`, a etiqueta "Permuta" e o botão "Fazer a permuta";
+  - sem `permuta`, o botão "Trocar os dois".
+- **Recusa (409):** aparece no diálogo.
+
+- [ ] **Step 1: Write the failing tests:**
+  - **Lista:** `"Trocar" lista livres e escalados`.
+  - **Substituir:** `escolher um livre e confirmar manda { militarId, turnoId }`.
+  - **Permuta:** `escolher o lugar de um escalado mostra onde ele está e "Permuta" quando os dois são ordinários; confirmar manda { comAlocacaoId }`.
+  - **Dois lugares:** `quem está em dois lugares mostra os dois, e a troca usa o escolhido` (Review Focus 4).
+  - **Recusa:** `a recusa aparece no diálogo` (Review Focus 5).
+- [ ] **Step 2: Run** o arquivo. Expected: FAIL.
+- [ ] **Step 3: Implement.**
+- [ ] **Step 4: Run** a suíte do site, `pnpm typecheck` e `pnpm build:vercel`. Expected: PASS.
+- [ ] **Step 5: Commit** `Fase 4.4: trocar no painel do dia`. No fim da entrega:
+  - atualizar as contagens no `CLAUDE.md` local;
+  - `pnpm test && pnpm typecheck && pnpm build:vercel`;
+  - revisão final (Opus);
+  - PR com a lista curta para a sandbox.
+
+---
+
 # Entregas 3 a 6 (a detalhar antes de cada uma)
 
 Cada uma ganha aqui as suas tarefas, no formato da entrega 1, depois do merge da anterior e da conversa com o usuário sobre o que a entrega 1 mostrou em uso.
@@ -1862,6 +2125,6 @@ Cada uma ganha aqui as suas tarefas, no formato da entrega 1, depois do merge da
 - **Entrega 2.3 — Ajustes do voluntariado:** detalhada acima (Tarefas 22 a 27). A pré-escala (3) usa a flexibilidade ao filtrar quem pode ocupar cada vaga e nunca escala quem está fora do voluntariado.
 - **Entrega 2.4 — Acabamento do voluntariado e da escala do mês:** detalhada acima (Tarefas 28 a 31).
 - **Entrega 3 — Pré-escala e distribuições:** 3.1 (Tarefas 32 a 35), 3.2.1 (Tarefas 36 a 40), 3.2.2 (Tarefas 41 a 45) e 3.3 (Efetivo por dia, turnos lado a lado e login novo, Tarefas 46 a 53). "Completar com JES", saldos do Adm, operações pelas cotas e buracos do Pronto saíram da 3.3 e esperam entrega marcada (lista no fim da 3.3).
-- **Entrega 4 — Grade geral:** consulta do mês por militar (agrupada por equipe, Adm à parte), blocos por serviço com a letra em ordem de início, turno que atravessa a meia-noite só no dia em que começa, choques do motor com contorno vermelho, feriados e fins de semana, pegas de pedidas por PJES e Diária; ficha lateral com Trocar, Remover e "Adicionar serviço neste dia", reaproveitando as rotas da entrega 1.
+- **Entrega 4 — Grade geral:** detalhada acima (Tarefas 54 a 59), com o design de 20/11/2026 (`docs/superpowers/specs/2026-11-20-grade-geral-design.md`): painel interativo, clique na célula (militar e dia), filtro de equipes, colunas PJES, Diárias e Voluntariado, e "Trocar" (com permuta entre ordinários).
 - **Entrega 5 — Gerar documento:** Configurações › Modelos de impressão (enviar com conferência dos marcadores, baixar o atual, versões); geração da escala publicada com ExcelJS a partir do modelo vigente da unidade, respeitando `militares_doc` e `dias_doc` da escala; `documento_gerado` guardado e baixável; PDF fica para quando o serviço existir.
 - ~~**Entrega 6 — Minha escala**~~: saiu da fase 4 (decisão do usuário, 19/11/2026). O conteúdo previsto continua valendo e vai para a etapa "Tipos de usuário e módulos" do roadmap: a rota e a tela do militar comum (os próprios serviços do mês, com serviço, turno, horário e quem compõe a guarnição com ele) e o acesso às escalas publicadas da unidade em que ele está lotado.
