@@ -100,6 +100,18 @@ describe('grade geral: a tabela', () => {
     expect(cabecalhos[2]).toHaveClass('w-28');
   });
 
+  it('as três colunas finais têm largura fixa de verdade (min e max iguais), para as presas se empilharem sem se sobrepor', async () => {
+    api();
+    abrir(`/?mes=${MES}`);
+    await screen.findByRole('table', { name: 'Grade geral de dezembro de 2026' });
+    const larguras = [['PJES', 'w-16 min-w-16 max-w-16'], ['Diárias', 'w-16 min-w-16 max-w-16'], ['Voluntariado', 'w-28 min-w-28 max-w-28']] as const;
+    const finais = [...linhaDe('CABO').querySelectorAll<HTMLElement>('td')].slice(-3);
+    larguras.forEach(([nome, classes], i) => {
+      expect(screen.getByRole('columnheader', { name: nome })).toHaveClass(...classes.split(' '));
+      expect(finais[i]).toHaveClass(...classes.split(' '));
+    });
+  });
+
   it('o grupo mostra o nome e o total, preso à esquerda', async () => {
     api();
     abrir(`/?mes=${MES}`);
@@ -344,6 +356,22 @@ describe('grade geral: o filtro de equipes e o clique', () => {
       await userEvent.type(campo, '0077');
       expect(await screen.findByRole('rowheader', { name: /BRAVO/ })).toBeInTheDocument();
       expect(screen.queryByRole('rowheader', { name: /JOÃO/ })).toBeNull();
+    });
+
+    it('a matrícula é comparada só pelos dígitos: com e sem hífen acham o mesmo militar (Review Focus 4)', async () => {
+      api(COM_NOMES);
+      abrir(`/?mes=${MES}`);
+      const campo = await screen.findByLabelText('Buscar militar');
+      for (const digitado of ['9900427', '990042-7', '990042', '0042-7']) {
+        await userEvent.clear(campo);
+        await userEvent.type(campo, digitado);
+        expect(await screen.findByRole('rowheader', { name: /JOÃO/ })).toBeInTheDocument();
+        expect(screen.queryByRole('rowheader', { name: /CABO/ })).toBeNull();
+      }
+      // letras e números juntos ("a1") não são uma matrícula: não casam com a matrícula de ninguém por acaso
+      await userEvent.clear(campo);
+      await userEvent.type(campo, 'cabo1');
+      expect(await screen.findByText('Ninguém com esse nome nas equipes escolhidas.')).toBeInTheDocument();
     });
 
     it('a busca do endereço já abre filtrada e o campo mostra o texto', async () => {

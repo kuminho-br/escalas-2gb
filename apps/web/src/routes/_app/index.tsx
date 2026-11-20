@@ -51,11 +51,13 @@ function GradeGeral() {
   const equipes = grade ? (busca.equipes ?? []).filter((c) => grade.grupos.some((g) => g.chave === c)) : [];
   const [texto, setTexto] = useState(busca.busca ?? '');
   const procura = normalizarBusca(texto);
+  // só dígitos, ponto, hífen e espaço valem como matrícula: ela é comparada só pelos dígitos ("9900011" e "990001-1" acham o mesmo militar)
+  const digitosDaBusca = /^[\d.\-\s]+$/.test(procura) ? procura.replace(/\D/g, '') : '';
   const porEquipe = grade ? (equipes.length ? grade.grupos.filter((g) => equipes.includes(g.chave)) : grade.grupos) : [];
   // a busca olha o nome de guerra e a matrícula, sem acento e sem maiúscula; o grupo que fica sem ninguém some
   const grupos = procura
     ? porEquipe
-        .map((g) => ({ ...g, linhas: g.linhas.filter((l) => normalizarBusca(l.nomeGuerra).includes(procura) || normalizarBusca(l.matricula).includes(procura)) }))
+        .map((g) => ({ ...g, linhas: g.linhas.filter((l) => normalizarBusca(l.nomeGuerra).includes(procura) || (digitosDaBusca !== '' && l.matricula.replace(/\D/g, '').includes(digitosDaBusca))) }))
         .filter((g) => g.linhas.length > 0)
     : porEquipe;
   const escolhida = busca.militar && busca.dia ? { militarId: busca.militar, dia: busca.dia } : null;

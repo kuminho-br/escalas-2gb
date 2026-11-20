@@ -1,7 +1,8 @@
 import type { BlocoDaGrade, EscalaDoMes, GradeDoMes, LinhaDaGrade, OpcaoDeServico, PainelDoDia } from 'contratos';
-import { screen, waitFor, within } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { AdicionarServico } from '@/componentes/grade/AdicionarServico';
 import { abrir, chamadasA, corpoEnviado, EU_EXEMPLO, simularApi } from './apoio';
 
 // O painel do dia da Grade geral: dezembro de 2026, o CABO no dia 10 (quinta), de Pronto A (ABT, Combatente) com o acúmulo de Motorista do ABT.
@@ -264,6 +265,26 @@ describe('grade geral: adicionar serviço neste dia', () => {
     await userEvent.click(within(linhaDe(p, '20h–08h')).getByRole('button', { name: /^Escalar/ }));
     expect(await within(p).findByRole('alert')).toHaveTextContent('Este militar já está escalado neste turno.');
     await waitFor(() => expect(chamadasA(f, ROTA_GRADE)).toBe(2));
+  });
+
+  it('a aba aberta que fica sem opções passa sozinha para a outra; sem nenhuma, vale a frase (Review Focus 3)', async () => {
+    // depois de uma recusa 409 as opções são buscadas de novo e podem ter mudado
+    const escalar = () => {};
+    const { rerender } = render(<AdicionarServico opcoes={COM_ABAS.opcoes} salvando={false} aoEscolher={escalar} />);
+    await userEvent.click(screen.getByRole('tab', { name: 'Operações (1)' }));
+    expect(screen.getByRole('tab', { name: 'Operações (1)' })).toHaveAttribute('aria-selected', 'true');
+    rerender(<AdicionarServico opcoes={COM_ABAS.opcoes.filter((o) => o.ordinario)} salvando={false} aoEscolher={escalar} />);
+    expect(screen.getByRole('tab', { name: 'Ordinário (2)' })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByRole('tab', { name: 'Operações (0)' })).toBeDisabled();
+    expect(screen.getByRole('heading', { name: 'Ordinário' })).toBeInTheDocument();
+    // a escolha da pessoa continua valendo enquanto a aba tem opções, e a volta é possível
+    rerender(<AdicionarServico opcoes={COM_ABAS.opcoes} salvando={false} aoEscolher={escalar} />);
+    await userEvent.click(screen.getByRole('tab', { name: 'Operações (1)' }));
+    rerender(<AdicionarServico opcoes={COM_ABAS.opcoes} salvando={false} aoEscolher={escalar} />);
+    expect(screen.getByRole('tab', { name: 'Operações (1)' })).toHaveAttribute('aria-selected', 'true');
+    rerender(<AdicionarServico opcoes={[]} salvando={false} aoEscolher={escalar} />);
+    expect(screen.getByText('Nenhum serviço disponível para ele neste dia.')).toBeInTheDocument();
+    expect(screen.queryByRole('tab')).toBeNull();
   });
 
   it('sem nenhuma opção, a frase continua', async () => {
