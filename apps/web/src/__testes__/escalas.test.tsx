@@ -1,5 +1,5 @@
 import type { Escala, LinhaEscala, LinhaGuarnicao } from 'contratos';
-import { act, fireEvent, screen, waitFor, within } from '@testing-library/react';
+import { act, cleanup, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { mesAtual } from '@/lib/meses';
@@ -43,6 +43,17 @@ function api(ficha: Escala = escala(), extra: Parameters<typeof simularApi>[0] =
 const salvarMatriz = () => userEvent.click(screen.getByRole('button', { name: `Salvar a partir de ${mesPorExtenso(mes)}` }));
 
 describe('escalas', () => {
+  it('a contagem da lista diz "1 escala" no singular e "2 escalas" no plural', async () => {
+    api();
+    abrir('/escalas');
+    expect(await screen.findByText('2 escalas')).toBeInTheDocument();
+    cleanup();
+    api(escala(), { 'GET /api/unidades/u-1sb/escalas': { status: 200, corpo: LISTA.slice(0, 1) } });
+    abrir('/escalas');
+    expect(await screen.findByText('1 escala')).toBeInTheDocument();
+    expect(screen.queryByText('1 escalas')).toBeNull();
+  });
+
   it('lista mostra os serviços e esconde as desativadas', async () => {
     api();
     abrir('/escalas');

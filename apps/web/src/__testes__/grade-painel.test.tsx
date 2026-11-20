@@ -1,7 +1,8 @@
 import type { BlocoDaGrade, EscalaDoMes, GradeDoMes, LinhaDaGrade, OpcaoDeServico, PainelDoDia } from 'contratos';
-import { screen, waitFor, within } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { AdicionarServico } from '@/componentes/grade/AdicionarServico';
 import { abrir, chamadasA, corpoEnviado, EU_EXEMPLO, simularApi } from './apoio';
 
 // O painel do dia da Grade geral: dezembro de 2026, o CABO no dia 10 (quinta), de Pronto A (ABT, Combatente) com o acúmulo de Motorista do ABT.
@@ -202,11 +203,19 @@ describe('grade geral: adicionar serviço neste dia', () => {
     expect(textos(within(linhaDe(p, '00h–08h')).getByLabelText('Vaga de 00h–08h'))).toEqual(['Motorista', 'Combatente', 'Sem guarnição']);
   });
 
+  it('cada botão "Escalar" tem o nome da faixa, e dois turnos não têm o mesmo nome', async () => {
+    const { p } = await abrirAdicionar(COM_ABAS);
+    expect(within(linhaDe(p, '08h–20h')).getByRole('button', { name: 'Escalar às 08h–20h' })).toHaveTextContent(/^Escalar$/);
+    const nomes = within(p).getAllByRole('button', { name: /^Escalar/ }).map((b) => b.getAttribute('aria-label'));
+    expect(nomes.sort()).toEqual(['Escalar às 08h–20h', 'Escalar às 20h–08h']);
+    expect(new Set(nomes).size).toBe(nomes.length);
+  });
+
   it('a lista da vaga ocupa a largura toda, numa linha abaixo da faixa e do botão (o painel é estreito)', async () => {
     const { p } = await abrirAdicionar(COM_ABAS);
     const linha = linhaDe(p, '08h–20h');
     const vaga = within(linha).getByLabelText('Vaga de 08h–20h');
-    const escalar = within(linha).getByRole('button', { name: 'Escalar' });
+    const escalar = within(linha).getByRole('button', { name: /^Escalar/ });
     expect(vaga).toHaveClass('w-full');
     expect(vaga.parentElement).not.toBe(escalar.parentElement);
     // a faixa, o serviço e o botão ficam juntos em cima
@@ -216,7 +225,7 @@ describe('grade geral: adicionar serviço neste dia', () => {
   it('"Escalar" manda a vaga e o serviço escolhidos', async () => {
     const { f, p } = await abrirAdicionar(COM_ABAS, { [POST]: { status: 201, corpo: ESCALA } });
     await userEvent.selectOptions(within(linhaDe(p, '20h–08h')).getByLabelText('Vaga de 20h–08h'), 'Resgate · Chefe');
-    await userEvent.click(within(linhaDe(p, '20h–08h')).getByRole('button', { name: 'Escalar' }));
+    await userEvent.click(within(linhaDe(p, '20h–08h')).getByRole('button', { name: /^Escalar/ }));
     await waitFor(() => expect(corpoEnviado(f, POST)).toEqual({ militarId: 'm-CABO', data: DIA, turnoId: 't-b', guarnicaoId: 'g-res', funcaoId: 'f-chefe' }));
     await waitFor(() => expect(chamadasA(f, ROTA_GRADE)).toBe(2));
   });
@@ -238,7 +247,7 @@ describe('grade geral: adicionar serviço neste dia', () => {
     await userEvent.selectOptions(within(linha).getByLabelText('Vaga de 08h–20h'), 'ABT · Combatente');
     expect(servico()).toHaveValue('t-a');
     await userEvent.selectOptions(servico()!, 't-jes');
-    await userEvent.click(within(linha).getByRole('button', { name: 'Escalar' }));
+    await userEvent.click(within(linha).getByRole('button', { name: /^Escalar/ }));
     await waitFor(() => expect(corpoEnviado(f, POST)).toEqual({ militarId: 'm-CABO', data: DIA, turnoId: 't-jes', guarnicaoId: 'g-abt', funcaoId: 'f-comb' }));
   });
 
@@ -247,15 +256,35 @@ describe('grade geral: adicionar serviço neste dia', () => {
     const { f, p } = await abrirAdicionar(cheio, { [POST]: { status: 201, corpo: ESCALA } });
     const linha = linhaDe(p, '20h–08h');
     expect(textos(within(linha).getByLabelText('Vaga de 20h–08h'))).toEqual(['Sem guarnição']);
-    await userEvent.click(within(linha).getByRole('button', { name: 'Escalar' }));
+    await userEvent.click(within(linha).getByRole('button', { name: /^Escalar/ }));
     await waitFor(() => expect(corpoEnviado(f, POST)).toEqual({ militarId: 'm-CABO', data: DIA, turnoId: 't-b', guarnicaoId: null, funcaoId: null }));
   });
 
   it('a recusa 409 aparece dentro do painel e a grade volta a ser buscada (Review Focus 5)', async () => {
     const { f, p } = await abrirAdicionar(PAINEL, { [POST]: { status: 409, corpo: { erro: 'Este militar já está escalado neste turno.' } } });
-    await userEvent.click(within(linhaDe(p, '20h–08h')).getByRole('button', { name: 'Escalar' }));
+    await userEvent.click(within(linhaDe(p, '20h–08h')).getByRole('button', { name: /^Escalar/ }));
     expect(await within(p).findByRole('alert')).toHaveTextContent('Este militar já está escalado neste turno.');
     await waitFor(() => expect(chamadasA(f, ROTA_GRADE)).toBe(2));
+  });
+
+  it('a aba aberta que fica sem opções passa sozinha para a outra; sem nenhuma, vale a frase (Review Focus 3)', async () => {
+    // depois de uma recusa 409 as opções são buscadas de novo e podem ter mudado
+    const escalar = () => {};
+    const { rerender } = render(<AdicionarServico opcoes={COM_ABAS.opcoes} salvando={false} aoEscolher={escalar} />);
+    await userEvent.click(screen.getByRole('tab', { name: 'Operações (1)' }));
+    expect(screen.getByRole('tab', { name: 'Operações (1)' })).toHaveAttribute('aria-selected', 'true');
+    rerender(<AdicionarServico opcoes={COM_ABAS.opcoes.filter((o) => o.ordinario)} salvando={false} aoEscolher={escalar} />);
+    expect(screen.getByRole('tab', { name: 'Ordinário (2)' })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByRole('tab', { name: 'Operações (0)' })).toBeDisabled();
+    expect(screen.getByRole('heading', { name: 'Ordinário' })).toBeInTheDocument();
+    // a escolha da pessoa continua valendo enquanto a aba tem opções, e a volta é possível
+    rerender(<AdicionarServico opcoes={COM_ABAS.opcoes} salvando={false} aoEscolher={escalar} />);
+    await userEvent.click(screen.getByRole('tab', { name: 'Operações (1)' }));
+    rerender(<AdicionarServico opcoes={COM_ABAS.opcoes} salvando={false} aoEscolher={escalar} />);
+    expect(screen.getByRole('tab', { name: 'Operações (1)' })).toHaveAttribute('aria-selected', 'true');
+    rerender(<AdicionarServico opcoes={[]} salvando={false} aoEscolher={escalar} />);
+    expect(screen.getByText('Nenhum serviço disponível para ele neste dia.')).toBeInTheDocument();
+    expect(screen.queryByRole('tab')).toBeNull();
   });
 
   it('sem nenhuma opção, a frase continua', async () => {

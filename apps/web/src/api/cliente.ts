@@ -11,6 +11,18 @@ export class ErroApi extends Error {
 
 const SEM_CONEXAO = 'Sem conexão com o servidor. Tente de novo.';
 
+/** Troca de página inteira (o `window.location.assign` do jsdom não navega: os testes trocam este objeto). */
+export const navegador = { ir: (destino: string) => window.location.assign(destino) };
+
+/**
+ * A sessão terminou no meio do uso (401 de uma consulta ou gravação): vai para a tela de entrar, com o aviso e o caminho de volta. O que não
+ * foi salvo se perde. O `/api/eu` não passa por aqui (quem nunca entrou vai para entrar sem o aviso) e a própria tela de entrar não se manda de novo.
+ */
+function sessaoTerminou(caminho: string) {
+  if (caminho === '/api/eu' || window.location.pathname === '/entrar') return;
+  navegador.ir(`/entrar?sessao=terminou&voltar=${encodeURIComponent(window.location.pathname + window.location.search)}`);
+}
+
 async function resposta<T>(r: Response): Promise<T> {
   const dados = (await r.json().catch(() => null)) as { erro?: string; campos?: Record<string, string> } | null;
   // a hospedagem recusa envio grande demais com texto puro, antes de a API ser chamada
@@ -31,6 +43,7 @@ export async function pedir<T>(metodo: 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELET
   } catch {
     throw new ErroApi(SEM_CONEXAO, 0);
   }
+  if (r.status === 401) sessaoTerminou(caminho);
   return resposta<T>(r);
 }
 

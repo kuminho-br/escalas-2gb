@@ -201,7 +201,8 @@ export const importadorMilitares: Importador<Plano> = {
       const motorista = SIM.includes(motoristaTxt) || motoristaTxt === 'MOTORISTA';
       const cat = categoriasCnh(pega(cel, c.cnh));
       if (cat.invalidas.length) avisos.push(`${nomeGuerra} (${mat.valor}): categoria de CNH "${cat.invalidas.join(', ')}" ignorada.`);
-      let cnh = cat.categorias;
+      // sem repetição (o `categoriasCnh` já tira) e em ordem, como o cadastro à mão grava
+      let cnh = [...cat.categorias].sort();
       if (!motorista && cnh.length) {
         avisos.push(`${nomeGuerra} (${mat.valor}): CNH ignorada, fora do quadro de motoristas.`);
         cnh = [];

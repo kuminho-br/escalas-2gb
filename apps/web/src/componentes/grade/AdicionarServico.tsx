@@ -54,7 +54,7 @@ function LinhaDoTurno({ turno, salvando, aoEscolher }: { turno: Turno; salvando:
           </Selecao>
         )}
         {servico.semVoluntariado && <span className="text-xs text-pendencia">não marcou</span>}
-        <Button type="button" size="sm" className="ml-auto" disabled={salvando} onClick={() => aoEscolher(opcao, turnoId)}>Escalar</Button>
+        <Button type="button" size="sm" className="ml-auto" aria-label={`Escalar às ${turno.faixa}`} disabled={salvando} onClick={() => aoEscolher(opcao, turnoId)}>Escalar</Button>
       </div>
       <Selecao
         aria-label={`Vaga de ${turno.faixa}`}
@@ -92,11 +92,14 @@ function Grupos({ opcoes, salvando, aoEscolher }: { opcoes: OpcaoDeServico[]; sa
  * voluntariado aparece com a etiqueta "não marcou" e pode ser escalado mesmo assim. A aba que abre é a primeira que tiver opções.
  */
 export function AdicionarServico({ opcoes, salvando, aoEscolher }: { opcoes: OpcaoDeServico[]; salvando: boolean; aoEscolher: (o: OpcaoDeServico, turnoId: string) => void }) {
+  const [escolhida, setEscolhida] = useState<'ordinario' | 'operacoes'>('ordinario');
   if (!opcoes.length) return <p className="text-sm text-apagado">Nenhum serviço disponível para ele neste dia.</p>;
   const ordinario = opcoes.filter((o) => o.ordinario);
   const operacoes = opcoes.filter((o) => !o.ordinario);
+  // a aba aberta que fica sem opções (as opções são buscadas de novo depois de uma recusa) passa para a outra, que tem
+  const aba = escolhida === 'ordinario' ? (ordinario.length ? 'ordinario' : 'operacoes') : operacoes.length ? 'operacoes' : 'ordinario';
   return (
-    <Tabs defaultValue={ordinario.length ? 'ordinario' : 'operacoes'}>
+    <Tabs value={aba} onValueChange={(v) => setEscolhida(v === 'operacoes' ? 'operacoes' : 'ordinario')}>
       <TabsList>
         <TabsTrigger value="ordinario" disabled={!ordinario.length}>Ordinário ({quantosTurnos(ordinario)})</TabsTrigger>
         <TabsTrigger value="operacoes" disabled={!operacoes.length}>Operações ({quantosTurnos(operacoes)})</TabsTrigger>
