@@ -1,8 +1,14 @@
+import { somarMeses } from 'contratos';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { hojeRecife } from '../src/datas.ts';
 import { montarApi, type ApiDeTeste } from './apoio-api.ts';
 import { formulario, planilha } from './planilha-teste.ts';
 
 let api: ApiDeTeste;
+// os meses das linhas contam a partir de hoje (a importação recusa mês que já passou): fixos, os testes quebrariam com o calendário
+const atual = hojeRecife().slice(0, 7);
+const proximo = somarMeses(atual, 1);
+const mmaaaa = (m: string) => `${m.slice(5)}/${m.slice(0, 4)}`;
 const CAB = ['CHAVE', 'VALOR', 'VIGÊNCIA (A PARTIR DE)', 'DESCRIÇÃO'];
 const auditoria = async () => (await api.banco.query<{ n: number }>('select count(*)::int as n from auditoria')).rows[0]!.n;
 const importar = async (linhas: (string | number | Date)[][], confirmar = false) => {
@@ -23,7 +29,7 @@ describe('importação de configurações', () => {
   it('importa as chaves e pula SECAO_PADRAO com aviso', async () => {
     const r = await importar([
       ['CARGA_MENSAL_HORAS', 160, '', 'x'],
-      ['SALDOS_ADM_POR_MILITAR', 6, '2026-12', 'x'],
+      ['SALDOS_ADM_POR_MILITAR', 6, proximo, 'x'],
       ['SECAO_PADRAO', '1ª SB', '', 'x'],
       ['LINHAS_POR_MILITAR', 3, '', 'x'],
     ], true);
@@ -41,7 +47,7 @@ describe('importação de configurações', () => {
     // vigência vazia = mês de criação da unidade (carga base: 2026-11)
     expect(rows).toEqual([
       { chave: 'CARGA_MENSAL_HORAS', vig: '2026-11', valor: 160 },
-      { chave: 'SALDOS_ADM_POR_MILITAR', vig: '2026-12', valor: 6 },
+      { chave: 'SALDOS_ADM_POR_MILITAR', vig: proximo, valor: 6 },
     ]);
   });
 
@@ -62,7 +68,7 @@ describe('importação de configurações', () => {
   });
 
   it('importar duas vezes: a segunda é toda igual e não grava', async () => {
-    const linhas = [['CARGA_MENSAL_HORAS', 160, '', ''], ['SALDOS_ADM_POR_MILITAR', 6, '12/2026', '']];
+    const linhas = [['CARGA_MENSAL_HORAS', 160, '', ''], ['SALDOS_ADM_POR_MILITAR', 6, mmaaaa(proximo), '']];
     const antes = await auditoria();
     const r = await importar(linhas, true);
     expect(r).toMatchObject({ novos: [], alterados: [], iguais: 2, gravados: 0 });
@@ -76,9 +82,23 @@ describe('importação de configurações', () => {
   });
 
   it('vigência que a planilha guardou como data', async () => {
-    const r = await importar([['SALDOS_ADM_POR_MILITAR', 3, new Date(Date.UTC(2027, 0, 1)), '']]);
+    const daqui2 = somarMeses(atual, 2);
+    const r = await importar([['SALDOS_ADM_POR_MILITAR', 3, new Date(Date.UTC(Number(daqui2.slice(0, 4)), Number(daqui2.slice(5)) - 1, 1)), '']]);
     expect(r.problemas).toEqual([]);
-    expect(r.novos.map((n: { chave: string }) => n.chave)).toEqual(['SALDOS_ADM_POR_MILITAR|2027-01']);
+    expect(r.novos.map((n: { chave: string }) => n.chave)).toEqual([`SALDOS_ADM_POR_MILITAR|${daqui2}`]);
+  });
+
+  // a importação recusa mês que já passou, como a tela ("Só dá para mudar a partir de…"); vigência vazia vale desde a criação da seção
+  it('vigência de um mês que já passou vira problema e não grava; a do mês atual e a de um mês futuro entram (Review Focus 5)', async () => {
+    const passado = somarMeses(atual, -2);
+    const futuro = somarMeses(atual, 4);
+    const linhas = [['CARGA_MENSAL_HORAS', 150, passado, ''], ['SALDOS_ADM_POR_MILITAR', 7, atual, ''], ['ADM_CUMPRE_CARGA', 'SIM', futuro, '']];
+    const previa = await importar(linhas);
+    expect(previa.problemas).toEqual([{ aba: 'CONFIGURAÇÕES', linha: 2, mensagem: 'Mês já passou', solucao: 'Use o mês atual ou um mês futuro.' }]);
+    expect([...previa.novos, ...previa.alterados].map((n: { chave: string }) => n.chave).sort()).toEqual([`ADM_CUMPRE_CARGA|${futuro}`, `SALDOS_ADM_POR_MILITAR|${atual}`].sort());
+    expect((await importar(linhas, true)).gravados).toBe(2);
+    const { rows } = await api.banco.query<{ vig: string }>("select to_char(vigencia_desde, 'YYYY-MM') as vig from parametro where unidade_id = $1 and chave = 'CARGA_MENSAL_HORAS'", [api.ids.secao]);
+    expect(rows.map((r) => r.vig)).not.toContain(passado);
   });
 
   // [foco 4] o ano 0000 passava e derrubava a confirmação inteira
