@@ -16,11 +16,7 @@
 
 - **D1** — Modelo B agora; modelo A perto do fim do projeto (usuário, 20/11/2026).
 - **D2** — Primeiro a colheita: ler o que existe no claude.ai, ver o que é útil ou melhora o projeto e trazer para o repositório. Depois desse merge, vale o que está no repositório (usuário, 20/11/2026).
-- **D3** — Leitura da DOCUMENTAÇÃO, **a confirmar na revisão deste plano**:
-  - depois da colheita, o repositório é o oficial de tudo, inclusive regras, glossário e diagrama de atividades;
-  - as sessões do claude.ai (REGRAS, PLANEJAMENTO, SAC) podem seguir editando lá;
-  - a DOCUMENTAÇÃO traz as mudanças para o repositório na checagem de 3 dias;
-  - a cópia do claude.ai ganha um aviso apontando para o arquivo oficial.
+- **D3** — Decidida pelo usuário (20/11/2026): o claude.ai deixa de ser usado; vale só o repositório. A DOCUMENTAÇÃO se ocupa de **trazer** a informação útil e não acompanha o que as sessões fazem no claude.ai. Fica de fora do plano: aposentar cópias, avisar nos artifacts e checar mudanças lá.
 - **D4** — Só documentos: esta trilha não altera código (`apps/`, `pacotes/`, `scripts/`, `prototipo/*.js`, `prototipo/*.html`). O que precisar de código vira tarefa para a PROGRAMAÇÃO.
 - **D5** — Specs e planos de fase continuam com quem os escreve (PLANEJAMENTO e PROGRAMAÇÃO, em `docs/superpowers/`). A DOCUMENTAÇÃO não muda esses arquivos de lugar: indexa, mede e propõe consolidação.
 
@@ -42,7 +38,7 @@
 - **Régua de qualidade** (todo documento novo ou reescrito; fica escrita no índice, Tarefa 4):
   - documento lido inteiro (spec, guia, glossário, índice): até 25 KB; acima de 50 KB é crítico;
   - `CLAUDE.md` da raiz: até 120 linhas, sem "estado atual" datado, sem número que envelhece (contagem de testes ou de arquivos);
-  - linhas de até 400 caracteres;
+  - parágrafos de até 400 caracteres (linha de tabela fica de fora);
   - mais de 3 adendos: consolidar;
   - todo caminho citado existe.
 - Diagramas em Mermaid dentro do próprio `.md`.
@@ -62,8 +58,8 @@
 
 | Entrega | O que entrega | Quando | Detalhe |
 |---|---|---|---|
-| 1 | Colheita do claude.ai, ER em dia e índice da documentação | agora | detalhada |
-| 2 | `CLAUDE.md` enxuto e no git (raiz e protótipo) | logo depois da 1 | detalhada |
+| 1 | Colheita do claude.ai, ER em dia, índice da documentação e `CLAUDE.md` enxuto no git | agora | detalhada |
+| 2 | Fechamento: retirar o `CLAUDE.md` solto da pasta da PROGRAMAÇÃO e decidir o `pr_p16.md` | logo depois do merge da 1 | Tarefa 9 |
 | 3 | Checagem de 3 dias com relatório | depois da 2 | detalhar antes de começar |
 | 4 | Consolidar o que cresceu por adendos; registro de decisões | entre duas entregas da fase 4, combinado com o PLANEJAMENTO | detalhar antes |
 | 5 | Guia do escalante e notas de versão para os testadores | antes do piloto da fase 4 | detalhar antes |
@@ -77,7 +73,7 @@ Fora do roadmap, por não valer o custo neste projeto: diagrama de classes (o c�
 
 # Entrega 1 — Colheita do claude.ai, ER em dia e índice
 
-Branch `documentacao-1-colheita`.
+Branch `documentacao-1-colheita`. Por pedido do usuário, esta entrega também leva o `CLAUDE.md` (Tarefas 7 e 8), que o plano previa na entrega 2.
 
 ## Arquivos
 
@@ -181,8 +177,8 @@ Expected: saída vazia. Se aparecer branch, parar e perguntar ao usuário.
 
 - [ ] **Step 2: Rodar a cobertura e ver que falha**
 
-Run: `grep -hoiE 'create table (if not exists )?[a-z_."]+' apps/api/banco/migracoes/*.sql | awk '{print $NF}' | tr -d '"' | sed 's/.*\.//' | sort -u > /tmp/m.txt; grep -oE '^### [a-z_]+' docs/superpowers/specs/2026-11-16-esquema-banco.md | awk '{print $2}' | sort -u > /tmp/d.txt; comm -23 /tmp/m.txt /tmp/d.txt`
-Expected hoje: 15 nomes (`alocacao_acumulo conta disponibilidade escala_guarnicao meta_dia meta_dia_item meta_padrao_item meta_padrao_versao ordem_escala_item ordem_escala_versao permuta_item sessao usuario verificacao voluntariado_lancamento`).
+Run: `grep -hoiE 'create table (if not exists )?[a-z_."]+' apps/api/banco/migracoes/*.sql | awk '{print $NF}' | tr -d '"' | sed 's/.*\.//' | sort -u | while read t; do grep -qE "^### .*\b$t\b" docs/superpowers/specs/2026-11-16-esquema-banco.md || echo "$t"; done`
+Expected hoje: 13 nomes (as 9 tabelas das entregas 4.x e as 4 do login). Título combinado (`### a e b`) conta como coberto.
 
 - [ ] **Step 3: Escrever o que falta.**
   - Cada tabela ganha um `### <tabela>` no grupo certo, no formato das vizinhas: colunas da migração, para que serve (uma linha) e a migração que a criou.
@@ -252,27 +248,17 @@ Expected: link do PR.
 
 - [ ] **Step 3: Pedir o merge ao usuário.** Parar até o merge.
 
-### Task 6: Aposentar as cópias no claude.ai
+### Task 6: (retirada)
 
-Depois do merge.
-
-**Interfaces:**
-- Consumes: o mapa aprovado; os caminhos no GitHub dos arquivos mesclados.
-
-- [ ] **Step 1: Perguntar ao usuário, uma vez, o que fazer com as cópias** de `Ação: trazer` e `já coberto`: (a) aviso no topo e manter, ou (b) apagar. Recomendação: (a), porque apagar não tem volta.
-
-- [ ] **Step 2: Aplicar** (`Artifact read` + `publish` no mesmo `url`; apagar é `Artifact delete`, confirmado pelo usuário um a um).
-  - Sessão que segue editando no claude.ai (D3, ex.: catálogo de regras): "Versão oficial: `<caminho>` no repositório. O que mudar aqui a DOCUMENTAÇÃO leva para lá a cada 3 dias."
-  - Cópia aposentada: "Cópia antiga. Versão oficial: `<caminho>` no repositório."
-Expected: uma nova leitura de cada artifact mostra o aviso, ou o artifact não existe mais.
+Aposentar as cópias no claude.ai saiu do plano: o claude.ai deixa de ser usado (D3).
 
 ---
 
-# Entrega 2 — `CLAUDE.md` enxuto e no git
+# Entrega 2 — `CLAUDE.md` enxuto e no git (antecipada para a entrega 1)
 
-Branch `documentacao-2-claude-md`, a partir da `origin/main` com a entrega 1 mesclada.
+As Tarefas 7 e 8 foram feitas na branch `documentacao-1-colheita`. A Tarefa 9 (arquivo solto) fica para depois do merge.
 
-### Task 7: `CLAUDE.md` da raiz e do protótipo
+### Task 7: `CLAUDE.md` da raiz e do protótipo (feita na entrega 1)
 
 **Files:**
 - Create (no git): `CLAUDE.md`
