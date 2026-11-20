@@ -7,6 +7,7 @@ import { atualizarEscalas, consultaEscalas, marcarBlocosDoVoluntariado } from '@
 import { consultaCatalogo, consultaParametros, editarNoCatalogo, incluirNoCatalogo, salvarParametro, type Catalogo } from '@/api/configuracoes';
 import { ehAdministrador, podeMudarParametro } from '@/api/eu';
 import { useTrava } from '@/componentes/AlteracoesPendentes';
+import { MetaDeAtivacao } from '@/componentes/configuracoes/MetaDeAtivacao';
 import { ImportarPlanilha } from '@/componentes/ImportarPlanilha';
 import { Button } from '@/componentes/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/componentes/ui/dialog';
@@ -18,7 +19,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/componentes/ui/tabs'
 import { AcoesDosModelos, ListaDeModelos } from '@/componentes/guarnicoes/ListaDeModelos';
 import { mesAtual } from '@/lib/meses';
 
-const ABAS = ['regras', 'voluntariado', 'modelos', 'tipos', 'atividades'] as const;
+const ABAS = ['regras', 'voluntariado', 'modelos', 'meta', 'tipos', 'atividades'] as const;
 type Aba = (typeof ABAS)[number];
 
 export const Route = createFileRoute('/_app/configuracoes')({
@@ -45,6 +46,7 @@ function Configuracoes() {
           <TabsTrigger value="regras">Regras do processo</TabsTrigger>
           <TabsTrigger value="voluntariado">Voluntariado</TabsTrigger>
           <TabsTrigger value="modelos">Modelos de guarnição</TabsTrigger>
+          <TabsTrigger value="meta">Meta de ativação</TabsTrigger>
           <TabsTrigger value="tipos">Tipos de afastamento</TabsTrigger>
           <TabsTrigger value="atividades">Atividades</TabsTrigger>
         </TabsList>
@@ -62,6 +64,11 @@ function Configuracoes() {
             <div className="flex flex-col overflow-hidden rounded-xl border border-linha bg-superficie">
               <ListaDeModelos unidadeId={eu.unidade.id} />
             </div>
+          </div>
+        </TabsContent>
+        <TabsContent value="meta">
+          <div className="mt-4">
+            <MetaDeAtivacao unidadeId={eu.unidade.id} podeMudar={podeMudar} />
           </div>
         </TabsContent>
         <TabsContent value="tipos">

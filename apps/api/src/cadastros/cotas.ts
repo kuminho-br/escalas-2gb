@@ -15,7 +15,7 @@ const MSG_SERVICO = 'Use um serviço cadastrado nesta seção.';
 type LinhaCota = Omit<Cota, 'distribuidas'>;
 
 /** Cotas do mês da unidade, por prioridade, com as alocações distribuídas repartidas entre elas. */
-async function cotasDoMes(c: Consulta, unidadeId: string, mes: string): Promise<Cota[]> {
+export async function cotasDoMes(c: Consulta, unidadeId: string, mes: string): Promise<Cota[]> {
   const { rows } = await c.query<LinhaCota>(
     `select c.id, to_char(c.mes, 'YYYY-MM') as mes, c.servico_id as "servicoId", c.quantidade, c.origem, c.prioridade,
             s.nome as servico, s.cor

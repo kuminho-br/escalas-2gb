@@ -19,9 +19,16 @@ export const consultaCandidatos = (escalaId: string, mes: string, v: { data: str
     staleTime: 0,
   });
 
+/** Escalar ou remover gasta (ou devolve) cota e muda o efetivo do dia: as cotas restantes e o painel do dia voltam a ser buscados. */
+function atualizarQuemDependeDaEscala(queryClient: QueryClient) {
+  void queryClient.invalidateQueries({ queryKey: ['cotas'] });
+  void queryClient.invalidateQueries({ queryKey: ['efetivo-do-dia'] });
+}
+
 function guardar(queryClient: QueryClient, e: EscalaDoMes): EscalaDoMes {
   atualizarEscalaDoMes(queryClient, e.escalaId, e.mes, e);
   void queryClient.invalidateQueries({ queryKey: ['candidatos'] });
+  atualizarQuemDependeDaEscala(queryClient);
   return e;
 }
 
@@ -32,6 +39,7 @@ async function gravando(queryClient: QueryClient, pedido: Promise<EscalaDoMes>):
   } catch (e) {
     void queryClient.invalidateQueries({ queryKey: ['escala-do-mes'] });
     void queryClient.invalidateQueries({ queryKey: ['candidatos'] });
+    atualizarQuemDependeDaEscala(queryClient);
     throw e;
   }
 }
