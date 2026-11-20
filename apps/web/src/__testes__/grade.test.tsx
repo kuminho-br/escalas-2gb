@@ -1,0 +1,192 @@
+import { QueryClient } from '@tanstack/react-query';
+import type { BlocoDaGrade, EfetivoDoDia, GradeDoMes, LinhaDaGrade } from 'contratos';
+import { screen, waitFor, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { describe, expect, it } from 'vitest';
+import { escalar } from '@/api/escala-do-mes';
+import { tirarDaMeta } from '@/api/efetivo-do-dia';
+import { abrir, EU_EXEMPLO, simularApi } from './apoio';
+
+// Dezembro de 2026 (dia 1 = terça; dia 5 = sábado; dia 8 = feriado de teste). Equipes Alfa (CABO, SD1) e Bravo (BRAVO) e o Adm (ADM).
+const MES = '2026-12';
+const dia = (n: number) => `${MES}-${String(n).padStart(2, '0')}`;
+const DIAS = Array.from({ length: 31 }, (_, i) => ({ data: dia(i + 1), diaDaSemana: (2 + i) % 7, feriado: i + 1 === 8 ? 'Feriado de teste' : null }));
+const PRONTO = { id: 's-pronto', nome: 'Pronto', cor: '#2F8F5B', tipo: 'ordinario' as const };
+const JES = { id: 's-jes', nome: 'JES', cor: '#6E56A8', tipo: 'pjes' as const };
+const bloco = (servico: typeof PRONTO | typeof JES, letra: string, inicio = '08:00', fim = '20:00'): BlocoDaGrade => ({
+  alocacaoId: `a-${servico.nome}-${letra}-${inicio}`, servico, letra, inicio, fim, expediente: false,
+});
+const EXPEDIENTE: BlocoDaGrade = { alocacaoId: null, servico: null, letra: null, inicio: '08:00', fim: '16:00', expediente: true };
+const linha = (nomeGuerra: string, extra: Partial<LinhaDaGrade> = {}): LinhaDaGrade => ({
+  militarId: `m-${nomeGuerra}`, posto: 'SD BM', nomeGuerra, matricula: '990001-1', jornada: 'pronto', dias: {}, choques: [], pjes: 0, diarias: 0, horasTiradas: 0, horasPedidas: 0, ...extra,
+});
+const GRADE: GradeDoMes = {
+  mes: MES,
+  dias: DIAS,
+  grupos: [
+    {
+      chave: 'eq-alfa', nome: 'Alfa',
+      linhas: [
+        linha('CABO', {
+          dias: { [dia(2)]: [bloco(PRONTO, 'A')], [dia(31)]: [bloco(PRONTO, 'B', '20:00', '08:00')] },
+          choques: [dia(31)], pjes: 4, diarias: 0, horasTiradas: 24 * 60, horasPedidas: 60 * 60,
+        }),
+        linha('SD1', { dias: { [dia(5)]: [bloco(PRONTO, 'A'), bloco(JES, 'A', '20:00', '23:00')] }, pjes: 8, diarias: 2, horasTiradas: 90, horasPedidas: 180 }),
+      ],
+    },
+    { chave: 'eq-bravo', nome: 'Bravo', linhas: [linha('BRAVO', { dias: { [dia(8)]: [bloco(JES, 'A')] }, pjes: 2, diarias: 1 })] },
+    { chave: 'adm', nome: 'Adm', linhas: [linha('ADM', { jornada: 'adm', dias: { [dia(2)]: [EXPEDIENTE] } })] },
+  ],
+};
+const ROTA = `GET /api/unidades/u-1sb/grade/${MES}`;
+
+function api(grade: GradeDoMes = GRADE) {
+  return simularApi({ '/api/eu': { status: 200, corpo: EU_EXEMPLO }, [ROTA]: { status: 200, corpo: grade } });
+}
+const linhaDe = (nome: string) => screen.getByRole('rowheader', { name: new RegExp(nome) }).closest('tr') as HTMLElement;
+const celula = (nome: string, n: number, texto: string) => within(linhaDe(nome)).getByRole('button', { name: `SD BM ${nome}, dia ${n}: ${texto}` });
+const larguras = (nome: string) => [...linhaDe(nome).querySelectorAll<HTMLElement>('[data-barra]')].map((b) => b.style.width);
+
+describe('grade geral: a tabela', () => {
+  it('mostra os grupos na ordem da API e as linhas com os blocos (letra e cor do serviço)', async () => {
+    api();
+    abrir(`/?mes=${MES}`);
+    await screen.findByRole('table', { name: 'Grade geral de dezembro de 2026' });
+    expect([...document.querySelectorAll('tr[data-grupo]')].map((g) => g.textContent)).toEqual(['Alfa', 'Bravo', 'Adm']);
+    expect(screen.getAllByRole('rowheader').map((h) => h.textContent)).toEqual(expect.arrayContaining([expect.stringContaining('CABO'), expect.stringContaining('ADM')]));
+    const b = within(celula('CABO', 2, 'Pronto A')).getByText('A');
+    expect(b).toHaveStyle({ backgroundColor: '#2F8F5B' });
+    // dois serviços no mesmo dia: os dois blocos, na ordem do dia
+    const dois = celula('SD1', 5, 'Pronto A, JES A');
+    expect(within(dois).getAllByText('A')).toHaveLength(2);
+  });
+
+  it('o feriado tem o número em vermelho e o fim de semana o fundo sombreado', async () => {
+    api();
+    abrir(`/?mes=${MES}`);
+    const cabecalho = await screen.findByRole('columnheader', { name: /^Dia 8, terça, feriado: Feriado de teste/ });
+    expect(cabecalho).toHaveAttribute('data-feriado');
+    expect(within(cabecalho).getByText('8')).toHaveClass('text-alerta');
+    expect(screen.getByRole('columnheader', { name: /^Dia 5, sábado/ })).toHaveAttribute('data-fim-de-semana');
+    expect(celula('SD1', 5, 'Pronto A, JES A').closest('td')).toHaveAttribute('data-fim-de-semana');
+    expect(celula('CABO', 2, 'Pronto A').closest('td')).not.toHaveAttribute('data-fim-de-semana');
+  });
+
+  it('a célula com choque tem contorno vermelho e "choque" no nome; o expediente é um bloco sem letra', async () => {
+    api();
+    abrir(`/?mes=${MES}`);
+    const c = await screen.findByRole('button', { name: 'SD BM CABO, dia 31: Pronto B, choque' });
+    expect(c).toHaveAttribute('data-choque');
+    expect(c).toHaveClass('ring-alerta');
+    const exp = celula('ADM', 2, 'expediente');
+    expect(exp).toBeInTheDocument();
+    expect(within(exp).queryByText(/^[A-C]$/)).toBeNull();
+    expect(celula('CABO', 3, 'sem serviço')).not.toHaveAttribute('data-choque');
+  });
+});
+
+describe('grade geral: a legenda', () => {
+  it('traz só os serviços que aparecem, o expediente e o choque', async () => {
+    api();
+    abrir(`/?mes=${MES}`);
+    const legenda = await screen.findByRole('list', { name: 'Legenda' });
+    expect(within(legenda).getAllByRole('listitem').map((i) => i.textContent)).toEqual(['JES', 'Pronto', 'Expediente do Adm', 'Choque de horário']);
+  });
+
+  it('com o filtro, a legenda acompanha os grupos que aparecem', async () => {
+    api();
+    abrir(`/?mes=${MES}&equipe=eq-bravo`);
+    const legenda = await screen.findByRole('list', { name: 'Legenda' });
+    expect(within(legenda).getAllByRole('listitem').map((i) => i.textContent)).toEqual(['JES']);
+  });
+});
+
+describe('grade geral: as colunas finais', () => {
+  it('PJES e Diárias mostram o número com a barra proporcional ao maior da coluna em toda a grade', async () => {
+    api();
+    abrir(`/?mes=${MES}`);
+    await screen.findByRole('table');
+    // PJES: máximo 8 (SD1); Diárias: máximo 2 (SD1)
+    expect(larguras('CABO')).toEqual(['50%', '0%']);
+    expect(larguras('SD1')).toEqual(['100%', '100%']);
+    expect(larguras('BRAVO')).toEqual(['25%', '50%']);
+    expect(within(linhaDe('CABO')).getByText('4')).toBeInTheDocument();
+  });
+
+  it('Voluntariado mostra as horas tiradas de pedidas, e traço quando não há nada', async () => {
+    api();
+    abrir(`/?mes=${MES}`);
+    await screen.findByRole('table');
+    expect(within(linhaDe('CABO')).getByText('24h de 60h')).toBeInTheDocument();
+    expect(within(linhaDe('SD1')).getByText('1h30 de 3h')).toBeInTheDocument();
+    expect(within(linhaDe('BRAVO')).getByText('–')).toBeInTheDocument();
+  });
+});
+
+describe('grade geral: o filtro de equipes e o clique', () => {
+  it('"Bravo" esconde os outros grupos, fica na busca e a barra continua comparando com todo o efetivo', async () => {
+    api();
+    const router = abrir(`/?mes=${MES}`);
+    await userEvent.click(await screen.findByRole('button', { name: 'Bravo' }));
+    await waitFor(() => expect((router.state.location.search as { equipe?: string }).equipe).toBe('eq-bravo'));
+    expect(screen.getByRole('button', { name: 'Bravo' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.queryByRole('rowheader', { name: /CABO/ })).toBeNull();
+    expect(screen.queryByRole('rowheader', { name: /ADM/ })).toBeNull();
+    expect(larguras('BRAVO')).toEqual(['25%', '50%']);
+    await userEvent.click(screen.getByRole('button', { name: 'Todas' }));
+    expect(await screen.findByRole('rowheader', { name: /CABO/ })).toBeInTheDocument();
+  });
+
+  it('o filtro vindo do endereço já abre filtrado', async () => {
+    api();
+    abrir(`/?mes=${MES}&equipe=adm`);
+    await screen.findByRole('rowheader', { name: /ADM/ });
+    expect(screen.queryByRole('rowheader', { name: /CABO/ })).toBeNull();
+  });
+
+  it('clicar na célula põe o militar e o dia na busca, e a célula escolhida fica marcada', async () => {
+    api();
+    const router = abrir(`/?mes=${MES}`);
+    await userEvent.click(await screen.findByRole('button', { name: 'SD BM CABO, dia 2: Pronto A' }));
+    await waitFor(() => expect(router.state.location.search).toMatchObject({ militar: 'm-CABO', dia: dia(2) }));
+    expect(celula('CABO', 2, 'Pronto A')).toHaveAttribute('data-escolhida');
+    expect(celula('CABO', 3, 'sem serviço')).not.toHaveAttribute('data-escolhida');
+  });
+
+  it('o seletor de mês troca o mês e pede a grade do novo mês', async () => {
+    const f = simularApi({
+      '/api/eu': { status: 200, corpo: EU_EXEMPLO },
+      [ROTA]: { status: 200, corpo: GRADE },
+      'GET /api/unidades/u-1sb/grade/2027-01': { status: 200, corpo: { ...GRADE, mes: '2027-01', dias: [], grupos: [] } },
+    });
+    const router = abrir(`/?mes=${MES}`);
+    await userEvent.click(await screen.findByRole('button', { name: 'Próximo mês' }));
+    await waitFor(() => expect((router.state.location.search as { mes?: string }).mes).toBe('2027-01'));
+    await waitFor(() => expect(f.mock.calls.some(([e]) => String(e).endsWith('/grade/2027-01'))).toBe(true));
+  });
+
+  it('mês sem ninguém diz isso', async () => {
+    api({ ...GRADE, grupos: [] });
+    abrir(`/?mes=${MES}`);
+    expect(await screen.findByText('Ninguém para mostrar neste mês.')).toBeInTheDocument();
+  });
+});
+
+describe('grade geral: as gravações invalidam a grade', () => {
+  const ESCALA = { escalaId: 'e1', nome: 'Ordinário', mes: MES, dias: [], resumo: { preenchidas: 0, obrigatorias: 0, obrigatoriasVazias: 0 } };
+  const EFETIVO: EfetivoDoDia = { data: dia(2), meta: { origem: 'dia', total: 0, ativadas: 0 }, guarnicoes: [], cotas: [] };
+
+  it('escalar e tirar da meta (desescalando) marcam a grade como desatualizada', async () => {
+    simularApi({
+      'POST /api/escalas/e1/alocacoes': { status: 201, corpo: ESCALA },
+      [`POST /api/unidades/u-1sb/meta-do-dia/${dia(2)}/tirar`]: { status: 200, corpo: EFETIVO },
+    });
+    const queryClient = new QueryClient();
+    queryClient.setQueryData(['grade', 'u-1sb', MES], GRADE);
+    await escalar(queryClient, 'e1', { militarId: 'm1', data: dia(2), turnoId: 't1', guarnicaoId: null, funcaoId: null });
+    expect(queryClient.getQueryState(['grade', 'u-1sb', MES])!.isInvalidated).toBe(true);
+    queryClient.setQueryData(['grade', 'u-1sb', MES], GRADE);
+    await tirarDaMeta(queryClient, 'u-1sb', dia(2), { guarnicaoId: 'g1', desescalar: true });
+    expect(queryClient.getQueryState(['grade', 'u-1sb', MES])!.isInvalidated).toBe(true);
+  });
+});

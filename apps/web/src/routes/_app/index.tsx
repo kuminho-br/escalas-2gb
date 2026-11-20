@@ -1,16 +1,82 @@
+import { useQuery } from '@tanstack/react-query';
 import { createFileRoute } from '@tanstack/react-router';
+import { Data, Mes } from 'contratos';
+import { mensagemDe } from '@/api/cliente';
+import { consultaGrade } from '@/api/grade';
+import { CampoDeMes } from '@/componentes/CampoDeMes';
+import { LegendaDaGrade } from '@/componentes/grade/LegendaDaGrade';
+import { TabelaDaGrade, maximosDaGrade } from '@/componentes/grade/TabelaDaGrade';
+import { Label } from '@/componentes/ui/label';
+import { mesAtual } from '@/lib/meses';
+import { cn } from '@/lib/utils';
+
+type Busca = { mes?: string; equipe?: string; militar?: string; dia?: string };
 
 export const Route = createFileRoute('/_app/')({
+  validateSearch: (s: Record<string, unknown>): Busca => ({
+    mes: typeof s.mes === 'string' && Mes.safeParse(s.mes).success ? s.mes : undefined,
+    equipe: typeof s.equipe === 'string' && s.equipe ? s.equipe : undefined,
+    militar: typeof s.militar === 'string' && s.militar ? s.militar : undefined,
+    dia: typeof s.dia === 'string' && Data.safeParse(s.dia).success ? s.dia : undefined,
+  }),
   component: GradeGeral,
 });
 
+/** A Grade geral: todo o efetivo da seção no mês, em equipes. Clicar numa célula (militar e dia) escolhe o dia dele. */
 function GradeGeral() {
+  const { eu } = Route.useRouteContext();
+  const busca = Route.useSearch();
+  const navigate = Route.useNavigate();
+  const mes = busca.mes ?? mesAtual();
+  const dados = useQuery(consultaGrade(eu.unidade.id, mes));
+  const grade = dados.data;
+  const grupos = grade ? (busca.equipe ? grade.grupos.filter((g) => g.chave === busca.equipe) : grade.grupos) : [];
+  const escolhida = busca.militar && busca.dia ? { militarId: busca.militar, dia: busca.dia } : null;
+  const filtrar = (equipe: string | undefined) => void navigate({ search: (s) => ({ ...s, equipe }) });
+
   return (
-    <section>
+    <section className="grid gap-4">
       <h1 className="font-cond text-[28px] leading-tight font-semibold">Grade geral</h1>
-      <div className="mt-6 grid min-h-64 place-items-center rounded-xl border border-dashed border-linha bg-superficie/60 px-6 py-12 text-center">
-        <p className="max-w-[46ch] text-apagado">A grade geral chega na próxima fase.</p>
+      <div className="flex flex-wrap items-end gap-3">
+        <div className="grid gap-1.5">
+          <Label htmlFor="gg-mes">Mês</Label>
+          <CampoDeMes id="gg-mes" valor={mes} aoMudar={(m) => void navigate({ search: (s) => ({ ...s, mes: m, militar: undefined, dia: undefined }) })} />
+        </div>
+        {grade && grade.grupos.length > 1 && (
+          <div role="group" aria-label="Equipes" className="flex flex-wrap items-center gap-1.5">
+            {[{ chave: undefined, nome: 'Todas' }, ...grade.grupos].map((g) => {
+              const ligado = (busca.equipe ?? undefined) === g.chave;
+              return (
+                <button
+                  key={g.chave ?? 'todas'}
+                  type="button"
+                  aria-pressed={ligado}
+                  onClick={() => filtrar(g.chave)}
+                  className={cn('h-9 rounded-md border px-3 text-sm', ligado ? 'border-tinta bg-tinta text-white' : 'border-linha bg-superficie hover:bg-accent')}
+                >
+                  {g.nome}
+                </button>
+              );
+            })}
+          </div>
+        )}
       </div>
+
+      {dados.isPending && <p className="text-apagado">Carregando…</p>}
+      {dados.error && <p role="alert" className="text-alerta">{mensagemDe(dados.error)}</p>}
+      {grade && grade.grupos.length === 0 && <p className="text-apagado">Ninguém para mostrar neste mês.</p>}
+      {grade && grupos.length > 0 && (
+        <div className="overflow-hidden rounded-xl border border-linha bg-superficie">
+          <TabelaDaGrade
+            grade={grade}
+            grupos={grupos}
+            maximos={maximosDaGrade(grade.grupos)}
+            escolhida={escolhida}
+            aoEscolher={(militar, dia) => void navigate({ search: (s) => ({ ...s, militar, dia }) })}
+          />
+          <LegendaDaGrade grupos={grupos} />
+        </div>
+      )}
     </section>
   );
 }

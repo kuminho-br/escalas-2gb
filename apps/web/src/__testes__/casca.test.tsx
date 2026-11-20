@@ -43,7 +43,7 @@ describe('casca', () => {
     expect(screen.getByRole('img', { name: 'Brasão do Corpo de Bombeiros Militar de Pernambuco' })).toHaveAttribute('src', '/brasao-cbmpe.png');
     expect(screen.getByRole('link', { name: 'Grade geral' })).toHaveAttribute('aria-current', 'page');
     expect(screen.getByText('Estrutura').closest('[aria-disabled="true"]')).not.toBeNull();
-    expect(screen.getByText('A grade geral chega na próxima fase.')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Grade geral', level: 1 })).toBeInTheDocument();
   });
 
   it('militar comum não vê os cadastros', async () => {

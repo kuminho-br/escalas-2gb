@@ -23,6 +23,7 @@ export const consultaCandidatos = (escalaId: string, mes: string, v: { data: str
 function atualizarQuemDependeDaEscala(queryClient: QueryClient) {
   void queryClient.invalidateQueries({ queryKey: ['cotas'] });
   void queryClient.invalidateQueries({ queryKey: ['efetivo-do-dia'] });
+  void queryClient.invalidateQueries({ queryKey: ['grade'] });
 }
 
 function guardar(queryClient: QueryClient, e: EscalaDoMes): EscalaDoMes {
