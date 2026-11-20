@@ -78,6 +78,7 @@ Roadmap: `docs/superpowers/plans/2026-11-16-roadmap-migracao.md`
   - Desenvolvimento local, testes automáticos, GitHub e prévias usam um conjunto fictício: 53 militares inventados da 1ª SB com as proporções da sandbox, matrículas numa faixa inexistente (começando em `990`). Serviços, turnos, guarnições, escalas, cotas, feriados, configurações e estrutura são os reais, por não serem dados pessoais. A matrícula e o nome reais que estavam em `testes/teste_p18.js` e `testes/teste_p19.js` foram trocados na criação de `casos/` (fase 2).
   - A cópia semanal do banco (D2) é guardada criptografada fora do Supabase.
 - **Salvaguardas não adotadas:** apagar o banco de teste com data marcada; anuência escrita do Chefe da SB.
+- **Revista em 20/11/2026 para o Pecúlio:** ver o adendo "Reorganização do roadmap: Pecúlio primeiro", no fim deste documento.
 
 ## Esquema do banco
 
@@ -308,4 +309,61 @@ Hoje o cadastro de militares é simples. Num momento futuro, o usuário vai rees
 Antes dessa entrega, é preciso decidir:
 - se a ficha do Pecúlio e a ficha de Militares são a mesma ficha, com mais campos, ou duas coisas separadas;
 - quem vê cada informação, porque a ficha completa traz mais dados pessoais (D7).
+
+*Atualizado em 20/11/2026:* o Pecúlio ganhou fase (a 5), antes dos tipos de usuário (6) e da Visualização (7). Ver o adendo seguinte.
+
+## Adendo (20/11/2026) — Reorganização do roadmap: Pecúlio primeiro
+
+### Por quê
+
+O desenvolvimento andou mais rápido que o previsto: a fase 4 já tem as quatro telas de trabalho (Escala do mês, Efetivo por dia, Grade geral e, a desenhar, a Escala por militar), e ainda não é hora de montar a escala de um mês real. A próxima etapa do roadmap era o Gerar documento (entrega 5 da fase 4), mas ele só tem uso quando o sistema publicar uma escala de verdade. Na leitura do usuário, o que destrava mais coisas é a **base de dados dos militares**, que hoje vive na planilha do Pecúlio: ela é a base dos acessos (cada usuário já é um militar do cadastro, `usuario.militar_id`, único e obrigatório), da Minha escala e da diferenciação dos tipos de usuário.
+
+O piloto continua sendo a diretriz geral do projeto, mas não fixa a ordem de tudo (decisão do usuário).
+
+### Abordagens consideradas
+
+- **Rota 1 — seguir o roadmap (Gerar documento, depois o piloto).** Fecha a fase 4 como estava escrita. Descartada: no piloto, em paralelo com as planilhas, quem publica é a planilha, e o documento do sistema novo ficaria sem uso.
+- **Rota 2 — preparar o piloto (estabilidade, distribuições automáticas, importação do voluntariado, piloto, documento).** Coloca o sistema novo no mesmo nível de automação do protótipo antes do mês real. Ficou como a ordem da fase 8: o mês real ainda não chegou.
+- **Rota 3 — Pecúlio primeiro (escolhida).** Pecúlio (fase 5), tipos de usuário e módulos (6), Visualização de escalas (7) e só então o primeiro mês real (8). Usa o tempo que sobrou para construir a base que destrava o resto:
+  - os acessos de todos os militares;
+  - a antiguidade do GB, pela "Ordem" do Pecúlio;
+  - os afastamentos sem lançamento à mão (férias, L.E, LTS e DTS);
+  - o militar marcando o próprio voluntariado, o que dispensa a importação do Google Forms.
+
+A fase 4 fecha antes, com a validação da entrega 4, as entregas 4.1 e 4.2 e uma 4.3 de limpeza (as pendências da fase 3 que ficaram de fora da 3.3). A ordem completa está no roadmap.
+
+### O que é o Pecúlio hoje (levantamento de 20/11/2026)
+
+Uma planilha, `BACKUP DO PECÚLIO 2ºGB (04NOV26).xlsx`, guardada em `docs/fontes de dados/`, **fora do Git** (`.git/info/exclude`). O levantamento leu só a estrutura (abas, cabeçalhos, contagens e categorias), sem copiar dados pessoais.
+
+- **Aba "2ºGB" (a principal):** cerca de 184 militares do 2º GB inteiro, de Ten Cel a Sd, com o cabeçalho na linha 9 e um título institucional em cima. Colunas:
+  - sexo, **Ordem** (a antiguidade no GB), posto/grad., matrícula, nome completo;
+  - voluntário PJES, abono de permanência, aniversariantes do mês, aniversário, data de nascimento, **CPF**, data de ingresso;
+  - **lotação** (SEDE, SCSv, 1ª a 7ª SB), função administrativa (cerca de 49 diferentes) e comportamento (Excepcional, Ótimo, Bom);
+  - **férias**: BGE, plano, reprogramação do período 2026/2027, reprogramadas e cassada;
+  - L.E, LTS, DTS e adido/agregado;
+  - à direita, blocos de resumo por posto (SubTen, 1º Sgt…), que são contas da planilha, não dados de militar.
+- **Aba "Números efetivo":** previsto, existente e déficit do 2º GB e da 1ª SB, e o existente por SB e por posto.
+- **Aba "Missões extra por portaria":** missão, publicação, posto, matrícula, nome e funções extras.
+
+**O que o Pecúlio não tem:** e-mail (o login de hoje é por e-mail), CNH, equipe e jornada. Esses três últimos continuam vindo da escala.
+
+### D7 revista para o Pecúlio (decisão do usuário, opção a)
+
+- **Escolha:** o banco de teste recebe **todos os campos do Pecúlio, menos o CPF e o ano de nascimento**. O aniversário fica só com dia e mês. Os dados completos (CPF e data de nascimento) entram só no servidor do Estado (fase 11).
+- **Continua valendo da D7 original:** afastamento sem motivo de saúde (sem CID, sem laudo), TELEFONE fora, desenvolvimento e testes com dados fictícios.
+- **Consequência para o desenvolvimento:** o conjunto fictício (hoje 53 militares da 1ª SB) cresce para o GB inteiro, com as nove lotações e os campos novos, nas mesmas proporções do Pecúlio.
+- **Alternativas descartadas:**
+  - (b) levar tudo: põe o CPF e a data de nascimento de 184 pessoas numa nuvem comercial ainda de teste;
+  - (c) só o que a escala usa e mais as férias: seguro, mas o Pecúlio vira só um apoio da escala.
+
+### Decisões que faltam (antes do design da fase 5)
+
+1. **Ficha única ou duas:** a ficha do Pecúlio e a de Militares são a mesma, com mais campos, ou duas coisas separadas?
+2. **Fonte dos dados depois da importação:** o sistema (a planilha é aposentada) ou a planilha (importada de novo de tempos em tempos)?
+3. **Abas extras no módulo:** Números efetivo e Missões extra por portaria entram?
+4. **Como o militar comum entra:** o Pecúlio não tem e-mail. Se a resposta pedir um campo novo, ele nasce na ficha da fase 5.
+5. **Quem vê cada informação do Pecúlio:** por tipo de usuário e por lotação. Fecha junto com a fase 6, mas a ficha da fase 5 já nasce sabendo quais campos são restritos.
+
+Também entram no design da fase 5 os problemas que só apareciam com várias unidades (roadmap, "Fases 4 e 7"): transferência, antiguidade no caminho da unidade, funções na unidade de cima, catálogo de funções, renomear função e feriado repetido.
 
