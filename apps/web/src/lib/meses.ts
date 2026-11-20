@@ -22,3 +22,9 @@ export function dataPorExtenso(data: string): string {
   const [a, m, d] = data.split('-');
   return `${DIAS_DA_SEMANA[new Date(`${data}T00:00:00Z`).getUTCDay()]}, ${d}/${m}/${a}`;
 }
+
+/** '2026-11-20' -> '20/11/2026'. */
+export function dataBr(data: string): string {
+  const [a, m, d] = data.split('-');
+  return `${d}/${m}/${a}`;
+}

@@ -1,4 +1,4 @@
-import type { CardDaGuarnicao, DiaDaEscala, EscalaDoMes, FaixaDoDia, LinhaEscala, OcupanteDaVaga } from 'contratos';
+import type { Cota, CardDaGuarnicao, DiaDaEscala, EscalaDoMes, FaixaDoDia, LinhaEscala, OcupanteDaVaga } from 'contratos';
 import { somarMeses } from 'contratos';
 import { act, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -521,5 +521,32 @@ describe('acumular funções', () => {
     await userEvent.click(within(d3).getByRole('button', { name: 'Remover CHEFE' }));
     expect(confirmar).toHaveBeenLastCalledWith('Remover CHEFE de ABT, dia 3? Ele não volta para este turno quando a pré-escala for gerada de novo. Sai também de: Graduado de dia.');
     await waitFor(() => expect(chamadasA(f, 'DELETE /api/alocacoes/a-CHEFE')).toBe(1));
+  });
+});
+
+describe('cotas restantes na escala do mês', () => {
+  const cota = (c: Partial<Cota>): Cota => ({ id: 'c1', mes: MES, servicoId: 's-jes', quantidade: 40, origem: 'interna', prioridade: 1, servico: 'JES', cor: '#6E56A8', distribuidas: 2, ...c });
+  const COTAS = [cota({}), cota({ id: 'c2', servicoId: 's-bioma', servico: 'Bioma', cor: '#C08A1E', quantidade: 20, distribuidas: 0 })];
+  // a escala tem Pronto e JES nos turnos; o Bioma não faz parte dela
+  const comJes = (): EscalaDoMes => {
+    const turnos = [
+      { turnoId: 't-a', servicoId: 's1', servico: 'Pronto', letra: 'A' as const },
+      { turnoId: 't-j', servicoId: 's-jes', servico: 'JES', letra: 'A' as const },
+    ];
+    return { ...ESCALA, dias: ESCALA.dias.map((d) => ({ ...d, faixas: d.faixas.map((f) => (f.noturna ? f : { ...f, turnos })) })) };
+  };
+
+  it('mostra só as cotas dos serviços da escala, como "JES: restam 38 de 40"', async () => {
+    api(comJes(), { 'GET /api/unidades/u-1sb/cotas': { status: 200, corpo: COTAS } });
+    abrir(`/escala-do-mes?escala=e1&mes=${MES}`);
+    expect(await screen.findByText('JES: restam 38 de 40')).toBeInTheDocument();
+    expect(screen.queryByText(/Bioma/)).toBeNull();
+  });
+
+  it('sem cotas para os serviços da escala, a linha não aparece', async () => {
+    api(ESCALA, { 'GET /api/unidades/u-1sb/cotas': { status: 200, corpo: COTAS } });
+    abrir(`/escala-do-mes?escala=e1&mes=${MES}`);
+    await screen.findByRole('region', { name: 'Dia 1' });
+    expect(screen.queryByRole('list', { name: 'Cotas restantes' })).toBeNull();
   });
 });

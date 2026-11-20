@@ -3,7 +3,9 @@ import { createFileRoute, Link } from '@tanstack/react-router';
 import { Data, Mes, type OcupanteDaVaga } from 'contratos';
 import { useEffect, useState } from 'react';
 import { mensagemDe } from '@/api/cliente';
+import { consultaCotas } from '@/api/cotas';
 import { consultaEscalaDoMes, desfazerRemocao, removerAlocacao, tirarAcumulo } from '@/api/escala-do-mes';
+import { restantesPorServico } from '@/lib/cotas';
 import { listaComE } from '@/lib/escala';
 import { consultaEscalas } from '@/api/escalas';
 import type { VagaDaTela } from '@/componentes/escala-do-mes/CardDaGuarnicao';
@@ -11,6 +13,7 @@ import { DiaDaEscalaVista } from '@/componentes/escala-do-mes/DiaDaEscala';
 import { EscolherMilitar } from '@/componentes/escala-do-mes/EscolherMilitar';
 import { GerarPreEscala } from '@/componentes/escala-do-mes/GerarPreEscala';
 import { CampoDeMes } from '@/componentes/CampoDeMes';
+import { CotasRestantes } from '@/componentes/CotasRestantes';
 import { Selecao } from '@/componentes/Selecao';
 import { Button } from '@/componentes/ui/button';
 import { Label } from '@/componentes/ui/label';
@@ -42,6 +45,7 @@ function EscalaDoMes() {
   const escalaId = busca.escala ?? ativas[0]?.id;
   const mes = busca.mes ?? mesAtual();
   const dados = useQuery({ ...consultaEscalaDoMes(escalaId ?? '', mes), enabled: Boolean(escalaId) });
+  const cotas = useQuery({ ...consultaCotas(eu.unidade.id, mes), enabled: Boolean(escalaId) });
   const opcoes = escalas.data?.filter((e) => e.ativa || e.id === escalaId) ?? [];
   // rola uma vez ao carregar a escala (não a cada gravação, que troca os dados mas não a escala nem o mês)
   const carregada = dados.data ? `${dados.data.escalaId}|${dados.data.mes}` : null;
@@ -87,6 +91,8 @@ function EscalaDoMes() {
   }
 
   const resumo = dados.data?.resumo;
+  // as cotas dos serviços que aparecem nos turnos das faixas do mês
+  const servicosDaEscala = [...new Set((dados.data?.dias ?? []).flatMap((d) => d.faixas.flatMap((f) => f.turnos.map((t) => t.servicoId))))];
   return (
     <section className="grid gap-4">
       <h1 className="font-cond text-[28px] leading-tight font-semibold">Escala do mês</h1>
@@ -115,6 +121,7 @@ function EscalaDoMes() {
         </Button>
       </div>
 
+      <CotasRestantes cotas={restantesPorServico(cotas.data ?? [], servicosDaEscala)} />
       {gravadas !== null && <p role="status" className="text-sm text-apagado">Pré-escala gravada: {gravadas} {gravadas === 1 ? 'serviço' : 'serviços'}.</p>}
       {erro && <p role="alert" className="text-alerta">{erro}</p>}
       {dados.isPending && <p className="text-apagado">Carregando…</p>}

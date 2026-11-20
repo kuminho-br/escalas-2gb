@@ -1,7 +1,8 @@
-import { mesPorExtenso, somarMeses, type LinhaEscala, type Parametro } from 'contratos';
+import { mesPorExtenso, somarMeses, type LinhaEscala, type LinhaGuarnicao, type Parametro, type VersaoDaMetaPadrao } from 'contratos';
 import { screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
+import { hoje } from '@/lib/meses';
 import { abrir, corpoEnviado, EU_EXEMPLO, simularApi } from './apoio';
 
 const PARAMS = '/api/unidades/u-1sb/parametros';
@@ -222,3 +223,56 @@ describe('configurações: blocos do voluntariado', () => {
   });
 });
 
+describe('meta de ativação', () => {
+  const META = '/api/unidades/u-1sb/meta-padrao';
+  const modelo = (id: string, nome: string, ativa = true): LinhaGuarnicao => ({ id, nome, viatura: null, prioridade: null, ativa, minimo: 1, maximo: 1, aPartirDe: null });
+  const MODELOS = [modelo('g1', 'ABT'), modelo('g2', 'ACO'), modelo('g9', 'Antigo', false)];
+  // uma versão em vigor desde 2020 e outra que só começa em 2099
+  const VERSOES: VersaoDaMetaPadrao[] = [
+    { desde: '2099-01-01', guarnicoes: [{ guarnicaoId: 'g2', nome: 'ACO' }, { guarnicaoId: 'g1', nome: 'ABT' }] },
+    { desde: '2020-01-01', guarnicoes: [{ guarnicaoId: 'g1', nome: 'ABT' }] },
+  ];
+  const abaMeta = (extra: Parameters<typeof simularApi>[0] = {}, eu = EU_EXEMPLO) => {
+    const f = api({ [`GET ${META}`]: { status: 200, corpo: VERSOES }, 'GET /api/unidades/u-1sb/guarnicoes': { status: 200, corpo: MODELOS }, ...extra }, eu);
+    abrir('/configuracoes?aba=meta');
+    return f;
+  };
+
+  it('lista a meta em vigor e as futuras, cada uma com a ordem de ativação', async () => {
+    abaMeta();
+    const futura = (await screen.findByText('A partir de 01/01/2099: 1º ACO, 2º ABT')).closest('li')!;
+    const vigente = screen.getByText('A partir de 01/01/2020: 1º ABT').closest('li')!;
+    expect(within(vigente).getByText('em vigor')).toBeInTheDocument();
+    expect(within(futura).queryByText('em vigor')).toBeNull();
+  });
+
+  it('o gestor grava a partir de hoje, e o editor começa pela meta em vigor', async () => {
+    const f = abaMeta({ [`PUT ${META}`]: { status: 200, corpo: VERSOES } }, GESTOR);
+    expect(await screen.findByRole('checkbox', { name: 'ABT' })).toBeChecked();
+    expect(screen.getByRole('checkbox', { name: 'ACO' })).not.toBeChecked();
+    expect(screen.queryByRole('checkbox', { name: 'Antigo' })).toBeNull();
+    expect(screen.getByLabelText('Vale a partir de')).toHaveValue(hoje());
+    await userEvent.click(screen.getByRole('checkbox', { name: 'ACO' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Subir ACO' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Salvar' }));
+    await vi.waitFor(() => expect(corpoEnviado(f, `PUT ${META}`)).toEqual({ desde: hoje(), guarnicoes: ['g2', 'g1'] }));
+  });
+
+  it('a data não aceita dia que já passou', async () => {
+    abaMeta({}, GESTOR);
+    expect(await screen.findByLabelText('Vale a partir de')).toHaveAttribute('min', hoje());
+  });
+
+  it('o escalante só vê a lista, sem o editor nem "Salvar"', async () => {
+    abaMeta();
+    await screen.findByText('A partir de 01/01/2099: 1º ACO, 2º ABT');
+    expect(screen.queryByRole('button', { name: 'Salvar' })).toBeNull();
+    expect(screen.queryByRole('checkbox', { name: 'ABT' })).toBeNull();
+    expect(screen.queryByLabelText('Vale a partir de')).toBeNull();
+  });
+
+  it('sem nenhuma meta gravada, diz isso', async () => {
+    abaMeta({ [`GET ${META}`]: { status: 200, corpo: [] } });
+    expect(await screen.findByText('Nenhuma meta padrão gravada ainda.')).toBeInTheDocument();
+  });
+});

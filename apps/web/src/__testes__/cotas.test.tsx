@@ -2,6 +2,7 @@ import { mesPorExtenso, somarMeses, type Cota, type Servico } from 'contratos';
 import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { restantesPorServico } from '@/lib/cotas';
 import { mesAtual } from '@/lib/meses';
 import { abrir, corpoEnviado, EU_EXEMPLO, simularApi } from './apoio';
 
@@ -176,5 +177,21 @@ describe('cotas', () => {
     api();
     abrir('/cotas');
     expect(await screen.findByRole('button', { name: /Importar da planilha/ })).toBeInTheDocument();
+  });
+});
+
+describe('restantesPorServico', () => {
+  const jes = (c: Partial<Cota>) => cota({ servicoId: 'sv-jes', servico: 'JES', ...c });
+
+  it('soma a interna e a externa do mesmo serviço numa só', () => {
+    const r = restantesPorServico([jes({ id: 'a', quantidade: 30, distribuidas: 5 }), jes({ id: 'b', origem: 'externa', quantidade: 10, distribuidas: 0 })]);
+    expect(r).toEqual([{ servicoId: 'sv-jes', servico: 'JES', cor: '#6E56A8', quantidade: 40, usadas: 5 }]);
+  });
+
+  it('mantém os serviços na ordem das cotas e filtra pelos serviços pedidos', () => {
+    const todas = [jes({ id: 'a' }), cota({ id: 'b', servicoId: 'sv-pe', servico: 'PE Seguro', quantidade: 10, distribuidas: 3 })];
+    expect(restantesPorServico(todas).map((r) => r.servico)).toEqual(['JES', 'PE Seguro']);
+    expect(restantesPorServico(todas, ['sv-pe']).map((r) => r.servico)).toEqual(['PE Seguro']);
+    expect(restantesPorServico(todas, [])).toEqual([]);
   });
 });
