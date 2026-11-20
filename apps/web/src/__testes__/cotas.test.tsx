@@ -74,7 +74,7 @@ describe('cotas', () => {
   });
 
   it('copiar do mês anterior envia de e para e mostra quantas entraram', async () => {
-    const f = api({ 'POST /api/unidades/u-1sb/cotas/copiar': { status: 200, corpo: { copiados: 2 } } });
+    const f = api({ 'POST /api/unidades/u-1sb/cotas/copiar': { status: 200, corpo: { copiados: 2, puladas: 0 } } });
     abrir('/cotas');
     await userEvent.click(await screen.findByRole('button', { name: 'Copiar do mês anterior' }));
     await waitFor(() => expect(corpoEnviado(f, 'POST /api/unidades/u-1sb/cotas/copiar')).toEqual({ de: anterior, para: mes }));
@@ -82,10 +82,40 @@ describe('cotas', () => {
   });
 
   it('copiar sem nada novo explica o motivo', async () => {
-    api({ 'POST /api/unidades/u-1sb/cotas/copiar': { status: 200, corpo: { copiados: 0 } } });
+    api({ 'POST /api/unidades/u-1sb/cotas/copiar': { status: 200, corpo: { copiados: 0, puladas: 0 } } });
     abrir('/cotas');
     await userEvent.click(await screen.findByRole('button', { name: 'Copiar do mês anterior' }));
     expect(await screen.findByText(`Nenhuma cota nova: ${mesPorExtenso(anterior)} não tem cotas, ou elas já estão em ${mesPorExtenso(mes)}.`)).toBeInTheDocument();
+  });
+
+  it('copiar com cota de serviço desativado diz quantas ficaram de fora', async () => {
+    api({ 'POST /api/unidades/u-1sb/cotas/copiar': { status: 200, corpo: { copiados: 1, puladas: 1 } } });
+    abrir('/cotas');
+    await userEvent.click(await screen.findByRole('button', { name: 'Copiar do mês anterior' }));
+    expect(await screen.findByText(`1 cota copiada de ${mesPorExtenso(anterior)}. 1 de serviço desativado ficou de fora.`)).toBeInTheDocument();
+  });
+
+  it('com várias de fora o texto vai para o plural', async () => {
+    api({ 'POST /api/unidades/u-1sb/cotas/copiar': { status: 200, corpo: { copiados: 2, puladas: 2 } } });
+    abrir('/cotas');
+    await userEvent.click(await screen.findByRole('button', { name: 'Copiar do mês anterior' }));
+    expect(await screen.findByText(`2 cotas copiadas de ${mesPorExtenso(anterior)}. 2 de serviço desativado ficaram de fora.`)).toBeInTheDocument();
+  });
+
+  // o texto vale mesmo quando o mês tem outras cotas que o destino já tinha (copiar uma segunda vez): só diz o que ficou de fora
+  it('copiar quando as que faltam são de serviço desativado explica o motivo e o que fazer', async () => {
+    api({ 'POST /api/unidades/u-1sb/cotas/copiar': { status: 200, corpo: { copiados: 0, puladas: 2 } } });
+    abrir('/cotas');
+    await userEvent.click(await screen.findByRole('button', { name: 'Copiar do mês anterior' }));
+    expect(await screen.findByText('Nenhuma cota copiada: 2 de serviço desativado ficaram de fora. Reative o serviço na tela de Serviços para copiá-las.')).toBeInTheDocument();
+    expect(screen.queryByText(/Nenhuma cota nova/)).toBeNull();
+  });
+
+  it('com uma só de serviço desativado, o texto fica no singular', async () => {
+    api({ 'POST /api/unidades/u-1sb/cotas/copiar': { status: 200, corpo: { copiados: 0, puladas: 1 } } });
+    abrir('/cotas');
+    await userEvent.click(await screen.findByRole('button', { name: 'Copiar do mês anterior' }));
+    expect(await screen.findByText('Nenhuma cota copiada: 1 de serviço desativado ficou de fora. Reative o serviço na tela de Serviços para copiá-la.')).toBeInTheDocument();
   });
 
   it('adicionar cota envia o mês, o serviço, a quantidade, a origem e a prioridade', async () => {
@@ -171,6 +201,30 @@ describe('cotas', () => {
     const outro = somarMeses(mes, 2);
     fireEvent.change(campo, { target: { value: outro } });
     await waitFor(() => expect(f.mock.calls.some(([e]) => String(e).includes(`mes=${outro}`))).toBe(true));
+  });
+
+  it('"Mês anterior" e "Próximo mês" trocam o mês e buscam as cotas dele', async () => {
+    const f = api();
+    abrir('/cotas');
+    await screen.findByLabelText('Mês');
+    await userEvent.click(screen.getByRole('button', { name: 'Mês anterior' }));
+    await waitFor(() => expect(f.mock.calls.some(([e]) => String(e).includes(`mes=${anterior}`))).toBe(true));
+    expect(screen.getByLabelText('Mês')).toHaveValue(anterior);
+    await userEvent.click(screen.getByRole('button', { name: 'Próximo mês' }));
+    await waitFor(() => expect(screen.getByLabelText('Mês')).toHaveValue(mes));
+  });
+
+  it('em navegador que mostra o campo como texto, digitar um mês pela metade não volta ao mês de antes', async () => {
+    api();
+    abrir('/cotas');
+    const campo = await screen.findByLabelText('Mês');
+    // como o Firefox de computador, que não tem o campo de mês e o mostra como texto (o React reaplica type="month" a cada renderização: trava a propriedade)
+    campo.setAttribute('type', 'text');
+    Object.defineProperty(campo, 'type', { get: () => 'text', set: () => {}, configurable: true });
+    fireEvent.change(campo, { target: { value: `${anterior.slice(0, 4)}-0` } });
+    expect(campo).toHaveValue(`${anterior.slice(0, 4)}-0`);
+    fireEvent.change(campo, { target: { value: anterior } });
+    await waitFor(() => expect(campo).toHaveValue(anterior));
   });
 
   it('a tela traz o botão de importar da planilha', async () => {

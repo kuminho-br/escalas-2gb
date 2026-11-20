@@ -38,4 +38,5 @@ falhas += await conferir(
   },
   [['/api/saude', 200], ['/api/saude/banco', 401]],
 );
+
 process.exit(falhas ? 1 : 0);

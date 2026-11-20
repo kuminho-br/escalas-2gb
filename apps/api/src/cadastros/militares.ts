@@ -255,16 +255,18 @@ export function rotasMilitares(dep: { banco: Banco; auth: Auth }): Hono<Ambiente
     const corpo = await lerCorpo(c, EdicaoMilitar);
     if (!corpo.ok) return corpo.resposta;
     const d = corpo.dados;
-    const atual = (await dep.banco.query<Pick<LinhaBanco, 'posto_grad_id' | 'nome_guerra' | 'antiguidade' | 'motorista' | 'cnh' | 'voluntario_jes' | 'ativo'>>(
-      'select posto_grad_id, nome_guerra, antiguidade, motorista, cnh, voluntario_jes, ativo from militar where id = $1',
-      [id],
-    )).rows[0]!;
-    const motorista = d.motorista ?? atual.motorista;
-    // desmarcar o quadro de motoristas limpa a CNH na mesma gravação
-    const cnh = d.motorista === false ? [] : (d.cnh ?? atual.cnh);
-    if (!motorista && cnh.length) return c.json({ erro: MENSAGEM_CNH_SEM_MOTORISTA, campos: { cnh: MENSAGEM_CNH_SEM_MOTORISTA } }, 400);
     try {
       const ficha = await comUsuario(dep.banco, c.get('usuarioId'), async (tx) => {
+        // o estado atual é lido já dentro da transação, com a linha travada: duas edições ao mesmo tempo, em campos
+        // diferentes, não se atropelam (a segunda parte do que a primeira gravou)
+        const atual = (await tx.query<Pick<LinhaBanco, 'posto_grad_id' | 'nome_guerra' | 'antiguidade' | 'motorista' | 'cnh' | 'voluntario_jes' | 'ativo'>>(
+          'select posto_grad_id, nome_guerra, antiguidade, motorista, cnh, voluntario_jes, ativo from militar where id = $1 for update',
+          [id],
+        )).rows[0]!;
+        const motorista = d.motorista ?? atual.motorista;
+        // desmarcar o quadro de motoristas limpa a CNH na mesma gravação
+        const cnh = d.motorista === false ? [] : (d.cnh ?? atual.cnh);
+        if (!motorista && cnh.length) return null;
         await tx.query(
           `update militar set posto_grad_id = $2, nome_guerra = $3, antiguidade = $4, motorista = $5, cnh = $6, voluntario_jes = $7, ativo = $8
             where id = $1`,
@@ -281,6 +283,7 @@ export function rotasMilitares(dep: { banco: Banco; auth: Auth }): Hono<Ambiente
         );
         return carregarFicha(tx, id, mes);
       });
+      if (!ficha) return c.json({ erro: MENSAGEM_CNH_SEM_MOTORISTA, campos: { cnh: MENSAGEM_CNH_SEM_MOTORISTA } }, 400);
       return c.json(ficha);
     } catch (e) {
       return respostaDoErroDoBanco(c, e, MSG_MATRICULA);

@@ -183,6 +183,27 @@ describe('antiguidade repetida', () => {
   });
 });
 
+describe('edição só do que mudou', () => {
+  it('duas edições ao mesmo tempo em campos diferentes ficam as duas', async () => {
+    const m = await criar('990150-0', { nomeGuerra: 'ANTES', voluntarioJes: false });
+    const [a, b] = await Promise.all([
+      api.pedir('escalante', 'PATCH', `/api/militares/${m.id}`, { nomeGuerra: 'NOVO' }),
+      api.pedir('escalante', 'PATCH', `/api/militares/${m.id}`, { voluntarioJes: true }),
+    ]);
+    expect([a.status, b.status]).toEqual([200, 200]);
+    expect(await ficha(m.id)).toMatchObject({ nomeGuerra: 'NOVO', voluntarioJes: true });
+  });
+
+  it('PATCH com antiguidade null apaga a antiguidade', async () => {
+    const m = await criar('990151-1', { antiguidade: 4321 });
+    expect(m.antiguidade).toBe(4321);
+    const r = await api.pedir('escalante', 'PATCH', `/api/militares/${m.id}`, { antiguidade: null });
+    expect(r.status).toBe(200);
+    expect(await r.json()).toMatchObject({ antiguidade: null });
+    expect((await ficha(m.id)).antiguidade).toBeNull();
+  });
+});
+
 describe('motorista e permissões', () => {
   it('desmarcar motorista limpa a CNH', async () => {
     const m = await criar('990110-0', { motorista: true, cnh: ['D'] });

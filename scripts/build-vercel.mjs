@@ -3,7 +3,7 @@
 // - functions/api.func/: a API empacotada num único arquivo (sem PGlite)
 // - config.json: rotas (/api/* vai para a função; o resto é o site) e o cron que mantém o banco acordado
 import { execSync } from 'node:child_process';
-import { cpSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
+import { cpSync, mkdirSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { build } from 'esbuild';
@@ -18,6 +18,9 @@ rmSync(saida, { recursive: true, force: true });
 mkdirSync(funcao, { recursive: true });
 cpSync(join(raiz, 'apps', 'web', 'dist'), join(saida, 'static'), { recursive: true });
 
+// as migrações que o código desta versão espera; a API avisa (503) se o banco não as tem
+const migracoes = readdirSync(join(raiz, 'apps', 'api', 'banco', 'migracoes')).filter((f) => f.endsWith('.sql')).sort();
+
 await build({
   entryPoints: [join(raiz, 'apps', 'api', 'src', 'vercel.ts')],
   outfile: join(funcao, 'index.mjs'),
@@ -25,6 +28,7 @@ await build({
   platform: 'node',
   format: 'esm',
   target: 'node22',
+  define: { __MIGRACOES_ESPERADAS__: JSON.stringify(migracoes) },
   // pacotes CommonJS (pg) dentro de um módulo ESM precisam de require
   banner: { js: "import { createRequire as __criarRequire } from 'node:module'; const require = __criarRequire(import.meta.url);" },
   external: ['pg-native', '@electric-sql/pglite', 'kysely-pglite-dialect'],
