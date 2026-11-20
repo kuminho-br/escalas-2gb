@@ -1,5 +1,7 @@
 import type { PainelDoDia } from 'contratos';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import type { Consulta } from '../src/banco/banco.ts';
+import { montarPainelDoDia } from '../src/grade/dia.ts';
 import { inserir } from './banco-teste.ts';
 import { montarApi, type ApiDeTeste } from './apoio-api.ts';
 
@@ -174,5 +176,42 @@ describe('acesso', () => {
     expect((await painel('ALFA', DIA, 'semPapel')).status).toBe(403);
     expect((await painel('ALFA', DIA, 'escalante', outraSecao)).status).toBe(403);
     expect((await painel('ALFA', '2026-02-30')).status).toBe(400);
+  });
+});
+
+describe('quanto custa abrir o painel', () => {
+  // O painel faz as consultas em série, uma escala e uma faixa por vez. Este teste fixa quantas são no cenário mais cheio do arquivo, para que
+  // uma mudança que as aumente apareça aqui. Acima de 40 (ou, na sandbox, mais de 1 s para abrir) entra um item "otimizar o painel do dia" na fase 8.
+  async function contar(nome: string, data: string): Promise<number> {
+    let n = 0;
+    const contador = { query: (sql: string, params?: unknown[]) => { n++; return api.banco.query(sql, params); }, exec: (sql: string) => api.banco.exec(sql) } as Consulta;
+    const p = await montarPainelDoDia(contador, api.ids.secao, militar[nome]!, data);
+    expect(p).not.toBeNull();
+    return n;
+  }
+
+  it('o painel do dia faz no máximo 33 consultas no cenário mais cheio (31 para o Pronto, 33 para o Adm)', async () => {
+    const natal = `${MES}-25`;
+    await inserir(api.banco, 'feriado', { unidade_id: api.ids.secao, data: natal, descricao: 'Natal' });
+    const sd = (await api.banco.query<{ id: string }>("select id from posto_grad where sigla = 'SD BM'")).rows[0]!.id;
+    const alfa = (await api.banco.query<{ id: string }>("select id from equipe where unidade_id = $1 and nome = 'Alfa'", [api.ids.secao])).rows[0]!.id;
+    const criarCheio = async (nome: string, matricula: string, jornada: 'pronto' | 'adm') => {
+      militar[nome] = await inserir(api.banco, 'militar', { matricula, posto_grad_id: sd, nome_guerra: nome, motorista: true, cnh: ['E'], voluntario_jes: true });
+      await inserir(api.banco, 'lotacao', { militar_id: militar[nome], unidade_id: api.ids.secao, equipe_id: jornada === 'adm' ? null : alfa, jornada, desde: '2026-11-01' });
+    };
+    // dois serviços no dia, um na véspera e um no dia seguinte, em dia de feriado: o pronto (com guarnição) e o do Adm (que também lê feriados e afastamentos)
+    await criarCheio('CHEIO', '991390-0', 'pronto');
+    await criarCheio('CHEIOADM', '991391-1', 'adm');
+    for (const nome of ['CHEIO', 'CHEIOADM']) {
+      await alocar(nome, 'Pronto', 'b', natal, nome === 'CHEIO' ? { guarnicao: abt, funcao: combatente } : undefined);
+      await alocar(nome, 'JES', 'a', natal);
+      await alocar(nome, 'Pronto', 'a', `${MES}-24`);
+      await alocar(nome, 'Pronto', 'a', `${MES}-26`);
+    }
+    const nPronto = await contar('CHEIO', natal);
+    const nAdm = await contar('CHEIOADM', natal);
+    // medido em 20/11/2026 com uma escala, duas faixas e uma guarnição; cresce com escalas, faixas e funções (limite combinado: 40)
+    expect(nPronto).toBeLessThanOrEqual(31);
+    expect(nAdm).toBeLessThanOrEqual(33);
   });
 });
