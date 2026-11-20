@@ -145,40 +145,112 @@ describe('grade geral: teclado e celular (achado da revisão final)', () => {
 
 describe('grade geral: adicionar serviço neste dia', () => {
   const POST = 'POST /api/escalas/e-ord/alocacoes';
-
-  it('lista as opções por escala; escolher a do ABT Motorista manda o POST certo e busca a grade de novo', async () => {
-    const f = api(PAINEL, { [POST]: { status: 201, corpo: ESCALA } });
+  const noite = { inicio: '20:00', fim: '08:00' };
+  const dia = { inicio: '08:00', fim: '20:00' };
+  const pronto = (turnoId: string, semVoluntariado = false) => ({ servicoId: 's-pronto', turnoId, nome: 'Pronto', semVoluntariado });
+  const jes = { servicoId: 's-jes', turnoId: 't-jes', nome: 'JES', semVoluntariado: true };
+  const vaga = (guarnicaoId: string, guarnicao: string, funcaoId: string, funcao: string) => ({ guarnicaoId, guarnicao, funcaoId, funcao });
+  // o Ordinário, com duas guarnições nos dois turnos, e o Bioma (Operações), com uma guarnição só
+  const COM_ABAS: PainelDoDia = {
+    ...PAINEL,
+    opcoes: [
+      opcao({ ...noite, ...vaga('g-abt', 'ABT', 'f-mot', 'Motorista'), servicos: [pronto('t-b')] }),
+      opcao({ ...noite, ...vaga('g-abt', 'ABT', 'f-comb', 'Combatente'), servicos: [pronto('t-b')] }),
+      opcao({ ...noite, ...vaga('g-res', 'Resgate', 'f-chefe', 'Chefe'), servicos: [pronto('t-b')] }),
+      opcao({ ...noite, servicos: [pronto('t-b')] }),
+      opcao({ ...dia, ...vaga('g-abt', 'ABT', 'f-comb', 'Combatente'), servicos: [pronto('t-a'), jes] }),
+      opcao({ ...dia, ...vaga('g-res', 'Resgate', 'f-chefe', 'Chefe'), servicos: [pronto('t-a')] }),
+      opcao({ escalaId: 'e-bioma', escala: 'Bioma', ordinario: false, inicio: '00:00', fim: '08:00', ...vaga('g-bio', 'Bioma 1', 'f-mot', 'Motorista'), servicos: [{ servicoId: 's-bioma', turnoId: 't-bio', nome: 'Bioma', semVoluntariado: true }], semVoluntariado: true }),
+      opcao({ escalaId: 'e-bioma', escala: 'Bioma', ordinario: false, inicio: '00:00', fim: '08:00', ...vaga('g-bio', 'Bioma 1', 'f-comb', 'Combatente'), servicos: [{ servicoId: 's-bioma', turnoId: 't-bio', nome: 'Bioma', semVoluntariado: true }], semVoluntariado: true }),
+      opcao({ escalaId: 'e-bioma', escala: 'Bioma', ordinario: false, inicio: '00:00', fim: '08:00', servicos: [{ servicoId: 's-bioma', turnoId: 't-bio', nome: 'Bioma', semVoluntariado: true }], semVoluntariado: true }),
+    ],
+  };
+  const abrirAdicionar = async (painelDoDia: PainelDoDia, extra: Parameters<typeof simularApi>[0] = {}) => {
+    const f = api(painelDoDia, extra);
     abrir(ABERTA);
     const p = await painel();
     await userEvent.click(within(p).getByRole('button', { name: 'Adicionar serviço neste dia' }));
-    expect(within(p).getByRole('heading', { name: 'Ordinário' })).toBeInTheDocument();
-    await userEvent.click(within(p).getByRole('button', { name: '20h–08h · ABT · Motorista' }));
-    await waitFor(() => expect(corpoEnviado(f, POST)).toEqual({ militarId: 'm-CABO', data: DIA, turnoId: 't-b', guarnicaoId: 'g-abt', funcaoId: 'f-mot' }));
+    return { f, p };
+  };
+  const linhaDe = (p: HTMLElement, faixa: string) => within(p).getByRole('listitem', { name: faixa });
+  const textos = (lista: HTMLElement) => within(lista).getAllByRole('option').map((o) => o.textContent);
+
+  it('abas Ordinário e Operações com o número de turnos; abre no Ordinário', async () => {
+    const { p } = await abrirAdicionar(COM_ABAS);
+    // o Ordinário tem dois turnos (20h–08h e 08h–20h) e o Bioma um (00h–08h)
+    expect(within(p).getByRole('tab', { name: 'Ordinário (2)' })).toHaveAttribute('aria-selected', 'true');
+    expect(within(p).getByRole('tab', { name: 'Operações (1)' })).toHaveAttribute('aria-selected', 'false');
+    await userEvent.click(within(p).getByRole('tab', { name: 'Operações (1)' }));
+    expect(within(p).getByRole('heading', { name: 'Bioma' })).toBeInTheDocument();
+  });
+
+  it('com opções só de operações, abre em Operações e o Ordinário fica desabilitado', async () => {
+    const soBioma: PainelDoDia = { ...PAINEL, opcoes: COM_ABAS.opcoes.filter((o) => !o.ordinario) };
+    const { p } = await abrirAdicionar(soBioma);
+    expect(within(p).getByRole('tab', { name: 'Operações (1)' })).toHaveAttribute('aria-selected', 'true');
+    expect(within(p).getByRole('tab', { name: 'Ordinário (0)' })).toBeDisabled();
+    expect(within(p).getByRole('heading', { name: 'Bioma' })).toBeInTheDocument();
+  });
+
+  it('cada turno é uma linha com a vaga numa lista: "Guarnição · Função" quando há mais de uma guarnição, e "Sem guarnição" por último', async () => {
+    const { p } = await abrirAdicionar(COM_ABAS);
+    const lista = within(linhaDe(p, '20h–08h')).getByLabelText('Vaga de 20h–08h');
+    expect(textos(lista)).toEqual(['ABT · Motorista', 'ABT · Combatente', 'Resgate · Chefe', 'Sem guarnição']);
+    expect(within(lista).getByRole('option', { name: 'ABT · Motorista' })).toHaveProperty('selected', true);
+    // numa escala de uma guarnição só, a lista mostra só a função
+    await userEvent.click(within(p).getByRole('tab', { name: 'Operações (1)' }));
+    expect(textos(within(linhaDe(p, '00h–08h')).getByLabelText('Vaga de 00h–08h'))).toEqual(['Motorista', 'Combatente', 'Sem guarnição']);
+  });
+
+  it('"Escalar" manda a vaga e o serviço escolhidos', async () => {
+    const { f, p } = await abrirAdicionar(COM_ABAS, { [POST]: { status: 201, corpo: ESCALA } });
+    await userEvent.selectOptions(within(linhaDe(p, '20h–08h')).getByLabelText('Vaga de 20h–08h'), 'Resgate · Chefe');
+    await userEvent.click(within(linhaDe(p, '20h–08h')).getByRole('button', { name: 'Escalar' }));
+    await waitFor(() => expect(corpoEnviado(f, POST)).toEqual({ militarId: 'm-CABO', data: DIA, turnoId: 't-b', guarnicaoId: 'g-res', funcaoId: 'f-chefe' }));
     await waitFor(() => expect(chamadasA(f, ROTA_GRADE)).toBe(2));
   });
 
-  it('com dois serviços na opção, o seletor escolhe o turno e avisa quando só falta marcar o horário', async () => {
-    const f = api(PAINEL, { [POST]: { status: 201, corpo: ESCALA } });
-    abrir(ABERTA);
-    const p = await painel();
-    await userEvent.click(within(p).getByRole('button', { name: 'Adicionar serviço neste dia' }));
-    const seletor = within(p).getByLabelText('Serviço de 08h–20h · Sem guarnição');
-    expect(seletor).toHaveValue('t-a');
+  it('a lista do serviço acompanha a vaga, e "não marcou" segue o serviço marcado (Review Focus 4)', async () => {
+    const { f, p } = await abrirAdicionar(COM_ABAS, { [POST]: { status: 201, corpo: ESCALA } });
+    const linha = linhaDe(p, '08h–20h');
+    const servico = () => within(linha).queryByLabelText('Serviço de 08h–20h');
+    expect(textos(servico()!)).toEqual(['Pronto', 'JES']);
+    expect(within(linha).queryByText('não marcou')).toBeNull();
+    await userEvent.selectOptions(servico()!, 't-jes');
+    expect(within(linha).getByText('não marcou')).toHaveClass('text-pendencia');
     expect(within(p).queryByText('Não marcou voluntariado neste horário.')).toBeNull();
-    await userEvent.selectOptions(seletor, 't-jes');
-    expect(within(p).getByText('Não marcou voluntariado neste horário.')).toBeInTheDocument();
-    await userEvent.click(within(p).getByRole('button', { name: '08h–20h · Sem guarnição' }));
-    await waitFor(() => expect(corpoEnviado(f, POST)).toEqual({ militarId: 'm-CABO', data: DIA, turnoId: 't-jes', guarnicaoId: null, funcaoId: null }));
+    // outra vaga, em que só o Pronto é possível: a lista do serviço some e a etiqueta também
+    await userEvent.selectOptions(within(linha).getByLabelText('Vaga de 08h–20h'), 'Resgate · Chefe');
+    expect(servico()).toBeNull();
+    expect(within(linha).queryByText('não marcou')).toBeNull();
+    // de volta à primeira vaga, o serviço volta ao primeiro (Pronto)
+    await userEvent.selectOptions(within(linha).getByLabelText('Vaga de 08h–20h'), 'ABT · Combatente');
+    expect(servico()).toHaveValue('t-a');
+    await userEvent.selectOptions(servico()!, 't-jes');
+    await userEvent.click(within(linha).getByRole('button', { name: 'Escalar' }));
+    await waitFor(() => expect(corpoEnviado(f, POST)).toEqual({ militarId: 'm-CABO', data: DIA, turnoId: 't-jes', guarnicaoId: 'g-abt', funcaoId: 'f-comb' }));
+  });
+
+  it('turno com todas as vagas cheias mostra só "Sem guarnição" (Review Focus 3)', async () => {
+    const cheio: PainelDoDia = { ...PAINEL, opcoes: [opcao({ ...noite, servicos: [pronto('t-b')] })] };
+    const { f, p } = await abrirAdicionar(cheio, { [POST]: { status: 201, corpo: ESCALA } });
+    const linha = linhaDe(p, '20h–08h');
+    expect(textos(within(linha).getByLabelText('Vaga de 20h–08h'))).toEqual(['Sem guarnição']);
+    await userEvent.click(within(linha).getByRole('button', { name: 'Escalar' }));
+    await waitFor(() => expect(corpoEnviado(f, POST)).toEqual({ militarId: 'm-CABO', data: DIA, turnoId: 't-b', guarnicaoId: null, funcaoId: null }));
   });
 
   it('a recusa 409 aparece dentro do painel e a grade volta a ser buscada (Review Focus 5)', async () => {
-    const f = api(PAINEL, { [POST]: { status: 409, corpo: { erro: 'Este militar já está escalado neste turno.' } } });
-    abrir(ABERTA);
-    const p = await painel();
-    await userEvent.click(within(p).getByRole('button', { name: 'Adicionar serviço neste dia' }));
-    await userEvent.click(within(p).getByRole('button', { name: '20h–08h · ABT · Motorista' }));
+    const { f, p } = await abrirAdicionar(PAINEL, { [POST]: { status: 409, corpo: { erro: 'Este militar já está escalado neste turno.' } } });
+    await userEvent.click(within(linhaDe(p, '20h–08h')).getByRole('button', { name: 'Escalar' }));
     expect(await within(p).findByRole('alert')).toHaveTextContent('Este militar já está escalado neste turno.');
     await waitFor(() => expect(chamadasA(f, ROTA_GRADE)).toBe(2));
+  });
+
+  it('sem nenhuma opção, a frase continua', async () => {
+    const { p } = await abrirAdicionar({ ...PAINEL, opcoes: [] });
+    expect(within(p).getByText('Nenhum serviço disponível para ele neste dia.')).toBeInTheDocument();
+    expect(within(p).queryByRole('tab')).toBeNull();
   });
 });
 
