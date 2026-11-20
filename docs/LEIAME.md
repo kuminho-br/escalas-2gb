@@ -38,13 +38,14 @@
 | [superpowers/specs/2026-11-20-meta-de-ativacao-design.md](superpowers/specs/2026-11-20-meta-de-ativacao-design.md) | Meta de ativação e Efetivo do dia | PLANEJAMENTO | em execução |
 | [superpowers/specs/2026-11-20-grade-geral-design.md](superpowers/specs/2026-11-20-grade-geral-design.md) | Grade geral (entrega 4) | PLANEJAMENTO | em execução |
 | [superpowers/specs/2026-11-20-grade-geral-ux-design.md](superpowers/specs/2026-11-20-grade-geral-ux-design.md) | Ajustes de interface da grade geral | PLANEJAMENTO | em execução |
+| [superpowers/specs/2026-11-20-sintese-design-e-roadmap-design.md](superpowers/specs/2026-11-20-sintese-design-e-roadmap-design.md) | Intervenção para sintetizar o design e o roadmap | DOCUMENTAÇÃO (desenho); PLANEJAMENTO (execução) | vigente |
 | [superpowers/specs/2026-11-20-limpeza-da-fase-3-design.md](superpowers/specs/2026-11-20-limpeza-da-fase-3-design.md) | Limpeza das pendências da fase 3 | PLANEJAMENTO | vigente |
 
 ## Controle da documentação
 
 | Documento | Para que serve | Quem cuida | Situação |
 |---|---|---|---|
-| [relatorio-documentacao.md](relatorio-documentacao.md) | Último relatório da checagem de 3 dias (sobrescrito a cada vez; o histórico está no git) | DOCUMENTAÇÃO | vigente |
+| [relatorio-documentacao.md](relatorio-documentacao.md) | Último relatório da checagem, feita quando o usuário pede (sobrescrito a cada vez; o histórico está no git) | DOCUMENTAÇÃO | vigente |
 | [ferramentas/checar-documentacao.sh](ferramentas/checar-documentacao.sh) | Script que mede a régua abaixo e imprime o relatório | DOCUMENTAÇÃO | vigente |
 
 ## Planos
@@ -77,7 +78,7 @@ As versões v5 a v11 dos esboços ficam só na pasta local `.superpowers/` (fora
 
 ## Régua de qualidade
 
-Cada medida é um alerta, não um bloqueio. A DOCUMENTAÇÃO mede a cada 3 dias e relata.
+Cada medida é um alerta, não um bloqueio. A DOCUMENTAÇÃO mede quando o usuário pede. Os planos de fase e de revisão (`superpowers/plans/`, menos os roadmaps) ficam fora das medidas de tamanho e de parágrafo: são temporários e se dividem por entrega.
 
 | Medida | Bom | Atenção |
 |---|---|---|
