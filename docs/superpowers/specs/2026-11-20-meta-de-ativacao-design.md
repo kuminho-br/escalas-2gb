@@ -199,3 +199,53 @@ Na **Escala por militar**, o escalante seleciona militares e vê como estão dis
 - Nomes de tabelas e rotas da meta (padrão com vigência por data, dias diferentes por data).
 - Como calcular a cobertura por horário: reaproveitar os minutos usados no voluntariado por faixa.
 - A forma dos controles de "Alterar a meta deste dia" e da aba "Meta de ativação", seguindo as telas de quadrados da ordem de escalação.
+
+## Adendo de 20/11/2026 — validação da 3.3 (entregas 4.1, 4.2 e 5.1)
+
+O usuário testou a 3.3 na sandbox (sessão de VALIDAÇÃO) e pediu mudanças no Efetivo por dia e na Escala do mês. As decisões abaixo são dele; as minhas estão marcadas.
+
+**Por que:** a meta do dia é uma **diretriz de emprego dos recursos, não uma obrigação rígida**. O escalante precisa ligar e desligar guarnições no dia sem perder o caminho de volta, e ler a tela de relance (muitas guarnições, serviços em cores parecidas).
+
+### Onde entra (regra: o número da entrega é a ordem de execução)
+
+| Entrega | O que entra | Por que nesse momento |
+|---|---|---|
+| **4.1 — Meta do dia: desativar, reativar e adicionar** | os defeitos da 3.3 na meta e a troca de "Tirar da meta" por "Desativar guarnição" | defeito numa tela do piloto; o "completar com JES" (ainda sem entrega) preenche pela meta do dia e depende desta regra; pequena, sem migração |
+| **4.2 — Efetivo por dia e Escala do mês em grade** | grade de cards, régua fora, vaga em faixa única, etiqueta do serviço; Escala do mês com uma barra só e dias em grade | muda o jeito de escalar durante o piloto; a fase 5 constrói em cima desta tela; quase só site, sem migração |
+| **5.1 — O mesmo modelo de guarnição mais de uma vez no dia** | duas ABT do mesmo modelo no mesmo dia | muda banco, vínculos, Escala do mês e pré-escala (entrega grande, com migração); até lá, cadastrar um segundo modelo ("ABT 2") resolve. Depende da 4.1 (o "Adicionar guarnição" que lista todos os modelos) |
+
+### Ficam como estão (decisão do usuário)
+
+- **O dia continua sendo o dia do calendário** (00h a 24h, com o que passa da meia-noite indo até o fim do turno). A ideia do "dia de serviço 08h→08h" foi descartada: se o horário padrão de um serviço mudar, toda a estrutura das barras quebra, e a Defensoria (07h) cairia no dia errado por 1h. Onde a escala de uma guarnição não se aplica, a linha fica vazia.
+- **Adiados:** o selo "ativada / não ativada" (que confunde com "Desativar") e o tom do aviso "Falta…".
+
+### 4.1 — Meta do dia
+
+- **"Desativar guarnição"** substitui "Tirar da meta". É como dizer "hoje não vai ter essa guarnição":
+  - **sempre desescala** quem está nela no dia (as alocações e os acúmulos nela, como no "Tirar e desescalar" da 3.3, com a marca de remoção). Sai a opção "Só tirar da meta";
+  - **pede confirmação antes**, só quando há gente escalada: "Desativar a 1ª Incêndio? Quem está escalado nela neste dia será desescalado." com "Desativar" e "Cancelar". Sai a frase "Há N militares escalados no … neste dia.";
+  - depois de desativar, aparece por alguns segundos o aviso "Guarnição desativada." com **"Desfazer"**, que volta a meta e as escalações como estavam.
+- **"Desativadas hoje"**: a viatura não some. Fica num grupo no fim da tela, em card pequeno (nome, sigla da viatura e **"Reativar"**). *Minha decisão:* são as guarnições da **meta padrão** daquele dia que não estão na meta do dia. "Reativar" põe a guarnição no fim da meta do dia, vazia. Guarnição que só entrou pelo "Adicionar" e foi desativada não volta para esse grupo (basta adicioná-la de novo).
+- **"Adicionar guarnição"** lista **todos os modelos de guarnição ativos** da seção (Configurações). Até a 5.1, os que já estão na meta do dia aparecem marcados "já está no dia" e não podem ser escolhidos.
+- **"Voltar ao padrão"** fica **sempre visível** para quem escala; apagado (desabilitado) quando o dia já segue o padrão. Hoje ele some quando o dia volta ao padrão, e o escalante não acha o botão. *Minha decisão:* ele pede confirmação ("Voltar este dia à meta padrão?") e **não desescala ninguém** — quem estiver numa guarnição que sai da meta continua escalado, e o card fica fora da meta, sem número, como já acontece.
+- "Subir" e "Descer" continuam (na 4.2 viram "Mover antes" e "Mover depois").
+
+### 4.2 — Efetivo por dia
+
+- **Cards em grade:** as guarnições se distribuem em colunas conforme a largura (cerca de três no computador, uma no celular). A ordem da meta vale da esquerda para a direita e depois para baixo; por isso "Subir" e "Descer" viram **"Mover antes" (←)** e **"Mover depois" (→)** (*minha decisão*, aprovada).
+- **A régua sai.** As linhas de todos os cards continuam na **mesma escala de horas** (a janela do dia), sem a régua desenhada; as linhas vinho de 00h e 24h e o "D/D+1" saem junto. Cada trecho mostra o horário dentro dele ("08h–20h") quando cabe, e sempre no nome acessível.
+- **Vaga em faixa única:** a vaga não vem mais cortada nos horários dos vínculos (o Bioma aparecia em três pedaços de 8h). Cada trecho livre de uma função é **uma faixa só**; ao escalar alguém, a faixa se divide e o que sobra continua clicável.
+  - Ao clicar na faixa, se houver mais de um horário possível, o escalante escolhe **"Qual horário?"** entre os **turnos cadastrados** das escalas vinculadas à guarnição que caem na faixa ("08h–20h · Ordinário", "08h–16h · PE Seguro"). A escolha define a escala e substitui o "Por qual escala?". Com um horário só, abre direto o "Escolher militar".
+  - Não existe horário digitado à mão.
+- **Etiqueta do serviço:** além da cor, cada trecho ocupado mostra o **nome do serviço** num retângulo de bordas arredondadas, como as etiquetas "PJES" e "SALDO" do mockup do usuário.
+  - **A cor é a que o usuário cadastrou para o serviço** (não há cor fixa no código). Sobre a barra, que já tem a cor do serviço, a etiqueta é de contorno, na cor de texto legível sobre aquela cor (`corDoTexto`); fora da barra, é cheia (fundo na cor do serviço, letra por `corDoTexto`).
+
+### 4.2 — Escala do mês
+
+- **Uma barra só por dia:** saem as barras coloridas à esquerda de cada turno (hoje marcam dia/noite). Fica uma barra, entre o número do dia e os turnos.
+- **Etiqueta do serviço no título de cada turno** ("08h–16h B" + etiqueta "Bioma" na cor do serviço), no mesmo componente do Efetivo por dia.
+- **Dias em grade quando a escala tem um turno por dia** (Defensoria, CPRH): os dias ficam lado a lado (três ou quatro por linha no computador, um no celular). Escala com mais de um turno em algum dia do mês (Bioma, Ordinário) continua com um dia por linha. Não é um calendário de 7 colunas: os cards ficariam estreitos demais.
+
+### 5.1 — O mesmo modelo mais de uma vez no dia (só a decisão; design a fazer)
+
+O usuário quer poder pôr o mesmo modelo duas vezes no mesmo dia (ex.: duas ABT). Hoje cada alocação aponta para o modelo (`alocacao.guarnicao_id`) e a meta do dia recusa modelo repetido (`unique (meta_dia_id, guarnicao_id)`), então o sistema não saberia em qual das duas ABT está cada militar. Antes de planejar, decidir com o usuário: como se chamam as duas na tela; de onde vêm as vagas da segunda (os vínculos da escala são por modelo); como a pré-escala e a Escala do mês tratam a segunda; o que acontece com ela no dia seguinte.

@@ -49,7 +49,10 @@ As condições que o design implica e que mais podem morder quem monta a escala;
 | **2.1 — Ordem de escala** | Tela da escala com as vagas de cada guarnição em quadrados para numerar a vez de cada uma (vigência por mês); os cards da escala do mês seguem a ordem. Substitui a prioridade da guarnição (RN-08). | 1 |
 | **3 — Pré-escala e distribuições (3.1 e 3.2)** | "Gerar pré-escala" (Pronto pelo ciclo das equipes), saldos do Adm e operações pelas cotas, com o que ficou de fora e por quê. Gerar de novo só completa lacunas e respeita as remoções. Os militares entram nas vagas seguindo a ordem de escala à risca (o mais antigo apto em cada vaga). | 1, 2, 2.1, 2.2, 2.3 e 2.4 |
 | **4 — Grade geral** | Uma linha por militar, uma coluna por dia, blocos na cor do serviço com a letra, choques em vermelho, pegas de pedidas por PJES e Diária, ficha lateral com Trocar, Remover e Adicionar. | 1, 2 |
+| **4.1 — Meta do dia: desativar, reativar e adicionar** | "Desativar guarnição" (sempre desescala, com confirmação e "Desfazer"), "Desativadas hoje" com "Reativar", "Adicionar guarnição" com todos os modelos e "Voltar ao padrão" sempre visível. | 4 |
+| **4.2 — Efetivo por dia e Escala do mês em grade** | Cards em grade sem a régua, vaga em faixa única com "Qual horário?", etiqueta do serviço na cor cadastrada; na Escala do mês, uma barra por dia e dias em grade nas escalas de um turno por dia. | 4.1 |
 | **5 — Gerar documento** | Configurações › Modelos de impressão (enviar e baixar o .xlsx com marcadores) e "Gerar documento" da escala publicada em .xlsx; cada geração fica guardada. | 1 |
+| **5.1 — O mesmo modelo mais de uma vez no dia** | Duas guarnições do mesmo modelo no mesmo dia (ex.: duas ABT). Tem migração; design a fazer com o usuário. | 4.1, 5 |
 | ~~**6 — Minha escala**~~ | **Saiu da fase 4** (decisão do usuário, 19/11/2026). Vai junto com a Visualização de escalas e a tela inicial com os módulos, quando os tipos de usuário forem diferenciados (roadmap, "Etapas sem fase marcada"). | — |
 
 **Marco da fase:** um mês real da 1ª SB montado no sistema, em paralelo com as planilhas, e comparado no fim (o usuário conduz).
@@ -2118,6 +2121,190 @@ Os itens que esperam essas decisões:
 
 ---
 
+# Entrega 4.1 — Meta do dia: desativar, reativar e adicionar
+
+**Branch:** `fase4-4-1-desativar-guarnicao`, a partir da `main` (depois do PR #44). Commits `Fase 4.4.1: …`; PR "Fase 4 — Entrega 4.1: desativar, reativar e adicionar guarnição". **Sem migração.**
+
+**Spec:** adendo "validação da 3.3 (entregas 4.1, 4.2 e 5.1)" de `docs/superpowers/specs/2026-11-20-meta-de-ativacao-design.md`.
+
+**Decisões desta entrega** (do usuário, no adendo; as minhas estão marcadas):
+- **"Desativar guarnição"** no lugar de "Tirar da meta": sempre desescala (alocações e acúmulos nela no dia, com a marca de remoção, como o `tirarDaMeta(…, desescalar: true)` da 3.3). Sai "Só tirar da meta".
+- **Confirmação** só com gente escalada: título "Desativar a {nome}?", texto "Quem está escalado nela neste dia será desescalado.", botões "Desativar" e "Cancelar". Sai a frase "Há N militares escalados…".
+- **Desfazer:** depois de desativar (com ou sem gente), um aviso `role="status"` no topo da lista: "{nome} desativada." com o botão "Desfazer". Some em 10 s, ao trocar de dia ou na próxima ação de meta. *Minha decisão:* sem tabela nova; a API devolve o que tirou e o "Desfazer" manda de volta (Tarefa 60). Não há biblioteca de aviso no site; é um componente simples.
+- **"Desativadas hoje"** (*minha decisão*): as guarnições da meta padrão daquele dia que não estão na meta do dia, em cards pequenos no fim da tela (nome, viatura, "Reativar"). "Reativar" grava a meta do dia com ela no fim. Só aparece quando o dia tem meta própria.
+- **"Adicionar guarnição"** lista todos os modelos ativos da seção; os que já estão na meta do dia aparecem com "já está no dia", desabilitados (até a 5.1).
+- **"Voltar ao padrão"** sempre visível para quem escala, desabilitado quando `meta.origem === 'padrao'`; pede confirmação ("Voltar este dia à meta padrão?", "Voltar" e "Cancelar") e não desescala ninguém (*minha decisão*).
+
+**Review Focus da 4.1** (cada um tem teste na tarefa dona):
+1. **Desativar com acúmulo cruzado:** ALFA alocado em g1 com acúmulo em g2, e BRAVO alocado em g2 com acúmulo em g1. Desativar g1 tira ALFA (e, em cascata, o acúmulo dele em g2) e o acúmulo de BRAVO; BRAVO continua em g2. "Desfazer" devolve os três. Tarefa 60.
+2. **Desfazer depois que alguém ocupou o lugar** (outro militar no mesmo `militar, data, serviço, turno`, ou o mesmo acúmulo recriado): 409 "Não deu para desfazer: alguém já ocupa um desses lugares." e nada muda (nem a meta). Tarefa 60.
+3. **Desativar num dia que segue o padrão:** o dia passa a ter meta própria sem ela; ela aparece em "Desativadas hoje"; "Reativar" a põe no fim; o dia seguinte continua no padrão. Tarefas 60 e 61.
+4. **"Desfazer" num dia que seguia o padrão:** volta a seguir o padrão (`origem: 'padrao'`), não uma cópia dele. Tarefa 60.
+5. **"Voltar ao padrão" com gente numa guarnição adicionada:** a guarnição sai da meta e continua na tela sem número, com as pessoas. Tarefa 61.
+
+### Task 60: Desativar e desfazer (API)
+
+**Files:**
+- Modify: `pacotes/contratos/src/meta.ts`, `pacotes/contratos/src/efetivo-do-dia.ts`, `apps/api/src/efetivo/meta.ts`, `apps/api/src/efetivo/efetivo-do-dia.ts`, `apps/api/src/efetivo/rotas.ts`
+- Test: `apps/api/test/meta.test.ts`, `apps/api/test/efetivo-do-dia.test.ts`
+
+**Interfaces:**
+- Consumes: `metaDoDia`, `gravarMetaDoDia`, `voltarMetaAoPadrao`; `remover`, `tirarAcumulo`, `Recusa` de `escala/alocacoes.ts`.
+- Produces (contratos):
+  ```ts
+  export const DesativarGuarnicao = z.object({ guarnicaoId: Id });
+  export const AlocacaoDesfeita = z.object({ alocacaoId: Id, militarId: Id, escalaId: Id, servicoId: Id, turnoId: Id, data: Data, guarnicaoId: Id.nullable(), funcaoId: Id.nullable(), origem: z.enum(['pre_escala', 'distribuicao', 'manual', 'permuta']) });
+  export const AcumuloDesfeito = z.object({ alocacaoId: Id, guarnicaoId: Id, funcaoId: Id }); // alocacaoId: o de antes (pode ser de uma alocação que também saiu)
+  export const DesfazerDesativacao = z.object({
+    guarnicaoId: Id,
+    metaAntes: z.object({ origem: z.enum(['padrao', 'dia']), guarnicoes: z.array(Id).max(100) }),
+    alocacoes: z.array(AlocacaoDesfeita).max(500),
+    acumulos: z.array(AcumuloDesfeito).max(500),
+  });
+  export type ResultadoDaDesativacao = { efetivo: EfetivoDoDia; desfazer: DesfazerDesativacao };
+  ```
+  Em `EfetivoDoDia`: entra `desativadas: { guarnicaoId: string; nome: string; viatura: string | null }[]` (vazio quando `meta.origem === 'padrao'`).
+  Saem `TirarDaMeta` e a rota `/tirar`.
+- Produces (API):
+  - `desativar(tx, unidadeId, data, guarnicaoId, usuarioId): Promise<DesfazerDesativacao>` — junta `metaAntes` (`metaDoDia`), os acúmulos que vão sair (os que estão na guarnição e os das alocações que vão sair, de qualquer guarnição) e as alocações; depois faz o que o `tirarDaMeta(…, true)` faz. Guarnição fora da meta do dia: `Recusa('Esta guarnição não está na meta deste dia.')`.
+  - `desfazerDesativacao(tx, unidadeId, data, d: DesfazerDesativacao): Promise<void>` — numa transação: confere que as escalas e os modelos são da seção (senão 400); devolve a meta (`origem: 'padrao'` → `voltarMetaAoPadrao`; `'dia'` → `gravarMetaDoDia`); recria as alocações (ids novos, guardando o mapa antigo → novo); apaga as marcas de remoção criadas (mesmo `militar, data, serviço, turno`); recria os acúmulos com o id novo quando a alocação também voltou. Qualquer conflito de unicidade: `Recusa('Não deu para desfazer: alguém já ocupa um desses lugares.')`.
+  - Rotas (`CADASTRO`): `POST /unidades/:u/meta-do-dia/:data/desativar` → `ResultadoDaDesativacao`; `POST /unidades/:u/meta-do-dia/:data/desfazer-desativacao` → `EfetivoDoDia`. `tirarDaMeta` sai (vira o `desativar`).
+
+- [ ] **Step 1: Write the failing tests** (em `meta.test.ts`, trocando os do `/tirar`; e em `efetivo-do-dia.test.ts`):
+  - `desativar sem ninguém`: padrão [g1, g2] → desativar g1 → meta do dia [g2], `desfazer.alocacoes` vazio, `desfazer.metaAntes.origem` = `'padrao'`.
+  - `desativar desescala e guarda o que tirou` (Review Focus 1): ALFA em g1 com acúmulo em g2, BRAVO em g2 com acúmulo em g1 → ALFA sem alocação no dia, marca de remoção criada; BRAVO continua em g2 sem acúmulos; `desfazer.alocacoes` = [ALFA], `desfazer.acumulos` com os dois.
+  - `desfazer devolve tudo` (Review Focus 1 e 4): depois do anterior, `desfazer-desativacao` → ALFA de volta em g1 com o acúmulo em g2, BRAVO com o acúmulo em g1, sem a marca de remoção de ALFA, e `GET meta-do-dia` com `origem: 'padrao'`.
+  - `desfazer com o lugar ocupado` (Review Focus 2): entre desativar e desfazer, CHARLIE é alocado no mesmo turno e ALFA é escalado de novo no mesmo serviço e turno → 409 com a frase, e a meta continua sem g1.
+  - `desfazer com escala de outra seção` → 400.
+  - `desativar guarnição fora da meta` → 409 "Esta guarnição não está na meta deste dia."
+  - `o escalante desativa` (200) e um usuário sem `CADASTRO` não (403).
+  - `efetivo-do-dia`: `desativadas` traz g1 depois de desativar num dia de padrão [g1, g2] (Review Focus 3); vazio num dia que segue o padrão; o dia seguinte continua `origem: 'padrao'`.
+- [ ] **Step 2: Run** `cd apps/api && npx vitest run --maxWorkers=1 test/meta.test.ts test/efetivo-do-dia.test.ts`. Expected: FAIL.
+- [ ] **Step 3: Implement.**
+- [ ] **Step 3b: Ajuste mínimo no site** para o typecheck: `api/efetivo-do-dia.ts` troca `tirarDaMeta` por `desativar(queryClient, unidadeId, data, guarnicaoId): Promise<ResultadoDaDesativacao>` e `desfazerDesativacao(queryClient, unidadeId, data, d)`, ambos invalidando `['efetivo-do-dia']`, `['escala-do-mes']`, `['cotas']` e `['candidatos']`; a tela continua com "Tirar da meta" chamando `desativar` até a Tarefa 61.
+- [ ] **Step 4: Run** a suíte da API (`--no-file-parallelism`), a do site e `pnpm typecheck`. Expected: PASS.
+- [ ] **Step 5: Commit** `Fase 4.4.1: desativar e desfazer (API)`.
+
+### Task 61: Desativar, desfazer, reativar, adicionar e voltar ao padrão (tela)
+
+**Files:**
+- Create: `apps/web/src/componentes/efetivo-por-dia/DesativarGuarnicao.tsx` (substitui `TirarDaMeta.tsx`, que sai), `apps/web/src/componentes/efetivo-por-dia/AvisoDesfazer.tsx`, `apps/web/src/componentes/efetivo-por-dia/Desativadas.tsx`
+- Modify: `apps/web/src/componentes/efetivo-por-dia/AdicionarGuarnicao.tsx`, `apps/web/src/componentes/efetivo-por-dia/CardDoEfetivo.tsx`, `apps/web/src/routes/_app/efetivo-por-dia.tsx`
+- Test: `apps/web/src/__testes__/efetivo-por-dia.test.tsx`
+
+**Interfaces:**
+- Consumes: `desativar`, `desfazerDesativacao` (Tarefa 60); `gravarMetaDoDia`, `voltarMetaAoPadrao` (existentes); `EfetivoDoDia.desativadas`.
+- `AvisoDesfazer({ texto, aoDesfazer, aoSumir })`: `role="status"`, botão "Desfazer", some sozinho em 10 s (`setTimeout`, limpo ao desmontar). A rota guarda o último `desfazer` e o descarta ao trocar de dia ou em outra ação de meta.
+
+- [ ] **Step 1: Write the failing tests:**
+  - **Desativar:**
+    - o botão do card é "Desativar guarnição" (não existe "Tirar da meta" nem "Só tirar da meta");
+    - com `alocados: 0`, envia `POST …/desativar` sem perguntar e mostra "1ª Incêndio desativada." com "Desfazer";
+    - com `alocados: 3`, pergunta "Desativar a 1ª Incêndio?"; "Desativar" envia; "Cancelar" não envia; o texto não tem "militares escalados";
+    - "Desfazer" envia `POST …/desfazer-desativacao` com o `desfazer` recebido; com 409, a frase aparece no aviso.
+  - **Desativadas hoje** (Review Focus 3): com `desativadas: [g1]`, aparece o grupo "Desativadas hoje" com "Reativar 1ª Incêndio"; clicar envia `PUT …/meta-do-dia/…` com `{ guarnicoes: ['g2','g1'] }`.
+  - **Adicionar guarnição:** lista todos os modelos ativos; o que está na meta aparece com "já está no dia" e desabilitado; o escolhido vai para o fim.
+  - **Voltar ao padrão** (Review Focus 5): com `origem: 'padrao'`, o botão existe e está desabilitado; com `origem: 'dia'`, pergunta "Voltar este dia à meta padrão?" e "Voltar" envia `DELETE …/meta-do-dia/…`.
+- [ ] **Step 2: Run** `cd apps/web && npx vitest run --maxWorkers=1 src/__testes__/efetivo-por-dia.test.tsx`. Expected: FAIL.
+- [ ] **Step 3: Implement.** Os cards de "Desativadas hoje" seguem o visual dos cards atuais, menores e sem linhas do tempo.
+- [ ] **Step 4: Run** a suíte do site e `pnpm typecheck`. Expected: PASS.
+- [ ] **Step 5: Commit** `Fase 4.4.1: desativar, reativar e adicionar na tela`. No fim da entrega:
+  - atualizar as contagens no `CLAUDE.md` local;
+  - `pnpm test && pnpm typecheck && pnpm build:vercel`;
+  - revisão final (Opus);
+  - PR com a lista curta para a sandbox. **Parar até o merge.**
+
+---
+
+# Entrega 4.2 — Efetivo por dia e Escala do mês em grade
+
+**Branch:** `fase4-4-2-grade-do-efetivo`, a partir da `main` (depois do merge da 4.1). Commits `Fase 4.4.2: …`; PR "Fase 4 — Entrega 4.2: Efetivo por dia e Escala do mês em grade". **Sem migração.**
+
+**Spec:** adendo "validação da 3.3 (entregas 4.1, 4.2 e 5.1)" de `docs/superpowers/specs/2026-11-20-meta-de-ativacao-design.md`.
+
+**Decisões desta entrega** (do usuário, no adendo; as minhas estão marcadas):
+- **O dia continua o do calendário**; as linhas de todos os cards seguem na mesma janela de horas (`janelaDoDia`), e onde a guarnição não está vinculada a linha fica vazia.
+- **A régua sai** (`ReguaDoEfetivo.tsx` e `marcasDoDia` saem). Cada trecho escreve o horário dentro dele quando cabe ("08h–20h") e sempre no nome acessível.
+- **Cards em grade:** `grid-cols-[repeat(auto-fill,minmax(min(100%,24rem),1fr))]`. "Subir"/"Descer" viram "Mover antes" (←) e "Mover depois" (→), nomes acessíveis "Mover a 2ª Resgate para antes/depois".
+- **Vaga em faixa única:** trechos de vaga que se encostam na mesma linha viram um trecho só; a API deixa de cortar a falta nos horários dos vínculos (`cortarNosVinculos` sai). As `opcoes` continuam sendo os vínculos que se sobrepõem ao trecho.
+- **"Qual horário?"** no lugar de "Por qual escala?": um botão por opção, "08h–20h · Ordinário". Com uma opção, abre direto o "Escolher militar".
+- **Etiqueta do serviço** (`EtiquetaDoServico`): retângulo de cantos arredondados com o nome do serviço, na cor cadastrada; `cheia` (fundo na cor, letra `corDoTexto`) ou `contorno` (borda e letra `corDoTexto(cor)`, fundo transparente, para usar sobre a barra que já tem a cor).
+- **Escala do mês:** uma barra só por dia (sai a barra clara/escura de cada faixa); etiqueta cheia de cada serviço da faixa no título, depois de "08h–16h B"; dias em grade (`minmax(min(100%,22rem),1fr)`) quando **nenhum dia do mês** tem mais de uma faixa, senão um dia por linha.
+
+**Review Focus da 4.2** (cada um tem teste na tarefa dona):
+1. **Bioma sem ninguém** (três vínculos de 8h, 00h–24h): cada função tem uma linha com um trecho de vaga só (0–1440), e as `opcoes` trazem os três horários. Tarefa 62.
+2. **Faixa que se divide:** escalar alguém 08h–16h no Bioma deixa duas vagas (0–480 e 960–1440) na mesma linha, cada uma só com os vínculos que a tocam. Tarefa 62.
+3. **Serviço com cor clara** (`#00FF00`): a etiqueta usa letra escura; com cor escura (`#2E6B1F`), letra clara. Tarefa 63.
+4. **Escala com um turno por dia num mês em que um dia tem dois** (ex.: um feriado com turno extra): o mês inteiro fica com um dia por linha. Tarefa 64.
+5. **"Mostrar só vagas vazias" com dias em grade:** os dias completos somem e a grade se fecha sem buracos. Tarefa 64.
+
+### Task 62: Vaga em faixa única (motor e API)
+
+**Files:**
+- Modify: `pacotes/dominio/src/linhas-do-tempo.ts`, `apps/api/src/efetivo/efetivo-do-dia.ts`
+- Test: `pacotes/dominio/test/linhas-do-tempo.test.ts`, `apps/api/test/efetivo-do-dia.test.ts`
+
+**Interfaces:** `linhasDaGuarnicao` mantém a assinatura (Tarefa 46); só muda o resultado: na mesma linha, trechos `vaga` com `fim === inicio` do seguinte viram um.
+
+- [ ] **Step 1: Write the failing tests:**
+  - motor `vagas que se encostam viram uma`: Motorista mínimo 1, faltas `[{0–480, 1}, {480–960, 1}, {960–1440, 1}]` → uma linha `[{ inicio: 0, fim: 1440, tipo: 'vaga' }]`;
+  - motor `ocupado no meio separa as vagas`: as mesmas faltas sem a de 480–960 e uma ocupação 480–960 → `[vaga 0–480, ocupado 480–960, vaga 960–1440]`;
+  - API (Review Focus 1): Bioma com vínculos 00–08, 08–16 e 16–00 e ninguém → a vaga de cada função é 0–1440 com três `opcoes`;
+  - API (Review Focus 2): ALFA no 08–16 → vagas 0–480 (opção 00–08) e 960–1440 (opção 16–00);
+  - API: o teste da 3.3 "vaga com as escalas que a cobrem" passa a ter uma vaga só (480–1200) com Ordinário e PE Seguro.
+- [ ] **Step 2: Run** `pnpm --filter dominio test -- linhas-do-tempo` e `cd apps/api && npx vitest run --maxWorkers=1 test/efetivo-do-dia.test.ts`. Expected: FAIL.
+- [ ] **Step 3: Implement.**
+- [ ] **Step 4: Run** `pnpm --filter dominio test`, `pnpm --filter dominio tipos`, a suíte da API e `pnpm typecheck`. Expected: PASS.
+- [ ] **Step 5: Commit** `Fase 4.4.2: vaga em faixa única`.
+
+### Task 63: Efetivo por dia em grade, sem régua, com "Qual horário?" e a etiqueta do serviço
+
+**Files:**
+- Create: `apps/web/src/componentes/EtiquetaDoServico.tsx`
+- Delete: `apps/web/src/componentes/efetivo-por-dia/ReguaDoEfetivo.tsx`
+- Modify: `apps/web/src/componentes/efetivo-por-dia/EscolherEscalaDaVaga.tsx` (vira `EscolherHorarioDaVaga.tsx`), `LinhaDoTempoDaGuarnicao.tsx`, `CardDoEfetivo.tsx`, `apps/web/src/lib/efetivo.ts` (sai `marcasDoDia`), `apps/web/src/routes/_app/efetivo-por-dia.tsx`
+- Test: `apps/web/src/__testes__/efetivo-por-dia.test.tsx`, `apps/web/src/__testes__/etiqueta-do-servico.test.tsx`
+
+**Interfaces:**
+- Produces: `EtiquetaDoServico({ nome, cor, variante = 'cheia' }: { nome: string; cor: string; variante?: 'cheia' | 'contorno' })`, com `data-etiqueta-servico`, usando `corDoTexto` de `lib/cores.ts`.
+- Nome acessível do trecho ocupado continua "Motorista: SD BM ALFA, 08h–08h, Pronto"; o da vaga, "Motorista: vaga 00h–24h".
+
+- [ ] **Step 1: Write the failing tests:**
+  - etiqueta (Review Focus 3): `cheia` com `#00FF00` tem letra `#1C2430`; com `#2E6B1F`, `#FFFFFF`; `contorno` tem fundo transparente e borda na cor da letra;
+  - o trecho ocupado mostra a etiqueta "Pronto" (`contorno`) e o horário "08h–08h";
+  - a tela não tem a régua (nenhum "D+1") e os cards ficam dentro de `data-cards-do-efetivo` com `auto-fill`;
+  - "Mover depois" no 1º envia a meta com ele em 2º; não existem "Subir" nem "Descer";
+  - vaga com duas opções abre "Qual horário?" com "08h–20h · Ordinário" e "08h–16h · PE Seguro"; com uma, abre direto os candidatos (os testes da 3.3 com "Por qual escala?" mudam para o novo título).
+- [ ] **Step 2: Run** os dois arquivos. Expected: FAIL.
+- [ ] **Step 3: Implement.** Use `frontend-design` para o card em grade e a etiqueta, seguindo o visual atual (vinho, `font-cond`); a etiqueta segue o estilo das etiquetas "PJES"/"SALDO" mostradas pelo usuário (texto curto, cantos bem arredondados, sem caixa alta forçada). Trecho estreito demais esconde a etiqueta e o horário, que ficam no nome acessível.
+- [ ] **Step 4: Run** a suíte do site e `pnpm typecheck`. Expected: PASS.
+- [ ] **Step 5: Commit** `Fase 4.4.2: Efetivo por dia em grade com a etiqueta do serviço`.
+
+### Task 64: Escala do mês com uma barra por dia, etiqueta no turno e dias em grade
+
+**Files:**
+- Modify: `pacotes/contratos/src/escala-do-mes.ts` (`FaixaDoDia.turnos[]` ganha `cor: string`, a do serviço), a montagem da escala do mês na API, `apps/web/src/componentes/escala-do-mes/DiaDaEscala.tsx`, a rota da Escala do mês
+- Test: o teste da escala do mês na API, `apps/web/src/__testes__/escala-do-mes.test.tsx`
+
+**Interfaces:** Consumes `EtiquetaDoServico` (Tarefa 63).
+
+- [ ] **Step 1: Write the failing tests:**
+  - API: cada `turnos[]` da faixa traz a `cor` do serviço;
+  - a faixa não tem mais a barra própria (`data-faixa` sem filho `aria-hidden` de barra); o dia tem uma barra só, entre o número e as faixas;
+  - o título da faixa do Bioma mostra a etiqueta "Bioma" na cor do serviço;
+  - Defensoria (uma faixa por dia no mês): a lista de dias fica num `data-dias-em-grade`; Ordinário: não (Review Focus 4: um dia com duas faixas tira a grade do mês todo);
+  - "Mostrar só vagas vazias" com dias em grade não deixa elementos vazios na grade (Review Focus 5).
+- [ ] **Step 2: Run** os testes da escala do mês (API e site). Expected: FAIL.
+- [ ] **Step 3: Implement.**
+- [ ] **Step 4: Run** a suíte da API, a do site e `pnpm typecheck`. Expected: PASS.
+- [ ] **Step 5: Commit** `Fase 4.4.2: Escala do mês com barra única e dias em grade`. No fim da entrega:
+  - atualizar as contagens no `CLAUDE.md` local;
+  - `pnpm test && pnpm typecheck && pnpm build:vercel`;
+  - revisão final (Opus);
+  - PR com a lista curta para a sandbox. **Parar até o merge.**
+
+---
+
 # Entregas 3 a 6 (a detalhar antes de cada uma)
 
 Cada uma ganha aqui as suas tarefas, no formato da entrega 1, depois do merge da anterior e da conversa com o usuário sobre o que a entrega 1 mostrou em uso.
@@ -2126,5 +2313,7 @@ Cada uma ganha aqui as suas tarefas, no formato da entrega 1, depois do merge da
 - **Entrega 2.4 — Acabamento do voluntariado e da escala do mês:** detalhada acima (Tarefas 28 a 31).
 - **Entrega 3 — Pré-escala e distribuições:** 3.1 (Tarefas 32 a 35), 3.2.1 (Tarefas 36 a 40), 3.2.2 (Tarefas 41 a 45) e 3.3 (Efetivo por dia, turnos lado a lado e login novo, Tarefas 46 a 53). "Completar com JES", saldos do Adm, operações pelas cotas e buracos do Pronto saíram da 3.3 e esperam entrega marcada (lista no fim da 3.3).
 - **Entrega 4 — Grade geral:** detalhada acima (Tarefas 54 a 59), com o design de 20/11/2026 (`docs/superpowers/specs/2026-11-20-grade-geral-design.md`): painel interativo, clique na célula (militar e dia), filtro de equipes, colunas PJES, Diárias e Voluntariado, e "Trocar" (com permuta entre ordinários).
+- **Entregas 4.1 e 4.2:** detalhadas acima (Tarefas 60 a 64), com o adendo "validação da 3.3" de `docs/superpowers/specs/2026-11-20-meta-de-ativacao-design.md`.
 - **Entrega 5 — Gerar documento:** Configurações › Modelos de impressão (enviar com conferência dos marcadores, baixar o atual, versões); geração da escala publicada com ExcelJS a partir do modelo vigente da unidade, respeitando `militares_doc` e `dias_doc` da escala; `documento_gerado` guardado e baixável; PDF fica para quando o serviço existir.
+- **Entrega 5.1 — O mesmo modelo mais de uma vez no dia:** a detalhar depois da 5, com o design feito com o usuário (perguntas no adendo "validação da 3.3"). Fecha a fase 4.
 - ~~**Entrega 6 — Minha escala**~~: saiu da fase 4 (decisão do usuário, 19/11/2026). O conteúdo previsto continua valendo e vai para a etapa "Tipos de usuário e módulos" do roadmap: a rota e a tela do militar comum (os próprios serviços do mês, com serviço, turno, horário e quem compõe a guarnição com ele) e o acesso às escalas publicadas da unidade em que ele está lotado.
