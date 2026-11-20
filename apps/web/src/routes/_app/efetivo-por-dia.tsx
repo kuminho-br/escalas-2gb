@@ -21,7 +21,7 @@ import { Button } from '@/componentes/ui/button';
 import { Input } from '@/componentes/ui/input';
 import { Label } from '@/componentes/ui/label';
 import { guardarUltimoDia, janelaDoDia, ultimoDiaVisto } from '@/lib/efetivo';
-import { dataPorExtenso, hoje, somarDias } from '@/lib/meses';
+import { diaDaSemanaPorExtenso, hoje, somarDias } from '@/lib/meses';
 
 export const Route = createFileRoute('/_app/efetivo-por-dia')({
   validateSearch: (s: Record<string, unknown>): { data?: string } => ({ data: typeof s.data === 'string' && Data.safeParse(s.data).success ? s.data : undefined }),
@@ -158,7 +158,7 @@ function EfetivoPorDia() {
         <Button type="button" variant="outline" size="icon" aria-label="Dia seguinte" onClick={() => irPara(somarDias(data, 1))}>
           <ChevronRight aria-hidden />
         </Button>
-        <p className="text-sm text-apagado">{dataPorExtenso(data)}</p>
+        <p className="text-sm text-apagado">{diaDaSemanaPorExtenso(data)}</p>
       </div>
 
       {dados.isPending && <p className="text-apagado">Carregando…</p>}
