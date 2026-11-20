@@ -3,19 +3,38 @@
 /** Cota restante de um serviço no mês: a soma das cotas (interna e externa) e das alocações já distribuídas nelas. */
 export type CotaRestante = { servicoId: string; servico: string; cor: string; quantidade: number; usadas: number };
 
-export type MilitarNoEfetivo = {
-  militarId: string;
-  posto: string;
-  nomeGuerra: string;
-  funcaoId: string;
-  funcao: string;
-  /** HH:MM; o horário do turno da alocação */
+/** Uma alocação dentro de um trecho ocupado: o trecho junta os turnos que o militar emenda na mesma função e no mesmo serviço. */
+export type AlocacaoNoTrecho = {
+  alocacaoId: string;
+  /** o id do acúmulo quando ele ocupa a função por acúmulo; null na vaga original */
+  acumuloId: string | null;
+  /** HH:MM do turno da alocação */
   inicio: string;
   fim: string;
-  servico: { id: string; nome: string; cor: string };
-  /** true quando ele ocupa esta função por acúmulo (já está escalado em outra vaga no mesmo turno) */
-  acumulo: boolean;
 };
+
+/** Por onde se escala uma vaga: a escala e a faixa (HH:MM) de um vínculo da guarnição que cobre a vaga. */
+export type OpcaoDaVaga = { escalaId: string; escala: string; inicio: string; fim: string };
+
+/** Um trecho de uma linha do tempo, em minutos desde as 00h do dia (passa de 1440 depois da meia-noite). Sem ocupante, é vaga. */
+export type TrechoNoEfetivo = {
+  inicio: number;
+  fim: number;
+  ocupante: {
+    militarId: string;
+    posto: string;
+    nomeGuerra: string;
+    servico: { id: string; nome: string; cor: string };
+    /** true quando ele ocupa esta função por acúmulo (já está escalado em outra vaga no mesmo turno) */
+    acumulo: boolean;
+    alocacoes: AlocacaoNoTrecho[];
+  } | null;
+  /** só na vaga: os vínculos da guarnição que a cobrem, com as escalas pelo nome */
+  opcoes: OpcaoDaVaga[];
+};
+
+/** Uma função da guarnição no dia: uma linha por vaga ocupada ou aberta. */
+export type FuncaoNoEfetivo = { funcaoId: string; funcao: string; minimo: number; cnhExigida: string | null; linhas: TrechoNoEfetivo[][] };
 
 export type FaltaNoEfetivo = {
   funcao: string;
@@ -23,8 +42,6 @@ export type FaltaNoEfetivo = {
   /** HH:MM; o fim depois da meia-noite já volta ao relógio (08:00) */
   inicio: string;
   fim: string;
-  /** a primeira escala, pelo nome, que vincula a guarnição nesse horário (o atalho "Abrir na Escala do mês") */
-  escalaId: string | null;
 };
 
 export type GuarnicaoNoEfetivo = {
@@ -37,7 +54,9 @@ export type GuarnicaoNoEfetivo = {
   /** onde a guarnição está vinculada no dia (a união, em HH:MM); vazio = "Sem horário vinculado neste dia" */
   horarios: { inicio: string; fim: string }[];
   faltas: FaltaNoEfetivo[];
-  militares: MilitarNoEfetivo[];
+  funcoes: FuncaoNoEfetivo[];
+  /** quantas alocações e acúmulos do dia estão nela (a pergunta do "Tirar da meta") */
+  alocados: number;
 };
 
 export type EfetivoDoDia = {

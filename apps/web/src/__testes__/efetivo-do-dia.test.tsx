@@ -1,4 +1,4 @@
-import type { DiaDaEscala, EfetivoDoDia, EscalaDoMes, GuarnicaoNoEfetivo, LinhaEscala, LinhaGuarnicao, MilitarNoEfetivo } from 'contratos';
+import type { DiaDaEscala, EfetivoDoDia, EscalaDoMes, GuarnicaoNoEfetivo, LinhaEscala, LinhaGuarnicao } from 'contratos';
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -10,12 +10,8 @@ import { abrir, chamadasA, corpoEnviado, EU_EXEMPLO, simularApi } from './apoio'
 const DIA = '2026-12-12';
 const SEGUINTE = '2026-12-13';
 const GESTOR = { ...EU_EXEMPLO, papeis: [{ papel: 'gestor' as const, unidadeId: 'u-1sb', unidadeSigla: '1ª SB' }] };
-const PRONTO = { id: 's-pronto', nome: 'Pronto', cor: '#2F8F5B' };
-const militar = (nomeGuerra: string, funcao: string, inicio: string, fim: string, servico = PRONTO, acumulo = false): MilitarNoEfetivo => ({
-  militarId: `m-${nomeGuerra}`, posto: 'SD BM', nomeGuerra, funcaoId: `f-${funcao}`, funcao, inicio, fim, servico, acumulo,
-});
 const guarnicao = (g: Partial<GuarnicaoNoEfetivo> & Pick<GuarnicaoNoEfetivo, 'guarnicaoId' | 'nome'>): GuarnicaoNoEfetivo => ({
-  viatura: null, ordem: null, ativada: true, horarios: [{ inicio: '08:00', fim: '20:00' }], faltas: [], militares: [], ...g,
+  viatura: null, ordem: null, ativada: true, horarios: [{ inicio: '08:00', fim: '20:00' }], faltas: [], funcoes: [], alocados: 0, ...g,
 });
 const EFETIVO: EfetivoDoDia = {
   data: DIA,
@@ -23,15 +19,13 @@ const EFETIVO: EfetivoDoDia = {
   guarnicoes: [
     guarnicao({
       guarnicaoId: 'g2', nome: 'ACO', ordem: 1, ativada: false, horarios: [{ inicio: '08:00', fim: '08:00' }],
-      faltas: [{ funcao: 'Motorista', faltam: 1, inicio: '20:00', fim: '08:00', escalaId: 'e-ord' }],
-      militares: [militar('ALFA', 'Motorista', '08:00', '20:00')],
+      faltas: [{ funcao: 'Motorista', faltam: 1, inicio: '20:00', fim: '08:00' }],
     }),
     guarnicao({
       guarnicaoId: 'g3', nome: 'Resgate', ordem: 2, viatura: 'ABS-12',
-      militares: [militar('BRAVO', 'Auxiliar', '08:00', '16:00', { id: 's-pe', nome: 'PE Seguro', cor: '#3C5F9C' }), militar('CHARLIE', 'Auxiliar', '16:00', '20:00', { id: 's-saldo', nome: 'Saldo', cor: '#2B7BB9' }, true)],
     }),
-    guarnicao({ guarnicaoId: 'g1', nome: 'ABT', militares: [militar('DELTA', 'Motorista', '08:00', '20:00')] }),
-    guarnicao({ guarnicaoId: 'g9', nome: 'Antigo', ativada: false, horarios: [], militares: [militar('ECHO', 'Motorista', '08:00', '20:00')] }),
+    guarnicao({ guarnicaoId: 'g1', nome: 'ABT' }),
+    guarnicao({ guarnicaoId: 'g9', nome: 'Antigo', ativada: false, horarios: [] }),
   ],
   cotas: [{ servicoId: 's-jes', servico: 'JES', cor: '#6E56A8', quantidade: 40, usadas: 2 }],
 };
@@ -54,7 +48,7 @@ function api(efetivo: EfetivoDoDia = EFETIVO, eu = EU_EXEMPLO, extra: Parameters
 const cartao = (nome: string) => screen.getByRole('region', { name: nome });
 
 describe('efetivo do dia: os cards', () => {
-  it('aparecem na ordem da API, com o número só na meta, o estado, a falta e o link para a Escala do mês', async () => {
+  it('aparecem na ordem da API, com o número só na meta, o estado e a falta', async () => {
     api();
     abrir(`/efetivo-do-dia?data=${DIA}`);
     await screen.findByRole('heading', { name: '1º ACO' });
@@ -62,9 +56,7 @@ describe('efetivo do dia: os cards', () => {
     const aco = cartao('1º ACO');
     expect(within(aco).getByText('não ativada')).toBeInTheDocument();
     expect(within(aco).getByText('Falta 1 Motorista 20h–08h')).toBeInTheDocument();
-    expect(within(aco).getByRole('link', { name: 'Abrir na Escala do mês' })).toHaveAttribute('href', '/escala-do-mes?escala=e-ord&mes=2026-12&dia=2026-12-12');
     expect(within(cartao('2º Resgate')).getByText('ativada')).toBeInTheDocument();
-    expect(within(cartao('2º Resgate')).queryByRole('link', { name: 'Abrir na Escala do mês' })).toBeNull();
   });
 
   it('o card fora da meta não tem número, e a falta de ativação não muda a posição dele', async () => {
@@ -73,19 +65,6 @@ describe('efetivo do dia: os cards', () => {
     await screen.findByRole('region', { name: 'ABT' });
     expect(screen.getByRole('heading', { name: 'ABT' })).toBeInTheDocument();
     expect(screen.queryByText(/fora da meta/i)).toBeNull();
-  });
-
-  it('cada militar aparece com a função, o horário e o serviço (com a cor), e o acúmulo é marcado', async () => {
-    api();
-    abrir(`/efetivo-do-dia?data=${DIA}`);
-    const resgate = await screen.findByRole('region', { name: '2º Resgate' });
-    const linhas = within(resgate).getAllByRole('listitem');
-    expect(linhas.map((l) => l.textContent)).toEqual([
-      expect.stringContaining('AuxiliarSD BM BRAVO08h–16hPE Seguro'),
-      expect.stringContaining('AuxiliarSD BM CHARLIE16h–20hSaldoacumula'),
-    ]);
-    expect(within(linhas[0]!).getByText('PE Seguro')).toHaveStyle({ backgroundColor: '#3C5F9C' });
-    expect(within(resgate).getByText('ABS-12')).toBeInTheDocument();
   });
 
   it('o card sem horário vinculado diz isso, em vez de faltas', async () => {

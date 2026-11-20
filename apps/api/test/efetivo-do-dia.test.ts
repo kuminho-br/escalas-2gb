@@ -41,7 +41,13 @@ const ler = async (data: string): Promise<EfetivoDoDia> => {
 };
 const card = (e: EfetivoDoDia, nome: string): GuarnicaoNoEfetivo => e.guarnicoes.find((g) => g.nome === nome)!;
 const definirMeta = async (data: string, guarnicoes: string[]) => expect((await api.pedir('admin', 'PUT', `${secao()}/meta-do-dia/${data}`, { guarnicoes })).status).toBe(200);
-const resumo = (g: GuarnicaoNoEfetivo) => g.militares.map((m) => [m.funcao, m.nomeGuerra, m.inicio, m.fim, m.servico.nome, m.acumulo]);
+/** Os trechos ocupados, por função, linha e início: [função, nome, início, fim (minutos), serviço, acúmulo]. */
+const resumo = (g: GuarnicaoNoEfetivo) =>
+  g.funcoes.flatMap((f) => f.linhas.flatMap((l) => l.filter((t) => t.ocupante).map((t) => [f.funcao, t.ocupante!.nomeGuerra, t.inicio, t.fim, t.ocupante!.servico.nome, t.ocupante!.acumulo])));
+/** As vagas: [função, início, fim, opções "Escala HH:MM–HH:MM"]. */
+const vagas = (g: GuarnicaoNoEfetivo) =>
+  g.funcoes.flatMap((f) => f.linhas.flatMap((l) => l.filter((t) => !t.ocupante).map((t) => [f.funcao, t.inicio, t.fim, t.opcoes.map((o) => `${o.escala} ${o.inicio}–${o.fim}`)])))
+    .sort((a, b) => String(a[0]).localeCompare(String(b[0])) || Number(a[1]) - Number(b[1]));
 
 const servicoComTurnos = async (nome: string, tipo: string, cor: string, turnos: [string, string, string][]) => {
   const id = await inserir(api.banco, 'servico', { unidade_id: api.ids.secao, nome, tipo, cor });
@@ -112,8 +118,9 @@ describe('o turno que atravessa a meia-noite (Review Focus 1)', () => {
     const g = card(e, 'Salvamento');
     expect(g).toMatchObject({ ordem: 1, ativada: false, viatura: null });
     expect(g.horarios).toEqual([{ inicio: '08:00', fim: '08:00' }]);
-    expect(g.faltas).toEqual([{ funcao: 'Motorista', faltam: 1, inicio: '20:00', fim: '08:00', escalaId: ordinario }]);
-    expect(resumo(g)).toEqual([['Motorista', 'MOT-A', '08:00', '20:00', 'Pronto', false]]);
+    expect(g.faltas).toEqual([{ funcao: 'Motorista', faltam: 1, inicio: '20:00', fim: '08:00' }]);
+    expect(resumo(g)).toEqual([['Motorista', 'MOT-A', 480, 1200, 'Pronto', false]]);
+    expect(vagas(g)).toEqual([['Motorista', 1200, 1920, ['Ordinário 20:00–08:00']]]);
     expect(e.meta).toEqual({ origem: 'dia', total: 1, ativadas: 0 });
   });
 });
@@ -137,39 +144,58 @@ describe('o mesmo modelo em duas escalas, e a ordem do painel (Review Focus 2)',
     expect(g.ativada).toBe(true);
     expect(g.faltas).toEqual([]);
     expect(resumo(g)).toEqual([
-      ['Motorista', 'MOT-A', '08:00', '20:00', 'Pronto', false],
-      ['Motorista', 'MOT-B', '20:00', '08:00', 'Pronto', false],
-      ['Auxiliar', 'AUX-DIA', '08:00', '16:00', 'PE Seguro', false],
-      ['Auxiliar', 'AUX-SALDO', '16:00', '20:00', 'Saldo', false],
-      ['Auxiliar', 'AUX-NOITE', '20:00', '08:00', 'Pronto', false],
+      ['Motorista', 'MOT-A', 480, 1200, 'Pronto', false],
+      ['Motorista', 'MOT-B', 1200, 1920, 'Pronto', false],
+      ['Auxiliar', 'AUX-DIA', 480, 960, 'PE Seguro', false],
+      ['Auxiliar', 'AUX-SALDO', 960, 1200, 'Saldo', false],
+      ['Auxiliar', 'AUX-NOITE', 1200, 1920, 'Pronto', false],
     ]);
-    expect(g.militares[2]!.servico).toMatchObject({ id: diaria.id, nome: 'PE Seguro', cor: '#3C5F9C' });
-    expect(g.militares[0]).toMatchObject({ posto: 'SD-E', funcaoId: motorista, militarId: militares['MOT-A'] });
+    // diária e Saldo se encostam: a mesma linha
+    expect(g.funcoes[1]!.linhas).toHaveLength(1);
+    expect(g.funcoes[1]!.linhas[0]![0]!.ocupante!.servico).toMatchObject({ id: diaria.id, nome: 'PE Seguro', cor: '#3C5F9C' });
+    expect(g.funcoes[0]!.linhas[0]![0]!.ocupante).toMatchObject({ posto: 'SD-E', militarId: militares['MOT-A'], acumulo: false });
+    expect(g.funcoes[0]).toMatchObject({ funcaoId: motorista, funcao: 'Motorista', minimo: 1, cnhExigida: null });
   });
 
   it('a ordem é a da meta, com o número; o que está fora da meta vem depois, sem número, e a não ativação não muda a posição', async () => {
     const e = await ler(d);
     expect(e.guarnicoes.map((g) => [g.nome, g.ordem, g.ativada])).toEqual([['ACO', 1, false], ['Resgate', 2, true], ['ABT', null, true]]);
     expect(e.meta).toEqual({ origem: 'dia', total: 2, ativadas: 1 });
-    expect(card(e, 'ACO')).toMatchObject({ horarios: [{ inicio: '08:00', fim: '20:00' }], militares: [] });
-    expect(card(e, 'ACO').faltas).toEqual([{ funcao: 'Auxiliar', faltam: 1, inicio: '08:00', fim: '20:00', escalaId: ordinario }]);
+    expect(card(e, 'ACO')).toMatchObject({ horarios: [{ inicio: '08:00', fim: '20:00' }], alocados: 0 });
+    expect(resumo(card(e, 'ACO'))).toEqual([]);
+    expect(card(e, 'ACO').faltas).toEqual([{ funcao: 'Auxiliar', faltam: 1, inicio: '08:00', fim: '20:00' }]);
+  });
+
+  it('alocados conta as alocações e os acúmulos do dia na guarnição', async () => {
+    const e = await ler(d);
+    expect(card(e, 'Resgate').alocados).toBe(5);
+    expect(card(e, 'ABT').alocados).toBe(1);
   });
 });
 
 describe('acúmulo (decisão do design)', () => {
   const d = dia(3);
+  let alocacaoId: string;
+  let acumuloId: string;
   beforeAll(async () => {
     await definirMeta(d, [aco]);
-    const alocacaoId = await alocar('MOT-A', ordinario, pronto.id, pronto.a, d, abt, motorista);
-    await inserir(api.banco, 'alocacao_acumulo', { alocacao_id: alocacaoId, guarnicao_id: aco, funcao_id: auxiliar });
+    alocacaoId = await alocar('MOT-A', ordinario, pronto.id, pronto.a, d, abt, motorista);
+    acumuloId = await inserir(api.banco, 'alocacao_acumulo', { alocacao_id: alocacaoId, guarnicao_id: aco, funcao_id: auxiliar });
   });
 
   it('o militar do Pronto que acumula a função de auxiliar cobre o horário do turno dele', async () => {
     const e = await ler(d);
     expect(card(e, 'ACO').ativada).toBe(true);
-    expect(resumo(card(e, 'ACO'))).toEqual([['Auxiliar', 'MOT-A', '08:00', '20:00', 'Pronto', true]]);
-    expect(resumo(card(e, 'ABT'))).toEqual([['Motorista', 'MOT-A', '08:00', '20:00', 'Pronto', false]]);
+    expect(resumo(card(e, 'ACO'))).toEqual([['Auxiliar', 'MOT-A', 480, 1200, 'Pronto', true]]);
+    expect(resumo(card(e, 'ABT'))).toEqual([['Motorista', 'MOT-A', 480, 1200, 'Pronto', false]]);
     expect(e.meta.ativadas).toBe(1);
+  });
+
+  it('o trecho de acúmulo traz o acumuloId, e o da vaga original não', async () => {
+    const e = await ler(d);
+    expect(card(e, 'ACO').funcoes[0]!.linhas[0]![0]!.ocupante!.alocacoes).toEqual([{ alocacaoId, acumuloId, inicio: '08:00', fim: '20:00' }]);
+    expect(card(e, 'ABT').funcoes[0]!.linhas[0]![0]!.ocupante!.alocacoes).toEqual([{ alocacaoId, acumuloId: null, inicio: '08:00', fim: '20:00' }]);
+    expect(card(e, 'ACO').alocados).toBe(1);
   });
 });
 
@@ -195,14 +221,64 @@ describe('faltas de uma guarnição em duas escalas', () => {
     await definirMeta(d, [resgate, praia]);
   });
 
-  it('os horários das duas escalas viram um trecho só, e a falta aponta para a primeira escala, pelo nome, que vincula o horário', async () => {
+  it('os horários das duas escalas viram um trecho só nas faltas', async () => {
     const e = await ler(d);
     expect(card(e, 'Resgate').horarios).toEqual([{ inicio: '08:00', fim: '08:00' }]);
     expect(card(e, 'Resgate').faltas).toEqual([
-      { funcao: 'Motorista', faltam: 1, inicio: '08:00', fim: '08:00', escalaId: ordinario },
-      { funcao: 'Auxiliar', faltam: 1, inicio: '08:00', fim: '08:00', escalaId: ordinario },
+      { funcao: 'Motorista', faltam: 1, inicio: '08:00', fim: '08:00' },
+      { funcao: 'Auxiliar', faltam: 1, inicio: '08:00', fim: '08:00' },
     ]);
-    expect(card(e, 'Praia').faltas).toEqual([{ funcao: 'Auxiliar', faltam: 1, inicio: '08:00', fim: '16:00', escalaId: peSeguro }]);
+    expect(card(e, 'Praia').faltas).toEqual([{ funcao: 'Auxiliar', faltam: 1, inicio: '08:00', fim: '16:00' }]);
+  });
+
+  it('a vaga vem cortada nos horários dos vínculos, com as escalas que a cobrem, pelo nome (Review Focus 1)', async () => {
+    const e = await ler(d);
+    expect(vagas(card(e, 'Resgate')).filter((v) => v[0] === 'Auxiliar')).toEqual([
+      ['Auxiliar', 480, 960, ['Ordinário 08:00–20:00', 'PE Seguro 08:00–16:00']],
+      ['Auxiliar', 960, 1200, ['Ordinário 08:00–20:00']],
+      ['Auxiliar', 1200, 1920, ['Ordinário 20:00–08:00']],
+    ]);
+    // as três partes da mesma vaga ficam na mesma linha
+    expect(card(e, 'Resgate').funcoes[1]!.linhas).toHaveLength(1);
+    expect(card(e, 'Resgate').funcoes[1]!.linhas[0]![0]!.opcoes[0]).toMatchObject({ escalaId: ordinario, escala: 'Ordinário' });
+  });
+});
+
+describe('o militar que emenda os turnos A e B (Review Focus 3)', () => {
+  const d = dia(7);
+  beforeAll(async () => {
+    await definirMeta(d, [salvamento]);
+    await alocar('MOT-A', ordinario, pronto.id, pronto.a, d, salvamento, motorista);
+    await alocar('MOT-A', ordinario, pronto.id, pronto.b, d, salvamento, motorista);
+  });
+
+  it('vira um trecho só, com as duas alocações, cada uma com o horário dela', async () => {
+    const g = card(await ler(d), 'Salvamento');
+    expect(g.ativada).toBe(true);
+    expect(g.funcoes[0]!.linhas).toHaveLength(1);
+    const t = g.funcoes[0]!.linhas[0]!;
+    expect(t).toHaveLength(1);
+    expect(t[0]).toMatchObject({ inicio: 480, fim: 1920, opcoes: [] });
+    expect(t[0]!.ocupante!.nomeGuerra).toBe('MOT-A');
+    expect(t[0]!.ocupante!.alocacoes.map((a) => [a.inicio, a.fim])).toEqual([['08:00', '20:00'], ['20:00', '08:00']]);
+  });
+});
+
+describe('vínculo cuja faixa não é mais turno da escala (Review Focus 2)', () => {
+  const d = dia(8);
+  let fantasma: string;
+  beforeAll(async () => {
+    fantasma = await criarModelo('Fantasma', [{ funcaoId: motorista, minimo: 1, maximo: 1 }]);
+    const bioma = await servicoComTurnos('Bioma', 'diaria', '#5B8C3A', [['A', '08:00', '16:00']]);
+    await criarEscala('Bioma', [bioma.id], [{ guarnicaoId: fantasma, inicio: '08:00', fim: '16:00' }]);
+    // o turno foi editado depois do vínculo: a faixa 08–16 já não existe na escala
+    await api.banco.query(`update turno set inicio = '00:00', fim = '08:00' where servico_id = $1`, [bioma.id]);
+    await definirMeta(d, [fantasma]);
+  });
+
+  it('não gera horário, falta nem vaga', async () => {
+    const g = card(await ler(d), 'Fantasma');
+    expect(g).toMatchObject({ horarios: [], faltas: [], funcoes: [], ativada: false });
   });
 });
 

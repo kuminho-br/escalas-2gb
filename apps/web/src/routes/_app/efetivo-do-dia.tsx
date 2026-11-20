@@ -84,7 +84,7 @@ function EfetivoDoDia() {
             <p className="text-apagado">Nenhuma guarnição na meta nem escalada neste dia.</p>
           ) : (
             <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,20rem),1fr))] gap-3">
-              {e.guarnicoes.map((g) => <CardDoEfetivo key={g.guarnicaoId} g={g} data={data} />)}
+              {e.guarnicoes.map((g) => <CardDoEfetivo key={g.guarnicaoId} g={g} />)}
             </div>
           )}
           {alterando && (
