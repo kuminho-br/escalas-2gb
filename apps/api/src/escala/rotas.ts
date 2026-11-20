@@ -67,7 +67,8 @@ export function rotasEscalaDoMes(dep: { banco: Banco; auth: Auth }): Hono<Ambien
     try {
       const gravadas = await comUsuario(dep.banco, c.get('usuarioId'), async (tx) => {
         await tx.query('select pg_advisory_xact_lock(hashtext($1))', [`pre-escala|${id}|${mes}`]);
-        const { novas } = await planejarPreEscala(tx, id, mes, corpo.dados.equipeDia1Id);
+        const { novas, conflito } = await planejarPreEscala(tx, id, mes, corpo.dados.equipeDia1Id);
+        if (conflito) throw new Recusa(conflito);
         if (!novas.length) return 0;
         const { rows } = await tx.query<{ id: string }>(
           `insert into alocacao (militar_id, escala_id, servico_id, turno_id, data, guarnicao_id, funcao_id, origem)
@@ -81,6 +82,7 @@ export function rotasEscalaDoMes(dep: { banco: Banco; auth: Auth }): Hono<Ambien
       return c.json({ escala: await montarEscalaDoMes(dep.banco, id, mes), gravadas }, 201);
     } catch (e) {
       if (e instanceof PreEscalaInvalida) return c.json({ erro: e.message, campos: { equipeDia1Id: e.message } }, 400);
+      if (e instanceof Recusa) return c.json({ erro: e.message }, 409);
       return respostaDoErroDoBanco(c, e);
     }
   });

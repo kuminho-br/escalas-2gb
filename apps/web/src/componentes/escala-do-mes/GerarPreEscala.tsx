@@ -25,6 +25,7 @@ export function GerarPreEscala({ escalaId, mes, aoFechar, aoGravar }: { escalaId
   const p = previa.data;
   const equipeDoDia1 = escolhida ?? p?.equipeUsada?.id ?? '';
   const nomeDetectada = p?.equipes.find((e) => e.id === p.equipeDetectada.equipeId)?.nome;
+  const obrigatoriasVazias = p?.vazias.filter((v) => v.obrigatoria).length ?? 0;
 
   const gravar = travar(async () => {
     setErro(null);
@@ -54,18 +55,21 @@ export function GerarPreEscala({ escalaId, mes, aoFechar, aoGravar }: { escalaId
                 {p.equipes.map((e) => <option key={e.id} value={e.id}>{e.nome}</option>)}
               </Selecao>
               <p className="text-sm text-apagado">
-                {nomeDetectada
-                  ? `Pelo mês anterior, o dia 1 é da equipe ${nomeDetectada}.`
-                  : `Não deu para saber pelo mês anterior (${p.equipeDetectada.motivo}). Escolha a equipe do dia 1.`}
+                {p.equipeNoMes
+                  ? `O Pronto deste mês já começa com a equipe ${p.equipeNoMes.nome} no dia 1.`
+                  : nomeDetectada
+                    ? `Pelo mês anterior, o dia 1 é da equipe ${nomeDetectada}.`
+                    : `Não deu para saber pelo mês anterior (${p.equipeDetectada.motivo}). Escolha a equipe do dia 1.`}
               </p>
             </div>
             {p.equipeUsada && (
               <div className="grid gap-1 text-sm">
                 <p>Entram {plural(p.entram, 'serviço', 'serviços')} de Pronto.</p>
-                <p>Ficam {plural(p.vazias.length, 'vaga vazia', 'vagas vazias')} e {plural(p.semGuarnicao.length, 'militar', 'militares')} sem guarnição.</p>
+                <p>Ficam {plural(obrigatoriasVazias, 'vaga obrigatória vazia', 'vagas obrigatórias vazias')} e {plural(p.semGuarnicao.length, 'militar', 'militares')} sem guarnição.</p>
                 {p.removidosQueNaoVoltam > 0 && <p>{plural(p.removidosQueNaoVoltam, 'removido não volta', 'removidos não voltam')}.</p>}
               </div>
             )}
+            {previa.isPlaceholderData && <p role="status" className="text-sm text-apagado">Atualizando…</p>}
             {p.avisos.filter((a) => a !== 'Escolha a equipe do dia 1.').map((a) => <p key={a} className="text-sm text-pendencia">{a}</p>)}
             {p.vazias.length + p.semGuarnicao.length > 0 && (
               <div className="grid gap-1.5">
@@ -74,8 +78,8 @@ export function GerarPreEscala({ escalaId, mes, aoFechar, aoGravar }: { escalaId
                 </Button>
                 {verFora && (
                   <ul className="grid max-h-56 gap-0.5 overflow-y-auto text-sm">
-                    {p.vazias.map((v) => <li key={`v|${v.data}|${v.faixa}|${v.vaga}`}>{`Dia ${diaDe(v.data)}, ${v.faixa}: ${v.vaga}`}</li>)}
-                    {p.semGuarnicao.map((s) => <li key={`s|${s.data}|${s.faixa}|${s.nomeGuerra}`}>{`Dia ${diaDe(s.data)}, ${s.faixa}: ${s.nomeGuerra} sem guarnição`}</li>)}
+                    {p.vazias.map((v, i) => <li key={`v|${i}`}>{`Dia ${diaDe(v.data)}, ${v.faixa}: ${v.vaga}${v.obrigatoria ? '' : ' (extra)'}`}</li>)}
+                    {p.semGuarnicao.map((s, i) => <li key={`s|${i}`}>{`Dia ${diaDe(s.data)}, ${s.faixa}: ${s.nomeGuerra} sem guarnição`}</li>)}
                   </ul>
                 )}
               </div>
@@ -85,7 +89,7 @@ export function GerarPreEscala({ escalaId, mes, aoFechar, aoGravar }: { escalaId
         {erro && <p role="alert" className="text-sm text-alerta">{erro}</p>}
         <DialogFooter>
           <Button type="button" variant="outline" onClick={aoFechar}>Cancelar</Button>
-          <Button type="button" onClick={() => void gravar()} disabled={!p || !equipeDoDia1 || salvando}>Gravar pré-escala</Button>
+          <Button type="button" onClick={() => void gravar()} disabled={!p || previa.isPlaceholderData || !equipeDoDia1 || salvando}>Gravar pré-escala</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

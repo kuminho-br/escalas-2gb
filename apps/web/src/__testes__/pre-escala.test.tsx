@@ -11,8 +11,8 @@ const LISTA: LinhaEscala[] = [{ id: 'e1', nome: 'Ordinário', ativa: true, servi
 const ESCALA: EscalaDoMes = { escalaId: 'e1', nome: 'Ordinário', mes: MES, dias: [], resumo: { preenchidas: 0, obrigatorias: 0, obrigatoriasVazias: 0 } };
 const EQUIPES = [{ id: 'q1', nome: 'Alfa' }, { id: 'q2', nome: 'Bravo' }, { id: 'q3', nome: 'Charlie' }, { id: 'q4', nome: 'Delta' }];
 const previa = (extra: Partial<PreviaDaPreEscala> = {}): PreviaDaPreEscala => ({
-  mes: MES, equipes: EQUIPES, equipeDetectada: { equipeId: 'q2', motivo: '' }, equipeUsada: { id: 'q2', nome: 'Bravo' }, entram: 24,
-  vazias: [{ data: `${MES}-02`, faixa: '08h–20h', vaga: 'Motorista ABT' }],
+  mes: MES, equipes: EQUIPES, equipeDetectada: { equipeId: 'q2', motivo: '' }, equipeNoMes: null, equipeUsada: { id: 'q2', nome: 'Bravo' }, entram: 24,
+  vazias: [{ data: `${MES}-02`, faixa: '08h–20h', vaga: 'Motorista ABT', obrigatoria: true }, { data: `${MES}-02`, faixa: '08h–20h', vaga: 'Combatente ABT', obrigatoria: false }],
   semGuarnicao: [{ data: `${MES}-02`, faixa: '08h–20h', nomeGuerra: 'B4' }, { data: `${MES}-02`, faixa: '20h–08h', nomeGuerra: 'B5' }],
   removidosQueNaoVoltam: 0, avisos: [], ...extra,
 });
@@ -40,7 +40,8 @@ describe('gerar pré-escala', () => {
     expect(await within(d).findByText('Pelo mês anterior, o dia 1 é da equipe Bravo.')).toBeInTheDocument();
     expect(within(d).getByLabelText('Equipe do dia 1')).toHaveValue('q2');
     expect(within(d).getByText('Entram 24 serviços de Pronto.')).toBeInTheDocument();
-    expect(within(d).getByText('Ficam 1 vaga vazia e 2 militares sem guarnição.')).toBeInTheDocument();
+    // as vagas extras (acima do mínimo) não contam no resumo, como no cabeçalho da Escala do mês (achado da revisão final)
+    expect(within(d).getByText('Ficam 1 vaga obrigatória vazia e 2 militares sem guarnição.')).toBeInTheDocument();
   });
 
   it('sem detecção, diz o motivo, pede a escolha e só deixa gravar depois dela (Review Focus 2)', async () => {
@@ -102,7 +103,33 @@ describe('gerar pré-escala', () => {
     expect(within(d).queryByText('Dia 2, 08h–20h: Motorista ABT')).not.toBeInTheDocument();
     await userEvent.click(within(d).getByRole('button', { name: 'Ver o que ficou de fora' }));
     expect(within(d).getByText('Dia 2, 08h–20h: Motorista ABT')).toBeInTheDocument();
+    expect(within(d).getByText('Dia 2, 08h–20h: Combatente ABT (extra)')).toBeInTheDocument();
     expect(within(d).getByText('Dia 2, 08h–20h: B4 sem guarnição')).toBeInTheDocument();
     expect(within(d).getByText('Dia 2, 20h–08h: B5 sem guarnição')).toBeInTheDocument();
   });
+
+  it('com o Pronto do mês já gravado, a frase diz a equipe do mês (gerar de novo não troca de equipe)', async () => {
+    api(previa({ equipeNoMes: { id: 'q1', nome: 'Alfa' }, equipeUsada: { id: 'q1', nome: 'Alfa' } }));
+    const d = await abrirDialogo();
+    expect(await within(d).findByText('O Pronto deste mês já começa com a equipe Alfa no dia 1.')).toBeInTheDocument();
+    expect(within(d).getByLabelText('Equipe do dia 1')).toHaveValue('q1');
+  });
+
+  it('trocar a equipe mantém a seleção e o resumo na tela enquanto a prévia nova carrega (achado da revisão final)', async () => {
+    const rotas: Parameters<typeof simularApi>[0] = {
+      '/api/eu': { status: 200, corpo: EU_EXEMPLO },
+      'GET /api/unidades/u-1sb/escalas': { status: 200, corpo: LISTA },
+      [`GET /api/escalas/e1/mes/${MES}`]: { status: 200, corpo: ESCALA },
+      [`GET ${ROTA}`]: { status: 200, corpo: previa() },
+    };
+    simularApi(rotas);
+    const d = await abrirDialogo();
+    await within(d).findByText('Entram 24 serviços de Pronto.');
+    rotas[`GET ${ROTA}`] = { status: 200, corpo: previa(), espera: new Promise(() => {}) };
+    await userEvent.selectOptions(within(d).getByLabelText('Equipe do dia 1'), 'q3');
+    expect(within(d).getByLabelText('Equipe do dia 1')).toHaveValue('q3');
+    expect(within(d).getByText('Entram 24 serviços de Pronto.')).toBeInTheDocument();
+    expect(within(d).getByText('Atualizando…')).toBeInTheDocument();
+  });
 });
+

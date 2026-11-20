@@ -1,4 +1,4 @@
-import { queryOptions, type QueryClient } from '@tanstack/react-query';
+import { keepPreviousData, queryOptions, type QueryClient } from '@tanstack/react-query';
 import type { Candidatos, EscalaDoMes, NovaAlocacao, NovoAcumulo, PreviaDaPreEscala } from 'contratos';
 import { pedir } from './cliente';
 
@@ -53,6 +53,8 @@ export const consultaPreEscala = (escalaId: string, mes: string, equipe: string 
   queryOptions({
     queryKey: ['pre-escala', escalaId, mes, equipe],
     queryFn: () => pedir<PreviaDaPreEscala>('GET', `/api/escalas/${escalaId}/mes/${mes}/pre-escala${equipe ? `?equipe=${equipe}` : ''}`),
+    // ao trocar a equipe, a prévia anterior fica na tela (com "Atualizando…") até a nova chegar: a seleção não some nem perde o foco
+    placeholderData: keepPreviousData,
     gcTime: 0,
     staleTime: 0,
   });

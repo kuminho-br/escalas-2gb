@@ -120,8 +120,8 @@ describe('quem entra em cada vaga (equipe do dia 1 = ALFA: dias 1, 5, 9… ALFA;
     expect(a.A3).toMatchObject({ guarnicaoId: abt, funcaoId: combatente });
     expect(Object.keys(a)).toHaveLength(3);
     // menos gente que vagas: sobra vazia a última da ordem, nas duas faixas
-    expect(previa.vazias).toContainEqual({ data: dia(1), faixa: '08h–20h', vaga: 'Combatente ABT' });
-    expect(previa.vazias).toContainEqual({ data: dia(1), faixa: '20h–08h', vaga: 'Combatente ABT' });
+    expect(previa.vazias).toContainEqual({ data: dia(1), faixa: '08h–20h', vaga: 'Combatente ABT', obrigatoria: false });
+    expect(previa.vazias).toContainEqual({ data: dia(1), faixa: '20h–08h', vaga: 'Combatente ABT', obrigatoria: false });
     expect(previa.entram).toBe(novas.length);
   });
 
@@ -133,7 +133,7 @@ describe('quem entra em cada vaga (equipe do dia 1 = ALFA: dias 1, 5, 9… ALFA;
     expect(dois.B2).toMatchObject({ guarnicaoId: abt, funcaoId: combatente });
     expect(dois.B4).toMatchObject({ guarnicaoId: null, funcaoId: null });
     expect(dois.B5).toMatchObject({ guarnicaoId: null, funcaoId: null });
-    expect(previa.vazias).toContainEqual({ data: dia(2), faixa: '08h–20h', vaga: 'Motorista ABT' });
+    expect(previa.vazias).toContainEqual({ data: dia(2), faixa: '08h–20h', vaga: 'Motorista ABT', obrigatoria: true });
     expect(previa.semGuarnicao.filter((x) => x.data === dia(2) && x.faixa === '08h–20h').map((x) => x.nomeGuerra)).toEqual(['B4', 'B5']);
   });
 
@@ -146,7 +146,7 @@ describe('quem entra em cada vaga (equipe do dia 1 = ALFA: dias 1, 5, 9… ALFA;
   it('uma faixa só considera as guarnições vinculadas a ela (nesta escala a AR só existe no turno A: sem ordem cadastrada a ABT enche primeiro)', async () => {
     const { previa } = await planejarPreEscala(api.banco, escalaSoNoA, mes, equipe.Alfa!);
     const doDia1 = previa.vazias.filter((x) => x.data === dia(1));
-    expect(doDia1).toContainEqual({ data: dia(1), faixa: '08h–20h', vaga: 'AR' });
+    expect(doDia1).toContainEqual({ data: dia(1), faixa: '08h–20h', vaga: 'AR', obrigatoria: true });
     expect(doDia1.filter((x) => x.faixa === '20h–08h')).toEqual([]);
   });
 
@@ -178,7 +178,7 @@ describe('gerar de novo (Review Focus 1)', () => {
     expect(a.A2).toMatchObject({ guarnicaoId: abt, funcaoId: motorista });
     expect(a.A1).toMatchObject({ guarnicaoId: ar, funcaoId: chefe });
     expect(Object.values(a).some((x) => x.funcaoId === combatente)).toBe(false);
-    expect(previa.vazias).toContainEqual({ data: dia(1), faixa: '08h–20h', vaga: 'Combatente ABT' });
+    expect(previa.vazias).toContainEqual({ data: dia(1), faixa: '08h–20h', vaga: 'Combatente ABT', obrigatoria: false });
     // no turno B do mesmo dia ninguém estava escalado: A3 entra normalmente
     expect(noTurno(novas, 1, turnoB)).toHaveProperty('A3');
   });
@@ -206,6 +206,15 @@ describe('gerar de novo (Review Focus 1)', () => {
   });
 });
 
+describe('remoção em outra escala com o mesmo Pronto (achado da revisão final)', () => {
+  it('quem foi removido do Pronto numa escala também não volta pela outra que usa o mesmo Pronto: a remoção vale para militar, dia, serviço e turno', async () => {
+    await inserir(api.banco, 'remocao', { militar_id: militar.A3, escala_id: escalaSoNoA, servico_id: pronto, turno_id: turnoA, data: dia(9) });
+    const { novas } = await planejarPreEscala(api.banco, escala, mes, equipe.Alfa!);
+    expect(noTurno(novas, 9, turnoA)).not.toHaveProperty('A3');
+    expect(noTurno(novas, 9, turnoB)).toHaveProperty('A3');
+  });
+});
+
 describe('as rotas da prévia e da gravação', () => {
   const url = (id: string, m = mes) => `/api/escalas/${id}/mes/${m}/pre-escala`;
   const gravadasNoBanco = async (m: string) =>
@@ -216,8 +225,10 @@ describe('as rotas da prévia e da gravação', () => {
     const r = await api.pedir('escalante', 'GET', `${url(escala)}?equipe=${equipe.Alfa}`);
     expect(r.status).toBe(200);
     expect(await r.json()).toEqual(previa);
-    const detectada = await (await api.pedir('escalante', 'GET', url(escala))).json();
-    expect(detectada.equipeUsada).toEqual({ id: equipe.Charlie, nome: 'Charlie' });
+    // pelo mês anterior o dia 1 seria da CHARLIE, mas o Pronto já gravado à mão neste mês (A3 no dia 1, B2 no dia 2) começa com a ALFA
+    const semEscolha = await (await api.pedir('escalante', 'GET', url(escala))).json();
+    expect(semEscolha.equipeDetectada).toEqual({ equipeId: equipe.Charlie, motivo: '' });
+    expect(semEscolha.equipeUsada).toEqual({ id: equipe.Alfa, nome: 'Alfa' });
   });
 
   it('equipe inválida na prévia é 400; mês inválido é 400; quem não tem papel recebe 403', async () => {
@@ -243,6 +254,20 @@ describe('as rotas da prévia e da gravação', () => {
     const r = await api.pedir('escalante', 'POST', url(escala), { equipeDia1Id: equipe.Alfa });
     expect(r.status).toBe(201);
     expect((await r.json()).gravadas).toBe(0);
+    expect(await gravadasNoBanco(mes)).toBe(antes);
+  });
+
+  it('depois de gravar, a equipe que já está no Pronto do mês vale primeiro, e gerar com outra equipe é recusado em vez de pôr duas equipes por dia (achado da revisão final)', async () => {
+    const antes = await gravadasNoBanco(mes);
+    const semEscolha = await (await api.pedir('escalante', 'GET', url(escala))).json();
+    expect(semEscolha.equipeNoMes).toEqual({ id: equipe.Alfa, nome: 'Alfa' });
+    expect(semEscolha.equipeUsada).toEqual({ id: equipe.Alfa, nome: 'Alfa' });
+    const outra = await (await api.pedir('escalante', 'GET', `${url(escala)}?equipe=${equipe.Bravo}`)).json();
+    expect(outra.entram).toBe(0);
+    expect(outra.avisos).toContain('O Pronto deste mês já começa com a equipe Alfa no dia 1. Gerar com outra equipe poria duas equipes no mesmo dia.');
+    const recusada = await api.pedir('escalante', 'POST', url(escala), { equipeDia1Id: equipe.Bravo });
+    expect(recusada.status).toBe(409);
+    expect((await recusada.json()).erro).toBe('O Pronto deste mês já começa com a equipe Alfa no dia 1. Gerar com outra equipe poria duas equipes no mesmo dia.');
     expect(await gravadasNoBanco(mes)).toBe(antes);
   });
 

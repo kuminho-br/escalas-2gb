@@ -54,20 +54,54 @@ export async function equipeDoDia1(c: Consulta, unidadeId: string, mes: string):
 }
 
 /**
+ * A equipe do dia 1 que o Pronto já gravado neste mês implica: cada Pronto A de um militar de uma equipe do ciclo num dia vota na
+ * equipe que estaria no dia 1; empate não decide. Vale antes da detecção pelo mês anterior (gerar de novo não pode mudar de equipe).
+ */
+async function equipeJaNoMes(c: Consulta, unidadeId: string, mes: string, equipes: EquipeDoCiclo[]): Promise<EquipeDoCiclo | null> {
+  const { rows } = await c.query<{ dia: number; equipe_id: string; nome: string }>(
+    `select extract(day from a.data)::int as dia, l.equipe_id, s.nome
+       from alocacao a join servico s on s.id = a.servico_id join turno t on t.id = a.turno_id
+       join lotacao l on l.militar_id = a.militar_id and l.unidade_id = $1 and l.jornada = 'pronto' and l.desde <= a.data and (l.ate is null or l.ate >= a.data)
+      where s.unidade_id = $1 and t.letra = 'A' and a.data >= $2::date and a.data < $3::date`,
+    [unidadeId, mesParaData(mes), mesParaData(proximoMes(mes))],
+  );
+  const votos = new Map<string, number>();
+  for (const r of rows) {
+    if (normalizar(r.nome) !== normalizar(PRE_ESCALA.SERVICO)) continue;
+    const e = equipes.find((x) => x.id === r.equipe_id);
+    if (!e) continue;
+    const n = CICLO_EQUIPES.length;
+    const doDia1 = CICLO_EQUIPES[(((e.ordem - 1 - (r.dia - 1)) % n) + n) % n]!;
+    votos.set(doDia1, (votos.get(doDia1) ?? 0) + 1);
+  }
+  const ordem = [...votos.entries()].sort((a, b) => b[1] - a[1]);
+  if (!ordem.length || (ordem.length > 1 && ordem[0]![1] === ordem[1]![1])) return null;
+  return equipes.find((e) => cicloDaEquipe(e) === ordem[0]![0]) ?? null;
+}
+
+/**
  * A prévia da pré-escala do Pronto e as alocações que a gravação criaria. Nunca mexe no que já está escalado: a vaga ocupada
  * (inclusive por acúmulo) sai da lista, quem já está no horário não é candidato e quem o escalante removeu não volta ao dia e turno de onde saiu.
- * `equipeDia1Id` nulo vale a detectada; sem nenhuma das duas, a prévia vem vazia e pede a escolha.
+ * `equipeDia1Id` nulo vale a equipe que já está no Pronto do mês e, sem ela, a detectada pelo mês anterior; sem nenhuma, a prévia vem
+ * vazia e pede a escolha. Outra equipe que a do Pronto já gravado no mês dá `conflito` (a gravação recusa: seriam duas equipes por dia).
  */
-export async function planejarPreEscala(c: Consulta, escalaId: string, mes: string, equipeDia1Id: string | null): Promise<{ previa: PreviaDaPreEscala; novas: AlocacaoPlanejada[] }> {
+export async function planejarPreEscala(
+  c: Consulta,
+  escalaId: string,
+  mes: string,
+  equipeDia1Id: string | null,
+): Promise<{ previa: PreviaDaPreEscala; novas: AlocacaoPlanejada[]; conflito: string | null }> {
   const unidadeId = (await c.query<{ unidade_id: string }>('select unidade_id from escala where id = $1', [escalaId])).rows[0]!.unidade_id;
   const equipes = await equipesDoCiclo(c, unidadeId);
   if (equipeDia1Id && !equipes.some((e) => e.id === equipeDia1Id)) throw new PreEscalaInvalida('Esta equipe não é do ciclo desta seção.');
   const detectada = await equipeDoDia1(c, unidadeId, mes);
-  const usada = equipes.find((e) => e.id === (equipeDia1Id ?? detectada.equipeId));
+  const noMes = await equipeJaNoMes(c, unidadeId, mes, equipes);
+  const usada = equipes.find((e) => e.id === (equipeDia1Id ?? noMes?.id ?? detectada.equipeId));
   const previa: PreviaDaPreEscala = {
     mes,
     equipes: equipes.map((e) => ({ id: e.id, nome: e.nome })),
     equipeDetectada: detectada,
+    equipeNoMes: noMes ? { id: noMes.id, nome: noMes.nome } : null,
     equipeUsada: usada ? { id: usada.id, nome: usada.nome } : null,
     entram: 0,
     vazias: [],
@@ -77,7 +111,12 @@ export async function planejarPreEscala(c: Consulta, escalaId: string, mes: stri
   };
   if (!usada) {
     previa.avisos.push('Escolha a equipe do dia 1.');
-    return { previa, novas: [] };
+    return { previa, novas: [], conflito: null };
+  }
+  if (noMes && noMes.id !== usada.id) {
+    const conflito = `O Pronto deste mês já começa com a equipe ${noMes.nome} no dia 1. Gerar com outra equipe poria duas equipes no mesmo dia.`;
+    previa.avisos.push(conflito);
+    return { previa, novas: [], conflito };
   }
 
   // o Pronto da escala: o serviço ordinário com esse nome e os turnos A e B dele
@@ -91,7 +130,7 @@ export async function planejarPreEscala(c: Consulta, escalaId: string, mes: stri
   ).rows.filter((t) => normalizar(t.nome) === normalizar(PRE_ESCALA.SERVICO));
   if (!turnosDoPronto.length) {
     previa.avisos.push('Esta escala não tem o serviço Pronto: não há o que gerar.');
-    return { previa, novas: [] };
+    return { previa, novas: [], conflito: null };
   }
 
   const inicioDoMes = mesParaData(mes);
@@ -138,8 +177,9 @@ export async function planejarPreEscala(c: Consulta, escalaId: string, mes: stri
   const removidos = new Set(
     (
       await c.query<{ militar_id: string; data: string; turno_id: string }>(
-        `select militar_id, to_char(data, 'YYYY-MM-DD') as data, turno_id from remocao where escala_id = $1 and servico_id = any($2) and data >= $3::date and data < $4::date`,
-        [escalaId, [...new Set(turnosDoPronto.map((t) => t.servico_id))], inicioDoMes, inicioDoSeguinte],
+        // a remoção vale para militar, dia, serviço e turno, em qualquer escala que tenha o mesmo Pronto (adendo de 17/11)
+        `select militar_id, to_char(data, 'YYYY-MM-DD') as data, turno_id from remocao where servico_id = any($1) and data >= $2::date and data < $3::date`,
+        [[...new Set(turnosDoPronto.map((t) => t.servico_id))], inicioDoMes, inicioDoSeguinte],
       )
     ).rows.map((r) => `${r.militar_id}|${r.data}|${r.turno_id}`),
   );
@@ -187,10 +227,10 @@ export async function planejarPreEscala(c: Consulta, escalaId: string, mes: stri
       }
       for (const chave of resultado.vazias) {
         const v = livres.find((x) => `${x.guarnicaoId}|${x.funcaoId}|${x.vaga}` === chave)!;
-        previa.vazias.push({ data, faixa, vaga: nomeDaVaga(v.guarnicao, v.funcao, composicao.get(`${v.guarnicaoId}|${v.funcaoId}`)?.funcoes ?? 1) });
+        previa.vazias.push({ data, faixa, vaga: nomeDaVaga(v.guarnicao, v.funcao, composicao.get(`${v.guarnicaoId}|${v.funcaoId}`)?.funcoes ?? 1), obrigatoria: v.obrigatoria });
       }
     }
   }
   previa.entram = novas.length;
-  return { previa, novas };
+  return { previa, novas, conflito: null };
 }
