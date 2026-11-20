@@ -344,3 +344,28 @@ describe('serviço com cotas', () => {
   });
 });
 
+describe('serviço fixo', () => {
+  it('mudar o tipo de um fixo pela planilha vira problema na linha, e o serviço fica como está', async () => {
+    await importar({}, true);
+    const jesOrdinario = TURNOS.map((t) => (t[0] === 'JES' ? ['JES', 'A', '08:00', '20:00', 12, 'Ordinário', ''] : t));
+    const previa = await importar({ t: jesOrdinario });
+    expect(previa.problemas).toContainEqual({
+      aba: 'TURNOS', linha: 4, mensagem: 'JES: o serviço é fixo e o tipo não muda', solucao: 'Deixe o TIPO DE SERVIÇO de JES como PJES (ou em branco).',
+    });
+    await importar({ t: jesOrdinario }, true);
+    expect((await servico('JES')).tipo).toBe('pjes');
+  });
+
+  it('um serviço novo com nome fixo e tipo errado também vira problema, em vez de falhar na gravação', async () => {
+    const previa = await importar({ t: [...TURNOS, ['Saldo', 'A', '08:00', '20:00', 12, 'Diária', '']] });
+    expect(previa.problemas).toContainEqual({
+      aba: 'TURNOS', linha: 8, mensagem: 'Saldo: o serviço é fixo e o tipo não muda', solucao: 'Deixe o TIPO DE SERVIÇO de Saldo como Ordinário (ou em branco).',
+    });
+  });
+
+  it('um serviço novo com nome fixo e sem tipo entra com o tipo do fixo, sem aviso de "entrou como diária"', async () => {
+    const previa = await importar({ t: [...TURNOS, ['Saldo', 'A', '08:00', '20:00', 12, '', '']] }, true);
+    expect(previa.avisos.filter((a: string) => a.includes('Saldo'))).toEqual([]);
+    expect((await servico('Saldo')).tipo).toBe('ordinario');
+  });
+});

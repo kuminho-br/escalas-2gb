@@ -1,6 +1,6 @@
 // Serviços (de onde vem a hora) e os turnos de cada um. Excluir serviço é desativar; turno se remove
 // enquanto ninguém foi escalado nele.
-import { DadosTurno, EdicaoServico, NovoServico, SituacaoServico, type LetraTurno, type Servico, type TurnoSalvo } from 'contratos';
+import { DadosTurno, EdicaoServico, NovoServico, SituacaoServico, tipoDoServicoFixo, type LetraTurno, type Servico, type TipoServico, type TurnoSalvo } from 'contratos';
 import { duracaoMinutos, normalizar, turnosPadraoExigidos } from 'dominio';
 import { Hono, type Context } from 'hono';
 import { CADASTRO, exigirPapel, exigirSessao, unidadeDoRegistro, type AmbienteApi } from '../acesso.ts';
@@ -10,8 +10,9 @@ import { lerCorpo, respostaDoErroDoBanco } from '../erros.ts';
 
 type Ctx = Context<AmbienteApi>;
 const ORDEM_LETRAS: LetraTurno[] = ['A', 'B', 'C'];
+const NOME_DO_TIPO: Record<TipoServico, string> = { ordinario: 'Ordinário', pjes: 'PJES', diaria: 'Diária' };
 
-type LinhaServico = { id: string; nome: string; tipo: Servico['tipo']; operacao: string | null; rotulo_impressao: string | null; cor: string; ativo: boolean };
+type LinhaServico = { id: string; nome: string; tipo: Servico['tipo']; operacao: string | null; rotulo_impressao: string | null; cor: string; ativo: boolean; fixo: boolean };
 
 /** Turno como a tela mostra: duração e turnos padrão calculados pelo horário. */
 export function turnoSalvo(t: { id: string; letra: LetraTurno; inicio: string; fim: string }): TurnoSalvo {
@@ -21,7 +22,7 @@ export function turnoSalvo(t: { id: string; letra: LetraTurno; inicio: string; f
 /** Serviços pedidos (da unidade, ou pelos ids), com os turnos na ordem A, B, C. */
 export async function carregarServicos(c: Consulta, filtro: { unidadeId: string } | { ids: string[] }): Promise<Servico[]> {
   const { rows } = await c.query<LinhaServico>(
-    `select id, nome, tipo, operacao, rotulo_impressao, cor, ativo from servico where ${'unidadeId' in filtro ? 'unidade_id = $1' : 'id = any($1)'}`,
+    `select id, nome, tipo, operacao, rotulo_impressao, cor, ativo, fixo from servico where ${'unidadeId' in filtro ? 'unidade_id = $1' : 'id = any($1)'}`,
     ['unidadeId' in filtro ? filtro.unidadeId : filtro.ids],
   );
   const turnos = rows.length
@@ -41,6 +42,7 @@ export async function carregarServicos(c: Consulta, filtro: { unidadeId: string 
       rotuloImpressao: s.rotulo_impressao,
       cor: s.cor,
       ativo: s.ativo,
+      fixo: s.fixo,
       turnos: turnos
         .filter((t) => t.servico_id === s.id)
         .sort((a, b) => ORDEM_LETRAS.indexOf(a.letra) - ORDEM_LETRAS.indexOf(b.letra))
@@ -57,6 +59,12 @@ async function carregarServico(c: Consulta, id: string): Promise<Servico> {
 async function servicoComNome(c: Consulta, unidadeId: string, nome: string, exceto?: string): Promise<string | null> {
   const { rows } = await c.query<{ id: string; nome: string }>('select id, nome from servico where unidade_id = $1', [unidadeId]);
   return rows.find((s) => s.id !== exceto && normalizar(s.nome) === normalizar(nome))?.nome ?? null;
+}
+
+/** 409 se o nome é de um serviço fixo e o tipo pedido não é o dele (o banco também recusa, mas sem a frase da tela). */
+function recusaDoFixoComTipoErrado(c: Ctx, nome: string, tipo: TipoServico): Response | null {
+  const fixo = tipoDoServicoFixo(nome);
+  return fixo && fixo !== tipo ? c.json({ erro: `O serviço "${nome.trim()}" é fixo e precisa ser do tipo ${NOME_DO_TIPO[fixo]}.` }, 409) : null;
 }
 
 export function rotasServicos(dep: { banco: Banco; auth: Auth }): Hono<AmbienteApi> {
@@ -88,6 +96,8 @@ export function rotasServicos(dep: { banco: Banco; auth: Auth }): Hono<AmbienteA
     const d = corpo.dados;
     const igual = await servicoComNome(dep.banco, u, d.nome);
     if (igual) return c.json({ erro: `Já existe o serviço "${igual}".` }, 409);
+    const tipoErrado = recusaDoFixoComTipoErrado(c, d.nome, d.tipo);
+    if (tipoErrado) return tipoErrado;
     try {
       const s = await comUsuario(dep.banco, c.get('usuarioId'), async (tx) => {
         const id = (
@@ -120,6 +130,10 @@ export function rotasServicos(dep: { banco: Banco; auth: Auth }): Hono<AmbienteA
     const d = corpo.dados;
     const igual = await servicoComNome(dep.banco, acesso.unidadeId, d.nome, id);
     if (igual) return c.json({ erro: `Já existe o serviço "${igual}".` }, 409);
+    const atual = await carregarServico(dep.banco, id);
+    if (atual.fixo && (d.nome !== atual.nome || d.tipo !== atual.tipo)) return c.json({ erro: `O serviço "${atual.nome}" é fixo: o nome e o tipo não mudam.` }, 409);
+    const tipoErrado = recusaDoFixoComTipoErrado(c, d.nome, d.tipo);
+    if (tipoErrado) return tipoErrado;
     // cota só existe para PJES e diária: virar ordinário deixaria cotas que ninguém consegue editar nem copiar
     if (d.tipo === 'ordinario') {
       const n = (await dep.banco.query<{ n: number }>('select count(*)::int as n from cota where servico_id = $1', [id])).rows[0]!.n;
@@ -147,6 +161,8 @@ export function rotasServicos(dep: { banco: Banco; auth: Auth }): Hono<AmbienteA
     if ('resposta' in acesso) return acesso.resposta;
     const corpo = await lerCorpo(c, SituacaoServico);
     if (!corpo.ok) return corpo.resposta;
+    const atual = await carregarServico(dep.banco, id);
+    if (atual.fixo && !corpo.dados.ativo) return c.json({ erro: `O serviço "${atual.nome}" é fixo e não pode ser desativado.` }, 409);
     const s = await comUsuario(dep.banco, c.get('usuarioId'), async (tx) => {
       await tx.query('update servico set ativo = $2 where id = $1', [id, corpo.dados.ativo]);
       return carregarServico(tx, id);

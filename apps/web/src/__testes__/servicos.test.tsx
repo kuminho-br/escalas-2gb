@@ -6,7 +6,7 @@ import { textoDuracao } from '@/lib/turnos';
 import { abrir, chamadasA, corpoEnviado, EU_EXEMPLO, simularApi, trava } from './apoio';
 
 const servico = (s: Partial<Servico>): Servico => ({
-  id: 's1', nome: 'Pronto', tipo: 'ordinario', operacao: null, rotuloImpressao: null, cor: '#2F8F5B', ativo: true, turnos: [], ...s,
+  id: 's1', nome: 'Pronto', tipo: 'ordinario', operacao: null, rotuloImpressao: null, cor: '#2F8F5B', ativo: true, fixo: false, turnos: [], ...s,
 });
 const BIOMA = servico({
   id: 's3', nome: 'Bioma', tipo: 'diaria', operacao: 'Guardiões do Bioma', cor: '#C08A1E',
@@ -487,5 +487,36 @@ describe('revisão 3: o erro de Desativar fica na ficha em que aconteceu', () =>
     await act(() => router.navigate({ to: '/servicos/$id', params: { id: 's1' } }));
     await screen.findByRole('heading', { name: 'Pronto' });
     expect(screen.queryByText('Falhou ao desativar Bioma.')).toBeNull();
+  });
+});
+
+describe('serviços fixos', () => {
+  const FIXO = servico({ id: 's5', nome: 'Saldo', fixo: true, cor: '#2B7BB9' });
+  const comFixo = () => api({ 'GET /api/unidades/u-1sb/servicos': { status: 200, corpo: [...LISTA, FIXO] }, 'GET /api/servicos/s5': { status: 200, corpo: FIXO } });
+
+  it('na ficha de um fixo, nome e tipo ficam travados, com a explicação, e não há "Desativar"', async () => {
+    comFixo();
+    abrir('/servicos/s5');
+    expect(await screen.findByLabelText('Nome')).toBeDisabled();
+    expect(screen.getByLabelText('Tipo')).toBeDisabled();
+    expect(screen.getByText('Serviço fixo do sistema: o nome e o tipo não mudam.')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Desativar' })).toBeNull();
+    expect(screen.getByLabelText('Cor')).toBeInTheDocument();
+  });
+
+  it('na lista, o item fixo mostra a marca "fixo" e os outros não', async () => {
+    comFixo();
+    abrir('/servicos');
+    expect((await screen.findByText('Saldo')).closest('li')).toHaveTextContent('fixo');
+    expect(screen.getByText('Bioma').closest('li')).not.toHaveTextContent('fixo');
+  });
+
+  it('num serviço comum tudo segue editável, com o botão "Desativar"', async () => {
+    api();
+    abrir('/servicos/s3');
+    expect(await screen.findByLabelText('Nome')).toBeEnabled();
+    expect(screen.getByLabelText('Tipo')).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Desativar' })).toBeInTheDocument();
+    expect(screen.queryByText(/Serviço fixo do sistema/)).toBeNull();
   });
 });

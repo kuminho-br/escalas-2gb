@@ -182,3 +182,56 @@ describe('turno com militares escalados', () => {
   });
 });
 
+describe('serviços fixos', () => {
+  let pronto: Servico;
+  beforeAll(async () => {
+    pronto = await criar('Pronto');
+  });
+
+  it('a leitura diz quem é fixo', async () => {
+    const bioma = await criar('Bioma Fixo Teste', { tipo: 'diaria' });
+    const lista: Servico[] = await (await api.pedir('escalante', 'GET', `${secao()}/servicos`)).json();
+    expect(lista.find((x) => x.id === pronto.id)?.fixo).toBe(true);
+    expect(lista.find((x) => x.id === bioma.id)?.fixo).toBe(false);
+    expect(((await (await api.pedir('escalante', 'GET', `/api/servicos/${pronto.id}`)).json()) as Servico).fixo).toBe(true);
+  });
+
+  it('mudar o nome (até só a caixa) ou o tipo de um fixo é 409 legível', async () => {
+    const nome = await api.pedir('escalante', 'PATCH', `/api/servicos/${pronto.id}`, dados('PRONTO'));
+    expect(nome.status).toBe(409);
+    expect((await nome.json()).erro).toBe('O serviço "Pronto" é fixo: o nome e o tipo não mudam.');
+    const tipo = await api.pedir('escalante', 'PATCH', `/api/servicos/${pronto.id}`, dados('Pronto', { tipo: 'diaria' }));
+    expect(tipo.status).toBe(409);
+    expect((await tipo.json()).erro).toBe('O serviço "Pronto" é fixo: o nome e o tipo não mudam.');
+  });
+
+  it('mudar só a cor e o rótulo de um fixo é 200', async () => {
+    const r = await api.pedir('escalante', 'PATCH', `/api/servicos/${pronto.id}`, dados('Pronto', { cor: '#123456', rotuloImpressao: 'PRONTO' }));
+    expect(r.status).toBe(200);
+    expect(await r.json()).toMatchObject({ cor: '#123456', rotuloImpressao: 'PRONTO', fixo: true });
+  });
+
+  it('os turnos de um fixo podem ser criados, editados e removidos', async () => {
+    const criado: Servico = await (await turno(pronto.id, 'A', '08:00', '20:00')).json();
+    const t = criado.turnos[0]!;
+    expect((await api.pedir('escalante', 'PATCH', `/api/turnos/${t.id}`, { letra: 'A', inicio: '07:00', fim: '19:00' })).status).toBe(200);
+    expect((await api.pedir('escalante', 'DELETE', `/api/turnos/${t.id}`)).status).toBe(200);
+  });
+
+  it('desativar um fixo é 409 legível, e reativar é permitido', async () => {
+    const r = await api.pedir('escalante', 'POST', `/api/servicos/${pronto.id}/situacao`, { ativo: false });
+    expect(r.status).toBe(409);
+    expect((await r.json()).erro).toBe('O serviço "Pronto" é fixo e não pode ser desativado.');
+    expect((await api.pedir('escalante', 'POST', `/api/servicos/${pronto.id}/situacao`, { ativo: true })).status).toBe(200);
+  });
+
+  it('criar ou editar um nome fixo com o tipo errado é 409 legível', async () => {
+    const r = await api.pedir('escalante', 'POST', `${secao()}/servicos`, dados('jes'));
+    expect(r.status).toBe(409);
+    expect((await r.json()).erro).toBe('O serviço "jes" é fixo e precisa ser do tipo PJES.');
+    const outro = await criar('Virando Saldo');
+    const p = await api.pedir('escalante', 'PATCH', `/api/servicos/${outro.id}`, dados('Saldo', { tipo: 'diaria' }));
+    expect(p.status).toBe(409);
+    expect((await p.json()).erro).toBe('O serviço "Saldo" é fixo e precisa ser do tipo Ordinário.');
+  });
+});
