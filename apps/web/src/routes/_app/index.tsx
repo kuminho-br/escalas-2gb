@@ -5,6 +5,7 @@ import { mensagemDe } from '@/api/cliente';
 import { consultaGrade } from '@/api/grade';
 import { CampoDeMes } from '@/componentes/CampoDeMes';
 import { LegendaDaGrade } from '@/componentes/grade/LegendaDaGrade';
+import { PainelDoDia } from '@/componentes/grade/PainelDoDia';
 import { TabelaDaGrade, maximosDaGrade } from '@/componentes/grade/TabelaDaGrade';
 import { Label } from '@/componentes/ui/label';
 import { mesAtual } from '@/lib/meses';
@@ -66,15 +67,26 @@ function GradeGeral() {
       {dados.error && <p role="alert" className="text-alerta">{mensagemDe(dados.error)}</p>}
       {grade && grade.grupos.length === 0 && <p className="text-apagado">Ninguém para mostrar neste mês.</p>}
       {grade && grupos.length > 0 && (
-        <div className="overflow-hidden rounded-xl border border-linha bg-superficie">
-          <TabelaDaGrade
-            grade={grade}
-            grupos={grupos}
-            maximos={maximosDaGrade(grade.grupos)}
-            escolhida={escolhida}
-            aoEscolher={(militar, dia) => void navigate({ search: (s) => ({ ...s, militar, dia }) })}
-          />
-          <LegendaDaGrade grupos={grupos} />
+        <div className={cn('grid items-start gap-4', escolhida && 'lg:grid-cols-[minmax(0,1fr)_380px]')}>
+          <div className="min-w-0 overflow-hidden rounded-xl border border-linha bg-superficie">
+            <TabelaDaGrade
+              grade={grade}
+              grupos={grupos}
+              maximos={maximosDaGrade(grade.grupos)}
+              escolhida={escolhida}
+              aoEscolher={(militar, dia) => void navigate({ search: (s) => ({ ...s, militar, dia }) })}
+            />
+            <LegendaDaGrade grupos={grupos} />
+          </div>
+          {escolhida && (
+            <PainelDoDia
+              key={`${escolhida.militarId}|${escolhida.dia}`}
+              unidadeId={eu.unidade.id}
+              militarId={escolhida.militarId}
+              data={escolhida.dia}
+              aoFechar={() => void navigate({ search: (s) => ({ ...s, militar: undefined, dia: undefined }) })}
+            />
+          )}
         </div>
       )}
     </section>
