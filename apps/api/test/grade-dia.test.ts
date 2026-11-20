@@ -6,7 +6,7 @@ import { inserir } from './banco-teste.ts';
 import { montarApi, type ApiDeTeste } from './apoio-api.ts';
 
 // Cenário fictício (D7), dezembro de 2026 (dia 10 = quinta). Escala Ordinário: Pronto (A 08–20, B 20–08), JES (PJES, 08–20) e Saldo (08–20),
-// com a guarnição ABT (Motorista CNH D, 1 vaga; Combatente, 1 a 2 vagas) vinculada às faixas 08–20 e 20–08.
+// e a diária Bioma (08–16, sem guarnição), com a guarnição ABT (Motorista CNH D, 1 vaga; Combatente, 1 a 2 vagas) vinculada às faixas 08–20 e 20–08.
 let api: ApiDeTeste;
 let outraSecao: string;
 let escala: string;
@@ -50,13 +50,14 @@ beforeAll(async () => {
   await servicoComTurnos('Pronto', 'ordinario', [['A', '08:00', '20:00'], ['B', '20:00', '08:00']]);
   await servicoComTurnos('JES', 'pjes', [['A', '08:00', '20:00']]);
   await servicoComTurnos('Saldo', 'ordinario', [['A', '08:00', '20:00']]);
+  await servicoComTurnos('Bioma', 'diaria', [['A', '08:00', '16:00']]);
   const g = await api.pedir('escalante', 'POST', `${secao()}/guarnicoes`, {
     nome: 'ABT', vigencia: MES,
     versao: { viatura: null, tipoViatura: null, prioridade: null, ativa: true, composicao: [{ funcaoId: motorista, minimo: 1, maximo: 1, cnhExigida: 'D' }, { funcaoId: combatente, minimo: 1, maximo: 2, cnhExigida: null }] },
   });
   abt = (await g.json()).id;
   escala = (await (await api.pedir('escalante', 'POST', `${secao()}/escalas`, { nome: 'Ordinário' })).json()).id as string;
-  expect((await api.pedir('escalante', 'PUT', `/api/escalas/${escala}/servicos`, { servicoIds: [servico.Pronto!.id, servico.JES!.id, servico.Saldo!.id] })).status).toBe(200);
+  expect((await api.pedir('escalante', 'PUT', `/api/escalas/${escala}/servicos`, { servicoIds: [servico.Pronto!.id, servico.JES!.id, servico.Saldo!.id, servico.Bioma!.id] })).status).toBe(200);
   const v = await api.pedir('escalante', 'PUT', `/api/escalas/${escala}/vinculos/${MES}`, {
     itens: [{ guarnicaoId: abt, inicio: '08:00', fim: '20:00' }, { guarnicaoId: abt, inicio: '20:00', fim: '08:00' }],
   });
@@ -125,6 +126,16 @@ describe('o dia do militar', () => {
 });
 
 describe('Adicionar serviço neste dia', () => {
+  it('as opções dizem se são do Ordinário: Pronto, JES e Saldo sim, uma diária não', async () => {
+    const p = await ler('DRV2');
+    const faixas = (ordinario: boolean) => [...new Set(p.opcoes.filter((o) => o.ordinario === ordinario).map((o) => `${o.inicio}-${o.fim}`))].sort();
+    expect(faixas(true)).toEqual(['08:00-20:00', '20:00-08:00']);
+    expect(faixas(false)).toEqual(['08:00-16:00']);
+    // a opção da diária só tem o Bioma; as do Ordinário, só serviços fixos
+    expect(p.opcoes.filter((o) => !o.ordinario).flatMap((o) => o.servicos.map((s) => s.nome))).toEqual(['Bioma']);
+    expect(p.opcoes.filter((o) => o.ordinario).flatMap((o) => o.servicos.map((s) => s.nome)).every((n) => ['Pronto', 'JES', 'Saldo'].includes(n))).toBe(true);
+  });
+
   it('afastado no dia mostra o afastamento e nenhuma opção', async () => {
     const p = await ler('AFAST');
     expect(p.afastamento).toBe('Férias');
@@ -190,7 +201,7 @@ describe('quanto custa abrir o painel', () => {
     return n;
   }
 
-  it('o painel do dia faz no máximo 33 consultas no cenário mais cheio (31 para o Pronto, 33 para o Adm)', async () => {
+  it('o painel do dia faz no máximo 42 consultas no cenário mais cheio (40 para o Pronto, 42 para o Adm)', async () => {
     const natal = `${MES}-25`;
     await inserir(api.banco, 'feriado', { unidade_id: api.ids.secao, data: natal, descricao: 'Natal' });
     const sd = (await api.banco.query<{ id: string }>("select id from posto_grad where sigla = 'SD BM'")).rows[0]!.id;
@@ -210,8 +221,9 @@ describe('quanto custa abrir o painel', () => {
     }
     const nPronto = await contar('CHEIO', natal);
     const nAdm = await contar('CHEIOADM', natal);
-    // medido em 20/11/2026 com uma escala, duas faixas e uma guarnição; cresce com escalas, faixas e funções (limite combinado: 40)
-    expect(nPronto).toBeLessThanOrEqual(31);
-    expect(nAdm).toBeLessThanOrEqual(33);
+    // medido com uma escala, três faixas (08–20, 20–08 e a do Bioma, 08–16) e uma guarnição: cada faixa custa cerca de 9 consultas, então o
+    // número cresce com escalas, faixas e funções. Acima de 40 (o Adm já passa) entra "otimizar o painel do dia" na fase 8; nada muda no código agora.
+    expect(nPronto).toBeLessThanOrEqual(40);
+    expect(nAdm).toBeLessThanOrEqual(42);
   });
 });

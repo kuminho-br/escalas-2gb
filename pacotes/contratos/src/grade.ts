@@ -55,7 +55,8 @@ export type ServicoNoDia = {
 /**
  * Onde ele pode entrar neste dia ("Adicionar serviço neste dia"): uma escala, uma faixa e uma vaga (guarnição e função, ou "Sem guarnição").
  * `servicos` são os serviços possíveis na faixa, na ordem em que a tela os oferece; `semVoluntariado` só falta marcar o horário no voluntariado
- * (a regra pode ser contornada pelo escalante). A flag da opção vale pelo primeiro serviço, o que vem marcado.
+ * (a regra pode ser contornada pelo escalante). A flag da opção vale pelo primeiro serviço, o que vem marcado. `ordinario` é verdadeiro quando
+ * todos os serviços da opção são fixos (Pronto, Saldo, Expediente, JES, reconhecidos pelo nome): é o que separa a aba Ordinário da Operações.
  */
 export type OpcaoDeServico = {
   escalaId: string;
@@ -68,6 +69,7 @@ export type OpcaoDeServico = {
   funcao: string | null;
   servicos: { servicoId: string; turnoId: string; nome: string; semVoluntariado: boolean }[];
   semVoluntariado: boolean;
+  ordinario: boolean;
 };
 
 export type PainelDoDia = {

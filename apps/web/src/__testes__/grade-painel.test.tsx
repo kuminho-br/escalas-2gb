@@ -16,7 +16,7 @@ const CABO: LinhaDaGrade = {
 const GRADE: GradeDoMes = { mes: MES, dias: DIAS, grupos: [{ chave: 'eq-alfa', nome: 'Alfa', linhas: [CABO] }] };
 const opcao = (o: Partial<OpcaoDeServico>): OpcaoDeServico => ({
   escalaId: 'e-ord', escala: 'Ordinário', inicio: '08:00', fim: '20:00', guarnicaoId: null, guarnicao: null, funcaoId: null, funcao: null,
-  servicos: [{ servicoId: 's-pronto', turnoId: 't-a', nome: 'Pronto', semVoluntariado: false }], semVoluntariado: false, ...o,
+  servicos: [{ servicoId: 's-pronto', turnoId: 't-a', nome: 'Pronto', semVoluntariado: false }], semVoluntariado: false, ordinario: true, ...o,
 });
 const PAINEL: PainelDoDia = {
   militar: { militarId: 'm-CABO', posto: 'SD BM', nomeGuerra: 'CABO', matricula: '990001-1', equipe: 'Alfa', jornada: 'pronto', cnh: ['D'], voluntarioJes: true },

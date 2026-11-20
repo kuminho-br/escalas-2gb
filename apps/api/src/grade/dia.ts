@@ -1,7 +1,7 @@
 // O painel do dia da Grade geral: como o militar está num dia (afastamento, horários marcados, serviços, choques) e onde ele pode
 // entrar ("Adicionar serviço neste dia"), em todas as escalas ativas da seção.
 import type { OpcaoDeServico, PainelDoDia, ServicoNoDia } from 'contratos';
-import { textoFaixa } from 'contratos';
+import { textoFaixa, tipoDoServicoFixo } from 'contratos';
 import { cnhHabilitadas, detectarChoques, diaDaSemana, unirFaixas, type AlocChoque, type Choque } from 'dominio';
 import type { Consulta } from '../banco/banco.ts';
 import { vinculosDaEscala } from '../cadastros/escalas.ts';
@@ -174,7 +174,9 @@ async function opcoesDoDia(c: Consulta, unidadeId: string, militarId: string, da
         .filter((t) => t.motivo === null || t.motivo === SEM_VOLUNTARIADO)
         .map((t) => ({ servicoId: t.turno.servicoId, turnoId: t.turno.turnoId, nome: t.turno.nome, semVoluntariado: t.motivo === SEM_VOLUNTARIADO }));
       if (!possiveis.length) continue;
-      const base = { escalaId: e.id, escala: e.nome, inicio: f.inicio, fim: f.fim, servicos: possiveis, semVoluntariado: possiveis[0]!.semVoluntariado };
+      // da aba Ordinário só se todos os serviços da opção são fixos; uma diária reunida na escala Ordinário vai para as Operações
+      const ordinario = possiveis.every((x) => tipoDoServicoFixo(x.nome) !== null);
+      const base = { escalaId: e.id, escala: e.nome, inicio: f.inicio, fim: f.fim, servicos: possiveis, semVoluntariado: possiveis[0]!.semVoluntariado, ordinario };
 
       const guarnicaoIds = (vinculo?.itens ?? []).filter((i) => i.inicio.slice(0, 5) === f.inicio && i.fim.slice(0, 5) === f.fim).map((i) => i.guarnicaoId);
       if (guarnicaoIds.length) {
