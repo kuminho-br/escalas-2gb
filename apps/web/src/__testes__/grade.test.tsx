@@ -61,6 +61,20 @@ describe('grade geral: a tabela', () => {
     expect(within(dois).getAllByText('A')).toHaveLength(2);
   });
 
+  it('a grade rola dentro da própria caixa, nas duas direções', async () => {
+    api();
+    abrir(`/?mes=${MES}`);
+    const tabela = await screen.findByRole('table', { name: 'Grade geral de dezembro de 2026' });
+    // o jsdom não calcula "sticky": que o cabeçalho de fato fica à vista ao rolar se confere no navegador
+    const caixa = tabela.closest('[data-rolagem="grade"]');
+    expect(caixa).not.toBeNull();
+    expect(caixa).toHaveClass('overflow-auto', 'max-h-[calc(100dvh-12rem)]');
+    expect(caixa).not.toHaveClass('overflow-x-auto');
+    // o cabeçalho dos dias e a coluna "Militar" grudam no alto e na esquerda da própria caixa
+    expect(screen.getByRole('columnheader', { name: /^Dia 2,/ })).toHaveClass('sticky', 'top-0');
+    expect(screen.getByRole('columnheader', { name: 'Militar' })).toHaveClass('sticky', 'top-0', 'left-0');
+  });
+
   it('o feriado tem o número em vermelho e o fim de semana o fundo sombreado', async () => {
     api();
     abrir(`/?mes=${MES}`);
