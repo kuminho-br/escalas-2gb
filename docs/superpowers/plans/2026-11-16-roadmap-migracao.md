@@ -105,7 +105,7 @@ Montar e conferir a escala do mês à mão, nas telas de trabalho (Escala do mê
 | 4.1 | Meta do dia: desativar, reativar e adicionar | mesclada (#49), validada (regra antiga do acúmulo) | meta de ativação |
 | 4.2 | Efetivo por dia e Escala do mês em grade | mesclada (#51) | meta de ativação |
 | 4.3 | Limpeza das pendências da fase 3 (Tarefas 65 a 73) | mesclada (#57) | limpeza da fase 3 |
-| 4.4 | Correção do "Desativar", leitura da Grade, busca, "Adicionar serviço" em abas, dia da semana no Efetivo por dia, sem a aba Atividades (Tarefas 74 a 82) | plano em aprovação | grade geral (ajustes) |
+| 4.4 | Correção do "Desativar", leitura da Grade, busca, "Adicionar serviço" em abas, dia da semana no Efetivo por dia, sem a aba Atividades (Tarefas 74 a 82) | plano pronto, a executar | grade geral (ajustes) |
 
 Specs, em `docs/superpowers/specs/`: `2026-11-18-ordem-de-escala-e-acumulo-design.md`, `2026-11-19-voluntariado-por-faixa-design.md`, `2026-11-20-meta-de-ativacao-design.md`, `2026-11-20-grade-geral-design.md`, `2026-11-20-grade-geral-ux-design.md` e `2026-11-20-limpeza-da-fase-3-design.md`.
 
