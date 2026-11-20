@@ -9,6 +9,42 @@ async function preencherEEntrar() {
   await userEvent.click(screen.getByRole('button', { name: 'Entrar' }));
 }
 
+function depoisDeEntrar(api: ReturnType<typeof simularApi>) {
+  api.mockImplementation(async (entrada: RequestInfo | URL) => {
+    const url = typeof entrada === 'string' ? entrada : entrada instanceof URL ? entrada.href : entrada.url;
+    const corpo = url.includes('/api/eu') ? EU_EXEMPLO : url.includes('/grade/') ? { mes: '2026-11', dias: [], grupos: [] } : url.includes('/militares') ? [] : { user: {} };
+    return new Response(JSON.stringify(corpo), { status: 200, headers: { 'Content-Type': 'application/json' } });
+  });
+}
+
+describe('entrar depois de uma sessão que terminou', () => {
+  it('mostra o aviso e, depois de entrar, volta para a página em que a pessoa estava (Review Focus 1)', async () => {
+    const api = simularApi({ '/api/eu': { status: 401 } });
+    const router = abrir(`/entrar?sessao=terminou&voltar=${encodeURIComponent('/militares?busca=x')}`);
+    expect(await screen.findByText('Sua sessão terminou. Entre de novo.')).toBeInTheDocument();
+    depoisDeEntrar(api);
+    await preencherEEntrar();
+    await waitFor(() => expect(router.state.location.pathname).toBe('/militares'));
+    expect(router.state.location.search).toMatchObject({ busca: 'x' });
+  });
+
+  it.each(['https://mal.test/x', '//mal.test/x', '/\\mal.test'])('um voltar que não é um caminho interno (%s) é ignorado e vai para a página inicial', async (voltar) => {
+    const api = simularApi({ '/api/eu': { status: 401 } });
+    const router = abrir(`/entrar?sessao=terminou&voltar=${encodeURIComponent(voltar)}`);
+    await screen.findByText('Sua sessão terminou. Entre de novo.');
+    depoisDeEntrar(api);
+    await preencherEEntrar();
+    await waitFor(() => expect(router.state.location.pathname).toBe('/'));
+  });
+
+  it('sem sessao=terminou (quem nunca entrou) não mostra o aviso (Review Focus 2)', async () => {
+    simularApi({ '/api/eu': { status: 401 } });
+    abrir('/entrar');
+    await screen.findByLabelText('E-mail');
+    expect(screen.queryByText('Sua sessão terminou. Entre de novo.')).toBeNull();
+  });
+});
+
 describe('entrar', () => {
   it('a tela tem o título do sistema, o brasão do 2º GB e o cartão "Entrar"', async () => {
     simularApi({ '/api/eu': { status: 401 } });
