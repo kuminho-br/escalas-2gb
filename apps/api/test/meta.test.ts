@@ -34,7 +34,7 @@ beforeAll(async () => {
   outraSecao = await inserir(api.banco, 'unidade', { tipo: 'secao', sigla: '2ª SB', nome: '2ª Seção de Bombeiros', mae_id: api.ids.gb, desde: '2026-11-01' });
   const funcao = await inserir(api.banco, 'funcao', { unidade_id: api.ids.secao, nome: 'Motorista' });
   const modelo = async (nome: string) =>
-    (await (await api.pedir('escalante', 'POST', `${secao()}/guarnicoes`, { nome, vigencia: HOJE.slice(0, 7), versao: { viatura: null, tipoViatura: null, prioridade: null, ativa: true, composicao: [{ funcaoId: funcao, minimo: 1, maximo: 1, cnhExigida: null }] } })).json()).id as string;
+    (await (await api.pedir('escalante', 'POST', `${secao()}/guarnicoes`, { nome, vigencia: HOJE.slice(0, 7), versao: { viatura: null, tipoViatura: null, prioridade: null, ativa: true, composicao: [{ funcaoId: funcao, minimo: 1, maximo: 3, cnhExigida: null }] } })).json()).id as string;
   abt = await modelo('ABT');
   aco = await modelo('ACO');
   resgate = await modelo('Resgate');
@@ -195,6 +195,7 @@ describe('desativar e desfazer (Review Focus 1 a 4)', () => {
   let pronto: string;
   let turno: string;
   let funcao: string;
+  let cheia: string;
   const militares: Record<string, string> = {};
   const alocar = (militar: string, data: string, guarnicao: string | null) =>
     inserir(api.banco, 'alocacao', { militar_id: militares[militar], escala_id: escala, servico_id: pronto, turno_id: turno, data, guarnicao_id: guarnicao, funcao_id: guarnicao ? funcao : null, origem: 'manual' });
@@ -221,7 +222,20 @@ describe('desativar e desfazer (Review Focus 1 a 4)', () => {
     escala = (await (await api.pedir('escalante', 'POST', `${secao()}/escalas`, { nome: 'Ordinário' })).json()).id as string;
     expect((await api.pedir('escalante', 'PUT', `/api/escalas/${escala}/servicos`, { servicoIds: [pronto] })).status).toBe(200);
     const posto = await inserir(api.banco, 'posto_grad', { sigla: 'SD-M', nome: 'Soldado M', ordem: 930 });
-    for (const [i, nome] of ['ALFA', 'BRAVO', 'CHARLIE'].entries()) militares[nome] = await inserir(api.banco, 'militar', { matricula: `99091${i}-${i}`, posto_grad_id: posto, nome_guerra: nome });
+    for (const [i, nome] of ['ALFA', 'BRAVO', 'CHARLIE'].entries()) {
+      militares[nome] = await inserir(api.banco, 'militar', { matricula: `99091${i}-${i}`, posto_grad_id: posto, nome_guerra: nome });
+      await inserir(api.banco, 'lotacao', { militar_id: militares[nome], unidade_id: api.ids.secao, jornada: 'pronto', desde: '2026-01-01' });
+    }
+    // quem é de outra seção (para o corpo forjado do "Desfazer")
+    militares.FORA = await inserir(api.banco, 'militar', { matricula: '990919-9', posto_grad_id: posto, nome_guerra: 'FORA' });
+    await inserir(api.banco, 'lotacao', { militar_id: militares.FORA, unidade_id: outraSecao, jornada: 'pronto', desde: '2026-01-01' });
+    // um modelo de uma vaga só e os vínculos de todos à faixa 08–20 da escala (o "Desfazer" passa pelas regras de escalar)
+    const c = await api.pedir('escalante', 'POST', `${secao()}/guarnicoes`, {
+      nome: 'Cheia', vigencia: HOJE.slice(0, 7), versao: { viatura: null, tipoViatura: null, prioridade: null, ativa: true, composicao: [{ funcaoId: funcao, minimo: 1, maximo: 1, cnhExigida: null }] },
+    });
+    cheia = (await c.json()).id as string;
+    const v = await api.pedir('escalante', 'PUT', `/api/escalas/${escala}/vinculos/${HOJE.slice(0, 7)}`, { itens: [abt, aco, resgate, cheia].map((guarnicaoId) => ({ guarnicaoId, inicio: '08:00', fim: '20:00' })) });
+    expect(v.status).toBe(200);
   });
 
   it('desativar sem ninguém: o dia que seguia o padrão passa a ter meta própria sem ela, e o dia seguinte não muda', async () => {
@@ -321,6 +335,53 @@ describe('desativar e desfazer (Review Focus 1 a 4)', () => {
     const adulterado = { ...c.desfazer, alocacoes: (c.desfazer.alocacoes as { escalaId: string }[]).map((x) => ({ ...x, escalaId: alheia })) };
     expect((await desfazer(d, adulterado)).status).toBe(400);
     expect(await alocacaoDe('ALFA', d)).toBeNull();
+  });
+
+  it('desfazer com a vaga já ocupada por outro militar é 409 com o motivo e nada muda: o "Desfazer" passa pelas regras de escalar (achado da revisão final)', async () => {
+    const d = dia(315);
+    expect((await gravarDia(d, [cheia])).status).toBe(200);
+    await alocar('ALFA', d, cheia);
+    const c = await corpoDe(await desativar(d, cheia));
+    // a vaga é só uma: enquanto isso, CHARLIE a ocupou
+    const charlie = await alocar('CHARLIE', d, cheia);
+    const r = await desfazer(d, c.desfazer);
+    expect(r.status).toBe(409);
+    expect((await r.json()).erro).toMatch(/^Não deu para desfazer: /);
+    expect(await alocacaoDe('ALFA', d)).toBeNull();
+    expect(await existe('alocacao', charlie)).toBe(true);
+    expect(nomes(await metaDe(d))).toEqual([]);
+  });
+
+  it('desfazer com um militar de outra seção no corpo é 409 e nada é criado (achado da revisão final)', async () => {
+    const d = dia(316);
+    expect((await gravarDia(d, [abt])).status).toBe(200);
+    await alocar('ALFA', d, abt);
+    const c = await corpoDe(await desativar(d, abt));
+    const forjado = { ...c.desfazer, alocacoes: (c.desfazer.alocacoes as { militarId: string }[]).map((x) => ({ ...x, militarId: militares.FORA })) };
+    const r = await desfazer(d, forjado);
+    expect(r.status).toBe(409);
+    expect((await r.json()).erro).toMatch(/^Não deu para desfazer: /);
+    expect(await alocacaoDe('FORA', d)).toBeNull();
+    expect(nomes(await metaDe(d))).toEqual([]);
+  });
+
+  it('desfazer com um acúmulo pendurado numa alocação que não é desta seção e deste dia é 400 e nada muda (achado da revisão final)', async () => {
+    const d = dia(317);
+    expect((await gravarDia(d, [abt])).status).toBe(200);
+    await alocar('ALFA', d, abt);
+    const c = await corpoDe(await desativar(d, abt));
+    const forjado = { ...c.desfazer, acumulos: [{ alocacaoId: '00000000-0000-4000-8000-000000000000', guarnicaoId: resgate, funcaoId: funcao }] };
+    expect((await desfazer(d, forjado)).status).toBe(400);
+    expect(await alocacaoDe('ALFA', d)).toBeNull();
+    expect(nomes(await metaDe(d))).toEqual([]);
+  });
+
+  it('a meta de antes com o mesmo modelo duas vezes é 400', async () => {
+    const d = dia(318);
+    expect((await gravarDia(d, [abt])).status).toBe(200);
+    const c = await corpoDe(await desativar(d, abt));
+    const r = await desfazer(d, { ...c.desfazer, metaAntes: { origem: 'dia', guarnicoes: [abt, abt] } });
+    expect(r.status).toBe(400);
   });
 
   it('o escalante desativa (200), o corpo inválido é 400', async () => {

@@ -1,7 +1,7 @@
 // Meta de ativação no banco: a meta padrão (versões por data) e os dias diferentes (lista própria por dia).
 import type { DesfazerDesativacao, ItemDaMeta, MetaDoDia, VersaoDaMetaPadrao } from 'contratos';
 import type { Consulta } from '../banco/banco.ts';
-import { Recusa, remover } from '../escala/alocacoes.ts';
+import { acumular, escalar, JA_ESCALADO_NO_TURNO, Recusa, remover } from '../escala/alocacoes.ts';
 
 /** Os dados do "Desfazer" não batem com esta seção (400). */
 export class DadosInvalidos extends Error {}
@@ -113,48 +113,62 @@ export async function desativar(tx: Consulta, unidadeId: string, data: string, g
 const NAO_DEU_PARA_DESFAZER = 'Não deu para desfazer: alguém já ocupa um desses lugares.';
 
 /**
- * Desfaz a desativação, na mesma transação: confere que tudo é desta seção, devolve a meta (o dia que seguia o padrão volta a segui-lo),
- * recria as alocações (ids novos; o gatilho `alocacao_apaga_remocao` do banco apaga as marcas de remoção que a desativação criou) e recria os acúmulos. Um conflito (alguém já ocupa o
- * lugar) desfaz tudo e vira `Recusa`.
+ * Desfaz a desativação, na mesma transação. O corpo vem do cliente, então nada nele vale por si: tudo precisa ser desta seção e deste dia, e
+ * cada alocação e cada acúmulo é recriado pelas mesmas regras de "escalar" e "acumular" (militar lotado na seção, CNH, choque, vaga com a
+ * função livre…). Devolve a meta (o dia que seguia o padrão volta a segui-lo). Qualquer recusa desfaz tudo e vira `Recusa` com o motivo.
  */
 export async function desfazerDesativacao(tx: Consulta, unidadeId: string, data: string, d: DesfazerDesativacao): Promise<void> {
-  // tudo precisa ser desta seção e deste dia
+  // tudo precisa ser desta seção e deste dia (antes de gravar qualquer coisa)
   const contar = async (sql: string, ids: string[]) => (await tx.query<{ n: number }>(sql, [ids, unidadeId])).rows[0]!.n === ids.length;
   const unicos = (ids: string[]) => [...new Set(ids)];
   const escalas = unicos(d.alocacoes.map((a) => a.escalaId));
   const servicos = unicos(d.alocacoes.map((a) => a.servicoId));
-  const turnos = d.alocacoes.map((a) => `${a.servicoId}|${a.turnoId}`);
   const guarnicoes = unicos([d.guarnicaoId, ...d.metaAntes.guarnicoes, ...d.alocacoes.flatMap((a) => (a.guarnicaoId ? [a.guarnicaoId] : [])), ...d.acumulos.map((x) => x.guarnicaoId)]);
-  const turnosDoServico = unicos(turnos);
+  const turnosDoServico = unicos(d.alocacoes.map((a) => `${a.servicoId}|${a.turnoId}`));
+  const voltam = new Set(d.alocacoes.map((a) => a.alocacaoId));
+  // o acúmulo de uma alocação que não volta precisa estar numa alocação que existe nesta seção, neste dia
+  const aoAcumuloDeFora = unicos(d.acumulos.map((x) => x.alocacaoId).filter((id) => !voltam.has(id)));
   const ok =
-    d.alocacoes.every((a) => a.data === data) &&
+    d.alocacoes.every((a) => a.data === data && Boolean(a.guarnicaoId) === Boolean(a.funcaoId)) &&
     (!escalas.length || (await contar('select count(*)::int as n from escala where id = any($1::uuid[]) and unidade_id = $2', escalas))) &&
     (!servicos.length || (await contar('select count(*)::int as n from servico where id = any($1::uuid[]) and unidade_id = $2', servicos))) &&
     (await modelosForaDaSecao(tx, unidadeId, guarnicoes)) === null &&
-    (await Promise.all(turnosDoServico.map(async (t) => (await tx.query('select 1 from turno where id = $1 and servico_id = $2', [t.split('|')[1], t.split('|')[0]])).rows.length === 1))).every(Boolean);
+    (await Promise.all(turnosDoServico.map(async (t) => (await tx.query('select 1 from turno where id = $1 and servico_id = $2', [t.split('|')[1], t.split('|')[0]])).rows.length === 1))).every(Boolean) &&
+    (!aoAcumuloDeFora.length ||
+      (
+        await tx.query<{ n: number }>(
+          `select count(*)::int as n from alocacao a join escala e on e.id = a.escala_id where a.id = any($1::uuid[]) and e.unidade_id = $2 and a.data = $3::date`,
+          [aoAcumuloDeFora, unidadeId, data],
+        )
+      ).rows[0]!.n === aoAcumuloDeFora.length);
   if (!ok) throw new DadosInvalidos();
 
   if (d.metaAntes.origem === 'padrao') await voltarMetaAoPadrao(tx, unidadeId, data);
   else await gravarMetaDoDia(tx, unidadeId, data, d.metaAntes.guarnicoes);
 
-  const novos = new Map<string, string>();
-  try {
-    for (const a of d.alocacoes) {
-      const { rows } = await tx.query<{ id: string }>(
-        `insert into alocacao (militar_id, escala_id, servico_id, turno_id, data, guarnicao_id, funcao_id, origem) values ($1, $2, $3, $4, $5::date, $6, $7, $8) returning id`,
-        [a.militarId, a.escalaId, a.servicoId, a.turnoId, a.data, a.guarnicaoId, a.funcaoId, a.origem],
-      );
-      novos.set(a.alocacaoId, rows[0]!.id);
-    }
-    for (const x of d.acumulos) {
-      await tx.query('insert into alocacao_acumulo (alocacao_id, guarnicao_id, funcao_id) values ($1, $2, $3)', [novos.get(x.alocacaoId) ?? x.alocacaoId, x.guarnicaoId, x.funcaoId]);
-    }
-  } catch (e) {
+  // a recusa de uma regra de escalar vira a frase do "Desfazer"; o lugar já ocupado pelo mesmo militar tem a frase própria
+  const comoRecusaDoDesfazer = (e: unknown): never => {
+    if (e instanceof Recusa) throw new Recusa(e.message === JA_ESCALADO_NO_TURNO ? NAO_DEU_PARA_DESFAZER : `Não deu para desfazer: ${e.message}`);
     const codigo = (e as { code?: string } | null)?.code;
     if (codigo === '23505') throw new Recusa(NAO_DEU_PARA_DESFAZER);
     // a alocação de um acúmulo que ficou já não existe: a escala mudou desde então
     if (codigo === '23503') throw new Recusa('Não deu para desfazer: a escala mudou desde então.');
     throw e;
+  };
+  const novos = new Map<string, string>();
+  try {
+    for (const a of d.alocacoes) {
+      await escalar(tx, a.escalaId, { militarId: a.militarId, data: a.data, turnoId: a.turnoId, guarnicaoId: a.guarnicaoId, funcaoId: a.funcaoId });
+      // a alocação volta com a origem que tinha (o `escalar` grava "manual")
+      const { rows } = await tx.query<{ id: string }>(
+        'update alocacao set origem = $5 where militar_id = $1 and data = $2::date and servico_id = $3 and turno_id = $4 returning id',
+        [a.militarId, a.data, a.servicoId, a.turnoId, a.origem],
+      );
+      novos.set(a.alocacaoId, rows[0]!.id);
+    }
+    for (const x of d.acumulos) await acumular(tx, novos.get(x.alocacaoId) ?? x.alocacaoId, { guarnicaoId: x.guarnicaoId, funcaoId: x.funcaoId });
+  } catch (e) {
+    comoRecusaDoDesfazer(e);
   }
 }
 

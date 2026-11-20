@@ -281,6 +281,29 @@ describe('efetivo por dia: a meta do dia pela própria tela', () => {
     }
   });
 
+  it('enquanto o "Desfazer" está em andamento o aviso não some sozinho, e o erro do 409 aparece (achado da revisão final)', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      let soltar!: () => void;
+      const espera = new Promise<void>((r) => (soltar = r));
+      api(EFETIVO, EU_EXEMPLO, { ...rotas, [DESFAZER]: { status: 409, corpo: { erro: 'Não deu para desfazer: alguém já ocupa um desses lugares.' }, espera } });
+      abrir(`/efetivo-por-dia?data=${DIA}`);
+      await userEvent.click(within(await screen.findByRole('region', { name: '2º Resgate' })).getByRole('button', { name: 'Desativar guarnição' }), { delay: null });
+      await userEvent.click(within(await screen.findByRole('status')).getByRole('button', { name: 'Desfazer' }), { delay: null });
+      // a resposta demora mais que os 10 segundos do aviso
+      await act(async () => {
+        vi.advanceTimersByTime(15_000);
+      });
+      expect(screen.getByRole('status')).toBeInTheDocument();
+      await act(async () => {
+        soltar();
+      });
+      expect(await within(screen.getByRole('status')).findByText('Não deu para desfazer: alguém já ocupa um desses lugares.')).toBeInTheDocument();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('a recusa ao desativar aparece dentro do diálogo', async () => {
     api(EFETIVO, EU_EXEMPLO, { ...rotas, [DESATIVAR]: { status: 409, corpo: { erro: 'Esta guarnição não está na meta deste dia.' } } });
     abrir(`/efetivo-por-dia?data=${DIA}`);

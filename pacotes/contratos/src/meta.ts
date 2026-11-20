@@ -37,12 +37,14 @@ export const AcumuloDesfeito = z.object({ alocacaoId: Id, guarnicaoId: Id, funca
 export type AcumuloDesfeito = z.infer<typeof AcumuloDesfeito>;
 
 /** O que a desativação tirou e a meta de antes: o "Desfazer" manda isto de volta. */
-export const DesfazerDesativacao = z.object({
-  guarnicaoId: Id,
-  metaAntes: z.object({ origem: z.enum(['padrao', 'dia']), guarnicoes: z.array(Id).max(100) }),
-  alocacoes: z.array(AlocacaoDesfeita).max(500),
-  acumulos: z.array(AcumuloDesfeito).max(500),
-});
+export const DesfazerDesativacao = z
+  .object({
+    guarnicaoId: Id,
+    metaAntes: z.object({ origem: z.enum(['padrao', 'dia']), guarnicoes: z.array(Id).max(100) }),
+    alocacoes: z.array(AlocacaoDesfeita).max(500),
+    acumulos: z.array(AcumuloDesfeito).max(500),
+  })
+  .refine((d) => new Set(d.metaAntes.guarnicoes).size === d.metaAntes.guarnicoes.length, { message: REPETIDO.message, path: ['metaAntes', 'guarnicoes'] });
 export type DesfazerDesativacao = z.infer<typeof DesfazerDesativacao>;
 
 export type ItemDaMeta = { guarnicaoId: string; nome: string };
