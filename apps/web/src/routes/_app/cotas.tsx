@@ -37,10 +37,11 @@ function Cotas() {
       const { copiados, puladas } = await copiarCotas(eu.unidade.id, anterior, mes);
       atualizarCotas(queryClient);
       const deAntes = mesPorExtenso(anterior);
-      const deFora = puladas === 1 ? '1 de serviço desativado ficou de fora.' : `${puladas} de serviço desativado ficaram de fora.`;
+      const deFora = puladas === 1 ? '1 de serviço desativado ficou de fora' : `${puladas} de serviço desativado ficaram de fora`;
       let texto: string;
-      if (copiados > 0) texto = `${copiados} ${copiados === 1 ? 'cota copiada' : 'cotas copiadas'} de ${deAntes}.${puladas > 0 ? ` ${deFora}` : ''}`;
-      else if (puladas > 0) texto = `Nenhuma cota copiada: ${puladas === 1 ? 'a única' : `as ${puladas}`} de ${deAntes} ${puladas === 1 ? 'é' : 'são'} de serviço desativado.`;
+      if (copiados > 0) texto = `${copiados} ${copiados === 1 ? 'cota copiada' : 'cotas copiadas'} de ${deAntes}.${puladas > 0 ? ` ${deFora}.` : ''}`;
+      // só diz o que ficou de fora: o mês pode ter outras cotas que o destino já tinha, então não afirma que "todas" são de serviço desativado
+      else if (puladas > 0) texto = `Nenhuma cota copiada: ${deFora}. Reative o serviço na tela de Serviços para ${puladas === 1 ? 'copiá-la' : 'copiá-las'}.`;
       else texto = `Nenhuma cota nova: ${deAntes} não tem cotas, ou elas já estão em ${mesPorExtenso(mes)}.`;
       setAviso({ erro: false, texto });
     } catch (err) {

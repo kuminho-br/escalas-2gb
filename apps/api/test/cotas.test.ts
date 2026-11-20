@@ -160,6 +160,19 @@ describe('cotas', () => {
     }
   });
 
+  it('editar uma cota antiga de serviço desativado mandando o mesmo servicoId (como a tela faz) passa', async () => {
+    const mes = somarMeses(atual, 36);
+    const antiga = await criar(bioma, { mes, quantidade: 5, prioridade: 1 });
+    await desativar(bioma);
+    try {
+      const r = await api.pedir('escalante', 'PATCH', `/api/cotas/${antiga.id}`, { servicoId: bioma, quantidade: 12, origem: 'interna', prioridade: 2 });
+      expect(r.status).toBe(200);
+      expect(await r.json()).toMatchObject({ servico: 'Bioma', quantidade: 12, prioridade: 2 });
+    } finally {
+      await reativar(bioma);
+    }
+  });
+
   it('copiar pula as cotas de serviço desativado e diz quantas', async () => {
     const origem = somarMeses(atual, 31);
     const destino = somarMeses(atual, 32);

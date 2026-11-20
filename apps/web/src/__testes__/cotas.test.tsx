@@ -102,18 +102,20 @@ describe('cotas', () => {
     expect(await screen.findByText(`2 cotas copiadas de ${mesPorExtenso(anterior)}. 2 de serviço desativado ficaram de fora.`)).toBeInTheDocument();
   });
 
-  it('copiar quando todas são de serviço desativado explica o motivo', async () => {
+  // o texto vale mesmo quando o mês tem outras cotas que o destino já tinha (copiar uma segunda vez): só diz o que ficou de fora
+  it('copiar quando as que faltam são de serviço desativado explica o motivo e o que fazer', async () => {
     api({ 'POST /api/unidades/u-1sb/cotas/copiar': { status: 200, corpo: { copiados: 0, puladas: 2 } } });
     abrir('/cotas');
     await userEvent.click(await screen.findByRole('button', { name: 'Copiar do mês anterior' }));
-    expect(await screen.findByText(`Nenhuma cota copiada: as 2 de ${mesPorExtenso(anterior)} são de serviço desativado.`)).toBeInTheDocument();
+    expect(await screen.findByText('Nenhuma cota copiada: 2 de serviço desativado ficaram de fora. Reative o serviço na tela de Serviços para copiá-las.')).toBeInTheDocument();
+    expect(screen.queryByText(/Nenhuma cota nova/)).toBeNull();
   });
 
   it('com uma só de serviço desativado, o texto fica no singular', async () => {
     api({ 'POST /api/unidades/u-1sb/cotas/copiar': { status: 200, corpo: { copiados: 0, puladas: 1 } } });
     abrir('/cotas');
     await userEvent.click(await screen.findByRole('button', { name: 'Copiar do mês anterior' }));
-    expect(await screen.findByText(`Nenhuma cota copiada: a única de ${mesPorExtenso(anterior)} é de serviço desativado.`)).toBeInTheDocument();
+    expect(await screen.findByText('Nenhuma cota copiada: 1 de serviço desativado ficou de fora. Reative o serviço na tela de Serviços para copiá-la.')).toBeInTheDocument();
   });
 
   it('adicionar cota envia o mês, o serviço, a quantidade, a origem e a prioridade', async () => {

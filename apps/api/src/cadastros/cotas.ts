@@ -129,8 +129,9 @@ export function rotasCotas(dep: { banco: Banco; auth: Auth }): Hono<AmbienteApi>
     if (d.servicoId) {
       const fora = await servicoForaDaUnidade(dep.banco, acesso.unidadeId, d.servicoId);
       if (fora) return c.json({ erro: 'Confira os campos destacados.', campos: fora }, 400);
-      // trocar o serviço da cota para um desativado não vale; mudar só a quantidade de uma cota antiga dele continua valendo
-      const desativado = await servicoDesativado(dep.banco, d.servicoId);
+      // trocar o serviço da cota para um desativado não vale; manter o serviço que ela já tem (a tela sempre manda o servicoId) continua valendo
+      const doServico = (await dep.banco.query<{ servico_id: string }>('select servico_id from cota where id = $1', [id])).rows[0]!.servico_id;
+      const desativado = d.servicoId === doServico ? null : await servicoDesativado(dep.banco, d.servicoId);
       if (desativado) return c.json({ erro: 'Confira os campos destacados.', campos: msgServicoDesativado(desativado) }, 400);
     }
     if (d.servicoId || d.origem) {
