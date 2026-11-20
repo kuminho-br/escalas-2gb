@@ -9,7 +9,6 @@ import {
   diaDaSemana,
   ehSaldo,
   exigeVoluntarioJes,
-  montarHorarios,
   turnoCoberto,
   unirFaixas,
   type Faixa,
@@ -24,23 +23,19 @@ import { vinculosDaEscala } from '../cadastros/escalas.ts';
 import { feriadosDoAno } from '../cadastros/feriados.ts';
 import { versaoNoMes } from '../cadastros/guarnicoes-regras.ts';
 import { versoesDasGuarnicoes } from '../cadastros/guarnicoes.ts';
+import { somarDias } from '../datas.ts';
+import { EXPEDIENTE, horariosDaUnidade, type Tipo } from './horarios.ts';
 import { nomeDaVaga } from './vagas.ts';
 
 export type VagaConsultada = { escalaId: string; data: string; inicio: string; fim: string; guarnicaoId: string | null; funcaoId: string | null };
 
-type Tipo = 'ordinario' | 'pjes' | 'diaria';
 export type TurnoDaFaixa = { turnoId: string; servicoId: string; nome: string; tipo: Tipo; letra: 'A' | 'B' | 'C'; inicio: string; fim: string };
 export type Avaliado = { candidato: Omit<Candidato, 'servicos'>; militarMotivo: string | null; porTurno: { turno: TurnoDaFaixa; motivo: string | null }[]; antig: number | null; cnh: string[] };
 
-const NOME_DO_TIPO: Record<Tipo, string> = { ordinario: 'Ordinário', pjes: 'PJES', diaria: 'Diária' };
 const NAO_LOTADO = 'Não está lotado na seção neste dia';
 const JA_ESCALADO = 'Já escalado neste horário';
 /** O motivo "só falta marcar o horário": é a última conferência de cada turno, então ele quer dizer que todas as outras regras passaram. */
 export const SEM_VOLUNTARIADO = 'Não marcou voluntariado neste horário';
-/** Expediente do Adm (08h às 16h), implícito nos dias úteis; vale o turno A do serviço Expediente se a seção o tiver cadastrado. */
-const EXPEDIENTE = { servico: 'Expediente', turno: 'A', ini: 480, fim: 960 };
-
-const somarDias = (data: string, n: number) => new Date(new Date(`${data}T00:00:00Z`).getTime() + n * 86400000).toISOString().slice(0, 10);
 
 /** Avalia, para uma faixa e um dia, cada militar lotado na seção: o motivo de não poder (ou nulo) e, por turno da faixa, o motivo de cada turno. */
 export async function avaliarFaixa(c: Consulta, v: VagaConsultada, somenteMilitar?: string): Promise<{ turnos: TurnoDaFaixa[]; avaliados: Avaliado[] }> {
@@ -82,17 +77,7 @@ export async function avaliarFaixa(c: Consulta, v: VagaConsultada, somenteMilita
       ? (await c.query<{ militar_id: string }>('select militar_id from afastamento where militar_id = any($1) and inicio <= $2::date and fim >= $2::date', [ids, v.data])).rows.map((r) => r.militar_id)
       : [],
   );
-  const doUnidade = (
-    await c.query<{ nome: string; tipo: Tipo; letra: 'A' | 'B' | 'C'; inicio: string; fim: string }>(
-      `select s.nome, s.tipo, t.letra, to_char(t.inicio, 'HH24:MI') as inicio, to_char(t.fim, 'HH24:MI') as fim
-         from turno t join servico s on s.id = t.servico_id where s.unidade_id = $1`,
-      [unidadeId],
-    )
-  ).rows;
-  const horarios = montarHorarios(doUnidade.map((t) => ({ servico: t.nome, turno: t.letra, inicio: t.inicio, fim: t.fim }))).porChave;
-  const chaveExpediente = `${EXPEDIENTE.servico}|${EXPEDIENTE.turno}`;
-  horarios[chaveExpediente] ??= { ini: EXPEDIENTE.ini, fim: EXPEDIENTE.fim, dur: EXPEDIENTE.fim - EXPEDIENTE.ini };
-  const tipos = Object.fromEntries(doUnidade.map((t) => [t.nome, NOME_DO_TIPO[t.tipo]]));
+  const { horarios, tipos } = await horariosDaUnidade(c, unidadeId);
 
   const janela = ids.length
     ? (

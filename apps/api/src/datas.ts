@@ -14,3 +14,8 @@ export function hojeRecife(agora: Date = new Date()): string {
 export function inicioDoMes(dia: string): string {
   return `${dia.slice(0, 7)}-01`;
 }
+
+/** Soma `n` dias (pode ser negativo) a um dia 'aaaa-mm-dd'. */
+export function somarDias(data: string, n: number): string {
+  return new Date(Date.parse(`${data}T00:00:00Z`) + n * 86_400_000).toISOString().slice(0, 10);
+}
