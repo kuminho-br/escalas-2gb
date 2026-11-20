@@ -4,7 +4,7 @@ import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
 import { escalar } from '@/api/escala-do-mes';
-import { tirarDaMeta } from '@/api/efetivo-do-dia';
+import { desativar } from '@/api/efetivo-do-dia';
 import { abrir, EU_EXEMPLO, simularApi } from './apoio';
 
 // Dezembro de 2026 (dia 1 = terça; dia 5 = sábado; dia 8 = feriado de teste). Equipes Alfa (CABO, SD1) e Bravo (BRAVO) e o Adm (ADM).
@@ -189,19 +189,19 @@ describe('grade geral: o filtro de equipes e o clique', () => {
 
 describe('grade geral: as gravações invalidam a grade', () => {
   const ESCALA = { escalaId: 'e1', nome: 'Ordinário', mes: MES, dias: [], resumo: { preenchidas: 0, obrigatorias: 0, obrigatoriasVazias: 0 } };
-  const EFETIVO: EfetivoDoDia = { data: dia(2), meta: { origem: 'dia', total: 0, ativadas: 0 }, guarnicoes: [], cotas: [] };
+  const EFETIVO: EfetivoDoDia = { data: dia(2), meta: { origem: 'dia', total: 0, ativadas: 0 }, guarnicoes: [], desativadas: [], cotas: [] };
 
-  it('escalar e tirar da meta (desescalando) marcam a grade como desatualizada', async () => {
+  it('escalar e desativar uma guarnição marcam a grade como desatualizada', async () => {
     simularApi({
       'POST /api/escalas/e1/alocacoes': { status: 201, corpo: ESCALA },
-      [`POST /api/unidades/u-1sb/meta-do-dia/${dia(2)}/tirar`]: { status: 200, corpo: EFETIVO },
+      [`POST /api/unidades/u-1sb/meta-do-dia/${dia(2)}/desativar`]: { status: 200, corpo: { efetivo: EFETIVO, desfazer: {} } },
     });
     const queryClient = new QueryClient();
     queryClient.setQueryData(['grade', 'u-1sb', MES], GRADE);
     await escalar(queryClient, 'e1', { militarId: 'm1', data: dia(2), turnoId: 't1', guarnicaoId: null, funcaoId: null });
     expect(queryClient.getQueryState(['grade', 'u-1sb', MES])!.isInvalidated).toBe(true);
     queryClient.setQueryData(['grade', 'u-1sb', MES], GRADE);
-    await tirarDaMeta(queryClient, 'u-1sb', dia(2), { guarnicaoId: 'g1', desescalar: true });
+    await desativar(queryClient, 'u-1sb', dia(2), 'g1');
     expect(queryClient.getQueryState(['grade', 'u-1sb', MES])!.isInvalidated).toBe(true);
   });
 });

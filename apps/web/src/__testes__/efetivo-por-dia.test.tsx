@@ -40,9 +40,10 @@ const EFETIVO: EfetivoDoDia = {
     guarnicao({ guarnicaoId: 'g1', nome: 'ABT' }),
     guarnicao({ guarnicaoId: 'g9', nome: 'Antigo', ativada: false, horarios: [] }),
   ],
+  desativadas: [],
   cotas: [{ servicoId: 's-jes', servico: 'JES', cor: '#6E56A8', quantidade: 40, usadas: 2 }],
 };
-const VAZIO: EfetivoDoDia = { data: DIA, meta: { origem: 'padrao', total: 0, ativadas: 0 }, guarnicoes: [], cotas: [] };
+const VAZIO: EfetivoDoDia = { data: DIA, meta: { origem: 'padrao', total: 0, ativadas: 0 }, guarnicoes: [], desativadas: [], cotas: [] };
 const MODELOS: LinhaGuarnicao[] = [
   { id: 'g1', nome: 'ABT', viatura: null, prioridade: null, ativa: true, minimo: 1, maximo: 1, aPartirDe: null },
   { id: 'g2', nome: 'ACO', viatura: null, prioridade: null, ativa: true, minimo: 1, maximo: 1, aPartirDe: null },
@@ -183,7 +184,7 @@ describe('efetivo por dia: o topo', () => {
 
 describe('efetivo por dia: a meta do dia pela própria tela', () => {
   const PUT = `PUT /api/unidades/u-1sb/meta-do-dia/${DIA}`;
-  const TIRAR = `POST /api/unidades/u-1sb/meta-do-dia/${DIA}/tirar`;
+  const TIRAR = `POST /api/unidades/u-1sb/meta-do-dia/${DIA}/desativar`;
   const MODELOS_DO_MES = [...MODELOS, { id: 'g3', nome: 'Resgate', viatura: null, prioridade: null, ativa: true, minimo: 1, maximo: 1, aPartirDe: null }];
   const rotas = { [PUT]: { status: 200, corpo: META_DO_DIA }, [TIRAR]: { status: 200, corpo: EFETIVO }, 'GET /api/unidades/u-1sb/guarnicoes': { status: 200, corpo: MODELOS_DO_MES } };
 
@@ -198,7 +199,7 @@ describe('efetivo por dia: a meta do dia pela própria tela', () => {
     const f = api(EFETIVO, EU_EXEMPLO, rotas);
     abrir(`/efetivo-por-dia?data=${DIA}`);
     await userEvent.click(within(await screen.findByRole('region', { name: '2º Resgate' })).getByRole('button', { name: 'Tirar da meta' }));
-    await waitFor(() => expect(corpoEnviado(f, TIRAR)).toEqual({ guarnicaoId: 'g3', desescalar: false }));
+    await waitFor(() => expect(corpoEnviado(f, TIRAR)).toEqual({ guarnicaoId: 'g3' }));
     expect(screen.queryByRole('dialog')).toBeNull();
   });
 
@@ -209,15 +210,7 @@ describe('efetivo por dia: a meta do dia pela própria tela', () => {
     const dialogo = await screen.findByRole('dialog', { name: 'Tirar ACO da meta deste dia' });
     expect(within(dialogo).getByText('Há 3 militares escalados no ACO neste dia.')).toBeInTheDocument();
     await userEvent.click(within(dialogo).getByRole('button', { name: 'Tirar e desescalar' }));
-    await waitFor(() => expect(corpoEnviado(f, TIRAR)).toEqual({ guarnicaoId: 'g2', desescalar: true }));
-  });
-
-  it('"Só tirar da meta" mantém quem está escalado', async () => {
-    const f = api(EFETIVO, EU_EXEMPLO, rotas);
-    abrir(`/efetivo-por-dia?data=${DIA}`);
-    await userEvent.click(within(await screen.findByRole('region', { name: '1º ACO' })).getByRole('button', { name: 'Tirar da meta' }));
-    await userEvent.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Só tirar da meta' }));
-    await waitFor(() => expect(corpoEnviado(f, TIRAR)).toEqual({ guarnicaoId: 'g2', desescalar: false }));
+    await waitFor(() => expect(corpoEnviado(f, TIRAR)).toEqual({ guarnicaoId: 'g2' }));
   });
 
   it('enquanto o efetivo do dia é buscado de novo depois de gravar, os controles da meta ficam travados (achado da revisão final)', async () => {

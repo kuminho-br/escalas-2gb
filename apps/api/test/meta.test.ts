@@ -24,8 +24,10 @@ const gravarPadrao = (desde: string, guarnicoes: string[], quem: 'admin' | 'esca
   api.pedir(quem, 'PUT', `${secao()}/meta-padrao`, { desde, guarnicoes });
 const gravarDia = (data: string, guarnicoes: string[], quem: 'admin' | 'escalante' | 'semPapel' = 'admin') =>
   api.pedir(quem, 'PUT', `${secao()}/meta-do-dia/${data}`, { guarnicoes });
-const tirar = (data: string, guarnicaoId: string, desescalar: boolean, quem: 'admin' | 'escalante' | 'semPapel' = 'escalante') =>
-  api.pedir(quem, 'POST', `${secao()}/meta-do-dia/${data}/tirar`, { guarnicaoId, desescalar });
+const desativar = (data: string, guarnicaoId: string, quem: 'admin' | 'escalante' | 'semPapel' = 'escalante') =>
+  api.pedir(quem, 'POST', `${secao()}/meta-do-dia/${data}/desativar`, { guarnicaoId });
+const desfazer = (data: string, corpo: unknown, quem: 'admin' | 'escalante' | 'semPapel' = 'escalante') =>
+  api.pedir(quem, 'POST', `${secao()}/meta-do-dia/${data}/desfazer-desativacao`, corpo);
 
 beforeAll(async () => {
   api = await montarApi();
@@ -176,7 +178,8 @@ describe('acesso', () => {
     expect((await api.pedir('semPapel', 'GET', `${secao()}/meta-do-dia/${dia(1)}`)).status).toBe(403);
     expect((await gravarPadrao(dia(200), [abt], 'semPapel')).status).toBe(403);
     expect((await gravarDia(dia(200), [abt], 'semPapel')).status).toBe(403);
-    expect((await tirar(dia(200), abt, false, 'semPapel')).status).toBe(403);
+    expect((await desativar(dia(200), abt, 'semPapel')).status).toBe(403);
+    expect((await desfazer(dia(200), {}, 'semPapel')).status).toBe(403);
   });
 
   it('outra seção é 403 para o escalante da 1ª SB', async () => {
@@ -187,15 +190,27 @@ describe('acesso', () => {
   });
 });
 
-describe('tirar da meta (Review Focus 4 e 5)', () => {
+describe('desativar e desfazer (Review Focus 1 a 4)', () => {
   let escala: string;
   let pronto: string;
   let turno: string;
   let funcao: string;
   const militares: Record<string, string> = {};
-  const alocar = (militar: string, data: string, guarnicao: string) =>
-    inserir(api.banco, 'alocacao', { militar_id: militares[militar], escala_id: escala, servico_id: pronto, turno_id: turno, data, guarnicao_id: guarnicao, funcao_id: funcao, origem: 'manual' });
+  const alocar = (militar: string, data: string, guarnicao: string | null) =>
+    inserir(api.banco, 'alocacao', { militar_id: militares[militar], escala_id: escala, servico_id: pronto, turno_id: turno, data, guarnicao_id: guarnicao, funcao_id: guarnicao ? funcao : null, origem: 'manual' });
   const existe = async (tabela: string, id: string) => (await api.banco.query(`select 1 from ${tabela} where id = $1`, [id])).rows.length === 1;
+  /** onde o militar está no dia: [guarnição, função]; sem alocação, null */
+  const alocacaoDe = async (militar: string, data: string) =>
+    (await api.banco.query<{ id: string; guarnicao_id: string | null }>('select id, guarnicao_id from alocacao where militar_id = $1 and data = $2::date', [militares[militar], data])).rows[0] ?? null;
+  const acumulosDe = async (militar: string, data: string) =>
+    (
+      await api.banco.query<{ guarnicao_id: string }>(
+        'select x.guarnicao_id from alocacao_acumulo x join alocacao a on a.id = x.alocacao_id where a.militar_id = $1 and a.data = $2::date order by x.guarnicao_id',
+        [militares[militar], data],
+      )
+    ).rows.map((r) => r.guarnicao_id);
+  const marcas = async (militar: string, data: string) => (await api.banco.query('select 1 from remocao where militar_id = $1 and data = $2::date', [militares[militar], data])).rows.length;
+  const corpoDe = async (r: Response) => (await r.json()) as { efetivo: EfetivoDoDia; desfazer: { alocacoes: unknown[]; acumulos: unknown[]; metaAntes: { origem: string; guarnicoes: string[] } } };
 
   beforeAll(async () => {
     // a partir do dia 300, a meta padrão é [ABT, Resgate]
@@ -209,57 +224,109 @@ describe('tirar da meta (Review Focus 4 e 5)', () => {
     for (const [i, nome] of ['ALFA', 'BRAVO', 'CHARLIE'].entries()) militares[nome] = await inserir(api.banco, 'militar', { matricula: `99091${i}-${i}`, posto_grad_id: posto, nome_guerra: nome });
   });
 
-  it('num dia que segue o padrão, o dia passa a ter meta própria (o padrão sem ela), e o dia seguinte não muda', async () => {
-    const r = await tirar(dia(301), abt, false);
+  it('desativar sem ninguém: o dia que seguia o padrão passa a ter meta própria sem ela, e o dia seguinte não muda', async () => {
+    const r = await desativar(dia(301), abt);
     expect(r.status).toBe(200);
+    const c = await corpoDe(r);
+    expect(c.desfazer.alocacoes).toEqual([]);
+    expect(c.desfazer.metaAntes.origem).toBe('padrao');
     expect(await metaDe(dia(301))).toMatchObject({ origem: 'dia', guarnicoes: [{ nome: 'Resgate' }] });
     expect(nomes(await metaDe(dia(302)))).toEqual(['ABT', 'Resgate']);
   });
 
-  it('tirar a última guarnição deixa o dia sem meta, e "Voltar ao padrão" desfaz', async () => {
+  it('desativar a última guarnição deixa o dia sem meta', async () => {
     expect((await gravarDia(dia(303), [abt])).status).toBe(200);
-    expect((await tirar(dia(303), abt, false)).status).toBe(200);
+    expect((await desativar(dia(303), abt)).status).toBe(200);
     expect(await metaDe(dia(303))).toEqual({ data: dia(303), origem: 'dia', guarnicoes: [] });
-    expect((await api.pedir('escalante', 'DELETE', `${secao()}/meta-do-dia/${dia(303)}`)).status).toBe(200);
-    expect(nomes(await metaDe(dia(303)))).toEqual(['ABT', 'Resgate']);
-  });
-
-  it('sem desescalar, as alocações ficam e a guarnição aparece fora da meta, sem número', async () => {
-    expect((await gravarDia(dia(304), [abt])).status).toBe(200);
-    const alocacao = await alocar('ALFA', dia(304), abt);
-    const r = await tirar(dia(304), abt, false);
-    expect(r.status).toBe(200);
-    const e = (await r.json()) as EfetivoDoDia;
-    expect(e.guarnicoes.map((g) => [g.nome, g.ordem])).toEqual([['ABT', null]]);
-    expect(await existe('alocacao', alocacao)).toBe(true);
-  });
-
-  it('tirar e desescalar: as alocações saem com a marca de remoção, e quem está por acúmulo perde só o acúmulo', async () => {
-    expect((await gravarDia(dia(305), [abt, resgate])).status).toBe(200);
-    const alfa = await alocar('ALFA', dia(305), abt);
-    const bravo = await alocar('BRAVO', dia(305), resgate);
-    const acumulo = await inserir(api.banco, 'alocacao_acumulo', { alocacao_id: bravo, guarnicao_id: abt, funcao_id: funcao });
-    const charlie = await alocar('CHARLIE', dia(306), abt);
-    const r = await tirar(dia(305), abt, true);
-    expect(r.status).toBe(200);
-    expect(await existe('alocacao', alfa)).toBe(false);
-    const remocoes = await api.banco.query('select 1 from remocao where militar_id = $1 and data = $2::date', [militares.ALFA, dia(305)]);
-    expect(remocoes.rows).toHaveLength(1);
-    expect(await existe('alocacao', bravo)).toBe(true);
-    expect(await existe('alocacao_acumulo', acumulo)).toBe(false);
-    // outro dia não muda
-    expect(await existe('alocacao', charlie)).toBe(true);
-    expect(nomes(await metaDe(dia(305)))).toEqual(['Resgate']);
   });
 
   it('guarnição que não está na meta do dia é 409 com o motivo', async () => {
     expect((await gravarDia(dia(307), [resgate])).status).toBe(200);
-    const r = await tirar(dia(307), abt, true);
+    const r = await desativar(dia(307), abt);
     expect(r.status).toBe(409);
     expect((await r.json()).erro).toBe('Esta guarnição não está na meta deste dia.');
   });
 
-  it('corpo inválido é 400', async () => {
-    expect((await api.pedir('escalante', 'POST', `${secao()}/meta-do-dia/${dia(308)}/tirar`, { guarnicaoId: abt })).status).toBe(400);
+  it('desativar sempre desescala, com acúmulo cruzado: sai quem está nela e o acúmulo dele; quem acumula nela perde só o acúmulo (Review Focus 1)', async () => {
+    const d = dia(305);
+    expect((await gravarDia(d, [abt, resgate])).status).toBe(200);
+    const alfa = await alocar('ALFA', d, abt);
+    await inserir(api.banco, 'alocacao_acumulo', { alocacao_id: alfa, guarnicao_id: resgate, funcao_id: funcao });
+    const bravo = await alocar('BRAVO', d, resgate);
+    await inserir(api.banco, 'alocacao_acumulo', { alocacao_id: bravo, guarnicao_id: abt, funcao_id: funcao });
+    const charlie = await alocar('CHARLIE', dia(306), abt);
+    const r = await desativar(d, abt);
+    expect(r.status).toBe(200);
+    const c = await corpoDe(r);
+    expect(await alocacaoDe('ALFA', d)).toBeNull();
+    expect(await marcas('ALFA', d)).toBe(1);
+    expect(await existe('alocacao', bravo)).toBe(true);
+    expect(await acumulosDe('BRAVO', d)).toEqual([]);
+    expect(c.desfazer.alocacoes).toHaveLength(1);
+    expect(c.desfazer.acumulos).toHaveLength(2);
+    expect(c.desfazer.metaAntes).toEqual({ origem: 'dia', guarnicoes: [abt, resgate] });
+    // outro dia não muda
+    expect(await existe('alocacao', charlie)).toBe(true);
+    expect(nomes(await metaDe(d))).toEqual(['Resgate']);
+  });
+
+  it('desfazer devolve tudo: as alocações, os dois acúmulos, sem a marca de remoção, e a meta como estava (Review Focus 1)', async () => {
+    const d = dia(309);
+    expect((await gravarDia(d, [abt, resgate])).status).toBe(200);
+    const alfa = await alocar('ALFA', d, abt);
+    await inserir(api.banco, 'alocacao_acumulo', { alocacao_id: alfa, guarnicao_id: resgate, funcao_id: funcao });
+    const bravo = await alocar('BRAVO', d, resgate);
+    await inserir(api.banco, 'alocacao_acumulo', { alocacao_id: bravo, guarnicao_id: abt, funcao_id: funcao });
+    const c = await corpoDe(await desativar(d, abt));
+    const r = await desfazer(d, c.desfazer);
+    expect(r.status).toBe(200);
+    expect((await alocacaoDe('ALFA', d))?.guarnicao_id).toBe(abt);
+    expect(await acumulosDe('ALFA', d)).toEqual([resgate]);
+    expect(await acumulosDe('BRAVO', d)).toEqual([abt]);
+    expect(await existe('alocacao', bravo)).toBe(true);
+    expect(await marcas('ALFA', d)).toBe(0);
+    expect(nomes(await metaDe(d))).toEqual(['ABT', 'Resgate']);
+    expect(((await r.json()) as EfetivoDoDia).meta.total).toBe(2);
+  });
+
+  it('desfazer num dia que seguia o padrão volta a seguir o padrão, não uma cópia dele (Review Focus 4)', async () => {
+    const d = dia(310);
+    const c = await corpoDe(await desativar(d, abt));
+    expect((await metaDe(d)).origem).toBe('dia');
+    expect((await desfazer(d, c.desfazer)).status).toBe(200);
+    expect(await metaDe(d)).toMatchObject({ origem: 'padrao' });
+    expect(nomes(await metaDe(d))).toEqual(['ABT', 'Resgate']);
+  });
+
+  it('desfazer com o lugar ocupado é 409 com a frase, e nada muda (nem a meta) (Review Focus 2)', async () => {
+    const d = dia(311);
+    expect((await gravarDia(d, [abt, resgate])).status).toBe(200);
+    await alocar('ALFA', d, abt);
+    const c = await corpoDe(await desativar(d, abt));
+    // enquanto isso, alguém escalou o mesmo militar no mesmo serviço e turno
+    const intruso = await alocar('ALFA', d, null);
+    const r = await desfazer(d, c.desfazer);
+    expect(r.status).toBe(409);
+    expect((await r.json()).erro).toBe('Não deu para desfazer: alguém já ocupa um desses lugares.');
+    expect(nomes(await metaDe(d))).toEqual(['Resgate']);
+    expect(await existe('alocacao', intruso)).toBe(true);
+  });
+
+  it('desfazer com escala de outra seção é 400', async () => {
+    const d = dia(312);
+    expect((await gravarDia(d, [abt])).status).toBe(200);
+    await alocar('ALFA', d, abt);
+    const c = await corpoDe(await desativar(d, abt));
+    const alheia = (await (await api.pedir('admin', 'POST', `/api/unidades/${outraSecao}/escalas`, { nome: 'Alheia' })).json()).id as string;
+    const adulterado = { ...c.desfazer, alocacoes: (c.desfazer.alocacoes as { escalaId: string }[]).map((x) => ({ ...x, escalaId: alheia })) };
+    expect((await desfazer(d, adulterado)).status).toBe(400);
+    expect(await alocacaoDe('ALFA', d)).toBeNull();
+  });
+
+  it('o escalante desativa (200), o corpo inválido é 400', async () => {
+    expect((await gravarDia(dia(313), [abt])).status).toBe(200);
+    expect((await desativar(dia(313), abt, 'escalante')).status).toBe(200);
+    expect((await api.pedir('escalante', 'POST', `${secao()}/meta-do-dia/${dia(314)}/desativar`, {})).status).toBe(400);
+    expect((await desfazer(dia(314), { guarnicaoId: abt })).status).toBe(400);
   });
 });

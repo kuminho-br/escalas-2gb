@@ -283,6 +283,30 @@ describe('vínculo cuja faixa não é mais turno da escala (Review Focus 2)', ()
   });
 });
 
+describe('desativadas hoje (Review Focus 3 da 4.1)', () => {
+  const d = dia(501);
+  beforeAll(async () => {
+    // a meta padrão vale do dia 500 em diante (o dia 400, do teste do painel vazio, não é afetado)
+    expect((await api.pedir('admin', 'PUT', `${secao()}/meta-padrao`, { desde: dia(500), guarnicoes: [aco, resgate] })).status).toBe(200);
+  });
+
+  it('um dia que segue o padrão não tem desativadas; depois de desativar, a guarnição aparece nelas e o dia seguinte continua no padrão', async () => {
+    expect((await ler(d)).desativadas).toEqual([]);
+    expect((await api.pedir('escalante', 'POST', `${secao()}/meta-do-dia/${d}/desativar`, { guarnicaoId: aco })).status).toBe(200);
+    const e = await ler(d);
+    expect(e.desativadas).toEqual([{ guarnicaoId: aco, nome: 'ACO', viatura: null }]);
+    expect(e.guarnicoes.map((g) => g.nome)).toEqual(['Resgate']);
+    expect((await ler(dia(502))).desativadas).toEqual([]);
+  });
+
+  it('um dia com meta própria que ainda tem toda a meta padrão não tem desativadas, e a que sobrou da própria meta não entra', async () => {
+    const outro = dia(503);
+    expect((await api.pedir('admin', 'PUT', `${secao()}/meta-do-dia/${outro}`, { guarnicoes: [resgate, abt] })).status).toBe(200);
+    // ACO está no padrão e fora do dia: desativada; ABT está no dia e fora do padrão: não é desativada
+    expect((await ler(outro)).desativadas.map((x) => x.nome)).toEqual(['ACO']);
+  });
+});
+
 describe('cotas restantes', () => {
   const d = dia(5);
   it('traz por serviço a soma das cotas do mês e das alocações já distribuídas', async () => {
@@ -305,6 +329,6 @@ describe('acesso', () => {
 
   it('um dia sem nada é um painel vazio, e a meta padrão vazia não quebra', async () => {
     // bem longe do dia da cota (dia(5)), para nunca cair no mesmo mês dela
-    expect(await ler(dia(400))).toEqual({ data: dia(400), meta: { origem: 'padrao', total: 0, ativadas: 0 }, guarnicoes: [], cotas: [] });
+    expect(await ler(dia(400))).toEqual({ data: dia(400), meta: { origem: 'padrao', total: 0, ativadas: 0 }, guarnicoes: [], desativadas: [], cotas: [] });
   });
 });

@@ -1,5 +1,5 @@
 // Rotas do efetivo do dia: a meta de ativação (padrão e dias diferentes).
-import { Data, NovaMetaDoDia, NovaMetaPadrao, TirarDaMeta } from 'contratos';
+import { Data, DesativarGuarnicao, DesfazerDesativacao, NovaMetaDoDia, NovaMetaPadrao } from 'contratos';
 import { Hono, type Context } from 'hono';
 import { CADASTRO, ESCREVE_PARAMETRO, exigirPapel, exigirSessao, type AmbienteApi } from '../acesso.ts';
 import type { Auth } from '../auth.ts';
@@ -8,7 +8,7 @@ import { hojeRecife } from '../datas.ts';
 import { lerCorpo, respostaDoErroDoBanco } from '../erros.ts';
 import { Recusa } from '../escala/alocacoes.ts';
 import { montarEfetivoDoDia } from './efetivo-do-dia.ts';
-import { gravarMetaDoDia, gravarMetaPadrao, metaDoDia, modelosForaDaSecao, tirarDaMeta, versoesDaMetaPadrao, voltarMetaAoPadrao } from './meta.ts';
+import { DadosInvalidos, desativar, desfazerDesativacao, gravarMetaDoDia, gravarMetaPadrao, metaDoDia, modelosForaDaSecao, versoesDaMetaPadrao, voltarMetaAoPadrao } from './meta.ts';
 
 type Ctx = Context<AmbienteApi>;
 const MSG_DATA = 'Data inválida: use o formato aaaa-mm-dd.';
@@ -76,23 +76,42 @@ export function rotasEfetivo(dep: { banco: Banco; auth: Auth }): Hono<AmbienteAp
     return c.json(await metaDoDia(dep.banco, u, data));
   });
 
-  /** Tira uma guarnição da meta do dia e, se pedido, desescala quem está nela no dia; devolve o efetivo do dia. */
-  r.post('/unidades/:u/meta-do-dia/:data/tirar', async (c) => {
+  /** Desativa uma guarnição no dia: sai da meta do dia e desescala quem está nela. Devolve o efetivo do dia e o que tirou (para o "Desfazer"). */
+  r.post('/unidades/:u/meta-do-dia/:data/desativar', async (c) => {
     const u = c.req.param('u');
     const negado = await exigirPapel(c, u, CADASTRO);
     if (negado) return negado;
     const data = dataDaRota(c);
     if (!data) return c.json({ erro: MSG_DATA }, 400);
-    const corpo = await lerCorpo(c, TirarDaMeta);
+    const corpo = await lerCorpo(c, DesativarGuarnicao);
     if (!corpo.ok) return corpo.resposta;
     const usuarioId = c.get('usuarioId');
     try {
-      await comUsuario(dep.banco, usuarioId, (tx) => tirarDaMeta(tx, u, data, corpo.dados.guarnicaoId, corpo.dados.desescalar, usuarioId));
+      const desfazer = await comUsuario(dep.banco, usuarioId, (tx) => desativar(tx, u, data, corpo.dados.guarnicaoId, usuarioId));
+      return c.json({ efetivo: await montarEfetivoDoDia(dep.banco, u, data), desfazer });
     } catch (e) {
       if (e instanceof Recusa) return c.json({ erro: e.message }, 409);
       return respostaDoErroDoBanco(c, e);
     }
-    return c.json(await montarEfetivoDoDia(dep.banco, u, data));
+  });
+
+  /** Desfaz a desativação com o que ela devolveu: recria as alocações e os acúmulos e devolve a meta. Devolve o efetivo do dia. */
+  r.post('/unidades/:u/meta-do-dia/:data/desfazer-desativacao', async (c) => {
+    const u = c.req.param('u');
+    const negado = await exigirPapel(c, u, CADASTRO);
+    if (negado) return negado;
+    const data = dataDaRota(c);
+    if (!data) return c.json({ erro: MSG_DATA }, 400);
+    const corpo = await lerCorpo(c, DesfazerDesativacao);
+    if (!corpo.ok) return corpo.resposta;
+    try {
+      await comUsuario(dep.banco, c.get('usuarioId'), (tx) => desfazerDesativacao(tx, u, data, corpo.dados));
+      return c.json(await montarEfetivoDoDia(dep.banco, u, data));
+    } catch (e) {
+      if (e instanceof DadosInvalidos) return c.json({ erro: 'Os dados para desfazer não são desta seção.' }, 400);
+      if (e instanceof Recusa) return c.json({ erro: e.message }, 409);
+      return respostaDoErroDoBanco(c, e);
+    }
   });
 
   r.delete('/unidades/:u/meta-do-dia/:data', async (c) => {

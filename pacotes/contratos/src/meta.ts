@@ -14,9 +14,36 @@ export type NovaMetaPadrao = z.infer<typeof NovaMetaPadrao>;
 export const NovaMetaDoDia = z.object({ guarnicoes: z.array(Id).max(100) }).refine(semRepetidos, REPETIDO);
 export type NovaMetaDoDia = z.infer<typeof NovaMetaDoDia>;
 
-/** Tira uma guarnição da meta do dia; `desescalar` também tira quem está escalado nela no dia (com a marca de remoção). */
-export const TirarDaMeta = z.object({ guarnicaoId: Id, desescalar: z.boolean() });
-export type TirarDaMeta = z.infer<typeof TirarDaMeta>;
+/** Desativar uma guarnição no dia: sai da meta do dia e desescala quem está nela (alocações e acúmulos, com a marca de remoção). */
+export const DesativarGuarnicao = z.object({ guarnicaoId: Id });
+export type DesativarGuarnicao = z.infer<typeof DesativarGuarnicao>;
+
+/** Uma alocação que a desativação tirou, para o "Desfazer" recriá-la (recriar a alocação apaga a marca de remoção: é um gatilho do banco). */
+export const AlocacaoDesfeita = z.object({
+  alocacaoId: Id,
+  militarId: Id,
+  escalaId: Id,
+  servicoId: Id,
+  turnoId: Id,
+  data: Data,
+  guarnicaoId: Id.nullable(),
+  funcaoId: Id.nullable(),
+  origem: z.enum(['pre_escala', 'distribuicao', 'manual', 'permuta']),
+});
+export type AlocacaoDesfeita = z.infer<typeof AlocacaoDesfeita>;
+
+/** Um acúmulo que a desativação tirou; `alocacaoId` é o de antes (pode ser de uma alocação que também saiu). */
+export const AcumuloDesfeito = z.object({ alocacaoId: Id, guarnicaoId: Id, funcaoId: Id });
+export type AcumuloDesfeito = z.infer<typeof AcumuloDesfeito>;
+
+/** O que a desativação tirou e a meta de antes: o "Desfazer" manda isto de volta. */
+export const DesfazerDesativacao = z.object({
+  guarnicaoId: Id,
+  metaAntes: z.object({ origem: z.enum(['padrao', 'dia']), guarnicoes: z.array(Id).max(100) }),
+  alocacoes: z.array(AlocacaoDesfeita).max(500),
+  acumulos: z.array(AcumuloDesfeito).max(500),
+});
+export type DesfazerDesativacao = z.infer<typeof DesfazerDesativacao>;
 
 export type ItemDaMeta = { guarnicaoId: string; nome: string };
 export type VersaoDaMetaPadrao = { desde: string; guarnicoes: ItemDaMeta[] };

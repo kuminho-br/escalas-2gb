@@ -4,7 +4,7 @@ import { Data, type FuncaoNoEfetivo, type GuarnicaoNoEfetivo, type OpcaoDaVaga, 
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { mensagemDe } from '@/api/cliente';
-import { consultaEfetivoDoDia, gravarMetaDoDia, tirarDaMeta, voltarMetaAoPadrao } from '@/api/efetivo-do-dia';
+import { consultaEfetivoDoDia, desativar, gravarMetaDoDia, voltarMetaAoPadrao } from '@/api/efetivo-do-dia';
 import { CotasRestantes } from '@/componentes/CotasRestantes';
 import { AdicionarGuarnicao } from '@/componentes/efetivo-por-dia/AdicionarGuarnicao';
 import { AlocacoesDoTrecho } from '@/componentes/efetivo-por-dia/AlocacoesDoTrecho';
@@ -89,11 +89,11 @@ function EfetivoPorDia() {
     [lista[i], lista[i + passo]] = [lista[i + passo]!, lista[i]!];
     void gravarMeta(lista);
   };
-  const tirar = travar(async (g: GuarnicaoNoEfetivo, desescalar: boolean, noDialogo = false) => {
+  const tirar = travar(async (g: GuarnicaoNoEfetivo, _desescalar: boolean, noDialogo = false) => {
     setErro(null);
     setErroNoDialogo(null);
     try {
-      await tirarDaMeta(queryClient, eu.unidade.id, data, { guarnicaoId: g.guarnicaoId, desescalar });
+      await desativar(queryClient, eu.unidade.id, data, g.guarnicaoId);
       setTirando(null);
     } catch (x) {
       (noDialogo ? setErroNoDialogo : setErro)(mensagemDe(x));

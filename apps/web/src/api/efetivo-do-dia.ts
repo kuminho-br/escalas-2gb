@@ -1,5 +1,5 @@
 import { queryOptions, type QueryClient } from '@tanstack/react-query';
-import type { EfetivoDoDia, MetaDoDia, NovaMetaPadrao, TirarDaMeta, VersaoDaMetaPadrao } from 'contratos';
+import type { DesfazerDesativacao, EfetivoDoDia, MetaDoDia, NovaMetaPadrao, ResultadoDaDesativacao, VersaoDaMetaPadrao } from 'contratos';
 import { pedir } from './cliente';
 
 export const consultaEfetivoDoDia = (unidadeId: string, data: string) =>
@@ -32,14 +32,22 @@ export const gravarMetaPadrao = (queryClient: QueryClient, unidadeId: string, d:
 export const gravarMetaDoDia = (queryClient: QueryClient, unidadeId: string, data: string, guarnicoes: string[]) =>
   gravando(queryClient, pedir<MetaDoDia>('PUT', `/api/unidades/${unidadeId}/meta-do-dia/${data}`, { guarnicoes }));
 
-/** Tira a guarnição da meta do dia; desescalar mexe na escala: a escala do mês, as cotas e os candidatos também voltam a ser buscados. */
-export async function tirarDaMeta(queryClient: QueryClient, unidadeId: string, data: string, d: TirarDaMeta): Promise<EfetivoDoDia> {
+/** Desativar e desfazer mexem na escala (quem estava na guarnição sai ou volta): a escala do mês, as cotas, os candidatos e a grade também voltam a ser buscados. */
+async function mexendoNaEscala<T>(queryClient: QueryClient, pedido: Promise<T>): Promise<T> {
   try {
-    return await pedir<EfetivoDoDia>('POST', `/api/unidades/${unidadeId}/meta-do-dia/${data}/tirar`, d);
+    return await pedido;
   } finally {
     for (const queryKey of [['escala-do-mes'], ['cotas'], ['candidatos'], ['grade']]) void queryClient.invalidateQueries({ queryKey });
     await atualizar(queryClient);
   }
 }
+
+/** Desativa a guarnição no dia: sai da meta do dia e desescala quem está nela. Devolve o que tirou, para o "Desfazer". */
+export const desativar = (queryClient: QueryClient, unidadeId: string, data: string, guarnicaoId: string) =>
+  mexendoNaEscala(queryClient, pedir<ResultadoDaDesativacao>('POST', `/api/unidades/${unidadeId}/meta-do-dia/${data}/desativar`, { guarnicaoId }));
+
+/** Desfaz a desativação com o que ela devolveu: as alocações, os acúmulos e a meta voltam. */
+export const desfazerDesativacao = (queryClient: QueryClient, unidadeId: string, data: string, d: DesfazerDesativacao) =>
+  mexendoNaEscala(queryClient, pedir<EfetivoDoDia>('POST', `/api/unidades/${unidadeId}/meta-do-dia/${data}/desfazer-desativacao`, d));
 export const voltarMetaAoPadrao = (queryClient: QueryClient, unidadeId: string, data: string) =>
   gravando(queryClient, pedir<MetaDoDia>('DELETE', `/api/unidades/${unidadeId}/meta-do-dia/${data}`));
