@@ -2,6 +2,8 @@
 
 16/11/2026 · v0.1 · parte do design (`2026-11-16-migracao-design.md`)
 
+Em dia com as migrações até a `0022_meta_de_ativacao.sql` (20/11/2026). As tabelas das entregas 4.x estão na seção 9.
+
 Ponto de partida: o "ER proposto" do documento *Modelo ER — Sistema de Escalas 2º GB* (v0.8). Acréscimos: unidades em árvore, lotação com vigência, vínculo de militar externo, usuários e papéis, modelos de impressão, documentos gerados e auditoria. Também entram as mudanças vindas dos esboços de tela (versão 12), que ainda podem mudar.
 
 ## Convenções
@@ -62,6 +64,21 @@ erDiagram
   unidade ||--o{ feriado : define
   unidade ||--o{ modelo_impressao : usa
   modelo_impressao ||--o{ documento_gerado : gera
+  alocacao ||--o{ alocacao_acumulo : acumula
+  guarnicao ||--o{ alocacao_acumulo : "vaga extra em"
+  funcao ||--o{ alocacao_acumulo : "funcao extra"
+  militar ||--o{ voluntariado_lancamento : "lancado"
+  militar ||--o{ disponibilidade : "pode em"
+  escala ||--o{ ordem_escala_versao : versiona
+  ordem_escala_versao ||--|{ ordem_escala_item : ordena
+  guarnicao ||--o{ ordem_escala_item : "vez de"
+  funcao ||--o{ ordem_escala_item : "vez de"
+  unidade ||--o{ meta_padrao_versao : "meta padrao"
+  meta_padrao_versao ||--o{ meta_padrao_item : lista
+  unidade ||--o{ meta_dia : "dia diferente"
+  meta_dia ||--o{ meta_dia_item : lista
+  guarnicao ||--o{ meta_padrao_item : "ativada em"
+  guarnicao ||--o{ meta_dia_item : "ativada em"
 ```
 
 ## 1. Estrutura e pessoas
@@ -168,6 +185,8 @@ Catálogo do sistema todo (é institucional), editado pelo administrador na tela
 | ativo | boolean | desativado não aparece para lançar, mas continua nos afastamentos antigos |
 
 ## 2. Usuários e papéis
+
+### usuario, sessao, conta e verificacao
 
 As tabelas de login são do Better Auth (D3): `usuario`, `sessao`, `conta` e `verificacao`, com os nomes configurados em português. Acréscimos na tabela `usuario`:
 
@@ -476,6 +495,84 @@ Cada publicação e cada retificação ficam guardadas.
 - **Só acréscimos:** o papel da aplicação não tem `update` nem `delete` na tabela, e um gatilho recusa as duas operações mesmo para quem tiver.
 - **Usuário:** a API abre cada transação com `set local app.usuario_id = '<id>'`.
 - **Índices:** (unidade_id, em) e (tabela, registro_id).
+
+## 9. Acréscimos das entregas 4.x (migrações 0015 a 0022)
+
+Tabelas criadas depois do esquema original. Todas têm o gatilho de auditoria da seção 8.
+
+### alocacao_acumulo
+
+Acúmulo de funções (migração 0015, entrega 4.1.1): um militar já escalado ocupa também outra vaga, inclusive de outra guarnição. Não é uma segunda alocação: o banco já impede duas alocações do mesmo militar no mesmo turno, e as horas contam uma vez só. Apagar a alocação apaga os acúmulos.
+
+| Coluna | Tipo | Regra |
+|---|---|---|
+| alocacao_id | uuid FK | a alocação que acumula; `on delete cascade` |
+| guarnicao_id | uuid FK | guarnição da vaga extra |
+| funcao_id | uuid FK | função da vaga extra |
+
+Única por (alocacao_id, guarnicao_id, funcao_id).
+
+### voluntariado_lancamento
+
+Marca que o escalante lançou o voluntariado de um militar num mês (migração 0016, entrega 4.2). Um lançamento sem marcação também conta ("já lançado, 0 dias"); por isso é um registro à parte.
+
+| Coluna | Tipo | Regra |
+|---|---|---|
+| militar_id | uuid FK | |
+| mes | date | dia 1 |
+| lancado_por | uuid FK → usuario null | |
+| lancado_em | timestamptz | |
+
+Único por (militar_id, mes).
+
+### disponibilidade
+
+Faixas de horário em que o militar pode, por dia (migração 0018, entrega 4.2.2). Substitui o turno padrão A/B. Guarda-se o horário, não a letra do bloco, para a tela poder mudar sem refazer dados.
+
+| Coluna | Tipo | Regra |
+|---|---|---|
+| militar_id | uuid FK | |
+| data | date | |
+| inicio_min, fim_min | int | minutos do dia; 0 ≤ início < fim ≤ 1440 |
+| origem | text | `manual`, `importacao` ou `militar` |
+
+Única por (militar_id, data, inicio_min).
+
+### ordem_escala_versao e ordem_escala_item
+
+A ordem de escala (migração 0017, entrega 4.2.1): uma lista por escala, com vigência por mês, da vez de cada vaga. Substitui a prioridade da guarnição como regra de quem é preenchido primeiro.
+
+| Coluna | Tipo | Regra |
+|---|---|---|
+| ordem_escala_versao.escala_id | uuid FK | |
+| ordem_escala_versao.vigencia_desde | date | dia 1; única por escala |
+| ordem_escala_item.versao_id | uuid FK | `on delete cascade`; PK com `posicao` |
+| ordem_escala_item.posicao | int | 1 em diante: a vez |
+| ordem_escala_item.guarnicao_id, funcao_id | uuid FK | |
+| ordem_escala_item.vaga | int | número da vaga; único por (versão, guarnição, função, vaga) |
+
+### meta_padrao_versao, meta_padrao_item, meta_dia e meta_dia_item
+
+A meta de ativação (migração 0022, entrega 4.3.2.2): a lista de guarnições que a seção quer ativar num dia, na ordem de ativação. A meta padrão vale de uma data em diante (uma versão por data); um dia diferente tem lista própria, que pode ser vazia (dia sem meta) e vale no lugar do padrão.
+
+| Coluna | Tipo | Regra |
+|---|---|---|
+| meta_padrao_versao.unidade_id, desde | uuid FK, date | única por (unidade, desde) |
+| meta_dia.unidade_id, data | uuid FK, date | única por (unidade, data) |
+| meta_*_item.versao_id / meta_dia_id | uuid FK | `on delete cascade` |
+| meta_*_item.guarnicao_id | uuid FK | única por lista |
+| meta_*_item.ordem | int | 1 em diante; única por lista |
+
+### Onde mora cada restrição
+
+| Restrição | Onde fica |
+|---|---|
+| Composição | na vaga da guarnição (função, mínimo e máximo, CNH) |
+| Vinculação | na ligação guarnição × serviço, com a vez de cada serviço |
+| Horário | no turno do serviço (início e fim) |
+| Prestação de contas | na cota da fonte (mês e quantidade) |
+
+Fonte: "ER da meta de ativação" do claude.ai (20/11/2026), colhido em 20/11/2026.
 
 ## Mudanças em relação ao ER proposto (v0.8)
 
