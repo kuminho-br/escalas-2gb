@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { LIMITE_DA_IMPORTACAO_MB, MENSAGEM_ARQUIVO_GRANDE, type Previa, type ResultadoImportacao } from 'contratos';
 import { Download, FileUp } from 'lucide-react';
-import { useState, type FormEvent } from 'react';
+import { useRef, useState, type FormEvent } from 'react';
 import { enviarArquivo, mensagemDe } from '@/api/cliente';
 import { consultaEu } from '@/api/eu';
 import { Button } from '@/componentes/ui/button';
@@ -19,14 +19,17 @@ export function ImportarPlanilha({ cadastro, rotulo, aoConcluir }: { cadastro: s
   const [erro, setErro] = useState<string | null>(null);
   const [enviando, setEnviando] = useState(false);
   const caminho = `/api/unidades/${eu?.unidade.id}/importacao/${cadastro}`;
+  // cada vez que o diálogo abre ou fecha começa uma "rodada": a resposta de um envio de uma rodada anterior não mexe na tela da atual
+  const rodada = useRef(0);
 
   function abrirOuFechar(v: boolean) {
+    rodada.current += 1;
     setAberto(v);
-    if (!v) {
-      setEtapa({ tipo: 'escolher' });
-      setArquivo(null);
-      setErro(null);
-    }
+    // abrir e fechar começam do zero: etapa de escolher o arquivo, sem arquivo, sem erro e sem envio em andamento
+    setEtapa({ tipo: 'escolher' });
+    setArquivo(null);
+    setErro(null);
+    setEnviando(false);
   }
 
   async function chamar(confirmar: boolean) {
@@ -38,18 +41,21 @@ export function ImportarPlanilha({ cadastro, rotulo, aoConcluir }: { cadastro: s
       return;
     }
     setEnviando(true);
+    const minha = rodada.current;
     try {
       if (confirmar) {
         const r = await enviarArquivo<ResultadoImportacao>(`${caminho}?confirmar=1`, arquivo);
-        setEtapa({ tipo: 'feito', gravados: r.gravados });
+        // gravou mesmo que o diálogo tenha fechado: a lista por trás precisa atualizar; a tela é que não mostra o resultado de outra rodada
         aoConcluir();
+        if (minha === rodada.current) setEtapa({ tipo: 'feito', gravados: r.gravados });
       } else {
-        setEtapa({ tipo: 'previa', previa: await enviarArquivo<Previa>(caminho, arquivo) });
+        const previa = await enviarArquivo<Previa>(caminho, arquivo);
+        if (minha === rodada.current) setEtapa({ tipo: 'previa', previa });
       }
     } catch (e) {
-      setErro(mensagemDe(e));
+      if (minha === rodada.current) setErro(mensagemDe(e));
     } finally {
-      setEnviando(false);
+      if (minha === rodada.current) setEnviando(false);
     }
   }
 

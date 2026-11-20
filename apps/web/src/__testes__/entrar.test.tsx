@@ -37,6 +37,12 @@ describe('entrar depois de uma sessão que terminou', () => {
     await waitFor(() => expect(router.state.location.pathname).toBe('/'));
   });
 
+  it('o aviso é um alerta, para o leitor de tela anunciar na hora', async () => {
+    simularApi({ '/api/eu': { status: 401 } });
+    abrir('/entrar?sessao=terminou');
+    expect(await screen.findByRole('alert')).toHaveTextContent('Sua sessão terminou. Entre de novo.');
+  });
+
   it('sem sessao=terminou (quem nunca entrou) não mostra o aviso (Review Focus 2)', async () => {
     simularApi({ '/api/eu': { status: 401 } });
     abrir('/entrar');
