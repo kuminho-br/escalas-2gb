@@ -54,8 +54,9 @@ describe('migração 0020: serviços fixos', () => {
     await banco.query("update servico set tipo = 'pjes' where id = $1", [jes]);
     await migrarAte(banco, '9999');
     const lista = await servicos(secao);
-    expect(lista.map((s) => s.nome).sort()).toEqual(['Bioma', 'Expediente', 'JES', 'Saldo', 'pronto '].sort());
-    expect(lista.find((s) => s.nome === 'pronto ')).toMatchObject({ fixo: true, ativo: true });
+    expect(lista.map((s) => s.nome).sort()).toEqual(['Bioma', 'Expediente', 'JES', 'Saldo', 'pronto'].sort());
+    // o nome é aparado: com o espaço nas pontas, a ficha nunca mais conseguiria salvar (o formulário manda o nome aparado e o gatilho recusa mudar o nome)
+    expect(lista.find((s) => s.nome === 'pronto')).toMatchObject({ fixo: true, ativo: true });
     expect(lista.find((s) => s.nome === 'JES')).toMatchObject({ fixo: true, tipo: 'pjes' });
     expect(lista.find((s) => s.nome === 'Saldo')).toMatchObject({ fixo: true, tipo: 'ordinario', ativo: true });
     expect(lista.find((s) => s.nome === 'Expediente')).toMatchObject({ fixo: true, tipo: 'ordinario' });

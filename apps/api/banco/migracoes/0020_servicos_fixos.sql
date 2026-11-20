@@ -20,8 +20,9 @@ end $$;
 -- (2) a marca
 alter table servico add column fixo boolean not null default false;
 
--- (3) marca os que já existem e reativa os desativados (depois, ninguém conseguiria reativá-los)
-update servico set fixo = true, ativo = true where lower(btrim(nome)) in ('pronto', 'saldo', 'expediente', 'jes');
+-- (3) marca os que já existem, apara o nome (o formulário sempre manda o nome aparado, e o gatilho recusa mudar o nome de um fixo) e reativa
+-- os desativados (depois, ninguém conseguiria reativá-los)
+update servico set fixo = true, ativo = true, nome = btrim(nome) where lower(btrim(nome)) in ('pronto', 'saldo', 'expediente', 'jes');
 
 -- (4) cria os que faltam, com os turnos e as cores da carga de exemplo, nas seções que já têm algum serviço
 do $$
