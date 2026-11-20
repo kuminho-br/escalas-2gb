@@ -101,11 +101,11 @@ Montar e conferir a escala do mês à mão, nas telas de trabalho (Escala do mê
 | 3.2.1 | Arrumação: serviços fixos, ordem de escalação, modelos de guarnição | mesclada (#38) | meta de ativação |
 | 3.2.2 | Meta de ativação e Efetivo do dia | mesclada (#39) | meta de ativação |
 | 3.3 | Efetivo por dia, turnos lado a lado e login novo | mesclada (#42) | meta de ativação |
-| 4 | Grade geral | mesclada (#44), em validação | grade geral |
-| 4.1 | Meta do dia: desativar, reativar e adicionar | mesclada (#49) | meta de ativação |
+| 4 | Grade geral | mesclada (#44), validada (menos o militar comum) | grade geral |
+| 4.1 | Meta do dia: desativar, reativar e adicionar | mesclada (#49), validada (regra antiga do acúmulo) | meta de ativação |
 | 4.2 | Efetivo por dia e Escala do mês em grade | mesclada (#51) | meta de ativação |
 | 4.3 | Limpeza das pendências da fase 3 (Tarefas 65 a 73) | em execução | limpeza da fase 3 |
-| 4.4 | Correção do "Desativar", leitura da Grade, busca, "Adicionar serviço" em abas, dia da semana no Efetivo por dia (Tarefas 74 a 81) | plano em aprovação | grade geral (ajustes) |
+| 4.4 | Correção do "Desativar", leitura da Grade, busca, "Adicionar serviço" em abas, dia da semana no Efetivo por dia, sem a aba Atividades (Tarefas 74 a 82) | plano em aprovação | grade geral (ajustes) |
 
 Specs, em `docs/superpowers/specs/`: `2026-11-18-ordem-de-escala-e-acumulo-design.md`, `2026-11-19-voluntariado-por-faixa-design.md`, `2026-11-20-meta-de-ativacao-design.md`, `2026-11-20-grade-geral-design.md`, `2026-11-20-grade-geral-ux-design.md` e `2026-11-20-limpeza-da-fase-3-design.md`.
 
@@ -231,7 +231,7 @@ Achadas nas revisões e nas validações. Nenhuma muda quem é escalado. Entram 
 
 **Regras próprias por vaga** (pendentes desde a ordem de escala, 18/11/2026, sem fase): o graduado de dia é o mais antigo do dia (exceto Adm); o chefe é o mais antigo da guarnição.
 
-**Validação das entregas 3.3 e 4:** o selo "ativada / não ativada" e o tom do aviso "Falta…" no Efetivo por dia; a aba Atividades das Configurações, que nada lê desde 17/11 (sem decisão).
+**Validação das entregas 3.3 e 4:** o selo "ativada / não ativada" e o tom do aviso "Falta…" no Efetivo por dia.
 
 ## Fluxo de uma regra nova
 
@@ -248,4 +248,5 @@ Achadas nas revisões e nas validações. Nenhuma muda quem é escalado. Entram 
 - **Ambiente de teste gratuito:** pausa por inatividade e limites do plano (D2).
 - **Dados pessoais numa nuvem comercial durante o teste:** D7, revista para o Pecúlio (sem CPF e sem ano de nascimento até o servidor do Estado).
 - **O Pecúlio aumenta o escopo de uma seção para o GB inteiro:** 184 militares em nove lotações; o acesso por lotação (fase 6) precisa estar certo antes de o militar comum entrar.
+- **A Grade geral não foi validada com o militar comum:** a sandbox só tem o administrador; só os testes automáticos cobrem esse caso.
 - **O militar comum ainda não tem como entrar:** o login é por e-mail e o Pecúlio não tem e-mail.

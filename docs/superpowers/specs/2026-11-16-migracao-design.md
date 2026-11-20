@@ -96,13 +96,14 @@ O esquema completo está em `docs/superpowers/specs/2026-11-16-esquema-banco.md`
 ### Conceitos
 
 - **Serviço** é de onde vem a hora (Pronto, JES, Saldo, Diária, PJES): rege cota, pagamento e quem pode ser escalado. Pronto, Saldo, JES e Expediente são **serviços fixos**, criados pelo sistema e reconhecidos pelo nome.
-- **Modelo de guarnição** é o posto operacional: composição (funções com mínimo, máximo e CNH), viatura só informativa e versões por mês. A atividade saiu do cadastro dele; o catálogo de Atividades continua em Configurações, sem uso por enquanto.
+- **Modelo de guarnição** é o posto operacional: composição (funções com mínimo, máximo e CNH), viatura só informativa e versões por mês. A atividade saiu do cadastro dele.
 - **Escala** reúne serviços (que têm os turnos) e diz quais modelos de guarnição cada faixa de horário guarnece.
 
 ### Catálogos
 
 - **Funções:** catálogo por unidade (RN-94). Renomear uma função muda o nome em todos os modelos.
-- **Tipos de afastamento** (Férias, LTS, Curso, Outro) e **atividades:** catálogos do sistema todo, editados pelo administrador em Configurações.
+- **Tipos de afastamento** (Férias, LTS, Curso, Outro): catálogo do sistema todo, editado pelo administrador em Configurações.
+- **Atividades:** nada no sistema as lê desde que saíram do modelo de guarnição. A aba sai das Configurações na 4.4; a tabela fica no banco, sem uso.
 
 ### Militares
 

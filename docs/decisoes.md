@@ -8,6 +8,7 @@ Siglas dos documentos: **Design** = `superpowers/specs/2026-11-16-migracao-desig
 
 | Data | Decisão | Onde está |
 |---|---|---|
+| 20/11/2026 | A aba "Atividades" sai das Configurações (nada lê a atividade desde 17/11); a tabela e a coluna ficam no banco, sem migração. Entra na 4.4. | Roadmap, Fase 4; Design, Cadastros › Catálogos |
 | 20/11/2026 | Os documentos não ganham mais adendos: muda-se o texto e a decisão entra neste registro. | Este registro (topo) |
 | 20/11/2026 | Antes do design do Pecúlio, entra uma pergunta nova: como a planilha é usada hoje (quem atualiza, quem consulta, o que dá trabalho). | Pecúlio, Decisões que faltam |
 | 20/11/2026 | A Minha escala (fase 7) e a Escala por militar (fase 8) são desenhadas juntas; se o uso da Escala por militar for a permuta, ela pode ir junto com as permutas (fase 9). | Roadmap, Fases 7 e 8 |
