@@ -7,6 +7,8 @@ export LC_ALL=C.UTF-8
 cd "$(git rev-parse --show-toplevel)"
 LIM_KB=25; CRIT_KB=50; LIM_PAR=400; LIM_ADENDOS=3; LIM_CLAUDE=120
 mds=$( { git ls-files -co --exclude-standard 'docs/*.md' 'docs/**/*.md' '*.md' | sort -u; } | grep -v '^pr_' )
+# planos de fase e de revisão são temporários e se dividem por entrega: ficam fora da medida de tamanho e de parágrafo (decisão do usuário, 20/11/2026)
+lidos=$(echo "$mds" | grep -vE '^docs/superpowers/plans/' ; echo "$mds" | grep -E '^docs/superpowers/plans/.*roadmap')
 claude_falhas=0
 cont=$(mktemp); corpo=$(mktemp)
 alerta() { echo x >> "$cont"; echo "- $*"; }
@@ -16,7 +18,7 @@ secao() { echo; echo "## $1"; echo; }
 {
 secao "Documentos grandes (acima de ${LIM_KB} KB)"
 achou=0
-for f in $mds; do
+for f in $lidos; do
   b=$(wc -c < "$f"); kb=$((b/1024))
   if [ "$b" -gt $((CRIT_KB*1024)) ]; then alerta "**crítico** \`$f\`: ${kb} KB"; achou=1
   elif [ "$b" -gt $((LIM_KB*1024)) ]; then alerta "\`$f\`: ${kb} KB"; achou=1; fi
@@ -27,7 +29,7 @@ done
 # 2. Parágrafos longos (fora de tabela e de bloco de código)
 {
 secao "Parágrafos com mais de ${LIM_PAR} caracteres"
-n=$(for f in $mds; do awk -v L=$LIM_PAR -v F="$f" '/^```/{c=!c;next} !c && !/^\|/ && length($0)>L {n++} END{if(n>0) print n"\t"F}' "$f"; done | sort -rn)
+n=$(for f in $lidos; do awk -v L=$LIM_PAR -v F="$f" '/^```/{c=!c;next} !c && !/^\|/ && length($0)>L {n++} END{if(n>0) print n"\t"F}' "$f"; done | sort -rn)
 if [ -z "$n" ]; then echo "Nenhum."; else echo "$n" | while IFS=$'\t' read -r q f; do alerta "\`$f\`: $q parágrafo(s)"; done; fi
 } >> "$corpo"
 

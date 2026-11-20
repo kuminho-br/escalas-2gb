@@ -343,7 +343,7 @@ Expected: saída vazia (o arquivo agora é do git).
 - `docs/ferramentas/checar-documentacao.sh` mede a régua do `docs/LEIAME.md` e imprime o relatório; o último fica em `docs/relatorio-documentacao.md` (sobrescrito; histórico no git). A seção "Como checar" do índice explica o uso.
 - O relatório traz a nota do `CLAUDE.md` (bom, regular ou insatisfatório), o resumo do relatório anterior e as branches `docs-*` paradas. Não olha o claude.ai (D3).
 - Limites conhecidos: cercas de código indentadas e nomes de arquivo com espaço ou acento não são tratados.
-- **Pendente:** como roda a cada 3 dias (rotina na nuvem, tarefa do Windows ou sob pedido) e onde o relatório chega. Decisão do usuário.
+- **Decidido pelo usuário (20/11/2026):** a checagem roda quando ele pede, não a cada 3 dias. Os planos de fase saem da medida de tamanho e de parágrafo (são temporários e se dividem por entrega).
 
 ## Entrega 4 — Consolidar e registrar decisões
 

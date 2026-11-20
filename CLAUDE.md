@@ -39,7 +39,7 @@ Cada sessão tem um papel; **só a PROGRAMAÇÃO altera código**.
 | PLANEJAMENTO | Specs e planos de cada entrega; boletim de 2 em 2 dias |
 | SAC & OUVIDORIA | Dúvidas (D01…) e reclamações (R01…) |
 | VALIDAÇÃO | Recebe entregas prontas; o usuário testa à mão e dá o retorno |
-| DOCUMENTAÇÃO | Controla os documentos, mede a qualidade e propõe melhorias; relatório a cada 3 dias |
+| DOCUMENTAÇÃO | Controla os documentos, mede a qualidade e propõe melhorias; checagem quando o usuário pede |
 
 ## Domínio, em poucas linhas
 
