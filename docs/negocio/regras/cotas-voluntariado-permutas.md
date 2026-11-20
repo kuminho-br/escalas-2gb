@@ -22,15 +22,9 @@ A SB recebe cotas de PJES e diárias e é obrigada a executá-las; serviços de 
 ## Montagem da escala e voluntariado
 A escala é montada em três etapas. Os extras são alocados primeiro entre os voluntários e depois de forma compulsória, até cumprir as cotas.
 
-1.
-
-Alocar os serviços do Pronto.
-2.
-
-Distribuir os JES entre os militares do Pronto.
-3.
-
-Distribuir os JES dos militares do Adm, que são mais flexíveis.
+1. Alocar os serviços do Pronto.
+2. Distribuir os JES entre os militares do Pronto.
+3. Distribuir os JES dos militares do Adm, que são mais flexíveis.
 
 | ID | Regra | Status | Barreira |
 |---|---|---|---|

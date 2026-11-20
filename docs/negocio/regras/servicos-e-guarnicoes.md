@@ -60,15 +60,9 @@ Exemplo de configuração, único informado até agora:
 ## Alocação para cumprir a meta
 A meta é preenchida em três camadas, sempre nesta ordem; a ordem não muda.
 
-1.
-
-Serviço ordinário do efetivo do Pronto.
-2.
-
-JES do efetivo do Pronto.
-3.
-
-Saldo do Adm.
+1. Serviço ordinário do efetivo do Pronto.
+2. JES do efetivo do Pronto.
+3. Saldo do Adm.
 
 | ID | Regra | Status | Barreira |
 |---|---|---|---|

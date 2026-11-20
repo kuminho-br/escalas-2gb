@@ -51,7 +51,6 @@ erDiagram
   guarnicao ||--o{ escala_guarnicao : serve
   unidade ||--o{ cota : recebe
   servico ||--o{ cota : "cotado em"
-  militar ||--o{ voluntariado : pede
   militar ||--o{ alocacao : tem
   militar ||--o{ remocao : "tirado de"
   escala ||--o{ alocacao : contem
@@ -232,6 +231,7 @@ Não existe cadastro aberto. O primeiro administrador é criado por um comando d
 | rotulo_impressao | text null | antiga coluna ORIGEM (B49); vazio = nome |
 | cor | text | hex `#RRGGBB`, usada nos blocos da grade e nas etiquetas |
 | ativo | boolean | |
+| fixo | boolean | `default false`; definido por gatilho pelo nome (migração 0020). Pronto, Saldo e Expediente são `ordinario` e JES é `pjes`; num serviço fixo o nome, o tipo e a situação não mudam |
 
 ### turno
 | Coluna | Tipo | Regra |
@@ -243,7 +243,7 @@ Não existe cadastro aberto. O primeiro administrador é criado por um comando d
 
 Regra de exibição: o turno aparece no dia em que começa. O dia de serviço vai das 08h de D às 08h de D+1 (efetivo do dia).
 
-Regra (domínio, adendo de 17/11/2026): o turno não tem ligação cadastrada com o turno padrão do voluntariado. Vale o **horário**: o militar precisa ter marcado **todo** turno padrão que o turno do serviço toca. A de D = 08h às 20h de D; B de D = 20h de D às 08h de D+1. Exemplos: 08h às 16h pede A de D; 16h às 00h pede A e B de D; 00h às 08h pede B de D−1; 07h às 19h pede B de D−1 e A de D; 24h a partir das 08h pede A e B de D.
+Regra (domínio, adendo de 17/11/2026): o turno não tem ligação cadastrada com o turno padrão do voluntariado. Vale o **horário**: o militar precisa ter marcado **todo** turno padrão que o turno do serviço toca. A de D = 08h às 20h de D; B de D = 20h de D às 08h de D+1. Exemplos: 08h às 16h pede A de D; 16h às 00h pede A e B de D; 00h às 08h pede B de D−1; 07h às 19h pede B de D−1 e A de D; 24h a partir das 08h pede A e B de D. Desde a migração 0018 o militar marca faixas de horário (`disponibilidade`, seção 9), não o turno padrão A/B.
 
 ### atividade
 O que a guarnição faz (Incêndio, APH, Salvamento, Incêndio em vegetação, Apoio operacional…). Não confundir com **serviço**, que é de onde vem a hora (Pronto, PJES, Saldo, Diária). Catálogo do sistema todo, editado pelo administrador na tela de Configurações.
@@ -315,6 +315,7 @@ Vagas obrigatórias = `minimo`; vagas acima do mínimo = `maximo - minimo` (sem 
 | militares_doc | text | `todos` ou `escalados` |
 | dias_doc | text | `todos` ou `com_escalados` |
 | ativa | boolean | |
+| monta_blocos_voluntariado | boolean | `default true`; se os blocos do dia do voluntariado são montados pelos horários desta escala (migração 0019) |
 
 ### escala_servico
 Troca a lista em texto `ESCALAS.SERVIÇOS` (RN-100).
@@ -356,20 +357,12 @@ Quais guarnições servem cada turno da escala, com vigência (RN-09, RN-93).
 | quantidade | int | `> 0` |
 | origem | text | `interna` ou `externa` (RN-35) |
 | prioridade | int | 1 é preenchida primeiro |
-| conta_meta | boolean | conta para a meta de ativação (RN-95) |
 
 A operação deixa de existir na cota (resolve Q14): ela é atributo do serviço do tipo diária.
 
-### voluntariado
-| Coluna | Tipo | Regra |
-|---|---|---|
-| id | uuid PK | |
-| militar_id | uuid FK | |
-| data | date | |
-| turno_padrao | text | `A` (08h às 20h) ou `B` (20h às 08h), os turnos do ordinário. O militar não escolhe serviço. A ligação com os turnos dos serviços é pelo horário (ver `turno`) |
-| origem | text | `manual` ou `importacao` (e `militar`, no futuro) |
+### voluntariado (removida)
 
-Único por (militar_id, data, turno_padrao). As "pedidas" da grade geral contam, por tipo (PJES, Diária), os turnos marcados; um voluntário JES conta nos dois tipos, os demais só em Diária.
+A tabela `voluntariado` (dia e turno padrão A/B) foi apagada pela migração 0018. A disponibilidade passou para faixas de horário em `disponibilidade`, e o registro de que o mês foi lançado está em `voluntariado_lancamento` (seção 9). As "pedidas" da grade geral contam, por tipo (PJES, Diária), os horários marcados; um voluntário JES conta nos dois tipos, os demais só em Diária.
 
 ### alocacao
 Fonte da verdade da escala.
@@ -498,11 +491,11 @@ Cada publicação e cada retificação ficam guardadas.
 
 ## 9. Acréscimos das entregas 4.x (migrações 0015 a 0022)
 
-Tabelas criadas depois do esquema original. Todas têm o gatilho de auditoria da seção 8.
+Tabelas criadas depois do esquema original. Todas têm o gatilho de auditoria da seção 8. As entregas citadas seguem a numeração do roadmap.
 
 ### alocacao_acumulo
 
-Acúmulo de funções (migração 0015, entrega 4.1.1): um militar já escalado ocupa também outra vaga, inclusive de outra guarnição. Não é uma segunda alocação: o banco já impede duas alocações do mesmo militar no mesmo turno, e as horas contam uma vez só. Apagar a alocação apaga os acúmulos.
+Acúmulo de funções (migração 0015, entrega 1.1): um militar já escalado ocupa também outra vaga, inclusive de outra guarnição. Não é uma segunda alocação: o banco já impede duas alocações do mesmo militar no mesmo turno, e as horas contam uma vez só. Apagar a alocação apaga os acúmulos.
 
 | Coluna | Tipo | Regra |
 |---|---|---|
@@ -514,20 +507,20 @@ Acúmulo de funções (migração 0015, entrega 4.1.1): um militar já escalado 
 
 ### voluntariado_lancamento
 
-Marca que o escalante lançou o voluntariado de um militar num mês (migração 0016, entrega 4.2). Um lançamento sem marcação também conta ("já lançado, 0 dias"); por isso é um registro à parte.
+Marca que o escalante lançou o voluntariado de um militar num mês (migração 0016, entrega 2). Um lançamento sem marcação também conta ("já lançado, 0 dias"); por isso é um registro à parte.
 
 | Coluna | Tipo | Regra |
 |---|---|---|
 | militar_id | uuid FK | |
 | mes | date | dia 1 |
 | lancado_por | uuid FK → usuario null | |
-| lancado_em | timestamptz | |
+| lancado_em | timestamptz | `not null default now()` |
 
 Único por (militar_id, mes).
 
 ### disponibilidade
 
-Faixas de horário em que o militar pode, por dia (migração 0018, entrega 4.2.2). Substitui o turno padrão A/B. Guarda-se o horário, não a letra do bloco, para a tela poder mudar sem refazer dados.
+Faixas de horário em que o militar pode, por dia (migração 0018, entrega 2.2). Substitui o turno padrão A/B. Guarda-se o horário, não a letra do bloco, para a tela poder mudar sem refazer dados.
 
 | Coluna | Tipo | Regra |
 |---|---|---|
@@ -540,12 +533,13 @@ Faixas de horário em que o militar pode, por dia (migração 0018, entrega 4.2.
 
 ### ordem_escala_versao e ordem_escala_item
 
-A ordem de escala (migração 0017, entrega 4.2.1): uma lista por escala, com vigência por mês, da vez de cada vaga. Substitui a prioridade da guarnição como regra de quem é preenchido primeiro.
+A ordem de escala (migração 0017, entrega 2.1): uma lista por escala, com vigência por mês, da vez de cada vaga. Substitui a prioridade da guarnição como regra de quem é preenchido primeiro.
 
 | Coluna | Tipo | Regra |
 |---|---|---|
 | ordem_escala_versao.escala_id | uuid FK | |
 | ordem_escala_versao.vigencia_desde | date | dia 1; única por escala |
+| ordem_escala_item.id | uuid | único; serve só à auditoria (a chave é versão + posição) |
 | ordem_escala_item.versao_id | uuid FK | `on delete cascade`; PK com `posicao` |
 | ordem_escala_item.posicao | int | 1 em diante: a vez |
 | ordem_escala_item.guarnicao_id, funcao_id | uuid FK | |
@@ -553,7 +547,7 @@ A ordem de escala (migração 0017, entrega 4.2.1): uma lista por escala, com vi
 
 ### meta_padrao_versao, meta_padrao_item, meta_dia e meta_dia_item
 
-A meta de ativação (migração 0022, entrega 4.3.2.2): a lista de guarnições que a seção quer ativar num dia, na ordem de ativação. A meta padrão vale de uma data em diante (uma versão por data); um dia diferente tem lista própria, que pode ser vazia (dia sem meta) e vale no lugar do padrão.
+A meta de ativação (migração 0022, entrega 3.2.2): a lista de guarnições que a seção quer ativar num dia, na ordem de ativação. A meta padrão vale de uma data em diante (uma versão por data); um dia diferente tem lista própria, que pode ser vazia (dia sem meta) e vale no lugar do padrão.
 
 | Coluna | Tipo | Regra |
 |---|---|---|
@@ -594,7 +588,7 @@ Fonte: "ER da meta de ativação" do claude.ai (20/11/2026), colhido em 20/11/20
 
 **Mudam**
 - `afastamento` com tipo genérico.
-- `voluntariado` por dia e turno padrão (A ou B), sem serviço, com origem.
+- `voluntariado` por dia e turno padrão (A ou B), sem serviço, com origem (depois trocado por `disponibilidade`, migração 0018).
 - `cota` sem operação, apontando para unidade e serviço.
 - `funcao` como catálogo por unidade.
 

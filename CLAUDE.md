@@ -12,7 +12,7 @@ Automação das escalas de serviço da 1ª SB / 2º GB (Corpo de Bombeiros Milit
 |---|---|
 | `pacotes/dominio/` | Motor de regras (puro: sem banco, sem tela) |
 | `pacotes/contratos/` | Esquemas zod de entrada e saída da API, usados pela API e pelo site |
-| `apps/api/` | API: rotas em `src/cadastros`, importação em `src/importacao`, migrações em `banco/migracoes` |
+| `apps/api/` | API: rotas por assunto em `src/` (`cadastros`, `escala`, `efetivo`, `grade`, `voluntariado`, `usuarios`…), importação em `src/importacao`, migrações em `banco/migracoes` |
 | `apps/web/` | Site: `routes/_app`, componentes, `__testes__` |
 | `casos/` | Casos gravados do protótipo, referência do motor (ver `casos/LEIAME.md`) |
 | `prototipo/` | Apps Script (escopo global único) |
@@ -20,7 +20,7 @@ Automação das escalas de serviço da 1ª SB / 2º GB (Corpo de Bombeiros Milit
 
 ## Como trabalhar
 
-- Uma branch por entrega, a partir da `main`, com nome `fase4-N-<tema>` ou `docs-<tema>`. Uma entrega por PR. **Merge só com anuência do usuário.**
+- Uma branch por entrega, a partir da `main`, com nome `faseN-<tema>` (ex.: `fase4-5-<tema>`) ou `docs-<tema>`. Uma entrega por PR. **Merge só com anuência do usuário.**
 - Cada sessão trabalha na sua pasta (`C:/projetos/escalas-2gb-<sessão>`, criada com `git worktree`). Nunca trocar de branch na pasta de outra sessão.
 - Antes de abrir PR: `pnpm test && pnpm typecheck`; mexeu na API ou no site: `pnpm build:vercel`.
 - `pnpm test:prototipo` roda só os testes do protótipo.
@@ -45,7 +45,8 @@ Cada sessão tem um papel; **só a PROGRAMAÇÃO altera código**.
 
 - **Serviço:** origem administrativa da hora (Pronto, JES, Saldo, Diária, PJES). **Guarnição:** posto operacional (ABT, APH, ACO…). **Escala:** agrupamento de serviços com a mesma demanda.
 - **Saldo:** militar do Adm que cobre um turno do Pronto; é alocado por último.
-- **Jornadas:** Adm (expediente em dias úteis) e Pronto (turnos A/B de 12 h).
+- **Jornadas:** Adm (expediente em dias úteis) e Pronto (turnos A, B e C; os de 12 h são A e B).
+- **Voluntário:** Diária não exige o status de voluntário JES (basta o formulário mensal); JES e PJES exigem o atributo "voluntário JES" no cadastro (RN-04, RN-46).
 - Glossário completo: `docs/negocio/glossario.md`. Regras: `docs/negocio/regras/LEIAME.md`.
 
 **CNH** (hierarquia do CTB, fixa no código, decisão de 18/11/2026): A é isolada, não habilita nenhuma outra e nenhuma outra a habilita. B habilita B; C habilita C e B; D habilita D e C; E habilita E e D (e, pela cadeia, C e B).

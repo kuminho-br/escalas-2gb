@@ -48,7 +48,7 @@
 
 1. **Dado pessoal vindo do claude.ai.** "Militares Externos" e "Board do Dia" podem ter nomes e matrículas reais. Esperado: nada disso entra no repositório. Verificação na Tarefa 2 e na revisão da Tarefa 5.
 2. **Versão do claude.ai mais nova que a do repositório** (ex.: "ER da meta de ativação", de 20/11). Esperado: comparar pelo conteúdo; a regra "vale o repositório" só começa depois do merge. Coluna "mais novo onde?" no mapa da Tarefa 1.
-3. **`CLAUDE.md` solto na pasta da PROGRAMAÇÃO.** Quando a entrega 2 entrar na `main`, o git recusa atualizar aquela pasta enquanto o arquivo não versionado existir. Esperado: combinar a retirada antes. Passo na Tarefa 9.
+3. **`CLAUDE.md` solto na pasta da PROGRAMAÇÃO.** Quando a entrega 1 (que já leva o `CLAUDE.md`) entrar na `main`, o git recusa atualizar aquela pasta enquanto o arquivo não versionado existir. Esperado: combinar a retirada antes. Passo na Tarefa 9.
 4. **Arquivo que o PLANEJAMENTO está editando numa branch aberta** (ex.: `docs-reorganizacao-roadmap`). Esperado: não editar o mesmo arquivo em paralelo. Verificação na Tarefa 3, antes de mexer em `esquema-banco.md`.
 5. **Caminho citado que não existe** (índice ou `CLAUDE.md` apontando para arquivo movido). Verificação nas Tarefas 4 e 7.
 
@@ -316,11 +316,11 @@ git commit -m "Documentação 2: CLAUDE.md enxuto no git e CLAUDE.md do protóti
 
 ### Task 8: Memória da sessão de validação
 
-**Files:** Modify `C:/Users/delln/.claude/projects/c--projetos-escalas-2gb/memory/sessao-de-validacao.md` (fora do git).
+**Files:** Modify `~/.claude/projects/c--projetos-escalas-2gb/memory/sessao-de-validacao.md` (fora do git).
 
 - [ ] **Step 1:** Trocar "Esta sessão recebe…" por "Existe uma sessão de VALIDAÇÃO que recebe…" na descrição e no texto, e a linha correspondente do `MEMORY.md`. O resto fica igual.
 
-Run: `grep -n 'Esta sessão' C:/Users/delln/.claude/projects/c--projetos-escalas-2gb/memory/sessao-de-validacao.md`
+Run: `grep -n 'Esta sessão' ~/.claude/projects/c--projetos-escalas-2gb/memory/sessao-de-validacao.md`
 Expected: saída vazia.
 
 ### Task 9: PR, merge e o arquivo solto

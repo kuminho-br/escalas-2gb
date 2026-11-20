@@ -21,7 +21,7 @@
 
 | Documento | Para que serve | Quem cuida | Situação |
 |---|---|---|---|
-| [negocio/regras/LEIAME.md](negocio/regras/LEIAME.md) | Catálogo de regras (RN-XX), em 6 arquivos por assunto | REGRAS DE NEGÓCIO | vigente |
+| [negocio/regras/LEIAME.md](negocio/regras/LEIAME.md) | Catálogo de regras (RN-XX), dividido por assunto (o LEIAME da pasta lista os arquivos) | REGRAS DE NEGÓCIO | vigente |
 | [negocio/glossario.md](negocio/glossario.md) | Termos do domínio, com definição e status | REGRAS DE NEGÓCIO | vigente |
 | [negocio/glossario-pendencias.md](negocio/glossario-pendencias.md) | Perguntas em aberto e divergências do glossário | REGRAS DE NEGÓCIO | vigente |
 | [negocio/processo-do-mes.md](negocio/processo-do-mes.md) | Diagrama de atividades do mês, do formulário à escala executada | REGRAS DE NEGÓCIO | rascunho (E1 a E8 em aberto) |
@@ -38,13 +38,13 @@
 | [superpowers/specs/2026-11-20-meta-de-ativacao-design.md](superpowers/specs/2026-11-20-meta-de-ativacao-design.md) | Meta de ativação e Efetivo do dia | PLANEJAMENTO | em execução |
 | [superpowers/specs/2026-11-20-grade-geral-design.md](superpowers/specs/2026-11-20-grade-geral-design.md) | Grade geral (entrega 4) | PLANEJAMENTO | em execução |
 | [superpowers/specs/2026-11-20-grade-geral-ux-design.md](superpowers/specs/2026-11-20-grade-geral-ux-design.md) | Ajustes de interface da grade geral | PLANEJAMENTO | em execução |
-| [superpowers/specs/2026-11-20-limpeza-da-fase-3-design.md](superpowers/specs/2026-11-20-limpeza-da-fase-3-design.md) | Limpeza das pendências da fase 3 | PLANEJAMENTO | em execução |
+| [superpowers/specs/2026-11-20-limpeza-da-fase-3-design.md](superpowers/specs/2026-11-20-limpeza-da-fase-3-design.md) | Limpeza das pendências da fase 3 | PLANEJAMENTO | vigente |
 
 ## Planos
 
 | Documento | Para que serve | Quem cuida | Situação |
 |---|---|---|---|
-| [superpowers/plans/2026-11-16-roadmap-migracao.md](superpowers/plans/2026-11-16-roadmap-migracao.md) | Roadmap das fases 0 a 7 e decisões de cada etapa | PLANEJAMENTO | vigente (a enxugar) |
+| [superpowers/plans/2026-11-16-roadmap-migracao.md](superpowers/plans/2026-11-16-roadmap-migracao.md) | Roadmap das fases e decisões de cada etapa | PLANEJAMENTO | vigente (a enxugar) |
 | [superpowers/plans/2026-11-16-fase1-fundacao.md](superpowers/plans/2026-11-16-fase1-fundacao.md) | Fase 1: fundação | PROGRAMAÇÃO | concluído |
 | [superpowers/plans/2026-11-17-fase2-motor.md](superpowers/plans/2026-11-17-fase2-motor.md) | Fase 2: motor de regras | PROGRAMAÇÃO | concluído |
 | [superpowers/plans/2026-11-17-fase3-cadastros.md](superpowers/plans/2026-11-17-fase3-cadastros.md) | Fase 3: cadastros | PROGRAMAÇÃO | concluído |
