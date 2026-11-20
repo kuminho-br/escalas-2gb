@@ -28,7 +28,7 @@ async function conferirVaga(tx: Consulta, escalaId: string, mes: string, faixa: 
 }
 
 /** Quantos ocupam a vaga na faixa do dia: as alocações com ela como posto e os acúmulos dela (um acúmulo ocupa a função como qualquer outro). */
-async function ocupantesDaFuncao(tx: Consulta, escalaId: string, data: string, faixa: { inicio: string; fim: string }, guarnicaoId: string, funcaoId: string): Promise<number> {
+export async function ocupantesDaFuncao(tx: Consulta, escalaId: string, data: string, faixa: { inicio: string; fim: string }, guarnicaoId: string, funcaoId: string): Promise<number> {
   const { rows } = await tx.query<{ n: number }>(
     `select (
        (select count(*) from alocacao a join turno t on t.id = a.turno_id
