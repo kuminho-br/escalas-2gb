@@ -227,6 +227,7 @@ describe('acesso', () => {
   });
 
   it('um dia sem nada é um painel vazio, e a meta padrão vazia não quebra', async () => {
-    expect(await ler(dia(30))).toEqual({ data: dia(30), meta: { origem: 'padrao', total: 0, ativadas: 0 }, guarnicoes: [], cotas: [] });
+    // bem longe do dia da cota (dia(5)), para nunca cair no mesmo mês dela
+    expect(await ler(dia(400))).toEqual({ data: dia(400), meta: { origem: 'padrao', total: 0, ativadas: 0 }, guarnicoes: [], cotas: [] });
   });
 });

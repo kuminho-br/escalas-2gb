@@ -543,6 +543,18 @@ describe('cotas restantes na escala do mês', () => {
     expect(screen.queryByText(/Bioma/)).toBeNull();
   });
 
+  it('depois de remover alguém da escala, as cotas são buscadas de novo (o que sobra mudou)', async () => {
+    const f = api(comJes(), { 'GET /api/unidades/u-1sb/cotas': { status: 200, corpo: COTAS }, 'DELETE /api/alocacoes/a-MOTOR': { status: 200, corpo: comJes() } });
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+    abrir(`/escala-do-mes?escala=e1&mes=${MES}`);
+    await screen.findByText('JES: restam 38 de 40');
+    expect(chamadasA(f, 'GET /api/unidades/u-1sb/cotas')).toBe(1);
+    const d1 = await screen.findByRole('region', { name: 'Dia 1' });
+    await userEvent.click(within(d1.querySelector('[data-faixa]') as HTMLElement).getByRole('button', { name: 'Remover MOTOR' }));
+    await waitFor(() => expect(chamadasA(f, 'DELETE /api/alocacoes/a-MOTOR')).toBe(1));
+    await waitFor(() => expect(chamadasA(f, 'GET /api/unidades/u-1sb/cotas')).toBe(2));
+  });
+
   it('sem cotas para os serviços da escala, a linha não aparece', async () => {
     api(ESCALA, { 'GET /api/unidades/u-1sb/cotas': { status: 200, corpo: COTAS } });
     abrir(`/escala-do-mes?escala=e1&mes=${MES}`);
