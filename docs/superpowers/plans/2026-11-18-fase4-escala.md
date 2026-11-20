@@ -2315,7 +2315,7 @@ Os itens que esperam essas decisões:
 
 **Branch:** `fase4-4-3-limpeza`, a partir da `main` depois do merge da 4.2. Commits `Fase 4.4.3: …`; PR "Fase 4 — Entrega 4.3: limpeza das pendências da fase 3". **Sem migração.** Pode correr em paralelo com a validação da 4.1 e da 4.2 (a validação não trava o roadmap).
 
-**Spec:** `docs/superpowers/specs/2026-11-20-limpeza-da-fase-3-design.md` (itens 1 a 6) e, para os menores, a lista da validação da entrega 4 no roadmap ("Reorganização de 20/11/2026: como a fase 4 fecha").
+**Spec:** `docs/superpowers/specs/2026-11-20-limpeza-da-fase-3-design.md` (itens 1 a 6) e, para os menores, a lista da validação da entrega 4 no roadmap ("Reorganização de 20/11/2026: como a fase 4 fecha", hoje no commit `50bf019`; depois da síntese, os menores que sobraram estão em "Pendências conhecidas").
 
 ## Global Constraints
 

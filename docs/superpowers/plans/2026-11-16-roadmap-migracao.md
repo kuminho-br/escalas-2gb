@@ -47,7 +47,8 @@ Decisões técnicas D1 a D7, esquema do banco e telas. PR #8.
 - Design: `docs/superpowers/specs/2026-11-16-migracao-design.md`
 - Esquema: `docs/superpowers/specs/2026-11-16-esquema-banco.md`
 - Telas: `docs/superpowers/specs/2026-11-16-telas.md`
-- Em aberto desde a fase 0: Q6 (permutas antigas, fase 9) e o processo do mês (`docs/negocio/processo-do-mes.md`, E1 a E8).
+- Questões do ER: Q5 e Q17 resolvidas em 17/11/2026; Q6 (permutas antigas) segue aberta, para a fase 9; Q3, Q7, Q14 e Q18 sem registro de resolução.
+- Em aberto: o processo do mês (`docs/negocio/processo-do-mes.md`, E1 a E8).
 
 ## Fase 1 — Fundação · concluída
 
@@ -55,7 +56,9 @@ Repositório reorganizado (protótipo em `prototipo/`), banco com o esquema comp
 
 ## Fase 2 — Motor de regras · concluída
 
-O motor está em `pacotes/dominio`. Os casos são gravados do protótipo (`pnpm casos:gravar`) e conferidos contra os dois sistemas. A pré-escala, a distribuição do Adm e os parâmetros ganharam testes de caracterização. A regra das remoções existe só no sistema novo. A exposição do motor pela API ficou para as fases 3 e 4, junto com as telas que a usam. PR #12. Plano: `docs/superpowers/plans/2026-11-17-fase2-motor.md`.
+O motor está em `pacotes/dominio`. Os casos são gravados do protótipo (`pnpm casos:gravar`) e conferidos contra os dois sistemas. A pré-escala, a distribuição do Adm e os parâmetros ganharam testes de caracterização.
+
+A regra das remoções existe só no sistema novo. A exposição do motor pela API ficou para as fases 3 e 4, junto com as telas que a usam. PR #12. Plano: `docs/superpowers/plans/2026-11-17-fase2-motor.md`.
 
 ## Fase 3 — Cadastros · concluída
 
@@ -68,6 +71,8 @@ Um cadastro por vez, cada um com API, tela e importação, num PR próprio. Plan
 | 3 e 3.1 | Atividades, funções e guarnições; guarnição como modelo | #18, #19 |
 | 4, 4.1, 4.1.1 e 4.2 | Serviços, turnos e escalas; tela de serviços; vínculo por faixa de horário | #20 a #23 |
 | 5 | Cotas e feriados | #24 |
+
+A data do contrato recusa dia que não existe no calendário. "Distribuídas" nas cotas valeu 0 até a fase 4, quando a escala passou a gravar alocações.
 
 Ficaram abertos o PR #15 (aviso de migração faltando) e o #32 (campo de mês das Cotas); os dois entram na entrega 4.3.
 
@@ -133,7 +138,7 @@ A base de militares do 2º GB inteiro, a partir da planilha do Pecúlio, e o mó
 
 - Publicar a escala no sistema (o documento em .xlsx é a fase 8).
 - As escalas publicadas da unidade.
-- A Minha escala: os próprios serviços, com quem compõe cada guarnição.
+- A Minha escala: os próprios serviços, com quem compõe cada guarnição. É a Escala por militar com um militar só, e as duas telas são desenhadas juntas (fase 8).
 - O próprio militar marca o voluntariado; o lançamento pelo escalante continua.
 
 **A decidir:** se a escala publicada fica travada e como se corrige depois.
@@ -149,7 +154,7 @@ A base de militares do 2º GB inteiro, a partir da planilha do Pecúlio, e o mó
 **A decidir:**
 - distribuições: onde se configura a ordem dos buracos do Pronto; o saldo que não cabe; se a cota limita as vagas; se a compulsória (RN-41, RN-43) entra já;
 - documento: o modelo atual de impressão; só o Ordinário ou também as operações;
-- Escala por militar: o que se compara, quantos militares, se escala ou só mostra, como se liga às outras telas. Hipótese: o uso é a permuta (fase 9).
+- Escala por militar: o que se compara, quantos militares, se escala ou só mostra, como se liga às outras telas. Hipótese: o uso é a permuta; se for, a tela pode ir junto com as permutas (fase 9).
 
 **Pendências técnicas para as distribuições** (achadas na revisão 3):
 - `distribuirAdm` ignora as remoções quando a entrada vem sem `servico`;
@@ -167,7 +172,6 @@ A base de militares do 2º GB inteiro, a partir da planilha do Pecúlio, e o mó
 ## Fase 10 — Regras novas · planejada
 
 - Regras validadas no laboratório, na ordem em que forem aprovadas: operações por função (B38/RN-81), equilíbrio de situações boas e ruins na compulsória (RN-43), causas de não ativação.
-- Regras próprias por vaga, pendentes desde a ordem de escala (18/11/2026): o graduado de dia é o mais antigo do dia (exceto Adm); o chefe é o mais antigo da guarnição.
 - Tela de Ajuda com o roteiro do mês.
 - A importação do Google Forms saiu do roadmap; volta só se o voluntariado marcado pelo próprio militar (fase 7) não pegar.
 
@@ -224,6 +228,8 @@ Achadas nas revisões e nas validações. Nenhuma muda quem é escalado. Entram 
 - "hoje" calculado de três jeitos (`hojeRecife` na API, o navegador no site, `getFullYear` em feriados);
 - testes que passariam com o código quebrado (`distribuicao-adm.test.ts`, `casos.test.ts`, `pre-escala.test.ts`, refine de serviço repetido);
 - `postosDoModelo` devolve a lista do modelo, não uma cópia.
+
+**Regras próprias por vaga** (pendentes desde a ordem de escala, 18/11/2026, sem fase): o graduado de dia é o mais antigo do dia (exceto Adm); o chefe é o mais antigo da guarnição.
 
 **Validação das entregas 3.3 e 4:** o selo "ativada / não ativada" e o tom do aviso "Falta…" no Efetivo por dia; a aba Atividades das Configurações, que nada lê desde 17/11 (sem decisão).
 

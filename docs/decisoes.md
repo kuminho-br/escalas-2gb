@@ -9,6 +9,8 @@ Siglas dos documentos: **Design** = `superpowers/specs/2026-11-16-migracao-desig
 | Data | Decisão | Onde está |
 |---|---|---|
 | 20/11/2026 | Os documentos não ganham mais adendos: muda-se o texto e a decisão entra neste registro. | Este registro (topo) |
+| 20/11/2026 | Antes do design do Pecúlio, entra uma pergunta nova: como a planilha é usada hoje (quem atualiza, quem consulta, o que dá trabalho). | Pecúlio, Decisões que faltam |
+| 20/11/2026 | A Minha escala (fase 7) e a Escala por militar (fase 8) são desenhadas juntas; se o uso da Escala por militar for a permuta, ela pode ir junto com as permutas (fase 9). | Roadmap, Fases 7 e 8 |
 | 20/11/2026 | A correção do "Desativar" da 4.1 entra na 4.4, como primeira tarefa, porque a 4.3 já estava em execução. | Roadmap, Fase 4 |
 | 20/11/2026 | Desativar uma guarnição tira o militar só dela; se era a original e ele acumulava em outra, o acúmulo vira a vaga dele. Não existe "acúmulo cruzado" como caso especial. Substitui a regra da 4.1. | `specs/2026-11-20-grade-geral-ux-design.md`, Parte D (PR #53) |
 | 20/11/2026 | A busca por nome na Grade e o dia da semana por extenso no Efetivo por dia entram na 4.4. | Roadmap, Fase 4 |
@@ -53,7 +55,7 @@ Siglas dos documentos: **Design** = `superpowers/specs/2026-11-16-migracao-desig
 | 18/11/2026 | Tela do motorista: marcar uma categoria acende as que ela habilita (como, ficou pendente). Substituída em 20/11. | Design, Montagem da escala › CNH |
 | 18/11/2026 | Antes da fase 4, três revisões: pendências (1), testes com pessoas (2) e revisão de código (3). Feitas nos PRs #25 a #27. | Roadmap, Visão geral |
 | 18/11/2026 | Revisão 1, aceitas: Salvar que mostra o estado (A), pendência em âmbar (B), ficha num painel só (D), trilho estreito (E), e as correções e detalhes do esboço. | Telas; `plans/2026-11-18-revisao-1.md` |
-| 18/11/2026 | Revisão 1, recusadas: botões lado a lado para escolhas curtas (C), marcar o serviço de cada coluna da matriz (F) e quadro "O que falta no cadastro" na página inicial (G). | Telas |
+| 18/11/2026 | Revisão 1, recusadas: botões lado a lado para escolhas curtas (C), marcar o serviço de cada coluna da matriz (F) e quadro "O que falta no cadastro" na página inicial (G). | `plans/2026-11-18-revisao-1.md` (Decisões) |
 | 18/11/2026 | O vínculo da escala com a guarnição é por faixa de horário, não por letra; "Todos os turnos" deixa de existir. | Design, Cadastros › Serviços e escalas |
 | 18/11/2026 | Não existe turno único: o serviço de um turno só usa o A (U e ÚNICO viram A na importação). | Design, Cadastros › Serviços e escalas |
 | 18/11/2026 | "Pede voluntariado em" sai da tela de Serviços; a ficha ganha a régua do dia (0h a 24h) e a cor escolhida numa grade. | Design, Cadastros › Serviços e escalas |

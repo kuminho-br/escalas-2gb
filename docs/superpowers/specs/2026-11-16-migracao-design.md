@@ -33,7 +33,7 @@ Como o sistema novo é pensado hoje. A ordem das fases está no roadmap (`docs/s
 ### D3 — Better Auth, por convite
 
 - **Escolha:** login próprio com Better Auth, integrado à API, com usuários, sessões e senhas no nosso Postgres. Entrada por e-mail e senha.
-- **Sem cadastro aberto:** o usuário é convidado e recebe o papel e a unidade. Todo usuário é um militar do cadastro (`usuario.militar_id`, único e obrigatório).
+- **Sem cadastro aberto:** o administrador convida cada usuário por e-mail e define o papel e a unidade. O primeiro administrador é o desenvolvedor. Todo usuário é um militar do cadastro (`usuario.militar_id`, único e obrigatório).
 - **Por quê:** os usuários vão junto com o banco para o Estado; "Entrar com Google" ou um login institucional entram depois como opções, sem refazer usuários.
 - **Descartadas:** Supabase Auth (prende os usuários ao Supabase); só "Entrar com Google" (depende de contas pessoais).
 
@@ -126,7 +126,8 @@ O esquema completo está em `docs/superpowers/specs/2026-11-16-esquema-banco.md`
 - **Turnos:** cada serviço tem os seus, com início e fim. Não existe turno único: o serviço de um turno só usa o A.
 - **A ficha do serviço** mostra a régua do dia (0h a 24h), com o turno que passa da meia-noite desenhado até onde vai no dia seguinte, e a cor escolhida numa grade como a do Google Planilhas.
 - **Vínculo da escala com a guarnição é por faixa de horário**, não por letra. Cada coluna da matriz é uma faixa distinta entre os turnos dos serviços da escala; serviços com a mesma faixa dividem a coluna. A coluna mostra a letra só quando ela não é ambígua.
-- **"Todos os turnos" não existe;** cada faixa é marcada separada. Mudar o horário de um turno deixa órfãos os vínculos da faixa antiga, e a ficha avisa.
+- **"Todos os turnos" não existe na tela;** cada faixa é marcada separada. Mudar o horário de um turno deixa órfãos os vínculos da faixa antiga, e a ficha avisa.
+- **Importação (GUARNIÇÕES POR ESCALA):** a coluna TURNO aceita vazio ou TODOS (todas as faixas da escala), letras ("A", "A, B") quando não são ambíguas na escala, ou a faixa ("08:00-20:00"). Letra ambígua vira problema, com a solução de escrever a faixa.
 - **Descartados:** catálogo de turnos com ligação entre serviços (refaria turnos e alocações); vínculo por turno de cada serviço (serviço novo ficaria sem guarnição).
 - "Pede voluntariado em" não aparece na tela; a regra fica no motor.
 
