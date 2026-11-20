@@ -36,6 +36,13 @@ export type AlocacaoDesfeita = z.infer<typeof AlocacaoDesfeita>;
 export const AcumuloDesfeito = z.object({ alocacaoId: Id, guarnicaoId: Id, funcaoId: Id });
 export type AcumuloDesfeito = z.infer<typeof AcumuloDesfeito>;
 
+/**
+ * Uma alocação que estava na guarnição desativada e passou a ocupar a vaga de um acúmulo dela: o militar continua escalado, na outra guarnição.
+ * `guarnicaoId` e `funcaoId` são a vaga de antes (a desativada); `acumuloGuarnicaoId` e `acumuloFuncaoId`, o acúmulo que virou a vaga dele.
+ */
+export const PromovidaDesfeita = z.object({ alocacaoId: Id, guarnicaoId: Id, funcaoId: Id, acumuloGuarnicaoId: Id, acumuloFuncaoId: Id });
+export type PromovidaDesfeita = z.infer<typeof PromovidaDesfeita>;
+
 /** O que a desativação tirou e a meta de antes: o "Desfazer" manda isto de volta. */
 export const DesfazerDesativacao = z
   .object({
@@ -43,6 +50,8 @@ export const DesfazerDesativacao = z
     metaAntes: z.object({ origem: z.enum(['padrao', 'dia']), guarnicoes: z.array(Id).max(100) }),
     alocacoes: z.array(AlocacaoDesfeita).max(500),
     acumulos: z.array(AcumuloDesfeito).max(500),
+    // um cliente que ainda não conhece as promovidas (a tela de antes da 4.4) manda sem elas: vale como nenhuma
+    promovidas: z.array(PromovidaDesfeita).max(500).default([]),
   })
   .refine((d) => new Set(d.metaAntes.guarnicoes).size === d.metaAntes.guarnicoes.length, { message: REPETIDO.message, path: ['metaAntes', 'guarnicoes'] });
 export type DesfazerDesativacao = z.infer<typeof DesfazerDesativacao>;

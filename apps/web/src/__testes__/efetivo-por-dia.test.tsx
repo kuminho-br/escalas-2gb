@@ -269,7 +269,7 @@ describe('efetivo por dia: a meta do dia pela própria tela', () => {
     abrir(`/efetivo-por-dia?data=${DIA}`);
     await userEvent.click(within(await screen.findByRole('region', { name: '1º ACO' })).getByRole('button', { name: 'Desativar guarnição' }));
     const dialogo = await screen.findByRole('dialog', { name: 'Desativar a ACO?' });
-    expect(within(dialogo).getByText('Quem está escalado nela neste dia será desescalado.')).toBeInTheDocument();
+    expect(within(dialogo).getByText('Quem está escalado só nela neste dia será desescalado. Quem também está em outra guarnição continua nessa.')).toBeInTheDocument();
     expect(within(dialogo).queryByText(/militares escalados/)).toBeNull();
     await userEvent.click(within(dialogo).getByRole('button', { name: 'Cancelar' }));
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());

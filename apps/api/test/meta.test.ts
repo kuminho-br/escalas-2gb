@@ -211,7 +211,8 @@ describe('desativar e desfazer (Review Focus 1 a 4)', () => {
       )
     ).rows.map((r) => r.guarnicao_id);
   const marcas = async (militar: string, data: string) => (await api.banco.query('select 1 from remocao where militar_id = $1 and data = $2::date', [militares[militar], data])).rows.length;
-  const corpoDe = async (r: Response) => (await r.json()) as { efetivo: EfetivoDoDia; desfazer: { alocacoes: unknown[]; acumulos: unknown[]; metaAntes: { origem: string; guarnicoes: string[] } } };
+  const corpoDe = async (r: Response) =>
+    (await r.json()) as { efetivo: EfetivoDoDia; desfazer: { alocacoes: unknown[]; acumulos: unknown[]; promovidas: unknown[]; metaAntes: { origem: string; guarnicoes: string[] } } };
 
   beforeAll(async () => {
     // a partir do dia 300, a meta padrão é [ABT, Resgate]
@@ -261,46 +262,100 @@ describe('desativar e desfazer (Review Focus 1 a 4)', () => {
     expect((await r.json()).erro).toBe('Esta guarnição não está na meta deste dia.');
   });
 
-  it('desativar sempre desescala, com acúmulo cruzado: sai quem está nela e o acúmulo dele; quem acumula nela perde só o acúmulo (Review Focus 1)', async () => {
-    const d = dia(305);
+  // Regra do usuário (20/11/2026): desativar tira o militar só da guarnição desativada, nos dois sentidos; a original e a acumulada têm o mesmo peso
+  it('desativar a original tira o militar só dela: o acúmulo passa a ser a vaga dele', async () => {
+    const d = dia(320);
     expect((await gravarDia(d, [abt, resgate])).status).toBe(200);
     const alfa = await alocar('ALFA', d, abt);
     await inserir(api.banco, 'alocacao_acumulo', { alocacao_id: alfa, guarnicao_id: resgate, funcao_id: funcao });
-    const bravo = await alocar('BRAVO', d, resgate);
-    await inserir(api.banco, 'alocacao_acumulo', { alocacao_id: bravo, guarnicao_id: abt, funcao_id: funcao });
-    const charlie = await alocar('CHARLIE', dia(306), abt);
     const r = await desativar(d, abt);
     expect(r.status).toBe(200);
     const c = await corpoDe(r);
-    expect(await alocacaoDe('ALFA', d)).toBeNull();
-    expect(await marcas('ALFA', d)).toBe(1);
-    expect(await existe('alocacao', bravo)).toBe(true);
-    expect(await acumulosDe('BRAVO', d)).toEqual([]);
-    expect(c.desfazer.alocacoes).toHaveLength(1);
-    expect(c.desfazer.acumulos).toHaveLength(2);
-    expect(c.desfazer.metaAntes).toEqual({ origem: 'dia', guarnicoes: [abt, resgate] });
-    // outro dia não muda
-    expect(await existe('alocacao', charlie)).toBe(true);
+    expect(await alocacaoDe('ALFA', d)).toEqual({ id: alfa, guarnicao_id: resgate });
+    expect(await acumulosDe('ALFA', d)).toEqual([]);
+    expect(await marcas('ALFA', d)).toBe(0);
+    expect(c.desfazer.alocacoes).toEqual([]);
+    expect(c.desfazer.acumulos).toEqual([]);
+    expect(c.desfazer.promovidas).toEqual([{ alocacaoId: alfa, guarnicaoId: abt, funcaoId: funcao, acumuloGuarnicaoId: resgate, acumuloFuncaoId: funcao }]);
     expect(nomes(await metaDe(d))).toEqual(['Resgate']);
   });
 
-  it('desfazer devolve tudo: as alocações, os dois acúmulos, sem a marca de remoção, e a meta como estava (Review Focus 1)', async () => {
-    const d = dia(309);
+  it('desativar a acumulada tira só o acúmulo', async () => {
+    const d = dia(321);
+    expect((await gravarDia(d, [abt, resgate])).status).toBe(200);
+    const bravo = await alocar('BRAVO', d, resgate);
+    await inserir(api.banco, 'alocacao_acumulo', { alocacao_id: bravo, guarnicao_id: abt, funcao_id: funcao });
+    const c = await corpoDe(await desativar(d, abt));
+    expect(await alocacaoDe('BRAVO', d)).toEqual({ id: bravo, guarnicao_id: resgate });
+    expect(await acumulosDe('BRAVO', d)).toEqual([]);
+    expect(await marcas('BRAVO', d)).toBe(0);
+    expect(c.desfazer.alocacoes).toEqual([]);
+    expect(c.desfazer.promovidas).toEqual([]);
+    expect(c.desfazer.acumulos).toEqual([{ alocacaoId: bravo, guarnicaoId: abt, funcaoId: funcao }]);
+  });
+
+  it('quem está só na desativada sai, com a marca de remoção', async () => {
+    const d = dia(322);
+    expect((await gravarDia(d, [abt, resgate])).status).toBe(200);
+    await alocar('CHARLIE', d, abt);
+    const c = await corpoDe(await desativar(d, abt));
+    expect(await alocacaoDe('CHARLIE', d)).toBeNull();
+    expect(await marcas('CHARLIE', d)).toBe(1);
+    expect(c.desfazer.alocacoes).toHaveLength(1);
+    expect(c.desfazer.promovidas).toEqual([]);
+  });
+
+  it('com dois acúmulos fora, o primeiro (na ordem da composição da meta) vira a vaga e o outro continua acúmulo', async () => {
+    const d = dia(323);
+    expect((await gravarDia(d, [abt, resgate, aco])).status).toBe(200);
+    const alfa = await alocar('ALFA', d, abt);
+    // o ACO é gravado antes do Resgate: a ordem que vale é a da meta (Resgate vem antes do ACO), não a da gravação
+    await inserir(api.banco, 'alocacao_acumulo', { alocacao_id: alfa, guarnicao_id: aco, funcao_id: funcao });
+    await inserir(api.banco, 'alocacao_acumulo', { alocacao_id: alfa, guarnicao_id: resgate, funcao_id: funcao });
+    const c = await corpoDe(await desativar(d, abt));
+    expect(await alocacaoDe('ALFA', d)).toEqual({ id: alfa, guarnicao_id: resgate });
+    expect(await acumulosDe('ALFA', d)).toEqual([aco]);
+    expect(c.desfazer.promovidas).toEqual([{ alocacaoId: alfa, guarnicaoId: abt, funcaoId: funcao, acumuloGuarnicaoId: resgate, acumuloFuncaoId: funcao }]);
+  });
+
+  it('desfazer devolve cada um onde estava (Review Focus 1)', async () => {
+    const d = dia(324);
     expect((await gravarDia(d, [abt, resgate])).status).toBe(200);
     const alfa = await alocar('ALFA', d, abt);
     await inserir(api.banco, 'alocacao_acumulo', { alocacao_id: alfa, guarnicao_id: resgate, funcao_id: funcao });
     const bravo = await alocar('BRAVO', d, resgate);
     await inserir(api.banco, 'alocacao_acumulo', { alocacao_id: bravo, guarnicao_id: abt, funcao_id: funcao });
+    await alocar('CHARLIE', d, abt);
     const c = await corpoDe(await desativar(d, abt));
     const r = await desfazer(d, c.desfazer);
     expect(r.status).toBe(200);
-    expect((await alocacaoDe('ALFA', d))?.guarnicao_id).toBe(abt);
+    expect(await alocacaoDe('ALFA', d)).toEqual({ id: alfa, guarnicao_id: abt });
     expect(await acumulosDe('ALFA', d)).toEqual([resgate]);
+    expect(await alocacaoDe('BRAVO', d)).toEqual({ id: bravo, guarnicao_id: resgate });
     expect(await acumulosDe('BRAVO', d)).toEqual([abt]);
-    expect(await existe('alocacao', bravo)).toBe(true);
+    expect((await alocacaoDe('CHARLIE', d))?.guarnicao_id).toBe(abt);
     expect(await marcas('ALFA', d)).toBe(0);
+    expect(await marcas('CHARLIE', d)).toBe(0);
+    expect(await metaDe(d)).toMatchObject({ origem: 'dia' });
     expect(nomes(await metaDe(d))).toEqual(['ABT', 'Resgate']);
     expect(((await r.json()) as EfetivoDoDia).meta.total).toBe(2);
+  });
+
+  it('desfazer com a vaga de antes ocupada é 409 e nada muda', async () => {
+    const d = dia(325);
+    expect((await gravarDia(d, [cheia, resgate])).status).toBe(200);
+    const alfa = await alocar('ALFA', d, cheia);
+    await inserir(api.banco, 'alocacao_acumulo', { alocacao_id: alfa, guarnicao_id: resgate, funcao_id: funcao });
+    const c = await corpoDe(await desativar(d, cheia));
+    // a vaga da Cheia é só uma: enquanto isso, CHARLIE a ocupou
+    const charlie = await alocar('CHARLIE', d, cheia);
+    const r = await desfazer(d, c.desfazer);
+    expect(r.status).toBe(409);
+    expect((await r.json()).erro).toBe('Não deu para desfazer: alguém já ocupa um desses lugares.');
+    expect(await alocacaoDe('ALFA', d)).toEqual({ id: alfa, guarnicao_id: resgate });
+    expect(await acumulosDe('ALFA', d)).toEqual([]);
+    expect(await existe('alocacao', charlie)).toBe(true);
+    expect(nomes(await metaDe(d))).toEqual(['Resgate']);
   });
 
   it('desfazer num dia que seguia o padrão volta a seguir o padrão, não uma cópia dele (Review Focus 4)', async () => {

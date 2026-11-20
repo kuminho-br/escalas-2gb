@@ -44,6 +44,13 @@ export async function ocupantesDaFuncao(tx: Consulta, escalaId: string, data: st
   return rows[0]!.n;
 }
 
+/** A vaga ainda existe na faixa do dia e a função tem lugar para mais um (devolver alguém a ela). `Recusa` se a vaga já não existe; false se está completa. */
+export async function vagaTemLugar(tx: Consulta, escalaId: string, data: string, faixa: { inicio: string; fim: string }, guarnicaoId: string, funcaoId: string): Promise<boolean> {
+  const vaga = await conferirVaga(tx, escalaId, data.slice(0, 7), faixa, guarnicaoId, funcaoId);
+  await travaDaFaixa(tx, escalaId, data, faixa);
+  return (await ocupantesDaFuncao(tx, escalaId, data, faixa, guarnicaoId, funcaoId)) < vaga.maximo;
+}
+
 const travaDaFaixa = (tx: Consulta, escalaId: string, data: string, faixa: { inicio: string; fim: string }) =>
   // dois escalantes na mesma vaga ao mesmo tempo: o segundo espera o primeiro e confere de novo
   tx.query('select pg_advisory_xact_lock(hashtext($1))', [`${escalaId}|${data}|${faixa.inicio}|${faixa.fim}`]);

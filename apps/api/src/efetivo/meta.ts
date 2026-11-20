@@ -1,7 +1,7 @@
 // Meta de ativação no banco: a meta padrão (versões por data) e os dias diferentes (lista própria por dia).
 import type { DesfazerDesativacao, ItemDaMeta, MetaDoDia, VersaoDaMetaPadrao } from 'contratos';
 import type { Consulta } from '../banco/banco.ts';
-import { acumular, escalar, JA_ESCALADO_NO_TURNO, Recusa, remover } from '../escala/alocacoes.ts';
+import { acumular, escalar, JA_ESCALADO_NO_TURNO, Recusa, remover, vagaTemLugar } from '../escala/alocacoes.ts';
 
 /** Os dados do "Desfazer" não batem com esta seção (400). */
 export class DadosInvalidos extends Error {}
@@ -71,8 +71,11 @@ export async function gravarMetaDoDia(tx: Consulta, unidadeId: string, data: str
 
 /**
  * Desativa a guarnição no dia: ela sai da meta do dia (o dia que seguia o padrão passa a ter lista própria, o padrão sem ela; pode ficar
- * vazia) e quem está nela é desescalado: as alocações do dia nela, em qualquer escala da seção, com a marca de remoção, e os acúmulos nela
- * e os de quem saiu. Devolve o que tirou e a meta de antes, para o "Desfazer".
+ * vazia) e o militar sai só dela, nunca da outra em que estava (a original e a acumulada têm o mesmo peso):
+ * - quem está só nela é desescalado (a alocação sai, com a marca de remoção);
+ * - quem está nela e acumula em outra continua escalado: o primeiro acúmulo fora (na ordem da meta) vira a vaga dele e os demais seguem acúmulos;
+ * - quem está em outra e acumula nela perde só o acúmulo.
+ * Devolve o que tirou ou mudou e a meta de antes, para o "Desfazer".
  */
 export async function desativar(tx: Consulta, unidadeId: string, data: string, guarnicaoId: string, usuarioId: string): Promise<DesfazerDesativacao> {
   const atual = await metaDoDia(tx, unidadeId, data);
@@ -86,27 +89,48 @@ export async function desativar(tx: Consulta, unidadeId: string, data: string, g
       [unidadeId, data, guarnicaoId],
     )
   ).rows;
-  // os acúmulos que saem: os nesta guarnição e os de quem sai (de qualquer guarnição)
+  // os acúmulos que importam: os nesta guarnição (saem) e os de quem está nela, em outras guarnições (um deles vira a vaga)
   const acumulos = (
     await tx.query<{ id: string; alocacao_id: string; guarnicao_id: string; funcao_id: string }>(
       `select x.id, x.alocacao_id, x.guarnicao_id, x.funcao_id from alocacao_acumulo x join alocacao a on a.id = x.alocacao_id join escala e on e.id = a.escala_id
-        where e.unidade_id = $1 and a.data = $2::date and (x.guarnicao_id = $3 or a.id = any($4::uuid[]))`,
+         join funcao f on f.id = x.funcao_id
+        where e.unidade_id = $1 and a.data = $2::date and (x.guarnicao_id = $3 or a.id = any($4::uuid[]))
+        order by f.nome, x.id`,
       [unidadeId, data, guarnicaoId, alocacoes.map((a) => a.id)],
     )
   ).rows;
-  const desfeitas: DesfazerDesativacao['alocacoes'] = alocacoes.map((a) => ({
-    alocacaoId: a.id, militarId: a.militar_id, escalaId: a.escala_id, servicoId: a.servico_id, turnoId: a.turno_id, data,
-    guarnicaoId: a.guarnicao_id, funcaoId: a.funcao_id, origem: a.origem,
-  }));
+  // a ordem da meta decide qual acúmulo vira a vaga (guarnição fora da meta fica por último)
+  const posicaoNaMeta = (id: string) => {
+    const i = metaAntes.guarnicoes.indexOf(id);
+    return i === -1 ? Number.MAX_SAFE_INTEGER : i;
+  };
+  const promovidas: { alocacao: (typeof alocacoes)[number]; acumulo: (typeof acumulos)[number] }[] = [];
+  const saem: typeof alocacoes = [];
+  for (const a of alocacoes) {
+    const primeiro = acumulos
+      .filter((x) => x.alocacao_id === a.id && x.guarnicao_id !== guarnicaoId)
+      .sort((x, y) => posicaoNaMeta(x.guarnicao_id) - posicaoNaMeta(y.guarnicao_id))[0];
+    if (primeiro) promovidas.push({ alocacao: a, acumulo: primeiro });
+    else saem.push(a);
+  }
+  const acumulosQueSaem = acumulos.filter((x) => x.guarnicao_id === guarnicaoId);
 
   await gravarMetaDoDia(tx, unidadeId, data, metaAntes.guarnicoes.filter((id) => id !== guarnicaoId));
-  if (acumulos.length) await tx.query('delete from alocacao_acumulo where id = any($1::uuid[])', [acumulos.map((x) => x.id)]);
-  for (const a of alocacoes) await remover(tx, a.id, usuarioId);
+  const apagar = [...acumulosQueSaem, ...promovidas.map((p) => p.acumulo)];
+  if (apagar.length) await tx.query('delete from alocacao_acumulo where id = any($1::uuid[])', [apagar.map((x) => x.id)]);
+  for (const p of promovidas) await tx.query('update alocacao set guarnicao_id = $2, funcao_id = $3 where id = $1', [p.alocacao.id, p.acumulo.guarnicao_id, p.acumulo.funcao_id]);
+  for (const a of saem) await remover(tx, a.id, usuarioId);
   return {
     guarnicaoId,
     metaAntes,
-    alocacoes: desfeitas,
-    acumulos: acumulos.map((x) => ({ alocacaoId: x.alocacao_id, guarnicaoId: x.guarnicao_id, funcaoId: x.funcao_id })),
+    alocacoes: saem.map((a) => ({
+      alocacaoId: a.id, militarId: a.militar_id, escalaId: a.escala_id, servicoId: a.servico_id, turnoId: a.turno_id, data,
+      guarnicaoId: a.guarnicao_id, funcaoId: a.funcao_id, origem: a.origem,
+    })),
+    acumulos: acumulosQueSaem.map((x) => ({ alocacaoId: x.alocacao_id, guarnicaoId: x.guarnicao_id, funcaoId: x.funcao_id })),
+    promovidas: promovidas.map((p) => ({
+      alocacaoId: p.alocacao.id, guarnicaoId: guarnicaoId, funcaoId: p.alocacao.funcao_id!, acumuloGuarnicaoId: p.acumulo.guarnicao_id, acumuloFuncaoId: p.acumulo.funcao_id,
+    })),
   };
 }
 
@@ -123,11 +147,16 @@ export async function desfazerDesativacao(tx: Consulta, unidadeId: string, data:
   const unicos = (ids: string[]) => [...new Set(ids)];
   const escalas = unicos(d.alocacoes.map((a) => a.escalaId));
   const servicos = unicos(d.alocacoes.map((a) => a.servicoId));
-  const guarnicoes = unicos([d.guarnicaoId, ...d.metaAntes.guarnicoes, ...d.alocacoes.flatMap((a) => (a.guarnicaoId ? [a.guarnicaoId] : [])), ...d.acumulos.map((x) => x.guarnicaoId)]);
+  const guarnicoes = unicos([
+    d.guarnicaoId, ...d.metaAntes.guarnicoes, ...d.alocacoes.flatMap((a) => (a.guarnicaoId ? [a.guarnicaoId] : [])), ...d.acumulos.map((x) => x.guarnicaoId),
+    ...d.promovidas.flatMap((x) => [x.guarnicaoId, x.acumuloGuarnicaoId]),
+  ]);
   const turnosDoServico = unicos(d.alocacoes.map((a) => `${a.servicoId}|${a.turnoId}`));
   const voltam = new Set(d.alocacoes.map((a) => a.alocacaoId));
   // o acúmulo de uma alocação que não volta precisa estar numa alocação que existe nesta seção, neste dia
   const aoAcumuloDeFora = unicos(d.acumulos.map((x) => x.alocacaoId).filter((id) => !voltam.has(id)));
+  // as promovidas são alocações que continuam existindo: precisam ser desta seção e deste dia
+  const asPromovidas = unicos(d.promovidas.map((x) => x.alocacaoId));
   const ok =
     d.alocacoes.every((a) => a.data === data && Boolean(a.guarnicaoId) === Boolean(a.funcaoId)) &&
     (!escalas.length || (await contar('select count(*)::int as n from escala where id = any($1::uuid[]) and unidade_id = $2', escalas))) &&
@@ -140,7 +169,14 @@ export async function desfazerDesativacao(tx: Consulta, unidadeId: string, data:
           `select count(*)::int as n from alocacao a join escala e on e.id = a.escala_id where a.id = any($1::uuid[]) and e.unidade_id = $2 and a.data = $3::date`,
           [aoAcumuloDeFora, unidadeId, data],
         )
-      ).rows[0]!.n === aoAcumuloDeFora.length);
+      ).rows[0]!.n === aoAcumuloDeFora.length) &&
+    (!asPromovidas.length ||
+      (
+        await tx.query<{ n: number }>(
+          `select count(*)::int as n from alocacao a join escala e on e.id = a.escala_id where a.id = any($1::uuid[]) and e.unidade_id = $2 and a.data = $3::date`,
+          [asPromovidas, unidadeId, data],
+        )
+      ).rows[0]!.n === asPromovidas.length);
   if (!ok) throw new DadosInvalidos();
 
   if (d.metaAntes.origem === 'padrao') await voltarMetaAoPadrao(tx, unidadeId, data);
@@ -148,7 +184,10 @@ export async function desfazerDesativacao(tx: Consulta, unidadeId: string, data:
 
   // a recusa de uma regra de escalar vira a frase do "Desfazer"; o lugar já ocupado pelo mesmo militar tem a frase própria
   const comoRecusaDoDesfazer = (e: unknown): never => {
-    if (e instanceof Recusa) throw new Recusa(e.message === JA_ESCALADO_NO_TURNO ? NAO_DEU_PARA_DESFAZER : `Não deu para desfazer: ${e.message}`);
+    if (e instanceof Recusa) {
+      const jaDiz = e.message.startsWith('Não deu para desfazer');
+      throw new Recusa(e.message === JA_ESCALADO_NO_TURNO ? NAO_DEU_PARA_DESFAZER : jaDiz ? e.message : `Não deu para desfazer: ${e.message}`);
+    }
     const codigo = (e as { code?: string } | null)?.code;
     if (codigo === '23505') throw new Recusa(NAO_DEU_PARA_DESFAZER);
     // a alocação de um acúmulo que ficou já não existe: a escala mudou desde então
@@ -157,6 +196,21 @@ export async function desfazerDesativacao(tx: Consulta, unidadeId: string, data:
   };
   const novos = new Map<string, string>();
   try {
+    // as promovidas voltam primeiro: a alocação (a mesma) volta à vaga de antes, se a função ainda tem lugar, e o acúmulo é recriado
+    for (const x of d.promovidas) {
+      const p = (
+        await tx.query<{ escala_id: string; guarnicao_id: string | null; funcao_id: string | null; inicio: string; fim: string }>(
+          `select a.escala_id, a.guarnicao_id, a.funcao_id, to_char(t.inicio, 'HH24:MI') as inicio, to_char(t.fim, 'HH24:MI') as fim
+             from alocacao a join turno t on t.id = a.turno_id where a.id = $1`,
+          [x.alocacaoId],
+        )
+      ).rows[0];
+      // ela precisa continuar na vaga que era o acúmulo: se mudou de lugar, a escala mudou desde então
+      if (!p || p.guarnicao_id !== x.acumuloGuarnicaoId || p.funcao_id !== x.acumuloFuncaoId) throw new Recusa('Não deu para desfazer: a escala mudou desde então.');
+      if (!(await vagaTemLugar(tx, p.escala_id, data, p, x.guarnicaoId, x.funcaoId))) throw new Recusa(NAO_DEU_PARA_DESFAZER);
+      await tx.query('update alocacao set guarnicao_id = $2, funcao_id = $3 where id = $1', [x.alocacaoId, x.guarnicaoId, x.funcaoId]);
+      await acumular(tx, x.alocacaoId, { guarnicaoId: x.acumuloGuarnicaoId, funcaoId: x.acumuloFuncaoId });
+    }
     for (const a of d.alocacoes) {
       await escalar(tx, a.escalaId, { militarId: a.militarId, data: a.data, turnoId: a.turnoId, guarnicaoId: a.guarnicaoId, funcaoId: a.funcaoId });
       // a alocação volta com a origem que tinha (o `escalar` grava "manual")
