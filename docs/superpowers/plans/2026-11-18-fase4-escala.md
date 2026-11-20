@@ -2305,6 +2305,192 @@ Os itens que esperam essas decisões:
 
 ---
 
+# Entrega 4.3 — Limpeza das pendências da fase 3
+
+**Goal:** fechar a fase 4 sem os tropeços conhecidos: os dois PRs abertos da fase 3, quatro pendências de cadastro e três menores da validação da entrega 4.
+
+**Architecture:** nove tarefas independentes, cada uma com o seu teste e o seu commit, nos lugares onde o código já está (`apps/api/src/cadastros`, `apps/api/src/escala`, `apps/api/src/grade`, `apps/web/src/componentes`). Nenhuma regra do motor muda; nenhuma migração.
+
+**Tech Stack:** Hono + Postgres (API), React + TanStack Query (site), zod (contratos), Vitest.
+
+**Branch:** `fase4-4-3-limpeza`, a partir da `main` depois do merge da 4.2. Commits `Fase 4.4.3: …`; PR "Fase 4 — Entrega 4.3: limpeza das pendências da fase 3". **Sem migração.** Pode correr em paralelo com a validação da 4.1 e da 4.2 (a validação não trava o roadmap).
+
+**Spec:** `docs/superpowers/specs/2026-11-20-limpeza-da-fase-3-design.md` (itens 1 a 6) e, para os menores, a lista da validação da entrega 4 no roadmap ("Reorganização de 20/11/2026: como a fase 4 fecha").
+
+## Global Constraints
+
+- Textos da tela sem jargão, no tom das telas atuais; erros dizem o que houve e como resolver.
+- Confirmações seguem o padrão do site: `window.confirm` (como em Serviços e Escalas).
+- A CNH continua gravando só as categorias da carteira; a hierarquia é a de `pacotes/dominio/src/cnh.ts` (A isolada; E habilita D, C, B; D habilita C, B; C habilita B).
+- Dados de teste fictícios (D7).
+- No fim: atualizar as contagens no `CLAUDE.md` local e rodar `pnpm test && pnpm typecheck && pnpm build:vercel`.
+
+**Decisões desta entrega** (do usuário, no design de 20/11; as minhas estão marcadas):
+- **M7 ("Voltar ao padrão" sem confirmação) saiu da lista:** a 4.1 (Tarefa 61) já pede confirmação. *Minha leitura do plano da 4.1.*
+- **#32 entra como está** (mescla sem conflito). **#15 é trazido por cherry-pick**; o único conflito é `apps/api/src/app.ts`. Os dois PRs são fechados com referência ao PR desta entrega.
+- **CNH:** a categoria habilitada aparece marcada como as da carteira e mantém o "pela E" pequeno embaixo (*minha decisão*, para quem enxerga também ver a diferença); o nome acessível continua "D ônibus pela E".
+- **Militar:** o bloco Identificação manda só o que mudou desde o último gravado; a API lê o atual dentro da transação, com `for update`. O mesmo campo alterado pelos dois vale o último.
+- **Cota de serviço desativado:** recusada ao criar e ao trocar o serviço numa edição; editar quantidade, origem ou prioridade de uma cota antiga desse serviço continua passando, para o escalante poder zerá-la (*minha decisão*). A cópia pula essas cotas e diz quantas pulou.
+- **Troca recusada:** a mensagem diz quem não pode ir para onde.
+- **Painel do dia:** a 4.3 mede e registra; não otimiza. Se passar do limite (Tarefa 73), vira item do roadmap (*minha decisão*, YAGNI).
+
+## Review Focus
+
+1. **Cherry-pick do #15 com a lista de migrações vazia ou ausente** (rodar a API fora da Vercel, nos testes e no `pnpm dev`): sem a lista, não confere nada e tudo funciona como hoje. Tarefa 66.
+2. **Identificação: desfazer a edição antes de salvar** (mudar o nome e voltar ao original) não manda nada e o botão continua apagado; **salvar duas vezes seguidas** (nome, depois JES) manda só o JES na segunda. Tarefa 68.
+3. **Antiguidade apagada:** mudar a antiguidade de 12 para vazio manda `antiguidade: null`, e a API grava nulo (não "sem mudança"). Tarefa 68.
+4. **Copiar cotas quando todas as do mês anterior são de serviço desativado:** nada entra e a mensagem diz que todas foram puladas, sem o texto de "nada novo". Tarefa 70.
+5. **Troca entre dois militares em que os dois falham:** a mensagem cita o primeiro que falhou na ordem da troca (o da alocação clicada indo para a vaga do outro), e nada muda. Tarefa 71.
+
+---
+
+### Task 65: Campo de mês das Cotas (PR #32)
+
+**Files:**
+- Modify: `apps/web/src/routes/_app/cotas.tsx`, `apps/web/src/__testes__/cotas.test.tsx` (vêm do PR)
+
+- [ ] **Step 1:** `git merge --no-ff origin/fase4-2-ajuste-cotas -m "Fase 4.4.3: campo de mês das Cotas (PR #32)"`. Expected: sem conflito (o PR troca o `<Input type="month">` de `cotas.tsx:80` pelo `CampoDeMes` e traz os testes "Mês anterior", "Próximo mês" e digitação parcial).
+- [ ] **Step 2: Run** `pnpm --filter web test cotas`. Expected: PASS.
+
+### Task 66: A API avisa quando falta migração (refazer o PR #15)
+
+**Files:**
+- Create (do PR): `apps/api/src/migracoes-pendentes.ts`, `apps/api/test/migracoes-pendentes.test.ts`, `.github/pull_request_template.md`
+- Modify (do PR): `apps/api/src/app.ts`, `apps/api/src/app-ambiente.ts`, `apps/web/src/api/eu.ts`, `apps/web/src/__testes__/casca.test.tsx`, `scripts/build-vercel.mjs`, `scripts/testar-saida-vercel.mjs`, `docs/superpowers/plans/2026-11-17-fase3-cadastros.md`
+
+**Interfaces:**
+- Produces: `exigirMigracoesEmDia(banco: Banco, esperadas: string[], opcoes?: { intervaloMs?: number; agora?: () => number }): MiddlewareHandler`; `Dependencias.migracoesEsperadas?: string[]` e `Dependencias.intervaloMs?: number`; resposta `503 { erro: MENSAGEM_MIGRACAO_PENDENTE, pendentes: string[] }`.
+
+- [ ] **Step 1:** `git cherry-pick 13ea7bc`. Expected: conflito só em `apps/api/src/app.ts`.
+- [ ] **Step 2: Resolver `app.ts`:** manter todas as rotas da `main` (configurações, guarnições, militares, serviços, cotas, feriados, escalas, escala do mês, efetivo, grade, voluntariado, importação) e os campos `migracoesEsperadas`/`intervaloMs` do PR; o `app.use('/api/*', exigirMigracoesEmDia(…))` vem logo depois de `app.use('/api/*', limiteDeEnvio)` e antes de `/api/saude`.
+- [ ] **Step 3: Teste novo** em `apps/api/test/migracoes-pendentes.test.ts`: `it('com migração faltando, as rotas da fase 4 também respondem 503')` — com a lista esperada contendo um nome que não está em `migracao_aplicada`, `GET /api/unidades/:u/grade/2026-12` e `GET /api/unidades/:u/efetivo-do-dia/2026-12-01` dão 503 com `pendentes` igual a esse nome; `/api/saude` dá 200. E `it('sem a lista, nada é conferido')`: `criarApp` sem `migracoesEsperadas` responde a grade normalmente.
+- [ ] **Step 4: Run** `pnpm --filter api test migracoes-pendentes`, `pnpm --filter web test casca` e `pnpm build:vercel`. Expected: PASS; a saída do build traz a lista com `0001` a `0022`.
+- [ ] **Step 5: Commit** (o cherry-pick já criou o commit; corrigir a mensagem para `Fase 4.4.3: a API avisa quando falta migração (refaz o PR #15)` com `git commit --amend` só se ainda não houver push).
+
+### Task 67: CNH habilitada aparece marcada
+
+**Files:**
+- Modify: `apps/web/src/componentes/militares/Motorista.tsx:70-97`
+- Test: `apps/web/src/__testes__/militares.test.tsx` (troca o teste da linha 88)
+
+- [ ] **Step 1: Teste** `it('as categorias que a carteira habilita aparecem marcadas, com "pela E"; só a carteira é gravada')`:
+  - com a ficha `cnh: ['E']`: os botões D, C e B têm `aria-pressed="true"`, `data-origem="hierarquia"` e o texto "pela E"; o A tem `aria-pressed="false"` e `data-origem="nenhuma"`;
+  - clicar em E (tira da carteira): D, C e B ficam `aria-pressed="false"`;
+  - com `cnh: ['E']`, clicar em A e salvar: `corpoEnviado(f, 'PATCH /api/militares/m1')` é `{ motorista: true, cnh: ['A', 'E'] }`;
+  - o texto de ajuda é "Marque as categorias da carteira. As que ela habilita acendem sozinhas (a E acende D, C e B). A moto (A) é separada."
+- [ ] **Step 2: Run** `pnpm --filter web test militares`. Expected: FAIL.
+- [ ] **Step 3: Implement:** `aria-pressed={naCarteira || !!pela}`; a classe da habilitada passa a ser a mesma da carteira (`border-tinta bg-tinta text-white`), sem tracejado; o "pela X" fica embaixo, em `text-[9px]`; clicar numa habilitada que não está na carteira a põe na carteira (o `alternar` atual já faz isso).
+- [ ] **Step 4: Run** `pnpm --filter web test militares`. Expected: PASS.
+- [ ] **Step 5: Commit** `Fase 4.4.3: CNH habilitada aparece marcada`.
+
+### Task 68: Editar o militar grava só o que mudou
+
+**Files:**
+- Create: `apps/web/src/componentes/militares/alteracoes.ts`
+- Modify: `apps/web/src/componentes/militares/Identificacao.tsx`, `apps/api/src/cadastros/militares.ts:248-288`
+- Test: `apps/web/src/__testes__/militares.test.tsx`, `apps/api/test/militares.test.ts`
+
+**Interfaces:**
+- Produces: `type ValoresIdentificacao = { postoGradId: string; nomeGuerra: string; antiguidade: number | null; voluntarioJes: boolean; ativo: boolean }` e `alteracoesDaIdentificacao(antes: ValoresIdentificacao, depois: ValoresIdentificacao): EdicaoMilitar` (só as chaves com valor diferente; `nomeGuerra` comparado já em maiúsculas e sem espaços nas pontas).
+
+- [ ] **Step 1: Testes do site:**
+  - `it('salvar a identificação manda só o campo alterado')`: mudar só o nome para "silva" → `corpoEnviado(...)` é `{ nomeGuerra: 'SILVA' }`;
+  - `it('a segunda gravação manda só o que mudou depois da primeira')` (Review Focus 2): salvar o nome, depois marcar JES e salvar → o segundo corpo é `{ voluntarioJes: true }`;
+  - `it('mudar e voltar ao original não deixa nada para salvar')` (Review Focus 2): o botão "Salvar" fica desabilitado;
+  - `it('apagar a antiguidade manda null')` (Review Focus 3): de 12 para vazio → `{ antiguidade: null }`.
+- [ ] **Step 2: Testes da API** em `militares.test.ts`:
+  - `it('duas edições ao mesmo tempo em campos diferentes ficam as duas')`: `Promise.all` de `PATCH {nomeGuerra: 'NOVO'}` e `PATCH {voluntarioJes: true}` no mesmo militar → os dois 200, e o militar tem os dois valores;
+  - `it('PATCH com antiguidade null apaga a antiguidade')` (Review Focus 3).
+- [ ] **Step 3: Run** os dois arquivos. Expected: os do site FAIL; os da API podem passar por sorte (corrida), e servem de regressão.
+- [ ] **Step 4: Implement:**
+  - site: o `salvo` passa de assinatura para `ValoresIdentificacao`; `sujo` é `Object.keys(alteracoesDaIdentificacao(salvo, atual)).length > 0`; `gravar` manda `alteracoesDaIdentificacao(salvo, atual)`; `useSincronizar` atualiza o `salvo` com os valores do servidor;
+  - API: o `select … from militar where id = $1` vai para dentro do `comUsuario`, com `for update`; a conferência de CNH sem motorista (`MENSAGEM_CNH_SEM_MOTORISTA`) usa o atual lido ali e responde 400 do mesmo jeito.
+- [ ] **Step 5: Run** `pnpm --filter web test militares` e `pnpm --filter api test militares`. Expected: PASS.
+- [ ] **Step 6: Commit** `Fase 4.4.3: editar o militar grava só o que mudou`.
+
+### Task 69: "Desativar agora" do modelo de guarnição pede confirmação
+
+**Files:**
+- Modify: `apps/web/src/routes/_app/configuracoes_.modelos-de-guarnicao.$id.tsx:118-170` (`Situacao`)
+- Test: `apps/web/src/__testes__/guarnicoes.test.tsx`
+
+- [ ] **Step 1: Testes:**
+  - `it('"Desativar agora" pergunta antes e, cancelado, não grava')`: `window.confirm` devolve `false` → nenhuma chamada à rota de situação; a mensagem do confirm é exatamente `` `Desativar o modelo ${nome} agora? As escalas deixam de usá-lo a partir de ${mesPorExtenso(mesAtual())}.` `` (o teste monta o esperado com `mesAtual()`, como os testes de situação que já existem);
+  - `it('confirmado, desativa no mês atual')`: `confirm` devolve `true` → o corpo é `{ ativa: false, aPartirDe: <mês atual> }`;
+  - `it('"Desativar a partir de…", "Reativar agora" e "Cancelar desativação" não perguntam')`.
+- [ ] **Step 2: Run** `pnpm --filter web test guarnicoes`. Expected: FAIL.
+- [ ] **Step 3: Implement:** só o botão "Desativar agora" chama `window.confirm` antes de `mudar(false, mes)`. Serviços e Escalas já perguntam (`servicos/$id.tsx:47`, `escalas/$id.tsx:50`); não mudam.
+- [ ] **Step 4: Run** `pnpm --filter web test guarnicoes`. Expected: PASS.
+- [ ] **Step 5: Commit** `Fase 4.4.3: "Desativar agora" do modelo pede confirmação`.
+
+### Task 70: Cota de serviço desativado é recusada
+
+**Files:**
+- Modify: `apps/api/src/cadastros/cotas.ts` (criar :84, editar :112, copiar :154), `pacotes/contratos/src/cotas-feriados.ts:55`, `apps/web/src/routes/_app/cotas.tsx:36-45`
+- Test: `apps/api/test/cotas.test.ts`, `apps/web/src/__testes__/cotas.test.tsx`
+
+**Interfaces:**
+- Produces: `ResultadoDaCopia = { copiados: number; puladas: number }` (`puladas`: cotas do mês de origem de serviço desativado que o destino ainda não tem).
+
+- [ ] **Step 1: Testes da API:**
+  - `it('criar cota de serviço desativado é 400 no campo servicoId')`: com o serviço Bioma `ativo = false`, o corpo é `{ erro: 'Confira os campos destacados.', campos: { servicoId: 'O serviço Bioma está desativado. Reative-o na tela de Serviços ou escolha outro.' } }`;
+  - `it('trocar o serviço da cota para um desativado é 400; mudar só a quantidade de uma cota antiga dele passa')`;
+  - `it('copiar pula as cotas de serviço desativado e diz quantas')`: origem com uma cota de JES (ativo) e uma de Bioma (desativado) → `{ copiados: 1, puladas: 1 }`, e o destino só tem a de JES;
+  - `it('copiar quando todas são de serviço desativado')` (Review Focus 4): `{ copiados: 0, puladas: 2 }`.
+- [ ] **Step 2: Testes do site** (`cotas.test.tsx`): com a resposta `{ copiados: 1, puladas: 1 }`, a mensagem é "1 cota copiada de {mês anterior por extenso}. 1 de serviço desativado ficou de fora." (plural: "2 de serviço desativado ficaram de fora."); com `{ copiados: 0, puladas: 2 }`, é "Nenhuma cota copiada: as 2 de {mês anterior por extenso} são de serviço desativado." (Review Focus 4). O texto atual de "nada novo" continua para `{ copiados: 0, puladas: 0 }`.
+- [ ] **Step 3: Run** os dois arquivos. Expected: FAIL.
+- [ ] **Step 4: Implement:**
+  - `servicoDesativado(c: Consulta, servicoId: string): Promise<string | null>` em `cotas.ts` (devolve o nome se `ativo = false`), chamado depois de `servicoForaDaUnidade` no criar e no editar (só quando o corpo traz `servicoId`);
+  - na cópia, o `insert … select` ganha `join servico s on s.id = o.servico_id and s.ativo`, e `puladas` vem de uma contagem com a mesma condição de destino e `not s.ativo`, na mesma transação.
+- [ ] **Step 5: Run** `pnpm --filter api test cotas`, `pnpm --filter web test cotas`, `pnpm typecheck`. Expected: PASS.
+- [ ] **Step 6: Commit** `Fase 4.4.3: cota de serviço desativado é recusada`.
+
+### Task 71: Troca recusada diz quem não pode ir para onde
+
+**Files:**
+- Modify: `apps/api/src/escala/trocar.ts:91-104`
+- Test: `apps/api/test/trocar.test.ts` (ajusta o teste da linha 169)
+
+- [ ] **Step 1: Testes:**
+  - o teste "trocar com quem não tem a CNH da vaga do outro" passa a esperar `erro: 'SD BM SEMCNH não pode ir para a vaga de SD BM F1: Sem a CNH exigida'` (posto pela sigla de `posto_grad` e nome de guerra; o motivo é o da `Recusa` original);
+  - `it('quando os dois não podem, a mensagem cita o da alocação clicada')` (Review Focus 5), e nada muda nos dois;
+  - a substituição (`{ militarId, turnoId }`) continua com o motivo puro (só há um militar envolvido).
+- [ ] **Step 2: Run** `pnpm --filter api test trocar`. Expected: FAIL.
+- [ ] **Step 3: Implement:** na troca de lugar, cada `escalar(…)` é envolvido: um `Recusa` vira `new Recusa(\`${quem} não pode ir para a vaga de ${outro}: ${motivo}\`)`. O primeiro `escalar` já é o do militar de `a` (a alocação clicada) indo para a vaga de `b`; a ordem não muda. `quem`/`outro` vêm de uma consulta de `posto_grad.sigla || ' ' || militar.nome_guerra` para os dois militares.
+- [ ] **Step 4: Run** `pnpm --filter api test trocar`. Expected: PASS.
+- [ ] **Step 5: Commit** `Fase 4.4.3: troca recusada diz quem não pode ir para onde`.
+
+### Task 72: O cabeçalho dos dias da Grade fica fixo ao rolar
+
+**Files:**
+- Modify: `apps/web/src/componentes/grade/TabelaDaGrade.tsx:32`
+- Test: `apps/web/src/__testes__/grade.test.tsx`
+
+O `th` do dia já é `sticky top-0`, mas o `div` em volta tem `overflow-x-auto`: ele vira o contêiner de rolagem, e como quem rola na vertical é a página, o cabeçalho não gruda. A correção é a tabela rolar nas duas direções dentro da própria caixa.
+
+- [ ] **Step 1: Teste** `it('a grade rola dentro da própria caixa, nas duas direções')`: o contêiner com `data-rolagem="grade"` tem `overflow-auto` e `max-h-[calc(100dvh-12rem)]`. O jsdom não calcula `sticky`; a conferência de verdade é no navegador (Step 4).
+- [ ] **Step 2: Implement:** o `div` da linha 32 passa a `<div data-rolagem="grade" className="max-h-[calc(100dvh-12rem)] overflow-auto">`. No celular (`max-lg`), a mesma altura.
+- [ ] **Step 3: Run** `pnpm --filter web test grade`. Expected: PASS.
+- [ ] **Step 4: Conferir no navegador** (`pnpm dev`), com o mês fictício: rolar para baixo mantém a linha dos dias e a coluna "Militar" à vista; rolar para o lado mantém os nomes. No celular (largura 390 px), o mesmo.
+- [ ] **Step 5: Commit** `Fase 4.4.3: cabeçalho da Grade fixo ao rolar`.
+
+### Task 73: Medir o painel do dia
+
+**Files:**
+- Test: `apps/api/test/grade-dia.test.ts`
+- Modify: `docs/superpowers/plans/2026-11-16-roadmap-migracao.md` (registro da medida)
+
+- [ ] **Step 1: Teste** `it('o painel do dia faz no máximo N consultas')`: envolve o `Consulta` passado a `montarPainelDoDia` num contador (`{ query: (...a) => { n++; return banco.query(...a); } }`) e monta o painel no cenário mais cheio do arquivo (o militar com dois serviços no dia, véspera e dia seguinte, feriado). Primeiro roda sem o `expect` e anota `n`; o `N` do teste é esse número.
+- [ ] **Step 2: Run** `pnpm --filter api test grade-dia`. Expected: PASS (o teste fixa o número para que uma mudança que o aumente apareça).
+- [ ] **Step 3: Registrar no roadmap**, na linha da 4.3: "painel do dia: N consultas no cenário de teste". **Limite (minha decisão):** acima de 40 consultas, ou se a validação na sandbox achar a abertura do painel lenta (mais de 1 s), entra um item "otimizar o painel do dia" na fase 8; até lá, nada muda no código.
+- [ ] **Step 4: Commit** `Fase 4.4.3: medida do painel do dia`. No fim da entrega:
+  - atualizar as contagens no `CLAUDE.md` local;
+  - `pnpm test && pnpm typecheck && pnpm build:vercel`;
+  - revisão final (Opus);
+  - PR com a lista curta para a sandbox (Cotas: mês; ficha do militar: CNH e edição; modelo: desativar; cotas: copiar; Grade: trocar e rolar) e o aviso de **fechar os PRs #15 e #32** com referência a este. **Parar até o merge.**
+
+---
+
 # Entregas 3 a 6 (a detalhar antes de cada uma)
 
 Cada uma ganha aqui as suas tarefas, no formato da entrega 1, depois do merge da anterior e da conversa com o usuário sobre o que a entrega 1 mostrou em uso.
@@ -2314,6 +2500,7 @@ Cada uma ganha aqui as suas tarefas, no formato da entrega 1, depois do merge da
 - **Entrega 3 — Pré-escala e distribuições:** 3.1 (Tarefas 32 a 35), 3.2.1 (Tarefas 36 a 40), 3.2.2 (Tarefas 41 a 45) e 3.3 (Efetivo por dia, turnos lado a lado e login novo, Tarefas 46 a 53). "Completar com JES", saldos do Adm, operações pelas cotas e buracos do Pronto saíram da 3.3 e esperam entrega marcada (lista no fim da 3.3).
 - **Entrega 4 — Grade geral:** detalhada acima (Tarefas 54 a 59), com o design de 20/11/2026 (`docs/superpowers/specs/2026-11-20-grade-geral-design.md`): painel interativo, clique na célula (militar e dia), filtro de equipes, colunas PJES, Diárias e Voluntariado, e "Trocar" (com permuta entre ordinários).
 - **Entregas 4.1 e 4.2:** detalhadas acima (Tarefas 60 a 64), com o adendo "validação da 3.3" de `docs/superpowers/specs/2026-11-20-meta-de-ativacao-design.md`.
+- **Entrega 4.3 — Limpeza das pendências da fase 3:** detalhada acima (Tarefas 65 a 73), com o design `docs/superpowers/specs/2026-11-20-limpeza-da-fase-3-design.md`. Fecha a fase 4.
 - **Entrega 5 — Gerar documento:** Configurações › Modelos de impressão (enviar com conferência dos marcadores, baixar o atual, versões); geração da escala publicada com ExcelJS a partir do modelo vigente da unidade, respeitando `militares_doc` e `dias_doc` da escala; `documento_gerado` guardado e baixável; PDF fica para quando o serviço existir. **Reorganização de 20/11/2026: passou para a fase 8 (primeiro mês real) do roadmap; a fase 4 fecha na 4.3 (limpeza).**
 - **Entrega 5.1 — O mesmo modelo mais de uma vez no dia:** a detalhar depois da 5, com o design feito com o usuário (perguntas no adendo "validação da 3.3"). **Reorganização de 20/11/2026: passou para a fase 8 (primeiro mês real) do roadmap.**
 - ~~**Entrega 6 — Minha escala**~~: saiu da fase 4 (decisão do usuário, 19/11/2026). O conteúdo previsto continua valendo e vai para a etapa "Tipos de usuário e módulos" do roadmap: a rota e a tela do militar comum (os próprios serviços do mês, com serviço, turno, horário e quem compõe a guarnição com ele) e o acesso às escalas publicadas da unidade em que ele está lotado.
