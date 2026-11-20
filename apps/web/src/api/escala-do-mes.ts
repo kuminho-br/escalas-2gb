@@ -1,5 +1,5 @@
 import { keepPreviousData, queryOptions, type QueryClient } from '@tanstack/react-query';
-import type { Candidatos, EscalaDoMes, NovaAlocacao, NovoAcumulo, PreviaDaPreEscala } from 'contratos';
+import type { Candidatos, EscalaDoMes, NovaAlocacao, NovoAcumulo, OpcoesDeTroca, PreviaDaPreEscala, ResultadoDaTroca, Troca } from 'contratos';
 import { pedir } from './cliente';
 
 export const consultaEscalaDoMes = (escalaId: string, mes: string) =>
@@ -50,6 +50,28 @@ export const escalar = (queryClient: QueryClient, escalaId: string, d: NovaAloca
 export const removerAlocacao = (queryClient: QueryClient, alocacaoId: string) => gravando(queryClient, pedir<EscalaDoMes>('DELETE', `/api/alocacoes/${alocacaoId}`));
 /** Tira a marca de remoção: a pré-escala pode escalar o militar neste turno de novo. Não o põe de volta na vaga. */
 export const desfazerRemocao = (queryClient: QueryClient, remocaoId: string) => gravando(queryClient, pedir<EscalaDoMes>('DELETE', `/api/remocoes/${remocaoId}`));
+
+/** Quem pode ocupar a vaga de uma alocação (livres) e quem já está escalado no mesmo dia (para trocar de lugar). Sempre busca de novo. */
+export const consultaTrocas = (alocacaoId: string) =>
+  queryOptions({
+    queryKey: ['trocas', alocacaoId],
+    queryFn: () => pedir<OpcoesDeTroca>('GET', `/api/alocacoes/${alocacaoId}/trocas`),
+    gcTime: 0,
+    staleTime: 0,
+  });
+
+/**
+ * Troca a alocação: por um militar livre ou de lugar com quem já está escalado (entre dois ordinários, é uma permuta). Mexe em até duas
+ * escalas, no efetivo do dia, nas cotas e na grade: tudo volta a ser buscado, também quando a troca é recusada (outra pessoa pode ter mexido).
+ */
+export async function trocar(queryClient: QueryClient, alocacaoId: string, troca: Troca): Promise<ResultadoDaTroca> {
+  try {
+    return await pedir<ResultadoDaTroca>('POST', `/api/alocacoes/${alocacaoId}/trocar`, troca);
+  } finally {
+    for (const queryKey of [['escala-do-mes'], ['candidatos'], ['trocas']]) void queryClient.invalidateQueries({ queryKey });
+    atualizarQuemDependeDaEscala(queryClient);
+  }
+}
 
 /** O militar de uma alocação ocupa também esta vaga da mesma faixa (acúmulo de funções). */
 export const acumular = (queryClient: QueryClient, alocacaoId: string, d: NovoAcumulo) =>

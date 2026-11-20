@@ -11,6 +11,7 @@ import { corDoTexto } from '@/lib/cores';
 import { listaComE } from '@/lib/escala';
 import { dataPorExtenso } from '@/lib/meses';
 import { AdicionarServico } from './AdicionarServico';
+import { TrocarServico } from './TrocarServico';
 
 /**
  * O painel do dia de um militar na Grade geral: como ele está naquele dia (afastamento, horários marcados, serviços, choques) e o que dá para
@@ -20,6 +21,7 @@ export function PainelDoDia({ unidadeId, militarId, data, aoFechar }: { unidadeI
   const queryClient = useQueryClient();
   const painel = useQuery(consultaPainelDoDia(unidadeId, data.slice(0, 7), militarId, data));
   const [adicionando, setAdicionando] = useState(false);
+  const [trocando, setTrocando] = useState<string | null>(null);
   const [erro, setErro] = useState<string | null>(null);
   const { salvando, travar } = useTrava();
   const p = painel.data;
@@ -93,9 +95,14 @@ export function PainelDoDia({ unidadeId, militarId, data, aoFechar }: { unidadeI
                           {s.servico.nome} {s.letra}
                         </span>
                         <span aria-hidden className="text-sm">{textoFaixa(s.inicio, s.fim)}</span>
-                        <Button type="button" variant="outline" size="sm" className="ml-auto" disabled={salvando} onClick={() => void remover(s.alocacaoId)}>
-                          Remover
-                        </Button>
+                        <span className="ml-auto flex gap-1.5">
+                          <Button type="button" variant="outline" size="sm" disabled={salvando} onClick={() => setTrocando(s.alocacaoId)}>
+                            Trocar
+                          </Button>
+                          <Button type="button" variant="outline" size="sm" disabled={salvando} onClick={() => void remover(s.alocacaoId)}>
+                            Remover
+                          </Button>
+                        </span>
                       </div>
                       <p className="text-sm">{s.escala} · {s.guarnicao ? `${s.guarnicao}, ${s.funcao}` : 'sem guarnição'}</p>
                       {s.acumulaCom.length > 0 && <p className="text-xs text-apagado">Acumula {listaComE(s.acumulaCom)}.</p>}
@@ -117,6 +124,7 @@ export function PainelDoDia({ unidadeId, militarId, data, aoFechar }: { unidadeI
           </>
         )}
       </div>
+      {trocando && <TrocarServico alocacaoId={trocando} nomeAtual={p?.militar.nomeGuerra ?? ''} aoFechar={() => setTrocando(null)} />}
     </aside>
   );
 }
