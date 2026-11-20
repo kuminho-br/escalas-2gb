@@ -135,6 +135,7 @@ export async function desativar(tx: Consulta, unidadeId: string, data: string, g
 }
 
 const NAO_DEU_PARA_DESFAZER = 'Não deu para desfazer: alguém já ocupa um desses lugares.';
+const ESCALA_MUDOU = 'Não deu para desfazer: a escala mudou desde então.';
 
 /**
  * Desfaz a desativação, na mesma transação. O corpo vem do cliente, então nada nele vale por si: tudo precisa ser desta seção e deste dia, e
@@ -155,8 +156,19 @@ export async function desfazerDesativacao(tx: Consulta, unidadeId: string, data:
   const voltam = new Set(d.alocacoes.map((a) => a.alocacaoId));
   // o acúmulo de uma alocação que não volta precisa estar numa alocação que existe nesta seção, neste dia
   const aoAcumuloDeFora = unicos(d.acumulos.map((x) => x.alocacaoId).filter((id) => !voltam.has(id)));
-  // as promovidas são alocações que continuam existindo: precisam ser desta seção e deste dia
+  // as promovidas são alocações que continuam existindo: as que sumiram desde a desativação são "a escala mudou"; as que existem mas são
+  // de outra seção ou de outro dia não são deste "Desfazer" (400)
   const asPromovidas = unicos(d.promovidas.map((x) => x.alocacaoId));
+  const achadas = asPromovidas.length
+    ? (
+        await tx.query<{ id: string; unidade_id: string; data: string }>(
+          `select a.id, e.unidade_id, to_char(a.data, 'YYYY-MM-DD') as data from alocacao a join escala e on e.id = a.escala_id where a.id = any($1::uuid[])`,
+          [asPromovidas],
+        )
+      ).rows
+    : [];
+  const sumiuPromovida = asPromovidas.some((id) => !achadas.some((r) => r.id === id));
+  const promovidaDeFora = achadas.some((r) => r.unidade_id !== unidadeId || r.data !== data);
   const ok =
     d.alocacoes.every((a) => a.data === data && Boolean(a.guarnicaoId) === Boolean(a.funcaoId)) &&
     // a promovida só volta à vaga da guarnição desativada: o corpo não escolhe outra
@@ -172,14 +184,9 @@ export async function desfazerDesativacao(tx: Consulta, unidadeId: string, data:
           [aoAcumuloDeFora, unidadeId, data],
         )
       ).rows[0]!.n === aoAcumuloDeFora.length) &&
-    (!asPromovidas.length ||
-      (
-        await tx.query<{ n: number }>(
-          `select count(*)::int as n from alocacao a join escala e on e.id = a.escala_id where a.id = any($1::uuid[]) and e.unidade_id = $2 and a.data = $3::date`,
-          [asPromovidas, unidadeId, data],
-        )
-      ).rows[0]!.n === asPromovidas.length);
+    !promovidaDeFora;
   if (!ok) throw new DadosInvalidos();
+  if (sumiuPromovida) throw new Recusa(ESCALA_MUDOU);
 
   if (d.metaAntes.origem === 'padrao') await voltarMetaAoPadrao(tx, unidadeId, data);
   else await gravarMetaDoDia(tx, unidadeId, data, d.metaAntes.guarnicoes);
@@ -193,7 +200,7 @@ export async function desfazerDesativacao(tx: Consulta, unidadeId: string, data:
     const codigo = (e as { code?: string } | null)?.code;
     if (codigo === '23505') throw new Recusa(NAO_DEU_PARA_DESFAZER);
     // a alocação de um acúmulo que ficou já não existe: a escala mudou desde então
-    if (codigo === '23503') throw new Recusa('Não deu para desfazer: a escala mudou desde então.');
+    if (codigo === '23503') throw new Recusa(ESCALA_MUDOU);
     throw e;
   };
   const novos = new Map<string, string>();
@@ -208,7 +215,7 @@ export async function desfazerDesativacao(tx: Consulta, unidadeId: string, data:
         )
       ).rows[0];
       // ela precisa continuar na vaga que era o acúmulo: se mudou de lugar, a escala mudou desde então
-      if (!p || p.guarnicao_id !== x.acumuloGuarnicaoId || p.funcao_id !== x.acumuloFuncaoId) throw new Recusa('Não deu para desfazer: a escala mudou desde então.');
+      if (!p || p.guarnicao_id !== x.acumuloGuarnicaoId || p.funcao_id !== x.acumuloFuncaoId) throw new Recusa(ESCALA_MUDOU);
       if (!(await vagaTemLugar(tx, p.escala_id, data, p, x.guarnicaoId, x.funcaoId, p.cnh))) throw new Recusa(NAO_DEU_PARA_DESFAZER);
       await tx.query('update alocacao set guarnicao_id = $2, funcao_id = $3 where id = $1', [x.alocacaoId, x.guarnicaoId, x.funcaoId]);
       await acumular(tx, x.alocacaoId, { guarnicaoId: x.acumuloGuarnicaoId, funcaoId: x.acumuloFuncaoId });

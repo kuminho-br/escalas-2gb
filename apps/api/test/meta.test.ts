@@ -399,6 +399,73 @@ describe('desativar e desfazer (Review Focus 1 a 4)', () => {
     }
   });
 
+  // pendências da 4.4: a promovida que sumiu ou mudou de lugar é "a escala mudou", a de outra seção continua sendo 400
+  const ESCALA_MUDOU = 'Não deu para desfazer: a escala mudou desde então.';
+
+  it('desfazer com a promovida removida depois da desativação é 409 "a escala mudou desde então" e nada muda', async () => {
+    const d = dia(328);
+    expect((await gravarDia(d, [abt, resgate])).status).toBe(200);
+    const alfa = await alocar('ALFA', d, abt);
+    await inserir(api.banco, 'alocacao_acumulo', { alocacao_id: alfa, guarnicao_id: resgate, funcao_id: funcao });
+    const c = await corpoDe(await desativar(d, abt));
+    // enquanto isso, o escalante tirou o ALFA do dia
+    await api.banco.query('delete from alocacao where id = $1', [alfa]);
+    const r = await desfazer(d, c.desfazer);
+    expect(r.status).toBe(409);
+    expect((await r.json()).erro).toBe(ESCALA_MUDOU);
+    expect(await alocacaoDe('ALFA', d)).toBeNull();
+    expect(nomes(await metaDe(d))).toEqual(['Resgate']);
+  });
+
+  it('desfazer com a promovida que mudou de vaga depois da desativação é 409 com a mesma frase e nada muda', async () => {
+    const d = dia(329);
+    expect((await gravarDia(d, [abt, resgate, aco])).status).toBe(200);
+    const alfa = await alocar('ALFA', d, abt);
+    await inserir(api.banco, 'alocacao_acumulo', { alocacao_id: alfa, guarnicao_id: resgate, funcao_id: funcao });
+    const c = await corpoDe(await desativar(d, abt));
+    // enquanto isso, o escalante pôs o ALFA no ACO
+    await api.banco.query('update alocacao set guarnicao_id = $2 where id = $1', [alfa, aco]);
+    const r = await desfazer(d, c.desfazer);
+    expect(r.status).toBe(409);
+    expect((await r.json()).erro).toBe(ESCALA_MUDOU);
+    expect(await alocacaoDe('ALFA', d)).toEqual({ id: alfa, guarnicao_id: aco });
+    expect(nomes(await metaDe(d))).toEqual(['Resgate', 'ACO']);
+  });
+
+  it('desfazer com uma promovida de outra seção no corpo é 400 e nada muda', async () => {
+    const d = dia(330);
+    expect((await gravarDia(d, [abt, resgate])).status).toBe(200);
+    const alfa = await alocar('ALFA', d, abt);
+    await inserir(api.banco, 'alocacao_acumulo', { alocacao_id: alfa, guarnicao_id: resgate, funcao_id: funcao });
+    const c = await corpoDe(await desativar(d, abt));
+    // uma alocação que existe, mas é da outra seção
+    const servicoAlheio = await inserir(api.banco, 'servico', { unidade_id: outraSecao, nome: 'Alheio 330', tipo: 'ordinario', cor: '#000000' });
+    const turnoAlheio = await inserir(api.banco, 'turno', { servico_id: servicoAlheio, letra: 'A', inicio: '08:00', fim: '20:00' });
+    const escalaAlheia = await inserir(api.banco, 'escala', { unidade_id: outraSecao, nome: 'Alheia 330', titulo: 'ESCALA', militares_doc: 'todos', dias_doc: 'todos' });
+    await api.banco.query('insert into escala_servico (escala_id, servico_id, ordem) values ($1, $2, 1)', [escalaAlheia, servicoAlheio]);
+    const deFora = await inserir(api.banco, 'alocacao', { militar_id: militares.FORA, escala_id: escalaAlheia, servico_id: servicoAlheio, turno_id: turnoAlheio, data: d, guarnicao_id: null, funcao_id: null, origem: 'manual' });
+    const forjado = { ...c.desfazer, promovidas: (c.desfazer.promovidas as { alocacaoId: string }[]).map((x) => ({ ...x, alocacaoId: deFora })) };
+    expect((await desfazer(d, forjado)).status).toBe(400);
+    expect(await alocacaoDe('ALFA', d)).toEqual({ id: alfa, guarnicao_id: resgate });
+    expect(await existe('alocacao', deFora)).toBe(true);
+    expect(nomes(await metaDe(d))).toEqual(['Resgate']);
+  });
+
+  it('desfazer com o corpo sem promovidas (cliente antigo) devolve as alocações e os acúmulos', async () => {
+    const d = dia(331);
+    expect((await gravarDia(d, [abt, resgate])).status).toBe(200);
+    await alocar('CHARLIE', d, abt);
+    const bravo = await alocar('BRAVO', d, resgate);
+    await inserir(api.banco, 'alocacao_acumulo', { alocacao_id: bravo, guarnicao_id: abt, funcao_id: funcao });
+    const c = await corpoDe(await desativar(d, abt));
+    const { promovidas: _fora, ...antigo } = c.desfazer;
+    const r = await desfazer(d, antigo);
+    expect(r.status).toBe(200);
+    expect((await alocacaoDe('CHARLIE', d))?.guarnicao_id).toBe(abt);
+    expect(await acumulosDe('BRAVO', d)).toEqual([abt]);
+    expect(nomes(await metaDe(d))).toEqual(['ABT', 'Resgate']);
+  });
+
   it('desfazer num dia que seguia o padrão volta a seguir o padrão, não uma cópia dele (Review Focus 4)', async () => {
     const d = dia(310);
     const c = await corpoDe(await desativar(d, abt));
