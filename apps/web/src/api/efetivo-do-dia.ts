@@ -1,5 +1,5 @@
 import { queryOptions, type QueryClient } from '@tanstack/react-query';
-import type { EfetivoDoDia, MetaDoDia, NovaMetaDoDia, NovaMetaPadrao, VersaoDaMetaPadrao } from 'contratos';
+import type { EfetivoDoDia, MetaDoDia, NovaMetaPadrao, TirarDaMeta, VersaoDaMetaPadrao } from 'contratos';
 import { pedir } from './cliente';
 
 export const consultaEfetivoDoDia = (unidadeId: string, data: string) =>
@@ -25,7 +25,18 @@ async function gravando<T>(queryClient: QueryClient, pedido: Promise<T>): Promis
 
 export const gravarMetaPadrao = (queryClient: QueryClient, unidadeId: string, d: NovaMetaPadrao) =>
   gravando(queryClient, pedir<VersaoDaMetaPadrao[]>('PUT', `/api/unidades/${unidadeId}/meta-padrao`, d));
-export const gravarMetaDoDia = (queryClient: QueryClient, unidadeId: string, data: string, d: NovaMetaDoDia) =>
-  gravando(queryClient, pedir<MetaDoDia>('PUT', `/api/unidades/${unidadeId}/meta-do-dia/${data}`, d));
+/** A lista própria do dia, na ordem de ativação (adicionar, subir e descer na própria tela). */
+export const gravarMetaDoDia = (queryClient: QueryClient, unidadeId: string, data: string, guarnicoes: string[]) =>
+  gravando(queryClient, pedir<MetaDoDia>('PUT', `/api/unidades/${unidadeId}/meta-do-dia/${data}`, { guarnicoes }));
+
+/** Tira a guarnição da meta do dia; desescalar mexe na escala: a escala do mês, as cotas e os candidatos também voltam a ser buscados. */
+export async function tirarDaMeta(queryClient: QueryClient, unidadeId: string, data: string, d: TirarDaMeta): Promise<EfetivoDoDia> {
+  try {
+    return await pedir<EfetivoDoDia>('POST', `/api/unidades/${unidadeId}/meta-do-dia/${data}/tirar`, d);
+  } finally {
+    atualizar(queryClient);
+    for (const queryKey of [['escala-do-mes'], ['cotas'], ['candidatos']]) void queryClient.invalidateQueries({ queryKey });
+  }
+}
 export const voltarMetaAoPadrao = (queryClient: QueryClient, unidadeId: string, data: string) =>
   gravando(queryClient, pedir<MetaDoDia>('DELETE', `/api/unidades/${unidadeId}/meta-do-dia/${data}`));

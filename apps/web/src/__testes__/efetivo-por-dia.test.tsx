@@ -10,7 +10,6 @@ import { abrir, chamadasA, corpoEnviado, EU_EXEMPLO, simularApi } from './apoio'
 // Antigo (desativado) também fora da meta, sem horário vinculado.
 const DIA = '2026-12-12';
 const SEGUINTE = '2026-12-13';
-const GESTOR = { ...EU_EXEMPLO, papeis: [{ papel: 'gestor' as const, unidadeId: 'u-1sb', unidadeSigla: '1ª SB' }] };
 const PRONTO = { id: 's-pronto', nome: 'Pronto', cor: '#2F8F5B' };
 const ocupado = (nomeGuerra: string, inicio: number, fim: number, alocacoes: AlocacaoNoTrecho[] = [{ alocacaoId: `a-${nomeGuerra}`, acumuloId: null, inicio: '08:00', fim: '20:00' }]): TrechoNoEfetivo => ({
   inicio, fim, opcoes: [], ocupante: { militarId: `m-${nomeGuerra}`, posto: 'SD BM', nomeGuerra, servico: PRONTO, acumulo: false, alocacoes },
@@ -182,48 +181,79 @@ describe('efetivo por dia: o topo', () => {
   });
 });
 
-describe('efetivo por dia: a meta do dia', () => {
-  it('o gestor altera a meta do dia marcando dois modelos e subindo o segundo', async () => {
-    const f = api(VAZIO, GESTOR, { [`PUT /api/unidades/u-1sb/meta-do-dia/${DIA}`]: { status: 200, corpo: META_DO_DIA } });
+describe('efetivo por dia: a meta do dia pela própria tela', () => {
+  const PUT = `PUT /api/unidades/u-1sb/meta-do-dia/${DIA}`;
+  const TIRAR = `POST /api/unidades/u-1sb/meta-do-dia/${DIA}/tirar`;
+  const MODELOS_DO_MES = [...MODELOS, { id: 'g3', nome: 'Resgate', viatura: null, prioridade: null, ativa: true, minimo: 1, maximo: 1, aPartirDe: null }];
+  const rotas = { [PUT]: { status: 200, corpo: META_DO_DIA }, [TIRAR]: { status: 200, corpo: EFETIVO }, 'GET /api/unidades/u-1sb/guarnicoes': { status: 200, corpo: MODELOS_DO_MES } };
+
+  it('"Subir" no 2º troca a ordem de ativação do dia', async () => {
+    const f = api(EFETIVO, EU_EXEMPLO, rotas);
     abrir(`/efetivo-por-dia?data=${DIA}`);
-    await userEvent.click(await screen.findByRole('button', { name: 'Alterar a meta deste dia' }));
-    const dialogo = await screen.findByRole('dialog');
-    await userEvent.click(await within(dialogo).findByRole('checkbox', { name: 'ABT' }));
-    await userEvent.click(within(dialogo).getByRole('checkbox', { name: 'ACO' }));
-    expect(within(dialogo).queryByRole('checkbox', { name: 'Antigo' })).toBeNull();
-    await userEvent.click(within(dialogo).getByRole('button', { name: 'Subir ACO' }));
-    await userEvent.click(within(dialogo).getByRole('button', { name: 'Salvar' }));
-    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
-    expect(corpoEnviado(f, `PUT /api/unidades/u-1sb/meta-do-dia/${DIA}`)).toEqual({ guarnicoes: ['g2', 'g1'] });
+    await userEvent.click(within(await screen.findByRole('region', { name: '2º Resgate' })).getByRole('button', { name: 'Subir Resgate' }));
+    await waitFor(() => expect(corpoEnviado(f, PUT)).toEqual({ guarnicoes: ['g3', 'g2'] }));
   });
 
-  it('o "até" vai junto quando preenchido, e a meta de hoje já vem marcada', async () => {
-    const f = api(EFETIVO, GESTOR, { [`PUT /api/unidades/u-1sb/meta-do-dia/${DIA}`]: { status: 200, corpo: META_DO_DIA } });
+  it('"Tirar da meta" sem ninguém escalado tira direto, sem perguntar', async () => {
+    const f = api(EFETIVO, EU_EXEMPLO, rotas);
     abrir(`/efetivo-por-dia?data=${DIA}`);
-    await userEvent.click(await screen.findByRole('button', { name: 'Alterar a meta deste dia' }));
-    const dialogo = await screen.findByRole('dialog');
-    expect(await within(dialogo).findByRole('checkbox', { name: 'ACO' })).toBeChecked();
-    expect(within(dialogo).getByRole('checkbox', { name: 'ABT' })).not.toBeChecked();
-    await userEvent.type(within(dialogo).getByLabelText('Até'), '2026-12-14');
-    await userEvent.click(within(dialogo).getByRole('button', { name: 'Salvar' }));
-    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
-    expect(corpoEnviado(f, `PUT /api/unidades/u-1sb/meta-do-dia/${DIA}`)).toEqual({ ate: '2026-12-14', guarnicoes: ['g2', 'g3'] });
+    await userEvent.click(within(await screen.findByRole('region', { name: '2º Resgate' })).getByRole('button', { name: 'Tirar da meta' }));
+    await waitFor(() => expect(corpoEnviado(f, TIRAR)).toEqual({ guarnicaoId: 'g3', desescalar: false }));
+    expect(screen.queryByRole('dialog')).toBeNull();
   });
 
-  it('um dia alterado mostra o aviso e "Voltar ao padrão", que chama o DELETE', async () => {
-    const f = api({ ...EFETIVO, meta: { origem: 'dia', total: 2, ativadas: 1 } }, GESTOR, { [`DELETE /api/unidades/u-1sb/meta-do-dia/${DIA}`]: { status: 200, corpo: { ...META_DO_DIA, origem: 'padrao' } } });
+  it('com gente escalada, pergunta; "Tirar e desescalar" manda desescalar', async () => {
+    const f = api(EFETIVO, EU_EXEMPLO, rotas);
+    abrir(`/efetivo-por-dia?data=${DIA}`);
+    await userEvent.click(within(await screen.findByRole('region', { name: '1º ACO' })).getByRole('button', { name: 'Tirar da meta' }));
+    const dialogo = await screen.findByRole('dialog', { name: 'Tirar ACO da meta deste dia' });
+    expect(within(dialogo).getByText('Há 3 militares escalados no ACO neste dia.')).toBeInTheDocument();
+    await userEvent.click(within(dialogo).getByRole('button', { name: 'Tirar e desescalar' }));
+    await waitFor(() => expect(corpoEnviado(f, TIRAR)).toEqual({ guarnicaoId: 'g2', desescalar: true }));
+  });
+
+  it('"Só tirar da meta" mantém quem está escalado', async () => {
+    const f = api(EFETIVO, EU_EXEMPLO, rotas);
+    abrir(`/efetivo-por-dia?data=${DIA}`);
+    await userEvent.click(within(await screen.findByRole('region', { name: '1º ACO' })).getByRole('button', { name: 'Tirar da meta' }));
+    await userEvent.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Só tirar da meta' }));
+    await waitFor(() => expect(corpoEnviado(f, TIRAR)).toEqual({ guarnicaoId: 'g2', desescalar: false }));
+  });
+
+  it('"Cancelar" não manda nada', async () => {
+    const f = api(EFETIVO, EU_EXEMPLO, rotas);
+    abrir(`/efetivo-por-dia?data=${DIA}`);
+    await userEvent.click(within(await screen.findByRole('region', { name: '1º ACO' })).getByRole('button', { name: 'Tirar da meta' }));
+    await userEvent.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Cancelar' }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    expect(chamadasA(f, TIRAR)).toBe(0);
+  });
+
+  it('"Adicionar guarnição" lista os modelos ativos fora da meta (inclusive o ABT, que tem gente) e põe o escolhido no fim', async () => {
+    const f = api(EFETIVO, EU_EXEMPLO, rotas);
+    abrir(`/efetivo-por-dia?data=${DIA}`);
+    await userEvent.click(await screen.findByRole('button', { name: 'Adicionar guarnição' }));
+    const dialogo = await screen.findByRole('dialog', { name: 'Adicionar guarnição' });
+    expect(await within(dialogo).findByRole('button', { name: 'ABT' })).toBeInTheDocument();
+    expect(within(dialogo).queryByRole('button', { name: 'ACO' })).toBeNull();
+    expect(within(dialogo).queryByRole('button', { name: 'Resgate' })).toBeNull();
+    expect(within(dialogo).queryByRole('button', { name: 'Antigo' })).toBeNull();
+    await userEvent.click(within(dialogo).getByRole('button', { name: 'ABT' }));
+    await waitFor(() => expect(corpoEnviado(f, PUT)).toEqual({ guarnicoes: ['g2', 'g3', 'g1'] }));
+  });
+
+  it('o escalante vê "Tirar da meta", "Subir", "Adicionar guarnição" e "Voltar ao padrão", e "Alterar a meta deste dia" não existe mais', async () => {
+    const f = api({ ...EFETIVO, meta: { origem: 'dia', total: 2, ativadas: 1 } }, EU_EXEMPLO, { ...rotas, [`DELETE /api/unidades/u-1sb/meta-do-dia/${DIA}`]: { status: 200, corpo: { ...META_DO_DIA, origem: 'padrao' } } });
     abrir(`/efetivo-por-dia?data=${DIA}`);
     expect(await screen.findByText('Meta alterada neste dia')).toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: 'Tirar da meta' })).toHaveLength(2);
+    expect(screen.getByRole('button', { name: 'Subir Resgate' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Adicionar guarnição' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Alterar a meta deste dia' })).toBeNull();
+    // o card fora da meta não tem os controles da meta
+    expect(within(cartao('ABT')).queryByRole('button', { name: 'Tirar da meta' })).toBeNull();
     await userEvent.click(screen.getByRole('button', { name: 'Voltar ao padrão' }));
     await waitFor(() => expect(chamadasA(f, `DELETE /api/unidades/u-1sb/meta-do-dia/${DIA}`)).toBe(1));
-  });
-
-  it('o escalante vê o painel, mas não "Alterar a meta deste dia" nem "Voltar ao padrão"', async () => {
-    api({ ...EFETIVO, meta: { origem: 'dia', total: 2, ativadas: 1 } });
-    abrir(`/efetivo-por-dia?data=${DIA}`);
-    expect(await screen.findByText('Meta alterada neste dia')).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Alterar a meta deste dia' })).toBeNull();
-    expect(screen.queryByRole('button', { name: 'Voltar ao padrão' })).toBeNull();
   });
 });
 

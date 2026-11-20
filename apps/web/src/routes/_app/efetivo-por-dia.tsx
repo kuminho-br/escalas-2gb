@@ -4,16 +4,16 @@ import { Data, type FuncaoNoEfetivo, type GuarnicaoNoEfetivo, type OpcaoDaVaga, 
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { mensagemDe } from '@/api/cliente';
-import { consultaEfetivoDoDia, voltarMetaAoPadrao } from '@/api/efetivo-do-dia';
-import { podeMudarParametro } from '@/api/eu';
+import { consultaEfetivoDoDia, gravarMetaDoDia, tirarDaMeta, voltarMetaAoPadrao } from '@/api/efetivo-do-dia';
 import { CotasRestantes } from '@/componentes/CotasRestantes';
-import { AlterarMetaDoDia } from '@/componentes/efetivo-por-dia/AlterarMetaDoDia';
+import { AdicionarGuarnicao } from '@/componentes/efetivo-por-dia/AdicionarGuarnicao';
 import { AlocacoesDoTrecho } from '@/componentes/efetivo-por-dia/AlocacoesDoTrecho';
 import { CardDoEfetivo } from '@/componentes/efetivo-por-dia/CardDoEfetivo';
 import { EscolherEscalaDaVaga } from '@/componentes/efetivo-por-dia/EscolherEscalaDaVaga';
 import type { VagaDaTela } from '@/componentes/escala-do-mes/CardDaGuarnicao';
 import { EscolherMilitar } from '@/componentes/escala-do-mes/EscolherMilitar';
 import { ReguaDoEfetivo } from '@/componentes/efetivo-por-dia/ReguaDoEfetivo';
+import { TirarDaMeta } from '@/componentes/efetivo-por-dia/TirarDaMeta';
 import { useTrava } from '@/componentes/AlteracoesPendentes';
 import { Button } from '@/componentes/ui/button';
 import { Input } from '@/componentes/ui/input';
@@ -41,7 +41,8 @@ function EfetivoPorDia() {
   const data = busca.data ?? inicial;
   useEffect(() => guardarUltimoDia(data), [data]);
   const dados = useQuery(consultaEfetivoDoDia(eu.unidade.id, data));
-  const [alterando, setAlterando] = useState(false);
+  const [adicionando, setAdicionando] = useState(false);
+  const [tirando, setTirando] = useState<GuarnicaoNoEfetivo | null>(null);
   // escalar: a vaga clicada (e, quando ela cai em mais de uma escala, a escolhida); remover: o trecho ocupado clicado
   const [vaga, setVaga] = useState<VagaClicada | null>(null);
   const [opcao, setOpcao] = useState<OpcaoDaVaga | null>(null);
@@ -56,7 +57,6 @@ function EfetivoPorDia() {
   };
   const [erro, setErro] = useState<string | null>(null);
   const { salvando, travar } = useTrava();
-  const podeAlterar = podeMudarParametro(eu);
   const irPara = (d: string) => void navigate({ search: (s) => ({ ...s, data: d }) });
 
   const voltarAoPadrao = travar(async () => {
@@ -70,6 +70,42 @@ function EfetivoPorDia() {
 
   const e = dados.data;
   const janela = e ? janelaDoDia(e.guarnicoes) : null;
+  // a meta do dia muda pela própria tela (decisão de 20/11/2026): subir, descer, adicionar e tirar gravam a lista do dia
+  const naMeta = (e?.guarnicoes ?? []).filter((g) => g.ordem !== null).map((g) => g.guarnicaoId);
+  const gravarMeta = travar(async (lista: string[]) => {
+    setErro(null);
+    try {
+      await gravarMetaDoDia(queryClient, eu.unidade.id, data, lista);
+      setAdicionando(false);
+    } catch (x) {
+      setErro(mensagemDe(x));
+    }
+  });
+  const mover = (i: number, passo: -1 | 1) => {
+    const lista = [...naMeta];
+    [lista[i], lista[i + passo]] = [lista[i + passo]!, lista[i]!];
+    void gravarMeta(lista);
+  };
+  const tirar = travar(async (g: GuarnicaoNoEfetivo, desescalar: boolean) => {
+    setErro(null);
+    try {
+      await tirarDaMeta(queryClient, eu.unidade.id, data, { guarnicaoId: g.guarnicaoId, desescalar });
+      setTirando(null);
+    } catch (x) {
+      setErro(mensagemDe(x));
+    }
+  });
+  const controlesDa = (g: GuarnicaoNoEfetivo) => {
+    const i = naMeta.indexOf(g.guarnicaoId);
+    if (i < 0) return undefined;
+    return {
+      aoSubir: i > 0 ? () => mover(i, -1) : undefined,
+      aoDescer: i < naMeta.length - 1 ? () => mover(i, 1) : undefined,
+      // sem ninguém escalado no dia, tira direto; com gente, pergunta (decisão 1-b)
+      aoTirar: () => (g.alocados === 0 ? void tirar(g, false) : setTirando(g)),
+      salvando,
+    };
+  };
   return (
     <section className="grid gap-4">
       <h1 className="font-cond text-[28px] leading-tight font-semibold">Efetivo por dia</h1>
@@ -97,11 +133,8 @@ function EfetivoPorDia() {
               Meta do dia: {e.meta.total === 0 ? 'nenhuma guarnição' : `${plural(e.meta.total, 'guarnição', 'guarnições')}, ${plural(e.meta.ativadas, 'ativada', 'ativadas')}`}
             </p>
             {e.meta.origem === 'dia' && <span className="rounded-full bg-pendencia-fundo px-2 py-0.5 text-xs font-medium text-pendencia">Meta alterada neste dia</span>}
-            {podeAlterar && e.meta.origem === 'dia' && (
+            {e.meta.origem === 'dia' && (
               <Button type="button" variant="outline" size="sm" disabled={salvando} onClick={() => void voltarAoPadrao()}>Voltar ao padrão</Button>
-            )}
-            {podeAlterar && (
-              <Button type="button" size="sm" className="ml-auto" onClick={() => setAlterando(true)}>Alterar a meta deste dia</Button>
             )}
           </div>
           <CotasRestantes cotas={e.cotas} />
@@ -116,10 +149,14 @@ function EfetivoPorDia() {
                   g={g}
                   janela={janela}
                   acoes={{ aoClicarVaga: clicarVaga(g), aoClicarOcupado: (funcao, trecho) => setOcupado({ funcao: funcao.funcao, trecho }) }}
+                  meta={controlesDa(g)}
                 />
               ))}
             </div>
           )}
+          <div>
+            <Button type="button" variant="outline" disabled={salvando} onClick={() => setAdicionando(true)}>Adicionar guarnição</Button>
+          </div>
           {vaga && !opcao && vaga.trecho.opcoes.length > 1 && <EscolherEscalaDaVaga opcoes={vaga.trecho.opcoes} aoEscolher={setOpcao} aoFechar={fecharVaga} />}
           {vaga && opcao && (
             <EscolherMilitar
@@ -132,14 +169,18 @@ function EfetivoPorDia() {
             />
           )}
           {ocupado && <AlocacoesDoTrecho funcao={ocupado.funcao} trecho={ocupado.trecho} aoFechar={() => setOcupado(null)} />}
-          {alterando && (
-            <AlterarMetaDoDia
-              key={data}
+          {adicionando && (
+            <AdicionarGuarnicao
               unidadeId={eu.unidade.id}
               data={data}
-              atuais={e.guarnicoes.filter((g) => g.ordem !== null).map((g) => ({ guarnicaoId: g.guarnicaoId, nome: g.nome }))}
-              aoFechar={() => setAlterando(false)}
+              naMeta={naMeta}
+              salvando={salvando}
+              aoEscolher={(id) => void gravarMeta([...naMeta, id])}
+              aoFechar={() => setAdicionando(false)}
             />
+          )}
+          {tirando && (
+            <TirarDaMeta nome={tirando.nome} alocados={tirando.alocados} salvando={salvando} aoEscolher={(d) => void tirar(tirando, d)} aoFechar={() => setTirando(null)} />
           )}
         </>
       )}
