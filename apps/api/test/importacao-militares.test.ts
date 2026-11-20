@@ -184,3 +184,18 @@ describe('importação de militares', () => {
   });
 });
 
+describe('CNH repetida ou fora de ordem na planilha (Review Focus 5)', () => {
+  const REPETIDAS: (string | number)[][] = [
+    ['990295-5', 'GOMES', '1ª SB', 'SD BM', 'ADM', '', 5, 'SIM', '', 'B, B'],
+    ['990296-6', 'HONORATO', '1ª SB', 'SD BM', 'ADM', '', 6, 'SIM', '', 'DA'],
+  ];
+
+  it('"B, B" entra uma vez só, "DA" entra em ordem (A, D), e a prévia não reclama de nada', async () => {
+    const previa = await importar(REPETIDAS);
+    expect(previa.problemas).toEqual([]);
+    expect(previa.avisos.filter((a: string) => /CNH/.test(a))).toEqual([]);
+    expect((await importar(REPETIDAS, true)).gravados).toBe(2);
+    expect(await militar('990295-5')).toMatchObject({ motorista: true, cnh: ['B'] });
+    expect(await militar('990296-6')).toMatchObject({ motorista: true, cnh: ['A', 'D'] });
+  });
+});
