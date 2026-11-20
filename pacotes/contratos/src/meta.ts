@@ -10,9 +10,13 @@ const REPETIDO = { message: 'Este modelo aparece duas vezes na meta.', path: ['g
 export const NovaMetaPadrao = z.object({ desde: Data, guarnicoes: z.array(Id).max(100) }).refine(semRepetidos, REPETIDO);
 export type NovaMetaPadrao = z.infer<typeof NovaMetaPadrao>;
 
-/** Grava a lista própria de um dia, ou de um intervalo (do dia da rota até `ate`, no máximo 31 dias). Lista vazia = dia sem meta. */
-export const NovaMetaDoDia = z.object({ ate: Data.optional(), guarnicoes: z.array(Id).max(100) }).refine(semRepetidos, REPETIDO);
+/** Grava a lista própria do dia da rota. Lista vazia = dia sem meta. */
+export const NovaMetaDoDia = z.object({ guarnicoes: z.array(Id).max(100) }).refine(semRepetidos, REPETIDO);
 export type NovaMetaDoDia = z.infer<typeof NovaMetaDoDia>;
+
+/** Tira uma guarnição da meta do dia; `desescalar` também tira quem está escalado nela no dia (com a marca de remoção). */
+export const TirarDaMeta = z.object({ guarnicaoId: Id, desescalar: z.boolean() });
+export type TirarDaMeta = z.infer<typeof TirarDaMeta>;
 
 export type ItemDaMeta = { guarnicaoId: string; nome: string };
 export type VersaoDaMetaPadrao = { desde: string; guarnicoes: ItemDaMeta[] };
