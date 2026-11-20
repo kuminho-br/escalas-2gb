@@ -125,6 +125,26 @@ describe('efetivo por dia: a linha do tempo', () => {
     expect(within(alfa).getByText('08h–08h')).toBeInTheDocument();
   });
 
+  it('só o horário e a etiqueta se escondem quando o trecho é estreito; o nome do militar nunca perde lugar para eles (achado da revisão final)', async () => {
+    api();
+    abrir(`/efetivo-por-dia?data=${DIA}`);
+    const alfa = await screen.findByRole('button', { name: 'Motorista: SD BM ALFA, 08h–08h, Pronto' });
+    // o trecho mede a própria largura (container query) e o horário e a etiqueta só aparecem quando cabem ao lado do nome
+    expect(alfa).toHaveClass('@container');
+    expect(within(alfa).getByText('08h–08h')).toHaveClass('hidden', '@min-[10rem]:inline');
+    expect(within(alfa).getByText('Pronto')).toHaveClass('hidden', '@min-[14rem]:inline-flex');
+    expect(within(alfa).getByText('ALFA')).not.toHaveClass('hidden');
+  });
+
+  it('na vaga, o horário também só aparece quando cabe, e a palavra "vaga" fica', async () => {
+    api();
+    abrir(`/efetivo-por-dia?data=${DIA}`);
+    const vagaDoAco = await screen.findByRole('button', { name: 'Motorista: vaga 20h–08h' });
+    expect(vagaDoAco).toHaveClass('@container');
+    expect(within(vagaDoAco).getByText('vaga')).not.toHaveClass('hidden');
+    expect(within(vagaDoAco).getByText('20h–08h')).toHaveClass('hidden', '@min-[8rem]:inline');
+  });
+
   it('a vaga do dia todo se chama "00h–24h"', async () => {
     api({
       ...EFETIVO,

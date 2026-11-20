@@ -1,7 +1,7 @@
 import type { FuncaoNoEfetivo, GuarnicaoNoEfetivo, TrechoNoEfetivo } from 'contratos';
 import { EtiquetaDoServico } from '@/componentes/EtiquetaDoServico';
 import { corDoTexto } from '@/lib/cores';
-import { fracaoDaJanela, posicao, type Janela } from '@/lib/efetivo';
+import { posicao, type Janela } from '@/lib/efetivo';
 import { textoMinutos } from '@/lib/turnos';
 
 export type AcoesDaLinha = {
@@ -18,14 +18,10 @@ export function nomeDoTrecho(funcao: string, t: TrechoNoEfetivo): string {
   return t.ocupante ? `${funcao}: ${t.ocupante.posto} ${t.ocupante.nomeGuerra}, ${faixa(t)}, ${t.ocupante.servico.nome}` : `${funcao}: vaga ${faixa(t)}`;
 }
 
-// quanto do dia o trecho precisa ocupar para caber o horário e, mais, a etiqueta do serviço (o nome acessível sempre tem tudo)
-const CABE_HORARIO = 0.15;
-const CABE_ETIQUETA = 0.28;
-
 function Trecho({ funcao, t, janela, acoes }: { funcao: FuncaoNoEfetivo; t: TrechoNoEfetivo; janela: Janela; acoes: AcoesDaLinha }) {
   const estilo = { left: posicao(janela, t.inicio), width: `calc(${posicao(janela, t.fim)} - ${posicao(janela, t.inicio)})` };
-  const base = 'absolute inset-y-0.5 flex min-w-0 items-center gap-1.5 overflow-hidden rounded px-1.5 text-left focus-visible:z-20 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-tinta';
-  const fracao = fracaoDaJanela(janela, t);
+  // o trecho mede a própria largura (container query): o horário e a etiqueta só aparecem quando cabem ao lado do nome, que nunca cede lugar a eles
+  const base = '@container absolute inset-y-0.5 flex min-w-0 items-center gap-1.5 overflow-hidden rounded px-1.5 text-left focus-visible:z-20 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-tinta';
   if (!t.ocupante) {
     return (
       <button
@@ -38,7 +34,7 @@ function Trecho({ funcao, t, janela, acoes }: { funcao: FuncaoNoEfetivo; t: Trec
         style={estilo}
       >
         <span className="truncate">vaga</span>
-        {fracao >= CABE_HORARIO && <span className="shrink-0 text-[11px] opacity-80">{faixa(t)}</span>}
+        <span className="hidden shrink-0 text-[11px] opacity-80 @min-[8rem]:inline">{faixa(t)}</span>
       </button>
     );
   }
@@ -55,8 +51,8 @@ function Trecho({ funcao, t, janela, acoes }: { funcao: FuncaoNoEfetivo; t: Trec
         <span className="text-[11px] font-normal opacity-80">{o.posto}</span> {o.nomeGuerra}
         {o.acumulo && <span className="ml-1 text-[11px] font-normal opacity-80">acumula</span>}
       </span>
-      {fracao >= CABE_HORARIO && <span className="shrink-0 text-[11px] opacity-90">{faixa(t)}</span>}
-      {fracao >= CABE_ETIQUETA && <EtiquetaDoServico nome={o.servico.nome} cor={o.servico.cor} variante="contorno" />}
+      <span className="hidden shrink-0 text-[11px] opacity-90 @min-[10rem]:inline">{faixa(t)}</span>
+      <EtiquetaDoServico nome={o.servico.nome} cor={o.servico.cor} variante="contorno" className="hidden @min-[14rem]:inline-flex" />
     </button>
   );
 }
