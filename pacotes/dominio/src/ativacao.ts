@@ -18,8 +18,8 @@ export type FuncaoExigida = { funcaoId: string; funcao: string; minimo: number }
 export type Ocupacao = Intervalo & { funcaoId: string };
 export type Falta = Intervalo & { funcaoId: string; funcao: string; faltam: number };
 
-/** A união dos intervalos: em ordem, sem sobrepor e sem se encostar. */
-function unirIntervalos(intervalos: Intervalo[]): Intervalo[] {
+/** A união dos intervalos: em ordem, sem sobrepor e sem se encostar (o intervalo vazio some). */
+export function unirIntervalos(intervalos: Intervalo[]): Intervalo[] {
   const ordenados = intervalos.filter((x) => x.fim > x.inicio).map((x) => ({ ...x })).sort((a, b) => a.inicio - b.inicio || a.fim - b.fim);
   const uniao: Intervalo[] = [];
   for (const x of ordenados) {

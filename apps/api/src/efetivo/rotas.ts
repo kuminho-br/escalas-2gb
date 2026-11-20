@@ -6,6 +6,7 @@ import type { Auth } from '../auth.ts';
 import { comUsuario, type Banco } from '../banco/banco.ts';
 import { hojeRecife } from '../datas.ts';
 import { lerCorpo, respostaDoErroDoBanco } from '../erros.ts';
+import { montarEfetivoDoDia } from './efetivo-do-dia.ts';
 import { diasContados, gravarMetaDoDia, gravarMetaPadrao, MAXIMO_DE_DIAS_DA_META, metaDoDia, modelosForaDaSecao, versoesDaMetaPadrao, voltarMetaAoPadrao } from './meta.ts';
 
 type Ctx = Context<AmbienteApi>;
@@ -85,6 +86,15 @@ export function rotasEfetivo(dep: { banco: Banco; auth: Auth }): Hono<AmbienteAp
     if (!data) return c.json({ erro: MSG_DATA }, 400);
     await comUsuario(dep.banco, c.get('usuarioId'), (tx) => voltarMetaAoPadrao(tx, u, data));
     return c.json(await metaDoDia(dep.banco, u, data));
+  });
+
+  r.get('/unidades/:u/efetivo-do-dia/:data', async (c) => {
+    const u = c.req.param('u');
+    const negado = await exigirPapel(c, u, CADASTRO);
+    if (negado) return negado;
+    const data = dataDaRota(c);
+    if (!data) return c.json({ erro: MSG_DATA }, 400);
+    return c.json(await montarEfetivoDoDia(dep.banco, u, data));
   });
 
   return r;

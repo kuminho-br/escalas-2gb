@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { avaliarAtivacao, intervaloDoTurno, type FuncaoExigida, type Intervalo, type Ocupacao } from '../src/ativacao.ts';
+import { avaliarAtivacao, intervaloDoTurno, unirIntervalos, type FuncaoExigida, type Intervalo, type Ocupacao } from '../src/ativacao.ts';
 
 // Minutos desde 00h do dia em que o turno começa: 08h = 480, 14h = 840, 16h = 960, 20h = 1200, 08h do dia seguinte = 1920.
 const DIA: Intervalo = { inicio: 480, fim: 1200 }; // 08–20
@@ -105,5 +105,21 @@ describe('avaliarAtivacao', () => {
     const horarios = [{ inicio: 480, fim: 1920 }];
     const r = avaliarAtivacao(horarios, [MOTORISTA], [{ ...DIA, funcaoId: 'f-mot' }, { ...NOITE, funcaoId: 'f-mot' }]);
     expect(r).toEqual({ ativada: true, faltas: [] });
+  });
+});
+
+describe('unirIntervalos', () => {
+  it('junta o que se sobrepõe ou se encosta, em ordem, e descarta o vazio', () => {
+    expect(unirIntervalos([NOITE, DIA, { inicio: 480, fim: 960 }, { inicio: 100, fim: 100 }])).toEqual([{ inicio: 480, fim: 1920 }]);
+  });
+
+  it('o que não se toca continua separado', () => {
+    expect(unirIntervalos([{ inicio: 960, fim: 1200 }, { inicio: 480, fim: 600 }])).toEqual([{ inicio: 480, fim: 600 }, { inicio: 960, fim: 1200 }]);
+  });
+
+  it('não altera a lista recebida', () => {
+    const entrada = [{ inicio: 480, fim: 600 }, { inicio: 600, fim: 700 }];
+    unirIntervalos(entrada);
+    expect(entrada).toEqual([{ inicio: 480, fim: 600 }, { inicio: 600, fim: 700 }]);
   });
 });

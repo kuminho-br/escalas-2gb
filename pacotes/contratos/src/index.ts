@@ -11,3 +11,4 @@ export * from './voluntariado.ts';
 export * from './ordem-de-escalacao.ts';
 export * from './pre-escala.ts';
 export * from './meta.ts';
+export * from './efetivo-do-dia.ts';
