@@ -9,10 +9,9 @@ import { CotasRestantes } from '@/componentes/CotasRestantes';
 import { AdicionarGuarnicao } from '@/componentes/efetivo-por-dia/AdicionarGuarnicao';
 import { AlocacoesDoTrecho } from '@/componentes/efetivo-por-dia/AlocacoesDoTrecho';
 import { CardDoEfetivo } from '@/componentes/efetivo-por-dia/CardDoEfetivo';
-import { EscolherEscalaDaVaga } from '@/componentes/efetivo-por-dia/EscolherEscalaDaVaga';
+import { EscolherHorarioDaVaga } from '@/componentes/efetivo-por-dia/EscolherHorarioDaVaga';
 import type { VagaDaTela } from '@/componentes/escala-do-mes/CardDaGuarnicao';
 import { EscolherMilitar } from '@/componentes/escala-do-mes/EscolherMilitar';
-import { ReguaDoEfetivo } from '@/componentes/efetivo-por-dia/ReguaDoEfetivo';
 import { AvisoDesfazer } from '@/componentes/efetivo-por-dia/AvisoDesfazer';
 import { ConfirmarVoltarAoPadrao } from '@/componentes/efetivo-por-dia/ConfirmarVoltarAoPadrao';
 import { Desativadas } from '@/componentes/efetivo-por-dia/Desativadas';
@@ -21,7 +20,7 @@ import { useTrava } from '@/componentes/AlteracoesPendentes';
 import { Button } from '@/componentes/ui/button';
 import { Input } from '@/componentes/ui/input';
 import { Label } from '@/componentes/ui/label';
-import { guardarUltimoDia, janelaDoDia, marcasDoDia, ultimoDiaVisto } from '@/lib/efetivo';
+import { guardarUltimoDia, janelaDoDia, ultimoDiaVisto } from '@/lib/efetivo';
 import { dataPorExtenso, hoje, somarDias } from '@/lib/meses';
 
 export const Route = createFileRoute('/_app/efetivo-por-dia')({
@@ -134,8 +133,8 @@ function EfetivoPorDia() {
     const i = naMeta.indexOf(g.guarnicaoId);
     if (i < 0) return undefined;
     return {
-      aoSubir: i > 0 ? () => mover(i, -1) : undefined,
-      aoDescer: i < naMeta.length - 1 ? () => mover(i, 1) : undefined,
+      aoMoverAntes: i > 0 ? () => mover(i, -1) : undefined,
+      aoMoverDepois: i < naMeta.length - 1 ? () => mover(i, 1) : undefined,
       // sem ninguém escalado no dia, desativa direto; com gente, pergunta
       aoDesativar: () => {
         setErroNoDialogo(null);
@@ -190,8 +189,7 @@ function EfetivoPorDia() {
           {e.guarnicoes.length === 0 ? (
             <p className="text-apagado">Nenhuma guarnição na meta nem escalada neste dia.</p>
           ) : (
-            <div className="grid gap-3">
-              {janela && <ReguaDoEfetivo janela={janela} marcas={marcasDoDia(e.guarnicoes, janela)} />}
+            <div data-cards-do-efetivo className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,24rem),1fr))] items-start gap-3">
               {e.guarnicoes.map((g) => (
                 <CardDoEfetivo
                   key={g.guarnicaoId}
@@ -217,7 +215,7 @@ function EfetivoPorDia() {
               Adicionar guarnição
             </Button>
           </div>
-          {vaga && !opcao && vaga.trecho.opcoes.length > 1 && <EscolherEscalaDaVaga opcoes={vaga.trecho.opcoes} aoEscolher={setOpcao} aoFechar={fecharVaga} />}
+          {vaga && !opcao && vaga.trecho.opcoes.length > 1 && <EscolherHorarioDaVaga opcoes={vaga.trecho.opcoes} aoEscolher={setOpcao} aoFechar={fecharVaga} />}
           {vaga && opcao && (
             <EscolherMilitar
               escalaId={opcao.escalaId}

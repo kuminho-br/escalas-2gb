@@ -2,7 +2,7 @@
 // de cada função (quem ocupa e as vagas, com as escalas por onde escalar), se ela fechou em todo o horário em que está vinculada e o
 // que falta. Mais as cotas restantes do mês.
 import type { AlocacaoNoTrecho, CotaRestante, EfetivoDoDia, FaltaNoEfetivo, FuncaoNoEfetivo, GuarnicaoNoEfetivo, OpcaoDaVaga } from 'contratos';
-import { avaliarAtivacao, intervaloDoTurno, linhasDaGuarnicao, unirIntervalos, type Falta, type Intervalo, type Ocupacao, type OcupacaoNaLinha } from 'dominio';
+import { avaliarAtivacao, intervaloDoTurno, linhasDaGuarnicao, unirIntervalos, type Intervalo, type Ocupacao, type OcupacaoNaLinha } from 'dominio';
 import type { Consulta } from '../banco/banco.ts';
 import { vinculosDaEscala } from '../cadastros/escalas.ts';
 import { versaoNoMes } from '../cadastros/guarnicoes-regras.ts';
@@ -53,15 +53,6 @@ async function vinculosDoDia(c: Consulta, unidadeId: string, mes: string): Promi
     }
   }
   return porGuarnicao;
-}
-
-/** Corta cada falta nos horários dos vínculos: cada parte da vaga se escala por uma faixa (ou pelas faixas que a cobrem inteira). */
-function cortarNosVinculos(faltas: Falta[], vinculos: VinculoNoDia[]): Falta[] {
-  const cortes = [...new Set(vinculos.flatMap((v) => [v.intervalo.inicio, v.intervalo.fim]))].sort((a, b) => a - b);
-  return faltas.flatMap((f) => {
-    const pontos = [f.inicio, ...cortes.filter((x) => x > f.inicio && x < f.fim), f.fim];
-    return pontos.slice(0, -1).map((inicio, i) => ({ ...f, inicio, fim: pontos[i + 1]! }));
-  });
 }
 
 /** Quem está nas guarnições no dia: as alocações com data no dia (em qualquer escala da seção) e os acúmulos delas, no horário do turno. */
@@ -155,7 +146,7 @@ export async function montarEfetivoDoDia(c: Consulta, unidadeId: string, data: s
     }));
     const opcoesDa = (x: Intervalo): OpcaoDaVaga[] =>
       horarios.filter((h) => h.intervalo.inicio < x.fim && x.inicio < h.intervalo.fim).map((h) => ({ escalaId: h.escalaId, escala: h.escala, inicio: h.inicio, fim: h.fim }));
-    const funcoesNoPainel: FuncaoNoEfetivo[] = linhasDaGuarnicao(composicao, naLinha, cortarNosVinculos(faltas, horarios)).map((f) => ({
+    const funcoesNoPainel: FuncaoNoEfetivo[] = linhasDaGuarnicao(composicao, naLinha, faltas).map((f) => ({
       funcaoId: f.funcaoId,
       funcao: f.funcao,
       minimo: f.minimo,

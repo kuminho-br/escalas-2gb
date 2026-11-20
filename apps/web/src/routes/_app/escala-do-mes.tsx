@@ -127,7 +127,11 @@ function EscalaDoMes() {
       {dados.isPending && <p className="text-apagado">Carregando…</p>}
       {dados.error && <p role="alert" className="text-alerta">{mensagemDe(dados.error)}</p>}
       {dados.data && (
-        <div className="grid gap-3">
+        // um turno por dia em todo o mês (Defensoria, CPRH): os dias ficam lado a lado; basta um dia com mais de uma faixa para o mês todo ter um dia por linha
+        <div
+          data-dias-em-grade={dados.data.dias.length > 0 && dados.data.dias.every((d) => d.faixas.length <= 1) ? '' : undefined}
+          className={cn('grid gap-3', dados.data.dias.length > 0 && dados.data.dias.every((d) => d.faixas.length <= 1) && 'grid-cols-[repeat(auto-fill,minmax(min(100%,22rem),1fr))] items-start')}
+        >
           {dados.data.dias.map((d) => <DiaDaEscalaVista key={d.data} dia={d} soVazias={soVazias} aoEscolher={setVaga} aoRemover={(o, g, n, v) => void remover(o, g, n, v)} aoDesfazer={(id) => void desfazer(id)} />)}
         </div>
       )}

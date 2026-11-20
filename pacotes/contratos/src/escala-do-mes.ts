@@ -60,7 +60,8 @@ export type FaixaDoDia = {
   fim: string;
   /** atravessa a meia-noite ou começa às 18h ou depois */
   noturna: boolean;
-  turnos: { turnoId: string; servicoId: string; servico: string; letra: LetraTurno }[];
+  /** `cor`: a cor cadastrada do serviço (a etiqueta no título do turno) */
+  turnos: { turnoId: string; servicoId: string; servico: string; cor: string; letra: LetraTurno }[];
   guarnicoes: CardDaGuarnicao[];
   semPosto: OcupanteDaVaga[];
   removidos: { remocaoId: string; militarId: string; nomeGuerra: string; servico: string }[];

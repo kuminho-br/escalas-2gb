@@ -1,4 +1,4 @@
-// A régua do Efetivo por dia e o dia guardado no navegador.
+// A janela do dia do Efetivo por dia (as linhas de todos os cards seguem nela) e o dia guardado no navegador.
 import type { GuarnicaoNoEfetivo } from 'contratos';
 import { minutosDoDia } from 'dominio';
 
@@ -20,16 +20,11 @@ export function janelaDoDia(guarnicoes: GuarnicaoNoEfetivo[]): { inicio: number;
   return { inicio: Math.min(...pontos), fim: Math.max(...pontos) };
 }
 
-/** Os pontos de interesse: os inícios e fins dos horários vinculados, dentro da janela; a marca a menos de 4% da anterior some. */
-export function marcasDoDia(guarnicoes: GuarnicaoNoEfetivo[], janela: { inicio: number; fim: number }): number[] {
-  const todos = [...new Set(guarnicoes.flatMap((g) => g.horarios.flatMap((h) => intervalo(h) ?? [])))]
-    .filter((m) => m >= janela.inicio && m <= janela.fim)
-    .sort((a, b) => a - b);
-  const largura = janela.fim - janela.inicio || 1;
-  const marcas: number[] = [];
-  for (const m of todos) if (!marcas.length || (m - marcas[marcas.length - 1]!) / largura >= 0.04) marcas.push(m);
-  return marcas;
-}
+/** A janela do dia: do menor início ao maior fim, em minutos desde as 00h do dia. */
+export type Janela = { inicio: number; fim: number };
+
+/** A posição (em %) de um minuto do dia dentro da janela. */
+export const posicao = (janela: Janela, min: number) => `${((min - janela.inicio) / (janela.fim - janela.inicio || 1)) * 100}%`;
 
 const CHAVE = 'efetivo-por-dia:ultimo-dia';
 

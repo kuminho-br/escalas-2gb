@@ -25,7 +25,7 @@ const card = (motorista: boolean, combatente: boolean): CardDaGuarnicao => {
 };
 const faixa = (noturna: boolean, c: CardDaGuarnicao, extra: Partial<FaixaDoDia> = {}): FaixaDoDia => ({
   inicio: noturna ? '20:00' : '08:00', fim: noturna ? '08:00' : '20:00', noturna,
-  turnos: [{ turnoId: noturna ? 't-b' : 't-a', servicoId: 's1', servico: 'Pronto', letra: noturna ? 'B' : 'A' }], guarnicoes: [c], semPosto: [], removidos: [], ...extra,
+  turnos: [{ turnoId: noturna ? 't-b' : 't-a', servicoId: 's1', servico: 'Pronto', cor: '#2F8F5B', letra: noturna ? 'B' : 'A' }], guarnicoes: [c], semPosto: [], removidos: [], ...extra,
 });
 const dia = (n: number, feriado: string | null, faixas: FaixaDoDia[]): DiaDaEscala => ({
   data: `${MES}-0${n}`, diaDaSemana: n % 7, feriado, faixas, obrigatoriasVazias: faixas.reduce((s, f) => s + f.guarnicoes.reduce((t, g) => t + g.faltam.length, 0), 0),
@@ -118,6 +118,70 @@ describe('escala do mês', () => {
     expect(faixas[0]).toHaveAttribute('data-larga');
     expect(faixas[0]).toHaveClass('col-span-full');
     expect(faixas[1]).not.toHaveAttribute('data-larga');
+  });
+
+  it('o dia tem uma barra só, entre o número e as faixas, e a faixa não tem barra própria (4.2)', async () => {
+    api();
+    abrir('/escala-do-mes');
+    const d1 = await screen.findByRole('region', { name: 'Dia 1' });
+    const barras = d1.querySelectorAll('[data-barra-do-dia]');
+    expect(barras).toHaveLength(1);
+    expect(barras[0]!.previousElementSibling).toHaveTextContent('1');
+    expect(barras[0]!.nextElementSibling).toHaveAttribute('data-faixas-do-dia');
+    for (const f of d1.querySelectorAll('[data-faixa]')) expect(f.querySelector(':scope > [aria-hidden]')).toBeNull();
+  });
+
+  it('o título do turno mostra a etiqueta do serviço na cor cadastrada, depois do horário e da letra (4.2)', async () => {
+    const bioma = { ...faixa(false, card(true, true)), inicio: '08:00', fim: '16:00', turnos: [{ turnoId: 't-bi', servicoId: 's-bioma', servico: 'Bioma', cor: '#C97A00', letra: 'B' as const }] };
+    api({ ...ESCALA, dias: [dia(1, null, [bioma])] });
+    abrir('/escala-do-mes');
+    const f = (await screen.findByRole('region', { name: 'Dia 1' })).querySelector('[data-faixa]') as HTMLElement;
+    expect(within(f).getByText('08h–16h')).toBeInTheDocument();
+    expect(within(f).getByText('B')).toBeInTheDocument();
+    const etiqueta = within(f).getByText('Bioma');
+    expect(etiqueta).toHaveAttribute('data-etiqueta-servico');
+    expect(etiqueta).toHaveStyle({ backgroundColor: '#C97A00' });
+  });
+
+  it('uma faixa com vários serviços traz uma etiqueta para cada um', async () => {
+    const dupla = { ...faixa(false, card(true, true)), turnos: [
+      { turnoId: 't-a', servicoId: 's1', servico: 'Pronto', cor: '#2F8F5B', letra: 'A' as const },
+      { turnoId: 't-j', servicoId: 's2', servico: 'JES', cor: '#6E56A8', letra: 'A' as const },
+      { turnoId: 't-p', servicoId: 's1', servico: 'Pronto', cor: '#2F8F5B', letra: 'B' as const },
+    ] };
+    api({ ...ESCALA, dias: [dia(1, null, [dupla])] });
+    abrir('/escala-do-mes');
+    const f = (await screen.findByRole('region', { name: 'Dia 1' })).querySelector('[data-faixa]') as HTMLElement;
+    expect([...f.querySelectorAll('[data-etiqueta-servico]')].map((e) => e.textContent)).toEqual(['Pronto', 'JES']);
+  });
+
+  it('a escala com um turno por dia em todo o mês põe os dias em grade (Defensoria, CPRH) (4.2)', async () => {
+    api({ ...ESCALA, dias: ESCALA.dias.map((d) => ({ ...d, faixas: [d.faixas[0]!] })) });
+    abrir('/escala-do-mes');
+    await screen.findByRole('region', { name: 'Dia 1' });
+    const grade = document.querySelector('[data-dias-em-grade]') as HTMLElement;
+    expect(grade).not.toBeNull();
+    expect(grade).toHaveClass('grid-cols-[repeat(auto-fill,minmax(min(100%,22rem),1fr))]');
+    expect(grade.querySelectorAll(':scope > section')).toHaveLength(3);
+  });
+
+  it('um único dia com duas faixas tira a grade do mês todo (Review Focus 4)', async () => {
+    api({ ...ESCALA, dias: [dia(1, null, [faixa(false, card(true, true))]), dia(2, null, [faixa(false, card(true, true))]), dia(3, 'Feriado com turno extra', [faixa(false, card(true, true)), faixa(true, card(true, true))])] });
+    abrir('/escala-do-mes');
+    await screen.findByRole('region', { name: 'Dia 1' });
+    expect(document.querySelector('[data-dias-em-grade]')).toBeNull();
+  });
+
+  it('"Mostrar só vagas vazias" com dias em grade deixa só os dias com vaga vazia, sem buracos na grade (Review Focus 5)', async () => {
+    // dia 1 completo, dia 2 com vaga vazia, dia 3 completo
+    const completo = (n: number) => dia(n, null, [faixa(false, card(true, true))]);
+    api({ ...ESCALA, dias: [completo(1), dia(2, null, [faixa(false, card(true, false))]), completo(3)] });
+    abrir('/escala-do-mes');
+    await screen.findByRole('region', { name: 'Dia 1' });
+    await userEvent.click(screen.getByRole('button', { name: 'Mostrar só vagas vazias' }));
+    const grade = document.querySelector('[data-dias-em-grade]') as HTMLElement;
+    expect([...grade.children].map((c) => c.getAttribute('aria-label'))).toEqual(['Dia 2']);
+    expect([...grade.children].every((c) => (c.textContent ?? '').trim() !== '')).toBe(true);
   });
 
   it('a faixa da noite fica marcada e a do dia não', async () => {
@@ -543,8 +607,8 @@ describe('cotas restantes na escala do mês', () => {
   // a escala tem Pronto e JES nos turnos; o Bioma não faz parte dela
   const comJes = (): EscalaDoMes => {
     const turnos = [
-      { turnoId: 't-a', servicoId: 's1', servico: 'Pronto', letra: 'A' as const },
-      { turnoId: 't-j', servicoId: 's-jes', servico: 'JES', letra: 'A' as const },
+      { turnoId: 't-a', servicoId: 's1', servico: 'Pronto', cor: '#2F8F5B', letra: 'A' as const },
+      { turnoId: 't-j', servicoId: 's-jes', servico: 'JES', cor: '#6E56A8', letra: 'A' as const },
     ];
     return { ...ESCALA, dias: ESCALA.dias.map((d) => ({ ...d, faixas: d.faixas.map((f) => (f.noturna ? f : { ...f, turnos })) })) };
   };
