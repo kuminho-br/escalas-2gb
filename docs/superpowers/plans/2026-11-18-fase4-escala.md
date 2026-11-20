@@ -909,7 +909,7 @@ Decisão do usuário (19/11/2026): a entrega 3 sai em duas, cada uma com o seu P
 
 - **3.1 — Pré-escala do Pronto:** a equipe do dia 1 (detectada pelo mês anterior, com escolha manual), o preenchimento das vagas pela ordem de escala (o mais antigo apto em cada vaga), a prévia do que entra e do que fica de fora, e a gravação. Gerar de novo só completa lacunas e respeita as remoções.
 - **3.2 — Meta de ativação e Efetivo do dia** (nova, 20/11/2026): em 3.2.1 e 3.2.2, seção própria abaixo.
-- **3.3 (era a 3.2) — Buracos, saldos e operações:** completar as vagas que sobraram (JES e Saldo), as operações pelas cotas, a disposição da Escala do mês com os turnos lado a lado (pendência da 2.4) e a tela de login nova (decisão de 19/11/2026). **As regras de negócio da 3.2 ainda dependem do usuário** (lista no fim desta seção); ela é detalhada depois do merge da 3.1, com as respostas.
+- **3.3 — Efetivo por dia, turnos lado a lado e login novo** (refeita em 20/11/2026, depois da 3.2.2): o Efetivo por dia refeito (linha do tempo, escalar nele, meta implícita), a disposição da Escala do mês com os turnos lado a lado (pendência da 2.4) e a tela de login nova. Buracos (JES e Saldo), saldos do Adm e operações pelas cotas **saíram da 3.3** e esperam entrega marcada (decisão do usuário). **As regras de negócio da 3.2 ainda dependem do usuário** (lista no fim desta seção); ela é detalhada depois do merge da 3.1, com as respostas.
 
 **Spec:**
 - `docs/superpowers/specs/2026-11-16-migracao-design.md`, adendo de 17/11 "Pré-escala automática e ajustes do escalante": gerar de novo nunca sobrescreve; o removido não volta, mas outro militar pode ocupar a vaga.
@@ -1508,36 +1508,352 @@ Quem não pode mudar parâmetro só vê.
 
 ---
 
-# Entrega 3.3 — Alocar no Efetivo do dia, buracos, saldos, operações e a disposição da Escala do mês (era a 3.2; a detalhar depois da 3.2)
+# Entrega 3.3 — Efetivo por dia, Escala do mês com turnos lado a lado e login novo
 
-**Branch:** `fase4-3-3-distribuicoes`, a partir da `main` depois do merge da 3.2. As tarefas se detalham com as respostas do usuário às decisões abaixo. As tarefas previstas (numeração depois das da 3.2):
+**Branch:** `fase4-3-3-efetivo-por-dia`, a partir da `main` (depois do PR #40). Commits `Fase 4.3.3: …`; PR "Fase 4 — Entrega 3.3: Efetivo por dia, turnos lado a lado e login novo". **Sem migração.** Uma entrega só, sem subentregas (decisão do usuário, 20/11/2026).
 
-- **Alocar no Efetivo do dia** (decisão de 20/11/2026): o escalante clica na vaga e escolhe o serviço e o militar no próprio painel.
-- **Completar com JES** (decisão de 20/11/2026): o chefe escolhe um dia ou período, e o sistema preenche as guarnições da meta pela ordem de ativação e desconta da cota.
+**Spec:** adendo "Efetivo por dia" de `docs/superpowers/specs/2026-11-20-meta-de-ativacao-design.md`; adendo "depois da entrega 2.4" de `docs/superpowers/specs/2026-11-19-voluntariado-por-faixa-design.md` (turnos lado a lado); adendo "Login, tela inicial, módulos e Pecúlio" de `docs/superpowers/specs/2026-11-16-migracao-design.md` e o mockup `docs/telas/login-e-inicio/mockup.html`.
 
-- **Completar os buracos do Pronto.** As vagas que a 3.1 deixou vazias são completadas na mesma ordem de escala, com quem pode no turno. A prévia e a gravação seguem o padrão da 3.1, e a flexibilidade do voluntariado já vale aqui.
-- **Saldos do Adm.** `distribuirAdm` é adaptado às vagas, sempre com `servico` e `turno` preenchidos (pendência do motor).
-- **Operações pelas cotas.** As escalas de PJES e diária são preenchidas pelas cotas do mês. `distribuirCotas` é adaptado às vagas das guarnições e ao voluntariado por faixa; `diagnosticarOperacoes` explica o que ficou de fora.
-- **Disposição da Escala do mês** (pendência da 2.4, já decidida):
-  - os turnos do dia passam a uma grade responsiva de ~20rem;
-  - o turno com várias guarnições ocupa a linha inteira;
-  - o card volta à largura natural, com as funções uma embaixo da outra.
-- **Tela de login nova** (decisão de 19/11/2026, já decidida; mockup aprovado em `docs/telas/login-e-inicio/mockup.html`). Muda só a aparência de `apps/web/src/routes/entrar.tsx`, e o login segue igual: e-mail, senha e as mesmas mensagens de erro.
-  - **Fundo:** a foto do quartel com a bandeira, coberta de vinho do lado esquerdo.
-  - **Lado esquerdo:** o brasão do 2º GB, o título "Sistema de Gestão - 2º GB" e a linha "2º Grupamento de Bombeiros · Corpo de Bombeiros Militar de Pernambuco".
-  - **Lado direito:** o cartão de login atual.
-  - **No celular:** a foto em cima, com o brasão e o título, e o cartão subindo sobre ela, com campos e botão mais altos.
-  - **Arquivos:** o brasão do 2º GB e a foto vão para `apps/web/public`.
-  - **Fora desta tarefa:** "Esqueci minha senha" e a tela inicial com os módulos.
-  - **Testes:** os de `entrar` continuam passando, e o título novo aparece na tela.
+**Saíram da 3.3** (decisão do usuário, 20/11/2026): "completar com JES", saldos do Adm, operações pelas cotas e os buracos do Pronto. Ficam sem entrega marcada, com as quatro decisões que faltavam (no fim desta seção).
 
-**Decisões que faltam (do usuário, antes de detalhar a 3.3):**
-1. **Ordem dos buracos do Pronto.** Em parte respondida em 20/11/2026: no modelo atual do Ordinário o Saldo vem antes do JES, e isso é configuração, não código. Falta decidir onde essa ordem é configurada.
-2. **Saldo que não cabe.** Se as vagas acabarem antes de o militar do Adm completar os 6 saldos do mês, ele fica com menos (e a prévia avisa)? Ou o saldo entra em "Sem guarnição", como o Pronto que sobra?
-3. **Cota contra vaga, nas operações.** (Em 20/11/2026: a cota é mensal, diz quantas vezes se pode escalar no serviço, e o chefe decide os dias.) A cota (ex.: Bioma, N turnos no mês para a 1ª SB) limita quantas vagas da escala da operação a seção preenche? Quando a cota acaba antes das vagas, as vagas que sobram ficam vazias?
-4. **Voluntária e compulsória.** Primeiro quem marcou o horário no voluntariado (com a flexibilidade) e, se a cota não fechar, a compulsória entre quem pode, igualando quem tem menos, como no protótipo (RN-41 e RN-43)? Ou só a voluntária nesta versão?
+**Decisões desta entrega** (do usuário, no adendo; as minhas estão marcadas):
+- **Nome e endereço:** a tela é **"Efetivo por dia"**, em `/efetivo-por-dia`. O endereço antigo `/efetivo-do-dia` redireciona, levando a data. *Minha decisão:* a API mantém `efetivo-do-dia/:data` (é o efetivo de um dia; renomear só mexeria em código).
+- **Dia ao abrir** (*minha decisão*, proposta do adendo simplificada): sem `data` no endereço, abre no último dia que o escalante viu nesta tela (guardado no navegador, chave `efetivo-por-dia:ultimo-dia`, leitura e escrita em `try/catch`); sem ele, hoje. Continuam "Dia anterior", "Dia seguinte" e o campo de data.
+- **Linha do tempo:** cada guarnição mostra uma linha por vaga ocupada ou aberta de cada função, numa régua comum a toda a página. A vaga aparece na própria linha (âmbar listrado, como as vagas vazias da Escala do mês). Quem emenda turnos na mesma função e no mesmo serviço vira uma barra só. O trecho ocupado tem a cor do serviço.
+- **Régua** (*minha decisão*, seguindo o pedido de 19/11 para Serviços): vai do menor início ao maior fim do dia (horários vinculados e alocações); marca só os pontos de interesse (os inícios e fins dos horários vinculados), com uma linha vinho cheia em 00h e em 24h quando caem dentro da régua, e "D" e "D+1" embaixo quando passa da meia-noite. Uma marca a menos de 4% da anterior não é escrita.
+- **Escalar na vaga:** clicar na vaga abre a lista "Escolher militar" (o mesmo componente da Escala do mês) daquela escala e daquela faixa. Se a vaga cai em vínculos de mais de uma escala ou faixa (ex.: Ordinário 08h–20h e PE Seguro 08h–16h), primeiro se escolhe "Por qual escala?".
+- **Remover:** clicar num trecho ocupado mostra as alocações dele (uma por turno emendado) com "Remover" (ou "Tirar acúmulo", se for acúmulo), as mesmas ações da Escala do mês.
+- **Meta implícita:** saem o botão e o diálogo "Alterar a meta deste dia" e o campo "Até".
+  - "Tirar da meta" (no card da meta): sem ninguém escalado na guarnição no dia, tira direto. Com gente, pergunta: "Tirar e desescalar", "Só tirar da meta" ou "Cancelar" (decisão 1-b). "Só tirar" deixa o card fora da meta, sem número.
+  - "Adicionar guarnição" (no fim da lista): os modelos ativos da seção que não estão na meta do dia; entra no fim.
+  - "Subir" e "Descer" no card da meta: mudam a ordem de ativação do dia.
+  - "Voltar ao padrão" continua, quando o dia tem meta própria.
+  - Escalar numa guarnição fora da meta não a põe na meta (decisão 2-b).
+- **Quem mexe na meta do dia** (*minha decisão*): quem escala (`CADASTRO`), porque a meta do dia passou a ser consequência de escalar; a meta padrão continua com gestor e administrador (`ESCREVE_PARAMETRO`).
+- **Vínculo sem turno** (menor M3 adiado da 3.2.2): um vínculo cuja faixa não é mais a de nenhum turno dos serviços da escala não conta no dia. Assim a vaga nunca leva a uma faixa que a lista "Escolher militar" recusa.
+- **Sai o atalho "Abrir na Escala do mês"** do card (*minha decisão*): a vaga escala ali mesmo. O parâmetro `dia` da Escala do mês continua.
+- **Escala do mês:** os turnos do dia fluem numa grade de ~20rem; o turno com mais de uma guarnição ocupa a linha inteira; o card tem largura natural e as funções voltam a ficar uma embaixo da outra (proposta do adendo de 19/11, já registrada no roadmap).
+- **Login:** só a aparência muda, como no mockup aprovado; o login segue igual (e-mail, senha, as mesmas mensagens).
+
+**Review Focus da 3.3** (cada um tem teste na tarefa dona):
+1. **Vaga em duas escalas** (Ordinário 08–20 e PE Seguro 08–16 no mesmo modelo): a vaga de 08–16 oferece as duas; a de 16–20, só o Ordinário. Tarefas 47 e 50.
+2. **Vínculo cuja faixa não é mais turno da escala:** não gera horário, falta nem opção de vaga. Tarefa 47.
+3. **Militar que emenda os turnos A e B na mesma função:** uma barra só (08h–08h), e "Remover" mostra as duas alocações, cada uma com o seu horário. Tarefas 46, 47 e 50.
+4. **Tirar e desescalar uma guarnição em que alguém está por acúmulo** (escalado em outra guarnição): sai só o acúmulo, e ele continua na outra; as alocações da guarnição saem com a marca de remoção, como na Escala do mês. Tarefa 48.
+5. **Tirar da meta num dia que ainda segue o padrão, ou tirar a última guarnição:** o dia passa a ter meta própria (o padrão sem ela), e a lista pode ficar vazia; "Voltar ao padrão" desfaz. Tarefa 48.
+
+### Task 46: As linhas de cada função (motor)
+
+**Files:**
+- Create: `pacotes/dominio/src/linhas-do-tempo.ts` (exportar em `src/index.ts`; depois, `pnpm --filter dominio tipos`)
+- Test: `pacotes/dominio/test/linhas-do-tempo.test.ts` (regra só do sistema novo, sem caso gravado)
+
+**Interfaces:**
+- Consumes: `Intervalo`, `FuncaoExigida`, `Falta` de `ativacao.ts` (Tarefa 41).
+- Produces:
+  ```ts
+  export type OcupacaoNaLinha = Intervalo & { funcaoId: string; funcao: string; chave: string; indice: number };
+  export type TrechoDaLinha = (Intervalo & { tipo: 'ocupado'; indices: number[] }) | (Intervalo & { tipo: 'vaga' });
+  export type LinhasDaFuncao = { funcaoId: string; funcao: string; minimo: number; linhas: TrechoDaLinha[][] };
+  export function linhasDaGuarnicao(composicao: FuncaoExigida[], ocupacoes: OcupacaoNaLinha[], faltas: Falta[]): LinhasDaFuncao[];
+  ```
+  `chave` junta o mesmo militar no mesmo serviço; `indice` aponta para a ocupação de quem chama; `indices` são as ocupações juntadas no trecho.
+
+**A regra:**
+1. Funções na ordem da composição; depois as que só aparecem nas ocupações (fora do modelo), pelo nome, com `minimo` 0. Função sem ocupação e sem falta não entra.
+2. Ocupações da mesma função e da mesma `chave` que se encostam (o fim de uma é o início da outra) viram um trecho só.
+3. Cada falta vira `faltam` trechos de vaga com o horário dela.
+4. Os trechos, por início (no mesmo início: ocupado antes de vaga, o mais longo antes), vão para a primeira linha livre (último fim ≤ início), preferindo a que termina exatamente no início dele; sem linha livre, abre uma nova. Assim o número de linhas é o máximo de trechos ao mesmo tempo.
+
+- [ ] **Step 1: Write the failing tests:**
+  - `junta o militar que emenda turnos`: Motorista mínimo 1, ocupações `{480–1200, chave 'm1|pronto'}` e `{1200–1920, chave 'm1|pronto'}` → uma linha com um trecho `{ inicio: 480, fim: 1920, tipo: 'ocupado', indices: [0, 1] }`.
+  - `não junta serviços diferentes, mas mantém na mesma linha`: `{480–960, 'm1|diaria'}` e `{960–1200, 'm2|saldo'}` → uma linha, dois trechos.
+  - `a vaga entra na linha livre`: Auxiliar mínimo 2, horários 480–1920, uma ocupação 480–1200; faltas `[{480–1200, faltam 1}, {1200–1920, faltam 2}]` → duas linhas, e cada uma cobre de 480 a 1920 sem buraco.
+  - `gente além do mínimo abre linha`: Chefe mínimo 1, três ocupações 480–1200 de chaves diferentes → três linhas.
+  - `função fora do modelo vem depois, com mínimo 0`.
+  - `função sem ninguém e sem falta não aparece` (mínimo 0).
+- [ ] **Step 2: Run** `pnpm --filter dominio test -- linhas-do-tempo`. Expected: FAIL (módulo não existe).
+- [ ] **Step 3: Implement** em `linhas-do-tempo.ts`.
+- [ ] **Step 4: Run** `pnpm --filter dominio test` e `pnpm --filter dominio tipos`. Expected: PASS.
+- [ ] **Step 5: Commit** `Fase 4.3.3: linhas do tempo das funções (motor)`.
+
+### Task 47: Efetivo do dia com linhas, vagas que escalam e vínculos só de turnos que existem (API)
+
+**Files:**
+- Modify: `pacotes/contratos/src/efetivo-do-dia.ts`, `apps/api/src/efetivo/efetivo-do-dia.ts`
+- Test: `apps/api/test/efetivo-do-dia.test.ts`
+
+**Interfaces:**
+- Consumes: `linhasDaGuarnicao` (Tarefa 46); `avaliarAtivacao`, `intervaloDoTurno`, `unirIntervalos` (Tarefa 41).
+- Produces (contratos):
+  ```ts
+  export type AlocacaoNoTrecho = { alocacaoId: string; acumuloId: string | null; inicio: string; fim: string }; // HH:MM do turno
+  export type OpcaoDaVaga = { escalaId: string; escala: string; inicio: string; fim: string };          // a faixa do vínculo, HH:MM
+  export type TrechoNoEfetivo = {
+    inicio: number; fim: number;                       // minutos desde 00h do dia (passa de 1440 depois da meia-noite)
+    ocupante: { militarId: string; posto: string; nomeGuerra: string; servico: { id: string; nome: string; cor: string }; acumulo: boolean; alocacoes: AlocacaoNoTrecho[] } | null;
+    opcoes: OpcaoDaVaga[];                             // só na vaga: os vínculos da guarnição que se sobrepõem a ela, escalas pelo nome
+  };
+  export type FuncaoNoEfetivo = { funcaoId: string; funcao: string; minimo: number; cnhExigida: string | null; linhas: TrechoNoEfetivo[][] };
+  ```
+  Em `GuarnicaoNoEfetivo`: entra `funcoes: FuncaoNoEfetivo[]` e `alocados: number` (quantas alocações e acúmulos do dia estão nela, para a pergunta do "Tirar da meta"); sai `militares`; `FaltaNoEfetivo` perde `escalaId`. `MilitarNoEfetivo` sai do pacote.
+
+**Como montar:**
+- `vinculosDoDia` guarda também o nome da escala e a faixa (`inicio`, `fim` em HH:MM) e **descarta o vínculo cuja faixa não é a de nenhum turno dos serviços daquela escala** (`escala_servico` × `turno`, mesma consulta da rota de candidatos).
+- `entradasDoDia` passa a trazer `alocacao_id` e, no acúmulo, o `acumulo_id`.
+- `chave` da ocupação = `militarId|servicoId|acumulo` (acúmulo não se junta com a vaga original).
+- A vaga recebe em `opcoes` os vínculos cujo intervalo se sobrepõe ao trecho dela.
+
+- [ ] **Step 1: Write the failing tests** (no arquivo existente, ajustando os que liam `militares` e `escalaId`):
+  - `linhas: o militar dos turnos A e B vira um trecho só com as duas alocações` — Resgate no Ordinário 08–20 e 20–08, Motorista ALFA nos dois turnos → `funcoes[0].linhas` = `[[{ inicio: 480, fim: 1920, ocupante.nomeGuerra: 'ALFA', alocacoes.length: 2 }]]`.
+  - `vaga com as escalas que a cobrem` — mesmo modelo no Ordinário (08–20) e no PE Seguro (08–16), Auxiliar sem ninguém → a vaga de 480 a 960 tem `opcoes` com as duas escalas (pelo nome) e a de 960 a 1200 só o Ordinário.
+  - `vínculo sem turno não conta` — vínculo do Bioma em 00:00–00:00 sem turno com essa faixa → a guarnição fica "Sem horário vinculado" (`horarios` vazio), sem faltas e sem linhas de vaga.
+  - `alocados conta alocações e acúmulos do dia na guarnição`.
+  - `trecho de acúmulo traz o acumuloId`.
+- [ ] **Step 2: Run** `cd apps/api && npx vitest run --maxWorkers=1 test/efetivo-do-dia.test.ts`. Expected: FAIL.
+- [ ] **Step 3: Implement.**
+- [ ] **Step 3b: Ajuste mínimo no site** para o typecheck não ficar vermelho: o `CardDoEfetivo` atual deixa de listar `militares` e de usar `escalaId` (mostra só as faltas, sem atalho), e os testes do site que liam esses campos são ajustados. A tela nova vem na Tarefa 49.
+- [ ] **Step 4: Run** o arquivo, a suíte da API (`--no-file-parallelism`), a suíte do site e `pnpm typecheck`. Expected: PASS.
+- [ ] **Step 5: Commit** `Fase 4.3.3: efetivo do dia com linhas e vagas (API)`.
+
+### Task 48: Meta do dia sem intervalo, de quem escala, e "Tirar da meta" (API)
+
+**Files:**
+- Modify: `pacotes/contratos/src/meta.ts`, `apps/api/src/efetivo/meta.ts`, `apps/api/src/efetivo/rotas.ts`
+- Test: `apps/api/test/meta.test.ts`
+
+**Interfaces:**
+- Produces:
+  - `NovaMetaDoDia = z.object({ guarnicoes: z.array(Id).max(100) })` com a mesma recusa de repetidos (sai `ate`).
+  - `TirarDaMeta = z.object({ guarnicaoId: Id, desescalar: z.boolean() })`.
+  - `gravarMetaDoDia(tx, unidadeId, data, guarnicoes): Promise<void>` (um dia só); saem `MAXIMO_DE_DIAS_DA_META` e `diasContados`.
+  - `tirarDaMeta(tx, unidadeId, data, guarnicaoId, desescalar, usuarioId): Promise<void>`.
+  - Rota `POST /unidades/:u/meta-do-dia/:data/tirar` → devolve `EfetivoDoDia` (`montarEfetivoDoDia`).
+  - `PUT` e `DELETE /unidades/:u/meta-do-dia/:data` passam a `CADASTRO`; `PUT /meta-padrao` continua `ESCREVE_PARAMETRO`.
+
+**`tirarDaMeta`, numa transação:**
+1. A meta do dia (`metaDoDia`); se a guarnição não está nela: `Recusa('Esta guarnição não está na meta deste dia.')` → 409.
+2. Grava a meta do dia sem ela (mesmo que o dia seguisse o padrão; pode ficar vazia).
+3. Com `desescalar`: os acúmulos nessa guarnição de alocações do dia saem (`tirarAcumulo`), e depois as alocações do dia nessa guarnição, em qualquer escala da seção, saem com `remover(tx, id, usuarioId)` (com a marca de remoção, como na Escala do mês).
+
+- [ ] **Step 1: Write the failing tests** (ajustando os testes de "Até", que saem):
+  - `PUT meta-do-dia com 'ate' é ignorado` (zod sem o campo; grava só o dia) e `o escalante grava a meta do dia` (200; antes era 403).
+  - `o escalante não grava a meta padrão` (403, continua).
+  - `tirar num dia que segue o padrão`: padrão [g1, g2] → tirar g1 → `metaDoDia` = origem `'dia'`, [g2]; o dia seguinte continua no padrão.
+  - `tirar a última guarnição deixa o dia sem meta` (origem `'dia'`, lista vazia).
+  - `tirar sem desescalar mantém as alocações` e a resposta traz a guarnição fora da meta (`ordem: null`).
+  - `tirar e desescalar`: ALFA alocado em g1 (marca de remoção criada) e BRAVO alocado em g2 com acúmulo em g1 → ALFA sai; BRAVO continua em g2 sem o acúmulo.
+  - `tirar guarnição que não está na meta` → 409 com a frase.
+- [ ] **Step 2: Run** `cd apps/api && npx vitest run --maxWorkers=1 test/meta.test.ts`. Expected: FAIL.
+- [ ] **Step 3: Implement.**
+- [ ] **Step 4: Run** a suíte da API e `pnpm --filter api typecheck`. Expected: PASS.
+- [ ] **Step 5: Commit** `Fase 4.3.3: meta do dia de quem escala e tirar da meta (API)`.
+
+### Task 49: Tela "Efetivo por dia" com a linha do tempo
+
+**Files:**
+- Create:
+  - `apps/web/src/routes/_app/efetivo-por-dia.tsx` (`validateSearch` com `data?: string`);
+  - `apps/web/src/componentes/efetivo-por-dia/LinhaDoTempoDaGuarnicao.tsx`;
+  - `apps/web/src/componentes/efetivo-por-dia/ReguaDoEfetivo.tsx`;
+  - `apps/web/src/lib/efetivo.ts`: `janelaDoDia(guarnicoes: GuarnicaoNoEfetivo[]): { inicio: number; fim: number } | null` e `marcasDoDia(guarnicoes, janela): number[]` (pontos de interesse, sem marca a menos de 4% da anterior); `ultimoDiaVisto(): string | null` e `guardarUltimoDia(data: string): void` (try/catch).
+- Modify:
+  - `apps/web/src/routes/_app/efetivo-do-dia.tsx` vira só o redirecionamento para `/efetivo-por-dia` com a mesma `data`;
+  - `apps/web/src/componentes/Trilho.tsx` ("Efetivo por dia", `para: '/efetivo-por-dia'`);
+  - mover `componentes/efetivo-do-dia/` para `componentes/efetivo-por-dia/` (`CardDoEfetivo` refeito, `EditorDaMeta` continua usado por Configurações);
+  - `routeTree.gen.ts`.
+- Test: `apps/web/src/__testes__/efetivo-por-dia.test.tsx` (renomeia e refaz `efetivo-do-dia.test.tsx`), `apps/web/src/__testes__/casca.test.tsx` (nome no trilho).
+
+**Interfaces:** Consumes `EfetivoDoDia`, `FuncaoNoEfetivo`, `TrechoNoEfetivo` (Tarefa 47); `textoMinutos` de `lib/turnos.ts`; `corDoTexto`.
+
+**O que a tela mostra:**
+- Título "Efetivo por dia".
+- A navegação de hoje: anterior, data e seguinte.
+- A linha "Meta do dia…" e as cotas restantes.
+- A régua, uma vez, acima dos cards.
+- Os cards um embaixo do outro, na largura toda.
+
+**Cada card** tem o número (só na meta), o nome, a viatura e "ativada" ou "não ativada". Embaixo vem uma linha por `linhas[i]`:
+- o nome da função, só na primeira linha dela;
+- os trechos posicionados em `%` da janela.
+
+**Os trechos:**
+- **Ocupado:** fundo da cor do serviço, com "POSTO NOME" cortado com reticências. Nome acessível: "Motorista: SD BM ALFA, 08h–08h, Pronto".
+- **Vaga:** âmbar listrado. Nome acessível: "Motorista: vaga 20h–08h".
+- Os dois são botões; a ação deles entra nas Tarefas 50 e 51. Nesta tarefa, são botões sem ação.
+
+**As faltas** continuam escritas embaixo da linha do tempo, como hoje ("Falta 1 Motorista 20h–08h"), sem o atalho.
+
+**No celular:** o nome da função fica acima da barra.
+
+- [ ] **Step 1: Write the failing tests** (`simularApi`, com o `EfetivoDoDia` novo):
+  - **Navegação e nome:**
+    - o trilho mostra "Efetivo por dia" e leva a `/efetivo-por-dia`;
+    - `/efetivo-do-dia?data=2026-12-12` vai para `/efetivo-por-dia?data=2026-12-12`.
+  - **Dia ao abrir:**
+    - sem `data`, com `localStorage['efetivo-por-dia:ultimo-dia'] = '2026-12-12'`, pede a rota de 2026-12-12;
+    - sem nada guardado, pede a de hoje;
+    - ir para o dia seguinte guarda `2026-12-13`.
+  - **Linha do tempo:**
+    - o card mostra o botão "Motorista: SD BM ALFA, 08h–08h, Pronto" e o "Motorista: vaga 20h–08h";
+    - a régua marca "08h" e "20h" e mostra "D" e "D+1" quando a janela passa de 1440.
+  - **Cards:**
+    - fora da meta, o card não tem número;
+    - "Sem horário vinculado neste dia" continua.
+  - **Unidade:** `janelaDoDia` e `marcasDoDia`, em que uma marca a 2% da anterior some.
+- [ ] **Step 2: Run** `cd apps/web && npx vitest run --maxWorkers=1 src/__testes__/efetivo-por-dia.test.tsx`. Expected: FAIL.
+- [ ] **Step 3: Implement.** Use `frontend-design` para a linha do tempo (o resto segue o visual das telas atuais). Vermelho só para erro; vaga em âmbar.
+- [ ] **Step 4: Run** a suíte do site e `pnpm typecheck`. Expected: PASS.
+- [ ] **Step 5: Commit** `Fase 4.3.3: tela Efetivo por dia com a linha do tempo`.
+
+### Task 50: Escalar e remover no Efetivo por dia
+
+**Files:**
+- Create: `apps/web/src/componentes/efetivo-por-dia/EscolherEscalaDaVaga.tsx`, `apps/web/src/componentes/efetivo-por-dia/AlocacoesDoTrecho.tsx`
+- Modify: `apps/web/src/componentes/efetivo-por-dia/LinhaDoTempoDaGuarnicao.tsx`, `apps/web/src/routes/_app/efetivo-por-dia.tsx`
+- Test: `apps/web/src/__testes__/efetivo-por-dia.test.tsx`
+
+**Interfaces:**
+- Consumes:
+  - `EscolherMilitar({ escalaId, vaga, aoFechar })` e `VagaDaTela` (existentes);
+  - `removerAlocacao` e `tirarAcumulo` de `api/escala-do-mes.ts` (já invalidam `['efetivo-do-dia']`);
+  - `TrechoNoEfetivo.opcoes` e `.ocupante.alocacoes` (Tarefa 47).
+- **Vaga clicada:**
+  - Com uma opção, abre direto `EscolherMilitar` com `escalaId` e `vaga = { data, inicio, fim, guarnicaoId, guarnicao, funcaoId, funcao, cnhExigida }`. `inicio` e `fim` são os da opção (a faixa do vínculo).
+  - Com mais de uma opção, abre primeiro "Por qual escala?", com um botão por opção ("Ordinário 08h–20h").
+- **Trecho ocupado clicado:** abre um diálogo com o militar e uma linha por alocação: "08h–20h" e o botão "Remover", ou "Tirar acúmulo" quando `acumuloId`.
+
+- [ ] **Step 1: Write the failing tests:**
+  - **Vaga:**
+    - com uma opção, clicar em "Motorista: vaga 20h–08h" pede os candidatos de `/api/escalas/e-ord/mes/2026-12/candidatos?data=2026-12-12&inicio=20:00&fim=08:00&guarnicaoId=g2&funcaoId=f-Motorista`;
+    - escolher um apto faz `POST /api/escalas/e-ord/alocacoes` e pede o efetivo do dia de novo;
+    - com duas opções, aparece "Por qual escala?" com "Ordinário 08h–20h" e "PE Seguro 08h–16h", e a escolhida define a escala dos candidatos.
+  - **Trecho ocupado:**
+    - mostra as duas alocações de ALFA (08h–20h e 20h–08h), e "Remover" na segunda chama `DELETE /api/alocacoes/a-2`;
+    - num trecho de acúmulo, "Tirar acúmulo" chama `DELETE /api/acumulos/ac-1`.
+  - **Fora da meta:** escalar na vaga de uma guarnição fora da meta não faz nenhum `PUT` na meta do dia (decisão 2-b).
+- [ ] **Step 2: Run** o arquivo. Expected: FAIL.
+- [ ] **Step 3: Implement.**
+- [ ] **Step 4: Run** a suíte do site e `pnpm --filter web typecheck`. Expected: PASS.
+- [ ] **Step 5: Commit** `Fase 4.3.3: escalar e remover no Efetivo por dia`.
+
+### Task 51: Meta do dia pela própria tela
+
+**Files:**
+- Create: `apps/web/src/componentes/efetivo-por-dia/TirarDaMeta.tsx`, `apps/web/src/componentes/efetivo-por-dia/AdicionarGuarnicao.tsx`
+- Delete: `componentes/efetivo-por-dia/AlterarMetaDoDia.tsx`
+- Modify: `apps/web/src/api/efetivo-do-dia.ts`, `apps/web/src/componentes/efetivo-por-dia/CardDoEfetivo.tsx`, `apps/web/src/routes/_app/efetivo-por-dia.tsx`
+- Test: `apps/web/src/__testes__/efetivo-por-dia.test.tsx`
+
+**Interfaces:**
+- Consumes:
+  - `PUT /meta-do-dia/:data` com `{ guarnicoes }` e `POST /meta-do-dia/:data/tirar` (Tarefa 48);
+  - `GuarnicaoNoEfetivo.alocados` (Tarefa 47);
+  - `consultaGuarnicoes` (existente, para os modelos ativos da seção no mês do dia).
+- Produces, em `api/efetivo-do-dia.ts`:
+  - `gravarMetaDoDia(queryClient, unidadeId, data, guarnicoes: string[])`, sem `ate`;
+  - `tirarDaMeta(queryClient, unidadeId, data, guarnicaoId, desescalar)`, que invalida `['efetivo-do-dia']`, `['escala-do-mes']`, `['cotas']` e `['candidatos']`.
+- **No card da meta**, para quem escala:
+  - "Subir" e "Descer", com o mesmo cuidado de foco do `EditorDaMeta`. Gravam a lista do dia com a guarnição trocada de lugar.
+  - "Tirar da meta":
+    - com `alocados === 0`, grava direto;
+    - com gente, abre o diálogo "Há 3 militares escalados no Resgate neste dia." com os botões "Tirar e desescalar", "Só tirar da meta" e "Cancelar".
+- **No fim da lista**, "Adicionar guarnição". Mostra os modelos ativos que não estão na meta do dia, inclusive os de fora da meta que já têm gente. O escolhido entra no fim.
+- **"Voltar ao padrão"** aparece para quem escala.
+
+- [ ] **Step 1: Write the failing tests:**
+  - **Subir e tirar sem gente:**
+    - "Subir" no 2º envia `{ guarnicoes: ['g3','g2'] }`;
+    - "Tirar da meta" num card com `alocados: 0` envia o `POST …/tirar` com `{ guarnicaoId, desescalar: false }`, sem perguntar.
+  - **Tirar com gente:**
+    - com `alocados: 3`, aparece a pergunta;
+    - "Tirar e desescalar" envia `desescalar: true`;
+    - "Só tirar da meta" envia `false`;
+    - "Cancelar" não envia nada.
+  - **Adicionar guarnição:**
+    - lista o ABT, que está fora da meta mas tem gente;
+    - não lista os que já estão na meta;
+    - o ABT escolhido vai para o fim (`['g2','g3','g1']`).
+  - **Permissões e o que saiu:**
+    - um usuário só com papel de escalante vê "Tirar da meta", "Subir" e "Adicionar guarnição";
+    - "Alterar a meta deste dia" não existe mais.
+- [ ] **Step 2: Run** o arquivo. Expected: FAIL.
+- [ ] **Step 3: Implement.**
+- [ ] **Step 4: Run** a suíte do site e `pnpm typecheck`. Expected: PASS.
+- [ ] **Step 5: Commit** `Fase 4.3.3: meta do dia pela própria tela`.
+
+### Task 52: Escala do mês com os turnos lado a lado
+
+**Files:**
+- Modify: `apps/web/src/componentes/escala-do-mes/DiaDaEscala.tsx`, `apps/web/src/componentes/escala-do-mes/CardDaGuarnicao.tsx`
+- Test: `apps/web/src/__testes__/escala-do-mes.test.tsx`
+
+**A disposição** (adendo de 19/11 depois da 2.4):
+- As faixas do dia vão num contêiner `data-faixas-do-dia` com `grid-cols-[repeat(auto-fill,minmax(min(100%,20rem),1fr))]`.
+- A faixa com mais de uma guarnição recebe `data-larga` e `col-span-full`.
+- Dentro da faixa, os cards ficam lado a lado, como hoje, com `minmax(min(100%,18rem),1fr)`.
+- No card, as funções voltam a uma coluna (`data-funcoes` sem a grade de 11rem).
+
+O jsdom não mede largura, então os testes conferem a estrutura.
+
+- [ ] **Step 1: Write the failing tests:**
+  - **Bioma** (três faixas, uma guarnição cada): as três faixas ficam no mesmo `data-faixas-do-dia`, e nenhuma tem `data-larga`.
+  - **Ordinário** (faixa 08–20 com três guarnições): a faixa tem `data-larga`.
+  - **Card:** `data-funcoes` não tem a classe `auto-fill`.
+- [ ] **Step 2: Run** `cd apps/web && npx vitest run --maxWorkers=1 src/__testes__/escala-do-mes.test.tsx`. Expected: FAIL.
+- [ ] **Step 3: Implement.**
+- [ ] **Step 4: Run** a suíte do site. Expected: PASS.
+- [ ] **Step 5: Commit** `Fase 4.3.3: turnos do dia lado a lado na Escala do mês`.
+
+### Task 53: Tela de login nova
+
+**Files:**
+- Create:
+  - `apps/web/public/brasao-2gb.png`, copiado de `docs/telas/login-e-inicio/img/brasao-2gb.png`;
+  - `apps/web/public/quartel.png`, copiado de `docs/telas/login-e-inicio/img/quartel-mastro.png`, a foto do quartel com a bandeira.
+- Modify: `apps/web/src/routes/entrar.tsx`
+- Test: `apps/web/src/__testes__/entrar.test.tsx`
+
+Siga o mockup `docs/telas/login-e-inicio/mockup.html` (leia-o inteiro antes).
+
+**Computador:**
+- Fundo: a foto, coberta de vinho do lado esquerdo.
+- Lado esquerdo: o brasão do 2º GB, o título "Sistema de Gestão - 2º GB" e a linha "2º Grupamento de Bombeiros · Corpo de Bombeiros Militar de Pernambuco".
+- Lado direito: o cartão de login atual.
+
+**Celular:**
+- A foto em cima, com o brasão e o título.
+- O cartão sobe sobre a foto, com campos e botão mais altos.
+
+O login segue igual: e-mail, senha e as mesmas mensagens de erro. Ficam de fora "Esqueci minha senha" e a tela inicial com os módulos.
+
+- [ ] **Step 1: Write the failing tests:**
+  - a tela tem o título "Sistema de Gestão - 2º GB";
+  - o brasão tem `alt` "Brasão do 2º GB";
+  - os testes de login que já existem continuam iguais.
+- [ ] **Step 2: Run** `cd apps/web && npx vitest run --maxWorkers=1 src/__testes__/entrar.test.tsx`. Expected: FAIL no título.
+- [ ] **Step 3: Implement.** O tamanho das imagens entra no `build:vercel`; se a foto passar de ~500 KB, gere uma versão `.jpg` menor.
+- [ ] **Step 4: Run** a suíte do site, `pnpm typecheck` e `pnpm build:vercel`. Expected: PASS.
+- [ ] **Step 5: Commit** `Fase 4.3.3: tela de login nova`. No fim da entrega:
+  - atualizar as contagens no `CLAUDE.md` local;
+  - `pnpm test && pnpm typecheck && pnpm build:vercel`;
+  - revisão final (Opus);
+  - PR com a lista curta para a sandbox.
+
+**Fora da 3.3, sem entrega marcada** (decisão do usuário, 20/11/2026). Continuam valendo as decisões que faltavam:
+1. **Ordem dos buracos do Pronto.** Em parte respondida em 20/11/2026: o Saldo vem antes do JES no Ordinário, e isso é configuração. Falta decidir onde essa ordem se configura.
+2. **Saldo que não cabe.** O militar do Adm fica com menos saldos (com aviso), ou o saldo vai para "Sem guarnição"?
+3. **Cota contra vaga, nas operações.** A cota limita quantas vagas a seção preenche, e as que sobram ficam vazias?
+4. **Voluntária e compulsória.** A compulsória iguala quem tem menos (RN-41, RN-43), ou nesta versão entra só a voluntária?
+
+Os itens que esperam essas decisões:
+- **"Completar com JES":** o chefe escolhe o dia ou o período, e o sistema preenche pela ordem de ativação, descontando da cota.
+- **Completar os buracos do Pronto.**
+- **Saldos do Adm:** `distribuirAdm` passa a trabalhar com vagas, sempre com `servico` e `turno` preenchidos.
+- **Operações pelas cotas:** `distribuirCotas` e `diagnosticarOperacoes` passam a usar vagas e o voluntariado por faixa.
 
 ---
+
 
 # Entregas 3 a 6 (a detalhar antes de cada uma)
 
@@ -1545,7 +1861,7 @@ Cada uma ganha aqui as suas tarefas, no formato da entrega 1, depois do merge da
 
 - **Entrega 2.3 — Ajustes do voluntariado:** detalhada acima (Tarefas 22 a 27). A pré-escala (3) usa a flexibilidade ao filtrar quem pode ocupar cada vaga e nunca escala quem está fora do voluntariado.
 - **Entrega 2.4 — Acabamento do voluntariado e da escala do mês:** detalhada acima (Tarefas 28 a 31).
-- **Entrega 3 — Pré-escala e distribuições:** 3.1 (detalhada acima, Tarefas 32 a 35), 3.2 (meta de ativação e Efetivo do dia, em 3.2.1 e 3.2.2, a detalhar) e 3.3 (a antiga 3.2: tarefas previstas e decisões que faltam acima).
+- **Entrega 3 — Pré-escala e distribuições:** 3.1 (Tarefas 32 a 35), 3.2.1 (Tarefas 36 a 40), 3.2.2 (Tarefas 41 a 45) e 3.3 (Efetivo por dia, turnos lado a lado e login novo, Tarefas 46 a 53). "Completar com JES", saldos do Adm, operações pelas cotas e buracos do Pronto saíram da 3.3 e esperam entrega marcada (lista no fim da 3.3).
 - **Entrega 4 — Grade geral:** consulta do mês por militar (agrupada por equipe, Adm à parte), blocos por serviço com a letra em ordem de início, turno que atravessa a meia-noite só no dia em que começa, choques do motor com contorno vermelho, feriados e fins de semana, pegas de pedidas por PJES e Diária; ficha lateral com Trocar, Remover e "Adicionar serviço neste dia", reaproveitando as rotas da entrega 1.
 - **Entrega 5 — Gerar documento:** Configurações › Modelos de impressão (enviar com conferência dos marcadores, baixar o atual, versões); geração da escala publicada com ExcelJS a partir do modelo vigente da unidade, respeitando `militares_doc` e `dias_doc` da escala; `documento_gerado` guardado e baixável; PDF fica para quando o serviço existir.
 - ~~**Entrega 6 — Minha escala**~~: saiu da fase 4 (decisão do usuário, 19/11/2026). O conteúdo previsto continua valendo e vai para a etapa "Tipos de usuário e módulos" do roadmap: a rota e a tela do militar comum (os próprios serviços do mês, com serviço, turno, horário e quem compõe a guarnição com ele) e o acesso às escalas publicadas da unidade em que ele está lotado.

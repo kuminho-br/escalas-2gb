@@ -181,6 +181,8 @@ Aux. linha   ████ IZAIAS ███████████████  
 - **Alterar vários dias de uma vez foi abandonado** (decisão do usuário). Mudança que vale por um período vai pela meta padrão com data. *Minha decisão:* o campo "Até" sai da tela; se a API o mantém ou não fica para o plano da 3.3.
 - A meta padrão continua em Configurações › Meta de ativação, como na 3.2.2.
 
+**Escopo da 3.3 (decisão do usuário, 20/11/2026):** uma entrega só, com o Efetivo por dia refeito e escalar nele, os turnos lado a lado na Escala do mês e a tela de login nova. "Completar com JES", saldos do Adm e operações pelas cotas saem da 3.3 e esperam entrega marcada. Plano: `docs/superpowers/plans/2026-11-18-fase4-escala.md`, Tarefas 46 a 53.
+
 **4. As quatro telas principais e a "Escala por militar" (decisão do usuário).**
 
 | Tela | Quem | Quando |
