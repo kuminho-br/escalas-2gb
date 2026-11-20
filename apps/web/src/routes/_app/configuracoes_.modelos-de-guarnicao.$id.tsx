@@ -140,6 +140,12 @@ function Situacao({ ficha }: { ficha: FichaGuarnicao }) {
     }
   }
 
+  // só o "Desativar agora" pergunta: vale já neste mês e muda o que as escalas usam; os outros caminhos são marcados ou desfazem
+  function desativarAgora() {
+    if (!window.confirm(`Desativar o modelo ${ficha.nome} agora? As escalas deixam de usá-lo a partir de ${mesPorExtenso(mes)}.`)) return;
+    void mudar(false, mes);
+  }
+
   return (
     <div className="grid justify-items-end gap-2 text-sm">
       <div className="flex flex-wrap items-center justify-end gap-2">
@@ -157,7 +163,7 @@ function Situacao({ ficha }: { ficha: FichaGuarnicao }) {
         )}
         {!desde && (
           <>
-            <Button type="button" size="sm" variant="outline" onClick={() => void mudar(false, mes)}>Desativar agora</Button>
+            <Button type="button" size="sm" variant="outline" onClick={() => desativarAgora()}>Desativar agora</Button>
             <Button type="button" size="sm" variant="ghost" onClick={() => setEscolhendo(!escolhendo)}>Desativar a partir de…</Button>
           </>
         )}

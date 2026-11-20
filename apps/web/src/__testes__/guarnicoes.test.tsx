@@ -1,5 +1,5 @@
 import { mesPorExtenso, type FichaGuarnicao, type LinhaGuarnicao } from 'contratos';
-import { act, fireEvent, screen, waitFor, within } from '@testing-library/react';
+import { act, cleanup, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { MENSAGEM_PENDENTE } from '@/componentes/AlteracoesPendentes';
@@ -215,11 +215,53 @@ describe('ficha da guarnição', () => {
     await waitFor(() => expect(screen.queryByLabelText('Novo nome de Combatente')).toBeNull());
   });
 
-  it('desativar agora envia o mês corrente', async () => {
+  it('"Desativar agora" pergunta antes e, cancelado, não grava', async () => {
+    const confirmar = vi.spyOn(window, 'confirm').mockReturnValue(false);
+    const f = api({ 'POST /api/guarnicoes/g1/situacao': { status: 200, corpo: FICHA } });
+    abrir('/configuracoes/modelos-de-guarnicao/g1');
+    await userEvent.click(await screen.findByRole('button', { name: 'Desativar agora' }));
+    expect(confirmar).toHaveBeenCalledTimes(1);
+    expect(confirmar).toHaveBeenCalledWith(`Desativar o modelo ${FICHA.nome} agora? As escalas deixam de usá-lo a partir de ${mesPorExtenso(mesAtual())}.`);
+    expect(chamadasA(f, 'POST /api/guarnicoes/g1/situacao')).toBe(0);
+    confirmar.mockRestore();
+  });
+
+  it('confirmado, desativa no mês atual', async () => {
+    const confirmar = vi.spyOn(window, 'confirm').mockReturnValue(true);
     const f = api({ 'POST /api/guarnicoes/g1/situacao': { status: 200, corpo: FICHA } });
     abrir('/configuracoes/modelos-de-guarnicao/g1');
     await userEvent.click(await screen.findByRole('button', { name: 'Desativar agora' }));
     await waitFor(() => expect(corpoEnviado(f, 'POST /api/guarnicoes/g1/situacao')).toEqual({ ativa: false, aPartirDe: mesAtual() }));
+    confirmar.mockRestore();
+  });
+
+  it('"Desativar a partir de…", "Reativar agora" e "Cancelar desativação" não perguntam', async () => {
+    const confirmar = vi.spyOn(window, 'confirm').mockReturnValue(false);
+    const f = api({
+      'GET /api/guarnicoes/g11': { status: 200, corpo: { ...FICHA, id: 'g11', desativadaAPartirDe: '2026-01' } },
+      'GET /api/guarnicoes/g12': { status: 200, corpo: { ...FICHA, id: 'g12', desativadaAPartirDe: '2099-01' } },
+      'POST /api/guarnicoes/g1/situacao': { status: 200, corpo: FICHA },
+      'POST /api/guarnicoes/g11/situacao': { status: 200, corpo: FICHA },
+      'POST /api/guarnicoes/g12/situacao': { status: 200, corpo: FICHA },
+    });
+    // a partir de um mês
+    abrir('/configuracoes/modelos-de-guarnicao/g1');
+    await userEvent.click(await screen.findByRole('button', { name: 'Desativar a partir de…' }));
+    fireEvent.change(screen.getByLabelText('Desativar a partir de'), { target: { value: '2099-05' } });
+    await userEvent.click(screen.getByRole('button', { name: 'Desativar a partir de maio de 2099' }));
+    await waitFor(() => expect(corpoEnviado(f, 'POST /api/guarnicoes/g1/situacao')).toEqual({ ativa: false, aPartirDe: '2099-05' }));
+    // reativar agora
+    cleanup();
+    abrir('/configuracoes/modelos-de-guarnicao/g11');
+    await userEvent.click(await screen.findByRole('button', { name: 'Reativar agora' }));
+    await waitFor(() => expect(corpoEnviado(f, 'POST /api/guarnicoes/g11/situacao')).toEqual({ ativa: true, aPartirDe: mesAtual() }));
+    // cancelar a desativação marcada
+    cleanup();
+    abrir('/configuracoes/modelos-de-guarnicao/g12');
+    await userEvent.click(await screen.findByRole('button', { name: 'Cancelar desativação' }));
+    await waitFor(() => expect(corpoEnviado(f, 'POST /api/guarnicoes/g12/situacao')).toEqual({ ativa: true, aPartirDe: '2099-01' }));
+    expect(confirmar).not.toHaveBeenCalled();
+    confirmar.mockRestore();
   });
 
   it('desativar a partir de envia o mês escolhido', async () => {
@@ -241,12 +283,14 @@ describe('ficha da guarnição', () => {
       'POST /api/guarnicoes/g1/situacao': { status: 200, corpo: inativa },
     };
     simularApi(rotas);
+    const confirmar = vi.spyOn(window, 'confirm').mockReturnValue(true);
     abrir('/configuracoes/modelos-de-guarnicao/g1');
     const desativar = await screen.findByRole('button', { name: 'Desativar agora' });
     rotas['GET /api/guarnicoes/g1'] = { status: 200, corpo: inativa };
     await userEvent.click(desativar);
     await screen.findByText('Desativada desde janeiro de 2026.');
     expect(await screen.findByRole('button', { name: 'Reativar agora' })).toBeInTheDocument();
+    confirmar.mockRestore();
   });
 
   it('guarnição desativada mostra reativar agora', async () => {
@@ -396,7 +440,8 @@ describe('guarnições: singular, ordem, versões e composição', () => {
 
 describe('revisão final: guarnição', () => {
   it('Desativar agora com a composição pendente pergunta e, cancelando, não perde a edição', async () => {
-    const confirmar = vi.spyOn(window, 'confirm').mockReturnValue(false);
+    // aceita a pergunta da desativação e recusa a da edição pendente
+    const confirmar = vi.spyOn(window, 'confirm').mockImplementation((mensagem) => mensagem !== MENSAGEM_PENDENTE);
     const f = api({ 'POST /api/guarnicoes/g1/situacao': { status: 200, corpo: FICHA } });
     abrir('/configuracoes/modelos-de-guarnicao/g1');
     await userEvent.click(await screen.findByRole('button', { name: 'Incluir função' }));
