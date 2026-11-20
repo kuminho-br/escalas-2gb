@@ -160,7 +160,7 @@ Os cadastros estão prontos, mas foram feitos em dez entregas, cada uma com pend
 - Voluntariado lançado à mão: calendário com marcação rápida e "Salvar e ir para o próximo".
 - Gerar documento: escala publicada a partir do modelo de impressão.
 - Tela de login nova, com o brasão do 2º GB e a foto do quartel (entrega 3.3).
-- Meta de ativação e Efetivo do dia do escalante (entrega 3.2, decisão de 20/11/2026).
+- Meta de ativação e Efetivo do dia do escalante (entrega 3.2, decisão de 20/11/2026); a tela vira **Efetivo por dia**, de trabalho, na entrega 3.3 (decisão de 20/11/2026, depois da 3.2.2).
 
 Plano próprio: `docs/superpowers/plans/2026-11-18-fase4-escala.md` (cinco entregas; a 1 detalhada, as demais detalhadas antes de cada uma começar).
 
@@ -201,11 +201,20 @@ A 3.1 é validada na sandbox antes de a 3.2 começar, e a 3.2 tem quatro decisõ
 
 Design: `docs/superpowers/specs/2026-11-20-meta-de-ativacao-design.md`.
 
+**Decisão do usuário (20/11/2026, depois da 3.2.2): Efetivo por dia e Escala por militar.** A 3.2.2 foi mesclada (PR #39), mas o painel nasceu como consulta do dia de hoje, e a leitura estava errada. O motor, a meta no banco e a API continuam valendo; a tela é refeita na **3.3**:
+- "Efetivo do dia" passa a se chamar **Efetivo por dia**. É uma tela de trabalho: o escalante navega pelos dias e escala com a visão diária, atravessando todas as escalas da área.
+- Cada guarnição mostra uma **linha do tempo das funções ao longo do dia**, como no voluntariado, com as vacâncias na própria linha. Sai a lista que repetia o militar a cada turno.
+- A **meta do dia muda de forma implícita**, pela manipulação das guarnições na tela: remover tira da meta do dia (e pergunta se quer desescalar quem está nela); adicionar põe no fim; reordenar muda a ordem de ativação. Sai o diálogo "Alterar a meta deste dia". Escalar numa guarnição fora da meta não a põe na meta. A alteração de vários dias de uma vez foi abandonada.
+- A 3.3 fica assim: **Efetivo por dia refeito (linha do tempo, meta implícita) e escalar nele**, "completar com JES" num dia ou período escolhido pelo chefe, saldos do Adm, operações pelas cotas, turnos lado a lado na Escala do mês e a tela de login nova.
+- **Escala por militar** (tela nova): escolher militares e ver como estão distribuídos no mês, comparando-os (ex.: o cruzamento das escalas de dois militares). Com a Grade geral, a Escala do mês e o Efetivo por dia, forma as **quatro telas principais**. É uma entrega maior, **sem fase marcada**: a sessão de PLANEJAMENTO vai estudar a estrutura das quatro telas e propor onde ela entra.
+
+Design: adendo "Efetivo por dia" em `docs/superpowers/specs/2026-11-20-meta-de-ativacao-design.md`.
+
 **Entrega e marco:** piloto na 1ª SB. Um mês real montado no sistema novo, em paralelo com as planilhas atuais, e comparado no fim.
 
 ## Fase 5 — Operação diária
 
-- Efetivo do dia (o painel de planejamento do escalante já nasce na entrega 3.2 da fase 4; aqui entra a operação): turnos A e B lado a lado, operações do período das 08h de D às 08h de D+1, motoristas de serviço, marcação de presença, impressão.
+- Efetivo do dia (o Efetivo por dia, tela de trabalho do escalante, nasce nas entregas 3.2 e 3.3 da fase 4; aqui entra a operação): turnos A e B lado a lado, operações do período das 08h de D às 08h de D+1, motoristas de serviço, marcação de presença, impressão.
 - Permutas registradas na Grade geral e mostradas no Efetivo do dia.
 - Escala executada: gerar e enviar até o dia 5 do mês seguinte.
 
@@ -231,9 +240,9 @@ Design: `docs/superpowers/specs/2026-11-20-meta-de-ativacao-design.md`.
 
 **Entrega:** sistema em produção institucional.
 
-## Etapas sem fase marcada (decisões de 19/11/2026)
+## Etapas sem fase marcada (decisões de 19 e 20/11/2026)
 
-Duas etapas decididas pelo usuário, com o momento ainda em aberto. Cada uma ganha a sua conversa de design e o seu plano quando for começar. Detalhes no adendo "Login, tela inicial, módulos e Pecúlio" do design da migração.
+Três etapas decididas pelo usuário, com o momento ainda em aberto. Cada uma ganha a sua conversa de design e o seu plano quando for começar. Detalhes no adendo "Login, tela inicial, módulos e Pecúlio" do design da migração.
 
 ### Tipos de usuário e módulos
 
@@ -253,6 +262,19 @@ A decidir quando começar: em que fase entra, quem vê cada módulo, de onde vê
 O cadastro de militares de hoje é simples. O usuário vai reestruturá-lo, importando a estrutura de dados real usada na corporação, e nesse mesmo momento nasce o módulo **Pecúlio do 2º GB**, com as fichas de registro de todos os militares.
 
 A decidir quando começar: se a ficha do Pecúlio e a de Militares são a mesma ficha, com mais campos, e quem vê cada informação (D7).
+
+### Escala por militar e as quatro telas principais (decisão de 20/11/2026)
+
+Tela nova: o escalante seleciona militares e vê como estão distribuídos ao longo do mês, comparando-os (ex.: dois militares e o cruzamento das escalas deles). Com ela, as telas principais são quatro:
+
+| Tela | Quem | Quando |
+|---|---|---|
+| Grade geral | todos os militares | o mês |
+| Escala do mês | uma escala (operação) | o mês |
+| Efetivo por dia | todas as escalas da área | um dia |
+| Escala por militar | militares escolhidos | o mês |
+
+É uma entrega maior. A sessão de **PLANEJAMENTO** estuda a estrutura das quatro telas e propõe em que fase ela entra. A decidir: o que se compara entre os militares (serviços, folgas, choques, horas), quantos militares por vez, se a tela também escala ou só mostra, e como as quatro telas se ligam entre si.
 
 ## Fluxo de uma regra nova (vale a partir da fase 2)
 
