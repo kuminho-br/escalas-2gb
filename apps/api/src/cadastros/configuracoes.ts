@@ -1,4 +1,4 @@
-// Configurações: catálogos do sistema (tipos de afastamento, atividades) e parâmetros por unidade.
+// Configurações: o catálogo do sistema (tipos de afastamento) e parâmetros por unidade.
 import { EdicaoItemCatalogo, Mes, mesParaData, mesPorExtenso, NovoItemCatalogo, NovoParametro, type ItemCatalogo, type Parametro } from 'contratos';
 import { defDoSistema, PARAM_CATALOGO, PARAM_SISTEMA_NOVO, paramConverter, type DefParametro, type ValorParametro } from 'dominio';
 import { Hono } from 'hono';
@@ -17,7 +17,7 @@ const DEFINICOES: DefParametro[] = [...PARAM_CATALOGO, ...PARAM_SISTEMA_NOVO].fi
 
 const ordenarPorNome = <T extends { nome: string }>(l: T[]) => l.sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
 
-function rotasCatalogo(r: Hono<AmbienteApi>, caminho: string, tabela: 'tipo_afastamento' | 'atividade') {
+function rotasCatalogo(r: Hono<AmbienteApi>, caminho: string, tabela: 'tipo_afastamento') {
   r.get(caminho, async (c) => {
     const negado = await exigirAlgumPapel(c);
     if (negado) return negado;
@@ -112,7 +112,6 @@ export function rotasConfiguracoes(dep: { banco: Banco; auth: Auth }): Hono<Ambi
   r.use('/unidades/:u/parametros', exigirSessao(dep.banco, dep.auth));
 
   rotasCatalogo(r, '/sistema/tipos-afastamento', 'tipo_afastamento');
-  rotasCatalogo(r, '/sistema/atividades', 'atividade');
 
   r.get('/unidades/:u/parametros', async (c) => {
     const u = c.req.param('u');

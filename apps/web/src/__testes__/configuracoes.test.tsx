@@ -41,7 +41,6 @@ function api(extra: Parameters<typeof simularApi>[0] = {}, eu = EU_EXEMPLO) {
     '/api/eu': { status: 200, corpo: eu },
     [`GET ${PARAMS}`]: { status: 200, corpo: LISTA },
     'GET /api/sistema/tipos-afastamento': { status: 200, corpo: TIPOS },
-    'GET /api/sistema/atividades': { status: 200, corpo: [] },
     ...extra,
   });
 }
@@ -92,6 +91,20 @@ describe('configurações', () => {
     await userEvent.click(within(linha).getByRole('button', { name: 'Mudar a partir de…' }));
     await userEvent.click(screen.getByRole('button', { name: /^Salvar a partir de/ }));
     expect(await screen.findByText('Só dá para mudar a partir de novembro de 2026.')).toBeInTheDocument();
+  });
+
+  it('Configurações não tem a aba Atividades', async () => {
+    api();
+    abrir('/configuracoes');
+    await screen.findByRole('tab', { name: 'Tipos de afastamento' });
+    expect(screen.queryByRole('tab', { name: 'Atividades' })).toBeNull();
+    expect(screen.getAllByRole('tab').map((t) => t.textContent)).toEqual(['Regras do processo', 'Voluntariado', 'Modelos de guarnição', 'Meta de ativação', 'Tipos de afastamento']);
+  });
+
+  it('o endereço antigo com ?aba=atividades abre a primeira aba', async () => {
+    api();
+    abrir('/configuracoes?aba=atividades');
+    expect(await screen.findByRole('tab', { name: 'Regras do processo' })).toHaveAttribute('aria-selected', 'true');
   });
 
   it('escalante não vê os botões dos tipos', async () => {
