@@ -6,6 +6,7 @@ import { useState, type FormEvent } from 'react';
 import { mensagemComCampo, mensagemDe } from '@/api/cliente';
 import { atualizarCotas, consultaCotas, copiarCotas, criarCota, editarCota, removerCota } from '@/api/cotas';
 import { consultaServicos } from '@/api/servicos';
+import { CampoDeMes } from '@/componentes/CampoDeMes';
 import { ImportarPlanilha } from '@/componentes/ImportarPlanilha';
 import { QuadradoDaCor } from '@/componentes/QuadradoDaCor';
 import { Selecao } from '@/componentes/Selecao';
@@ -76,7 +77,7 @@ function Cotas() {
         <div className="flex flex-wrap items-end gap-4 border-b border-linha p-4">
           <div className="grid gap-1.5">
             <Label htmlFor="cotas-mes">Mês</Label>
-            <Input id="cotas-mes" type="month" value={mes} onChange={(e) => /^\d{4}-\d{2}$/.test(e.target.value) && setMes(e.target.value)} className="w-44" />
+            <CampoDeMes id="cotas-mes" valor={mes} aoMudar={setMes} />
           </div>
           <p className="pb-2 text-sm text-apagado">Destino: {eu.unidade.sigla}</p>
           {aviso && <p role={aviso.erro ? 'alert' : 'status'} className={aviso.erro ? 'pb-2 text-sm text-alerta' : 'pb-2 text-sm text-apagado'}>{aviso.texto}</p>}
