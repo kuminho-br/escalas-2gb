@@ -41,7 +41,8 @@ describe('entrar', () => {
     await screen.findByLabelText('E-mail');
     api.mockImplementation(async (entrada: RequestInfo | URL) => {
       const url = typeof entrada === 'string' ? entrada : entrada instanceof URL ? entrada.href : entrada.url;
-      const corpo = url.includes('/api/eu') ? EU_EXEMPLO : { user: {} };
+      // depois de entrar, a página inicial (a grade geral) busca a grade do mês
+      const corpo = url.includes('/api/eu') ? EU_EXEMPLO : url.includes('/grade/') ? { mes: '2026-11', dias: [], grupos: [] } : { user: {} };
       return new Response(JSON.stringify(corpo), { status: 200, headers: { 'Content-Type': 'application/json' } });
     });
     await preencherEEntrar();

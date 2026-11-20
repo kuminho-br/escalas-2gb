@@ -37,7 +37,7 @@ export async function tirarDaMeta(queryClient: QueryClient, unidadeId: string, d
   try {
     return await pedir<EfetivoDoDia>('POST', `/api/unidades/${unidadeId}/meta-do-dia/${data}/tirar`, d);
   } finally {
-    for (const queryKey of [['escala-do-mes'], ['cotas'], ['candidatos']]) void queryClient.invalidateQueries({ queryKey });
+    for (const queryKey of [['escala-do-mes'], ['cotas'], ['candidatos'], ['grade']]) void queryClient.invalidateQueries({ queryKey });
     await atualizar(queryClient);
   }
 }

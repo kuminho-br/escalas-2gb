@@ -168,13 +168,6 @@ describe('configurações: papéis e campos', () => {
     await userEvent.click(within(linha).getByRole('button', { name: 'Mudar a partir de…' }));
     expect(screen.getByLabelText('Novo valor')).toHaveAttribute('step', 'any');
   });
-
-  it('a grade geral diz que chega na próxima fase', async () => {
-    api();
-    abrir('/');
-    expect(await screen.findByText('A grade geral chega na próxima fase.')).toBeInTheDocument();
-    expect(screen.queryByText(/quando houver uma escala cadastrada/)).toBeNull();
-  });
 });
 
 describe('configurações: blocos do voluntariado', () => {
