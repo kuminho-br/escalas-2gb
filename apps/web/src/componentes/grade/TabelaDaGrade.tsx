@@ -76,6 +76,7 @@ export function TabelaDaGrade({ grade, grupos, maximos, escolhida, aoEscolher }:
                         <CelulaDaGrade
                           linha={l}
                           dia={Number(d.data.slice(8))}
+                          data={d.data}
                           blocos={l.dias[d.data] ?? []}
                           choque={l.choques.includes(d.data)}
                           escolhida={escolhida?.militarId === l.militarId && escolhida.dia === d.data}

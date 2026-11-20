@@ -71,6 +71,10 @@ export async function opcoesDeTroca(c: Consulta, alocacaoId: string): Promise<Op
 
 /** Faz a troca (dentro da transação do chamador: uma recusa desfaz tudo). Devolve as escalas mexidas. */
 export async function trocar(tx: Consulta, alocacaoId: string, troca: Troca, usuarioId: string): Promise<ResultadoDaTroca['escalas']> {
+  // trava as alocações da troca (em ordem de id, para duas trocas opostas não se prenderem): se outra pessoa mexeu antes, elas já não existem
+  const ids = 'militarId' in troca ? [alocacaoId] : [alocacaoId, troca.comAlocacaoId];
+  const travadas = (await tx.query('select id from alocacao where id = any($1::uuid[]) order by id for update', [ids])).rows.length;
+  if (travadas !== new Set(ids).size) throw new NaoEncontrada();
   const a = await carregar(tx, alocacaoId);
   if (!a) throw new NaoEncontrada();
   const mes = a.data.slice(0, 7);
@@ -93,7 +97,8 @@ export async function trocar(tx: Consulta, alocacaoId: string, troca: Troca, usu
   if (comAcumulo) throw new Recusa('Tire os acúmulos antes de trocar.');
 
   // trocar de lugar: sem marca de remoção (ninguém saiu do serviço); cada um entra na vaga do outro pelas regras de "escalar"
-  await tx.query('delete from alocacao where id = any($1::uuid[])', [[a.id, b.id]]);
+  const apagadas = (await tx.query('delete from alocacao where id = any($1::uuid[]) returning id', [[a.id, b.id]])).rows.length;
+  if (apagadas !== 2) throw new NaoEncontrada();
   await escalar(tx, b.escala_id, { militarId: a.militar_id, data: b.data, turnoId: b.turno_id, guarnicaoId: b.guarnicao_id, funcaoId: b.funcao_id });
   await escalar(tx, a.escala_id, { militarId: b.militar_id, data: a.data, turnoId: a.turno_id, guarnicaoId: a.guarnicao_id, funcaoId: a.funcao_id });
   const escalas = new Map([a, b].map((x) => [x.escala_id, { escalaId: x.escala_id, mes }]));

@@ -14,9 +14,11 @@ export function nomeDaCelula(l: Pick<LinhaDaGrade, 'posto' | 'nomeGuerra'>, dia:
  * Um dia de um militar: um quadrado por serviço, na cor do serviço, com a letra do turno, em ordem de início. O expediente do Adm é um
  * quadrado cinza sem letra. O choque é um contorno vermelho. A célula é um botão: clicar abre o painel do dia daquele militar.
  */
-export function CelulaDaGrade({ linha, dia, blocos, choque, escolhida, aoEscolher }: {
+export function CelulaDaGrade({ linha, dia, data, blocos, choque, escolhida, aoEscolher }: {
   linha: LinhaDaGrade;
   dia: number;
+  /** 'aaaa-mm-dd': para devolver o foco a esta célula quando o painel do dia fechar */
+  data: string;
   blocos: BlocoDaGrade[];
   choque: boolean;
   escolhida: boolean;
@@ -26,6 +28,7 @@ export function CelulaDaGrade({ linha, dia, blocos, choque, escolhida, aoEscolhe
     <button
       type="button"
       aria-label={nomeDaCelula(linha, dia, blocos, choque)}
+      data-data={data}
       data-choque={choque ? '' : undefined}
       data-escolhida={escolhida ? '' : undefined}
       onClick={aoEscolher}

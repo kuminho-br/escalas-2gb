@@ -1,7 +1,7 @@
 import type { BlocoDaGrade, EscalaDoMes, GradeDoMes, LinhaDaGrade, OpcaoDeServico, PainelDoDia } from 'contratos';
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { abrir, chamadasA, corpoEnviado, EU_EXEMPLO, simularApi } from './apoio';
 
 // O painel do dia da Grade geral: dezembro de 2026, o CABO no dia 10 (quinta), de Pronto A (ABT, Combatente) com o acúmulo de Motorista do ABT.
@@ -86,6 +86,45 @@ describe('grade geral: o painel do dia', () => {
     await waitFor(() => expect(router.state.location.search).not.toHaveProperty('militar'));
     expect(router.state.location.search).not.toHaveProperty('dia');
     expect(screen.queryByRole('complementary', { name: 'Dia de SD BM CABO' })).toBeNull();
+  });
+});
+
+describe('grade geral: teclado e celular (achado da revisão final)', () => {
+  const matchMediaOriginal = window.matchMedia;
+  afterEach(() => {
+    window.matchMedia = matchMediaOriginal;
+  });
+
+  it('ao abrir, o foco vai para o painel; Esc fecha; ao fechar, o foco volta à célula', async () => {
+    api();
+    const router = abrir(ABERTA);
+    const p = await painel();
+    await waitFor(() => expect(p).toHaveFocus());
+    await userEvent.keyboard('{Escape}');
+    await waitFor(() => expect(router.state.location.search).not.toHaveProperty('militar'));
+    await waitFor(() => expect(screen.getByRole('button', { name: 'SD BM CABO, dia 10: Pronto A' })).toHaveFocus());
+  });
+
+  it('"Fechar" também devolve o foco à célula', async () => {
+    api();
+    abrir(ABERTA);
+    await userEvent.click(within(await painel()).getByRole('button', { name: 'Fechar' }));
+    await waitFor(() => expect(screen.getByRole('button', { name: 'SD BM CABO, dia 10: Pronto A' })).toHaveFocus());
+  });
+
+  it('no celular o painel cobre a tela e a grade atrás fica inerte; no computador, não', async () => {
+    api();
+    window.matchMedia = vi.fn().mockImplementation((consulta: string) => ({ matches: true, media: consulta, addEventListener: vi.fn(), removeEventListener: vi.fn() })) as never;
+    abrir(ABERTA);
+    await painel();
+    expect(document.querySelector('[data-grade]')).toHaveAttribute('inert');
+  });
+
+  it('no computador a grade continua ativa', async () => {
+    api();
+    abrir(ABERTA);
+    await painel();
+    expect(document.querySelector('[data-grade]')).not.toHaveAttribute('inert');
   });
 });
 

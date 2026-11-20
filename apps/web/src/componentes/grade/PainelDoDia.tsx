@@ -1,7 +1,7 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { textoFaixa, type OpcaoDeServico } from 'contratos';
 import { X } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
 import { mensagemDe } from '@/api/cliente';
 import { escalar, removerAlocacao } from '@/api/escala-do-mes';
 import { consultaPainelDoDia } from '@/api/grade';
@@ -21,7 +21,14 @@ export function PainelDoDia({ unidadeId, militarId, data, aoFechar }: { unidadeI
   const queryClient = useQueryClient();
   const painel = useQuery(consultaPainelDoDia(unidadeId, data.slice(0, 7), militarId, data));
   const [adicionando, setAdicionando] = useState(false);
-  const [trocando, setTrocando] = useState<string | null>(null);
+  const [trocando, setTrocando] = useState<{ alocacaoId: string; acumulaCom: string[] } | null>(null);
+  const raiz = useRef<HTMLElement>(null);
+  // ao abrir, o foco vai para o painel (quem usa o teclado não precisa passar pelas células que sobram); Esc fecha
+  useEffect(() => raiz.current?.focus(), []);
+  const teclar = (e: KeyboardEvent<HTMLElement>) => {
+    // o que vem de um diálogo (portal) não é do painel: Esc fecha só o diálogo
+    if (e.key === 'Escape' && !e.defaultPrevented && e.currentTarget.contains(e.target as Node)) aoFechar();
+  };
   const [erro, setErro] = useState<string | null>(null);
   const { salvando, travar } = useTrava();
   const p = painel.data;
@@ -47,8 +54,11 @@ export function PainelDoDia({ unidadeId, militarId, data, aoFechar }: { unidadeI
   const nome = p ? `${p.militar.posto} ${p.militar.nomeGuerra}` : null;
   return (
     <aside
+      ref={raiz}
+      tabIndex={-1}
+      onKeyDown={teclar}
       aria-label={nome ? `Dia de ${nome}` : 'Dia do militar'}
-      className="max-lg:fixed max-lg:inset-0 max-lg:z-40 max-lg:overflow-y-auto max-lg:bg-fundo max-lg:p-3 lg:sticky lg:top-4 lg:self-start"
+      className="outline-none max-lg:fixed max-lg:inset-0 max-lg:z-40 max-lg:overflow-y-auto max-lg:bg-fundo max-lg:p-3 lg:sticky lg:top-4 lg:self-start"
     >
       <div className="divide-y divide-linha rounded-xl border border-linha bg-superficie">
         <header className="flex items-start gap-3 p-4">
@@ -96,7 +106,7 @@ export function PainelDoDia({ unidadeId, militarId, data, aoFechar }: { unidadeI
                         </span>
                         <span aria-hidden className="text-sm">{textoFaixa(s.inicio, s.fim)}</span>
                         <span className="ml-auto flex gap-1.5">
-                          <Button type="button" variant="outline" size="sm" disabled={salvando} onClick={() => setTrocando(s.alocacaoId)}>
+                          <Button type="button" variant="outline" size="sm" disabled={salvando} onClick={() => setTrocando({ alocacaoId: s.alocacaoId, acumulaCom: s.acumulaCom })}>
                             Trocar
                           </Button>
                           <Button type="button" variant="outline" size="sm" disabled={salvando} onClick={() => void remover(s.alocacaoId)}>
@@ -124,7 +134,7 @@ export function PainelDoDia({ unidadeId, militarId, data, aoFechar }: { unidadeI
           </>
         )}
       </div>
-      {trocando && <TrocarServico alocacaoId={trocando} nomeAtual={p?.militar.nomeGuerra ?? ''} aoFechar={() => setTrocando(null)} />}
+      {trocando && <TrocarServico alocacaoId={trocando.alocacaoId} acumulaCom={trocando.acumulaCom} nomeAtual={p?.militar.nomeGuerra ?? ''} aoFechar={() => setTrocando(null)} />}
     </aside>
   );
 }

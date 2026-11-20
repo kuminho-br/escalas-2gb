@@ -2,12 +2,14 @@ import { useQuery } from '@tanstack/react-query';
 import { createFileRoute } from '@tanstack/react-router';
 import { Data, Mes } from 'contratos';
 import { mensagemDe } from '@/api/cliente';
+import { ehMilitarComum } from '@/api/eu';
 import { consultaGrade } from '@/api/grade';
 import { CampoDeMes } from '@/componentes/CampoDeMes';
 import { LegendaDaGrade } from '@/componentes/grade/LegendaDaGrade';
 import { PainelDoDia } from '@/componentes/grade/PainelDoDia';
 import { TabelaDaGrade, maximosDaGrade } from '@/componentes/grade/TabelaDaGrade';
 import { Label } from '@/componentes/ui/label';
+import { useEhCelular } from '@/lib/useEhCelular';
 import { mesAtual } from '@/lib/meses';
 import { cn } from '@/lib/utils';
 
@@ -29,9 +31,14 @@ function GradeGeral() {
   const busca = Route.useSearch();
   const navigate = Route.useNavigate();
   const mes = busca.mes ?? mesAtual();
-  const dados = useQuery(consultaGrade(eu.unidade.id, mes));
+  // o militar comum não vê a grade (é dos escalantes e gestores): sem consulta e sem alerta
+  const comum = ehMilitarComum(eu);
+  const dados = useQuery({ ...consultaGrade(eu.unidade.id, mes), enabled: !comum });
+  const celular = useEhCelular();
   const grade = dados.data;
-  const grupos = grade ? (busca.equipe ? grade.grupos.filter((g) => g.chave === busca.equipe) : grade.grupos) : [];
+  // um filtro de equipe que não existe neste mês (a equipe não tem ninguém nele) vale como "Todas": nunca deixa a página em branco
+  const equipe = grade?.grupos.some((g) => g.chave === busca.equipe) ? busca.equipe : undefined;
+  const grupos = grade ? (equipe ? grade.grupos.filter((g) => g.chave === equipe) : grade.grupos) : [];
   const escolhida = busca.militar && busca.dia ? { militarId: busca.militar, dia: busca.dia } : null;
   const filtrar = (equipe: string | undefined) => void navigate({ search: (s) => ({ ...s, equipe }) });
 
@@ -46,7 +53,7 @@ function GradeGeral() {
         {grade && grade.grupos.length > 1 && (
           <div role="group" aria-label="Equipes" className="flex flex-wrap items-center gap-1.5">
             {[{ chave: undefined, nome: 'Todas' }, ...grade.grupos].map((g) => {
-              const ligado = (busca.equipe ?? undefined) === g.chave;
+              const ligado = equipe === g.chave;
               return (
                 <button
                   key={g.chave ?? 'todas'}
@@ -63,12 +70,14 @@ function GradeGeral() {
         )}
       </div>
 
-      {dados.isPending && <p className="text-apagado">Carregando…</p>}
+      {comum && <p className="text-apagado">A grade geral é dos escalantes e gestores.</p>}
+      {!comum && dados.isPending && <p className="text-apagado">Carregando…</p>}
       {dados.error && <p role="alert" className="text-alerta">{mensagemDe(dados.error)}</p>}
       {grade && grade.grupos.length === 0 && <p className="text-apagado">Ninguém para mostrar neste mês.</p>}
       {grade && grupos.length > 0 && (
         <div className={cn('grid items-start gap-4', escolhida && 'lg:grid-cols-[minmax(0,1fr)_380px]')}>
-          <div className="min-w-0 overflow-hidden rounded-xl border border-linha bg-superficie">
+          {/* no celular o painel do dia cobre a tela: a grade atrás fica inerte (nem o leitor de tela nem o teclado chegam nela) */}
+          <div data-grade inert={celular && !!escolhida} className="min-w-0 overflow-hidden rounded-xl border border-linha bg-superficie">
             <TabelaDaGrade
               grade={grade}
               grupos={grupos}
@@ -84,7 +93,11 @@ function GradeGeral() {
               unidadeId={eu.unidade.id}
               militarId={escolhida.militarId}
               data={escolhida.dia}
-              aoFechar={() => void navigate({ search: (s) => ({ ...s, militar: undefined, dia: undefined }) })}
+              aoFechar={() => {
+                void navigate({ search: (s) => ({ ...s, militar: undefined, dia: undefined }) });
+                // o foco volta à célula que abriu o painel
+                setTimeout(() => document.querySelector<HTMLElement>(`tr[data-militar="${escolhida.militarId}"] [data-data="${escolhida.dia}"]`)?.focus(), 0);
+              }}
             />
           )}
         </div>

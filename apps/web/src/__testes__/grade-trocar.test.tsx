@@ -106,6 +106,30 @@ describe('grade geral: trocar', () => {
     await waitFor(() => expect(corpoEnviado(f, POST)).toEqual({ comAlocacaoId: 'a-b2' }));
   });
 
+  it('quem só não marcou o horário no voluntariado vem numa seção própria, com o aviso na confirmação (achado da revisão final)', async () => {
+    const delta = { militarId: 'm-delta', posto: 'SD BM', nomeGuerra: 'DELTA', matricula: '990004-4', equipe: 'Alfa', jornada: 'pronto' as const, servicos: [{ servicoId: 's-jes', turnoId: 't-jes', nome: 'JES' }] };
+    const f = api({ 'GET /api/alocacoes/a-1/trocas': { status: 200, corpo: { ...TROCAS, livres: { ...TROCAS.livres, semVoluntariado: [delta] } } } });
+    abrir(ABERTA);
+    const d = await abrirTroca();
+    const secao = await within(d).findByRole('region', { name: 'Sem voluntariado neste horário' });
+    expect(within(secao).getByRole('button', { name: /DELTA/ })).toBeInTheDocument();
+    // quem marcou o horário não fica nessa seção
+    expect(within(secao).queryByRole('button', { name: /CHARLIE/ })).toBeNull();
+    await userEvent.click(within(secao).getByRole('button', { name: /DELTA/ }));
+    expect(within(d).getByText('Não marcou voluntariado neste horário.')).toBeInTheDocument();
+    await userEvent.click(within(d).getByRole('button', { name: 'Trocar' }));
+    await waitFor(() => expect(corpoEnviado(f, POST)).toEqual({ militarId: 'm-delta', turnoId: 't-jes' }));
+  });
+
+  it('substituir quem acumula outra vaga avisa que ela também fica vazia (achado da revisão final)', async () => {
+    const comAcumulo: PainelDoDia = { ...PAINEL, servicos: [{ ...PAINEL.servicos[0]!, acumulaCom: ['Motorista ABT'] }] };
+    api({ [`GET /api/unidades/u-1sb/grade/${MES}/militares/m-CABO/dias/${DIA}`]: { status: 200, corpo: comAcumulo } });
+    abrir(ABERTA);
+    const d = await abrirTroca();
+    await userEvent.click(await within(d).findByRole('button', { name: /CHARLIE/ }));
+    expect(within(d).getByText('CABO também sai de: Motorista ABT.')).toBeInTheDocument();
+  });
+
   it('"Voltar" na confirmação volta à lista sem mandar nada', async () => {
     const f = api();
     abrir(ABERTA);

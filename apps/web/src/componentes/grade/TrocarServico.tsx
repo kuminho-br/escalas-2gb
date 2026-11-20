@@ -7,17 +7,17 @@ import { useTrava } from '@/componentes/AlteracoesPendentes';
 import { Selecao } from '@/componentes/Selecao';
 import { Button } from '@/componentes/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/componentes/ui/dialog';
-import { frasesDeFora } from '@/lib/escala';
+import { frasesDeFora, listaComE } from '@/lib/escala';
 
 type Escolha =
-  | { tipo: 'livre'; livre: Candidato; turnoId: string }
+  | { tipo: 'livre'; livre: Candidato; turnoId: string; semVoluntariado: boolean }
   | { tipo: 'escalado'; escalado: EscaladoNoDia; alocacaoId: string; onde: string; permuta: boolean };
 
 /**
  * "Trocar" um serviço: por um militar livre ou de lugar com quem já está escalado no dia (o diálogo mostra onde ele está antes de confirmar;
  * entre dois serviços ordinários, é uma permuta). A recusa fica no diálogo.
  */
-export function TrocarServico({ alocacaoId, nomeAtual, aoFechar }: { alocacaoId: string; nomeAtual: string; aoFechar: () => void }) {
+export function TrocarServico({ alocacaoId, nomeAtual, acumulaCom, aoFechar }: { alocacaoId: string; nomeAtual: string; acumulaCom: string[]; aoFechar: () => void }) {
   const queryClient = useQueryClient();
   const opcoes = useQuery(consultaTrocas(alocacaoId));
   const [turnoDe, setTurnoDe] = useState<Record<string, string>>({});
@@ -36,7 +36,31 @@ export function TrocarServico({ alocacaoId, nomeAtual, aoFechar }: { alocacaoId:
     }
   });
 
-  const livres = [...(opcoes.data?.livres.aptos ?? []), ...(opcoes.data?.livres.semVoluntariado ?? [])];
+  const aptos = opcoes.data?.livres.aptos ?? [];
+  const semVoluntariado = opcoes.data?.livres.semVoluntariado ?? [];
+  // quem só não marcou o horário vem numa seção à parte (o escalante pode escalar mesmo assim) e não entra na contagem dos que ficaram de fora
+  const fora = (opcoes.data?.livres.fora ?? []).filter((f) => f.motivo !== 'Não marcou voluntariado neste horário');
+  const linhaDoLivre = (c: Candidato, semVol: boolean) => {
+    const turnoId = turnoDe[c.militarId] ?? c.servicos[0]!.turnoId;
+    return (
+      <li key={c.militarId} className="flex items-center gap-2">
+        <button
+          type="button"
+          onClick={() => setEscolha({ tipo: 'livre', livre: c, turnoId, semVoluntariado: semVol })}
+          className="flex min-w-0 flex-1 flex-wrap items-baseline gap-x-2 rounded-md border border-linha px-3 py-2 text-left hover:bg-accent"
+        >
+          <span className="text-xs text-apagado">{c.posto}</span>
+          <span className="font-cond text-base font-semibold">{c.nomeGuerra}</span>
+          <span className="text-xs text-apagado">{c.equipe ?? 'Adm'}</span>
+        </button>
+        {c.servicos.length > 1 && (
+          <Selecao aria-label={`Serviço de ${c.nomeGuerra}`} value={turnoId} onChange={(e) => setTurnoDe({ ...turnoDe, [c.militarId]: e.target.value })} className="w-28">
+            {c.servicos.map((s) => <option key={s.turnoId} value={s.turnoId}>{s.nome}</option>)}
+          </Selecao>
+        )}
+      </li>
+    );
+  };
   return (
     <Dialog open onOpenChange={(v) => !v && aoFechar()}>
       <DialogContent className="max-h-[85dvh] overflow-y-auto sm:max-w-lg">
@@ -48,7 +72,12 @@ export function TrocarServico({ alocacaoId, nomeAtual, aoFechar }: { alocacaoId:
         {escolha ? (
           <div className="grid gap-3">
             {escolha.tipo === 'livre' ? (
-              <p className="font-medium">Trocar {nomeAtual} por {escolha.livre.nomeGuerra}?</p>
+              <>
+                <p className="font-medium">Trocar {nomeAtual} por {escolha.livre.nomeGuerra}?</p>
+                {escolha.semVoluntariado && <p className="text-sm text-pendencia">Não marcou voluntariado neste horário.</p>}
+                {/* os mesmos avisos do "Remover": quem sai também deixa as vagas que acumula */}
+                {acumulaCom.length > 0 && <p className="text-sm text-apagado">{nomeAtual} também sai de: {listaComE(acumulaCom)}.</p>}
+              </>
             ) : (
               <>
                 <p className="font-medium">{escolha.escalado.nomeGuerra} está no {escolha.onde}.</p>
@@ -72,34 +101,18 @@ export function TrocarServico({ alocacaoId, nomeAtual, aoFechar }: { alocacaoId:
             {opcoes.error && <p role="alert" className="text-alerta">{mensagemDe(opcoes.error)}</p>}
             {opcoes.data && (
               <>
-                {livres.length === 0 ? (
+                {aptos.length === 0 ? (
                   <p className="text-sm text-apagado">Ninguém livre pode ocupar este serviço agora.</p>
                 ) : (
-                  <ul className="grid max-h-60 gap-1.5 overflow-y-auto">
-                    {livres.map((c) => {
-                      const turnoId = turnoDe[c.militarId] ?? c.servicos[0]!.turnoId;
-                      return (
-                        <li key={c.militarId} className="flex items-center gap-2">
-                          <button
-                            type="button"
-                            onClick={() => setEscolha({ tipo: 'livre', livre: c, turnoId })}
-                            className="flex min-w-0 flex-1 flex-wrap items-baseline gap-x-2 rounded-md border border-linha px-3 py-2 text-left hover:bg-accent"
-                          >
-                            <span className="text-xs text-apagado">{c.posto}</span>
-                            <span className="font-cond text-base font-semibold">{c.nomeGuerra}</span>
-                            <span className="text-xs text-apagado">{c.equipe ?? 'Adm'}</span>
-                          </button>
-                          {c.servicos.length > 1 && (
-                            <Selecao aria-label={`Serviço de ${c.nomeGuerra}`} value={turnoId} onChange={(e) => setTurnoDe({ ...turnoDe, [c.militarId]: e.target.value })} className="w-28">
-                              {c.servicos.map((s) => <option key={s.turnoId} value={s.turnoId}>{s.nome}</option>)}
-                            </Selecao>
-                          )}
-                        </li>
-                      );
-                    })}
-                  </ul>
+                  <ul className="grid max-h-60 gap-1.5 overflow-y-auto">{aptos.map((c) => linhaDoLivre(c, false))}</ul>
                 )}
-                {opcoes.data.livres.fora.length > 0 && <p className="text-xs text-apagado">Ficaram de fora: {frasesDeFora(opcoes.data.livres.fora)}</p>}
+                {semVoluntariado.length > 0 && (
+                  <section aria-label="Sem voluntariado neste horário" className="grid gap-1.5">
+                    <h3 className="text-sm font-medium">Sem voluntariado neste horário</h3>
+                    <ul className="grid max-h-40 gap-1.5 overflow-y-auto">{semVoluntariado.map((c) => linhaDoLivre(c, true))}</ul>
+                  </section>
+                )}
+                {fora.length > 0 && <p className="text-xs text-apagado">Ficaram de fora: {frasesDeFora(fora)}</p>}
 
                 {opcoes.data.escalados.length > 0 && (
                   <section className="grid gap-2">

@@ -233,6 +233,28 @@ describe('trocar de lugar com quem já está escalado', () => {
   });
 });
 
+describe('outra pessoa mexeu antes (achado da revisão final)', () => {
+  it('a troca com uma alocação que já foi apagada é 404 e a outra não muda', async () => {
+    const d = dia(16);
+    const a = await alocar('A1', 'Pronto', 'a', d, { funcao: combatente });
+    const b = await alocar('A2', 'Pronto', 'b', d, { funcao: combatente });
+    await api.banco.query('delete from alocacao where id = $1', [b]);
+    const r = await trocar(a, { comAlocacaoId: b });
+    expect(r.status).toBe(404);
+    expect(await de('A1', d)).toEqual([expect.objectContaining({ id: a, turno_id: servico.Pronto!.a })]);
+  });
+
+  it('a substituição de uma alocação que já foi apagada é 404 e ninguém entra', async () => {
+    const d = dia(17);
+    const a = await alocar('C1', 'Pronto', 'a', d, { funcao: combatente });
+    await api.banco.query('delete from alocacao where id = $1', [a]);
+    const r = await trocar(a, { militarId: militar.LIVRE, turnoId: servico.Pronto!.a });
+    expect(r.status).toBe(404);
+    expect(await de('LIVRE', d)).toEqual([]);
+    expect(await remocoes('C1', d)).toBe(0);
+  });
+});
+
 describe('acesso e corpo', () => {
   it('sem papel é 403, a alocação inexistente é 404 e o corpo inválido é 400', async () => {
     const id = await alocar('E1', 'Pronto', 'a', dia(14), { funcao: combatente });

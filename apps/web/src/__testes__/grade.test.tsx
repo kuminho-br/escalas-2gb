@@ -165,6 +165,21 @@ describe('grade geral: o filtro de equipes e o clique', () => {
     await waitFor(() => expect(f.mock.calls.some(([e]) => String(e).endsWith('/grade/2027-01'))).toBe(true));
   });
 
+  it('um filtro de equipe que não existe neste mês é ignorado: a grade aparece inteira (achado da revisão final)', async () => {
+    api();
+    abrir(`/?mes=${MES}&equipe=equipe-que-sumiu`);
+    expect(await screen.findByRole('rowheader', { name: /CABO/ })).toBeInTheDocument();
+    expect(screen.getByRole('rowheader', { name: /ADM/ })).toBeInTheDocument();
+  });
+
+  it('o militar comum não consulta a grade e vê uma frase neutra, sem alerta vermelho (achado da revisão final)', async () => {
+    const f = simularApi({ '/api/eu': { status: 200, corpo: { ...EU_EXEMPLO, papeis: [] } } });
+    abrir(`/?mes=${MES}`);
+    expect(await screen.findByText('A grade geral é dos escalantes e gestores.')).toHaveClass('text-apagado');
+    expect(screen.queryByRole('alert')).toBeNull();
+    expect(f.mock.calls.some(([e]) => String(e).includes('/grade/'))).toBe(false);
+  });
+
   it('mês sem ninguém diz isso', async () => {
     api({ ...GRADE, grupos: [] });
     abrir(`/?mes=${MES}`);
