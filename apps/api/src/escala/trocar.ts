@@ -96,11 +96,31 @@ export async function trocar(tx: Consulta, alocacaoId: string, troca: Troca, usu
   const comAcumulo = (await tx.query('select 1 from alocacao_acumulo where alocacao_id = any($1::uuid[]) limit 1', [[a.id, b.id]])).rows.length;
   if (comAcumulo) throw new Recusa('Tire os acúmulos antes de trocar.');
 
+  // os nomes só servem para a recusa dizer quem não pode ir para onde ("SD BM FULANO")
+  const nomes = new Map(
+    (
+      await tx.query<{ id: string; nome: string }>(
+        "select m.id, p.sigla || ' ' || m.nome_guerra as nome from militar m join posto_grad p on p.id = m.posto_grad_id where m.id = any($1::uuid[])",
+        [[a.militar_id, b.militar_id]],
+      )
+    ).rows.map((x) => [x.id, x.nome]),
+  );
+  /** O militar de `quem` entra na vaga de `daVaga` pelas regras de "escalar"; a recusa diz quem não pode ir para a vaga de quem. */
+  const entrarNaVaga = async (quem: Aloc, daVaga: Aloc) => {
+    try {
+      await escalar(tx, daVaga.escala_id, { militarId: quem.militar_id, data: daVaga.data, turnoId: daVaga.turno_id, guarnicaoId: daVaga.guarnicao_id, funcaoId: daVaga.funcao_id });
+    } catch (e) {
+      if (e instanceof Recusa) throw new Recusa(`${nomes.get(quem.militar_id)} não pode ir para a vaga de ${nomes.get(daVaga.militar_id)}: ${e.message}`);
+      throw e;
+    }
+  };
+
   // trocar de lugar: sem marca de remoção (ninguém saiu do serviço); cada um entra na vaga do outro pelas regras de "escalar"
   const apagadas = (await tx.query('delete from alocacao where id = any($1::uuid[]) returning id', [[a.id, b.id]])).rows.length;
   if (apagadas !== 2) throw new NaoEncontrada();
-  await escalar(tx, b.escala_id, { militarId: a.militar_id, data: b.data, turnoId: b.turno_id, guarnicaoId: b.guarnicao_id, funcaoId: b.funcao_id });
-  await escalar(tx, a.escala_id, { militarId: b.militar_id, data: a.data, turnoId: a.turno_id, guarnicaoId: a.guarnicao_id, funcaoId: a.funcao_id });
+  // a ordem não muda: primeiro o militar da alocação clicada (a) vai para a vaga de b, e então o de b para a vaga de a
+  await entrarNaVaga(a, b);
+  await entrarNaVaga(b, a);
   const escalas = new Map([a, b].map((x) => [x.escala_id, { escalaId: x.escala_id, mes }]));
   return [...escalas.values()];
 }
