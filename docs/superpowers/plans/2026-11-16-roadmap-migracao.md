@@ -210,6 +210,14 @@ Design: `docs/superpowers/specs/2026-11-20-meta-de-ativacao-design.md`.
 
 Design: adendo "Efetivo por dia" em `docs/superpowers/specs/2026-11-20-meta-de-ativacao-design.md`.
 
+**Retorno da validação da 3.3 (20/11/2026): entregas 4.1, 4.2 e 5.1.** O número da entrega é a ordem de execução; o pedido foi dividido pelo momento mais oportuno de cada parte:
+- **4.1 — Meta do dia: desativar, reativar e adicionar** (depois da 4, antes da 5): "Desativar guarnição" no lugar de "Tirar da meta" (sempre desescala, com confirmação e "Desfazer"), grupo "Desativadas hoje" com "Reativar", "Adicionar guarnição" com todos os modelos e "Voltar ao padrão" sempre visível. Vem antes do "completar com JES", que preenche pela meta do dia.
+- **4.2 — Efetivo por dia e Escala do mês em grade** (depois da 4.1, antes da 5): cards em grade, régua fora, vaga em faixa única com escolha do turno cadastrado, etiqueta do serviço na cor cadastrada; na Escala do mês, uma barra só por dia e dias em grade nas escalas de um turno por dia. Vem antes da fase 5, que constrói em cima do Efetivo por dia.
+- **5.1 — O mesmo modelo de guarnição mais de uma vez no dia** (depois da 5, fechando a fase 4): tem migração e mexe na Escala do mês e na pré-escala; o design ainda será feito com o usuário. Até lá, um segundo modelo cadastrado ("ABT 2") resolve.
+- Descartado: o "dia de serviço 08h→08h" no Efetivo por dia (o dia continua o do calendário). Adiados: o selo "ativada / não ativada" e o tom do aviso "Falta…".
+
+Design: adendo "validação da 3.3" em `docs/superpowers/specs/2026-11-20-meta-de-ativacao-design.md`.
+
 **Entrega e marco:** piloto na 1ª SB. Um mês real montado no sistema novo, em paralelo com as planilhas atuais, e comparado no fim.
 
 ## Fase 5 — Operação diária
