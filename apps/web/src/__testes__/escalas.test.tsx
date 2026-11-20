@@ -5,7 +5,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { mesAtual } from '@/lib/meses';
 import { mesPorExtenso } from 'contratos';
 import { atualizarEscalas } from '@/api/escalas';
-import { abrir, corpoEnviado, EU_EXEMPLO, simularApi } from './apoio';
+import { abrir, chamadasA, corpoEnviado, EU_EXEMPLO, simularApi } from './apoio';
 
 const LISTA: LinhaEscala[] = [
   { id: 'e1', nome: 'Ordinário', ativa: true, servicos: ['Pronto', 'JES'], montaBlocosVoluntariado: true },
@@ -41,6 +41,31 @@ function api(ficha: Escala = escala(), extra: Parameters<typeof simularApi>[0] =
   });
 }
 const salvarMatriz = () => userEvent.click(screen.getByRole('button', { name: `Salvar a partir de ${mesPorExtenso(mes)}` }));
+
+describe('serviços da escala: "Incluir serviço" com botão', () => {
+  const BIOMA = { id: 's3', nome: 'Bioma', tipo: 'diaria', operacao: null, rotuloImpressao: null, cor: '#C08A1E', ativo: true, fixo: false, turnos: [] };
+  const comBioma = { 'GET /api/unidades/u-1sb/servicos': { status: 200, corpo: [BIOMA] } };
+
+  it('escolher na lista não põe o serviço; o botão "Incluir" põe, e só "Salvar serviços" grava', async () => {
+    const f = api(escala(), comBioma);
+    abrir('/escalas/e1');
+    const lista = await screen.findByLabelText('Incluir serviço');
+    const incluir = screen.getByRole('button', { name: 'Incluir' });
+    expect(incluir).toBeDisabled();
+    await userEvent.selectOptions(lista, 's3');
+    expect(screen.queryByRole('link', { name: 'Bioma' })).toBeNull();
+    expect(screen.queryByText('Alterações não salvas')).toBeNull();
+    expect(incluir).toBeEnabled();
+    await userEvent.click(incluir);
+    expect(screen.getByRole('link', { name: 'Bioma' })).toBeInTheDocument();
+    expect(screen.getByText('Alterações não salvas')).toBeInTheDocument();
+    // a lista volta a "Incluir serviço…" e nada foi gravado ainda
+    expect(screen.queryByLabelText('Incluir serviço')).toBeNull();
+    expect(chamadasA(f, 'PUT /api/escalas/e1/servicos')).toBe(0);
+    await userEvent.click(screen.getByRole('button', { name: 'Salvar serviços' }));
+    await waitFor(() => expect(corpoEnviado(f, 'PUT /api/escalas/e1/servicos')).toEqual({ servicoIds: ['s1', 's2', 's3'] }));
+  });
+});
 
 describe('escalas', () => {
   it('a contagem da lista diz "1 escala" no singular e "2 escalas" no plural', async () => {

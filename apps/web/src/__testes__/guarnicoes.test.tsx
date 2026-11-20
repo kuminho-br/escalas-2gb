@@ -203,6 +203,52 @@ describe('ficha da guarnição', () => {
     await waitFor(() => expect(screen.getByLabelText('Função 3')).toHaveValue('f-new'));
   });
 
+  it('dois cliques seguidos em "Criar" (a função nova) mandam um pedido só (Review Focus 4)', async () => {
+    const { espera, soltar } = trava();
+    const f = api({ 'POST /api/unidades/u-1sb/funcoes': { status: 201, corpo: { id: 'f-new', nome: 'Socorrista', unidadeSigla: '1ª SB', herdada: false }, espera } });
+    abrir('/configuracoes/modelos-de-guarnicao/g1');
+    await userEvent.click(await screen.findByRole('button', { name: 'Incluir função' }));
+    await userEvent.selectOptions(await screen.findByLabelText('Função 3'), 'Nova função…');
+    await userEvent.type(screen.getByLabelText('Nome da nova função'), 'Socorrista');
+    const criar = screen.getByRole('button', { name: 'Criar' });
+    fireEvent.click(criar);
+    fireEvent.click(criar);
+    expect(criar).toBeDisabled();
+    soltar();
+    await waitFor(() => expect(screen.getByLabelText('Função 3')).toHaveValue('f-new'));
+    expect(chamadasA(f, 'POST /api/unidades/u-1sb/funcoes')).toBe(1);
+  });
+
+  it('dois cliques seguidos em "Salvar nome" (renomear) mandam um pedido só (Review Focus 4)', async () => {
+    const { espera, soltar } = trava();
+    const f = api({ 'PATCH /api/funcoes/f-comb': { status: 200, corpo: { id: 'f-comb', nome: 'Combatente de linha', unidadeSigla: '1ª SB', herdada: false }, espera } });
+    abrir('/configuracoes/modelos-de-guarnicao/g1');
+    await userEvent.click(await screen.findByRole('button', { name: 'Renomear Combatente' }));
+    const campo = screen.getByLabelText('Novo nome de Combatente');
+    await userEvent.clear(campo);
+    await userEvent.type(campo, 'Combatente de linha');
+    const salvar = screen.getByRole('button', { name: 'Salvar nome' });
+    fireEvent.click(salvar);
+    fireEvent.click(salvar);
+    expect(salvar).toBeDisabled();
+    soltar();
+    await waitFor(() => expect(screen.queryByLabelText('Novo nome de Combatente')).toBeNull());
+    expect(chamadasA(f, 'PATCH /api/funcoes/f-comb')).toBe(1);
+  });
+
+  it('o nome da função nova digitado e não criado conta como alteração: sair da ficha pergunta antes', async () => {
+    const confirmar = vi.spyOn(window, 'confirm').mockReturnValue(false);
+    api();
+    const router = abrir('/configuracoes/modelos-de-guarnicao/g1');
+    // "Nova função…" numa linha que já existe não muda a composição: só o nome digitado é a alteração pendente
+    await userEvent.selectOptions(await screen.findByLabelText('Função 1'), 'Nova função…');
+    await userEvent.type(screen.getByLabelText('Nome da nova função'), 'Socorrista');
+    await userEvent.click(screen.getByRole('link', { name: 'Grade geral' }));
+    expect(confirmar).toHaveBeenCalledWith(MENSAGEM_PENDENTE);
+    expect(router.state.location.pathname).toBe('/configuracoes/modelos-de-guarnicao/g1');
+    confirmar.mockRestore();
+  });
+
   it('a função herdada mostra a sigla de onde vem e não tem lápis', async () => {
     api();
     abrir('/configuracoes/modelos-de-guarnicao/g1');
