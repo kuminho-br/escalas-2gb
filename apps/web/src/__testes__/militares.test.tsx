@@ -382,6 +382,52 @@ describe('revisão 3: menores da tela de militares', () => {
   });
 });
 
+describe('identificação grava só o que mudou', () => {
+  it('salvar a identificação manda só o campo alterado', async () => {
+    const f = api({ 'PATCH /api/militares/m1': { status: 200, corpo: FICHA } });
+    abrir('/militares/m1');
+    fireEvent.change(await screen.findByLabelText('Nome de guerra'), { target: { value: 'silva' } });
+    await userEvent.click(screen.getByRole('button', { name: 'Salvar alterações' }));
+    await waitFor(() => expect(corpoEnviado(f, 'PATCH /api/militares/m1')).toEqual({ nomeGuerra: 'SILVA' }));
+  });
+
+  it('a segunda gravação manda só o que mudou depois da primeira', async () => {
+    const f = api({ 'PATCH /api/militares/m1': { status: 200, corpo: FICHA } });
+    abrir('/militares/m1');
+    fireEvent.change(await screen.findByLabelText('Nome de guerra'), { target: { value: 'silva' } });
+    await userEvent.click(screen.getByRole('button', { name: 'Salvar alterações' }));
+    await waitFor(() => expect(chamadasA(f, 'PATCH /api/militares/m1')).toBe(1));
+    expect(await screen.findByText('Alterações salvas.')).toBeInTheDocument();
+    await userEvent.click(screen.getByLabelText('Voluntário JES'));
+    await userEvent.click(screen.getByRole('button', { name: 'Salvar alterações' }));
+    await waitFor(() => expect(chamadasA(f, 'PATCH /api/militares/m1')).toBe(2));
+    expect(corpoEnviado(f, 'PATCH /api/militares/m1')).toEqual({ voluntarioJes: true });
+  });
+
+  it('mudar e voltar ao original não deixa nada para salvar', async () => {
+    const f = api();
+    abrir('/militares/m1');
+    const campo = await screen.findByLabelText('Nome de guerra');
+    const original = (campo as HTMLInputElement).value;
+    fireEvent.change(campo, { target: { value: 'OUTRO' } });
+    expect(screen.getByRole('button', { name: 'Salvar alterações' })).toBeEnabled();
+    fireEvent.change(campo, { target: { value: original } });
+    expect(screen.getByRole('button', { name: 'Salvar alterações' })).toBeDisabled();
+    expect(chamadasA(f, 'PATCH /api/militares/m1')).toBe(0);
+  });
+
+  it('apagar a antiguidade manda null', async () => {
+    const f = api({
+      'GET /api/militares/m1': { status: 200, corpo: { ...FICHA, antiguidade: 12 } },
+      'PATCH /api/militares/m1': { status: 200, corpo: { ...FICHA, antiguidade: null } },
+    });
+    abrir('/militares/m1');
+    fireEvent.change(await screen.findByLabelText('Antiguidade'), { target: { value: '' } });
+    await userEvent.click(screen.getByRole('button', { name: 'Salvar alterações' }));
+    await waitFor(() => expect(corpoEnviado(f, 'PATCH /api/militares/m1')).toEqual({ antiguidade: null }));
+  });
+});
+
 describe('revisão 3: o aviso de salvo e o afastamento', () => {
   it('"Alterações salvas." continua na tela depois que a ficha volta do servidor com o valor novo', async () => {
     const novo = { ...FICHA, nomeGuerra: 'ANDRADE JR' };
