@@ -1,5 +1,5 @@
-import { queryOptions, type QueryClient } from '@tanstack/react-query';
-import type { Candidatos, EscalaDoMes, NovaAlocacao, NovoAcumulo } from 'contratos';
+import { keepPreviousData, queryOptions, type QueryClient } from '@tanstack/react-query';
+import type { Candidatos, EscalaDoMes, NovaAlocacao, NovoAcumulo, PreviaDaPreEscala } from 'contratos';
 import { pedir } from './cliente';
 
 export const consultaEscalaDoMes = (escalaId: string, mes: string) =>
@@ -47,3 +47,26 @@ export const acumular = (queryClient: QueryClient, alocacaoId: string, d: NovoAc
   gravando(queryClient, pedir<EscalaDoMes>('POST', `/api/alocacoes/${alocacaoId}/acumulos`, d));
 /** Tira só a vaga acumulada: o militar continua na vaga original. */
 export const tirarAcumulo = (queryClient: QueryClient, acumuloId: string) => gravando(queryClient, pedir<EscalaDoMes>('DELETE', `/api/acumulos/${acumuloId}`));
+
+/** A prévia da pré-escala do Pronto; `equipe` é a equipe do dia 1 escolhida (sem ela, a API usa a detectada). Sempre busca de novo. */
+export const consultaPreEscala = (escalaId: string, mes: string, equipe: string | null) =>
+  queryOptions({
+    queryKey: ['pre-escala', escalaId, mes, equipe],
+    queryFn: () => pedir<PreviaDaPreEscala>('GET', `/api/escalas/${escalaId}/mes/${mes}/pre-escala${equipe ? `?equipe=${equipe}` : ''}`),
+    // ao trocar a equipe, a prévia anterior fica na tela (com "Atualizando…") até a nova chegar: a seleção não some nem perde o foco
+    placeholderData: keepPreviousData,
+    gcTime: 0,
+    staleTime: 0,
+  });
+
+/** Grava a pré-escala: a escala do mês inteira entra no lugar da que estava e a lista de candidatos é refeita. */
+export async function gravarPreEscala(queryClient: QueryClient, escalaId: string, mes: string, equipeDia1Id: string): Promise<number> {
+  try {
+    const r = await pedir<{ escala: EscalaDoMes; gravadas: number }>('POST', `/api/escalas/${escalaId}/mes/${mes}/pre-escala`, { equipeDia1Id });
+    guardar(queryClient, r.escala);
+    return r.gravadas;
+  } catch (e) {
+    void queryClient.invalidateQueries({ queryKey: ['escala-do-mes'] });
+    throw e;
+  }
+}

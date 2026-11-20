@@ -171,6 +171,14 @@ Plano próprio: `docs/superpowers/plans/2026-11-18-fase4-escala.md` (seis entreg
 
 Entra como **entrega 2.4, antes da 3**, porque a pré-escala é montada nessa tela. As propostas foram aprovadas com o mockup (`docs/telas/mockup-entrega-2-4.html`), e o plano está no plano da fase 4 (Tarefas 28 a 31). Design: adendo "depois da entrega 2.3" em `docs/superpowers/specs/2026-11-19-voluntariado-por-faixa-design.md`.
 
+**Pendência da 2.4 para a entrega 3 (19/11/2026): a Escala do mês de verdade.** Na sandbox, o usuário corrigiu o que queria: o card da guarnição **não** deve ocupar a linha inteira (o que a 2.4 fez). Numa escala com uma guarnição por turno, como a Bioma, os **turnos do mesmo dia devem se agrupar na horizontal, de forma responsiva**. A proposta é uma grade de turnos de ~20rem, em que o turno com várias guarnições (Ordinário) ocupa a linha inteira, e o card volta a ter largura natural. Entra na entrega 3, porque a pré-escala é montada nesta tela. Design: adendo "depois da entrega 2.4" em `docs/superpowers/specs/2026-11-19-voluntariado-por-faixa-design.md`.
+
+**Decisão do usuário (19/11/2026): a entrega 3 sai em duas.**
+- **3.1 — pré-escala do Pronto:** equipe do dia 1, vagas pela ordem de escala com o mais antigo apto, prévia e gravação.
+- **3.2 — buracos, saldos e operações:** JES e Saldo nas vagas que sobraram, operações pelas cotas e a disposição da Escala do mês com os turnos lado a lado.
+
+A 3.1 é validada na sandbox antes de a 3.2 começar, e a 3.2 tem quatro decisões de regra pendentes, listadas no plano da fase 4.
+
 **Entrega e marco:** piloto na 1ª SB. Um mês real montado no sistema novo, em paralelo com as planilhas atuais, e comparado no fim.
 
 ## Fase 5 — Operação diária
