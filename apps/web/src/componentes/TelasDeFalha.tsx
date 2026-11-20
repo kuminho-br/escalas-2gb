@@ -1,13 +1,16 @@
 import { Link, useRouter, type ErrorComponentProps } from '@tanstack/react-router';
+import { ErroApi } from '@/api/cliente';
 import { Button } from '@/componentes/ui/button';
 
 /** Falha ao abrir uma tela (sessão, rede, resposta fora do esperado): em português, com a saída à mão. */
-export function ErroAoAbrir({ reset }: ErrorComponentProps) {
+export function ErroAoAbrir({ error, reset }: ErrorComponentProps) {
   const router = useRouter();
+  // o servidor disse o que houve (503: banco desatualizado): a tela repete a mensagem em vez do conselho genérico da conexão
+  const doServidor = error instanceof ErroApi && error.status === 503 ? error.message : null;
   return (
     <div role="alert" className="grid min-h-dvh place-content-center justify-items-center gap-3 p-6 text-center">
       <h1 className="font-cond text-2xl font-semibold">Não foi possível abrir o sistema.</h1>
-      <p className="max-w-sm text-apagado">Confira a conexão e tente de novo. Se continuar, avise quem cuida do sistema.</p>
+      <p className="max-w-sm text-apagado">{doServidor ?? 'Confira a conexão e tente de novo. Se continuar, avise quem cuida do sistema.'}</p>
       <Button
         type="button"
         onClick={() => {

@@ -53,3 +53,6 @@ export type Cota = NovaCota & {
 };
 
 export type ResultadoDaCopia = { copiados: number };
+
+/** A cópia de cotas também diz quantas do mês de origem ficaram de fora por serem de serviço desativado (e o destino ainda não tinha). */
+export type ResultadoDaCopiaDeCotas = ResultadoDaCopia & { puladas: number };

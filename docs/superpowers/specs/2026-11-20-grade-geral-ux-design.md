@@ -36,8 +36,31 @@ como um botão, com o aviso de voluntariado repetido em cada uma: fica uma lista
 12. **Destaque da linha** ao passar o mouse (fundo leve no `tr` inteiro, incluindo a coluna do nome).
 13. **Célula visível ao abrir o painel:** ao escolher uma célula, a grade rola só o necessário para ela continuar à vista ao lado do
     painel (`scrollIntoView({ inline: 'nearest', block: 'nearest' })`).
+14. **Busca por nome** *(pedido de 20/11/2026, depois da 4.1)*: um campo ao lado dos filtros de equipe que filtra as linhas enquanto se
+    digita. Ignora acento e maiúscula; procura no nome de guerra e na matrícula. O grupo que fica sem ninguém some. O texto fica no endereço
+    (`busca`), como o filtro de equipes, e os dois filtros valem juntos. *(detalhes: chamada minha)*
 
 Rejeitado pelo usuário: destaque do dia de hoje e da coluna do dia aberto.
+
+## Parte C — Efetivo por dia: o dia da semana ao lado do seletor *(pedido de 20/11/2026)*
+
+Ao lado do seletor de data, mostrar só o dia da semana por extenso ("sexta-feira"), sem repetir a data, que já está no campo (hoje:
+"sexta, 20/11/2026"). *Entendi que o pedido é desta tela; confirmar se a Grade geral tem algo parecido.* Como a tela é a mesma da 4.2,
+o planejamento pode encaixar este item lá.
+
+## Parte D — correção da 4.1: desativar uma guarnição não tira ninguém da outra *(regra do usuário, 20/11/2026)*
+
+**Não existe "acúmulo cruzado" como caso especial.** Na prática não há diferença entre a guarnição original e a acumulada: as duas têm o
+mesmo peso. Por isso, **desativar uma guarnição tira o militar só dela, nunca da outra em que ele estava, nos dois sentidos**:
+
+- ALFA na guarnição 1 com acúmulo na 2: desativar a 1 tira ALFA da 1; **ALFA continua na 2**.
+- BRAVO na guarnição 2 com acúmulo na 1: desativar a 1 tira BRAVO da 1; **BRAVO continua na 2**.
+- Se a que sai é a original e ele tinha acúmulo em outra, a outra passa a ser a dele (a alocação não pode sumir por inteiro).
+- Desfazer devolve cada um onde estava.
+
+**A 4.1, como foi entregue, não faz isso:** ao desativar a 1, ela também tira o acúmulo de ALFA na 2 ("Desativar sempre desescala quem está
+na guarnição: alocações e acúmulos nela, com a marca de remoção"). É uma correção da 4.1 (nome natural: 4.1.1, pela regra de numeração);
+o roteiro de validação do item de acúmulo foi ajustado a esta regra.
 
 ## Parte B — "Adicionar serviço neste dia" em abas (`AdicionarServico.tsx`, API do painel do dia)
 

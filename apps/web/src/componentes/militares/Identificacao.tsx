@@ -7,6 +7,7 @@ import { Campo } from '@/componentes/Campo';
 import { Selecao } from '@/componentes/Selecao';
 import { AcoesDoBloco, usePendencia, useTrava, useSincronizar } from '@/componentes/AlteracoesPendentes';
 import { Input } from '@/componentes/ui/input';
+import { alteracoesDaIdentificacao, type ValoresIdentificacao } from './alteracoes';
 import { Secao } from './Secao';
 
 export function Identificacao({ ficha }: { ficha: FichaMilitar }) {
@@ -19,20 +20,22 @@ export function Identificacao({ ficha }: { ficha: FichaMilitar }) {
   const [ativo, setAtivo] = useState(ficha.ativo);
   const [aviso, setAviso] = useState<{ erro: boolean; texto: string } | null>(null);
   const [campos, setCampos] = useState<Record<string, string>>({});
-  const assinatura = (p: string, n: string, a: string, j: boolean, at: boolean) => JSON.stringify([p, n.trim().toUpperCase(), a.trim() ? Number(a) : null, j, at]);
-  // o último gravado (começa com o que veio do servidor): o que difere dele é alteração pendente
-  const [salvo, setSalvo] = useState(() => assinatura(ficha.postoGradId, ficha.nomeGuerra, ficha.antiguidade == null ? '' : String(ficha.antiguidade), ficha.voluntarioJes, ficha.ativo));
-  const sujo = assinatura(posto, nome, antiguidade, jes, ativo) !== salvo;
+  // o que está na tela, no formato do servidor (a antiguidade vazia é null)
+  const atual: ValoresIdentificacao = { postoGradId: posto, nomeGuerra: nome, antiguidade: antiguidade.trim() ? Number(antiguidade) : null, voluntarioJes: jes, ativo };
+  const valoresDoServidor: ValoresIdentificacao = { postoGradId: ficha.postoGradId, nomeGuerra: ficha.nomeGuerra, antiguidade: ficha.antiguidade, voluntarioJes: ficha.voluntarioJes, ativo: ficha.ativo };
+  // o último gravado (começa com o que veio do servidor): o que difere dele é alteração pendente, e é só isso que se grava
+  const [salvo, setSalvo] = useState<ValoresIdentificacao>(valoresDoServidor);
+  const alteracoes = alteracoesDaIdentificacao(salvo, atual);
+  const sujo = Object.keys(alteracoes).length > 0;
   usePendencia('identificacao', sujo);
   const antiguidadeDoServidor = ficha.antiguidade == null ? '' : String(ficha.antiguidade);
-  const doServidor = assinatura(ficha.postoGradId, ficha.nomeGuerra, antiguidadeDoServidor, ficha.voluntarioJes, ficha.ativo);
-  useSincronizar(doServidor, sujo, () => {
+  useSincronizar(JSON.stringify(valoresDoServidor), sujo, () => {
     setPosto(ficha.postoGradId);
     setNome(ficha.nomeGuerra);
     setAntiguidade(antiguidadeDoServidor);
     setJes(ficha.voluntarioJes);
     setAtivo(ficha.ativo);
-    setSalvo(doServidor);
+    setSalvo(valoresDoServidor);
   });
 
   const { salvando, travar } = useTrava();
@@ -40,15 +43,11 @@ export function Identificacao({ ficha }: { ficha: FichaMilitar }) {
   async function gravar() {
     setAviso(null);
     setCampos({});
+    if (!sujo) return;
     try {
-      await editarMilitar(ficha.id, {
-        postoGradId: posto,
-        nomeGuerra: nome.trim().toUpperCase(),
-        antiguidade: antiguidade.trim() ? Number(antiguidade) : null,
-        voluntarioJes: jes,
-        ativo,
-      });
-      setSalvo(assinatura(posto, nome, antiguidade, jes, ativo));
+      await editarMilitar(ficha.id, alteracoes);
+      // o que foi enviado vira o novo "salvo": uma edição feita durante a gravação continua pendente
+      setSalvo(atual);
       atualizarMilitares(queryClient, ficha.id);
       setAviso({ erro: false, texto: 'Alterações salvas.' });
     } catch (err) {

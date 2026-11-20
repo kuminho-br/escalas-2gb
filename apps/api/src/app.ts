@@ -8,6 +8,7 @@ import { rotasGuarnicoes } from './cadastros/guarnicoes.ts';
 import { rotasEscalas } from './cadastros/escalas.ts';
 import { rotasMilitares } from './cadastros/militares.ts';
 import { rotasServicos } from './cadastros/servicos.ts';
+import { exigirMigracoesEmDia } from './migracoes-pendentes.ts';
 import { IMPORTADORES } from './importacao/registro.ts';
 import { limiteDeEnvio } from './limites.ts';
 import { rotasImportacao } from './importacao/rotas.ts';
@@ -22,11 +23,17 @@ export interface Dependencias {
   banco: Banco;
   cronSecret?: string;
   auth?: Auth;
+  /** Nomes dos .sql que o código espera ver aplicados; sem a lista, não confere. */
+  migracoesEsperadas?: string[];
+  /** Intervalo da reconferência enquanto falta migração (ms). */
+  intervaloMs?: number;
 }
 
 export function criarApp(dep: Dependencias): Hono {
   const app = new Hono();
   app.use('/api/*', limiteDeEnvio);
+  // com a lista de migrações esperadas (o build da Vercel a embute), a API responde 503 enquanto falta alguma; sem a lista, não confere
+  if (dep.migracoesEsperadas) app.use('/api/*', exigirMigracoesEmDia(dep.banco, dep.migracoesEsperadas, { intervaloMs: dep.intervaloMs }));
   app.route('/api/saude', rotasSaude(dep.banco, dep.cronSecret));
   if (dep.auth) {
     const auth = dep.auth;

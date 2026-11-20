@@ -1,4 +1,5 @@
 import { queryOptions } from '@tanstack/react-query';
+import { ErroApi } from './cliente';
 
 export type Papel = 'administrador' | 'gestor' | 'escalante';
 
@@ -16,7 +17,11 @@ export interface Eu {
 export async function buscarEu(): Promise<Eu | null> {
   const r = await fetch('/api/eu', { credentials: 'include' });
   if (r.status === 401) return null;
-  if (!r.ok) throw new Error(`Falha ao consultar a sessão (${r.status})`);
+  if (!r.ok) {
+    const corpo = (await r.json().catch(() => null)) as { erro?: string } | null;
+    // a mensagem do servidor (ex.: banco desatualizado, 503) chega à tela de falha
+    throw corpo?.erro ? new ErroApi(corpo.erro, r.status) : new Error(`Falha ao consultar a sessão (${r.status})`);
+  }
   return (await r.json()) as Eu;
 }
 

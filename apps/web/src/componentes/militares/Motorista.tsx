@@ -76,14 +76,13 @@ export function Motorista({ ficha }: { ficha: FichaMilitar }) {
                   key={c}
                   type="button"
                   aria-label={`${c} ${veiculo}${pela ? ` pela ${pela}` : ''}`}
-                  aria-pressed={naCarteira}
+                  aria-pressed={naCarteira || !!pela}
                   data-origem={naCarteira ? 'carteira' : pela ? 'hierarquia' : 'nenhuma'}
                   onClick={() => alternar(c)}
                   className={cn(
                     'grid place-items-center rounded-md border px-0.5 py-0.5 text-center',
-                    naCarteira && 'border-tinta bg-tinta text-white',
-                    pela && 'border-dashed border-tinta/60 text-tinta',
-                    !naCarteira && !pela && 'border-linha text-apagado',
+                    // a que a carteira habilita acende igual à da carteira; o "pela X" embaixo diz de onde vem
+                    naCarteira || pela ? 'border-tinta bg-tinta text-white' : 'border-linha text-apagado',
                   )}
                 >
                   <span className="font-cond text-lg leading-none font-semibold">{c}</span>
@@ -94,7 +93,7 @@ export function Motorista({ ficha }: { ficha: FichaMilitar }) {
             })}
           </div>
         )}
-        {quadro && <p className="text-xs text-apagado">Marque só as categorias da carteira. As tracejadas vêm pela hierarquia (a D habilita C e B).</p>}
+        {quadro && <p className="text-xs text-apagado">Marque as categorias da carteira. As que ela habilita acendem sozinhas (a E acende D, C e B). A moto (A) é separada.</p>}
         <AcoesDoBloco salvando={salvando} sujo={sujo} aviso={aviso} rotulo="Salvar motorista" tipo="button" aoSalvar={() => void salvar()} />
       </fieldset>
     </Secao>

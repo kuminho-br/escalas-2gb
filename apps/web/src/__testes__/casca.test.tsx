@@ -54,6 +54,13 @@ describe('casca', () => {
     expect(screen.queryByText('Configurações')).toBeNull();
     expect(screen.getByRole('link', { name: 'Grade geral' })).toBeInTheDocument();
   });
+
+  it('banco desatualizado mostra a mensagem do servidor', async () => {
+    const MSG = 'O banco de dados está desatualizado. Peça ao administrador para aplicar as migrações pendentes.';
+    simularApi({ '/api/eu': { status: 503, corpo: { erro: MSG } } });
+    abrir('/');
+    expect(await screen.findByText(MSG)).toBeInTheDocument();
+  });
 });
 
 describe('trilho', () => {
