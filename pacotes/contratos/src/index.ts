@@ -8,5 +8,5 @@ export * from './escalas.ts';
 export * from './escala-do-mes.ts';
 export * from './cotas-feriados.ts';
 export * from './voluntariado.ts';
-export * from './ordem-de-escala.ts';
+export * from './ordem-de-escalacao.ts';
 export * from './pre-escala.ts';

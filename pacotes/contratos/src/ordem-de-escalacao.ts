@@ -1,4 +1,4 @@
-// Ordem de escala: a vez de cada vaga (guarnição + função + número da vaga) na pré-escala e na tela "Ordem de escala".
+// Ordem de escalação: a vez de cada vaga (guarnição + função + número da vaga) na pré-escala e na tela "Ordem de escalação".
 import { z } from 'zod';
 import { Id } from './comum.ts';
 
@@ -7,13 +7,13 @@ export const VagaDaOrdem = z.object({ guarnicaoId: Id, funcaoId: Id, vaga: z.num
 export type VagaDaOrdem = z.infer<typeof VagaDaOrdem>;
 
 /** A ordem inteira, da primeira vez para a última (posição = índice + 1). Lista vazia é aceita. */
-export const OrdemDeEscalaEntrada = z
+export const OrdemDeEscalacaoEntrada = z
   .object({ itens: z.array(VagaDaOrdem) })
   .refine((o) => new Set(o.itens.map((i) => `${i.guarnicaoId}|${i.funcaoId}|${i.vaga}`)).size === o.itens.length, {
     message: 'Esta vaga aparece duas vezes na ordem.',
     path: ['itens'],
   });
-export type OrdemDeEscalaEntrada = z.infer<typeof OrdemDeEscalaEntrada>;
+export type OrdemDeEscalacaoEntrada = z.infer<typeof OrdemDeEscalacaoEntrada>;
 
 export type VagaNaTela = {
   guarnicaoId: string;
@@ -27,7 +27,7 @@ export type VagaNaTela = {
   posicao: number | null;
 };
 
-export type OrdemDeEscala = {
+export type OrdemDeEscalacao = {
   escalaId: string;
   mes: string;
   /** mês da versão em vigor; null = nenhuma ordem cadastrada (vale a sugestão pela prioridade antiga) */

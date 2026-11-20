@@ -1,4 +1,4 @@
-import { mesPorExtenso, somarMeses, type OrdemDeEscala } from 'contratos';
+import { mesPorExtenso, somarMeses, type OrdemDeEscalacao } from 'contratos';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { hojeRecife } from '../src/datas.ts';
 import { inserir } from './banco-teste.ts';
@@ -19,7 +19,7 @@ const secao = () => `/api/unidades/${api.ids.secao}`;
 const vaga = (guarnicaoId: string, funcaoId: string, n = 1) => ({ guarnicaoId, funcaoId, vaga: n });
 const ler = async (m: string, quem: 'escalante' | 'semPapel' = 'escalante') => api.pedir(quem, 'GET', `/api/escalas/${escalaId}/ordem/${m}`);
 const gravar = (m: string, itens: unknown[], quem: 'escalante' | 'semPapel' = 'escalante') => api.pedir(quem, 'PUT', `/api/escalas/${escalaId}/ordem/${m}`, { itens });
-const posicoes = (o: OrdemDeEscala) => o.vagas.map((v) => `${v.guarnicao} ${v.funcao} ${v.vaga}=${v.posicao ?? '-'}`);
+const posicoes = (o: OrdemDeEscalacao) => o.vagas.map((v) => `${v.guarnicao} ${v.funcao} ${v.vaga}=${v.posicao ?? '-'}`);
 
 beforeAll(async () => {
   api = await montarApi();
@@ -40,11 +40,11 @@ afterAll(async () => {
   await api.fechar();
 });
 
-describe('ordem de escala', () => {
+describe('ordem de escalação', () => {
   it('sem ordem cadastrada, a sugestão segue a prioridade antiga das guarnições', async () => {
     const r = await ler(atual);
     expect(r.status).toBe(200);
-    const o: OrdemDeEscala = await r.json();
+    const o: OrdemDeEscalacao = await r.json();
     expect(o.vigencia).toBeNull();
     expect(posicoes(o)).toEqual(['ABT Motorista 1=1', 'ABT Combatente 1=2', 'ABT Combatente 2=3', 'AR Chefe 1=4']);
     expect(o.vagas.map((v) => v.obrigatoria)).toEqual([true, true, false, true]);
@@ -54,10 +54,10 @@ describe('ordem de escala', () => {
     const g = await gravar(mes(1), [vaga(ar, chefe), vaga(abt, motorista)]);
     expect(g.status).toBe(200);
     expect(posicoes(await g.json())).toEqual(['ABT Motorista 1=2', 'ABT Combatente 1=-', 'ABT Combatente 2=-', 'AR Chefe 1=1']);
-    const depois: OrdemDeEscala = await (await ler(mes(2))).json();
+    const depois: OrdemDeEscalacao = await (await ler(mes(2))).json();
     expect(depois.vigencia).toBe(mes(1));
     expect(posicoes(depois)).toEqual(['ABT Motorista 1=2', 'ABT Combatente 1=-', 'ABT Combatente 2=-', 'AR Chefe 1=1']);
-    const antes: OrdemDeEscala = await (await ler(atual)).json();
+    const antes: OrdemDeEscalacao = await (await ler(atual)).json();
     expect(antes.vigencia).toBeNull();
   });
 
@@ -65,7 +65,7 @@ describe('ordem de escala', () => {
     await gravar(mes(3), [vaga(abt, combatente, 1)]);
     const g = await gravar(mes(3), []);
     expect(g.status).toBe(200);
-    const o: OrdemDeEscala = await g.json();
+    const o: OrdemDeEscalacao = await g.json();
     expect(o.vigencia).toBe(mes(3));
     expect(o.vagas.every((v) => v.posicao === null)).toBe(true);
     expect((await api.banco.query("select 1 from ordem_escala_versao where escala_id = $1 and vigencia_desde = $2::date", [escalaId, `${mes(3)}-01`])).rows).toHaveLength(1);

@@ -3,10 +3,10 @@ import { createFileRoute, Link } from '@tanstack/react-router';
 import { Mes } from 'contratos';
 import { mensagemDe } from '@/api/cliente';
 import { consultaEscala } from '@/api/escalas';
-import { consultaOrdemDeEscala } from '@/api/ordem-de-escala';
+import { consultaOrdemDeEscalacao } from '@/api/ordem-de-escalacao';
 import { ProvedorDePendencias } from '@/componentes/AlteracoesPendentes';
 import { CampoDeMes } from '@/componentes/CampoDeMes';
-import { OrdemDeEscala } from '@/componentes/escalas/OrdemDeEscala';
+import { OrdemDeEscalacao } from '@/componentes/escalas/OrdemDeEscalacao';
 import { Label } from '@/componentes/ui/label';
 import { mesAtual } from '@/lib/meses';
 
@@ -22,14 +22,14 @@ function Ordem() {
   // a ordem vale a partir do mês escolhido; abre no mês atual
   const mes = busca.mes ?? mesAtual();
   const escala = useQuery(consultaEscala(id));
-  const ordem = useQuery(consultaOrdemDeEscala(id, mes));
+  const ordem = useQuery(consultaOrdemDeEscalacao(id, mes));
 
   return (
     <ProvedorDePendencias>
       <section className="grid gap-4">
         <div>
           <Link to="/escalas/$id" params={{ id }} className="text-sm font-medium text-vinho underline underline-offset-2">Voltar para a escala</Link>
-          <h1 className="font-cond text-[28px] leading-tight font-semibold">Ordem de escala{escala.data ? ` — ${escala.data.nome}` : ''}</h1>
+          <h1 className="font-cond text-[28px] leading-tight font-semibold">Ordem de escalação{escala.data ? ` — ${escala.data.nome}` : ''}</h1>
         </div>
         <div className="grid gap-1.5">
           <Label htmlFor="oe-mes">Vale a partir de</Label>
@@ -38,7 +38,7 @@ function Ordem() {
         {(escala.isPending || ordem.isPending) && <p className="text-apagado">Carregando…</p>}
         {escala.error && <p role="alert" className="text-alerta">{mensagemDe(escala.error)}</p>}
         {ordem.error && <p role="alert" className="text-alerta">{mensagemDe(ordem.error)}</p>}
-        {ordem.data && <OrdemDeEscala key={`${id}|${mes}`} escalaId={id} mes={mes} dados={ordem.data} />}
+        {ordem.data && <OrdemDeEscalacao key={`${id}|${mes}`} escalaId={id} mes={mes} dados={ordem.data} />}
       </section>
     </ProvedorDePendencias>
   );

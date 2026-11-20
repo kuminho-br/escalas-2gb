@@ -76,7 +76,7 @@ export async function montarEscalaDoMes(c: Consulta, escalaId: string, mes: stri
     const k = chaveDaFaixa(it.inicio, it.fim);
     modeloPorFaixa.set(k, [...(modeloPorFaixa.get(k) ?? []), { guarnicaoId: it.guarnicaoId, nome: it.guarnicao, viatura: v.viatura, prioridade: v.prioridade, composicao: v.composicao }]);
   }
-  // os cards seguem a ordem de escala: a guarnição vale pela primeira vez das vagas dela (sem ordem cadastrada: prioridade e nome, como sempre)
+  // os cards seguem a ordem de escalação: a guarnição vale pela primeira vez das vagas dela (sem ordem cadastrada: prioridade e nome, como sempre)
   const vezDaGuarnicao = new Map<string, number>();
   sequenciaDePreenchimento((await ordemDoMes(c, escalaId, mes)).vagas).forEach((v, i) => {
     if (!vezDaGuarnicao.has(v.guarnicaoId)) vezDaGuarnicao.set(v.guarnicaoId, i);

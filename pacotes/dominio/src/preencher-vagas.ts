@@ -1,4 +1,4 @@
-// Preencher as vagas de uma faixa na ordem de escala (entrega 3.1, regra só do sistema novo).
+// Preencher as vagas de uma faixa na ordem de escalação (entrega 3.1, regra só do sistema novo).
 // Na vez de cada vaga entra o mais antigo que ainda não foi usado e tem a CNH que ela exige (hierarquia do CTB).
 import { cnhAtende } from './cnh.ts';
 

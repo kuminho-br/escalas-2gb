@@ -1,5 +1,5 @@
-// Ordem de escala no banco: a ordem em vigor num mês (maior vigência até ele) e a gravação de uma versão nova.
-import { mesParaData, type OrdemDeEscala, type VagaDaOrdem } from 'contratos';
+// Ordem de escalação no banco: a ordem em vigor num mês (maior vigência até ele) e a gravação de uma versão nova.
+import { mesParaData, type OrdemDeEscalacao, type VagaDaOrdem } from 'contratos';
 import type { Consulta } from '../banco/banco.ts';
 import { vinculosDaEscala } from '../cadastros/escalas.ts';
 import { versaoNoMes } from '../cadastros/guarnicoes-regras.ts';
@@ -20,7 +20,7 @@ async function vagasDaEscala(c: Consulta, escalaId: string, mes: string) {
 }
 
 /** A ordem em vigor no mês; sem nenhuma versão até ele, `vigencia: null` e a sugestão pela prioridade antiga das guarnições. */
-export async function ordemDoMes(c: Consulta, escalaId: string, mes: string): Promise<OrdemDeEscala> {
+export async function ordemDoMes(c: Consulta, escalaId: string, mes: string): Promise<OrdemDeEscalacao> {
   const vagas = await vagasDaEscala(c, escalaId, mes);
   const versao = (
     await c.query<{ id: string; vigencia: string }>(

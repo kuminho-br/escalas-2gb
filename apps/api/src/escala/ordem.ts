@@ -1,4 +1,4 @@
-// Ordem de escala: as vagas de uma escala num mês e a vez de cada uma (regras puras; a leitura e a gravação estão nas rotas).
+// Ordem de escalação: as vagas de uma escala num mês e a vez de cada uma (regras puras; a leitura e a gravação estão nas rotas).
 import type { VagaDaOrdem, VagaNaTela } from 'contratos';
 
 export type ModeloDaGuarnicao = {

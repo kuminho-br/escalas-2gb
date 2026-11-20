@@ -122,7 +122,7 @@ function Editor({ ficha, unidadeId, versao, aoSalvar }: { ficha: FichaGuarnicao;
           <Input id="gv-tipo" value={tipoViatura} onChange={(e) => setTipoViatura(e.target.value)} />
         </div>
       </div>
-      <p className="-mt-2 text-xs text-apagado">A viatura é só informativa: não muda as vagas. A ordem em que as vagas são preenchidas é definida na escala, em "Ordem de escala".</p>
+      <p className="-mt-2 text-xs text-apagado">A viatura é só informativa: não muda as vagas. A ordem em que as vagas são preenchidas é definida na escala, em "Ordem de escalação".</p>
 
       <div className="grid gap-2">
         <h4 className="font-cond text-base font-semibold">Composição</h4>

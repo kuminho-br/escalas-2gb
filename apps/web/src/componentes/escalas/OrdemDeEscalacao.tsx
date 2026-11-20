@@ -1,9 +1,9 @@
 import { useQueryClient } from '@tanstack/react-query';
-import type { OrdemDeEscala as Ordem, VagaDaOrdem, VagaNaTela } from 'contratos';
+import type { OrdemDeEscalacao as Ordem, VagaDaOrdem, VagaNaTela } from 'contratos';
 import { ArrowDown, ArrowUp } from 'lucide-react';
 import { useState, type KeyboardEvent } from 'react';
 import { mensagemComCampo } from '@/api/cliente';
-import { gravarOrdemDeEscala } from '@/api/ordem-de-escala';
+import { gravarOrdemDeEscalacao } from '@/api/ordem-de-escalacao';
 import { AcoesDoBloco, usePendencia, useSincronizar, useTrava } from '@/componentes/AlteracoesPendentes';
 import { Button } from '@/componentes/ui/button';
 import { listaComE } from '@/lib/escala';
@@ -20,13 +20,13 @@ const nomeDaVaga = (v: VagaNaTela) => `${v.funcao} ${v.guarnicao}, vaga ${v.vaga
  * A ordem em que as vagas são preenchidas: um quadrado por vaga, agrupados por guarnição. Clicar numera (o próximo número) ou tira da ordem
  * (os seguintes sobem um). Ao lado, a mesma ordem em lista, com Subir e Descer.
  */
-export function OrdemDeEscala({ escalaId, mes, dados }: { escalaId: string; mes: string; dados: Ordem }) {
+export function OrdemDeEscalacao({ escalaId, mes, dados }: { escalaId: string; mes: string; dados: Ordem }) {
   const queryClient = useQueryClient();
   const doServidor = ordemDaTela(dados.vagas);
   const [ordem, setOrdem] = useState<string[]>(doServidor);
   const [salvo, setSalvo] = useState(doServidor.join(','));
   const sujo = ordem.join(',') !== salvo;
-  usePendencia('ordem-de-escala', sujo);
+  usePendencia('ordem-de-escalacao', sujo);
   useSincronizar(doServidor.join(','), sujo, () => {
     setOrdem(doServidor);
     setSalvo(doServidor.join(','));
@@ -54,7 +54,7 @@ export function OrdemDeEscala({ escalaId, mes, dados }: { escalaId: string; mes:
       return { guarnicaoId: v.guarnicaoId, funcaoId: v.funcaoId, vaga: v.vaga };
     });
     try {
-      await gravarOrdemDeEscala(queryClient, escalaId, mes, itens);
+      await gravarOrdemDeEscalacao(queryClient, escalaId, mes, itens);
       setOrdem(ativa);
       setSalvo(ativa.join(','));
       setAviso({ erro: false, texto: 'Ordem salva.' });
