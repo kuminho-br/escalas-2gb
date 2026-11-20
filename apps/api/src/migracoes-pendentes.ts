@@ -3,8 +3,8 @@
 import type { MiddlewareHandler } from 'hono';
 import type { Banco } from './banco/banco.ts';
 
-export const MENSAGEM_MIGRACAO_PENDENTE =
-  'O banco de dados está desatualizado. Peça ao administrador para aplicar as migrações pendentes (pnpm --filter api db:migrar:teste).';
+// A tela mostra só esta frase (quem lê é o escalante): sem comando de terminal e sem a lista dos arquivos, que vai para o log do servidor.
+export const MENSAGEM_MIGRACAO_PENDENTE = 'O sistema está sendo atualizado. Tente de novo em alguns minutos; se continuar, avise o administrador.';
 
 async function pendentesDe(banco: Banco, esperadas: string[]): Promise<string[]> {
   try {
@@ -29,17 +29,18 @@ export function exigirMigracoesEmDia(
   const intervalo = opcoes.intervaloMs ?? 5000;
   const agora = opcoes.agora ?? Date.now;
   let emDia = false;
-  let pendentes: string[] = [];
   let conferidoEm = -Infinity;
 
   return async (c, next) => {
     if (c.req.path === '/api/saude' || c.req.path.startsWith('/api/saude/')) return next();
     if (!emDia && agora() - conferidoEm >= intervalo) {
-      pendentes = await pendentesDe(banco, esperadas);
+      const pendentes = await pendentesDe(banco, esperadas);
       conferidoEm = agora();
       emDia = pendentes.length === 0;
+      // a lista vai para o log uma vez por conferência (não a cada pedido)
+      if (!emDia) console.error(`Faltam migrações no banco: ${pendentes.join(', ')}. Aplique-as (pnpm --filter api db:migrar:teste no ambiente de teste).`);
     }
     if (emDia) return next();
-    return c.json({ erro: MENSAGEM_MIGRACAO_PENDENTE, pendentes }, 503);
+    return c.json({ erro: MENSAGEM_MIGRACAO_PENDENTE }, 503);
   };
 }
