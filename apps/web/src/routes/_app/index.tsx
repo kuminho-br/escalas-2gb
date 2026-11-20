@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { createFileRoute } from '@tanstack/react-router';
 import { Data, Mes } from 'contratos';
+import { useEffect } from 'react';
 import { mensagemDe } from '@/api/cliente';
 import { ehMilitarComum } from '@/api/eu';
 import { consultaGrade } from '@/api/grade';
@@ -41,6 +42,14 @@ function GradeGeral() {
   const grupos = grade ? (equipe ? grade.grupos.filter((g) => g.chave === equipe) : grade.grupos) : [];
   const escolhida = busca.militar && busca.dia ? { militarId: busca.militar, dia: busca.dia } : null;
   const filtrar = (equipe: string | undefined) => void navigate({ search: (s) => ({ ...s, equipe }) });
+  // ao escolher uma célula, a grade rola só o necessário para ela continuar à vista ao lado do painel
+  const militarEscolhido = escolhida?.militarId;
+  const diaEscolhido = escolhida?.dia;
+  const gradeCarregada = !!grade;
+  useEffect(() => {
+    if (!militarEscolhido || !diaEscolhido || !gradeCarregada) return;
+    document.querySelector<HTMLElement>(`tr[data-militar="${militarEscolhido}"] [data-data="${diaEscolhido}"]`)?.scrollIntoView?.({ inline: 'nearest', block: 'nearest' });
+  }, [militarEscolhido, diaEscolhido, gradeCarregada]);
 
   return (
     <section className="grid gap-4">

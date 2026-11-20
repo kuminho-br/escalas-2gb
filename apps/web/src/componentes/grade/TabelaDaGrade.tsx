@@ -21,6 +21,14 @@ function bordasDoDia(grade: GradeDoMes, i: number): string[] {
   return [segunda ? 'border-l border-l-[#C9CED6]' : '', vesperaDeSegunda ? '' : 'border-r border-r-[#EEF0F3]'];
 }
 
+/** PJES, Diárias e Voluntariado: larguras fixas para as três se empilharem presas à direita (right-44 = 4rem + 7rem; right-28 = 7rem). */
+const COLUNAS_FINAIS = [
+  { nome: 'PJES', largura: 'w-16', direita: 'min-[1440px]:right-44', separador: 'min-[1440px]:border-l min-[1440px]:border-l-linha' },
+  { nome: 'Diárias', largura: 'w-16', direita: 'min-[1440px]:right-28', separador: '' },
+  { nome: 'Voluntariado', largura: 'w-28', direita: 'min-[1440px]:right-0', separador: '' },
+] as const;
+const CELULA_FINAL = 'border-b border-b-[#EEF0F3] bg-superficie px-2 py-1 group-hover:bg-[#F7F7F8] min-[1440px]:sticky min-[1440px]:z-10';
+
 const horas = (l: LinhaDaGrade) => (l.horasTiradas === 0 && l.horasPedidas === 0 ? '–' : `${textoDuracao(l.horasTiradas)} de ${textoDuracao(l.horasPedidas)}`);
 
 /**
@@ -38,7 +46,7 @@ export function TabelaDaGrade({ grade, grupos, maximos, escolhida, aoEscolher }:
   return (
     // a tabela rola nas duas direções dentro da própria caixa: assim o cabeçalho dos dias e a coluna "Militar" grudam nela (com
     // `overflow-x-auto` e a página rolando na vertical, o cabeçalho não tinha onde grudar). Vale também no celular.
-    <div data-rolagem="grade" className="max-h-[calc(100dvh-12rem)] overflow-auto">
+    <div data-rolagem="grade" className="max-h-[calc(100dvh-13rem)] overflow-auto">
       <table aria-label={`Grade geral de ${mesPorExtenso(grade.mes)}`} className="w-full border-separate border-spacing-0 font-cond">
         <thead>
           <tr>
@@ -63,8 +71,9 @@ export function TabelaDaGrade({ grade, grupos, maximos, escolhida, aoEscolher }:
                 </th>
               );
             })}
-            {['PJES', 'Diárias', 'Voluntariado'].map((t) => (
-              <th key={t} scope="col" className="sticky top-0 z-20 border-b border-linha bg-superficie px-2 pt-2 pb-1.5 text-center text-sm font-medium text-apagado">{t}</th>
+            {/* a partir de 1440px as três colunas finais ficam presas à direita, empilhadas: Voluntariado (7rem), Diárias e PJES (4rem cada) */}
+            {COLUNAS_FINAIS.map((c) => (
+              <th key={c.nome} scope="col" className={cn('sticky top-0 z-20 border-b border-linha bg-superficie px-2 pt-2 pb-1.5 text-center text-sm font-medium text-apagado min-[1440px]:z-30', c.largura, c.direita, c.separador)}>{c.nome}</th>
             ))}
           </tr>
         </thead>
@@ -106,9 +115,9 @@ export function TabelaDaGrade({ grade, grupos, maximos, escolhida, aoEscolher }:
                       </td>
                     );
                   })}
-                  <td className="min-w-14 border-b border-[#EEF0F3] px-2 py-1"><BarraComparativa valor={l.pjes} maximo={maximos.pjes} /></td>
-                  <td className="min-w-14 border-b border-[#EEF0F3] px-2 py-1"><BarraComparativa valor={l.diarias} maximo={maximos.diarias} /></td>
-                  <td className="border-b border-[#EEF0F3] px-3 py-1 text-right text-sm font-semibold whitespace-nowrap">{horas(l)}</td>
+                  <td className={cn(CELULA_FINAL, COLUNAS_FINAIS[0].largura, COLUNAS_FINAIS[0].direita, COLUNAS_FINAIS[0].separador)}><BarraComparativa valor={l.pjes} maximo={maximos.pjes} /></td>
+                  <td className={cn(CELULA_FINAL, COLUNAS_FINAIS[1].largura, COLUNAS_FINAIS[1].direita)}><BarraComparativa valor={l.diarias} maximo={maximos.diarias} /></td>
+                  <td className={cn(CELULA_FINAL, COLUNAS_FINAIS[2].largura, COLUNAS_FINAIS[2].direita, 'text-right text-sm font-semibold whitespace-nowrap')}>{horas(l)}</td>
                 </tr>
               ))}
             </Fragment>

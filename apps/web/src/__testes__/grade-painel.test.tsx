@@ -68,6 +68,21 @@ describe('grade geral: o painel do dia', () => {
     expect(screen.getByRole('button', { name: 'SD BM CABO, dia 10: Pronto A' })).toHaveAttribute('data-escolhida');
   });
 
+  it('ao abrir o painel, a célula escolhida rola para ficar à vista', async () => {
+    const rolar = vi.fn();
+    // o jsdom não tem scrollIntoView
+    Object.defineProperty(Element.prototype, 'scrollIntoView', { value: rolar, configurable: true, writable: true });
+    try {
+      api();
+      abrir(ABERTA);
+      await painel();
+      await waitFor(() => expect(rolar).toHaveBeenCalledWith({ inline: 'nearest', block: 'nearest' }));
+      expect(rolar.mock.contexts.at(-1)).toBe(screen.getByRole('button', { name: 'SD BM CABO, dia 10: Pronto A' }));
+    } finally {
+      delete (Element.prototype as { scrollIntoView?: unknown }).scrollIntoView;
+    }
+  });
+
   it('sem nada marcado, afastado e com choque: as frases do dia', async () => {
     api({ ...PAINEL, disponibilidade: [], afastamento: 'Férias', choques: ['Choque de horário: Pronto A (08h–20h) com JES A (08h–20h)'], opcoes: [] });
     abrir(ABERTA);

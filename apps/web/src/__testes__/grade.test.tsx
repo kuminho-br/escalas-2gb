@@ -68,11 +68,28 @@ describe('grade geral: a tabela', () => {
     // o jsdom não calcula "sticky": que o cabeçalho de fato fica à vista ao rolar se confere no navegador
     const caixa = tabela.closest('[data-rolagem="grade"]');
     expect(caixa).not.toBeNull();
-    expect(caixa).toHaveClass('overflow-auto', 'max-h-[calc(100dvh-12rem)]');
+    expect(caixa).toHaveClass('overflow-auto', 'max-h-[calc(100dvh-13rem)]');
     expect(caixa).not.toHaveClass('overflow-x-auto');
     // o cabeçalho dos dias e a coluna "Militar" grudam no alto e na esquerda da própria caixa
     expect(screen.getByRole('columnheader', { name: /^Dia 2,/ })).toHaveClass('sticky', 'top-0');
     expect(screen.getByRole('columnheader', { name: 'Militar' })).toHaveClass('sticky', 'top-0', 'left-0');
+  });
+
+  it('PJES, Diárias e Voluntariado ficam presos à direita em tela larga', async () => {
+    api();
+    abrir(`/?mes=${MES}`);
+    await screen.findByRole('table', { name: 'Grade geral de dezembro de 2026' });
+    // o cabeçalho já gruda em cima em qualquer largura; a borda direita só a partir de 1440px, e as células do corpo grudam junto
+    const cabecalhos = ['PJES', 'Diárias', 'Voluntariado'].map((nome) => screen.getByRole('columnheader', { name: nome }));
+    const direita = ['min-[1440px]:right-44', 'min-[1440px]:right-28', 'min-[1440px]:right-0'];
+    cabecalhos.forEach((th, i) => expect(th).toHaveClass('sticky', 'top-0', direita[i]!));
+    const linha = linhaDe('CABO');
+    const finais = [...linha.querySelectorAll<HTMLElement>('td')].slice(-3);
+    finais.forEach((td, i) => expect(td).toHaveClass('min-[1440px]:sticky', direita[i]!, 'bg-superficie'));
+    // larguras fixas para os três empilharem sem sobrepor (4rem + 4rem + 7rem)
+    expect(cabecalhos[0]).toHaveClass('w-16');
+    expect(cabecalhos[1]).toHaveClass('w-16');
+    expect(cabecalhos[2]).toHaveClass('w-28');
   });
 
   it('o grupo mostra o nome e o total, preso à esquerda', async () => {
