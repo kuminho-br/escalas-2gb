@@ -282,3 +282,92 @@ describe('efetivo por dia: a navegação', () => {
     });
   });
 });
+
+describe('efetivo por dia: escalar e remover', () => {
+  const ROTA = `GET /api/unidades/u-1sb/efetivo-do-dia/${DIA}`;
+  const CANDIDATOS = {
+    aptos: [{ militarId: 'm-zulu', posto: 'SD BM', nomeGuerra: 'ZULU', matricula: '990099-9', equipe: null, jornada: 'pronto', servicos: [{ servicoId: 's-pronto', turnoId: 't-b', nome: 'Pronto' }] }],
+    semVoluntariado: [], fora: [], acumular: [],
+  };
+  const ESCALA_VAZIA = (escalaId: string) => ({ escalaId, nome: 'Ordinário', mes: '2026-12', dias: [], resumo: { preenchidas: 0, obrigatorias: 0, obrigatoriasVazias: 0 } });
+  const comVaga = (opcoes: TrechoNoEfetivo['opcoes']): EfetivoDoDia => ({
+    ...EFETIVO,
+    guarnicoes: [guarnicao({ guarnicaoId: 'g7', nome: 'Resgate', ordem: null, funcoes: [{ funcaoId: 'f-aux', funcao: 'Auxiliar', minimo: 1, cnhExigida: null, linhas: [[vaga(480, 960, opcoes)]] }] })],
+  });
+  const chamadaDosCandidatos = (f: ReturnType<typeof simularApi>) => {
+    const u = f.mock.calls.map(([e]) => new URL(String(e), 'http://x')).find((x) => x.pathname.endsWith('/candidatos'))!;
+    return [u.pathname, Object.fromEntries(u.searchParams)];
+  };
+
+  it('a vaga com uma escala só abre direto a lista de candidatos daquela escala e daquela faixa', async () => {
+    const f = api(EFETIVO, EU_EXEMPLO, {
+      'GET /api/escalas/e-ord/mes/2026-12/candidatos': { status: 200, corpo: CANDIDATOS },
+      'POST /api/escalas/e-ord/alocacoes': { status: 201, corpo: ESCALA_VAZIA('e-ord') },
+    });
+    abrir(`/efetivo-por-dia?data=${DIA}`);
+    await userEvent.click(await screen.findByRole('button', { name: 'Motorista: vaga 20h–08h' }));
+    const dialogo = await screen.findByRole('dialog', { name: 'Escolher militar' });
+    await userEvent.click(await within(dialogo).findByRole('button', { name: /ZULU/ }));
+    expect(chamadaDosCandidatos(f)).toEqual([
+      '/api/escalas/e-ord/mes/2026-12/candidatos',
+      { data: DIA, inicio: '20:00', fim: '08:00', guarnicaoId: 'g2', funcaoId: 'f-Motorista' },
+    ]);
+    await waitFor(() => expect(corpoEnviado(f, 'POST /api/escalas/e-ord/alocacoes')).toEqual({ militarId: 'm-zulu', data: DIA, turnoId: 't-b', guarnicaoId: 'g2', funcaoId: 'f-Motorista' }));
+    await waitFor(() => expect(chamadasA(f, ROTA)).toBe(2));
+  });
+
+  it('a vaga coberta por duas escalas pergunta "Por qual escala?", e a escolhida define a lista', async () => {
+    const f = api(comVaga([
+      { escalaId: 'e-ord', escala: 'Ordinário', inicio: '08:00', fim: '20:00' },
+      { escalaId: 'e-pe', escala: 'PE Seguro', inicio: '08:00', fim: '16:00' },
+    ]), EU_EXEMPLO, { 'GET /api/escalas/e-pe/mes/2026-12/candidatos': { status: 200, corpo: CANDIDATOS } });
+    abrir(`/efetivo-por-dia?data=${DIA}`);
+    await userEvent.click(await screen.findByRole('button', { name: 'Auxiliar: vaga 08h–16h' }));
+    const pergunta = await screen.findByRole('dialog', { name: 'Por qual escala?' });
+    expect(within(pergunta).getByRole('button', { name: 'Ordinário 08h–20h' })).toBeInTheDocument();
+    await userEvent.click(within(pergunta).getByRole('button', { name: 'PE Seguro 08h–16h' }));
+    await screen.findByRole('dialog', { name: 'Escolher militar' });
+    await waitFor(() => expect(chamadaDosCandidatos(f)).toEqual([
+      '/api/escalas/e-pe/mes/2026-12/candidatos',
+      { data: DIA, inicio: '08:00', fim: '16:00', guarnicaoId: 'g7', funcaoId: 'f-aux' },
+    ]));
+  });
+
+  it('escalar na vaga de uma guarnição fora da meta não mexe na meta do dia (decisão 2-b)', async () => {
+    const f = api(comVaga([{ escalaId: 'e-ord', escala: 'Ordinário', inicio: '08:00', fim: '20:00' }]), EU_EXEMPLO, {
+      'GET /api/escalas/e-ord/mes/2026-12/candidatos': { status: 200, corpo: CANDIDATOS },
+      'POST /api/escalas/e-ord/alocacoes': { status: 201, corpo: ESCALA_VAZIA('e-ord') },
+    });
+    abrir(`/efetivo-por-dia?data=${DIA}`);
+    await userEvent.click(await screen.findByRole('button', { name: 'Auxiliar: vaga 08h–16h' }));
+    const dialogo = await screen.findByRole('dialog', { name: 'Escolher militar' });
+    await userEvent.click(await within(dialogo).findByRole('button', { name: /ZULU/ }));
+    await waitFor(() => expect(chamadasA(f, 'POST /api/escalas/e-ord/alocacoes')).toBe(1));
+    expect(chamadasA(f, `PUT /api/unidades/u-1sb/meta-do-dia/${DIA}`)).toBe(0);
+  });
+
+  it('o trecho ocupado mostra as alocações dele, e "Remover" tira a escolhida', async () => {
+    const f = api(EFETIVO, EU_EXEMPLO, { 'DELETE /api/alocacoes/a-2': { status: 200, corpo: ESCALA_VAZIA('e-ord') } });
+    abrir(`/efetivo-por-dia?data=${DIA}`);
+    await userEvent.click(await screen.findByRole('button', { name: 'Motorista: SD BM ALFA, 08h–08h, Pronto' }));
+    const dialogo = await screen.findByRole('dialog', { name: 'SD BM ALFA' });
+    expect(within(dialogo).getByText('08h–20h')).toBeInTheDocument();
+    await userEvent.click(within(dialogo).getByRole('button', { name: 'Remover 20h–08h' }));
+    await waitFor(() => expect(chamadasA(f, 'DELETE /api/alocacoes/a-2')).toBe(1));
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+  });
+
+  it('no trecho de acúmulo, "Tirar acúmulo" tira só o acúmulo', async () => {
+    const acumulo: TrechoNoEfetivo = { ...ocupado('ECHO', 480, 1200, [{ alocacaoId: 'a-9', acumuloId: 'ac-1', inicio: '08:00', fim: '20:00' }]) };
+    acumulo.ocupante!.acumulo = true;
+    const f = api({ ...EFETIVO, guarnicoes: [guarnicao({ guarnicaoId: 'g7', nome: 'Resgate', funcoes: [{ funcaoId: 'f-aux', funcao: 'Auxiliar', minimo: 1, cnhExigida: null, linhas: [[acumulo]] }] })] }, EU_EXEMPLO, {
+      'DELETE /api/acumulos/ac-1': { status: 200, corpo: ESCALA_VAZIA('e-ord') },
+    });
+    abrir(`/efetivo-por-dia?data=${DIA}`);
+    await userEvent.click(await screen.findByRole('button', { name: 'Auxiliar: SD BM ECHO, 08h–20h, Pronto' }));
+    const dialogo = await screen.findByRole('dialog', { name: 'SD BM ECHO' });
+    expect(within(dialogo).queryByRole('button', { name: /^Remover/ })).toBeNull();
+    await userEvent.click(within(dialogo).getByRole('button', { name: 'Tirar acúmulo 08h–20h' }));
+    await waitFor(() => expect(chamadasA(f, 'DELETE /api/acumulos/ac-1')).toBe(1));
+  });
+});

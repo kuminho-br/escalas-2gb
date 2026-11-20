@@ -1,6 +1,6 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { createFileRoute } from '@tanstack/react-router';
-import { Data } from 'contratos';
+import { Data, type CategoriaCnh, type FuncaoNoEfetivo, type GuarnicaoNoEfetivo, type OpcaoDaVaga, type TrechoNoEfetivo } from 'contratos';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { mensagemDe } from '@/api/cliente';
@@ -8,7 +8,10 @@ import { consultaEfetivoDoDia, voltarMetaAoPadrao } from '@/api/efetivo-do-dia';
 import { podeMudarParametro } from '@/api/eu';
 import { CotasRestantes } from '@/componentes/CotasRestantes';
 import { AlterarMetaDoDia } from '@/componentes/efetivo-por-dia/AlterarMetaDoDia';
+import { AlocacoesDoTrecho } from '@/componentes/efetivo-por-dia/AlocacoesDoTrecho';
 import { CardDoEfetivo } from '@/componentes/efetivo-por-dia/CardDoEfetivo';
+import { EscolherEscalaDaVaga } from '@/componentes/efetivo-por-dia/EscolherEscalaDaVaga';
+import { EscolherMilitar } from '@/componentes/escala-do-mes/EscolherMilitar';
 import { ReguaDoEfetivo } from '@/componentes/efetivo-por-dia/ReguaDoEfetivo';
 import { useTrava } from '@/componentes/AlteracoesPendentes';
 import { Button } from '@/componentes/ui/button';
@@ -21,6 +24,8 @@ export const Route = createFileRoute('/_app/efetivo-por-dia')({
   validateSearch: (s: Record<string, unknown>): { data?: string } => ({ data: typeof s.data === 'string' && Data.safeParse(s.data).success ? s.data : undefined }),
   component: EfetivoPorDia,
 });
+
+type VagaClicada = { g: GuarnicaoNoEfetivo; funcao: FuncaoNoEfetivo; trecho: TrechoNoEfetivo };
 
 const plural = (n: number, um: string, varios: string) => `${n} ${n === 1 ? um : varios}`;
 
@@ -36,6 +41,18 @@ function EfetivoPorDia() {
   useEffect(() => guardarUltimoDia(data), [data]);
   const dados = useQuery(consultaEfetivoDoDia(eu.unidade.id, data));
   const [alterando, setAlterando] = useState(false);
+  // escalar: a vaga clicada (e, quando ela cai em mais de uma escala, a escolhida); remover: o trecho ocupado clicado
+  const [vaga, setVaga] = useState<VagaClicada | null>(null);
+  const [opcao, setOpcao] = useState<OpcaoDaVaga | null>(null);
+  const [ocupado, setOcupado] = useState<{ funcao: string; trecho: TrechoNoEfetivo } | null>(null);
+  const fecharVaga = () => {
+    setVaga(null);
+    setOpcao(null);
+  };
+  const clicarVaga = (g: GuarnicaoNoEfetivo) => (funcao: FuncaoNoEfetivo, trecho: TrechoNoEfetivo) => {
+    setVaga({ g, funcao, trecho });
+    setOpcao(trecho.opcoes.length === 1 ? trecho.opcoes[0]! : null);
+  };
   const [erro, setErro] = useState<string | null>(null);
   const { salvando, travar } = useTrava();
   const podeAlterar = podeMudarParametro(eu);
@@ -92,9 +109,28 @@ function EfetivoPorDia() {
           ) : (
             <div className="grid gap-3">
               {janela && <ReguaDoEfetivo janela={janela} marcas={marcasDoDia(e.guarnicoes, janela)} />}
-              {e.guarnicoes.map((g) => <CardDoEfetivo key={g.guarnicaoId} g={g} janela={janela} />)}
+              {e.guarnicoes.map((g) => (
+                <CardDoEfetivo
+                  key={g.guarnicaoId}
+                  g={g}
+                  janela={janela}
+                  acoes={{ aoClicarVaga: clicarVaga(g), aoClicarOcupado: (funcao, trecho) => setOcupado({ funcao: funcao.funcao, trecho }) }}
+                />
+              ))}
             </div>
           )}
+          {vaga && !opcao && vaga.trecho.opcoes.length > 1 && <EscolherEscalaDaVaga opcoes={vaga.trecho.opcoes} aoEscolher={setOpcao} aoFechar={fecharVaga} />}
+          {vaga && opcao && (
+            <EscolherMilitar
+              escalaId={opcao.escalaId}
+              vaga={{
+                data, inicio: opcao.inicio, fim: opcao.fim, guarnicaoId: vaga.g.guarnicaoId, guarnicao: vaga.g.nome,
+                funcaoId: vaga.funcao.funcaoId, funcao: vaga.funcao.funcao, cnhExigida: vaga.funcao.cnhExigida as CategoriaCnh | null,
+              }}
+              aoFechar={fecharVaga}
+            />
+          )}
+          {ocupado && <AlocacoesDoTrecho funcao={ocupado.funcao} trecho={ocupado.trecho} aoFechar={() => setOcupado(null)} />}
           {alterando && (
             <AlterarMetaDoDia
               key={data}
