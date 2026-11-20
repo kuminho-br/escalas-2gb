@@ -52,7 +52,7 @@ describe('grade geral: a tabela', () => {
     api();
     abrir(`/?mes=${MES}`);
     await screen.findByRole('table', { name: 'Grade geral de dezembro de 2026' });
-    expect([...document.querySelectorAll('tr[data-grupo]')].map((g) => g.textContent)).toEqual(['Alfa', 'Bravo', 'Adm']);
+    expect([...document.querySelectorAll('tr[data-grupo]')].map((g) => g.querySelector('strong')?.textContent)).toEqual(['Alfa', 'Bravo', 'Adm']);
     expect(screen.getAllByRole('rowheader').map((h) => h.textContent)).toEqual(expect.arrayContaining([expect.stringContaining('CABO'), expect.stringContaining('ADM')]));
     const b = within(celula('CABO', 2, 'Pronto A')).getByText('A');
     expect(b).toHaveStyle({ backgroundColor: '#2F8F5B' });
@@ -68,22 +68,122 @@ describe('grade geral: a tabela', () => {
     // o jsdom não calcula "sticky": que o cabeçalho de fato fica à vista ao rolar se confere no navegador
     const caixa = tabela.closest('[data-rolagem="grade"]');
     expect(caixa).not.toBeNull();
-    expect(caixa).toHaveClass('overflow-auto', 'max-h-[calc(100dvh-12rem)]');
+    expect(caixa).toHaveClass('overflow-auto', 'max-h-[calc(100dvh-13rem)]');
     expect(caixa).not.toHaveClass('overflow-x-auto');
     // o cabeçalho dos dias e a coluna "Militar" grudam no alto e na esquerda da própria caixa
     expect(screen.getByRole('columnheader', { name: /^Dia 2,/ })).toHaveClass('sticky', 'top-0');
     expect(screen.getByRole('columnheader', { name: 'Militar' })).toHaveClass('sticky', 'top-0', 'left-0');
   });
 
-  it('o feriado tem o número em vermelho e o fim de semana o fundo sombreado', async () => {
+  it('a caixa deixa folga para as partes presas, para a célula escolhida não parar debaixo delas (achado da revisão final da 4.4)', async () => {
     api();
     abrir(`/?mes=${MES}`);
-    const cabecalho = await screen.findByRole('columnheader', { name: /^Dia 8, terça, feriado: Feriado de teste/ });
-    expect(cabecalho).toHaveAttribute('data-feriado');
-    expect(within(cabecalho).getByText('8')).toHaveClass('text-alerta');
-    expect(screen.getByRole('columnheader', { name: /^Dia 5, sábado/ })).toHaveAttribute('data-fim-de-semana');
+    const caixa = (await screen.findByRole('table', { name: 'Grade geral de dezembro de 2026' })).closest('[data-rolagem="grade"]');
+    // a coluna Militar (13rem) à esquerda, as três colunas finais (15rem, a partir de 1440px) à direita e o cabeçalho (4rem) em cima
+    expect(caixa).toHaveClass('scroll-pl-52', 'scroll-pt-16', 'min-[1440px]:scroll-pr-60');
+  });
+
+  it('PJES, Diárias e Voluntariado ficam presos à direita em tela larga', async () => {
+    api();
+    abrir(`/?mes=${MES}`);
+    await screen.findByRole('table', { name: 'Grade geral de dezembro de 2026' });
+    // o cabeçalho já gruda em cima em qualquer largura; a borda direita só a partir de 1440px, e as células do corpo grudam junto
+    const cabecalhos = ['PJES', 'Diárias', 'Voluntariado'].map((nome) => screen.getByRole('columnheader', { name: nome }));
+    const direita = ['min-[1440px]:right-44', 'min-[1440px]:right-28', 'min-[1440px]:right-0'];
+    cabecalhos.forEach((th, i) => expect(th).toHaveClass('sticky', 'top-0', direita[i]!));
+    const linha = linhaDe('CABO');
+    const finais = [...linha.querySelectorAll<HTMLElement>('td')].slice(-3);
+    finais.forEach((td, i) => expect(td).toHaveClass('min-[1440px]:sticky', direita[i]!, 'bg-superficie'));
+    // larguras fixas para os três empilharem sem sobrepor (4rem + 4rem + 7rem)
+    expect(cabecalhos[0]).toHaveClass('w-16');
+    expect(cabecalhos[1]).toHaveClass('w-16');
+    expect(cabecalhos[2]).toHaveClass('w-28');
+  });
+
+  it('o grupo mostra o nome e o total, preso à esquerda', async () => {
+    api();
+    abrir(`/?mes=${MES}`);
+    await screen.findByRole('table', { name: 'Grade geral de dezembro de 2026' });
+    const alfa = document.querySelector<HTMLElement>('tr[data-grupo="eq-alfa"] th[scope="colgroup"] [data-nome-do-grupo]')!;
+    expect(alfa).toHaveClass('sticky', 'left-4');
+    expect(alfa).toHaveTextContent('Alfa');
+    expect(alfa).toHaveTextContent('2 militares');
+    expect(alfa.querySelector('strong')).toHaveClass('text-tinta', 'font-bold');
+    expect(document.querySelector('tr[data-grupo="eq-bravo"] [data-nome-do-grupo]')).toHaveTextContent('1 militar');
+    expect(document.querySelector('tr[data-grupo="eq-bravo"] [data-nome-do-grupo]')).not.toHaveTextContent('1 militares');
+  });
+
+  it('a sigla do dia é Dom, Seg…; fim de semana e feriado em vinho, sem fundo, e o feriado com pontinho', async () => {
+    api();
+    abrir(`/?mes=${MES}`);
+    const sabado = await screen.findByRole('columnheader', { name: /^Dia 5, sábado/ });
+    expect(within(sabado).getByText('Sáb')).toBeInTheDocument();
+    expect(within(sabado).getByText('5')).toHaveClass('text-vinho');
+    expect(screen.getByRole('columnheader', { name: /^Dia 1, terça/ })).toHaveTextContent('Ter');
+    expect(within(screen.getByRole('columnheader', { name: /^Dia 1, terça/ })).getByText('1')).not.toHaveClass('text-vinho');
+    expect(document.querySelectorAll('[class*="F6F7F9"]')).toHaveLength(0);
+    expect(sabado).toHaveAttribute('data-fim-de-semana');
     expect(celula('SD1', 5, 'Pronto A, JES A').closest('td')).toHaveAttribute('data-fim-de-semana');
     expect(celula('CABO', 2, 'Pronto A').closest('td')).not.toHaveAttribute('data-fim-de-semana');
+    const feriado = screen.getByRole('columnheader', { name: /^Dia 8, terça, feriado: Feriado de teste/ });
+    expect(feriado).toHaveAttribute('data-feriado');
+    expect(feriado).toHaveAttribute('title', 'Feriado de teste');
+    expect(within(feriado).getByText('8')).toHaveClass('text-vinho');
+    expect(within(feriado).getByText('8')).not.toHaveClass('text-alerta');
+    expect(feriado.querySelector('[data-ponto-feriado]')).not.toBeNull();
+    expect(sabado.querySelector('[data-ponto-feriado]')).toBeNull();
+  });
+
+  it('segunda-feira abre a semana com uma linha mais forte (mesmo num feriado)', async () => {
+    // dia 7 é segunda-feira: aqui ele é feriado, e a linha da semana, o vinho e o pontinho valem juntos (Review Focus 5)
+    api({ ...GRADE, dias: DIAS.map((d) => (d.data === dia(7) ? { ...d, feriado: 'Feriado de segunda' } : d.data === dia(8) ? { ...d, feriado: null } : d)) });
+    abrir(`/?mes=${MES}`);
+    const segunda = await screen.findByRole('columnheader', { name: /^Dia 7, segunda, feriado: Feriado de segunda/ });
+    expect(segunda).toHaveClass('border-l-[#C9CED6]');
+    expect(within(segunda).getByText('7')).toHaveClass('text-vinho');
+    expect(segunda.querySelector('[data-ponto-feriado]')).not.toBeNull();
+    expect(celula('CABO', 7, 'sem serviço').closest('td')).toHaveClass('border-l-[#C9CED6]');
+    expect(screen.getByRole('columnheader', { name: /^Dia 14, segunda/ })).toHaveClass('border-l-[#C9CED6]');
+    expect(screen.getByRole('columnheader', { name: /^Dia 6, domingo/ })).not.toHaveClass('border-l-[#C9CED6]');
+    expect(screen.getByRole('columnheader', { name: /^Dia 8, terça/ })).not.toHaveClass('border-l-[#C9CED6]');
+    expect(celula('CABO', 8, 'sem serviço').closest('td')).not.toHaveClass('border-l-[#C9CED6]');
+  });
+
+  it('o militar aparece com posto e nome na mesma linha e a matrícula embaixo', async () => {
+    api();
+    abrir(`/?mes=${MES}`);
+    await screen.findByRole('table', { name: 'Grade geral de dezembro de 2026' });
+    const cabeca = screen.getByRole('rowheader', { name: /CABO/ });
+    const nome = within(cabeca).getByText('CABO');
+    expect(nome.tagName).toBe('STRONG');
+    expect(nome.parentElement).toHaveTextContent('SD BM');
+    expect(within(cabeca).getByText('990001-1')).toHaveClass('text-xs');
+    expect(cabeca).toHaveClass('min-w-[13rem]');
+    // o nome acessível da célula não muda
+    expect(celula('CABO', 2, 'Pronto A')).toBeInTheDocument();
+  });
+
+  it('os blocos têm largura fixa e se espalham por igual', async () => {
+    api();
+    abrir(`/?mes=${MES}`);
+    await screen.findByRole('table', { name: 'Grade geral de dezembro de 2026' });
+    const dois = celula('SD1', 5, 'Pronto A, JES A');
+    expect(dois).toHaveClass('justify-evenly');
+    for (const bloco of within(dois).getAllByText('A')) {
+      expect(bloco).toHaveClass('w-5', 'shrink-0');
+      expect(bloco).not.toHaveClass('flex-1');
+    }
+  });
+
+  it('a célula escolhida com choque mantém o contorno vermelho e ganha o fundo da escolhida', async () => {
+    api();
+    abrir(`/?mes=${MES}`);
+    await userEvent.click(await screen.findByRole('button', { name: 'SD BM CABO, dia 31: Pronto B, choque' }));
+    const c = await screen.findByRole('button', { name: 'SD BM CABO, dia 31: Pronto B, choque' });
+    await waitFor(() => expect(c).toHaveAttribute('data-escolhida'));
+    expect(c).toHaveAttribute('data-choque');
+    expect(c).toHaveClass('ring-alerta', 'bg-vinho/15');
+    expect(c).not.toHaveClass('ring-vinho');
   });
 
   it('a célula com choque tem contorno vermelho e "choque" no nome; o expediente é um bloco sem letra', async () => {
@@ -142,7 +242,7 @@ describe('grade geral: o filtro de equipes e o clique', () => {
     api();
     const router = abrir(`/?mes=${MES}`);
     await userEvent.click(await screen.findByRole('button', { name: 'Bravo' }));
-    await waitFor(() => expect((router.state.location.search as { equipe?: string }).equipe).toBe('eq-bravo'));
+    await waitFor(() => expect((router.state.location.search as { equipes?: string[] }).equipes).toEqual(['eq-bravo']));
     expect(screen.getByRole('button', { name: 'Bravo' })).toHaveAttribute('aria-pressed', 'true');
     expect(screen.queryByRole('rowheader', { name: /CABO/ })).toBeNull();
     expect(screen.queryByRole('rowheader', { name: /ADM/ })).toBeNull();
@@ -153,9 +253,114 @@ describe('grade geral: o filtro de equipes e o clique', () => {
 
   it('o filtro vindo do endereço já abre filtrado', async () => {
     api();
-    abrir(`/?mes=${MES}&equipe=adm`);
+    abrir(`/?mes=${MES}&equipes=${encodeURIComponent('["adm"]')}`);
     await screen.findByRole('rowheader', { name: /ADM/ });
     expect(screen.queryByRole('rowheader', { name: /CABO/ })).toBeNull();
+    expect(screen.getByRole('button', { name: 'Adm' })).toHaveAttribute('aria-pressed', 'true');
+  });
+
+  it('o endereço antigo ?equipe=bravo continua filtrando', async () => {
+    api();
+    abrir(`/?mes=${MES}&equipe=eq-bravo`);
+    await screen.findByRole('rowheader', { name: /BRAVO/ });
+    expect(screen.queryByRole('rowheader', { name: /CABO/ })).toBeNull();
+    expect(screen.getByRole('button', { name: 'Bravo' })).toHaveAttribute('aria-pressed', 'true');
+  });
+
+  it('ligar Alfa e Bravo mostra as duas; "Todas" limpa a seleção', async () => {
+    api();
+    const router = abrir(`/?mes=${MES}`);
+    await userEvent.click(await screen.findByRole('button', { name: 'Alfa' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Bravo' }));
+    await waitFor(() => expect((router.state.location.search as { equipes?: string[] }).equipes).toEqual(['eq-alfa', 'eq-bravo']));
+    expect(screen.getByRole('button', { name: 'Alfa' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('button', { name: 'Bravo' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('button', { name: 'Todas' })).toHaveAttribute('aria-pressed', 'false');
+    expect(screen.getByRole('rowheader', { name: /CABO/ })).toBeInTheDocument();
+    expect(screen.getByRole('rowheader', { name: /BRAVO/ })).toBeInTheDocument();
+    expect(screen.queryByRole('rowheader', { name: /ADM/ })).toBeNull();
+    await userEvent.click(screen.getByRole('button', { name: 'Todas' }));
+    await waitFor(() => expect((router.state.location.search as { equipes?: string[] }).equipes).toBeUndefined());
+    expect(screen.getByRole('button', { name: 'Todas' })).toHaveAttribute('aria-pressed', 'true');
+    expect(await screen.findByRole('rowheader', { name: /ADM/ })).toBeInTheDocument();
+  });
+
+  it('ligar todas uma a uma volta para "Todas"', async () => {
+    api();
+    const router = abrir(`/?mes=${MES}`);
+    for (const nome of ['Alfa', 'Bravo', 'Adm']) await userEvent.click(await screen.findByRole('button', { name: nome }));
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Todas' })).toHaveAttribute('aria-pressed', 'true'));
+    expect((router.state.location.search as { equipes?: string[] }).equipes).toBeUndefined();
+    expect(screen.getByRole('button', { name: 'Alfa' })).toHaveAttribute('aria-pressed', 'false');
+  });
+
+  it('desligar a última equipe ligada volta para "Todas" (Review Focus 2)', async () => {
+    api();
+    const router = abrir(`/?mes=${MES}&equipes=${encodeURIComponent('["eq-bravo"]')}`);
+    await userEvent.click(await screen.findByRole('button', { name: 'Bravo' }));
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Todas' })).toHaveAttribute('aria-pressed', 'true'));
+    expect((router.state.location.search as { equipes?: string[] }).equipes).toBeUndefined();
+    // nunca deixa a grade vazia
+    expect(screen.getByRole('rowheader', { name: /CABO/ })).toBeInTheDocument();
+  });
+
+  it('equipes que não existem no mês são descartadas (Review Focus 1)', async () => {
+    api();
+    abrir(`/?mes=${MES}&equipes=${encodeURIComponent('["fantasma","eq-bravo"]')}`);
+    await screen.findByRole('rowheader', { name: /BRAVO/ });
+    expect(screen.queryByRole('rowheader', { name: /CABO/ })).toBeNull();
+    expect(screen.getByRole('button', { name: 'Bravo' })).toHaveAttribute('aria-pressed', 'true');
+  });
+
+  it('só equipes que não existem vale como "Todas"', async () => {
+    api();
+    abrir(`/?mes=${MES}&equipes=${encodeURIComponent('["fantasma"]')}`);
+    expect(await screen.findByRole('rowheader', { name: /CABO/ })).toBeInTheDocument();
+    expect(screen.getByRole('rowheader', { name: /ADM/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Todas' })).toHaveAttribute('aria-pressed', 'true');
+  });
+
+  describe('a busca por nome', () => {
+    const COM_NOMES: GradeDoMes = {
+      ...GRADE,
+      grupos: [
+        { chave: 'eq-alfa', nome: 'Alfa', linhas: [linha('JOÃO', { matricula: '990042-7' }), linha('CABO', { matricula: '990001-1' })] },
+        { chave: 'eq-bravo', nome: 'Bravo', linhas: [linha('BRAVO', { matricula: '990077-3' })] },
+      ],
+    };
+
+    it('a busca filtra pelo nome de guerra ou pela matrícula, sem acento e sem maiúscula', async () => {
+      api(COM_NOMES);
+      const router = abrir(`/?mes=${MES}`);
+      const campo = await screen.findByLabelText('Buscar militar');
+      await userEvent.type(campo, 'joao');
+      await waitFor(() => expect(screen.queryByRole('rowheader', { name: /CABO/ })).toBeNull());
+      expect(screen.getByRole('rowheader', { name: /JOÃO/ })).toBeInTheDocument();
+      // o grupo que fica sem ninguém some
+      expect(document.querySelector('tr[data-grupo="eq-bravo"]')).toBeNull();
+      await waitFor(() => expect(router.state.location.search).toMatchObject({ busca: 'joao' }));
+      // pela matrícula (parte dela)
+      await userEvent.clear(campo);
+      await userEvent.type(campo, '0077');
+      expect(await screen.findByRole('rowheader', { name: /BRAVO/ })).toBeInTheDocument();
+      expect(screen.queryByRole('rowheader', { name: /JOÃO/ })).toBeNull();
+    });
+
+    it('a busca do endereço já abre filtrada e o campo mostra o texto', async () => {
+      api(COM_NOMES);
+      abrir(`/?mes=${MES}&busca=cabo`);
+      expect(await screen.findByRole('rowheader', { name: /CABO/ })).toBeInTheDocument();
+      expect(screen.queryByRole('rowheader', { name: /JOÃO/ })).toBeNull();
+      expect(screen.getByLabelText('Buscar militar')).toHaveValue('cabo');
+    });
+
+    it('busca e equipes valem juntas', async () => {
+      api(COM_NOMES);
+      abrir(`/?mes=${MES}&equipes=${encodeURIComponent('["eq-bravo"]')}`);
+      await userEvent.type(await screen.findByLabelText('Buscar militar'), 'joao');
+      expect(await screen.findByText('Ninguém com esse nome nas equipes escolhidas.')).toBeInTheDocument();
+      expect(screen.queryByRole('table')).toBeNull();
+    });
   });
 
   it('clicar na célula põe o militar e o dia na busca, e a célula escolhida fica marcada', async () => {

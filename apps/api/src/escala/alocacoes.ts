@@ -44,6 +44,17 @@ export async function ocupantesDaFuncao(tx: Consulta, escalaId: string, data: st
   return rows[0]!.n;
 }
 
+/**
+ * Devolver um militar a uma vaga: a vaga ainda existe na faixa do dia, ele tem a CNH que a função exige e a função tem lugar para mais um.
+ * `Recusa` se a vaga já não existe ou se falta a CNH; false se a função está completa.
+ */
+export async function vagaTemLugar(tx: Consulta, escalaId: string, data: string, faixa: { inicio: string; fim: string }, guarnicaoId: string, funcaoId: string, cnhDoMilitar: string[]): Promise<boolean> {
+  const vaga = await conferirVaga(tx, escalaId, data.slice(0, 7), faixa, guarnicaoId, funcaoId);
+  if (vaga.cnhExigida && !cnhHabilitadas(cnhDoMilitar).includes(vaga.cnhExigida)) throw new Recusa('Sem a CNH exigida');
+  await travaDaFaixa(tx, escalaId, data, faixa);
+  return (await ocupantesDaFuncao(tx, escalaId, data, faixa, guarnicaoId, funcaoId)) < vaga.maximo;
+}
+
 const travaDaFaixa = (tx: Consulta, escalaId: string, data: string, faixa: { inicio: string; fim: string }) =>
   // dois escalantes na mesma vaga ao mesmo tempo: o segundo espera o primeiro e confere de novo
   tx.query('select pg_advisory_xact_lock(hashtext($1))', [`${escalaId}|${data}|${faixa.inicio}|${faixa.fim}`]);
