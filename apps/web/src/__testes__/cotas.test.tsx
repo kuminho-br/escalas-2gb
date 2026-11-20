@@ -4,7 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { restantesPorServico } from '@/lib/cotas';
 import { mesAtual } from '@/lib/meses';
-import { abrir, corpoEnviado, EU_EXEMPLO, simularApi } from './apoio';
+import { abrir, chamadasA, corpoEnviado, EU_EXEMPLO, simularApi, trava } from './apoio';
 
 const mes = mesAtual();
 const anterior = somarMeses(mes, -1);
@@ -79,6 +79,20 @@ describe('cotas', () => {
     await userEvent.click(await screen.findByRole('button', { name: 'Copiar do mês anterior' }));
     await waitFor(() => expect(corpoEnviado(f, 'POST /api/unidades/u-1sb/cotas/copiar')).toEqual({ de: anterior, para: mes }));
     expect(await screen.findByText(`2 cotas copiadas de ${mesPorExtenso(anterior)}.`)).toBeInTheDocument();
+  });
+
+  it('dois cliques seguidos em "Copiar do mês anterior" mandam um pedido só; o botão fica desabilitado enquanto copia', async () => {
+    const { espera, soltar } = trava();
+    const f = api({ 'POST /api/unidades/u-1sb/cotas/copiar': { status: 200, corpo: { copiados: 1, puladas: 0 }, espera } });
+    abrir('/cotas');
+    const botao = await screen.findByRole('button', { name: 'Copiar do mês anterior' });
+    fireEvent.click(botao);
+    fireEvent.click(botao);
+    expect(botao).toBeDisabled();
+    soltar();
+    expect(await screen.findByText(`1 cota copiada de ${mesPorExtenso(anterior)}.`)).toBeInTheDocument();
+    expect(chamadasA(f, 'POST /api/unidades/u-1sb/cotas/copiar')).toBe(1);
+    await waitFor(() => expect(botao).toBeEnabled());
   });
 
   it('copiar sem nada novo explica o motivo', async () => {

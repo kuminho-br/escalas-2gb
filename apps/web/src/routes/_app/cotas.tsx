@@ -6,6 +6,7 @@ import { useState, type FormEvent } from 'react';
 import { mensagemComCampo, mensagemDe } from '@/api/cliente';
 import { atualizarCotas, consultaCotas, copiarCotas, criarCota, editarCota, removerCota } from '@/api/cotas';
 import { consultaServicos } from '@/api/servicos';
+import { useTrava } from '@/componentes/AlteracoesPendentes';
 import { CampoDeMes } from '@/componentes/CampoDeMes';
 import { ImportarPlanilha } from '@/componentes/ImportarPlanilha';
 import { QuadradoDaCor } from '@/componentes/QuadradoDaCor';
@@ -31,7 +32,9 @@ function Cotas() {
   const [aviso, setAviso] = useState<{ erro: boolean; texto: string } | null>(null);
   const anterior = somarMeses(mes, -1);
 
-  async function copiar() {
+  const { salvando: copiando, travar } = useTrava();
+  // travada: dois cliques seguidos mandam um pedido só, e o botão fica apagado enquanto copia
+  const copiar = travar(async () => {
     setAviso(null);
     try {
       const { copiados, puladas } = await copiarCotas(eu.unidade.id, anterior, mes);
@@ -47,7 +50,7 @@ function Cotas() {
     } catch (err) {
       setAviso({ erro: true, texto: mensagemDe(err) });
     }
-  }
+  });
 
   async function remover(c: Cota) {
     if (!window.confirm(`Remover a cota de ${c.servico} (${c.origem}) de ${mesPorExtenso(mes)}?`)) return;
@@ -66,7 +69,7 @@ function Cotas() {
         <h1 className="font-cond text-[28px] leading-tight font-semibold">Cotas</h1>
         <div className="flex flex-wrap gap-2">
           <ImportarPlanilha cadastro="cotas" rotulo="as cotas" aoConcluir={() => atualizarCotas(queryClient)} />
-          <Button variant="outline" onClick={() => void copiar()}>Copiar do mês anterior</Button>
+          <Button variant="outline" disabled={copiando} onClick={() => void copiar()}>Copiar do mês anterior</Button>
           <Button onClick={() => setDialogo({})}>
             <Plus aria-hidden />
             Adicionar cota
