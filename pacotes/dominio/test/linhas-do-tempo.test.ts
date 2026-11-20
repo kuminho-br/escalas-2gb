@@ -50,13 +50,47 @@ describe('linhasDaGuarnicao', () => {
     );
     expect(r[0]!.linhas).toHaveLength(2);
     for (const linha of r[0]!.linhas) expect(cobre(linha, 480, 1920)).toBe(true);
-    expect(r[0]!.linhas.flat().filter((t) => t.tipo === 'vaga')).toHaveLength(3);
+    // a vaga de 480–1200 e a de 1200–1920 que cai na mesma linha viram uma só (4.2: vaga em faixa única); a outra vaga de 1200–1920 fica na outra linha
+    expect(r[0]!.linhas.flat().filter((t) => t.tipo === 'vaga')).toHaveLength(2);
   });
 
   it('gente além do mínimo abre linha', () => {
     proximo = 0;
     const r = linhasDaGuarnicao([CHEFE], [oc(CHEFE, 480, 1200, 'a'), oc(CHEFE, 480, 1200, 'b'), oc(CHEFE, 480, 1200, 'c')], []);
     expect(r[0]!.linhas).toHaveLength(3);
+  });
+
+  it('vagas que se encostam na mesma linha viram uma só (4.2)', () => {
+    proximo = 0;
+    const r = linhasDaGuarnicao(
+      [MOTORISTA],
+      [],
+      [
+        { funcaoId: 'f-mot', funcao: 'Motorista', inicio: 0, fim: 480, faltam: 1 },
+        { funcaoId: 'f-mot', funcao: 'Motorista', inicio: 480, fim: 960, faltam: 1 },
+        { funcaoId: 'f-mot', funcao: 'Motorista', inicio: 960, fim: 1440, faltam: 1 },
+      ],
+    );
+    expect(r[0]!.linhas).toEqual([[{ inicio: 0, fim: 1440, tipo: 'vaga' }]]);
+  });
+
+  it('um ocupado no meio separa as vagas (4.2)', () => {
+    proximo = 0;
+    const r = linhasDaGuarnicao(
+      [MOTORISTA],
+      [oc(MOTORISTA, 480, 960, 'm1|diaria')],
+      [
+        { funcaoId: 'f-mot', funcao: 'Motorista', inicio: 0, fim: 480, faltam: 1 },
+        { funcaoId: 'f-mot', funcao: 'Motorista', inicio: 960, fim: 1440, faltam: 1 },
+      ],
+    );
+    expect(r[0]!.linhas).toEqual([
+      [
+        { inicio: 0, fim: 480, tipo: 'vaga' },
+        { inicio: 480, fim: 960, tipo: 'ocupado', indices: [0] },
+        { inicio: 960, fim: 1440, tipo: 'vaga' },
+      ],
+    ]);
   });
 
   it('função fora do modelo vem depois, com mínimo 0', () => {

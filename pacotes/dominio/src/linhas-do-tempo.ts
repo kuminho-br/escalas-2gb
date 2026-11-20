@@ -40,7 +40,15 @@ function distribuir(trechos: TrechoDaLinha[]): TrechoDaLinha[][] {
     if (livre) livre.push(t);
     else linhas.push([t]);
   }
-  return linhas;
+  // vaga em faixa única: as vagas que se encostam na mesma linha viram uma só (o que está ocupado no meio as separa)
+  return linhas.map((linha) =>
+    linha.reduce<TrechoDaLinha[]>((juntas, t) => {
+      const ultimo = juntas[juntas.length - 1];
+      if (ultimo && ultimo.tipo === 'vaga' && t.tipo === 'vaga' && ultimo.fim === t.inicio) juntas[juntas.length - 1] = { ...ultimo, fim: t.fim };
+      else juntas.push(t);
+      return juntas;
+    }, []),
+  );
 }
 
 export function linhasDaGuarnicao(composicao: FuncaoExigida[], ocupacoes: OcupacaoNaLinha[], faltas: Falta[]): LinhasDaFuncao[] {

@@ -232,19 +232,53 @@ describe('faltas de uma guarnição em duas escalas', () => {
     expect(card(e, 'Praia').faltas).toEqual([{ funcao: 'Auxiliar', faltam: 1, inicio: '08:00', fim: '16:00' }]);
   });
 
-  it('a vaga vem cortada nos horários dos vínculos, com as escalas que a cobrem, pelo nome (Review Focus 1)', async () => {
+  it('a vaga é uma faixa só, com todos os vínculos que a tocam, pelo nome da escala (4.2: vaga em faixa única)', async () => {
     const e = await ler(d);
     expect(vagas(card(e, 'Resgate')).filter((v) => v[0] === 'Auxiliar')).toEqual([
-      ['Auxiliar', 480, 960, ['Ordinário 08:00–20:00', 'PE Seguro 08:00–16:00']],
-      ['Auxiliar', 960, 1200, ['Ordinário 08:00–20:00']],
-      ['Auxiliar', 1200, 1920, ['Ordinário 20:00–08:00']],
+      ['Auxiliar', 480, 1920, ['Ordinário 08:00–20:00', 'Ordinário 20:00–08:00', 'PE Seguro 08:00–16:00']],
     ]);
-    // as três partes da mesma vaga ficam na mesma linha
     expect(card(e, 'Resgate').funcoes[1]!.linhas).toHaveLength(1);
     expect(card(e, 'Resgate').funcoes[1]!.linhas[0]![0]!.opcoes[0]).toMatchObject({ escalaId: ordinario, escala: 'Ordinário' });
   });
 });
 
+describe('Bioma: três vínculos de 8h (Review Focus 1 e 2 da 4.2)', () => {
+  const d = dia(600);
+  let bioma: { id: string; a: string; b?: string; c?: string };
+  let biomaMod: string;
+  let escalaBioma: string;
+  beforeAll(async () => {
+    const id = await inserir(api.banco, 'servico', { unidade_id: api.ids.secao, nome: 'BiomaT', tipo: 'diaria', cor: '#C97A00' });
+    const turnos: Record<string, string> = {};
+    for (const [letra, inicio, fim] of [['A', '00:00', '08:00'], ['B', '08:00', '16:00'], ['C', '16:00', '00:00']]) turnos[letra!.toLowerCase()] = await inserir(api.banco, 'turno', { servico_id: id, letra, inicio, fim });
+    bioma = { id, a: turnos.a!, b: turnos.b, c: turnos.c };
+    biomaMod = await criarModelo('Bioma modelo', [{ funcaoId: auxiliar, minimo: 1, maximo: 1 }]);
+    escalaBioma = await criarEscala('Bioma 3 turnos', [id], [
+      { guarnicaoId: biomaMod, inicio: '00:00', fim: '08:00' }, { guarnicaoId: biomaMod, inicio: '08:00', fim: '16:00' }, { guarnicaoId: biomaMod, inicio: '16:00', fim: '00:00' },
+    ]);
+    await definirMeta(d, [biomaMod]);
+  });
+
+  it('sem ninguém, cada função tem uma linha com uma vaga só (0–1440) e as opções trazem os três horários', async () => {
+    const g = card(await ler(d), 'Bioma modelo');
+    expect(g.funcoes[0]!.linhas).toHaveLength(1);
+    expect(g.funcoes[0]!.linhas[0]).toHaveLength(1);
+    expect(vagas(g)).toEqual([['Auxiliar', 0, 1440, ['Bioma 3 turnos 00:00–08:00', 'Bioma 3 turnos 08:00–16:00', 'Bioma 3 turnos 16:00–00:00']]]);
+  });
+
+  it('escalar alguém no 08h–16h deixa duas vagas na mesma linha, cada uma só com os vínculos que a tocam', async () => {
+    const d2 = dia(601);
+    await definirMeta(d2, [biomaMod]);
+    await inserir(api.banco, 'alocacao', { militar_id: militares['MOT-A'], escala_id: escalaBioma, servico_id: bioma.id, turno_id: bioma.b, data: d2, guarnicao_id: biomaMod, funcao_id: auxiliar, origem: 'manual' });
+    const g = card(await ler(d2), 'Bioma modelo');
+    expect(g.funcoes[0]!.linhas).toHaveLength(1);
+    expect(vagas(g)).toEqual([
+      ['Auxiliar', 0, 480, ['Bioma 3 turnos 00:00–08:00']],
+      ['Auxiliar', 960, 1440, ['Bioma 3 turnos 16:00–00:00']],
+    ]);
+    expect(resumo(g)).toEqual([['Auxiliar', 'MOT-A', 480, 960, 'BiomaT', false]]);
+  });
+});
 describe('o militar que emenda os turnos A e B (Review Focus 3)', () => {
   const d = dia(7);
   beforeAll(async () => {
