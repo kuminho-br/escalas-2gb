@@ -338,11 +338,12 @@ Expected: saída vazia (o arquivo agora é do git).
 
 # Entregas 3 a 8 (resumo; cada uma é detalhada antes de começar)
 
-## Entrega 3 — Checagem de 3 dias com relatório
+## Entrega 3 — Checagem de 3 dias com relatório (feita)
 
-- Decidir como roda: rotina na nuvem (recomendada depois da entrega 2, porque o `CLAUDE.md` já estará no git), tarefa agendada do Windows, ou à mão. Decidir também onde o relatório chega (recomendado: página privada no claude.ai).
-- Acrescentar a `docs/LEIAME.md` a seção "Como checar", com os comandos das Tarefas 2, 3, 4 e 7 (tamanho, linhas longas, adendos, ER × migrações, índice × arquivos, caminhos e régua do `CLAUDE.md`), mais: branches `docs-*` abertas há mais de 3 dias e artifacts do claude.ai alterados depois da última colheita (D3).
-- O relatório traz: nota do `CLAUDE.md` (bom, regular ou insatisfatório), o que piorou desde o anterior, o que mudou no claude.ai para trazer e sugestões com alternativas.
+- `docs/ferramentas/checar-documentacao.sh` mede a régua do `docs/LEIAME.md` e imprime o relatório; o último fica em `docs/relatorio-documentacao.md` (sobrescrito; histórico no git). A seção "Como checar" do índice explica o uso.
+- O relatório traz a nota do `CLAUDE.md` (bom, regular ou insatisfatório), o resumo do relatório anterior e as branches `docs-*` paradas. Não olha o claude.ai (D3).
+- Limites conhecidos: cercas de código indentadas e nomes de arquivo com espaço ou acento não são tratados.
+- **Pendente:** como roda a cada 3 dias (rotina na nuvem, tarefa do Windows ou sob pedido) e onde o relatório chega. Decisão do usuário.
 
 ## Entrega 4 — Consolidar e registrar decisões
 
