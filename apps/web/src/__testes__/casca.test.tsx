@@ -99,6 +99,42 @@ describe('trilho', () => {
     expect(menu().className).toContain('-translate-x-full');
   });
 
+  it('abrir o menu do celular leva o foco ao primeiro item', async () => {
+    simularApi({ '/api/eu': { status: 200, corpo: EU_EXEMPLO } });
+    abrir('/');
+    await screen.findByText('SD BM ANDRADE');
+    await userEvent.click(screen.getByRole('button', { name: 'Abrir menu' }));
+    expect(within(menu()).getByRole('link', { name: 'Grade geral' })).toHaveFocus();
+  });
+
+  it('Esc fecha o menu do celular e devolve o foco ao botão que o abriu', async () => {
+    simularApi({ '/api/eu': { status: 200, corpo: EU_EXEMPLO } });
+    abrir('/');
+    await screen.findByText('SD BM ANDRADE');
+    const abrirMenu = screen.getByRole('button', { name: 'Abrir menu' });
+    await userEvent.click(abrirMenu);
+    expect(menu().className).not.toContain('-translate-x-full');
+    await userEvent.keyboard('{Escape}');
+    expect(menu().className).toContain('-translate-x-full');
+    expect(abrirMenu).toHaveFocus();
+  });
+
+  it('o botão "Fechar menu" também devolve o foco, e clicar fora continua fechando', async () => {
+    simularApi({ '/api/eu': { status: 200, corpo: EU_EXEMPLO } });
+    abrir('/');
+    await screen.findByText('SD BM ANDRADE');
+    const abrirMenu = screen.getByRole('button', { name: 'Abrir menu' });
+    await userEvent.click(abrirMenu);
+    await userEvent.click(screen.getByRole('button', { name: 'Fechar menu' }));
+    expect(menu().className).toContain('-translate-x-full');
+    expect(abrirMenu).toHaveFocus();
+    // clicar fora (no fundo escurecido)
+    await userEvent.click(abrirMenu);
+    const fundo = document.querySelector<HTMLElement>('.fixed.inset-0[aria-hidden]')!;
+    await userEvent.click(fundo);
+    expect(menu().className).toContain('-translate-x-full');
+  });
+
   it('no celular o caminho mostra a seção atual', async () => {
     simularApi({ '/api/eu': { status: 200, corpo: EU_EXEMPLO } });
     abrir('/');
