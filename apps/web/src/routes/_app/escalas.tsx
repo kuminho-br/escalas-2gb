@@ -62,7 +62,7 @@ function ListaDeEscalas({ unidadeId, escolhida }: { unidadeId: string; escolhida
       {escalas.error && <p role="alert" className="p-4 text-alerta">{mensagemDe(escalas.error)}</p>}
       {escalas.data && (
         <>
-          <p className="shrink-0 border-b border-linha px-4 pt-3 pb-2 text-xs text-apagado">{visiveis.length} escalas</p>
+          <p className="shrink-0 border-b border-linha px-4 pt-3 pb-2 text-xs text-apagado">{visiveis.length} {visiveis.length === 1 ? 'escala' : 'escalas'}</p>
           <ul data-lista-rolavel className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-2">
             {visiveis.map((e) => <ItemEscala key={e.id} e={e} escolhida={e.id === escolhida} />)}
             {escalas.data.length === 0 && <li className="p-3 text-apagado">Nenhuma escala. Use "Nova escala" ou "Importar da planilha".</li>}

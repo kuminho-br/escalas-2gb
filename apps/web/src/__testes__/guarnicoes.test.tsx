@@ -77,6 +77,17 @@ describe('lista de modelos de guarnição', () => {
     expect(within(await itemDe('Desligada')).getByText('desativado')).toBeInTheDocument();
   });
 
+  it('o botão de fechar de um diálogo tem o nome acessível "Fechar"', async () => {
+    api();
+    abrir('/configuracoes?aba=modelos');
+    await userEvent.click(await screen.findByRole('button', { name: 'Novo modelo' }));
+    const dialogo = await screen.findByRole('dialog');
+    expect(within(dialogo).getByRole('button', { name: 'Fechar' })).toBeInTheDocument();
+    expect(within(dialogo).queryByText('Close')).toBeNull();
+    await userEvent.click(within(dialogo).getByRole('button', { name: 'Fechar' }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+  });
+
   it('nova guarnição envia a primeira versão vazia e abre a ficha', async () => {
     const f = api({ 'POST /api/unidades/u-1sb/guarnicoes': { status: 201, corpo: FICHA } });
     abrir('/configuracoes?aba=modelos');

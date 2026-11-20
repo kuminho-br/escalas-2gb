@@ -202,11 +202,19 @@ describe('grade geral: adicionar serviço neste dia', () => {
     expect(textos(within(linhaDe(p, '00h–08h')).getByLabelText('Vaga de 00h–08h'))).toEqual(['Motorista', 'Combatente', 'Sem guarnição']);
   });
 
+  it('cada botão "Escalar" tem o nome da faixa, e dois turnos não têm o mesmo nome', async () => {
+    const { p } = await abrirAdicionar(COM_ABAS);
+    expect(within(linhaDe(p, '08h–20h')).getByRole('button', { name: 'Escalar às 08h–20h' })).toHaveTextContent(/^Escalar$/);
+    const nomes = within(p).getAllByRole('button', { name: /^Escalar/ }).map((b) => b.getAttribute('aria-label'));
+    expect(nomes.sort()).toEqual(['Escalar às 08h–20h', 'Escalar às 20h–08h']);
+    expect(new Set(nomes).size).toBe(nomes.length);
+  });
+
   it('a lista da vaga ocupa a largura toda, numa linha abaixo da faixa e do botão (o painel é estreito)', async () => {
     const { p } = await abrirAdicionar(COM_ABAS);
     const linha = linhaDe(p, '08h–20h');
     const vaga = within(linha).getByLabelText('Vaga de 08h–20h');
-    const escalar = within(linha).getByRole('button', { name: 'Escalar' });
+    const escalar = within(linha).getByRole('button', { name: /^Escalar/ });
     expect(vaga).toHaveClass('w-full');
     expect(vaga.parentElement).not.toBe(escalar.parentElement);
     // a faixa, o serviço e o botão ficam juntos em cima
@@ -216,7 +224,7 @@ describe('grade geral: adicionar serviço neste dia', () => {
   it('"Escalar" manda a vaga e o serviço escolhidos', async () => {
     const { f, p } = await abrirAdicionar(COM_ABAS, { [POST]: { status: 201, corpo: ESCALA } });
     await userEvent.selectOptions(within(linhaDe(p, '20h–08h')).getByLabelText('Vaga de 20h–08h'), 'Resgate · Chefe');
-    await userEvent.click(within(linhaDe(p, '20h–08h')).getByRole('button', { name: 'Escalar' }));
+    await userEvent.click(within(linhaDe(p, '20h–08h')).getByRole('button', { name: /^Escalar/ }));
     await waitFor(() => expect(corpoEnviado(f, POST)).toEqual({ militarId: 'm-CABO', data: DIA, turnoId: 't-b', guarnicaoId: 'g-res', funcaoId: 'f-chefe' }));
     await waitFor(() => expect(chamadasA(f, ROTA_GRADE)).toBe(2));
   });
@@ -238,7 +246,7 @@ describe('grade geral: adicionar serviço neste dia', () => {
     await userEvent.selectOptions(within(linha).getByLabelText('Vaga de 08h–20h'), 'ABT · Combatente');
     expect(servico()).toHaveValue('t-a');
     await userEvent.selectOptions(servico()!, 't-jes');
-    await userEvent.click(within(linha).getByRole('button', { name: 'Escalar' }));
+    await userEvent.click(within(linha).getByRole('button', { name: /^Escalar/ }));
     await waitFor(() => expect(corpoEnviado(f, POST)).toEqual({ militarId: 'm-CABO', data: DIA, turnoId: 't-jes', guarnicaoId: 'g-abt', funcaoId: 'f-comb' }));
   });
 
@@ -247,13 +255,13 @@ describe('grade geral: adicionar serviço neste dia', () => {
     const { f, p } = await abrirAdicionar(cheio, { [POST]: { status: 201, corpo: ESCALA } });
     const linha = linhaDe(p, '20h–08h');
     expect(textos(within(linha).getByLabelText('Vaga de 20h–08h'))).toEqual(['Sem guarnição']);
-    await userEvent.click(within(linha).getByRole('button', { name: 'Escalar' }));
+    await userEvent.click(within(linha).getByRole('button', { name: /^Escalar/ }));
     await waitFor(() => expect(corpoEnviado(f, POST)).toEqual({ militarId: 'm-CABO', data: DIA, turnoId: 't-b', guarnicaoId: null, funcaoId: null }));
   });
 
   it('a recusa 409 aparece dentro do painel e a grade volta a ser buscada (Review Focus 5)', async () => {
     const { f, p } = await abrirAdicionar(PAINEL, { [POST]: { status: 409, corpo: { erro: 'Este militar já está escalado neste turno.' } } });
-    await userEvent.click(within(linhaDe(p, '20h–08h')).getByRole('button', { name: 'Escalar' }));
+    await userEvent.click(within(linhaDe(p, '20h–08h')).getByRole('button', { name: /^Escalar/ }));
     expect(await within(p).findByRole('alert')).toHaveTextContent('Este militar já está escalado neste turno.');
     await waitFor(() => expect(chamadasA(f, ROTA_GRADE)).toBe(2));
   });

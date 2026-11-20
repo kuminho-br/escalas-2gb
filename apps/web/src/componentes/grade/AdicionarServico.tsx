@@ -54,7 +54,7 @@ function LinhaDoTurno({ turno, salvando, aoEscolher }: { turno: Turno; salvando:
           </Selecao>
         )}
         {servico.semVoluntariado && <span className="text-xs text-pendencia">não marcou</span>}
-        <Button type="button" size="sm" className="ml-auto" disabled={salvando} onClick={() => aoEscolher(opcao, turnoId)}>Escalar</Button>
+        <Button type="button" size="sm" className="ml-auto" aria-label={`Escalar às ${turno.faixa}`} disabled={salvando} onClick={() => aoEscolher(opcao, turnoId)}>Escalar</Button>
       </div>
       <Selecao
         aria-label={`Vaga de ${turno.faixa}`}
