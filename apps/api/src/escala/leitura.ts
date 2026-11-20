@@ -184,7 +184,7 @@ export async function montarEscalaDoMes(c: Consulta, escalaId: string, mes: stri
         inicio: f.inicio,
         fim: f.fim,
         noturna: ehNoturna(f.inicio, f.fim),
-        turnos: f.ts.map((t) => ({ turnoId: t.id, servicoId: t.servicoId, servico: t.servico, letra: t.letra })),
+        turnos: f.ts.map((t) => ({ turnoId: t.id, servicoId: t.servicoId, servico: t.servico, cor: t.cor, letra: t.letra })),
         guarnicoes,
         semPosto: daFaixa.filter((a) => a.acumuloId === null && !noCard.has(`${a.alocacaoId}|${a.acumuloId}`)).map(({ data: _d, turnoId: _t, guarnicaoId: _g, funcaoId: _f, ...o }) => o),
         removidos: remocoes.filter((r) => r.data === data && faixaDoTurno.get(r.turnoId) === f.k).map((r) => ({ remocaoId: r.remocaoId, militarId: r.militarId, nomeGuerra: r.nomeGuerra, servico: r.servico })),

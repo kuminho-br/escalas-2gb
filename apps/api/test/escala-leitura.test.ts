@@ -77,7 +77,8 @@ describe('leitura da escala do mês', () => {
     expect(e.dias).toHaveLength(N);
     expect(e.dias[0]!.data).toBe(`${atual}-01`);
     expect(e.dias[0]!.faixas.map((f) => [f.inicio, f.fim, f.noturna])).toEqual([['08:00', '20:00', false], ['20:00', '08:00', true]]);
-    expect(e.dias[0]!.faixas[0]!.turnos).toEqual([{ turnoId: pronto.turnoA, servicoId: pronto.id, servico: 'Pronto', letra: 'A' }]);
+    // cada turno da faixa traz a cor cadastrada do serviço (4.2: a etiqueta do serviço no título do turno)
+    expect(e.dias[0]!.faixas[0]!.turnos).toEqual([{ turnoId: pronto.turnoA, servicoId: pronto.id, servico: 'Pronto', cor: '#2F8F5B', letra: 'A' }]);
     expect(e.dias[14]!.feriado).toBe('Feriado de teste');
     expect(e.dias[0]!.feriado).toBeNull();
   });

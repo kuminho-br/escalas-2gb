@@ -1,4 +1,5 @@
 import { textoFaixa, type DiaDaEscala, type FaixaDoDia, type OcupanteDaVaga } from 'contratos';
+import { EtiquetaDoServico } from '@/componentes/EtiquetaDoServico';
 import { cn } from '@/lib/utils';
 import { CardDaGuarnicao, type VagaDaTela } from './CardDaGuarnicao';
 
@@ -14,14 +15,16 @@ function Faixa({ faixa, dia, soVazias, aoEscolher, aoRemover, aoDesfazer }: { fa
   const cards = soVazias ? faixa.guarnicoes.filter((g) => !g.completa) : faixa.guarnicoes;
   if (soVazias && cards.length === 0) return null;
   const letras = [...new Set(faixa.turnos.map((t) => t.letra))].join(', ');
-  const servicos = [...new Set(faixa.turnos.map((t) => t.servico))].join(', ');
+  // uma etiqueta para cada serviço da faixa, na cor cadastrada
+  const servicos = [...new Map(faixa.turnos.map((t) => [t.servicoId, t])).values()];
   return (
     // o turno com mais de uma guarnição (como no Ordinário) ocupa a linha inteira; o de uma só fica lado a lado com os outros
-    <div data-faixa data-noturna={faixa.noturna ? '' : undefined} data-larga={faixa.guarnicoes.length > 1 ? '' : undefined} className={cn('flex min-w-0 gap-3', faixa.guarnicoes.length > 1 && 'col-span-full')}>
-      <div aria-hidden className={cn('w-1.5 shrink-0 rounded-full', faixa.noturna ? 'bg-[#24324F]' : 'bg-[#E8D9A3]')} />
+    <div data-faixa data-noturna={faixa.noturna ? '' : undefined} data-larga={faixa.guarnicoes.length > 1 ? '' : undefined} className={cn('flex min-w-0', faixa.guarnicoes.length > 1 && 'col-span-full')}>
       <div className="min-w-0 flex-1 grid gap-2">
-        <p className="font-cond text-sm font-semibold">
-          <span>{textoFaixa(faixa.inicio, faixa.fim)}</span> <span className="font-normal text-apagado">{letras} · {servicos}</span>
+        <p className="flex flex-wrap items-center gap-x-2 gap-y-1 font-cond text-sm font-semibold">
+          <span>{textoFaixa(faixa.inicio, faixa.fim)}</span>
+          <span className="font-normal text-apagado">{letras}</span>
+          {servicos.map((t) => <EtiquetaDoServico key={t.servicoId} nome={t.servico} cor={t.cor} />)}
         </p>
         {cards.length > 0 && (
           <div data-cards-do-turno className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,18rem),1fr))] gap-3">
@@ -77,12 +80,14 @@ export function DiaDaEscalaVista({ dia, soVazias, aoEscolher, aoRemover, aoDesfa
   const n = Number(dia.data.slice(8));
   const fimDeSemana = dia.diaDaSemana === 0 || dia.diaDaSemana === 6;
   return (
-    <section id={`dia-${dia.data}`} aria-label={`Dia ${n}`} className={cn('scroll-mt-20 grid grid-cols-[4.5rem_1fr] gap-3 rounded-xl border border-linha p-3 sm:grid-cols-[6rem_1fr]', fimDeSemana ? 'bg-black/[0.03]' : 'bg-fundo/40')}>
+    <section id={`dia-${dia.data}`} aria-label={`Dia ${n}`} className={cn('scroll-mt-20 grid grid-cols-[4.5rem_0.375rem_1fr] gap-3 rounded-xl border border-linha p-3 sm:grid-cols-[6rem_0.375rem_1fr]', fimDeSemana ? 'bg-black/[0.03]' : 'bg-fundo/40')}>
       <div className="self-start sticky top-[4.5rem]">
         <span className={cn('block font-cond text-4xl leading-none font-semibold', dia.feriado && 'text-alerta')}>{n}</span>
         <span className="block text-xs text-apagado">{DIA_DA_SEMANA[dia.diaDaSemana]}</span>
         {dia.feriado && <span className="block text-xs font-medium text-alerta">{dia.feriado}</span>}
       </div>
+      {/* uma barra só por dia, entre o número e os turnos (sai a barra clara/escura de cada turno) */}
+      <div data-barra-do-dia aria-hidden className="w-1.5 self-stretch rounded-full bg-linha" />
       {/* os turnos do dia lado a lado, numa grade de ~20rem (adendo de 19/11 depois da 2.4): no celular, um embaixo do outro */}
       <div data-faixas-do-dia className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,20rem),1fr))] gap-4">
         {dia.faixas.map((f) => <Faixa key={`${f.inicio}|${f.fim}`} faixa={f} dia={dia.data} soVazias={soVazias} aoEscolher={aoEscolher} aoRemover={aoRemover} aoDesfazer={aoDesfazer} />)}
