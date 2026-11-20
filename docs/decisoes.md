@@ -8,7 +8,8 @@ Siglas dos documentos: **Design** = `superpowers/specs/2026-11-16-migracao-desig
 
 | Data | Decisão | Onde está |
 |---|---|---|
-| 20/11/2026 | O painel do dia não é otimizado agora (33 consultas medidas na 4.3); entra na fase 8 se passar de 40 consultas ou de 1 s na sandbox. | Roadmap, Fase 4 |
+| 20/11/2026 | "Otimizar o painel do dia" entra na fase 8: na 4.4 a medida foi a 42 consultas, acima do limite de 40. | Roadmap, Fase 8 |
+| 20/11/2026 | O painel do dia não é otimizado agora (33 consultas medidas na 4.3); entra na fase 8 se passar de 40 consultas ou de 1 s na sandbox. Cumprida na 4.4. | Roadmap, Fase 4 |
 | 20/11/2026 | A aba "Atividades" sai das Configurações (nada lê a atividade desde 17/11); a tabela e a coluna ficam no banco, sem migração. Entra na 4.4. | Roadmap, Fase 4; Design, Cadastros › Catálogos |
 | 20/11/2026 | Os documentos não ganham mais adendos: muda-se o texto e a decisão entra neste registro. | Este registro (topo) |
 | 20/11/2026 | Antes do design do Pecúlio, entra uma pergunta nova: como a planilha é usada hoje (quem atualiza, quem consulta, o que dá trabalho). | Pecúlio, Decisões que faltam |

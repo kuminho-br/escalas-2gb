@@ -109,7 +109,7 @@ Montar e conferir a escala do mês à mão, nas telas de trabalho (Escala do mê
 
 Specs, em `docs/superpowers/specs/`: `2026-11-18-ordem-de-escala-e-acumulo-design.md`, `2026-11-19-voluntariado-por-faixa-design.md`, `2026-11-20-meta-de-ativacao-design.md`, `2026-11-20-grade-geral-design.md`, `2026-11-20-grade-geral-ux-design.md` e `2026-11-20-limpeza-da-fase-3-design.md`.
 
-**Painel do dia (medida da 4.3):** 33 consultas no cenário de teste (31 para um militar do Pronto, 33 para um do Adm), bem abaixo das 100 a 200 que se temia; o número cresce com escalas, faixas e funções. Acima de 40, ou se a sandbox achar a abertura lenta (mais de 1 s), entra "otimizar o painel do dia" na fase 8.
+**Painel do dia (medida da 4.3):** 33 consultas no cenário de teste (31 para um militar do Pronto, 33 para um do Adm), bem abaixo das 100 a 200 que se temia; o número cresce com escalas, faixas e funções (cerca de 9 consultas por faixa). Na 4.4, com uma terceira faixa no cenário, foi a 40 (Pronto) e 42 (Adm): passou do limite de 40, então "otimizar o painel do dia" entrou na fase 8.
 
 **A fase fecha na 4.4.** Os escalantes conseguem montar e conferir a escala de um mês à mão, sem os tropeços conhecidos.
 
@@ -150,6 +150,7 @@ A base de militares do 2º GB inteiro, a partir da planilha do Pecúlio, e o mó
 - **Distribuições automáticas:** completar com JES num dia ou período escolhido pelo chefe, saldos do Adm, operações pelas cotas e buracos do Pronto. O motor já tem `distribuirCotas` e `distribuirAdm`; falta ligá-los às vagas, no padrão da pré-escala do Pronto.
 - **Gerar documento:** modelos de impressão em Configurações, a escala em .xlsx a partir do modelo e o histórico dos documentos.
 - **O mesmo modelo de guarnição mais de uma vez no dia.**
+- **Otimizar o painel do dia** da Grade geral: 42 consultas com uma escala e três faixas, e cresce com cada faixa.
 - **Escala por militar:** militares escolhidos, o mês, comparados. Forma com a Grade geral, a Escala do mês e o Efetivo por dia as quatro telas principais. A Minha escala (fase 7) é o caso de um militar só.
 - **Piloto na 1ª SB:** um mês real montado no sistema novo, em paralelo com as planilhas, e comparado no fim.
 
