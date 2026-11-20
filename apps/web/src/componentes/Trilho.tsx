@@ -13,7 +13,6 @@ import {
   PieChart,
   Settings,
   Sun,
-  Truck,
   Users,
   X,
   type LucideIcon,
@@ -37,7 +36,6 @@ const BLOCOS: Item[][] = [
   [
     { nome: 'Militares', icone: Users, para: '/militares', soCadastro: true },
     { nome: 'Serviços', icone: Clock, para: '/servicos', soCadastro: true },
-    { nome: 'Guarnições', icone: Truck, para: '/guarnicoes', soCadastro: true },
     { nome: 'Escalas', icone: FileText, para: '/escalas', soCadastro: true },
     { nome: 'Feriados', icone: CalendarDays, para: '/feriados', soCadastro: true },
   ],

@@ -17,7 +17,6 @@ import { Route as AppCotasRouteImport } from './routes/_app/cotas'
 import { Route as AppEscalaDoMesRouteImport } from './routes/_app/escala-do-mes'
 import { Route as AppEscalasRouteImport } from './routes/_app/escalas'
 import { Route as AppFeriadosRouteImport } from './routes/_app/feriados'
-import { Route as AppGuarnicoesRouteImport } from './routes/_app/guarnicoes'
 import { Route as AppMilitaresRouteImport } from './routes/_app/militares'
 import { Route as AppServicosRouteImport } from './routes/_app/servicos'
 import { Route as AppVoluntariadoRouteImport } from './routes/_app/voluntariado'
@@ -29,6 +28,7 @@ import { Route as AppMilitaresIndexRouteImport } from './routes/_app/militares/i
 import { Route as AppMilitaresIdRouteImport } from './routes/_app/militares/$id'
 import { Route as AppServicosIndexRouteImport } from './routes/_app/servicos/index'
 import { Route as AppServicosIdRouteImport } from './routes/_app/servicos/$id'
+import { Route as AppConfiguracoesModelosDeGuarnicaoIdRouteImport } from './routes/_app/configuracoes_.modelos-de-guarnicao.$id'
 import { Route as AppEscalasIdOrdemRouteImport } from './routes/_app/escalas_.$id.ordem'
 
 const AppRoute = AppRouteImport.update({
@@ -70,11 +70,6 @@ const AppFeriadosRoute = AppFeriadosRouteImport.update({
   path: '/feriados',
   getParentRoute: () => AppRoute,
 } as any)
-const AppGuarnicoesRoute = AppGuarnicoesRouteImport.update({
-  id: '/guarnicoes',
-  path: '/guarnicoes',
-  getParentRoute: () => AppRoute,
-} as any)
 const AppMilitaresRoute = AppMilitaresRouteImport.update({
   id: '/militares',
   path: '/militares',
@@ -101,14 +96,14 @@ const AppEscalasIdRoute = AppEscalasIdRouteImport.update({
   getParentRoute: () => AppEscalasRoute,
 } as any)
 const AppGuarnicoesIndexRoute = AppGuarnicoesIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => AppGuarnicoesRoute,
+  id: '/guarnicoes/',
+  path: '/guarnicoes/',
+  getParentRoute: () => AppRoute,
 } as any)
 const AppGuarnicoesIdRoute = AppGuarnicoesIdRouteImport.update({
-  id: '/$id',
-  path: '/$id',
-  getParentRoute: () => AppGuarnicoesRoute,
+  id: '/guarnicoes/$id',
+  path: '/guarnicoes/$id',
+  getParentRoute: () => AppRoute,
 } as any)
 const AppMilitaresIndexRoute = AppMilitaresIndexRouteImport.update({
   id: '/',
@@ -130,6 +125,12 @@ const AppServicosIdRoute = AppServicosIdRouteImport.update({
   path: '/$id',
   getParentRoute: () => AppServicosRoute,
 } as any)
+const AppConfiguracoesModelosDeGuarnicaoIdRoute =
+  AppConfiguracoesModelosDeGuarnicaoIdRouteImport.update({
+    id: '/configuracoes_/modelos-de-guarnicao/$id',
+    path: '/configuracoes/modelos-de-guarnicao/$id',
+    getParentRoute: () => AppRoute,
+  } as any)
 const AppEscalasIdOrdemRoute = AppEscalasIdOrdemRouteImport.update({
   id: '/escalas_/$id/ordem',
   path: '/escalas/$id/ordem',
@@ -144,7 +145,6 @@ export interface FileRoutesByFullPath {
   '/escala-do-mes': typeof AppEscalaDoMesRoute
   '/escalas': typeof AppEscalasRouteWithChildren
   '/feriados': typeof AppFeriadosRoute
-  '/guarnicoes': typeof AppGuarnicoesRouteWithChildren
   '/militares': typeof AppMilitaresRouteWithChildren
   '/servicos': typeof AppServicosRouteWithChildren
   '/voluntariado': typeof AppVoluntariadoRoute
@@ -156,6 +156,7 @@ export interface FileRoutesByFullPath {
   '/guarnicoes/': typeof AppGuarnicoesIndexRoute
   '/militares/': typeof AppMilitaresIndexRoute
   '/servicos/': typeof AppServicosIndexRoute
+  '/configuracoes/modelos-de-guarnicao/$id': typeof AppConfiguracoesModelosDeGuarnicaoIdRoute
   '/escalas/$id/ordem': typeof AppEscalasIdOrdemRoute
 }
 export interface FileRoutesByTo {
@@ -174,6 +175,7 @@ export interface FileRoutesByTo {
   '/guarnicoes': typeof AppGuarnicoesIndexRoute
   '/militares': typeof AppMilitaresIndexRoute
   '/servicos': typeof AppServicosIndexRoute
+  '/configuracoes/modelos-de-guarnicao/$id': typeof AppConfiguracoesModelosDeGuarnicaoIdRoute
   '/escalas/$id/ordem': typeof AppEscalasIdOrdemRoute
 }
 export interface FileRoutesById {
@@ -185,7 +187,6 @@ export interface FileRoutesById {
   '/_app/escala-do-mes': typeof AppEscalaDoMesRoute
   '/_app/escalas': typeof AppEscalasRouteWithChildren
   '/_app/feriados': typeof AppFeriadosRoute
-  '/_app/guarnicoes': typeof AppGuarnicoesRouteWithChildren
   '/_app/militares': typeof AppMilitaresRouteWithChildren
   '/_app/servicos': typeof AppServicosRouteWithChildren
   '/_app/voluntariado': typeof AppVoluntariadoRoute
@@ -198,6 +199,7 @@ export interface FileRoutesById {
   '/_app/guarnicoes/': typeof AppGuarnicoesIndexRoute
   '/_app/militares/': typeof AppMilitaresIndexRoute
   '/_app/servicos/': typeof AppServicosIndexRoute
+  '/_app/configuracoes_/modelos-de-guarnicao/$id': typeof AppConfiguracoesModelosDeGuarnicaoIdRoute
   '/_app/escalas_/$id/ordem': typeof AppEscalasIdOrdemRoute
 }
 export interface FileRouteTypes {
@@ -210,7 +212,6 @@ export interface FileRouteTypes {
     | '/escala-do-mes'
     | '/escalas'
     | '/feriados'
-    | '/guarnicoes'
     | '/militares'
     | '/servicos'
     | '/voluntariado'
@@ -222,6 +223,7 @@ export interface FileRouteTypes {
     | '/guarnicoes/'
     | '/militares/'
     | '/servicos/'
+    | '/configuracoes/modelos-de-guarnicao/$id'
     | '/escalas/$id/ordem'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -240,6 +242,7 @@ export interface FileRouteTypes {
     | '/guarnicoes'
     | '/militares'
     | '/servicos'
+    | '/configuracoes/modelos-de-guarnicao/$id'
     | '/escalas/$id/ordem'
   id:
     | '__root__'
@@ -250,7 +253,6 @@ export interface FileRouteTypes {
     | '/_app/escala-do-mes'
     | '/_app/escalas'
     | '/_app/feriados'
-    | '/_app/guarnicoes'
     | '/_app/militares'
     | '/_app/servicos'
     | '/_app/voluntariado'
@@ -263,6 +265,7 @@ export interface FileRouteTypes {
     | '/_app/guarnicoes/'
     | '/_app/militares/'
     | '/_app/servicos/'
+    | '/_app/configuracoes_/modelos-de-guarnicao/$id'
     | '/_app/escalas_/$id/ordem'
   fileRoutesById: FileRoutesById
 }
@@ -329,13 +332,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppFeriadosRouteImport
       parentRoute: typeof AppRoute
     }
-    '/_app/guarnicoes': {
-      id: '/_app/guarnicoes'
-      path: '/guarnicoes'
-      fullPath: '/guarnicoes'
-      preLoaderRoute: typeof AppGuarnicoesRouteImport
-      parentRoute: typeof AppRoute
-    }
     '/_app/militares': {
       id: '/_app/militares'
       path: '/militares'
@@ -373,17 +369,17 @@ declare module '@tanstack/react-router' {
     }
     '/_app/guarnicoes/': {
       id: '/_app/guarnicoes/'
-      path: '/'
+      path: '/guarnicoes'
       fullPath: '/guarnicoes/'
       preLoaderRoute: typeof AppGuarnicoesIndexRouteImport
-      parentRoute: typeof AppGuarnicoesRoute
+      parentRoute: typeof AppRoute
     }
     '/_app/guarnicoes/$id': {
       id: '/_app/guarnicoes/$id'
-      path: '/$id'
+      path: '/guarnicoes/$id'
       fullPath: '/guarnicoes/$id'
       preLoaderRoute: typeof AppGuarnicoesIdRouteImport
-      parentRoute: typeof AppGuarnicoesRoute
+      parentRoute: typeof AppRoute
     }
     '/_app/militares/': {
       id: '/_app/militares/'
@@ -413,6 +409,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppServicosIdRouteImport
       parentRoute: typeof AppServicosRoute
     }
+    '/_app/configuracoes_/modelos-de-guarnicao/$id': {
+      id: '/_app/configuracoes_/modelos-de-guarnicao/$id'
+      path: '/configuracoes/modelos-de-guarnicao/$id'
+      fullPath: '/configuracoes/modelos-de-guarnicao/$id'
+      preLoaderRoute: typeof AppConfiguracoesModelosDeGuarnicaoIdRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/escalas_/$id/ordem': {
       id: '/_app/escalas_/$id/ordem'
       path: '/escalas/$id/ordem'
@@ -435,20 +438,6 @@ const AppEscalasRouteChildren: AppEscalasRouteChildren = {
 
 const AppEscalasRouteWithChildren = AppEscalasRoute._addFileChildren(
   AppEscalasRouteChildren,
-)
-
-interface AppGuarnicoesRouteChildren {
-  AppGuarnicoesIdRoute: typeof AppGuarnicoesIdRoute
-  AppGuarnicoesIndexRoute: typeof AppGuarnicoesIndexRoute
-}
-
-const AppGuarnicoesRouteChildren: AppGuarnicoesRouteChildren = {
-  AppGuarnicoesIdRoute: AppGuarnicoesIdRoute,
-  AppGuarnicoesIndexRoute: AppGuarnicoesIndexRoute,
-}
-
-const AppGuarnicoesRouteWithChildren = AppGuarnicoesRoute._addFileChildren(
-  AppGuarnicoesRouteChildren,
 )
 
 interface AppMilitaresRouteChildren {
@@ -485,11 +474,13 @@ interface AppRouteChildren {
   AppEscalaDoMesRoute: typeof AppEscalaDoMesRoute
   AppEscalasRoute: typeof AppEscalasRouteWithChildren
   AppFeriadosRoute: typeof AppFeriadosRoute
-  AppGuarnicoesRoute: typeof AppGuarnicoesRouteWithChildren
   AppMilitaresRoute: typeof AppMilitaresRouteWithChildren
   AppServicosRoute: typeof AppServicosRouteWithChildren
   AppVoluntariadoRoute: typeof AppVoluntariadoRoute
   AppIndexRoute: typeof AppIndexRoute
+  AppGuarnicoesIdRoute: typeof AppGuarnicoesIdRoute
+  AppGuarnicoesIndexRoute: typeof AppGuarnicoesIndexRoute
+  AppConfiguracoesModelosDeGuarnicaoIdRoute: typeof AppConfiguracoesModelosDeGuarnicaoIdRoute
   AppEscalasIdOrdemRoute: typeof AppEscalasIdOrdemRoute
 }
 
@@ -499,11 +490,14 @@ const AppRouteChildren: AppRouteChildren = {
   AppEscalaDoMesRoute: AppEscalaDoMesRoute,
   AppEscalasRoute: AppEscalasRouteWithChildren,
   AppFeriadosRoute: AppFeriadosRoute,
-  AppGuarnicoesRoute: AppGuarnicoesRouteWithChildren,
   AppMilitaresRoute: AppMilitaresRouteWithChildren,
   AppServicosRoute: AppServicosRouteWithChildren,
   AppVoluntariadoRoute: AppVoluntariadoRoute,
   AppIndexRoute: AppIndexRoute,
+  AppGuarnicoesIdRoute: AppGuarnicoesIdRoute,
+  AppGuarnicoesIndexRoute: AppGuarnicoesIndexRoute,
+  AppConfiguracoesModelosDeGuarnicaoIdRoute:
+    AppConfiguracoesModelosDeGuarnicaoIdRoute,
   AppEscalasIdOrdemRoute: AppEscalasIdOrdemRoute,
 }
 

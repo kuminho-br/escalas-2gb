@@ -387,7 +387,7 @@ describe('Salvar que mostra o estado', () => {
         'GET /api/guarnicoes/g2': { status: 200, corpo: { ...ficha, id: 'g2', nome: 'Resgate' } },
       });
       const confirmar = vi.spyOn(window, 'confirm').mockReturnValue(false);
-      abrir('/guarnicoes/g1');
+      abrir('/configuracoes/modelos-de-guarnicao/g1');
       await userEvent.click(await screen.findByRole('button', { name: 'Incluir função' }));
       await userEvent.click(screen.getByRole('link', { name: /Resgate/ }));
       await waitFor(() => expect(confirmar).toHaveBeenCalledWith(MENSAGEM_PENDENTE));
