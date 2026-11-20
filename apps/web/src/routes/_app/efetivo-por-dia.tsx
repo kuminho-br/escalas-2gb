@@ -1,6 +1,6 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { createFileRoute } from '@tanstack/react-router';
-import { Data, type CategoriaCnh, type FuncaoNoEfetivo, type GuarnicaoNoEfetivo, type OpcaoDaVaga, type TrechoNoEfetivo } from 'contratos';
+import { Data, type FuncaoNoEfetivo, type GuarnicaoNoEfetivo, type OpcaoDaVaga, type TrechoNoEfetivo } from 'contratos';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { mensagemDe } from '@/api/cliente';
@@ -11,6 +11,7 @@ import { AlterarMetaDoDia } from '@/componentes/efetivo-por-dia/AlterarMetaDoDia
 import { AlocacoesDoTrecho } from '@/componentes/efetivo-por-dia/AlocacoesDoTrecho';
 import { CardDoEfetivo } from '@/componentes/efetivo-por-dia/CardDoEfetivo';
 import { EscolherEscalaDaVaga } from '@/componentes/efetivo-por-dia/EscolherEscalaDaVaga';
+import type { VagaDaTela } from '@/componentes/escala-do-mes/CardDaGuarnicao';
 import { EscolherMilitar } from '@/componentes/escala-do-mes/EscolherMilitar';
 import { ReguaDoEfetivo } from '@/componentes/efetivo-por-dia/ReguaDoEfetivo';
 import { useTrava } from '@/componentes/AlteracoesPendentes';
@@ -125,7 +126,7 @@ function EfetivoPorDia() {
               escalaId={opcao.escalaId}
               vaga={{
                 data, inicio: opcao.inicio, fim: opcao.fim, guarnicaoId: vaga.g.guarnicaoId, guarnicao: vaga.g.nome,
-                funcaoId: vaga.funcao.funcaoId, funcao: vaga.funcao.funcao, cnhExigida: vaga.funcao.cnhExigida as CategoriaCnh | null,
+                funcaoId: vaga.funcao.funcaoId, funcao: vaga.funcao.funcao, cnhExigida: vaga.funcao.cnhExigida as VagaDaTela['cnhExigida'],
               }}
               aoFechar={fecharVaga}
             />
