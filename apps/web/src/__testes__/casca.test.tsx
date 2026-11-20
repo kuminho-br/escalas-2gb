@@ -57,7 +57,7 @@ describe('casca', () => {
 });
 
 describe('trilho', () => {
-  const NOMES = ['Grade geral', 'Escala do mês', 'Efetivo do dia', 'Voluntariado', 'Cotas', 'Militares', 'Serviços', 'Escalas', 'Feriados', 'Configurações', 'Estrutura', 'Histórico', 'Ajuda'];
+  const NOMES = ['Grade geral', 'Escala do mês', 'Efetivo por dia', 'Voluntariado', 'Cotas', 'Militares', 'Serviços', 'Escalas', 'Feriados', 'Configurações', 'Estrutura', 'Histórico', 'Ajuda'];
   const menu = () => screen.getByRole('navigation', { name: 'Navegação principal' });
 
   it('no computador o menu é um trilho de 84 px', async () => {
@@ -75,7 +75,7 @@ describe('trilho', () => {
     for (const nome of NOMES) expect(within(menu()).getByText(nome)).toBeInTheDocument();
     expect(within(menu()).getByRole('link', { name: 'Militares' })).toHaveAttribute('href', '/militares');
     expect(within(menu()).getByRole('link', { name: 'Escala do mês' })).toHaveAttribute('href', '/escala-do-mes');
-    expect(within(menu()).getByRole('link', { name: 'Efetivo do dia' })).toHaveAttribute('href', '/efetivo-do-dia');
+    expect(within(menu()).getByRole('link', { name: 'Efetivo por dia' })).toHaveAttribute('href', '/efetivo-por-dia');
     expect(within(menu()).getByText('Estrutura').closest('[aria-disabled="true"]')).not.toBeNull();
     expect(within(menu()).queryByRole('link', { name: 'Estrutura' })).toBeNull();
   });

@@ -15,6 +15,7 @@ import { Route as AppIndexRouteImport } from './routes/_app/index'
 import { Route as AppConfiguracoesRouteImport } from './routes/_app/configuracoes'
 import { Route as AppCotasRouteImport } from './routes/_app/cotas'
 import { Route as AppEfetivoDoDiaRouteImport } from './routes/_app/efetivo-do-dia'
+import { Route as AppEfetivoPorDiaRouteImport } from './routes/_app/efetivo-por-dia'
 import { Route as AppEscalaDoMesRouteImport } from './routes/_app/escala-do-mes'
 import { Route as AppEscalasRouteImport } from './routes/_app/escalas'
 import { Route as AppFeriadosRouteImport } from './routes/_app/feriados'
@@ -59,6 +60,11 @@ const AppCotasRoute = AppCotasRouteImport.update({
 const AppEfetivoDoDiaRoute = AppEfetivoDoDiaRouteImport.update({
   id: '/efetivo-do-dia',
   path: '/efetivo-do-dia',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppEfetivoPorDiaRoute = AppEfetivoPorDiaRouteImport.update({
+  id: '/efetivo-por-dia',
+  path: '/efetivo-por-dia',
   getParentRoute: () => AppRoute,
 } as any)
 const AppEscalaDoMesRoute = AppEscalaDoMesRouteImport.update({
@@ -149,6 +155,7 @@ export interface FileRoutesByFullPath {
   '/configuracoes': typeof AppConfiguracoesRoute
   '/cotas': typeof AppCotasRoute
   '/efetivo-do-dia': typeof AppEfetivoDoDiaRoute
+  '/efetivo-por-dia': typeof AppEfetivoPorDiaRoute
   '/escala-do-mes': typeof AppEscalaDoMesRoute
   '/escalas': typeof AppEscalasRouteWithChildren
   '/feriados': typeof AppFeriadosRoute
@@ -171,6 +178,7 @@ export interface FileRoutesByTo {
   '/configuracoes': typeof AppConfiguracoesRoute
   '/cotas': typeof AppCotasRoute
   '/efetivo-do-dia': typeof AppEfetivoDoDiaRoute
+  '/efetivo-por-dia': typeof AppEfetivoPorDiaRoute
   '/escala-do-mes': typeof AppEscalaDoMesRoute
   '/feriados': typeof AppFeriadosRoute
   '/voluntariado': typeof AppVoluntariadoRoute
@@ -193,6 +201,7 @@ export interface FileRoutesById {
   '/_app/configuracoes': typeof AppConfiguracoesRoute
   '/_app/cotas': typeof AppCotasRoute
   '/_app/efetivo-do-dia': typeof AppEfetivoDoDiaRoute
+  '/_app/efetivo-por-dia': typeof AppEfetivoPorDiaRoute
   '/_app/escala-do-mes': typeof AppEscalaDoMesRoute
   '/_app/escalas': typeof AppEscalasRouteWithChildren
   '/_app/feriados': typeof AppFeriadosRoute
@@ -219,6 +228,7 @@ export interface FileRouteTypes {
     | '/configuracoes'
     | '/cotas'
     | '/efetivo-do-dia'
+    | '/efetivo-por-dia'
     | '/escala-do-mes'
     | '/escalas'
     | '/feriados'
@@ -241,6 +251,7 @@ export interface FileRouteTypes {
     | '/configuracoes'
     | '/cotas'
     | '/efetivo-do-dia'
+    | '/efetivo-por-dia'
     | '/escala-do-mes'
     | '/feriados'
     | '/voluntariado'
@@ -262,6 +273,7 @@ export interface FileRouteTypes {
     | '/_app/configuracoes'
     | '/_app/cotas'
     | '/_app/efetivo-do-dia'
+    | '/_app/efetivo-por-dia'
     | '/_app/escala-do-mes'
     | '/_app/escalas'
     | '/_app/feriados'
@@ -328,6 +340,13 @@ declare module '@tanstack/react-router' {
       path: '/efetivo-do-dia'
       fullPath: '/efetivo-do-dia'
       preLoaderRoute: typeof AppEfetivoDoDiaRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/efetivo-por-dia': {
+      id: '/_app/efetivo-por-dia'
+      path: '/efetivo-por-dia'
+      fullPath: '/efetivo-por-dia'
+      preLoaderRoute: typeof AppEfetivoPorDiaRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/escala-do-mes': {
@@ -491,6 +510,7 @@ interface AppRouteChildren {
   AppConfiguracoesRoute: typeof AppConfiguracoesRoute
   AppCotasRoute: typeof AppCotasRoute
   AppEfetivoDoDiaRoute: typeof AppEfetivoDoDiaRoute
+  AppEfetivoPorDiaRoute: typeof AppEfetivoPorDiaRoute
   AppEscalaDoMesRoute: typeof AppEscalaDoMesRoute
   AppEscalasRoute: typeof AppEscalasRouteWithChildren
   AppFeriadosRoute: typeof AppFeriadosRoute
@@ -508,6 +528,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppConfiguracoesRoute: AppConfiguracoesRoute,
   AppCotasRoute: AppCotasRoute,
   AppEfetivoDoDiaRoute: AppEfetivoDoDiaRoute,
+  AppEfetivoPorDiaRoute: AppEfetivoPorDiaRoute,
   AppEscalaDoMesRoute: AppEscalaDoMesRoute,
   AppEscalasRoute: AppEscalasRouteWithChildren,
   AppFeriadosRoute: AppFeriadosRoute,
