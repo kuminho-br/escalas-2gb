@@ -154,21 +154,21 @@ export async function desfazerDesativacao(tx: Consulta, unidadeId: string, data:
   ]);
   const turnosDoServico = unicos(d.alocacoes.map((a) => `${a.servicoId}|${a.turnoId}`));
   const voltam = new Set(d.alocacoes.map((a) => a.alocacaoId));
-  // o acúmulo de uma alocação que não volta precisa estar numa alocação que existe nesta seção, neste dia
+  // o acúmulo de uma alocação que não volta, e as promovidas, estão em alocações que continuam existindo: as que sumiram desde a desativação
+  // são "a escala mudou" (409); as que existem mas são de outra seção ou de outro dia não são deste "Desfazer" (400)
   const aoAcumuloDeFora = unicos(d.acumulos.map((x) => x.alocacaoId).filter((id) => !voltam.has(id)));
-  // as promovidas são alocações que continuam existindo: as que sumiram desde a desativação são "a escala mudou"; as que existem mas são
-  // de outra seção ou de outro dia não são deste "Desfazer" (400)
   const asPromovidas = unicos(d.promovidas.map((x) => x.alocacaoId));
-  const achadas = asPromovidas.length
+  const aConferir = unicos([...aoAcumuloDeFora, ...asPromovidas]);
+  const achadas = aConferir.length
     ? (
         await tx.query<{ id: string; unidade_id: string; data: string }>(
           `select a.id, e.unidade_id, to_char(a.data, 'YYYY-MM-DD') as data from alocacao a join escala e on e.id = a.escala_id where a.id = any($1::uuid[])`,
-          [asPromovidas],
+          [aConferir],
         )
       ).rows
     : [];
-  const sumiuPromovida = asPromovidas.some((id) => !achadas.some((r) => r.id === id));
-  const promovidaDeFora = achadas.some((r) => r.unidade_id !== unidadeId || r.data !== data);
+  const sumiuAlguma = aConferir.some((id) => !achadas.some((r) => r.id === id));
+  const deForaDaSecaoOuDoDia = achadas.some((r) => r.unidade_id !== unidadeId || r.data !== data);
   const ok =
     d.alocacoes.every((a) => a.data === data && Boolean(a.guarnicaoId) === Boolean(a.funcaoId)) &&
     // a promovida só volta à vaga da guarnição desativada: o corpo não escolhe outra
@@ -177,16 +177,9 @@ export async function desfazerDesativacao(tx: Consulta, unidadeId: string, data:
     (!servicos.length || (await contar('select count(*)::int as n from servico where id = any($1::uuid[]) and unidade_id = $2', servicos))) &&
     (await modelosForaDaSecao(tx, unidadeId, guarnicoes)) === null &&
     (await Promise.all(turnosDoServico.map(async (t) => (await tx.query('select 1 from turno where id = $1 and servico_id = $2', [t.split('|')[1], t.split('|')[0]])).rows.length === 1))).every(Boolean) &&
-    (!aoAcumuloDeFora.length ||
-      (
-        await tx.query<{ n: number }>(
-          `select count(*)::int as n from alocacao a join escala e on e.id = a.escala_id where a.id = any($1::uuid[]) and e.unidade_id = $2 and a.data = $3::date`,
-          [aoAcumuloDeFora, unidadeId, data],
-        )
-      ).rows[0]!.n === aoAcumuloDeFora.length) &&
-    !promovidaDeFora;
+    !deForaDaSecaoOuDoDia;
   if (!ok) throw new DadosInvalidos();
-  if (sumiuPromovida) throw new Recusa(ESCALA_MUDOU);
+  if (sumiuAlguma) throw new Recusa(ESCALA_MUDOU);
 
   if (d.metaAntes.origem === 'padrao') await voltarMetaAoPadrao(tx, unidadeId, data);
   else await gravarMetaDoDia(tx, unidadeId, data, d.metaAntes.guarnicoes);

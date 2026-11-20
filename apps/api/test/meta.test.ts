@@ -399,6 +399,15 @@ describe('desativar e desfazer (Review Focus 1 a 4)', () => {
     }
   });
 
+  /** Uma alocação que existe, mas é da outra seção (para o corpo forjado do "Desfazer"). */
+  const alocacaoDeOutraSecao = async (d: string, sufixo: string) => {
+    const servicoAlheio = await inserir(api.banco, 'servico', { unidade_id: outraSecao, nome: `Alheio ${sufixo}`, tipo: 'ordinario', cor: '#000000' });
+    const turnoAlheio = await inserir(api.banco, 'turno', { servico_id: servicoAlheio, letra: 'A', inicio: '08:00', fim: '20:00' });
+    const escalaAlheia = await inserir(api.banco, 'escala', { unidade_id: outraSecao, nome: `Alheia ${sufixo}`, titulo: 'ESCALA', militares_doc: 'todos', dias_doc: 'todos' });
+    await api.banco.query('insert into escala_servico (escala_id, servico_id, ordem) values ($1, $2, 1)', [escalaAlheia, servicoAlheio]);
+    return inserir(api.banco, 'alocacao', { militar_id: militares.FORA, escala_id: escalaAlheia, servico_id: servicoAlheio, turno_id: turnoAlheio, data: d, guarnicao_id: null, funcao_id: null, origem: 'manual' });
+  };
+
   // pendências da 4.4: a promovida que sumiu ou mudou de lugar é "a escala mudou", a de outra seção continua sendo 400
   const ESCALA_MUDOU = 'Não deu para desfazer: a escala mudou desde então.';
 
@@ -438,16 +447,26 @@ describe('desativar e desfazer (Review Focus 1 a 4)', () => {
     const alfa = await alocar('ALFA', d, abt);
     await inserir(api.banco, 'alocacao_acumulo', { alocacao_id: alfa, guarnicao_id: resgate, funcao_id: funcao });
     const c = await corpoDe(await desativar(d, abt));
-    // uma alocação que existe, mas é da outra seção
-    const servicoAlheio = await inserir(api.banco, 'servico', { unidade_id: outraSecao, nome: 'Alheio 330', tipo: 'ordinario', cor: '#000000' });
-    const turnoAlheio = await inserir(api.banco, 'turno', { servico_id: servicoAlheio, letra: 'A', inicio: '08:00', fim: '20:00' });
-    const escalaAlheia = await inserir(api.banco, 'escala', { unidade_id: outraSecao, nome: 'Alheia 330', titulo: 'ESCALA', militares_doc: 'todos', dias_doc: 'todos' });
-    await api.banco.query('insert into escala_servico (escala_id, servico_id, ordem) values ($1, $2, 1)', [escalaAlheia, servicoAlheio]);
-    const deFora = await inserir(api.banco, 'alocacao', { militar_id: militares.FORA, escala_id: escalaAlheia, servico_id: servicoAlheio, turno_id: turnoAlheio, data: d, guarnicao_id: null, funcao_id: null, origem: 'manual' });
+    const deFora = await alocacaoDeOutraSecao(d, '330');
     const forjado = { ...c.desfazer, promovidas: (c.desfazer.promovidas as { alocacaoId: string }[]).map((x) => ({ ...x, alocacaoId: deFora })) };
     expect((await desfazer(d, forjado)).status).toBe(400);
     expect(await alocacaoDe('ALFA', d)).toEqual({ id: alfa, guarnicao_id: resgate });
     expect(await existe('alocacao', deFora)).toBe(true);
+    expect(nomes(await metaDe(d))).toEqual(['Resgate']);
+  });
+
+  it('desfazer com o dono de um acúmulo removido depois da desativação é 409 "a escala mudou desde então" e nada muda', async () => {
+    const d = dia(332);
+    expect((await gravarDia(d, [abt, resgate])).status).toBe(200);
+    const bravo = await alocar('BRAVO', d, resgate);
+    await inserir(api.banco, 'alocacao_acumulo', { alocacao_id: bravo, guarnicao_id: abt, funcao_id: funcao });
+    const c = await corpoDe(await desativar(d, abt));
+    // enquanto isso, o escalante tirou o BRAVO do dia: o acúmulo que sairia de volta já não tem a quem ser devolvido
+    await api.banco.query('delete from alocacao where id = $1', [bravo]);
+    const r = await desfazer(d, c.desfazer);
+    expect(r.status).toBe(409);
+    expect((await r.json()).erro).toBe(ESCALA_MUDOU);
+    expect(await alocacaoDe('BRAVO', d)).toBeNull();
     expect(nomes(await metaDe(d))).toEqual(['Resgate']);
   });
 
@@ -533,7 +552,7 @@ describe('desativar e desfazer (Review Focus 1 a 4)', () => {
     expect((await gravarDia(d, [abt])).status).toBe(200);
     await alocar('ALFA', d, abt);
     const c = await corpoDe(await desativar(d, abt));
-    const forjado = { ...c.desfazer, acumulos: [{ alocacaoId: '00000000-0000-4000-8000-000000000000', guarnicaoId: resgate, funcaoId: funcao }] };
+    const forjado = { ...c.desfazer, acumulos: [{ alocacaoId: await alocacaoDeOutraSecao(d, '317'), guarnicaoId: resgate, funcaoId: funcao }] };
     expect((await desfazer(d, forjado)).status).toBe(400);
     expect(await alocacaoDe('ALFA', d)).toBeNull();
     expect(nomes(await metaDe(d))).toEqual([]);
