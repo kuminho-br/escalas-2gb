@@ -31,7 +31,7 @@
 | 2. Motor de regras | Regras do protótipo portadas, com os casos passando | Você | concluída |
 | 3. Cadastros | Todas as telas de cadastro, com importação da planilha | Você e os escalantes | concluída |
 | Revisões antes da fase 4 | Pendências, testes com pessoas e revisão de código | Você e alguns usuários | concluídas |
-| 4. Montagem da escala | Montar e conferir a escala do mês à mão, nas telas de trabalho | Você e os escalantes | em andamento |
+| 4. Montagem da escala | Montar e conferir a escala do mês à mão, nas telas de trabalho | Você e os escalantes | concluída |
 | 5. Pecúlio | A base de militares do 2º GB inteiro e o módulo Pecúlio | Você e a administração do GB | em design |
 | 6. Usuários e módulos | Tipos de usuário, contas, acesso por lotação, tela inicial | Todos os militares | planejada |
 | 7. Visualização de escalas | Publicar a escala, publicações, Minha escala, próprio voluntariado | Todos os militares | planejada |
@@ -84,7 +84,7 @@ Os PRs #15 (aviso de migração faltando) e #32 (campo de mês das Cotas) ficara
 
 O que ficou sem corrigir está em "Pendências conhecidas", no fim.
 
-## Fase 4 — Montagem da escala · em andamento
+## Fase 4 — Montagem da escala · concluída
 
 Montar e conferir a escala do mês à mão, nas telas de trabalho (Escala do mês, Efetivo por dia, Grade geral). Plano: `docs/superpowers/plans/2026-11-18-fase4-escala.md`.
 
@@ -105,13 +105,13 @@ Montar e conferir a escala do mês à mão, nas telas de trabalho (Escala do mê
 | 4.1 | Meta do dia: desativar, reativar e adicionar | mesclada (#49), validada (regra antiga do acúmulo) | meta de ativação |
 | 4.2 | Efetivo por dia e Escala do mês em grade | mesclada (#51) | meta de ativação |
 | 4.3 | Limpeza das pendências da fase 3 (Tarefas 65 a 73) | mesclada (#57) | limpeza da fase 3 |
-| 4.4 | Correção do "Desativar", leitura da Grade, busca, "Adicionar serviço" em abas, dia da semana no Efetivo por dia, sem a aba Atividades (Tarefas 74 a 82) | PR #59, aguarda merge | grade geral (ajustes) |
+| 4.4 | Correção do "Desativar", leitura da Grade, busca, "Adicionar serviço" em abas, dia da semana no Efetivo por dia, sem a aba Atividades (Tarefas 74 a 82) | mesclada (#59) | grade geral (ajustes) |
 
 Specs, em `docs/superpowers/specs/`: `2026-11-18-ordem-de-escala-e-acumulo-design.md`, `2026-11-19-voluntariado-por-faixa-design.md`, `2026-11-20-meta-de-ativacao-design.md`, `2026-11-20-grade-geral-design.md`, `2026-11-20-grade-geral-ux-design.md` e `2026-11-20-limpeza-da-fase-3-design.md`.
 
 **Painel do dia (medida da 4.3):** 33 consultas no cenário de teste (31 para um militar do Pronto, 33 para um do Adm), bem abaixo das 100 a 200 que se temia; o número cresce com escalas, faixas e funções (cerca de 9 consultas por faixa). Na 4.4, com uma terceira faixa no cenário, foi a 40 (Pronto) e 42 (Adm): passou do limite de 40, então "otimizar o painel do dia" entrou na fase 8.
 
-**A fase fecha na 4.4.** Os escalantes conseguem montar e conferir a escala de um mês à mão, sem os tropeços conhecidos.
+**A fase fechou na 4.4** (20/11/2026). Os escalantes conseguem montar e conferir a escala de um mês à mão, sem os tropeços conhecidos.
 
 ## Fase 5 — Pecúlio · em design
 
