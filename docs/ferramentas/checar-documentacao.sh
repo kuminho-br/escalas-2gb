@@ -99,5 +99,5 @@ done
 [ $achou = 0 ] && echo "Nenhuma."
 } >> "$corpo"
 
-alertas=$(wc -l < "$cont" | tr -d " "); echo "**Resumo:** $alertas alerta(s). CLAUDE.md: $(grep -o 'Nota: [a-zç]*' "$corpo" | head -1 | sed 's/Nota: //')."
+alertas=$(wc -l < "$cont" | tr -d " "); echo "**Resumo:** $alertas alerta(s). CLAUDE.md: $(grep -o 'Nota: .*' "$corpo" | head -1 | sed 's/Nota: //;s/*//g')."
 cat "$corpo"; rm -f "$corpo" "$cont"
