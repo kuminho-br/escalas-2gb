@@ -2491,6 +2491,212 @@ O `th` do dia já é `sticky top-0`, mas o `div` em volta tem `overflow-x-auto`:
 
 ---
 
+# Entrega 4.4 — Grade geral: ajustes de leitura e o "Adicionar serviço" em abas
+
+**Goal:** corrigir o "Desativar" da 4.1 (tira o militar só da guarnição desativada), deixar a Grade geral fácil de ler (dias mais largos, semanas separadas, grupo fixo e em destaque, cabeçalho e totais presos, busca por nome), o "Adicionar serviço neste dia" organizado em abas, por escala e por turno, e o dia da semana por extenso no Efetivo por dia; e sai a aba "Atividades" das Configurações.
+
+**Architecture:** uma correção de regra na API da meta do dia (Tarefa 74) e, no resto, quase só tela, em `apps/web/src/componentes/grade/` e `apps/web/src/routes/_app/index.tsx`. Na API, a opção do painel do dia ganha um campo (`ordinario`), calculado pelo nome dos serviços fixos. Sem migração, sem regra nova no motor.
+
+**Tech Stack:** React + Tailwind (site), Hono (API), zod/tipos em `pacotes/contratos`, Vitest + Testing Library.
+
+**Branch:** `fase4-4-4-grade-ux`, a partir da `main` depois do merge da 4.3. Commits `Fase 4.4.4: …`; PR "Fase 4 — Entrega 4.4: Grade geral, leitura e Adicionar serviço em abas". **Sem migração.** É a última entrega da fase 4.
+
+**Spec:** `docs/superpowers/specs/2026-11-20-grade-geral-ux-design.md`: Partes A (com o item 14, busca por nome) e B, os problemas conhecidos e a Parte C (dia da semana no Efetivo por dia). O item 14 e a Parte C vêm do PR #53, que precisa estar mesclado antes. A Parte D (correção do "Desativar" da 4.1) é a Tarefa 74, a primeira desta entrega (decisão do usuário: a 4.3 já estava em execução).
+
+## Global Constraints
+
+- Cores e medidas do design, copiadas: grupo em 15px negrito `text-tinta` com barra vinho de 3px; dia `min-w-12` (48px); linha do dia `#EEF0F3`; coluna dos nomes `border-r-2 border-linha`; fim de semana e feriado em `text-vinho`, sem fundo; siglas `Dom, Seg, Ter, Qua, Qui, Sex, Sáb`; bloco com largura fixa de 20px e `justify-evenly`; colunas finais presas a partir de 1440px.
+- O nome acessível da célula (`nomeDaCelula`) não muda.
+- Rejeitados pelo usuário (não fazer): destaque do dia de hoje e da coluna do dia aberto; escala ordinária configurável.
+- Endereços antigos com `?equipe=x` continuam funcionando.
+- No fim: atualizar as contagens no `CLAUDE.md` local e rodar `pnpm test && pnpm typecheck && pnpm build:vercel`.
+
+**Decisões desta entrega** (do usuário, no design; as minhas estão marcadas):
+- **A troca recusada sem dizer de qual militar** já está na 4.3 (Tarefa 71) e não se repete aqui. **O cabeçalho dos dias fixo** é feito na 4.3 (Tarefa 72); aqui a Tarefa 76 confere que ele continua preso com o layout novo, junta a rolagem dos dois sentidos e ajusta a altura (item A10).
+- **"Ordinário" na aba** é a opção cujos serviços são todos fixos, pelo nome (`tipoDoServicoFixo(nome) !== null`, de `contratos`): Pronto, Saldo, Expediente e JES. Uma diária reunida na escala Ordinário (como o Bioma nos testes) vai para Operações, no grupo da escala dela. *Minha decisão: o nome é a regra que o código já usa para os fixos.*
+- **Linha da segunda-feira:** `border-l` em `#C9CED6`, no cabeçalho e no corpo. *Minha decisão* (o design pede "um pouco mais forte").
+- **Colunas presas à direita:** larguras fixas (PJES `w-16`, Diárias `w-16`, Voluntariado `w-28`) para empilhar os `sticky` com `right-0`, `right-28` e `right-44`. *Minha decisão.*
+- **Altura da área da grade:** `max-h-[calc(100dvh-13rem)]`, conferida no navegador (o número pode mudar 1 ou 2 rem para o topo caber). *Minha decisão.*
+- **Escolhida com choque:** fica o contorno vermelho e entra o fundo da escolhida (`bg-vinho/15`). *Minha decisão.*
+
+## Review Focus
+
+1. **`?equipes=` com uma equipe que não existe no mês e outra que existe:** a que não existe é descartada e a grade mostra só a outra; se todas não existirem, vale "Todas". Tarefa 77.
+2. **Desligar a última equipe ligada** volta para "Todas" (nunca deixa a grade vazia). Tarefa 77.
+3. **Um turno em que todas as vagas de guarnição estão cheias** mostra só "Sem guarnição" na lista da vaga, e o "Escalar" manda `guarnicaoId: null` e `funcaoId: null`. Tarefa 80.
+4. **Trocar a vaga na lista para outra cujo serviço possível é diferente** (a função da noite só pelo Pronto, a do dia por Pronto ou JES): a lista do serviço acompanha a vaga escolhida e a etiqueta "não marcou" segue o serviço marcado. Tarefa 80.
+5. **Mês com feriado numa segunda-feira:** o dia tem a linha da semana, o número em vinho e o pontinho, ao mesmo tempo. Tarefa 75.
+
+---
+
+### Task 74: Desativar tira o militar só da guarnição desativada (correção da 4.1)
+
+**Spec:** Parte D de `docs/superpowers/specs/2026-11-20-grade-geral-ux-design.md` (PR #53). Regra do usuário: não existe "acúmulo cruzado" como caso especial; a guarnição original e a acumulada têm o mesmo peso.
+
+**Files:**
+- Modify: `apps/api/src/efetivo/meta.ts` (`desativar`, `desfazerDesativacao`), `pacotes/contratos/src/meta.ts` (`DesfazerDesativacao`)
+- Test: `apps/api/test/meta.test.ts` (reescreve os testes das linhas 264 e 287, que pediam a regra antiga)
+
+**Interfaces:**
+- Produces: `DesfazerDesativacao.promovidas: { alocacaoId: string; guarnicaoId: string; funcaoId: string; acumuloGuarnicaoId: string; acumuloFuncaoId: string }[]` (máx. 500): a alocação que estava na guarnição desativada e passou a ocupar a vaga de um acúmulo dela. `guarnicaoId`/`funcaoId` são a vaga de antes (a desativada).
+
+- [ ] **Step 1: Testes** (cenário do arquivo, guarnições g1 e g2 na meta do dia):
+  - `it('desativar a original tira o militar só dela: o acúmulo passa a ser a vaga dele')`: ALFA alocado em g1 com acúmulo em g2. Desativar g1 → a alocação de ALFA continua (mesmo id), agora em g2 com a função do acúmulo; o acúmulo some; não há marca de remoção de ALFA;
+  - `it('desativar a acumulada tira só o acúmulo')`: BRAVO alocado em g2 com acúmulo em g1. Desativar g1 → BRAVO continua em g2, sem o acúmulo;
+  - `it('quem está só na desativada sai, com a marca de remoção')` (o comportamento de hoje, para quem não acumula);
+  - `it('com dois acúmulos fora, o primeiro (na ordem da composição da meta) vira a vaga e o outro continua acúmulo')`;
+  - `it('desfazer devolve cada um onde estava')`: depois dos três casos juntos, "Desfazer" → ALFA de volta em g1 com acúmulo em g2; BRAVO em g2 com acúmulo em g1; o que só estava em g1 de volta, sem marca; a meta como antes;
+  - `it('desfazer com a vaga de antes ocupada é 409 e nada muda')`: depois de desativar, outro militar ocupa a função de ALFA em g1 (até o máximo) → "Desfazer" é 409 com `Não deu para desfazer: alguém já ocupa um desses lugares.`, e ALFA continua em g2.
+- [ ] **Step 2: Run** `pnpm --filter api test meta`. Expected: FAIL.
+- [ ] **Step 3: Implement** em `desativar`: para cada alocação em g, se ela tem acúmulo em outra guarnição, um `update alocacao set guarnicao_id, funcao_id` para a vaga do primeiro acúmulo (e apaga esse acúmulo) e entra em `promovidas`; se não tem, sai como hoje (`remover`, com a marca). Os acúmulos que saem passam a ser só os que estão **em g** (sai o `or a.id = any(...)` da consulta). Em `desfazerDesativacao`, as `promovidas` voltam primeiro: a alocação volta à vaga de antes, conferindo que a função de g ainda tem lugar (máximo da composição; sem lugar é a recusa `NAO_DEU_PARA_DESFAZER`), e o acúmulo é recriado com `acumular`. As conferências de "tudo desta seção e deste dia" passam a incluir as `promovidas`.
+- [ ] **Step 4: Run** `pnpm --filter api test meta` e `pnpm typecheck`. Expected: PASS.
+- [ ] **Step 5: Commit** `Fase 4.4.4: desativar tira o militar só da guarnição desativada`.
+
+### Task 75: A grade fica fácil de ler (A1 a A8 e A12)
+
+**Files:**
+- Modify: `apps/web/src/componentes/grade/TabelaDaGrade.tsx`, `apps/web/src/componentes/grade/CelulaDaGrade.tsx`
+- Test: `apps/web/src/__testes__/grade.test.tsx` (troca o teste "o feriado tem o número em vermelho e o fim de semana o fundo sombreado")
+
+- [ ] **Step 1: Testes:**
+  - `it('o grupo mostra o nome e o total, preso à esquerda')`: dentro do `th` de `scope="colgroup"`, um elemento com `data-nome-do-grupo` com as classes `sticky left-4` e o texto "Alfa" e "12 militares" (singular "1 militar");
+  - `it('a sigla do dia é Dom, Seg…; fim de semana e feriado em vinho, sem fundo, e o feriado com pontinho')`: o `th` de um sábado tem a sigla "Sáb" e o número com `text-vinho`; nenhum `th` ou `td` tem `bg-[#F6F7F9]`; o feriado tem `data-feriado`, o número `text-vinho` (não `text-alerta`), um `[data-ponto-feriado]` e o `title` com o nome;
+  - `it('segunda-feira abre a semana com uma linha mais forte')` (Review Focus 5, com um feriado numa segunda): o `th` e os `td` da segunda têm `border-l-[#C9CED6]`;
+  - `it('o militar aparece com posto e nome na mesma linha e a matrícula embaixo')`: o `th scope="row"` tem o texto "SD BM", o nome em `strong` e a matrícula num elemento `text-xs`; o `aria-label` da célula continua o de `nomeDaCelula`;
+  - `it('os blocos têm largura fixa e se espalham por igual')`: o botão da célula tem `justify-evenly`; cada bloco tem `w-5` e `shrink-0` (sem `flex-1`).
+- [ ] **Step 2: Run** `pnpm --filter web test grade`. Expected: FAIL.
+- [ ] **Step 3: Implement** os itens A1 a A8 e A12 do design, com os valores das Global Constraints. A matrícula já vem em `LinhaDaGrade.matricula`. O destaque da linha (A12) é `hover:bg-black/[0.03]` no `tr` e nas células presas (`group-hover` no `th`).
+- [ ] **Step 4: Run** `pnpm --filter web test grade` e `pnpm typecheck`. Expected: PASS.
+- [ ] **Step 5: Commit** `Fase 4.4.4: grade mais fácil de ler`.
+
+### Task 76: Cabeçalho, nomes e totais presos ao rolar; célula escolhida à vista (A10, A11, A13)
+
+**Files:**
+- Modify: `apps/web/src/componentes/grade/TabelaDaGrade.tsx:32`, `apps/web/src/routes/_app/index.tsx`
+- Test: `apps/web/src/__testes__/grade.test.tsx`, `apps/web/src/__testes__/grade-painel.test.tsx`
+
+- [ ] **Step 1: Testes:**
+  - `it('a grade rola dentro da própria caixa, nas duas direções')`: o contêiner `[data-rolagem="grade"]` tem `overflow-auto` e `max-h-[calc(100dvh-13rem)]`;
+  - `it('PJES, Diárias e Voluntariado ficam presos à direita em tela larga')`: os três `th` finais têm `min-[1440px]:sticky` e, na ordem, `min-[1440px]:right-44`, `min-[1440px]:right-28`, `min-[1440px]:right-0`;
+  - em `grade-painel.test.tsx`, `it('ao abrir o painel, a célula escolhida rola para ficar à vista')`: com `Element.prototype.scrollIntoView` simulado, abrir com militar e dia na busca chama `scrollIntoView({ inline: 'nearest', block: 'nearest' })` na célula `[data-data=<dia>]` daquele militar.
+- [ ] **Step 2: Run** `pnpm --filter web test grade`. Expected: FAIL.
+- [ ] **Step 3: Implement:** o `div` da linha 32 vira `<div data-rolagem="grade" className="max-h-[calc(100dvh-13rem)] overflow-auto">`; as células finais (cabeçalho e corpo) ganham as classes de `sticky` com fundo `bg-superficie`; em `index.tsx`, um `useEffect` sobre `escolhida` procura a célula e chama `scrollIntoView`.
+- [ ] **Step 4: Run** `pnpm --filter web test grade`. Expected: PASS.
+- [ ] **Step 5: Conferir no navegador** (`pnpm dev`, mês fictício): rolar para baixo mantém os dias e a coluna dos nomes; para o lado, os nomes e (em 1440px ou mais) as três colunas finais; abrir uma célula do fim do mês com o painel aberto a deixa à vista. No celular (390 px), o cabeçalho continua preso.
+- [ ] **Step 6: Commit** `Fase 4.4.4: cabeçalho, nomes e totais presos ao rolar`.
+
+### Task 77: Filtro de várias equipes e busca por nome (A9 e A14)
+
+**Files:**
+- Modify: `apps/web/src/routes/_app/index.tsx` (`Busca`, `validateSearch`, `filtrar`)
+- Test: `apps/web/src/__testes__/grade.test.tsx` (ajusta "'Bravo' esconde os outros grupos…", "o filtro vindo do endereço…" e "um filtro de equipe que não existe…")
+
+**Interfaces:**
+- Produces: `type Busca = { mes?: string; equipes?: string[]; busca?: string; militar?: string; dia?: string }` e, em `apps/web/src/lib/textos.ts` (novo), `semAcento(texto: string): string` (minúsculas, sem acento, sem espaços nas pontas). `validateSearch` aceita `equipes` (lista de textos não vazios) e, se vier só o antigo `equipe` (texto), devolve `equipes: [equipe]`.
+
+- [ ] **Step 1: Testes:**
+  - `it('ligar Alfa e Bravo mostra as duas; "Todas" limpa a seleção')`: depois dos dois cliques, os dois botões estão `aria-pressed="true"`, "Todas" `false`, e a busca tem `equipes: ['alfa', 'bravo']`; clicar em "Todas" tira `equipes` da busca;
+  - `it('ligar todas uma a uma volta para "Todas"')`: com três equipes, ligar as três deixa a busca sem `equipes` e "Todas" marcado;
+  - `it('desligar a última equipe ligada volta para "Todas"')` (Review Focus 2);
+  - `it('o endereço antigo ?equipe=bravo continua filtrando')`;
+  - `it('equipes que não existem no mês são descartadas')` (Review Focus 1): `?equipes=["fantasma","bravo"]` mostra só Bravo; `?equipes=["fantasma"]` mostra todas.
+  - `it('a busca filtra pelo nome de guerra ou pela matrícula, sem acento e sem maiúscula')`: digitar "joao" mostra a linha de JOÃO e esconde as outras; digitar parte da matrícula acha o militar; o grupo que fica sem ninguém some; a busca fica no endereço (`busca`);
+  - `it('busca e equipes valem juntas')`: com Bravo ligado e a busca de um nome que só existe em Alfa, aparece "Ninguém com esse nome nas equipes escolhidas.";
+  - o campo tem o rótulo "Buscar militar" e fica ao lado dos filtros de equipe.
+- [ ] **Step 2: Run** `pnpm --filter web test grade`. Expected: FAIL.
+- [ ] **Step 3: Implement** em `index.tsx`: `equipes` válidas = as da busca que existem em `grade.grupos`; `grupos` = todas se a lista válida estiver vazia; `alternar(chave)` liga ou desliga, e grava `undefined` quando a lista fica vazia ou com todas.
+- [ ] **Step 4: Run** `pnpm --filter web test grade`. Expected: PASS.
+- [ ] **Step 5: Commit** `Fase 4.4.4: filtro de várias equipes e busca por nome`.
+
+### Task 78: Escolhida com choque e a busca extra da troca
+
+**Files:**
+- Modify: `apps/web/src/componentes/grade/CelulaDaGrade.tsx:35-38`, `apps/web/src/api/escala-do-mes.ts:67-74` (`trocar`)
+- Test: `apps/web/src/__testes__/grade.test.tsx`, `apps/web/src/__testes__/grade-trocar.test.tsx`
+
+- [ ] **Step 1: Testes:**
+  - `it('a célula escolhida com choque mantém o contorno vermelho e ganha o fundo da escolhida')`: tem `ring-alerta` e `bg-vinho/15`, e os dois atributos `data-choque` e `data-escolhida`;
+  - em `grade-trocar.test.tsx`, `it('depois de uma troca que deu certo, as opções da troca não são buscadas de novo')`: `chamadasA(f, 'GET /api/alocacoes/a-1/trocas')` é 1 depois de confirmar; e `it('depois de uma troca recusada, as opções são buscadas de novo')`: é 2.
+- [ ] **Step 2: Run** `pnpm --filter web test grade`. Expected: FAIL.
+- [ ] **Step 3: Implement:** na célula, `escolhida && 'bg-vinho/15'` vale também com choque (o `ring` continua o do choque). Em `trocar`, `['trocas']` só é invalidado quando o pedido falha; no sucesso, `queryClient.removeQueries({ queryKey: ['trocas', alocacaoId] })`. As outras invalidações continuam nos dois casos.
+- [ ] **Step 4: Run** `pnpm --filter web test grade` e `pnpm --filter web test escala-do-mes`. Expected: PASS.
+- [ ] **Step 5: Commit** `Fase 4.4.4: escolhida com choque e troca sem busca extra`.
+
+### Task 79: A opção do painel do dia diz se é do Ordinário (API)
+
+**Files:**
+- Modify: `pacotes/contratos/src/grade.ts:60-71`, `apps/api/src/grade/dia.ts` (`opcoesDoDia`)
+- Test: `apps/api/test/grade-dia.test.ts`
+
+**Interfaces:**
+- Produces: `OpcaoDeServico.ordinario: boolean` — `true` quando todos os `servicos` da opção são fixos (`tipoDoServicoFixo(s.nome) !== null`).
+
+- [ ] **Step 1: Teste** `it('as opções dizem se são do Ordinário: Pronto, JES e Saldo sim, uma diária não')`: o cenário do arquivo ganha uma diária "Bioma" (`servicoComTurnos('Bioma', 'diaria', [['A', '08:00', '16:00']])`), reunida na escala junto com os outros serviços; toda opção das faixas 08:00–20:00 e 20:00–08:00 tem `ordinario: true`, e a da faixa 08:00–16:00 tem `ordinario: false`. Os testes que já existem continuam passando (o helper `opcoes(p, faixa)` filtra por faixa).
+- [ ] **Step 2: Run** `pnpm --filter api test grade-dia`. Expected: FAIL.
+- [ ] **Step 3: Implement:** o campo entra no `base` de `opcoesDoDia`, calculado sobre `possiveis`.
+- [ ] **Step 4: Run** `pnpm --filter api test grade-dia` e `pnpm typecheck`. Expected: PASS.
+- [ ] **Step 5: Commit** `Fase 4.4.4: opção do painel do dia diz se é do Ordinário`.
+
+### Task 80: "Adicionar serviço neste dia" em abas, por escala e por turno (Parte B)
+
+**Files:**
+- Modify: `apps/web/src/componentes/grade/AdicionarServico.tsx` (reescrita), usando `apps/web/src/componentes/ui/tabs.tsx` (já existe, usado em Configurações)
+- Test: `apps/web/src/__testes__/grade-painel.test.tsx` (os três testes de "adicionar serviço neste dia" passam ao formato novo)
+
+**Interfaces:**
+- Consumes: `OpcaoDeServico.ordinario` (Tarefa 79). A assinatura do componente não muda: `AdicionarServico({ opcoes, salvando, aoEscolher: (o: OpcaoDeServico, turnoId: string) => void })`.
+
+- [ ] **Step 1: Testes:**
+  - `it('abas Ordinário e Operações com o número de turnos; abre no Ordinário')`: com opções nas duas, as abas são "Ordinário (2)" e "Operações (1)" e a primeira está selecionada; com opções só de operações, abre em "Operações" e "Ordinário (0)" fica desabilitada;
+  - `it('cada turno é uma linha com a vaga numa lista: "Guarnição · Função" quando há mais de uma guarnição, e "Sem guarnição" por último')`: na faixa 20h–08h do Ordinário, a lista "Vaga de 20h–08h" tem, em ordem, "ABT · Motorista", "ABT · Combatente", …, "Sem guarnição", com a primeira marcada; numa escala de uma guarnição só, a lista mostra só a função;
+  - `it('"Escalar" manda a vaga e o serviço escolhidos')`: escolher "ABT · Motorista" e clicar em "Escalar" na linha 20h–08h → o corpo é `{ militarId: 'm-CABO', data: DIA, turnoId: 't-b', guarnicaoId: 'g-abt', funcaoId: 'f-mot' }`;
+  - `it('a lista do serviço acompanha a vaga, e "não marcou" segue o serviço marcado')` (Review Focus 4): na linha 08h–20h, a lista "Serviço de 08h–20h" aparece com Pronto e JES; marcar JES mostra a etiqueta "não marcou" (classe `text-pendencia`); a frase longa "Não marcou voluntariado neste horário." não aparece mais;
+  - `it('turno com todas as vagas cheias mostra só "Sem guarnição"')` (Review Focus 3): o "Escalar" manda `guarnicaoId: null` e `funcaoId: null`;
+  - o teste da recusa 409 continua igual, clicando no "Escalar" da linha.
+- [ ] **Step 2: Run** `pnpm --filter web test grade-painel`. Expected: FAIL.
+- [ ] **Step 3: Implement:** separar as opções por `ordinario`; dentro da aba, agrupar por `escalaId` (título = `escala`) e, no grupo, por faixa (`inicio`–`fim`, texto de `textoFaixa`); cada linha guarda a vaga escolhida (índice da opção) e o turno escolhido (padrão: o primeiro serviço da opção marcada, que volta ao primeiro quando a vaga muda). A frase "Nenhum serviço disponível para ele neste dia." continua quando não há opção nenhuma.
+- [ ] **Step 4: Run** `pnpm --filter web test grade-painel` e `pnpm typecheck`. Expected: PASS.
+- [ ] **Step 5: Commit** `Fase 4.4.4: Adicionar serviço em abas`.
+
+### Task 81: O dia da semana por extenso no Efetivo por dia (Parte C)
+
+**Files:**
+- Modify: `apps/web/src/lib/meses.ts` (ao lado de `dataPorExtenso`), `apps/web/src/routes/_app/efetivo-por-dia.tsx:161`
+- Test: `apps/web/src/__testes__/efetivo-por-dia.test.tsx`
+
+**Interfaces:**
+- Produces: `diaDaSemanaPorExtenso(data: string): string` — `'2026-11-20'` → `'sexta-feira'`; segunda a sexta com "-feira", sábado e domingo sem.
+
+- [ ] **Step 1: Teste** `it('ao lado da data aparece só o dia da semana por extenso')`: com o dia 2026-11-20, o texto ao lado do seletor é exatamente "sexta-feira" (e não "sexta, 20/11/2026"); com 2026-11-22, "domingo".
+- [ ] **Step 2: Run** `pnpm --filter web test efetivo-por-dia`. Expected: FAIL.
+- [ ] **Step 3: Implement** a função e troca `dataPorExtenso(data)` por ela na linha 161. `dataPorExtenso` continua (outros usos).
+- [ ] **Step 4: Run** `pnpm --filter web test efetivo-por-dia`. Expected: PASS.
+- [ ] **Step 5: Commit** `Fase 4.4.4: dia da semana por extenso no Efetivo por dia`.
+
+### Task 82: Sai a aba "Atividades" das Configurações
+
+**Decisão do usuário (20/11/2026, pela VALIDAÇÃO):** nada no sistema lê a atividade desde que ela saiu do cadastro da guarnição (17/11); a aba só polui Configurações. Sai a aba e as rotas do catálogo. A tabela `atividade` e a coluna `guarnicao.atividade_id` ficam no banco, sem uso e **sem migração** (*minha decisão*, para não mexer em dado).
+
+**Files:**
+- Modify: `apps/web/src/routes/_app/configuracoes.tsx` (`ABAS`, o `TabsTrigger` e o `TabsContent` de "atividades"), `apps/web/src/api/configuracoes.ts` (`Catalogo` passa a ser só `'tipos-afastamento'`), `apps/api/src/cadastros/configuracoes.ts` (sai `rotasCatalogo(r, '/sistema/atividades', 'atividade')`; o tipo do parâmetro `tabela` fica só `'tipo_afastamento'`; o comentário do topo deixa de citar atividades), `pacotes/contratos/src/configuracoes.ts` (comentário)
+- Test: `apps/web/src/__testes__/configuracoes.test.tsx`, `apps/api/test/configuracoes.test.ts`
+
+- [ ] **Step 1: Testes:**
+  - `it('Configurações não tem a aba Atividades')`: não existe aba com o nome "Atividades";
+  - `it('o endereço antigo com ?aba=atividades abre a primeira aba')`: sem erro, com a aba "Regras" selecionada;
+  - na API, `it('as rotas do catálogo de atividades não existem mais')`: `GET /api/sistema/atividades` é 404;
+  - os testes que exercitavam o catálogo de atividades saem; os de tipos de afastamento continuam.
+- [ ] **Step 2: Run** `pnpm --filter web test configuracoes` e `pnpm --filter api test configuracoes`. Expected: FAIL.
+- [ ] **Step 3: Implement** o que está em Files. A validação da busca (`validateSearch`) já descarta aba que não está em `ABAS`; conferir que cai na primeira.
+- [ ] **Step 4: Run** os mesmos testes e `pnpm typecheck`. Expected: PASS.
+- [ ] **Step 5: Commit** `Fase 4.4.4: sai a aba Atividades das Configurações`. No fim da entrega:
+  - atualizar as contagens no `CLAUDE.md` local;
+  - `pnpm test && pnpm typecheck && pnpm build:vercel`;
+  - revisão final (Opus);
+  - PR com a lista curta para a sandbox (Grade: leitura, rolagem, filtro de equipes e busca, escolhida com choque; painel do dia: trocar e "Adicionar serviço"; Efetivo por dia: dia da semana; Configurações sem a aba Atividades). **Parar até o merge.** Com o merge, a fase 4 fecha.
+
+---
+
 # Entregas 3 a 6 (a detalhar antes de cada uma)
 
 Cada uma ganha aqui as suas tarefas, no formato da entrega 1, depois do merge da anterior e da conversa com o usuário sobre o que a entrega 1 mostrou em uso.
@@ -2501,6 +2707,7 @@ Cada uma ganha aqui as suas tarefas, no formato da entrega 1, depois do merge da
 - **Entrega 4 — Grade geral:** detalhada acima (Tarefas 54 a 59), com o design de 20/11/2026 (`docs/superpowers/specs/2026-11-20-grade-geral-design.md`): painel interativo, clique na célula (militar e dia), filtro de equipes, colunas PJES, Diárias e Voluntariado, e "Trocar" (com permuta entre ordinários).
 - **Entregas 4.1 e 4.2:** detalhadas acima (Tarefas 60 a 64), com o adendo "validação da 3.3" de `docs/superpowers/specs/2026-11-20-meta-de-ativacao-design.md`.
 - **Entrega 4.3 — Limpeza das pendências da fase 3:** detalhada acima (Tarefas 65 a 73), com o design `docs/superpowers/specs/2026-11-20-limpeza-da-fase-3-design.md`. Fecha a fase 4.
+- **Entrega 4.4 — Grade geral: leitura e "Adicionar serviço" em abas:** detalhada acima (Tarefas 74 a 82), com o design `docs/superpowers/specs/2026-11-20-grade-geral-ux-design.md` (retorno da validação da entrega 4 e correção do "Desativar" da 4.1). Fecha a fase 4.
 - **Entrega 5 — Gerar documento:** Configurações › Modelos de impressão (enviar com conferência dos marcadores, baixar o atual, versões); geração da escala publicada com ExcelJS a partir do modelo vigente da unidade, respeitando `militares_doc` e `dias_doc` da escala; `documento_gerado` guardado e baixável; PDF fica para quando o serviço existir. **Reorganização de 20/11/2026: passou para a fase 8 (primeiro mês real) do roadmap; a fase 4 fecha na 4.3 (limpeza).**
 - **Entrega 5.1 — O mesmo modelo mais de uma vez no dia:** a detalhar depois da 5, com o design feito com o usuário (perguntas no adendo "validação da 3.3"). **Reorganização de 20/11/2026: passou para a fase 8 (primeiro mês real) do roadmap.**
 - ~~**Entrega 6 — Minha escala**~~: saiu da fase 4 (decisão do usuário, 19/11/2026). O conteúdo previsto continua valendo e vai para a etapa "Tipos de usuário e módulos" do roadmap: a rota e a tela do militar comum (os próprios serviços do mês, com serviço, turno, horário e quem compõe a guarnição com ele) e o acesso às escalas publicadas da unidade em que ele está lotado.
