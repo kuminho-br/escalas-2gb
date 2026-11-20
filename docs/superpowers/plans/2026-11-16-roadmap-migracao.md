@@ -156,7 +156,7 @@ Os cadastros estão prontos, mas foram feitos em dez entregas, cada uma com pend
 ## Fase 4 — Montagem da escala (1ª versão para os testadores)
 
 - Escala do mês: gerar pré-escala, tabela dia › turno › cards de guarnição, ícones de situação, "Escolher militar" com a lista já filtrada, vagas vazias em listras.
-- Grade geral: blocos coloridos com a letra do turno, choques, cotas pegas de pedidas por PJES e Diária, ficha lateral com Trocar, Remover e Adicionar.
+- Grade geral (entrega 4; design de 20/11/2026 em `docs/superpowers/specs/2026-11-20-grade-geral-design.md`): visão de todo o efetivo por equipe, como painel interativo; o clique é na célula (militar e dia) e abre o painel do dia com Adicionar, Trocar e Remover; filtro de equipes; colunas PJES e Diárias (número com barra comparativa) e Voluntariado (horas tiradas de pedidas); "Trocar" pode ser com quem já está escalado (mostra onde ele está), e entre dois ordinários é uma permuta.
 - Voluntariado lançado à mão: calendário com marcação rápida e "Salvar e ir para o próximo".
 - Gerar documento: escala publicada a partir do modelo de impressão.
 - Tela de login nova, com o brasão do 2º GB e a foto do quartel (entrega 3.3).
