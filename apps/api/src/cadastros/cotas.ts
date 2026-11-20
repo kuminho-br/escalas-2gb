@@ -18,7 +18,7 @@ type LinhaCota = Omit<Cota, 'distribuidas'>;
 async function cotasDoMes(c: Consulta, unidadeId: string, mes: string): Promise<Cota[]> {
   const { rows } = await c.query<LinhaCota>(
     `select c.id, to_char(c.mes, 'YYYY-MM') as mes, c.servico_id as "servicoId", c.quantidade, c.origem, c.prioridade,
-            c.conta_meta as "contaMeta", s.nome as servico, s.cor
+            s.nome as servico, s.cor
        from cota c join servico s on s.id = c.servico_id
       where c.unidade_id = $1 and c.mes = $2::date
       order by c.prioridade, s.nome, c.origem`,
@@ -96,8 +96,8 @@ export function rotasCotas(dep: { banco: Banco; auth: Auth }): Hono<AmbienteApi>
       const cota = await comUsuario(dep.banco, c.get('usuarioId'), async (tx) => {
         const id = (
           await tx.query<{ id: string }>(
-            'insert into cota (mes, unidade_id, servico_id, quantidade, origem, prioridade, conta_meta) values ($1::date, $2, $3, $4, $5, $6, $7) returning id',
-            [mesParaData(d.mes), u, d.servicoId, d.quantidade, d.origem, d.prioridade, d.contaMeta],
+            'insert into cota (mes, unidade_id, servico_id, quantidade, origem, prioridade) values ($1::date, $2, $3, $4, $5, $6) returning id',
+            [mesParaData(d.mes), u, d.servicoId, d.quantidade, d.origem, d.prioridade],
           )
         ).rows[0]!.id;
         return cotaPorId(tx, u, id);
@@ -131,9 +131,9 @@ export function rotasCotas(dep: { banco: Banco; auth: Auth }): Hono<AmbienteApi>
       const cota = await comUsuario(dep.banco, c.get('usuarioId'), async (tx) => {
         await tx.query(
           `update cota set servico_id = coalesce($2::uuid, servico_id), quantidade = coalesce($3::int, quantidade), origem = coalesce($4::text, origem),
-                           prioridade = coalesce($5::int, prioridade), conta_meta = coalesce($6::boolean, conta_meta)
+                           prioridade = coalesce($5::int, prioridade)
             where id = $1`,
-          [id, d.servicoId ?? null, d.quantidade ?? null, d.origem ?? null, d.prioridade ?? null, d.contaMeta ?? null],
+          [id, d.servicoId ?? null, d.quantidade ?? null, d.origem ?? null, d.prioridade ?? null],
         );
         return cotaPorId(tx, acesso.unidadeId, id);
       });
@@ -162,8 +162,8 @@ export function rotasCotas(dep: { banco: Banco; auth: Auth }): Hono<AmbienteApi>
       const copiados = await comUsuario(dep.banco, c.get('usuarioId'), async (tx) => {
         // as do mês de origem, menos as que o destino já tem (mesmo serviço e origem)
         const feito = await tx.query(
-          `insert into cota (mes, unidade_id, servico_id, quantidade, origem, prioridade, conta_meta)
-           select $3::date, o.unidade_id, o.servico_id, o.quantidade, o.origem, o.prioridade, o.conta_meta
+          `insert into cota (mes, unidade_id, servico_id, quantidade, origem, prioridade)
+           select $3::date, o.unidade_id, o.servico_id, o.quantidade, o.origem, o.prioridade
              from cota o
             where o.unidade_id = $1 and o.mes = $2::date
               and not exists (select 1 from cota x where x.unidade_id = o.unidade_id and x.mes = $3::date and x.servico_id = o.servico_id and x.origem = o.origem)

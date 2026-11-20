@@ -223,7 +223,7 @@ describe('matriz: mês, faixas, coluna parada e links', () => {
     api(escala({ faixas: [DIA, NOITE] }));
     abrir('/escalas/e1');
     expect(await screen.findByRole('link', { name: 'Pronto' })).toHaveAttribute('href', '/servicos/s1');
-    expect(await screen.findByRole('link', { name: 'ABT' })).toHaveAttribute('href', '/guarnicoes/g1');
+    expect(await screen.findByRole('link', { name: 'ABT' })).toHaveAttribute('href', '/configuracoes/modelos-de-guarnicao/g1');
   });
 
   it('faixa órfã deixa salvar para tirá-la', async () => {

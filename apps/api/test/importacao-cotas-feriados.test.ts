@@ -60,9 +60,9 @@ describe('importação de cotas', () => {
       { chave: `${MES}|PE Seguro|externa`, descricao: `PE Seguro (externa) em ${mesPorExtenso(MES)}: 12` },
     ]);
     expect((await importarCotas(linhas, true)).gravados).toBe(2);
-    expect((await cotas(MES)).map((c) => [c.servico, c.origem, c.quantidade, c.prioridade, c.contaMeta])).toEqual([
-      ['Bioma', 'interna', 8, 1, true],
-      ['PE Seguro', 'externa', 12, 2, true],
+    expect((await cotas(MES)).map((c) => [c.servico, c.origem, c.quantidade, c.prioridade])).toEqual([
+      ['Bioma', 'interna', 8, 1],
+      ['PE Seguro', 'externa', 12, 2],
     ]);
   });
 
@@ -214,15 +214,6 @@ describe('importação de cotas', () => {
     ]);
     await importarCotas([[mes, '', '', 'JES', 14, '', 1]], true);
     expect((await cotas(mes))[0]).toMatchObject({ quantidade: 14, prioridade: 1 });
-  });
-
-  it('o que a tela guardou e a planilha não traz (conta para a meta) não muda na importação', async () => {
-    const mes = '2028-02';
-    await importarCotas([[mes, '', '', 'JES', 10, '', 1]], true);
-    const c = (await cotas(mes))[0]!;
-    await api.pedir('escalante', 'PATCH', `/api/cotas/${c.id}`, { contaMeta: false });
-    await importarCotas([[mes, '', '', 'JES', 12, '', 1]], true);
-    expect((await cotas(mes))[0]).toMatchObject({ quantidade: 12, contaMeta: false });
   });
 
   // [foco 1]

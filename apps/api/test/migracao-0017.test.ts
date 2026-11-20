@@ -27,7 +27,7 @@ const item = (versaoId: string, posicao: number, funcao = chefe, vaga = 1) =>
   inserir(banco, 'ordem_escala_item', { versao_id: versaoId, posicao, guarnicao_id: guarnicao, funcao_id: funcao, vaga });
 const itens = async (versaoId: string) => Number((await banco.query<{ n: string }>('select count(*)::text as n from ordem_escala_item where versao_id = $1', [versaoId])).rows[0]!.n);
 
-describe('migração 0017: ordem de escala', () => {
+describe('migração 0017: ordem de escalação', () => {
   it('uma versão por escala e mês; o mês precisa ser o dia 1', async () => {
     await versao('2026-12-01');
     await expect(versao('2026-12-01')).rejects.toMatchObject({ code: '23505' });

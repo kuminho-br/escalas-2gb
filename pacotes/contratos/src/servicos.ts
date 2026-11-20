@@ -5,6 +5,12 @@ import { Hora, Nome } from './comum.ts';
 export const TipoServico = z.enum(['ordinario', 'pjes', 'diaria']);
 export type TipoServico = z.infer<typeof TipoServico>;
 
+/** Serviços de que o código depende (design de 20/11/2026): reconhecidos pelo nome, sem caixa e sem espaços nas pontas. O nome, o tipo e a situação deles não mudam. */
+export const SERVICOS_FIXOS: Record<string, TipoServico> = { pronto: 'ordinario', saldo: 'ordinario', expediente: 'ordinario', jes: 'pjes' };
+export function tipoDoServicoFixo(nome: string): TipoServico | null {
+  return SERVICOS_FIXOS[nome.trim().toLowerCase()] ?? null;
+}
+
 export const LetraTurno = z.enum(['A', 'B', 'C']);
 export type LetraTurno = z.infer<typeof LetraTurno>;
 
@@ -52,6 +58,8 @@ export type Servico = {
   rotuloImpressao: string | null;
   cor: string;
   ativo: boolean;
+  /** serviço fixo do sistema (Pronto, Saldo, Expediente e JES): nome, tipo e situação não mudam */
+  fixo: boolean;
   /** na ordem A, B, C */
   turnos: TurnoSalvo[];
 };

@@ -15,9 +15,14 @@ import { Input } from '@/componentes/ui/input';
 import { Label } from '@/componentes/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/componentes/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/componentes/ui/tabs';
+import { AcoesDosModelos, ListaDeModelos } from '@/componentes/guarnicoes/ListaDeModelos';
 import { mesAtual } from '@/lib/meses';
 
+const ABAS = ['regras', 'voluntariado', 'modelos', 'tipos', 'atividades'] as const;
+type Aba = (typeof ABAS)[number];
+
 export const Route = createFileRoute('/_app/configuracoes')({
+  validateSearch: (s: Record<string, unknown>): { aba?: Aba } => ({ aba: ABAS.find((a) => a === s.aba) }),
   component: Configuracoes,
 });
 
@@ -26,6 +31,8 @@ function Configuracoes() {
   const queryClient = useQueryClient();
   const admin = ehAdministrador(eu);
   const podeMudar = podeMudarParametro(eu);
+  const aba = Route.useSearch().aba ?? 'regras';
+  const navigate = Route.useNavigate();
 
   return (
     <section>
@@ -33,10 +40,11 @@ function Configuracoes() {
         <h1 className="font-cond text-[28px] leading-tight font-semibold">Configurações</h1>
         {podeMudar && <ImportarPlanilha cadastro="configuracoes" rotulo="as configurações" aoConcluir={() => queryClient.invalidateQueries({ queryKey: ['parametros'] })} />}
       </header>
-      <Tabs defaultValue="regras" className="mt-6">
+      <Tabs value={aba} onValueChange={(v) => void navigate({ search: { aba: ABAS.find((a) => a === v) }, replace: true })} className="mt-6">
         <TabsList>
           <TabsTrigger value="regras">Regras do processo</TabsTrigger>
           <TabsTrigger value="voluntariado">Voluntariado</TabsTrigger>
+          <TabsTrigger value="modelos">Modelos de guarnição</TabsTrigger>
           <TabsTrigger value="tipos">Tipos de afastamento</TabsTrigger>
           <TabsTrigger value="atividades">Atividades</TabsTrigger>
         </TabsList>
@@ -45,6 +53,16 @@ function Configuracoes() {
         </TabsContent>
         <TabsContent value="voluntariado">
           <BlocosDoVoluntariado unidadeId={eu.unidade.id} podeMudar={podeMudar} />
+        </TabsContent>
+        <TabsContent value="modelos">
+          <div className="mt-4 grid max-w-xl gap-3">
+            <div className="flex flex-wrap justify-end gap-2">
+              <AcoesDosModelos unidadeId={eu.unidade.id} />
+            </div>
+            <div className="flex flex-col overflow-hidden rounded-xl border border-linha bg-superficie">
+              <ListaDeModelos unidadeId={eu.unidade.id} />
+            </div>
+          </div>
         </TabsContent>
         <TabsContent value="tipos">
           <ListaDoCatalogo catalogo="tipos-afastamento" rotuloNovo="Novo tipo de afastamento" podeEditar={admin} />

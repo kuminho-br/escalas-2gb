@@ -15,7 +15,7 @@ const MILITAR: LinhaMilitar = {
   voluntarioJes: false, ativo: true, situacao: 'Disponível', pendencias: [],
 };
 const GUARNICAO: LinhaGuarnicao = { id: 'g1', nome: 'Auto Bomba 1', viatura: null, prioridade: 1, ativa: true, minimo: 1, maximo: 2, aPartirDe: null };
-const SERVICO: Servico = { id: 's1', nome: 'Pronto', tipo: 'ordinario', operacao: null, rotuloImpressao: null, cor: '#2F8F5B', ativo: true, turnos: [] };
+const SERVICO: Servico = { id: 's1', nome: 'Pronto', tipo: 'ordinario', operacao: null, rotuloImpressao: null, cor: '#2F8F5B', ativo: true, fixo: false, turnos: [] };
 const ESCALA: LinhaEscala = { id: 'e1', nome: 'Ordinário', ativa: true, servicos: ['Pronto'], montaBlocosVoluntariado: true };
 
 function api() {
@@ -38,12 +38,12 @@ describe('listas dos cadastros: só os itens rolam', () => {
     expect(dentro(screen.getByLabelText('Equipe'))).toBe(false);
   });
 
-  it('guarnições: a contagem e "Mostrar desativadas" ficam fora da área que rola', async () => {
+  it('modelos de guarnição: a contagem e "Mostrar desativados" ficam fora da área que rola', async () => {
     api();
-    abrir('/guarnicoes');
+    abrir('/configuracoes/modelos-de-guarnicao/g1');
     expect(dentro(await screen.findByText('Auto Bomba 1'))).toBe(true);
-    expect(dentro(screen.getByLabelText('Mostrar desativadas'))).toBe(false);
-    expect(dentro(screen.getByText(/\d+ guarni(ção|ções)/))).toBe(false);
+    expect(dentro(screen.getByLabelText('Mostrar desativados'))).toBe(false);
+    expect(dentro(screen.getByText(/\d+ modelos?/))).toBe(false);
   });
 
   it('serviços: "Mostrar desativados" fica fora da área que rola', async () => {

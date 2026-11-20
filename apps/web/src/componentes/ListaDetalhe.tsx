@@ -53,6 +53,7 @@ export function FichaPainel({
   titulo,
   complemento,
   voltarPara,
+  voltarBusca,
   etiqueta,
   resumo,
   aviso,
@@ -63,6 +64,8 @@ export function FichaPainel({
   /** ao lado do título (ex.: a matrícula) */
   complemento?: ReactNode;
   voltarPara: LinkProps['to'];
+  /** a busca do endereço de volta (ex.: a aba de Configurações) */
+  voltarBusca?: LinkProps['search'];
   etiqueta?: string;
   resumo: string;
   /** faixa sob o resumo (ex.: cadastro incompleto) */
@@ -75,7 +78,7 @@ export function FichaPainel({
       <header className="flex flex-wrap items-start gap-x-4 gap-y-2 p-4">
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-            <Link to={voltarPara} className="lg:hidden" aria-label="Voltar para a lista">
+            <Link to={voltarPara} search={voltarBusca} className="lg:hidden" aria-label="Voltar para a lista">
               <ArrowLeft className="size-5" aria-hidden />
             </Link>
             <h2 className="font-cond text-2xl font-semibold">{titulo}</h2>

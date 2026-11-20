@@ -133,7 +133,7 @@ describe('leitura da escala do mês', () => {
     expect((await mal.json()).erro).toBe('Mês inválido: use o formato aaaa-mm.');
   });
 
-  it('a ordem de escala define a ordem dos cards; sem ordem, vale a prioridade e o nome de sempre (Fase 4.2.1)', async () => {
+  it('a ordem de escalação define a ordem dos cards; sem ordem, vale a prioridade e o nome de sempre (Fase 4.2.1)', async () => {
     const nomes = async () => faixa(await escalaDoMes(), 3, FAIXA_A).guarnicoes.map((g) => g.nome);
     expect(await nomes()).toEqual(['ABT', 'AR']);
     // a AR passa na frente: a vez dela (Combatente 1) vem antes da vez do Motorista da ABT

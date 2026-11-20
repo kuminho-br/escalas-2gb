@@ -28,7 +28,7 @@ function Ficha() {
     <ProvedorDePendencias>
       <FichaPainel titulo={e.nome} voltarPara="/escalas" etiqueta={e.ativa ? undefined : 'desativada'} resumo={`Título no documento: ${e.titulo}.`} acoes={
           <div className="grid justify-items-end gap-2">
-            <Link to="/escalas/$id/ordem" params={{ id: e.id }} className="text-sm font-medium text-vinho underline underline-offset-2">Ordem de escala</Link>
+            <Link to="/escalas/$id/ordem" params={{ id: e.id }} className="text-sm font-medium text-vinho underline underline-offset-2">Ordem de escalação</Link>
             <Situacao key={`s-${e.id}`} e={e} />
           </div>
         }>

@@ -260,5 +260,52 @@ Registro do usuário, para lembrar no futuro:
   - **as publicações**, ou seja, as escalas publicadas da unidade;
   - **a área do próprio militar**, onde ele marca o próprio voluntariado e vê as próprias escalas ("Minha escala").
 
-A "Minha escala" (entrega 6 da fase 4) e o militar marcando o próprio voluntariado (fase 7) já são as primeiras peças desse segundo módulo.
+A "Minha escala" e o militar marcando o próprio voluntariado já são as primeiras peças desse segundo módulo. Quando cada uma entra está no adendo seguinte.
+
+## Adendo (19/11/2026) — Login, tela inicial, módulos e Pecúlio
+
+Decisões do usuário depois dos mockups de login e de tela inicial. O mockup aprovado está em `docs/telas/login-e-inicio/mockup.html`, nas versões de computador e de celular.
+
+**Os três módulos do sistema:**
+- **Confecção de escalas:** o que está sendo feito nas fases 3 a 6.
+- **Visualização de escalas:** as escalas publicadas da unidade e a área do próprio militar (Minha escala e o próprio voluntariado).
+- **Pecúlio do 2º GB:** o lugar onde ficam as fichas de registro de todos os militares, com várias informações de cada um.
+
+### 1. Tela de login nova — entrega 3.2 da fase 4
+
+Muda só a aparência. O login continua o mesmo: e-mail, senha e as mesmas mensagens de erro.
+- **Fundo:** a foto do quartel do 2º GB com a bandeira, sempre a mesma, coberta de vinho do lado esquerdo.
+- **Lado esquerdo:** o brasão do 2º GB, o título **"Sistema de Gestão - 2º GB"** e a linha "2º Grupamento de Bombeiros · Corpo de Bombeiros Militar de Pernambuco".
+- **Lado direito:** o cartão de login de hoje, com o cabeçalho vinho, "Entrar" e "Use o e-mail cadastrado pela sua seção".
+- **No celular:** a foto fica em cima, com o brasão e o título, e o cartão sobe um pouco sobre ela. Os campos e o botão ficam mais altos, para o toque.
+- **Cores e fontes:** as do site (vinho, Barlow e Barlow Semi Condensed).
+- **Arquivos:** o brasão do 2º GB e a foto do quartel vão para `apps/web/public`. A foto que o usuário enviou tem resolução baixa (471 × 585). Ela serve no teste, mas uma versão maior fica melhor com a foto ocupando a tela toda.
+- **"Esqueci minha senha":** aparece no mockup, mas ainda não tem função. Fica fora da 3.2.
+
+### 2. Tela inicial com os módulos e Visualização de escalas — quando os tipos de usuário forem diferenciados
+
+Os tipos de usuário são quatro: **administrador, gestor, auxiliar administrativo (escalante) e militar comum**. A tela inicial com os módulos e o módulo de Visualização de escalas entram juntos, no momento em que esses tipos forem diferenciados. A **Minha escala** sai da fase 4 (era a entrega 6) e vai junto com a Visualização.
+
+O motivo: só com os tipos separados faz sentido mostrar a cada pessoa os módulos que ela pode abrir. Mostrar a Minha escala antes disso seria fazer essa tela duas vezes. Na fase 4, o piloto é dos escalantes.
+
+Hoje os papéis já existem em parte: escalante, gestor e administrador estão gravados, e o militar comum é quem não tem papel. O cadastro de usuários estava previsto para a fase 7. Em que fase entra esse momento é decisão do usuário, ainda em aberto.
+
+- **Tela inicial (mockup):**
+  - uma barra branca com o brasão do 2º GB, o nome do sistema, o caminho da unidade e o usuário com "Sair";
+  - uma faixa de boas-vindas com foto ("Bom dia, Cb Almeida" e a data);
+  - um cartão por módulo, com ícone, nome, descrição e uma linha de situação.
+- **No celular:** o topo fica fixo ao rolar, o "Sair" vira só ícone e os cartões viram uma lista.
+- **Fotos sorteadas:** a cada login, a faixa de boas-vindas mostra uma foto diferente, sorteada de um banco de fotos de militares do próprio quartel. Até chegarem as fotos reais, o mockup usa fotos de exemplo de licença livre, do Wikimedia Commons, com o crédito na própria foto.
+- **A decidir nesse momento:**
+  - quem vê cada módulo (por exemplo, se o militar comum vê a Confecção);
+  - quem envia as fotos do banco e onde elas ficam guardadas;
+  - se o nome "auxiliar administrativo" substitui "escalante" nas telas.
+
+### 3. Reestruturação do cadastro de militares e módulo Pecúlio — momento ainda sem fase
+
+Hoje o cadastro de militares é simples. Num momento futuro, o usuário vai reestruturá-lo, importando a estrutura de dados real usada na corporação, e o módulo Pecúlio nasce nesse mesmo momento.
+
+Antes dessa entrega, é preciso decidir:
+- se a ficha do Pecúlio e a ficha de Militares são a mesma ficha, com mais campos, ou duas coisas separadas;
+- quem vê cada informação, porque a ficha completa traz mais dados pessoais (D7).
 

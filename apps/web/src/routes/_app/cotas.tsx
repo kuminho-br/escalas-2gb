@@ -132,7 +132,6 @@ function LinhaCota({ c, aoEditar, aoRemover }: { c: Cota; aoEditar: () => void; 
           <QuadradoDaCor cor={c.cor} />
           <span className="font-medium">{c.servico}</span>
         </span>
-        {!c.contaMeta && <span className="block text-xs text-apagado">não conta para a meta</span>}
       </td>
       <td className="px-4 py-2.5">{NOME_ORIGEM[c.origem]}</td>
       <td className="px-4 py-2.5">
@@ -177,7 +176,6 @@ function CotaDialogo({ unidadeId, mes, cota, proximaPrioridade, aoFechar }: { un
   const [origem, setOrigem] = useState<'interna' | 'externa'>(cota?.origem ?? 'interna');
   const [quantidade, setQuantidade] = useState(cota ? String(cota.quantidade) : '');
   const [prioridade, setPrioridade] = useState(String(cota?.prioridade ?? proximaPrioridade));
-  const [contaMeta, setContaMeta] = useState(cota?.contaMeta ?? true);
   const [erro, setErro] = useState<string | null>(null);
   const [salvando, setSalvando] = useState(false);
   const escolhido = servicoId || opcoes[0]?.id || '';
@@ -186,7 +184,7 @@ function CotaDialogo({ unidadeId, mes, cota, proximaPrioridade, aoFechar }: { un
     e.preventDefault();
     setErro(null);
     setSalvando(true);
-    const dados = { servicoId: escolhido, quantidade: Number(quantidade), origem, prioridade: Number(prioridade), contaMeta };
+    const dados = { servicoId: escolhido, quantidade: Number(quantidade), origem, prioridade: Number(prioridade) };
     try {
       if (cota) await editarCota(cota.id, dados);
       else await criarCota(unidadeId, { mes, ...dados });
@@ -235,10 +233,6 @@ function CotaDialogo({ unidadeId, mes, cota, proximaPrioridade, aoFechar }: { un
               <Input id="ct-prioridade" type="number" min={1} max={1000} value={prioridade} onChange={(e) => setPrioridade(e.target.value)} required />
             </div>
           </div>
-          <label className="flex items-center gap-2 text-sm">
-            <input type="checkbox" checked={contaMeta} onChange={(e) => setContaMeta(e.target.checked)} className="size-4 accent-vinho" />
-            Conta para a meta de ativação
-          </label>
           {erro && <p role="alert" className="text-sm text-alerta">{erro}</p>}
           <DialogFooter>
             <Button type="submit" disabled={salvando || !escolhido}>Salvar</Button>

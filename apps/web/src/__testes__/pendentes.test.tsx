@@ -16,7 +16,7 @@ const escala = (e: Partial<Escala>): Escala => ({
   servicos: [{ id: 's1', nome: 'Pronto', cor: '#2F8F5B', ativo: true }], faixas: [], comLetra: true, vinculos: [], ...e,
 });
 const BIOMA: Servico = {
-  id: 's3', nome: 'Bioma', tipo: 'diaria', operacao: null, rotuloImpressao: null, cor: '#C08A1E', ativo: true,
+  id: 's3', nome: 'Bioma', tipo: 'diaria', operacao: null, rotuloImpressao: null, cor: '#C08A1E', ativo: true, fixo: false,
   turnos: [{ id: 't1', letra: 'A', inicio: '00:00', fim: '08:00', duracaoMinutos: 480, turnosPadrao: [] }],
 };
 
@@ -387,7 +387,7 @@ describe('Salvar que mostra o estado', () => {
         'GET /api/guarnicoes/g2': { status: 200, corpo: { ...ficha, id: 'g2', nome: 'Resgate' } },
       });
       const confirmar = vi.spyOn(window, 'confirm').mockReturnValue(false);
-      abrir('/guarnicoes/g1');
+      abrir('/configuracoes/modelos-de-guarnicao/g1');
       await userEvent.click(await screen.findByRole('button', { name: 'Incluir função' }));
       await userEvent.click(screen.getByRole('link', { name: /Resgate/ }));
       await waitFor(() => expect(confirmar).toHaveBeenCalledWith(MENSAGEM_PENDENTE));

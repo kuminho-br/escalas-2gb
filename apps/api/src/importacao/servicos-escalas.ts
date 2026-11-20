@@ -7,6 +7,7 @@ import {
   COR_PADRAO_SERVICO,
   mesPorExtenso,
   textoFaixa,
+  tipoDoServicoFixo,
   tituloPadraoEscala,
   type ItemPrevia,
   type LetraTurno,
@@ -216,6 +217,18 @@ export const importadorServicosEscalas: Importador<Plano> = {
       const ex = sistemaPorChave.get(chave);
       const doTexto = s.tipoTexto ? TIPO_POR_TERMO[normalizar(s.tipoTexto)] : undefined;
       const doNome = TIPO_POR_TERMO[normalizar(s.nome)];
+      // serviço fixo: o tipo é o dele, e pedir outro é problema na linha (o banco recusaria na gravação)
+      const tipoFixo = tipoDoServicoFixo(s.nome);
+      if (tipoFixo && doTexto && doTexto !== tipoFixo) {
+        const linhasDoFixo = [...s.turnos.values()].map((t) => t.linha);
+        problemas.push({
+          aba: ABA_T,
+          linha: linhasDoFixo.length ? Math.min(...linhasDoFixo) : 1,
+          mensagem: `${ex?.nome ?? s.nome}: o serviço é fixo e o tipo não muda`,
+          solucao: `Deixe o TIPO DE SERVIÇO de ${ex?.nome ?? s.nome} como ${NOME_TIPO[tipoFixo]} (ou em branco).`,
+        });
+        continue;
+      }
       const rotulo = s.origem && normalizar(s.origem) !== chave ? s.origem : null;
       const turnos: TurnoPlano[] = [];
       const mudancas: string[] = [];
@@ -233,7 +246,7 @@ export const importadorServicosEscalas: Importador<Plano> = {
         }
       }
       if (!ex) {
-        const tipo = doTexto ?? doNome ?? 'diaria';
+        const tipo = doTexto ?? tipoFixo ?? doNome ?? 'diaria';
         if (s.tipoTexto && !doTexto) avisos.push(`Serviço ${s.nome}: TIPO DE SERVIÇO "${s.tipoTexto}" não reconhecido; vale ${NOME_TIPO[tipo]}.`);
         else if (!doTexto && !doNome) avisos.push(`Confira o tipo do serviço ${s.nome}: entrou como diária.`);
         const letrasTxt = [...s.turnos.keys()].sort((a, b) => LETRAS.indexOf(a) - LETRAS.indexOf(b)).join(', ');

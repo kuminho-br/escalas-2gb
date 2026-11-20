@@ -1,5 +1,5 @@
 // Escala do mês: leitura (aqui) e, nas tarefas seguintes, candidatos, escalar e remover.
-import { Data, Hora, Id, Mes, NovaAlocacao, NovaPreEscala, NovoAcumulo, OrdemDeEscalaEntrada, mesPorExtenso } from 'contratos';
+import { Data, Hora, Id, Mes, NovaAlocacao, NovaPreEscala, NovoAcumulo, OrdemDeEscalacaoEntrada, mesPorExtenso } from 'contratos';
 import { z } from 'zod';
 import { Hono } from 'hono';
 import { CADASTRO, exigirPapel, exigirSessao, unidadeDoRegistro, type AmbienteApi } from '../acesso.ts';
@@ -189,7 +189,7 @@ export function rotasEscalaDoMes(dep: { banco: Banco; auth: Auth }): Hono<Ambien
     return c.json(await montarEscalaDoMes(dep.banco, escalaId, mes));
   });
 
-  /** A ordem de escala em vigor no mês, com as vagas da escala e a vez de cada uma. */
+  /** A ordem de escalação em vigor no mês, com as vagas da escala e a vez de cada uma. */
   r.get('/escalas/:id/ordem/:mes', async (c) => {
     const id = c.req.param('id');
     const unidadeId = await unidadeDoRegistro(dep.banco, 'escala', id);
@@ -210,7 +210,7 @@ export function rotasEscalaDoMes(dep: { banco: Banco; auth: Auth }): Hono<Ambien
     if (negado) return negado;
     const mes = c.req.param('mes');
     if (!Mes.safeParse(mes).success) return c.json({ erro: 'Mês inválido: use o formato aaaa-mm.' }, 400);
-    const corpo = await lerCorpo(c, OrdemDeEscalaEntrada);
+    const corpo = await lerCorpo(c, OrdemDeEscalacaoEntrada);
     if (!corpo.ok) return corpo.resposta;
     const passado = mesPassado(c, mes);
     if (passado) return passado;

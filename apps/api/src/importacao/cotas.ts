@@ -208,7 +208,7 @@ export const importadorCotas: Importador<Plano> = {
         [mesParaData(x.mes), unidadeId, x.servicoId, x.quantidade, x.origem, x.prioridade],
       );
     }
-    // só quantidade e prioridade vêm da planilha: o que a tela guardou (conta para a meta) fica como está
+    // só quantidade e prioridade vêm da planilha
     for (const a of plano.alteradas) await tx.query('update cota set quantidade = $2, prioridade = $3 where id = $1', [a.id, a.quantidade, a.prioridade]);
     return plano.novas.length + plano.alteradas.length;
   },

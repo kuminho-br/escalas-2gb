@@ -42,7 +42,7 @@ export function GerarPreEscala({ escalaId, mes, aoFechar, aoGravar }: { escalaId
       <DialogContent className="max-h-[85dvh] overflow-y-auto sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>Gerar pré-escala</DialogTitle>
-          <DialogDescription>Coloca no Pronto a equipe de cada dia, nas vagas pela ordem de escala. Quem já está escalado não é mexido.</DialogDescription>
+          <DialogDescription>Coloca no Pronto a equipe de cada dia, nas vagas pela ordem de escalação. Quem já está escalado não é mexido.</DialogDescription>
         </DialogHeader>
         {previa.isPending && <p className="text-apagado">Carregando…</p>}
         {previa.error && <p role="alert" className="text-alerta">{mensagemDe(previa.error)}</p>}

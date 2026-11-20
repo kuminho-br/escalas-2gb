@@ -15,7 +15,7 @@ const atual = hojeRecife().slice(0, 7);
 const anterior = somarMeses(atual, -1);
 const secao = () => `/api/unidades/${api.ids.secao}`;
 const lista = async (mes: string): Promise<Cota[]> => (await api.pedir('escalante', 'GET', `${secao()}/cotas?mes=${mes}`)).json();
-const corpo = (servicoId: string, extra: Record<string, unknown> = {}) => ({ mes: atual, servicoId, quantidade: 10, origem: 'interna', prioridade: 1, contaMeta: true, ...extra });
+const corpo = (servicoId: string, extra: Record<string, unknown> = {}) => ({ mes: atual, servicoId, quantidade: 10, origem: 'interna', prioridade: 1, ...extra });
 async function criar(servicoId: string, extra: Record<string, unknown> = {}): Promise<Cota> {
   const r = await api.pedir('escalante', 'POST', `${secao()}/cotas`, corpo(servicoId, extra));
   expect(r.status).toBe(201);
@@ -39,10 +39,11 @@ afterAll(async () => {
 describe('cotas', () => {
   it('cria e lista por prioridade, com o serviço, a cor e zero distribuídas', async () => {
     await criar(peSeguro, { prioridade: 2, quantidade: 12 });
-    await criar(jes, { prioridade: 1, quantidade: 30, contaMeta: false });
+    await criar(jes, { prioridade: 1, quantidade: 30 });
     const l = await lista(atual);
     expect(l.map((c) => c.servico)).toEqual(['JES', 'PE Seguro']);
-    expect(l[0]).toMatchObject({ mes: atual, servicoId: jes, quantidade: 30, origem: 'interna', prioridade: 1, contaMeta: false, cor: '#6E56A8', distribuidas: 0 });
+    expect(l[0]).toMatchObject({ mes: atual, servicoId: jes, quantidade: 30, origem: 'interna', prioridade: 1, cor: '#6E56A8', distribuidas: 0 });
+    expect(l[0]).not.toHaveProperty('contaMeta');
     expect(l[1]).toMatchObject({ servico: 'PE Seguro', quantidade: 12, cor: '#3C5F9C' });
   });
 
@@ -71,11 +72,19 @@ describe('cotas', () => {
     expect((await api.pedir('escalante', 'POST', `${secao()}/cotas`, corpo(bioma, { origem: 'externa', prioridade: 4 }))).status).toBe(201);
   });
 
-  it('editar quantidade, prioridade, origem e conta para a meta', async () => {
-    const c = await criar(peSeguro, { origem: 'externa', quantidade: 3, prioridade: 5 });
-    const e = await api.pedir('escalante', 'PATCH', `/api/cotas/${c.id}`, { quantidade: 8, prioridade: 2, contaMeta: false });
+  it('um cliente antigo que ainda manda contaMeta é atendido, e o campo não volta na leitura', async () => {
+    const c = await criar(jes, { mes: somarMeses(atual, 5), contaMeta: false });
+    expect(c).not.toHaveProperty('contaMeta');
+    const e = await api.pedir('escalante', 'PATCH', `/api/cotas/${c.id}`, { quantidade: 4, contaMeta: true });
     expect(e.status).toBe(200);
-    expect(await e.json()).toMatchObject({ quantidade: 8, prioridade: 2, contaMeta: false, origem: 'externa', servico: 'PE Seguro' });
+    expect(await e.json()).not.toHaveProperty('contaMeta');
+  });
+
+  it('editar quantidade, prioridade e origem', async () => {
+    const c = await criar(peSeguro, { origem: 'externa', quantidade: 3, prioridade: 5 });
+    const e = await api.pedir('escalante', 'PATCH', `/api/cotas/${c.id}`, { quantidade: 8, prioridade: 2 });
+    expect(e.status).toBe(200);
+    expect(await e.json()).toMatchObject({ quantidade: 8, prioridade: 2, origem: 'externa', servico: 'PE Seguro' });
     const igual = await api.pedir('escalante', 'PATCH', `/api/cotas/${c.id}`, { origem: 'interna' });
     expect(igual.status).toBe(409); // já existe a PE Seguro interna do mês
   });

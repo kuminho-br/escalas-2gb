@@ -16,7 +16,8 @@ async function bancoAte0010(): Promise<Banco> {
   return banco;
 }
 async function servico(banco: Banco, unidade: string, nome: string, turnos: [string, string, string][]): Promise<string> {
-  const id = await inserir(banco, 'servico', { unidade_id: unidade, nome, tipo: 'ordinario', cor: '#2F8F5B' });
+  // o JES é fixo e precisa ser PJES (migração 0020 recusa um JES ordinário)
+  const id = await inserir(banco, 'servico', { unidade_id: unidade, nome, tipo: nome === 'JES' ? 'pjes' : 'ordinario', cor: '#2F8F5B' });
   for (const [letra, inicio, fim] of turnos) await inserir(banco, 'turno', { servico_id: id, letra, inicio, fim });
   return id;
 }

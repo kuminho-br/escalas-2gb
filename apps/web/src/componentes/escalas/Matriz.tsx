@@ -153,7 +153,7 @@ function Editor({ escala, unidadeId, versao, aoSalvar }: { escala: Escala; unida
                 return (
                   <tr key={g.id} className="border-b border-linha/60">
                     <td className="sticky left-0 z-10 bg-superficie py-1.5 pr-4">
-                      <Link to="/guarnicoes/$id" params={{ id: g.id }} className="font-medium text-vinho hover:underline">{g.nome}</Link>
+                      <Link to="/configuracoes/modelos-de-guarnicao/$id" params={{ id: g.id }} className="font-medium text-vinho hover:underline">{g.nome}</Link>
                       {desativada.has(g.id) && <span className="ml-2 rounded border border-linha px-1.5 text-xs">desativada</span>}
                       {tamanho && <span className="block text-xs text-apagado">{limites(tamanho)}</span>}
                     </td>
@@ -171,7 +171,7 @@ function Editor({ escala, unidadeId, versao, aoSalvar }: { escala: Escala; unida
               })}
               {linhas.length === 0 && (
                 <tr>
-                  <td colSpan={escala.faixas.length + 1} className="py-3 text-apagado">Nenhuma guarnição ativa. Cadastre na tela de Guarnições.</td>
+                  <td colSpan={escala.faixas.length + 1} className="py-3 text-apagado">Nenhuma guarnição ativa. Cadastre em Configurações › Modelos de guarnição.</td>
                 </tr>
               )}
             </tbody>

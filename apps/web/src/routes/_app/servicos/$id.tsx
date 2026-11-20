@@ -28,7 +28,7 @@ function Ficha() {
   if (error) return <p role="alert" className="p-4 text-alerta">{mensagemDe(error)}</p>;
   return (
     <ProvedorDePendencias>
-      <FichaPainel titulo={s.nome} voltarPara="/servicos" etiqueta={s.ativo ? undefined : 'desativado'} resumo={resumoDoServico(s)} acoes={<Situacao key={`s-${s.id}`} s={s} />}>
+      <FichaPainel titulo={s.nome} voltarPara="/servicos" etiqueta={s.ativo ? undefined : 'desativado'} resumo={resumoDoServico(s)} acoes={s.fixo ? undefined : <Situacao key={`s-${s.id}`} s={s} />}>
         {/* só o id entra na key: outra gravação (ex.: importação) recarrega os campos sem perder a edição pendente */}
         <Identificacao key={`i-${s.id}`} s={s} />
         {/* só o serviço entra na key: cada linha de turno recomeça sozinha quando os dados dela mudam, e a edição pendente de outra linha continua */}
@@ -104,14 +104,15 @@ function Identificacao({ s }: { s: Servico }) {
   return (
     <Secao titulo="Identificação">
       <form onSubmit={(e) => { e.preventDefault(); void salvar(); }} className="grid gap-3">
+        {s.fixo && <p className="text-sm text-apagado">Serviço fixo do sistema: o nome e o tipo não mudam.</p>}
         <div className="grid gap-3 sm:grid-cols-[1fr_12rem]">
           <div className="grid gap-1.5">
             <Label htmlFor="sv-nome">Nome</Label>
-            <Input id="sv-nome" value={nome} onChange={(e) => setNome(e.target.value)} required />
+            <Input id="sv-nome" value={nome} onChange={(e) => setNome(e.target.value)} required disabled={s.fixo} />
           </div>
           <div className="grid gap-1.5">
             <Label htmlFor="sv-tipo">Tipo</Label>
-            <Selecao id="sv-tipo" value={tipo} onChange={(e) => setTipo(TipoServico.parse(e.target.value))}>
+            <Selecao id="sv-tipo" value={tipo} onChange={(e) => setTipo(TipoServico.parse(e.target.value))} disabled={s.fixo}>
               {TipoServico.options.map((t) => <option key={t} value={t}>{NOME_TIPO[t]}</option>)}
             </Selecao>
           </div>
