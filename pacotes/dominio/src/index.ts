@@ -12,3 +12,4 @@ export * from './guarnicao.ts';
 export * from './voluntariado.ts';
 export * from './preencher-vagas.ts';
 export * from './disponibilidade.ts';
+export * from './ativacao.ts';
