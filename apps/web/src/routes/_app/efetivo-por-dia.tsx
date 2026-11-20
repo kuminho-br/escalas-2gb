@@ -1,10 +1,10 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { createFileRoute } from '@tanstack/react-router';
-import { Data, type FuncaoNoEfetivo, type GuarnicaoNoEfetivo, type OpcaoDaVaga, type TrechoNoEfetivo } from 'contratos';
+import { Data, type DesfazerDesativacao, type FuncaoNoEfetivo, type GuarnicaoNoEfetivo, type OpcaoDaVaga, type TrechoNoEfetivo } from 'contratos';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { mensagemDe } from '@/api/cliente';
-import { consultaEfetivoDoDia, desativar, gravarMetaDoDia, voltarMetaAoPadrao } from '@/api/efetivo-do-dia';
+import { consultaEfetivoDoDia, desativar, desfazerDesativacao, gravarMetaDoDia, voltarMetaAoPadrao } from '@/api/efetivo-do-dia';
 import { CotasRestantes } from '@/componentes/CotasRestantes';
 import { AdicionarGuarnicao } from '@/componentes/efetivo-por-dia/AdicionarGuarnicao';
 import { AlocacoesDoTrecho } from '@/componentes/efetivo-por-dia/AlocacoesDoTrecho';
@@ -13,7 +13,10 @@ import { EscolherEscalaDaVaga } from '@/componentes/efetivo-por-dia/EscolherEsca
 import type { VagaDaTela } from '@/componentes/escala-do-mes/CardDaGuarnicao';
 import { EscolherMilitar } from '@/componentes/escala-do-mes/EscolherMilitar';
 import { ReguaDoEfetivo } from '@/componentes/efetivo-por-dia/ReguaDoEfetivo';
-import { TirarDaMeta } from '@/componentes/efetivo-por-dia/TirarDaMeta';
+import { AvisoDesfazer } from '@/componentes/efetivo-por-dia/AvisoDesfazer';
+import { ConfirmarVoltarAoPadrao } from '@/componentes/efetivo-por-dia/ConfirmarVoltarAoPadrao';
+import { Desativadas } from '@/componentes/efetivo-por-dia/Desativadas';
+import { DesativarGuarnicao } from '@/componentes/efetivo-por-dia/DesativarGuarnicao';
 import { useTrava } from '@/componentes/AlteracoesPendentes';
 import { Button } from '@/componentes/ui/button';
 import { Input } from '@/componentes/ui/input';
@@ -42,7 +45,19 @@ function EfetivoPorDia() {
   useEffect(() => guardarUltimoDia(data), [data]);
   const dados = useQuery(consultaEfetivoDoDia(eu.unidade.id, data));
   const [adicionando, setAdicionando] = useState(false);
-  const [tirando, setTirando] = useState<GuarnicaoNoEfetivo | null>(null);
+  const [desativando, setDesativando] = useState<GuarnicaoNoEfetivo | null>(null);
+  const [voltando, setVoltando] = useState(false);
+  // o que a última desativação tirou, para o "Desfazer" (some em 10 s, ao trocar de dia ou na próxima ação de meta)
+  const [aviso, setAviso] = useState<{ texto: string; desfazer: DesfazerDesativacao } | null>(null);
+  const [erroDoAviso, setErroDoAviso] = useState<string | null>(null);
+  useEffect(() => {
+    setAviso(null);
+    setErroDoAviso(null);
+  }, [data]);
+  const limparAviso = () => {
+    setAviso(null);
+    setErroDoAviso(null);
+  };
   // o erro de uma gravação feita num diálogo aparece no próprio diálogo (achado da revisão final)
   const [erroNoDialogo, setErroNoDialogo] = useState<string | null>(null);
   // escalar: a vaga clicada (e, quando ela cai em mais de uma escala, a escolhida); remover: o trecho ocupado clicado
@@ -63,10 +78,13 @@ function EfetivoPorDia() {
 
   const voltarAoPadrao = travar(async () => {
     setErro(null);
+    setErroNoDialogo(null);
+    limparAviso();
     try {
       await voltarMetaAoPadrao(queryClient, eu.unidade.id, data);
+      setVoltando(false);
     } catch (e) {
-      setErro(mensagemDe(e));
+      setErroNoDialogo(mensagemDe(e));
     }
   });
 
@@ -77,6 +95,7 @@ function EfetivoPorDia() {
   const gravarMeta = travar(async (lista: string[], noDialogo = false) => {
     setErro(null);
     setErroNoDialogo(null);
+    limparAviso();
     try {
       await gravarMetaDoDia(queryClient, eu.unidade.id, data, lista);
       setAdicionando(false);
@@ -89,14 +108,26 @@ function EfetivoPorDia() {
     [lista[i], lista[i + passo]] = [lista[i + passo]!, lista[i]!];
     void gravarMeta(lista);
   };
-  const tirar = travar(async (g: GuarnicaoNoEfetivo, _desescalar: boolean, noDialogo = false) => {
+  const desativarGuarnicao = travar(async (g: GuarnicaoNoEfetivo, noDialogo = false) => {
     setErro(null);
     setErroNoDialogo(null);
+    limparAviso();
     try {
-      await desativar(queryClient, eu.unidade.id, data, g.guarnicaoId);
-      setTirando(null);
+      const r = await desativar(queryClient, eu.unidade.id, data, g.guarnicaoId);
+      setDesativando(null);
+      setAviso({ texto: `${g.nome} desativada.`, desfazer: r.desfazer });
     } catch (x) {
       (noDialogo ? setErroNoDialogo : setErro)(mensagemDe(x));
+    }
+  });
+  const desfazerUltima = travar(async () => {
+    if (!aviso) return;
+    setErroDoAviso(null);
+    try {
+      await desfazerDesativacao(queryClient, eu.unidade.id, data, aviso.desfazer);
+      limparAviso();
+    } catch (x) {
+      setErroDoAviso(mensagemDe(x));
     }
   });
   const controlesDa = (g: GuarnicaoNoEfetivo) => {
@@ -105,11 +136,11 @@ function EfetivoPorDia() {
     return {
       aoSubir: i > 0 ? () => mover(i, -1) : undefined,
       aoDescer: i < naMeta.length - 1 ? () => mover(i, 1) : undefined,
-      // sem ninguém escalado no dia, tira direto; com gente, pergunta (decisão 1-b)
-      aoTirar: () => {
+      // sem ninguém escalado no dia, desativa direto; com gente, pergunta
+      aoDesativar: () => {
         setErroNoDialogo(null);
-        if (g.alocados === 0) void tirar(g, false);
-        else setTirando(g);
+        if (g.alocados === 0) void desativarGuarnicao(g);
+        else setDesativando(g);
       },
       salvando,
     };
@@ -141,11 +172,21 @@ function EfetivoPorDia() {
               Meta do dia: {e.meta.total === 0 ? 'nenhuma guarnição' : `${plural(e.meta.total, 'guarnição', 'guarnições')}, ${plural(e.meta.ativadas, 'ativada', 'ativadas')}`}
             </p>
             {e.meta.origem === 'dia' && <span className="rounded-full bg-pendencia-fundo px-2 py-0.5 text-xs font-medium text-pendencia">Meta alterada neste dia</span>}
-            {e.meta.origem === 'dia' && (
-              <Button type="button" variant="outline" size="sm" disabled={salvando} onClick={() => void voltarAoPadrao()}>Voltar ao padrão</Button>
-            )}
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={salvando || e.meta.origem === 'padrao'}
+              onClick={() => {
+                setErroNoDialogo(null);
+                setVoltando(true);
+              }}
+            >
+              Voltar ao padrão
+            </Button>
           </div>
           <CotasRestantes cotas={e.cotas} />
+          {aviso && <AvisoDesfazer texto={aviso.texto} erro={erroDoAviso} salvando={salvando} aoDesfazer={() => void desfazerUltima()} aoSumir={limparAviso} />}
           {e.guarnicoes.length === 0 ? (
             <p className="text-apagado">Nenhuma guarnição na meta nem escalada neste dia.</p>
           ) : (
@@ -162,6 +203,7 @@ function EfetivoPorDia() {
               ))}
             </div>
           )}
+          <Desativadas guarnicoes={e.desativadas} salvando={salvando} aoReativar={(id) => void gravarMeta([...naMeta, id])} />
           <div>
             <Button
               type="button"
@@ -198,9 +240,10 @@ function EfetivoPorDia() {
               aoFechar={() => setAdicionando(false)}
             />
           )}
-          {tirando && (
-            <TirarDaMeta nome={tirando.nome} alocados={tirando.alocados} salvando={salvando} erro={erroNoDialogo} aoEscolher={(d) => void tirar(tirando, d, true)} aoFechar={() => setTirando(null)} />
+          {desativando && (
+            <DesativarGuarnicao nome={desativando.nome} salvando={salvando} erro={erroNoDialogo} aoDesativar={() => void desativarGuarnicao(desativando, true)} aoFechar={() => setDesativando(null)} />
           )}
+          {voltando && <ConfirmarVoltarAoPadrao salvando={salvando} erro={erroNoDialogo} aoVoltar={() => void voltarAoPadrao()} aoFechar={() => setVoltando(false)} />}
         </>
       )}
     </section>

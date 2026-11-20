@@ -12,7 +12,7 @@ const fraseDaFalta = (f: FaltaNoEfetivo) => `${f.faltam === 1 ? 'Falta 1' : `Fal
  * As funções aparecem ao longo do dia, com as vagas na própria linha; as faltas também vêm escritas, embaixo.
  */
 /** Os controles da meta no card da meta: mudam a meta deste dia (Subir e Descer só quando há para onde ir). */
-export type ControlesDaMeta = { aoSubir?: () => void; aoDescer?: () => void; aoTirar: () => void; salvando: boolean };
+export type ControlesDaMeta = { aoSubir?: () => void; aoDescer?: () => void; aoDesativar: () => void; salvando: boolean };
 
 export function CardDoEfetivo({ g, janela, acoes, meta }: { g: GuarnicaoNoEfetivo; janela: Janela | null; acoes?: AcoesDaLinha; meta?: ControlesDaMeta }) {
   const nome = g.ordem === null ? g.nome : `${g.ordem}º ${g.nome}`;
@@ -36,7 +36,7 @@ export function CardDoEfetivo({ g, janela, acoes, meta }: { g: GuarnicaoNoEfetiv
                 <ArrowDown aria-hidden />
               </Button>
             )}
-            <Button type="button" variant="ghost" size="sm" disabled={meta.salvando} onClick={meta.aoTirar}>Tirar da meta</Button>
+            <Button type="button" variant="ghost" size="sm" disabled={meta.salvando} onClick={meta.aoDesativar}>Desativar guarnição</Button>
           </span>
         )}
       </header>
