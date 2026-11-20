@@ -40,6 +40,13 @@
 | [superpowers/specs/2026-11-20-grade-geral-ux-design.md](superpowers/specs/2026-11-20-grade-geral-ux-design.md) | Ajustes de interface da grade geral | PLANEJAMENTO | em execução |
 | [superpowers/specs/2026-11-20-limpeza-da-fase-3-design.md](superpowers/specs/2026-11-20-limpeza-da-fase-3-design.md) | Limpeza das pendências da fase 3 | PLANEJAMENTO | vigente |
 
+## Controle da documentação
+
+| Documento | Para que serve | Quem cuida | Situação |
+|---|---|---|---|
+| [relatorio-documentacao.md](relatorio-documentacao.md) | Último relatório da checagem de 3 dias (sobrescrito a cada vez; o histórico está no git) | DOCUMENTAÇÃO | vigente |
+| [ferramentas/checar-documentacao.sh](ferramentas/checar-documentacao.sh) | Script que mede a régua abaixo e imprime o relatório | DOCUMENTAÇÃO | vigente |
+
 ## Planos
 
 | Documento | Para que serve | Quem cuida | Situação |
@@ -81,3 +88,13 @@ Cada medida é um alerta, não um bloqueio. A DOCUMENTAÇÃO mede a cada 3 dias 
 | Caminhos e links citados | todos existem | link quebrado |
 | ER × migrações | toda tabela tem um título `###` no esquema do banco | tabela sem título |
 | Índice × arquivos | todo `.md` e `.html` de `docs/` aparece aqui ou no LEIAME da sua pasta | arquivo fora do índice |
+
+## Como checar
+
+Da raiz do repositório, no Git Bash: `bash docs/ferramentas/checar-documentacao.sh > docs/relatorio-documentacao.md`.
+
+O script mede tamanho, parágrafos longos, adendos, o `CLAUDE.md` (nota: bom, regular ou insatisfatório), o esquema do banco contra as migrações, o índice contra os arquivos e os links, e as branches `docs-*` e `documentacao-*` sem merge.
+
+A nota do `CLAUDE.md` é "bom" sem falhas, "regular" com uma e "insatisfatório" com duas ou mais.
+
+Para decidir o que fazer com cada alerta, a DOCUMENTAÇÃO traz alternativas e uma recomendação.
