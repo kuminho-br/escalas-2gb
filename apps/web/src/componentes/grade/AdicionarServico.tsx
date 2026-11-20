@@ -44,8 +44,18 @@ function LinhaDoTurno({ turno, salvando, aoEscolher }: { turno: Turno; salvando:
   const servico = opcao.servicos.find((s) => s.turnoId === turnoId) ?? opcao.servicos[0]!;
   const maisDeUmaGuarnicao = new Set(turno.vagas.flatMap((v) => (v.guarnicaoId ? [v.guarnicaoId] : []))).size > 1;
   return (
-    <li aria-label={turno.faixa} className="flex flex-wrap items-center gap-2">
-      <span className="w-20 shrink-0 font-cond text-sm font-semibold">{turno.faixa}</span>
+    <li aria-label={turno.faixa} className="grid gap-1.5">
+      {/* o painel é estreito (380px): em cima a faixa, o serviço e o botão; a vaga, que tem o texto mais longo, ocupa a linha de baixo inteira */}
+      <div className="flex items-center gap-2">
+        <span className="font-cond text-sm font-semibold">{turno.faixa}</span>
+        {opcao.servicos.length > 1 && (
+          <Selecao aria-label={`Serviço de ${turno.faixa}`} value={turnoId} onChange={(e) => setTurnoEscolhido(e.target.value)} className="w-28 shrink-0">
+            {opcao.servicos.map((s) => <option key={s.turnoId} value={s.turnoId}>{s.nome}</option>)}
+          </Selecao>
+        )}
+        {servico.semVoluntariado && <span className="text-xs text-pendencia">não marcou</span>}
+        <Button type="button" size="sm" className="ml-auto" disabled={salvando} onClick={() => aoEscolher(opcao, turnoId)}>Escalar</Button>
+      </div>
       <Selecao
         aria-label={`Vaga de ${turno.faixa}`}
         value={String(vaga)}
@@ -53,17 +63,10 @@ function LinhaDoTurno({ turno, salvando, aoEscolher }: { turno: Turno; salvando:
           setVaga(Number(e.target.value));
           setTurnoEscolhido(null);
         }}
-        className="min-w-0 flex-1"
+        className="w-full"
       >
         {turno.vagas.map((v, i) => <option key={`${v.guarnicaoId ?? ''}|${v.funcaoId ?? ''}`} value={i}>{textoDaVaga(v, maisDeUmaGuarnicao)}</option>)}
       </Selecao>
-      {opcao.servicos.length > 1 && (
-        <Selecao aria-label={`Serviço de ${turno.faixa}`} value={turnoId} onChange={(e) => setTurnoEscolhido(e.target.value)} className="w-28 shrink-0">
-          {opcao.servicos.map((s) => <option key={s.turnoId} value={s.turnoId}>{s.nome}</option>)}
-        </Selecao>
-      )}
-      <Button type="button" size="sm" disabled={salvando} onClick={() => aoEscolher(opcao, turnoId)}>Escalar</Button>
-      {servico.semVoluntariado && <span className="text-xs text-pendencia">não marcou</span>}
     </li>
   );
 }

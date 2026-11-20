@@ -75,6 +75,14 @@ describe('grade geral: a tabela', () => {
     expect(screen.getByRole('columnheader', { name: 'Militar' })).toHaveClass('sticky', 'top-0', 'left-0');
   });
 
+  it('a caixa deixa folga para as partes presas, para a célula escolhida não parar debaixo delas (achado da revisão final da 4.4)', async () => {
+    api();
+    abrir(`/?mes=${MES}`);
+    const caixa = (await screen.findByRole('table', { name: 'Grade geral de dezembro de 2026' })).closest('[data-rolagem="grade"]');
+    // a coluna Militar (13rem) à esquerda, as três colunas finais (15rem, a partir de 1440px) à direita e o cabeçalho (4rem) em cima
+    expect(caixa).toHaveClass('scroll-pl-52', 'scroll-pt-16', 'min-[1440px]:scroll-pr-60');
+  });
+
   it('PJES, Diárias e Voluntariado ficam presos à direita em tela larga', async () => {
     api();
     abrir(`/?mes=${MES}`);

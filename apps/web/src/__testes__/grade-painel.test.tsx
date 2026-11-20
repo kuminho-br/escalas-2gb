@@ -202,6 +202,17 @@ describe('grade geral: adicionar serviço neste dia', () => {
     expect(textos(within(linhaDe(p, '00h–08h')).getByLabelText('Vaga de 00h–08h'))).toEqual(['Motorista', 'Combatente', 'Sem guarnição']);
   });
 
+  it('a lista da vaga ocupa a largura toda, numa linha abaixo da faixa e do botão (o painel é estreito)', async () => {
+    const { p } = await abrirAdicionar(COM_ABAS);
+    const linha = linhaDe(p, '08h–20h');
+    const vaga = within(linha).getByLabelText('Vaga de 08h–20h');
+    const escalar = within(linha).getByRole('button', { name: 'Escalar' });
+    expect(vaga).toHaveClass('w-full');
+    expect(vaga.parentElement).not.toBe(escalar.parentElement);
+    // a faixa, o serviço e o botão ficam juntos em cima
+    expect(within(linha).getByLabelText('Serviço de 08h–20h').parentElement).toBe(escalar.parentElement);
+  });
+
   it('"Escalar" manda a vaga e o serviço escolhidos', async () => {
     const { f, p } = await abrirAdicionar(COM_ABAS, { [POST]: { status: 201, corpo: ESCALA } });
     await userEvent.selectOptions(within(linhaDe(p, '20h–08h')).getByLabelText('Vaga de 20h–08h'), 'Resgate · Chefe');

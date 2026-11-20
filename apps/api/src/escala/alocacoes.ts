@@ -44,9 +44,13 @@ export async function ocupantesDaFuncao(tx: Consulta, escalaId: string, data: st
   return rows[0]!.n;
 }
 
-/** A vaga ainda existe na faixa do dia e a função tem lugar para mais um (devolver alguém a ela). `Recusa` se a vaga já não existe; false se está completa. */
-export async function vagaTemLugar(tx: Consulta, escalaId: string, data: string, faixa: { inicio: string; fim: string }, guarnicaoId: string, funcaoId: string): Promise<boolean> {
+/**
+ * Devolver um militar a uma vaga: a vaga ainda existe na faixa do dia, ele tem a CNH que a função exige e a função tem lugar para mais um.
+ * `Recusa` se a vaga já não existe ou se falta a CNH; false se a função está completa.
+ */
+export async function vagaTemLugar(tx: Consulta, escalaId: string, data: string, faixa: { inicio: string; fim: string }, guarnicaoId: string, funcaoId: string, cnhDoMilitar: string[]): Promise<boolean> {
   const vaga = await conferirVaga(tx, escalaId, data.slice(0, 7), faixa, guarnicaoId, funcaoId);
+  if (vaga.cnhExigida && !cnhHabilitadas(cnhDoMilitar).includes(vaga.cnhExigida)) throw new Recusa('Sem a CNH exigida');
   await travaDaFaixa(tx, escalaId, data, faixa);
   return (await ocupantesDaFuncao(tx, escalaId, data, faixa, guarnicaoId, funcaoId)) < vaga.maximo;
 }

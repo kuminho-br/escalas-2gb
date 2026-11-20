@@ -45,8 +45,9 @@ export function TabelaDaGrade({ grade, grupos, maximos, escolhida, aoEscolher }:
   const colunas = grade.dias.length + 4;
   return (
     // a tabela rola nas duas direções dentro da própria caixa: assim o cabeçalho dos dias e a coluna "Militar" grudam nela (com
-    // `overflow-x-auto` e a página rolando na vertical, o cabeçalho não tinha onde grudar). Vale também no celular.
-    <div data-rolagem="grade" className="max-h-[calc(100dvh-13rem)] overflow-auto">
+    // `overflow-x-auto` e a página rolando na vertical, o cabeçalho não tinha onde grudar). Vale também no celular. O `scroll-p*` deixa folga
+    // para as partes presas (cabeçalho, coluna Militar e, a partir de 1440px, as três colunas finais): a célula que rola à vista não para debaixo delas.
+    <div data-rolagem="grade" className="max-h-[calc(100dvh-13rem)] scroll-pt-16 scroll-pl-52 overflow-auto min-[1440px]:scroll-pr-60">
       <table aria-label={`Grade geral de ${mesPorExtenso(grade.mes)}`} className="w-full border-separate border-spacing-0 font-cond">
         <thead>
           <tr>

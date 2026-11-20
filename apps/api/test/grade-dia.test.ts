@@ -125,6 +125,29 @@ describe('o dia do militar', () => {
   });
 });
 
+describe('uma diária na mesma faixa do Pronto (achado da revisão final da 4.4)', () => {
+  it('o Pronto e o JES continuam do Ordinário e a diária vira opção própria, nas Operações', async () => {
+    await servicoComTurnos('Diária 12h', 'diaria', [['A', '08:00', '20:00']]);
+    const todos = [servico.Pronto!.id, servico.JES!.id, servico.Saldo!.id, servico.Bioma!.id, servico['Diária 12h']!.id];
+    expect((await api.pedir('escalante', 'PUT', `/api/escalas/${escala}/servicos`, { servicoIds: todos })).status).toBe(200);
+    try {
+      const p = await ler('DRV2');
+      const naFaixa = p.opcoes.filter((o) => o.inicio === '08:00' && o.fim === '20:00');
+      const nomes = (ordinario: boolean) => naFaixa.filter((o) => o.ordinario === ordinario).flatMap((o) => o.servicos.map((s) => s.nome));
+      // o Ordinário não perde o Pronto por causa da diária da mesma faixa
+      expect(nomes(true).length).toBeGreaterThan(0);
+      expect(nomes(true).every((n) => ['Pronto', 'JES', 'Saldo'].includes(n))).toBe(true);
+      expect(nomes(true)).toContain('Pronto');
+      expect([...new Set(nomes(false))]).toEqual(['Diária 12h']);
+      // as vagas do Ordinário (com guarnição) continuam, e a diária também pode ser "Sem guarnição"
+      expect(naFaixa.filter((o) => o.ordinario && o.guarnicao).length).toBeGreaterThan(0);
+      expect(naFaixa.some((o) => !o.ordinario && o.guarnicaoId === null)).toBe(true);
+    } finally {
+      expect((await api.pedir('escalante', 'PUT', `/api/escalas/${escala}/servicos`, { servicoIds: todos.slice(0, 4) })).status).toBe(200);
+    }
+  });
+});
+
 describe('Adicionar serviço neste dia', () => {
   it('as opções dizem se são do Ordinário: Pronto, JES e Saldo sim, uma diária não', async () => {
     const p = await ler('DRV2');

@@ -358,6 +358,47 @@ describe('desativar e desfazer (Review Focus 1 a 4)', () => {
     expect(nomes(await metaDe(d))).toEqual(['Resgate']);
   });
 
+  // achado da revisão final da 4.4: a promovida volta pelas regras, e o corpo do Desfazer não decide para onde ela vai
+  it('desfazer com uma promovida apontando para outra guarnição que não a desativada é 400 e nada muda', async () => {
+    const d = dia(326);
+    expect((await gravarDia(d, [abt, resgate])).status).toBe(200);
+    const alfa = await alocar('ALFA', d, abt);
+    await inserir(api.banco, 'alocacao_acumulo', { alocacao_id: alfa, guarnicao_id: resgate, funcao_id: funcao });
+    const c = await corpoDe(await desativar(d, abt));
+    const forjado = { ...c.desfazer, promovidas: (c.desfazer.promovidas as { guarnicaoId: string }[]).map((x) => ({ ...x, guarnicaoId: aco })) };
+    expect((await desfazer(d, forjado)).status).toBe(400);
+    expect(await alocacaoDe('ALFA', d)).toEqual({ id: alfa, guarnicao_id: resgate });
+    expect(await acumulosDe('ALFA', d)).toEqual([]);
+    expect(nomes(await metaDe(d))).toEqual(['Resgate']);
+  });
+
+  it('desfazer devolve a promovida pelas regras de escalar: sem a CNH exigida é 409 e nada muda', async () => {
+    const d = dia(327);
+    const g = await api.pedir('escalante', 'POST', `${secao()}/guarnicoes`, {
+      nome: 'ExigeD', vigencia: HOJE.slice(0, 7), versao: { viatura: null, tipoViatura: null, prioridade: null, ativa: true, composicao: [{ funcaoId: funcao, minimo: 1, maximo: 2, cnhExigida: 'D' }] },
+    });
+    const exigeD = (await g.json()).id as string;
+    const v = await api.pedir('escalante', 'PUT', `/api/escalas/${escala}/vinculos/${HOJE.slice(0, 7)}`, { itens: [abt, aco, resgate, cheia, exigeD].map((guarnicaoId) => ({ guarnicaoId, inicio: '08:00', fim: '20:00' })) });
+    expect(v.status).toBe(200);
+    expect((await gravarDia(d, [exigeD, resgate])).status).toBe(200);
+    await api.banco.query("update militar set cnh = '{D}', motorista = true where id = $1", [militares.ALFA]);
+    try {
+      const alfa = await alocar('ALFA', d, exigeD);
+      await inserir(api.banco, 'alocacao_acumulo', { alocacao_id: alfa, guarnicao_id: resgate, funcao_id: funcao });
+      const c = await corpoDe(await desativar(d, exigeD));
+      expect(await alocacaoDe('ALFA', d)).toEqual({ id: alfa, guarnicao_id: resgate });
+      // enquanto isso, ele perdeu a CNH: voltar à vaga que a exige já não vale
+      await api.banco.query("update militar set cnh = '{}' where id = $1", [militares.ALFA]);
+      const r = await desfazer(d, c.desfazer);
+      expect(r.status).toBe(409);
+      expect((await r.json()).erro).toBe('Não deu para desfazer: Sem a CNH exigida');
+      expect(await alocacaoDe('ALFA', d)).toEqual({ id: alfa, guarnicao_id: resgate });
+      expect(nomes(await metaDe(d))).toEqual(['Resgate']);
+    } finally {
+      await api.banco.query("update militar set cnh = '{}', motorista = false where id = $1", [militares.ALFA]);
+    }
+  });
+
   it('desfazer num dia que seguia o padrão volta a seguir o padrão, não uma cópia dele (Review Focus 4)', async () => {
     const d = dia(310);
     const c = await corpoDe(await desativar(d, abt));
