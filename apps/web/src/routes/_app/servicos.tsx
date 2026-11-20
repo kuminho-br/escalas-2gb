@@ -103,6 +103,7 @@ function ItemServico({ s, escolhido }: { s: Servico; escolhido: boolean }) {
         <QuadradoDaCor cor={s.cor} />
         <span className="font-cond text-base font-semibold">{s.nome}</span>
         <span className="text-xs text-apagado">{s.turnos.map((t) => t.letra).join(' ')}</span>
+        {s.fixo && <span className="rounded border border-linha px-1.5 text-xs text-apagado">fixo</span>}
         {!s.ativo && <span className="ml-auto rounded border border-linha px-1.5 text-xs">desativado</span>}
       </Link>
     </li>
