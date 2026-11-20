@@ -9,7 +9,7 @@
 **Como ler:**
 - Este documento é só o mapa: a ordem das fases, a situação de cada entrega e onde está cada coisa.
 - O porquê de cada decisão está em `docs/decisoes.md`.
-- Cada fase tem um plano de tarefas, escrito por entrega, só quando ela está para começar. Uma fase com muitas dependências (a 5) ganha antes um design da fase inteira.
+- Cada fase tem um plano de tarefas, escrito por entrega, só quando ela está para começar. Plano pedido pelo usuário vai direto ao GitHub, é mesclado e vai para a execução (Sonnet executa, Opus revisa). Uma fase com muitas dependências (a 5) ganha antes um design da fase inteira.
 - Não há datas: o desenvolvimento é de uma pessoa, e a ordem importa mais que o prazo.
 - O número da entrega é a ordem de execução.
 
@@ -29,7 +29,7 @@
 | 0. Decisões e especificação | Design aprovado (D1 a D7), esquema do banco e telas | Você | concluída |
 | 1. Fundação | Banco, API e site no ar, com login e auditoria | Você | concluída |
 | 2. Motor de regras | Regras do protótipo portadas, com os casos passando | Você | concluída |
-| 3. Cadastros | Todas as telas de cadastro, com importação da planilha | Você e os escalantes | concluída |
+| 3. Cadastros | Todas as telas de cadastro, com importação da planilha | Você e os escalantes | em andamento |
 | Revisões antes da fase 4 | Pendências, testes com pessoas e revisão de código | Você e alguns usuários | concluídas |
 | 4. Montagem da escala | Montar e conferir a escala do mês à mão, nas telas de trabalho | Você e os escalantes | concluída |
 | 5. Pecúlio | A base de militares do 2º GB inteiro e o módulo Pecúlio | Você e a administração do GB | em design |
@@ -84,7 +84,7 @@ Os PRs #15 (aviso de migração faltando) e #32 (campo de mês das Cotas) ficara
 
 O que ficou sem corrigir está em "Pendências conhecidas", no fim.
 
-## Fase 4 — Montagem da escala · concluída
+## Fase 4 — Montagem da escala · em andamento
 
 Montar e conferir a escala do mês à mão, nas telas de trabalho (Escala do mês, Efetivo por dia, Grade geral). Plano: `docs/superpowers/plans/2026-11-18-fase4-escala.md`.
 
@@ -106,12 +106,13 @@ Montar e conferir a escala do mês à mão, nas telas de trabalho (Escala do mê
 | 4.2 | Efetivo por dia e Escala do mês em grade | mesclada (#51) | meta de ativação |
 | 4.3 | Limpeza das pendências da fase 3 (Tarefas 65 a 73) | mesclada (#57) | limpeza da fase 3 |
 | 4.4 | Correção do "Desativar", leitura da Grade, busca, "Adicionar serviço" em abas, dia da semana no Efetivo por dia, sem a aba Atividades (Tarefas 74 a 82) | mesclada (#59) | grade geral (ajustes) |
+| 4.5 | Acabamento: pendências simples (Tarefas 83 a 90) | em execução | — |
 
 Specs, em `docs/superpowers/specs/`: `2026-11-18-ordem-de-escala-e-acumulo-design.md`, `2026-11-19-voluntariado-por-faixa-design.md`, `2026-11-20-meta-de-ativacao-design.md`, `2026-11-20-grade-geral-design.md`, `2026-11-20-grade-geral-ux-design.md` e `2026-11-20-limpeza-da-fase-3-design.md`.
 
 **Painel do dia (medida da 4.3):** 33 consultas no cenário de teste (31 para um militar do Pronto, 33 para um do Adm), bem abaixo das 100 a 200 que se temia; o número cresce com escalas, faixas e funções (cerca de 9 consultas por faixa). Na 4.4, com uma terceira faixa no cenário, foi a 40 (Pronto) e 42 (Adm): passou do limite de 40, então "otimizar o painel do dia" entrou na fase 8.
 
-**A fase fechou na 4.4** (20/11/2026). Os escalantes conseguem montar e conferir a escala de um mês à mão, sem os tropeços conhecidos.
+**A fase fecha na 4.5,** um acabamento com pendências simples, pedido para a programação seguir enquanto o modelo do Pecúlio é fechado. Os escalantes conseguem montar e conferir a escala de um mês à mão, sem os tropeços conhecidos.
 
 ## Fase 5 — Pecúlio · em design
 

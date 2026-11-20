@@ -8,6 +8,8 @@ Siglas dos documentos: **Design** = `superpowers/specs/2026-11-16-migracao-desig
 
 | Data | Decisão | Onde está |
 |---|---|---|
+| 20/11/2026 | A entrega 4.5 junta pendências simples, sem decisão aberta, para a programação seguir enquanto o modelo do Pecúlio é fechado. | Roadmap, Fase 4 |
+| 20/11/2026 | Plano de entrega pedido pelo usuário já autoriza o PR, o merge e a ordem de execução (Sonnet executa, Opus revisa). | Roadmap, Como ler |
 | 20/11/2026 | "Otimizar o painel do dia" entra na fase 8: na 4.4 a medida foi a 42 consultas, acima do limite de 40. | Roadmap, Fase 8 |
 | 20/11/2026 | O painel do dia não é otimizado agora (33 consultas medidas na 4.3); entra na fase 8 se passar de 40 consultas ou de 1 s na sandbox. Cumprida na 4.4. | Roadmap, Fase 4 |
 | 20/11/2026 | A aba "Atividades" sai das Configurações (nada lê a atividade desde 17/11); a tabela e a coluna ficam no banco, sem migração. Entra na 4.4. | Roadmap, Fase 4; Design, Cadastros › Catálogos |
