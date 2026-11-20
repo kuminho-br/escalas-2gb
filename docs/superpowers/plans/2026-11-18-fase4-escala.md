@@ -2697,6 +2697,135 @@ O `th` do dia já é `sticky top-0`, mas o `div` em volta tem `overflow-x-auto`:
 
 ---
 
+# Entrega 4.5 — Acabamento: pendências simples
+
+**Goal:** tirar da lista de "Pendências conhecidas" os tropeços pequenos que um escalante encontra, sem nenhuma regra nova, enquanto o design do Pecúlio (fase 5) é fechado com o usuário.
+
+**Architecture:** oito tarefas independentes, cada uma com o seu teste e o seu commit, no código que já existe. Nenhuma regra do motor muda; sem migração.
+
+**Tech Stack:** React + TanStack (site), Hono (API), zod (contratos), Vitest + Testing Library.
+
+**Branch:** `fase4-4-5-acabamento`, a partir da `main` depois do merge da 4.4. Commits `Fase 4.4.5: …`; PR "Fase 4 — Entrega 4.5: acabamento (pendências simples)". **Sem migração.** Modelos: Sonnet executa; Opus faz a revisão final do branch.
+
+**Spec:** não há spec própria; cada item vem de "Pendências conhecidas" do roadmap (síntese, PR #55) e da lista de menores do PR #59. Pedido do usuário (20/11/2026): uma entrega com coisas simples, sem nada pendente de decisão, para a programação não ficar parada.
+
+## Global Constraints
+
+- Textos da tela em português, sem jargão; o que falha diz como resolver.
+- Nenhuma tarefa muda quem pode ser escalado nem grava dado novo.
+- No fim: contagens no `CLAUDE.md` local; `pnpm test && pnpm typecheck && pnpm build:vercel`.
+
+**Decisões desta entrega** (todas minhas, pequenas; o usuário pediu "coisas simples que não envolvam nada pendente"):
+- O botão de fechar dos diálogos se chama "Fechar".
+- Sessão terminada leva para a tela de entrar com o aviso "Sua sessão terminou. Entre de novo." e volta para a página onde a pessoa estava.
+- O aviso de migração faltando não mostra comando nem a lista dos arquivos: "O sistema está sendo atualizado. Tente de novo em alguns minutos; se continuar, avise o administrador." A lista vai para o log do servidor.
+- O "Escalar" de cada linha tem nome acessível com a faixa ("Escalar às 08h–20h").
+
+## Review Focus
+
+1. **Sessão terminada no meio de uma gravação** (PATCH com 401): leva para entrar, e depois de entrar volta à mesma página; o que não foi salvo se perde, e o aviso diz que a sessão terminou. Tarefa 85.
+2. **`/api/eu` com 401** (quem nunca entrou): continua indo para a tela de entrar sem o aviso de "sessão terminou". Tarefa 85.
+3. **Aba de "Adicionar serviço" que fica vazia depois de uma recusa:** passa sozinha para a outra aba que tem opções; se as duas ficarem vazias, aparece "Nenhum serviço disponível para ele neste dia.". Tarefa 88.
+4. **Busca por matrícula com e sem hífen** ("990001-1" e "9900011"): as duas acham o militar. Tarefa 88.
+5. **CNH com categoria repetida na importação de militares:** entra uma vez só, sem virar problema. Tarefa 90.
+
+---
+
+### Task 83: Textos e nomes que estavam errados
+
+**Files:** `apps/web/src/routes/_app/escalas.tsx:65`, `apps/web/src/componentes/ui/dialog.tsx:74,112`, `apps/web/src/componentes/grade/AdicionarServico.tsx:57`. **Test:** `escalas.test.tsx`, `guarnicoes.test.tsx` (um diálogo qualquer), `grade-painel.test.tsx`.
+
+- [ ] **Step 1: Testes:** com uma escala só, a lista diz "1 escala" (e "2 escalas" com duas); o botão de fechar de um diálogo tem o nome acessível "Fechar"; no "Adicionar serviço", cada botão tem o nome "Escalar às <faixa>" (ex.: "Escalar às 08h–20h"), e dois turnos não têm o mesmo nome.
+- [ ] **Step 2: Run** os três arquivos. Expected: FAIL.
+- [ ] **Step 3: Implement.** O texto visível do botão continua "Escalar"; o nome acessível vem do `aria-label`.
+- [ ] **Step 4: Run.** Expected: PASS.
+- [ ] **Step 5: Commit** `Fase 4.4.5: textos e nomes acessíveis`.
+
+### Task 84: O menu do celular fecha com Esc e leva o foco
+
+**Files:** `apps/web/src/componentes/Trilho.tsx`, `apps/web/src/routes/_app.tsx`. **Test:** `casca.test.tsx`.
+
+- [ ] **Step 1: Testes** (largura de celular): abrir o menu leva o foco ao primeiro item; Esc fecha o menu e devolve o foco ao botão que o abriu; clicar fora continua fechando.
+- [ ] **Step 2: Run** `pnpm --filter web test casca`. Expected: FAIL.
+- [ ] **Step 3: Implement:** `onKeyDown` de Escape no menu aberto; o botão do menu (`Topo`) recebe a referência para receber o foco de volta.
+- [ ] **Step 4: Run.** Expected: PASS.
+- [ ] **Step 5: Commit** `Fase 4.4.5: menu do celular com Esc e foco`.
+
+### Task 85: Sessão terminada leva para entrar, com aviso
+
+**Files:** `apps/web/src/api/cliente.ts` (`pedir`), `apps/web/src/routes/entrar.tsx`. **Test:** `entrar.test.tsx`, `casca.test.tsx`.
+
+**Interfaces:** `entrar` aceita a busca `{ sessao?: 'terminou'; voltar?: string }` (`voltar` só com caminho interno, começando por `/`).
+
+- [ ] **Step 1: Testes:** uma consulta qualquer (não `/api/eu`) com 401 leva para `/entrar?sessao=terminou&voltar=<caminho atual>`; a tela de entrar mostra "Sua sessão terminou. Entre de novo."; depois de entrar, vai para `voltar`; `voltar` externo (`https://…` ou `//…`) é ignorado e vai para a página inicial (Review Focus 1 e 2); `/api/eu` com 401 continua como hoje.
+- [ ] **Step 2: Run** os dois arquivos. Expected: FAIL.
+- [ ] **Step 3: Implement** em `pedir`: 401 de rota que não é `/api/eu` faz `window.location.assign(...)` e lança o erro de sempre.
+- [ ] **Step 4: Run.** Expected: PASS.
+- [ ] **Step 5: Commit** `Fase 4.4.5: sessão terminada leva para entrar`.
+
+### Task 86: "Copiar" sem clique duplo, em Cotas e Feriados
+
+**Files:** `apps/web/src/routes/_app/cotas.tsx:34`, `apps/web/src/routes/_app/feriados.tsx:32`. **Test:** `cotas.test.tsx`, `feriados.test.tsx`.
+
+- [ ] **Step 1: Testes:** dois cliques seguidos em "Copiar do mês anterior" (e em "Copiar feriados fixos") mandam um pedido só, e a mensagem final é a do primeiro pedido; o botão fica desabilitado enquanto copia.
+- [ ] **Step 2: Run.** Expected: FAIL.
+- [ ] **Step 3: Implement** com o `useTrava` de `componentes/AlteracoesPendentes`, como os outros botões de gravar.
+- [ ] **Step 4: Run.** Expected: PASS.
+- [ ] **Step 5: Commit** `Fase 4.4.5: copiar sem clique duplo`.
+
+### Task 87: O aviso de migração faltando, sem comando e sem lista
+
+**Files:** `apps/api/src/migracoes-pendentes.ts`. **Test:** `apps/api/test/migracoes-pendentes.test.ts`.
+
+- [ ] **Step 1: Testes:** com migração faltando, o 503 tem `{ erro: 'O sistema está sendo atualizado. Tente de novo em alguns minutos; se continuar, avise o administrador.' }`, sem `pendentes` no corpo; o log do servidor (`console.error`, simulado no teste) recebe a lista uma vez por conferência; `/api/saude` continua 200.
+- [ ] **Step 2: Run** `pnpm --filter api test migracoes-pendentes`. Expected: FAIL.
+- [ ] **Step 3: Implement.**
+- [ ] **Step 4: Run** e `pnpm --filter web test casca` (a casca mostra a mensagem do servidor). Expected: PASS.
+- [ ] **Step 5: Commit** `Fase 4.4.5: aviso de migração sem comando`.
+
+### Task 88: Grade: busca por matrícula, colunas finais e a aba que fica vazia
+
+**Files:** `apps/web/src/routes/_app/index.tsx:53-59`, `apps/web/src/componentes/grade/TabelaDaGrade.tsx` (colunas PJES, Diárias, Voluntariado), `apps/web/src/componentes/grade/AdicionarServico.tsx:88-102`. **Test:** `grade.test.tsx`, `grade-painel.test.tsx`.
+
+- [ ] **Step 1: Testes:**
+  - a busca compara a matrícula só pelos dígitos: "9900011" e "990001-1" acham o mesmo militar (Review Focus 4);
+  - as três colunas finais têm `min-w` e `max-w` iguais (largura fixa de verdade, para o `sticky` empilhar certo);
+  - "Adicionar serviço": a aba aberta que fica sem opções (opções novas depois de uma recusa 409) muda para a outra que tem; as duas vazias mostram a frase de nenhum serviço (Review Focus 3).
+- [ ] **Step 2: Run.** Expected: FAIL.
+- [ ] **Step 3: Implement.** As abas passam a controladas (`value` e `onValueChange`), com a aba corrigida quando a escolhida fica sem opções.
+- [ ] **Step 4: Run.** Expected: PASS.
+- [ ] **Step 5: Commit** `Fase 4.4.5: busca por matrícula, colunas finais e aba vazia`.
+
+### Task 89: "Desfazer" com a alocação promovida já removida
+
+**Files:** `apps/api/src/efetivo/meta.ts` (`desfazerDesativacao`), `apps/api/src/efetivo/rotas.ts:111`. **Test:** `apps/api/test/meta.test.ts`.
+
+- [ ] **Step 1: Testes:**
+  - promovida removida depois da desativação: "Desfazer" é 409 com "Não deu para desfazer: a escala mudou desde então." (não mais 400 "Os dados para desfazer não são desta seção.") e nada muda;
+  - promovida que mudou de vaga depois da desativação: 409 com a mesma frase, nada muda;
+  - promovida de outra seção no corpo: 400, nada muda;
+  - corpo sem `promovidas` (cliente antigo): o "Desfazer" funciona para as alocações e os acúmulos.
+- [ ] **Step 2: Run** `pnpm --filter api test meta`. Expected: FAIL nos dois primeiros.
+- [ ] **Step 3: Implement:** a conferência "é desta seção" separa o que não existe mais (vira `Recusa` "a escala mudou desde então") do que é de outra seção (continua `DadosInvalidos`).
+- [ ] **Step 4: Run.** Expected: PASS.
+- [ ] **Step 5: Commit** `Fase 4.4.5: desfazer com a promovida removida`.
+
+### Task 90: CNH sem categoria repetida
+
+**Files:** `pacotes/contratos/src/militares.ts:26,38`, `apps/api/src/importacao/militares.ts`. **Test:** `pacotes/contratos/test/militares.test.ts`, `apps/api/test/importacao-militares.test.ts`.
+
+- [ ] **Step 1: Testes:** o contrato aceita `cnh: ['B', 'B', 'D']` e entrega `['B', 'D']` (sem repetição, em ordem); a importação de uma linha com "B, B" grava `['B']` sem problema na prévia (Review Focus 5).
+- [ ] **Step 2: Run.** Expected: FAIL.
+- [ ] **Step 3: Implement** no contrato (`transform` que tira as repetidas e ordena); a importação usa o mesmo caminho.
+- [ ] **Step 4: Run** os dois e `pnpm typecheck`. Expected: PASS.
+- [ ] **Step 5: Commit** `Fase 4.4.5: CNH sem categoria repetida`. No fim da entrega:
+  - contagens no `CLAUDE.md` local;
+  - `pnpm test && pnpm typecheck && pnpm build:vercel`;
+  - revisão final (Opus);
+  - PR com a lista curta para a sandbox (escalas: "1 escala"; menu do celular; sessão terminada; copiar; Grade: busca por matrícula e colunas finais; "Adicionar serviço" depois de uma recusa). **Parar até o merge.**
+
+---
+
 # Entregas 3 a 6 (a detalhar antes de cada uma)
 
 Cada uma ganha aqui as suas tarefas, no formato da entrega 1, depois do merge da anterior e da conversa com o usuário sobre o que a entrega 1 mostrou em uso.
@@ -2707,7 +2836,8 @@ Cada uma ganha aqui as suas tarefas, no formato da entrega 1, depois do merge da
 - **Entrega 4 — Grade geral:** detalhada acima (Tarefas 54 a 59), com o design de 20/11/2026 (`docs/superpowers/specs/2026-11-20-grade-geral-design.md`): painel interativo, clique na célula (militar e dia), filtro de equipes, colunas PJES, Diárias e Voluntariado, e "Trocar" (com permuta entre ordinários).
 - **Entregas 4.1 e 4.2:** detalhadas acima (Tarefas 60 a 64), com o adendo "validação da 3.3" de `docs/superpowers/specs/2026-11-20-meta-de-ativacao-design.md`.
 - **Entrega 4.3 — Limpeza das pendências da fase 3:** detalhada acima (Tarefas 65 a 73), com o design `docs/superpowers/specs/2026-11-20-limpeza-da-fase-3-design.md`. Fecha a fase 4.
-- **Entrega 4.4 — Grade geral: leitura e "Adicionar serviço" em abas:** detalhada acima (Tarefas 74 a 82), com o design `docs/superpowers/specs/2026-11-20-grade-geral-ux-design.md` (retorno da validação da entrega 4 e correção do "Desativar" da 4.1). Fecha a fase 4.
+- **Entrega 4.4 — Grade geral: leitura e "Adicionar serviço" em abas:** detalhada acima (Tarefas 74 a 82), com o design `docs/superpowers/specs/2026-11-20-grade-geral-ux-design.md` (retorno da validação da entrega 4 e correção do "Desativar" da 4.1).
+- **Entrega 4.5 — Acabamento: pendências simples:** detalhada acima (Tarefas 83 a 90), pedido do usuário de 20/11/2026. Fecha a fase 4.
 - **Entrega 5 — Gerar documento:** Configurações › Modelos de impressão (enviar com conferência dos marcadores, baixar o atual, versões); geração da escala publicada com ExcelJS a partir do modelo vigente da unidade, respeitando `militares_doc` e `dias_doc` da escala; `documento_gerado` guardado e baixável; PDF fica para quando o serviço existir. **Reorganização de 20/11/2026: passou para a fase 8 (primeiro mês real) do roadmap; a fase 4 fecha na 4.3 (limpeza).**
 - **Entrega 5.1 — O mesmo modelo mais de uma vez no dia:** a detalhar depois da 5, com o design feito com o usuário (perguntas no adendo "validação da 3.3"). **Reorganização de 20/11/2026: passou para a fase 8 (primeiro mês real) do roadmap.**
 - ~~**Entrega 6 — Minha escala**~~: saiu da fase 4 (decisão do usuário, 19/11/2026). O conteúdo previsto continua valendo e vai para a etapa "Tipos de usuário e módulos" do roadmap: a rota e a tela do militar comum (os próprios serviços do mês, com serviço, turno, horário e quem compõe a guarnição com ele) e o acesso às escalas publicadas da unidade em que ele está lotado.
