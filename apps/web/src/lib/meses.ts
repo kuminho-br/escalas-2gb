@@ -23,6 +23,12 @@ export function dataPorExtenso(data: string): string {
   return `${DIAS_DA_SEMANA[new Date(`${data}T00:00:00Z`).getUTCDay()]}, ${d}/${m}/${a}`;
 }
 
+/** '2026-11-20' -> 'sexta-feira'. Segunda a sexta levam "-feira"; sábado e domingo não. */
+export function diaDaSemanaPorExtenso(data: string): string {
+  const n = new Date(`${data}T00:00:00Z`).getUTCDay();
+  return n === 0 || n === 6 ? DIAS_DA_SEMANA[n]! : `${DIAS_DA_SEMANA[n]}-feira`;
+}
+
 /** '2026-11-20' -> '20/11/2026'. */
 export function dataBr(data: string): string {
   const [a, m, d] = data.split('-');

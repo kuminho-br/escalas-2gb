@@ -1,4 +1,4 @@
-// Configurações: catálogos do sistema (tipos de afastamento, atividades) e parâmetros por unidade.
+// Configurações: o catálogo do sistema (tipos de afastamento) e parâmetros por unidade.
 import { z } from 'zod';
 import { Mes, Nome } from './comum.ts';
 

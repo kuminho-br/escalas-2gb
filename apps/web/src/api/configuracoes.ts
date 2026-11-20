@@ -2,7 +2,7 @@ import { queryOptions } from '@tanstack/react-query';
 import type { ItemCatalogo, NovoParametro, Parametro } from 'contratos';
 import { pedir } from './cliente';
 
-export type Catalogo = 'tipos-afastamento' | 'atividades';
+export type Catalogo = 'tipos-afastamento';
 
 export const consultaParametros = (unidadeId: string, mes: string) =>
   queryOptions({

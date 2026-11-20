@@ -140,6 +140,30 @@ describe('grade geral: trocar', () => {
     expect(chamadasA(f, POST)).toBe(0);
   });
 
+  it('depois de uma troca que deu certo, as opções da troca não são buscadas de novo', async () => {
+    const f = api();
+    abrir(ABERTA);
+    const d = await abrirTroca();
+    await userEvent.click(await within(d).findByRole('button', { name: 'Ordinário, 20h–08h, Motorista do ABT' }));
+    expect(chamadasA(f, 'GET /api/alocacoes/a-1/trocas')).toBe(1);
+    await userEvent.click(within(d).getByRole('button', { name: 'Fazer a permuta' }));
+    await waitFor(() => expect(chamadasA(f, POST)).toBe(1));
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Trocar' })).toBeNull());
+    await waitFor(() => expect(chamadasA(f, ROTA_GRADE)).toBe(2));
+    await new Promise((ok) => setTimeout(ok, 150));
+    expect(chamadasA(f, 'GET /api/alocacoes/a-1/trocas')).toBe(1);
+  });
+
+  it('depois de uma troca recusada, as opções são buscadas de novo', async () => {
+    const f = api({ [POST]: { status: 409, corpo: { erro: 'Sem a CNH exigida' } } });
+    abrir(ABERTA);
+    const d = await abrirTroca();
+    await userEvent.click(await within(d).findByRole('button', { name: 'Ordinário, 20h–08h, Motorista do ABT' }));
+    await userEvent.click(within(d).getByRole('button', { name: 'Fazer a permuta' }));
+    expect(await within(d).findByRole('alert')).toHaveTextContent('Sem a CNH exigida');
+    await waitFor(() => expect(chamadasA(f, 'GET /api/alocacoes/a-1/trocas')).toBe(2));
+  });
+
   it('a recusa aparece no diálogo e a grade volta a ser buscada (Review Focus 5)', async () => {
     const f = api({ [POST]: { status: 409, corpo: { erro: 'Sem a CNH exigida' } } });
     abrir(ABERTA);

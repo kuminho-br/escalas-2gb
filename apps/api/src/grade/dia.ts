@@ -1,7 +1,7 @@
 // O painel do dia da Grade geral: como o militar está num dia (afastamento, horários marcados, serviços, choques) e onde ele pode
 // entrar ("Adicionar serviço neste dia"), em todas as escalas ativas da seção.
 import type { OpcaoDeServico, PainelDoDia, ServicoNoDia } from 'contratos';
-import { textoFaixa } from 'contratos';
+import { textoFaixa, tipoDoServicoFixo } from 'contratos';
 import { cnhHabilitadas, detectarChoques, diaDaSemana, unirFaixas, type AlocChoque, type Choque } from 'dominio';
 import type { Consulta } from '../banco/banco.ts';
 import { vinculosDaEscala } from '../cadastros/escalas.ts';
@@ -174,9 +174,9 @@ async function opcoesDoDia(c: Consulta, unidadeId: string, militarId: string, da
         .filter((t) => t.motivo === null || t.motivo === SEM_VOLUNTARIADO)
         .map((t) => ({ servicoId: t.turno.servicoId, turnoId: t.turno.turnoId, nome: t.turno.nome, semVoluntariado: t.motivo === SEM_VOLUNTARIADO }));
       if (!possiveis.length) continue;
-      const base = { escalaId: e.id, escala: e.nome, inicio: f.inicio, fim: f.fim, servicos: possiveis, semVoluntariado: possiveis[0]!.semVoluntariado };
-
+      // as vagas da faixa em que ele entra: guarnição e função com lugar e com a CNH que ele tem
       const guarnicaoIds = (vinculo?.itens ?? []).filter((i) => i.inicio.slice(0, 5) === f.inicio && i.fim.slice(0, 5) === f.fim).map((i) => i.guarnicaoId);
+      const vagas: { guarnicaoId: string; guarnicao: string; funcaoId: string; funcao: string }[] = [];
       if (guarnicaoIds.length) {
         const versoes = await versoesDasGuarnicoes(c, guarnicaoIds);
         const nomes = new Map((await c.query<{ id: string; nome: string }>('select id, nome from guarnicao where id = any($1::uuid[])', [guarnicaoIds])).rows.map((g) => [g.id, g.nome]));
@@ -186,11 +186,20 @@ async function opcoesDoDia(c: Consulta, unidadeId: string, militarId: string, da
           for (const fn of versao.composicao) {
             if (fn.cnhExigida && !habilitadas.includes(fn.cnhExigida as never)) continue;
             if ((await ocupantesDaFuncao(c, e.id, data, f, gid, fn.funcaoId)) >= fn.maximo) continue;
-            resultado.push({ ...base, guarnicaoId: gid, guarnicao: nomes.get(gid) ?? '', funcaoId: fn.funcaoId, funcao: fn.funcao });
+            vagas.push({ guarnicaoId: gid, guarnicao: nomes.get(gid) ?? '', funcaoId: fn.funcaoId, funcao: fn.funcao });
           }
         }
       }
-      resultado.push({ ...base, guarnicaoId: null, guarnicao: null, funcaoId: null, funcao: null });
+      // da aba Ordinário só os serviços fixos (Pronto, Saldo, Expediente, JES); uma diária reunida na mesma escala, mesmo na mesma faixa, é opção
+      // própria das Operações: separar os dois grupos evita que a diária leve o Pronto junto para a outra aba
+      const fixos = possiveis.filter((x) => tipoDoServicoFixo(x.nome) !== null);
+      const outros = possiveis.filter((x) => tipoDoServicoFixo(x.nome) === null);
+      for (const [servicos, ordinario] of [[fixos, true], [outros, false]] as const) {
+        if (!servicos.length) continue;
+        const base = { escalaId: e.id, escala: e.nome, inicio: f.inicio, fim: f.fim, servicos, semVoluntariado: servicos[0]!.semVoluntariado, ordinario };
+        for (const v of vagas) resultado.push({ ...base, ...v });
+        resultado.push({ ...base, guarnicaoId: null, guarnicao: null, funcaoId: null, funcao: null });
+      }
     }
   }
   return resultado;

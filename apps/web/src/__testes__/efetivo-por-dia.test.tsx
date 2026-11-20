@@ -1,9 +1,9 @@
 import type { AlocacaoNoTrecho, DiaDaEscala, EfetivoDoDia, EscalaDoMes, GuarnicaoNoEfetivo, LinhaEscala, LinhaGuarnicao, TrechoNoEfetivo } from 'contratos';
-import { act, screen, waitFor, within } from '@testing-library/react';
+import { act, cleanup, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { janelaDoDia } from '@/lib/efetivo';
-import { hoje, mesAtual } from '@/lib/meses';
+import { diaDaSemanaPorExtenso, hoje, mesAtual } from '@/lib/meses';
 import { abrir, chamadasA, corpoEnviado, EU_EXEMPLO, simularApi } from './apoio';
 
 // Dia fictício 12/12/2026. Meta: ACO (1º, não ativada: falta motorista das 20h às 08h) e Resgate (2º, ativada). ABT fora da meta, com gente.
@@ -61,6 +61,29 @@ function api(efetivo: EfetivoDoDia = EFETIVO, eu = EU_EXEMPLO, extra: Parameters
 }
 const cartao = (nome: string) => screen.getByRole('region', { name: nome });
 afterEach(() => window.localStorage.clear());
+
+describe('efetivo por dia: o dia da semana', () => {
+  it('diaDaSemanaPorExtenso: segunda a sexta com "-feira", sábado e domingo sem', () => {
+    expect(['2026-11-16', '2026-11-17', '2026-11-18', '2026-11-19', '2026-11-20', '2026-11-21', '2026-11-22'].map(diaDaSemanaPorExtenso)).toEqual([
+      'segunda-feira', 'terça-feira', 'quarta-feira', 'quinta-feira', 'sexta-feira', 'sábado', 'domingo',
+    ]);
+  });
+
+  it('ao lado da data aparece só o dia da semana por extenso', async () => {
+    for (const [data, texto] of [['2026-11-20', 'sexta-feira'], ['2026-11-22', 'domingo']] as const) {
+      simularApi({
+        '/api/eu': { status: 200, corpo: EU_EXEMPLO },
+        [`GET /api/unidades/u-1sb/efetivo-do-dia/${data}`]: { status: 200, corpo: { ...VAZIO, data } },
+        'GET /api/unidades/u-1sb/guarnicoes': { status: 200, corpo: MODELOS },
+      });
+      abrir(`/efetivo-por-dia?data=${data}`);
+      expect(await screen.findByText(texto)).toBeInTheDocument();
+      // a data já está no campo: não se repete por extenso ao lado
+      expect(screen.queryByText(/\d{2}\/\d{2}\/\d{4}/)).toBeNull();
+      cleanup();
+    }
+  });
+});
 
 describe('efetivo por dia: os cards', () => {
   it('aparecem na ordem da API, com o número só na meta, o estado e a falta', async () => {
@@ -269,7 +292,7 @@ describe('efetivo por dia: a meta do dia pela própria tela', () => {
     abrir(`/efetivo-por-dia?data=${DIA}`);
     await userEvent.click(within(await screen.findByRole('region', { name: '1º ACO' })).getByRole('button', { name: 'Desativar guarnição' }));
     const dialogo = await screen.findByRole('dialog', { name: 'Desativar a ACO?' });
-    expect(within(dialogo).getByText('Quem está escalado nela neste dia será desescalado.')).toBeInTheDocument();
+    expect(within(dialogo).getByText('Quem está escalado só nela neste dia será desescalado. Quem também está em outra guarnição continua nessa.')).toBeInTheDocument();
     expect(within(dialogo).queryByText(/militares escalados/)).toBeNull();
     await userEvent.click(within(dialogo).getByRole('button', { name: 'Cancelar' }));
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());

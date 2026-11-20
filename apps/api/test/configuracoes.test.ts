@@ -17,7 +17,7 @@ afterAll(async () => {
 const parametros = (u: string, mes = atual) => api.pedir('escalante', 'GET', `/api/unidades/${u}/parametros?mes=${mes}`);
 const doCatalogo = (lista: Parametro[], chave: string) => lista.find((p) => p.chave === chave)!;
 
-describe('tipos de afastamento e atividades', () => {
+describe('tipos de afastamento', () => {
   it('lista os tipos e cria um novo (admin)', async () => {
     const r = await api.pedir('escalante', 'GET', '/api/sistema/tipos-afastamento');
     expect(r.status).toBe(200);
@@ -34,13 +34,13 @@ describe('tipos de afastamento e atividades', () => {
   });
 
   it('militar comum não lê a lista (403)', async () => {
-    expect((await api.pedir('semPapel', 'GET', '/api/sistema/atividades')).status).toBe(403);
+    expect((await api.pedir('semPapel', 'GET', '/api/sistema/tipos-afastamento')).status).toBe(403);
   });
 
   it('renomear para nome existente é 409 legível', async () => {
-    const lista = await (await api.pedir('admin', 'GET', '/api/sistema/atividades')).json();
-    const aph = lista.find((a: { nome: string }) => a.nome === 'APH');
-    const r = await api.pedir('admin', 'PATCH', `/api/sistema/atividades/${aph.id}`, { nome: 'salvamento' });
+    const lista = await (await api.pedir('admin', 'GET', '/api/sistema/tipos-afastamento')).json();
+    const lts = lista.find((a: { nome: string }) => a.nome === 'LTS');
+    const r = await api.pedir('admin', 'PATCH', `/api/sistema/tipos-afastamento/${lts.id}`, { nome: 'férias' });
     expect(r.status).toBe(409);
     expect((await r.json()).erro).toBe('Já existe um cadastro com esse nome.');
   });
@@ -54,9 +54,15 @@ describe('tipos de afastamento e atividades', () => {
   });
 
   it('nome vazio é 400 com o campo', async () => {
-    const r = await api.pedir('admin', 'POST', '/api/sistema/atividades', { nome: '  ' });
+    const r = await api.pedir('admin', 'POST', '/api/sistema/tipos-afastamento', { nome: '  ' });
     expect(r.status).toBe(400);
     expect((await r.json()).campos.nome).toBe('Preencha este campo.');
+  });
+
+  // nada no sistema lê a atividade desde que ela saiu do cadastro da guarnição (17/11/2026): a lista e as rotas saíram (a tabela fica, sem uso)
+  it('as rotas do catálogo de atividades não existem mais', async () => {
+    expect((await api.pedir('admin', 'GET', '/api/sistema/atividades')).status).toBe(404);
+    expect((await api.pedir('admin', 'POST', '/api/sistema/atividades', { nome: 'Salvamento' })).status).toBe(404);
   });
 });
 
