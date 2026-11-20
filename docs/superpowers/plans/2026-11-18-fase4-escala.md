@@ -2826,6 +2826,110 @@ O `th` do dia já é `sticky top-0`, mas o `div` em volta tem `overflow-x-auto`:
 
 ---
 
+# Entrega 4.6 — Acabamento 2: pendências simples
+
+**Goal:** mais um lote de "Pendências conhecidas" sem decisão aberta, para a programação seguir enquanto o modelo do Pecúlio (fase 5) é fechado com o usuário.
+
+**Architecture:** seis tarefas independentes, cada uma com o seu teste e o seu commit, no código que já existe. Nenhuma regra de escala muda; sem migração.
+
+**Tech Stack:** React + TanStack Query (site), Hono (API), zod (contratos), Vitest + Testing Library.
+
+**Branch:** `fase4-4-6-acabamento-2`, a partir da `main` depois do merge da 4.5. Commits `Fase 4.4.6: …`. **Sem migração.** Modelos: Sonnet executa; Opus faz a revisão final do branch.
+
+**Fluxo novo (usuário, 20/11/2026):** ao terminar, a DESENVOLVIMENTO **não abre o PR nem mescla**: envia o branch e o resumo à PLANEJAMENTO, que abre o PR, mescla e avisa a VALIDAÇÃO para montar os testes de navegador.
+
+**Spec:** sem spec própria; os itens vêm de "Pendências conhecidas" do roadmap (síntese, PR #55) e dos menores do PR #61. Pedido do usuário (20/11/2026).
+
+## Global Constraints
+
+- Textos da tela em português, sem jargão; o que falha diz como resolver.
+- Nenhuma tarefa muda quem pode ser escalado.
+- No fim: contagens no `CLAUDE.md` local; `pnpm test && pnpm typecheck && pnpm build:vercel`.
+
+**Decisões desta entrega** (minhas, pequenas):
+- Consulta com erro 4xx não tenta de novo (o erro aparece na hora); erro de rede ou 5xx tenta mais duas vezes, como hoje.
+- Postos e tipos que não carregam mostram "Não deu para carregar a lista. Recarregue a página." ao lado do campo.
+- A importação de CONFIGURAÇÕES e de GUARNIÇÕES POR ESCALA trata mês passado como problema, com a solução "Use o mês atual ou um mês futuro.", igual à tela.
+- "Incluir serviço" passa a ter um botão "Incluir" ao lado da lista; escolher na lista não grava sozinho.
+
+## Review Focus
+
+1. **Sessão terminada durante a importação** (o envio ou a confirmação com 401): leva para entrar com o aviso, como os outros pedidos. Tarefa 93.
+2. **Reabrir a importação depois de uma importação feita:** começa do zero, sem o resultado anterior nem o arquivo escolhido. Tarefa 93.
+3. **Consulta 404 numa ficha aberta** (o registro foi apagado por outra pessoa): a mensagem aparece em menos de 1 s, sem "Carregando…" preso. Tarefa 91.
+4. **Clique duplo em "Criar função" e em "Renomear"**: um pedido só. Tarefa 95.
+5. **Planilha de GUARNIÇÕES POR ESCALA com um mês passado e um futuro:** a linha do passado vira problema e a do futuro entra. Tarefa 94.
+
+---
+
+### Task 91: Consulta com erro 4xx não fica em "Carregando…"
+
+**Files:** create `apps/web/src/lib/consultas.ts`; modify `apps/web/src/main.tsx:13`. **Test:** `apps/web/src/__testes__/consultas.test.ts` (novo).
+
+**Interfaces:** `deveTentarDeNovo(falhas: number, erro: unknown): boolean` (false para `ErroApi` com status 400 a 499; true até 2 falhas nos outros casos) e `criarQueryClient(): QueryClient` (usa a função como `retry`).
+
+- [ ] **Step 1: Teste:** `deveTentarDeNovo(0, new ErroApi('x', 404))` é false; `(0, new ErroApi('x', 0))` e `(1, new ErroApi('x', 500))` são true; `(2, new ErroApi('x', 500))` é false (Review Focus 3).
+- [ ] **Step 2: Run.** Expected: FAIL.
+- [ ] **Step 3: Implement**; `main.tsx` passa a usar `criarQueryClient()`.
+- [ ] **Step 4: Run** e `pnpm --filter web test`. Expected: PASS.
+- [ ] **Step 5: Commit** `Fase 4.4.6: consulta com 4xx não tenta de novo`.
+
+### Task 92: Postos e tipos que não carregam explicam o botão apagado
+
+**Files:** `apps/web/src/componentes/militares/Identificacao.tsx:15`, `apps/web/src/routes/_app/militares.tsx:155`, `apps/web/src/componentes/militares/Afastamentos.tsx:16`. **Test:** `militares.test.tsx`.
+
+- [ ] **Step 1: Testes:** com `GET` dos postos em 500, a Identificação e o "Novo militar" mostram "Não deu para carregar a lista. Recarregue a página." perto do campo Posto; com o catálogo de tipos de afastamento em 500, o mesmo texto aparece em "Incluir afastamento".
+- [ ] **Step 2: Run.** Expected: FAIL.
+- [ ] **Step 3: Implement.**
+- [ ] **Step 4: Run.** Expected: PASS.
+- [ ] **Step 5: Commit** `Fase 4.4.6: lista que não carrega explica o botão apagado`.
+
+### Task 93: Importação com sessão terminada, reabrir limpo e o aviso lido
+
+**Files:** `apps/web/src/componentes/ImportarPlanilha.tsx`, `apps/web/src/api/cliente.ts` (o desvio para entrar da Tarefa 85 vira função exportada e reaproveitada), `apps/web/src/routes/entrar.tsx:84`. **Test:** `importar.test.tsx`, `entrar.test.tsx`.
+
+- [ ] **Step 1: Testes:** o envio da importação com 401 leva para `/entrar?sessao=terminou&voltar=<caminho>` (Review Focus 1); fechar e abrir de novo a importação mostra a etapa de escolher o arquivo, sem resultado anterior (Review Focus 2); o aviso "Sua sessão terminou. Entre de novo." tem `role="alert"`.
+- [ ] **Step 2: Run.** Expected: FAIL.
+- [ ] **Step 3: Implement:** a importação usa a mesma função de desvio de `cliente.ts`; abrir o diálogo zera etapa, arquivo e erro.
+- [ ] **Step 4: Run.** Expected: PASS.
+- [ ] **Step 5: Commit** `Fase 4.4.6: importação com sessão terminada e reabrir limpo`.
+
+### Task 94: A importação recusa mês passado, como a tela
+
+**Files:** `apps/api/src/importacao/configuracoes.ts`, `apps/api/src/importacao/servicos-escalas.ts` (aba GUARNIÇÕES POR ESCALA). **Test:** `apps/api/test/importacao-configuracoes.test.ts`, `apps/api/test/importacao-servicos-escalas.test.ts`.
+
+- [ ] **Step 1: Testes:** linha com VIGÊNCIA (ou mês) anterior ao mês atual vira problema "Mês já passou" com a solução "Use o mês atual ou um mês futuro." e não grava; a do mês atual e a de um mês futuro entram (Review Focus 5). O "hoje" é o mesmo que a importação já usa (`ctx.hoje`).
+- [ ] **Step 2: Run.** Expected: FAIL.
+- [ ] **Step 3: Implement.**
+- [ ] **Step 4: Run** os dois arquivos. Expected: PASS.
+- [ ] **Step 5: Commit** `Fase 4.4.6: importação recusa mês passado`.
+
+### Task 95: Funções com trava e "Incluir serviço" com botão
+
+**Files:** `apps/web/src/componentes/guarnicoes/Composicao.tsx:50,65`, `apps/web/src/componentes/escalas/ServicosDaEscala.tsx:81-89`. **Test:** `guarnicoes.test.tsx`, `escalas.test.tsx`.
+
+- [ ] **Step 1: Testes:** dois cliques seguidos em "Criar função" e em "Salvar" do renomear mandam um pedido só (Review Focus 4); com o nome da função nova digitado e não criado, sair da ficha pergunta antes (pendência); escolher um serviço em "Incluir serviço…" não grava, e o botão "Incluir" grava.
+- [ ] **Step 2: Run.** Expected: FAIL.
+- [ ] **Step 3: Implement** com `useTrava` e `usePendencia` de `componentes/AlteracoesPendentes`.
+- [ ] **Step 4: Run.** Expected: PASS.
+- [ ] **Step 5: Commit** `Fase 4.4.6: funções com trava e incluir serviço com botão`.
+
+### Task 96: A importação de guarnições confere os campos como a tela
+
+**Files:** `apps/api/src/importacao/guarnicoes.ts` (viatura, tipo, nome). **Test:** `apps/api/test/importacao-guarnicoes.test.ts`.
+
+- [ ] **Step 1: Testes:** nome, sigla da viatura e tipo maiores que o limite do contrato da tela (os mesmos esquemas de `pacotes/contratos`) viram problema com a solução "Encurte para até N caracteres." e a linha é pulada; os de tamanho certo entram.
+- [ ] **Step 2: Run.** Expected: FAIL.
+- [ ] **Step 3: Implement** validando com os esquemas do contrato, sem repetir os limites.
+- [ ] **Step 4: Run.** Expected: PASS.
+- [ ] **Step 5: Commit** `Fase 4.4.6: importação de guarnições confere os campos`. No fim da entrega:
+  - contagens no `CLAUDE.md` local;
+  - `pnpm test && pnpm typecheck && pnpm build:vercel`;
+  - revisão final (Opus);
+  - **enviar o branch e o resumo à PLANEJAMENTO** (não abrir PR nem mesclar), com a lista curta para a sandbox.
+
+---
+
 # Entregas 3 a 6 (a detalhar antes de cada uma)
 
 Cada uma ganha aqui as suas tarefas, no formato da entrega 1, depois do merge da anterior e da conversa com o usuário sobre o que a entrega 1 mostrou em uso.
@@ -2837,7 +2941,8 @@ Cada uma ganha aqui as suas tarefas, no formato da entrega 1, depois do merge da
 - **Entregas 4.1 e 4.2:** detalhadas acima (Tarefas 60 a 64), com o adendo "validação da 3.3" de `docs/superpowers/specs/2026-11-20-meta-de-ativacao-design.md`.
 - **Entrega 4.3 — Limpeza das pendências da fase 3:** detalhada acima (Tarefas 65 a 73), com o design `docs/superpowers/specs/2026-11-20-limpeza-da-fase-3-design.md`. Fecha a fase 4.
 - **Entrega 4.4 — Grade geral: leitura e "Adicionar serviço" em abas:** detalhada acima (Tarefas 74 a 82), com o design `docs/superpowers/specs/2026-11-20-grade-geral-ux-design.md` (retorno da validação da entrega 4 e correção do "Desativar" da 4.1).
-- **Entrega 4.5 — Acabamento: pendências simples:** detalhada acima (Tarefas 83 a 90), pedido do usuário de 20/11/2026. Fecha a fase 4.
+- **Entrega 4.5 — Acabamento: pendências simples:** detalhada acima (Tarefas 83 a 90), pedido do usuário de 20/11/2026.
+- **Entrega 4.6 — Acabamento 2: pendências simples:** detalhada acima (Tarefas 91 a 96), pedido do usuário de 20/11/2026.
 - **Entrega 5 — Gerar documento:** Configurações › Modelos de impressão (enviar com conferência dos marcadores, baixar o atual, versões); geração da escala publicada com ExcelJS a partir do modelo vigente da unidade, respeitando `militares_doc` e `dias_doc` da escala; `documento_gerado` guardado e baixável; PDF fica para quando o serviço existir. **Reorganização de 20/11/2026: passou para a fase 8 (primeiro mês real) do roadmap; a fase 4 fecha na 4.3 (limpeza).**
 - **Entrega 5.1 — O mesmo modelo mais de uma vez no dia:** a detalhar depois da 5, com o design feito com o usuário (perguntas no adendo "validação da 3.3"). **Reorganização de 20/11/2026: passou para a fase 8 (primeiro mês real) do roadmap.**
 - ~~**Entrega 6 — Minha escala**~~: saiu da fase 4 (decisão do usuário, 19/11/2026). O conteúdo previsto continua valendo e vai para a etapa "Tipos de usuário e módulos" do roadmap: a rota e a tela do militar comum (os próprios serviços do mês, com serviço, turno, horário e quem compõe a guarnição com ele) e o acesso às escalas publicadas da unidade em que ele está lotado.
