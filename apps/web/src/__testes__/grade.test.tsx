@@ -52,7 +52,7 @@ describe('grade geral: a tabela', () => {
     api();
     abrir(`/?mes=${MES}`);
     await screen.findByRole('table', { name: 'Grade geral de dezembro de 2026' });
-    expect([...document.querySelectorAll('tr[data-grupo]')].map((g) => g.textContent)).toEqual(['Alfa', 'Bravo', 'Adm']);
+    expect([...document.querySelectorAll('tr[data-grupo]')].map((g) => g.querySelector('strong')?.textContent)).toEqual(['Alfa', 'Bravo', 'Adm']);
     expect(screen.getAllByRole('rowheader').map((h) => h.textContent)).toEqual(expect.arrayContaining([expect.stringContaining('CABO'), expect.stringContaining('ADM')]));
     const b = within(celula('CABO', 2, 'Pronto A')).getByText('A');
     expect(b).toHaveStyle({ backgroundColor: '#2F8F5B' });
@@ -75,15 +75,79 @@ describe('grade geral: a tabela', () => {
     expect(screen.getByRole('columnheader', { name: 'Militar' })).toHaveClass('sticky', 'top-0', 'left-0');
   });
 
-  it('o feriado tem o número em vermelho e o fim de semana o fundo sombreado', async () => {
+  it('o grupo mostra o nome e o total, preso à esquerda', async () => {
     api();
     abrir(`/?mes=${MES}`);
-    const cabecalho = await screen.findByRole('columnheader', { name: /^Dia 8, terça, feriado: Feriado de teste/ });
-    expect(cabecalho).toHaveAttribute('data-feriado');
-    expect(within(cabecalho).getByText('8')).toHaveClass('text-alerta');
-    expect(screen.getByRole('columnheader', { name: /^Dia 5, sábado/ })).toHaveAttribute('data-fim-de-semana');
+    await screen.findByRole('table', { name: 'Grade geral de dezembro de 2026' });
+    const alfa = document.querySelector<HTMLElement>('tr[data-grupo="eq-alfa"] th[scope="colgroup"] [data-nome-do-grupo]')!;
+    expect(alfa).toHaveClass('sticky', 'left-4');
+    expect(alfa).toHaveTextContent('Alfa');
+    expect(alfa).toHaveTextContent('2 militares');
+    expect(alfa.querySelector('strong')).toHaveClass('text-tinta', 'font-bold');
+    expect(document.querySelector('tr[data-grupo="eq-bravo"] [data-nome-do-grupo]')).toHaveTextContent('1 militar');
+    expect(document.querySelector('tr[data-grupo="eq-bravo"] [data-nome-do-grupo]')).not.toHaveTextContent('1 militares');
+  });
+
+  it('a sigla do dia é Dom, Seg…; fim de semana e feriado em vinho, sem fundo, e o feriado com pontinho', async () => {
+    api();
+    abrir(`/?mes=${MES}`);
+    const sabado = await screen.findByRole('columnheader', { name: /^Dia 5, sábado/ });
+    expect(within(sabado).getByText('Sáb')).toBeInTheDocument();
+    expect(within(sabado).getByText('5')).toHaveClass('text-vinho');
+    expect(screen.getByRole('columnheader', { name: /^Dia 1, terça/ })).toHaveTextContent('Ter');
+    expect(within(screen.getByRole('columnheader', { name: /^Dia 1, terça/ })).getByText('1')).not.toHaveClass('text-vinho');
+    expect(document.querySelectorAll('[class*="F6F7F9"]')).toHaveLength(0);
+    expect(sabado).toHaveAttribute('data-fim-de-semana');
     expect(celula('SD1', 5, 'Pronto A, JES A').closest('td')).toHaveAttribute('data-fim-de-semana');
     expect(celula('CABO', 2, 'Pronto A').closest('td')).not.toHaveAttribute('data-fim-de-semana');
+    const feriado = screen.getByRole('columnheader', { name: /^Dia 8, terça, feriado: Feriado de teste/ });
+    expect(feriado).toHaveAttribute('data-feriado');
+    expect(feriado).toHaveAttribute('title', 'Feriado de teste');
+    expect(within(feriado).getByText('8')).toHaveClass('text-vinho');
+    expect(within(feriado).getByText('8')).not.toHaveClass('text-alerta');
+    expect(feriado.querySelector('[data-ponto-feriado]')).not.toBeNull();
+    expect(sabado.querySelector('[data-ponto-feriado]')).toBeNull();
+  });
+
+  it('segunda-feira abre a semana com uma linha mais forte (mesmo num feriado)', async () => {
+    // dia 7 é segunda-feira: aqui ele é feriado, e a linha da semana, o vinho e o pontinho valem juntos (Review Focus 5)
+    api({ ...GRADE, dias: DIAS.map((d) => (d.data === dia(7) ? { ...d, feriado: 'Feriado de segunda' } : d.data === dia(8) ? { ...d, feriado: null } : d)) });
+    abrir(`/?mes=${MES}`);
+    const segunda = await screen.findByRole('columnheader', { name: /^Dia 7, segunda, feriado: Feriado de segunda/ });
+    expect(segunda).toHaveClass('border-l-[#C9CED6]');
+    expect(within(segunda).getByText('7')).toHaveClass('text-vinho');
+    expect(segunda.querySelector('[data-ponto-feriado]')).not.toBeNull();
+    expect(celula('CABO', 7, 'sem serviço').closest('td')).toHaveClass('border-l-[#C9CED6]');
+    expect(screen.getByRole('columnheader', { name: /^Dia 14, segunda/ })).toHaveClass('border-l-[#C9CED6]');
+    expect(screen.getByRole('columnheader', { name: /^Dia 6, domingo/ })).not.toHaveClass('border-l-[#C9CED6]');
+    expect(screen.getByRole('columnheader', { name: /^Dia 8, terça/ })).not.toHaveClass('border-l-[#C9CED6]');
+    expect(celula('CABO', 8, 'sem serviço').closest('td')).not.toHaveClass('border-l-[#C9CED6]');
+  });
+
+  it('o militar aparece com posto e nome na mesma linha e a matrícula embaixo', async () => {
+    api();
+    abrir(`/?mes=${MES}`);
+    await screen.findByRole('table', { name: 'Grade geral de dezembro de 2026' });
+    const cabeca = screen.getByRole('rowheader', { name: /CABO/ });
+    const nome = within(cabeca).getByText('CABO');
+    expect(nome.tagName).toBe('STRONG');
+    expect(nome.parentElement).toHaveTextContent('SD BM');
+    expect(within(cabeca).getByText('990001-1')).toHaveClass('text-xs');
+    expect(cabeca).toHaveClass('min-w-[13rem]');
+    // o nome acessível da célula não muda
+    expect(celula('CABO', 2, 'Pronto A')).toBeInTheDocument();
+  });
+
+  it('os blocos têm largura fixa e se espalham por igual', async () => {
+    api();
+    abrir(`/?mes=${MES}`);
+    await screen.findByRole('table', { name: 'Grade geral de dezembro de 2026' });
+    const dois = celula('SD1', 5, 'Pronto A, JES A');
+    expect(dois).toHaveClass('justify-evenly');
+    for (const bloco of within(dois).getAllByText('A')) {
+      expect(bloco).toHaveClass('w-5', 'shrink-0');
+      expect(bloco).not.toHaveClass('flex-1');
+    }
   });
 
   it('a célula com choque tem contorno vermelho e "choque" no nome; o expediente é um bloco sem letra', async () => {

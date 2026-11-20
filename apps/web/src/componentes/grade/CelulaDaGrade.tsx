@@ -33,7 +33,7 @@ export function CelulaDaGrade({ linha, dia, data, blocos, choque, escolhida, aoE
       data-escolhida={escolhida ? '' : undefined}
       onClick={aoEscolher}
       className={cn(
-        'flex h-7 w-full min-w-6 items-center justify-center gap-0.5 rounded px-px outline-none focus-visible:ring-2 focus-visible:ring-tinta',
+        'flex h-7 w-full min-w-12 items-center justify-evenly rounded px-px outline-none focus-visible:ring-2 focus-visible:ring-tinta',
         choque && 'bg-alerta/10 ring-2 ring-alerta ring-inset',
         escolhida && !choque && 'bg-vinho/15 ring-2 ring-vinho ring-inset',
         !blocos.length && !choque && !escolhida && 'hover:bg-black/[0.06]',
@@ -45,7 +45,7 @@ export function CelulaDaGrade({ linha, dia, data, blocos, choque, escolhida, aoE
           <span
             key={`${b.alocacaoId ?? 'expediente'}|${i}`}
             aria-hidden
-            className="grid h-[18px] min-w-[14px] flex-1 place-items-center rounded-[3px] font-cond text-[11px] leading-none font-bold"
+            className="grid h-[18px] w-5 shrink-0 place-items-center rounded-[3px] font-cond text-[11px] leading-none font-bold"
             style={{ backgroundColor: cor, color: corDoTexto(cor) }}
           >
             {b.letra}

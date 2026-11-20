@@ -5,13 +5,20 @@ import { cn } from '@/lib/utils';
 import { BarraComparativa } from './BarraComparativa';
 import { CelulaDaGrade } from './CelulaDaGrade';
 
-const INICIAL_DO_DIA = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S'];
+const SIGLA_DO_DIA = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 const NOME_DO_DIA = ['domingo', 'segunda', 'terça', 'quarta', 'quinta', 'sexta', 'sábado'];
 
 /** Os maiores números das colunas, em toda a grade (a barra de cada militar compara com eles, mesmo com o filtro de equipes ligado). */
 export function maximosDaGrade(grupos: GrupoDaGrade[]): { pjes: number; diarias: number } {
   const linhas = grupos.flatMap((g) => g.linhas);
   return { pjes: Math.max(0, ...linhas.map((l) => l.pjes)), diarias: Math.max(0, ...linhas.map((l) => l.diarias)) };
+}
+
+/** A linha clara à direita de cada dia, e uma mais forte à esquerda da segunda-feira (separa as semanas; no lugar da clara do domingo). */
+function bordasDoDia(grade: GradeDoMes, i: number): string[] {
+  const segunda = grade.dias[i]!.diaDaSemana === 1;
+  const vesperaDeSegunda = grade.dias[i + 1]?.diaDaSemana === 1;
+  return [segunda ? 'border-l border-l-[#C9CED6]' : '', vesperaDeSegunda ? '' : 'border-r border-r-[#EEF0F3]'];
 }
 
 const horas = (l: LinhaDaGrade) => (l.horasTiradas === 0 && l.horasPedidas === 0 ? '–' : `${textoDuracao(l.horasTiradas)} de ${textoDuracao(l.horasPedidas)}`);
@@ -35,10 +42,11 @@ export function TabelaDaGrade({ grade, grupos, maximos, escolhida, aoEscolher }:
       <table aria-label={`Grade geral de ${mesPorExtenso(grade.mes)}`} className="w-full border-separate border-spacing-0 font-cond">
         <thead>
           <tr>
-            <th scope="col" className="sticky top-0 left-0 z-30 min-w-40 border-b border-linha bg-superficie py-2 pl-4 text-left text-sm font-medium text-apagado">Militar</th>
-            {grade.dias.map((d) => {
+            <th scope="col" className="sticky top-0 left-0 z-30 min-w-[13rem] border-r-2 border-b border-linha bg-superficie py-2 pl-4 text-left text-sm font-medium text-apagado">Militar</th>
+            {grade.dias.map((d, i) => {
               const n = Number(d.data.slice(8));
               const fds = d.diaDaSemana === 0 || d.diaDaSemana === 6;
+              const vinho = fds || Boolean(d.feriado);
               return (
                 <th
                   key={d.data}
@@ -47,10 +55,11 @@ export function TabelaDaGrade({ grade, grupos, maximos, escolhida, aoEscolher }:
                   data-feriado={d.feriado ? '' : undefined}
                   data-fim-de-semana={fds ? '' : undefined}
                   title={d.feriado ?? undefined}
-                  className={cn('sticky top-0 z-20 min-w-6 border-b border-linha px-px pt-2 pb-1.5 text-center text-[13px] font-medium text-apagado', fds ? 'bg-[#F6F7F9]' : 'bg-superficie')}
+                  className={cn('sticky top-0 z-20 min-w-12 border-b border-linha bg-superficie px-px pt-2 pb-1.5 text-center text-[13px] font-medium text-apagado', ...bordasDoDia(grade, i))}
                 >
-                  <span aria-hidden className={cn('block text-base font-semibold', d.feriado ? 'text-alerta' : 'text-tinta')}>{n}</span>
-                  <span aria-hidden>{INICIAL_DO_DIA[d.diaDaSemana]}</span>
+                  <span aria-hidden className={cn('block text-base font-semibold', vinho ? 'text-vinho' : 'text-tinta')}>{n}</span>
+                  <span aria-hidden className={cn(vinho && 'text-vinho')}>{SIGLA_DO_DIA[d.diaDaSemana]}</span>
+                  {d.feriado && <span aria-hidden data-ponto-feriado className="mx-auto mt-0.5 block size-1 rounded-full bg-vinho" />}
                 </th>
               );
             })}
@@ -63,18 +72,28 @@ export function TabelaDaGrade({ grade, grupos, maximos, escolhida, aoEscolher }:
           {grupos.map((g) => (
             <Fragment key={g.chave}>
               <tr data-grupo={g.chave}>
-                <th colSpan={colunas} scope="colgroup" className="sticky left-0 bg-[#F1F3F6] px-4 py-1.5 text-left text-[13px] font-semibold text-apagado">{g.nome}</th>
+                <th colSpan={colunas} scope="colgroup" className="bg-[#F1F3F6] px-4 py-1.5 text-left">
+                  {/* o texto fica preso à esquerda: a célula do grupo é larga como a tabela, então quem gruda é o que está dentro dela */}
+                  <span data-nome-do-grupo className="sticky left-4 inline-flex items-center gap-2">
+                    <span aria-hidden className="h-4 w-[3px] rounded-full bg-vinho" />
+                    <strong className="text-[15px] font-bold text-tinta">{g.nome}</strong>
+                    <span className="text-sm font-normal text-apagado">{g.linhas.length === 1 ? '1 militar' : `${g.linhas.length} militares`}</span>
+                  </span>
+                </th>
               </tr>
               {g.linhas.map((l) => (
-                <tr key={l.militarId} data-militar={l.militarId}>
-                  <th scope="row" className="sticky left-0 z-10 border-b border-[#EEF0F3] bg-superficie py-1 pl-4 text-left font-normal">
-                    <strong className="block text-[15px] leading-tight font-semibold">{l.nomeGuerra}</strong>
-                    <span className="text-xs text-apagado">{l.posto}</span>
+                <tr key={l.militarId} data-militar={l.militarId} className="group hover:bg-black/[0.03]">
+                  <th scope="row" className="sticky left-0 z-10 min-w-[13rem] border-r-2 border-b border-b-[#EEF0F3] border-r-linha bg-superficie py-1 pl-4 text-left font-normal group-hover:bg-[#F7F7F8]">
+                    <span className="flex items-baseline gap-1.5 whitespace-nowrap">
+                      <span className="text-sm text-apagado">{l.posto}</span>
+                      <strong className="text-[15px] leading-tight font-semibold">{l.nomeGuerra}</strong>
+                    </span>
+                    <span className="block text-xs text-apagado">{l.matricula}</span>
                   </th>
-                  {grade.dias.map((d) => {
+                  {grade.dias.map((d, i) => {
                     const fds = d.diaDaSemana === 0 || d.diaDaSemana === 6;
                     return (
-                      <td key={d.data} data-fim-de-semana={fds ? '' : undefined} className={cn('border-b border-[#EEF0F3] px-px py-1', fds && 'bg-[#F6F7F9]')}>
+                      <td key={d.data} data-fim-de-semana={fds ? '' : undefined} className={cn('border-b border-b-[#EEF0F3] px-px py-1', ...bordasDoDia(grade, i))}>
                         <CelulaDaGrade
                           linha={l}
                           dia={Number(d.data.slice(8))}
