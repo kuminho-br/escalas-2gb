@@ -1,7 +1,7 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
 import { ChevronDown, ChevronRight, Menu } from 'lucide-react';
-import { useState } from 'react';
+import { useState, type Ref } from 'react';
 import { consultaEu, type Eu } from '@/api/eu';
 import { podeDescartar } from '@/componentes/AlteracoesPendentes';
 import { authCliente } from '@/auth-cliente';
@@ -14,7 +14,8 @@ import {
   DropdownMenuTrigger,
 } from '@/componentes/ui/dropdown-menu';
 
-export function Topo({ eu, aoAbrirMenu }: { eu: Eu; aoAbrirMenu: () => void }) {
+/** `botaoDoMenu` é a referência do botão que abre o menu do celular: o foco volta a ele quando o menu fecha pelo teclado. */
+export function Topo({ eu, aoAbrirMenu, botaoDoMenu }: { eu: Eu; aoAbrirMenu: () => void; botaoDoMenu?: Ref<HTMLButtonElement> }) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const nome = `${eu.militar.postoGrad} ${eu.militar.nomeGuerra}`;
@@ -39,7 +40,7 @@ export function Topo({ eu, aoAbrirMenu }: { eu: Eu; aoAbrirMenu: () => void }) {
 
   return (
     <header className="sticky top-0 z-20 flex h-14 items-center gap-3 border-b border-linha bg-superficie px-4 md:px-8">
-      <button type="button" onClick={aoAbrirMenu} className="-ml-1 rounded p-1.5 text-tinta md:hidden" aria-label="Abrir menu">
+      <button ref={botaoDoMenu} type="button" onClick={aoAbrirMenu} className="-ml-1 rounded p-1.5 text-tinta md:hidden" aria-label="Abrir menu">
         <Menu className="size-5" aria-hidden />
       </button>
       {/* no celular só a seção atual cabe; o caminho inteiro vale do computador em diante */}

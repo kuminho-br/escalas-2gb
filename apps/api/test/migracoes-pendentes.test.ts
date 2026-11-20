@@ -1,5 +1,5 @@
 import { readdirSync } from 'node:fs';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { criarApp } from '../src/app.ts';
 import { PASTA_MIGRACOES } from '../src/banco/migrar.ts';
 import { bancoPglite } from '../src/banco/pglite.ts';
@@ -21,6 +21,11 @@ afterAll(async () => {
 const app = (esperadas: string[], extra: { intervaloMs?: number } = {}) =>
   criarApp({ banco, migracoesEsperadas: esperadas, ...extra });
 
+// o escalante lê esta frase: sem comando de terminal e sem a lista dos arquivos (a lista vai para o log do servidor)
+const FRASE = 'O sistema está sendo atualizado. Tente de novo em alguns minutos; se continuar, avise o administrador.';
+const noLog = () => vi.spyOn(console, 'error').mockImplementation(() => {});
+afterEach(() => vi.restoreAllMocks());
+
 describe('migrações pendentes', () => {
   it('banco em dia: a rota responde normalmente', async () => {
     const a = criarApp({ banco, auth: undefined, migracoesEsperadas: reais });
@@ -28,23 +33,34 @@ describe('migrações pendentes', () => {
   });
 
   it('migração pendente: 503 com a mensagem e a lista; saúde continua', async () => {
+    const log = noLog();
     const a = app([...reais, '9999_futura.sql']);
     const r = await a.request('/api/sistema/qualquer');
     expect(r.status).toBe(503);
-    expect(await r.json()).toEqual({
-      erro: 'O banco de dados está desatualizado. Peça ao administrador para aplicar as migrações pendentes (pnpm --filter api db:migrar:teste).',
-      pendentes: ['9999_futura.sql'],
-    });
+    // só a frase: sem `pendentes` no corpo e sem comando de terminal
+    expect(await r.json()).toEqual({ erro: FRASE });
+    expect(log).toHaveBeenCalledTimes(1);
+    expect(log).toHaveBeenCalledWith(expect.stringContaining('9999_futura.sql'));
     expect((await a.request('/api/saude')).status).toBe(200);
   });
 
+  it('duas requisições no mesmo intervalo conferem uma vez e registram a lista uma vez', async () => {
+    const log = noLog();
+    const a = app([...reais, '9999_futura.sql']);
+    expect((await a.request('/api/sistema/a')).status).toBe(503);
+    expect((await a.request('/api/sistema/b')).status).toBe(503);
+    expect(log).toHaveBeenCalledTimes(1);
+  });
+
   it('banco sem a tabela de controle: tudo pendente', async () => {
+    const log = noLog();
     const vazio = await bancoPglite();
     try {
       const a = criarApp({ banco: vazio, migracoesEsperadas: ['0001_a.sql', '0002_b.sql'] });
       const r = await a.request('/api/qualquer');
       expect(r.status).toBe(503);
-      expect((await r.json()).pendentes).toEqual(['0001_a.sql', '0002_b.sql']);
+      expect(await r.json()).toEqual({ erro: FRASE });
+      expect(log).toHaveBeenCalledWith(expect.stringMatching(/0001_a\.sql.*0002_b\.sql/));
     } finally {
       await vazio.fechar();
     }
@@ -71,12 +87,13 @@ describe('migrações pendentes', () => {
 });
 
 describe('as rotas da fase 4 também passam pela conferência', () => {
-  it('com migração faltando, a grade e o efetivo do dia respondem 503 com a lista; a saúde continua', async () => {
+  it('com migração faltando, a grade e o efetivo do dia respondem 503 com a frase; a saúde continua', async () => {
+    noLog();
     const a = app([...reais, '9999_futura.sql']);
     for (const caminho of ['/api/unidades/u1/grade/2026-12', '/api/unidades/u1/efetivo-do-dia/2026-12-01']) {
       const r = await a.request(caminho);
       expect(r.status).toBe(503);
-      expect((await r.json()).pendentes).toEqual(['9999_futura.sql']);
+      expect(await r.json()).toEqual({ erro: FRASE });
     }
     expect((await a.request('/api/saude')).status).toBe(200);
   });

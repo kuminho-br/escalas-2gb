@@ -1,5 +1,5 @@
 import { Link, type LinkProps } from '@tanstack/react-router';
-import { Fragment } from 'react';
+import { Fragment, useEffect, useRef } from 'react';
 import {
   CalendarCheck,
   CalendarDays,
@@ -75,15 +75,30 @@ function ItemTrilho({ item, aoNavegar }: { item: Item; aoNavegar: () => void }) 
   );
 }
 
-export function Trilho({ eu, aberto, aoFechar }: { eu: Eu; aberto: boolean; aoFechar: () => void }) {
+/** `aoFechar(true)` devolve o foco ao botão que abriu o menu (Esc e "Fechar menu"); sem argumento (fundo escuro, ir a uma tela) não mexe no foco. */
+export function Trilho({ eu, aberto, aoFechar }: { eu: Eu; aberto: boolean; aoFechar: (devolverFoco?: boolean) => void }) {
+  const nav = useRef<HTMLElement>(null);
+  const fechar = useRef(aoFechar);
+  fechar.current = aoFechar;
+  // no celular, ao abrir o menu o foco vai para o primeiro item, e Esc fecha
+  useEffect(() => {
+    if (!aberto) return;
+    nav.current?.querySelector<HTMLElement>('ul a[href]')?.focus();
+    const aoTeclar = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') fechar.current(true);
+    };
+    document.addEventListener('keydown', aoTeclar);
+    return () => document.removeEventListener('keydown', aoTeclar);
+  }, [aberto]);
   // o militar comum não vê cadastros (adendo do design, "Atores")
   const visivel = (i: Item) => !(i.soCadastro && ehMilitarComum(eu));
   const blocos = BLOCOS.map((b) => b.filter(visivel)).filter((b) => b.length > 0);
   const pe = PE.filter(visivel);
   return (
     <>
-      {aberto && <div className="fixed inset-0 z-30 bg-tinta/40 md:hidden" onClick={aoFechar} aria-hidden />}
+      {aberto && <div className="fixed inset-0 z-30 bg-tinta/40 md:hidden" onClick={() => aoFechar()} aria-hidden />}
       <nav
+        ref={nav}
         aria-label="Navegação principal"
         className={cn(
           'fixed inset-y-0 left-0 z-40 flex w-[232px] flex-col bg-vinho px-3 py-4 text-white transition-transform md:sticky md:top-0 md:h-dvh md:w-[84px] md:translate-x-0 md:items-center md:overflow-y-auto md:px-0 md:py-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden',
@@ -103,7 +118,7 @@ export function Trilho({ eu, aberto, aoFechar }: { eu: Eu; aberto: boolean; aoFe
             <span className="font-cond text-lg font-semibold tracking-tight md:hidden">Escalas 2º GB</span>
             <span aria-hidden className="hidden font-cond text-[11.5px] leading-none font-semibold text-white md:block">2º GB</span>
           </span>
-          <button type="button" onClick={aoFechar} className="rounded p-1 text-white/80 md:hidden" aria-label="Fechar menu">
+          <button type="button" onClick={() => aoFechar(true)} className="rounded p-1 text-white/80 md:hidden" aria-label="Fechar menu">
             <X className="size-5" aria-hidden />
           </button>
         </div>
@@ -114,7 +129,7 @@ export function Trilho({ eu, aberto, aoFechar }: { eu: Eu; aberto: boolean; aoFe
               <ul className={cn('grid gap-0.5 md:justify-items-center', i > 0 && 'mt-3 border-t border-white/15 pt-3 md:mt-0 md:border-0 md:pt-0')}>
                 {bloco.map((item) => (
                   <li key={item.nome}>
-                    <ItemTrilho item={item} aoNavegar={aoFechar} />
+                    <ItemTrilho item={item} aoNavegar={() => aoFechar()} />
                   </li>
                 ))}
               </ul>
@@ -124,7 +139,7 @@ export function Trilho({ eu, aberto, aoFechar }: { eu: Eu; aberto: boolean; aoFe
           <ul className="grid gap-0.5 border-t border-white/15 pt-3 max-md:mt-auto md:justify-items-center md:border-0 md:pt-0">
             {pe.map((item) => (
               <li key={item.nome}>
-                <ItemTrilho item={item} aoNavegar={aoFechar} />
+                <ItemTrilho item={item} aoNavegar={() => aoFechar()} />
               </li>
             ))}
           </ul>

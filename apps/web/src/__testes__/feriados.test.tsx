@@ -2,7 +2,7 @@ import type { Feriado } from 'contratos';
 import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { abrir, corpoEnviado, EU_EXEMPLO, simularApi } from './apoio';
+import { abrir, chamadasA, corpoEnviado, EU_EXEMPLO, simularApi, trava } from './apoio';
 
 const ano = new Date().getFullYear();
 const feriado = (f: Partial<Feriado>): Feriado => ({ id: 'f1', data: `${ano}-04-21`, descricao: 'Tiradentes', fixo: true, unidadeSigla: '1ª SB', herdado: false, ...f });
@@ -52,6 +52,20 @@ describe('feriados', () => {
     await userEvent.click(await screen.findByRole('button', { name: `Copiar feriados fixos de ${ano - 1}` }));
     await waitFor(() => expect(corpoEnviado(f, 'POST /api/unidades/u-1sb/feriados/copiar-fixos')).toEqual({ de: ano - 1, para: ano }));
     expect(await screen.findByText('3 feriados copiados.')).toBeInTheDocument();
+  });
+
+  it('dois cliques seguidos em "Copiar feriados fixos" mandam um pedido só; o botão fica desabilitado enquanto copia', async () => {
+    const { espera, soltar } = trava();
+    const f = api({ 'POST /api/unidades/u-1sb/feriados/copiar-fixos': { status: 200, corpo: { copiados: 3 }, espera } });
+    abrir('/feriados');
+    const botao = await screen.findByRole('button', { name: `Copiar feriados fixos de ${ano - 1}` });
+    fireEvent.click(botao);
+    fireEvent.click(botao);
+    expect(botao).toBeDisabled();
+    soltar();
+    expect(await screen.findByText('3 feriados copiados.')).toBeInTheDocument();
+    expect(chamadasA(f, 'POST /api/unidades/u-1sb/feriados/copiar-fixos')).toBe(1);
+    await waitFor(() => expect(botao).toBeEnabled());
   });
 
   it('copiar fixos de um em um e sem nada novo', async () => {

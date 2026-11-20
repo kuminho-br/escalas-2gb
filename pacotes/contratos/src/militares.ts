@@ -16,6 +16,9 @@ const MSG_CNH_SEM_MOTORISTA = 'Marque o quadro de motoristas antes de escolher a
 export const NovaLotacao = z.object({ unidadeId: Id, equipeId: Id.nullable(), jornada: Jornada, desde: Mes });
 export type NovaLotacao = z.infer<typeof NovaLotacao>;
 
+/** As categorias da carteira entram sem repetir e em ordem (A a E): "B, B, D" vira "B, D". */
+const CnhSemRepetir = z.array(CategoriaCnh).transform((categorias) => [...new Set(categorias)].sort());
+
 export const NovoMilitar = z
   .object({
     matricula: Matricula,
@@ -23,7 +26,7 @@ export const NovoMilitar = z
     nomeGuerra: Nome,
     antiguidade: Antiguidade,
     motorista: z.boolean(),
-    cnh: z.array(CategoriaCnh),
+    cnh: CnhSemRepetir,
     voluntarioJes: z.boolean(),
     lotacao: z.object({ equipeId: Id.nullable(), jornada: Jornada, desde: Mes }),
   })
@@ -35,7 +38,7 @@ export const EdicaoMilitar = z.object({
   nomeGuerra: Nome.optional(),
   antiguidade: Antiguidade.optional(),
   motorista: z.boolean().optional(),
-  cnh: z.array(CategoriaCnh).optional(),
+  cnh: CnhSemRepetir.optional(),
   voluntarioJes: z.boolean().optional(),
   ativo: z.boolean().optional(),
 });

@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from '@tanstack/react-router';
+import { createFileRoute, useNavigate, useRouter } from '@tanstack/react-router';
 import { useState, type FormEvent } from 'react';
 import { consultaEu } from '@/api/eu';
 import { authCliente } from '@/auth-cliente';
@@ -6,7 +6,14 @@ import { Button } from '@/componentes/ui/button';
 import { Input } from '@/componentes/ui/input';
 import { Label } from '@/componentes/ui/label';
 
+/** Só caminho interno do próprio site (começa com uma barra, não com duas nem com barra e contrabarra): nada que mande a pessoa para fora. */
+const caminhoInterno = (v: string) => v.startsWith('/') && !v.startsWith('//') && !v.startsWith('/\\') && !/[\u0000-\u001f]/.test(v);
+
 export const Route = createFileRoute('/entrar')({
+  validateSearch: (s: Record<string, unknown>): { sessao?: 'terminou'; voltar?: string } => ({
+    sessao: s.sessao === 'terminou' ? 'terminou' : undefined,
+    voltar: typeof s.voltar === 'string' && caminhoInterno(s.voltar) ? s.voltar : undefined,
+  }),
   component: Entrar,
 });
 
@@ -15,6 +22,8 @@ const ERRO_REDE = 'Não foi possível falar com o servidor. Tente de novo.';
 
 function Entrar() {
   const navigate = useNavigate();
+  const router = useRouter();
+  const { sessao, voltar } = Route.useSearch();
   const { queryClient } = Route.useRouteContext();
   const [erro, setErro] = useState<string | null>(null);
   const [enviando, setEnviando] = useState(false);
@@ -35,7 +44,9 @@ function Entrar() {
       }
       // busca de novo: o cache pode guardar "sem sessão" da visita anterior
       await queryClient.fetchQuery({ ...consultaEu, staleTime: 0 });
-      await navigate({ to: '/' });
+      // depois de uma sessão que terminou, volta para a página em que a pessoa estava
+      if (voltar) router.history.push(voltar);
+      else await navigate({ to: '/' });
     } catch {
       setErro(ERRO_REDE);
     } finally {
@@ -70,6 +81,7 @@ function Entrar() {
         <header className="px-[22px] pt-6 lg:bg-vinho lg:px-6 lg:py-[18px] lg:text-white">
           <h2 className="font-cond text-2xl font-semibold">Entrar</h2>
           <p className="text-sm text-apagado lg:text-white/80">Use o e-mail cadastrado pela sua seção.</p>
+          {sessao === 'terminou' && <p role="status" className="mt-2 text-sm font-medium text-alerta lg:text-white">Sua sessão terminou. Entre de novo.</p>}
         </header>
         <form onSubmit={enviar} className="grid gap-4 px-[22px] pt-5 pb-8 lg:p-6" noValidate>
           <div className="grid gap-1.5">

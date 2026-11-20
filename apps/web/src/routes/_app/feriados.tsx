@@ -5,6 +5,7 @@ import { Pencil, Plus, Trash2 } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
 import { mensagemComCampo, mensagemDe } from '@/api/cliente';
 import { atualizarFeriados, consultaFeriados, copiarFeriadosFixos, criarFeriado, editarFeriado, removerFeriado } from '@/api/feriados';
+import { useTrava } from '@/componentes/AlteracoesPendentes';
 import { ImportarPlanilha } from '@/componentes/ImportarPlanilha';
 import { Selecao } from '@/componentes/Selecao';
 import { Button } from '@/componentes/ui/button';
@@ -29,7 +30,9 @@ function Feriados() {
   const [aviso, setAviso] = useState<{ erro: boolean; texto: string } | null>(null);
   const anos = [...new Set([...Array.from({ length: 7 }, (_, i) => anoAtual - 3 + i), ano])].sort();
 
-  async function copiar() {
+  const { salvando: copiando, travar } = useTrava();
+  // travada: dois cliques seguidos mandam um pedido só, e o botão fica apagado enquanto copia
+  const copiar = travar(async () => {
     setAviso(null);
     try {
       const { copiados } = await copiarFeriadosFixos(eu.unidade.id, ano - 1, ano);
@@ -44,7 +47,7 @@ function Feriados() {
     } catch (err) {
       setAviso({ erro: true, texto: mensagemDe(err) });
     }
-  }
+  });
 
   // o feriado de outro ano some da lista do ano que está aberta: troca para o ano dele e diz isso
   function salvou(f: Feriado) {
@@ -71,7 +74,7 @@ function Feriados() {
         <h1 className="font-cond text-[28px] leading-tight font-semibold">Feriados</h1>
         <div className="flex flex-wrap gap-2">
           <ImportarPlanilha cadastro="feriados" rotulo="os feriados" aoConcluir={() => atualizarFeriados(queryClient)} />
-          <Button variant="outline" onClick={() => void copiar()}>Copiar feriados fixos de {ano - 1}</Button>
+          <Button variant="outline" disabled={copiando} onClick={() => void copiar()}>Copiar feriados fixos de {ano - 1}</Button>
           <Button onClick={() => setDialogo({})}>
             <Plus aria-hidden />
             Novo feriado
