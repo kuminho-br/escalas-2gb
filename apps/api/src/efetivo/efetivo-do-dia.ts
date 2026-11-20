@@ -8,7 +8,7 @@ import { vinculosDaEscala } from '../cadastros/escalas.ts';
 import { versaoNoMes } from '../cadastros/guarnicoes-regras.ts';
 import { versoesDasGuarnicoes } from '../cadastros/guarnicoes.ts';
 import { cotasDoMes } from '../cadastros/cotas.ts';
-import { metaDoDia } from './meta.ts';
+import { metaDoDia, metaPadraoDoDia } from './meta.ts';
 
 type Entrada = {
   guarnicaoId: string; funcaoId: string; acumulo: boolean; alocacaoId: string; acumuloId: string | null;
@@ -122,7 +122,11 @@ export async function montarEfetivoDoDia(c: Consulta, unidadeId: string, data: s
   const naMeta = meta.guarnicoes.map((g) => g.guarnicaoId);
   const foraDaMeta = [...new Set(entradas.map((e) => e.guarnicaoId))].filter((id) => !naMeta.includes(id));
   const todas = [...naMeta, ...foraDaMeta];
-  if (!todas.length) return { data, meta: { origem: meta.origem, total: 0, ativadas: 0 }, guarnicoes: [], cotas: await cotasRestantes(c, unidadeId, mes) };
+  // "Desativadas hoje": as da meta padrão do dia que não estão na meta do dia (só quando o dia tem meta própria)
+  const doPadrao = meta.origem === 'dia' ? (await metaPadraoDoDia(c, unidadeId, data)).guarnicoes.filter((g) => !naMeta.includes(g.guarnicaoId)) : [];
+  const versoesDasDesativadas = await versoesDasGuarnicoes(c, doPadrao.map((g) => g.guarnicaoId));
+  const desativadas = doPadrao.map((g) => ({ guarnicaoId: g.guarnicaoId, nome: g.nome, viatura: versaoNoMes(versoesDasDesativadas.get(g.guarnicaoId) ?? [], mes)?.viatura ?? null }));
+  if (!todas.length) return { data, meta: { origem: meta.origem, total: 0, ativadas: 0 }, guarnicoes: [], desativadas, cotas: await cotasRestantes(c, unidadeId, mes) };
 
   const nomes = new Map((await c.query<{ id: string; nome: string }>('select id, nome from guarnicao where id = any($1::uuid[])', [todas])).rows.map((g) => [g.id, g.nome]));
   const funcoes = new Map(
@@ -192,6 +196,7 @@ export async function montarEfetivoDoDia(c: Consulta, unidadeId: string, data: s
     data,
     meta: { origem: meta.origem, total: naMeta.length, ativadas: guarnicoes.filter((g) => g.ordem !== null && g.ativada).length },
     guarnicoes,
+    desativadas,
     cotas: await cotasRestantes(c, unidadeId, mes),
   };
 }

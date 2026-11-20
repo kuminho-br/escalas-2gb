@@ -61,9 +61,16 @@ export type GuarnicaoNoEfetivo = {
   alocados: number;
 };
 
+import type { DesfazerDesativacao } from './meta.ts';
+
 export type EfetivoDoDia = {
   data: string;
   meta: { origem: 'padrao' | 'dia'; total: number; ativadas: number };
   guarnicoes: GuarnicaoNoEfetivo[];
+  /** as guarnições da meta padrão do dia que não estão na meta do dia ("Desativadas hoje"); vazio quando o dia segue o padrão */
+  desativadas: { guarnicaoId: string; nome: string; viatura: string | null }[];
   cotas: CotaRestante[];
 };
+
+/** Desativar uma guarnição: o efetivo do dia já atualizado e o que ela tirou, para o "Desfazer". */
+export type ResultadoDaDesativacao = { efetivo: EfetivoDoDia; desfazer: DesfazerDesativacao };

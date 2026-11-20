@@ -8,6 +8,9 @@ import { versaoNoMes } from '../cadastros/guarnicoes-regras.ts';
 import { versoesDasGuarnicoes } from '../cadastros/guarnicoes.ts';
 import { motivoDeFora, SEM_VOLUNTARIADO } from './elegibilidade.ts';
 
+/** A frase de quando o militar já está escalado naquele serviço e turno (o "Desfazer" da desativação a reconhece). */
+export const JA_ESCALADO_NO_TURNO = 'Este militar já está escalado neste turno.';
+
 export class Recusa extends Error {
   constructor(mensagem: string) {
     super(mensagem);
@@ -68,7 +71,7 @@ export async function escalar(tx: Consulta, escalaId: string, d: NovaAlocacao): 
   const igual = (
     await tx.query('select 1 from alocacao where militar_id = $1 and data = $2::date and servico_id = $3 and turno_id = $4', [d.militarId, d.data, turno.servico_id, d.turnoId])
   ).rows.length;
-  if (igual) throw new Recusa('Este militar já está escalado neste turno.');
+  if (igual) throw new Recusa(JA_ESCALADO_NO_TURNO);
   const motivo = await motivoDeFora(tx, { escalaId, data: d.data, inicio: turno.inicio, fim: turno.fim, guarnicaoId: d.guarnicaoId, funcaoId: d.funcaoId, militarId: d.militarId, turnoId: d.turnoId });
   // só o voluntariado pode ser contornado: o escalante combina direto com o militar; as demais regras continuam recusando
   if (motivo && motivo !== SEM_VOLUNTARIADO) throw new Recusa(motivo);
@@ -79,7 +82,7 @@ export async function escalar(tx: Consulta, escalaId: string, d: NovaAlocacao): 
       [d.militarId, escalaId, turno.servico_id, d.turnoId, d.data, d.guarnicaoId, d.funcaoId],
     );
   } catch (e) {
-    if ((e as { code?: string } | null)?.code === '23505') throw new Recusa('Este militar já está escalado neste turno.');
+    if ((e as { code?: string } | null)?.code === '23505') throw new Recusa(JA_ESCALADO_NO_TURNO);
     throw e;
   }
   return mes;
