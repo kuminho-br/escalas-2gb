@@ -1,9 +1,9 @@
 import { textoFaixa, type FaltaNoEfetivo, type GuarnicaoNoEfetivo } from 'contratos';
-import { ArrowDown, ArrowUp } from 'lucide-react';
+import { ArrowLeft, ArrowRight } from 'lucide-react';
 import { Button } from '@/componentes/ui/button';
 import { cn } from '@/lib/utils';
 import { LinhaDoTempoDaGuarnicao, type AcoesDaLinha } from './LinhaDoTempoDaGuarnicao';
-import type { Janela } from './ReguaDoEfetivo';
+import type { Janela } from '@/lib/efetivo';
 
 const fraseDaFalta = (f: FaltaNoEfetivo) => `${f.faltam === 1 ? 'Falta 1' : `Faltam ${f.faltam}`} ${f.funcao} ${textoFaixa(f.inicio, f.fim)}`;
 
@@ -11,8 +11,8 @@ const fraseDaFalta = (f: FaltaNoEfetivo) => `${f.faltam === 1 ? 'Falta 1' : `Fal
  * Uma guarnição do dia. O número só existe na meta (a ordem de ativação), e o estado nunca muda a posição: não ativada continua onde está.
  * As funções aparecem ao longo do dia, com as vagas na própria linha; as faltas também vêm escritas, embaixo.
  */
-/** Os controles da meta no card da meta: mudam a meta deste dia (Subir e Descer só quando há para onde ir). */
-export type ControlesDaMeta = { aoSubir?: () => void; aoDescer?: () => void; aoDesativar: () => void; salvando: boolean };
+/** Os controles da meta no card da meta: mudam a meta deste dia ("Mover antes" e "Mover depois" só quando há para onde ir). */
+export type ControlesDaMeta = { aoMoverAntes?: () => void; aoMoverDepois?: () => void; aoDesativar: () => void; salvando: boolean };
 
 export function CardDoEfetivo({ g, janela, acoes, meta }: { g: GuarnicaoNoEfetivo; janela: Janela | null; acoes?: AcoesDaLinha; meta?: ControlesDaMeta }) {
   const nome = g.ordem === null ? g.nome : `${g.ordem}º ${g.nome}`;
@@ -26,14 +26,14 @@ export function CardDoEfetivo({ g, janela, acoes, meta }: { g: GuarnicaoNoEfetiv
         </span>
         {meta && (
           <span className="ml-auto flex flex-wrap gap-1">
-            {meta.aoSubir && (
-              <Button type="button" variant="ghost" size="sm" aria-label={`Subir ${g.nome}`} disabled={meta.salvando} onClick={meta.aoSubir}>
-                <ArrowUp aria-hidden />
+            {meta.aoMoverAntes && (
+              <Button type="button" variant="ghost" size="sm" aria-label={`Mover ${g.nome} para antes`} title="Mover antes" disabled={meta.salvando} onClick={meta.aoMoverAntes}>
+                <ArrowLeft aria-hidden />
               </Button>
             )}
-            {meta.aoDescer && (
-              <Button type="button" variant="ghost" size="sm" aria-label={`Descer ${g.nome}`} disabled={meta.salvando} onClick={meta.aoDescer}>
-                <ArrowDown aria-hidden />
+            {meta.aoMoverDepois && (
+              <Button type="button" variant="ghost" size="sm" aria-label={`Mover ${g.nome} para depois`} title="Mover depois" disabled={meta.salvando} onClick={meta.aoMoverDepois}>
+                <ArrowRight aria-hidden />
               </Button>
             )}
             <Button type="button" variant="ghost" size="sm" disabled={meta.salvando} onClick={meta.aoDesativar}>Desativar guarnição</Button>

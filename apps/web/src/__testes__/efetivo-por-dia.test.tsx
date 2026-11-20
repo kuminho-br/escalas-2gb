@@ -2,7 +2,7 @@ import type { AlocacaoNoTrecho, DiaDaEscala, EfetivoDoDia, EscalaDoMes, Guarnica
 import { act, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { janelaDoDia, marcasDoDia } from '@/lib/efetivo';
+import { janelaDoDia } from '@/lib/efetivo';
 import { hoje, mesAtual } from '@/lib/meses';
 import { abrir, chamadasA, corpoEnviado, EU_EXEMPLO, simularApi } from './apoio';
 
@@ -103,38 +103,52 @@ describe('efetivo por dia: a linha do tempo', () => {
     expect(within(aco).getAllByText('Motorista', { selector: '[data-funcao]' })).toHaveLength(1);
   });
 
-  it('a régua marca os horários vinculados e mostra D e D+1 quando passa da meia-noite', async () => {
+  it('a tela não tem a régua, e os cards ficam numa grade que se ajusta à largura (4.2)', async () => {
     api();
     abrir(`/efetivo-por-dia?data=${DIA}`);
-    const regua = await screen.findByTestId('regua-do-dia');
-    expect(within(regua).getAllByText('08h')).toHaveLength(2);
-    expect(within(regua).getByText('20h')).toBeInTheDocument();
-    expect(within(regua).getByText('D')).toBeInTheDocument();
-    expect(within(regua).getByText('D+1')).toBeInTheDocument();
+    await screen.findByRole('region', { name: '1º ACO' });
+    expect(screen.queryByTestId('regua-do-dia')).toBeNull();
+    expect(screen.queryByText('D+1')).toBeNull();
+    const grade = document.querySelector('[data-cards-do-efetivo]') as HTMLElement;
+    expect(grade).not.toBeNull();
+    expect(grade).toHaveClass('grid-cols-[repeat(auto-fill,minmax(min(100%,24rem),1fr))]');
+    expect(grade.querySelectorAll(':scope > section')).toHaveLength(4);
   });
 
-  it('sem guarnição no dia, não há régua', async () => {
+  it('o trecho ocupado mostra o nome do serviço numa etiqueta de contorno e o horário dentro dele (4.2)', async () => {
+    api();
+    abrir(`/efetivo-por-dia?data=${DIA}`);
+    const alfa = await screen.findByRole('button', { name: 'Motorista: SD BM ALFA, 08h–08h, Pronto' });
+    const etiqueta = within(alfa).getByText('Pronto');
+    expect(etiqueta).toHaveAttribute('data-etiqueta-servico');
+    expect(etiqueta).toHaveAttribute('data-variante', 'contorno');
+    expect(within(alfa).getByText('08h–08h')).toBeInTheDocument();
+  });
+
+  it('a vaga do dia todo se chama "00h–24h"', async () => {
+    api({
+      ...EFETIVO,
+      guarnicoes: [guarnicao({ guarnicaoId: 'g7', nome: 'Bioma', ordem: null, funcoes: [{ funcaoId: 'f-aux', funcao: 'Auxiliar', minimo: 1, cnhExigida: null, linhas: [[vaga(0, 1440, [])]] }] })],
+    });
+    abrir(`/efetivo-por-dia?data=${DIA}`);
+    expect(await screen.findByRole('button', { name: 'Auxiliar: vaga 00h–24h' })).toBeInTheDocument();
+  });
+
+  it('sem guarnição no dia, não há grade de cards', async () => {
     api(VAZIO);
     abrir(`/efetivo-por-dia?data=${DIA}`);
     await screen.findByText('Nenhuma guarnição na meta nem escalada neste dia.');
-    expect(screen.queryByTestId('regua-do-dia')).toBeNull();
+    expect(document.querySelector('[data-cards-do-efetivo]')).toBeNull();
   });
 });
 
-describe('efetivo por dia: régua (unidade)', () => {
+describe('efetivo por dia: janela do dia (unidade)', () => {
   const g = (horarios: { inicio: string; fim: string }[], linhas: TrechoNoEfetivo[][] = []): GuarnicaoNoEfetivo =>
     guarnicao({ guarnicaoId: 'x', nome: 'X', horarios, funcoes: linhas.length ? [{ funcaoId: 'f', funcao: 'F', minimo: 1, cnhExigida: null, linhas }] : [] });
 
   it('a janela vai do menor início ao maior fim dos horários e dos trechos', () => {
     expect(janelaDoDia([g([{ inicio: '08:00', fim: '20:00' }]), g([{ inicio: '20:00', fim: '08:00' }], [[vaga(1200, 1920)]])])).toEqual({ inicio: 480, fim: 1920 });
     expect(janelaDoDia([g([])])).toBeNull();
-  });
-
-  it('as marcas são os inícios e fins dos horários, e uma a menos de 4% da anterior some', () => {
-    const janela = { inicio: 0, fim: 1440 };
-    expect(marcasDoDia([g([{ inicio: '08:00', fim: '16:00' }, { inicio: '16:00', fim: '20:00' }])], janela)).toEqual([480, 960, 1200]);
-    // 08:20 está a 20 min de 08:00 (1,4% de 24h): some
-    expect(marcasDoDia([g([{ inicio: '08:00', fim: '20:00' }]), g([{ inicio: '08:20', fim: '20:00' }])], janela)).toEqual([480, 1200]);
   });
 });
 
@@ -196,11 +210,18 @@ describe('efetivo por dia: a meta do dia pela própria tela', () => {
     'GET /api/unidades/u-1sb/guarnicoes': { status: 200, corpo: MODELOS_DO_MES },
   };
 
-  it('"Subir" no 2º troca a ordem de ativação do dia', async () => {
+  it('"Mover depois" no 1º e "Mover antes" no 2º trocam a ordem de ativação do dia; não existem "Subir" nem "Descer" (4.2)', async () => {
     const f = api(EFETIVO, EU_EXEMPLO, rotas);
     abrir(`/efetivo-por-dia?data=${DIA}`);
-    await userEvent.click(within(await screen.findByRole('region', { name: '2º Resgate' })).getByRole('button', { name: 'Subir Resgate' }));
+    expect(screen.queryByRole('button', { name: /^Subir/ })).toBeNull();
+    expect(screen.queryByRole('button', { name: /^Descer/ })).toBeNull();
+    await userEvent.click(within(await screen.findByRole('region', { name: '2º Resgate' })).getByRole('button', { name: 'Mover Resgate para antes' }));
     await waitFor(() => expect(corpoEnviado(f, PUT)).toEqual({ guarnicoes: ['g3', 'g2'] }));
+    await userEvent.click(within(screen.getByRole('region', { name: '1º ACO' })).getByRole('button', { name: 'Mover ACO para depois' }));
+    await waitFor(() => expect(chamadasA(f, PUT)).toBe(2));
+    // o 1º não tem "antes" e o 2º não tem "depois"
+    expect(within(screen.getByRole('region', { name: '1º ACO' })).queryByRole('button', { name: 'Mover ACO para antes' })).toBeNull();
+    expect(within(screen.getByRole('region', { name: '2º Resgate' })).queryByRole('button', { name: 'Mover Resgate para depois' })).toBeNull();
   });
 
   it('o botão do card é "Desativar guarnição"; não existe "Tirar da meta"', async () => {
@@ -473,16 +494,16 @@ describe('efetivo por dia: escalar e remover', () => {
     await waitFor(() => expect(chamadasA(f, ROTA)).toBe(2));
   });
 
-  it('a vaga coberta por duas escalas pergunta "Por qual escala?", e a escolhida define a lista', async () => {
+  it('a vaga com dois horários possíveis pergunta "Qual horário?", e o escolhido define a escala e a lista (4.2)', async () => {
     const f = api(comVaga([
       { escalaId: 'e-ord', escala: 'Ordinário', inicio: '08:00', fim: '20:00' },
       { escalaId: 'e-pe', escala: 'PE Seguro', inicio: '08:00', fim: '16:00' },
     ]), EU_EXEMPLO, { 'GET /api/escalas/e-pe/mes/2026-12/candidatos': { status: 200, corpo: CANDIDATOS } });
     abrir(`/efetivo-por-dia?data=${DIA}`);
     await userEvent.click(await screen.findByRole('button', { name: 'Auxiliar: vaga 08h–16h' }));
-    const pergunta = await screen.findByRole('dialog', { name: 'Por qual escala?' });
-    expect(within(pergunta).getByRole('button', { name: 'Ordinário 08h–20h' })).toBeInTheDocument();
-    await userEvent.click(within(pergunta).getByRole('button', { name: 'PE Seguro 08h–16h' }));
+    const pergunta = await screen.findByRole('dialog', { name: 'Qual horário?' });
+    expect(within(pergunta).getByRole('button', { name: '08h–20h · Ordinário' })).toBeInTheDocument();
+    await userEvent.click(within(pergunta).getByRole('button', { name: '08h–16h · PE Seguro' }));
     await screen.findByRole('dialog', { name: 'Escolher militar' });
     await waitFor(() => expect(chamadaDosCandidatos(f)).toEqual([
       '/api/escalas/e-pe/mes/2026-12/candidatos',
