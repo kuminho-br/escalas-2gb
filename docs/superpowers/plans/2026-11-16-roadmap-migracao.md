@@ -74,7 +74,7 @@ Um cadastro por vez, cada um com API, tela e importação, num PR próprio. Plan
 
 A data do contrato recusa dia que não existe no calendário. "Distribuídas" nas cotas valeu 0 até a fase 4, quando a escala passou a gravar alocações.
 
-Ficaram abertos o PR #15 (aviso de migração faltando) e o #32 (campo de mês das Cotas); os dois entram na entrega 4.3.
+Os PRs #15 (aviso de migração faltando) e #32 (campo de mês das Cotas) ficaram abertos e foram refeitos na entrega 4.3 (PR #57). O #15 ainda precisa ser fechado no GitHub.
 
 ## Revisões antes da fase 4 · concluídas
 
@@ -104,10 +104,12 @@ Montar e conferir a escala do mês à mão, nas telas de trabalho (Escala do mê
 | 4 | Grade geral | mesclada (#44), validada (menos o militar comum) | grade geral |
 | 4.1 | Meta do dia: desativar, reativar e adicionar | mesclada (#49), validada (regra antiga do acúmulo) | meta de ativação |
 | 4.2 | Efetivo por dia e Escala do mês em grade | mesclada (#51) | meta de ativação |
-| 4.3 | Limpeza das pendências da fase 3 (Tarefas 65 a 73) | em execução | limpeza da fase 3 |
+| 4.3 | Limpeza das pendências da fase 3 (Tarefas 65 a 73) | mesclada (#57) | limpeza da fase 3 |
 | 4.4 | Correção do "Desativar", leitura da Grade, busca, "Adicionar serviço" em abas, dia da semana no Efetivo por dia, sem a aba Atividades (Tarefas 74 a 82) | plano em aprovação | grade geral (ajustes) |
 
 Specs, em `docs/superpowers/specs/`: `2026-11-18-ordem-de-escala-e-acumulo-design.md`, `2026-11-19-voluntariado-por-faixa-design.md`, `2026-11-20-meta-de-ativacao-design.md`, `2026-11-20-grade-geral-design.md`, `2026-11-20-grade-geral-ux-design.md` e `2026-11-20-limpeza-da-fase-3-design.md`.
+
+**Painel do dia (medida da 4.3):** 33 consultas no cenário de teste (31 para um militar do Pronto, 33 para um do Adm), bem abaixo das 100 a 200 que se temia; o número cresce com escalas, faixas e funções. Acima de 40, ou se a sandbox achar a abertura lenta (mais de 1 s), entra "otimizar o painel do dia" na fase 8.
 
 **A fase fecha na 4.4.** Os escalantes conseguem montar e conferir a escala de um mês à mão, sem os tropeços conhecidos.
 
@@ -228,6 +230,13 @@ Achadas nas revisões e nas validações. Nenhuma muda quem é escalado. Entram 
 - "hoje" calculado de três jeitos (`hojeRecife` na API, o navegador no site, `getFullYear` em feriados);
 - testes que passariam com o código quebrado (`distribuicao-adm.test.ts`, `casos.test.ts`, `pre-escala.test.ts`, refine de serviço repetido);
 - `postosDoModelo` devolve a lista do modelo, não uma cópia.
+
+**Da entrega 4.3:**
+- a mensagem 503 do aviso de migração traz comando de terminal e cita o banco de teste, e devolve os nomes dos arquivos de migração a quem não está logado;
+- clicar numa categoria de CNH acesa só pela hierarquia a põe na carteira sem mudar a aparência;
+- a recusa da troca diz quem não pode, mas não o que fazer;
+- o teste das edições simultâneas do militar não prova a trava no banco em memória;
+- a rolagem fixa da Grade só tem teste de classes; a conferência visual (computador e celular de 390 px) é da sandbox.
 
 **Regras próprias por vaga** (pendentes desde a ordem de escala, 18/11/2026, sem fase): o graduado de dia é o mais antigo do dia (exceto Adm); o chefe é o mais antigo da guarnição.
 
