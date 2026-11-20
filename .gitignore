@@ -6,3 +6,4 @@ dist/
 !.env.exemplo
 .vercel/
 pacotes/dominio/tipos/
+docs/fontes de dados/
