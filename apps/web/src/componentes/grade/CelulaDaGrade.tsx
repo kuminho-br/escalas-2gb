@@ -34,8 +34,11 @@ export function CelulaDaGrade({ linha, dia, data, blocos, choque, escolhida, aoE
       onClick={aoEscolher}
       className={cn(
         'flex h-7 w-full min-w-12 items-center justify-evenly rounded px-px outline-none focus-visible:ring-2 focus-visible:ring-tinta',
-        choque && 'bg-alerta/10 ring-2 ring-alerta ring-inset',
-        escolhida && !choque && 'bg-vinho/15 ring-2 ring-vinho ring-inset',
+        // o choque é o contorno vermelho; a escolhida tem o fundo vinho, também quando há choque (o contorno continua o do choque)
+        choque && 'ring-2 ring-alerta ring-inset',
+        choque && !escolhida && 'bg-alerta/10',
+        escolhida && 'bg-vinho/15',
+        escolhida && !choque && 'ring-2 ring-vinho ring-inset',
         !blocos.length && !choque && !escolhida && 'hover:bg-black/[0.06]',
       )}
     >

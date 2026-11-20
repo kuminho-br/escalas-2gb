@@ -63,12 +63,19 @@ export const consultaTrocas = (alocacaoId: string) =>
 /**
  * Troca a alocação: por um militar livre ou de lugar com quem já está escalado (entre dois ordinários, é uma permuta). Mexe em até duas
  * escalas, no efetivo do dia, nas cotas e na grade: tudo volta a ser buscado, também quando a troca é recusada (outra pessoa pode ter mexido).
+ * As opções da troca só são buscadas de novo quando o pedido falha (o diálogo continua aberto); no sucesso a alocação mudou, o diálogo fecha e
+ * essas opções saem do cache sem uma busca à toa.
  */
 export async function trocar(queryClient: QueryClient, alocacaoId: string, troca: Troca): Promise<ResultadoDaTroca> {
   try {
-    return await pedir<ResultadoDaTroca>('POST', `/api/alocacoes/${alocacaoId}/trocar`, troca);
+    const resultado = await pedir<ResultadoDaTroca>('POST', `/api/alocacoes/${alocacaoId}/trocar`, troca);
+    queryClient.removeQueries({ queryKey: ['trocas', alocacaoId] });
+    return resultado;
+  } catch (e) {
+    void queryClient.invalidateQueries({ queryKey: ['trocas'] });
+    throw e;
   } finally {
-    for (const queryKey of [['escala-do-mes'], ['candidatos'], ['trocas']]) void queryClient.invalidateQueries({ queryKey });
+    for (const queryKey of [['escala-do-mes'], ['candidatos']]) void queryClient.invalidateQueries({ queryKey });
     atualizarQuemDependeDaEscala(queryClient);
   }
 }

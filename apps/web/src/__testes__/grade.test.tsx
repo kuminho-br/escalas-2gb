@@ -167,6 +167,17 @@ describe('grade geral: a tabela', () => {
     }
   });
 
+  it('a célula escolhida com choque mantém o contorno vermelho e ganha o fundo da escolhida', async () => {
+    api();
+    abrir(`/?mes=${MES}`);
+    await userEvent.click(await screen.findByRole('button', { name: 'SD BM CABO, dia 31: Pronto B, choque' }));
+    const c = await screen.findByRole('button', { name: 'SD BM CABO, dia 31: Pronto B, choque' });
+    await waitFor(() => expect(c).toHaveAttribute('data-escolhida'));
+    expect(c).toHaveAttribute('data-choque');
+    expect(c).toHaveClass('ring-alerta', 'bg-vinho/15');
+    expect(c).not.toHaveClass('ring-vinho');
+  });
+
   it('a célula com choque tem contorno vermelho e "choque" no nome; o expediente é um bloco sem letra', async () => {
     api();
     abrir(`/?mes=${MES}`);
