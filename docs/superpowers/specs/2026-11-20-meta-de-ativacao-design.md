@@ -19,7 +19,7 @@ O chefe da seção configura a meta, e o escalante aloca os militares para cumpr
 | **Ordem de escalação** | Novo nome da antiga "ordem de escala": a sequência em que o sistema preenche as vagas para aproveitar melhor os recursos. |
 | **Modelo de guarnição** | O que hoje se cadastra em "Guarnições": a composição (funções, mínimo, máximo, CNH). É um molde. |
 | **Guarnição (do dia)** | A instância: um modelo que ganhou militares alocados num dia. |
-| **Efetivo do dia** | O painel do sistema em que se vê o efetivo de um dia. |
+| **Efetivo por dia** (era "Efetivo do dia") | A tela em que o escalante navega pelos dias e escala com a visão diária, atravessando todas as escalas da área. Ver o adendo de 20/11/2026 (depois da 3.2.2). |
 | **Escala do dia** | O documento que publica quem está de serviço num dia, incluindo as permutas (módulo de visualização, fora deste design). |
 | **Escala** | Agrupamento de serviços para a prestação de contas mensal e lugar onde se diz quais serviços guarnecem quais modelos. A fonte da escala (quem a pede) fica fora do sistema. |
 | **Cota** | Limite mensal de quantas vezes se pode escalar militares num serviço de PJES ou diária. |
@@ -77,7 +77,7 @@ Custo computacional: dez guarnições por dia são umas 3.650 linhas por seção
 - **Dia diferente:** o chefe altera um dia ou um intervalo de dias (acrescenta, tira ou reordena guarnições). Um dia diferente pode voltar ao padrão.
 - *Minha decisão:* cada nível hierárquico define a sua meta padrão com os seus próprios modelos, sem herdar a do nível de cima (a meta é de quem ativa as guarnições).
 - *Minha decisão:* a meta padrão e os dias diferentes são editados por quem já edita os parâmetros da seção.
-- *Minha decisão:* a meta padrão é editada em Configurações, e o dia diferente é editado no próprio Efetivo do dia.
+- *Minha decisão:* a meta padrão é editada em Configurações, e o dia diferente é editado no próprio Efetivo do dia. **Substituída** no adendo de 20/11/2026 (depois da 3.2.2): o dia diferente nasce da manipulação das guarnições na tela, sem diálogo próprio, e a alteração de um intervalo de dias foi abandonada.
 
 ### 2. Quando uma guarnição está ativada
 
@@ -146,6 +146,51 @@ Meta do dia: 3 guarnições, 1 ativada                 [Alterar a meta deste dia
 - Decisões da antiga 3.2, para detalhar a 3.3. A da ordem dos buracos ficou em parte respondida: no modelo atual do Ordinário, o Saldo vem antes do JES, e isso é configuração, não código.
 - Reorganização do menu inteiro (opção B).
 - **Guarnição escalada sem estar na meta** (decisão do usuário, 20/11/2026): aparece no painel normalmente, sem rótulo e sem contar para a meta. Nada muda por ela não estar na meta, assim como nada muda para a guarnição da meta que não foi ativada (fica na posição comum dela). *Minha decisão:* como não tem ordem de ativação, a posição comum dela é depois das guarnições da meta, na ordem do nome do modelo.
+
+## Adendo de 20/11/2026 — Efetivo por dia (feedback depois da 3.2.2)
+
+A 3.2.2 (PR #39, mesclado em 20/11) entregou o painel como consulta do dia de hoje. O usuário corrigiu a leitura: a tela é de **trabalho**, não de consulta. O motor de ativação, a meta no banco e a API continuam valendo; muda a tela, na **entrega 3.3**.
+
+**1. Nome e propósito (decisão do usuário).** "Efetivo do dia" passa a se chamar **"Efetivo por dia"**. A ideia não é mostrar o dia de hoje: o escalante **navega pelos dias** e **escala com a visão diária**, em vez da mensal. É uma visão transversal da área, atravessando as várias escalas mensais. Escalar na própria tela (já previsto para a 3.3) passa a ser o centro dela.
+- *Minha proposta, a confirmar no design da 3.3:* a tela abre no último dia em que o escalante estava; na primeira vez, no dia 1 do mês escolhido, com seletor de mês como o da Escala do mês.
+
+**2. Linha do tempo por guarnição (decisão do usuário).** A lista atual repete o militar a cada turno ("DÁRIO 08h–20h", "DÁRIO 20h–08h") e separa a falta de onde ela acontece. Cada guarnição passa a mostrar **como as funções são ocupadas ao longo do dia**, como na lógica do voluntariado: as **vacâncias aparecem na própria linha do tempo**.
+
+```
+1º Incêndio  ABT                                        ativada
+            08h               20h         00h        08h
+              D                            │  D+1
+Chefe        ████ ST DÁRIO ████████████████████████████   Pronto
+Motorista    ████ 3º SGT ADEILDO ██████████████████████   Pronto
+Aux. linha   ████ IZAIAS ███████████████  ░░ vaga ░░░░░   (falta 20h–08h)
+```
+
+- *Minha proposta:* uma linha por vaga (função × mínimo), com a régua D / D+1 que já existe na tela de Serviços (`ReguaDoDia`); quem emenda turnos vira uma barra só; o trecho ocupado leva a cor do serviço; a vaga é um trecho destacado na linha e, na 3.3, é por ela que se escala.
+- Isso resolve de passagem o menor adiado "falta de 24h aparece como 08h–08h".
+
+**3. Meta do dia implícita (decisão do usuário).** Sai o botão e o diálogo "Alterar a meta deste dia". A meta do dia passa a ser **consequência da manipulação das guarnições** na tela:
+
+| Ação no Efetivo por dia | Efeito na meta daquele dia |
+|---|---|
+| Remover uma guarnição | sai da meta do dia. Se houver gente escalada nela, o sistema **pergunta se quer desescalar** também (decisão do usuário, opção b); se não, a guarnição fica na tela fora da meta, sem número |
+| Adicionar uma guarnição | entra no fim da meta do dia |
+| Mudar a ordem | muda a ordem de ativação do dia |
+| Voltar ao padrão (só quando o dia foi mexido) | desfaz a meta própria do dia |
+
+- **Escalar alguém numa guarnição fora da meta não a põe na meta** (decisão do usuário, opção b): ela fica fora da meta até o escalante adicioná-la.
+- **Alterar vários dias de uma vez foi abandonado** (decisão do usuário). Mudança que vale por um período vai pela meta padrão com data. *Minha decisão:* o campo "Até" sai da tela; se a API o mantém ou não fica para o plano da 3.3.
+- A meta padrão continua em Configurações › Meta de ativação, como na 3.2.2.
+
+**4. As quatro telas principais e a "Escala por militar" (decisão do usuário).**
+
+| Tela | Quem | Quando |
+|---|---|---|
+| Grade geral | todos os militares | o mês |
+| Escala do mês | uma escala (operação) | o mês |
+| Efetivo por dia | todas as escalas da área | um dia |
+| **Escala por militar** (nova) | militares escolhidos | o mês |
+
+Na **Escala por militar**, o escalante seleciona militares e vê como estão distribuídos ao longo do mês, comparando-os (ex.: dois militares e o cruzamento das escalas deles). É uma **entrega maior**, a planejar com cuidado: o usuário pediu à sessão de **PLANEJAMENTO** que comece a trabalhar na estrutura das quatro telas. Não entra na 3.3.
 
 ## O que fica para quem for planejar
 
