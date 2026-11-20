@@ -85,14 +85,36 @@ describe('lista de militares', () => {
 });
 
 describe('ficha do militar', () => {
-  it('categoria pela hierarquia aparece tracejada com "pela D"', async () => {
-    api();
+  it('as categorias que a carteira habilita aparecem marcadas, com "pela E"; só a carteira é gravada', async () => {
+    const f = api({
+      'GET /api/militares/m1': { status: 200, corpo: { ...FICHA, noQuadroDeMotoristas: true, cnh: ['E'], cnhPorHierarquia: ['D', 'C', 'B'] } },
+      'PATCH /api/militares/m1': { status: 200, corpo: FICHA },
+    });
     abrir('/militares/m1');
     const c = await screen.findByRole('button', { name: /^C\b/ });
-    expect(c).toHaveAttribute('data-origem', 'hierarquia');
-    expect(within(c).getByText('pela D')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /^D\b/ })).toHaveAttribute('aria-pressed', 'true');
-    expect(screen.getByRole('button', { name: /^A\b/ })).toHaveAttribute('data-origem', 'nenhuma');
+    for (const letra of ['D', 'C', 'B']) {
+      const botao = screen.getByRole('button', { name: new RegExp(`^${letra}\\b`) });
+      expect(botao).toHaveAttribute('aria-pressed', 'true');
+      expect(botao).toHaveAttribute('data-origem', 'hierarquia');
+      expect(within(botao).getByText('pela E')).toBeInTheDocument();
+    }
+    // o nome acessível continua dizendo de onde vem
+    expect(screen.getByRole('button', { name: 'C caminhão pela E' })).toBe(c);
+    const a = screen.getByRole('button', { name: /^A\b/ });
+    expect(a).toHaveAttribute('aria-pressed', 'false');
+    expect(a).toHaveAttribute('data-origem', 'nenhuma');
+    // a habilitada tem a mesma aparência da carteira (preenchida), sem tracejado
+    expect(c).toHaveClass('bg-tinta');
+    expect(c).not.toHaveClass('border-dashed');
+    expect(screen.getByText('Marque as categorias da carteira. As que ela habilita acendem sozinhas (a E acende D, C e B). A moto (A) é separada.')).toBeInTheDocument();
+    // tirar a E da carteira apaga as três
+    await userEvent.click(screen.getByRole('button', { name: /^E\b/ }));
+    for (const letra of ['D', 'C', 'B']) expect(screen.getByRole('button', { name: new RegExp(`^${letra}\\b`) })).toHaveAttribute('aria-pressed', 'false');
+    // só a carteira é gravada: com a E de volta e a moto, vai ['A', 'E']
+    await userEvent.click(screen.getByRole('button', { name: /^E\b/ }));
+    await userEvent.click(screen.getByRole('button', { name: /^A\b/ }));
+    await userEvent.click(screen.getByRole('button', { name: 'Salvar motorista' }));
+    await waitFor(() => expect(corpoEnviado(f, 'PATCH /api/militares/m1')).toEqual({ motorista: true, cnh: ['A', 'E'] }));
   });
 
   it('os campos de afastamento só aparecem depois de "Incluir afastamento"', async () => {
