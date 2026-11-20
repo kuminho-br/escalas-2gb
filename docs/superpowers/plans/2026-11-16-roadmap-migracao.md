@@ -105,7 +105,7 @@ Montar e conferir a escala do mês à mão, nas telas de trabalho (Escala do mê
 | 4.1 | Meta do dia: desativar, reativar e adicionar | mesclada (#49), validada (regra antiga do acúmulo) | meta de ativação |
 | 4.2 | Efetivo por dia e Escala do mês em grade | mesclada (#51) | meta de ativação |
 | 4.3 | Limpeza das pendências da fase 3 (Tarefas 65 a 73) | mesclada (#57) | limpeza da fase 3 |
-| 4.4 | Correção do "Desativar", leitura da Grade, busca, "Adicionar serviço" em abas, dia da semana no Efetivo por dia, sem a aba Atividades (Tarefas 74 a 82) | plano pronto, a executar | grade geral (ajustes) |
+| 4.4 | Correção do "Desativar", leitura da Grade, busca, "Adicionar serviço" em abas, dia da semana no Efetivo por dia, sem a aba Atividades (Tarefas 74 a 82) | PR #59, aguarda merge | grade geral (ajustes) |
 
 Specs, em `docs/superpowers/specs/`: `2026-11-18-ordem-de-escala-e-acumulo-design.md`, `2026-11-19-voluntariado-por-faixa-design.md`, `2026-11-20-meta-de-ativacao-design.md`, `2026-11-20-grade-geral-design.md`, `2026-11-20-grade-geral-ux-design.md` e `2026-11-20-limpeza-da-fase-3-design.md`.
 
@@ -238,6 +238,15 @@ Achadas nas revisões e nas validações. Nenhuma muda quem é escalado. Entram 
 - a recusa da troca diz quem não pode, mas não o que fazer;
 - o teste das edições simultâneas do militar não prova a trava no banco em memória;
 - a rolagem fixa da Grade só tem teste de classes; a conferência visual (computador e celular de 390 px) é da sandbox.
+
+**Da entrega 4.4** (lista completa no PR #59):
+- as colunas finais da Grade não têm largura fixa de verdade;
+- "Desfazer" com a alocação promovida já removida diz "Os dados para desfazer não são desta seção." em vez de "a escala mudou desde então";
+- faltam testes do "Desfazer" para promovida que mudou de vaga, de outra seção e corpo sem promovidas;
+- a busca por matrícula compara com a pontuação;
+- os botões "Escalar" têm o mesmo nome acessível;
+- a aba ativa do "Adicionar serviço" pode ficar desabilitada depois de uma recusa (409);
+- a conferência visual da rolagem (computador de 1440 px e celular de 390 px) e da largura da lista da vaga fica para a sandbox.
 
 **Regras próprias por vaga** (pendentes desde a ordem de escala, 18/11/2026, sem fase): o graduado de dia é o mais antigo do dia (exceto Adm); o chefe é o mais antigo da guarnição.
 
