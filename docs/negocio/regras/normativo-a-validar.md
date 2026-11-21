@@ -4,7 +4,7 @@ Regras trazidas da Portaria 314/2025, do Decreto 46.331/2018 e das planilhas de 
 Quem cuida: DOCUMENTAÇÃO. Conferido contra o sistema novo em 21/11/2026. Índice e colunas: [LEIAME](LEIAME.md).
 
 ## Regras do normativo e das planilhas antigas (a validar)
-Regras trazidas do catálogo que a programação montou a partir da Portaria 314/2025, do Decreto 46.331/2018 e das planilhas de outubro. Todas ficam A esclarecer até o usuário confirmar (P-15); o código ex-R-XX aponta a regra de origem.
+Regras trazidas do catálogo que a programação montou a partir da Portaria 314/2025, do Decreto 46.331/2018 e das planilhas de outubro. Ficam A esclarecer até o usuário confirmar (P-15), menos a RN-69, já decidida; o código ex-R-XX aponta a regra de origem.
 
 | ID | Regra | Situação | No sistema novo | Barreira |
 |---|---|---|---|---|
@@ -39,7 +39,7 @@ Regras trazidas do catálogo que a programação montou a partir da Portaria 314
 | RN-80 | Calendário de prazos com alerta: cotas da DGO até o dia 5; pedido da OME até o dia 7; publicação até o último dia útil; relação de quem cumpriu até 12h do 1º dia útil seguinte. (Portaria 314, arts. 9º a 16) | A esclarecer | — | Suporte |
 
 
-Já cobertas por regras acima: R-07 → RN-12; R-10 → RN-25; R-15 → RN-23; R-25 → RN-33; R-44 → RN-10/RN-11; R-48 → RN-22; R-50 e R-53 → RN-39, RN-46 e RN-47; R-54 → RN-40; R-61 → RN-51. Sem efeito no sistema novo: R-13 (não há sobreaviso), R-29 e R-60 (os totais passam a ser calculados), R-47 (substituída pela grade sem turno da P13).
+Já cobertas por regras acima: R-07 → RN-12; R-10 → RN-25; R-15 → RN-23; R-25 → RN-33; R-44 → RN-10/RN-11; R-48 → RN-22; R-50 e R-53 → RN-39, RN-46 e RN-47; R-54 → RN-40; R-61 → RN-51. Sem efeito no sistema novo: R-13 (não há sobreaviso), R-29 e R-60 (os totais passam a ser calculados), R-47 (a grade do protótipo deixou de ter coluna de turno).
 
 ## Pendências e divergências
 

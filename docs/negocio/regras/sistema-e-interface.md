@@ -9,7 +9,7 @@ Quem cuida: DOCUMENTAÇÃO. Conferido contra o sistema novo em 21/11/2026. Índi
 | ID | Regra | Situação | No sistema novo | Barreira |
 |---|---|---|---|---|
 | RN-27 | O sistema atende hoje a 1ª SB. Na fase 5 passa ao 2º GB inteiro (nove lotações: SEDE, SCSv, 1ª a 7ª SB); acima do GB, na fase 11. Quem assina, cargo e dados da unidade ficam fora do sistema por enquanto. | Confirmada | Funciona para a 1ª SB; fases 5 e 11 | Base |
-| RN-115 | Papéis: administrador (só na unidade raiz; edita os catálogos do sistema), gestor (o que o escalante faz, mais a meta padrão e as configurações do nível), escalante (monta as escalas e mantém os cadastros da unidade e das de baixo) e militar comum (vê só o que é dele e as escalas publicadas da unidade). Todo usuário é um militar do cadastro. | Confirmada | Fase 6 (hoje os papéis não estão separados nas telas) | Base |
+| RN-115 | Papéis: administrador (só na unidade raiz; edita os catálogos do sistema), gestor (o que o escalante faz, mais a meta padrão e as configurações do nível), escalante (monta as escalas e mantém os cadastros da unidade e das de baixo) e militar comum (vê só o que é dele e as escalas publicadas da unidade). Todo usuário é um militar do cadastro. | Confirmada | Em parte: administrador, gestor e escalante já valem na API (ex.: meta padrão e parâmetros só para gestor); o militar comum, as contas e as telas por papel, fase 6 | Base |
 | RN-32 | Militar de outra unidade só é escalado por vínculo de militar externo com a unidade da escala. | Confirmada | Fase 5 (a tabela do vínculo existe; nada a usa ainda) | Base |
 
 ## Cadastros e configurações
@@ -25,7 +25,7 @@ Quem cuida: DOCUMENTAÇÃO. Conferido contra o sistema novo em 21/11/2026. Índi
 |---|---|---|---|---|
 | RN-29 | Os painéis são sucintos, com pouca informação na tela, e os textos não usam jargão. | Confirmada | Funciona (princípio de design) | Suporte |
 | RN-30 | A interface não usa o termo "matriz". As telas de trabalho da escala são Escala do mês, Efetivo por dia e Grade geral; a Escala por militar entra na fase 8. | Confirmada | Funciona | Suporte |
-| RN-101 | Nas grades e listas de militares, a ordem é do mais antigo ao mais moderno: posto/graduação, depois a antiguidade cadastrada, depois a ordem do cadastro. Na lista "Escolher militar", o Pronto vem antes do Adm. | Confirmada | Funciona | Suporte |
+| RN-101 | Nas grades e listas de militares, a ordem é do mais antigo ao mais moderno: posto/graduação, depois a antiguidade cadastrada. Na lista "Escolher militar", o Pronto vem antes do Adm. | Confirmada | Em parte: o último desempate hoje é a matrícula (na tela Militares, o nome de guerra), não a ordem do cadastro; a antiguidade completa vem do Pecúlio (fase 5) | Suporte |
 
 ## Requisitos do sistema
 

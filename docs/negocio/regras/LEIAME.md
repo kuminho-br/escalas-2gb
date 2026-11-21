@@ -45,7 +45,7 @@ O andamento do trabalho (planejado, em execução) é do roadmap, não deste cat
 | Automação | O sistema executa sozinho |
 | Ambas | O sistema valida o lançamento manual e também respeita a regra ao automatizar |
 
-## Metas do sistema
+## Metas do sistema (RN-49 a RN-51)
 
 Todo o sistema serve a duas metas; cada regra existe para atingir uma delas ou as duas. As regras de automação nunca impedem o escalante de fechar a escala: onde a automação para, o escalante decide à mão, com o apoio do sistema.
 
