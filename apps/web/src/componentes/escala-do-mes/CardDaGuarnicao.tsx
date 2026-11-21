@@ -1,6 +1,6 @@
 import type { CardDaGuarnicao as Card, FuncaoNoCard, OcupanteDaVaga } from 'contratos';
 import { Check, TriangleAlert } from 'lucide-react';
-import { corDoTexto } from '@/lib/cores';
+import { estiloDaCor } from '@/lib/cores';
 import { listaComE, nomeDaVaga } from '@/lib/escala';
 import { cn } from '@/lib/utils';
 
@@ -14,7 +14,7 @@ function Ocupante({ o, vaga, aoRemover }: { o: OcupanteDaVaga; vaga: string; aoR
       <span className="text-xs text-apagado">{o.posto}</span>
       <span className="font-cond text-base font-semibold">{o.nomeGuerra}</span>
       <span className="text-xs text-apagado">{o.matricula}</span>
-      <span className="rounded px-1.5 text-xs font-medium" style={{ backgroundColor: o.servico.cor, color: corDoTexto(o.servico.cor) }}>{o.servico.nome}</span>
+      <span className="rounded px-1.5 text-xs font-medium" style={estiloDaCor(o.servico.cor)}>{o.servico.nome}</span>
       {o.acumulaCom.length > 0 && <span className="text-xs text-apagado">acumula com {listaComE(o.acumulaCom)}</span>}
       {aoRemover && (
         <button

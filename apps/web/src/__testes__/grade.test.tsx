@@ -5,6 +5,7 @@ import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
 import { escalar } from '@/api/escala-do-mes';
 import { desativar } from '@/api/efetivo-do-dia';
+import { corLegivel } from '@/lib/cores';
 import { abrir, EU_EXEMPLO, simularApi } from './apoio';
 
 // Dezembro de 2026 (dia 1 = terça; dia 5 = sábado; dia 8 = feriado de teste). Equipes Alfa (CABO, SD1) e Bravo (BRAVO) e o Adm (ADM).
@@ -55,7 +56,8 @@ describe('grade geral: a tabela', () => {
     expect([...document.querySelectorAll('tr[data-grupo]')].map((g) => g.querySelector('strong')?.textContent)).toEqual(['Alfa', 'Bravo', 'Adm']);
     expect(screen.getAllByRole('rowheader').map((h) => h.textContent)).toEqual(expect.arrayContaining([expect.stringContaining('CABO'), expect.stringContaining('ADM')]));
     const b = within(celula('CABO', 2, 'Pronto A')).getByText('A');
-    expect(b).toHaveStyle({ backgroundColor: '#2F8F5B' });
+    // a cor do serviço aparece com o contraste de 4,5:1 com o texto (o valor salvo, #2F8F5B, não muda)
+    expect(b).toHaveStyle({ backgroundColor: corLegivel('#2F8F5B').fundo });
     // dois serviços no mesmo dia: os dois blocos, na ordem do dia
     const dois = celula('SD1', 5, 'Pronto A, JES A');
     expect(within(dois).getAllByText('A')).toHaveLength(2);

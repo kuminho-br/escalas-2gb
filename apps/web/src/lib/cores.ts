@@ -20,6 +20,48 @@ export function corDoTexto(fundo: string): '#FFFFFF' | '#1C2430' {
   return contrasteClaro >= contrasteEscuro ? TEXTO_CLARO : TEXTO_ESCURO;
 }
 
+/** A relação de contraste do WCAG entre duas cores #RRGGBB (de 1 a 21). */
+export function razaoDeContraste(a: string, b: string): number {
+  const x = luminancia(a);
+  const y = luminancia(b);
+  return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05);
+}
+
+/** O contraste mínimo entre o texto e o fundo de qualquer cor de serviço. */
+export const CONTRASTE_MINIMO = 4.5;
+
+/** A cor misturada com preto (alvo 0) ou branco (alvo 255) na proporção `parte` (0 a 1). */
+function misturar(hex: string, alvo: 0 | 255, parte: number): string {
+  const canal = (i: number) => {
+    const c = parseInt(hex.slice(1 + i * 2, 3 + i * 2), 16);
+    return Math.round(c + (alvo - c) * parte).toString(16).padStart(2, '0');
+  };
+  return `#${canal(0)}${canal(1)}${canal(2)}`.toUpperCase();
+}
+
+/**
+ * O fundo e o texto para mostrar uma cor de serviço com contraste de pelo menos 4,5:1. Se o melhor texto (branco ou escuro) já dá, a cor volta
+ * igual; senão o fundo escurece (texto branco) ou clareia (texto escuro) em passos de 5% até chegar lá. A cor que o usuário escolheu e que
+ * fica salva não muda: só a exibição.
+ */
+export function corLegivel(fundo: string): { fundo: string; texto: '#FFFFFF' | '#1C2430' } {
+  const texto = corDoTexto(fundo);
+  if (razaoDeContraste(texto, fundo) >= CONTRASTE_MINIMO) return { fundo, texto };
+  const alvo = texto === TEXTO_CLARO ? 0 : 255;
+  let ajustado = fundo;
+  for (let passo = 1; passo <= 20; passo++) {
+    ajustado = misturar(fundo, alvo, passo * 0.05);
+    if (razaoDeContraste(texto, ajustado) >= CONTRASTE_MINIMO) break;
+  }
+  return { fundo: ajustado, texto };
+}
+
+/** `backgroundColor` e `color` (com contraste de 4,5:1) para o estilo de qualquer lugar que mostre a cor de um serviço. */
+export function estiloDaCor(cor: string): { backgroundColor: string; color: string } {
+  const { fundo, texto } = corLegivel(cor);
+  return { backgroundColor: fundo, color: texto };
+}
+
 /** As cores da grade do Google Planilhas: 8 linhas de 10 (tons de cinza, cores vivas e quatro níveis de tom). */
 export const PALETA_PLANILHAS: string[][] = [
   ['#000000', '#434343', '#666666', '#999999', '#B7B7B7', '#CCCCCC', '#D9D9D9', '#EFEFEF', '#F3F3F3', '#FFFFFF'],

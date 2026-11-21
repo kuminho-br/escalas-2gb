@@ -7,7 +7,7 @@ import { escalar, removerAlocacao } from '@/api/escala-do-mes';
 import { consultaPainelDoDia } from '@/api/grade';
 import { useTrava } from '@/componentes/AlteracoesPendentes';
 import { Button } from '@/componentes/ui/button';
-import { corDoTexto } from '@/lib/cores';
+import { estiloDaCor } from '@/lib/cores';
 import { listaComE } from '@/lib/escala';
 import { dataPorExtenso } from '@/lib/meses';
 import { AdicionarServico } from './AdicionarServico';
@@ -101,7 +101,7 @@ export function PainelDoDia({ unidadeId, militarId, data, aoFechar }: { unidadeI
                   {p.servicos.map((s) => (
                     <li key={s.alocacaoId} aria-label={`${s.servico.nome} ${s.letra}, ${textoFaixa(s.inicio, s.fim)}`} className="grid gap-1 rounded-lg border border-linha p-3">
                       <div className="flex items-center gap-2">
-                        <span aria-hidden className="rounded px-1.5 font-cond text-sm font-semibold" style={{ backgroundColor: s.servico.cor, color: corDoTexto(s.servico.cor) }}>
+                        <span aria-hidden className="rounded px-1.5 font-cond text-sm font-semibold" style={estiloDaCor(s.servico.cor)}>
                           {s.servico.nome} {s.letra}
                         </span>
                         <span aria-hidden className="text-sm">{textoFaixa(s.inicio, s.fim)}</span>

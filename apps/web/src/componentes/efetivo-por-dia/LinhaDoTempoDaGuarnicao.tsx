@@ -1,7 +1,7 @@
 import type { FuncaoNoEfetivo, GuarnicaoNoEfetivo, TrechoNoEfetivo } from 'contratos';
 import { useState } from 'react';
 import { EtiquetaDoServico } from '@/componentes/EtiquetaDoServico';
-import { corDoTexto } from '@/lib/cores';
+import { estiloDaCor } from '@/lib/cores';
 import { posicao, type Janela } from '@/lib/efetivo';
 import type { CSSProperties } from 'react';
 import { textoMinutos } from '@/lib/turnos';
@@ -60,7 +60,7 @@ function TrechoOcupado({ funcao, t, o, base, estilo, acoes }: { funcao: FuncaoNo
       onBlur={() => setMostrarHorario(false)}
       onTouchStart={() => setMostrarHorario(true)}
       className={`${base} border border-white/40 hover:brightness-95`}
-      style={{ ...estilo, backgroundColor: o.servico.cor, color: corDoTexto(o.servico.cor) }}
+      style={{ ...estilo, ...estiloDaCor(o.servico.cor) }}
     >
       <span className="truncate font-cond text-sm font-semibold">
         <span className="text-[11px] font-normal opacity-80">{o.posto}</span> {o.nomeGuerra}
