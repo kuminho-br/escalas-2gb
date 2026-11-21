@@ -54,8 +54,8 @@ Só perguntas em aberto. Quando uma é respondida, a resposta vai para a regra e
 | P-18 | RN-90 | Quais funções contam como difíceis ou específicas e que preferência elas dão? |
 | P-30 | RN-108 | O mesmo modelo de guarnição mais de uma vez no mesmo dia (ex.: APH-1 e APH-2): completar a primeira antes de começar a segunda? Decisão tomada em 20/11 de tratar na fase 8; o design falta. |
 | P-32 | RS-01 | Escala do dia: formato de saída, campos de cada linha, ordem (por horário ou por escala), se entram vagas vazias e militares sem função. |
-| P-34 | RN-17 | (1) Com "Adm cumpre a carga mensal" desligado, o Adm continua tirando saldos ou deixa de tirá-los? (2) Precisa de uma configuração à parte, para o Adm cumprir as 160h e ainda poder tirar PJES no horário do expediente? Explicação do usuário em 21/11/2026; a resposta pode virar um segundo parâmetro. |
-| P-35 | RN-35 | A cota tem um campo "prioridade" (vem da importação e ordena as operações na distribuição automática), mas nenhuma regra diz para que serve. O que ela significa para o escalante? |
+| P-34 | RN-17 | Precisa de uma configuração à parte, para o Adm cumprir as 160h e ainda poder tirar PJES no horário do expediente? A resposta pode virar um segundo parâmetro. Sem prioridade agora (usuário, 21/11/2026). |
+| P-35 | RN-35 | A cota tem um campo "prioridade" (vem da importação e ordena as operações na distribuição automática), mas nenhuma regra diz para que serve. O que ela significa para o escalante? O usuário ainda não sabe (21/11/2026); talvez não sirva para nada e o campo deva ser removido. |
 | P-33 | RN-102 × RN-108 | Relação entre a ordem de ativação (meta) e a ordem de escalação (vagas): adiada pelo usuário em 20/11; hoje a ordem de escalação é tratada como teste. |
 
 Respondidas na conferência de 21/11/2026 (saíram da tabela): P-25 (o acúmulo conta como vaga preenchida, com a marca "acumula com …"; RN-104), P-28 (a ligação por nome com a aba da planilha não existe no sistema novo), P-29 (a ordem de escalação por vaga cobre a prioridade global das funções; RN-102) e P-31 (a prioridade da guarnição deixou de ser editável; só vale como ordem padrão).
