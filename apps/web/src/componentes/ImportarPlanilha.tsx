@@ -4,6 +4,7 @@ import { Download, FileUp } from 'lucide-react';
 import { useRef, useState, type FormEvent } from 'react';
 import { enviarArquivo, ErroApi, mensagemDe } from '@/api/cliente';
 import { consultaEu } from '@/api/eu';
+import { escolherUnidade, lerUnidadeGuardada } from '@/lib/unidade-de-trabalho';
 import { Button } from '@/componentes/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/componentes/ui/dialog';
 import { Label } from '@/componentes/ui/label';
@@ -32,7 +33,7 @@ export function ImportarPlanilha({ cadastro, rotulo, aoConcluir, unidadeId }: { 
   const [arquivo, setArquivo] = useState<File | null>(null);
   const [erro, setErro] = useState<string | null>(null);
   const [enviando, setEnviando] = useState(false);
-  const caminho = `/api/unidades/${unidadeId ?? eu?.unidade.id}/importacao/${cadastro}`;
+  const caminho = `/api/unidades/${unidadeId ?? (eu && escolherUnidade(eu, lerUnidadeGuardada())?.id)}/importacao/${cadastro}`;
   // cada vez que o diálogo abre ou fecha começa uma "rodada": a resposta de um envio de uma rodada anterior não mexe na tela da atual
   const rodada = useRef(0);
   // a confirmação grava no servidor mesmo com o diálogo fechado: se ele fechou enquanto ela rodava, reabrir não zera a tela (o resultado, ou o

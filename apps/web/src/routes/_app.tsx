@@ -1,15 +1,20 @@
 import { createFileRoute, Outlet, redirect } from '@tanstack/react-router';
 import { useRef, useState } from 'react';
-import { consultaEu } from '@/api/eu';
+import { consultaEu, type Eu } from '@/api/eu';
 import { Topo } from '@/componentes/Topo';
 import { Trilho } from '@/componentes/Trilho';
+import { escolherUnidade, lerUnidadeGuardada } from '@/lib/unidade-de-trabalho';
 
 export const Route = createFileRoute('/_app')({
   beforeLoad: async ({ context }) => {
-    const eu = await context.queryClient.ensureQueryData(consultaEu);
-    if (!eu) throw redirect({ to: '/entrar' });
+    const dados = await context.queryClient.ensureQueryData(consultaEu);
+    if (!dados) throw redirect({ to: '/entrar' });
     // entrou com a senha provisória: nada abre antes de criar a senha
-    if (eu.trocarSenha) throw redirect({ to: '/criar-senha' });
+    if (dados.trocarSenha) throw redirect({ to: '/criar-senha' });
+    // a unidade em que as telas trabalham: a última escolhida neste navegador (se ainda vale) ou a do papel mais baixo; sem nenhuma, a orientação
+    const unidade = escolherUnidade(dados, lerUnidadeGuardada());
+    if (!unidade) throw redirect({ to: '/sem-lotacao' });
+    const eu: Eu = { ...dados, unidade };
     return { eu };
   },
   component: Casca,
