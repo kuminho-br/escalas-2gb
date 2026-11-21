@@ -63,7 +63,7 @@ type Existente = {
 };
 
 /** '9902022' -> '990202-2'; formato certo passa direto; o resto é null. */
-function matriculaDe(bruto: string): { valor: string | null; corrigida: boolean } {
+export function matriculaDe(bruto: string): { valor: string | null; corrigida: boolean } {
   const s = bruto.trim();
   if (/^\d{6}-\d$/.test(s)) return { valor: s, corrigida: false };
   if (/^\d{7}$/.test(s)) return { valor: `${s.slice(0, 6)}-${s.slice(6)}`, corrigida: true };
