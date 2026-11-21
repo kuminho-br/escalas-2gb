@@ -95,7 +95,8 @@ const DA_CONFECCAO = new Set(['grade', 'escala-do-mes', 'efetivo-por-dia', 'efet
  * Pecúlio; aberta por qualquer outro caminho, da Confecção.
  */
 export function moduloDoEndereco(caminho: string, busca: Record<string, unknown>): Modulo | null {
-  const primeiro = caminho.split('/')[1] ?? '';
+  // o roteador casa os endereços sem diferenciar maiúsculas: /Militares abre a mesma tela, e a barreira tem de pegar também
+  const primeiro = (caminho.split('/')[1] ?? '').toLowerCase();
   if (primeiro === 'minha-ficha') return porId('minha-ficha');
   if (primeiro === 'militares' && busca.de === 'peculio') return porId('peculio');
   if (DO_PECULIO.has(primeiro)) return porId('peculio');

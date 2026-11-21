@@ -43,6 +43,14 @@ describe('o módulo de cada endereço', () => {
     expect(MODULOS.find((m) => m.id === 'visualizacao')!.itens).toEqual([]);
   });
 
+  it('o endereço com maiúsculas vale o mesmo (o roteador não diferencia), então a barreira também pega', () => {
+    expect(id('/Militares')).toBe('escalas');
+    expect(id('/PECULIO')).toBe('peculio');
+    expect(id('/Grade')).toBe('escalas');
+    expect(id('/Minha-Ficha')).toBe('minha-ficha');
+    expect(id('/Militares/m1', { de: 'peculio' })).toBe('peculio');
+  });
+
   it('um endereço que não existe não é de nenhum módulo', () => {
     expect(id('/nao-existe')).toBeNull();
   });
