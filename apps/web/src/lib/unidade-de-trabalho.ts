@@ -2,24 +2,33 @@ import type { UnidadeDeTrabalho } from 'contratos';
 import type { EuDaApi } from '@/api/eu';
 
 const CHAVE = 'unidade-de-trabalho';
-// com o armazenamento do navegador bloqueado (janela privada), a escolha vale só enquanto a página está aberta
-let emMemoria: string | null = null;
+// Cada aba lê a escolha do navegador uma vez e depois vale a dela: a escolha de outra aba não troca a unidade desta no meio do trabalho
+// (a escala aberta aqui seria gravada na unidade da outra). Também serve de reserva com o armazenamento bloqueado (janela privada).
+let daAba: string | null | undefined;
 
 export function lerUnidadeGuardada(): string | null {
-  try {
-    return localStorage.getItem(CHAVE) ?? emMemoria;
-  } catch {
-    return emMemoria;
+  if (daAba === undefined) {
+    try {
+      daAba = localStorage.getItem(CHAVE);
+    } catch {
+      daAba = null;
+    }
   }
+  return daAba;
 }
 
 export function guardarUnidade(id: string): void {
-  emMemoria = id;
+  daAba = id;
   try {
     localStorage.setItem(CHAVE, id);
   } catch {
-    // sem armazenamento: fica só na memória
+    // sem armazenamento: fica só nesta aba
   }
+}
+
+/** Só para os testes: volta a ler do navegador na próxima vez. */
+export function esquecerUnidadeDaAba(): void {
+  daAba = undefined;
 }
 
 /**

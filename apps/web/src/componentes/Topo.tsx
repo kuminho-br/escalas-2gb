@@ -2,6 +2,7 @@ import { useRouter } from '@tanstack/react-router';
 import { ChevronDown, ChevronRight, Menu } from 'lucide-react';
 import type { Ref } from 'react';
 import type { Eu } from '@/api/eu';
+import { podeDescartar } from '@/componentes/AlteracoesPendentes';
 import { useSair } from '@/componentes/useSair';
 import { guardarUnidade } from '@/lib/unidade-de-trabalho';
 import {
@@ -22,11 +23,13 @@ export function Topo({ eu, aoAbrirMenu, botaoDoMenu }: { eu: Eu; aoAbrirMenu: ()
   const menorNivel = Math.min(...eu.unidades.map((u) => u.nivel));
 
   function escolher(id: string) {
+    // com alteração pendente, pergunta antes de mexer em qualquer coisa: se a pessoa desiste, a unidade e a tela continuam como estavam
+    if (!podeDescartar()) return;
     guardarUnidade(id);
     // trocar de unidade leva à lista da tela atual (/militares/abc vai para /militares): uma ficha de outra unidade não fica aberta
     const primeiro = router.state.location.pathname.split('/')[1] ?? '';
     void router.invalidate();
-    void router.navigate({ to: `/${primeiro}` as '/' });
+    void router.navigate({ to: `/${primeiro}` as '/', ignoreBlocker: true });
   }
 
   return (

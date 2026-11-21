@@ -292,6 +292,32 @@ describe('unidade de trabalho (fase 6)', () => {
     expect(await screen.findByRole('button', { name: /Unidade de trabalho: CBMPE \/ DGO \/ DInter\/1 \/ 2º GB \/ 1ª SB/ })).toBeInTheDocument();
   });
 
+  it('com alteração pendente, trocar de unidade pergunta antes e, se a pessoa desiste, nada muda', async () => {
+    const ficha = {
+      id: 'm1', matricula: '990001-1', posto: 'SD BM', nomeGuerra: 'ANDRADE', equipe: null, jornada: 'adm', motorista: null, voluntarioJes: false, ativo: true, situacao: 'Disponível', pendencias: [],
+      podeEditar: { peculio: true, escala: true, unidadeDeCima: '2º GB' }, postoGradId: 'p', nomeCompleto: 'João', sexo: null, nascimento: null, telefone: '', email: null, comportamento: null,
+      comportamentoBoletim: null, antiguidade: 1, antiguidadeRepetidaCom: [], noQuadroDeMotoristas: false, cnh: [], cnhPorHierarquia: [], rastreio: [], afastamentos: [],
+    };
+    simularApi({
+      '/api/eu': { status: 200, corpo: GESTOR },
+      'GET /api/militares/m1': { status: 200, corpo: ficha },
+      'GET /api/militares/m1/acesso': { status: 200, corpo: { situacao: 'sem-acesso', email: null, senhaProvisoriaAte: null, papeis: [], podeGerarSenha: false, papeisQuePodeDar: [], unidadesParaPapel: [] } },
+      'GET /api/postos': { status: 200, corpo: [] },
+      'GET /api/unidades/u-gb/equipes': { status: 200, corpo: [] },
+      'GET /api/sistema/tipos-afastamento': { status: 200, corpo: [] },
+    });
+    const confirmar = vi.spyOn(window, 'confirm').mockReturnValue(false);
+    const router = abrir('/militares/m1');
+    await userEvent.type(await screen.findByLabelText('Telefone'), '(81) 9');
+    await userEvent.click(screen.getByRole('button', { name: /Unidade de trabalho/ }));
+    await userEvent.click(await screen.findByRole('menuitem', { name: '1ª SB' }));
+    expect(confirmar).toHaveBeenCalled();
+    expect(localStorage.getItem('unidade-de-trabalho')).toBeNull();
+    expect(router.state.location.pathname).toBe('/militares/m1');
+    expect(screen.getByRole('button', { name: /Unidade de trabalho: CBMPE \/ DGO \/ DInter\/1 \/ 2º GB$/ })).toBeInTheDocument();
+    confirmar.mockRestore();
+  });
+
   it('com uma unidade só (o auxiliar de uma seção), não há seletor', async () => {
     simularApi({ '/api/eu': { status: 200, corpo: EU_EXEMPLO } });
     abrir('/');

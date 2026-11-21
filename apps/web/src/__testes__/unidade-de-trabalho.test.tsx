@@ -1,6 +1,6 @@
 import type { UnidadeDeTrabalho } from 'contratos';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { escolherUnidade, guardarUnidade, lerUnidadeGuardada } from '@/lib/unidade-de-trabalho';
+import { escolherUnidade, esquecerUnidadeDaAba, guardarUnidade, lerUnidadeGuardada } from '@/lib/unidade-de-trabalho';
 
 const u = (id: string, sigla: string, nivel: number): UnidadeDeTrabalho => ({ id, sigla, nivel, caminho: ['CBMPE', ...Array(nivel).fill('x'), sigla] });
 const GB = u('gb', '2º GB', 3);
@@ -11,6 +11,7 @@ const papel = (unidadeId: string, papel: 'gestor' | 'escalante' = 'escalante') =
 afterEach(() => {
   vi.restoreAllMocks();
   localStorage.clear();
+  esquecerUnidadeDaAba();
 });
 
 describe('escolherUnidade', () => {
@@ -57,5 +58,19 @@ describe('unidade guardada no navegador', () => {
     });
     expect(() => guardarUnidade('sb2')).not.toThrow();
     expect(lerUnidadeGuardada()).toBe('sb2');
+  });
+});
+
+describe('duas abas', () => {
+  it('a escolha de outra aba não muda a unidade desta: vale a que esta aba já lia', () => {
+    localStorage.setItem('unidade-de-trabalho', 'sb1');
+    expect(lerUnidadeGuardada()).toBe('sb1');
+    // a outra aba escolhe a 2ª SB
+    localStorage.setItem('unidade-de-trabalho', 'sb2');
+    expect(lerUnidadeGuardada()).toBe('sb1');
+    // quem escolhe nesta aba vale para esta aba e fica guardado para a próxima vez
+    guardarUnidade('gb');
+    expect(lerUnidadeGuardada()).toBe('gb');
+    expect(localStorage.getItem('unidade-de-trabalho')).toBe('gb');
   });
 });
