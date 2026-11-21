@@ -103,7 +103,7 @@ beforeAll(async () => {
   await criarMilitar('ADMIN', { ...p, jornada: 'adm' });
   await criarMilitar('DIARIAS', p);
   const tipo = (await api.banco.query<{ id: string }>('select id from tipo_afastamento limit 1')).rows[0]!.id;
-  expect((await api.pedir('escalante', 'POST', `/api/militares/${militar.AFASTADO}/afastamentos`, { tipoAfastamentoId: tipo, inicio: dia(8), fim: dia(12) })).status).toBe(201);
+  expect((await api.pedir('gestorGb', 'POST', `/api/militares/${militar.AFASTADO}/afastamentos`, { tipoAfastamentoId: tipo, inicio: dia(8), fim: dia(12) })).status).toBe(201);
   await alocar('CHOQUE', 'Pronto', 'B', ontem(D));
   await alocar('VIRADA', 'Pronto', 'B', ontem(dia(1)));
   await voluntariar('JESVOL', D, 'A');

@@ -69,7 +69,7 @@ beforeAll(async () => {
   await criarMilitar('JESSEM', [], true);
   await criarMilitar('NAOJES');
   const tipo = (await api.banco.query<{ id: string }>('select id from tipo_afastamento limit 1')).rows[0]!.id;
-  await api.pedir('escalante', 'POST', `/api/militares/${militar.AFASTADO}/afastamentos`, { tipoAfastamentoId: tipo, inicio: dia(1), fim: dia(28) });
+  await api.pedir('gestorGb', 'POST', `/api/militares/${militar.AFASTADO}/afastamentos`, { tipoAfastamentoId: tipo, inicio: dia(1), fim: dia(28) });
 });
 afterAll(async () => {
   await api.fechar();

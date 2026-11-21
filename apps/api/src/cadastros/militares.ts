@@ -17,7 +17,7 @@ import {
 } from 'contratos';
 import { cnhHabilitadas, diasDoMes } from 'dominio';
 import { Hono, type Context } from 'hono';
-import { CADASTRO, exigirAlgumPapel, exigirPapel, exigirSessao, temPapel, unidadeDoRegistro, type AmbienteApi } from '../acesso.ts';
+import { CADASTRO, exigirAlgumPapel, exigirPapel, exigirSessao, temPapel, temPapelAcima, unidadeDoRegistro, type AmbienteApi } from '../acesso.ts';
 import type { Auth } from '../auth.ts';
 import { comUsuario, type Banco, type Consulta } from '../banco/banco.ts';
 import { hojeRecife } from '../datas.ts';
@@ -27,6 +27,7 @@ import { categoriaMaisAlta, pendenciasDoMilitar, repetidasPorAntiguidade, situac
 type Ctx = Context<AmbienteApi>;
 const MSG_PERIODO_ANTES = 'Use o mês do período aberto ou um mês depois.';
 const MSG_EQUIPE_DE_OUTRA = 'Escolha uma equipe da unidade da lotação.';
+const MSG_EMAIL_REPETIDO = 'Este e-mail já é de outro militar.';
 const MSG_SITUACAO_MUDOU = 'A situação do militar mudou enquanto você alterava. Recarregue a ficha e tente de novo.';
 const MSG_MATRICULA = { '23505': 'Já existe um militar com essa matrícula.', '23503': 'Posto, unidade ou equipe não encontrado.' };
 
@@ -91,7 +92,7 @@ const SELECT_MILITAR = `
          m.voluntario_jes, m.ativo, e.nome as equipe, l.jornada`;
 
 /** Ficha completa; a lotação "atual" é a que cobre o mês. null se o militar não existe. */
-async function carregarFicha(c: Consulta, id: string, mes: string): Promise<FichaMilitar | null> {
+async function carregarFicha(c: Consulta, id: string, mes: string, usuarioId: string): Promise<FichaMilitar | null> {
   const { primeiro, ultimo } = limitesDoMes(mes);
   const { rows } = await c.query<LinhaBanco>(
     `${SELECT_MILITAR}
@@ -129,9 +130,25 @@ async function carregarFicha(c: Consulta, id: string, mes: string): Promise<Fich
     [id, primeiro, ultimo],
   );
   const repetidaCom = repetidasPorAntiguidade(colegas.rows.map((x) => ({ id: x.id, nomeGuerra: x.nome_guerra, antiguidade: x.antiguidade }))).get(id) ?? [];
+  // o que quem pede pode editar: o Pecúlio é de quem tem papel acima da lotação atual; a escala, de quem tem papel nela ou acima
+  const hoje = hojeRecife();
+  const lotacaoAtual = await unidadeAtualDoMilitar(c, id, hoje);
+  let escala = false;
+  for (const u of await unidadesDoAcesso(c, id)) {
+    if (await temPapel(c, usuarioId, u, CADASTRO, hoje)) {
+      escala = true;
+      break;
+    }
+  }
+  const podeEditar = {
+    peculio: lotacaoAtual ? await temPapelAcima(c, usuarioId, lotacaoAtual, CADASTRO, hoje) : false,
+    escala,
+    unidadeDeCima: lotacaoAtual ? await siglaDaUnidadeDeCima(c, lotacaoAtual) : null,
+  };
   return {
     ...linhaDe(m, afastamentos.rows, mes, repetidaCom),
     antiguidadeRepetidaCom: repetidaCom,
+    podeEditar,
     postoGradId: m.posto_grad_id,
     nomeCompleto: m.nome_completo,
     sexo: m.sexo,
@@ -149,6 +166,16 @@ async function carregarFicha(c: Consulta, id: string, mes: string): Promise<Fich
   };
 }
 
+/** As unidades que dão acesso ao militar: as lotações deste mês em diante; sem nenhuma, a lotação mais recente. */
+async function unidadesDoAcesso(banco: Consulta, militarId: string): Promise<string[]> {
+  const inicioDoMes = `${hojeRecife().slice(0, 7)}-01`;
+  const { rows } = await banco.query<{ unidade_id: string }>(
+    'select distinct unidade_id from rastreio where militar_id = $1 and (ate is null or ate >= $2)',
+    [militarId, inicioDoMes],
+  );
+  return rows.length ? rows.map((r) => r.unidade_id) : [(await unidadeDoRegistro(banco, 'militar', militarId))!];
+}
+
 /**
  * Confere o papel numa unidade do militar: as das lotações deste mês em diante (uma transferência
  * marcada para o mês que vem não tira o acesso de quem cuida dele agora). Sem nenhuma, vale a
@@ -159,12 +186,7 @@ async function exigirPapelNoRegistro(c: Ctx, tabela: 'militar' | 'afastamento', 
   const naoAchou = () => c.json({ erro: tabela === 'militar' ? 'Militar não encontrado.' : 'Afastamento não encontrado.' }, 404);
   if (!(await unidadeDoRegistro(banco, tabela, id))) return naoAchou();
   const militarId = tabela === 'militar' ? id : (await banco.query<{ militar_id: string }>('select militar_id from afastamento where id = $1', [id])).rows[0]!.militar_id;
-  const inicioDoMes = `${hojeRecife().slice(0, 7)}-01`;
-  const { rows } = await banco.query<{ unidade_id: string }>(
-    'select distinct unidade_id from rastreio where militar_id = $1 and (ate is null or ate >= $2)',
-    [militarId, inicioDoMes],
-  );
-  const unidades = rows.length ? rows.map((r) => r.unidade_id) : [(await unidadeDoRegistro(banco, 'militar', militarId))!];
+  const unidades = await unidadesDoAcesso(banco, militarId);
   let negado: Response | null = null;
   for (const u of unidades) {
     negado = await exigirPapel(c, u, CADASTRO);
@@ -179,6 +201,46 @@ async function conferirTipo(c: Ctx, tipoId: string): Promise<Response | null> {
   if (!t) return c.json({ erro: 'Escolha um tipo de afastamento.', campos: { tipoAfastamentoId: 'Escolha um tipo de afastamento.' } }, 400);
   if (!t.ativo) return c.json({ erro: 'Este tipo de afastamento está desativado.', campos: { tipoAfastamentoId: 'Este tipo de afastamento está desativado.' } }, 400);
   return null;
+}
+
+/** A unidade em que o militar está lotado hoje: a do período que cobre hoje; sem ele, a do mais recente. */
+async function unidadeAtualDoMilitar(c: Consulta, militarId: string, hoje: string): Promise<string | null> {
+  const { rows } = await c.query<{ unidade_id: string }>(
+    `select unidade_id from rastreio where militar_id = $1
+      order by (desde <= $2::date and (ate is null or ate >= $2::date)) desc, desde desc limit 1`,
+    [militarId, hoje],
+  );
+  return rows[0]?.unidade_id ?? null;
+}
+
+/** A sigla da unidade mãe: a "unidade de cima" que a mensagem cita ("quem tem papel no 2º GB"). */
+async function siglaDaUnidadeDeCima(c: Consulta, unidadeId: string): Promise<string | null> {
+  const { rows } = await c.query<{ sigla: string }>('select m.sigla from unidade u join unidade m on m.id = u.mae_id where u.id = $1', [unidadeId]);
+  return rows[0]?.sigla ?? null;
+}
+
+/** 403 do bloco do Pecúlio: só quem tem papel numa unidade acima da lotação altera. `quem` completa a frase ("Este campo", "Os afastamentos"...). */
+async function exigirDonoDoPeculio(c: Ctx, unidadeId: string, frase: (cima: string) => string): Promise<Response | null> {
+  const banco = c.get('banco');
+  if (await temPapelAcima(banco, c.get('usuarioId'), unidadeId, CADASTRO, hojeRecife())) return null;
+  const cima = await siglaDaUnidadeDeCima(banco, unidadeId);
+  return c.json({ erro: frase(cima ?? 'uma unidade acima') }, 403);
+}
+const FRASE_CAMPO = (cima: string) => `Este campo é alterado por quem tem papel no ${cima}.`;
+const FRASE_LOTACAO = (cima: string) => `A lotação é alterada por quem tem papel no ${cima}.`;
+const FRASE_CADASTRAR = (cima: string) => `Cadastrar militar é com quem tem papel no ${cima}.`;
+const FRASE_AFASTAMENTOS = (cima: string) => `Os afastamentos são alterados por quem tem papel no ${cima}.`;
+
+/** Os campos da ficha que são do Pecúlio (o resto do PATCH é da escala: motorista, CNH, voluntário JES e ativo). */
+const CAMPOS_DO_PECULIO = ['postoGradId', 'nomeCompleto', 'nomeGuerra', 'antiguidade', 'sexo', 'nascimento', 'telefone', 'email', 'comportamento', 'comportamentoBoletim'] as const;
+
+const militarDoAfastamento = async (c: Consulta, afastamentoId: string): Promise<string> =>
+  (await c.query<{ militar_id: string }>('select militar_id from afastamento where id = $1', [afastamentoId])).rows[0]!.militar_id;
+
+/** Exige o dono do Pecúlio sobre o militar (pela lotação atual dele); 404 se o militar não existe. */
+async function exigirDonoDoPeculioDoMilitar(c: Ctx, militarId: string, frase: (cima: string) => string): Promise<Response | null> {
+  const ref = await unidadeAtualDoMilitar(c.get('banco'), militarId, hojeRecife());
+  return ref ? exigirDonoDoPeculio(c, ref, frase) : c.json({ erro: 'Este militar ainda não tem lotação.' }, 409);
 }
 
 const mesDaConsulta = (c: Ctx) => c.req.query('mes') ?? hojeRecife().slice(0, 7);
@@ -244,6 +306,9 @@ export function rotasMilitares(dep: { banco: Banco; auth: Auth }): Hono<Ambiente
     const u = c.req.param('u');
     const negado = await exigirPapel(c, u, CADASTRO);
     if (negado) return negado;
+    // cadastrar militar é do Pecúlio: papel numa unidade acima da seção em que ele entra
+    const naoEDono = await exigirDonoDoPeculio(c, u, FRASE_CADASTRAR);
+    if (naoEDono) return naoEDono;
     const corpo = await lerCorpo(c, NovoMilitar);
     if (!corpo.ok) return corpo.resposta;
     const d = corpo.dados;
@@ -259,7 +324,7 @@ export function rotasMilitares(dep: { banco: Banco; auth: Auth }): Hono<Ambiente
         await tx.query('insert into rastreio (militar_id, unidade_id, equipe_id, jornada, desde) values ($1, $2, $3, $4, $5)', [
           id, u, d.lotacao.equipeId, d.lotacao.jornada, mesParaData(d.lotacao.desde),
         ]);
-        return carregarFicha(tx, id, d.lotacao.desde);
+        return carregarFicha(tx, id, d.lotacao.desde, c.get('usuarioId'));
       });
       return c.json(ficha, 201);
     } catch (e) {
@@ -273,7 +338,7 @@ export function rotasMilitares(dep: { banco: Banco; auth: Auth }): Hono<Ambiente
     if (negado) return negado;
     const mes = mesDaConsulta(c);
     if (!Mes.safeParse(mes).success) return c.json({ erro: 'Mês inválido: use o formato aaaa-mm.' }, 400);
-    return c.json(await carregarFicha(dep.banco, id, mes));
+    return c.json(await carregarFicha(dep.banco, id, mes, c.get('usuarioId')));
   });
 
   r.patch('/militares/:id', async (c) => {
@@ -286,19 +351,30 @@ export function rotasMilitares(dep: { banco: Banco; auth: Auth }): Hono<Ambiente
     const corpo = await lerCorpo(c, EdicaoMilitar);
     if (!corpo.ok) return corpo.resposta;
     const d = corpo.dados;
+    // os campos do Pecúlio e os da escala são conferidos separadamente, antes de gravar: com um campo do Pecúlio sem permissão, nada é gravado
+    if (CAMPOS_DO_PECULIO.some((k) => d[k] !== undefined)) {
+      const naoEDono = await exigirDonoDoPeculioDoMilitar(c, id, FRASE_CAMPO);
+      if (naoEDono) return naoEDono;
+    }
     try {
       const ficha = await comUsuario(dep.banco, c.get('usuarioId'), async (tx) => {
         // o estado atual é lido já dentro da transação, com a linha travada: duas edições ao mesmo tempo, em campos
         // diferentes, não se atropelam (a segunda parte do que a primeira gravou)
-        const atual = (await tx.query<Pick<LinhaBanco, 'posto_grad_id' | 'nome_guerra' | 'antiguidade' | 'motorista' | 'cnh' | 'voluntario_jes' | 'ativo'>>(
-          'select posto_grad_id, nome_guerra, antiguidade, motorista, cnh, voluntario_jes, ativo from militar where id = $1 for update',
+        const atual = (await tx.query<Pick<LinhaBanco, 'posto_grad_id' | 'nome_completo' | 'nome_guerra' | 'sexo' | 'nascimento_dia' | 'nascimento_mes' | 'telefone' | 'email' | 'comportamento' | 'comportamento_boletim' | 'antiguidade' | 'motorista' | 'cnh' | 'voluntario_jes' | 'ativo'>>(
+          `select posto_grad_id, nome_completo, nome_guerra, sexo, nascimento_dia, nascimento_mes, telefone, email, comportamento, comportamento_boletim,
+                  antiguidade, motorista, cnh, voluntario_jes, ativo from militar where id = $1 for update`,
           [id],
         )).rows[0]!;
+        // `undefined` mantém o que está gravado; `null` limpa
+        const novo = <T,>(valor: T | undefined, gravado: T): T => (valor === undefined ? gravado : valor);
+        const nascimentoDia = d.nascimento === undefined ? atual.nascimento_dia : (d.nascimento?.dia ?? null);
+        const nascimentoMes = d.nascimento === undefined ? atual.nascimento_mes : (d.nascimento?.mes ?? null);
         // desmarcar o quadro de motoristas não apaga a CNH: ela só deixa de valer para a escala
         const motorista = d.motorista ?? atual.motorista;
         const cnh = d.cnh ?? atual.cnh;
         await tx.query(
-          `update militar set posto_grad_id = $2, nome_guerra = $3, antiguidade = $4, motorista = $5, cnh = $6, voluntario_jes = $7, ativo = $8
+          `update militar set posto_grad_id = $2, nome_guerra = $3, antiguidade = $4, motorista = $5, cnh = $6, voluntario_jes = $7, ativo = $8,
+                  nome_completo = $9, sexo = $10, nascimento_dia = $11, nascimento_mes = $12, telefone = $13, email = $14, comportamento = $15, comportamento_boletim = $16
             where id = $1`,
           [
             id,
@@ -309,12 +385,25 @@ export function rotasMilitares(dep: { banco: Banco; auth: Auth }): Hono<Ambiente
             cnh,
             d.voluntarioJes ?? atual.voluntario_jes,
             d.ativo ?? atual.ativo,
+            d.nomeCompleto ?? atual.nome_completo,
+            novo(d.sexo, atual.sexo),
+            nascimentoDia,
+            nascimentoMes,
+            novo(d.telefone, atual.telefone),
+            novo(d.email, atual.email),
+            novo(d.comportamento, atual.comportamento),
+            novo(d.comportamentoBoletim, atual.comportamento_boletim),
           ],
         );
-        return carregarFicha(tx, id, mes);
+        return carregarFicha(tx, id, mes, c.get('usuarioId'));
       });
       return c.json(ficha);
     } catch (e) {
+      // o e-mail é único sem distinção de maiúsculas (índice militar_email_unico): o 409 vai no campo
+      const doBanco = e as { code?: string; message?: string; constraint?: string } | null;
+      if (doBanco?.code === '23505' && /militar_email_unico/.test(`${doBanco.constraint ?? ''} ${doBanco.message ?? ''}`)) {
+        return c.json({ erro: MSG_EMAIL_REPETIDO, campos: { email: MSG_EMAIL_REPETIDO } }, 409);
+      }
       return respostaDoErroDoBanco(c, e, MSG_MATRICULA);
     }
   });
@@ -341,6 +430,12 @@ export function rotasMilitares(dep: { banco: Banco; auth: Auth }): Hono<Ambiente
       const negadoAberta = await exigirPapel(c, unidadeAberta, CADASTRO);
       if (negadoAberta) return negadoAberta;
     }
+    // mudar a LOTAÇÃO (a unidade) é do Pecúlio: papel acima da lotação atual. Equipe e jornada, com a lotação travada, são da escala (papel na lotação ou acima)
+    const lotacaoAtual = await unidadeAtualDoMilitar(dep.banco, id, hojeRecife());
+    if (lotacaoAtual && d.unidadeId !== (unidadeAberta ?? lotacaoAtual)) {
+      const naoEDono = await exigirDonoDoPeculio(c, lotacaoAtual, FRASE_LOTACAO);
+      if (naoEDono) return naoEDono;
+    }
     try {
       const resultado = await comUsuario(dep.banco, c.get('usuarioId'), async (tx) => {
         // o período aberto é lido dentro da transação, com a linha travada: duas alterações ao mesmo tempo não se atropelam
@@ -353,13 +448,13 @@ export function rotasMilitares(dep: { banco: Banco; auth: Auth }): Hono<Ambiente
         if (aberta && d.desde < aberta.mes) return 'antes' as const;
         if (aberta && d.desde === aberta.mes) {
           await tx.query('update rastreio set unidade_id = $2, equipe_id = $3, jornada = $4 where id = $1', [aberta.id, d.unidadeId, d.equipeId, d.jornada]);
-          return { ficha: await carregarFicha(tx, id, d.desde), criado: false };
+          return { ficha: await carregarFicha(tx, id, d.desde, c.get('usuarioId')), criado: false };
         }
         if (aberta) await tx.query("update rastreio set ate = $2::date - interval '1 day' where id = $1", [aberta.id, mesParaData(d.desde)]);
         await tx.query('insert into rastreio (militar_id, unidade_id, equipe_id, jornada, desde) values ($1, $2, $3, $4, $5)', [
           id, d.unidadeId, d.equipeId, d.jornada, mesParaData(d.desde),
         ]);
-        return { ficha: await carregarFicha(tx, id, d.desde), criado: true };
+        return { ficha: await carregarFicha(tx, id, d.desde, c.get('usuarioId')), criado: true };
       });
       if (resultado === 'mudou') return c.json({ erro: MSG_SITUACAO_MUDOU }, 409);
       if (resultado === 'antes') return c.json({ erro: MSG_PERIODO_ANTES, campos: { desde: MSG_PERIODO_ANTES } }, 400);
@@ -373,6 +468,8 @@ export function rotasMilitares(dep: { banco: Banco; auth: Auth }): Hono<Ambiente
     const id = c.req.param('id');
     const negado = await exigirPapelNoRegistro(c, 'militar', id);
     if (negado) return negado;
+    const naoEDono = await exigirDonoDoPeculioDoMilitar(c, id, FRASE_AFASTAMENTOS);
+    if (naoEDono) return naoEDono;
     const corpo = await lerCorpo(c, NovoAfastamento);
     if (!corpo.ok) return corpo.resposta;
     const d = corpo.dados;
@@ -395,6 +492,8 @@ export function rotasMilitares(dep: { banco: Banco; auth: Auth }): Hono<Ambiente
     const id = c.req.param('id');
     const negado = await exigirPapelNoRegistro(c, 'afastamento', id);
     if (negado) return negado;
+    const naoEDono = await exigirDonoDoPeculioDoMilitar(c, await militarDoAfastamento(dep.banco, id), FRASE_AFASTAMENTOS);
+    if (naoEDono) return naoEDono;
     const corpo = await lerCorpo(c, EdicaoAfastamento);
     if (!corpo.ok) return corpo.resposta;
     const atual = (await dep.banco.query<{ tipo: string; inicio: string; fim: string }>(
@@ -421,6 +520,8 @@ export function rotasMilitares(dep: { banco: Banco; auth: Auth }): Hono<Ambiente
     const id = c.req.param('id');
     const negado = await exigirPapelNoRegistro(c, 'afastamento', id);
     if (negado) return negado;
+    const naoEDono = await exigirDonoDoPeculioDoMilitar(c, await militarDoAfastamento(dep.banco, id), FRASE_AFASTAMENTOS);
+    if (naoEDono) return naoEDono;
     await comUsuario(dep.banco, c.get('usuarioId'), (tx) => tx.query('delete from afastamento where id = $1', [id]));
     return c.body(null, 204);
   });

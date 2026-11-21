@@ -16,7 +16,7 @@ beforeAll(async () => {
   sd = postos.find((p) => p.sigla === 'SD BM')!.id;
   cb = postos.find((p) => p.sigla === 'CB BM')!.id;
   const alfa = await inserir(api.banco, 'equipe', { unidade_id: api.ids.secao, nome: 'Alfa', ordem_ciclo: 1 });
-  const r = await api.pedir('escalante', 'POST', `/api/unidades/${api.ids.secao}/militares`, {
+  const r = await api.pedir('gestorGb', 'POST', `/api/unidades/${api.ids.secao}/militares`, {
     matricula: '990950-1', postoGradId: sd, nomeCompleto: 'Fulano de Tal Entrada', nomeGuerra: 'ENTRADA', antiguidade: 1, motorista: false, cnh: [], voluntarioJes: false,
     lotacao: { equipeId: alfa, jornada: 'pronto', desde: atual },
   });
