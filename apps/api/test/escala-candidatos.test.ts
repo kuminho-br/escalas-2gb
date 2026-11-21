@@ -45,7 +45,7 @@ async function criarMilitar(nome: string, extra: { cnh?: string[]; jes?: boolean
     motorista: (extra.cnh ?? []).length > 0, cnh: extra.cnh ?? [], voluntario_jes: extra.jes ?? false, ativo: extra.ativo ?? true,
   });
   militar[nome] = id;
-  await inserir(api.banco, 'lotacao', { militar_id: id, unidade_id: api.ids.secao, equipe_id: extra.jornada === 'adm' ? null : equipe, jornada: extra.jornada ?? 'pronto', desde: extra.desde ?? `${atual}-01` });
+  await inserir(api.banco, 'rastreio', { militar_id: id, unidade_id: api.ids.secao, equipe_id: extra.jornada === 'adm' ? null : equipe, jornada: extra.jornada ?? 'pronto', desde: extra.desde ?? `${atual}-01` });
   return id;
 }
 let equipe: string;

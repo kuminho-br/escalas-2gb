@@ -71,7 +71,7 @@ beforeAll(async () => {
       matricula: `99${String(1400 + seq).padStart(4, "0")}-${seq % 10}`, posto_grad_id: sd, nome_guerra: nome, motorista: (extra.cnh ?? []).length > 0, cnh: extra.cnh ?? [], voluntario_jes: extra.jes ?? false,
     });
     militar[nome] = id;
-    await inserir(api.banco, 'lotacao', { militar_id: id, unidade_id: extra.unidade ?? api.ids.secao, equipe_id: extra.unidade ? null : alfa, jornada: 'pronto', desde: '2026-11-01' });
+    await inserir(api.banco, 'rastreio', { militar_id: id, unidade_id: extra.unidade ?? api.ids.secao, equipe_id: extra.unidade ? null : alfa, jornada: 'pronto', desde: '2026-11-01' });
   };
   for (const n of ['A1', 'A2', 'A3', 'B1', 'B2', 'C1', 'C2', 'D1', 'D2', 'E1', 'E2', 'E3', 'F1', 'F2', 'LIVRE']) await criar(n, { cnh: ['E'] });
   await criar('SEMCNH', { cnh: ['B'] });

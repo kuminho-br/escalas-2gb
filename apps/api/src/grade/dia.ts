@@ -28,7 +28,7 @@ async function dadosDoMilitar(c: Consulta, unidadeId: string, militarId: string,
     `select m.id, m.matricula, m.nome_guerra, p.sigla as posto, m.cnh, m.voluntario_jes, l.jornada, e.nome as equipe,
             to_char(l.desde, 'YYYY-MM-DD') as desde, to_char(l.ate, 'YYYY-MM-DD') as ate
        from militar m join posto_grad p on p.id = m.posto_grad_id
-       left join lotacao l on l.militar_id = m.id and l.unidade_id = $2
+       left join rastreio l on l.militar_id = m.id and l.unidade_id = $2
             and l.desde <= (date_trunc('month', $3::date) + interval '1 month' - interval '1 day')::date and (l.ate is null or l.ate >= date_trunc('month', $3::date)::date)
        left join equipe e on e.id = l.equipe_id
       where m.id = $1

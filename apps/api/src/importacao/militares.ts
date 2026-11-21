@@ -87,12 +87,12 @@ async function existentes(tx: Consulta, mes: string, unidadeId: string): Promise
     `select m.id, m.matricula, m.posto_grad_id, p.sigla as posto, m.nome_guerra, m.antiguidade, m.motorista, m.cnh, m.voluntario_jes, m.ativo,
             l.id as lotacao_id, l.unidade_id as lotacao_unidade, un.sigla as lotacao_sigla, to_char(l.desde, 'YYYY-MM') as lotacao_desde,
             l.ate is null as lotacao_aberta, e.nome as equipe, l.jornada,
-            (select to_char(min(f.desde), 'YYYY-MM') from lotacao f where f.militar_id = m.id and f.desde > $2) as futura,
-            (select ou.sigla from lotacao o join unidade ou on ou.id = o.unidade_id
+            (select to_char(min(f.desde), 'YYYY-MM') from rastreio f where f.militar_id = m.id and f.desde > $2) as futura,
+            (select ou.sigla from rastreio o join unidade ou on ou.id = o.unidade_id
               where o.militar_id = m.id and o.unidade_id <> $3 and (o.ate is null or o.ate >= $1) order by o.desde limit 1) as outra_sigla
        from militar m
        join posto_grad p on p.id = m.posto_grad_id
-       left join lotacao l on l.militar_id = m.id and l.desde <= $2 and (l.ate is null or l.ate >= $1)
+       left join rastreio l on l.militar_id = m.id and l.desde <= $2 and (l.ate is null or l.ate >= $1)
        left join unidade un on un.id = l.unidade_id
        left join equipe e on e.id = l.equipe_id`,
     [dias[0], dias[dias.length - 1], unidadeId],
@@ -328,11 +328,11 @@ export const importadorMilitares: Importador<Plano> = {
       const l = it.lotacao;
       if (!l) continue;
       if (l.acao === 'corrigir') {
-        await tx.query('update lotacao set unidade_id = $2, equipe_id = $3, jornada = $4 where id = $1', [l.id, unidadeId, equipeId, d.jornada]);
+        await tx.query('update rastreio set unidade_id = $2, equipe_id = $3, jornada = $4 where id = $1', [l.id, unidadeId, equipeId, d.jornada]);
         continue;
       }
-      if (l.acao === 'transferir') await tx.query("update lotacao set ate = $2::date - interval '1 day' where id = $1", [l.id, desde]);
-      await tx.query('insert into lotacao (militar_id, unidade_id, equipe_id, jornada, desde) values ($1, $2, $3, $4, $5)', [id, unidadeId, equipeId, d.jornada, desde]);
+      if (l.acao === 'transferir') await tx.query("update rastreio set ate = $2::date - interval '1 day' where id = $1", [l.id, desde]);
+      await tx.query('insert into rastreio (militar_id, unidade_id, equipe_id, jornada, desde) values ($1, $2, $3, $4, $5)', [id, unidadeId, equipeId, d.jornada, desde]);
     }
     return plano.itens.length;
   },

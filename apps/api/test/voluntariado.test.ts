@@ -29,7 +29,7 @@ async function criarMilitar(nome: string, o: { jornada?: 'pronto' | 'adm'; equip
     matricula: `99${String(6000 + seq).padStart(4, '0')}-${seq % 10}`, posto_grad_id: posto, nome_guerra: nome, ativo: o.ativo ?? true,
   });
   militar[nome] = id;
-  await inserir(api.banco, 'lotacao', {
+  await inserir(api.banco, 'rastreio', {
     militar_id: id, unidade_id: api.ids.secao, equipe_id: o.equipe ? equipe[o.equipe] : null, jornada: o.jornada ?? 'pronto', desde: o.desde ?? `${atual}-01`, ate: o.ate ?? null,
   });
 }
@@ -241,7 +241,7 @@ describe('militar com transferência cadastrada (Fase 4.2, revisão final)', () 
   it('com a transferência no mês seguinte, o escalante da seção atual ainda lê e lança o mês corrente; no mês da transferência a seção é a outra', async () => {
     const outra = await inserir(api.banco, 'unidade', { tipo: 'secao', sigla: '2ª SB-V', nome: 'Seção V', mae_id: api.ids.gb, desde: '2026-11-01' });
     await criarMilitar('TRANSF', { equipe: 'Delta', ate: `${mes}-${String(diasNoMes(mes)).padStart(2, '0')}` });
-    await inserir(api.banco, 'lotacao', { militar_id: militar.TRANSF, unidade_id: outra, jornada: 'adm', desde: `${somarMeses(mes, 1)}-01` });
+    await inserir(api.banco, 'rastreio', { militar_id: militar.TRANSF, unidade_id: outra, jornada: 'adm', desde: `${somarMeses(mes, 1)}-01` });
     expect((await api.pedir('escalante', 'GET', `/api/militares/${militar.TRANSF}/voluntariado/${mes}`)).status).toBe(200);
     const lancou = await lancar('TRANSF', [f(`${mes}-05`, '08:00', '20:00')]);
     expect(lancou.status).toBe(200);

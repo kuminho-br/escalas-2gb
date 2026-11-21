@@ -71,7 +71,7 @@ beforeAll(async () => {
       matricula: `99130${seq}-${seq}`, posto_grad_id: sd, nome_guerra: nome, motorista: (extra.cnh ?? []).length > 0, cnh: extra.cnh ?? [], voluntario_jes: extra.jes ?? false,
     });
     militar[nome] = id;
-    await inserir(api.banco, 'lotacao', {
+    await inserir(api.banco, 'rastreio', {
       militar_id: id, unidade_id: extra.unidade ?? api.ids.secao, equipe_id: extra.jornada === 'adm' || extra.unidade ? null : alfa, jornada: extra.jornada ?? 'pronto', desde: '2026-11-01',
     });
   };
@@ -231,7 +231,7 @@ describe('quanto custa abrir o painel', () => {
     const alfa = (await api.banco.query<{ id: string }>("select id from equipe where unidade_id = $1 and nome = 'Alfa'", [api.ids.secao])).rows[0]!.id;
     const criarCheio = async (nome: string, matricula: string, jornada: 'pronto' | 'adm') => {
       militar[nome] = await inserir(api.banco, 'militar', { matricula, posto_grad_id: sd, nome_guerra: nome, motorista: true, cnh: ['E'], voluntario_jes: true });
-      await inserir(api.banco, 'lotacao', { militar_id: militar[nome], unidade_id: api.ids.secao, equipe_id: jornada === 'adm' ? null : alfa, jornada, desde: '2026-11-01' });
+      await inserir(api.banco, 'rastreio', { militar_id: militar[nome], unidade_id: api.ids.secao, equipe_id: jornada === 'adm' ? null : alfa, jornada, desde: '2026-11-01' });
     };
     // dois serviços no dia, um na véspera e um no dia seguinte, em dia de feriado: o pronto (com guarnição) e o do Adm (que também lê feriados e afastamentos)
     await criarCheio('CHEIO', '991390-0', 'pronto');

@@ -85,7 +85,7 @@ async function carregarFicha(c: Consulta, id: string, mes: string): Promise<Fich
     `${SELECT_MILITAR}
        from militar m
        join posto_grad p on p.id = m.posto_grad_id
-       left join lotacao l on l.militar_id = m.id and l.desde <= $3 and (l.ate is null or l.ate >= $2)
+       left join rastreio l on l.militar_id = m.id and l.desde <= $3 and (l.ate is null or l.ate >= $2)
        left join equipe e on e.id = l.equipe_id
       where m.id = $1`,
     [id, primeiro, ultimo],
@@ -94,7 +94,7 @@ async function carregarFicha(c: Consulta, id: string, mes: string): Promise<Fich
   if (!m) return null;
   const lotacoes = await c.query<{ id: string; sigla: string; equipe: string | null; jornada: 'pronto' | 'adm'; desde: string; ate: string | null }>(
     `select l.id, un.sigla, e.nome as equipe, l.jornada, to_char(l.desde, 'YYYY-MM-DD') as desde, to_char(l.ate, 'YYYY-MM-DD') as ate
-       from lotacao l join unidade un on un.id = l.unidade_id left join equipe e on e.id = l.equipe_id
+       from rastreio l join unidade un on un.id = l.unidade_id left join equipe e on e.id = l.equipe_id
       where l.militar_id = $1 order by l.desde desc`,
     [id],
   );
@@ -108,8 +108,8 @@ async function carregarFicha(c: Consulta, id: string, mes: string): Promise<Fich
   // compara com os ativos lotados, no mês, na mesma unidade; sem lotação ou inativo, não compara
   const colegas = await c.query<{ id: string; nome_guerra: string; antiguidade: number | null }>(
     `select m2.id, m2.nome_guerra, m2.antiguidade
-       from lotacao l0
-       join lotacao l2 on l2.unidade_id = l0.unidade_id and l2.desde <= $3 and (l2.ate is null or l2.ate >= $2)
+       from rastreio l0
+       join rastreio l2 on l2.unidade_id = l0.unidade_id and l2.desde <= $3 and (l2.ate is null or l2.ate >= $2)
        join militar m2 on m2.id = l2.militar_id and m2.ativo
       where l0.militar_id = $1 and l0.desde <= $3 and (l0.ate is null or l0.ate >= $2)
       order by m2.nome_guerra`,
@@ -141,7 +141,7 @@ async function exigirPapelNoRegistro(c: Ctx, tabela: 'militar' | 'afastamento', 
   const militarId = tabela === 'militar' ? id : (await banco.query<{ militar_id: string }>('select militar_id from afastamento where id = $1', [id])).rows[0]!.militar_id;
   const inicioDoMes = `${hojeRecife().slice(0, 7)}-01`;
   const { rows } = await banco.query<{ unidade_id: string }>(
-    'select distinct unidade_id from lotacao where militar_id = $1 and (ate is null or ate >= $2)',
+    'select distinct unidade_id from rastreio where militar_id = $1 and (ate is null or ate >= $2)',
     [militarId, inicioDoMes],
   );
   const unidades = rows.length ? rows.map((r) => r.unidade_id) : [(await unidadeDoRegistro(banco, 'militar', militarId))!];
@@ -194,7 +194,7 @@ export function rotasMilitares(dep: { banco: Banco; auth: Auth }): Hono<Ambiente
     const { primeiro, ultimo } = limitesDoMes(mes);
     const { rows } = await dep.banco.query<LinhaBanco>(
       `${SELECT_MILITAR}
-         from lotacao l
+         from rastreio l
          join unidade un on un.id = l.unidade_id
          join unidade alvo on alvo.id = $1
          join militar m on m.id = l.militar_id
@@ -225,7 +225,7 @@ export function rotasMilitares(dep: { banco: Banco; auth: Auth }): Hono<Ambiente
             [d.matricula, d.postoGradId, d.nomeGuerra, d.antiguidade, d.motorista, d.cnh, d.voluntarioJes],
           )
         ).rows[0]!.id;
-        await tx.query('insert into lotacao (militar_id, unidade_id, equipe_id, jornada, desde) values ($1, $2, $3, $4, $5)', [
+        await tx.query('insert into rastreio (militar_id, unidade_id, equipe_id, jornada, desde) values ($1, $2, $3, $4, $5)', [
           id, u, d.lotacao.equipeId, d.lotacao.jornada, mesParaData(d.lotacao.desde),
         ]);
         return carregarFicha(tx, id, d.lotacao.desde);
@@ -301,7 +301,7 @@ export function rotasMilitares(dep: { banco: Banco; auth: Auth }): Hono<Ambiente
     const negadoDestino = await exigirPapel(c, d.unidadeId, CADASTRO);
     if (negadoDestino) return negadoDestino;
     const aberta = (await dep.banco.query<{ id: string; mes: string }>(
-      "select id, to_char(desde, 'YYYY-MM') as mes from lotacao where militar_id = $1 and ate is null",
+      "select id, to_char(desde, 'YYYY-MM') as mes from rastreio where militar_id = $1 and ate is null",
       [id],
     )).rows[0];
     if (aberta && d.desde <= aberta.mes) {
@@ -309,8 +309,8 @@ export function rotasMilitares(dep: { banco: Banco; auth: Auth }): Hono<Ambiente
     }
     try {
       const ficha = await comUsuario(dep.banco, c.get('usuarioId'), async (tx) => {
-        if (aberta) await tx.query("update lotacao set ate = $2::date - interval '1 day' where id = $1", [aberta.id, mesParaData(d.desde)]);
-        await tx.query('insert into lotacao (militar_id, unidade_id, equipe_id, jornada, desde) values ($1, $2, $3, $4, $5)', [
+        if (aberta) await tx.query("update rastreio set ate = $2::date - interval '1 day' where id = $1", [aberta.id, mesParaData(d.desde)]);
+        await tx.query('insert into rastreio (militar_id, unidade_id, equipe_id, jornada, desde) values ($1, $2, $3, $4, $5)', [
           id, d.unidadeId, d.equipeId, d.jornada, mesParaData(d.desde),
         ]);
         return carregarFicha(tx, id, d.desde);

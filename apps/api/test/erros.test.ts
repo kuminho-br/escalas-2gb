@@ -18,7 +18,7 @@ describe('mensagens dos erros do banco', () => {
   });
 
   it('referência que não existe ao alterar também pede para recarregar', async () => {
-    const r = await resposta(erro('23503', 'insert or update on table "lotacao" violates foreign key constraint "x"'));
+    const r = await resposta(erro('23503', 'insert or update on table "rastreio" violates foreign key constraint "x"'));
     expect(r.corpo.erro).toContain('Recarregue a tela');
   });
 

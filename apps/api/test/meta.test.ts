@@ -225,11 +225,11 @@ describe('desativar e desfazer (Review Focus 1 a 4)', () => {
     const posto = await inserir(api.banco, 'posto_grad', { sigla: 'SD-M', nome: 'Soldado M', ordem: 930 });
     for (const [i, nome] of ['ALFA', 'BRAVO', 'CHARLIE'].entries()) {
       militares[nome] = await inserir(api.banco, 'militar', { matricula: `99091${i}-${i}`, posto_grad_id: posto, nome_guerra: nome });
-      await inserir(api.banco, 'lotacao', { militar_id: militares[nome], unidade_id: api.ids.secao, jornada: 'pronto', desde: '2026-01-01' });
+      await inserir(api.banco, 'rastreio', { militar_id: militares[nome], unidade_id: api.ids.secao, jornada: 'pronto', desde: '2026-01-01' });
     }
     // quem é de outra seção (para o corpo forjado do "Desfazer")
     militares.FORA = await inserir(api.banco, 'militar', { matricula: '990919-9', posto_grad_id: posto, nome_guerra: 'FORA' });
-    await inserir(api.banco, 'lotacao', { militar_id: militares.FORA, unidade_id: outraSecao, jornada: 'pronto', desde: '2026-01-01' });
+    await inserir(api.banco, 'rastreio', { militar_id: militares.FORA, unidade_id: outraSecao, jornada: 'pronto', desde: '2026-01-01' });
     // um modelo de uma vaga só e os vínculos de todos à faixa 08–20 da escala (o "Desfazer" passa pelas regras de escalar)
     const c = await api.pedir('escalante', 'POST', `${secao()}/guarnicoes`, {
       nome: 'Cheia', vigencia: HOJE.slice(0, 7), versao: { viatura: null, tipoViatura: null, prioridade: null, ativa: true, composicao: [{ funcaoId: funcao, minimo: 1, maximo: 1, cnhExigida: null }] },

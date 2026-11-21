@@ -34,7 +34,7 @@ export async function equipeDoDia1(c: Consulta, unidadeId: string, mes: string):
   const cicloPorId = new Map(equipes.map((e) => [e.id, cicloDaEquipe(e)]));
   const lotados = (
     await c.query<{ id: string; equipe_id: string }>(
-      `select distinct on (m.id) m.id, l.equipe_id from lotacao l join militar m on m.id = l.militar_id
+      `select distinct on (m.id) m.id, l.equipe_id from rastreio l join militar m on m.id = l.militar_id
         where l.unidade_id = $1 and l.jornada = 'pronto' and l.equipe_id is not null order by m.id, l.desde desc`,
       [unidadeId],
     )
@@ -61,7 +61,7 @@ async function equipeJaNoMes(c: Consulta, unidadeId: string, mes: string, equipe
   const { rows } = await c.query<{ dia: number; equipe_id: string; nome: string }>(
     `select extract(day from a.data)::int as dia, l.equipe_id, s.nome
        from alocacao a join servico s on s.id = a.servico_id join turno t on t.id = a.turno_id
-       join lotacao l on l.militar_id = a.militar_id and l.unidade_id = $1 and l.jornada = 'pronto' and l.desde <= a.data and (l.ate is null or l.ate >= a.data)
+       join rastreio l on l.militar_id = a.militar_id and l.unidade_id = $1 and l.jornada = 'pronto' and l.desde <= a.data and (l.ate is null or l.ate >= a.data)
       where s.unidade_id = $1 and t.letra = 'A' and a.data >= $2::date and a.data < $3::date`,
     [unidadeId, mesParaData(mes), mesParaData(proximoMes(mes))],
   );
@@ -137,7 +137,7 @@ export async function planejarPreEscala(
   const inicioDoSeguinte = mesParaData(proximoMes(mes));
   const membros = (
     await c.query<{ equipe_id: string; n: number }>(
-      `select l.equipe_id, count(distinct l.militar_id)::int as n from lotacao l join militar m on m.id = l.militar_id
+      `select l.equipe_id, count(distinct l.militar_id)::int as n from rastreio l join militar m on m.id = l.militar_id
         where l.unidade_id = $1 and l.jornada = 'pronto' and m.ativo and l.desde < $3::date and (l.ate is null or l.ate >= $2::date) group by l.equipe_id`,
       [unidadeId, inicioDoMes, inicioDoSeguinte],
     )

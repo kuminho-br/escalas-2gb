@@ -56,7 +56,7 @@ beforeAll(async () => {
     seq++;
     const id = await inserir(api.banco, 'militar', { matricula: `99120${seq}-${seq}`, posto_grad_id: posto, nome_guerra: nome, antiguidade });
     militar[nome] = id;
-    await inserir(api.banco, 'lotacao', {
+    await inserir(api.banco, 'rastreio', {
       militar_id: id, unidade_id: lotacao.unidade ?? api.ids.secao, equipe_id: lotacao.equipe, jornada: lotacao.jornada, desde: lotacao.desde ?? '2026-11-01', ate: lotacao.ate ?? null,
     });
   };

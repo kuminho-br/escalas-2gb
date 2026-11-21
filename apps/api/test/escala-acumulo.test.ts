@@ -47,7 +47,7 @@ async function criarMilitar(nome: string, cnh: string[] = []) {
     matricula: `99${String(5000 + seq).padStart(4, '0')}-${seq % 10}`, posto_grad_id: posto, nome_guerra: nome, motorista: cnh.length > 0, cnh,
   });
   militar[nome] = id;
-  await inserir(api.banco, 'lotacao', { militar_id: id, unidade_id: api.ids.secao, equipe_id: equipe, jornada: 'pronto', desde: `${atual}-01` });
+  await inserir(api.banco, 'rastreio', { militar_id: id, unidade_id: api.ids.secao, equipe_id: equipe, jornada: 'pronto', desde: `${atual}-01` });
 }
 
 beforeAll(async () => {

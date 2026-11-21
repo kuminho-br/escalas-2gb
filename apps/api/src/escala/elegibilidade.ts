@@ -58,7 +58,7 @@ export async function avaliarFaixa(c: Consulta, v: VagaConsultada, somenteMilita
       `select m.id, m.matricula, m.nome_guerra, m.ativo, m.cnh, m.voluntario_jes, p.sigla as posto, m.antiguidade, l.jornada, e.nome as equipe,
               (l.desde <= $2::date and (l.ate is null or l.ate >= $2::date)) as lotado_no_dia
          from militar m join posto_grad p on p.id = m.posto_grad_id
-         join lotacao l on l.militar_id = m.id and l.unidade_id = $1
+         join rastreio l on l.militar_id = m.id and l.unidade_id = $1
          left join equipe e on e.id = l.equipe_id
         where ($3::uuid is null or m.id = $3)
           and l.desde <= (date_trunc('month', $2::date) + interval '1 month' - interval '1 day')::date

@@ -1,5 +1,8 @@
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import type { Banco } from '../src/banco/banco.ts';
+import { PASTA_MIGRACOES } from '../src/banco/migrar.ts';
 import { bancoDeTeste, inserir } from './banco-teste.ts';
 
 let banco: Banco;
@@ -34,27 +37,54 @@ describe('estrutura e pessoas', () => {
     await expect(militar({ matricula: '99001-1' })).rejects.toThrow();
   });
 
-  it('cnh sem motorista', async () => {
-    await expect(militar({ motorista: false, cnh: ['B'] })).rejects.toThrow();
+  // a CNH é do militar: sai a regra que a apagava de quem não está no quadro de motoristas (0023)
+  it('cnh sem motorista grava', async () => {
+    const m = await militar({ motorista: false, cnh: ['D'] });
+    const { rows } = await banco.query<{ motorista: boolean; cnh: string[] }>('select motorista, cnh from militar where id = $1', [m]);
+    expect(rows[0]).toEqual({ motorista: false, cnh: ['D'] });
   });
 
   it('cnh invalida', async () => {
     await expect(militar({ motorista: true, cnh: ['F'] })).rejects.toThrow();
   });
 
-  it('lotacao sobreposta', async () => {
+  it('rastreio sobreposto', async () => {
     const m = await militar();
-    await inserir(banco, 'lotacao', { militar_id: m, unidade_id: secao, jornada: 'pronto', desde: '2026-11-01' });
+    await inserir(banco, 'rastreio', { militar_id: m, unidade_id: secao, jornada: 'pronto', desde: '2026-11-01' });
     await expect(
-      inserir(banco, 'lotacao', { militar_id: m, unidade_id: secao, jornada: 'adm', desde: '2026-12-01' }),
+      inserir(banco, 'rastreio', { militar_id: m, unidade_id: secao, jornada: 'adm', desde: '2026-12-01' }),
     ).rejects.toThrow();
   });
 
   it('mes fora do dia 1', async () => {
     const m = await militar();
     await expect(
-      inserir(banco, 'lotacao', { militar_id: m, unidade_id: secao, jornada: 'pronto', desde: '2026-11-15' }),
+      inserir(banco, 'rastreio', { militar_id: m, unidade_id: secao, jornada: 'pronto', desde: '2026-11-15' }),
     ).rejects.toThrow();
+  });
+
+  it('a lotação virou rastreio, com as mesmas regras', async () => {
+    const { rows } = await banco.query<{ tabela: string }>("select tablename as tabela from pg_tables where schemaname = current_schema() and tablename in ('lotacao', 'rastreio')");
+    expect(rows.map((r) => r.tabela)).toEqual(['rastreio']);
+    // equipe de outra unidade continua barrada
+    const outra = await inserir(banco, 'unidade', { tipo: 'secao', sigla: 'SEC-T2', nome: 'Outra seção de teste', mae_id: raiz, desde: '2026-11-01' });
+    const equipeDeOutra = await inserir(banco, 'equipe', { unidade_id: outra, nome: 'Alfa', ordem_ciclo: 1 });
+    const m = await militar();
+    await expect(inserir(banco, 'rastreio', { militar_id: m, unidade_id: secao, equipe_id: equipeDeOutra, jornada: 'pronto', desde: '2026-11-01' })).rejects.toThrow(/mesma unidade/);
+    // a auditoria continua ligada à tabela nova
+    const { rows: gatilhos } = await banco.query<{ n: number }>("select count(*)::int as n from pg_trigger where tgrelid = 'rastreio'::regclass and tgname in ('auditoria_registro', 'rastreio_equipe')");
+    expect(gatilhos[0]!.n).toBe(2);
+  });
+
+  it('as sete seções existem abaixo do 2º GB e a migração rodada de novo não duplica nada', async () => {
+    const siglas = async () => (await banco.query<{ sigla: string }>("select sigla from unidade where mae_id = (select id from unidade where sigla = '2º GB') and tipo = 'secao' order by sigla")).rows.map((r) => r.sigla);
+    const esperadas = ['1ª SB', '2ª SB', '3ª SB', '4ª SB', '5ª SB', '6ª SB', '7ª SB'];
+    expect(await siglas()).toEqual(esperadas);
+    // ambiente já migrado à mão: o mesmo arquivo roda de novo sem erro e sem repetir seção
+    await banco.exec(readFileSync(join(PASTA_MIGRACOES, '0023_rastreio_e_cnh.sql'), 'utf8'));
+    expect(await siglas()).toEqual(esperadas);
+    const { rows } = await banco.query<{ n: number }>("select count(*)::int as n from unidade where sigla = '4ª SB'");
+    expect(rows[0]!.n).toBe(1);
   });
 
   it('afastamento com fim antes do inicio', async () => {

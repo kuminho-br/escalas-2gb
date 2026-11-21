@@ -87,7 +87,7 @@ export async function cargaExemplo(banco: Banco, ambiente: string | undefined, m
             [`990${String(n).padStart(3, '0')}-${n % 10}`, postos.get(posto), NOMES[n - 1], k + 1, cnh.length > 0, cnh, VOLUNTARIOS_JES.has(n)],
           );
           await tx.query(
-            'insert into lotacao (militar_id, unidade_id, equipe_id, jornada, desde) values ($1, $2, $3, $4, $5)',
+            'insert into rastreio (militar_id, unidade_id, equipe_id, jornada, desde) values ($1, $2, $3, $4, $5)',
             [militar, secao, g.equipe ? equipes.get(g.equipe) : null, g.jornada, mes],
           );
         }

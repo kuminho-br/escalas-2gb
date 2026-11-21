@@ -36,7 +36,7 @@ async function criarMilitar(nome: string, daEquipe: string, antiguidade: number,
   militar[nome] = await inserir(api.banco, 'militar', {
     matricula: `99${String(5000 + seq).padStart(4, '0')}-${seq % 10}`, posto_grad_id: posto, nome_guerra: nome, motorista: cnh.length > 0, cnh, voluntario_jes: false, ativo: true, antiguidade,
   });
-  await inserir(api.banco, 'lotacao', { militar_id: militar[nome], unidade_id: api.ids.secao, equipe_id: equipe[daEquipe], jornada: 'pronto', desde: `${atual}-01` });
+  await inserir(api.banco, 'rastreio', { militar_id: militar[nome], unidade_id: api.ids.secao, equipe_id: equipe[daEquipe], jornada: 'pronto', desde: `${atual}-01` });
 }
 let posto: string;
 const nomeDe = (id: string) => Object.entries(militar).find(([, v]) => v === id)![0];
