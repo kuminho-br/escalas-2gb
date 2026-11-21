@@ -35,7 +35,7 @@
 | Revisões antes da fase 4 | Pendências, testes com pessoas e revisão de código | Você e alguns usuários | concluídas |
 | 4. Montagem da escala | Montar e conferir a escala do mês à mão, nas telas de trabalho | Você e os escalantes | concluída |
 | 5. Pecúlio | A base de militares do 2º GB inteiro e o módulo Pecúlio | Você e a administração do GB | concluída |
-| 6. Usuários e módulos | Tipos de usuário, contas, acesso por lotação, tela inicial | Todos os militares | em design |
+| 6. Usuários e módulos | Tipos de usuário, contas, acesso por lotação, tela inicial | Todos os militares | em execução |
 | 7. Visualização de escalas | Publicar a escala, publicações, Minha escala, próprio voluntariado | Todos os militares | planejada |
 | 8. Primeiro mês real | Distribuições automáticas, documento, Escala por militar e o piloto | ~5 escalantes (piloto 1ª SB) | planejada |
 | 9. Operação diária | Efetivo por dia na operação, permutas, escala executada | Escalantes | planejada |
@@ -139,15 +139,15 @@ Plano: `docs/superpowers/plans/2026-11-21-fase5-peculio.md`.
 
 **Postergado** (não trava a fase): abono de permanência, ativo/inativo, funções e QOD, férias, quem vê cada atributo, jornada dos oficiais, quadro separado do posto, cópia de segurança gerada pelo sistema, data de ingresso e CPF.
 
-## Fase 6 — Usuários e módulos · em design
+## Fase 6 — Usuários e módulos · em execução
 
-Design: `docs/superpowers/specs/2026-11-21-usuarios-e-modulos-design.md`.
+Design: `docs/superpowers/specs/2026-11-21-usuarios-e-modulos-design.md`. Plano: `docs/superpowers/plans/2026-11-21-fase6-usuarios-e-modulos.md`.
 
 | Entrega | O que traz | Situação |
 |---|---|---|
-| 1 | Contas e papéis: senha provisória, troca no primeiro login, papéis na ficha, "Auxiliar administrativo" | a planejar |
-| 2 | Unidade de trabalho: o seletor substitui a 1ª SB fixa | a planejar |
-| 3 | Tela inicial e módulos por papel, Minha ficha com o próprio telefone | a planejar |
+| 1 | Contas e papéis: senha provisória, troca no primeiro login, papéis na ficha, "Auxiliar administrativo" | em execução (migração 0025) |
+| 2 | Unidade de trabalho: o seletor substitui a 1ª SB fixa | planejada |
+| 3 | Tela inicial e módulos por papel, Minha ficha com o próprio telefone | planejada |
 | 4 | Transição do login (as mangueiras), se o mockup estiver aprovado | condicional |
 
 **Fora:** envio de e-mail (link de senha e "Esqueci minha senha"), usuários acima do GB (fase 11), Visualização (fase 7).

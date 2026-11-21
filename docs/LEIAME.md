@@ -43,7 +43,8 @@
 | [superpowers/specs/2026-11-20-sintese-design-e-roadmap-design.md](superpowers/specs/2026-11-20-sintese-design-e-roadmap-design.md) | Intervenção para sintetizar o design e o roadmap | DOCUMENTAÇÃO (desenho); PLANEJAMENTO (execução) | vigente |
 | [superpowers/specs/2026-11-20-limpeza-da-fase-3-design.md](superpowers/specs/2026-11-20-limpeza-da-fase-3-design.md) | Limpeza das pendências da fase 3 | PLANEJAMENTO | vigente |
 | [superpowers/specs/2026-11-20-peculio-design.md](superpowers/specs/2026-11-20-peculio-design.md) | Pecúlio do 2º GB (fase 5): estrutura da ficha, rastreio e interface com a escala | PLANEJAMENTO | vigente |
-| [superpowers/specs/2026-11-21-usuarios-e-modulos-design.md](superpowers/specs/2026-11-21-usuarios-e-modulos-design.md) | Usuários e módulos (fase 6): contas, papéis, unidade de trabalho e tela inicial | PLANEJAMENTO | em aprovação |
+| [superpowers/specs/2026-11-21-usuarios-e-modulos-design.md](superpowers/specs/2026-11-21-usuarios-e-modulos-design.md) | Usuários e módulos (fase 6): contas, papéis, unidade de trabalho e tela inicial | PLANEJAMENTO | vigente |
+| [superpowers/specs/2026-11-20-transicao-login-design.md](superpowers/specs/2026-11-20-transicao-login-design.md) | Transição do login (as mangueiras), com o mockup em `telas/transicao-login/` | DESIGN | mockup em revisão |
 
 ## Controle da documentação
 
@@ -63,6 +64,7 @@
 | [superpowers/plans/2026-11-18-revisao-1.md](superpowers/plans/2026-11-18-revisao-1.md) | Revisão 1: pendências de interface | DESENVOLVIMENTO | concluído |
 | [superpowers/plans/2026-11-18-revisao-3.md](superpowers/plans/2026-11-18-revisao-3.md) | Revisão 3: revisão de código | DESENVOLVIMENTO | concluído |
 | [superpowers/plans/2026-11-21-fase5-peculio.md](superpowers/plans/2026-11-21-fase5-peculio.md) | Fase 5: Pecúlio (entregas 1 a 3; 1 e 2 detalhadas) | DESENVOLVIMENTO | em execução |
+| [superpowers/plans/2026-11-21-fase6-usuarios-e-modulos.md](superpowers/plans/2026-11-21-fase6-usuarios-e-modulos.md) | Fase 6: Usuários e módulos (entregas 1 a 3 detalhadas; 4 condicional) | DESENVOLVIMENTO | em execução |
 | [superpowers/plans/2026-11-18-fase4-escala.md](superpowers/plans/2026-11-18-fase4-escala.md) | Fase 4: montagem da escala (entregas 1 a 4.3) | DESENVOLVIMENTO | em execução (grande demais: dividir) |
 | [superpowers/plans/2026-11-20-roadmap-documentacao.md](superpowers/plans/2026-11-20-roadmap-documentacao.md) | Roadmap da documentação | DOCUMENTAÇÃO | em execução |
 

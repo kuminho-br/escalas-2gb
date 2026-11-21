@@ -1,6 +1,6 @@
 # Usuários e módulos — design da fase 6
 
-21/11/2026 · aguardando a aprovação do usuário
+21/11/2026 · aprovado; plano em `docs/superpowers/plans/2026-11-21-fase6-usuarios-e-modulos.md`
 
 A fase 6 abre o sistema para todos os militares do GB: cada um com a sua conta, cada papel vendo os seus módulos, e cada pessoa trabalhando na unidade a que tem acesso, não mais na 1ª SB fixa. A ordem das fases está no roadmap; o histórico das decisões, em `docs/decisoes.md`.
 
