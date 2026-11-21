@@ -42,6 +42,24 @@ export async function temPapel(c: Consulta, usuarioId: string, unidadeId: string
   return rows[0]!.ok;
 }
 
+/**
+ * Tem um dos papéis, vigente na data, numa unidade ACIMA da unidade (a mãe ou mais alta), nunca nela própria? É o "papel de cima"
+ * que dá a posse dos blocos do Pecúlio da ficha do militar (o escalante da seção não é dono do que é da seção de pessoal).
+ */
+export async function temPapelAcima(c: Consulta, usuarioId: string, unidadeId: string, papeis: Papel[], hoje: string): Promise<boolean> {
+  const { rows } = await c.query<{ ok: boolean }>(
+    `select exists (
+       select 1
+         from papel_usuario pu
+         join unidade a on a.id = pu.unidade_id
+         join unidade u on u.id = $3
+        where pu.usuario_id = $1 and ${VIGENTE} and pu.papel = any($4) and a.caminho @> u.caminho and a.id <> u.id
+     ) as ok`,
+    [usuarioId, hoje, unidadeId, papeis],
+  );
+  return rows[0]!.ok;
+}
+
 /** Exige sessão; põe o usuário e o banco no contexto. */
 export function exigirSessao(banco: Banco, auth: Auth): MiddlewareHandler<AmbienteApi> {
   return async (c, next) => {

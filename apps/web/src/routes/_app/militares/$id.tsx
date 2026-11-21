@@ -5,6 +5,9 @@ import { useState } from 'react';
 import { mensagemDe } from '@/api/cliente';
 import { consultaFicha } from '@/api/militares';
 import { Afastamentos } from '@/componentes/militares/Afastamentos';
+import { Comportamento } from '@/componentes/militares/Comportamento';
+import { Contato } from '@/componentes/militares/Contato';
+import { DadosPessoais } from '@/componentes/militares/DadosPessoais';
 import { Identificacao } from '@/componentes/militares/Identificacao';
 import { ProvedorDePendencias } from '@/componentes/AlteracoesPendentes';
 import { FichaPainel } from '@/componentes/ListaDetalhe';
@@ -35,6 +38,9 @@ function Ficha() {
     >
       {/* key: ao trocar de militar, os formulários começam do zero; os dados entram nela para uma gravação de fora (ex.: importação) recarregar o bloco */}
       <Identificacao key={`i-${ficha.id}`} ficha={ficha} />
+      <Contato key={`c-${ficha.id}`} ficha={ficha} />
+      <DadosPessoais key={`d-${ficha.id}`} ficha={ficha} />
+      <Comportamento key={`p-${ficha.id}`} ficha={ficha} />
       <Motorista key={`m-${ficha.id}`} ficha={ficha} />
       <Afastamentos key={`a-${ficha.id}`} ficha={ficha} />
       <Rastreio key={`r-${ficha.id}`} ficha={ficha} unidadeId={eu.unidade.id} />

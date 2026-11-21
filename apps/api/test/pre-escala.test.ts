@@ -152,7 +152,7 @@ describe('quem entra em cada vaga (equipe do dia 1 = ALFA: dias 1, 5, 9… ALFA;
 
   it('o afastado fica de fora só nos dias do afastamento; nos outros dias a equipe dele entra (Review Focus 3)', async () => {
     const tipo = (await api.banco.query<{ id: string }>('select id from tipo_afastamento limit 1')).rows[0]!.id;
-    expect((await api.pedir('escalante', 'POST', `/api/militares/${militar.D2}/afastamentos`, { tipoAfastamentoId: tipo, inicio: dia(8), fim: dia(12) })).status).toBe(201);
+    expect((await api.pedir('gestorGb', 'POST', `/api/militares/${militar.D2}/afastamentos`, { tipoAfastamentoId: tipo, inicio: dia(8), fim: dia(12) })).status).toBe(201);
     const { novas } = await planejarPreEscala(api.banco, escala, mes, equipe.Alfa!);
     expect(noTurno(novas, 4, turnoA)).toHaveProperty('D2');
     expect(noTurno(novas, 8, turnoA)).not.toHaveProperty('D2');

@@ -30,6 +30,11 @@ export function Secao({ titulo, acoes, resumo, recolhida, children }: { titulo: 
   );
 }
 
+/** Bloquear não é esconder: o bloco sem permissão aparece só para leitura, e esta frase diz com quem falar. */
+export function DonoDoBloco({ unidadeDeCima }: { unidadeDeCima: string | null }) {
+  return <p className="mb-3 rounded-md bg-pendencia-fundo px-3 py-2 text-sm text-pendencia">{`Este bloco é alterado por quem tem papel em ${unidadeDeCima ?? 'uma unidade acima'}.`}</p>;
+}
+
 /** O que a tela diz perto do campo quando uma lista (postos, tipos de afastamento) não carrega: sem isso o botão ficaria apagado sem explicação. */
 export const LISTA_NAO_CARREGOU = 'Não deu para carregar a lista. Recarregue a página.';
 

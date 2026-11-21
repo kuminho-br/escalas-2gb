@@ -93,6 +93,7 @@ function AlterarSituacao({ ficha, unidadeAtualId, aoFechar }: { ficha: FichaMili
               <Selecao
                 id="rs-lotacao"
                 value={unidadeId}
+                disabled={!ficha.podeEditar.peculio}
                 onChange={(e) => {
                   setEscolhida(e.target.value);
                   setEquipeEscolhida('');
@@ -100,6 +101,7 @@ function AlterarSituacao({ ficha, unidadeAtualId, aoFechar }: { ficha: FichaMili
               >
                 {(secoes.data ?? [{ id: unidadeId, sigla: atual?.unidadeSigla ?? '…', nome: '' }]).map((s) => <option key={s.id} value={s.id}>{s.sigla}</option>)}
               </Selecao>
+              {!ficha.podeEditar.peculio && <p className="text-xs text-apagado">{`A lotação é alterada por quem tem papel em ${ficha.podeEditar.unidadeDeCima ?? 'uma unidade acima'}.`}</p>}
             </div>
             <div className="grid gap-1.5">
               <Label htmlFor="rs-equipe">Equipe</Label>

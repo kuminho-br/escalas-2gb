@@ -2,7 +2,7 @@
 
 16/11/2026 · v0.1 · parte do design (`2026-11-16-migracao-design.md`)
 
-Em dia com as migrações até a `0023_rastreio_e_cnh.sql` (21/11/2026). As tabelas das entregas 4.x estão na seção 9 e a mudança da fase 5 (rastreio e CNH), na seção 10.
+Em dia com as migrações até a `0024_ficha_do_peculio.sql` (21/11/2026). As tabelas das entregas 4.x estão na seção 9 e as mudanças da fase 5 (rastreio e CNH; ficha do Pecúlio), na seção 10.
 
 Ponto de partida: o "ER proposto" do documento *Modelo ER — Sistema de Escalas 2º GB* (v0.8). Acréscimos: unidades em árvore, rastreio (lotação, equipe e jornada com vigência), vínculo de militar externo, usuários e papéis, modelos de impressão, documentos gerados e auditoria. Também entram as mudanças vindas dos esboços de tela (versão 12), que ainda podem mudar.
 
@@ -119,7 +119,14 @@ Regra: o `nivel` do tipo da mãe é menor que o da filha.
 | id | uuid PK | |
 | matricula | text único | `^\d{6}-\d$` |
 | posto_grad_id | uuid FK | |
+| nome_completo | text null | obrigatório para militar novo (a API); vazio para quem já existia, e a ficha mostra a pendência "Nome completo em falta" (0024) |
 | nome_guerra | text not null | |
+| sexo | text null | `M` ou `F` (check; 0024) |
+| nascimento_dia / nascimento_mes | smallint null | só dia e mês, **sem o ano** (D7); os dois juntos ou nenhum; o dia precisa existir no mês, e 29/02 vale (check; 0024) |
+| telefone | text null | texto livre curto (0024) |
+| email | text null | institucional: só `@bombeiros.pe.gov.br`, sem distinção de maiúsculas (check) e único entre os militares (índice `militar_email_unico`, sobre `lower(email)`); pode ficar vazio (0024) |
+| comportamento | text null | Excepcional, Ótimo, Bom, Insuficiente ou Mau (check; 0024) |
+| comportamento_boletim | text null | boletim em que o comportamento foi publicado; texto livre curto (0024) |
 | antiguidade | int null | ordem dentro do posto (RN-101); vazia vai por último |
 | motorista | boolean not null default false | está no quadro de motoristas |
 | cnh | text[] not null default '{}' | subconjunto de {A,B,C,D,E}, só as que constam na carteira. É do militar: pode estar gravada com `motorista = false`; para a escala só vale com `motorista = true` (regra do motor, `cnhParaEscala`). Até a 0022 havia um check que a exigia vazia fora do quadro; a 0023 o tirou |
@@ -171,11 +178,13 @@ Elegibilidade (domínio): um militar pode ser alocado numa escala se, na data, t
 | militar_id | uuid FK | |
 | tipo_afastamento_id | uuid FK | tipo do catálogo do sistema (sem motivo de saúde; D7) |
 | inicio / fim | date | `fim >= inicio`; sem sobreposição por militar; qualquer intervalo, inclusive férias em partes |
+| motivo | text null | até 200 caracteres (check); a tela avisa "Não escreva diagnóstico." (D7; 0024) |
+| boletim | text null | até 60 caracteres (check): o boletim que publicou o afastamento (0024) |
 
 Regra (domínio): no período, o militar não aparece como opção em nenhuma vaga.
 
 ### tipo_afastamento
-Catálogo do sistema todo (é institucional), editado pelo administrador na tela de Configurações (adendo de 17/11/2026, fase 3). Vem com Férias, LTS, Curso e Outro.
+Catálogo do sistema todo (é institucional), editado pelo administrador na tela de Configurações (adendo de 17/11/2026, fase 3). Vem com Férias, LTS, Curso e Outro (0009) e Adido, Agregado, L.E e DTS (0024, criados sem duplicar).
 
 | Coluna | Tipo | Regra |
 |---|---|---|
@@ -574,6 +583,14 @@ Fonte: "ER da meta de ativação" do claude.ai (20/11/2026), colhido em 20/11/20
 - **Sai o check `motorista or cardinality(cnh) = 0` de `militar`:** a CNH é do militar, esteja ou não no quadro de motoristas. Quem decide o que vale para a escala é o motor (`cnhParaEscala`: com `motorista = false`, a CNH não vale).
 - **As sete seções do 2º GB:** a migração cria 2ª a 7ª SB (tipo `secao`, mãe o 2º GB, `desde` do 2º GB) quando ainda não existem, pela sigla. A 1ª SB já existia.
 - A migração confere cada passo antes de mudar e pode rodar de novo (ambiente já migrado à mão).
+
+### Fase 5, entrega 2: ficha do Pecúlio (migração 0024)
+
+- **`militar` ganha** `nome_completo`, `sexo`, `nascimento_dia` e `nascimento_mes` (sem o ano, D7), `telefone`, `email`, `comportamento` e `comportamento_boletim`, todos opcionais no banco, com as regras descritas na tabela da seção `militar` (checks de sexo, nascimento, e-mail institucional e comportamento; índice único do e-mail sem distinção de maiúsculas).
+- **`afastamento` ganha** `motivo` (até 200) e `boletim` (até 60).
+- **`tipo_afastamento`:** Adido, Agregado, L.E e DTS entram no catálogo, uma vez só (LTS já existia).
+- **Dono por bloco** (regra da API, sem coluna nova): os blocos do Pecúlio (identificação, dados pessoais, contato, comportamento, afastamentos, criar militar e a mudança de **lotação**) são de quem tem papel de cadastro numa unidade **acima** da lotação atual do militar; equipe, jornada, quadro de motoristas, CNH e voluntário JES são de quem tem papel na lotação ou acima. A ficha devolve `podeEditar` com o resultado.
+- A migração confere cada passo antes de mudar e pode rodar de novo.
 
 ## Mudanças em relação ao ER proposto (v0.8)
 

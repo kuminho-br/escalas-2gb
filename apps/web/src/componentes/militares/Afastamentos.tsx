@@ -9,10 +9,12 @@ import { Selecao } from '@/componentes/Selecao';
 import { Button } from '@/componentes/ui/button';
 import { Input } from '@/componentes/ui/input';
 import { Label } from '@/componentes/ui/label';
-import { dataBr, LISTA_NAO_CARREGOU, Secao } from './Secao';
+import { DonoDoBloco, dataBr, LISTA_NAO_CARREGOU, Secao } from './Secao';
 
 export function Afastamentos({ ficha }: { ficha: FichaMilitar }) {
   const queryClient = useQueryClient();
+  // afastamento é do Pecúlio: sem papel acima da lotação, a lista é só leitura
+  const peculio = ficha.podeEditar.peculio;
   const tipos = useQuery(consultaCatalogo('tipos-afastamento'));
   const ativos = tipos.data?.filter((t) => t.ativo) ?? [];
   // o aviso é para quando não há lista nenhuma: uma nova busca que falha deixa a lista que já estava na tela
@@ -21,16 +23,20 @@ export function Afastamentos({ ficha }: { ficha: FichaMilitar }) {
   const [aberto, setAberto] = useState(false);
   const [inicio, setInicio] = useState('');
   const [fim, setFim] = useState('');
+  const [motivo, setMotivo] = useState('');
+  const [boletim, setBoletim] = useState('');
   const [erro, setErro] = useState<string | null>(null);
   const tipoEscolhido = tipo || ativos[0]?.id || '';
   // o formulário aberto com uma data digitada é alteração pendente: trocar de ficha pergunta antes
-  usePendencia('afastamento', aberto && Boolean(inicio || fim));
+  usePendencia('afastamento', aberto && Boolean(inicio || fim || motivo || boletim));
 
   function fechar() {
     setAberto(false);
     setTipo('');
     setInicio('');
     setFim('');
+    setMotivo('');
+    setBoletim('');
     setErro(null);
   }
 
@@ -39,7 +45,8 @@ export function Afastamentos({ ficha }: { ficha: FichaMilitar }) {
   async function gravar() {
     setErro(null);
     try {
-      await criarAfastamento(ficha.id, { tipoAfastamentoId: tipoEscolhido, inicio, fim });
+      // o motivo e o boletim só vão quando preenchidos
+      await criarAfastamento(ficha.id, { tipoAfastamentoId: tipoEscolhido, inicio, fim, ...(motivo.trim() ? { motivo: motivo.trim() } : {}), ...(boletim.trim() ? { boletim: boletim.trim() } : {}) });
       atualizarMilitares(queryClient, ficha.id);
       fechar();
     } catch (err) {
@@ -60,23 +67,26 @@ export function Afastamentos({ ficha }: { ficha: FichaMilitar }) {
 
   return (
     <Secao titulo="Afastamentos">
+      {!peculio && <DonoDoBloco unidadeDeCima={ficha.podeEditar.unidadeDeCima} />}
       <ul className="mb-4 grid gap-1.5">
         {ficha.afastamentos.map((a) => (
-          <li key={a.id} className="flex items-center gap-3 text-sm">
+          <li key={a.id} className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-sm">
             <span className="font-medium">{a.tipo}</span>
             <span className="text-apagado">de {dataBr(a.inicio)} a {dataBr(a.fim)}</span>
-            <Button size="xs" variant="ghost" className="ml-auto" onClick={() => void apagar(a)}>Remover</Button>
+            {peculio && <Button size="xs" variant="ghost" className="ml-auto" onClick={() => void apagar(a)}>Remover</Button>}
+            {a.motivo && <span className="basis-full text-xs text-apagado">{`Motivo: ${a.motivo}`}</span>}
+            {a.boletim && <span className="basis-full text-xs text-apagado">{`Boletim: ${a.boletim}`}</span>}
           </li>
         ))}
         {ficha.afastamentos.length === 0 && <li className="text-sm text-apagado">Nenhum afastamento.</li>}
       </ul>
       {erro && <p role="alert" className="mb-3 text-sm text-alerta">{erro}</p>}
-      {!aberto && (
+      {peculio && !aberto && (
         <div>
           <Button type="button" variant="outline" onClick={() => setAberto(true)}>Incluir afastamento</Button>
         </div>
       )}
-      {aberto && (
+      {peculio && aberto && (
         <form onSubmit={(e) => { e.preventDefault(); void incluir(); }} className="grid gap-3 border-t border-linha pt-3">
           <div className="grid gap-1.5 sm:max-w-xs">
             <Label htmlFor="af-tipo">Tipo de afastamento</Label>
@@ -94,6 +104,15 @@ export function Afastamentos({ ficha }: { ficha: FichaMilitar }) {
               <Label htmlFor="af-fim">Fim</Label>
               <Input id="af-fim" type="date" value={fim} onChange={(e) => setFim(e.target.value)} required />
             </div>
+          </div>
+          <div className="grid gap-1.5 sm:max-w-md">
+            <Label htmlFor="af-motivo">Motivo</Label>
+            <Input id="af-motivo" maxLength={200} placeholder="Opcional" value={motivo} aria-describedby="af-motivo-aviso" onChange={(e) => setMotivo(e.target.value)} />
+            <p id="af-motivo-aviso" className="text-xs text-apagado">Não escreva diagnóstico.</p>
+          </div>
+          <div className="grid gap-1.5 sm:max-w-xs">
+            <Label htmlFor="af-boletim">Boletim do afastamento</Label>
+            <Input id="af-boletim" maxLength={60} value={boletim} placeholder="Opcional" onChange={(e) => setBoletim(e.target.value)} />
           </div>
           <div className="flex gap-2">
             <Button type="submit" disabled={!tipoEscolhido || salvando}>Salvar</Button>
