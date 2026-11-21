@@ -38,11 +38,11 @@ async function criarServico(nome: string, tipo: string, letra: string, faixa: { 
   turno[`${nome} ${letra}`] = comTurno.turnos.find((t: { letra: string }) => t.letra === letra).id;
 }
 let seq = 0;
-async function criarMilitar(nome: string, extra: { cnh?: string[]; jes?: boolean; ativo?: boolean; desde?: string; jornada?: string; posto?: string } = {}) {
+async function criarMilitar(nome: string, extra: { cnh?: string[]; jes?: boolean; ativo?: boolean; desde?: string; jornada?: string; posto?: string; foraDoQuadro?: boolean } = {}) {
   seq++;
   const id = await inserir(api.banco, 'militar', {
     matricula: `99${String(3000 + seq).padStart(4, '0')}-${seq % 10}`, posto_grad_id: extra.posto, nome_guerra: nome,
-    motorista: (extra.cnh ?? []).length > 0, cnh: extra.cnh ?? [], voluntario_jes: extra.jes ?? false, ativo: extra.ativo ?? true,
+    motorista: !extra.foraDoQuadro && (extra.cnh ?? []).length > 0, cnh: extra.cnh ?? [], voluntario_jes: extra.jes ?? false, ativo: extra.ativo ?? true,
   });
   militar[nome] = id;
   await inserir(api.banco, 'rastreio', { militar_id: id, unidade_id: api.ids.secao, equipe_id: extra.jornada === 'adm' ? null : equipe, jornada: extra.jornada ?? 'pronto', desde: extra.desde ?? `${atual}-01` });
@@ -283,3 +283,17 @@ describe('quem ficou de fora só por falta de voluntariado (o escalante pode com
   });
 });
 
+describe('militar fora do quadro de motoristas, com CNH D (Review Focus 2)', () => {
+  it('não vale para a vaga de motorista: "Sem a CNH exigida"; para a de combatente, que não exige CNH, segue apto', async () => {
+    const posto = (await api.banco.query<{ id: string }>("select id from posto_grad where sigla = 'SD-C'")).rows[0]!.id;
+    await criarMilitar('FORAQUADRO', { posto, cnh: ['D'], foraDoQuadro: true });
+    await criarMilitar('NOQUADRO', { posto, cnh: ['D'] });
+    expect(await motivo('FORAQUADRO', D, FAIXA.A, T('Pronto A'), true)).toBe('Sem a CNH exigida');
+    expect(await motivo('NOQUADRO', D, FAIXA.A, T('Pronto A'), true)).toBeNull();
+    expect(await motivo('FORAQUADRO', D, FAIXA.A, T('Pronto A'))).toBeNull();
+    // a lista de quem pode ocupar a vaga de motorista também deixa o militar de fora, com o motivo
+    const r = await avaliarCandidatos(api.banco, vaga(D, FAIXA.A, true));
+    expect(r.aptos.map((c) => c.nomeGuerra)).toContain('NOQUADRO');
+    expect(r.aptos.map((c) => c.nomeGuerra)).not.toContain('FORAQUADRO');
+  });
+});

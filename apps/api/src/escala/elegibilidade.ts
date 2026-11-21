@@ -3,7 +3,7 @@
 import type { Candidato, Candidatos } from 'contratos';
 import {
   chaveAloc,
-  cnhHabilitadas,
+  cnhParaEscala,
   compararAntiguidade,
   detectarChoques,
   diaDaSemana,
@@ -52,10 +52,10 @@ export async function avaliarFaixa(c: Consulta, v: VagaConsultada, somenteMilita
   // quem tem lotação na seção em algum momento do mês da vaga (ou só o militar pedido)
   const pool = (
     await c.query<{
-      id: string; matricula: string; nome_guerra: string; ativo: boolean; cnh: string[]; voluntario_jes: boolean; posto: string; antiguidade: number | null;
+      id: string; matricula: string; nome_guerra: string; ativo: boolean; motorista: boolean; cnh: string[]; voluntario_jes: boolean; posto: string; antiguidade: number | null;
       jornada: 'pronto' | 'adm'; equipe: string | null; lotado_no_dia: boolean;
     }>(
-      `select m.id, m.matricula, m.nome_guerra, m.ativo, m.cnh, m.voluntario_jes, p.sigla as posto, m.antiguidade, l.jornada, e.nome as equipe,
+      `select m.id, m.matricula, m.nome_guerra, m.ativo, m.motorista, m.cnh, m.voluntario_jes, p.sigla as posto, m.antiguidade, l.jornada, e.nome as equipe,
               (l.desde <= $2::date and (l.ate is null or l.ate >= $2::date)) as lotado_no_dia
          from militar m join posto_grad p on p.id = m.posto_grad_id
          join rastreio l on l.militar_id = m.id and l.unidade_id = $1
@@ -114,11 +114,11 @@ export async function avaliarFaixa(c: Consulta, v: VagaConsultada, somenteMilita
 
   const avaliados = militares.map((m): Avaliado => {
     const base = { militarId: m.id, posto: m.posto, nomeGuerra: m.nome_guerra, matricula: m.matricula, equipe: m.equipe, jornada: m.jornada };
-    const pronto = (militarMotivo: string | null, porTurno: Avaliado['porTurno'] = []): Avaliado => ({ candidato: base, militarMotivo, porTurno, antig: m.antiguidade, cnh: m.cnh });
+    const pronto = (militarMotivo: string | null, porTurno: Avaliado['porTurno'] = []): Avaliado => ({ candidato: base, militarMotivo, porTurno, antig: m.antiguidade, cnh: cnhParaEscala(m) });
     if (!m.lotado_no_dia) return pronto(NAO_LOTADO);
     if (!m.ativo) return pronto('Desativado');
     if (afastados.has(m.id)) return pronto('Afastado');
-    if (exigida && !cnhHabilitadas(m.cnh).includes(exigida)) return pronto('Sem a CNH exigida');
+    if (exigida && !cnhParaEscala(m).includes(exigida)) return pronto('Sem a CNH exigida');
     const dele = janela.filter((a) => a.militar_id === m.id);
     if (dele.some((a) => a.data === v.data && a.inicio === v.inicio && a.fim === v.fim)) return pronto(JA_ESCALADO);
     const existentes: AlocChoque[] = dele.map((a) => ({ mat: m.id, dia: a.data, turno: a.letra, servico: a.nome }));

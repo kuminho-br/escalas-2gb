@@ -30,10 +30,10 @@ const faixaA = (e: EscalaDoMes, d: number) => e.dias[d - 1]!.faixas.find((f) => 
 const alocacoes = async (nome: string) => (await api.banco.query<{ id: string }>('select id from alocacao where militar_id = $1', [militar[nome]])).rows;
 
 let seq = 0;
-async function criarMilitar(nome: string, cnh: string[] = [], voluntarioJes = false) {
+async function criarMilitar(nome: string, cnh: string[] = [], voluntarioJes = false, foraDoQuadro = false) {
   seq++;
   const id = await inserir(api.banco, 'militar', {
-    matricula: `99${String(4000 + seq).padStart(4, '0')}-${seq % 10}`, posto_grad_id: posto, nome_guerra: nome, motorista: cnh.length > 0, cnh, voluntario_jes: voluntarioJes,
+    matricula: `99${String(4000 + seq).padStart(4, '0')}-${seq % 10}`, posto_grad_id: posto, nome_guerra: nome, motorista: !foraDoQuadro && cnh.length > 0, cnh, voluntario_jes: voluntarioJes,
   });
   militar[nome] = id;
   await inserir(api.banco, 'rastreio', { militar_id: id, unidade_id: api.ids.secao, equipe_id: equipe, jornada: 'pronto', desde: `${atual}-01` });
@@ -179,5 +179,15 @@ describe('acesso', () => {
     expect((await api.pedir('semPapel', 'DELETE', `/api/alocacoes/${alocacaoId}`)).status).toBe(403);
     const removida: EscalaDoMes = await (await api.pedir('escalante', 'DELETE', `/api/alocacoes/${alocacaoId}`)).json();
     expect((await api.pedir('semPapel', 'DELETE', `/api/remocoes/${faixaA(removida, 22).removidos[0]!.remocaoId}`)).status).toBe(403);
+  });
+});
+
+describe('militar fora do quadro de motoristas, com CNH D (Review Focus 2)', () => {
+  it('escalar na vaga de motorista é 409 com "Sem a CNH exigida"; na de combatente é 201', async () => {
+    await criarMilitar('FORAQUADRO', ['D'], false, true);
+    const recusada = await escalar('FORAQUADRO', dia(27), { funcaoId: motorista });
+    expect(recusada.status).toBe(409);
+    expect((await recusada.json()).erro).toBe('Sem a CNH exigida');
+    expect((await escalar('FORAQUADRO', dia(27), { funcaoId: combatente })).status).toBe(201);
   });
 });

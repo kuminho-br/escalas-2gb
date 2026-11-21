@@ -65,16 +65,17 @@ beforeAll(async () => {
   const alfa = await inserir(api.banco, 'equipe', { unidade_id: api.ids.secao, nome: 'Alfa', ordem_ciclo: 1 });
   const sd = (await api.banco.query<{ id: string }>("select id from posto_grad where sigla = 'SD BM'")).rows[0]!.id;
   let seq = 0;
-  const criar = async (nome: string, extra: { cnh?: string[]; jes?: boolean; unidade?: string } = {}) => {
+  const criar = async (nome: string, extra: { cnh?: string[]; jes?: boolean; unidade?: string; foraDoQuadro?: boolean } = {}) => {
     seq++;
     const id = await inserir(api.banco, 'militar', {
-      matricula: `99${String(1400 + seq).padStart(4, "0")}-${seq % 10}`, posto_grad_id: sd, nome_guerra: nome, motorista: (extra.cnh ?? []).length > 0, cnh: extra.cnh ?? [], voluntario_jes: extra.jes ?? false,
+      matricula: `99${String(1400 + seq).padStart(4, "0")}-${seq % 10}`, posto_grad_id: sd, nome_guerra: nome, motorista: !extra.foraDoQuadro && (extra.cnh ?? []).length > 0, cnh: extra.cnh ?? [], voluntario_jes: extra.jes ?? false,
     });
     militar[nome] = id;
     await inserir(api.banco, 'rastreio', { militar_id: id, unidade_id: extra.unidade ?? api.ids.secao, equipe_id: extra.unidade ? null : alfa, jornada: 'pronto', desde: '2026-11-01' });
   };
   for (const n of ['A1', 'A2', 'A3', 'B1', 'B2', 'C1', 'C2', 'D1', 'D2', 'E1', 'E2', 'E3', 'F1', 'F2', 'LIVRE']) await criar(n, { cnh: ['E'] });
   await criar('SEMCNH', { cnh: ['B'] });
+  await criar('FORAQUADRO', { cnh: ['D'], foraDoQuadro: true });
   await criar('SEMCNH2', { cnh: ['B'] });
   await criar('FORA', { unidade: outraSecao });
 });
@@ -276,5 +277,18 @@ describe('acesso e corpo', () => {
     expect((await trocar(id, { militarId: militar.LIVRE, turnoId: servico.Pronto!.a }, 'semPapel')).status).toBe(403);
     expect((await trocar('00000000-0000-4000-8000-000000000000', { militarId: militar.LIVRE, turnoId: servico.Pronto!.a })).status).toBe(404);
     expect((await trocar(id, {})).status).toBe(400);
+  });
+});
+
+describe('militar fora do quadro de motoristas, com CNH D (Review Focus 2)', () => {
+  it('a troca que o levaria para a vaga de motorista é 409 com o motivo e nada muda', async () => {
+    const d = dia(12);
+    const motorista1 = await alocar('F2', 'Pronto', 'a', d, { funcao: motorista });
+    await alocar('FORAQUADRO', 'Pronto', 'b', d, { funcao: combatente });
+    const b = (await de('FORAQUADRO', d))[0]!.id;
+    const r = await trocar(motorista1, { comAlocacaoId: b });
+    expect(r.status).toBe(409);
+    expect((await r.json()).erro).toBe('SD BM FORAQUADRO não pode ir para a vaga de SD BM F2: Sem a CNH exigida');
+    expect(await de('F2', d)).toEqual([expect.objectContaining({ id: motorista1, funcao_id: motorista })]);
   });
 });

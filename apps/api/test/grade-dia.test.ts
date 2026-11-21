@@ -65,10 +65,10 @@ beforeAll(async () => {
   const alfa = await inserir(api.banco, 'equipe', { unidade_id: api.ids.secao, nome: 'Alfa', ordem_ciclo: 1 });
   const sd = (await api.banco.query<{ id: string }>("select id from posto_grad where sigla = 'SD BM'")).rows[0]!.id;
   let seq = 0;
-  const criar = async (nome: string, extra: { cnh?: string[]; jes?: boolean; jornada?: 'pronto' | 'adm'; unidade?: string } = {}) => {
+  const criar = async (nome: string, extra: { cnh?: string[]; jes?: boolean; jornada?: 'pronto' | 'adm'; unidade?: string; foraDoQuadro?: boolean } = {}) => {
     seq++;
     const id = await inserir(api.banco, 'militar', {
-      matricula: `99130${seq}-${seq}`, posto_grad_id: sd, nome_guerra: nome, motorista: (extra.cnh ?? []).length > 0, cnh: extra.cnh ?? [], voluntario_jes: extra.jes ?? false,
+      matricula: `99130${seq}-${seq}`, posto_grad_id: sd, nome_guerra: nome, motorista: !extra.foraDoQuadro && (extra.cnh ?? []).length > 0, cnh: extra.cnh ?? [], voluntario_jes: extra.jes ?? false,
     });
     militar[nome] = id;
     await inserir(api.banco, 'rastreio', {
@@ -79,6 +79,7 @@ beforeAll(async () => {
   await criar('CNHB', { cnh: ['B'], jes: true });
   await criar('DRV', { cnh: ['D'] });
   await criar('DRV2', { cnh: ['D'] });
+  await criar('FORAQUADRO', { cnh: ['D'], foraDoQuadro: true });
   await criar('AFAST');
   await criar('ADM', { jornada: 'adm' });
   await criar('CHOQ', { jes: true });
@@ -176,6 +177,14 @@ describe('Adicionar serviço neste dia', () => {
       ['Sem guarnição', ['Pronto']],
     ]);
     expect(p.opcoes.every((o) => o.escalaId === escala && o.escala === 'Ordinário')).toBe(true);
+  });
+
+  it('fora do quadro de motoristas, a CNH D não vale: o painel não oferece a vaga de motorista (Review Focus 2)', async () => {
+    const p = await ler('FORAQUADRO');
+    expect(p.militar.cnh).toEqual(['D']);
+    expect(opcoes(p, '20:00-08:00').map((o) => o[0])).toEqual(['Combatente ABT', 'Sem guarnição']);
+    const noQuadro = await ler('DRV2');
+    expect(opcoes(noQuadro, '20:00-08:00').map((o) => o[0])).toContain('Motorista ABT');
   });
 
   it('a função completa não aparece (o Motorista do ABT às 08h–20h já tem DRV), e à noite ela está livre', async () => {

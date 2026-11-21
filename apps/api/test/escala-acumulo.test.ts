@@ -41,10 +41,10 @@ const candidatos = async (d: number, vaga: { guarnicaoId: string; funcaoId: stri
   ).json();
 
 let seq = 0;
-async function criarMilitar(nome: string, cnh: string[] = []) {
+async function criarMilitar(nome: string, cnh: string[] = [], foraDoQuadro = false) {
   seq++;
   const id = await inserir(api.banco, 'militar', {
-    matricula: `99${String(5000 + seq).padStart(4, '0')}-${seq % 10}`, posto_grad_id: posto, nome_guerra: nome, motorista: cnh.length > 0, cnh,
+    matricula: `99${String(5000 + seq).padStart(4, '0')}-${seq % 10}`, posto_grad_id: posto, nome_guerra: nome, motorista: !foraDoQuadro && cnh.length > 0, cnh,
   });
   militar[nome] = id;
   await inserir(api.banco, 'rastreio', { militar_id: id, unidade_id: api.ids.secao, equipe_id: equipe, jornada: 'pronto', desde: `${atual}-01` });
@@ -219,5 +219,18 @@ describe('acumular funções', () => {
     const acumuloId = ocupantes(feito, 17, 'Graduado de dia', 'Graduado')[0]!.acumuloId!;
     expect((await api.pedir('semPapel', 'DELETE', `/api/acumulos/${acumuloId}`)).status).toBe(403);
     expect((await api.pedir('escalante', 'DELETE', '/api/acumulos/00000000-0000-4000-8000-000000000000')).status).toBe(404);
+  });
+});
+
+describe('militar fora do quadro de motoristas, com CNH D (Review Focus 2)', () => {
+  it('não aparece para acumular a vaga de motorista e a recusa é 409 com "Sem a CNH exigida"', async () => {
+    await criarMilitar('FORAQUADRO', ['D'], true);
+    const dd = dia(27);
+    await escalar('FORAQUADRO', dd, VAGAS().combatente);
+    const c = await candidatos(27, VAGAS().motorista);
+    expect(c.acumular.map((x) => x.nomeGuerra)).not.toContain('FORAQUADRO');
+    const r = await acumular('FORAQUADRO', dd, VAGAS().motorista);
+    expect(r.status).toBe(409);
+    expect((await r.json()).erro).toBe('Sem a CNH exigida');
   });
 });

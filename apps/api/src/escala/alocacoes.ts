@@ -1,7 +1,7 @@
 // Escalar, remover e desfazer a remoção (telas: "Escolher militar", "Remover", "Desfazer").
 // A conferência e a gravação acontecem na mesma transação; a recusa sai como Recusa (409) com a frase que a tela mostra.
 import type { NovaAlocacao, NovoAcumulo } from 'contratos';
-import { cnhHabilitadas } from 'dominio';
+import { cnhParaEscala } from 'dominio';
 import type { Consulta } from '../banco/banco.ts';
 import { vinculosDaEscala } from '../cadastros/escalas.ts';
 import { versaoNoMes } from '../cadastros/guarnicoes-regras.ts';
@@ -45,12 +45,12 @@ export async function ocupantesDaFuncao(tx: Consulta, escalaId: string, data: st
 }
 
 /**
- * Devolver um militar a uma vaga: a vaga ainda existe na faixa do dia, ele tem a CNH que a função exige e a função tem lugar para mais um.
+ * Devolver um militar a uma vaga: a vaga ainda existe na faixa do dia, ele tem (no quadro de motoristas) a CNH que a função exige e a função tem lugar para mais um.
  * `Recusa` se a vaga já não existe ou se falta a CNH; false se a função está completa.
  */
-export async function vagaTemLugar(tx: Consulta, escalaId: string, data: string, faixa: { inicio: string; fim: string }, guarnicaoId: string, funcaoId: string, cnhDoMilitar: string[]): Promise<boolean> {
+export async function vagaTemLugar(tx: Consulta, escalaId: string, data: string, faixa: { inicio: string; fim: string }, guarnicaoId: string, funcaoId: string, militar: { motorista: boolean; cnh: string[] }): Promise<boolean> {
   const vaga = await conferirVaga(tx, escalaId, data.slice(0, 7), faixa, guarnicaoId, funcaoId);
-  if (vaga.cnhExigida && !cnhHabilitadas(cnhDoMilitar).includes(vaga.cnhExigida)) throw new Recusa('Sem a CNH exigida');
+  if (vaga.cnhExigida && !cnhParaEscala(militar).includes(vaga.cnhExigida)) throw new Recusa('Sem a CNH exigida');
   await travaDaFaixa(tx, escalaId, data, faixa);
   return (await ocupantesDaFuncao(tx, escalaId, data, faixa, guarnicaoId, funcaoId)) < vaga.maximo;
 }
@@ -124,8 +124,8 @@ export async function desfazerRemocao(tx: Consulta, remocaoId: string): Promise<
 /** O militar de uma alocação ocupa também esta vaga (acúmulo de funções). Devolve a escala e o mês. */
 export async function acumular(tx: Consulta, alocacaoId: string, d: NovoAcumulo): Promise<{ escalaId: string; mes: string }> {
   const a = (
-    await tx.query<{ escala_id: string; data: string; guarnicao_id: string | null; funcao_id: string | null; cnh: string[]; inicio: string; fim: string }>(
-      `select a.escala_id, to_char(a.data, 'YYYY-MM-DD') as data, a.guarnicao_id, a.funcao_id, m.cnh, to_char(t.inicio, 'HH24:MI') as inicio, to_char(t.fim, 'HH24:MI') as fim
+    await tx.query<{ escala_id: string; data: string; guarnicao_id: string | null; funcao_id: string | null; motorista: boolean; cnh: string[]; inicio: string; fim: string }>(
+      `select a.escala_id, to_char(a.data, 'YYYY-MM-DD') as data, a.guarnicao_id, a.funcao_id, m.motorista, m.cnh, to_char(t.inicio, 'HH24:MI') as inicio, to_char(t.fim, 'HH24:MI') as fim
          from alocacao a join turno t on t.id = a.turno_id join militar m on m.id = a.militar_id where a.id = $1`,
       [alocacaoId],
     )
@@ -143,7 +143,7 @@ export async function acumular(tx: Consulta, alocacaoId: string, d: NovoAcumulo)
   const naOriginal = a.guarnicao_id === d.guarnicaoId && a.funcao_id === d.funcaoId;
   const emAcumulo = (await tx.query('select 1 from alocacao_acumulo where alocacao_id = $1 and guarnicao_id = $2 and funcao_id = $3', [alocacaoId, d.guarnicaoId, d.funcaoId])).rows.length > 0;
   if (naOriginal || emAcumulo) throw new Recusa(jaOcupaMsg);
-  if (vaga.cnhExigida && !cnhHabilitadas(a.cnh).includes(vaga.cnhExigida)) throw new Recusa('Sem a CNH exigida');
+  if (vaga.cnhExigida && !cnhParaEscala(a).includes(vaga.cnhExigida)) throw new Recusa('Sem a CNH exigida');
   if ((await ocupantesDaFuncao(tx, a.escala_id, a.data, a, d.guarnicaoId, d.funcaoId)) >= vaga.maximo) {
     throw new Recusa(`A função ${vaga.funcao} já está completa nesta guarnição.`);
   }

@@ -2,7 +2,7 @@
 // entrar ("Adicionar serviço neste dia"), em todas as escalas ativas da seção.
 import type { OpcaoDeServico, PainelDoDia, ServicoNoDia } from 'contratos';
 import { textoFaixa, tipoDoServicoFixo } from 'contratos';
-import { cnhHabilitadas, detectarChoques, diaDaSemana, unirFaixas, type AlocChoque, type Choque } from 'dominio';
+import { cnhParaEscala, detectarChoques, diaDaSemana, unirFaixas, type AlocChoque, type Choque } from 'dominio';
 import type { Consulta } from '../banco/banco.ts';
 import { vinculosDaEscala } from '../cadastros/escalas.ts';
 import { feriadosDoAno } from '../cadastros/feriados.ts';
@@ -17,7 +17,7 @@ const hhmm = (min: number) => `${String(Math.floor(min / 60)).padStart(2, '0')}:
 const diaMes = (d: string) => `${d.slice(8)}/${d.slice(5, 7)}`;
 
 type Dados = {
-  id: string; matricula: string; nome_guerra: string; posto: string; cnh: string[]; voluntario_jes: boolean;
+  id: string; matricula: string; nome_guerra: string; posto: string; motorista: boolean; cnh: string[]; voluntario_jes: boolean;
   jornada: 'pronto' | 'adm' | null; equipe: string | null; desde: string | null; ate: string | null;
 };
 
@@ -25,7 +25,7 @@ type Dados = {
 async function dadosDoMilitar(c: Consulta, unidadeId: string, militarId: string, data: string): Promise<Dados | null> {
   const mes = data.slice(0, 7);
   const { rows } = await c.query<Dados>(
-    `select m.id, m.matricula, m.nome_guerra, p.sigla as posto, m.cnh, m.voluntario_jes, l.jornada, e.nome as equipe,
+    `select m.id, m.matricula, m.nome_guerra, p.sigla as posto, m.motorista, m.cnh, m.voluntario_jes, l.jornada, e.nome as equipe,
             to_char(l.desde, 'YYYY-MM-DD') as desde, to_char(l.ate, 'YYYY-MM-DD') as ate
        from militar m join posto_grad p on p.id = m.posto_grad_id
        left join rastreio l on l.militar_id = m.id and l.unidade_id = $2
@@ -101,7 +101,7 @@ export async function montarPainelDoDia(c: Consulta, unidadeId: string, militarI
   const { horarios, tipos } = await horariosDaUnidade(c, unidadeId);
   const choques = await frasesDeChoque(c, unidadeId, militarId, jornada, data, horarios, tipos);
 
-  const opcoes = afastamento ? [] : await opcoesDoDia(c, unidadeId, militarId, data, mes, m.cnh);
+  const opcoes = afastamento ? [] : await opcoesDoDia(c, unidadeId, militarId, data, mes, cnhParaEscala(m));
 
   return {
     militar: { militarId: m.id, posto: m.posto, nomeGuerra: m.nome_guerra, matricula: m.matricula, equipe: m.equipe, jornada, cnh: m.cnh, voluntarioJes: m.voluntario_jes },
@@ -152,10 +152,9 @@ async function frasesDeChoque(
     });
 }
 
-/** "Adicionar serviço neste dia": para cada escala ativa e cada faixa dos turnos dela, onde ele entra (vagas com função livre e CNH que ele tem, e "Sem guarnição"). */
-async function opcoesDoDia(c: Consulta, unidadeId: string, militarId: string, data: string, mes: string, cnh: string[]): Promise<OpcaoDeServico[]> {
+/** "Adicionar serviço neste dia": para cada escala ativa e cada faixa dos turnos dela, onde ele entra (vagas com função livre e CNH que vale para a escala, e "Sem guarnição"). */
+async function opcoesDoDia(c: Consulta, unidadeId: string, militarId: string, data: string, mes: string, habilitadas: string[]): Promise<OpcaoDeServico[]> {
   const escalas = (await c.query<{ id: string; nome: string }>('select id, nome from escala where unidade_id = $1 and ativa order by nome', [unidadeId])).rows;
-  const habilitadas = cnhHabilitadas(cnh);
   const resultado: OpcaoDeServico[] = [];
   for (const e of escalas) {
     const faixas = (

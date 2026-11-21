@@ -56,6 +56,14 @@ export function cnhHabilitadas(doMilitar: unknown[] | null | undefined): string[
   return out;
 }
 
+/**
+ * A CNH que vale para a escala: a carteira é do militar, mas só conta para ocupar vaga de condutor com ele no quadro de motoristas.
+ * Fora do quadro, vazio; no quadro, as categorias que a carteira habilita pela hierarquia.
+ */
+export function cnhParaEscala(m: { motorista: boolean; cnh: unknown[] | null | undefined }): string[] {
+  return m.motorista ? cnhHabilitadas(m.cnh) : [];
+}
+
 /** Categorias da coluna CNH do militar: "AD" é A + D; pedaços que não são categoria voltam em invalidas. */
 export function categoriasCnh(bruto: unknown): { categorias: string[]; invalidas: string[] } {
   const categorias: string[] = [];
