@@ -1,10 +1,10 @@
 # Relatório da documentação
 
-Gerado em 2026-11-20 pelo script `docs/ferramentas/checar-documentacao.sh`, sobre o commit `444e857`.
+Gerado em 2026-11-20 pelo script `docs/ferramentas/checar-documentacao.sh`, sobre o commit `1c65258`.
 
-**Resumo:** 14 alerta(s). CLAUDE.md: bom.
+**Resumo:** 13 alerta(s). CLAUDE.md: bom.
 
-Relatório anterior: Resumo: 24 alerta(s). CLAUDE.md: bom.
+Relatório anterior: Resumo: 14 alerta(s). CLAUDE.md: bom.
 
 ## Documentos grandes (acima de 25 KB)
 
@@ -30,7 +30,7 @@ Relatório anterior: Resumo: 24 alerta(s). CLAUDE.md: bom.
 
 ## CLAUDE.md
 
-- Linhas: 63 (limite 120)
+- Linhas: 62 (limite 120)
 - Sem "estado atual" nem número que envelhece.
 - Todos os caminhos citados existem.
 - **Nota: bom**
@@ -42,8 +42,8 @@ Toda tabela tem título no esquema.
 
 ## Índice e links
 
-- link quebrado em docs/superpowers/plans/2026-11-20-roadmap-documentacao.md: //' | grep -v '^http' | while read p; do [ -e "docs/$p" ] || echo "quebrado: $p"; done; wc -c docs/LEIAME.md`
+Todos os documentos estão no índice (ou no LEIAME da pasta) e os links funcionam.
 
 ## Branches `docs-*` e `documentacao-*` não mescladas
 
-- `docs-ux-grade-busca`: sem merge, recente (0 dia(s))
+- `docs-sintese-design-roadmap-exec`: sem merge, recente (0 dia(s))

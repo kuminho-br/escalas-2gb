@@ -1,7 +1,7 @@
 # Regras — normativo e planilhas antigas (a validar) e pendências
 Regras trazidas da Portaria 314/2025, do Decreto 46.331/2018 e das planilhas de outubro (RN-52 a RN-80), todas a esclarecer, e a tabela de pendências (P-XX).
 
-Fonte: Catálogo de Regras de Negócio do claude.ai (rev. 160, 15/11/2026), colhido em 20/11/2026. Quem cuida: REGRAS DE NEGÓCIO. Índice: [LEIAME](LEIAME.md).
+Fonte: Catálogo de Regras de Negócio do claude.ai (rev. 160, 15/11/2026), colhido em 20/11/2026. Quem cuida: DOCUMENTAÇÃO. Índice: [LEIAME](LEIAME.md).
 
 ## Regras do normativo e das planilhas antigas (a validar)
 Regras trazidas do catálogo que a PROGRAMAÇÃO montou a partir da Portaria 314/2025, do Decreto 46.331/2018 e das planilhas de outubro. Todas começam como A esclarecer até você confirmar; o código ex-R-XX aponta a regra de origem.

@@ -1,5 +1,5 @@
 # Glossário — Sistema de Escalas 2º GB
-Fonte: Glossário do claude.ai (v0.9, 15/11/2026), colhido em 20/11/2026. Quem cuida: REGRAS DE NEGÓCIO. A tabela de versões não veio: o histórico fica no git. Perguntas em aberto e divergências: [glossario-pendencias.md](glossario-pendencias.md).
+Fonte: Glossário do claude.ai (v0.9, 15/11/2026), colhido em 20/11/2026. Quem cuida: DOCUMENTAÇÃO. A tabela de versões não veio: o histórico fica no git. Perguntas em aberto e divergências: [glossario-pendencias.md](glossario-pendencias.md).
 
 ## Como ler
 Cada termo tem uma definição curta e um status. **Confirmado** = regra confirmada ou já em uso no sistema. **A implementar** = definido pelo PLANEJAMENTO ou pelo catálogo, ainda não está no sistema. **EM ABERTO** = falta confirmar; a pergunta está na última seção.

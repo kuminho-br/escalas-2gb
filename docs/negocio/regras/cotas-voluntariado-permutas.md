@@ -1,7 +1,7 @@
 # Regras — cotas, voluntariado e permutas
 Cotas de PJES e diárias, montagem da escala e voluntariado, situações boas e ruins, permutas (RN-33 a RN-48, RN-86 a RN-90).
 
-Fonte: Catálogo de Regras de Negócio do claude.ai (rev. 160, 15/11/2026), colhido em 20/11/2026. Quem cuida: REGRAS DE NEGÓCIO. Índice: [LEIAME](LEIAME.md).
+Fonte: Catálogo de Regras de Negócio do claude.ai (rev. 160, 15/11/2026), colhido em 20/11/2026. Quem cuida: DOCUMENTAÇÃO. Índice: [LEIAME](LEIAME.md).
 
 ## Cotas de PJES e diárias
 A SB recebe cotas de PJES e diárias e é obrigada a executá-las; serviços de cotas externas também são tirados pelos militares, mas ficam fora da cota da SB.

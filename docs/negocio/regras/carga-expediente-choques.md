@@ -1,7 +1,7 @@
 # Regras — carga horária, Adm e choques
 Carga horária e saldos, expediente do Adm e pré-escala, choques de horário (RN-15 a RN-26, RN-84, RN-85, RN-91).
 
-Fonte: Catálogo de Regras de Negócio do claude.ai (rev. 160, 15/11/2026), colhido em 20/11/2026. Quem cuida: REGRAS DE NEGÓCIO. Índice: [LEIAME](LEIAME.md).
+Fonte: Catálogo de Regras de Negócio do claude.ai (rev. 160, 15/11/2026), colhido em 20/11/2026. Quem cuida: DOCUMENTAÇÃO. Índice: [LEIAME](LEIAME.md).
 
 ## Carga horária e saldos
 O Pronto cumpre 160h por mês; o Adm hoje cumpre apenas a cota de saldos, 6 por militar.

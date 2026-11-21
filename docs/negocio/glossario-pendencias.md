@@ -1,5 +1,5 @@
 # Glossário — pendências e divergências
-Fonte: Glossário do claude.ai (v0.9, 15/11/2026), colhido em 20/11/2026. Quem cuida: REGRAS DE NEGÓCIO. A tabela de versões não veio: o histórico fica no git. Termos: [glossario.md](glossario.md).
+Fonte: Glossário do claude.ai (v0.9, 15/11/2026), colhido em 20/11/2026. Quem cuida: DOCUMENTAÇÃO. A tabela de versões não veio: o histórico fica no git. Termos: [glossario.md](glossario.md).
 
 ## EM ABERTO
 Perguntas para levar aos escalantes. Ao responder, marque o item e atualize o status do termo.
