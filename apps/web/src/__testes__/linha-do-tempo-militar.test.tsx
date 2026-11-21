@@ -4,7 +4,7 @@ import { linhaDoTempoDoMilitar } from '@/lib/linha-do-tempo-militar';
 
 type Periodo = FichaMilitar['rastreio'][number];
 const periodo = (id: string, desde: string, ate: string | null, unidadeSigla: string, equipe: string | null, jornada: 'pronto' | 'adm'): Periodo => ({ id, unidadeSigla, equipe, jornada, desde, ate });
-const afastamento = (id: string, tipo: string, inicio: string, fim: string): FichaMilitar['afastamentos'][number] => ({ id, tipo, tipoAfastamentoId: `t-${id}`, inicio, fim });
+const afastamento = (id: string, tipo: string, inicio: string, fim: string): FichaMilitar['afastamentos'][number] => ({ id, tipo, tipoAfastamentoId: `t-${id}`, inicio, fim, motivo: null, boletim: null });
 
 describe('linhaDoTempoDoMilitar', () => {
   it('dois períodos e um afastamento entre eles saem do mais novo para o mais velho, sem repetir', () => {

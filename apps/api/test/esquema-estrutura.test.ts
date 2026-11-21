@@ -87,6 +87,53 @@ describe('estrutura e pessoas', () => {
     expect(rows[0]!.n).toBe(1);
   });
 
+  describe('ficha do Pecúlio (0024)', () => {
+    it('e-mail só do domínio institucional e único sem distinção de maiúsculas (Review Focus 3)', async () => {
+      await expect(militar({ email: 'fulano@gmail.com' })).rejects.toThrow();
+      await expect(militar({ email: 'fulano@bombeiros.pe.gov.br.mal' })).rejects.toThrow();
+      await militar({ email: 'Fulano@bombeiros.pe.gov.br' });
+      await expect(militar({ email: 'fulano@bombeiros.pe.gov.br' })).rejects.toThrow(/militar_email/);
+      // vazio pode repetir (nenhum e-mail não é o mesmo e-mail)
+      await militar();
+      await militar();
+    });
+
+    it('sexo só M ou F; comportamento só da lista', async () => {
+      await expect(militar({ sexo: 'X' })).rejects.toThrow();
+      await militar({ sexo: 'F', comportamento: 'Excepcional', comportamento_boletim: 'BG 12/2026' });
+      await expect(militar({ comportamento: 'Péssimo' })).rejects.toThrow();
+    });
+
+    it('nascimento é dia e mês juntos, com dia que existe no mês; 29/02 passa (Review Focus 4)', async () => {
+      await expect(militar({ nascimento_dia: 10 })).rejects.toThrow();
+      await expect(militar({ nascimento_mes: 10 })).rejects.toThrow();
+      await expect(militar({ nascimento_dia: 31, nascimento_mes: 2 })).rejects.toThrow();
+      await expect(militar({ nascimento_dia: 31, nascimento_mes: 4 })).rejects.toThrow();
+      await expect(militar({ nascimento_dia: 1, nascimento_mes: 13 })).rejects.toThrow();
+      await expect(militar({ nascimento_dia: 0, nascimento_mes: 1 })).rejects.toThrow();
+      await militar({ nascimento_dia: 29, nascimento_mes: 2 });
+      await militar({ nascimento_dia: 30, nascimento_mes: 4 });
+      await militar({ nascimento_dia: 31, nascimento_mes: 12 });
+    });
+
+    it('afastamento: motivo até 200 e boletim até 60 caracteres (Review Focus 5)', async () => {
+      const m = await militar();
+      const tipo = (await banco.query<{ id: string }>("select id from tipo_afastamento where nome = 'LTS'")).rows[0]!.id;
+      const base = { militar_id: m, tipo_afastamento_id: tipo };
+      await expect(inserir(banco, 'afastamento', { ...base, inicio: '2026-03-01', fim: '2026-03-02', motivo: 'a'.repeat(201) })).rejects.toThrow();
+      await expect(inserir(banco, 'afastamento', { ...base, inicio: '2026-03-01', fim: '2026-03-02', boletim: 'b'.repeat(61) })).rejects.toThrow();
+      await inserir(banco, 'afastamento', { ...base, inicio: '2026-03-01', fim: '2026-03-02', motivo: 'a'.repeat(200), boletim: 'b'.repeat(60) });
+    });
+
+    it('os tipos Adido, Agregado, L.E e DTS existem uma vez só, mesmo rodando a migração de novo', async () => {
+      const contar = async () => (await banco.query<{ nome: string; n: number }>("select nome, count(*)::int as n from tipo_afastamento where nome in ('Adido', 'Agregado', 'L.E', 'DTS', 'LTS') group by nome order by nome")).rows;
+      const esperado = [{ nome: 'Adido', n: 1 }, { nome: 'Agregado', n: 1 }, { nome: 'DTS', n: 1 }, { nome: 'L.E', n: 1 }, { nome: 'LTS', n: 1 }];
+      expect(await contar()).toEqual(esperado);
+      await banco.exec(readFileSync(join(PASTA_MIGRACOES, '0024_ficha_do_peculio.sql'), 'utf8'));
+      expect(await contar()).toEqual(esperado);
+    });
+  });
+
   it('afastamento com fim antes do inicio', async () => {
     const m = await militar();
     await expect(

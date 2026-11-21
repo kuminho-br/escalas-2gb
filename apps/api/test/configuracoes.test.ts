@@ -21,7 +21,7 @@ describe('tipos de afastamento', () => {
   it('lista os tipos e cria um novo (admin)', async () => {
     const r = await api.pedir('escalante', 'GET', '/api/sistema/tipos-afastamento');
     expect(r.status).toBe(200);
-    expect((await r.json()).map((t: { nome: string }) => t.nome)).toEqual(['Curso', 'Férias', 'LTS', 'Outro']);
+    expect((await r.json()).map((t: { nome: string }) => t.nome)).toEqual(['Adido', 'Agregado', 'Curso', 'DTS', 'Férias', 'L.E', 'LTS', 'Outro']);
     const novo = await api.pedir('admin', 'POST', '/api/sistema/tipos-afastamento', { nome: 'Licença especial' });
     expect(novo.status).toBe(201);
     expect(await novo.json()).toMatchObject({ nome: 'Licença especial', ativo: true });

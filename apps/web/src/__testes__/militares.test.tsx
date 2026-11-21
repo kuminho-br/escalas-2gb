@@ -18,9 +18,10 @@ const LISTA = [
 ];
 const FICHA: FichaMilitar = {
   ...linha({ motorista: 'D' }),
-  postoGradId: 'p-sd', antiguidade: 3, antiguidadeRepetidaCom: [], noQuadroDeMotoristas: true, cnh: ['D'], cnhPorHierarquia: ['C', 'B'],
+  podeEditar: { peculio: true, escala: true, unidadeDeCima: '2º GB' },
+  postoGradId: 'p-sd', nomeCompleto: 'João da Silva Andrade', sexo: 'M', nascimento: { dia: 15, mes: 3 }, telefone: '(81) 99999-0000', email: 'andrade@bombeiros.pe.gov.br', comportamento: 'Bom', comportamentoBoletim: 'BG 01/2026', antiguidade: 3, antiguidadeRepetidaCom: [], noQuadroDeMotoristas: true, cnh: ['D'], cnhPorHierarquia: ['C', 'B'],
   rastreio: [{ id: 'l1', unidadeSigla: '1ª SB', equipe: 'Alfa', jornada: 'pronto', desde: '2026-11-01', ate: null }],
-  afastamentos: [{ id: 'a1', tipo: 'Férias', tipoAfastamentoId: 't-ferias', inicio: '2026-12-01', fim: '2026-12-10' }],
+  afastamentos: [{ id: 'a1', tipo: 'Férias', tipoAfastamentoId: 't-ferias', inicio: '2026-12-01', fim: '2026-12-10', motivo: null, boletim: null }],
 };
 
 function api(extra: Parameters<typeof simularApi>[0] = {}) {
@@ -71,6 +72,7 @@ describe('lista de militares', () => {
     const dialogo = await screen.findByRole('dialog');
     await userEvent.type(within(dialogo).getByLabelText('Matrícula'), '990010-0');
     await userEvent.selectOptions(within(dialogo).getByLabelText('Posto ou graduação'), 'CB BM');
+    await userEvent.type(within(dialogo).getByLabelText('Nome completo'), 'Novo da Silva');
     await userEvent.type(within(dialogo).getByLabelText('Nome de guerra'), 'NOVO');
     await userEvent.selectOptions(within(dialogo).getByLabelText('Equipe'), 'Bravo');
     await userEvent.selectOptions(within(dialogo).getByLabelText('Jornada'), 'Adm');
@@ -78,7 +80,7 @@ describe('lista de militares', () => {
     await userEvent.click(within(dialogo).getByRole('button', { name: 'Criar' }));
     await waitFor(() =>
       expect(corpoEnviado(f, 'POST /api/unidades/u-1sb/militares')).toEqual({
-        matricula: '990010-0', postoGradId: 'p-cb', nomeGuerra: 'NOVO', antiguidade: null, motorista: false, cnh: [], voluntarioJes: false,
+        matricula: '990010-0', postoGradId: 'p-cb', nomeCompleto: 'Novo da Silva', nomeGuerra: 'NOVO', antiguidade: null, motorista: false, cnh: [], voluntarioJes: false,
         lotacao: { equipeId: 'e-bravo', jornada: 'adm', desde: '2026-12' },
       }),
     );
@@ -407,6 +409,202 @@ describe('alterar situação', () => {
   });
 });
 
+describe('ficha ampliada (fase 5)', () => {
+  const PATCH = 'PATCH /api/militares/m1';
+  const comFicha = (extra: Partial<FichaMilitar> = {}, rotas: Parameters<typeof simularApi>[0] = {}) =>
+    api({ 'GET /api/militares/m1': { status: 200, corpo: { ...FICHA, ...extra } }, [PATCH]: { status: 200, corpo: FICHA }, ...rotas });
+  const SEM_PECULIO = { podeEditar: { peculio: false, escala: true, unidadeDeCima: '2º GB' } };
+  const FRASE = 'Este bloco é alterado por quem tem papel em 2º GB.';
+
+  it('Identificação: o nome completo e o sexo aparecem e gravam só o que mudou', async () => {
+    const f = comFicha();
+    abrir('/militares/m1');
+    const nome = await screen.findByLabelText('Nome completo');
+    expect(nome).toHaveValue('João da Silva Andrade');
+    expect(screen.getByLabelText('Sexo')).toHaveValue('M');
+    fireEvent.change(nome, { target: { value: 'João Carlos da Silva Andrade' } });
+    await userEvent.click(screen.getByRole('button', { name: 'Salvar alterações' }));
+    await waitFor(() => expect(corpoEnviado(f, PATCH)).toEqual({ nomeCompleto: 'João Carlos da Silva Andrade' }));
+    fireEvent.change(screen.getByLabelText('Sexo'), { target: { value: 'F' } });
+    await userEvent.click(screen.getByRole('button', { name: 'Salvar alterações' }));
+    await waitFor(() => expect(corpoEnviado(f, PATCH)).toEqual({ sexo: 'F' }));
+  });
+
+  it('Dados pessoais: o nascimento é só dia e mês, grava junto e limpar manda null; 31 de fevereiro mostra a mensagem sem chamar a API (Review Focus 4)', async () => {
+    const f = comFicha();
+    abrir('/militares/m1');
+    const dia = await screen.findByLabelText('Dia');
+    const mes = screen.getByLabelText('Mês');
+    expect(dia).toHaveValue(15);
+    expect(mes).toHaveValue(3);
+    expect(screen.queryByLabelText(/Ano/)).toBeNull();
+    fireEvent.change(dia, { target: { value: '31' } });
+    fireEvent.change(mes, { target: { value: '2' } });
+    await userEvent.click(screen.getByRole('button', { name: 'Salvar dados pessoais' }));
+    expect(await screen.findByText('Esse dia não existe nesse mês.')).toBeInTheDocument();
+    expect(chamadasA(f, PATCH)).toBe(0);
+    fireEvent.change(dia, { target: { value: '29' } });
+    await userEvent.click(screen.getByRole('button', { name: 'Salvar dados pessoais' }));
+    await waitFor(() => expect(corpoEnviado(f, PATCH)).toEqual({ nascimento: { dia: 29, mes: 2 } }));
+    fireEvent.change(dia, { target: { value: '' } });
+    fireEvent.change(mes, { target: { value: '' } });
+    await userEvent.click(screen.getByRole('button', { name: 'Salvar dados pessoais' }));
+    await waitFor(() => expect(corpoEnviado(f, PATCH)).toEqual({ nascimento: null }));
+  });
+
+  it('Contato: telefone e e-mail gravam só o que mudou; e-mail de outro domínio mostra a mensagem do contrato no campo, sem chamar a API (Review Focus 3)', async () => {
+    const f = comFicha();
+    abrir('/militares/m1');
+    const telefone = await screen.findByLabelText('Telefone');
+    const email = screen.getByLabelText('E-mail institucional');
+    expect(telefone).toHaveValue('(81) 99999-0000');
+    expect(email).toHaveValue('andrade@bombeiros.pe.gov.br');
+    fireEvent.change(telefone, { target: { value: '(81) 98888-1111' } });
+    await userEvent.click(screen.getByRole('button', { name: 'Salvar contato' }));
+    await waitFor(() => expect(corpoEnviado(f, PATCH)).toEqual({ telefone: '(81) 98888-1111' }));
+    fireEvent.change(email, { target: { value: 'andrade@gmail.com' } });
+    await userEvent.click(screen.getByRole('button', { name: 'Salvar contato' }));
+    expect(await screen.findByText('Use o e-mail institucional (@bombeiros.pe.gov.br).')).toBeInTheDocument();
+    expect(email).toHaveAccessibleDescription('Use o e-mail institucional (@bombeiros.pe.gov.br).');
+    expect(chamadasA(f, PATCH)).toBe(1);
+  });
+
+  it('Contato: o e-mail de outro militar volta da API como erro no campo', async () => {
+    comFicha({}, { [PATCH]: { status: 409, corpo: { erro: 'Este e-mail já é de outro militar.', campos: { email: 'Este e-mail já é de outro militar.' } } } });
+    abrir('/militares/m1');
+    fireEvent.change(await screen.findByLabelText('E-mail institucional'), { target: { value: 'outro@bombeiros.pe.gov.br' } });
+    await userEvent.click(screen.getByRole('button', { name: 'Salvar contato' }));
+    expect(await screen.findByText('Este e-mail já é de outro militar.')).toBeInTheDocument();
+    expect(screen.getByLabelText('E-mail institucional')).toHaveAccessibleDescription('Este e-mail já é de outro militar.');
+  });
+
+  it('Comportamento: grava o comportamento e o boletim; "Sem informação" limpa', async () => {
+    const f = comFicha();
+    abrir('/militares/m1');
+    const comportamento = await screen.findByLabelText('Comportamento');
+    expect(comportamento).toHaveValue('Bom');
+    expect(screen.getByLabelText('Boletim')).toHaveValue('BG 01/2026');
+    fireEvent.change(comportamento, { target: { value: 'Ótimo' } });
+    fireEvent.change(screen.getByLabelText('Boletim'), { target: { value: 'BG 09/2026' } });
+    await userEvent.click(screen.getByRole('button', { name: 'Salvar comportamento' }));
+    await waitFor(() => expect(corpoEnviado(f, PATCH)).toEqual({ comportamento: 'Ótimo', comportamentoBoletim: 'BG 09/2026' }));
+    fireEvent.change(comportamento, { target: { value: '' } });
+    await userEvent.click(screen.getByRole('button', { name: 'Salvar comportamento' }));
+    await waitFor(() => expect(corpoEnviado(f, PATCH)).toEqual({ comportamento: null }));
+  });
+
+  // [foco 1] escalante só da seção: o Pecúlio é só leitura, com a frase; a escala segue editável
+  it('sem papel acima da lotação, os blocos do Pecúlio ficam só para leitura com a frase e os da escala seguem editáveis', async () => {
+    comFicha(SEM_PECULIO);
+    abrir('/militares/m1');
+    await screen.findByLabelText('Nome completo');
+    for (const rotulo of ['Posto ou graduação', 'Nome completo', 'Nome de guerra', 'Antiguidade', 'Sexo', 'Dia', 'Mês', 'Telefone', 'E-mail institucional', 'Comportamento', 'Boletim']) {
+      expect(screen.getByLabelText(rotulo), rotulo).toBeDisabled();
+    }
+    // Identificação, Dados pessoais, Contato, Comportamento e Afastamentos
+    expect(screen.getAllByText(FRASE)).toHaveLength(5);
+    expect(screen.queryByRole('button', { name: 'Incluir afastamento' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Remover' })).toBeNull();
+    // o que é da escala continua com quem tem papel na seção
+    expect(screen.getByLabelText('Voluntário JES')).toBeEnabled();
+    expect(screen.getByLabelText('Ativo')).toBeEnabled();
+    expect(screen.getByRole('button', { name: /^D\b/ })).toBeEnabled();
+  });
+
+  it('com papel acima da lotação, nenhum bloco mostra a frase e todos os campos são editáveis', async () => {
+    comFicha();
+    abrir('/militares/m1');
+    await screen.findByLabelText('Nome completo');
+    expect(screen.queryByText(FRASE)).toBeNull();
+    expect(screen.getByLabelText('Telefone')).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Incluir afastamento' })).toBeInTheDocument();
+  });
+
+  it('"Alterar situação" trava o campo Lotação sem papel acima da lotação, e a equipe e a jornada seguem editáveis', async () => {
+    comFicha(SEM_PECULIO, { 'GET /api/secoes': { status: 200, corpo: [{ id: 'u-1sb', sigla: '1ª SB', nome: '1ª Seção de Bombeiros' }] } });
+    abrir('/militares/m1');
+    await userEvent.click(await screen.findByRole('button', { name: /Histórico de rastreio/ }));
+    await userEvent.click(screen.getByRole('button', { name: 'Alterar situação' }));
+    const dialogo = within(await screen.findByRole('dialog'));
+    expect(dialogo.getByLabelText('Lotação')).toBeDisabled();
+    expect(dialogo.getByText('A lotação é alterada por quem tem papel em 2º GB.')).toBeInTheDocument();
+    expect(dialogo.getByLabelText('Equipe')).toBeEnabled();
+    expect(dialogo.getByLabelText('Jornada')).toBeEnabled();
+  });
+
+  it('a pendência "Nome completo em falta" aparece na lista e na ficha', async () => {
+    const pendencias = ['Nome completo em falta'];
+    comFicha({ pendencias, nomeCompleto: null }, { 'GET /api/unidades/u-1sb/militares': { status: 200, corpo: [linha({ pendencias })] } });
+    abrir('/militares/m1');
+    expect(await screen.findByText(/Cadastro incompleto: Nome completo em falta\./)).toBeInTheDocument();
+    expect((await screen.findAllByLabelText('Cadastro incompleto: Nome completo em falta')).length).toBeGreaterThan(0);
+  });
+
+  it('"Novo militar" exige o nome completo: sem ele o cadastro não é enviado', async () => {
+    const f = api({ 'POST /api/unidades/u-1sb/militares': { status: 201, corpo: FICHA } });
+    abrir('/militares');
+    await userEvent.click(await screen.findByRole('button', { name: 'Novo militar' }));
+    const dialogo = within(await screen.findByRole('dialog'));
+    expect(dialogo.getByLabelText('Nome completo')).toBeRequired();
+    await userEvent.type(dialogo.getByLabelText('Matrícula'), '990010-0');
+    await userEvent.type(dialogo.getByLabelText('Nome de guerra'), 'NOVO');
+    await userEvent.click(dialogo.getByRole('button', { name: 'Criar' }));
+    expect(chamadasA(f, 'POST /api/unidades/u-1sb/militares')).toBe(0);
+  });
+});
+
+describe('afastamento com motivo e boletim (fase 5)', () => {
+  const TIPOS = { 'GET /api/sistema/tipos-afastamento': { status: 200, corpo: [{ id: 't-ferias', nome: 'Férias', ativo: true }, { id: 't-lts', nome: 'LTS', ativo: true }] } };
+  const POST = 'POST /api/militares/m1/afastamentos';
+  const COM_MOTIVO = { afastamentos: [{ id: 'a1', tipo: 'LTS', tipoAfastamentoId: 't-lts', inicio: '2026-12-01', fim: '2026-12-10', motivo: 'Cirurgia programada', boletim: 'BG 12/2026' }] };
+
+  it('a lista do afastamento mostra o motivo e o boletim, quando há', async () => {
+    api({ ...TIPOS, 'GET /api/militares/m1': { status: 200, corpo: { ...FICHA, ...COM_MOTIVO } } });
+    abrir('/militares/m1');
+    expect(await screen.findByText('Motivo: Cirurgia programada')).toBeInTheDocument();
+    expect(screen.getByText('Boletim: BG 12/2026')).toBeInTheDocument();
+  });
+
+  it('incluir LTS com motivo e boletim manda os dois; o campo motivo traz o aviso "Não escreva diagnóstico."', async () => {
+    const f = api({ ...TIPOS, [POST]: { status: 201, corpo: { id: 'a9' } } });
+    abrir('/militares/m1');
+    await userEvent.click(await screen.findByRole('button', { name: 'Incluir afastamento' }));
+    await userEvent.selectOptions(screen.getByLabelText('Tipo de afastamento'), 'LTS');
+    fireEvent.change(screen.getByLabelText('Início'), { target: { value: '2027-01-05' } });
+    fireEvent.change(screen.getByLabelText('Fim'), { target: { value: '2027-01-09' } });
+    const motivo = screen.getByLabelText('Motivo');
+    expect(motivo).toHaveAccessibleDescription('Não escreva diagnóstico.');
+    // o campo para de aceitar texto no limite do banco: 200 caracteres no motivo e 60 no boletim
+    expect(motivo).toHaveAttribute('maxlength', '200');
+    expect(screen.getByLabelText('Boletim do afastamento')).toHaveAttribute('maxlength', '60');
+    fireEvent.change(motivo, { target: { value: '  Cirurgia programada ' } });
+    fireEvent.change(screen.getByLabelText('Boletim do afastamento'), { target: { value: 'BG 01/2027' } });
+    await userEvent.click(screen.getByRole('button', { name: 'Salvar' }));
+    await waitFor(() => expect(corpoEnviado(f, POST)).toEqual({ tipoAfastamentoId: 't-lts', inicio: '2027-01-05', fim: '2027-01-09', motivo: 'Cirurgia programada', boletim: 'BG 01/2027' }));
+  });
+
+  it('sem motivo e sem boletim, o pedido vai só com o tipo e as datas', async () => {
+    const f = api({ ...TIPOS, [POST]: { status: 201, corpo: { id: 'a9' } } });
+    abrir('/militares/m1');
+    await userEvent.click(await screen.findByRole('button', { name: 'Incluir afastamento' }));
+    fireEvent.change(screen.getByLabelText('Início'), { target: { value: '2027-01-05' } });
+    fireEvent.change(screen.getByLabelText('Fim'), { target: { value: '2027-01-09' } });
+    await userEvent.click(screen.getByRole('button', { name: 'Salvar' }));
+    await waitFor(() => expect(corpoEnviado(f, POST)).toEqual({ tipoAfastamentoId: 't-ferias', inicio: '2027-01-05', fim: '2027-01-09' }));
+  });
+
+  it('a linha do tempo do rastreio mostra o tipo do afastamento, nunca o motivo', async () => {
+    api({ ...TIPOS, 'GET /api/militares/m1': { status: 200, corpo: { ...FICHA, ...COM_MOTIVO } } });
+    abrir('/militares/m1');
+    const botao = await screen.findByRole('button', { name: /Histórico de rastreio/ });
+    await userEvent.click(botao);
+    const bloco = within(document.getElementById(botao.getAttribute('aria-controls')!)!);
+    expect(bloco.getByText('Afastamento: LTS (01/12 a 10/12)')).toBeInTheDocument();
+    expect(bloco.queryByText(/Cirurgia programada/)).toBeNull();
+    expect(bloco.queryByText(/BG 12\/2026/)).toBeNull();
+  });
+});
+
 describe('depois de gravar', () => {
   it('importação busca de novo equipes e fichas abertas', () => {
     const qc = new QueryClient();
@@ -502,6 +700,7 @@ describe('remover, nomes das ações e erros por campo', () => {
     await userEvent.click(await screen.findByRole('button', { name: 'Novo militar' }));
     const dialogo = await screen.findByRole('dialog');
     await userEvent.type(within(dialogo).getByLabelText('Matrícula'), '990010-0');
+    await userEvent.type(within(dialogo).getByLabelText('Nome completo'), 'Novo da Silva');
     await userEvent.type(within(dialogo).getByLabelText('Nome de guerra'), 'NOVO');
     await userEvent.click(within(dialogo).getByRole('button', { name: 'Criar' }));
     const desde = within(dialogo).getByLabelText('Lotado desde');

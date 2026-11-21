@@ -9,7 +9,8 @@ import { bancoDeTeste } from './banco-teste.ts';
 export const URL_BASE = 'http://localhost:8787';
 const SENHA = 'senha-de-teste-123';
 
-export type Quem = 'admin' | 'escalante' | 'semPapel';
+/** `gestorGb`: gestor do 2º GB, o "papel de cima" das seções (dono dos blocos do Pecúlio da ficha). */
+export type Quem = 'admin' | 'escalante' | 'gestorGb' | 'semPapel';
 
 export interface ApiDeTeste {
   banco: Banco;
@@ -42,11 +43,13 @@ export async function montarApi(fabricar?: (dep: { banco: Banco; auth: Auth }) =
   const admin = (await novo('990901-1', 'ADMIN', 'admin@exemplo.test')).usuarioId;
   const escalante = (await novo('990902-2', 'ESCALANTE', 'escalante@exemplo.test')).usuarioId;
   await banco.query("update papel_usuario set papel = 'escalante', unidade_id = $2 where usuario_id = $1", [escalante, ids.secao]);
+  const gestorGb = (await novo('990908-8', 'GESTORGB', 'gestorgb@exemplo.test')).usuarioId;
+  await banco.query("update papel_usuario set papel = 'gestor', unidade_id = $2 where usuario_id = $1", [gestorGb, ids.gb]);
   const semPapel = (await novo('990903-3', 'COMUM', 'comum@exemplo.test')).usuarioId;
   await banco.query('delete from papel_usuario where usuario_id = $1', [semPapel]);
 
   const cookies: Partial<Record<Quem, string>> = {};
-  const emails: Record<Quem, string> = { admin: 'admin@exemplo.test', escalante: 'escalante@exemplo.test', semPapel: 'comum@exemplo.test' };
+  const emails: Record<Quem, string> = { admin: 'admin@exemplo.test', escalante: 'escalante@exemplo.test', gestorGb: 'gestorgb@exemplo.test', semPapel: 'comum@exemplo.test' };
   for (const quem of Object.keys(emails) as Quem[]) {
     const r = await app.request(`${URL_BASE}/api/auth/sign-in/email`, {
       method: 'POST',
@@ -61,7 +64,7 @@ export async function montarApi(fabricar?: (dep: { banco: Banco; auth: Auth }) =
     app,
     auth,
     ids,
-    usuarios: { admin, escalante, semPapel },
+    usuarios: { admin, escalante, gestorGb, semPapel },
     async pedir(quem, metodo, caminho, corpo) {
       const headers: Record<string, string> = { Cookie: cookies[quem]!, Origin: URL_BASE };
       let body: BodyInit | undefined;

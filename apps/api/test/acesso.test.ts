@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { CADASTRO, exigirPapel, exigirSessao, temPapel, unidadeDoRegistro, type AmbienteApi } from '../src/acesso.ts';
+import { CADASTRO, exigirPapel, exigirSessao, temPapel, temPapelAcima, unidadeDoRegistro, type AmbienteApi } from '../src/acesso.ts';
 import { respostaDoErroDoBanco } from '../src/erros.ts';
 import { hojeRecife } from '../src/datas.ts';
 import { inserir } from './banco-teste.ts';
@@ -51,6 +51,23 @@ describe('papéis por unidade', () => {
   it('administrador da raiz pode tudo', async () => {
     const { banco, usuarios, ids } = api;
     for (const u of [ids.raiz, ids.gb, ids.secao]) expect(await temPapel(banco, usuarios.admin, u, ['administrador'], hoje)).toBe(true);
+  });
+
+  // dono do bloco do Pecúlio: papel numa unidade ACIMA da lotação (a unidade mãe ou mais alta), nunca na própria
+  it('papel acima: o gestor do 2º GB e o administrador valem para a 1ª SB; o escalante da 1ª SB não vale para a 1ª SB', async () => {
+    const { banco, usuarios, ids } = api;
+    expect(await temPapelAcima(banco, usuarios.escalante, ids.secao, CADASTRO, hoje)).toBe(false);
+    expect(await temPapelAcima(banco, usuarios.gestorGb, ids.secao, CADASTRO, hoje)).toBe(true);
+    expect(await temPapelAcima(banco, usuarios.gestorGb, ids.gb, CADASTRO, hoje)).toBe(false);
+    expect(await temPapelAcima(banco, usuarios.admin, ids.secao, CADASTRO, hoje)).toBe(true);
+    expect(await temPapelAcima(banco, usuarios.admin, ids.gb, CADASTRO, hoje)).toBe(true);
+    // a raiz não tem unidade acima
+    expect(await temPapelAcima(banco, usuarios.admin, ids.raiz, CADASTRO, hoje)).toBe(false);
+  });
+
+  it('papel acima vencido não vale', async () => {
+    const { banco, usuarios, ids } = api;
+    expect(await temPapelAcima(banco, usuarios.gestorGb, ids.secao, CADASTRO, '2020-01-15')).toBe(false);
   });
 
   it('papel vencido não vale', async () => {

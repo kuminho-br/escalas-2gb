@@ -29,6 +29,8 @@ export function pendenciasDoMilitar(m: {
   jornada: string | null;
   equipe: string | null;
   antiguidade: number | null;
+  /** o nome completo é obrigatório para militar novo; quem já existia fica sem, e a pendência lembra de preencher */
+  nomeCompleto: string | null;
   /** nomes de guerra dos outros militares com a mesma antiguidade */
   repetidaCom?: string[];
 }): string[] {
@@ -37,6 +39,7 @@ export function pendenciasDoMilitar(m: {
   if (m.jornada === 'pronto' && !m.equipe) p.push('Pronto sem equipe');
   if (m.jornada === null) p.push('Sem lotação');
   if (m.antiguidade === null) p.push('Sem antiguidade');
+  if (!m.nomeCompleto?.trim()) p.push('Nome completo em falta');
   // com muitos repetidos, os nomes não cabem: a ficha lista quais são e a pendência dá só o número
   if (m.repetidaCom?.length) p.push(m.repetidaCom.length > 3 ? `Antiguidade repetida com ${m.repetidaCom.length} militares` : `Antiguidade repetida com ${m.repetidaCom.join(', ')}`);
   return p;

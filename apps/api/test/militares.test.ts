@@ -15,19 +15,19 @@ const atual = hojeRecife().slice(0, 7);
 const proximo = somarMeses(atual, 1);
 
 const novo = (matricula: string, extra: Record<string, unknown> = {}) => ({
-  matricula, postoGradId: sd, nomeGuerra: `TESTE${matricula.slice(3, 6)}`, antiguidade: 1, motorista: false, cnh: [], voluntarioJes: false,
+  matricula, postoGradId: sd, nomeCompleto: `Fulano de Tal ${matricula}`, nomeGuerra: `TESTE${matricula.slice(3, 6)}`, antiguidade: 1, motorista: false, cnh: [], voluntarioJes: false,
   lotacao: { equipeId: alfa, jornada: 'pronto', desde: atual }, ...extra,
 });
 async function criar(matricula: string, extra: Record<string, unknown> = {}): Promise<FichaMilitar> {
-  const r = await api.pedir('escalante', 'POST', `/api/unidades/${api.ids.secao}/militares`, novo(matricula, extra));
+  const r = await api.pedir('gestorGb', 'POST', `/api/unidades/${api.ids.secao}/militares`, novo(matricula, extra));
   expect(r.status).toBe(201);
   return r.json();
 }
-const ficha = async (id: string): Promise<FichaMilitar> => (await api.pedir('escalante', 'GET', `/api/militares/${id}`)).json();
+const ficha = async (id: string): Promise<FichaMilitar> => (await api.pedir('gestorGb', 'GET', `/api/militares/${id}`)).json();
 
 beforeAll(async () => {
   api = await montarApi();
-  const postos: Posto[] = await (await api.pedir('escalante', 'GET', '/api/postos')).json();
+  const postos: Posto[] = await (await api.pedir('gestorGb', 'GET', '/api/postos')).json();
   sd = postos.find((p) => p.sigla === 'SD BM')!.id;
   cb = postos.find((p) => p.sigla === 'CB BM')!.id;
   const tipos = (await api.banco.query<{ id: string; nome: string }>('select id, nome from tipo_afastamento')).rows;
@@ -43,9 +43,9 @@ afterAll(async () => {
 
 describe('cadastro de militares', () => {
   it('postos em ordem de hierarquia e equipes da unidade', async () => {
-    const postos: Posto[] = await (await api.pedir('escalante', 'GET', '/api/postos')).json();
+    const postos: Posto[] = await (await api.pedir('gestorGb', 'GET', '/api/postos')).json();
     expect(postos[0]!.sigla).toBe('SD BM');
-    const equipes = await (await api.pedir('escalante', 'GET', `/api/unidades/${api.ids.secao}/equipes`)).json();
+    const equipes = await (await api.pedir('gestorGb', 'GET', `/api/unidades/${api.ids.secao}/equipes`)).json();
     expect(equipes).toEqual([{ id: alfa, nome: 'Alfa', ordemCiclo: 1 }]);
   });
 
@@ -56,7 +56,7 @@ describe('cadastro de militares', () => {
   });
 
   it('matrícula repetida é 409', async () => {
-    const r = await api.pedir('escalante', 'POST', `/api/unidades/${api.ids.secao}/militares`, novo('990101-1'));
+    const r = await api.pedir('gestorGb', 'POST', `/api/unidades/${api.ids.secao}/militares`, novo('990101-1'));
     expect(r.status).toBe(409);
     expect((await r.json()).erro).toBe('Já existe um militar com essa matrícula.');
   });
@@ -69,8 +69,8 @@ describe('cadastro de militares', () => {
 
   it('lista do mês traz situação e pendências', async () => {
     const m = await criar('990102-2', { antiguidade: null, lotacao: { equipeId: null, jornada: 'pronto', desde: atual } });
-    await api.pedir('escalante', 'POST', `/api/militares/${m.id}/afastamentos`, { tipoAfastamentoId: lts, inicio: `${atual}-03`, fim: `${atual}-05` });
-    const lista: LinhaMilitar[] = await (await api.pedir('escalante', 'GET', `/api/unidades/${api.ids.secao}/militares?mes=${atual}`)).json();
+    await api.pedir('gestorGb', 'POST', `/api/militares/${m.id}/afastamentos`, { tipoAfastamentoId: lts, inicio: `${atual}-03`, fim: `${atual}-05` });
+    const lista: LinhaMilitar[] = await (await api.pedir('gestorGb', 'GET', `/api/unidades/${api.ids.secao}/militares?mes=${atual}`)).json();
     const linha = lista.find((l) => l.matricula === '990102-2')!;
     expect(linha.situacao).toBe(`LTS de 03/${atual.slice(5)} a 05/${atual.slice(5)}`);
     expect(linha.pendencias).toEqual(['Pronto sem equipe', 'Sem antiguidade']);
@@ -80,7 +80,7 @@ describe('cadastro de militares', () => {
     await criar('990103-3', { postoGradId: cb, nomeGuerra: 'ZULU', antiguidade: 2 });
     await criar('990104-4', { postoGradId: cb, nomeGuerra: 'ALFA', antiguidade: null });
     await criar('990105-5', { postoGradId: cb, nomeGuerra: 'BRAVO', antiguidade: 1 });
-    const lista: LinhaMilitar[] = await (await api.pedir('escalante', 'GET', `/api/unidades/${api.ids.secao}/militares?mes=${atual}`)).json();
+    const lista: LinhaMilitar[] = await (await api.pedir('gestorGb', 'GET', `/api/unidades/${api.ids.secao}/militares?mes=${atual}`)).json();
     expect(lista.filter((l) => l.posto === 'CB BM').map((l) => l.nomeGuerra)).toEqual(['BRAVO', 'ZULU', 'ALFA']);
   });
 });
@@ -175,7 +175,7 @@ describe('alterar situação (rastreio)', () => {
 
   it('a rota antiga de transferência saiu', async () => {
     const m = await criar('990119-9');
-    const r = await api.pedir('escalante', 'POST', `/api/militares/${m.id}/lotacoes`, { unidadeId: api.ids.secao, equipeId: null, jornada: 'adm', desde: proximo });
+    const r = await api.pedir('gestorGb', 'POST', `/api/militares/${m.id}/lotacoes`, { unidadeId: api.ids.secao, equipeId: null, jornada: 'adm', desde: proximo });
     expect(r.status).toBe(404);
   });
 });
@@ -188,38 +188,97 @@ describe('afastamentos', () => {
 
   it('férias em duas partes no mesmo mês', async () => {
     for (const [i, f] of [['01', '10'], ['20', '28']]) {
-      const r = await api.pedir('escalante', 'POST', `/api/militares/${m.id}/afastamentos`, { tipoAfastamentoId: ferias, inicio: `${proximo}-${i}`, fim: `${proximo}-${f}` });
+      const r = await api.pedir('gestorGb', 'POST', `/api/militares/${m.id}/afastamentos`, { tipoAfastamentoId: ferias, inicio: `${proximo}-${i}`, fim: `${proximo}-${f}` });
       expect(r.status).toBe(201);
     }
     expect((await ficha(m.id)).afastamentos).toHaveLength(2);
   });
 
   it('afastamento sobreposto é 409 legível', async () => {
-    const r = await api.pedir('escalante', 'POST', `/api/militares/${m.id}/afastamentos`, { tipoAfastamentoId: lts, inicio: `${proximo}-05`, fim: `${proximo}-22` });
+    const r = await api.pedir('gestorGb', 'POST', `/api/militares/${m.id}/afastamentos`, { tipoAfastamentoId: lts, inicio: `${proximo}-05`, fim: `${proximo}-22` });
     expect(r.status).toBe(409);
     expect((await r.json()).erro).toBe('As datas se sobrepõem a outro período já cadastrado.');
   });
 
   it('fim antes do início é 400', async () => {
-    const r = await api.pedir('escalante', 'POST', `/api/militares/${m.id}/afastamentos`, { tipoAfastamentoId: lts, inicio: `${proximo}-15`, fim: `${proximo}-14` });
+    const r = await api.pedir('gestorGb', 'POST', `/api/militares/${m.id}/afastamentos`, { tipoAfastamentoId: lts, inicio: `${proximo}-15`, fim: `${proximo}-14` });
     expect(r.status).toBe(400);
     expect((await r.json()).campos.fim).toBe('O fim precisa ser no mesmo dia do início ou depois.');
   });
 
   it('editar e apagar afastamento', async () => {
     const [primeiro] = (await ficha(m.id)).afastamentos;
-    const ed = await api.pedir('escalante', 'PATCH', `/api/afastamentos/${primeiro!.id}`, { fim: `${proximo}-12` });
+    const ed = await api.pedir('gestorGb', 'PATCH', `/api/afastamentos/${primeiro!.id}`, { fim: `${proximo}-12` });
     expect(ed.status).toBe(200);
-    const fimDepoisDoInicio = await api.pedir('escalante', 'PATCH', `/api/afastamentos/${primeiro!.id}`, { inicio: `${proximo}-13` });
+    const fimDepoisDoInicio = await api.pedir('gestorGb', 'PATCH', `/api/afastamentos/${primeiro!.id}`, { inicio: `${proximo}-13` });
     expect(fimDepoisDoInicio.status).toBe(400);
-    expect((await api.pedir('escalante', 'DELETE', `/api/afastamentos/${primeiro!.id}`)).status).toBe(204);
+    expect((await api.pedir('gestorGb', 'DELETE', `/api/afastamentos/${primeiro!.id}`)).status).toBe(204);
     expect((await ficha(m.id)).afastamentos).toHaveLength(1);
+  });
+});
+
+describe('afastamento com motivo e boletim (fase 5)', () => {
+  let m: FichaMilitar;
+  const mes = somarMeses(atual, 6);
+  beforeAll(async () => {
+    m = await criar('990191-1');
+  });
+  const incluir = (corpo: Record<string, unknown>) => api.pedir('gestorGb', 'POST', `/api/militares/${m.id}/afastamentos`, { tipoAfastamentoId: lts, ...corpo });
+
+  it('incluir LTS com motivo e boletim grava e a ficha devolve os dois', async () => {
+    const r = await incluir({ inicio: `${mes}-02`, fim: `${mes}-06`, motivo: 'Cirurgia programada', boletim: 'BG 12/2026' });
+    expect(r.status).toBe(201);
+    const [a] = (await ficha(m.id)).afastamentos;
+    expect(a).toMatchObject({ tipo: 'LTS', motivo: 'Cirurgia programada', boletim: 'BG 12/2026' });
+  });
+
+  it('sem motivo e sem boletim, os dois ficam vazios (null)', async () => {
+    const r = await incluir({ inicio: `${mes}-10`, fim: `${mes}-12` });
+    expect(r.status).toBe(201);
+    const sem = (await ficha(m.id)).afastamentos.find((a) => a.inicio === `${mes}-10`)!;
+    expect(sem).toMatchObject({ motivo: null, boletim: null });
+  });
+
+  // [foco 5] o limite do motivo é conferido antes do banco: 400 no campo, nunca erro do banco
+  it('motivo de 201 caracteres é 400 no campo, e boletim com mais de 60 também; nada é gravado', async () => {
+    const antes = (await ficha(m.id)).afastamentos.length;
+    const motivo = await incluir({ inicio: `${mes}-14`, fim: `${mes}-15`, motivo: 'a'.repeat(201) });
+    expect(motivo.status).toBe(400);
+    expect((await motivo.json()).campos.motivo).toBe('Use no máximo 200 caracteres.');
+    const boletim = await incluir({ inicio: `${mes}-14`, fim: `${mes}-15`, boletim: 'b'.repeat(61) });
+    expect(boletim.status).toBe(400);
+    expect((await boletim.json()).campos.boletim).toBe('Use no máximo 60 caracteres.');
+    expect((await ficha(m.id)).afastamentos).toHaveLength(antes);
+    expect((await incluir({ inicio: `${mes}-14`, fim: `${mes}-15`, motivo: 'a'.repeat(200), boletim: 'b'.repeat(60) })).status).toBe(201);
+  });
+
+  it('editar muda o motivo e o boletim; null limpa; o que não vem fica como está', async () => {
+    const [primeiro] = (await ficha(m.id)).afastamentos;
+    const ed = await api.pedir('gestorGb', 'PATCH', `/api/afastamentos/${primeiro!.id}`, { motivo: 'Outro motivo' });
+    expect(ed.status).toBe(200);
+    expect(await ed.json()).toMatchObject({ motivo: 'Outro motivo', boletim: 'BG 12/2026' });
+    const limpa = await api.pedir('gestorGb', 'PATCH', `/api/afastamentos/${primeiro!.id}`, { motivo: null, boletim: null });
+    expect(await limpa.json()).toMatchObject({ motivo: null, boletim: null });
+    expect((await ficha(m.id)).afastamentos.find((a) => a.id === primeiro!.id)).toMatchObject({ motivo: null, boletim: null });
+    const longo = await api.pedir('gestorGb', 'PATCH', `/api/afastamentos/${primeiro!.id}`, { motivo: 'a'.repeat(201) });
+    expect(longo.status).toBe(400);
+  });
+
+  it('os tipos novos (Adido, Agregado, L.E, DTS) servem para um afastamento', async () => {
+    const tipos = (await api.banco.query<{ id: string; nome: string }>("select id, nome from tipo_afastamento where nome in ('Adido', 'Agregado', 'L.E', 'DTS')")).rows;
+    expect(tipos).toHaveLength(4);
+    let dia = 20;
+    for (const t of tipos) {
+      const r = await incluir({ tipoAfastamentoId: t.id, inicio: `${mes}-${dia}`, fim: `${mes}-${dia + 1}` });
+      expect(r.status, t.nome).toBe(201);
+      dia += 2;
+    }
   });
 });
 
 describe('antiguidade repetida', () => {
   const listaDaSecao = async (): Promise<LinhaMilitar[]> =>
-    (await api.pedir('escalante', 'GET', `/api/unidades/${api.ids.secao}/militares?mes=${atual}`)).json();
+    (await api.pedir('gestorGb', 'GET', `/api/unidades/${api.ids.secao}/militares?mes=${atual}`)).json();
 
   it('dois militares com a mesma antiguidade ganham a pendência e a gravação passa', async () => {
     const a = await criar('990120-0', { nomeGuerra: 'REPETIDOA', antiguidade: 777 });
@@ -245,14 +304,14 @@ describe('antiguidade repetida', () => {
     const c = await criar('990122-2', { nomeGuerra: 'REPETIDOC', antiguidade: 778 });
     const d = await criar('990123-3', { nomeGuerra: 'REPETIDOD', antiguidade: 778 });
     expect((await ficha(c.id)).pendencias).toContain('Antiguidade repetida com REPETIDOD');
-    expect((await api.pedir('escalante', 'PATCH', `/api/militares/${d.id}`, { ativo: false })).status).toBe(200);
+    expect((await api.pedir('gestorGb', 'PATCH', `/api/militares/${d.id}`, { ativo: false })).status).toBe(200);
     expect((await ficha(c.id)).pendencias.some((p) => p.startsWith('Antiguidade repetida'))).toBe(false);
   });
 
   it('desfeita a repetição, a pendência some', async () => {
     const e = await criar('990124-4', { nomeGuerra: 'REPETIDOE', antiguidade: 779 });
     const f = await criar('990125-5', { nomeGuerra: 'REPETIDOF', antiguidade: 779 });
-    expect((await api.pedir('escalante', 'PATCH', `/api/militares/${f.id}`, { antiguidade: 780 })).status).toBe(200);
+    expect((await api.pedir('gestorGb', 'PATCH', `/api/militares/${f.id}`, { antiguidade: 780 })).status).toBe(200);
     expect((await ficha(e.id)).pendencias.some((p) => p.startsWith('Antiguidade repetida'))).toBe(false);
     expect((await ficha(f.id)).pendencias.some((p) => p.startsWith('Antiguidade repetida'))).toBe(false);
   });
@@ -262,8 +321,8 @@ describe('edição só do que mudou', () => {
   it('duas edições ao mesmo tempo em campos diferentes ficam as duas', async () => {
     const m = await criar('990150-0', { nomeGuerra: 'ANTES', voluntarioJes: false });
     const [a, b] = await Promise.all([
-      api.pedir('escalante', 'PATCH', `/api/militares/${m.id}`, { nomeGuerra: 'NOVO' }),
-      api.pedir('escalante', 'PATCH', `/api/militares/${m.id}`, { voluntarioJes: true }),
+      api.pedir('gestorGb', 'PATCH', `/api/militares/${m.id}`, { nomeGuerra: 'NOVO' }),
+      api.pedir('gestorGb', 'PATCH', `/api/militares/${m.id}`, { voluntarioJes: true }),
     ]);
     expect([a.status, b.status]).toEqual([200, 200]);
     expect(await ficha(m.id)).toMatchObject({ nomeGuerra: 'NOVO', voluntarioJes: true });
@@ -272,7 +331,7 @@ describe('edição só do que mudou', () => {
   it('PATCH com antiguidade null apaga a antiguidade', async () => {
     const m = await criar('990151-1', { antiguidade: 4321 });
     expect(m.antiguidade).toBe(4321);
-    const r = await api.pedir('escalante', 'PATCH', `/api/militares/${m.id}`, { antiguidade: null });
+    const r = await api.pedir('gestorGb', 'PATCH', `/api/militares/${m.id}`, { antiguidade: null });
     expect(r.status).toBe(200);
     expect(await r.json()).toMatchObject({ antiguidade: null });
     expect((await ficha(m.id)).antiguidade).toBeNull();
@@ -282,7 +341,7 @@ describe('edição só do que mudou', () => {
 describe('motorista e permissões', () => {
   it('desmarcar motorista mantém a CNH gravada (ela só deixa de valer para a escala)', async () => {
     const m = await criar('990110-0', { motorista: true, cnh: ['D'] });
-    const r = await api.pedir('escalante', 'PATCH', `/api/militares/${m.id}`, { motorista: false });
+    const r = await api.pedir('gestorGb', 'PATCH', `/api/militares/${m.id}`, { motorista: false });
     expect(r.status).toBe(200);
     expect(await r.json()).toMatchObject({ noQuadroDeMotoristas: false, cnh: ['D'], cnhPorHierarquia: ['C', 'B'], motorista: null });
     expect((await ficha(m.id)).cnh).toEqual(['D']);
@@ -290,7 +349,7 @@ describe('motorista e permissões', () => {
 
   it('marcar a CNH de quem não está no quadro de motoristas também grava', async () => {
     const m = await criar('990177-7');
-    const r = await api.pedir('escalante', 'PATCH', `/api/militares/${m.id}`, { cnh: ['B', 'A'] });
+    const r = await api.pedir('gestorGb', 'PATCH', `/api/militares/${m.id}`, { cnh: ['B', 'A'] });
     expect(r.status).toBe(200);
     expect(await r.json()).toMatchObject({ noQuadroDeMotoristas: false, cnh: ['A', 'B'] });
   });
@@ -304,7 +363,7 @@ describe('motorista e permissões', () => {
     const r = await api.pedir('admin', 'POST', `/api/unidades/${outraSecao}/militares`, novo('990112-2', { lotacao: { equipeId: null, jornada: 'adm', desde: atual } }));
     expect(r.status).toBe(201);
     const id = (await r.json()).id;
-    expect((await api.pedir('escalante', 'PATCH', `/api/militares/${id}`, { nomeGuerra: 'MUDOU' })).status).toBe(403);
+    expect((await api.pedir('escalante', 'PATCH', `/api/militares/${id}`, { voluntarioJes: true })).status).toBe(403);
     expect((await api.pedir('escalante', 'GET', `/api/militares/${id}`)).status).toBe(403);
     expect((await api.pedir('semPapel', 'GET', `/api/unidades/${api.ids.secao}/militares`)).status).toBe(403);
   });
@@ -312,7 +371,7 @@ describe('motorista e permissões', () => {
   it('a gravação fica na auditoria com o usuário', async () => {
     const m = await criar('990113-3');
     const { rows } = await api.banco.query<{ usuario_id: string }>("select usuario_id from auditoria where tabela = 'militar' and registro_id = $1", [m.id]);
-    expect(rows[0]!.usuario_id).toBe(api.usuarios.escalante);
+    expect(rows[0]!.usuario_id).toBe(api.usuarios.gestorGb);
   });
 
   it('alterar a situação para unidade sem papel é 403', async () => {
@@ -325,24 +384,139 @@ describe('motorista e permissões', () => {
     const m = await criar('990115-5');
     // o administrador registra a ida para a 2ª SB no mês que vem
     expect((await api.pedir('admin', 'POST', `/api/militares/${m.id}/situacao`, { unidadeId: outraSecao, equipeId: null, jornada: 'adm', desde: proximo })).status).toBe(201);
-    expect((await api.pedir('escalante', 'GET', `/api/militares/${m.id}`)).status).toBe(200);
-    const af = await api.pedir('escalante', 'POST', `/api/militares/${m.id}/afastamentos`, { tipoAfastamentoId: ferias, inicio: `${atual}-02`, fim: `${atual}-03` });
+    expect((await api.pedir('gestorGb', 'GET', `/api/militares/${m.id}`)).status).toBe(200);
+    const af = await api.pedir('gestorGb', 'POST', `/api/militares/${m.id}/afastamentos`, { tipoAfastamentoId: ferias, inicio: `${atual}-02`, fim: `${atual}-03` });
     expect(af.status).toBe(201);
   });
 });
 
 describe('antiguidade fora do que o banco guarda', () => {
   it('antiguidade enorme na criação e na edição dá 400 por campo, não 500', async () => {
-    const r = await api.pedir('escalante', 'POST', `/api/unidades/${api.ids.secao}/militares`, novo('990970-1', { antiguidade: 3_000_000_000 }));
+    const r = await api.pedir('gestorGb', 'POST', `/api/unidades/${api.ids.secao}/militares`, novo('990970-1', { antiguidade: 3_000_000_000 }));
     expect(r.status).toBe(400);
     expect((await r.json()).campos.antiguidade).toBe('Use um número de 1 a 99999.');
     const f = await criar('990971-1');
-    const e = await api.pedir('escalante', 'PATCH', `/api/militares/${f.id}`, { antiguidade: 2 ** 31 });
+    const e = await api.pedir('gestorGb', 'PATCH', `/api/militares/${f.id}`, { antiguidade: 2 ** 31 });
     expect(e.status).toBe(400);
     expect((await e.json()).campos.antiguidade).toBe('Use um número de 1 a 99999.');
-    const v = await api.pedir('escalante', 'PATCH', `/api/militares/${f.id}`, { antiguidade: 1.5 });
+    const v = await api.pedir('gestorGb', 'PATCH', `/api/militares/${f.id}`, { antiguidade: 1.5 });
     expect(v.status).toBe(400);
     expect((await v.json()).campos.antiguidade).toBe('Use um número inteiro.');
   });
 });
 
+describe('pendência "Nome completo em falta"', () => {
+  it('militar que já existia sem nome completo mostra a pendência na lista e na ficha; preencher a tira', async () => {
+    const m = await criar('990190-0', { antiguidade: 4321 });
+    await api.banco.query('update militar set nome_completo = null where id = $1', [m.id]);
+    const lista: LinhaMilitar[] = await (await api.pedir('gestorGb', 'GET', `/api/unidades/${api.ids.secao}/militares?mes=${atual}`)).json();
+    expect(lista.find((l) => l.matricula === '990190-0')!.pendencias).toEqual(['Nome completo em falta']);
+    expect((await ficha(m.id)).pendencias).toEqual(['Nome completo em falta']);
+    const r = await api.pedir('gestorGb', 'PATCH', `/api/militares/${m.id}`, { nomeCompleto: 'Fulano de Tal Completo' });
+    expect(((await r.json()) as FichaMilitar).pendencias).toEqual([]);
+  });
+});
+
+describe('dono por bloco (Review Focus 1 e 2)', () => {
+  const MSG = 'Este campo é alterado por quem tem papel no 2º GB.';
+  const papelEmOutraSecao = async <T>(quem: 'escalante', f: () => Promise<T>) => {
+    // o escalante também com papel na 2ª SB: tem as duas pontas da lotação, mas nenhuma unidade acima
+    const id = await inserir(api.banco, 'papel_usuario', { usuario_id: api.usuarios[quem], unidade_id: outraSecao, papel: 'escalante', desde: '2026-01-01' });
+    try {
+      return await f();
+    } finally {
+      await api.banco.query('delete from papel_usuario where id = $1', [id]);
+    }
+  };
+
+  it('escalante da 1ª SB: o campo da escala passa; o do Pecúlio é 403 (sozinho ou junto com o da escala) e nada é gravado', async () => {
+    const m = await criar('990180-0');
+    expect((await api.pedir('escalante', 'PATCH', `/api/militares/${m.id}`, { voluntarioJes: true })).status).toBe(200);
+    expect((await api.pedir('escalante', 'PATCH', `/api/militares/${m.id}`, { motorista: true, cnh: ['B'] })).status).toBe(200);
+    const sozinho = await api.pedir('escalante', 'PATCH', `/api/militares/${m.id}`, { nomeCompleto: 'Outro Nome Completo' });
+    expect(sozinho.status).toBe(403);
+    expect((await sozinho.json()).erro).toBe(MSG);
+    const junto = await api.pedir('escalante', 'PATCH', `/api/militares/${m.id}`, { nomeCompleto: 'Outro Nome Completo', voluntarioJes: false });
+    expect(junto.status).toBe(403);
+    expect((await junto.json()).erro).toBe(MSG);
+    const depois = await ficha(m.id);
+    expect(depois.nomeCompleto).toBe('Fulano de Tal 990180-0');
+    expect(depois.voluntarioJes).toBe(true);
+    // cada campo do Pecúlio é recusado
+    for (const campo of [{ postoGradId: cb }, { nomeGuerra: 'OUTRO' }, { antiguidade: 9 }, { sexo: 'F' }, { nascimento: { dia: 1, mes: 1 } }, { telefone: '(81) 9' }, { email: 'a@bombeiros.pe.gov.br' }, { comportamento: 'Bom' }, { comportamentoBoletim: 'BG 1' }]) {
+      expect((await api.pedir('escalante', 'PATCH', `/api/militares/${m.id}`, campo)).status, JSON.stringify(campo)).toBe(403);
+    }
+  });
+
+  it('escalante da 1ª SB: alterar situação mudando só equipe e jornada passa; mudar a lotação é 403; criar militar é 403', async () => {
+    const m = await criar('990181-1');
+    const soEquipe = await api.pedir('escalante', 'POST', `/api/militares/${m.id}/situacao`, { unidadeId: api.ids.secao, equipeId: null, jornada: 'adm', desde: atual });
+    expect(soEquipe.status).toBe(200);
+    await papelEmOutraSecao('escalante', async () => {
+      const lotacao = await api.pedir('escalante', 'POST', `/api/militares/${m.id}/situacao`, { unidadeId: outraSecao, equipeId: null, jornada: 'adm', desde: proximo });
+      expect(lotacao.status).toBe(403);
+      expect((await lotacao.json()).erro).toBe('A lotação é alterada por quem tem papel no 2º GB.');
+      expect((await ficha(m.id)).rastreio).toHaveLength(1);
+    });
+    const novoM = await api.pedir('escalante', 'POST', `/api/unidades/${api.ids.secao}/militares`, novo('990182-2'));
+    expect(novoM.status).toBe(403);
+    expect((await novoM.json()).erro).toBe('Cadastrar militar é com quem tem papel no 2º GB.');
+  });
+
+  it('escalante da 1ª SB: incluir, editar e remover afastamento é 403', async () => {
+    const m = await criar('990183-3');
+    const af = await api.pedir('gestorGb', 'POST', `/api/militares/${m.id}/afastamentos`, { tipoAfastamentoId: ferias, inicio: `${atual}-05`, fim: `${atual}-06` });
+    expect(af.status).toBe(201);
+    const afId = (await af.json()).id;
+    const incluir = await api.pedir('escalante', 'POST', `/api/militares/${m.id}/afastamentos`, { tipoAfastamentoId: ferias, inicio: `${atual}-10`, fim: `${atual}-11` });
+    expect(incluir.status).toBe(403);
+    expect((await incluir.json()).erro).toBe('Os afastamentos são alterados por quem tem papel no 2º GB.');
+    expect((await api.pedir('escalante', 'PATCH', `/api/afastamentos/${afId}`, { fim: `${atual}-07` })).status).toBe(403);
+    expect((await api.pedir('escalante', 'DELETE', `/api/afastamentos/${afId}`)).status).toBe(403);
+    expect((await ficha(m.id)).afastamentos).toHaveLength(1);
+  });
+
+  it('o gestor do 2º GB e o administrador alteram tudo, inclusive a lotação no "Alterar situação"', async () => {
+    const m = await criar('990184-4');
+    for (const quem of ['gestorGb', 'admin'] as const) {
+      const r = await api.pedir(quem, 'PATCH', `/api/militares/${m.id}`, { nomeCompleto: `Nome de ${quem}`, voluntarioJes: true });
+      expect(r.status, quem).toBe(200);
+    }
+    expect((await ficha(m.id)).nomeCompleto).toBe('Nome de admin');
+    expect((await api.pedir('gestorGb', 'POST', `/api/militares/${m.id}/situacao`, { unidadeId: outraSecao, equipeId: null, jornada: 'adm', desde: proximo })).status).toBe(201);
+    expect((await api.pedir('admin', 'POST', `/api/militares/${m.id}/situacao`, { unidadeId: api.ids.secao, equipeId: null, jornada: 'adm', desde: somarMeses(proximo, 1) })).status).toBe(201);
+  });
+
+  it('a ficha devolve podeEditar certo para o escalante, o gestor do 2º GB e o administrador', async () => {
+    const m = await criar('990185-5');
+    const de = async (quem: 'escalante' | 'gestorGb' | 'admin') => ((await (await api.pedir(quem, 'GET', `/api/militares/${m.id}`)).json()) as FichaMilitar).podeEditar;
+    expect(await de('escalante')).toEqual({ peculio: false, escala: true, unidadeDeCima: '2º GB' });
+    expect(await de('gestorGb')).toEqual({ peculio: true, escala: true, unidadeDeCima: '2º GB' });
+    expect(await de('admin')).toEqual({ peculio: true, escala: true, unidadeDeCima: '2º GB' });
+  });
+
+  it('grava e devolve os campos novos da ficha; null limpa', async () => {
+    const m = await criar('990186-6');
+    const r = await api.pedir('gestorGb', 'PATCH', `/api/militares/${m.id}`, {
+      nomeCompleto: 'Maria de Souza Lima', sexo: 'F', nascimento: { dia: 29, mes: 2 }, telefone: '(81) 99999-0000', email: 'Maria.Lima@bombeiros.pe.gov.br', comportamento: 'Ótimo', comportamentoBoletim: 'BG 05/2026',
+    });
+    expect(r.status).toBe(200);
+    expect(await r.json()).toMatchObject({
+      nomeCompleto: 'Maria de Souza Lima', sexo: 'F', nascimento: { dia: 29, mes: 2 }, telefone: '(81) 99999-0000', email: 'Maria.Lima@bombeiros.pe.gov.br', comportamento: 'Ótimo', comportamentoBoletim: 'BG 05/2026',
+    });
+    const limpa = await api.pedir('gestorGb', 'PATCH', `/api/militares/${m.id}`, { sexo: null, nascimento: null, telefone: null, email: null, comportamento: null, comportamentoBoletim: null });
+    expect(await limpa.json()).toMatchObject({ sexo: null, nascimento: null, telefone: null, email: null, comportamento: null, comportamentoBoletim: null, nomeCompleto: 'Maria de Souza Lima' });
+  });
+
+  it('e-mail repetido com maiúsculas diferentes é 409 no campo; de outro domínio é 400 no campo (Review Focus 3)', async () => {
+    const a = await criar('990187-7');
+    const b = await criar('990188-8');
+    expect((await api.pedir('gestorGb', 'PATCH', `/api/militares/${a.id}`, { email: 'Fulano@bombeiros.pe.gov.br' })).status).toBe(200);
+    const repetido = await api.pedir('gestorGb', 'PATCH', `/api/militares/${b.id}`, { email: 'fulano@bombeiros.pe.gov.br' });
+    expect(repetido.status).toBe(409);
+    expect(await repetido.json()).toEqual({ erro: 'Este e-mail já é de outro militar.', campos: { email: 'Este e-mail já é de outro militar.' } });
+    const fora = await api.pedir('gestorGb', 'PATCH', `/api/militares/${b.id}`, { email: 'fulano@gmail.com' });
+    expect(fora.status).toBe(400);
+    expect((await fora.json()).campos.email).toBe('Use o e-mail institucional (@bombeiros.pe.gov.br).');
+  });
+});

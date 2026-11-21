@@ -26,7 +26,8 @@ afterAll(async () => {
 
 describe('catálogos do sistema', () => {
   it('tipos de afastamento iniciais', async () => {
-    expect(await nomes('tipo_afastamento')).toEqual(['Curso', 'Férias', 'LTS', 'Outro'].sort());
+    // Férias, LTS, Curso e Outro (0009) e Adido, Agregado, L.E e DTS (0024)
+    expect(await nomes('tipo_afastamento')).toEqual(['Adido', 'Agregado', 'Curso', 'DTS', 'Férias', 'L.E', 'LTS', 'Outro'].sort());
   });
 
   it('atividades iniciais', async () => {

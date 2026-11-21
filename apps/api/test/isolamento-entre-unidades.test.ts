@@ -35,7 +35,7 @@ beforeAll(async () => {
   const postos: Posto[] = await (await api.pedir('admin', 'GET', '/api/postos')).json();
   const equipe = await inserir(api.banco, 'equipe', { unidade_id: outra, nome: 'Alfa', ordem_ciclo: 1 });
   const militar = await pelaRaiz('POST', `${u}/militares`, {
-    matricula: '990980-1', postoGradId: postos[0]!.id, nomeGuerra: 'ALHEIO', antiguidade: 1, motorista: false, cnh: [], voluntarioJes: false,
+    matricula: '990980-1', postoGradId: postos[0]!.id, nomeCompleto: 'Fulano de Tal Alheio', nomeGuerra: 'ALHEIO', antiguidade: 1, motorista: false, cnh: [], voluntarioJes: false,
     lotacao: { equipeId: equipe, jornada: 'pronto', desde: atual },
   });
   ids.militares = militar.id;
