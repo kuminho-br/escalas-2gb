@@ -1,22 +1,24 @@
 // Importação da aba MILITARES (leitura como lerMilitares_ do protótipo, prototipo/matriz.js).
 import { Antiguidade, mesParaData, mesPorExtenso, type ItemPrevia, type ProblemaImportacao } from 'contratos';
 import { categoriasCnh, CICLO_EQUIPES, diasDoMes, normalizar } from 'dominio';
+import { CADASTRO, temPapelAcima } from '../acesso.ts';
 import type { Consulta } from '../banco/banco.ts';
 import { coluna } from './planilha.ts';
 import type { ColunaModelo, Importador } from './tipos.ts';
 
 const ABA = 'MILITARES';
 const SIM = ['SIM', 'S', 'X', '1', 'TRUE', 'VERDADEIRO'];
+const FRASE_DO_PECULIO = 'Este campo é do Pecúlio: altere pela importação do Pecúlio ou pela ficha.';
 
 // rótulos lidos por planejar e escritos no cabeçalho do modelo: uma lista só
 const COLUNAS = {
   mat: { rotulo: 'MATRÍCULA', obrigatoria: true, ajuda: '6 dígitos, hífen e 1 dígito (ex.: 123456-7). Sem o hífen, o sistema corrige e avisa.' },
-  nome: { rotulo: 'NOME DE GUERRA', obrigatoria: true, ajuda: 'Como o militar aparece na escala.' },
+  nome: { rotulo: 'NOME DE GUERRA', obrigatoria: true, ajuda: 'Como o militar aparece na escala. Para quem já existe, o nome de guerra vem do Pecúlio: altere pela importação do Pecúlio ou pela ficha.' },
   secao: { rotulo: 'SEÇÃO', obrigatoria: true, ajuda: 'Sigla da seção do militar, igual à da seção que está importando (ex.: 1ª SB). Militar de outra seção é pulado.' },
-  posto: { rotulo: 'POSTO/GRAD', obrigatoria: true, ajuda: 'Sigla do posto ou graduação, como na lista abaixo. "SD" vale como "SD BM".' },
+  posto: { rotulo: 'POSTO/GRAD', obrigatoria: true, ajuda: 'Sigla do posto ou graduação, como na lista abaixo. "SD" vale como "SD BM". Para quem já existe, o posto vem do Pecúlio: altere pela importação do Pecúlio ou pela ficha.' },
   jornada: { rotulo: 'JORNADA', obrigatoria: true, ajuda: 'PRONTO (turnos de 12h) ou ADM (expediente).', opcoes: ['PRONTO', 'ADM'] },
   equipe: { rotulo: 'EQUIPE', obrigatoria: false, ajuda: 'Equipe do pronto (ex.: ALFA). Equipe que ainda não existe é criada. No ADM, deixe vazio.' },
-  antig: { rotulo: 'ANTIG', obrigatoria: false, ajuda: 'Número da antiguidade, a partir de 1. Não repita o número entre militares.' },
+  antig: { rotulo: 'ANTIG', obrigatoria: false, ajuda: 'Número da antiguidade, a partir de 1. Não repita o número entre militares. Para quem já existe, a antiguidade vem do Pecúlio: altere pela importação do Pecúlio ou pela ficha.' },
   motorista: { rotulo: 'MOTORISTA', obrigatoria: false, ajuda: 'SIM se o militar está no quadro de motoristas.', opcoes: ['SIM', 'NÃO'] },
   vjes: { rotulo: 'VOLUNTÁRIO JES', obrigatoria: false, ajuda: 'SIM se o militar é voluntário JES.', opcoes: ['SIM', 'NÃO'] },
   cnh: { rotulo: 'CNH', obrigatoria: false, ajuda: 'Categorias da carteira, juntas (ex.: AD). Para a escala, só vale com o militar no quadro de motoristas.' },
@@ -63,7 +65,7 @@ type Existente = {
 };
 
 /** '9902022' -> '990202-2'; formato certo passa direto; o resto é null. */
-function matriculaDe(bruto: string): { valor: string | null; corrigida: boolean } {
+export function matriculaDe(bruto: string): { valor: string | null; corrigida: boolean } {
   const s = bruto.trim();
   if (/^\d{6}-\d$/.test(s)) return { valor: s, corrigida: false };
   if (/^\d{7}$/.test(s)) return { valor: `${s.slice(0, 6)}-${s.slice(6)}`, corrigida: true };
@@ -120,7 +122,7 @@ export const importadorMilitares: Importador<Plano> = {
     },
   },
 
-  async planejar(abas, { tx, unidadeId, hoje }) {
+  async planejar(abas, { tx, unidadeId, hoje, usuarioId }) {
     const aba = abas[ABA]!;
     const c = Object.fromEntries(Object.entries(COLUNAS).map(([k, v]) => [k, coluna(aba, v.rotulo)])) as Record<keyof typeof COLUNAS, number>;
     const problemas: ProblemaImportacao[] = [];
@@ -140,6 +142,9 @@ export const importadorMilitares: Importador<Plano> = {
     const equipesNovas: Plano['equipesNovas'] = [];
     let proximaOrdem = Math.max(CICLO_EQUIPES.length, ...equipesExistentes.map((e) => e.ordem_ciclo)) + 1;
     const ja = await existentes(tx, mes, unidadeId);
+    // cadastrar militar novo é do Pecúlio (como na ficha): papel numa unidade acima da seção. Quem já existe só tem os campos da escala atualizados aqui.
+    const podeCadastrar = usuarioId ? await temPapelAcima(tx, usuarioId, unidadeId, CADASTRO, hoje) : false;
+    const siglaDeCima = (await tx.query<{ sigla: string }>('select m.sigla from unidade u join unidade m on m.id = u.mae_id where u.id = $1', [unidadeId])).rows[0]?.sigla ?? 'nível acima';
 
     const pega = (cel: string[], i: number) => (i < 0 ? '' : (cel[i] ?? '').trim());
     const vistos = new Set<string>();
@@ -220,15 +225,21 @@ export const importadorMilitares: Importador<Plano> = {
       const dados: Dados = {
         matricula: mat.valor, nomeGuerra, postoId: posto.id, posto: posto.sigla, antiguidade, motorista, cnh, voluntarioJes: SIM.includes(normalizar(pega(cel, c.vjes))), equipe, jornada,
       };
-      const descricao = `${posto.sigla} ${nomeGuerra}`;
       const e = ja.get(mat.valor);
+      // quem já existe aparece com o posto e o nome que ficam (os do Pecúlio); o que a planilha traz diferente vira aviso
+      const descricao = e ? `${e.posto} ${e.nome_guerra}` : `${posto.sigla} ${nomeGuerra}`;
       if (e && e.lotacao_unidade !== unidadeId && e.outra_sigla) {
         // trazer de outra seção exige papel lá: a transferência é registrada por quem cuida dela.
         // Vale também para quem só tem lotação marcada para depois: o mesmo bloqueio que a ficha do militar aplica.
         problema(`${nomeGuerra} (${mat.valor}) está lotado na ${e.outra_sigla}.`, `Ele entra aqui quando a transferência for registrada por quem cuida da ${e.outra_sigla}.`);
         continue;
       }
-      comAntiguidade.push({ antiguidade, nome: nomeGuerra, matricula: mat.valor });
+      if (!e && !podeCadastrar) {
+        problema(`Cadastrar militar é de quem tem papel no ${siglaDeCima}.`, 'Peça a quem tem esse papel para importar a linha ou cadastre pela ficha.');
+        continue;
+      }
+      // a antiguidade que vale é a gravada: a da planilha só entra para militar novo
+      comAntiguidade.push({ antiguidade: e ? e.antiguidade : antiguidade, nome: nomeGuerra, matricula: mat.valor });
       if (!e) {
         novos.push({ chave: mat.valor, descricao });
         itens.push({ id: null, dados, mudouMilitar: true, lotacao: { acao: 'nova' } });
@@ -236,9 +247,10 @@ export const importadorMilitares: Importador<Plano> = {
       }
 
       const mudancas: string[] = [];
-      if (e.posto_grad_id !== posto.id) mudancas.push(`posto: ${e.posto} → ${posto.sigla}`);
-      if (e.nome_guerra !== nomeGuerra) mudancas.push(`nome de guerra: ${e.nome_guerra} → ${nomeGuerra}`);
-      if (e.antiguidade !== antiguidade) mudancas.push(`antiguidade: ${e.antiguidade ?? 'vazia'} → ${antiguidade ?? 'vazia'}`);
+      // posto, nome de guerra e antiguidade de quem já existe são do Pecúlio: a planilha da seção não os muda, só avisa quando traz outro valor
+      if (e.posto_grad_id !== posto.id) avisos.push(`${e.nome_guerra} (${mat.valor}): posto ${posto.sigla} na planilha e ${e.posto} no sistema. ${FRASE_DO_PECULIO}`);
+      if (e.nome_guerra !== nomeGuerra) avisos.push(`${e.nome_guerra} (${mat.valor}): nome de guerra ${nomeGuerra} na planilha e ${e.nome_guerra} no sistema. ${FRASE_DO_PECULIO}`);
+      if (antigTxt && e.antiguidade !== antiguidade) avisos.push(`${e.nome_guerra} (${mat.valor}): antiguidade ${antigTxt} na planilha e ${e.antiguidade ?? 'vazia'} no sistema. ${FRASE_DO_PECULIO}`);
       if (e.motorista !== motorista) mudancas.push(`motorista: ${e.motorista ? 'sim' : 'não'} → ${motorista ? 'sim' : 'não'}`);
       if (!mesmaLista(e.cnh, cnh)) mudancas.push(`CNH: ${textoCnh(e.cnh)} → ${textoCnh(cnh)}`);
       if (e.voluntario_jes !== dados.voluntarioJes) mudancas.push(`voluntário JES: ${e.voluntario_jes ? 'sim' : 'não'} → ${dados.voluntarioJes ? 'sim' : 'não'}`);
@@ -247,7 +259,11 @@ export const importadorMilitares: Importador<Plano> = {
       let lotacao: Lotacao | null = null;
       if (!e.lotacao_id) {
         if (e.futura) avisos.push(`${nomeGuerra} (${mat.valor}): já tem lotação marcada para ${mesPorExtenso(e.futura)}; a lotação não foi mudada.`);
-        else {
+        else if (!podeCadastrar) {
+          // lotar quem está sem lotação é do Pecúlio, como na ficha: papel numa unidade acima da seção
+          problema(`Lotar ${nomeGuerra} na ${unidade.sigla} é de quem tem papel no ${siglaDeCima}.`, 'Peça a quem tem esse papel para importar a linha.');
+          continue;
+        } else {
           mudancas.push('lotação: nova');
           lotacao = { acao: 'nova' };
         }
@@ -315,10 +331,8 @@ export const importadorMilitares: Importador<Plano> = {
           [d.matricula, d.postoId, d.nomeGuerra, d.antiguidade, d.motorista, d.cnh, d.voluntarioJes],
         )).rows[0]!.id;
       } else if (it.mudouMilitar) {
-        await tx.query(
-          'update militar set posto_grad_id = $2, nome_guerra = $3, antiguidade = $4, motorista = $5, cnh = $6, voluntario_jes = $7 where id = $1',
-          [id, d.postoId, d.nomeGuerra, d.antiguidade, d.motorista, d.cnh, d.voluntarioJes],
-        );
+        // só o que é da escala: o posto, o nome de guerra e a antiguidade de quem já existe são do Pecúlio
+        await tx.query('update militar set motorista = $2, cnh = $3, voluntario_jes = $4 where id = $1', [id, d.motorista, d.cnh, d.voluntarioJes]);
       }
       const equipeId = d.equipe ? equipes.get(normalizar(d.equipe)) ?? null : null;
       const l = it.lotacao;

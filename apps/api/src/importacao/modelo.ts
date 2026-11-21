@@ -5,13 +5,14 @@ import type { Contexto, Importador } from './tipos.ts';
 const LINHAS_COM_OPCOES = 1001;
 const LARGURA_AJUDA = 5;
 
-function cabecalho(ws: ExcelJS.Worksheet, colunas: { rotulo: string; opcoes?: string[] }[]) {
+function cabecalho(ws: ExcelJS.Worksheet, colunas: { rotulo: string; opcoes?: string[]; texto?: boolean }[]) {
   const linha = ws.addRow(colunas.map((c) => c.rotulo));
   linha.font = { bold: true, color: { argb: 'FFFFFFFF' } };
   linha.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF8E1B1B' } };
   ws.views = [{ state: 'frozen', ySplit: 1 }];
   colunas.forEach((c, i) => {
     ws.getColumn(i + 1).width = Math.max(c.rotulo.length + 4, 14);
+    if (c.texto) ws.getColumn(i + 1).numFmt = '@';
     if (c.opcoes?.length) {
       for (let r = 2; r <= LINHAS_COM_OPCOES; r++) {
         ws.getCell(r, i + 1).dataValidation = { type: 'list', allowBlank: true, formulae: [`"${c.opcoes.join(',')}"`] };

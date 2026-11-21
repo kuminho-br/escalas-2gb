@@ -3,7 +3,7 @@
 // Sem estado: a confirmação recebe o mesmo arquivo e refaz o plano antes de gravar.
 import { Hono } from 'hono';
 import type { ResultadoImportacao } from 'contratos';
-import { CADASTRO, exigirPapel, exigirSessao, type AmbienteApi } from '../acesso.ts';
+import { CADASTRO, exigirPapel, exigirPapelDeCimaDasSecoes, exigirSessao, type AmbienteApi } from '../acesso.ts';
 import type { Auth } from '../auth.ts';
 import { comUsuario, type Banco } from '../banco/banco.ts';
 import { hojeRecife } from '../datas.ts';
@@ -26,9 +26,11 @@ export function rotasImportacao(dep: { banco: Banco; auth: Auth }, importadores:
     const negado = await exigirPapel(c, unidadeId, imp?.papeis ?? CADASTRO);
     if (negado) return negado;
     if (!imp) return c.json({ erro: 'Importação desconhecida.' }, 404);
+    const naoEDono = imp.exigeDonoDoPeculio ? await exigirPapelDeCimaDasSecoes(c, unidadeId, imp.papeis ?? CADASTRO) : null;
+    if (naoEDono) return naoEDono;
     const arquivo = await dep.banco.transacao(async (tx) => {
       await tx.query('set transaction read only');
-      return gerarModelo(imp, { tx, unidadeId, hoje: hojeRecife() });
+      return gerarModelo(imp, { tx, unidadeId, hoje: hojeRecife(), usuarioId: c.get('usuarioId') });
     });
     return c.body(arquivo, 200, {
       'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
@@ -41,6 +43,9 @@ export function rotasImportacao(dep: { banco: Banco; auth: Auth }, importadores:
     const negado = await exigirPapel(c, unidadeId, imp?.papeis ?? CADASTRO);
     if (negado) return negado;
     if (!imp) return c.json({ erro: 'Importação desconhecida.' }, 404);
+    // o Pecúlio é de quem tem papel acima das seções: o 403 vem antes de ler o arquivo, e nada aparece na prévia
+    const naoEDono = imp.exigeDonoDoPeculio ? await exigirPapelDeCimaDasSecoes(c, unidadeId, imp.papeis ?? CADASTRO) : null;
+    if (naoEDono) return naoEDono;
 
     // formulário quebrado (sem fronteira, truncado) é erro de quem enviou, não da API
     const corpo = await c.req.parseBody().catch(() => null);
@@ -61,13 +66,13 @@ export function rotasImportacao(dep: { banco: Banco; auth: Auth }, importadores:
     if (c.req.query('confirmar') !== '1') {
       const previa = await dep.banco.transacao(async (tx) => {
         await tx.query('set transaction read only');
-        return (await imp.planejar(abas, { tx, unidadeId, hoje })).previa;
+        return (await imp.planejar(abas, { tx, unidadeId, hoje, usuarioId: c.get('usuarioId') })).previa;
       });
       return c.json(previa);
     }
     try {
       const resultado: ResultadoImportacao = await comUsuario(dep.banco, c.get('usuarioId'), async (tx) => {
-        const ctx = { tx, unidadeId, hoje };
+        const ctx = { tx, unidadeId, hoje, usuarioId: c.get('usuarioId') };
         const { previa, plano } = await imp.planejar(abas, ctx);
         return { ...previa, gravados: await imp.aplicar(plano, ctx) };
       });

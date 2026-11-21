@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { mesPorExtenso, somarMeses } from 'contratos';
 import { hojeRecife } from '../src/datas.ts';
+import { IMPORTADORES } from '../src/importacao/registro.ts';
 import { inserir } from './banco-teste.ts';
 import { montarApi, type ApiDeTeste } from './apoio-api.ts';
 import { formulario, planilha } from './planilha-teste.ts';
@@ -18,8 +19,9 @@ const LINHAS: (string | number)[][] = [
 ];
 
 const auditoria = async () => (await api.banco.query<{ n: number }>('select count(*)::int as n from auditoria')).rows[0]!.n;
-async function importar(linhas: (string | number)[][], confirmar = false) {
-  const r = await api.pedir('escalante', 'POST', `/api/unidades/${api.ids.secao}/importacao/militares${confirmar ? '?confirmar=1' : ''}`,
+// o gestor do 2º GB (papel acima da seção) cadastra por esta importação; o escalante só da seção importa os campos da escala de quem já existe
+async function importar(linhas: (string | number)[][], confirmar = false, quem: 'gestorGb' | 'escalante' = 'gestorGb') {
+  const r = await api.pedir(quem, 'POST', `/api/unidades/${api.ids.secao}/importacao/militares${confirmar ? '?confirmar=1' : ''}`,
     formulario(await planilha({ MILITARES: [CAB, ...linhas] })));
   expect(r.status).toBe(200);
   return r.json();
@@ -86,9 +88,12 @@ describe('importação de militares', () => {
   it('mudança no mês corrente corrige a lotação do mês, sem criar outra', async () => {
     const linhas = LINHAS.map((l) => (l[0] === '990201-1' ? ['990201-1', 'ANDRADE', '1ª SB', 'CB BM', 'PRONTO', 'BRAVO', 1, 'SIM', 'NÃO', 'B'] : l));
     const previa = await importar(linhas);
-    expect(previa.alterados).toEqual([{ chave: '990201-1', descricao: 'CB BM ANDRADE', mudancas: ['posto: SD BM → CB BM', 'equipe: ALFA → BRAVO'] }]);
+    // o posto é do Pecúlio: a planilha da seção só avisa; a equipe (da escala) é corrigida
+    expect(previa.alterados).toEqual([{ chave: '990201-1', descricao: 'SD BM ANDRADE', mudancas: ['equipe: ALFA → BRAVO'] }]);
+    expect(previa.avisos).toContain('ANDRADE (990201-1): posto CB BM na planilha e SD BM no sistema. Este campo é do Pecúlio: altere pela importação do Pecúlio ou pela ficha.');
     await importar(linhas, true);
     const andrade = await militar('990201-1');
+    expect(andrade).toMatchObject({ posto: 'SD BM' });
     expect(await lotacoes(andrade!.id)).toEqual([{ equipe: 'BRAVO', jornada: 'pronto', desde: atual, ate: null }]);
   });
 
@@ -212,5 +217,82 @@ describe('CNH de quem não está no quadro de motoristas', () => {
     expect(await militar('990298-8')).toMatchObject({ motorista: false, cnh: ['A', 'D'] });
     // importar de novo a mesma planilha não muda nada
     expect((await importar([linha])).iguais).toBe(1);
+  });
+});
+
+describe('dono por bloco na importação de militares (Review Focus 3)', () => {
+  const FRASE = 'Este campo é do Pecúlio: altere pela importação do Pecúlio ou pela ficha.';
+  const BASE: (string | number)[] = ['990401-1', 'ANDRADE', '1ª SB', 'SD BM', 'PRONTO', 'ALFA', 9101, 'NÃO', 'NÃO', ''];
+
+  it('o escalante da seção não muda posto, nome de guerra nem antiguidade de quem já existe: a prévia avisa e os campos da escala da linha entram', async () => {
+    await importar([BASE], true);
+    const mudada: (string | number)[] = ['990401-1', 'OUTRONOME', '1ª SB', 'CB BM', 'PRONTO', 'BRAVO', 9102, 'SIM', 'SIM', 'D'];
+    const previa = await importar([mudada], false, 'escalante');
+    expect(previa.problemas).toEqual([]);
+    // o que é da escala entra na lista de mudanças; o do Pecúlio, não
+    const mudancas: string[] = previa.alterados[0].mudancas;
+    expect(mudancas).toEqual(expect.arrayContaining(['motorista: não → sim', 'CNH: nenhuma → D', 'voluntário JES: não → sim']));
+    expect(mudancas.some((m) => /^(posto|nome de guerra|antiguidade):/.test(m))).toBe(false);
+    // um aviso por campo do Pecúlio que a planilha traz diferente
+    const doPeculio = previa.avisos.filter((a: string) => a.includes(FRASE));
+    expect(doPeculio).toHaveLength(3);
+    expect(doPeculio.join(' | ')).toContain('posto CB BM na planilha e SD BM no sistema');
+    expect(doPeculio.join(' | ')).toContain('nome de guerra OUTRONOME na planilha e ANDRADE no sistema');
+    expect(doPeculio.join(' | ')).toContain('antiguidade 9102 na planilha e 9101 no sistema');
+    expect((await importar([mudada], true, 'escalante')).gravados).toBe(1);
+    const m = (await militar('990401-1'))!;
+    expect(m).toMatchObject({ posto: 'SD BM', antiguidade: 9101, motorista: true, cnh: ['D'], voluntario_jes: true });
+    expect((await api.banco.query<{ nome_guerra: string }>('select nome_guerra from militar where id = $1', [m.id])).rows[0]!.nome_guerra).toBe('ANDRADE');
+    // a equipe é da escala: a lotação do mês foi corrigida para a BRAVO
+    expect((await lotacoes(m.id)).map((l) => l.equipe)).toEqual(['BRAVO']);
+  });
+
+  it('a mesma linha só com os campos da escala (posto, nome e antiguidade iguais) não traz aviso', async () => {
+    const igual: (string | number)[] = ['990401-1', 'ANDRADE', '1ª SB', 'SD BM', 'PRONTO', 'BRAVO', 9101, 'SIM', 'SIM', 'D'];
+    const previa = await importar([igual], false, 'escalante');
+    expect(previa.avisos.filter((a: string) => a.includes(FRASE))).toEqual([]);
+    expect(previa).toMatchObject({ novos: [], alterados: [], iguais: 1 });
+  });
+
+  it('linha de militar novo com o escalante só da seção é problema com o papel de cima; o gestor do 2º GB cadastra', async () => {
+    const nova: (string | number)[] = ['990402-2', 'NOVATO', '1ª SB', 'SD BM', 'ADM', '', 9103, 'NÃO', 'NÃO', ''];
+    const doEscalante = await importar([nova], false, 'escalante');
+    expect(doEscalante.novos).toEqual([]);
+    expect(doEscalante.problemas).toEqual([
+      { aba: 'MILITARES', linha: 2, mensagem: 'Cadastrar militar é de quem tem papel no 2º GB.', solucao: 'Peça a quem tem esse papel para importar a linha ou cadastre pela ficha.' },
+    ]);
+    expect((await importar([nova], true, 'escalante')).gravados).toBe(0);
+    expect(await militar('990402-2')).toBeUndefined();
+    const doGestor = await importar([nova], false, 'gestorGb');
+    expect(doGestor.novos.map((n: { chave: string }) => n.chave)).toEqual(['990402-2']);
+    expect((await importar([nova], true, 'gestorGb')).gravados).toBe(1);
+    expect(await militar('990402-2')).toMatchObject({ posto: 'SD BM', antiguidade: 9103 });
+  });
+
+  // revisão final: lotar na seção quem existe mas está sem lotação também é do Pecúlio (a ficha trava a lotação para quem não tem o papel de cima)
+  it('militar que já existe, sem lotação neste mês, não é lotado na seção pelo escalante só da seção; o gestor do 2º GB lota', async () => {
+    const sd = (await api.banco.query<{ id: string }>("select id from posto_grad where sigla = 'SD BM'")).rows[0]!.id;
+    const semLotacao = await inserir(api.banco, 'militar', { matricula: '990403-3', posto_grad_id: sd, nome_guerra: 'SEMLOTACAO', antiguidade: 9201 });
+    // o último período dele terminou há dois meses, na própria 1ª SB
+    await inserir(api.banco, 'rastreio', { militar_id: semLotacao, unidade_id: api.ids.secao, jornada: 'adm', desde: `${somarMeses(atual, -4)}-01`, ate: `${somarMeses(atual, -2)}-28` });
+    const linha: (string | number)[] = ['990403-3', 'SEMLOTACAO', '1ª SB', 'SD BM', 'ADM', '', 9201, 'NÃO', 'NÃO', ''];
+    const doEscalante = await importar([linha], false, 'escalante');
+    expect(doEscalante.problemas).toEqual([
+      { aba: 'MILITARES', linha: 2, mensagem: 'Lotar SEMLOTACAO na 1ª SB é de quem tem papel no 2º GB.', solucao: 'Peça a quem tem esse papel para importar a linha.' },
+    ]);
+    expect(doEscalante.alterados).toEqual([]);
+    expect((await importar([linha], true, 'escalante')).gravados).toBe(0);
+    expect((await lotacoes(semLotacao)).map((l) => l.ate)).toEqual([`${somarMeses(atual, -2)}-28`]);
+    const doGestor = await importar([linha], false, 'gestorGb');
+    expect(doGestor.alterados.map((a: { chave: string }) => a.chave)).toEqual(['990403-3']);
+    await importar([linha], true, 'gestorGb');
+    expect((await lotacoes(semLotacao)).map((l) => [l.desde, l.ate])).toEqual([[`${somarMeses(atual, -4)}`, `${somarMeses(atual, -2)}-28`], [atual, null]]);
+  });
+
+  it('a ajuda do modelo diz que posto, nome de guerra e antiguidade de quem já existe vêm do Pecúlio', async () => {
+    const colunas = IMPORTADORES.militares!.modelo.abas[0]!.colunas;
+    for (const rotulo of ['POSTO/GRAD', 'NOME DE GUERRA', 'ANTIG']) {
+      expect(colunas.find((c) => c.rotulo === rotulo)!.ajuda, rotulo).toContain('Pecúlio');
+    }
   });
 });

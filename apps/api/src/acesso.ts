@@ -60,6 +60,28 @@ export async function temPapelAcima(c: Consulta, usuarioId: string, unidadeId: s
   return rows[0]!.ok;
 }
 
+/**
+ * Importar o Pecúlio é de quem tem papel numa unidade ACIMA das seções da unidade importada (o dono dos blocos do Pecúlio): existe, na unidade
+ * ou abaixo dela, uma seção cuja unidade de cima a pessoa tem. 403 com a frase de quem altera (a unidade mãe da importada, "2º GB" para a 1ª SB).
+ */
+export async function exigirPapelDeCimaDasSecoes(c: Context<AmbienteApi>, unidadeId: string, papeis: Papel[]): Promise<Response | null> {
+  const banco = c.get('banco');
+  const { rows } = await banco.query<{ ok: boolean }>(
+    `select exists (
+       select 1
+         from papel_usuario pu
+         join unidade a on a.id = pu.unidade_id
+         join unidade u on u.id = $3
+         join unidade s on s.caminho <@ u.caminho
+        where pu.usuario_id = $1 and ${VIGENTE} and pu.papel = any($4) and a.caminho @> s.caminho and a.id <> s.id
+     ) as ok`,
+    [c.get('usuarioId'), hojeRecife(), unidadeId, papeis],
+  );
+  if (rows[0]!.ok) return null;
+  const mae = (await banco.query<{ sigla: string }>('select m.sigla from unidade u join unidade m on m.id = u.mae_id where u.id = $1', [unidadeId])).rows[0]?.sigla;
+  return c.json({ erro: `A importação do Pecúlio é de quem tem papel no ${mae ?? 'nível acima'}.` }, 403);
+}
+
 /** Exige sessão; põe o usuário e o banco no contexto. */
 export function exigirSessao(banco: Banco, auth: Auth): MiddlewareHandler<AmbienteApi> {
   return async (c, next) => {

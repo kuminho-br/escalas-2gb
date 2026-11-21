@@ -5,6 +5,7 @@ import {
   CalendarDays,
   CircleHelp,
   Clock,
+  Contact,
   FileText,
   History,
   LayoutGrid,
@@ -35,6 +36,7 @@ const BLOCOS: Item[][] = [
   ],
   [
     { nome: 'Militares', icone: Users, para: '/militares', soCadastro: true },
+    { nome: 'Pecúlio', icone: Contact, para: '/peculio', soCadastro: true },
     { nome: 'Serviços', icone: Clock, para: '/servicos', soCadastro: true },
     { nome: 'Escalas', icone: FileText, para: '/escalas', soCadastro: true },
     { nome: 'Feriados', icone: CalendarDays, para: '/feriados', soCadastro: true },
