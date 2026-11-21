@@ -346,6 +346,18 @@ describe('antiguidade fora do que o banco guarda', () => {
   });
 });
 
+describe('pendência "Nome completo em falta"', () => {
+  it('militar que já existia sem nome completo mostra a pendência na lista e na ficha; preencher a tira', async () => {
+    const m = await criar('990190-0', { antiguidade: 4321 });
+    await api.banco.query('update militar set nome_completo = null where id = $1', [m.id]);
+    const lista: LinhaMilitar[] = await (await api.pedir('gestorGb', 'GET', `/api/unidades/${api.ids.secao}/militares?mes=${atual}`)).json();
+    expect(lista.find((l) => l.matricula === '990190-0')!.pendencias).toEqual(['Nome completo em falta']);
+    expect((await ficha(m.id)).pendencias).toEqual(['Nome completo em falta']);
+    const r = await api.pedir('gestorGb', 'PATCH', `/api/militares/${m.id}`, { nomeCompleto: 'Fulano de Tal Completo' });
+    expect(((await r.json()) as FichaMilitar).pendencias).toEqual([]);
+  });
+});
+
 describe('dono por bloco (Review Focus 1 e 2)', () => {
   const MSG = 'Este campo é alterado por quem tem papel no 2º GB.';
   const papelEmOutraSecao = async <T>(quem: 'escalante', f: () => Promise<T>) => {

@@ -9,10 +9,12 @@ import { Selecao } from '@/componentes/Selecao';
 import { Button } from '@/componentes/ui/button';
 import { Input } from '@/componentes/ui/input';
 import { Label } from '@/componentes/ui/label';
-import { dataBr, LISTA_NAO_CARREGOU, Secao } from './Secao';
+import { DonoDoBloco, dataBr, LISTA_NAO_CARREGOU, Secao } from './Secao';
 
 export function Afastamentos({ ficha }: { ficha: FichaMilitar }) {
   const queryClient = useQueryClient();
+  // afastamento é do Pecúlio: sem papel acima da lotação, a lista é só leitura
+  const peculio = ficha.podeEditar.peculio;
   const tipos = useQuery(consultaCatalogo('tipos-afastamento'));
   const ativos = tipos.data?.filter((t) => t.ativo) ?? [];
   // o aviso é para quando não há lista nenhuma: uma nova busca que falha deixa a lista que já estava na tela
@@ -60,23 +62,24 @@ export function Afastamentos({ ficha }: { ficha: FichaMilitar }) {
 
   return (
     <Secao titulo="Afastamentos">
+      {!peculio && <DonoDoBloco unidadeDeCima={ficha.podeEditar.unidadeDeCima} />}
       <ul className="mb-4 grid gap-1.5">
         {ficha.afastamentos.map((a) => (
           <li key={a.id} className="flex items-center gap-3 text-sm">
             <span className="font-medium">{a.tipo}</span>
             <span className="text-apagado">de {dataBr(a.inicio)} a {dataBr(a.fim)}</span>
-            <Button size="xs" variant="ghost" className="ml-auto" onClick={() => void apagar(a)}>Remover</Button>
+            {peculio && <Button size="xs" variant="ghost" className="ml-auto" onClick={() => void apagar(a)}>Remover</Button>}
           </li>
         ))}
         {ficha.afastamentos.length === 0 && <li className="text-sm text-apagado">Nenhum afastamento.</li>}
       </ul>
       {erro && <p role="alert" className="mb-3 text-sm text-alerta">{erro}</p>}
-      {!aberto && (
+      {peculio && !aberto && (
         <div>
           <Button type="button" variant="outline" onClick={() => setAberto(true)}>Incluir afastamento</Button>
         </div>
       )}
-      {aberto && (
+      {peculio && aberto && (
         <form onSubmit={(e) => { e.preventDefault(); void incluir(); }} className="grid gap-3 border-t border-linha pt-3">
           <div className="grid gap-1.5 sm:max-w-xs">
             <Label htmlFor="af-tipo">Tipo de afastamento</Label>

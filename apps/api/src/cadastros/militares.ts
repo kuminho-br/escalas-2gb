@@ -82,7 +82,7 @@ function linhaDe(m: LinhaBanco, afast: { tipo: string; inicio: string; fim: stri
     voluntarioJes: m.voluntario_jes,
     ativo: m.ativo,
     situacao: situacaoNoMes(afast, mes),
-    pendencias: pendenciasDoMilitar({ motorista: m.motorista, cnh: m.cnh, jornada: m.jornada, equipe: m.equipe, antiguidade: m.antiguidade, repetidaCom }),
+    pendencias: pendenciasDoMilitar({ motorista: m.motorista, cnh: m.cnh, jornada: m.jornada, equipe: m.equipe, antiguidade: m.antiguidade, nomeCompleto: m.nome_completo, repetidaCom }),
   };
 }
 
