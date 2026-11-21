@@ -4,7 +4,7 @@ import { criarAuth, type Auth } from '../src/auth.ts';
 import type { Banco } from '../src/banco/banco.ts';
 import { hojeRecife } from '../src/datas.ts';
 import { criarAdmin } from '../src/usuarios/criar-admin.ts';
-import { bancoDeTeste } from './banco-teste.ts';
+import { bancoDeTeste, inserir } from './banco-teste.ts';
 
 export const URL_BASE = 'http://localhost:8787';
 const SENHA = 'senha-de-teste-123';
@@ -22,6 +22,17 @@ export interface ApiDeTeste {
   /** Corpo cru, com o tipo que a pessoa quiser (para entradas malformadas). */
   pedirBruto(quem: Quem, metodo: string, caminho: string, tipo: string, corpo: BodyInit): Promise<Response>;
   fechar(): Promise<void>;
+}
+
+/**
+ * Militar fictício (D7), com e-mail ou sem, lotado na unidade (jornada adm, a partir do mês de hoje). Não cria usuário: quem testa o
+ * acesso gera a senha pela API. Devolve o `militar.id`.
+ */
+export async function criarMilitar(api: ApiDeTeste, d: { matricula: string; email: string | null; unidadeId: string }): Promise<string> {
+  const posto = (await api.banco.query<{ id: string }>("select id from posto_grad where sigla = 'SD BM'")).rows[0]!.id;
+  const id = await inserir(api.banco, 'militar', { matricula: d.matricula, posto_grad_id: posto, nome_guerra: `TESTE${d.matricula.slice(3, 6)}`, email: d.email });
+  await inserir(api.banco, 'rastreio', { militar_id: id, unidade_id: d.unidadeId, jornada: 'adm', desde: `${hojeRecife().slice(0, 7)}-01` });
+  return id;
 }
 
 const idDe = async (banco: Banco, sigla: string) =>

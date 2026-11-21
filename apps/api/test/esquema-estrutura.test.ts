@@ -134,6 +134,23 @@ describe('estrutura e pessoas', () => {
     });
   });
 
+  describe('contas e papéis (0025)', () => {
+    it('o convite saiu e o usuário tem o prazo da senha provisória', async () => {
+      const convite = await banco.query<{ t: string | null }>("select to_regclass('convite')::text as t");
+      expect(convite.rows[0]!.t).toBeNull();
+      const coluna = await banco.query<{ data_type: string; is_nullable: string }>(
+        "select data_type, is_nullable from information_schema.columns where table_name = 'usuario' and column_name = 'senha_provisoria_ate'",
+      );
+      expect(coluna.rows).toEqual([{ data_type: 'timestamp with time zone', is_nullable: 'YES' }]);
+    });
+
+    it('a migração rodada de novo não quebra e deixa um gatilho só', async () => {
+      await banco.exec(readFileSync(join(PASTA_MIGRACOES, '0025_contas_e_papeis.sql'), 'utf8'));
+      const { rows } = await banco.query<{ n: number }>("select count(*)::int as n from pg_trigger where tgrelid = 'militar'::regclass and tgname = 'militar_email_para_usuario'");
+      expect(rows[0]!.n).toBe(1);
+    });
+  });
+
   it('afastamento com fim antes do inicio', async () => {
     const m = await militar();
     await expect(

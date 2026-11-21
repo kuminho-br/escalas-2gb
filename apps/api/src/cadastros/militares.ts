@@ -29,6 +29,7 @@ type Ctx = Context<AmbienteApi>;
 const MSG_PERIODO_ANTES = 'Use o mês do período aberto ou um mês depois.';
 const MSG_EQUIPE_DE_OUTRA = 'Escolha uma equipe da unidade da lotação.';
 const MSG_EMAIL_REPETIDO = 'Este e-mail já é de outro militar.';
+const MSG_EMAIL_COM_ACESSO = 'Desative o acesso antes de apagar o e-mail.';
 const MSG_SITUACAO_MUDOU = 'A situação do militar mudou enquanto você alterava. Recarregue a ficha e tente de novo.';
 const MSG_MATRICULA = { '23505': 'Já existe um militar com essa matrícula.', '23503': 'Posto, unidade ou equipe não encontrado.' };
 
@@ -447,6 +448,10 @@ export function rotasMilitares(dep: { banco: Banco; auth: Auth }): Hono<Ambiente
     } catch (e) {
       // o e-mail é único sem distinção de maiúsculas (índice militar_email_unico): o 409 vai no campo
       const doBanco = e as { code?: string; message?: string; constraint?: string } | null;
+      // quem tem acesso ativo entra pelo e-mail da ficha (gatilho militar_email_para_usuario): apagá-lo pede desativar o acesso antes
+      if (doBanco?.code === 'P0001' && /email_obrigatorio_com_acesso/.test(doBanco.message ?? '')) {
+        return c.json({ erro: MSG_EMAIL_COM_ACESSO, campos: { email: MSG_EMAIL_COM_ACESSO } }, 409);
+      }
       if (doBanco?.code === '23505' && /militar_email_unico/.test(`${doBanco.constraint ?? ''} ${doBanco.message ?? ''}`)) {
         return c.json({ erro: MSG_EMAIL_REPETIDO, campos: { email: MSG_EMAIL_REPETIDO } }, 409);
       }
