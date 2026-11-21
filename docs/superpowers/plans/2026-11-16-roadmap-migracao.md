@@ -34,7 +34,7 @@
 | 3. Cadastros | Todas as telas de cadastro, com importação da planilha | Você e os escalantes | concluída |
 | Revisões antes da fase 4 | Pendências, testes com pessoas e revisão de código | Você e alguns usuários | concluídas |
 | 4. Montagem da escala | Montar e conferir a escala do mês à mão, nas telas de trabalho | Você e os escalantes | concluída |
-| 5. Pecúlio | A base de militares do 2º GB inteiro e o módulo Pecúlio | Você e a administração do GB | em andamento |
+| 5. Pecúlio | A base de militares do 2º GB inteiro e o módulo Pecúlio | Você e a administração do GB | concluída |
 | 6. Usuários e módulos | Tipos de usuário, contas, acesso por lotação, tela inicial | Todos os militares | planejada |
 | 7. Visualização de escalas | Publicar a escala, publicações, Minha escala, próprio voluntariado | Todos os militares | planejada |
 | 8. Primeiro mês real | Distribuições automáticas, documento, Escala por militar e o piloto | ~5 escalantes (piloto 1ª SB) | planejada |
@@ -118,7 +118,7 @@ Specs, em `docs/superpowers/specs/`: `2026-11-18-ordem-de-escala-e-acumulo-desig
 
 **A fase fechou na 4.7** (21/11/2026), o terceiro lote de pendências simples. Os escalantes conseguem montar e conferir a escala de um mês à mão, sem os tropeços conhecidos.
 
-## Fase 5 — Pecúlio · em andamento
+## Fase 5 — Pecúlio · concluída
 
 A estrutura da ficha do militar que hoje vive na planilha do Pecúlio, e a parte dela que a escala usa. Design: `docs/superpowers/specs/2026-11-20-peculio-design.md`.
 
@@ -135,7 +135,7 @@ Plano: `docs/superpowers/plans/2026-11-21-fase5-peculio.md`.
 | 1 | Rastreio e CNH: lotação só a unidade, "Histórico de rastreio", CNH separada do quadro, sete seções | mesclada (#73), migração 0023 aplicada no teste |
 | 2 | Ficha ampliada e dono por bloco | mesclada (#79), migração 0024 aplicada no teste |
 | 3 | Importação do Pecúlio e o módulo (e a importação de MILITARES respeitando o dono por bloco) | mesclada (#80) |
-| 4 | Retorno da validação (Efetivo por dia, Escala do mês, contraste, Grade, CNH, "Turnos", "Importar") | em execução (com a vaga vazia na opção A) |
+| 4 | Retorno da validação (Efetivo por dia, Escala do mês, contraste, Grade, CNH, "Turnos", "Importar") | mesclada (#82) |
 
 **Postergado** (não trava a fase): abono de permanência, ativo/inativo, funções e QOD, férias, quem vê cada atributo, jornada dos oficiais, quadro separado do posto, cópia de segurança gerada pelo sistema, data de ingresso e CPF.
 
@@ -303,6 +303,12 @@ Achadas nas revisões e nas validações. Nenhuma muda quem é escalado. Entram 
 - siglas de unidade não são únicas (com outro GB que tenha "1ª SB", a importação pela raiz lotaria errado);
 - militar sem período, importado pelo Pecúlio, não ganha rastreio nem aviso; antiguidade repetida não é conferida nessa importação;
 - o escalante da seção vê o botão de importar o Pecúlio; aniversariantes incluem inativos; a lista do módulo não tem paginação.
+
+**Da fase 5, entrega 4** (lista no PR #82):
+- **texto a decidir:** o contador diz "Faltam 1" no singular (sugestão: "Falta 1");
+- a marca da linha na Grade não chega às colunas PJES, Diárias e Voluntariado (presas à direita, em telas largas);
+- no toque, o horário do trecho aparece por baixo da janela que o mesmo toque abre; no Safari do iPhone fica aceso até recarregar;
+- a legenda da Grade, o quadrado de cor e a lista de cotas mostram a cor crua do serviço, e as células a ajustada (cores próximas podem não bater).
 
 **Regras próprias por vaga** (pendentes desde a ordem de escala, 18/11/2026, sem fase): o graduado de dia é o mais antigo do dia (exceto Adm); o chefe é o mais antigo da guarnição.
 
