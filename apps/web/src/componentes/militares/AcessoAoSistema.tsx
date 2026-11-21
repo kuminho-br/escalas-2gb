@@ -75,7 +75,7 @@ export function AcessoAoSistema({ ficha }: { ficha: FichaMilitar }) {
             <Button type="button" variant="outline" disabled={ocupado} onClick={() => void desativar()}>Desativar acesso</Button>
           )}
         </div>
-        {!acesso.podeGerarSenha && <p className="text-sm text-pendencia">{SEM_EMAIL}</p>}
+        {!acesso.email && <p className="text-sm text-pendencia">{SEM_EMAIL}</p>}
         {erro && <p role="alert" className="text-sm text-alerta">{erro}</p>}
 
         <h4 className="mt-2 font-cond text-base font-semibold">Papéis</h4>

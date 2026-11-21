@@ -85,7 +85,10 @@ async function quemPodeDar(c: Consulta, usuarioId: string, hoje: string): Promis
 
 /** O acesso do militar, com o que quem pede pode dar. */
 async function acessoPara(c: Consulta, militarId: string, usuarioId: string): Promise<AcessoDoMilitar> {
-  return { ...(await montarAcesso(c, militarId)), ...(await quemPodeDar(c, usuarioId, hojeRecife())) };
+  const acesso = await montarAcesso(c, militarId);
+  // o botão acompanha a regra da rota: sem e-mail, ou sem poder sobre os papéis da pessoa, fica desligado
+  const podeGerarSenha = acesso.podeGerarSenha && (await podeMexerNaConta(c, usuarioId, militarId)) === null;
+  return { ...acesso, podeGerarSenha, ...(await quemPodeDar(c, usuarioId, hojeRecife())) };
 }
 
 /** null se quem pede pode dar/encerrar o papel nesta unidade; senão o 403. */
@@ -108,7 +111,12 @@ async function podeMexerNaConta(c: Consulta, usuarioId: string, militarId: strin
       where u.militar_id = $1 and (pu.ate is null or pu.ate >= $2::date)`,
     [militarId, hojeRecife()],
   );
-  for (const p of rows) if (await podeNaUnidade(c, usuarioId, p.papel, p.unidade_id)) return MSG_SO_QUEM_PODE_DAR;
+  for (const p of rows) {
+    if (!(await podeNaUnidade(c, usuarioId, p.papel, p.unidade_id))) continue;
+    // a folga do auxiliar (decisão de 21/11/2026): o papel de auxiliar de um colega também passa para quem é auxiliar na unidade dele ou acima
+    if (p.papel === 'escalante' && (await temPapel(c, usuarioId, p.unidade_id, ['escalante'], hojeRecife()))) continue;
+    return MSG_SO_QUEM_PODE_DAR;
+  }
   return null;
 }
 

@@ -7,6 +7,7 @@ import { consultaEu } from '@/api/eu';
 import { Button } from '@/componentes/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/componentes/ui/dialog';
 import { Label } from '@/componentes/ui/label';
+import { escolherUnidade, lerUnidadeGuardada } from '@/lib/unidade-de-trabalho';
 
 type Etapa = { tipo: 'escolher' } | { tipo: 'previa'; previa: Previa } | { tipo: 'feito'; gravados: number };
 
@@ -26,13 +27,14 @@ function mensagemDaConfirmacao(e: unknown): string {
 /** Importar da planilha sandbox: escolher o .xlsx, ver o que vai entrar e importar. */
 /** `unidadeId`: a unidade da importação, quando não é a unidade em que as telas trabalham (o módulo Pecúlio importa pelo 2º GB). */
 export function ImportarPlanilha({ cadastro, rotulo, aoConcluir, unidadeId }: { cadastro: string; rotulo: string; aoConcluir: () => void; unidadeId?: string }) {
+  // a unidade em que a tela trabalha: a mesma conta do `_app` (a escolha vale por aba, então as duas leituras coincidem)
   const { data: eu } = useQuery(consultaEu);
   const [aberto, setAberto] = useState(false);
   const [etapa, setEtapa] = useState<Etapa>({ tipo: 'escolher' });
   const [arquivo, setArquivo] = useState<File | null>(null);
   const [erro, setErro] = useState<string | null>(null);
   const [enviando, setEnviando] = useState(false);
-  const caminho = `/api/unidades/${unidadeId ?? eu?.unidade.id}/importacao/${cadastro}`;
+  const caminho = `/api/unidades/${unidadeId ?? (eu && escolherUnidade(eu, lerUnidadeGuardada())?.id)}/importacao/${cadastro}`;
   // cada vez que o diálogo abre ou fecha começa uma "rodada": a resposta de um envio de uma rodada anterior não mexe na tela da atual
   const rodada = useRef(0);
   // a confirmação grava no servidor mesmo com o diálogo fechado: se ele fechou enquanto ela rodava, reabrir não zera a tela (o resultado, ou o

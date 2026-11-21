@@ -2,13 +2,14 @@ import type { ListaDoPeculio } from 'contratos';
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
-import type { Eu } from '@/api/eu';
+import type { Eu, EuDaApi } from '@/api/eu';
 import { unidadeDoPeculio } from '@/api/peculio';
 import { mesAtual } from '@/lib/meses';
 import { abrir, EU_EXEMPLO, simularApi } from './apoio';
 
 const MES = mesAtual();
-const GESTOR_GB: Eu = {
+const comUnidade = (e: EuDaApi): Eu => ({ ...e, unidade: e.unidades[0]! });
+const GESTOR_GB: EuDaApi = {
   ...EU_EXEMPLO,
   papeis: [{ papel: 'gestor', unidadeId: 'u-gb', unidadeSigla: '2º GB' }, { papel: 'escalante', unidadeId: 'u-1sb', unidadeSigla: '1ª SB' }],
 };
@@ -24,7 +25,7 @@ const LISTA: ListaDoPeculio = {
   ],
 };
 
-function api(eu: Eu = GESTOR_GB, lista: ListaDoPeculio = LISTA, extra: Parameters<typeof simularApi>[0] = {}) {
+function api(eu: EuDaApi = GESTOR_GB, lista: ListaDoPeculio = LISTA, extra: Parameters<typeof simularApi>[0] = {}) {
   return simularApi({
     '/api/eu': { status: 200, corpo: eu },
     [`GET /api/unidades/u-gb/peculio`]: { status: 200, corpo: lista },
@@ -37,9 +38,9 @@ const chamadasDaLista = (f: ReturnType<typeof simularApi>) => f.mock.calls.map((
 
 describe('a unidade do módulo', () => {
   it('é a mais alta em que a pessoa tem papel: o 2º GB para quem cuida do pessoal, a 1ª SB para o escalante da seção', () => {
-    expect(unidadeDoPeculio(GESTOR_GB)).toEqual({ id: 'u-gb', sigla: '2º GB' });
-    expect(unidadeDoPeculio(EU_EXEMPLO)).toEqual({ id: 'u-1sb', sigla: '1ª SB' });
-    expect(unidadeDoPeculio({ ...EU_EXEMPLO, papeis: [] })).toEqual({ id: 'u-1sb', sigla: '1ª SB' });
+    expect(unidadeDoPeculio(comUnidade(GESTOR_GB))).toEqual({ id: 'u-gb', sigla: '2º GB' });
+    expect(unidadeDoPeculio(comUnidade(EU_EXEMPLO))).toEqual({ id: 'u-1sb', sigla: '1ª SB' });
+    expect(unidadeDoPeculio(comUnidade({ ...EU_EXEMPLO, papeis: [] }))).toEqual({ id: 'u-1sb', sigla: '1ª SB' });
   });
 });
 

@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { navegador, pedir, saida } from '@/api/cliente';
 import { abrir, EU_EXEMPLO, simularApi } from './apoio';
+import type { EuDaApi } from '@/api/eu';
 
 async function clicarSair() {
   await userEvent.click(await screen.findByRole('button', { name: /SD BM ANDRADE/ }));
@@ -254,5 +255,97 @@ describe('revisão 3: falhas ao abrir o sistema', () => {
     await screen.findByRole('heading', { level: 1, name: 'Não foi possível abrir o sistema.' });
     expect(screen.getByText('O sistema está sendo atualizado. Tente de novo em alguns minutos.')).toBeInTheDocument();
     expect(screen.queryByText(/O sistema encontrou um erro/)).toBeNull();
+  });
+});
+
+describe('unidade de trabalho (fase 6)', () => {
+  const unidade = (id: string, sigla: string, nivel: number) => ({ id, sigla, nivel, caminho: ['CBMPE', 'DGO', 'DInter/1', ...(nivel === 3 ? [] : ['2º GB']), sigla].slice(0, nivel + 1) });
+  const GB = { id: 'u-gb', sigla: '2º GB', nivel: 3, caminho: ['CBMPE', 'DGO', 'DInter/1', '2º GB'] };
+  const SB1 = EU_EXEMPLO.unidades[0]!;
+  const SB2 = { ...unidade('u-2sb', '2ª SB', 4), caminho: ['CBMPE', 'DGO', 'DInter/1', '2º GB', '2ª SB'] };
+  const GESTOR: EuDaApi = { ...EU_EXEMPLO, papeis: [{ papel: 'gestor', unidadeId: 'u-gb', unidadeSigla: '2º GB' }], unidades: [GB, SB1, SB2] };
+
+  afterEach(() => localStorage.clear());
+
+  it('com mais de uma unidade, o topo tem o seletor com recuo por nível (Review Focus 4)', async () => {
+    simularApi({ '/api/eu': { status: 200, corpo: GESTOR }, 'GET /api/unidades/u-gb/militares': { status: 200, corpo: [] } });
+    abrir('/militares');
+    await userEvent.click(await screen.findByRole('button', { name: /Unidade de trabalho/ }));
+    const itens = await screen.findAllByRole('menuitem');
+    const unidades = itens.filter((i) => i.hasAttribute('data-nivel'));
+    expect(unidades.map((i) => i.textContent)).toEqual(['2º GB', '1ª SB', '2ª SB']);
+    expect(unidades.map((i) => i.getAttribute('data-nivel'))).toEqual(['0', '1', '1']);
+  });
+
+  it('escolher outra unidade guarda e leva para a lista da tela', async () => {
+    simularApi({
+      '/api/eu': { status: 200, corpo: GESTOR },
+      'GET /api/unidades/u-gb/militares': { status: 200, corpo: [] },
+      'GET /api/unidades/u-1sb/militares': { status: 200, corpo: [] },
+      'GET /api/militares/abc': { status: 404 },
+    });
+    const router = abrir('/militares/abc');
+    await userEvent.click(await screen.findByRole('button', { name: /Unidade de trabalho/ }));
+    await userEvent.click(await screen.findByRole('menuitem', { name: '1ª SB' }));
+    await waitFor(() => expect(router.state.location.pathname).toBe('/militares'));
+    expect(localStorage.getItem('unidade-de-trabalho')).toBe('u-1sb');
+    expect(await screen.findByRole('button', { name: /Unidade de trabalho: CBMPE \/ DGO \/ DInter\/1 \/ 2º GB \/ 1ª SB/ })).toBeInTheDocument();
+  });
+
+  it('com alteração pendente, trocar de unidade pergunta antes e, se a pessoa desiste, nada muda', async () => {
+    const ficha = {
+      id: 'm1', matricula: '990001-1', posto: 'SD BM', nomeGuerra: 'ANDRADE', equipe: null, jornada: 'adm', motorista: null, voluntarioJes: false, ativo: true, situacao: 'Disponível', pendencias: [],
+      podeEditar: { peculio: true, escala: true, unidadeDeCima: '2º GB' }, postoGradId: 'p', nomeCompleto: 'João', sexo: null, nascimento: null, telefone: '', email: null, comportamento: null,
+      comportamentoBoletim: null, antiguidade: 1, antiguidadeRepetidaCom: [], noQuadroDeMotoristas: false, cnh: [], cnhPorHierarquia: [], rastreio: [], afastamentos: [],
+    };
+    simularApi({
+      '/api/eu': { status: 200, corpo: GESTOR },
+      'GET /api/militares/m1': { status: 200, corpo: ficha },
+      'GET /api/militares/m1/acesso': { status: 200, corpo: { situacao: 'sem-acesso', email: null, senhaProvisoriaAte: null, papeis: [], podeGerarSenha: false, papeisQuePodeDar: [], unidadesParaPapel: [] } },
+      'GET /api/postos': { status: 200, corpo: [] },
+      'GET /api/unidades/u-gb/equipes': { status: 200, corpo: [] },
+      'GET /api/sistema/tipos-afastamento': { status: 200, corpo: [] },
+    });
+    const confirmar = vi.spyOn(window, 'confirm').mockReturnValue(false);
+    const router = abrir('/militares/m1');
+    await userEvent.type(await screen.findByLabelText('Telefone'), '(81) 9');
+    await userEvent.click(screen.getByRole('button', { name: /Unidade de trabalho/ }));
+    await userEvent.click(await screen.findByRole('menuitem', { name: '1ª SB' }));
+    expect(confirmar).toHaveBeenCalled();
+    expect(localStorage.getItem('unidade-de-trabalho')).toBeNull();
+    expect(router.state.location.pathname).toBe('/militares/m1');
+    expect(screen.getByRole('button', { name: /Unidade de trabalho: CBMPE \/ DGO \/ DInter\/1 \/ 2º GB$/ })).toBeInTheDocument();
+    confirmar.mockRestore();
+  });
+
+  it('com uma unidade só (o auxiliar de uma seção), não há seletor', async () => {
+    simularApi({ '/api/eu': { status: 200, corpo: EU_EXEMPLO } });
+    abrir('/');
+    await screen.findByRole('button', { name: /SD BM ANDRADE/ });
+    expect(screen.queryByRole('button', { name: /Unidade de trabalho/ })).toBeNull();
+  });
+
+  it('o militar comum vê o caminho da lotação sem seletor', async () => {
+    const comum: EuDaApi = { ...EU_EXEMPLO, papeis: [], unidades: [SB2], lotacao: SB2 };
+    simularApi({ '/api/eu': { status: 200, corpo: comum } });
+    abrir('/');
+    const nav = await screen.findByRole('navigation', { name: 'Unidade' });
+    expect(nav).toHaveTextContent('2ª SB');
+    expect(screen.queryByRole('button', { name: /Unidade de trabalho/ })).toBeNull();
+  });
+
+  it('sem unidade, mostra a orientação e Sair', async () => {
+    const sem: EuDaApi = { ...EU_EXEMPLO, papeis: [], unidades: [], lotacao: null };
+    const router = (simularApi({ '/api/eu': { status: 200, corpo: sem }, '/api/auth/sign-out': { status: 200, corpo: { success: true } } }), abrir('/'));
+    expect(await screen.findByText('Sua lotação não está cadastrada. Procure o auxiliar administrativo da sua seção.')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Sair' }));
+    await waitFor(() => expect(router.state.location.pathname).toBe('/entrar'));
+  });
+
+  it('a Escala do mês com o 2º GB escolhido mostra o vazio de sempre (Review Focus 2)', async () => {
+    localStorage.setItem('unidade-de-trabalho', 'u-gb');
+    simularApi({ '/api/eu': { status: 200, corpo: GESTOR }, 'GET /api/unidades/u-gb/escalas': { status: 200, corpo: [] } });
+    abrir('/escala-do-mes');
+    expect(await screen.findByText(/Nenhuma escala ativa/)).toBeInTheDocument();
   });
 });

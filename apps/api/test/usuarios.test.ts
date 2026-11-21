@@ -120,10 +120,11 @@ describe('gerar a senha provisória', () => {
     const r = await como(cookie, 'POST', `/api/militares/${m.id}/senha-provisoria`);
     expect(r.status).toBe(403);
     expect((await r.json()).erro).toBe('Você não tem permissão nos cadastros de 1ª SB.');
-    // quem tem papel de auxiliar não tem a senha gerada por outro auxiliar (só por gestor ou administrador); um militar sem papel, sim
-    expect((await como(cookie, 'POST', `/api/militares/${dele.id}/senha-provisoria`)).status).toBe(403);
+    // o auxiliar também gera a senha de um colega auxiliar da unidade dele (folga de 21/11), e a de um militar sem papel
     const comum = await novoMilitar({ unidadeId: outraSecao });
     expect((await como(cookie, 'POST', `/api/militares/${comum.id}/senha-provisoria`)).status).toBe(201);
+    // por último: gerar a própria senha derruba a sessão que pediu
+    expect((await como(cookie, 'POST', `/api/militares/${dele.id}/senha-provisoria`)).status).toBe(201);
   });
 
   it('militar que não existe é 404', async () => {
@@ -313,10 +314,8 @@ describe('revisão final da 6.1', () => {
   it('o auxiliar não gera a senha nem desativa o acesso de quem tem papel (tomar a conta de um gestor)', async () => {
     const gestor = await comPapel('gestor', api.ids.secao);
     const auxiliar = await comPapel('escalante', api.ids.secao);
-    for (const alvo of [gestor, auxiliar]) {
-      expect((await gerar(alvo.id, 'escalante')).status).toBe(403);
-      expect((await api.pedir('escalante', 'POST', `/api/militares/${alvo.id}/desativar-acesso`)).status).toBe(403);
-    }
+    expect((await gerar(gestor.id, 'escalante')).status).toBe(403);
+    expect((await api.pedir('escalante', 'POST', `/api/militares/${gestor.id}/desativar-acesso`)).status).toBe(403);
     // o gestor do 2º GB cuida do auxiliar e do gestor da seção; o administrador, de todos
     expect((await gerar(gestor.id, 'gestorGb')).status).toBe(201);
     expect((await gerar(auxiliar.id, 'gestorGb')).status).toBe(201);
@@ -324,6 +323,35 @@ describe('revisão final da 6.1', () => {
     expect((await gerar(admin.id, 'escalante')).status).toBe(403);
     expect((await gerar(admin.id, 'gestorGb')).status).toBe(403);
     expect((await gerar(admin.id, 'admin')).status).toBe(201);
+  });
+
+  it('o auxiliar da 1ª SB gera a senha de outro auxiliar da 1ª SB (folga decidida em 21/11)', async () => {
+    const colega = await comPapel('escalante', api.ids.secao);
+    expect((await acessoDe(colega.id)).podeGerarSenha).toBe(true);
+    expect((await gerar(colega.id, 'escalante')).status).toBe(201);
+  });
+
+  it('o auxiliar da 1ª SB não gera a senha de um auxiliar do 2º GB nem de um gestor', async () => {
+    const doGb = await comPapel('escalante', api.ids.gb);
+    const gestor = await comPapel('gestor', api.ids.secao);
+    for (const alvo of [doGb, gestor]) {
+      expect((await acessoDe(alvo.id)).podeGerarSenha).toBe(false);
+      const r = await gerar(alvo.id, 'escalante');
+      expect(r.status).toBe(403);
+      expect((await r.json()).erro).toBe('Só quem pode dar o papel dessa pessoa mexe no acesso dela.');
+    }
+    // sem e-mail, o botão continua desligado
+    const semEmail = await novoMilitar({ email: null });
+    expect((await acessoDe(semEmail.id)).podeGerarSenha).toBe(false);
+  });
+
+  it('o auxiliar desativa o acesso de um colega auxiliar da unidade dele', async () => {
+    const colega = await comPapel('escalante', api.ids.secao);
+    const r = await api.pedir('escalante', 'POST', `/api/militares/${colega.id}/desativar-acesso`);
+    expect(r.status).toBe(200);
+    expect((await r.json()).situacao).toBe('desativado');
+    const doGb = await comPapel('escalante', api.ids.gb);
+    expect((await api.pedir('escalante', 'POST', `/api/militares/${doGb.id}/desativar-acesso`)).status).toBe(403);
   });
 
   it('criar a senha derruba as outras sessões abertas com a provisória', async () => {

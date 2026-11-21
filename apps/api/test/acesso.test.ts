@@ -120,14 +120,16 @@ describe('unidade do registro', () => {
 });
 
 describe('eu', () => {
-  it('eu traz a unidade da fase de teste', async () => {
+  it('eu traz as unidades acessíveis e a lotação (o militar comum sem lotação não tem nenhuma)', async () => {
     const api2 = await montarApi();
     try {
       const r = await api2.pedir('semPapel', 'GET', '/api/eu');
       expect(r.status).toBe(200);
       const eu = await r.json();
       expect(eu.papeis).toEqual([]);
-      expect(eu.unidade).toMatchObject({ id: api2.ids.secao, sigla: '1ª SB', caminho: ['CBMPE', 'DGO', 'DInter/1', '2º GB', '1ª SB'] });
+      expect(eu).toMatchObject({ unidades: [], lotacao: null });
+      const dela = await (await api2.pedir('escalante', 'GET', '/api/eu')).json();
+      expect(dela.unidades).toEqual([{ id: api2.ids.secao, sigla: '1ª SB', caminho: ['CBMPE', 'DGO', 'DInter/1', '2º GB', '1ª SB'], nivel: 4 }]);
     } finally {
       await api2.fechar();
     }

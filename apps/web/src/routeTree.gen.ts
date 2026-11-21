@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as CriarSenhaRouteImport } from './routes/criar-senha'
 import { Route as EntrarRouteImport } from './routes/entrar'
+import { Route as SemLotacaoRouteImport } from './routes/sem-lotacao'
 import { Route as AppIndexRouteImport } from './routes/_app/index'
 import { Route as AppConfiguracoesRouteImport } from './routes/_app/configuracoes'
 import { Route as AppCotasRouteImport } from './routes/_app/cotas'
@@ -47,6 +48,11 @@ const CriarSenhaRoute = CriarSenhaRouteImport.update({
 const EntrarRoute = EntrarRouteImport.update({
   id: '/entrar',
   path: '/entrar',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SemLotacaoRoute = SemLotacaoRouteImport.update({
+  id: '/sem-lotacao',
+  path: '/sem-lotacao',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AppIndexRoute = AppIndexRouteImport.update({
@@ -165,6 +171,7 @@ export interface FileRoutesByFullPath {
   '/': typeof AppIndexRoute
   '/criar-senha': typeof CriarSenhaRoute
   '/entrar': typeof EntrarRoute
+  '/sem-lotacao': typeof SemLotacaoRoute
   '/configuracoes': typeof AppConfiguracoesRoute
   '/cotas': typeof AppCotasRoute
   '/efetivo-do-dia': typeof AppEfetivoDoDiaRoute
@@ -190,6 +197,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/criar-senha': typeof CriarSenhaRoute
   '/entrar': typeof EntrarRoute
+  '/sem-lotacao': typeof SemLotacaoRoute
   '/configuracoes': typeof AppConfiguracoesRoute
   '/cotas': typeof AppCotasRoute
   '/efetivo-do-dia': typeof AppEfetivoDoDiaRoute
@@ -215,6 +223,7 @@ export interface FileRoutesById {
   '/_app': typeof AppRouteWithChildren
   '/criar-senha': typeof CriarSenhaRoute
   '/entrar': typeof EntrarRoute
+  '/sem-lotacao': typeof SemLotacaoRoute
   '/_app/configuracoes': typeof AppConfiguracoesRoute
   '/_app/cotas': typeof AppCotasRoute
   '/_app/efetivo-do-dia': typeof AppEfetivoDoDiaRoute
@@ -244,6 +253,7 @@ export interface FileRouteTypes {
     | '/'
     | '/criar-senha'
     | '/entrar'
+    | '/sem-lotacao'
     | '/configuracoes'
     | '/cotas'
     | '/efetivo-do-dia'
@@ -269,6 +279,7 @@ export interface FileRouteTypes {
   to:
     | '/criar-senha'
     | '/entrar'
+    | '/sem-lotacao'
     | '/configuracoes'
     | '/cotas'
     | '/efetivo-do-dia'
@@ -293,6 +304,7 @@ export interface FileRouteTypes {
     | '/_app'
     | '/criar-senha'
     | '/entrar'
+    | '/sem-lotacao'
     | '/_app/configuracoes'
     | '/_app/cotas'
     | '/_app/efetivo-do-dia'
@@ -321,6 +333,7 @@ export interface RootRouteChildren {
   AppRoute: typeof AppRouteWithChildren
   CriarSenhaRoute: typeof CriarSenhaRoute
   EntrarRoute: typeof EntrarRoute
+  SemLotacaoRoute: typeof SemLotacaoRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -344,6 +357,13 @@ declare module '@tanstack/react-router' {
       path: '/entrar'
       fullPath: '/entrar'
       preLoaderRoute: typeof EntrarRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sem-lotacao': {
+      id: '/sem-lotacao'
+      path: '/sem-lotacao'
+      fullPath: '/sem-lotacao'
+      preLoaderRoute: typeof SemLotacaoRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_app/': {
@@ -590,6 +610,7 @@ const rootRouteChildren: RootRouteChildren = {
   AppRoute: AppRouteWithChildren,
   CriarSenhaRoute: CriarSenhaRoute,
   EntrarRoute: EntrarRoute,
+  SemLotacaoRoute: SemLotacaoRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
