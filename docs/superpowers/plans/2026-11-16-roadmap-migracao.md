@@ -132,7 +132,7 @@ Plano: `docs/superpowers/plans/2026-11-21-fase5-peculio.md`.
 | Entrega | O quê | Situação |
 |---|---|---|
 | 1 | Rastreio e CNH: lotação só a unidade, "Histórico de rastreio", CNH separada do quadro, sete seções | mesclada (#73), migração 0023 aplicada no teste |
-| 2 | Ficha ampliada e dono por bloco | a detalhar |
+| 2 | Ficha ampliada e dono por bloco (migração 0024) | em execução |
 | 3 | Importação do Pecúlio e o módulo | a detalhar |
 
 **Postergado** (não trava a fase): abono de permanência, ativo/inativo, funções e QOD, férias, quem vê cada atributo, jornada dos oficiais, quadro separado do posto, cópia de segurança gerada pelo sistema, data de ingresso e CPF.
