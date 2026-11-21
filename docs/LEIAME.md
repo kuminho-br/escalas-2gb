@@ -43,6 +43,7 @@
 | [superpowers/specs/2026-11-20-sintese-design-e-roadmap-design.md](superpowers/specs/2026-11-20-sintese-design-e-roadmap-design.md) | Intervenção para sintetizar o design e o roadmap | DOCUMENTAÇÃO (desenho); PLANEJAMENTO (execução) | vigente |
 | [superpowers/specs/2026-11-20-limpeza-da-fase-3-design.md](superpowers/specs/2026-11-20-limpeza-da-fase-3-design.md) | Limpeza das pendências da fase 3 | PLANEJAMENTO | vigente |
 | [superpowers/specs/2026-11-20-peculio-design.md](superpowers/specs/2026-11-20-peculio-design.md) | Pecúlio do 2º GB (fase 5): estrutura da ficha, rastreio e interface com a escala | PLANEJAMENTO | vigente |
+| [superpowers/specs/2026-11-21-usuarios-e-modulos-design.md](superpowers/specs/2026-11-21-usuarios-e-modulos-design.md) | Usuários e módulos (fase 6): contas, papéis, unidade de trabalho e tela inicial | PLANEJAMENTO | em aprovação |
 
 ## Controle da documentação
 
