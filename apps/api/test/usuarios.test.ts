@@ -76,7 +76,7 @@ describe('gerar a senha provisória', () => {
     const eu = await como(cookieDe(login), 'GET', '/api/eu');
     expect(eu.status).toBe(200);
     expect(await eu.json()).toMatchObject({ trocarSenha: true, papeis: [] });
-    expect(await acessoDe(m.id)).toMatchObject({ situacao: 'provisoria', email: m.email, podeGerarSenha: true });
+    expect(await acessoDe(m.id)).toMatchObject({ situacao: 'provisoria', email: m.email, podeGerarSenha: true, senhaProvisoriaAte: validaAte });
   });
 
   it('o gestor do 2º GB e o administrador também geram', async () => {

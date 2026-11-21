@@ -36,10 +36,10 @@ export async function garantirUsuario(tx: Consulta, militarId: string): Promise<
 
 /** A situação da conta, o e-mail da ficha e os papéis do militar. As listas do que quem olha pode dar vêm da rota que as preenche. */
 export async function montarAcesso(c: Consulta, militarId: string): Promise<AcessoDoMilitar> {
-  const m = (await c.query<{ email: string | null; usuario_id: string | null; ativo: boolean | null; tem_senha: boolean; provisoria: boolean; vencida: boolean }>(
+  const m = (await c.query<{ email: string | null; usuario_id: string | null; ativo: boolean | null; tem_senha: boolean; provisoria: boolean; prazo: Date | string | null; vencida: boolean }>(
     `select m.email, u.id as usuario_id, u.ativo,
             exists (select 1 from conta k where k.usuario_id = u.id and k.provedor_id = 'credential' and k.senha is not null) as tem_senha,
-            u.senha_provisoria_ate is not null as provisoria,
+            u.senha_provisoria_ate is not null as provisoria, u.senha_provisoria_ate as prazo,
             coalesce(u.senha_provisoria_ate < now(), false) as vencida
        from militar m left join usuario u on u.militar_id = m.id
       where m.id = $1`,
@@ -54,7 +54,7 @@ export async function montarAcesso(c: Consulta, militarId: string): Promise<Aces
         [m.usuario_id],
       )).rows.map((p): PapelDoMilitar => ({ id: p.id, papel: p.papel, unidadeId: p.unidade_id, unidadeSigla: p.sigla, desde: p.desde, ate: p.ate }))
     : [];
-  return { situacao, email: m.email, papeis, podeGerarSenha: m.email !== null, papeisQuePodeDar: [], unidadesParaPapel: [] };
+  return { situacao, email: m.email, senhaProvisoriaAte: m.prazo ? new Date(m.prazo).toISOString() : null, papeis, podeGerarSenha: m.email !== null, papeisQuePodeDar: [], unidadesParaPapel: [] };
 }
 
 /** O que quem olha pode dar: o administrador, qualquer papel em qualquer unidade; o gestor, gestor e auxiliar na unidade dele e nas de baixo. */

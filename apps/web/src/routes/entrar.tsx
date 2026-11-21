@@ -28,6 +28,7 @@ function Entrar() {
   const { queryClient } = Route.useRouteContext();
   const [erro, setErro] = useState<string | null>(null);
   const [enviando, setEnviando] = useState(false);
+  const [esqueci, setEsqueci] = useState(false);
 
   async function enviar(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -40,7 +41,8 @@ function Entrar() {
         password: String(dados.get('senha')),
       });
       if (error) {
-        setErro(!error.status || error.status >= 500 ? ERRO_REDE : ERRO_CREDENCIAIS);
+        // 403: o servidor diz por que não entra (ex.: a senha provisória venceu); o resto é e-mail ou senha errados
+        setErro(!error.status || error.status >= 500 ? ERRO_REDE : error.status === 403 && error.message ? error.message : ERRO_CREDENCIAIS);
         return;
       }
       // um "Sair" anterior não cala o aviso de uma sessão que terminar daqui para a frente
@@ -103,6 +105,10 @@ function Entrar() {
           <Button type="submit" disabled={enviando} className="mt-1 h-[46px] lg:h-10">
             Entrar
           </Button>
+          <button type="button" aria-expanded={esqueci} onClick={() => setEsqueci(!esqueci)} className="justify-self-start text-sm text-vinho underline underline-offset-2">
+            Esqueci minha senha
+          </button>
+          {esqueci && <p className="text-sm text-apagado">Peça uma senha nova ao auxiliar administrativo da sua seção.</p>}
         </form>
       </div>
     </main>

@@ -17,6 +17,8 @@ export type AcessoDoMilitar = {
   situacao: SituacaoDoAcesso;
   /** O e-mail da ficha, que é o de entrada. */
   email: string | null;
+  /** Até quando vale a senha provisória (instante ISO); null se não há uma pendente. */
+  senhaProvisoriaAte: string | null;
   papeis: PapelDoMilitar[];
   /** Sem e-mail na ficha não há como dar acesso. */
   podeGerarSenha: boolean;

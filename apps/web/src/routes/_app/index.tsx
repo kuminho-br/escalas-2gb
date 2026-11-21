@@ -42,7 +42,7 @@ function GradeGeral() {
   const busca = Route.useSearch();
   const navigate = Route.useNavigate();
   const mes = busca.mes ?? mesAtual();
-  // o militar comum não vê a grade (é dos escalantes e gestores): sem consulta e sem alerta
+  // o militar comum não vê a grade (é dos auxiliares administrativos e gestores): sem consulta e sem alerta
   const comum = ehMilitarComum(eu);
   const dados = useQuery({ ...consultaGrade(eu.unidade.id, mes), enabled: !comum });
   const celular = useEhCelular();
@@ -116,7 +116,7 @@ function GradeGeral() {
         )}
       </div>
 
-      {comum && <p className="text-apagado">A grade geral é dos escalantes e gestores.</p>}
+      {comum && <p className="text-apagado">A grade geral é dos auxiliares administrativos e gestores.</p>}
       {!comum && dados.isPending && <p className="text-apagado">Carregando…</p>}
       {dados.error && <p role="alert" className="text-alerta">{mensagemDe(dados.error)}</p>}
       {grade && grade.grupos.length === 0 && <p className="text-apagado">Ninguém para mostrar neste mês.</p>}

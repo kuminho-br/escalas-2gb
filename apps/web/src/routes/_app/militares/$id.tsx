@@ -4,6 +4,7 @@ import type { FichaMilitar } from 'contratos';
 import { useState } from 'react';
 import { mensagemDe } from '@/api/cliente';
 import { consultaFicha } from '@/api/militares';
+import { AcessoAoSistema } from '@/componentes/militares/AcessoAoSistema';
 import { Afastamentos } from '@/componentes/militares/Afastamentos';
 import { Comportamento } from '@/componentes/militares/Comportamento';
 import { Contato } from '@/componentes/militares/Contato';
@@ -44,6 +45,7 @@ function Ficha() {
       <Motorista key={`m-${ficha.id}`} ficha={ficha} />
       <Afastamentos key={`a-${ficha.id}`} ficha={ficha} />
       <Rastreio key={`r-${ficha.id}`} ficha={ficha} unidadeId={eu.unidade.id} />
+      <AcessoAoSistema key={`s-${ficha.id}`} ficha={ficha} />
     </FichaPainel>
     </ProvedorDePendencias>
   );
