@@ -1,9 +1,10 @@
 import { QueryClient } from '@tanstack/react-query';
 import type { BlocoDaGrade, EfetivoDoDia, GradeDoMes, LinhaDaGrade } from 'contratos';
-import { screen, waitFor, within } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
 import { escalar } from '@/api/escala-do-mes';
+import { TabelaDaGrade } from '@/componentes/grade/TabelaDaGrade';
 import { desativar } from '@/api/efetivo-do-dia';
 import { corLegivel } from '@/lib/cores';
 import { abrir, EU_EXEMPLO, simularApi } from './apoio';
@@ -187,6 +188,44 @@ describe('grade geral: a tabela', () => {
       expect(bloco).toHaveClass('w-5', 'shrink-0');
       expect(bloco).not.toHaveClass('flex-1');
     }
+  });
+
+  // [foco 5] a linha do militar e a coluna do dia ficam marcadas com um fundo leve; sair da escolha tira a marca
+  it('clicar numa célula marca a linha do militar e a coluna do dia, e escolher outra célula troca a marcação', async () => {
+    api();
+    abrir(`/?mes=${MES}`);
+    await screen.findByRole('table', { name: /Grade geral/ });
+    expect(document.querySelector('[data-linha-marcada]')).toBeNull();
+    expect(document.querySelector('[data-coluna-marcada]')).toBeNull();
+    await userEvent.click(celula('CABO', 2, 'Pronto A'));
+    await waitFor(() => expect(linhaDe('CABO')).toHaveAttribute('data-linha-marcada'));
+    // só a linha do CABO; só a coluna do dia 2, em todas as linhas (e no cabeçalho do dia)
+    expect(document.querySelectorAll('[data-linha-marcada]')).toHaveLength(1);
+    const colunaMarcada = [...document.querySelectorAll('[data-coluna-marcada]')];
+    expect(colunaMarcada.length).toBeGreaterThanOrEqual(4);
+    expect(colunaMarcada.every((c) => c.getAttribute('data-data') === dia(2))).toBe(true);
+    expect(within(linhaDe('SD1')).getAllByRole('button').find((b) => b.getAttribute('data-data') === dia(2))!.closest('td')).toHaveAttribute('data-coluna-marcada');
+    // outra célula: a marcação vai junto
+    await userEvent.click(celula('SD1', 5, 'Pronto A, JES A'));
+    await waitFor(() => expect(linhaDe('SD1')).toHaveAttribute('data-linha-marcada'));
+    expect(linhaDe('CABO')).not.toHaveAttribute('data-linha-marcada');
+    expect(document.querySelectorAll('[data-linha-marcada]')).toHaveLength(1);
+    expect([...document.querySelectorAll('[data-coluna-marcada]')].every((c) => c.getAttribute('data-data') === dia(5))).toBe(true);
+  });
+
+  it('uma grade sem linhas ou sem colunas não quebra com uma célula escolhida (Review Focus 5)', () => {
+    const escolhida = { militarId: 'm-CABO', dia: dia(2) };
+    const maximos = { pjes: 0, diarias: 0 };
+    const semLinhas = render(<TabelaDaGrade grade={{ ...GRADE, grupos: [] }} grupos={[]} maximos={maximos} escolhida={escolhida} aoEscolher={() => {}} />);
+    expect(semLinhas.container.querySelector('[data-linha-marcada]')).toBeNull();
+    // o dia escolhido não está nas colunas (a grade do mês não tem nenhum dia): nada é marcado e nada quebra
+    const semDias = render(<TabelaDaGrade grade={{ ...GRADE, dias: [] }} grupos={GRADE.grupos} maximos={maximos} escolhida={escolhida} aoEscolher={() => {}} />);
+    expect(semDias.container.querySelector('[data-coluna-marcada]')).toBeNull();
+    expect(semDias.container.querySelector('[data-linha-marcada]')).not.toBeNull();
+    // militar que não está na grade: nenhuma linha marcada
+    const semMilitar = render(<TabelaDaGrade grade={GRADE} grupos={GRADE.grupos} maximos={maximos} escolhida={{ militarId: 'm-NINGUEM', dia: dia(2) }} aoEscolher={() => {}} />);
+    expect(semMilitar.container.querySelector('[data-linha-marcada]')).toBeNull();
+    expect(semMilitar.container.querySelector('[data-coluna-marcada]')).not.toBeNull();
   });
 
   it('a célula escolhida com choque mantém o contorno vermelho e ganha o fundo da escolhida', async () => {
