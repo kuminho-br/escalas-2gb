@@ -8,6 +8,7 @@ Siglas dos documentos: **Design** = `superpowers/specs/2026-11-16-migracao-desig
 
 | Data | Decisão | Onde está |
 |---|---|---|
+| 21/11/2026 | "Adm cumpre a carga mensal": ligado, vale a portaria (160h e nenhum extra no horário do expediente); desligado, vale a prática (o Adm reforça com saldos e pode tirar PJES no horário do expediente). Em aberto: os saldos com o parâmetro desligado e um possível segundo parâmetro (P-34). | `negocio/regras/carga-expediente-choques.md`, RN-17 |
 | 21/11/2026 | Catálogo de regras conferido contra o sistema novo: cada regra diz se já funciona e onde; entram as regras da fase 4 (RN-102 a RN-116); RN-07, RN-08, RN-47 e RN-92 ficam como substituídas; RN-21, RN-31, RN-95, RS-05, RS-06 e RS-07 saem. | `negocio/regras/LEIAME.md` |
 | 21/11/2026 | A planilha de importação é o contrato do sistema (DTO): o modelo exportado diz o que se espera, e quem envia se adapta. Por isso a importação continua recusando mês passado. Recusadas: valer a mais recente das antigas e contar a antiga igual como "igual". | Design, Cadastros › Importação |
 | 20/11/2026 | Sessões atuais: DESENVOLVIMENTO, PLANEJAMENTO, VALIDAÇÃO, DÚVIDAS, DESIGN (UI e UX) e DOCUMENTAÇÃO. REGRAS DE NEGÓCIO, SECRETARIADO e SAC & OUVIDORIA deixam de existir; os documentos de negócio passam à DOCUMENTAÇÃO. | `CLAUDE.md`, Sessões |

@@ -1,6 +1,6 @@
 # Relatório da documentação
 
-Gerado em 2026-11-20 pelo script `docs/ferramentas/checar-documentacao.sh`, sobre o commit `27ec6d1`.
+Gerado em 2026-11-21 pelo script `docs/ferramentas/checar-documentacao.sh`, sobre o commit `7cf96d5`.
 
 **Resumo:** 8 alerta(s). CLAUDE.md: bom.
 

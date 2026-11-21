@@ -12,7 +12,7 @@ O Pronto cumpre 160h por mês; o Adm hoje cumpre só a cota de saldos, 6 por mil
 |---|---|---|---|---|
 | RN-15 | A carga mensal do Pronto é o parâmetro "Carga mensal (horas)" (hoje 160h), não fixa no código. | Confirmada | Parâmetro existe; quem o usa são as distribuições (fase 8) | Ambas |
 | RN-16 | JES e diárias não contam na carga horária. Exceção: o voluntário escalado de forma compulsória por não ter marcado voluntariado (RN-41) tem essa escala abatida da carga padrão; o valor do abatimento é parâmetro. | Confirmada | Fase 8 | Ambas |
-| RN-17 | Se o Adm cumpre a carga mensal é o parâmetro liga/desliga "Adm cumpre a carga mensal". Hoje desligado: o Adm cumpre só os saldos. | Confirmada | Parâmetro existe; nada o lê ainda (fase 8): o sistema age como se estivesse desligado | Ambas |
+| RN-17 | Pela portaria, o Adm tem expediente das 08h às 16h, cumpre 160h por mês e não tira serviço extra no horário do expediente. Na prática, o Adm reforça o operacional com saldos e, em troca, pode tirar PJES (ex.: JES) mesmo quando choca com o expediente. O parâmetro "Adm cumpre a carga mensal" escolhe entre os dois: ligado, vale a portaria (carga de 160h, nenhum extra no horário do expediente); desligado, vale a prática (PJES liberado no horário do expediente). Hoje desligado. O que acontece com os saldos em cada caso e se é preciso separar a carga da liberação do PJES estão em aberto (P-34). | A esclarecer | Parâmetro existe; nada o lê ainda (fase 8): o sistema age como se estivesse desligado | Ambas |
 | RN-18 | A quantidade de saldos por militar do Adm no mês é parâmetro; padrão 6. | Confirmada | Parâmetro existe; quem o usa é a distribuição de saldos (fase 8) | Ambas |
 
 ## Expediente do Adm
