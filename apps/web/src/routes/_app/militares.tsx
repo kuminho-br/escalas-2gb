@@ -169,6 +169,7 @@ function NovoMilitarDialogo({ unidadeId, aoFechar }: { unidadeId: string; aoFech
       const ficha = await criarMilitar(unidadeId, {
         matricula: String(f.get('matricula')).trim(),
         postoGradId: String(f.get('posto')),
+        nomeCompleto: String(f.get('nomeCompleto')).trim(),
         nomeGuerra: String(f.get('nomeGuerra')).trim().toUpperCase(),
         antiguidade: antiguidade ? Number(antiguidade) : null,
         motorista: false,
@@ -205,6 +206,9 @@ function NovoMilitarDialogo({ unidadeId, aoFechar }: { unidadeId: string; aoFech
               </Selecao>
             </Campo>
           </div>
+          <Campo id="nm-completo" rotulo="Nome completo" erro={campos.nomeCompleto}>
+            <Input id="nm-completo" name="nomeCompleto" required />
+          </Campo>
           <div className="grid grid-cols-[1fr_8rem] gap-3">
             <Campo id="nm-nome" rotulo="Nome de guerra" erro={campos.nomeGuerra}>
               <Input id="nm-nome" name="nomeGuerra" required />

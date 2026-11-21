@@ -15,7 +15,7 @@ const atual = hojeRecife().slice(0, 7);
 const proximo = somarMeses(atual, 1);
 
 const novo = (matricula: string, extra: Record<string, unknown> = {}) => ({
-  matricula, postoGradId: sd, nomeGuerra: `TESTE${matricula.slice(3, 6)}`, antiguidade: 1, motorista: false, cnh: [], voluntarioJes: false,
+  matricula, postoGradId: sd, nomeCompleto: `Fulano de Tal ${matricula}`, nomeGuerra: `TESTE${matricula.slice(3, 6)}`, antiguidade: 1, motorista: false, cnh: [], voluntarioJes: false,
   lotacao: { equipeId: alfa, jornada: 'pronto', desde: atual }, ...extra,
 });
 async function criar(matricula: string, extra: Record<string, unknown> = {}): Promise<FichaMilitar> {

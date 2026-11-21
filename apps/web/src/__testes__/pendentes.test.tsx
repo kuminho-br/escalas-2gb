@@ -303,7 +303,7 @@ describe('Salvar que mostra o estado', () => {
       voluntarioJes: false, ativo: true, situacao: 'Disponível', pendencias: [], ...l,
     });
     const FICHA_M: FichaMilitar = {
-      ...linhaM({}), postoGradId: 'p-sd', antiguidade: 3, antiguidadeRepetidaCom: [], noQuadroDeMotoristas: false, cnh: [], cnhPorHierarquia: [],
+      ...linhaM({}), postoGradId: 'p-sd', nomeCompleto: 'João da Silva Andrade', sexo: 'M', nascimento: { dia: 15, mes: 3 }, telefone: '(81) 99999-0000', email: 'andrade@bombeiros.pe.gov.br', comportamento: 'Bom', comportamentoBoletim: 'BG 01/2026', antiguidade: 3, antiguidadeRepetidaCom: [], noQuadroDeMotoristas: false, cnh: [], cnhPorHierarquia: [],
       rastreio: [{ id: 'l1', unidadeSigla: '1ª SB', equipe: 'Alfa', jornada: 'pronto', desde: '2020-01-01', ate: null }], afastamentos: [],
     };
     const rotasM = (): Parameters<typeof simularApi>[0] => ({

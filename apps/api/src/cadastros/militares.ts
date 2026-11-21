@@ -8,6 +8,7 @@ import {
   mesParaData,
   NovoAfastamento,
   NovoMilitar,
+  type Comportamento,
   type Equipe,
   type FichaMilitar,
   type LinhaMilitar,
@@ -40,6 +41,14 @@ type LinhaBanco = {
   posto: string;
   posto_grad_id: string;
   nome_guerra: string;
+  nome_completo: string | null;
+  sexo: 'M' | 'F' | null;
+  nascimento_dia: number | null;
+  nascimento_mes: number | null;
+  telefone: string | null;
+  email: string | null;
+  comportamento: Comportamento | null;
+  comportamento_boletim: string | null;
   antiguidade: number | null;
   motorista: boolean;
   cnh: string[];
@@ -77,7 +86,8 @@ function linhaDe(m: LinhaBanco, afast: { tipo: string; inicio: string; fim: stri
 }
 
 const SELECT_MILITAR = `
-  select m.id, m.matricula, p.sigla as posto, m.posto_grad_id, m.nome_guerra, m.antiguidade, m.motorista, m.cnh,
+  select m.id, m.matricula, p.sigla as posto, m.posto_grad_id, m.nome_guerra, m.nome_completo, m.sexo, m.nascimento_dia, m.nascimento_mes,
+         m.telefone, m.email, m.comportamento, m.comportamento_boletim, m.antiguidade, m.motorista, m.cnh,
          m.voluntario_jes, m.ativo, e.nome as equipe, l.jornada`;
 
 /** Ficha completa; a lotação "atual" é a que cobre o mês. null se o militar não existe. */
@@ -100,8 +110,8 @@ async function carregarFicha(c: Consulta, id: string, mes: string): Promise<Fich
       where l.militar_id = $1 order by l.desde desc`,
     [id],
   );
-  const afastamentos = await c.query<{ id: string; tipo: string; tipo_afastamento_id: string; inicio: string; fim: string }>(
-    `select a.id, t.nome as tipo, a.tipo_afastamento_id, to_char(a.inicio, 'YYYY-MM-DD') as inicio, to_char(a.fim, 'YYYY-MM-DD') as fim
+  const afastamentos = await c.query<{ id: string; tipo: string; tipo_afastamento_id: string; inicio: string; fim: string; motivo: string | null; boletim: string | null }>(
+    `select a.id, t.nome as tipo, a.tipo_afastamento_id, to_char(a.inicio, 'YYYY-MM-DD') as inicio, to_char(a.fim, 'YYYY-MM-DD') as fim, a.motivo, a.boletim
        from afastamento a join tipo_afastamento t on t.id = a.tipo_afastamento_id
       where a.militar_id = $1 order by a.inicio`,
     [id],
@@ -123,12 +133,19 @@ async function carregarFicha(c: Consulta, id: string, mes: string): Promise<Fich
     ...linhaDe(m, afastamentos.rows, mes, repetidaCom),
     antiguidadeRepetidaCom: repetidaCom,
     postoGradId: m.posto_grad_id,
+    nomeCompleto: m.nome_completo,
+    sexo: m.sexo,
+    nascimento: m.nascimento_dia !== null && m.nascimento_mes !== null ? { dia: m.nascimento_dia, mes: m.nascimento_mes } : null,
+    telefone: m.telefone,
+    email: m.email,
+    comportamento: m.comportamento,
+    comportamentoBoletim: m.comportamento_boletim,
     antiguidade: m.antiguidade,
     noQuadroDeMotoristas: m.motorista,
     cnh,
     cnhPorHierarquia: cnhHabilitadas(cnh).filter((x) => !cnh.includes(x)),
     rastreio: rastreio.rows.map((l) => ({ id: l.id, unidadeSigla: l.sigla, equipe: l.equipe, jornada: l.jornada, desde: l.desde, ate: l.ate })),
-    afastamentos: afastamentos.rows.map((a) => ({ id: a.id, tipo: a.tipo, tipoAfastamentoId: a.tipo_afastamento_id, inicio: a.inicio, fim: a.fim })),
+    afastamentos: afastamentos.rows.map((a) => ({ id: a.id, tipo: a.tipo, tipoAfastamentoId: a.tipo_afastamento_id, inicio: a.inicio, fim: a.fim, motivo: a.motivo, boletim: a.boletim })),
   };
 }
 
@@ -234,9 +251,9 @@ export function rotasMilitares(dep: { banco: Banco; auth: Auth }): Hono<Ambiente
       const ficha = await comUsuario(dep.banco, c.get('usuarioId'), async (tx) => {
         const id = (
           await tx.query<{ id: string }>(
-            `insert into militar (matricula, posto_grad_id, nome_guerra, antiguidade, motorista, cnh, voluntario_jes)
-             values ($1, $2, $3, $4, $5, $6, $7) returning id`,
-            [d.matricula, d.postoGradId, d.nomeGuerra, d.antiguidade, d.motorista, d.cnh, d.voluntarioJes],
+            `insert into militar (matricula, posto_grad_id, nome_completo, nome_guerra, antiguidade, motorista, cnh, voluntario_jes)
+             values ($1, $2, $3, $4, $5, $6, $7, $8) returning id`,
+            [d.matricula, d.postoGradId, d.nomeCompleto, d.nomeGuerra, d.antiguidade, d.motorista, d.cnh, d.voluntarioJes],
           )
         ).rows[0]!.id;
         await tx.query('insert into rastreio (militar_id, unidade_id, equipe_id, jornada, desde) values ($1, $2, $3, $4, $5)', [

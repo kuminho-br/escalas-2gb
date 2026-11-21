@@ -18,9 +18,9 @@ const LISTA = [
 ];
 const FICHA: FichaMilitar = {
   ...linha({ motorista: 'D' }),
-  postoGradId: 'p-sd', antiguidade: 3, antiguidadeRepetidaCom: [], noQuadroDeMotoristas: true, cnh: ['D'], cnhPorHierarquia: ['C', 'B'],
+  postoGradId: 'p-sd', nomeCompleto: 'João da Silva Andrade', sexo: 'M', nascimento: { dia: 15, mes: 3 }, telefone: '(81) 99999-0000', email: 'andrade@bombeiros.pe.gov.br', comportamento: 'Bom', comportamentoBoletim: 'BG 01/2026', antiguidade: 3, antiguidadeRepetidaCom: [], noQuadroDeMotoristas: true, cnh: ['D'], cnhPorHierarquia: ['C', 'B'],
   rastreio: [{ id: 'l1', unidadeSigla: '1ª SB', equipe: 'Alfa', jornada: 'pronto', desde: '2026-11-01', ate: null }],
-  afastamentos: [{ id: 'a1', tipo: 'Férias', tipoAfastamentoId: 't-ferias', inicio: '2026-12-01', fim: '2026-12-10' }],
+  afastamentos: [{ id: 'a1', tipo: 'Férias', tipoAfastamentoId: 't-ferias', inicio: '2026-12-01', fim: '2026-12-10', motivo: null, boletim: null }],
 };
 
 function api(extra: Parameters<typeof simularApi>[0] = {}) {
@@ -71,6 +71,7 @@ describe('lista de militares', () => {
     const dialogo = await screen.findByRole('dialog');
     await userEvent.type(within(dialogo).getByLabelText('Matrícula'), '990010-0');
     await userEvent.selectOptions(within(dialogo).getByLabelText('Posto ou graduação'), 'CB BM');
+    await userEvent.type(within(dialogo).getByLabelText('Nome completo'), 'Novo da Silva');
     await userEvent.type(within(dialogo).getByLabelText('Nome de guerra'), 'NOVO');
     await userEvent.selectOptions(within(dialogo).getByLabelText('Equipe'), 'Bravo');
     await userEvent.selectOptions(within(dialogo).getByLabelText('Jornada'), 'Adm');
@@ -78,7 +79,7 @@ describe('lista de militares', () => {
     await userEvent.click(within(dialogo).getByRole('button', { name: 'Criar' }));
     await waitFor(() =>
       expect(corpoEnviado(f, 'POST /api/unidades/u-1sb/militares')).toEqual({
-        matricula: '990010-0', postoGradId: 'p-cb', nomeGuerra: 'NOVO', antiguidade: null, motorista: false, cnh: [], voluntarioJes: false,
+        matricula: '990010-0', postoGradId: 'p-cb', nomeCompleto: 'Novo da Silva', nomeGuerra: 'NOVO', antiguidade: null, motorista: false, cnh: [], voluntarioJes: false,
         lotacao: { equipeId: 'e-bravo', jornada: 'adm', desde: '2026-12' },
       }),
     );
@@ -502,6 +503,7 @@ describe('remover, nomes das ações e erros por campo', () => {
     await userEvent.click(await screen.findByRole('button', { name: 'Novo militar' }));
     const dialogo = await screen.findByRole('dialog');
     await userEvent.type(within(dialogo).getByLabelText('Matrícula'), '990010-0');
+    await userEvent.type(within(dialogo).getByLabelText('Nome completo'), 'Novo da Silva');
     await userEvent.type(within(dialogo).getByLabelText('Nome de guerra'), 'NOVO');
     await userEvent.click(within(dialogo).getByRole('button', { name: 'Criar' }));
     const desde = within(dialogo).getByLabelText('Lotado desde');
