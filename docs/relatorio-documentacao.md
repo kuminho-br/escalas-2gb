@@ -1,6 +1,6 @@
 # Relatório da documentação
 
-Gerado em 2026-11-20 pelo script `docs/ferramentas/checar-documentacao.sh`, sobre o commit `50bf019`.
+Gerado em 2026-11-20 pelo script `docs/ferramentas/checar-documentacao.sh`, sobre o commit `78c5d83`.
 
 **Resumo:** 13 alerta(s). CLAUDE.md: bom.
 
@@ -30,7 +30,7 @@ Relatório anterior: Resumo: 14 alerta(s). CLAUDE.md: bom.
 
 ## CLAUDE.md
 
-- Linhas: 63 (limite 120)
+- Linhas: 62 (limite 120)
 - Sem "estado atual" nem número que envelhece.
 - Todos os caminhos citados existem.
 - **Nota: bom**
@@ -47,4 +47,3 @@ Todos os documentos estão no índice (ou no LEIAME da pasta) e os links funcion
 ## Branches `docs-*` e `documentacao-*` não mescladas
 
 - `docs-sintese-design-roadmap-exec`: sem merge, recente (0 dia(s))
-- `docs-ux-grade-busca`: sem merge, recente (0 dia(s))

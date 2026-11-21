@@ -15,7 +15,7 @@
 |---|---|---|---|
 | [CLAUDE.md](../CLAUDE.md) | Instruções para toda sessão: onde está cada coisa, como trabalhar, papéis, princípios | DOCUMENTAÇÃO | vigente |
 | [prototipo/CLAUDE.md](../prototipo/CLAUDE.md) | Regras do clasp e da planilha, só para quem mexe no protótipo | DOCUMENTAÇÃO | vigente |
-| [casos/LEIAME.md](../casos/LEIAME.md) | Casos gravados do protótipo, referência do motor | PROGRAMAÇÃO | vigente |
+| [casos/LEIAME.md](../casos/LEIAME.md) | Casos gravados do protótipo, referência do motor | DESENVOLVIMENTO | vigente |
 
 ## Negócio
 
@@ -31,7 +31,7 @@
 | Documento | Para que serve | Quem cuida | Situação |
 |---|---|---|---|
 | [superpowers/specs/2026-11-16-migracao-design.md](superpowers/specs/2026-11-16-migracao-design.md) | Decisões técnicas (D1 a D7) e adendos de cada etapa | PLANEJAMENTO | vigente (a consolidar) |
-| [superpowers/specs/2026-11-16-esquema-banco.md](superpowers/specs/2026-11-16-esquema-banco.md) | Esquema do banco: diagrama ER e uma seção por tabela | PROGRAMAÇÃO | vigente (em dia até a migração 0022) |
+| [superpowers/specs/2026-11-16-esquema-banco.md](superpowers/specs/2026-11-16-esquema-banco.md) | Esquema do banco: diagrama ER e uma seção por tabela | DESENVOLVIMENTO | vigente (em dia até a migração 0022) |
 | [superpowers/specs/2026-11-16-telas.md](superpowers/specs/2026-11-16-telas.md) | Identidade visual, navegação e cada tela | PLANEJAMENTO | vigente |
 | [superpowers/specs/2026-11-18-ordem-de-escala-e-acumulo-design.md](superpowers/specs/2026-11-18-ordem-de-escala-e-acumulo-design.md) | Ordem de escala e acúmulo de funções | PLANEJAMENTO | concluído |
 | [superpowers/specs/2026-11-19-voluntariado-por-faixa-design.md](superpowers/specs/2026-11-19-voluntariado-por-faixa-design.md) | Voluntariado por faixa de horário, com 4 adendos | PLANEJAMENTO | concluído (a consolidar) |
@@ -53,12 +53,12 @@
 | Documento | Para que serve | Quem cuida | Situação |
 |---|---|---|---|
 | [superpowers/plans/2026-11-16-roadmap-migracao.md](superpowers/plans/2026-11-16-roadmap-migracao.md) | Roadmap das fases e decisões de cada etapa | PLANEJAMENTO | vigente (a enxugar) |
-| [superpowers/plans/2026-11-16-fase1-fundacao.md](superpowers/plans/2026-11-16-fase1-fundacao.md) | Fase 1: fundação | PROGRAMAÇÃO | concluído |
-| [superpowers/plans/2026-11-17-fase2-motor.md](superpowers/plans/2026-11-17-fase2-motor.md) | Fase 2: motor de regras | PROGRAMAÇÃO | concluído |
-| [superpowers/plans/2026-11-17-fase3-cadastros.md](superpowers/plans/2026-11-17-fase3-cadastros.md) | Fase 3: cadastros | PROGRAMAÇÃO | concluído |
-| [superpowers/plans/2026-11-18-revisao-1.md](superpowers/plans/2026-11-18-revisao-1.md) | Revisão 1: pendências de interface | PROGRAMAÇÃO | concluído |
-| [superpowers/plans/2026-11-18-revisao-3.md](superpowers/plans/2026-11-18-revisao-3.md) | Revisão 3: revisão de código | PROGRAMAÇÃO | concluído |
-| [superpowers/plans/2026-11-18-fase4-escala.md](superpowers/plans/2026-11-18-fase4-escala.md) | Fase 4: montagem da escala (entregas 1 a 4.3) | PROGRAMAÇÃO | em execução (grande demais: dividir) |
+| [superpowers/plans/2026-11-16-fase1-fundacao.md](superpowers/plans/2026-11-16-fase1-fundacao.md) | Fase 1: fundação | DESENVOLVIMENTO | concluído |
+| [superpowers/plans/2026-11-17-fase2-motor.md](superpowers/plans/2026-11-17-fase2-motor.md) | Fase 2: motor de regras | DESENVOLVIMENTO | concluído |
+| [superpowers/plans/2026-11-17-fase3-cadastros.md](superpowers/plans/2026-11-17-fase3-cadastros.md) | Fase 3: cadastros | DESENVOLVIMENTO | concluído |
+| [superpowers/plans/2026-11-18-revisao-1.md](superpowers/plans/2026-11-18-revisao-1.md) | Revisão 1: pendências de interface | DESENVOLVIMENTO | concluído |
+| [superpowers/plans/2026-11-18-revisao-3.md](superpowers/plans/2026-11-18-revisao-3.md) | Revisão 3: revisão de código | DESENVOLVIMENTO | concluído |
+| [superpowers/plans/2026-11-18-fase4-escala.md](superpowers/plans/2026-11-18-fase4-escala.md) | Fase 4: montagem da escala (entregas 1 a 4.3) | DESENVOLVIMENTO | em execução (grande demais: dividir) |
 | [superpowers/plans/2026-11-20-roadmap-documentacao.md](superpowers/plans/2026-11-20-roadmap-documentacao.md) | Roadmap da documentação | DOCUMENTAÇÃO | em execução |
 
 ## Telas e mockups

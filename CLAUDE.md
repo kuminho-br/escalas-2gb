@@ -29,16 +29,15 @@ Automação das escalas de serviço da 1ª SB / 2º GB (Corpo de Bombeiros Milit
 
 ## Sessões
 
-Cada sessão tem um papel; **só a PROGRAMAÇÃO altera código**.
+Cada sessão tem um papel; **só a DESENVOLVIMENTO altera código**.
 
 | Sessão | Papel |
 |---|---|
-| REGRAS DE NEGÓCIO | Catálogo de regras (RN-XX) |
-| SECRETARIADO | Board do dia; repassa tarefas à PROGRAMAÇÃO |
-| PROGRAMAÇÃO | Implementa e testa |
-| PLANEJAMENTO | Specs e planos de cada entrega; boletim de 2 em 2 dias |
-| SAC & OUVIDORIA | Dúvidas (D01…) e reclamações (R01…) |
+| DESENVOLVIMENTO | Implementa e testa; ao fim da entrega, envia a branch e o resumo à PLANEJAMENTO |
+| PLANEJAMENTO | Specs e planos de cada entrega; abre o PR e mescla |
 | VALIDAÇÃO | Recebe entregas prontas; o usuário testa à mão e dá o retorno |
+| DÚVIDAS | Responde às dúvidas do usuário sobre o sistema e as regras |
+| DESIGN | Telas e mockups |
 | DOCUMENTAÇÃO | Controla os documentos, mede a qualidade e propõe melhorias; checagem quando o usuário pede |
 
 ## Domínio, em poucas linhas

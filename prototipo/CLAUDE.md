@@ -39,6 +39,5 @@ Nomes antigos (não usar): ALOCAÇÕES TABULADAS, ESCALA DO MÊS, GUARNIÇÃO, E
 | `SALDOS_ADM_POR_MILITAR` | 6 | Saldos por militar do Adm no mês |
 | `ADM_CUMPRE_CARGA` | false | Se false, o Adm só cumpre saldos; se true, cumpre também as 160 h |
 | `SECAO_PADRAO` | `1ª SB` | Seção sugerida ao abrir os painéis |
-| `LINHAS_POR_MILITAR` | 2 | Linhas por militar na grade geral (`parametros.js`) |
 
 Regra: serviço Diária não exige o status de voluntário JES (basta o formulário mensal); JES e PJES exigem o atributo "voluntário JES" no cadastro do militar.
