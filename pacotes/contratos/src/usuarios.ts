@@ -36,3 +36,6 @@ export const NovoPapel = z.object({ papel: Papel, unidadeId: z.string().uuid('Es
 export type NovoPapel = z.infer<typeof NovoPapel>;
 export const EncerrarPapel = z.object({ ate: Data });
 export type EncerrarPapel = z.infer<typeof EncerrarPapel>;
+
+/** Uma unidade em que a pessoa trabalha: as siglas desde a raiz e o nível (0 = raiz). */
+export type UnidadeDeTrabalho = { id: string; sigla: string; caminho: string[]; nivel: number };
