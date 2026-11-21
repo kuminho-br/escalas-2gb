@@ -63,6 +63,8 @@ export function rotasEu(banco: Banco, auth: Auth): Hono {
       if (u.vencida) return 'vencida' as const;
       await tx.query("update conta set senha = $2, atualizado_em = now() where usuario_id = $1 and provedor_id = 'credential'", [sessao.user.id, hash]);
       await tx.query('update usuario set senha_provisoria_ate = null, atualizado_em = now() where id = $1', [sessao.user.id]);
+      // quem entrou com a senha provisória e guardou a sessão não fica com o acesso de quem criou a senha: só esta sessão continua
+      await tx.query('delete from sessao where usuario_id = $1 and token <> $2', [sessao.user.id, sessao.session.token]);
       return 'ok' as const;
     });
     if (resultado === 'sem-sessao') return c.json({ erro: 'Não autenticado' }, 401);

@@ -120,7 +120,10 @@ describe('gerar a senha provisória', () => {
     const r = await como(cookie, 'POST', `/api/militares/${m.id}/senha-provisoria`);
     expect(r.status).toBe(403);
     expect((await r.json()).erro).toBe('Você não tem permissão nos cadastros de 1ª SB.');
-    expect((await como(cookie, 'POST', `/api/militares/${dele.id}/senha-provisoria`)).status).toBe(201);
+    // quem tem papel de auxiliar não tem a senha gerada por outro auxiliar (só por gestor ou administrador); um militar sem papel, sim
+    expect((await como(cookie, 'POST', `/api/militares/${dele.id}/senha-provisoria`)).status).toBe(403);
+    const comum = await novoMilitar({ unidadeId: outraSecao });
+    expect((await como(cookie, 'POST', `/api/militares/${comum.id}/senha-provisoria`)).status).toBe(201);
   });
 
   it('militar que não existe é 404', async () => {
@@ -294,5 +297,59 @@ describe('papéis na ficha', () => {
     const h = await comoNovo('gestor', api.ids.secao);
     await inserir(api.banco, 'papel_usuario', { usuario_id: h.usuarioId, unidade_id: outraSecao, papel: 'gestor', desde: inicioDoMes });
     expect((await como(h.cookie, 'POST', `/api/papeis/${h.papelId}/encerrar`, { ate: hojeRecife() })).status).toBe(200);
+  });
+});
+
+describe('revisão final da 6.1', () => {
+  const inicioDoMes = hojeRecife().slice(0, 7) + '-01';
+  async function comPapel(papel: 'gestor' | 'escalante' | 'administrador', unidadeId: string) {
+    const m = await novoMilitar();
+    const usuarioId = await inserir(api.banco, 'usuario', { nome: `SD BM ${m.id}`, email: m.email, militar_id: m.id });
+    await inserir(api.banco, 'conta', { usuario_id: usuarioId, conta_id: usuarioId, provedor_id: 'credential', senha: await hashPassword('senha-de-teste-123') });
+    await inserir(api.banco, 'papel_usuario', { usuario_id: usuarioId, unidade_id: unidadeId, papel, desde: inicioDoMes });
+    return m;
+  }
+
+  it('o auxiliar não gera a senha nem desativa o acesso de quem tem papel (tomar a conta de um gestor)', async () => {
+    const gestor = await comPapel('gestor', api.ids.secao);
+    const auxiliar = await comPapel('escalante', api.ids.secao);
+    for (const alvo of [gestor, auxiliar]) {
+      expect((await gerar(alvo.id, 'escalante')).status).toBe(403);
+      expect((await api.pedir('escalante', 'POST', `/api/militares/${alvo.id}/desativar-acesso`)).status).toBe(403);
+    }
+    // o gestor do 2º GB cuida do auxiliar e do gestor da seção; o administrador, de todos
+    expect((await gerar(gestor.id, 'gestorGb')).status).toBe(201);
+    expect((await gerar(auxiliar.id, 'gestorGb')).status).toBe(201);
+    const admin = await comPapel('administrador', api.ids.raiz);
+    expect((await gerar(admin.id, 'escalante')).status).toBe(403);
+    expect((await gerar(admin.id, 'gestorGb')).status).toBe(403);
+    expect((await gerar(admin.id, 'admin')).status).toBe(201);
+  });
+
+  it('criar a senha derruba as outras sessões abertas com a provisória', async () => {
+    const m = await novoMilitar();
+    const { senha, cookie: a } = await entrouComProvisoria(m);
+    const b = cookieDe(await entrar(m.email, senha));
+    expect((await como(b, 'GET', '/api/eu')).status).toBe(200);
+    expect((await como(a, 'POST', '/api/eu/senha', { novaSenha: 'senha-nova-12345' })).status).toBe(204);
+    expect((await como(a, 'GET', '/api/eu')).status).toBe(200);
+    expect((await como(b, 'GET', '/api/eu')).status).toBe(401);
+  });
+
+  it('e-mail que ficou guardado no usuário de outro militar é 409 no campo, na ficha e ao dar acesso', async () => {
+    const guardado = await novoMilitar();
+    await gerar(guardado.id);
+    await api.banco.query('update usuario set ativo = false where militar_id = $1', [guardado.id]);
+    await api.pedir('gestorGb', 'PATCH', `/api/militares/${guardado.id}`, { email: null });
+    const b = await comPapel('escalante', api.ids.secao);
+    const r = await api.pedir('gestorGb', 'PATCH', `/api/militares/${b.id}`, { email: guardado.email });
+    expect(r.status).toBe(409);
+    expect((await r.json()).campos.email).toBe('Este e-mail já é de outro militar.');
+    // a ficha ganhou o e-mail por fora (como uma carga), e só depois alguém dá o acesso
+    const outro = await novoMilitar({ email: null });
+    await api.banco.query('update militar set email = $2 where id = $1', [outro.id, guardado.email]);
+    const g = await gerar(outro.id);
+    expect(g.status).toBe(409);
+    expect((await g.json()).erro).toBe('Este e-mail já é de outro militar.');
   });
 });

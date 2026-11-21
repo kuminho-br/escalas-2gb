@@ -17,12 +17,16 @@ const MSG_SEM_PODER = 'Você só dá e encerra papéis na sua unidade e nas de b
 const MSG_ADMIN_NA_RAIZ = 'O papel de administrador só existe na unidade raiz.';
 const MSG_JA_ENCERRADO = 'Este papel já foi encerrado.';
 const MSG_ATE_ANTES = 'O encerramento não pode ser antes do início do papel.';
+const MSG_EMAIL_EM_USO = 'Este e-mail já é de outro militar.';
+const MSG_SO_QUEM_PODE_DAR = 'Só quem pode dar o papel dessa pessoa mexe no acesso dela.';
 const MSG_SEM_ACESSO = 'Este militar ainda não tem acesso ao sistema.';
 
 /**
  * O usuário do militar, criado se faltar (nome = "posto nome de guerra", e-mail = o da ficha). null se a ficha não tem e-mail: sem e-mail,
  * não há como entrar.
  */
+export class EmailEmUso extends Error {}
+
 export async function garantirUsuario(tx: Consulta, militarId: string): Promise<string | null> {
   const m = (await tx.query<{ email: string | null; nome: string }>(
     `select m.email, p.sigla || ' ' || m.nome_guerra as nome from militar m join posto_grad p on p.id = m.posto_grad_id where m.id = $1`,
@@ -31,6 +35,8 @@ export async function garantirUsuario(tx: Consulta, militarId: string): Promise<
   if (!m?.email) return null;
   const existente = (await tx.query<{ id: string }>('select id from usuario where militar_id = $1 for update', [militarId])).rows[0];
   if (existente) return existente.id;
+  // o e-mail pode estar guardado no usuário de outro militar (o administrador de instalação, ou quem teve o acesso desativado e o e-mail apagado da ficha)
+  if ((await tx.query('select 1 from usuario where lower(email) = lower($1)', [m.email])).rows.length) throw new EmailEmUso();
   return (await tx.query<{ id: string }>('insert into usuario (nome, email, militar_id) values ($1, lower($2), $3) returning id', [m.nome, m.email, militarId])).rows[0]!.id;
 }
 
@@ -92,6 +98,20 @@ async function podeNaUnidade(c: Consulta, usuarioId: string, papel: Papel, unida
   return (await temPapel(c, usuarioId, unidadeId, ['gestor', 'administrador'], hoje)) ? null : MSG_SEM_PODER;
 }
 
+/**
+ * Gerar a senha e desativar o acesso valem só para quem poderia dar todos os papéis da pessoa (que ainda não terminaram): senão o auxiliar
+ * geraria a senha de um gestor e entraria como ele. Devolve o texto do 403, ou null.
+ */
+async function podeMexerNaConta(c: Consulta, usuarioId: string, militarId: string): Promise<string | null> {
+  const { rows } = await c.query<{ papel: Papel; unidade_id: string }>(
+    `select pu.papel, pu.unidade_id from papel_usuario pu join usuario u on u.id = pu.usuario_id
+      where u.militar_id = $1 and (pu.ate is null or pu.ate >= $2::date)`,
+    [militarId, hojeRecife()],
+  );
+  for (const p of rows) if (await podeNaUnidade(c, usuarioId, p.papel, p.unidade_id)) return MSG_SO_QUEM_PODE_DAR;
+  return null;
+}
+
 export function rotasAcesso(dep: { banco: Banco; auth: Auth }): Hono<AmbienteApi> {
   const r = new Hono<AmbienteApi>();
   const { banco } = dep;
@@ -111,9 +131,13 @@ export function rotasAcesso(dep: { banco: Banco; auth: Auth }): Hono<AmbienteApi
     const id = c.req.param('id');
     const negado = await exigirPapelNoRegistro(c, 'militar', id);
     if (negado) return negado;
+    const semPoder = await podeMexerNaConta(banco, c.get('usuarioId'), id);
+    if (semPoder) return c.json({ erro: semPoder }, 403);
     const senha = gerarSenhaProvisoria();
     const hash = await hashPassword(senha);
-    const validaAte = await comUsuario(banco, c.get('usuarioId'), async (tx) => {
+    let validaAte: string | null;
+    try {
+      validaAte = await comUsuario(banco, c.get('usuarioId'), async (tx) => {
       const usuarioId = await garantirUsuario(tx, id);
       if (!usuarioId) return null;
       const conta = (await tx.query<{ id: string }>("select id from conta where usuario_id = $1 and provedor_id = 'credential'", [usuarioId])).rows[0];
@@ -125,7 +149,11 @@ export function rotasAcesso(dep: { banco: Banco; auth: Auth }): Hono<AmbienteApi
       )).rows[0]!.ate;
       await tx.query('delete from sessao where usuario_id = $1', [usuarioId]);
       return new Date(prazo).toISOString();
-    });
+      });
+    } catch (e) {
+      if (e instanceof EmailEmUso) return c.json({ erro: MSG_EMAIL_EM_USO, campos: { email: MSG_EMAIL_EM_USO } }, 409);
+      throw e;
+    }
     if (!validaAte) return c.json({ erro: MSG_SEM_EMAIL }, 400);
     // a senha não pode ficar guardada em nenhum cache
     c.header('Cache-Control', 'no-store');
@@ -137,6 +165,8 @@ export function rotasAcesso(dep: { banco: Banco; auth: Auth }): Hono<AmbienteApi
     const id = c.req.param('id');
     const negado = await exigirPapelNoRegistro(c, 'militar', id);
     if (negado) return negado;
+    const semPoder = await podeMexerNaConta(banco, c.get('usuarioId'), id);
+    if (semPoder) return c.json({ erro: semPoder }, 403);
     const tinha = await comUsuario(banco, c.get('usuarioId'), async (tx) => {
       const usuario = (await tx.query<{ id: string }>('select id from usuario where militar_id = $1 for update', [id])).rows[0];
       if (!usuario) return false;
@@ -160,12 +190,18 @@ export function rotasAcesso(dep: { banco: Banco; auth: Auth }): Hono<AmbienteApi
     const sem = await podeNaUnidade(banco, c.get('usuarioId'), d.papel, d.unidadeId);
     if (sem) return c.json({ erro: sem }, 403);
     if (d.papel === 'administrador' && unidade.mae_id !== null) return c.json({ erro: MSG_ADMIN_NA_RAIZ, campos: { unidadeId: MSG_ADMIN_NA_RAIZ } }, 400);
-    const gravou = await comUsuario(banco, c.get('usuarioId'), async (tx) => {
-      const usuarioId = await garantirUsuario(tx, id);
-      if (!usuarioId) return false;
-      await tx.query('insert into papel_usuario (usuario_id, unidade_id, papel, desde) values ($1, $2, $3, $4)', [usuarioId, d.unidadeId, d.papel, d.desde]);
-      return true;
-    });
+    let gravou: boolean;
+    try {
+      gravou = await comUsuario(banco, c.get('usuarioId'), async (tx) => {
+        const usuarioId = await garantirUsuario(tx, id);
+        if (!usuarioId) return false;
+        await tx.query('insert into papel_usuario (usuario_id, unidade_id, papel, desde) values ($1, $2, $3, $4)', [usuarioId, d.unidadeId, d.papel, d.desde]);
+        return true;
+      });
+    } catch (e) {
+      if (e instanceof EmailEmUso) return c.json({ erro: MSG_EMAIL_EM_USO, campos: { email: MSG_EMAIL_EM_USO } }, 409);
+      throw e;
+    }
     if (!gravou) return c.json({ erro: MSG_SEM_EMAIL }, 400);
     return c.json(await acessoPara(banco, id, c.get('usuarioId')), 201);
   });

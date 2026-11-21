@@ -452,7 +452,7 @@ export function rotasMilitares(dep: { banco: Banco; auth: Auth }): Hono<Ambiente
       if (doBanco?.code === 'P0001' && /email_obrigatorio_com_acesso/.test(doBanco.message ?? '')) {
         return c.json({ erro: MSG_EMAIL_COM_ACESSO, campos: { email: MSG_EMAIL_COM_ACESSO } }, 409);
       }
-      if (doBanco?.code === '23505' && /militar_email_unico/.test(`${doBanco.constraint ?? ''} ${doBanco.message ?? ''}`)) {
+      if (doBanco?.code === '23505' && /militar_email_unico|usuario_email/.test(`${doBanco.constraint ?? ''} ${doBanco.message ?? ''}`)) {
         return c.json({ erro: MSG_EMAIL_REPETIDO, campos: { email: MSG_EMAIL_REPETIDO } }, 409);
       }
       return respostaDoErroDoBanco(c, e, MSG_MATRICULA);
