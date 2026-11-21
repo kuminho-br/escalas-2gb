@@ -16,6 +16,14 @@ export function haAlteracoesPendentes(chave?: string): boolean {
   return chave ? sujas.has(chave) : sujas.size > 0;
 }
 
+/**
+ * A página vai ser trocada à força (a sessão terminou): o que não foi salvo já se perdeu, e o aviso "Sair do site?" do navegador só atrapalharia
+ * (o aviso de sessão terminada, na tela de entrar, já diz o que houve).
+ */
+export function descartarPendencias(): void {
+  sujas.clear();
+}
+
 /** Pergunta se pode descartar as alterações pendentes; sem pendência, deixa passar. */
 export function podeDescartar(chave?: string): boolean {
   return !haAlteracoesPendentes(chave) || window.confirm(MENSAGEM_PENDENTE);

@@ -2,7 +2,8 @@ import { mesPorExtenso, type FichaGuarnicao, type LinhaGuarnicao } from 'contrat
 import { act, cleanup, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
-import { MENSAGEM_PENDENTE } from '@/componentes/AlteracoesPendentes';
+import { MENSAGEM_PENDENTE, haAlteracoesPendentes } from '@/componentes/AlteracoesPendentes';
+import { navegador, pedir } from '@/api/cliente';
 import { atualizarGuarnicoes } from '@/api/guarnicoes';
 import { mesAtual } from '@/lib/meses';
 import { abrir, chamadasA, corpoEnviado, EU_EXEMPLO, simularApi, trava } from './apoio';
@@ -275,6 +276,23 @@ describe('ficha da guarnição', () => {
     expect(screen.getByRole('button', { name: 'Cancelar' })).toBeDisabled();
     soltar();
     await waitFor(() => expect(screen.getByLabelText('Função 3')).toHaveValue('f-new'));
+  });
+
+  it('com alteração pendente, a sessão terminada leva para entrar sem deixar pendência para o aviso "Sair do site?" do navegador', async () => {
+    let pendenteAoTrocar: boolean | null = null;
+    const ir = vi.spyOn(navegador, 'ir').mockImplementation(() => {
+      pendenteAoTrocar = haAlteracoesPendentes();
+    });
+    const f = api();
+    abrir('/configuracoes/modelos-de-guarnicao/g1');
+    await userEvent.selectOptions(await screen.findByLabelText('Função 1'), 'Nova função…');
+    await userEvent.type(screen.getByLabelText('Nome da nova função'), 'Socorrista');
+    expect(haAlteracoesPendentes()).toBe(true);
+    f.mockImplementation(async () => new Response(JSON.stringify({ erro: 'Sessão inválida.' }), { status: 401, headers: { 'Content-Type': 'application/json' } }));
+    await expect(pedir('GET', '/api/qualquer')).rejects.toMatchObject({ status: 401 });
+    expect(ir).toHaveBeenCalledTimes(1);
+    expect(pendenteAoTrocar).toBe(false);
+    ir.mockRestore();
   });
 
   it('a função herdada mostra a sigla de onde vem e não tem lápis', async () => {

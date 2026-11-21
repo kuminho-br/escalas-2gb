@@ -1,5 +1,6 @@
 import { createFileRoute, useNavigate, useRouter } from '@tanstack/react-router';
 import { useState, type FormEvent } from 'react';
+import { saida } from '@/api/cliente';
 import { consultaEu } from '@/api/eu';
 import { authCliente } from '@/auth-cliente';
 import { Button } from '@/componentes/ui/button';
@@ -42,6 +43,8 @@ function Entrar() {
         setErro(!error.status || error.status >= 500 ? ERRO_REDE : ERRO_CREDENCIAIS);
         return;
       }
+      // um "Sair" anterior não cala o aviso de uma sessão que terminar daqui para a frente
+      saida.marcar(false);
       // busca de novo: o cache pode guardar "sem sessão" da visita anterior
       await queryClient.fetchQuery({ ...consultaEu, staleTime: 0 });
       // depois de uma sessão que terminou, volta para a página em que a pessoa estava

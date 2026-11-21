@@ -1,7 +1,7 @@
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { navegador, pedir } from '@/api/cliente';
+import { navegador, pedir, saida } from '@/api/cliente';
 import { abrir, EU_EXEMPLO, simularApi } from './apoio';
 
 async function clicarSair() {
@@ -10,6 +10,11 @@ async function clicarSair() {
 }
 
 describe('sair', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+    saida.marcar(false);
+  });
+
   it('sair com sucesso vai para entrar', async () => {
     simularApi({ '/api/eu': { status: 200, corpo: EU_EXEMPLO }, '/api/auth/sign-out': { status: 200, corpo: { success: true } } });
     const router = abrir('/');
@@ -23,6 +28,31 @@ describe('sair', () => {
     await clicarSair();
     expect(await screen.findByText('Não foi possível sair. Verifique a conexão e tente de novo.')).toBeInTheDocument();
     expect(router.state.location.pathname).toBe('/');
+  });
+
+  // [foco 2] o pedido que ainda estava no ar quando a pessoa saiu volta 401: o "Sair" já leva para entrar, e não é uma sessão que terminou
+  it('depois de "Sair", um pedido que volta 401 não leva para entrar com o aviso de sessão terminada', async () => {
+    const ir = vi.spyOn(navegador, 'ir').mockImplementation(() => {});
+    simularApi({
+      '/api/eu': { status: 200, corpo: EU_EXEMPLO },
+      '/api/auth/sign-out': { status: 200, corpo: { success: true } },
+      'GET /api/qualquer': { status: 401, corpo: { erro: 'Sessão inválida.' } },
+    });
+    const router = abrir('/');
+    await clicarSair();
+    await expect(pedir('GET', '/api/qualquer')).rejects.toMatchObject({ status: 401 });
+    await waitFor(() => expect(router.state.location.pathname).toBe('/entrar'));
+    expect(ir).not.toHaveBeenCalled();
+  });
+
+  it('se o "Sair" falha, a sessão continua valendo: um 401 depois disso é sessão que terminou, com o aviso', async () => {
+    const ir = vi.spyOn(navegador, 'ir').mockImplementation(() => {});
+    simularApi({ '/api/eu': { status: 200, corpo: EU_EXEMPLO }, '/api/auth/sign-out': 'rede', 'GET /api/qualquer': { status: 401, corpo: { erro: 'Sessão inválida.' } } });
+    abrir('/');
+    await clicarSair();
+    await screen.findByText('Não foi possível sair. Verifique a conexão e tente de novo.');
+    await expect(pedir('GET', '/api/qualquer')).rejects.toMatchObject({ status: 401 });
+    expect(ir).toHaveBeenCalledWith(expect.stringContaining('sessao=terminou'));
   });
 });
 
