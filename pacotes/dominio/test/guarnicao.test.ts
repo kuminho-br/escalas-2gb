@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { novaBaseGuarnicao } from '../src/guarnicao.ts';
+import { chaveSlot, compararAntiguidade, novaBaseGuarnicao, postosDoModelo, type Modelos } from '../src/guarnicao.ts';
 
 describe('novaBaseGuarnicao', () => {
   const base = [
@@ -25,5 +25,45 @@ describe('novaBaseGuarnicao', () => {
 
   it('sem nada aplicado, a base fica igual (sem repetir a chave)', () => {
     expect(novaBaseGuarnicao([...base, base[0]], { aplicadas: [] })).toEqual(base);
+  });
+});
+
+describe('compararAntiguidade: a ordem de antiguidade é a mesma em qualquer posição de entrada', () => {
+  const sd = (mat: string, extra: { ordem?: number } = {}) => ({ mat, m: { mat, posto: 'SD BM', antig: 5, ...extra } });
+
+  it('mesmo posto e antiguidade, um com ordem e outro sem: o sem ordem fica por último nas duas posições', () => {
+    const com = sd('990002-2', { ordem: 7 });
+    const sem = sd('990001-1');
+    expect(compararAntiguidade(com, sem)).toBe(-1);
+    expect(compararAntiguidade(sem, com)).toBe(1);
+    expect([com, sem].sort(compararAntiguidade).map((x) => x.mat)).toEqual(['990002-2', '990001-1']);
+    expect([sem, com].sort(compararAntiguidade).map((x) => x.mat)).toEqual(['990002-2', '990001-1']);
+  });
+
+  it('dois sem ordem empatam pela matrícula', () => {
+    const a = sd('990001-1');
+    const b = sd('990002-2');
+    expect([b, a].sort(compararAntiguidade).map((x) => x.mat)).toEqual(['990001-1', '990002-2']);
+    expect(compararAntiguidade(a, b)).toBe(-1);
+    expect(compararAntiguidade(b, a)).toBe(1);
+  });
+});
+
+describe('postosDoModelo devolve uma cópia', () => {
+  it('mudar o objeto devolvido não muda o modelo', () => {
+    const mod: Pick<Modelos, 'escalas'> = {
+      escalas: {
+        ORD: {
+          nome: 'ORD', servicos: ['Pronto'], titulo: 'ESCALA ORD', militares: 'TODOS', dias: 'TODOS', turnos: ['A'], usaUnidade: false,
+          slots: { A: [{ unidade: 'ABT', funcao: 'MOTORISTA', vagas: 1, exigeCnh: true, cnh: ['D'] }] },
+        },
+      },
+    };
+    const postos = postosDoModelo(mod);
+    const k = chaveSlot('ABT', 'MOTORISTA');
+    postos[k]!.cnh.push('E');
+    postos[k]!.exigeCnh = false;
+    expect(mod.escalas.ORD!.slots.A![0]).toMatchObject({ exigeCnh: true, cnh: ['D'] });
+    expect(postosDoModelo(mod)[k]).toEqual({ exigeCnh: true, cnh: ['D'] });
   });
 });

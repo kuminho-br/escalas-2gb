@@ -348,7 +348,7 @@ export function postosDoModelo(mod: Pick<Modelos, 'escalas'> | null | undefined)
     const e = escalas[nome];
     e.turnos.forEach((x) => (e.slots[x] || []).forEach((s) => {
       if (s.cnh === null || s.cnh === undefined) return;
-      out[chaveSlot(s.unidade, s.funcao)] = { exigeCnh: !!s.exigeCnh, cnh: s.cnh };
+      out[chaveSlot(s.unidade, s.funcao)] = { exigeCnh: !!s.exigeCnh, cnh: [...s.cnh] };
     }));
   });
   return out;
@@ -405,9 +405,10 @@ export function compararAntiguidade(x: { mat: string; m?: Militar | null }, y: {
   const nx = ax === null ? Infinity : ax;
   const ny = ay === null ? Infinity : ay;
   if (nx !== ny) return nx < ny ? -1 : 1;
-  const ox = x.m ? x.m.ordem : Infinity;
-  const oy = y.m ? y.m.ordem : Infinity;
-  if (ox !== oy) return (ox as number) < (oy as number) ? -1 : 1;
+  // quem não tem ordem vai por último (sem isso, comparar um com ordem e um sem dava 1 nos dois sentidos e a ordem dependia da posição de entrada)
+  const ox = x.m?.ordem ?? Infinity;
+  const oy = y.m?.ordem ?? Infinity;
+  if (ox !== oy) return ox < oy ? -1 : 1;
   return x.mat < y.mat ? -1 : x.mat > y.mat ? 1 : 0;
 }
 
