@@ -172,6 +172,48 @@ describe('lista já carregada cuja nova busca falha (Review Focus 3)', () => {
   });
 });
 
+describe('Motorista: dado novo do servidor (revisão final da revisão 3)', () => {
+  type Rota = { status: number; corpo?: unknown };
+  const fichaCom = (cnh: string[]) => ({ ...FICHA, noQuadroDeMotoristas: true, cnh, cnhPorHierarquia: [] });
+  const botao = (letra: string) => screen.getByRole('button', { name: new RegExp(`^${letra}\\b`) });
+  const pressionado = (letra: string) => expect(botao(letra)).toHaveAttribute('aria-pressed');
+
+  it('sem alteração pendente, recarrega o bloco', async () => {
+    const ficha: Rota = { status: 200, corpo: fichaCom(['D']) };
+    api({ 'GET /api/militares/m1': ficha });
+    const router = abrir('/militares/m1');
+    expect(await screen.findByRole('button', { name: /^D\b/ })).toHaveAttribute('aria-pressed', 'true');
+    ficha.corpo = fichaCom(['A']);
+    await act(async () => {
+      atualizarMilitares(router.options.context.queryClient);
+    });
+    await waitFor(() => expect(botao('A')).toHaveAttribute('aria-pressed', 'true'));
+    expect(botao('D')).toHaveAttribute('aria-pressed', 'false');
+    expect(screen.queryByText('Alterações não salvas')).toBeNull();
+    pressionado('A');
+  });
+
+  it('desfazer a edição depois de chegar dado novo do servidor mostra o valor do servidor, não o antigo (Review Focus 4)', async () => {
+    const ficha: Rota = { status: 200, corpo: fichaCom(['D']) };
+    api({ 'GET /api/militares/m1': ficha });
+    const router = abrir('/militares/m1');
+    await userEvent.click(await screen.findByRole('button', { name: /^A\b/ }));
+    expect(screen.getByText('Alterações não salvas')).toBeInTheDocument();
+    // chega dado novo enquanto a edição está pendente: a edição fica
+    ficha.corpo = fichaCom(['B']);
+    await act(async () => {
+      atualizarMilitares(router.options.context.queryClient);
+    });
+    await new Promise((x) => setTimeout(x, 50));
+    expect(botao('A')).toHaveAttribute('aria-pressed', 'true');
+    // a pessoa desfaz a edição: o campo passa a mostrar o do servidor (B), não o de antes (D)
+    await userEvent.click(botao('A'));
+    await waitFor(() => expect(botao('D')).toHaveAttribute('aria-pressed', 'false'));
+    expect(botao('B')).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.queryByText('Alterações não salvas')).toBeNull();
+  });
+});
+
 describe('ficha do militar', () => {
   it('as categorias que a carteira habilita aparecem marcadas, com "pela E"; só a carteira é gravada', async () => {
     const f = api({

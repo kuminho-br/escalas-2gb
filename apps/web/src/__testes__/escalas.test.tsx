@@ -368,3 +368,42 @@ describe('revisão 3: o erro de Desativar fica na ficha em que aconteceu', () =>
     expect(screen.queryByText('Falhou ao desativar Ordinário.')).toBeNull();
   });
 });
+
+describe('recarregar o bloco com dado novo do servidor (revisão final da revisão 3)', () => {
+  type Rota = { status: number; corpo?: unknown };
+  const rotasDe = (ficha: Rota): Parameters<typeof simularApi>[0] => ({
+    '/api/eu': { status: 200, corpo: EU_EXEMPLO },
+    'GET /api/unidades/u-1sb/escalas': { status: 200, corpo: LISTA },
+    'GET /api/unidades/u-1sb/guarnicoes': { status: 200, corpo: GUARNICOES },
+    'GET /api/unidades/u-1sb/servicos': { status: 200, corpo: [] },
+    'GET /api/escalas/e1': ficha,
+  });
+
+  it('Identificação: sem alteração pendente, o nome e o título recarregam', async () => {
+    const ficha: Rota = { status: 200, corpo: escala() };
+    simularApi(rotasDe(ficha));
+    const router = abrir('/escalas/e1');
+    expect(await screen.findByLabelText('Nome')).toHaveValue('Ordinário');
+    ficha.corpo = escala({ nome: 'Ordinário 2', titulo: 'ESCALA NOVA' });
+    await act(async () => {
+      atualizarEscalas(router.options.context.queryClient);
+    });
+    await waitFor(() => expect(screen.getByLabelText('Nome')).toHaveValue('Ordinário 2'));
+    expect(screen.getByLabelText('Título no documento')).toHaveValue('ESCALA NOVA');
+    expect(screen.queryByText('Alterações não salvas')).toBeNull();
+  });
+
+  it('Serviços da escala: sem alteração pendente, a lista recarrega', async () => {
+    const ficha: Rota = { status: 200, corpo: escala() };
+    simularApi(rotasDe(ficha));
+    const router = abrir('/escalas/e1');
+    expect(await screen.findByRole('link', { name: 'JES' })).toBeInTheDocument();
+    ficha.corpo = escala({ servicos: [{ id: 's1', nome: 'Pronto', cor: '#2F8F5B', ativo: true }, { id: 's3', nome: 'Bioma', cor: '#C08A1E', ativo: true }] });
+    await act(async () => {
+      atualizarEscalas(router.options.context.queryClient);
+    });
+    await waitFor(() => expect(screen.getByRole('link', { name: 'Bioma' })).toBeInTheDocument());
+    expect(screen.queryByRole('link', { name: 'JES' })).toBeNull();
+    expect(screen.queryByText('Alterações não salvas')).toBeNull();
+  });
+});

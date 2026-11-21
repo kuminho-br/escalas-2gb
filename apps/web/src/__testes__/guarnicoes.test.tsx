@@ -728,3 +728,18 @@ describe('modelos de guarnição em Configurações', () => {
     expect(screen.queryByRole('link', { name: 'Guarnições' })).toBeNull();
   });
 });
+
+describe('recarregar o bloco com dado novo do servidor (revisão final da revisão 3)', () => {
+  it('Identificação do modelo: sem alteração pendente, o nome recarrega', async () => {
+    const ficha: { status: number; corpo?: unknown } = { status: 200, corpo: FICHA };
+    api({ 'GET /api/guarnicoes/g1': ficha });
+    const router = abrir('/configuracoes/modelos-de-guarnicao/g1');
+    expect(await screen.findByLabelText('Nome')).toHaveValue('Auto Bomba 1');
+    ficha.corpo = { ...FICHA, nome: 'Auto Bomba 1B' };
+    await act(async () => {
+      atualizarGuarnicoes(router.options.context.queryClient, 'g1');
+    });
+    await waitFor(() => expect(screen.getByLabelText('Nome')).toHaveValue('Auto Bomba 1B'));
+    expect(screen.queryByText('Alterações não salvas')).toBeNull();
+  });
+});
