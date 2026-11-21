@@ -1,10 +1,11 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { navegador } from '@/api/cliente';
 import { consultaEu } from '@/api/eu';
 import { ImportarPlanilha } from '@/componentes/ImportarPlanilha';
-import { EU_EXEMPLO, simularApi } from './apoio';
+import { EU_EXEMPLO, simularApi, trava } from './apoio';
 
 const CAMINHO = '/api/unidades/u-1sb/importacao/militares';
 
@@ -33,6 +34,64 @@ const PREVIA = {
   problemas: [{ aba: 'MILITARES', linha: 7, mensagem: 'Matrícula inválida: "12-3".', solucao: 'Use 6 dígitos, hífen e 1 dígito.' }],
   avisos: [],
 };
+
+describe('importar com a sessão terminada e reabrir limpo', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+    window.history.replaceState({}, '', '/');
+  });
+
+  it('o envio com 401 leva para entrar, com o aviso e o caminho de volta (Review Focus 1)', async () => {
+    const ir = vi.spyOn(navegador, 'ir').mockImplementation(() => {});
+    window.history.replaceState({}, '', '/militares');
+    simularApi({ [`POST ${CAMINHO}`]: { status: 401, corpo: { erro: 'Sessão inválida.' } } });
+    montar();
+    await enviarArquivo();
+    await vi.waitFor(() => expect(ir).toHaveBeenCalledWith('/entrar?sessao=terminou&voltar=%2Fmilitares'));
+  });
+
+  it('a confirmação com 401 também leva para entrar', async () => {
+    const ir = vi.spyOn(navegador, 'ir').mockImplementation(() => {});
+    window.history.replaceState({}, '', '/cotas');
+    const rotas = simularApi({ [`POST ${CAMINHO}`]: { status: 200, corpo: PREVIA } });
+    montar();
+    await enviarArquivo();
+    const confirmar = await screen.findByRole('button', { name: 'Importar 2, pular 1' });
+    expect(ir).not.toHaveBeenCalled();
+    // a prévia veio; a sessão termina antes da confirmação
+    rotas.mockImplementation(async () => new Response(JSON.stringify({ erro: 'Sessão inválida.' }), { status: 401, headers: { 'Content-Type': 'application/json' } }));
+    await userEvent.click(confirmar);
+    await vi.waitFor(() => expect(ir).toHaveBeenCalledWith('/entrar?sessao=terminou&voltar=%2Fcotas'));
+  });
+
+  it('depois de uma importação feita, abrir de novo começa do zero (Review Focus 2)', async () => {
+    simularApi({ [`POST ${CAMINHO}`]: { status: 200, corpo: { ...PREVIA, gravados: 2 } } });
+    montar();
+    await enviarArquivo();
+    await userEvent.click(await screen.findByRole('button', { name: 'Importar 2, pular 1' }));
+    await screen.findByText('2 registros gravados.');
+    // dois botões se chamam "Fechar" (o do rodapé e o X do diálogo): o do rodapé vem primeiro
+    await userEvent.click(screen.getAllByRole('button', { name: 'Fechar' })[0]!);
+    await userEvent.click(screen.getByRole('button', { name: 'Importar da planilha' }));
+    expect(screen.queryByText('2 registros gravados.')).toBeNull();
+    const campo = screen.getByLabelText('Arquivo da planilha (.xlsx)') as HTMLInputElement;
+    expect(campo.files).toHaveLength(0);
+    expect(screen.getByRole('button', { name: 'Ver o que vai entrar' })).toBeDisabled();
+  });
+
+  it('uma resposta que chega depois de fechar o diálogo não aparece na próxima vez que ele abre', async () => {
+    const { espera, soltar } = trava();
+    simularApi({ [`POST ${CAMINHO}`]: { status: 200, corpo: PREVIA, espera } });
+    montar();
+    await enviarArquivo();
+    await userEvent.keyboard('{Escape}');
+    soltar();
+    await new Promise((ok) => setTimeout(ok, 50));
+    await userEvent.click(screen.getByRole('button', { name: 'Importar da planilha' }));
+    expect(screen.queryByRole('button', { name: 'Importar 2, pular 1' })).toBeNull();
+    expect(screen.getByLabelText('Arquivo da planilha (.xlsx)')).toBeInTheDocument();
+  });
+});
 
 describe('importar da planilha', () => {
   it('tem o link Baixar modelo apontando para o modelo do cadastro', async () => {

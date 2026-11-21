@@ -41,7 +41,7 @@ export const importadorConfiguracoes: Importador<Item[]> = {
       return [{ titulo: 'Parâmetros que o sistema usa (coluna CHAVE)', itens: PARAM_CATALOGO.filter((d) => CHAVES_SISTEMA.includes(d.chave)).map((d) => `${d.chave}: ${d.descricao}`) }];
     },
   },
-  async planejar(abas, { tx, unidadeId }) {
+  async planejar(abas, { tx, unidadeId, hoje }) {
     const aba = abas[ABA]!;
     const c = { chave: coluna(aba, COLUNAS.chave.rotulo), valor: coluna(aba, COLUNAS.valor.rotulo), vigencia: coluna(aba, COLUNAS.vigencia.rotulo) };
     const problemas: ProblemaImportacao[] = [];
@@ -76,6 +76,11 @@ export const importadorConfiguracoes: Importador<Item[]> = {
           mensagem: v.avisos[0] ? mensagemDoAviso(v.avisos[0]) : `${chave}: configuração que não existe mais.`,
           solucao: 'Corrija a linha na sandbox e importe de novo.',
         });
+        continue;
+      }
+      // como na tela: o mês que já passou não muda (vigência vazia vale desde a criação da seção e não entra nesta conferência)
+      if (boa.vigencia && boa.vigencia < hoje.slice(0, 7)) {
+        problemas.push({ aba: ABA, linha: l.linha, mensagem: 'Mês já passou', solucao: 'Use o mês atual ou um mês futuro.' });
         continue;
       }
       const vigencia = boa.vigencia || criacao;

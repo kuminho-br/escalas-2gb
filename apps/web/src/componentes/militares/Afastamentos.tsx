@@ -9,7 +9,7 @@ import { Selecao } from '@/componentes/Selecao';
 import { Button } from '@/componentes/ui/button';
 import { Input } from '@/componentes/ui/input';
 import { Label } from '@/componentes/ui/label';
-import { dataBr, Secao } from './Secao';
+import { dataBr, LISTA_NAO_CARREGOU, Secao } from './Secao';
 
 export function Afastamentos({ ficha }: { ficha: FichaMilitar }) {
   const queryClient = useQueryClient();
@@ -78,9 +78,10 @@ export function Afastamentos({ ficha }: { ficha: FichaMilitar }) {
         <form onSubmit={(e) => { e.preventDefault(); void incluir(); }} className="grid gap-3 border-t border-linha pt-3">
           <div className="grid gap-1.5 sm:max-w-xs">
             <Label htmlFor="af-tipo">Tipo de afastamento</Label>
-            <Selecao id="af-tipo" value={tipoEscolhido} onChange={(e) => setTipo(e.target.value)}>
+            <Selecao id="af-tipo" value={tipoEscolhido} onChange={(e) => setTipo(e.target.value)} aria-invalid={tipos.isError || undefined} aria-describedby={tipos.isError ? 'af-tipo-erro' : undefined}>
               {ativos.map((t) => <option key={t.id} value={t.id}>{t.nome}</option>)}
             </Selecao>
+            {tipos.isError && <p id="af-tipo-erro" className="text-xs text-alerta">{LISTA_NAO_CARREGOU}</p>}
           </div>
           <div className="grid grid-cols-2 gap-3 sm:max-w-md">
             <div className="grid gap-1.5">

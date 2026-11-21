@@ -30,4 +30,7 @@ export function Secao({ titulo, acoes, resumo, recolhida, children }: { titulo: 
   );
 }
 
+/** O que a tela diz perto do campo quando uma lista (postos, tipos de afastamento) não carrega: sem isso o botão ficaria apagado sem explicação. */
+export const LISTA_NAO_CARREGOU = 'Não deu para carregar a lista. Recarregue a página.';
+
 export const dataBr = (d: string) => `${d.slice(8, 10)}/${d.slice(5, 7)}/${d.slice(0, 4)}`;

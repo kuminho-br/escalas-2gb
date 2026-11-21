@@ -56,6 +56,8 @@ export async function enviarArquivo<T>(caminho: string, arquivo: File): Promise<
   } catch {
     throw new ErroApi(SEM_CONEXAO, 0);
   }
+  // a importação também: com a sessão terminada, vai para entrar com o aviso, como qualquer outro pedido
+  if (r.status === 401) sessaoTerminou(caminho);
   return resposta<T>(r);
 }
 

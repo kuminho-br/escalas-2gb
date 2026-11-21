@@ -30,6 +30,9 @@ export function ServicosDaEscala({ escala, unidadeId }: { escala: Escala; unidad
     setSalvo(escala.servicos.map((x) => x.id).join('|'));
   });
   const fora = (servicos.data ?? []).filter((s) => s.ativo && !itens.some((i) => i.id === s.id));
+  // escolher na lista só marca; quem põe o serviço na escala é o botão "Incluir" (e quem grava é o "Salvar serviços")
+  const [escolhido, setEscolhido] = useState('');
+  const doEscolhido = fora.find((x) => x.id === escolhido);
 
   function mover(i: number, delta: number) {
     const j = i + delta;
@@ -77,18 +80,24 @@ export function ServicosDaEscala({ escala, unidadeId }: { escala: Escala; unidad
       {itens.length === 0 && <p className="text-sm text-apagado">Nenhum serviço ainda.</p>}
       <div className="mt-3 flex flex-wrap items-center gap-3">
         {fora.length > 0 && (
-          <Selecao
-            aria-label="Incluir serviço"
-            value=""
-            className="w-56"
-            onChange={(ev) => {
-              const s = fora.find((x) => x.id === ev.target.value);
-              if (s) setItens([...itens, { id: s.id, nome: s.nome, cor: s.cor }]);
-            }}
-          >
-            <option value="">Incluir serviço…</option>
-            {fora.map((s) => <option key={s.id} value={s.id}>{s.nome}</option>)}
-          </Selecao>
+          <span className="inline-flex items-center gap-2">
+            <Selecao aria-label="Incluir serviço" value={doEscolhido ? escolhido : ''} className="w-56" onChange={(ev) => setEscolhido(ev.target.value)}>
+              <option value="">Incluir serviço…</option>
+              {fora.map((s) => <option key={s.id} value={s.id}>{s.nome}</option>)}
+            </Selecao>
+            <Button
+              type="button"
+              variant="outline"
+              disabled={!doEscolhido}
+              onClick={() => {
+                if (!doEscolhido) return;
+                setItens([...itens, { id: doEscolhido.id, nome: doEscolhido.nome, cor: doEscolhido.cor }]);
+                setEscolhido('');
+              }}
+            >
+              Incluir
+            </Button>
+          </span>
         )}
         <AcoesDoBloco salvando={salvando} sujo={sujo} aviso={aviso} tipo="button" rotulo="Salvar serviços" aoSalvar={() => void salvar()} />
       </div>

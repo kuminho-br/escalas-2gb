@@ -1,5 +1,17 @@
 // Importação da aba GUARNIÇÕES (leitura como cadastro_guarnicoes.js do protótipo, via resolverGuarnicoes).
-import { mesPorExtenso, Prioridade, QuantidadeDeMilitares, type ItemPrevia, type ProblemaImportacao, type VersaoGuarnicao, type VersaoSalva } from 'contratos';
+import {
+  LIMITE_NOME,
+  LIMITE_TIPO_VIATURA,
+  LIMITE_VIATURA,
+  mesPorExtenso,
+  Nome,
+  Prioridade,
+  QuantidadeDeMilitares,
+  VersaoGuarnicao,
+  type ItemPrevia,
+  type ProblemaImportacao,
+  type VersaoSalva,
+} from 'contratos';
 import { cadgVigencia, categoriasCnh, CNH_HABILITA, normalizar, resolverGuarnicoes, type LinhaGuarnicao as LinhaDaAba } from 'dominio';
 import { diferencasDeVersao } from '../cadastros/guarnicoes-regras.ts';
 import { funcoesVisiveis, gravarVersao, versoesDasGuarnicoes } from '../cadastros/guarnicoes.ts';
@@ -98,6 +110,8 @@ export const importadorGuarnicoes: Importador<Plano> = {
     const pega = (cel: string[], i: number) => (i < 0 ? '' : (cel[i] ?? '').trim());
     // a vigência passa pelo leitor único: o que não se lê (ou o ano 0000) vira problema e a linha fica de fora
     const linhas: LinhaDaAba[] = [];
+    /** guarnições com alguma linha grande demais: a guarnição é montada juntando as linhas (uma por função), então pular só uma deixaria o resto entrar incompleto */
+    const deFora = new Map<string, string>();
     for (const l of aba.linhas) {
       const bruta = pega(l.celulas, c.vigencia);
       const vigencia = lerMes(bruta);
@@ -105,10 +119,22 @@ export const importadorGuarnicoes: Importador<Plano> = {
         problemas.push({ aba: ABA, linha: l.linha, mensagem: `Vigência "${bruta}" de ${pega(l.celulas, c.guarnicao) || '(vazia)'}`, solucao: 'Use aaaa-mm ou mm/aaaa na coluna VIGÊNCIA.' });
         continue;
       }
+      // nome, sigla e tipo da viatura passam pelos esquemas do contrato (os mesmos da tela): o que passa do limite vira problema e a linha fica de fora
+      const nome = pega(l.celulas, c.guarnicao);
+      const grandes = [
+        { rotulo: 'Nome da guarnição', valor: nome, esquema: Nome, limite: LIMITE_NOME },
+        { rotulo: `Viatura de ${nome}`, valor: pega(l.celulas, c.viatura), esquema: VersaoGuarnicao.shape.viatura, limite: LIMITE_VIATURA },
+        { rotulo: `Tipo da viatura de ${nome}`, valor: pega(l.celulas, c.tipo), esquema: VersaoGuarnicao.shape.tipoViatura, limite: LIMITE_TIPO_VIATURA },
+      ].filter((x) => x.valor !== '' && !x.esquema.safeParse(x.valor).success);
+      if (grandes.length) {
+        for (const g of grandes) problemas.push({ aba: ABA, linha: l.linha, mensagem: `${g.rotulo} grande demais: ${g.valor.length} caracteres`, solucao: `Encurte para até ${g.limite} caracteres.` });
+        deFora.set(normalizar(nome), nome);
+        continue;
+      }
       linhas.push({
         linha: l.linha,
         vigencia,
-        guarnicao: pega(l.celulas, c.guarnicao),
+        guarnicao: nome,
         viatura: pega(l.celulas, c.viatura),
         tipo: pega(l.celulas, c.tipo),
         ativar: pega(l.celulas, c.ativar),
@@ -119,6 +145,10 @@ export const importadorGuarnicoes: Importador<Plano> = {
         maximo: pega(l.celulas, c.maximo),
       });
     }
+
+    // a guarnição com linha com problema fica inteira de fora, como estava no sistema (nada de função apagada por uma linha que não entrou)
+    for (let i = linhas.length - 1; i >= 0; i--) if (deFora.has(normalizar(linhas[i]!.guarnicao))) linhas.splice(i, 1);
+    for (const nome of deFora.values()) avisos.push(`${nome.length > 60 ? `${nome.slice(0, 57)}…` : nome}: ficou de fora até as linhas com problema serem corrigidas.`);
 
     const criacao = (await tx.query<{ mes: string }>("select to_char(desde, 'YYYY-MM') as mes from unidade where id = $1", [unidadeId])).rows[0]!.mes;
     const meses = new Set<string>([criacao]);
