@@ -259,7 +259,11 @@ export const importadorMilitares: Importador<Plano> = {
       let lotacao: Lotacao | null = null;
       if (!e.lotacao_id) {
         if (e.futura) avisos.push(`${nomeGuerra} (${mat.valor}): já tem lotação marcada para ${mesPorExtenso(e.futura)}; a lotação não foi mudada.`);
-        else {
+        else if (!podeCadastrar) {
+          // lotar quem está sem lotação é do Pecúlio, como na ficha: papel numa unidade acima da seção
+          problema(`Lotar ${nomeGuerra} na ${unidade.sigla} é de quem tem papel no ${siglaDeCima}.`, 'Peça a quem tem esse papel para importar a linha.');
+          continue;
+        } else {
           mudancas.push('lotação: nova');
           lotacao = { acao: 'nova' };
         }

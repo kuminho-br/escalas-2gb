@@ -113,7 +113,8 @@ export const importadorPeculio: Importador<Plano> = {
     const avisos: string[] = [];
     const mes = hoje.slice(0, 7);
     const vazio = { previa: { novos: [], alterados: [], iguais: 0, problemas, avisos }, plano: { itens: [], mes } };
-    const faltam = (['mat', 'posto', 'completo', 'guerra', 'lotacao'] as const).filter((k) => c[k] < 0);
+    // as 12 colunas do modelo: com uma ausente, "vazio limpa o campo" apagaria o dado de todo militar que já existe
+    const faltam = (Object.keys(COLUNAS) as (keyof typeof COLUNAS)[]).filter((k) => c[k] < 0);
     if (faltam.length) {
       problemas.push({ aba: ABA, linha: 1, mensagem: `Faltam as colunas ${faltam.map((k) => COLUNAS[k].rotulo).join(', ')}.`, solucao: 'Baixe o modelo na tela de importação e cole os dados nele.' });
       return vazio;

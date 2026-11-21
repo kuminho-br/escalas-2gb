@@ -196,6 +196,30 @@ describe('importar o Pecúlio', () => {
   });
 });
 
+describe('planilha sem alguma das 12 colunas do modelo (revisão final)', () => {
+  it('é problema "Faltam as colunas …" e nada é gravado: uma coluna ausente não apaga o campo de quem já existe', async () => {
+    const existente: Linha = ['990350-0', 'SD BM', 'Existente de Tal', 'EXISTENTE', 8001, 'M', '10/10', '(81) 90000-0000', 'existente@bombeiros.pe.gov.br', 'Bom', 'BG 1/2026', '1ª SB'];
+    await importar([existente], true);
+    // a planilha só com as 5 colunas obrigatórias: telefone, e-mail, nascimento etc. não existem nela
+    const curta = await planilha({ 'PECÚLIO': [['MATRÍCULA', 'POSTO/GRAD', 'NOME COMPLETO', 'NOME DE GUERRA', 'LOTAÇÃO'], ['990350-0', 'SD BM', 'Existente de Tal', 'EXISTENTE', '1ª SB']] });
+    const r = await api.pedir('gestorGb', 'POST', caminho(api.ids.gb), formulario(curta));
+    expect(r.status).toBe(200);
+    const previa = await r.json();
+    expect(previa.alterados).toEqual([]);
+    expect(previa.novos).toEqual([]);
+    expect(previa.problemas).toEqual([
+      {
+        aba: 'PECÚLIO', linha: 1,
+        mensagem: 'Faltam as colunas ANTIGUIDADE, SEXO, NASCIMENTO, TELEFONE, E-MAIL, COMPORTAMENTO, BOLETIM DO COMPORTAMENTO.',
+        solucao: 'Baixe o modelo na tela de importação e cole os dados nele.',
+      },
+    ]);
+    const confirmada = await api.pedir('gestorGb', 'POST', caminho(api.ids.gb, true), formulario(curta));
+    expect((await confirmada.json()).gravados).toBe(0);
+    expect(await militar('990350-0')).toMatchObject({ antiguidade: 8001, sexo: 'M', telefone: '(81) 90000-0000', email: 'existente@bombeiros.pe.gov.br', comportamento: 'Bom' });
+  });
+});
+
 describe('quem pode importar o Pecúlio (Review Focus 1)', () => {
   it('o escalante só da 1ª SB é 403 com a frase de quem altera, na prévia, na confirmação e no modelo, e nada é gravado', async () => {
     const antes = await auditoria();

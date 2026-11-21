@@ -269,6 +269,26 @@ describe('dono por bloco na importação de militares (Review Focus 3)', () => {
     expect(await militar('990402-2')).toMatchObject({ posto: 'SD BM', antiguidade: 9103 });
   });
 
+  // revisão final: lotar na seção quem existe mas está sem lotação também é do Pecúlio (a ficha trava a lotação para quem não tem o papel de cima)
+  it('militar que já existe, sem lotação neste mês, não é lotado na seção pelo escalante só da seção; o gestor do 2º GB lota', async () => {
+    const sd = (await api.banco.query<{ id: string }>("select id from posto_grad where sigla = 'SD BM'")).rows[0]!.id;
+    const semLotacao = await inserir(api.banco, 'militar', { matricula: '990403-3', posto_grad_id: sd, nome_guerra: 'SEMLOTACAO', antiguidade: 9201 });
+    // o último período dele terminou há dois meses, na própria 1ª SB
+    await inserir(api.banco, 'rastreio', { militar_id: semLotacao, unidade_id: api.ids.secao, jornada: 'adm', desde: `${somarMeses(atual, -4)}-01`, ate: `${somarMeses(atual, -2)}-28` });
+    const linha: (string | number)[] = ['990403-3', 'SEMLOTACAO', '1ª SB', 'SD BM', 'ADM', '', 9201, 'NÃO', 'NÃO', ''];
+    const doEscalante = await importar([linha], false, 'escalante');
+    expect(doEscalante.problemas).toEqual([
+      { aba: 'MILITARES', linha: 2, mensagem: 'Lotar SEMLOTACAO na 1ª SB é de quem tem papel no 2º GB.', solucao: 'Peça a quem tem esse papel para importar a linha.' },
+    ]);
+    expect(doEscalante.alterados).toEqual([]);
+    expect((await importar([linha], true, 'escalante')).gravados).toBe(0);
+    expect((await lotacoes(semLotacao)).map((l) => l.ate)).toEqual([`${somarMeses(atual, -2)}-28`]);
+    const doGestor = await importar([linha], false, 'gestorGb');
+    expect(doGestor.alterados.map((a: { chave: string }) => a.chave)).toEqual(['990403-3']);
+    await importar([linha], true, 'gestorGb');
+    expect((await lotacoes(semLotacao)).map((l) => [l.desde, l.ate])).toEqual([[`${somarMeses(atual, -4)}`, `${somarMeses(atual, -2)}-28`], [atual, null]]);
+  });
+
   it('a ajuda do modelo diz que posto, nome de guerra e antiguidade de quem já existe vêm do Pecúlio', async () => {
     const colunas = IMPORTADORES.militares!.modelo.abas[0]!.colunas;
     for (const rotulo of ['POSTO/GRAD', 'NOME DE GUERRA', 'ANTIG']) {
