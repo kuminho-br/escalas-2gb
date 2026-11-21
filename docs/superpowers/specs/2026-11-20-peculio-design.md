@@ -48,7 +48,7 @@ Ficam para depois, sem bloquear a interface com a escala:
 - **D7 (dados pessoais):** no teste, sem CPF e sem o ano de nascimento (o aniversário fica com dia e mês); o telefone entra; afastamento sem diagnóstico.
 - **E-mail institucional:** só o domínio `@bombeiros.pe.gov.br`; é o e-mail de entrada no sistema.
 - **Dados de hoje:** os militares que já estão no banco de teste e ficarem sem lugar na mudança de estrutura ficam na 1ª SB, por enquanto.
-- **"A partir de" é o mês** (por enquanto). Se vale também o dia é **pendência de elucidação** de requisito, não do design.
+- **"A partir de" é o dia**, como nos afastamentos (decisão do usuário, 21/11/2026; até a entrega 6.5 o sistema usa o mês).
 
 ## Abordagens consideradas
 
@@ -90,7 +90,7 @@ O histórico das mudanças de comportamento fica na auditoria (relação de um c
 | Lotação | a unidade (posição na estrutura organizacional) |
 | Equipe | da mesma unidade; opcional |
 | Jornada | Pronto ou Adm |
-| Desde / até | por mês; sem períodos sobrepostos por militar |
+| Desde / até | por dia; sem períodos sobrepostos por militar |
 
 "Lotação", na tela e nos textos, passa a ser **só a unidade**. O conjunto (lotação, equipe, jornada no tempo) é o **rastreio**.
 
@@ -131,13 +131,13 @@ Ficha do militar
   Afastamentos
 
   ── Histórico de rastreio ─────────────────────── [Alterar situação]
-  Situação atual: 1ª SB · Equipe Alfa · Pronto   (desde 03/2026)
-  03/2026  Lotação 2ª SB → 1ª SB · Jornada Adm → Pronto
-  08/2026  Afastamento: Férias (01/08 a 30/08)
-  11/2026  Equipe Bravo → Alfa
+  Situação atual: 1ª SB · Equipe Alfa · Pronto   (desde 01/03/2026)
+  01/03/2026  Lotação 2ª SB → 1ª SB · Jornada Adm → Pronto
+  01/08/2026  Afastamento: Férias (01/08 a 30/08)
+  18/11/2026  Equipe Bravo → Alfa
 ```
 
-- **"Alterar situação"** abre um formulário flutuante com lotação, equipe, jornada e "a partir de" (mês, sugerido o atual). Salvar fecha o período aberto e abre outro.
+- **"Alterar situação"** abre um formulário flutuante com lotação, equipe, jornada e "a partir de" (data, sugerida a de hoje). Salvar fecha o período aberto no dia anterior e abre outro.
 - **A linha do tempo** junta as mudanças do rastreio e os afastamentos, do mais novo para o mais velho.
 - **Módulo Pecúlio:** a lista dos militares das unidades a que o usuário tem acesso (com busca e filtro por lotação) e a ficha. **Aniversariantes do mês:** uma lista na tela do módulo.
 

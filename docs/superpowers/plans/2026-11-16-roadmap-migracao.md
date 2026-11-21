@@ -64,9 +64,7 @@ Um cadastro por vez, cada um com API, tela e importação, num PR próprio. Plan
 
 Entregas 1 a 5 (configurações, militares e afastamentos, guarnições, serviços e escalas, cotas e feriados), PRs #13 a #24.
 
-A data do contrato recusa dia que não existe no calendário. "Distribuídas" nas cotas valeu 0 até a fase 4, quando a escala passou a gravar alocações.
-
-Os PRs #15 (aviso de migração faltando) e #32 (campo de mês das Cotas) ficaram abertos e foram refeitos na entrega 4.3 (PR #57); os dois estão fechados.
+Os PRs #15 e #32 foram refeitos na entrega 4.3 (PR #57) e estão fechados.
 
 ## Revisões antes da fase 4 · concluídas
 
@@ -109,6 +107,8 @@ Design: `docs/superpowers/specs/2026-11-21-usuarios-e-modulos-design.md`. Plano:
 | 2 | Unidade de trabalho: o seletor substitui a 1ª SB fixa, e o auxiliar gera a senha de um colega auxiliar | mesclada (#88) |
 | 3 | Tela inicial e módulos por papel, Minha ficha com o próprio telefone; conta desativada só volta por quem dá o papel | mesclada (#90) |
 | 4 | Transição do login (as mangueiras), se o mockup estiver aprovado | condicional |
+| 5 | Retorno da validação sem mockup: recolher equipe na Grade, rastreio por dia, "Vale desde" antigo no modelo de guarnição | planejada (migração 0026) |
+| 6 | Retorno da validação com mockup: sete ajustes de interface | aguardando a DESIGN |
 
 **Fora:** envio de e-mail (link de senha e "Esqueci minha senha"), usuários acima do GB (fase 11), Visualização (fase 7).
 

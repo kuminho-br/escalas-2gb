@@ -9,6 +9,8 @@
 2. **Unidade de trabalho:** o seletor de unidade substitui a 1ª SB fixa; antes, a folga do auxiliar na senha provisória (decisão de 21/11/2026). **Mesclada (#88).**
 3. **Tela inicial e módulos:** os cartões por papel, o trilho por módulo e a Minha ficha com o próprio telefone; antes, a conta desativada só volta por quem dá o papel (decisão de 21/11/2026). **Mesclada (#90).**
 4. **Transição do login** (as mangueiras), **condicional**: só começa se o usuário tiver aprovado o mockup (ajustes R1 a R6). As tarefas são escritas quando ela for começar.
+5. **Retorno da validação, parte sem mockup** (lote de 21/11/2026): recolher equipe na Grade geral, rastreio por dia e "Vale desde" do modelo de guarnição aceitando mês passado. **Detalhada abaixo.**
+6. **Retorno da validação, parte com mockup** (mesmo lote): sete ajustes de interface que esperam o mockup da DESIGN. Lista no fim; as tarefas são escritas quando o mockup for aprovado.
 
 O retorno da validação que chegar durante a fase vira uma entrega depois da última prevista.
 
@@ -527,3 +529,133 @@ Decisão do usuário (21/11/2026, `docs/decisoes.md`): a folga do auxiliar (Task
 # Entrega 4 — Transição do login (condicional)
 
 Só começa se o usuário tiver aprovado o mockup `docs/telas/transicao-login/mockup.html` depois dos ajustes R1 a R6, sem som. As tarefas são escritas quando ela for começar, a partir do design `docs/superpowers/specs/2026-11-20-transicao-login-design.md` ("Como é feita" e "Testes"). Sem a aprovação, a entrega passa para a fase seguinte, e a faixa continua com a cena parada da entrega 3.
+
+---
+
+# Entrega 5 — Retorno da validação, parte sem mockup
+
+**Goal:** três ajustes que o usuário decidiu ao validar (21/11/2026) e que não dependem de desenho novo.
+
+**Branch:** `fase6-5-retorno-da-validacao`. Commits `Fase 6.5: …`. **Migração 0026:** o resumo avisa `pnpm --filter api db:migrar:teste`.
+
+## Global Constraints
+
+- **O rastreio passa a valer por dia**, como os afastamentos. "A partir de" é uma data, sugerida a de hoje.
+- **Textos fixos do rastreio:**
+  - data anterior ao período aberto: "Use o dia do período aberto ou um dia depois.";
+  - descrição do formulário: "A situação atual termina no dia anterior ao escolhido. No mesmo dia do período aberto, ele é substituído.".
+- **Só o "Vale desde" do modelo de guarnição** (criar modelo e nova versão) aceita mês passado. As outras vigências continuam recusando: Configurações, Escalas, a matriz e o "desativar a partir de" do próprio modelo.
+- **A importação de MILITARES e a do PECÚLIO não mudam:** a planilha continua informando o mês, que vale como o dia 1. *Minha decisão:* a planilha é contrato, e o lote não pediu mudança nela.
+
+**Decisões desta entrega** (do usuário, na validação; as minhas estão marcadas):
+- Rastreio por dia: substitui a decisão provisória "a partir de é o mês" e fecha a pendência de elucidação.
+- "Vale desde" antigo: no teste, o usuário monta os modelos-padrão antes do lançamento, e o primeiro modelo vale "de muito tempo atrás". Em operação real isso altera guarnições antigas, e o usuário aceita.
+- Recolher equipe (*minhas*):
+  - o estado de cada equipe vale enquanto a pessoa estiver na tela, inclusive ao trocar de mês; não fica guardado entre visitas;
+  - com texto na busca, as equipes com resultado aparecem abertas;
+  - a faixa mostra quantos militares a equipe tem.
+
+## Review Focus
+
+1. **Militar que muda de equipe no dia 15:** na Grade geral ele aparece nas duas equipes, cada linha valendo só nos dias do seu período; a lista "Escolher militar" de um dia usa a equipe e a jornada daquele dia. Task 13.
+2. **Pré-escala do Pronto com mudança de equipe no meio do mês:** o militar entra pela equipe antiga até o dia 14 e pela nova a partir do dia 15. Task 13.
+3. **"Alterar situação" com a data de hoje no mesmo dia em que o período abriu:** substitui o período, sem criar um de zero dia. Task 13.
+4. **Banco já com períodos no dia 1:** depois da migração, as escalas dos meses passados mostram as mesmas equipes e jornadas. Task 13.
+5. **Equipe recolhida com o militar escolhido dentro:** a linha some, o painel do dia continua aberto, e abrir a equipe mostra a linha marcada. Task 12.
+
+### Task 12: Grade geral: recolher e mostrar a equipe
+
+**Files:**
+- Modify: `apps/web/src/componentes/grade/TabelaDaGrade.tsx`, `apps/web/src/routes/_app/grade.tsx` (o estado das equipes recolhidas)
+- Test: `apps/web/src/__testes__/grade.test.tsx`
+
+**Interfaces:**
+- Produces: `TabelaDaGrade` ganha `recolhidas: Set<string>` (as chaves dos grupos) e `aoAlternar(chave: string): void`.
+
+- [ ] **Step 1: Testes.**
+  - `it('clicar no nome da equipe esconde e mostra os militares dela')`: o nome é um botão com `aria-expanded`; recolhida, as linhas do grupo não estão na tabela.
+  - `it('a faixa mostra quantos militares a equipe tem')`.
+  - `it('com busca, a equipe com resultado aparece aberta')`.
+  - `it('recolher a equipe do militar escolhido não fecha o painel do dia')`. Review Focus 5.
+  - `it('trocar de mês mantém as equipes recolhidas')`.
+- [ ] **Step 2: Run** `pnpm --filter web test grade`. Expected: FAIL.
+- [ ] **Step 3: Implement.** O estado fica na rota (`useState<Set<string>>`). Os totais e os máximos continuam contando todos os militares.
+- [ ] **Step 4: Run** `pnpm --filter web test`. Expected: PASS.
+- [ ] **Step 5: Commit** `Fase 6.5: recolher e mostrar a equipe na Grade geral`.
+
+### Task 13: Rastreio por dia
+
+**Files:**
+- Create: `apps/api/banco/migracoes/0026_rastreio_por_dia.sql` (tira o `check (extract(day from desde) = 1)` do `rastreio`, procurando o nome em `pg_constraint`; o da `unidade` fica)
+- Modify: `pacotes/contratos/src/militares.ts` (`AlteracaoDeSituacao.desde` passa de `Mes` para `Data`)
+- Modify: `apps/api/src/cadastros/militares.ts` (`POST /api/militares/:id/situacao` e a mensagem `MSG_PERIODO_ANTES`)
+- Modify: `apps/api/src/escala/pre-escala.ts` (a equipe do militar em cada dia)
+- Modify: `apps/web/src/componentes/militares/Rastreio.tsx`, a linha do tempo da ficha e `apps/web/src/lib/militares.ts` (`resumoDaLotacao`)
+- Test: `apps/api/test/esquema-estrutura.test.ts`, `apps/api/test/militares.test.ts`, `apps/api/test/grade.test.ts`, `apps/api/test/escala-candidatos.test.ts`, o teste da pré-escala, `apps/web/src/__testes__/militares.test.tsx`, `apps/web/src/__testes__/linha-do-tempo-militar.test.tsx`
+
+**Interfaces:**
+- Produces: `AlteracaoDeSituacao = { unidadeId, equipeId, jornada, desde: Data }`.
+- **Regra da rota:**
+  - `desde` igual ao início do período aberto: substitui o período;
+  - `desde` depois: fecha o período aberto no dia anterior e abre outro;
+  - `desde` antes: 400 no campo, com o texto fixo.
+- A ficha devolvida usa o mês de `desde`.
+
+- [ ] **Step 1: Testes da API.**
+  - `it('o rastreio aceita começar em qualquer dia')` (esquema); período sobreposto continua barrado.
+  - `it('alterar a situação no dia 15 fecha o período no dia 14')`.
+  - `it('no mesmo dia do período aberto, substitui')`. Review Focus 3.
+  - `it('antes do período aberto é 400 com a mensagem')`.
+  - `it('quem muda de equipe no dia 15 tem duas linhas na Grade, cada uma nos seus dias')`. Review Focus 1.
+  - `it('Escolher militar usa a equipe e a jornada do dia')`: no dia 10, a antiga; no dia 20, a nova. Review Focus 1.
+  - `it('a pré-escala do Pronto segue a equipe de cada dia')`. Review Focus 2.
+  - `it('períodos que começam no dia 1 continuam como antes')`: o resultado da Grade de um mês passado não muda. Review Focus 4.
+- [ ] **Step 2: Testes do site.**
+  - `it('"A partir de" é uma data, sugerida a de hoje')`.
+  - `it('a situação atual mostra "desde dd/mm/aaaa" e é a de hoje')`: com mudança marcada para depois de hoje, vale a anterior.
+  - `it('a linha do tempo mostra o dia da mudança')`.
+- [ ] **Step 3: Run** `pnpm --filter api test` e `pnpm --filter web test militares linha-do-tempo`. Expected: FAIL nos casos novos.
+- [ ] **Step 4: Implement.**
+  - A migração e a rota.
+  - Conferir cada consulta ao `rastreio` em `apps/api/src` (`rg "rastreio" apps/api/src`): as que escolhem "o período do mês" passam a escolher o período do dia quando a pergunta é sobre um dia; as listas do mês continuam mostrando quem tem período no mês.
+  - Na pré-escala, cada dia usa o período que o cobre.
+  - No site: `type="date"`, as datas por extenso curto e os textos fixos.
+- [ ] **Step 5: Run** `pnpm --filter api test && pnpm --filter web test`. Expected: PASS.
+- [ ] **Step 6: Commit** `Fase 6.5: o rastreio vale por dia`.
+
+### Task 14: "Vale desde" do modelo de guarnição aceita mês passado
+
+**Files:**
+- Modify: `apps/api/src/cadastros/guarnicoes.ts` (sai o `mesPassado` de `POST /api/unidades/:u/guarnicoes` e de `PUT /api/guarnicoes/:id/versoes/:mes`; fica o de `POST /api/guarnicoes/:id/situacao`)
+- Modify: `apps/web/src/componentes/guarnicoes/ListaDeModelos.tsx` e `apps/web/src/componentes/guarnicoes/Versoes.tsx` (sai o `min` do campo)
+- Test: `apps/api/test/guarnicoes.test.ts`, `apps/web/src/__testes__/guarnicoes.test.tsx`
+
+- [ ] **Step 1: Testes.**
+  - `it('cria um modelo valendo desde 1926-11')`: 201.
+  - `it('grava uma versão num mês passado')`: 200.
+  - `it('desativar a partir de um mês passado continua 409')`.
+  - No site: os dois campos "Vale desde" aceitam um mês anterior ao atual.
+- [ ] **Step 2: Run** `pnpm --filter api test guarnicoes` e `pnpm --filter web test guarnicoes`. Expected: FAIL.
+- [ ] **Step 3: Implement.**
+- [ ] **Step 4: Run** `pnpm test`. Expected: PASS.
+- [ ] **Step 5: Commit** `Fase 6.5: o "Vale desde" do modelo de guarnição aceita mês passado`.
+- [ ] **Step 6: Fechar a entrega.**
+  - `pnpm test && pnpm typecheck && pnpm build:vercel`; contagens; o esquema com a migração 0026.
+  - Enviar à PLANEJAMENTO o branch, o resumo e a lista curta para a sandbox:
+    - recolher e abrir uma equipe na Grade;
+    - alterar a situação de um militar a partir de um dia no meio do mês e ver a Grade e a pré-escala;
+    - criar um modelo de guarnição valendo de um mês antigo.
+
+---
+
+# Entrega 6 — Retorno da validação, parte com mockup (aguardando a DESIGN)
+
+Do mesmo lote de 21/11/2026. Cada item espera o mockup da DESIGN e a aprovação do usuário; as tarefas são escritas depois disso.
+
+1. **Confirmações em diálogo do sistema**, no lugar da janela do navegador (`window.confirm`, 11 usos): desativar modelo, remover turno, afastamento, cota e feriado, desativar escala, serviço e acesso, e a pergunta de alteração não salva.
+2. **Topo:** só o brasão, sem o texto "Escalas 2º GB"; uma linha separando o brasão dos itens do menu; o brasão com aparência de clicável.
+3. **Seletor de unidade:** navegar nível por nível (CBMPE, DGO, DInter/1, 2º GB, seção), em vez da lista única com a árvore inteira.
+4. **Tela inicial:** o enquadramento da imagem de boas-vindas.
+5. **Ficha com cadastro incompleto:** sai a faixa âmbar do topo. O dado que falta vira campo vermelho com a orientação dentro; o conflito (ex.: antiguidade repetida) fica como aviso na ficha e na lista.
+6. **Lista de militares:** um botão de aviso filtra só quem tem pendência, no lugar do "Ver quais".
+7. **Lista de militares:** o motivo do afastamento ("Adido o mês todo", "Curso desde 18/11") alinhado à direita da linha.
