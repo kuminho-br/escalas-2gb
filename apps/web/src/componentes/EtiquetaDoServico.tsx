@@ -1,4 +1,4 @@
-import { corDoTexto } from '@/lib/cores';
+import { corLegivel } from '@/lib/cores';
 import { cn } from '@/lib/utils';
 
 /**
@@ -7,13 +7,14 @@ import { cn } from '@/lib/utils';
  * transparente (para usar sobre uma barra que já tem a cor do serviço).
  */
 export function EtiquetaDoServico({ nome, cor, variante = 'cheia', className }: { nome: string; cor: string; variante?: 'cheia' | 'contorno'; className?: string }) {
-  const texto = corDoTexto(cor);
+  // o fundo (e o texto) com contraste de 4,5:1: a cor salva não muda, só a exibição
+  const { fundo, texto } = corLegivel(cor);
   return (
     <span
       data-etiqueta-servico
       data-variante={variante}
       className={cn('inline-flex shrink-0 items-center rounded-full border px-2 py-px text-[11px] leading-tight font-semibold whitespace-nowrap', className)}
-      style={variante === 'cheia' ? { backgroundColor: cor, color: texto, borderColor: cor } : { backgroundColor: 'transparent', color: texto, borderColor: texto }}
+      style={variante === 'cheia' ? { backgroundColor: fundo, color: texto, borderColor: fundo } : { backgroundColor: 'transparent', color: texto, borderColor: texto }}
     >
       {nome}
     </span>

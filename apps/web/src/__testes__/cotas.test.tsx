@@ -121,15 +121,26 @@ describe('cotas', () => {
     api({ 'POST /api/unidades/u-1sb/cotas/copiar': { status: 200, corpo: { copiados: 0, puladas: 2 } } });
     abrir('/cotas');
     await userEvent.click(await screen.findByRole('button', { name: 'Copiar do mês anterior' }));
-    expect(await screen.findByText('Nenhuma cota copiada: 2 de serviço desativado ficaram de fora. Reative o serviço na tela de Serviços para copiá-las.')).toBeInTheDocument();
+    expect(await screen.findByText('Nenhuma cota copiada: 2 de serviço desativado ficaram de fora. Reative o serviço na tela de Turnos para copiá-las.')).toBeInTheDocument();
     expect(screen.queryByText(/Nenhuma cota nova/)).toBeNull();
+  });
+
+  it('sem serviço PJES ou diária para a cota, o aviso manda para a tela de Turnos', async () => {
+    simularApi({
+      '/api/eu': { status: 200, corpo: EU_EXEMPLO },
+      'GET /api/unidades/u-1sb/cotas': { status: 200, corpo: [] },
+      'GET /api/unidades/u-1sb/servicos': { status: 200, corpo: [servico({ id: 'sv-pronto', nome: 'Pronto', tipo: 'ordinario' })] },
+    });
+    abrir('/cotas');
+    await userEvent.click(await screen.findByRole('button', { name: 'Adicionar cota' }));
+    expect(await screen.findByText('Cadastre um serviço PJES ou diária na tela de Turnos.')).toBeInTheDocument();
   });
 
   it('com uma só de serviço desativado, o texto fica no singular', async () => {
     api({ 'POST /api/unidades/u-1sb/cotas/copiar': { status: 200, corpo: { copiados: 0, puladas: 1 } } });
     abrir('/cotas');
     await userEvent.click(await screen.findByRole('button', { name: 'Copiar do mês anterior' }));
-    expect(await screen.findByText('Nenhuma cota copiada: 1 de serviço desativado ficou de fora. Reative o serviço na tela de Serviços para copiá-la.')).toBeInTheDocument();
+    expect(await screen.findByText('Nenhuma cota copiada: 1 de serviço desativado ficou de fora. Reative o serviço na tela de Turnos para copiá-la.')).toBeInTheDocument();
   });
 
   it('adicionar cota envia o mês, o serviço, a quantidade, a origem e a prioridade', async () => {
@@ -244,7 +255,7 @@ describe('cotas', () => {
   it('a tela traz o botão de importar da planilha', async () => {
     api();
     abrir('/cotas');
-    expect(await screen.findByRole('button', { name: /Importar da planilha/ })).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: 'Importar' })).toBeInTheDocument();
   });
 });
 

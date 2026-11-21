@@ -10,7 +10,7 @@ import { Selecao } from '@/componentes/Selecao';
 import { Button } from '@/componentes/ui/button';
 import { Input } from '@/componentes/ui/input';
 import { ReguaDoDia } from '@/componentes/servicos/ReguaDoDia';
-import { corDoTexto } from '@/lib/cores';
+import { estiloDaCor } from '@/lib/cores';
 import { textoDuracao } from '@/lib/turnos';
 
 /** Turnos dentro do serviço: cada linha grava sozinha. */
@@ -46,7 +46,7 @@ function duracaoDe(inicio: string, fim: string): string | null {
 /** A duração em destaque, no bloco com a cor do serviço. */
 function BlocoDeDuracao({ cor, duracao }: { cor: string; duracao: string | null }) {
   return duracao ? (
-    <span className="rounded px-2.5 py-0.5 font-cond text-base font-semibold" style={{ backgroundColor: cor, color: corDoTexto(cor) }}>
+    <span className="rounded px-2.5 py-0.5 font-cond text-base font-semibold" style={estiloDaCor(cor)}>
       {duracao}
     </span>
   ) : (

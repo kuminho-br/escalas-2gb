@@ -33,6 +33,13 @@ describe('textos dos turnos', () => {
 });
 
 describe('serviços', () => {
+  it('a tela se chama Turnos (o endereço continua /servicos)', async () => {
+    api();
+    abrir('/servicos');
+    expect(await screen.findByRole('heading', { level: 1, name: 'Turnos' })).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { level: 1, name: 'Serviços' })).toBeNull();
+  });
+
   it('lista agrupa por tipo e esconde os desativados até marcar', async () => {
     api();
     abrir('/servicos');

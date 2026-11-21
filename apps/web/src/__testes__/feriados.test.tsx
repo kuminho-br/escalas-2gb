@@ -177,7 +177,7 @@ describe('feriados', () => {
   it('a tela traz o botão de importar da planilha', async () => {
     api();
     abrir('/feriados');
-    expect(await screen.findByRole('button', { name: /Importar da planilha/ })).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: 'Importar' })).toBeInTheDocument();
   });
 });
 

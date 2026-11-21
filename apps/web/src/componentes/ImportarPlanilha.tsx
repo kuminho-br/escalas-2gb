@@ -94,7 +94,7 @@ export function ImportarPlanilha({ cadastro, rotulo, aoConcluir, unidadeId }: { 
       <DialogTrigger asChild>
         <Button variant="outline">
           <FileUp aria-hidden />
-          Importar da planilha
+          Importar
         </Button>
       </DialogTrigger>
       <DialogContent className="max-h-[85dvh] overflow-y-auto sm:max-w-xl">

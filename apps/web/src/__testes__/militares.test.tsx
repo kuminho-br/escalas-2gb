@@ -218,7 +218,7 @@ describe('Motorista: dado novo do servidor (revisão final da revisão 3)', () =
 });
 
 describe('ficha do militar', () => {
-  it('as categorias que a carteira habilita aparecem marcadas, com "pela E"; só a carteira é gravada', async () => {
+  it('as categorias que a carteira habilita aparecem marcadas, sem escrever "pela E"; só a carteira é gravada', async () => {
     const f = api({
       'GET /api/militares/m1': { status: 200, corpo: { ...FICHA, noQuadroDeMotoristas: true, cnh: ['E'], cnhPorHierarquia: ['D', 'C', 'B'] } },
       'PATCH /api/militares/m1': { status: 200, corpo: FICHA },
@@ -229,7 +229,8 @@ describe('ficha do militar', () => {
       const botao = screen.getByRole('button', { name: new RegExp(`^${letra}\\b`) });
       expect(botao).toHaveAttribute('aria-pressed', 'true');
       expect(botao).toHaveAttribute('data-origem', 'hierarquia');
-      expect(within(botao).getByText('pela E')).toBeInTheDocument();
+      // o quadrado não escreve de onde vem (a informação ficou só no nome acessível)
+      expect(within(botao).queryByText(/pela/)).toBeNull();
     }
     // o nome acessível continua dizendo de onde vem
     expect(screen.getByRole('button', { name: 'C caminhão pela E' })).toBe(c);
@@ -249,6 +250,100 @@ describe('ficha do militar', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Salvar motorista' }));
     // o quadro não mudou: o salvar manda só o que mudou (a carteira)
     await waitFor(() => expect(corpoEnviado(f, 'PATCH /api/militares/m1')).toEqual({ cnh: ['A', 'E'] }));
+  });
+
+  describe('CNH: clicar numa categoria acesa só pela hierarquia', () => {
+    const quadrado = (letra: string) => screen.getByRole('button', { name: new RegExp(`^${letra}\\b`) });
+    const apagado = (letra: string) => expect(quadrado(letra)).toHaveAttribute('data-origem', 'nenhuma');
+    const daCarteira = (letra: string) => expect(quadrado(letra)).toHaveAttribute('data-origem', 'carteira');
+    const pelaHierarquia = (letra: string) => expect(quadrado(letra)).toHaveAttribute('data-origem', 'hierarquia');
+    const abrirCom = (cnh: string[]) => {
+      const f = api({
+        'GET /api/militares/m1': { status: 200, corpo: { ...FICHA, noQuadroDeMotoristas: true, cnh, cnhPorHierarquia: [] } },
+        'PATCH /api/militares/m1': { status: 200, corpo: FICHA },
+      });
+      abrir('/militares/m1');
+      return f;
+    };
+
+    it('com a E na carteira, clicar na C deixa só a C: a E e a D saem, e a B segue acesa pela C', async () => {
+      const f = abrirCom(['E']);
+      await screen.findByRole('button', { name: /^C\b/ });
+      pelaHierarquia('D');
+      await userEvent.click(quadrado('C'));
+      daCarteira('C');
+      pelaHierarquia('B');
+      apagado('E');
+      apagado('D');
+      expect(screen.getByText('Alterações não salvas')).toBeInTheDocument();
+      await userEvent.click(screen.getByRole('button', { name: 'Salvar motorista' }));
+      await waitFor(() => expect(corpoEnviado(f, 'PATCH /api/militares/m1')).toEqual({ cnh: ['C'] }));
+    });
+
+    it('clicar na categoria que está na carteira (E) apaga ela e as que ela acendeu, e a moto fica como estava', async () => {
+      abrirCom(['A', 'E']);
+      await screen.findByRole('button', { name: /^E\b/ });
+      await userEvent.click(quadrado('E'));
+      for (const letra of ['E', 'D', 'C', 'B']) apagado(letra);
+      daCarteira('A');
+    });
+
+    it('a moto é separada: clicar na C com a moto e a E na carteira mexe só na E e na C', async () => {
+      const f = abrirCom(['A', 'E']);
+      await screen.findByRole('button', { name: /^C\b/ });
+      await userEvent.click(quadrado('C'));
+      daCarteira('A');
+      daCarteira('C');
+      await userEvent.click(screen.getByRole('button', { name: 'Salvar motorista' }));
+      await waitFor(() => expect(corpoEnviado(f, 'PATCH /api/militares/m1')).toEqual({ cnh: ['A', 'C'] }));
+    });
+
+    it('com a E e a D juntas na carteira, clicar na C tira as duas que a acendiam (senão ela continuaria acesa pela D)', async () => {
+      const f = abrirCom(['D', 'E']);
+      await screen.findByRole('button', { name: /^C\b/ });
+      await userEvent.click(quadrado('C'));
+      daCarteira('C');
+      apagado('D');
+      apagado('E');
+      await userEvent.click(screen.getByRole('button', { name: 'Salvar motorista' }));
+      await waitFor(() => expect(corpoEnviado(f, 'PATCH /api/militares/m1')).toEqual({ cnh: ['C'] }));
+    });
+
+    it('carteira que veio com a C e a E juntas: clicar na C deixa só a C (a E sai)', async () => {
+      const f = abrirCom(['C', 'E']);
+      await screen.findByRole('button', { name: /^C\b/ });
+      await userEvent.click(quadrado('C'));
+      daCarteira('C');
+      apagado('E');
+      apagado('D');
+      await userEvent.click(screen.getByRole('button', { name: 'Salvar motorista' }));
+      await waitFor(() => expect(corpoEnviado(f, 'PATCH /api/militares/m1')).toEqual({ cnh: ['C'] }));
+    });
+
+    it('carteira que veio com a C e a E juntas: clicar na E apaga a E e tudo o que ela acendia, inclusive a C', async () => {
+      const f = abrirCom(['A', 'C', 'E']);
+      await screen.findByRole('button', { name: /^E\b/ });
+      await userEvent.click(quadrado('E'));
+      for (const letra of ['E', 'D', 'C', 'B']) apagado(letra);
+      daCarteira('A');
+      await userEvent.click(screen.getByRole('button', { name: 'Salvar motorista' }));
+      await waitFor(() => expect(corpoEnviado(f, 'PATCH /api/militares/m1')).toEqual({ cnh: ['A'] }));
+    });
+
+    it('clicar numa categoria apagada acende ela; a menor que a carteira já tinha passa a vir dela, e nenhum quadrado escreve "pela X"', async () => {
+      const f = abrirCom(['C']);
+      await screen.findByRole('button', { name: /^C\b/ });
+      await userEvent.click(quadrado('E'));
+      daCarteira('E');
+      pelaHierarquia('D');
+      pelaHierarquia('C');
+      pelaHierarquia('B');
+      expect(screen.queryByText(/pela [A-E]/)).toBeNull();
+      await userEvent.click(screen.getByRole('button', { name: 'Salvar motorista' }));
+      await waitFor(() => expect(corpoEnviado(f, 'PATCH /api/militares/m1')).toEqual({ cnh: ['E'] }));
+      // a frase de ajuda não muda
+      expect(screen.getByText('Marque as categorias da carteira. As que ela habilita acendem sozinhas (a E acende D, C e B). A moto (A) é separada.')).toBeInTheDocument();
+    });
   });
 
   describe('motorista e CNH são independentes', () => {

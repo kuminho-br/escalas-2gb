@@ -1,6 +1,6 @@
 import { textoHora, type Servico } from 'contratos';
 import { useState } from 'react';
-import { corDoTexto } from '@/lib/cores';
+import { estiloDaCor } from '@/lib/cores';
 import { cn } from '@/lib/utils';
 import { fimDaRegua, segmentosDoDia, sobreposicoes, textoMinutos } from '@/lib/turnos';
 
@@ -51,7 +51,7 @@ export function ReguaDoDia({ servico }: { servico: Servico }) {
               onMouseEnter={() => setEmCima(i)}
               onMouseLeave={() => setEmCima((atual) => (atual === i ? null : atual))}
               className="absolute inset-y-0 grid place-items-center border-r border-white/50 font-cond text-sm font-semibold"
-              style={{ left: pct(s.ini), width: pct(s.fim - s.ini), backgroundColor: fundo, color: corDoTexto(fundo) }}
+              style={{ left: pct(s.ini), width: pct(s.fim - s.ini), ...estiloDaCor(fundo) }}
             >
               {/* a letra só cabe em trecho largo; o nome acessível da régua já a diz */}
               {(s.fim - s.ini) / fim >= 0.06 && <span className="relative z-20">{s.letra}</span>}

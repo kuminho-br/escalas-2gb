@@ -1,8 +1,12 @@
 import type { FuncaoNoEfetivo, GuarnicaoNoEfetivo, TrechoNoEfetivo } from 'contratos';
+import { useState } from 'react';
 import { EtiquetaDoServico } from '@/componentes/EtiquetaDoServico';
-import { corDoTexto } from '@/lib/cores';
+import { BarraDaVaga, classeDaVaga } from '@/componentes/VagaVazia';
+import { estiloDaCor } from '@/lib/cores';
 import { posicao, type Janela } from '@/lib/efetivo';
+import type { CSSProperties } from 'react';
 import { textoMinutos } from '@/lib/turnos';
+import { cn } from '@/lib/utils';
 
 export type AcoesDaLinha = {
   aoClicarVaga?: (funcao: FuncaoNoEfetivo, trecho: TrechoNoEfetivo) => void;
@@ -29,29 +33,45 @@ function Trecho({ funcao, t, janela, acoes }: { funcao: FuncaoNoEfetivo; t: Trec
         aria-label={nomeDoTrecho(funcao.funcao, t)}
         onClick={() => acoes.aoClicarVaga?.(funcao, t)}
         data-vaga
-        // as mesmas listras das vagas vazias da Escala do mês
-        className={`${base} border border-[#F2C200] bg-[repeating-linear-gradient(135deg,#FFF3B8_0_8px,#FFFFFF_8px_16px)] text-xs font-medium text-pendencia hover:brightness-95`}
+        // a faixa só traz vagas até o mínimo da função: toda vaga aqui é obrigatória (a extra só existe na Escala do mês)
+        data-obrigatoria
+        // o mesmo desenho das vagas vazias da Escala do mês; sem estilo de cor: a cor de serviço é de quem já está escalado
+        className={cn(base, classeDaVaga(true), 'pl-2 text-xs font-medium')}
         style={estilo}
       >
+        <BarraDaVaga />
         <span className="truncate">vaga</span>
         <span className="hidden shrink-0 text-[11px] opacity-80 @min-[8rem]:inline">{faixa(t)}</span>
       </button>
     );
   }
   const o = t.ocupante;
+  return <TrechoOcupado funcao={funcao} t={t} o={o} base={base} estilo={estilo} acoes={acoes} />;
+}
+
+/**
+ * O trecho ocupado: o horário não fica no texto visível (informação mais leve). Está no `title` (mouse), aparece ao focar (teclado) e
+ * ao tocar (celular, onde não há "passar o mouse"), e sempre no nome acessível.
+ */
+function TrechoOcupado({ funcao, t, o, base, estilo, acoes }: { funcao: FuncaoNoEfetivo; t: TrechoNoEfetivo; o: NonNullable<TrechoNoEfetivo['ocupante']>; base: string; estilo: CSSProperties; acoes: AcoesDaLinha }) {
+  const [mostrarHorario, setMostrarHorario] = useState(false);
   return (
     <button
       type="button"
       aria-label={nomeDoTrecho(funcao.funcao, t)}
+      title={faixa(t)}
       onClick={() => acoes.aoClicarOcupado?.(funcao, t)}
+      onFocus={() => setMostrarHorario(true)}
+      onBlur={() => setMostrarHorario(false)}
+      onTouchStart={() => setMostrarHorario(true)}
       className={`${base} border border-white/40 hover:brightness-95`}
-      style={{ ...estilo, backgroundColor: o.servico.cor, color: corDoTexto(o.servico.cor) }}
+      style={{ ...estilo, ...estiloDaCor(o.servico.cor) }}
     >
       <span className="truncate font-cond text-sm font-semibold">
-        <span className="text-[11px] font-normal opacity-80">{o.posto}</span> {o.nomeGuerra}
-        {o.acumulo && <span className="ml-1 text-[11px] font-normal opacity-80">acumula</span>}
+        <span className="text-[11px] font-normal">{o.posto}</span> {o.nomeGuerra}
+        {o.acumulo && <span className="ml-1 text-[11px] font-normal">acumula</span>}
       </span>
-      <span className="hidden shrink-0 text-[11px] opacity-90 @min-[10rem]:inline">{faixa(t)}</span>
+      {mostrarHorario && <span data-horario className="shrink-0 text-[11px]">{faixa(t)}</span>}
       <EtiquetaDoServico nome={o.servico.nome} cor={o.servico.cor} variante="contorno" className="hidden @min-[14rem]:inline-flex" />
     </button>
   );

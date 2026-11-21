@@ -1,5 +1,5 @@
 import type { BlocoDaGrade, LinhaDaGrade } from 'contratos';
-import { corDoTexto } from '@/lib/cores';
+import { estiloDaCor } from '@/lib/cores';
 import { cn } from '@/lib/utils';
 
 const COR_DO_EXPEDIENTE = '#8A94A1';
@@ -49,7 +49,7 @@ export function CelulaDaGrade({ linha, dia, data, blocos, choque, escolhida, aoE
             key={`${b.alocacaoId ?? 'expediente'}|${i}`}
             aria-hidden
             className="grid h-[18px] w-5 shrink-0 place-items-center rounded-[3px] font-cond text-[11px] leading-none font-bold"
-            style={{ backgroundColor: cor, color: corDoTexto(cor) }}
+            style={estiloDaCor(cor)}
           >
             {b.letra}
           </span>

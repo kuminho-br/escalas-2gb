@@ -1,15 +1,13 @@
-import { textoFaixa, type FaltaNoEfetivo, type GuarnicaoNoEfetivo } from 'contratos';
+import type { GuarnicaoNoEfetivo } from 'contratos';
 import { ArrowLeft, ArrowRight } from 'lucide-react';
 import { Button } from '@/componentes/ui/button';
 import { cn } from '@/lib/utils';
 import { LinhaDoTempoDaGuarnicao, type AcoesDaLinha } from './LinhaDoTempoDaGuarnicao';
 import type { Janela } from '@/lib/efetivo';
 
-const fraseDaFalta = (f: FaltaNoEfetivo) => `${f.faltam === 1 ? 'Falta 1' : `Faltam ${f.faltam}`} ${f.funcao} ${textoFaixa(f.inicio, f.fim)}`;
-
 /**
  * Uma guarnição do dia. O número só existe na meta (a ordem de ativação), e o estado nunca muda a posição: não ativada continua onde está.
- * As funções aparecem ao longo do dia, com as vagas na própria linha; as faltas também vêm escritas, embaixo.
+ * As funções aparecem ao longo do dia, com as vagas na própria linha (a frase "Falta…" não vem mais escrita: a vaga vazia já diz).
  */
 /** Os controles da meta no card da meta: mudam a meta deste dia ("Mover antes" e "Mover depois" só quando há para onde ir). */
 export type ControlesDaMeta = { aoMoverAntes?: () => void; aoMoverDepois?: () => void; aoDesativar: () => void; salvando: boolean };
@@ -42,11 +40,6 @@ export function CardDoEfetivo({ g, janela, acoes, meta }: { g: GuarnicaoNoEfetiv
       </header>
       {g.horarios.length === 0 && <p className="text-sm text-apagado">Sem horário vinculado neste dia</p>}
       {janela && <LinhaDoTempoDaGuarnicao g={g} janela={janela} acoes={acoes} />}
-      {g.faltas.map((f) => (
-        <p key={`${f.funcao}|${f.inicio}|${f.fim}`} className="flex flex-wrap items-center gap-x-3 text-sm font-medium text-pendencia">
-          <span>{fraseDaFalta(f)}</span>
-        </p>
-      ))}
     </section>
   );
 }

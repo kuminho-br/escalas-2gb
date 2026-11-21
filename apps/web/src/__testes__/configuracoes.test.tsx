@@ -132,21 +132,21 @@ describe('configurações: papéis e campos', () => {
   const apiComSimNao = (eu = GESTOR, extra: Parameters<typeof simularApi>[0] = {}) =>
     api({ [`GET ${PARAMS}`]: { status: 200, corpo: [...LISTA, ADM_CUMPRE] }, ...extra }, eu);
 
-  it('escalante não vê Mudar a partir de nem Importar da planilha', async () => {
+  it('escalante não vê Mudar a partir de nem Importar', async () => {
     api();
     abrir('/configuracoes');
     await screen.findByText('Carga mensal (horas)');
     expect(screen.queryByRole('button', { name: 'Mudar a partir de…' })).toBeNull();
-    expect(screen.queryByRole('button', { name: 'Importar da planilha' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Importar' })).toBeNull();
     expect(screen.getByText(/Só o gestor ou o administrador muda\./)).toBeInTheDocument();
   });
 
-  it('gestor vê Mudar a partir de e Importar da planilha', async () => {
+  it('gestor vê Mudar a partir de e Importar', async () => {
     api({}, GESTOR);
     abrir('/configuracoes');
     await screen.findByText('Carga mensal (horas)');
     expect(screen.getAllByRole('button', { name: 'Mudar a partir de…' })).toHaveLength(2);
-    expect(screen.getByRole('button', { name: 'Importar da planilha' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Importar' })).toBeInTheDocument();
     expect(screen.queryByText(/Só o gestor ou o administrador muda\./)).toBeNull();
   });
 

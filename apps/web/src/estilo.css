@@ -15,6 +15,10 @@
   --color-alerta: #B3261E;
   --color-pendencia: #8A5A00;
   --color-pendencia-fundo: #FCF1D6;
+  /* a vaga vazia: contorno da obrigatória (3,5:1 sobre branco), da extra (mais claro) e o fundo ao passar o mouse */
+  --color-encaixe: #7D8A9C;
+  --color-encaixe-claro: #A3AEBC;
+  --color-passa: #F3F5F8;
 
   /* texto de apoio em 13 px (o padrão do Tailwind é 12) */
   --text-xs: 0.8125rem;

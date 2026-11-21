@@ -39,7 +39,17 @@ export function Motorista({ ficha }: { ficha: FichaMilitar }) {
     setSalvo({ quadro: ficha.noQuadroDeMotoristas, carteira: [...ficha.cnh].sort() });
   });
 
-  const alternar = (c: string) => setCarteira((atual) => (atual.includes(c) ? atual.filter((x) => x !== c) : [...atual, c].sort()));
+  // A carteira guarda só a maior categoria de cada cadeia (a E já traz D, C e B). Clicar:
+  // - numa categoria que a carteira tem e nenhuma maior da carteira acende: tira ela e as que ela acendia;
+  // - em qualquer outra (apagada, acesa só pela hierarquia, ou repetida por uma maior): ela passa a ser a carteira; saem as maiores que a
+  //   acendiam (senão ela continuaria acesa por elas) e as menores que ela já cobre (agora vêm dela).
+  const alternar = (c: string) =>
+    setCarteira((atual) => {
+      const acendiam = atual.filter((x) => x !== c && CNH_HABILITA[x]?.includes(c));
+      const cobertas = CNH_HABILITA[c] ?? [c];
+      if (atual.includes(c) && acendiam.length === 0) return atual.filter((x) => !cobertas.includes(x));
+      return [...atual.filter((x) => !acendiam.includes(x) && !cobertas.includes(x)), c].sort();
+    });
 
   const { salvando, travar } = useTrava();
   const salvar = travar(gravar);
@@ -86,13 +96,12 @@ export function Motorista({ ficha }: { ficha: FichaMilitar }) {
                   onClick={() => alternar(c)}
                   className={cn(
                     'grid place-items-center rounded-md border px-0.5 py-0.5 text-center',
-                    // a que a carteira habilita acende igual à da carteira; o "pela X" embaixo diz de onde vem
+                    // a que a carteira habilita acende igual à da carteira; de onde vem fica só no nome acessível
                     naCarteira || pela ? 'border-tinta bg-tinta text-white' : 'border-linha text-apagado',
                   )}
                 >
                   <span className="font-cond text-lg leading-none font-semibold">{c}</span>
                   <span className="text-[10px] leading-tight">{veiculo}</span>
-                  {pela && <span className="text-[9px] leading-tight">pela {pela}</span>}
                 </button>
               );
             })}

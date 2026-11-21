@@ -1,10 +1,12 @@
 import { QueryClient } from '@tanstack/react-query';
 import type { BlocoDaGrade, EfetivoDoDia, GradeDoMes, LinhaDaGrade } from 'contratos';
-import { screen, waitFor, within } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
 import { escalar } from '@/api/escala-do-mes';
+import { TabelaDaGrade } from '@/componentes/grade/TabelaDaGrade';
 import { desativar } from '@/api/efetivo-do-dia';
+import { corLegivel } from '@/lib/cores';
 import { abrir, EU_EXEMPLO, simularApi } from './apoio';
 
 // Dezembro de 2026 (dia 1 = terça; dia 5 = sábado; dia 8 = feriado de teste). Equipes Alfa (CABO, SD1) e Bravo (BRAVO) e o Adm (ADM).
@@ -55,7 +57,8 @@ describe('grade geral: a tabela', () => {
     expect([...document.querySelectorAll('tr[data-grupo]')].map((g) => g.querySelector('strong')?.textContent)).toEqual(['Alfa', 'Bravo', 'Adm']);
     expect(screen.getAllByRole('rowheader').map((h) => h.textContent)).toEqual(expect.arrayContaining([expect.stringContaining('CABO'), expect.stringContaining('ADM')]));
     const b = within(celula('CABO', 2, 'Pronto A')).getByText('A');
-    expect(b).toHaveStyle({ backgroundColor: '#2F8F5B' });
+    // a cor do serviço aparece com o contraste de 4,5:1 com o texto (o valor salvo, #2F8F5B, não muda)
+    expect(b).toHaveStyle({ backgroundColor: corLegivel('#2F8F5B').fundo });
     // dois serviços no mesmo dia: os dois blocos, na ordem do dia
     const dois = celula('SD1', 5, 'Pronto A, JES A');
     expect(within(dois).getAllByText('A')).toHaveLength(2);
@@ -185,6 +188,51 @@ describe('grade geral: a tabela', () => {
       expect(bloco).toHaveClass('w-5', 'shrink-0');
       expect(bloco).not.toHaveClass('flex-1');
     }
+  });
+
+  // [foco 5] a linha do militar e a coluna do dia ficam marcadas com um fundo leve; sair da escolha tira a marca
+  it('clicar numa célula marca a linha do militar e a coluna do dia, e escolher outra célula troca a marcação', async () => {
+    api();
+    abrir(`/?mes=${MES}`);
+    await screen.findByRole('table', { name: /Grade geral/ });
+    expect(document.querySelector('[data-linha-marcada]')).toBeNull();
+    expect(document.querySelector('[data-coluna-marcada]')).toBeNull();
+    await userEvent.click(celula('CABO', 2, 'Pronto A'));
+    await waitFor(() => expect(linhaDe('CABO')).toHaveAttribute('data-linha-marcada'));
+    // com o mouse em cima da célula clicada, a marca da linha não some: a linha marcada não tem o fundo de "passar o mouse", que cobriria a marca
+    expect(linhaDe('CABO')).not.toHaveClass('hover:bg-black/[0.03]');
+    expect(linhaDe('CABO')).toHaveClass('bg-vinho/[0.06]');
+    expect(screen.getByRole('rowheader', { name: /CABO/ })).not.toHaveClass('group-hover:bg-[#F7F7F8]');
+    // as outras linhas seguem com o fundo de passar o mouse
+    expect(linhaDe('SD1')).toHaveClass('hover:bg-black/[0.03]');
+    expect(screen.getByRole('rowheader', { name: /SD1/ })).toHaveClass('group-hover:bg-[#F7F7F8]');
+    // só a linha do CABO; só a coluna do dia 2, em todas as linhas (e no cabeçalho do dia)
+    expect(document.querySelectorAll('[data-linha-marcada]')).toHaveLength(1);
+    const colunaMarcada = [...document.querySelectorAll('[data-coluna-marcada]')];
+    expect(colunaMarcada.length).toBeGreaterThanOrEqual(4);
+    expect(colunaMarcada.every((c) => c.getAttribute('data-coluna') === dia(2))).toBe(true);
+    expect(within(linhaDe('SD1')).getAllByRole('button').find((b) => b.getAttribute('data-data') === dia(2))!.closest('td')).toHaveAttribute('data-coluna-marcada');
+    // outra célula: a marcação vai junto
+    await userEvent.click(celula('SD1', 5, 'Pronto A, JES A'));
+    await waitFor(() => expect(linhaDe('SD1')).toHaveAttribute('data-linha-marcada'));
+    expect(linhaDe('CABO')).not.toHaveAttribute('data-linha-marcada');
+    expect(document.querySelectorAll('[data-linha-marcada]')).toHaveLength(1);
+    expect([...document.querySelectorAll('[data-coluna-marcada]')].every((c) => c.getAttribute('data-coluna') === dia(5))).toBe(true);
+  });
+
+  it('uma grade sem linhas ou sem colunas não quebra com uma célula escolhida (Review Focus 5)', () => {
+    const escolhida = { militarId: 'm-CABO', dia: dia(2) };
+    const maximos = { pjes: 0, diarias: 0 };
+    const semLinhas = render(<TabelaDaGrade grade={{ ...GRADE, grupos: [] }} grupos={[]} maximos={maximos} escolhida={escolhida} aoEscolher={() => {}} />);
+    expect(semLinhas.container.querySelector('[data-linha-marcada]')).toBeNull();
+    // o dia escolhido não está nas colunas (a grade do mês não tem nenhum dia): nada é marcado e nada quebra
+    const semDias = render(<TabelaDaGrade grade={{ ...GRADE, dias: [] }} grupos={GRADE.grupos} maximos={maximos} escolhida={escolhida} aoEscolher={() => {}} />);
+    expect(semDias.container.querySelector('[data-coluna-marcada]')).toBeNull();
+    expect(semDias.container.querySelector('[data-linha-marcada]')).not.toBeNull();
+    // militar que não está na grade: nenhuma linha marcada
+    const semMilitar = render(<TabelaDaGrade grade={GRADE} grupos={GRADE.grupos} maximos={maximos} escolhida={{ militarId: 'm-NINGUEM', dia: dia(2) }} aoEscolher={() => {}} />);
+    expect(semMilitar.container.querySelector('[data-linha-marcada]')).toBeNull();
+    expect(semMilitar.container.querySelector('[data-coluna-marcada]')).not.toBeNull();
   });
 
   it('a célula escolhida com choque mantém o contorno vermelho e ganha o fundo da escolhida', async () => {

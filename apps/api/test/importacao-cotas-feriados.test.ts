@@ -105,7 +105,7 @@ describe('importação de cotas', () => {
     ]);
     expect(previa.problemas).toEqual([
       { aba: 'COTAS', linha: 2, mensagem: 'O serviço Pronto é ordinário: cota só existe para serviço PJES ou diária', solucao: 'Use um serviço PJES ou diária na coluna SERVIÇO.' },
-      { aba: 'COTAS', linha: 3, mensagem: 'Serviço Fantasma não cadastrado', solucao: 'Cadastre o serviço na tela de Serviços (ou importe as abas TURNOS e ESCALAS) e importe de novo.' },
+      { aba: 'COTAS', linha: 3, mensagem: 'Serviço Fantasma não cadastrado', solucao: 'Cadastre o serviço na tela de Turnos (ou importe as abas TURNOS e ESCALAS) e importe de novo.' },
       { aba: 'COTAS', linha: 4, mensagem: 'Não achei o serviço da operação "Sem Nada Disso"', solucao: 'Escreva o nome do serviço na coluna SERVIÇO.' },
     ]);
   });
@@ -247,7 +247,7 @@ describe('importação de cotas', () => {
     await api.banco.query("update servico set ativo = false where unidade_id = $1 and nome = 'Operação Velha'", [api.ids.secao]);
     const previa = await importarCotas([[MES, '', '', 'Operação Velha', 3, 'interna', 1]]);
     expect(previa.problemas).toEqual([
-      { aba: 'COTAS', linha: 2, mensagem: 'Serviço Operação Velha está desativado', solucao: 'Reative o serviço na tela de Serviços ou use outro.' },
+      { aba: 'COTAS', linha: 2, mensagem: 'Serviço Operação Velha está desativado', solucao: 'Reative o serviço na tela de Turnos ou use outro.' },
     ]);
     expect(previa.novos).toEqual([]);
   });

@@ -136,7 +136,7 @@ describe('cotas', () => {
       expect(r.status).toBe(400);
       expect(await r.json()).toEqual({
         erro: 'Confira os campos destacados.',
-        campos: { servicoId: 'O serviço Bioma está desativado. Reative-o na tela de Serviços ou escolha outro.' },
+        campos: { servicoId: 'O serviço Bioma está desativado. Reative-o na tela de Turnos ou escolha outro.' },
       });
     } finally {
       await reativar(bioma);
@@ -151,7 +151,7 @@ describe('cotas', () => {
     try {
       const troca = await api.pedir('escalante', 'PATCH', `/api/cotas/${outra.id}`, { servicoId: bioma });
       expect(troca.status).toBe(400);
-      expect((await troca.json()).campos).toEqual({ servicoId: 'O serviço Bioma está desativado. Reative-o na tela de Serviços ou escolha outro.' });
+      expect((await troca.json()).campos).toEqual({ servicoId: 'O serviço Bioma está desativado. Reative-o na tela de Turnos ou escolha outro.' });
       const soQuantidade = await api.pedir('escalante', 'PATCH', `/api/cotas/${antiga.id}`, { quantidade: 12 });
       expect(soQuantidade.status).toBe(200);
       expect(await soQuantidade.json()).toMatchObject({ servico: 'Bioma', quantidade: 12 });

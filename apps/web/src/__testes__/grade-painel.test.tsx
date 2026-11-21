@@ -185,6 +185,18 @@ describe('grade geral: adicionar serviço neste dia', () => {
     expect(within(p).getByRole('heading', { name: 'Bioma' })).toBeInTheDocument();
   });
 
+  it('as abas ocupam a largura toda do painel, e cada aba tem o seu painel separado, com borda', async () => {
+    const { p } = await abrirAdicionar(COM_ABAS);
+    expect(within(p).getByRole('tablist')).toHaveClass('w-full');
+    for (const aba of within(p).getAllByRole('tab')) expect(aba).toHaveClass('flex-1');
+    const painel = within(p).getByRole('tabpanel');
+    expect(painel).toHaveClass('border', 'rounded-lg');
+    // o painel da aba que não está aberta não aparece junto
+    expect(within(p).getAllByRole('tabpanel')).toHaveLength(1);
+    await userEvent.click(within(p).getByRole('tab', { name: 'Operações (1)' }));
+    expect(within(p).getByRole('tabpanel')).toHaveClass('border', 'rounded-lg');
+  });
+
   it('com opções só de operações, abre em Operações e o Ordinário fica desabilitado', async () => {
     const soBioma: PainelDoDia = { ...PAINEL, opcoes: COM_ABAS.opcoes.filter((o) => !o.ordinario) };
     const { p } = await abrirAdicionar(soBioma);

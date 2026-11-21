@@ -29,6 +29,9 @@ const COLUNAS_FINAIS = [
 ] as const;
 const CELULA_FINAL = 'border-b border-b-[#EEF0F3] bg-superficie px-2 py-1 group-hover:bg-[#F7F7F8] min-[1440px]:sticky min-[1440px]:z-10';
 
+/** O fundo leve da marca (linha e coluna da célula escolhida) nas partes presas, que são opacas: o mesmo tom vinho, já misturado com o branco. */
+const FUNDO_DA_MARCA_NO_CABECALHO = 'bg-[#F7EFEF]';
+
 const horas = (l: LinhaDaGrade) => (l.horasTiradas === 0 && l.horasPedidas === 0 ? '–' : `${textoDuracao(l.horasTiradas)} de ${textoDuracao(l.horasPedidas)}`);
 
 /**
@@ -63,8 +66,10 @@ export function TabelaDaGrade({ grade, grupos, maximos, escolhida, aoEscolher }:
                   aria-label={`Dia ${n}, ${NOME_DO_DIA[d.diaDaSemana]}${d.feriado ? `, feriado: ${d.feriado}` : ''}`}
                   data-feriado={d.feriado ? '' : undefined}
                   data-fim-de-semana={fds ? '' : undefined}
+                  data-coluna={d.data}
+                  data-coluna-marcada={escolhida?.dia === d.data ? '' : undefined}
                   title={d.feriado ?? undefined}
-                  className={cn('sticky top-0 z-20 min-w-12 border-b border-linha bg-superficie px-px pt-2 pb-1.5 text-center text-[13px] font-medium text-apagado', ...bordasDoDia(grade, i))}
+                  className={cn('sticky top-0 z-20 min-w-12 border-b border-linha bg-superficie px-px pt-2 pb-1.5 text-center text-[13px] font-medium text-apagado', escolhida?.dia === d.data && FUNDO_DA_MARCA_NO_CABECALHO, ...bordasDoDia(grade, i))}
                 >
                   <span aria-hidden className={cn('block text-base font-semibold', vinho ? 'text-vinho' : 'text-tinta')}>{n}</span>
                   <span aria-hidden className={cn(vinho && 'text-vinho')}>{SIGLA_DO_DIA[d.diaDaSemana]}</span>
@@ -91,9 +96,11 @@ export function TabelaDaGrade({ grade, grupos, maximos, escolhida, aoEscolher }:
                   </span>
                 </th>
               </tr>
-              {g.linhas.map((l) => (
-                <tr key={l.militarId} data-militar={l.militarId} className="group hover:bg-black/[0.03]">
-                  <th scope="row" className="sticky left-0 z-10 min-w-[13rem] border-r-2 border-b border-b-[#EEF0F3] border-r-linha bg-superficie py-1 pl-4 text-left font-normal group-hover:bg-[#F7F7F8]">
+              {g.linhas.map((l) => {
+                const linhaMarcada = escolhida?.militarId === l.militarId;
+                return (
+                <tr key={l.militarId} data-militar={l.militarId} data-linha-marcada={linhaMarcada ? '' : undefined} className={cn('group', linhaMarcada ? 'bg-vinho/[0.06]' : 'hover:bg-black/[0.03]')}>
+                  <th scope="row" className={cn('sticky left-0 z-10 min-w-[13rem] border-r-2 border-b border-b-[#EEF0F3] border-r-linha py-1 pl-4 text-left font-normal', linhaMarcada ? FUNDO_DA_MARCA_NO_CABECALHO : 'bg-superficie group-hover:bg-[#F7F7F8]')}>
                     <span className="flex items-baseline gap-1.5 whitespace-nowrap">
                       <span className="text-sm text-apagado">{l.posto}</span>
                       <strong className="text-[15px] leading-tight font-semibold">{l.nomeGuerra}</strong>
@@ -102,8 +109,15 @@ export function TabelaDaGrade({ grade, grupos, maximos, escolhida, aoEscolher }:
                   </th>
                   {grade.dias.map((d, i) => {
                     const fds = d.diaDaSemana === 0 || d.diaDaSemana === 6;
+                    const colunaMarcada = escolhida?.dia === d.data;
                     return (
-                      <td key={d.data} data-fim-de-semana={fds ? '' : undefined} className={cn('border-b border-b-[#EEF0F3] px-px py-1', ...bordasDoDia(grade, i))}>
+                      <td
+                        key={d.data}
+                        data-fim-de-semana={fds ? '' : undefined}
+                        data-coluna={d.data}
+                        data-coluna-marcada={colunaMarcada ? '' : undefined}
+                        className={cn('border-b border-b-[#EEF0F3] px-px py-1', colunaMarcada && 'bg-vinho/[0.06]', ...bordasDoDia(grade, i))}
+                      >
                         <CelulaDaGrade
                           linha={l}
                           dia={Number(d.data.slice(8))}
@@ -120,7 +134,8 @@ export function TabelaDaGrade({ grade, grupos, maximos, escolhida, aoEscolher }:
                   <td className={cn(CELULA_FINAL, COLUNAS_FINAIS[1].largura, COLUNAS_FINAIS[1].direita)}><BarraComparativa valor={l.diarias} maximo={maximos.diarias} /></td>
                   <td className={cn(CELULA_FINAL, COLUNAS_FINAIS[2].largura, COLUNAS_FINAIS[2].direita, 'overflow-hidden text-right text-sm font-semibold text-ellipsis whitespace-nowrap')} title={horas(l)}>{horas(l)}</td>
                 </tr>
-              ))}
+                );
+              })}
             </Fragment>
           ))}
         </tbody>

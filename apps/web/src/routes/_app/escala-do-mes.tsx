@@ -117,7 +117,7 @@ function EscalaDoMes() {
           Gerar pré-escala
         </Button>
         <Button type="button" variant="outline" aria-pressed={soVazias} onClick={() => setSoVazias(!soVazias)}>
-          Mostrar só vagas vazias
+          Ocultar guarnições completas
         </Button>
       </div>
 

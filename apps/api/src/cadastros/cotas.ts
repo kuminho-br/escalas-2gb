@@ -53,7 +53,7 @@ async function servicoDesativado(c: Consulta, servicoId: string): Promise<string
   return rows[0]?.nome ?? null;
 }
 
-const msgServicoDesativado = (nome: string) => ({ servicoId: `O serviço ${nome} está desativado. Reative-o na tela de Serviços ou escolha outro.` });
+const msgServicoDesativado = (nome: string) => ({ servicoId: `O serviço ${nome} está desativado. Reative-o na tela de Turnos ou escolha outro.` });
 
 /** A cota do mês com o mesmo serviço e origem (fora a `exceto`), se houver. */
 async function cotaIgual(c: Consulta, unidadeId: string, mes: string, servicoId: string, origem: string, exceto?: string): Promise<{ servico: string } | null> {

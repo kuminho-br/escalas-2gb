@@ -1,5 +1,5 @@
 import type { AlocacaoNoTrecho, DiaDaEscala, EfetivoDoDia, EscalaDoMes, GuarnicaoNoEfetivo, LinhaEscala, LinhaGuarnicao, TrechoNoEfetivo } from 'contratos';
-import { act, cleanup, screen, waitFor, within } from '@testing-library/react';
+import { act, cleanup, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { janelaDoDia } from '@/lib/efetivo';
@@ -86,14 +86,15 @@ describe('efetivo por dia: o dia da semana', () => {
 });
 
 describe('efetivo por dia: os cards', () => {
-  it('aparecem na ordem da API, com o número só na meta, o estado e a falta', async () => {
+  it('aparecem na ordem da API, com o número só na meta e o estado; a frase "Falta…" não aparece em card nenhum', async () => {
     api();
     abrir(`/efetivo-por-dia?data=${DIA}`);
     await screen.findByRole('heading', { name: '1º ACO' });
     expect(screen.getAllByRole('region').map((r) => r.getAttribute('aria-label'))).toEqual(['1º ACO', '2º Resgate', 'ABT', 'Antigo']);
     const aco = cartao('1º ACO');
     expect(within(aco).getByText('não ativada')).toBeInTheDocument();
-    expect(within(aco).getByText('Falta 1 Motorista 20h–08h')).toBeInTheDocument();
+    expect(within(aco).queryByText(/Falta/)).toBeNull();
+    expect(screen.queryByText(/^Falta/)).toBeNull();
     expect(within(cartao('2º Resgate')).getByText('ativada')).toBeInTheDocument();
   });
 
@@ -136,27 +137,81 @@ describe('efetivo por dia: a linha do tempo', () => {
     expect(grade).not.toBeNull();
     expect(grade).toHaveClass('grid-cols-[repeat(auto-fill,minmax(min(100%,24rem),1fr))]');
     expect(grade.querySelectorAll(':scope > section')).toHaveLength(4);
+    // os cartões se alinham pelo topo (um card alto não estica o vizinho)
+    expect(grade).toHaveClass('items-start');
   });
 
-  it('o trecho ocupado mostra o nome do serviço numa etiqueta de contorno e o horário dentro dele (4.2)', async () => {
+  it('o trecho ocupado mostra o nome do serviço numa etiqueta de contorno', async () => {
     api();
     abrir(`/efetivo-por-dia?data=${DIA}`);
     const alfa = await screen.findByRole('button', { name: 'Motorista: SD BM ALFA, 08h–08h, Pronto' });
     const etiqueta = within(alfa).getByText('Pronto');
     expect(etiqueta).toHaveAttribute('data-etiqueta-servico');
     expect(etiqueta).toHaveAttribute('data-variante', 'contorno');
-    expect(within(alfa).getByText('08h–08h')).toBeInTheDocument();
   });
 
-  it('só o horário e a etiqueta se escondem quando o trecho é estreito; o nome do militar nunca perde lugar para eles (achado da revisão final)', async () => {
+  // [foco 4] o horário não fica no texto visível: no title (mouse), ao focar (teclado) e ao tocar (celular)
+  it('o horário de um trecho ocupado não está no texto visível: aparece no title, ao focar e ao tocar', async () => {
     api();
     abrir(`/efetivo-por-dia?data=${DIA}`);
     const alfa = await screen.findByRole('button', { name: 'Motorista: SD BM ALFA, 08h–08h, Pronto' });
-    // o trecho mede a própria largura (container query) e o horário e a etiqueta só aparecem quando cabem ao lado do nome
+    expect(within(alfa).queryByText('08h–08h')).toBeNull();
+    expect(alfa).toHaveAttribute('title', '08h–08h');
+    fireEvent.focus(alfa);
+    expect(within(alfa).getByText('08h–08h')).toBeInTheDocument();
+    fireEvent.blur(alfa);
+    expect(within(alfa).queryByText('08h–08h')).toBeNull();
+    // o toque no celular: não há "passar o mouse", então o toque mostra o horário
+    fireEvent.touchStart(alfa);
+    expect(within(alfa).getByText('08h–08h')).toBeInTheDocument();
+  });
+
+  it('só a etiqueta se esconde quando o trecho é estreito; o nome do militar nunca perde lugar para ela (achado da revisão final)', async () => {
+    api();
+    abrir(`/efetivo-por-dia?data=${DIA}`);
+    const alfa = await screen.findByRole('button', { name: 'Motorista: SD BM ALFA, 08h–08h, Pronto' });
+    // o trecho mede a própria largura (container query) e a etiqueta só aparece quando cabe ao lado do nome; o horário não está no texto visível
     expect(alfa).toHaveClass('@container');
-    expect(within(alfa).getByText('08h–08h')).toHaveClass('hidden', '@min-[10rem]:inline');
     expect(within(alfa).getByText('Pronto')).toHaveClass('hidden', '@min-[14rem]:inline-flex');
     expect(within(alfa).getByText('ALFA')).not.toHaveClass('hidden');
+  });
+
+  it('a vaga vazia é um botão de contorno tracejado com a barra vinho de obrigatória, sem listras amarelas e sem a cor do serviço', async () => {
+    api();
+    abrir(`/efetivo-por-dia?data=${DIA}`);
+    const vagaDoAco = await screen.findByRole('button', { name: 'Motorista: vaga 20h–08h' });
+    expect(vagaDoAco.tagName).toBe('BUTTON');
+    expect(vagaDoAco).toHaveClass('border-dashed', 'bg-superficie', 'border-encaixe');
+    // continua presa na régua (posicionada pela faixa), como o trecho ocupado: o estilo da vaga não pode trocar o `absolute` por `relative`
+    expect(vagaDoAco).toHaveClass('absolute', 'inset-y-0.5', 'focus-visible:z-20');
+    expect(vagaDoAco).not.toHaveClass('relative');
+    expect(vagaDoAco.className).not.toMatch(/repeating-linear-gradient|F2C200|FFF3B8/);
+    // a faixa da API só traz vagas até o mínimo da função: toda vaga aqui é obrigatória (falta para a guarnição sair)
+    expect(vagaDoAco).toHaveAttribute('data-obrigatoria');
+    expect(vagaDoAco.querySelector('[data-barra]')).toHaveClass('bg-vinho');
+    // só posição e largura no estilo: a cor do serviço é de quem já está escalado
+    expect(vagaDoAco.style.backgroundColor).toBe('');
+    expect(vagaDoAco.style.color).toBe('');
+    const ocupado = screen.getByRole('button', { name: 'Motorista: SD BM ALFA, 08h–08h, Pronto' });
+    expect(ocupado.style.backgroundColor).not.toBe('');
+    expect(ocupado.querySelector('[data-barra]')).toBeNull();
+  });
+
+  it('o texto sobre a cor do serviço não usa transparência: o contraste de 4,5:1 vale para o posto e o horário também', async () => {
+    api();
+    abrir(`/efetivo-por-dia?data=${DIA}`);
+    const alfa = await screen.findByRole('button', { name: 'Motorista: SD BM ALFA, 08h–08h, Pronto' });
+    fireEvent.focus(alfa);
+    expect(await within(alfa).findByText('08h–08h')).toBeInTheDocument();
+    expect(alfa.querySelectorAll('[class*="opacity-"]')).toHaveLength(0);
+  });
+
+  it('ao passar o mouse e com o foco do teclado a vaga da linha do tempo muda de estado visível', async () => {
+    api();
+    abrir(`/efetivo-por-dia?data=${DIA}`);
+    const vagaDoAco = await screen.findByRole('button', { name: 'Motorista: vaga 20h–08h' });
+    expect(vagaDoAco).toHaveClass('hover:border-solid', 'hover:border-apagado', 'hover:bg-passa', 'hover:text-tinta');
+    expect(vagaDoAco).toHaveClass('focus-visible:outline-2', 'focus-visible:outline-tinta');
   });
 
   it('na vaga, o horário também só aparece quando cabe, e a palavra "vaga" fica', async () => {

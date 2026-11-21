@@ -1,5 +1,5 @@
 import type { CotaRestante } from 'contratos';
-import { corDoTexto } from '@/lib/cores';
+import { estiloDaCor } from '@/lib/cores';
 import { cn } from '@/lib/utils';
 
 /** "JES: restam 26 de 40"; passando da cota, "JES: 2 acima da cota de 40". */
@@ -14,7 +14,7 @@ export function CotasRestantes({ cotas }: { cotas: CotaRestante[] }) {
   return (
     <ul aria-label="Cotas restantes" className="flex flex-wrap gap-x-3 gap-y-1.5 text-sm">
       {cotas.map((c) => (
-        <li key={c.servicoId} className={cn('rounded px-2 py-0.5 font-medium', c.usadas > c.quantidade && 'ring-2 ring-pendencia')} style={{ backgroundColor: c.cor, color: corDoTexto(c.cor) }}>
+        <li key={c.servicoId} className={cn('rounded px-2 py-0.5 font-medium', c.usadas > c.quantidade && 'ring-2 ring-pendencia')} style={estiloDaCor(c.cor)}>
           {textoDaCota(c)}
         </li>
       ))}
