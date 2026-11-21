@@ -146,7 +146,7 @@ A base de militares do 2º GB inteiro, a partir da planilha do Pecúlio, e o mó
 - A Minha escala: os próprios serviços, com quem compõe cada guarnição. É a Escala por militar com um militar só, e as duas telas são desenhadas juntas (fase 8).
 - O próprio militar marca o voluntariado; o lançamento pelo escalante continua.
 
-**A decidir:** se a escala publicada fica travada e como se corrige depois.
+**A decidir:** se a escala publicada fica travada e como se corrige depois. Junto: o "dia passado travado" (RN-85, pergunta P-17) não existe hoje; escalar e trocar aceitam qualquer data.
 
 ## Fase 8 — Primeiro mês real · planejada
 
@@ -161,6 +161,8 @@ A base de militares do 2º GB inteiro, a partir da planilha do Pecúlio, e o mó
 - distribuições: onde se configura a ordem dos buracos do Pronto; o saldo que não cabe; se a cota limita as vagas; se a compulsória (RN-41, RN-43) entra já;
 - documento: o modelo atual de impressão; só o Ordinário ou também as operações;
 - Escala por militar: o que se compara, quantos militares, se escala ou só mostra, como se liga às outras telas. Hipótese: o uso é a permuta; se for, a tela pode ir junto com as permutas (fase 9).
+- `ADM_CUMPRE_CARGA` existe em Configurações, mas nada o lê (o sistema age como desligado). Em aberto (P-34): com ele desligado, o Adm continua tirando saldos? Precisa de um segundo parâmetro para "cumpre 160h mas pode tirar PJES no expediente"? Ver RN-17.
+- A "prioridade" da cota ordena as operações na distribuição, mas não tem regra no catálogo (P-35).
 
 **Pendências técnicas para as distribuições** (achadas na revisão 3):
 - `distribuirAdm` ignora as remoções quando a entrada vem sem `servico`;
