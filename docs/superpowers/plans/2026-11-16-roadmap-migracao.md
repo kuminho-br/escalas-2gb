@@ -33,7 +33,7 @@
 | 3. Cadastros | Todas as telas de cadastro, com importação da planilha | Você e os escalantes | concluída |
 | Revisões antes da fase 4 | Pendências, testes com pessoas e revisão de código | Você e alguns usuários | concluídas |
 | 4. Montagem da escala | Montar e conferir a escala do mês à mão, nas telas de trabalho | Você e os escalantes | concluída |
-| 5. Pecúlio | A base de militares do 2º GB inteiro e o módulo Pecúlio | Você e a administração do GB | em design |
+| 5. Pecúlio | A base de militares do 2º GB inteiro e o módulo Pecúlio | Você e a administração do GB | design pronto |
 | 6. Usuários e módulos | Tipos de usuário, contas, acesso por lotação, tela inicial | Todos os militares | planejada |
 | 7. Visualização de escalas | Publicar a escala, publicações, Minha escala, próprio voluntariado | Todos os militares | planejada |
 | 8. Primeiro mês real | Distribuições automáticas, documento, Escala por militar e o piloto | ~5 escalantes (piloto 1ª SB) | planejada |
@@ -117,18 +117,17 @@ Specs, em `docs/superpowers/specs/`: `2026-11-18-ordem-de-escala-e-acumulo-desig
 
 **A fase fechou na 4.7** (21/11/2026), o terceiro lote de pendências simples. Os escalantes conseguem montar e conferir a escala de um mês à mão, sem os tropeços conhecidos.
 
-## Fase 5 — Pecúlio · em design
+## Fase 5 — Pecúlio · design pronto
 
-A base de militares do 2º GB inteiro, a partir da planilha do Pecúlio, e o módulo Pecúlio. Design: `docs/superpowers/specs/2026-11-20-peculio-design.md`.
+A estrutura da ficha do militar que hoje vive na planilha do Pecúlio, e a parte dela que a escala usa. Design: `docs/superpowers/specs/2026-11-20-peculio-design.md`.
 
-- Estrutura do 2º GB: as nove lotações (SEDE, SCSv, 1ª a 7ª SB) como unidades.
-- Ficha ampliada e importação dos cerca de 184 militares, sem CPF e sem o ano de nascimento (D7).
-- Antiguidade pela "Ordem" do Pecúlio.
-- Férias, L.E, LTS e DTS viram afastamentos.
-- Telas do módulo Pecúlio.
-- Os problemas que só aparecem com várias unidades.
+- A ficha ampliada (nome completo, sexo, nascimento, telefone, e-mail institucional, comportamento), com dono por bloco.
+- A lotação como posição na estrutura; equipe e jornada como atributos do militar; o "Histórico de rastreio" com "Alterar situação" e a linha do tempo (com os afastamentos).
+- A CNH separada do quadro de motoristas; para a escala, só vale no quadro.
+- Novos tipos de afastamento (Adido, Agregado, L.E, LTS, DTS), com motivo e boletim.
+- As sete seções do 2º GB; a importação do Pecúlio pelo modelo próprio; o módulo Pecúlio (lista, ficha, aniversariantes do mês).
 
-**Antes do plano:** as seis decisões listadas no design do Pecúlio.
+**Postergado** (não trava a fase): abono de permanência, ativo/inativo, funções e QOD, férias, quem vê cada atributo, jornada dos oficiais, quadro separado do posto, cópia de segurança gerada pelo sistema, data de ingresso e CPF.
 
 ## Fase 6 — Usuários e módulos · planejada
 
@@ -145,6 +144,7 @@ A base de militares do 2º GB inteiro, a partir da planilha do Pecúlio, e o mó
 - Publicar a escala no sistema (o documento em .xlsx é a fase 8).
 - As escalas publicadas da unidade.
 - A Minha escala: os próprios serviços, com quem compõe cada guarnição. É a Escala por militar com um militar só, e as duas telas são desenhadas juntas (fase 8).
+- Na área pessoal, a comparação da própria escala com a de outro militar entra com a Escala por militar (fase 8); a busca por permutantes, na fase 9.
 - O próprio militar marca o voluntariado; o lançamento pelo escalante continua.
 
 **A decidir:** se a escala publicada fica travada e como se corrige depois. Junto: o "dia passado travado" (RN-85, pergunta P-17) não existe hoje; escalar e trocar aceitam qualquer data.
@@ -174,6 +174,7 @@ A base de militares do 2º GB inteiro, a partir da planilha do Pecúlio, e o mó
 
 - Efetivo por dia na operação: operações do período das 08h de D às 08h de D+1, motoristas de serviço, presença e impressão.
 - Permutas registradas (a Grade geral já trata a troca entre dois ordinários como permuta).
+- **Busca por permutantes** (área pessoal): o militar escolhe um dia do mês e o sistema mostra quem está disponível para permutar com ele. Depende das specs de permutas, feitas no começo desta fase.
 - Escala executada: gerar e enviar até o dia 5 do mês seguinte.
 
 **Entrega:** o escalante passa o mês inteiro no sistema, do dia 1 ao envio da escala executada.
