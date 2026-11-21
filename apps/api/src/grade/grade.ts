@@ -42,7 +42,7 @@ export async function montarGradeDoMes(c: Consulta, unidadeId: string, mes: stri
     }>(
       `select m.id, m.matricula, m.nome_guerra, p.sigla as posto, m.antiguidade, m.ativo, l.jornada, l.equipe_id, e.nome as equipe, e.ordem_ciclo,
               to_char(l.desde, 'YYYY-MM-DD') as desde, to_char(l.ate, 'YYYY-MM-DD') as ate
-         from lotacao l join militar m on m.id = l.militar_id join posto_grad p on p.id = m.posto_grad_id
+         from rastreio l join militar m on m.id = l.militar_id join posto_grad p on p.id = m.posto_grad_id
          left join equipe e on e.id = l.equipe_id
         where l.unidade_id = $1 and l.desde <= $3::date and (l.ate is null or l.ate >= $2::date)`,
       [unidadeId, primeiro, ultimo],

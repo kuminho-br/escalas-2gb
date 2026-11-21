@@ -66,10 +66,10 @@ describe('carga de exemplo', () => {
     await banco.query("delete from militar where matricula = '990999-9'");
     expect(await n('select count(*)::int as n from militar')).toBe(53);
     expect(await n("select count(*)::int as n from militar where matricula !~ '^990\\d{3}-\\d$'")).toBe(0);
-    expect(await n("select count(*)::int as n from lotacao where jornada = 'adm'")).toBe(17);
-    expect(await n("select count(*)::int as n from lotacao where jornada = 'pronto'")).toBe(36);
+    expect(await n("select count(*)::int as n from rastreio where jornada = 'adm'")).toBe(17);
+    expect(await n("select count(*)::int as n from rastreio where jornada = 'pronto'")).toBe(36);
     const { rows } = await banco.query<{ nome: string; ordem_ciclo: number; n: number }>(
-      `select e.nome, e.ordem_ciclo, count(l.id)::int as n from equipe e left join lotacao l on l.equipe_id = e.id
+      `select e.nome, e.ordem_ciclo, count(l.id)::int as n from equipe e left join rastreio l on l.equipe_id = e.id
         group by e.nome, e.ordem_ciclo order by e.ordem_ciclo`,
     );
     expect(rows).toEqual([

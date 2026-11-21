@@ -90,9 +90,9 @@ export async function exigirAdministradorRaiz(c: Context<AmbienteApi>): Promise<
 type TabelaComUnidade = 'militar' | 'afastamento' | 'funcao' | 'guarnicao' | 'servico' | 'turno' | 'escala' | 'feriado' | 'cota' | 'alocacao' | 'remocao' | 'acumulo';
 
 const SQL_UNIDADE: Record<TabelaComUnidade, string> = {
-  militar: 'select unidade_id from lotacao where militar_id = $1 order by desde desc limit 1',
+  militar: 'select unidade_id from rastreio where militar_id = $1 order by desde desc limit 1',
   afastamento:
-    'select l.unidade_id from afastamento a join lotacao l on l.militar_id = a.militar_id where a.id = $1 order by l.desde desc limit 1',
+    'select l.unidade_id from afastamento a join rastreio l on l.militar_id = a.militar_id where a.id = $1 order by l.desde desc limit 1',
   funcao: 'select unidade_id from funcao where id = $1',
   guarnicao: 'select unidade_id from guarnicao where id = $1',
   servico: 'select unidade_id from servico where id = $1',

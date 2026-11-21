@@ -32,7 +32,7 @@ const militar = async (matricula: string) =>
 const lotacoes = async (id: string) =>
   (await api.banco.query<{ equipe: string | null; jornada: string; desde: string; ate: string | null }>(
     `select e.nome as equipe, l.jornada, to_char(l.desde, 'YYYY-MM') as desde, to_char(l.ate, 'YYYY-MM-DD') as ate
-       from lotacao l left join equipe e on e.id = l.equipe_id where l.militar_id = $1 order by l.desde`,
+       from rastreio l left join equipe e on e.id = l.equipe_id where l.militar_id = $1 order by l.desde`,
     [id],
   )).rows;
 
@@ -54,9 +54,11 @@ describe('importação de militares', () => {
     ]);
     expect(r.avisos).toEqual(expect.arrayContaining([
       'Matrícula 9902022 corrigida para 990202-2 (linha 3).',
-      'DANTAS (990204-4): CNH ignorada, fora do quadro de motoristas.',
       'Equipes novas: ALFA, BRAVO.',
     ]));
+    // a CNH é do militar: DANTAS (MOTORISTA = NÃO, CNH D) entra sem problema e sem aviso de CNH ignorada
+    expect(r.avisos.filter((a: string) => /CNH/.test(a))).toEqual([]);
+    expect(r.problemas.some((p: { linha: number }) => p.linha === 5)).toBe(false);
     expect(await auditoria()).toBe(antes);
   });
 
@@ -65,7 +67,7 @@ describe('importação de militares', () => {
     expect(r.gravados).toBe(4);
     expect(await militar('990201-1')).toMatchObject({ posto: 'SD BM', motorista: true, cnh: ['B'], antiguidade: 1 });
     expect(await militar('990202-2')).toMatchObject({ posto: '3º SGT BM', voluntario_jes: true, motorista: false });
-    expect(await militar('990204-4')).toMatchObject({ motorista: false, cnh: [], antiguidade: null });
+    expect(await militar('990204-4')).toMatchObject({ motorista: false, cnh: ['D'], antiguidade: null });
     expect(await militar('990206-6')).toMatchObject({ posto: 'SD BM', motorista: true, cnh: ['A', 'D'] });
     expect(await militar('990203-3')).toBeUndefined();
     const andrade = await militar('990201-1');
@@ -93,7 +95,7 @@ describe('importação de militares', () => {
   it('mudança de equipe gera lotação nova', async () => {
     const sd = (await api.banco.query<{ id: string }>("select id from posto_grad where sigla = 'SD BM'")).rows[0]!.id;
     const antigo = await inserir(api.banco, 'militar', { matricula: '990207-7', posto_grad_id: sd, nome_guerra: 'GUSMAO', antiguidade: 5 });
-    await inserir(api.banco, 'lotacao', { militar_id: antigo, unidade_id: api.ids.secao, jornada: 'adm', desde: '2026-01-01' });
+    await inserir(api.banco, 'rastreio', { militar_id: antigo, unidade_id: api.ids.secao, jornada: 'adm', desde: '2026-01-01' });
     await importar([...LINHAS, ['990207-7', 'GUSMAO', '1ª SB', 'SD BM', 'PRONTO', 'ALFA', 5, '', '', '']], true);
     expect(await lotacoes(antigo)).toEqual([
       { equipe: null, jornada: 'adm', desde: '2026-01', ate: expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/) },
@@ -120,7 +122,7 @@ describe('importação de militares', () => {
     const ivo = await militar('990209-9');
     const bravo = (await api.banco.query<{ id: string }>("select id from equipe where nome = 'BRAVO'")).rows[0]!.id;
     // o escalante marca a ida para BRAVO no mês que vem; a planilha continua dizendo ALFA
-    const r = await api.pedir('escalante', 'POST', `/api/militares/${ivo!.id}/lotacoes`, { unidadeId: api.ids.secao, equipeId: bravo, jornada: 'pronto', desde: proximo });
+    const r = await api.pedir('escalante', 'POST', `/api/militares/${ivo!.id}/situacao`, { unidadeId: api.ids.secao, equipeId: bravo, jornada: 'pronto', desde: proximo });
     expect(r.status).toBe(201);
     const res = await importar([...LINHAS, linha], true);
     expect(res.alterados.find((x: { chave: string }) => x.chave === '990209-9')).toBeUndefined();
@@ -142,7 +144,7 @@ describe('importação de militares', () => {
   it('prévia avisa antiguidade repetida com militar fora da planilha', async () => {
     const sd = (await api.banco.query<{ id: string }>("select id from posto_grad where sigla = 'SD BM'")).rows[0]!.id;
     const m = await inserir(api.banco, 'militar', { matricula: '990215-5', posto_grad_id: sd, nome_guerra: 'FORADAPLANILHA', antiguidade: 4321 });
-    await inserir(api.banco, 'lotacao', { militar_id: m, unidade_id: api.ids.secao, jornada: 'adm', desde: '2026-01-01' });
+    await inserir(api.banco, 'rastreio', { militar_id: m, unidade_id: api.ids.secao, jornada: 'adm', desde: '2026-01-01' });
     const r = await importar([['990216-6', 'NOVATO', '1ª SB', 'SD BM', 'ADM', '', 4321, '', '', '']]);
     expect(r.avisos).toContain('NOVATO (990216-6): antiguidade 4321 repetida com FORADAPLANILHA (já no sistema, fora da planilha).');
   });
@@ -151,7 +153,7 @@ describe('importação de militares', () => {
     const sd = (await api.banco.query<{ id: string }>("select id from posto_grad where sigla = 'SD BM'")).rows[0]!.id;
     const outra = await inserir(api.banco, 'unidade', { tipo: 'secao', sigla: '3ª SB', nome: '3ª Seção', mae_id: api.ids.gb, desde: '2026-11-01' });
     const m = await inserir(api.banco, 'militar', { matricula: '990208-8', posto_grad_id: sd, nome_guerra: 'HOLANDA', antiguidade: 1 });
-    await inserir(api.banco, 'lotacao', { militar_id: m, unidade_id: outra, jornada: 'adm', desde: '2026-01-01' });
+    await inserir(api.banco, 'rastreio', { militar_id: m, unidade_id: outra, jornada: 'adm', desde: '2026-01-01' });
     const r = await importar([['990208-8', 'HOLANDA', '1ª SB', 'CB BM', 'ADM', '', 1, '', '', '']], true);
     expect(r.problemas).toEqual([
       { aba: 'MILITARES', linha: 2, mensagem: 'HOLANDA (990208-8) está lotado na 3ª SB.', solucao: 'Ele entra aqui quando a transferência for registrada por quem cuida da 3ª SB.' },
@@ -163,7 +165,7 @@ describe('importação de militares', () => {
     const sd = (await api.banco.query<{ id: string }>("select id from posto_grad where sigla = 'SD BM'")).rows[0]!.id;
     const outra = await inserir(api.banco, 'unidade', { tipo: 'secao', sigla: '4ª SB', nome: '4ª Seção', mae_id: api.ids.gb, desde: '2026-11-01' });
     const m = await inserir(api.banco, 'militar', { matricula: '990219-9', posto_grad_id: sd, nome_guerra: 'FUTURO', antiguidade: 7 });
-    await inserir(api.banco, 'lotacao', { militar_id: m, unidade_id: outra, jornada: 'adm', desde: `${somarMeses(atual, 1)}-01` });
+    await inserir(api.banco, 'rastreio', { militar_id: m, unidade_id: outra, jornada: 'adm', desde: `${somarMeses(atual, 1)}-01` });
     const linha = ['990219-9', 'MUDADO PELA PRIMEIRA', '1ª SB', 'CB BM', 'ADM', '', 1, 'SIM', 'SIM', 'D'];
     const previa = await importar([linha]);
     expect(previa.problemas).toEqual([
@@ -197,5 +199,18 @@ describe('CNH repetida ou fora de ordem na planilha (Review Focus 5)', () => {
     expect((await importar(REPETIDAS, true)).gravados).toBe(2);
     expect(await militar('990295-5')).toMatchObject({ motorista: true, cnh: ['B'] });
     expect(await militar('990296-6')).toMatchObject({ motorista: true, cnh: ['A', 'D'] });
+  });
+});
+
+describe('CNH de quem não está no quadro de motoristas', () => {
+  it('a importação aceita CNH com MOTORISTA = NÃO, sem problema nem aviso, e a CNH fica gravada', async () => {
+    const linha = ['990298-8', 'GOMES', '1ª SB', 'SD BM', 'ADM', '', '', 'NÃO', '', 'AD'];
+    const previa = await importar([linha]);
+    expect(previa.problemas).toEqual([]);
+    expect(previa.avisos.filter((a: string) => /CNH/.test(a))).toEqual([]);
+    await importar([linha], true);
+    expect(await militar('990298-8')).toMatchObject({ motorista: false, cnh: ['A', 'D'] });
+    // importar de novo a mesma planilha não muda nada
+    expect((await importar([linha])).iguais).toBe(1);
   });
 });

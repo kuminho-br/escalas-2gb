@@ -201,15 +201,15 @@ export async function desfazerDesativacao(tx: Consulta, unidadeId: string, data:
     // as promovidas voltam primeiro: a alocação (a mesma) volta à vaga de antes, se a função ainda tem lugar, e o acúmulo é recriado
     for (const x of d.promovidas) {
       const p = (
-        await tx.query<{ escala_id: string; guarnicao_id: string | null; funcao_id: string | null; inicio: string; fim: string; cnh: string[] }>(
-          `select a.escala_id, a.guarnicao_id, a.funcao_id, to_char(t.inicio, 'HH24:MI') as inicio, to_char(t.fim, 'HH24:MI') as fim, m.cnh
+        await tx.query<{ escala_id: string; guarnicao_id: string | null; funcao_id: string | null; inicio: string; fim: string; motorista: boolean; cnh: string[] }>(
+          `select a.escala_id, a.guarnicao_id, a.funcao_id, to_char(t.inicio, 'HH24:MI') as inicio, to_char(t.fim, 'HH24:MI') as fim, m.motorista, m.cnh
              from alocacao a join turno t on t.id = a.turno_id join militar m on m.id = a.militar_id where a.id = $1`,
           [x.alocacaoId],
         )
       ).rows[0];
       // ela precisa continuar na vaga que era o acúmulo: se mudou de lugar, a escala mudou desde então
       if (!p || p.guarnicao_id !== x.acumuloGuarnicaoId || p.funcao_id !== x.acumuloFuncaoId) throw new Recusa(ESCALA_MUDOU);
-      if (!(await vagaTemLugar(tx, p.escala_id, data, p, x.guarnicaoId, x.funcaoId, p.cnh))) throw new Recusa(NAO_DEU_PARA_DESFAZER);
+      if (!(await vagaTemLugar(tx, p.escala_id, data, p, x.guarnicaoId, x.funcaoId, p))) throw new Recusa(NAO_DEU_PARA_DESFAZER);
       await tx.query('update alocacao set guarnicao_id = $2, funcao_id = $3 where id = $1', [x.alocacaoId, x.guarnicaoId, x.funcaoId]);
       await acumular(tx, x.alocacaoId, { guarnicaoId: x.acumuloGuarnicaoId, funcaoId: x.acumuloFuncaoId });
     }

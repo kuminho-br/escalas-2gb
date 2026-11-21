@@ -2,9 +2,9 @@
 
 16/11/2026 · v0.1 · parte do design (`2026-11-16-migracao-design.md`)
 
-Em dia com as migrações até a `0022_meta_de_ativacao.sql` (20/11/2026). As tabelas das entregas 4.x estão na seção 9.
+Em dia com as migrações até a `0023_rastreio_e_cnh.sql` (21/11/2026). As tabelas das entregas 4.x estão na seção 9 e a mudança da fase 5 (rastreio e CNH), na seção 10.
 
-Ponto de partida: o "ER proposto" do documento *Modelo ER — Sistema de Escalas 2º GB* (v0.8). Acréscimos: unidades em árvore, lotação com vigência, vínculo de militar externo, usuários e papéis, modelos de impressão, documentos gerados e auditoria. Também entram as mudanças vindas dos esboços de tela (versão 12), que ainda podem mudar.
+Ponto de partida: o "ER proposto" do documento *Modelo ER — Sistema de Escalas 2º GB* (v0.8). Acréscimos: unidades em árvore, rastreio (lotação, equipe e jornada com vigência), vínculo de militar externo, usuários e papéis, modelos de impressão, documentos gerados e auditoria. Também entram as mudanças vindas dos esboços de tela (versão 12), que ainda podem mudar.
 
 ## Convenções
 
@@ -24,9 +24,9 @@ erDiagram
   tipo_unidade ||--o{ unidade : classifica
   unidade ||--o{ unidade : "mae de"
   unidade ||--o{ equipe : tem
-  unidade ||--o{ lotacao : lota
-  militar ||--o{ lotacao : "lotado em"
-  equipe |o--o{ lotacao : agrupa
+  unidade ||--o{ rastreio : lota
+  militar ||--o{ rastreio : "lotado em"
+  equipe |o--o{ rastreio : agrupa
   militar ||--o{ vinculo_externo : "externo em"
   unidade ||--o{ vinculo_externo : aceita
   posto_grad ||--o{ militar : classifica
@@ -122,7 +122,7 @@ Regra: o `nivel` do tipo da mãe é menor que o da filha.
 | nome_guerra | text not null | |
 | antiguidade | int null | ordem dentro do posto (RN-101); vazia vai por último |
 | motorista | boolean not null default false | está no quadro de motoristas |
-| cnh | text[] not null default '{}' | subconjunto de {A,B,C,D,E}, só as que constam na carteira; vazio se `motorista = false` (check) |
+| cnh | text[] not null default '{}' | subconjunto de {A,B,C,D,E}, só as que constam na carteira. É do militar: pode estar gravada com `motorista = false`; para a escala só vale com `motorista = true` (regra do motor, `cnhParaEscala`). Até a 0022 havia um check que a exigia vazia fora do quadro; a 0023 o tirou |
 | voluntario_jes | boolean not null default false | RN-46 |
 | ativo | boolean not null default true | |
 
@@ -136,8 +136,8 @@ A hierarquia de CNH (decisão de 18/11/2026, regra do CTB): A é uma categoria i
 | nome | text | "Alfa"; único por unidade |
 | ordem_ciclo | int | posição no ciclo do Pronto; única por unidade |
 
-### lotacao
-Onde o militar está, com qual equipe e qual jornada, em cada período. A escala de março continua mostrando a lotação de março.
+### rastreio
+O rastreio do militar: a lotação (a unidade), a equipe e a jornada em cada período. A escala de março continua mostrando a situação de março. "Lotação" é só a unidade; o conjunto no tempo é o rastreio. A tabela se chamava `lotacao` até a 0022 (renomeada na 0023, com as mesmas colunas, índices e regras).
 
 | Coluna | Tipo | Regra |
 |---|---|---|
@@ -568,11 +568,18 @@ A meta de ativação (migração 0022, entrega 3.2.2): a lista de guarnições q
 
 Fonte: "ER da meta de ativação" do claude.ai (20/11/2026), colhido em 20/11/2026.
 
+## 10. Fase 5, entrega 1: rastreio e CNH (migração 0023)
+
+- **`lotacao` virou `rastreio`** (`alter table ... rename`): mesmas colunas, restrição de não sobrepor e gatilho de equipe da mesma unidade (índices, restrições e o gatilho `rastreio_equipe` ganharam o nome novo). A auditoria continua ligada à tabela, e `registrar_auditoria()` foi recriada para achar a unidade do militar pelo rastreio mais recente. Linhas de auditoria antigas continuam com `tabela = 'lotacao'`.
+- **Sai o check `motorista or cardinality(cnh) = 0` de `militar`:** a CNH é do militar, esteja ou não no quadro de motoristas. Quem decide o que vale para a escala é o motor (`cnhParaEscala`: com `motorista = false`, a CNH não vale).
+- **As sete seções do 2º GB:** a migração cria 2ª a 7ª SB (tipo `secao`, mãe o 2º GB, `desde` do 2º GB) quando ainda não existem, pela sigla. A 1ª SB já existia.
+- A migração confere cada passo antes de mudar e pode rodar de novo (ambiente já migrado à mão).
+
 ## Mudanças em relação ao ER proposto (v0.8)
 
 **Entram**
 - Unidades em árvore (`tipo_unidade`, `unidade`).
-- `lotacao` com vigência, `equipe` e jornada por período.
+- `rastreio` (antes `lotacao`) com vigência, `equipe` e jornada por período.
 - `vinculo_externo`.
 - Usuários, `papel_usuario`, `convite`.
 - Na escala: `escala_vinculo_versao` e `escala_guarnicao`.

@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { QueryClient } from '@tanstack/react-query';
 import { describe, expect, it, vi } from 'vitest';
 import { atualizarMilitares } from '@/api/militares';
+import { mesAtual } from '@/lib/meses';
 import { abrir, chamadasA, corpoEnviado, EU_EXEMPLO, simularApi, trava } from './apoio';
 
 const linha = (l: Partial<LinhaMilitar>): LinhaMilitar => ({
@@ -18,7 +19,7 @@ const LISTA = [
 const FICHA: FichaMilitar = {
   ...linha({ motorista: 'D' }),
   postoGradId: 'p-sd', antiguidade: 3, antiguidadeRepetidaCom: [], noQuadroDeMotoristas: true, cnh: ['D'], cnhPorHierarquia: ['C', 'B'],
-  lotacoes: [{ id: 'l1', unidadeSigla: '1ª SB', equipe: 'Alfa', jornada: 'pronto', desde: '2026-11-01', ate: null }],
+  rastreio: [{ id: 'l1', unidadeSigla: '1ª SB', equipe: 'Alfa', jornada: 'pronto', desde: '2026-11-01', ate: null }],
   afastamentos: [{ id: 'a1', tipo: 'Férias', tipoAfastamentoId: 't-ferias', inicio: '2026-12-01', fim: '2026-12-10' }],
 };
 
@@ -244,7 +245,37 @@ describe('ficha do militar', () => {
     await userEvent.click(screen.getByRole('button', { name: /^E\b/ }));
     await userEvent.click(screen.getByRole('button', { name: /^A\b/ }));
     await userEvent.click(screen.getByRole('button', { name: 'Salvar motorista' }));
-    await waitFor(() => expect(corpoEnviado(f, 'PATCH /api/militares/m1')).toEqual({ motorista: true, cnh: ['A', 'E'] }));
+    // o quadro não mudou: o salvar manda só o que mudou (a carteira)
+    await waitFor(() => expect(corpoEnviado(f, 'PATCH /api/militares/m1')).toEqual({ cnh: ['A', 'E'] }));
+  });
+
+  describe('motorista e CNH são independentes', () => {
+    const quadro = () => within(screen.getByRole('group', { name: 'Está no quadro de motoristas?' }));
+
+    it('a ficha mostra as categorias da CNH com o quadro desmarcado, e o texto de ajuda diz que a CNH só vale para a escala no quadro', async () => {
+      api({ 'GET /api/militares/m1': { status: 200, corpo: { ...FICHA, noQuadroDeMotoristas: false, motorista: null, cnh: ['D'], cnhPorHierarquia: ['C', 'B'] } } });
+      abrir('/militares/m1');
+      const d = await screen.findByRole('button', { name: /^D\b/ });
+      expect(d).toHaveAttribute('aria-pressed', 'true');
+      expect(d).toHaveAttribute('data-origem', 'carteira');
+      expect(screen.getByRole('button', { name: 'C caminhão pela D' })).toHaveAttribute('data-origem', 'hierarquia');
+      expect(quadro().getByRole('radio', { name: 'Não' })).toBeChecked();
+      expect(screen.getByText('A CNH só vale para a escala com o militar no quadro de motoristas.')).toBeInTheDocument();
+    });
+
+    it('desmarcar "Está no quadro de motoristas?" não apaga a carteira e o salvar manda só motorista: false', async () => {
+      const f = api({
+        'GET /api/militares/m1': { status: 200, corpo: { ...FICHA, noQuadroDeMotoristas: true, cnh: ['D'], cnhPorHierarquia: ['C', 'B'] } },
+        'PATCH /api/militares/m1': { status: 200, corpo: FICHA },
+      });
+      abrir('/militares/m1');
+      await screen.findByRole('button', { name: /^D\b/ });
+      await userEvent.click(quadro().getByRole('radio', { name: 'Não' }));
+      expect(screen.getByRole('button', { name: /^D\b/ })).toHaveAttribute('aria-pressed', 'true');
+      expect(screen.getByText('Alterações não salvas')).toBeInTheDocument();
+      await userEvent.click(screen.getByRole('button', { name: 'Salvar motorista' }));
+      await waitFor(() => expect(corpoEnviado(f, 'PATCH /api/militares/m1')).toEqual({ motorista: false }));
+    });
   });
 
   it('os campos de afastamento só aparecem depois de "Incluir afastamento"', async () => {
@@ -297,22 +328,82 @@ describe('ficha do militar', () => {
     expect(screen.queryByLabelText('Início')).toBeNull();
   });
 
-  it('a lotação vem por último e recolhida, com o resumo', async () => {
+  it('o histórico de rastreio vem por último e recolhido, com a situação atual; o bloco de lotação antigo não existe mais', async () => {
     api();
     abrir('/militares/m1');
     await screen.findByText('Férias');
     const titulos = screen.getAllByRole('heading', { level: 3 }).map((h) => h.textContent ?? '');
     const pos = (t: string) => titulos.findIndex((x) => x.startsWith(t));
     expect(pos('Motorista')).toBeLessThan(pos('Afastamentos'));
-    expect(pos('Afastamentos')).toBeLessThan(pos('Lotação'));
-    expect(pos('Lotação')).toBe(titulos.length - 1);
-    const botao = screen.getByRole('button', { name: /Lotação/ });
+    expect(pos('Afastamentos')).toBeLessThan(pos('Histórico de rastreio'));
+    expect(pos('Histórico de rastreio')).toBe(titulos.length - 1);
+    expect(titulos.some((t) => t.startsWith('Lotação'))).toBe(false);
+    const botao = screen.getByRole('button', { name: /Histórico de rastreio/ });
     expect(botao).toHaveAttribute('aria-expanded', 'false');
-    expect(within(botao).getByText('1ª SB, Pronto (Alfa) desde novembro de 2026')).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Registrar transferência' })).toBeNull();
+    expect(within(botao).getByText('1ª SB · Equipe Alfa · Pronto (desde 11/2026)')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Alterar situação' })).toBeNull();
     await userEvent.click(botao);
     expect(botao).toHaveAttribute('aria-expanded', 'true');
-    expect(screen.getByRole('button', { name: 'Registrar transferência' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Alterar situação' })).toBeInTheDocument();
+    expect(screen.queryByText('Registrar transferência')).toBeNull();
+  });
+});
+
+describe('alterar situação', () => {
+  const SECOES = [{ id: 'u-1sb', sigla: '1ª SB', nome: '1ª Seção de Bombeiros' }, { id: 'u-2sb', sigla: '2ª SB', nome: '2ª Seção de Bombeiros' }];
+  const rotas = (extra: Parameters<typeof simularApi>[0] = {}) =>
+    api({
+      'GET /api/secoes': { status: 200, corpo: SECOES },
+      'GET /api/unidades/u-2sb/equipes': { status: 200, corpo: [{ id: 'e-2sb', nome: 'Delta', ordemCiclo: 1 }] },
+      'POST /api/militares/m1/situacao': { status: 200, corpo: FICHA },
+      ...extra,
+    });
+  async function abrirODialogo() {
+    await userEvent.click(await screen.findByRole('button', { name: /Histórico de rastreio/ }));
+    await userEvent.click(screen.getByRole('button', { name: 'Alterar situação' }));
+    return within(await screen.findByRole('dialog'));
+  }
+
+  it('abre com a situação atual, lotação, equipe (da lotação escolhida), jornada e o mês atual; salvar manda os quatro campos e fecha', async () => {
+    const f = rotas();
+    abrir('/militares/m1');
+    const dialogo = await abrirODialogo();
+    expect(dialogo.getByLabelText('Lotação')).toHaveValue('u-1sb');
+    await waitFor(() => expect(dialogo.getByLabelText('Equipe')).toHaveValue('e-alfa'));
+    expect(dialogo.getByLabelText('Jornada')).toHaveValue('pronto');
+    expect(dialogo.getByLabelText('A partir de')).toHaveValue(mesAtual());
+    await userEvent.selectOptions(dialogo.getByLabelText('Equipe'), 'Bravo');
+    await userEvent.selectOptions(dialogo.getByLabelText('Jornada'), 'Adm');
+    await userEvent.click(dialogo.getByRole('button', { name: 'Salvar' }));
+    await waitFor(() => expect(corpoEnviado(f, 'POST /api/militares/m1/situacao')).toEqual({ unidadeId: 'u-1sb', equipeId: 'e-bravo', jornada: 'adm', desde: mesAtual() }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+  });
+
+  it('trocar a lotação traz as equipes da nova lotação e zera a equipe', async () => {
+    const f = rotas();
+    abrir('/militares/m1');
+    const dialogo = await abrirODialogo();
+    await userEvent.selectOptions(dialogo.getByLabelText('Lotação'), 'u-2sb');
+    await waitFor(() => expect(within(dialogo.getByLabelText('Equipe')).getByRole('option', { name: 'Delta' })).toBeInTheDocument());
+    expect(within(dialogo.getByLabelText('Equipe')).queryByRole('option', { name: 'Bravo' })).toBeNull();
+    expect(dialogo.getByLabelText('Equipe')).toHaveValue('');
+    await userEvent.click(dialogo.getByRole('button', { name: 'Salvar' }));
+    await waitFor(() => expect(corpoEnviado(f, 'POST /api/militares/m1/situacao')).toEqual({ unidadeId: 'u-2sb', equipeId: null, jornada: 'pronto', desde: mesAtual() }));
+  });
+
+  it('dois cliques em Salvar mandam um pedido só e o erro da API aparece no diálogo', async () => {
+    const { espera, soltar } = trava();
+    const f = rotas({ 'POST /api/militares/m1/situacao': { status: 400, corpo: { erro: 'Use o mês do período aberto ou um mês depois.' }, espera } });
+    abrir('/militares/m1');
+    const dialogo = await abrirODialogo();
+    const salvar = dialogo.getByRole('button', { name: 'Salvar' });
+    fireEvent.click(salvar);
+    fireEvent.click(salvar);
+    expect(salvar).toBeDisabled();
+    soltar();
+    expect(await dialogo.findByText('Use o mês do período aberto ou um mês depois.')).toBeInTheDocument();
+    expect(chamadasA(f, 'POST /api/militares/m1/situacao')).toBe(1);
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
   });
 });
 
@@ -328,7 +419,7 @@ describe('depois de gravar', () => {
 
 describe('ficha em painel único', () => {
   it('a ficha do militar é um painel só com o resumo da lotação', async () => {
-    const antiga = { ...FICHA, lotacoes: [{ id: 'l1', unidadeSigla: '1ª SB', equipe: 'Alfa', jornada: 'pronto' as const, desde: '2020-01-01', ate: null }] };
+    const antiga = { ...FICHA, rastreio: [{ id: 'l1', unidadeSigla: '1ª SB', equipe: 'Alfa', jornada: 'pronto' as const, desde: '2020-01-01', ate: null }] };
     api({ 'GET /api/militares/m1': { status: 200, corpo: antiga } });
     abrir('/militares/m1');
     const ficha = (await screen.findByRole('heading', { level: 2, name: /ANDRADE/ })).closest('[data-ficha]') as HTMLElement;
@@ -348,14 +439,20 @@ describe('ficha em painel único', () => {
     expect(link.className).toContain('shadow-[inset_3px_0_0');
   });
 
-  it('bloco recolhido aponta o conteúdo', async () => {
+  it('bloco recolhido aponta o conteúdo: a situação atual e a linha do tempo com o rastreio e os afastamentos', async () => {
     api();
     abrir('/militares/m1');
-    const botao = await screen.findByRole('button', { name: /Lotação/ });
+    const botao = await screen.findByRole('button', { name: /Histórico de rastreio/ });
     const id = botao.getAttribute('aria-controls');
     expect(id).toBeTruthy();
     await userEvent.click(botao);
-    expect(within(document.getElementById(id!)!).getByText('1ª SB, Pronto, equipe Alfa')).toBeInTheDocument();
+    const bloco = within(document.getElementById(id!)!);
+    expect(bloco.getByText('Situação atual: 1ª SB · Equipe Alfa · Pronto (desde 11/2026)')).toBeInTheDocument();
+    // do mais novo para o mais velho: o afastamento de dezembro, depois a situação de novembro
+    const itens = bloco.getAllByRole('listitem').map((li) => li.textContent ?? '');
+    expect(itens).toHaveLength(2);
+    expect(itens[0]).toContain('Afastamento: Férias (01/12 a 10/12)');
+    expect(itens[1]).toContain('1ª SB · Equipe Alfa · Pronto');
   });
 });
 

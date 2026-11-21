@@ -1,23 +1,22 @@
-// Militares: identificação, lotação com histórico (transferências), CNH e afastamentos.
+// Militares: identificação, rastreio (alterar situação), CNH e afastamentos.
 import {
+  AlteracaoDeSituacao,
   EdicaoAfastamento,
   EdicaoMilitar,
-  MENSAGEM_CNH_SEM_MOTORISTA,
   MENSAGEM_FIM_ANTES_DO_INICIO,
   Mes,
   mesParaData,
-  mesPorExtenso,
-  NovaLotacao,
   NovoAfastamento,
   NovoMilitar,
   type Equipe,
   type FichaMilitar,
   type LinhaMilitar,
   type Posto,
+  type SecaoDeLotacao,
 } from 'contratos';
 import { cnhHabilitadas, diasDoMes } from 'dominio';
 import { Hono, type Context } from 'hono';
-import { CADASTRO, exigirAlgumPapel, exigirPapel, exigirSessao, unidadeDoRegistro, type AmbienteApi } from '../acesso.ts';
+import { CADASTRO, exigirAlgumPapel, exigirPapel, exigirSessao, temPapel, unidadeDoRegistro, type AmbienteApi } from '../acesso.ts';
 import type { Auth } from '../auth.ts';
 import { comUsuario, type Banco, type Consulta } from '../banco/banco.ts';
 import { hojeRecife } from '../datas.ts';
@@ -25,6 +24,9 @@ import { lerCorpo, respostaDoErroDoBanco } from '../erros.ts';
 import { categoriaMaisAlta, pendenciasDoMilitar, repetidasPorAntiguidade, situacaoNoMes } from './militares-regras.ts';
 
 type Ctx = Context<AmbienteApi>;
+const MSG_PERIODO_ANTES = 'Use o mês do período aberto ou um mês depois.';
+const MSG_EQUIPE_DE_OUTRA = 'Escolha uma equipe da unidade da lotação.';
+const MSG_SITUACAO_MUDOU = 'A situação do militar mudou enquanto você alterava. Recarregue a ficha e tente de novo.';
 const MSG_MATRICULA = { '23505': 'Já existe um militar com essa matrícula.', '23503': 'Posto, unidade ou equipe não encontrado.' };
 
 const limitesDoMes = (mes: string) => {
@@ -85,16 +87,16 @@ async function carregarFicha(c: Consulta, id: string, mes: string): Promise<Fich
     `${SELECT_MILITAR}
        from militar m
        join posto_grad p on p.id = m.posto_grad_id
-       left join lotacao l on l.militar_id = m.id and l.desde <= $3 and (l.ate is null or l.ate >= $2)
+       left join rastreio l on l.militar_id = m.id and l.desde <= $3 and (l.ate is null or l.ate >= $2)
        left join equipe e on e.id = l.equipe_id
       where m.id = $1`,
     [id, primeiro, ultimo],
   );
   const m = rows[0];
   if (!m) return null;
-  const lotacoes = await c.query<{ id: string; sigla: string; equipe: string | null; jornada: 'pronto' | 'adm'; desde: string; ate: string | null }>(
+  const rastreio = await c.query<{ id: string; sigla: string; equipe: string | null; jornada: 'pronto' | 'adm'; desde: string; ate: string | null }>(
     `select l.id, un.sigla, e.nome as equipe, l.jornada, to_char(l.desde, 'YYYY-MM-DD') as desde, to_char(l.ate, 'YYYY-MM-DD') as ate
-       from lotacao l join unidade un on un.id = l.unidade_id left join equipe e on e.id = l.equipe_id
+       from rastreio l join unidade un on un.id = l.unidade_id left join equipe e on e.id = l.equipe_id
       where l.militar_id = $1 order by l.desde desc`,
     [id],
   );
@@ -104,12 +106,13 @@ async function carregarFicha(c: Consulta, id: string, mes: string): Promise<Fich
       where a.militar_id = $1 order by a.inicio`,
     [id],
   );
-  const cnh = m.motorista ? [...m.cnh].sort() : [];
+  // a CNH é do militar: aparece mesmo fora do quadro de motoristas (só não vale para a escala)
+  const cnh = [...m.cnh].sort();
   // compara com os ativos lotados, no mês, na mesma unidade; sem lotação ou inativo, não compara
   const colegas = await c.query<{ id: string; nome_guerra: string; antiguidade: number | null }>(
     `select m2.id, m2.nome_guerra, m2.antiguidade
-       from lotacao l0
-       join lotacao l2 on l2.unidade_id = l0.unidade_id and l2.desde <= $3 and (l2.ate is null or l2.ate >= $2)
+       from rastreio l0
+       join rastreio l2 on l2.unidade_id = l0.unidade_id and l2.desde <= $3 and (l2.ate is null or l2.ate >= $2)
        join militar m2 on m2.id = l2.militar_id and m2.ativo
       where l0.militar_id = $1 and l0.desde <= $3 and (l0.ate is null or l0.ate >= $2)
       order by m2.nome_guerra`,
@@ -124,7 +127,7 @@ async function carregarFicha(c: Consulta, id: string, mes: string): Promise<Fich
     noQuadroDeMotoristas: m.motorista,
     cnh,
     cnhPorHierarquia: cnhHabilitadas(cnh).filter((x) => !cnh.includes(x)),
-    lotacoes: lotacoes.rows.map((l) => ({ id: l.id, unidadeSigla: l.sigla, equipe: l.equipe, jornada: l.jornada, desde: l.desde, ate: l.ate })),
+    rastreio: rastreio.rows.map((l) => ({ id: l.id, unidadeSigla: l.sigla, equipe: l.equipe, jornada: l.jornada, desde: l.desde, ate: l.ate })),
     afastamentos: afastamentos.rows.map((a) => ({ id: a.id, tipo: a.tipo, tipoAfastamentoId: a.tipo_afastamento_id, inicio: a.inicio, fim: a.fim })),
   };
 }
@@ -141,7 +144,7 @@ async function exigirPapelNoRegistro(c: Ctx, tabela: 'militar' | 'afastamento', 
   const militarId = tabela === 'militar' ? id : (await banco.query<{ militar_id: string }>('select militar_id from afastamento where id = $1', [id])).rows[0]!.militar_id;
   const inicioDoMes = `${hojeRecife().slice(0, 7)}-01`;
   const { rows } = await banco.query<{ unidade_id: string }>(
-    'select distinct unidade_id from lotacao where militar_id = $1 and (ate is null or ate >= $2)',
+    'select distinct unidade_id from rastreio where militar_id = $1 and (ate is null or ate >= $2)',
     [militarId, inicioDoMes],
   );
   const unidades = rows.length ? rows.map((r) => r.unidade_id) : [(await unidadeDoRegistro(banco, 'militar', militarId))!];
@@ -166,13 +169,24 @@ const mesDaConsulta = (c: Ctx) => c.req.query('mes') ?? hojeRecife().slice(0, 7)
 export function rotasMilitares(dep: { banco: Banco; auth: Auth }): Hono<AmbienteApi> {
   const r = new Hono<AmbienteApi>();
   const sessao = exigirSessao(dep.banco, dep.auth);
-  for (const caminho of ['/postos', '/unidades/:u/equipes', '/unidades/:u/militares', '/militares/*', '/afastamentos/*']) r.use(caminho, sessao);
+  for (const caminho of ['/postos', '/secoes', '/unidades/:u/equipes', '/unidades/:u/militares', '/militares/*', '/afastamentos/*']) r.use(caminho, sessao);
 
   r.get('/postos', async (c) => {
     const negado = await exigirAlgumPapel(c);
     if (negado) return negado;
     const { rows } = await dep.banco.query<Posto>('select id, sigla, nome, ordem from posto_grad order by ordem');
     return c.json(rows);
+  });
+
+  // as seções em que a pessoa pode lotar um militar: as que ela pode cadastrar (o administrador, todas)
+  r.get('/secoes', async (c) => {
+    const negado = await exigirAlgumPapel(c);
+    if (negado) return negado;
+    const hoje = hojeRecife();
+    const { rows } = await dep.banco.query<SecaoDeLotacao>("select id, sigla, nome from unidade where tipo = 'secao' and (ate is null or ate >= $1::date) order by sigla", [hoje]);
+    const permitidas: SecaoDeLotacao[] = [];
+    for (const u of rows) if (await temPapel(dep.banco, c.get('usuarioId'), u.id, CADASTRO, hoje)) permitidas.push(u);
+    return c.json(permitidas);
   });
 
   r.get('/unidades/:u/equipes', async (c) => {
@@ -194,7 +208,7 @@ export function rotasMilitares(dep: { banco: Banco; auth: Auth }): Hono<Ambiente
     const { primeiro, ultimo } = limitesDoMes(mes);
     const { rows } = await dep.banco.query<LinhaBanco>(
       `${SELECT_MILITAR}
-         from lotacao l
+         from rastreio l
          join unidade un on un.id = l.unidade_id
          join unidade alvo on alvo.id = $1
          join militar m on m.id = l.militar_id
@@ -225,7 +239,7 @@ export function rotasMilitares(dep: { banco: Banco; auth: Auth }): Hono<Ambiente
             [d.matricula, d.postoGradId, d.nomeGuerra, d.antiguidade, d.motorista, d.cnh, d.voluntarioJes],
           )
         ).rows[0]!.id;
-        await tx.query('insert into lotacao (militar_id, unidade_id, equipe_id, jornada, desde) values ($1, $2, $3, $4, $5)', [
+        await tx.query('insert into rastreio (militar_id, unidade_id, equipe_id, jornada, desde) values ($1, $2, $3, $4, $5)', [
           id, u, d.lotacao.equipeId, d.lotacao.jornada, mesParaData(d.lotacao.desde),
         ]);
         return carregarFicha(tx, id, d.lotacao.desde);
@@ -263,10 +277,9 @@ export function rotasMilitares(dep: { banco: Banco; auth: Auth }): Hono<Ambiente
           'select posto_grad_id, nome_guerra, antiguidade, motorista, cnh, voluntario_jes, ativo from militar where id = $1 for update',
           [id],
         )).rows[0]!;
+        // desmarcar o quadro de motoristas não apaga a CNH: ela só deixa de valer para a escala
         const motorista = d.motorista ?? atual.motorista;
-        // desmarcar o quadro de motoristas limpa a CNH na mesma gravação
-        const cnh = d.motorista === false ? [] : (d.cnh ?? atual.cnh);
-        if (!motorista && cnh.length) return null;
+        const cnh = d.cnh ?? atual.cnh;
         await tx.query(
           `update militar set posto_grad_id = $2, nome_guerra = $3, antiguidade = $4, motorista = $5, cnh = $6, voluntario_jes = $7, ativo = $8
             where id = $1`,
@@ -283,39 +296,57 @@ export function rotasMilitares(dep: { banco: Banco; auth: Auth }): Hono<Ambiente
         );
         return carregarFicha(tx, id, mes);
       });
-      if (!ficha) return c.json({ erro: MENSAGEM_CNH_SEM_MOTORISTA, campos: { cnh: MENSAGEM_CNH_SEM_MOTORISTA } }, 400);
       return c.json(ficha);
     } catch (e) {
       return respostaDoErroDoBanco(c, e, MSG_MATRICULA);
     }
   });
 
-  r.post('/militares/:id/lotacoes', async (c) => {
+  // "Alterar situação": lotação (a unidade), equipe e jornada a partir de um mês. No mês do período aberto, substitui o período; depois dele,
+  // fecha o período aberto no fim do mês anterior e abre outro; antes dele, é 400.
+  r.post('/militares/:id/situacao', async (c) => {
     const id = c.req.param('id');
     const negado = await exigirPapelNoRegistro(c, 'militar', id);
     if (negado) return negado;
-    const corpo = await lerCorpo(c, NovaLotacao);
+    const corpo = await lerCorpo(c, AlteracaoDeSituacao);
     if (!corpo.ok) return corpo.resposta;
     const d = corpo.dados;
     // a unidade de destino também precisa ser de quem registra
     const negadoDestino = await exigirPapel(c, d.unidadeId, CADASTRO);
     if (negadoDestino) return negadoDestino;
-    const aberta = (await dep.banco.query<{ id: string; mes: string }>(
-      "select id, to_char(desde, 'YYYY-MM') as mes from lotacao where militar_id = $1 and ate is null",
-      [id],
-    )).rows[0];
-    if (aberta && d.desde <= aberta.mes) {
-      return c.json({ erro: `A transferência precisa ser depois de ${mesPorExtenso(aberta.mes)}.` }, 409);
+    if (d.equipeId) {
+      const daUnidade = (await dep.banco.query('select 1 from equipe where id = $1 and unidade_id = $2', [d.equipeId, d.unidadeId])).rows.length > 0;
+      if (!daUnidade) return c.json({ erro: MSG_EQUIPE_DE_OUTRA, campos: { equipeId: MSG_EQUIPE_DE_OUTRA } }, 400);
+    }
+    // o período aberto pode ser de outra seção (uma mudança de lotação já marcada): substituí-lo ou fechá-lo também pede papel nela
+    const unidadeAberta = (await dep.banco.query<{ unidade_id: string }>('select unidade_id from rastreio where militar_id = $1 and ate is null', [id])).rows[0]?.unidade_id;
+    if (unidadeAberta && unidadeAberta !== d.unidadeId) {
+      const negadoAberta = await exigirPapel(c, unidadeAberta, CADASTRO);
+      if (negadoAberta) return negadoAberta;
     }
     try {
-      const ficha = await comUsuario(dep.banco, c.get('usuarioId'), async (tx) => {
-        if (aberta) await tx.query("update lotacao set ate = $2::date - interval '1 day' where id = $1", [aberta.id, mesParaData(d.desde)]);
-        await tx.query('insert into lotacao (militar_id, unidade_id, equipe_id, jornada, desde) values ($1, $2, $3, $4, $5)', [
+      const resultado = await comUsuario(dep.banco, c.get('usuarioId'), async (tx) => {
+        // o período aberto é lido dentro da transação, com a linha travada: duas alterações ao mesmo tempo não se atropelam
+        const aberta = (await tx.query<{ id: string; mes: string; unidade_id: string }>(
+          "select id, to_char(desde, 'YYYY-MM') as mes, unidade_id from rastreio where militar_id = $1 and ate is null for update",
+          [id],
+        )).rows[0];
+        // outra gravação trocou a unidade do período aberto entre a conferência do papel e agora: confere de novo, com a ficha atualizada
+        if (aberta && aberta.unidade_id !== d.unidadeId && aberta.unidade_id !== unidadeAberta) return 'mudou' as const;
+        if (aberta && d.desde < aberta.mes) return 'antes' as const;
+        if (aberta && d.desde === aberta.mes) {
+          await tx.query('update rastreio set unidade_id = $2, equipe_id = $3, jornada = $4 where id = $1', [aberta.id, d.unidadeId, d.equipeId, d.jornada]);
+          return { ficha: await carregarFicha(tx, id, d.desde), criado: false };
+        }
+        if (aberta) await tx.query("update rastreio set ate = $2::date - interval '1 day' where id = $1", [aberta.id, mesParaData(d.desde)]);
+        await tx.query('insert into rastreio (militar_id, unidade_id, equipe_id, jornada, desde) values ($1, $2, $3, $4, $5)', [
           id, d.unidadeId, d.equipeId, d.jornada, mesParaData(d.desde),
         ]);
-        return carregarFicha(tx, id, d.desde);
+        return { ficha: await carregarFicha(tx, id, d.desde), criado: true };
       });
-      return c.json(ficha, 201);
+      if (resultado === 'mudou') return c.json({ erro: MSG_SITUACAO_MUDOU }, 409);
+      if (resultado === 'antes') return c.json({ erro: MSG_PERIODO_ANTES, campos: { desde: MSG_PERIODO_ANTES } }, 400);
+      return c.json(resultado.ficha, resultado.criado ? 201 : 200);
     } catch (e) {
       return respostaDoErroDoBanco(c, e, MSG_MATRICULA);
     }

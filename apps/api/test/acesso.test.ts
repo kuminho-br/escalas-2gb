@@ -95,8 +95,8 @@ describe('unidade do registro', () => {
   it('unidadeDoRegistro de militar usa a lotação mais recente', async () => {
     const { banco, ids } = api;
     const m = (await banco.query<{ id: string }>("select id from militar where matricula = '990903-3'")).rows[0]!.id;
-    await inserir(banco, 'lotacao', { militar_id: m, unidade_id: ids.gb, jornada: 'adm', desde: '2026-01-01', ate: '2026-10-31' });
-    await inserir(banco, 'lotacao', { militar_id: m, unidade_id: ids.secao, jornada: 'pronto', desde: '2026-11-01' });
+    await inserir(banco, 'rastreio', { militar_id: m, unidade_id: ids.gb, jornada: 'adm', desde: '2026-01-01', ate: '2026-10-31' });
+    await inserir(banco, 'rastreio', { militar_id: m, unidade_id: ids.secao, jornada: 'pronto', desde: '2026-11-01' });
     expect(await unidadeDoRegistro(banco, 'militar', m)).toBe(ids.secao);
     expect(await unidadeDoRegistro(banco, 'militar', '00000000-0000-4000-8000-000000000000')).toBeNull();
   });

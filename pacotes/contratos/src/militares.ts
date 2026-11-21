@@ -1,4 +1,4 @@
-// Militares: identificação, lotação com histórico, CNH e afastamentos.
+// Militares: identificação, rastreio (lotação, equipe e jornada no tempo), CNH e afastamentos.
 import { z } from 'zod';
 import { Data, Id, Matricula, Mes, Nome } from './comum.ts';
 
@@ -11,26 +11,25 @@ export const Antiguidade = z
   .min(1, 'Use um número a partir de 1.')
   .max(99999, 'Use um número de 1 a 99999.')
   .nullable();
-const MSG_CNH_SEM_MOTORISTA = 'Marque o quadro de motoristas antes de escolher a CNH.';
 
-export const NovaLotacao = z.object({ unidadeId: Id, equipeId: Id.nullable(), jornada: Jornada, desde: Mes });
-export type NovaLotacao = z.infer<typeof NovaLotacao>;
+/** "Alterar situação": a lotação (unidade), a equipe e a jornada do militar a partir de um mês (o dia 1). */
+export const AlteracaoDeSituacao = z.object({ unidadeId: Id, equipeId: Id.nullable(), jornada: Jornada, desde: Mes });
+export type AlteracaoDeSituacao = z.infer<typeof AlteracaoDeSituacao>;
 
 /** As categorias da carteira entram sem repetir e em ordem (A a E): "B, B, D" vira "B, D". */
 const CnhSemRepetir = z.array(CategoriaCnh).transform((categorias) => [...new Set(categorias)].sort());
 
-export const NovoMilitar = z
-  .object({
-    matricula: Matricula,
-    postoGradId: Id,
-    nomeGuerra: Nome,
-    antiguidade: Antiguidade,
-    motorista: z.boolean(),
-    cnh: CnhSemRepetir,
-    voluntarioJes: z.boolean(),
-    lotacao: z.object({ equipeId: Id.nullable(), jornada: Jornada, desde: Mes }),
-  })
-  .refine((m) => m.motorista || m.cnh.length === 0, { path: ['cnh'], message: MSG_CNH_SEM_MOTORISTA });
+/** A CNH é do militar; só vale para a escala com ele no quadro de motoristas, mas pode estar gravada sem o quadro. */
+export const NovoMilitar = z.object({
+  matricula: Matricula,
+  postoGradId: Id,
+  nomeGuerra: Nome,
+  antiguidade: Antiguidade,
+  motorista: z.boolean(),
+  cnh: CnhSemRepetir,
+  voluntarioJes: z.boolean(),
+  lotacao: z.object({ equipeId: Id.nullable(), jornada: Jornada, desde: Mes }),
+});
 export type NovoMilitar = z.infer<typeof NovoMilitar>;
 
 export const EdicaoMilitar = z.object({
@@ -52,9 +51,10 @@ export type NovoAfastamento = z.infer<typeof NovoAfastamento>;
 export const EdicaoAfastamento = z.object({ tipoAfastamentoId: Id.optional(), inicio: Data.optional(), fim: Data.optional() });
 export type EdicaoAfastamento = z.infer<typeof EdicaoAfastamento>;
 export const MENSAGEM_FIM_ANTES_DO_INICIO = MSG_FIM;
-export const MENSAGEM_CNH_SEM_MOTORISTA = MSG_CNH_SEM_MOTORISTA;
 
 export type Posto = { id: string; sigla: string; nome: string; ordem: number };
+/** Seção em que o usuário pode lotar um militar (as que ele pode cadastrar). */
+export type SecaoDeLotacao = { id: string; sigla: string; nome: string };
 export type Equipe = { id: string; nome: string; ordemCiclo: number };
 
 export type LinhaMilitar = {
@@ -81,6 +81,7 @@ export type FichaMilitar = LinhaMilitar & {
   cnh: string[];
   /** Categorias que vêm pela hierarquia (com D: C e B), além das da carteira. */
   cnhPorHierarquia: string[];
-  lotacoes: { id: string; unidadeSigla: string; equipe: string | null; jornada: 'pronto' | 'adm'; desde: string; ate: string | null }[];
+  /** Os períodos de lotação + equipe + jornada, do mais novo para o mais velho. */
+  rastreio: { id: string; unidadeSigla: string; equipe: string | null; jornada: 'pronto' | 'adm'; desde: string; ate: string | null }[];
   afastamentos: { id: string; tipo: string; tipoAfastamentoId: string; inicio: string; fim: string }[];
 };

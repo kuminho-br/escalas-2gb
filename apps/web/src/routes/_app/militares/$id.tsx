@@ -8,8 +8,8 @@ import { Afastamentos } from '@/componentes/militares/Afastamentos';
 import { Identificacao } from '@/componentes/militares/Identificacao';
 import { ProvedorDePendencias } from '@/componentes/AlteracoesPendentes';
 import { FichaPainel } from '@/componentes/ListaDetalhe';
-import { Lotacoes } from '@/componentes/militares/Lotacoes';
 import { Motorista } from '@/componentes/militares/Motorista';
+import { Rastreio } from '@/componentes/militares/Rastreio';
 import { resumoDaLotacao } from '@/lib/militares';
 
 export const Route = createFileRoute('/_app/militares/$id')({
@@ -30,14 +30,14 @@ function Ficha() {
       titulo={<><span className="text-apagado">{ficha.posto}</span> {ficha.nomeGuerra}</>}
       complemento={<span className="font-cond text-apagado">{ficha.matricula}</span>}
       voltarPara="/militares"
-      resumo={resumoDaLotacao(ficha.lotacoes)}
+      resumo={resumoDaLotacao(ficha.rastreio)}
       aviso={ficha.pendencias.length > 0 && <AvisoDeCadastro ficha={ficha} />}
     >
       {/* key: ao trocar de militar, os formulários começam do zero; os dados entram nela para uma gravação de fora (ex.: importação) recarregar o bloco */}
       <Identificacao key={`i-${ficha.id}`} ficha={ficha} />
       <Motorista key={`m-${ficha.id}`} ficha={ficha} />
       <Afastamentos key={`a-${ficha.id}`} ficha={ficha} />
-      <Lotacoes key={`l-${ficha.id}`} ficha={ficha} unidadeId={eu.unidade.id} />
+      <Rastreio key={`r-${ficha.id}`} ficha={ficha} unidadeId={eu.unidade.id} />
     </FichaPainel>
     </ProvedorDePendencias>
   );

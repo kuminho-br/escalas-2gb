@@ -89,7 +89,7 @@ describe('auditoria', () => {
 
   it('unidade pelo militar, pelo servico, pela guarnicao e pela propria unidade', async () => {
     const m = await militar();
-    await inserir(banco, 'lotacao', { militar_id: m, unidade_id: unidade, jornada: 'pronto', desde: '2026-11-01' });
+    await inserir(banco, 'rastreio', { militar_id: m, unidade_id: unidade, jornada: 'pronto', desde: '2026-11-01' });
     const af = await inserir(banco, 'afastamento', { militar_id: m, tipo_afastamento_id: (await banco.query<{ id: string }>("select id from tipo_afastamento where nome = 'Férias'")).rows[0]!.id, inicio: '2026-11-10', fim: '2026-11-20' });
     expect((await linhas('afastamento', af))[0]!.unidade_id).toBe(unidade);
     await banco.query("update militar set nome_guerra = 'MUDOU' where id = $1", [m]);

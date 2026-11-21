@@ -36,7 +36,7 @@ export async function lotadosNoMes(c: Consulta, unidadeId: string, mes: string, 
     `select m.id, m.matricula, m.nome_guerra, m.voluntario_jes, p.sigla as posto, l.jornada, e.nome as equipe, to_char(l.desde, 'YYYY-MM-DD') as desde,
             (least(coalesce(l.ate, date '9999-12-31'), ($1::date + interval '1 month' - interval '1 day')::date) - greatest(l.desde, $1::date) + 1)::int as trecho
        from militar m join posto_grad p on p.id = m.posto_grad_id
-       join lotacao l on l.militar_id = m.id and l.unidade_id = $2
+       join rastreio l on l.militar_id = m.id and l.unidade_id = $2
        left join equipe e on e.id = l.equipe_id
       where m.ativo and ($3::uuid is null or m.id = $3)
         and l.desde <= ($1::date + interval '1 month' - interval '1 day')::date and (l.ate is null or l.ate >= $1::date)`,
@@ -129,7 +129,7 @@ export async function unidadeDoMilitarNoMes(c: Consulta, militarId: string, mes:
   if (!ultima) return null;
   const inicio = mesParaData(mes);
   const { rows } = await c.query<{ unidade_id: string }>(
-    `select l.unidade_id from lotacao l
+    `select l.unidade_id from rastreio l
       where l.militar_id = $1 and l.desde <= ($2::date + interval '1 month' - interval '1 day')::date and (l.ate is null or l.ate >= $2::date)
       order by (least(coalesce(l.ate, date '9999-12-31'), ($2::date + interval '1 month' - interval '1 day')::date) - greatest(l.desde, $2::date)) desc, l.desde desc
       limit 1`,
