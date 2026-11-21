@@ -79,7 +79,7 @@ Como o sistema novo é pensado hoje. A ordem das fases está no roadmap (`docs/s
 | Militar comum | Quem não tem papel. Vê só o que é dele (os próprios serviços, com quem compõe cada guarnição) e as escalas publicadas da unidade em que está lotado. Não vê cadastros. |
 
 - O militar comum vê o próprio e as publicações porque é o que já circula hoje no documento impresso. Ver tudo foi descartado por expor CNH e afastamentos (D7).
-- Os quatro tipos ainda não estão separados nas telas: isso é a fase 6. A decidir lá: quem vê cada módulo e se "auxiliar administrativo" substitui "escalante" nas telas.
+- Os quatro tipos são separados nas telas na fase 6 (design em `docs/superpowers/specs/2026-11-21-usuarios-e-modulos-design.md`): módulos por papel, e o papel `escalante` aparece como "Auxiliar administrativo".
 - Um gestor por nível cadastra os usuários do seu nível e dos de baixo e define o gestor de cada nível abaixo: dentro do GB na fase 6, acima dele na fase 11. O `papel_usuario` por unidade já comporta isso.
 
 ## 3. Modelagem
@@ -197,7 +197,6 @@ A CNH é do militar, esteja ou não no quadro de motoristas; **para a escala, el
 - **Pecúlio (fase 5):** como a planilha é usada hoje; ficha única ou duas; fonte dos dados depois da importação; abas extras; como o militar comum entra sem e-mail; quem vê cada informação. Detalhes em `docs/superpowers/specs/2026-11-20-peculio-design.md`.
 - **"A partir de" no rastreio:** por enquanto o mês; se vale o dia é pendência de elucidação de requisito.
 - **Antiguidade institucional:** dentro do GB, vem da "Ordem" do Pecúlio (fase 5). Acima do GB (fase 11), a ideia é derivá-la dos almanaques, por nível hierárquico. Em aberto: como o almanaque entra (PDF ou digitação) e o que acontece com a antiguidade manual de hoje.
-- **Tipos de usuário (fase 6):** quem vê cada módulo e o nome "auxiliar administrativo".
 - **Publicação (fase 7):** se a escala publicada fica travada e como se corrige depois.
 
 ## 8. Outros documentos

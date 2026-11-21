@@ -1,0 +1,494 @@
+# Fase 6 — Usuários e módulos: plano de implementação
+
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+
+**Spec:** `docs/superpowers/specs/2026-11-21-usuarios-e-modulos-design.md`. Na entrega 4, também `docs/superpowers/specs/2026-11-20-transicao-login-design.md`.
+
+**Entregas da fase** (o número é a ordem de execução):
+1. **Contas e papéis:** a senha provisória, a troca obrigatória no primeiro login, desativar o acesso, os papéis na ficha e o nome "Auxiliar administrativo". **Detalhada abaixo.**
+2. **Unidade de trabalho:** o seletor de unidade substitui a 1ª SB fixa. **Detalhada abaixo.**
+3. **Tela inicial e módulos:** os cartões por papel, o trilho por módulo e a Minha ficha com o próprio telefone. **Detalhada abaixo.**
+4. **Transição do login** (as mangueiras), **condicional**: só começa se o usuário tiver aprovado o mockup (ajustes R1 a R6). As tarefas são escritas quando ela for começar.
+
+O retorno da validação que chegar durante a fase vira uma entrega depois da última prevista.
+
+**Fluxo:** o Sonnet executa e o Opus faz a revisão final do branch. Ao terminar cada entrega, a DESENVOLVIMENTO envia o branch e o resumo à PLANEJAMENTO, sem abrir PR nem mesclar. A PLANEJAMENTO abre o PR, mescla e avisa a VALIDAÇÃO.
+
+**Valem para todas as entregas:**
+- Nenhum dado pessoal real (D7). Matrículas `990xxx-x`; e-mails `@bombeiros.pe.gov.br` fictícios nos testes da ficha. O `apoio-api.ts` continua com `@exemplo.test` para os usuários de teste.
+- O escalante nunca é bloqueado de fechar a escala.
+- Textos sem jargão, em frases curtas.
+- No fim de cada entrega:
+  - `pnpm test && pnpm typecheck && pnpm build:vercel`;
+  - as contagens no `CLAUDE.md` local;
+  - o esquema (`docs/superpowers/specs/2026-11-16-esquema-banco.md`) atualizado quando houver migração.
+
+---
+
+# Entrega 1 — Contas e papéis
+
+**Goal:** o auxiliar ou o gestor dá acesso a um militar com uma senha provisória, e o gestor dá e tira papéis, tudo na ficha. O militar entra e troca a senha antes de qualquer outra tela.
+
+**Architecture:**
+- **Migração:** o usuário ganha o prazo da senha provisória, e um gatilho mantém o e-mail de entrada igual ao da ficha.
+- **API:** rotas novas em `apps/api/src/usuarios/`, que conferem o papel com as funções de `acesso.ts`. O `/api/eu` diz quando a senha precisa ser trocada, e a sessão fica restrita até a troca.
+- **Site:** um bloco "Acesso ao sistema" no fim da ficha e a tela "Crie a sua senha".
+
+**Tech Stack:** Postgres, Hono, Better Auth (`hashPassword` de `better-auth/crypto`), zod (`pacotes/contratos`), React + TanStack, Vitest.
+
+**Branch:** `fase6-1-contas-e-papeis`. Commits `Fase 6.1: …`. **Migração 0025:** o resumo avisa `pnpm --filter api db:migrar:teste`.
+
+## Global Constraints
+
+- **Nomes dos papéis nas telas e nas mensagens:** "Administrador", "Gestor", "Auxiliar administrativo". O valor `escalante` no banco e no código não muda.
+- **Senha provisória:**
+  - 12 letras e números do alfabeto `abcdefghjkmnpqrstuvwxyz23456789`, sem 0, o, 1, l e i, em três grupos de quatro separados por hífen (ex.: `k7mq-3tav-p9xe`);
+  - vale **7 dias**;
+  - aparece **uma vez**.
+- **Senha definitiva:** mínimo de 10 caracteres, como hoje.
+- **Textos fixos:**
+  - sem e-mail: "Preencha o e-mail institucional para dar acesso.";
+  - senha provisória vencida: "Sua senha provisória venceu. Peça uma senha nova ao auxiliar administrativo da sua seção.";
+  - "Esqueci minha senha": "Peça uma senha nova ao auxiliar administrativo da sua seção.";
+  - último papel de gestor: "Você não pode encerrar o seu último papel de gestor. Peça a outro gestor ou ao administrador.";
+  - antes da troca: "Crie a sua senha antes de continuar.".
+
+**Decisões desta entrega** (do usuário, no design; as minhas estão marcadas):
+- O prazo fica em `usuario.senha_provisoria_ate` (timestamptz; null = senha definitiva). A tabela `convite`, sem uso, é removida. *Minha decisão:* uma coluna basta, e o `convite` só confundiria.
+- O e-mail de entrada é o da ficha. O gatilho `militar_email_para_usuario` copia `lower(militar.email)` para `usuario.email`. Apagar o e-mail de quem tem usuário é barrado: 409 no campo, com "Desative o acesso antes de apagar o e-mail.". *Minha decisão:* o login exige e-mail.
+- Dar papel a quem não tem conta cria o `usuario` sem senha. A situação continua "sem acesso" até a primeira senha provisória.
+- Gerar a senha numa conta desativada reativa a conta.
+- O militar comum continua sem rota nova nesta entrega. A Minha ficha é da entrega 3.
+
+## Review Focus
+
+1. **Senha provisória gerada duas vezes:** a primeira deixa de entrar, a segunda entra, e a sessão aberta com a primeira cai. Task 2.
+2. **Militar com senha provisória chama uma rota de cadastro direto, sem passar pela tela de troca:** recebe 403 com "Crie a sua senha antes de continuar.". Task 2.
+3. **Gestor da 1ª SB tenta dar papel no 2º GB, ou dar papel de administrador:** 403, e nada é gravado. Task 3.
+4. **Mudar o e-mail na ficha de quem tem conta:** o login passa a ser pelo e-mail novo, e o antigo deixa de entrar. Task 1.
+5. **Senha provisória vencida, com a senha certa:** a tela de entrar mostra a mensagem de vencida, não "E-mail ou senha incorretos.". Task 2 (API) e Task 4 (site).
+
+---
+
+### Task 1: Migração 0025, o e-mail de entrada e o apoio dos testes
+
+**Files:**
+- Create: `apps/api/banco/migracoes/0025_contas_e_papeis.sql`
+- Modify: `apps/api/src/cadastros/militares.ts` (PATCH: 409 do e-mail apagado com usuário)
+- Modify: `apps/api/test/apoio-api.ts` (função para criar um militar com e-mail e lotação, usada pelas tasks 2 e 3)
+- Test: `apps/api/test/esquema-estrutura.test.ts`, `apps/api/test/militares.test.ts`
+
+**Interfaces:**
+- Produces:
+  - coluna `usuario.senha_provisoria_ate timestamptz null`;
+  - gatilho `militar_email_para_usuario`, que atualiza `usuario.email` e barra o e-mail nulo com a mensagem `email_obrigatorio_com_acesso`;
+  - em `apoio-api.ts`: `criarMilitar(api: ApiDeTeste, d: { matricula: string; email: string | null; unidadeId: string }): Promise<string>`, que devolve o `militar.id`.
+
+- [ ] **Step 1: Testes.**
+  - `it('o convite saiu e o usuário tem o prazo da senha provisória')`.
+  - `it('mudar o e-mail do militar muda o e-mail do usuário')`: grava `NOVO@bombeiros.pe.gov.br`; `usuario.email` fica `novo@bombeiros.pe.gov.br`.
+  - `it('não apaga o e-mail de quem tem usuário')`: o PATCH com `email: null` responde 409, com `campos.email = 'Desative o acesso antes de apagar o e-mail.'`. Review Focus 4.
+- [ ] **Step 2: Run** `pnpm --filter api test esquema-estrutura militares`. Expected: FAIL.
+- [ ] **Step 3: Implement.**
+  - A migração: `drop table if exists convite`; a coluna; a função e o gatilho `after update of email on militar`.
+  - O PATCH reconhece a exceção do gatilho pela mensagem e responde 409 no campo.
+- [ ] **Step 4: Run** de novo. Expected: PASS. Rodar também `pnpm --filter api test`.
+- [ ] **Step 5: Commit** `Fase 6.1: migração 0025 e o e-mail de entrada igual ao da ficha`.
+
+### Task 2: Senha provisória, troca obrigatória e desativar
+
+**Files:**
+- Create: `apps/api/src/usuarios/senha-provisoria.ts` (gerar a senha)
+- Create: `apps/api/src/usuarios/rotas.ts` (rotas do acesso), ligada em `apps/api/src/app.ts`
+- Modify: `apps/api/src/auth.ts` (o gancho de sessão barra a senha provisória vencida)
+- Modify: `apps/api/src/acesso.ts` (`exigirSessao` barra quem ainda não trocou)
+- Modify: `apps/api/src/rotas/eu.ts` (`trocarSenha` e `POST /api/eu/senha`)
+- Create: `pacotes/contratos/src/usuarios.ts` (exportado no índice)
+- Test: `apps/api/test/usuarios.test.ts`, `apps/api/test/senha-provisoria.test.ts`
+
+**Interfaces:**
+- Consumes: `criarMilitar` (Task 1); `exigirPapelNoRegistro(c, 'militar', id)`, a mesma regra do GET da ficha: auxiliar, gestor ou administrador na lotação do militar ou acima.
+- Produces:
+  - `gerarSenhaProvisoria(): string`, com `crypto.getRandomValues`;
+  - contratos:
+    - `SituacaoDoAcesso = z.enum(['sem-acesso', 'provisoria', 'provisoria-vencida', 'ativo', 'desativado'])`;
+    - `AcessoDoMilitar = { situacao, email: string | null, papeis: PapelDoMilitar[], podeGerarSenha: boolean, papeisQuePodeDar: Papel[], unidadesParaPapel: { id: string; sigla: string; nivel: number }[] }`;
+    - `PapelDoMilitar = { id, papel: Papel, unidadeId, unidadeSigla, desde: Data, ate: Data | null }`;
+    - `NovaSenha = z.object({ novaSenha: z.string().min(10) })`;
+  - rotas:
+    - `GET /api/militares/:id/acesso` → `AcessoDoMilitar`;
+    - `POST /api/militares/:id/senha-provisoria` → 201 `{ senha: string, validaAte: string }` (ISO);
+    - `POST /api/militares/:id/desativar-acesso` → `AcessoDoMilitar`;
+    - `POST /api/eu/senha` (`NovaSenha`) → 204;
+  - `Eu` (API e `apps/web/src/api/eu.ts`) ganha `trocarSenha: boolean`.
+
+- [ ] **Step 1: Testes** em `senha-provisoria.test.ts`.
+  - `it('tem 12 caracteres do alfabeto sem letras parecidas, em três grupos')`: casa com `/^[a-hjkmnp-z2-9]{4}(-[a-hjkmnp-z2-9]{4}){2}$/`.
+  - `it('duas senhas seguidas são diferentes')`.
+- [ ] **Step 2: Testes** em `usuarios.test.ts`, com o `montarApi` e um militar da 1ª SB criado por `criarMilitar`.
+  - `it('o auxiliar da seção gera a senha e o militar entra com ela')`: 201; o login por `/api/auth/sign-in/email` dá 200; `GET /api/eu` traz `trocarSenha: true` e `papeis: []`.
+  - `it('sem e-mail na ficha não gera senha')`: 400 com "Preencha o e-mail institucional para dar acesso.". O `GET …/acesso` traz `podeGerarSenha: false`.
+  - `it('gerar de novo invalida a anterior e derruba a sessão')`: depois do segundo POST, entrar com a primeira dá 401; a sessão aberta com a primeira recebe 401 em `/api/eu`. Review Focus 1.
+  - `it('antes de trocar, as rotas respondem 403')`: com a sessão de senha provisória, `GET /api/unidades/:secao/militares` dá 403 com "Crie a sua senha antes de continuar."; `GET /api/eu` dá 200. Review Focus 2.
+  - `it('trocar a senha libera a sessão e apaga o prazo')`: `POST /api/eu/senha` dá 204; `trocarSenha` fica `false`; a senha nova entra e a provisória não. Senha de 9 caracteres dá 400. `POST /api/eu/senha` sem senha provisória pendente dá 409.
+  - `it('senha provisória vencida não entra, com a mensagem própria')`: com `senha_provisoria_ate` no passado, o login com a senha certa dá 403, e a mensagem é a de vencida. Review Focus 5.
+  - `it('desativar derruba a sessão e gerar de novo reativa')`.
+  - `it('o militar comum e o auxiliar de outra seção recebem 403')`.
+- [ ] **Step 3: Run** `pnpm --filter api test usuarios senha-provisoria`. Expected: FAIL.
+- [ ] **Step 4: Implement.**
+  - **Gerar a senha:** numa transação com `comUsuario` (para a auditoria):
+    - cria o `usuario` se faltar (`nome` = `posto nomeGuerra`, `email` da ficha, `militar_id`);
+    - faz o upsert da `conta` com `provedor_id = 'credential'`, `conta_id = usuario.id` e `senha = await hashPassword(senha)`;
+    - grava `senha_provisoria_ate = now() + interval '7 days'` e `ativo = true`;
+    - apaga as `sessao` do usuário.
+  - **Desativar:** `ativo = false` e apaga as sessões.
+  - **Situação:**
+    - sem `conta` com senha → `sem-acesso`;
+    - `ativo = false` → `desativado`;
+    - prazo no futuro → `provisoria`;
+    - prazo vencido → `provisoria-vencida`;
+    - sem prazo → `ativo`.
+  - **Gancho `session.create.before`** em `auth.ts`: além do `ativo`, com o prazo vencido lança `APIError('FORBIDDEN', { message: <texto de vencida> })` (de `better-auth/api`).
+  - **`exigirSessao`:** com prazo não nulo, responde 403 com o texto da troca.
+  - **`POST /api/eu/senha`:** confere a sessão por conta própria, como o GET do `/api/eu`, porque fica fora de `exigirSessao`. Grava o hash e zera o prazo.
+- [ ] **Step 5: Run** de novo e `pnpm --filter api test`. Expected: PASS.
+- [ ] **Step 6: Commit** `Fase 6.1: senha provisória, troca obrigatória e desativar o acesso`.
+
+### Task 3: Papéis na ficha
+
+**Files:**
+- Modify: `apps/api/src/usuarios/rotas.ts`
+- Modify: `apps/api/src/acesso.ts` (as duas mensagens "Esta tela é dos escalantes e gestores." passam a "Esta tela é dos auxiliares administrativos e gestores.")
+- Modify: `pacotes/contratos/src/usuarios.ts`
+- Test: `apps/api/test/usuarios.test.ts`, mais os testes que conferem a mensagem antiga
+
+**Interfaces:**
+- Consumes: `temPapel` (`acesso.ts`) e `AcessoDoMilitar` (Task 2).
+- Produces:
+  - `NovoPapel = z.object({ papel: Papel, unidadeId: z.string().uuid(), desde: Data })`;
+  - `EncerrarPapel = z.object({ ate: Data })`;
+  - `POST /api/militares/:id/papeis` (`NovoPapel`) → 201 `AcessoDoMilitar`;
+  - `POST /api/papeis/:id/encerrar` (`EncerrarPapel`) → `AcessoDoMilitar`.
+- **Regras:**
+  - `gestor` e `escalante` exigem `temPapel(…, unidadeId, ['gestor', 'administrador'])`;
+  - `administrador` exige ser administrador, com `unidadeId` na raiz (a regra do banco continua);
+  - `papeisQuePodeDar` e `unidadesParaPapel` (as unidades em que a pessoa é gestora e as de baixo; para o administrador, todas) seguem as mesmas regras.
+
+- [ ] **Step 1: Testes.**
+  - `it('o gestor do 2º GB dá papel de auxiliar na 1ª SB')`: 201; o papel aparece em `papeis`.
+  - `it('o auxiliar não dá papel')`: 403; `papeisQuePodeDar: []`.
+  - `it('gestor fora da unidade ou dando administrador recebe 403')`. Review Focus 3.
+  - `it('dar papel a quem não tem conta cria o usuário sem acesso')`: situação `sem-acesso`.
+  - `it('encerrar fecha o período e não apaga')`: `ate` gravado; a linha continua.
+  - `it('ninguém encerra o próprio último papel de gestor; o administrador pode')`: 409 com o texto fixo.
+  - `ate` antes de `desde` dá 400.
+- [ ] **Step 2: Run** `pnpm --filter api test usuarios`. Expected: FAIL.
+- [ ] **Step 3: Implement** as duas rotas e as listas de `AcessoDoMilitar`, gravando com `comUsuario`. Trocar a mensagem em `acesso.ts` e nos testes que a conferem.
+- [ ] **Step 4: Run** `pnpm --filter api test`. Expected: PASS.
+- [ ] **Step 5: Commit** `Fase 6.1: papéis dados e encerrados na ficha`.
+
+### Task 4: O site: Acesso ao sistema, Crie a sua senha e Esqueci minha senha
+
+**Files:**
+- Create: `apps/web/src/lib/papeis.ts` (`nomeDoPapel`)
+- Create: `apps/web/src/api/acesso.ts` (consultas e mutações das rotas das tasks 2 e 3)
+- Create: `apps/web/src/componentes/militares/AcessoAoSistema.tsx`, no fim da ficha, depois do Rastreio, em `routes/_app/militares/$id.tsx`
+- Create: `apps/web/src/routes/criar-senha.tsx` (fora do `_app`)
+- Modify: `apps/web/src/routes/_app.tsx` (com `eu.trocarSenha`, `redirect({ to: '/criar-senha' })`)
+- Modify: `apps/web/src/routes/entrar.tsx` ("Esqueci minha senha" e a mensagem de vencida)
+- Modify: `apps/web/src/routes/_app/index.tsx` ("A grade geral é dos auxiliares administrativos e gestores.") e os outros textos visíveis que dão "escalante" como nome de papel (procurar com `rg -i escalante apps/web/src`)
+- Test: `apps/web/src/__testes__/acesso-ao-sistema.test.tsx`, `apps/web/src/__testes__/criar-senha.test.tsx`, `apps/web/src/__testes__/entrar.test.tsx`
+
+**Interfaces:**
+- Consumes: as rotas e os contratos das tasks 2 e 3.
+- Produces: `nomeDoPapel(p: Papel): 'Administrador' | 'Gestor' | 'Auxiliar administrativo'`.
+
+- [ ] **Step 1: Testes.**
+  - **`acesso-ao-sistema.test.tsx`:**
+    - `it('mostra a situação e gera a senha, que aparece uma vez')`: clicar em "Gerar senha provisória" mostra a senha e "Vale até dd/mm/aaaa"; depois de "Já entreguei", ela some e não volta ao reabrir a ficha.
+    - `it('sem e-mail, o botão fica desligado com o aviso')`.
+    - `it('desativar pede confirmação')`.
+    - `it('lista os papéis com "Auxiliar administrativo" e dá papel')`: o formulário mostra papel, unidade e "A partir de".
+    - `it('sem papéis para dar, não aparece "Dar papel"')`.
+  - **`criar-senha.test.tsx`:**
+    - `it('as duas senhas precisam ser iguais e ter 10 caracteres')`;
+    - `it('salvar leva para o início')`.
+  - **`entrar.test.tsx`:**
+    - `it('Esqueci minha senha mostra a orientação')`;
+    - `it('senha provisória vencida mostra a mensagem do servidor')`, com resposta 403 e a mensagem de vencida. Review Focus 5.
+- [ ] **Step 2: Run** `pnpm --filter web test acesso-ao-sistema criar-senha entrar`. Expected: FAIL.
+- [ ] **Step 3: Implement.**
+  - **O bloco** usa o `Secao` dos outros blocos da ficha:
+    - situação em palavras ("Sem acesso", "Senha provisória até dd/mm", "Senha provisória vencida", "Ativo", "Desativado");
+    - o e-mail de entrada;
+    - os botões;
+    - a lista de papéis com "Encerrar" (pede a data, sugerindo hoje);
+    - "Dar papel".
+  - **A senha** aparece num diálogo com "Copiar" e "Já entreguei".
+  - **A tela "Crie a sua senha"** segue o visual do login:
+    - campos "Nova senha" e "Repita a nova senha";
+    - botão "Salvar senha";
+    - ao salvar, invalida o `eu` e navega para `/`.
+- [ ] **Step 4: Run** `pnpm --filter web test`. Expected: PASS.
+- [ ] **Step 5: Commit** `Fase 6.1: acesso ao sistema na ficha e a tela de criar a senha`.
+- [ ] **Step 6: Fechar a entrega.**
+  - `pnpm test && pnpm typecheck && pnpm build:vercel`.
+  - Esquema atualizado (o `usuario`, o gatilho, sai o `convite`) e as contagens.
+  - Enviar à PLANEJAMENTO o branch, o resumo e a lista curta para a sandbox:
+    - gerar a senha de um militar da 1ª SB e entrar com ela;
+    - trocar a senha;
+    - dar papel de auxiliar na 1ª SB e de gestor no 2º GB;
+    - encerrar um papel.
+
+---
+
+# Entrega 2 — Unidade de trabalho
+
+**Goal:** cada pessoa trabalha na unidade que escolhe entre as que tem acesso; a 1ª SB deixa de ser fixa.
+
+**Architecture:**
+- **API:** o `/api/eu` passa a devolver a lista de unidades acessíveis e a lotação; sai o `unidade-atual.ts`.
+- **Site:** a unidade escolhida é calculada no `beforeLoad` do `_app` e posta no contexto como `eu.unidade`. As telas que já leem `eu.unidade.id` não mudam.
+- **Topo:** ganha o seletor.
+
+**Branch:** `fase6-2-unidade-de-trabalho`. Commits `Fase 6.2: …`. Sem migração.
+
+## Global Constraints
+
+- **A escolha vale por navegador.** Fica guardada em `localStorage['unidade-de-trabalho']`, com leitura e escrita em `try/catch`.
+- **Na primeira vez**, vale a unidade do papel mais baixo na árvore (maior profundidade; empate pela sigla).
+- **O militar comum** não tem seletor. O topo mostra o caminho da lotação dele.
+- **A API continua conferindo o papel em cada rota.** A escolha do site não dá acesso a nada.
+
+**Decisões desta entrega** (minhas):
+- `GET /api/eu` troca `unidade` por:
+  - `unidades: UnidadeDeTrabalho[]`, com as unidades dos papéis vigentes e as de baixo, sem repetir, em ordem de caminho (o administrador recebe todas);
+  - `lotacao: UnidadeDeTrabalho | null`, a unidade do período do rastreio de hoje.
+- Para o militar comum, `unidades = lotacao ? [lotacao] : []`.
+- Sem nenhuma unidade, o `_app` mostra "Sua lotação não está cadastrada. Procure o auxiliar administrativo da sua seção." e "Sair".
+- Trocar de unidade navega para a lista da tela atual, o primeiro trecho do endereço: `/militares/abc` vai para `/militares`. Uma ficha de outra unidade não fica aberta.
+
+## Review Focus
+
+1. **Unidade guardada que deixou de ser acessível** (o papel foi encerrado): vale a regra da primeira vez, sem erro. Task 6.
+2. **Gestor do 2º GB abre a Escala do mês com o 2º GB escolhido:** a tela mostra o vazio de sempre, sem erro e sem travar. Task 6.
+3. **`localStorage` bloqueado** (janela privada): o seletor funciona na sessão e a tela não quebra. Task 6.
+4. **Administrador:** o seletor lista a árvore inteira, com o recuo de cada nível. Task 6.
+5. **Auxiliar com papel em duas seções:** o seletor mostra as duas, e cada tela troca os dados ao escolher. Task 5 (API) e Task 6 (site).
+
+### Task 5: `/api/eu` com as unidades e a lotação
+
+**Files:**
+- Modify: `apps/api/src/rotas/eu.ts`
+- Delete: `apps/api/src/unidade-atual.ts`
+- Test: `apps/api/test/eu.test.ts` (criar, se não existir, ou estender o teste do `/api/eu`)
+
+**Interfaces:**
+- Produces: `UnidadeDeTrabalho = { id: string; sigla: string; caminho: string[]; nivel: number }`, em que `caminho` são as siglas desde a raiz e `nivel = caminho.length - 1`. `Eu` sem `unidade` e com `unidades` e `lotacao`.
+
+- [ ] **Step 1: Testes.**
+  - `it('o auxiliar da 1ª SB tem só a 1ª SB')`.
+  - `it('o gestor do 2º GB tem o 2º GB e as sete seções, em ordem')`.
+  - `it('o administrador tem todas')`.
+  - `it('papel em duas seções dá as duas')`. Review Focus 5.
+  - `it('o militar comum tem a lotação de hoje, ou nada')`.
+- [ ] **Step 2: Run** `pnpm --filter api test eu`. Expected: FAIL.
+- [ ] **Step 3: Implement** com uma consulta por `caminho <@` sobre as unidades dos papéis vigentes (`papeisVigentes`). Apagar `unidade-atual.ts`.
+- [ ] **Step 4: Run** `pnpm --filter api test`. Expected: PASS.
+- [ ] **Step 5: Commit** `Fase 6.2: o /api/eu com as unidades acessíveis e a lotação`.
+
+### Task 6: O seletor e a unidade escolhida no site
+
+**Files:**
+- Create: `apps/web/src/lib/unidade-de-trabalho.ts`
+- Modify: `apps/web/src/api/eu.ts` (`EuDaApi` é a resposta do servidor; `Eu = EuDaApi & { unidade: UnidadeDeTrabalho }`)
+- Modify: `apps/web/src/routes/_app.tsx` (calcula `eu.unidade`; sem unidade, a tela da lotação não cadastrada)
+- Modify: `apps/web/src/componentes/Topo.tsx` (seletor)
+- Test: `apps/web/src/__testes__/unidade-de-trabalho.test.ts`, `apps/web/src/__testes__/casca.test.tsx`
+
+**Interfaces:**
+- Consumes: `UnidadeDeTrabalho` (Task 5).
+- Produces:
+  - `escolherUnidade(eu: EuDaApi, guardada: string | null): UnidadeDeTrabalho | null`;
+  - `lerUnidadeGuardada(): string | null`;
+  - `guardarUnidade(id: string): void`.
+
+- [ ] **Step 1: Testes** em `unidade-de-trabalho.test.ts`.
+  - `it('vale a guardada se ainda for acessível')`.
+  - `it('guardada inacessível cai no papel mais baixo')`. Review Focus 1.
+  - `it('sem guardada, vale o papel mais baixo; empate pela sigla')`.
+  - `it('militar comum fica na lotação')`.
+  - `it('sem unidades, devolve null')`.
+  - `it('localStorage que lança erro não quebra')`. Review Focus 3.
+- [ ] **Step 2: Testes** em `casca.test.tsx`.
+  - `it('com mais de uma unidade, o topo tem o seletor com recuo por nível')`. Review Focus 4.
+  - `it('escolher outra unidade guarda e leva para a lista da tela')`.
+  - `it('o militar comum vê o caminho da lotação sem seletor')`.
+  - `it('sem unidade, mostra a orientação e Sair')`.
+  - Na Escala do mês com o 2º GB, o vazio de sempre aparece. Review Focus 2.
+- [ ] **Step 3: Run** `pnpm --filter web test unidade-de-trabalho casca`. Expected: FAIL.
+- [ ] **Step 4: Implement.**
+  - **O seletor** é um `DropdownMenu`, como o menu do usuário no `Topo`:
+    - o gatilho é o caminho atual, como hoje (no celular, só a sigla atual);
+    - os itens recuam pelo `nivel`, relativo ao menor nível da lista.
+  - **Ao escolher:** `guardarUnidade`, `router.invalidate()` e `navigate` para o primeiro trecho do endereço atual.
+  - Atualizar `apoio.tsx` dos testes do site para o `Eu` novo.
+- [ ] **Step 5: Run** `pnpm --filter web test`. Expected: PASS.
+- [ ] **Step 6: Commit** `Fase 6.2: o seletor de unidade substitui a 1ª SB fixa`.
+- [ ] **Step 7: Fechar a entrega** (verificações, contagens). Enviar à PLANEJAMENTO, com a lista curta para a sandbox:
+  - o gestor do 2º GB troca entre o 2º GB e a 1ª SB;
+  - o auxiliar da 1ª SB não vê o seletor, porque tem uma unidade só.
+
+---
+
+# Entrega 3 — Tela inicial e módulos
+
+**Goal:** quem entra cai na tela inicial do mockup aprovado, com um cartão por módulo que pode usar. Dentro de um módulo, o trilho mostra só os itens dele. Todos têm a Minha ficha, onde alteram o próprio telefone.
+
+**Architecture:**
+- **Módulos:** uma lista em `apps/web/src/lib/modulos.ts` define os módulos, quem os vê e os itens de cada um. O `_app` deriva o módulo do endereço, barra quem não vê e passa o módulo ao `Trilho`.
+- **Endereços:** a Grade geral sai de `/` para `/grade`; `/` vira a tela inicial.
+- **API:** duas rotas novas para a própria ficha.
+
+**Branch:** `fase6-3-inicio-e-modulos`. Commits `Fase 6.3: …`. Sem migração.
+
+## Global Constraints
+
+- **Módulos e quem vê:**
+
+  | Módulo | Rota | Quem vê |
+  |---|---|---|
+  | "Confecção de escalas" | `/grade` | auxiliar, gestor e administrador |
+  | "Pecúlio do 2º GB" | `/peculio` | quem tem papel |
+  | "Visualização de escalas" | sem rota | todos; cartão sem clique, com a etiqueta "Em breve" |
+  | "Minha ficha" | `/minha-ficha` | todos |
+
+- **O visual da tela inicial** é o do mockup `docs/telas/login-e-inicio/mockup.html`: barra, faixa de boas-vindas e cartões, no computador e no celular.
+- **A faixa usa a cena final** `docs/telas/transicao-login/img/combate.jpg`, copiada para `apps/web/public/boas-vindas.jpg`. Ela é cortada como no design da transição:
+  - no computador, 8:3, linhas 300 a 876 da imagem;
+  - no celular, 16:9, a parte da direita.
+- **Saudação:** "Bom dia" até 11h59, "Boa tarde" até 17h59, "Boa noite" depois, no fuso de Recife, seguida de `posto nomeGuerra` e da data por extenso.
+- **Quem abre o endereço de um módulo que não vê** vai para `/` com `?aviso=outro-papel`, e a tela inicial mostra "Essa área é de outro papel.".
+- **Na Minha ficha, só o telefone é editável**, com a mesma validação do `Telefone` dos contratos.
+
+**Decisões desta entrega** (minhas):
+- **Os itens de cada módulo:**
+  - **Confecção:** os blocos de hoje do `Trilho`: Grade geral (`/grade`), Escala do mês, Efetivo por dia, Voluntariado, Cotas, Militares, Turnos, Escalas, Feriados e o pé.
+  - **Pecúlio:** "Pecúlio" (`/peculio`). A ficha aberta pelo Pecúlio continua em `/militares/$id`, que pertence aos dois módulos. Por isso o módulo de `/militares/…` é o da origem: lido do parâmetro `?de=peculio`, ou Confecção por padrão.
+- **Na tela inicial e na Minha ficha** não há trilho; a barra tem a volta ao início pelo brasão.
+- **`GET /api/eu/ficha`** devolve só os dados do próprio militar:
+  - identificação (posto, nome de guerra, nome completo, matrícula);
+  - contato (telefone, e-mail);
+  - dados pessoais (sexo, nascimento dia/mês);
+  - comportamento e boletim;
+  - situação de hoje (lotação, equipe, jornada);
+  - motorista e CNH;
+  - voluntário JES.
+- **`PATCH /api/eu/telefone`** grava com `comUsuario`, para a auditoria.
+
+## Review Focus
+
+1. **Militar comum digita `/militares` no endereço:** vai para o início com o aviso, sem ver nada da lista. Task 8.
+2. **Endereço antigo `/` com `?mes=…`** (favorito da Grade geral): leva à Grade geral em `/grade` com o mesmo mês. Task 8.
+3. **Telefone inválido na Minha ficha:** a mensagem aparece no campo e nada é gravado. Task 7 (API) e Task 9 (site).
+4. **Ficha aberta pelo Pecúlio:** o trilho continua o do Pecúlio, e "Voltar" volta ao Pecúlio. Task 8.
+5. **Auxiliar abre a Minha ficha:** vê os próprios dados, não os de quem está selecionado na unidade. Task 7.
+
+### Task 7: A própria ficha na API
+
+**Files:**
+- Modify: `apps/api/src/rotas/eu.ts` (as rotas `/ficha` e `/telefone`, com sessão conferida como no GET)
+- Modify: `pacotes/contratos/src/usuarios.ts` (`MinhaFicha`, `NovoTelefone = z.object({ telefone: Telefone.nullable() })`)
+- Test: `apps/api/test/eu.test.ts`
+
+**Interfaces:**
+- Produces:
+  - `GET /api/eu/ficha` → `MinhaFicha`;
+  - `PATCH /api/eu/telefone` (`NovoTelefone`) → `MinhaFicha`.
+
+- [ ] **Step 1: Testes.**
+  - `it('o militar comum lê a própria ficha')`.
+  - `it('o auxiliar lê a própria ficha, não a de outro')`. Review Focus 5.
+  - `it('altera o próprio telefone e fica na auditoria')`.
+  - `it('telefone inválido é 400 no campo e não grava')`. Review Focus 3.
+  - `it('o corpo com outro campo além do telefone é 400')`.
+- [ ] **Step 2: Run** `pnpm --filter api test eu`. Expected: FAIL.
+- [ ] **Step 3: Implement** as duas rotas, reaproveitando a leitura da ficha de `cadastros/militares.ts`, que já monta os mesmos campos.
+- [ ] **Step 4: Run** `pnpm --filter api test`. Expected: PASS.
+- [ ] **Step 5: Commit** `Fase 6.3: a própria ficha e o próprio telefone na API`.
+
+### Task 8: Módulos, endereços e o trilho por módulo
+
+**Files:**
+- Create: `apps/web/src/lib/modulos.ts`
+- Rename: `apps/web/src/routes/_app/index.tsx` → `apps/web/src/routes/_app/grade.tsx` (`createFileRoute('/_app/grade')`); trocar os `to: '/'` da Grade por `/grade`
+- Modify: `apps/web/src/componentes/Trilho.tsx` (recebe o `Modulo` e mostra os itens dele; sem módulo, não aparece)
+- Modify: `apps/web/src/routes/_app.tsx` (deriva o módulo, barra quem não vê, esconde o trilho fora dos módulos)
+- Test: `apps/web/src/__testes__/modulos.test.ts`, `apps/web/src/__testes__/casca.test.tsx`, os testes da Grade com o endereço novo
+
+**Interfaces:**
+- Produces:
+  - `type IdModulo = 'escalas' | 'peculio' | 'visualizacao' | 'minha-ficha'`;
+  - `interface Modulo { id: IdModulo; nome: string; descricao: string; rota: string | null; ve(eu: Eu): boolean; itens: Item[][] }`;
+  - `MODULOS: Modulo[]`;
+  - `moduloDoEndereco(caminho: string, busca: Record<string, unknown>): Modulo | null`.
+
+- [ ] **Step 1: Testes** em `modulos.test.ts`.
+  - `it('o militar comum vê Visualização e Minha ficha')`.
+  - `it('o auxiliar vê os quatro')`.
+  - `it('/militares/x é da Confecção, e com ?de=peculio é do Pecúlio')`. Review Focus 4.
+  - `it('/ e /minha-ficha não têm trilho')`.
+- [ ] **Step 2: Testes** em `casca.test.tsx`.
+  - `it('o militar comum em /militares vai para o início com o aviso')`. Review Focus 1.
+  - `it('/ com ?mes= vai para /grade com o mesmo mês')`. Review Focus 2.
+  - `it('dentro do Pecúlio, o trilho só tem o Pecúlio')`.
+- [ ] **Step 3: Run** `pnpm --filter web test modulos casca grade`. Expected: FAIL.
+- [ ] **Step 4: Implement.**
+  - A volta de `/` com parâmetros da Grade (`mes`, `equipes`, `busca`, `militar`, `dia`) redireciona no `beforeLoad` da rota `/`.
+  - As fichas abertas pela lista do Pecúlio levam `?de=peculio`, e o "Voltar" da ficha segue a origem.
+- [ ] **Step 5: Run** `pnpm --filter web test`. Expected: PASS.
+- [ ] **Step 6: Commit** `Fase 6.3: módulos, a Grade em /grade e o trilho por módulo`.
+
+### Task 9: Tela inicial e Minha ficha
+
+**Files:**
+- Create: `apps/web/src/routes/_app/index.tsx` (tela inicial)
+- Create: `apps/web/src/routes/_app/minha-ficha.tsx`
+- Create: `apps/web/src/api/minha-ficha.ts`
+- Create: `apps/web/public/boas-vindas.jpg` (cópia de `docs/telas/transicao-login/img/combate.jpg`)
+- Modify: `apps/web/src/componentes/Topo.tsx` (o brasão com o nome do sistema, que leva a `/`)
+- Test: `apps/web/src/__testes__/inicio.test.tsx`, `apps/web/src/__testes__/minha-ficha.test.tsx`
+
+**Interfaces:**
+- Consumes: `MODULOS` (Task 8); `MinhaFicha` e as rotas (Task 7).
+- Produces: `saudacao(agora: Date): 'Bom dia' | 'Boa tarde' | 'Boa noite'`, em `apps/web/src/lib/saudacao.ts`, no fuso de Recife.
+
+- [ ] **Step 1: Testes.**
+  - **`inicio.test.tsx`:**
+    - `it('mostra a saudação com posto e nome de guerra')`; `saudacao` nos limites 11:59, 12:00, 17:59 e 18:00;
+    - `it('mostra um cartão por módulo visível; Visualização sem link e com "Em breve"')`;
+    - `it('com ?aviso=outro-papel, mostra o aviso')`.
+  - **`minha-ficha.test.tsx`:**
+    - `it('mostra os próprios dados só para leitura, menos o telefone')`;
+    - `it('salva o telefone')`;
+    - `it('telefone inválido mostra a mensagem no campo')`. Review Focus 3.
+- [ ] **Step 2: Run** `pnpm --filter web test inicio minha-ficha`. Expected: FAIL.
+- [ ] **Step 3: Implement.**
+  - **Tela inicial:** seguir o mockup, com a faixa mais alta para caber a cena e o texto no canto superior esquerdo, sobre um degradê escuro.
+  - **Minha ficha:** reaproveitar o `Secao` dos blocos da ficha, só para leitura, e um campo de telefone com "Salvar".
+- [ ] **Step 4: Run** `pnpm --filter web test`. Expected: PASS.
+- [ ] **Step 5: Commit** `Fase 6.3: tela inicial com os módulos e a Minha ficha`.
+- [ ] **Step 6: Fechar a entrega.**
+  - Verificações e contagens.
+  - Atualizar `docs/superpowers/specs/2026-11-16-telas.md`, seção "Navegação": tela inicial, módulos, trilho por módulo e a Grade em `/grade`.
+  - Enviar à PLANEJAMENTO, com a lista curta para a sandbox:
+    - o militar comum entra e vê dois cartões;
+    - o auxiliar vê quatro;
+    - a Minha ficha altera o telefone;
+    - um endereço proibido volta ao início com o aviso.
+
+---
+
+# Entrega 4 — Transição do login (condicional)
+
+Só começa se o usuário tiver aprovado o mockup `docs/telas/transicao-login/mockup.html` depois dos ajustes R1 a R6, sem som. As tarefas são escritas quando ela for começar, a partir do design `docs/superpowers/specs/2026-11-20-transicao-login-design.md` ("Como é feita" e "Testes"). Sem a aprovação, a entrega passa para a fase seguinte, e a faixa continua com a cena parada da entrega 3.

@@ -4,10 +4,14 @@ Uma linha por decisão do projeto, da mais nova para a mais velha. A coluna "Ond
 
 Regra (20/11/2026): os documentos não ganham mais adendos. Quem muda uma decisão muda o texto do documento e acrescenta uma linha aqui, no mesmo PR. O texto antigo dos documentos fica no git; a síntese de 20/11/2026 partiu do commit `50bf019`.
 
-Siglas dos documentos: **Design** = `superpowers/specs/2026-11-16-migracao-design.md`; **Roadmap** = `superpowers/plans/2026-11-16-roadmap-migracao.md`; **Telas** = `superpowers/specs/2026-11-16-telas.md`; **Pecúlio** = `superpowers/specs/2026-11-20-peculio-design.md`.
+Siglas dos documentos: **Design** = `superpowers/specs/2026-11-16-migracao-design.md`; **Roadmap** = `superpowers/plans/2026-11-16-roadmap-migracao.md`; **Telas** = `superpowers/specs/2026-11-16-telas.md`; **Pecúlio** = `superpowers/specs/2026-11-20-peculio-design.md`; **Usuários e módulos** = `superpowers/specs/2026-11-21-usuarios-e-modulos-design.md`.
 
 | Data | Decisão | Onde está |
 |---|---|---|
+| 21/11/2026 | Fase 6, primeiro acesso: senha provisória gerada pelo auxiliar administrativo ou pelo gestor e trocada no primeiro login; o link por e-mail e o "Esqueci minha senha" por e-mail ficam para quando houver serviço de envio testado. | Usuários e módulos, Contas |
+| 21/11/2026 | Fase 6, módulos por papel: Confecção para auxiliar, gestor e administrador; Pecúlio para quem tem papel; Visualização e "Minha ficha" (com o próprio telefone) para todos. | Usuários e módulos, Módulos |
+| 21/11/2026 | O papel `escalante` aparece nas telas como "Auxiliar administrativo"; nos textos de ajuda, quem monta a escala continua sendo o escalante. | Usuários e módulos, Papéis |
+| 21/11/2026 | A transição do login entra como última entrega da fase 6 se o mockup estiver aprovado até lá; senão, passa para a fase seguinte. | Usuários e módulos, Transição do login |
 | 21/11/2026 | Com "Adm cumpre a carga mensal" desligado, o Adm tira saldos e pode tirar PJES no horário do expediente. O segundo parâmetro (P-34) e a utilidade da prioridade da cota (P-35, talvez removida) ficam para depois, sem prioridade. | `negocio/regras/carga-expediente-choques.md`, RN-17; `negocio/regras/normativo-a-validar.md`, Pendências |
 | 21/11/2026 | "Adm cumpre a carga mensal": ligado, vale a portaria (160h e nenhum extra no horário do expediente); desligado, vale a prática (o Adm reforça com saldos e pode tirar PJES no horário do expediente). Em aberto: os saldos com o parâmetro desligado e um possível segundo parâmetro (P-34). | `negocio/regras/carga-expediente-choques.md`, RN-17 |
 | 21/11/2026 | Catálogo de regras conferido contra o sistema novo: cada regra diz se já funciona e onde; entram as regras da fase 4 (RN-102 a RN-116); RN-07, RN-08, RN-47 e RN-92 ficam como substituídas; RN-21, RN-31, RN-95, RS-05, RS-06 e RS-07 saem. | `negocio/regras/LEIAME.md` |
