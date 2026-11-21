@@ -78,7 +78,7 @@ export function CardDaGuarnicao({ card, aoEscolher, aoRemover }: { card: Card; a
                       aria-label={`Escolher militar para ${f.funcao} de ${card.nome}`}
                       onClick={() => aoEscolher?.({ guarnicaoId: card.guarnicaoId, guarnicao: card.nome, funcaoId: f.funcaoId, funcao: f.funcao, cnhExigida: f.cnhExigida })}
                       className={cn(
-                        'flex min-h-8 w-full items-center gap-2 rounded-md px-2.5 py-1 text-left text-sm',
+                        'relative flex min-h-8 w-full items-center gap-2 rounded-md px-2.5 py-1 text-left text-sm focus-visible:z-10',
                         classeDaVaga(obrigatoria),
                         obrigatoria ? 'pl-3 font-medium' : 'font-normal',
                       )}

@@ -99,8 +99,8 @@ export function TabelaDaGrade({ grade, grupos, maximos, escolhida, aoEscolher }:
               {g.linhas.map((l) => {
                 const linhaMarcada = escolhida?.militarId === l.militarId;
                 return (
-                <tr key={l.militarId} data-militar={l.militarId} data-linha-marcada={linhaMarcada ? '' : undefined} className={cn('group hover:bg-black/[0.03]', linhaMarcada && 'bg-vinho/[0.06]')}>
-                  <th scope="row" className={cn('sticky left-0 z-10 min-w-[13rem] border-r-2 border-b border-b-[#EEF0F3] border-r-linha py-1 pl-4 text-left font-normal group-hover:bg-[#F7F7F8]', linhaMarcada ? FUNDO_DA_MARCA_NO_CABECALHO : 'bg-superficie')}>
+                <tr key={l.militarId} data-militar={l.militarId} data-linha-marcada={linhaMarcada ? '' : undefined} className={cn('group', linhaMarcada ? 'bg-vinho/[0.06]' : 'hover:bg-black/[0.03]')}>
+                  <th scope="row" className={cn('sticky left-0 z-10 min-w-[13rem] border-r-2 border-b border-b-[#EEF0F3] border-r-linha py-1 pl-4 text-left font-normal', linhaMarcada ? FUNDO_DA_MARCA_NO_CABECALHO : 'bg-superficie group-hover:bg-[#F7F7F8]')}>
                     <span className="flex items-baseline gap-1.5 whitespace-nowrap">
                       <span className="text-sm text-apagado">{l.posto}</span>
                       <strong className="text-[15px] leading-tight font-semibold">{l.nomeGuerra}</strong>

@@ -263,6 +263,8 @@ describe('escala do mês', () => {
     for (const v of vagas) {
       expect(v.tagName).toBe('BUTTON');
       expect(v).toHaveClass('border-dashed');
+      // a barra vinho se apoia na vaga: ela é o ponto de referência da posição
+      expect(v).toHaveClass('relative');
       expect(v.className).not.toMatch(/repeating-linear-gradient|F2C200|FFF3B8/);
       // a cor de serviço é só de quem já está escalado: a vaga não leva estilo nenhum
       expect(v).not.toHaveAttribute('style');

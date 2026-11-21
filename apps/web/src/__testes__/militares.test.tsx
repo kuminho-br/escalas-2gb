@@ -309,14 +309,38 @@ describe('ficha do militar', () => {
       await waitFor(() => expect(corpoEnviado(f, 'PATCH /api/militares/m1')).toEqual({ cnh: ['C'] }));
     });
 
-    it('clicar numa categoria apagada acende só ela, e nenhum quadrado escreve "pela X"', async () => {
-      abrirCom(['C']);
+    it('carteira que veio com a C e a E juntas: clicar na C deixa só a C (a E sai)', async () => {
+      const f = abrirCom(['C', 'E']);
+      await screen.findByRole('button', { name: /^C\b/ });
+      await userEvent.click(quadrado('C'));
+      daCarteira('C');
+      apagado('E');
+      apagado('D');
+      await userEvent.click(screen.getByRole('button', { name: 'Salvar motorista' }));
+      await waitFor(() => expect(corpoEnviado(f, 'PATCH /api/militares/m1')).toEqual({ cnh: ['C'] }));
+    });
+
+    it('carteira que veio com a C e a E juntas: clicar na E apaga a E e tudo o que ela acendia, inclusive a C', async () => {
+      const f = abrirCom(['A', 'C', 'E']);
+      await screen.findByRole('button', { name: /^E\b/ });
+      await userEvent.click(quadrado('E'));
+      for (const letra of ['E', 'D', 'C', 'B']) apagado(letra);
+      daCarteira('A');
+      await userEvent.click(screen.getByRole('button', { name: 'Salvar motorista' }));
+      await waitFor(() => expect(corpoEnviado(f, 'PATCH /api/militares/m1')).toEqual({ cnh: ['A'] }));
+    });
+
+    it('clicar numa categoria apagada acende ela; a menor que a carteira já tinha passa a vir dela, e nenhum quadrado escreve "pela X"', async () => {
+      const f = abrirCom(['C']);
       await screen.findByRole('button', { name: /^C\b/ });
       await userEvent.click(quadrado('E'));
-      daCarteira('C');
       daCarteira('E');
       pelaHierarquia('D');
+      pelaHierarquia('C');
+      pelaHierarquia('B');
       expect(screen.queryByText(/pela [A-E]/)).toBeNull();
+      await userEvent.click(screen.getByRole('button', { name: 'Salvar motorista' }));
+      await waitFor(() => expect(corpoEnviado(f, 'PATCH /api/militares/m1')).toEqual({ cnh: ['E'] }));
       // a frase de ajuda não muda
       expect(screen.getByText('Marque as categorias da carteira. As que ela habilita acendem sozinhas (a E acende D, C e B). A moto (A) é separada.')).toBeInTheDocument();
     });

@@ -68,10 +68,10 @@ function TrechoOcupado({ funcao, t, o, base, estilo, acoes }: { funcao: FuncaoNo
       style={{ ...estilo, ...estiloDaCor(o.servico.cor) }}
     >
       <span className="truncate font-cond text-sm font-semibold">
-        <span className="text-[11px] font-normal opacity-80">{o.posto}</span> {o.nomeGuerra}
-        {o.acumulo && <span className="ml-1 text-[11px] font-normal opacity-80">acumula</span>}
+        <span className="text-[11px] font-normal">{o.posto}</span> {o.nomeGuerra}
+        {o.acumulo && <span className="ml-1 text-[11px] font-normal">acumula</span>}
       </span>
-      {mostrarHorario && <span data-horario className="shrink-0 text-[11px] opacity-90">{faixa(t)}</span>}
+      {mostrarHorario && <span data-horario className="shrink-0 text-[11px]">{faixa(t)}</span>}
       <EtiquetaDoServico nome={o.servico.nome} cor={o.servico.cor} variante="contorno" className="hidden @min-[14rem]:inline-flex" />
     </button>
   );

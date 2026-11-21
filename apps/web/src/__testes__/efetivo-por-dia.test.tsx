@@ -182,6 +182,9 @@ describe('efetivo por dia: a linha do tempo', () => {
     const vagaDoAco = await screen.findByRole('button', { name: 'Motorista: vaga 20h–08h' });
     expect(vagaDoAco.tagName).toBe('BUTTON');
     expect(vagaDoAco).toHaveClass('border-dashed', 'bg-superficie', 'border-encaixe');
+    // continua presa na régua (posicionada pela faixa), como o trecho ocupado: o estilo da vaga não pode trocar o `absolute` por `relative`
+    expect(vagaDoAco).toHaveClass('absolute', 'inset-y-0.5', 'focus-visible:z-20');
+    expect(vagaDoAco).not.toHaveClass('relative');
     expect(vagaDoAco.className).not.toMatch(/repeating-linear-gradient|F2C200|FFF3B8/);
     // a faixa da API só traz vagas até o mínimo da função: toda vaga aqui é obrigatória (falta para a guarnição sair)
     expect(vagaDoAco).toHaveAttribute('data-obrigatoria');
@@ -192,6 +195,15 @@ describe('efetivo por dia: a linha do tempo', () => {
     const ocupado = screen.getByRole('button', { name: 'Motorista: SD BM ALFA, 08h–08h, Pronto' });
     expect(ocupado.style.backgroundColor).not.toBe('');
     expect(ocupado.querySelector('[data-barra]')).toBeNull();
+  });
+
+  it('o texto sobre a cor do serviço não usa transparência: o contraste de 4,5:1 vale para o posto e o horário também', async () => {
+    api();
+    abrir(`/efetivo-por-dia?data=${DIA}`);
+    const alfa = await screen.findByRole('button', { name: 'Motorista: SD BM ALFA, 08h–08h, Pronto' });
+    fireEvent.focus(alfa);
+    expect(await within(alfa).findByText('08h–08h')).toBeInTheDocument();
+    expect(alfa.querySelectorAll('[class*="opacity-"]')).toHaveLength(0);
   });
 
   it('ao passar o mouse e com o foco do teclado a vaga da linha do tempo muda de estado visível', async () => {

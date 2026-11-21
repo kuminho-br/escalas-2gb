@@ -39,13 +39,16 @@ export function Motorista({ ficha }: { ficha: FichaMilitar }) {
     setSalvo({ quadro: ficha.noQuadroDeMotoristas, carteira: [...ficha.cnh].sort() });
   });
 
-  // Na carteira: tira. Apagada: acende só ela. Acesa só pela hierarquia: a carteira passa a ser ela mesma,
-  // e saem da carteira as categorias maiores que a acendiam (senão ela continuaria acesa por elas).
+  // A carteira guarda só a maior categoria de cada cadeia (a E já traz D, C e B). Clicar:
+  // - numa categoria que a carteira tem e nenhuma maior da carteira acende: tira ela e as que ela acendia;
+  // - em qualquer outra (apagada, acesa só pela hierarquia, ou repetida por uma maior): ela passa a ser a carteira; saem as maiores que a
+  //   acendiam (senão ela continuaria acesa por elas) e as menores que ela já cobre (agora vêm dela).
   const alternar = (c: string) =>
     setCarteira((atual) => {
-      if (atual.includes(c)) return atual.filter((x) => x !== c);
-      const acendiam = atual.filter((x) => CNH_HABILITA[x]?.includes(c));
-      return [...atual.filter((x) => !acendiam.includes(x)), c].sort();
+      const acendiam = atual.filter((x) => x !== c && CNH_HABILITA[x]?.includes(c));
+      const cobertas = CNH_HABILITA[c] ?? [c];
+      if (atual.includes(c) && acendiam.length === 0) return atual.filter((x) => !cobertas.includes(x));
+      return [...atual.filter((x) => !acendiam.includes(x) && !cobertas.includes(x)), c].sort();
     });
 
   const { salvando, travar } = useTrava();

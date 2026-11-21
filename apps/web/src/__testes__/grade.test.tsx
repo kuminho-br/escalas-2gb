@@ -199,6 +199,13 @@ describe('grade geral: a tabela', () => {
     expect(document.querySelector('[data-coluna-marcada]')).toBeNull();
     await userEvent.click(celula('CABO', 2, 'Pronto A'));
     await waitFor(() => expect(linhaDe('CABO')).toHaveAttribute('data-linha-marcada'));
+    // com o mouse em cima da célula clicada, a marca da linha não some: a linha marcada não tem o fundo de "passar o mouse", que cobriria a marca
+    expect(linhaDe('CABO')).not.toHaveClass('hover:bg-black/[0.03]');
+    expect(linhaDe('CABO')).toHaveClass('bg-vinho/[0.06]');
+    expect(screen.getByRole('rowheader', { name: /CABO/ })).not.toHaveClass('group-hover:bg-[#F7F7F8]');
+    // as outras linhas seguem com o fundo de passar o mouse
+    expect(linhaDe('SD1')).toHaveClass('hover:bg-black/[0.03]');
+    expect(screen.getByRole('rowheader', { name: /SD1/ })).toHaveClass('group-hover:bg-[#F7F7F8]');
     // só a linha do CABO; só a coluna do dia 2, em todas as linhas (e no cabeçalho do dia)
     expect(document.querySelectorAll('[data-linha-marcada]')).toHaveLength(1);
     const colunaMarcada = [...document.querySelectorAll('[data-coluna-marcada]')];
