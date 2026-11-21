@@ -100,12 +100,13 @@ export function AdicionarServico({ opcoes, salvando, aoEscolher }: { opcoes: Opc
   const aba = escolhida === 'ordinario' ? (ordinario.length ? 'ordinario' : 'operacoes') : operacoes.length ? 'operacoes' : 'ordinario';
   return (
     <Tabs value={aba} onValueChange={(v) => setEscolhida(v === 'operacoes' ? 'operacoes' : 'ordinario')}>
-      <TabsList>
-        <TabsTrigger value="ordinario" disabled={!ordinario.length}>Ordinário ({quantosTurnos(ordinario)})</TabsTrigger>
-        <TabsTrigger value="operacoes" disabled={!operacoes.length}>Operações ({quantosTurnos(operacoes)})</TabsTrigger>
+      {/* as abas dividem a largura do painel; cada aba abre o seu painel, separado e com borda */}
+      <TabsList className="w-full">
+        <TabsTrigger value="ordinario" className="flex-1" disabled={!ordinario.length}>Ordinário ({quantosTurnos(ordinario)})</TabsTrigger>
+        <TabsTrigger value="operacoes" className="flex-1" disabled={!operacoes.length}>Operações ({quantosTurnos(operacoes)})</TabsTrigger>
       </TabsList>
-      <TabsContent value="ordinario"><Grupos opcoes={ordinario} salvando={salvando} aoEscolher={aoEscolher} /></TabsContent>
-      <TabsContent value="operacoes"><Grupos opcoes={operacoes} salvando={salvando} aoEscolher={aoEscolher} /></TabsContent>
+      <TabsContent value="ordinario" className="rounded-lg border border-linha p-2.5"><Grupos opcoes={ordinario} salvando={salvando} aoEscolher={aoEscolher} /></TabsContent>
+      <TabsContent value="operacoes" className="rounded-lg border border-linha p-2.5"><Grupos opcoes={operacoes} salvando={salvando} aoEscolher={aoEscolher} /></TabsContent>
     </Tabs>
   );
 }
