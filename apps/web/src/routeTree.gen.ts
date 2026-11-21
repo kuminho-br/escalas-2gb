@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as AppRouteImport } from './routes/_app'
+import { Route as CriarSenhaRouteImport } from './routes/criar-senha'
 import { Route as EntrarRouteImport } from './routes/entrar'
 import { Route as AppIndexRouteImport } from './routes/_app/index'
 import { Route as AppConfiguracoesRouteImport } from './routes/_app/configuracoes'
@@ -36,6 +37,11 @@ import { Route as AppEscalasIdOrdemRouteImport } from './routes/_app/escalas_.$i
 
 const AppRoute = AppRouteImport.update({
   id: '/_app',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CriarSenhaRoute = CriarSenhaRouteImport.update({
+  id: '/criar-senha',
+  path: '/criar-senha',
   getParentRoute: () => rootRouteImport,
 } as any)
 const EntrarRoute = EntrarRouteImport.update({
@@ -157,6 +163,7 @@ const AppEscalasIdOrdemRoute = AppEscalasIdOrdemRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof AppIndexRoute
+  '/criar-senha': typeof CriarSenhaRoute
   '/entrar': typeof EntrarRoute
   '/configuracoes': typeof AppConfiguracoesRoute
   '/cotas': typeof AppCotasRoute
@@ -181,6 +188,7 @@ export interface FileRoutesByFullPath {
   '/escalas/$id/ordem': typeof AppEscalasIdOrdemRoute
 }
 export interface FileRoutesByTo {
+  '/criar-senha': typeof CriarSenhaRoute
   '/entrar': typeof EntrarRoute
   '/configuracoes': typeof AppConfiguracoesRoute
   '/cotas': typeof AppCotasRoute
@@ -205,6 +213,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_app': typeof AppRouteWithChildren
+  '/criar-senha': typeof CriarSenhaRoute
   '/entrar': typeof EntrarRoute
   '/_app/configuracoes': typeof AppConfiguracoesRoute
   '/_app/cotas': typeof AppCotasRoute
@@ -233,6 +242,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/criar-senha'
     | '/entrar'
     | '/configuracoes'
     | '/cotas'
@@ -257,6 +267,7 @@ export interface FileRouteTypes {
     | '/escalas/$id/ordem'
   fileRoutesByTo: FileRoutesByTo
   to:
+    | '/criar-senha'
     | '/entrar'
     | '/configuracoes'
     | '/cotas'
@@ -280,6 +291,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/_app'
+    | '/criar-senha'
     | '/entrar'
     | '/_app/configuracoes'
     | '/_app/cotas'
@@ -307,6 +319,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   AppRoute: typeof AppRouteWithChildren
+  CriarSenhaRoute: typeof CriarSenhaRoute
   EntrarRoute: typeof EntrarRoute
 }
 
@@ -317,6 +330,13 @@ declare module '@tanstack/react-router' {
       path: ''
       fullPath: '/'
       preLoaderRoute: typeof AppRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/criar-senha': {
+      id: '/criar-senha'
+      path: '/criar-senha'
+      fullPath: '/criar-senha'
+      preLoaderRoute: typeof CriarSenhaRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/entrar': {
@@ -568,6 +588,7 @@ const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
   AppRoute: AppRouteWithChildren,
+  CriarSenhaRoute: CriarSenhaRoute,
   EntrarRoute: EntrarRoute,
 }
 export const routeTree = rootRouteImport

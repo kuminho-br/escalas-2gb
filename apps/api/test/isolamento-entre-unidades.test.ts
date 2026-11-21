@@ -47,6 +47,8 @@ beforeAll(async () => {
   const chave = { militar_id: militar.id, escala_id: ids.escalas, servico_id: ids.servicos, turno_id: ids.turnos };
   ids.alocacoes = await inserir(api.banco, 'alocacao', { ...chave, data: `${atual}-05`, origem: 'manual' });
   ids.remocoes = await inserir(api.banco, 'remocao', { ...chave, data: `${atual}-06` });
+  // papel dado na 2ª SB (fase 6)
+  ids.papeis = await inserir(api.banco, 'papel_usuario', { usuario_id: api.usuarios.semPapel, unidade_id: outra, papel: 'escalante', desde: '2026-11-01' });
   // acúmulo da alocação alheia (Fase 4.1.1)
   ids.acumulos = await inserir(api.banco, 'alocacao_acumulo', { alocacao_id: ids.alocacoes, guarnicao_id: ids.guarnicoes, funcao_id: ids.funcoes });
 });

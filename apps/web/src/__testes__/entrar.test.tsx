@@ -113,3 +113,29 @@ describe('entrar', () => {
     expect(await screen.findByRole('heading', { name: 'Grade geral' })).toBeInTheDocument();
   });
 });
+
+describe('entrar: esqueci a senha e senha provisória vencida', () => {
+  it('Esqueci minha senha mostra a orientação', async () => {
+    simularApi({ '/api/eu': { status: 401 } });
+    abrir('/entrar');
+    expect(screen.queryByText('Peça uma senha nova ao auxiliar administrativo da sua seção.')).toBeNull();
+    await userEvent.click(await screen.findByRole('button', { name: 'Esqueci minha senha' }));
+    expect(screen.getByText('Peça uma senha nova ao auxiliar administrativo da sua seção.')).toBeInTheDocument();
+  });
+
+  it('senha provisória vencida mostra a mensagem do servidor (Review Focus 5)', async () => {
+    const vencida = 'Sua senha provisória venceu. Peça uma senha nova ao auxiliar administrativo da sua seção.';
+    simularApi({ '/api/eu': { status: 401 }, 'POST /api/auth/sign-in/email': { status: 403, corpo: { message: vencida } } });
+    abrir('/entrar');
+    await preencherEEntrar();
+    expect(await screen.findByRole('alert')).toHaveTextContent(vencida);
+    expect(screen.queryByText('E-mail ou senha incorretos.')).toBeNull();
+  });
+
+  it('senha errada continua dizendo e-mail ou senha incorretos', async () => {
+    simularApi({ '/api/eu': { status: 401 }, 'POST /api/auth/sign-in/email': { status: 401, corpo: { message: 'Invalid email or password' } } });
+    abrir('/entrar');
+    await preencherEEntrar();
+    expect(await screen.findByText('E-mail ou senha incorretos.')).toBeInTheDocument();
+  });
+});

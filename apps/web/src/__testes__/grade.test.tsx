@@ -470,7 +470,7 @@ describe('grade geral: o filtro de equipes e o clique', () => {
   it('o militar comum não consulta a grade e vê uma frase neutra, sem alerta vermelho (achado da revisão final)', async () => {
     const f = simularApi({ '/api/eu': { status: 200, corpo: { ...EU_EXEMPLO, papeis: [] } } });
     abrir(`/?mes=${MES}`);
-    expect(await screen.findByText('A grade geral é dos escalantes e gestores.')).toHaveClass('text-apagado');
+    expect(await screen.findByText('A grade geral é dos auxiliares administrativos e gestores.')).toHaveClass('text-apagado');
     expect(screen.queryByRole('alert')).toBeNull();
     expect(f.mock.calls.some(([e]) => String(e).includes('/grade/'))).toBe(false);
   });

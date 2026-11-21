@@ -254,3 +254,29 @@ describe('quem pode importar o Pecúlio (Review Focus 1)', () => {
     }
   });
 });
+
+describe('acesso ao sistema e e-mail (fase 6)', () => {
+  const linha = (mat: string, guerra: string, email: string): Linha => [mat, 'SD BM', `${guerra} de Tal`, guerra, 1, 'M', '', '', email, '', '', '1ª SB'];
+
+  it('planilha sem e-mail de quem tem acesso ativo é problema; com o acesso desativado, passa', async () => {
+    await importar([linha('990360-0', 'ACESSADO', 'acessado@bombeiros.pe.gov.br')], true);
+    const m = (await militar('990360-0'))!;
+    const usuario = (await api.banco.query<{ id: string }>("insert into usuario (nome, email, militar_id) values ('SD BM ACESSADO', 'acessado@bombeiros.pe.gov.br', $1) returning id", [m.id])).rows[0]!.id;
+    const sem = linha('990360-0', 'ACESSADO', '');
+    const previa = await importar([sem]);
+    expect(previa.problemas).toEqual([expect.objectContaining({ linha: 2, mensagem: expect.stringContaining('tem acesso ao sistema'), solucao: expect.stringContaining('desative o acesso') })]);
+    expect(previa.alterados).toEqual([]);
+    await api.banco.query('update usuario set ativo = false where id = $1', [usuario]);
+    expect((await importar([sem])).alterados).toHaveLength(1);
+    await importar([sem], true);
+    expect(await militar('990360-0')).toMatchObject({ email: null });
+  });
+
+  it('e-mail guardado no usuário de outro militar é problema', async () => {
+    const m = (await militar('990360-0'))!;
+    await api.banco.query("update usuario set email = 'guardado@bombeiros.pe.gov.br' where militar_id = $1", [m.id]);
+    const previa = await importar([linha('990361-1', 'NOVATO', 'Guardado@bombeiros.pe.gov.br')]);
+    expect(previa.problemas).toEqual([expect.objectContaining({ mensagem: expect.stringContaining('ACESSADO (990360-0)') })]);
+    expect(previa.novos).toEqual([]);
+  });
+});

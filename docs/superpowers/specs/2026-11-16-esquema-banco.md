@@ -202,6 +202,9 @@ As tabelas de login são do Better Auth (D3): `usuario`, `sessao`, `conta` e `ve
 |---|---|---|
 | militar_id | uuid FK, único, not null | todo usuário é um militar |
 | ativo | boolean default true | |
+| senha_provisoria_ate | timestamptz null | `null` = senha definitiva; com data, é a senha provisória e vale até ela (7 dias; migração 0025) |
+
+O e-mail do `usuario` é o da ficha do militar: o gatilho `militar_email_para_usuario` (0025) copia `lower(militar.email)` para `usuario.email` quando o e-mail da ficha muda, e barra apagar o e-mail de quem tem acesso ativo (`email_obrigatorio_com_acesso`).
 
 ### papel_usuario
 | Coluna | Tipo | Regra |
@@ -214,16 +217,7 @@ As tabelas de login são do Better Auth (D3): `usuario`, `sessao`, `conta` e `ve
 
 O **militar comum** não tem linha nesta tabela: é o usuário sem papel vigente. Ele vê os próprios serviços (com quem compõe cada guarnição) e as escalas publicadas da unidade da lotação dele, e não vê cadastros (adendo de 17/11/2026).
 
-### convite
-| Coluna | Tipo | Regra |
-|---|---|---|
-| id | uuid PK | |
-| email | text | |
-| militar_id | uuid FK | o convidado já precisa existir no cadastro de militares |
-| unidade_id / papel | | papel concedido ao aceitar |
-| enviado_por | uuid FK → usuario | |
-| expira_em | timestamptz | |
-| aceito_em | timestamptz null | |
+A tabela `convite`, que nunca teve uso, saiu na migração 0025: o acesso nasce da senha provisória gerada na ficha.
 
 Não existe cadastro aberto. O primeiro administrador é criado por um comando de instalação.
 

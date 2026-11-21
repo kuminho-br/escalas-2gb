@@ -5,6 +5,7 @@ import type { Context, MiddlewareHandler } from 'hono';
 import type { Auth } from './auth.ts';
 import type { Banco, Consulta } from './banco/banco.ts';
 import { hojeRecife } from './datas.ts';
+import { MSG_CRIE_A_SENHA, MSG_SENHA_VENCIDA } from './usuarios/mensagens.ts';
 
 export type Papel = 'administrador' | 'gestor' | 'escalante';
 
@@ -88,8 +89,13 @@ export function exigirSessao(banco: Banco, auth: Auth): MiddlewareHandler<Ambien
     const sessao = await auth.api.getSession({ headers: c.req.raw.headers });
     if (!sessao) return c.json({ erro: 'Entre no sistema para continuar.' }, 401);
     // usuário desativado perde o acesso na hora: a sessão já aberta não vale (o gancho do login só barra sessão nova)
-    const ativo = (await banco.query<{ ativo: boolean }>('select ativo from usuario where id = $1', [sessao.user.id])).rows[0]?.ativo;
-    if (!ativo) return c.json({ erro: 'Entre no sistema para continuar.' }, 401);
+    const u = (await banco.query<{ ativo: boolean; provisoria: boolean; vencida: boolean }>(
+      'select ativo, senha_provisoria_ate is not null as provisoria, coalesce(senha_provisoria_ate < now(), false) as vencida from usuario where id = $1',
+      [sessao.user.id],
+    )).rows[0];
+    if (!u?.ativo) return c.json({ erro: 'Entre no sistema para continuar.' }, 401);
+    // com a senha provisória, a pessoa só chega à tela de criar a senha (as rotas de /api/eu): o resto espera a troca
+    if (u.provisoria) return c.json({ erro: u.vencida ? MSG_SENHA_VENCIDA : MSG_CRIE_A_SENHA }, 403);
     c.set('usuarioId', sessao.user.id);
     c.set('banco', banco);
     await next();
@@ -109,14 +115,14 @@ export async function exigirPapel(c: Context<AmbienteApi>, unidadeId: string, pa
   const hoje = hojeRecife();
   if (await temPapel(banco, usuarioId, unidadeId, papeis, hoje)) return null;
   const algum = await papeisVigentes(banco, usuarioId, hoje);
-  const erro = algum.length ? `Você não tem permissão nos cadastros de ${unidade.sigla}.` : 'Esta tela é dos escalantes e gestores.';
+  const erro = algum.length ? `Você não tem permissão nos cadastros de ${unidade.sigla}.` : 'Esta tela é dos auxiliares administrativos e gestores.';
   return c.json({ erro }, 403);
 }
 
 /** Qualquer papel vigente (escalante, gestor ou administrador); o militar comum recebe 403. */
 export async function exigirAlgumPapel(c: Context<AmbienteApi>): Promise<Response | null> {
   const papeis = await papeisVigentes(c.get('banco'), c.get('usuarioId'), hojeRecife());
-  return papeis.length ? null : c.json({ erro: 'Esta tela é dos escalantes e gestores.' }, 403);
+  return papeis.length ? null : c.json({ erro: 'Esta tela é dos auxiliares administrativos e gestores.' }, 403);
 }
 
 /** Catálogos do sistema: só o administrador (que só existe na raiz). */

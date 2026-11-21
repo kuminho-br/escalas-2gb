@@ -1,8 +1,9 @@
+import { hashPassword } from 'better-auth/crypto';
 import { somarMeses, type FichaMilitar, type LinhaMilitar, type ListaDoPeculio, type Posto } from 'contratos';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { hojeRecife } from '../src/datas.ts';
 import { inserir } from './banco-teste.ts';
-import { montarApi, type ApiDeTeste } from './apoio-api.ts';
+import { criarMilitar, montarApi, URL_BASE, type ApiDeTeste } from './apoio-api.ts';
 
 let api: ApiDeTeste;
 let sd: string;
@@ -594,5 +595,57 @@ describe('lista do Pecúlio e aniversariantes (módulo)', () => {
     expect((await peculio(api.ids.gb, 'gestorGb', '2026-13')).status).toBe(400);
     // o escalante da 1ª SB vê a lista da 1ª SB (leitura): o dono do bloco é quem edita, não quem lê
     expect((await peculio(api.ids.secao, 'escalante')).status).toBe(200);
+  });
+});
+
+describe('e-mail de entrada igual ao da ficha (fase 6)', () => {
+  // o usuário com conta e senha, como a Task 2 vai criá-lo pela API; aqui direto no banco, para testar só o e-mail
+  async function comAcesso(matricula: string, email: string | null) {
+    const militarId = await criarMilitar(api, { matricula, email, unidadeId: api.ids.secao });
+    const usuarioId = await inserir(api.banco, 'usuario', { nome: `SD BM ${matricula}`, email: email ?? `${matricula}@exemplo.test`, militar_id: militarId });
+    await inserir(api.banco, 'conta', { usuario_id: usuarioId, conta_id: usuarioId, provedor_id: 'credential', senha: await hashPassword('senha-de-teste-123') });
+    return { militarId, usuarioId };
+  }
+  const entrar = (email: string) =>
+    api.app.request(`${URL_BASE}/api/auth/sign-in/email`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Origin: URL_BASE },
+      body: JSON.stringify({ email, password: 'senha-de-teste-123' }),
+    });
+  const emailDoUsuario = async (id: string) => (await api.banco.query<{ email: string }>('select email from usuario where id = $1', [id])).rows[0]!.email;
+
+  it('mudar o e-mail do militar muda o e-mail do usuário, e o login passa a ser pelo novo (Review Focus 4)', async () => {
+    const { militarId, usuarioId } = await comAcesso('990701-1', 'antigo@bombeiros.pe.gov.br');
+    expect((await entrar('antigo@bombeiros.pe.gov.br')).status).toBe(200);
+    const r = await api.pedir('gestorGb', 'PATCH', `/api/militares/${militarId}`, { email: 'NOVO@bombeiros.pe.gov.br' });
+    expect(r.status).toBe(200);
+    expect(await emailDoUsuario(usuarioId)).toBe('novo@bombeiros.pe.gov.br');
+    expect((await entrar('novo@bombeiros.pe.gov.br')).status).toBe(200);
+    expect((await entrar('antigo@bombeiros.pe.gov.br')).status).toBe(401);
+  });
+
+  it('não apaga o e-mail de quem tem usuário', async () => {
+    const { militarId, usuarioId } = await comAcesso('990702-2', 'fica@bombeiros.pe.gov.br');
+    const r = await api.pedir('gestorGb', 'PATCH', `/api/militares/${militarId}`, { email: null });
+    expect(r.status).toBe(409);
+    const msg = 'Desative o acesso antes de apagar o e-mail.';
+    expect(await r.json()).toEqual({ erro: msg, campos: { email: msg } });
+    expect((await ficha(militarId)).email).toBe('fica@bombeiros.pe.gov.br');
+    expect(await emailDoUsuario(usuarioId)).toBe('fica@bombeiros.pe.gov.br');
+  });
+
+  it('com o acesso desativado, o e-mail pode ser apagado; o usuário guarda o de antes', async () => {
+    const { militarId, usuarioId } = await comAcesso('990703-3', 'saiu@bombeiros.pe.gov.br');
+    await api.banco.query('update usuario set ativo = false where id = $1', [usuarioId]);
+    const r = await api.pedir('gestorGb', 'PATCH', `/api/militares/${militarId}`, { email: null });
+    expect(r.status).toBe(200);
+    expect((await r.json()).email).toBeNull();
+    expect(await emailDoUsuario(usuarioId)).toBe('saiu@bombeiros.pe.gov.br');
+  });
+
+  it('editar outro campo de quem tem usuário e ficha sem e-mail (o administrador de instalação) não é barrado', async () => {
+    const { militarId } = await comAcesso('990704-4', null);
+    const r = await api.pedir('gestorGb', 'PATCH', `/api/militares/${militarId}`, { nomeGuerra: 'NOVONOME' });
+    expect(r.status).toBe(200);
   });
 });

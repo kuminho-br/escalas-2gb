@@ -425,7 +425,7 @@ describe('ficha do militar', () => {
     expect(screen.queryByLabelText('Início')).toBeNull();
   });
 
-  it('o histórico de rastreio vem por último e recolhido, com a situação atual; o bloco de lotação antigo não existe mais', async () => {
+  it('o histórico de rastreio vem antes do acesso ao sistema, que é o último bloco, e recolhido, com a situação atual; o bloco de lotação antigo não existe mais', async () => {
     api();
     abrir('/militares/m1');
     await screen.findByText('Férias');
@@ -433,7 +433,8 @@ describe('ficha do militar', () => {
     const pos = (t: string) => titulos.findIndex((x) => x.startsWith(t));
     expect(pos('Motorista')).toBeLessThan(pos('Afastamentos'));
     expect(pos('Afastamentos')).toBeLessThan(pos('Histórico de rastreio'));
-    expect(pos('Histórico de rastreio')).toBe(titulos.length - 1);
+    expect(pos('Histórico de rastreio')).toBeLessThan(pos('Acesso ao sistema'));
+    expect(pos('Acesso ao sistema')).toBe(titulos.length - 1);
     expect(titulos.some((t) => t.startsWith('Lotação'))).toBe(false);
     const botao = screen.getByRole('button', { name: /Histórico de rastreio/ });
     expect(botao).toHaveAttribute('aria-expanded', 'false');

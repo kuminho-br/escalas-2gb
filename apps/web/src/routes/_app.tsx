@@ -8,6 +8,8 @@ export const Route = createFileRoute('/_app')({
   beforeLoad: async ({ context }) => {
     const eu = await context.queryClient.ensureQueryData(consultaEu);
     if (!eu) throw redirect({ to: '/entrar' });
+    // entrou com a senha provisória: nada abre antes de criar a senha
+    if (eu.trocarSenha) throw redirect({ to: '/criar-senha' });
     return { eu };
   },
   component: Casca,

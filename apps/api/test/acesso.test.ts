@@ -84,7 +84,7 @@ describe('rotas protegidas', () => {
   it('militar comum entra mas não tem papel de cadastro', async () => {
     const r = await api.pedir('semPapel', 'GET', `/api/teste/${api.ids.secao}`);
     expect(r.status).toBe(403);
-    expect((await r.json()).erro).toBe('Esta tela é dos escalantes e gestores.');
+    expect((await r.json()).erro).toBe('Esta tela é dos auxiliares administrativos e gestores.');
   });
 
   it('escalante fora da unidade dele é 403 com a sigla', async () => {

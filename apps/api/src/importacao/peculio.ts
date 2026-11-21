@@ -131,6 +131,11 @@ export const importadorPeculio: Importador<Plano> = {
     const emailsEmUso = new Map(
       (await tx.query<{ email: string; matricula: string; nome_guerra: string }>('select lower(email) as email, matricula, nome_guerra from militar where email is not null')).rows.map((r) => [r.email, r]),
     );
+    // o e-mail também pode estar guardado no usuário de outro militar (acesso desativado, administrador de instalação); e quem tem acesso ativo não fica sem e-mail
+    for (const r of (await tx.query<{ email: string; matricula: string; nome_guerra: string }>('select lower(u.email) as email, m.matricula, m.nome_guerra from usuario u join militar m on m.id = u.militar_id')).rows) {
+      if (!emailsEmUso.has(r.email)) emailsEmUso.set(r.email, r);
+    }
+    const comAcessoAtivo = new Set((await tx.query<{ matricula: string }>('select m.matricula from usuario u join militar m on m.id = u.militar_id where u.ativo')).rows.map((r) => r.matricula));
     const papelDeCima = new Map<string, boolean>();
     const donoDe = async (unidade: string) => {
       if (!papelDeCima.has(unidade)) papelDeCima.set(unidade, usuarioId ? await temPapelAcima(tx, usuarioId, unidade, CADASTRO, hoje) : false);
@@ -256,6 +261,10 @@ export const importadorPeculio: Importador<Plano> = {
       }
 
       const e = ja.get(mat.valor);
+      if (!email && e?.email && comAcessoAtivo.has(mat.valor)) {
+        problema(`${nomeGuerra} (${mat.valor}) tem acesso ao sistema e a planilha está sem e-mail.`, 'Preencha o e-mail na planilha, ou desative o acesso dele na ficha antes de apagar o e-mail.');
+        continue;
+      }
       // o e-mail é único: de outro militar ou repetido na própria planilha é problema, não erro do banco na gravação
       if (email) {
         const chave = email.toLowerCase();

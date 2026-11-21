@@ -11,6 +11,8 @@ export interface Eu {
   papeis: { papel: Papel; unidadeId: string; unidadeSigla: string }[];
   /** Unidade em que as telas trabalham (fixa na fase de teste). */
   unidade: { id: string; sigla: string; caminho: string[] };
+  /** Entrou com a senha provisória: só a tela de criar a senha abre até a troca. */
+  trocarSenha: boolean;
 }
 
 /** Quem está logado; null se não houver sessão. */

@@ -13,3 +13,4 @@ export * from './pre-escala.ts';
 export * from './meta.ts';
 export * from './efetivo-do-dia.ts';
 export * from './grade.ts';
+export * from './usuarios.ts';
