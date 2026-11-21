@@ -7,7 +7,7 @@
 **Entregas da fase** (o número é a ordem de execução; cada uma ganha as tarefas quando for começar):
 1. **Rastreio e CNH:** a lotação passa a ser só a unidade; a tabela de lotação vira o rastreio do militar; o "Histórico de rastreio" com "Alterar situação" e a linha do tempo; a CNH separada do quadro de motoristas; as sete seções do 2º GB. **Mesclada (#73).**
 2. **Ficha ampliada e dono por bloco:** nome completo, sexo, nascimento, telefone, e-mail institucional, comportamento; motivo e boletim no afastamento e os tipos novos; quem edita o quê. **Detalhada abaixo.**
-3. **Importação do Pecúlio e o módulo:** o modelo `PECÚLIO`, a lista e a ficha do módulo, os aniversariantes do mês.
+3. **Importação do Pecúlio e o módulo:** o modelo `PECÚLIO`, a lista e a ficha do módulo, os aniversariantes do mês. **Detalhada abaixo.**
 4. **Retorno da validação** (lote de 21/11/2026; plano escrito quando for começar):
    - Efetivo por dia e Escala do mês: horário do trecho só ao passar o mouse e faixa do serviço mais grossa; "Mostrar só vagas vazias" vira "Ocultar guarnições completas"; cada função com painel próprio; cartões alinhados pelo topo; "Removidos" dentro do painel do dia; vagas até o máximo, as extras marcadas "opcional"; sai a lista "Falta…"; abas Ordinário/Operações na largura toda, com painéis separados.
    - Contraste mínimo de 4,5:1 entre o texto e a cor do serviço.
@@ -233,6 +233,102 @@
 
 ---
 
+# Entrega 3 — Importação do Pecúlio e o módulo
+
+**Goal:** trazer os dados do Pecúlio pelo modelo próprio e dar ao módulo Pecúlio a sua tela (lista de todos os militares do GB e os aniversariantes do mês), fechando o dono por bloco também na importação.
+
+**Architecture:** um importador novo, `peculio`, no mesmo padrão dos outros (modelo gerado pela API com a aba `AJUDA`, prévia, problemas com a solução, importar de novo sem duplicar), que só quem tem papel numa unidade acima pode usar. O importador de `MILITARES` (da seção) passa a cuidar só do que é da escala para quem já existe. Uma rota de leitura lista os militares de uma unidade e das de baixo, com os aniversariantes do mês, e a tela nova "Pecúlio" no menu.
+
+**Tech Stack:** Hono (API), zod (contratos), ExcelJS (modelo), React + TanStack (site), Vitest.
+
+**Branch:** `fase5-3-importacao-e-modulo`, a partir da `main` depois da entrega 2. Commits `Fase 5.3: …`; PR "Fase 5 — Entrega 3: importação do Pecúlio e o módulo". **Sem migração** (as colunas vieram na 0024). Sonnet executa; Opus revisa. Ao terminar, enviar o branch e o resumo à PLANEJAMENTO (não abrir PR nem mesclar).
+
+**Spec:** `docs/superpowers/specs/2026-11-20-peculio-design.md` (Importação do Pecúlio, Telas, Quem edita o quê).
+
+## Global Constraints
+
+- **A planilha é o contrato:** quem envia se adapta ao modelo; nada de tolerância para planilha antiga. Inconsistência nos dados é problema de quem migra.
+- **D7:** a planilha do Pecúlio não leva CPF nem ano de nascimento; o modelo não tem essas colunas.
+- **Dono por bloco:** importar o Pecúlio exige papel numa unidade acima das lotações das linhas; a importação de `MILITARES` pela seção não altera campo do Pecúlio de quem já existe.
+- No fim: contagens no `CLAUDE.md` local; `pnpm test && pnpm typecheck && pnpm build:vercel`.
+
+**Decisões desta entrega** (do design; as minhas marcadas):
+- **Colunas do modelo `PECÚLIO`:** MATRÍCULA, POSTO/GRAD, NOME COMPLETO, NOME DE GUERRA, ANTIGUIDADE, SEXO (M/F), NASCIMENTO (dd/mm), TELEFONE, E-MAIL, COMPORTAMENTO, BOLETIM DO COMPORTAMENTO, LOTAÇÃO (sigla da seção) (*minha decisão*: as colunas são as do modelo do design, na ordem da ficha).
+- **Linha nova** (matrícula que não existe) cria o militar com lotação na seção da coluna LOTAÇÃO, a partir do mês atual, jornada Pronto e sem equipe; equipe e jornada ficam com o escalante (*minha decisão*: a planilha do Pecúlio não tem equipe nem jornada).
+- **Linha de militar que já existe** atualiza só os campos do Pecúlio; LOTAÇÃO diferente da atual vira um aviso na prévia ("mudar a lotação é pelo Alterar situação"), não uma mudança (*minha decisão*: a lotação pede o "a partir de").
+- **Importação de `MILITARES` (da seção)** — resolve o "Importante" da revisão da entrega 2: para quem já existe, deixa de alterar POSTO/GRAD, NOME DE GUERRA e ANTIG; se a planilha trouxer valor diferente, a prévia avisa "Este campo é do Pecúlio: altere pela importação do Pecúlio ou pela ficha." e a linha segue com os campos da escala. Cadastrar militar novo por essa importação continua exigindo o papel de cima, como na ficha (*minha decisão*, alinhada ao dono por bloco já decidido).
+- **O módulo:** item "Pecúlio" no menu, para quem tem papel de cadastro; a lista mostra os militares da unidade do usuário e das de baixo, com busca por nome ou matrícula e filtro por lotação; clicar abre a ficha do militar (a mesma ficha, que é única); "Aniversariantes do mês" numa lista na mesma tela, ordenada pelo dia.
+
+## Review Focus
+
+1. **Escalante só da 1ª SB tenta importar o Pecúlio:** 403 com a frase de quem altera; nada é gravado nem mostrado na prévia. Tarefa 1.
+2. **Planilha do Pecúlio com a mesma matrícula em duas linhas:** a segunda vira problema ("Matrícula repetida na planilha") e a primeira entra. Tarefa 1.
+3. **Importação de MILITARES pela seção com antiguidade diferente da gravada:** a antiguidade não muda; a prévia avisa; os campos da escala da linha entram. Tarefa 2.
+4. **Aniversariantes de um mês sem ninguém:** a lista diz "Nenhum aniversariante neste mês." Tarefa 3.
+5. **Militar sem nascimento preenchido:** não aparece nos aniversariantes e não quebra a lista. Tarefa 3.
+
+---
+
+### Task 1: O importador do Pecúlio
+
+**Files:** create `apps/api/src/importacao/peculio.ts`; modify `apps/api/src/importacao/registro.ts` (registra `peculio`), `apps/api/src/importacao/rotas.ts` (a conferência do papel de cima para `peculio`), `pacotes/contratos/src/` (o nome `peculio` no tipo de cadastro importável). **Test:** create `apps/api/test/importacao-peculio.test.ts`.
+
+**Interfaces:**
+- Consumes: `temPapelAcima` (entrega 2), os contratos da ficha (entrega 2).
+- Produces: o cadastro importável `peculio`, com `GET /api/unidades/:u/importacao/peculio/modelo` e as rotas de prévia e confirmação que os outros importadores já têm.
+
+- [ ] **Step 1: Testes:**
+  - o modelo tem a aba `PECÚLIO` com as 12 colunas na ordem das Decisões e a aba `AJUDA` (com os valores aceitos de SEXO e COMPORTAMENTO);
+  - linha nova cria o militar com os campos e a lotação na seção, a partir do mês atual, jornada Pronto;
+  - linha de quem já existe atualiza só os campos do Pecúlio; LOTAÇÃO diferente vira aviso, sem mudar o rastreio;
+  - e-mail fora do domínio, NASCIMENTO 31/02, SEXO fora de M/F e COMPORTAMENTO fora da lista viram problema com a solução, e a linha é pulada;
+  - matrícula repetida na planilha (Review Focus 2);
+  - importar o mesmo arquivo de novo não grava nada;
+  - escalante só da seção é 403 (Review Focus 1); gestor do 2º GB e administrador importam.
+- [ ] **Step 2: Run** `pnpm --filter api test importacao-peculio`. Expected: FAIL.
+- [ ] **Step 3: Implement** no padrão de `importacao/militares.ts` (colunas declaradas uma vez, usadas pelo modelo e pela leitura).
+- [ ] **Step 4: Run** `pnpm --filter api test`. Expected: PASS.
+- [ ] **Step 5: Commit** `Fase 5.3: importação do Pecúlio`.
+
+### Task 2: A importação de MILITARES respeita o dono por bloco
+
+**Files:** modify `apps/api/src/importacao/militares.ts`. **Test:** `apps/api/test/importacao-militares.test.ts`.
+
+- [ ] **Step 1: Testes** (Review Focus 3): escalante da seção importa uma linha de militar que já existe com ANTIG, POSTO/GRAD ou NOME DE GUERRA diferentes: esses campos não mudam, a prévia mostra o aviso "Este campo é do Pecúlio: altere pela importação do Pecúlio ou pela ficha.", e equipe, jornada, motorista, CNH e voluntário JES da linha entram; linha de militar novo com escalante só da seção é problema "Cadastrar militar é de quem tem papel em <unidade de cima>."; o gestor do 2º GB continua podendo cadastrar por essa importação.
+- [ ] **Step 2: Run.** Expected: FAIL.
+- [ ] **Step 3: Implement.** A ajuda do modelo de `MILITARES` diz que posto, nome de guerra e antiguidade de quem já existe vêm do Pecúlio.
+- [ ] **Step 4: Run** `pnpm --filter api test`. Expected: PASS.
+- [ ] **Step 5: Commit** `Fase 5.3: importação de militares respeita o dono por bloco`.
+
+### Task 3: A lista do Pecúlio e os aniversariantes (API)
+
+**Files:** modify `apps/api/src/cadastros/militares.ts` (nova rota), `pacotes/contratos/src/militares.ts`. **Test:** `apps/api/test/militares.test.ts`.
+
+**Interfaces:**
+- Produces: `GET /api/unidades/:u/peculio?mes=aaaa-mm` → `{ militares: ItemDoPeculio[]; aniversariantes: { militarId: string; posto: string; nomeGuerra: string; dia: number; lotacao: string }[] }`, com `ItemDoPeculio = { militarId; matricula; posto; nomeGuerra; nomeCompleto: string | null; lotacao: string; telefone: string | null; email: string | null; pendencias: string[] }`; lista os militares lotados na unidade `u` e nas de baixo no mês; exige papel de cadastro em `u`.
+
+- [ ] **Step 1: Testes:** com a unidade 2º GB, a lista traz militares da 1ª e da 2ª SB; com a 1ª SB, só os dela; os aniversariantes do mês vêm em ordem de dia (Review Focus 4 e 5: mês sem ninguém traz lista vazia; quem não tem nascimento não aparece); sem papel em `u` é 403.
+- [ ] **Step 2: Run.** Expected: FAIL.
+- [ ] **Step 3: Implement.**
+- [ ] **Step 4: Run.** Expected: PASS.
+- [ ] **Step 5: Commit** `Fase 5.3: lista do Pecúlio e aniversariantes na API`.
+
+### Task 4: A tela do módulo Pecúlio
+
+**Files:** create `apps/web/src/routes/_app/peculio.tsx`, `apps/web/src/api/peculio.ts`; modify `apps/web/src/componentes/Trilho.tsx` (item "Pecúlio", para quem tem papel de cadastro). **Test:** create `apps/web/src/__testes__/peculio.test.tsx`.
+
+- [ ] **Step 1: Testes:** o menu mostra "Pecúlio"; a tela lista os militares com posto, nome de guerra, nome completo, lotação, telefone e e-mail, e as pendências; a busca por nome ou matrícula e o filtro por lotação funcionam; clicar no militar abre a ficha dele (`/militares/:id`); a seção "Aniversariantes do mês" mostra a lista ordenada pelo dia, ou "Nenhum aniversariante neste mês." (Review Focus 4); o botão "Importar" abre a importação do Pecúlio.
+- [ ] **Step 2: Run** `pnpm --filter web test peculio`. Expected: FAIL.
+- [ ] **Step 3: Implement.**
+- [ ] **Step 4: Run** `pnpm test` e `pnpm typecheck`. Expected: PASS.
+- [ ] **Step 5: Commit** `Fase 5.3: tela do módulo Pecúlio`. No fim da entrega:
+  - contagens no `CLAUDE.md` local;
+  - `pnpm test && pnpm typecheck && pnpm build:vercel`;
+  - revisão final (Opus);
+  - **enviar o branch e o resumo à PLANEJAMENTO**, com a lista curta para a sandbox (lembrar: importar o Pecúlio pede um usuário com papel no 2º GB).
+
+---
+
 # Entrega 4 — Retorno da validação (lote de 21/11/2026)
 
 **Goal:** os ajustes que a validação pediu no Efetivo por dia, na Escala do mês, na Grade geral, na CNH e nos nomes, sem mudar nenhuma regra de escala.
@@ -254,7 +350,7 @@
 
 **Decisões desta entrega** (minhas, pequenas):
 - O ajuste de contraste escurece ou clareia o **fundo** da cor do serviço, em passos de 5%, até 4,5:1 com o texto escolhido por `corDoTexto`. A cor escolhida pelo usuário continua a mesma para quem não é o caso (*minha decisão*: o valor salvo não muda; só a exibição).
-- Vaga vazia: **não entra** nesta entrega, porque o usuário ainda não escolheu a opção A, B, C ou D do mockup da DESIGN. Quando escolher, vira a tarefa 9.
+- Vaga vazia: **opção A** do mockup da DESIGN (decisão do usuário, 21/11/2026), na Tarefa 8.
 - O texto "pela X" some dos quadrados de CNH, e a frase de ajuda fica como está.
 
 ## Review Focus
@@ -345,10 +441,25 @@
 - [ ] **Step 2: Run.** Expected: FAIL.
 - [ ] **Step 3: Implement.**
 - [ ] **Step 4: Run.** Expected: PASS.
-- [ ] **Step 5: Commit** `Fase 5.4: botão Importar`. No fim da entrega:
+- [ ] **Step 5: Commit** `Fase 5.4: botão Importar`.
+
+### Task 8: Vaga vazia na opção A (contorno tracejado)
+
+**Decisão do usuário (21/11/2026):** a opção A do mockup da DESIGN (`docs/telas/vaga-vazia/mockup.html`), a recomendada.
+
+**Files:** `apps/web/src/componentes/escala-do-mes/` (a vaga da Escala do mês), `apps/web/src/componentes/efetivo-por-dia/CardDoEfetivo.tsx` (a vaga na faixa do Efetivo por dia), `apps/web/src/index.css` ou o estilo das listras (sai a classe das listras amarelas). **Test:** `escala-do-mes.test.tsx`, `efetivo-por-dia.test.tsx`, `estilo.test.tsx`.
+
+- [ ] **Step 1: Testes:**
+  - a vaga vazia é um botão com **contorno tracejado** e sem as listras amarelas, nas duas telas;
+  - a vaga **obrigatória** (falta para a guarnição sair) tem a barra vinho à esquerda (`data-obrigatoria`); a **extra** (entre o mínimo e o máximo) não tem barra e mostra "opcional" (junto com a Tarefa 1);
+  - a cor de serviço aparece só em quem já está escalado; nenhuma vaga vazia usa a cor do serviço;
+  - o cabeçalho do card troca o triângulo de alerta pelo contador "Faltam N" (N = vagas obrigatórias vazias), e não mostra nada quando N = 0;
+  - ao passar o mouse e com o foco do teclado, a vaga muda de estado visível; o contorno tem contraste de pelo menos 3:1 com o fundo.
+- [ ] **Step 2: Run** os três arquivos. Expected: FAIL.
+- [ ] **Step 3: Implement** seguindo o mockup (cores e medidas da opção A). A frase "Falta…" da Tarefa 1 continua fora; o contador "Faltam N" é só o número no cabeçalho.
+- [ ] **Step 4: Run.** Expected: PASS.
+- [ ] **Step 5: Commit** `Fase 5.4: vaga vazia na opção A`. No fim da entrega:
   - contagens no `CLAUDE.md` local;
   - `pnpm test && pnpm typecheck && pnpm build:vercel`;
   - revisão final (Opus);
   - **enviar o branch e o resumo à PLANEJAMENTO**, com a lista curta para a sandbox e a nota: os testes com escalante ou militar comum não cabem na sandbox, que só tem o administrador (risco já registrado no roadmap).
-
-**Tarefa 8 (quando o usuário escolher a vaga vazia):** a opção A, B, C ou D do mockup da DESIGN, aplicada à Escala do mês e ao Efetivo por dia. O plano dela é escrito quando a escolha chegar; não entra nesta entrega.
