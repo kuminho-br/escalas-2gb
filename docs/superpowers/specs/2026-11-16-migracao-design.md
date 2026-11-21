@@ -107,7 +107,8 @@ O esquema completo está em `docs/superpowers/specs/2026-11-16-esquema-banco.md`
 
 ### Militares
 
-- **Ficha:** identificação, motorista e CNH, afastamentos e, no fim e recolhida, a lotação com histórico ("1ª SB, Adm desde novembro de 2026").
+- **Ficha:** identificação, motorista e CNH, afastamentos e, no fim e recolhida, a lotação com histórico ("1ª SB, Adm desde novembro de 2026"). Na fase 5 a ficha se amplia com o Pecúlio e o bloco do fim vira o "Histórico de rastreio" (`docs/superpowers/specs/2026-11-20-peculio-design.md`).
+- **Lotação é a posição do militar na estrutura organizacional** (a unidade), termo da corporação. Equipe e jornada são atributos do militar; o conjunto no tempo (lotação, equipe, jornada) é o **rastreio** (decisão de 21/11/2026). O "a partir de" de uma mudança é o mês, por enquanto; se vale o dia é pendência de elucidação.
 - **Lotação:** "Registrar transferência" aparece ao abrir o bloco.
 - **Afastamentos:** a lista aparece sempre; o formulário fica atrás de "Incluir afastamento" e fecha depois de gravar. Aceita qualquer intervalo (férias em partes). Não há atalho "Mês inteiro".
 - **Motorista:** botões por categoria, pequenos (ver CNH, na seção 5).
@@ -177,6 +178,8 @@ A hierarquia segue o CTB e fica fixa no código (RN-12), não no cadastro:
 
 Na ficha do militar, marca-se a carteira; as categorias que ela habilita aparecem marcadas também, com "pela E". Só a carteira é gravada.
 
+A CNH é do militar, esteja ou não no quadro de motoristas; **para a escala, ela só vale se ele estiver no quadro** (decisão de 21/11/2026, entra na fase 5).
+
 ## 6. Nome do sistema, login e módulos
 
 - **Nome:** "Sistema de Gestão - 2º GB".
@@ -187,10 +190,12 @@ Na ficha do militar, marca-se a carteira; as categorias que ela habilita aparece
 - **Tela de login** (mockup aprovado em `docs/telas/login-e-inicio/mockup.html`): foto do quartel com a bandeira, coberta de vinho à esquerda, com o brasão do 2º GB e o título; à direita, o cartão de login. No celular, a foto em cima e o cartão subindo sobre ela. O login em si é e-mail e senha.
 - **Tela inicial** (fase 6): barra com o brasão, o nome do sistema, o caminho da unidade e "Sair"; faixa de boas-vindas; um cartão por módulo. A faixa recebe a cena final da transição do login (design de 20/11/2026, ainda fora do repositório), no lugar das fotos sorteadas.
 - **"Esqueci minha senha"** aparece no mockup, mas ainda não tem função.
+- **Área pessoal do militar** (Visualização de escalas): a escala pessoal (decidido); a **comparação** da própria escala com a de outro militar; e a **busca por permutantes**: o militar escolhe um dia do mês e o sistema mostra quem está disponível para permutar com ele. A busca depende das specs de permutas, ainda por fazer (ideia do usuário, 21/11/2026).
 
 ## 7. Pendências abertas
 
 - **Pecúlio (fase 5):** como a planilha é usada hoje; ficha única ou duas; fonte dos dados depois da importação; abas extras; como o militar comum entra sem e-mail; quem vê cada informação. Detalhes em `docs/superpowers/specs/2026-11-20-peculio-design.md`.
+- **"A partir de" no rastreio:** por enquanto o mês; se vale o dia é pendência de elucidação de requisito.
 - **Antiguidade institucional:** dentro do GB, vem da "Ordem" do Pecúlio (fase 5). Acima do GB (fase 11), a ideia é derivá-la dos almanaques, por nível hierárquico. Em aberto: como o almanaque entra (PDF ou digitação) e o que acontece com a antiguidade manual de hoje.
 - **Tipos de usuário (fase 6):** quem vê cada módulo e o nome "auxiliar administrativo".
 - **Publicação (fase 7):** se a escala publicada fica travada e como se corrige depois.

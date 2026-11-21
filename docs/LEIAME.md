@@ -42,7 +42,7 @@
 | [superpowers/specs/2026-11-20-grade-geral-ux-design.md](superpowers/specs/2026-11-20-grade-geral-ux-design.md) | Ajustes de interface da grade geral | PLANEJAMENTO | em execução |
 | [superpowers/specs/2026-11-20-sintese-design-e-roadmap-design.md](superpowers/specs/2026-11-20-sintese-design-e-roadmap-design.md) | Intervenção para sintetizar o design e o roadmap | DOCUMENTAÇÃO (desenho); PLANEJAMENTO (execução) | vigente |
 | [superpowers/specs/2026-11-20-limpeza-da-fase-3-design.md](superpowers/specs/2026-11-20-limpeza-da-fase-3-design.md) | Limpeza das pendências da fase 3 | PLANEJAMENTO | vigente |
-| [superpowers/specs/2026-11-20-peculio-design.md](superpowers/specs/2026-11-20-peculio-design.md) | Pecúlio do 2º GB (fase 5): levantamento da planilha e decisões em aberto | PLANEJAMENTO | rascunho |
+| [superpowers/specs/2026-11-20-peculio-design.md](superpowers/specs/2026-11-20-peculio-design.md) | Pecúlio do 2º GB (fase 5): estrutura da ficha, rastreio e interface com a escala | PLANEJAMENTO | vigente |
 
 ## Controle da documentação
 

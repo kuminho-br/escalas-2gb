@@ -1,74 +1,159 @@
 # Pecúlio do 2º GB — design da fase 5
 
-20/11/2026 · rascunho: levantamento feito, decisões em aberto
+20/11/2026 · revisto em 21/11/2026 · pronto para o plano
 
-O que se sabe do Pecúlio e o que falta decidir antes do plano da fase 5. A ordem das fases está no roadmap; o histórico das decisões, em `docs/decisoes.md`.
+A fase 5 traz para o sistema a **estrutura** da ficha do militar que hoje vive na planilha do Pecúlio, e deixa funcional a parte dela que a escala usa. A ordem das fases está no roadmap; o histórico das decisões, em `docs/decisoes.md`.
 
 ## Por quê
 
-O desenvolvimento andou mais rápido que o previsto: a fase 4 já tem as telas de trabalho e ainda não é hora de montar a escala de um mês real. O Gerar documento só teria uso quando o sistema publicasse uma escala de verdade.
+A planilha do Pecúlio é mantida pela seção de pessoal, e as outras seções têm planilhas próprias, desligadas dela: o mesmo militar aparece com dados que não batem. Com a ficha no sistema, **o banco passa a ser a fonte única** dos dados do militar, e as outras seções (a escala primeiro) leem dele. A planilha vira só cópia de segurança da seção de pessoal.
 
-Na leitura do usuário, o que destrava mais coisas é a **base de dados dos militares**, que hoje vive na planilha do Pecúlio:
+O Pecúlio fica na interface de vários domínios. A escala é um deles. **A modelagem completa do Pecúlio não precisa estar fechada para a interface com a escala funcionar**: a fase 5 entrega essa interface e a estrutura já decidida; o resto amadurece depois, sem mexer na parte da escala (decisão do usuário, 21/11/2026).
 
-- os acessos de todos os militares (cada usuário do sistema já é um militar do cadastro, `usuario.militar_id`);
-- a diferenciação dos tipos de usuário (fase 6) e a Minha escala (fase 7);
-- a antiguidade do GB, pela "Ordem" do Pecúlio;
-- os afastamentos sem lançamento à mão (férias, L.E, LTS e DTS);
-- o militar marcando o próprio voluntariado (fase 7), o que dispensa a importação do Google Forms.
+Rotas consideradas para o roadmap (20/11/2026): seguir com o documento e o piloto (rota 1, recusada); preparar o piloto antes (rota 2, virou a ordem da fase 8); **Pecúlio primeiro (rota 3, escolhida)**.
 
-### Rotas consideradas (20/11/2026)
+## Objetivos
 
-- **Rota 1, seguir o roadmap** (Gerar documento, depois o piloto). Descartada: no piloto, em paralelo com as planilhas, quem publica é a planilha.
-- **Rota 2, preparar o piloto** (estabilidade, distribuições automáticas, importação do voluntariado, piloto, documento). Virou a ordem da fase 8.
-- **Rota 3, Pecúlio primeiro (escolhida):** Pecúlio (5), tipos de usuário e módulos (6), Visualização (7) e só então o primeiro mês real (8).
+- A ficha do militar com os atributos já decididos, num formulário só, cada bloco com o seu dono.
+- A **lotação** com o sentido da corporação: a posição do militar na estrutura organizacional (a unidade), e só isso.
+- Equipe e jornada como atributos do próprio militar, com histórico junto da lotação, para a escala de um mês passado continuar certa.
+- A CNH separada do quadro de motoristas, com a regra da escala explícita.
+- A importação do Pecúlio por um modelo de planilha próprio, que é o contrato.
+- As telas do módulo Pecúlio: lista e ficha dos militares do GB, e os aniversariantes do mês.
 
-## O que é o Pecúlio hoje (levantamento de 20/11/2026)
+## Não objetivos (desta fase)
 
-Uma planilha, `BACKUP DO PECÚLIO 2ºGB (04NOV26).xlsx`, guardada em `docs/fontes de dados/`, **fora do Git** (`.git/info/exclude`). O levantamento leu só a estrutura (abas, cabeçalhos, contagens e categorias), sem copiar dados pessoais.
+Ficam para depois, sem bloquear a interface com a escala:
 
-**Aba "2ºGB" (a principal):** cerca de 184 militares do 2º GB inteiro, de Ten Cel a Sd, com o cabeçalho na linha 9 e um título institucional em cima. Colunas:
+- abono de permanência e "ativo/inativo" (o usuário vai pesquisar o que significam);
+- funções, missões extras e o catálogo do QOD; a árvore completa do QOD (Comando, Divisões, seções administrativas) e o previsto por posto;
+- férias (rascunho, módulo à parte);
+- quem vê cada atributo (pesa quando o militar comum entrar, na fase 6; na fase 5 a ficha é usada por quem tem papel);
+- a jornada dos oficiais (pesa nas distribuições, na fase 8; até lá, oficial continua Adm);
+- o quadro (QOC, QOA) separado do posto e a grafia das siglas em Configurações;
+- a cópia de segurança gerada pelo sistema no formato do Pecúlio;
+- data de ingresso e CPF (o CPF só no servidor do Estado);
+- o militar editando o próprio telefone (precisa do login do militar comum, fase 6);
+- o token de atualização de ficha (ideia futura, abaixo).
 
-- sexo, **Ordem** (a antiguidade no GB), posto/grad., matrícula, nome completo;
-- voluntário PJES, abono de permanência, aniversariantes do mês, aniversário, data de nascimento, **CPF**, data de ingresso;
-- **lotação** (SEDE, SCSv, 1ª a 7ª SB), função administrativa (cerca de 49 diferentes) e comportamento (Excepcional, Ótimo, Bom);
-- **férias:** BGE, plano, reprogramação do período 2026/2027, reprogramadas e cassada;
-- L.E, LTS, DTS e adido/agregado;
-- à direita, blocos de resumo por posto (SubTen, 1º Sgt…), que são contas da planilha, não dados de militar.
+## Anti-objetivos
 
-**Aba "Números efetivo":** previsto, existente e déficit do 2º GB e da 1ª SB, e o existente por SB e por posto.
+- **Moldar a estrutura aos dados da planilha.** Inconsistência nas linhas é problema de quem migra; o design cuida das colunas, entidades e relações (decisão do usuário, 21/11/2026).
+- **Tolerar planilha fora do modelo.** A planilha de importação é o contrato; quem envia se adapta.
+- **Chamar de "lotação" qualquer coisa além da unidade.** É termo da corporação.
+- Bloquear o escalante.
 
-**Aba "Missões extra por portaria":** missão, publicação, posto, matrícula, nome e funções extras.
+## Restrições
 
-**O que o Pecúlio não tem:** e-mail (o login de hoje é por e-mail), CNH, equipe e jornada. Os três últimos continuam vindo da escala.
+- **D7 (dados pessoais):** no teste, sem CPF e sem o ano de nascimento (o aniversário fica com dia e mês); o telefone entra; afastamento sem diagnóstico.
+- **E-mail institucional:** só o domínio `@bombeiros.pe.gov.br`; é o e-mail de entrada no sistema.
+- **Dados de hoje:** os militares que já estão no banco de teste e ficarem sem lugar na mudança de estrutura ficam na 1ª SB, por enquanto.
+- **"A partir de" é o mês** (por enquanto). Se vale também o dia é **pendência de elucidação** de requisito, não do design.
 
-## Dados pessoais
+## Abordagens consideradas
 
-Vale a D7 revista em 20/11/2026 (design da migração, D7): o teste recebe todos os campos do Pecúlio, **menos o CPF e o ano de nascimento**. O aniversário fica só com dia e mês. O conjunto fictício do desenvolvimento cresce para o GB inteiro, com as nove lotações e os campos novos.
+**Onde guardar lotação, equipe e jornada no tempo**
+- **(1) A tabela de hoje vira o "rastreio do militar" (escolhida).** Cada período guarda unidade, equipe e jornada, com início e fim; mudar qualquer um fecha o período e abre outro. A escala já sabe olhar o período de cada data: muda o nome e a tela, não a lógica.
+- (2) Três históricos separados (lotação, equipe, jornada): mais tabelas, e a escala juntaria três consultas para o mesmo resultado.
+- (3) O valor atual no militar e o histórico só pela auditoria: a escala de um mês passado erraria, e regra não se tira da auditoria (decisão de 17/11/2026). Descartada.
 
-## Escopo previsto da fase 5
+**A ficha do Pecúlio e a de Militares**
+- **Uma ficha só, com dono por bloco (escolhida).** Duas fichas para o mesmo militar recriariam dentro do sistema o problema de integridade que a fase quer acabar.
 
-- **Estrutura do 2º GB:** as nove lotações viram unidades abaixo do 2º GB.
-- **Ficha ampliada e importação** dos militares do GB, no padrão das importações da fase 3 (prévia, problemas com solução, importar de novo sem duplicar).
-- **Antiguidade pela "Ordem":** resolve a antiguidade institucional dentro do GB.
-- **Afastamentos vindos do Pecúlio:** férias (com o BGE e as reprogramações), L.E, LTS e DTS alimentam os afastamentos que a escala já usa.
-- **Telas do módulo Pecúlio:** lista e ficha de todos os militares do GB.
+## O modelo
 
-## Várias unidades
+### Militar (tabela `militar`, ampliada)
 
-Com as nove lotações, aparecem os problemas que antes só existiriam na institucionalização. Entram neste design:
+| Atributo | Regra | Dono |
+|---|---|---|
+| Matrícula | já existe; a chave do militar | Pecúlio |
+| Posto/graduação | já existe | Pecúlio |
+| Nome completo | novo; obrigatório | Pecúlio |
+| Nome de guerra | já existe; atributo próprio (pode ser abreviação de um dos nomes) | Pecúlio |
+| Antiguidade | já existe; é a "Ordem" do Pecúlio (lugar no ranking do GB) | Pecúlio |
+| Sexo | novo | Pecúlio |
+| Data de nascimento | nova; no teste, só dia e mês (D7) | Pecúlio |
+| Telefone | novo | Pecúlio |
+| E-mail institucional | novo; único; só `@bombeiros.pe.gov.br`; pode ficar vazio até ser preenchido | Pecúlio |
+| Comportamento | novo; um da lista (Excepcional, Ótimo, Bom, Insuficiente, Mau) | Pecúlio |
+| Boletim do comportamento | novo; o boletim (BGE) que publicou a última mudança | Pecúlio |
+| Quadro de motoristas | já existe | Escala |
+| CNH | já existe; **independente do quadro** (sai a regra que a apagava) | Escala |
+| Voluntário JES | já existe; é o "Voluntário PJES" do Pecúlio | Escala |
 
-- a transferência vai sempre para a unidade do usuário;
-- a antiguidade é comparada no caminho da unidade e na lotação;
-- uma função igual pode ser criada na unidade de cima;
-- o catálogo de funções vem da unidade do usuário, não da guarnição;
-- renomear uma função não confere as unidades de baixo;
-- um feriado criado numa unidade de baixo pode repetir a data de um de cima.
+O histórico das mudanças de comportamento fica na auditoria (relação de um comportamento para muitos militares, com o boletim da última publicação no próprio militar; decisão do usuário).
 
-## Decisões que faltam (antes do plano)
+### Rastreio do militar (a tabela `lotacao` renomeada)
 
-1. **Uso de hoje:** quem atualiza a planilha e quando, quem consulta e para quê, e o que dá trabalho.
-2. **Ficha única ou duas:** a ficha do Pecúlio e a de Militares são a mesma, com mais campos, ou duas coisas separadas?
-3. **Fonte dos dados depois da importação:** o sistema (a planilha é aposentada) ou a planilha (importada de novo de tempos em tempos)?
-4. **Abas extras:** Números efetivo e Missões extra por portaria entram no módulo?
-5. **Como o militar comum entra:** o Pecúlio não tem e-mail. Se a resposta pedir um campo novo, ele nasce na ficha desta fase.
-6. **Quem vê cada informação:** por tipo de usuário e por lotação. Fecha junto com a fase 6, mas a ficha já nasce sabendo quais campos são restritos.
+| Atributo | Regra |
+|---|---|
+| Lotação | a unidade (posição na estrutura organizacional) |
+| Equipe | da mesma unidade; opcional |
+| Jornada | Pronto ou Adm |
+| Desde / até | por mês; sem períodos sobrepostos por militar |
+
+"Lotação", na tela e nos textos, passa a ser **só a unidade**. O conjunto (lotação, equipe, jornada no tempo) é o **rastreio**.
+
+### Afastamento (tabela `afastamento`, ampliada)
+
+- **Tipos novos no catálogo do sistema:** Adido, Agregado, L.E, LTS e DTS, ao lado de Férias, Curso e Outro. O catálogo continua editado pelo administrador.
+- **Motivo:** texto curto e opcional, com o aviso "não escreva diagnóstico" (D7).
+- **Boletim:** texto opcional, com a publicação do afastamento.
+- A escala continua usando o tipo e o período, como hoje.
+
+### Estrutura do 2º GB
+
+- As **sete seções** (1ª a 7ª SB) existem como unidades abaixo do 2º GB.
+- A árvore completa do QOD fica para depois.
+
+## Regras da interface com a escala
+
+- **CNH:** para a escala (lista de quem pode ocupar a vaga, escalar, acumular, trocar e o painel do dia), a CNH só vale se o militar estiver no quadro de motoristas. Quem não está no quadro não ocupa vaga que exige CNH, mesmo tendo a carteira.
+- **Lotação, equipe e jornada de um mês** vêm do período do rastreio daquele mês, como hoje.
+- **Voluntário JES** e **afastamentos** continuam lidos como hoje.
+
+## Quem edita o quê
+
+| Bloco | Quem edita |
+|---|---|
+| Identificação, contato, dados pessoais, comportamento, afastamentos e o rastreio (lotação) | gestor ou auxiliar administrativo (escalante) com papel numa **unidade acima** da lotação do militar (a "seção de pessoal" é o papel da unidade de cima) |
+| Equipe, jornada, quadro de motoristas, CNH e voluntário JES | escalante ou gestor com papel na lotação do militar ou acima (como hoje) |
+| Telefone (o próprio) | o militar, quando o login do militar comum existir (fase 6) |
+
+O rastreio junta lotação (do Pecúlio) e equipe/jornada (da escala) no mesmo formulário: quem tem papel na unidade de cima altera os três; quem tem papel só na seção altera equipe e jornada, com a lotação travada.
+
+## Telas
+
+```
+Ficha do militar
+  Identificação · Contato · Dados pessoais · Comportamento
+  Motorista e CNH · Voluntário JES
+  Afastamentos
+
+  ── Histórico de rastreio ─────────────────────── [Alterar situação]
+  Situação atual: 1ª SB · Equipe Alfa · Pronto   (desde 03/2026)
+  03/2026  Lotação 2ª SB → 1ª SB · Jornada Adm → Pronto
+  08/2026  Afastamento: Férias (01/08 a 30/08)
+  11/2026  Equipe Bravo → Alfa
+```
+
+- **"Alterar situação"** abre um formulário flutuante com lotação, equipe, jornada e "a partir de" (mês, sugerido o atual). Salvar fecha o período aberto e abre outro.
+- **A linha do tempo** junta as mudanças do rastreio e os afastamentos, do mais novo para o mais velho.
+- **Módulo Pecúlio:** a lista dos militares das unidades a que o usuário tem acesso (com busca e filtro por lotação) e a ficha. **Aniversariantes do mês:** uma lista na tela do módulo.
+
+## Importação do Pecúlio
+
+- Um **modelo de planilha próprio** (aba `PECÚLIO`), gerado pela API como os outros, com a aba `AJUDA`. As colunas são as do modelo acima: nome completo e nome de guerra em colunas separadas.
+- A matrícula liga a linha ao militar que já existe; o resto segue o padrão das importações (prévia, problemas com a solução, importar de novo sem duplicar).
+- Quem envia adapta a planilha ao modelo.
+
+## Ideias futuras (registradas, fora da fase 5)
+
+- **Token de atualização de ficha:** o escalante ou o gestor escolhe um militar e emite um token dizendo quais campos do próprio registro ele pode editar e até quando (a expiração do token).
+- **Área pessoal do militar** (ver o design da migração e o roadmap): a escala pessoal, a comparação da própria escala com a de outro militar e a busca por permutantes.
+
+## O que fica para quem for planejar
+
+- A ordem das entregas da fase (sugestão: estrutura e regra da CNH primeiro; depois a ficha e o rastreio; depois a importação e o módulo).
+- Os nomes técnicos das colunas novas e da tabela renomeada, e a migração que preserva os períodos de hoje.
+- O texto exato da aba `AJUDA` e das mensagens.
