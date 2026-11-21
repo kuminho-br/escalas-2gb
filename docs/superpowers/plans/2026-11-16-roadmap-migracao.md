@@ -109,12 +109,13 @@ Montar e conferir a escala do mês à mão, nas telas de trabalho (Escala do mê
 | 4.4 | Correção do "Desativar", leitura da Grade, busca, "Adicionar serviço" em abas, dia da semana no Efetivo por dia, sem a aba Atividades (Tarefas 74 a 82) | mesclada (#59) | grade geral (ajustes) |
 | 4.5 | Acabamento: pendências simples (Tarefas 83 a 90) | mesclada (#61) | — |
 | 4.6 | Acabamento 2: pendências simples (Tarefas 91 a 96) | mesclada (#63) | — |
+| 4.7 | Acabamento 3: pendências simples (Tarefas 97 a 103) | mesclada (#68) | — |
 
 Specs, em `docs/superpowers/specs/`: `2026-11-18-ordem-de-escala-e-acumulo-design.md`, `2026-11-19-voluntariado-por-faixa-design.md`, `2026-11-20-meta-de-ativacao-design.md`, `2026-11-20-grade-geral-design.md`, `2026-11-20-grade-geral-ux-design.md` e `2026-11-20-limpeza-da-fase-3-design.md`.
 
 **Painel do dia (medida da 4.3):** 33 consultas no cenário de teste (31 para um militar do Pronto, 33 para um do Adm), bem abaixo das 100 a 200 que se temia; o número cresce com escalas, faixas e funções (cerca de 9 consultas por faixa). Na 4.4, com uma terceira faixa no cenário, foi a 40 (Pronto) e 42 (Adm): passou do limite de 40, então "otimizar o painel do dia" entrou na fase 8.
 
-**A fase fechou na 4.6** (21/11/2026), o segundo lote de pendências simples. Os escalantes conseguem montar e conferir a escala de um mês à mão, sem os tropeços conhecidos.
+**A fase fechou na 4.7** (21/11/2026), o terceiro lote de pendências simples. Os escalantes conseguem montar e conferir a escala de um mês à mão, sem os tropeços conhecidos.
 
 ## Fase 5 — Pecúlio · em design
 
@@ -161,8 +162,8 @@ A base de militares do 2º GB inteiro, a partir da planilha do Pecúlio, e o mó
 - distribuições: onde se configura a ordem dos buracos do Pronto; o saldo que não cabe; se a cota limita as vagas; se a compulsória (RN-41, RN-43) entra já;
 - documento: o modelo atual de impressão; só o Ordinário ou também as operações;
 - Escala por militar: o que se compara, quantos militares, se escala ou só mostra, como se liga às outras telas. Hipótese: o uso é a permuta; se for, a tela pode ir junto com as permutas (fase 9).
-- `ADM_CUMPRE_CARGA` existe em Configurações, mas nada o lê (o sistema age como desligado). Em aberto (P-34): com ele desligado, o Adm continua tirando saldos? Precisa de um segundo parâmetro para "cumpre 160h mas pode tirar PJES no expediente"? Ver RN-17.
-- A "prioridade" da cota ordena as operações na distribuição, mas não tem regra no catálogo (P-35).
+- `ADM_CUMPRE_CARGA` existe em Configurações, mas nada o lê (o sistema age como desligado, o que bate com a RN-17: desligado, o Adm tira saldos e pode tirar PJES no expediente). Em aberto, sem prioridade (P-34): um segundo parâmetro para "cumpre 160h mas pode tirar PJES no expediente".
+- A "prioridade" da cota ordena as operações na distribuição, mas não tem regra no catálogo; o usuário não sabe para que serve e talvez o campo saia (P-35, sem prioridade).
 
 **Pendências técnicas para as distribuições** (achadas na revisão 3):
 - `distribuirAdm` ignora as remoções quando a entrada vem sem `servico`;
@@ -267,6 +268,11 @@ Achadas nas revisões e nas validações. Nenhuma muda quem é escalado. Entram 
 - "Não deu para carregar a lista" aparece também quando a lista já estava carregada e uma nova busca falha;
 - 408 e 429 também não tentam de novo;
 - um teste de configuração com '1/2031' quebra em fevereiro de 2031.
+
+**Da entrega 4.7** (lista no PR #68):
+- depois de salvar, se chegou dado novo do servidor durante a edição, o bloco mostra o valor da outra pessoa até a nova busca voltar;
+- se o pedido de "Sair" nunca voltar, um 401 real só mostra "Sessão inválida." no bloco;
+- "Mês já passou" mostra a chave técnica da configuração, não o rótulo.
 
 **Regras próprias por vaga** (pendentes desde a ordem de escala, 18/11/2026, sem fase): o graduado de dia é o mais antigo do dia (exceto Adm); o chefe é o mais antigo da guarnição.
 
