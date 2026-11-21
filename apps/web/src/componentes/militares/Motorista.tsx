@@ -39,7 +39,14 @@ export function Motorista({ ficha }: { ficha: FichaMilitar }) {
     setSalvo({ quadro: ficha.noQuadroDeMotoristas, carteira: [...ficha.cnh].sort() });
   });
 
-  const alternar = (c: string) => setCarteira((atual) => (atual.includes(c) ? atual.filter((x) => x !== c) : [...atual, c].sort()));
+  // Na carteira: tira. Apagada: acende só ela. Acesa só pela hierarquia: a carteira passa a ser ela mesma,
+  // e saem da carteira as categorias maiores que a acendiam (senão ela continuaria acesa por elas).
+  const alternar = (c: string) =>
+    setCarteira((atual) => {
+      if (atual.includes(c)) return atual.filter((x) => x !== c);
+      const acendiam = atual.filter((x) => CNH_HABILITA[x]?.includes(c));
+      return [...atual.filter((x) => !acendiam.includes(x)), c].sort();
+    });
 
   const { salvando, travar } = useTrava();
   const salvar = travar(gravar);
@@ -86,13 +93,12 @@ export function Motorista({ ficha }: { ficha: FichaMilitar }) {
                   onClick={() => alternar(c)}
                   className={cn(
                     'grid place-items-center rounded-md border px-0.5 py-0.5 text-center',
-                    // a que a carteira habilita acende igual à da carteira; o "pela X" embaixo diz de onde vem
+                    // a que a carteira habilita acende igual à da carteira; de onde vem fica só no nome acessível
                     naCarteira || pela ? 'border-tinta bg-tinta text-white' : 'border-linha text-apagado',
                   )}
                 >
                   <span className="font-cond text-lg leading-none font-semibold">{c}</span>
                   <span className="text-[10px] leading-tight">{veiculo}</span>
-                  {pela && <span className="text-[9px] leading-tight">pela {pela}</span>}
                 </button>
               );
             })}
