@@ -82,7 +82,7 @@ for f in $(git ls-files -co --exclude-standard 'docs/*.md' 'docs/*.html' 'docs/*
 done
 for m in $mds; do
   d=$(dirname "$m")
-  grep -oE '\]\([^)#]+' "$m" | sed 's/^](//' | grep -vE '^(http|mailto)' | while read -r p; do [ -e "$d/$p" ] || echo "$m: $p"; done
+  sed 's/`[^`]*`//g' "$m" | grep -oE '\]\([^)#]+' | sed 's/^](//' | grep -vE '^(http|mailto)' | while read -r p; do [ -e "$d/$p" ] || echo "$m: $p"; done
 done > "$corpo.q"
 if [ -s "$corpo.q" ]; then achou=1; while read -r l; do alerta "link quebrado em $l"; done < "$corpo.q"; fi
 [ $achou = 0 ] && echo "Todos os documentos estão no índice (ou no LEIAME da pasta) e os links funcionam."
