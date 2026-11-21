@@ -271,6 +271,30 @@ describe('importação de guarnições: vigência vazia e vigência anterior à 
 describe('nome, viatura e tipo grandes demais (os limites da tela)', () => {
   const longo = (n: number) => 'x'.repeat(n);
 
+  // achado da revisão final da 4.6: pular só a linha com problema deixava a guarnição entrar incompleta, e a gravação apagava uma função
+  it('uma linha com problema deixa a guarnição inteira como estava: ela não entra incompleta', async () => {
+    const boas: Linha[] = [
+      ['', 'Guarnição Duas Linhas', 'VTR-9', 'Auto', 'SIM', 2, 'D', 'Motorista', 1, 1],
+      ['', 'Guarnição Duas Linhas', '', '', '', '', '', 'Combatente', 2, 3],
+    ];
+    expect((await importar(boas, true)).gravados).toBe(1);
+    const antes = await ficha('Guarnição Duas Linhas');
+    expect(nomes(antes).sort()).toEqual(['Combatente', 'Motorista']);
+    // a viatura (informada numa linha só) passa do limite: a linha do Motorista tem problema, a do Combatente está certa
+    const quebradas: Linha[] = [['', 'Guarnição Duas Linhas', longo(LIMITE_VIATURA + 1), 'Auto', 'SIM', 2, 'D', 'Motorista', 1, 1], boas[1]!];
+    const previa = await importar(quebradas);
+    expect(previa.problemas).toEqual([
+      { aba: 'GUARNIÇÕES', linha: 2, mensagem: `Viatura de Guarnição Duas Linhas grande demais: ${LIMITE_VIATURA + 1} caracteres`, solucao: `Encurte para até ${LIMITE_VIATURA} caracteres.` },
+    ]);
+    expect(previa.avisos).toContain('Guarnição Duas Linhas: ficou de fora até as linhas com problema serem corrigidas.');
+    expect(previa.novos).toEqual([]);
+    expect(previa.alterados).toEqual([]);
+    expect((await importar(quebradas, true)).gravados).toBe(0);
+    const depois = await ficha('Guarnição Duas Linhas');
+    expect(nomes(depois).sort()).toEqual(['Combatente', 'Motorista']);
+    expect(depois.versoes[0]!.viatura).toBe('VTR-9');
+  });
+
   it('o que passa do limite vira problema com a solução e a linha é pulada; o de tamanho certo entra', async () => {
     const linhas: Linha[] = [
       ['', longo(LIMITE_NOME + 1), '', '', '', '', '', 'Motorista', 1, 1],
