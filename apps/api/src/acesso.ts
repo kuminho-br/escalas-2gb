@@ -115,14 +115,14 @@ export async function exigirPapel(c: Context<AmbienteApi>, unidadeId: string, pa
   const hoje = hojeRecife();
   if (await temPapel(banco, usuarioId, unidadeId, papeis, hoje)) return null;
   const algum = await papeisVigentes(banco, usuarioId, hoje);
-  const erro = algum.length ? `Você não tem permissão nos cadastros de ${unidade.sigla}.` : 'Esta tela é dos escalantes e gestores.';
+  const erro = algum.length ? `Você não tem permissão nos cadastros de ${unidade.sigla}.` : 'Esta tela é dos auxiliares administrativos e gestores.';
   return c.json({ erro }, 403);
 }
 
 /** Qualquer papel vigente (escalante, gestor ou administrador); o militar comum recebe 403. */
 export async function exigirAlgumPapel(c: Context<AmbienteApi>): Promise<Response | null> {
   const papeis = await papeisVigentes(c.get('banco'), c.get('usuarioId'), hojeRecife());
-  return papeis.length ? null : c.json({ erro: 'Esta tela é dos escalantes e gestores.' }, 403);
+  return papeis.length ? null : c.json({ erro: 'Esta tela é dos auxiliares administrativos e gestores.' }, 403);
 }
 
 /** Catálogos do sistema: só o administrador (que só existe na raiz). */

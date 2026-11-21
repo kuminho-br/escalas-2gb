@@ -204,3 +204,95 @@ describe('desativar o acesso', () => {
     expect((await api.pedir('escalante', 'POST', `/api/militares/${m.id}/desativar-acesso`)).status).toBe(409);
   });
 });
+
+describe('papéis na ficha', () => {
+  const inicioDoMes = hojeRecife().slice(0, 7) + '-01';
+  const dar = (id: string, corpo: unknown, quem: Quem = 'gestorGb') => api.pedir(quem, 'POST', `/api/militares/${id}/papeis`, corpo);
+  const papeisGravados = async () => (await api.banco.query<{ n: number }>('select count(*)::int as n from papel_usuario')).rows[0]!.n;
+  /** Um militar com conta e um papel, já com sessão aberta (feita direto no banco). */
+  async function comoNovo(papel: 'gestor' | 'escalante', unidadeId: string) {
+    const m = await novoMilitar();
+    const usuarioId = await inserir(api.banco, 'usuario', { nome: `SD BM ${m.id}`, email: m.email, militar_id: m.id });
+    await inserir(api.banco, 'conta', { usuario_id: usuarioId, conta_id: usuarioId, provedor_id: 'credential', senha: await hashPassword('senha-de-teste-123') });
+    const papelId = await inserir(api.banco, 'papel_usuario', { usuario_id: usuarioId, unidade_id: unidadeId, papel, desde: inicioDoMes });
+    const cookie = cookieDe(await entrar(m.email, 'senha-de-teste-123'));
+    return { m, usuarioId, papelId, cookie };
+  }
+
+  it('o gestor do 2º GB dá papel de auxiliar na 1ª SB', async () => {
+    const m = await novoMilitar();
+    const r = await dar(m.id, { papel: 'escalante', unidadeId: api.ids.secao, desde: inicioDoMes });
+    expect(r.status).toBe(201);
+    const acesso: AcessoDoMilitar = await r.json();
+    expect(acesso.papeis).toMatchObject([{ papel: 'escalante', unidadeId: api.ids.secao, unidadeSigla: '1ª SB', desde: inicioDoMes, ate: null }]);
+  });
+
+  it('o auxiliar não dá papel', async () => {
+    const m = await novoMilitar();
+    expect((await acessoDe(m.id)).papeisQuePodeDar).toEqual([]);
+    expect((await dar(m.id, { papel: 'escalante', unidadeId: api.ids.secao, desde: inicioDoMes }, 'escalante')).status).toBe(403);
+    const gestor = await acessoDe(m.id, 'gestorGb');
+    expect(gestor.papeisQuePodeDar).toEqual(['gestor', 'escalante']);
+    expect(gestor.unidadesParaPapel.some((u) => u.id === api.ids.secao)).toBe(true);
+    expect((await acessoDe(m.id, 'admin')).papeisQuePodeDar).toEqual(['administrador', 'gestor', 'escalante']);
+  });
+
+  it('gestor fora da unidade ou dando administrador recebe 403 (Review Focus 3)', async () => {
+    const m = await novoMilitar();
+    const g = await comoNovo('gestor', api.ids.secao);
+    const antes = await papeisGravados();
+    const corpo = { papel: 'escalante', desde: inicioDoMes };
+    expect((await como(g.cookie, 'POST', `/api/militares/${m.id}/papeis`, { ...corpo, unidadeId: api.ids.gb })).status).toBe(403);
+    expect((await dar(m.id, { papel: 'administrador', unidadeId: api.ids.raiz, desde: inicioDoMes })).status).toBe(403);
+    expect((await como(g.cookie, 'POST', `/api/militares/${m.id}/papeis`, { papel: 'administrador', unidadeId: api.ids.secao, desde: inicioDoMes })).status).toBe(403);
+    expect(await papeisGravados()).toBe(antes);
+    // o administrador dá administrador, só na raiz
+    expect((await dar(m.id, { papel: 'administrador', unidadeId: api.ids.secao, desde: inicioDoMes }, 'admin')).status).toBe(400);
+    expect((await dar(m.id, { papel: 'administrador', unidadeId: api.ids.raiz, desde: inicioDoMes }, 'admin')).status).toBe(201);
+  });
+
+  it('dar papel a quem não tem conta cria o usuário sem acesso', async () => {
+    const m = await novoMilitar();
+    expect((await api.banco.query('select 1 from usuario where militar_id = $1', [m.id])).rows).toHaveLength(0);
+    const r = await dar(m.id, { papel: 'gestor', unidadeId: api.ids.secao, desde: inicioDoMes });
+    expect((await r.json()).situacao).toBe('sem-acesso');
+    expect((await api.banco.query('select 1 from usuario where militar_id = $1', [m.id])).rows).toHaveLength(1);
+    const sem = await novoMilitar({ email: null });
+    const r2 = await dar(sem.id, { papel: 'escalante', unidadeId: api.ids.secao, desde: inicioDoMes });
+    expect(r2.status).toBe(400);
+    expect((await r2.json()).erro).toBe('Preencha o e-mail institucional para dar acesso.');
+  });
+
+  it('encerrar fecha o período e não apaga', async () => {
+    const m = await novoMilitar();
+    const acesso: AcessoDoMilitar = await (await dar(m.id, { papel: 'escalante', unidadeId: api.ids.secao, desde: inicioDoMes })).json();
+    const id = acesso.papeis[0]!.id;
+    const hoje = hojeRecife();
+    const r = await api.pedir('gestorGb', 'POST', `/api/papeis/${id}/encerrar`, { ate: hoje });
+    expect(r.status).toBe(200);
+    expect((await r.json()).papeis[0].ate).toBe(hoje);
+    expect((await api.banco.query('select 1 from papel_usuario where id = $1', [id])).rows).toHaveLength(1);
+    expect((await api.pedir('gestorGb', 'POST', `/api/papeis/${id}/encerrar`, { ate: hoje })).status).toBe(409);
+    expect((await api.pedir('escalante', 'POST', `/api/papeis/${id}/encerrar`, { ate: hoje })).status).toBe(403);
+  });
+
+  it('ate antes de desde dá 400', async () => {
+    const m = await novoMilitar();
+    const acesso: AcessoDoMilitar = await (await dar(m.id, { papel: 'escalante', unidadeId: api.ids.secao, desde: inicioDoMes })).json();
+    const r = await api.pedir('gestorGb', 'POST', `/api/papeis/${acesso.papeis[0]!.id}/encerrar`, { ate: '2000-01-01' });
+    expect(r.status).toBe(400);
+    expect((await r.json()).campos.ate).toBeTruthy();
+  });
+
+  it('ninguém encerra o próprio último papel de gestor; o administrador pode', async () => {
+    const g = await comoNovo('gestor', api.ids.secao);
+    const r = await como(g.cookie, 'POST', `/api/papeis/${g.papelId}/encerrar`, { ate: hojeRecife() });
+    expect(r.status).toBe(409);
+    expect((await r.json()).erro).toBe('Você não pode encerrar o seu último papel de gestor. Peça a outro gestor ou ao administrador.');
+    expect((await api.pedir('admin', 'POST', `/api/papeis/${g.papelId}/encerrar`, { ate: hojeRecife() })).status).toBe(200);
+    // com outro papel de gestor vigente, encerrar um deles vale
+    const h = await comoNovo('gestor', api.ids.secao);
+    await inserir(api.banco, 'papel_usuario', { usuario_id: h.usuarioId, unidade_id: outraSecao, papel: 'gestor', desde: inicioDoMes });
+    expect((await como(h.cookie, 'POST', `/api/papeis/${h.papelId}/encerrar`, { ate: hojeRecife() })).status).toBe(200);
+  });
+});

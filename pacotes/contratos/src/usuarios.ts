@@ -1,5 +1,6 @@
 // Contas e papéis: o acesso de um militar ao sistema (fase 6). A ficha mostra a situação da conta e quem pode dar papel.
 import { z } from 'zod';
+import { Data } from './comum.ts';
 
 export const Papel = z.enum(['administrador', 'gestor', 'escalante']);
 export type Papel = z.infer<typeof Papel>;
@@ -28,3 +29,8 @@ export type SenhaProvisoria = { senha: string; validaAte: string };
 
 export const NovaSenha = z.object({ novaSenha: z.string().min(10, 'Use pelo menos 10 caracteres.') });
 export type NovaSenha = z.infer<typeof NovaSenha>;
+
+export const NovoPapel = z.object({ papel: Papel, unidadeId: z.string().uuid('Escolha a unidade.'), desde: Data });
+export type NovoPapel = z.infer<typeof NovoPapel>;
+export const EncerrarPapel = z.object({ ate: Data });
+export type EncerrarPapel = z.infer<typeof EncerrarPapel>;
