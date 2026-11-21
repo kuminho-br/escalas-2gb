@@ -51,7 +51,7 @@ describe('cadastro de militares', () => {
   it('cria militar com a primeira lotação', async () => {
     const f = await criar('990101-1', { motorista: true, cnh: ['B'] });
     expect(f).toMatchObject({ matricula: '990101-1', posto: 'SD BM', equipe: 'Alfa', jornada: 'pronto', motorista: 'B', pendencias: [] });
-    expect(f.lotacoes).toEqual([{ id: expect.any(String), unidadeSigla: '1ª SB', equipe: 'Alfa', jornada: 'pronto', desde: `${atual}-01`, ate: null }]);
+    expect(f.rastreio).toEqual([{ id: expect.any(String), unidadeSigla: '1ª SB', equipe: 'Alfa', jornada: 'pronto', desde: `${atual}-01`, ate: null }]);
   });
 
   it('matrícula repetida é 409', async () => {
@@ -60,10 +60,10 @@ describe('cadastro de militares', () => {
     expect((await r.json()).erro).toBe('Já existe um militar com essa matrícula.');
   });
 
-  it('CNH sem quadro de motoristas é 400', async () => {
-    const r = await api.pedir('escalante', 'POST', `/api/unidades/${api.ids.secao}/militares`, novo('990109-9', { cnh: ['B'] }));
-    expect(r.status).toBe(400);
-    expect((await r.json()).campos.cnh).toBe('Marque o quadro de motoristas antes de escolher a CNH.');
+  // a CNH é do militar, esteja ou não no quadro de motoristas (fase 5)
+  it('CNH sem quadro de motoristas grava', async () => {
+    const f = await criar('990109-9', { cnh: ['B'] });
+    expect(f).toMatchObject({ noQuadroDeMotoristas: false, cnh: ['B'], motorista: null });
   });
 
   it('lista do mês traz situação e pendências', async () => {
@@ -84,24 +84,69 @@ describe('cadastro de militares', () => {
   });
 });
 
-describe('lotações', () => {
-  it('transferência fecha a lotação anterior no último dia do mês', async () => {
+describe('alterar situação (rastreio)', () => {
+  let bravo: string;
+  let equipeDeOutra: string;
+  const situacao = (id: string, corpo: Record<string, unknown>, papel: Parameters<ApiDeTeste['pedir']>[0] = 'escalante') => api.pedir(papel, 'POST', `/api/militares/${id}/situacao`, corpo);
+  const ultimoDiaDoMes = (mes: string) => new Date(Date.UTC(Number(mes.slice(0, 4)), Number(mes.slice(5, 7)), 0)).toISOString().slice(0, 10);
+  beforeAll(async () => {
+    bravo = await inserir(api.banco, 'equipe', { unidade_id: api.ids.secao, nome: 'Bravo', ordem_ciclo: 2 });
+    equipeDeOutra = await inserir(api.banco, 'equipe', { unidade_id: outraSecao, nome: 'Alfa', ordem_ciclo: 1 });
+  });
+
+  it('só a equipe, a partir do mês seguinte: fecha o período aberto no fim do mês e abre outro com a mesma lotação', async () => {
     const m = await criar('990106-6');
-    const r = await api.pedir('escalante', 'POST', `/api/militares/${m.id}/lotacoes`, { unidadeId: api.ids.secao, equipeId: null, jornada: 'adm', desde: proximo });
+    const r = await situacao(m.id, { unidadeId: api.ids.secao, equipeId: bravo, jornada: 'pronto', desde: proximo });
     expect(r.status).toBe(201);
-    const f = await ficha(m.id);
-    const ultimoDia = new Date(Date.UTC(Number(proximo.slice(0, 4)), Number(proximo.slice(5, 7)) - 1, 0)).toISOString().slice(0, 10);
-    expect(f.lotacoes.map((l) => [l.desde, l.ate, l.jornada])).toEqual([
-      [`${proximo}-01`, null, 'adm'],
-      [`${atual}-01`, ultimoDia, 'pronto'],
+    const f = (await r.json()) as FichaMilitar;
+    expect(f.rastreio.map((l) => [l.unidadeSigla, l.equipe, l.jornada, l.desde, l.ate])).toEqual([
+      ['1ª SB', 'Bravo', 'pronto', `${proximo}-01`, null],
+      ['1ª SB', 'Alfa', 'pronto', `${atual}-01`, ultimoDiaDoMes(atual)],
     ]);
   });
 
-  it('transferência antes da lotação aberta é 409', async () => {
+  // [foco 3] o mesmo mês do período aberto: troca o período, em vez de deixar um de zero dia
+  it('no mesmo mês do período aberto, substitui o período (nenhum fica com zero dia)', async () => {
+    const m = await criar('990116-6');
+    const r = await situacao(m.id, { unidadeId: api.ids.secao, equipeId: null, jornada: 'adm', desde: atual });
+    expect(r.status).toBe(200);
+    const f = (await r.json()) as FichaMilitar;
+    expect(f.rastreio).toEqual([{ id: expect.any(String), unidadeSigla: '1ª SB', equipe: null, jornada: 'adm', desde: `${atual}-01`, ate: null }]);
+    expect(f).toMatchObject({ jornada: 'adm', equipe: null });
+  });
+
+  it('um mês antes do período aberto é 400 com a mensagem no campo "desde", e nada muda', async () => {
     const m = await criar('990107-7');
-    const r = await api.pedir('escalante', 'POST', `/api/militares/${m.id}/lotacoes`, { unidadeId: api.ids.secao, equipeId: null, jornada: 'adm', desde: atual });
-    expect(r.status).toBe(409);
-    expect((await r.json()).erro).toMatch(/^A transferência precisa ser depois de /);
+    const r = await situacao(m.id, { unidadeId: api.ids.secao, equipeId: null, jornada: 'adm', desde: somarMeses(atual, -1) });
+    expect(r.status).toBe(400);
+    const corpo = await r.json();
+    expect(corpo.erro).toBe('Use o mês do período aberto ou um mês depois.');
+    expect(corpo.campos.desde).toBe('Use o mês do período aberto ou um mês depois.');
+    expect((await ficha(m.id)).rastreio).toHaveLength(1);
+  });
+
+  it('equipe de outra unidade é 400 no campo equipeId', async () => {
+    const m = await criar('990117-7');
+    const r = await situacao(m.id, { unidadeId: api.ids.secao, equipeId: equipeDeOutra, jornada: 'pronto', desde: proximo });
+    expect(r.status).toBe(400);
+    expect((await r.json()).campos.equipeId).toBe('Escolha uma equipe da unidade da lotação.');
+    expect((await ficha(m.id)).rastreio).toHaveLength(1);
+  });
+
+  it('mudar a lotação (a unidade) vale pelo rastreio: o novo período fica na outra seção', async () => {
+    const m = await criar('990118-8');
+    const r = await api.pedir('admin', 'POST', `/api/militares/${m.id}/situacao`, { unidadeId: outraSecao, equipeId: equipeDeOutra, jornada: 'pronto', desde: proximo });
+    expect(r.status).toBe(201);
+    expect(((await r.json()) as FichaMilitar).rastreio.map((l) => [l.unidadeSigla, l.equipe, l.desde])).toEqual([
+      ['2ª SB', 'Alfa', `${proximo}-01`],
+      ['1ª SB', 'Alfa', `${atual}-01`],
+    ]);
+  });
+
+  it('a rota antiga de transferência saiu', async () => {
+    const m = await criar('990119-9');
+    const r = await api.pedir('escalante', 'POST', `/api/militares/${m.id}/lotacoes`, { unidadeId: api.ids.secao, equipeId: null, jornada: 'adm', desde: proximo });
+    expect(r.status).toBe(404);
   });
 });
 
@@ -205,11 +250,19 @@ describe('edição só do que mudou', () => {
 });
 
 describe('motorista e permissões', () => {
-  it('desmarcar motorista limpa a CNH', async () => {
+  it('desmarcar motorista mantém a CNH gravada (ela só deixa de valer para a escala)', async () => {
     const m = await criar('990110-0', { motorista: true, cnh: ['D'] });
     const r = await api.pedir('escalante', 'PATCH', `/api/militares/${m.id}`, { motorista: false });
     expect(r.status).toBe(200);
-    expect(await r.json()).toMatchObject({ noQuadroDeMotoristas: false, cnh: [], motorista: null });
+    expect(await r.json()).toMatchObject({ noQuadroDeMotoristas: false, cnh: ['D'], cnhPorHierarquia: ['C', 'B'], motorista: null });
+    expect((await ficha(m.id)).cnh).toEqual(['D']);
+  });
+
+  it('marcar a CNH de quem não está no quadro de motoristas também grava', async () => {
+    const m = await criar('990177-7');
+    const r = await api.pedir('escalante', 'PATCH', `/api/militares/${m.id}`, { cnh: ['B', 'A'] });
+    expect(r.status).toBe(200);
+    expect(await r.json()).toMatchObject({ noQuadroDeMotoristas: false, cnh: ['A', 'B'] });
   });
 
   it('ficha mostra a CNH pela hierarquia', async () => {
@@ -232,16 +285,16 @@ describe('motorista e permissões', () => {
     expect(rows[0]!.usuario_id).toBe(api.usuarios.escalante);
   });
 
-  it('transferência para unidade sem papel é 403', async () => {
+  it('alterar a situação para unidade sem papel é 403', async () => {
     const m = await criar('990114-4');
-    const r = await api.pedir('escalante', 'POST', `/api/militares/${m.id}/lotacoes`, { unidadeId: outraSecao, equipeId: null, jornada: 'adm', desde: proximo });
+    const r = await api.pedir('escalante', 'POST', `/api/militares/${m.id}/situacao`, { unidadeId: outraSecao, equipeId: null, jornada: 'adm', desde: proximo });
     expect(r.status).toBe(403);
   });
 
-  it('transferência marcada para o mês seguinte não tira o acesso da seção atual', async () => {
+  it('mudança de lotação marcada para o mês seguinte não tira o acesso da seção atual', async () => {
     const m = await criar('990115-5');
     // o administrador registra a ida para a 2ª SB no mês que vem
-    expect((await api.pedir('admin', 'POST', `/api/militares/${m.id}/lotacoes`, { unidadeId: outraSecao, equipeId: null, jornada: 'adm', desde: proximo })).status).toBe(201);
+    expect((await api.pedir('admin', 'POST', `/api/militares/${m.id}/situacao`, { unidadeId: outraSecao, equipeId: null, jornada: 'adm', desde: proximo })).status).toBe(201);
     expect((await api.pedir('escalante', 'GET', `/api/militares/${m.id}`)).status).toBe(200);
     const af = await api.pedir('escalante', 'POST', `/api/militares/${m.id}/afastamentos`, { tipoAfastamentoId: ferias, inicio: `${atual}-02`, fim: `${atual}-03` });
     expect(af.status).toBe(201);

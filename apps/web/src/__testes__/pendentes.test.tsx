@@ -304,7 +304,7 @@ describe('Salvar que mostra o estado', () => {
     });
     const FICHA_M: FichaMilitar = {
       ...linhaM({}), postoGradId: 'p-sd', antiguidade: 3, antiguidadeRepetidaCom: [], noQuadroDeMotoristas: false, cnh: [], cnhPorHierarquia: [],
-      lotacoes: [{ id: 'l1', unidadeSigla: '1ª SB', equipe: 'Alfa', jornada: 'pronto', desde: '2020-01-01', ate: null }], afastamentos: [],
+      rastreio: [{ id: 'l1', unidadeSigla: '1ª SB', equipe: 'Alfa', jornada: 'pronto', desde: '2020-01-01', ate: null }], afastamentos: [],
     };
     const rotasM = (): Parameters<typeof simularApi>[0] => ({
       '/api/eu': { status: 200, corpo: EU_EXEMPLO },

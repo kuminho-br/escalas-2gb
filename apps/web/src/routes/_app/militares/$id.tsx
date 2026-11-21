@@ -30,7 +30,7 @@ function Ficha() {
       titulo={<><span className="text-apagado">{ficha.posto}</span> {ficha.nomeGuerra}</>}
       complemento={<span className="font-cond text-apagado">{ficha.matricula}</span>}
       voltarPara="/militares"
-      resumo={resumoDaLotacao(ficha.lotacoes)}
+      resumo={resumoDaLotacao(ficha.rastreio)}
       aviso={ficha.pendencias.length > 0 && <AvisoDeCadastro ficha={ficha} />}
     >
       {/* key: ao trocar de militar, os formulários começam do zero; os dados entram nela para uma gravação de fora (ex.: importação) recarregar o bloco */}

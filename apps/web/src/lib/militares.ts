@@ -4,7 +4,7 @@ import { mesAtual } from '@/lib/meses';
 export const NOME_JORNADA = { pronto: 'Pronto', adm: 'Adm' } as const;
 
 /** Uma linha com a lotação que cobre o mês corrente. */
-export function resumoDaLotacao(lotacoes: FichaMilitar['lotacoes']): string {
+export function resumoDaLotacao(lotacoes: FichaMilitar['rastreio']): string {
   const mes = mesAtual();
   const l = lotacoes.find((x) => x.desde.slice(0, 7) <= mes && (!x.ate || x.ate.slice(0, 7) >= mes));
   if (!l) return 'Sem lotação';

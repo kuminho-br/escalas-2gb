@@ -18,7 +18,7 @@ const LISTA = [
 const FICHA: FichaMilitar = {
   ...linha({ motorista: 'D' }),
   postoGradId: 'p-sd', antiguidade: 3, antiguidadeRepetidaCom: [], noQuadroDeMotoristas: true, cnh: ['D'], cnhPorHierarquia: ['C', 'B'],
-  lotacoes: [{ id: 'l1', unidadeSigla: '1ª SB', equipe: 'Alfa', jornada: 'pronto', desde: '2026-11-01', ate: null }],
+  rastreio: [{ id: 'l1', unidadeSigla: '1ª SB', equipe: 'Alfa', jornada: 'pronto', desde: '2026-11-01', ate: null }],
   afastamentos: [{ id: 'a1', tipo: 'Férias', tipoAfastamentoId: 't-ferias', inicio: '2026-12-01', fim: '2026-12-10' }],
 };
 
@@ -328,7 +328,7 @@ describe('depois de gravar', () => {
 
 describe('ficha em painel único', () => {
   it('a ficha do militar é um painel só com o resumo da lotação', async () => {
-    const antiga = { ...FICHA, lotacoes: [{ id: 'l1', unidadeSigla: '1ª SB', equipe: 'Alfa', jornada: 'pronto' as const, desde: '2020-01-01', ate: null }] };
+    const antiga = { ...FICHA, rastreio: [{ id: 'l1', unidadeSigla: '1ª SB', equipe: 'Alfa', jornada: 'pronto' as const, desde: '2020-01-01', ate: null }] };
     api({ 'GET /api/militares/m1': { status: 200, corpo: antiga } });
     abrir('/militares/m1');
     const ficha = (await screen.findByRole('heading', { level: 2, name: /ANDRADE/ })).closest('[data-ficha]') as HTMLElement;

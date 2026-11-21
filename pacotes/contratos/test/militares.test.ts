@@ -37,8 +37,9 @@ describe('CNH do militar sem categoria repetida', () => {
     expect(EdicaoMilitar.safeParse({}).success && EdicaoMilitar.parse({}).cnh).toBeUndefined();
   });
 
-  it('categoria que não existe continua recusada, e CNH sem o quadro de motoristas também', () => {
+  it('categoria que não existe continua recusada; CNH sem o quadro de motoristas vale (a CNH é do militar)', () => {
     expect(EdicaoMilitar.safeParse({ cnh: ['B', 'Z'] }).success).toBe(false);
-    expect(NovoMilitar.safeParse({ ...base, motorista: false, cnh: ['B', 'B'] }).success).toBe(false);
+    const r = NovoMilitar.safeParse({ ...base, motorista: false, cnh: ['B', 'B'] });
+    expect(r.success && r.data.cnh).toEqual(['B']);
   });
 });

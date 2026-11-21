@@ -2,7 +2,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { mesPorExtenso, somarMeses, type FichaMilitar } from 'contratos';
 import { useState, type FormEvent } from 'react';
 import { mensagemDe } from '@/api/cliente';
-import { atualizarMilitares, consultaEquipes, registrarTransferencia } from '@/api/militares';
+import { atualizarMilitares, consultaEquipes, alterarSituacao } from '@/api/militares';
 import { Selecao } from '@/componentes/Selecao';
 import { Button } from '@/componentes/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/componentes/ui/dialog';
@@ -15,9 +15,9 @@ import { Secao } from './Secao';
 export function Lotacoes({ ficha, unidadeId }: { ficha: FichaMilitar; unidadeId: string }) {
   const [transferindo, setTransferindo] = useState(false);
   return (
-    <Secao titulo="Lotação" recolhida resumo={resumoDaLotacao(ficha.lotacoes)} acoes={<Button size="sm" variant="outline" onClick={() => setTransferindo(true)}>Registrar transferência</Button>}>
+    <Secao titulo="Lotação" recolhida resumo={resumoDaLotacao(ficha.rastreio)} acoes={<Button size="sm" variant="outline" onClick={() => setTransferindo(true)}>Registrar transferência</Button>}>
       <ol className="relative grid gap-3 border-l-2 border-linha pl-4">
-        {ficha.lotacoes.map((l, i) => (
+        {ficha.rastreio.map((l, i) => (
           <li key={l.id} className="relative">
             <span className={`absolute top-1.5 -left-[1.4rem] size-2.5 rounded-full ${i === 0 && !l.ate ? 'bg-vinho' : 'bg-linha'}`} aria-hidden />
             <p className="font-medium">
@@ -29,7 +29,7 @@ export function Lotacoes({ ficha, unidadeId }: { ficha: FichaMilitar; unidadeId:
             </p>
           </li>
         ))}
-        {ficha.lotacoes.length === 0 && <li className="text-apagado">Sem lotação registrada.</li>}
+        {ficha.rastreio.length === 0 && <li className="text-apagado">Sem lotação registrada.</li>}
       </ol>
       {transferindo && <Transferencia ficha={ficha} unidadeId={unidadeId} aoFechar={() => setTransferindo(false)} />}
     </Secao>
@@ -46,7 +46,7 @@ function Transferencia({ ficha, unidadeId, aoFechar }: { ficha: FichaMilitar; un
     const f = new FormData(e.currentTarget);
     setErro(null);
     try {
-      await registrarTransferencia(ficha.id, {
+      await alterarSituacao(ficha.id, {
         unidadeId,
         equipeId: String(f.get('equipe')) || null,
         jornada: f.get('jornada') === 'adm' ? 'adm' : 'pronto',
