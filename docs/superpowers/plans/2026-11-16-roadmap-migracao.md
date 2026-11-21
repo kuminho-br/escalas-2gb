@@ -135,7 +135,7 @@ Plano: `docs/superpowers/plans/2026-11-21-fase5-peculio.md`.
 | 1 | Rastreio e CNH: lotação só a unidade, "Histórico de rastreio", CNH separada do quadro, sete seções | mesclada (#73), migração 0023 aplicada no teste |
 | 2 | Ficha ampliada e dono por bloco (migração 0024) | em execução |
 | 3 | Importação do Pecúlio e o módulo | a detalhar |
-| 4 | Retorno da validação (Efetivo por dia, Escala do mês, contraste, Grade, CNH, "Turnos", "Importar") | a detalhar |
+| 4 | Retorno da validação (Efetivo por dia, Escala do mês, contraste, Grade, CNH, "Turnos", "Importar") | plano pronto, aguarda a entrega 2 |
 
 **Postergado** (não trava a fase): abono de permanência, ativo/inativo, funções e QOD, férias, quem vê cada atributo, jornada dos oficiais, quadro separado do posto, cópia de segurança gerada pelo sistema, data de ingresso e CPF.
 

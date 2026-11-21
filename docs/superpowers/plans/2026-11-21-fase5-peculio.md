@@ -230,3 +230,125 @@
   - `pnpm test && pnpm typecheck && pnpm build:vercel`;
   - revisão final (Opus);
   - **enviar o branch e o resumo à PLANEJAMENTO**, com o aviso da migração 0024 e a lista curta para a sandbox (lembrar: para testar o dono por bloco, é preciso um usuário com papel no 2º GB além do escalante da 1ª SB).
+
+---
+
+# Entrega 4 — Retorno da validação (lote de 21/11/2026)
+
+**Goal:** os ajustes que a validação pediu no Efetivo por dia, na Escala do mês, na Grade geral, na CNH e nos nomes, sem mudar nenhuma regra de escala.
+
+**Architecture:** tarefas de tela, cada uma com seu teste, mais um ajuste de cor no `lib/cores.ts` e uma troca de rótulos. Nenhuma migração e nenhuma mudança na API, salvo o rótulo de erro que cita a tela de Serviços.
+
+**Tech Stack:** React + TanStack Query (site), Tailwind, Vitest + Testing Library.
+
+**Branch:** `fase5-4-retorno-da-validacao`, a partir da `main` depois da entrega 2 (e da 3, se já mesclada). Commits `Fase 5.4: …`. **Sem migração.** Modelos: Sonnet executa; Opus revisa o branch no fim. Ao terminar, enviar o branch e o resumo à PLANEJAMENTO (não abrir PR nem mesclar).
+
+**Spec:** sem spec própria; o lote está em "Pendências conhecidas" e no registro de decisões de 21/11/2026 (`docs/decisoes.md`). Itens citados como entrega.item, por exemplo 5.4.3.
+
+## Global Constraints
+
+- Textos em português, sem jargão. A tela passa a se chamar **"Turnos"**; "serviço" fica só como entidade interna, e nenhuma tela ou mensagem mostra "Serviços" depois desta entrega.
+- Contraste mínimo de **4,5:1** entre o texto e o fundo de qualquer cor de serviço.
+- Nenhuma regra de escala muda (quem pode ocupar a vaga, a CNH que vale, a pré-escala).
+- No fim: `pnpm test && pnpm typecheck && pnpm build:vercel`.
+
+**Decisões desta entrega** (minhas, pequenas):
+- O ajuste de contraste escurece ou clareia o **fundo** da cor do serviço, em passos de 5%, até 4,5:1 com o texto escolhido por `corDoTexto`. A cor escolhida pelo usuário continua a mesma para quem não é o caso (*minha decisão*: o valor salvo não muda; só a exibição).
+- Vaga vazia: **não entra** nesta entrega, porque o usuário ainda não escolheu a opção A, B, C ou D do mockup da DESIGN. Quando escolher, vira a tarefa 9.
+- O texto "pela X" some dos quadrados de CNH, e a frase de ajuda fica como está.
+
+## Review Focus
+
+1. **Cor de serviço clara com texto branco:** o texto que sai no quadrado tem contraste de 4,5:1 ou mais, para qualquer cor da paleta. Tarefa 2.
+2. **Clicar na categoria menor com as maiores marcadas:** as maiores saem e fica só a menor; clicar na maior marcada apaga ela e as que ela acendeu. Tarefa 5.
+3. **Serviço chamado "Turnos" no meio de um texto de erro antigo:** nenhuma mensagem ao usuário cita a tela "Serviços" depois da entrega. Tarefa 6.
+4. **Trecho ocupado com horário e sem mouse (toque no celular):** o horário aparece ao tocar, não só ao passar o mouse, para não deixar a informação escondida no celular. Tarefa 1.
+5. **Célula sem linha ou coluna para marcar** (militar sem nenhum dia, ou dia sem militar): a marcação não quebra. Tarefa 4.
+
+---
+
+### Task 1: Efetivo por dia e Escala do mês: informação mais leve
+
+**Files:** `apps/web/src/componentes/efetivo-por-dia/CardDoEfetivo.tsx`, `apps/web/src/componentes/escala-do-mes/DiaDaEscala.tsx`, `apps/web/src/routes/_app/escala-do-mes.tsx` (botão). **Test:** `apps/web/src/__testes__/efetivo-por-dia.test.tsx`, `apps/web/src/__testes__/escala-do-mes.test.tsx`.
+
+- [ ] **Step 1: Testes** (Review Focus 4):
+  - o horário de um trecho ocupado não aparece no texto visível; aparece no `title` e ao focar o trecho; ao tocar (evento de toque), também aparece;
+  - a faixa do serviço tem altura de `h-3` (no lugar da altura atual, menor);
+  - o botão de filtro se chama "Ocultar guarnições completas" e tem `aria-pressed`;
+  - cada função de uma guarnição é um painel próprio com o cabeçalho da função;
+  - "Removidos:" sai da lista do dia e vai para dentro do painel "Removidos" do dia, que cresce para mostrá-lo;
+  - as vagas aparecem até o máximo; as que passam do mínimo ficam com a etiqueta "opcional";
+  - a frase "Falta…" não aparece em nenhum card.
+- [ ] **Step 2: Run** os dois arquivos. Expected: FAIL.
+- [ ] **Step 3: Implement.** Os cartões usam `items-start` para alinhar pelo topo.
+- [ ] **Step 4: Run.** Expected: PASS.
+- [ ] **Step 5: Commit** `Fase 5.4: efetivo e escala do mês com informação mais leve`.
+
+### Task 2: Contraste de 4,5:1 nas cores de serviço
+
+**Files:** `apps/web/src/lib/cores.ts` (nova `corLegivel(fundo: string): { fundo: string; texto: '#FFFFFF' | '#1C2430' }`). Consumidores: `componentes/grade/CelulaDaGrade.tsx`, `componentes/efetivo-por-dia/*`, `componentes/escala-do-mes/*`, `componentes/grade/AdicionarServico.tsx`. **Test:** `apps/web/src/__testes__/estilo.test.tsx`.
+
+**Interfaces:**
+- Produces: `corLegivel(fundo)` devolve o fundo ajustado (igual ao de entrada quando já passa) e a cor do texto que dá no mínimo 4,5:1.
+
+- [ ] **Step 1: Testes** (Review Focus 1): para `#3C78D8` (o caso da validação), `corLegivel` devolve um fundo com texto de contraste ≥ 4,5; para `#2F8F5B` (verde da paleta), devolve o mesmo fundo; uma varredura da paleta `PALETA_PLANILHAS` inteira fica ≥ 4,5 em todas.
+- [ ] **Step 2: Run** `pnpm --filter web test estilo`. Expected: FAIL.
+- [ ] **Step 3: Implement** o escurecimento ou clareamento em passos de 5% e troque os consumidores para `corLegivel`.
+- [ ] **Step 4: Run.** Expected: PASS.
+- [ ] **Step 5: Commit** `Fase 5.4: contraste de 4,5:1 nas cores de serviço`.
+
+### Task 3: Abas do "Adicionar serviço" com a largura toda
+
+**Files:** `apps/web/src/componentes/grade/AdicionarServico.tsx`. **Test:** `apps/web/src/__testes__/grade-painel.test.tsx`.
+
+- [ ] **Step 1: Testes:** as abas Ordinário e Operações ocupam a largura do painel (classe `w-full` na lista de abas, cada aba `flex-1`); cada aba tem o seu painel separado com borda.
+- [ ] **Step 2: Run.** Expected: FAIL.
+- [ ] **Step 3: Implement.**
+- [ ] **Step 4: Run.** Expected: PASS.
+- [ ] **Step 5: Commit** `Fase 5.4: abas do adicionar serviço na largura toda`.
+
+### Task 4: Grade geral: linha e coluna marcadas ao clicar
+
+**Files:** `apps/web/src/componentes/grade/TabelaDaGrade.tsx`, `apps/web/src/componentes/grade/CelulaDaGrade.tsx`. **Test:** `apps/web/src/__testes__/grade.test.tsx`.
+
+- [ ] **Step 1: Testes** (Review Focus 5): clicar numa célula põe `data-linha-marcada` na linha do militar e `data-coluna-marcada` nas células da coluna do dia; a marcação sai ao escolher outra célula; uma grade sem linhas ou sem colunas não quebra.
+- [ ] **Step 2: Run.** Expected: FAIL.
+- [ ] **Step 3: Implement** com um fundo leve na linha e na coluna (usa `escolhida` que já existe em `TabelaDaGrade`).
+- [ ] **Step 4: Run.** Expected: PASS.
+- [ ] **Step 5: Commit** `Fase 5.4: grade marca a linha e a coluna da célula`.
+
+### Task 5: CNH: sai o "pela X" e o clique na menor
+
+**Files:** `apps/web/src/componentes/militares/Motorista.tsx`. **Test:** `apps/web/src/__testes__/militares.test.tsx`.
+
+- [ ] **Step 1: Testes** (Review Focus 2): com a carteira E marcada (D, C e B acesos pela hierarquia), clicar em C deixa só C na carteira (E sai, D também sai, e C, B continuam pela hierarquia de C); clicar em E apaga E e as que ela acendeu; nenhum quadrado mostra o texto "pela X"; a moto (A) continua separada; a frase de ajuda não muda.
+- [ ] **Step 2: Run.** Expected: FAIL.
+- [ ] **Step 3: Implement.** A regra: clicar numa categoria que está acesa só pela hierarquia tira da carteira a maior categoria que a acende, e ela própria passa a ser a carteira.
+- [ ] **Step 4: Run.** Expected: PASS.
+- [ ] **Step 5: Commit** `Fase 5.4: CNH sem o pela X e com o clique na menor`.
+
+### Task 6: "Turnos" no lugar de "Serviços"
+
+**Files:** `apps/web/src/componentes/Trilho.tsx:38` (nome do item e rótulo), `apps/web/src/routes/_app/servicos*.tsx` (título e textos da tela), `apps/api/src/cadastros/cotas.ts:56`, `apps/api/src/importacao/cotas.ts:42,80,137` (textos que citam a tela). **Test:** `apps/web/src/__testes__/casca.test.tsx`, `apps/web/src/__testes__/servicos.test.tsx`, `apps/api/test/cotas.test.ts`, `apps/api/test/importacao-cotas-feriados.test.ts`.
+
+- [ ] **Step 1: Testes** (Review Focus 3): o menu mostra "Turnos"; o título da tela é "Turnos"; a mensagem de cota de serviço desativado diz "na tela de Turnos"; a mensagem de importação de cotas diz "na tela de Turnos".
+- [ ] **Step 2: Run.** Expected: FAIL.
+- [ ] **Step 3: Implement.** A rota `/servicos` continua a mesma (é só o rótulo que muda), para os endereços antigos não quebrarem.
+- [ ] **Step 4: Run.** Expected: PASS.
+- [ ] **Step 5: Commit** `Fase 5.4: a tela Serviços passa a se chamar Turnos`.
+
+### Task 7: "Importar" no lugar de "Importar da Planilha"
+
+**Files:** `apps/web/src/componentes/ImportarPlanilha.tsx` e cada tela que o usa. **Test:** `apps/web/src/__testes__/importar.test.tsx`.
+
+- [ ] **Step 1: Teste:** o botão que abre a importação tem o nome "Importar"; nenhuma tela mostra "Importar da Planilha".
+- [ ] **Step 2: Run.** Expected: FAIL.
+- [ ] **Step 3: Implement.**
+- [ ] **Step 4: Run.** Expected: PASS.
+- [ ] **Step 5: Commit** `Fase 5.4: botão Importar`. No fim da entrega:
+  - contagens no `CLAUDE.md` local;
+  - `pnpm test && pnpm typecheck && pnpm build:vercel`;
+  - revisão final (Opus);
+  - **enviar o branch e o resumo à PLANEJAMENTO**, com a lista curta para a sandbox e a nota: os testes com escalante ou militar comum não cabem na sandbox, que só tem o administrador (risco já registrado no roadmap).
+
+**Tarefa 8 (quando o usuário escolher a vaga vazia):** a opção A, B, C ou D do mockup da DESIGN, aplicada à Escala do mês e ao Efetivo por dia. O plano dela é escrito quando a escolha chegar; não entra nesta entrega.
