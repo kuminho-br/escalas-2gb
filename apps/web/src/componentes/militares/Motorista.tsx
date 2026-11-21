@@ -26,16 +26,17 @@ export function Motorista({ ficha }: { ficha: FichaMilitar }) {
   const [carteira, setCarteira] = useState<string[]>(ficha.cnh);
   const [aviso, setAviso] = useState<{ erro: boolean; texto: string } | null>(null);
   const habilitadas = cnhHabilitadas(carteira);
-  const assinatura = (q: boolean, c: string[]) => JSON.stringify([q, q ? [...c].sort() : []]);
+  // a carteira é do militar: fica gravada mesmo fora do quadro de motoristas (só deixa de valer para a escala)
+  const assinatura = (q: boolean, c: string[]) => JSON.stringify([q, [...c].sort()]);
   // o último gravado (começa com o que veio do servidor): o que difere dele é alteração pendente
-  const [salvo, setSalvo] = useState(() => assinatura(ficha.noQuadroDeMotoristas, ficha.cnh));
-  const sujo = assinatura(quadro, carteira) !== salvo;
+  const [salvo, setSalvo] = useState(() => ({ quadro: ficha.noQuadroDeMotoristas, carteira: [...ficha.cnh].sort() }));
+  const sujo = assinatura(quadro, carteira) !== assinatura(salvo.quadro, salvo.carteira);
   usePendencia('motorista', sujo);
   const doServidor = assinatura(ficha.noQuadroDeMotoristas, ficha.cnh);
   useSincronizar(doServidor, sujo, () => {
     setQuadro(ficha.noQuadroDeMotoristas);
     setCarteira(ficha.cnh);
-    setSalvo(doServidor);
+    setSalvo({ quadro: ficha.noQuadroDeMotoristas, carteira: [...ficha.cnh].sort() });
   });
 
   const alternar = (c: string) => setCarteira((atual) => (atual.includes(c) ? atual.filter((x) => x !== c) : [...atual, c].sort()));
@@ -45,8 +46,13 @@ export function Motorista({ ficha }: { ficha: FichaMilitar }) {
   async function gravar() {
     setAviso(null);
     try {
-      await editarMilitar(ficha.id, { motorista: quadro, cnh: quadro ? (carteira as NonNullable<EdicaoMilitar['cnh']>) : [] });
-      setSalvo(assinatura(quadro, carteira));
+      // só vai o que mudou: desmarcar o quadro manda só `motorista: false`, e a carteira continua como está
+      const cnhMudou = JSON.stringify([...carteira].sort()) !== JSON.stringify(salvo.carteira);
+      await editarMilitar(ficha.id, {
+        ...(quadro !== salvo.quadro ? { motorista: quadro } : {}),
+        ...(cnhMudou ? { cnh: carteira as NonNullable<EdicaoMilitar['cnh']> } : {}),
+      });
+      setSalvo({ quadro, carteira: [...carteira].sort() });
       atualizarMilitares(queryClient, ficha.id);
       setAviso({ erro: false, texto: 'Salvo.' });
     } catch (err) {
@@ -66,8 +72,7 @@ export function Motorista({ ficha }: { ficha: FichaMilitar }) {
             </label>
           ))}
         </div>
-        {quadro && (
-          <div className="grid w-1/2 min-w-[15rem] grid-cols-5 gap-1" role="group" aria-label="Categorias da CNH">
+        <div className="grid w-1/2 min-w-[15rem] grid-cols-5 gap-1" role="group" aria-label="Categorias da CNH">
             {CATEGORIAS.map(([c, veiculo]) => {
               const naCarteira = carteira.includes(c);
               const pela = !naCarteira && habilitadas.includes(c) ? origemDe(c, carteira) : undefined;
@@ -91,9 +96,9 @@ export function Motorista({ ficha }: { ficha: FichaMilitar }) {
                 </button>
               );
             })}
-          </div>
-        )}
-        {quadro && <p className="text-xs text-apagado">Marque as categorias da carteira. As que ela habilita acendem sozinhas (a E acende D, C e B). A moto (A) é separada.</p>}
+        </div>
+        <p className="text-xs text-apagado">Marque as categorias da carteira. As que ela habilita acendem sozinhas (a E acende D, C e B). A moto (A) é separada.</p>
+        <p className="text-xs text-apagado">A CNH só vale para a escala com o militar no quadro de motoristas.</p>
         <AcoesDoBloco salvando={salvando} sujo={sujo} aviso={aviso} rotulo="Salvar motorista" tipo="button" aoSalvar={() => void salvar()} />
       </fieldset>
     </Secao>

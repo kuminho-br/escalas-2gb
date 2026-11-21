@@ -245,7 +245,37 @@ describe('ficha do militar', () => {
     await userEvent.click(screen.getByRole('button', { name: /^E\b/ }));
     await userEvent.click(screen.getByRole('button', { name: /^A\b/ }));
     await userEvent.click(screen.getByRole('button', { name: 'Salvar motorista' }));
-    await waitFor(() => expect(corpoEnviado(f, 'PATCH /api/militares/m1')).toEqual({ motorista: true, cnh: ['A', 'E'] }));
+    // o quadro não mudou: o salvar manda só o que mudou (a carteira)
+    await waitFor(() => expect(corpoEnviado(f, 'PATCH /api/militares/m1')).toEqual({ cnh: ['A', 'E'] }));
+  });
+
+  describe('motorista e CNH são independentes', () => {
+    const quadro = () => within(screen.getByRole('group', { name: 'Está no quadro de motoristas?' }));
+
+    it('a ficha mostra as categorias da CNH com o quadro desmarcado, e o texto de ajuda diz que a CNH só vale para a escala no quadro', async () => {
+      api({ 'GET /api/militares/m1': { status: 200, corpo: { ...FICHA, noQuadroDeMotoristas: false, motorista: null, cnh: ['D'], cnhPorHierarquia: ['C', 'B'] } } });
+      abrir('/militares/m1');
+      const d = await screen.findByRole('button', { name: /^D\b/ });
+      expect(d).toHaveAttribute('aria-pressed', 'true');
+      expect(d).toHaveAttribute('data-origem', 'carteira');
+      expect(screen.getByRole('button', { name: 'C caminhão pela D' })).toHaveAttribute('data-origem', 'hierarquia');
+      expect(quadro().getByRole('radio', { name: 'Não' })).toBeChecked();
+      expect(screen.getByText('A CNH só vale para a escala com o militar no quadro de motoristas.')).toBeInTheDocument();
+    });
+
+    it('desmarcar "Está no quadro de motoristas?" não apaga a carteira e o salvar manda só motorista: false', async () => {
+      const f = api({
+        'GET /api/militares/m1': { status: 200, corpo: { ...FICHA, noQuadroDeMotoristas: true, cnh: ['D'], cnhPorHierarquia: ['C', 'B'] } },
+        'PATCH /api/militares/m1': { status: 200, corpo: FICHA },
+      });
+      abrir('/militares/m1');
+      await screen.findByRole('button', { name: /^D\b/ });
+      await userEvent.click(quadro().getByRole('radio', { name: 'Não' }));
+      expect(screen.getByRole('button', { name: /^D\b/ })).toHaveAttribute('aria-pressed', 'true');
+      expect(screen.getByText('Alterações não salvas')).toBeInTheDocument();
+      await userEvent.click(screen.getByRole('button', { name: 'Salvar motorista' }));
+      await waitFor(() => expect(corpoEnviado(f, 'PATCH /api/militares/m1')).toEqual({ motorista: false }));
+    });
   });
 
   it('os campos de afastamento só aparecem depois de "Incluir afastamento"', async () => {

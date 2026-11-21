@@ -54,9 +54,11 @@ describe('importação de militares', () => {
     ]);
     expect(r.avisos).toEqual(expect.arrayContaining([
       'Matrícula 9902022 corrigida para 990202-2 (linha 3).',
-      'DANTAS (990204-4): CNH ignorada, fora do quadro de motoristas.',
       'Equipes novas: ALFA, BRAVO.',
     ]));
+    // a CNH é do militar: DANTAS (MOTORISTA = NÃO, CNH D) entra sem problema e sem aviso de CNH ignorada
+    expect(r.avisos.filter((a: string) => /CNH/.test(a))).toEqual([]);
+    expect(r.problemas.some((p: { linha: number }) => p.linha === 5)).toBe(false);
     expect(await auditoria()).toBe(antes);
   });
 
@@ -65,7 +67,7 @@ describe('importação de militares', () => {
     expect(r.gravados).toBe(4);
     expect(await militar('990201-1')).toMatchObject({ posto: 'SD BM', motorista: true, cnh: ['B'], antiguidade: 1 });
     expect(await militar('990202-2')).toMatchObject({ posto: '3º SGT BM', voluntario_jes: true, motorista: false });
-    expect(await militar('990204-4')).toMatchObject({ motorista: false, cnh: [], antiguidade: null });
+    expect(await militar('990204-4')).toMatchObject({ motorista: false, cnh: ['D'], antiguidade: null });
     expect(await militar('990206-6')).toMatchObject({ posto: 'SD BM', motorista: true, cnh: ['A', 'D'] });
     expect(await militar('990203-3')).toBeUndefined();
     const andrade = await militar('990201-1');
@@ -197,5 +199,18 @@ describe('CNH repetida ou fora de ordem na planilha (Review Focus 5)', () => {
     expect((await importar(REPETIDAS, true)).gravados).toBe(2);
     expect(await militar('990295-5')).toMatchObject({ motorista: true, cnh: ['B'] });
     expect(await militar('990296-6')).toMatchObject({ motorista: true, cnh: ['A', 'D'] });
+  });
+});
+
+describe('CNH de quem não está no quadro de motoristas', () => {
+  it('a importação aceita CNH com MOTORISTA = NÃO, sem problema nem aviso, e a CNH fica gravada', async () => {
+    const linha = ['990298-8', 'GOMES', '1ª SB', 'SD BM', 'ADM', '', '', 'NÃO', '', 'AD'];
+    const previa = await importar([linha]);
+    expect(previa.problemas).toEqual([]);
+    expect(previa.avisos.filter((a: string) => /CNH/.test(a))).toEqual([]);
+    await importar([linha], true);
+    expect(await militar('990298-8')).toMatchObject({ motorista: false, cnh: ['A', 'D'] });
+    // importar de novo a mesma planilha não muda nada
+    expect((await importar([linha])).iguais).toBe(1);
   });
 });

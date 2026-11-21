@@ -19,7 +19,7 @@ const COLUNAS = {
   antig: { rotulo: 'ANTIG', obrigatoria: false, ajuda: 'Número da antiguidade, a partir de 1. Não repita o número entre militares.' },
   motorista: { rotulo: 'MOTORISTA', obrigatoria: false, ajuda: 'SIM se o militar está no quadro de motoristas.', opcoes: ['SIM', 'NÃO'] },
   vjes: { rotulo: 'VOLUNTÁRIO JES', obrigatoria: false, ajuda: 'SIM se o militar é voluntário JES.', opcoes: ['SIM', 'NÃO'] },
-  cnh: { rotulo: 'CNH', obrigatoria: false, ajuda: 'Categorias da carteira, juntas (ex.: AD). Só vale para quem está no quadro de motoristas.' },
+  cnh: { rotulo: 'CNH', obrigatoria: false, ajuda: 'Categorias da carteira, juntas (ex.: AD). Para a escala, só vale com o militar no quadro de motoristas.' },
 } satisfies Record<string, ColunaModelo>;
 
 type Dados = {
@@ -201,12 +201,8 @@ export const importadorMilitares: Importador<Plano> = {
       const motorista = SIM.includes(motoristaTxt) || motoristaTxt === 'MOTORISTA';
       const cat = categoriasCnh(pega(cel, c.cnh));
       if (cat.invalidas.length) avisos.push(`${nomeGuerra} (${mat.valor}): categoria de CNH "${cat.invalidas.join(', ')}" ignorada.`);
-      // sem repetição (o `categoriasCnh` já tira) e em ordem, como o cadastro à mão grava
-      let cnh = [...cat.categorias].sort();
-      if (!motorista && cnh.length) {
-        avisos.push(`${nomeGuerra} (${mat.valor}): CNH ignorada, fora do quadro de motoristas.`);
-        cnh = [];
-      }
+      // sem repetição (o `categoriasCnh` já tira) e em ordem, como o cadastro à mão grava; a CNH é do militar, esteja ou não no quadro de motoristas
+      const cnh = [...cat.categorias].sort();
 
       const equipeTxt = pega(cel, c.equipe);
       let equipe: string | null = null;
