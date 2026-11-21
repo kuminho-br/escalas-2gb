@@ -21,7 +21,9 @@ export const Data = z
   .refine(anoValido, MSG_ANO);
 export const Hora = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, 'Use a hora no formato HH:MM.');
 export const Matricula = z.string().regex(/^\d{6}-\d$/, 'Use 6 dígitos, hífen e 1 dígito (ex.: 123456-7).');
-export const Nome = z.string().trim().min(1, 'Preencha este campo.').max(120, 'Use no máximo 120 caracteres.');
+/** O tamanho máximo de um nome (da tela e da importação). */
+export const LIMITE_NOME = 120;
+export const Nome = z.string().trim().min(1, 'Preencha este campo.').max(LIMITE_NOME, `Use no máximo ${LIMITE_NOME} caracteres.`);
 export const Id = z.uuid('Identificador inválido.');
 
 export type ErroApi = { erro: string; campos?: Record<string, string> };

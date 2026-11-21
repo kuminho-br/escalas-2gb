@@ -14,6 +14,9 @@ export const Prioridade = z
   .min(1, 'Use um número de 1 a 1000.')
   .max(1000, 'Use um número de 1 a 1000.')
   .nullable();
+/** Os tamanhos máximos da sigla e do tipo da viatura (da tela e da importação). */
+export const LIMITE_VIATURA = 40;
+export const LIMITE_TIPO_VIATURA = 60;
 const TextoOpcional = (limite: number) =>
   z
     .string()
@@ -29,8 +32,8 @@ export type LinhaComposicao = z.infer<typeof LinhaComposicao>;
 
 export const VersaoGuarnicao = z
   .object({
-    viatura: TextoOpcional(40),
-    tipoViatura: TextoOpcional(60),
+    viatura: TextoOpcional(LIMITE_VIATURA),
+    tipoViatura: TextoOpcional(LIMITE_TIPO_VIATURA),
     prioridade: Prioridade,
     ativa: z.boolean(),
     composicao: z.array(LinhaComposicao),

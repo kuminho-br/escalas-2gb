@@ -84,6 +84,43 @@ describe('lista de militares', () => {
   });
 });
 
+describe('listas que não carregam explicam o botão apagado', () => {
+  const MSG = 'Não deu para carregar a lista. Recarregue a página.';
+
+  it('postos em 500: a Identificação diz que a lista não carregou, perto do campo Posto', async () => {
+    api({ 'GET /api/postos': { status: 500, corpo: { erro: 'Falha.' } } });
+    abrir('/militares/m1');
+    const campo = await screen.findByLabelText('Posto ou graduação');
+    expect(await screen.findByText(MSG)).toBeInTheDocument();
+    expect(campo).toHaveAccessibleDescription(MSG);
+  });
+
+  it('postos em 500: o "Novo militar" também', async () => {
+    api({ 'GET /api/postos': { status: 500, corpo: { erro: 'Falha.' } } });
+    abrir('/militares');
+    await userEvent.click(await screen.findByRole('button', { name: 'Novo militar' }));
+    const dialogo = await screen.findByRole('dialog');
+    expect(await within(dialogo).findByText(MSG)).toBeInTheDocument();
+    expect(within(dialogo).getByLabelText('Posto ou graduação')).toHaveAccessibleDescription(MSG);
+  });
+
+  it('tipos de afastamento em 500: "Incluir afastamento" diz que a lista não carregou', async () => {
+    api({ 'GET /api/sistema/tipos-afastamento': { status: 500, corpo: { erro: 'Falha.' } } });
+    abrir('/militares/m1');
+    await userEvent.click(await screen.findByRole('button', { name: 'Incluir afastamento' }));
+    expect(await screen.findByText(MSG)).toBeInTheDocument();
+    expect(screen.getByLabelText('Tipo de afastamento')).toHaveAccessibleDescription(MSG);
+  });
+
+  it('com as listas carregadas, nada disso aparece', async () => {
+    api();
+    abrir('/militares/m1');
+    await screen.findByLabelText('Posto ou graduação');
+    await userEvent.click(await screen.findByRole('button', { name: 'Incluir afastamento' }));
+    expect(screen.queryByText(MSG)).toBeNull();
+  });
+});
+
 describe('ficha do militar', () => {
   it('as categorias que a carteira habilita aparecem marcadas, com "pela E"; só a carteira é gravada', async () => {
     const f = api({

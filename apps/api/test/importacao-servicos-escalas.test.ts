@@ -1,4 +1,4 @@
-import { mesPorExtenso, type Escala, type Servico } from 'contratos';
+import { mesPorExtenso, somarMeses, type Escala, type Servico } from 'contratos';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { hojeRecife } from '../src/datas.ts';
 import { montarApi, type ApiDeTeste } from './apoio-api.ts';
@@ -367,5 +367,22 @@ describe('serviço fixo', () => {
     const previa = await importar({ t: [...TURNOS, ['Saldo', 'A', '08:00', '20:00', 12, '', '']] }, true);
     expect(previa.avisos.filter((a: string) => a.includes('Saldo'))).toEqual([]);
     expect((await servico('Saldo')).tipo).toBe('ordinario');
+  });
+});
+
+// por último: grava vínculos em meses futuros, que os outros testes do arquivo não esperam encontrar
+describe('mês que já passou nos vínculos (achado da 4.6)', () => {
+  it('vigência de um mês que já passou vira problema e não grava; a do mês atual e a de um mês futuro entram (Review Focus 5)', async () => {
+    const passado = somarMeses(atual, -1);
+    const futuro = somarMeses(atual, 3);
+    // o turno A do Ordinário tem dois horários (Pronto e Expediente): as linhas usam a faixa
+    const v = [[passado, 'Ordinário', '08:00-20:00', 'ABT'], [atual, 'Ordinário', '20:00-08:00', 'ABT'], [futuro, 'Ordinário', '08:00-20:00', 'ABT']];
+    const previa = await importar({ v });
+    expect(previa.problemas).toEqual([{ aba: 'GUARNIÇÕES POR ESCALA', linha: 2, mensagem: 'Mês já passou', solucao: 'Use o mês atual ou um mês futuro.' }]);
+    await importar({ v }, true);
+    const vigencias = (await escala('Ordinário')).vinculos.map((x) => x.vigencia);
+    expect(vigencias).toContain(futuro);
+    expect(vigencias).toContain(atual);
+    expect(vigencias).not.toContain(passado);
   });
 });

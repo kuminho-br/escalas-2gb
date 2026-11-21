@@ -81,7 +81,7 @@ function Entrar() {
         <header className="px-[22px] pt-6 lg:bg-vinho lg:px-6 lg:py-[18px] lg:text-white">
           <h2 className="font-cond text-2xl font-semibold">Entrar</h2>
           <p className="text-sm text-apagado lg:text-white/80">Use o e-mail cadastrado pela sua seção.</p>
-          {sessao === 'terminou' && <p role="status" className="mt-2 text-sm font-medium text-alerta lg:text-white">Sua sessão terminou. Entre de novo.</p>}
+          {sessao === 'terminou' && <p role="alert" className="mt-2 text-sm font-medium text-alerta lg:text-white">Sua sessão terminou. Entre de novo.</p>}
         </header>
         <form onSubmit={enviar} className="grid gap-4 px-[22px] pt-5 pb-8 lg:p-6" noValidate>
           <div className="grid gap-1.5">

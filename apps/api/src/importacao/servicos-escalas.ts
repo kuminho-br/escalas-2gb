@@ -416,6 +416,11 @@ export const importadorServicosEscalas: Importador<Plano> = {
         problemas.push({ aba: ABA_V, linha: l.linha, mensagem: `Vigência "${vigBruta}" de ${nomeDaEscala.get(chave)}`, solucao: 'Use aaaa-mm ou mm/aaaa.' });
         continue;
       }
+      // como na tela: o mês que já passou não muda (vigência vazia vale desde a criação da seção e não entra nesta conferência)
+      if (vigLida && vigLida < ctx.hoje.slice(0, 7)) {
+        problemas.push({ aba: ABA_V, linha: l.linha, mensagem: 'Mês já passou', solucao: 'Use o mês atual ou um mês futuro.' });
+        continue;
+      }
       const vigencia = vigLida || criacao;
       const g = guarnicaoPorChave.get(normalizar(nomeG));
       if (!g) {

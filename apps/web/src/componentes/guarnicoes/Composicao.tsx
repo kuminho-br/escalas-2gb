@@ -4,6 +4,7 @@ import { Pencil } from 'lucide-react';
 import { useState } from 'react';
 import { mensagemDe } from '@/api/cliente';
 import { criarFuncao, renomearFuncao } from '@/api/guarnicoes';
+import { usePendencia, useTrava } from '@/componentes/AlteracoesPendentes';
 import { Selecao } from '@/componentes/Selecao';
 import { Button } from '@/componentes/ui/button';
 import { Input } from '@/componentes/ui/input';
@@ -40,11 +41,14 @@ export function Composicao({ linhas, aoMudar, funcoes, unidadeId, aoMudarFuncao 
   const [nomeNovo, setNomeNovo] = useState('');
   const [renomeando, setRenomeando] = useState<{ chave: number; nome: string } | null>(null);
   const [erro, setErro] = useState<string | null>(null);
+  // criar e renomear gravam na hora: travados, dois cliques seguidos mandam um pedido só; o nome novo digitado e não criado é alteração pendente
+  const { salvando: gravando, travar } = useTrava();
+  usePendencia('funcao-nova', criando !== null && nomeNovo.trim() !== '');
 
   const mudar = (chave: number, parte: Partial<LinhaEdicao>) => aoMudar(linhas.map((l) => (l.chave === chave ? { ...l, ...parte } : l)));
   const funcaoDe = (l: LinhaEdicao) => funcoes.find((f) => f.id === l.funcaoId);
 
-  async function criar(chave: number) {
+  const criar = travar(async (chave: number) => {
     setErro(null);
     try {
       const f = await criarFuncao(unidadeId, nomeNovo.trim());
@@ -56,9 +60,9 @@ export function Composicao({ linhas, aoMudar, funcoes, unidadeId, aoMudarFuncao 
     } catch (err) {
       setErro(mensagemDe(err));
     }
-  }
+  });
 
-  async function renomear(funcaoId: string) {
+  const renomear = travar(async (funcaoId: string) => {
     if (!renomeando) return;
     setErro(null);
     try {
@@ -70,7 +74,7 @@ export function Composicao({ linhas, aoMudar, funcoes, unidadeId, aoMudarFuncao 
     } catch (err) {
       setErro(mensagemDe(err));
     }
-  }
+  });
 
   return (
     <div className="grid gap-3">
@@ -161,7 +165,7 @@ export function Composicao({ linhas, aoMudar, funcoes, unidadeId, aoMudarFuncao 
                       onChange={(e) => setRenomeando({ chave: l.chave, nome: e.target.value })}
                       className="max-w-xs"
                     />
-                    <Button type="button" size="sm" disabled={!renomeando.nome.trim()} onClick={() => void renomear(funcao.id)}>Salvar nome</Button>
+                    <Button type="button" size="sm" disabled={!renomeando.nome.trim() || gravando} onClick={() => void renomear(funcao.id)}>Salvar nome</Button>
                     <Button type="button" size="sm" variant="ghost" onClick={() => setRenomeando(null)}>Cancelar</Button>
                   </div>
                   <p className="text-xs text-apagado">O nome muda em todas as guarnições.</p>
@@ -170,7 +174,7 @@ export function Composicao({ linhas, aoMudar, funcoes, unidadeId, aoMudarFuncao 
               {criando === l.chave && (
                 <div className="flex flex-wrap items-center gap-2">
                   <Input aria-label="Nome da nova função" value={nomeNovo} onChange={(e) => setNomeNovo(e.target.value)} className="max-w-xs" />
-                  <Button type="button" size="sm" disabled={!nomeNovo.trim()} onClick={() => void criar(l.chave)}>Criar</Button>
+                  <Button type="button" size="sm" disabled={!nomeNovo.trim() || gravando} onClick={() => void criar(l.chave)}>Criar</Button>
                   <Button type="button" size="sm" variant="ghost" onClick={() => setCriando(null)}>Cancelar</Button>
                 </div>
               )}
