@@ -99,7 +99,7 @@ function Peculio() {
 function ItemDoPeculioNaLista({ m }: { m: ItemDoPeculio }) {
   return (
     <li>
-      <Link to="/militares/$id" params={{ id: m.militarId }} className="grid gap-0.5 rounded-lg px-3 py-2 hover:bg-accent">
+      <Link to="/militares/$id" params={{ id: m.militarId }} search={{ de: 'peculio' }} className="grid gap-0.5 rounded-lg px-3 py-2 hover:bg-accent">
         <span className="flex items-center gap-2">
           <span className="font-cond text-[13px] text-apagado">{m.posto}</span>
           <span className="font-cond text-base font-semibold">{m.nomeGuerra}</span>

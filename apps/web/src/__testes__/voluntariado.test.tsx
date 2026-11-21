@@ -49,7 +49,7 @@ const doMilitarComo = (id: string, extra: Partial<VoluntariadoDoMilitar>) => ({ 
 describe('voluntariado: lista e cabeçalho', () => {
   it('o trilho leva a "Voluntariado", que abre no mês seguinte', async () => {
     const f = api();
-    const router = abrir('/');
+    const router = abrir('/grade');
     await userEvent.click(await screen.findByRole('link', { name: 'Voluntariado' }));
     await waitFor(() => expect(router.state.location.pathname).toBe('/voluntariado'));
     expect(await screen.findByRole('heading', { name: 'Voluntariado' })).toBeInTheDocument();

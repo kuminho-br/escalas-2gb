@@ -354,6 +354,28 @@ describe('revisão final da 6.1', () => {
     expect((await api.pedir('escalante', 'POST', `/api/militares/${doGb.id}/desativar-acesso`)).status).toBe(403);
   });
 
+  describe('conta desativada só volta por quem dá o papel (decisão de 21/11)', () => {
+    it('o auxiliar não reativa um colega auxiliar desativado', async () => {
+      const colega = await comPapel('escalante', api.ids.secao);
+      await api.banco.query('update usuario set ativo = false where militar_id = $1', [colega.id]);
+      expect((await acessoDe(colega.id)).podeGerarSenha).toBe(false);
+      const r = await gerar(colega.id, 'escalante');
+      expect(r.status).toBe(403);
+      expect((await r.json()).erro).toBe('Só quem pode dar o papel dessa pessoa mexe no acesso dela.');
+    });
+
+    it('o gestor reativa o auxiliar desativado', async () => {
+      const colega = await comPapel('escalante', api.ids.secao);
+      await api.banco.query('update usuario set ativo = false where militar_id = $1', [colega.id]);
+      expect((await gerar(colega.id, 'gestorGb')).status).toBe(201);
+    });
+
+    it('o auxiliar continua gerando a senha de um colega auxiliar ativo', async () => {
+      const colega = await comPapel('escalante', api.ids.secao);
+      expect((await gerar(colega.id, 'escalante')).status).toBe(201);
+    });
+  });
+
   it('criar a senha derruba as outras sessões abertas com a provisória', async () => {
     const m = await novoMilitar();
     const { senha, cookie: a } = await entrouComProvisoria(m);

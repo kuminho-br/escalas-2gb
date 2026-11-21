@@ -17,11 +17,14 @@ import { Rastreio } from '@/componentes/militares/Rastreio';
 import { resumoDaLotacao } from '@/lib/militares';
 
 export const Route = createFileRoute('/_app/militares/$id')({
+  // `de=peculio`: a ficha foi aberta pelo Pecúlio, que continua sendo o módulo e o destino do "Voltar"
+  validateSearch: (s: Record<string, unknown>): { de?: 'peculio' } => ({ de: s.de === 'peculio' ? 'peculio' : undefined }),
   component: Ficha,
 });
 
 function Ficha() {
   const { id } = Route.useParams();
+  const { de } = Route.useSearch();
   const { eu } = Route.useRouteContext();
   const { data: ficha, error, isPending } = useQuery(consultaFicha(id));
 
@@ -33,7 +36,7 @@ function Ficha() {
     <FichaPainel
       titulo={<><span className="text-apagado">{ficha.posto}</span> {ficha.nomeGuerra}</>}
       complemento={<span className="font-cond text-apagado">{ficha.matricula}</span>}
-      voltarPara="/militares"
+      voltarPara={de === 'peculio' ? '/peculio' : '/militares'}
       resumo={resumoDaLotacao(ficha.rastreio)}
       aviso={ficha.pendencias.length > 0 && <AvisoDeCadastro ficha={ficha} />}
     >

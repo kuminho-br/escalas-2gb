@@ -1,6 +1,7 @@
 // Contas e papéis: o acesso de um militar ao sistema (fase 6). A ficha mostra a situação da conta e quem pode dar papel.
 import { z } from 'zod';
 import { Data } from './comum.ts';
+import { Telefone, type Nascimento } from './militares.ts';
 
 export const Papel = z.enum(['administrador', 'gestor', 'escalante']);
 export type Papel = z.infer<typeof Papel>;
@@ -39,3 +40,27 @@ export type EncerrarPapel = z.infer<typeof EncerrarPapel>;
 
 /** Uma unidade em que a pessoa trabalha: as siglas desde a raiz e o nível (0 = raiz). */
 export type UnidadeDeTrabalho = { id: string; sigla: string; caminho: string[]; nivel: number };
+
+/** Só o telefone se altera na Minha ficha; qualquer outro campo no corpo é recusado. */
+export const NovoTelefone = z.object({ telefone: Telefone.nullable() }).strict();
+export type NovoTelefone = z.infer<typeof NovoTelefone>;
+
+/** A Minha ficha: os dados do próprio militar, só para leitura, menos o telefone. */
+export type MinhaFicha = {
+  postoGrad: string;
+  nomeGuerra: string;
+  nomeCompleto: string | null;
+  matricula: string;
+  telefone: string | null;
+  email: string | null;
+  sexo: 'M' | 'F' | null;
+  nascimento: Nascimento | null;
+  comportamento: string | null;
+  comportamentoBoletim: string | null;
+  /** A situação de hoje; null sem lotação. */
+  situacao: { lotacao: string; equipe: string | null; jornada: 'pronto' | 'adm' } | null;
+  motorista: boolean;
+  cnh: string[];
+  cnhPorHierarquia: string[];
+  voluntarioJes: boolean;
+};

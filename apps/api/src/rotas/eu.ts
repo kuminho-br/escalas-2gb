@@ -1,5 +1,6 @@
 import { hashPassword } from 'better-auth/crypto';
-import { NovaSenha, type UnidadeDeTrabalho } from 'contratos';
+import { NovaSenha, NovoTelefone, type MinhaFicha, type UnidadeDeTrabalho } from 'contratos';
+import { cnhHabilitadas } from 'dominio';
 import { Hono } from 'hono';
 import { papeisVigentes, type Papel } from '../acesso.ts';
 import type { Auth } from '../auth.ts';
@@ -58,6 +59,48 @@ async function lotacaoDeHoje(c: Consulta, usuarioId: string, hoje: string): Prom
   return rows[0] ? paraUnidade(rows[0]) : null;
 }
 
+type LinhaDaFicha = {
+  posto: string; nome_guerra: string; nome_completo: string | null; matricula: string; telefone: string | null; email: string | null; sexo: 'M' | 'F' | null;
+  nascimento_dia: number | null; nascimento_mes: number | null; comportamento: string | null; comportamento_boletim: string | null;
+  motorista: boolean; cnh: string[]; voluntario_jes: boolean;
+  lotacao: string | null; equipe: string | null; jornada: 'pronto' | 'adm' | null;
+};
+
+/** A ficha do próprio militar (o da sessão), só com o que ele pode ver; a situação é a do período do rastreio que cobre hoje. */
+async function minhaFicha(c: Consulta, usuarioId: string, hoje: string): Promise<MinhaFicha | null> {
+  const { rows } = await c.query<LinhaDaFicha>(
+    `select p.sigla as posto, m.nome_guerra, m.nome_completo, m.matricula, m.telefone, m.email, m.sexo, m.nascimento_dia, m.nascimento_mes,
+            m.comportamento, m.comportamento_boletim, m.motorista, m.cnh, m.voluntario_jes,
+            un.sigla as lotacao, e.nome as equipe, r.jornada
+       from usuario u join militar m on m.id = u.militar_id join posto_grad p on p.id = m.posto_grad_id
+       left join rastreio r on r.militar_id = m.id and r.desde <= $2 and (r.ate is null or r.ate >= $2)
+       left join unidade un on un.id = r.unidade_id
+       left join equipe e on e.id = r.equipe_id
+      where u.id = $1 and u.ativo limit 1`,
+    [usuarioId, hoje],
+  );
+  const m = rows[0];
+  if (!m) return null;
+  const cnh = [...m.cnh].sort();
+  return {
+    postoGrad: m.posto,
+    nomeGuerra: m.nome_guerra,
+    nomeCompleto: m.nome_completo,
+    matricula: m.matricula,
+    telefone: m.telefone,
+    email: m.email,
+    sexo: m.sexo,
+    nascimento: m.nascimento_dia !== null && m.nascimento_mes !== null ? { dia: m.nascimento_dia, mes: m.nascimento_mes } : null,
+    comportamento: m.comportamento,
+    comportamentoBoletim: m.comportamento_boletim,
+    situacao: m.lotacao && m.jornada ? { lotacao: m.lotacao, equipe: m.equipe, jornada: m.jornada } : null,
+    motorista: m.motorista,
+    cnh,
+    cnhPorHierarquia: cnhHabilitadas(cnh).filter((x) => !cnh.includes(x)),
+    voluntarioJes: m.voluntario_jes,
+  };
+}
+
 /** GET /api/eu: quem está logado, o militar, os papéis vigentes hoje (fuso de Recife) e a unidade. POST /api/eu/senha: a troca da senha provisória. */
 export function rotasEu(banco: Banco, auth: Auth): Hono {
   const r = new Hono();
@@ -84,6 +127,30 @@ export function rotasEu(banco: Banco, auth: Auth): Hono {
       trocarSenha: u.trocar_senha,
     };
     return c.json(eu);
+  });
+
+  // a própria ficha: confere a sessão aqui, como no GET (não passa pelo `exigirSessao`, que barra quem ainda não trocou a senha provisória)
+  r.get('/ficha', async (c) => {
+    const sessao = await auth.api.getSession({ headers: c.req.raw.headers });
+    if (!sessao) return c.json({ erro: 'Não autenticado' }, 401);
+    const ficha = await minhaFicha(banco, sessao.user.id, hojeRecife());
+    return ficha ? c.json(ficha) : c.json({ erro: 'Não autenticado' }, 401);
+  });
+
+  // só o telefone se altera por aqui; quem ainda tem a senha provisória não chega (o /api/eu manda para a troca)
+  r.patch('/telefone', async (c) => {
+    const sessao = await auth.api.getSession({ headers: c.req.raw.headers });
+    if (!sessao) return c.json({ erro: 'Não autenticado' }, 401);
+    const corpo = await lerCorpo(c, NovoTelefone);
+    if (!corpo.ok) return corpo.resposta;
+    const ficha = await comUsuario(banco, sessao.user.id, async (tx) => {
+      const { rows } = await tx.query(
+        'update militar set telefone = $2 where id = (select militar_id from usuario where id = $1 and ativo and senha_provisoria_ate is null) returning id',
+        [sessao.user.id, corpo.dados.telefone],
+      );
+      return rows.length ? minhaFicha(tx, sessao.user.id, hojeRecife()) : null;
+    });
+    return ficha ? c.json(ficha) : c.json({ erro: 'Não autenticado' }, 401);
   });
 
   // a troca da senha provisória pela definitiva. Fica fora do `exigirSessao` (que barra quem ainda não trocou), então confere a sessão aqui

@@ -53,7 +53,7 @@ const secaoDoDia = (n: number) => screen.getByRole('region', { name: `Dia ${n}` 
 describe('escala do mês', () => {
   it('o trilho leva a "Escala do mês", que abre a primeira escala ativa no mês atual', async () => {
     api();
-    const router = abrir('/');
+    const router = abrir('/grade');
     await userEvent.click(await screen.findByRole('link', { name: 'Escala do mês' }));
     await waitFor(() => expect(router.state.location.pathname).toBe('/escala-do-mes'));
     expect(await screen.findByRole('heading', { name: 'Escala do mês' })).toBeInTheDocument();

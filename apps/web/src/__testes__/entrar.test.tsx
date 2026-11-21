@@ -96,21 +96,20 @@ describe('entrar', () => {
     expect(await screen.findByText('Não foi possível falar com o servidor. Tente de novo.')).toBeInTheDocument();
   });
 
-  it('entrar com sucesso vai para a grade geral', async () => {
+  it('entrar com sucesso vai para a tela inicial', async () => {
     const api = simularApi({ '/api/eu': { status: 401 }, '/api/auth/sign-in/email': { status: 200, corpo: { user: {} } } });
-    // começa pela grade: sem sessão, vai para /entrar e deixa "sem sessão" no cache
+    // começa pelo início: sem sessão, vai para /entrar e deixa "sem sessão" no cache
     const router = abrir('/');
     await waitFor(() => expect(router.state.location.pathname).toBe('/entrar'));
     await screen.findByLabelText('E-mail');
     api.mockImplementation(async (entrada: RequestInfo | URL) => {
       const url = typeof entrada === 'string' ? entrada : entrada instanceof URL ? entrada.href : entrada.url;
-      // depois de entrar, a página inicial (a grade geral) busca a grade do mês
       const corpo = url.includes('/api/eu') ? EU_EXEMPLO : url.includes('/grade/') ? { mes: '2026-11', dias: [], grupos: [] } : { user: {} };
       return new Response(JSON.stringify(corpo), { status: 200, headers: { 'Content-Type': 'application/json' } });
     });
     await preencherEEntrar();
     await waitFor(() => expect(router.state.location.pathname).toBe('/'));
-    expect(await screen.findByRole('heading', { name: 'Grade geral' })).toBeInTheDocument();
+    expect(await screen.findByText('SD BM ANDRADE')).toBeInTheDocument();
   });
 });
 

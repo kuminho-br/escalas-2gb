@@ -106,7 +106,7 @@ describe('casca', () => {
 
   it('casca mostra o militar', async () => {
     simularApi({ '/api/eu': { status: 200, corpo: EU_EXEMPLO } });
-    abrir('/');
+    abrir('/grade');
     expect(await screen.findByText('SD BM ANDRADE')).toBeInTheDocument();
     const caminho = screen.getByRole('navigation', { name: 'Unidade' });
     expect(within(caminho).getAllByRole('listitem').map((li) => li.textContent)).toEqual(['CBMPE', 'DGO', 'DInter/1', '2º GB', '1ª SB']);
@@ -117,13 +117,45 @@ describe('casca', () => {
     expect(screen.getByRole('heading', { name: 'Grade geral', level: 1 })).toBeInTheDocument();
   });
 
-  it('militar comum não vê os cadastros', async () => {
+  it('o militar comum em /militares vai para o início com o aviso, sem ver nada da lista (Review Focus 1)', async () => {
     simularApi({ '/api/eu': { status: 200, corpo: { ...EU_EXEMPLO, papeis: [] } } });
-    abrir('/');
+    const router = abrir('/militares');
+    await waitFor(() => expect(router.state.location.pathname).toBe('/'));
+    expect((router.state.location.search as { aviso?: string }).aviso).toBe('outro-papel');
     expect(await screen.findByText('SD BM ANDRADE')).toBeInTheDocument();
+    expect(screen.queryByRole('navigation', { name: 'Navegação principal' })).toBeNull();
     expect(screen.queryByText('Militares')).toBeNull();
     expect(screen.queryByText('Configurações')).toBeNull();
-    expect(screen.getByRole('link', { name: 'Grade geral' })).toBeInTheDocument();
+  });
+
+  it('o militar comum na Grade geral também volta ao início', async () => {
+    simularApi({ '/api/eu': { status: 200, corpo: { ...EU_EXEMPLO, papeis: [] } } });
+    const router = abrir('/grade');
+    await waitFor(() => expect(router.state.location.pathname).toBe('/'));
+  });
+
+  it('o endereço antigo / com ?mes= (favorito da Grade geral) leva à Grade em /grade com o mesmo mês (Review Focus 2)', async () => {
+    simularApi({ '/api/eu': { status: 200, corpo: EU_EXEMPLO } });
+    const router = abrir('/?mes=2026-10&equipe=Alfa');
+    await waitFor(() => expect(router.state.location.pathname).toBe('/grade'));
+    expect(router.state.location.search).toMatchObject({ mes: '2026-10', equipes: ['Alfa'] });
+  });
+
+  it('o início e a Minha ficha não têm trilho', async () => {
+    simularApi({ '/api/eu': { status: 200, corpo: EU_EXEMPLO } });
+    abrir('/');
+    await screen.findByText('SD BM ANDRADE');
+    expect(screen.queryByRole('navigation', { name: 'Navegação principal' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Abrir menu' })).toBeNull();
+  });
+
+  it('dentro do Pecúlio, o trilho só tem o Pecúlio, e a ficha aberta por ele continua nesse trilho (Review Focus 4)', async () => {
+    simularApi({ '/api/eu': { status: 200, corpo: EU_EXEMPLO } });
+    abrir('/militares/m1?de=peculio');
+    await screen.findByText('SD BM ANDRADE');
+    const menu = screen.getByRole('navigation', { name: 'Navegação principal' });
+    expect(within(menu).getAllByRole('listitem').map((l) => l.textContent)).toEqual(['Pecúlio']);
+    expect(within(menu).queryByText('Militares')).toBeNull();
   });
 
   it('banco desatualizado mostra a mensagem do servidor', async () => {
@@ -140,7 +172,7 @@ describe('trilho', () => {
 
   it('no computador o menu é um trilho de 84 px', async () => {
     simularApi({ '/api/eu': { status: 200, corpo: EU_EXEMPLO } });
-    abrir('/');
+    abrir('/grade');
     await screen.findByText('SD BM ANDRADE');
     expect(menu().parentElement?.className).toContain('md:grid-cols-[84px_1fr]');
     expect(menu().className).toContain('md:w-[84px]');
@@ -148,7 +180,7 @@ describe('trilho', () => {
 
   it('cada item do trilho mantém o nome', async () => {
     simularApi({ '/api/eu': { status: 200, corpo: { ...EU_EXEMPLO, papeis: [{ papel: 'administrador', unidadeId: 'u-1sb', unidadeSigla: '1ª SB' }] } } });
-    abrir('/');
+    abrir('/grade');
     await screen.findByText('SD BM ANDRADE');
     for (const nome of NOMES) expect(within(menu()).getByText(nome)).toBeInTheDocument();
     expect(within(menu()).getByRole('link', { name: 'Militares' })).toHaveAttribute('href', '/militares');
@@ -160,7 +192,7 @@ describe('trilho', () => {
 
   it('o menu do celular abre e fecha', async () => {
     simularApi({ '/api/eu': { status: 200, corpo: EU_EXEMPLO } });
-    abrir('/');
+    abrir('/grade');
     await screen.findByText('SD BM ANDRADE');
     expect(menu().className).toContain('-translate-x-full');
     await userEvent.click(screen.getByRole('button', { name: 'Abrir menu' }));
@@ -172,7 +204,7 @@ describe('trilho', () => {
 
   it('abrir o menu do celular leva o foco ao primeiro item', async () => {
     simularApi({ '/api/eu': { status: 200, corpo: EU_EXEMPLO } });
-    abrir('/');
+    abrir('/grade');
     await screen.findByText('SD BM ANDRADE');
     await userEvent.click(screen.getByRole('button', { name: 'Abrir menu' }));
     expect(within(menu()).getByRole('link', { name: 'Grade geral' })).toHaveFocus();
@@ -180,7 +212,7 @@ describe('trilho', () => {
 
   it('Esc fecha o menu do celular e devolve o foco ao botão que o abriu', async () => {
     simularApi({ '/api/eu': { status: 200, corpo: EU_EXEMPLO } });
-    abrir('/');
+    abrir('/grade');
     await screen.findByText('SD BM ANDRADE');
     const abrirMenu = screen.getByRole('button', { name: 'Abrir menu' });
     await userEvent.click(abrirMenu);
@@ -192,7 +224,7 @@ describe('trilho', () => {
 
   it('o botão "Fechar menu" também devolve o foco, e clicar fora continua fechando', async () => {
     simularApi({ '/api/eu': { status: 200, corpo: EU_EXEMPLO } });
-    abrir('/');
+    abrir('/grade');
     await screen.findByText('SD BM ANDRADE');
     const abrirMenu = screen.getByRole('button', { name: 'Abrir menu' });
     await userEvent.click(abrirMenu);
@@ -208,7 +240,7 @@ describe('trilho', () => {
 
   it('no celular o caminho mostra a seção atual', async () => {
     simularApi({ '/api/eu': { status: 200, corpo: EU_EXEMPLO } });
-    abrir('/');
+    abrir('/grade');
     await screen.findByText('SD BM ANDRADE');
     expect(document.querySelector('[data-caminho-curto]')).toHaveTextContent('1ª SB');
   });

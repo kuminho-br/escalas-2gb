@@ -1,4 +1,4 @@
-import { useRouter } from '@tanstack/react-router';
+import { Link, useRouter } from '@tanstack/react-router';
 import { ChevronDown, ChevronRight, Menu } from 'lucide-react';
 import type { Ref } from 'react';
 import type { Eu } from '@/api/eu';
@@ -15,7 +15,7 @@ import {
 } from '@/componentes/ui/dropdown-menu';
 
 /** `botaoDoMenu` é a referência do botão que abre o menu do celular: o foco volta a ele quando o menu fecha pelo teclado. */
-export function Topo({ eu, aoAbrirMenu, botaoDoMenu }: { eu: Eu; aoAbrirMenu: () => void; botaoDoMenu?: Ref<HTMLButtonElement> }) {
+export function Topo({ eu, aoAbrirMenu, botaoDoMenu, semTrilho = false }: { eu: Eu; aoAbrirMenu: () => void; botaoDoMenu?: Ref<HTMLButtonElement>; semTrilho?: boolean }) {
   const router = useRouter();
   const nome = `${eu.militar.postoGrad} ${eu.militar.nomeGuerra}`;
   const { sair, erroSair } = useSair();
@@ -34,9 +34,17 @@ export function Topo({ eu, aoAbrirMenu, botaoDoMenu }: { eu: Eu; aoAbrirMenu: ()
 
   return (
     <header className="sticky top-0 z-20 flex h-14 items-center gap-3 border-b border-linha bg-superficie px-4 md:px-8">
-      <button ref={botaoDoMenu} type="button" onClick={aoAbrirMenu} className="-ml-1 rounded p-1.5 text-tinta md:hidden" aria-label="Abrir menu">
-        <Menu className="size-5" aria-hidden />
-      </button>
+      {semTrilho ? (
+        // sem o trilho (tela inicial e Minha ficha) o brasão com o nome do sistema leva de volta ao início
+        <Link to="/" aria-label="Ir para o início" className="-ml-1 flex shrink-0 items-center gap-2.5 rounded">
+          <img src="/brasao-cbmpe.png" alt="Brasão do Corpo de Bombeiros Militar de Pernambuco" width={36} height={36} className="size-8 rounded-full md:size-9" />
+          <strong className="font-cond text-lg font-semibold whitespace-nowrap max-sm:hidden">Escalas 2º GB</strong>
+        </Link>
+      ) : (
+        <button ref={botaoDoMenu} type="button" onClick={aoAbrirMenu} className="-ml-1 rounded p-1.5 text-tinta md:hidden" aria-label="Abrir menu">
+          <Menu className="size-5" aria-hidden />
+        </button>
+      )}
       {/* no celular só a seção atual cabe; o caminho inteiro vale do computador em diante */}
       <nav aria-label="Unidade" className="min-w-0 flex-1 font-cond text-[15px] text-apagado">
         {eu.unidades.length > 1 ? (
