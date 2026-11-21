@@ -506,7 +506,7 @@ describe('efetivo por dia: a meta do dia pela própria tela', () => {
 describe('efetivo por dia: a navegação', () => {
   it('o trilho leva a "Efetivo por dia"', async () => {
     simularApi({ '/api/eu': { status: 200, corpo: EU_EXEMPLO }, [`GET /api/unidades/u-1sb/efetivo-do-dia/${hoje()}`]: { status: 200, corpo: { ...VAZIO, data: hoje() } } });
-    const router = abrir('/');
+    const router = abrir('/grade');
     await userEvent.click(await screen.findByRole('link', { name: 'Efetivo por dia' }));
     await waitFor(() => expect(router.state.location.pathname).toBe('/efetivo-por-dia'));
     expect(await screen.findByRole('heading', { name: 'Efetivo por dia' })).toBeInTheDocument();

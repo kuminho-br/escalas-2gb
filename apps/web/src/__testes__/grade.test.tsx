@@ -467,11 +467,10 @@ describe('grade geral: o filtro de equipes e o clique', () => {
     expect(screen.getByRole('rowheader', { name: /ADM/ })).toBeInTheDocument();
   });
 
-  it('o militar comum não consulta a grade e vê uma frase neutra, sem alerta vermelho (achado da revisão final)', async () => {
+  it('o militar comum não chega à grade: vai para o início com o aviso e nada é consultado', async () => {
     const f = simularApi({ '/api/eu': { status: 200, corpo: { ...EU_EXEMPLO, papeis: [] } } });
-    abrir(`/?mes=${MES}`);
-    expect(await screen.findByText('A grade geral é dos auxiliares administrativos e gestores.')).toHaveClass('text-apagado');
-    expect(screen.queryByRole('alert')).toBeNull();
+    const router = abrir(`/grade?mes=${MES}`);
+    await waitFor(() => expect(router.state.location.pathname).toBe('/'));
     expect(f.mock.calls.some(([e]) => String(e).includes('/grade/'))).toBe(false);
   });
 
