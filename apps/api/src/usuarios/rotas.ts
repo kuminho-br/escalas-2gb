@@ -106,15 +106,16 @@ async function podeNaUnidade(c: Consulta, usuarioId: string, papel: Papel, unida
  * geraria a senha de um gestor e entraria como ele. Devolve o texto do 403, ou null.
  */
 async function podeMexerNaConta(c: Consulta, usuarioId: string, militarId: string): Promise<string | null> {
-  const { rows } = await c.query<{ papel: Papel; unidade_id: string }>(
-    `select pu.papel, pu.unidade_id from papel_usuario pu join usuario u on u.id = pu.usuario_id
+  const { rows } = await c.query<{ papel: Papel; unidade_id: string; ativo: boolean }>(
+    `select pu.papel, pu.unidade_id, u.ativo from papel_usuario pu join usuario u on u.id = pu.usuario_id
       where u.militar_id = $1 and (pu.ate is null or pu.ate >= $2::date)`,
     [militarId, hojeRecife()],
   );
   for (const p of rows) {
     if (!(await podeNaUnidade(c, usuarioId, p.papel, p.unidade_id))) continue;
-    // a folga do auxiliar (decisão de 21/11/2026): o papel de auxiliar de um colega também passa para quem é auxiliar na unidade dele ou acima
-    if (p.papel === 'escalante' && (await temPapel(c, usuarioId, p.unidade_id, ['escalante'], hojeRecife()))) continue;
+    // a folga do auxiliar (decisão de 21/11/2026): o papel de auxiliar de um colega também passa para quem é auxiliar na unidade dele ou acima,
+    // mas só enquanto a conta está ativa: gerar a senha de uma conta desativada a reativa, e isso fica para quem dá o papel
+    if (p.papel === 'escalante' && p.ativo && (await temPapel(c, usuarioId, p.unidade_id, ['escalante'], hojeRecife()))) continue;
     return MSG_SO_QUEM_PODE_DAR;
   }
   return null;
