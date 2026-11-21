@@ -26,6 +26,7 @@ import { categoriaMaisAlta, pendenciasDoMilitar, repetidasPorAntiguidade, situac
 type Ctx = Context<AmbienteApi>;
 const MSG_PERIODO_ANTES = 'Use o mês do período aberto ou um mês depois.';
 const MSG_EQUIPE_DE_OUTRA = 'Escolha uma equipe da unidade da lotação.';
+const MSG_SITUACAO_MUDOU = 'A situação do militar mudou enquanto você alterava. Recarregue a ficha e tente de novo.';
 const MSG_MATRICULA = { '23505': 'Já existe um militar com essa matrícula.', '23503': 'Posto, unidade ou equipe não encontrado.' };
 
 const limitesDoMes = (mes: string) => {
@@ -317,13 +318,21 @@ export function rotasMilitares(dep: { banco: Banco; auth: Auth }): Hono<Ambiente
       const daUnidade = (await dep.banco.query('select 1 from equipe where id = $1 and unidade_id = $2', [d.equipeId, d.unidadeId])).rows.length > 0;
       if (!daUnidade) return c.json({ erro: MSG_EQUIPE_DE_OUTRA, campos: { equipeId: MSG_EQUIPE_DE_OUTRA } }, 400);
     }
+    // o período aberto pode ser de outra seção (uma mudança de lotação já marcada): substituí-lo ou fechá-lo também pede papel nela
+    const unidadeAberta = (await dep.banco.query<{ unidade_id: string }>('select unidade_id from rastreio where militar_id = $1 and ate is null', [id])).rows[0]?.unidade_id;
+    if (unidadeAberta && unidadeAberta !== d.unidadeId) {
+      const negadoAberta = await exigirPapel(c, unidadeAberta, CADASTRO);
+      if (negadoAberta) return negadoAberta;
+    }
     try {
       const resultado = await comUsuario(dep.banco, c.get('usuarioId'), async (tx) => {
         // o período aberto é lido dentro da transação, com a linha travada: duas alterações ao mesmo tempo não se atropelam
-        const aberta = (await tx.query<{ id: string; mes: string }>(
-          "select id, to_char(desde, 'YYYY-MM') as mes from rastreio where militar_id = $1 and ate is null for update",
+        const aberta = (await tx.query<{ id: string; mes: string; unidade_id: string }>(
+          "select id, to_char(desde, 'YYYY-MM') as mes, unidade_id from rastreio where militar_id = $1 and ate is null for update",
           [id],
         )).rows[0];
+        // outra gravação trocou a unidade do período aberto entre a conferência do papel e agora: confere de novo, com a ficha atualizada
+        if (aberta && aberta.unidade_id !== d.unidadeId && aberta.unidade_id !== unidadeAberta) return 'mudou' as const;
         if (aberta && d.desde < aberta.mes) return 'antes' as const;
         if (aberta && d.desde === aberta.mes) {
           await tx.query('update rastreio set unidade_id = $2, equipe_id = $3, jornada = $4 where id = $1', [aberta.id, d.unidadeId, d.equipeId, d.jornada]);
@@ -335,6 +344,7 @@ export function rotasMilitares(dep: { banco: Banco; auth: Auth }): Hono<Ambiente
         ]);
         return { ficha: await carregarFicha(tx, id, d.desde), criado: true };
       });
+      if (resultado === 'mudou') return c.json({ erro: MSG_SITUACAO_MUDOU }, 409);
       if (resultado === 'antes') return c.json({ erro: MSG_PERIODO_ANTES, campos: { desde: MSG_PERIODO_ANTES } }, 400);
       return c.json(resultado.ficha, resultado.criado ? 201 : 200);
     } catch (e) {

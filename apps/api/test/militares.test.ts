@@ -156,6 +156,23 @@ describe('alterar situação (rastreio)', () => {
     ]);
   });
 
+  // revisão final: quem só tem papel na seção de origem não mexe no período de outra seção
+  it('o escalante da 1ª SB não apaga nem encurta uma mudança de lotação marcada para outra seção (403)', async () => {
+    const m = await criar('990178-8');
+    const marcada = await api.pedir('admin', 'POST', `/api/militares/${m.id}/situacao`, { unidadeId: outraSecao, equipeId: null, jornada: 'adm', desde: proximo });
+    expect(marcada.status).toBe(201);
+    const antes = (await ficha(m.id)).rastreio;
+    // no mesmo mês do período da 2ª SB: trocaria a unidade dele para a 1ª SB
+    const substitui = await situacao(m.id, { unidadeId: api.ids.secao, equipeId: null, jornada: 'adm', desde: proximo });
+    expect(substitui.status).toBe(403);
+    // depois dele: fecharia o período da 2ª SB
+    const fecha = await situacao(m.id, { unidadeId: api.ids.secao, equipeId: null, jornada: 'adm', desde: somarMeses(proximo, 1) });
+    expect(fecha.status).toBe(403);
+    expect((await ficha(m.id)).rastreio).toEqual(antes);
+    // quem tem papel nas duas pontas pode (o administrador)
+    expect((await situacao(m.id, { unidadeId: api.ids.secao, equipeId: null, jornada: 'adm', desde: somarMeses(proximo, 1) }, 'admin')).status).toBe(201);
+  });
+
   it('a rota antiga de transferência saiu', async () => {
     const m = await criar('990119-9');
     const r = await api.pedir('escalante', 'POST', `/api/militares/${m.id}/lotacoes`, { unidadeId: api.ids.secao, equipeId: null, jornada: 'adm', desde: proximo });
