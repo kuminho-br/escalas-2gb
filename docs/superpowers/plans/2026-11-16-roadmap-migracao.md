@@ -131,7 +131,7 @@ Plano: `docs/superpowers/plans/2026-11-21-fase5-peculio.md`.
 
 | Entrega | O quê | Situação |
 |---|---|---|
-| 1 | Rastreio e CNH: lotação só a unidade, "Histórico de rastreio", CNH separada do quadro, sete seções | em execução |
+| 1 | Rastreio e CNH: lotação só a unidade, "Histórico de rastreio", CNH separada do quadro, sete seções | mesclada (#73), migração 0023 aplicada no teste |
 | 2 | Ficha ampliada e dono por bloco | a detalhar |
 | 3 | Importação do Pecúlio e o módulo | a detalhar |
 
@@ -282,6 +282,14 @@ Achadas nas revisões e nas validações. Nenhuma muda quem é escalado. Entram 
 - depois de salvar, se chegou dado novo do servidor durante a edição, o bloco mostra o valor da outra pessoa até a nova busca voltar;
 - se o pedido de "Sair" nunca voltar, um 401 real só mostra "Sessão inválida." no bloco;
 - "Mês já passou" mostra a chave técnica da configuração, não o rótulo.
+
+**Da fase 5, entrega 1** (lista no PR #73):
+- "Use o mês do período aberto ou um mês depois." não diz qual mês;
+- o painel do dia mostra a etiqueta "CNH D" de quem está fora do quadro;
+- "Sem a CNH exigida" engana para quem tem CNH fora do quadro ("Fora do quadro de motoristas" seria mais claro);
+- no diálogo "Alterar situação", enquanto a lista de seções carrega, a opção provisória pode não bater com o valor enviado;
+- a linha do tempo não mostra um intervalo sem período entre dois períodos;
+- quem só tem período futuro aparece como "Sem lotação" na situação atual.
 
 **Regras próprias por vaga** (pendentes desde a ordem de escala, 18/11/2026, sem fase): o graduado de dia é o mais antigo do dia (exceto Adm); o chefe é o mais antigo da guarnição.
 
