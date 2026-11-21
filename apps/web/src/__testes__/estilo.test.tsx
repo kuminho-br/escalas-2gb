@@ -85,3 +85,26 @@ describe('corLegivel: contraste de 4,5:1 nas cores de serviço', () => {
     }
   });
 });
+
+describe('vaga vazia (opção A do mockup): as cores do tema', () => {
+  const token = (nome: string) => {
+    const m = css.match(new RegExp(`--color-${nome}:\\s*(#[0-9A-Fa-f]{6})`));
+    expect(m, `--color-${nome} no tema`).not.toBeNull();
+    return m![1]!;
+  };
+
+  it('o contorno da vaga obrigatória tem 3:1 ou mais com o fundo, e a barra vinho também', () => {
+    expect(razaoDeContraste(token('encaixe'), token('superficie'))).toBeGreaterThanOrEqual(3);
+    expect(razaoDeContraste(token('vinho'), token('superficie'))).toBeGreaterThanOrEqual(3);
+  });
+
+  it('ao passar o mouse, o contorno fica contínuo e escuro (3:1) e o texto segue com 4,5:1 sobre o fundo de passar', () => {
+    expect(razaoDeContraste(token('apagado'), token('passa'))).toBeGreaterThanOrEqual(4.5);
+    expect(razaoDeContraste(token('tinta'), token('passa'))).toBeGreaterThanOrEqual(4.5);
+    expect(razaoDeContraste(token('apagado'), token('superficie'))).toBeGreaterThanOrEqual(4.5);
+  });
+
+  it('o contorno da vaga extra é mais claro que o da obrigatória (a extra também se reconhece pelo "opcional")', () => {
+    expect(razaoDeContraste(token('encaixe-claro'), token('superficie'))).toBeLessThan(razaoDeContraste(token('encaixe'), token('superficie')));
+  });
+});

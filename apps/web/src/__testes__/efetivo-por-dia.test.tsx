@@ -176,6 +176,32 @@ describe('efetivo por dia: a linha do tempo', () => {
     expect(within(alfa).getByText('ALFA')).not.toHaveClass('hidden');
   });
 
+  it('a vaga vazia é um botão de contorno tracejado com a barra vinho de obrigatória, sem listras amarelas e sem a cor do serviço', async () => {
+    api();
+    abrir(`/efetivo-por-dia?data=${DIA}`);
+    const vagaDoAco = await screen.findByRole('button', { name: 'Motorista: vaga 20h–08h' });
+    expect(vagaDoAco.tagName).toBe('BUTTON');
+    expect(vagaDoAco).toHaveClass('border-dashed', 'bg-superficie', 'border-encaixe');
+    expect(vagaDoAco.className).not.toMatch(/repeating-linear-gradient|F2C200|FFF3B8/);
+    // a faixa da API só traz vagas até o mínimo da função: toda vaga aqui é obrigatória (falta para a guarnição sair)
+    expect(vagaDoAco).toHaveAttribute('data-obrigatoria');
+    expect(vagaDoAco.querySelector('[data-barra]')).toHaveClass('bg-vinho');
+    // só posição e largura no estilo: a cor do serviço é de quem já está escalado
+    expect(vagaDoAco.style.backgroundColor).toBe('');
+    expect(vagaDoAco.style.color).toBe('');
+    const ocupado = screen.getByRole('button', { name: 'Motorista: SD BM ALFA, 08h–08h, Pronto' });
+    expect(ocupado.style.backgroundColor).not.toBe('');
+    expect(ocupado.querySelector('[data-barra]')).toBeNull();
+  });
+
+  it('ao passar o mouse e com o foco do teclado a vaga da linha do tempo muda de estado visível', async () => {
+    api();
+    abrir(`/efetivo-por-dia?data=${DIA}`);
+    const vagaDoAco = await screen.findByRole('button', { name: 'Motorista: vaga 20h–08h' });
+    expect(vagaDoAco).toHaveClass('hover:border-solid', 'hover:border-apagado', 'hover:bg-passa', 'hover:text-tinta');
+    expect(vagaDoAco).toHaveClass('focus-visible:outline-2', 'focus-visible:outline-tinta');
+  });
+
   it('na vaga, o horário também só aparece quando cabe, e a palavra "vaga" fica', async () => {
     api();
     abrir(`/efetivo-por-dia?data=${DIA}`);

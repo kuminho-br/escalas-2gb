@@ -1,10 +1,12 @@
 import type { FuncaoNoEfetivo, GuarnicaoNoEfetivo, TrechoNoEfetivo } from 'contratos';
 import { useState } from 'react';
 import { EtiquetaDoServico } from '@/componentes/EtiquetaDoServico';
+import { BarraDaVaga, classeDaVaga } from '@/componentes/VagaVazia';
 import { estiloDaCor } from '@/lib/cores';
 import { posicao, type Janela } from '@/lib/efetivo';
 import type { CSSProperties } from 'react';
 import { textoMinutos } from '@/lib/turnos';
+import { cn } from '@/lib/utils';
 
 export type AcoesDaLinha = {
   aoClicarVaga?: (funcao: FuncaoNoEfetivo, trecho: TrechoNoEfetivo) => void;
@@ -31,10 +33,13 @@ function Trecho({ funcao, t, janela, acoes }: { funcao: FuncaoNoEfetivo; t: Trec
         aria-label={nomeDoTrecho(funcao.funcao, t)}
         onClick={() => acoes.aoClicarVaga?.(funcao, t)}
         data-vaga
-        // as mesmas listras das vagas vazias da Escala do mês
-        className={`${base} border border-[#F2C200] bg-[repeating-linear-gradient(135deg,#FFF3B8_0_8px,#FFFFFF_8px_16px)] text-xs font-medium text-pendencia hover:brightness-95`}
+        // a faixa só traz vagas até o mínimo da função: toda vaga aqui é obrigatória (a extra só existe na Escala do mês)
+        data-obrigatoria
+        // o mesmo desenho das vagas vazias da Escala do mês; sem estilo de cor: a cor de serviço é de quem já está escalado
+        className={cn(base, classeDaVaga(true), 'pl-2 text-xs font-medium')}
         style={estilo}
       >
+        <BarraDaVaga />
         <span className="truncate">vaga</span>
         <span className="hidden shrink-0 text-[11px] opacity-80 @min-[8rem]:inline">{faixa(t)}</span>
       </button>
