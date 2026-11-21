@@ -7,6 +7,7 @@
 - **O repositório é a versão oficial** de todos os documentos. O que existia só no claude.ai (catálogo de regras, glossário, diagrama de atividades, ER da meta de ativação) foi trazido em 20/11/2026 e passa a ser editado aqui.
 - Cada documento tem **um lugar só** e **um dono** (coluna "Quem cuida").
 - Documento novo entra neste índice no mesmo PR que o cria.
+- **Sem adendos** (desde 20/11/2026): a mudança vai direto no texto do documento, que diz como as coisas estão hoje, e a decisão ganha uma linha em [decisoes.md](decisoes.md) no mesmo PR. O histórico fica no registro e no git.
 - A situação diz se o documento vale: `vigente`, `em execução`, `concluído` (descreve algo já feito; serve de histórico), `superado` (não usar) ou `rascunho`.
 
 ## Para começar
@@ -87,7 +88,7 @@ Cada medida é um alerta, não um bloqueio. A DOCUMENTAÇÃO mede quando o usuá
 | Documento lido inteiro (spec, guia, glossário, índice) | até 25 KB | acima de 50 KB é crítico |
 | `CLAUDE.md` da raiz | até 120 linhas, sem "estado atual" datado, sem número que envelhece (contagem de testes ou de arquivos) | |
 | Parágrafo (linha de tabela fica de fora) | até 400 caracteres | |
-| Adendos num mesmo documento | até 3 | mais de 3: consolidar |
+| Adendos num mesmo documento (só os antigos; não se escreve adendo novo) | até 3 | mais de 3: consolidar |
 | Caminhos e links citados | todos existem | link quebrado |
 | ER × migrações | toda tabela tem um título `###` no esquema do banco | tabela sem título |
 | Índice × arquivos | todo `.md` e `.html` de `docs/` aparece aqui ou no LEIAME da sua pasta | arquivo fora do índice |
