@@ -183,7 +183,7 @@ async function unidadesDoAcesso(banco: Consulta, militarId: string): Promise<str
  * marcada para o mês que vem não tira o acesso de quem cuida dele agora). Sem nenhuma, vale a
  * lotação mais recente. 404 se o registro não existe.
  */
-async function exigirPapelNoRegistro(c: Ctx, tabela: 'militar' | 'afastamento', id: string): Promise<Response | null> {
+export async function exigirPapelNoRegistro(c: Ctx, tabela: 'militar' | 'afastamento', id: string): Promise<Response | null> {
   const banco = c.get('banco');
   const naoAchou = () => c.json({ erro: tabela === 'militar' ? 'Militar não encontrado.' : 'Afastamento não encontrado.' }, 404);
   if (!(await unidadeDoRegistro(banco, tabela, id))) return naoAchou();

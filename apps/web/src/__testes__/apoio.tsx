@@ -10,6 +10,7 @@ export const EU_EXEMPLO: Eu = {
   militar: { matricula: '990001-1', postoGrad: 'SD BM', nomeGuerra: 'ANDRADE' },
   papeis: [{ papel: 'escalante', unidadeId: 'u-1sb', unidadeSigla: '1ª SB' }],
   unidade: { id: 'u-1sb', sigla: '1ª SB', caminho: ['CBMPE', 'DGO', 'DInter/1', '2º GB', '1ª SB'] },
+  trocarSenha: false,
 };
 
 /** `espera`: a resposta só sai quando a promessa se resolve (para testar o que acontece enquanto grava). */

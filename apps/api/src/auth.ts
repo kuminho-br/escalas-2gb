@@ -1,5 +1,7 @@
 import { betterAuth } from 'better-auth';
+import { APIError } from 'better-auth/api';
 import type { Banco } from './banco/banco.ts';
+import { MSG_SENHA_VENCIDA } from './usuarios/mensagens.ts';
 
 /** Login por e-mail e senha (D3), com as tabelas do esquema em português. Sem cadastro aberto. */
 export function criarAuth(cfg: { banco: Banco; segredo: string; urlBase: string }) {
@@ -69,10 +71,16 @@ export function criarAuth(cfg: { banco: Banco; segredo: string; urlBase: string 
     databaseHooks: {
       session: {
         create: {
-          // usuário desativado não recebe sessão
+          // usuário desativado não recebe sessão; senha provisória vencida também não, e a resposta diz que venceu
+          // (e não "e-mail ou senha incorretos"), para a pessoa saber que precisa pedir outra
           before: async (sessao) => {
-            const { rows } = await banco.query<{ ativo: boolean }>('select ativo from usuario where id = $1', [sessao.userId]);
-            return rows[0]?.ativo ? undefined : false;
+            const { rows } = await banco.query<{ ativo: boolean; vencida: boolean }>(
+              'select ativo, coalesce(senha_provisoria_ate < now(), false) as vencida from usuario where id = $1',
+              [sessao.userId],
+            );
+            if (!rows[0]?.ativo) return false;
+            if (rows[0].vencida) throw new APIError('FORBIDDEN', { message: MSG_SENHA_VENCIDA });
+            return undefined;
           },
         },
       },

@@ -18,6 +18,7 @@ import { rotasGrade } from './grade/rotas.ts';
 import { rotasVoluntariado } from './voluntariado/rotas.ts';
 import { rotasEu } from './rotas/eu.ts';
 import { rotasSaude } from './rotas/saude.ts';
+import { rotasAcesso } from './usuarios/rotas.ts';
 
 export interface Dependencias {
   banco: Banco;
@@ -43,6 +44,7 @@ export function criarApp(dep: Dependencias): Hono {
     app.route('/api', rotasConfiguracoes(comAuth));
     app.route('/api', rotasGuarnicoes(comAuth));
     app.route('/api', rotasMilitares(comAuth));
+    app.route('/api', rotasAcesso(comAuth));
     app.route('/api', rotasServicos(comAuth));
     app.route('/api', rotasCotas(comAuth));
     app.route('/api', rotasFeriados(comAuth));
