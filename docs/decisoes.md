@@ -8,6 +8,7 @@ Siglas dos documentos: **Design** = `superpowers/specs/2026-11-16-migracao-desig
 
 | Data | Decisão | Onde está |
 |---|---|---|
+| 21/11/2026 | A folga do auxiliar na senha provisória não vale para conta desativada: só quem pode dar o papel (o gestor ou o administrador) reativa. Entra na entrega 6.3. | Usuários e módulos, Contas |
 | 21/11/2026 | Senha provisória e desativar o acesso de quem tem papel: só quem pode dar todos os papéis da pessoa (o gestor para auxiliar e gestor; o administrador para o administrador), com uma folga: o auxiliar também gera a senha de um colega auxiliar da unidade dele ou de baixo. A folga entra na entrega 6.2. | Usuários e módulos, Contas |
 | 21/11/2026 | Fase 6, primeiro acesso: senha provisória gerada pelo auxiliar administrativo ou pelo gestor e trocada no primeiro login; o link por e-mail e o "Esqueci minha senha" por e-mail ficam para quando houver serviço de envio testado. | Usuários e módulos, Contas |
 | 21/11/2026 | Fase 6, módulos por papel: Confecção para auxiliar, gestor e administrador; Pecúlio para quem tem papel; Visualização e "Minha ficha" (com o próprio telefone) para todos. | Usuários e módulos, Módulos |
