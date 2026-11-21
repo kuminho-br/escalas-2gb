@@ -1,6 +1,6 @@
 # Catálogo de regras de negócio (RN-XX)
 
-Fonte: Catálogo de Regras de Negócio do claude.ai (rev. 160, 15/11/2026), colhido em 20/11/2026. Quem cuida: REGRAS DE NEGÓCIO.
+Fonte: Catálogo de Regras de Negócio do claude.ai (rev. 160, 15/11/2026), colhido em 20/11/2026. Quem cuida: DOCUMENTAÇÃO.
 
 | Arquivo | O que tem |
 |---|---|

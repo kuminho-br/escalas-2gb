@@ -21,10 +21,10 @@
 
 | Documento | Para que serve | Quem cuida | Situação |
 |---|---|---|---|
-| [negocio/regras/LEIAME.md](negocio/regras/LEIAME.md) | Catálogo de regras (RN-XX), dividido por assunto (o LEIAME da pasta lista os arquivos) | REGRAS DE NEGÓCIO | vigente |
-| [negocio/glossario.md](negocio/glossario.md) | Termos do domínio, com definição e status | REGRAS DE NEGÓCIO | vigente |
-| [negocio/glossario-pendencias.md](negocio/glossario-pendencias.md) | Perguntas em aberto e divergências do glossário | REGRAS DE NEGÓCIO | vigente |
-| [negocio/processo-do-mes.md](negocio/processo-do-mes.md) | Diagrama de atividades do mês, do formulário à escala executada | REGRAS DE NEGÓCIO | rascunho (E1 a E8 em aberto) |
+| [negocio/regras/LEIAME.md](negocio/regras/LEIAME.md) | Catálogo de regras (RN-XX), dividido por assunto (o LEIAME da pasta lista os arquivos) | DOCUMENTAÇÃO | vigente |
+| [negocio/glossario.md](negocio/glossario.md) | Termos do domínio, com definição e status | DOCUMENTAÇÃO | vigente |
+| [negocio/glossario-pendencias.md](negocio/glossario-pendencias.md) | Perguntas em aberto e divergências do glossário | DOCUMENTAÇÃO | vigente |
+| [negocio/processo-do-mes.md](negocio/processo-do-mes.md) | Diagrama de atividades do mês, do formulário à escala executada | DOCUMENTAÇÃO | rascunho (E1 a E8 em aberto) |
 
 ## Sistema
 

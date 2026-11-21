@@ -1,7 +1,7 @@
 # Regras — serviços, turnos e guarnições
 Serviços e turnos, ativação de viaturas e guarnições, e a ordem de alocação para cumprir a meta (RN-01 a RN-13, RN-81, RN-83, RN-92 a RN-96, RN-100).
 
-Fonte: Catálogo de Regras de Negócio do claude.ai (rev. 160, 15/11/2026), colhido em 20/11/2026. Quem cuida: REGRAS DE NEGÓCIO. Índice: [LEIAME](LEIAME.md).
+Fonte: Catálogo de Regras de Negócio do claude.ai (rev. 160, 15/11/2026), colhido em 20/11/2026. Quem cuida: DOCUMENTAÇÃO. Índice: [LEIAME](LEIAME.md).
 
 ## Serviços e turnos
 A aba TURNOS da planilha sandbox cadastra 9 serviços em 5 tipos e 17 turnos; ela é a fonte oficial de horários e durações.

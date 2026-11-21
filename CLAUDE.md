@@ -37,7 +37,7 @@ Cada sessão tem um papel; **só a DESENVOLVIMENTO altera código**.
 | PLANEJAMENTO | Specs e planos de cada entrega; abre o PR e mescla |
 | VALIDAÇÃO | Recebe entregas prontas; o usuário testa à mão e dá o retorno |
 | DÚVIDAS | Responde às dúvidas do usuário sobre o sistema e as regras |
-| DESIGN | Telas e mockups |
+| DESIGN | Interface e experiência de uso (UI e UX): telas, mockups e o caminho do usuário no aplicativo |
 | DOCUMENTAÇÃO | Controla os documentos, mede a qualidade e propõe melhorias; checagem quando o usuário pede |
 
 ## Domínio, em poucas linhas

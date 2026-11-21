@@ -1,6 +1,6 @@
 # Processo do mês — diagrama de atividades
 
-Fonte: Diagrama de Atividades do claude.ai (v0.2, rascunho de 15/11/2026), colhido em 20/11/2026; a tabela de versões não veio (histórico no git). Quem cuida: REGRAS DE NEGÓCIO. As pontas soltas E1 a E8 seguem em aberto.
+Fonte: Diagrama de Atividades do claude.ai (v0.2, rascunho de 15/11/2026), colhido em 20/11/2026; a tabela de versões não veio (histórico no git). Quem cuida: DOCUMENTAÇÃO. As pontas soltas E1 a E8 seguem em aberto.
 
 ## 1. Escopo
 

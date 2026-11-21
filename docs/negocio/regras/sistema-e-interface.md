@@ -1,7 +1,7 @@
 # Regras — escopo, interface e requisitos do sistema
 Escopo do sistema, configurações, interface (RN-27 a RN-32, RN-101) e os requisitos RS-01 a RS-07.
 
-Fonte: Catálogo de Regras de Negócio do claude.ai (rev. 160, 15/11/2026), colhido em 20/11/2026. Quem cuida: REGRAS DE NEGÓCIO. Índice: [LEIAME](LEIAME.md).
+Fonte: Catálogo de Regras de Negócio do claude.ai (rev. 160, 15/11/2026), colhido em 20/11/2026. Quem cuida: DOCUMENTAÇÃO. Índice: [LEIAME](LEIAME.md).
 
 ## Escopo, configurações e interface
 O sistema atende só a 1ª SB nesta fase, com parâmetros num painel de configurações e telas enxutas.
