@@ -65,7 +65,7 @@ function ListaDeEscalas({ unidadeId, escolhida }: { unidadeId: string; escolhida
           <p className="shrink-0 border-b border-linha px-4 pt-3 pb-2 text-xs text-apagado">{visiveis.length} {visiveis.length === 1 ? 'escala' : 'escalas'}</p>
           <ul data-lista-rolavel className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-2">
             {visiveis.map((e) => <ItemEscala key={e.id} e={e} escolhida={e.id === escolhida} />)}
-            {escalas.data.length === 0 && <li className="p-3 text-apagado">Nenhuma escala. Use "Nova escala" ou "Importar da planilha".</li>}
+            {escalas.data.length === 0 && <li className="p-3 text-apagado">Nenhuma escala. Use "Nova escala" ou "Importar".</li>}
             {escalas.data.length > 0 && visiveis.length === 0 && <li className="p-3 text-apagado">Todas as escalas estão desativadas. Marque "Mostrar desativadas" para vê-las.</li>}
           </ul>
           <label className="flex shrink-0 items-center gap-2 border-t border-linha px-4 py-2.5 text-xs text-apagado">

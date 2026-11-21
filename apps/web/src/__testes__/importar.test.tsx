@@ -5,7 +5,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { navegador } from '@/api/cliente';
 import { consultaEu } from '@/api/eu';
 import { ImportarPlanilha } from '@/componentes/ImportarPlanilha';
-import { EU_EXEMPLO, simularApi, trava } from './apoio';
+import { abrir, EU_EXEMPLO, simularApi, trava } from './apoio';
 
 const CAMINHO = '/api/unidades/u-1sb/importacao/militares';
 
@@ -21,7 +21,7 @@ function montar(aoConcluir = vi.fn()) {
 }
 
 async function enviarArquivo() {
-  await userEvent.click(screen.getByRole('button', { name: 'Importar da planilha' }));
+  await userEvent.click(screen.getByRole('button', { name: 'Importar' }));
   const arquivo = new File(['x'], 'sandbox.xlsx');
   await userEvent.upload(screen.getByLabelText('Arquivo da planilha (.xlsx)'), arquivo);
   await userEvent.click(screen.getByRole('button', { name: 'Ver o que vai entrar' }));
@@ -34,6 +34,30 @@ const PREVIA = {
   problemas: [{ aba: 'MILITARES', linha: 7, mensagem: 'Matrícula inválida: "12-3".', solucao: 'Use 6 dígitos, hífen e 1 dígito.' }],
   avisos: [],
 };
+
+describe('o botão se chama só Importar', () => {
+  afterEach(() => vi.restoreAllMocks());
+
+  it('o botão que abre a importação é "Importar", e o título da janela continua dizendo o que se importa', async () => {
+    montar();
+    expect(screen.getByRole('button', { name: 'Importar' })).toBeInTheDocument();
+    expect(screen.queryByText(/Importar da planilha/i)).toBeNull();
+    await userEvent.click(screen.getByRole('button', { name: 'Importar' }));
+    expect(screen.getByRole('heading', { name: 'Importar militares da planilha' })).toBeInTheDocument();
+  });
+
+  it.each([
+    ['/militares', 'GET /api/unidades/u-1sb/militares', 'Nenhum militar lotado. Use "Novo militar" ou "Importar".'],
+    ['/servicos', 'GET /api/unidades/u-1sb/servicos', 'Nenhum serviço. Use "Novo serviço" ou "Importar".'],
+    ['/escalas', 'GET /api/unidades/u-1sb/escalas', 'Nenhuma escala. Use "Nova escala" ou "Importar".'],
+  ])('a lista vazia de %s manda para o botão "Importar"', async (rota, api, frase) => {
+    simularApi({ '/api/eu': { status: 200, corpo: EU_EXEMPLO }, [api]: { status: 200, corpo: [] } });
+    abrir(rota);
+    expect(await screen.findByText(frase)).toBeInTheDocument();
+    expect(screen.queryByText(/Importar da planilha/i)).toBeNull();
+    expect(screen.getByRole('button', { name: 'Importar' })).toBeInTheDocument();
+  });
+});
 
 describe('importar com a sessão terminada e reabrir limpo', () => {
   afterEach(() => {
@@ -72,7 +96,7 @@ describe('importar com a sessão terminada e reabrir limpo', () => {
     await screen.findByText('2 registros gravados.');
     // dois botões se chamam "Fechar" (o do rodapé e o X do diálogo): o do rodapé vem primeiro
     await userEvent.click(screen.getAllByRole('button', { name: 'Fechar' })[0]!);
-    await userEvent.click(screen.getByRole('button', { name: 'Importar da planilha' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Importar' }));
     expect(screen.queryByText('2 registros gravados.')).toBeNull();
     const campo = screen.getByLabelText('Arquivo da planilha (.xlsx)') as HTMLInputElement;
     expect(campo.files).toHaveLength(0);
@@ -87,7 +111,7 @@ describe('importar com a sessão terminada e reabrir limpo', () => {
     await userEvent.keyboard('{Escape}');
     soltar();
     await new Promise((ok) => setTimeout(ok, 50));
-    await userEvent.click(screen.getByRole('button', { name: 'Importar da planilha' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Importar' }));
     expect(screen.queryByRole('button', { name: 'Importar 2, pular 1' })).toBeNull();
     expect(screen.getByLabelText('Arquivo da planilha (.xlsx)')).toBeInTheDocument();
   });
@@ -96,7 +120,7 @@ describe('importar com a sessão terminada e reabrir limpo', () => {
 describe('importar da planilha', () => {
   it('tem o link Baixar modelo apontando para o modelo do cadastro', async () => {
     montar();
-    await userEvent.click(screen.getByRole('button', { name: 'Importar da planilha' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Importar' }));
     const link = screen.getByRole('link', { name: 'Baixar modelo' });
     expect(link).toHaveAttribute('href', `${CAMINHO}/modelo`);
     expect(link).toHaveAttribute('download');
@@ -104,7 +128,7 @@ describe('importar da planilha', () => {
 
   it('o texto manda colar os dados nas abas do modelo', async () => {
     montar();
-    await userEvent.click(screen.getByRole('button', { name: 'Importar da planilha' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Importar' }));
     expect(screen.getByText(/cole os dados nas abas dele/)).toBeInTheDocument();
   });
 
@@ -138,7 +162,7 @@ describe('importar da planilha', () => {
   it('revisão 3: arquivo acima de 4 MB nem é enviado e a tela manda baixar o modelo', async () => {
     const f = simularApi({ [`POST ${CAMINHO}`]: { status: 200, corpo: PREVIA } });
     montar();
-    await userEvent.click(screen.getByRole('button', { name: 'Importar da planilha' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Importar' }));
     await userEvent.upload(screen.getByLabelText('Arquivo da planilha (.xlsx)'), new File([new Uint8Array(5 * 1024 * 1024)], 'sandbox.xlsx'));
     await userEvent.click(screen.getByRole('button', { name: 'Ver o que vai entrar' }));
     expect(await screen.findByText(/O arquivo é grande demais \(o limite é 4 MB\)\. Baixe o modelo/)).toBeInTheDocument();
@@ -185,7 +209,7 @@ describe('importar: fechar durante a confirmação (Review Focus 1)', () => {
     await userEvent.keyboard('{Escape}');
     soltar();
     await new Promise((ok) => setTimeout(ok, 50));
-    await userEvent.click(screen.getByRole('button', { name: 'Importar da planilha' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Importar' }));
     expect(await screen.findByRole('alert')).toHaveTextContent('Tente de novo em alguns minutos.');
     expect(screen.getByRole('button', { name: 'Importar 2, pular 1' })).toBeEnabled();
   });
@@ -197,7 +221,7 @@ describe('importar: fechar durante a confirmação (Review Focus 1)', () => {
     await enviarArquivo();
     await confirmar();
     await userEvent.keyboard('{Escape}');
-    await userEvent.click(screen.getByRole('button', { name: 'Importar da planilha' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Importar' }));
     const botao = screen.getByRole('button', { name: 'Importar 2, pular 1' });
     expect(botao).toBeDisabled();
     await userEvent.click(botao);

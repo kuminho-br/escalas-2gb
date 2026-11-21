@@ -255,7 +255,7 @@ describe('cotas', () => {
   it('a tela traz o botão de importar da planilha', async () => {
     api();
     abrir('/cotas');
-    expect(await screen.findByRole('button', { name: /Importar da planilha/ })).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: 'Importar' })).toBeInTheDocument();
   });
 });
 

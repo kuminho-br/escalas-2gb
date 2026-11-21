@@ -78,7 +78,7 @@ function ListaDeServicos({ unidadeId, escolhido }: { unidadeId: string; escolhid
                 </section>
               );
             })}
-            {servicos.data.length === 0 && <p className="p-4 text-apagado">Nenhum serviço. Use "Novo serviço" ou "Importar da planilha".</p>}
+            {servicos.data.length === 0 && <p className="p-4 text-apagado">Nenhum serviço. Use "Novo serviço" ou "Importar".</p>}
             {servicos.data.length > 0 && visiveis.length === 0 && <p className="p-4 text-apagado">Todos os serviços estão desativados. Marque "Mostrar desativados" para vê-los.</p>}
           </div>
           <label className="flex shrink-0 items-center gap-2 border-t border-linha px-4 py-2.5 text-xs text-apagado">
