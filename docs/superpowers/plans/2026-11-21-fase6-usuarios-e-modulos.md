@@ -6,8 +6,8 @@
 
 **Entregas da fase** (o número é a ordem de execução):
 1. **Contas e papéis:** a senha provisória, a troca obrigatória no primeiro login, desativar o acesso, os papéis na ficha e o nome "Auxiliar administrativo". **Mesclada (#86), migração 0025 aplicada no teste.**
-2. **Unidade de trabalho:** o seletor de unidade substitui a 1ª SB fixa; antes, a folga do auxiliar na senha provisória (decisão de 21/11/2026). **Detalhada abaixo.**
-3. **Tela inicial e módulos:** os cartões por papel, o trilho por módulo e a Minha ficha com o próprio telefone. **Detalhada abaixo.**
+2. **Unidade de trabalho:** o seletor de unidade substitui a 1ª SB fixa; antes, a folga do auxiliar na senha provisória (decisão de 21/11/2026). **Mesclada (#88).**
+3. **Tela inicial e módulos:** os cartões por papel, o trilho por módulo e a Minha ficha com o próprio telefone; antes, a conta desativada só volta por quem dá o papel (decisão de 21/11/2026). **Detalhada abaixo.**
 4. **Transição do login** (as mangueiras), **condicional**: só começa se o usuário tiver aprovado o mockup (ajustes R1 a R6). As tarefas são escritas quando ela for começar.
 
 O retorno da validação que chegar durante a fase vira uma entrega depois da última prevista.
@@ -406,13 +406,30 @@ Decisão do usuário (21/11/2026, `docs/decisoes.md`): o auxiliar também gera a
 
 ## Review Focus
 
-1. **Militar comum digita `/militares` no endereço:** vai para o início com o aviso, sem ver nada da lista. Task 9.
-2. **Endereço antigo `/` com `?mes=…`** (favorito da Grade geral): leva à Grade geral em `/grade` com o mesmo mês. Task 9.
-3. **Telefone inválido na Minha ficha:** a mensagem aparece no campo e nada é gravado. Task 8 (API) e Task 10 (site).
-4. **Ficha aberta pelo Pecúlio:** o trilho continua o do Pecúlio, e "Voltar" volta ao Pecúlio. Task 9.
-5. **Auxiliar abre a Minha ficha:** vê os próprios dados, não os de quem está selecionado na unidade. Task 8.
+1. **Militar comum digita `/militares` no endereço:** vai para o início com o aviso, sem ver nada da lista. Task 10.
+2. **Endereço antigo `/` com `?mes=…`** (favorito da Grade geral): leva à Grade geral em `/grade` com o mesmo mês. Task 10.
+3. **Telefone inválido na Minha ficha:** a mensagem aparece no campo e nada é gravado. Task 9 (API) e Task 11 (site).
+4. **Ficha aberta pelo Pecúlio:** o trilho continua o do Pecúlio, e "Voltar" volta ao Pecúlio. Task 10.
+5. **Auxiliar abre a Minha ficha:** vê os próprios dados, não os de quem está selecionado na unidade. Task 9.
 
-### Task 8: A própria ficha na API
+### Task 8: Conta desativada só volta por quem dá o papel
+
+Decisão do usuário (21/11/2026, `docs/decisoes.md`): a folga do auxiliar (Task 5) **não vale para uma conta desativada**. Gerar a senha de um auxiliar desativado, o que reativaria a conta, fica só para quem pode dar o papel: o gestor da unidade ou o administrador. Para uma conta ativa, a folga continua.
+
+**Files:**
+- Modify: `apps/api/src/usuarios/rotas.ts` (`podeMexerNaConta` e o `podeGerarSenha`)
+- Test: `apps/api/test/usuarios.test.ts`
+
+- [ ] **Step 1: Testes.**
+  - `it('o auxiliar não reativa um colega auxiliar desativado')`: 403 com o texto de hoje; `podeGerarSenha: false`.
+  - `it('o gestor reativa o auxiliar desativado')`: 201.
+  - `it('o auxiliar continua gerando a senha de um colega auxiliar ativo')`.
+- [ ] **Step 2: Run** `pnpm --filter api test usuarios`. Expected: FAIL.
+- [ ] **Step 3: Implement.** A folga do `escalante` em `podeMexerNaConta` só passa com `usuario.ativo = true`.
+- [ ] **Step 4: Run** `pnpm --filter api test`. Expected: PASS.
+- [ ] **Step 5: Commit** `Fase 6.3: conta desativada só volta por quem dá o papel`.
+
+### Task 9: A própria ficha na API
 
 **Files:**
 - Modify: `apps/api/src/rotas/eu.ts` (as rotas `/ficha` e `/telefone`, com sessão conferida como no GET)
@@ -435,7 +452,7 @@ Decisão do usuário (21/11/2026, `docs/decisoes.md`): o auxiliar também gera a
 - [ ] **Step 4: Run** `pnpm --filter api test`. Expected: PASS.
 - [ ] **Step 5: Commit** `Fase 6.3: a própria ficha e o próprio telefone na API`.
 
-### Task 9: Módulos, endereços e o trilho por módulo
+### Task 10: Módulos, endereços e o trilho por módulo
 
 **Files:**
 - Create: `apps/web/src/lib/modulos.ts`
@@ -467,7 +484,7 @@ Decisão do usuário (21/11/2026, `docs/decisoes.md`): o auxiliar também gera a
 - [ ] **Step 5: Run** `pnpm --filter web test`. Expected: PASS.
 - [ ] **Step 6: Commit** `Fase 6.3: módulos, a Grade em /grade e o trilho por módulo`.
 
-### Task 10: Tela inicial e Minha ficha
+### Task 11: Tela inicial e Minha ficha
 
 **Files:**
 - Create: `apps/web/src/routes/_app/index.tsx` (tela inicial)
@@ -478,7 +495,7 @@ Decisão do usuário (21/11/2026, `docs/decisoes.md`): o auxiliar também gera a
 - Test: `apps/web/src/__testes__/inicio.test.tsx`, `apps/web/src/__testes__/minha-ficha.test.tsx`
 
 **Interfaces:**
-- Consumes: `MODULOS` (Task 9); `MinhaFicha` e as rotas (Task 8).
+- Consumes: `MODULOS` (Task 10); `MinhaFicha` e as rotas (Task 9).
 - Produces: `saudacao(agora: Date): 'Bom dia' | 'Boa tarde' | 'Boa noite'`, em `apps/web/src/lib/saudacao.ts`, no fuso de Recife.
 
 - [ ] **Step 1: Testes.**

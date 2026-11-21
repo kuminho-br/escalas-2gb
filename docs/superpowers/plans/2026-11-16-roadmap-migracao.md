@@ -92,13 +92,7 @@ Specs, em `docs/superpowers/specs/`: `2026-11-18-ordem-de-escala-e-acumulo-desig
 
 A estrutura da ficha do militar que hoje vive na planilha do Pecúlio, e a parte dela que a escala usa. Design: `docs/superpowers/specs/2026-11-20-peculio-design.md`.
 
-- A ficha ampliada (nome completo, sexo, nascimento, telefone, e-mail institucional, comportamento), com dono por bloco.
-- A lotação como posição na estrutura; equipe e jornada como atributos do militar; o "Histórico de rastreio" com "Alterar situação" e a linha do tempo (com os afastamentos).
-- A CNH separada do quadro de motoristas; para a escala, só vale no quadro.
-- Novos tipos de afastamento (Adido, Agregado, L.E, LTS, DTS), com motivo e boletim.
-- As sete seções do 2º GB; a importação do Pecúlio pelo modelo próprio; o módulo Pecúlio (lista, ficha, aniversariantes do mês).
-
-Plano: `docs/superpowers/plans/2026-11-21-fase5-peculio.md`.
+Ficha ampliada com dono por bloco, lotação como posição na estrutura, "Histórico de rastreio", CNH separada do quadro, novos tipos de afastamento, as sete seções, a importação do Pecúlio e o módulo. Plano: `docs/superpowers/plans/2026-11-21-fase5-peculio.md`.
 
 | Entrega | O quê | Situação |
 |---|---|---|
@@ -116,8 +110,8 @@ Design: `docs/superpowers/specs/2026-11-21-usuarios-e-modulos-design.md`. Plano:
 | Entrega | O que traz | Situação |
 |---|---|---|
 | 1 | Contas e papéis: senha provisória, troca no primeiro login, papéis na ficha, "Auxiliar administrativo" | mesclada (#86), migração 0025 aplicada no teste |
-| 2 | Unidade de trabalho: o seletor substitui a 1ª SB fixa, e o auxiliar gera a senha de um colega auxiliar | planejada |
-| 3 | Tela inicial e módulos por papel, Minha ficha com o próprio telefone | planejada |
+| 2 | Unidade de trabalho: o seletor substitui a 1ª SB fixa, e o auxiliar gera a senha de um colega auxiliar | mesclada (#88) |
+| 3 | Tela inicial e módulos por papel, Minha ficha com o próprio telefone; conta desativada só volta por quem dá o papel | em execução |
 | 4 | Transição do login (as mangueiras), se o mockup estiver aprovado | condicional |
 
 **Fora:** envio de e-mail (link de senha e "Esqueci minha senha"), usuários acima do GB (fase 11), Visualização (fase 7).
@@ -180,6 +174,15 @@ Design: `docs/superpowers/specs/2026-11-21-usuarios-e-modulos-design.md`. Plano:
 ## Pendências conhecidas
 
 Achadas nas revisões e nas validações. Nenhuma muda quem é escalado. Entram numa entrega quando houver oportunidade.
+
+**Unidade de trabalho (6.2):**
+- o vazio da Escala do mês não convida a escolher uma seção;
+- "Alterar situação" com o 2º GB escolhido sugere o GB como destino para militar sem rastreio de hoje;
+- o recuo do seletor é só visual (o leitor de tela não ouve o nível);
+- papel só em unidade extinta cai em `/sem-lotacao` com um texto que não serve;
+- trocar de unidade descarta `?mes=` e fecha a ficha;
+- "Desativar acesso" aparece sem poder (dá 403);
+- papel dado ou encerrado só aparece no seletor depois de recarregar.
 
 **Contas e papéis (6.1):**
 - "Encerrar" aparece num papel fora do alcance de quem vê a ficha (dá 403);
