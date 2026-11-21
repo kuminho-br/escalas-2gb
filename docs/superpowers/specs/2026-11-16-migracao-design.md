@@ -195,7 +195,6 @@ A CNH é do militar, esteja ou não no quadro de motoristas; **para a escala, el
 ## 7. Pendências abertas
 
 - **Pecúlio (fase 5):** como a planilha é usada hoje; ficha única ou duas; fonte dos dados depois da importação; abas extras; como o militar comum entra sem e-mail; quem vê cada informação. Detalhes em `docs/superpowers/specs/2026-11-20-peculio-design.md`.
-- **"A partir de" no rastreio:** por enquanto o mês; se vale o dia é pendência de elucidação de requisito.
 - **Antiguidade institucional:** dentro do GB, vem da "Ordem" do Pecúlio (fase 5). Acima do GB (fase 11), a ideia é derivá-la dos almanaques, por nível hierárquico. Em aberto: como o almanaque entra (PDF ou digitação) e o que acontece com a antiguidade manual de hoje.
 - **Publicação (fase 7):** se a escala publicada fica travada e como se corrige depois.
 
