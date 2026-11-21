@@ -13,7 +13,7 @@ export class ErroApi extends Error {
   }
 }
 
-const SEM_CONEXAO = 'Sem conexão com o servidor. Tente de novo.';
+export const SEM_CONEXAO = 'Sem conexão com o servidor. Tente de novo.';
 
 /** Troca de página inteira (o `window.location.assign` do jsdom não navega: os testes trocam este objeto). */
 export const navegador = { ir: (destino: string) => window.location.assign(destino) };

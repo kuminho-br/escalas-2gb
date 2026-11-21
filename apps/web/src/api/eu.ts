@@ -1,5 +1,5 @@
 import { queryOptions } from '@tanstack/react-query';
-import { ErroApi } from './cliente';
+import { ErroApi, SEM_CONEXAO } from './cliente';
 
 export type Papel = 'administrador' | 'gestor' | 'escalante';
 
@@ -15,7 +15,13 @@ export interface Eu {
 
 /** Quem está logado; null se não houver sessão. */
 export async function buscarEu(): Promise<Eu | null> {
-  const r = await fetch('/api/eu', { credentials: 'include' });
+  let r: Response;
+  try {
+    r = await fetch('/api/eu', { credentials: 'include' });
+  } catch {
+    // a tela de falha diferencia "sem conexão" de "erro do sistema"
+    throw new ErroApi(SEM_CONEXAO, 0);
+  }
   if (r.status === 401) return null;
   if (!r.ok) {
     const corpo = (await r.json().catch(() => null)) as { erro?: string } | null;

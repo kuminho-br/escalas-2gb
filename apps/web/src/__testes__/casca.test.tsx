@@ -229,4 +229,30 @@ describe('revisão 3: falhas ao abrir o sistema', () => {
     expect(screen.getByRole('button', { name: 'Tentar de novo' })).toBeInTheDocument();
     expect(screen.queryByText(/Something went wrong/)).toBeNull();
   });
+
+  it('sem conexão: diz para conferir a internet, e o foco vai para o título', async () => {
+    simularApi({ '/api/eu': 'rede' });
+    abrir('/');
+    const titulo = await screen.findByRole('heading', { level: 1, name: 'Não foi possível abrir o sistema.' });
+    expect(screen.getByText('Sem conexão com o sistema. Confira a internet e tente de novo.')).toBeInTheDocument();
+    expect(screen.queryByText(/O sistema encontrou um erro/)).toBeNull();
+    expect(titulo).toHaveFocus();
+  });
+
+  it('erro do servidor: diz que o sistema errou e para tentar em alguns minutos, e o foco vai para o título', async () => {
+    simularApi({ '/api/eu': { status: 500, corpo: {} } });
+    abrir('/');
+    const titulo = await screen.findByRole('heading', { level: 1, name: 'Não foi possível abrir o sistema.' });
+    expect(screen.getByText('O sistema encontrou um erro. Tente de novo em alguns minutos.')).toBeInTheDocument();
+    expect(screen.queryByText(/Sem conexão/)).toBeNull();
+    expect(titulo).toHaveFocus();
+  });
+
+  it('o que o servidor disse (503, banco desatualizado) continua aparecendo no lugar do conselho genérico', async () => {
+    simularApi({ '/api/eu': { status: 503, corpo: { erro: 'O sistema está sendo atualizado. Tente de novo em alguns minutos.' } } });
+    abrir('/');
+    await screen.findByRole('heading', { level: 1, name: 'Não foi possível abrir o sistema.' });
+    expect(screen.getByText('O sistema está sendo atualizado. Tente de novo em alguns minutos.')).toBeInTheDocument();
+    expect(screen.queryByText(/O sistema encontrou um erro/)).toBeNull();
+  });
 });
