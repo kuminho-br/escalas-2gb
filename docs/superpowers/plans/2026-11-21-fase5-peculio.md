@@ -8,6 +8,13 @@
 1. **Rastreio e CNH:** a lotação passa a ser só a unidade; a tabela de lotação vira o rastreio do militar; o "Histórico de rastreio" com "Alterar situação" e a linha do tempo; a CNH separada do quadro de motoristas; as sete seções do 2º GB. **Mesclada (#73).**
 2. **Ficha ampliada e dono por bloco:** nome completo, sexo, nascimento, telefone, e-mail institucional, comportamento; motivo e boletim no afastamento e os tipos novos; quem edita o quê. **Detalhada abaixo.**
 3. **Importação do Pecúlio e o módulo:** o modelo `PECÚLIO`, a lista e a ficha do módulo, os aniversariantes do mês.
+4. **Retorno da validação** (lote de 21/11/2026; plano escrito quando for começar):
+   - Efetivo por dia e Escala do mês: horário do trecho só ao passar o mouse e faixa do serviço mais grossa; "Mostrar só vagas vazias" vira "Ocultar guarnições completas"; cada função com painel próprio; cartões alinhados pelo topo; "Removidos" dentro do painel do dia; vagas até o máximo, as extras marcadas "opcional"; sai a lista "Falta…"; abas Ordinário/Operações na largura toda, com painéis separados.
+   - Contraste mínimo de 4,5:1 entre o texto e a cor do serviço.
+   - Grade geral: ao clicar numa célula, a linha e a coluna dela ficam marcadas.
+   - CNH: sai o "pela X" dos quadrados; clicar numa categoria menor com as maiores marcadas deixa só a menor; clicar na maior apaga ela e as que ela acendeu; a moto (A) continua isolada.
+   - Nomes: a tela "Serviços" passa a se chamar "Turnos" (como as pessoas pensam; "serviço" fica como entidade interna), com os textos que citam a tela; "Importar da Planilha" vira "Importar".
+   - A vaga vazia (opção A a D do mockup da DESIGN) entra aqui se o usuário escolher antes.
 
 **Fluxo:** Sonnet executa; Opus faz a revisão final do branch. Ao terminar cada entrega, a DESENVOLVIMENTO envia o branch e o resumo à PLANEJAMENTO (não abre PR nem mescla); a PLANEJAMENTO abre o PR, mescla e avisa a VALIDAÇÃO.
 
