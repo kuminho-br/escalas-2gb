@@ -143,7 +143,8 @@ O esquema completo está em `docs/superpowers/specs/2026-11-16-esquema-banco.md`
 - **Linha com problema é pulada** e o resto entra. Importar o mesmo arquivo de novo não grava nada.
 - **Modelo para baixar:** a API gera o .xlsx na hora (`GET /api/unidades/:u/importacao/:cadastro/modelo`), com as abas exigidas, o cabeçalho pronto e a aba `AJUDA` com os valores reais da unidade. Cada importador declara as colunas uma vez, e a leitura e o modelo usam a mesma lista. O modelo não traz linha de exemplo.
 - O sistema procura as abas pelo nome exato (`MILITARES`, `CONFIGURAÇÕES`…). A sandbox inteira continua aceita; o modelo é o caminho recomendado, porque o Google Planilhas exporta corrompida uma sandbox muito grande. As mensagens de "aba que falta" e "não foi possível ler" sugerem o modelo.
-- A importação de CONFIGURAÇÕES e de GUARNIÇÕES POR ESCALA recusa vigência de mês que já passou, como a tela. Planilha antiga se adapta à regra de hoje: deixa vazia a vigência da linha que vale agora (vale desde a criação da seção) e apaga as antigas.
+- **A planilha de importação é o contrato do sistema** (como um DTO): o modelo para baixar diz exatamente o que o sistema espera naquele momento. Quem envia se adapta ao contrato; o sistema não se molda a cada planilha que chega.
+- Por isso a importação de CONFIGURAÇÕES e de GUARNIÇÕES POR ESCALA recusa vigência de mês que já passou, como a tela. Uma planilha antiga é ajustada antes de enviar: vigência vazia na linha que vale agora (vale desde a criação da seção) e as antigas apagadas.
 - As regras da importação de cotas e feriados são mais rígidas que as do protótipo: linha de outra seção, de JES ou com data fora dos formatos aceitos vira problema com a solução.
 - **Descartados:** arquivos .xlsx prontos no repositório; gerar o modelo no navegador.
 
