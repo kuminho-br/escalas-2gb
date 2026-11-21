@@ -46,11 +46,7 @@
 
 Decisões técnicas D1 a D7, esquema do banco e telas. PR #8.
 
-- Design: `docs/superpowers/specs/2026-11-16-migracao-design.md`
-- Esquema: `docs/superpowers/specs/2026-11-16-esquema-banco.md`
-- Telas: `docs/superpowers/specs/2026-11-16-telas.md`
-- Questões do ER: Q5 e Q17 resolvidas em 17/11/2026; Q6 (permutas antigas) segue aberta, para a fase 9; Q3, Q7, Q14 e Q18 sem registro de resolução.
-- Em aberto: o processo do mês (`docs/negocio/processo-do-mes.md`, E1 a E8).
+Documentos: o design, o esquema e as telas, em `docs/superpowers/specs/2026-11-16-*`. Em aberto: Q6 (permutas antigas, fase 9) e o processo do mês (`docs/negocio/processo-do-mes.md`, E1 a E8).
 
 ## Fase 1 — Fundação · concluída
 
@@ -82,7 +78,7 @@ Montar e conferir a escala do mês à mão, nas telas de trabalho (Escala do mê
 
 Entregas 1 a 4.7, PRs #28 a #68: Escala do mês à mão, acúmulo, voluntariado por faixa, ordem de escala, pré-escala do Pronto, meta de ativação, Efetivo por dia, Grade geral e quatro lotes de acabamento. A tabela com cada entrega está no plano da fase.
 
-Specs, em `docs/superpowers/specs/`: `2026-11-18-ordem-de-escala-e-acumulo-design.md`, `2026-11-19-voluntariado-por-faixa-design.md`, `2026-11-20-meta-de-ativacao-design.md`, `2026-11-20-grade-geral-design.md`, `2026-11-20-grade-geral-ux-design.md` e `2026-11-20-limpeza-da-fase-3-design.md`.
+As specs da fase estão listadas no plano e no `docs/LEIAME.md`.
 
 **Painel do dia:** medido em 33 consultas na 4.3 e 42 na 4.4 (cresce cerca de 9 por faixa); passou do limite de 40, e "otimizar o painel do dia" entrou na fase 8.
 
@@ -111,7 +107,7 @@ Design: `docs/superpowers/specs/2026-11-21-usuarios-e-modulos-design.md`. Plano:
 |---|---|---|
 | 1 | Contas e papéis: senha provisória, troca no primeiro login, papéis na ficha, "Auxiliar administrativo" | mesclada (#86), migração 0025 aplicada no teste |
 | 2 | Unidade de trabalho: o seletor substitui a 1ª SB fixa, e o auxiliar gera a senha de um colega auxiliar | mesclada (#88) |
-| 3 | Tela inicial e módulos por papel, Minha ficha com o próprio telefone; conta desativada só volta por quem dá o papel | em execução |
+| 3 | Tela inicial e módulos por papel, Minha ficha com o próprio telefone; conta desativada só volta por quem dá o papel | mesclada (#90) |
 | 4 | Transição do login (as mangueiras), se o mockup estiver aprovado | condicional |
 
 **Fora:** envio de e-mail (link de senha e "Esqueci minha senha"), usuários acima do GB (fase 11), Visualização (fase 7).
@@ -174,6 +170,12 @@ Design: `docs/superpowers/specs/2026-11-21-usuarios-e-modulos-design.md`. Plano:
 ## Pendências conhecidas
 
 Achadas nas revisões e nas validações. Nenhuma muda quem é escalado. Entram numa entrega quando houver oportunidade.
+
+**Tela inicial e módulos (6.3):**
+- a ficha aberta pelo Pecúlio aparece dentro da tela Militares, e clicar na lista perde o `?de`;
+- com a senha provisória pendente, `GET /api/eu/ficha` responde e `PATCH /api/eu/telefone` dá 401 (o certo seria 403 com orientação);
+- o auxiliar não consegue desativar de novo um colega já desativado (dá 403);
+- `?aviso=outro-papel` reaparece ao recarregar.
 
 **Unidade de trabalho (6.2):**
 - o vazio da Escala do mês não convida a escolher uma seção;

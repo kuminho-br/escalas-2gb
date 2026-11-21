@@ -7,7 +7,7 @@
 **Entregas da fase** (o número é a ordem de execução):
 1. **Contas e papéis:** a senha provisória, a troca obrigatória no primeiro login, desativar o acesso, os papéis na ficha e o nome "Auxiliar administrativo". **Mesclada (#86), migração 0025 aplicada no teste.**
 2. **Unidade de trabalho:** o seletor de unidade substitui a 1ª SB fixa; antes, a folga do auxiliar na senha provisória (decisão de 21/11/2026). **Mesclada (#88).**
-3. **Tela inicial e módulos:** os cartões por papel, o trilho por módulo e a Minha ficha com o próprio telefone; antes, a conta desativada só volta por quem dá o papel (decisão de 21/11/2026). **Detalhada abaixo.**
+3. **Tela inicial e módulos:** os cartões por papel, o trilho por módulo e a Minha ficha com o próprio telefone; antes, a conta desativada só volta por quem dá o papel (decisão de 21/11/2026). **Mesclada (#90).**
 4. **Transição do login** (as mangueiras), **condicional**: só começa se o usuário tiver aprovado o mockup (ajustes R1 a R6). As tarefas são escritas quando ela for começar.
 
 O retorno da validação que chegar durante a fase vira uma entrega depois da última prevista.
