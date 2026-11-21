@@ -203,14 +203,14 @@ describe('grade geral: a tabela', () => {
     expect(document.querySelectorAll('[data-linha-marcada]')).toHaveLength(1);
     const colunaMarcada = [...document.querySelectorAll('[data-coluna-marcada]')];
     expect(colunaMarcada.length).toBeGreaterThanOrEqual(4);
-    expect(colunaMarcada.every((c) => c.getAttribute('data-data') === dia(2))).toBe(true);
+    expect(colunaMarcada.every((c) => c.getAttribute('data-coluna') === dia(2))).toBe(true);
     expect(within(linhaDe('SD1')).getAllByRole('button').find((b) => b.getAttribute('data-data') === dia(2))!.closest('td')).toHaveAttribute('data-coluna-marcada');
     // outra célula: a marcação vai junto
     await userEvent.click(celula('SD1', 5, 'Pronto A, JES A'));
     await waitFor(() => expect(linhaDe('SD1')).toHaveAttribute('data-linha-marcada'));
     expect(linhaDe('CABO')).not.toHaveAttribute('data-linha-marcada');
     expect(document.querySelectorAll('[data-linha-marcada]')).toHaveLength(1);
-    expect([...document.querySelectorAll('[data-coluna-marcada]')].every((c) => c.getAttribute('data-data') === dia(5))).toBe(true);
+    expect([...document.querySelectorAll('[data-coluna-marcada]')].every((c) => c.getAttribute('data-coluna') === dia(5))).toBe(true);
   });
 
   it('uma grade sem linhas ou sem colunas não quebra com uma célula escolhida (Review Focus 5)', () => {

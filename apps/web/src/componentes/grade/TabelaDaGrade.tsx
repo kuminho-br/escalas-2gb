@@ -66,7 +66,7 @@ export function TabelaDaGrade({ grade, grupos, maximos, escolhida, aoEscolher }:
                   aria-label={`Dia ${n}, ${NOME_DO_DIA[d.diaDaSemana]}${d.feriado ? `, feriado: ${d.feriado}` : ''}`}
                   data-feriado={d.feriado ? '' : undefined}
                   data-fim-de-semana={fds ? '' : undefined}
-                  data-data={d.data}
+                  data-coluna={d.data}
                   data-coluna-marcada={escolhida?.dia === d.data ? '' : undefined}
                   title={d.feriado ?? undefined}
                   className={cn('sticky top-0 z-20 min-w-12 border-b border-linha bg-superficie px-px pt-2 pb-1.5 text-center text-[13px] font-medium text-apagado', escolhida?.dia === d.data && FUNDO_DA_MARCA_NO_CABECALHO, ...bordasDoDia(grade, i))}
@@ -114,7 +114,7 @@ export function TabelaDaGrade({ grade, grupos, maximos, escolhida, aoEscolher }:
                       <td
                         key={d.data}
                         data-fim-de-semana={fds ? '' : undefined}
-                        data-data={d.data}
+                        data-coluna={d.data}
                         data-coluna-marcada={colunaMarcada ? '' : undefined}
                         className={cn('border-b border-b-[#EEF0F3] px-px py-1', colunaMarcada && 'bg-vinho/[0.06]', ...bordasDoDia(grade, i))}
                       >
