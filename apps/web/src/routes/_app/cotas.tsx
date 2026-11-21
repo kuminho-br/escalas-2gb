@@ -44,7 +44,7 @@ function Cotas() {
       let texto: string;
       if (copiados > 0) texto = `${copiados} ${copiados === 1 ? 'cota copiada' : 'cotas copiadas'} de ${deAntes}.${puladas > 0 ? ` ${deFora}.` : ''}`;
       // só diz o que ficou de fora: o mês pode ter outras cotas que o destino já tinha, então não afirma que "todas" são de serviço desativado
-      else if (puladas > 0) texto = `Nenhuma cota copiada: ${deFora}. Reative o serviço na tela de Serviços para ${puladas === 1 ? 'copiá-la' : 'copiá-las'}.`;
+      else if (puladas > 0) texto = `Nenhuma cota copiada: ${deFora}. Reative o serviço na tela de Turnos para ${puladas === 1 ? 'copiá-la' : 'copiá-las'}.`;
       else texto = `Nenhuma cota nova: ${deAntes} não tem cotas, ou elas já estão em ${mesPorExtenso(mes)}.`;
       setAviso({ erro: false, texto });
     } catch (err) {
@@ -215,7 +215,7 @@ function CotaDialogo({ unidadeId, mes, cota, proximaPrioridade, aoFechar }: { un
             <Selecao id="ct-servico" value={escolhido} onChange={(e) => setServicoId(e.target.value)}>
               {opcoes.map((s) => <option key={s.id} value={s.id}>{s.nome}</option>)}
             </Selecao>
-            {servicos.data && opcoes.length === 0 && <p className="text-xs text-alerta">Cadastre um serviço PJES ou diária na tela de Serviços.</p>}
+            {servicos.data && opcoes.length === 0 && <p className="text-xs text-alerta">Cadastre um serviço PJES ou diária na tela de Turnos.</p>}
           </div>
           <fieldset className="grid gap-1.5">
             <legend className="text-sm font-medium">Origem</legend>

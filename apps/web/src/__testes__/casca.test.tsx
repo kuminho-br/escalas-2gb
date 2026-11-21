@@ -134,7 +134,7 @@ describe('casca', () => {
 });
 
 describe('trilho', () => {
-  const NOMES = ['Grade geral', 'Escala do mês', 'Efetivo por dia', 'Voluntariado', 'Cotas', 'Militares', 'Serviços', 'Escalas', 'Feriados', 'Configurações', 'Estrutura', 'Histórico', 'Ajuda'];
+  const NOMES = ['Grade geral', 'Escala do mês', 'Efetivo por dia', 'Voluntariado', 'Cotas', 'Militares', 'Turnos', 'Escalas', 'Feriados', 'Configurações', 'Estrutura', 'Histórico', 'Ajuda'];
   const menu = () => screen.getByRole('navigation', { name: 'Navegação principal' });
 
   it('no computador o menu é um trilho de 84 px', async () => {

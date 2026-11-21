@@ -39,7 +39,7 @@ export const importadorCotas: Importador<Plano> = {
           titulo: 'Serviços PJES e diária (coluna SERVIÇO)',
           itens: rows.length
             ? rows.map((s) => `${s.nome} (${s.tipo === 'pjes' ? 'PJES' : 'diária'}${s.operacao ? `, operação ${s.operacao}` : ''})`)
-            : ['Ainda não há: cadastre na tela de Serviços (ou importe as abas TURNOS e ESCALAS).'],
+            : ['Ainda não há: cadastre na tela de Turnos (ou importe as abas TURNOS e ESCALAS).'],
         },
       ];
     },
@@ -77,7 +77,7 @@ export const importadorCotas: Importador<Plano> = {
         const s = servicos.find((x) => normalizar(x.nome) === normalizar(servicoTexto));
         return s
           ? { servico: s }
-          : { problema: { mensagem: `Serviço ${servicoTexto} não cadastrado`, solucao: 'Cadastre o serviço na tela de Serviços (ou importe as abas TURNOS e ESCALAS) e importe de novo.' } };
+          : { problema: { mensagem: `Serviço ${servicoTexto} não cadastrado`, solucao: 'Cadastre o serviço na tela de Turnos (ou importe as abas TURNOS e ESCALAS) e importe de novo.' } };
       }
       if (!operacao) return { problema: { mensagem: 'Cota sem serviço nem operação', solucao: 'Preencha a coluna SERVIÇO (ou OPERAÇÃO).' } };
       const alvo = normalizar(operacao);
@@ -134,7 +134,7 @@ export const importadorCotas: Importador<Plano> = {
         continue;
       }
       if (!servico.ativo) {
-        problema(`Serviço ${servico.nome} está desativado`, 'Reative o serviço na tela de Serviços ou use outro.');
+        problema(`Serviço ${servico.nome} está desativado`, 'Reative o serviço na tela de Turnos ou use outro.');
         continue;
       }
       const origemBruta = normalizar(pega(l.celulas, c.origem));

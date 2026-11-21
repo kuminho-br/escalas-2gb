@@ -29,7 +29,7 @@ function Servicos() {
   const [novo, setNovo] = useState(false);
   return (
     <ListaDetalhe
-      titulo="Serviços"
+      titulo="Turnos"
       temDetalhe={Boolean(id)}
       acoes={
         <>
