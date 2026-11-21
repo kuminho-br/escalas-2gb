@@ -20,6 +20,7 @@ import { Route as AppEscalaDoMesRouteImport } from './routes/_app/escala-do-mes'
 import { Route as AppEscalasRouteImport } from './routes/_app/escalas'
 import { Route as AppFeriadosRouteImport } from './routes/_app/feriados'
 import { Route as AppMilitaresRouteImport } from './routes/_app/militares'
+import { Route as AppPeculioRouteImport } from './routes/_app/peculio'
 import { Route as AppServicosRouteImport } from './routes/_app/servicos'
 import { Route as AppVoluntariadoRouteImport } from './routes/_app/voluntariado'
 import { Route as AppEscalasIndexRouteImport } from './routes/_app/escalas/index'
@@ -85,6 +86,11 @@ const AppFeriadosRoute = AppFeriadosRouteImport.update({
 const AppMilitaresRoute = AppMilitaresRouteImport.update({
   id: '/militares',
   path: '/militares',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppPeculioRoute = AppPeculioRouteImport.update({
+  id: '/peculio',
+  path: '/peculio',
   getParentRoute: () => AppRoute,
 } as any)
 const AppServicosRoute = AppServicosRouteImport.update({
@@ -160,6 +166,7 @@ export interface FileRoutesByFullPath {
   '/escalas': typeof AppEscalasRouteWithChildren
   '/feriados': typeof AppFeriadosRoute
   '/militares': typeof AppMilitaresRouteWithChildren
+  '/peculio': typeof AppPeculioRoute
   '/servicos': typeof AppServicosRouteWithChildren
   '/voluntariado': typeof AppVoluntariadoRoute
   '/escalas/$id': typeof AppEscalasIdRoute
@@ -181,6 +188,7 @@ export interface FileRoutesByTo {
   '/efetivo-por-dia': typeof AppEfetivoPorDiaRoute
   '/escala-do-mes': typeof AppEscalaDoMesRoute
   '/feriados': typeof AppFeriadosRoute
+  '/peculio': typeof AppPeculioRoute
   '/voluntariado': typeof AppVoluntariadoRoute
   '/': typeof AppIndexRoute
   '/escalas/$id': typeof AppEscalasIdRoute
@@ -206,6 +214,7 @@ export interface FileRoutesById {
   '/_app/escalas': typeof AppEscalasRouteWithChildren
   '/_app/feriados': typeof AppFeriadosRoute
   '/_app/militares': typeof AppMilitaresRouteWithChildren
+  '/_app/peculio': typeof AppPeculioRoute
   '/_app/servicos': typeof AppServicosRouteWithChildren
   '/_app/voluntariado': typeof AppVoluntariadoRoute
   '/_app/': typeof AppIndexRoute
@@ -233,6 +242,7 @@ export interface FileRouteTypes {
     | '/escalas'
     | '/feriados'
     | '/militares'
+    | '/peculio'
     | '/servicos'
     | '/voluntariado'
     | '/escalas/$id'
@@ -254,6 +264,7 @@ export interface FileRouteTypes {
     | '/efetivo-por-dia'
     | '/escala-do-mes'
     | '/feriados'
+    | '/peculio'
     | '/voluntariado'
     | '/'
     | '/escalas/$id'
@@ -278,6 +289,7 @@ export interface FileRouteTypes {
     | '/_app/escalas'
     | '/_app/feriados'
     | '/_app/militares'
+    | '/_app/peculio'
     | '/_app/servicos'
     | '/_app/voluntariado'
     | '/_app/'
@@ -375,6 +387,13 @@ declare module '@tanstack/react-router' {
       path: '/militares'
       fullPath: '/militares'
       preLoaderRoute: typeof AppMilitaresRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/peculio': {
+      id: '/_app/peculio'
+      path: '/peculio'
+      fullPath: '/peculio'
+      preLoaderRoute: typeof AppPeculioRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/servicos': {
@@ -515,6 +534,7 @@ interface AppRouteChildren {
   AppEscalasRoute: typeof AppEscalasRouteWithChildren
   AppFeriadosRoute: typeof AppFeriadosRoute
   AppMilitaresRoute: typeof AppMilitaresRouteWithChildren
+  AppPeculioRoute: typeof AppPeculioRoute
   AppServicosRoute: typeof AppServicosRouteWithChildren
   AppVoluntariadoRoute: typeof AppVoluntariadoRoute
   AppIndexRoute: typeof AppIndexRoute
@@ -533,6 +553,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppEscalasRoute: AppEscalasRouteWithChildren,
   AppFeriadosRoute: AppFeriadosRoute,
   AppMilitaresRoute: AppMilitaresRouteWithChildren,
+  AppPeculioRoute: AppPeculioRoute,
   AppServicosRoute: AppServicosRouteWithChildren,
   AppVoluntariadoRoute: AppVoluntariadoRoute,
   AppIndexRoute: AppIndexRoute,
