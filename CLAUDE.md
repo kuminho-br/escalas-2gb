@@ -60,3 +60,5 @@ Cada sessão tem um papel; **só a DESENVOLVIMENTO altera código**.
 ## Documentação
 
 O repositório é a versão oficial de todos os documentos. Índice, quem cuida de cada um e a régua de qualidade: `docs/LEIAME.md`.
+
+Nada de "Adendo": a mudança vai direto no texto, e a decisão do usuário ganha uma linha em `docs/decisoes.md` no mesmo PR.

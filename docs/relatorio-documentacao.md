@@ -1,21 +1,17 @@
 # Relatório da documentação
 
-Gerado em 2026-11-20 pelo script `docs/ferramentas/checar-documentacao.sh`, sobre o commit `1c65258`.
+Gerado em 2026-11-20 pelo script `docs/ferramentas/checar-documentacao.sh`, sobre o commit `d9e6140`.
 
-**Resumo:** 13 alerta(s). CLAUDE.md: bom.
+**Resumo:** 8 alerta(s). CLAUDE.md: bom.
 
-Relatório anterior: Resumo: 14 alerta(s). CLAUDE.md: bom.
+Relatório anterior: Resumo: 13 alerta(s). CLAUDE.md: bom.
 
 ## Documentos grandes (acima de 25 KB)
 
 - `docs/superpowers/specs/2026-11-16-esquema-banco.md`: 27 KB
-- `docs/superpowers/specs/2026-11-16-migracao-design.md`: 41 KB
-- `docs/superpowers/plans/2026-11-16-roadmap-migracao.md`: 46 KB
 
 ## Parágrafos com mais de 400 caracteres
 
-- `docs/superpowers/plans/2026-11-16-roadmap-migracao.md`: 28 parágrafo(s)
-- `docs/superpowers/specs/2026-11-16-migracao-design.md`: 8 parágrafo(s)
 - `docs/superpowers/specs/2026-11-20-meta-de-ativacao-design.md`: 5 parágrafo(s)
 - `docs/superpowers/specs/2026-11-19-voluntariado-por-faixa-design.md`: 5 parágrafo(s)
 - `docs/superpowers/specs/2026-11-20-limpeza-da-fase-3-design.md`: 3 parágrafo(s)
@@ -26,11 +22,11 @@ Relatório anterior: Resumo: 14 alerta(s). CLAUDE.md: bom.
 
 ## Documentos com mais de 3 adendos
 
-- `docs/superpowers/specs/2026-11-16-migracao-design.md`: 10 adendos (consolidar)
+Nenhum.
 
 ## CLAUDE.md
 
-- Linhas: 62 (limite 120)
+- Linhas: 64 (limite 120)
 - Sem "estado atual" nem número que envelhece.
 - Todos os caminhos citados existem.
 - **Nota: bom**
@@ -46,4 +42,4 @@ Todos os documentos estão no índice (ou no LEIAME da pasta) e os links funcion
 
 ## Branches `docs-*` e `documentacao-*` não mescladas
 
-- `docs-sintese-design-roadmap-exec`: sem merge, recente (0 dia(s))
+Nenhuma.
