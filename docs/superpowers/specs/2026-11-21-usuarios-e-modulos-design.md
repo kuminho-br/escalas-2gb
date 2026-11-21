@@ -65,7 +65,7 @@ A fase 7 (Visualização de escalas) depende desta: o militar precisa entrar par
 
 | Regra | Como fica |
 |---|---|
-| Quem gera a senha provisória | Auxiliar administrativo ou gestor com papel na lotação do militar ou acima, e o administrador |
+| Quem gera a senha provisória | Auxiliar administrativo ou gestor com papel na lotação do militar ou acima, e o administrador. Para quem tem papel, só quem poderia dar todos os papéis da pessoa: o gestor gera para auxiliar e gestor, e só o administrador gera para o administrador. Exceção: o auxiliar gera para um colega auxiliar da unidade dele ou de baixo (decisão do usuário, 21/11/2026). Desativar segue a mesma regra |
 | Onde | Na ficha do militar, bloco "Acesso ao sistema": a situação da conta (sem conta, senha provisória pendente, ativa, desativada) e o botão **"Gerar senha provisória"** |
 | A senha | Gerada pelo sistema, fácil de ler e ditar (sem letras que se confundem). Aparece **uma vez**, na tela, para quem gerou entregar ao militar |
 | Prazo | Vale por 7 dias. Vencida, não entra, e a mensagem pede uma senha nova ao auxiliar |

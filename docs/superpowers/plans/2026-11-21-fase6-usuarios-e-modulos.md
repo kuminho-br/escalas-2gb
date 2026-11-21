@@ -5,8 +5,8 @@
 **Spec:** `docs/superpowers/specs/2026-11-21-usuarios-e-modulos-design.md`. Na entrega 4, também `docs/superpowers/specs/2026-11-20-transicao-login-design.md`.
 
 **Entregas da fase** (o número é a ordem de execução):
-1. **Contas e papéis:** a senha provisória, a troca obrigatória no primeiro login, desativar o acesso, os papéis na ficha e o nome "Auxiliar administrativo". **Detalhada abaixo.**
-2. **Unidade de trabalho:** o seletor de unidade substitui a 1ª SB fixa. **Detalhada abaixo.**
+1. **Contas e papéis:** a senha provisória, a troca obrigatória no primeiro login, desativar o acesso, os papéis na ficha e o nome "Auxiliar administrativo". **Mesclada (#86), migração 0025 aplicada no teste.**
+2. **Unidade de trabalho:** o seletor de unidade substitui a 1ª SB fixa; antes, a folga do auxiliar na senha provisória (decisão de 21/11/2026). **Detalhada abaixo.**
 3. **Tela inicial e módulos:** os cartões por papel, o trilho por módulo e a Minha ficha com o próprio telefone. **Detalhada abaixo.**
 4. **Transição do login** (as mangueiras), **condicional**: só começa se o usuário tiver aprovado o mockup (ajustes R1 a R6). As tarefas são escritas quando ela for começar.
 
@@ -270,13 +270,31 @@ O retorno da validação que chegar durante a fase vira uma entrega depois da ú
 
 ## Review Focus
 
-1. **Unidade guardada que deixou de ser acessível** (o papel foi encerrado): vale a regra da primeira vez, sem erro. Task 6.
-2. **Gestor do 2º GB abre a Escala do mês com o 2º GB escolhido:** a tela mostra o vazio de sempre, sem erro e sem travar. Task 6.
-3. **`localStorage` bloqueado** (janela privada): o seletor funciona na sessão e a tela não quebra. Task 6.
-4. **Administrador:** o seletor lista a árvore inteira, com o recuo de cada nível. Task 6.
-5. **Auxiliar com papel em duas seções:** o seletor mostra as duas, e cada tela troca os dados ao escolher. Task 5 (API) e Task 6 (site).
+1. **Unidade guardada que deixou de ser acessível** (o papel foi encerrado): vale a regra da primeira vez, sem erro. Task 7.
+2. **Gestor do 2º GB abre a Escala do mês com o 2º GB escolhido:** a tela mostra o vazio de sempre, sem erro e sem travar. Task 7.
+3. **`localStorage` bloqueado** (janela privada): o seletor funciona na sessão e a tela não quebra. Task 7.
+4. **Administrador:** o seletor lista a árvore inteira, com o recuo de cada nível. Task 7.
+5. **Auxiliar com papel em duas seções:** o seletor mostra as duas, e cada tela troca os dados ao escolher. Task 6 (API) e Task 7 (site).
 
-### Task 5: `/api/eu` com as unidades e a lotação
+### Task 5: A folga do auxiliar na senha provisória
+
+Decisão do usuário (21/11/2026, `docs/decisoes.md`): o auxiliar também gera a senha provisória, e desativa o acesso, de um **colega auxiliar** da unidade dele ou de baixo. Para quem tem papel de gestor ou de administrador, continua valendo só quem pode dar o papel.
+
+**Files:**
+- Modify: `apps/api/src/usuarios/rotas.ts` (`podeMexerNaConta`)
+- Test: `apps/api/test/usuarios.test.ts`
+
+- [ ] **Step 1: Testes.**
+  - `it('o auxiliar da 1ª SB gera a senha de outro auxiliar da 1ª SB')`: 201.
+  - `it('o auxiliar da 1ª SB não gera a senha de um auxiliar do 2º GB nem de um gestor')`: 403 com o texto de hoje.
+  - `it('o auxiliar desativa o acesso de um colega auxiliar da unidade dele')`.
+  - O `podeGerarSenha` do `GET …/acesso` acompanha a regra nos três casos.
+- [ ] **Step 2: Run** `pnpm --filter api test usuarios`. Expected: FAIL.
+- [ ] **Step 3: Implement.** Em `podeMexerNaConta`, um papel `escalante` da pessoa também passa quando quem pede tem `temPapel(…, p.unidade_id, ['escalante'], hoje)`. Os papéis `gestor` e `administrador` continuam em `podeNaUnidade`. Fazer o `podeGerarSenha` usar a mesma função.
+- [ ] **Step 4: Run** `pnpm --filter api test`. Expected: PASS.
+- [ ] **Step 5: Commit** `Fase 6.2: o auxiliar gera a senha de um colega auxiliar`.
+
+### Task 6: `/api/eu` com as unidades e a lotação
 
 **Files:**
 - Modify: `apps/api/src/rotas/eu.ts`
@@ -297,7 +315,7 @@ O retorno da validação que chegar durante a fase vira uma entrega depois da ú
 - [ ] **Step 4: Run** `pnpm --filter api test`. Expected: PASS.
 - [ ] **Step 5: Commit** `Fase 6.2: o /api/eu com as unidades acessíveis e a lotação`.
 
-### Task 6: O seletor e a unidade escolhida no site
+### Task 7: O seletor e a unidade escolhida no site
 
 **Files:**
 - Create: `apps/web/src/lib/unidade-de-trabalho.ts`
@@ -307,7 +325,7 @@ O retorno da validação que chegar durante a fase vira uma entrega depois da ú
 - Test: `apps/web/src/__testes__/unidade-de-trabalho.test.ts`, `apps/web/src/__testes__/casca.test.tsx`
 
 **Interfaces:**
-- Consumes: `UnidadeDeTrabalho` (Task 5).
+- Consumes: `UnidadeDeTrabalho` (Task 6).
 - Produces:
   - `escolherUnidade(eu: EuDaApi, guardada: string | null): UnidadeDeTrabalho | null`;
   - `lerUnidadeGuardada(): string | null`;
@@ -388,13 +406,13 @@ O retorno da validação que chegar durante a fase vira uma entrega depois da ú
 
 ## Review Focus
 
-1. **Militar comum digita `/militares` no endereço:** vai para o início com o aviso, sem ver nada da lista. Task 8.
-2. **Endereço antigo `/` com `?mes=…`** (favorito da Grade geral): leva à Grade geral em `/grade` com o mesmo mês. Task 8.
-3. **Telefone inválido na Minha ficha:** a mensagem aparece no campo e nada é gravado. Task 7 (API) e Task 9 (site).
-4. **Ficha aberta pelo Pecúlio:** o trilho continua o do Pecúlio, e "Voltar" volta ao Pecúlio. Task 8.
-5. **Auxiliar abre a Minha ficha:** vê os próprios dados, não os de quem está selecionado na unidade. Task 7.
+1. **Militar comum digita `/militares` no endereço:** vai para o início com o aviso, sem ver nada da lista. Task 9.
+2. **Endereço antigo `/` com `?mes=…`** (favorito da Grade geral): leva à Grade geral em `/grade` com o mesmo mês. Task 9.
+3. **Telefone inválido na Minha ficha:** a mensagem aparece no campo e nada é gravado. Task 8 (API) e Task 10 (site).
+4. **Ficha aberta pelo Pecúlio:** o trilho continua o do Pecúlio, e "Voltar" volta ao Pecúlio. Task 9.
+5. **Auxiliar abre a Minha ficha:** vê os próprios dados, não os de quem está selecionado na unidade. Task 8.
 
-### Task 7: A própria ficha na API
+### Task 8: A própria ficha na API
 
 **Files:**
 - Modify: `apps/api/src/rotas/eu.ts` (as rotas `/ficha` e `/telefone`, com sessão conferida como no GET)
@@ -417,7 +435,7 @@ O retorno da validação que chegar durante a fase vira uma entrega depois da ú
 - [ ] **Step 4: Run** `pnpm --filter api test`. Expected: PASS.
 - [ ] **Step 5: Commit** `Fase 6.3: a própria ficha e o próprio telefone na API`.
 
-### Task 8: Módulos, endereços e o trilho por módulo
+### Task 9: Módulos, endereços e o trilho por módulo
 
 **Files:**
 - Create: `apps/web/src/lib/modulos.ts`
@@ -449,7 +467,7 @@ O retorno da validação que chegar durante a fase vira uma entrega depois da ú
 - [ ] **Step 5: Run** `pnpm --filter web test`. Expected: PASS.
 - [ ] **Step 6: Commit** `Fase 6.3: módulos, a Grade em /grade e o trilho por módulo`.
 
-### Task 9: Tela inicial e Minha ficha
+### Task 10: Tela inicial e Minha ficha
 
 **Files:**
 - Create: `apps/web/src/routes/_app/index.tsx` (tela inicial)
@@ -460,7 +478,7 @@ O retorno da validação que chegar durante a fase vira uma entrega depois da ú
 - Test: `apps/web/src/__testes__/inicio.test.tsx`, `apps/web/src/__testes__/minha-ficha.test.tsx`
 
 **Interfaces:**
-- Consumes: `MODULOS` (Task 8); `MinhaFicha` e as rotas (Task 7).
+- Consumes: `MODULOS` (Task 9); `MinhaFicha` e as rotas (Task 8).
 - Produces: `saudacao(agora: Date): 'Bom dia' | 'Boa tarde' | 'Boa noite'`, em `apps/web/src/lib/saudacao.ts`, no fuso de Recife.
 
 - [ ] **Step 1: Testes.**
