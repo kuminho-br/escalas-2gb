@@ -78,7 +78,7 @@ export function rotasImportacao(dep: { banco: Banco; auth: Auth }, importadores:
         return c.json({ erro: 'Outra gravação aconteceu ao mesmo tempo. Envie o arquivo de novo para ver a prévia atualizada.' }, 409);
       }
       console.error(e);
-      return c.json({ erro: 'Não foi possível gravar a importação. Nada foi gravado: envie o arquivo de novo.' }, 500);
+      return c.json({ erro: 'Não foi possível gravar a importação. Nada foi gravado. Tente de novo em alguns minutos.' }, 500);
     }
   });
   return r;

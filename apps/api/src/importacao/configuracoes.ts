@@ -80,7 +80,7 @@ export const importadorConfiguracoes: Importador<Item[]> = {
       }
       // como na tela: o mês que já passou não muda (vigência vazia vale desde a criação da seção e não entra nesta conferência)
       if (boa.vigencia && boa.vigencia < hoje.slice(0, 7)) {
-        problemas.push({ aba: ABA, linha: l.linha, mensagem: 'Mês já passou', solucao: 'Use o mês atual ou um mês futuro.' });
+        problemas.push({ aba: ABA, linha: l.linha, mensagem: `Mês já passou: ${boa.chave}, ${mesPorExtenso(boa.vigencia)}`, solucao: 'Use o mês atual ou um mês futuro.' });
         continue;
       }
       const vigencia = boa.vigencia || criacao;

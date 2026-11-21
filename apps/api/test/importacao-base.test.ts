@@ -131,7 +131,7 @@ describe('leitor de mês e de data da planilha', () => {
     const r = await api.pedir('escalante', 'POST', `${caminho('quebrado')}?confirmar=1`, formulario(await arquivo()));
     expect(r.status).toBe(500);
     expect(r.headers.get('content-type')).toMatch(/json/);
-    expect(await r.json()).toEqual({ erro: 'Não foi possível gravar a importação. Nada foi gravado: envie o arquivo de novo.' });
+    expect(await r.json()).toEqual({ erro: 'Não foi possível gravar a importação. Nada foi gravado. Tente de novo em alguns minutos.' });
   });
 });
 

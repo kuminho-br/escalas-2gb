@@ -1,4 +1,4 @@
-import { somarMeses } from 'contratos';
+import { mesPorExtenso, somarMeses } from 'contratos';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { hojeRecife } from '../src/datas.ts';
 import { montarApi, type ApiDeTeste } from './apoio-api.ts';
@@ -94,7 +94,7 @@ describe('importação de configurações', () => {
     const futuro = somarMeses(atual, 4);
     const linhas = [['CARGA_MENSAL_HORAS', 150, passado, ''], ['SALDOS_ADM_POR_MILITAR', 7, atual, ''], ['ADM_CUMPRE_CARGA', 'SIM', futuro, '']];
     const previa = await importar(linhas);
-    expect(previa.problemas).toEqual([{ aba: 'CONFIGURAÇÕES', linha: 2, mensagem: 'Mês já passou', solucao: 'Use o mês atual ou um mês futuro.' }]);
+    expect(previa.problemas).toEqual([{ aba: 'CONFIGURAÇÕES', linha: 2, mensagem: `Mês já passou: CARGA_MENSAL_HORAS, ${mesPorExtenso(passado)}`, solucao: 'Use o mês atual ou um mês futuro.' }]);
     expect([...previa.novos, ...previa.alterados].map((n: { chave: string }) => n.chave).sort()).toEqual([`ADM_CUMPRE_CARGA|${futuro}`, `SALDOS_ADM_POR_MILITAR|${atual}`].sort());
     expect((await importar(linhas, true)).gravados).toBe(2);
     const { rows } = await api.banco.query<{ vig: string }>("select to_char(vigencia_desde, 'YYYY-MM') as vig from parametro where unidade_id = $1 and chave = 'CARGA_MENSAL_HORAS'", [api.ids.secao]);
