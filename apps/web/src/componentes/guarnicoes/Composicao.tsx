@@ -43,10 +43,20 @@ export function Composicao({ linhas, aoMudar, funcoes, unidadeId, aoMudarFuncao 
   const [erro, setErro] = useState<string | null>(null);
   // criar e renomear gravam na hora: travados, dois cliques seguidos mandam um pedido só; o nome novo digitado e não criado é alteração pendente
   const { salvando: gravando, travar } = useTrava();
-  usePendencia('funcao-nova', criando !== null && nomeNovo.trim() !== '');
+  // só conta enquanto a linha da função nova existe (remover a linha desfaz o que ela tinha)
+  usePendencia('funcao-nova', criando !== null && linhas.some((l) => l.chave === criando) && nomeNovo.trim() !== '');
 
   const mudar = (chave: number, parte: Partial<LinhaEdicao>) => aoMudar(linhas.map((l) => (l.chave === chave ? { ...l, ...parte } : l)));
   const funcaoDe = (l: LinhaEdicao) => funcoes.find((f) => f.id === l.funcaoId);
+  // a linha some com o que estava aberto nela (nome novo, renomear): um número de linha reaproveitado não herda a caixa de ninguém
+  const remover = (chave: number) => {
+    if (criando === chave) {
+      setCriando(null);
+      setNomeNovo('');
+    }
+    if (renomeando?.chave === chave) setRenomeando(null);
+    aoMudar(linhas.filter((x) => x.chave !== chave));
+  };
 
   const criar = travar(async (chave: number) => {
     setErro(null);
@@ -152,7 +162,7 @@ export function Composicao({ linhas, aoMudar, funcoes, unidadeId, aoMudarFuncao 
                     </Selecao>
                   )}
                 </span>
-                <Button type="button" variant="ghost" size="xs" aria-label={`Remover ${nome}`} className="justify-self-end" onClick={() => aoMudar(linhas.filter((x) => x.chave !== l.chave))}>
+                <Button type="button" variant="ghost" size="xs" aria-label={`Remover ${nome}`} className="justify-self-end" onClick={() => remover(l.chave)}>
                   Remover
                 </Button>
               </div>
@@ -175,7 +185,7 @@ export function Composicao({ linhas, aoMudar, funcoes, unidadeId, aoMudarFuncao 
                 <div className="flex flex-wrap items-center gap-2">
                   <Input aria-label="Nome da nova função" value={nomeNovo} onChange={(e) => setNomeNovo(e.target.value)} className="max-w-xs" />
                   <Button type="button" size="sm" disabled={!nomeNovo.trim() || gravando} onClick={() => void criar(l.chave)}>Criar</Button>
-                  <Button type="button" size="sm" variant="ghost" onClick={() => setCriando(null)}>Cancelar</Button>
+                  <Button type="button" size="sm" variant="ghost" disabled={gravando} onClick={() => setCriando(null)}>Cancelar</Button>
                 </div>
               )}
             </li>

@@ -249,6 +249,34 @@ describe('ficha da guarnição', () => {
     confirmar.mockRestore();
   });
 
+  it('"Nova função…" com o nome digitado e a linha removida não deixa pendência: sair da ficha não pergunta', async () => {
+    const confirmar = vi.spyOn(window, 'confirm').mockReturnValue(false);
+    api();
+    const router = abrir('/configuracoes/modelos-de-guarnicao/g1');
+    await userEvent.click(await screen.findByRole('button', { name: 'Incluir função' }));
+    await userEvent.selectOptions(await screen.findByLabelText('Função 3'), 'Nova função…');
+    await userEvent.type(screen.getByLabelText('Nome da nova função'), 'Socorrista');
+    await userEvent.click(screen.getByRole('button', { name: 'Remover linha 3' }));
+    expect(screen.queryByLabelText('Nome da nova função')).toBeNull();
+    await userEvent.click(screen.getByRole('link', { name: 'Grade geral' }));
+    expect(confirmar).not.toHaveBeenCalled();
+    await waitFor(() => expect(router.state.location.pathname).not.toBe('/configuracoes/modelos-de-guarnicao/g1'));
+    confirmar.mockRestore();
+  });
+
+  it('"Cancelar" da função nova fica desabilitado enquanto a criação grava', async () => {
+    const { espera, soltar } = trava();
+    api({ 'POST /api/unidades/u-1sb/funcoes': { status: 201, corpo: { id: 'f-new', nome: 'Socorrista', unidadeSigla: '1ª SB', herdada: false }, espera } });
+    abrir('/configuracoes/modelos-de-guarnicao/g1');
+    await userEvent.click(await screen.findByRole('button', { name: 'Incluir função' }));
+    await userEvent.selectOptions(await screen.findByLabelText('Função 3'), 'Nova função…');
+    await userEvent.type(screen.getByLabelText('Nome da nova função'), 'Socorrista');
+    await userEvent.click(screen.getByRole('button', { name: 'Criar' }));
+    expect(screen.getByRole('button', { name: 'Cancelar' })).toBeDisabled();
+    soltar();
+    await waitFor(() => expect(screen.getByLabelText('Função 3')).toHaveValue('f-new'));
+  });
+
   it('a função herdada mostra a sigla de onde vem e não tem lápis', async () => {
     api();
     abrir('/configuracoes/modelos-de-guarnicao/g1');
