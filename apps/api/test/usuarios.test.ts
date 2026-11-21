@@ -121,9 +121,10 @@ describe('gerar a senha provisória', () => {
     expect(r.status).toBe(403);
     expect((await r.json()).erro).toBe('Você não tem permissão nos cadastros de 1ª SB.');
     // o auxiliar também gera a senha de um colega auxiliar da unidade dele (folga de 21/11), e a de um militar sem papel
-    expect((await como(cookie, 'POST', `/api/militares/${dele.id}/senha-provisoria`)).status).toBe(201);
     const comum = await novoMilitar({ unidadeId: outraSecao });
     expect((await como(cookie, 'POST', `/api/militares/${comum.id}/senha-provisoria`)).status).toBe(201);
+    // por último: gerar a própria senha derruba a sessão que pediu
+    expect((await como(cookie, 'POST', `/api/militares/${dele.id}/senha-provisoria`)).status).toBe(201);
   });
 
   it('militar que não existe é 404', async () => {
