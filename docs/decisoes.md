@@ -8,6 +8,7 @@ Siglas dos documentos: **Design** = `superpowers/specs/2026-11-16-migracao-desig
 
 | Data | Decisão | Onde está |
 |---|---|---|
+| 21/11/2026 | A importação continua recusando mês passado; planilha antiga se adapta à regra de hoje (vigência vazia na linha que vale agora). Recusadas: valer a mais recente das antigas e contar a antiga igual como "igual". | Design, Cadastros › Importação |
 | 20/11/2026 | Fluxo de entrega: a DESENVOLVIMENTO envia o branch; a PLANEJAMENTO abre o PR, mescla e avisa a VALIDAÇÃO, que monta os testes de navegador. | Roadmap, Como ler |
 | 20/11/2026 | A entrega 4.6 junta o segundo lote de pendências simples, enquanto o modelo do Pecúlio é fechado. | Roadmap, Fase 4 |
 | 20/11/2026 | A entrega 4.5 junta pendências simples, sem decisão aberta, para a programação seguir enquanto o modelo do Pecúlio é fechado. | Roadmap, Fase 4 |

@@ -259,7 +259,6 @@ Achadas nas revisões e nas validações. Nenhuma muda quem é escalado. Entram 
 - o texto do Voluntariado pode ser cortado num mês com muitas horas.
 
 **Da entrega 4.6** (lista no PR #63):
-- **decisão do usuário pendente:** sandbox antiga só com meses passados fica sem vínculo e sem configuração na importação; alternativas no PR #63;
 - "Mês já passou" não diz qual chave ou escala é a linha;
 - fechar a importação durante a confirmação: o erro que vier depois some, e uma segunda confirmação pode sair;
 - pendência fantasma da função nova depois de "Remover"; o "Cancelar" da função nova não trava;
