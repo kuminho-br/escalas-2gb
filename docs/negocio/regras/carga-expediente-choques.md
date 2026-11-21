@@ -1,39 +1,48 @@
-# Regras — carga horária, Adm e choques
-Carga horária e saldos, expediente do Adm e pré-escala, choques de horário (RN-15 a RN-26, RN-84, RN-85, RN-91).
+# Regras — carga horária, Adm, pré-escala e choques
 
-Fonte: Catálogo de Regras de Negócio do claude.ai (rev. 160, 15/11/2026), colhido em 20/11/2026. Quem cuida: DOCUMENTAÇÃO. Índice: [LEIAME](LEIAME.md).
+Carga horária e saldos, expediente do Adm, pré-escala, choques de horário (RN-15 a RN-20, RN-22 a RN-26, RN-84, RN-85, RN-91, RN-112, RN-113).
+
+Quem cuida: DOCUMENTAÇÃO. Conferido contra o sistema novo em 21/11/2026. Índice e colunas: [LEIAME](LEIAME.md).
 
 ## Carga horária e saldos
-O Pronto cumpre 160h por mês; o Adm hoje cumpre apenas a cota de saldos, 6 por militar.
 
-| ID | Regra | Status | Barreira |
-|---|---|---|---|
-| RN-15 | A carga mensal do militar do Pronto não é fixa no código: é o parâmetro "Carga mensal (horas)" do painel de Configurações (hoje 160h). | Implementada | Ambas |
-| RN-16 | JES e diárias não contam na carga horária do militar. Exceção: o voluntário que não preencheu o formulário do mês e é escalado de forma compulsória (RN-41) tem essa escala abatida da carga horária padrão dele; o valor do abatimento é parâmetro de configuração. | Confirmada | Ambas |
-| RN-17 | Se o militar do Adm cumpre a carga mensal é o parâmetro liga/desliga "Adm cumpre a carga mensal" do painel de Configurações. Hoje está desligado: o Adm cumpre só os saldos. | Implementada | Ambas |
-| RN-18 | A quantidade de saldos por militar do Adm no mês é parâmetro do sistema; padrão 6, e o escalante pode digitar outro valor. | Implementada | Ambas |
+O Pronto cumpre 160h por mês; o Adm hoje cumpre só a cota de saldos, 6 por militar. Os três números são parâmetros em Configurações, com vigência, valendo para a unidade e as de baixo.
 
+| ID | Regra | Situação | No sistema novo | Barreira |
+|---|---|---|---|---|
+| RN-15 | A carga mensal do Pronto é o parâmetro "Carga mensal (horas)" (hoje 160h), não fixa no código. | Confirmada | Parâmetro existe; quem o usa são as distribuições (fase 8) | Ambas |
+| RN-16 | JES e diárias não contam na carga horária. Exceção: o voluntário escalado de forma compulsória por não ter marcado voluntariado (RN-41) tem essa escala abatida da carga padrão; o valor do abatimento é parâmetro. | Confirmada | Fase 8 | Ambas |
+| RN-17 | Se o Adm cumpre a carga mensal é o parâmetro liga/desliga "Adm cumpre a carga mensal". Hoje desligado: o Adm cumpre só os saldos. | Confirmada | Parâmetro existe; o efeito no expediente funciona (RN-25) | Ambas |
+| RN-18 | A quantidade de saldos por militar do Adm no mês é parâmetro; padrão 6. | Confirmada | Parâmetro existe; quem o usa é a distribuição de saldos (fase 8) | Ambas |
 
-## Expediente do Adm e pré-escala
-A pré-escala é uma sugestão automática que o escalante sempre revisa; o Adm só trabalha em dias úteis.
+## Expediente do Adm
 
-| ID | Regra | Status | Barreira |
-|---|---|---|---|
-| RN-19 | O Adm está de expediente todo dia útil; o serviço normal do Adm nunca cai em fim de semana ou feriado. | Implementada | Ambas |
-| RN-20 | A distribuição automática do serviço normal do Adm é só uma pré-escala: equaliza a carga entre os militares do Adm e ao longo da semana de cada um, e o escalante ajusta depois. Só se aplica quando o Adm precisa cumprir as 160h mensais (RN-17 ligada). | Confirmada | Automação |
-| RN-21 | A distribuição do Adm é uma etapa do painel de pré-escala, não um painel próprio. | Implementada | Automação |
-| RN-22 | A pré-escala do Pronto do mês seguinte é gerada a partir do mês atual, seguindo o rodízio das equipes Alfa, Bravo, Charlie e Delta. | Implementada | Automação |
-| RN-84 | A pré-escala é um guia, não a escala final: o sistema monta para o escalante não fazer tudo à mão e, depois de pronta, o escalante altera o que quiser, desde que a alteração não quebre as regras de alocação. | Confirmada | Ambas |
-| RN-85 | A partir de hoje (inclusive) o escalante altera livremente os dias futuros; de ontem para trás fica travado, porque o serviço já está acontecendo. Falta definir quais correções continuam permitidas nos dias já passados (P-17). | A esclarecer | Suporte |
-| RN-91 | Na escala automática do Adm, o militar é lançado em todo dia útil; se nesse dia ele for escalado em Saldo no turno A (08–20), o serviço de Adm sai do dia dele, para não dar choque de horário. | Confirmada | Automação |
+| ID | Regra | Situação | No sistema novo | Barreira |
+|---|---|---|---|---|
+| RN-19 | O Adm está de expediente todo dia útil; o expediente nunca cai em fim de semana ou feriado. | Confirmada | Funciona (expediente implícito nas conferências) | Ambas |
+| RN-20 | A distribuição automática do expediente do Adm é só uma pré-escala: equaliza a carga entre os militares do Adm e ao longo da semana. Só se aplica quando o Adm cumpre as 160h (RN-17 ligada). | Confirmada | No motor (`distribuirAdm`); fase 8 | Automação |
+| RN-91 | Na escala automática do Adm, o militar é lançado em todo dia útil; se no dia ele tiver Saldo no turno A, o expediente sai do dia dele, para não dar choque. | Confirmada | No motor; fase 8 | Automação |
 
+## Pré-escala
+
+A pré-escala é uma sugestão automática que o escalante sempre revisa.
+
+| ID | Regra | Situação | No sistema novo | Barreira |
+|---|---|---|---|---|
+| RN-22 | A pré-escala do Pronto segue o rodízio das equipes do ciclo (Alfa, Bravo, Charlie, Delta). A equipe do dia 1 é descoberta pelo Pronto dos últimos dias do mês anterior. | Confirmada | Funciona (pré-escala do Pronto, entrega 3.1) | Automação |
+| RN-44 | Na situação padrão, o Pronto emenda os turnos A e B: das 08h do dia D às 08h do dia D+1. | Confirmada | Funciona (pré-escala do Pronto) | Base |
+| RN-84 | A pré-escala é um guia, não a escala final: depois dela o escalante altera o que quiser, e as alterações passam pelas mesmas regras de alocação. | Confirmada | Funciona | Ambas |
+| RN-113 | Gerar a pré-escala de novo não sobrescreve o que já está escalado: só completa as lacunas. | Confirmada | Funciona | Automação |
+| RN-112 | Gerar de novo não devolve um militar a um dia e turno de onde o escalante o tirou. A remoção vale para o militar (militar, dia, serviço, turno), não para a vaga. Pôr o militar de volta à mão apaga a remoção. | Confirmada | Funciona | Automação |
+| RN-85 | Dias de hoje em diante se alteram livremente; os passados ficam travados, porque o serviço já aconteceu. Falta definir que correções continuam permitidas no passado (P-17). | A esclarecer | — | Suporte |
 
 ## Choques e encadeamento de serviços
-Por ora a única validação obrigatória é impedir choque de horários; as regras de descanso da PCG 314 ficam para depois.
 
-| ID | Regra | Status | Barreira |
-|---|---|---|---|
-| RN-23 | Um militar não pode ter dois serviços com horários sobrepostos (choque de escalas). | Implementada | Ambas |
-| RN-24 | O militar não pode tirar JES e emendar com Pronto; pode tirar Pronto e emendar com JES. | Implementada | Ambas |
-| RN-25 | O Adm não pode tirar Diária no horário do expediente em dia útil. A janela de bloqueio é o horário do serviço Adm cadastrado em TURNOS (hoje 08:00–16:00). O que conta como Diária é definido pela coluna TIPO DE SERVIÇO de TURNOS: apenas serviços do tipo "Diária" (ex.: Bioma, PE Seguro) são impedidos; serviços do tipo "PJES" (ex.: JES, Defensoria, CPRH) e do tipo "Ordinário" (ex.: Pronto, Saldo) não são impedidos. A regra só se aplica quando RN-17 está desligada (Adm não cumpre a carga mensal); quando está ligada, o expediente aparece na grade e o choque é detectado normalmente (RN-17). O Saldo no mesmo horário ou um Adm real no mesmo dia dispensa o expediente implícito daquele dia. | Implementada | Ambas |
-| RN-26 | Regras de descanso e de bloco da Portaria do Comando Geral nº 314/2025 serão aplicadas no futuro. | Confirmada | Ambas |
+Por ora a validação obrigatória é impedir choque de horário; as regras de descanso da Portaria 314 ficam para depois.
+
+| ID | Regra | Situação | No sistema novo | Barreira |
+|---|---|---|---|---|
+| RN-23 | Um militar não pode ter dois serviços com horários sobrepostos. O acúmulo de funções (RN-104) não é choque: é o mesmo turno. | Confirmada | Funciona (lista "Escolher militar", gravação e troca) | Ambas |
+| RN-24 | O militar não pode tirar JES e emendar com Pronto; pode tirar Pronto e emendar com JES. | Confirmada | Funciona | Ambas |
+| RN-25 | O Adm não pode tirar diária no horário do expediente em dia útil (janela do turno do serviço Expediente, hoje 08h–16h). Só os serviços do tipo Diária são impedidos; PJES e Ordinário não. Vale quando a RN-17 está desligada. Um Saldo no mesmo horário dispensa o expediente do dia. | Confirmada | Funciona | Ambas |
+| RN-26 | As regras de descanso e de bloco da Portaria do Comando Geral nº 314/2025 serão aplicadas no futuro (RN-57, RN-58). | Confirmada | Fase 10 | Ambas |

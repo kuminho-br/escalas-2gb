@@ -1,10 +1,10 @@
 # Relatório da documentação
 
-Gerado em 2026-11-20 pelo script `docs/ferramentas/checar-documentacao.sh`, sobre o commit `d9e6140`.
+Gerado em 2026-11-20 pelo script `docs/ferramentas/checar-documentacao.sh`, sobre o commit `9807bb3`.
 
 **Resumo:** 8 alerta(s). CLAUDE.md: bom.
 
-Relatório anterior: Resumo: 13 alerta(s). CLAUDE.md: bom.
+Relatório anterior: Resumo: 8 alerta(s). CLAUDE.md: bom.
 
 ## Documentos grandes (acima de 25 KB)
 

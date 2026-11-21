@@ -1,69 +1,70 @@
-# Regras — serviços, turnos e guarnições
-Serviços e turnos, ativação de viaturas e guarnições, e a ordem de alocação para cumprir a meta (RN-01 a RN-13, RN-81, RN-83, RN-92 a RN-96, RN-100).
+# Regras — serviços, escalas e guarnições
 
-Fonte: Catálogo de Regras de Negócio do claude.ai (rev. 160, 15/11/2026), colhido em 20/11/2026. Quem cuida: DOCUMENTAÇÃO. Índice: [LEIAME](LEIAME.md).
+Serviços e escalas, modelos de guarnição, meta de ativação, ordem de escalação e acúmulo (RN-01 a RN-13, RN-83, RN-92 a RN-96, RN-100, RN-102 a RN-104, RN-108 a RN-111).
 
-## Serviços e turnos
-A aba TURNOS da planilha sandbox cadastra 9 serviços em 5 tipos e 17 turnos; ela é a fonte oficial de horários e durações.
+Quem cuida: DOCUMENTAÇÃO. Conferido contra o sistema novo em 21/11/2026. Índice e colunas: [LEIAME](LEIAME.md).
 
-| Tipo | Serviço | Turno | Início | Fim | Duração (h) |
-|---|---|---|---|---|---|
-| Ordinário | Pronto | A | 08:00 | 20:00 | 12 |
-| Ordinário | Pronto | B | 20:00 | 08:00 | 12 |
-| Ordinário | Adm | A | 08:00 | 16:00 | 8 |
-| Ordinário | Saldo | A | 08:00 | 20:00 | 12 |
-| Ordinário | Saldo | B | 20:00 | 08:00 | 12 |
-| PJES | JES | A | 08:00 | 20:00 | 12 |
-| PJES | JES | B | 20:00 | 08:00 | 12 |
-| PJES | Defensoria | A | 07:00 | 19:00 | 12 |
-| PJES | CPRH | A | 08:00 | 20:00 | 12 |
-| Diária | Bioma | A / B / C | 00:00 / 08:00 / 16:00 | 08:00 / 16:00 / 00:00 | 8 |
-| Diária | PE Seguro | A / B / C | 00:00 / 08:00 / 16:00 | 08:00 / 16:00 / 00:00 | 8 |
-| Diária | Eleições | A / B | 07:00 / 15:00 | 15:00 / 23:00 | 8 |
+## Serviços e escalas
 
+Serviço é de onde vem a hora (Pronto, JES, Saldo, diária, PJES); escala é o agrupamento de serviços que guarnecem os mesmos modelos de guarnição. No sistema novo os dois são cadastros da seção (telas Serviços e Escalas).
 
-| ID | Regra | Status | Barreira |
-|---|---|---|---|
-| RN-01 | Serviços, turnos, horários e durações vêm do cadastro TURNOS; novos tipos e serviços podem ser criados sem mudar o código. | Implementada | Base |
-| RN-02 | Na escala exibida ao escalante, cada célula mostra o serviço com o horário (ex.: "Pronto 08–20"). O tipo de serviço (Ordinário, PJES, Diária) não aparece na célula; só é usado em documentos e relatórios. O texto inteiro tem de caber na célula, sem cortes: a coluna do dia será alargada. | Implementada | Base |
-| RN-03 | O serviço Saldo só pode ser tirado por militar do Adm. A automação não lança Saldo para quem não é do Adm, e a lista suspensa da escala só oferece Saldo para militar do Adm. | Implementada | Ambas |
-| RN-04 | As diárias são mandadas pelas cotas: cada cota de diária corresponde a 1 alocação de militar num turno de operação (ex.: 20 cotas = 20 alocações). Só pode tirar diária quem preencheu o formulário mensal de voluntariado; não precisa ter o status de voluntário de JES. | Implementada | Base |
-| RN-05 | Serviço extraordinário externo é o que vem de uma cota de origem externa: os militares tiram, mas não conta na cota da SB (ver RN-35). | Confirmada | Base |
-| RN-83 | Serviço e turno são cadastros separados: o serviço guarda nome, tipo e, só quando o tipo é Diária, a operação a que pertence; cada turno aponta para um serviço e guarda horário e duração. O conjunto de turnos de um serviço é o seu espaço de possibilidade temporal: declara em que janelas aquele serviço pode ocorrer, não uma tabela de horários fixos. Serviços que não são diária não têm operação. | Confirmada | Base |
+| ID | Regra | Situação | No sistema novo | Barreira |
+|---|---|---|---|---|
+| RN-01 | Serviços, turnos, horários e durações são cadastro do usuário; tipos e serviços novos são criados sem mudar o código. | Confirmada | Funciona (tela Serviços) | Base |
+| RN-02 | Onde o sistema mostra um serviço escalado, mostra o nome do serviço, na cor dele, e o horário (ex.: etiqueta "Bioma" com "08h–16h"). O tipo (Ordinário, PJES, Diária) não aparece; só serve a documentos e relatórios. | Confirmada | Funciona (Escala do mês, Efetivo por dia, Grade geral) | Base |
+| RN-03 | O serviço Saldo só pode ser tirado por militar do Adm. A automação não lança Saldo para quem não é do Adm, e a escolha do militar não o oferece. | Confirmada | Funciona (lista "Escolher militar" e gravação) | Ambas |
+| RN-04 | As diárias são mandadas pelas cotas: cada cota corresponde a 1 militar num turno (20 cotas = 20 alocações). Só tira diária quem marcou voluntariado no horário; não precisa do atributo "voluntário JES". | Confirmada | Funciona | Base |
+| RN-05 | Serviço extraordinário externo é o que vem de uma cota de origem externa: os militares tiram, mas não conta na cota da SB (RN-35). | Confirmada | Funciona (origem da cota) | Base |
+| RN-83 | Serviço e turno são cadastros separados: o serviço guarda nome, tipo, cor e seus turnos; cada turno guarda início e fim. Os turnos de um serviço declaram em que janelas ele pode ocorrer, não um horário fixo. Não existe turno único: o serviço de um turno só usa o A. A diária é o próprio serviço; não há campo "operação". | Confirmada | Funciona | Base |
+| RN-111 | Pronto, Saldo, JES e Expediente são serviços fixos: o sistema os cria em cada seção, e o usuário não muda nome, tipo nem os exclui. Horários, cor e vínculo com escalas ficam livres. Diárias e PJES são cadastro livre; a regra delas vem do tipo. | Confirmada | Funciona | Base |
+| RN-09 | A escala diz quais modelos de guarnição cada faixa de horário guarnece. O vínculo é escala × faixa de horário → modelo, nunca serviço × turno; serviços com a mesma faixa dividem o vínculo. Mudar o horário de um turno deixa órfãos os vínculos da faixa antiga, e a ficha avisa. | Confirmada | Funciona (ficha da escala) | Ambas |
+| RN-100 | A demanda é da escala, não de cada serviço: todos os serviços de uma escala contribuem com horas para preencher as mesmas guarnições (ex.: o Ordinário agrupa Pronto, JES e Saldo). Atributos de publicação (título, militares e dias exibidos) pertencem à escala. | Confirmada | Funciona | Base |
 
+Exemplo: os serviços da 1ª SB na planilha do protótipo (15/11/2026). No sistema novo a fonte é a tela Serviços.
 
-## Ativação de viaturas e guarnições
-A meta de ativação passa a ser configurada pelo usuário, viatura a viatura, com prioridade, serviços aceitos e guarnição mínima e máxima. Fica para implementações futuras.
-
-| ID | Regra | Status | Barreira |
-|---|---|---|---|
-| RN-07 | O usuário define quais guarnições devem ser ativadas (quantidade e tipo). A entidade cadastrada e ativada é a guarnição; a viatura é atributo opcional dela, porque existe guarnição sem viatura (RN-96). “Quantidade e tipo” é a granularidade atual: enquanto não houver mais de uma instância do mesmo tipo numa escala, tipo e instância se confundem sem prejuízo (P-30). | Confirmada | Automação |
-| RN-08 | O usuário define a ordem de prioridade de ativação das guarnições. Essa prioridade é propriamente da instância ativada, não do tipo: se a escala ativar 2 guarnições do mesmo tipo, dever-se-ia completar a primeira antes de começar a segunda. Enquanto não houver esse cenário, tipo e instância se confundem sem prejuízo (P-30). Guarnição sem prioridade cadastrada vai por último (comportamento atual do código); manter isso ou exigir o valor no cadastro está em aberto (P-31). | Confirmada | Automação |
-| RN-09 | A escala é um agrupamento estrutural de serviços que compartilham uma demanda operacional (ex.: a escala do Ordinário agrupa Pronto, JES e Saldo — os três disputam o mesmo ABT). O vínculo entre escala × turno e as guarnições que podem servi-la é definido pelo usuário na aba GUARNIÇÕES POR ESCALA, como cadastro mensal (RN-93). O vínculo é sempre escala × turno → guarnição, nunca serviço × turno. Substitui a antiga coluna TIPOS DE SERVIÇO da aba GUARNIÇÕES, que é removida. | Implementada | Ambas |
-| RN-100 | Uma escala é um agrupamento estrutural de serviços que compartilham uma demanda operacional. Cada serviço de uma escala contribui com horas de militares para preencher as mesmas guarnições; a demanda é da escala, não de cada serviço isoladamente. Atributos de publicação (título da folha, quais militares exibir, quais dias exibir) pertencem à escala, não ao serviço. Exemplo: a escala do Ordinário agrupa Pronto, JES e Saldo. | Implementada | Base |
-| RN-10 | Cada guarnição tem um efetivo mínimo por função; abaixo dele a guarnição não é ativada. Esta é uma das causas de não-ativação; há pelo menos outras duas ainda não catalogadas: viatura indisponível para montar a guarnição, e calendário da operação (a operação não ocorre naquele dia). A lista de causas é cadastrável. | Confirmada | Ambas |
-| RN-11 | Cada guarnição tem um efetivo máximo por função; acima dele não se aloca mais ninguém. | Confirmada | Ambas |
-| RN-12 | A função de motorista exige militar do quadro de motoristas com a categoria de CNH exigida pela guarnição — com ou sem viatura (ex.: motorista do ACO, RN-96). A hierarquia de categorias é regra do CTB, não cadastrável: D habilita C e B; C habilita B; A habilita só A; E habilita D, C e B. Ou seja, o posto aceita quem tem a categoria exigida ou outra que a habilite. A notação concatenada do militar (ex.: "AD" = A e D) continua valendo; a hierarquia se aplica sobre cada letra individualmente. | Implementada | Ambas |
-| RN-92 | Depois que cada guarnição obrigatória atinge o efetivo mínimo (na ordem de prioridade da RN-08), o efetivo restante do Pronto e do JES é distribuído para completar até o máximo, guarnição por guarnição, na mesma ordem. Se ainda sobrar efetivo depois de todas chegarem ao máximo, o excedente é distribuído 1 militar por vez em cada composição, seguindo a mesma ordem de prioridade. É assim que o Pronto e o JES cumprem a meta de ativação (RN-49): completando as guarnições obrigatórias. Guarnições de operações extraordinárias (diárias) seguem outra regra (RN-83, RN-33). | Confirmada | Automação |
-| RN-93 | Os efetivos mínimo e máximo de cada guarnição — incluindo ABTS, ACO e o efetivo do quartel — são cadastro editável pelo escalante a cada mês, na aba GUARNIÇÕES, aberta pelo painel de Configurações. A vigência mensal vale também para o vínculo da aba GUARNIÇÕES POR ESCALA (RN-09). Uma alteração não retroage: os dias já passados antes da mudança mantêm os valores antigos. | Implementada | Base |
-| RN-94 | A lista de funções de cada serviço é cadastro do usuário, não fixa no código, e pode ganhar ou perder funções com o tempo; cada serviço tem sua própria lista (RN-83). Funções especiais, como motorista, podem exigir requisitos (ex.: categoria de CNH — RN-12) e ter militares em número escasso. Acúmulo de função (ex.: "Motorista / Chefe") é permitido quando a guarnição é reduzida (P-25). "Motorista 12H" não é função distinta: é anotação legada de um motorista comum tirando serviço de 12h. As subfunções de combatente (ex.: auxiliar/chefe de 1ª e 2ª linha em Incêndio) já são definidas na escala atual, sem necessidade de cadastro adicional. | Confirmada | Base |
-| RN-96 | O Apoio Operacional Aquartelado é um serviço obrigatório do ordinário, ligado à meta de ativação (RN-49). A escala real de 01/10 a 31/10/2026 (ESCALAOP26-RETIFICADA) mostrou, nos 31 dias e nos 2 turnos, sempre a mesma guarnição: 1 motorista ACO, 2 despachantes de centro de operações e 1 adjunto de dia. As vagas são preenchidas por militares de origens variadas (Pronto, Saldo, PJES), a mesma lógica de origem das demais unidades (RN-13). Essa guarnição consta no regulamento, mas pode variar um pouco (RN-93). "Despachante" é uma função dela, cadastrada pelo usuário como as demais; o nome do posto externo (ex.: visto como "SAMU-Recife") não importa para o sistema (P-24 resolvida, 10/11). A guarnição existe mesmo sem viatura (ex.: motorista ACO), e a CNH exigida continua valendo nesse caso (RN-12). | Implementada | Base |
-
-
-Exemplo de configuração, único informado até agora:
-
-| Guarnição | Mínimo para ativar | Máximo suportado |
+| Tipo | Serviço | Turnos |
 |---|---|---|
-| AR | 3: motorista, chefe, socorrista | 5: motorista, chefe, 3 socorristas |
+| Ordinário | Pronto | A 08–20, B 20–08 |
+| Ordinário | Adm (Expediente) | A 08–16 |
+| Ordinário | Saldo | A 08–20, B 20–08 |
+| PJES | JES | A 08–20, B 20–08 |
+| PJES | Defensoria | A 07–19 |
+| PJES | CPRH | A 08–20 |
+| Diária | Bioma, PE Seguro | A 00–08, B 08–16, C 16–00 |
+| Diária | Eleições | A 07–15, B 15–23 |
 
+## Modelos de guarnição
 
-## Alocação para cumprir a meta
-A meta é preenchida em três camadas, sempre nesta ordem; a ordem não muda.
+O modelo de guarnição é o molde do posto operacional: funções com mínimo, máximo e CNH. Fica em Configurações › Modelos de guarnição, com versões por mês. A guarnição do dia é o modelo que ganhou militares num dia.
 
-1. Serviço ordinário do efetivo do Pronto.
-2. JES do efetivo do Pronto.
-3. Saldo do Adm.
+| ID | Regra | Situação | No sistema novo | Barreira |
+|---|---|---|---|---|
+| RN-10 | Cada função do modelo tem um mínimo; abaixo dele a guarnição não é ativada (RN-109). Há outras causas de não ativação, ainda não catalogadas (viatura indisponível, a operação não ocorre no dia); a lista será cadastrável. | Confirmada | Funciona o mínimo; as causas, fase 10 | Ambas |
+| RN-11 | Cada função tem um máximo; acima dele não se aloca mais ninguém. Máximo vazio vale o mínimo; não existe "sem limite". | Confirmada | Funciona | Ambas |
+| RN-12 | A função que exige CNH só aceita quem tem a categoria exigida ou outra que a habilite, com ou sem viatura. Hierarquia do CTB, fixa no código: A é isolada; B habilita B; C habilita C e B; D habilita D, C e B; E habilita E, D, C e B. Na ficha marca-se a carteira; as habilitadas aparecem marcadas, mas só a carteira é gravada. | Confirmada | Funciona | Ambas |
+| RN-93 | Mínimos e máximos de cada modelo, e o vínculo da escala com os modelos, valem por mês (versões). Mudar a partir de um mês não mexe nos meses anteriores. | Confirmada | Funciona | Base |
+| RN-94 | As funções são um catálogo da unidade, não fixo no código; renomear uma função muda o nome em todos os modelos. Funções podem exigir requisitos (CNH) e ter militares escassos. "Motorista 12H" não é função: é o motorista comum num serviço de 12h. | Confirmada | Funciona | Base |
+| RN-96 | O Apoio Operacional Aquartelado é guarnição obrigatória do Ordinário: na escala real de outubro/2026, sempre 1 motorista ACO, 2 despachantes e 1 adjunto de dia, preenchidos por militares de origens variadas (Pronto, Saldo, PJES). Existe sem viatura, e a CNH exigida continua valendo. | Confirmada | Funciona (é um modelo cadastrado) | Base |
+| RN-81 | Cada turno de uma operação tem vagas por função, vindas do modelo de guarnição que a escala vincula naquela faixa (ex.: PE Seguro: motorista, chefe e 2 socorristas; Defensoria: chefe e auxiliar). | Confirmada | Funciona | Base |
 
-| ID | Regra | Status | Barreira |
-|---|---|---|---|
-| RN-13 | A alocação para atingir a meta segue a ordem: ordinário do Pronto, depois JES do Pronto, depois Saldo do Adm. | Confirmada | Automação |
+## Meta de ativação
+
+| ID | Regra | Situação | No sistema novo | Barreira |
+|---|---|---|---|---|
+| RN-108 | A meta de ativação é a lista de modelos de guarnição que devem sair num dia, com a ordem de ativação (qual pesa mais quando falta gente). Vale por dia, não por turno. Todo dia nasce com a meta padrão do nível (Configurações); o escalante muda um dia na própria tela (desativar, reativar, adicionar, mover), e o dia pode voltar ao padrão sem desescalar ninguém. Mudar a meta padrão vale dali em diante. | Confirmada | Funciona (Efetivo por dia) | Ambas |
+| RN-109 | A guarnição só conta como ativada se fechar ao longo de todo o serviço: cada função obrigatória com o mínimo em todos os momentos dos horários em que o modelo está vinculado no dia. Conta o horário coberto, não cabeças por turno: dois militares de turnos menores fecham a função de um turno maior. O mesmo modelo em duas escalas no mesmo dia é uma guarnição só. | Confirmada | Funciona | Ambas |
+| RN-110 | Guarnição escalada fora da meta aparece no painel, depois das da meta, sem contar para ela. Escalar alguém nela não a põe na meta. Desativar uma guarnição tira o militar só dela; se ele acumulava em outra, o acúmulo vira a vaga dele. | Confirmada | Funciona | Suporte |
+| RN-07 | O usuário define quais guarnições devem ser ativadas (quantidade e tipo). | Substituída por RN-108 | — | Automação |
+| RN-08 | O usuário define a ordem de prioridade de ativação das guarnições, no cadastro da guarnição. | Substituída por RN-102 e RN-108 | A prioridade antiga só vale como ordem padrão da escala sem ordem de escalação | Automação |
+
+## Ordem de escalação, alocação e acúmulo
+
+Ordem de ativação e ordem de escalação são coisas diferentes: uma guarnição ser mais importante não quer dizer que todos os militares dela entram antes. A relação entre as duas está adiada (decisão do usuário, 20/11/2026).
+
+| ID | Regra | Situação | No sistema novo | Barreira |
+|---|---|---|---|---|
+| RN-102 | Cada escala tem uma ordem de escalação: a sequência em que cada vaga (modelo + função + nº da vaga) é preenchida, inclusive as vagas extras, uma a uma. Vale por mês. Vaga nova fora da ordem é avisada ("Falta: …") e preenchida depois de todas as da ordem. Sem ordem cadastrada, vale a prioridade antiga das guarnições. | Confirmada | Funciona (tela Ordem de escalação, na ficha da escala) | Automação |
+| RN-103 | Na vez de cada vaga, a pré-escala põe o mais antigo apto. Só os requisitos filtram (CNH, lotação, afastamento, voluntariado, choque). A vaga não tem critério próprio; regras próprias por vaga (graduado de dia, chefe da guarnição) ficam para se a prática pedir. | Confirmada | Funciona (pré-escala do Pronto) | Automação |
+| RN-13 | A alocação para atingir a meta segue a ordem: ordinário do Pronto, depois JES do Pronto, depois Saldo do Adm. | Confirmada | Em parte: a pré-escala do Pronto funciona; JES e Saldo entram nas distribuições da fase 8 | Automação |
+| RN-92 | Depois dos mínimos, o efetivo restante completa as guarnições até o máximo, guarnição por guarnição. | Substituída por RN-102 | As vagas extras têm a vez delas na ordem de escalação | Automação |
+| RN-104 | Acúmulo de funções: numa vaga vazia, o escalante pode pôr um militar já escalado na mesma faixa da mesma escala, inclusive em outra guarnição. Valem os requisitos da vaga (a CNH é conferida de novo). Horas e serviço contam uma vez; a vaga acumulada conta como preenchida, com a marca "acumula com …". A automação nunca acumula. | Confirmada | Funciona (Escala do mês e Efetivo por dia) | Suporte |

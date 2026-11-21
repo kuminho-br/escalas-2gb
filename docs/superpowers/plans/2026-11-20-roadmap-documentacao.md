@@ -66,6 +66,7 @@
 | 6 | Roteiro do administrador | antes do piloto | detalhar antes |
 | 7 | Casos de uso e guia visual | quando a etapa "Tipos de usuário e módulos" for planejada | detalhar antes |
 | 8 | Virada para o modelo A | perto do fim do projeto (fase 7) | detalhar antes |
+| 9 | Catálogo de regras em dia com o sistema novo: conferir as 96 regras contra o design, as specs e o código, e acrescentar as da fase 4 (RN-102 a RN-116) | 21/11/2026, pedido do usuário | feita no PR do catálogo |
 
 Fora do roadmap, por não valer o custo neste projeto: diagrama de classes (o código não é orientado a objetos), concept-arts (os mockups cumprem o papel) e diagramas de sequência (só se um fluxo gerar dúvida).
 
