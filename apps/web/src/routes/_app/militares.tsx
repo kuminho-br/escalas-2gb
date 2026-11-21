@@ -199,7 +199,7 @@ function NovoMilitarDialogo({ unidadeId, aoFechar }: { unidadeId: string; aoFech
             <Campo id="nm-matricula" rotulo="Matrícula" erro={campos.matricula}>
               <Input id="nm-matricula" name="matricula" placeholder="123456-7" required />
             </Campo>
-            <Campo id="nm-posto" rotulo="Posto ou graduação" erro={campos.postoGradId ?? (postos.isError ? LISTA_NAO_CARREGOU : undefined)}>
+            <Campo id="nm-posto" rotulo="Posto ou graduação" erro={campos.postoGradId ?? ((postos.isError && !postos.data) ? LISTA_NAO_CARREGOU : undefined)}>
               <Selecao id="nm-posto" name="posto" required>
                 {postos.data?.map((p) => <option key={p.id} value={p.id}>{p.sigla}</option>)}
               </Selecao>
