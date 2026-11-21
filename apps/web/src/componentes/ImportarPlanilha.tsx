@@ -2,13 +2,26 @@ import { useQuery } from '@tanstack/react-query';
 import { LIMITE_DA_IMPORTACAO_MB, MENSAGEM_ARQUIVO_GRANDE, type Previa, type ResultadoImportacao } from 'contratos';
 import { Download, FileUp } from 'lucide-react';
 import { useRef, useState, type FormEvent } from 'react';
-import { enviarArquivo, mensagemDe } from '@/api/cliente';
+import { enviarArquivo, ErroApi, mensagemDe } from '@/api/cliente';
 import { consultaEu } from '@/api/eu';
 import { Button } from '@/componentes/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/componentes/ui/dialog';
 import { Label } from '@/componentes/ui/label';
 
 type Etapa = { tipo: 'escolher' } | { tipo: 'previa'; previa: Previa } | { tipo: 'feito'; gravados: number };
+
+/**
+ * O que fazer depois de uma confirmação que falhou: repetir só resolve quando o problema é da conexão ou do sistema; quando o servidor
+ * recusou sem dizer o quê, é a planilha que se confere. O que a API disse por conta própria (a 409 das duas gravações ao mesmo tempo) fica.
+ */
+function mensagemDaConfirmacao(e: unknown): string {
+  if (e instanceof ErroApi) {
+    if (e.status === 0) return 'Sem conexão com o servidor. Tente de novo em alguns minutos.';
+    if (e.status >= 500) return 'O sistema não conseguiu gravar agora. Tente de novo em alguns minutos.';
+    if (e.padrao) return 'Confira a planilha pelo modelo e envie de novo.';
+  }
+  return mensagemDe(e);
+}
 
 /** Importar da planilha sandbox: escolher o .xlsx, ver o que vai entrar e importar. */
 export function ImportarPlanilha({ cadastro, rotulo, aoConcluir }: { cadastro: string; rotulo: string; aoConcluir: () => void }) {
@@ -21,8 +34,17 @@ export function ImportarPlanilha({ cadastro, rotulo, aoConcluir }: { cadastro: s
   const caminho = `/api/unidades/${eu?.unidade.id}/importacao/${cadastro}`;
   // cada vez que o diálogo abre ou fecha começa uma "rodada": a resposta de um envio de uma rodada anterior não mexe na tela da atual
   const rodada = useRef(0);
+  // a confirmação grava no servidor mesmo com o diálogo fechado: se ele fechou enquanto ela rodava, reabrir não zera a tela (o resultado, ou o
+  // erro, está lá e não dá para mandar uma segunda confirmação por cima)
+  const confirmando = useRef(false);
+  const fechouConfirmando = useRef(false);
 
   function abrirOuFechar(v: boolean) {
+    if ((!v && confirmando.current) || (v && fechouConfirmando.current)) {
+      fechouConfirmando.current = !v;
+      setAberto(v);
+      return;
+    }
     rodada.current += 1;
     setAberto(v);
     // abrir e fechar começam do zero: etapa de escolher o arquivo, sem arquivo, sem erro e sem envio em andamento
@@ -42,10 +64,11 @@ export function ImportarPlanilha({ cadastro, rotulo, aoConcluir }: { cadastro: s
     }
     setEnviando(true);
     const minha = rodada.current;
+    confirmando.current = confirmar;
     try {
       if (confirmar) {
         const r = await enviarArquivo<ResultadoImportacao>(`${caminho}?confirmar=1`, arquivo);
-        // gravou mesmo que o diálogo tenha fechado: a lista por trás precisa atualizar; a tela é que não mostra o resultado de outra rodada
+        // gravou mesmo que o diálogo tenha fechado: a lista por trás precisa atualizar
         aoConcluir();
         if (minha === rodada.current) setEtapa({ tipo: 'feito', gravados: r.gravados });
       } else {
@@ -53,8 +76,9 @@ export function ImportarPlanilha({ cadastro, rotulo, aoConcluir }: { cadastro: s
         if (minha === rodada.current) setEtapa({ tipo: 'previa', previa });
       }
     } catch (e) {
-      if (minha === rodada.current) setErro(mensagemDe(e));
+      if (minha === rodada.current) setErro(confirmar ? mensagemDaConfirmacao(e) : mensagemDe(e));
     } finally {
+      if (confirmar) confirmando.current = false;
       if (minha === rodada.current) setEnviando(false);
     }
   }

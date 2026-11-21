@@ -1,6 +1,6 @@
 // Escalas: serviços reunidos na ordem de preenchimento, publicação e guarnições por turno (versões).
 import { z } from 'zod';
-import { Hora, Id, Nome } from './comum.ts';
+import { Hora, Id, LIMITE_NOME, Nome } from './comum.ts';
 import { LetraTurno } from './servicos.ts';
 
 export const MilitaresDoc = z.enum(['todos', 'escalados']);
@@ -63,5 +63,5 @@ export type Escala = {
   vinculos: { vigencia: string; itens: VinculoSalvo[] }[];
 };
 
-/** Título padrão de uma escala nova (como no protótipo). */
-export const tituloPadraoEscala = (nome: string): string => `ESCALA ${nome.trim().toUpperCase()}`;
+/** Título padrão de uma escala nova (como no protótipo), cortado no limite do título para um nome de 120 caracteres não virar título que a tela recusa. */
+export const tituloPadraoEscala = (nome: string): string => `ESCALA ${nome.trim().toUpperCase()}`.slice(0, LIMITE_NOME).trimEnd();

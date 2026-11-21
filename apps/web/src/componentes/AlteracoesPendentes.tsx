@@ -16,6 +16,14 @@ export function haAlteracoesPendentes(chave?: string): boolean {
   return chave ? sujas.has(chave) : sujas.size > 0;
 }
 
+/**
+ * A página vai ser trocada à força (a sessão terminou): o que não foi salvo já se perdeu, e o aviso "Sair do site?" do navegador só atrapalharia
+ * (o aviso de sessão terminada, na tela de entrar, já diz o que houve).
+ */
+export function descartarPendencias(): void {
+  sujas.clear();
+}
+
 /** Pergunta se pode descartar as alterações pendentes; sem pendência, deixa passar. */
 export function podeDescartar(chave?: string): boolean {
   return !haAlteracoesPendentes(chave) || window.confirm(MENSAGEM_PENDENTE);
@@ -72,14 +80,15 @@ export function useTrava() {
 
 /**
  * O servidor trouxe outro conteúdo para este bloco (outra gravação, importação, volta à janela): sem alteração
- * pendente, `aoRecarregar` põe os campos no valor novo; com alteração, o que a pessoa digitou fica. O bloco não é
+ * pendente, `aoRecarregar` põe os campos no valor novo; com alteração, o que a pessoa digitou fica e a novidade
+ * espera: se ela desfizer a edição, o bloco recarrega com o valor do servidor, não com o de antes. O bloco não é
  * recriado (a `key` leva só o id), então o aviso de "salvo" continua na tela.
  */
 export function useSincronizar(doServidor: string, sujo: boolean, aoRecarregar: () => void) {
   const [visto, setVisto] = useState(doServidor);
-  if (doServidor !== visto) {
+  if (doServidor !== visto && !sujo) {
     setVisto(doServidor);
-    if (!sujo) aoRecarregar();
+    aoRecarregar();
   }
 }
 

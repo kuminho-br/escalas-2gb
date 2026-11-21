@@ -2,6 +2,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
 import { ChevronDown, ChevronRight, Menu } from 'lucide-react';
 import { useState, type Ref } from 'react';
+import { saida } from '@/api/cliente';
 import { consultaEu, type Eu } from '@/api/eu';
 import { podeDescartar } from '@/componentes/AlteracoesPendentes';
 import { authCliente } from '@/auth-cliente';
@@ -26,10 +27,13 @@ export function Topo({ eu, aoAbrirMenu, botaoDoMenu }: { eu: Eu; aoAbrirMenu: ()
     // pergunta antes de encerrar a sessão: se a pessoa desistir, ela continua logada e com as alterações
     if (!podeDescartar()) return;
     setErroSair(null);
+    // um pedido que ainda estava no ar e volta 401 depois daqui é o próprio Sair, não uma sessão que terminou
+    saida.marcar(true);
     try {
       const { error } = await authCliente.signOut();
       if (error) throw error;
     } catch {
+      saida.marcar(false);
       setErroSair('Não foi possível sair. Verifique a conexão e tente de novo.');
       return;
     }

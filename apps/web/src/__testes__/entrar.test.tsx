@@ -1,6 +1,7 @@
 import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { navegador, pedir, saida } from '@/api/cliente';
 import { abrir, EU_EXEMPLO, simularApi } from './apoio';
 
 async function preencherEEntrar() {
@@ -48,6 +49,26 @@ describe('entrar depois de uma sessão que terminou', () => {
     abrir('/entrar');
     await screen.findByLabelText('E-mail');
     expect(screen.queryByText('Sua sessão terminou. Entre de novo.')).toBeNull();
+  });
+});
+
+describe('entrar de novo depois de sair', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+    saida.marcar(false);
+  });
+
+  it('uma sessão que termina depois de entrar de novo volta a mostrar o aviso (o "Sair" anterior não cala o aviso para sempre)', async () => {
+    saida.marcar(true);
+    const api = simularApi({ '/api/eu': { status: 401 } });
+    const router = abrir('/entrar');
+    depoisDeEntrar(api);
+    await preencherEEntrar();
+    await waitFor(() => expect(router.state.location.pathname).toBe('/'));
+    const ir = vi.spyOn(navegador, 'ir').mockImplementation(() => {});
+    api.mockImplementation(async () => new Response(JSON.stringify({ erro: 'Sessão inválida.' }), { status: 401, headers: { 'Content-Type': 'application/json' } }));
+    await expect(pedir('GET', '/api/qualquer')).rejects.toMatchObject({ status: 401 });
+    expect(ir).toHaveBeenCalledWith(expect.stringContaining('sessao=terminou'));
   });
 });
 

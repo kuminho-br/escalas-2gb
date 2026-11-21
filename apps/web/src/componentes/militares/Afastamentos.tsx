@@ -15,6 +15,8 @@ export function Afastamentos({ ficha }: { ficha: FichaMilitar }) {
   const queryClient = useQueryClient();
   const tipos = useQuery(consultaCatalogo('tipos-afastamento'));
   const ativos = tipos.data?.filter((t) => t.ativo) ?? [];
+  // o aviso é para quando não há lista nenhuma: uma nova busca que falha deixa a lista que já estava na tela
+  const tiposNaoCarregaram = tipos.isError && !tipos.data;
   const [tipo, setTipo] = useState('');
   const [aberto, setAberto] = useState(false);
   const [inicio, setInicio] = useState('');
@@ -78,10 +80,10 @@ export function Afastamentos({ ficha }: { ficha: FichaMilitar }) {
         <form onSubmit={(e) => { e.preventDefault(); void incluir(); }} className="grid gap-3 border-t border-linha pt-3">
           <div className="grid gap-1.5 sm:max-w-xs">
             <Label htmlFor="af-tipo">Tipo de afastamento</Label>
-            <Selecao id="af-tipo" value={tipoEscolhido} onChange={(e) => setTipo(e.target.value)} aria-invalid={tipos.isError || undefined} aria-describedby={tipos.isError ? 'af-tipo-erro' : undefined}>
+            <Selecao id="af-tipo" value={tipoEscolhido} onChange={(e) => setTipo(e.target.value)} aria-invalid={tiposNaoCarregaram || undefined} aria-describedby={tiposNaoCarregaram ? 'af-tipo-erro' : undefined}>
               {ativos.map((t) => <option key={t.id} value={t.id}>{t.nome}</option>)}
             </Selecao>
-            {tipos.isError && <p id="af-tipo-erro" className="text-xs text-alerta">{LISTA_NAO_CARREGOU}</p>}
+            {tiposNaoCarregaram && <p id="af-tipo-erro" className="text-xs text-alerta">{LISTA_NAO_CARREGOU}</p>}
           </div>
           <div className="grid grid-cols-2 gap-3 sm:max-w-md">
             <div className="grid gap-1.5">

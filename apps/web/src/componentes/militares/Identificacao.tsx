@@ -60,7 +60,7 @@ export function Identificacao({ ficha }: { ficha: FichaMilitar }) {
     <Secao titulo="Identificação">
       <form onSubmit={(e) => { e.preventDefault(); void salvar(); }} className="grid gap-3">
         <div className="grid gap-3 sm:grid-cols-[10rem_1fr_7rem]">
-          <Campo id="id-posto" rotulo="Posto ou graduação" erro={campos.postoGradId ?? (postos.isError ? LISTA_NAO_CARREGOU : undefined)}>
+          <Campo id="id-posto" rotulo="Posto ou graduação" erro={campos.postoGradId ?? ((postos.isError && !postos.data) ? LISTA_NAO_CARREGOU : undefined)}>
             <Selecao id="id-posto" value={posto} onChange={(e) => setPosto(e.target.value)}>
               {postos.data?.map((p) => <option key={p.id} value={p.id}>{p.sigla}</option>)}
             </Selecao>

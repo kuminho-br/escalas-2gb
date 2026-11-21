@@ -378,7 +378,7 @@ describe('mês que já passou nos vínculos (achado da 4.6)', () => {
     // o turno A do Ordinário tem dois horários (Pronto e Expediente): as linhas usam a faixa
     const v = [[passado, 'Ordinário', '08:00-20:00', 'ABT'], [atual, 'Ordinário', '20:00-08:00', 'ABT'], [futuro, 'Ordinário', '08:00-20:00', 'ABT']];
     const previa = await importar({ v });
-    expect(previa.problemas).toEqual([{ aba: 'GUARNIÇÕES POR ESCALA', linha: 2, mensagem: 'Mês já passou', solucao: 'Use o mês atual ou um mês futuro.' }]);
+    expect(previa.problemas).toEqual([{ aba: 'GUARNIÇÕES POR ESCALA', linha: 2, mensagem: `Mês já passou: Ordinário, ${mesPorExtenso(passado)}`, solucao: 'Use o mês atual ou um mês futuro.' }]);
     await importar({ v }, true);
     const vigencias = (await escala('Ordinário')).vinculos.map((x) => x.vigencia);
     expect(vigencias).toContain(futuro);

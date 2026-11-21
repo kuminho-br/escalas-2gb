@@ -121,6 +121,99 @@ describe('listas que não carregam explicam o botão apagado', () => {
   });
 });
 
+describe('lista já carregada cuja nova busca falha (Review Focus 3)', () => {
+  const MSG = 'Não deu para carregar a lista. Recarregue a página.';
+  const POSTOS = [{ id: 'p-sd', sigla: 'SD BM', nome: 'Soldado', ordem: 1 }, { id: 'p-cb', sigla: 'CB BM', nome: 'Cabo', ordem: 2 }];
+  const TIPOS = [{ id: 't-ferias', nome: 'Férias', ativo: true }];
+  type Rota = { status: number; corpo?: unknown };
+
+  /** a rota passa a responder 500 e a consulta é buscada de novo: a lista que já estava na tela continua com o que veio antes */
+  async function buscarDeNovoEFalhar(router: ReturnType<typeof abrir>, rota: Rota, chave: string[]) {
+    rota.status = 500;
+    rota.corpo = { erro: 'Falha.' };
+    const queryClient = (router.options.context as { queryClient: QueryClient }).queryClient;
+    await queryClient.invalidateQueries({ queryKey: chave });
+    await waitFor(() => expect(queryClient.getQueryState(chave)?.status).toBe('error'));
+  }
+
+  it('postos: a Identificação continua com as opções e sem o aviso', async () => {
+    const postos: Rota = { status: 200, corpo: POSTOS };
+    api({ 'GET /api/postos': postos });
+    const router = abrir('/militares/m1');
+    const campo = await screen.findByLabelText('Posto ou graduação');
+    await within(campo).findByRole('option', { name: 'SD BM' });
+    await buscarDeNovoEFalhar(router, postos, ['postos']);
+    expect(within(campo).getByRole('option', { name: 'SD BM' })).toBeInTheDocument();
+    expect(screen.queryByText(MSG)).toBeNull();
+  });
+
+  it('postos: o "Novo militar" continua com as opções e sem o aviso', async () => {
+    const postos: Rota = { status: 200, corpo: POSTOS };
+    api({ 'GET /api/postos': postos });
+    const router = abrir('/militares');
+    await userEvent.click(await screen.findByRole('button', { name: 'Novo militar' }));
+    const dialogo = await screen.findByRole('dialog');
+    await within(dialogo).findByRole('option', { name: 'CB BM' });
+    await buscarDeNovoEFalhar(router, postos, ['postos']);
+    expect(within(dialogo).getByRole('option', { name: 'CB BM' })).toBeInTheDocument();
+    expect(within(dialogo).queryByText(MSG)).toBeNull();
+  });
+
+  it('tipos de afastamento: "Incluir afastamento" continua com as opções e sem o aviso', async () => {
+    const tipos: Rota = { status: 200, corpo: TIPOS };
+    api({ 'GET /api/sistema/tipos-afastamento': tipos });
+    const router = abrir('/militares/m1');
+    await userEvent.click(await screen.findByRole('button', { name: 'Incluir afastamento' }));
+    const campo = await screen.findByLabelText('Tipo de afastamento');
+    await within(campo).findByRole('option', { name: 'Férias' });
+    await buscarDeNovoEFalhar(router, tipos, ['catalogo', 'tipos-afastamento']);
+    expect(within(campo).getByRole('option', { name: 'Férias' })).toBeInTheDocument();
+    expect(screen.queryByText(MSG)).toBeNull();
+  });
+});
+
+describe('Motorista: dado novo do servidor (revisão final da revisão 3)', () => {
+  type Rota = { status: number; corpo?: unknown };
+  const fichaCom = (cnh: string[]) => ({ ...FICHA, noQuadroDeMotoristas: true, cnh, cnhPorHierarquia: [] });
+  const botao = (letra: string) => screen.getByRole('button', { name: new RegExp(`^${letra}\\b`) });
+  const pressionado = (letra: string) => expect(botao(letra)).toHaveAttribute('aria-pressed');
+
+  it('sem alteração pendente, recarrega o bloco', async () => {
+    const ficha: Rota = { status: 200, corpo: fichaCom(['D']) };
+    api({ 'GET /api/militares/m1': ficha });
+    const router = abrir('/militares/m1');
+    expect(await screen.findByRole('button', { name: /^D\b/ })).toHaveAttribute('aria-pressed', 'true');
+    ficha.corpo = fichaCom(['A']);
+    await act(async () => {
+      atualizarMilitares(router.options.context.queryClient);
+    });
+    await waitFor(() => expect(botao('A')).toHaveAttribute('aria-pressed', 'true'));
+    expect(botao('D')).toHaveAttribute('aria-pressed', 'false');
+    expect(screen.queryByText('Alterações não salvas')).toBeNull();
+    pressionado('A');
+  });
+
+  it('desfazer a edição depois de chegar dado novo do servidor mostra o valor do servidor, não o antigo (Review Focus 4)', async () => {
+    const ficha: Rota = { status: 200, corpo: fichaCom(['D']) };
+    api({ 'GET /api/militares/m1': ficha });
+    const router = abrir('/militares/m1');
+    await userEvent.click(await screen.findByRole('button', { name: /^A\b/ }));
+    expect(screen.getByText('Alterações não salvas')).toBeInTheDocument();
+    // chega dado novo enquanto a edição está pendente: a edição fica
+    ficha.corpo = fichaCom(['B']);
+    await act(async () => {
+      atualizarMilitares(router.options.context.queryClient);
+    });
+    await new Promise((x) => setTimeout(x, 50));
+    expect(botao('A')).toHaveAttribute('aria-pressed', 'true');
+    // a pessoa desfaz a edição: o campo passa a mostrar o do servidor (B), não o de antes (D)
+    await userEvent.click(botao('A'));
+    await waitFor(() => expect(botao('D')).toHaveAttribute('aria-pressed', 'false'));
+    expect(botao('B')).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.queryByText('Alterações não salvas')).toBeNull();
+  });
+});
+
 describe('ficha do militar', () => {
   it('as categorias que a carteira habilita aparecem marcadas, com "pela E"; só a carteira é gravada', async () => {
     const f = api({

@@ -1,4 +1,4 @@
-import { somarMeses } from 'contratos';
+import { mesPorExtenso, somarMeses } from 'contratos';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { hojeRecife } from '../src/datas.ts';
 import { montarApi, type ApiDeTeste } from './apoio-api.ts';
@@ -94,7 +94,7 @@ describe('importação de configurações', () => {
     const futuro = somarMeses(atual, 4);
     const linhas = [['CARGA_MENSAL_HORAS', 150, passado, ''], ['SALDOS_ADM_POR_MILITAR', 7, atual, ''], ['ADM_CUMPRE_CARGA', 'SIM', futuro, '']];
     const previa = await importar(linhas);
-    expect(previa.problemas).toEqual([{ aba: 'CONFIGURAÇÕES', linha: 2, mensagem: 'Mês já passou', solucao: 'Use o mês atual ou um mês futuro.' }]);
+    expect(previa.problemas).toEqual([{ aba: 'CONFIGURAÇÕES', linha: 2, mensagem: `Mês já passou: CARGA_MENSAL_HORAS, ${mesPorExtenso(passado)}`, solucao: 'Use o mês atual ou um mês futuro.' }]);
     expect([...previa.novos, ...previa.alterados].map((n: { chave: string }) => n.chave).sort()).toEqual([`ADM_CUMPRE_CARGA|${futuro}`, `SALDOS_ADM_POR_MILITAR|${atual}`].sort());
     expect((await importar(linhas, true)).gravados).toBe(2);
     const { rows } = await api.banco.query<{ vig: string }>("select to_char(vigencia_desde, 'YYYY-MM') as vig from parametro where unidade_id = $1 and chave = 'CARGA_MENSAL_HORAS'", [api.ids.secao]);
@@ -112,12 +112,19 @@ describe('importação de configurações', () => {
   });
 
   it('vigência no formato do protótipo (m/aaaa) e a data do Excel são lidas', async () => {
-    const r = await importar([['CARGA_MENSAL_HORAS', 150, '1/2031', 'x'], ['SALDOS_ADM_POR_MILITAR', 4, new Date(Date.UTC(2031, 5, 1)), 'x']], true);
+    // meses a partir de hoje (um mês fixo no futuro vira "mês que já passou" um dia): o primeiro é de um dígito, como "1/2031"
+    let alvo = somarMeses(atual, 12);
+    while (Number(alvo.slice(5)) > 9) alvo = somarMeses(alvo, 1);
+    const depois = somarMeses(alvo, 5);
+    const r = await importar(
+      [['CARGA_MENSAL_HORAS', 150, `${Number(alvo.slice(5))}/${alvo.slice(0, 4)}`, 'x'], ['SALDOS_ADM_POR_MILITAR', 4, new Date(Date.UTC(Number(depois.slice(0, 4)), Number(depois.slice(5)) - 1, 1)), 'x']],
+      true,
+    );
     expect(r.problemas).toEqual([]);
     const { rows } = await api.banco.query<{ chave: string; vig: string }>(
-      "select chave, to_char(vigencia_desde, 'YYYY-MM') as vig from parametro where unidade_id = $1 and vigencia_desde >= '2031-01-01' order by chave",
-      [api.ids.secao],
+      "select chave, to_char(vigencia_desde, 'YYYY-MM') as vig from parametro where unidade_id = $1 and vigencia_desde >= $2 order by chave",
+      [api.ids.secao, `${alvo}-01`],
     );
-    expect(rows).toEqual([{ chave: 'CARGA_MENSAL_HORAS', vig: '2031-01' }, { chave: 'SALDOS_ADM_POR_MILITAR', vig: '2031-06' }]);
+    expect(rows).toEqual([{ chave: 'CARGA_MENSAL_HORAS', vig: alvo }, { chave: 'SALDOS_ADM_POR_MILITAR', vig: depois }]);
   });
 });

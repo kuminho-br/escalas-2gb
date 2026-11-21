@@ -156,3 +156,91 @@ describe('importar da planilha', () => {
     expect(screen.queryByText(/Erro inesperado/)).toBeNull();
   });
 });
+
+/** A prévia vem certa; a confirmação responde `falha` (ou cai a rede), depois de `espera`, se houver. */
+function simularConfirmacao(falha: { status: number; corpo?: unknown } | { status: 200; corpo: unknown } | 'rede', espera?: Promise<void>) {
+  const f = vi.fn(async (entrada: RequestInfo | URL) => {
+    const confirmar = String(entrada).includes('confirmar=1');
+    if (confirmar && espera) await espera;
+    if (confirmar && falha === 'rede') throw new TypeError('Failed to fetch');
+    const r = confirmar && falha !== 'rede' ? falha : { status: 200, corpo: PREVIA };
+    return new Response(JSON.stringify(r.corpo ?? {}), { status: r.status, headers: { 'Content-Type': 'application/json' } });
+  });
+  vi.stubGlobal('fetch', f);
+  return f;
+}
+const quantasConfirmacoes = (f: ReturnType<typeof simularConfirmacao>) => f.mock.calls.filter(([e]) => String(e).includes('confirmar=1')).length;
+
+async function confirmar() {
+  await userEvent.click(await screen.findByRole('button', { name: 'Importar 2, pular 1' }));
+}
+
+describe('importar: fechar durante a confirmação (Review Focus 1)', () => {
+  it('se a confirmação falha com o diálogo fechado, ao reabrir a mensagem do erro está lá e dá para tentar de novo', async () => {
+    const { espera, soltar } = trava();
+    simularConfirmacao({ status: 500, corpo: { erro: 'Não foi possível gravar a importação. Nada foi gravado: envie o arquivo de novo.' } }, espera);
+    montar();
+    await enviarArquivo();
+    await confirmar();
+    await userEvent.keyboard('{Escape}');
+    soltar();
+    await new Promise((ok) => setTimeout(ok, 50));
+    await userEvent.click(screen.getByRole('button', { name: 'Importar da planilha' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('Tente de novo em alguns minutos.');
+    expect(screen.getByRole('button', { name: 'Importar 2, pular 1' })).toBeEnabled();
+  });
+
+  it('enquanto a primeira confirmação não acaba, reabrir não deixa mandar uma segunda', async () => {
+    const { espera, soltar } = trava();
+    const f = simularConfirmacao({ status: 200, corpo: { ...PREVIA, gravados: 2 } }, espera);
+    const aoConcluir = montar();
+    await enviarArquivo();
+    await confirmar();
+    await userEvent.keyboard('{Escape}');
+    await userEvent.click(screen.getByRole('button', { name: 'Importar da planilha' }));
+    const botao = screen.getByRole('button', { name: 'Importar 2, pular 1' });
+    expect(botao).toBeDisabled();
+    await userEvent.click(botao);
+    expect(quantasConfirmacoes(f)).toBe(1);
+    soltar();
+    // gravou: a lista por trás atualiza e o diálogo reaberto mostra o resultado
+    expect(await screen.findByText('2 registros gravados.')).toBeInTheDocument();
+    expect(aoConcluir).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('importar: o erro da confirmação diz o que fazer', () => {
+  it('5xx: tentar de novo em alguns minutos, sem mandar enviar o arquivo de novo', async () => {
+    simularConfirmacao({ status: 500, corpo: { erro: 'Não foi possível gravar a importação. Nada foi gravado: envie o arquivo de novo.' } });
+    montar();
+    await enviarArquivo();
+    await confirmar();
+    const aviso = await screen.findByRole('alert');
+    expect(aviso).toHaveTextContent('Tente de novo em alguns minutos.');
+    expect(aviso).not.toHaveTextContent(/envie o arquivo de novo/i);
+  });
+
+  it('sem conexão: tentar de novo em alguns minutos', async () => {
+    simularConfirmacao('rede');
+    montar();
+    await enviarArquivo();
+    await confirmar();
+    expect(await screen.findByRole('alert')).toHaveTextContent('Tente de novo em alguns minutos.');
+  });
+
+  it('4xx sem mensagem da API: conferir a planilha pelo modelo e enviar de novo', async () => {
+    simularConfirmacao({ status: 422 });
+    montar();
+    await enviarArquivo();
+    await confirmar();
+    expect(await screen.findByRole('alert')).toHaveTextContent('Confira a planilha pelo modelo e envie de novo.');
+  });
+
+  it('4xx com mensagem própria da API (409, duas gravações ao mesmo tempo) fica como a API disse', async () => {
+    simularConfirmacao({ status: 409, corpo: { erro: 'Outra gravação aconteceu ao mesmo tempo. Envie o arquivo de novo para ver a prévia atualizada.' } });
+    montar();
+    await enviarArquivo();
+    await confirmar();
+    expect(await screen.findByRole('alert')).toHaveTextContent('Outra gravação aconteceu ao mesmo tempo. Envie o arquivo de novo para ver a prévia atualizada.');
+  });
+});
