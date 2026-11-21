@@ -217,6 +217,65 @@ describe('afastamentos', () => {
   });
 });
 
+describe('afastamento com motivo e boletim (fase 5)', () => {
+  let m: FichaMilitar;
+  const mes = somarMeses(atual, 6);
+  beforeAll(async () => {
+    m = await criar('990191-1');
+  });
+  const incluir = (corpo: Record<string, unknown>) => api.pedir('gestorGb', 'POST', `/api/militares/${m.id}/afastamentos`, { tipoAfastamentoId: lts, ...corpo });
+
+  it('incluir LTS com motivo e boletim grava e a ficha devolve os dois', async () => {
+    const r = await incluir({ inicio: `${mes}-02`, fim: `${mes}-06`, motivo: 'Cirurgia programada', boletim: 'BG 12/2026' });
+    expect(r.status).toBe(201);
+    const [a] = (await ficha(m.id)).afastamentos;
+    expect(a).toMatchObject({ tipo: 'LTS', motivo: 'Cirurgia programada', boletim: 'BG 12/2026' });
+  });
+
+  it('sem motivo e sem boletim, os dois ficam vazios (null)', async () => {
+    const r = await incluir({ inicio: `${mes}-10`, fim: `${mes}-12` });
+    expect(r.status).toBe(201);
+    const sem = (await ficha(m.id)).afastamentos.find((a) => a.inicio === `${mes}-10`)!;
+    expect(sem).toMatchObject({ motivo: null, boletim: null });
+  });
+
+  // [foco 5] o limite do motivo é conferido antes do banco: 400 no campo, nunca erro do banco
+  it('motivo de 201 caracteres é 400 no campo, e boletim com mais de 60 também; nada é gravado', async () => {
+    const antes = (await ficha(m.id)).afastamentos.length;
+    const motivo = await incluir({ inicio: `${mes}-14`, fim: `${mes}-15`, motivo: 'a'.repeat(201) });
+    expect(motivo.status).toBe(400);
+    expect((await motivo.json()).campos.motivo).toBe('Use no máximo 200 caracteres.');
+    const boletim = await incluir({ inicio: `${mes}-14`, fim: `${mes}-15`, boletim: 'b'.repeat(61) });
+    expect(boletim.status).toBe(400);
+    expect((await boletim.json()).campos.boletim).toBe('Use no máximo 60 caracteres.');
+    expect((await ficha(m.id)).afastamentos).toHaveLength(antes);
+    expect((await incluir({ inicio: `${mes}-14`, fim: `${mes}-15`, motivo: 'a'.repeat(200), boletim: 'b'.repeat(60) })).status).toBe(201);
+  });
+
+  it('editar muda o motivo e o boletim; null limpa; o que não vem fica como está', async () => {
+    const [primeiro] = (await ficha(m.id)).afastamentos;
+    const ed = await api.pedir('gestorGb', 'PATCH', `/api/afastamentos/${primeiro!.id}`, { motivo: 'Outro motivo' });
+    expect(ed.status).toBe(200);
+    expect(await ed.json()).toMatchObject({ motivo: 'Outro motivo', boletim: 'BG 12/2026' });
+    const limpa = await api.pedir('gestorGb', 'PATCH', `/api/afastamentos/${primeiro!.id}`, { motivo: null, boletim: null });
+    expect(await limpa.json()).toMatchObject({ motivo: null, boletim: null });
+    expect((await ficha(m.id)).afastamentos.find((a) => a.id === primeiro!.id)).toMatchObject({ motivo: null, boletim: null });
+    const longo = await api.pedir('gestorGb', 'PATCH', `/api/afastamentos/${primeiro!.id}`, { motivo: 'a'.repeat(201) });
+    expect(longo.status).toBe(400);
+  });
+
+  it('os tipos novos (Adido, Agregado, L.E, DTS) servem para um afastamento', async () => {
+    const tipos = (await api.banco.query<{ id: string; nome: string }>("select id, nome from tipo_afastamento where nome in ('Adido', 'Agregado', 'L.E', 'DTS')")).rows;
+    expect(tipos).toHaveLength(4);
+    let dia = 20;
+    for (const t of tipos) {
+      const r = await incluir({ tipoAfastamentoId: t.id, inicio: `${mes}-${dia}`, fim: `${mes}-${dia + 1}` });
+      expect(r.status, t.nome).toBe(201);
+      dia += 2;
+    }
+  });
+});
+
 describe('antiguidade repetida', () => {
   const listaDaSecao = async (): Promise<LinhaMilitar[]> =>
     (await api.pedir('gestorGb', 'GET', `/api/unidades/${api.ids.secao}/militares?mes=${atual}`)).json();

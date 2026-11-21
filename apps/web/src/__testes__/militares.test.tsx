@@ -553,6 +553,58 @@ describe('ficha ampliada (fase 5)', () => {
   });
 });
 
+describe('afastamento com motivo e boletim (fase 5)', () => {
+  const TIPOS = { 'GET /api/sistema/tipos-afastamento': { status: 200, corpo: [{ id: 't-ferias', nome: 'Férias', ativo: true }, { id: 't-lts', nome: 'LTS', ativo: true }] } };
+  const POST = 'POST /api/militares/m1/afastamentos';
+  const COM_MOTIVO = { afastamentos: [{ id: 'a1', tipo: 'LTS', tipoAfastamentoId: 't-lts', inicio: '2026-12-01', fim: '2026-12-10', motivo: 'Cirurgia programada', boletim: 'BG 12/2026' }] };
+
+  it('a lista do afastamento mostra o motivo e o boletim, quando há', async () => {
+    api({ ...TIPOS, 'GET /api/militares/m1': { status: 200, corpo: { ...FICHA, ...COM_MOTIVO } } });
+    abrir('/militares/m1');
+    expect(await screen.findByText('Motivo: Cirurgia programada')).toBeInTheDocument();
+    expect(screen.getByText('Boletim: BG 12/2026')).toBeInTheDocument();
+  });
+
+  it('incluir LTS com motivo e boletim manda os dois; o campo motivo traz o aviso "Não escreva diagnóstico."', async () => {
+    const f = api({ ...TIPOS, [POST]: { status: 201, corpo: { id: 'a9' } } });
+    abrir('/militares/m1');
+    await userEvent.click(await screen.findByRole('button', { name: 'Incluir afastamento' }));
+    await userEvent.selectOptions(screen.getByLabelText('Tipo de afastamento'), 'LTS');
+    fireEvent.change(screen.getByLabelText('Início'), { target: { value: '2027-01-05' } });
+    fireEvent.change(screen.getByLabelText('Fim'), { target: { value: '2027-01-09' } });
+    const motivo = screen.getByLabelText('Motivo');
+    expect(motivo).toHaveAccessibleDescription('Não escreva diagnóstico.');
+    // o campo para de aceitar texto no limite do banco: 200 caracteres no motivo e 60 no boletim
+    expect(motivo).toHaveAttribute('maxlength', '200');
+    expect(screen.getByLabelText('Boletim do afastamento')).toHaveAttribute('maxlength', '60');
+    fireEvent.change(motivo, { target: { value: '  Cirurgia programada ' } });
+    fireEvent.change(screen.getByLabelText('Boletim do afastamento'), { target: { value: 'BG 01/2027' } });
+    await userEvent.click(screen.getByRole('button', { name: 'Salvar' }));
+    await waitFor(() => expect(corpoEnviado(f, POST)).toEqual({ tipoAfastamentoId: 't-lts', inicio: '2027-01-05', fim: '2027-01-09', motivo: 'Cirurgia programada', boletim: 'BG 01/2027' }));
+  });
+
+  it('sem motivo e sem boletim, o pedido vai só com o tipo e as datas', async () => {
+    const f = api({ ...TIPOS, [POST]: { status: 201, corpo: { id: 'a9' } } });
+    abrir('/militares/m1');
+    await userEvent.click(await screen.findByRole('button', { name: 'Incluir afastamento' }));
+    fireEvent.change(screen.getByLabelText('Início'), { target: { value: '2027-01-05' } });
+    fireEvent.change(screen.getByLabelText('Fim'), { target: { value: '2027-01-09' } });
+    await userEvent.click(screen.getByRole('button', { name: 'Salvar' }));
+    await waitFor(() => expect(corpoEnviado(f, POST)).toEqual({ tipoAfastamentoId: 't-ferias', inicio: '2027-01-05', fim: '2027-01-09' }));
+  });
+
+  it('a linha do tempo do rastreio mostra o tipo do afastamento, nunca o motivo', async () => {
+    api({ ...TIPOS, 'GET /api/militares/m1': { status: 200, corpo: { ...FICHA, ...COM_MOTIVO } } });
+    abrir('/militares/m1');
+    const botao = await screen.findByRole('button', { name: /Histórico de rastreio/ });
+    await userEvent.click(botao);
+    const bloco = within(document.getElementById(botao.getAttribute('aria-controls')!)!);
+    expect(bloco.getByText('Afastamento: LTS (01/12 a 10/12)')).toBeInTheDocument();
+    expect(bloco.queryByText(/Cirurgia programada/)).toBeNull();
+    expect(bloco.queryByText(/BG 12\/2026/)).toBeNull();
+  });
+});
+
 describe('depois de gravar', () => {
   it('importação busca de novo equipes e fichas abertas', () => {
     const qc = new QueryClient();

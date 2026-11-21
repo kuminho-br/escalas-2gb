@@ -478,8 +478,8 @@ export function rotasMilitares(dep: { banco: Banco; auth: Auth }): Hono<Ambiente
     try {
       const novo = await comUsuario(dep.banco, c.get('usuarioId'), async (tx) =>
         (await tx.query<{ id: string }>(
-          'insert into afastamento (militar_id, tipo_afastamento_id, inicio, fim) values ($1, $2, $3, $4) returning id',
-          [id, d.tipoAfastamentoId, d.inicio, d.fim],
+          'insert into afastamento (militar_id, tipo_afastamento_id, inicio, fim, motivo, boletim) values ($1, $2, $3, $4, $5, $6) returning id',
+          [id, d.tipoAfastamentoId, d.inicio, d.fim, d.motivo ?? null, d.boletim ?? null],
         )).rows[0]!,
       );
       return c.json(novo, 201);
@@ -496,11 +496,18 @@ export function rotasMilitares(dep: { banco: Banco; auth: Auth }): Hono<Ambiente
     if (naoEDono) return naoEDono;
     const corpo = await lerCorpo(c, EdicaoAfastamento);
     if (!corpo.ok) return corpo.resposta;
-    const atual = (await dep.banco.query<{ tipo: string; inicio: string; fim: string }>(
-      "select tipo_afastamento_id as tipo, to_char(inicio, 'YYYY-MM-DD') as inicio, to_char(fim, 'YYYY-MM-DD') as fim from afastamento where id = $1",
+    const atual = (await dep.banco.query<{ tipo: string; inicio: string; fim: string; motivo: string | null; boletim: string | null }>(
+      "select tipo_afastamento_id as tipo, to_char(inicio, 'YYYY-MM-DD') as inicio, to_char(fim, 'YYYY-MM-DD') as fim, motivo, boletim from afastamento where id = $1",
       [id],
     )).rows[0]!;
-    const novo = { tipo: corpo.dados.tipoAfastamentoId ?? atual.tipo, inicio: corpo.dados.inicio ?? atual.inicio, fim: corpo.dados.fim ?? atual.fim };
+    // `undefined` mantém o que está gravado; `null` limpa o motivo ou o boletim
+    const novo = {
+      tipo: corpo.dados.tipoAfastamentoId ?? atual.tipo,
+      inicio: corpo.dados.inicio ?? atual.inicio,
+      fim: corpo.dados.fim ?? atual.fim,
+      motivo: corpo.dados.motivo === undefined ? atual.motivo : corpo.dados.motivo,
+      boletim: corpo.dados.boletim === undefined ? atual.boletim : corpo.dados.boletim,
+    };
     if (novo.fim < novo.inicio) return c.json({ erro: MENSAGEM_FIM_ANTES_DO_INICIO, campos: { fim: MENSAGEM_FIM_ANTES_DO_INICIO } }, 400);
     if (corpo.dados.tipoAfastamentoId) {
       const tipoRuim = await conferirTipo(c, novo.tipo);
@@ -508,9 +515,9 @@ export function rotasMilitares(dep: { banco: Banco; auth: Auth }): Hono<Ambiente
     }
     try {
       await comUsuario(dep.banco, c.get('usuarioId'), (tx) =>
-        tx.query('update afastamento set tipo_afastamento_id = $2, inicio = $3, fim = $4 where id = $1', [id, novo.tipo, novo.inicio, novo.fim]),
+        tx.query('update afastamento set tipo_afastamento_id = $2, inicio = $3, fim = $4, motivo = $5, boletim = $6 where id = $1', [id, novo.tipo, novo.inicio, novo.fim, novo.motivo, novo.boletim]),
       );
-      return c.json({ id, tipoAfastamentoId: novo.tipo, inicio: novo.inicio, fim: novo.fim });
+      return c.json({ id, tipoAfastamentoId: novo.tipo, inicio: novo.inicio, fim: novo.fim, motivo: novo.motivo, boletim: novo.boletim });
     } catch (e) {
       return respostaDoErroDoBanco(c, e);
     }
