@@ -50,10 +50,11 @@ export function CardDaGuarnicao({ card, aoEscolher, aoRemover }: { card: Card; a
           </span>
         )}
       </header>
-      <ul data-funcoes className="grid gap-2">
+      <ul data-funcoes className="grid gap-1.5">
         {card.funcoes.map((f) => (
-          <li key={f.funcaoId} className="grid gap-1">
-            <p className="text-xs font-medium text-apagado">
+          // cada função é um painel próprio, com o cabeçalho dela
+          <li key={f.funcaoId} data-painel-funcao className="grid gap-1 rounded-md bg-[#F6F7F9] px-2 pt-1.5 pb-2">
+            <p data-cabecalho-funcao className="text-xs font-medium text-apagado">
               {f.funcao}
               {f.cnhExigida && <span> (CNH {f.cnhExigida})</span>}
             </p>
@@ -72,13 +73,14 @@ export function CardDaGuarnicao({ card, aoEscolher, aoRemover }: { card: Card; a
                       aria-label={`Escolher militar para ${f.funcao} de ${card.nome}`}
                       onClick={() => aoEscolher?.({ guarnicaoId: card.guarnicaoId, guarnicao: card.nome, funcaoId: f.funcaoId, funcao: f.funcao, cnhExigida: f.cnhExigida })}
                       className={cn(
-                        'w-full rounded-md border px-2 py-1 text-left text-sm',
+                        'flex w-full items-center rounded-md border px-2 py-1 text-left text-sm',
                         obrigatoria
                           ? 'border-[#F2C200] bg-[repeating-linear-gradient(135deg,#FFF3B8_0_8px,#FFFFFF_8px_16px)] font-medium'
                           : 'border-dashed border-linha text-apagado',
                       )}
                     >
                       Escolher militar
+                      {!obrigatoria && <span className="ml-auto text-xs font-normal">opcional</span>}
                     </button>
                   </li>
                 );

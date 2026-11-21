@@ -172,13 +172,13 @@ describe('escala do mês', () => {
     expect(document.querySelector('[data-dias-em-grade]')).toBeNull();
   });
 
-  it('"Mostrar só vagas vazias" com dias em grade deixa só os dias com vaga vazia, sem buracos na grade (Review Focus 5)', async () => {
+  it('"Ocultar guarnições completas" com dias em grade deixa só os dias com vaga vazia, sem buracos na grade (Review Focus 5)', async () => {
     // dia 1 completo, dia 2 com vaga vazia, dia 3 completo
     const completo = (n: number) => dia(n, null, [faixa(false, card(true, true))]);
     api({ ...ESCALA, dias: [completo(1), dia(2, null, [faixa(false, card(true, false))]), completo(3)] });
     abrir('/escala-do-mes');
     await screen.findByRole('region', { name: 'Dia 1' });
-    await userEvent.click(screen.getByRole('button', { name: 'Mostrar só vagas vazias' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Ocultar guarnições completas' }));
     const grade = document.querySelector('[data-dias-em-grade]') as HTMLElement;
     expect([...grade.children].map((c) => c.getAttribute('aria-label'))).toEqual(['Dia 2']);
     expect([...grade.children].every((c) => (c.textContent ?? '').trim() !== '')).toBe(true);
@@ -205,7 +205,7 @@ describe('escala do mês', () => {
     expect(falta).toHaveAttribute('title', 'Falta 1 Motorista (CNH D). Falta 1 Combatente');
   });
 
-  it('vaga obrigatória vazia é "Escolher militar" com listras; a opcional é discreta e sem rótulo de opcional', async () => {
+  it('vaga obrigatória vazia é "Escolher militar"; a vaga extra (entre o mínimo e o máximo) fica com a etiqueta "opcional"', async () => {
     api();
     abrir('/escala-do-mes');
     const d3 = await screen.findByRole('region', { name: 'Dia 3' });
@@ -213,11 +213,30 @@ describe('escala do mês', () => {
     const botoes = within(d3.querySelector('[data-faixa]') as HTMLElement).getAllByRole('button', { name: /^Escolher militar/ });
     expect(botoes).toHaveLength(1);
     expect(botoes[0]).not.toHaveAttribute('data-obrigatoria');
-    expect(within(d3).queryByText(/opcional/i)).toBeNull();
+    expect(within(botoes[0]!).getByText('opcional')).toBeInTheDocument();
     const d1 = secaoDoDia(1);
     const noite = within(d1.querySelectorAll('[data-faixa]')[1] as HTMLElement).getAllByRole('button', { name: /^Escolher militar/ });
     // Motorista e Combatente vazios (obrigatórias) e a segunda vaga do Combatente (opcional)
     expect(noite.map((b) => b.hasAttribute('data-obrigatoria'))).toEqual([true, true, false]);
+    // só a extra tem a etiqueta
+    expect(noite.map((b) => within(b).queryByText('opcional') !== null)).toEqual([false, false, true]);
+  });
+
+  it('cada função da guarnição é um painel próprio, com o cabeçalho da função, e os cards se alinham pelo topo', async () => {
+    api();
+    abrir('/escala-do-mes');
+    const d1 = await screen.findByRole('region', { name: 'Dia 1' });
+    const cardDoDia = (d1.querySelector('[data-cards-do-turno] > div') as HTMLElement);
+    const paineis = cardDoDia.querySelectorAll('[data-painel-funcao]');
+    expect([...paineis].map((p) => p.querySelector('[data-cabecalho-funcao]')?.textContent)).toEqual(['Motorista (CNH D)', 'Combatente']);
+    expect(d1.querySelector('[data-cards-do-turno]')).toHaveClass('items-start');
+  });
+
+  it('a frase "Falta…" não aparece escrita em card nenhum: o ícone a traz só no title e no nome acessível', async () => {
+    api();
+    abrir('/escala-do-mes');
+    const d1 = await screen.findByRole('region', { name: 'Dia 1' });
+    expect(within(d1).queryByText(/^Falta/)).toBeNull();
   });
 
   it('a linha do ocupante tem posto, nome, matrícula e a etiqueta do serviço', async () => {
@@ -230,11 +249,11 @@ describe('escala do mês', () => {
     expect(within(linha).getByText('Pronto')).toBeInTheDocument();
   });
 
-  it('"Mostrar só vagas vazias" esconde o dia sem vagas vazias e os cards completos', async () => {
+  it('"Ocultar guarnições completas" esconde o dia sem vagas vazias e os cards completos', async () => {
     api();
     abrir('/escala-do-mes');
     await screen.findByRole('region', { name: 'Dia 1' });
-    const botao = screen.getByRole('button', { name: 'Mostrar só vagas vazias' });
+    const botao = screen.getByRole('button', { name: 'Ocultar guarnições completas' });
     expect(botao).toHaveAttribute('aria-pressed', 'false');
     await userEvent.click(botao);
     expect(botao).toHaveAttribute('aria-pressed', 'true');
@@ -437,7 +456,9 @@ describe('escolher militar e remover', () => {
     const f = api(comRemovido, { 'DELETE /api/remocoes/r1': { status: 200, corpo: ESCALA } });
     abrir('/escala-do-mes');
     const d3 = await screen.findByRole('region', { name: 'Dia 3' });
-    expect(within(d3).getByText('Removidos:').closest('p')).toHaveTextContent('XAVIER');
+    // os removidos vão para o painel "Removidos" do dia (não há mais a linha "Removidos:" solta entre os cards)
+    expect(within(d3).queryByText('Removidos:')).toBeNull();
+    expect(within(d3).getByRole('region', { name: 'Removidos' })).toHaveTextContent('XAVIER');
     await userEvent.click(within(d3).getByRole('button', { name: 'Permitir de novo XAVIER neste turno' }));
     await waitFor(() => expect(chamadasA(f, 'DELETE /api/remocoes/r1')).toBe(1));
   });

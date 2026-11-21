@@ -11,7 +11,7 @@ type Acoes = {
   aoDesfazer?: (remocaoId: string) => void;
 };
 
-function Faixa({ faixa, dia, soVazias, aoEscolher, aoRemover, aoDesfazer }: { faixa: FaixaDoDia; dia: string; soVazias: boolean } & Acoes) {
+function Faixa({ faixa, dia, soVazias, aoEscolher, aoRemover }: { faixa: FaixaDoDia; dia: string; soVazias: boolean } & Acoes) {
   const cards = soVazias ? faixa.guarnicoes.filter((g) => !g.completa) : faixa.guarnicoes;
   if (soVazias && cards.length === 0) return null;
   const letras = [...new Set(faixa.turnos.map((t) => t.letra))].join(', ');
@@ -27,7 +27,7 @@ function Faixa({ faixa, dia, soVazias, aoEscolher, aoRemover, aoDesfazer }: { fa
           {servicos.map((t) => <EtiquetaDoServico key={t.servicoId} nome={t.servico} cor={t.cor} />)}
         </p>
         {cards.length > 0 && (
-          <div data-cards-do-turno className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,18rem),1fr))] gap-3">
+          <div data-cards-do-turno className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,18rem),1fr))] items-start gap-3">
             {cards.map((g) => (
               <CardDaGuarnicao key={g.guarnicaoId} card={g} aoEscolher={aoEscolher && ((v) => aoEscolher({ ...v, data: dia, inicio: faixa.inicio, fim: faixa.fim }))} aoRemover={aoRemover && ((o, guarnicao, vaga) => aoRemover(o, guarnicao, Number(dia.slice(8)), vaga))} />
             ))}
@@ -48,29 +48,41 @@ function Faixa({ faixa, dia, soVazias, aoEscolher, aoRemover, aoDesfazer }: { fa
             ))}
           </p>
         )}
-        {faixa.removidos.length > 0 && (
-          <p className="flex flex-wrap items-center gap-x-2 text-xs text-apagado">
-            <span>Removidos:</span>
-            {faixa.removidos.map((r) => (
-              <span key={r.remocaoId} className="inline-flex items-center gap-1">
-                {r.nomeGuerra}
-                {aoDesfazer && (
-                  <button
-                    type="button"
-                    aria-label={`Permitir de novo ${r.nomeGuerra} neste turno`}
-                    title="Tira a marca de remoção: a pré-escala poderá escalar este militar neste turno de novo. Ele não volta para a vaga agora."
-                    onClick={() => aoDesfazer(r.remocaoId)}
-                    className="font-medium text-vinho underline underline-offset-2"
-                  >
-                    Permitir de novo
-                  </button>
-                )}
-              </span>
-            ))}
-          </p>
-        )}
       </div>
     </div>
+  );
+}
+
+/**
+ * O painel "Removidos" do dia: quem foi tirado de um turno e não volta quando a pré-escala é gerada de novo. Fica junto, no fim do dia, e cresce
+ * para mostrar todos (cada um com o horário do turno e o "Permitir de novo").
+ */
+function Removidos({ dia, aoDesfazer }: { dia: DiaDaEscala; aoDesfazer?: Acoes['aoDesfazer'] }) {
+  const removidos = dia.faixas.flatMap((f) => f.removidos.map((r) => ({ ...r, horario: textoFaixa(f.inicio, f.fim) })));
+  if (removidos.length === 0) return null;
+  return (
+    <section aria-label="Removidos" data-removidos className="col-span-full grid gap-1.5 rounded-lg bg-[#F6F7F9] px-3 py-2 text-xs">
+      <h4 className="font-medium text-apagado">Removidos</h4>
+      <ul className="grid gap-1">
+        {removidos.map((r) => (
+          <li key={r.remocaoId} className="flex flex-wrap items-center gap-x-2">
+            <span className="text-apagado">{r.horario}</span>
+            <span className="font-medium">{r.nomeGuerra}</span>
+            {aoDesfazer && (
+              <button
+                type="button"
+                aria-label={`Permitir de novo ${r.nomeGuerra} neste turno`}
+                title="Tira a marca de remoção: a pré-escala poderá escalar este militar neste turno de novo. Ele não volta para a vaga agora."
+                onClick={() => aoDesfazer(r.remocaoId)}
+                className="font-medium text-vinho underline underline-offset-2"
+              >
+                Permitir de novo
+              </button>
+            )}
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 }
 
@@ -90,7 +102,8 @@ export function DiaDaEscalaVista({ dia, soVazias, aoEscolher, aoRemover, aoDesfa
       <div data-barra-do-dia aria-hidden className="w-1.5 self-stretch rounded-full bg-linha" />
       {/* os turnos do dia lado a lado, numa grade de ~20rem (adendo de 19/11 depois da 2.4): no celular, um embaixo do outro */}
       <div data-faixas-do-dia className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,20rem),1fr))] gap-4">
-        {dia.faixas.map((f) => <Faixa key={`${f.inicio}|${f.fim}`} faixa={f} dia={dia.data} soVazias={soVazias} aoEscolher={aoEscolher} aoRemover={aoRemover} aoDesfazer={aoDesfazer} />)}
+        {dia.faixas.map((f) => <Faixa key={`${f.inicio}|${f.fim}`} faixa={f} dia={dia.data} soVazias={soVazias} aoEscolher={aoEscolher} aoRemover={aoRemover} />)}
+        <Removidos dia={dia} aoDesfazer={aoDesfazer} />
       </div>
     </section>
   );
