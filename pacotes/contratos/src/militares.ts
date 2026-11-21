@@ -111,6 +111,23 @@ export type LinhaMilitar = {
   pendencias: string[];
 };
 
+/** Uma linha do módulo Pecúlio: o militar lotado na unidade (ou numa de baixo) com os dados de contato e as pendências do cadastro. */
+export type ItemDoPeculio = {
+  militarId: string;
+  matricula: string;
+  posto: string;
+  nomeGuerra: string;
+  nomeCompleto: string | null;
+  /** a sigla da unidade em que ele está lotado no mês */
+  lotacao: string;
+  telefone: string | null;
+  email: string | null;
+  pendencias: string[];
+};
+export type AniversarianteDoMes = { militarId: string; posto: string; nomeGuerra: string; dia: number; lotacao: string };
+/** GET /api/unidades/:u/peculio?mes=aaaa-mm: os militares lotados em :u e nas de baixo, e os que fazem aniversário no mês (em ordem de dia). */
+export type ListaDoPeculio = { militares: ItemDoPeculio[]; aniversariantes: AniversarianteDoMes[] };
+
 export type FichaMilitar = LinhaMilitar & {
   postoGradId: string;
   nomeCompleto: string | null;

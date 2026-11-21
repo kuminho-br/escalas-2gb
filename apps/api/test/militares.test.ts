@@ -1,4 +1,4 @@
-import { somarMeses, type FichaMilitar, type LinhaMilitar, type Posto } from 'contratos';
+import { somarMeses, type FichaMilitar, type LinhaMilitar, type ListaDoPeculio, type Posto } from 'contratos';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { hojeRecife } from '../src/datas.ts';
 import { inserir } from './banco-teste.ts';
@@ -518,5 +518,81 @@ describe('dono por bloco (Review Focus 1 e 2)', () => {
     const fora = await api.pedir('gestorGb', 'PATCH', `/api/militares/${b.id}`, { email: 'fulano@gmail.com' });
     expect(fora.status).toBe(400);
     expect((await fora.json()).campos.email).toBe('Use o e-mail institucional (@bombeiros.pe.gov.br).');
+  });
+});
+
+describe('lista do Pecúlio e aniversariantes (módulo)', () => {
+  const mesDoAniversario = somarMeses(atual, 2);
+  const numeroDoMes = Number(mesDoAniversario.slice(5));
+  const outroMes = (numeroDoMes % 12) + 1;
+  const peculio = async (u: string, quem: 'gestorGb' | 'escalante' | 'admin' | 'semPapel' = 'gestorGb', mes = mesDoAniversario) =>
+    api.pedir(quem, 'GET', `/api/unidades/${u}/peculio?mes=${mes}`);
+  const doPeculio = async (u: string, mes = mesDoAniversario): Promise<ListaDoPeculio> => (await peculio(u, 'gestorGb', mes)).json();
+  const naSegundaSecao = async (matricula: string, extra: Record<string, unknown> = {}): Promise<FichaMilitar> => {
+    const r = await api.pedir('gestorGb', 'POST', `/api/unidades/${outraSecao}/militares`, novo(matricula, { lotacao: { equipeId: null, jornada: 'adm', desde: atual }, ...extra }));
+    expect(r.status).toBe(201);
+    return r.json();
+  };
+  const nasce = async (id: string, dia: number, mes: number) =>
+    expect((await api.pedir('gestorGb', 'PATCH', `/api/militares/${id}`, { nascimento: { dia, mes } })).status).toBe(200);
+  let a1: FichaMilitar;
+  let b2: FichaMilitar;
+  let c1: FichaMilitar;
+  let d1: FichaMilitar;
+
+  beforeAll(async () => {
+    a1 = await criar('990501-1', { nomeGuerra: 'ALFAUM', antiguidade: 7001 });
+    b2 = await naSegundaSecao('990502-2', { nomeGuerra: 'BRAVODOIS', antiguidade: 7002 });
+    c1 = await criar('990503-3', { nomeGuerra: 'CHARLIEUM', antiguidade: 7003 });
+    d1 = await criar('990504-4', { nomeGuerra: 'DELTAUM', antiguidade: 7004 });
+    // A (20) e B (5) fazem aniversário no mês da consulta; C faz no mês seguinte; D não tem nascimento preenchido
+    await nasce(a1.id, 20, numeroDoMes);
+    await nasce(b2.id, 5, numeroDoMes);
+    await nasce(c1.id, 10, outroMes);
+    await api.banco.query('update militar set nome_completo = null where id = $1', [d1.id]);
+  });
+
+  it('com o 2º GB traz os militares da 1ª e da 2ª SB, com os dados do Pecúlio; com a 1ª SB, só os dela', async () => {
+    const gb = await doPeculio(api.ids.gb);
+    const por = (matricula: string) => gb.militares.find((m) => m.matricula === matricula);
+    expect(por('990501-1')).toEqual({
+      militarId: a1.id, matricula: '990501-1', posto: 'SD BM', nomeGuerra: 'ALFAUM', nomeCompleto: 'Fulano de Tal 990501-1', lotacao: '1ª SB', telefone: null, email: null, pendencias: [],
+    });
+    expect(por('990502-2')).toMatchObject({ lotacao: '2ª SB', nomeGuerra: 'BRAVODOIS' });
+    const daPrimeira = await doPeculio(api.ids.secao);
+    expect(daPrimeira.militares.some((m) => m.matricula === '990501-1')).toBe(true);
+    expect(daPrimeira.militares.some((m) => m.matricula === '990502-2')).toBe(false);
+    expect(daPrimeira.militares.every((m) => m.lotacao === '1ª SB')).toBe(true);
+    // o administrador (papel na raiz) também vê
+    expect(((await (await peculio(api.ids.gb, 'admin')).json()) as ListaDoPeculio).militares.length).toBe(gb.militares.length);
+  });
+
+  it('a lista traz as pendências, inclusive "Nome completo em falta"', async () => {
+    const gb = await doPeculio(api.ids.gb);
+    expect(gb.militares.find((m) => m.matricula === '990504-4')).toMatchObject({ nomeCompleto: null, pendencias: ['Nome completo em falta'] });
+  });
+
+  it('os aniversariantes do mês vêm em ordem de dia; quem não tem nascimento ou faz em outro mês não aparece (Review Focus 5)', async () => {
+    const gb = await doPeculio(api.ids.gb);
+    expect(gb.aniversariantes).toEqual([
+      { militarId: b2.id, posto: 'SD BM', nomeGuerra: 'BRAVODOIS', dia: 5, lotacao: '2ª SB' },
+      { militarId: a1.id, posto: 'SD BM', nomeGuerra: 'ALFAUM', dia: 20, lotacao: '1ª SB' },
+    ]);
+    // quem é só da 1ª SB: só o A
+    expect((await doPeculio(api.ids.secao)).aniversariantes.map((x) => x.nomeGuerra)).toEqual(['ALFAUM']);
+  });
+
+  it('um mês sem ninguém faz a lista de aniversariantes vir vazia, e a lista de militares continua', async () => {
+    const semNinguem = await doPeculio(api.ids.gb, somarMeses(atual, 4));
+    expect(semNinguem.aniversariantes).toEqual([]);
+    expect(semNinguem.militares.length).toBeGreaterThan(0);
+  });
+
+  it('sem papel na unidade é 403; mês inválido é 400', async () => {
+    expect((await peculio(api.ids.gb, 'escalante')).status).toBe(403);
+    expect((await peculio(api.ids.secao, 'semPapel')).status).toBe(403);
+    expect((await peculio(api.ids.gb, 'gestorGb', '2026-13')).status).toBe(400);
+    // o escalante da 1ª SB vê a lista da 1ª SB (leitura): o dono do bloco é quem edita, não quem lê
+    expect((await peculio(api.ids.secao, 'escalante')).status).toBe(200);
   });
 });

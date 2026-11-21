@@ -12,6 +12,7 @@ import {
   type Equipe,
   type FichaMilitar,
   type LinhaMilitar,
+  type ListaDoPeculio,
   type Posto,
   type SecaoDeLotacao,
 } from 'contratos';
@@ -248,7 +249,7 @@ const mesDaConsulta = (c: Ctx) => c.req.query('mes') ?? hojeRecife().slice(0, 7)
 export function rotasMilitares(dep: { banco: Banco; auth: Auth }): Hono<AmbienteApi> {
   const r = new Hono<AmbienteApi>();
   const sessao = exigirSessao(dep.banco, dep.auth);
-  for (const caminho of ['/postos', '/secoes', '/unidades/:u/equipes', '/unidades/:u/militares', '/militares/*', '/afastamentos/*']) r.use(caminho, sessao);
+  for (const caminho of ['/postos', '/secoes', '/unidades/:u/equipes', '/unidades/:u/militares', '/unidades/:u/peculio', '/militares/*', '/afastamentos/*']) r.use(caminho, sessao);
 
   r.get('/postos', async (c) => {
     const negado = await exigirAlgumPapel(c);
@@ -300,6 +301,51 @@ export function rotasMilitares(dep: { banco: Banco; auth: Auth }): Hono<Ambiente
     const afast = await afastamentosNoMes(dep.banco, rows.map((m) => m.id), mes);
     const repetidas = repetidasPorAntiguidade(rows.filter((m) => m.ativo).map((m) => ({ id: m.id, nomeGuerra: m.nome_guerra, antiguidade: m.antiguidade })));
     return c.json(rows.map((m) => linhaDe(m, afast.filter((a) => a.militar_id === m.id), mes, repetidas.get(m.id))));
+  });
+
+  // O módulo Pecúlio: os militares lotados em :u e nas unidades de baixo no mês, com os dados de contato, e os aniversariantes do mês.
+  // Quem tem papel de cadastro em :u lê; quem edita cada bloco é o dono dele (a ficha diz).
+  r.get('/unidades/:u/peculio', async (c) => {
+    const u = c.req.param('u');
+    const negado = await exigirPapel(c, u, CADASTRO);
+    if (negado) return negado;
+    const mes = mesDaConsulta(c);
+    if (!Mes.safeParse(mes).success) return c.json({ erro: 'Mês inválido: use o formato aaaa-mm.' }, 400);
+    const { primeiro, ultimo } = limitesDoMes(mes);
+    const { rows } = await dep.banco.query<LinhaBanco & { lotacao: string }>(
+      `${SELECT_MILITAR}, un.sigla as lotacao
+         from rastreio l
+         join unidade un on un.id = l.unidade_id
+         join unidade alvo on alvo.id = $1
+         join militar m on m.id = l.militar_id
+         join posto_grad p on p.id = m.posto_grad_id
+         left join equipe e on e.id = l.equipe_id
+        where alvo.caminho @> un.caminho and l.desde <= $3 and (l.ate is null or l.ate >= $2)
+        order by p.ordem desc, m.antiguidade asc nulls last, m.nome_guerra`,
+      [u, primeiro, ultimo],
+    );
+    const repetidas = repetidasPorAntiguidade(rows.filter((m) => m.ativo).map((m) => ({ id: m.id, nomeGuerra: m.nome_guerra, antiguidade: m.antiguidade })));
+    const numeroDoMes = Number(mes.slice(5, 7));
+    const lista: ListaDoPeculio = {
+      militares: rows.map((m) => ({
+        militarId: m.id,
+        matricula: m.matricula,
+        posto: m.posto,
+        nomeGuerra: m.nome_guerra,
+        nomeCompleto: m.nome_completo,
+        lotacao: m.lotacao,
+        telefone: m.telefone,
+        email: m.email,
+        pendencias: pendenciasDoMilitar({
+          motorista: m.motorista, cnh: m.cnh, jornada: m.jornada, equipe: m.equipe, antiguidade: m.antiguidade, nomeCompleto: m.nome_completo, repetidaCom: repetidas.get(m.id),
+        }),
+      })),
+      // quem não tem o nascimento preenchido não entra; no mesmo dia, a ordem é a da lista (posto, antiguidade, nome)
+      aniversariantes: rows
+        .flatMap((m) => (m.nascimento_dia !== null && m.nascimento_mes === numeroDoMes ? [{ militarId: m.id, posto: m.posto, nomeGuerra: m.nome_guerra, dia: m.nascimento_dia, lotacao: m.lotacao }] : []))
+        .sort((a, b) => a.dia - b.dia),
+    };
+    return c.json(lista);
   });
 
   r.post('/unidades/:u/militares', async (c) => {
