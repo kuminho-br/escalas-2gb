@@ -66,13 +66,7 @@ A regra das remoções existe só no sistema novo. A exposição do motor pela A
 
 Um cadastro por vez, cada um com API, tela e importação, num PR próprio. Plano: `docs/superpowers/plans/2026-11-17-fase3-cadastros.md`.
 
-| Entrega | O quê | PR |
-|---|---|---|
-| 1 | Configurações e tipos de afastamento | #13, #14 |
-| 2 e 2.1 | Militares e afastamentos; modelo de planilha e ajustes da ficha | #16, #17 |
-| 3 e 3.1 | Atividades, funções e guarnições; guarnição como modelo | #18, #19 |
-| 4, 4.1, 4.1.1 e 4.2 | Serviços, turnos e escalas; tela de serviços; vínculo por faixa de horário | #20 a #23 |
-| 5 | Cotas e feriados | #24 |
+Entregas 1 a 5 (configurações, militares e afastamentos, guarnições, serviços e escalas, cotas e feriados), PRs #13 a #24.
 
 A data do contrato recusa dia que não existe no calendário. "Distribuídas" nas cotas valeu 0 até a fase 4, quando a escala passou a gravar alocações.
 
@@ -80,41 +74,17 @@ Os PRs #15 (aviso de migração faltando) e #32 (campo de mês das Cotas) ficara
 
 ## Revisões antes da fase 4 · concluídas
 
-1. **Pendências de interface:** PRs #25 e #26. Plano: `docs/superpowers/plans/2026-11-18-revisao-1.md`.
-2. **Testes com pessoas:** o retorno entrou nos PRs #25 e #26.
-3. **Revisão de código:** 2 problemas críticos e 10 importantes, todos corrigidos com teste. PR #27. Plano: `docs/superpowers/plans/2026-11-18-revisao-3.md`.
-
-O que ficou sem corrigir está em "Pendências conhecidas", no fim.
+Pendências de interface, testes com pessoas e revisão de código (2 críticos e 10 importantes, corrigidos com teste): PRs #25 a #27. Planos: `docs/superpowers/plans/2026-11-18-revisao-1.md` e `2026-11-18-revisao-3.md`. O que ficou sem corrigir está em "Pendências conhecidas".
 
 ## Fase 4 — Montagem da escala · concluída
 
 Montar e conferir a escala do mês à mão, nas telas de trabalho (Escala do mês, Efetivo por dia, Grade geral). Plano: `docs/superpowers/plans/2026-11-18-fase4-escala.md`.
 
-| Entrega | O quê | Situação | Spec |
-|---|---|---|---|
-| 1 | Escala do mês, à mão | mesclada (#28) | — |
-| 1.1 | Acúmulo de funções | mesclada (#29) | ordem de escala e acúmulo |
-| 2 | Voluntariado lançado à mão | mesclada (#30, #31) | voluntariado por faixa |
-| 2.1 | Ordem de escala | mesclada (#33) | ordem de escala e acúmulo |
-| 2.2 | Voluntariado por faixa de horário | mesclada (#34) | voluntariado por faixa |
-| 2.3 | Flexibilidade do voluntariado | mesclada (#35) | voluntariado por faixa |
-| 2.4 | Acabamento do voluntariado e da Escala do mês | mesclada (#36) | voluntariado por faixa |
-| 3.1 | Pré-escala do Pronto | mesclada (#37) | — |
-| 3.2.1 | Arrumação: serviços fixos, ordem de escalação, modelos de guarnição | mesclada (#38) | meta de ativação |
-| 3.2.2 | Meta de ativação e Efetivo do dia | mesclada (#39) | meta de ativação |
-| 3.3 | Efetivo por dia, turnos lado a lado e login novo | mesclada (#42) | meta de ativação |
-| 4 | Grade geral | mesclada (#44), validada (menos o militar comum) | grade geral |
-| 4.1 | Meta do dia: desativar, reativar e adicionar | mesclada (#49), validada (regra antiga do acúmulo) | meta de ativação |
-| 4.2 | Efetivo por dia e Escala do mês em grade | mesclada (#51) | meta de ativação |
-| 4.3 | Limpeza das pendências da fase 3 (Tarefas 65 a 73) | mesclada (#57) | limpeza da fase 3 |
-| 4.4 | Correção do "Desativar", leitura da Grade, busca, "Adicionar serviço" em abas, dia da semana no Efetivo por dia, sem a aba Atividades (Tarefas 74 a 82) | mesclada (#59) | grade geral (ajustes) |
-| 4.5 | Acabamento: pendências simples (Tarefas 83 a 90) | mesclada (#61) | — |
-| 4.6 | Acabamento 2: pendências simples (Tarefas 91 a 96) | mesclada (#63) | — |
-| 4.7 | Acabamento 3: pendências simples (Tarefas 97 a 103) | mesclada (#68) | — |
+Entregas 1 a 4.7, PRs #28 a #68: Escala do mês à mão, acúmulo, voluntariado por faixa, ordem de escala, pré-escala do Pronto, meta de ativação, Efetivo por dia, Grade geral e quatro lotes de acabamento. A tabela com cada entrega está no plano da fase.
 
 Specs, em `docs/superpowers/specs/`: `2026-11-18-ordem-de-escala-e-acumulo-design.md`, `2026-11-19-voluntariado-por-faixa-design.md`, `2026-11-20-meta-de-ativacao-design.md`, `2026-11-20-grade-geral-design.md`, `2026-11-20-grade-geral-ux-design.md` e `2026-11-20-limpeza-da-fase-3-design.md`.
 
-**Painel do dia (medida da 4.3):** 33 consultas no cenário de teste (31 para um militar do Pronto, 33 para um do Adm), bem abaixo das 100 a 200 que se temia; o número cresce com escalas, faixas e funções (cerca de 9 consultas por faixa). Na 4.4, com uma terceira faixa no cenário, foi a 40 (Pronto) e 42 (Adm): passou do limite de 40, então "otimizar o painel do dia" entrou na fase 8.
+**Painel do dia:** medido em 33 consultas na 4.3 e 42 na 4.4 (cresce cerca de 9 por faixa); passou do limite de 40, e "otimizar o painel do dia" entrou na fase 8.
 
 **A fase fechou na 4.7** (21/11/2026), o terceiro lote de pendências simples. Os escalantes conseguem montar e conferir a escala de um mês à mão, sem os tropeços conhecidos.
 
@@ -145,8 +115,8 @@ Design: `docs/superpowers/specs/2026-11-21-usuarios-e-modulos-design.md`. Plano:
 
 | Entrega | O que traz | Situação |
 |---|---|---|
-| 1 | Contas e papéis: senha provisória, troca no primeiro login, papéis na ficha, "Auxiliar administrativo" | em execução (migração 0025) |
-| 2 | Unidade de trabalho: o seletor substitui a 1ª SB fixa | planejada |
+| 1 | Contas e papéis: senha provisória, troca no primeiro login, papéis na ficha, "Auxiliar administrativo" | mesclada (#86), migração 0025 aplicada no teste |
+| 2 | Unidade de trabalho: o seletor substitui a 1ª SB fixa, e o auxiliar gera a senha de um colega auxiliar | planejada |
 | 3 | Tela inicial e módulos por papel, Minha ficha com o próprio telefone | planejada |
 | 4 | Transição do login (as mangueiras), se o mockup estiver aprovado | condicional |
 
@@ -210,6 +180,15 @@ Design: `docs/superpowers/specs/2026-11-21-usuarios-e-modulos-design.md`. Plano:
 ## Pendências conhecidas
 
 Achadas nas revisões e nas validações. Nenhuma muda quem é escalado. Entram numa entrega quando houver oportunidade.
+
+**Contas e papéis (6.1):**
+- "Encerrar" aparece num papel fora do alcance de quem vê a ficha (dá 403);
+- os formulários "Dar papel" e "Encerrar" fecham mesmo com erro;
+- a tela "Crie a sua senha" não tem "Sair";
+- dar papel numa unidade extinta não é barrado;
+- corrida teórica na regra do último gestor e na criação simultânea do usuário;
+- a sessão é conferida duas vezes nas rotas de acesso;
+- sem decisão: o administrador pode encerrar o próprio último papel de administrador; `/api/auth/change-password` continua aberto com a senha provisória.
 
 **Com alocações gravadas:** mudar a letra de um turno com militares escalados não dá 409.
 
@@ -332,5 +311,4 @@ Achadas nas revisões e nas validações. Nenhuma muda quem é escalado. Entram 
 - **Ambiente de teste gratuito:** pausa por inatividade e limites do plano (D2).
 - **Dados pessoais numa nuvem comercial durante o teste:** D7, revista para o Pecúlio (sem CPF e sem ano de nascimento até o servidor do Estado).
 - **O Pecúlio aumenta o escopo de uma seção para o GB inteiro:** 184 militares em nove lotações; o acesso por lotação (fase 6) precisa estar certo antes de o militar comum entrar.
-- **A Grade geral não foi validada com o militar comum:** a sandbox só tem o administrador; só os testes automáticos cobrem esse caso.
-- **O militar comum ainda não tem como entrar:** o login é por e-mail e o Pecúlio não tem e-mail.
+- **A Grade geral não foi validada com o militar comum:** desde a 6.1, a sandbox pode ter auxiliar, gestor e militar comum (senha provisória); falta a VALIDAÇÃO refazer esses testes.
