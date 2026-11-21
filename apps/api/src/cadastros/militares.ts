@@ -12,10 +12,11 @@ import {
   type FichaMilitar,
   type LinhaMilitar,
   type Posto,
+  type SecaoDeLotacao,
 } from 'contratos';
 import { cnhHabilitadas, diasDoMes } from 'dominio';
 import { Hono, type Context } from 'hono';
-import { CADASTRO, exigirAlgumPapel, exigirPapel, exigirSessao, unidadeDoRegistro, type AmbienteApi } from '../acesso.ts';
+import { CADASTRO, exigirAlgumPapel, exigirPapel, exigirSessao, temPapel, unidadeDoRegistro, type AmbienteApi } from '../acesso.ts';
 import type { Auth } from '../auth.ts';
 import { comUsuario, type Banco, type Consulta } from '../banco/banco.ts';
 import { hojeRecife } from '../datas.ts';
@@ -167,13 +168,24 @@ const mesDaConsulta = (c: Ctx) => c.req.query('mes') ?? hojeRecife().slice(0, 7)
 export function rotasMilitares(dep: { banco: Banco; auth: Auth }): Hono<AmbienteApi> {
   const r = new Hono<AmbienteApi>();
   const sessao = exigirSessao(dep.banco, dep.auth);
-  for (const caminho of ['/postos', '/unidades/:u/equipes', '/unidades/:u/militares', '/militares/*', '/afastamentos/*']) r.use(caminho, sessao);
+  for (const caminho of ['/postos', '/secoes', '/unidades/:u/equipes', '/unidades/:u/militares', '/militares/*', '/afastamentos/*']) r.use(caminho, sessao);
 
   r.get('/postos', async (c) => {
     const negado = await exigirAlgumPapel(c);
     if (negado) return negado;
     const { rows } = await dep.banco.query<Posto>('select id, sigla, nome, ordem from posto_grad order by ordem');
     return c.json(rows);
+  });
+
+  // as seções em que a pessoa pode lotar um militar: as que ela pode cadastrar (o administrador, todas)
+  r.get('/secoes', async (c) => {
+    const negado = await exigirAlgumPapel(c);
+    if (negado) return negado;
+    const hoje = hojeRecife();
+    const { rows } = await dep.banco.query<SecaoDeLotacao>("select id, sigla, nome from unidade where tipo = 'secao' and (ate is null or ate >= $1::date) order by sigla", [hoje]);
+    const permitidas: SecaoDeLotacao[] = [];
+    for (const u of rows) if (await temPapel(dep.banco, c.get('usuarioId'), u.id, CADASTRO, hoje)) permitidas.push(u);
+    return c.json(permitidas);
   });
 
   r.get('/unidades/:u/equipes', async (c) => {

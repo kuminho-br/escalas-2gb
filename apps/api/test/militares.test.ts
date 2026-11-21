@@ -34,7 +34,8 @@ beforeAll(async () => {
   ferias = tipos.find((t) => t.nome === 'Férias')!.id;
   lts = tipos.find((t) => t.nome === 'LTS')!.id;
   alfa = await inserir(api.banco, 'equipe', { unidade_id: api.ids.secao, nome: 'Alfa', ordem_ciclo: 1 });
-  outraSecao = await inserir(api.banco, 'unidade', { tipo: 'secao', sigla: '2ª SB', nome: '2ª Seção de Bombeiros', mae_id: api.ids.gb, desde: '2026-11-01' });
+  // a 2ª SB vem da migração 0023 (as sete seções do 2º GB)
+  outraSecao = (await api.banco.query<{ id: string }>("select id from unidade where sigla = '2ª SB'")).rows[0]!.id;
 });
 afterAll(async () => {
   await api.fechar();
@@ -81,6 +82,18 @@ describe('cadastro de militares', () => {
     await criar('990105-5', { postoGradId: cb, nomeGuerra: 'BRAVO', antiguidade: 1 });
     const lista: LinhaMilitar[] = await (await api.pedir('escalante', 'GET', `/api/unidades/${api.ids.secao}/militares?mes=${atual}`)).json();
     expect(lista.filter((l) => l.posto === 'CB BM').map((l) => l.nomeGuerra)).toEqual(['BRAVO', 'ZULU', 'ALFA']);
+  });
+});
+
+describe('seções para a lotação', () => {
+  it('o escalante da 1ª SB vê só a 1ª SB; o administrador vê as sete; quem não tem papel não vê nenhuma (403)', async () => {
+    const dele: { id: string; sigla: string }[] = await (await api.pedir('escalante', 'GET', '/api/secoes')).json();
+    expect(dele.map((x) => x.sigla)).toEqual(['1ª SB']);
+    expect(dele[0]!.id).toBe(api.ids.secao);
+    const todas: { id: string; sigla: string; nome: string }[] = await (await api.pedir('admin', 'GET', '/api/secoes')).json();
+    expect(todas.map((x) => x.sigla)).toEqual(['1ª SB', '2ª SB', '3ª SB', '4ª SB', '5ª SB', '6ª SB', '7ª SB']);
+    expect(todas[1]).toEqual({ id: outraSecao, sigla: '2ª SB', nome: '2ª Seção de Bombeiros' });
+    expect((await api.pedir('semPapel', 'GET', '/api/secoes')).status).toBe(403);
   });
 });
 

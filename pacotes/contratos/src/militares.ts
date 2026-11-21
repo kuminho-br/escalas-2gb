@@ -53,6 +53,8 @@ export type EdicaoAfastamento = z.infer<typeof EdicaoAfastamento>;
 export const MENSAGEM_FIM_ANTES_DO_INICIO = MSG_FIM;
 
 export type Posto = { id: string; sigla: string; nome: string; ordem: number };
+/** Seção em que o usuário pode lotar um militar (as que ele pode cadastrar). */
+export type SecaoDeLotacao = { id: string; sigla: string; nome: string };
 export type Equipe = { id: string; nome: string; ordemCiclo: number };
 
 export type LinhaMilitar = {

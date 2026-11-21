@@ -8,8 +8,8 @@ import { Afastamentos } from '@/componentes/militares/Afastamentos';
 import { Identificacao } from '@/componentes/militares/Identificacao';
 import { ProvedorDePendencias } from '@/componentes/AlteracoesPendentes';
 import { FichaPainel } from '@/componentes/ListaDetalhe';
-import { Lotacoes } from '@/componentes/militares/Lotacoes';
 import { Motorista } from '@/componentes/militares/Motorista';
+import { Rastreio } from '@/componentes/militares/Rastreio';
 import { resumoDaLotacao } from '@/lib/militares';
 
 export const Route = createFileRoute('/_app/militares/$id')({
@@ -37,7 +37,7 @@ function Ficha() {
       <Identificacao key={`i-${ficha.id}`} ficha={ficha} />
       <Motorista key={`m-${ficha.id}`} ficha={ficha} />
       <Afastamentos key={`a-${ficha.id}`} ficha={ficha} />
-      <Lotacoes key={`l-${ficha.id}`} ficha={ficha} unidadeId={eu.unidade.id} />
+      <Rastreio key={`r-${ficha.id}`} ficha={ficha} unidadeId={eu.unidade.id} />
     </FichaPainel>
     </ProvedorDePendencias>
   );
