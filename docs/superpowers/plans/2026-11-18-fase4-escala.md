@@ -2930,6 +2930,122 @@ O `th` do dia já é `sticky top-0`, mas o `div` em volta tem `overflow-x-auto`:
 
 ---
 
+# Entrega 4.7 — Acabamento 3: pendências simples
+
+**Goal:** mais um lote de "Pendências conhecidas" sem decisão aberta, para a programação seguir enquanto o design da fase 5 é escrito.
+
+**Architecture:** sete tarefas independentes, cada uma com o seu teste e o seu commit, no código que já existe. Nenhuma regra de escala muda; sem migração.
+
+**Tech Stack:** React + TanStack Query (site), Hono (API), `pacotes/dominio` e `pacotes/contratos`, Vitest + Testing Library.
+
+**Branch:** `fase4-4-7-acabamento-3`, a partir da `main` atualizada. Commits `Fase 4.4.7: …`. **Sem migração.** Modelos: Sonnet executa; Opus faz a revisão final do branch. **Ao terminar, enviar o branch e o resumo à PLANEJAMENTO** (não abrir PR nem mesclar).
+
+**Spec:** sem spec própria; os itens vêm de "Pendências conhecidas" do roadmap (menores das entregas 4.5 e 4.6 e da revisão 3). Pedido do usuário (21/11/2026).
+
+## Global Constraints
+
+- Textos da tela em português, sem jargão; o que falha diz como resolver.
+- Nenhuma tarefa muda quem pode ser escalado.
+- No fim: contagens no `CLAUDE.md` local; `pnpm test && pnpm typecheck && pnpm build:vercel`.
+
+**Decisões desta entrega** (minhas, pequenas):
+- "Mês já passou" passa a dizer a linha: "Mês já passou: <chave ou escala>, <mês>".
+- Sessão terminada com alteração não salva vai para entrar sem o aviso "Sair do site?" do navegador (a alteração se perde; o aviso de sessão terminada já diz por quê).
+- A tela de falha das rotas diferencia "sem conexão" de "erro do sistema" e leva o foco ao título.
+
+## Review Focus
+
+1. **Fechar a importação enquanto a confirmação roda e ela falhar:** ao reabrir, a mensagem do erro aparece (não some), e não é possível mandar uma segunda confirmação antes de a primeira acabar. Tarefa 97.
+2. **"Sair" seguido de uma consulta que volta 401:** vai para entrar sem o aviso "Sua sessão terminou". Tarefa 100.
+3. **Lista já carregada cuja nova busca falha:** continua mostrando a lista, sem o aviso "Não deu para carregar a lista". Tarefa 99.
+4. **Desfazer uma edição depois de chegar dado novo do servidor:** o campo mostra o valor do servidor, não o antigo. Tarefa 102.
+5. **Dois militares de mesmo posto, um com `ordem` e outro sem:** a ordem de antiguidade é a mesma em todas as chamadas. Tarefa 103.
+
+---
+
+### Task 97: Importação: a linha do "Mês já passou", fechar durante a confirmação e o erro genérico
+
+**Files:** `apps/api/src/importacao/configuracoes.ts`, `apps/api/src/importacao/servicos-escalas.ts`, `apps/web/src/componentes/ImportarPlanilha.tsx`. **Test:** `importacao-configuracoes.test.ts`, `importacao-servicos-escalas.test.ts`, `importar.test.tsx`.
+
+- [ ] **Step 1: Testes:**
+  - o problema de mês passado diz a chave (CONFIGURAÇÕES) ou a escala (GUARNIÇÕES POR ESCALA) e o mês;
+  - fechar o diálogo durante a confirmação e a confirmação falhar: ao reabrir, aparece a mensagem do erro; enquanto a primeira confirmação não acaba, o botão de confirmar fica desabilitado, mesmo depois de reabrir (Review Focus 1);
+  - o erro genérico da confirmação não manda "enviar de novo" quando o servidor respondeu 4xx; diz "Confira a planilha pelo modelo e envie de novo." só no 4xx de conteúdo e "Tente de novo em alguns minutos." no 5xx e sem conexão.
+- [ ] **Step 2: Run.** Expected: FAIL.
+- [ ] **Step 3: Implement.**
+- [ ] **Step 4: Run.** Expected: PASS.
+- [ ] **Step 5: Commit** `Fase 4.4.7: importação diz a linha e não perde o erro`.
+
+### Task 98: Função nova: sem pendência fantasma e "Cancelar" com trava
+
+**Files:** `apps/web/src/componentes/guarnicoes/Composicao.tsx`. **Test:** `guarnicoes.test.tsx`.
+
+- [ ] **Step 1: Testes:** escolher "Nova função…", digitar um nome e clicar "Remover" na linha não deixa pendência (sair da ficha não pergunta); "Cancelar" da função nova fica desabilitado enquanto a criação grava.
+- [ ] **Step 2: Run.** Expected: FAIL.
+- [ ] **Step 3: Implement.**
+- [ ] **Step 4: Run.** Expected: PASS.
+- [ ] **Step 5: Commit** `Fase 4.4.7: função nova sem pendência fantasma`.
+
+### Task 99: "Não deu para carregar a lista" só quando não há lista
+
+**Files:** `apps/web/src/componentes/militares/Identificacao.tsx`, `apps/web/src/routes/_app/militares.tsx`, `apps/web/src/componentes/militares/Afastamentos.tsx`. **Test:** `militares.test.tsx`.
+
+- [ ] **Step 1: Teste** (Review Focus 3): com a lista de postos já carregada e uma nova busca em 500, o campo continua com as opções e o aviso não aparece; sem nada carregado e com 500, o aviso aparece.
+- [ ] **Step 2: Run.** Expected: FAIL.
+- [ ] **Step 3: Implement** com `isError && !data`.
+- [ ] **Step 4: Run.** Expected: PASS.
+- [ ] **Step 5: Commit** `Fase 4.4.7: aviso de lista só sem lista`.
+
+### Task 100: Sessão terminada e "Sair" sem avisos errados
+
+**Files:** `apps/web/src/api/cliente.ts`, `apps/web/src/componentes/AlteracoesPendentes.tsx` (aviso do navegador), `apps/web/src/componentes/Topo.tsx` (`sair`). **Test:** `casca.test.tsx`, `entrar.test.tsx`.
+
+- [ ] **Step 1: Testes:** com alteração pendente, um 401 leva para entrar sem disparar o aviso do navegador ("Sair do site?"); depois de clicar "Sair", uma consulta que volta 401 leva para entrar **sem** `sessao=terminou` (Review Focus 2).
+- [ ] **Step 2: Run.** Expected: FAIL.
+- [ ] **Step 3: Implement:** uma marca "saindo" (em memória) ligada pelo `sair`; o desvio da sessão terminada desliga o aviso de pendências antes de trocar de página.
+- [ ] **Step 4: Run.** Expected: PASS.
+- [ ] **Step 5: Commit** `Fase 4.4.7: sessão terminada e sair sem avisos errados`.
+
+### Task 101: Tela de falha das rotas
+
+**Files:** `apps/web/src/componentes/TelasDeFalha.tsx`. **Test:** `casca.test.tsx` (ou o teste que já cobre as telas de falha).
+
+- [ ] **Step 1: Testes:** erro sem conexão mostra "Sem conexão com o sistema. Confira a internet e tente de novo."; erro do servidor mostra "O sistema encontrou um erro. Tente de novo em alguns minutos."; nos dois, o foco vai para o título da tela.
+- [ ] **Step 2: Run.** Expected: FAIL.
+- [ ] **Step 3: Implement.**
+- [ ] **Step 4: Run.** Expected: PASS.
+- [ ] **Step 5: Commit** `Fase 4.4.7: tela de falha diz o tipo do erro`.
+
+### Task 102: `useSincronizar` e os testes de recarregamento que faltavam
+
+**Files:** `apps/web/src/componentes/AlteracoesPendentes.tsx:78` (`useSincronizar`). **Test:** `militares.test.tsx` (Motorista), `escalas.test.tsx` (Identificação e Serviços da escala), `guarnicoes.test.tsx` (Identificação do modelo).
+
+- [ ] **Step 1: Testes:** editar um campo, chegar dado novo do servidor, desfazer a edição: o campo mostra o valor do servidor (Review Focus 4); nos quatro blocos citados, dado novo do servidor sem alteração pendente recarrega o bloco.
+- [ ] **Step 2: Run.** Expected: FAIL no primeiro.
+- [ ] **Step 3: Implement:** `visto` só é atualizado quando não há alteração pendente.
+- [ ] **Step 4: Run.** Expected: PASS.
+- [ ] **Step 5: Commit** `Fase 4.4.7: sincronizar sem campo defasado`.
+
+### Task 103: Motor e contratos: antiguidade estável, título até 120 e cópias
+
+**Files:** `pacotes/dominio/src/nucleo.ts` (ordenação por antiguidade), `pacotes/dominio/src/guarnicao.ts:344` (`postosDoModelo`), `pacotes/contratos/src/escalas.ts:67` (`tituloPadraoEscala`), `apps/api/test/importacao-configuracoes.test.ts:115`. **Test:** `pacotes/dominio/test`, `pacotes/contratos/test/servicos.test.ts` (ou o teste de escalas do contrato).
+
+- [ ] **Step 1: Testes:**
+  - dois militares do mesmo posto, um com `ordem` e outro sem: a ordem sai a mesma nas duas posições de entrada (o sem `ordem` por último, empate pela matrícula) (Review Focus 5);
+  - `tituloPadraoEscala` de um nome de 120 caracteres não passa de 120;
+  - mudar o objeto devolvido por `postosDoModelo` não muda o modelo;
+  - o teste de configuração com `'1/2031'` passa a calcular o mês com `somarMeses` a partir de hoje.
+- [ ] **Step 2: Run** `pnpm --filter dominio test` e os do contrato. Expected: FAIL.
+- [ ] **Step 3: Implement.** `pnpm casos:prototipo` continua passando (nenhum caso muda).
+- [ ] **Step 4: Run** `pnpm test`. Expected: PASS.
+- [ ] **Step 5: Commit** `Fase 4.4.7: antiguidade estável, título até 120 e cópias`. No fim da entrega:
+  - contagens no `CLAUDE.md` local;
+  - `pnpm test && pnpm typecheck && pnpm build:vercel`;
+  - revisão final (Opus);
+  - **enviar o branch e o resumo à PLANEJAMENTO** (não abrir PR nem mesclar), com a lista curta para a sandbox.
+
+---
+
 # Entregas 3 a 6 (a detalhar antes de cada uma)
 
 Cada uma ganha aqui as suas tarefas, no formato da entrega 1, depois do merge da anterior e da conversa com o usuário sobre o que a entrega 1 mostrou em uso.
@@ -2943,6 +3059,7 @@ Cada uma ganha aqui as suas tarefas, no formato da entrega 1, depois do merge da
 - **Entrega 4.4 — Grade geral: leitura e "Adicionar serviço" em abas:** detalhada acima (Tarefas 74 a 82), com o design `docs/superpowers/specs/2026-11-20-grade-geral-ux-design.md` (retorno da validação da entrega 4 e correção do "Desativar" da 4.1).
 - **Entrega 4.5 — Acabamento: pendências simples:** detalhada acima (Tarefas 83 a 90), pedido do usuário de 20/11/2026.
 - **Entrega 4.6 — Acabamento 2: pendências simples:** detalhada acima (Tarefas 91 a 96), pedido do usuário de 20/11/2026.
+- **Entrega 4.7 — Acabamento 3: pendências simples:** detalhada acima (Tarefas 97 a 103), pedido do usuário de 21/11/2026.
 - **Entrega 5 — Gerar documento:** Configurações › Modelos de impressão (enviar com conferência dos marcadores, baixar o atual, versões); geração da escala publicada com ExcelJS a partir do modelo vigente da unidade, respeitando `militares_doc` e `dias_doc` da escala; `documento_gerado` guardado e baixável; PDF fica para quando o serviço existir. **Reorganização de 20/11/2026: passou para a fase 8 (primeiro mês real) do roadmap; a fase 4 fecha na 4.3 (limpeza).**
 - **Entrega 5.1 — O mesmo modelo mais de uma vez no dia:** a detalhar depois da 5, com o design feito com o usuário (perguntas no adendo "validação da 3.3"). **Reorganização de 20/11/2026: passou para a fase 8 (primeiro mês real) do roadmap.**
 - ~~**Entrega 6 — Minha escala**~~: saiu da fase 4 (decisão do usuário, 19/11/2026). O conteúdo previsto continua valendo e vai para a etapa "Tipos de usuário e módulos" do roadmap: a rota e a tela do militar comum (os próprios serviços do mês, com serviço, turno, horário e quem compõe a guarnição com ele) e o acesso às escalas publicadas da unidade em que ele está lotado.
