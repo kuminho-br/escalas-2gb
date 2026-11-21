@@ -1,4 +1,4 @@
-import { mesPorExtenso, type FichaGuarnicao } from 'contratos';
+import { LIMITE_NOME, LIMITE_TIPO_VIATURA, LIMITE_VIATURA, mesPorExtenso, type FichaGuarnicao } from 'contratos';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { inserir } from './banco-teste.ts';
 import { montarApi, type ApiDeTeste } from './apoio-api.ts';
@@ -268,3 +268,28 @@ describe('importação de guarnições: vigência vazia e vigência anterior à 
   });
 });
 
+describe('nome, viatura e tipo grandes demais (os limites da tela)', () => {
+  const longo = (n: number) => 'x'.repeat(n);
+
+  it('o que passa do limite vira problema com a solução e a linha é pulada; o de tamanho certo entra', async () => {
+    const linhas: Linha[] = [
+      ['', longo(LIMITE_NOME + 1), '', '', '', '', '', 'Motorista', 1, 1],
+      ['', 'Guarnição Viatura Longa', longo(LIMITE_VIATURA + 1), 'Auto', '', '', '', 'Motorista', 1, 1],
+      ['', 'Guarnição Tipo Longo', 'VTR-2', longo(LIMITE_TIPO_VIATURA + 1), '', '', '', 'Motorista', 1, 1],
+      ['', longo(LIMITE_NOME), longo(LIMITE_VIATURA), longo(LIMITE_TIPO_VIATURA), '', '', '', 'Motorista', 1, 1],
+    ];
+    const previa = await importar(linhas);
+    expect(previa.problemas).toEqual([
+      { aba: 'GUARNIÇÕES', linha: 2, mensagem: `Nome da guarnição grande demais: ${LIMITE_NOME + 1} caracteres`, solucao: `Encurte para até ${LIMITE_NOME} caracteres.` },
+      { aba: 'GUARNIÇÕES', linha: 3, mensagem: `Viatura de Guarnição Viatura Longa grande demais: ${LIMITE_VIATURA + 1} caracteres`, solucao: `Encurte para até ${LIMITE_VIATURA} caracteres.` },
+      { aba: 'GUARNIÇÕES', linha: 4, mensagem: `Tipo da viatura de Guarnição Tipo Longo grande demais: ${LIMITE_TIPO_VIATURA + 1} caracteres`, solucao: `Encurte para até ${LIMITE_TIPO_VIATURA} caracteres.` },
+    ]);
+    // só a linha do tamanho certo entra
+    expect(previa.novos).toEqual([{ chave: longo(LIMITE_NOME), descricao: longo(LIMITE_NOME) }]);
+    const r = await importar(linhas, true);
+    expect(r.gravados).toBe(1);
+    const f = await ficha(longo(LIMITE_NOME));
+    expect(f.versoes[0]!.viatura).toBe(longo(LIMITE_VIATURA));
+    expect(f.versoes[0]!.tipoViatura).toBe(longo(LIMITE_TIPO_VIATURA));
+  });
+});
