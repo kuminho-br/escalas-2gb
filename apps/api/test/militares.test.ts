@@ -110,7 +110,7 @@ describe('alterar situação (rastreio)', () => {
 
   it('só a equipe, a partir do mês seguinte: fecha o período aberto no fim do mês e abre outro com a mesma lotação', async () => {
     const m = await criar('990106-6');
-    const r = await situacao(m.id, { unidadeId: api.ids.secao, equipeId: bravo, jornada: 'pronto', desde: proximo });
+    const r = await situacao(m.id, { unidadeId: api.ids.secao, equipeId: bravo, jornada: 'pronto', desde: `${proximo}-01` });
     expect(r.status).toBe(201);
     const f = (await r.json()) as FichaMilitar;
     expect(f.rastreio.map((l) => [l.unidadeSigla, l.equipe, l.jornada, l.desde, l.ate])).toEqual([
@@ -122,26 +122,67 @@ describe('alterar situação (rastreio)', () => {
   // [foco 3] o mesmo mês do período aberto: troca o período, em vez de deixar um de zero dia
   it('no mesmo mês do período aberto, substitui o período (nenhum fica com zero dia)', async () => {
     const m = await criar('990116-6');
-    const r = await situacao(m.id, { unidadeId: api.ids.secao, equipeId: null, jornada: 'adm', desde: atual });
+    const r = await situacao(m.id, { unidadeId: api.ids.secao, equipeId: null, jornada: 'adm', desde: `${atual}-01` });
     expect(r.status).toBe(200);
     const f = (await r.json()) as FichaMilitar;
     expect(f.rastreio).toEqual([{ id: expect.any(String), unidadeSigla: '1ª SB', equipe: null, jornada: 'adm', desde: `${atual}-01`, ate: null }]);
     expect(f).toMatchObject({ jornada: 'adm', equipe: null });
   });
 
-  it('um mês antes do período aberto é 400 com a mensagem no campo "desde", e nada muda', async () => {
+  it('um dia antes do período aberto é 400 com a mensagem no campo "desde", e nada muda', async () => {
     const m = await criar('990107-7');
-    const r = await situacao(m.id, { unidadeId: api.ids.secao, equipeId: null, jornada: 'adm', desde: somarMeses(atual, -1) });
+    const r = await situacao(m.id, { unidadeId: api.ids.secao, equipeId: null, jornada: 'adm', desde: `${somarMeses(atual, -1)}-28` });
     expect(r.status).toBe(400);
     const corpo = await r.json();
-    expect(corpo.erro).toBe('Use o mês do período aberto ou um mês depois.');
-    expect(corpo.campos.desde).toBe('Use o mês do período aberto ou um mês depois.');
+    expect(corpo.erro).toBe('Use o dia do período aberto ou um dia depois.');
+    expect(corpo.campos.desde).toBe('Use o dia do período aberto ou um dia depois.');
     expect((await ficha(m.id)).rastreio).toHaveLength(1);
+  });
+
+  it('alterar a situação no dia 15 fecha o período no dia 14', async () => {
+    const m = await criar('990127-7');
+    const r = await situacao(m.id, { unidadeId: api.ids.secao, equipeId: bravo, jornada: 'pronto', desde: `${proximo}-15` });
+    expect(r.status).toBe(201);
+    const f = (await r.json()) as FichaMilitar;
+    expect(f.rastreio.map((l) => [l.equipe, l.desde, l.ate])).toEqual([
+      ['Bravo', `${proximo}-15`, null],
+      ['Alfa', `${atual}-01`, `${proximo}-14`],
+    ]);
+  });
+
+  it('um dia depois do início do período aberto, no mesmo mês, também abre outro período', async () => {
+    const m = await criar('990137-7');
+    const r = await situacao(m.id, { unidadeId: api.ids.secao, equipeId: null, jornada: 'adm', desde: `${atual}-20` });
+    expect(r.status).toBe(201);
+    expect(((await r.json()) as FichaMilitar).rastreio.map((l) => [l.jornada, l.desde, l.ate])).toEqual([
+      ['adm', `${atual}-20`, null],
+      ['pronto', `${atual}-01`, `${atual}-19`],
+    ]);
+  });
+
+  // [foco 3] no mesmo dia em que o período abriu: substitui, sem criar um de zero dia
+  it('no dia em que o período aberto começou, substitui (nenhum fica com zero dia)', async () => {
+    const m = await criar('990147-7');
+    const abre = await situacao(m.id, { unidadeId: api.ids.secao, equipeId: bravo, jornada: 'pronto', desde: `${proximo}-15` });
+    expect(abre.status).toBe(201);
+    const r = await situacao(m.id, { unidadeId: api.ids.secao, equipeId: null, jornada: 'adm', desde: `${proximo}-15` });
+    expect(r.status).toBe(200);
+    expect(((await r.json()) as FichaMilitar).rastreio.map((l) => [l.jornada, l.desde, l.ate])).toEqual([
+      ['adm', `${proximo}-15`, null],
+      ['pronto', `${atual}-01`, `${proximo}-14`],
+    ]);
+  });
+
+  it('o corpo com mês em vez de data é recusado no campo "desde"', async () => {
+    const m = await criar('990157-7');
+    const r = await situacao(m.id, { unidadeId: api.ids.secao, equipeId: null, jornada: 'adm', desde: proximo });
+    expect(r.status).toBe(400);
+    expect((await r.json()).campos.desde).toBeTruthy();
   });
 
   it('equipe de outra unidade é 400 no campo equipeId', async () => {
     const m = await criar('990117-7');
-    const r = await situacao(m.id, { unidadeId: api.ids.secao, equipeId: equipeDeOutra, jornada: 'pronto', desde: proximo });
+    const r = await situacao(m.id, { unidadeId: api.ids.secao, equipeId: equipeDeOutra, jornada: 'pronto', desde: `${proximo}-01` });
     expect(r.status).toBe(400);
     expect((await r.json()).campos.equipeId).toBe('Escolha uma equipe da unidade da lotação.');
     expect((await ficha(m.id)).rastreio).toHaveLength(1);
@@ -149,7 +190,7 @@ describe('alterar situação (rastreio)', () => {
 
   it('mudar a lotação (a unidade) vale pelo rastreio: o novo período fica na outra seção', async () => {
     const m = await criar('990118-8');
-    const r = await api.pedir('admin', 'POST', `/api/militares/${m.id}/situacao`, { unidadeId: outraSecao, equipeId: equipeDeOutra, jornada: 'pronto', desde: proximo });
+    const r = await api.pedir('admin', 'POST', `/api/militares/${m.id}/situacao`, { unidadeId: outraSecao, equipeId: equipeDeOutra, jornada: 'pronto', desde: `${proximo}-01` });
     expect(r.status).toBe(201);
     expect(((await r.json()) as FichaMilitar).rastreio.map((l) => [l.unidadeSigla, l.equipe, l.desde])).toEqual([
       ['2ª SB', 'Alfa', `${proximo}-01`],
@@ -160,18 +201,18 @@ describe('alterar situação (rastreio)', () => {
   // revisão final: quem só tem papel na seção de origem não mexe no período de outra seção
   it('o escalante da 1ª SB não apaga nem encurta uma mudança de lotação marcada para outra seção (403)', async () => {
     const m = await criar('990178-8');
-    const marcada = await api.pedir('admin', 'POST', `/api/militares/${m.id}/situacao`, { unidadeId: outraSecao, equipeId: null, jornada: 'adm', desde: proximo });
+    const marcada = await api.pedir('admin', 'POST', `/api/militares/${m.id}/situacao`, { unidadeId: outraSecao, equipeId: null, jornada: 'adm', desde: `${proximo}-01` });
     expect(marcada.status).toBe(201);
     const antes = (await ficha(m.id)).rastreio;
     // no mesmo mês do período da 2ª SB: trocaria a unidade dele para a 1ª SB
-    const substitui = await situacao(m.id, { unidadeId: api.ids.secao, equipeId: null, jornada: 'adm', desde: proximo });
+    const substitui = await situacao(m.id, { unidadeId: api.ids.secao, equipeId: null, jornada: 'adm', desde: `${proximo}-01` });
     expect(substitui.status).toBe(403);
     // depois dele: fecharia o período da 2ª SB
-    const fecha = await situacao(m.id, { unidadeId: api.ids.secao, equipeId: null, jornada: 'adm', desde: somarMeses(proximo, 1) });
+    const fecha = await situacao(m.id, { unidadeId: api.ids.secao, equipeId: null, jornada: 'adm', desde: `${somarMeses(proximo, 1)}-01` });
     expect(fecha.status).toBe(403);
     expect((await ficha(m.id)).rastreio).toEqual(antes);
     // quem tem papel nas duas pontas pode (o administrador)
-    expect((await situacao(m.id, { unidadeId: api.ids.secao, equipeId: null, jornada: 'adm', desde: somarMeses(proximo, 1) }, 'admin')).status).toBe(201);
+    expect((await situacao(m.id, { unidadeId: api.ids.secao, equipeId: null, jornada: 'adm', desde: `${somarMeses(proximo, 1)}-01` }, 'admin')).status).toBe(201);
   });
 
   it('a rota antiga de transferência saiu', async () => {
@@ -377,14 +418,14 @@ describe('motorista e permissões', () => {
 
   it('alterar a situação para unidade sem papel é 403', async () => {
     const m = await criar('990114-4');
-    const r = await api.pedir('escalante', 'POST', `/api/militares/${m.id}/situacao`, { unidadeId: outraSecao, equipeId: null, jornada: 'adm', desde: proximo });
+    const r = await api.pedir('escalante', 'POST', `/api/militares/${m.id}/situacao`, { unidadeId: outraSecao, equipeId: null, jornada: 'adm', desde: `${proximo}-01` });
     expect(r.status).toBe(403);
   });
 
   it('mudança de lotação marcada para o mês seguinte não tira o acesso da seção atual', async () => {
     const m = await criar('990115-5');
     // o administrador registra a ida para a 2ª SB no mês que vem
-    expect((await api.pedir('admin', 'POST', `/api/militares/${m.id}/situacao`, { unidadeId: outraSecao, equipeId: null, jornada: 'adm', desde: proximo })).status).toBe(201);
+    expect((await api.pedir('admin', 'POST', `/api/militares/${m.id}/situacao`, { unidadeId: outraSecao, equipeId: null, jornada: 'adm', desde: `${proximo}-01` })).status).toBe(201);
     expect((await api.pedir('gestorGb', 'GET', `/api/militares/${m.id}`)).status).toBe(200);
     const af = await api.pedir('gestorGb', 'POST', `/api/militares/${m.id}/afastamentos`, { tipoAfastamentoId: ferias, inicio: `${atual}-02`, fim: `${atual}-03` });
     expect(af.status).toBe(201);
@@ -451,10 +492,10 @@ describe('dono por bloco (Review Focus 1 e 2)', () => {
 
   it('escalante da 1ª SB: alterar situação mudando só equipe e jornada passa; mudar a lotação é 403; criar militar é 403', async () => {
     const m = await criar('990181-1');
-    const soEquipe = await api.pedir('escalante', 'POST', `/api/militares/${m.id}/situacao`, { unidadeId: api.ids.secao, equipeId: null, jornada: 'adm', desde: atual });
+    const soEquipe = await api.pedir('escalante', 'POST', `/api/militares/${m.id}/situacao`, { unidadeId: api.ids.secao, equipeId: null, jornada: 'adm', desde: `${atual}-01` });
     expect(soEquipe.status).toBe(200);
     await papelEmOutraSecao('escalante', async () => {
-      const lotacao = await api.pedir('escalante', 'POST', `/api/militares/${m.id}/situacao`, { unidadeId: outraSecao, equipeId: null, jornada: 'adm', desde: proximo });
+      const lotacao = await api.pedir('escalante', 'POST', `/api/militares/${m.id}/situacao`, { unidadeId: outraSecao, equipeId: null, jornada: 'adm', desde: `${proximo}-01` });
       expect(lotacao.status).toBe(403);
       expect((await lotacao.json()).erro).toBe('A lotação é alterada por quem tem papel no 2º GB.');
       expect((await ficha(m.id)).rastreio).toHaveLength(1);
@@ -484,8 +525,8 @@ describe('dono por bloco (Review Focus 1 e 2)', () => {
       expect(r.status, quem).toBe(200);
     }
     expect((await ficha(m.id)).nomeCompleto).toBe('Nome de admin');
-    expect((await api.pedir('gestorGb', 'POST', `/api/militares/${m.id}/situacao`, { unidadeId: outraSecao, equipeId: null, jornada: 'adm', desde: proximo })).status).toBe(201);
-    expect((await api.pedir('admin', 'POST', `/api/militares/${m.id}/situacao`, { unidadeId: api.ids.secao, equipeId: null, jornada: 'adm', desde: somarMeses(proximo, 1) })).status).toBe(201);
+    expect((await api.pedir('gestorGb', 'POST', `/api/militares/${m.id}/situacao`, { unidadeId: outraSecao, equipeId: null, jornada: 'adm', desde: `${proximo}-01` })).status).toBe(201);
+    expect((await api.pedir('admin', 'POST', `/api/militares/${m.id}/situacao`, { unidadeId: api.ids.secao, equipeId: null, jornada: 'adm', desde: `${somarMeses(proximo, 1)}-01` })).status).toBe(201);
   });
 
   it('a ficha devolve podeEditar certo para o escalante, o gestor do 2º GB e o administrador', async () => {

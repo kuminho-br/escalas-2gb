@@ -56,11 +56,11 @@ describe('estrutura e pessoas', () => {
     ).rejects.toThrow();
   });
 
-  it('mes fora do dia 1', async () => {
+  it('o rastreio aceita começar em qualquer dia, e o período sobreposto continua barrado', async () => {
     const m = await militar();
-    await expect(
-      inserir(banco, 'rastreio', { militar_id: m, unidade_id: secao, jornada: 'pronto', desde: '2026-11-15' }),
-    ).rejects.toThrow();
+    await inserir(banco, 'rastreio', { militar_id: m, unidade_id: secao, jornada: 'pronto', desde: '2026-11-15', ate: '2026-12-09' });
+    await inserir(banco, 'rastreio', { militar_id: m, unidade_id: secao, jornada: 'adm', desde: '2026-12-10' });
+    await expect(inserir(banco, 'rastreio', { militar_id: m, unidade_id: secao, jornada: 'pronto', desde: '2026-12-09' })).rejects.toThrow();
   });
 
   it('a lotação virou rastreio, com as mesmas regras', async () => {

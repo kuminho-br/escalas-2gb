@@ -1,4 +1,5 @@
 import { mesPorExtenso, type GradeDoMes, type GrupoDaGrade, type LinhaDaGrade } from 'contratos';
+import { ChevronDown, ChevronRight } from 'lucide-react';
 import { Fragment } from 'react';
 import { textoDuracao } from '@/lib/turnos';
 import { cn } from '@/lib/utils';
@@ -38,12 +39,15 @@ const horas = (l: LinhaDaGrade) => (l.horasTiradas === 0 && l.horasPedidas === 0
  * A grade: uma linha por militar (o nome fica fixo à esquerda), uma coluna por dia, e no fim PJES, Diárias e Voluntariado. `grupos` são os
  * que aparecem (o filtro de equipes já aplicado); `maximos` vêm da grade inteira.
  */
-export function TabelaDaGrade({ grade, grupos, maximos, escolhida, aoEscolher }: {
+export function TabelaDaGrade({ grade, grupos, maximos, escolhida, aoEscolher, recolhidas, aoAlternar }: {
   grade: GradeDoMes;
   grupos: GrupoDaGrade[];
   maximos: { pjes: number; diarias: number };
   escolhida: { militarId: string; dia: string } | null;
   aoEscolher: (militarId: string, dia: string) => void;
+  /** As chaves das equipes recolhidas (só a faixa aparece) e o clique no nome da equipe. */
+  recolhidas: Set<string>;
+  aoAlternar: (chave: string) => void;
 }) {
   const colunas = grade.dias.length + 4;
   return (
@@ -91,12 +95,15 @@ export function TabelaDaGrade({ grade, grupos, maximos, escolhida, aoEscolher }:
                   {/* o texto fica preso à esquerda: a célula do grupo é larga como a tabela, então quem gruda é o que está dentro dela */}
                   <span data-nome-do-grupo className="sticky left-4 inline-flex items-center gap-2">
                     <span aria-hidden className="h-4 w-[3px] rounded-full bg-vinho" />
-                    <strong className="text-[15px] font-bold text-tinta">{g.nome}</strong>
+                    <button type="button" aria-expanded={!recolhidas.has(g.chave)} aria-label={`${recolhidas.has(g.chave) ? 'Mostrar' : 'Recolher'} ${g.nome}`} onClick={() => aoAlternar(g.chave)} className="inline-flex items-center gap-1 rounded text-left hover:underline focus-visible:outline-2">
+                      {recolhidas.has(g.chave) ? <ChevronRight className="size-4" aria-hidden /> : <ChevronDown className="size-4" aria-hidden />}
+                      <strong className="text-[15px] font-bold text-tinta">{g.nome}</strong>
+                    </button>
                     <span className="text-sm font-normal text-apagado">{g.linhas.length === 1 ? '1 militar' : `${g.linhas.length} militares`}</span>
                   </span>
                 </th>
               </tr>
-              {g.linhas.map((l) => {
+              {(recolhidas.has(g.chave) ? [] : g.linhas).map((l) => {
                 const linhaMarcada = escolhida?.militarId === l.militarId;
                 return (
                 <tr key={l.militarId} data-militar={l.militarId} data-linha-marcada={linhaMarcada ? '' : undefined} className={cn('group', linhaMarcada ? 'bg-vinho/[0.06]' : 'hover:bg-black/[0.03]')}>

@@ -37,8 +37,8 @@ export const BoletimDoComportamento = z.string().trim().min(1, 'Preencha este ca
 export const MotivoDoAfastamento = z.string().trim().min(1, 'Preencha este campo.').max(200, 'Use no máximo 200 caracteres.');
 export const BoletimDoAfastamento = z.string().trim().min(1, 'Preencha este campo.').max(60, 'Use no máximo 60 caracteres.');
 
-/** "Alterar situação": a lotação (unidade), a equipe e a jornada do militar a partir de um mês (o dia 1). */
-export const AlteracaoDeSituacao = z.object({ unidadeId: Id, equipeId: Id.nullable(), jornada: Jornada, desde: Mes });
+/** "Alterar situação": a lotação (unidade), a equipe e a jornada do militar a partir de um dia. */
+export const AlteracaoDeSituacao = z.object({ unidadeId: Id, equipeId: Id.nullable(), jornada: Jornada, desde: Data });
 export type AlteracaoDeSituacao = z.infer<typeof AlteracaoDeSituacao>;
 
 /** As categorias da carteira entram sem repetir e em ordem (A a E): "B, B, D" vira "B, D". */

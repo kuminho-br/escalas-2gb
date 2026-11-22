@@ -239,8 +239,7 @@ export function rotasGuarnicoes(dep: { banco: Banco; auth: Auth }): Hono<Ambient
     const corpo = await lerCorpo(c, NovaGuarnicao);
     if (!corpo.ok) return corpo.resposta;
     const d = corpo.dados;
-    const passado = mesPassado(c, d.vigencia);
-    if (passado) return passado;
+    // o "Vale desde" do modelo aceita mês passado (decisão de 21/11/2026); só desativar a partir de um mês passado continua recusado
     const campos = await funcoesForaDoCatalogo(dep.banco, u, d.versao, 'versao.');
     if (Object.keys(campos).length) return c.json({ erro: 'Confira os campos destacados.', campos }, 400);
     if (await nomeJaUsado(dep.banco, u, d.nome)) return c.json({ erro: MSG_NOME['23505'] }, 409);
@@ -321,8 +320,7 @@ export function rotasGuarnicoes(dep: { banco: Banco; auth: Auth }): Hono<Ambient
     if (!Mes.safeParse(mes).success) return c.json({ erro: 'Mês inválido: use o formato aaaa-mm.' }, 400);
     const corpo = await lerCorpo(c, VersaoGuarnicao);
     if (!corpo.ok) return corpo.resposta;
-    const passado = mesPassado(c, mes);
-    if (passado) return passado;
+    // nova versão também aceita mês passado (o primeiro modelo vale "de muito tempo atrás")
     const campos = await funcoesForaDoCatalogo(dep.banco, acesso.unidadeId, corpo.dados);
     if (Object.keys(campos).length) return c.json({ erro: 'Confira os campos destacados.', campos }, 400);
     const ficha = await comUsuario(dep.banco, c.get('usuarioId'), async (tx) => {

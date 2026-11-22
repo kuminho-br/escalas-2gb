@@ -122,7 +122,7 @@ function NovoModeloDialogo({ unidadeId, aoFechar }: { unidadeId: string; aoFecha
           </div>
           <div className="grid gap-1.5 sm:max-w-56">
             <Label htmlFor="ng-desde">Vale desde</Label>
-            <Input id="ng-desde" name="desde" type="month" defaultValue={mesAtual()} min={mesAtual()} required />
+            <Input id="ng-desde" name="desde" type="month" defaultValue={mesAtual()} required />
           </div>
           {erro && <p role="alert" className="text-sm text-alerta">{erro}</p>}
           <DialogFooter>

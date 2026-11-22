@@ -132,7 +132,7 @@ function Editor({ ficha, unidadeId, versao, aoSalvar }: { ficha: FichaGuarnicao;
       <div className="grid gap-3 border-t border-linha pt-3 sm:max-w-md">
         <div className="grid gap-1.5">
           <Label htmlFor="gv-desde">A partir de</Label>
-          <Input id="gv-desde" type="month" value={desde} min={mesAtual()} onChange={(e) => setDesde(e.target.value)} />
+          <Input id="gv-desde" type="month" value={desde} onChange={(e) => setDesde(e.target.value)} />
         </div>
         <AcoesDoBloco salvando={salvando} sujo={sujo} forcar={mudaOQueVale} aviso={aviso} tipo="button" desabilitado={!desde} rotulo={`Salvar a partir de ${desde ? mesPorExtenso(desde) : '…'}`} aoSalvar={() => void salvar()} />
       </div>

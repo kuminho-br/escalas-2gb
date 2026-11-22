@@ -28,7 +28,7 @@ import { quadroParaOPosto } from './quadros.ts';
 import { categoriaMaisAlta, pendenciasDoMilitar, repetidasPorAntiguidade, situacaoNoMes } from './militares-regras.ts';
 
 type Ctx = Context<AmbienteApi>;
-const MSG_PERIODO_ANTES = 'Use o mês do período aberto ou um mês depois.';
+const MSG_PERIODO_ANTES = 'Use o dia do período aberto ou um dia depois.';
 const MSG_EQUIPE_DE_OUTRA = 'Escolha uma equipe da unidade da lotação.';
 const MSG_EMAIL_REPETIDO = 'Este e-mail já é de outro militar.';
 const MSG_EMAIL_COM_ACESSO = 'Desative o acesso antes de apagar o e-mail.';
@@ -93,6 +93,22 @@ function linhaDe(m: LinhaBanco, afast: { tipo: string; inicio: string; fim: stri
   };
 }
 
+/**
+ * O dia que decide a situação de um militar num mês: hoje, se o mês é o de hoje; o primeiro dia, se o mês é futuro; o último, se já passou.
+ * Com o rastreio por dia, um militar pode ter dois períodos no mesmo mês: a lista e a ficha mostram o que vale neste dia.
+ */
+function diaDeReferencia(mes: string): string {
+  const { primeiro, ultimo } = limitesDoMes(mes);
+  const hoje = hojeRecife();
+  return hoje < primeiro ? primeiro : hoje > ultimo ? ultimo : hoje;
+}
+
+/** `$2` e `$3` são os limites do mês e `$4`, o dia de referência; `quem` é a coluna do militar e `sub`, a condição extra sobre a unidade do período. */
+const PERIODO_DO_DIA = (quem: string, sub = '') =>
+  `(select x.id from rastreio x ${sub ? 'join unidade ux on ux.id = x.unidade_id join unidade alvo2 on alvo2.id = $1' : ''}
+     where x.militar_id = ${quem} and x.desde <= $3 and (x.ate is null or x.ate >= $2) ${sub}
+     order by (x.desde <= $4 and (x.ate is null or x.ate >= $4)) desc, x.desde desc limit 1)`;
+
 const SELECT_MILITAR = `
   select m.id, m.matricula, p.sigla as posto, m.posto_grad_id, m.quadro_id, (select q.sigla from quadro q where q.id = m.quadro_id) as quadro_sigla, m.nome_guerra, m.nome_completo, m.sexo, m.nascimento_dia, m.nascimento_mes,
          m.telefone, m.email, m.comportamento, m.comportamento_boletim, m.antiguidade, m.motorista, m.cnh,
@@ -105,10 +121,10 @@ async function carregarFicha(c: Consulta, id: string, mes: string, usuarioId: st
     `${SELECT_MILITAR}
        from militar m
        join posto_grad p on p.id = m.posto_grad_id
-       left join rastreio l on l.militar_id = m.id and l.desde <= $3 and (l.ate is null or l.ate >= $2)
+       left join rastreio l on l.militar_id = m.id and l.id = ${PERIODO_DO_DIA('m.id')}
        left join equipe e on e.id = l.equipe_id
       where m.id = $1`,
-    [id, primeiro, ultimo],
+    [id, primeiro, ultimo, diaDeReferencia(mes)],
   );
   const m = rows[0];
   if (!m) return null;
@@ -132,9 +148,9 @@ async function carregarFicha(c: Consulta, id: string, mes: string, usuarioId: st
        from rastreio l0
        join rastreio l2 on l2.unidade_id = l0.unidade_id and l2.desde <= $3 and (l2.ate is null or l2.ate >= $2)
        join militar m2 on m2.id = l2.militar_id and m2.ativo
-      where l0.militar_id = $1 and l0.desde <= $3 and (l0.ate is null or l0.ate >= $2)
+      where l0.militar_id = $1 and l0.id = ${PERIODO_DO_DIA('l0.militar_id')}
       order by m2.nome_guerra`,
-    [id, primeiro, ultimo],
+    [id, primeiro, ultimo, diaDeReferencia(mes)],
   );
   const repetidaCom = repetidasPorAntiguidade(colegas.rows.map((x) => ({ id: x.id, nomeGuerra: x.nome_guerra, antiguidade: x.antiguidade }))).get(id) ?? [];
   // o que quem pede pode editar: o Pecúlio é de quem tem papel acima da lotação atual; a escala, de quem tem papel nela ou acima
@@ -311,8 +327,9 @@ export function rotasMilitares(dep: { banco: Banco; auth: Auth }): Hono<Ambiente
          join posto_grad p on p.id = m.posto_grad_id
          left join equipe e on e.id = l.equipe_id
         where alvo.caminho @> un.caminho and l.desde <= $3 and (l.ate is null or l.ate >= $2)
+          and l.id = ${PERIODO_DO_DIA('m.id', 'and alvo2.caminho @> ux.caminho')}
         order by p.ordem desc, m.antiguidade asc nulls last, m.nome_guerra`,
-      [u, primeiro, ultimo],
+      [u, primeiro, ultimo, diaDeReferencia(mes)],
     );
     const afast = await afastamentosNoMes(dep.banco, rows.map((m) => m.id), mes);
     const repetidas = repetidasPorAntiguidade(rows.filter((m) => m.ativo).map((m) => ({ id: m.id, nomeGuerra: m.nome_guerra, antiguidade: m.antiguidade })));
@@ -337,8 +354,9 @@ export function rotasMilitares(dep: { banco: Banco; auth: Auth }): Hono<Ambiente
          join posto_grad p on p.id = m.posto_grad_id
          left join equipe e on e.id = l.equipe_id
         where alvo.caminho @> un.caminho and l.desde <= $3 and (l.ate is null or l.ate >= $2)
+          and l.id = ${PERIODO_DO_DIA('m.id', 'and alvo2.caminho @> ux.caminho')}
         order by p.ordem desc, m.antiguidade asc nulls last, m.nome_guerra`,
-      [u, primeiro, ultimo],
+      [u, primeiro, ultimo, diaDeReferencia(mes)],
     );
     const repetidas = repetidasPorAntiguidade(rows.filter((m) => m.ativo).map((m) => ({ id: m.id, nomeGuerra: m.nome_guerra, antiguidade: m.antiguidade })));
     const numeroDoMes = Number(mes.slice(5, 7));
@@ -514,22 +532,23 @@ export function rotasMilitares(dep: { banco: Banco; auth: Auth }): Hono<Ambiente
     try {
       const resultado = await comUsuario(dep.banco, c.get('usuarioId'), async (tx) => {
         // o período aberto é lido dentro da transação, com a linha travada: duas alterações ao mesmo tempo não se atropelam
-        const aberta = (await tx.query<{ id: string; mes: string; unidade_id: string }>(
-          "select id, to_char(desde, 'YYYY-MM') as mes, unidade_id from rastreio where militar_id = $1 and ate is null for update",
+        const aberta = (await tx.query<{ id: string; desde: string; unidade_id: string }>(
+          "select id, to_char(desde, 'YYYY-MM-DD') as desde, unidade_id from rastreio where militar_id = $1 and ate is null for update",
           [id],
         )).rows[0];
         // outra gravação trocou a unidade do período aberto entre a conferência do papel e agora: confere de novo, com a ficha atualizada
         if (aberta && aberta.unidade_id !== d.unidadeId && aberta.unidade_id !== unidadeAberta) return 'mudou' as const;
-        if (aberta && d.desde < aberta.mes) return 'antes' as const;
-        if (aberta && d.desde === aberta.mes) {
+        if (aberta && d.desde < aberta.desde) return 'antes' as const;
+        const mes = d.desde.slice(0, 7);
+        if (aberta && d.desde === aberta.desde) {
           await tx.query('update rastreio set unidade_id = $2, equipe_id = $3, jornada = $4 where id = $1', [aberta.id, d.unidadeId, d.equipeId, d.jornada]);
-          return { ficha: await carregarFicha(tx, id, d.desde, c.get('usuarioId')), criado: false };
+          return { ficha: await carregarFicha(tx, id, mes, c.get('usuarioId')), criado: false };
         }
-        if (aberta) await tx.query("update rastreio set ate = $2::date - interval '1 day' where id = $1", [aberta.id, mesParaData(d.desde)]);
+        if (aberta) await tx.query("update rastreio set ate = $2::date - interval '1 day' where id = $1", [aberta.id, d.desde]);
         await tx.query('insert into rastreio (militar_id, unidade_id, equipe_id, jornada, desde) values ($1, $2, $3, $4, $5)', [
-          id, d.unidadeId, d.equipeId, d.jornada, mesParaData(d.desde),
+          id, d.unidadeId, d.equipeId, d.jornada, d.desde,
         ]);
-        return { ficha: await carregarFicha(tx, id, d.desde, c.get('usuarioId')), criado: true };
+        return { ficha: await carregarFicha(tx, id, mes, c.get('usuarioId')), criado: true };
       });
       if (resultado === 'mudou') return c.json({ erro: MSG_SITUACAO_MUDOU }, 409);
       if (resultado === 'antes') return c.json({ erro: MSG_PERIODO_ANTES, campos: { desde: MSG_PERIODO_ANTES } }, 400);

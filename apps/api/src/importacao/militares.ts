@@ -97,9 +97,11 @@ async function existentes(tx: Consulta, mes: string, unidadeId: string): Promise
        join posto_grad p on p.id = m.posto_grad_id
        left join rastreio l on l.militar_id = m.id and l.desde <= $2 and (l.ate is null or l.ate >= $1)
        left join unidade un on un.id = l.unidade_id
-       left join equipe e on e.id = l.equipe_id`,
+       left join equipe e on e.id = l.equipe_id
+      order by m.id, (l.ate is null), l.desde`,
     [dias[0], dias[dias.length - 1], unidadeId],
   );
+  // com dois períodos no mês (o rastreio vale por dia), o último de cada militar é o aberto, ou o mais recente: é com ele que a planilha se compara
   return new Map(rows.map((r) => [r.matricula, r]));
 }
 

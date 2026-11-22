@@ -4,7 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { QueryClient } from '@tanstack/react-query';
 import { describe, expect, it, vi } from 'vitest';
 import { atualizarMilitares } from '@/api/militares';
-import { mesAtual } from '@/lib/meses';
+import { hoje, mesAtual } from '@/lib/meses';
 import { abrir, chamadasA, corpoEnviado, EU_EXEMPLO, simularApi, trava } from './apoio';
 
 const linha = (l: Partial<LinhaMilitar>): LinhaMilitar => ({
@@ -512,7 +512,7 @@ describe('ficha do militar', () => {
     expect(titulos.some((t) => t.startsWith('Lotação'))).toBe(false);
     const botao = screen.getByRole('button', { name: /Histórico de rastreio/ });
     expect(botao).toHaveAttribute('aria-expanded', 'false');
-    expect(within(botao).getByText('1ª SB · Equipe Alfa · Pronto (desde 11/2026)')).toBeInTheDocument();
+    expect(within(botao).getByText('1ª SB · Equipe Alfa · Pronto (desde 01/11/2026)')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Alterar situação' })).toBeNull();
     await userEvent.click(botao);
     expect(botao).toHaveAttribute('aria-expanded', 'true');
@@ -543,12 +543,29 @@ describe('alterar situação', () => {
     expect(dialogo.getByLabelText('Lotação')).toHaveValue('u-1sb');
     await waitFor(() => expect(dialogo.getByLabelText('Equipe')).toHaveValue('e-alfa'));
     expect(dialogo.getByLabelText('Jornada')).toHaveValue('pronto');
-    expect(dialogo.getByLabelText('A partir de')).toHaveValue(mesAtual());
+    expect(dialogo.getByLabelText('A partir de')).toHaveValue(hoje());
+    expect(dialogo.getByLabelText('A partir de')).toHaveAttribute('type', 'date');
+    expect(dialogo.getByText('A situação atual termina no dia anterior ao escolhido. No mesmo dia do período aberto, ele é substituído.')).toBeInTheDocument();
     await userEvent.selectOptions(dialogo.getByLabelText('Equipe'), 'Bravo');
     await userEvent.selectOptions(dialogo.getByLabelText('Jornada'), 'Adm');
     await userEvent.click(dialogo.getByRole('button', { name: 'Salvar' }));
-    await waitFor(() => expect(corpoEnviado(f, 'POST /api/militares/m1/situacao')).toEqual({ unidadeId: 'u-1sb', equipeId: 'e-bravo', jornada: 'adm', desde: mesAtual() }));
+    await waitFor(() => expect(corpoEnviado(f, 'POST /api/militares/m1/situacao')).toEqual({ unidadeId: 'u-1sb', equipeId: 'e-bravo', jornada: 'adm', desde: hoje() }));
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+  });
+
+  it('a situação atual é a de hoje: com uma mudança marcada para depois de hoje, vale a anterior', async () => {
+    const amanha = new Date(Date.now() + 86_400_000 * 3).toISOString().slice(0, 10);
+    const ficha = { ...FICHA, rastreio: [
+      { id: 'l2', unidadeSigla: '1ª SB', equipe: 'Bravo', jornada: 'pronto' as const, desde: amanha, ate: null },
+      { id: 'l1', unidadeSigla: '1ª SB', equipe: 'Alfa', jornada: 'pronto' as const, desde: '2026-11-01', ate: `${amanha.slice(0, 8)}${String(Number(amanha.slice(8)) - 1).padStart(2, '0')}` },
+    ] };
+    rotas({ 'GET /api/militares/m1': { status: 200, corpo: ficha } });
+    abrir('/militares/m1');
+    await userEvent.click(await screen.findByRole('button', { name: /Histórico de rastreio/ }));
+    expect(screen.getByText('Situação atual: 1ª SB · Equipe Alfa · Pronto (desde 01/11/2026)')).toBeInTheDocument();
+    // a linha do tempo mostra o dia da mudança
+    const dia = `${amanha.slice(8)}/${amanha.slice(5, 7)}/${amanha.slice(0, 4)}`;
+    expect(screen.getByText(dia)).toBeInTheDocument();
   });
 
   it('trocar a lotação traz as equipes da nova lotação e zera a equipe', async () => {
@@ -560,12 +577,12 @@ describe('alterar situação', () => {
     expect(within(dialogo.getByLabelText('Equipe')).queryByRole('option', { name: 'Bravo' })).toBeNull();
     expect(dialogo.getByLabelText('Equipe')).toHaveValue('');
     await userEvent.click(dialogo.getByRole('button', { name: 'Salvar' }));
-    await waitFor(() => expect(corpoEnviado(f, 'POST /api/militares/m1/situacao')).toEqual({ unidadeId: 'u-2sb', equipeId: null, jornada: 'pronto', desde: mesAtual() }));
+    await waitFor(() => expect(corpoEnviado(f, 'POST /api/militares/m1/situacao')).toEqual({ unidadeId: 'u-2sb', equipeId: null, jornada: 'pronto', desde: hoje() }));
   });
 
   it('dois cliques em Salvar mandam um pedido só e o erro da API aparece no diálogo', async () => {
     const { espera, soltar } = trava();
-    const f = rotas({ 'POST /api/militares/m1/situacao': { status: 400, corpo: { erro: 'Use o mês do período aberto ou um mês depois.' }, espera } });
+    const f = rotas({ 'POST /api/militares/m1/situacao': { status: 400, corpo: { erro: 'Use o dia do período aberto ou um dia depois.' }, espera } });
     abrir('/militares/m1');
     const dialogo = await abrirODialogo();
     const salvar = dialogo.getByRole('button', { name: 'Salvar' });
@@ -573,7 +590,7 @@ describe('alterar situação', () => {
     fireEvent.click(salvar);
     expect(salvar).toBeDisabled();
     soltar();
-    expect(await dialogo.findByText('Use o mês do período aberto ou um mês depois.')).toBeInTheDocument();
+    expect(await dialogo.findByText('Use o dia do período aberto ou um dia depois.')).toBeInTheDocument();
     expect(chamadasA(f, 'POST /api/militares/m1/situacao')).toBe(1);
     expect(screen.getByRole('dialog')).toBeInTheDocument();
   });
@@ -793,7 +810,7 @@ describe('ficha em painel único', () => {
     const ficha = (await screen.findByRole('heading', { level: 2, name: /ANDRADE/ })).closest('[data-ficha]') as HTMLElement;
     expect(ficha).not.toBeNull();
     expect(ficha.tagName).toBe('ARTICLE');
-    expect(within(ficha).getByText('1ª SB, Pronto (Alfa) desde janeiro de 2020', { selector: 'p' })).toBeInTheDocument();
+    expect(within(ficha).getByText('1ª SB, Pronto (Alfa) desde 01/01/2020', { selector: 'p' })).toBeInTheDocument();
     // os blocos não têm moldura própria: a ficha é um painel só, com linhas entre eles
     expect(ficha.className).toContain('divide-y');
     for (const s of ficha.querySelectorAll('section')) expect(s.className).not.toContain('border');
@@ -815,7 +832,7 @@ describe('ficha em painel único', () => {
     expect(id).toBeTruthy();
     await userEvent.click(botao);
     const bloco = within(document.getElementById(id!)!);
-    expect(bloco.getByText('Situação atual: 1ª SB · Equipe Alfa · Pronto (desde 11/2026)')).toBeInTheDocument();
+    expect(bloco.getByText('Situação atual: 1ª SB · Equipe Alfa · Pronto (desde 01/11/2026)')).toBeInTheDocument();
     // do mais novo para o mais velho: o afastamento de dezembro, depois a situação de novembro
     const itens = bloco.getAllByRole('listitem').map((li) => li.textContent ?? '');
     expect(itens).toHaveLength(2);
