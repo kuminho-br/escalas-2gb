@@ -184,6 +184,18 @@ describe('ficha da guarnição', () => {
     );
   });
 
+  it('os dois campos "Vale desde" aceitam um mês anterior ao atual', async () => {
+    api();
+    abrir('/configuracoes?aba=modelos');
+    await userEvent.click(await screen.findByRole('button', { name: 'Novo modelo' }));
+    expect(within(await screen.findByRole('dialog')).getByLabelText('Vale desde')).not.toHaveAttribute('min');
+    cleanup();
+    api();
+    abrir('/configuracoes/modelos-de-guarnicao/g1');
+    await screen.findByLabelText('Mínimo de Combatente');
+    expect(screen.getByLabelText('A partir de')).not.toHaveAttribute('min');
+  });
+
   it('versão de mês passado mostra a mensagem da API', async () => {
     api({ 'PUT /api/guarnicoes/g1/versoes/2099-03': { status: 409, corpo: { erro: 'Só dá para mudar a partir de novembro de 2026.' } } });
     abrir('/configuracoes/modelos-de-guarnicao/g1');

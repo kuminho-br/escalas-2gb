@@ -93,13 +93,18 @@ describe('guarnições', () => {
     expect(n).toBe(1);
   });
 
-  it('versão de mês passado é 409 com o mês mínimo', async () => {
-    const f = await criar('Sem passado');
+  // decisão de 21/11/2026: o "Vale desde" do modelo aceita mês passado, inclusive muito antigo (o usuário monta os modelos-padrão antes do lançamento)
+  it('grava uma versão num mês passado', async () => {
+    const f = await criar('Com passado');
     const r = await api.pedir('escalante', 'PUT', `/api/guarnicoes/${f.id}/versoes/${passado}`, versao([linha(funcaoSb)]));
-    expect(r.status).toBe(409);
-    expect((await r.json()).erro).toBe(`Só dá para mudar a partir de ${mesPorExtenso(atual)}.`);
-    const nova = await api.pedir('escalante', 'POST', `${secao()}/guarnicoes`, corpo('Nasce no passado', { vigencia: passado }));
-    expect(nova.status).toBe(409);
+    expect(r.status).toBe(200);
+    expect(((await r.json()) as { versoes: { vigencia: string }[] }).versoes.map((v) => v.vigencia)).toContain(passado);
+  });
+
+  it('cria um modelo valendo desde um mês muito antigo', async () => {
+    const r = await api.pedir('escalante', 'POST', `${secao()}/guarnicoes`, corpo('Nasce no passado', { vigencia: '1926-11' }));
+    expect(r.status).toBe(201);
+    expect(((await r.json()) as { versoes: { vigencia: string }[] }).versoes[0]!.vigencia).toBe('1926-11');
   });
 
   it('mês da rota mal formado é 400', async () => {
