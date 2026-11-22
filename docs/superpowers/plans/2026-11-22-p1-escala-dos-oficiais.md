@@ -8,13 +8,13 @@
 
 **Linha de entregas:** é a primeira **entrega paralela** (zona "Missões paralelas" do roadmap). Não muda a ordem das fases nem o que existe, fora o quadro do militar (P1.1), que é pré-requisito dela e passa a valer para o Pecúlio.
 
-**Subentregas** (uma branch e um PR cada, nesta ordem):
+**Subentregas** (uma branch e um PR cada; ordem de execução: P1.1, P1.2, **P1.4**, P1.3 — decisão do usuário, 22/11/2026):
 1. **P1.1 — Quadros no banco:** QOC, QOA e QBMG; o posto-graduação pertence a um quadro; o militar tem um quadro. **Mesclada (#94), migração 0026 aplicada no teste.**
 2. **P1.2 — Motor e API da escala dos oficiais:** as regras puras em `pacotes/dominio`, as tabelas e as rotas. Migração **0027**.
 3. **P1.3 — Telas:** o item "Oficiais" no trilho e a tela com as abas Escala do mês, Painel de saldo e Regras.
 4. **P1.4 — Só o QBMG nas outras telas de escala:** os oficiais QOC e QOA saem da Grade, da Escala do mês, do Efetivo por dia e do Voluntariado. Sem migração.
 
-**Ordem com a fase 6** (decisão do usuário, 22/11/2026): a P1 vai antes. A entrega 6.5 começa depois da P1.3; a P1.4, por ser curta, vai logo depois da P1.3 e antes da 6.5. A 6.5 usa o número de migração livre seguinte.
+**Ordem com a fase 6** (decisão do usuário, 22/11/2026): a P1 inteira vai antes. A fase 6 usa os números de migração livres depois dela.
 
 **Fluxo:** o Sonnet (esforço high) executa, e o Opus (esforço medium) faz a revisão final de cada branch, com o modelo explícito. Ao terminar cada subentrega, a DESENVOLVIMENTO envia a branch e o resumo à PLANEJAMENTO, sem abrir PR. A PLANEJAMENTO abre o PR e mescla. A migração no banco de teste só roda com a autorização do usuário.
 
@@ -27,7 +27,8 @@
 - **Quem usa:** administrador e gestor da unidade escolhida no seletor (`exigirPapel(c, unidadeId, ['gestor', 'administrador'])`). O auxiliar administrativo não vê o item nem a tela.
 - **Quem participa:** militar com quadro QOC ou QOA que tenha período de rastreio na unidade ou em unidade abaixo dela (`caminho <@`), em algum dia do mês.
 - **Turnos:** são os do **serviço escolhido na tela** (cadastro de serviços, tela Turnos), um oficial por turno. Nada de turno ou horário fixo no código (decisão do usuário, 22/11/2026). O usuário cadastra o serviço do oficial de operações como o Pronto: turno A das 07h às 19h, turno B das 19h às 07h.
-- **Rótulo do turno:** "Dia" quando o turno começa entre 05h00 e 17h59, "Noite" nos outros, seguido do horário do cadastro: "Dia, 07h às 19h". O ícone (sol ou lua) segue a mesma regra.
+- **Rótulo do turno:** "Dia" quando o turno começa entre 05h00 e 17h59, "Noite" nos outros, seguido do horário do cadastro: "Dia, 07h às 19h".
+- **Dia e noite sem desenho** (decisão do usuário, 22/11/2026): nada de ícone de sol ou de lua, nem na escala, nem no painel. O mockup tem os ícones, mas vale este plano. A diferença fica só na cor, em dois tons sóbrios da paleta do site: o Dia no fundo claro, com a borda de linha; a Noite num cinza escuro da cor da tinta, com o texto claro. Nada de cor viva. A legenda "Dia" e "Noite", com a amostra da cor, fica acima do calendário, e o texto do turno continua escrito na célula, para quem não distingue as cores.
 - **Quadros por tela:** a Escala dos oficiais mostra só QOC e QOA. As outras telas de escala mostram o QBMG e quem está sem quadro, este com a pendência "Sem quadro" (P1.4).
 - **Números:** devido e saldo guardados com 6 casas (`numeric(12,6)`); na tela, 2 casas, vírgula, e sinal sempre visível no saldo: `+0,75`, `−0,25` (sinal de menos U+2212), `0,00`.
 - **Textos fixos** (do mockup):
@@ -366,7 +367,7 @@ export const AjusteDeSaldo = z.object({ militarId: Id, valor: z.number().refine(
 
 # P1.3 — Telas
 
-**Architecture:** uma rota `/oficiais` dentro do módulo Confecção de escalas, com três abas, seguindo o mockup (layout, ícones de sol e lua, cores e textos). O trilho ganha o item "Oficiais", só para gestor e administrador.
+**Architecture:** uma rota `/oficiais` dentro do módulo Confecção de escalas, com três abas, seguindo o mockup (layout, cores e textos), **sem os ícones de sol e de lua** (ver "Dia e noite sem desenho"). O trilho ganha o item "Oficiais", só para gestor e administrador.
 
 **Branch:** `p1-3-oficiais-telas`. Commits `P1.3: …`. Sem migração.
 
@@ -411,6 +412,7 @@ export const AjusteDeSaldo = z.object({ militarId: Id, valor: z.number().refine(
   - `formatarSaldo(0.75)` = `+0,75`, `formatarSaldo(-0.2489)` = `−0,25`, `formatarSaldo(0)` = `0,00`; `formatarDevido(8.2489)` = `8,25`.
   - Com a API simulada:
     - **Serviço:** o campo "Serviço" no topo lista os serviços da unidade com turno; sem serviço, a tela mostra "Escolha o serviço da escala. Ele vem do cadastro de serviços (tela Turnos)." e "Calcular cotas" fica desligado; com as cotas calculadas, o campo fica só para leitura.
+    - **Sem desenho:** nenhuma célula de turno nem contagem do painel tem ícone (`svg`) de sol ou lua; a legenda mostra "Dia" e "Noite"; a célula da Noite tem a classe ou o atributo do tom escuro, e a do Dia, o do tom claro.
     - **Calendário:** dias de 1 a 31, cada um com os turnos do serviço, rotulados pela regra de "Global Constraints" (com A 07h–19h e B 19h–07h: "Dia, 07h às 19h" e "Noite, 19h às 07h"), e o contador "{n} de 62 turnos com nome".
     - **Etapa `escolhas`:**
       - o quadro "Vez de escolher" mostra o oficial da `vez`, a posição na ordem e "Já lançou {x} de {cota}";
@@ -446,7 +448,7 @@ export const AjusteDeSaldo = z.object({ militarId: Id, valor: z.number().refine(
 - [ ] **Step 1: testes:**
   - **Painel:**
     - o texto de abertura do mockup ("O saldo mostra quem trabalhou mais ou menos do que devia…");
-    - uma linha por oficial, com o saldo em `formatarSaldo`, a barra de mais ou menos, o saldo de cada mês e as contagens por rótulo de turno (sol para "Dia", lua para "Noite").
+    - uma linha por oficial, com o saldo em `formatarSaldo`, a barra de mais ou menos, o saldo de cada mês e as contagens por rótulo de turno, escritas ("Dia 12", "Noite 10") com a amostra da cor, sem ícone.
   - **Registro:**
     - um clique no oficial abre o registro com "Registro: {posto} {nome} {matrícula}";
     - os lançamentos e as coberturas, do mais novo para o mais velho;

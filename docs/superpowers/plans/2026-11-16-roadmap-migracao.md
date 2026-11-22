@@ -171,8 +171,8 @@ Entregas fora das fases, numeradas P1, P2…: usam os dados do projeto, mas não
 |---|---|---|
 | P1.1 | Quadros QOC, QOA e QBMG no banco; o quadro na ficha | mesclada (#94), migração 0026 aplicada no teste |
 | P1.2 | Escala dos oficiais: motor, tabelas e API, com o serviço cadastrado | em execução (migração 0027) |
-| P1.3 | Escala dos oficiais: telas (escala do mês, saldo, regras) | planejada |
-| P1.4 | Só o QBMG nas outras telas de escala | planejada |
+| P1.4 | Só o QBMG nas outras telas de escala | planejada, antes da P1.3 |
+| P1.3 | Escala dos oficiais: telas (escala do mês, saldo, regras), dia e noite só por cor | planejada |
 
 Design: `docs/superpowers/specs/2026-11-22-escala-dos-oficiais-design.md`. Plano: `docs/superpowers/plans/2026-11-22-p1-escala-dos-oficiais.md`.
 
