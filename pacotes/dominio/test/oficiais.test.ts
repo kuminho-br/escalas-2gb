@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { calcularCotas, diasPresentes, ordemDeEscolha, saldoDeEntrada, saldoDoMes, type TurnoDoMes } from '../src/oficiais.ts';
+import { calcularCotas, diasPresentes, ordemDeEscolha, rotuloDoTurno, saldoDeEntrada, saldoDoMes, type TurnoDoMes } from '../src/oficiais.ts';
 
 const NOMES = ['a1', 'a2', 'a3', 'a4', 'a5', 'f', 'm1', 'm2'];
 const PARTICIPANTES = NOMES.map((militarId) => ({ militarId, dias: militarId === 'f' ? 16 : 31 }));
@@ -11,8 +11,8 @@ function turnosCheios(): TurnoDoMes[] {
   let i = 0;
   const donos = NOMES.flatMap((id, k) => Array<string>(COTAS[k]).fill(id));
   for (let d = 1; d <= 31; d++) {
-    for (const turno of ['dia', 'noite'] as const) {
-      turnos.push({ dia: `2027-01-${String(d).padStart(2, '0')}`, turno, militarId: donos[i++], saiuMilitarId: null });
+    for (const turno of ['A', 'B']) {
+      turnos.push({ dia: `2027-01-${String(d).padStart(2, '0')}`, turnoId: turno, militarId: donos[i++], saiuMilitarId: null });
     }
   }
   return turnos;
@@ -113,7 +113,7 @@ describe('oficiais: saldo do mês', () => {
     expect(por(r, 'a2').tirado).toBe(8);
     expect(por(r, 'a3').tirado).toBe(9);
     // os turnos "em que está" não incluem o de que saiu
-    expect(por(r, 'a2').turnosDia + por(r, 'a2').turnosNoite).toBe(7);
+    expect(Object.values(por(r, 'a2').porTurno).reduce((x, y) => x + y, 0)).toBe(7);
   });
 
   it('turno vazio: ninguém ganha, o total cai para 61', () => {
@@ -124,18 +124,33 @@ describe('oficiais: saldo do mês', () => {
     expect(por(r, 'a1').tirado).toBe(7);
   });
 
-  it('conta turnos do dia e da noite', () => {
+  it('porTurno conta só os turnos em que o militar está, separados por turnoId', () => {
     const turnos: TurnoDoMes[] = [
-      { dia: '2027-01-01', turno: 'dia', militarId: 'a1', saiuMilitarId: null },
-      { dia: '2027-01-01', turno: 'noite', militarId: 'a1', saiuMilitarId: null },
-      { dia: '2027-01-02', turno: 'noite', militarId: 'a1', saiuMilitarId: null },
+      { dia: '2027-01-01', turnoId: 'A', militarId: 'a1', saiuMilitarId: null },
+      { dia: '2027-01-01', turnoId: 'B', militarId: 'a1', saiuMilitarId: null },
+      { dia: '2027-01-02', turnoId: 'B', militarId: 'a1', saiuMilitarId: null },
+      { dia: '2027-01-03', turnoId: 'A', militarId: 'a2', saiuMilitarId: 'a1' },
     ];
     const a1 = por(saldoDoMes(turnos, cotas), 'a1');
-    expect([a1.turnosDia, a1.turnosNoite]).toEqual([1, 2]);
+    expect(a1.porTurno).toEqual({ A: 1, B: 2 });
+    expect(a1.tirado).toBe(4);
   });
 });
 
 describe('oficiais: saldo de entrada', () => {
   it('média exata dos acumulados', () => expect(saldoDeEntrada([1, -0.5, 0.25])).toBeCloseTo(0.25, 10));
   it('lista vazia dá 0', () => expect(saldoDeEntrada([])).toBe(0));
+});
+
+describe('oficiais: rótulo do turno', () => {
+  it('Dia entre 05:00 e 17:59; Noite nos outros', () => {
+    expect(rotuloDoTurno('07:00')).toBe('Dia');
+    expect(rotuloDoTurno('05:00')).toBe('Dia');
+    expect(rotuloDoTurno('17:59')).toBe('Dia');
+    expect(rotuloDoTurno('19:00')).toBe('Noite');
+    expect(rotuloDoTurno('18:00')).toBe('Noite');
+    expect(rotuloDoTurno('04:59')).toBe('Noite');
+    expect(rotuloDoTurno('00:00')).toBe('Noite');
+  });
+  it('aceita HH:MM:SS, como o banco devolve', () => expect(rotuloDoTurno('07:00:00')).toBe('Dia'));
 });

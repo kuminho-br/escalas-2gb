@@ -2,7 +2,11 @@
 // Funções puras. Datas 'aaaa-mm-dd' e mês 'aaaa-mm', como no resto do motor.
 import { diasDoMes } from './nucleo.ts';
 
-export type TurnoDeOficial = 'dia' | 'noite';
+/** "Dia" se o turno começa entre 05:00 e 17:59; senão, "Noite". `inicio` no formato HH:MM (ou HH:MM:SS). */
+export function rotuloDoTurno(inicio: string): 'Dia' | 'Noite' {
+  const minutos = Number(inicio.slice(0, 2)) * 60 + Number(inicio.slice(3, 5));
+  return minutos >= 5 * 60 && minutos < 18 * 60 ? 'Dia' : 'Noite';
+}
 
 export interface OficialParaOrdem {
   militarId: string;
@@ -74,7 +78,7 @@ export function calcularCotas(turnos: number, participantes: { militarId: string
 
 export interface TurnoDoMes {
   dia: string;
-  turno: TurnoDeOficial;
+  turnoId: string;
   militarId: string | null;
   saiuMilitarId: string | null;
 }
@@ -84,8 +88,8 @@ export interface SaldoDoMes {
   tirado: number;
   devido: number;
   valor: number;
-  turnosDia: number;
-  turnosNoite: number;
+  /** Quantos turnos de cada `turnoId` o militar tirou (só os em que está). */
+  porTurno: Record<string, number>;
 }
 
 /** Tirados = turnos com nome. Devido = tirados × dias ÷ soma dos dias (dias da cota gravada). Tirado de cada um = os turnos em que está + os de que saiu (cobertura). */
@@ -102,8 +106,7 @@ export function saldoDoMes(turnos: TurnoDoMes[], cotas: { militarId: string; dia
       tirado,
       devido,
       valor: tirado - devido,
-      turnosDia: nele.filter((t) => t.turno === 'dia').length,
-      turnosNoite: nele.filter((t) => t.turno === 'noite').length,
+      porTurno: nele.reduce<Record<string, number>>((acc, t) => ({ ...acc, [t.turnoId]: (acc[t.turnoId] ?? 0) + 1 }), {}),
     };
   });
 }
