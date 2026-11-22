@@ -37,6 +37,8 @@ export const JA_ESCALADO = 'Já escalado neste horário';
 /** O motivo "só falta marcar o horário": é a última conferência de cada turno, então ele quer dizer que todas as outras regras passaram. */
 export const SEM_VOLUNTARIADO = 'Não marcou voluntariado neste horário';
 
+import { ehOficial, MOTIVO_OFICIAL, SO_QBMG_OU_SEM_QUADRO } from './quadros-da-escala.ts';
+
 /** Avalia, para uma faixa e um dia, cada militar lotado na seção: o motivo de não poder (ou nulo) e, por turno da faixa, o motivo de cada turno. */
 export async function avaliarFaixa(c: Consulta, v: VagaConsultada, somenteMilitar?: string): Promise<{ turnos: TurnoDaFaixa[]; avaliados: Avaliado[] }> {
   const unidadeId = (await c.query<{ unidade_id: string }>('select unidade_id from escala where id = $1', [v.escalaId])).rows[0]!.unidade_id;
@@ -53,14 +55,16 @@ export async function avaliarFaixa(c: Consulta, v: VagaConsultada, somenteMilita
   const pool = (
     await c.query<{
       id: string; matricula: string; nome_guerra: string; ativo: boolean; motorista: boolean; cnh: string[]; voluntario_jes: boolean; posto: string; antiguidade: number | null;
-      jornada: 'pronto' | 'adm'; equipe: string | null; lotado_no_dia: boolean;
+      jornada: 'pronto' | 'adm'; equipe: string | null; lotado_no_dia: boolean; quadro: string | null;
     }>(
-      `select m.id, m.matricula, m.nome_guerra, m.ativo, m.motorista, m.cnh, m.voluntario_jes, p.sigla as posto, m.antiguidade, l.jornada, e.nome as equipe,
+      `select m.id, m.matricula, m.nome_guerra, m.ativo, m.motorista, m.cnh, m.voluntario_jes, p.sigla as posto, m.antiguidade, l.jornada, e.nome as equipe, q.sigla as quadro,
               (l.desde <= $2::date and (l.ate is null or l.ate >= $2::date)) as lotado_no_dia
          from militar m join posto_grad p on p.id = m.posto_grad_id
          join rastreio l on l.militar_id = m.id and l.unidade_id = $1
          left join equipe e on e.id = l.equipe_id
+         left join quadro q on q.id = m.quadro_id
         where ($3::uuid is null or m.id = $3)
+          and ($3::uuid is not null or ${SO_QBMG_OU_SEM_QUADRO})
           and l.desde <= (date_trunc('month', $2::date) + interval '1 month' - interval '1 day')::date
           and (l.ate is null or l.ate >= date_trunc('month', $2::date)::date)`,
       [unidadeId, v.data, somenteMilitar ?? null],
@@ -116,6 +120,7 @@ export async function avaliarFaixa(c: Consulta, v: VagaConsultada, somenteMilita
     const base = { militarId: m.id, posto: m.posto, nomeGuerra: m.nome_guerra, matricula: m.matricula, equipe: m.equipe, jornada: m.jornada };
     const pronto = (militarMotivo: string | null, porTurno: Avaliado['porTurno'] = []): Avaliado => ({ candidato: base, militarMotivo, porTurno, antig: m.antiguidade, cnh: cnhParaEscala(m) });
     if (!m.lotado_no_dia) return pronto(NAO_LOTADO);
+    if (ehOficial(m.quadro)) return pronto(MOTIVO_OFICIAL);
     if (!m.ativo) return pronto('Desativado');
     if (afastados.has(m.id)) return pronto('Afastado');
     if (exigida && !cnhParaEscala(m).includes(exigida)) return pronto('Sem a CNH exigida');

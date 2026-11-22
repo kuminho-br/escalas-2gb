@@ -15,6 +15,7 @@ import type { Consulta } from '../banco/banco.ts';
 import { feriadosDoAno } from '../cadastros/feriados.ts';
 import { somarDias } from '../datas.ts';
 import { EXPEDIENTE, horariosDaUnidade, type Tipo } from '../escala/horarios.ts';
+import { SO_QBMG_OU_SEM_QUADRO } from '../escala/quadros-da-escala.ts';
 
 type Pessoa = { id: string; matricula: string; nomeGuerra: string; posto: string; antiguidade: number | null; ativo: boolean };
 type Lotado = Pessoa & { jornada: 'pronto' | 'adm'; equipeId: string | null; equipe: string | null; ordemCiclo: number | null; desde: string; ate: string | null };
@@ -44,7 +45,8 @@ export async function montarGradeDoMes(c: Consulta, unidadeId: string, mes: stri
               to_char(l.desde, 'YYYY-MM-DD') as desde, to_char(l.ate, 'YYYY-MM-DD') as ate
          from rastreio l join militar m on m.id = l.militar_id join posto_grad p on p.id = m.posto_grad_id
          left join equipe e on e.id = l.equipe_id
-        where l.unidade_id = $1 and l.desde <= $3::date and (l.ate is null or l.ate >= $2::date)`,
+        where l.unidade_id = $1 and l.desde <= $3::date and (l.ate is null or l.ate >= $2::date)
+          and ${SO_QBMG_OU_SEM_QUADRO}`,
       [unidadeId, primeiro, ultimo],
     )
   ).rows.map((r): Lotado => ({
