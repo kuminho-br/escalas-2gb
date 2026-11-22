@@ -102,11 +102,11 @@ Design: `docs/superpowers/specs/2026-11-21-usuarios-e-modulos-design.md`. Plano:
 | 2 | Unidade de trabalho: o seletor substitui a 1ª SB fixa, e o auxiliar gera a senha de um colega auxiliar | mesclada (#88) |
 | 3 | Tela inicial e módulos por papel, Minha ficha com o próprio telefone; conta desativada só volta por quem dá o papel | mesclada (#90) |
 | 4 | Transição do login (as mangueiras), se o mockup estiver aprovado | condicional |
-| 5 | Retorno da validação sem mockup: recolher equipe na Grade, rastreio por dia, "Vale desde" antigo no modelo de guarnição | planejada, depois da P1.4 |
+| 5 | Retorno da validação: recolher equipe, rastreio por dia, "Vale desde" antigo | mesclada (#104), migração 0028 aplicada no teste |
 | 6 | Retorno da validação com mockup: sete ajustes de interface | aguardando a DESIGN |
 | 7 | Militares só no Pecúlio | a decidir: os dados da escala sem a importação de MILITARES |
 
-**Fora:** envio de e-mail (link de senha e "Esqueci minha senha"), usuários acima do GB (fase 11), Visualização (fase 7).
+**Fora:** envio de e-mail, usuários acima do GB (fase 11), Visualização (fase 7).
 
 ## Fase 7 — Visualização de escalas · planejada
 
@@ -179,6 +179,8 @@ Design: `docs/superpowers/specs/2026-11-22-escala-dos-oficiais-design.md`. Plano
 ## Pendências conhecidas
 
 Achadas nas revisões e nas validações. Nenhuma muda quem é escalado. Entram numa entrega quando houver oportunidade.
+
+**Rastreio por dia (6.5)** (PR #104): Grade sem choque na virada do período; período só futuro = "Sem lotação".
 
 **Escala dos oficiais (P1.3)** (lista no PR #102): a tela não recarrega após um 409; o item "Oficiais" não olha o papel na unidade escolhida; o diálogo de troca e as células com pouca informação para o leitor de tela; pequenas diferenças do mockup.
 
@@ -286,7 +288,7 @@ Achadas nas revisões e nas validações. Nenhuma muda quem é escalado. Entram 
 - o painel do dia mostra a etiqueta "CNH D" de quem está fora do quadro;
 - "Sem a CNH exigida" engana para quem tem CNH fora do quadro ("Fora do quadro de motoristas" seria mais claro);
 - no diálogo "Alterar situação", enquanto a lista de seções carrega, a opção provisória pode não bater com o valor enviado;
-- a linha do tempo não mostra o intervalo entre dois períodos; só período futuro aparece como "Sem lotação".
+- a linha do tempo não mostra o intervalo entre dois períodos.
 
 **Da fase 5, entregas 2 e 3** (listas nos PRs #79 e #80):
 - **decisão do usuário pendente:** na importação do Pecúlio, célula vazia apaga o campo de quem já existe; alternativas: manter, manter com um resumo do que será apagado na prévia, ou exigir uma marca para apagar;
