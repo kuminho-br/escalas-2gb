@@ -145,3 +145,19 @@ describe('o quadro na ficha', () => {
     expect(lista.find((m) => m.matricula === '990602-2')!.quadro).toBeNull();
   });
 });
+
+describe('correções da revisão final', () => {
+  it('o militar do administrador criado na instalação já tem o quadro do posto', async () => {
+    const q = (await api.banco.query<{ sigla: string | null }>(
+      'select q.sigla from usuario u join militar m on m.id = u.militar_id left join quadro q on q.id = m.quadro_id where u.id = $1', [api.usuarios.admin])).rows[0]!.sigla;
+    expect(q).toBe('QBMG');
+  });
+
+  it('um campo da escala (voluntário JES) não preenche o quadro, que é do Pecúlio', async () => {
+    const f = await (await criar('990620-1', 'CEL BM')).json();
+    await api.banco.query('update militar set quadro_id = null where id = $1', [f.id]);
+    const r = await api.pedir('escalante', 'PATCH', `/api/militares/${f.id}`, { voluntarioJes: true });
+    expect(r.status).toBe(200);
+    expect((await r.json()).quadro).toBeNull();
+  });
+});

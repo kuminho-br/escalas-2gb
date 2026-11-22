@@ -438,7 +438,8 @@ export function rotasMilitares(dep: { banco: Banco; auth: Auth }): Hono<Ambiente
         const cnh = d.cnh ?? atual.cnh;
         // o quadro acompanha o posto (trocar MAJ do QOA por CEL leva ao QOC); quadro que não contém o posto é 400, antes de gravar
         const postoGradId = d.postoGradId ?? atual.posto_grad_id;
-        const quadro = await quadroParaOPosto(tx, postoGradId, d.quadroId, atual.quadro_id);
+        // só quando o posto ou o quadro vêm no pedido: o quadro é campo do Pecúlio, e um PATCH só da escala (motorista, JES, ativo) não o preenche
+        const quadro = d.postoGradId === undefined && d.quadroId === undefined ? { quadroId: atual.quadro_id } : await quadroParaOPosto(tx, postoGradId, d.quadroId, atual.quadro_id);
         if ('erro' in quadro) return quadro;
         await tx.query(
           `update militar set posto_grad_id = $2, quadro_id = $17, nome_guerra = $3, antiguidade = $4, motorista = $5, cnh = $6, voluntario_jes = $7, ativo = $8,
