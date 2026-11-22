@@ -69,7 +69,7 @@ describe('isolamento entre unidades', () => {
         .replace(':u', outra)
         .replace(':id', recurso ? ids[recurso]! : 'x')
         .replace(':mes', somarMeses(atual, 1))
-        .replace(':cadastro', 'militares');
+        .replace(':cadastro', 'dados-da-escala');
       rotas.push(`${r.method} ${caminho}`);
     }
     expect(new Set(rotas).size).toBeGreaterThan(30);

@@ -5,7 +5,7 @@ import { normalizar } from 'dominio';
 import { quadroParaOPosto } from '../cadastros/quadros.ts';
 import { CADASTRO, temPapelAcima } from '../acesso.ts';
 import type { Consulta } from '../banco/banco.ts';
-import { matriculaDe } from './militares.ts';
+import { matriculaDe } from './dados-da-escala.ts';
 import { coluna } from './planilha.ts';
 import type { ColunaModelo, Importador } from './tipos.ts';
 
