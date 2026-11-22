@@ -22,7 +22,7 @@ describe('antiguidade do militar', () => {
 });
 
 describe('CNH do militar sem categoria repetida', () => {
-  const base = { matricula: '990001-1', postoGradId: '00000000-0000-4000-8000-000000000001', nomeGuerra: 'ANDRADE', antiguidade: 1, voluntarioJes: false, nomeCompleto: 'João da Silva Andrade', lotacao: { equipeId: null, jornada: 'adm' as const, desde: '2026-12' } };
+  const base = { matricula: '990001-1', postoGradId: '00000000-0000-4000-8000-000000000001', nomeGuerra: 'ANDRADE', antiguidade: 1, voluntarioJes: false, nomeCompleto: 'João da Silva Andrade', lotacao: { equipeId: null, jornada: 'adm' as const, desde: '2026-12-01' } };
 
   it('o cadastro aceita ["B", "B", "D"] e entrega ["B", "D"], em ordem', () => {
     const r = NovoMilitar.safeParse({ ...base, motorista: true, cnh: ['D', 'B', 'B'] });
@@ -81,7 +81,7 @@ describe('ficha do Pecúlio: nascimento, e-mail e comportamento', () => {
   });
 
   it('novo militar exige o nome completo', () => {
-    const base = { matricula: '990001-1', postoGradId: '00000000-0000-4000-8000-000000000001', nomeGuerra: 'ANDRADE', antiguidade: 1, motorista: false, cnh: [], voluntarioJes: false, lotacao: { equipeId: null, jornada: 'adm', desde: '2026-11' } };
+    const base = { matricula: '990001-1', postoGradId: '00000000-0000-4000-8000-000000000001', nomeGuerra: 'ANDRADE', antiguidade: 1, motorista: false, cnh: [], voluntarioJes: false, lotacao: { equipeId: null, jornada: 'adm', desde: '2026-11-01' } };
     expect(NovoMilitar.safeParse(base).success).toBe(false);
     expect(NovoMilitar.safeParse({ ...base, nomeCompleto: '  ' }).success).toBe(false);
     const r = NovoMilitar.safeParse({ ...base, nomeCompleto: ' João da Silva Andrade ' });
