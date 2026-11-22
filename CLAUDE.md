@@ -34,11 +34,18 @@ Cada sessão tem um papel; **só a DESENVOLVIMENTO altera código**.
 | Sessão | Papel |
 |---|---|
 | DESENVOLVIMENTO | Implementa e testa; ao fim da entrega, envia a branch e o resumo à PLANEJAMENTO |
-| PLANEJAMENTO | Specs e planos de cada entrega; abre o PR e mescla |
+| PLANEJAMENTO | Specs e planos de cada entrega; abre o PR e mescla; põe no roadmap as ideias vindas da CONCEPÇÃO |
 | VALIDAÇÃO | Recebe entregas prontas; o usuário testa à mão e dá o retorno |
 | DÚVIDAS | Responde às dúvidas do usuário sobre o sistema e as regras |
 | DESIGN | Interface e experiência de uso (UI e UX): telas, mockups e o caminho do usuário no aplicativo |
 | DOCUMENTAÇÃO | Controla os documentos, mede a qualidade e propõe melhorias; checagem quando o usuário pede |
+| CONCEPÇÃO | Esclarece com o usuário as ideias novas que mudam o domínio ou o escopo e faz a modelagem inicial, só de estrutura (entidades, colunas e relações); registra em `docs/ideias/<tema>.md` e envia à PLANEJAMENTO |
+
+**Ideia nova** (decisão do usuário, 22/11/2026):
+1. A CONCEPÇÃO esclarece a ideia e registra a modelagem em `docs/ideias/<tema>.md`, numa branch `docs-ideia-<tema>`.
+2. A PLANEJAMENTO põe a ideia no ponto do roadmap mais adequado para elucidá-la e abre o PR. A ideia sempre entra, com ajustes de domínio se for o caso, e o ponto pode mudar durante a elucidação.
+
+O roadmap é atualizado pela PLANEJAMENTO e pela DOCUMENTAÇÃO.
 
 ## Domínio, em poucas linhas
 

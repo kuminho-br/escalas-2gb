@@ -8,6 +8,7 @@ Siglas dos documentos: **Design** = `superpowers/specs/2026-11-16-migracao-desig
 
 | Data | Decisão | Onde está |
 |---|---|---|
+| 22/11/2026 | Sessão CONCEPÇÃO: esclarece e modela as ideias novas (`docs/ideias/<tema>.md`); a PLANEJAMENTO põe a ideia no ponto do roadmap mais adequado e abre o PR, sem aviso à DOCUMENTAÇÃO; o ponto pode mudar na elucidação. O roadmap é atualizado pela PLANEJAMENTO e pela DOCUMENTAÇÃO. | `CLAUDE.md`, Sessões |
 | 22/11/2026 | Escala dos oficiais: dia e noite sem desenho de sol e de lua; a diferença é só a cor, em tons sóbrios, com o texto do turno escrito. Ordem da P1: P1.1, P1.2, P1.4, P1.3. | Plano da P1, Global Constraints |
 | 22/11/2026 | Escala dos oficiais: o serviço do oficial de operações é cadastrado como os outros e escolhido na tela, por mês (copiado do mês anterior; troca só antes das cotas); os turnos e horários vêm dele, sem nada fixo no código. | Oficiais, Regras; plano da P1 |
 | 22/11/2026 | Quadros por tela: a Escala dos oficiais mostra só QOC e QOA; as outras telas de escala, o QBMG e quem está sem quadro (com a pendência). Entra na P1.4. | Oficiais, Quem participa; plano da P1 |
