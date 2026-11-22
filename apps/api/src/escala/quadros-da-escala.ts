@@ -7,5 +7,5 @@ export const SO_QBMG_OU_SEM_QUADRO = "(m.quadro_id is null or m.quadro_id = (sel
 /** Motivo de um oficial QOC ou QOA numa vaga de praça. */
 export const MOTIVO_OFICIAL = 'Oficial: fica na escala dos oficiais.';
 
-/** O quadro (sigla) é de oficial? */
-export const ehOficial = (quadro: string | null): boolean => quadro === 'QOC' || quadro === 'QOA';
+/** O quadro (sigla) é de oficial? É a mesma regra do trecho SQL: com quadro e fora do QBMG. */
+export const ehOficial = (quadro: string | null): boolean => quadro !== null && quadro !== 'QBMG';

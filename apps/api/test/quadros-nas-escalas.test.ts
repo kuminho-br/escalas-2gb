@@ -58,6 +58,20 @@ describe('só o QBMG (e quem está sem quadro) nas telas de escala de praças', 
     await inserir(api.banco, 'alocacao', { militar_id: militar.CAPITAO, escala_id: escalaId, servico_id: servico, turno_id: turnoA, data: dia, origem: 'manual' });
     const g: GradeDoMes = await (await api.pedir('escalante', 'GET', `${secao()}/grade/${mes}`)).json();
     expect(nomesDaGrade(g)).toEqual(['CAPITAO', 'MAJOR', 'SOLDADO']);
+    // fica na parte "de fora escalados aqui", e não no grupo da equipe com as praças
+    expect(g.grupos.find((x) => x.chave === 'outras')?.linhas.map((l) => l.nomeGuerra)).toEqual(['CAPITAO']);
+    expect(g.grupos.filter((x) => x.chave !== 'outras').flatMap((x) => x.linhas.map((l) => l.nomeGuerra))).not.toContain('CAPITAO');
+  });
+
+  it('um oficial lotado aqui com alocação só em outra seção não ganha linha na Grade daqui', async () => {
+    const outraSecao = await inserir(api.banco, 'unidade', { tipo: 'secao', sigla: 'SEC-P14', nome: 'Seção P14', mae_id: api.ids.gb, desde: `${mes}-01` });
+    const servicoFora = await inserir(api.banco, 'servico', { unidade_id: outraSecao, nome: 'Pronto fora', tipo: 'ordinario', cor: '#2F8F5B' });
+    const turnoFora = await inserir(api.banco, 'turno', { servico_id: servicoFora, letra: 'A', inicio: '08:00', fim: '20:00' });
+    const escalaFora = await inserir(api.banco, 'escala', { unidade_id: outraSecao, nome: 'Ordinário', titulo: 'Escala', militares_doc: 'todos', dias_doc: 'todos' });
+    await inserir(api.banco, 'escala_servico', { escala_id: escalaFora, servico_id: servicoFora, ordem: 1 }, 'escala_id');
+    await inserir(api.banco, 'alocacao', { militar_id: militar.CAPOFICIAL, escala_id: escalaFora, servico_id: servicoFora, turno_id: turnoFora, data: `${mes}-11`, origem: 'manual' });
+    const g: GradeDoMes = await (await api.pedir('escalante', 'GET', `${secao()}/grade/${mes}`)).json();
+    expect(nomesDaGrade(g)).not.toContain('CAPOFICIAL');
   });
 
   it('os candidatos de uma vaga são o SD e o MAJ, sem os oficiais', async () => {

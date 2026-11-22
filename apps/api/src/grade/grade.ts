@@ -46,8 +46,7 @@ export async function montarGradeDoMes(c: Consulta, unidadeId: string, mes: stri
          from rastreio l join militar m on m.id = l.militar_id join posto_grad p on p.id = m.posto_grad_id
          left join equipe e on e.id = l.equipe_id
         where l.unidade_id = $1 and l.desde <= $3::date and (l.ate is null or l.ate >= $2::date)
-          and (${SO_QBMG_OU_SEM_QUADRO}
-               or exists (select 1 from alocacao x where x.militar_id = m.id and x.data between $2::date and $3::date))`,
+          and ${SO_QBMG_OU_SEM_QUADRO}`,
       [unidadeId, primeiro, ultimo],
     )
   ).rows.map((r): Lotado => ({
