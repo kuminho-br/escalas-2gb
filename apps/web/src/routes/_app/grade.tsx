@@ -45,6 +45,14 @@ function GradeGeral() {
         .map((g) => ({ ...g, linhas: g.linhas.filter((l) => normalizarBusca(l.nomeGuerra).includes(procura) || (digitosDaBusca !== '' && l.matricula.replace(/\D/g, '').includes(digitosDaBusca))) }))
         .filter((g) => g.linhas.length > 0)
     : porEquipe;
+  // as equipes recolhidas valem enquanto a pessoa está na tela (inclusive ao trocar de mês); com busca, tudo o que achou aparece aberto
+  const [recolhidas, setRecolhidas] = useState<Set<string>>(() => new Set());
+  const alternarRecolhida = (chave: string) =>
+    setRecolhidas((antes) => {
+      const novo = new Set(antes);
+      if (!novo.delete(chave)) novo.add(chave);
+      return novo;
+    });
   const escolhida = busca.militar && busca.dia ? { militarId: busca.militar, dia: busca.dia } : null;
   /** Liga ou desliga uma equipe; sem nenhuma ligada, ou com todas, a seleção some ("Todas"). */
   function alternar(chave: string | undefined) {
@@ -116,6 +124,8 @@ function GradeGeral() {
               maximos={maximosDaGrade(grade.grupos)}
               escolhida={escolhida}
               aoEscolher={(militar, dia) => void navigate({ search: (s) => ({ ...s, militar, dia }) })}
+              recolhidas={procura ? new Set() : recolhidas}
+              aoAlternar={alternarRecolhida}
             />
             <LegendaDaGrade grupos={grupos} />
           </div>

@@ -223,14 +223,14 @@ describe('grade geral: a tabela', () => {
   it('uma grade sem linhas ou sem colunas não quebra com uma célula escolhida (Review Focus 5)', () => {
     const escolhida = { militarId: 'm-CABO', dia: dia(2) };
     const maximos = { pjes: 0, diarias: 0 };
-    const semLinhas = render(<TabelaDaGrade grade={{ ...GRADE, grupos: [] }} grupos={[]} maximos={maximos} escolhida={escolhida} aoEscolher={() => {}} />);
+    const semLinhas = render(<TabelaDaGrade grade={{ ...GRADE, grupos: [] }} grupos={[]} maximos={maximos} escolhida={escolhida} aoEscolher={() => {}} recolhidas={new Set()} aoAlternar={() => {}} />);
     expect(semLinhas.container.querySelector('[data-linha-marcada]')).toBeNull();
     // o dia escolhido não está nas colunas (a grade do mês não tem nenhum dia): nada é marcado e nada quebra
-    const semDias = render(<TabelaDaGrade grade={{ ...GRADE, dias: [] }} grupos={GRADE.grupos} maximos={maximos} escolhida={escolhida} aoEscolher={() => {}} />);
+    const semDias = render(<TabelaDaGrade grade={{ ...GRADE, dias: [] }} grupos={GRADE.grupos} maximos={maximos} escolhida={escolhida} aoEscolher={() => {}} recolhidas={new Set()} aoAlternar={() => {}} />);
     expect(semDias.container.querySelector('[data-coluna-marcada]')).toBeNull();
     expect(semDias.container.querySelector('[data-linha-marcada]')).not.toBeNull();
     // militar que não está na grade: nenhuma linha marcada
-    const semMilitar = render(<TabelaDaGrade grade={GRADE} grupos={GRADE.grupos} maximos={maximos} escolhida={{ militarId: 'm-NINGUEM', dia: dia(2) }} aoEscolher={() => {}} />);
+    const semMilitar = render(<TabelaDaGrade grade={GRADE} grupos={GRADE.grupos} maximos={maximos} escolhida={{ militarId: 'm-NINGUEM', dia: dia(2) }} aoEscolher={() => {}} recolhidas={new Set()} aoAlternar={() => {}} />);
     expect(semMilitar.container.querySelector('[data-linha-marcada]')).toBeNull();
     expect(semMilitar.container.querySelector('[data-coluna-marcada]')).not.toBeNull();
   });
@@ -497,5 +497,73 @@ describe('grade geral: as gravações invalidam a grade', () => {
     queryClient.setQueryData(['grade', 'u-1sb', MES], GRADE);
     await desativar(queryClient, 'u-1sb', dia(2), 'g1');
     expect(queryClient.getQueryState(['grade', 'u-1sb', MES])!.isInvalidated).toBe(true);
+  });
+});
+
+describe('grade geral: recolher e mostrar a equipe', () => {
+  const nomeDaEquipe = (chave: string) => within(document.querySelector<HTMLElement>(`tr[data-grupo="${chave}"]`)!).getByRole('button');
+
+  it('clicar no nome da equipe esconde e mostra os militares dela', async () => {
+    api();
+    abrir(`/grade?mes=${MES}`);
+    await screen.findByRole('rowheader', { name: /CABO/ });
+    const botao = nomeDaEquipe('eq-alfa');
+    expect(botao).toHaveAttribute('aria-expanded', 'true');
+    await userEvent.click(botao);
+    expect(nomeDaEquipe('eq-alfa')).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.queryByRole('rowheader', { name: /CABO/ })).toBeNull();
+    expect(screen.queryByRole('rowheader', { name: /SD1/ })).toBeNull();
+    // as outras equipes continuam
+    expect(screen.getByRole('rowheader', { name: /BRAVO/ })).toBeInTheDocument();
+    await userEvent.click(nomeDaEquipe('eq-alfa'));
+    expect(await screen.findByRole('rowheader', { name: /CABO/ })).toBeInTheDocument();
+  });
+
+  it('a faixa mostra quantos militares a equipe tem, aberta ou recolhida', async () => {
+    api();
+    abrir(`/grade?mes=${MES}`);
+    await screen.findByRole('rowheader', { name: /CABO/ });
+    await userEvent.click(nomeDaEquipe('eq-alfa'));
+    expect(document.querySelector('tr[data-grupo="eq-alfa"] [data-nome-do-grupo]')).toHaveTextContent('2 militares');
+  });
+
+  it('com busca, a equipe com resultado aparece aberta', async () => {
+    api();
+    abrir(`/grade?mes=${MES}`);
+    await screen.findByRole('rowheader', { name: /CABO/ });
+    await userEvent.click(nomeDaEquipe('eq-alfa'));
+    expect(screen.queryByRole('rowheader', { name: /CABO/ })).toBeNull();
+    await userEvent.type(screen.getByLabelText('Buscar militar'), 'cabo');
+    expect(await screen.findByRole('rowheader', { name: /CABO/ })).toBeInTheDocument();
+    await userEvent.clear(screen.getByLabelText('Buscar militar'));
+    await waitFor(() => expect(screen.queryByRole('rowheader', { name: /CABO/ })).toBeNull());
+  });
+
+  it('recolher a equipe do militar escolhido não fecha o painel do dia, e abrir mostra a linha marcada', async () => {
+    api();
+    const router = abrir(`/grade?mes=${MES}&militar=m-CABO&dia=${dia(2)}`);
+    await screen.findByRole('rowheader', { name: /CABO/ });
+    expect(document.querySelector('[data-linha-marcada]')).not.toBeNull();
+    await userEvent.click(nomeDaEquipe('eq-alfa'));
+    expect(screen.queryByRole('rowheader', { name: /CABO/ })).toBeNull();
+    expect(router.state.location.search).toMatchObject({ militar: 'm-CABO', dia: dia(2) });
+    await userEvent.click(nomeDaEquipe('eq-alfa'));
+    await screen.findByRole('rowheader', { name: /CABO/ });
+    expect(document.querySelector('tr[data-militar="m-CABO"]')).toHaveAttribute('data-linha-marcada');
+  });
+
+  it('trocar de mês mantém as equipes recolhidas', async () => {
+    simularApi({
+      '/api/eu': { status: 200, corpo: EU_EXEMPLO },
+      [ROTA]: { status: 200, corpo: GRADE },
+      'GET /api/unidades/u-1sb/grade/2027-01': { status: 200, corpo: { ...GRADE, mes: '2027-01', dias: [] } },
+    });
+    abrir(`/grade?mes=${MES}`);
+    await screen.findByRole('rowheader', { name: /CABO/ });
+    await userEvent.click(nomeDaEquipe('eq-alfa'));
+    await userEvent.click(screen.getByRole('button', { name: 'Próximo mês' }));
+    await screen.findByRole('table', { name: 'Grade geral de janeiro de 2027' });
+    expect(nomeDaEquipe('eq-alfa')).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.queryByRole('rowheader', { name: /CABO/ })).toBeNull();
   });
 });
