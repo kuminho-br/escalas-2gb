@@ -280,3 +280,30 @@ describe('acesso ao sistema e e-mail (fase 6)', () => {
     expect(previa.novos).toEqual([]);
   });
 });
+
+const quadroDe = async (matricula: string) =>
+  (await api.banco.query<{ sigla: string | null }>('select q.sigla from militar m left join quadro q on q.id = m.quadro_id where m.matricula = $1', [matricula])).rows[0]!.sigla;
+const pendenciasDe = async (matricula: string): Promise<string[]> => {
+  const id = (await militar(matricula))!.id;
+  return (await (await api.pedir('gestorGb', 'GET', `/api/militares/${id}`)).json()).pendencias;
+};
+
+describe('o quadro na importação do Pecúlio', () => {
+  const MAJOR: Linha = ['990311-1', 'MAJ BM', 'Pedro de Souza Major', 'MAJOR', 4101, 'M', '10/05', '', '', 'Bom', '', '1ª SB'];
+  it('um MAJ novo entra sem quadro e com a pendência; um SD novo entra com QBMG; a linha não é recusada', async () => {
+    const SOLDADO: Linha = ['990312-2', 'SD BM', 'Paulo de Souza Soldado', 'SOLDADO', 4102, 'M', '11/05', '', '', 'Bom', '', '1ª SB'];
+    const r = await importar([MAJOR, SOLDADO], true);
+    expect(r.novos).toHaveLength(2);
+    expect(await quadroDe('990311-1')).toBeNull();
+    expect(await pendenciasDe('990311-1')).toContain('Sem quadro');
+    expect(await quadroDe('990312-2')).toBe('QBMG');
+  });
+  it('trocar o posto pela planilha leva o quadro junto; o quadro que já serve fica', async () => {
+    const id = (await militar('990311-1'))!.id;
+    await api.banco.query("update militar set quadro_id = (select id from quadro where sigla = 'QOA') where id = $1", [id]);
+    await importar([['990311-1', 'CAP BM', 'Pedro de Souza Major', 'MAJOR', 4101, 'M', '10/05', '', '', 'Bom', '', '1ª SB']], true);
+    expect(await quadroDe('990311-1')).toBe('QOA');
+    await importar([['990311-1', 'CEL BM', 'Pedro de Souza Major', 'MAJOR', 4101, 'M', '10/05', '', '', 'Bom', '', '1ª SB']], true);
+    expect(await quadroDe('990311-1')).toBe('QOC');
+  });
+});

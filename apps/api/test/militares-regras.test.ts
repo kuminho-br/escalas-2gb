@@ -31,8 +31,9 @@ describe('situação no mês', () => {
 });
 
 describe('pendências do militar', () => {
-  const ok = { motorista: false, cnh: [], jornada: 'adm', equipe: null, antiguidade: 1, nomeCompleto: 'Fulano de Tal' };
+  const ok = { motorista: false, cnh: [], jornada: 'adm', equipe: null, antiguidade: 1, nomeCompleto: 'Fulano de Tal', quadro: 'q-1' };
   it('nenhuma', () => expect(pendenciasDoMilitar(ok)).toEqual([]));
+  it('Sem quadro', () => expect(pendenciasDoMilitar({ ...ok, quadro: null })).toEqual(['Sem quadro']));
   it('Nome completo em falta (vazio ou só espaços)', () => {
     expect(pendenciasDoMilitar({ ...ok, nomeCompleto: null })).toEqual(['Nome completo em falta']);
     expect(pendenciasDoMilitar({ ...ok, nomeCompleto: '   ' })).toEqual(['Nome completo em falta']);

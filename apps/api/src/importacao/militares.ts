@@ -2,6 +2,7 @@
 import { Antiguidade, mesParaData, mesPorExtenso, type ItemPrevia, type ProblemaImportacao } from 'contratos';
 import { categoriasCnh, CICLO_EQUIPES, diasDoMes, normalizar } from 'dominio';
 import { CADASTRO, temPapelAcima } from '../acesso.ts';
+import { quadroParaOPosto } from '../cadastros/quadros.ts';
 import type { Consulta } from '../banco/banco.ts';
 import { coluna } from './planilha.ts';
 import type { ColunaModelo, Importador } from './tipos.ts';
@@ -325,10 +326,11 @@ export const importadorMilitares: Importador<Plano> = {
       const d = it.dados;
       let id = it.id;
       if (!id) {
+        const quadro = await quadroParaOPosto(tx, d.postoId, undefined, null);
         id = (await tx.query<{ id: string }>(
-          `insert into militar (matricula, posto_grad_id, nome_guerra, antiguidade, motorista, cnh, voluntario_jes)
-           values ($1, $2, $3, $4, $5, $6, $7) returning id`,
-          [d.matricula, d.postoId, d.nomeGuerra, d.antiguidade, d.motorista, d.cnh, d.voluntarioJes],
+          `insert into militar (matricula, posto_grad_id, quadro_id, nome_guerra, antiguidade, motorista, cnh, voluntario_jes)
+           values ($1, $2, $3, $4, $5, $6, $7, $8) returning id`,
+          [d.matricula, d.postoId, 'erro' in quadro ? null : quadro.quadroId, d.nomeGuerra, d.antiguidade, d.motorista, d.cnh, d.voluntarioJes],
         )).rows[0]!.id;
       } else if (it.mudouMilitar) {
         // só o que é da escala: o posto, o nome de guerra e a antiguidade de quem já existe são do Pecúlio

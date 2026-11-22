@@ -296,3 +296,13 @@ describe('dono por bloco na importação de militares (Review Focus 3)', () => {
     }
   });
 });
+
+describe('o quadro na importação de militares', () => {
+  it('um SD novo entra com QBMG; um MAJ novo entra sem quadro e a linha não é recusada', async () => {
+    const r = await importar([['990241-1', 'SOLDADO', '1ª SB', 'SD BM', 'ADM', '', 1, '', '', ''], ['990242-2', 'MAJORA', '1ª SB', 'MAJ BM', 'ADM', '', 2, '', '', '']], true);
+    expect(r.novos).toHaveLength(2);
+    const quadro = async (m: string) => (await api.banco.query<{ sigla: string | null }>('select q.sigla from militar m left join quadro q on q.id = m.quadro_id where m.matricula = $1', [m])).rows[0]!.sigla;
+    expect(await quadro('990241-1')).toBe('QBMG');
+    expect(await quadro('990242-2')).toBeNull();
+  });
+});

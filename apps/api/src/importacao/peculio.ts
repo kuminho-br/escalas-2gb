@@ -2,6 +2,7 @@
 // Só quem tem papel numa unidade acima das seções importa (a rota confere); aqui cada linha confere de novo o papel de cima da lotação dela.
 import { Antiguidade, COMPORTAMENTOS, EmailInstitucional, mesParaData, Nascimento, Telefone, type ItemPrevia, type ProblemaImportacao } from 'contratos';
 import { normalizar } from 'dominio';
+import { quadroParaOPosto } from '../cadastros/quadros.ts';
 import { CADASTRO, temPapelAcima } from '../acesso.ts';
 import type { Consulta } from '../banco/banco.ts';
 import { matriculaDe } from './militares.ts';
@@ -334,12 +335,16 @@ export const importadorPeculio: Importador<Plano> = {
     const desde = mesParaData(plano.mes);
     for (const it of plano.itens) {
       const d = it.dados;
+      // o quadro acompanha o posto (mesma regra da ficha): fica o que serve, senão o do posto, se for um só, senão nenhum (pendência "Sem quadro")
+      const atualDoMilitar = it.id ? (await tx.query<{ quadro_id: string | null }>('select quadro_id from militar where id = $1', [it.id])).rows[0]!.quadro_id : null;
+      const quadro = await quadroParaOPosto(tx, d.postoId, undefined, atualDoMilitar);
+      const quadroId = 'erro' in quadro ? null : quadro.quadroId;
       const valores = [d.postoId, d.nomeCompleto, d.nomeGuerra, d.antiguidade, d.sexo, d.nascimento?.dia ?? null, d.nascimento?.mes ?? null, d.telefone, d.email, d.comportamento, d.boletim];
       if (!it.id) {
         const id = (await tx.query<{ id: string }>(
-          `insert into militar (matricula, posto_grad_id, nome_completo, nome_guerra, antiguidade, sexo, nascimento_dia, nascimento_mes, telefone, email, comportamento, comportamento_boletim)
-           values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) returning id`,
-          [d.matricula, ...valores],
+          `insert into militar (matricula, posto_grad_id, nome_completo, nome_guerra, antiguidade, sexo, nascimento_dia, nascimento_mes, telefone, email, comportamento, comportamento_boletim, quadro_id)
+           values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) returning id`,
+          [d.matricula, ...valores, quadroId],
         )).rows[0]!.id;
         // lotação na seção da linha, a partir do mês atual, Pronto e sem equipe: equipe e jornada ficam com o escalante
         await tx.query("insert into rastreio (militar_id, unidade_id, equipe_id, jornada, desde) values ($1, $2, null, 'pronto', $3)", [id, it.unidadeId, desde]);
@@ -347,8 +352,8 @@ export const importadorPeculio: Importador<Plano> = {
       }
       await tx.query(
         `update militar set posto_grad_id = $2, nome_completo = $3, nome_guerra = $4, antiguidade = $5, sexo = $6, nascimento_dia = $7, nascimento_mes = $8,
-                telefone = $9, email = $10, comportamento = $11, comportamento_boletim = $12 where id = $1`,
-        [it.id, ...valores],
+                telefone = $9, email = $10, comportamento = $11, comportamento_boletim = $12, quadro_id = $13 where id = $1`,
+        [it.id, ...valores, quadroId],
       );
     }
     return plano.itens.length;
