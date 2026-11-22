@@ -49,6 +49,11 @@ beforeAll(async () => {
   await alocar('MUDA', jes, dia(10));
   await alocar('MUDA', jes, dia(20));
   await alocar('FIXO', jes, dia(10));
+  // VOLTA: Alfa, depois Bravo de 15 a 19 e de novo Alfa a partir do dia 20 (o escalante desistiu da mudança)
+  await criar('VOLTA', [{ equipe: alfa, desde: '2026-11-01', ate: dia(14) }, { equipe: bravo, desde: dia(15), ate: dia(19) }, { equipe: alfa, desde: dia(20) }]);
+  await alocar('VOLTA', jes, dia(5));
+  await alocar('VOLTA', jes, dia(17));
+  await alocar('VOLTA', jes, dia(25));
 });
 afterAll(async () => {
   await api.fechar();
@@ -67,6 +72,15 @@ describe('o rastreio por dia', () => {
     expect(Object.keys(naAlfa[0]!.dias)).toEqual([dia(10)]);
     expect(Object.keys(naBravo[0]!.dias)).toEqual([dia(20)]);
     expect([naAlfa[0]!.pjes, naBravo[0]!.pjes]).toEqual([1, 1]);
+  });
+
+  it('quem muda de equipe e volta à mesma tem uma linha só nela, com os dias dos dois períodos', async () => {
+    const g = await lerGrade();
+    const naAlfa = linhas(g, alfa, 'VOLTA');
+    expect(naAlfa).toHaveLength(1);
+    expect(Object.keys(naAlfa[0]!.dias)).toEqual([dia(5), dia(25)]);
+    expect(naAlfa[0]!.pjes).toBe(2);
+    expect(linhas(g, bravo, 'VOLTA').map((l) => Object.keys(l.dias))).toEqual([[dia(17)]]);
   });
 
   it('quem não muda continua com uma linha só, com tudo o que tirou', async () => {

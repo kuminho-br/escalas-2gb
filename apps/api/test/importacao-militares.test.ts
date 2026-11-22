@@ -306,3 +306,21 @@ describe('o quadro na importação de militares', () => {
     expect(await quadro('990242-2')).toBeNull();
   });
 });
+
+describe('rastreio por dia e a importação', () => {
+  it('um militar com dois períodos no mês é comparado com o período aberto, e o fechado não é mexido', async () => {
+    const linha = ['990251-1', 'MUDOU', '1ª SB', 'SD BM', 'PRONTO', 'ALFA', 5, '', '', ''];
+    await importar([linha], true);
+    const m = (await militar('990251-1'))!;
+    const bravo = (await api.banco.query<{ id: string }>("select id from equipe where nome = 'BRAVO'")).rows[0]!.id;
+    // o período da Alfa fecha no dia 14 e a Bravo abre no dia 15 do mês de hoje (a ordem física das linhas vira: a mais velha é atualizada depois)
+    const dia = (n: number) => `${atual}-${String(n).padStart(2, '0')}`;
+    await api.banco.query("update rastreio set desde = $2::date where militar_id = $1", [m.id, dia(1)]);
+    const r = await api.pedir('gestorGb', 'POST', `/api/militares/${m.id}/situacao`, { unidadeId: api.ids.secao, equipeId: bravo, jornada: 'pronto', desde: dia(15) });
+    expect(r.status).toBe(201);
+    // a planilha diz BRAVO, o que já vale desde o dia 15: nada a alterar, e o período da Alfa continua Alfa
+    const res = await importar([['990251-1', 'MUDOU', '1ª SB', 'SD BM', 'PRONTO', 'BRAVO', 5, '', '', '']], true);
+    expect(res.alterados.find((x: { chave: string }) => x.chave === '990251-1')).toBeUndefined();
+    expect((await lotacoes(m.id)).map((l) => [l.equipe, l.ate])).toEqual([['ALFA', dia(14)], ['BRAVO', null]]);
+  });
+});

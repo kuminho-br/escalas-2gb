@@ -101,8 +101,9 @@ export async function montarGradeDoMes(c: Consulta, unidadeId: string, mes: stri
   const afastado = (id: string, d: string) => afastamentos.some((a) => a.militar_id === id && a.inicio <= d && a.fim >= d);
 
   /** `soDoPeriodo`: o militar tem mais de um período no mês (mudou de equipe ou de jornada); cada linha vale só nos dias do seu período. */
-  function montarLinha(p: Pessoa, jornada: 'pronto' | 'adm', lotacao: { desde: string; ate: string | null } | null, soDoPeriodo = false): LinhaDaGrade {
-    const dentro = (d: string) => !soDoPeriodo || !lotacao || (lotacao.desde <= d && (lotacao.ate === null || lotacao.ate >= d));
+  function montarLinha(p: Pessoa, jornada: 'pronto' | 'adm', lotacao: { desde: string; ate: string | null }[] | null, soDoPeriodo = false): LinhaDaGrade {
+    const cobre = (d: string) => !!lotacao?.some((x) => x.desde <= d && (x.ate === null || x.ate >= d));
+    const dentro = (d: string) => !soDoPeriodo || !lotacao || cobre(d);
     const dele = alocacoes.filter((a) => a.militarId === p.id && dentro(a.data));
     const duracao = (a: Alocacao) => {
       const i = intervaloDoTurno(a.inicio, a.fim);
@@ -119,7 +120,6 @@ export async function montarGradeDoMes(c: Consulta, unidadeId: string, mes: stri
     // Expediente de verdade o substituem
     const expediente: AlocChoque[] = [];
     if (jornada === 'adm' && lotacao) {
-      const cobre = (d: string) => lotacao.desde <= d && (lotacao.ate === null || lotacao.ate >= d);
       for (let n = -1; n <= dias.length; n++) {
         const d = somarDias(primeiro, n);
         if (!util(d) || !cobre(d) || afastado(p.id, d)) continue;
@@ -171,9 +171,18 @@ export async function montarGradeDoMes(c: Consulta, unidadeId: string, mes: stri
     g.linhas.push({ ...linha, antig });
     grupos.set(chave, g);
   };
+  // quem volta à mesma equipe (ou fica no Adm) no mês tem uma linha só nela, valendo nos dias de todos os períodos dela
+  const chaveDoGrupo = (l: Lotado) => (l.jornada === 'adm' ? 'adm' : (l.equipeId ?? 'sem-equipe'));
+  const porLinha = new Map<string, { l: Lotado; periodos: { desde: string; ate: string | null }[] }>();
   for (const l of lotados) {
+    const k = `${l.id}|${chaveDoGrupo(l)}`;
+    const e = porLinha.get(k) ?? { l, periodos: [] };
+    e.periodos.push({ desde: l.desde, ate: l.ate });
+    porLinha.set(k, e);
+  }
+  for (const { l, periodos } of porLinha.values()) {
     if (!l.ativo && !temAlocacaoNoMes(l.id)) continue;
-    const linha = montarLinha(l, l.jornada, { desde: l.desde, ate: l.ate }, periodosDoMilitar.get(l.id)! > 1);
+    const linha = montarLinha(l, l.jornada, periodos, periodosDoMilitar.get(l.id)! > 1);
     if (l.jornada === 'adm') poe('adm', 'Adm', 1_000_000, linha, l.antiguidade);
     else if (l.equipeId) poe(l.equipeId, l.equipe ?? '', l.ordemCiclo ?? 0, linha, l.antiguidade);
     else poe('sem-equipe', 'Sem equipe', 999_999, linha, l.antiguidade);
