@@ -25,12 +25,13 @@ Rotas consideradas para o roadmap (20/11/2026): seguir com o documento e o pilot
 
 Ficam para depois, sem bloquear a interface com a escala:
 
-- abono de permanência e "ativo/inativo" (o usuário vai pesquisar o que significam);
-- funções, missões extras e o catálogo do QOD; a árvore completa do QOD (Comando, Divisões, seções administrativas) e o previsto por posto;
+- o abono de permanência (decidido: um campo de sim ou não; falta a entrega);
+- a função do militar (decidido: todo militar tem uma, cadastrada nas Configurações até o QOD ser modelado; falta a entrega) e as missões extras;
+- o QOD, que é um domínio à parte: cada função com as vagas e os postos-graduações que podem ocupá-la, a árvore de órgãos e o previsto por posto. Entra como uma consulta no módulo Pecúlio; a modelagem fica pendente;
 - férias (rascunho, módulo à parte);
 - quem vê cada atributo (pesa quando o militar comum entrar, na fase 6; na fase 5 a ficha é usada por quem tem papel);
 - a jornada dos oficiais (pesa nas distribuições, na fase 8; até lá, oficial continua Adm);
-- o quadro (QOC, QOA) separado do posto e a grafia das siglas em Configurações;
+- a grafia das siglas em Configurações;
 - a cópia de segurança gerada pelo sistema no formato do Pecúlio;
 - data de ingresso e CPF (o CPF só no servidor do Estado);
 - o militar editando o próprio telefone (precisa do login do militar comum, fase 6);
@@ -67,7 +68,8 @@ Ficam para depois, sem bloquear a interface com a escala:
 | Atributo | Regra | Dono |
 |---|---|---|
 | Matrícula | já existe; a chave do militar | Pecúlio |
-| Posto/graduação | já existe | Pecúlio |
+| Posto-graduação | já existe; nome provisório do campo (um militar tem um posto ou uma graduação) | Pecúlio |
+| Quadro | novo (P1.1); QOC, QOA ou QBMG; o posto-graduação precisa pertencer ao quadro, e o mesmo posto pode estar em mais de um quadro | Pecúlio |
 | Nome completo | novo; obrigatório | Pecúlio |
 | Nome de guerra | já existe; atributo próprio (pode ser abreviação de um dos nomes) | Pecúlio |
 | Antiguidade | já existe; é a "Ordem" do Pecúlio (lugar no ranking do GB) | Pecúlio |
@@ -80,6 +82,8 @@ Ficam para depois, sem bloquear a interface com a escala:
 | Quadro de motoristas | já existe | Escala |
 | CNH | já existe; **independente do quadro** (sai a regra que a apagava) | Escala |
 | Voluntário JES | já existe; é o "Voluntário PJES" do Pecúlio | Escala |
+| Abono de permanência | decidido, sem entrega: sim ou não | Pecúlio |
+| Função | decidida, sem entrega: de todo militar, de um catálogo nas Configurações (depois, do QOD) | Pecúlio |
 
 O histórico das mudanças de comportamento fica na auditoria (relação de um comportamento para muitos militares, com o boletim da última publicação no próprio militar; decisão do usuário).
 

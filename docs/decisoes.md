@@ -4,10 +4,14 @@ Uma linha por decisão do projeto, da mais nova para a mais velha. A coluna "Ond
 
 Regra (20/11/2026): os documentos não ganham mais adendos. Quem muda uma decisão muda o texto do documento e acrescenta uma linha aqui, no mesmo PR. O texto antigo dos documentos fica no git; a síntese de 20/11/2026 partiu do commit `50bf019`.
 
-Siglas dos documentos: **Design** = `superpowers/specs/2026-11-16-migracao-design.md`; **Roadmap** = `superpowers/plans/2026-11-16-roadmap-migracao.md`; **Telas** = `superpowers/specs/2026-11-16-telas.md`; **Pecúlio** = `superpowers/specs/2026-11-20-peculio-design.md`; **Usuários e módulos** = `superpowers/specs/2026-11-21-usuarios-e-modulos-design.md`.
+Siglas dos documentos: **Design** = `superpowers/specs/2026-11-16-migracao-design.md`; **Roadmap** = `superpowers/plans/2026-11-16-roadmap-migracao.md`; **Telas** = `superpowers/specs/2026-11-16-telas.md`; **Pecúlio** = `superpowers/specs/2026-11-20-peculio-design.md`; **Usuários e módulos** = `superpowers/specs/2026-11-21-usuarios-e-modulos-design.md`; **Oficiais** = `superpowers/specs/2026-11-22-escala-dos-oficiais-design.md`.
 
 | Data | Decisão | Onde está |
 |---|---|---|
+| 22/11/2026 | Entregas paralelas: uma linha de entregas fora das fases ("Missões paralelas"), que não muda a ordem do roadmap. A primeira é a P1, Escala dos oficiais. | Roadmap, Missões paralelas |
+| 22/11/2026 | Escala dos oficiais: design e mockup aprovados sem ressalvas; os 8 pontos em aberto ficam como propostos, e o item "Oficiais" vem depois de "Efetivo por dia". | Oficiais, Pontos que estavam em aberto |
+| 22/11/2026 | Quadros QOC, QOA e QBMG: todo militar pertence a um quadro; o posto-graduação pertence a quadros, e o mesmo pode estar em mais de um. "Posto-graduação" é o nome provisório do campo. Entra na P1.1. | Pecúlio, Militar; plano da P1 |
+| 22/11/2026 | Pecúlio: o abono de permanência é um campo de sim ou não (o militar que já poderia ir para a reserva e continua na ativa, com o bônus); "ativo/inativo" sai do Pecúlio; a função é de todo militar, cadastrada nas Configurações até o QOD ser modelado; o QOD é um domínio à parte, que entra como uma consulta no módulo Pecúlio. | Pecúlio, Militar e Não objetivos |
 | 21/11/2026 | O rastreio (lotação, equipe, jornada) vale por dia, como os afastamentos. Substitui "a partir de é o mês" e fecha a pendência de elucidação. Entra na entrega 6.5. | Pecúlio, Rastreio do militar e Telas |
 | 21/11/2026 | O "Vale desde" do modelo de guarnição (criar e nova versão) aceita mês passado, inclusive muito antigo; as outras vigências continuam recusando. Entra na entrega 6.5. | Plano da fase 6, Entrega 5 |
 | 21/11/2026 | Grade geral: clicar no nome da equipe recolhe ou mostra os militares dela. Entra na entrega 6.5. | Plano da fase 6, Entrega 5 |

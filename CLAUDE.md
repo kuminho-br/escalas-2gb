@@ -20,7 +20,7 @@ Automação das escalas de serviço da 1ª SB / 2º GB (Corpo de Bombeiros Milit
 
 ## Como trabalhar
 
-- Uma branch por entrega, a partir da `main`, com nome `faseN-<tema>` (ex.: `fase4-5-<tema>`) ou `docs-<tema>`. Uma entrega por PR. **Merge só com anuência do usuário.**
+- Uma branch por entrega, a partir da `main`, com nome `faseN-<tema>` (ex.: `fase4-5-<tema>`), `pN-M-<tema>` nas entregas paralelas (ex.: `p1-1-quadros`) ou `docs-<tema>`. Uma entrega por PR. **Merge só com anuência do usuário.**
 - Cada sessão trabalha na sua pasta (`C:/projetos/escalas-2gb-<sessão>`, criada com `git worktree`). Nunca trocar de branch na pasta de outra sessão.
 - Antes de abrir PR: `pnpm test && pnpm typecheck`; mexeu na API ou no site: `pnpm build:vercel`.
 - `pnpm test:prototipo` roda só os testes do protótipo.

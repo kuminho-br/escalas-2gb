@@ -10,7 +10,7 @@
 - Este documento é só o mapa: a ordem das fases, a situação de cada entrega e onde está cada coisa.
 - O porquê de cada decisão está em `docs/decisoes.md`.
 - Cada fase tem um plano de tarefas, escrito por entrega, só quando ela está para começar. Plano pedido pelo usuário vai direto ao GitHub, é mesclado e vai para a execução (Sonnet executa, Opus revisa).
-- Ao terminar uma entrega, a DESENVOLVIMENTO envia o branch; a PLANEJAMENTO abre o PR, mescla e avisa a VALIDAÇÃO, que monta os testes de navegador para o usuário. Uma fase com muitas dependências (a 5) ganha antes um design da fase inteira.
+- Ao terminar uma entrega, a DESENVOLVIMENTO envia o branch; a PLANEJAMENTO abre o PR, mescla e avisa a VALIDAÇÃO, que monta os testes de navegador para o usuário.
 - Não há datas: o desenvolvimento é de uma pessoa, e a ordem importa mais que o prazo.
 - O número da entrega é a ordem de execução.
 
@@ -86,16 +86,11 @@ As specs da fase estão listadas no plano e no `docs/LEIAME.md`.
 
 A estrutura da ficha do militar que hoje vive na planilha do Pecúlio, e a parte dela que a escala usa. Design: `docs/superpowers/specs/2026-11-20-peculio-design.md`.
 
-Ficha ampliada com dono por bloco, lotação como posição na estrutura, "Histórico de rastreio", CNH separada do quadro, novos tipos de afastamento, as sete seções, a importação do Pecúlio e o módulo. Plano: `docs/superpowers/plans/2026-11-21-fase5-peculio.md`.
+Ficha com dono por bloco, rastreio, CNH separada do quadro, sete seções, importação e módulo. Plano: `docs/superpowers/plans/2026-11-21-fase5-peculio.md`.
 
-| Entrega | O quê | Situação |
-|---|---|---|
-| 1 | Rastreio e CNH: lotação só a unidade, "Histórico de rastreio", CNH separada do quadro, sete seções | mesclada (#73), migração 0023 aplicada no teste |
-| 2 | Ficha ampliada e dono por bloco | mesclada (#79), migração 0024 aplicada no teste |
-| 3 | Importação do Pecúlio e o módulo (e a importação de MILITARES respeitando o dono por bloco) | mesclada (#80) |
-| 4 | Retorno da validação (Efetivo por dia, Escala do mês, contraste, Grade, CNH, "Turnos", "Importar") | mesclada (#82) |
+Entregas: 1 rastreio e CNH (#73, migração 0023); 2 ficha e dono por bloco (#79, 0024); 3 importação e módulo (#80); 4 retorno da validação (#82). Migrações aplicadas no teste.
 
-**Postergado** (não trava a fase): abono de permanência, ativo/inativo, funções e QOD, férias, quem vê cada atributo, jornada dos oficiais, quadro separado do posto, cópia de segurança gerada pelo sistema, data de ingresso e CPF.
+**Postergado:** abono de permanência e função (decididos em 22/11), QOD, férias, quem vê cada atributo, jornada dos oficiais, cópia de segurança, data de ingresso e CPF.
 
 ## Fase 6 — Usuários e módulos · em execução
 
@@ -166,6 +161,18 @@ Design: `docs/superpowers/specs/2026-11-21-usuarios-e-modulos-design.md`. Plano:
 - Tela de Histórico, sobre a auditoria que existe desde a fase 1.
 - Antiguidade acima do GB, pelos almanaques.
 - Servidor do Estado: cópia do banco, implantação, retirada do ambiente de teste. CPF e data de nascimento entram aqui (D7).
+
+## Missões paralelas
+
+Entregas fora das fases, numeradas P1, P2…: usam os dados do projeto, mas não mudam a ordem do roadmap.
+
+| Entrega | O que traz | Situação |
+|---|---|---|
+| P1.1 | Quadros QOC, QOA e QBMG no banco; o quadro na ficha | planejada (migração 0027) |
+| P1.2 | Escala dos oficiais: motor, tabelas e API | planejada (migração 0028) |
+| P1.3 | Escala dos oficiais: telas (escala do mês, saldo, regras) | planejada |
+
+Design: `docs/superpowers/specs/2026-11-22-escala-dos-oficiais-design.md`. Plano: `docs/superpowers/plans/2026-11-22-p1-escala-dos-oficiais.md`.
 
 ## Pendências conhecidas
 
