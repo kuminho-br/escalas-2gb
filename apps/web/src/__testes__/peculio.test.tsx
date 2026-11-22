@@ -1,17 +1,18 @@
 import type { ListaDoPeculio } from 'contratos';
-import { screen, waitFor, within } from '@testing-library/react';
+import { cleanup, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
 import type { Eu, EuDaApi } from '@/api/eu';
 import { unidadeDoPeculio } from '@/api/peculio';
-import { mesAtual } from '@/lib/meses';
-import { abrir, EU_EXEMPLO, simularApi } from './apoio';
+import { hoje, mesAtual } from '@/lib/meses';
+import { abrir, chamadasA, corpoEnviado, EU_EXEMPLO, simularApi } from './apoio';
 
 const MES = mesAtual();
 const comUnidade = (e: EuDaApi): Eu => ({ ...e, unidade: e.unidades[0]! });
 const GESTOR_GB: EuDaApi = {
   ...EU_EXEMPLO,
   papeis: [{ papel: 'gestor', unidadeId: 'u-gb', unidadeSigla: '2º GB' }, { papel: 'escalante', unidadeId: 'u-1sb', unidadeSigla: '1ª SB' }],
+  unidades: [{ id: 'u-gb', sigla: '2º GB', caminho: ['CBMPE', 'DGO', 'DInter/1', '2º GB'], nivel: 3 }, ...EU_EXEMPLO.unidades],
 };
 const LISTA: ListaDoPeculio = {
   militares: [
@@ -139,5 +140,107 @@ describe('módulo Pecúlio', () => {
     api(GESTOR_GB, LISTA, { 'GET /api/unidades/u-gb/peculio': { status: 500, corpo: { erro: 'Falha ao ler o Pecúlio.' } } });
     abrir('/peculio');
     expect(await screen.findByRole('alert')).toHaveTextContent('Falha ao ler o Pecúlio.');
+  });
+});
+
+describe('o Novo militar, no Pecúlio', () => {
+  const POSTOS = [{ id: 'p-sd', sigla: 'SD BM', nome: 'Soldado', ordem: 1 }, { id: 'p-cb', sigla: 'CB BM', nome: 'Cabo', ordem: 2 }, { id: 'p-maj', sigla: 'MAJ BM', nome: 'Major', ordem: 11 }];
+  const QUADROS = [
+    { id: 'q-qoc', sigla: 'QOC', nome: 'Oficiais Combatentes', postoGradIds: ['p-maj'] },
+    { id: 'q-qoa', sigla: 'QOA', nome: 'Oficiais da Administração', postoGradIds: ['p-maj'] },
+    { id: 'q-qbmg', sigla: 'QBMG', nome: 'Qualificação Bombeiro Militar Geral', postoGradIds: ['p-sd', 'p-cb'] },
+  ];
+  const SECOES = [{ id: 'u-1sb', sigla: '1ª SB', nome: '1ª Seção de Bombeiros' }, { id: 'u-2sb', sigla: '2ª SB', nome: '2ª Seção de Bombeiros' }];
+  const FICHA_CRIADA = { id: 'm9' };
+  const rotas = (extra: Parameters<typeof simularApi>[0] = {}) =>
+    api(GESTOR_GB, LISTA, { 'GET /api/postos': { status: 200, corpo: POSTOS }, 'GET /api/quadros': { status: 200, corpo: QUADROS }, 'GET /api/secoes': { status: 200, corpo: SECOES }, ...extra });
+  async function abrirODialogo() {
+    await userEvent.click(await screen.findByRole('button', { name: 'Novo militar' }));
+    return within(await screen.findByRole('dialog'));
+  }
+
+  it('quem tem nível de acesso na unidade de cima vê "Novo militar"; o auxiliar só da seção não vê', async () => {
+    rotas();
+    abrir('/peculio');
+    expect(await screen.findByRole('button', { name: 'Novo militar' })).toBeInTheDocument();
+    cleanup();
+    api(EU_EXEMPLO);
+    abrir('/peculio');
+    await screen.findByRole('list', { name: 'Militares do Pecúlio' });
+    expect(screen.queryByRole('button', { name: 'Novo militar' })).toBeNull();
+  });
+
+  it('o diálogo pede os dados do Pecúlio e a lotação, e não pede equipe, jornada, motorista, CNH nem voluntário', async () => {
+    rotas();
+    abrir('/peculio');
+    const dialogo = await abrirODialogo();
+    for (const campo of ['Matrícula', 'Posto-graduação', 'Quadro', 'Nome completo', 'Nome de guerra', 'Antiguidade', 'Seção', 'Lotado desde']) expect(dialogo.getByLabelText(campo)).toBeInTheDocument();
+    for (const campo of ['Equipe', 'Jornada', 'Motorista', 'CNH', 'Voluntário JES']) expect(dialogo.queryByLabelText(campo)).toBeNull();
+    expect(dialogo.getByLabelText('Lotado desde')).toHaveAttribute('type', 'date');
+    expect(dialogo.getByLabelText('Lotado desde')).toHaveValue(hoje());
+  });
+
+  it('salvar cria na seção escolhida, como Pronto sem equipe, e abre a ficha', async () => {
+    const f = rotas({ 'POST /api/unidades/u-2sb/militares': { status: 201, corpo: FICHA_CRIADA } });
+    const router = abrir('/peculio');
+    const dialogo = await abrirODialogo();
+    await userEvent.type(dialogo.getByLabelText('Matrícula'), '990010-0');
+    await userEvent.selectOptions(dialogo.getByLabelText('Posto-graduação'), 'CB BM');
+    await userEvent.type(dialogo.getByLabelText('Nome completo'), 'Novo da Silva');
+    await userEvent.type(dialogo.getByLabelText('Nome de guerra'), 'novo');
+    await userEvent.selectOptions(dialogo.getByLabelText('Seção'), '2ª SB');
+    fireEvent.change(dialogo.getByLabelText('Lotado desde'), { target: { value: '2026-12-15' } });
+    await userEvent.click(dialogo.getByRole('button', { name: 'Criar' }));
+    await waitFor(() =>
+      expect(corpoEnviado(f, 'POST /api/unidades/u-2sb/militares')).toEqual({
+        matricula: '990010-0', postoGradId: 'p-cb', quadroId: 'q-qbmg', nomeCompleto: 'Novo da Silva', nomeGuerra: 'NOVO', antiguidade: null, motorista: false, cnh: [], voluntarioJes: false,
+        lotacao: { equipeId: null, jornada: 'pronto', desde: '2026-12-15' },
+      }),
+    );
+    await waitFor(() => expect(router.state.location.pathname).toBe('/militares/m9'));
+  });
+
+  it('o quadro mostra só os do posto-graduação, e com mais de um deixa para depois', async () => {
+    rotas();
+    abrir('/peculio');
+    const dialogo = await abrirODialogo();
+    await userEvent.selectOptions(dialogo.getByLabelText('Posto-graduação'), 'MAJ BM');
+    const quadro = within(dialogo.getByLabelText('Quadro'));
+    expect(quadro.getByRole('option', { name: 'Escolher depois' })).toBeInTheDocument();
+    expect(quadro.getByRole('option', { name: 'QOC' })).toBeInTheDocument();
+    expect(quadro.getByRole('option', { name: 'QOA' })).toBeInTheDocument();
+    expect(quadro.queryByRole('option', { name: 'QBMG' })).toBeNull();
+  });
+
+  it('exige o nome completo: sem ele o cadastro não é enviado', async () => {
+    const f = rotas({ 'POST /api/unidades/u-1sb/militares': { status: 201, corpo: FICHA_CRIADA } });
+    abrir('/peculio');
+    const dialogo = await abrirODialogo();
+    expect(dialogo.getByLabelText('Nome completo')).toBeRequired();
+    await userEvent.type(dialogo.getByLabelText('Matrícula'), '990010-0');
+    await userEvent.type(dialogo.getByLabelText('Nome de guerra'), 'NOVO');
+    await userEvent.click(dialogo.getByRole('button', { name: 'Criar' }));
+    expect(chamadasA(f, 'POST /api/unidades/u-1sb/militares')).toBe(0);
+  });
+
+  it('o erro da data de lotação aparece ao lado do campo', async () => {
+    rotas({ 'POST /api/unidades/u-1sb/militares': { status: 400, corpo: { erro: 'Confira os campos destacados.', campos: { 'lotacao.desde': 'Use uma data que exista no calendário.', postoGradId: 'Escolha o posto.' } } } });
+    abrir('/peculio');
+    const dialogo = await abrirODialogo();
+    await userEvent.type(dialogo.getByLabelText('Matrícula'), '990010-0');
+    await userEvent.type(dialogo.getByLabelText('Nome completo'), 'Novo da Silva');
+    await userEvent.type(dialogo.getByLabelText('Nome de guerra'), 'NOVO');
+    await userEvent.click(dialogo.getByRole('button', { name: 'Criar' }));
+    const desde = dialogo.getByLabelText('Lotado desde');
+    expect(await dialogo.findByText('Use uma data que exista no calendário.')).toBeInTheDocument();
+    expect(desde.parentElement).toContainElement(dialogo.getByText('Use uma data que exista no calendário.'));
+    expect(dialogo.getByLabelText('Posto-graduação').parentElement).toContainElement(dialogo.getByText('Escolha o posto.'));
+  });
+
+  it('postos em 500: o diálogo mostra o aviso no campo', async () => {
+    rotas({ 'GET /api/postos': { status: 500, corpo: { erro: 'Falha.' } } });
+    abrir('/peculio');
+    const dialogo = await abrirODialogo();
+    expect(await dialogo.findByText('Não deu para carregar a lista. Recarregue a página.')).toBeInTheDocument();
   });
 });

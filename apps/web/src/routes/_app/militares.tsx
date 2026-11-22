@@ -1,17 +1,13 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { createFileRoute, Link, Outlet, useNavigate, useParams } from '@tanstack/react-router';
+import { createFileRoute, Link, Outlet, useParams } from '@tanstack/react-router';
 import type { LinhaMilitar } from 'contratos';
-import { TriangleAlert, UserPlus } from 'lucide-react';
-import { useMemo, useState, type FormEvent } from 'react';
-import { camposDe, mensagemDe } from '@/api/cliente';
-import { atualizarMilitares, consultaEquipes, consultaMilitares, consultaPostos, criarMilitar } from '@/api/militares';
-import { Campo } from '@/componentes/Campo';
+import { TriangleAlert } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { mensagemDe } from '@/api/cliente';
+import { atualizarMilitares, consultaEquipes, consultaMilitares } from '@/api/militares';
 import { ImportarPlanilha } from '@/componentes/ImportarPlanilha';
 import { classeItemEscolhido, ListaDetalhe } from '@/componentes/ListaDetalhe';
 import { Selecao } from '@/componentes/Selecao';
-import { Button } from '@/componentes/ui/button';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/componentes/ui/dialog';
-import { LISTA_NAO_CARREGOU } from '@/componentes/militares/Secao';
 import { Input } from '@/componentes/ui/input';
 import { Label } from '@/componentes/ui/label';
 import { mesAtual } from '@/lib/meses';
@@ -27,20 +23,13 @@ function Militares() {
   const { eu } = Route.useRouteContext();
   const queryClient = useQueryClient();
   const { id } = useParams({ strict: false });
-  const [novo, setNovo] = useState(false);
-
   return (
     <ListaDetalhe
       titulo="Militares"
       temDetalhe={Boolean(id)}
       acoes={
         <>
-          <ImportarPlanilha cadastro="militares" rotulo="os militares" aoConcluir={() => atualizarMilitares(queryClient)} />
-          <Button onClick={() => setNovo(true)}>
-            <UserPlus aria-hidden />
-            Novo militar
-          </Button>
-          {novo && <NovoMilitarDialogo unidadeId={eu.unidade.id} aoFechar={() => setNovo(false)} />}
+          <ImportarPlanilha cadastro="dados-da-escala" rotulo="os dados da escala" aoConcluir={() => atualizarMilitares(queryClient)} />
         </>
       }
       lista={<ListaDeMilitares unidadeId={eu.unidade.id} escolhido={id} />}
@@ -110,7 +99,7 @@ function ListaDeMilitares({ unidadeId, escolhido }: { unidadeId: string; escolhi
           )}
           <ul data-lista-rolavel className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-2">
             {filtrados.map((m) => <ItemMilitar key={m.id} m={m} escolhido={m.id === escolhido} />)}
-            {militares.data.length === 0 && <li className="p-3 text-apagado">Nenhum militar lotado. Use "Novo militar" ou "Importar".</li>}
+            {militares.data.length === 0 && <li className="p-3 text-apagado">Nenhum militar lotado. O militar novo é cadastrado no Pecúlio.</li>}
           </ul>
         </>
       )}
@@ -147,99 +136,5 @@ function ItemMilitar({ m, escolhido }: { m: LinhaMilitar; escolhido: boolean }) 
         </span>
       </Link>
     </li>
-  );
-}
-
-function NovoMilitarDialogo({ unidadeId, aoFechar }: { unidadeId: string; aoFechar: () => void }) {
-  const queryClient = useQueryClient();
-  const navigate = useNavigate();
-  const postos = useQuery(consultaPostos);
-  const equipes = useQuery(consultaEquipes(unidadeId));
-  const [erro, setErro] = useState<string | null>(null);
-  const [campos, setCampos] = useState<Record<string, string>>({});
-  const [salvando, setSalvando] = useState(false);
-
-  async function cadastrar(e: FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    const f = new FormData(e.currentTarget);
-    const antiguidade = String(f.get('antiguidade') ?? '').trim();
-    setErro(null);
-    setSalvando(true);
-    try {
-      const ficha = await criarMilitar(unidadeId, {
-        matricula: String(f.get('matricula')).trim(),
-        postoGradId: String(f.get('posto')),
-        nomeCompleto: String(f.get('nomeCompleto')).trim(),
-        nomeGuerra: String(f.get('nomeGuerra')).trim().toUpperCase(),
-        antiguidade: antiguidade ? Number(antiguidade) : null,
-        motorista: false,
-        cnh: [],
-        voluntarioJes: false,
-        lotacao: { equipeId: String(f.get('equipe')) || null, jornada: f.get('jornada') === 'adm' ? 'adm' : 'pronto', desde: String(f.get('desde')) },
-      });
-      atualizarMilitares(queryClient);
-      aoFechar();
-      await navigate({ to: '/militares/$id', params: { id: ficha.id } });
-    } catch (err) {
-      setErro(mensagemDe(err));
-      setCampos(camposDe(err));
-    } finally {
-      setSalvando(false);
-    }
-  }
-
-  return (
-    <Dialog open onOpenChange={(v) => !v && aoFechar()}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Novo militar</DialogTitle>
-          <DialogDescription>Motorista, CNH e afastamentos ficam na ficha, depois de cadastrar.</DialogDescription>
-        </DialogHeader>
-        <form onSubmit={cadastrar} className="grid gap-3">
-          <div className="grid grid-cols-2 gap-3">
-            <Campo id="nm-matricula" rotulo="Matrícula" erro={campos.matricula}>
-              <Input id="nm-matricula" name="matricula" placeholder="123456-7" required />
-            </Campo>
-            <Campo id="nm-posto" rotulo="Posto-graduação" erro={campos.postoGradId ?? ((postos.isError && !postos.data) ? LISTA_NAO_CARREGOU : undefined)}>
-              <Selecao id="nm-posto" name="posto" required>
-                {postos.data?.map((p) => <option key={p.id} value={p.id}>{p.sigla}</option>)}
-              </Selecao>
-            </Campo>
-          </div>
-          <Campo id="nm-completo" rotulo="Nome completo" erro={campos.nomeCompleto}>
-            <Input id="nm-completo" name="nomeCompleto" required />
-          </Campo>
-          <div className="grid grid-cols-[1fr_8rem] gap-3">
-            <Campo id="nm-nome" rotulo="Nome de guerra" erro={campos.nomeGuerra}>
-              <Input id="nm-nome" name="nomeGuerra" required />
-            </Campo>
-            <Campo id="nm-antig" rotulo="Antiguidade" erro={campos.antiguidade}>
-              <Input id="nm-antig" name="antiguidade" type="number" min={1} />
-            </Campo>
-          </div>
-          <div className="grid grid-cols-3 gap-3">
-            <Campo id="nm-equipe" rotulo="Equipe" erro={campos['lotacao.equipeId']}>
-              <Selecao id="nm-equipe" name="equipe" defaultValue="">
-                <option value="">Sem equipe</option>
-                {equipes.data?.map((e) => <option key={e.id} value={e.id}>{e.nome}</option>)}
-              </Selecao>
-            </Campo>
-            <Campo id="nm-jornada" rotulo="Jornada" erro={campos['lotacao.jornada']}>
-              <Selecao id="nm-jornada" name="jornada" defaultValue="pronto">
-                <option value="pronto">Pronto</option>
-                <option value="adm">Adm</option>
-              </Selecao>
-            </Campo>
-            <Campo id="nm-desde" rotulo="Lotado desde" erro={campos['lotacao.desde']}>
-              <Input id="nm-desde" name="desde" type="month" defaultValue={mesAtual()} required />
-            </Campo>
-          </div>
-          {erro && <p role="alert" className="text-sm text-alerta">{erro}</p>}
-          <DialogFooter>
-            <Button type="submit" disabled={salvando || !postos.data}>Criar</Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
   );
 }

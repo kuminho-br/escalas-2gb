@@ -17,5 +17,16 @@ export function unidadeDoPeculio(eu: Eu): { id: string; sigla: string } {
   return dele ? { id: dele.unidadeId, sigla: dele.unidadeSigla } : { id: eu.unidade.id, sigla: eu.unidade.sigla };
 }
 
+/** O nível da seção na árvore (0 = a raiz, o CBMPE): a 1ª SB e as outras seções estão aqui. */
+const NIVEL_DA_SECAO = 4;
+
+/**
+ * Quem cadastra militar novo: quem tem nível de acesso numa unidade ACIMA da seção (o cadastro é do Pecúlio, de quem cuida do pessoal).
+ * O auxiliar só da seção não vê o botão. A API confere de qualquer jeito.
+ */
+export function podeCadastrarMilitar(eu: Pick<Eu, 'papeis' | 'unidades'>): boolean {
+  return eu.papeis.some((p) => (eu.unidades.find((u) => u.id === p.unidadeId)?.nivel ?? NIVEL_DA_SECAO) < NIVEL_DA_SECAO);
+}
+
 /** Depois de gravar (importação do Pecúlio, ficha): a lista volta a buscar. */
 export const atualizarPeculio = (queryClient: { invalidateQueries: (o: { queryKey: unknown[] }) => unknown }) => void queryClient.invalidateQueries({ queryKey: ['peculio'] });

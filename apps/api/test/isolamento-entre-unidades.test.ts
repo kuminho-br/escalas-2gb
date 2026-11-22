@@ -36,7 +36,7 @@ beforeAll(async () => {
   const equipe = await inserir(api.banco, 'equipe', { unidade_id: outra, nome: 'Alfa', ordem_ciclo: 1 });
   const militar = await pelaRaiz('POST', `${u}/militares`, {
     matricula: '990980-1', postoGradId: postos[0]!.id, nomeCompleto: 'Fulano de Tal Alheio', nomeGuerra: 'ALHEIO', antiguidade: 1, motorista: false, cnh: [], voluntarioJes: false,
-    lotacao: { equipeId: equipe, jornada: 'pronto', desde: atual },
+    lotacao: { equipeId: equipe, jornada: 'pronto', desde: `${atual}-01` },
   });
   ids.militares = militar.id;
   const tipo = (await api.banco.query<{ id: string }>('select id from tipo_afastamento where ativo limit 1')).rows[0]!.id;
