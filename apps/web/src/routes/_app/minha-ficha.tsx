@@ -38,7 +38,7 @@ function MinhaFichaTela() {
       <div className="divide-y divide-linha rounded-lg border border-linha bg-superficie">
         <Secao titulo="Identificação">
           <Dados>
-            <Dado rotulo="Posto ou graduação" valor={f.postoGrad} />
+            <Dado rotulo="Posto-graduação" valor={f.postoGrad} />
             <Dado rotulo="Nome de guerra" valor={f.nomeGuerra} />
             <Dado rotulo="Nome completo" valor={f.nomeCompleto} />
             <Dado rotulo="Matrícula" valor={f.matricula} />

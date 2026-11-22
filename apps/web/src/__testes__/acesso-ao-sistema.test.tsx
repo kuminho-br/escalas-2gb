@@ -5,7 +5,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { abrir, corpoEnviado, EU_EXEMPLO, simularApi } from './apoio';
 
 const FICHA: FichaMilitar = {
-  id: 'm1', matricula: '990001-1', posto: 'SD BM', nomeGuerra: 'ANDRADE', equipe: 'Alfa', jornada: 'pronto', motorista: null, voluntarioJes: false, ativo: true, situacao: 'Disponível', pendencias: [],
+  id: 'm1', matricula: '990001-1', posto: 'SD BM', quadro: { id: 'q-qbmg', sigla: 'QBMG' }, nomeGuerra: 'ANDRADE', equipe: 'Alfa', jornada: 'pronto', motorista: null, voluntarioJes: false, ativo: true, situacao: 'Disponível', pendencias: [],
   podeEditar: { peculio: true, escala: true, unidadeDeCima: '2º GB' },
   postoGradId: 'p-sd', nomeCompleto: 'João da Silva Andrade', sexo: 'M', nascimento: null, telefone: null, email: 'andrade@bombeiros.pe.gov.br', comportamento: null, comportamentoBoletim: null, antiguidade: 3, antiguidadeRepetidaCom: [], noQuadroDeMotoristas: false, cnh: [], cnhPorHierarquia: [],
   rastreio: [{ id: 'l1', unidadeSigla: '1ª SB', equipe: 'Alfa', jornada: 'pronto', desde: '2026-11-01', ate: null }], afastamentos: [],

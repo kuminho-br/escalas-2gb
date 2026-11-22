@@ -1,5 +1,5 @@
 import { queryOptions, type QueryClient } from '@tanstack/react-query';
-import type { AlteracaoDeSituacao, EdicaoAfastamento, EdicaoMilitar, Equipe, FichaMilitar, LinhaMilitar, NovoAfastamento, NovoMilitar, Posto, SecaoDeLotacao } from 'contratos';
+import type { AlteracaoDeSituacao, EdicaoAfastamento, EdicaoMilitar, Equipe, FichaMilitar, LinhaMilitar, NovoAfastamento, NovoMilitar, Posto, Quadro, SecaoDeLotacao } from 'contratos';
 import { pedir } from './cliente';
 
 export const consultaMilitares = (unidadeId: string, mes: string) =>
@@ -11,6 +11,7 @@ export const consultaEquipes = (unidadeId: string) =>
   queryOptions({ queryKey: ['equipes', unidadeId], queryFn: () => pedir<Equipe[]>('GET', `/api/unidades/${unidadeId}/equipes`), staleTime: 300_000 });
 
 export const consultaPostos = queryOptions({ queryKey: ['postos'], queryFn: () => pedir<Posto[]>('GET', '/api/postos'), staleTime: Infinity });
+export const consultaQuadros = queryOptions({ queryKey: ['quadros'], queryFn: () => pedir<Quadro[]>('GET', '/api/quadros'), staleTime: Infinity });
 
 /** As seções em que a pessoa pode lotar um militar. */
 export const consultaSecoes = queryOptions({ queryKey: ['secoes'], queryFn: () => pedir<SecaoDeLotacao[]>('GET', '/api/secoes'), staleTime: 300_000 });

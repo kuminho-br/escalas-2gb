@@ -113,12 +113,25 @@ Regra: o `nivel` do tipo da mãe é menor que o da filha.
 | nome | text | "Soldado" |
 | ordem | int único | ordena por hierarquia (RN-101) |
 
+### quadro
+Fixo na migração (0026), como a hierarquia de CNH: QOC (ordem 1), QOA (2) e QBMG (3). O cadastro deles nas Configurações fica para quando o QOD for modelado.
+| Coluna | Tipo | Regra |
+|---|---|---|
+| id | uuid PK | |
+| sigla | text único | QOC, QOA, QBMG |
+| nome | text | "Quadro de Oficiais Combatentes", "Quadro de Oficiais da Administração", "Qualificação Bombeiro Militar Geral" |
+| ordem | int único | |
+
+### quadro_posto_grad
+Os postos-graduações de cada quadro (PK `quadro_id, posto_grad_id`); o mesmo posto pode estar em mais de um quadro. QOC: ASP OF, 2º TEN, 1º TEN, CAP, MAJ, TEN CEL e CEL. QOA: 2º TEN, 1º TEN, CAP e MAJ. QBMG: SD, CB, 3º SGT, 2º SGT, 1º SGT e ST. O ASP OF não aparece no QOD e entra no QOC (decisão de implementação).
+
 ### militar
 | Coluna | Tipo | Regra |
 |---|---|---|
 | id | uuid PK | |
 | matricula | text único | `^\d{6}-\d$` |
 | posto_grad_id | uuid FK | |
+| quadro_id | uuid null | o posto precisa pertencer ao quadro: FK composta `(quadro_id, posto_grad_id)` para `quadro_posto_grad` (0026); nulo passa e a ficha mostra a pendência "Sem quadro". A API escolhe o quadro quando ele não vem: o atual, se contém o posto; senão o do posto, se for um só |
 | nome_completo | text null | obrigatório para militar novo (a API); vazio para quem já existia, e a ficha mostra a pendência "Nome completo em falta" (0024) |
 | nome_guerra | text not null | |
 | sexo | text null | `M` ou `F` (check; 0024) |

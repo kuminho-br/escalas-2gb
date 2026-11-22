@@ -8,7 +8,7 @@ import { mesAtual } from '@/lib/meses';
 import { abrir, chamadasA, corpoEnviado, EU_EXEMPLO, simularApi, trava } from './apoio';
 
 const linha = (l: Partial<LinhaMilitar>): LinhaMilitar => ({
-  id: 'm1', matricula: '990001-1', posto: 'SD BM', nomeGuerra: 'ANDRADE', equipe: 'Alfa', jornada: 'pronto', motorista: null,
+  id: 'm1', matricula: '990001-1', posto: 'SD BM', quadro: { id: 'q-qbmg', sigla: 'QBMG' }, nomeGuerra: 'ANDRADE', equipe: 'Alfa', jornada: 'pronto', motorista: null,
   voluntarioJes: false, ativo: true, situacao: 'Disponível', pendencias: [], ...l,
 });
 const LISTA = [
@@ -24,12 +24,24 @@ const FICHA: FichaMilitar = {
   afastamentos: [{ id: 'a1', tipo: 'Férias', tipoAfastamentoId: 't-ferias', inicio: '2026-12-01', fim: '2026-12-10', motivo: null, boletim: null }],
 };
 
+const QUADROS = [
+  { id: 'q-qoc', sigla: 'QOC', nome: 'Quadro de Oficiais Combatentes', postoGradIds: ['p-maj', 'p-cel'] },
+  { id: 'q-qoa', sigla: 'QOA', nome: 'Quadro de Oficiais da Administração', postoGradIds: ['p-maj'] },
+  { id: 'q-qbmg', sigla: 'QBMG', nome: 'Qualificação Bombeiro Militar Geral', postoGradIds: ['p-sd', 'p-cb'] },
+];
+const POSTOS_COM_OFICIAIS = [
+  { id: 'p-sd', sigla: 'SD BM', nome: 'Soldado', ordem: 1 }, { id: 'p-cb', sigla: 'CB BM', nome: 'Cabo', ordem: 2 },
+  { id: 'p-maj', sigla: 'MAJ BM', nome: 'Major', ordem: 11 }, { id: 'p-cel', sigla: 'CEL BM', nome: 'Coronel', ordem: 13 },
+];
+const FICHA_DE_MAJOR = (quadro: { id: string; sigla: string } | null, pendencias: string[] = []): FichaMilitar => ({ ...FICHA, posto: 'MAJ BM', postoGradId: 'p-maj', quadro, pendencias });
+
 function api(extra: Parameters<typeof simularApi>[0] = {}) {
   return simularApi({
     '/api/eu': { status: 200, corpo: EU_EXEMPLO },
     'GET /api/unidades/u-1sb/militares': { status: 200, corpo: LISTA },
     'GET /api/unidades/u-1sb/equipes': { status: 200, corpo: [{ id: 'e-alfa', nome: 'Alfa', ordemCiclo: 1 }, { id: 'e-bravo', nome: 'Bravo', ordemCiclo: 2 }] },
     'GET /api/postos': { status: 200, corpo: [{ id: 'p-sd', sigla: 'SD BM', nome: 'Soldado', ordem: 1 }, { id: 'p-cb', sigla: 'CB BM', nome: 'Cabo', ordem: 2 }] },
+    'GET /api/quadros': { status: 200, corpo: QUADROS },
     'GET /api/militares/m1': { status: 200, corpo: FICHA },
     'GET /api/sistema/tipos-afastamento': { status: 200, corpo: [{ id: 't-ferias', nome: 'Férias', ativo: true }, { id: 't-curso', nome: 'Curso', ativo: false }] },
     ...extra,
@@ -71,7 +83,7 @@ describe('lista de militares', () => {
     await userEvent.click(await screen.findByRole('button', { name: 'Novo militar' }));
     const dialogo = await screen.findByRole('dialog');
     await userEvent.type(within(dialogo).getByLabelText('Matrícula'), '990010-0');
-    await userEvent.selectOptions(within(dialogo).getByLabelText('Posto ou graduação'), 'CB BM');
+    await userEvent.selectOptions(within(dialogo).getByLabelText('Posto-graduação'), 'CB BM');
     await userEvent.type(within(dialogo).getByLabelText('Nome completo'), 'Novo da Silva');
     await userEvent.type(within(dialogo).getByLabelText('Nome de guerra'), 'NOVO');
     await userEvent.selectOptions(within(dialogo).getByLabelText('Equipe'), 'Bravo');
@@ -87,13 +99,75 @@ describe('lista de militares', () => {
   });
 });
 
+describe('o quadro na ficha', () => {
+  it('mostra "Quadro" ao lado de "Posto-graduação", e o rótulo antigo sai', async () => {
+    api();
+    abrir('/militares/m1');
+    expect(await screen.findByLabelText('Posto-graduação')).toBeInTheDocument();
+    expect(screen.getByLabelText('Quadro')).toHaveDisplayValue('QBMG');
+    expect(screen.queryByLabelText('Posto ou graduação')).toBeNull();
+  });
+
+  it('a lista de quadros só tem os que contêm o posto escolhido', async () => {
+    api({ 'GET /api/postos': { status: 200, corpo: POSTOS_COM_OFICIAIS }, 'GET /api/militares/m1': { status: 200, corpo: FICHA_DE_MAJOR({ id: 'q-qoa', sigla: 'QOA' }) } });
+    abrir('/militares/m1');
+    const campo = await screen.findByLabelText('Quadro');
+    await within(campo).findByRole('option', { name: 'QOC' });
+    expect(within(campo).getAllByRole('option').map((o) => o.textContent)).toEqual(['QOC', 'QOA']);
+  });
+
+  it('trocar o posto para CEL deixa QOC escolhido, e grava os dois', async () => {
+    const trocado = FICHA_DE_MAJOR({ id: 'q-qoc', sigla: 'QOC' });
+    const f = api({
+      'GET /api/postos': { status: 200, corpo: POSTOS_COM_OFICIAIS },
+      'GET /api/militares/m1': { status: 200, corpo: FICHA_DE_MAJOR({ id: 'q-qoa', sigla: 'QOA' }) },
+      'PATCH /api/militares/m1': { status: 200, corpo: trocado },
+    });
+    abrir('/militares/m1');
+    const posto = await screen.findByLabelText('Posto-graduação');
+    await within(posto).findByRole('option', { name: 'CEL BM' });
+    expect(screen.getByLabelText('Quadro')).toHaveDisplayValue('QOA');
+    await userEvent.selectOptions(posto, 'CEL BM');
+    expect(screen.getByLabelText('Quadro')).toHaveDisplayValue('QOC');
+    await userEvent.click(screen.getByRole('button', { name: 'Salvar alterações' }));
+    await waitFor(() => expect(corpoEnviado(f, 'PATCH /api/militares/m1')).toEqual({ postoGradId: 'p-cel', quadroId: 'q-qoc' }));
+  });
+
+  it('posto ambíguo e sem quadro: o campo pede "Escolha o quadro" e a pendência aparece', async () => {
+    api({ 'GET /api/postos': { status: 200, corpo: POSTOS_COM_OFICIAIS }, 'GET /api/militares/m1': { status: 200, corpo: FICHA_DE_MAJOR(null, ['Sem quadro']) } });
+    abrir('/militares/m1');
+    expect(await screen.findByLabelText('Quadro')).toHaveDisplayValue('Escolha o quadro');
+    expect(screen.getByText(/Cadastro incompleto: Sem quadro/)).toBeInTheDocument();
+  });
+
+  it('escolher o quadro grava só o quadro', async () => {
+    const f = api({
+      'GET /api/postos': { status: 200, corpo: POSTOS_COM_OFICIAIS },
+      'GET /api/militares/m1': { status: 200, corpo: FICHA_DE_MAJOR(null, ['Sem quadro']) },
+      'PATCH /api/militares/m1': { status: 200, corpo: FICHA_DE_MAJOR({ id: 'q-qoa', sigla: 'QOA' }) },
+    });
+    abrir('/militares/m1');
+    const campo = await screen.findByLabelText('Quadro');
+    await within(campo).findByRole('option', { name: 'QOA' });
+    await userEvent.selectOptions(campo, 'QOA');
+    await userEvent.click(screen.getByRole('button', { name: 'Salvar alterações' }));
+    await waitFor(() => expect(corpoEnviado(f, 'PATCH /api/militares/m1')).toEqual({ quadroId: 'q-qoa' }));
+  });
+
+  it('para quem não pode editar o bloco Pecúlio, o campo fica só para leitura', async () => {
+    api({ 'GET /api/militares/m1': { status: 200, corpo: { ...FICHA, podeEditar: { peculio: false, escala: true, unidadeDeCima: '2º GB' } } } });
+    abrir('/militares/m1');
+    expect(await screen.findByLabelText('Quadro')).toBeDisabled();
+  });
+});
+
 describe('listas que não carregam explicam o botão apagado', () => {
   const MSG = 'Não deu para carregar a lista. Recarregue a página.';
 
   it('postos em 500: a Identificação diz que a lista não carregou, perto do campo Posto', async () => {
     api({ 'GET /api/postos': { status: 500, corpo: { erro: 'Falha.' } } });
     abrir('/militares/m1');
-    const campo = await screen.findByLabelText('Posto ou graduação');
+    const campo = await screen.findByLabelText('Posto-graduação');
     expect(await screen.findByText(MSG)).toBeInTheDocument();
     expect(campo).toHaveAccessibleDescription(MSG);
   });
@@ -104,7 +178,7 @@ describe('listas que não carregam explicam o botão apagado', () => {
     await userEvent.click(await screen.findByRole('button', { name: 'Novo militar' }));
     const dialogo = await screen.findByRole('dialog');
     expect(await within(dialogo).findByText(MSG)).toBeInTheDocument();
-    expect(within(dialogo).getByLabelText('Posto ou graduação')).toHaveAccessibleDescription(MSG);
+    expect(within(dialogo).getByLabelText('Posto-graduação')).toHaveAccessibleDescription(MSG);
   });
 
   it('tipos de afastamento em 500: "Incluir afastamento" diz que a lista não carregou', async () => {
@@ -118,7 +192,7 @@ describe('listas que não carregam explicam o botão apagado', () => {
   it('com as listas carregadas, nada disso aparece', async () => {
     api();
     abrir('/militares/m1');
-    await screen.findByLabelText('Posto ou graduação');
+    await screen.findByLabelText('Posto-graduação');
     await userEvent.click(await screen.findByRole('button', { name: 'Incluir afastamento' }));
     expect(screen.queryByText(MSG)).toBeNull();
   });
@@ -143,7 +217,7 @@ describe('lista já carregada cuja nova busca falha (Review Focus 3)', () => {
     const postos: Rota = { status: 200, corpo: POSTOS };
     api({ 'GET /api/postos': postos });
     const router = abrir('/militares/m1');
-    const campo = await screen.findByLabelText('Posto ou graduação');
+    const campo = await screen.findByLabelText('Posto-graduação');
     await within(campo).findByRole('option', { name: 'SD BM' });
     await buscarDeNovoEFalhar(router, postos, ['postos']);
     expect(within(campo).getByRole('option', { name: 'SD BM' })).toBeInTheDocument();
@@ -594,7 +668,7 @@ describe('ficha ampliada (fase 5)', () => {
     comFicha(SEM_PECULIO);
     abrir('/militares/m1');
     await screen.findByLabelText('Nome completo');
-    for (const rotulo of ['Posto ou graduação', 'Nome completo', 'Nome de guerra', 'Antiguidade', 'Sexo', 'Dia', 'Mês', 'Telefone', 'E-mail institucional', 'Comportamento', 'Boletim']) {
+    for (const rotulo of ['Posto-graduação', 'Nome completo', 'Nome de guerra', 'Antiguidade', 'Sexo', 'Dia', 'Mês', 'Telefone', 'E-mail institucional', 'Comportamento', 'Boletim']) {
       expect(screen.getByLabelText(rotulo), rotulo).toBeDisabled();
     }
     // Identificação, Dados pessoais, Contato, Comportamento e Afastamentos
@@ -802,7 +876,7 @@ describe('remover, nomes das ações e erros por campo', () => {
     const desde = within(dialogo).getByLabelText('Lotado desde');
     expect(await within(dialogo).findByText('Use um mês válido.')).toBeInTheDocument();
     expect(desde.parentElement).toContainElement(within(dialogo).getByText('Use um mês válido.'));
-    expect(within(dialogo).getByLabelText('Posto ou graduação').parentElement).toContainElement(within(dialogo).getByText('Escolha o posto.'));
+    expect(within(dialogo).getByLabelText('Posto-graduação').parentElement).toContainElement(within(dialogo).getByText('Escolha o posto.'));
   });
 });
 

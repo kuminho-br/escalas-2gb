@@ -2,7 +2,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { FichaMilitar } from 'contratos';
 import { useState } from 'react';
 import { camposDe, mensagemDe } from '@/api/cliente';
-import { atualizarMilitares, consultaPostos, editarMilitar } from '@/api/militares';
+import { atualizarMilitares, consultaPostos, consultaQuadros, editarMilitar } from '@/api/militares';
 import { Campo } from '@/componentes/Campo';
 import { Selecao } from '@/componentes/Selecao';
 import { AcoesDoBloco, usePendencia, useTrava, useSincronizar } from '@/componentes/AlteracoesPendentes';
@@ -11,15 +11,17 @@ import { alteracoesDaIdentificacao, type ValoresIdentificacao } from './alteraco
 import { DonoDoBloco, LISTA_NAO_CARREGOU, Secao } from './Secao';
 
 /**
- * Identificação (posto, nome completo, nome de guerra, antiguidade e sexo: do Pecúlio) e, na mesma ficha, o voluntário JES e o "ativo" (da escala).
+ * Identificação (posto-graduação, quadro, nome completo, nome de guerra, antiguidade e sexo: do Pecúlio) e, na mesma ficha, o voluntário JES e o "ativo" (da escala).
  * Sem papel acima da lotação, os campos do Pecúlio ficam só para leitura, com a frase; os da escala seguem com quem tem papel na seção.
  */
 export function Identificacao({ ficha }: { ficha: FichaMilitar }) {
   const queryClient = useQueryClient();
   const postos = useQuery(consultaPostos);
+  const quadros = useQuery(consultaQuadros);
   const peculio = ficha.podeEditar.peculio;
   const escala = ficha.podeEditar.escala;
   const [posto, setPosto] = useState(ficha.postoGradId);
+  const [quadro, setQuadro] = useState(ficha.quadro?.id ?? '');
   const [nomeCompleto, setNomeCompleto] = useState(ficha.nomeCompleto ?? '');
   const [nome, setNome] = useState(ficha.nomeGuerra);
   const [sexo, setSexo] = useState<'M' | 'F' | null>(ficha.sexo);
@@ -30,10 +32,10 @@ export function Identificacao({ ficha }: { ficha: FichaMilitar }) {
   const [campos, setCampos] = useState<Record<string, string>>({});
   // o que está na tela, no formato do servidor (a antiguidade vazia é null)
   const atual: ValoresIdentificacao = {
-    postoGradId: posto, nomeCompleto, nomeGuerra: nome, sexo, antiguidade: antiguidade.trim() ? Number(antiguidade) : null, voluntarioJes: jes, ativo,
+    postoGradId: posto, quadroId: quadro || null, nomeCompleto, nomeGuerra: nome, sexo, antiguidade: antiguidade.trim() ? Number(antiguidade) : null, voluntarioJes: jes, ativo,
   };
   const valoresDoServidor: ValoresIdentificacao = {
-    postoGradId: ficha.postoGradId, nomeCompleto: ficha.nomeCompleto ?? '', nomeGuerra: ficha.nomeGuerra, sexo: ficha.sexo, antiguidade: ficha.antiguidade, voluntarioJes: ficha.voluntarioJes, ativo: ficha.ativo,
+    postoGradId: ficha.postoGradId, quadroId: ficha.quadro?.id ?? null, nomeCompleto: ficha.nomeCompleto ?? '', nomeGuerra: ficha.nomeGuerra, sexo: ficha.sexo, antiguidade: ficha.antiguidade, voluntarioJes: ficha.voluntarioJes, ativo: ficha.ativo,
   };
   // o último gravado (começa com o que veio do servidor): o que difere dele é alteração pendente, e é só isso que se grava
   const [salvo, setSalvo] = useState<ValoresIdentificacao>(valoresDoServidor);
@@ -43,6 +45,7 @@ export function Identificacao({ ficha }: { ficha: FichaMilitar }) {
   const antiguidadeDoServidor = ficha.antiguidade == null ? '' : String(ficha.antiguidade);
   useSincronizar(JSON.stringify(valoresDoServidor), sujo, () => {
     setPosto(ficha.postoGradId);
+    setQuadro(ficha.quadro?.id ?? '');
     setNomeCompleto(ficha.nomeCompleto ?? '');
     setNome(ficha.nomeGuerra);
     setSexo(ficha.sexo);
@@ -69,6 +72,17 @@ export function Identificacao({ ficha }: { ficha: FichaMilitar }) {
       setAviso({ erro: true, texto: mensagemDe(err) });
     }
   }
+  // só os quadros que contêm o posto escolhido; enquanto a lista não chega, o quadro que já está na ficha aparece mesmo assim
+  const quadrosDoPosto = (quadros.data ?? []).filter((q) => q.postoGradIds.includes(posto)).map((q) => ({ id: q.id, sigla: q.sigla }));
+  if (quadro && !quadrosDoPosto.some((q) => q.id === quadro) && ficha.quadro?.id === quadro && !quadros.data) quadrosDoPosto.push(ficha.quadro);
+  // trocar o posto leva o quadro junto, como na API: fica o que serve, senão o único do posto, senão nenhum
+  function trocarPosto(novo: string) {
+    setPosto(novo);
+    if (!quadros.data) return;
+    const doPosto = quadros.data.filter((q) => q.postoGradIds.includes(novo));
+    if (doPosto.some((q) => q.id === quadro)) return;
+    setQuadro(doPosto.length === 1 ? doPosto[0]!.id : '');
+  }
   // o nome completo apagado de quem já tinha: a ficha pede que continue preenchido (o servidor não aceita vazio)
   const nomeCompletoApagado = !nomeCompleto.trim() && Boolean(ficha.nomeCompleto);
 
@@ -84,10 +98,16 @@ export function Identificacao({ ficha }: { ficha: FichaMilitar }) {
             <Input id="id-nome" value={nome} disabled={!peculio} onChange={(e) => setNome(e.target.value)} />
           </Campo>
         </div>
-        <div className="grid gap-3 sm:grid-cols-[10rem_7rem_9rem]">
-          <Campo id="id-posto" rotulo="Posto ou graduação" erro={campos.postoGradId ?? ((postos.isError && !postos.data) ? LISTA_NAO_CARREGOU : undefined)}>
-            <Selecao id="id-posto" value={posto} disabled={!peculio} onChange={(e) => setPosto(e.target.value)}>
+        <div className="grid gap-3 sm:grid-cols-[10rem_8rem_7rem_9rem]">
+          <Campo id="id-posto" rotulo="Posto-graduação" erro={campos.postoGradId ?? ((postos.isError && !postos.data) ? LISTA_NAO_CARREGOU : undefined)}>
+            <Selecao id="id-posto" value={posto} disabled={!peculio} onChange={(e) => trocarPosto(e.target.value)}>
               {postos.data?.map((p) => <option key={p.id} value={p.id}>{p.sigla}</option>)}
+            </Selecao>
+          </Campo>
+          <Campo id="id-quadro" rotulo="Quadro" erro={campos.quadroId ?? ((quadros.isError && !quadros.data) ? LISTA_NAO_CARREGOU : undefined)}>
+            <Selecao id="id-quadro" value={quadro} disabled={!peculio} onChange={(e) => setQuadro(e.target.value)}>
+              {!quadro && <option value="">Escolha o quadro</option>}
+              {quadrosDoPosto.map((q) => <option key={q.id} value={q.id}>{q.sigla}</option>)}
             </Selecao>
           </Campo>
           <Campo id="id-antig" rotulo="Antiguidade" erro={campos.antiguidade}>
