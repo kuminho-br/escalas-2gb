@@ -1,0 +1,690 @@
+<title>Escala dos oficiais</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Semi+Condensed:wght@400;500;600;700&display=swap">
+<style>
+/* Mockup da Escala dos oficiais (missão paralela). Página de revisão com a tela dentro do módulo Confecção de escalas.
+   As telas usam os tokens do site (vinho, fundo, tinta, apagado, linha; Barlow e Barlow Semi Condensed) e ficam claras em qualquer tema.
+   Design: docs/superpowers/specs/2026-11-22-escala-dos-oficiais-design.md. Dados fictícios (matrículas 990xxx-x). */
+:root{--bg:#EDEFF2;--fg:#1C2430;--mut:#5B6675;--line:#D0D6DE;--acc:#8E1B1B;--sup-bg:#E8EAF6;--sup-fg:#283593}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--bg:#15181C;--fg:#E8EBEF;--mut:#9AA4B0;--line:#2C3239;--acc:#E87070;--sup-bg:#262B45;--sup-fg:#C5CAF0;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#15181C;--fg:#E8EBEF;--mut:#9AA4B0;--line:#2C3239;--acc:#E87070;--sup-bg:#262B45;--sup-fg:#C5CAF0;color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font:15px/1.5 'Barlow',system-ui,sans-serif;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 56px}
+.wrap{max-width:1240px;margin-inline:auto}
+.rev{padding-block:28px 16px;display:grid;gap:14px}
+.rev h1{font:600 30px/1.1 'Barlow Semi Condensed',sans-serif;margin:0}
+.rev p{margin:0;color:var(--mut);max-width:78ch}
+.ctl{display:flex;flex-wrap:wrap;gap:10px 22px;align-items:center}
+.ctl fieldset{border:0;margin:0;padding:0;display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.ctl legend{float:left;margin-right:6px;font:500 14px 'Barlow',sans-serif;color:var(--mut)}
+.ctl button{font:500 14px 'Barlow',sans-serif;color:var(--fg);background:transparent;border:1px solid var(--line);padding:5px 12px;border-radius:6px;cursor:pointer}
+.ctl button[aria-pressed="true"]{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+.ctl label{display:inline-flex;gap:6px;align-items:center;font-size:14px;color:var(--mut);cursor:pointer}
+.ctl button:focus-visible,.ctl input:focus-visible{outline:3px solid var(--acc);outline-offset:2px}
+.palco{display:flex;justify-content:center}
+.screen{container-type:inline-size;container-name:app;width:100%;border-radius:10px;overflow:hidden;border:1px solid var(--line);transition:max-width .2s}
+.screen.cel{max-width:390px}
+.pend{margin-top:36px;max-width:90ch}
+.pend h2{font:600 20px 'Barlow Semi Condensed',sans-serif;margin:0 0 8px}
+.pend ol{margin:0;padding-left:22px;display:grid;gap:6px}
+.pend li{color:var(--fg)}
+.pend li span{color:var(--mut)}
+.nota{margin-top:26px;color:var(--mut);font-size:13px;max-width:90ch}
+
+/* marca de ponto em aberto (camada de revisão, não é parte do site) */
+.sup{display:inline-flex;align-items:center;gap:4px;font:600 11.5px/1 'Barlow',sans-serif;color:#283593;background:#E8EAF6;border:1px dashed #5C6BC0;border-radius:999px;padding:3px 8px;white-space:nowrap;vertical-align:middle;cursor:help}
+.sem-sup .sup{display:none}
+
+/* ===== o site (claro sempre) ===== */
+.m{--vinho:#8E1B1B;--vinho-e:#6F1414;--fundo:#EDEFF2;--sup:#FFFFFF;--suave:#F6F7F9;--tinta:#1C2430;--apag:#5B6675;--linha:#D8DDE4;--alerta:#B3261E;
+  --amb-bg:#FCF1D6;--amb:#6B4E00;--amb-borda:#B07A00;--diacl:#FFF6DA;--noite:#24324F;
+  background:var(--fundo);color:var(--tinta);font:15px/1.45 'Barlow',system-ui,sans-serif;display:grid;grid-template-columns:84px minmax(0,1fr);min-height:720px}
+.m .cond{font-family:'Barlow Semi Condensed','Barlow',sans-serif}
+.m button{font:inherit;color:inherit;cursor:pointer}
+.m :focus-visible{outline:2px solid var(--tinta);outline-offset:2px}
+.m svg.ic{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex:none}
+
+.trilho{background:var(--vinho);display:flex;flex-direction:column;align-items:center;padding:14px 0;gap:2px}
+.trilho .brasao{width:42px;height:42px;border-radius:50%;background:#F2C200;color:var(--vinho);display:grid;place-items:center;font:700 12px 'Barlow Semi Condensed',sans-serif;margin-bottom:14px;flex:none}
+.trilho button{width:72px;border:0;background:none;color:#F3D6D6;border-radius:10px;padding:7px 0 5px;font:500 11.5px/1.15 'Barlow Semi Condensed',sans-serif;display:flex;flex-direction:column;align-items:center;gap:3px;flex:none;position:relative}
+.trilho button svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.trilho button[aria-current="page"]{background:rgba(255,255,255,.16);color:#fff}
+.trilho .novo-sup{position:absolute;top:-2px;right:2px;width:14px;height:14px;border-radius:50%;background:#E8EAF6;color:#283593;border:1px dashed #5C6BC0;font:700 9px/12px 'Barlow',sans-serif}
+.sem-sup .trilho .novo-sup{display:none}
+.trilho hr{border:0;height:1px;width:48px;background:rgba(255,255,255,.28);margin:10px 0;flex:none}
+.trilho .pe{margin-top:auto}
+
+main{padding:16px 28px 40px;min-width:0}
+.unid{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;margin-bottom:14px;font:500 14px 'Barlow Semi Condensed',sans-serif;color:var(--apag)}
+.unid nav{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.unid nav button{border:0;background:none;padding:2px 4px;color:var(--apag);border-radius:4px}
+.unid nav .atual{background:var(--sup);border:1px solid var(--linha);color:var(--tinta);padding:3px 10px;font-weight:600}
+.unid small{font-size:13px}
+
+.topo{display:flex;align-items:flex-end;gap:12px 16px;flex-wrap:wrap;margin-bottom:12px}
+.topo h1{font:600 26px/1.1 'Barlow Semi Condensed',sans-serif;margin:0}
+.topo p{margin:3px 0 0;color:var(--apag);max-width:70ch}
+.campo{background:var(--sup);border:1px solid var(--linha);border-radius:8px;padding:6px 12px;display:inline-flex;gap:8px;align-items:center;min-height:38px;margin-left:auto}
+.campo small{color:var(--apag)}
+.abas{display:flex;gap:4px;border-bottom:1px solid var(--linha);margin-bottom:16px;overflow-x:auto}
+.abas button{border:0;background:none;padding:8px 14px;font:600 15px 'Barlow',sans-serif;color:var(--apag);border-bottom:3px solid transparent;margin-bottom:-1px;white-space:nowrap}
+.abas button[aria-selected="true"]{color:var(--tinta);border-bottom-color:var(--vinho)}
+.aba{display:none}.aba.on{display:block}
+
+.bt{border:0;border-radius:8px;padding:8px 16px;font-weight:600;min-height:38px;display:inline-flex;align-items:center;gap:6px}
+.bt.pri{background:var(--vinho);color:#fff}
+.bt.pri:hover{background:var(--vinho-e)}
+.bt.sec{background:var(--sup);color:var(--vinho);border:1px solid #D8B9B9}
+.bt.sec:hover{background:#FBF4F4}
+.bt.fraco{background:var(--sup);color:var(--apag);border:1px solid var(--linha)}
+.bt.mini{min-height:30px;padding:4px 10px;font-size:14px}
+
+/* etapas do mês */
+.barra-acoes{display:flex;flex-wrap:wrap;gap:12px 20px;align-items:center;justify-content:space-between;margin-bottom:12px}
+.etapas{display:flex;gap:0;align-items:center;font:500 14px 'Barlow Semi Condensed',sans-serif;color:var(--apag);flex-wrap:wrap}
+.etapas span{display:inline-flex;align-items:center;gap:6px;padding:4px 10px 4px 0}
+.etapas span::after{content:"";width:18px;height:1px;background:var(--linha);margin-left:8px}
+.etapas span:last-child::after{display:none}
+.etapas i{font-style:normal;width:20px;height:20px;border-radius:50%;border:1px solid var(--linha);display:grid;place-items:center;font:600 12px 'Barlow',sans-serif;background:var(--sup)}
+.etapas .feita{color:var(--tinta)}
+.etapas .feita i{background:var(--tinta);border-color:var(--tinta);color:#fff}
+.etapas .agora{color:var(--tinta);font-weight:700}
+.etapas .agora i{border:2px solid var(--vinho);color:var(--vinho)}
+.acoes{display:flex;gap:8px;flex-wrap:wrap}
+
+.caixa{background:var(--sup);border:1px solid var(--linha);border-radius:10px;padding:12px 16px;margin-bottom:12px;display:flex;gap:10px;align-items:flex-start}
+.caixa p{margin:0}
+.caixa .acoes{margin-top:8px}
+.caixa.aviso{background:var(--amb-bg);border-color:#E8D29A;color:var(--amb)}
+.caixa.aviso b{color:#4A3600}
+.caixa.info{background:#F1F4F8}
+.caixa svg.ic{margin-top:3px}
+
+.corpo{display:grid;grid-template-columns:minmax(0,1fr) 440px;gap:16px;align-items:start}
+.painel{background:var(--sup);border:1px solid var(--linha);border-radius:12px;overflow:hidden}
+.painel>header{display:flex;flex-wrap:wrap;gap:6px 12px;align-items:baseline;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--linha)}
+.painel>header h2{margin:0;font:600 18px 'Barlow Semi Condensed',sans-serif}
+.painel>header small{color:var(--apag);font-size:13px}
+.painel .rod{padding:10px 16px;border-top:1px solid var(--linha);font-size:13.5px;color:var(--apag);display:grid;gap:4px}
+
+/* calendário */
+.legenda{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;padding:10px 16px 0;font-size:13px;color:var(--apag)}
+.legenda .t{display:inline-flex;min-height:20px;padding:0 6px;font-size:12.5px;width:auto}
+.cal{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px;padding:12px 16px 16px}
+.cal .sem{font:600 12.5px 'Barlow Semi Condensed',sans-serif;color:var(--apag);text-align:center;padding-bottom:2px}
+.d{border:1px solid var(--linha);border-radius:8px;padding:4px;display:grid;gap:3px;min-width:0;background:var(--sup)}
+.d.fds{background:var(--suave)}
+.d .n{display:flex;justify-content:space-between;align-items:baseline;gap:4px;padding:0 2px;min-width:0}
+.d .n b{font:600 16px/1.1 'Barlow Semi Condensed',sans-serif}
+.d .n small{font:500 11.5px 'Barlow Semi Condensed',sans-serif;color:var(--apag);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.d .n .dsem{display:none}
+.t{display:flex;align-items:center;gap:4px;border-radius:5px;padding:2px 5px;font:500 13px/1.2 'Barlow Semi Condensed',sans-serif;min-height:24px;min-width:0;width:100%;border:0;text-align:left;background:none}
+.t span.nm{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.t svg{width:12px;height:12px;flex:none;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.t.dia{background:var(--diacl);color:var(--tinta)}
+.t.noite{background:var(--noite);color:#fff}
+.t.livre{background:var(--sup);color:var(--apag);box-shadow:inset 0 0 0 1px #8A94A1;outline-offset:1px}
+.t.livre.dia,.t.livre.noite{background:var(--sup)}
+.t.livre.noite{color:#24324F;box-shadow:inset 0 0 0 1px #24324F}
+.t.livre{background-image:none;border:1px dashed transparent}
+.t.livre:hover{background:#F1F4F8}
+.t.indisp{color:#8A94A1;box-shadow:none;background:transparent;cursor:not-allowed}
+.t.semninguem{background:var(--sup);color:var(--apag);box-shadow:inset 0 0 0 1px #8A94A1;font-style:italic}
+.t.aviso{background:var(--amb-bg);color:#4A3600;box-shadow:inset 3px 0 0 var(--amb-borda),inset 0 0 0 1px #E8D29A}
+.t.cob{flex-wrap:wrap;row-gap:0}
+.t.cob .por{flex-basis:100%;font-size:11.5px;opacity:.85;padding-left:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.t.hl{box-shadow:inset 0 0 0 2px var(--vinho)}
+.t.noite.hl{box-shadow:inset 0 0 0 2px #FFC9C9}
+.t.novo{animation:none}
+
+/* cotas */
+table.tab{width:100%;border-collapse:collapse;font-size:14px}
+.m table{color:inherit;font-family:inherit;line-height:inherit}
+.tab th{font:600 12.5px 'Barlow Semi Condensed',sans-serif;color:var(--apag);text-align:left;padding:8px 8px;border-bottom:1px solid var(--linha);white-space:nowrap}
+.tab td{padding:7px 8px;border-bottom:1px solid #EEF0F3;vertical-align:middle}
+.tab tr:last-child td{border-bottom:0}
+.tab .num{text-align:right;font-family:'Barlow Semi Condensed',sans-serif;font-variant-numeric:tabular-nums;white-space:nowrap}
+.tab .ord{font:600 14px 'Barlow Semi Condensed',sans-serif;color:var(--apag);text-align:center;width:28px}
+.tab tbody tr{cursor:default}
+.tab tbody tr:hover td{background:#F6F7F9}
+.tab tr.vez td{background:#FBF4F4}
+.tab tr.vez .ord{color:var(--vinho)}
+.quem b{font:600 14.5px 'Barlow Semi Condensed',sans-serif;white-space:nowrap}
+.quem small{display:block;color:var(--apag);font-size:13px;line-height:1.2}
+.qd{display:inline-block;border-radius:999px;padding:0 7px;font:600 11px/17px 'Barlow Semi Condensed',sans-serif;background:#EEF0F3;color:var(--apag);margin-left:4px;vertical-align:1px}
+.cota{font:700 16px 'Barlow Semi Condensed',sans-serif}
+.cota em{font-style:normal;font:600 11px 'Barlow',sans-serif;color:var(--apag);display:block;line-height:1}
+.esc{font-size:13px;color:var(--apag);white-space:nowrap}
+.esc .bar{display:block;height:4px;border-radius:2px;background:#E4E7EC;margin-top:3px;overflow:hidden}
+.esc .bar i{display:block;height:100%;background:var(--tinta)}
+.esc.mais{color:var(--amb);font-weight:600}
+.esc.mais .bar i{background:var(--amb-borda)}
+.afs{display:inline-block;font-size:12px;color:var(--amb);background:var(--amb-bg);border-radius:4px;padding:0 5px;margin-top:2px}
+.vez-card{padding:12px 16px;border-bottom:1px solid var(--linha);display:grid;gap:4px;background:#FBF4F4}
+.vez-card b{font:600 17px 'Barlow Semi Condensed',sans-serif}
+.vez-card p{margin:0;font-size:14px;color:var(--apag)}
+.vez-card.fim{background:#F1F4F8}
+
+/* saldo */
+.sinal{font:600 16px 'Barlow Semi Condensed',sans-serif;font-variant-numeric:tabular-nums}
+.div{position:relative;height:10px;width:120px;background:linear-gradient(var(--linha),var(--linha)) center/1px 100% no-repeat}
+.div i{position:absolute;top:1px;height:8px;border-radius:2px}
+.div i.pos{left:50%;background:#3B4A5E}
+.div i.neg{right:50%;background:#AEB7C2}
+.evo{display:flex;gap:8px;align-items:center}
+.evo .mes{font:500 13px 'Barlow Semi Condensed',sans-serif;color:var(--apag);text-align:right;min-width:44px;font-variant-numeric:tabular-nums}
+.evo .mes b{display:block;font-size:11px;font-weight:600;color:#8A94A1}
+.spark{width:84px;height:30px;flex:none}
+.dn{display:inline-flex;gap:10px;font:500 14px 'Barlow Semi Condensed',sans-serif;white-space:nowrap}
+.dn span{display:inline-flex;gap:3px;align-items:center}
+.dn svg{width:13px;height:13px;fill:none;stroke:currentColor;stroke-width:2}
+.saldo-corpo{display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:16px;align-items:start}
+.tab tr.sel td{background:#FBF4F4}
+.tab tr.sel td:first-child{box-shadow:inset 3px 0 0 var(--vinho)}
+.reg{padding:12px 16px;display:grid;gap:12px}
+.reg h3{margin:0;font:600 17px 'Barlow Semi Condensed',sans-serif}
+.reg ul{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.reg li{display:grid;grid-template-columns:auto 1fr auto;gap:2px 10px;font-size:14px;align-items:baseline;padding-bottom:8px;border-bottom:1px solid #EEF0F3}
+.reg li:last-child{border-bottom:0;padding-bottom:0}
+.reg li .q{font:600 13px 'Barlow Semi Condensed',sans-serif;color:var(--apag);min-width:52px}
+.reg li .v{font:600 14px 'Barlow Semi Condensed',sans-serif;font-variant-numeric:tabular-nums;white-space:nowrap}
+.reg li small{grid-column:2/4;color:var(--apag);font-size:13px}
+.form-aj{display:grid;gap:8px;padding:12px;border:1px solid var(--linha);border-radius:8px;background:var(--suave)}
+.form-aj label{font-size:13.5px;font-weight:500;display:grid;gap:4px}
+.form-aj input{height:36px;border:1px solid #C9CFD8;border-radius:6px;padding:0 10px;font:15px 'Barlow',sans-serif;background:#fff;color:var(--tinta)}
+
+/* regras */
+.regras{max-width:72ch;display:grid;gap:22px}
+.regras section{background:var(--sup);border:1px solid var(--linha);border-radius:12px;padding:16px 20px}
+.regras h2{margin:0 0 8px;font:600 21px 'Barlow Semi Condensed',sans-serif}
+.regras p{margin:0 0 8px}
+.regras p:last-child{margin-bottom:0}
+.regras ul,.regras ol{margin:0 0 8px;padding-left:22px;display:grid;gap:6px}
+.regras .ex{margin:10px 0;border:1px solid var(--linha);border-radius:8px;overflow:hidden}
+.regras .ex table{width:100%;border-collapse:collapse;font-size:14.5px}
+.regras .ex th,.regras .ex td{padding:7px 10px;border-bottom:1px solid #EEF0F3;text-align:left}
+.regras .ex th{font:600 13px 'Barlow Semi Condensed',sans-serif;color:var(--apag);background:var(--suave)}
+.regras .ex td.num,.regras .ex th.num{text-align:right;font-family:'Barlow Semi Condensed',sans-serif;font-variant-numeric:tabular-nums}
+.regras .casos{display:grid;gap:10px;padding:0;list-style:none}
+.regras .casos li{display:grid;gap:2px}
+.regras .casos b{font-weight:600}
+
+/* ===== celular e telas estreitas ===== */
+@container app (max-width: 1080px){
+  .corpo,.saldo-corpo{grid-template-columns:1fr}
+}
+@container app (max-width: 720px){
+  .m{grid-template-columns:1fr}
+  .trilho{flex-direction:row;overflow-x:auto;padding:6px;gap:2px}
+  .trilho .brasao,.trilho hr{display:none}
+  .trilho .pe{margin-top:0}
+  .trilho button{width:66px}
+  main{padding:14px 14px 32px}
+  .campo{margin-left:0}
+  .cal{grid-template-columns:1fr;gap:6px}
+  .cal .sem,.cal .vazio{display:none}
+  .d{grid-template-columns:62px 1fr 1fr;align-items:center;gap:6px}
+  .d .n{flex-direction:column;align-items:flex-start;gap:0}
+  .d .n .dsem{display:inline}
+  .tab .some{display:none}
+  .div{width:70px}
+  .evo .mes:not(:last-of-type){display:none}
+  .acoes .bt{flex:1 1 auto;justify-content:center}
+  #lado{order:-1}
+  .spark{display:none}
+}
+@media (prefers-reduced-motion:reduce){.screen{transition:none}}
+</style>
+
+<div class="wrap">
+  <header class="rev">
+    <h1>Escala dos oficiais (mockup)</h1>
+    <p>Proposta das três telas da missão paralela: a escala do mês, o painel de saldo e as regras. Fica dentro da Confecção de escalas, só para administrador e gestor. Os nomes são fictícios. As marcas <span class="sup">Em aberto</span> apontam escolhas que o design ainda não decidiu: o mockup segue a proposta do documento, para você reagir.</p>
+    <div class="ctl">
+      <fieldset id="ctl-etapa"><legend>Momento do mês</legend>
+        <button data-etapa="escolhas" aria-pressed="true">Escolhas em andamento</button>
+        <button data-etapa="fechada" aria-pressed="false">Escala fechada</button>
+        <button data-etapa="encerrado" aria-pressed="false">Mês encerrado</button>
+      </fieldset>
+      <fieldset id="ctl-larg"><legend>Tela</legend>
+        <button data-larg="pc" aria-pressed="true">Computador</button>
+        <button data-larg="cel" aria-pressed="false">Celular</button>
+      </fieldset>
+      <label><input type="checkbox" id="ctl-sup" checked> Mostrar os pontos em aberto</label>
+    </div>
+  </header>
+
+  <div class="palco"><div class="screen" id="screen">
+  <div class="m" id="app">
+    <nav class="trilho" aria-label="Confecção de escalas">
+      <div class="brasao" aria-hidden="true">2ºGB</div>
+      <button><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 4v17"/></svg>Grade geral</button>
+      <button><svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h10"/></svg>Escala do mês</button>
+      <button><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6l1.4 1.4M17 17l1.4 1.4M5.6 18.4L7 17M17 7l1.4-1.4"/></svg>Efetivo por dia</button>
+      <button aria-current="page" title="Item novo do trilho: posição é suposição do mockup"><span class="novo-sup" aria-hidden="true">?</span><svg viewBox="0 0 24 24"><path d="M12 3l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.4 6.8 19.1l1-5.8L3.5 9.2l5.9-.9z"/></svg>Oficiais</button>
+      <hr>
+      <button><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 14l2 2 4-4"/></svg>Voluntariado</button>
+      <button><svg viewBox="0 0 24 24"><path d="M5 19L19 5"/><circle cx="7" cy="7" r="2.5"/><circle cx="17" cy="17" r="2.5"/></svg>Cotas</button>
+      <hr>
+      <button><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.8-3.6 3.3-5.5 6.5-5.5s5.7 1.9 6.5 5.5M16 4.5a3.5 3.5 0 0 1 0 7M18 14.8c1.9.7 3.1 2.4 3.5 5.2"/></svg>Militares</button>
+      <button><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>Turnos</button>
+      <button><svg viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>Escalas</button>
+      <button><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>Feriados</button>
+      <hr class="pe">
+      <button><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/></svg>Configurações</button>
+      <button><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.7.3-1 .9-1 1.7M12 17v.5"/></svg>Ajuda</button>
+    </nav>
+
+    <main>
+      <div class="unid">
+        <nav aria-label="Unidade"><button>CBMPE</button>›<button>DGO</button>›<button>DInter/1</button>›<button class="atual" aria-current="true">2º GB ▾</button></nav>
+        <small>Oficiais do 2º GB e das unidades abaixo dele</small>
+      </div>
+
+      <div class="topo">
+        <div><h1>Escala dos oficiais</h1><p>Oficiais QOC e QOA, em dois turnos de 12 horas por dia.</p></div>
+        <span class="campo"><small>Mês</small><b class="cond">Janeiro de 2027</b></span>
+      </div>
+
+      <div class="abas" role="tablist">
+        <button role="tab" data-aba="escala" aria-selected="true">Escala do mês</button>
+        <button role="tab" data-aba="saldo" aria-selected="false">Painel de saldo</button>
+        <button role="tab" data-aba="regras" aria-selected="false">Regras</button>
+      </div>
+
+      <!-- ===== ESCALA ===== -->
+      <section class="aba on" id="aba-escala">
+        <div class="barra-acoes">
+          <div class="etapas" id="etapas"></div>
+          <div class="acoes" id="acoes"></div>
+        </div>
+        <div id="mensagens"></div>
+        <div class="corpo">
+          <div class="painel">
+            <header><h2 id="cal-tit">Janeiro de 2027</h2><small id="cal-res"></small></header>
+            <div class="legenda">
+              <span class="t dia" style="width:auto"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2"/></svg>Dia, 07h às 19h</span>
+              <span class="t noite" style="width:auto"><svg viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/></svg>Noite, 19h às 07h</span>
+              <span class="sup" title="Em aberto 3: quantos oficiais por turno e os horários. O mockup supõe um oficial por turno, das 07h às 19h e das 19h às 07h.">Em aberto 3 · 1 oficial por turno</span>
+            </div>
+            <div class="cal" id="cal"></div>
+          </div>
+          <aside class="painel" id="lado"></aside>
+        </div>
+      </section>
+
+      <!-- ===== SALDO ===== -->
+      <section class="aba" id="aba-saldo">
+        <div class="caixa info">
+          <svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8v.5"/></svg>
+          <p>O saldo mostra quem trabalhou mais ou menos do que devia, somando todos os meses. <b>Nesta primeira versão ele só aparece:</b> ainda não muda a cota de ninguém.</p>
+        </div>
+        <div class="saldo-corpo">
+          <div class="painel">
+            <header><h2>Saldo de cada oficial</h2><small id="saldo-ate"></small></header>
+            <div style="overflow-x:auto"><table class="tab" id="tab-saldo"></table></div>
+            <div class="rod">
+              <span>Positivo: trabalhou mais do que devia. Negativo: trabalhou menos. O número tem casas decimais porque a parte quebrada da cota nunca se perde.</span>
+              <span>A soma dos saldos não é zero: cada vez que alguém cobre um colega, o total cresce um turno.</span>
+            </div>
+          </div>
+          <aside class="painel" id="registro"></aside>
+        </div>
+      </section>
+
+      <!-- ===== REGRAS ===== -->
+      <section class="aba" id="aba-regras">
+        <div class="regras">
+          <section>
+            <h2>Como a escala é montada</h2>
+            <ul>
+              <li>Cada dia tem dois turnos de 12 horas: o do dia e o da noite.</li>
+              <li>Os oficiais escolhem os turnos pela antiguidade: o mais antigo escolhe primeiro.</li>
+              <li>A antiguidade decide a ordem, não a quantidade. Todos tiram a cota calculada para o mês.</li>
+              <li>Quem está afastado não tira serviço nos dias do afastamento.</li>
+            </ul>
+          </section>
+          <section>
+            <h2>Como a cota é calculada</h2>
+            <ol>
+              <li><b>Presença.</b> Conta os dias do mês em que você participa da escala e não está afastado. Qualquer afastamento conta, sem distinção: férias, dispensa, curso.</li>
+              <li><b>O que cada um deve.</b> Os turnos do mês são divididos na proporção da presença de cada um. O resultado tem casas decimais, como 8,25.</li>
+              <li><b>A cota.</b> É esse número sem a parte quebrada: 8,25 vira 8.</li>
+              <li><b>A sobra.</b> Os turnos que sobram depois disso vão um para cada, começando pelo mais moderno. Os mais antigos ficam com um a menos.</li>
+            </ol>
+            <p><b>Exemplo:</b> um mês de 31 dias tem 62 turnos. São 8 oficiais, e um deles está de férias em 15 dias, então fica presente em 16.</p>
+            <div class="ex"><table>
+              <thead><tr><th>Quem</th><th class="num">Devia</th><th class="num">Cota</th><th class="num">Saldo do mês</th></tr></thead>
+              <tbody>
+                <tr><td>Os 5 mais antigos</td><td class="num">8,25</td><td class="num">8</td><td class="num">−0,25</td></tr>
+                <tr><td>Os 2 mais modernos</td><td class="num">8,25</td><td class="num">9</td><td class="num">+0,75</td></tr>
+                <tr><td>O que estava de férias (16 dias)</td><td class="num">4,26</td><td class="num">4</td><td class="num">−0,26</td></tr>
+              </tbody>
+            </table></div>
+            <p>As cotas somam 5 × 8 + 2 × 9 + 4 = 62 turnos. A parte quebrada (os −0,25, +0,75 e −0,26) não se perde: vai para o saldo de cada um.</p>
+          </section>
+          <section>
+            <h2>O saldo</h2>
+            <p>O saldo é o que você tirou menos o que devia tirar, somado mês a mês. Ele tem casas decimais e não é zerado de um mês para o outro.</p>
+            <ul>
+              <li><b>Positivo:</b> você trabalhou mais do que devia.</li>
+              <li><b>Negativo:</b> você trabalhou menos do que devia.</li>
+            </ul>
+            <p>Nesta primeira versão o saldo só aparece no painel. Ele ainda não muda a cota.</p>
+          </section>
+          <section>
+            <h2>O que muda o saldo</h2>
+            <ul class="casos">
+              <li><b>Afastamento.</b> Se o afastamento deixa o que você devia com parte quebrada, a parte que não foi tirada entra como negativo.</li>
+              <li><b>Sobra da divisão.</b> Quem ficou com o turno a mais fica positivo; quem ficou com um a menos, negativo.</li>
+              <li><b>Imprevisto depois da escala fechada.</b> Quem cobre ganha o turno; quem saiu não fica devendo. Vale para qualquer imprevisto.</li>
+              <li><b>Oficial que chega.</b> Começa com a média dos saldos de quem já está na escala. No mês em que chega, deve só a parte dos dias em que esteve.</li>
+              <li><b>Oficial que sai.</b> Por transferência ou mudança de quadro, o saldo dele fica guardado e parado. Se voltar, continua de onde parou. O saldo dos outros não muda.</li>
+              <li><b>Turno que ficou sem ninguém.</b> Ninguém ganha esse turno. O que cada um devia é refeito só com os turnos que foram tirados.</li>
+              <li><b>Correção depois do mês encerrado.</b> O mês não é refeito. O gestor lança um ajuste no saldo, com o motivo, e ele fica no registro.</li>
+              <li><b>Permuta.</b> Trocar um turno por outro no mesmo mês não muda o saldo. As demais regras de permuta virão depois.</li>
+            </ul>
+          </section>
+          <section>
+            <h2>Os dois momentos do mês</h2>
+            <ul>
+              <li><b>Fechar a escala:</b> quando todas as escolhas estão feitas. Antes disso, um afastamento diminui a cota. Depois disso, trocar o nome num turno é uma cobertura, e o registro guarda quem saiu e quem cobriu.</li>
+              <li><b>Encerrar o mês:</b> o saldo do mês é calculado com a escala como ficou e somado ao acumulado. Depois disso, só um ajuste do gestor muda o saldo.</li>
+            </ul>
+          </section>
+          <section>
+            <h2>O que fica registrado</h2>
+            <p>Cada serviço tirado: quem, o dia, o turno (dia ou noite) e, quando for cobertura, no lugar de quem. Os ajustes do gestor ficam no mesmo histórico, com o motivo.</p>
+          </section>
+        </div>
+      </section>
+    </main>
+  </div>
+  </div></div>
+
+  <section class="pend">
+    <h2>Pontos em aberto marcados no mockup</h2>
+    <ol>
+      <li><b>Quem registra as escolhas.</b> <span>O gestor lança a escolha de cada oficial, na ordem que o sistema mostra (quadro "Vez de escolher"). Suposição a mais do mockup: cada oficial escolhe todos os seus turnos de uma vez, na sua vez.</span></li>
+      <li><b>Média do oficial que chega.</b> <span>Média exata, com casas decimais (2º TEN Siqueira, no painel de saldo).</span></li>
+      <li><b>Oficiais por turno e horários.</b> <span>Um oficial por turno, das 07h às 19h e das 19h às 07h.</span></li>
+      <li><b>Antiguidade sem o campo preenchido.</b> <span>Posto primeiro, depois o campo de antiguidade; sem o campo, o gestor ordena à mão (2º TEN Siqueira, na lista de cotas).</span></li>
+      <li><b>Afastado num dia escolhido.</b> <span>Na hora de escolher, o dia do afastamento não é oferecido. Se o afastamento chega depois, aparece um aviso, sem travar (MAJ Arruda em 22/01).</span></li>
+      <li><b>Imprevisto sem cobertura.</b> <span>O turno fica sem ninguém e ninguém ganha (ver "Escala fechada").</span></li>
+      <li><b>Quem tem férias em parte do mês entra na fila da sobra.</b> <span>Sim: todos com presença no mês entram na fila.</span></li>
+    </ol>
+    <p class="nota">Também é suposição do mockup o item "Oficiais" no trilho, logo depois de "Efetivo por dia". O ponto 8 do design (em que artefato aparece a zona de missões paralelas) não tem tela, por isso não aparece aqui. O quadro QOC/QOA ainda está sendo modelado e aqui é só um rótulo.</p>
+  </section>
+</div>
+
+<script>
+(function(){
+const OF=[
+ {id:'arr',posto:'MAJ',nome:'Arruda',quadro:'QOC',lot:'2º GB',mat:'990101-1'},
+ {id:'tav',posto:'CAP',nome:'Tavares',quadro:'QOC',lot:'2º GB',mat:'990102-0'},
+ {id:'mou',posto:'CAP',nome:'Moura',quadro:'QOA',lot:'1ª SB',mat:'990103-8'},
+ {id:'fre',posto:'CAP',nome:'Freitas',quadro:'QOC',lot:'2ª SB',mat:'990104-6'},
+ {id:'bar',posto:'1º TEN',nome:'Barros',quadro:'QOA',lot:'1ª SB',mat:'990105-4'},
+ {id:'que',posto:'1º TEN',nome:'Queiroz',quadro:'QOC',lot:'3ª SB',mat:'990106-2'},
+ {id:'lin',posto:'2º TEN',nome:'Lins',quadro:'QOC',lot:'2º GB',mat:'990107-0'},
+ {id:'siq',posto:'2º TEN',nome:'Siqueira',quadro:'QOC',lot:'1ª SB',mat:'990108-9',semAntig:true}
+];
+const P=Object.fromEntries(OF.map(o=>[o.id,o]));
+const nomeC=id=>P[id].posto+' '+P[id].nome;
+const fmt=(v,sinal=true)=>{const a=Math.abs(v)<0.005?0:v;const s=Math.abs(a).toFixed(2).replace('.',',');return sinal?(a>0?'+':a<0?'−':'')+s:s};
+const dec=v=>v.toFixed(2).replace('.',',');
+
+/* ---- cota do mês: presença, devido, piso, sobra do mais moderno ---- */
+function cotas(dias,pres,vazios){
+  const ids=OF.map(o=>o.id).filter(i=>i in pres);
+  const T=dias*2, S=ids.reduce((a,i)=>a+pres[i]/dias,0);
+  const r={};let soma=0;
+  ids.forEach(i=>{const dev=T*(pres[i]/dias)/S;const c=Math.floor(dev+1e-9);r[i]={pres:pres[i],devido:dev,cota:c,sobra:false,devReal:(T-(vazios||0))*(pres[i]/dias)/S};soma+=c});
+  const sobraN=T-soma;let s=sobraN;
+  for(let k=ids.length-1;s>0;k--){r[ids[k]].cota++;r[ids[k]].sobra=true;s--}
+  return {T,ids,r,sobraN};
+}
+
+/* ---- janeiro de 2027: 31 dias, 1º é sexta ---- */
+const DIAS=31, SEM=['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'], WD=d=>(5+d-1)%7;
+const AFAST={mou:{de:1,ate:15,tipo:'férias'},arr:{de:21,ate:23,tipo:'dispensa médica'}};
+const afastado=(id,d,lista)=>lista.includes(id)&&AFAST[id]&&d>=AFAST[id].de&&d<=AFAST[id].ate;
+const PRES_A={arr:31,tav:31,mou:16,fre:31,bar:31,que:31,lin:31,siq:31};          /* cálculo de 28/12 (exemplo dos 62 turnos) */
+const PRES_B={arr:28,tav:31,mou:16,fre:31,bar:31,que:31,lin:31,siq:31};          /* recalculado com a dispensa do MAJ Arruda */
+
+/* distribui os 62 turnos espalhando cada oficial pelo mês (só para gerar os dados do mockup) */
+function distribuir(ct,afs){
+  const slots=[];for(let d=1;d<=DIAS;d++){slots.push({d,t:'dia'});slots.push({d,t:'noite'})}
+  const resta={};ct.ids.forEach(i=>resta[i]=ct.r[i].cota);
+  const dono=new Array(slots.length).fill(null);
+  slots.forEach((s,k)=>{
+    let melhor=null,nota=-1;
+    for(const i of ct.ids){
+      if(!resta[i]||afastado(i,s.d,afs))continue;
+      const mesmoDia=dono[k-1]===i&&slots[k-1].d===s.d, colado=dono[k-1]===i||dono[k-2]===i&&slots[k-2].d===s.d;
+      let livres=0;for(let j=k;j<slots.length;j++)if(!afastado(i,slots[j].d,afs))livres++;
+      let n=resta[i]/livres;if(colado||mesmoDia)n-=1;
+      if(n>nota){nota=n;melhor=i}
+    }
+    if(melhor){dono[k]=melhor;resta[melhor]--}
+  });
+  return slots.map((s,k)=>({...s,k,dono:dono[k]}));
+}
+
+const CT_A=cotas(DIAS,PRES_A), CT_B=cotas(DIAS,PRES_B);
+const GRADE_A=distribuir(CT_A,['mou']);
+/* o MAJ Arruda escolheu 22/01, dia, antes de a dispensa ser lançada */
+(function(){const alvo=GRADE_A.find(s=>s.d===22&&s.t==='dia');if(alvo.dono!=='arr'){const meu=GRADE_A.filter(s=>s.dono==='arr').sort((a,b)=>Math.abs(a.d-22)-Math.abs(b.d-22))[0];meu.dono=alvo.dono;alvo.dono='arr'}})();
+const SLOT_AVISO=GRADE_A.find(s=>s.d===22&&s.t==='dia');
+const GRADE_B=distribuir(CT_B,['mou','arr']);
+const COB=GRADE_B.find(s=>s.dono==='bar'&&s.d>=12);                 /* Barros saiu, Queiroz cobriu */
+const VAZ=GRADE_B.filter(s=>s.dono==='lin'&&s.d>=24).slice(-1)[0]; /* Lins saiu e ninguém cobriu */
+const ROT_SLOT=s=>`${String(s.d).padStart(2,'0')}/01, ${s.t}`;
+
+/* ---- estado da tela ---- */
+const ORDEM=OF.map(o=>o.id);
+const st={etapa:'escolhas',recalc:false,confirmar:null,escolhas:{},hl:null,sel:'siq',ajuste:false};
+function iniciarEscolhas(){
+  st.escolhas={};st.recalc=false;st.confirmar=null;
+  /* já lançados: Arruda, Tavares e Moura completos; Freitas com 5 de 8 */
+  const feitos={arr:99,tav:99,mou:99,fre:5};
+  const cont={};
+  GRADE_A.forEach(s=>{const i=s.dono;if(!i||!(i in feitos))return;cont[i]=(cont[i]||0)+1;if(cont[i]<=feitos[i])st.escolhas[s.k]=i});
+}
+iniciarEscolhas();
+const CT=()=>st.etapa==='escolhas'&&!st.recalc?CT_A:CT_B;
+const qtd=id=>Object.values(st.escolhas).filter(x=>x===id).length;
+function vez(){const ct=CT();for(const i of ORDEM){if(qtd(i)<ct.r[i].cota)return i}return null}
+
+/* ---- ícones ---- */
+const SOL='<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2"/></svg>';
+const LUA='<svg viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/></svg>';
+const ALERTA='<svg viewBox="0 0 24 24"><path d="M12 3l9.5 17h-19z"/><path d="M12 10v4M12 17v.5"/></svg>';
+const sup=(n,txt,tit)=>`<span class="sup" title="${tit}">Em aberto ${n}${txt?' · '+txt:''}</span>`;
+
+/* ---- etapas e botões ---- */
+function desenharTopo(){
+  const ordem=['escolhas','fechada','encerrado'],nomes=['Escolhas','Escala fechada','Mês encerrado'],at=ordem.indexOf(st.etapa);
+  document.getElementById('etapas').innerHTML=nomes.map((n,i)=>`<span class="${i<at?'feita':i===at?'agora':''}"><i>${i<at?'✓':i+1}</i>${n}</span>`).join('');
+  const A=document.getElementById('acoes');
+  if(st.etapa==='escolhas')A.innerHTML=`<button class="bt pri" data-acao="calcular">Calcular cotas</button><button class="bt sec" data-acao="fechar">Fechar a escala</button><button class="bt fraco" data-acao="encerrar">Encerrar o mês</button><button class="bt sec" data-acao="regras">Regras</button>`;
+  else if(st.etapa==='fechada')A.innerHTML=`<button class="bt fraco" data-acao="calcular">Calcular cotas</button><button class="bt pri" data-acao="encerrar">Encerrar o mês</button><button class="bt sec" data-acao="regras">Regras</button>`;
+  else A.innerHTML=`<button class="bt sec" data-acao="saldo">Ver o saldo</button><button class="bt sec" data-acao="regras">Regras</button>`;
+}
+
+function desenharMensagens(){
+  const M=document.getElementById('mensagens');let h='';
+  const livres=GRADE_A.length-Object.keys(st.escolhas).length;
+  if(st.confirmar==='fechar')h+=`<div class="caixa info"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8v.5"/></svg><div><p><b>Ainda há ${livres} turnos sem nome.</b> Você pode fechar mesmo assim e completar depois; a partir daqui, trocar um nome vira cobertura e fica no registro.</p><div class="acoes"><button class="bt pri mini" data-acao="fechar-sim">Fechar a escala</button><button class="bt fraco mini" data-acao="nao">Voltar</button></div></div></div>`;
+  if(st.confirmar==='encerrar-antes')h+=`<div class="caixa info"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8v.5"/></svg><div><p>Feche a escala antes de encerrar o mês: o saldo é calculado com a escala fechada.</p><div class="acoes"><button class="bt fraco mini" data-acao="nao">Entendi</button></div></div></div>`;
+  if(st.confirmar==='encerrar')h+=`<div class="caixa info"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8v.5"/></svg><div><p><b>Encerrar janeiro?</b> O saldo do mês é calculado com a escala como está e somado ao acumulado. Depois disso, só um ajuste no painel de saldo muda os números.</p><div class="acoes"><button class="bt pri mini" data-acao="encerrar-sim">Encerrar o mês</button><button class="bt fraco mini" data-acao="nao">Voltar</button></div></div></div>`;
+  if(st.confirmar==='calc-fechada')h+=`<div class="caixa info"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8v.5"/></svg><div><p>Com a escala fechada, a cota não muda mais. Se alguém sair agora, troque o nome no turno: vira cobertura.</p><div class="acoes"><button class="bt fraco mini" data-acao="nao">Entendi</button></div></div></div>`;
+  if(st.etapa==='escolhas'&&st.escolhas[SLOT_AVISO.k]==='arr'){
+    h+=`<div class="caixa aviso">${ALERTA.replace('<svg','<svg class="ic"')}<div><p><b>MAJ Arruda está afastado em 22/01</b> (dispensa médica de 21 a 23/01, lançada depois do cálculo) e está no turno do dia. ${st.recalc?'As cotas já foram refeitas: ele agora deve 7 turnos e tem 8; tire-o do dia 22 e deixe o turno para outro oficial.':'Clique em <b>Calcular cotas</b> para refazer as cotas com o afastamento e tire-o do dia 22.'} A escala pode ser fechada mesmo assim. ${sup(5,'','Em aberto 5: o usuário disse que o afastado não pode tirar; o projeto nunca bloqueia o fechamento. Proposta: o dia não é oferecido na escolha e, se o afastamento chegar depois, aparece este aviso, sem travar.')}</p><div class="acoes"><button class="bt sec mini" data-acao="tirar-arr">Tirar do dia 22</button></div></div></div>`;
+  }
+  if(st.etapa==='fechada')h+=`<div class="caixa info"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8v.5"/></svg><p>Escala fechada em 30/12/2026. Clique num turno para trocar o nome: quem cobre ganha o turno, e quem saiu não fica devendo.</p></div>`;
+  if(st.etapa==='encerrado')h+=`<div class="caixa info"><svg class="ic" viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg><p>Mês encerrado em 01/02/2027. O saldo de janeiro já está no painel. Correções agora só por ajuste do gestor.</p></div>`;
+  M.innerHTML=h;
+}
+
+/* ---- calendário ---- */
+function celula(s){
+  const ic=s.t==='dia'?SOL:LUA,cls='t '+s.t;
+  if(st.etapa==='escolhas'){
+    const i=st.escolhas[s.k];
+    if(i){
+      const av=(s.k===SLOT_AVISO.k&&i==='arr');
+      return `<div class="${cls}${av?' aviso':''}" data-of="${i}" title="${nomeC(i)}${av?' (afastado neste dia)':''}">${av?ALERTA:ic}<span class="nm">${P[i].nome}</span></div>`;
+    }
+    const v=vez();
+    if(v&&afastado(v,s.d,['mou','arr'].filter(x=>x!=='arr'||st.recalc)))return `<div class="t ${s.t} livre indisp" title="${nomeC(v)} está afastado neste dia: o dia não é oferecido">${ic}<span class="nm">afastado</span></div>`;
+    return `<button class="t ${s.t} livre" data-k="${s.k}" title="${v?'Lançar este turno para '+nomeC(v):'Turno livre'}">${ic}<span class="nm">livre</span></button>`;
+  }
+  if(VAZ&&s.k===VAZ.k)return `<div class="t ${s.t} semninguem" title="O 2º TEN Lins saiu e ninguém cobriu: ninguém ganha o turno">${ic}<span class="nm">vazio</span></div>`;
+  if(COB&&s.k===COB.k)return `<div class="${cls} cob" data-of="que" title="1º TEN Queiroz cobriu o 1º TEN Barros">${ic}<span class="nm">Queiroz</span><span class="por">cobriu Barros</span></div>`;
+  return s.dono?`<div class="${cls}" data-of="${s.dono}" title="${nomeC(s.dono)}">${ic}<span class="nm">${P[s.dono].nome}</span></div>`:`<div class="t ${s.t} semninguem">${ic}<span class="nm">sem ninguém</span></div>`;
+}
+function desenharCal(){
+  const g=st.etapa==='escolhas'?GRADE_A:GRADE_B;
+  let h=SEM.map(x=>`<div class="sem">${x}</div>`).join('');
+  for(let i=0;i<WD(1);i++)h+='<div class="vazio"></div>';
+  for(let d=1;d<=DIAS;d++){
+    const w=WD(d),fds=w===0||w===6;
+    const nota=d===1?'Feriado':'';
+    h+=`<div class="d${fds?' fds':''}"><div class="n"><b>${d}</b><small><span class="dsem">${SEM[w]}${nota?', ':''}</span>${nota}</small></div>${celula(g[(d-1)*2])}${celula(g[(d-1)*2+1])}</div>`;
+  }
+  const c=document.getElementById('cal');c.innerHTML=h;
+  if(st.hl)c.querySelectorAll(`[data-of="${st.hl}"]`).forEach(e=>e.classList.add('hl'));
+  const n=st.etapa==='escolhas'?Object.keys(st.escolhas).length:62-(VAZ?1:0);
+  document.getElementById('cal-res').textContent=`${n} de 62 turnos com nome`;
+}
+
+/* ---- lista de cotas / vez de escolher ---- */
+function desenharLado(){
+  const ct=CT(),v=st.etapa==='escolhas'?vez():null;
+  let topo='';
+  if(st.etapa==='escolhas'){
+    topo=v?`<div class="vez-card"><small class="cond" style="color:var(--apag)">Vez de escolher ${sup(1,'','Em aberto 1: quem registra as escolhas. Proposta: o gestor lança a escolha de cada oficial, na ordem que o sistema mostra. Suposição do mockup: cada um escolhe todos os seus turnos na sua vez.')}</small><b>${nomeC(v)}, ${ORDEM.indexOf(v)+1}º na ordem</b><p>Já lançou ${qtd(v)} de ${ct.r[v].cota}. Clique num turno livre para lançar a escolha dele.${AFAST[v]?` Os dias de ${AFAST[v].tipo} (${AFAST[v].de} a ${AFAST[v].ate}/01) não são oferecidos.`:''}</p></div>`
+      :`<div class="vez-card fim"><b>Todos escolheram</b><p>Confira os turnos e feche a escala.</p></div>`;
+  }
+  const linhas=ct.ids.map((i,k)=>{
+    const r=ct.r[i],o=P[i],q=st.etapa==='escolhas'?qtd(i):r.cota,af=i==='mou'?'férias 1 a 15/01':(i==='arr'&&ct===CT_B?'dispensa 21 a 23/01':'');
+    const mais=q>r.cota;
+    return `<tr data-of="${i}" class="${i===v?'vez':''}"><td class="ord">${k+1}</td><td class="quem"><span style="white-space:nowrap"><b>${o.posto} ${o.nome}</b><span class="qd">${o.quadro}</span></span><small>${o.lot}${o.semAntig?' · ordenado à mão '+sup(4,'','Em aberto 4: o campo de antiguidade está vazio. Proposta: posto primeiro, depois o campo de antiguidade; sem o campo, o gestor ordena à mão.'):''}</small>${af?`<span class="afs">${af}</span>`:''}</td>
+      <td class="num">${fmt(SALDO_ATE_DEZ[i])}</td><td class="num">${r.pres}</td><td class="num cota">${r.cota}${r.sobra?'<em>+1 sobra</em>':''}</td>
+      ${st.etapa==='escolhas'?`<td class="esc${mais?' mais':''}">${q} de ${r.cota}${mais?' · 1 a mais':''}<span class="bar"><i style="width:${Math.min(100,q/r.cota*100)}%"></i></span></td>`:''}</tr>`;
+  }).join('');
+  document.getElementById('lado').innerHTML=`${topo}
+    <header><h2>Cotas de janeiro</h2><small>${st.recalc||st.etapa!=='escolhas'?'Refeitas em 29/12, 16h40':'Calculadas em 28/12, 10h12'}</small></header>
+    <div style="overflow-x:auto"><table class="tab"><thead><tr><th class="ord" title="Ordem de escolha (antiguidade)">Ordem</th><th>Oficial</th><th class="num" title="Saldo acumulado até dezembro">Saldo</th><th class="num" title="Dias presentes no mês">Dias</th><th class="num">Cota</th>${st.etapa==='escolhas'?'<th>Escolhidos</th>':''}</tr></thead><tbody>${linhas}</tbody></table></div>
+    <div class="rod"><span>${ct.T} turnos no mês. Depois do arredondamento, sobraram ${ct.sobraN}, entregues aos ${ct.sobraN} mais modernos. ${sup(7,'','Em aberto 7: quem tem férias em parte do mês entra na fila da sobra? Proposta: sim, todos com presença no mês.')}</span><span>O saldo aparece na lista, mas ainda não entra na conta.</span></div>`;
+  document.querySelectorAll('#lado tbody tr').forEach(tr=>{
+    tr.onmouseenter=()=>{st.hl=tr.dataset.of;desenharCal()};
+    tr.onmouseleave=()=>{st.hl=null;desenharCal()};
+  });
+}
+
+/* ---- saldo ---- */
+const MESES=[
+ {curto:'Out',nome:'Outubro de 2026',dias:31,pres:{arr:31,tav:31,mou:31,fre:31,bar:31,que:31,lin:31},cob:[{sai:'tav',cobre:'fre',quando:'17/10, noite'}],vaz:[]},
+ {curto:'Nov',nome:'Novembro de 2026',dias:30,pres:{arr:30,tav:30,mou:30,fre:30,bar:30,que:21,lin:30},cob:[],vaz:[],afs:[{id:'que',txt:'Férias de 11 a 19/11: presente em 21 dias.'}]},
+ {curto:'Dez',nome:'Dezembro de 2026',dias:31,pres:{arr:31,tav:31,mou:31,fre:31,bar:31,que:31,lin:31,siq:22},cob:[{sai:'lin',cobre:'bar',quando:'24/12, dia'}],vaz:[],entra:{id:'siq',data:'10/12/2026'},
+  aj:[{id:'bar',valor:0.85,data:'05/12/2026',motivo:'Dispensa médica de 3 dias em novembro, lançada depois do mês encerrado.'}]},
+ {curto:'Jan',nome:'Janeiro de 2027',dias:31,pres:PRES_B,cob:[{sai:'bar',cobre:'que',quando:COB?ROT_SLOT(COB):''}],vaz:VAZ?[{sai:'lin',quando:ROT_SLOT(VAZ)}]:[],jan:true}
+];
+function calcularSaldo(ateJan){
+  const acc={},hist={},ev={};OF.forEach(o=>{hist[o.id]=[];ev[o.id]=[]});
+  MESES.filter(m=>ateJan||!m.jan).forEach(m=>{
+    if(m.entra){const outros=Object.keys(acc);const med=outros.reduce((a,i)=>a+acc[i],0)/outros.length;acc[m.entra.id]=med;ev[m.entra.id].push({q:m.curto,v:med,txt:`Entrou em ${m.entra.data} com a média dos saldos de quem já estava.`,sup:2})}
+    const ct=cotas(m.dias,m.pres,m.vaz.length);
+    ct.ids.forEach((i,k)=>{
+      if(!(i in acc))acc[i]=0;
+      let t=ct.r[i].cota;
+      m.cob.forEach(c=>{if(c.cobre===i)t++});
+      const sm=t-ct.r[i].devReal;acc[i]+=sm;
+      const dia=Math.round(t/2+((k%2)?-0.25:0.25));
+      hist[i].push({curto:m.curto,nome:m.nome,devido:ct.r[i].devReal,tirou:t,mes:sm,acc:acc[i],dia,noite:t-dia});
+      m.cob.forEach(c=>{if(c.cobre===i)ev[i].push({q:m.curto,v:1,txt:`Cobriu ${nomeC(c.sai)} em ${c.quando}.`});if(c.sai===i)ev[i].push({q:m.curto,v:0,txt:`Saiu em ${c.quando}; ${nomeC(c.cobre)} cobriu. Não fica devendo.`})});
+      m.vaz.forEach(c=>{if(c.sai===i)ev[i].push({q:m.curto,v:0,txt:`Saiu em ${c.quando} e ninguém cobriu: o turno ficou vazio.`,sup:6})});
+      (m.afs||[]).forEach(a=>{if(a.id===i)ev[i].push({q:m.curto,v:null,txt:a.txt})});
+    });
+    (m.aj||[]).forEach(a=>{acc[a.id]+=a.valor;const h=hist[a.id];h[h.length-1].acc=acc[a.id];ev[a.id].push({q:m.curto,v:a.valor,txt:`Ajuste do gestor em ${a.data}: ${a.motivo}`})});
+  });
+  return {acc,hist,ev};
+}
+const SALDO_ATE_DEZ=calcularSaldo(false).acc;
+
+function spark(h){
+  const W=84,H=30,vals=[0,...h.map(x=>x.acc)],mx=Math.max(1,...vals.map(Math.abs));
+  const y=v=>H/2-v/mx*(H/2-3),x=k=>3+k*(W-6)/Math.max(1,vals.length-1);
+  return `<svg class="spark" viewBox="0 0 ${W} ${H}" aria-hidden="true"><line x1="0" x2="${W}" y1="${H/2}" y2="${H/2}" stroke="#D8DDE4"/><polyline fill="none" stroke="#3B4A5E" stroke-width="1.6" points="${vals.map((v,k)=>x(k).toFixed(1)+','+y(v).toFixed(1)).join(' ')}"/><circle cx="${x(vals.length-1)}" cy="${y(vals[vals.length-1])}" r="2.4" fill="#1C2430"/></svg>`;
+}
+function desenharSaldo(){
+  const jan=st.etapa==='encerrado',S=calcularSaldo(jan),mx=Math.max(1,...Object.values(S.acc).map(Math.abs));
+  document.getElementById('saldo-ate').textContent=jan?'Até janeiro de 2027':'Até dezembro de 2026 (janeiro entra quando o mês for encerrado)';
+  const linhas=OF.map(o=>{
+    const a=S.acc[o.id],h=S.hist[o.id],dia=h.reduce((x,m)=>x+m.dia,0),noi=h.reduce((x,m)=>x+m.noite,0),w=Math.abs(a)/mx*50;
+    return `<tr data-reg="${o.id}" tabindex="0" style="cursor:pointer" title="Ver o registro" class="${st.sel===o.id?'sel':''}"><td class="quem"><span style="white-space:nowrap"><b>${o.posto} ${o.nome}</b><span class="qd">${o.quadro}</span></span><small>${o.lot}</small></td>
+      <td class="num"><span class="sinal">${fmt(a)}</span></td>
+      <td class="some"><div class="div" aria-hidden="true"><i class="${a>=0?'pos':'neg'}" style="width:${w}%"></i></div></td>
+      <td><div class="evo">${MESES.filter(m=>jan||!m.jan).map(mm=>{const m=h.find(x=>x.curto===mm.curto);return `<span class="mes"><b>${mm.curto}</b>${m?fmt(m.mes):'—'}</span>`}).join('')}${spark(h)}</div></td>
+      <td><span class="dn"><span title="Turnos de dia">${SOL}${dia}</span><span title="Turnos de noite">${LUA}${noi}</span></span></td>
+      </tr>`;
+  }).join('');
+  document.getElementById('tab-saldo').innerHTML=`<thead><tr><th>Oficial</th><th class="num">Saldo</th><th class="some"><span style="display:flex;justify-content:space-between;width:120px"><span>menos</span><span>mais</span></span></th><th>Saldo de cada mês</th><th>Turnos tirados</th></tr></thead><tbody>${linhas}</tbody>`;
+  const o=P[st.sel],h=S.hist[st.sel],e=S.ev[st.sel];
+  const itens=h.map(m=>{
+    const evm=e.filter(x=>x.q===m.curto).map(x=>`<small>${x.txt}${x.sup?' '+sup(x.sup,'',x.sup===2?'Em aberto 2: média do oficial que chega. Proposta: média exata, com casas decimais (a ideia original era o piso para inteiro).':'Em aberto 6: imprevisto sem cobertura. Proposta: o turno fica vazio e ninguém ganha.'):''}</small>`).join('');
+    return `<li><span class="q">${m.curto}</span><span>Devia ${dec(m.devido)}, tirou ${m.tirou}</span><span class="v">${fmt(m.mes)}</span>${evm}</li>`;
+  }).join('');
+  const entrada=e.find(x=>x.sup===2);
+  document.getElementById('registro').innerHTML=`<header><h2>Registro: ${o.posto} ${o.nome}</h2><small>${o.mat}</small></header>
+    <div class="reg">
+      ${entrada?`<p style="margin:0;font-size:14px">Começou com <b class="cond">${fmt(entrada.v)}</b>, a média dos saldos dos colegas.</p>`:''}
+      <ul>${itens}</ul>
+      <p style="margin:0;font-size:14px">Saldo agora: <b class="sinal">${fmt(S.acc[st.sel])}</b></p>
+      ${st.ajuste?`<div class="form-aj"><label>Valor do ajuste<input value="+0,50" inputmode="decimal"></label><label>Motivo (obrigatório)<input placeholder="Ex.: afastamento lançado depois do mês encerrado"></label><div class="acoes"><button class="bt pri mini" data-acao="aj-ok">Lançar ajuste</button><button class="bt fraco mini" data-acao="aj-nao">Cancelar</button></div></div>`
+      :`<div><button class="bt sec mini" data-acao="ajuste">Lançar ajuste</button></div>`}
+    </div>`;
+}
+
+/* ---- tudo ---- */
+function desenhar(){desenharTopo();desenharMensagens();desenharCal();desenharLado();desenharSaldo();
+  document.querySelectorAll('#ctl-etapa button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.etapa===st.etapa))}
+function irAba(a){document.querySelectorAll('.abas button').forEach(b=>b.setAttribute('aria-selected',b.dataset.aba===a));document.querySelectorAll('.aba').forEach(s=>s.classList.toggle('on',s.id==='aba-'+a))}
+function etapa(e){st.etapa=e;st.confirmar=null;if(e==='escolhas')iniciarEscolhas();desenhar()}
+
+document.getElementById('app').addEventListener('keydown',ev=>{const tr=ev.target.closest('tr[data-reg]');if(tr&&(ev.key==='Enter'||ev.key===' ')){ev.preventDefault();tr.click()}});
+document.getElementById('app').addEventListener('click',ev=>{
+  const b=ev.target.closest('[data-acao],[data-k],[data-reg],.abas button');if(!b)return;
+  if(b.dataset.aba){irAba(b.dataset.aba);return}
+  if(b.dataset.reg){st.sel=b.dataset.reg;st.ajuste=false;desenharSaldo();return}
+  if(b.dataset.k){const v=vez();if(v){st.escolhas[b.dataset.k]=v;st.confirmar=null;desenhar()}return}
+  const a=b.dataset.acao;
+  if(a==='calcular'){if(st.etapa==='escolhas'){st.recalc=true;st.confirmar=null}else st.confirmar='calc-fechada'}
+  else if(a==='fechar')st.confirmar='fechar';
+  else if(a==='fechar-sim'){etapa('fechada');return}
+  else if(a==='encerrar')st.confirmar=st.etapa==='escolhas'?'encerrar-antes':'encerrar';
+  else if(a==='encerrar-sim'){etapa('encerrado');return}
+  else if(a==='nao')st.confirmar=null;
+  else if(a==='regras'){irAba('regras');return}
+  else if(a==='saldo'){irAba('saldo');return}
+  else if(a==='tirar-arr'){delete st.escolhas[SLOT_AVISO.k]}
+  else if(a==='ajuste'){st.ajuste=true;desenharSaldo();return}
+  else if(a==='aj-ok'||a==='aj-nao'){st.ajuste=false;desenharSaldo();return}
+  desenhar();
+});
+document.querySelectorAll('#ctl-etapa button').forEach(b=>b.onclick=()=>etapa(b.dataset.etapa));
+document.querySelectorAll('#ctl-larg button').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('#ctl-larg button').forEach(x=>x.setAttribute('aria-pressed',x===b));
+  document.getElementById('screen').classList.toggle('cel',b.dataset.larg==='cel');
+});
+document.getElementById('ctl-sup').onchange=e=>document.body.classList.toggle('sem-sup',!e.target.checked);
+const q=new URLSearchParams(location.search);
+if(q.get('etapa'))st.etapa=q.get('etapa');
+desenhar();
+if(st.etapa!=='escolhas'){}
+if(q.get('aba'))irAba(q.get('aba'));
+if(q.get('larg')==='cel')document.querySelector('#ctl-larg [data-larg="cel"]').click();
+})();
+</script>
