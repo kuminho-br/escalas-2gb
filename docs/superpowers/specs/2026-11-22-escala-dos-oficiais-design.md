@@ -17,7 +17,7 @@ O problema de hoje: os oficiais escolhem os dias por antiguidade, e não há con
 
 ## Objetivos da versão 1
 
-1. Montar a escala do mês dos oficiais, em turnos de 12 h (dois por dia: dia e noite).
+1. Montar a escala do mês dos oficiais, nos turnos do serviço do oficial de operações (hoje, dois de 12 h por dia: dia e noite).
 2. Calcular a cota de cada oficial no mês.
 3. Guardar o registro de cada serviço tirado.
 4. Manter o **saldo** de cada oficial, contínuo entre os meses, e mostrá-lo num painel.
@@ -39,14 +39,14 @@ O problema de hoje: os oficiais escolhem os dias por antiguidade, e não há con
 ## Quem usa e quem participa
 
 - **Quem vê a tela:** administrador e gestor da unidade. Fica dentro do módulo Confecção de escalas, não é um módulo novo na tela inicial.
-- **Quem participa da escala:** militares dos quadros QOC e QOA lotados na unidade atual e nas unidades abaixo dela.
+- **Quem participa da escala:** militares dos quadros QOC e QOA lotados na unidade atual e nas unidades abaixo dela. As outras telas de escala mostram só o QBMG e quem está sem quadro (decisão do usuário, 22/11/2026).
 
 ## Regras
 
 ### Escala do mês
 
 - O ciclo é mensal, como as demais escalas.
-- Cada dia tem dois turnos de 12 h: dia e noite.
+- Os turnos são os do **serviço do oficial de operações**, cadastrado como qualquer serviço e escolhido na tela, por mês. O usuário o cadastra como o Pronto: dois turnos de 12 h, dia e noite. Nada de turno fixo no código (decisão do usuário, 22/11/2026).
 - A ordem de escolha dos dias é a antiguidade (o mais antigo escolhe primeiro).
 - Quem está afastado não tira serviço nos dias do afastamento.
 - A antiguidade dá a ordem de escolha, não a quantidade: todos tiram a cota calculada.
