@@ -1,14 +1,14 @@
 // Rotas da escala dos oficiais (QOC e QOA) e do painel de saldo. Só gestor e administrador da unidade.
-import { AjusteDeSaldo, OrdemManual, TrocaDeTurno, type OficialNoSaldo } from 'contratos';
+import { AjusteDeSaldo, OrdemManual, ServicoDoMes, TrocaDeTurno, type OficialNoSaldo } from 'contratos';
 import { Mes } from 'contratos';
-import { calcularCotas, diasDoMes, ordemDeEscolha, saldoDeEntrada, saldoDoMes, type TurnoDoMes } from 'dominio';
+import { calcularCotas, diasDoMes, ordemDeEscolha, rotuloDoTurno, saldoDeEntrada, saldoDoMes, type TurnoDoMes } from 'dominio';
 import { Hono, type Context } from 'hono';
 import { ESCREVE_PARAMETRO, exigirPapel, exigirSessao, type AmbienteApi } from '../acesso.ts';
 import type { Auth } from '../auth.ts';
 import { comUsuario, type Banco, type Consulta } from '../banco/banco.ts';
 import { hojeRecife } from '../datas.ts';
 import { lerCorpo, respostaDoErroDoBanco } from '../erros.ts';
-import { lerEscala, lerSaldo, linhaDoMes } from './leitura.ts';
+import { lerEscala, lerSaldo, linhaDoMes, servicoDoUltimoMes, turnosDoServico } from './leitura.ts';
 import { limitesDoMes, participantesDoMes } from './participantes.ts';
 
 type Ctx = Context<AmbienteApi>;
@@ -17,6 +17,10 @@ const MSG_ENCERRADO = 'O mês já foi encerrado. Correções agora só por ajust
 const MSG_COTA_FECHADA = 'Com a escala fechada, a cota não muda mais. Se alguém sair agora, troque o nome no turno: vira cobertura.';
 const MSG_SEM_COTAS = 'Calcule as cotas antes de fechar a escala.';
 const MSG_ENCERRAR_ANTES_DE_FECHAR = 'Feche a escala antes de encerrar o mês: o saldo é calculado com a escala fechada.';
+const MSG_SEM_SERVICO = 'Escolha o serviço da escala antes de calcular as cotas.';
+const MSG_SERVICO_INVALIDO = 'Escolha um serviço da unidade com turnos cadastrados.';
+const MSG_SERVICO_TRAVADO = 'Com as cotas calculadas, o serviço não muda mais.';
+const MSG_TURNO_ALHEIO = 'Este turno não é do serviço da escala.';
 const MSG_FORA_DA_ESCALA = 'Este oficial não está na escala deste mês.';
 
 class Recusa extends Error {
@@ -25,16 +29,26 @@ class Recusa extends Error {
   }
 }
 
+/** Garante a linha do mês; ao criá-la, o serviço vem copiado do último mês da unidade. */
+async function garantirMes(tx: Consulta, unidadeId: string, mes: string): Promise<void> {
+  await tx.query(
+    'insert into oficiais_mes (unidade_id, mes, servico_id) values ($1, $2::date, $3) on conflict (unidade_id, mes) do nothing',
+    [unidadeId, `${mes}-01`, await servicoDoUltimoMes(tx, unidadeId)],
+  );
+}
+
 /** Cria o mês (e os turnos vazios) na primeira vez, recalcula a ordem, os dias e as cotas e regrava `oficiais_cota`. Mantém as escolhas. */
 async function calcularEGravar(tx: Consulta, unidadeId: string, mes: string, ordemManual?: string[]): Promise<void> {
-  await tx.query('insert into oficiais_mes (unidade_id, mes) values ($1, $2::date) on conflict (unidade_id, mes) do nothing', [unidadeId, `${mes}-01`]);
+  await garantirMes(tx, unidadeId, mes);
   const linha = (await linhaDoMes(tx, unidadeId, mes, true))!;
   if (linha.fechada_em) throw new Recusa(409, MSG_COTA_FECHADA);
+  if (!linha.servico_id) throw new Recusa(409, MSG_SEM_SERVICO);
+  const turnosDoMes = await turnosDoServico(tx, linha.servico_id);
   const manual = ordemManual ?? linha.ordem_manual;
   const participantes = await participantesDoMes(tx, unidadeId, mes);
   const ordem = ordemDeEscolha(participantes, manual);
   const porId = new Map(participantes.map((p) => [p.militarId, p]));
-  const cotas = calcularCotas(2 * diasDoMes(mes).length, ordem.map((id) => ({ militarId: id, dias: porId.get(id)!.dias })));
+  const cotas = calcularCotas(turnosDoMes.length * diasDoMes(mes).length, ordem.map((id) => ({ militarId: id, dias: porId.get(id)!.dias })));
 
   await tx.query('delete from oficiais_cota where mes_id = $1', [linha.id]);
   for (const [i, x] of cotas.entries()) {
@@ -45,18 +59,18 @@ async function calcularEGravar(tx: Consulta, unidadeId: string, mes: string, ord
   }
   const { inicio, fim } = limitesDoMes(mes);
   await tx.query(
-    `insert into oficiais_turno (mes_id, dia, turno)
-       select $1, d::date, t from generate_series($2::date, $3::date, '1 day') d, (values ('dia'), ('noite')) v (t)
-     on conflict (mes_id, dia, turno) do nothing`,
-    [linha.id, inicio, fim],
+    `insert into oficiais_turno (mes_id, dia, turno_id)
+       select $1, d::date, t from generate_series($2::date, $3::date, '1 day') d, unnest($4::uuid[]) t
+     on conflict (mes_id, dia, turno_id) do nothing`,
+    [linha.id, inicio, fim, turnosDoMes.map((t) => t.id)],
   );
   await tx.query('update oficiais_mes set cotas_em = now(), ordem_manual = $2::uuid[] where id = $1', [linha.id, manual]);
 }
 
 async function turnosDoMes(c: Consulta, mesId: string): Promise<TurnoDoMes[]> {
-  const { rows } = await c.query<{ dia: string; turno: 'dia' | 'noite'; militar_id: string | null; saiu_militar_id: string | null }>(
-    "select to_char(dia, 'YYYY-MM-DD') as dia, turno, militar_id, saiu_militar_id from oficiais_turno where mes_id = $1", [mesId]);
-  return rows.map((r) => ({ dia: r.dia, turno: r.turno, militarId: r.militar_id, saiuMilitarId: r.saiu_militar_id }));
+  const { rows } = await c.query<{ dia: string; turno_id: string; militar_id: string | null; saiu_militar_id: string | null }>(
+    "select to_char(dia, 'YYYY-MM-DD') as dia, turno_id, militar_id, saiu_militar_id from oficiais_turno where mes_id = $1", [mesId]);
+  return rows.map((r) => ({ dia: r.dia, turnoId: r.turno_id, militarId: r.militar_id, saiuMilitarId: r.saiu_militar_id }));
 }
 
 export function rotasOficiais(dep: { banco: Banco; auth: Auth }): Hono<AmbienteApi> {
@@ -96,6 +110,24 @@ export function rotasOficiais(dep: { banco: Banco; auth: Auth }): Hono<AmbienteA
     return c.json(await lerEscala(dep.banco, a.u, a.mes));
   });
 
+  r.put('/unidades/:u/oficiais/:mes/servico', async (c) => {
+    const a = await entrada(c);
+    if ('resposta' in a) return a.resposta;
+    const corpo = await lerCorpo(c, ServicoDoMes);
+    if (!corpo.ok) return corpo.resposta;
+    const { servicoId } = corpo.dados;
+    return mudar(c, a.u, a.mes, async (tx) => {
+      const { rows } = await tx.query(
+        `select 1 from servico s where s.id = $1 and s.unidade_id = $2 and s.tipo = 'ordinario' and s.ativo
+            and exists (select 1 from turno t where t.servico_id = s.id)`, [servicoId, a.u]);
+      if (rows.length === 0) throw new Recusa(400, MSG_SERVICO_INVALIDO);
+      await garantirMes(tx, a.u, a.mes);
+      const linha = (await linhaDoMes(tx, a.u, a.mes, true))!;
+      if (linha.cotas_em) throw new Recusa(409, MSG_SERVICO_TRAVADO);
+      await tx.query('update oficiais_mes set servico_id = $2 where id = $1', [linha.id, servicoId]);
+    });
+  });
+
   r.post('/unidades/:u/oficiais/:mes/cotas', async (c) => {
     const a = await entrada(c);
     if ('resposta' in a) return a.resposta;
@@ -110,13 +142,12 @@ export function rotasOficiais(dep: { banco: Banco; auth: Auth }): Hono<AmbienteA
     return mudar(c, a.u, a.mes, (tx) => calcularEGravar(tx, a.u, a.mes, corpo.dados.militarIds));
   });
 
-  r.put('/unidades/:u/oficiais/:mes/turnos/:dia/:turno', async (c) => {
+  r.put('/unidades/:u/oficiais/:mes/turnos/:dia/:turnoId', async (c) => {
     const a = await entrada(c);
     if ('resposta' in a) return a.resposta;
     const dia = c.req.param('dia')!;
-    const turno = c.req.param('turno')!;
+    const turno = c.req.param('turnoId')!;
     if (!diasDoMes(a.mes).includes(dia)) return c.json({ erro: 'Este dia não é do mês escolhido.' }, 400);
-    if (turno !== 'dia' && turno !== 'noite') return c.json({ erro: 'Turno inválido: use dia ou noite.' }, 400);
     const corpo = await lerCorpo(c, TrocaDeTurno);
     if (!corpo.ok) return corpo.resposta;
     const novo = corpo.dados.militarId;
@@ -124,12 +155,14 @@ export function rotasOficiais(dep: { banco: Banco; auth: Auth }): Hono<AmbienteA
       const linha = await linhaDoMes(tx, a.u, a.mes, true);
       if (!linha || !linha.cotas_em) throw new Recusa(409, 'Calcule as cotas antes de lançar os turnos.');
       if (linha.encerrada_em) throw new Recusa(409, MSG_ENCERRADO);
+      const doServico = await turnosDoServico(tx, linha.servico_id);
+      if (!doServico.some((t) => t.id === turno)) throw new Recusa(400, MSG_TURNO_ALHEIO);
       if (novo) {
         const { rows } = await tx.query('select 1 from oficiais_cota where mes_id = $1 and militar_id = $2', [linha.id, novo]);
         if (rows.length === 0) throw new Recusa(400, MSG_FORA_DA_ESCALA);
       }
       const atual = (await tx.query<{ militar_id: string | null; saiu_militar_id: string | null }>(
-        'select militar_id, saiu_militar_id from oficiais_turno where mes_id = $1 and dia = $2::date and turno = $3 for update', [linha.id, dia, turno])).rows[0]!;
+        'select militar_id, saiu_militar_id from oficiais_turno where mes_id = $1 and dia = $2::date and turno_id = $3 for update', [linha.id, dia, turno])).rows[0]!;
       let militar: string | null = novo;
       let saiu: string | null = null;
       if (linha.fechada_em && novo) {
@@ -137,7 +170,7 @@ export function rotasOficiais(dep: { banco: Banco; auth: Auth }): Hono<AmbienteA
         const original = atual.saiu_militar_id ?? atual.militar_id;
         saiu = original && original !== novo ? original : null;
       }
-      await tx.query('update oficiais_turno set militar_id = $4, saiu_militar_id = $5 where mes_id = $1 and dia = $2::date and turno = $3', [linha.id, dia, turno, militar, saiu]);
+      await tx.query('update oficiais_turno set militar_id = $4, saiu_militar_id = $5 where mes_id = $1 and dia = $2::date and turno_id = $3', [linha.id, dia, turno, militar, saiu]);
     });
   });
 
@@ -175,10 +208,17 @@ export function rotasOficiais(dep: { banco: Banco; auth: Auth }): Hono<AmbienteA
           await tx.query("insert into oficiais_saldo (unidade_id, militar_id, mes_id, tipo, valor) values ($1, $2, $3, 'entrada', $4)", [a.u, x.militarId, linha.id, media]);
         }
       }
+      const rotulos = new Map((await turnosDoServico(tx, linha.servico_id)).map((t) => [t.id, rotuloDoTurno(t.inicio)] as const));
       for (const s of saldos) {
+        let dia = 0;
+        let noite = 0;
+        for (const [turnoId, n] of Object.entries(s.porTurno)) {
+          if (rotulos.get(turnoId) === 'Noite') noite += n;
+          else dia += n;
+        }
         await tx.query(
           "insert into oficiais_saldo (unidade_id, militar_id, mes_id, tipo, valor, tirado, devido, turnos_dia, turnos_noite) values ($1, $2, $3, 'mes', $4, $5, $6, $7, $8)",
-          [a.u, s.militarId, linha.id, s.valor, s.tirado, s.devido, s.turnosDia, s.turnosNoite],
+          [a.u, s.militarId, linha.id, s.valor, s.tirado, s.devido, dia, noite],
         );
       }
       await tx.query('update oficiais_mes set encerrada_em = now() where id = $1', [linha.id]);

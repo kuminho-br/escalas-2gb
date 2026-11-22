@@ -1,12 +1,13 @@
 // Leitura da escala dos oficiais e do painel de saldo.
 import type { EscalaDosOficiais, EtapaDosOficiais, OficialDoMes, OficialNoSaldo } from 'contratos';
-import { ordemDeEscolha } from 'dominio';
+import { ordemDeEscolha, rotuloDoTurno } from 'dominio';
 import type { Consulta } from '../banco/banco.ts';
 import { hojeRecife } from '../datas.ts';
 import { afastamentosDoMes, participantesDoMes, postoCurto, type AfastamentoDoMes } from './participantes.ts';
 
 export interface LinhaDoMes {
   id: string;
+  servico_id: string | null;
   ordem_manual: string[];
   cotas_em: string | null;
   fechada_em: string | null;
@@ -17,7 +18,7 @@ const ISO = (col: string) => `to_char(${col} at time zone 'America/Recife', 'YYY
 
 export async function linhaDoMes(c: Consulta, unidadeId: string, mes: string, travar = false): Promise<LinhaDoMes | null> {
   const { rows } = await c.query<LinhaDoMes>(
-    `select id, ordem_manual, ${ISO('cotas_em')} as cotas_em, ${ISO('fechada_em')} as fechada_em, ${ISO('encerrada_em')} as encerrada_em
+    `select id, servico_id, ordem_manual, ${ISO('cotas_em')} as cotas_em, ${ISO('fechada_em')} as fechada_em, ${ISO('encerrada_em')} as encerrada_em
        from oficiais_mes where unidade_id = $1 and mes = $2::date ${travar ? 'for update' : ''}`,
     [unidadeId, `${mes}-01`],
   );
@@ -29,6 +30,29 @@ export function etapaDoMes(l: LinhaDoMes | null): EtapaDosOficiais {
   if (l.encerrada_em) return 'encerrada';
   if (l.fechada_em) return 'fechada';
   return 'escolhas';
+}
+
+export interface TurnoDoServico {
+  id: string;
+  letra: string;
+  inicio: string;
+  fim: string;
+  rotulo: 'Dia' | 'Noite';
+}
+
+/** Os turnos do serviço, em ordem de letra; horário HH:MM. */
+export async function turnosDoServico(c: Consulta, servicoId: string | null): Promise<TurnoDoServico[]> {
+  if (!servicoId) return [];
+  const { rows } = await c.query<{ id: string; letra: string; inicio: string; fim: string }>(
+    "select id, letra, to_char(inicio, 'HH24:MI') as inicio, to_char(fim, 'HH24:MI') as fim from turno where servico_id = $1 order by letra", [servicoId]);
+  return rows.map((t) => ({ ...t, rotulo: rotuloDoTurno(t.inicio) }));
+}
+
+/** O serviço do último mês da unidade que tem serviço (o que a tela oferece quando o mês ainda não foi gravado). */
+export async function servicoDoUltimoMes(c: Consulta, unidadeId: string): Promise<string | null> {
+  const { rows } = await c.query<{ servico_id: string }>(
+    'select servico_id from oficiais_mes where unidade_id = $1 and servico_id is not null order by mes desc limit 1', [unidadeId]);
+  return rows[0]?.servico_id ?? null;
 }
 
 const dm = (dia: string) => `${dia.slice(8, 10)}/${dia.slice(5, 7)}`;
@@ -49,6 +73,12 @@ async function saldosAnteriores(c: Consulta, unidadeId: string, mes: string): Pr
 export async function lerEscala(c: Consulta, unidadeId: string, mes: string): Promise<EscalaDosOficiais> {
   const linha = await linhaDoMes(c, unidadeId, mes);
   const etapa = etapaDoMes(linha);
+  const servicoId = linha ? linha.servico_id : await servicoDoUltimoMes(c, unidadeId);
+  const servico = servicoId
+    ? ((await c.query<{ id: string; nome: string }>('select id, nome from servico where id = $1', [servicoId])).rows[0] ?? null)
+    : null;
+  const doServico = await turnosDoServico(c, servicoId);
+  const rotuloDe = new Map(doServico.map((t) => [t.id, t.rotulo]));
   const participantes = await participantesDoMes(c, unidadeId, mes);
   const anteriores = await saldosAnteriores(c, unidadeId, mes);
   const porId = new Map(participantes.map((p) => [p.militarId, p]));
@@ -62,9 +92,10 @@ export async function lerEscala(c: Consulta, unidadeId: string, mes: string): Pr
         'select militar_id, ordem, dias, devido::text as devido, cota, sobra from oficiais_cota where mes_id = $1 order by ordem', [linha.id])
     ).rows.map((r) => ({ militarId: r.militar_id, ordem: r.ordem, dias: r.dias, devido: Number(r.devido), cota: r.cota, sobra: r.sobra }));
     turnos = (
-      await c.query<{ dia: string; turno: 'dia' | 'noite'; militar_id: string | null; saiu_militar_id: string | null }>(
-        "select to_char(dia, 'YYYY-MM-DD') as dia, turno, militar_id, saiu_militar_id from oficiais_turno where mes_id = $1 order by dia, turno", [linha.id])
-    ).rows.map((r) => ({ dia: r.dia, turno: r.turno, militarId: r.militar_id, saiuMilitarId: r.saiu_militar_id }));
+      await c.query<{ dia: string; turno_id: string; militar_id: string | null; saiu_militar_id: string | null }>(
+        `select to_char(t.dia, 'YYYY-MM-DD') as dia, t.turno_id, t.militar_id, t.saiu_militar_id
+           from oficiais_turno t join turno u on u.id = t.turno_id where t.mes_id = $1 order by t.dia, u.letra`, [linha.id])
+    ).rows.map((r) => ({ dia: r.dia, turnoId: r.turno_id, militarId: r.militar_id, saiuMilitarId: r.saiu_militar_id }));
   }
 
   // quem está na cota mas já não é participante (saiu da unidade depois do cálculo) mantém os dados do cadastro
@@ -118,8 +149,8 @@ export async function lerEscala(c: Consulta, unidadeId: string, mes: string): Pr
     const af = o?.afastamentos.find((a) => a.inicio <= t.dia && t.dia <= a.fim);
     if (o && af) {
       avisos.push({
-        dia: t.dia, turno: t.turno, militarId: t.militarId,
-        texto: `${o.posto} ${o.nomeGuerra} está afastado em ${dm(t.dia)} (${af.tipo}) e está no turno ${t.turno === 'dia' ? 'do dia' : 'da noite'}. A escala pode ser fechada mesmo assim.`,
+        dia: t.dia, turnoId: t.turnoId, militarId: t.militarId,
+        texto: `${o.posto} ${o.nomeGuerra} está afastado em ${dm(t.dia)} (${af.tipo}) e está no turno ${rotuloDe.get(t.turnoId) === 'Noite' ? 'da noite' : 'do dia'}. A escala pode ser fechada mesmo assim.`,
       });
     }
   }
@@ -130,6 +161,8 @@ export async function lerEscala(c: Consulta, unidadeId: string, mes: string): Pr
     cotasEm: linha?.cotas_em ?? null,
     fechadaEm: linha?.fechada_em ?? null,
     encerradaEm: linha?.encerrada_em ?? null,
+    servico,
+    turnosDoServico: doServico,
     oficiais,
     vez,
     turnos,
@@ -159,7 +192,7 @@ export async function lerSaldo(c: Consulta, unidadeId: string, hoje = hojeRecife
   const { rows: coberturas } = await c.query<{ dia: string; militar_id: string; saiu_id: string; mes: string }>(
     `select to_char(t.dia, 'YYYY-MM-DD') as dia, t.militar_id, t.saiu_militar_id as saiu_id, to_char(m.mes, 'YYYY-MM') as mes
        from oficiais_turno t join oficiais_mes m on m.id = t.mes_id
-      where m.unidade_id = $1 and t.saiu_militar_id is not null order by t.dia, t.turno`,
+      where m.unidade_id = $1 and t.saiu_militar_id is not null order by t.dia, t.turno_id`,
     [unidadeId],
   );
 
@@ -206,8 +239,10 @@ export async function lerSaldo(c: Consulta, unidadeId: string, hoje = hojeRecife
       lotacao: lotacaoDe.get(id) ?? null,
       saldo: meus.reduce((s, l) => s + Number(l.valor), 0),
       meses: doMes.map((l) => ({ mes: l.mes!, valor: Number(l.valor) })),
-      turnosDia: doMes.reduce((s, l) => s + (l.turnos_dia ?? 0), 0),
-      turnosNoite: doMes.reduce((s, l) => s + (l.turnos_noite ?? 0), 0),
+      turnos: [
+        { rotulo: 'Dia' as const, quantidade: doMes.reduce((s, l) => s + (l.turnos_dia ?? 0), 0) },
+        { rotulo: 'Noite' as const, quantidade: doMes.reduce((s, l) => s + (l.turnos_noite ?? 0), 0) },
+      ],
       registro,
     };
   });
