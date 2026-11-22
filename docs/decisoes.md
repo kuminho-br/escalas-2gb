@@ -8,6 +8,8 @@ Siglas dos documentos: **Design** = `superpowers/specs/2026-11-16-migracao-desig
 
 | Data | Decisão | Onde está |
 |---|---|---|
+| 22/11/2026 | Militares só no Pecúlio: os dados da escala entram por uma importação própria ("Dados da escala": matrícula, jornada, equipe, motorista, voluntário JES e CNH), que atualiza e não cria militar (opção b). Entrega 6.7. | Plano da fase 6, Entrega 7 |
+| 22/11/2026 | Nas telas e mensagens, "papel" vira "nível de acesso"; o nome interno e o valor `escalante` não mudam. Com um formulário por vez no Acesso ao sistema, o "até" ao dar o nível de acesso e o Enter na busca do Pecúlio, entra na entrega 6.8. O seletor em trilha e a lista que passa da borda vão para a 6.6 (mockup). | Plano da fase 6, Entregas 6 e 8 |
 | 22/11/2026 | Sessão CONCEPÇÃO: esclarece e modela as ideias novas (`docs/ideias/<tema>.md`); a PLANEJAMENTO põe a ideia no ponto do roadmap mais adequado e abre o PR, sem aviso à DOCUMENTAÇÃO; o ponto pode mudar na elucidação. O roadmap é atualizado pela PLANEJAMENTO e pela DOCUMENTAÇÃO. | `CLAUDE.md`, Sessões |
 | 22/11/2026 | Escala dos oficiais: dia e noite sem desenho de sol e de lua; a diferença é só a cor, em tons sóbrios, com o texto do turno escrito. Ordem da P1: P1.1, P1.2, P1.4, P1.3. | Plano da P1, Global Constraints |
 | 22/11/2026 | Escala dos oficiais: o serviço do oficial de operações é cadastrado como os outros e escolhido na tela, por mês (copiado do mês anterior; troca só antes das cotas); os turnos e horários vêm dele, sem nada fixo no código. | Oficiais, Regras; plano da P1 |

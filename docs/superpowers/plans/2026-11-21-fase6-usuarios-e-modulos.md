@@ -11,7 +11,8 @@
 4. **Transição do login** (as mangueiras), **condicional**: só começa se o usuário tiver aprovado o mockup (ajustes R1 a R6). As tarefas são escritas quando ela for começar.
 5. **Retorno da validação, parte sem mockup** (lote de 21/11/2026): recolher equipe na Grade geral, rastreio por dia e "Vale desde" do modelo de guarnição aceitando mês passado. **Detalhada abaixo. Começa depois da P1.3 e da P1.4** (entrega paralela, decisão do usuário de 22/11/2026).
 6. **Retorno da validação, parte com mockup** (mesmo lote): sete ajustes de interface que esperam o mockup da DESIGN. Lista no fim; as tarefas são escritas quando o mockup for aprovado.
-7. **Militares só no Pecúlio** (decisão do usuário, 22/11/2026): o militar novo só entra pelo módulo Pecúlio. Lista no fim; as tarefas são escritas quando ela for começar.
+7. **Militares só no Pecúlio** (decisão do usuário, 22/11/2026): o "Novo militar" passa ao Pecúlio, e a importação de MILITARES vira a importação "Dados da escala", que atualiza e não cria. **Detalhada abaixo.**
+8. **Acesso ao sistema e busca do Pecúlio** (pool 3 da validação, 22/11/2026): "nível de acesso" no lugar de "papel", um formulário por vez, o "até" ao dar o nível de acesso e o Enter na busca do Pecúlio. **Detalhada abaixo.**
 
 O retorno da validação que chegar durante a fase vira uma entrega depois da última prevista.
 
@@ -660,20 +661,193 @@ Do mesmo lote de 21/11/2026. Cada item espera o mockup da DESIGN e a aprovação
 5. **Ficha com cadastro incompleto:** sai a faixa âmbar do topo. O dado que falta vira campo vermelho com a orientação dentro; o conflito (ex.: antiguidade repetida) fica como aviso na ficha e na lista.
 6. **Lista de militares:** um botão de aviso filtra só quem tem pendência, no lugar do "Ver quais".
 7. **Lista de militares:** o motivo do afastamento ("Adido o mês todo", "Curso desde 18/11") alinhado à direita da linha.
+8. **Seletor de unidade em trilha** (pool 3, 22/11/2026): "nível 1 > nível 2 > …", com mais espaço em volta do separador; cada nível abre a lista dos irmãos. A barra "/" confunde com o nome "DInter/1". Junta-se ao item 3.
+9. **Acesso ao sistema:** a lista de níveis não passa da borda da tela; um seletor do sistema que abre para cima quando falta espaço (pool 3).
 
 ---
 
 # Entrega 7 — Militares só no Pecúlio
 
-Decisão do usuário (22/11/2026): o cadastro de militar novo acontece só no módulo Pecúlio. As tarefas são escritas quando a entrega for começar.
+**Goal:** o militar novo entra só pelo módulo Pecúlio. O módulo de escalas atualiza o que é da escala, um a um pela ficha ou em lote pela importação "Dados da escala", sem criar militar.
 
-1. **No módulo de escalas**, a tela Militares deixa de ter "Novo militar". A ficha continua abrindo ali, para os blocos da escala (equipe, jornada, motorista, CNH, voluntário JES).
-2. **A importação de MILITARES sai do módulo de escalas.** Tudo do militar entra pela importação do Pecúlio.
-3. **No módulo Pecúlio**, ficam "Novo militar" e a importação, como hoje, com a regra do dono por bloco.
+**Architecture:**
+- **Diálogo "Novo militar":** sai da tela Militares e vai para um componente próprio, usado pela tela do Pecúlio.
+- **Importação:** o importador `militares` vira `dados-da-escala`. Sai tudo o que é do Pecúlio e sai a criação.
+- **Sem migração.**
 
-**A decidir antes de escrever as tarefas:** a importação de MILITARES também carregava equipe, jornada, motorista, CNH e voluntário JES. Sem ela, esses dados entram só pela ficha, um militar por vez. Alternativas:
-- (a) a planilha do Pecúlio ganha essas colunas, opcionais, preenchidas pela seção;
-- (b) uma importação só dos dados da escala, que atualiza e não cria;
-- (c) só pela ficha.
+**Branch:** `fase6-7-militares-so-no-peculio`. Commits `Fase 6.7: …`.
 
-Também falta decidir o militar novo sem período de rastreio, que hoje não aparece na escala e não gera aviso (pendência da fase 5).
+## Global Constraints
+
+- **Contrato da planilha** (decisão do usuário, 22/11/2026, opção b):
+  - aba `DADOS DA ESCALA`;
+  - colunas `MATRÍCULA` (obrigatória), `JORNADA` (obrigatória: PRONTO ou ADM), `EQUIPE`, `MOTORISTA`, `VOLUNTÁRIO JES` e `CNH`, com as mesmas ajudas e opções de hoje;
+  - saem `NOME DE GUERRA`, `SEÇÃO`, `POSTO/GRAD` e `ANTIG`;
+  - a planilha antiga, com a aba `MILITARES`, recebe a mensagem de aba faltando que já existe. Quem envia se adapta.
+- **A importação nunca cria militar nem muda a lotação.**
+- **A importação muda equipe e jornada a partir do dia 1 do mês escolhido na importação**, como hoje. Se o período aberto começa nesse mesmo dia, ele é substituído; se começou antes, ele é fechado na véspera e outro é aberto.
+- **Textos fixos:**
+  - matrícula desconhecida: "A matrícula {matrícula} não está cadastrada." Solução: "Cadastre o militar no Pecúlio antes.";
+  - militar de outra unidade: "{NOME} está lotado na {sigla}: os dados da escala dele são importados lá." Solução: "Confira a matrícula ou importe pela {sigla}.";
+  - lista vazia na tela Militares: "Nenhum militar lotado. O militar novo é cadastrado no Pecúlio.";
+  - nome no cartão e no botão de importar da tela Militares: "Dados da escala".
+- **O militar novo** (diálogo no Pecúlio) traz os campos do Pecúlio e a lotação:
+  - os campos do Pecúlio são matrícula, posto-graduação, quadro, nome completo, nome de guerra e antiguidade;
+  - a lotação são "Seção" e "Lotado desde", este uma data sugerida com a de hoje;
+  - o resto entra como na importação do Pecúlio: jornada Pronto, sem equipe, fora do quadro de motoristas, sem CNH e não voluntário. A seção ajusta depois.
+
+## Review Focus
+
+- Importar "Dados da escala" com a matrícula de um militar recém-criado pelo Pecúlio, ainda sem equipe: ele ganha a equipe e a jornada, sem duplicar o período.
+- Uma linha com a jornada igual à de hoje e a equipe igual: nada muda, e a prévia diz "sem mudança".
+- O escalante da 1ª SB importando a matrícula de um militar da 2ª SB: problema na linha, e nada é gravado para ele.
+- O auxiliar só da seção abre o Pecúlio: não vê "Novo militar" (o cadastro é de quem tem nível de acesso na unidade de cima).
+- A ficha aberta pela tela Militares continua editando motorista, CNH, voluntário, equipe e jornada.
+
+### Task 15: o "Novo militar" no Pecúlio
+
+**Files:**
+- Create: `apps/web/src/componentes/militares/NovoMilitar.tsx` (o diálogo que hoje está em `routes/_app/militares.tsx`)
+- Modify: `apps/web/src/routes/_app/militares.tsx` (sai o botão, o diálogo e o texto da lista vazia), `apps/web/src/routes/_app/peculio.tsx` (entra o botão "Novo militar")
+- Modify: `pacotes/contratos/src/militares.ts` (`NovoMilitar.lotacao.desde`: `Mes` → `Data`)
+- Modify: `apps/api/src/cadastros/militares.ts` (o POST grava o `desde` do dia)
+- Test: `apps/web/src/__testes__/militares.test.tsx`, `apps/web/src/__testes__/peculio.test.tsx`, `apps/api/test/militares.test.ts` (ou o teste que hoje cobre o POST)
+
+- [ ] **Step 1: testes:**
+  - a tela Militares não tem "Novo militar", e a lista vazia mostra o texto fixo;
+  - no Pecúlio, quem tem nível de acesso na unidade de cima vê "Novo militar"; o auxiliar só da seção não vê;
+  - o diálogo pede Seção e "Lotado desde" e não pede equipe, jornada, motorista, CNH nem voluntário;
+  - salvar chama `POST /api/unidades/{seção escolhida}/militares` com `lotacao: { equipeId: null, jornada: 'pronto', desde: 'AAAA-MM-DD' }`;
+  - na API, o POST com `desde` 2026-11-15 grava o rastreio a partir de 15/11.
+- [ ] **Step 2:** `pnpm --filter web test militares peculio` e `pnpm --filter api test militares`. Esperado: FAIL.
+- [ ] **Step 3:** implementar. A lista de seções vem de `/api/secoes`.
+- [ ] **Step 4:** a mesma linha. Esperado: PASS.
+- [ ] **Step 5:** `git commit -m "Fase 6.7: o Novo militar passa ao Pecúlio"`
+
+### Task 16: a importação "Dados da escala"
+
+**Files:**
+- Rename: `apps/api/src/importacao/militares.ts` → `apps/api/src/importacao/dados-da-escala.ts` (`importadorDadosDaEscala`)
+- Modify: `apps/api/src/importacao/registro.ts` (sai `militares`, entra `'dados-da-escala'`)
+- Modify: `apps/web/src/routes/_app/militares.tsx` (o importar usa `dados-da-escala`, com o nome "Dados da escala")
+- Rename: `apps/api/test/importacao-militares.test.ts` → `apps/api/test/importacao-dados-da-escala.test.ts`
+
+- [ ] **Step 1: testes:**
+  - o modelo baixado tem a aba `DADOS DA ESCALA` e só as seis colunas do contrato, na ordem;
+  - matrícula desconhecida: o problema e a solução fixos, e nada criado;
+  - militar lotado noutra unidade: o problema fixo;
+  - jornada e equipe novas a partir do mês da importação: fecha o período aberto na véspera do dia 1 e abre outro, com a mesma lotação;
+  - período aberto que começa no dia 1 do mesmo mês: substituído, sem período de zero dia;
+  - motorista, CNH e voluntário: atualizados no militar;
+  - uma planilha com a aba `MILITARES` recebe a mensagem de aba faltando;
+  - `/api/unidades/:u/importacao/militares/modelo` responde 404.
+- [ ] **Step 2:** `pnpm --filter api test importacao-dados-da-escala`. Esperado: FAIL.
+- [ ] **Step 3:** implementar. Sai do código tudo o que cria militar, lota, confere a seção, o posto, o nome de guerra e a antiguidade.
+- [ ] **Step 4:** a mesma linha. Esperado: PASS. Depois, `pnpm --filter api test` e `pnpm --filter web test militares`.
+- [ ] **Step 5:** `git commit -m "Fase 6.7: importação Dados da escala, que atualiza e não cria"`
+
+### Task 17: fechar a entrega
+
+- [ ] `pnpm test && pnpm typecheck && pnpm build:vercel`; as contagens no `CLAUDE.md` local.
+- [ ] Na ajuda da importação do Pecúlio, onde ela cita a de MILITARES, trocar para "Dados da escala".
+- [ ] Enviar à PLANEJAMENTO a branch e o resumo, com a lista curta para a sandbox:
+  - criar um militar pelo Pecúlio;
+  - importar os dados da escala dele pela tela Militares;
+  - conferir que a tela Militares não cadastra mais.
+
+---
+
+# Entrega 8 — Acesso ao sistema e busca do Pecúlio
+
+**Goal:** os quatro ajustes sem mockup do pool 3 da validação (22/11/2026).
+
+**Architecture:**
+- **Textos:** trocados no site e nas mensagens da API.
+- **O "até":** entra no contrato e na rota de dar o nível de acesso. O banco já guarda início e fim em `papel_usuario`.
+- **Sem migração.**
+
+**Branch:** `fase6-8-acesso-e-busca`. Commits `Fase 6.8: …`.
+
+## Global Constraints
+
+- **Vocabulário** (decisão do usuário):
+  - nas telas e nas mensagens, "papel" vira **"nível de acesso"** e "papéis", **"níveis de acesso"**;
+  - **ficam como estão:** o código, os nomes de rota (`/papeis`), a tabela `papel_usuario`, o valor `escalante` e o parâmetro `?aviso=outro-papel`.
+- **Textos novos:**
+  - no Acesso ao sistema: o título "Níveis de acesso", "Nenhum nível de acesso.", o botão "Dar nível de acesso" e o rótulo "Nível de acesso";
+  - nos avisos: "Essa área é de outro nível de acesso."; "Este bloco é alterado por quem tem nível de acesso em {unidade}."; "A lotação é alterada por quem tem nível de acesso em {unidade}.";
+  - nas mensagens da API, o mesmo troca-troca. Exemplos: "Você não pode encerrar o seu último nível de acesso de gestor. Peça a outro gestor ou ao administrador."; "Este nível de acesso já foi encerrado."; "Nível de acesso não encontrado."; "Você só dá e encerra níveis de acesso na sua unidade e nas de baixo.".
+- **Um formulário por vez:** com "Dar nível de acesso" aberto, os botões "Encerrar" ficam desligados; com um "Encerrar" aberto, ficam desligados "Dar nível de acesso" e os outros "Encerrar".
+- **"Até":**
+  - campo opcional ao lado de "A partir de", com o rótulo "Até (opcional)";
+  - fim antes do início dá 400 no campo, com "O fim não pode ser antes do início.";
+  - "Encerrar" continua existindo.
+- **Busca do Pecúlio:**
+  - com um resultado só, ele fica em destaque e o Enter no campo de busca abre a ficha (`/militares/$id?de=peculio`);
+  - com zero ou vários resultados, o Enter não faz nada;
+  - a ficha nunca abre sozinha.
+
+## Review Focus
+
+- O gestor dá o nível de gestor com "até" em 31/12 a quem já tem um nível de gestor aberto: vale a regra de hoje para nível repetido, e a mensagem usa "nível de acesso".
+- A regra do último gestor conta um nível com "até" no futuro como vigente até o dia do "até".
+- Com o formulário de dar aberto, um erro da API não fecha o formulário e não libera os "Encerrar".
+- Na busca, digitar até sobrar um resultado e apagar uma letra: o destaque some e o Enter não abre.
+- Nenhum texto de tela ou mensagem da API continua com "papel" ou "papéis". Conferir com `grep -rniE "[\"'\`>][^\"'\`<]*pap(el|éis)" apps/web/src apps/api/src`, que só pode achar código, nomes de rota e o `?aviso`.
+
+### Task 18: "nível de acesso" nas telas e nas mensagens
+
+**Files:**
+- Modify: `apps/web/src/componentes/militares/AcessoAoSistema.tsx`, `Rastreio.tsx`, `Secao.tsx`, `apps/web/src/routes/_app/index.tsx`
+- Modify: `apps/api/src/usuarios/rotas.ts`, `apps/api/src/usuarios/mensagens.ts`, `apps/api/src/acesso.ts`, `apps/api/src/cadastros/militares.ts`, `apps/api/src/importacao/peculio.ts`, e a importação da escala, se a 6.7 já estiver mesclada
+- Test: os testes que conferem esses textos, no site e na API
+
+- [ ] **Step 1:** trocar os textos esperados nos testes pelos novos. Esperado: FAIL.
+- [ ] **Step 2:** trocar os textos no código. Rodar `pnpm test`. Esperado: PASS, e o `grep` do Review Focus limpo.
+- [ ] **Step 3:** `git commit -m "Fase 6.8: nível de acesso no lugar de papel"`
+
+### Task 19: um formulário por vez
+
+**Files:** `apps/web/src/componentes/militares/AcessoAoSistema.tsx`; Test: `apps/web/src/__testes__/acesso-ao-sistema.test.tsx`
+
+- [ ] **Step 1: testes:**
+  - abrir "Dar nível de acesso" desliga os "Encerrar";
+  - abrir um "Encerrar" desliga "Dar nível de acesso" e os outros "Encerrar";
+  - "Cancelar" libera tudo;
+  - um erro da API mantém o formulário aberto.
+- [ ] **Step 2:** rodar. Esperado: FAIL.
+- [ ] **Step 3:** um estado só, `aberto: { tipo: 'dar' } | { tipo: 'encerrar'; papelId: string } | null`, no `AcessoAoSistema`.
+- [ ] **Step 4:** rodar. Esperado: PASS.
+- [ ] **Step 5:** `git commit -m "Fase 6.8: um formulário por vez no Acesso ao sistema"`
+
+### Task 20: o "até" ao dar o nível de acesso
+
+**Files:** `pacotes/contratos/src/usuarios.ts` (`NovoPapel` ganha `ate: Data.nullable().optional()`), `apps/api/src/usuarios/rotas.ts` (`POST /militares/:id/papeis`), `AcessoAoSistema.tsx`; Test: `apps/api/test/acesso-rotas.test.ts`, `acesso-ao-sistema.test.tsx`
+
+- [ ] **Step 1: testes:**
+  - dar com "até" grava o fim, e a lista mostra o período;
+  - "até" antes de "a partir de" dá 400 em `campos.ate`, com o texto fixo;
+  - sem "até", tudo fica como hoje;
+  - um nível com "até" vencido não dá acesso (`temPapel` já olha o fim) e não conta para a regra do último gestor.
+- [ ] **Step 2:** rodar. Esperado: FAIL.
+- [ ] **Step 3:** implementar.
+- [ ] **Step 4:** rodar. Esperado: PASS.
+- [ ] **Step 5:** `git commit -m "Fase 6.8: até opcional ao dar o nível de acesso"`
+
+### Task 21: Enter na busca do Pecúlio
+
+**Files:** `apps/web/src/routes/_app/peculio.tsx`; Test: `apps/web/src/__testes__/peculio.test.tsx`
+
+- [ ] **Step 1: testes:**
+  - com um resultado, o item tem `aria-current="true"`, e o Enter no campo navega para a ficha dele com `?de=peculio`;
+  - com dois resultados, o Enter não navega;
+  - a navegação nunca acontece só por digitar.
+- [ ] **Step 2:** rodar. Esperado: FAIL.
+- [ ] **Step 3:** implementar.
+- [ ] **Step 4:** rodar. Esperado: PASS. Depois, `pnpm test && pnpm typecheck && pnpm build:vercel`.
+- [ ] **Step 5:** `git commit -m "Fase 6.8: Enter abre a ficha quando a busca do Pecúlio deixa um resultado"`
+- [ ] **Step 6:** enviar à PLANEJAMENTO a branch e o resumo, com a lista curta para a sandbox:
+  - os textos de nível de acesso;
+  - um formulário por vez;
+  - o "até";
+  - o Enter no Pecúlio.
