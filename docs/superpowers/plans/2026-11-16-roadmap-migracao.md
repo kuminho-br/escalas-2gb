@@ -104,9 +104,10 @@ Design: `docs/superpowers/specs/2026-11-21-usuarios-e-modulos-design.md`. Plano:
 | 4 | Transição do login (as mangueiras), se o mockup estiver aprovado | condicional |
 | 5 | Retorno da validação: recolher equipe, rastreio por dia, "Vale desde" antigo | mesclada (#104), migração 0028 aplicada no teste |
 | 6 | Retorno da validação com mockup: sete ajustes de interface | aguardando a DESIGN |
-| 7 | Militares só no Pecúlio | a decidir: os dados da escala sem a importação de MILITARES |
+| 7 | Militares só no Pecúlio | planejada |
+| 8 | Nível de acesso, "até" e Enter no Pecúlio | planejada |
 
-**Fora:** envio de e-mail, usuários acima do GB (fase 11), Visualização (fase 7).
+**Fora:** e-mail, usuários acima do GB (fase 11), Visualização (fase 7).
 
 ## Fase 7 — Visualização de escalas · planejada
 
