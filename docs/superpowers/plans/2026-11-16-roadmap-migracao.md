@@ -170,15 +170,17 @@ Entregas fora das fases, numeradas P1, P2…: usam os dados do projeto, mas não
 | Entrega | O que traz | Situação |
 |---|---|---|
 | P1.1 | Quadros QOC, QOA e QBMG no banco; o quadro na ficha | mesclada (#94), migração 0026 aplicada no teste |
-| P1.2 | Escala dos oficiais: motor, tabelas e API, com o serviço cadastrado | em execução (migração 0027) |
-| P1.4 | Só o QBMG nas outras telas de escala | planejada, antes da P1.3 |
-| P1.3 | Escala dos oficiais: telas (escala do mês, saldo, regras), dia e noite só por cor | planejada |
+| P1.2 | Escala dos oficiais: motor, tabelas e API, com o serviço cadastrado | mesclada (#99), migração 0027 aplicada no teste |
+| P1.4 | Só o QBMG nas outras telas de escala | mesclada (#101) |
+| P1.3 | Escala dos oficiais: telas (escala do mês, saldo, regras), dia e noite só por cor | mesclada (#102) |
 
 Design: `docs/superpowers/specs/2026-11-22-escala-dos-oficiais-design.md`. Plano: `docs/superpowers/plans/2026-11-22-p1-escala-dos-oficiais.md`.
 
 ## Pendências conhecidas
 
 Achadas nas revisões e nas validações. Nenhuma muda quem é escalado. Entram numa entrega quando houver oportunidade.
+
+**Escala dos oficiais (P1.3)** (lista no PR #102): a tela não recarrega após um 409; o item "Oficiais" não olha o papel na unidade escolhida; o diálogo de troca e as células com pouca informação para o leitor de tela; pequenas diferenças do mockup.
 
 **Tela inicial e módulos (6.3):**
 - a ficha aberta pelo Pecúlio aparece dentro da tela Militares, e clicar na lista perde o `?de`;
@@ -277,17 +279,14 @@ Achadas nas revisões e nas validações. Nenhuma muda quem é escalado. Entram 
 - um teste de configuração com '1/2031' quebra em fevereiro de 2031.
 
 **Da entrega 4.7** (lista no PR #68):
-- depois de salvar, se chegou dado novo do servidor durante a edição, o bloco mostra o valor da outra pessoa até a nova busca voltar;
-- se o pedido de "Sair" nunca voltar, um 401 real só mostra "Sessão inválida." no bloco;
-- "Mês já passou" mostra a chave técnica da configuração, não o rótulo.
+- dado novo do servidor durante a edição aparece até a nova busca; "Sair" sem resposta mostra só "Sessão inválida."; "Mês já passou" mostra a chave técnica.
 
 **Da fase 5, entrega 1** (lista no PR #73):
 - "Use o mês do período aberto ou um mês depois." não diz qual mês;
 - o painel do dia mostra a etiqueta "CNH D" de quem está fora do quadro;
 - "Sem a CNH exigida" engana para quem tem CNH fora do quadro ("Fora do quadro de motoristas" seria mais claro);
 - no diálogo "Alterar situação", enquanto a lista de seções carrega, a opção provisória pode não bater com o valor enviado;
-- a linha do tempo não mostra um intervalo sem período entre dois períodos;
-- quem só tem período futuro aparece como "Sem lotação" na situação atual.
+- a linha do tempo não mostra o intervalo entre dois períodos; só período futuro aparece como "Sem lotação".
 
 **Da fase 5, entregas 2 e 3** (listas nos PRs #79 e #80):
 - **decisão do usuário pendente:** na importação do Pecúlio, célula vazia apaga o campo de quem já existe; alternativas: manter, manter com um resumo do que será apagado na prévia, ou exigir uma marca para apagar;
