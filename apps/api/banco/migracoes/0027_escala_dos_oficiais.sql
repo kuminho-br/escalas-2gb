@@ -1,15 +1,17 @@
--- P1.2: escala dos oficiais (QOC e QOA). Um mês por unidade, as cotas calculadas, os turnos de 12 h e o saldo de cada oficial.
+-- P1.2: escala dos oficiais (QOC e QOA). Um mês por unidade, com o serviço escolhido (os turnos vêm dele), as cotas calculadas e o saldo de cada oficial.
 -- O arquivo pode rodar de novo: cada tabela confere antes de criar.
 
 create table if not exists oficiais_mes (
   id uuid primary key default gen_random_uuid(),
   unidade_id uuid not null references unidade (id),
   mes date not null check (extract(day from mes) = 1),
+  servico_id uuid references servico (id),
   ordem_manual uuid[] not null default '{}',
   cotas_em timestamptz,
   fechada_em timestamptz,
   encerrada_em timestamptz,
   unique (unidade_id, mes),
+  check (cotas_em is null or servico_id is not null),
   check (fechada_em is null or cotas_em is not null),
   check (encerrada_em is null or fechada_em is not null)
 );
@@ -32,11 +34,11 @@ create table if not exists oficiais_turno (
   id uuid primary key default gen_random_uuid(),
   mes_id uuid not null references oficiais_mes (id) on delete cascade,
   dia date not null,
-  turno text not null check (turno in ('dia', 'noite')),
+  turno_id uuid not null references turno (id),
   militar_id uuid references militar (id),
   saiu_militar_id uuid references militar (id),
   check (saiu_militar_id is null or (militar_id is not null and saiu_militar_id <> militar_id)),
-  unique (mes_id, dia, turno)
+  unique (mes_id, dia, turno_id)
 );
 
 create table if not exists oficiais_saldo (

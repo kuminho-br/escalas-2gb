@@ -155,9 +155,10 @@ describe('escala dos oficiais (P1.2)', () => {
     await expect(mes('2030-01-01')).rejects.toMatchObject({ code: '23505' });
   });
 
-  it('fechada_em sem cotas_em e encerrada_em sem fechada_em falham com 23514', async () => {
-    await expect(mes('2030-02-01', { fechada_em: '2030-02-01T10:00:00Z' })).rejects.toMatchObject({ code: '23514' });
-    await expect(mes('2030-03-01', { cotas_em: '2030-03-01T10:00:00Z', encerrada_em: '2030-03-02T10:00:00Z' })).rejects.toMatchObject({ code: '23514' });
+  it('cotas_em sem servico_id, fechada_em sem cotas_em e encerrada_em sem fechada_em falham com 23514', async () => {
+    await expect(mes('2029-12-01', { cotas_em: '2029-12-01T10:00:00Z' })).rejects.toMatchObject({ code: '23514' });
+    await expect(mes('2030-02-01', { servico_id: pronto, fechada_em: '2030-02-01T10:00:00Z' })).rejects.toMatchObject({ code: '23514' });
+    await expect(mes('2030-03-01', { servico_id: pronto, cotas_em: '2030-03-01T10:00:00Z', encerrada_em: '2030-03-02T10:00:00Z' })).rejects.toMatchObject({ code: '23514' });
   });
 
   it('ajuste sem motivo falha com 23514; com motivo grava', async () => {
@@ -180,17 +181,17 @@ describe('escala dos oficiais (P1.2)', () => {
   it('a auditoria de um update em oficiais_turno sai com a unidade do mês', async () => {
     const m = await militar();
     const id = await mes('2030-05-01');
-    const turno = await inserir(banco, 'oficiais_turno', { mes_id: id, dia: '2030-05-01', turno: 'dia' });
+    const turno = await inserir(banco, 'oficiais_turno', { mes_id: id, dia: '2030-05-01', turno_id: turnoA });
     await banco.query('update oficiais_turno set militar_id = $1 where id = $2', [m, turno]);
     const { rows } = await banco.query<{ unidade_id: string }>(
       "select unidade_id from auditoria where tabela = 'oficiais_turno' and registro_id = $1 and acao = 'update'", [turno]);
     expect(rows[0]?.unidade_id).toBe(unidade);
   });
 
-  it('turno: quem saiu precisa de quem cobriu e ser outra pessoa; dia e noite não se repetem', async () => {
+  it('turno: quem saiu precisa de quem cobriu e ser outra pessoa; o mesmo turno no mesmo dia não se repete', async () => {
     const a = await militar();
     const id = await mes('2030-06-01');
-    const t = (extra: Record<string, unknown>, turno = 'dia') => inserir(banco, 'oficiais_turno', { mes_id: id, dia: '2030-06-02', turno, ...extra });
+    const t = (extra: Record<string, unknown>, turno = turnoA) => inserir(banco, 'oficiais_turno', { mes_id: id, dia: '2030-06-02', turno_id: turno, ...extra });
     await expect(t({ saiu_militar_id: a })).rejects.toMatchObject({ code: '23514' });
     await expect(t({ militar_id: a, saiu_militar_id: a })).rejects.toMatchObject({ code: '23514' });
     await t({});
