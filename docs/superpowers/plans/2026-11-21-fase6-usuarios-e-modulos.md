@@ -536,7 +536,7 @@ Só começa se o usuário tiver aprovado o mockup `docs/telas/transicao-login/mo
 
 **Goal:** três ajustes que o usuário decidiu ao validar (21/11/2026) e que não dependem de desenho novo.
 
-**Branch:** `fase6-5-retorno-da-validacao`. Commits `Fase 6.5: …`. **Migração 0026:** o resumo avisa `pnpm --filter api db:migrar:teste`.
+**Branch:** `fase6-5-retorno-da-validacao`. Commits `Fase 6.5: …`. **Migração 0027:** o resumo avisa `pnpm --filter api db:migrar:teste`.
 
 ## Global Constraints
 
@@ -586,7 +586,7 @@ Só começa se o usuário tiver aprovado o mockup `docs/telas/transicao-login/mo
 ### Task 13: Rastreio por dia
 
 **Files:**
-- Create: `apps/api/banco/migracoes/0026_rastreio_por_dia.sql` (tira o `check (extract(day from desde) = 1)` do `rastreio`, procurando o nome em `pg_constraint`; o da `unidade` fica)
+- Create: `apps/api/banco/migracoes/0027_rastreio_por_dia.sql` (tira o `check (extract(day from desde) = 1)` do `rastreio`, procurando o nome em `pg_constraint`; o da `unidade` fica)
 - Modify: `pacotes/contratos/src/militares.ts` (`AlteracaoDeSituacao.desde` passa de `Mes` para `Data`)
 - Modify: `apps/api/src/cadastros/militares.ts` (`POST /api/militares/:id/situacao` e a mensagem `MSG_PERIODO_ANTES`)
 - Modify: `apps/api/src/escala/pre-escala.ts` (a equipe do militar em cada dia)
@@ -640,7 +640,7 @@ Só começa se o usuário tiver aprovado o mockup `docs/telas/transicao-login/mo
 - [ ] **Step 4: Run** `pnpm test`. Expected: PASS.
 - [ ] **Step 5: Commit** `Fase 6.5: o "Vale desde" do modelo de guarnição aceita mês passado`.
 - [ ] **Step 6: Fechar a entrega.**
-  - `pnpm test && pnpm typecheck && pnpm build:vercel`; contagens; o esquema com a migração 0026.
+  - `pnpm test && pnpm typecheck && pnpm build:vercel`; contagens; o esquema com a migração 0027.
   - Enviar à PLANEJAMENTO o branch, o resumo e a lista curta para a sandbox:
     - recolher e abrir uma equipe na Grade;
     - alterar a situação de um militar a partir de um dia no meio do mês e ver a Grade e a pré-escala;

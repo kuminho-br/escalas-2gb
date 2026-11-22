@@ -9,11 +9,11 @@
 **Linha de entregas:** é a primeira **entrega paralela** (zona "Missões paralelas" do roadmap). Não muda a ordem das fases nem o que existe, fora o quadro do militar (P1.1), que é pré-requisito dela e passa a valer para o Pecúlio.
 
 **Subentregas** (uma branch e um PR cada, nesta ordem):
-1. **P1.1 — Quadros no banco:** QOC, QOA e QBMG; o posto-graduação pertence a um quadro; o militar tem um quadro. Migração **0027**.
+1. **P1.1 — Quadros no banco:** QOC, QOA e QBMG; o posto-graduação pertence a um quadro; o militar tem um quadro. Migração **0026**.
 2. **P1.2 — Motor e API da escala dos oficiais:** as regras puras em `pacotes/dominio`, as tabelas e as rotas. Migração **0028**.
 3. **P1.3 — Telas:** o item "Oficiais" no trilho e a tela com as abas Escala do mês, Painel de saldo e Regras.
 
-**Ordem com a fase 6:** os números 0027 e 0028 supõem a entrega 6.5 (migração 0026) mesclada antes. Se a P1.1 for executada antes da 6.5, ela fica com a 0026 e a 6.5 passa a usar o número livre seguinte. A DESENVOLVIMENTO confere isso ao abrir a branch.
+**Ordem com a fase 6:** a P1.1 foi executada antes da 6.5 e ficou com a migração 0026; a 6.5 usa a 0027 e a P1.2 a 0028.
 
 **Fluxo:** o Sonnet (esforço high) executa, e o Opus (esforço medium) faz a revisão final de cada branch, com o modelo explícito. Ao terminar cada subentrega, a DESENVOLVIMENTO envia a branch e o resumo à PLANEJAMENTO, sem abrir PR. A PLANEJAMENTO abre o PR e mescla. A migração no banco de teste só roda com a autorização do usuário.
 
@@ -73,7 +73,7 @@ Minhas (marcadas para o usuário conferir):
 
 **Architecture:** migração com `quadro` e `quadro_posto_grad`; `militar.quadro_id` com chave composta, que garante que o posto pertence ao quadro. Uma função da API escolhe o quadro quando ele não é informado. A ficha ganha o campo, e a pendência "Sem quadro" entra na lista de pendências que já existe.
 
-**Branch:** `p1-1-quadros`. Commits `P1.1: …`. **Migração 0027:** o resumo avisa `pnpm --filter api db:migrar:teste`.
+**Branch:** `p1-1-quadros`. Commits `P1.1: …`. **Migração 0026:** o resumo avisa `pnpm --filter api db:migrar:teste`.
 
 ## Review Focus
 
@@ -86,7 +86,7 @@ Minhas (marcadas para o usuário conferir):
 ### Task 1: migração dos quadros
 
 **Files:**
-- Create: `apps/api/banco/migracoes/0027_quadros.sql`
+- Create: `apps/api/banco/migracoes/0026_quadros.sql`
 - Test: `apps/api/test/esquema-estrutura.test.ts`
 
 - [ ] **Step 1: testes**, que falham antes da migração:

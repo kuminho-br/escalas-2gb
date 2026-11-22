@@ -102,7 +102,7 @@ Design: `docs/superpowers/specs/2026-11-21-usuarios-e-modulos-design.md`. Plano:
 | 2 | Unidade de trabalho: o seletor substitui a 1ª SB fixa, e o auxiliar gera a senha de um colega auxiliar | mesclada (#88) |
 | 3 | Tela inicial e módulos por papel, Minha ficha com o próprio telefone; conta desativada só volta por quem dá o papel | mesclada (#90) |
 | 4 | Transição do login (as mangueiras), se o mockup estiver aprovado | condicional |
-| 5 | Retorno da validação sem mockup: recolher equipe na Grade, rastreio por dia, "Vale desde" antigo no modelo de guarnição | planejada (migração 0026) |
+| 5 | Retorno da validação sem mockup: recolher equipe na Grade, rastreio por dia, "Vale desde" antigo no modelo de guarnição | planejada (migração 0027) |
 | 6 | Retorno da validação com mockup: sete ajustes de interface | aguardando a DESIGN |
 
 **Fora:** envio de e-mail (link de senha e "Esqueci minha senha"), usuários acima do GB (fase 11), Visualização (fase 7).
@@ -168,7 +168,7 @@ Entregas fora das fases, numeradas P1, P2…: usam os dados do projeto, mas não
 
 | Entrega | O que traz | Situação |
 |---|---|---|
-| P1.1 | Quadros QOC, QOA e QBMG no banco; o quadro na ficha | planejada (migração 0027) |
+| P1.1 | Quadros QOC, QOA e QBMG no banco; o quadro na ficha | em PR (#94), migração 0026 |
 | P1.2 | Escala dos oficiais: motor, tabelas e API | planejada (migração 0028) |
 | P1.3 | Escala dos oficiais: telas (escala do mês, saldo, regras) | planejada |
 
