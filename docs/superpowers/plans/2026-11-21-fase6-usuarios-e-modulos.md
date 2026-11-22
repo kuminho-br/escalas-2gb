@@ -9,8 +9,9 @@
 2. **Unidade de trabalho:** o seletor de unidade substitui a 1ª SB fixa; antes, a folga do auxiliar na senha provisória (decisão de 21/11/2026). **Mesclada (#88).**
 3. **Tela inicial e módulos:** os cartões por papel, o trilho por módulo e a Minha ficha com o próprio telefone; antes, a conta desativada só volta por quem dá o papel (decisão de 21/11/2026). **Mesclada (#90).**
 4. **Transição do login** (as mangueiras), **condicional**: só começa se o usuário tiver aprovado o mockup (ajustes R1 a R6). As tarefas são escritas quando ela for começar.
-5. **Retorno da validação, parte sem mockup** (lote de 21/11/2026): recolher equipe na Grade geral, rastreio por dia e "Vale desde" do modelo de guarnição aceitando mês passado. **Detalhada abaixo.**
+5. **Retorno da validação, parte sem mockup** (lote de 21/11/2026): recolher equipe na Grade geral, rastreio por dia e "Vale desde" do modelo de guarnição aceitando mês passado. **Detalhada abaixo. Começa depois da P1.3 e da P1.4** (entrega paralela, decisão do usuário de 22/11/2026).
 6. **Retorno da validação, parte com mockup** (mesmo lote): sete ajustes de interface que esperam o mockup da DESIGN. Lista no fim; as tarefas são escritas quando o mockup for aprovado.
+7. **Militares só no Pecúlio** (decisão do usuário, 22/11/2026): o militar novo só entra pelo módulo Pecúlio. Lista no fim; as tarefas são escritas quando ela for começar.
 
 O retorno da validação que chegar durante a fase vira uma entrega depois da última prevista.
 
@@ -536,7 +537,7 @@ Só começa se o usuário tiver aprovado o mockup `docs/telas/transicao-login/mo
 
 **Goal:** três ajustes que o usuário decidiu ao validar (21/11/2026) e que não dependem de desenho novo.
 
-**Branch:** `fase6-5-retorno-da-validacao`. Commits `Fase 6.5: …`. **Migração 0026:** o resumo avisa `pnpm --filter api db:migrar:teste`.
+**Branch:** `fase6-5-retorno-da-validacao`. Commits `Fase 6.5: …`. **Migração:** o número livre seguinte (a P1 usou 0026 e 0027; se nada mais entrar antes, é a 0028). O resumo avisa `pnpm --filter api db:migrar:teste`.
 
 ## Global Constraints
 
@@ -586,7 +587,7 @@ Só começa se o usuário tiver aprovado o mockup `docs/telas/transicao-login/mo
 ### Task 13: Rastreio por dia
 
 **Files:**
-- Create: `apps/api/banco/migracoes/0026_rastreio_por_dia.sql` (tira o `check (extract(day from desde) = 1)` do `rastreio`, procurando o nome em `pg_constraint`; o da `unidade` fica)
+- Create: `apps/api/banco/migracoes/00NN_rastreio_por_dia.sql`, com o número livre seguinte (tira o `check (extract(day from desde) = 1)` do `rastreio`, procurando o nome em `pg_constraint`; o da `unidade` fica)
 - Modify: `pacotes/contratos/src/militares.ts` (`AlteracaoDeSituacao.desde` passa de `Mes` para `Data`)
 - Modify: `apps/api/src/cadastros/militares.ts` (`POST /api/militares/:id/situacao` e a mensagem `MSG_PERIODO_ANTES`)
 - Modify: `apps/api/src/escala/pre-escala.ts` (a equipe do militar em cada dia)
@@ -640,7 +641,7 @@ Só começa se o usuário tiver aprovado o mockup `docs/telas/transicao-login/mo
 - [ ] **Step 4: Run** `pnpm test`. Expected: PASS.
 - [ ] **Step 5: Commit** `Fase 6.5: o "Vale desde" do modelo de guarnição aceita mês passado`.
 - [ ] **Step 6: Fechar a entrega.**
-  - `pnpm test && pnpm typecheck && pnpm build:vercel`; contagens; o esquema com a migração 0026.
+  - `pnpm test && pnpm typecheck && pnpm build:vercel`; contagens; o esquema com a migração nova.
   - Enviar à PLANEJAMENTO o branch, o resumo e a lista curta para a sandbox:
     - recolher e abrir uma equipe na Grade;
     - alterar a situação de um militar a partir de um dia no meio do mês e ver a Grade e a pré-escala;
@@ -659,3 +660,20 @@ Do mesmo lote de 21/11/2026. Cada item espera o mockup da DESIGN e a aprovação
 5. **Ficha com cadastro incompleto:** sai a faixa âmbar do topo. O dado que falta vira campo vermelho com a orientação dentro; o conflito (ex.: antiguidade repetida) fica como aviso na ficha e na lista.
 6. **Lista de militares:** um botão de aviso filtra só quem tem pendência, no lugar do "Ver quais".
 7. **Lista de militares:** o motivo do afastamento ("Adido o mês todo", "Curso desde 18/11") alinhado à direita da linha.
+
+---
+
+# Entrega 7 — Militares só no Pecúlio
+
+Decisão do usuário (22/11/2026): o cadastro de militar novo acontece só no módulo Pecúlio. As tarefas são escritas quando a entrega for começar.
+
+1. **No módulo de escalas**, a tela Militares deixa de ter "Novo militar". A ficha continua abrindo ali, para os blocos da escala (equipe, jornada, motorista, CNH, voluntário JES).
+2. **A importação de MILITARES sai do módulo de escalas.** Tudo do militar entra pela importação do Pecúlio.
+3. **No módulo Pecúlio**, ficam "Novo militar" e a importação, como hoje, com a regra do dono por bloco.
+
+**A decidir antes de escrever as tarefas:** a importação de MILITARES também carregava equipe, jornada, motorista, CNH e voluntário JES. Sem ela, esses dados entram só pela ficha, um militar por vez. Alternativas:
+- (a) a planilha do Pecúlio ganha essas colunas, opcionais, preenchidas pela seção;
+- (b) uma importação só dos dados da escala, que atualiza e não cria;
+- (c) só pela ficha.
+
+Também falta decidir o militar novo sem período de rastreio, que hoje não aparece na escala e não gera aviso (pendência da fase 5).
