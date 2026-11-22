@@ -39,7 +39,7 @@ function Casca() {
 
   return (
     <div className={comTrilho ? 'min-h-dvh md:grid md:grid-cols-[84px_1fr]' : 'min-h-dvh'}>
-      {comTrilho && <Trilho modulo={modulo} aberto={menuAberto} aoFechar={fecharMenu} />}
+      {comTrilho && <Trilho modulo={modulo} eu={eu} aberto={menuAberto} aoFechar={fecharMenu} />}
       <div className="flex min-w-0 flex-col">
         <Topo eu={eu} aoAbrirMenu={() => setMenuAberto(true)} botaoDoMenu={botaoDoMenu} semTrilho={!comTrilho} />
         <main className="flex-1 px-4 py-6 md:px-8">
