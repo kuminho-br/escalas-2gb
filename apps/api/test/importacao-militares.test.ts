@@ -127,7 +127,7 @@ describe('importação de militares', () => {
     const ivo = await militar('990209-9');
     const bravo = (await api.banco.query<{ id: string }>("select id from equipe where nome = 'BRAVO'")).rows[0]!.id;
     // o escalante marca a ida para BRAVO no mês que vem; a planilha continua dizendo ALFA
-    const r = await api.pedir('escalante', 'POST', `/api/militares/${ivo!.id}/situacao`, { unidadeId: api.ids.secao, equipeId: bravo, jornada: 'pronto', desde: proximo });
+    const r = await api.pedir('escalante', 'POST', `/api/militares/${ivo!.id}/situacao`, { unidadeId: api.ids.secao, equipeId: bravo, jornada: 'pronto', desde: `${proximo}-01` });
     expect(r.status).toBe(201);
     const res = await importar([...LINHAS, linha], true);
     expect(res.alterados.find((x: { chave: string }) => x.chave === '990209-9')).toBeUndefined();

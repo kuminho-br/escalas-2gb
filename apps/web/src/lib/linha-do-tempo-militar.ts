@@ -4,11 +4,11 @@ import { NOME_JORNADA } from '@/lib/militares';
 type Periodo = FichaMilitar['rastreio'][number];
 type Afastamento = FichaMilitar['afastamentos'][number];
 
-/** `quando` é a data de começo ('aaaa-mm-dd'): o período do rastreio começa no dia 1 do mês, o afastamento no dia em que inicia. */
+/** `quando` é a data de começo ('aaaa-mm-dd'): o período do rastreio e o afastamento, no dia em que começam. */
 export type ItemDaLinhaDoTempo = { quando: string; tipo: 'situacao' | 'afastamento'; texto: string };
 
 const ddmm = (d: string) => `${d.slice(8, 10)}/${d.slice(5, 7)}`;
-const ddmmaaaa = (d: string) => `${ddmm(d)}/${d.slice(0, 4)}`;
+export const ddmmaaaa = (d: string) => `${ddmm(d)}/${d.slice(0, 4)}`;
 
 /** A situação inteira de um período, como no primeiro item da linha do tempo: "1ª SB · Equipe Alfa · Pronto". */
 export const situacaoInteira = (p: Pick<Periodo, 'unidadeSigla' | 'equipe' | 'jornada'>): string =>

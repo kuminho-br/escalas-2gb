@@ -9,23 +9,21 @@ import { Button } from '@/componentes/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/componentes/ui/dialog';
 import { Input } from '@/componentes/ui/input';
 import { Label } from '@/componentes/ui/label';
-import { linhaDoTempoDoMilitar, situacaoInteira } from '@/lib/linha-do-tempo-militar';
-import { mesAtual } from '@/lib/meses';
+import { ddmmaaaa, linhaDoTempoDoMilitar, situacaoInteira } from '@/lib/linha-do-tempo-militar';
+import { hoje } from '@/lib/meses';
 import { Secao } from './Secao';
 
-const mmaaaa = (d: string) => `${d.slice(5, 7)}/${d.slice(0, 4)}`;
-
-/** A situação de hoje: o período que cobre o mês corrente (ou o mais recente, se nenhum cobre). */
+/** A situação de hoje: o período que cobre o dia de hoje (uma mudança marcada para depois ainda não vale). */
 function periodoAtual(rastreio: FichaMilitar['rastreio']) {
-  const mes = mesAtual();
-  return rastreio.find((p) => p.desde.slice(0, 7) <= mes && (!p.ate || p.ate.slice(0, 7) >= mes)) ?? null;
+  const dia = hoje();
+  return rastreio.find((p) => p.desde <= dia && (!p.ate || p.ate >= dia)) ?? null;
 }
 
 /** "Histórico de rastreio": a situação atual (lotação, equipe e jornada) e a linha do tempo, com "Alterar situação". */
 export function Rastreio({ ficha, unidadeId }: { ficha: FichaMilitar; unidadeId: string }) {
   const [alterando, setAlterando] = useState(false);
   const atual = periodoAtual(ficha.rastreio);
-  const situacaoAtual = atual ? `${situacaoInteira(atual)} (desde ${mmaaaa(atual.desde)})` : 'Sem lotação';
+  const situacaoAtual = atual ? `${situacaoInteira(atual)} (desde ${ddmmaaaa(atual.desde)})` : 'Sem lotação';
   const itens = linhaDoTempoDoMilitar(ficha.rastreio, ficha.afastamentos);
   return (
     <Secao
@@ -39,7 +37,7 @@ export function Rastreio({ ficha, unidadeId }: { ficha: FichaMilitar; unidadeId:
         {itens.map((i, n) => (
           <li key={`${i.tipo}-${i.quando}-${n}`} className="relative">
             <span className={`absolute top-1.5 -left-[1.4rem] size-2.5 rounded-full ${n === 0 ? 'bg-vinho' : 'bg-linha'}`} aria-hidden />
-            <span className="mr-2 font-cond text-apagado">{mmaaaa(i.quando)}</span>
+            <span className="mr-2 font-cond text-apagado">{ddmmaaaa(i.quando)}</span>
             <span className={i.tipo === 'afastamento' ? 'text-apagado' : 'font-medium'}>{i.texto}</span>
           </li>
         ))}
@@ -50,7 +48,7 @@ export function Rastreio({ ficha, unidadeId }: { ficha: FichaMilitar; unidadeId:
   );
 }
 
-/** O formulário flutuante: lotação, equipe (da lotação escolhida), jornada e "a partir de" (mês, sugerido o atual). */
+/** O formulário flutuante: lotação, equipe (da lotação escolhida), jornada e "a partir de" (um dia, sugerido o de hoje). */
 function AlterarSituacao({ ficha, unidadeAtualId, aoFechar }: { ficha: FichaMilitar; unidadeAtualId: string; aoFechar: () => void }) {
   const queryClient = useQueryClient();
   const secoes = useQuery(consultaSecoes);
@@ -64,7 +62,7 @@ function AlterarSituacao({ ficha, unidadeAtualId, aoFechar }: { ficha: FichaMili
   const [equipeEscolhida, setEquipeEscolhida] = useState<string | null>(null);
   const equipeId = equipeEscolhida ?? (unidadeId === (daSigla ?? unidadeAtualId) ? (equipes.data?.find((e) => e.nome === atual?.equipe)?.id ?? '') : '');
   const [jornada, setJornada] = useState<'pronto' | 'adm'>(atual?.jornada ?? 'pronto');
-  const [desde, setDesde] = useState(mesAtual());
+  const [desde, setDesde] = useState(hoje());
   const [erro, setErro] = useState<string | null>(null);
   const { salvando, travar } = useTrava();
 
@@ -84,7 +82,7 @@ function AlterarSituacao({ ficha, unidadeAtualId, aoFechar }: { ficha: FichaMili
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Alterar situação</DialogTitle>
-          <DialogDescription>A situação atual termina no mês anterior ao escolhido. No mesmo mês do período aberto, ele é substituído.</DialogDescription>
+          <DialogDescription>A situação atual termina no dia anterior ao escolhido. No mesmo dia do período aberto, ele é substituído.</DialogDescription>
         </DialogHeader>
         <form onSubmit={(e: FormEvent) => { e.preventDefault(); void salvar(); }} className="grid gap-3">
           <div className="grid gap-3 sm:grid-cols-2">
@@ -119,7 +117,7 @@ function AlterarSituacao({ ficha, unidadeAtualId, aoFechar }: { ficha: FichaMili
             </div>
             <div className="grid gap-1.5">
               <Label htmlFor="rs-desde">A partir de</Label>
-              <Input id="rs-desde" type="month" value={desde} onChange={(e) => setDesde(e.target.value)} required />
+              <Input id="rs-desde" type="date" value={desde} onChange={(e) => setDesde(e.target.value)} required />
             </div>
           </div>
           {erro && <p role="alert" className="text-sm text-alerta">{erro}</p>}

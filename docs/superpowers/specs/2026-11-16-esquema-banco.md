@@ -2,7 +2,7 @@
 
 16/11/2026 · v0.1 · parte do design (`2026-11-16-migracao-design.md`)
 
-Em dia com as migrações até a `0024_ficha_do_peculio.sql` (21/11/2026). As tabelas das entregas 4.x estão na seção 9 e as mudanças da fase 5 (rastreio e CNH; ficha do Pecúlio), na seção 10.
+Em dia com as migrações até a `0028_rastreio_por_dia.sql` (22/11/2026; quadros, escala dos oficiais e rastreio por dia nas suas seções). As tabelas das entregas 4.x estão na seção 9 e as mudanças da fase 5 (rastreio e CNH; ficha do Pecúlio), na seção 10.
 
 Ponto de partida: o "ER proposto" do documento *Modelo ER — Sistema de Escalas 2º GB* (v0.8). Acréscimos: unidades em árvore, rastreio (lotação, equipe e jornada com vigência), vínculo de militar externo, usuários e papéis, modelos de impressão, documentos gerados e auditoria. Também entram as mudanças vindas dos esboços de tela (versão 12), que ainda podem mudar.
 
@@ -166,8 +166,8 @@ O rastreio do militar: a lotação (a unidade), a equipe e a jornada em cada per
 | unidade_id | uuid FK | |
 | equipe_id | uuid FK null | equipe da mesma unidade (gatilho) |
 | jornada | text not null | `pronto` ou `adm` |
-| desde | date not null | dia 1 do mês |
-| ate | date null | |
+| desde | date not null | qualquer dia (o rastreio vale por dia, como os afastamentos; até a 0027 era o dia 1 do mês) |
+| ate | date null | inclusive; o período seguinte começa no dia depois |
 
 Regra: sem períodos sobrepostos por militar (exclude gist).
 
@@ -607,6 +607,12 @@ Quatro tabelas, todas com auditoria (a função `registrar_auditoria` ganhou um 
 - **`oficiais_cota`:** a cota gravada no último "Calcular cotas" (PK `mes_id, militar_id`; `unique (mes_id, ordem)`): `dias` presentes, `devido numeric(12,6)`, `cota` e `sobra`. O `id` só serve à auditoria.
 - **`oficiais_turno`:** um registro por dia e por turno do serviço (`turno_id` → `turno`), com `militar_id` (vazio = turno sem nome) e `saiu_militar_id` (a cobertura: quem saiu, só com a escala fechada). `unique (mes_id, dia, turno_id)`; a API garante que o turno é do serviço do mês.
 - **`oficiais_saldo`:** os lançamentos do saldo por unidade e oficial: `mes` (calculado no encerramento, com tirado, devido e a contagem de turnos por rótulo: `turnos_dia` e `turnos_noite`, o rótulo vindo do horário de início do turno), `entrada` (média de quem chega) e `ajuste` (do gestor, com `motivo` de 1 a 200 caracteres e o `usuario_id`). Um `mes` e uma `entrada` por oficial e mês (índice único parcial). O saldo acumulado é a soma de `valor`.
+
+### Fase 6, entrega 5: rastreio por dia (migração 0028)
+
+- **`rastreio.desde` aceita qualquer dia:** a migração tira a regra "dia 1" do `rastreio` (acha a regra pelo que ela diz, em `pg_constraint`; a da `unidade` fica). Os períodos que já começam no dia 1 não mudam, e a regra de não sobrepor continua.
+- **"Alterar situação"** (`POST /api/militares/:id/situacao`) recebe `desde` como data: no dia do período aberto, ele é substituído; depois, o período aberto termina no dia anterior; antes, 400 com "Use o dia do período aberto ou um dia depois.".
+- **Um militar, uma situação por mês nas listas e na ficha:** com dois períodos no mesmo mês, valem o de hoje (mês de hoje), o do primeiro dia (mês futuro) ou o do último (mês passado). A Grade mostra duas linhas (uma por período, cada uma só nos dias dele), e a escolha de militar e a pré-escala usam o período de cada dia.
 
 ## Mudanças em relação ao ER proposto (v0.8)
 
