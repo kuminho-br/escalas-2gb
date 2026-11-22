@@ -599,6 +599,15 @@ Fonte: "ER da meta de ativação" do claude.ai (20/11/2026), colhido em 20/11/20
 - **Dono por bloco** (regra da API, sem coluna nova): os blocos do Pecúlio (identificação, dados pessoais, contato, comportamento, afastamentos, criar militar e a mudança de **lotação**) são de quem tem papel de cadastro numa unidade **acima** da lotação atual do militar; equipe, jornada, quadro de motoristas, CNH e voluntário JES são de quem tem papel na lotação ou acima. A ficha devolve `podeEditar` com o resultado.
 - A migração confere cada passo antes de mudar e pode rodar de novo.
 
+### Entrega paralela P1.2: escala dos oficiais (migração 0027)
+
+Quatro tabelas, todas com auditoria (a função `registrar_auditoria` ganhou um ramo que acha a unidade pelo `mes_id`):
+
+- **`oficiais_mes`:** um mês por unidade (`unique (unidade_id, mes)`, `mes` é o dia 1). `servico_id` é o serviço do oficial de operações, escolhido por mês (nulo até a escolha; vem copiado do último mês e só muda antes das cotas); os turnos e os horários vêm dele. `ordem_manual uuid[]` guarda a ordem à mão dos oficiais sem antiguidade; `cotas_em`, `fechada_em` e `encerrada_em` marcam as etapas (checks: calcular exige o serviço; fechar exige cotas; encerrar exige fechada).
+- **`oficiais_cota`:** a cota gravada no último "Calcular cotas" (PK `mes_id, militar_id`; `unique (mes_id, ordem)`): `dias` presentes, `devido numeric(12,6)`, `cota` e `sobra`. O `id` só serve à auditoria.
+- **`oficiais_turno`:** um registro por dia e por turno do serviço (`turno_id` → `turno`), com `militar_id` (vazio = turno sem nome) e `saiu_militar_id` (a cobertura: quem saiu, só com a escala fechada). `unique (mes_id, dia, turno_id)`; a API garante que o turno é do serviço do mês.
+- **`oficiais_saldo`:** os lançamentos do saldo por unidade e oficial: `mes` (calculado no encerramento, com tirado, devido e a contagem de turnos por rótulo: `turnos_dia` e `turnos_noite`, o rótulo vindo do horário de início do turno), `entrada` (média de quem chega) e `ajuste` (do gestor, com `motivo` de 1 a 200 caracteres e o `usuario_id`). Um `mes` e uma `entrada` por oficial e mês (índice único parcial). O saldo acumulado é a soma de `valor`.
+
 ## Mudanças em relação ao ER proposto (v0.8)
 
 **Entram**
