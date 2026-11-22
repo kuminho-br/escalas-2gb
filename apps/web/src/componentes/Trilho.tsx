@@ -1,6 +1,7 @@
 import { Link, type LinkProps } from '@tanstack/react-router';
 import { Fragment, useEffect, useRef } from 'react';
 import { X } from 'lucide-react';
+import type { Eu } from '@/api/eu';
 import type { Item, Modulo } from '@/lib/modulos';
 import { cn } from '@/lib/utils';
 
@@ -32,7 +33,7 @@ function ItemTrilho({ item, aoNavegar }: { item: Item; aoNavegar: () => void }) 
 }
 
 /** `aoFechar(true)` devolve o foco ao botão que abriu o menu (Esc e "Fechar menu"); sem argumento (fundo escuro, ir a uma tela) não mexe no foco. */
-export function Trilho({ modulo, aberto, aoFechar }: { modulo: Modulo; aberto: boolean; aoFechar: (devolverFoco?: boolean) => void }) {
+export function Trilho({ modulo, eu, aberto, aoFechar }: { modulo: Modulo; eu: Eu; aberto: boolean; aoFechar: (devolverFoco?: boolean) => void }) {
   const nav = useRef<HTMLElement>(null);
   const fechar = useRef(aoFechar);
   fechar.current = aoFechar;
@@ -46,7 +47,8 @@ export function Trilho({ modulo, aberto, aoFechar }: { modulo: Modulo; aberto: b
     document.addEventListener('keydown', aoTeclar);
     return () => document.removeEventListener('keydown', aoTeclar);
   }, [aberto]);
-  const blocos = modulo.itens;
+  // o item que a pessoa não pode usar não aparece (e o bloco que ficou vazio some)
+  const blocos = modulo.itens.map((b) => b.filter((i) => !i.ve || i.ve(eu))).filter((b) => b.length > 0);
   const pe = modulo.pe ?? [];
   return (
     <>

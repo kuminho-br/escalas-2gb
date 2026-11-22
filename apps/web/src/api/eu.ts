@@ -44,4 +44,6 @@ export const consultaEu = queryOptions({ queryKey: ['eu'], queryFn: buscarEu, st
 export const ehAdministrador = (eu: EuDaApi) => eu.papeis.some((p) => p.papel === 'administrador');
 export const ehMilitarComum = (eu: EuDaApi) => eu.papeis.length === 0;
 /** Quem muda os parâmetros: gestor ou administrador (espelha ESCREVE_PARAMETRO na API). */
+/** Quem usa a Escala dos oficiais: gestor ou administrador (a API confere o papel na unidade de qualquer jeito). */
+export const ehGestorOuAdministrador = (eu: EuDaApi) => eu.papeis.some((p) => p.papel === 'gestor' || p.papel === 'administrador');
 export const podeMudarParametro = (eu: EuDaApi) => eu.papeis.some((p) => p.papel === 'gestor' || p.papel === 'administrador');

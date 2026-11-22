@@ -25,7 +25,7 @@ describe('o módulo de cada endereço', () => {
   const id = (caminho: string, busca: Record<string, unknown> = {}) => moduloDoEndereco(caminho, busca)?.id ?? null;
 
   it('as telas de escala são da Confecção, e o Pecúlio é do Pecúlio', () => {
-    for (const c of ['/grade', '/escala-do-mes', '/efetivo-por-dia', '/voluntariado', '/cotas', '/servicos', '/escalas/e1/ordem', '/feriados', '/configuracoes', '/militares']) expect(id(c)).toBe('escalas');
+    for (const c of ['/grade', '/escala-do-mes', '/efetivo-por-dia', '/oficiais', '/voluntariado', '/cotas', '/servicos', '/escalas/e1/ordem', '/feriados', '/configuracoes', '/militares']) expect(id(c)).toBe('escalas');
     expect(id('/peculio')).toBe('peculio');
   });
 
@@ -57,7 +57,7 @@ describe('o módulo de cada endereço', () => {
 
   it('o trilho da Confecção tem os blocos de hoje e o do Pecúlio só o Pecúlio', () => {
     const nomes = (m: string) => MODULOS.find((x) => x.id === m)!.itens.flat().map((i) => i.nome);
-    expect(nomes('escalas')).toEqual(['Grade geral', 'Escala do mês', 'Efetivo por dia', 'Voluntariado', 'Cotas', 'Militares', 'Turnos', 'Escalas', 'Feriados']);
+    expect(nomes('escalas')).toEqual(['Grade geral', 'Escala do mês', 'Efetivo por dia', 'Oficiais', 'Voluntariado', 'Cotas', 'Militares', 'Turnos', 'Escalas', 'Feriados']);
     expect(nomes('peculio')).toEqual(['Pecúlio']);
   });
 });

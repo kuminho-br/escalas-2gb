@@ -10,6 +10,7 @@ import {
   History,
   LayoutGrid,
   ListTree,
+  Medal,
   Network,
   PieChart,
   Settings,
@@ -18,9 +19,9 @@ import {
   Users,
   type LucideIcon,
 } from 'lucide-react';
-import { ehMilitarComum, type Eu, type EuDaApi } from '@/api/eu';
+import { ehGestorOuAdministrador, ehMilitarComum, type Eu, type EuDaApi } from '@/api/eu';
 
-export type Item = { nome: string; icone: LucideIcon; para?: LinkProps['to'] };
+export type Item = { nome: string; icone: LucideIcon; para?: LinkProps['to']; /** O item só aparece para quem passa neste teste (sem ele, todos veem). */ ve?: (eu: Eu | EuDaApi) => boolean };
 export type IdModulo = 'escalas' | 'peculio' | 'visualizacao' | 'minha-ficha';
 
 /**
@@ -53,6 +54,7 @@ export const MODULOS: Modulo[] = [
         { nome: 'Grade geral', icone: LayoutGrid, para: '/grade' },
         { nome: 'Escala do mês', icone: ListTree, para: '/escala-do-mes' },
         { nome: 'Efetivo por dia', icone: Sun, para: '/efetivo-por-dia' },
+        { nome: 'Oficiais', icone: Medal, para: '/oficiais', ve: ehGestorOuAdministrador },
       ],
       [
         { nome: 'Voluntariado', icone: CalendarCheck, para: '/voluntariado' },
@@ -88,7 +90,7 @@ export const MODULOS: Modulo[] = [
 const porId = (id: IdModulo) => MODULOS.find((m) => m.id === id)!;
 /** O primeiro trecho do endereço de cada tela e o módulo dela (as fichas em /militares dependem da origem). */
 const DO_PECULIO = new Set(['peculio']);
-const DA_CONFECCAO = new Set(['grade', 'escala-do-mes', 'efetivo-por-dia', 'efetivo-do-dia', 'voluntariado', 'cotas', 'servicos', 'escalas', 'guarnicoes', 'feriados', 'configuracoes', 'militares']);
+const DA_CONFECCAO = new Set(['grade', 'escala-do-mes', 'efetivo-por-dia', 'efetivo-do-dia', 'oficiais', 'voluntariado', 'cotas', 'servicos', 'escalas', 'guarnicoes', 'feriados', 'configuracoes', 'militares']);
 
 /**
  * O módulo a que o endereço pertence; null na tela inicial e em endereços que não existem. A ficha aberta pelo Pecúlio (`?de=peculio`) é do

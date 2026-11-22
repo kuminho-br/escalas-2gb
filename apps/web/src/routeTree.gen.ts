@@ -24,6 +24,7 @@ import { Route as AppFeriadosRouteImport } from './routes/_app/feriados'
 import { Route as AppGradeRouteImport } from './routes/_app/grade'
 import { Route as AppMilitaresRouteImport } from './routes/_app/militares'
 import { Route as AppMinhaFichaRouteImport } from './routes/_app/minha-ficha'
+import { Route as AppOficiaisRouteImport } from './routes/_app/oficiais'
 import { Route as AppPeculioRouteImport } from './routes/_app/peculio'
 import { Route as AppServicosRouteImport } from './routes/_app/servicos'
 import { Route as AppVoluntariadoRouteImport } from './routes/_app/voluntariado'
@@ -112,6 +113,11 @@ const AppMinhaFichaRoute = AppMinhaFichaRouteImport.update({
   path: '/minha-ficha',
   getParentRoute: () => AppRoute,
 } as any)
+const AppOficiaisRoute = AppOficiaisRouteImport.update({
+  id: '/oficiais',
+  path: '/oficiais',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppPeculioRoute = AppPeculioRouteImport.update({
   id: '/peculio',
   path: '/peculio',
@@ -194,6 +200,7 @@ export interface FileRoutesByFullPath {
   '/grade': typeof AppGradeRoute
   '/militares': typeof AppMilitaresRouteWithChildren
   '/minha-ficha': typeof AppMinhaFichaRoute
+  '/oficiais': typeof AppOficiaisRoute
   '/peculio': typeof AppPeculioRoute
   '/servicos': typeof AppServicosRouteWithChildren
   '/voluntariado': typeof AppVoluntariadoRoute
@@ -220,6 +227,7 @@ export interface FileRoutesByTo {
   '/feriados': typeof AppFeriadosRoute
   '/grade': typeof AppGradeRoute
   '/minha-ficha': typeof AppMinhaFichaRoute
+  '/oficiais': typeof AppOficiaisRoute
   '/peculio': typeof AppPeculioRoute
   '/voluntariado': typeof AppVoluntariadoRoute
   '/': typeof AppIndexRoute
@@ -250,6 +258,7 @@ export interface FileRoutesById {
   '/_app/grade': typeof AppGradeRoute
   '/_app/militares': typeof AppMilitaresRouteWithChildren
   '/_app/minha-ficha': typeof AppMinhaFichaRoute
+  '/_app/oficiais': typeof AppOficiaisRoute
   '/_app/peculio': typeof AppPeculioRoute
   '/_app/servicos': typeof AppServicosRouteWithChildren
   '/_app/voluntariado': typeof AppVoluntariadoRoute
@@ -282,6 +291,7 @@ export interface FileRouteTypes {
     | '/grade'
     | '/militares'
     | '/minha-ficha'
+    | '/oficiais'
     | '/peculio'
     | '/servicos'
     | '/voluntariado'
@@ -308,6 +318,7 @@ export interface FileRouteTypes {
     | '/feriados'
     | '/grade'
     | '/minha-ficha'
+    | '/oficiais'
     | '/peculio'
     | '/voluntariado'
     | '/'
@@ -337,6 +348,7 @@ export interface FileRouteTypes {
     | '/_app/grade'
     | '/_app/militares'
     | '/_app/minha-ficha'
+    | '/_app/oficiais'
     | '/_app/peculio'
     | '/_app/servicos'
     | '/_app/voluntariado'
@@ -465,6 +477,13 @@ declare module '@tanstack/react-router' {
       path: '/minha-ficha'
       fullPath: '/minha-ficha'
       preLoaderRoute: typeof AppMinhaFichaRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/oficiais': {
+      id: '/_app/oficiais'
+      path: '/oficiais'
+      fullPath: '/oficiais'
+      preLoaderRoute: typeof AppOficiaisRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/peculio': {
@@ -614,6 +633,7 @@ interface AppRouteChildren {
   AppGradeRoute: typeof AppGradeRoute
   AppMilitaresRoute: typeof AppMilitaresRouteWithChildren
   AppMinhaFichaRoute: typeof AppMinhaFichaRoute
+  AppOficiaisRoute: typeof AppOficiaisRoute
   AppPeculioRoute: typeof AppPeculioRoute
   AppServicosRoute: typeof AppServicosRouteWithChildren
   AppVoluntariadoRoute: typeof AppVoluntariadoRoute
@@ -635,6 +655,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppGradeRoute: AppGradeRoute,
   AppMilitaresRoute: AppMilitaresRouteWithChildren,
   AppMinhaFichaRoute: AppMinhaFichaRoute,
+  AppOficiaisRoute: AppOficiaisRoute,
   AppPeculioRoute: AppPeculioRoute,
   AppServicosRoute: AppServicosRouteWithChildren,
   AppVoluntariadoRoute: AppVoluntariadoRoute,
