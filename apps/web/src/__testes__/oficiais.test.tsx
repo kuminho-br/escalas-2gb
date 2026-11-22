@@ -329,3 +329,126 @@ describe('a aba Escala do mês', () => {
     });
   });
 });
+
+// ---- o painel de saldo e as regras ----
+const reg = (r: OficialNoSaldo['registro'][number]) => r;
+const S1: OficialNoSaldo = {
+  militarId: 'm-1', matricula: '990101-1', posto: 'CEL', nomeGuerra: 'ALFA', quadro: 'QOC', lotacao: '2º GB', saldo: 0.75,
+  meses: [{ mes: '2026-11', valor: 0.5 }, { mes: '2026-12', valor: 0.25 }], turnos: [{ rotulo: 'Dia', quantidade: 12 }, { rotulo: 'Noite', quantidade: 10 }],
+  registro: [
+    reg({ tipo: 'mes', data: '2026-11-30', mes: '2026-11', valor: 0.5, texto: 'Devia 20,50, tirou 21' }),
+    reg({ tipo: 'cobriu', data: '2026-12-24', mes: '2026-12', valor: 1, texto: 'Cobriu CAP BRAVO em 24/12/2026.' }),
+    reg({ tipo: 'mes', data: '2026-12-31', mes: '2026-12', valor: 0.25, texto: 'Devia 20,75, tirou 21' }),
+  ],
+};
+const S2: OficialNoSaldo = {
+  militarId: 'm-2', matricula: '990102-2', posto: 'CAP', nomeGuerra: 'BRAVO', quadro: 'QOA', lotacao: '1ª SB', saldo: -0.25,
+  meses: [{ mes: '2026-12', valor: -0.65 }], turnos: [{ rotulo: 'Dia', quantidade: 4 }, { rotulo: 'Noite', quantidade: 5 }],
+  registro: [
+    reg({ tipo: 'entrada', data: '2026-12-10', mes: '2026-12', valor: 0.4, texto: 'Entrou com a média dos saldos de quem já estava.' }),
+    reg({ tipo: 'mes', data: '2026-12-31', mes: '2026-12', valor: -0.65, texto: 'Devia 9,65, tirou 9' }),
+  ],
+};
+function abrirSaldo(lista: OficialNoSaldo[], extra: Record<string, { status: number; corpo?: unknown }> = {}) {
+  const f = simularApi({
+    '/api/eu': { status: 200, corpo: GESTOR },
+    [`GET ${URL_MES}`]: { status: 200, corpo: escala() },
+    'GET /api/unidades/u-gb/oficiais-saldo': { status: 200, corpo: lista },
+    'GET /api/unidades/u-gb/servicos': { status: 200, corpo: [SERVICO] },
+    ...extra,
+  });
+  abrir(`/oficiais?mes=${MES}&aba=saldo`);
+  return f;
+}
+
+describe('o painel de saldo', () => {
+  afterEach(() => {
+    cleanup();
+    vi.unstubAllGlobals();
+  });
+
+  it('abre com o texto do mockup e uma linha por oficial, com o saldo, os meses e as contagens escritas', async () => {
+    abrirSaldo([S1, S2]);
+    expect(await screen.findByText(/O saldo mostra quem trabalhou mais ou menos do que devia, somando todos os meses\./)).toBeInTheDocument();
+    const tabela = screen.getByRole('table', { name: 'Saldo de cada oficial' });
+    const linha = within(tabela).getByRole('row', { name: /CEL ALFA/ });
+    expect(within(linha).getByText('+0,75')).toBeInTheDocument();
+    expect(within(linha).getByText('+0,50')).toBeInTheDocument();
+    expect(within(linha).getByText('Dia 12')).toBeInTheDocument();
+    expect(within(linha).getByText('Noite 10')).toBeInTheDocument();
+    expect(within(within(tabela).getByRole('row', { name: /CAP BRAVO/ })).getByText('−0,25')).toBeInTheDocument();
+    expect(tabela.querySelectorAll('svg').length).toBe(0);
+  });
+
+  it('um clique no oficial abre o registro: do mais novo para o mais velho, com a entrada e o saldo agora', async () => {
+    abrirSaldo([S1, S2]);
+    await userEvent.click(await screen.findByRole('button', { name: 'CAP BRAVO' }));
+    const painel = screen.getByRole('region', { name: 'Registro' });
+    expect(within(painel).getByText('Registro: CAP BRAVO 990102-2')).toBeInTheDocument();
+    expect(painel).toHaveTextContent('Começou com +0,40, a média dos saldos dos colegas.');
+    expect(painel).toHaveTextContent('Saldo agora: −0,25');
+    await userEvent.click(screen.getByRole('button', { name: 'CEL ALFA' }));
+    const itens = within(screen.getByRole('region', { name: 'Registro' })).getAllByRole('listitem');
+    expect(itens[0]).toHaveTextContent('Devia 20,75, tirou 21');
+    expect(itens[1]).toHaveTextContent('Cobriu CAP BRAVO em 24/12/2026.');
+    expect(itens[2]).toHaveTextContent('Devia 20,50, tirou 21');
+  });
+
+  it('o ajuste sem motivo mostra a mensagem no campo, sem chamar a API; com motivo, lança', async () => {
+    const f = abrirSaldo([S1], { 'POST /api/unidades/u-gb/oficiais-saldo/ajustes': { status: 201, corpo: S1 } });
+    await userEvent.click(await screen.findByRole('button', { name: 'CEL ALFA' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Ajuste manual' }));
+    await userEvent.type(screen.getByLabelText('Valor do ajuste'), '0,5');
+    await userEvent.click(screen.getByRole('button', { name: 'Lançar ajuste' }));
+    expect(await screen.findByText('Diga o motivo do ajuste.')).toBeInTheDocument();
+    expect(chamadasA(f, 'POST /api/unidades/u-gb/oficiais-saldo/ajustes')).toBe(0);
+    await userEvent.type(screen.getByLabelText('Motivo (obrigatório)'), 'Dispensa médica lançada depois');
+    await userEvent.click(screen.getByRole('button', { name: 'Lançar ajuste' }));
+    await waitFor(() => expect(corpoEnviado(f, 'POST /api/unidades/u-gb/oficiais-saldo/ajustes')).toEqual({ militarId: 'm-1', valor: 0.5, motivo: 'Dispensa médica lançada depois' }));
+  });
+
+  it('o valor zero ou que não é número é recusado no campo', async () => {
+    const f = abrirSaldo([S1]);
+    await userEvent.click(await screen.findByRole('button', { name: 'CEL ALFA' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Ajuste manual' }));
+    await userEvent.type(screen.getByLabelText('Motivo (obrigatório)'), 'x');
+    await userEvent.click(screen.getByRole('button', { name: 'Lançar ajuste' }));
+    expect(await screen.findByText('Informe um valor diferente de zero, de até 100.')).toBeInTheDocument();
+    expect(chamadasA(f, 'POST /api/unidades/u-gb/oficiais-saldo/ajustes')).toBe(0);
+  });
+
+  it('"Cancelar" fecha o formulário', async () => {
+    abrirSaldo([S1]);
+    await userEvent.click(await screen.findByRole('button', { name: 'CEL ALFA' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Ajuste manual' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Cancelar' }));
+    expect(screen.queryByLabelText('Valor do ajuste')).toBeNull();
+  });
+
+  it('sem nenhum oficial no painel, diz que não há saldo ainda', async () => {
+    abrirSaldo([]);
+    expect(await screen.findByText('Ainda não há saldo: ele aparece quando o primeiro mês for encerrado.')).toBeInTheDocument();
+  });
+});
+
+describe('as regras', () => {
+  afterEach(() => {
+    cleanup();
+    vi.unstubAllGlobals();
+  });
+
+  it('mostra os títulos e a tabela do exemplo', async () => {
+    simularApi({
+      '/api/eu': { status: 200, corpo: GESTOR },
+      [`GET ${URL_MES}`]: { status: 200, corpo: escala() },
+      'GET /api/unidades/u-gb/oficiais-saldo': { status: 200, corpo: [] },
+      'GET /api/unidades/u-gb/servicos': { status: 200, corpo: [SERVICO] },
+    });
+    abrir(`/oficiais?mes=${MES}&aba=regras`);
+    for (const t of ['Como a escala é montada', 'Como a cota é calculada', 'O saldo', 'O que muda o saldo', 'Os dois momentos do mês', 'O que fica registrado']) {
+      expect(await screen.findByRole('heading', { name: t })).toBeInTheDocument();
+    }
+    const ex = screen.getByRole('table', { name: 'Exemplo de 62 turnos' });
+    for (const n of ['8,25', '4,26', '−0,26']) expect(within(ex).getAllByText(n).length).toBeGreaterThan(0);
+  });
+});

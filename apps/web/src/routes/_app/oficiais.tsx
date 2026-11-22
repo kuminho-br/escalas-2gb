@@ -4,11 +4,13 @@ import { Mes, somarMeses } from 'contratos';
 import { useState } from 'react';
 import { ehGestorOuAdministrador } from '@/api/eu';
 import { mensagemDe } from '@/api/cliente';
-import { consultaEscalaDosOficiais, escolherServico } from '@/api/oficiais';
+import { consultaEscalaDosOficiais, consultaSaldoDosOficiais, escolherServico } from '@/api/oficiais';
 import { consultaServicos } from '@/api/servicos';
 import { useTrava } from '@/componentes/AlteracoesPendentes';
 import { CampoDeMes } from '@/componentes/CampoDeMes';
 import { EscalaDoMes } from '@/componentes/oficiais/EscalaDoMes';
+import { PainelDeSaldo } from '@/componentes/oficiais/PainelDeSaldo';
+import { RegrasDosOficiais } from '@/componentes/oficiais/RegrasDosOficiais';
 import { Selecao } from '@/componentes/Selecao';
 import { Label } from '@/componentes/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/componentes/ui/tabs';
@@ -38,6 +40,7 @@ function Oficiais() {
   const aba = busca.aba ?? 'escala';
   const unidadeId = eu.unidade.id;
   const escala = useQuery(consultaEscalaDosOficiais(unidadeId, mes));
+  const saldo = useQuery(consultaSaldoDosOficiais(unidadeId));
   const servicos = useQuery(consultaServicos(unidadeId));
   const { salvando, travar } = useTrava();
   const [erro, setErro] = useState<string | null>(null);
@@ -93,8 +96,14 @@ function Oficiais() {
           {escala.error && <p role="alert" className="text-alerta">{mensagemDe(escala.error)}</p>}
           {e && <EscalaDoMes key={`${unidadeId}|${mes}`} unidadeId={unidadeId} escala={e} aoVer={irPara} />}
         </TabsContent>
-        <TabsContent value="saldo" />
-        <TabsContent value="regras" />
+        <TabsContent value="saldo">
+          {saldo.isPending && <p className="text-apagado">Carregando…</p>}
+          {saldo.error && <p role="alert" className="text-alerta">{mensagemDe(saldo.error)}</p>}
+          {saldo.data && <PainelDeSaldo key={unidadeId} unidadeId={unidadeId} lista={saldo.data} />}
+        </TabsContent>
+        <TabsContent value="regras">
+          <RegrasDosOficiais />
+        </TabsContent>
       </Tabs>
     </section>
   );
