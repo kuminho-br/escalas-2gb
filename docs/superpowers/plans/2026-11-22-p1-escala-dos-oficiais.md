@@ -9,11 +9,12 @@
 **Linha de entregas:** é a primeira **entrega paralela** (zona "Missões paralelas" do roadmap). Não muda a ordem das fases nem o que existe, fora o quadro do militar (P1.1), que é pré-requisito dela e passa a valer para o Pecúlio.
 
 **Subentregas** (uma branch e um PR cada, nesta ordem):
-1. **P1.1 — Quadros no banco:** QOC, QOA e QBMG; o posto-graduação pertence a um quadro; o militar tem um quadro. Migração **0027**.
-2. **P1.2 — Motor e API da escala dos oficiais:** as regras puras em `pacotes/dominio`, as tabelas e as rotas. Migração **0028**.
+1. **P1.1 — Quadros no banco:** QOC, QOA e QBMG; o posto-graduação pertence a um quadro; o militar tem um quadro. **Mesclada (#94), migração 0026 aplicada no teste.**
+2. **P1.2 — Motor e API da escala dos oficiais:** as regras puras em `pacotes/dominio`, as tabelas e as rotas. Migração **0027**.
 3. **P1.3 — Telas:** o item "Oficiais" no trilho e a tela com as abas Escala do mês, Painel de saldo e Regras.
+4. **P1.4 — Só o QBMG nas outras telas de escala:** os oficiais QOC e QOA saem da Grade, da Escala do mês, do Efetivo por dia e do Voluntariado. Sem migração.
 
-**Ordem com a fase 6:** os números 0027 e 0028 supõem a entrega 6.5 (migração 0026) mesclada antes. Se a P1.1 for executada antes da 6.5, ela fica com a 0026 e a 6.5 passa a usar o número livre seguinte. A DESENVOLVIMENTO confere isso ao abrir a branch.
+**Ordem com a fase 6** (decisão do usuário, 22/11/2026): a P1 vai antes. A entrega 6.5 começa depois da P1.3; a P1.4, por ser curta, vai logo depois da P1.3 e antes da 6.5. A 6.5 usa o número de migração livre seguinte.
 
 **Fluxo:** o Sonnet (esforço high) executa, e o Opus (esforço medium) faz a revisão final de cada branch, com o modelo explícito. Ao terminar cada subentrega, a DESENVOLVIMENTO envia a branch e o resumo à PLANEJAMENTO, sem abrir PR. A PLANEJAMENTO abre o PR e mescla. A migração no banco de teste só roda com a autorização do usuário.
 
@@ -25,7 +26,9 @@
 - **O escalante nunca é bloqueado de fechar a escala.** Afastado num turno e turno sem nome geram aviso, nunca recusa no "Fechar a escala".
 - **Quem usa:** administrador e gestor da unidade escolhida no seletor (`exigirPapel(c, unidadeId, ['gestor', 'administrador'])`). O auxiliar administrativo não vê o item nem a tela.
 - **Quem participa:** militar com quadro QOC ou QOA que tenha período de rastreio na unidade ou em unidade abaixo dela (`caminho <@`), em algum dia do mês.
-- **Turnos:** dois por dia, um oficial por turno. Rótulos fixos: "Dia, 07h às 19h" e "Noite, 19h às 07h".
+- **Turnos:** são os do **serviço escolhido na tela** (cadastro de serviços, tela Turnos), um oficial por turno. Nada de turno ou horário fixo no código (decisão do usuário, 22/11/2026). O usuário cadastra o serviço do oficial de operações como o Pronto: turno A das 07h às 19h, turno B das 19h às 07h.
+- **Rótulo do turno:** "Dia" quando o turno começa entre 05h00 e 17h59, "Noite" nos outros, seguido do horário do cadastro: "Dia, 07h às 19h". O ícone (sol ou lua) segue a mesma regra.
+- **Quadros por tela:** a Escala dos oficiais mostra só QOC e QOA. As outras telas de escala mostram o QBMG e quem está sem quadro, este com a pendência "Sem quadro" (P1.4).
 - **Números:** devido e saldo guardados com 6 casas (`numeric(12,6)`); na tela, 2 casas, vírgula, e sinal sempre visível no saldo: `+0,75`, `−0,25` (sinal de menos U+2212), `0,00`.
 - **Textos fixos** (do mockup):
   - fechar com turno sem nome: "Ainda há {n} turnos sem nome. Você pode fechar mesmo assim e completar depois; a partir daqui, trocar um nome vira cobertura e fica no registro." Botões "Fechar a escala" e "Voltar";
@@ -55,7 +58,9 @@ Do usuário (entrevista e aprovação do mockup, 22/11/2026):
   6. imprevisto sem cobertura vira turno vazio (caso 6), e ninguém ganha;
   7. todos com presença no mês entram na fila da sobra;
   8. a zona de missões paralelas aparece no roadmap e na página do roadmap.
-- As suposições do mockup: o item "Oficiais" logo depois de "Efetivo por dia"; cada oficial escolhe todos os seus turnos na sua vez; turnos das 07h às 19h e das 19h às 07h.
+- As suposições do mockup: o item "Oficiais" logo depois de "Efetivo por dia"; cada oficial escolhe todos os seus turnos na sua vez.
+- **O serviço do oficial de operações é cadastrado** como os outros serviços, e pode ser mudado. A tela tem um campo "Serviço", com os serviços ordinários ativos da unidade que têm turno. A escolha vale para o mês e vem copiada do último mês da unidade. Ela só pode ser trocada antes de calcular as cotas.
+- **Nas outras telas de escala**, só o QBMG. O militar sem quadro continua aparecendo, com a pendência, até ter o quadro.
 
 Minhas (marcadas para o usuário conferir):
 - **Postos por quadro**, tirados do QOD (aba "EFETIVO COMPOSIÇÃO 001"): QOC = CEL, TEN CEL, MAJ, CAP, 1º TEN, 2º TEN; QOA = MAJ, CAP, 1º TEN, 2º TEN; QBMG = ST, 1º SGT, 2º SGT, 3º SGT, CB, SD. **O ASP OF não aparece no QOD; entra no QOC.**
@@ -193,7 +198,8 @@ alter table militar add constraint militar_posto_no_quadro foreign key (quadro_i
 - Produces:
 
 ```ts
-export type TurnoDeOficial = 'dia' | 'noite';
+/** "Dia" se o turno começa entre 05:00 e 17:59; senão, "Noite". `inicio` no formato HH:MM. */
+export function rotuloDoTurno(inicio: string): 'Dia' | 'Noite';
 export interface OficialParaOrdem { militarId: string; postoOrdem: number; antiguidade: number | null; nomeGuerra: string }
 /** Posto mais alto primeiro; no mesmo posto, antiguidade crescente; os sem antiguidade depois, na ordem manual e, fora dela, pelo nome de guerra. */
 export function ordemDeEscolha(oficiais: OficialParaOrdem[], ordemManual: string[]): string[];
@@ -202,8 +208,9 @@ export function diasPresentes(mes: string, periodos: { desde: string; ate: strin
 export interface CotaDeOficial { militarId: string; dias: number; devido: number; cota: number; sobra: boolean }
 /** `participantes` na ordem de escolha. Devido = turnos × dias ÷ soma dos dias; cota = piso; a sobra, um a um, do mais moderno com dias > 0 para cima. */
 export function calcularCotas(turnos: number, participantes: { militarId: string; dias: number }[]): CotaDeOficial[];
-export interface TurnoDoMes { dia: string; turno: TurnoDeOficial; militarId: string | null; saiuMilitarId: string | null }
-export interface SaldoDoMes { militarId: string; tirado: number; devido: number; valor: number; turnosDia: number; turnosNoite: number }
+export interface TurnoDoMes { dia: string; turnoId: string; militarId: string | null; saiuMilitarId: string | null }
+/** `porTurno`: quantos turnos de cada `turnoId` o militar tirou (só os em que está). */
+export interface SaldoDoMes { militarId: string; tirado: number; devido: number; valor: number; porTurno: Record<string, number> }
 /** Tirados = turnos com nome. Devido = tirados × dias ÷ soma dos dias (dias da cota gravada). Tirado de cada um = os turnos em que está + os de que saiu (cobertura). */
 export function saldoDoMes(turnos: TurnoDoMes[], cotas: { militarId: string; dias: number }[]): SaldoDoMes[];
 /** Média exata dos acumulados de quem já tem saldo; lista vazia → 0. */
@@ -232,7 +239,8 @@ export function saldoDeEntrada(acumuladosDeQuemJaEsta: number[]): number;
     - `valor` −0,2489 para os cinco mais antigos, +0,7511 para os dois mais modernos e −0,2575 para `f`;
     - com uma cobertura de `a2` por `a3`, `a2` continua com `tirado` 8 e `a3` passa a 9;
     - com um turno vazio, o total tirado é 61 e o `devido` de `a1` vale `61*31/233`;
-    - `turnosDia` e `turnosNoite` contam só os turnos em que o militar está;
+    - `porTurno` conta só os turnos em que o militar está, separados por `turnoId`;
+  - `rotuloDoTurno`: `07:00` e `05:00` → "Dia"; `19:00`, `18:00` e `04:59` → "Noite";
   - `saldoDeEntrada([1, -0.5, 0.25])` = 0,25; `saldoDeEntrada([])` = 0.
 - [ ] **Step 2:** `pnpm --filter dominio test oficiais`. Esperado: FAIL.
 - [ ] **Step 3:** implementar. As datas são texto `AAAA-MM-DD`, contadas dia a dia em UTC, como nas outras funções do pacote.
@@ -247,15 +255,15 @@ export function saldoDeEntrada(acumuladosDeQuemJaEsta: number[]): number;
 
 - [ ] **Step 1: testes:**
   - o mesmo mês duas vezes na mesma unidade falha com `23505`;
-  - `fechada_em` sem `cotas_em` falha com `23514`, e `encerrada_em` sem `fechada_em` também;
+  - `cotas_em` sem `servico_id`, `fechada_em` sem `cotas_em` e `encerrada_em` sem `fechada_em` falham com `23514`;
   - um ajuste sem motivo falha com `23514`;
   - dois lançamentos `mes` do mesmo militar no mesmo mês falham com `23505`;
   - a auditoria de um update em `oficiais_turno` sai com o `unidade_id` do mês.
 - [ ] **Step 2:** `pnpm --filter api test esquema-operacao`. Esperado: FAIL.
 - [ ] **Step 3:** a migração:
-  - **`oficiais_mes`:** `id`, `unidade_id` (→ unidade), `mes date` (dia 1), `ordem_manual uuid[] not null default '{}'`, `cotas_em`, `fechada_em` e `encerrada_em` (timestamptz). Restrições: `unique (unidade_id, mes)`, `check (fechada_em is null or cotas_em is not null)` e `check (encerrada_em is null or fechada_em is not null)`.
+  - **`oficiais_mes`:** `id`, `unidade_id` (→ unidade), `mes date` (dia 1), `servico_id` (→ servico, nulo até a escolha), `ordem_manual uuid[] not null default '{}'`, `cotas_em`, `fechada_em` e `encerrada_em` (timestamptz). Restrições: `unique (unidade_id, mes)`, `check (cotas_em is null or servico_id is not null)`, `check (fechada_em is null or cotas_em is not null)` e `check (encerrada_em is null or fechada_em is not null)`.
   - **`oficiais_cota`:** `mes_id` (→ `oficiais_mes`, on delete cascade), `militar_id`, `ordem int`, `dias int >= 0`, `devido numeric(12,6)`, `cota int >= 0` e `sobra boolean`. Chave primária `(mes_id, militar_id)`, e `unique (mes_id, ordem)`.
-  - **`oficiais_turno`:** `id`, `mes_id`, `dia date`, `turno text check (turno in ('dia', 'noite'))`, `militar_id` nulo e `saiu_militar_id` nulo. Restrições: `check (saiu_militar_id is null or (militar_id is not null and saiu_militar_id <> militar_id))` e `unique (mes_id, dia, turno)`.
+  - **`oficiais_turno`:** `id`, `mes_id`, `dia date`, `turno_id` (→ turno), `militar_id` nulo e `saiu_militar_id` nulo. Restrições: `check (saiu_militar_id is null or (militar_id is not null and saiu_militar_id <> militar_id))` e `unique (mes_id, dia, turno_id)`. A API garante que o turno é do serviço do mês.
   - **`oficiais_saldo`:** `id`, `unidade_id`, `militar_id`, `mes_id` nulo, `tipo text check (tipo in ('mes', 'entrada', 'ajuste'))`, `valor numeric(12,6)`, `tirado int`, `devido numeric(12,6)`, `turnos_dia int`, `turnos_noite int`, `motivo text`, `usuario_id` (→ usuario) e `criado_em timestamptz default now()`. Regras:
     - `check (tipo = 'ajuste' or mes_id is not null)`;
     - `check (tipo <> 'ajuste' or (btrim(coalesce(motivo, '')) <> '' and char_length(motivo) <= 200))`;
@@ -286,29 +294,37 @@ export interface OficialDoMes {
 }
 export interface EscalaDosOficiais {
   mes: string; etapa: EtapaDosOficiais; cotasEm: string | null; fechadaEm: string | null; encerradaEm: string | null;
+  servico: { id: string; nome: string } | null; // o do mês; sem mês gravado, o do último mês da unidade
+  turnosDoServico: { id: string; letra: string; inicio: string; fim: string; rotulo: 'Dia' | 'Noite' }[];
   oficiais: OficialDoMes[]; vez: string | null;
-  turnos: { dia: string; turno: 'dia' | 'noite'; militarId: string | null; saiuMilitarId: string | null }[]; // a forma do TurnoDoMes do motor
-  avisos: { dia: string; turno: 'dia' | 'noite'; militarId: string; texto: string }[];
+  turnos: { dia: string; turnoId: string; militarId: string | null; saiuMilitarId: string | null }[]; // a forma do TurnoDoMes do motor
+  avisos: { dia: string; turnoId: string; militarId: string; texto: string }[];
 }
 export interface OficialNoSaldo {
   militarId: string; matricula: string; posto: string; nomeGuerra: string; quadro: string | null; lotacao: string | null;
-  saldo: number; meses: { mes: string; valor: number }[]; turnosDia: number; turnosNoite: number;
+  saldo: number; meses: { mes: string; valor: number }[]; turnos: { rotulo: 'Dia' | 'Noite'; quantidade: number }[]; // somados por rótulo
   registro: { tipo: 'mes' | 'entrada' | 'ajuste' | 'cobriu' | 'saiu'; data: string; mes: string | null; valor: number | null; texto: string }[];
 }
 export const TrocaDeTurno = z.object({ militarId: Id.nullable() });
+export const ServicoDoMes = z.object({ servicoId: Id });
 export const OrdemManual = z.object({ militarIds: z.array(Id).max(200) });
 export const AjusteDeSaldo = z.object({ militarId: Id, valor: z.number().refine((v) => v !== 0 && Math.abs(v) <= 100), motivo: z.string().trim().min(1).max(200) });
 ```
 
 - Rotas. Todas exigem gestor ou administrador na unidade `:u`; `:mes` é `AAAA-MM`:
   - `GET /api/unidades/:u/oficiais/:mes` → `EscalaDosOficiais`. Sem linha em `oficiais_mes`, a etapa é `sem-cotas`, e a lista sai dos participantes do momento, com `dias` calculados, `cota` null e `turnos` vazio.
+  - `PUT /api/unidades/:u/oficiais/:mes/servico` (`ServicoDoMes`):
+    - o serviço precisa ser da unidade, ordinário, ativo e ter turno; senão, 400 com "Escolha um serviço da unidade com turnos cadastrados.";
+    - com as cotas calculadas, 409 com "Com as cotas calculadas, o serviço não muda mais.";
+    - cria o mês, se for o caso.
   - `POST /api/unidades/:u/oficiais/:mes/cotas`:
-    - cria o mês, se for o caso, e os `2 × dias do mês` turnos vazios na primeira vez;
+    - sem serviço escolhido, 409 com "Escolha o serviço da escala antes de calcular as cotas.";
+    - na primeira vez, cria os turnos vazios: um por dia do mês e por turno do serviço. O total de turnos da conta é dias do mês × turnos do serviço;
     - recalcula a ordem, os dias e as cotas, e regrava `oficiais_cota`;
     - mantém as escolhas já lançadas;
     - na etapa `fechada` ou `encerrada`, responde 409 com o texto "Com a escala fechada, a cota não muda mais. Se alguém sair agora, troque o nome no turno: vira cobertura.".
   - `PUT /api/unidades/:u/oficiais/:mes/ordem` (`OrdemManual`): grava `ordem_manual` e recalcula as cotas como acima. Também responde 409 com a escala fechada.
-  - `PUT /api/unidades/:u/oficiais/:mes/turnos/:dia/:turno` (`TrocaDeTurno`):
+  - `PUT /api/unidades/:u/oficiais/:mes/turnos/:dia/:turnoId` (`TrocaDeTurno`):
     - o militar precisa estar em `oficiais_cota` do mês, senão 400 com "Este oficial não está na escala deste mês.";
     - antes de fechar, só grava;
     - com a escala fechada, segue a regra de cobertura de "Decisões";
@@ -330,7 +346,8 @@ export const AjusteDeSaldo = z.object({ militarId: Id, valor: z.number().refine(
   - um 2º SGT (QBMG) e um MAJ sem quadro não aparecem na lista;
   - um CAP lotado na 1ª SB aparece na escala do 2º GB;
   - antes do cálculo, a etapa é `sem-cotas`, com os dias e sem cota;
-  - em janeiro de 2027, com 8 oficiais e um de férias em 15 dias, o cálculo grava 62 turnos e as cotas `8,8,8,8,8,4,9,9`;
+  - um serviço "Oficial de operações" com os turnos A (07h às 19h) e B (19h às 07h); calcular sem serviço dá 409 com o texto; um serviço sem turno ou de outra unidade dá 400; trocar o serviço depois das cotas dá 409;
+  - em janeiro de 2027, com esse serviço, 8 oficiais e um de férias em 15 dias, o cálculo grava 62 turnos e as cotas `8,8,8,8,8,4,9,9`;
   - a `vez` aponta o mais antigo, e depois de lançar todos os turnos dele passa ao seguinte;
   - "Calcular cotas" de novo mantém as escolhas;
   - um militar fora da cota é recusado no turno com 400 e o texto;
@@ -377,7 +394,7 @@ export const AjusteDeSaldo = z.object({ militarId: Id, valor: z.number().refine(
 - [ ] **Step 1: testes:**
   - o gestor vê "Oficiais" logo depois de "Efetivo por dia", e o auxiliar não vê;
   - o auxiliar em `/oficiais` vai para `/`;
-  - a página mostra o título "Escala dos oficiais", o subtítulo "Oficiais QOC e QOA, em dois turnos de 12 horas por dia." e as abas "Escala do mês", "Painel de saldo" e "Regras".
+  - a página mostra o título "Escala dos oficiais", o subtítulo "Oficiais QOC e QOA." e as abas "Escala do mês", "Painel de saldo" e "Regras".
 - [ ] **Step 2:** `pnpm --filter web test modulos oficiais`. Esperado: FAIL.
 - [ ] **Step 3:** implementar. O ícone do item é escolhido no `lucide-react`, e a escolha vai no resumo da entrega.
 - [ ] **Step 4:** a mesma linha. Esperado: PASS.
@@ -393,7 +410,8 @@ export const AjusteDeSaldo = z.object({ militarId: Id, valor: z.number().refine(
 - [ ] **Step 1: testes:**
   - `formatarSaldo(0.75)` = `+0,75`, `formatarSaldo(-0.2489)` = `−0,25`, `formatarSaldo(0)` = `0,00`; `formatarDevido(8.2489)` = `8,25`.
   - Com a API simulada:
-    - **Calendário:** dias de 1 a 31, cada um com "Dia, 07h às 19h" e "Noite, 19h às 07h", e o contador "{n} de 62 turnos com nome".
+    - **Serviço:** o campo "Serviço" no topo lista os serviços da unidade com turno; sem serviço, a tela mostra "Escolha o serviço da escala. Ele vem do cadastro de serviços (tela Turnos)." e "Calcular cotas" fica desligado; com as cotas calculadas, o campo fica só para leitura.
+    - **Calendário:** dias de 1 a 31, cada um com os turnos do serviço, rotulados pela regra de "Global Constraints" (com A 07h–19h e B 19h–07h: "Dia, 07h às 19h" e "Noite, 19h às 07h"), e o contador "{n} de 62 turnos com nome".
     - **Etapa `escolhas`:**
       - o quadro "Vez de escolher" mostra o oficial da `vez`, a posição na ordem e "Já lançou {x} de {cota}";
       - um clique num turno livre chama `trocarTurno` com o `militarId` da vez;
@@ -428,7 +446,7 @@ export const AjusteDeSaldo = z.object({ militarId: Id, valor: z.number().refine(
 - [ ] **Step 1: testes:**
   - **Painel:**
     - o texto de abertura do mockup ("O saldo mostra quem trabalhou mais ou menos do que devia…");
-    - uma linha por oficial, com o saldo em `formatarSaldo`, a barra de mais ou menos, o saldo de cada mês e as contagens de dia e de noite.
+    - uma linha por oficial, com o saldo em `formatarSaldo`, a barra de mais ou menos, o saldo de cada mês e as contagens por rótulo de turno (sol para "Dia", lua para "Noite").
   - **Registro:**
     - um clique no oficial abre o registro com "Registro: {posto} {nome} {matrícula}";
     - os lançamentos e as coberturas, do mais novo para o mais velho;
@@ -444,6 +462,38 @@ export const AjusteDeSaldo = z.object({ militarId: Id, valor: z.number().refine(
 - [ ] **Step 3:** implementar. O texto das Regras é copiado do mockup.
 - [ ] **Step 4:** a mesma linha. Esperado: PASS. Depois, `pnpm test && pnpm typecheck && pnpm build:vercel`.
 - [ ] **Step 5:** `git commit -m "P1.3: painel de saldo e regras da escala dos oficiais"`
+
+---
+
+# P1.4 — Só o QBMG nas outras telas de escala
+
+**Architecture:** um trecho de SQL único, aplicado em todas as consultas que montam a lista de militares das telas de escala de praças. Quem já está escalado num mês continua aparecendo nele.
+
+**Branch:** `p1-4-so-qbmg-nas-escalas`. Commits `P1.4: …`. Sem migração.
+
+## Review Focus
+
+- Oficial QOC que já tem alocação gravada num mês: continua na Grade daquele mês, na parte "de fora escalados aqui", para o histórico não sumir.
+- MAJ sem quadro: continua em todas as telas de escala, com a pendência "Sem quadro".
+- Trocar o quadro de um militar de QBMG para QOA (promoção a oficial): ele sai das telas de praças nos meses seguintes. Nos meses com alocação, fica como o caso acima.
+- O Militares do módulo de escalas (cadastro) continua listando todos os quadros.
+- A elegibilidade recusa um oficial QOC numa vaga de praça, com o motivo "Oficial: fica na escala dos oficiais.", sem 500.
+
+### Task 10: o filtro de quadro
+
+**Files:**
+- Create: `apps/api/src/escala/quadros-da-escala.ts` (`export const SO_QBMG_OU_SEM_QUADRO: string`, um trecho `where` sobre o alias `m` de `militar`)
+- Modify: `apps/api/src/escala/elegibilidade.ts`, `apps/api/src/escala/pre-escala.ts`, `apps/api/src/grade/grade.ts`, `apps/api/src/grade/dia.ts`, `apps/api/src/efetivo/efetivo-do-dia.ts`, `apps/api/src/voluntariado/leitura.ts`
+- Test: `apps/api/test/quadros-nas-escalas.test.ts`
+
+- [ ] **Step 1: testes:** na 1ª SB, um CAP QOC, um MAJ sem quadro e um SD QBMG, todos Pronto da equipe Alfa:
+  - a Grade do mês, os candidatos de uma vaga, a pré-escala, o Efetivo por dia e o Voluntariado listam o SD e o MAJ, e não o CAP;
+  - o CAP com uma alocação gravada no mês aparece na Grade desse mês;
+  - a elegibilidade do CAP numa vaga dá o motivo "Oficial: fica na escala dos oficiais.".
+- [ ] **Step 2:** `pnpm --filter api test quadros-nas-escalas`. Esperado: FAIL.
+- [ ] **Step 3:** implementar. O trecho é `(m.quadro_id is null or m.quadro_id = (select id from quadro where sigla = 'QBMG'))`, e cada consulta o aplica onde hoje filtra `m.ativo`.
+- [ ] **Step 4:** a mesma linha. Esperado: PASS. Depois, `pnpm test && pnpm typecheck && pnpm build:vercel`.
+- [ ] **Step 5:** `git commit -m "P1.4: só o QBMG nas telas de escala de praças"`
 
 ---
 

@@ -118,6 +118,8 @@ O histórico das mudanças de comportamento fica na auditoria (relação de um c
 
 ## Quem edita o quê
 
+**Militar novo** só entra pelo módulo Pecúlio, pela ficha ou pela importação do Pecúlio; o módulo de escalas não cadastra militar (decisão do usuário, 22/11/2026; entrega 6.7).
+
 | Bloco | Quem edita |
 |---|---|
 | Identificação, contato, dados pessoais, comportamento, afastamentos e o rastreio (lotação) | gestor ou auxiliar administrativo (escalante) com papel numa **unidade acima** da lotação do militar (a "seção de pessoal" é o papel da unidade de cima) |

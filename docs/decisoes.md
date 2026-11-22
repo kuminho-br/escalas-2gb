@@ -8,6 +8,10 @@ Siglas dos documentos: **Design** = `superpowers/specs/2026-11-16-migracao-desig
 
 | Data | Decisão | Onde está |
 |---|---|---|
+| 22/11/2026 | Escala dos oficiais: o serviço do oficial de operações é cadastrado como os outros e escolhido na tela, por mês (copiado do mês anterior; troca só antes das cotas); os turnos e horários vêm dele, sem nada fixo no código. | Oficiais, Regras; plano da P1 |
+| 22/11/2026 | Quadros por tela: a Escala dos oficiais mostra só QOC e QOA; as outras telas de escala, o QBMG e quem está sem quadro (com a pendência). Entra na P1.4. | Oficiais, Quem participa; plano da P1 |
+| 22/11/2026 | Militar novo só entra pelo módulo Pecúlio: sai o "Novo militar" e a importação de MILITARES do módulo de escalas. Entrega 6.7. | Pecúlio, Quem edita o quê; plano da fase 6, Entrega 7 |
+| 22/11/2026 | Ordem: a P1 (P1.1 a P1.4) vai antes da entrega 6.5, que começa depois da P1.3. | Roadmap, Fase 6 e Missões paralelas |
 | 22/11/2026 | Entregas paralelas: uma linha de entregas fora das fases ("Missões paralelas"), que não muda a ordem do roadmap. A primeira é a P1, Escala dos oficiais. | Roadmap, Missões paralelas |
 | 22/11/2026 | Escala dos oficiais: design e mockup aprovados sem ressalvas; os 8 pontos em aberto ficam como propostos, e o item "Oficiais" vem depois de "Efetivo por dia". | Oficiais, Pontos que estavam em aberto |
 | 22/11/2026 | Quadros QOC, QOA e QBMG: todo militar pertence a um quadro; o posto-graduação pertence a quadros, e o mesmo pode estar em mais de um. "Posto-graduação" é o nome provisório do campo. Entra na P1.1. | Pecúlio, Militar; plano da P1 |
