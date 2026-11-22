@@ -323,3 +323,41 @@ describe('depois de janeiro', () => {
     expect(rows[0]!.n).toBe(9);
   });
 });
+
+describe('correções da revisão final', () => {
+  it('um turno cadastrado no serviço depois das cotas não vira 500: dá 400, antes e depois de fechar', async () => {
+    expect((await calcular('2027-05')).status).toBe(200);
+    const novo = await inserir(api.banco, 'turno', { servico_id: servico, letra: 'C', inicio: '12:00', fim: '18:00' });
+    const antes = await lancar('2027-05', '2027-05-03', novo, ids.a1!);
+    expect(antes.status).toBe(400);
+    expect((await antes.json()).erro).toBe('Este turno não faz parte da escala deste mês.');
+    expect((await api.pedir('gestorGb', 'POST', rota('2027-05', '/fechar'))).status).toBe(200);
+    const depois = await lancar('2027-05', '2027-05-03', novo, ids.a1!);
+    expect(depois.status).toBe(400);
+    await api.banco.query('delete from turno where id = $1', [novo]);
+  });
+
+  it('quem sai da lista num novo cálculo não deixa turnos com o nome dele: os turnos ficam vazios', async () => {
+    expect((await calcular('2027-06')).status).toBe(200);
+    for (const dia of ['2027-06-01', '2027-06-02']) expect((await lancar('2027-06', dia, turnoA, ids.a1!)).status).toBe(200);
+    await api.banco.query('update militar set ativo = false where id = $1', [ids.a1]);
+    const e: EscalaDosOficiais = await (await calcular('2027-06')).json();
+    expect(e.oficiais.some((o) => o.militarId === ids.a1)).toBe(false);
+    expect(e.turnos.filter((t) => t.militarId === ids.a1)).toHaveLength(0);
+    expect(e.turnos.filter((t) => t.militarId === ids.a1 || t.saiuMilitarId === ids.a1)).toHaveLength(0);
+    await api.banco.query('update militar set ativo = true where id = $1', [ids.a1]);
+  });
+
+  it('o serviço copiado do último mês é conferido no cálculo', async () => {
+    const x = await inserir(api.banco, 'servico', { unidade_id: api.ids.gb, nome: 'Oficial reserva', tipo: 'ordinario', cor: '#2F8F5B' });
+    await inserir(api.banco, 'turno', { servico_id: x, letra: 'A', inicio: '07:00', fim: '19:00' });
+    expect((await escolherServico('2027-07', x)).status).toBe(200);
+    await api.banco.query('update servico set ativo = false where id = $1', [x]);
+    const r = await calcular('2027-08');
+    expect(r.status).toBe(409);
+    expect((await r.json()).erro).toBe('Escolha um serviço da unidade com turnos cadastrados.');
+    // o gestor escolhe outro e segue
+    expect((await escolherServico('2027-08', servico)).status).toBe(200);
+    expect((await calcular('2027-08')).status).toBe(200);
+  });
+});

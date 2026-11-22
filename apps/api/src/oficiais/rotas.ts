@@ -21,12 +21,21 @@ const MSG_SEM_SERVICO = 'Escolha o serviço da escala antes de calcular as cotas
 const MSG_SERVICO_INVALIDO = 'Escolha um serviço da unidade com turnos cadastrados.';
 const MSG_SERVICO_TRAVADO = 'Com as cotas calculadas, o serviço não muda mais.';
 const MSG_TURNO_ALHEIO = 'Este turno não é do serviço da escala.';
+const MSG_TURNO_FORA_DO_MES = 'Este turno não faz parte da escala deste mês.';
 const MSG_FORA_DA_ESCALA = 'Este oficial não está na escala deste mês.';
 
 class Recusa extends Error {
   constructor(readonly status: 400 | 409, mensagem: string) {
     super(mensagem);
   }
+}
+
+/** O serviço é da unidade, ordinário, ativo e tem turno? */
+async function servicoValido(tx: Consulta, servicoId: string, unidadeId: string): Promise<boolean> {
+  const { rows } = await tx.query(
+    `select 1 from servico s where s.id = $1 and s.unidade_id = $2 and s.tipo = 'ordinario' and s.ativo
+        and exists (select 1 from turno t where t.servico_id = s.id)`, [servicoId, unidadeId]);
+  return rows.length > 0;
 }
 
 /** Garante a linha do mês; ao criá-la, o serviço vem copiado do último mês da unidade. */
@@ -43,6 +52,8 @@ async function calcularEGravar(tx: Consulta, unidadeId: string, mes: string, ord
   const linha = (await linhaDoMes(tx, unidadeId, mes, true))!;
   if (linha.fechada_em) throw new Recusa(409, MSG_COTA_FECHADA);
   if (!linha.servico_id) throw new Recusa(409, MSG_SEM_SERVICO);
+  // o serviço copiado do mês anterior pode ter sido desativado: confere na primeira vez (depois das cotas ele já não muda)
+  if (!linha.cotas_em && !(await servicoValido(tx, linha.servico_id, unidadeId))) throw new Recusa(409, MSG_SERVICO_INVALIDO);
   const turnosDoMes = await turnosDoServico(tx, linha.servico_id);
   const manual = ordemManual ?? linha.ordem_manual;
   const participantes = await participantesDoMes(tx, unidadeId, mes);
@@ -57,6 +68,11 @@ async function calcularEGravar(tx: Consulta, unidadeId: string, mes: string, ord
       [linha.id, x.militarId, i + 1, x.dias, x.devido, x.cota, x.sobra],
     );
   }
+  // quem saiu da lista (desativado, outro quadro, outra unidade) não pode ficar com turnos: o devido dos outros contaria turnos sem dono de saldo
+  await tx.query(
+    'update oficiais_turno set militar_id = null, saiu_militar_id = null where mes_id = $1 and militar_id is not null and not (militar_id = any($2::uuid[]))',
+    [linha.id, cotas.map((x) => x.militarId)],
+  );
   const { inicio, fim } = limitesDoMes(mes);
   await tx.query(
     `insert into oficiais_turno (mes_id, dia, turno_id)
@@ -117,10 +133,7 @@ export function rotasOficiais(dep: { banco: Banco; auth: Auth }): Hono<AmbienteA
     if (!corpo.ok) return corpo.resposta;
     const { servicoId } = corpo.dados;
     return mudar(c, a.u, a.mes, async (tx) => {
-      const { rows } = await tx.query(
-        `select 1 from servico s where s.id = $1 and s.unidade_id = $2 and s.tipo = 'ordinario' and s.ativo
-            and exists (select 1 from turno t where t.servico_id = s.id)`, [servicoId, a.u]);
-      if (rows.length === 0) throw new Recusa(400, MSG_SERVICO_INVALIDO);
+      if (!(await servicoValido(tx, servicoId, a.u))) throw new Recusa(400, MSG_SERVICO_INVALIDO);
       await garantirMes(tx, a.u, a.mes);
       const linha = (await linhaDoMes(tx, a.u, a.mes, true))!;
       if (linha.cotas_em) throw new Recusa(409, MSG_SERVICO_TRAVADO);
@@ -162,7 +175,9 @@ export function rotasOficiais(dep: { banco: Banco; auth: Auth }): Hono<AmbienteA
         if (rows.length === 0) throw new Recusa(400, MSG_FORA_DA_ESCALA);
       }
       const atual = (await tx.query<{ militar_id: string | null; saiu_militar_id: string | null }>(
-        'select militar_id, saiu_militar_id from oficiais_turno where mes_id = $1 and dia = $2::date and turno_id = $3 for update', [linha.id, dia, turno])).rows[0]!;
+        'select militar_id, saiu_militar_id from oficiais_turno where mes_id = $1 and dia = $2::date and turno_id = $3 for update', [linha.id, dia, turno])).rows[0];
+      // turno cadastrado no serviço depois do cálculo, ou dia fora do mês gravado: não existe na escala
+      if (!atual) throw new Recusa(400, MSG_TURNO_FORA_DO_MES);
       let militar: string | null = novo;
       let saiu: string | null = null;
       if (linha.fechada_em && novo) {
