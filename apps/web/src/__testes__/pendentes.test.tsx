@@ -299,7 +299,7 @@ describe('Salvar que mostra o estado', () => {
 
   describe('fichas de militar e de guarnição', () => {
     const linhaM = (l: Partial<LinhaMilitar>): LinhaMilitar => ({
-      id: 'm1', matricula: '990001-1', posto: 'SD BM', nomeGuerra: 'ANDRADE', equipe: 'Alfa', jornada: 'pronto', motorista: null,
+      id: 'm1', matricula: '990001-1', posto: 'SD BM', quadro: null, nomeGuerra: 'ANDRADE', equipe: 'Alfa', jornada: 'pronto', motorista: null,
       voluntarioJes: false, ativo: true, situacao: 'Disponível', pendencias: [], ...l,
     });
     const FICHA_M: FichaMilitar = {

@@ -48,6 +48,8 @@ const CnhSemRepetir = z.array(CategoriaCnh).transform((categorias) => [...new Se
 export const NovoMilitar = z.object({
   matricula: Matricula,
   postoGradId: Id,
+  /** sem o quadro, o sistema escolhe: o do posto, quando ele só existe em um; senão, fica sem quadro (pendência "Sem quadro") */
+  quadroId: Id.nullable().optional(),
   nomeCompleto: NomeCompleto,
   nomeGuerra: Nome,
   antiguidade: Antiguidade,
@@ -60,6 +62,7 @@ export type NovoMilitar = z.infer<typeof NovoMilitar>;
 
 export const EdicaoMilitar = z.object({
   postoGradId: Id.optional(),
+  quadroId: Id.nullable().optional(),
   nomeCompleto: NomeCompleto.optional(),
   nomeGuerra: Nome.optional(),
   sexo: Sexo.nullable().optional(),
@@ -92,6 +95,8 @@ export type EdicaoAfastamento = z.infer<typeof EdicaoAfastamento>;
 export const MENSAGEM_FIM_ANTES_DO_INICIO = MSG_FIM;
 
 export type Posto = { id: string; sigla: string; nome: string; ordem: number };
+/** QOC, QOA ou QBMG, com os postos-graduações que pertencem a ele (o mesmo posto pode estar em mais de um quadro). */
+export type Quadro = { id: string; sigla: string; nome: string; postoGradIds: string[] };
 /** Seção em que o usuário pode lotar um militar (as que ele pode cadastrar). */
 export type SecaoDeLotacao = { id: string; sigla: string; nome: string };
 export type Equipe = { id: string; nome: string; ordemCiclo: number };
@@ -100,6 +105,7 @@ export type LinhaMilitar = {
   id: string;
   matricula: string;
   posto: string;
+  quadro: { id: string; sigla: string } | null;
   nomeGuerra: string;
   equipe: string | null;
   jornada: 'pronto' | 'adm' | null;

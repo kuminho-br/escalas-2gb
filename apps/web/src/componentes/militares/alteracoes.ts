@@ -3,6 +3,8 @@ import type { EdicaoMilitar } from 'contratos';
 /** Os campos que o bloco "Identificação" da ficha edita, já como o servidor os guarda. */
 export type ValoresIdentificacao = {
   postoGradId: string;
+  /** null: sem quadro (a ficha mostra a pendência "Sem quadro") */
+  quadroId: string | null;
   nomeCompleto: string;
   nomeGuerra: string;
   sexo: 'M' | 'F' | null;
@@ -21,6 +23,7 @@ const nomeNormalizado = (nome: string) => nome.trim().toUpperCase();
 export function alteracoesDaIdentificacao(antes: ValoresIdentificacao, depois: ValoresIdentificacao): EdicaoMilitar {
   const mudou: EdicaoMilitar = {};
   if (depois.postoGradId !== antes.postoGradId) mudou.postoGradId = depois.postoGradId;
+  if (depois.quadroId !== antes.quadroId) mudou.quadroId = depois.quadroId;
   // o nome completo vai como está escrito (só sem espaços nas pontas); apagá-lo não é uma alteração (a ficha pede que continue preenchido)
   if (depois.nomeCompleto.trim() !== antes.nomeCompleto.trim() && depois.nomeCompleto.trim() !== '') mudou.nomeCompleto = depois.nomeCompleto.trim();
   if (depois.sexo !== antes.sexo) mudou.sexo = depois.sexo;
