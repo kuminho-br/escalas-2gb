@@ -50,7 +50,7 @@ interface Props {
 export function MensagensDoMes({ escala: e, confirmacao, ocupado, aoFechar, aoEncerrar, aoDesistir }: Props) {
   const semNome = e.turnos.filter((t) => t.militarId === null).length;
   return (
-    <div className="grid gap-2">
+    <div className="grid gap-2" aria-live="polite">
       {confirmacao === 'fechar' && (
         <Caixa rotulo="Confirmação">
           <p>

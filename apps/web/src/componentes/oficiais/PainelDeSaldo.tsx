@@ -23,7 +23,7 @@ export function PainelDeSaldo({ unidadeId, lista }: { unidadeId: string; lista: 
       {lista.length === 0 ? (
         <p className="text-apagado">Ainda não há saldo: ele aparece quando o primeiro mês for encerrado.</p>
       ) : (
-        <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,24rem)]">
+        <div className="grid grid-cols-[minmax(0,1fr)] items-start gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,24rem)]">
           <section className="grid gap-2 rounded-lg border border-linha bg-superficie p-3">
             <h2 className="font-cond text-lg font-semibold">Saldo de cada oficial</h2>
             <div className="overflow-x-auto">

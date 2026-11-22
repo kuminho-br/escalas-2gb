@@ -303,6 +303,24 @@ describe('a aba Escala do mês', () => {
     });
   });
 
+  describe('os erros da API', () => {
+    it('o erro de uma troca com a escala fechada aparece dentro do diálogo, que continua aberto', async () => {
+      const base = escala();
+      const fechada = escala({ etapa: 'fechada', fechadaEm: '2026-12-30T09:00:00', vez: null, turnos: comNome(base, { [`${dia(5)}|t-a`]: 'm-1' }) });
+      abrirEscala(fechada, { [`PUT ${URL_MES}/turnos/${dia(5)}/t-a`]: { status: 400, corpo: { erro: 'Este oficial não está na escala deste mês.' } } });
+      await userEvent.click(await screen.findByRole('button', { name: /^05\/01, Dia/ }));
+      const caixa = screen.getByRole('dialog');
+      await userEvent.click(within(caixa).getByRole('button', { name: 'CAP BRAVO' }));
+      expect(await within(screen.getByRole('dialog')).findByText('Este oficial não está na escala deste mês.')).toBeInTheDocument();
+    });
+
+    it('as confirmações são anunciadas (região ao vivo)', async () => {
+      abrirEscala(escala());
+      await userEvent.click(await screen.findByRole('button', { name: 'Fechar a escala' }));
+      expect(screen.getByRole('region', { name: 'Confirmação' }).closest('[aria-live]')).not.toBeNull();
+    });
+  });
+
   describe('o mês encerrado', () => {
     it('mostra a mensagem fixa, e o clique no turno não faz nada', async () => {
       const f = abrirEscala(escala({ etapa: 'encerrada', fechadaEm: '2026-12-30T09:00:00', encerradaEm: '2027-02-01T08:00:00', vez: null }));

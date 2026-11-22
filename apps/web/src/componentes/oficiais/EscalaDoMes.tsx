@@ -25,30 +25,42 @@ export function EscalaDoMes({ unidadeId, escala: e, aoVer }: Props) {
   const [erro, setErro] = useState<string | null>(null);
   const [confirmacao, setConfirmacao] = useState<Confirmacao>(null);
   const [turnoAberto, setTurnoAberto] = useState<Turno | null>(null);
+  // o erro de uma troca feita no diálogo aparece nele (atrás do diálogo ninguém o veria)
+  const [erroDoTurno, setErroDoTurno] = useState<string | null>(null);
 
   const semParticipantes = e.etapa === 'sem-cotas' && e.oficiais.length === 0;
   if (semParticipantes) return <p className="text-apagado">Nenhum oficial QOC ou QOA nesta unidade neste mês.</p>;
 
-  const rodar = (f: () => Promise<unknown>, depois?: () => void) =>
+  const rodar = (f: () => Promise<unknown>, depois?: () => void, mostrar: (m: string | null) => void = setErro) =>
     travar(async () => {
-      setErro(null);
+      mostrar(null);
       try {
         await f();
         depois?.();
       } catch (x) {
-        setErro(mensagemDe(x));
+        mostrar(mensagemDe(x));
       }
     });
   const calcular = rodar(() => calcularCotas(queryClient, unidadeId, e.mes));
   const fechar = rodar(() => fecharEscala(queryClient, unidadeId, e.mes), () => setConfirmacao(null));
   const encerrar = rodar(() => encerrarMes(queryClient, unidadeId, e.mes), () => setConfirmacao(null));
   const ordenar = (ids: string[]) => void rodar(() => gravarOrdem(queryClient, unidadeId, e.mes, ids))();
-  const lancar = (t: Turno, militarId: string | null) => rodar(() => trocarTurno(queryClient, unidadeId, e.mes, t.dia, t.turnoId, militarId), () => setTurnoAberto(null))();
+  const lancar = (t: Turno, militarId: string | null, noDialogo = false) =>
+    rodar(() => trocarTurno(queryClient, unidadeId, e.mes, t.dia, t.turnoId, militarId), () => setTurnoAberto(null), noDialogo ? setErroDoTurno : setErro)();
+  const fecharDialogo = () => {
+    setTurnoAberto(null);
+    setErroDoTurno(null);
+  };
 
   const aoCalcular = () => (e.etapa === 'fechada' ? setConfirmacao('calcular-fechada') : void calcular());
   const aoFechar = () => (e.turnos.some((t) => t.militarId === null) ? setConfirmacao('fechar') : void fechar());
   const aoEncerrar = () => setConfirmacao(e.etapa === 'fechada' ? 'encerrar' : 'encerrar-antes');
-  const clicarTurno = (t: Turno) => (e.etapa === 'escolhas' ? (e.vez ? void lancar(t, e.vez) : undefined) : setTurnoAberto(t));
+  const clicarTurno = (t: Turno) => {
+    if (e.etapa !== 'escolhas') {
+      setErroDoTurno(null);
+      setTurnoAberto(t);
+    } else if (e.vez) void lancar(t, e.vez);
+  };
   const aberto = e.etapa === 'escolhas' || e.etapa === 'fechada';
 
   return (
@@ -79,7 +91,7 @@ export function EscalaDoMes({ unidadeId, escala: e, aoVer }: Props) {
         aoDesistir={() => setConfirmacao(null)}
       />
       {e.etapa === 'sem-cotas' && <p className="text-apagado">{e.servico ? 'Calcule as cotas para abrir os turnos do mês.' : 'Escolha o serviço da escala. Ele vem do cadastro de serviços (tela Turnos).'}</p>}
-      <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,24rem)]">
+      <div className="grid grid-cols-[minmax(0,1fr)] items-start gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,24rem)]">
         {aberto || e.etapa === 'encerrada' ? (
           <section className="grid gap-2 rounded-lg border border-linha bg-superficie p-3">
             <header className="flex flex-wrap items-baseline justify-between gap-2">
@@ -97,7 +109,8 @@ export function EscalaDoMes({ unidadeId, escala: e, aoVer }: Props) {
         ) : (
           <div />
         )}
-        <aside className="grid gap-3">
+        {/* no celular a vez de escolher e as cotas vêm antes dos dias, como no mockup */}
+        <aside className="order-first grid min-w-0 gap-3 lg:order-none">
           <VezDeEscolher escala={e} />
           <section className="grid gap-2 rounded-lg border border-linha bg-superficie p-3">
             <h2 className="font-cond text-lg font-semibold">Cotas</h2>
@@ -105,7 +118,7 @@ export function EscalaDoMes({ unidadeId, escala: e, aoVer }: Props) {
           </section>
         </aside>
       </div>
-      <Dialog open={turnoAberto !== null} onOpenChange={(o) => !o && setTurnoAberto(null)}>
+      <Dialog open={turnoAberto !== null} onOpenChange={(o) => !o && fecharDialogo()}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Quem fica neste turno?</DialogTitle>
@@ -113,13 +126,14 @@ export function EscalaDoMes({ unidadeId, escala: e, aoVer }: Props) {
               {turnoAberto ? `${turnoAberto.dia.slice(8)}/${turnoAberto.dia.slice(5, 7)}. Quem cobre ganha o turno, e quem saiu não fica devendo.` : ''}
             </DialogDescription>
           </DialogHeader>
+          {erroDoTurno && <p role="alert" className="text-alerta">{erroDoTurno}</p>}
           <div className="grid gap-1.5">
             {e.oficiais.map((o) => (
-              <Button key={o.militarId} type="button" variant="outline" disabled={salvando} onClick={() => turnoAberto && lancar(turnoAberto, o.militarId)}>
+              <Button key={o.militarId} type="button" variant="outline" disabled={salvando} onClick={() => turnoAberto && lancar(turnoAberto, o.militarId, true)}>
                 {`${o.posto} ${o.nomeGuerra}`}
               </Button>
             ))}
-            <Button type="button" variant="outline" disabled={salvando} onClick={() => turnoAberto && lancar(turnoAberto, null)}>Ninguém</Button>
+            <Button type="button" variant="outline" disabled={salvando} onClick={() => turnoAberto && lancar(turnoAberto, null, true)}>Ninguém</Button>
           </div>
         </DialogContent>
       </Dialog>
