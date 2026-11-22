@@ -197,6 +197,16 @@ A CNH é do militar, esteja ou não no quadro de motoristas; **para a escala, el
 - **Pecúlio (fase 5):** como a planilha é usada hoje; ficha única ou duas; fonte dos dados depois da importação; abas extras; como o militar comum entra sem e-mail; quem vê cada informação. Detalhes em `docs/superpowers/specs/2026-11-20-peculio-design.md`.
 - **Antiguidade institucional:** dentro do GB, vem da "Ordem" do Pecúlio (fase 5). Acima do GB (fase 11), a ideia é derivá-la dos almanaques, por nível hierárquico. Em aberto: como o almanaque entra (PDF ou digitação) e o que acontece com a antiguidade manual de hoje.
 - **Publicação (fase 7):** se a escala publicada fica travada e como se corrige depois.
+- **Serviço em outra unidade** (registrado em 22/11/2026, a elucidar e modelar; sem fase). Necessidade descrita pelo usuário:
+  - **Liberar os militares da unidade** (configuração da unidade, sim ou não). Desligada, os militares dela não tiram serviço em outra unidade. Ligada, o militar se candidata para tirar serviço noutro local; se o local de destino aceita, ele preenche a sua disponibilidade de voluntariado no destino.
+  - **Aceitar militares de fora** (configuração da unidade, sim ou não), que a unidade liga e desliga. Ao desligar, ela escolhe se quem já está tirando serviço nela permanece ou é retirado à força das opções de escala.
+  - **Ligações com o que existe:** a regra de hoje, "militar de outra unidade só é escalado por vínculo de militar externo" (seção Montagem da escala), e a tabela `vinculo_externo`, que está no banco sem uso. A Grade já mostra "os de fora escalados aqui".
+  - **Perguntas para a elucidação:**
+    - a candidatura vale por mês, por serviço ou por período;
+    - quem aceita no destino (o escalante ou o gestor);
+    - o que conta: Diária, PJES, o ordinário;
+    - o que "retirado das opções" faz com os serviços já escalados no mês;
+    - se a unidade de cima pode impor a configuração às de baixo.
 
 ## 8. Outros documentos
 
