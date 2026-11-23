@@ -140,11 +140,15 @@ export async function exigirAlgumPapel(c: Context<AmbienteApi>): Promise<Respons
   return papeis.length ? null : c.json({ erro: 'Esta tela é dos auxiliares administrativos e gestores.' }, 403);
 }
 
+/** É o administrador do sistema (o nível de administrador vigente, que só existe na raiz)? */
+export async function ehAdministrador(c: Consulta, usuarioId: string, hoje: string): Promise<boolean> {
+  const raiz = (await c.query<{ id: string }>('select id from unidade where mae_id is null')).rows[0]!.id;
+  return temPapel(c, usuarioId, raiz, ['administrador'], hoje);
+}
+
 /** Catálogos do sistema: só o administrador (que só existe na raiz). */
 export async function exigirAdministradorRaiz(c: Context<AmbienteApi>, erro = 'Só o administrador do sistema altera esta lista.'): Promise<Response | null> {
-  const banco = c.get('banco');
-  const raiz = (await banco.query<{ id: string }>('select id from unidade where mae_id is null')).rows[0]!.id;
-  if (await temPapel(banco, c.get('usuarioId'), raiz, ['administrador'], hojeRecife())) return null;
+  if (await ehAdministrador(c.get('banco'), c.get('usuarioId'), hojeRecife())) return null;
   return c.json({ erro }, 403);
 }
 

@@ -64,8 +64,8 @@ describe('isolamento entre unidades', () => {
     const rotas: string[] = [];
     for (const r of hono.routes) {
       if (r.method === 'ALL' || !r.path.startsWith('/api/')) continue;
-      // os catálogos do sistema (/api/sistema, as situações do militar e os postos) não são de uma unidade: têm regra própria (administrador na raiz)
-      if (!(r.path.includes(':u') || r.path.includes(':id')) || r.path.startsWith('/api/sistema') || r.path.startsWith('/api/situacoes-do-militar') || r.path.startsWith('/api/postos')) continue;
+      // os catálogos do sistema (/api/sistema, as situações do militar, os postos e os quadros) não são de uma unidade: têm regra própria (administrador na raiz)
+      if (!(r.path.includes(':u') || r.path.includes(':id')) || r.path.startsWith('/api/sistema') || r.path.startsWith('/api/situacoes-do-militar') || r.path.startsWith('/api/postos') || r.path.startsWith('/api/quadros')) continue;
       const recurso = /^\/api\/([a-z]+)\/:id/.exec(r.path)?.[1];
       if (r.path.includes(':id') && !(recurso && ids[recurso])) throw new Error(`recurso sem registro de teste: ${r.path}`);
       const caminho = r.path

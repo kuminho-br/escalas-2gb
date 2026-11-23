@@ -16,7 +16,6 @@ import {
   type LinhaMilitar,
   type ListaDoPeculio,
   type Posto,
-  type Quadro,
   type SecaoDeLotacao,
 } from 'contratos';
 import { cnhHabilitadas, diasDoMes } from 'dominio';
@@ -28,7 +27,7 @@ import { hojeRecife } from '../datas.ts';
 import { lerCorpo, respostaDoErroDoBanco } from '../erros.ts';
 import { apagarMilitar, oQueVaiJunto } from './apagar-militar.ts';
 import { mudarPeriodoAberto, periodoAberto } from './periodo-aberto.ts';
-import { quadroParaOPosto } from './quadros.ts';
+import { lerQuadros, quadroParaOPosto } from './quadros.ts';
 import { categoriaMaisAlta, pendenciasDoMilitar, repetidasPorAntiguidade, situacaoNoMes } from './militares-regras.ts';
 
 type Ctx = Context<AmbienteApi>;
@@ -322,14 +321,7 @@ export function rotasMilitares(dep: { banco: Banco; auth: Auth }): Hono<Ambiente
     return c.json(resultado.posto);
   });
 
-  r.get('/quadros', async (c) => {
-    const { rows } = await dep.banco.query<Quadro>(
-      `select q.id, q.sigla, q.nome, coalesce(array_agg(qp.posto_grad_id order by p.ordem) filter (where qp.posto_grad_id is not null), '{}') as "postoGradIds"
-         from quadro q left join quadro_posto_grad qp on qp.quadro_id = q.id left join posto_grad p on p.id = qp.posto_grad_id
-        group by q.id order by q.ordem`,
-    );
-    return c.json(rows);
-  });
+  r.get('/quadros', async (c) => c.json(await lerQuadros(dep.banco)));
 
   // as seções em que a pessoa pode lotar um militar: as que ela pode cadastrar (o administrador, todas)
   r.get('/secoes', async (c) => {
