@@ -75,7 +75,7 @@ beforeAll(async () => {
   );
   chefe = await entrarComo(api, { matricula: '990851-1', nome: 'SCHEFE', nivel: { papel: 'chefe_divisao', unidadeId: divOp } });
   comum = await entrarComo(api, { matricula: '990854-4', nome: 'SCOMUM' });
-  oficial = await entrarComo(api, { matricula: '990852-2', nome: 'SOFICIAL', posto: 'CAP BM' });
+  oficial = await entrarComo(api, { matricula: '990852-2', nome: 'SOFICIAL', posto: 'CAP' });
   await inserir(api.banco, 'rastreio', { militar_id: oficial.militarId, unidade_id: sb1, jornada: 'adm', desde: dia1, quadro_id: quadro.QOC });
 });
 afterAll(async () => {
