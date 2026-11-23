@@ -1315,7 +1315,7 @@ describe('mover pela hierarquia e quem moveu (6.23)', () => {
     expect(lotacao).toHaveDisplayValue('2ª SB (2º GB)');
   });
 
-  it('6.24: militar sem nenhum período, com a unidade da tela sendo o CBMPE (não é seção): o formulário sugere uma seção da lista, para o administrador dar a primeira lotação', async () => {
+  it('6.24: militar sem nenhum período, com a unidade da tela sendo o CBMPE (não é seção): o formulário pede a escolha da seção, para o administrador dar a primeira lotação', async () => {
     // o administrador trabalha na raiz: a unidade da tela é o CBMPE
     const ADMIN = { ...EU_EXEMPLO, papeis: [{ papel: 'administrador' as const, unidadeId: 'u-raiz', unidadeSigla: 'CBMPE' }], unidades: [{ id: 'u-raiz', sigla: 'CBMPE', caminho: ['CBMPE'], nivel: 0, tipo: 'raiz' }] };
     const f = api({
@@ -1333,10 +1333,13 @@ describe('mover pela hierarquia e quem moveu (6.23)', () => {
     const caixa = within(await screen.findByRole('dialog'));
     const lotacao = caixa.getByLabelText('Lotação');
     await within(lotacao).findByRole('option', { name: '1ª SB' });
-    // a unidade da tela (CBMPE) não é seção: vale a primeira da lista, e é o que o Salvar manda
-    const primeira = SECOES[0]!.id;
-    expect(lotacao).toHaveValue(primeira);
+    // a unidade da tela (CBMPE) não é seção e o militar não tem lotação: a pessoa escolhe (nenhuma seção vem escolhida por acaso), e o Salvar espera a escolha
+    expect(lotacao).toHaveValue('');
+    expect(within(lotacao).getAllByRole('option')[0]).toHaveTextContent('Escolha a seção');
+    expect(caixa.getByRole('button', { name: 'Salvar' })).toBeDisabled();
+    await userEvent.selectOptions(lotacao, 'u-2sb');
+    expect(caixa.getByRole('button', { name: 'Salvar' })).toBeEnabled();
     await userEvent.click(caixa.getByRole('button', { name: 'Salvar' }));
-    await waitFor(() => expect(corpoEnviado(f, 'POST /api/militares/m1/situacao')).toMatchObject({ unidadeId: primeira }));
+    await waitFor(() => expect(corpoEnviado(f, 'POST /api/militares/m1/situacao')).toMatchObject({ unidadeId: 'u-2sb' }));
   });
 });

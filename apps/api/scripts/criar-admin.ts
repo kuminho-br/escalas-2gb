@@ -45,7 +45,9 @@ try {
     matricula: a.matricula, postoSigla: a.posto, nomeGuerra: a['nome-guerra'], email: a.email, senha, hoje: hojeRecife(), lotacao: a.lotacao,
   });
   console.log(`Administrador criado (usuário ${r.usuarioId}).`);
-  if (!a.lotacao) console.log('Atenção: o militar do administrador está sem lotação. Dê a lotação na ficha dele (Alterar situação) para ele aparecer nas buscas, listas e escalas.');
+  if (r.lotado) console.log(`Militar lotado na seção ${a.lotacao}.`);
+  else if (a.lotacao) console.log('O militar já tinha lotação, e ela não foi mudada.');
+  else console.log('Atenção: se o militar do administrador está sem lotação, dê a lotação na ficha dele (Alterar situação) para ele aparecer nas buscas, listas e escalas.');
 } catch (e) {
   console.error((e as Error).message);
   process.exitCode = 1;

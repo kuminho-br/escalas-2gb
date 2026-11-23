@@ -125,3 +125,36 @@ describe('a primeira lotação pela ficha, pelo administrador (6.24)', () => {
     expect((await gestor.pedir('POST', `/api/militares/${semLotacao}/situacao`, { unidadeId: api.ids.secao, equipeId: null, jornada: 'adm', desde: hoje })).status).toBe(404);
   });
 });
+
+describe('achados da revisão final da 6.24', () => {
+  it('criarAdmin diz se lotou o militar: com a seção, sim; sem ela, não; militar que já tinha lotação não é movido', async () => {
+    const com = await admin({ lotacao: '1ª SB' });
+    expect(com.lotado).toBe(true);
+    const sem = await admin();
+    expect(sem.lotado).toBe(false);
+    // a mesma matrícula de um militar que já tem lotação (na 2ª SB): a lotação pedida é ignorada, e o resultado diz isso
+    const outraSecao = (await api.banco.query<{ id: string }>("select id from unidade where sigla = '2ª SB'")).rows[0]!.id;
+    const existente = await criarMilitar(api, { matricula: '990398-1', email: null, unidadeId: outraSecao });
+    seq++;
+    const r = await criarAdmin(api.banco, { matricula: '990398-1', postoSigla: 'CEL', nomeGuerra: 'JATINHA', email: `jatinha${seq}@exemplo.test`, senha: SENHA, hoje, lotacao: '1ª SB' });
+    expect(r.militarId).toBe(existente);
+    expect(r.lotado).toBe(false);
+    expect((await periodos(existente)).map((p) => p.sigla)).toEqual(['2ª SB']);
+  });
+
+  it('sigla repetida entre grupamentos: o erro diz como escrever, e "1ª SB (2º GB)" (o rótulo da lista de destinos) escolhe a seção', async () => {
+    const paiDoGb = (await api.banco.query<{ mae_id: string }>('select mae_id from unidade where id = $1', [api.ids.gb])).rows[0]!.mae_id;
+    const outroGb = await inserir(api.banco, 'unidade', { tipo: 'grupamento', sigla: '5º GB', nome: 'Quinto Grupamento', mae_id: paiDoGb, desde: '2020-01-01' });
+    await inserir(api.banco, 'unidade', { tipo: 'secao', sigla: '1ª SB', nome: '1ª Seção do 5º GB', mae_id: outroGb, desde: '2020-01-01' });
+    seq++;
+    const base = { postoSigla: 'CEL', senha: SENHA, hoje };
+    await expect(criarAdmin(api.banco, { ...base, matricula: `990${String(300 + seq).padStart(3, '0')}-${seq % 10}`, nomeGuerra: 'AMBIGUO', email: `ambiguo${seq}@exemplo.test`, lotacao: '1ª SB' }))
+      .rejects.toThrow('use a sigla com o grupamento, por exemplo "1ª SB (2º GB)"');
+    seq++;
+    const r = await criarAdmin(api.banco, { ...base, matricula: `990${String(300 + seq).padStart(3, '0')}-${seq % 10}`, nomeGuerra: 'COMGRUPAMENTO', email: `comgrupamento${seq}@exemplo.test`, lotacao: '1ª SB (2º GB)' });
+    expect(r.lotado).toBe(true);
+    expect((await periodos(r.militarId)).map((p) => p.sigla)).toEqual(['1ª SB']);
+    expect((await api.banco.query<{ mae_id: string }>('select un.mae_id from rastreio ra join unidade un on un.id = ra.unidade_id where ra.militar_id = $1', [r.militarId])).rows[0]!.mae_id).toBe(api.ids.gb);
+  });
+});
+
