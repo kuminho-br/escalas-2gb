@@ -54,7 +54,8 @@ describe('Minha ficha', () => {
     abrir('/minha-ficha');
     const campo = await screen.findByLabelText('Telefone');
     await userEvent.clear(campo);
-    await userEvent.type(campo, '(81) 98888-0000');
+    await userEvent.type(campo, '81988880000');
+    expect(campo).toHaveValue('(81) 98888-0000');
     await userEvent.click(screen.getByRole('button', { name: 'Salvar' }));
     await waitFor(() => expect(corpoEnviado(f, 'PATCH /api/eu/telefone')).toEqual({ telefone: '(81) 98888-0000' }));
     expect(await screen.findByText('Telefone salvo.')).toBeInTheDocument();
@@ -73,9 +74,9 @@ describe('Minha ficha', () => {
     abrir('/minha-ficha');
     const campo = await screen.findByLabelText('Telefone');
     await userEvent.clear(campo);
-    await userEvent.type(campo, '1'.repeat(21));
+    await userEvent.type(campo, '8199668');
     await userEvent.click(screen.getByRole('button', { name: 'Salvar' }));
-    expect(await screen.findByText('Use no máximo 20 caracteres.')).toBeInTheDocument();
+    expect(await screen.findByText('Use o DDD e o número: 10 ou 11 dígitos.')).toBeInTheDocument();
     expect(campo).toHaveAttribute('aria-invalid', 'true');
     expect(f.mock.calls.some(([, init]) => init?.method === 'PATCH')).toBe(false);
   });

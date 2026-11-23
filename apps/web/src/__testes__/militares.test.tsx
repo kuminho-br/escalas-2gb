@@ -719,30 +719,56 @@ describe('ficha ampliada (fase 5)', () => {
     await waitFor(() => expect(corpoEnviado(f, PATCH)).toEqual({ nascimento: null }));
   });
 
-  it('Contato: telefone e e-mail gravam só o que mudou; e-mail de outro domínio mostra a mensagem do contrato no campo, sem chamar a API (Review Focus 3)', async () => {
+  it('Contato: telefone e e-mail gravam só o que mudou; o e-mail só recebe o usuário, e o de outro domínio mostra a frase no campo, sem chamar a API (6.18, item 22)', async () => {
     const f = comFicha();
     abrir('/militares/m1');
     const telefone = await screen.findByLabelText('Telefone');
     const email = screen.getByLabelText('E-mail institucional');
     expect(telefone).toHaveValue('(81) 99999-0000');
-    expect(email).toHaveValue('andrade@bombeiros.pe.gov.br');
-    fireEvent.change(telefone, { target: { value: '(81) 98888-1111' } });
+    // o e-mail gravado aparece só com o usuário, e o domínio fica fixo à direita
+    expect(email).toHaveValue('andrade');
+    expect(screen.getByText('@bombeiros.pe.gov.br')).toBeInTheDocument();
+    fireEvent.change(telefone, { target: { value: '81988881111' } });
+    expect(telefone).toHaveValue('(81) 98888-1111');
     await userEvent.click(screen.getByRole('button', { name: 'Salvar contato' }));
     await waitFor(() => expect(corpoEnviado(f, PATCH)).toEqual({ telefone: '(81) 98888-1111' }));
     fireEvent.change(email, { target: { value: 'andrade@gmail.com' } });
+    expect(await screen.findByText('Use só o usuário do e-mail institucional.')).toBeInTheDocument();
+    expect(email).toHaveAccessibleDescription(/Use só o usuário do e-mail institucional\./);
     await userEvent.click(screen.getByRole('button', { name: 'Salvar contato' }));
-    expect(await screen.findByText('Use o e-mail institucional (@bombeiros.pe.gov.br).')).toBeInTheDocument();
-    expect(email).toHaveAccessibleDescription('Use o e-mail institucional (@bombeiros.pe.gov.br).');
     expect(chamadasA(f, PATCH)).toBe(1);
+  });
+
+  it('Contato: colar o e-mail inteiro do domínio fica só com o usuário, e o e-mail gravado vai com o domínio (6.18, item 22)', async () => {
+    const f = comFicha();
+    abrir('/militares/m1');
+    const email = await screen.findByLabelText('E-mail institucional');
+    await userEvent.clear(email);
+    await userEvent.click(email);
+    await userEvent.paste('maria.lima@bombeiros.pe.gov.br');
+    expect(email).toHaveValue('maria.lima');
+    await userEvent.click(screen.getByRole('button', { name: 'Salvar contato' }));
+    await waitFor(() => expect(corpoEnviado(f, PATCH)).toEqual({ email: 'maria.lima@bombeiros.pe.gov.br' }));
+  });
+
+  it('Contato: telefone com outra quantidade de dígitos mostra "Use o DDD e o número: 10 ou 11 dígitos." e não chama a API (6.18, item 22)', async () => {
+    const f = comFicha();
+    abrir('/militares/m1');
+    const telefone = await screen.findByLabelText('Telefone');
+    fireEvent.change(telefone, { target: { value: '8199668' } });
+    await userEvent.click(screen.getByRole('button', { name: 'Salvar contato' }));
+    expect(await screen.findByText('Use o DDD e o número: 10 ou 11 dígitos.')).toBeInTheDocument();
+    expect(chamadasA(f, PATCH)).toBe(0);
   });
 
   it('Contato: o e-mail de outro militar volta da API como erro no campo', async () => {
     comFicha({}, { [PATCH]: { status: 409, corpo: { erro: 'Este e-mail já é de outro militar.', campos: { email: 'Este e-mail já é de outro militar.' } } } });
     abrir('/militares/m1');
-    fireEvent.change(await screen.findByLabelText('E-mail institucional'), { target: { value: 'outro@bombeiros.pe.gov.br' } });
+    fireEvent.change(await screen.findByLabelText('E-mail institucional'), { target: { value: 'outro' } });
     await userEvent.click(screen.getByRole('button', { name: 'Salvar contato' }));
     expect(await screen.findByText('Este e-mail já é de outro militar.')).toBeInTheDocument();
-    expect(screen.getByLabelText('E-mail institucional')).toHaveAccessibleDescription('Este e-mail já é de outro militar.');
+    // a descrição do campo traz o erro e, depois, o domínio fixo (que o leitor de tela ouve)
+    expect(screen.getByLabelText('E-mail institucional')).toHaveAccessibleDescription('Este e-mail já é de outro militar. no domínio @bombeiros.pe.gov.br');
   });
 
   it('Comportamento: grava o comportamento e o boletim; "Sem informação" limpa', async () => {
