@@ -8,6 +8,7 @@ Siglas dos documentos: **Design** = `superpowers/specs/2026-11-16-migracao-desig
 
 | Data | Decisão | Onde está |
 |---|---|---|
+| 23/11/2026 | Refatorar toda a parte visual, interativa e de experiência de uso do site, com melhoria extrema do padrão de qualidade. A DESIGN analisa e envia as necessidades de implementação à PLANEJAMENTO; a direção e as decisões D1 a D4 ainda esperam o usuário. | `superpowers/specs/2026-11-23-refatoracao-da-interface-design.md` |
 | 23/11/2026 | O Pecúlio é a origem dos dados do militar: a planilha dele importa tudo, e a importação "Dados da escala" sai do módulo de escalas. Refaz a opção (b) de 22/11. | `superpowers/plans/2026-11-23-fase6-13-peculio-origem-dos-dados.md`; `superpowers/specs/2026-11-20-peculio-design.md`, "Importação do Pecúlio" |
 | 23/11/2026 | Na importação do Pecúlio, só a matrícula é obrigatória; célula vazia não altera e dado inválido é ignorado, sem travar. Militar novo exige posto, nome de guerra e lotação. | `superpowers/plans/2026-11-23-fase6-13-peculio-origem-dos-dados.md` |
 | 23/11/2026 | O administrador apaga um militar, com tudo o que é dele. Os postos e graduações (sigla e nome) são editáveis nas Configurações. | `superpowers/plans/2026-11-23-fase6-13-peculio-origem-dos-dados.md` |

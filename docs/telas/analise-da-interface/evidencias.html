@@ -1,0 +1,288 @@
+<title>Análise da interface</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Semi+Condensed:wght@500;600&display=swap">
+<style>
+/* Layout: um relatório de coluna única; cada achado é uma frase, a foto com marcas numeradas e as notas ao lado. */
+:root{
+  --fundo:#EDEFF2; --superficie:#FFFFFF; --tinta:#1C2430; --apagado:#5B6675; --linha:#D8DDE4;
+  --vinho:#8E1B1B; --marca:#F2B705; --marca-tinta:#1C2430; --ambar:#8A5A00; --ambar-fundo:#FCF1D6; --erro:#B3261E;
+  --texto:"Barlow",system-ui,sans-serif; --cond:"Barlow Semi Condensed","Barlow",system-ui,sans-serif;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--fundo:#14181F;--superficie:#1D232C;--tinta:#E8ECF1;--apagado:#A3AEBC;--linha:#343D4A;--vinho:#E58B8B;--ambar:#F2C56B;--ambar-fundo:#3A2E12;--erro:#F08A80;color-scheme:dark}}
+:root[data-theme="dark"]{--fundo:#14181F;--superficie:#1D232C;--tinta:#E8ECF1;--apagado:#A3AEBC;--linha:#343D4A;--vinho:#E58B8B;--ambar:#F2C56B;--ambar-fundo:#3A2E12;--erro:#F08A80;color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--fundo);color:var(--tinta);font:400 16px/1.5 var(--texto);padding-block:40px 72px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.pagina{max-width:1080px;margin:0 auto;display:grid;gap:56px}
+.pagina,section,header.topo{grid-template-columns:minmax(0,1fr)}
+h1,h2,h3{font-family:var(--cond);font-weight:600;line-height:1.1;margin:0;text-wrap:balance}
+h1{font-size:40px}
+h2{font-size:28px;max-width:26ch}
+h3{font-size:20px}
+p{margin:0;max-width:66ch}
+.apoio{color:var(--apagado);font-size:15px}
+header.topo{display:grid;gap:12px}
+section{display:grid;gap:20px}
+.rolavel{overflow-x:auto}
+table{border-collapse:collapse;width:100%;min-width:520px;font-size:15px}
+th,td{text-align:left;padding:9px 12px 9px 0;border-bottom:1px solid var(--linha);vertical-align:top}
+th{font-weight:500;color:var(--apagado);font-size:13px}
+td.n{font-family:var(--cond);font-weight:600;font-size:20px;white-space:nowrap;font-variant-numeric:tabular-nums}
+.achado{grid-template-columns:minmax(0,1fr);border-top:2px solid var(--tinta);padding-top:20px}
+.prova{display:grid;gap:20px;grid-template-columns:minmax(0,1.7fr) minmax(0,1fr);align-items:start}
+.prova.cel{grid-template-columns:minmax(0,260px) minmax(0,1fr)}
+@media (max-width:760px){.prova,.prova.cel{grid-template-columns:minmax(0,1fr)}.prova.cel .foto{max-width:260px}}
+.foto{position:relative;margin:0;border:1px solid var(--linha);border-radius:6px;overflow:hidden;background:var(--superficie);line-height:0}
+.foto img{display:block;width:100%;height:auto}
+.m,.notas li::before{display:grid;place-items:center;width:24px;height:24px;border-radius:50%;background:var(--marca);color:var(--marca-tinta);font:600 14px/1 var(--cond);box-shadow:0 0 0 2px #1C2430}
+.m{position:absolute;transform:translate(-50%,-50%)}
+.notas{list-style:none;margin:0;padding:0;display:grid;gap:12px;counter-reset:n;font-size:15px}
+.notas li{counter-increment:n;display:grid;grid-template-columns:24px minmax(0,1fr);gap:10px;align-items:start}
+.notas li::before{content:counter(n);margin-top:1px}
+.legenda{font-size:13px;color:var(--apagado);margin-top:-8px}
+ul.simples{margin:0;padding-left:20px;display:grid;gap:6px;max-width:66ch}
+ol.caminho{margin:0;padding-left:22px;columns:2 260px;column-gap:32px;font-size:15px;max-width:none}
+ol.caminho li{break-inside:avoid;padding:2px 0}
+.proposta{background:var(--superficie);border:1px solid var(--linha);border-radius:12px;padding:24px;display:grid;gap:28px}
+.aviso{background:var(--ambar-fundo);color:var(--ambar);padding:8px 12px;border-radius:6px;font-size:15px;justify-self:start}
+.papeis{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:16px}
+.papel{display:grid;grid-template-columns:36px minmax(0,1fr);gap:10px;align-items:start;font-size:14px}
+.papel i{width:36px;height:36px;border-radius:6px;border:1px solid var(--linha)}
+.papel b{display:block;font-family:var(--cond);font-size:17px;font-weight:600}
+.escala{display:grid;gap:6px}
+.escala div{display:grid;grid-template-columns:64px minmax(0,1fr);gap:12px;align-items:baseline}
+.escala span{font-size:13px;color:var(--apagado);font-variant-numeric:tabular-nums}
+.quadro{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.placa{display:inline-flex;align-items:baseline;gap:6px;height:36px;padding:7px 12px 0 14px;border-radius:6px;background:var(--fundo);border:1px solid var(--linha);position:relative;font-family:var(--cond)}
+.placa::before{content:"";position:absolute;left:0;top:0;bottom:0;width:5px;border-radius:6px 0 0 6px;background:var(--s,#2F8F5B)}
+.placa small{font-size:13px;color:var(--apagado);font-weight:500}
+.placa b{font-size:17px;font-weight:600}
+.encaixe{display:inline-flex;align-items:center;gap:8px;height:36px;padding:0 14px;border-radius:6px;border:2px dashed var(--ambar);color:var(--ambar);font-size:15px;font-weight:500}
+.encaixe.opcional{border:1px dashed var(--apagado);color:var(--apagado);font-weight:400}
+.moldura{display:grid;grid-template-columns:44px minmax(0,1fr) 30%;grid-template-rows:auto auto 150px;gap:4px;font-size:13px;color:var(--apagado);max-width:640px}
+.moldura div{border:1px solid var(--linha);border-radius:6px;padding:8px 10px;background:var(--fundo);min-width:0}
+.moldura .trilho{grid-row:1/4;background:#8E1B1B;border-color:#8E1B1B}
+.moldura .cab{grid-column:2/4;color:var(--tinta);font-family:var(--cond);font-size:17px;font-weight:600;display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.moldura .cab span{font:400 13px var(--texto);color:var(--apagado)}
+.moldura .filtros{grid-column:2/4}
+code{font-family:ui-monospace,Consolas,monospace;font-size:13px;overflow-wrap:anywhere}
+</style>
+
+<div class="pagina">
+<header class="topo">
+  <h1>Análise da interface</h1>
+  <p>Rodei o site neste computador com 53 militares fictícios, montei uma escala do zero e fotografei cada tela em três tamanhos: monitor (1440 px), notebook (1366 × 768) e celular (390 px). Tudo o que está aqui foi medido nas telas ou contado no código, em 23/11/2026.</p>
+  <p class="apoio">As fotos mostram só dados de exemplo (matrículas 990xxx). O que fazer com cada achado está na especificação citada no fim.</p>
+</header>
+
+<section>
+  <h3>O que foi medido</h3>
+  <div class="rolavel"><table>
+    <tr><th>Medida</th><th>Valor</th><th>Onde</th></tr>
+    <tr><td>Altura da Escala do mês com uma guarnição só</td><td class="n">8.730 px</td><td>Quase dez telas de rolagem num monitor de 900 px</td></tr>
+    <tr><td>Botões "Remover" na mesma página</td><td class="n">542</td><td>Cada um com 17 px de altura</td></tr>
+    <tr><td>Dias do mês à vista na Grade geral</td><td class="n">17 de 30</td><td>Com o painel do dia aberto, 9; no celular, 3</td></tr>
+    <tr><td>Botões de salvar na ficha do militar</td><td class="n">5</td><td>Um por bloco; a ficha tem 2.177 px de altura</td></tr>
+    <tr><td>Largura de Configurações no celular</td><td class="n">818 px</td><td>Numa tela de 390 px: a página inteira rola de lado</td></tr>
+    <tr><td>Ações para sair do zero e gerar a primeira escala</td><td class="n">17</td><td>Em 4 telas, com 5 botões de salvar diferentes</td></tr>
+    <tr><td>Confirmações feitas pela caixa do navegador</td><td class="n">11</td><td>Remover militar, desativar, descartar alterações</td></tr>
+    <tr><td>"Carregando…" escrito em texto</td><td class="n">34</td><td>Nenhuma tela guarda o lugar do que vai aparecer</td></tr>
+  </table></div>
+</section>
+
+<section class="achado">
+  <h2>A tela onde a escala é montada é uma coluna de 8.730 px</h2>
+  <div class="prova">
+    <figure class="foto"><img src="img/pc-escala-do-mes.jpg" alt="Escala do mês no computador, com os dias 1 e 2 à vista" width="1440" height="900">
+      <span class="m" style="left:15.1%;top:23.7%">1</span><span class="m" style="left:41.7%;top:37.3%">2</span><span class="m" style="left:30.6%;top:49.7%">3</span><span class="m" style="left:84%;top:41.1%">4</span></figure>
+    <ol class="notas">
+      <li>Gerar a pré-escala gravou 542 serviços. A resposta é uma frase cinza de 14 px, sem lugar fixo.</li>
+      <li>Quatro caixas, uma dentro da outra: dia, turno, guarnição e função. O nome do militar disputa atenção com as molduras.</li>
+      <li>"Sem guarnição" lista 8 nomes e 8 "Remover" por turno. A palavra aparece 542 vezes na página e cada botão tem 17 px de altura.</li>
+      <li>Metade da largura fica vazia, e só cabem dois dias por tela. Para ver o dia 20 é preciso rolar mais de 5.000 px.</li>
+    </ol>
+  </div>
+  <div class="prova cel">
+    <figure class="foto"><img src="img/cel-escala-do-mes.jpg" alt="Escala do mês no celular" width="780" height="1688">
+      <span class="m" style="left:12.8%;top:51.5%">1</span><span class="m" style="left:71.8%;top:82.9%">2</span></figure>
+    <ol class="notas">
+      <li>No celular a coluna do número do dia fica com um quarto da largura, e ela segue vazia por toda a altura do dia.</li>
+      <li>Cada turno ocupa meia tela, e o mês tem 60 turnos.</li>
+    </ol>
+  </div>
+</section>
+
+<section class="achado">
+  <h2>A Grade geral mostra 17 dos 30 dias</h2>
+  <div class="prova">
+    <figure class="foto"><img src="img/pc-grade-cheia.jpg" alt="Grade geral no computador com a pré-escala gravada" width="1440" height="900">
+      <span class="m" style="left:79.9%;top:25.8%">1</span><span class="m" style="left:89.6%;top:33%">2</span><span class="m" style="left:24.3%;top:31%">3</span><span class="m" style="left:2.9%;top:15.2%">4</span></figure>
+    <ol class="notas">
+      <li>O mês acaba no dia 17. Hoje é dia 23: ele fica fora da tela, sem marca, e a grade não rola até ele.</li>
+      <li>Três colunas de totais ocupam 240 px. Com "0, 0, -" em todas as linhas, ocupam o lugar de quase cinco dias.</li>
+      <li>A área de clique de cada dia tem 48 × 28 px, e as letras dos turnos, 11 px.</li>
+      <li>Os nomes do menu têm 11,5 px, em letra estreita. São 14 itens, e três deles não levam a lugar nenhum.</li>
+    </ol>
+  </div>
+  <div class="prova">
+    <figure class="foto"><img src="img/pc-grade-celula.jpg" alt="Grade geral com o painel do dia aberto" width="1440" height="900">
+      <span class="m" style="left:84.4%;top:33.3%">1</span><span class="m" style="left:51.4%;top:25.8%">2</span></figure>
+    <ol class="notas">
+      <li>O painel do dia entra ao lado e empurra a tabela.</li>
+      <li>Enquanto ele está aberto, a tabela mostra 9 dias. Quem confere a semana seguinte perde a vista dela a cada clique.</li>
+    </ol>
+  </div>
+  <div class="prova cel">
+    <figure class="foto"><img src="img/cel-grade.jpg" alt="Grade geral no celular" width="780" height="1688">
+      <span class="m" style="left:76.9%;top:41.5%">1</span><span class="m" style="left:30.8%;top:62.2%">2</span></figure>
+    <ol class="notas">
+      <li>No celular cabem 3 dias. É a mesma tabela do computador, só mais estreita.</li>
+      <li>A coluna do nome fica com mais da metade da tela.</li>
+    </ol>
+  </div>
+</section>
+
+<section class="achado">
+  <h2>Uma ficha, cinco botões de salvar</h2>
+  <div class="prova">
+    <figure class="foto"><img src="img/pc-militar-ficha.jpg" alt="Ficha de um militar, do alto ao fim" width="1440" height="2177">
+      <span class="m" style="left:51.4%;top:23.7%">1</span><span class="m" style="left:51.4%;top:31.8%">1</span><span class="m" style="left:51.4%;top:52%">1</span><span class="m" style="left:51.4%;top:60.2%">1</span><span class="m" style="left:51.4%;top:72.9%">1</span><span class="m" style="left:20.5%;top:15.9%">2</span></figure>
+    <ol class="notas">
+      <li>Cada bloco salva sozinho: "Salvar alterações", "Salvar contato", "Salvar dados pessoais", "Salvar comportamento" e "Salvar motorista". Quem corrige três campos em blocos diferentes salva três vezes.</li>
+      <li>O triângulo de cadastro incompleto aparece nos 53 militares. Quando todos têm o aviso, ele deixa de avisar.</li>
+    </ol>
+  </div>
+  <div class="prova">
+    <figure class="foto"><img src="img/pc-modelo-composicao.jpg" alt="Modelo de guarnição com uma função sendo criada" width="1440" height="900">
+      <span class="m" style="left:70.1%;top:62%">1</span><span class="m" style="left:65.8%;top:52.5%">2</span><span class="m" style="left:66%;top:90%">3</span><span class="m" style="left:43.4%;top:29.7%">4</span></figure>
+    <ol class="notas">
+      <li>Um formulário dentro do outro: primeiro "Criar" a função, depois "Salvar a partir de…". Se a pessoa salva antes de criar, o erro aparece embaixo do botão, longe da linha.</li>
+      <li>Os botões de mais e menos têm 24 px.</li>
+      <li>"Alterações não salvas" usa a cor de erro para um aviso de rotina.</li>
+      <li>O botão de salvar apagado é o elemento mais repetido das fichas e parece um link fraco.</li>
+    </ol>
+  </div>
+</section>
+
+<section class="achado">
+  <h2>No celular, Configurações passa da largura da tela</h2>
+  <div class="prova cel">
+    <figure class="foto"><img src="img/cel-configuracoes.jpg" alt="Configurações no celular" width="780" height="1688">
+      <span class="m" style="left:83.3%;top:18.7%">1</span><span class="m" style="left:88.5%;top:50.1%">2</span><span class="m" style="left:15.4%;top:74.1%">3</span></figure>
+    <ol class="notas">
+      <li>As seis abas somam 802 px e não rolam sozinhas: a página inteira passa a rolar de lado (818 px numa tela de 390). É um defeito, não uma escolha.</li>
+      <li>A coluna "Desde" corta o texto, e o botão "Mudar a partir de…" fica fora da tela.</li>
+      <li>A explicação da regra quebra em linhas de duas palavras.</li>
+    </ol>
+  </div>
+  <div class="prova">
+    <figure class="foto"><img src="img/pc-configuracoes.jpg" alt="Configurações no computador" width="1440" height="900">
+      <span class="m" style="left:52.8%;top:33.3%">1</span><span class="m" style="left:92.4%;top:38.5%">2</span></figure>
+    <ol class="notas">
+      <li>No computador o problema é o contrário: quatro regras esticadas em 1.290 px. O valor fica a 600 px do nome.</li>
+      <li>A ação fica a 1.100 px do nome da regra a que ela pertence.</li>
+    </ol>
+  </div>
+</section>
+
+<section class="achado">
+  <h2>A tela inicial mostra a foto e corta os módulos</h2>
+  <div class="prova">
+    <figure class="foto"><img src="img/nb-inicio.jpg" alt="Tela inicial num notebook de 1366 por 768" width="1366" height="768">
+      <span class="m" style="left:50%;top:43%">1</span><span class="m" style="left:19.6%;top:94%">2</span></figure>
+    <ol class="notas">
+      <li>Num notebook comum (1366 × 768) a foto fica com 512 dos 768 px.</li>
+      <li>Os cartões dos módulos começam no fim da tela, e o "Abrir" de cada um fica abaixo dela. A tela não diz nada sobre o mês: quantas vagas faltam, o que está pendente.</li>
+    </ol>
+  </div>
+</section>
+
+<section class="achado">
+  <h2>Cada tela vazia aponta só para o próprio botão</h2>
+  <div class="prova">
+    <figure class="foto"><img src="img/pc-escalas.jpg" alt="Tela Escalas sem nenhuma escala" width="1440" height="900">
+      <span class="m" style="left:18.6%;top:27.8%">1</span><span class="m" style="left:66.9%;top:31%">2</span></figure>
+    <ol class="notas">
+      <li>"Nenhuma escala. Use Nova escala ou Importar." O texto é claro, mas não conta que antes é preciso ter o modelo de guarnição e que depois vêm os serviços.</li>
+      <li>Dois vazios lado a lado. O da direita ocupa a maior parte da tela para dizer "escolha na lista" de uma lista sem nada.</li>
+    </ol>
+  </div>
+  <p>Para sair de uma seção vazia e chegar à primeira escala gerada, o caminho que percorri foi este. Nenhuma tela mostra a ordem:</p>
+  <ol class="caminho">
+    <li>Configurações › Modelos de guarnição</li><li>Novo modelo, dar o nome, Criar</li><li>Incluir função</li><li>Escolher "Nova função…" na lista</li><li>Digitar o nome e Criar</li><li>Salvar a partir de novembro</li>
+    <li>Ir para Escalas</li><li>Nova escala, dar o nome, Criar</li><li>Abrir a escala criada</li><li>Escolher o serviço na lista</li><li>Incluir</li><li>Salvar serviços</li>
+    <li>Marcar a guarnição em cada turno</li><li>Salvar a partir de novembro</li><li>Ir para Escala do mês</li><li>Gerar pré-escala e escolher a equipe do dia 1</li><li>Gravar pré-escala</li>
+  </ol>
+</section>
+
+<section class="achado">
+  <h2>Três camadas de estilo convivem no mesmo site</h2>
+  <p>O site junta os padrões da biblioteca de componentes, as cores e fontes do projeto e valores escritos à mão em cada tela. Por isso telas parecidas se comportam de jeitos diferentes.</p>
+  <div class="rolavel"><table>
+    <tr><th>O que varia</th><th>Quantos</th><th>Exemplo</th></tr>
+    <tr><td>Cores escritas à mão, fora da paleta</td><td class="n">13</td><td>Três cinzas quase iguais (<code>#F6F7F9</code>, <code>#F7F7F8</code>, <code>#EEF0F3</code>) e quatro rosados</td></tr>
+    <tr><td>Tamanhos de letra fora da escala</td><td class="n">9</td><td>10, 11, 11,5, 12,5, 13, 15, 28, 32 e 40 px; o título da página é repetido à mão em 13 arquivos</td></tr>
+    <tr><td>Arredondamentos de canto</td><td class="n">5</td><td>Sem regra de qual vale para quê</td></tr>
+    <tr><td>Sombras</td><td class="n">8</td><td>De <code>shadow-xs</code> a duas sombras desenhadas à mão</td></tr>
+    <tr><td>Contornos de foco</td><td class="n">2</td><td>Um do projeto e um da biblioteca, às vezes os dois juntos</td></tr>
+    <tr><td>Lugar dos filtros e das ações</td><td class="n">3</td><td>Soltos no fundo, dentro de um quadro, ou no alto à direita</td></tr>
+  </table></div>
+  <div class="prova">
+    <figure class="foto"><img src="img/pc-config-modelos.jpg" alt="Aba de Configurações com dois contornos de foco" width="1440" height="900">
+      <span class="m" style="left:29.7%;top:21.5%">1</span></figure>
+    <ol class="notas">
+      <li>A aba em foco ganha dois contornos, um por cima do outro.</li>
+    </ol>
+  </div>
+</section>
+
+<section class="achado">
+  <h2>O que já funciona e deve ficar</h2>
+  <ul class="simples">
+    <li>A identidade: o vinho, a Barlow, os brasões e a foto do combate dizem de quem é o sistema.</li>
+    <li>Os textos: curtos, sem jargão, e os vazios dizem qual botão usar.</li>
+    <li>A vaga vazia tracejada e o contador "Faltam N": dá para ver o que falta sem ler.</li>
+    <li>A cor de cada serviço vinda do cadastro.</li>
+    <li>O botão de salvar que só acende quando há mudança, e a conferência antes de importar a planilha.</li>
+    <li>O cuidado com teclado e leitor de tela nas células da Grade e no menu.</li>
+  </ul>
+</section>
+
+<section class="proposta">
+  <h2>A direção que proponho</h2>
+  <p class="aviso">Proposta para a sua decisão. Nada desta parte está aprovado nem desenhado em tela.</p>
+  <p>Manter a identidade e refazer o sistema por baixo dela. A referência é o quadro de serviço do quartel: nomes em placas, vagas como encaixes, e o que falta visível de longe.</p>
+  <div class="quadro" aria-label="Exemplo de placas e encaixes">
+    <span class="placa"><small>2º SGT BM</small><b>RAMALHO</b></span>
+    <span class="placa" style="--s:#6E56A8"><small>SD BM</small><b>VIEIRA</b></span>
+    <span class="encaixe">+ Motorista (CNH D)</span>
+    <span class="encaixe opcional">+ Auxiliar, opcional</span>
+  </div>
+  <p class="legenda">A placa do militar com a cor do serviço na borda, o encaixe obrigatório em âmbar e o opcional em cinza. O mesmo desenho valeria na Grade, na Escala do mês, no Efetivo e na lista de escolha.</p>
+  <div class="papeis">
+    <div class="papel"><i style="background:#8E1B1B"></i><span><b>Vinho</b>Marca e ação principal. Sai dos links, dos botões secundários e dos fins de semana.</span></div>
+    <div class="papel"><i style="background:#F2B705"></i><span><b>Âmbar</b>O que falta: vaga obrigatória vazia, pendência, alteração não salva.</span></div>
+    <div class="papel"><i style="background:#B3261E"></i><span><b>Vermelho</b>Só erro e choque, sempre com ícone, para não se confundir com o vinho.</span></div>
+    <div class="papel"><i style="background:#1C2430"></i><span><b>Tinta</b>Texto, e as ações secundárias no lugar do vinho.</span></div>
+    <div class="papel"><i style="background:linear-gradient(90deg,#2F8F5B 33%,#6E56A8 33% 66%,#2B7BB9 66%)"></i><span><b>Cor do serviço</b>Só na etiqueta e na borda da placa. Nunca como sinal de "certo" ou "errado".</span></div>
+  </div>
+  <div class="escala">
+    <div><span>40 px</span><b style="font:600 40px/1.05 var(--cond)">Bom dia, SD BM ANDRADE</b></div>
+    <div><span>28 px</span><b style="font:600 28px/1.1 var(--cond)">Escala do mês</b></div>
+    <div><span>20 px</span><b style="font:600 20px/1.2 var(--cond)">Guarnições por turno</b></div>
+    <div><span>17 px</span><b style="font:600 17px/1.2 var(--cond)">2º SGT BM RAMALHO</b></div>
+    <div><span>15 px</span><b style="font:400 15px/1.4 var(--texto)">O texto das telas e das tabelas.</b></div>
+    <div><span>13 px</span><b style="font:400 13px/1.4 var(--texto);color:var(--apagado)">O texto de apoio, que hoje chega a 10 px.</b></div>
+  </div>
+  <p class="legenda">Seis tamanhos no lugar dos dezessete de hoje. As famílias continuam as mesmas.</p>
+  <div class="moldura" aria-label="Esquema da moldura de uma tela">
+    <div class="trilho"></div>
+    <div class="cab">Título da tela <span>mês e ação principal</span></div>
+    <div class="filtros">Filtros, sempre nesta faixa, parados ao rolar</div>
+    <div>Área de trabalho: a tabela ou o quadro usa a largura toda</div>
+    <div>Painel de detalhe, por cima, sem empurrar a tabela</div>
+  </div>
+  <p class="legenda">A mesma moldura em todas as telas: título, filtros, ação principal e resposta do sistema sempre no mesmo lugar.</p>
+</section>
+
+<p class="apoio">O texto completo, com as necessidades de implementação e as decisões em aberto, está no repositório: <code>docs/superpowers/specs/2026-11-23-refatoracao-da-interface-design.md</code>.</p>
+</div>
