@@ -27,8 +27,8 @@ function GradeGeral() {
   const busca = Route.useSearch();
   const navigate = Route.useNavigate();
   const mes = busca.mes ?? mesAtual();
-  // o militar comum não vê a grade (é dos auxiliares administrativos e gestores): sem consulta e sem alerta
-  const comum = ehMilitarComum(eu);
+  // o militar comum não vê a grade (é dos auxiliares administrativos e gestores): sem consulta e sem alerta. Quem a vê só para consulta (as camadas de visão) a abre
+  const comum = ehMilitarComum(eu) && !eu.soConsulta;
   const dados = useQuery({ ...consultaGrade(eu.unidade.id, mes), enabled: !comum });
   const celular = useEhCelular();
   const grade = dados.data;

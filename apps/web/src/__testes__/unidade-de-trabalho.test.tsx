@@ -1,6 +1,6 @@
 import type { UnidadeDeTrabalho } from 'contratos';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { escolherUnidade, esquecerUnidadeDaAba, guardarUnidade, lerUnidadeGuardada } from '@/lib/unidade-de-trabalho';
+import { escolherUnidade, esquecerUnidadeDaAba, guardarUnidade, guardarUnidadeDeConsulta, lerUnidadeDeConsulta, lerUnidadeGuardada } from '@/lib/unidade-de-trabalho';
 
 const u = (id: string, sigla: string, nivel: number): UnidadeDeTrabalho => ({ id, sigla, nivel, caminho: ['CBMPE', ...Array(nivel).fill('x'), sigla], tipo: nivel === 3 ? 'grupamento' : 'secao' });
 const GB = u('gb', '2º GB', 3);
@@ -72,5 +72,38 @@ describe('duas abas', () => {
     guardarUnidade('gb');
     expect(lerUnidadeGuardada()).toBe('gb');
     expect(localStorage.getItem('unidade-de-trabalho')).toBe('gb');
+  });
+});
+
+describe('unidades só de consulta (6.12)', () => {
+  const chefe = { papeis: [papel('gb', 'gestor')], unidades: [GB, SB1], lotacao: null, unidadesSoConsulta: [SB2] };
+
+  it('a unidade de consulta escolhida na aba vence a última de trabalho', () => {
+    expect(escolherUnidade(chefe, 'sb1', 'sb2')).toBe(SB2);
+  });
+
+  it('a de consulta que deixou de ser só de consulta para a pessoa é ignorada: vale a de trabalho', () => {
+    expect(escolherUnidade(chefe, 'sb1', 'sb-que-saiu')).toBe(SB1);
+    expect(escolherUnidade({ ...chefe, unidadesSoConsulta: [] }, 'sb1', 'sb2')).toBe(SB1);
+  });
+
+  it('sem unidade de trabalho e com unidades de consulta, abre na primeira delas; sem nenhuma, null', () => {
+    expect(escolherUnidade({ papeis: [], unidades: [], lotacao: null, unidadesSoConsulta: [GB, SB1] }, null)).toBe(GB);
+    expect(escolherUnidade({ papeis: [], unidades: [], lotacao: null, unidadesSoConsulta: [] }, null)).toBeNull();
+  });
+
+  it('o militar comum com a marca ligada fica na lotação, que também é de consulta', () => {
+    expect(escolherUnidade({ papeis: [], unidades: [SB2], lotacao: SB2, unidadesSoConsulta: [GB, SB1, SB2] }, 'sb1')).toBe(SB2);
+  });
+
+  it('a unidade de consulta vale só na aba: não vai para o navegador e some ao esquecer', () => {
+    guardarUnidadeDeConsulta('sb2');
+    expect(lerUnidadeDeConsulta()).toBe('sb2');
+    expect(localStorage.getItem('unidade-de-trabalho')).toBeNull();
+    guardarUnidadeDeConsulta(null);
+    expect(lerUnidadeDeConsulta()).toBeNull();
+    guardarUnidadeDeConsulta('sb2');
+    esquecerUnidadeDaAba();
+    expect(lerUnidadeDeConsulta()).toBeNull();
   });
 });

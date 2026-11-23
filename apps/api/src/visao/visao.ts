@@ -2,6 +2,7 @@
 // acesso (a hierarquia, em acesso.ts); aqui nada dá permissão de gravar. As camadas se somam: a pessoa vê um bloco se alguma camada dela o libera.
 import { BLOCOS, CAMADAS, type Bloco, type Borda, type Camada } from 'contratos';
 import { CADASTRO, temPapel } from '../acesso.ts';
+import { COM_CAMINHO, type LinhaDaUnidade } from '../arvore.ts';
 import type { Consulta } from '../banco/banco.ts';
 
 /** Os blocos que cada camada vê, como está na tabela `visao_bloco`. */
@@ -90,4 +91,31 @@ export async function lotacaoDeHoje(c: Consulta, militarId: string, hoje: string
 /** Os blocos que a pessoa vê de um militar, pela lotação de hoje dele. */
 export async function blocosDoMilitar(c: Consulta, usuarioId: string, militarId: string, hoje: string): Promise<Set<Bloco>> {
   return blocosDaUnidade(c, usuarioId, await lotacaoDeHoje(c, militarId, hoje), hoje);
+}
+
+/**
+ * As unidades cuja "Escala em montagem" a pessoa vê pelas camadas de visão (a hierarquia fica de fora: as unidades em que ela trabalha já vêm dos níveis
+ * de acesso dela). `todos` e `oficial` valem para a corporação inteira; `chefe_divisao`, para as divisões irmãs das dela e o que está abaixo delas.
+ * As unidades extintas não entram.
+ */
+export async function unidadesComEscalaEmMontagem(c: Consulta, usuarioId: string, hoje: string): Promise<LinhaDaUnidade[]> {
+  const borda = await carregarBorda(c);
+  const bloco: Bloco = 'escala_em_montagem';
+  if (borda.todos.has(bloco) || (borda.oficial.has(bloco) && (await ehOficial(c, usuarioId, hoje)))) {
+    return (await c.query<LinhaDaUnidade>(`${COM_CAMINHO} where u.ate is null or u.ate >= $1::date`, [hoje])).rows;
+  }
+  if (!borda.chefe_divisao.has(bloco)) return [];
+  const { rows } = await c.query<LinhaDaUnidade>(
+    `${COM_CAMINHO}
+      where (u.ate is null or u.ate >= $2::date)
+        and exists (
+          select 1
+            from papel_usuario pu
+            join unidade x on x.id = pu.unidade_id
+            join unidade d on d.tipo = 'divisao' and d.mae_id = x.mae_id
+           where pu.usuario_id = $1 and pu.papel = 'chefe_divisao' and pu.desde <= $2::date and (pu.ate is null or pu.ate >= $2::date) and d.caminho @> u.caminho
+        )`,
+    [usuarioId, hoje],
+  );
+  return rows;
 }

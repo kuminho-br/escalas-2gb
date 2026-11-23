@@ -41,6 +41,12 @@ export interface Modulo {
 }
 
 const temPapel = (eu: Eu | EuDaApi) => !ehMilitarComum(eu);
+/** A pessoa está numa unidade só de consulta (só o `Eu` das telas sabe disso). */
+const soConsulta = (eu: Eu | EuDaApi) => 'soConsulta' in eu && eu.soConsulta;
+/** Os itens do trilho que não existem numa unidade só de consulta: tudo o que altera ou cadastra. */
+const foraDaConsulta = (eu: Eu | EuDaApi) => !soConsulta(eu);
+/** As telas de escala que abrem numa unidade só de consulta (a Confecção só lê nelas); o primeiro trecho do endereço de cada uma. */
+export const TELAS_DE_LEITURA = new Set(['grade', 'escala-do-mes', 'efetivo-por-dia', 'efetivo-do-dia', 'voluntariado', 'cotas']);
 
 export const MODULOS: Modulo[] = [
   {
@@ -49,23 +55,24 @@ export const MODULOS: Modulo[] = [
     descricao: 'Grade geral, escala do mês, voluntariado e o cadastro da seção.',
     rota: '/grade',
     icone: LayoutGrid,
-    ve: temPapel,
+    // quem não tem nível de acesso mas vê a escala em montagem de alguma unidade (as camadas de visão) também a abre, só para consulta
+    ve: (eu) => temPapel(eu) || eu.unidadesSoConsulta.length > 0,
     itens: [
       [
         { nome: 'Grade geral', icone: LayoutGrid, para: '/grade' },
         { nome: 'Escala do mês', icone: ListTree, para: '/escala-do-mes' },
         { nome: 'Efetivo por dia', icone: Sun, para: '/efetivo-por-dia' },
-        { nome: 'Oficiais', icone: Medal, para: '/oficiais', ve: ehGestorOuAdministrador },
+        { nome: 'Oficiais', icone: Medal, para: '/oficiais', ve: (eu) => ehGestorOuAdministrador(eu) && foraDaConsulta(eu) },
       ],
       [
         { nome: 'Voluntariado', icone: CalendarCheck, para: '/voluntariado' },
         { nome: 'Cotas', icone: PieChart, para: '/cotas' },
       ],
       [
-        { nome: 'Militares', icone: Users, para: '/militares' },
-        { nome: 'Turnos', icone: Clock, para: '/servicos' },
-        { nome: 'Escalas', icone: FileText, para: '/escalas' },
-        { nome: 'Feriados', icone: CalendarDays, para: '/feriados' },
+        { nome: 'Militares', icone: Users, para: '/militares', ve: foraDaConsulta },
+        { nome: 'Turnos', icone: Clock, para: '/servicos', ve: foraDaConsulta },
+        { nome: 'Escalas', icone: FileText, para: '/escalas', ve: foraDaConsulta },
+        { nome: 'Feriados', icone: CalendarDays, para: '/feriados', ve: foraDaConsulta },
       ],
     ],
     pe: [

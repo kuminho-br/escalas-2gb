@@ -1,6 +1,6 @@
 import type { CardDaGuarnicao as Card, FuncaoNoCard, OcupanteDaVaga } from 'contratos';
 import { Check, Plus } from 'lucide-react';
-import { BarraDaVaga, classeDaVaga } from '@/componentes/VagaVazia';
+import { BarraDaVaga, classeDaVaga, classeDaVagaSoLeitura } from '@/componentes/VagaVazia';
 import { estiloDaCor } from '@/lib/cores';
 import { listaComE, nomeDaVaga } from '@/lib/escala';
 import { cn } from '@/lib/utils';
@@ -70,13 +70,28 @@ export function CardDaGuarnicao({ card, aoEscolher, aoRemover }: { card: Card; a
               })}
               {Array.from({ length: Math.max(0, f.maximo - f.ocupantes.length) }, (_, i) => {
                 const obrigatoria = f.ocupantes.length + i < f.minimo;
+                // sem como escolher (a unidade é só de consulta), a vaga livre é só um aviso: nada para clicar
+                if (!aoEscolher) {
+                  return (
+                    <li key={`v${i}`}>
+                      <div
+                        data-obrigatoria={obrigatoria ? '' : undefined}
+                        className={cn('relative flex min-h-8 w-full items-center gap-2 rounded-md px-2.5 py-1 text-left text-sm', classeDaVagaSoLeitura(obrigatoria), obrigatoria ? 'pl-3 font-medium' : 'font-normal')}
+                      >
+                        {obrigatoria && <BarraDaVaga />}
+                        Vaga livre
+                        {!obrigatoria && <span className="ml-auto text-xs font-normal">opcional</span>}
+                      </div>
+                    </li>
+                  );
+                }
                 return (
                   <li key={`v${i}`}>
                     <button
                       type="button"
                       data-obrigatoria={obrigatoria ? '' : undefined}
                       aria-label={`Escolher militar para ${f.funcao} de ${card.nome}`}
-                      onClick={() => aoEscolher?.({ guarnicaoId: card.guarnicaoId, guarnicao: card.nome, funcaoId: f.funcaoId, funcao: f.funcao, cnhExigida: f.cnhExigida })}
+                      onClick={() => aoEscolher({ guarnicaoId: card.guarnicaoId, guarnicao: card.nome, funcaoId: f.funcaoId, funcao: f.funcao, cnhExigida: f.cnhExigida })}
                       className={cn(
                         'relative flex min-h-8 w-full items-center gap-2 rounded-md px-2.5 py-1 text-left text-sm focus-visible:z-10',
                         classeDaVaga(obrigatoria),

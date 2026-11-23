@@ -8,6 +8,7 @@ import { comUsuario, type Banco, type Consulta } from '../banco/banco.ts';
 import { COM_CAMINHO, paraUnidade, porCaminho, type LinhaDaUnidade } from '../arvore.ts';
 import { hojeRecife } from '../datas.ts';
 import { lerCorpo } from '../erros.ts';
+import { unidadesComEscalaEmMontagem } from '../visao/visao.ts';
 import { MSG_SENHA_VENCIDA } from '../usuarios/mensagens.ts';
 
 export interface Eu {
@@ -17,6 +18,11 @@ export interface Eu {
   papeis: { papel: Papel; unidadeId: string; unidadeSigla: string }[];
   /** As unidades em que a pessoa pode trabalhar: as dos papéis vigentes e as de baixo (o administrador, todas), na ordem da árvore. O militar comum: só a lotação. */
   unidades: UnidadeDeTrabalho[];
+  /**
+   * As unidades cuja "Escala em montagem" a pessoa vê pelas camadas de visão e em que ela não trabalha: as que os níveis de acesso dela já cobrem ficam de fora (o militar comum, sem nível, tem a lotação nas duas listas): as telas de escala abrem nelas só
+   * para leitura. Na ordem da árvore; vazia para quem já trabalha em tudo o que vê (o gestor, o administrador).
+   */
+  unidadesSoConsulta: UnidadeDeTrabalho[];
   /** A unidade do período do rastreio de hoje; null sem lotação. */
   lotacao: UnidadeDeTrabalho | null;
   /** Entrou com a senha provisória: só a tela de criar a senha abre até a troca. */
@@ -115,11 +121,16 @@ export function rotasEu(banco: Banco, auth: Auth): Hono {
     const hoje = hojeRecife();
     const papeis = await papeisVigentes(banco, u.id, hoje);
     const lotacao = await lotacaoDeHoje(banco, u.id, hoje);
+    const dosPapeis = papeis.length ? await unidadesDosPapeis(banco, u.id, hoje) : [];
+    // só para consulta: o que a pessoa vê pelas camadas e não está entre as unidades dos níveis de acesso dela (onde trabalha)
+    const trabalha = new Set(dosPapeis.map((x) => x.id));
+    const soConsulta = (await unidadesComEscalaEmMontagem(banco, u.id, hoje)).filter((x) => !trabalha.has(x.id)).map(paraUnidade).sort(porCaminho);
     const eu: Eu = {
       usuario: { id: u.id, nome: u.nome, email: u.email },
       militar: { matricula: u.matricula, postoGrad: u.posto, nomeGuerra: u.nome_guerra },
       papeis: papeis.map((p) => ({ papel: p.papel, unidadeId: p.unidade_id, unidadeSigla: p.sigla })),
-      unidades: papeis.length ? await unidadesDosPapeis(banco, u.id, hoje) : lotacao ? [lotacao] : [],
+      unidades: papeis.length ? dosPapeis : lotacao ? [lotacao] : [],
+      unidadesSoConsulta: soConsulta,
       lotacao,
       trocarSenha: u.trocar_senha,
     };

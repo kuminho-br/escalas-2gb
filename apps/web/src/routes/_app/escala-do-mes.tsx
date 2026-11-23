@@ -35,6 +35,8 @@ function EscalaDoMes() {
   const busca = Route.useSearch();
   const navigate = Route.useNavigate();
   const escalas = useQuery(consultaEscalas(eu.unidade.id));
+  // numa unidade só de consulta a escala se vê e não se altera: sem gerar a pré-escala, escolher militar, remover nem permitir de novo
+  const soConsulta = eu.soConsulta;
   const queryClient = useQueryClient();
   const [soVazias, setSoVazias] = useState(false);
   const [vaga, setVaga] = useState<VagaDaTela | null>(null);
@@ -113,10 +115,12 @@ function EscalaDoMes() {
             <span className={cn(resumo.obrigatoriasVazias > 0 && 'font-medium text-pendencia')}>{resumo.obrigatoriasVazias} vazias</span>
           </p>
         )}
-        <Button type="button" onClick={() => setGerando(true)} className="ml-auto">
-          Gerar pré-escala
-        </Button>
-        <Button type="button" variant="outline" aria-pressed={soVazias} onClick={() => setSoVazias(!soVazias)}>
+        {!soConsulta && (
+          <Button type="button" onClick={() => setGerando(true)} className="ml-auto">
+            Gerar pré-escala
+          </Button>
+        )}
+        <Button type="button" variant="outline" aria-pressed={soVazias} onClick={() => setSoVazias(!soVazias)} className={soConsulta ? 'ml-auto' : undefined}>
           Ocultar guarnições completas
         </Button>
       </div>
@@ -132,7 +136,7 @@ function EscalaDoMes() {
           data-dias-em-grade={dados.data.dias.length > 0 && dados.data.dias.every((d) => d.faixas.length <= 1) ? '' : undefined}
           className={cn('grid gap-3', dados.data.dias.length > 0 && dados.data.dias.every((d) => d.faixas.length <= 1) && 'grid-cols-[repeat(auto-fill,minmax(min(100%,22rem),1fr))] items-start')}
         >
-          {dados.data.dias.map((d) => <DiaDaEscalaVista key={d.data} dia={d} soVazias={soVazias} aoEscolher={setVaga} aoRemover={(o, g, n, v) => void remover(o, g, n, v)} aoDesfazer={(id) => void desfazer(id)} />)}
+          {dados.data.dias.map((d) => <DiaDaEscalaVista key={d.data} dia={d} soVazias={soVazias} aoEscolher={soConsulta ? undefined : setVaga} aoRemover={soConsulta ? undefined : (o, g, n, v) => void remover(o, g, n, v)} aoDesfazer={soConsulta ? undefined : (id) => void desfazer(id)} />)}
         </div>
       )}
       {gerando && <GerarPreEscala escalaId={escalaId} mes={mes} aoFechar={() => setGerando(false)} aoGravar={setGravadas} />}
