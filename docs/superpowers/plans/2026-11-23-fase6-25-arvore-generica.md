@@ -113,6 +113,11 @@ Branch `fase6-26-configuracoes-gerais`, a partir da 6.25. Sem migração.
   - O trilho de escalas tem "Configurações da escala", com as quatro abas e as permissões de hoje.
   - A Minha ficha não tem mais a preferência da animação.
   - O endereço antigo de cada aba leva ao lugar novo.
+- [ ] **Step 1b: mudanças do usuário (23/11/2026), com teste:**
+  - "Coordenador" é o nome definitivo do quinto nível.
+  - Estrutura vira **módulo próprio na tela inicial** (cartão "Estrutura", para quem tem nível de acesso), com a árvore e a aba "Tipos de unidade" (administrador); sai das Configurações gerais e sai o item "Estrutura" do trilho de escalas.
+  - Na árvore, a contagem de lotados **acumula** a unidade e todas as de baixo; a dica diz quantos estão na própria unidade ("1 lotado aqui").
+  - As Configurações (geral e da escala) usam **menu vertical à esquerda** no lugar das abas; no celular, uma lista de opções no alto.
 - [ ] **Step 2:** rodar; FAIL.
 - [ ] **Step 3:** implementar.
 - [ ] **Step 4:** PASS; verificações do fim de entrega; conferir no navegador.
