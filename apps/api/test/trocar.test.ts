@@ -2,6 +2,7 @@ import type { OpcoesDeTroca } from 'contratos';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { inserir } from './banco-teste.ts';
 import { montarApi, type ApiDeTeste } from './apoio-api.ts';
+import { fraseDaRecusaDaTroca } from '../src/escala/trocar.ts';
 
 // Cenário fictício (D7), dezembro de 2026. Escala Ordinário: Pronto (A 08–20, B 20–08), Bioma (diária, A 08–16) e JES (PJES, A 08–20), com a
 // guarnição ABT (Motorista CNH D, 1 vaga; Combatente, 1 a 2 vagas) vinculada às faixas 08–20 e 20–08. Cada cenário usa o seu dia.
@@ -290,5 +291,12 @@ describe('militar fora do quadro de motoristas, com CNH D (Review Focus 2)', () 
     expect(r.status).toBe(409);
     expect((await r.json()).erro).toBe('SD FORAQUADRO não pode ir para a vaga de SD F2: Fora do quadro de motoristas. Escolha outro serviço para trocar.');
     expect(await de('F2', d)).toEqual([expect.objectContaining({ id: motorista1, funcao_id: motorista })]);
+  });
+});
+
+describe('a frase da recusa da troca (revisão final da 6.17)', () => {
+  it('diz quem não pode ir para a vaga de quem, o motivo e o que fazer, sem ponto duplo quando o motivo já termina com ponto', () => {
+    expect(fraseDaRecusaDaTroca('SD A', 'SD B', 'Choque de horário')).toBe('SD A não pode ir para a vaga de SD B: Choque de horário. Escolha outro serviço para trocar.');
+    expect(fraseDaRecusaDaTroca('SD A', 'SD B', 'Este militar já está escalado neste turno.')).toBe('SD A não pode ir para a vaga de SD B: Este militar já está escalado neste turno. Escolha outro serviço para trocar.');
   });
 });

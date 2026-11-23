@@ -8,6 +8,10 @@ import { avaliarCandidatos, JA_ESCALADO } from './elegibilidade.ts';
 
 export class NaoEncontrada extends Error {}
 
+/** A recusa de uma troca: quem não pode ir para a vaga de quem, o motivo (sem o ponto final dele, para não dobrar) e o que fazer. */
+export const fraseDaRecusaDaTroca = (quem: string | undefined, daVaga: string | undefined, motivo: string) =>
+  `${quem} não pode ir para a vaga de ${daVaga}: ${motivo.replace(/\.$/, '')}. Escolha outro serviço para trocar.`;
+
 type Aloc = {
   id: string; militar_id: string; escala_id: string; turno_id: string; data: string; guarnicao_id: string | null; funcao_id: string | null;
   tipo: string; unidade_id: string; inicio: string; fim: string;
@@ -110,7 +114,7 @@ export async function trocar(tx: Consulta, alocacaoId: string, troca: Troca, usu
     try {
       await escalar(tx, daVaga.escala_id, { militarId: quem.militar_id, data: daVaga.data, turnoId: daVaga.turno_id, guarnicaoId: daVaga.guarnicao_id, funcaoId: daVaga.funcao_id });
     } catch (e) {
-      if (e instanceof Recusa) throw new Recusa(`${nomes.get(quem.militar_id)} não pode ir para a vaga de ${nomes.get(daVaga.militar_id)}: ${e.message}. Escolha outro serviço para trocar.`);
+      if (e instanceof Recusa) throw new Recusa(fraseDaRecusaDaTroca(nomes.get(quem.militar_id), nomes.get(daVaga.militar_id), e.message));
       throw e;
     }
   };
