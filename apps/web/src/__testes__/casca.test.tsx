@@ -148,12 +148,12 @@ describe('casca', () => {
     expect(screen.queryByRole('button', { name: 'Abrir menu' })).toBeNull();
   });
 
-  it('dentro do Pecúlio, o trilho só tem o Pecúlio, e a ficha aberta por ele continua nesse trilho (Review Focus 4)', async () => {
+  it('dentro do Pecúlio, o trilho tem o Pecúlio e a Consulta de militares, e a ficha aberta por ele continua nesse trilho (Review Focus 4)', async () => {
     simularApi({ '/api/eu': { status: 200, corpo: EU_EXEMPLO } });
     abrir('/militares/m1?de=peculio');
     await screen.findByText('SD ANDRADE');
     const menu = screen.getByRole('navigation', { name: 'Navegação principal' });
-    expect(within(menu).getAllByRole('listitem').map((l) => l.textContent)).toEqual(['Pecúlio']);
+    expect(within(menu).getAllByRole('listitem').map((l) => l.textContent)).toEqual(['Pecúlio', 'Consulta de militares']);
     expect(within(menu).queryByText('Militares')).toBeNull();
   });
 

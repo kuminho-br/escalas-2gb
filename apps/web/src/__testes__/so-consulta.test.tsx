@@ -297,8 +297,8 @@ describe('quem só tem unidades de consulta: o oficial, com a marca ligada', () 
     abrir('/');
     const cartao = await screen.findByRole('link', { name: /Confecção de escalas/ });
     expect(cartao).toHaveAttribute('href', '/grade');
-    // o Pecúlio é de quem tem nível de acesso
-    expect(screen.queryByRole('link', { name: /Pecúlio/ })).toBeNull();
+    // o Pecúlio é de todos; sem nível de acesso, o cartão leva direto à Consulta de militares
+    expect(screen.getByRole('link', { name: /Pecúlio/ })).toHaveAttribute('href', '/consulta');
   });
 
   it('sem nenhuma unidade de consulta, o cartão não aparece (o militar comum de sempre)', async () => {

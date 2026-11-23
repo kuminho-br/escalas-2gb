@@ -23,7 +23,7 @@ import {
 import { ehGestorNaUnidade, ehMilitarComum, type Eu, type EuDaApi } from '@/api/eu';
 
 export type Item = { nome: string; icone: LucideIcon; para?: LinkProps['to']; /** O item só aparece para quem passa neste teste (sem ele, todos veem). */ ve?: (eu: Eu | EuDaApi) => boolean };
-export type IdModulo = 'escalas' | 'peculio' | 'consulta' | 'visualizacao' | 'minha-ficha' | 'configuracoes' | 'estrutura';
+export type IdModulo = 'escalas' | 'peculio' | 'visualizacao' | 'minha-ficha' | 'configuracoes' | 'estrutura';
 
 /**
  * Um módulo do sistema: o cartão da tela inicial e o trilho de dentro dele. `itens` são os blocos do trilho (vazio = sem trilho) e `pe` os itens
@@ -34,6 +34,8 @@ export interface Modulo {
   nome: string;
   descricao: string;
   rota: LinkProps['to'] | null;
+  /** Para onde o cartão leva esta pessoa, quando não é a `rota` de todos (o Pecúlio leva quem não tem nível de acesso direto à Consulta). */
+  rotaDe?(eu: Eu | EuDaApi): LinkProps['to'];
   icone: LucideIcon;
   ve(eu: Eu | EuDaApi): boolean;
   itens: Item[][];
@@ -81,19 +83,23 @@ export const MODULOS: Modulo[] = [
       { nome: 'Ajuda', icone: CircleHelp },
     ],
   },
+  // o Pecúlio é do militar com conta, e a Consulta de militares é uma tela dele (entrega 6.26): quem não tem nível de acesso entra direto na Consulta e vê só ela
+  // no trilho; quem tem nível vê a lista do Pecúlio e a Consulta
   {
     id: 'peculio',
-    nome: 'Pecúlio do 2º GB',
-    descricao: 'Dados de contato, aniversariantes e pendências do cadastro.',
+    nome: 'Pecúlio',
+    descricao: 'Dados de contato, aniversariantes e pendências do cadastro, e a consulta de militares da corporação.',
     rota: '/peculio',
+    rotaDe: (eu) => (temPapel(eu) ? '/peculio' : '/consulta'),
     icone: Contact,
-    ve: temPapel,
-    itens: [[{ nome: 'Pecúlio', icone: Contact, para: '/peculio' }]],
+    ve: () => true,
+    itens: [[
+      { nome: 'Pecúlio', icone: Contact, para: '/peculio', ve: temPapel },
+      { nome: 'Consulta de militares', icone: Search, para: '/consulta' },
+    ]],
   },
   // a árvore de unidades (entrega 6.26): quem tem nível de acesso a vê; só quem tem poder sobre ela a edita (cada unidade diz o que a pessoa pode fazer)
   { id: 'estrutura', nome: 'Estrutura', descricao: 'A árvore de unidades: criar, renomear, mover e extinguir.', rota: '/estrutura', icone: Network, ve: temPapel, itens: [] },
-  // todo militar com conta busca qualquer militar da corporação e vê só o que a borda das camadas de visão libera (entrega 6.11)
-  { id: 'consulta', nome: 'Consulta de militares', descricao: 'Buscar um militar da corporação e ver o que você pode ver dele.', rota: '/consulta', icone: Search, ve: () => true, itens: [] },
   { id: 'visualizacao', nome: 'Visualização de escalas', descricao: 'Ver a escala publicada do mês.', rota: null, icone: Eye, ve: () => true, itens: [] },
   { id: 'minha-ficha', nome: 'Minha ficha', descricao: 'Seus dados e o seu telefone.', rota: '/minha-ficha', icone: UserRound, ve: () => true, itens: [] },
   // o painel das configurações gerais (entrega 6.26): todos abrem, e cada seção só aparece para quem a vê; as configurações da escala ficam no módulo de escalas
@@ -113,7 +119,8 @@ export function moduloDoEndereco(caminho: string, busca: Record<string, unknown>
   // o roteador casa os endereços sem diferenciar maiúsculas: /Militares abre a mesma tela, e a barreira tem de pegar também
   const primeiro = (caminho.split('/')[1] ?? '').toLowerCase();
   if (primeiro === 'minha-ficha') return porId('minha-ficha');
-  if (primeiro === 'consulta') return porId('consulta');
+  // a Consulta de militares (e a ficha de consulta) é uma tela do Pecúlio; o endereço antigo continua valendo
+  if (primeiro === 'consulta') return porId('peculio');
   if (primeiro === 'estrutura') return porId('estrutura');
   // o modelo de guarnição abre de dentro das configurações da escala (o endereço antigo /configuracoes/modelos-de-guarnicao/:id continua valendo)
   if (primeiro === 'configuracoes') return (caminho.split('/')[2] ?? '').toLowerCase() === 'modelos-de-guarnicao' ? porId('escalas') : porId('configuracoes');
