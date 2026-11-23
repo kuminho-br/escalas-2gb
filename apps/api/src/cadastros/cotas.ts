@@ -3,6 +3,7 @@
 import { CopiaDeCotas, EdicaoCota, mesParaData, mesPorExtenso, NovaCota, Mes, type Cota, type ResultadoDaCopiaDeCotas } from 'contratos';
 import { Hono, type Context } from 'hono';
 import { CADASTRO, exigirPapel, exigirSessao, unidadeDoRegistro, type AmbienteApi } from '../acesso.ts';
+import { exigirLeituraDaEscala } from '../visao/leitura.ts';
 import type { Auth } from '../auth.ts';
 import { comUsuario, type Banco, type Consulta } from '../banco/banco.ts';
 import { hojeRecife } from '../datas.ts';
@@ -82,7 +83,7 @@ export function rotasCotas(dep: { banco: Banco; auth: Auth }): Hono<AmbienteApi>
 
   r.get('/unidades/:u/cotas', async (c) => {
     const u = c.req.param('u');
-    const negado = await exigirPapel(c, u, CADASTRO);
+    const negado = await exigirLeituraDaEscala(c, u);
     if (negado) return negado;
     const mes = c.req.query('mes') ?? hojeRecife().slice(0, 7);
     if (!Mes.safeParse(mes).success) return c.json({ erro: 'Mês inválido: use o formato aaaa-mm.' }, 400);

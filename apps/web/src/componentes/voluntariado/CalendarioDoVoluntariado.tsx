@@ -29,6 +29,7 @@ export function CalendarioDoVoluntariado({
   guiaAberto = true,
   aoAbrirGuia,
   aoFecharGuia,
+  soLeitura = false,
 }: {
   militar: MilitarDoVoluntariado;
   mes: string;
@@ -42,6 +43,8 @@ export function CalendarioDoVoluntariado({
   guiaAberto?: boolean;
   aoAbrirGuia?: () => void;
   aoFecharGuia?: () => void;
+  /** Unidade só de consulta: o mês se vê e não se marca (sem guia, atalhos, "Limpar" nem "Salvar"). */
+  soLeitura?: boolean;
 }) {
   const doServidor = marcasDoServidor(dados.faixas);
   const [marcas, setMarcas] = useState<Marcas>(doServidor);
@@ -110,10 +113,10 @@ export function CalendarioDoVoluntariado({
       <header className="grid gap-1">
         <h2 className="font-cond text-2xl leading-tight font-semibold">{`${militar.posto} ${militar.nomeGuerra}`}</h2>
         <p className="text-sm text-apagado">{`${equipe}${aviso}`}</p>
-        <button type="button" onClick={() => aoAbrirGuia?.()} className="justify-self-start rounded text-sm text-vinho underline underline-offset-2">Como marcar</button>
+        {!soLeitura && <button type="button" onClick={() => aoAbrirGuia?.()} className="justify-self-start rounded text-sm text-vinho underline underline-offset-2">Como marcar</button>}
       </header>
 
-      {guiaAberto && <GuiaComoMarcar blocos={blocos} celular={celular} aoFechar={() => aoFecharGuia?.()} />}
+      {guiaAberto && !soLeitura && <GuiaComoMarcar blocos={blocos} celular={celular} aoFechar={() => aoFecharGuia?.()} />}
 
       {/* só no celular: a régua dos cortes, parada no topo da rolagem, com as mesmas colunas e bordas das linhas dos dias (no computador, o horário aparece ao passar o mouse e no guia) */}
       {celular && (
@@ -133,7 +136,7 @@ export function CalendarioDoVoluntariado({
       </div>
       )}
 
-      <div ref={grade} role="group" aria-label="Calendário do voluntariado" data-disposicao={celular ? 'linhas' : 'calendario'} onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); void gravar(); } }} className={cn(celular ? 'grid gap-2' : 'grid grid-cols-7 gap-2')}>
+      <div ref={grade} role="group" aria-label="Calendário do voluntariado" data-disposicao={celular ? 'linhas' : 'calendario'} onKeyDown={soLeitura ? undefined : (e) => { if (e.key === 'Enter') { e.preventDefault(); void gravar(); } }} className={cn(celular ? 'grid gap-2' : 'grid grid-cols-7 gap-2')}>
         {!celular && SEMANA.map((s) => <span key={s} aria-hidden className="text-center text-xs text-apagado">{s}</span>)}
         {!celular && Array.from({ length: brancos }, (_, i) => <span key={`b${i}`} aria-hidden />)}
         {dias.map((d) => {
@@ -152,6 +155,12 @@ export function CalendarioDoVoluntariado({
               )}
             >
 
+              {soLeitura ? (
+                <span data-dia={d} className={cn('justify-self-start font-cond text-base font-semibold', celular ? 'flex h-10 items-center' : 'min-h-7 min-w-8 px-1')}>
+                  {n}
+                  {celular && <span data-diasemana className="ml-1 text-xs font-normal text-apagado">{SEMANA[diaDaSemana(d)]}</span>}
+                </span>
+              ) : (
               <button
                 type="button"
                 data-dia={d}
@@ -183,9 +192,30 @@ export function CalendarioDoVoluntariado({
                 {n}
                 {celular && <span data-diasemana className="ml-1 text-xs font-normal text-apagado">{SEMANA[diaDaSemana(d)]}</span>}
               </button>
+              )}
               <div className="flex h-7 rounded border border-linha" style={{ touchAction: 'manipulation' }}>
                 {blocos.map((b, k) => {
                   const e = todos[k]!;
+                  if (soLeitura) {
+                    // só para ver: o mesmo desenho do bloco, sem botão; o estado vai no nome (a cor sozinha não diz nada ao leitor de tela)
+                    const estado = e === 'cheio' ? 'marcado' : e === 'parcial' ? 'marcado em parte' : 'não marcado';
+                    return (
+                      <div
+                        key={k}
+                        role="img"
+                        aria-label={`${rotuloDoBloco(n, b)}: ${estado}`}
+                        title={`${hh(b.inicio)} às ${hh(b.fim)}`}
+                        data-estado={e}
+                        style={{ flex: b.fim - b.inicio }}
+                        className={cn(
+                          'min-w-0 border-r border-linha first:rounded-l last:rounded-r last:border-r-0',
+                          e === 'cheio' && 'bg-vinho',
+                          e === 'parcial' && 'bg-[repeating-linear-gradient(135deg,var(--color-vinho)_0_4px,#fff_4px_8px)]',
+                          e === 'vazio' && 'bg-superficie',
+                        )}
+                      />
+                    );
+                  }
                   return (
                     <button
                       key={k}
@@ -231,6 +261,7 @@ export function CalendarioDoVoluntariado({
         })}
       </div>
 
+      {!soLeitura && (
       <div className="flex flex-wrap items-center gap-2">
         <Button type="button" size="sm" variant="outline" onClick={() => setMarcas((m) => marcarDias(m, fimDeSemana(mes)))}>Todos os sábados e domingos</Button>
         {dados.folgas && militar.equipe && (
@@ -240,16 +271,21 @@ export function CalendarioDoVoluntariado({
           {`Copiar de ${mesPorExtenso(anterior)}`}
         </Button>
       </div>
+      )}
       {/* no celular o resumo e o Salvar ficam numa barra fixa embaixo: o botão não fica depois das 31 linhas */}
       <div data-barra-de-salvar className={cn('grid gap-2', celular && 'sticky bottom-0 z-10 -mx-4 -mb-4 border-t border-linha bg-superficie px-4 py-3')}>
         <p className="text-sm text-apagado">{textoDoRodape(marcas)}</p>
-        {!celular && <p className="text-xs text-apagado">Atalhos de teclado: setas movem, espaço marca, Enter salva e passa ao próximo.</p>}
-        <div className="flex flex-wrap items-center gap-2">
-          <Button type="button" variant="outline" onClick={() => setMarcas(new Map())} disabled={salvando}>Limpar</Button>
-          <Button type="button" onClick={() => void gravar()} disabled={salvando}>{celular ? 'Salvar' : 'Salvar e ir para o próximo'}</Button>
-          <EtiquetaPendente sujo={sujo} />
-        </div>
-        {erro && <p role="alert" className="text-sm text-alerta">{erro}</p>}
+        {!soLeitura && (
+          <>
+            {!celular && <p className="text-xs text-apagado">Atalhos de teclado: setas movem, espaço marca, Enter salva e passa ao próximo.</p>}
+            <div className="flex flex-wrap items-center gap-2">
+              <Button type="button" variant="outline" onClick={() => setMarcas(new Map())} disabled={salvando}>Limpar</Button>
+              <Button type="button" onClick={() => void gravar()} disabled={salvando}>{celular ? 'Salvar' : 'Salvar e ir para o próximo'}</Button>
+              <EtiquetaPendente sujo={sujo} />
+            </div>
+            {erro && <p role="alert" className="text-sm text-alerta">{erro}</p>}
+          </>
+        )}
       </div>
     </section>
   );

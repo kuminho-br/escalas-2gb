@@ -26,17 +26,40 @@ export function guardarUnidade(id: string): void {
   }
 }
 
-/** Só para os testes: volta a ler do navegador na próxima vez. */
+/**
+ * A unidade escolhida só para consulta (a pessoa a vê e não a altera): vale enquanto a página fica aberta (recarregar a tela volta à última unidade de trabalho) e NUNCA vai para o navegador. Na próxima entrada o
+ * sistema abre na última unidade de trabalho, e não numa unidade em que a pessoa não pode alterar nada.
+ */
+let consultaDaAba: string | null = null;
+
+export function lerUnidadeDeConsulta(): string | null {
+  return consultaDaAba;
+}
+
+export function guardarUnidadeDeConsulta(id: string | null): void {
+  consultaDaAba = id;
+}
+
+/** Só para os testes: volta a ler do navegador na próxima vez, e esquece a unidade de consulta. */
 export function esquecerUnidadeDaAba(): void {
   daAba = undefined;
+  consultaDaAba = null;
 }
 
 /**
- * A unidade em que as telas trabalham: a última escolhida neste navegador, se a pessoa ainda tem acesso a ela; senão a do papel mais baixo na
- * árvore (maior nível; empate pela sigla). O militar comum fica na lotação. null se não há nenhuma unidade.
+ * A unidade em que as telas trabalham: a unidade de consulta que a pessoa escolheu nesta aba, se ainda é só de consulta para ela; senão a última escolhida
+ * neste navegador, se ainda tem acesso a ela; senão a do papel mais baixo na árvore (maior nível; empate pela sigla). O militar comum fica na lotação. Quem
+ * não trabalha em unidade nenhuma mas tem unidades de consulta abre na primeira delas. null se não há nenhuma unidade.
  */
-export function escolherUnidade(eu: Pick<EuDaApi, 'papeis' | 'unidades' | 'lotacao'>, guardada: string | null): UnidadeDeTrabalho | null {
-  if (eu.unidades.length === 0) return null;
+export function escolherUnidade(
+  eu: Pick<EuDaApi, 'papeis' | 'unidades' | 'lotacao'> & { unidadesSoConsulta?: UnidadeDeTrabalho[] },
+  guardada: string | null,
+  consulta: string | null = null,
+): UnidadeDeTrabalho | null {
+  const soConsulta = eu.unidadesSoConsulta ?? [];
+  const daConsulta = consulta ? soConsulta.find((u) => u.id === consulta) : undefined;
+  if (daConsulta) return daConsulta;
+  if (eu.unidades.length === 0) return soConsulta[0] ?? null;
   if (eu.papeis.length === 0) return eu.lotacao ?? eu.unidades[0]!;
   const guardadaAindaVale = guardada ? eu.unidades.find((u) => u.id === guardada) : undefined;
   if (guardadaAindaVale) return guardadaAindaVale;

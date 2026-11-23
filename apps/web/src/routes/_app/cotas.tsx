@@ -25,6 +25,8 @@ const NOME_ORIGEM = { interna: 'Interna', externa: 'Externa' } as const;
 
 function Cotas() {
   const { eu } = Route.useRouteContext();
+  // numa unidade só de consulta as cotas se veem e não se alteram: sem importar, copiar, adicionar, editar nem remover
+  const soConsulta = eu.soConsulta;
   const queryClient = useQueryClient();
   const [mes, setMes] = useState(mesAtual());
   const cotas = useQuery(consultaCotas(eu.unidade.id, mes));
@@ -67,14 +69,16 @@ function Cotas() {
     <section>
       <header className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="font-cond text-[28px] leading-tight font-semibold">Cotas</h1>
-        <div className="flex flex-wrap gap-2">
-          <ImportarPlanilha cadastro="cotas" rotulo="as cotas" aoConcluir={() => atualizarCotas(queryClient)} />
-          <Button variant="outline" disabled={copiando} onClick={() => void copiar()}>Copiar do mês anterior</Button>
-          <Button onClick={() => setDialogo({})}>
-            <Plus aria-hidden />
-            Adicionar cota
-          </Button>
-        </div>
+        {!soConsulta && (
+          <div className="flex flex-wrap gap-2">
+            <ImportarPlanilha cadastro="cotas" rotulo="as cotas" aoConcluir={() => atualizarCotas(queryClient)} />
+            <Button variant="outline" disabled={copiando} onClick={() => void copiar()}>Copiar do mês anterior</Button>
+            <Button onClick={() => setDialogo({})}>
+              <Plus aria-hidden />
+              Adicionar cota
+            </Button>
+          </div>
+        )}
       </header>
 
       <div className="mt-6 rounded-xl border border-linha bg-superficie">
@@ -83,14 +87,15 @@ function Cotas() {
             <Label htmlFor="cotas-mes">Mês</Label>
             <CampoDeMes id="cotas-mes" valor={mes} aoMudar={setMes} />
           </div>
-          <p className="pb-2 text-sm text-apagado">Destino: {eu.unidade.sigla}</p>
+          {/* o destino é de quem grava (adicionar e copiar); na consulta não há nada para gravar */}
+          {!soConsulta && <p className="pb-2 text-sm text-apagado">Destino: {eu.unidade.sigla}</p>}
           {aviso && <p role={aviso.erro ? 'alert' : 'status'} className={aviso.erro ? 'pb-2 text-sm text-alerta' : 'pb-2 text-sm text-apagado'}>{aviso.texto}</p>}
         </div>
 
         {cotas.isPending && <p className="p-4 text-apagado">Carregando…</p>}
         {cotas.error && <p role="alert" className="p-4 text-alerta">{mensagemDe(cotas.error)}</p>}
         {cotas.data && cotas.data.length === 0 && (
-          <p className="p-4 text-apagado">Nenhuma cota em {mesPorExtenso(mes)}. Use "Adicionar cota" ou "Copiar do mês anterior".</p>
+          <p className="p-4 text-apagado">Nenhuma cota em {mesPorExtenso(mes)}.{soConsulta ? '' : ' Use "Adicionar cota" ou "Copiar do mês anterior".'}</p>
         )}
         {cotas.data && cotas.data.length > 0 && (
           <div className="overflow-x-auto">
@@ -101,11 +106,11 @@ function Cotas() {
                   <th className="px-4 py-2 font-normal">Serviço</th>
                   <th className="px-4 py-2 font-normal">Origem</th>
                   <th className="px-4 py-2 font-normal">Distribuídas</th>
-                  <th className="px-4 py-2" />
+                  {!soConsulta && <th className="px-4 py-2" />}
                 </tr>
               </thead>
               <tbody>
-                {cotas.data.map((c) => <LinhaCota key={c.id} c={c} aoEditar={() => setDialogo({ cota: c })} aoRemover={() => void remover(c)} />)}
+                {cotas.data.map((c) => <LinhaCota key={c.id} c={c} aoEditar={soConsulta ? undefined : () => setDialogo({ cota: c })} aoRemover={soConsulta ? undefined : () => void remover(c)} />)}
               </tbody>
             </table>
           </div>
@@ -126,7 +131,8 @@ function Cotas() {
   );
 }
 
-function LinhaCota({ c, aoEditar, aoRemover }: { c: Cota; aoEditar: () => void; aoRemover: () => void }) {
+/** Sem `aoEditar` e `aoRemover` (unidade só de consulta) a linha não tem a coluna dos botões. */
+function LinhaCota({ c, aoEditar, aoRemover }: { c: Cota; aoEditar?: () => void; aoRemover?: () => void }) {
   const passou = c.distribuidas > c.quantidade;
   const nome = `${c.servico} (${c.origem})`;
   return (
@@ -158,16 +164,18 @@ function LinhaCota({ c, aoEditar, aoRemover }: { c: Cota; aoEditar: () => void; 
           <span className={passou ? 'font-medium text-alerta' : ''}>{c.distribuidas} de {c.quantidade}</span>
         </div>
       </td>
-      <td className="px-4 py-2.5">
-        <span className="flex justify-end gap-1">
-          <Button type="button" size="icon" variant="ghost" aria-label={`Editar cota de ${nome}`} onClick={aoEditar}>
-            <Pencil aria-hidden />
-          </Button>
-          <Button type="button" size="icon" variant="ghost" aria-label={`Remover cota de ${nome}`} onClick={aoRemover}>
-            <Trash2 aria-hidden />
-          </Button>
-        </span>
-      </td>
+      {aoEditar && aoRemover && (
+        <td className="px-4 py-2.5">
+          <span className="flex justify-end gap-1">
+            <Button type="button" size="icon" variant="ghost" aria-label={`Editar cota de ${nome}`} onClick={aoEditar}>
+              <Pencil aria-hidden />
+            </Button>
+            <Button type="button" size="icon" variant="ghost" aria-label={`Remover cota de ${nome}`} onClick={aoRemover}>
+              <Trash2 aria-hidden />
+            </Button>
+          </span>
+        </td>
+      )}
     </tr>
   );
 }

@@ -2,6 +2,7 @@
 import { LancamentoDeVoluntariado, Mes, mesPorExtenso } from 'contratos';
 import { Hono } from 'hono';
 import { CADASTRO, exigirPapel, exigirSessao, type AmbienteApi } from '../acesso.ts';
+import { exigirLeituraDaEscala } from '../visao/leitura.ts';
 import type { Auth } from '../auth.ts';
 import { comUsuario, type Banco } from '../banco/banco.ts';
 import { lerCorpo, respostaDoErroDoBanco } from '../erros.ts';
@@ -16,7 +17,7 @@ export function rotasVoluntariado(dep: { banco: Banco; auth: Auth }): Hono<Ambie
   for (const caminho of ['/unidades/:u/voluntariado/*', '/militares/:id/voluntariado/*']) r.use(caminho, sessao);
 
   r.get('/unidades/:u/voluntariado/:mes', async (c) => {
-    const negado = await exigirPapel(c, c.req.param('u'), CADASTRO);
+    const negado = await exigirLeituraDaEscala(c, c.req.param('u'));
     if (negado) return negado;
     const mes = c.req.param('mes');
     if (!Mes.safeParse(mes).success) return c.json({ erro: MES_INVALIDO }, 400);
@@ -29,7 +30,7 @@ export function rotasVoluntariado(dep: { banco: Banco; auth: Auth }): Hono<Ambie
     if (!Mes.safeParse(mes).success) return c.json({ erro: MES_INVALIDO }, 400);
     const unidadeId = await unidadeDoMilitarNoMes(dep.banco, id, mes);
     if (!unidadeId) return c.json({ erro: 'Militar não encontrado.' }, 404);
-    const negado = await exigirPapel(c, unidadeId, CADASTRO);
+    const negado = await exigirLeituraDaEscala(c, unidadeId);
     if (negado) return negado;
     return c.json(await voluntariadoDoMilitar(dep.banco, unidadeId, id, mes));
   });

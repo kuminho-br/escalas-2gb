@@ -3,8 +3,9 @@ import { useRef, useState } from 'react';
 import { consultaEu, type Eu } from '@/api/eu';
 import { Topo } from '@/componentes/Topo';
 import { Trilho } from '@/componentes/Trilho';
-import { moduloDoEndereco } from '@/lib/modulos';
-import { escolherUnidade, lerUnidadeGuardada } from '@/lib/unidade-de-trabalho';
+import { FaixaSoConsulta } from '@/componentes/FaixaSoConsulta';
+import { moduloDoEndereco, TELAS_DE_LEITURA } from '@/lib/modulos';
+import { escolherUnidade, lerUnidadeDeConsulta, lerUnidadeGuardada } from '@/lib/unidade-de-trabalho';
 
 export const Route = createFileRoute('/_app')({
   beforeLoad: async ({ context, location }) => {
@@ -12,13 +13,15 @@ export const Route = createFileRoute('/_app')({
     if (!dados) throw redirect({ to: '/entrar' });
     // entrou com a senha provisória: nada abre antes de criar a senha
     if (dados.trocarSenha) throw redirect({ to: '/criar-senha' });
-    // a unidade em que as telas trabalham: a última escolhida neste navegador (se ainda vale) ou a do papel mais baixo; sem nenhuma, a orientação
-    const unidade = escolherUnidade(dados, lerUnidadeGuardada());
+    // a unidade em que as telas trabalham: a de consulta escolhida nesta aba, a última escolhida neste navegador (se ainda vale) ou a do papel mais baixo; sem nenhuma, a orientação
+    const unidade = escolherUnidade(dados, lerUnidadeGuardada(), lerUnidadeDeConsulta());
     if (!unidade) throw redirect({ to: '/sem-lotacao' });
-    const eu: Eu = { ...dados, unidade };
+    const eu: Eu = { ...dados, unidade, soConsulta: dados.unidadesSoConsulta.some((u) => u.id === unidade.id) };
     // quem abre o endereço de um módulo que não vê volta ao início, com o aviso (a barreira é só da tela; a API confere o papel de qualquer jeito)
     const modulo = moduloDoEndereco(location.pathname, location.search as Record<string, unknown>);
     if (modulo && !modulo.ve(eu)) throw redirect({ to: '/', search: { aviso: 'outro-papel' } });
+    // numa unidade só de consulta a Confecção abre só nas telas de leitura: as outras (Militares, Turnos, Escalas, Feriados, Oficiais, Configurações) levam à Grade geral
+    if (eu.soConsulta && modulo?.id === 'escalas' && !TELAS_DE_LEITURA.has((location.pathname.split('/')[1] ?? '').toLowerCase())) throw redirect({ to: '/grade' });
     return { eu };
   },
   component: Casca,
@@ -43,6 +46,8 @@ function Casca() {
       <div className="flex min-w-0 flex-col">
         <Topo eu={eu} aoAbrirMenu={() => setMenuAberto(true)} botaoDoMenu={botaoDoMenu} semTrilho={!comTrilho} />
         <main className="flex-1 px-4 py-6 md:px-8">
+          {/* a faixa das telas de escala numa unidade só de consulta: a pessoa vê e não altera nada */}
+          {eu.soConsulta && modulo?.id === 'escalas' && <FaixaSoConsulta unidade={eu.unidade.sigla} />}
           <Outlet />
         </main>
       </div>

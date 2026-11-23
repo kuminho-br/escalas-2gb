@@ -1,7 +1,7 @@
 import type { FuncaoNoEfetivo, GuarnicaoNoEfetivo, TrechoNoEfetivo } from 'contratos';
 import { useState } from 'react';
 import { EtiquetaDoServico } from '@/componentes/EtiquetaDoServico';
-import { BarraDaVaga, classeDaVaga } from '@/componentes/VagaVazia';
+import { BarraDaVaga, classeDaVaga, classeDaVagaSoLeitura } from '@/componentes/VagaVazia';
 import { estiloDaCor } from '@/lib/cores';
 import { posicao, type Janela } from '@/lib/efetivo';
 import type { CSSProperties } from 'react';
@@ -9,6 +9,8 @@ import { textoMinutos } from '@/lib/turnos';
 import { cn } from '@/lib/utils';
 
 export type AcoesDaLinha = {
+  /** Numa unidade só de consulta: a vaga e o trecho ocupado são só para ver (nada para clicar). */
+  soLeitura?: boolean;
   aoClicarVaga?: (funcao: FuncaoNoEfetivo, trecho: TrechoNoEfetivo) => void;
   aoClicarOcupado?: (funcao: FuncaoNoEfetivo, trecho: TrechoNoEfetivo) => void;
 };
@@ -26,6 +28,22 @@ function Trecho({ funcao, t, janela, acoes }: { funcao: FuncaoNoEfetivo; t: Trec
   const estilo = { left: posicao(janela, t.inicio), width: `calc(${posicao(janela, t.fim)} - ${posicao(janela, t.inicio)})` };
   // o trecho mede a própria largura (container query): o horário e a etiqueta só aparecem quando cabem ao lado do nome, que nunca cede lugar a eles
   const base = '@container absolute inset-y-0.5 flex min-w-0 items-center gap-1.5 overflow-hidden rounded px-1.5 text-left focus-visible:z-20 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-tinta';
+  if (!t.ocupante && acoes.soLeitura) {
+    return (
+      <div
+        role="group"
+        aria-label={nomeDoTrecho(funcao.funcao, t)}
+        data-vaga
+        data-obrigatoria
+        className={cn(base, classeDaVagaSoLeitura(true), 'pl-2 text-xs font-medium')}
+        style={estilo}
+      >
+        <BarraDaVaga />
+        <span className="truncate">vaga</span>
+        <span className="hidden shrink-0 text-[11px] opacity-80 @min-[8rem]:inline">{faixa(t)}</span>
+      </div>
+    );
+  }
   if (!t.ocupante) {
     return (
       <button
@@ -55,12 +73,12 @@ function Trecho({ funcao, t, janela, acoes }: { funcao: FuncaoNoEfetivo; t: Trec
  */
 function TrechoOcupado({ funcao, t, o, base, estilo, acoes }: { funcao: FuncaoNoEfetivo; t: TrechoNoEfetivo; o: NonNullable<TrechoNoEfetivo['ocupante']>; base: string; estilo: CSSProperties; acoes: AcoesDaLinha }) {
   const [mostrarHorario, setMostrarHorario] = useState(false);
+  const Raiz = acoes.soLeitura ? 'div' : 'button';
   return (
-    <button
-      type="button"
+    <Raiz
+      {...(acoes.soLeitura ? { role: 'group', tabIndex: 0 } : { type: 'button' as const, onClick: () => acoes.aoClicarOcupado?.(funcao, t) })}
       aria-label={nomeDoTrecho(funcao.funcao, t)}
       title={faixa(t)}
-      onClick={() => acoes.aoClicarOcupado?.(funcao, t)}
       onFocus={() => setMostrarHorario(true)}
       onBlur={() => setMostrarHorario(false)}
       onTouchStart={() => setMostrarHorario(true)}
@@ -73,7 +91,7 @@ function TrechoOcupado({ funcao, t, o, base, estilo, acoes }: { funcao: FuncaoNo
       </span>
       {mostrarHorario && <span data-horario className="shrink-0 text-[11px]">{faixa(t)}</span>}
       <EtiquetaDoServico nome={o.servico.nome} cor={o.servico.cor} variante="contorno" className="hidden @min-[14rem]:inline-flex" />
-    </button>
+    </Raiz>
   );
 }
 
