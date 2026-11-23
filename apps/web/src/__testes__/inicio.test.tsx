@@ -50,19 +50,22 @@ describe('tela inicial', () => {
     abrir('/');
     await screen.findByRole('heading', { level: 1 });
     expect(screen.getByRole('link', { name: /Confecção de escalas/ })).toHaveAttribute('href', '/grade');
-    expect(screen.getByRole('link', { name: /Pecúlio do 2º GB/ })).toHaveAttribute('href', '/peculio');
-    expect(screen.getByRole('link', { name: /Consulta de militares/ })).toHaveAttribute('href', '/consulta');
+    expect(screen.getByRole('link', { name: /Pecúlio/ })).toHaveAttribute('href', '/peculio');
+    expect(screen.getByRole('link', { name: /Estrutura/ })).toHaveAttribute('href', '/estrutura');
+    // a Consulta de militares não é mais um cartão: é uma tela do Pecúlio
+    expect(screen.queryByRole('link', { name: /^Consulta de militares/ })).toBeNull();
     expect(screen.getByRole('link', { name: /Minha ficha/ })).toHaveAttribute('href', '/minha-ficha');
     const visualizacao = screen.getByText('Visualização de escalas').closest('li')!;
     expect(within(visualizacao).queryByRole('link')).toBeNull();
     expect(within(visualizacao).getByText('Em breve')).toBeInTheDocument();
   });
 
-  it('o militar comum vê três cartões: Consulta de militares, Visualização e Minha ficha', async () => {
+  it('o militar comum vê quatro cartões: Pecúlio (que leva direto à Consulta), Visualização, Minha ficha e Configurações', async () => {
     simularApi({ '/api/eu': { status: 200, corpo: comum } });
     abrir('/');
     await screen.findByRole('heading', { level: 1 });
-    expect(within(screen.getByRole('main')).getAllByRole('listitem').map((li) => li.querySelector('h2')?.textContent)).toEqual(['Consulta de militares', 'Visualização de escalas', 'Minha ficha']);
+    expect(within(screen.getByRole('main')).getAllByRole('listitem').map((li) => li.querySelector('h2')?.textContent)).toEqual(['Pecúlio', 'Visualização de escalas', 'Minha ficha', 'Configurações']);
+    expect(screen.getByRole('link', { name: /Pecúlio/ })).toHaveAttribute('href', '/consulta');
     expect(screen.queryByText('Confecção de escalas')).toBeNull();
   });
 

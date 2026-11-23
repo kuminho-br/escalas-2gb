@@ -50,20 +50,19 @@ function api(extra: Parameters<typeof simularApi>[0] = {}, eu = EU_EXEMPLO) {
 }
 
 describe('configurações no celular (N0.1, achado C1)', () => {
-  it('a faixa das abas rola dentro dela mesma, sem quebrar o texto das abas', async () => {
+  it('no celular não há faixa que rola: o menu vira uma lista de opções no alto (6.26)', async () => {
     api();
-    abrir('/configuracoes');
-    const faixa = await screen.findByRole('tablist');
-    expect(faixa.className).toMatch(/\boverflow-x-auto\b/);
-    expect(faixa.className).toMatch(/\bmax-w-full\b/);
-    // o traço de cada aba passa um pouco da faixa: sem isto, a faixa ganha uma rolagem vertical (achado da revisão final)
-    expect(faixa.className).toMatch(/\boverflow-y-hidden\b/);
-    for (const aba of screen.getAllByRole('tab')) expect(aba.className).toMatch(/\bwhitespace-nowrap\b/);
+    abrir('/configuracoes-da-escala');
+    const menu = await screen.findByRole('tablist');
+    // o menu vertical só existe do tamanho médio para cima; a faixa horizontal com rolagem acabou
+    expect(menu.className).not.toMatch(/overflow-x/);
+    expect(menu.className).toMatch(/\bhidden\b/);
+    expect(screen.getByRole('combobox', { name: 'Seção das configurações da escala' }).parentElement!.className).toMatch(/md:hidden/);
   });
 
   it('cada tabela da tela fica dentro de um quadro que rola', async () => {
     api();
-    abrir('/configuracoes');
+    abrir('/configuracoes-da-escala');
     await screen.findByRole('table');
     for (const t of screen.getAllByRole('table')) expect(t.parentElement!.className).toMatch(/\boverflow-x-auto\b/);
   });
@@ -72,7 +71,7 @@ describe('configurações no celular (N0.1, achado C1)', () => {
 describe('configurações', () => {
   it('mostra o valor e a origem herdada', async () => {
     api({}, GESTOR);
-    abrir('/configuracoes');
+    abrir('/configuracoes-da-escala');
     const linha = (await screen.findByText('Saldos por militar do Adm')).closest('tr')!;
     expect(within(linha).getByText('5')).toBeInTheDocument();
     expect(within(linha).getByText('vem do 2º GB')).toBeInTheDocument();
@@ -83,7 +82,7 @@ describe('configurações', () => {
 
   it('mostra a flexibilidade do voluntariado e o gestor muda a partir de um mês, em horas', async () => {
     const f = api({ [`GET ${PARAMS}`]: { status: 200, corpo: [...LISTA, FLEXIBILIDADE] }, [`POST ${PARAMS}`]: { status: 201, corpo: {} } }, GESTOR);
-    abrir('/configuracoes');
+    abrir('/configuracoes-da-escala');
     const linha = (await screen.findByText('Flexibilidade do voluntariado (horas)')).closest('tr')!;
     expect(within(linha).getByText(/Buraco no meio do turno não conta/)).toBeInTheDocument();
     expect(within(linha).getByText('padrão do sistema')).toBeInTheDocument();
@@ -97,7 +96,7 @@ describe('configurações', () => {
 
   it('mudar a partir de envia vigencia e norma', async () => {
     const f = api({ [`POST ${PARAMS}`]: { status: 201, corpo: {} } }, GESTOR);
-    abrir('/configuracoes');
+    abrir('/configuracoes-da-escala');
     const linha = (await screen.findByText('Carga mensal (horas)')).closest('tr')!;
     await userEvent.click(within(linha).getByRole('button', { name: 'Mudar a partir de…' }));
     await userEvent.clear(screen.getByLabelText('Novo valor'));
@@ -110,24 +109,24 @@ describe('configurações', () => {
 
   it('erro 409 aparece junto do formulário', async () => {
     api({ [`POST ${PARAMS}`]: { status: 409, corpo: { erro: 'Só dá para mudar a partir de novembro de 2026.' } } }, GESTOR);
-    abrir('/configuracoes');
+    abrir('/configuracoes-da-escala');
     const linha = (await screen.findByText('Carga mensal (horas)')).closest('tr')!;
     await userEvent.click(within(linha).getByRole('button', { name: 'Mudar a partir de…' }));
     await userEvent.click(screen.getByRole('button', { name: /^Salvar a partir de/ }));
     expect(await screen.findByText('Só dá para mudar a partir de novembro de 2026.')).toBeInTheDocument();
   });
 
-  it('Configurações não tem a aba Atividades', async () => {
+  it('Configurações da escala não tem a aba Atividades, só as quatro da escala', async () => {
     api();
-    abrir('/configuracoes');
-    await screen.findByRole('tab', { name: 'Tipos de afastamento' });
+    abrir('/configuracoes-da-escala');
+    await screen.findByRole('tab', { name: 'Regras do processo' });
     expect(screen.queryByRole('tab', { name: 'Atividades' })).toBeNull();
-    expect(screen.getAllByRole('tab').map((t) => t.textContent)).toEqual(['Regras do processo', 'Voluntariado', 'Modelos de guarnição', 'Meta de ativação', 'Tipos de afastamento', 'Situações do militar', 'Funções do militar', 'Estrutura']);
+    expect(screen.getAllByRole('tab').map((t) => t.textContent)).toEqual(['Regras do processo', 'Voluntariado', 'Modelos de guarnição', 'Meta de ativação']);
   });
 
   it('o endereço antigo com ?aba=atividades abre a primeira aba', async () => {
     api();
-    abrir('/configuracoes?aba=atividades');
+    abrir('/configuracoes-da-escala?aba=atividades');
     expect(await screen.findByRole('tab', { name: 'Regras do processo' })).toHaveAttribute('aria-selected', 'true');
   });
 
@@ -243,11 +242,15 @@ describe('configurações: postos e graduações (6.13)', () => {
   ];
   const comPostos = (extra: Parameters<typeof simularApi>[0] = {}, eu: typeof EU_EXEMPLO = ADMIN) => api({ 'GET /api/postos': { status: 200, corpo: POSTOS }, ...extra }, eu);
 
-  it('a aba só aparece para o administrador', async () => {
+  it('quem tem nível de acesso vê a lista, mas só o administrador corrige', async () => {
     comPostos({}, EU_EXEMPLO);
-    abrir('/configuracoes');
-    await screen.findByRole('tab', { name: 'Regras do processo' });
-    expect(screen.queryByRole('tab', { name: 'Postos e graduações' })).toBeNull();
+    abrir('/configuracoes?aba=postos');
+    await screen.findByRole('list', { name: 'Postos e graduações' });
+    expect(screen.queryByRole('button', { name: /Corrigir/ })).toBeNull();
+    cleanup();
+    comPostos();
+    abrir('/configuracoes?aba=postos');
+    expect(await screen.findByRole('button', { name: 'Corrigir SD' })).toBeInTheDocument();
   });
 
   it('lista os postos na ordem, do mais moderno para o mais antigo, como o cadastro', async () => {
@@ -290,7 +293,7 @@ describe('configurações: papéis e campos', () => {
 
   it('escalante não vê Mudar a partir de nem Importar', async () => {
     api();
-    abrir('/configuracoes');
+    abrir('/configuracoes-da-escala');
     await screen.findByText('Carga mensal (horas)');
     expect(screen.queryByRole('button', { name: 'Mudar a partir de…' })).toBeNull();
     expect(screen.queryByRole('button', { name: 'Importar' })).toBeNull();
@@ -299,7 +302,7 @@ describe('configurações: papéis e campos', () => {
 
   it('gestor vê Mudar a partir de e Importar', async () => {
     api({}, GESTOR);
-    abrir('/configuracoes');
+    abrir('/configuracoes-da-escala');
     await screen.findByText('Carga mensal (horas)');
     expect(screen.getAllByRole('button', { name: 'Mudar a partir de…' })).toHaveLength(2);
     expect(screen.getByRole('button', { name: 'Importar' })).toBeInTheDocument();
@@ -308,7 +311,7 @@ describe('configurações: papéis e campos', () => {
 
   it('Sim ou Não se escolhe numa lista', async () => {
     const f = apiComSimNao(GESTOR, { [`POST ${PARAMS}`]: { status: 201, corpo: {} } });
-    abrir('/configuracoes');
+    abrir('/configuracoes-da-escala');
     const linha = (await screen.findByText('Adm cumpre a carga mensal')).closest('tr')!;
     await userEvent.click(within(linha).getByRole('button', { name: 'Mudar a partir de…' }));
     const campo = screen.getByLabelText('Novo valor');
@@ -322,7 +325,7 @@ describe('configurações: papéis e campos', () => {
 
   it('número se digita em campo numérico', async () => {
     api({}, GESTOR);
-    abrir('/configuracoes');
+    abrir('/configuracoes-da-escala');
     const linha = (await screen.findByText('Carga mensal (horas)')).closest('tr')!;
     await userEvent.click(within(linha).getByRole('button', { name: 'Mudar a partir de…' }));
     const campo = screen.getByLabelText('Novo valor');
@@ -332,7 +335,7 @@ describe('configurações: papéis e campos', () => {
 
   it('decimal aceita casas depois da vírgula', async () => {
     api({ [`GET ${PARAMS}`]: { status: 200, corpo: [parametro({ chave: 'FATOR', rotulo: 'Fator', tipo: 'decimal', valor: 1.5 })] } }, GESTOR);
-    abrir('/configuracoes');
+    abrir('/configuracoes-da-escala');
     const linha = (await screen.findByText('Fator')).closest('tr')!;
     await userEvent.click(within(linha).getByRole('button', { name: 'Mudar a partir de…' }));
     expect(screen.getByLabelText('Novo valor')).toHaveAttribute('step', 'any');
@@ -341,7 +344,7 @@ describe('configurações: papéis e campos', () => {
 
 describe('configurações: blocos do voluntariado', () => {
   const aba = async () => {
-    abrir('/configuracoes');
+    abrir('/configuracoes-da-escala');
     await userEvent.click(await screen.findByRole('tab', { name: 'Voluntariado' }));
   };
   const interruptor = (nome: string) => screen.findByRole('checkbox', { name: `${nome}: entra nos blocos do voluntariado` });
@@ -396,7 +399,7 @@ describe('meta de ativação', () => {
   ];
   const abaMeta = (extra: Parameters<typeof simularApi>[0] = {}, eu = EU_EXEMPLO) => {
     const f = api({ [`GET ${META}`]: { status: 200, corpo: VERSOES }, 'GET /api/unidades/u-1sb/guarnicoes': { status: 200, corpo: MODELOS }, ...extra }, eu);
-    abrir('/configuracoes?aba=meta');
+    abrir('/configuracoes-da-escala?aba=meta');
     return f;
   };
 
@@ -459,7 +462,7 @@ describe('configurações: quem vê o quê (6.11)', () => {
     for (const [eu, aparece] of [[EU_EXEMPLO, false], [GESTOR, false], [CHEFE, false], [ADMIN, true]] as const) {
       comBorda({}, eu);
       abrir('/configuracoes');
-      await screen.findByRole('tab', { name: 'Regras do processo' });
+      await screen.findByRole('tab', { name: 'Minhas preferências' });
       expect(screen.queryAllByRole('tab', { name: 'Quem vê o quê' }), String(eu.papeis[0]?.papel)).toHaveLength(aparece ? 1 : 0);
       cleanup();
     }

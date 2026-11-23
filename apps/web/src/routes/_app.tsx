@@ -1,6 +1,6 @@
 import { createFileRoute, Outlet, redirect, useLocation } from '@tanstack/react-router';
 import { useRef, useState } from 'react';
-import { consultaEu, type Eu } from '@/api/eu';
+import { consultaEu, ehMilitarComum, type Eu } from '@/api/eu';
 import { Topo } from '@/componentes/Topo';
 import { Trilho } from '@/componentes/Trilho';
 import { FaixaSoConsulta } from '@/componentes/FaixaSoConsulta';
@@ -20,6 +20,9 @@ export const Route = createFileRoute('/_app')({
     // quem abre o endereço de um módulo que não vê volta ao início, com o aviso (a barreira é só da tela; a API confere o papel de qualquer jeito)
     const modulo = moduloDoEndereco(location.pathname, location.search as Record<string, unknown>);
     if (modulo && !modulo.ve(eu)) throw redirect({ to: '/', search: { aviso: 'outro-papel' } });
+    // o Pecúlio é de todos, mas a lista do Pecúlio (e a ficha aberta por ela) é de quem tem nível de acesso: quem não tem só tem a Consulta
+    const primeiro = (location.pathname.split('/')[1] ?? '').toLowerCase();
+    if (modulo?.id === 'peculio' && primeiro !== 'consulta' && ehMilitarComum(eu)) throw redirect({ to: '/', search: { aviso: 'outro-papel' } });
     // numa unidade só de consulta a Confecção abre só nas telas de leitura: as outras (Militares, Turnos, Escalas, Feriados, Oficiais, Configurações) levam à Grade geral
     if (eu.soConsulta && modulo?.id === 'escalas' && !TELAS_DE_LEITURA.has((location.pathname.split('/')[1] ?? '').toLowerCase())) throw redirect({ to: '/grade' });
     return { eu };

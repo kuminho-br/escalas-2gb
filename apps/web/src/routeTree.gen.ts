@@ -15,12 +15,14 @@ import { Route as EntrarRouteImport } from './routes/entrar'
 import { Route as SemLotacaoRouteImport } from './routes/sem-lotacao'
 import { Route as AppIndexRouteImport } from './routes/_app/index'
 import { Route as AppConfiguracoesRouteImport } from './routes/_app/configuracoes'
+import { Route as AppConfiguracoesDaEscalaRouteImport } from './routes/_app/configuracoes-da-escala'
 import { Route as AppConsultaRouteImport } from './routes/_app/consulta'
 import { Route as AppCotasRouteImport } from './routes/_app/cotas'
 import { Route as AppEfetivoDoDiaRouteImport } from './routes/_app/efetivo-do-dia'
 import { Route as AppEfetivoPorDiaRouteImport } from './routes/_app/efetivo-por-dia'
 import { Route as AppEscalaDoMesRouteImport } from './routes/_app/escala-do-mes'
 import { Route as AppEscalasRouteImport } from './routes/_app/escalas'
+import { Route as AppEstruturaRouteImport } from './routes/_app/estrutura'
 import { Route as AppFeriadosRouteImport } from './routes/_app/feriados'
 import { Route as AppGradeRouteImport } from './routes/_app/grade'
 import { Route as AppMilitaresRouteImport } from './routes/_app/militares'
@@ -70,6 +72,12 @@ const AppConfiguracoesRoute = AppConfiguracoesRouteImport.update({
   path: '/configuracoes',
   getParentRoute: () => AppRoute,
 } as any)
+const AppConfiguracoesDaEscalaRoute =
+  AppConfiguracoesDaEscalaRouteImport.update({
+    id: '/configuracoes-da-escala',
+    path: '/configuracoes-da-escala',
+    getParentRoute: () => AppRoute,
+  } as any)
 const AppConsultaRoute = AppConsultaRouteImport.update({
   id: '/consulta',
   path: '/consulta',
@@ -98,6 +106,11 @@ const AppEscalaDoMesRoute = AppEscalaDoMesRouteImport.update({
 const AppEscalasRoute = AppEscalasRouteImport.update({
   id: '/escalas',
   path: '/escalas',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppEstruturaRoute = AppEstruturaRouteImport.update({
+  id: '/estrutura',
+  path: '/estrutura',
   getParentRoute: () => AppRoute,
 } as any)
 const AppFeriadosRoute = AppFeriadosRouteImport.update({
@@ -203,12 +216,14 @@ export interface FileRoutesByFullPath {
   '/entrar': typeof EntrarRoute
   '/sem-lotacao': typeof SemLotacaoRoute
   '/configuracoes': typeof AppConfiguracoesRoute
+  '/configuracoes-da-escala': typeof AppConfiguracoesDaEscalaRoute
   '/consulta': typeof AppConsultaRoute
   '/cotas': typeof AppCotasRoute
   '/efetivo-do-dia': typeof AppEfetivoDoDiaRoute
   '/efetivo-por-dia': typeof AppEfetivoPorDiaRoute
   '/escala-do-mes': typeof AppEscalaDoMesRoute
   '/escalas': typeof AppEscalasRouteWithChildren
+  '/estrutura': typeof AppEstruturaRoute
   '/feriados': typeof AppFeriadosRoute
   '/grade': typeof AppGradeRoute
   '/militares': typeof AppMilitaresRouteWithChildren
@@ -234,11 +249,13 @@ export interface FileRoutesByTo {
   '/entrar': typeof EntrarRoute
   '/sem-lotacao': typeof SemLotacaoRoute
   '/configuracoes': typeof AppConfiguracoesRoute
+  '/configuracoes-da-escala': typeof AppConfiguracoesDaEscalaRoute
   '/consulta': typeof AppConsultaRoute
   '/cotas': typeof AppCotasRoute
   '/efetivo-do-dia': typeof AppEfetivoDoDiaRoute
   '/efetivo-por-dia': typeof AppEfetivoPorDiaRoute
   '/escala-do-mes': typeof AppEscalaDoMesRoute
+  '/estrutura': typeof AppEstruturaRoute
   '/feriados': typeof AppFeriadosRoute
   '/grade': typeof AppGradeRoute
   '/minha-ficha': typeof AppMinhaFichaRoute
@@ -265,12 +282,14 @@ export interface FileRoutesById {
   '/entrar': typeof EntrarRoute
   '/sem-lotacao': typeof SemLotacaoRoute
   '/_app/configuracoes': typeof AppConfiguracoesRoute
+  '/_app/configuracoes-da-escala': typeof AppConfiguracoesDaEscalaRoute
   '/_app/consulta': typeof AppConsultaRoute
   '/_app/cotas': typeof AppCotasRoute
   '/_app/efetivo-do-dia': typeof AppEfetivoDoDiaRoute
   '/_app/efetivo-por-dia': typeof AppEfetivoPorDiaRoute
   '/_app/escala-do-mes': typeof AppEscalaDoMesRoute
   '/_app/escalas': typeof AppEscalasRouteWithChildren
+  '/_app/estrutura': typeof AppEstruturaRoute
   '/_app/feriados': typeof AppFeriadosRoute
   '/_app/grade': typeof AppGradeRoute
   '/_app/militares': typeof AppMilitaresRouteWithChildren
@@ -300,12 +319,14 @@ export interface FileRouteTypes {
     | '/entrar'
     | '/sem-lotacao'
     | '/configuracoes'
+    | '/configuracoes-da-escala'
     | '/consulta'
     | '/cotas'
     | '/efetivo-do-dia'
     | '/efetivo-por-dia'
     | '/escala-do-mes'
     | '/escalas'
+    | '/estrutura'
     | '/feriados'
     | '/grade'
     | '/militares'
@@ -331,11 +352,13 @@ export interface FileRouteTypes {
     | '/entrar'
     | '/sem-lotacao'
     | '/configuracoes'
+    | '/configuracoes-da-escala'
     | '/consulta'
     | '/cotas'
     | '/efetivo-do-dia'
     | '/efetivo-por-dia'
     | '/escala-do-mes'
+    | '/estrutura'
     | '/feriados'
     | '/grade'
     | '/minha-ficha'
@@ -361,12 +384,14 @@ export interface FileRouteTypes {
     | '/entrar'
     | '/sem-lotacao'
     | '/_app/configuracoes'
+    | '/_app/configuracoes-da-escala'
     | '/_app/consulta'
     | '/_app/cotas'
     | '/_app/efetivo-do-dia'
     | '/_app/efetivo-por-dia'
     | '/_app/escala-do-mes'
     | '/_app/escalas'
+    | '/_app/estrutura'
     | '/_app/feriados'
     | '/_app/grade'
     | '/_app/militares'
@@ -440,6 +465,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppConfiguracoesRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/configuracoes-da-escala': {
+      id: '/_app/configuracoes-da-escala'
+      path: '/configuracoes-da-escala'
+      fullPath: '/configuracoes-da-escala'
+      preLoaderRoute: typeof AppConfiguracoesDaEscalaRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/consulta': {
       id: '/_app/consulta'
       path: '/consulta'
@@ -480,6 +512,13 @@ declare module '@tanstack/react-router' {
       path: '/escalas'
       fullPath: '/escalas'
       preLoaderRoute: typeof AppEscalasRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/estrutura': {
+      id: '/_app/estrutura'
+      path: '/estrutura'
+      fullPath: '/estrutura'
+      preLoaderRoute: typeof AppEstruturaRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/feriados': {
@@ -662,12 +701,14 @@ const AppServicosRouteWithChildren = AppServicosRoute._addFileChildren(
 
 interface AppRouteChildren {
   AppConfiguracoesRoute: typeof AppConfiguracoesRoute
+  AppConfiguracoesDaEscalaRoute: typeof AppConfiguracoesDaEscalaRoute
   AppConsultaRoute: typeof AppConsultaRoute
   AppCotasRoute: typeof AppCotasRoute
   AppEfetivoDoDiaRoute: typeof AppEfetivoDoDiaRoute
   AppEfetivoPorDiaRoute: typeof AppEfetivoPorDiaRoute
   AppEscalaDoMesRoute: typeof AppEscalaDoMesRoute
   AppEscalasRoute: typeof AppEscalasRouteWithChildren
+  AppEstruturaRoute: typeof AppEstruturaRoute
   AppFeriadosRoute: typeof AppFeriadosRoute
   AppGradeRoute: typeof AppGradeRoute
   AppMilitaresRoute: typeof AppMilitaresRouteWithChildren
@@ -686,12 +727,14 @@ interface AppRouteChildren {
 
 const AppRouteChildren: AppRouteChildren = {
   AppConfiguracoesRoute: AppConfiguracoesRoute,
+  AppConfiguracoesDaEscalaRoute: AppConfiguracoesDaEscalaRoute,
   AppConsultaRoute: AppConsultaRoute,
   AppCotasRoute: AppCotasRoute,
   AppEfetivoDoDiaRoute: AppEfetivoDoDiaRoute,
   AppEfetivoPorDiaRoute: AppEfetivoPorDiaRoute,
   AppEscalaDoMesRoute: AppEscalaDoMesRoute,
   AppEscalasRoute: AppEscalasRouteWithChildren,
+  AppEstruturaRoute: AppEstruturaRoute,
   AppFeriadosRoute: AppFeriadosRoute,
   AppGradeRoute: AppGradeRoute,
   AppMilitaresRoute: AppMilitaresRouteWithChildren,

@@ -12,7 +12,7 @@ import { Input } from '@/componentes/ui/input';
  * Os postos e graduações (entrega 6.13): o administrador corrige a sigla e o nome, uma linha por vez. A ordem não muda (a antiguidade nas escalas
  * vem dela), e não se cria nem se apaga posto aqui.
  */
-export function Postos() {
+export function Postos({ podeEditar = true }: { podeEditar?: boolean }) {
   const { data, error, isPending } = useQuery(consultaPostos);
   const [editando, setEditando] = useState<string | null>(null);
   if (isPending) return <p className="py-6 text-apagado">Carregando…</p>;
@@ -20,7 +20,7 @@ export function Postos() {
   return (
     <div className="max-w-xl rounded-xl border border-linha bg-superficie">
       <p className="border-b border-linha px-4 py-3 text-sm text-apagado">
-        Lista do sistema todo, do posto mais moderno para o mais antigo. Corrigir a sigla não muda a ordem de antiguidade, e a importação do Pecúlio passa a aceitar a sigla nova.
+        Lista do sistema todo, do posto mais moderno para o mais antigo. Corrigir a sigla não muda a ordem de antiguidade, e a importação do Pecúlio passa a aceitar a sigla nova.{podeEditar ? '' : ' Só o administrador altera.'}
       </p>
       <ul aria-label="Postos e graduações" className="divide-y divide-linha">
         {data.map((p) =>
@@ -30,7 +30,7 @@ export function Postos() {
             <li key={p.id} className="flex items-center gap-3 px-4 py-2.5">
               <span data-sigla className="w-24 shrink-0 font-cond font-semibold">{p.sigla}</span>
               <span className="text-apagado">{p.nome}</span>
-              {editando === null && (
+              {podeEditar && editando === null && (
                 <Button size="sm" variant="ghost" className="ml-auto" aria-label={`Corrigir ${p.sigla}`} onClick={() => setEditando(p.id)}>
                   Corrigir
                 </Button>
