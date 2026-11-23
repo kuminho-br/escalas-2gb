@@ -196,6 +196,7 @@
   28. Escala dos oficiais → o painel de Cotas cabe sem rolagem de lado em 1440 px: o calendário cede largura, o painel ganha a das colunas, e os textos longos ("1ª SB · ordenado à mão") quebram a linha (diretriz do usuário, 23/11).
   29. Da 6.12: o vazio da Escala do mês no modo só consulta não mostra o link "Crie uma em Escalas".
   30. Da 6.12: no modo só consulta, os trechos ocupados do Efetivo por dia não param o teclado.
+  31. No celular, abrir a escolha de militar para uma vaga → o foco não vai para a busca, e o teclado só aparece quando a pessoa toca na caixa de busca (diretriz do usuário, 23/11).
 - [ ] **Commit** `Fase 6.17: formulários, diálogos e nomes acessíveis` e, depois das verificações, abrir o PR.
 
 ---
