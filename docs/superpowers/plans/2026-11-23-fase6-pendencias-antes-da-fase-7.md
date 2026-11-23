@@ -232,6 +232,7 @@
   19. Da 6.16: a linha do tempo da ficha mostra o ano quando o intervalo atravessa a virada do ano.
   20. Da 6.16: Salvar do "Alterar situação" não fica preso quando a lista de seções falha (mostra o erro com "Tentar de novo"); `/oficiais` olha o nível de acesso na unidade escolhida; o 403 do telefone vem antes do 400.
   21. Da 6.24: o administrador edita e apaga afastamento de militar sem lotação (hoje só inclui).
+  22. Contato com máscara (pedido do usuário, 23/11), na ficha (`componentes/militares/Contato.tsx`), no cadastro de militar novo e no telefone da Minha ficha. Telefone: a pessoa digita só números, e o campo mostra "(81) 99668-1232" (11 dígitos) ou "(81) 3333-4444" (10); com outra quantidade, "Use o DDD e o número: 10 ou 11 dígitos."; grava no formato mostrado. E-mail: o campo recebe só o usuário, e "@bombeiros.pe.gov.br" fica fixo à direita, dentro do campo; colar um e-mail inteiro do domínio fica só com o usuário; colar de outro domínio mostra "Use só o usuário do e-mail institucional."; o e-mail já gravado aparece só com o usuário. A API e a planilha continuam com a regra de hoje (só o domínio institucional). Teste: as duas máscaras, a colagem e o e-mail já gravado.
 - [ ] **Commit** `Fase 6.18: acabamento da API`.
 
 ### Task 8: importação
