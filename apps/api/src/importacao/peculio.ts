@@ -7,6 +7,7 @@ import { mudarPeriodoAberto } from '../cadastros/periodo-aberto.ts';
 import { quadroParaOPosto } from '../cadastros/quadros.ts';
 import { CADASTRO, siglaDaUnidadeDeCima, temPapelAcima } from '../acesso.ts';
 import type { Consulta } from '../banco/banco.ts';
+import { hojeRecife } from '../datas.ts';
 import {
   cpfMascarado, lerAntiguidade, lerCep, lerCnh, lerComportamento, lerCpf, lerEmail, lerEquipe, lerFuncao, lerJornada, lerNascimento, lerNomeDeGuerra, lerPosto, lerQuadro,
   lerSexo, lerSigla, lerSimNao, lerSituacao, lerTelefone, lerTexto, lerUf, matriculaDe, type Leitura,
@@ -128,8 +129,8 @@ async function catalogos(tx: Consulta, unidadeId: string) {
   const unidades = (
     await tx.query<{ id: string; sigla: string; mae: string | null }>(
       `select s.id, s.sigla, m.sigla as mae from unidade s join unidade u on u.id = $1 and s.caminho <@ u.caminho left join unidade m on m.id = s.mae_id
-        where s.ate is null or s.ate >= current_date order by nlevel(s.caminho), s.sigla`,
-      [unidadeId],
+        where s.ate is null or s.ate >= $2::date order by nlevel(s.caminho), s.sigla`,
+      [unidadeId, hojeRecife()],
     )
   ).rows.map((u, _, todas) => ({ id: u.id, sigla: u.sigla, rotulo: u.mae && todas.filter((o) => normalizar(o.sigla) === normalizar(u.sigla)).length > 1 ? `${u.sigla} (${u.mae})` : u.sigla }));
   const quadros = (

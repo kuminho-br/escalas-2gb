@@ -35,7 +35,7 @@ export const EmailInstitucional = z
   .string()
   .trim()
   .max(120, 'Use no máximo 120 caracteres.')
-  .regex(/^[^@ ]+@bombeiros[.]pe[.]gov[.]br$/i, 'Use o e-mail institucional (@bombeiros.pe.gov.br).');
+  .regex(/^[^@\s]+@bombeiros[.]pe[.]gov[.]br$/i, 'Use o e-mail institucional (@bombeiros.pe.gov.br).');
 export const COMPORTAMENTOS = ['Excepcional', 'Ótimo', 'Bom', 'Insuficiente', 'Mau'] as const;
 export const Comportamento = z.enum(COMPORTAMENTOS);
 export type Comportamento = z.infer<typeof Comportamento>;

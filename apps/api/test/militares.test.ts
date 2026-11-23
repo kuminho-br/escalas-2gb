@@ -384,6 +384,24 @@ describe('edição só do que mudou', () => {
     expect(await ficha(m.id)).toMatchObject({ nomeGuerra: 'NOVO', voluntarioJes: true });
   });
 
+  it('a trava é de verdade: a leitura do militar para editar roda dentro da transação, com a linha travada (for update)', async () => {
+    // o banco de teste tem uma conexão só e atende uma transação por vez, então o teste acima passaria mesmo sem a trava: aqui se prova que o comando
+    // que a garante (ler dentro da transação com `for update`, antes de gravar) é o que o servidor manda ao banco
+    const m = await criar('990152-2', { nomeGuerra: 'TRAVA' });
+    const comandos: string[] = [];
+    const original = api.banco.transacao.bind(api.banco);
+    api.banco.transacao = (fn) => original((tx) => fn({ ...tx, query: ((sql: string, p?: unknown[]) => (comandos.push(sql), tx.query(sql, p))) as typeof tx.query }));
+    try {
+      expect((await api.pedir('gestorGb', 'PATCH', `/api/militares/${m.id}`, { nomeGuerra: 'DESTRAVA' })).status).toBe(200);
+    } finally {
+      api.banco.transacao = original;
+    }
+    const leitura = comandos.findIndex((c) => /select posto_grad_id, nome_completo/.test(c) && /from militar where id = \$1 for update/.test(c.replace(/\s+/g, ' ')));
+    const gravacao = comandos.findIndex((c) => /^\s*update militar set/i.test(c));
+    expect(leitura).toBeGreaterThanOrEqual(0);
+    expect(gravacao).toBeGreaterThan(leitura);
+  });
+
   it('PATCH com antiguidade null apaga a antiguidade', async () => {
     const m = await criar('990151-1', { antiguidade: 4321 });
     expect(m.antiguidade).toBe(4321);

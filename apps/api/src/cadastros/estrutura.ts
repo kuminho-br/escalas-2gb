@@ -7,7 +7,7 @@ import {
   type EfeitoDeMover, type HerancaDaUnidade, type LigadosAUnidade, type NoDaArvore, type PessoaNoEfeito,
 } from 'contratos';
 import { Hono, type Context } from 'hono';
-import { CADASTRO, exigirPapel, exigirSessao, GESTAO, temPapel, temPapelAcima, type AmbienteApi, type Papel } from '../acesso.ts';
+import { CADASTRO, exigirPapel, exigirSessao, GESTAO, papeisVigentes, temPapel, temPapelAcima, type AmbienteApi, type Papel } from '../acesso.ts';
 import type { Auth } from '../auth.ts';
 import { comUsuario, type Banco, type Consulta } from '../banco/banco.ts';
 import { hojeRecife, inicioDoMes } from '../datas.ts';
@@ -251,6 +251,8 @@ export function rotasEstrutura(dep: { banco: Banco; auth: Auth }): Hono<Ambiente
 
   r.post('/unidades', async (c) => {
     const banco = c.get('banco');
+    // a unidade de cima vem no corpo, então o nível exato só se confere depois dele; antes, quem não tem nível de gestão em lugar nenhum não fica sabendo do formato
+    if (!(await papeisVigentes(banco, c.get('usuarioId'), hojeRecife())).some((p) => GESTAO.includes(p.papel))) return c.json({ erro: MSG_SEM_ACIMA }, 403);
     const corpo = await lerCorpo(c, NovaUnidade);
     if (!corpo.ok) return corpo.resposta;
     const d = corpo.dados;

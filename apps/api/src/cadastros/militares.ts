@@ -159,7 +159,7 @@ async function carregarFicha(c: Consulta, id: string, mes: string, usuarioId: st
   }>(
     `select l.id, l.unidade_id, un.sigla, e.nome as equipe,
             (select m.sigla from unidade m where m.id = un.mae_id) as cima,
-            exists (select 1 from unidade o where lower(o.sigla) = lower(un.sigla) and o.id <> un.id and (o.ate is null or o.ate >= current_date)) as sigla_repetida, l.jornada, q.sigla as quadro, sm.nome as situacao, to_char(l.desde, 'YYYY-MM-DD') as desde, to_char(l.ate, 'YYYY-MM-DD') as ate,
+            exists (select 1 from unidade o where lower(o.sigla) = lower(un.sigla) and o.id <> un.id and (o.ate is null or o.ate >= $2::date)) as sigla_repetida, l.jornada, q.sigla as quadro, sm.nome as situacao, to_char(l.desde, 'YYYY-MM-DD') as desde, to_char(l.ate, 'YYYY-MM-DD') as ate,
             mm.nome_guerra as autor_nome, pp.sigla as autor_posto, to_char(la.em at time zone 'America/Recife', 'YYYY-MM-DD"T"HH24:MI:SS') as alterado_em
        from rastreio l join unidade un on un.id = l.unidade_id left join equipe e on e.id = l.equipe_id left join quadro q on q.id = l.quadro_id
        join situacao_militar sm on sm.id = l.situacao_id
@@ -172,7 +172,7 @@ async function carregarFicha(c: Consulta, id: string, mes: string, usuarioId: st
        ) la on true
        left join usuario uu on uu.id = la.usuario_id left join militar mm on mm.id = uu.militar_id left join posto_grad pp on pp.id = mm.posto_grad_id
       where l.militar_id = $1 order by l.desde desc`,
-    [id],
+    [id, hojeRecife()],
   );
   const afastamentos = await c.query<{ id: string; tipo: string; tipo_afastamento_id: string; inicio: string; fim: string; motivo: string | null; boletim: string | null }>(
     `select a.id, t.nome as tipo, a.tipo_afastamento_id, to_char(a.inicio, 'YYYY-MM-DD') as inicio, to_char(a.fim, 'YYYY-MM-DD') as fim, a.motivo, a.boletim

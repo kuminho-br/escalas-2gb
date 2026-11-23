@@ -152,14 +152,14 @@ export function rotasEu(banco: Banco, auth: Auth): Hono {
   r.patch('/telefone', async (c) => {
     const sessao = await auth.api.getSession({ headers: c.req.raw.headers });
     if (!sessao) return c.json({ erro: 'Não autenticado' }, 401);
-    const corpo = await lerCorpo(c, NovoTelefone);
-    if (!corpo.ok) return corpo.resposta;
-    // com a senha provisória pendente, a resposta é a mesma das outras rotas: crie a senha (e não "não autenticado")
+    // com a senha provisória pendente, a resposta é a mesma das outras rotas: crie a senha (e não "não autenticado"); vem antes do 400 do contrato
     const u = (await banco.query<{ ativo: boolean; provisoria: boolean; vencida: boolean }>(
       'select ativo, senha_provisoria_ate is not null as provisoria, coalesce(senha_provisoria_ate < now(), false) as vencida from usuario where id = $1',
       [sessao.user.id],
     )).rows[0];
     if (u?.ativo && u.provisoria) return c.json({ erro: u.vencida ? MSG_SENHA_VENCIDA : MSG_CRIE_A_SENHA }, 403);
+    const corpo = await lerCorpo(c, NovoTelefone);
+    if (!corpo.ok) return corpo.resposta;
     const ficha = await comUsuario(banco, sessao.user.id, async (tx) => {
       const { rows } = await tx.query(
         'update militar set telefone = $2 where id = (select militar_id from usuario where id = $1 and ativo and senha_provisoria_ate is null) returning id',
