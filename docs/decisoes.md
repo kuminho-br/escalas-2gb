@@ -8,6 +8,9 @@ Siglas dos documentos: **Design** = `superpowers/specs/2026-11-16-migracao-desig
 
 | Data | Decisão | Onde está |
 |---|---|---|
+| 23/11/2026 | O acesso separa ver de editar. Editar segue a hierarquia; ver vem de três camadas que se somam (todos, oficial e chefe de divisão), e a borda do que cada camada vê fica nas Configurações (caminho B). | `superpowers/specs/2026-11-23-camadas-de-visao-design.md` |
+| 23/11/2026 | Quinto nível de acesso, o chefe de divisão (nome provisório): edita como gestor na sua divisão e vê a hierarquia das divisões irmãs, sem editar. As divisões (administrativa e operacional) entram na árvore, entre o grupamento e as seções. | `superpowers/specs/2026-11-23-camadas-de-visao-design.md` |
+| 23/11/2026 | CPF, nascimento e endereço: só para quem tem nível de acesso numa unidade acima da lotação, o administrador e o próprio militar. Fora da borda ajustável. | `superpowers/specs/2026-11-23-camadas-de-visao-design.md`, "CPF, nascimento e endereço" |
 | 22/11/2026 | Mockup da transição do login aprovado pelo usuário: a animação entra no site na entrega 6.4, sem esperar o fim da fase 6. | Plano da fase 6, Entrega 4; `superpowers/specs/2026-11-20-transicao-login-design.md` |
 | 22/11/2026 | Transição do login com clima de login de jogo online: efeitos visuais moderados (clarão, onda de choque, faíscas, brasas no ambiente), sem explosões grandes e sem som. Cerca de 3 s do clique às boas-vindas, em teste. As brasas ficam alguns segundos sobre a imagem das boas-vindas e param. | `superpowers/specs/2026-11-20-transicao-login-design.md`, Decisões do usuário e Efeitos |
 | 22/11/2026 | Transição do login: a imagem final passa a ser a versão com a junta Storz de um anel só (vedação preta e duas garras). Fica em teste e pode ser melhorada depois. | `superpowers/specs/2026-11-20-transicao-login-design.md`, A imagem final |
