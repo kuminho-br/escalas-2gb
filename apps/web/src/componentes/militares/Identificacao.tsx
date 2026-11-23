@@ -2,7 +2,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { FichaMilitar } from 'contratos';
 import { useState } from 'react';
 import { camposDe, mensagemDe } from '@/api/cliente';
-import { atualizarMilitares, consultaPostos, editarMilitar } from '@/api/militares';
+import { atualizarMilitares, consultaFuncoesDoMilitar, consultaPostos, editarMilitar } from '@/api/militares';
 import { Campo } from '@/componentes/Campo';
 import { Selecao } from '@/componentes/Selecao';
 import { AcoesDoBloco, usePendencia, useTrava, useSincronizar } from '@/componentes/AlteracoesPendentes';
@@ -11,13 +11,14 @@ import { alteracoesDaIdentificacao, type ValoresIdentificacao } from './alteraco
 import { DonoDoBloco, LISTA_NAO_CARREGOU, Secao } from './Secao';
 
 /**
- * Identificação (posto-graduação, nome completo, nome de guerra, antiguidade e sexo: do Pecúlio) e, na mesma ficha, o voluntário JES (da escala).
+ * Identificação (posto-graduação, nome completo, nome de guerra, antiguidade, sexo, função e abono de permanência: do Pecúlio) e, na mesma ficha, o voluntário JES (da escala).
  * O quadro e a situação valem por período e ficam no "Histórico de rastreio".
  * Sem papel acima da lotação, os campos do Pecúlio ficam só para leitura, com a frase; os da escala seguem com quem tem papel na seção.
  */
 export function Identificacao({ ficha }: { ficha: FichaMilitar }) {
   const queryClient = useQueryClient();
   const postos = useQuery(consultaPostos);
+  const funcoes = useQuery(consultaFuncoesDoMilitar);
   const peculio = ficha.podeEditar.peculio;
   const escala = ficha.podeEditar.escala;
   const [posto, setPosto] = useState(ficha.postoGradId);
@@ -26,14 +27,19 @@ export function Identificacao({ ficha }: { ficha: FichaMilitar }) {
   const [sexo, setSexo] = useState<'M' | 'F' | null>(ficha.sexo);
   const [antiguidade, setAntiguidade] = useState(ficha.antiguidade == null ? '' : String(ficha.antiguidade));
   const [jes, setJes] = useState(ficha.voluntarioJes);
+  // a função escolhida: '' é "sem função"
+  const [funcaoId, setFuncaoId] = useState(ficha.funcaoMilitarId ?? '');
+  const [abono, setAbono] = useState(ficha.abonoPermanencia);
   const [aviso, setAviso] = useState<{ erro: boolean; texto: string } | null>(null);
   const [campos, setCampos] = useState<Record<string, string>>({});
   // o que está na tela, no formato do servidor (a antiguidade vazia é null)
   const atual: ValoresIdentificacao = {
     postoGradId: posto, nomeCompleto, nomeGuerra: nome, sexo, antiguidade: antiguidade.trim() ? Number(antiguidade) : null, voluntarioJes: jes,
+    funcaoMilitarId: funcaoId || null, abonoPermanencia: abono,
   };
   const valoresDoServidor: ValoresIdentificacao = {
     postoGradId: ficha.postoGradId, nomeCompleto: ficha.nomeCompleto ?? '', nomeGuerra: ficha.nomeGuerra, sexo: ficha.sexo, antiguidade: ficha.antiguidade, voluntarioJes: ficha.voluntarioJes,
+    funcaoMilitarId: ficha.funcaoMilitarId, abonoPermanencia: ficha.abonoPermanencia,
   };
   // o último gravado (começa com o que veio do servidor): o que difere dele é alteração pendente, e é só isso que se grava
   const [salvo, setSalvo] = useState<ValoresIdentificacao>(valoresDoServidor);
@@ -48,6 +54,8 @@ export function Identificacao({ ficha }: { ficha: FichaMilitar }) {
     setSexo(ficha.sexo);
     setAntiguidade(antiguidadeDoServidor);
     setJes(ficha.voluntarioJes);
+    setFuncaoId(ficha.funcaoMilitarId ?? '');
+    setAbono(ficha.abonoPermanencia);
     setSalvo(valoresDoServidor);
   });
 
@@ -70,6 +78,9 @@ export function Identificacao({ ficha }: { ficha: FichaMilitar }) {
   }
   // o nome completo apagado de quem já tinha: a ficha pede que continue preenchido (o servidor não aceita vazio)
   const nomeCompletoApagado = !nomeCompleto.trim() && Boolean(ficha.nomeCompleto);
+  // só as funções ativas entram na escolha; a que o militar já tem continua nela, mesmo desativada
+  const funcoesAtivas = funcoes.data?.filter((f) => f.ativo) ?? [];
+  const funcaoDesativada = ficha.funcaoMilitarId && ficha.funcao && !funcoesAtivas.some((f) => f.id === ficha.funcaoMilitarId) ? { id: ficha.funcaoMilitarId, nome: ficha.funcao } : null;
 
   return (
     <Secao titulo="Identificação">
@@ -100,10 +111,23 @@ export function Identificacao({ ficha }: { ficha: FichaMilitar }) {
             </Selecao>
           </Campo>
         </div>
+        <div className="grid gap-3 sm:grid-cols-[16rem]">
+          <Campo id="id-funcao" rotulo="Função" erro={campos.funcaoMilitarId ?? ((funcoes.isError && !funcoes.data) ? LISTA_NAO_CARREGOU : undefined)}>
+            <Selecao id="id-funcao" value={funcaoId} disabled={!peculio} onChange={(e) => setFuncaoId(e.target.value)}>
+              <option value="">Sem função</option>
+              {funcoesAtivas.map((f) => <option key={f.id} value={f.id}>{f.nome}</option>)}
+              {funcaoDesativada && <option value={funcaoDesativada.id}>{funcaoDesativada.nome} (desativada)</option>}
+            </Selecao>
+          </Campo>
+        </div>
         <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm">
           <label className="flex items-center gap-2">
             <input type="checkbox" checked={jes} disabled={!escala} onChange={(e) => setJes(e.target.checked)} className="size-4 accent-vinho" />
             Voluntário JES
+          </label>
+          <label className="flex items-center gap-2">
+            <input type="checkbox" checked={abono} disabled={!peculio} onChange={(e) => setAbono(e.target.checked)} className="size-4 accent-vinho" />
+            Abono de permanência
           </label>
         </div>
         <AcoesDoBloco salvando={salvando} sujo={sujo} desabilitado={nomeCompletoApagado} aviso={aviso} rotulo="Salvar alterações" />

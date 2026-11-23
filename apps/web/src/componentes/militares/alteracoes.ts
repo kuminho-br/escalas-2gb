@@ -8,6 +8,8 @@ export type ValoresIdentificacao = {
   sexo: 'M' | 'F' | null;
   antiguidade: number | null;
   voluntarioJes: boolean;
+  funcaoMilitarId: string | null;
+  abonoPermanencia: boolean;
 };
 
 /** O nome é comparado como o servidor o guarda: em maiúsculas e sem espaços nas pontas. */
@@ -26,5 +28,7 @@ export function alteracoesDaIdentificacao(antes: ValoresIdentificacao, depois: V
   if (nomeNormalizado(depois.nomeGuerra) !== nomeNormalizado(antes.nomeGuerra)) mudou.nomeGuerra = nomeNormalizado(depois.nomeGuerra);
   if (depois.antiguidade !== antes.antiguidade) mudou.antiguidade = depois.antiguidade;
   if (depois.voluntarioJes !== antes.voluntarioJes) mudou.voluntarioJes = depois.voluntarioJes;
+  if (depois.funcaoMilitarId !== antes.funcaoMilitarId) mudou.funcaoMilitarId = depois.funcaoMilitarId;
+  if (depois.abonoPermanencia !== antes.abonoPermanencia) mudou.abonoPermanencia = depois.abonoPermanencia;
   return mudou;
 }

@@ -160,7 +160,7 @@ describe('a ficha de consulta', () => {
     ...linha('m1', 'ANDRADE'),
     contato: { telefone: '(81) 99999-0001', email: 'andrade@bombeiros.pe.gov.br' },
     situacao: {
-      equipe: 'Alfa', jornada: 'pronto', situacaoDoMilitar: 'Ativa',
+      equipe: 'Alfa', jornada: 'pronto', situacaoDoMilitar: 'Ativa', funcao: 'Chefe de seção',
       historico: [
         { desde: '2026-11-01', ate: null, lotacao: '1ª SB', equipe: 'Alfa', jornada: 'pronto', quadro: 'QBMG', situacaoDoMilitar: 'Ativa' },
         { desde: '2026-01-05', ate: '2026-10-31', lotacao: '3ª SB', equipe: null, jornada: 'adm', quadro: 'QBMG', situacaoDoMilitar: 'Ativa' },
@@ -197,6 +197,7 @@ describe('a ficha de consulta', () => {
     expect(blocos()).toEqual(['Identificação', 'Contato', 'Situação', 'Afastamentos', 'Dados da escala', 'Comportamento']);
     expect(screen.getByText('(81) 99999-0001')).toBeInTheDocument();
     expect(screen.getByText('andrade@bombeiros.pe.gov.br')).toBeInTheDocument();
+    expect(screen.getByText('Função').nextSibling).toHaveTextContent('Chefe de seção');
     const historico = within(screen.getByRole('list', { name: 'Histórico de lotação' })).getAllByRole('listitem');
     expect(historico).toHaveLength(2);
     expect(historico[0]).toHaveTextContent('1ª SB');
