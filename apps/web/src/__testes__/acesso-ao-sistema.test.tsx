@@ -168,6 +168,41 @@ describe('um formulário por vez no Acesso ao sistema', () => {
     expect(encerrar(b).every((x) => x.disabled)).toBe(true);
   });
 
+  it('o formulário de dar abre limpo: o "Até" e o nível do anterior não ficam', async () => {
+    const dada: AcessoDoMilitar = { ...ACESSO, ...DOIS, papeis: [] };
+    api(DOIS, { 'POST /api/militares/m1/papeis': { status: 201, corpo: dada } });
+    abrir('/militares/m1');
+    const b = within(await bloco());
+    await b.findByText('Gestor');
+    await userEvent.click(b.getByRole('button', { name: 'Dar nível de acesso' }));
+    fireEvent.change(b.getByLabelText('Até (opcional)'), { target: { value: '2026-12-31' } });
+    await userEvent.selectOptions(b.getByLabelText('Nível de acesso'), 'Auxiliar administrativo');
+    await userEvent.click(b.getAllByRole('button', { name: 'Dar nível de acesso' }).at(-1)!);
+    await waitFor(() => expect(b.queryByLabelText('A partir de')).toBeNull());
+    await userEvent.click(b.getByRole('button', { name: 'Dar nível de acesso' }));
+    expect(b.getByLabelText('Até (opcional)')).toHaveValue('');
+    expect(b.getByLabelText('Nível de acesso')).toHaveDisplayValue('Gestor');
+    // fechar sem dar também limpa
+    fireEvent.change(b.getByLabelText('Até (opcional)'), { target: { value: '2026-12-31' } });
+    await userEvent.click(b.getByRole('button', { name: 'Cancelar' }));
+    await userEvent.click(b.getByRole('button', { name: 'Dar nível de acesso' }));
+    expect(b.getByLabelText('Até (opcional)')).toHaveValue('');
+  });
+
+  it('o erro de um formulário não sobra depois do "Cancelar" nem aparece no outro', async () => {
+    api(DOIS, { 'POST /api/papeis/p1/encerrar': { status: 400, corpo: { erro: 'O encerramento não pode ser antes do início do nível de acesso.', campos: { ate: 'O encerramento não pode ser antes do início do nível de acesso.' } } } });
+    abrir('/militares/m1');
+    const b = within(await bloco());
+    await b.findByText('Gestor');
+    await userEvent.click(encerrar(b)[0]!);
+    await userEvent.click(b.getByRole('button', { name: 'Confirmar encerramento' }));
+    expect(await b.findAllByText(/O encerramento não pode ser antes do início/)).not.toHaveLength(0);
+    await userEvent.click(b.getByRole('button', { name: 'Cancelar' }));
+    expect(b.queryByText(/O encerramento não pode ser antes do início/)).toBeNull();
+    await userEvent.click(b.getByRole('button', { name: 'Dar nível de acesso' }));
+    expect(b.queryByText(/O encerramento não pode ser antes do início/)).toBeNull();
+  });
+
   it('um erro ao encerrar mantém o formulário de encerrar aberto', async () => {
     api(DOIS, { 'POST /api/papeis/p1/encerrar': { status: 409, corpo: { erro: 'Este nível de acesso já foi encerrado.' } } });
     abrir('/militares/m1');
