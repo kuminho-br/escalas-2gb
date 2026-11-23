@@ -14,6 +14,7 @@
 7. **Militares só no Pecúlio** (decisão do usuário, 22/11/2026): o "Novo militar" passa ao Pecúlio, e a importação de MILITARES vira a importação "Dados da escala", que atualiza e não cria. **Detalhada abaixo.**
 8. **Acesso ao sistema e busca do Pecúlio** (pool 3 da validação, 22/11/2026): "nível de acesso" no lugar de "papel", um formulário por vez, o "até" ao dar o nível de acesso e o Enter na busca do Pecúlio. **Detalhada abaixo.**
 9. **Pendências de cadastro** (decisões do usuário, 22/11/2026): quadro e situação do militar com data, no rastreio; o catálogo de situações; ano de nascimento, CPF e endereço na ficha e na importação do Pecúlio. **Detalhada abaixo.**
+10. a 12. **Camadas de visão e o chefe de divisão** (decisão do usuário, 23/11/2026): as divisões e o quinto nível de acesso; a borda do que cada um vê e a consulta de militares; as escalas só para leitura. **Plano à parte:** `docs/superpowers/plans/2026-11-23-camadas-de-visao.md`.
 
 O retorno da validação que chegar durante a fase vira uma entrega depois da última prevista.
 

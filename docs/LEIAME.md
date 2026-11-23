@@ -46,7 +46,8 @@
 | [superpowers/specs/2026-11-20-peculio-design.md](superpowers/specs/2026-11-20-peculio-design.md) | Pecúlio do 2º GB (fase 5): estrutura da ficha, rastreio e interface com a escala | PLANEJAMENTO | vigente |
 | [superpowers/specs/2026-11-21-usuarios-e-modulos-design.md](superpowers/specs/2026-11-21-usuarios-e-modulos-design.md) | Usuários e módulos (fase 6): contas, papéis, unidade de trabalho e tela inicial | PLANEJAMENTO | vigente |
 | [superpowers/specs/2026-11-22-escala-dos-oficiais-design.md](superpowers/specs/2026-11-22-escala-dos-oficiais-design.md) | Escala dos oficiais (entrega paralela P1): cota, saldo e regras; mockup em `telas/escala-dos-oficiais/` | PLANEJAMENTO | vigente |
-| [superpowers/specs/2026-11-20-transicao-login-design.md](superpowers/specs/2026-11-20-transicao-login-design.md) | Transição do login (as mangueiras), com o mockup em `telas/transicao-login/` | DESIGN | mockup em revisão |
+| [superpowers/specs/2026-11-20-transicao-login-design.md](superpowers/specs/2026-11-20-transicao-login-design.md) | Transição do login (as mangueiras), com o mockup em `telas/transicao-login/` | DESIGN | mockup aprovado |
+| [superpowers/specs/2026-11-23-camadas-de-visao-design.md](superpowers/specs/2026-11-23-camadas-de-visao-design.md) | Camadas de visão e o chefe de divisão: ver separado de editar, a borda nas Configurações, a consulta e as escalas só para leitura | PLANEJAMENTO | vigente |
 
 ## Controle da documentação
 
@@ -68,6 +69,7 @@
 | [superpowers/plans/2026-11-21-fase5-peculio.md](superpowers/plans/2026-11-21-fase5-peculio.md) | Fase 5: Pecúlio (entregas 1 a 3; 1 e 2 detalhadas) | DESENVOLVIMENTO | em execução |
 | [superpowers/plans/2026-11-21-fase6-usuarios-e-modulos.md](superpowers/plans/2026-11-21-fase6-usuarios-e-modulos.md) | Fase 6: Usuários e módulos (entregas 1 a 3 detalhadas; 4 condicional) | DESENVOLVIMENTO | em execução |
 | [superpowers/plans/2026-11-22-p1-escala-dos-oficiais.md](superpowers/plans/2026-11-22-p1-escala-dos-oficiais.md) | Entrega paralela P1: quadros e Escala dos oficiais (P1.1 a P1.3) | DESENVOLVIMENTO | planejado |
+| [superpowers/plans/2026-11-23-camadas-de-visao.md](superpowers/plans/2026-11-23-camadas-de-visao.md) | Entregas 6.10 a 6.12: divisões e chefe de divisão, camadas de visão e consulta, escalas só para leitura | DESENVOLVIMENTO | planejado |
 | [superpowers/plans/2026-11-18-fase4-escala.md](superpowers/plans/2026-11-18-fase4-escala.md) | Fase 4: montagem da escala (entregas 1 a 4.3) | DESENVOLVIMENTO | em execução (grande demais: dividir) |
 | [superpowers/plans/2026-11-20-roadmap-documentacao.md](superpowers/plans/2026-11-20-roadmap-documentacao.md) | Roadmap da documentação | DOCUMENTAÇÃO | em execução |
 
