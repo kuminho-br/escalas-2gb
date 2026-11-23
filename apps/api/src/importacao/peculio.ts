@@ -9,7 +9,7 @@ import { CADASTRO, siglaDaUnidadeDeCima, temPapelAcima } from '../acesso.ts';
 import type { Consulta } from '../banco/banco.ts';
 import { hojeRecife } from '../datas.ts';
 import {
-  cpfMascarado, lerAntiguidade, lerCep, lerCnh, lerComportamento, lerCpf, lerEmail, lerEquipe, lerFuncao, lerJornada, lerNascimento, lerNomeDeGuerra, lerPosto, lerQuadro,
+  cpfMascarado, lerAntiguidade, lerCep, lerCnh, lerComportamento, lerCpf, lerEmail, lerEmailPessoal, lerEquipe, lerFuncao, lerJornada, lerNascimento, lerNomeDeGuerra, lerPosto, lerQuadro,
   lerSexo, lerSigla, lerSimNao, lerSituacao, lerTelefone, lerTexto, lerUf, matriculaDe, type Leitura,
 } from './peculio-colunas.ts';
 import { coluna } from './planilha.ts';
@@ -29,6 +29,7 @@ const COLUNAS = {
   nascimento: { rotulo: 'NASCIMENTO', obrigatoria: false, ajuda: 'A data de nascimento, como texto: dd/mm/aaaa (ex.: 15/03/1985) ou só dd/mm (ex.: 15/03). Célula que o Excel transformou em data é ignorada.', texto: true },
   telefone: { rotulo: 'TELEFONE', obrigatoria: false, ajuda: 'Até 20 caracteres (ex.: (81) 99999-0000).', texto: true },
   email: { rotulo: 'E-MAIL', obrigatoria: false, ajuda: 'E-mail institucional, só do domínio @bombeiros.pe.gov.br. Não pode repetir entre militares.' },
+  emailPessoal: { rotulo: 'E-MAIL PESSOAL', obrigatoria: false, ajuda: 'E-mail pessoal, de qualquer domínio. Não pode ser o e-mail institucional de ninguém. A coluna é opcional.' },
   comportamento: { rotulo: 'COMPORTAMENTO', obrigatoria: false, ajuda: 'Um destes: Excepcional, Ótimo, Bom, Insuficiente, Mau.', opcoes: [...COMPORTAMENTOS] },
   boletim: { rotulo: 'BOLETIM DO COMPORTAMENTO', obrigatoria: false, ajuda: 'Boletim em que o comportamento foi publicado (até 60 caracteres).' },
   cpf: { rotulo: 'CPF', obrigatoria: false, ajuda: '11 dígitos, com ou sem pontos e traço (ex.: 529.982.247-25). Não pode repetir entre militares.', texto: true },
@@ -54,6 +55,7 @@ type Chave = keyof typeof COLUNAS;
 
 export const MSG_CPF_DE_OUTRO = 'Este CPF já está cadastrado em outro militar.';
 export const MSG_EMAIL_DE_OUTRO = 'Este e-mail já está cadastrado em outro militar.';
+export const MSG_EMAIL_PESSOAL_INSTITUCIONAL = 'Este é um e-mail institucional: use outro, pessoal.';
 export const MSG_SEM_EQUIPE_NO_ADM = 'No expediente não há equipe.';
 const MSG_SEM_PERIODO = 'O militar não tem período aberto no rastreio: use "Alterar situação" na ficha.';
 const NOME_DO_DADO = { posto: 'posto/graduação', guerra: 'nome de guerra', lotacao: 'lotação' } as const;
@@ -78,7 +80,7 @@ type Plano = { itens: ItemPlano[]; mes: string };
 type Existente = {
   id: string; matricula: string; posto_grad_id: string; posto: string; nome_completo: string | null; nome_guerra: string; antiguidade: number | null; sexo: 'M' | 'F' | null;
   nascimento_dia: number | null; nascimento_mes: number | null; nascimento_ano: number | null; cpf: string | null; cep: string | null; logradouro: string | null;
-  numero: string | null; complemento: string | null; bairro: string | null; cidade: string | null; uf: string | null; telefone: string | null; email: string | null;
+  numero: string | null; complemento: string | null; bairro: string | null; cidade: string | null; uf: string | null; telefone: string | null; email: string | null; email_pessoal: string | null;
   comportamento: string | null; comportamento_boletim: string | null; motorista: boolean; cnh: string[]; voluntario_jes: boolean;
   funcao_militar_id: string | null; funcao_nome: string | null; abono_permanencia: boolean;
   /** a lotação de hoje (a do período que cobre o mês; sem ela, a mais recente) */
@@ -101,7 +103,7 @@ async function existentes(tx: Consulta, mes: string): Promise<Map<string, Existe
   const primeiro = mesParaData(mes);
   const { rows } = await tx.query<Existente>(
     `select m.id, m.matricula, m.posto_grad_id, p.sigla as posto, m.nome_completo, m.nome_guerra, m.antiguidade, m.sexo, m.nascimento_dia, m.nascimento_mes, m.nascimento_ano,
-            m.cpf, m.cep, m.logradouro, m.numero, m.complemento, m.bairro, m.cidade, m.uf, m.telefone, m.email, m.comportamento, m.comportamento_boletim,
+            m.cpf, m.cep, m.logradouro, m.numero, m.complemento, m.bairro, m.cidade, m.uf, m.telefone, m.email, m.email_pessoal, m.comportamento, m.comportamento_boletim,
             m.motorista, m.cnh, m.voluntario_jes, m.funcao_militar_id, fm.nome as funcao_nome, m.abono_permanencia, l.unidade_id, un.sigla as unidade_sigla, to_char(l.desde, 'YYYY-MM-DD') as unidade_desde,
             a.unidade_id as aberto_unidade, ae.nome as aberto_equipe, a.jornada as aberto_jornada, a.quadro_id as aberto_quadro_id, aq.sigla as aberto_quadro,
             a.situacao_id as aberto_situacao_id, asm.nome as aberto_situacao
@@ -280,6 +282,7 @@ export const importadorPeculio: Importador<Plano> = {
       const nascimento = ler('nascimento', lerNascimento(texto('nascimento'), Boolean(c.nascimento >= 0 && l.datas?.[c.nascimento])));
       const telefone = ler('telefone', lerTelefone(texto('telefone')));
       let email = ler('email', lerEmail(texto('email')));
+      let emailPessoal = ler('emailPessoal', lerEmailPessoal(texto('emailPessoal')));
       let cpf = ler('cpf', lerCpf(texto('cpf')));
       const cep = ler('cep', lerCep(texto('cep')));
       const logradouro = ler('logradouro', lerTexto(texto('logradouro'), 120));
@@ -303,6 +306,11 @@ export const importadorPeculio: Importador<Plano> = {
           ignorar('email', MSG_EMAIL_DE_OUTRO);
           email = undefined;
         }
+      }
+      // o e-mail pessoal não pode ser o institucional de ninguém (o que já está no banco ou o que vem na planilha, na coluna E-MAIL)
+      if (emailPessoal && (emailsDaPlanilha.has(emailPessoal.toLowerCase()) || emailsEmUso.has(emailPessoal.toLowerCase()) || (email && email.toLowerCase() === emailPessoal.toLowerCase()))) {
+        ignorar('emailPessoal', MSG_EMAIL_PESSOAL_INSTITUCIONAL);
+        emailPessoal = undefined;
       }
       if (cpf) {
         const dono = cpfsDaPlanilha.get(cpf) ?? cpfsEmUso.get(cpf);
@@ -370,6 +378,7 @@ export const importadorPeculio: Importador<Plano> = {
       }
       comparar('telefone', 'telefone', e?.telefone, telefone);
       comparar('e-mail', 'email', e?.email, email);
+      comparar('e-mail pessoal', 'email_pessoal', e?.email_pessoal, emailPessoal);
       comparar('comportamento', 'comportamento', e?.comportamento, comportamento);
       comparar('boletim do comportamento', 'comportamento_boletim', e?.comportamento_boletim, boletim);
       comparar('CPF', 'cpf', e?.cpf, cpf, (v) => cpfMascarado(v as string | null) ?? 'vazio');

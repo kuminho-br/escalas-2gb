@@ -80,7 +80,8 @@ function Blocos({ f }: { f: FichaDeConsulta }) {
         <Secao titulo="Contato">
           <Dados>
             <Dado rotulo="Telefone">{f.contato.telefone}</Dado>
-            <Dado rotulo="E-mail">{f.contato.email}</Dado>
+            <Dado rotulo="E-mail institucional">{f.contato.email}</Dado>
+            <Dado rotulo="E-mail pessoal">{f.contato.emailPessoal}</Dado>
           </Dados>
         </Secao>
       )}

@@ -36,6 +36,12 @@ export const EmailInstitucional = z
   .trim()
   .max(120, 'Use no máximo 120 caracteres.')
   .regex(/^[^@\s]+@bombeiros[.]pe[.]gov[.]br$/i, 'Use o e-mail institucional (@bombeiros.pe.gov.br).');
+/** E-mail pessoal (opcional): sem regra de domínio, só o formato (sem espaço, tab nem quebra de linha). Não pode ser o institucional de ninguém: a API confere. */
+export const EmailPessoal = z
+  .string()
+  .trim()
+  .max(120, 'Use no máximo 120 caracteres.')
+  .regex(/^[^@\s]+@[^@\s]+[.][^@\s]+$/, 'Use um e-mail válido.');
 export const COMPORTAMENTOS = ['Excepcional', 'Ótimo', 'Bom', 'Insuficiente', 'Mau'] as const;
 export const Comportamento = z.enum(COMPORTAMENTOS);
 export type Comportamento = z.infer<typeof Comportamento>;
@@ -129,6 +135,7 @@ export const EdicaoMilitar = z.object({
   endereco: EdicaoDeEndereco.optional(),
   telefone: Telefone.nullable().optional(),
   email: EmailInstitucional.nullable().optional(),
+  emailPessoal: EmailPessoal.nullable().optional(),
   comportamento: Comportamento.nullable().optional(),
   comportamentoBoletim: BoletimDoComportamento.nullable().optional(),
   antiguidade: Antiguidade.optional(),
@@ -233,6 +240,8 @@ export type FichaMilitar = LinhaMilitar & {
   situacaoDoMilitar: { id: string; nome: string; escalavel: boolean } | null;
   telefone: string | null;
   email: string | null;
+  /** O e-mail pessoal (opcional); o institucional é o `email`. */
+  emailPessoal?: string | null;
   comportamento: Comportamento | null;
   comportamentoBoletim: string | null;
   antiguidade: number | null;

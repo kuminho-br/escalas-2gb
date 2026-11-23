@@ -10,6 +10,7 @@ const FICHA: MinhaFicha = {
   nomeCompleto: 'João da Silva Andrade',
   matricula: '990001-1',
   telefone: '(81) 99999-0001',
+  emailPessoal: 'andrade.pessoal@exemplo.test',
   email: 'andrade@bombeiros.pe.gov.br',
   sexo: 'M',
   nascimento: { dia: 3, mes: 7 },
@@ -44,6 +45,8 @@ describe('Minha ficha', () => {
     expect(await screen.findByRole('heading', { level: 1, name: 'Minha ficha' })).toBeInTheDocument();
     const principal = within(screen.getByRole('main'));
     for (const texto of ['João da Silva Andrade', '990001-1', 'andrade@bombeiros.pe.gov.br', '03/07', '529.982.247-25', '50030-230', 'Rua Fictícia, 10', 'Recife / PE', 'QBMG', 'Ativa', 'Bom', 'BG 12/2026', '1ª SB', 'Alfa']) expect(principal.getByText(texto)).toBeInTheDocument();
+    // o e-mail pessoal aparece só para leitura (6.18, item 23)
+    expect(principal.getByText('andrade.pessoal@exemplo.test')).toBeInTheDocument();
     // o telefone é o único campo editável
     expect(screen.getAllByRole('textbox')).toHaveLength(1);
     expect(screen.getByLabelText('Telefone')).toHaveValue('(81) 99999-0001');

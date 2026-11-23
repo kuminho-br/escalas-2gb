@@ -69,13 +69,13 @@ afterAll(async () => {
 });
 
 describe('modelo do Pecúlio', () => {
-  it('tem a aba PECÚLIO com as 29 colunas na ordem, só a MATRÍCULA obrigatória, e a AJUDA com a regra e os valores aceitos', async () => {
+  it('tem a aba PECÚLIO com as 30 colunas na ordem (a E-MAIL PESSOAL, opcional, vem logo depois do E-MAIL), só a MATRÍCULA obrigatória, e a AJUDA com a regra e os valores aceitos', async () => {
     const r = await api.pedir('gestorGb', 'GET', modelo(api.ids.gb));
     expect(r.status).toBe(200);
     const arquivo = await r.arrayBuffer();
     const lidas = await lerPlanilha(arquivo);
     expect(Object.keys(lidas)).toEqual(['PECÚLIO', 'AJUDA']);
-    expect(lidas['PECÚLIO']!.cab).toEqual(CAB);
+    expect(lidas['PECÚLIO']!.cab).toEqual([...CAB.slice(0, 9), 'E-MAIL PESSOAL', ...CAB.slice(9)]);
     const wb = new ExcelJS.Workbook();
     await wb.xlsx.load(arquivo);
     const linhas: string[][] = [];
@@ -463,5 +463,37 @@ describe('o militar com lotação só no futuro, de outra árvore (6.16, Task 4,
     const brasil = `${desde.slice(8, 10)}/${desde.slice(5, 7)}/${desde.slice(0, 4)}`;
     expect(previa.problemas).toEqual([expect.objectContaining({ mensagem: expect.stringContaining(`tem lotação marcada na 1ª SB/8 a partir de ${brasil}`) })]);
     expect(JSON.stringify(previa.problemas)).not.toContain('está lotado');
+  });
+});
+
+describe('a coluna opcional E-MAIL PESSOAL (item 23 da 6.18)', () => {
+  const CAB_PESSOAL = [...CAB, 'E-MAIL PESSOAL'];
+  const pessoal = async (m: string) => (await api.banco.query<{ email_pessoal: string | null }>('select email_pessoal from militar where matricula = $1', [m])).rows[0]!.email_pessoal;
+
+  it('grava o e-mail pessoal do militar novo e o de quem já existe, de qualquer domínio, e a prévia mostra a mudança', async () => {
+    const previa = await importar([NOVO('990390-0', 'PESSOAL', { 'E-MAIL PESSOAL': 'Pessoal.Teste@gmail.com' })], false, CAB_PESSOAL);
+    expect(previa.problemas).toEqual([]);
+    await importar([NOVO('990390-0', 'PESSOAL', { 'E-MAIL PESSOAL': 'Pessoal.Teste@gmail.com' })], true, CAB_PESSOAL);
+    expect(await pessoal('990390-0')).toBe('Pessoal.Teste@gmail.com');
+    const troca = await importar([{ 'MATRÍCULA': '990390-0', 'E-MAIL PESSOAL': 'outro@exemplo.test' }], false, CAB_PESSOAL);
+    expect(JSON.stringify(troca.alterados)).toContain('e-mail pessoal');
+    await importar([{ 'MATRÍCULA': '990390-0', 'E-MAIL PESSOAL': 'outro@exemplo.test' }], true, CAB_PESSOAL);
+    expect(await pessoal('990390-0')).toBe('outro@exemplo.test');
+    // célula vazia não mexe
+    await importar([{ 'MATRÍCULA': '990390-0', 'TELEFONE': '(81) 98888-0000' }], true, CAB_PESSOAL);
+    expect(await pessoal('990390-0')).toBe('outro@exemplo.test');
+  });
+
+  it('um e-mail malformado, ou o institucional de alguém, é ignorado com o motivo, e as outras células da linha valem', async () => {
+    await importar([NOVO('990391-1', 'DONO', { 'E-MAIL': 'dono.da.sigla@bombeiros.pe.gov.br' })], true, CAB_PESSOAL);
+    const previa = await importar([
+      NOVO('990392-2', 'MALFORMADO', { 'E-MAIL PESSOAL': 'sem-arroba' }),
+      NOVO('990393-3', 'INSTITUCIONAL', { 'E-MAIL PESSOAL': 'DONO.da.sigla@bombeiros.pe.gov.br' }),
+    ], false, CAB_PESSOAL);
+    expect(previa.ignoradas).toEqual(expect.arrayContaining([
+      { linha: 2, chave: '990392-2', coluna: 'E-MAIL PESSOAL', motivo: 'Use um e-mail válido.' },
+      { linha: 3, chave: '990393-3', coluna: 'E-MAIL PESSOAL', motivo: 'Este é um e-mail institucional: use outro, pessoal.' },
+    ]));
+    expect(previa.novos.map((n: { chave: string }) => n.chave)).toEqual(expect.arrayContaining(['990392-2', '990393-3']));
   });
 });

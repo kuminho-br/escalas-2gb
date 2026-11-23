@@ -135,7 +135,7 @@ function Contato({ ficha }: { ficha: MinhaFicha }) {
           <Campo id="mf-telefone" rotulo="Telefone" erro={erro}>
             <CampoDeTelefone id="mf-telefone" valor={telefone} aoMudar={setTelefone} />
           </Campo>
-          <Dados><Dado rotulo="E-mail institucional" valor={ficha.email} /></Dados>
+          <Dados><Dado rotulo="E-mail institucional" valor={ficha.email} /><Dado rotulo="E-mail pessoal" valor={ficha.emailPessoal ?? null} /></Dados>
         </div>
         <div className="flex items-center gap-3">
           <Button type="submit" disabled={salvando}>Salvar</Button>

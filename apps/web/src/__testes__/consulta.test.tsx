@@ -158,7 +158,7 @@ describe('a ficha de consulta', () => {
   const FICHA_MINIMA: FichaDeConsulta = { ...linha('m1', 'ANDRADE'), podeAbrirFichaCompleta: false };
   const FICHA_COMPLETA: FichaDeConsulta = {
     ...linha('m1', 'ANDRADE'),
-    contato: { telefone: '(81) 99999-0001', email: 'andrade@bombeiros.pe.gov.br' },
+    contato: { telefone: '(81) 99999-0001', email: 'andrade@bombeiros.pe.gov.br', emailPessoal: 'andrade.pessoal@exemplo.test' },
     situacao: {
       equipe: 'Alfa', jornada: 'pronto', situacaoDoMilitar: 'Ativa', funcao: 'Chefe de seção',
       historico: [
@@ -197,6 +197,9 @@ describe('a ficha de consulta', () => {
     expect(blocos()).toEqual(['Identificação', 'Contato', 'Situação', 'Afastamentos', 'Dados da escala', 'Comportamento']);
     expect(screen.getByText('(81) 99999-0001')).toBeInTheDocument();
     expect(screen.getByText('andrade@bombeiros.pe.gov.br')).toBeInTheDocument();
+    // o e-mail institucional e o pessoal aparecem com o nome de cada um (6.18, item 23)
+    expect(screen.getByText('E-mail institucional').nextElementSibling).toHaveTextContent('andrade@bombeiros.pe.gov.br');
+    expect(screen.getByText('E-mail pessoal').nextElementSibling).toHaveTextContent('andrade.pessoal@exemplo.test');
     expect(screen.getByText('Função').nextSibling).toHaveTextContent('Chefe de seção');
     const historico = within(screen.getByRole('list', { name: 'Histórico de lotação' })).getAllByRole('listitem');
     expect(historico).toHaveLength(2);

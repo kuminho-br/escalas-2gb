@@ -1,6 +1,6 @@
 // As colunas da planilha do Pecúlio, uma peça por coluna: cada uma lê o texto da célula e devolve o valor, "vazio" (o sistema não mexe naquele
 // dado) ou o motivo de a célula ser ignorada. Só a MATRÍCULA é obrigatória; uma célula ignorada não recusa a linha.
-import { Antiguidade, Cep, COMPORTAMENTOS, Cpf, EmailInstitucional, MSG_CEP, MSG_CPF, MSG_UF, Nascimento, Telefone, Uf } from 'contratos';
+import { Antiguidade, Cep, COMPORTAMENTOS, Cpf, EmailInstitucional, EmailPessoal, MSG_CEP, MSG_CPF, MSG_UF, Nascimento, Telefone, Uf } from 'contratos';
 import { categoriasCnh, normalizar } from 'dominio';
 
 /** O que uma célula diz: nada (vazia), um valor, ou o motivo de ser ignorada. */
@@ -86,6 +86,13 @@ export function lerTelefone(texto: string): Leitura<string> {
 export function lerEmail(texto: string): Leitura<string> {
   if (!texto) return VAZIO;
   const lido = EmailInstitucional.safeParse(texto);
+  return lido.success ? valor(lido.data) : motivo(lido.error.issues[0]!.message);
+}
+
+/** O e-mail pessoal: opcional, de qualquer domínio; só o formato conta (a conferência com os institucionais é do importador). */
+export function lerEmailPessoal(texto: string): Leitura<string> {
+  if (!texto) return VAZIO;
+  const lido = EmailPessoal.safeParse(texto);
   return lido.success ? valor(lido.data) : motivo(lido.error.issues[0]!.message);
 }
 

@@ -26,7 +26,7 @@ export type PeriodoDaConsulta = { desde: string; ate: string | null; lotacao: st
  * militar (ou acima) pode ir à ficha completa; para os outros o atalho não aparece.
  */
 export type FichaDeConsulta = LinhaDaConsulta & {
-  contato?: { telefone: string | null; email: string | null };
+  contato?: { telefone: string | null; email: string | null; emailPessoal?: string | null };
   /** A função do militar entra aqui, no bloco "Situação"; o abono de permanência nunca vem. */
   situacao?: { equipe: string | null; jornada: 'pronto' | 'adm'; situacaoDoMilitar: string; funcao: string | null; historico: PeriodoDaConsulta[] };
   afastamentos?: { tipo: string; inicio: string; fim: string; motivo?: string | null; boletim?: string | null }[];

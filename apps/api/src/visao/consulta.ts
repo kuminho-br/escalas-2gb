@@ -61,14 +61,14 @@ export async function buscarMilitares(c: Consulta, d: { texto: string; unidadeId
 }
 
 type LinhaDaFicha = LinhaBanco & {
-  funcao: string | null; unidade_id: string | null; telefone: string | null; email: string | null; comportamento: string | null; comportamento_boletim: string | null;
+  funcao: string | null; unidade_id: string | null; telefone: string | null; email: string | null; email_pessoal: string | null; comportamento: string | null; comportamento_boletim: string | null;
   motorista: boolean; cnh: string[]; voluntario_jes: boolean;
 };
 
 /** A ficha de consulta de um militar, só com os blocos que `usuarioId` vê; null se o militar não existe. */
 export async function fichaDeConsulta(c: Consulta, usuarioId: string, militarId: string, hoje: string): Promise<FichaDeConsulta | null> {
   const m = (await c.query<LinhaDaFicha>(
-    `select ${COLUNAS}, (select f.nome from funcao_militar f where f.id = m.funcao_militar_id) as funcao, un.id as unidade_id, m.telefone, m.email, m.comportamento, m.comportamento_boletim, m.motorista, m.cnh, m.voluntario_jes
+    `select ${COLUNAS}, (select f.nome from funcao_militar f where f.id = m.funcao_militar_id) as funcao, un.id as unidade_id, m.telefone, m.email, m.email_pessoal, m.comportamento, m.comportamento_boletim, m.motorista, m.cnh, m.voluntario_jes
        ${DO_MILITAR_HOJE} where m.id = $2`,
     [hoje, militarId],
   )).rows[0];
@@ -77,7 +77,7 @@ export async function fichaDeConsulta(c: Consulta, usuarioId: string, militarId:
   const ficha: FichaDeConsulta = { ...paraLinha(m), // sem lotação (o militar recém-criado, o administrador da instalação) só o administrador abre a ficha, para dar a primeira
     podeAbrirFichaCompleta: m.unidade_id ? await temPapel(c, usuarioId, m.unidade_id, CADASTRO, hoje) : await ehAdministrador(c, usuarioId, hoje) };
 
-  if (blocos.has('contato')) ficha.contato = { telefone: m.telefone, email: m.email };
+  if (blocos.has('contato')) ficha.contato = { telefone: m.telefone, email: m.email, emailPessoal: m.email_pessoal };
 
   if (blocos.has('situacao')) {
     const { rows } = await c.query<{ desde: string; ate: string | null; lotacao: string; equipe: string | null; jornada: 'pronto' | 'adm'; quadro: string | null; situacao: string; atual: boolean }>(

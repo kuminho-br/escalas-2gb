@@ -739,6 +739,34 @@ describe('ficha ampliada (fase 5)', () => {
     expect(chamadasA(f, PATCH)).toBe(1);
   });
 
+  it('Contato: o e-mail pessoal aparece e grava de qualquer domínio; o institucional segue com o seu nome (6.18, item 23)', async () => {
+    const f = comFicha({ emailPessoal: 'andrade.pessoal@exemplo.test' });
+    abrir('/militares/m1');
+    const pessoal = await screen.findByLabelText('E-mail pessoal');
+    expect(pessoal).toHaveValue('andrade.pessoal@exemplo.test');
+    expect(screen.getByLabelText('E-mail institucional')).toHaveValue('andrade');
+    fireEvent.change(pessoal, { target: { value: 'novo.pessoal@gmail.com' } });
+    await userEvent.click(screen.getByRole('button', { name: 'Salvar contato' }));
+    await waitFor(() => expect(corpoEnviado(f, PATCH)).toEqual({ emailPessoal: 'novo.pessoal@gmail.com' }));
+    // vazio limpa
+    fireEvent.change(pessoal, { target: { value: '' } });
+    await userEvent.click(screen.getByRole('button', { name: 'Salvar contato' }));
+    await waitFor(() => expect(corpoEnviado(f, PATCH)).toEqual({ emailPessoal: null }));
+  });
+
+  it('Contato: o e-mail pessoal malformado mostra a frase no campo sem chamar a API, e o da API (institucional de alguém) também aparece no campo (6.18, item 23)', async () => {
+    const f = comFicha({}, { [PATCH]: { status: 400, corpo: { erro: 'Este é um e-mail institucional: use outro, pessoal.', campos: { emailPessoal: 'Este é um e-mail institucional: use outro, pessoal.' } } } });
+    abrir('/militares/m1');
+    const pessoal = await screen.findByLabelText('E-mail pessoal');
+    fireEvent.change(pessoal, { target: { value: 'sem-arroba' } });
+    await userEvent.click(screen.getByRole('button', { name: 'Salvar contato' }));
+    expect(await screen.findByText('Use um e-mail válido.')).toBeInTheDocument();
+    expect(chamadasA(f, PATCH)).toBe(0);
+    fireEvent.change(pessoal, { target: { value: 'dono@bombeiros.pe.gov.br' } });
+    await userEvent.click(screen.getByRole('button', { name: 'Salvar contato' }));
+    expect(await screen.findByText('Este é um e-mail institucional: use outro, pessoal.')).toBeInTheDocument();
+  });
+
   it('Contato: colar o e-mail inteiro do domínio fica só com o usuário, e o e-mail gravado vai com o domínio (6.18, item 22)', async () => {
     const f = comFicha();
     abrir('/militares/m1');

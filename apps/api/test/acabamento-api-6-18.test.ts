@@ -113,3 +113,48 @@ describe('item 21: o administrador edita e apaga afastamento de militar sem lota
     expect((await api.banco.query('select 1 from afastamento where id = $1', [id])).rows).toHaveLength(0);
   });
 });
+
+describe('item 23: e-mail pessoal', () => {
+  const ficha = async (id: string) => (await api.pedir('gestorGb', 'GET', `/api/militares/${id}`)).json() as Promise<{ emailPessoal?: string | null; email: string | null }>;
+
+  it('o gestor grava, troca e limpa o e-mail pessoal, sem regra de domínio; o institucional continua o mesmo', async () => {
+    const m = await novoMilitar();
+    expect((await ficha(m.id)).emailPessoal ?? null).toBeNull();
+    const r = await api.pedir('gestorGb', 'PATCH', `/api/militares/${m.id}`, { emailPessoal: 'Maria.Lima@gmail.com' });
+    expect(r.status).toBe(200);
+    expect(await r.json()).toMatchObject({ emailPessoal: 'Maria.Lima@gmail.com', email: m.email });
+    expect((await api.pedir('gestorGb', 'PATCH', `/api/militares/${m.id}`, { emailPessoal: null })).status).toBe(200);
+    expect((await ficha(m.id)).emailPessoal ?? null).toBeNull();
+  });
+
+  it('um e-mail malformado é 400 no campo; o escalante (que não é dono do Contato) não grava', async () => {
+    const m = await novoMilitar();
+    for (const emailPessoal of ['sem-arroba', 'a b@c.com', 'a	b@c.com', '@c.com']) {
+      const r = await api.pedir('gestorGb', 'PATCH', `/api/militares/${m.id}`, { emailPessoal });
+      expect(r.status, emailPessoal).toBe(400);
+      expect(await r.json()).toMatchObject({ campos: { emailPessoal: 'Use um e-mail válido.' } });
+    }
+    expect((await api.pedir('escalante', 'PATCH', `/api/militares/${m.id}`, { emailPessoal: 'x@y.com' })).status).toBe(403);
+  });
+
+  it('não pode ser igual ao e-mail institucional de ninguém (nem o do próprio militar), sem diferenciar a caixa', async () => {
+    const a = await novoMilitar();
+    const b = await novoMilitar();
+    for (const [quem, igual] of [[a, b.email], [a, a.email.toUpperCase()]] as const) {
+      const r = await api.pedir('gestorGb', 'PATCH', `/api/militares/${quem.id}`, { emailPessoal: igual });
+      expect(r.status, igual).toBe(400);
+      expect(await r.json()).toMatchObject({ campos: { emailPessoal: 'Este é um e-mail institucional: use outro, pessoal.' } });
+    }
+    expect((await ficha(a.id)).emailPessoal ?? null).toBeNull();
+  });
+
+  it('a Minha ficha e a consulta trazem o e-mail pessoal para quem vê o telefone', async () => {
+    const m = await novoMilitar();
+    await api.pedir('gestorGb', 'PATCH', `/api/militares/${m.id}`, { emailPessoal: 'pessoal@exemplo.test' });
+    const c = await (await api.pedir('gestorGb', 'GET', `/api/consulta/militares/${m.id}`)).json();
+    expect(c.contato).toMatchObject({ emailPessoal: 'pessoal@exemplo.test' });
+    // quem não vê o bloco de contato não o recebe
+    const alheio = await (await api.pedir('semPapel', 'GET', `/api/consulta/militares/${m.id}`)).json();
+    expect(JSON.stringify(alheio)).not.toContain('pessoal@exemplo.test');
+  });
+});
