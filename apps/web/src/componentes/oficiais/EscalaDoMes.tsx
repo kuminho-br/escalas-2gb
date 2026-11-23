@@ -88,10 +88,10 @@ export function EscalaDoMes({ unidadeId, escala: e, aoVer }: Props) {
   return (
     <div className="grid gap-3">
       <div className="flex flex-wrap items-start justify-between gap-x-6 gap-y-3">
-        <div className="min-w-0 flex-1">
+        <div className="min-w-0 basis-full">
           <EtapasDoMes etapa={e.etapa} ocupado={salvando} podeCalcular={Boolean(e.servico)} aoCalcular={aoCalcular} aoFechar={aoFechar} aoEncerrar={aoEncerrar} />
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="ml-auto flex flex-wrap gap-2">
           {e.etapa === 'encerrada' && <Button type="button" variant="outline" onClick={() => aoVer('saldo')}>Ver o saldo</Button>}
           <Button type="button" variant="outline" onClick={() => aoVer('regras')}>Regras</Button>
         </div>

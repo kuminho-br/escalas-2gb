@@ -53,14 +53,14 @@ export function EtapasDoMes({ etapa, ocupado, podeCalcular, aoCalcular, aoFechar
     return null;
   };
   return (
-    <ol className="flex flex-col gap-3 md:flex-row md:gap-0" aria-label="Etapas do mês">
+    <ol className="flex flex-col gap-3 xl:flex-row xl:gap-0" aria-label="Etapas do mês">
       {PASSOS.map((p, i) => {
         const feito = i < atual;
         const eAtual = i === atual;
         const a = i < PASSOS.length - 1 ? acao(i) : null;
         return (
-          <li key={p.nome} aria-current={eAtual ? 'step' : undefined} className={cn('flex flex-col md:flex-row md:items-start', i < PASSOS.length - 1 ? 'md:flex-1' : '')}>
-            <div className="flex shrink-0 gap-3 md:w-44 md:flex-col md:gap-1.5">
+          <li key={p.nome} aria-current={eAtual ? 'step' : undefined} className={cn('flex flex-col xl:flex-row xl:items-start', i < PASSOS.length - 1 ? 'xl:flex-1' : '')}>
+            <div className="flex shrink-0 gap-3 xl:w-44 xl:flex-col xl:gap-1.5">
               <span
                 aria-hidden
                 className={cn(
@@ -80,17 +80,17 @@ export function EtapasDoMes({ etapa, ocupado, podeCalcular, aoCalcular, aoFechar
             </div>
             {i < PASSOS.length - 1 && (
               // no computador, a seta é uma linha entre os passos, com a ação por cima; no celular, os passos ficam em coluna e a seta desce pela esquerda, com a ação ao lado
-              <div className="relative flex min-h-6 items-center max-md:ml-3 max-md:min-h-10 max-md:border-l-2 max-md:border-linha max-md:pl-6 md:flex-1 md:justify-center">
-                <span aria-hidden className={cn('absolute top-3 right-0 left-0 h-0.5 bg-linha max-md:hidden')} />
+              <div className="relative flex min-h-6 items-center max-xl:ml-3 max-xl:min-h-10 max-xl:border-l-2 max-xl:border-linha max-xl:pl-6 xl:flex-1 xl:justify-center">
+                <span aria-hidden className={cn('absolute top-3 right-0 left-0 h-0.5 bg-linha max-xl:hidden')} />
                 <span
                   aria-hidden
                   data-seta-feita={feito ? '' : undefined}
-                  className="absolute top-3 left-0 h-0.5 bg-tinta transition-[width] duration-[220ms] motion-reduce:transition-none max-md:hidden"
+                  className="absolute top-3 left-0 h-0.5 bg-tinta transition-[width] duration-[220ms] motion-reduce:transition-none max-xl:hidden"
                   style={{ width: feito ? '100%' : '0%' }}
                 />
-                <ChevronRight aria-hidden className={cn('absolute top-[5px] right-0 size-3.5 max-md:hidden', feito ? 'text-tinta' : 'text-encaixe')} />
+                <ChevronRight aria-hidden className={cn('absolute top-[5px] right-0 size-3.5 max-xl:hidden', feito ? 'text-tinta' : 'text-encaixe')} />
                 {a && (
-                  <Button type="button" size="sm" variant={a.principal ? 'default' : 'outline'} disabled={a.desligado} onClick={a.aoClicar} className="relative z-10 md:-mt-1 md:self-start">
+                  <Button type="button" size="sm" variant={a.principal ? 'default' : 'outline'} disabled={a.desligado} onClick={a.aoClicar} className="relative z-10 xl:-mt-1 xl:self-start">
                     {a.rotulo}
                   </Button>
                 )}

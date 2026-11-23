@@ -721,11 +721,32 @@ describe('acabamento do painel e da troca de turno (6.17, itens 21, 26 e 34)', (
     const lista = await screen.findByRole('list', { name: 'Cotas de janeiro de 2027' });
     expect(within(lista).queryByText('Dias')).toBeNull();
     const bravo = within(lista).getByRole('checkbox', { name: 'CAP BRAVO participa da rodada' }).closest('li')!;
-    expect(within(bravo).getByText('cota menor: afastado 6 dias')).toHaveClass('text-[13px]', 'text-apagado');
+    // sem afastamento que explique, a frase não diz "afastado" (menos dias pode ser chegada ou saída da unidade no meio do mês)
+    expect(within(bravo).getByText('cota menor: 6 dias a menos no mês')).toHaveClass('text-[13px]', 'text-apagado');
     expect(within(bravo).getByText('Cota').closest('div')).toHaveAttribute('title', '25 dias disponíveis no mês');
     const alfa = within(lista).getByRole('checkbox', { name: 'CEL ALFA participa da rodada' }).closest('li')!;
     expect(within(alfa).queryByText(/cota menor/)).toBeNull();
     expect(within(alfa).getByText('Cota')).toBeInTheDocument();
+  });
+
+  it('item 34 (achado da revisão final): com afastamento no mês, a frase diz "afastado {n} dias" pelos dias do afastamento; sem cotas calculadas, nenhuma frase', async () => {
+    const afastado = { ...O2, dias: 25, afastamentos: [{ inicio: dia(10), fim: dia(15), tipo: 'Férias' }] };
+    abrirEscala(escala({ oficiais: [O1, afastado, O3] }));
+    const lista = await screen.findByRole('list', { name: 'Cotas de janeiro de 2027' });
+    const bravo = within(lista).getByRole('checkbox', { name: 'CAP BRAVO participa da rodada' }).closest('li')!;
+    expect(within(bravo).getByText('cota menor: afastado 6 dias')).toBeInTheDocument();
+    cleanup();
+    abrirEscala(escala({ etapa: 'sem-cotas', cotasEm: null, vez: null, turnos: [], oficiais: [{ ...O1, cota: null, devido: null }, { ...afastado, cota: null, devido: null }, O3] }));
+    const antes = await screen.findByRole('list', { name: 'Cotas de janeiro de 2027' });
+    expect(within(antes).queryByText(/cota menor/)).toBeNull();
+  });
+
+  it('item 33 (achado da revisão final): a linha de etapas não estoura a largura: o horizontal só a partir de 1280 px (xl), e em linha própria, sem disputar com "Regras"', async () => {
+    abrirEscala(escala());
+    const linha = await screen.findByRole('list', { name: 'Etapas do mês' });
+    expect(linha.className).toContain('xl:flex-row');
+    expect(linha.className).not.toMatch(/(^|\s)md:flex-row/);
+    expect(linha.parentElement!.className).toContain('basis-full');
   });
 
   it('item 26: desmarcar "Participa" de quem já tem turnos escolhidos pergunta antes ("Tirar da rodada"); sem turnos, não pergunta', async () => {

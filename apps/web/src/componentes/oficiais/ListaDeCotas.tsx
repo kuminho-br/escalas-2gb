@@ -62,8 +62,24 @@ export function ListaDeCotas({ escala: e, aoOrdenar, aoMarcar, desabilitado }: P
     if (!participa && o.escolhidos > 0) setTirando(o);
     else marcar(o, participa);
   };
-  // o mais que alguém tem de dias no mês: quem tem menos (afastamento) tem a cota menor, e a linha diz
-  const maisDias = Math.max(0, ...e.oficiais.map((o) => o.dias));
+  // o mais que alguém tem de dias no mês: quem tem menos tem a cota menor, e a linha diz por quê (afastamento, ou só menos dias na unidade)
+  const maisDias = comCota ? Math.max(0, ...e.oficiais.filter((o) => o.cota !== null).map((o) => o.dias)) : 0;
+  const diasAfastado = (o: Oficial) => {
+    const primeiro = `${e.mes}-01`;
+    const ultimo = `${e.mes}-${String(new Date(Date.UTC(Number(e.mes.slice(0, 4)), Number(e.mes.slice(5, 7)), 0)).getUTCDate()).padStart(2, '0')}`;
+    const dias = new Set<string>();
+    for (const a of o.afastamentos) {
+      for (let d = new Date(`${a.inicio < primeiro ? primeiro : a.inicio}T00:00:00Z`); d.toISOString().slice(0, 10) <= (a.fim > ultimo ? ultimo : a.fim); d.setUTCDate(d.getUTCDate() + 1)) dias.add(d.toISOString().slice(0, 10));
+    }
+    return dias.size;
+  };
+  const frasesDaCotaMenor = (o: Oficial): string | null => {
+    if (o.cota === null || o.dias >= maisDias) return null;
+    const afastado = diasAfastado(o);
+    if (afastado > 0) return `cota menor: afastado ${afastado} ${afastado === 1 ? 'dia' : 'dias'}`;
+    const menos = maisDias - o.dias;
+    return `cota menor: ${menos} ${menos === 1 ? 'dia' : 'dias'} a menos no mês`;
+  };
   const marcar = (o: Oficial, participa: boolean) =>
     aoMarcar?.(participa ? e.oficiais.filter((x) => x.participa || x.militarId === o.militarId).map((x) => x.militarId) : marcados.filter((id) => id !== o.militarId));
   const total = e.turnos.length;
@@ -138,7 +154,7 @@ export function ListaDeCotas({ escala: e, aoOrdenar, aoMarcar, desabilitado }: P
             <dt className={rotulo}>Cota</dt>
             <dd className={numero}>{o.cota ?? '—'}</dd>
             {o.sobra && <dd className={rotulo}>+1 sobra</dd>}
-            {o.dias < maisDias && <dd className={rotulo}>{`cota menor: afastado ${maisDias - o.dias} ${maisDias - o.dias === 1 ? 'dia' : 'dias'}`}</dd>}
+            {frasesDaCotaMenor(o) && <dd className={rotulo}>{frasesDaCotaMenor(o)}</dd>}
           </div>
           {comCota && (
             <div>
