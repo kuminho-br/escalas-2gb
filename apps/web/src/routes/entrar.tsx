@@ -7,7 +7,7 @@ import { Button } from '@/componentes/ui/button';
 import { Input } from '@/componentes/ui/input';
 import { Label } from '@/componentes/ui/label';
 import { aprovar, cenaPronta, cobrir, iniciar, preparar, recusar, useTransicao } from '@/lib/transicao-login/armazem';
-import { entradaDaVez, lerUltimaInteira, pedeMenosMovimento } from '@/lib/transicao-login/regra';
+import { entradaDaVez, lerQuando, lerUltimaInteira, pedeMenosMovimento } from '@/lib/transicao-login/regra';
 
 /** Só caminho interno do próprio site (começa com uma barra, não com duas nem com barra e contrabarra): nada que mande a pessoa para fora. */
 const caminhoInterno = (v: string) => v.startsWith('/') && !v.startsWith('//') && !v.startsWith('/\\') && !/[\u0000-\u001f]/.test(v);
@@ -50,9 +50,9 @@ function Entrar() {
     const dados = new FormData(e.currentTarget);
     setErro(null);
     setEnviando(true);
-    // inteira (as mangueiras) uma vez a cada 12 h neste navegador, indo para a tela inicial; senão, a entrada curta, sem cena e sem efeitos
+    // inteira (as mangueiras) pela escolha da pessoa neste navegador (o padrão: uma vez a cada 12 h), indo para a tela inicial; senão, a entrada curta
     const menosMovimento = pedeMenosMovimento();
-    const inteira = entradaDaVez({ agora: Date.now(), ultimaInteira: lerUltimaInteira(), menosMovimento, cenaPronta: cenaPronta(), destinoEhOInicio: !voltar }) === 'inteira';
+    const inteira = entradaDaVez({ agora: Date.now(), ultimaInteira: lerUltimaInteira(), menosMovimento, cenaPronta: cenaPronta(), destinoEhOInicio: !voltar, quando: lerQuando() }) === 'inteira';
     if (inteira) iniciar(botao.current?.getBoundingClientRect());
     // no erro, as mangueiras recuam primeiro; só depois o cartão volta, com a mensagem e os campos como estavam, e o foco na senha
     const falhar = async (mensagem: string) => {
