@@ -320,7 +320,7 @@ describe('o Novo militar, no Pecúlio', () => {
     rotas();
     abrir('/peculio');
     const dialogo = await abrirODialogo();
-    for (const campo of ['Matrícula', 'Posto-graduação', 'Quadro', 'Nome completo', 'Nome de guerra', 'Antiguidade', 'Seção', 'Lotado desde']) expect(dialogo.getByLabelText(campo)).toBeInTheDocument();
+    for (const campo of ['Matrícula', 'Posto-graduação', 'Quadro', 'Nome completo', 'Nome de guerra', 'Antiguidade', 'Unidade', 'Lotado desde']) expect(dialogo.getByLabelText(campo)).toBeInTheDocument();
     for (const campo of ['Equipe', 'Jornada', 'Motorista', 'CNH', 'Voluntário JES']) expect(dialogo.queryByLabelText(campo)).toBeNull();
     expect(dialogo.getByLabelText('Lotado desde')).toHaveAttribute('type', 'date');
     expect(dialogo.getByLabelText('Lotado desde')).toHaveValue(hoje());
@@ -334,7 +334,7 @@ describe('o Novo militar, no Pecúlio', () => {
     await userEvent.selectOptions(dialogo.getByLabelText('Posto-graduação'), 'CB');
     await userEvent.type(dialogo.getByLabelText('Nome completo'), 'Novo da Silva');
     await userEvent.type(dialogo.getByLabelText('Nome de guerra'), 'novo');
-    await userEvent.selectOptions(dialogo.getByLabelText('Seção'), '2ª SB');
+    await userEvent.selectOptions(dialogo.getByLabelText('Unidade'), '2ª SB');
     fireEvent.change(dialogo.getByLabelText('Lotado desde'), { target: { value: '2026-12-15' } });
     await userEvent.click(dialogo.getByRole('button', { name: 'Criar' }));
     await waitFor(() =>

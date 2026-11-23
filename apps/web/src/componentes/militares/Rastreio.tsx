@@ -124,7 +124,7 @@ function AlterarSituacao({ ficha, unidadeAtualId, aoFechar }: { ficha: FichaMili
                   setEquipeEscolhida('');
                 }}
               >
-                {unidadeId === '' && <option value="">Escolha a seção</option>}
+                {unidadeId === '' && <option value="">Escolha a unidade</option>}
                 {(secoes.data ?? (unidadeId ? [{ id: unidadeId, sigla: atual?.unidadeSigla ?? '…', nome: '' }] : [])).map((s) => <option key={s.id} value={s.id}>{s.sigla}</option>)}
               </Selecao>
               {!ficha.podeEditar.peculio && <p className="text-xs text-apagado">{`A lotação, o quadro e a situação são alterados por quem tem nível de acesso em ${ficha.podeEditar.unidadeDeCima ?? 'uma unidade acima'}.`}</p>}

@@ -1335,7 +1335,7 @@ describe('mover pela hierarquia e quem moveu (6.23)', () => {
     await within(lotacao).findByRole('option', { name: '1ª SB' });
     // a unidade da tela (CBMPE) não é seção e o militar não tem lotação: a pessoa escolhe (nenhuma seção vem escolhida por acaso), e o Salvar espera a escolha
     expect(lotacao).toHaveValue('');
-    expect(within(lotacao).getAllByRole('option')[0]).toHaveTextContent('Escolha a seção');
+    expect(within(lotacao).getAllByRole('option')[0]).toHaveTextContent('Escolha a unidade');
     expect(caixa.getByRole('button', { name: 'Salvar' })).toBeDisabled();
     await userEvent.selectOptions(lotacao, 'u-2sb');
     expect(caixa.getByRole('button', { name: 'Salvar' })).toBeEnabled();

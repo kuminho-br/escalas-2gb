@@ -101,7 +101,7 @@ export function NovoMilitar({ eu, aoFechar }: { eu: Eu; aoFechar: () => void }) 
             </Campo>
           </div>
           <div className="grid grid-cols-2 gap-3">
-            <Campo id="nm-secao" rotulo="Seção" erro={campos.secao}>
+            <Campo id="nm-secao" rotulo="Unidade" erro={campos.secao}>
               <Selecao id="nm-secao" name="secao" required>
                 {secoesDoCadastro(eu, secoes.data ?? []).map((s) => <option key={s.id} value={s.id}>{s.sigla}</option>)}
               </Selecao>
