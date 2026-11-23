@@ -45,7 +45,8 @@ const idDe = async (banco: Banco, sigla: string) =>
 export async function montarApi(fabricar?: (dep: { banco: Banco; auth: Auth }) => Pick<Hono, 'request'>): Promise<ApiDeTeste> {
   const banco = await bancoDeTeste();
   const auth = criarAuth({ banco, segredo: 'segredo-de-teste-com-tamanho-suficiente-123', urlBase: URL_BASE });
-  const app = fabricar ? fabricar({ banco, auth }) : criarApp({ banco, auth });
+  // os testes buscam mais de 30 vezes por minuto: o limite da consulta fica de fora (`consulta-limite.test.ts` prova o limite, com o padrão)
+  const app = fabricar ? fabricar({ banco, auth }) : criarApp({ banco, auth, limiteDeBuscas: Infinity });
   const ids = { raiz: await idDe(banco, 'CBMPE'), gb: await idDe(banco, '2º GB'), secao: await idDe(banco, '1ª SB') };
   const hoje = hojeRecife();
 

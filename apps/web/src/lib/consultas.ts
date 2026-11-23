@@ -11,6 +11,12 @@ export function deveTentarDeNovo(falhas: number, erro: unknown): boolean {
   return falhas < 2;
 }
 
+/** A busca de militares tem limite de pedidos por minuto (429): tentar de novo só gasta a janela, então o 429 vai direto para a tela. O resto segue `deveTentarDeNovo`. */
+export function deveTentarDeNovoNaBusca(falhas: number, erro: Error): boolean {
+  if (erro instanceof ErroApi && erro.status === 429) return false;
+  return deveTentarDeNovo(falhas, erro);
+}
+
 /** O cliente de consultas do site (os testes usam o próprio, sem tentativas). */
 export function criarQueryClient(): QueryClient {
   return new QueryClient({ defaultOptions: { queries: { retry: deveTentarDeNovo } } });

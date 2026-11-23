@@ -59,3 +59,12 @@ describe('migração 0038: nome único sem caixa', () => {
     expect(col?.is_nullable).toBe('YES');
   });
 });
+
+describe('migração 0038: a auditoria usa o codigo quando a tabela não tem id', () => {
+  it('gravar numa tabela com chave "codigo" e sem "id" não quebra, e o registro é identificado pelo codigo', async () => {
+    await banco.exec("create table teste_codigo (codigo text primary key, nome text); create trigger auditoria_registro after insert or update or delete on teste_codigo for each row execute function registrar_auditoria();");
+    await banco.query("insert into teste_codigo (codigo, nome) values ('abc', 'um')");
+    const { rows } = await banco.query<{ registro_id: string; acao: string }>("select registro_id, acao from auditoria where tabela = 'teste_codigo'");
+    expect(rows).toEqual([{ registro_id: 'abc', acao: 'insert' }]);
+  });
+});
