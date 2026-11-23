@@ -101,6 +101,8 @@ export async function exigirPapelDeCimaDasSecoes(c: Context<AmbienteApi>, unidad
 /** Exige sessão; põe o usuário e o banco no contexto. */
 export function exigirSessao(banco: Banco, auth: Auth): MiddlewareHandler<AmbienteApi> {
   return async (c, next) => {
+    // vários conjuntos de rotas montam este conferidor no mesmo caminho: quem já passou por ele não confere a sessão de novo
+    if (c.get('usuarioId')) return next();
     const sessao = await auth.api.getSession({ headers: c.req.raw.headers });
     if (!sessao) return c.json({ erro: 'Entre no sistema para continuar.' }, 401);
     // usuário desativado perde o acesso na hora: a sessão já aberta não vale (o gancho do login só barra sessão nova)

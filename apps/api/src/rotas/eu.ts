@@ -9,7 +9,7 @@ import { COM_CAMINHO, paraUnidade, porCaminho, type LinhaDaUnidade } from '../ar
 import { hojeRecife } from '../datas.ts';
 import { lerCorpo } from '../erros.ts';
 import { unidadesComEscalaEmMontagem } from '../visao/visao.ts';
-import { MSG_SENHA_VENCIDA } from '../usuarios/mensagens.ts';
+import { MSG_CRIE_A_SENHA, MSG_SENHA_VENCIDA } from '../usuarios/mensagens.ts';
 
 export interface Eu {
   usuario: { id: string; nome: string; email: string };
@@ -27,6 +27,8 @@ export interface Eu {
   lotacao: UnidadeDeTrabalho | null;
   /** Entrou com a senha provisória: só a tela de criar a senha abre até a troca. */
   trocarSenha: boolean;
+  /** Tem nível de acesso vigente, mas só em unidades que foram extintas: a tela "Sem lotação" explica. */
+  nivelSoEmUnidadeExtinta: boolean;
 }
 
 /** As unidades dos papéis vigentes e as de baixo (as extintas não entram). */
@@ -130,6 +132,7 @@ export function rotasEu(banco: Banco, auth: Auth): Hono {
       unidadesSoConsulta: soConsulta,
       lotacao,
       trocarSenha: u.trocar_senha,
+      nivelSoEmUnidadeExtinta: papeis.length > 0 && dosPapeis.length === 0,
     };
     return c.json(eu);
   });
@@ -148,6 +151,12 @@ export function rotasEu(banco: Banco, auth: Auth): Hono {
     if (!sessao) return c.json({ erro: 'Não autenticado' }, 401);
     const corpo = await lerCorpo(c, NovoTelefone);
     if (!corpo.ok) return corpo.resposta;
+    // com a senha provisória pendente, a resposta é a mesma das outras rotas: crie a senha (e não "não autenticado")
+    const u = (await banco.query<{ ativo: boolean; provisoria: boolean; vencida: boolean }>(
+      'select ativo, senha_provisoria_ate is not null as provisoria, coalesce(senha_provisoria_ate < now(), false) as vencida from usuario where id = $1',
+      [sessao.user.id],
+    )).rows[0];
+    if (u?.ativo && u.provisoria) return c.json({ erro: u.vencida ? MSG_SENHA_VENCIDA : MSG_CRIE_A_SENHA }, 403);
     const ficha = await comUsuario(banco, sessao.user.id, async (tx) => {
       const { rows } = await tx.query(
         'update militar set telefone = $2 where id = (select militar_id from usuario where id = $1 and ativo and senha_provisoria_ate is null) returning id',

@@ -13,6 +13,7 @@ export const EU_EXEMPLO: EuDaApi = {
   unidadesSoConsulta: [],
   lotacao: null,
   trocarSenha: false,
+  nivelSoEmUnidadeExtinta: false,
 };
 
 /** `espera`: a resposta só sai quando a promessa se resolve (para testar o que acontece enquanto grava). */

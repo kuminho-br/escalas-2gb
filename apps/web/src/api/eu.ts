@@ -18,6 +18,8 @@ export interface EuDaApi {
   lotacao: UnidadeDeTrabalho | null;
   /** Entrou com a senha provisória: só a tela de criar a senha abre até a troca. */
   trocarSenha: boolean;
+  /** Tem nível de acesso vigente, mas só em unidades que foram extintas: a tela "Sem lotação" explica. */
+  nivelSoEmUnidadeExtinta: boolean;
 }
 
 /**

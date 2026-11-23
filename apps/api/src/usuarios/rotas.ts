@@ -9,7 +9,7 @@ import { comUsuario, type Banco, type Consulta } from '../banco/banco.ts';
 import { exigirPapelNoRegistro } from '../cadastros/militares.ts';
 import { hojeRecife } from '../datas.ts';
 import { lerCorpo } from '../erros.ts';
-import { MSG_SEM_EMAIL, MSG_ULTIMO_GESTOR } from './mensagens.ts';
+import { MSG_SEM_EMAIL, MSG_ULTIMO_GESTOR, MSG_UNICO_ADMIN } from './mensagens.ts';
 import { gerarSenhaProvisoria } from './senha-provisoria.ts';
 
 const MSG_SO_ADMIN = 'Só o administrador dá ou encerra o nível de acesso de administrador.';
@@ -23,6 +23,7 @@ const MSG_ATE_ANTES = 'O encerramento não pode ser antes do início do nível d
 const MSG_EMAIL_EM_USO = 'Este e-mail já é de outro militar.';
 const MSG_SO_QUEM_PODE_DAR = 'Só quem pode dar o nível de acesso dessa pessoa mexe no acesso dela.';
 const MSG_SEM_ACESSO = 'Este militar ainda não tem acesso ao sistema.';
+const MSG_UNIDADE_EXTINTA = 'Esta unidade foi extinta.';
 
 /**
  * O usuário do militar, criado se faltar (nome = "posto nome de guerra", e-mail = o da ficha). null se a ficha não tem e-mail: sem e-mail,
@@ -56,14 +57,18 @@ export async function montarAcesso(c: Consulta, militarId: string): Promise<Aces
   )).rows[0]!;
   const situacao: SituacaoDoAcesso = !m.usuario_id || !m.tem_senha ? 'sem-acesso' : !m.ativo ? 'desativado' : m.vencida ? 'provisoria-vencida' : m.provisoria ? 'provisoria' : 'ativo';
   const papeis = m.usuario_id
-    ? (await c.query<{ id: string; papel: PapelDoMilitar['papel']; unidade_id: string; sigla: string; desde: string; ate: string | null }>(
-        `select pu.id, pu.papel, pu.unidade_id, un.sigla, to_char(pu.desde, 'YYYY-MM-DD') as desde, to_char(pu.ate, 'YYYY-MM-DD') as ate
+    ? (await c.query<{ id: string; papel: PapelDoMilitar['papel']; unidade_id: string; sigla: string; desde: string; ate: string | null; ultimo_gestor: boolean }>(
+        `select pu.id, pu.papel, pu.unidade_id, un.sigla, to_char(pu.desde, 'YYYY-MM-DD') as desde, to_char(pu.ate, 'YYYY-MM-DD') as ate,
+                -- gestor vigente com "até" marcado, sem outro gestor vigente na unidade que dure mais: o último dela
+                (pu.papel = 'gestor' and pu.ate is not null and pu.ate >= $2::date and pu.desde <= $2::date and not exists (
+                   select 1 from papel_usuario o where o.unidade_id = pu.unidade_id and o.papel = 'gestor' and o.id <> pu.id
+                      and o.desde <= $2::date and (o.ate is null or o.ate > pu.ate))) as ultimo_gestor
            from papel_usuario pu join unidade un on un.id = pu.unidade_id
           where pu.usuario_id = $1 order by pu.desde desc, un.sigla, pu.papel`,
-        [m.usuario_id],
-      )).rows.map((p): PapelDoMilitar => ({ id: p.id, papel: p.papel, unidadeId: p.unidade_id, unidadeSigla: p.sigla, desde: p.desde, ate: p.ate }))
+        [m.usuario_id, hojeRecife()],
+      )).rows.map((p): PapelDoMilitar => ({ id: p.id, papel: p.papel, unidadeId: p.unidade_id, unidadeSigla: p.sigla, desde: p.desde, ate: p.ate, podeEncerrar: false, ultimoGestorAte: p.ultimo_gestor ? p.ate : null }))
     : [];
-  return { situacao, email: m.email, senhaProvisoriaAte: m.prazo ? new Date(m.prazo).toISOString() : null, papeis, podeGerarSenha: m.email !== null, papeisQuePodeDar: [], unidadesParaPapel: [] };
+  return { situacao, email: m.email, senhaProvisoriaAte: m.prazo ? new Date(m.prazo).toISOString() : null, papeis, podeGerarSenha: m.email !== null, podeDesativar: false, papeisQuePodeDar: [], unidadesParaPapel: [] };
 }
 
 /**
@@ -100,7 +105,10 @@ async function acessoPara(c: Consulta, militarId: string, usuarioId: string): Pr
   const acesso = await montarAcesso(c, militarId);
   // o botão acompanha a regra da rota: sem e-mail, ou sem poder sobre os papéis da pessoa, fica desligado
   const podeGerarSenha = acesso.podeGerarSenha && (await podeMexerNaConta(c, usuarioId, militarId)) === null;
-  return { ...acesso, podeGerarSenha, ...(await quemPodeDar(c, usuarioId, hojeRecife())) };
+  // idem "Desativar acesso" e "Encerrar": o botão só aparece para quem a rota deixaria passar
+  const podeDesativar = acesso.situacao !== 'sem-acesso' && (await podeMexerNaConta(c, usuarioId, militarId, true)) === null;
+  const papeis = await Promise.all(acesso.papeis.map(async (p) => ({ ...p, podeEncerrar: (await podeNaUnidade(c, usuarioId, p.papel, p.unidadeId)) === null })));
+  return { ...acesso, papeis, podeGerarSenha, podeDesativar, ...(await quemPodeDar(c, usuarioId, hojeRecife())) };
 }
 
 /** null se quem pede pode dar/encerrar o papel nesta unidade; senão o 403. */
@@ -125,7 +133,7 @@ async function podeNaUnidade(c: Consulta, usuarioId: string, papel: Papel, unida
  * Gerar a senha e desativar o acesso valem só para quem poderia dar todos os papéis da pessoa (que ainda não terminaram): senão o auxiliar
  * geraria a senha de um gestor e entraria como ele. Devolve o texto do 403, ou null.
  */
-async function podeMexerNaConta(c: Consulta, usuarioId: string, militarId: string): Promise<string | null> {
+async function podeMexerNaConta(c: Consulta, usuarioId: string, militarId: string, paraDesativar = false): Promise<string | null> {
   const { rows } = await c.query<{ papel: Papel; unidade_id: string; ativo: boolean }>(
     `select pu.papel, pu.unidade_id, u.ativo from papel_usuario pu join usuario u on u.id = pu.usuario_id
       where u.militar_id = $1 and (pu.ate is null or pu.ate >= $2::date)`,
@@ -134,8 +142,9 @@ async function podeMexerNaConta(c: Consulta, usuarioId: string, militarId: strin
   for (const p of rows) {
     if (!(await podeNaUnidade(c, usuarioId, p.papel, p.unidade_id))) continue;
     // a folga do auxiliar (decisão de 21/11/2026): o papel de auxiliar de um colega também passa para quem é auxiliar na unidade dele ou acima,
-    // mas só enquanto a conta está ativa: gerar a senha de uma conta desativada a reativa, e isso fica para quem dá o papel
-    if (p.papel === 'escalante' && p.ativo && (await temPapel(c, usuarioId, p.unidade_id, ['escalante'], hojeRecife()))) continue;
+    // mas só enquanto a conta está ativa: gerar a senha de uma conta desativada a reativa, e isso fica para quem dá o papel.
+    // Desativar de novo uma conta já desativada não muda nada, então não tem essa trava
+    if (p.papel === 'escalante' && (p.ativo || paraDesativar) && (await temPapel(c, usuarioId, p.unidade_id, ['escalante'], hojeRecife()))) continue;
     return MSG_SO_QUEM_PODE_DAR;
   }
   return null;
@@ -194,11 +203,13 @@ export function rotasAcesso(dep: { banco: Banco; auth: Auth }): Hono<AmbienteApi
     const id = c.req.param('id');
     const negado = await exigirPapelNoRegistro(c, 'militar', id);
     if (negado) return negado;
-    const semPoder = await podeMexerNaConta(banco, c.get('usuarioId'), id);
+    const semPoder = await podeMexerNaConta(banco, c.get('usuarioId'), id, true);
     if (semPoder) return c.json({ erro: semPoder }, 403);
     const tinha = await comUsuario(banco, c.get('usuarioId'), async (tx) => {
-      const usuario = (await tx.query<{ id: string }>('select id from usuario where militar_id = $1 for update', [id])).rows[0];
+      const usuario = (await tx.query<{ id: string; ativo: boolean }>('select id, ativo from usuario where militar_id = $1 for update', [id])).rows[0];
       if (!usuario) return false;
+      // já desativado: nada a mudar
+      if (!usuario.ativo) return true;
       await tx.query('update usuario set ativo = false, atualizado_em = now() where id = $1', [usuario.id]);
       await tx.query('delete from sessao where usuario_id = $1', [usuario.id]);
       return true;
@@ -215,10 +226,11 @@ export function rotasAcesso(dep: { banco: Banco; auth: Auth }): Hono<AmbienteApi
     if (!corpo.ok) return corpo.resposta;
     const d = corpo.dados;
     if (d.ate && d.ate < d.desde) return c.json({ erro: MSG_FIM_ANTES, campos: { ate: MSG_FIM_ANTES } }, 400);
-    const unidade = (await banco.query<{ mae_id: string | null; tipo: string }>('select mae_id, tipo from unidade where id = $1', [d.unidadeId])).rows[0];
+    const unidade = (await banco.query<{ mae_id: string | null; tipo: string; extinta: boolean }>('select mae_id, tipo, (ate is not null and ate < $2::date) as extinta from unidade where id = $1', [d.unidadeId, hojeRecife()])).rows[0];
     if (!unidade) return c.json({ erro: 'Unidade não encontrada.', campos: { unidadeId: 'Escolha a unidade.' } }, 400);
     const sem = await podeNaUnidade(banco, c.get('usuarioId'), d.papel, d.unidadeId);
     if (sem) return c.json({ erro: sem }, 403);
+    if (unidade.extinta) return c.json({ erro: MSG_UNIDADE_EXTINTA, campos: { unidadeId: MSG_UNIDADE_EXTINTA } }, 400);
     if (d.papel === 'administrador' && unidade.mae_id !== null) return c.json({ erro: MSG_ADMIN_NA_RAIZ, campos: { unidadeId: MSG_ADMIN_NA_RAIZ } }, 400);
     if (d.papel === 'chefe_divisao' && unidade.tipo !== 'divisao') return c.json({ erro: MSG_CHEFE_NA_DIVISAO, campos: { unidadeId: MSG_CHEFE_NA_DIVISAO } }, 400);
     let gravou: boolean;
@@ -253,7 +265,8 @@ export function rotasAcesso(dep: { banco: Banco; auth: Auth }): Hono<AmbienteApi
     if (sem) return c.json({ erro: sem }, 403);
     const corpo = await lerCorpo(c, EncerrarPapel);
     if (!corpo.ok) return corpo.resposta;
-    if (p.ate !== null) return c.json({ erro: MSG_JA_ENCERRADO }, 409);
+    // um "até" no futuro ainda deixa encerrar antes da data (o fim passa a ser o dia escolhido); um que já passou, ou que ia durar menos, não
+    if (p.ate !== null && (p.ate <= hojeRecife() || corpo.dados.ate > p.ate)) return c.json({ erro: MSG_JA_ENCERRADO }, 409);
     if (corpo.dados.ate < p.desde) return c.json({ erro: MSG_ATE_ANTES, campos: { ate: MSG_ATE_ANTES } }, 400);
     // ninguém encerra o próprio último nível de gestão, de gestor ou de chefe de divisão (o administrador pode)
     if (p.usuario_id === quem && (p.papel === 'gestor' || p.papel === 'chefe_divisao')) {
@@ -264,6 +277,14 @@ export function rotasAcesso(dep: { banco: Banco; auth: Auth }): Hono<AmbienteApi
         [quem, hoje, papelId],
       )).rows[0]!;
       if (!outros.gestor && !outros.admin) return c.json({ erro: MSG_ULTIMO_GESTOR }, 409);
+    }
+    // o administrador também não encerra o próprio último nível de administrador: o sistema não pode ficar sem um
+    if (p.usuario_id === quem && p.papel === 'administrador') {
+      const outro = (await banco.query<{ ok: boolean }>(
+        "select exists (select 1 from papel_usuario where papel = 'administrador' and id <> $2 and desde <= $1 and (ate is null or ate >= $1)) as ok",
+        [hojeRecife(), papelId],
+      )).rows[0]!.ok;
+      if (!outro) return c.json({ erro: MSG_UNICO_ADMIN }, 409);
     }
     await comUsuario(banco, quem, (tx) => tx.query('update papel_usuario set ate = $2 where id = $1', [papelId, corpo.dados.ate]));
     return c.json(await acessoPara(banco, p.militar_id, quem));

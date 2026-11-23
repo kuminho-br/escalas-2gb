@@ -22,6 +22,7 @@ import { rotasVoluntariado } from './voluntariado/rotas.ts';
 import { rotasVisao } from './visao/rotas.ts';
 import { rotasEu } from './rotas/eu.ts';
 import { rotasSaude } from './rotas/saude.ts';
+import { MSG_CRIE_A_SENHA } from './usuarios/mensagens.ts';
 import { rotasAcesso } from './usuarios/rotas.ts';
 
 export interface Dependencias {
@@ -43,6 +44,14 @@ export function criarApp(dep: Dependencias): Hono {
   if (dep.auth) {
     const auth = dep.auth;
     const comAuth = { banco: dep.banco, auth };
+    // a troca da senha provisória é só pela rota de criar a senha (/api/eu/senha); a do better-auth não vale enquanto ela está pendente
+    app.post('/api/auth/change-password', async (c, next) => {
+      const sessao = await auth.api.getSession({ headers: c.req.raw.headers });
+      if (sessao && (await dep.banco.query('select 1 from usuario where id = $1 and senha_provisoria_ate is not null', [sessao.user.id])).rows.length) {
+        return c.json({ erro: MSG_CRIE_A_SENHA }, 403);
+      }
+      return next();
+    });
     app.on(['GET', 'POST'], '/api/auth/*', (c) => auth.handler(c.req.raw));
     app.route('/api/eu', rotasEu(dep.banco, auth));
     app.route('/api', rotasConfiguracoes(comAuth));
