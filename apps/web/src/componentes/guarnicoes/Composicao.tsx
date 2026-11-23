@@ -1,5 +1,5 @@
 import { useQueryClient } from '@tanstack/react-query';
-import { QuantidadeDeMilitares, type Funcao } from 'contratos';
+import { CategoriaCnh, QuantidadeDeMilitares, type Funcao } from 'contratos';
 import { Pencil } from 'lucide-react';
 import { useState } from 'react';
 import { mensagemDe } from '@/api/cliente';
@@ -13,7 +13,8 @@ import { Input } from '@/componentes/ui/input';
 export type LinhaEdicao = { chave: number; funcaoId: string; minimo: number; maximo: number; cnh: string };
 
 const NOVA = '__nova';
-const CATEGORIAS = ['A', 'B', 'C', 'D', 'E'];
+// as categorias da carteira vêm do contrato (uma fonte só)
+const CATEGORIAS = CategoriaCnh.options;
 
 function Passo({ grandeza, nome, valor, onMenos, onMais, menosOff, maisOff }: {
   grandeza: 'mínimo' | 'máximo'; nome: string; valor: number; onMenos: () => void; onMais: () => void; menosOff: boolean; maisOff: boolean;

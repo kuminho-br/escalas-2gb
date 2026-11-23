@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import type { Militar } from '../src/nucleo.ts';
 import { chaveSlot, compararAntiguidade, novaBaseGuarnicao, postosDoModelo, type Modelos } from '../src/guarnicao.ts';
 
 describe('novaBaseGuarnicao', () => {
@@ -86,5 +87,14 @@ describe('compararAntiguidade com a ordem do posto (6.13, Review Focus 2)', () =
 
   it('sem a ordem do posto, continua valendo a sigla', () => {
     expect(compararAntiguidade({ mat: 'a', m: { mat: 'a', posto: '3º SGT BM', antig: 1 } }, { mat: 'b', m: { mat: 'b', posto: 'CB BM', antig: 1 } })).toBe(-1);
+  });
+});
+
+// Entrega 6.18, Task 9, item 2: o tipo Militar do motor recusa o campo `antiguidade` no lugar de `antig` (o erro de digitação não passa em silêncio).
+describe('o tipo Militar do motor', () => {
+  it('recusa "antiguidade" no lugar de "antig" (erro de tipo, conferido com @ts-expect-error)', () => {
+    // @ts-expect-error `antiguidade` não existe no Militar do motor: o campo é `antig`
+    const errado: Militar = { mat: '990001-1', posto: 'SD', antiguidade: 3 };
+    expect(errado.mat).toBe('990001-1');
   });
 });
