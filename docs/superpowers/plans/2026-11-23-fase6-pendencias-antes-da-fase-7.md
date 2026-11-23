@@ -197,6 +197,7 @@
   29. Da 6.12: o vazio da Escala do mês no modo só consulta não mostra o link "Crie uma em Escalas".
   30. Da 6.12: no modo só consulta, os trechos ocupados do Efetivo por dia não param o teclado.
   31. No celular, abrir a escolha de militar para uma vaga → o foco não vai para a busca, e o teclado só aparece quando a pessoa toca na caixa de busca (diretriz do usuário, 23/11).
+  32. As linhas das listas do Pecúlio e de Militares ganham destaque (pedido do usuário, 23/11; desenho decidido pela PLANEJAMENTO com a DESIGN, aprovado de antemão). Linha 1: patente (13 px, `apagado`) e nome de guerra (17 px, estreita, 600), como hoje. Linha 2: o nome completo em 15 px `tinta` (hoje é apoio apagado). Linha 3: os dados em etiquetas de 24 px de altura, raio 6, 13 px peso 500, cada uma com o seu ícone de 14 px (lucide, traço 1,75): matrícula, telefone e e-mail no Pecúlio; matrícula, jornada e equipe ("Pronto · BRAVO", "Adm") e "Motorista B" em Militares. Etiqueta neutra: fundo `passa`, borda 1 px `linha`, texto `tinta`. Dado que falta: etiqueta âmbar (`pendencia` sobre `pendencia-fundo`), "Sem telefone", "Sem e-mail", junto do aviso de cadastro incompleto que já existe. Sem uma cor por tipo de dado: a cor tem um sentido só (diretriz aprovada). O e-mail longo corta com reticências e a dica mostra inteiro. Teste: as três linhas, a etiqueta âmbar quando falta o dado, e nenhuma rolagem de lado em 390 px.
 - [ ] **Commit** `Fase 6.17: formulários, diálogos e nomes acessíveis` e, depois das verificações, abrir o PR.
 
 ---
