@@ -39,7 +39,7 @@ O problema de hoje: os oficiais escolhem os dias por antiguidade, e não há con
 ## Quem usa e quem participa
 
 - **Quem vê a tela:** administrador e gestor da unidade. Fica dentro do módulo Confecção de escalas, não é um módulo novo na tela inicial.
-- **Quem participa da escala:** militares dos quadros QOC e QOA lotados na unidade atual e nas unidades abaixo dela. As outras telas de escala mostram só o QBMG e quem está sem quadro (decisão do usuário, 22/11/2026).
+- **Quem participa da escala:** os militares dos quadros QOC e QOA lotados na unidade atual e nas de baixo são **elegíveis**; o gestor escolhe, entre eles, quem participa da rodada do mês (correção do usuário, 22/11/2026; P1.5). O mês novo vem com os participantes do anterior. As outras telas de escala mostram só o QBMG e quem está sem quadro (decisão do usuário, 22/11/2026).
 
 ## Regras
 
