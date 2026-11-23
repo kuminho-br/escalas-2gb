@@ -78,9 +78,9 @@ export function AcessoAoSistema({ ficha }: { ficha: FichaMilitar }) {
         {!acesso.email && <p className="text-sm text-pendencia">{SEM_EMAIL}</p>}
         {erro && <p role="alert" className="text-sm text-alerta">{erro}</p>}
 
-        <h4 className="mt-2 font-cond text-base font-semibold">Papéis</h4>
+        <h4 className="mt-2 font-cond text-base font-semibold">Níveis de acesso</h4>
         {acesso.papeis.length === 0 ? (
-          <p className="text-sm text-apagado">Nenhum papel.</p>
+          <p className="text-sm text-apagado">Nenhum nível de acesso.</p>
         ) : (
           <ul className="grid gap-1.5">
             {acesso.papeis.map((p) => (
@@ -140,7 +140,7 @@ function DarPapel({ acesso, aoDar }: { acesso: AcessoDoMilitar; aoDar: (d: { pap
   const [papel, setPapel] = useState<Papel>(acesso.papeisQuePodeDar[0]!);
   const [unidadeId, setUnidadeId] = useState('');
   const [desde, setDesde] = useState(hoje());
-  if (!aberto) return <div><Button type="button" variant="outline" size="sm" onClick={() => setAberto(true)}>Dar papel</Button></div>;
+  if (!aberto) return <div><Button type="button" variant="outline" size="sm" onClick={() => setAberto(true)}>Dar nível de acesso</Button></div>;
   const menor = Math.min(...acesso.unidadesParaPapel.map((u) => u.nivel));
   const unidade = unidadeId || acesso.unidadesParaPapel[0]?.id || '';
   return (
@@ -148,7 +148,7 @@ function DarPapel({ acesso, aoDar }: { acesso: AcessoDoMilitar; aoDar: (d: { pap
       className="grid gap-3 sm:grid-cols-[12rem_1fr_10rem]"
       onSubmit={(e) => { e.preventDefault(); void aoDar({ papel, unidadeId: unidade, desde }).then(() => setAberto(false)); }}
     >
-      <Campo id="np-papel" rotulo="Papel">
+      <Campo id="np-papel" rotulo="Nível de acesso">
         <Selecao id="np-papel" value={papel} onChange={(e) => setPapel(e.target.value as Papel)}>
           {acesso.papeisQuePodeDar.map((p) => <option key={p} value={p}>{nomeDoPapel(p)}</option>)}
         </Selecao>
@@ -162,7 +162,7 @@ function DarPapel({ acesso, aoDar }: { acesso: AcessoDoMilitar; aoDar: (d: { pap
         <Input id="np-desde" type="date" value={desde} onChange={(e) => setDesde(e.target.value)} />
       </Campo>
       <div className="flex gap-2 sm:col-span-3">
-        <Button type="submit" size="sm">Dar papel</Button>
+        <Button type="submit" size="sm">Dar nível de acesso</Button>
         <Button type="button" size="sm" variant="ghost" onClick={() => setAberto(false)}>Cancelar</Button>
       </div>
     </form>

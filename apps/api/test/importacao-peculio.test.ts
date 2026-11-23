@@ -225,7 +225,7 @@ describe('quem pode importar o Pecúlio (Review Focus 1)', () => {
     const antes = await auditoria();
     const previa = await enviar([ANDRADE], { quem: 'escalante', u: secao1 });
     expect(previa.status).toBe(403);
-    expect((await previa.json()).erro).toBe('A importação do Pecúlio é de quem tem papel no 2º GB.');
+    expect((await previa.json()).erro).toBe('A importação do Pecúlio é de quem tem nível de acesso no 2º GB.');
     expect((await enviar([ANDRADE], { quem: 'escalante', u: secao1, confirmar: true })).status).toBe(403);
     expect((await api.pedir('escalante', 'GET', modelo(secao1))).status).toBe(403);
     expect((await enviar([ANDRADE], { quem: 'escalante', u: api.ids.gb })).status).toBe(403);

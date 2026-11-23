@@ -81,7 +81,7 @@ describe('Acesso ao sistema', () => {
     confirmar.mockRestore();
   });
 
-  it('lista os papéis com "Auxiliar administrativo" e dá papel', async () => {
+  it('lista os níveis de acesso com "Auxiliar administrativo" e dá nível de acesso', async () => {
     const dada: AcessoDoMilitar = { ...ACESSO, papeis: [{ id: 'p1', papel: 'escalante', unidadeId: 'u-1sb', unidadeSigla: '1ª SB', desde: '2026-11-01', ate: null }] };
     const f = api(
       { papeis: [{ id: 'p0', papel: 'gestor', unidadeId: 'u-gb', unidadeSigla: '2º GB', desde: '2026-01-01', ate: '2026-06-30' }], papeisQuePodeDar: ['gestor', 'escalante'], unidadesParaPapel: [{ id: 'u-gb', sigla: '2º GB', nivel: 3 }, { id: 'u-1sb', sigla: '1ª SB', nivel: 4 }] },
@@ -91,19 +91,19 @@ describe('Acesso ao sistema', () => {
     const b = within(await bloco());
     expect(await b.findByText('Gestor')).toBeInTheDocument();
     expect(b.getByText('de 01/01/2026 a 30/06/2026')).toBeInTheDocument();
-    await userEvent.click(b.getByRole('button', { name: 'Dar papel' }));
-    await userEvent.selectOptions(b.getByLabelText('Papel'), 'Auxiliar administrativo');
+    await userEvent.click(b.getByRole('button', { name: 'Dar nível de acesso' }));
+    await userEvent.selectOptions(b.getByLabelText('Nível de acesso'), 'Auxiliar administrativo');
     await userEvent.selectOptions(b.getByLabelText('Unidade'), 'u-1sb');
     expect(b.getByLabelText('A partir de')).toBeInTheDocument();
-    await userEvent.click(b.getAllByRole('button', { name: 'Dar papel' }).at(-1)!);
+    await userEvent.click(b.getAllByRole('button', { name: 'Dar nível de acesso' }).at(-1)!);
     await waitFor(() => expect(corpoEnviado(f, 'POST /api/militares/m1/papeis')).toMatchObject({ papel: 'escalante', unidadeId: 'u-1sb' }));
   });
 
-  it('sem papéis para dar, não aparece "Dar papel"', async () => {
+  it('sem níveis de acesso para dar, não aparece "Dar nível de acesso"', async () => {
     api({ papeisQuePodeDar: [] });
     abrir('/militares/m1');
     const b = within(await bloco());
-    await b.findByText('Nenhum papel.');
-    expect(b.queryByRole('button', { name: 'Dar papel' })).toBeNull();
+    await b.findByText('Nenhum nível de acesso.');
+    expect(b.queryByRole('button', { name: 'Dar nível de acesso' })).toBeNull();
   });
 });

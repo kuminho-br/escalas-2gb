@@ -288,11 +288,11 @@ describe('papéis na ficha', () => {
     expect((await r.json()).campos.ate).toBeTruthy();
   });
 
-  it('ninguém encerra o próprio último papel de gestor; o administrador pode', async () => {
+  it('ninguém encerra o próprio último nível de acesso de gestor; o administrador pode', async () => {
     const g = await comoNovo('gestor', api.ids.secao);
     const r = await como(g.cookie, 'POST', `/api/papeis/${g.papelId}/encerrar`, { ate: hojeRecife() });
     expect(r.status).toBe(409);
-    expect((await r.json()).erro).toBe('Você não pode encerrar o seu último papel de gestor. Peça a outro gestor ou ao administrador.');
+    expect((await r.json()).erro).toBe('Você não pode encerrar o seu último nível de acesso de gestor. Peça a outro gestor ou ao administrador.');
     expect((await api.pedir('admin', 'POST', `/api/papeis/${g.papelId}/encerrar`, { ate: hojeRecife() })).status).toBe(200);
     // com outro papel de gestor vigente, encerrar um deles vale
     const h = await comoNovo('gestor', api.ids.secao);
@@ -338,7 +338,7 @@ describe('revisão final da 6.1', () => {
       expect((await acessoDe(alvo.id)).podeGerarSenha).toBe(false);
       const r = await gerar(alvo.id, 'escalante');
       expect(r.status).toBe(403);
-      expect((await r.json()).erro).toBe('Só quem pode dar o papel dessa pessoa mexe no acesso dela.');
+      expect((await r.json()).erro).toBe('Só quem pode dar o nível de acesso dessa pessoa mexe no acesso dela.');
     }
     // sem e-mail, o botão continua desligado
     const semEmail = await novoMilitar({ email: null });
@@ -361,7 +361,7 @@ describe('revisão final da 6.1', () => {
       expect((await acessoDe(colega.id)).podeGerarSenha).toBe(false);
       const r = await gerar(colega.id, 'escalante');
       expect(r.status).toBe(403);
-      expect((await r.json()).erro).toBe('Só quem pode dar o papel dessa pessoa mexe no acesso dela.');
+      expect((await r.json()).erro).toBe('Só quem pode dar o nível de acesso dessa pessoa mexe no acesso dela.');
     });
 
     it('o gestor reativa o auxiliar desativado', async () => {

@@ -12,13 +12,13 @@ import { lerCorpo } from '../erros.ts';
 import { MSG_SEM_EMAIL, MSG_ULTIMO_GESTOR } from './mensagens.ts';
 import { gerarSenhaProvisoria } from './senha-provisoria.ts';
 
-const MSG_SO_ADMIN = 'Só o administrador dá ou encerra o papel de administrador.';
-const MSG_SEM_PODER = 'Você só dá e encerra papéis na sua unidade e nas de baixo.';
-const MSG_ADMIN_NA_RAIZ = 'O papel de administrador só existe na unidade raiz.';
-const MSG_JA_ENCERRADO = 'Este papel já foi encerrado.';
-const MSG_ATE_ANTES = 'O encerramento não pode ser antes do início do papel.';
+const MSG_SO_ADMIN = 'Só o administrador dá ou encerra o nível de acesso de administrador.';
+const MSG_SEM_PODER = 'Você só dá e encerra níveis de acesso na sua unidade e nas de baixo.';
+const MSG_ADMIN_NA_RAIZ = 'O nível de acesso de administrador só existe na unidade raiz.';
+const MSG_JA_ENCERRADO = 'Este nível de acesso já foi encerrado.';
+const MSG_ATE_ANTES = 'O encerramento não pode ser antes do início do nível de acesso.';
 const MSG_EMAIL_EM_USO = 'Este e-mail já é de outro militar.';
-const MSG_SO_QUEM_PODE_DAR = 'Só quem pode dar o papel dessa pessoa mexe no acesso dela.';
+const MSG_SO_QUEM_PODE_DAR = 'Só quem pode dar o nível de acesso dessa pessoa mexe no acesso dela.';
 const MSG_SEM_ACESSO = 'Este militar ainda não tem acesso ao sistema.';
 
 /**
@@ -225,7 +225,7 @@ export function rotasAcesso(dep: { banco: Banco; auth: Auth }): Hono<AmbienteApi
           [papelId],
         )).rows[0]
       : undefined;
-    if (!p) return c.json({ erro: 'Papel não encontrado.' }, 404);
+    if (!p) return c.json({ erro: 'Nível de acesso não encontrado.' }, 404);
     const quem = c.get('usuarioId');
     const sem = await podeNaUnidade(banco, quem, p.papel, p.unidade_id);
     if (sem) return c.json({ erro: sem }, 403);
