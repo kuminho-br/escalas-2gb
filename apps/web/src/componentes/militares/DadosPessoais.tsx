@@ -17,13 +17,14 @@ type Valores = {
 };
 const CAMPOS_DO_ENDERECO = ['cep', 'logradouro', 'numero', 'complemento', 'bairro', 'cidade', 'uf'] as const;
 
+// o bloco só aparece para quem vê os dados restritos (a API manda as três chaves); sem elas, os campos começam vazios
 const doServidor = (f: FichaMilitar): Valores => ({
   dia: f.nascimento ? String(f.nascimento.dia) : '',
   mes: f.nascimento ? String(f.nascimento.mes) : '',
   ano: f.nascimento?.ano ? String(f.nascimento.ano) : '',
   cpf: f.cpf ?? '',
-  cep: f.endereco.cep ?? '', logradouro: f.endereco.logradouro ?? '', numero: f.endereco.numero ?? '', complemento: f.endereco.complemento ?? '',
-  bairro: f.endereco.bairro ?? '', cidade: f.endereco.cidade ?? '', uf: f.endereco.uf ?? '',
+  cep: f.endereco?.cep ?? '', logradouro: f.endereco?.logradouro ?? '', numero: f.endereco?.numero ?? '', complemento: f.endereco?.complemento ?? '',
+  bairro: f.endereco?.bairro ?? '', cidade: f.endereco?.cidade ?? '', uf: f.endereco?.uf ?? '',
 });
 const igual = (a: Valores, b: Valores) => (Object.keys(a) as (keyof Valores)[]).every((k) => a[k].trim() === b[k].trim());
 

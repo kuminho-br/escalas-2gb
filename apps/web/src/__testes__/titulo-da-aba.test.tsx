@@ -18,6 +18,9 @@ describe('o título da aba', () => {
     expect(tituloDaAba('/peculio')).toBe(`Pecúlio · ${SISTEMA}`);
     expect(tituloDaAba('/minha-ficha')).toBe(`Minha ficha · ${SISTEMA}`);
     expect(tituloDaAba('/configuracoes')).toBe(`Configurações · ${SISTEMA}`);
+    // a consulta e a ficha de consulta: o nome da tela, e nunca o do militar
+    expect(tituloDaAba('/consulta')).toBe(`Consulta de militares · ${SISTEMA}`);
+    expect(tituloDaAba('/consulta/abc')).toBe(`Consulta de militares · ${SISTEMA}`);
     expect(tituloDaAba('/')).toBe(SISTEMA);
   });
 

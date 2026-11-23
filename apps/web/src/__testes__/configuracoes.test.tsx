@@ -1,4 +1,4 @@
-import { mesPorExtenso, somarMeses, type LinhaEscala, type LinhaGuarnicao, type NoDaEstrutura, type Parametro, type VersaoDaMetaPadrao } from 'contratos';
+import { mesPorExtenso, somarMeses, type Borda, type LinhaEscala, type LinhaGuarnicao, type NoDaEstrutura, type Parametro, type Quadro, type VersaoDaMetaPadrao } from 'contratos';
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
@@ -546,5 +546,124 @@ describe('configurações: estrutura do grupamento (6.10)', () => {
     await userEvent.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Mover' }));
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
     for (const chave of [['parametros', 'u-1sb', '2026-11'], ['feriados', 'u-1sb', 2026], ['funcoes', 'u-1sb']]) expect(queryClient.getQueryState(chave)?.isInvalidated).toBe(true);
+  });
+});
+
+describe('configurações: quem vê o quê (6.11)', () => {
+  const ADMIN = { ...EU_EXEMPLO, papeis: [{ papel: 'administrador' as const, unidadeId: 'raiz', unidadeSigla: 'CBMPE' }] };
+  const CHEFE = { ...EU_EXEMPLO, papeis: [{ papel: 'chefe_divisao' as const, unidadeId: 'u-divop', unidadeSigla: 'DivOp' }] };
+  // a borda inicial da spec: [todos, oficial, chefe de divisão]
+  const MARCAS: [Borda[number]['bloco'], boolean, boolean, boolean][] = [
+    ['identificacao', true, true, true], ['contato', false, true, true], ['situacao', false, true, true], ['afastamentos', false, true, true],
+    ['dados_da_escala', false, true, true], ['comportamento', false, false, true], ['escala_em_montagem', false, false, true],
+  ];
+  const BORDA: Borda = MARCAS.map(([bloco, todos, oficial, chefeDivisao]) => ({ bloco, todos, oficial, chefeDivisao }));
+  const quadro = (id: string, sigla: string, nome: string, oficial: boolean): Quadro => ({ id, sigla, nome, postoGradIds: [], oficial });
+  const QUADROS = [quadro('q-qoc', 'QOC', 'Quadro de Oficiais Combatentes', true), quadro('q-qoa', 'QOA', 'Quadro de Oficiais da Administração', true), quadro('q-qbmg', 'QBMG', 'Qualificação Bombeiro Militar Geral', false)];
+  const comBorda = (extra: Parameters<typeof simularApi>[0] = {}, eu: typeof EU_EXEMPLO = ADMIN) =>
+    api({ 'GET /api/visao': { status: 200, corpo: BORDA }, 'GET /api/quadros': { status: 200, corpo: QUADROS }, ...extra }, eu);
+  const marca = (bloco: string, camada: string) => screen.getByRole('checkbox', { name: `${bloco}: ${camada}` }) as HTMLInputElement;
+  const NOMES = ['Identificação', 'Contato', 'Situação', 'Afastamentos', 'Dados da escala', 'Comportamento', 'Escala em montagem'];
+
+  it('a aba só aparece para o administrador', async () => {
+    for (const [eu, aparece] of [[EU_EXEMPLO, false], [GESTOR, false], [CHEFE, false], [ADMIN, true]] as const) {
+      comBorda({}, eu);
+      abrir('/configuracoes');
+      await screen.findByRole('tab', { name: 'Regras do processo' });
+      expect(screen.queryAllByRole('tab', { name: 'Quem vê o quê' }), String(eu.papeis[0]?.papel)).toHaveLength(aparece ? 1 : 0);
+      cleanup();
+    }
+  });
+
+  it('mostra os sete blocos e as três camadas, com as marcas da borda', async () => {
+    comBorda();
+    abrir('/configuracoes?aba=quem-ve-o-que');
+    const tabela = await screen.findByRole('table');
+    expect(within(tabela).getAllByRole('columnheader').map((c) => c.textContent)).toEqual([
+      'Bloco', 'Todostodo militar com conta', 'Oficialquem está num quadro de oficiais', 'Chefe de divisãonas divisões irmãs',
+    ]);
+    const linhas = within(tabela).getAllByRole('row').slice(1);
+    expect(linhas.map((l) => within(l).getAllByRole('rowheader')[0]!.querySelector('span')?.textContent)).toEqual(NOMES);
+    for (const [i, [, todos, oficial, chefe]] of MARCAS.entries()) {
+      expect(marca(NOMES[i]!, 'Todos').checked, `${NOMES[i]}/Todos`).toBe(todos);
+      expect(marca(NOMES[i]!, 'Oficial').checked, `${NOMES[i]}/Oficial`).toBe(oficial);
+      expect(marca(NOMES[i]!, 'Chefe de divisão').checked, `${NOMES[i]}/Chefe`).toBe(chefe);
+    }
+    // o que cada bloco tem fica escrito sob o nome
+    expect(within(tabela).getByText('Telefone e e-mail')).toBeInTheDocument();
+    // a tabela fica dentro de um quadro que rola (no celular)
+    expect(tabela.parentElement!.className).toMatch(/\boverflow-x-auto\b/);
+  });
+
+  it('a identificação de "Todos" fica marcada e travada; os outros "Todos" se mexem', async () => {
+    comBorda();
+    abrir('/configuracoes?aba=quem-ve-o-que');
+    await screen.findByRole('table');
+    expect(marca('Identificação', 'Todos')).toBeChecked();
+    expect(marca('Identificação', 'Todos')).toBeDisabled();
+    for (const nome of NOMES.slice(1)) expect(marca(nome, 'Todos'), nome).toBeEnabled();
+    expect(screen.getByText(/A identificação de “Todos” fica sempre marcada/)).toBeInTheDocument();
+  });
+
+  it('marcar "Todos" marca e trava as outras duas; desmarcar solta, e as marcas ficam', async () => {
+    comBorda();
+    abrir('/configuracoes?aba=quem-ve-o-que');
+    await screen.findByRole('table');
+    expect(marca('Comportamento', 'Oficial')).not.toBeChecked();
+    await userEvent.click(marca('Comportamento', 'Todos'));
+    for (const camada of ['Todos', 'Oficial', 'Chefe de divisão']) expect(marca('Comportamento', camada), camada).toBeChecked();
+    expect(marca('Comportamento', 'Oficial')).toBeDisabled();
+    expect(marca('Comportamento', 'Chefe de divisão')).toBeDisabled();
+    // as outras linhas não mudam
+    expect(marca('Contato', 'Todos')).not.toBeChecked();
+    expect(marca('Contato', 'Oficial')).toBeEnabled();
+    await userEvent.click(marca('Comportamento', 'Todos'));
+    expect(marca('Comportamento', 'Oficial')).toBeEnabled();
+    expect(marca('Comportamento', 'Oficial')).toBeChecked();
+    await userEvent.click(marca('Comportamento', 'Oficial'));
+    expect(marca('Comportamento', 'Oficial')).not.toBeChecked();
+  });
+
+  it('"Salvar" só liga depois de mudar algo, manda a borda inteira e diz que salvou', async () => {
+    const f = comBorda({ 'PUT /api/visao': { status: 200, corpo: BORDA } });
+    abrir('/configuracoes?aba=quem-ve-o-que');
+    await screen.findByRole('table');
+    expect(screen.getByRole('button', { name: 'Salvar' })).toBeDisabled();
+    await userEvent.click(marca('Contato', 'Todos'));
+    await userEvent.click(marca('Afastamentos', 'Oficial'));
+    expect(screen.getByRole('button', { name: 'Salvar' })).toBeEnabled();
+    await userEvent.click(screen.getByRole('button', { name: 'Salvar' }));
+    await waitFor(() => expect(corpoEnviado(f, 'PUT /api/visao')).toEqual(BORDA.map((l) => (l.bloco === 'contato' ? { ...l, todos: true, oficial: true, chefeDivisao: true } : l.bloco === 'afastamentos' ? { ...l, oficial: false } : l))));
+    expect(await screen.findByText('Alterações salvas.')).toBeInTheDocument();
+  });
+
+  it('o erro da API aparece, e a tabela fica como a pessoa deixou', async () => {
+    comBorda({ 'PUT /api/visao': { status: 403, corpo: { erro: 'Só o administrador do sistema ajusta quem vê o quê.' } } });
+    abrir('/configuracoes?aba=quem-ve-o-que');
+    await screen.findByRole('table');
+    await userEvent.click(marca('Situação', 'Oficial'));
+    await userEvent.click(screen.getByRole('button', { name: 'Salvar' }));
+    expect(await screen.findByText('Só o administrador do sistema ajusta quem vê o quê.')).toBeInTheDocument();
+    expect(marca('Situação', 'Oficial')).not.toBeChecked();
+    expect(screen.getByRole('button', { name: 'Salvar' })).toBeEnabled();
+  });
+
+  it('lista os quadros com a marca "de oficiais", e marcar grava na hora', async () => {
+    const f = comBorda({ 'PATCH /api/quadros/q-qbmg': { status: 200, corpo: { ...QUADROS[2], oficial: true } } });
+    abrir('/configuracoes?aba=quem-ve-o-que');
+    const lista = await screen.findByRole('list', { name: 'Quadros' });
+    expect(within(lista).getAllByRole('listitem').map((li) => li.querySelector('span')?.textContent)).toEqual(['QOC', 'QOA', 'QBMG']);
+    expect(screen.getByRole('checkbox', { name: 'QOC: de oficiais' })).toBeChecked();
+    expect(screen.getByRole('checkbox', { name: 'QOA: de oficiais' })).toBeChecked();
+    expect(screen.getByRole('checkbox', { name: 'QBMG: de oficiais' })).not.toBeChecked();
+    await userEvent.click(screen.getByRole('checkbox', { name: 'QBMG: de oficiais' }));
+    await waitFor(() => expect(corpoEnviado(f, 'PATCH /api/quadros/q-qbmg')).toEqual({ oficial: true }));
+  });
+
+  it('o erro ao marcar um quadro aparece', async () => {
+    comBorda({ 'PATCH /api/quadros/q-qoc': { status: 403, corpo: { erro: 'Só o administrador do sistema ajusta quem vê o quê.' } } });
+    abrir('/configuracoes?aba=quem-ve-o-que');
+    await userEvent.click(await screen.findByRole('checkbox', { name: 'QOC: de oficiais' }));
+    expect(await screen.findByText('Só o administrador do sistema ajusta quem vê o quê.')).toBeInTheDocument();
   });
 });
