@@ -219,8 +219,8 @@ export type FichaMilitar = LinhaMilitar & {
   /** A função do militar (do catálogo das Configurações), pelo nome; a que foi desativada continua na ficha de quem a tem. null: ainda sem função. */
   funcao: string | null;
   funcaoMilitarId: string | null;
-  /** Abono de permanência: sim ou não. Só aparece na ficha completa. */
-  abonoPermanencia: boolean;
+  /** Abono de permanência: sim ou não. Só vem para quem cuida do Pecúlio (`veDadosRestritos`): para os outros a chave fica ausente. */
+  abonoPermanencia?: boolean;
   /** Vê o CPF, o nascimento e o endereço: quem tem nível de acesso numa unidade acima da lotação do militar, e o administrador. */
   veDadosRestritos: boolean;
   /** A situação do período que vale (Ativa, Reserva…); null quando o militar não tem período. */

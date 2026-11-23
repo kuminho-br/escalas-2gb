@@ -102,6 +102,17 @@ describe('a função e o abono na ficha', () => {
     expect(await ficha(alvo)).toMatchObject({ funcaoMilitarId: null, abonoPermanencia: false, voluntarioJes: false });
   });
 
+  it('o abono é só de quem cuida do Pecúlio: o auxiliar da seção não recebe a chave, nem ao ler nem ao gravar outro campo (achado da revisão final)', async () => {
+    await api.banco.query('update militar set abono_permanencia = true where id = $1', [alvo]);
+    const doAuxiliar = await ficha(alvo, 'escalante');
+    expect(doAuxiliar.veDadosRestritos).toBe(false);
+    expect('abonoPermanencia' in doAuxiliar).toBe(false);
+    const gravada = await (await editar(alvo, { voluntarioJes: false }, 'escalante')).json();
+    expect('abonoPermanencia' in gravada).toBe(false);
+    expect((await ficha(alvo)).abonoPermanencia).toBe(true);
+    await api.banco.query('update militar set abono_permanencia = false where id = $1', [alvo]);
+  });
+
   it('função que não existe é 400 no campo; uuid inválido também', async () => {
     for (const funcaoMilitarId of ['00000000-0000-4000-8000-000000000000', 'x']) {
       const r = await editar(alvo, { funcaoMilitarId });

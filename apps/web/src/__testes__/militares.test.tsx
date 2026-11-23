@@ -667,10 +667,11 @@ describe('ficha ampliada (fase 5)', () => {
   });
 
   it('Identificação: sem nível de acesso no Pecúlio, a Função e o abono ficam só para leitura (6.15)', async () => {
-    comFicha({ ...SEM_PECULIO, funcao: 'Chefe de seção', funcaoMilitarId: 'fun-chefe' });
+    comFicha({ ...SEM_PECULIO, funcao: 'Chefe de seção', funcaoMilitarId: 'fun-chefe', abonoPermanencia: undefined });
     abrir('/militares/m1');
     expect(await screen.findByLabelText('Função')).toBeDisabled();
-    expect(screen.getByRole('checkbox', { name: 'Abono de permanência' })).toBeDisabled();
+    // o abono nem vem da API para quem não cuida do Pecúlio: a caixa não aparece
+    expect(screen.queryByRole('checkbox', { name: 'Abono de permanência' })).toBeNull();
   });
 
   it('Dados pessoais: o nascimento é dia e mês, com o ano opcional, grava junto e limpar manda null; 31 de fevereiro mostra a mensagem sem chamar a API (Review Focus 4)', async () => {

@@ -29,7 +29,7 @@ export function Identificacao({ ficha }: { ficha: FichaMilitar }) {
   const [jes, setJes] = useState(ficha.voluntarioJes);
   // a função escolhida: '' é "sem função"
   const [funcaoId, setFuncaoId] = useState(ficha.funcaoMilitarId ?? '');
-  const [abono, setAbono] = useState(ficha.abonoPermanencia);
+  const [abono, setAbono] = useState(ficha.abonoPermanencia ?? false);
   const [aviso, setAviso] = useState<{ erro: boolean; texto: string } | null>(null);
   const [campos, setCampos] = useState<Record<string, string>>({});
   // o que está na tela, no formato do servidor (a antiguidade vazia é null)
@@ -39,7 +39,7 @@ export function Identificacao({ ficha }: { ficha: FichaMilitar }) {
   };
   const valoresDoServidor: ValoresIdentificacao = {
     postoGradId: ficha.postoGradId, nomeCompleto: ficha.nomeCompleto ?? '', nomeGuerra: ficha.nomeGuerra, sexo: ficha.sexo, antiguidade: ficha.antiguidade, voluntarioJes: ficha.voluntarioJes,
-    funcaoMilitarId: ficha.funcaoMilitarId, abonoPermanencia: ficha.abonoPermanencia,
+    funcaoMilitarId: ficha.funcaoMilitarId, abonoPermanencia: ficha.abonoPermanencia ?? false,
   };
   // o último gravado (começa com o que veio do servidor): o que difere dele é alteração pendente, e é só isso que se grava
   const [salvo, setSalvo] = useState<ValoresIdentificacao>(valoresDoServidor);
@@ -55,7 +55,7 @@ export function Identificacao({ ficha }: { ficha: FichaMilitar }) {
     setAntiguidade(antiguidadeDoServidor);
     setJes(ficha.voluntarioJes);
     setFuncaoId(ficha.funcaoMilitarId ?? '');
-    setAbono(ficha.abonoPermanencia);
+    setAbono(ficha.abonoPermanencia ?? false);
     setSalvo(valoresDoServidor);
   });
 
@@ -80,7 +80,7 @@ export function Identificacao({ ficha }: { ficha: FichaMilitar }) {
   const nomeCompletoApagado = !nomeCompleto.trim() && Boolean(ficha.nomeCompleto);
   // só as funções ativas entram na escolha; a que o militar já tem continua nela, mesmo desativada
   const funcoesAtivas = funcoes.data?.filter((f) => f.ativo) ?? [];
-  const funcaoDesativada = ficha.funcaoMilitarId && ficha.funcao && !funcoesAtivas.some((f) => f.id === ficha.funcaoMilitarId) ? { id: ficha.funcaoMilitarId, nome: ficha.funcao } : null;
+  const funcaoDesativada = funcoes.data && ficha.funcaoMilitarId && ficha.funcao && !funcoesAtivas.some((f) => f.id === ficha.funcaoMilitarId) ? { id: ficha.funcaoMilitarId, nome: ficha.funcao } : null;
 
   return (
     <Secao titulo="Identificação">
@@ -125,10 +125,12 @@ export function Identificacao({ ficha }: { ficha: FichaMilitar }) {
             <input type="checkbox" checked={jes} disabled={!escala} onChange={(e) => setJes(e.target.checked)} className="size-4 accent-vinho" />
             Voluntário JES
           </label>
+          {ficha.abonoPermanencia !== undefined && (
           <label className="flex items-center gap-2">
             <input type="checkbox" checked={abono} disabled={!peculio} onChange={(e) => setAbono(e.target.checked)} className="size-4 accent-vinho" />
             Abono de permanência
           </label>
+          )}
         </div>
         <AcoesDoBloco salvando={salvando} sujo={sujo} desabilitado={nomeCompletoApagado} aviso={aviso} rotulo="Salvar alterações" />
       </form>

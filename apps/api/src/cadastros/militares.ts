@@ -193,7 +193,7 @@ async function carregarFicha(c: Consulta, id: string, mes: string, usuarioId: st
     escala,
     unidadeDeCima: lotacaoAtual ? await siglaDaUnidadeDeCima(c, lotacaoAtual) : null,
   };
-  // CPF, nascimento e endereço: de quem cuida do Pecúlio (nível de acesso acima da lotação) e do administrador; para os outros as chaves nem saem
+  // CPF, nascimento, endereço e abono de permanência: de quem cuida do Pecúlio (nível de acesso acima da lotação) e do administrador; para os outros as chaves nem saem
   const veDadosRestritos = podeEditar.peculio || (await ehAdministrador(c, usuarioId, hoje));
   return {
     ...linhaDe(m, afastamentos.rows, mes, repetidaCom),
@@ -204,10 +204,10 @@ async function carregarFicha(c: Consulta, id: string, mes: string, usuarioId: st
     sexo: m.sexo,
     funcao: m.funcao_nome,
     funcaoMilitarId: m.funcao_militar_id,
-    abonoPermanencia: m.abono_permanencia,
     veDadosRestritos,
     ...(veDadosRestritos
       ? {
+          abonoPermanencia: m.abono_permanencia,
           nascimento: m.nascimento_dia !== null && m.nascimento_mes !== null ? { dia: m.nascimento_dia, mes: m.nascimento_mes, ano: m.nascimento_ano } : null,
           cpf: m.cpf,
           endereco: { cep: m.cep, logradouro: m.logradouro, numero: m.numero, complemento: m.complemento, bairro: m.bairro, cidade: m.cidade, uf: m.uf },
