@@ -7,12 +7,13 @@ import type { Banco, Consulta } from './banco/banco.ts';
 import { hojeRecife } from './datas.ts';
 import { MSG_CRIE_A_SENHA, MSG_SENHA_VENCIDA } from './usuarios/mensagens.ts';
 
-export type Papel = 'administrador' | 'gestor' | 'escalante';
+export type Papel = 'administrador' | 'gestor' | 'chefe_divisao' | 'escalante';
 
 export type AmbienteApi = { Variables: { usuarioId: string; banco: Banco } };
 
-export const CADASTRO: Papel[] = ['escalante', 'gestor', 'administrador'];
-export const ESCREVE_PARAMETRO: Papel[] = ['gestor', 'administrador'];
+export const CADASTRO: Papel[] = ['escalante', 'gestor', 'chefe_divisao', 'administrador'];
+/** Quem edita como gestor: o chefe de divisão é um gestor da sua divisão e das seções de dentro. */
+export const GESTAO: Papel[] = ['gestor', 'chefe_divisao', 'administrador'];
 
 const VIGENTE = 'pu.desde <= $2 and (pu.ate is null or pu.ate >= $2)';
 

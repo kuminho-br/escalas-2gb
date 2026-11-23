@@ -3,7 +3,7 @@ import { AjusteDeSaldo, OrdemManual, Participantes, ServicoDoMes, TrocaDeTurno, 
 import { Mes } from 'contratos';
 import { calcularCotas, diasDoMes, ordemDeEscolha, rotuloDoTurno, saldoDeEntrada, saldoDoMes, type TurnoDoMes } from 'dominio';
 import { Hono, type Context } from 'hono';
-import { ESCREVE_PARAMETRO, exigirPapel, exigirSessao, type AmbienteApi } from '../acesso.ts';
+import { GESTAO, exigirPapel, exigirSessao, type AmbienteApi } from '../acesso.ts';
 import type { Auth } from '../auth.ts';
 import { comUsuario, type Banco, type Consulta } from '../banco/banco.ts';
 import { hojeRecife } from '../datas.ts';
@@ -118,7 +118,7 @@ export function rotasOficiais(dep: { banco: Banco; auth: Auth }): Hono<AmbienteA
   /** Papel de gestor ou administrador na unidade e o mês válido; devolve a resposta de recusa, se houver. */
   async function entrada(c: Ctx, comMes = true): Promise<{ resposta: Response } | { u: string; mes: string }> {
     const u = c.req.param('u')!;
-    const negado = await exigirPapel(c, u, ESCREVE_PARAMETRO);
+    const negado = await exigirPapel(c, u, GESTAO);
     if (negado) return { resposta: negado };
     const mes = comMes ? c.req.param('mes')! : '';
     if (comMes && !Mes.safeParse(mes).success) return { resposta: c.json({ erro: 'Mês inválido: use o formato aaaa-mm.' }, 400) };

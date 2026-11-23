@@ -31,9 +31,9 @@ describe('GET /api/eu: unidades de trabalho e lotação', () => {
     expect(r.unidade).toBeUndefined();
   });
 
-  it('o gestor do 2º GB tem o 2º GB e as sete seções, em ordem', async () => {
+  it('o gestor do 2º GB tem o 2º GB, as sete seções e as duas divisões, em ordem', async () => {
     const r = await eu('gestorGb');
-    expect(siglas(r.unidades)).toEqual(['2º GB', '1ª SB', '2ª SB', '3ª SB', '4ª SB', '5ª SB', '6ª SB', '7ª SB']);
+    expect(siglas(r.unidades)).toEqual(['2º GB', '1ª SB', '2ª SB', '3ª SB', '4ª SB', '5ª SB', '6ª SB', '7ª SB', 'DA', 'DivOp']);
     expect(r.unidades[0]!.nivel).toBe(r.unidades[1]!.nivel - 1);
   });
 

@@ -236,9 +236,10 @@ describe('papéis na ficha', () => {
     expect((await acessoDe(m.id)).papeisQuePodeDar).toEqual([]);
     expect((await dar(m.id, { papel: 'escalante', unidadeId: api.ids.secao, desde: inicioDoMes }, 'escalante')).status).toBe(403);
     const gestor = await acessoDe(m.id, 'gestorGb');
-    expect(gestor.papeisQuePodeDar).toEqual(['gestor', 'escalante']);
+    // o gestor do grupamento está acima das divisões: também dá o nível de chefe de divisão (6.10)
+    expect(gestor.papeisQuePodeDar).toEqual(['gestor', 'chefe_divisao', 'escalante']);
     expect(gestor.unidadesParaPapel.some((u) => u.id === api.ids.secao)).toBe(true);
-    expect((await acessoDe(m.id, 'admin')).papeisQuePodeDar).toEqual(['administrador', 'gestor', 'escalante']);
+    expect((await acessoDe(m.id, 'admin')).papeisQuePodeDar).toEqual(['administrador', 'gestor', 'chefe_divisao', 'escalante']);
   });
 
   it('gestor fora da unidade ou dando administrador recebe 403 (Review Focus 3)', async () => {
