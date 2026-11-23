@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { linhaDoTempoDoMilitar } from '@/lib/linha-do-tempo-militar';
 
 type Periodo = FichaMilitar['rastreio'][number];
-const periodo = (id: string, desde: string, ate: string | null, unidadeSigla: string, equipe: string | null, jornada: 'pronto' | 'adm'): Periodo => ({ id, unidadeSigla, equipe, jornada, quadro: 'QBMG', situacao: 'Ativa', desde, ate });
+const periodo = (id: string, desde: string, ate: string | null, unidadeSigla: string, equipe: string | null, jornada: 'pronto' | 'adm'): Periodo => ({ id, unidadeId: 'u-1sb', unidadeSigla, equipe, jornada, quadro: 'QBMG', situacao: 'Ativa', desde, ate, alteradoPor: null, alteradoEm: null });
 const afastamento = (id: string, tipo: string, inicio: string, fim: string): FichaMilitar['afastamentos'][number] => ({ id, tipo, tipoAfastamentoId: `t-${id}`, inicio, fim, motivo: null, boletim: null });
 
 describe('linhaDoTempoDoMilitar', () => {
@@ -73,5 +73,12 @@ describe('linhaDoTempoDoMilitar', () => {
     // períodos colados (o fim num dia e o começo no seguinte) não têm intervalo
     const colados = [periodo('r2', '2026-07-01', null, '1ª SB', 'Alfa', 'pronto'), periodo('r1', '2026-03-01', '2026-06-30', '1ª SB', 'Alfa', 'pronto')];
     expect(linhaDoTempoDoMilitar(colados, []).some((i) => i.texto.startsWith('Sem lotação'))).toBe(false);
+  });
+
+  it('o item de cada período diz quem mexeu e quando ("por MAJ BARRETO em 23/11/2026 às 09:15"); sem autor, nada (6.23)', () => {
+    const comAutor = { ...periodo('r2', '2026-11-01', null, '1ª SB', 'Bravo', 'pronto'), alteradoPor: { patente: 'MAJ', nomeGuerra: 'BARRETO' }, alteradoEm: '2026-11-23T09:15:42' };
+    const semAutor = periodo('r1', '2026-03-01', '2026-10-31', '1ª SB', 'Alfa', 'pronto');
+    const itens = linhaDoTempoDoMilitar([comAutor, semAutor], []);
+    expect(itens.map((i) => i.autor)).toEqual(['por MAJ BARRETO em 23/11/2026 às 09:15', undefined]);
   });
 });

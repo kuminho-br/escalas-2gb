@@ -6,10 +6,16 @@ type Periodo = FichaMilitar['rastreio'][number];
 type Afastamento = FichaMilitar['afastamentos'][number];
 
 /** `quando` é a data de começo ('aaaa-mm-dd'): o período do rastreio e o afastamento, no dia em que começam. */
-export type ItemDaLinhaDoTempo = { quando: string; tipo: 'situacao' | 'intervalo' | 'afastamento'; texto: string };
+export type ItemDaLinhaDoTempo = { quando: string; tipo: 'situacao' | 'intervalo' | 'afastamento'; texto: string; /** "por MAJ BARRETO em 23/11/2026 às 09:15", quando a auditoria sabe quem fez */ autor?: string };
 
 const ddmm = (d: string) => `${d.slice(8, 10)}/${d.slice(5, 7)}`;
 export const ddmmaaaa = (d: string) => `${ddmm(d)}/${d.slice(0, 4)}`;
+
+/** Quem mexeu no período e quando: "por MAJ BARRETO em 23/11/2026 às 09:15"; sem autor, nada. */
+export function textoDoAutor(p: Pick<Periodo, 'alteradoPor' | 'alteradoEm'>): string | undefined {
+  if (!p.alteradoPor || !p.alteradoEm) return undefined;
+  return `por ${p.alteradoPor.patente} ${p.alteradoPor.nomeGuerra} em ${ddmmaaaa(p.alteradoEm.slice(0, 10))} às ${p.alteradoEm.slice(11, 16)}`;
+}
 
 /** A situação inteira de um período, como no primeiro item da linha do tempo: "1ª SB · Equipe Alfa · Pronto · QBMG · Ativa". */
 export const situacaoInteira = (p: Pick<Periodo, 'unidadeSigla' | 'equipe' | 'jornada' | 'quadro' | 'situacao'>): string =>
@@ -38,7 +44,7 @@ function textoDoAfastamento(a: Afastamento): string {
  */
 export function linhaDoTempoDoMilitar(rastreio: Periodo[], afastamentos: Afastamento[]): ItemDaLinhaDoTempo[] {
   const periodos = [...rastreio].sort((a, b) => (a.desde < b.desde ? -1 : a.desde > b.desde ? 1 : 0));
-  const situacoes = periodos.map((p, i): ItemDaLinhaDoTempo => ({ quando: p.desde, tipo: 'situacao', texto: i === 0 ? situacaoInteira(p) : oQueMudou(periodos[i - 1]!, p) }));
+  const situacoes = periodos.map((p, i): ItemDaLinhaDoTempo => ({ quando: p.desde, tipo: 'situacao', texto: i === 0 ? situacaoInteira(p) : oQueMudou(periodos[i - 1]!, p), autor: textoDoAutor(p) }));
   // o intervalo entre um período que terminou e o seguinte: a pessoa ficou sem lotação nesses dias
   const intervalos = periodos.flatMap((p, i): ItemDaLinhaDoTempo[] => {
     const proximo = periodos[i + 1];

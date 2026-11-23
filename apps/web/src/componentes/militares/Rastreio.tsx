@@ -41,6 +41,7 @@ export function Rastreio({ ficha, unidadeId }: { ficha: FichaMilitar; unidadeId:
             <span className={`absolute top-1.5 -left-[1.4rem] size-2.5 rounded-full ${n === 0 ? 'bg-vinho' : 'bg-linha'}`} aria-hidden />
             <span className="mr-2 font-cond text-apagado">{ddmmaaaa(i.quando)}</span>
             <span className={i.tipo === 'situacao' ? 'font-medium' : 'text-apagado'}>{i.texto}</span>
+            {i.autor && <span className="block text-[13px] leading-[18px] text-apagado">{i.autor}</span>}
           </li>
         ))}
         {itens.length === 0 && <li className="text-apagado">Sem lotação registrada.</li>}
@@ -55,8 +56,8 @@ function AlterarSituacao({ ficha, unidadeAtualId, aoFechar }: { ficha: FichaMili
   const queryClient = useQueryClient();
   const secoes = useQuery(consultaSecoes);
   const atual = periodoAtual(ficha.rastreio);
-  // a lotação sugerida é a do período de hoje (as seções vêm com a sigla); sem ela, a unidade em que a tela trabalha
-  const daSigla = secoes.data?.find((s) => s.sigla === atual?.unidadeSigla)?.id;
+  // a lotação sugerida é a do período de hoje (achada pelo id: a mesma sigla existe em mais de um grupamento); sem ela, a unidade em que a tela trabalha
+  const daSigla = secoes.data?.find((s) => s.id === atual?.unidadeId)?.id;
   const [escolhida, setEscolhida] = useState<string | null>(null);
   const unidadeId = escolhida ?? daSigla ?? unidadeAtualId;
   const equipes = useQuery(consultaEquipes(unidadeId));

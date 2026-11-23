@@ -304,7 +304,7 @@ describe('Salvar que mostra o estado', () => {
     });
     const FICHA_M: FichaMilitar = {
       ...linhaM({}), podeEditar: { peculio: true, escala: true, unidadeDeCima: '2º GB' }, postoGradId: 'p-sd', veDadosRestritos: true, cpf: null, endereco: { cep: null, logradouro: null, numero: null, complemento: null, bairro: null, cidade: null, uf: null }, situacaoDoMilitar: { id: 'sit-ativa', nome: 'Ativa', escalavel: true }, nomeCompleto: 'João da Silva Andrade', sexo: 'M', nascimento: { dia: 15, mes: 3 }, telefone: '(81) 99999-0000', email: 'andrade@bombeiros.pe.gov.br', comportamento: 'Bom', comportamentoBoletim: 'BG 01/2026', antiguidade: 3, antiguidadeRepetidaCom: [], funcao: null, funcaoMilitarId: null, abonoPermanencia: false, noQuadroDeMotoristas: false, cnh: [], cnhPorHierarquia: [],
-      rastreio: [{ id: 'l1', unidadeSigla: '1ª SB', equipe: 'Alfa', jornada: 'pronto', desde: '2020-01-01', quadro: 'QBMG', situacao: 'Ativa', ate: null }], afastamentos: [],
+      rastreio: [{ id: 'l1', unidadeId: 'u-1sb', unidadeSigla: '1ª SB', alteradoPor: null, alteradoEm: null, equipe: 'Alfa', jornada: 'pronto', desde: '2020-01-01', quadro: 'QBMG', situacao: 'Ativa', ate: null }], afastamentos: [],
     };
     const rotasM = (): Parameters<typeof simularApi>[0] => ({
       '/api/eu': { status: 200, corpo: EU_EXEMPLO },

@@ -243,7 +243,21 @@ export type FichaMilitar = LinhaMilitar & {
    */
   podeEditar: { peculio: boolean; escala: boolean; unidadeDeCima: string | null };
   /** Os períodos de lotação + equipe + jornada, do mais novo para o mais velho. */
-  rastreio: { id: string; unidadeSigla: string; equipe: string | null; jornada: 'pronto' | 'adm'; quadro: string | null; situacao: string; desde: string; ate: string | null }[];
+  rastreio: {
+    id: string;
+    unidadeId: string;
+    unidadeSigla: string;
+    equipe: string | null;
+    jornada: 'pronto' | 'adm';
+    quadro: string | null;
+    situacao: string;
+    desde: string;
+    ate: string | null;
+    /** Quem fez a última mudança neste período (patente sem "BM" e nome de guerra), pela auditoria; null para o que veio sem autor (carga inicial, dado anterior). */
+    alteradoPor: { patente: string; nomeGuerra: string } | null;
+    /** Quando (data e hora de Recife, 'aaaa-mm-ddThh:mm:ss'); null quando não há autor. */
+    alteradoEm: string | null;
+  }[];
   afastamentos: { id: string; tipo: string; tipoAfastamentoId: string; inicio: string; fim: string; motivo: string | null; boletim: string | null }[];
 };
 
