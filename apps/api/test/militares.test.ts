@@ -134,8 +134,8 @@ describe('alterar situação (rastreio)', () => {
     const r = await situacao(m.id, { unidadeId: api.ids.secao, equipeId: null, jornada: 'adm', desde: `${somarMeses(atual, -1)}-28` });
     expect(r.status).toBe(400);
     const corpo = await r.json();
-    expect(corpo.erro).toBe('Use o dia do período aberto ou um dia depois.');
-    expect(corpo.campos.desde).toBe('Use o dia do período aberto ou um dia depois.');
+    expect(corpo.erro).toMatch(/^Use uma data a partir de \d{2}\/\d{2}\/\d{4}\.$/);
+    expect(corpo.campos.desde).toBe(corpo.erro);
     expect((await ficha(m.id)).rastreio).toHaveLength(1);
   });
 

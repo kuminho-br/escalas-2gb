@@ -1,11 +1,12 @@
 import type { FichaMilitar } from 'contratos';
 import { NOME_JORNADA } from '@/lib/militares';
+import { somarDias } from '@/lib/meses';
 
 type Periodo = FichaMilitar['rastreio'][number];
 type Afastamento = FichaMilitar['afastamentos'][number];
 
 /** `quando` é a data de começo ('aaaa-mm-dd'): o período do rastreio e o afastamento, no dia em que começam. */
-export type ItemDaLinhaDoTempo = { quando: string; tipo: 'situacao' | 'afastamento'; texto: string };
+export type ItemDaLinhaDoTempo = { quando: string; tipo: 'situacao' | 'intervalo' | 'afastamento'; texto: string };
 
 const ddmm = (d: string) => `${d.slice(8, 10)}/${d.slice(5, 7)}`;
 export const ddmmaaaa = (d: string) => `${ddmm(d)}/${d.slice(0, 4)}`;
@@ -38,7 +39,13 @@ function textoDoAfastamento(a: Afastamento): string {
 export function linhaDoTempoDoMilitar(rastreio: Periodo[], afastamentos: Afastamento[]): ItemDaLinhaDoTempo[] {
   const periodos = [...rastreio].sort((a, b) => (a.desde < b.desde ? -1 : a.desde > b.desde ? 1 : 0));
   const situacoes = periodos.map((p, i): ItemDaLinhaDoTempo => ({ quando: p.desde, tipo: 'situacao', texto: i === 0 ? situacaoInteira(p) : oQueMudou(periodos[i - 1]!, p) }));
+  // o intervalo entre um período que terminou e o seguinte: a pessoa ficou sem lotação nesses dias
+  const intervalos = periodos.flatMap((p, i): ItemDaLinhaDoTempo[] => {
+    const proximo = periodos[i + 1];
+    if (!p.ate || !proximo || somarDias(p.ate, 1) >= proximo.desde) return [];
+    return [{ quando: somarDias(p.ate, 1), tipo: 'intervalo', texto: `Sem lotação de ${ddmm(somarDias(p.ate, 1))} a ${ddmm(somarDias(proximo.desde, -1))}` }];
+  });
   const afastados = afastamentos.map((a): ItemDaLinhaDoTempo => ({ quando: a.inicio, tipo: 'afastamento', texto: textoDoAfastamento(a) }));
-  const ordemDoTipo = { situacao: 0, afastamento: 1 };
-  return [...situacoes, ...afastados].sort((a, b) => (a.quando !== b.quando ? (a.quando < b.quando ? 1 : -1) : ordemDoTipo[a.tipo] - ordemDoTipo[b.tipo]));
+  const ordemDoTipo = { situacao: 0, intervalo: 1, afastamento: 2 };
+  return [...situacoes, ...intervalos, ...afastados].sort((a, b) => (a.quando !== b.quando ? (a.quando < b.quando ? 1 : -1) : ordemDoTipo[a.tipo] - ordemDoTipo[b.tipo]));
 }

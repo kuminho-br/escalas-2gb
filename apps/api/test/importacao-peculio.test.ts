@@ -403,3 +403,18 @@ describe('os dados da escala, o quadro e a situação na planilha do Pecúlio (T
     expect((await rastreio('990420-0')).at(-1)!.quadro).toBe('QOC');
   });
 });
+
+describe('o militar com lotação só no futuro, de outra árvore (6.16, Task 4, item 11)', () => {
+  it('a mensagem diz "tem lotação marcada na X a partir de dd/mm/aaaa", e não "está lotado na X"', async () => {
+    const raiz = (await api.banco.query<{ id: string }>('select id from unidade where mae_id is null')).rows[0]!.id;
+    const outroGb = (await api.banco.query<{ id: string }>("insert into unidade (tipo, sigla, nome, mae_id, desde) values ('grupamento', '8º GB', 'Oitavo Grupamento', $1, '2020-01-01') returning id", [raiz])).rows[0]!.id;
+    const secaoFutura = (await api.banco.query<{ id: string }>("insert into unidade (tipo, sigla, nome, mae_id, desde) values ('secao', '1ª SB/8', 'Seção do 8º GB', $1, '2020-01-01') returning id", [outroGb])).rows[0]!.id;
+    const id = (await api.banco.query<{ id: string }>("insert into militar (matricula, posto_grad_id, nome_guerra) values ('990450-0', (select id from posto_grad order by ordem limit 1), 'FUTURO') returning id")).rows[0]!.id;
+    const desde = (await api.banco.query<{ d: string }>("select to_char(date_trunc('month', current_date) + interval '2 months', 'YYYY-MM-DD') as d")).rows[0]!.d;
+    await api.banco.query("insert into rastreio (militar_id, unidade_id, jornada, desde) values ($1, $2, 'adm', $3)", [id, secaoFutura, desde]);
+    const previa = await importar([{ 'MATRÍCULA': '990450-0', 'TELEFONE': '(81) 95555-0000' }]);
+    const brasil = `${desde.slice(8, 10)}/${desde.slice(5, 7)}/${desde.slice(0, 4)}`;
+    expect(previa.problemas).toEqual([expect.objectContaining({ mensagem: expect.stringContaining(`tem lotação marcada na 1ª SB/8 a partir de ${brasil}`) })]);
+    expect(JSON.stringify(previa.problemas)).not.toContain('está lotado');
+  });
+});

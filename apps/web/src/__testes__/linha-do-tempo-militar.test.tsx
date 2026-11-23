@@ -62,4 +62,16 @@ describe('linhaDoTempoDoMilitar', () => {
     expect(itens).toEqual([{ quando: '2026-12-20', tipo: 'afastamento', texto: 'Afastamento: Férias (20/12/2026 a 10/01/2027)' }]);
     expect(linhaDoTempoDoMilitar([], [])).toEqual([]);
   });
+
+  it('entre dois períodos com intervalo, vem o item "Sem lotação de dd/mm a dd/mm" (6.16)', () => {
+    const rastreio = [periodo('r2', '2026-09-01', null, '1ª SB', 'Alfa', 'pronto'), periodo('r1', '2026-03-01', '2026-06-30', '1ª SB', 'Alfa', 'pronto')];
+    expect(linhaDoTempoDoMilitar(rastreio, []).map((i) => [i.quando, i.texto])).toEqual([
+      ['2026-09-01', 'Sem mudança na situação'],
+      ['2026-07-01', 'Sem lotação de 01/07 a 31/08'],
+      ['2026-03-01', '1ª SB · Equipe Alfa · Pronto · QBMG · Ativa'],
+    ]);
+    // períodos colados (o fim num dia e o começo no seguinte) não têm intervalo
+    const colados = [periodo('r2', '2026-07-01', null, '1ª SB', 'Alfa', 'pronto'), periodo('r1', '2026-03-01', '2026-06-30', '1ª SB', 'Alfa', 'pronto')];
+    expect(linhaDoTempoDoMilitar(colados, []).some((i) => i.texto.startsWith('Sem lotação'))).toBe(false);
+  });
 });

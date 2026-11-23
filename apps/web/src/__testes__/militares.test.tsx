@@ -4,7 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { QueryClient } from '@tanstack/react-query';
 import { describe, expect, it, vi } from 'vitest';
 import { atualizarMilitares } from '@/api/militares';
-import { hoje, mesAtual } from '@/lib/meses';
+import { hoje, mesAtual, somarDias } from '@/lib/meses';
 import { abrir, chamadasA, corpoEnviado, EU_EXEMPLO, simularApi, trava } from './apoio';
 
 const linha = (l: Partial<LinhaMilitar>): LinhaMilitar => ({
@@ -119,7 +119,7 @@ describe('o quadro e a situação no rastreio', () => {
   });
 
   it('trocar a situação manda o quadro e a situação escolhidos', async () => {
-    const f = api({ 'GET /api/situacoes-do-militar': { status: 200, corpo: SITUACOES }, 'POST /api/militares/m1/situacao': { status: 200, corpo: FICHA } });
+    const f = api({ 'GET /api/situacoes-do-militar': { status: 200, corpo: SITUACOES }, 'GET /api/secoes': { status: 200, corpo: [{ id: 'u-1sb', sigla: '1ª SB', nome: '1ª Seção de Bombeiros' }] }, 'POST /api/militares/m1/situacao': { status: 200, corpo: FICHA } });
     const caixa = within(await abrirAlterar());
     const situacao = caixa.getByLabelText('Situação');
     await within(situacao).findByRole('option', { name: 'Reserva' });
@@ -1162,3 +1162,61 @@ describe('apagar um militar (6.13)', () => {
     expect(await dialogo.findByRole('alert')).toHaveTextContent('Você não pode apagar o seu próprio cadastro.');
   });
 });
+
+describe('o rastreio da ficha: acabamento (6.16, Task 4)', () => {
+  const br = (d: string) => `${d.slice(8, 10)}/${d.slice(5, 7)}/${d.slice(0, 4)}`;
+  const SITUACOES = [
+    { id: 'sit-ativa', nome: 'Ativa', escalavel: true, ativo: true },
+    { id: 'sit-reserva', nome: 'Reserva', escalavel: false, ativo: true },
+  ];
+  const SECOES = [{ id: 'u-1sb', sigla: '1ª SB', nome: '1ª Seção de Bombeiros' }];
+  const periodo = (id: string, desde: string, ate: string | null, quadro: string, situacao: string) => ({ id, unidadeSigla: '1ª SB', equipe: null, jornada: 'adm' as const, desde, ate, quadro, situacao });
+  const comRastreio = (rastreio: FichaMilitar['rastreio'], rotas: Parameters<typeof simularApi>[0] = {}) =>
+    api({
+      'GET /api/militares/m1': { status: 200, corpo: { ...FICHA, rastreio } },
+      'GET /api/situacoes-do-militar': { status: 200, corpo: SITUACOES },
+      'GET /api/secoes': { status: 200, corpo: SECOES },
+      ...rotas,
+    });
+  const abrirAlterar = async () => {
+    abrir('/militares/m1');
+    await userEvent.click(await screen.findByRole('button', { name: /Histórico de rastreio/ }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Alterar situação' }));
+    return within(await screen.findByRole('dialog'));
+  };
+
+  it('item 3: o formulário sugere o quadro e a situação do período aberto (os que a API herda), e não os de hoje', async () => {
+    // hoje vale QBMG/Ativa; o período aberto, marcado para daqui a 30 dias, é QBMG/Reserva
+    const aberto = somarDias(hoje(), 30);
+    comRastreio([periodo('r2', aberto, null, 'QBMG', 'Reserva'), periodo('r1', somarDias(hoje(), -60), somarDias(aberto, -1), 'QBMG', 'Ativa')]);
+    const caixa = await abrirAlterar();
+    await within(caixa.getByLabelText('Situação')).findByRole('option', { name: 'Reserva' });
+    expect(caixa.getByLabelText('Situação')).toHaveDisplayValue('Reserva');
+    expect(caixa.getByLabelText('Quadro')).toHaveDisplayValue('QBMG');
+  });
+
+  it('item 8: com período só no futuro, a ficha diz "Lotação a partir de dd/mm/aaaa", e não "Sem lotação"', async () => {
+    const futuro = somarDias(hoje(), 20);
+    comRastreio([periodo('r1', futuro, null, 'QBMG', 'Ativa')]);
+    abrir('/militares/m1');
+    expect((await screen.findAllByText(`Lotação a partir de ${br(futuro)}`)).length).toBeGreaterThan(0);
+    expect(screen.queryByText('Sem lotação')).toBeNull();
+  });
+
+  it('item 9: a linha do tempo mostra o intervalo entre dois períodos ("Sem lotação de dd/mm a dd/mm")', async () => {
+    comRastreio([periodo('r2', '2026-09-01', null, 'QBMG', 'Ativa'), periodo('r1', '2026-03-01', '2026-06-30', 'QBMG', 'Ativa')]);
+    abrir('/militares/m1');
+    await userEvent.click(await screen.findByRole('button', { name: /Histórico de rastreio/ }));
+    expect(await screen.findByText('Sem lotação de 01/07 a 31/08')).toBeInTheDocument();
+  });
+
+  it('item 12: enquanto a lista de seções carrega, o "Salvar" do "Alterar situação" fica desligado, e liga quando ela chega', async () => {
+    const { espera, soltar } = trava();
+    comRastreio([periodo('r1', somarDias(hoje(), -30), null, 'QBMG', 'Ativa')], { 'GET /api/secoes': { status: 200, corpo: SECOES, espera } });
+    const caixa = await abrirAlterar();
+    expect(caixa.getByRole('button', { name: 'Salvar' })).toBeDisabled();
+    soltar();
+    await waitFor(() => expect(caixa.getByRole('button', { name: 'Salvar' })).toBeEnabled());
+  });
+});
+
