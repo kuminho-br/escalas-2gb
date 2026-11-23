@@ -33,7 +33,7 @@ export type SenhaProvisoria = { senha: string; validaAte: string };
 export const NovaSenha = z.object({ novaSenha: z.string().min(10, 'Use pelo menos 10 caracteres.') });
 export type NovaSenha = z.infer<typeof NovaSenha>;
 
-export const NovoPapel = z.object({ papel: Papel, unidadeId: z.string().uuid('Escolha a unidade.'), desde: Data });
+export const NovoPapel = z.object({ papel: Papel, unidadeId: z.string().uuid('Escolha a unidade.'), desde: Data, ate: Data.nullable().optional() });
 export type NovoPapel = z.infer<typeof NovoPapel>;
 export const EncerrarPapel = z.object({ ate: Data });
 export type EncerrarPapel = z.infer<typeof EncerrarPapel>;

@@ -1,5 +1,5 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { createFileRoute, Link } from '@tanstack/react-router';
+import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import type { ItemDoPeculio } from 'contratos';
 import { TriangleAlert, UserPlus } from 'lucide-react';
 import { useMemo, useState } from 'react';
@@ -13,6 +13,8 @@ import { Input } from '@/componentes/ui/input';
 import { Label } from '@/componentes/ui/label';
 import { mesAtual } from '@/lib/meses';
 import { normalizarBusca } from '@/lib/texto';
+import { cn } from '@/lib/utils';
+import { classeItemEscolhido } from '@/componentes/ListaDetalhe';
 
 export const Route = createFileRoute('/_app/peculio')({
   component: Peculio,
@@ -27,6 +29,7 @@ const dois = (n: number) => String(n).padStart(2, '0');
 function Peculio() {
   const { eu } = Route.useRouteContext();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const unidade = unidadeDoPeculio(eu);
   const mes = mesAtual();
   const lista = useQuery(consultaPeculio(unidade.id, mes));
@@ -40,6 +43,8 @@ function Peculio() {
       (m) => (!lotacao || m.lotacao === lotacao) && (!b || normalizarBusca(`${m.nomeGuerra} ${m.nomeCompleto ?? ''} ${m.matricula}`).includes(b)),
     );
   }, [lista.data, busca, lotacao]);
+  // com texto na busca e um resultado só, ele fica em destaque e o Enter abre a ficha (a ficha nunca abre sozinha)
+  const unico = busca.trim() !== '' && filtrados.length === 1 ? filtrados[0]! : null;
 
   return (
     <section>
@@ -65,7 +70,17 @@ function Peculio() {
             <div className="grid gap-2 border-b border-linha p-3 sm:grid-cols-[1fr_12rem]">
               <div className="grid gap-1">
                 <Label htmlFor="busca-peculio" className="sr-only">Buscar por nome ou matrícula</Label>
-                <Input id="busca-peculio" placeholder="Buscar por nome ou matrícula" value={busca} onChange={(e) => setBusca(e.target.value)} />
+                <Input
+                  id="busca-peculio"
+                  placeholder="Buscar por nome ou matrícula"
+                  value={busca}
+                  onChange={(e) => setBusca(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key !== 'Enter' || !unico) return;
+                    e.preventDefault();
+                    void navigate({ to: '/militares/$id', params: { id: unico.militarId }, search: { de: 'peculio' } });
+                  }}
+                />
               </div>
               <div className="grid gap-1">
                 <Label htmlFor="filtro-lotacao" className="text-xs text-apagado">Lotação</Label>
@@ -77,7 +92,7 @@ function Peculio() {
             </div>
             <p className="px-4 pt-3 text-xs text-apagado">{filtrados.length} de {lista.data.militares.length} militares</p>
             <ul aria-label="Militares do Pecúlio" className="p-2">
-              {filtrados.map((m) => <ItemDoPeculioNaLista key={m.militarId} m={m} />)}
+              {filtrados.map((m) => <ItemDoPeculioNaLista key={m.militarId} m={m} destaque={m.militarId === unico?.militarId} />)}
               {lista.data.militares.length === 0 && <li className="p-3 text-apagado">Nenhum militar lotado. Cadastre com "Novo militar" ou use "Importar".</li>}
             </ul>
           </div>
@@ -106,10 +121,16 @@ function Peculio() {
   );
 }
 
-function ItemDoPeculioNaLista({ m }: { m: ItemDoPeculio }) {
+function ItemDoPeculioNaLista({ m, destaque }: { m: ItemDoPeculio; destaque: boolean }) {
   return (
     <li>
-      <Link to="/militares/$id" params={{ id: m.militarId }} search={{ de: 'peculio' }} className="grid gap-0.5 rounded-lg px-3 py-2 hover:bg-accent">
+      <Link
+        to="/militares/$id"
+        params={{ id: m.militarId }}
+        search={{ de: 'peculio' }}
+        aria-current={destaque ? 'true' : undefined}
+        className={cn('grid gap-0.5 rounded-lg px-3 py-2 hover:bg-accent', destaque && classeItemEscolhido)}
+      >
         <span className="flex items-center gap-2">
           <span className="font-cond text-[13px] text-apagado">{m.posto}</span>
           <span className="font-cond text-base font-semibold">{m.nomeGuerra}</span>

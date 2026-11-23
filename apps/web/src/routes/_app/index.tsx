@@ -33,7 +33,7 @@ function Inicio() {
         </div>
       </section>
       {aviso === 'outro-papel' && (
-        <p role="status" className="mx-4 mt-4 rounded-md bg-pendencia-fundo px-3 py-2 text-sm text-pendencia md:mx-12">Essa área é de outro papel.</p>
+        <p role="status" className="mx-4 mt-4 rounded-md bg-pendencia-fundo px-3 py-2 text-sm text-pendencia md:mx-12">Essa área é de outro nível de acesso.</p>
       )}
       <ul className="grid gap-3 px-4 pt-5 pb-8 md:grid-cols-3 md:gap-[18px] md:px-12 md:pt-7 md:pb-10">
         {MODULOS.filter((m) => m.ve(eu)).map((m) => (

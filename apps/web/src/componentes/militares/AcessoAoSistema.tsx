@@ -2,7 +2,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { AcessoDoMilitar, FichaMilitar, Papel, SituacaoDoAcesso } from 'contratos';
 import { useState } from 'react';
 import { atualizarAcesso, consultaAcesso, darPapel, desativarAcesso, encerrarPapel, gerarSenhaProvisoria } from '@/api/acesso';
-import { mensagemDe } from '@/api/cliente';
+import { camposDe, mensagemDe } from '@/api/cliente';
 import { Campo } from '@/componentes/Campo';
 import { Selecao } from '@/componentes/Selecao';
 import { Button } from '@/componentes/ui/button';
@@ -30,18 +30,33 @@ export function AcessoAoSistema({ ficha }: { ficha: FichaMilitar }) {
   const [senha, setSenha] = useState<{ senha: string; validaAte: string } | null>(null);
   const [copiada, setCopiada] = useState(false);
   const [ocupado, setOcupado] = useState(false);
+  const [campos, setCampos] = useState<Record<string, string>>({});
+  // um formulário por vez: dar um nível de acesso ou encerrar um deles (os outros botões ficam desligados enquanto um está aberto)
+  const [aberto, setAberto] = useState<{ tipo: 'dar' } | { tipo: 'encerrar'; papelId: string } | null>(null);
 
   if (error) return <Secao titulo="Acesso ao sistema"><p role="alert" className="text-sm text-alerta">{mensagemDe(error)}</p></Secao>;
   if (!acesso) return <Secao titulo="Acesso ao sistema"><p className="text-sm text-apagado">Carregando…</p></Secao>;
 
-  async function agir(fn: () => Promise<unknown>) {
+  // abrir ou fechar um formulário limpa o erro do anterior (ele não sobra na tela nem cai no campo do outro)
+  const mudarFormulario = (novo: typeof aberto) => {
     setErro(null);
+    setCampos({});
+    setAberto(novo);
+  };
+
+  /** Devolve se deu certo: o formulário só fecha quando deu. */
+  async function agir(fn: () => Promise<unknown>): Promise<boolean> {
+    setErro(null);
+    setCampos({});
     setOcupado(true);
     try {
       await fn();
       await atualizarAcesso(queryClient, ficha.id);
+      return true;
     } catch (e) {
       setErro(mensagemDe(e));
+      setCampos(camposDe(e));
+      return false;
     } finally {
       setOcupado(false);
     }
@@ -78,17 +93,40 @@ export function AcessoAoSistema({ ficha }: { ficha: FichaMilitar }) {
         {!acesso.email && <p className="text-sm text-pendencia">{SEM_EMAIL}</p>}
         {erro && <p role="alert" className="text-sm text-alerta">{erro}</p>}
 
-        <h4 className="mt-2 font-cond text-base font-semibold">Papéis</h4>
+        <h4 className="mt-2 font-cond text-base font-semibold">Níveis de acesso</h4>
         {acesso.papeis.length === 0 ? (
-          <p className="text-sm text-apagado">Nenhum papel.</p>
+          <p className="text-sm text-apagado">Nenhum nível de acesso.</p>
         ) : (
           <ul className="grid gap-1.5">
             {acesso.papeis.map((p) => (
-              <LinhaDoPapel key={p.id} p={p} pode={acesso.papeisQuePodeDar.includes(p.papel)} aoEncerrar={(ate) => agir(() => encerrarPapel(p.id, ate))} />
+              <LinhaDoPapel
+                key={p.id}
+                p={p}
+                pode={acesso.papeisQuePodeDar.includes(p.papel)}
+                aberto={aberto?.tipo === 'encerrar' && aberto.papelId === p.id}
+                desligado={aberto !== null}
+                aoAbrir={() => mudarFormulario({ tipo: 'encerrar', papelId: p.id })}
+                aoFechar={() => mudarFormulario(null)}
+                aoEncerrar={async (ate) => {
+                  if (await agir(() => encerrarPapel(p.id, ate))) mudarFormulario(null);
+                }}
+              />
             ))}
           </ul>
         )}
-        {acesso.papeisQuePodeDar.length > 0 && <DarPapel acesso={acesso} aoDar={(d) => agir(() => darPapel(ficha.id, d))} />}
+        {acesso.papeisQuePodeDar.length > 0 && (
+          <DarPapel
+            acesso={acesso}
+            erros={campos}
+            aberto={aberto?.tipo === 'dar'}
+            desligado={aberto?.tipo === 'encerrar'}
+            aoAbrir={() => mudarFormulario({ tipo: 'dar' })}
+            aoFechar={() => mudarFormulario(null)}
+            aoDar={async (d) => {
+              if (await agir(() => darPapel(ficha.id, d))) mudarFormulario(null);
+            }}
+          />
+        )}
       </div>
 
       <Dialog open={senha !== null} onOpenChange={(aberto) => { if (!aberto) fecharSenha(); }}>
@@ -113,42 +151,68 @@ export function AcessoAoSistema({ ficha }: { ficha: FichaMilitar }) {
   );
 }
 
-function LinhaDoPapel({ p, pode, aoEncerrar }: { p: AcessoDoMilitar['papeis'][number]; pode: boolean; aoEncerrar: (ate: string) => Promise<void> }) {
-  const [aberto, setAberto] = useState(false);
+function LinhaDoPapel({ p, pode, aberto, desligado, aoAbrir, aoFechar, aoEncerrar }: {
+  p: AcessoDoMilitar['papeis'][number];
+  pode: boolean;
+  aberto: boolean;
+  /** há outro formulário aberto (ou este): o botão "Encerrar" fica desligado */
+  desligado: boolean;
+  aoAbrir: () => void;
+  aoFechar: () => void;
+  aoEncerrar: (ate: string) => Promise<void>;
+}) {
   const [ate, setAte] = useState(hoje());
   return (
     <li className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
       <span className="font-medium">{nomeDoPapel(p.papel)}</span>
       <span>{p.unidadeSigla}</span>
       <span className="text-apagado">{p.ate ? `de ${dataBr(p.desde)} a ${dataBr(p.ate)}` : `desde ${dataBr(p.desde)}`}</span>
-      {pode && !p.ate && !aberto && <Button type="button" size="xs" variant="ghost" className="ml-auto" onClick={() => setAberto(true)}>Encerrar</Button>}
+      {pode && !p.ate && !aberto && <Button type="button" size="xs" variant="ghost" className="ml-auto" disabled={desligado} onClick={() => { setAte(hoje()); aoAbrir(); }}>Encerrar</Button>}
       {aberto && (
         <span className="flex basis-full flex-wrap items-end gap-2">
           <Campo id={`ate-${p.id}`} rotulo="Encerrar em">
             <Input id={`ate-${p.id}`} type="date" value={ate} onChange={(e) => setAte(e.target.value)} className="w-44" />
           </Campo>
-          <Button type="button" size="sm" onClick={() => void aoEncerrar(ate).then(() => setAberto(false))}>Confirmar encerramento</Button>
-          <Button type="button" size="sm" variant="ghost" onClick={() => setAberto(false)}>Cancelar</Button>
+          <Button type="button" size="sm" onClick={() => void aoEncerrar(ate)}>Confirmar encerramento</Button>
+          <Button type="button" size="sm" variant="ghost" onClick={aoFechar}>Cancelar</Button>
         </span>
       )}
     </li>
   );
 }
 
-function DarPapel({ acesso, aoDar }: { acesso: AcessoDoMilitar; aoDar: (d: { papel: Papel; unidadeId: string; desde: string }) => Promise<void> }) {
-  const [aberto, setAberto] = useState(false);
+function DarPapel({ acesso, erros, aberto, desligado, aoAbrir, aoFechar, aoDar }: {
+  acesso: AcessoDoMilitar;
+  /** o erro de cada campo, quando a API recusa */
+  erros: Record<string, string>;
+  aberto: boolean;
+  /** um "Encerrar" está aberto: o botão que abre este formulário fica desligado */
+  desligado: boolean;
+  aoAbrir: () => void;
+  aoFechar: () => void;
+  aoDar: (d: { papel: Papel; unidadeId: string; desde: string; ate?: string }) => Promise<void>;
+}) {
   const [papel, setPapel] = useState<Papel>(acesso.papeisQuePodeDar[0]!);
   const [unidadeId, setUnidadeId] = useState('');
   const [desde, setDesde] = useState(hoje());
-  if (!aberto) return <div><Button type="button" variant="outline" size="sm" onClick={() => setAberto(true)}>Dar papel</Button></div>;
+  const [ate, setAte] = useState('');
+  // cada vez que o formulário abre, os campos voltam ao começo (o "Até" do anterior não pode ir junto sem a pessoa ver)
+  const abrir = () => {
+    setPapel(acesso.papeisQuePodeDar[0]!);
+    setUnidadeId('');
+    setDesde(hoje());
+    setAte('');
+    aoAbrir();
+  };
+  if (!aberto) return <div><Button type="button" variant="outline" size="sm" disabled={desligado} onClick={abrir}>Dar nível de acesso</Button></div>;
   const menor = Math.min(...acesso.unidadesParaPapel.map((u) => u.nivel));
   const unidade = unidadeId || acesso.unidadesParaPapel[0]?.id || '';
   return (
     <form
-      className="grid gap-3 sm:grid-cols-[12rem_1fr_10rem]"
-      onSubmit={(e) => { e.preventDefault(); void aoDar({ papel, unidadeId: unidade, desde }).then(() => setAberto(false)); }}
+      className="grid gap-3 sm:grid-cols-[12rem_1fr_10rem_10rem]"
+      onSubmit={(e) => { e.preventDefault(); void aoDar({ papel, unidadeId: unidade, desde, ...(ate ? { ate } : {}) }); }}
     >
-      <Campo id="np-papel" rotulo="Papel">
+      <Campo id="np-papel" rotulo="Nível de acesso">
         <Selecao id="np-papel" value={papel} onChange={(e) => setPapel(e.target.value as Papel)}>
           {acesso.papeisQuePodeDar.map((p) => <option key={p} value={p}>{nomeDoPapel(p)}</option>)}
         </Selecao>
@@ -158,12 +222,15 @@ function DarPapel({ acesso, aoDar }: { acesso: AcessoDoMilitar; aoDar: (d: { pap
           {acesso.unidadesParaPapel.map((u) => <option key={u.id} value={u.id}>{`${'  '.repeat(u.nivel - menor)}${u.sigla}`}</option>)}
         </Selecao>
       </Campo>
-      <Campo id="np-desde" rotulo="A partir de">
+      <Campo id="np-desde" rotulo="A partir de" erro={erros.desde}>
         <Input id="np-desde" type="date" value={desde} onChange={(e) => setDesde(e.target.value)} />
       </Campo>
-      <div className="flex gap-2 sm:col-span-3">
-        <Button type="submit" size="sm">Dar papel</Button>
-        <Button type="button" size="sm" variant="ghost" onClick={() => setAberto(false)}>Cancelar</Button>
+      <Campo id="np-ate" rotulo="Até (opcional)" erro={erros.ate}>
+        <Input id="np-ate" type="date" value={ate} onChange={(e) => setAte(e.target.value)} />
+      </Campo>
+      <div className="flex gap-2 sm:col-span-4">
+        <Button type="submit" size="sm">Dar nível de acesso</Button>
+        <Button type="button" size="sm" variant="ghost" onClick={aoFechar}>Cancelar</Button>
       </div>
     </form>
   );

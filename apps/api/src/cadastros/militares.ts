@@ -249,10 +249,10 @@ async function exigirDonoDoPeculio(c: Ctx, unidadeId: string, frase: (cima: stri
   const cima = await siglaDaUnidadeDeCima(banco, unidadeId);
   return c.json({ erro: frase(cima ?? 'uma unidade acima') }, 403);
 }
-const FRASE_CAMPO = (cima: string) => `Este campo é alterado por quem tem papel no ${cima}.`;
-const FRASE_LOTACAO = (cima: string) => `A lotação é alterada por quem tem papel no ${cima}.`;
-const FRASE_CADASTRAR = (cima: string) => `Cadastrar militar é com quem tem papel no ${cima}.`;
-const FRASE_AFASTAMENTOS = (cima: string) => `Os afastamentos são alterados por quem tem papel no ${cima}.`;
+const FRASE_CAMPO = (cima: string) => `Este campo é alterado por quem tem nível de acesso no ${cima}.`;
+const FRASE_LOTACAO = (cima: string) => `A lotação é alterada por quem tem nível de acesso no ${cima}.`;
+const FRASE_CADASTRAR = (cima: string) => `Cadastrar militar é com quem tem nível de acesso no ${cima}.`;
+const FRASE_AFASTAMENTOS = (cima: string) => `Os afastamentos são alterados por quem tem nível de acesso no ${cima}.`;
 
 /** Os campos da ficha que são do Pecúlio (o resto do PATCH é da escala: motorista, CNH, voluntário JES e ativo). */
 const CAMPOS_DO_PECULIO = ['postoGradId', 'quadroId', 'nomeCompleto', 'nomeGuerra', 'antiguidade', 'sexo', 'nascimento', 'telefone', 'email', 'comportamento', 'comportamentoBoletim'] as const;
