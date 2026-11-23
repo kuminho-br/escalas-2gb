@@ -3,6 +3,7 @@
 23/11/2026 · design · **análise concluída; direção e decisões D1 a D4 aprovadas pelo usuário em 23/11/2026 (a alternativa (a) nas quatro).** Os mockups vêm a seguir, começando pelo sistema de estilo.
 
 - Evidências (fotos das telas com as marcas): `docs/telas/analise-da-interface/evidencias.html` e https://claude.ai/artifact/83wEEdCMkqm2VBvj2RJAfZ
+- Sistema de estilo (valores e medidas dos blocos N1 e N2): `docs/superpowers/specs/2026-11-23-sistema-de-estilo-design.md`, com o mockup em `docs/telas/sistema-de-estilo/mockup.html`
 - Identidade e telas de hoje: `docs/superpowers/specs/2026-11-16-telas.md`
 
 ## Por quê
@@ -123,6 +124,8 @@ A primeira versão desta proposta era a reforma comum de qualquer sistema de ges
 | Tamanhos | 13, 15, 17, 20, 28 e 40 px | 17 tamanhos, de 10 a 48 px |
 | Forma | 2 raios (6 px em controles e placas, 12 px em superfícies), 2 sombras, 1 contorno de foco | 5 raios, 8 sombras, 2 contornos |
 | Controles | 36 px de altura no computador e 44 px no toque | de 24 a 46 px |
+
+Os valores exatos de cada token e as medidas de cada componente estão em `2026-11-23-sistema-de-estilo-design.md`.
 
 ### A placa e o encaixe
 
