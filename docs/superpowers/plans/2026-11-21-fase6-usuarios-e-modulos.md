@@ -13,6 +13,7 @@
 6. **Retorno da validação, parte com mockup** (mesmo lote): sete ajustes de interface que esperam o mockup da DESIGN. Lista no fim; as tarefas são escritas quando o mockup for aprovado.
 7. **Militares só no Pecúlio** (decisão do usuário, 22/11/2026): o "Novo militar" passa ao Pecúlio, e a importação de MILITARES vira a importação "Dados da escala", que atualiza e não cria. **Detalhada abaixo.**
 8. **Acesso ao sistema e busca do Pecúlio** (pool 3 da validação, 22/11/2026): "nível de acesso" no lugar de "papel", um formulário por vez, o "até" ao dar o nível de acesso e o Enter na busca do Pecúlio. **Detalhada abaixo.**
+9. **Pendências de cadastro** (decisões do usuário, 22/11/2026): quadro e situação do militar com data, no rastreio; o catálogo de situações; ano de nascimento, CPF e endereço na ficha e na importação do Pecúlio. **Detalhada abaixo.**
 
 O retorno da validação que chegar durante a fase vira uma entrega depois da última prevista.
 
@@ -851,3 +852,165 @@ Do mesmo lote de 21/11/2026. Cada item espera o mockup da DESIGN e a aprovação
   - um formulário por vez;
   - o "até";
   - o Enter no Pecúlio.
+
+---
+
+# Entrega 9 — Pendências de cadastro
+
+**Goal:** o quadro e a situação do militar passam a valer por período, como a lotação. A ficha ganha o ano de nascimento, o CPF e o endereço.
+
+**Architecture:**
+- **Migração:**
+  - o rastreio ganha `quadro_id` e `situacao_id`;
+  - nasce o catálogo `situacao_militar`;
+  - saem `militar.quadro_id` e `militar.ativo`;
+  - o militar ganha `nascimento_ano`, `cpf` e o endereço.
+- **API:** toda consulta que lia `m.ativo` ou `m.quadro_id` passa a ler o período do rastreio do dia (ou do mês). As escalas usam a regra "a situação deixa escalar".
+- **Site:**
+  - "Alterar situação" ganha Quadro e Situação;
+  - o "Ativo" sai da ficha;
+  - a ficha ganha os campos novos;
+  - Configurações ganha o catálogo "Situações do militar".
+
+**Branch:** `fase6-9-pendencias-de-cadastro`. Commits `Fase 6.9: …`. **Migração 0029.**
+
+## Global Constraints
+
+- **Situação do militar** (decisão do usuário):
+  - é um catálogo editado nas Configurações, como os tipos de afastamento. Cada valor tem nome, "Pode ser escalado" (sim ou não) e ativo;
+  - a carga é "Ativa" (pode ser escalado), "Reserva", "Agregado" e "Adido" (não podem). *Minha decisão:* quem hoje está com `ativo = false` vai para um valor "Desativado" (não pode), para nada se perder; o administrador renomeia ou junta depois;
+  - **são duas colunas diferentes, com sentidos diferentes:** Adido e Agregado podem existir como situação e como tipo de afastamento ao mesmo tempo. O catálogo de afastamentos não muda.
+- **Quadro e situação no rastreio** (decisão do usuário):
+  - mudar qualquer um fecha o período e abre outro, por "Alterar situação", como a lotação;
+  - os dois são do Pecúlio: só quem tem nível de acesso numa unidade acima altera, como a lotação. Para quem tem nível só na seção, os dois ficam travados.
+- **O posto continua sem histórico.** O posto do militar precisa estar no quadro do período aberto. Isso deixa de ser chave do banco e passa a ser regra da API (`quadroParaOPosto`). Os períodos fechados não são conferidos.
+- **Para as escalas, no dia:**
+  - o militar entra se a situação do período **pode ser escalado**; isso substitui o `ativo`;
+  - as telas de praças pegam o QBMG e quem está sem quadro, pelo quadro do período do dia;
+  - a escala dos oficiais pega QOC e QOA pelo quadro do período.
+- **Dados pessoais** (decisão do usuário, 22/11/2026, que revê a D7): o banco passa a guardar:
+  - **o ano de nascimento:** `nascimento_ano`, opcional, com o dia e o mês de hoje. Com o ano, a data precisa existir (29/02 só em ano bissexto);
+  - **o CPF:** 11 dígitos, guardado sem pontuação, único e validado pelos dígitos verificadores. Na tela aparece como `000.000.000-00`;
+  - **o endereço:** CEP (8 dígitos, na tela `00000-000`), logradouro, número, complemento, bairro, cidade e UF (uma das 27 siglas).
+  - **Quem vê e quem altera:** os mesmos de hoje para os campos do Pecúlio. A Minha ficha mostra os próprios, só para leitura.
+  - **Nos testes e no CI**, só CPF fictício com os dígitos verificadores válidos (ex.: `529.982.247-25`), nunca real.
+- **Planilha do Pecúlio** (contrato):
+  - NASCIMENTO aceita `dd/mm/aaaa` ou `dd/mm`;
+  - entram as colunas `CPF`, `CEP`, `LOGRADOURO`, `NÚMERO`, `COMPLEMENTO`, `BAIRRO`, `CIDADE` e `UF`, depois de `BOLETIM DO COMPORTAMENTO`;
+  - a regra "faltam as colunas" vale para as novas também;
+  - vazio limpa o campo, como nas outras colunas;
+  - o militar novo entra com a situação "Ativa" e o quadro escolhido pela regra da P1.1.
+- **Textos fixos:**
+  - CPF inválido: "CPF inválido: confira os 11 dígitos.";
+  - CPF repetido: "Este CPF já é de {NOME}.";
+  - UF: "Use a sigla do estado (ex.: PE).";
+  - CEP: "O CEP tem 8 dígitos.";
+  - situação desativada no catálogo: "Esta situação está desativada.".
+- **Voluntário PJES do Pecúlio é o voluntário JES da escala** (decisão do usuário): o campo continua um só. Nada muda no código.
+
+## Review Focus
+
+- Um militar com QBMG até o dia 14 e QOA a partir do dia 15:
+  - aparece nas telas de praças até o dia 14;
+  - entra como elegível na escala dos oficiais com os dias a partir do 15;
+  - a escala de um mês passado continua com o quadro de então.
+- Situação "Reserva" a partir do dia 10: o militar deixa de ser candidato do dia 10 em diante, e a Grade mostra o que já estava escalado antes.
+- Trocar o posto de um 2º TEN do QOA para CEL na ficha: o quadro do período aberto vai para o QOC sozinho, com um período novo a partir de hoje e sem erro.
+- Importar o Pecúlio com o CPF de um militar já existente noutra linha: problema na linha, com o texto fixo, e nada gravado.
+- A migração:
+  - preserva os períodos;
+  - copia o quadro do militar para todos os períodos dele;
+  - põe "Ativa" ou "Desativado" conforme o `ativo`;
+  - não perde nenhum militar das telas de escala de hoje.
+
+### Task 22: a migração
+
+**Files:** Create `apps/api/banco/migracoes/0029_cadastro_no_tempo.sql`; Test `apps/api/test/esquema-estrutura.test.ts`
+
+- [ ] **Step 1: testes:**
+  - o catálogo traz Ativa, Reserva, Agregado, Adido e Desativado, com "pode ser escalado" só na Ativa;
+  - depois da migração:
+    - um militar com `ativo = false` fica com os períodos em "Desativado";
+    - um militar com QBMG fica com QBMG em todos os períodos;
+    - `militar.ativo` e `militar.quadro_id` não existem mais;
+  - CPF com 10 dígitos falha (`23514`);
+  - CPF repetido falha (`23505`);
+  - `nascimento_ano` com 30/02 falha;
+  - UF "XX" falha.
+- [ ] **Step 2:** rodar. Esperado: FAIL.
+- [ ] **Step 3:** a migração, que pode rodar de novo:
+  - cria `situacao_militar` (`id`, `nome` único sem caixa, `escalavel boolean`, `ativo boolean`), com a auditoria;
+  - em `rastreio`, `quadro_id` (→ quadro, nulo) e `situacao_id` (→ `situacao_militar`, `not null`, preenchido antes);
+  - em `militar`: `nascimento_ano smallint`, a regra da data com o ano, `cpf text check (cpf ~ '^\d{11}$')` com índice único, `cep text check (cep ~ '^\d{8}$')`, `logradouro`, `numero`, `complemento`, `bairro` e `cidade` (texto, até 120 caracteres) e `uf` (uma das 27 siglas);
+  - por último, tira a chave composta `militar_posto_no_quadro`, `militar.quadro_id` e `militar.ativo`.
+- [ ] **Step 4:** rodar. Esperado: PASS.
+- [ ] **Step 5:** `git commit -m "Fase 6.9: quadro e situação no rastreio, e os dados pessoais"`
+
+### Task 23: a API lê o período
+
+**Files:**
+- Modify: os arquivos que liam `m.ativo` ou `m.quadro_id`. Hoje são:
+  - `cadastros/militares.ts`, `cadastros/quadros.ts`;
+  - `escala/elegibilidade.ts`, `escala/pre-escala.ts`, `escala/quadros-da-escala.ts`;
+  - `grade/grade.ts`;
+  - `oficiais/participantes.ts`, `oficiais/leitura.ts`;
+  - `voluntariado/leitura.ts`;
+  - `usuarios/rotas.ts`, `usuarios/criar-admin.ts`, `carga/exemplo.ts`;
+  - `importacao/peculio.ts`.
+- Modify: `pacotes/contratos/src/militares.ts`:
+  - `AlteracaoDeSituacao` ganha `quadroId` e `situacaoId`;
+  - sai o `ativo` de `EdicaoMilitar`;
+  - o detalhe ganha `situacao`, `cpf` e `endereco`;
+  - `nascimento` ganha o ano opcional.
+- Create: `apps/api/src/cadastros/situacoes.ts` (`GET`/`POST`/`PATCH /api/situacoes-do-militar`, só o administrador edita, como os tipos de afastamento)
+- Test: `apps/api/test/quadros-nas-escalas.test.ts`, `oficiais.test.ts`, `rastreio-por-dia.test.ts`, `militares.test.ts` e o novo `situacoes.test.ts`
+
+- [ ] **Step 1: testes:** os cinco casos do Review Focus, mais:
+  - o PATCH com `ativo` dá 400 (o campo saiu);
+  - "Alterar situação" com quadro ou situação, por quem só tem nível na seção, dá 403 com o texto do Pecúlio;
+  - o CPF inválido e o CPF repetido, com os textos fixos;
+  - a situação desativada recusada.
+- [ ] **Step 2:** rodar. Esperado: FAIL.
+- [ ] **Step 3:** implementar. A situação "pode ser escalado" e o quadro saem do período que cobre o dia. Onde a consulta é do mês, sai dos períodos do mês, como a equipe na 6.5.
+- [ ] **Step 4:** `pnpm --filter api test`. Esperado: PASS.
+- [ ] **Step 5:** `git commit -m "Fase 6.9: as escalas leem o quadro e a situação do período"`
+
+### Task 24: a importação do Pecúlio
+
+**Files:** `apps/api/src/importacao/peculio.ts`; Test `apps/api/test/importacao-peculio.test.ts`
+
+- [ ] **Step 1: testes:**
+  - o modelo tem as colunas novas na ordem do contrato;
+  - NASCIMENTO `15/03/1985` grava o ano, e `15/03` grava sem ano;
+  - CPF, CEP e UF inválidos dão problema na linha, com o texto fixo;
+  - a coluna CPF vazia limpa o CPF de quem já existe;
+  - uma planilha sem as colunas novas recebe "Faltam as colunas …".
+- [ ] **Step 2:** rodar. Esperado: FAIL.
+- [ ] **Step 3:** implementar.
+- [ ] **Step 4:** rodar. Esperado: PASS.
+- [ ] **Step 5:** `git commit -m "Fase 6.9: CPF, ano de nascimento e endereço na importação do Pecúlio"`
+
+### Task 25: as telas
+
+**Files:** `apps/web/src/componentes/militares/Identificacao.tsx` (saem o "Ativo" e o campo Quadro, que passa a aparecer na situação atual), `Rastreio.tsx` (Quadro e Situação em "Alterar situação" e na linha do tempo), o bloco de dados pessoais da ficha (CPF, ano de nascimento e o bloco "Endereço"), `routes/_app/minha-ficha.tsx`, `routes/_app/configuracoes.tsx` (o catálogo "Situações do militar"); Test os testes de militares, minha-ficha e configurações
+
+- [ ] **Step 1: testes:**
+  - **Situação atual:** mostra lotação, equipe, jornada, quadro e situação ("1ª SB · Alfa · Pronto · QBMG · Ativa (desde dd/mm/aaaa)").
+  - **"Alterar situação":**
+    - tem Quadro (só os do posto) e Situação (só as ativas do catálogo);
+    - os dois ficam travados para quem tem nível só na seção.
+  - **Dados pessoais e endereço:**
+    - o CPF aparece com a máscara, e o CEP também;
+    - a UF é uma lista com as 27 siglas;
+    - os erros da API aparecem no campo.
+  - **Minha ficha:** mostra CPF e endereço só para leitura.
+  - **Configurações:** "Situações do militar" lista, cria, renomeia, liga e desliga "Pode ser escalado" e desativa, só para o administrador.
+- [ ] **Step 2:** rodar. Esperado: FAIL.
+- [ ] **Step 3:** implementar.
+- [ ] **Step 4:** rodar. Esperado: PASS. Depois, `pnpm test && pnpm typecheck && pnpm build:vercel`, as contagens e o esquema do banco com a 0029.
+- [ ] **Step 5:** `git commit -m "Fase 6.9: telas do quadro e da situação no tempo, e dos dados pessoais"`
+- [ ] **Step 6:** enviar à PLANEJAMENTO a branch e o resumo, com a lista curta para a sandbox:
+  - mudar o quadro e a situação no dia 15 e ver a Grade e a escala dos oficiais;
+  - preencher CPF e endereço;
+  - importar um Pecúlio com as colunas novas;
+  - criar uma situação nas Configurações.

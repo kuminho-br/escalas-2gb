@@ -13,6 +13,7 @@
 2. **P1.2 — Motor e API da escala dos oficiais:** as regras puras em `pacotes/dominio`, as tabelas e as rotas. Migração **0027**.
 3. **P1.3 — Telas:** o item "Oficiais" no trilho e a tela com as abas Escala do mês, Painel de saldo e Regras.
 4. **P1.4 — Só o QBMG nas outras telas de escala:** os oficiais QOC e QOA saem da Grade, da Escala do mês, do Efetivo por dia e do Voluntariado. Sem migração.
+5. **P1.5 — Quem participa da rodada:** ser QOC ou QOA torna o oficial elegível; quem participa do mês é o gestor que escolhe (correção do usuário, 22/11/2026). Migração **0030**, depois da entrega 6.9 (0029), porque o quadro passa a vir do período.
 
 **Ordem com a fase 6** (decisão do usuário, 22/11/2026): a P1 inteira vai antes. A fase 6 usa os números de migração livres depois dela.
 
@@ -496,6 +497,71 @@ export const AjusteDeSaldo = z.object({ militarId: Id, valor: z.number().refine(
 - [ ] **Step 3:** implementar. O trecho é `(m.quadro_id is null or m.quadro_id = (select id from quadro where sigla = 'QBMG'))`, e cada consulta o aplica onde hoje filtra `m.ativo`.
 - [ ] **Step 4:** a mesma linha. Esperado: PASS. Depois, `pnpm test && pnpm typecheck && pnpm build:vercel`.
 - [ ] **Step 5:** `git commit -m "P1.4: só o QBMG nas telas de escala de praças"`
+
+---
+
+# P1.5 — Quem participa da rodada
+
+**Goal:** a escala dos oficiais distingue o **elegível** (QOC ou QOA, com período na unidade ou abaixo dela no mês) do **participante** (o elegível que o gestor marcou para a rodada daquele mês).
+
+**Branch:** `p1-5-participantes`. Commits `P1.5: …`. **Migração 0030**: a 6.9 vem antes, e o quadro sai do período do rastreio.
+
+## Decisões (do usuário, 22/11/2026)
+
+- **Quem escolhe:** o gestor (ou o administrador) marca, entre os elegíveis, quem participa do mês.
+- **Ao abrir um mês novo**, vêm marcados os participantes do último mês da unidade. Um elegível que não estava lá aparece desmarcado, com a marca "novo". No primeiro mês da unidade, ninguém vem marcado.
+- **Quem não participa:** não entra nas cotas, na vez de escolher nem nos turnos. O saldo dele fica parado (caso 5). Se voltar, ele retoma o saldo; se nunca teve saldo, entra com a média (caso 4).
+- **Mudar os participantes** só é possível antes de fechar a escala. Mudar depois de calcular as cotas refaz as cotas, mantendo as escolhas de quem continua. As escolhas de quem saiu são retiradas, e a tela avisa quantas foram.
+
+## Review Focus
+
+- Desmarcar um oficial que já tinha turnos lançados: os turnos dele ficam vazios, a tela avisa "{n} turnos de {nome} ficaram sem ninguém.", e as cotas dos outros são refeitas.
+- Um elegível que deixa de ser elegível no mês (mudou de quadro ou de lotação) e estava marcado: sai da rodada, com o mesmo aviso.
+- Mês com elegíveis e nenhum participante marcado: "Calcular cotas" dá 409 com "Marque quem participa da rodada antes de calcular as cotas.".
+- Quem nunca participou e é marcado num mês: entra com a média no encerramento, como hoje.
+
+### Task 26: participantes no banco, no motor e na API
+
+**Files:**
+- Create: `apps/api/banco/migracoes/0030_oficiais_participantes.sql`, com `oficiais_participante (mes_id → oficiais_mes on delete cascade, militar_id → militar, primary key (mes_id, militar_id))` e a auditoria
+- Modify: `apps/api/src/oficiais/participantes.ts` (passa a devolver os **elegíveis**), `leitura.ts`, `rotas.ts`
+- Modify: `pacotes/contratos/src/oficiais.ts`: `OficialDoMes` ganha `participa: boolean` e `novo: boolean`; nasce `Participantes = z.object({ militarIds: z.array(Id).max(200) })`
+- Test: `apps/api/test/oficiais.test.ts`
+
+**Interfaces:**
+- `PUT /api/unidades/:u/oficiais/:mes/participantes` (`Participantes`):
+  - cada id precisa ser elegível no mês; senão, 400 com "Este oficial não é elegível neste mês.";
+  - com a escala fechada, 409 com "Com a escala fechada, os participantes não mudam mais.";
+  - com as cotas calculadas, refaz as cotas como `POST …/cotas`;
+  - cria o mês, se for o caso.
+- `GET …/oficiais/:mes`:
+  - lista os elegíveis, com `participa` e `novo`;
+  - sem mês gravado, `participa` vem da cópia do último mês da unidade;
+  - a `vez`, as cotas e os turnos só contam participantes.
+
+- [ ] **Step 1: testes:**
+  - os quatro do Review Focus;
+  - a cópia do mês anterior, com o elegível novo desmarcado e `novo: true`;
+  - o 400 para um não elegível e o 409 com a escala fechada.
+- [ ] **Step 2:** rodar. Esperado: FAIL.
+- [ ] **Step 3:** implementar. O motor não muda: `calcularCotas` e `saldoDoMes` recebem só os participantes.
+- [ ] **Step 4:** rodar. Esperado: PASS.
+- [ ] **Step 5:** `git commit -m "P1.5: participantes da rodada no banco e na API"`
+
+### Task 27: a escolha na tela
+
+**Files:** `apps/web/src/componentes/oficiais/ListaDeCotas.tsx` (ou um `ParticipantesDaRodada.tsx` novo), `apps/web/src/api/oficiais.ts` (`gravarParticipantes`); Test `apps/web/src/__testes__/oficiais.test.tsx`
+
+- [ ] **Step 1: testes:**
+  - antes de fechar, a lista mostra todos os elegíveis, cada um com a marca "Participa", e "novo" em quem é novo;
+  - marcar ou desmarcar chama `gravarParticipantes`;
+  - com a escala fechada, a marca fica só para leitura e quem não participa some da lista;
+  - o aviso dos turnos que ficaram sem ninguém aparece depois de desmarcar.
+- [ ] **Step 2:** rodar. Esperado: FAIL.
+- [ ] **Step 3:** implementar, no padrão sóbrio da tela, sem ícones novos.
+- [ ] **Step 4:** rodar. Esperado: PASS. Depois, `pnpm test && pnpm typecheck && pnpm build:vercel`.
+- [ ] **Step 5:** `git commit -m "P1.5: o gestor marca quem participa da rodada"`
+- [ ] **Step 6:** enviar à PLANEJAMENTO a branch e o resumo, com a lista curta para a sandbox.
 
 ---
 

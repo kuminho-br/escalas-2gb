@@ -104,8 +104,9 @@ Design: `docs/superpowers/specs/2026-11-21-usuarios-e-modulos-design.md`. Plano:
 | 4 | Transição do login (as mangueiras), se o mockup estiver aprovado | condicional |
 | 5 | Retorno da validação: recolher equipe, rastreio por dia, "Vale desde" antigo | mesclada (#104), migração 0028 aplicada no teste |
 | 6 | Retorno da validação com mockup: sete ajustes de interface | aguardando a DESIGN |
-| 7 | Militares só no Pecúlio | planejada |
-| 8 | Nível de acesso, "até" e Enter no Pecúlio | planejada |
+| 7 | Militares só no Pecúlio | mesclada (#107) |
+| 8 | Nível de acesso, "até" e Enter no Pecúlio | em PR (#108) |
+| 9 | Quadro e situação no rastreio; CPF, nascimento e endereço | planejada (0029) |
 
 **Fora:** e-mail, usuários acima do GB (fase 11), Visualização (fase 7).
 
@@ -174,6 +175,7 @@ Entregas fora das fases, numeradas P1, P2…: usam os dados do projeto, mas não
 | P1.2 | Escala dos oficiais: motor, tabelas e API, com o serviço cadastrado | mesclada (#99), migração 0027 aplicada no teste |
 | P1.4 | Só o QBMG nas outras telas de escala | mesclada (#101) |
 | P1.3 | Escala dos oficiais: telas (escala do mês, saldo, regras), dia e noite só por cor | mesclada (#102) |
+| P1.5 | Quem participa da rodada (o gestor escolhe entre os elegíveis) | planejada (0030), depois da 6.9 |
 
 Design: `docs/superpowers/specs/2026-11-22-escala-dos-oficiais-design.md`. Plano: `docs/superpowers/plans/2026-11-22-p1-escala-dos-oficiais.md`.
 
@@ -304,9 +306,8 @@ Achadas nas revisões e nas validações. Nenhuma muda quem é escalado. Entram 
 
 **Da fase 5, entrega 4** (lista no PR #82):
 - **texto a decidir:** o contador diz "Faltam 1" no singular (sugestão: "Falta 1");
-- a marca da linha na Grade não chega às colunas PJES, Diárias e Voluntariado (presas à direita, em telas largas);
-- no toque, o horário do trecho aparece por baixo da janela que o mesmo toque abre; no Safari do iPhone fica aceso até recarregar;
-- a legenda da Grade, o quadrado de cor e a lista de cotas mostram a cor crua do serviço, e as células a ajustada (cores próximas podem não bater).
+- a marca da linha não chega às colunas fixas da Grade; no toque, o horário fica por baixo da janela (aceso no iPhone);
+- a legenda e as cotas mostram a cor crua do serviço, e as células a ajustada.
 
 **Regras próprias por vaga** (pendentes desde a ordem de escala, 18/11/2026, sem fase): o graduado de dia é o mais antigo do dia (exceto Adm); o chefe é o mais antigo da guarnição.
 
@@ -325,6 +326,6 @@ Achadas nas revisões e nas validações. Nenhuma muda quem é escalado. Entram 
 - **As telas da escala são a parte mais cara.** Por isso começaram só com o motor e os cadastros prontos.
 - **Os dois sistemas podem divergir.** Os casos compartilhados são a defesa: nenhuma regra é portada sem eles.
 - **Ambiente de teste gratuito:** pausa por inatividade e limites do plano (D2).
-- **Dados pessoais numa nuvem comercial durante o teste:** D7, revista para o Pecúlio (sem CPF e sem ano de nascimento até o servidor do Estado).
+- **Dados pessoais numa nuvem comercial durante o teste:** desde 22/11/2026 (D7 revista), CPF, nascimento e endereço no banco de teste.
 - **O Pecúlio aumenta o escopo de uma seção para o GB inteiro:** 184 militares em nove lotações; o acesso por lotação (fase 6) precisa estar certo antes de o militar comum entrar.
 - **A Grade geral não foi validada com o militar comum:** desde a 6.1, a sandbox pode ter auxiliar, gestor e militar comum (senha provisória); falta a VALIDAÇÃO refazer esses testes.

@@ -8,6 +8,10 @@ Siglas dos documentos: **Design** = `superpowers/specs/2026-11-16-migracao-desig
 
 | Data | Decisão | Onde está |
 |---|---|---|
+| 22/11/2026 | Quadro e situação do militar no rastreio, com data. A situação (Ativa, Reserva, Agregado, Adido…) é um catálogo das Configurações com "pode ser escalado" e substitui o "ativo". Situação e tipo de afastamento são colunas diferentes, com sentidos diferentes, e podem ter os mesmos valores. Entrega 6.9. | Pecúlio, Rastreio do militar; plano da fase 6, Entrega 9 |
+| 22/11/2026 | D7 revista: o banco guarda CPF, data de nascimento completa e endereço (CEP, logradouro, número, complemento, bairro, cidade e UF), que o Pecúlio passa a trazer. Entrega 6.9. | Pecúlio, Restrições e Militar |
+| 22/11/2026 | O "Voluntário PJES" do Pecúlio é o "voluntário JES" da escala: um campo só. | Pecúlio, Militar |
+| 22/11/2026 | Escala dos oficiais: ser QOC ou QOA torna elegível; o gestor escolhe quem participa da rodada do mês, que vem com os participantes do mês anterior. Entrega P1.5. | Oficiais, Quem participa; plano da P1 |
 | 22/11/2026 | Militares só no Pecúlio: os dados da escala entram por uma importação própria ("Dados da escala": matrícula, jornada, equipe, motorista, voluntário JES e CNH), que atualiza e não cria militar (opção b). Entrega 6.7. | Plano da fase 6, Entrega 7 |
 | 22/11/2026 | Nas telas e mensagens, "papel" vira "nível de acesso"; o nome interno e o valor `escalante` não mudam. Com um formulário por vez no Acesso ao sistema, o "até" ao dar o nível de acesso e o Enter na busca do Pecúlio, entra na entrega 6.8. O seletor em trilha e a lista que passa da borda vão para a 6.6 (mockup). | Plano da fase 6, Entregas 6 e 8 |
 | 22/11/2026 | Sessão CONCEPÇÃO: esclarece e modela as ideias novas (`docs/ideias/<tema>.md`); a PLANEJAMENTO põe a ideia no ponto do roadmap mais adequado e abre o PR, sem aviso à DOCUMENTAÇÃO; o ponto pode mudar na elucidação. O roadmap é atualizado pela PLANEJAMENTO e pela DOCUMENTAÇÃO. | `CLAUDE.md`, Sessões |

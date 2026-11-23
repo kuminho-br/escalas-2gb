@@ -33,7 +33,7 @@ Ficam para depois, sem bloquear a interface com a escala:
 - a jornada dos oficiais (pesa nas distribuições, na fase 8; até lá, oficial continua Adm);
 - a grafia das siglas em Configurações;
 - a cópia de segurança gerada pelo sistema no formato do Pecúlio;
-- data de ingresso e CPF (o CPF só no servidor do Estado);
+- data de ingresso;
 - o militar editando o próprio telefone (precisa do login do militar comum, fase 6);
 - o token de atualização de ficha (ideia futura, abaixo).
 
@@ -46,7 +46,7 @@ Ficam para depois, sem bloquear a interface com a escala:
 
 ## Restrições
 
-- **D7 (dados pessoais):** no teste, sem CPF e sem o ano de nascimento (o aniversário fica com dia e mês); o telefone entra; afastamento sem diagnóstico.
+- **D7 (dados pessoais), revista em 22/11/2026 pelo usuário:** o banco guarda o CPF, a data de nascimento completa e o endereço (entrega 6.9). Afastamento continua sem diagnóstico. Nos testes e no CI, só dado fictício.
 - **E-mail institucional:** só o domínio `@bombeiros.pe.gov.br`; é o e-mail de entrada no sistema.
 - **Dados de hoje:** os militares que já estão no banco de teste e ficarem sem lugar na mudança de estrutura ficam na 1ª SB, por enquanto.
 - **"A partir de" é o dia**, como nos afastamentos (decisão do usuário, 21/11/2026; até a entrega 6.5 o sistema usa o mês).
@@ -69,12 +69,13 @@ Ficam para depois, sem bloquear a interface com a escala:
 |---|---|---|
 | Matrícula | já existe; a chave do militar | Pecúlio |
 | Posto-graduação | já existe; nome provisório do campo (um militar tem um posto ou uma graduação) | Pecúlio |
-| Quadro | novo (P1.1); QOC, QOA ou QBMG; o posto-graduação precisa pertencer ao quadro, e o mesmo posto pode estar em mais de um quadro | Pecúlio |
 | Nome completo | novo; obrigatório | Pecúlio |
 | Nome de guerra | já existe; atributo próprio (pode ser abreviação de um dos nomes) | Pecúlio |
 | Antiguidade | já existe; é a "Ordem" do Pecúlio (lugar no ranking do GB) | Pecúlio |
 | Sexo | novo | Pecúlio |
-| Data de nascimento | nova; no teste, só dia e mês (D7) | Pecúlio |
+| Data de nascimento | dia e mês; o ano entra na 6.9, opcional | Pecúlio |
+| CPF | 6.9; único, validado pelos dígitos verificadores | Pecúlio |
+| Endereço | 6.9; CEP, logradouro, número, complemento, bairro, cidade e UF | Pecúlio |
 | Telefone | novo | Pecúlio |
 | E-mail institucional | novo; único; só `@bombeiros.pe.gov.br`; pode ficar vazio até ser preenchido | Pecúlio |
 | Comportamento | novo; um da lista (Excepcional, Ótimo, Bom, Insuficiente, Mau) | Pecúlio |
@@ -94,6 +95,8 @@ O histórico das mudanças de comportamento fica na auditoria (relação de um c
 | Lotação | a unidade (posição na estrutura organizacional) |
 | Equipe | da mesma unidade; opcional |
 | Jornada | Pronto ou Adm |
+| Quadro | QOC, QOA ou QBMG (P1.1; no rastreio desde a 6.9). O posto-graduação do militar precisa estar no quadro do período aberto; o mesmo posto pode estar em mais de um quadro |
+| Situação do militar | 6.9; catálogo das Configurações (Ativa, Reserva, Agregado, Adido…), com "pode ser escalado". Substitui o "ativo". Tem os mesmos valores de alguns tipos de afastamento, mas outro sentido |
 | Desde / até | por dia; sem períodos sobrepostos por militar |
 
 "Lotação", na tela e nos textos, passa a ser **só a unidade**. O conjunto (lotação, equipe, jornada no tempo) é o **rastreio**.
