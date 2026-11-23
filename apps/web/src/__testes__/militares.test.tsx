@@ -20,7 +20,7 @@ const FICHA: FichaMilitar = {
   ...linha({ motorista: 'D' }),
   podeEditar: { peculio: true, escala: true, unidadeDeCima: '2º GB' },
   postoGradId: 'p-sd', veDadosRestritos: true, cpf: null, endereco: { cep: null, logradouro: null, numero: null, complemento: null, bairro: null, cidade: null, uf: null }, situacaoDoMilitar: { id: 'sit-ativa', nome: 'Ativa', escalavel: true }, nomeCompleto: 'João da Silva Andrade', sexo: 'M', nascimento: { dia: 15, mes: 3 }, telefone: '(81) 99999-0000', email: 'andrade@bombeiros.pe.gov.br', comportamento: 'Bom', comportamentoBoletim: 'BG 01/2026', antiguidade: 3, antiguidadeRepetidaCom: [], funcao: null, funcaoMilitarId: null, abonoPermanencia: false, noQuadroDeMotoristas: true, cnh: ['D'], cnhPorHierarquia: ['C', 'B'],
-  rastreio: [{ id: 'l1', unidadeSigla: '1ª SB', equipe: 'Alfa', jornada: 'pronto', desde: '2026-11-01', quadro: 'QBMG', situacao: 'Ativa', ate: null }],
+  rastreio: [{ id: 'l1', unidadeId: 'u-1sb', unidadeSigla: '1ª SB', alteradoPor: null, alteradoEm: null, equipe: 'Alfa', jornada: 'pronto', desde: '2026-11-01', quadro: 'QBMG', situacao: 'Ativa', ate: null }],
   afastamentos: [{ id: 'a1', tipo: 'Férias', tipoAfastamentoId: 't-ferias', inicio: '2026-12-01', fim: '2026-12-10', motivo: null, boletim: null }],
 };
 
@@ -574,8 +574,8 @@ describe('alterar situação', () => {
   it('a situação atual é a de hoje: com uma mudança marcada para depois de hoje, vale a anterior', async () => {
     const amanha = new Date(Date.now() + 86_400_000 * 3).toISOString().slice(0, 10);
     const ficha = { ...FICHA, rastreio: [
-      { id: 'l2', unidadeSigla: '1ª SB', equipe: 'Bravo', jornada: 'pronto' as const, desde: amanha, quadro: 'QBMG', situacao: 'Ativa', ate: null },
-      { id: 'l1', unidadeSigla: '1ª SB', equipe: 'Alfa', jornada: 'pronto' as const, desde: '2026-11-01', quadro: 'QBMG', situacao: 'Ativa', ate: `${amanha.slice(0, 8)}${String(Number(amanha.slice(8)) - 1).padStart(2, '0')}` },
+      { id: 'l2', unidadeId: 'u-1sb', unidadeSigla: '1ª SB', alteradoPor: null, alteradoEm: null, equipe: 'Bravo', jornada: 'pronto' as const, desde: amanha, quadro: 'QBMG', situacao: 'Ativa', ate: null },
+      { id: 'l1', unidadeId: 'u-1sb', unidadeSigla: '1ª SB', alteradoPor: null, alteradoEm: null, equipe: 'Alfa', jornada: 'pronto' as const, desde: '2026-11-01', quadro: 'QBMG', situacao: 'Ativa', ate: `${amanha.slice(0, 8)}${String(Number(amanha.slice(8)) - 1).padStart(2, '0')}` },
     ] };
     rotas({ 'GET /api/militares/m1': { status: 200, corpo: ficha } });
     abrir('/militares/m1');
@@ -877,7 +877,7 @@ describe('depois de gravar', () => {
 
 describe('ficha em painel único', () => {
   it('a ficha do militar é um painel só com o resumo da lotação', async () => {
-    const antiga = { ...FICHA, rastreio: [{ id: 'l1', unidadeSigla: '1ª SB', equipe: 'Alfa', jornada: 'pronto' as const, desde: '2020-01-01', quadro: 'QBMG', situacao: 'Ativa', ate: null }] };
+    const antiga = { ...FICHA, rastreio: [{ id: 'l1', unidadeId: 'u-1sb', unidadeSigla: '1ª SB', alteradoPor: null, alteradoEm: null, equipe: 'Alfa', jornada: 'pronto' as const, desde: '2020-01-01', quadro: 'QBMG', situacao: 'Ativa', ate: null }] };
     api({ 'GET /api/militares/m1': { status: 200, corpo: antiga } });
     abrir('/militares/m1');
     const ficha = (await screen.findByRole('heading', { level: 2, name: /ANDRADE/ })).closest('[data-ficha]') as HTMLElement;
@@ -1216,7 +1216,7 @@ describe('o rastreio da ficha: acabamento (6.16, Task 4)', () => {
     { id: 'sit-reserva', nome: 'Reserva', escalavel: false, ativo: true },
   ];
   const SECOES = [{ id: 'u-1sb', sigla: '1ª SB', nome: '1ª Seção de Bombeiros' }];
-  const periodo = (id: string, desde: string, ate: string | null, quadro: string, situacao: string) => ({ id, unidadeSigla: '1ª SB', equipe: null, jornada: 'adm' as const, desde, ate, quadro, situacao });
+  const periodo = (id: string, desde: string, ate: string | null, quadro: string, situacao: string) => ({ id, unidadeId: 'u-1sb', unidadeSigla: '1ª SB', alteradoPor: null, alteradoEm: null, equipe: null, jornada: 'adm' as const, desde, ate, quadro, situacao });
   const comRastreio = (rastreio: FichaMilitar['rastreio'], rotas: Parameters<typeof simularApi>[0] = {}) =>
     api({
       'GET /api/militares/m1': { status: 200, corpo: { ...FICHA, rastreio } },
@@ -1266,3 +1266,52 @@ describe('o rastreio da ficha: acabamento (6.16, Task 4)', () => {
   });
 });
 
+describe('mover pela hierarquia e quem moveu (6.23)', () => {
+  const SITUACOES = [{ id: 'sit-ativa', nome: 'Ativa', escalavel: true, ativo: true }];
+  // a mesma sigla "2ª SB" em dois grupamentos: o formulário acha a do militar pelo id, e a lista diz de qual grupamento é cada uma
+  const SECOES = [
+    { id: 'u-2sb-outro', sigla: '2ª SB (1º GB)', nome: '2ª Seção' },
+    { id: 'u-2sb', sigla: '2ª SB (2º GB)', nome: '2ª Seção' },
+    { id: 'u-1sb', sigla: '1ª SB', nome: '1ª Seção' },
+  ];
+  const periodo = { id: 'r1', unidadeId: 'u-2sb', unidadeSigla: '2ª SB', equipe: null, jornada: 'adm' as const, desde: '2026-01-05', ate: null, quadro: 'QBMG', situacao: 'Ativa', alteradoPor: { patente: 'MAJ', nomeGuerra: 'BARRETO' }, alteradoEm: '2026-11-23T09:15:42' };
+  const comPeriodo = () => api({
+    'GET /api/militares/m1': { status: 200, corpo: { ...FICHA, rastreio: [periodo] } },
+    'GET /api/situacoes-do-militar': { status: 200, corpo: SITUACOES },
+    'GET /api/secoes': { status: 200, corpo: SECOES },
+  });
+
+  it('o histórico de rastreio mostra "por MAJ BARRETO em 23/11/2026 às 09:15"', async () => {
+    comPeriodo();
+    abrir('/militares/m1');
+    await userEvent.click(await screen.findByRole('button', { name: /Histórico de rastreio/ }));
+    expect(await screen.findByText('por MAJ BARRETO em 23/11/2026 às 09:15')).toBeInTheDocument();
+  });
+
+  it('"Alterar situação" sugere a lotação do militar pelo id (não pela sigla repetida) e mostra o grupamento nas siglas repetidas', async () => {
+    comPeriodo();
+    abrir('/militares/m1');
+    await userEvent.click(await screen.findByRole('button', { name: /Histórico de rastreio/ }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Alterar situação' }));
+    const caixa = within(await screen.findByRole('dialog'));
+    const lotacao = caixa.getByLabelText('Lotação');
+    await within(lotacao).findByRole('option', { name: '2ª SB (2º GB)' });
+    expect(lotacao).toHaveDisplayValue('2ª SB (2º GB)');
+    expect(within(lotacao).getAllByRole('option').map((o) => o.textContent)).toEqual(['2ª SB (1º GB)', '2ª SB (2º GB)', '1ª SB']);
+  });
+
+  it('militar só com período futuro: a lotação sugerida é a desse período, e não a unidade da tela (achado da revisão final)', async () => {
+    const futuro = { ...periodo, id: 'r9', desde: somarDias(hoje(), 20), alteradoPor: null, alteradoEm: null };
+    api({
+      'GET /api/militares/m1': { status: 200, corpo: { ...FICHA, rastreio: [futuro] } },
+      'GET /api/situacoes-do-militar': { status: 200, corpo: SITUACOES },
+      'GET /api/secoes': { status: 200, corpo: SECOES },
+    });
+    abrir('/militares/m1');
+    await userEvent.click(await screen.findByRole('button', { name: /Histórico de rastreio/ }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Alterar situação' }));
+    const lotacao = within(await screen.findByRole('dialog')).getByLabelText('Lotação');
+    await within(lotacao).findByRole('option', { name: '2ª SB (2º GB)' });
+    expect(lotacao).toHaveDisplayValue('2ª SB (2º GB)');
+  });
+});

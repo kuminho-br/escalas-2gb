@@ -41,6 +41,7 @@ export function Rastreio({ ficha, unidadeId }: { ficha: FichaMilitar; unidadeId:
             <span className={`absolute top-1.5 -left-[1.4rem] size-2.5 rounded-full ${n === 0 ? 'bg-vinho' : 'bg-linha'}`} aria-hidden />
             <span className="mr-2 font-cond text-apagado">{ddmmaaaa(i.quando)}</span>
             <span className={i.tipo === 'situacao' ? 'font-medium' : 'text-apagado'}>{i.texto}</span>
+            {i.autor && <span className="block text-[13px] leading-[18px] text-apagado">{i.autor}</span>}
           </li>
         ))}
         {itens.length === 0 && <li className="text-apagado">Sem lotação registrada.</li>}
@@ -55,14 +56,16 @@ function AlterarSituacao({ ficha, unidadeAtualId, aoFechar }: { ficha: FichaMili
   const queryClient = useQueryClient();
   const secoes = useQuery(consultaSecoes);
   const atual = periodoAtual(ficha.rastreio);
-  // a lotação sugerida é a do período de hoje (as seções vêm com a sigla); sem ela, a unidade em que a tela trabalha
-  const daSigla = secoes.data?.find((s) => s.sigla === atual?.unidadeSigla)?.id;
+  // a lotação sugerida é a do período de hoje (achada pelo id: a mesma sigla existe em mais de um grupamento); sem ela, a unidade em que a tela trabalha
+  // sem período de hoje (só um marcado para depois), vale o período aberto; a unidade da tela (que pode ser o grupamento ou o CBMPE) só entra se nada mais houver
+  const aberto = ficha.rastreio.find((p) => !p.ate) ?? null;
+  const daLotacao = secoes.data?.find((s) => s.id === (atual?.unidadeId ?? aberto?.unidadeId))?.id;
   const [escolhida, setEscolhida] = useState<string | null>(null);
-  const unidadeId = escolhida ?? daSigla ?? unidadeAtualId;
+  const unidadeId = escolhida ?? daLotacao ?? unidadeAtualId;
   const equipes = useQuery(consultaEquipes(unidadeId));
   // a equipe sugerida é a de hoje, se a lotação não mudou; trocar de lotação zera a equipe (cada unidade tem as suas)
   const [equipeEscolhida, setEquipeEscolhida] = useState<string | null>(null);
-  const equipeId = equipeEscolhida ?? (unidadeId === (daSigla ?? unidadeAtualId) ? (equipes.data?.find((e) => e.nome === atual?.equipe)?.id ?? '') : '');
+  const equipeId = equipeEscolhida ?? (unidadeId === (daLotacao ?? unidadeAtualId) ? (equipes.data?.find((e) => e.nome === atual?.equipe)?.id ?? '') : '');
   const [jornada, setJornada] = useState<'pronto' | 'adm'>(atual?.jornada ?? 'pronto');
   // o quadro e a situação do período de hoje valem de novo, se nada for escolhido
   const quadros = useQuery(consultaQuadros);
@@ -70,10 +73,10 @@ function AlterarSituacao({ ficha, unidadeAtualId, aoFechar }: { ficha: FichaMili
   const quadrosDoPosto = (quadros.data ?? []).filter((q) => q.postoGradIds.includes(ficha.postoGradId));
   const [quadroEscolhido, setQuadroEscolhido] = useState<string | null>(null);
   // o quadro e a situação que a API repete são os do período aberto (o que não tem fim, mesmo marcado para depois), e não os de hoje
-  const aberto = ficha.rastreio.find((p) => !p.ate) ?? atual;
-  const quadroId = quadroEscolhido ?? quadrosDoPosto.find((q) => q.sigla === aberto?.quadro)?.id ?? '';
+  const abertoOuAtual = aberto ?? atual;
+  const quadroId = quadroEscolhido ?? quadrosDoPosto.find((q) => q.sigla === abertoOuAtual?.quadro)?.id ?? '';
   const [situacaoEscolhida, setSituacaoEscolhida] = useState<string | null>(null);
-  const situacaoAtual = situacoes.data?.find((s) => s.nome === aberto?.situacao);
+  const situacaoAtual = situacoes.data?.find((s) => s.nome === abertoOuAtual?.situacao);
   const situacaoId = situacaoEscolhida ?? situacaoAtual?.id ?? '';
   // as desativadas não aparecem, a não ser a que o militar já tem
   const situacoesParaEscolher = (situacoes.data ?? []).filter((s) => s.ativo || s.id === situacaoId);

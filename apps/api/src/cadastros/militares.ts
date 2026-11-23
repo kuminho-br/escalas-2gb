@@ -24,6 +24,7 @@ import { CADASTRO, ehAdministrador, exigirAdministradorRaiz, exigirAlgumPapel, e
 import type { Auth } from '../auth.ts';
 import { comUsuario, type Banco, type Consulta } from '../banco/banco.ts';
 import { hojeRecife } from '../datas.ts';
+import { postoCurto } from '../oficiais/participantes.ts';
 import { lerCorpo, respostaDoErroDoBanco } from '../erros.ts';
 import { apagarMilitar, oQueVaiJunto } from './apagar-militar.ts';
 import { mudarPeriodoAberto, periodoAberto } from './periodo-aberto.ts';
@@ -33,6 +34,7 @@ import { categoriaMaisAlta, pendenciasDoMilitar, repetidasPorAntiguidade, situac
 type Ctx = Context<AmbienteApi>;
 const MSG_SITUACAO_DESATIVADA = 'Esta situação está desativada.';
 const MSG_SITUACAO_NAO_ACHADA = 'Situação não encontrada.';
+const MSG_SO_SECAO = 'Escolha uma seção.';
 const MSG_PERIODO_ANTES = (desde: string) => `Use uma data a partir de ${desde.slice(8, 10)}/${desde.slice(5, 7)}/${desde.slice(0, 4)}.`;
 const MSG_EQUIPE_DE_OUTRA = 'Escolha uma equipe da unidade da lotação.';
 const MSG_EMAIL_REPETIDO = 'Este e-mail já é de outro militar.';
@@ -151,10 +153,24 @@ async function carregarFicha(c: Consulta, id: string, mes: string, usuarioId: st
   );
   const m = rows[0];
   if (!m) return null;
-  const rastreio = await c.query<{ id: string; sigla: string; equipe: string | null; jornada: 'pronto' | 'adm'; quadro: string | null; situacao: string; desde: string; ate: string | null }>(
-    `select l.id, un.sigla, e.nome as equipe, l.jornada, q.sigla as quadro, sm.nome as situacao, to_char(l.desde, 'YYYY-MM-DD') as desde, to_char(l.ate, 'YYYY-MM-DD') as ate
+  const rastreio = await c.query<{
+    id: string; unidade_id: string; sigla: string; equipe: string | null; jornada: 'pronto' | 'adm'; quadro: string | null; situacao: string; desde: string; ate: string | null;
+    autor_nome: string | null; autor_posto: string | null; alterado_em: string | null; grupamento: string | null; sigla_repetida: boolean;
+  }>(
+    `select l.id, l.unidade_id, un.sigla, e.nome as equipe,
+            (select g.sigla from unidade g where g.tipo = 'grupamento' and g.caminho @> un.caminho order by nlevel(g.caminho) desc limit 1) as grupamento,
+            exists (select 1 from unidade o where o.tipo = 'secao' and o.sigla = un.sigla and o.id <> un.id and (o.ate is null or o.ate >= current_date)) as sigla_repetida, l.jornada, q.sigla as quadro, sm.nome as situacao, to_char(l.desde, 'YYYY-MM-DD') as desde, to_char(l.ate, 'YYYY-MM-DD') as ate,
+            mm.nome_guerra as autor_nome, pp.sigla as autor_posto, to_char(la.em at time zone 'America/Recife', 'YYYY-MM-DD"T"HH24:MI:SS') as alterado_em
        from rastreio l join unidade un on un.id = l.unidade_id left join equipe e on e.id = l.equipe_id left join quadro q on q.id = l.quadro_id
        join situacao_militar sm on sm.id = l.situacao_id
+       -- a última mudança deste período que não foi só fechá-lo (o fim do período é posto por quem abre o próximo, e o período antigo segue com quem o abriu):
+       -- quem mexeu e quando (sem usuário, ou usuário sem militar, não há autor)
+       left join lateral (
+         select a.em, a.usuario_id from auditoria a
+          where a.tabela = 'rastreio' and a.registro_id = l.id::text and not (a.acao = 'update' and (a.antes - 'ate') is not distinct from (a.depois - 'ate'))
+          order by a.id desc limit 1
+       ) la on true
+       left join usuario uu on uu.id = la.usuario_id left join militar mm on mm.id = uu.militar_id left join posto_grad pp on pp.id = mm.posto_grad_id
       where l.militar_id = $1 order by l.desde desc`,
     [id],
   );
@@ -222,7 +238,12 @@ async function carregarFicha(c: Consulta, id: string, mes: string, usuarioId: st
     noQuadroDeMotoristas: m.motorista,
     cnh,
     cnhPorHierarquia: cnhHabilitadas(cnh).filter((x) => !cnh.includes(x)),
-    rastreio: rastreio.rows.map((l) => ({ id: l.id, unidadeSigla: l.sigla, equipe: l.equipe, jornada: l.jornada, quadro: l.quadro, situacao: l.situacao, desde: l.desde, ate: l.ate })),
+    rastreio: rastreio.rows.map((l) => ({
+      // a sigla que se repete entre grupamentos leva o grupamento ("2ª SB (2º GB)"), como na lista de destinos
+      id: l.id, unidadeId: l.unidade_id, unidadeSigla: l.sigla_repetida && l.grupamento ? `${l.sigla} (${l.grupamento})` : l.sigla, equipe: l.equipe, jornada: l.jornada, quadro: l.quadro, situacao: l.situacao, desde: l.desde, ate: l.ate,
+      alteradoPor: l.autor_nome && l.autor_posto ? { patente: postoCurto(l.autor_posto), nomeGuerra: l.autor_nome } : null,
+      alteradoEm: l.autor_nome && l.autor_posto ? l.alterado_em : null,
+    })),
     afastamentos: afastamentos.rows.map((a) => ({ id: a.id, tipo: a.tipo, tipoAfastamentoId: a.tipo_afastamento_id, inicio: a.inicio, fim: a.fim, motivo: a.motivo, boletim: a.boletim })),
   };
 }
@@ -342,10 +363,16 @@ export function rotasMilitares(dep: { banco: Banco; auth: Auth }): Hono<Ambiente
     const negado = await exigirAlgumPapel(c);
     if (negado) return negado;
     const hoje = hojeRecife();
-    const { rows } = await dep.banco.query<SecaoDeLotacao>("select id, sigla, nome from unidade where tipo = 'secao' and (ate is null or ate >= $1::date) order by sigla", [hoje]);
-    const permitidas: SecaoDeLotacao[] = [];
+    // todas as seções abaixo das unidades em que a pessoa tem nível, de qualquer grupamento; a sigla que se repete (a "1ª SB" de cada grupamento) leva o grupamento
+    const { rows } = await dep.banco.query<SecaoDeLotacao & { grupamento: string | null }>(
+      `select s.id, s.sigla, s.nome, (select a.sigla from unidade a where a.tipo = 'grupamento' and a.caminho @> s.caminho order by nlevel(a.caminho) desc limit 1) as grupamento
+         from unidade s where s.tipo = 'secao' and (s.ate is null or s.ate >= $1::date) order by s.sigla, s.caminho`,
+      [hoje],
+    );
+    const permitidas: (SecaoDeLotacao & { grupamento: string | null })[] = [];
     for (const u of rows) if (await temPapel(dep.banco, c.get('usuarioId'), u.id, CADASTRO, hoje)) permitidas.push(u);
-    return c.json(permitidas);
+    const repetidas = new Set(permitidas.map((u) => u.sigla).filter((sigla, i, todas) => todas.indexOf(sigla) !== i));
+    return c.json(permitidas.map(({ grupamento, ...u }): SecaoDeLotacao => (repetidas.has(u.sigla) && grupamento ? { ...u, sigla: `${u.sigla} (${grupamento})` } : u)));
   });
 
   r.get('/unidades/:u/equipes', async (c) => {
@@ -631,6 +658,9 @@ export function rotasMilitares(dep: { banco: Banco; auth: Auth }): Hono<Ambiente
     const corpo = await lerCorpo(c, AlteracaoDeSituacao);
     if (!corpo.ok) return corpo.resposta;
     const d = corpo.dados;
+    // o destino é uma seção (e não o grupamento, a divisão ou o CBMPE)
+    const doDestino = (await dep.banco.query<{ tipo: string }>('select tipo from unidade where id = $1', [d.unidadeId])).rows[0];
+    if (doDestino && doDestino.tipo !== 'secao') return c.json({ erro: MSG_SO_SECAO, campos: { unidadeId: MSG_SO_SECAO } }, 400);
     // a unidade de destino também precisa ser de quem registra
     const negadoDestino = await exigirPapel(c, d.unidadeId, CADASTRO);
     if (negadoDestino) return negadoDestino;
