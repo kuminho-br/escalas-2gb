@@ -211,6 +211,11 @@
   7. Siglas de unidade repetidas em grupamentos diferentes → a importação pela raiz usa a seção que está abaixo da unidade da importação; com duas possíveis, a linha vira problema com as duas no texto.
   8. "hoje" → um jeito só: `hojeRecife` na API; no site, uma função única com o fuso de Recife, usada também em feriados.
   9. O teste das edições simultâneas do militar → passa a provar a trava (duas transações de verdade no banco de teste).
+  10. Da 6.10: a função de auditoria usa `codigo` quando a tabela não tem `id` (gravar em `tipo_unidade` não quebra mais, sem desligar o gatilho).
+  11. Da 6.10: `PATCH /api/divisoes/:id` numa divisão encerrada → 409 "Esta divisão foi encerrada.".
+  12. Da 6.10: a importação do Pecúlio não aceita divisão como lotação ("A lotação é uma seção ou o grupamento.") e resolve a sigla dentro do grupamento da importação.
+  13. Da 6.10: seção dentro de divisão extinta → aparece na aba Estrutura direto no grupamento.
+  14. Da 6.10: teste de encerrar o próprio nível também no caso recusado.
 - [ ] **Commit** `Fase 6.18: acabamento da API`.
 
 ### Task 8: importação
