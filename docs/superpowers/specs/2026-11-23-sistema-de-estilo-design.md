@@ -77,7 +77,7 @@ Nenhum texto fica abaixo de 13 px.
 | Botão das ações | Três pontos numa área de 28 px, sempre à mostra (decisão do usuário de 23/11/2026), em `apagado`; com o mouse em cima, no foco e com o menu aberto, em `tinta`. Quando falta largura, quem corta é o nome, com reticências |
 | Estados da placa | Mouse em cima: fundo `passa`, borda `encaixe`. Menu aberto ou escolhida: borda e contorno de 1 px `tinta`. Choque: borda e contorno de 1 px `alerta`, ícone e a frase embaixo |
 | Linha (listas) | Placa de 44 px, com a matrícula em 13 px `apagado` e a etiqueta do serviço |
-| Marca (Grade) | 32 por 32 px, borda de 1 px `linha`, raio 6, letra do turno em 15 px estreita, faixa do serviço de 4 px embaixo. Provisória: o usuário se preocupa com distinguir muitos serviços só pela cor, e o desenho final fica na área da Grade geral |
+| Marca (Grade) | Fica como é hoje (decisão do usuário de 23/11/2026): quadrado cheio na cor do serviço, de 20 por 18 px, raio 3, com a letra do turno em 11 px estreita, peso 700; a cor da letra vem de `estiloDaCor`, que escolhe branco ou tinta pelo contraste. A letra é o turno e a cor é o serviço. É a exceção à regra de não pôr texto sobre a cor do serviço |
 | Encaixe obrigatório | A caixa da placa; fundo `pendencia-fundo`; borda tracejada de 1,5 px `pendencia`; texto em 15 px, peso 500, `pendencia`; ícone de mais e "Escolher militar" |
 | Encaixe opcional | Sem fundo; borda tracejada de 1 px `encaixe`; texto `apagado`, peso 400; ícone de mais e "Vaga opcional" |
 | Encaixe com o mouse | O tracejado vira linha cheia; no opcional, fundo `superficie` e texto e borda em `tinta` |
