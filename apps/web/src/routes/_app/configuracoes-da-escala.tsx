@@ -15,7 +15,8 @@ import { Selecao } from '@/componentes/Selecao';
 import { Input } from '@/componentes/ui/input';
 import { Label } from '@/componentes/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/componentes/ui/table';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/componentes/ui/tabs';
+import { PainelComMenu } from '@/componentes/PainelComMenu';
+import { TabsContent } from '@/componentes/ui/tabs';
 import { AcoesDosModelos, ListaDeModelos } from '@/componentes/guarnicoes/ListaDeModelos';
 import { ABAS_DA_ESCALA, type AbaDaEscala as Aba } from '@/lib/configuracoes';
 import { mesAtual } from '@/lib/meses';
@@ -39,14 +40,12 @@ function ConfiguracoesDaEscala() {
         <h1 className="font-cond text-[28px] leading-tight font-semibold">Configurações da escala</h1>
         {podeMudar && <ImportarPlanilha cadastro="configuracoes" rotulo="as configurações" aoConcluir={() => queryClient.invalidateQueries({ queryKey: ['parametros'] })} />}
       </header>
-      <Tabs value={aba} onValueChange={(v) => void navigate({ search: { aba: ABAS_DA_ESCALA.find((a) => a === v) }, replace: true })} className="mt-6">
-        {/* no celular as abas rolam dentro da própria faixa, e não a página inteira */}
-        <TabsList className="max-w-full justify-start overflow-x-auto overflow-y-hidden">
-          <TabsTrigger value="regras">Regras do processo</TabsTrigger>
-          <TabsTrigger value="voluntariado">Voluntariado</TabsTrigger>
-          <TabsTrigger value="modelos">Modelos de guarnição</TabsTrigger>
-          <TabsTrigger value="meta">Meta de ativação</TabsTrigger>
-        </TabsList>
+      <PainelComMenu
+        secoes={[{ valor: 'regras', nome: 'Regras do processo' }, { valor: 'voluntariado', nome: 'Voluntariado' }, { valor: 'modelos', nome: 'Modelos de guarnição' }, { valor: 'meta', nome: 'Meta de ativação' }]}
+        valor={aba}
+        rotulo="Seção das configurações da escala"
+        aoEscolher={(v) => void navigate({ search: { aba: ABAS_DA_ESCALA.find((a) => a === v) }, replace: true })}
+      >
         <TabsContent value="regras">
           <RegrasDoProcesso unidadeId={eu.unidade.id} sigla={eu.unidade.sigla} podeMudar={podeMudar} />
         </TabsContent>
@@ -68,7 +67,7 @@ function ConfiguracoesDaEscala() {
             <MetaDeAtivacao unidadeId={eu.unidade.id} podeMudar={podeMudar} />
           </div>
         </TabsContent>
-      </Tabs>
+      </PainelComMenu>
     </section>
   );
 }

@@ -23,7 +23,7 @@ import {
 import { ehGestorNaUnidade, ehMilitarComum, type Eu, type EuDaApi } from '@/api/eu';
 
 export type Item = { nome: string; icone: LucideIcon; para?: LinkProps['to']; /** O item só aparece para quem passa neste teste (sem ele, todos veem). */ ve?: (eu: Eu | EuDaApi) => boolean };
-export type IdModulo = 'escalas' | 'peculio' | 'consulta' | 'visualizacao' | 'minha-ficha' | 'configuracoes';
+export type IdModulo = 'escalas' | 'peculio' | 'consulta' | 'visualizacao' | 'minha-ficha' | 'configuracoes' | 'estrutura';
 
 /**
  * Um módulo do sistema: o cartão da tela inicial e o trilho de dentro dele. `itens` são os blocos do trilho (vazio = sem trilho) e `pe` os itens
@@ -77,7 +77,6 @@ export const MODULOS: Modulo[] = [
     ],
     pe: [
       { nome: 'Configurações da escala', icone: Settings, para: '/configuracoes-da-escala' },
-      { nome: 'Estrutura', icone: Network },
       { nome: 'Histórico', icone: History },
       { nome: 'Ajuda', icone: CircleHelp },
     ],
@@ -91,6 +90,8 @@ export const MODULOS: Modulo[] = [
     ve: temPapel,
     itens: [[{ nome: 'Pecúlio', icone: Contact, para: '/peculio' }]],
   },
+  // a árvore de unidades (entrega 6.26): quem tem nível de acesso a vê; só quem tem poder sobre ela a edita (cada unidade diz o que a pessoa pode fazer)
+  { id: 'estrutura', nome: 'Estrutura', descricao: 'A árvore de unidades: criar, renomear, mover e extinguir.', rota: '/estrutura', icone: Network, ve: temPapel, itens: [] },
   // todo militar com conta busca qualquer militar da corporação e vê só o que a borda das camadas de visão libera (entrega 6.11)
   { id: 'consulta', nome: 'Consulta de militares', descricao: 'Buscar um militar da corporação e ver o que você pode ver dele.', rota: '/consulta', icone: Search, ve: () => true, itens: [] },
   { id: 'visualizacao', nome: 'Visualização de escalas', descricao: 'Ver a escala publicada do mês.', rota: null, icone: Eye, ve: () => true, itens: [] },
@@ -113,6 +114,7 @@ export function moduloDoEndereco(caminho: string, busca: Record<string, unknown>
   const primeiro = (caminho.split('/')[1] ?? '').toLowerCase();
   if (primeiro === 'minha-ficha') return porId('minha-ficha');
   if (primeiro === 'consulta') return porId('consulta');
+  if (primeiro === 'estrutura') return porId('estrutura');
   // o modelo de guarnição abre de dentro das configurações da escala (o endereço antigo /configuracoes/modelos-de-guarnicao/:id continua valendo)
   if (primeiro === 'configuracoes') return (caminho.split('/')[2] ?? '').toLowerCase() === 'modelos-de-guarnicao' ? porId('escalas') : porId('configuracoes');
   if (primeiro === 'militares' && busca.de === 'peculio') return porId('peculio');

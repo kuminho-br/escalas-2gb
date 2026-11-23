@@ -22,6 +22,7 @@ import { Route as AppEfetivoDoDiaRouteImport } from './routes/_app/efetivo-do-di
 import { Route as AppEfetivoPorDiaRouteImport } from './routes/_app/efetivo-por-dia'
 import { Route as AppEscalaDoMesRouteImport } from './routes/_app/escala-do-mes'
 import { Route as AppEscalasRouteImport } from './routes/_app/escalas'
+import { Route as AppEstruturaRouteImport } from './routes/_app/estrutura'
 import { Route as AppFeriadosRouteImport } from './routes/_app/feriados'
 import { Route as AppGradeRouteImport } from './routes/_app/grade'
 import { Route as AppMilitaresRouteImport } from './routes/_app/militares'
@@ -105,6 +106,11 @@ const AppEscalaDoMesRoute = AppEscalaDoMesRouteImport.update({
 const AppEscalasRoute = AppEscalasRouteImport.update({
   id: '/escalas',
   path: '/escalas',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppEstruturaRoute = AppEstruturaRouteImport.update({
+  id: '/estrutura',
+  path: '/estrutura',
   getParentRoute: () => AppRoute,
 } as any)
 const AppFeriadosRoute = AppFeriadosRouteImport.update({
@@ -217,6 +223,7 @@ export interface FileRoutesByFullPath {
   '/efetivo-por-dia': typeof AppEfetivoPorDiaRoute
   '/escala-do-mes': typeof AppEscalaDoMesRoute
   '/escalas': typeof AppEscalasRouteWithChildren
+  '/estrutura': typeof AppEstruturaRoute
   '/feriados': typeof AppFeriadosRoute
   '/grade': typeof AppGradeRoute
   '/militares': typeof AppMilitaresRouteWithChildren
@@ -248,6 +255,7 @@ export interface FileRoutesByTo {
   '/efetivo-do-dia': typeof AppEfetivoDoDiaRoute
   '/efetivo-por-dia': typeof AppEfetivoPorDiaRoute
   '/escala-do-mes': typeof AppEscalaDoMesRoute
+  '/estrutura': typeof AppEstruturaRoute
   '/feriados': typeof AppFeriadosRoute
   '/grade': typeof AppGradeRoute
   '/minha-ficha': typeof AppMinhaFichaRoute
@@ -281,6 +289,7 @@ export interface FileRoutesById {
   '/_app/efetivo-por-dia': typeof AppEfetivoPorDiaRoute
   '/_app/escala-do-mes': typeof AppEscalaDoMesRoute
   '/_app/escalas': typeof AppEscalasRouteWithChildren
+  '/_app/estrutura': typeof AppEstruturaRoute
   '/_app/feriados': typeof AppFeriadosRoute
   '/_app/grade': typeof AppGradeRoute
   '/_app/militares': typeof AppMilitaresRouteWithChildren
@@ -317,6 +326,7 @@ export interface FileRouteTypes {
     | '/efetivo-por-dia'
     | '/escala-do-mes'
     | '/escalas'
+    | '/estrutura'
     | '/feriados'
     | '/grade'
     | '/militares'
@@ -348,6 +358,7 @@ export interface FileRouteTypes {
     | '/efetivo-do-dia'
     | '/efetivo-por-dia'
     | '/escala-do-mes'
+    | '/estrutura'
     | '/feriados'
     | '/grade'
     | '/minha-ficha'
@@ -380,6 +391,7 @@ export interface FileRouteTypes {
     | '/_app/efetivo-por-dia'
     | '/_app/escala-do-mes'
     | '/_app/escalas'
+    | '/_app/estrutura'
     | '/_app/feriados'
     | '/_app/grade'
     | '/_app/militares'
@@ -500,6 +512,13 @@ declare module '@tanstack/react-router' {
       path: '/escalas'
       fullPath: '/escalas'
       preLoaderRoute: typeof AppEscalasRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/estrutura': {
+      id: '/_app/estrutura'
+      path: '/estrutura'
+      fullPath: '/estrutura'
+      preLoaderRoute: typeof AppEstruturaRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/feriados': {
@@ -689,6 +708,7 @@ interface AppRouteChildren {
   AppEfetivoPorDiaRoute: typeof AppEfetivoPorDiaRoute
   AppEscalaDoMesRoute: typeof AppEscalaDoMesRoute
   AppEscalasRoute: typeof AppEscalasRouteWithChildren
+  AppEstruturaRoute: typeof AppEstruturaRoute
   AppFeriadosRoute: typeof AppFeriadosRoute
   AppGradeRoute: typeof AppGradeRoute
   AppMilitaresRoute: typeof AppMilitaresRouteWithChildren
@@ -714,6 +734,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppEfetivoPorDiaRoute: AppEfetivoPorDiaRoute,
   AppEscalaDoMesRoute: AppEscalaDoMesRoute,
   AppEscalasRoute: AppEscalasRouteWithChildren,
+  AppEstruturaRoute: AppEstruturaRoute,
   AppFeriadosRoute: AppFeriadosRoute,
   AppGradeRoute: AppGradeRoute,
   AppMilitaresRoute: AppMilitaresRouteWithChildren,

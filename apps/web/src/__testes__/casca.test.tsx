@@ -113,7 +113,7 @@ describe('casca', () => {
     expect(within(caminho).getAllByRole('listitem').at(-1)).toHaveAttribute('aria-current', 'location');
     expect(screen.getByRole('img', { name: 'Brasão do Corpo de Bombeiros Militar de Pernambuco' })).toHaveAttribute('src', '/brasao-cbmpe.png');
     expect(screen.getByRole('link', { name: 'Grade geral' })).toHaveAttribute('aria-current', 'page');
-    expect(screen.getByText('Estrutura').closest('[aria-disabled="true"]')).not.toBeNull();
+    expect(screen.queryByText('Estrutura')).toBeNull();
     expect(screen.getByRole('heading', { name: 'Grade geral', level: 1 })).toBeInTheDocument();
   });
 
@@ -166,7 +166,7 @@ describe('casca', () => {
 });
 
 describe('trilho', () => {
-  const NOMES = ['Grade geral', 'Escala do mês', 'Efetivo por dia', 'Voluntariado', 'Cotas', 'Militares', 'Turnos', 'Escalas', 'Feriados', 'Configurações da escala', 'Estrutura', 'Histórico', 'Ajuda'];
+  const NOMES = ['Grade geral', 'Escala do mês', 'Efetivo por dia', 'Voluntariado', 'Cotas', 'Militares', 'Turnos', 'Escalas', 'Feriados', 'Configurações da escala', 'Histórico', 'Ajuda'];
   const menu = () => screen.getByRole('navigation', { name: 'Navegação principal' });
 
   it('no computador o menu é um trilho de 84 px', async () => {
@@ -185,8 +185,8 @@ describe('trilho', () => {
     expect(within(menu()).getByRole('link', { name: 'Militares' })).toHaveAttribute('href', '/militares');
     expect(within(menu()).getByRole('link', { name: 'Escala do mês' })).toHaveAttribute('href', '/escala-do-mes');
     expect(within(menu()).getByRole('link', { name: 'Efetivo por dia' })).toHaveAttribute('href', '/efetivo-por-dia');
-    expect(within(menu()).getByText('Estrutura').closest('[aria-disabled="true"]')).not.toBeNull();
-    expect(within(menu()).queryByRole('link', { name: 'Estrutura' })).toBeNull();
+    // a Estrutura saiu do trilho: é um módulo próprio, na tela inicial
+    expect(within(menu()).queryByText('Estrutura')).toBeNull();
   });
 
   it('o menu do celular abre e fecha', async () => {

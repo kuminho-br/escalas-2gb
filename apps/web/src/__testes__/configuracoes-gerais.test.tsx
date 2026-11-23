@@ -42,7 +42,7 @@ describe('a tela inicial e o painel geral (6.26)', () => {
   it('o militar comum vê só "Minhas preferências", e a animação de entrada (sempre, a cada 12 h, nunca) grava como na 6.14', async () => {
     api(COMUM);
     abrir('/configuracoes');
-    expect(await abas()).toEqual(['Minhas preferências']);
+    expect(screen.queryByRole('tab')).toBeNull();
     const grupo = within(await screen.findByRole('radiogroup', { name: 'Animação de entrada' }));
     expect(grupo.getByRole('radio', { name: 'Uma vez a cada 12 horas' })).toBeChecked();
     expect(screen.getByText('Vale para este navegador.')).toBeInTheDocument();
@@ -56,11 +56,11 @@ describe('a tela inicial e o painel geral (6.26)', () => {
     api(COMUM);
     abrir('/configuracoes?aba=postos');
     expect(await screen.findByRole('radiogroup', { name: 'Animação de entrada' })).toBeInTheDocument();
-    expect(screen.getByRole('tab', { name: 'Minhas preferências' })).toHaveAttribute('aria-selected', 'true');
     cleanup();
     api(AUXILIAR);
     abrir('/configuracoes?aba=quem-ve-o-que');
     expect(await screen.findByRole('radiogroup', { name: 'Animação de entrada' })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Minhas preferências' })).toHaveAttribute('aria-selected', 'true');
   });
 
   it('com menos movimento, o aviso aparece nas preferências', async () => {
@@ -71,10 +71,10 @@ describe('a tela inicial e o painel geral (6.26)', () => {
     vi.unstubAllGlobals();
   });
 
-  it('o auxiliar vê as preferências e os catálogos só para leitura, e a Estrutura sem menu', async () => {
+  it('o auxiliar vê as preferências e os catálogos só para leitura', async () => {
     api(AUXILIAR);
     abrir('/configuracoes');
-    expect(await abas()).toEqual(['Minhas preferências', 'Estrutura', 'Postos e graduações', 'Funções do militar', 'Situações do militar', 'Tipos de afastamento']);
+    expect(await abas()).toEqual(['Minhas preferências', 'Postos e graduações', 'Funções do militar', 'Situações do militar', 'Tipos de afastamento']);
     await userEvent.click(screen.getByRole('tab', { name: 'Postos e graduações' }));
     expect(await screen.findByRole('list', { name: 'Postos e graduações' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Corrigir/ })).toBeNull();
@@ -82,24 +82,45 @@ describe('a tela inicial e o painel geral (6.26)', () => {
     expect(await screen.findByText('Chefe de seção')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Renomear' })).toBeNull();
     expect(screen.getByText(/Só o administrador altera/)).toBeInTheDocument();
-    await userEvent.click(screen.getByRole('tab', { name: 'Estrutura' }));
-    await screen.findByRole('list', { name: /Estrutura de/ });
   });
 
-  it('o gestor vê as mesmas seções do auxiliar; os catálogos continuam só para leitura', async () => {
+  it('o gestor vê as mesmas seções do auxiliar; os catálogos continuam só para leitura, e a Estrutura não está mais aqui', async () => {
     api(GESTOR);
     abrir('/configuracoes');
-    expect(await abas()).toEqual(['Minhas preferências', 'Estrutura', 'Postos e graduações', 'Funções do militar', 'Situações do militar', 'Tipos de afastamento']);
-    await userEvent.click(screen.getByRole('tab', { name: 'Estrutura' }));
-    expect(await screen.findByRole('button', { name: 'Ações de 2º GB' })).toBeInTheDocument();
+    expect(await abas()).toEqual(['Minhas preferências', 'Postos e graduações', 'Funções do militar', 'Situações do militar', 'Tipos de afastamento']);
+    expect(screen.queryByRole('tab', { name: 'Estrutura' })).toBeNull();
   });
 
-  it('o administrador vê tudo, inclusive Tipos de unidade e Quem vê o quê, e edita os catálogos', async () => {
+  it('o administrador vê também Quem vê o quê, e edita os catálogos', async () => {
     api(ADMIN);
     abrir('/configuracoes');
-    expect(await abas()).toEqual(['Minhas preferências', 'Estrutura', 'Tipos de unidade', 'Postos e graduações', 'Funções do militar', 'Situações do militar', 'Tipos de afastamento', 'Quem vê o quê']);
+    expect(await abas()).toEqual(['Minhas preferências', 'Postos e graduações', 'Funções do militar', 'Situações do militar', 'Tipos de afastamento', 'Quem vê o quê']);
     await userEvent.click(screen.getByRole('tab', { name: 'Postos e graduações' }));
     expect(await screen.findByRole('button', { name: 'Corrigir SD' })).toBeInTheDocument();
+  });
+
+  it('o menu é vertical, com a seção escolhida marcada; no celular a lista de opções fica no alto e muda a seção', async () => {
+    api(ADMIN);
+    abrir('/configuracoes');
+    const menu = await screen.findByRole('tablist', { name: 'Seção das configurações' });
+    expect(menu).toHaveAttribute('aria-orientation', 'vertical');
+    expect(screen.getByRole('tab', { name: 'Minhas preferências' })).toHaveAttribute('aria-selected', 'true');
+    // no celular o menu some e a lista de opções aparece (as classes decidem; os dois existem na página)
+    expect(menu.className).toMatch(/\bhidden\b/);
+    const lista = screen.getByRole('combobox', { name: 'Seção das configurações' });
+    expect(lista.parentElement!.className).toMatch(/md:hidden/);
+    expect(within(lista).getAllByRole('option').map((o) => o.textContent)).toEqual(['Minhas preferências', 'Postos e graduações', 'Funções do militar', 'Situações do militar', 'Tipos de afastamento', 'Quem vê o quê']);
+    await userEvent.selectOptions(lista, 'funcoes');
+    expect(await screen.findByText('Chefe de seção')).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Funções do militar' })).toHaveAttribute('aria-selected', 'true');
+  });
+
+  it('com uma seção só (o militar comum), não há menu nem lista de opções', async () => {
+    api(COMUM);
+    abrir('/configuracoes');
+    await screen.findByRole('radiogroup', { name: 'Animação de entrada' });
+    expect(screen.queryByRole('tab')).toBeNull();
+    expect(screen.queryByRole('combobox')).toBeNull();
   });
 
   it('a Minha ficha não tem mais a preferência da animação', async () => {
@@ -123,6 +144,7 @@ describe('as configurações da escala ficam no módulo de escalas (6.26)', () =
     const trilho = await screen.findByRole('navigation', { name: 'Navegação principal' });
     await userEvent.click(await within(trilho).findByRole('link', { name: 'Configurações da escala' }));
     expect(await abas()).toEqual(['Regras do processo', 'Voluntariado', 'Modelos de guarnição', 'Meta de ativação']);
+    expect(screen.getByRole('tablist', { name: 'Seção das configurações da escala' })).toHaveAttribute('aria-orientation', 'vertical');
     expect(await screen.findByRole('heading', { level: 1, name: 'Configurações da escala' })).toBeInTheDocument();
     // o item do trilho não é mais "Configurações" (esse é o cartão da tela inicial)
     expect(within(trilho).queryByRole('link', { name: /^Configurações$/ })).toBeNull();

@@ -4,29 +4,33 @@ import type { ItemCatalogo } from 'contratos';
 import { useState, type FormEvent } from 'react';
 import { mensagemDe } from '@/api/cliente';
 import { consultaCatalogo, editarNoCatalogo, incluirNoCatalogo, type Catalogo } from '@/api/configuracoes';
-import { ehAdministrador, ehMilitarComum, raizesDaEstrutura } from '@/api/eu';
+import { ehAdministrador, ehMilitarComum } from '@/api/eu';
 import { AnimacaoDeEntrada } from '@/componentes/configuracoes/AnimacaoDeEntrada';
-import { Estrutura } from '@/componentes/configuracoes/Estrutura';
 import { FuncoesDoMilitar } from '@/componentes/configuracoes/FuncoesDoMilitar';
 import { Postos } from '@/componentes/configuracoes/Postos';
 import { QuemVeOQue } from '@/componentes/configuracoes/QuemVeOQue';
 import { SituacoesDoMilitar } from '@/componentes/configuracoes/SituacoesDoMilitar';
-import { TiposDeUnidade } from '@/componentes/configuracoes/TiposDeUnidade';
 import { Button } from '@/componentes/ui/button';
 import { Input } from '@/componentes/ui/input';
 import { Label } from '@/componentes/ui/label';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/componentes/ui/tabs';
+import { PainelComMenu } from '@/componentes/PainelComMenu';
+import { TabsContent } from '@/componentes/ui/tabs';
 import { ABAS_DA_ESCALA, type AbaDaEscala } from '@/lib/configuracoes';
 
-const ABAS = ['preferencias', 'estrutura', 'tipos-de-unidade', 'postos', 'funcoes', 'situacoes', 'tipos', 'quem-ve-o-que'] as const;
+const ABAS = ['preferencias', 'postos', 'funcoes', 'situacoes', 'tipos', 'quem-ve-o-que'] as const;
+/** As seções que saíram daqui para o módulo Estrutura: o endereço antigo leva a elas. */
+const DA_ESTRUTURA = { estrutura: 'arvore', 'tipos-de-unidade': 'tipos-de-unidade' } as const;
 type Aba = (typeof ABAS)[number];
 
 export const Route = createFileRoute('/_app/configuracoes')({
   // as abas da escala só passam pela validação para o beforeLoad levar o endereço antigo (/configuracoes?aba=regras…) ao lugar novo
-  validateSearch: (s: Record<string, unknown>): { aba?: Aba | AbaDaEscala } => ({ aba: [...ABAS, ...ABAS_DA_ESCALA].find((a) => a === s.aba) }),
+  // as abas da escala e as da estrutura só passam pela validação para o beforeLoad levar o endereço antigo (/configuracoes?aba=regras…) ao lugar novo
+  validateSearch: (s: Record<string, unknown>): { aba?: Aba | AbaDaEscala | keyof typeof DA_ESTRUTURA } => ({ aba: [...ABAS, ...ABAS_DA_ESCALA, ...Object.keys(DA_ESTRUTURA)].find((a) => a === s.aba) as never }),
   beforeLoad: ({ search }) => {
-    const aba = ABAS_DA_ESCALA.find((a) => a === search.aba);
-    if (aba) throw redirect({ to: '/configuracoes-da-escala', search: { aba }, replace: true });
+    const daEscala = ABAS_DA_ESCALA.find((a) => a === search.aba);
+    if (daEscala) throw redirect({ to: '/configuracoes-da-escala', search: { aba: daEscala }, replace: true });
+    const daEstrutura = search.aba && search.aba in DA_ESTRUTURA ? DA_ESTRUTURA[search.aba as keyof typeof DA_ESTRUTURA] : undefined;
+    if (daEstrutura) throw redirect({ to: '/estrutura', search: { aba: daEstrutura }, replace: true });
   },
   component: Configuracoes,
 });
@@ -40,12 +44,17 @@ function Configuracoes() {
   const { eu } = Route.useRouteContext();
   const admin = ehAdministrador(eu);
   const comNivel = !ehMilitarComum(eu);
-  const raizes = comNivel ? raizesDaEstrutura(eu) : [];
   // as seções que esta pessoa vê; o endereço de uma que ela não vê abre as preferências
-  const visiveis: Aba[] = ['preferencias', ...(raizes.length > 0 ? (['estrutura'] as const) : []), ...(admin ? (['tipos-de-unidade'] as const) : []),
-    ...(comNivel ? (['postos', 'funcoes', 'situacoes', 'tipos'] as const) : []), ...(admin ? (['quem-ve-o-que'] as const) : [])];
+  const secoes: { valor: Aba; nome: string }[] = [
+    { valor: 'preferencias', nome: 'Minhas preferências' },
+    ...(comNivel ? [
+      { valor: 'postos' as const, nome: 'Postos e graduações' }, { valor: 'funcoes' as const, nome: 'Funções do militar' },
+      { valor: 'situacoes' as const, nome: 'Situações do militar' }, { valor: 'tipos' as const, nome: 'Tipos de afastamento' },
+    ] : []),
+    ...(admin ? [{ valor: 'quem-ve-o-que' as const, nome: 'Quem vê o quê' }] : []),
+  ];
   const pedida = Route.useSearch().aba;
-  const aba: Aba = visiveis.find((a) => a === pedida) ?? 'preferencias';
+  const aba: Aba = secoes.find((x) => x.valor === pedida)?.valor ?? 'preferencias';
   const navigate = Route.useNavigate();
 
   return (
@@ -53,31 +62,10 @@ function Configuracoes() {
       <header className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="font-cond text-[28px] leading-tight font-semibold">Configurações</h1>
       </header>
-      <Tabs value={aba} onValueChange={(v) => void navigate({ search: { aba: ABAS.find((a) => a === v) }, replace: true })} className="mt-6">
-        {/* no celular as abas rolam dentro da própria faixa, e não a página inteira */}
-        <TabsList className="max-w-full justify-start overflow-x-auto overflow-y-hidden">
-          <TabsTrigger value="preferencias">Minhas preferências</TabsTrigger>
-          {raizes.length > 0 && <TabsTrigger value="estrutura">Estrutura</TabsTrigger>}
-          {admin && <TabsTrigger value="tipos-de-unidade">Tipos de unidade</TabsTrigger>}
-          {comNivel && <TabsTrigger value="postos">Postos e graduações</TabsTrigger>}
-          {comNivel && <TabsTrigger value="funcoes">Funções do militar</TabsTrigger>}
-          {comNivel && <TabsTrigger value="situacoes">Situações do militar</TabsTrigger>}
-          {comNivel && <TabsTrigger value="tipos">Tipos de afastamento</TabsTrigger>}
-          {admin && <TabsTrigger value="quem-ve-o-que">Quem vê o quê</TabsTrigger>}
-        </TabsList>
+      <PainelComMenu secoes={secoes} valor={aba} rotulo="Seção das configurações" aoEscolher={(v) => void navigate({ search: { aba: ABAS.find((a) => a === v) }, replace: true })}>
         <TabsContent value="preferencias">
           <AnimacaoDeEntrada />
         </TabsContent>
-        {raizes.length > 0 && (
-          <TabsContent value="estrutura">
-            <Estrutura raizes={raizes} />
-          </TabsContent>
-        )}
-        {admin && (
-          <TabsContent value="tipos-de-unidade">
-            <TiposDeUnidade />
-          </TabsContent>
-        )}
         {comNivel && (
           <TabsContent value="postos">
             <Postos podeEditar={admin} />
@@ -103,7 +91,7 @@ function Configuracoes() {
             <QuemVeOQue />
           </TabsContent>
         )}
-      </Tabs>
+      </PainelComMenu>
     </section>
   );
 }

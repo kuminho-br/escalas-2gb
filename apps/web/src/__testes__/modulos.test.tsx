@@ -12,12 +12,12 @@ describe('os módulos e quem os vê', () => {
     expect(quemVe(COMUM)).toEqual(['consulta', 'visualizacao', 'minha-ficha', 'configuracoes']);
   });
 
-  it('o auxiliar, o quinto nível, o gestor e o administrador veem os seis', () => {
-    for (const papel of ['escalante', 'gestor_lateral', 'gestor', 'administrador'] as const) expect(quemVe(comPapel(papel))).toEqual(['escalas', 'peculio', 'consulta', 'visualizacao', 'minha-ficha', 'configuracoes']);
+  it('o auxiliar, o quinto nível, o gestor e o administrador veem os sete', () => {
+    for (const papel of ['escalante', 'gestor_lateral', 'gestor', 'administrador'] as const) expect(quemVe(comPapel(papel))).toEqual(['escalas', 'peculio', 'estrutura', 'consulta', 'visualizacao', 'minha-ficha', 'configuracoes']);
   });
 
   it('só a Visualização não tem rota', () => {
-    expect(MODULOS.map((m) => [m.id, m.rota])).toEqual([['escalas', '/grade'], ['peculio', '/peculio'], ['consulta', '/consulta'], ['visualizacao', null], ['minha-ficha', '/minha-ficha'], ['configuracoes', '/configuracoes']]);
+    expect(MODULOS.map((m) => [m.id, m.rota])).toEqual([['escalas', '/grade'], ['peculio', '/peculio'], ['estrutura', '/estrutura'], ['consulta', '/consulta'], ['visualizacao', null], ['minha-ficha', '/minha-ficha'], ['configuracoes', '/configuracoes']]);
   });
 });
 
@@ -26,6 +26,8 @@ describe('o módulo de cada endereço', () => {
 
   it('as telas de escala são da Confecção, e o Pecúlio é do Pecúlio', () => {
     for (const c of ['/grade', '/escala-do-mes', '/efetivo-por-dia', '/oficiais', '/voluntariado', '/cotas', '/servicos', '/escalas/e1/ordem', '/feriados', '/configuracoes-da-escala', '/militares', '/configuracoes/modelos-de-guarnicao/g1']) expect(id(c)).toBe('escalas');
+    expect(id('/estrutura')).toBe('estrutura');
+    expect(MODULOS.find((m) => m.id === 'estrutura')!.itens).toEqual([]);
     // as configurações gerais são do módulo Configurações, sem trilho
     for (const c of ['/configuracoes', '/Configuracoes']) expect(id(c), c).toBe('configuracoes');
     expect(MODULOS.find((m) => m.id === 'configuracoes')!.itens).toEqual([]);

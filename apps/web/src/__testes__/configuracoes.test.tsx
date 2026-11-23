@@ -50,15 +50,14 @@ function api(extra: Parameters<typeof simularApi>[0] = {}, eu = EU_EXEMPLO) {
 }
 
 describe('configurações no celular (N0.1, achado C1)', () => {
-  it('a faixa das abas rola dentro dela mesma, sem quebrar o texto das abas', async () => {
+  it('no celular não há faixa que rola: o menu vira uma lista de opções no alto (6.26)', async () => {
     api();
     abrir('/configuracoes-da-escala');
-    const faixa = await screen.findByRole('tablist');
-    expect(faixa.className).toMatch(/\boverflow-x-auto\b/);
-    expect(faixa.className).toMatch(/\bmax-w-full\b/);
-    // o traço de cada aba passa um pouco da faixa: sem isto, a faixa ganha uma rolagem vertical (achado da revisão final)
-    expect(faixa.className).toMatch(/\boverflow-y-hidden\b/);
-    for (const aba of screen.getAllByRole('tab')) expect(aba.className).toMatch(/\bwhitespace-nowrap\b/);
+    const menu = await screen.findByRole('tablist');
+    // o menu vertical só existe do tamanho médio para cima; a faixa horizontal com rolagem acabou
+    expect(menu.className).not.toMatch(/overflow-x/);
+    expect(menu.className).toMatch(/\bhidden\b/);
+    expect(screen.getByRole('combobox', { name: 'Seção das configurações da escala' }).parentElement!.className).toMatch(/md:hidden/);
   });
 
   it('cada tabela da tela fica dentro de um quadro que rola', async () => {
