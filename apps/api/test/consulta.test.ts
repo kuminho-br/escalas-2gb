@@ -246,7 +246,8 @@ describe('a ficha de consulta', () => {
     for (const quem of ['semPapel', 'admin', 'gestorGb', pessoa.oficial, pessoa.chefe] as Quem[]) {
       const f = await ficha(quem, 'SEMLOTACAO');
       expect(Object.keys(f).sort()).toEqual([...SO_IDENTIFICACAO].sort());
-      expect(f).toMatchObject({ lotacao: null, quadro: null, podeAbrirFichaCompleta: false });
+      // só a identificação para todos; o administrador ganha o atalho da ficha completa para dar a primeira lotação (6.24)
+      expect(f).toMatchObject({ lotacao: null, quadro: null, podeAbrirFichaCompleta: quem === 'admin' });
     }
   });
 
