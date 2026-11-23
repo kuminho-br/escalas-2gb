@@ -7,7 +7,6 @@ import { alterarTelefone, consultaMinhaFicha } from '@/api/minha-ficha';
 import { Campo } from '@/componentes/Campo';
 import { Secao } from '@/componentes/militares/Secao';
 import { mascararCep, mascararCpf } from '@/lib/militares';
-import { gravarQuando, lerQuando, pedeMenosMovimento, type Quando } from '@/lib/transicao-login/regra';
 import { Button } from '@/componentes/ui/button';
 import { Input } from '@/componentes/ui/input';
 
@@ -84,7 +83,6 @@ function MinhaFichaTela() {
             <p className="text-sm text-apagado">Sem lotação neste momento.</p>
           )}
         </Secao>
-        <AnimacaoDeEntrada />
         <Secao titulo="Motorista e voluntariado">
           <Dados>
             <Dado rotulo="No quadro de motoristas" valor={f.motorista ? 'Sim' : 'Não'} />
@@ -142,36 +140,6 @@ function Contato({ ficha }: { ficha: MinhaFicha }) {
           {aviso && <p role={aviso.erro ? 'alert' : 'status'} className={aviso.erro ? 'text-sm text-alerta' : 'text-sm text-apagado'}>{aviso.texto}</p>}
         </div>
       </form>
-    </Secao>
-  );
-}
-
-const OPCOES_DA_ANIMACAO: { valor: Quando; rotulo: string }[] = [
-  { valor: 'sempre', rotulo: 'Em toda entrada' },
-  { valor: '12h', rotulo: 'Uma vez a cada 12 horas' },
-  { valor: 'nunca', rotulo: 'Nunca' },
-];
-
-/** Quando a animação do login toca. A escolha fica neste navegador (a animação começa antes de o servidor dizer quem entra) e grava na hora. */
-function AnimacaoDeEntrada() {
-  const [quando, setQuando] = useState<Quando>(lerQuando);
-  const menosMovimento = pedeMenosMovimento();
-  const escolher = (q: Quando) => {
-    setQuando(q);
-    gravarQuando(q);
-  };
-  return (
-    <Secao titulo="Animação de entrada">
-      <fieldset role="radiogroup" aria-label="Animação de entrada" className="grid gap-2">
-        {OPCOES_DA_ANIMACAO.map((o) => (
-          <label key={o.valor} className="flex items-center gap-2 text-sm">
-            <input type="radio" name="animacao-de-entrada" value={o.valor} checked={quando === o.valor} onChange={() => escolher(o.valor)} className="size-4 accent-vinho" />
-            {o.rotulo}
-          </label>
-        ))}
-      </fieldset>
-      <p className="mt-2 text-xs text-apagado">Vale para este navegador.</p>
-      {menosMovimento && <p className="mt-1 text-sm text-pendencia">Seu aparelho pede menos movimento, então a animação não toca.</p>}
     </Secao>
   );
 }

@@ -10,10 +10,11 @@ export type TipoDeUnidade = { codigo: string; nome: string; ordem: number };
 export type TipoDeUnidadeComUso = TipoDeUnidade & { id: string; unidades: number };
 
 /**
- * O que está ligado a uma unidade: `unidades` são as que ainda valem abaixo dela, `militaresHoje` os lotados nela hoje, e `historico` diz, em
+ * O que está ligado a uma unidade: `unidades` são as que ainda valem abaixo dela, `militaresHoje` os lotados nela hoje (só nela: é o que a regra de extinguir
+ * olha), `militaresNaArvore` os lotados hoje nela e em todas as de baixo (o número que a árvore mostra), e `historico` diz, em
  * palavras, tudo o que um dia foi ligado a ela ("3 escalas", "2 níveis de acesso"); com algo no histórico, a unidade não se exclui, só se extingue.
  */
-export type LigadosAUnidade = { unidades: number; militaresHoje: number; historico: string[] };
+export type LigadosAUnidade = { unidades: number; militaresHoje: number; militaresNaArvore: number; historico: string[] };
 
 /** Um nó da árvore, com as filhas na ordem das siglas. */
 export type NoDaArvore = {

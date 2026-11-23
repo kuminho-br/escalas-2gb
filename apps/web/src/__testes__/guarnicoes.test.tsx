@@ -728,8 +728,8 @@ describe('modelos de guarnição em Configurações', () => {
   it('voltar da ficha leva à aba de modelos', async () => {
     api();
     const roteador = abrir('/configuracoes/modelos-de-guarnicao/g1');
-    await userEvent.click(await screen.findByRole('link', { name: 'Voltar para Configurações' }));
-    await waitFor(() => expect(roteador.state.location.pathname).toBe('/configuracoes'));
+    await userEvent.click(await screen.findByRole('link', { name: 'Voltar para Configurações da escala' }));
+    await waitFor(() => expect(roteador.state.location.pathname).toBe('/configuracoes-da-escala'));
     expect(roteador.state.location.search).toMatchObject({ aba: 'modelos' });
   });
 
