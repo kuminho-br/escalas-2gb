@@ -44,7 +44,7 @@ Por isso o acesso passa a ter duas perguntas separadas: **o que a pessoa edita**
 ## As divisões
 
 - Tipo de unidade novo, **Divisão**, entre o Grupamento e a Seção. Uma seção pode ficar direto no grupamento ou dentro de uma divisão.
-- As padrão são a **Divisão Administrativa** e a **Divisão Operacional**. A migração cria as duas em cada grupamento, vazias. Quais seções vão para cada uma é dado: quem decide é o gestor do grupamento, na tela.
+- As padrão são a **Divisão Administrativa** (sigla **DA**) e a **Divisão Operacional** (sigla **DivOp**). A migração cria as duas em cada grupamento, vazias. Quais seções vão para cada uma é dado: quem decide é o gestor do grupamento, na tela.
 - **Tela "Estrutura"**, nas Configurações, para o gestor do grupamento e o administrador: ver a árvore do grupamento, criar e renomear uma divisão, e pôr uma seção dentro de uma divisão (ou tirá-la).
 - Mover uma seção muda na hora quem a alcança pela hierarquia. A tela avisa isso antes de salvar.
 - Uma divisão com seções dentro não é apagada. Não há "apagar" nesta versão: a divisão vazia fica.
@@ -142,7 +142,9 @@ CB ALMEIDA · 990123-4 · 1ª SB · QBMG
 - (1) Um rótulo nas seções ("administrativa" ou "operacional"): rápido, mas não serve de base ao organograma.
 - **(2) Unidade de verdade na árvore. Escolhida:** o nível de acesso e as lotações já funcionam com a árvore.
 
-## Decisões da PLANEJAMENTO (para o usuário conferir)
+## Decisões da PLANEJAMENTO
+
+As seis foram aprovadas pelo usuário em 23/11/2026.
 
 1. Nome completo e matrícula estão em "Identificação", vista por todos.
 2. O chefe de divisão dá e encerra níveis de auxiliar e de gestor na sua divisão, como o gestor.

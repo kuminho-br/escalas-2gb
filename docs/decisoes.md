@@ -8,6 +8,7 @@ Siglas dos documentos: **Design** = `superpowers/specs/2026-11-16-migracao-desig
 
 | Data | Decisão | Onde está |
 |---|---|---|
+| 23/11/2026 | Siglas das divisões: DA (Divisão Administrativa) e DivOp (Divisão Operacional). As seis decisões da PLANEJAMENTO na spec das camadas de visão foram aprovadas. | `superpowers/specs/2026-11-23-camadas-de-visao-design.md` |
 | 23/11/2026 | O acesso separa ver de editar. Editar segue a hierarquia; ver vem de três camadas que se somam (todos, oficial e chefe de divisão), e a borda do que cada camada vê fica nas Configurações (caminho B). | `superpowers/specs/2026-11-23-camadas-de-visao-design.md` |
 | 23/11/2026 | Quinto nível de acesso, o chefe de divisão (nome provisório): edita como gestor na sua divisão e vê a hierarquia das divisões irmãs, sem editar. As divisões (administrativa e operacional) entram na árvore, entre o grupamento e as seções. | `superpowers/specs/2026-11-23-camadas-de-visao-design.md` |
 | 23/11/2026 | CPF, nascimento e endereço: só para quem tem nível de acesso numa unidade acima da lotação, o administrador e o próprio militar. Fora da borda ajustável. | `superpowers/specs/2026-11-23-camadas-de-visao-design.md`, "CPF, nascimento e endereço" |
