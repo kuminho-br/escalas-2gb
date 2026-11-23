@@ -177,7 +177,15 @@ export const importadorPeculio: Importador<Plano> = {
 
   async planejar(abas, { tx, unidadeId, hoje, usuarioId }) {
     const aba = abas[ABA]!;
-    const c = Object.fromEntries(Object.entries(COLUNAS).map(([k, v]) => [k, coluna(aba, v.rotulo)])) as Record<Chave, number>;
+    // a coluna pelo rótulo (aceita o começo dele), sem tomar o cabeçalho de outra coluna: "E-MAIL PESSOAL" não é o "E-MAIL"
+    const rotulos = new Set(Object.values(COLUNAS).map((v) => normalizar(v.rotulo)));
+    const achar = (rotulo: string) => {
+      const i = coluna(aba, rotulo);
+      if (i < 0) return i;
+      const achado = normalizar(aba.cab[i]!);
+      return achado === normalizar(rotulo) || !rotulos.has(achado) ? i : -1;
+    };
+    const c = Object.fromEntries(Object.entries(COLUNAS).map(([k, v]) => [k, achar(v.rotulo)])) as Record<Chave, number>;
     const problemas: ProblemaImportacao[] = [];
     const avisos: string[] = [];
     const ignoradas: CelulaIgnorada[] = [];
@@ -212,7 +220,8 @@ export const importadorPeculio: Importador<Plano> = {
 
     // antiguidade repetida: quem já tem no sistema (de outra matrícula) e as linhas da planilha; a prévia só avisa, sem recusar
     const donosDaAntiguidade = new Map<number, string[]>();
-    for (const x of ja.values()) if (x.antiguidade !== null) donosDaAntiguidade.set(x.antiguidade, [...(donosDaAntiguidade.get(x.antiguidade) ?? []), x.matricula]);
+    // só quem está no alcance da importação (lotado numa unidade dela) conta; os outros, de outras unidades, a prévia não comenta
+    for (const x of ja.values()) if (x.antiguidade !== null && x.unidade_id && cat.unidades.some((u) => u.id === x.unidade_id)) donosDaAntiguidade.set(x.antiguidade, [...(donosDaAntiguidade.get(x.antiguidade) ?? []), x.matricula]);
     const antiguidadesDaPlanilha = new Map<number, string[]>();
     const vistos = new Set<string>();
     const novos: ItemPrevia[] = [];
@@ -442,7 +451,9 @@ export const importadorPeculio: Importador<Plano> = {
     }
 
     for (const [n, daPlanilha] of antiguidadesDaPlanilha) {
-      const donos = [...(donosDaAntiguidade.get(n) ?? []).filter((m) => !daPlanilha.includes(m)), ...daPlanilha];
+      // quem a planilha também traz com outra antiguidade não conta no número que está saindo dele
+      const mudaram = new Set([...antiguidadesDaPlanilha].filter(([outro]) => outro !== n).flatMap(([, ms]) => ms));
+      const donos = [...(donosDaAntiguidade.get(n) ?? []).filter((m) => !daPlanilha.includes(m) && !mudaram.has(m)), ...daPlanilha];
       if (donos.length > 1) avisos.push(`Antiguidade ${n} repetida: ${donos.length === 2 ? donos.join(' e ') : `${donos.slice(0, -1).join(', ')} e ${donos.at(-1)}`}.`);
     }
     for (const [secao, nomes] of equipesNovas) avisos.push(`Equipes novas na ${cat.unidades.find((u) => u.id === secao)?.sigla ?? 'seção'}: ${[...nomes].join(', ')}.`);

@@ -2,7 +2,9 @@ const FORMATO_RECIFE = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Rec
 
 /** Hoje, 'aaaa-mm-dd', no fuso de Recife (o mesmo da API), seja qual for o fuso do navegador. É o "hoje" único do site. */
 export function hoje(agora: Date = new Date()): string {
-  return FORMATO_RECIFE.format(agora);
+  // pelas partes, e não pelo texto pronto: a ordem do formato pronto já variou entre versões de navegador
+  const p = Object.fromEntries(FORMATO_RECIFE.formatToParts(agora).map((x) => [x.type, x.value]));
+  return `${p.year}-${p.month}-${p.day}`;
 }
 
 /** Mês corrente, 'aaaa-mm', no fuso de Recife. */

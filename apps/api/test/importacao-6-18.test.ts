@@ -95,3 +95,34 @@ describe('item 7 (Review Focus 5): consultas em lote', () => {
     expect(comandos.length).toBeLessThan(20);
   });
 });
+
+describe('revisão final: a coluna E-MAIL não lê a E-MAIL PESSOAL', () => {
+  it('uma planilha só com MATRÍCULA e E-MAIL PESSOAL não ganha e-mail institucional nem aviso falso', async () => {
+    const arquivo = await planilha({ 'PECÚLIO': [['MATRÍCULA', 'POSTO/GRAD', 'NOME DE GUERRA', 'LOTAÇÃO', 'E-MAIL PESSOAL'], ['995910-0', 'SD', 'PESSOAL', '1ª SB', 'x@bombeiros.pe.gov.br']] });
+    const r = await api.pedir('gestorGb', 'POST', caminho(true), formulario(arquivo));
+    expect(r.status).toBe(200);
+    const m = (await api.banco.query<{ email: string | null; email_pessoal: string | null }>("select email, email_pessoal from militar where matricula = '995910-0'")).rows[0]!;
+    // a coluna E-MAIL (institucional) não existe na planilha: o institucional fica como estava (vazio) e o e-mail da coluna E-MAIL PESSOAL vai para o pessoal
+    expect(m).toEqual({ email: null, email_pessoal: 'x@bombeiros.pe.gov.br' });
+    const previa = await (await api.pedir('gestorGb', 'POST', caminho(), formulario(await planilha({ 'PECÚLIO': [['MATRÍCULA', 'E-MAIL PESSOAL'], ['995911-1', 'joao@gmail.com']] })))).json();
+    expect(previa.ignoradas.filter((i: Ignorada) => i.coluna === 'E-MAIL')).toEqual([]);
+  });
+});
+
+describe('revisão final: a antiguidade repetida só conta quem está no alcance da importação e o que a planilha muda', () => {
+  it('quem é de fora do alcance (outra unidade) não entra no aviso, e a troca de A de 15 para 20 com B no 15 não avisa', async () => {
+    const outra = (await api.banco.query<{ id: string }>("select id from unidade where sigla = '2ª SB'")).rows[0]!.id;
+    const posto = (await api.banco.query<{ id: string }>("select id from posto_grad where sigla = 'SD'")).rows[0]!.id;
+    const alheio = (await api.banco.query<{ id: string }>("insert into militar (matricula, posto_grad_id, nome_guerra, antiguidade) values ('995920-0', $1, 'ALHEIO', 15) returning id", [posto])).rows[0]!.id;
+    await api.banco.query("insert into rastreio (militar_id, unidade_id, jornada, desde) values ($1, $2, 'adm', '2026-01-01')", [alheio, outra]);
+    // a importação é da 1ª SB (a 2ª SB não está no alcance dela)
+    const sb1 = (await api.banco.query<{ id: string }>("select id from unidade where sigla = '1ª SB'")).rows[0]!.id;
+    const enviarSb = async (linhas: Celula[][], confirmar = false) => api.pedir('gestorGb', 'POST', `/api/unidades/${sb1}/importacao/peculio${confirmar ? '?confirmar=1' : ''}`, formulario(await planilha({ 'PECÚLIO': [CAB, ...linhas] })));
+    const p1 = await (await enviarSb([NOVO('995921-1', 'DAPRIMEIRA', { 'ANTIGUIDADE': 15 })])).json();
+    expect(p1.avisos.join('\n')).not.toContain('Antiguidade 15 repetida');
+    // A (15) e B (sem antiguidade) entram; depois a planilha põe A no 20 e B no 15
+    await enviarSb([NOVO('995922-2', 'AA', { 'ANTIGUIDADE': 15 }), NOVO('995923-3', 'BB')], true);
+    const p2 = await (await enviarSb([linha({ 'MATRÍCULA': '995922-2', 'ANTIGUIDADE': 20 }), linha({ 'MATRÍCULA': '995923-3', 'ANTIGUIDADE': 15 })])).json();
+    expect(p2.avisos.join('\n')).not.toContain('Antiguidade 15 repetida');
+  });
+});

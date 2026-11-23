@@ -18,6 +18,14 @@ describe('mascararTelefone', () => {
     expect(mascararTelefone('81 99668 1232')).toBe('(81) 99668-1232');
   });
 
+  it('revisão final: o 55 do país e o 0 da operadora na frente, num número colado com mais de 11 dígitos, saem em vez de cortar o fim', () => {
+    expect(mascararTelefone('+55 81 99668-1232')).toBe('(81) 99668-1232');
+    expect(mascararTelefone('55 81 3333-4444')).toBe('(81) 3333-4444');
+    expect(mascararTelefone('081 99668-1232')).toBe('(81) 99668-1232');
+    // um número que começa com 55 mas tem só 11 dígitos é um DDD 55 de verdade
+    expect(mascararTelefone('55996681232')).toBe('(55) 99668-1232');
+  });
+
   it('não passa de 11 dígitos', () => {
     expect(mascararTelefone('819966812329999')).toBe('(81) 99668-1232');
   });

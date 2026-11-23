@@ -7,7 +7,12 @@ const soDigitos = (v: string) => v.replace(/\D/g, '');
 
 /** Só números na digitação: "81996681232" → "(81) 99668-1232" (11 dígitos) e "8133334444" → "(81) 3333-4444" (10). Vai mascarando enquanto se digita; passa de 11 dígitos, não. */
 export function mascararTelefone(v: string): string {
-  const d = soDigitos(v).slice(0, 11);
+  // um número colado com mais de 11 dígitos pode trazer o 55 do país ou o 0 da operadora na frente: eles saem, em vez de cortar o fim do número
+  let todos = soDigitos(v);
+  if (todos.length > 11 && todos.startsWith('55')) todos = todos.slice(2);
+  else if (todos.length > 11 && todos.startsWith('0')) todos = todos.replace(/^0+/, '');
+  if (todos.length === 12 && todos.startsWith('0')) todos = todos.slice(1);
+  const d = todos.slice(0, 11);
   if (d.length === 0) return '';
   if (d.length <= 2) return `(${d}`;
   const meio = d.length > 10 ? 5 : 4;
