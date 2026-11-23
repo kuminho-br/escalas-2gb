@@ -1328,7 +1328,7 @@ describe('mover pela hierarquia e quem moveu (6.23)', () => {
     });
     abrir('/militares/m1');
     await userEvent.click(await screen.findByRole('button', { name: /Histórico de rastreio/ }));
-    expect(await screen.findByText('Sem lotação registrada.')).toBeInTheDocument();
+    expect(await screen.findByText('Situação atual: Sem lotação')).toBeInTheDocument();
     await userEvent.click(await screen.findByRole('button', { name: 'Alterar situação' }));
     const caixa = within(await screen.findByRole('dialog'));
     const lotacao = caixa.getByLabelText('Lotação');

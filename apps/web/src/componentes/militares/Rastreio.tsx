@@ -61,11 +61,15 @@ function AlterarSituacao({ ficha, unidadeAtualId, aoFechar }: { ficha: FichaMili
   const aberto = ficha.rastreio.find((p) => !p.ate) ?? null;
   const daLotacao = secoes.data?.find((s) => s.id === (atual?.unidadeId ?? aberto?.unidadeId))?.id;
   const [escolhida, setEscolhida] = useState<string | null>(null);
-  const unidadeId = escolhida ?? daLotacao ?? unidadeAtualId;
+  // sem lotação nenhuma (o primeiro lançamento, que o administrador faz): a unidade da tela, se for uma seção da lista; senão, a primeira seção da lista (a unidade da
+  // tela de quem trabalha na raiz é o CBMPE, que não é seção). A API só aceita seção como destino.
+  const daTela = secoes.data?.find((x) => x.id === unidadeAtualId)?.id;
+  const sugerida = daLotacao ?? daTela ?? secoes.data?.[0]?.id ?? unidadeAtualId;
+  const unidadeId = escolhida ?? sugerida;
   const equipes = useQuery(consultaEquipes(unidadeId));
   // a equipe sugerida é a de hoje, se a lotação não mudou; trocar de lotação zera a equipe (cada unidade tem as suas)
   const [equipeEscolhida, setEquipeEscolhida] = useState<string | null>(null);
-  const equipeId = equipeEscolhida ?? (unidadeId === (daLotacao ?? unidadeAtualId) ? (equipes.data?.find((e) => e.nome === atual?.equipe)?.id ?? '') : '');
+  const equipeId = equipeEscolhida ?? (unidadeId === sugerida ? (equipes.data?.find((e) => e.nome === atual?.equipe)?.id ?? '') : '');
   const [jornada, setJornada] = useState<'pronto' | 'adm'>(atual?.jornada ?? 'pronto');
   // o quadro e a situação do período de hoje valem de novo, se nada for escolhido
   const quadros = useQuery(consultaQuadros);
