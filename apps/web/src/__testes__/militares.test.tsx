@@ -846,6 +846,7 @@ describe('a tela Militares não cadastra mais (o militar novo é do Pecúlio)', 
     await userEvent.click(await screen.findByRole('button', { name: 'Importar' }));
     expect(screen.getByRole('heading', { name: 'Importar os dados da escala da planilha' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Baixar modelo' })).toHaveAttribute('href', '/api/unidades/u-1sb/importacao/dados-da-escala/modelo');
+    expect(screen.queryByText(/sandbox baixada/)).toBeNull();
   });
 });
 

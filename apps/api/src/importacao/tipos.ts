@@ -27,6 +27,8 @@ export type AbaModelo = { nome: string; colunas: ColunaModelo[] };
 /** Valores que valem de verdade naquela unidade, listados na aba AJUDA. */
 export type ValoresDaUnidade = { titulo: string; itens: string[] };
 export interface ModeloImportacao {
+  /** A planilha sandbox não tem a aba deste cadastro: a ajuda não manda enviá-la. */
+  semSandbox?: boolean;
   /** os mesmos nomes de `Importador.abas`, na mesma ordem */
   abas: AbaModelo[];
   valores?(ctx: Contexto): Promise<ValoresDaUnidade[]>;

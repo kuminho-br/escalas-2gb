@@ -66,6 +66,8 @@ describe('modelo de planilha de cada importador', () => {
     expect(ajuda).toContain('Alfa');
     expect(ajuda).toContain('MATRÍCULA');
     expect(ajuda).not.toContain('POSTO/GRAD');
+    // a planilha sandbox tem a aba MILITARES, que esta importação não lê: a ajuda não manda enviá-la
+    expect(ajuda).not.toContain('sandbox baixada');
   });
 
   it('a AJUDA de configurações lista as chaves que o sistema usa', async () => {

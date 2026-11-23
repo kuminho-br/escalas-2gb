@@ -3,7 +3,7 @@ import { cleanup, fireEvent, screen, waitFor, within } from '@testing-library/re
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
 import type { Eu, EuDaApi } from '@/api/eu';
-import { unidadeDoPeculio } from '@/api/peculio';
+import { podeCadastrarMilitar, secoesDoCadastro, unidadeDoPeculio } from '@/api/peculio';
 import { hoje, mesAtual } from '@/lib/meses';
 import { abrir, chamadasA, corpoEnviado, EU_EXEMPLO, simularApi } from './apoio';
 
@@ -143,6 +143,36 @@ describe('módulo Pecúlio', () => {
   });
 });
 
+describe('quem cadastra militar: nível de acesso numa unidade acima da seção', () => {
+  const DI = { id: 'u-di', sigla: 'DInter/1', caminho: ['CBMPE', 'DGO', 'DInter/1'], nivel: 2 };
+  it('o auxiliar só da seção não pode, esteja a seção no nível que estiver da árvore', () => {
+    const daSecao = (nivel: number): EuDaApi => ({
+      ...EU_EXEMPLO,
+      papeis: [{ papel: 'escalante', unidadeId: 'u-sec', unidadeSigla: 'SEC-X' }],
+      unidades: [{ id: 'u-sec', sigla: 'SEC-X', caminho: ['CBMPE', 'DGO', 'DInter/1', 'SEC-X'].slice(0, nivel + 1), nivel }],
+    });
+    expect(podeCadastrarMilitar(daSecao(3))).toBe(false);
+    expect(podeCadastrarMilitar(daSecao(4))).toBe(false);
+  });
+
+  it('quem tem nível de acesso numa unidade com outras abaixo pode', () => {
+    const gestorDaDiretoria: EuDaApi = {
+      ...EU_EXEMPLO,
+      papeis: [{ papel: 'gestor', unidadeId: 'u-di', unidadeSigla: 'DInter/1' }],
+      unidades: [DI, { id: 'u-sec', sigla: 'SEC-X', caminho: ['CBMPE', 'DGO', 'DInter/1', 'SEC-X'], nivel: 3 }],
+    };
+    expect(podeCadastrarMilitar(gestorDaDiretoria)).toBe(true);
+    expect(podeCadastrarMilitar(GESTOR_GB)).toBe(true);
+  });
+
+  it('as seções do diálogo são só as que estão abaixo de um nível de acesso da pessoa', () => {
+    const eu: EuDaApi = { ...GESTOR_GB, papeis: [{ papel: 'gestor', unidadeId: 'u-gb', unidadeSigla: '2º GB' }, { papel: 'escalante', unidadeId: 'u-outra', unidadeSigla: '9ª SB' }],
+      unidades: [GESTOR_GB.unidades[0]!, { id: 'u-1sb', sigla: '1ª SB', caminho: ['CBMPE', 'DGO', 'DInter/1', '2º GB', '1ª SB'], nivel: 4 }, { id: 'u-outra', sigla: '9ª SB', caminho: ['CBMPE', 'DGO', 'DInter/9', '9º GB', '9ª SB'], nivel: 4 }] };
+    const secoes = [{ id: 'u-1sb', sigla: '1ª SB', nome: '' }, { id: 'u-outra', sigla: '9ª SB', nome: '' }, { id: 'u-x', sigla: 'X', nome: '' }];
+    expect(secoesDoCadastro(eu, secoes).map((x) => x.sigla)).toEqual(['1ª SB']);
+  });
+});
+
 describe('o Novo militar, no Pecúlio', () => {
   const POSTOS = [{ id: 'p-sd', sigla: 'SD BM', nome: 'Soldado', ordem: 1 }, { id: 'p-cb', sigla: 'CB BM', nome: 'Cabo', ordem: 2 }, { id: 'p-maj', sigla: 'MAJ BM', nome: 'Major', ordem: 11 }];
   const QUADROS = [
@@ -152,8 +182,10 @@ describe('o Novo militar, no Pecúlio', () => {
   ];
   const SECOES = [{ id: 'u-1sb', sigla: '1ª SB', nome: '1ª Seção de Bombeiros' }, { id: 'u-2sb', sigla: '2ª SB', nome: '2ª Seção de Bombeiros' }];
   const FICHA_CRIADA = { id: 'm9' };
+  // o gestor do 2º GB alcança as duas seções (a lista de unidades dele traz a árvore de baixo)
+  const GB_COM_SECOES: EuDaApi = { ...GESTOR_GB, unidades: [...GESTOR_GB.unidades, { id: 'u-2sb', sigla: '2ª SB', caminho: ['CBMPE', 'DGO', 'DInter/1', '2º GB', '2ª SB'], nivel: 4 }] };
   const rotas = (extra: Parameters<typeof simularApi>[0] = {}) =>
-    api(GESTOR_GB, LISTA, { 'GET /api/postos': { status: 200, corpo: POSTOS }, 'GET /api/quadros': { status: 200, corpo: QUADROS }, 'GET /api/secoes': { status: 200, corpo: SECOES }, ...extra });
+    api(GB_COM_SECOES, LISTA, { 'GET /api/postos': { status: 200, corpo: POSTOS }, 'GET /api/quadros': { status: 200, corpo: QUADROS }, 'GET /api/secoes': { status: 200, corpo: SECOES }, ...extra });
   async function abrirODialogo() {
     await userEvent.click(await screen.findByRole('button', { name: 'Novo militar' }));
     return within(await screen.findByRole('dialog'));

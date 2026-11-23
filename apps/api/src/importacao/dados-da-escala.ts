@@ -88,6 +88,7 @@ export const importadorDadosDaEscala: Importador<Plano> = {
   abas: [ABA],
 
   modelo: {
+    semSandbox: true,
     abas: [{ nome: ABA, colunas: Object.values(COLUNAS) }],
     async valores({ tx, unidadeId }) {
       const equipes = (await tx.query<{ nome: string }>('select nome from equipe where unidade_id = $1 order by ordem_ciclo', [unidadeId])).rows;
@@ -168,18 +169,17 @@ export const importadorDadosDaEscala: Importador<Plano> = {
       // sem repetição (o `categoriasCnh` já tira) e em ordem, como o cadastro à mão grava; a CNH é do militar, esteja ou não no quadro de motoristas
       const cnh = [...cat.categorias].sort();
 
+      // a equipe que ainda não existe só é criada se a linha entrar de fato (linha recusada ou sem mudança não cria equipe)
       const equipeTxt = pega(cel, c.equipe);
-      let equipe: string | null = null;
-      if (equipeTxt) {
-        const k = normalizar(equipeTxt);
-        equipe = equipePorChave.get(k) ?? null;
-        if (!equipe) {
-          const noCiclo = CICLO_EQUIPES.indexOf(k);
-          equipesNovas.push({ nome: equipeTxt, ordem: noCiclo >= 0 && !equipesExistentes.some((q) => q.ordem_ciclo === noCiclo + 1) ? noCiclo + 1 : proximaOrdem++ });
-          equipePorChave.set(k, equipeTxt);
-          equipe = equipeTxt;
-        }
-      }
+      const chaveDaEquipe = normalizar(equipeTxt);
+      const equipe: string | null = equipeTxt ? (equipePorChave.get(chaveDaEquipe) ?? equipeTxt) : null;
+      const equipeNova = !!equipeTxt && !equipePorChave.has(chaveDaEquipe);
+      const registrarEquipeNova = () => {
+        if (!equipeNova) return;
+        const noCiclo = CICLO_EQUIPES.indexOf(chaveDaEquipe);
+        equipesNovas.push({ nome: equipeTxt, ordem: noCiclo >= 0 && !equipesExistentes.some((q) => q.ordem_ciclo === noCiclo + 1) ? noCiclo + 1 : proximaOrdem++ });
+        equipePorChave.set(chaveDaEquipe, equipeTxt);
+      };
       const dados: Dados = { motorista, cnh, voluntarioJes: SIM.includes(normalizar(pega(cel, c.vjes))), equipe, jornada };
       const descricao = `${e.posto} ${nome}`;
 
@@ -212,6 +212,8 @@ export const importadorDadosDaEscala: Importador<Plano> = {
         iguais++;
         continue;
       }
+      // a equipe nova entra junto com a linha que a usa (e só se ela vai mudar a lotação)
+      if (lotacao) registrarEquipeNova();
       alterados.push({ chave: mat.valor, descricao, mudancas });
       itens.push({ id: e.id, dados, mudouMilitar, lotacao });
     }

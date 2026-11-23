@@ -140,6 +140,14 @@ describe('importar os dados da escala', () => {
     expect(x).toEqual({ motorista: true, cnh: ['B', 'D'], voluntario_jes: true });
   });
 
+  it('a equipe nova de uma linha que fica de fora não é criada', async () => {
+    const m = await militar('NUNES', null);
+    const r = await ok(await importar([[m.matricula, 'PRONTO', 'DELTA', '', '', '']], true));
+    expect(r.problemas).toHaveLength(1);
+    const { rows } = await api.banco.query("select 1 from equipe where nome = 'DELTA'");
+    expect(rows).toHaveLength(0);
+  });
+
   it('o escalante da 1ª SB importa a matrícula de um militar da 2ª SB: problema na linha, nada gravado', async () => {
     const m = await militar('JARDIM', { desde: dia1, unidade: outraSecao });
     const r = await ok(await importar([[m.matricula, 'ADM', '', '', '', '']], true, 'escalante'));

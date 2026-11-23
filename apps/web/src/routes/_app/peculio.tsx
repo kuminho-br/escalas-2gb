@@ -53,7 +53,7 @@ function Peculio() {
               Novo militar
             </Button>
           )}
-          {novo && <NovoMilitar aoFechar={() => setNovo(false)} />}
+          {novo && <NovoMilitar eu={eu} aoFechar={() => setNovo(false)} />}
         </div>
       </header>
 

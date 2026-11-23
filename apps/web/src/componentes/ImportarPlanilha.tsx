@@ -108,7 +108,7 @@ export function ImportarPlanilha({ cadastro, rotulo, aoConcluir, unidadeId }: { 
         {etapa.tipo === 'escolher' && (
           <form onSubmit={verPrevia} className="grid gap-3">
             <p className="text-sm text-apagado">
-              Baixe o modelo, cole os dados nas abas dele e envie o arquivo aqui. A planilha sandbox baixada em .xlsx também serve.
+              Baixe o modelo, cole os dados nas abas dele e envie o arquivo aqui.{cadastro !== 'dados-da-escala' && ' A planilha sandbox baixada em .xlsx também serve.'}
             </p>
             <a
               href={`${caminho}/modelo`}

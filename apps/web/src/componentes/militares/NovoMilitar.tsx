@@ -3,7 +3,8 @@ import { useNavigate } from '@tanstack/react-router';
 import { useState, type FormEvent } from 'react';
 import { camposDe, mensagemDe } from '@/api/cliente';
 import { atualizarMilitares, consultaPostos, consultaQuadros, consultaSecoes, criarMilitar } from '@/api/militares';
-import { atualizarPeculio } from '@/api/peculio';
+import type { Eu } from '@/api/eu';
+import { atualizarPeculio, secoesDoCadastro } from '@/api/peculio';
 import { Campo } from '@/componentes/Campo';
 import { Selecao } from '@/componentes/Selecao';
 import { Button } from '@/componentes/ui/button';
@@ -17,7 +18,7 @@ import { LISTA_NAO_CARREGOU } from './Secao';
  * lotação (seção e "lotado desde"). Entra como Pronto, sem equipe, fora do quadro de motoristas, sem CNH e não voluntário: a seção ajusta
  * esses dados depois, pela ficha ou pela importação "Dados da escala".
  */
-export function NovoMilitar({ aoFechar }: { aoFechar: () => void }) {
+export function NovoMilitar({ eu, aoFechar }: { eu: Eu; aoFechar: () => void }) {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const postos = useQuery(consultaPostos);
@@ -102,7 +103,7 @@ export function NovoMilitar({ aoFechar }: { aoFechar: () => void }) {
           <div className="grid grid-cols-2 gap-3">
             <Campo id="nm-secao" rotulo="Seção" erro={campos.secao}>
               <Selecao id="nm-secao" name="secao" required>
-                {secoes.data?.map((s) => <option key={s.id} value={s.id}>{s.sigla}</option>)}
+                {secoesDoCadastro(eu, secoes.data ?? []).map((s) => <option key={s.id} value={s.id}>{s.sigla}</option>)}
               </Selecao>
             </Campo>
             <Campo id="nm-desde" rotulo="Lotado desde" erro={campos['lotacao.desde']}>
