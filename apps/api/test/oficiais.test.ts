@@ -110,7 +110,7 @@ describe('a escala da rodada', () => {
     const e = await ler('2027-01');
     expect(e.escalas.map((x) => x.nome)).toEqual(['Oficiais de operações', 'Sem serviços']);
     expect(e.escala).toEqual({ id: rodada.escalaId, nome: 'Oficiais de operações' });
-    expect(e.servicos).toEqual({ jes: { id: rodada.jes, nome: 'JES' }, saldo: { id: rodada.saldo, nome: 'Saldo' } });
+    expect(e.servicos).toEqual({ jes: { id: rodada.jes, nome: 'JES', cor: '#6E56A8' }, saldo: { id: rodada.saldo, nome: 'Saldo', cor: '#2B7BB9' } });
     expect(e.turnosDoServico).toEqual([
       { id: rodada.saldoA, letra: 'A', inicio: '07:00', fim: '19:00', rotulo: 'Dia' },
       { id: rodada.saldoB, letra: 'B', inicio: '19:00', fim: '07:00', rotulo: 'Noite' },

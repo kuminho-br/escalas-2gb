@@ -15,43 +15,16 @@ interface Props {
   /** Grava quem participa da rodada (a lista inteira dos marcados); sem ela, a marca fica só para leitura. */
   aoMarcar?: (militarIds: string[]) => void;
   desabilitado?: boolean;
-}
-
-/** A vez de escolher: quem é (em 20 px), a posição e quantos turnos ainda faltam para ele. */
-export function VezDeEscolher({ escala: e }: { escala: EscalaDosOficiais }) {
-  if (e.etapa !== 'escolhas') return null;
-  const v = e.oficiais.find((o) => o.militarId === e.vez);
-  const faltam = v && v.cota !== null ? Math.max(v.cota - v.escolhidos, 0) : null;
-  return (
-    <section aria-label="Vez de escolher" className="rounded-xl border border-linha bg-superficie p-4">
-      <small className="text-[13px] text-apagado">Vez de escolher</small>
-      {v ? (
-        <>
-          <p className="flex flex-wrap items-baseline gap-x-2">
-            <span className="font-cond text-[20px] leading-[26px] font-semibold">{`${v.posto} ${v.nomeGuerra}`}</span>
-            <span className="text-[15px] text-apagado">{`${v.ordem}º na ordem`}</span>
-          </p>
-          {faltam !== null && <p className="text-[15px]">{faltam === 1 ? 'Falta 1 turno para ele.' : `Faltam ${faltam} turnos para ele.`}</p>}
-          <p className="text-[13px] text-apagado">
-            Clique num turno livre para lançar a escolha dele. A ordem é uma sugestão: dá para lançar outro oficial.
-            {v.afastamentos.length > 0 && ` Os dias de afastamento não são oferecidos.`}
-          </p>
-        </>
-      ) : (
-        <>
-          <p className="font-cond text-[20px] leading-[26px] font-semibold">Todos escolheram</p>
-          <p className="text-[15px] text-apagado">Confira os turnos e feche a escala.</p>
-        </>
-      )}
-    </section>
-  );
+  /** O oficial escolhido para os próximos cliques no calendário; sem `aoEscolher`, a linha não é um botão. */
+  escolhido?: string | null;
+  aoEscolher?: (militarId: string) => void;
 }
 
 /**
  * A lista de cotas do mês, uma linha por oficial: a marca de quem participa da rodada, a ordem, o oficial, o saldo até o mês anterior, os dias presentes, a cota e
  * quanto já escolheu (com uma barra fina), mais os afastamentos. Com a escala aberta, aparecem todos os elegíveis; fechada, só quem participa.
  */
-export function ListaDeCotas({ escala: e, aoOrdenar, aoMarcar, desabilitado }: Props) {
+export function ListaDeCotas({ escala: e, aoOrdenar, aoMarcar, desabilitado, escolhido, aoEscolher }: Props) {
   const comCota = e.etapa !== 'nao-aberto';
   const aberta = e.etapa === 'nao-aberto' || e.etapa === 'escolhas';
   const oficiais = aberta ? e.oficiais : e.oficiais.filter((o) => o.participa);
@@ -109,7 +82,7 @@ export function ListaDeCotas({ escala: e, aoOrdenar, aoMarcar, desabilitado }: P
     const comVermelhos = comCota && e.diasVermelhos.length > 0;
     const rotulo = 'text-[13px] leading-[18px] text-apagado';
     return (
-      <li key={o.militarId} className={cn('grid gap-2 rounded-xl border p-3', daVez ? 'border-vinho bg-pendencia-fundo' : 'border-linha bg-superficie', !o.participa && 'text-apagado')}>
+      <li key={o.militarId} className={cn('grid gap-1.5 rounded-xl border p-2.5', daVez ? 'border-vinho bg-pendencia-fundo' : 'border-linha bg-superficie', !o.participa && 'text-apagado', o.militarId === escolhido && 'ring-2 ring-tinta')}>
         <div className="flex items-start gap-3">
           <input
             type="checkbox"
@@ -120,18 +93,26 @@ export function ListaDeCotas({ escala: e, aoOrdenar, aoMarcar, desabilitado }: P
             className="mt-0.5 size-5 shrink-0 accent-vinho"
           />
           <span className="w-6 shrink-0 text-center font-cond text-[17px] leading-6 font-semibold tabular-nums text-apagado" title="Ordem de escolha">{o.participa ? o.ordem : '—'}</span>
-          <div className="min-w-0 flex-1">
-            <p className="flex flex-wrap items-baseline gap-x-2">
+          <button
+            type="button"
+            aria-pressed={o.militarId === escolhido}
+            aria-label={`${o.posto} ${o.nomeGuerra}${daVez ? ', a vez' : ''}`}
+            disabled={!aoEscolher || !o.participa}
+            onClick={() => aoEscolher?.(o.militarId)}
+            className="min-w-0 flex-1 rounded-md text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-tinta disabled:cursor-default"
+          >
+            <span className="flex flex-wrap items-baseline gap-x-2">
               <span className="shrink-0 text-[13px] leading-[18px] font-medium text-apagado">{o.posto}</span>
               <b className={cn('font-cond text-[17px] leading-6 font-semibold', o.participa && 'text-tinta')}>{o.nomeGuerra}</b>
               {o.novo && <span className="rounded-md border border-linha px-2 text-[13px] font-medium text-tinta">novo</span>}
-            </p>
-            <p className="text-[13px] leading-[18px] text-apagado">
+              {daVez && <span className="rounded-md bg-pendencia-fundo px-2 text-[13px] font-medium text-pendencia">a vez</span>}
+            </span>
+            <span className="block text-[13px] leading-[18px] text-apagado">
               {o.quadro} · {o.lotacao}
               {o.semAntiguidade && ' · ordenado à mão'}
               {o.jes > 0 && ` · ${o.jes} JES`}
-            </p>
-          </div>
+            </span>
+          </button>
           {(sobe || desce) && (
             <span className="flex shrink-0 gap-1">
               {sobe && (

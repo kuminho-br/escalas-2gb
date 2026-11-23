@@ -8,6 +8,13 @@ export type EtapaDosOficiais = 'nao-aberto' | 'escolhas' | 'fechada' | 'encerrad
 /** O que um lançamento é: JES (lançado à mão) ou Saldo (a rodada de cotas). */
 export type ServicoDaRodada = 'jes' | 'saldo';
 
+/** Um serviço da escala dos oficiais; `cor` é a do cadastro do serviço (a faixa da placa no calendário). */
+export interface ServicoDaEscala {
+  id: string;
+  nome: string;
+  cor?: string;
+}
+
 export interface OficialDoMes {
   militarId: string;
   matricula: string;
@@ -49,7 +56,7 @@ export interface EscalaDosOficiais {
   /** As escalas da unidade com rodada de cotas (o campo "Escala" da tela). */
   escalas: { id: string; nome: string }[];
   /** Os dois serviços da escala: JES (o de nome "JES") e Saldo (o outro). */
-  servicos: { jes: { id: string; nome: string } | null; saldo: { id: string; nome: string } | null };
+  servicos: { jes: ServicoDaEscala | null; saldo: ServicoDaEscala | null };
   /** Os lugares de cada dia, por letra: os turnos do serviço de Saldo (o horário de cada lugar). */
   turnosDoServico: { id: string; letra: string; inicio: string; fim: string; rotulo: 'Dia' | 'Noite' }[];
   oficiais: OficialDoMes[];

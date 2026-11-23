@@ -63,14 +63,14 @@ export async function escolherEscala(c: Consulta, unidadeId: string, pedida?: st
 }
 
 export interface ServicosDaRodada {
-  jes: { id: string; nome: string } | null;
-  saldo: { id: string; nome: string } | null;
+  jes: { id: string; nome: string; cor: string } | null;
+  saldo: { id: string; nome: string; cor: string } | null;
 }
 
 /** Os dois serviços da rodada: o JES (o de nome "JES", sem diferenciar caixa e acento) e o Saldo (o primeiro dos outros, na ordem da escala). */
 export async function servicosDaRodada(c: Consulta, escalaId: string): Promise<ServicosDaRodada> {
-  const { rows } = await c.query<{ id: string; nome: string }>(
-    'select s.id, s.nome from escala_servico es join servico s on s.id = es.servico_id where es.escala_id = $1 order by es.ordem', [escalaId]);
+  const { rows } = await c.query<{ id: string; nome: string; cor: string }>(
+    'select s.id, s.nome, s.cor from escala_servico es join servico s on s.id = es.servico_id where es.escala_id = $1 order by es.ordem', [escalaId]);
   const jes = rows.find((s) => normalizar(s.nome) === 'JES') ?? null;
   return { jes, saldo: rows.find((s) => s.id !== jes?.id) ?? null };
 }
