@@ -63,7 +63,7 @@ As migrações usam o próximo número livre na `main` (a P1.5 usa a 0030).
 
 - [ ] **Step 1: testes.**
   - `tipo_unidade` tem `divisao` com nível 4 e `secao` com nível 5.
-  - Cada grupamento ganha duas unidades do tipo `divisao`: "Div Adm" (Divisão Administrativa) e "Div Op" (Divisão Operacional), com `desde` no dia 1 do mês da migração. As seções continuam direto no grupamento.
+  - Cada grupamento ganha duas unidades do tipo `divisao`: "DA" (Divisão Administrativa) e "DivOp" (Divisão Operacional), com `desde` no dia 1 do mês da migração. As seções continuam direto no grupamento.
   - Rodar duas vezes não duplica as divisões.
   - `papel_usuario.papel` aceita `chefe_divisao`.
   - Inserir ou alterar um `chefe_divisao` numa unidade que não é `divisao` falha com "Chefe de divisão só existe numa divisão.".
@@ -86,8 +86,8 @@ As migrações usam o próximo número livre na `main` (a P1.5 usa a 0030).
   - `CADASTRO` ganha `'chefe_divisao'`.
 
 - [ ] **Step 1: testes.**
-  - O chefe da Div Op altera um parâmetro e um cadastro de uma seção de dentro da Div Op (200), e recebe 403 numa seção da Div Adm.
-  - Ele dá e encerra os níveis de auxiliar e de gestor dentro da Div Op, e não dá `chefe_divisao` (403).
+  - O chefe da DivOp altera um parâmetro e um cadastro de uma seção de dentro da DivOp (200), e recebe 403 numa seção da DA.
+  - Ele dá e encerra os níveis de auxiliar e de gestor dentro da DivOp, e não dá `chefe_divisao` (403).
   - O gestor do grupamento dá `chefe_divisao` numa divisão; numa seção, 400 com "Chefe de divisão só existe numa divisão.".
   - O gestor de uma seção não dá `chefe_divisao`.
   - `unidadesParaPapel` de quem escolhe `chefe_divisao` só traz divisões (campo novo `tipo` em cada unidade da lista).
@@ -118,8 +118,8 @@ As migrações usam o próximo número livre na `main` (a P1.5 usa a 0030).
 - [ ] **Step 1: testes.**
   - A árvore traz as divisões e as seções na ordem das siglas.
   - Criar, renomear, e a sigla repetida no mesmo grupamento é 409.
-  - Mover a 1ª SB para a Div Op: o caminho da seção e dos registros de baixo acompanha.
-  - **Review Focus 1:** com a 1ª SB na Div Op, o chefe da Div Op edita nela; depois de movê-la para a Div Adm, o pedido seguinte dele é 403, com a mesma sessão.
+  - Mover a 1ª SB para a DivOp: o caminho da seção e dos registros de baixo acompanha.
+  - **Review Focus 1:** com a 1ª SB na DivOp, o chefe da DivOp edita nela; depois de movê-la para a DA, o pedido seguinte dele é 403, com a mesma sessão.
   - Divisão de outro grupamento é 400; quem não é gestor do grupamento, 403; tudo gravado com `comUsuario` (auditoria).
 - [ ] **Step 2:** rodar `pnpm --filter api test estrutura`. Esperado: FAIL.
 - [ ] **Step 3:** implementar.
@@ -177,7 +177,7 @@ As migrações usam o próximo número livre na `main` (a P1.5 usa a 0030).
 - [ ] **Step 2: testes** de `visao.ts`, com a borda inicial:
   - o militar comum vê só `identificacao` de um militar de outra seção e de outro grupamento;
   - o oficial vê `contato`, `situacao`, `afastamentos` e `dados_da_escala`, e não vê `comportamento` nem `escala_em_montagem`;
-  - o chefe da Div Op vê os 7 de uma seção da Div Adm, e de uma seção de outro grupamento só o que o quadro dele dá;
+  - o chefe da DivOp vê os 7 de uma seção da DA, e de uma seção de outro grupamento só o que o quadro dele dá;
   - o auxiliar da 1ª SB vê os 7 dos militares da 1ª SB;
   - desligar `contato` do oficial e ligar em `todos`: o oficial continua vendo (as camadas se somam);
   - **Review Focus 4:** o oficial com mudança para o QBMG marcada para o mês que vem ainda tem a camada hoje.
@@ -258,13 +258,13 @@ As migrações usam o próximo número livre na `main` (a P1.5 usa a 0030).
 - Produces, em `acesso.ts`: `exigirLeituraDaEscala(c: Context<AmbienteApi>, unidadeId: string): Promise<Response | null>`: passa quem tem `CADASTRO` na unidade ou acima, ou quem vê `escala_em_montagem` dela; senão, o 403 de hoje.
 - Produces, em `/api/eu`: `unidadesSoConsulta: UnidadeDeTrabalho[]`, as unidades cuja `escala_em_montagem` a pessoa vê e que não estão em `unidades`, na ordem da árvore.
 
-- [ ] **Step 1: testes** em `so-consulta.test.ts`, com o chefe da Div Op e uma seção da Div Adm.
+- [ ] **Step 1: testes** em `so-consulta.test.ts`, com o chefe da DivOp e uma seção da DA.
   - Cada `GET` que as telas Grade geral, Escala do mês, Efetivo por dia, Cotas e Voluntariado chamam responde 200. A lista desses `GET` sai dos arquivos de `apps/web/src/api/` das cinco telas e fica escrita no teste.
-  - **Todo** pedido que não é `GET` com a unidade ou um registro da seção da Div Adm responde 403: a mesma varredura do `isolamento-entre-unidades`, com o chefe de divisão no lugar do escalante.
+  - **Todo** pedido que não é `GET` com a unidade ou um registro da seção da DA responde 403: a mesma varredura do `isolamento-entre-unidades`, com o chefe de divisão no lugar do escalante.
   - Os outros `GET` da seção (Militares, ficha, Pecúlio, Configurações, Oficiais, importações) continuam 403.
   - Nenhuma dessas respostas traz o motivo ou o boletim de um afastamento, CPF, nascimento ou endereço.
   - O oficial comum e o militar comum recebem 403 nos mesmos `GET`, com a borda inicial; com `escala_em_montagem` ligada para `oficial`, o oficial passa.
-- [ ] **Step 2: testes** em `eu.test.ts`: o chefe da Div Op tem as unidades da Div Adm em `unidadesSoConsulta`; **Review Focus 2:** sem divisão irmã, a lista vem vazia; o gestor do grupamento tem a lista vazia (tudo já está em `unidades`).
+- [ ] **Step 2: testes** em `eu.test.ts`: o chefe da DivOp tem as unidades da DA em `unidadesSoConsulta`; **Review Focus 2:** sem divisão irmã, a lista vem vazia; o gestor do grupamento tem a lista vazia (tudo já está em `unidades`).
 - [ ] **Step 3:** rodar `pnpm --filter api test so-consulta eu`. Esperado: FAIL.
 - [ ] **Step 4:** implementar: trocar o `exigirPapel(c, u, CADASTRO)` desses `GET` por `exigirLeituraDaEscala`. Um `GET` que hoje devolve motivo de afastamento ou dado restrito passa a omiti-lo para quem não tem `CADASTRO` na unidade.
 - [ ] **Step 5:** rodar `pnpm --filter api test`. Esperado: PASS, com o `isolamento-entre-unidades` sem mudança.
