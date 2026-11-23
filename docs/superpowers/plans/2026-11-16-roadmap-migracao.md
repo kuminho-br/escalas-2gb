@@ -100,7 +100,7 @@ Design: `docs/superpowers/specs/2026-11-21-usuarios-e-modulos-design.md`. Plano:
 | 7 | Militares só no Pecúlio | mesclada (#107) |
 | 8 | Nível de acesso, "até" e Enter no Pecúlio | mesclada (#108) |
 | 9 | Quadro e situação no rastreio; CPF, nascimento e endereço | mesclada (#110) |
-| 10 a 12 | Divisões (10); camadas de visão e consulta (11); escalas só para leitura (12) | 10 e 11 mescladas (#135, #140); 12 em execução |
+| 10 a 12 | Divisões (10); camadas de visão e consulta (11); escalas só para leitura (12) | mescladas (#135, #140, #143) |
 | 13 | Pecúlio como origem dos dados: importação única, apagar militar, postos | mesclada (#130) |
 | 14 | Animação de entrada como preferência | mesclada (#126) |
 | 15 a 18 | Pendências antes da fase 7: abono e função; três lotes de acabamento | planejadas |

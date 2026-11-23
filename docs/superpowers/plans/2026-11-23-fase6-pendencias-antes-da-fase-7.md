@@ -192,6 +192,10 @@
   24. `useSincronizar` → o campo não fica defasado quando a pessoa desfaz a edição depois de chegar dado novo; mais os testes de recarregamento sem pendência em Motorista, Identificação da escala, Identificação da guarnição e Serviços da escala.
   25. Escala dos oficiais: a marca "novo" → só em quem participa neste mês e não participou no mês anterior da unidade; sem mês anterior gravado, ninguém é "novo" (decisão de 23/11).
   26. Escala dos oficiais: desmarcar "Participa" de quem já tem turnos escolhidos → o diálogo do sistema pergunta "Tirar {posto e nome} da rodada? Os {n} turnos escolhidos ficam sem ninguém.", com o botão "Tirar da rodada". Sem turnos escolhidos, não pergunta (decisão de 23/11).
+  27. Grade geral → sem a marca do dia de hoje (diretriz do usuário, 23/11); no mês corrente a tabela continua abrindo no dia de hoje.
+  28. Escala dos oficiais → o painel de Cotas cabe sem rolagem de lado em 1440 px: o calendário cede largura, o painel ganha a das colunas, e os textos longos ("1ª SB · ordenado à mão") quebram a linha (diretriz do usuário, 23/11).
+  29. Da 6.12: o vazio da Escala do mês no modo só consulta não mostra o link "Crie uma em Escalas".
+  30. Da 6.12: no modo só consulta, os trechos ocupados do Efetivo por dia não param o teclado.
 - [ ] **Commit** `Fase 6.17: formulários, diálogos e nomes acessíveis` e, depois das verificações, abrir o PR.
 
 ---

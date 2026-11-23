@@ -85,7 +85,7 @@ A borda inicial é um ponto de partida, proposto pela PLANEJAMENTO. O administra
 | Afastamentos | Tipo e período, sem motivo e sem boletim | não | vê | vê |
 | Dados da escala | Motorista, CNH e voluntário JES | não | vê | vê |
 | Comportamento | Comportamento e boletim; motivo e boletim dos afastamentos | não | não | vê |
-| Escala em montagem | Grade geral, Escala do mês, Efetivo por dia, Cotas e Voluntariado da unidade, só para leitura | não | não | vê |
+| Escala em montagem | Grade geral, Escala do mês, Efetivo por dia, Cotas e Voluntariado da unidade, só para leitura, com a CNH e o voluntário JES que essas telas já mostram | não | não | vê |
 
 - **A lista de blocos é fixa no código**, porque cada bloco é um grupo de colunas e de telas. O que se ajusta é quem vê.
 - **"Identificação" para todos não se desliga:** sem ela a consulta não mostra nada. A tela mostra a marca travada.
