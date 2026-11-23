@@ -98,7 +98,8 @@ Design: `docs/superpowers/specs/2026-11-21-usuarios-e-modulos-design.md`. Plano:
 | 20 e 21 | Fundação da interface: sistema de estilo (N1); resposta do sistema (N2) | planejadas |
 | 22 a 24 | Oficiais; mover na hierarquia; admin como militar | mescladas (#157, #161, #162) |
 | 25 e 26 | Árvore genérica (0035); configurações gerais | 25 mesclada (#167); 26 em execução |
-| 27 e 28 | Oficiais como escala comum (0036); dias vermelhos (0037) | planejadas, depois da 26 |
+| 27 e 28 | Oficiais como escala comum (0036); dias vermelhos (0037) | mescladas (#172, #173) |
+| 29 | Tela de escalar dos oficiais | urgente, próxima |
 
 **Fora:** e-mail, usuários acima do GB (fase 11), Visualização (fase 7).
 

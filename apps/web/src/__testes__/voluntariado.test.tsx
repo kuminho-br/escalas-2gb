@@ -302,6 +302,15 @@ describe('voluntariado: blocos por horário (computador)', () => {
     expect(cortados).toEqual([]);
   });
 
+  it('item 20 (6.17): o resumo embaixo do calendário quebra a linha, em vez de ser cortado, num mês com muitas horas', async () => {
+    api();
+    abrir('/voluntariado');
+    await screen.findByRole('heading', { name: 'SD ANDRADE' });
+    const resumo = calendario().parentElement!.querySelector('[data-barra-de-salvar] > p')!;
+    expect(resumo).toHaveClass('break-words');
+    expect(resumo).not.toHaveClass('truncate');
+  });
+
   it('bloco vazio é sempre branco, também à noite e no fim de semana (a cor "bg-noite" nunca existiu no tema)', async () => {
     api();
     abrir('/voluntariado');

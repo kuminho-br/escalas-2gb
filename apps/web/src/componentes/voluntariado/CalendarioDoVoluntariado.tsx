@@ -274,7 +274,7 @@ export function CalendarioDoVoluntariado({
       )}
       {/* no celular o resumo e o Salvar ficam numa barra fixa embaixo: o botão não fica depois das 31 linhas */}
       <div data-barra-de-salvar className={cn('grid gap-2', celular && 'sticky bottom-0 z-10 -mx-4 -mb-4 border-t border-linha bg-superficie px-4 py-3')}>
-        <p className="text-sm text-apagado">{textoDoRodape(marcas)}</p>
+        <p className="text-sm break-words text-apagado">{textoDoRodape(marcas)}</p>
         {!soLeitura && (
           <>
             {!celular && <p className="text-xs text-apagado">Atalhos de teclado: setas movem, espaço marca, Enter salva e passa ao próximo.</p>}

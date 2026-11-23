@@ -8,6 +8,7 @@ import { atualizarFeriados, consultaFeriados, copiarFeriadosFixos, criarFeriado,
 import { useTrava } from '@/componentes/AlteracoesPendentes';
 import { ImportarPlanilha } from '@/componentes/ImportarPlanilha';
 import { Selecao } from '@/componentes/Selecao';
+import { useDescartarDigitado } from '@/componentes/DescartarDigitado';
 import { Button } from '@/componentes/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/componentes/ui/dialog';
 import { Input } from '@/componentes/ui/input';
@@ -139,6 +140,7 @@ function ItemFeriado({ f, aoEditar, aoRemover }: { f: Feriado; aoEditar: () => v
 
 function FeriadoDialogo({ unidadeId, ano, feriado, aoFechar, aoSalvar }: { unidadeId: string; ano: number; feriado?: Feriado; aoFechar: () => void; aoSalvar: (f: Feriado) => void }) {
   const queryClient = useQueryClient();
+  const descarte = useDescartarDigitado(aoFechar);
   const [data, setData] = useState(feriado?.data ?? `${ano}-01-01`);
   const [descricao, setDescricao] = useState(feriado?.descricao ?? '');
   const [fixo, setFixo] = useState(feriado?.fixo ?? true);
@@ -163,13 +165,13 @@ function FeriadoDialogo({ unidadeId, ano, feriado, aoFechar, aoSalvar }: { unida
   }
 
   return (
-    <Dialog open onOpenChange={(v) => !v && aoFechar()}>
+    <Dialog open onOpenChange={descarte.aoMudarAberto}>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>{feriado ? 'Editar feriado' : 'Novo feriado'}</DialogTitle>
           <DialogDescription>O feriado vale para esta seção e para as de baixo.</DialogDescription>
         </DialogHeader>
-        <form onSubmit={salvar} className="grid gap-3">
+        <form ref={descarte.ref} onSubmit={salvar} className="grid gap-3">
           <div className="grid gap-3 sm:grid-cols-[11rem_1fr]">
             <div className="grid gap-1.5">
               <Label htmlFor="fr-data">Data</Label>
@@ -189,6 +191,7 @@ function FeriadoDialogo({ unidadeId, ano, feriado, aoFechar, aoSalvar }: { unida
             <Button type="submit" disabled={salvando}>Salvar</Button>
           </DialogFooter>
         </form>
+        {descarte.confirmacao}
       </DialogContent>
     </Dialog>
   );
