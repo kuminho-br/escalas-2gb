@@ -83,13 +83,15 @@ export async function cargaExemplo(banco: Banco, ambiente: string | undefined, m
           const cnh = MOTORISTAS[n] ?? [];
           const militar = await id(
             tx,
-            `insert into militar (matricula, posto_grad_id, quadro_id, nome_guerra, antiguidade, motorista, cnh, voluntario_jes)
-             values ($1, $2, $3, $4, $5, $6, $7, $8) returning id`,
-            [`990${String(n).padStart(3, '0')}-${n % 10}`, postos.get(posto), ((await quadroParaOPosto(tx, postos.get(posto)!, undefined, null)) as { quadroId: string | null }).quadroId, NOMES[n - 1], k + 1, cnh.length > 0, cnh, VOLUNTARIOS_JES.has(n)],
+            `insert into militar (matricula, posto_grad_id, nome_guerra, antiguidade, motorista, cnh, voluntario_jes)
+             values ($1, $2, $3, $4, $5, $6, $7) returning id`,
+            [`990${String(n).padStart(3, '0')}-${n % 10}`, postos.get(posto), NOMES[n - 1], k + 1, cnh.length > 0, cnh, VOLUNTARIOS_JES.has(n)],
           );
+          // o quadro vale por período: o do posto, quando ele só existe em um
+          const quadro = ((await quadroParaOPosto(tx, postos.get(posto)!, undefined, null)) as { quadroId: string | null }).quadroId;
           await tx.query(
-            'insert into rastreio (militar_id, unidade_id, equipe_id, jornada, desde) values ($1, $2, $3, $4, $5)',
-            [militar, secao, g.equipe ? equipes.get(g.equipe) : null, g.jornada, mes],
+            'insert into rastreio (militar_id, unidade_id, equipe_id, jornada, desde, quadro_id) values ($1, $2, $3, $4, $5, $6)',
+            [militar, secao, g.equipe ? equipes.get(g.equipe) : null, g.jornada, mes, quadro],
           );
         }
       }

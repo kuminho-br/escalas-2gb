@@ -24,10 +24,13 @@ import type { Auth } from '../auth.ts';
 import { comUsuario, type Banco, type Consulta } from '../banco/banco.ts';
 import { hojeRecife } from '../datas.ts';
 import { lerCorpo, respostaDoErroDoBanco } from '../erros.ts';
+import { mudarPeriodoAberto, periodoAberto } from './periodo-aberto.ts';
 import { quadroParaOPosto } from './quadros.ts';
 import { categoriaMaisAlta, pendenciasDoMilitar, repetidasPorAntiguidade, situacaoNoMes } from './militares-regras.ts';
 
 type Ctx = Context<AmbienteApi>;
+const MSG_SITUACAO_DESATIVADA = 'Esta situação está desativada.';
+const MSG_SITUACAO_NAO_ACHADA = 'Situação não encontrada.';
 const MSG_PERIODO_ANTES = 'Use o dia do período aberto ou um dia depois.';
 const MSG_EQUIPE_DE_OUTRA = 'Escolha uma equipe da unidade da lotação.';
 const MSG_EMAIL_REPETIDO = 'Este e-mail já é de outro militar.';
@@ -52,6 +55,15 @@ type LinhaBanco = {
   sexo: 'M' | 'F' | null;
   nascimento_dia: number | null;
   nascimento_mes: number | null;
+  nascimento_ano: number | null;
+  cpf: string | null;
+  cep: string | null;
+  logradouro: string | null;
+  numero: string | null;
+  complemento: string | null;
+  bairro: string | null;
+  cidade: string | null;
+  uf: string | null;
   telefone: string | null;
   email: string | null;
   comportamento: Comportamento | null;
@@ -60,7 +72,10 @@ type LinhaBanco = {
   motorista: boolean;
   cnh: string[];
   voluntario_jes: boolean;
+  /** a situação do período pode ser escalada (substitui o antigo `ativo` do militar) */
   ativo: boolean;
+  situacao_id: string | null;
+  situacao_nome: string | null;
   equipe: string | null;
   jornada: 'pronto' | 'adm' | null;
 };
@@ -110,9 +125,10 @@ const PERIODO_DO_DIA = (quem: string, sub = '') =>
      order by (x.desde <= $4 and (x.ate is null or x.ate >= $4)) desc, x.desde desc limit 1)`;
 
 const SELECT_MILITAR = `
-  select m.id, m.matricula, p.sigla as posto, m.posto_grad_id, m.quadro_id, (select q.sigla from quadro q where q.id = m.quadro_id) as quadro_sigla, m.nome_guerra, m.nome_completo, m.sexo, m.nascimento_dia, m.nascimento_mes,
+  select m.id, m.matricula, p.sigla as posto, m.posto_grad_id, l.quadro_id, (select q.sigla from quadro q where q.id = l.quadro_id) as quadro_sigla, m.nome_guerra, m.nome_completo, m.sexo, m.nascimento_dia, m.nascimento_mes, m.nascimento_ano,
+         m.cpf, m.cep, m.logradouro, m.numero, m.complemento, m.bairro, m.cidade, m.uf,
          m.telefone, m.email, m.comportamento, m.comportamento_boletim, m.antiguidade, m.motorista, m.cnh,
-         m.voluntario_jes, m.ativo, e.nome as equipe, l.jornada`;
+         m.voluntario_jes, coalesce(sm.escalavel, false) as ativo, l.situacao_id, sm.nome as situacao_nome, e.nome as equipe, l.jornada`;
 
 /** Ficha completa; a lotação "atual" é a que cobre o mês. null se o militar não existe. */
 async function carregarFicha(c: Consulta, id: string, mes: string, usuarioId: string): Promise<FichaMilitar | null> {
@@ -123,14 +139,16 @@ async function carregarFicha(c: Consulta, id: string, mes: string, usuarioId: st
        join posto_grad p on p.id = m.posto_grad_id
        left join rastreio l on l.militar_id = m.id and l.id = ${PERIODO_DO_DIA('m.id')}
        left join equipe e on e.id = l.equipe_id
+       left join situacao_militar sm on sm.id = l.situacao_id
       where m.id = $1`,
     [id, primeiro, ultimo, diaDeReferencia(mes)],
   );
   const m = rows[0];
   if (!m) return null;
-  const rastreio = await c.query<{ id: string; sigla: string; equipe: string | null; jornada: 'pronto' | 'adm'; desde: string; ate: string | null }>(
-    `select l.id, un.sigla, e.nome as equipe, l.jornada, to_char(l.desde, 'YYYY-MM-DD') as desde, to_char(l.ate, 'YYYY-MM-DD') as ate
-       from rastreio l join unidade un on un.id = l.unidade_id left join equipe e on e.id = l.equipe_id
+  const rastreio = await c.query<{ id: string; sigla: string; equipe: string | null; jornada: 'pronto' | 'adm'; quadro: string | null; situacao: string; desde: string; ate: string | null }>(
+    `select l.id, un.sigla, e.nome as equipe, l.jornada, q.sigla as quadro, sm.nome as situacao, to_char(l.desde, 'YYYY-MM-DD') as desde, to_char(l.ate, 'YYYY-MM-DD') as ate
+       from rastreio l join unidade un on un.id = l.unidade_id left join equipe e on e.id = l.equipe_id left join quadro q on q.id = l.quadro_id
+       join situacao_militar sm on sm.id = l.situacao_id
       where l.militar_id = $1 order by l.desde desc`,
     [id],
   );
@@ -147,7 +165,8 @@ async function carregarFicha(c: Consulta, id: string, mes: string, usuarioId: st
     `select m2.id, m2.nome_guerra, m2.antiguidade
        from rastreio l0
        join rastreio l2 on l2.unidade_id = l0.unidade_id and l2.desde <= $3 and (l2.ate is null or l2.ate >= $2)
-       join militar m2 on m2.id = l2.militar_id and m2.ativo
+       join situacao_militar sm2 on sm2.id = l2.situacao_id and sm2.escalavel
+       join militar m2 on m2.id = l2.militar_id
       where l0.militar_id = $1 and l0.id = ${PERIODO_DO_DIA('l0.militar_id')}
       order by m2.nome_guerra`,
     [id, primeiro, ultimo, diaDeReferencia(mes)],
@@ -175,7 +194,10 @@ async function carregarFicha(c: Consulta, id: string, mes: string, usuarioId: st
     postoGradId: m.posto_grad_id,
     nomeCompleto: m.nome_completo,
     sexo: m.sexo,
-    nascimento: m.nascimento_dia !== null && m.nascimento_mes !== null ? { dia: m.nascimento_dia, mes: m.nascimento_mes } : null,
+    nascimento: m.nascimento_dia !== null && m.nascimento_mes !== null ? { dia: m.nascimento_dia, mes: m.nascimento_mes, ano: m.nascimento_ano } : null,
+    cpf: m.cpf,
+    endereco: { cep: m.cep, logradouro: m.logradouro, numero: m.numero, complemento: m.complemento, bairro: m.bairro, cidade: m.cidade, uf: m.uf },
+    situacaoDoMilitar: m.situacao_id && m.situacao_nome ? { id: m.situacao_id, nome: m.situacao_nome, escalavel: m.ativo } : null,
     telefone: m.telefone,
     email: m.email,
     comportamento: m.comportamento,
@@ -184,7 +206,7 @@ async function carregarFicha(c: Consulta, id: string, mes: string, usuarioId: st
     noQuadroDeMotoristas: m.motorista,
     cnh,
     cnhPorHierarquia: cnhHabilitadas(cnh).filter((x) => !cnh.includes(x)),
-    rastreio: rastreio.rows.map((l) => ({ id: l.id, unidadeSigla: l.sigla, equipe: l.equipe, jornada: l.jornada, desde: l.desde, ate: l.ate })),
+    rastreio: rastreio.rows.map((l) => ({ id: l.id, unidadeSigla: l.sigla, equipe: l.equipe, jornada: l.jornada, quadro: l.quadro, situacao: l.situacao, desde: l.desde, ate: l.ate })),
     afastamentos: afastamentos.rows.map((a) => ({ id: a.id, tipo: a.tipo, tipoAfastamentoId: a.tipo_afastamento_id, inicio: a.inicio, fim: a.fim, motivo: a.motivo, boletim: a.boletim })),
   };
 }
@@ -254,8 +276,8 @@ const FRASE_LOTACAO = (cima: string) => `A lotação é alterada por quem tem pa
 const FRASE_CADASTRAR = (cima: string) => `Cadastrar militar é com quem tem papel no ${cima}.`;
 const FRASE_AFASTAMENTOS = (cima: string) => `Os afastamentos são alterados por quem tem papel no ${cima}.`;
 
-/** Os campos da ficha que são do Pecúlio (o resto do PATCH é da escala: motorista, CNH, voluntário JES e ativo). */
-const CAMPOS_DO_PECULIO = ['postoGradId', 'quadroId', 'nomeCompleto', 'nomeGuerra', 'antiguidade', 'sexo', 'nascimento', 'telefone', 'email', 'comportamento', 'comportamentoBoletim'] as const;
+/** Os campos da ficha que são do Pecúlio (o resto do PATCH é da escala: motorista, CNH e voluntário JES). */
+const CAMPOS_DO_PECULIO = ['postoGradId', 'nomeCompleto', 'nomeGuerra', 'antiguidade', 'sexo', 'nascimento', 'cpf', 'endereco', 'telefone', 'email', 'comportamento', 'comportamentoBoletim'] as const;
 
 const militarDoAfastamento = async (c: Consulta, afastamentoId: string): Promise<string> =>
   (await c.query<{ militar_id: string }>('select militar_id from afastamento where id = $1', [afastamentoId])).rows[0]!.militar_id;
@@ -326,6 +348,7 @@ export function rotasMilitares(dep: { banco: Banco; auth: Auth }): Hono<Ambiente
          join militar m on m.id = l.militar_id
          join posto_grad p on p.id = m.posto_grad_id
          left join equipe e on e.id = l.equipe_id
+         left join situacao_militar sm on sm.id = l.situacao_id
         where alvo.caminho @> un.caminho and l.desde <= $3 and (l.ate is null or l.ate >= $2)
           and l.id = ${PERIODO_DO_DIA('m.id', 'and alvo2.caminho @> ux.caminho')}
         order by p.ordem desc, m.antiguidade asc nulls last, m.nome_guerra`,
@@ -353,6 +376,7 @@ export function rotasMilitares(dep: { banco: Banco; auth: Auth }): Hono<Ambiente
          join militar m on m.id = l.militar_id
          join posto_grad p on p.id = m.posto_grad_id
          left join equipe e on e.id = l.equipe_id
+         left join situacao_militar sm on sm.id = l.situacao_id
         where alvo.caminho @> un.caminho and l.desde <= $3 and (l.ate is null or l.ate >= $2)
           and l.id = ${PERIODO_DO_DIA('m.id', 'and alvo2.caminho @> ux.caminho')}
         order by p.ordem desc, m.antiguidade asc nulls last, m.nome_guerra`,
@@ -398,13 +422,13 @@ export function rotasMilitares(dep: { banco: Banco; auth: Auth }): Hono<Ambiente
       const ficha = await comUsuario(dep.banco, c.get('usuarioId'), async (tx) => {
         const id = (
           await tx.query<{ id: string }>(
-            `insert into militar (matricula, posto_grad_id, quadro_id, nome_completo, nome_guerra, antiguidade, motorista, cnh, voluntario_jes)
-             values ($1, $2, $3, $4, $5, $6, $7, $8, $9) returning id`,
-            [d.matricula, d.postoGradId, quadro.quadroId, d.nomeCompleto, d.nomeGuerra, d.antiguidade, d.motorista, d.cnh, d.voluntarioJes],
+            `insert into militar (matricula, posto_grad_id, nome_completo, nome_guerra, antiguidade, motorista, cnh, voluntario_jes)
+             values ($1, $2, $3, $4, $5, $6, $7, $8) returning id`,
+            [d.matricula, d.postoGradId, d.nomeCompleto, d.nomeGuerra, d.antiguidade, d.motorista, d.cnh, d.voluntarioJes],
           )
         ).rows[0]!.id;
-        await tx.query('insert into rastreio (militar_id, unidade_id, equipe_id, jornada, desde) values ($1, $2, $3, $4, $5)', [
-          id, u, d.lotacao.equipeId, d.lotacao.jornada, d.lotacao.desde,
+        await tx.query('insert into rastreio (militar_id, unidade_id, equipe_id, jornada, desde, quadro_id) values ($1, $2, $3, $4, $5, $6)', [
+          id, u, d.lotacao.equipeId, d.lotacao.jornada, d.lotacao.desde, quadro.quadroId,
         ]);
         return carregarFicha(tx, id, d.lotacao.desde.slice(0, 7), c.get('usuarioId'));
       });
@@ -442,26 +466,25 @@ export function rotasMilitares(dep: { banco: Banco; auth: Auth }): Hono<Ambiente
       const ficha = await comUsuario(dep.banco, c.get('usuarioId'), async (tx) => {
         // o estado atual é lido já dentro da transação, com a linha travada: duas edições ao mesmo tempo, em campos
         // diferentes, não se atropelam (a segunda parte do que a primeira gravou)
-        const atual = (await tx.query<Pick<LinhaBanco, 'posto_grad_id' | 'quadro_id' | 'nome_completo' | 'nome_guerra' | 'sexo' | 'nascimento_dia' | 'nascimento_mes' | 'telefone' | 'email' | 'comportamento' | 'comportamento_boletim' | 'antiguidade' | 'motorista' | 'cnh' | 'voluntario_jes' | 'ativo'>>(
-          `select posto_grad_id, quadro_id, nome_completo, nome_guerra, sexo, nascimento_dia, nascimento_mes, telefone, email, comportamento, comportamento_boletim,
-                  antiguidade, motorista, cnh, voluntario_jes, ativo from militar where id = $1 for update`,
+        const atual = (await tx.query<Pick<LinhaBanco, 'posto_grad_id' | 'nome_completo' | 'nome_guerra' | 'sexo' | 'nascimento_dia' | 'nascimento_mes' | 'nascimento_ano' | 'cpf' | 'cep' | 'logradouro' | 'numero' | 'complemento' | 'bairro' | 'cidade' | 'uf' | 'telefone' | 'email' | 'comportamento' | 'comportamento_boletim' | 'antiguidade' | 'motorista' | 'cnh' | 'voluntario_jes'>>(
+          `select posto_grad_id, nome_completo, nome_guerra, sexo, nascimento_dia, nascimento_mes, nascimento_ano, cpf, cep, logradouro, numero, complemento, bairro, cidade, uf,
+                  telefone, email, comportamento, comportamento_boletim, antiguidade, motorista, cnh, voluntario_jes from militar where id = $1 for update`,
           [id],
         )).rows[0]!;
         // `undefined` mantém o que está gravado; `null` limpa
         const novo = <T,>(valor: T | undefined, gravado: T): T => (valor === undefined ? gravado : valor);
         const nascimentoDia = d.nascimento === undefined ? atual.nascimento_dia : (d.nascimento?.dia ?? null);
         const nascimentoMes = d.nascimento === undefined ? atual.nascimento_mes : (d.nascimento?.mes ?? null);
+        const nascimentoAno = d.nascimento === undefined ? atual.nascimento_ano : (d.nascimento?.ano ?? null);
+        const endereco = d.endereco ?? {};
         // desmarcar o quadro de motoristas não apaga a CNH: ela só deixa de valer para a escala
         const motorista = d.motorista ?? atual.motorista;
         const cnh = d.cnh ?? atual.cnh;
-        // o quadro acompanha o posto (trocar MAJ do QOA por CEL leva ao QOC); quadro que não contém o posto é 400, antes de gravar
         const postoGradId = d.postoGradId ?? atual.posto_grad_id;
-        // só quando o posto ou o quadro vêm no pedido: o quadro é campo do Pecúlio, e um PATCH só da escala (motorista, JES, ativo) não o preenche
-        const quadro = d.postoGradId === undefined && d.quadroId === undefined ? { quadroId: atual.quadro_id } : await quadroParaOPosto(tx, postoGradId, d.quadroId, atual.quadro_id);
-        if ('erro' in quadro) return quadro;
         await tx.query(
-          `update militar set posto_grad_id = $2, quadro_id = $17, nome_guerra = $3, antiguidade = $4, motorista = $5, cnh = $6, voluntario_jes = $7, ativo = $8,
-                  nome_completo = $9, sexo = $10, nascimento_dia = $11, nascimento_mes = $12, telefone = $13, email = $14, comportamento = $15, comportamento_boletim = $16
+          `update militar set posto_grad_id = $2, nome_guerra = $3, antiguidade = $4, motorista = $5, cnh = $6, voluntario_jes = $7,
+                  nome_completo = $8, sexo = $9, nascimento_dia = $10, nascimento_mes = $11, nascimento_ano = $12, telefone = $13, email = $14, comportamento = $15, comportamento_boletim = $16,
+                  cpf = $17, cep = $18, logradouro = $19, numero = $20, complemento = $21, bairro = $22, cidade = $23, uf = $24
             where id = $1`,
           [
             id,
@@ -471,21 +494,35 @@ export function rotasMilitares(dep: { banco: Banco; auth: Auth }): Hono<Ambiente
             motorista,
             cnh,
             d.voluntarioJes ?? atual.voluntario_jes,
-            d.ativo ?? atual.ativo,
             d.nomeCompleto ?? atual.nome_completo,
             novo(d.sexo, atual.sexo),
             nascimentoDia,
             nascimentoMes,
+            nascimentoAno,
             novo(d.telefone, atual.telefone),
             novo(d.email, atual.email),
             novo(d.comportamento, atual.comportamento),
             novo(d.comportamentoBoletim, atual.comportamento_boletim),
-            quadro.quadroId,
+            novo(d.cpf, atual.cpf),
+            novo(endereco.cep, atual.cep),
+            novo(endereco.logradouro, atual.logradouro),
+            novo(endereco.numero, atual.numero),
+            novo(endereco.complemento, atual.complemento),
+            novo(endereco.bairro, atual.bairro),
+            novo(endereco.cidade, atual.cidade),
+            novo(endereco.uf, atual.uf),
           ],
         );
+        // o quadro vale por período e acompanha o posto: trocar o MAJ do QOA por CEL leva o período aberto ao QOC (um período novo, a partir de hoje)
+        if (d.postoGradId !== undefined && d.postoGradId !== atual.posto_grad_id) {
+          const aberto = await periodoAberto(tx, id);
+          if (aberto) {
+            const quadro = await quadroParaOPosto(tx, postoGradId, undefined, aberto.quadro_id);
+            if (!('erro' in quadro)) await mudarPeriodoAberto(tx, id, hojeRecife(), { quadroId: quadro.quadroId });
+          }
+        }
         return carregarFicha(tx, id, mes, c.get('usuarioId'));
       });
-      if (ficha && 'erro' in ficha) return c.json({ erro: ficha.erro, campos: { quadroId: ficha.erro } }, 400);
       return c.json(ficha);
     } catch (e) {
       // o e-mail é único sem distinção de maiúsculas (índice militar_email_unico): o 409 vai no campo
@@ -493,6 +530,11 @@ export function rotasMilitares(dep: { banco: Banco; auth: Auth }): Hono<Ambiente
       // quem tem acesso ativo entra pelo e-mail da ficha (gatilho militar_email_para_usuario): apagá-lo pede desativar o acesso antes
       if (doBanco?.code === 'P0001' && /email_obrigatorio_com_acesso/.test(doBanco.message ?? '')) {
         return c.json({ erro: MSG_EMAIL_COM_ACESSO, campos: { email: MSG_EMAIL_COM_ACESSO } }, 409);
+      }
+      if (doBanco?.code === '23505' && /militar_cpf_unico/.test(`${doBanco.constraint ?? ''} ${doBanco.message ?? ''}`) && d.cpf) {
+        const dono = (await dep.banco.query<{ nome_guerra: string }>('select nome_guerra from militar where cpf = $1 and id <> $2', [d.cpf, id])).rows[0];
+        const msg = `Este CPF já é de ${dono?.nome_guerra ?? 'outro militar'}.`;
+        return c.json({ erro: msg, campos: { cpf: msg } }, 409);
       }
       if (doBanco?.code === '23505' && /militar_email_unico|usuario_email/.test(`${doBanco.constraint ?? ''} ${doBanco.message ?? ''}`)) {
         return c.json({ erro: MSG_EMAIL_REPETIDO, campos: { email: MSG_EMAIL_REPETIDO } }, 409);
@@ -529,29 +571,49 @@ export function rotasMilitares(dep: { banco: Banco; auth: Auth }): Hono<Ambiente
       const naoEDono = await exigirDonoDoPeculio(c, lotacaoAtual, FRASE_LOTACAO);
       if (naoEDono) return naoEDono;
     }
+    // o quadro e a situação são do Pecúlio, como a lotação: só quem tem nível de acesso acima da lotação os muda
+    const aberta0 = (await dep.banco.query<{ quadro_id: string | null; situacao_id: string }>('select quadro_id, situacao_id from rastreio where militar_id = $1 and ate is null', [id])).rows[0];
+    const mudaQuadro = d.quadroId !== undefined && d.quadroId !== (aberta0?.quadro_id ?? null);
+    const mudaSituacao = d.situacaoId !== undefined && d.situacaoId !== aberta0?.situacao_id;
+    if (mudaQuadro || mudaSituacao) {
+      const naoEDono = await exigirDonoDoPeculioDoMilitar(c, id, FRASE_CAMPO);
+      if (naoEDono) return naoEDono;
+    }
+    if (mudaSituacao) {
+      const sit = (await dep.banco.query<{ ativo: boolean }>('select ativo from situacao_militar where id = $1', [d.situacaoId]))?.rows[0];
+      if (!sit) return c.json({ erro: MSG_SITUACAO_NAO_ACHADA, campos: { situacaoId: MSG_SITUACAO_NAO_ACHADA } }, 400);
+      if (!sit.ativo) return c.json({ erro: MSG_SITUACAO_DESATIVADA, campos: { situacaoId: MSG_SITUACAO_DESATIVADA } }, 400);
+    }
     try {
       const resultado = await comUsuario(dep.banco, c.get('usuarioId'), async (tx) => {
         // o período aberto é lido dentro da transação, com a linha travada: duas alterações ao mesmo tempo não se atropelam
-        const aberta = (await tx.query<{ id: string; desde: string; unidade_id: string }>(
-          "select id, to_char(desde, 'YYYY-MM-DD') as desde, unidade_id from rastreio where militar_id = $1 and ate is null for update",
-          [id],
-        )).rows[0];
+        const aberta = await periodoAberto(tx, id);
         // outra gravação trocou a unidade do período aberto entre a conferência do papel e agora: confere de novo, com a ficha atualizada
         if (aberta && aberta.unidade_id !== d.unidadeId && aberta.unidade_id !== unidadeAberta) return 'mudou' as const;
         if (aberta && d.desde < aberta.desde) return 'antes' as const;
+        // o quadro precisa conter o posto (o posto não tem histórico: vale o de agora)
+        let quadroId = aberta?.quadro_id ?? null;
+        if (d.quadroId !== undefined) {
+          const posto = (await tx.query<{ posto_grad_id: string }>('select posto_grad_id from militar where id = $1', [id])).rows[0]!.posto_grad_id;
+          const q = await quadroParaOPosto(tx, posto, d.quadroId, aberta?.quadro_id ?? null);
+          if ('erro' in q) return { quadroErro: q.erro };
+          quadroId = q.quadroId;
+        }
+        const situacaoId = d.situacaoId ?? aberta?.situacao_id ?? null;
         const mes = d.desde.slice(0, 7);
         if (aberta && d.desde === aberta.desde) {
-          await tx.query('update rastreio set unidade_id = $2, equipe_id = $3, jornada = $4 where id = $1', [aberta.id, d.unidadeId, d.equipeId, d.jornada]);
+          await tx.query('update rastreio set unidade_id = $2, equipe_id = $3, jornada = $4, quadro_id = $5, situacao_id = coalesce($6, situacao_id) where id = $1', [aberta.id, d.unidadeId, d.equipeId, d.jornada, quadroId, situacaoId]);
           return { ficha: await carregarFicha(tx, id, mes, c.get('usuarioId')), criado: false };
         }
         if (aberta) await tx.query("update rastreio set ate = $2::date - interval '1 day' where id = $1", [aberta.id, d.desde]);
-        await tx.query('insert into rastreio (militar_id, unidade_id, equipe_id, jornada, desde) values ($1, $2, $3, $4, $5)', [
-          id, d.unidadeId, d.equipeId, d.jornada, d.desde,
+        await tx.query('insert into rastreio (militar_id, unidade_id, equipe_id, jornada, desde, quadro_id, situacao_id) values ($1, $2, $3, $4, $5, $6, $7)', [
+          id, d.unidadeId, d.equipeId, d.jornada, d.desde, quadroId, situacaoId,
         ]);
         return { ficha: await carregarFicha(tx, id, mes, c.get('usuarioId')), criado: true };
       });
       if (resultado === 'mudou') return c.json({ erro: MSG_SITUACAO_MUDOU }, 409);
       if (resultado === 'antes') return c.json({ erro: MSG_PERIODO_ANTES, campos: { desde: MSG_PERIODO_ANTES } }, 400);
+      if ('quadroErro' in resultado) return c.json({ erro: resultado.quadroErro, campos: { quadroId: resultado.quadroErro } }, 400);
       return c.json(resultado.ficha, resultado.criado ? 201 : 200);
     } catch (e) {
       return respostaDoErroDoBanco(c, e, MSG_MATRICULA);

@@ -7,7 +7,7 @@ import { vinculosDaEscala } from '../cadastros/escalas.ts';
 import { versaoNoMes } from '../cadastros/guarnicoes-regras.ts';
 import { versoesDasGuarnicoes } from '../cadastros/guarnicoes.ts';
 import { avaliarFaixa, porAntiguidade, type Avaliado } from './elegibilidade.ts';
-import { SO_QBMG_OU_SEM_QUADRO } from './quadros-da-escala.ts';
+import { PODE_SER_ESCALADO, SO_QBMG_OU_SEM_QUADRO } from './quadros-da-escala.ts';
 import { ordemDoMes } from './ordem-do-mes.ts';
 import { sequenciaDePreenchimento } from './ordem.ts';
 import { nomeDaVaga } from './vagas.ts';
@@ -139,7 +139,7 @@ export async function planejarPreEscala(
   const membros = (
     await c.query<{ equipe_id: string; n: number }>(
       `select l.equipe_id, count(distinct l.militar_id)::int as n from rastreio l join militar m on m.id = l.militar_id
-        where l.unidade_id = $1 and l.jornada = 'pronto' and m.ativo and ${SO_QBMG_OU_SEM_QUADRO} and l.desde < $3::date and (l.ate is null or l.ate >= $2::date) group by l.equipe_id`,
+        where l.unidade_id = $1 and l.jornada = 'pronto' and ${PODE_SER_ESCALADO} and ${SO_QBMG_OU_SEM_QUADRO} and l.desde < $3::date and (l.ate is null or l.ate >= $2::date) group by l.equipe_id`,
       [unidadeId, inicioDoMes, inicioDoSeguinte],
     )
   ).rows;

@@ -3,7 +3,7 @@ import { mesParaData, type FaixaDeDisponibilidade, type MilitarDoVoluntariado, t
 import { blocosDoDia, CICLO_EQUIPES, cortesDoDia, detectarEquipeInicial, diasDoMes, equipeDoDia, grupoDoMilitar, mesAnterior, PRE_ESCALA, unirFaixas, type Faixa, type Militar } from 'dominio';
 import { unidadeDoRegistro } from '../acesso.ts';
 import type { Consulta } from '../banco/banco.ts';
-import { SO_QBMG_OU_SEM_QUADRO } from '../escala/quadros-da-escala.ts';
+import { PODE_SER_ESCALADO, SO_QBMG_OU_SEM_QUADRO } from '../escala/quadros-da-escala.ts';
 
 type Lotado = Omit<MilitarDoVoluntariado, 'lancado' | 'horas' | 'dias'>;
 
@@ -39,7 +39,7 @@ export async function lotadosNoMes(c: Consulta, unidadeId: string, mes: string, 
        from militar m join posto_grad p on p.id = m.posto_grad_id
        join rastreio l on l.militar_id = m.id and l.unidade_id = $2
        left join equipe e on e.id = l.equipe_id
-      where m.ativo and ($3::uuid is null or m.id = $3) and ($3::uuid is not null or ${SO_QBMG_OU_SEM_QUADRO})
+      where ${PODE_SER_ESCALADO} and ($3::uuid is null or m.id = $3) and ($3::uuid is not null or ${SO_QBMG_OU_SEM_QUADRO})
         and l.desde <= ($1::date + interval '1 month' - interval '1 day')::date and (l.ate is null or l.ate >= $1::date)`,
     [inicio, unidadeId, somente ?? null],
   );

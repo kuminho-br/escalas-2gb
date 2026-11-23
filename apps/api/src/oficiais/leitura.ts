@@ -103,8 +103,8 @@ export async function lerEscala(c: Consulta, unidadeId: string, mes: string): Pr
   const extras = new Map<string, { matricula: string; posto: string; nomeGuerra: string; antiguidade: number | null; quadro: string | null; afastamentos: AfastamentoDoMes[] }>();
   if (foraDaLista.length > 0) {
     const { rows } = await c.query<{ id: string; matricula: string; posto: string; nome_guerra: string; antiguidade: number | null; quadro: string | null }>(
-      `select m.id, m.matricula, p.sigla as posto, m.nome_guerra, m.antiguidade, q.sigla as quadro
-         from militar m join posto_grad p on p.id = m.posto_grad_id left join quadro q on q.id = m.quadro_id where m.id = any($1::uuid[])`, [foraDaLista]);
+      `select m.id, m.matricula, p.sigla as posto, m.nome_guerra, m.antiguidade, (select q.sigla from rastreio r join quadro q on q.id = r.quadro_id where r.militar_id = m.id order by r.desde desc limit 1) as quadro
+         from militar m join posto_grad p on p.id = m.posto_grad_id where m.id = any($1::uuid[])`, [foraDaLista]);
     const afast = await afastamentosDoMes(c, foraDaLista, mes);
     for (const r of rows) extras.set(r.id, { matricula: r.matricula, posto: postoCurto(r.posto), nomeGuerra: r.nome_guerra, antiguidade: r.antiguidade, quadro: r.quadro, afastamentos: afast.get(r.id) ?? [] });
   }
@@ -199,8 +199,8 @@ export async function lerSaldo(c: Consulta, unidadeId: string, hoje = hojeRecife
   const ids = [...new Set([...ordemIds, ...lanc.map((l) => l.militar_id), ...coberturas.flatMap((t) => [t.militar_id, t.saiu_id])])];
   if (ids.length === 0) return [];
   const { rows: cadastro } = await c.query<{ id: string; matricula: string; posto: string; posto_ordem: number; nome_guerra: string; quadro: string | null }>(
-    `select m.id, m.matricula, p.sigla as posto, -p.ordem as posto_ordem, m.nome_guerra, q.sigla as quadro
-       from militar m join posto_grad p on p.id = m.posto_grad_id left join quadro q on q.id = m.quadro_id where m.id = any($1::uuid[])`, [ids]);
+    `select m.id, m.matricula, p.sigla as posto, -p.ordem as posto_ordem, m.nome_guerra, (select q.sigla from rastreio r join quadro q on q.id = r.quadro_id where r.militar_id = m.id order by r.desde desc limit 1) as quadro
+       from militar m join posto_grad p on p.id = m.posto_grad_id where m.id = any($1::uuid[])`, [ids]);
   const por = new Map(cadastro.map((m) => [m.id, m]));
   const lotacaoDe = new Map(participantes.map((p) => [p.militarId, p.lotacao]));
   const nome = (id: string) => {

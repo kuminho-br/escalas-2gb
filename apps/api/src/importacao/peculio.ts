@@ -1,7 +1,8 @@
 // Importação do Pecúlio (aba PECÚLIO): os dados do militar que são da seção de pessoal. O banco é a fonte única; a planilha é o contrato.
 // Só quem tem papel numa unidade acima das seções importa (a rota confere); aqui cada linha confere de novo o papel de cima da lotação dela.
-import { Antiguidade, COMPORTAMENTOS, EmailInstitucional, mesParaData, Nascimento, Telefone, type ItemPrevia, type ProblemaImportacao } from 'contratos';
+import { Antiguidade, Cep, COMPORTAMENTOS, Cpf, EmailInstitucional, MSG_CEP, MSG_CPF, MSG_UF, mesParaData, Nascimento, Telefone, Uf, type ItemPrevia, type ProblemaImportacao } from 'contratos';
 import { normalizar } from 'dominio';
+import { mudarPeriodoAberto } from '../cadastros/periodo-aberto.ts';
 import { quadroParaOPosto } from '../cadastros/quadros.ts';
 import { CADASTRO, temPapelAcima } from '../acesso.ts';
 import type { Consulta } from '../banco/banco.ts';
@@ -11,7 +12,7 @@ import type { ColunaModelo, Importador } from './tipos.ts';
 
 const ABA = 'PECÚLIO';
 
-// rótulos lidos por planejar e escritos no cabeçalho do modelo, na ordem da ficha: uma lista só (D7: nada de CPF nem de ano de nascimento)
+// rótulos lidos por planejar e escritos no cabeçalho do modelo, na ordem da ficha: uma lista só
 const COLUNAS = {
   mat: { rotulo: 'MATRÍCULA', obrigatoria: true, ajuda: '6 dígitos, hífen e 1 dígito (ex.: 123456-7). Sem o hífen, o sistema corrige e avisa.' },
   posto: { rotulo: 'POSTO/GRAD', obrigatoria: true, ajuda: 'Sigla do posto ou graduação, como na lista abaixo. "SD" vale como "SD BM".' },
@@ -19,11 +20,19 @@ const COLUNAS = {
   guerra: { rotulo: 'NOME DE GUERRA', obrigatoria: true, ajuda: 'Como o militar aparece na escala (o sistema escreve em maiúsculas).' },
   antig: { rotulo: 'ANTIGUIDADE', obrigatoria: false, ajuda: 'Número da antiguidade, de 1 a 99999. Vazio = sem antiguidade.' },
   sexo: { rotulo: 'SEXO', obrigatoria: false, ajuda: 'M ou F. Vazio = sem informação.', opcoes: ['M', 'F'] },
-  nascimento: { rotulo: 'NASCIMENTO', obrigatoria: false, ajuda: 'Só o dia e o mês, no formato dd/mm (ex.: 15/03), sem o ano. O dia precisa existir no mês.', texto: true },
+  nascimento: { rotulo: 'NASCIMENTO', obrigatoria: false, ajuda: 'A data de nascimento, no formato dd/mm/aaaa (ex.: 15/03/1985) ou só dd/mm (ex.: 15/03). O dia precisa existir no mês (29/02 só em ano bissexto, quando há o ano).', texto: true },
   telefone: { rotulo: 'TELEFONE', obrigatoria: false, ajuda: 'Até 20 caracteres (ex.: (81) 99999-0000).', texto: true },
   email: { rotulo: 'E-MAIL', obrigatoria: false, ajuda: 'E-mail institucional, só do domínio @bombeiros.pe.gov.br. Não pode repetir entre militares.' },
   comportamento: { rotulo: 'COMPORTAMENTO', obrigatoria: false, ajuda: 'Um destes: Excepcional, Ótimo, Bom, Insuficiente, Mau. Vazio = sem informação.', opcoes: [...COMPORTAMENTOS] },
   boletim: { rotulo: 'BOLETIM DO COMPORTAMENTO', obrigatoria: false, ajuda: 'Boletim em que o comportamento foi publicado (até 60 caracteres).' },
+  cpf: { rotulo: 'CPF', obrigatoria: false, ajuda: '11 dígitos, com ou sem pontos e traço (ex.: 529.982.247-25). Não pode repetir entre militares. Vazio = sem informação.', texto: true },
+  cep: { rotulo: 'CEP', obrigatoria: false, ajuda: '8 dígitos, com ou sem traço (ex.: 50030-000).', texto: true },
+  logradouro: { rotulo: 'LOGRADOURO', obrigatoria: false, ajuda: 'Rua, avenida etc. (até 120 caracteres).' },
+  numero: { rotulo: 'NÚMERO', obrigatoria: false, ajuda: 'Número do endereço (até 120 caracteres).', texto: true },
+  complemento: { rotulo: 'COMPLEMENTO', obrigatoria: false, ajuda: 'Apartamento, bloco etc. (até 120 caracteres).' },
+  bairro: { rotulo: 'BAIRRO', obrigatoria: false, ajuda: 'Até 120 caracteres.' },
+  cidade: { rotulo: 'CIDADE', obrigatoria: false, ajuda: 'Até 120 caracteres.' },
+  uf: { rotulo: 'UF', obrigatoria: false, ajuda: 'Sigla do estado (ex.: PE).', texto: true },
   lotacao: { rotulo: 'LOTAÇÃO', obrigatoria: true, ajuda: 'Sigla da seção do militar, como na lista abaixo. Para quem já existe, a lotação não muda por aqui: use "Alterar situação" na ficha.' },
 } satisfies Record<string, ColunaModelo>;
 
@@ -35,11 +44,13 @@ type Dados = {
   nomeGuerra: string;
   antiguidade: number | null;
   sexo: 'M' | 'F' | null;
-  nascimento: { dia: number; mes: number } | null;
+  nascimento: { dia: number; mes: number; ano: number | null } | null;
   telefone: string | null;
   email: string | null;
   comportamento: string | null;
   boletim: string | null;
+  cpf: string | null;
+  endereco: { cep: string | null; logradouro: string | null; numero: string | null; complemento: string | null; bairro: string | null; cidade: string | null; uf: string | null };
 };
 type ItemPlano = { id: string | null; dados: Dados; unidadeId: string };
 type Plano = { itens: ItemPlano[]; mes: string };
@@ -55,6 +66,15 @@ type Existente = {
   sexo: 'M' | 'F' | null;
   nascimento_dia: number | null;
   nascimento_mes: number | null;
+  nascimento_ano: number | null;
+  cpf: string | null;
+  cep: string | null;
+  logradouro: string | null;
+  numero: string | null;
+  complemento: string | null;
+  bairro: string | null;
+  cidade: string | null;
+  uf: string | null;
   telefone: string | null;
   email: string | null;
   comportamento: string | null;
@@ -64,14 +84,15 @@ type Existente = {
 };
 
 const dois = (n: number) => String(n).padStart(2, '0');
-const textoNascimento = (n: { dia: number; mes: number } | null) => (n ? `${dois(n.dia)}/${dois(n.mes)}` : 'vazio');
+const textoNascimento = (n: { dia: number; mes: number; ano?: number | null } | null) => (n ? `${dois(n.dia)}/${dois(n.mes)}${n.ano ? `/${n.ano}` : ''}` : 'vazio');
+const maskCpf = (c: string | null) => (c ? `${c.slice(0, 3)}.${c.slice(3, 6)}.${c.slice(6, 9)}-${c.slice(9)}` : null);
 
 /** Os militares do sistema, com a lotação de hoje (a do período que cobre o mês; sem ela, a mais recente). */
 async function existentes(tx: Consulta, mes: string): Promise<Map<string, Existente>> {
   const primeiro = mesParaData(mes);
   const { rows } = await tx.query<Existente>(
-    `select m.id, m.matricula, m.posto_grad_id, p.sigla as posto, m.nome_completo, m.nome_guerra, m.antiguidade, m.sexo, m.nascimento_dia, m.nascimento_mes,
-            m.telefone, m.email, m.comportamento, m.comportamento_boletim, l.unidade_id, un.sigla as unidade_sigla
+    `select m.id, m.matricula, m.posto_grad_id, p.sigla as posto, m.nome_completo, m.nome_guerra, m.antiguidade, m.sexo, m.nascimento_dia, m.nascimento_mes, m.nascimento_ano,
+            m.cpf, m.cep, m.logradouro, m.numero, m.complemento, m.bairro, m.cidade, m.uf, m.telefone, m.email, m.comportamento, m.comportamento_boletim, l.unidade_id, un.sigla as unidade_sigla
        from militar m
        join posto_grad p on p.id = m.posto_grad_id
        left join lateral (
@@ -114,7 +135,7 @@ export const importadorPeculio: Importador<Plano> = {
     const avisos: string[] = [];
     const mes = hoje.slice(0, 7);
     const vazio = { previa: { novos: [], alterados: [], iguais: 0, problemas, avisos }, plano: { itens: [], mes } };
-    // as 12 colunas do modelo: com uma ausente, "vazio limpa o campo" apagaria o dado de todo militar que já existe
+    // as colunas do modelo: com uma ausente, "vazio limpa o campo" apagaria o dado de todo militar que já existe
     const faltam = (Object.keys(COLUNAS) as (keyof typeof COLUNAS)[]).filter((k) => c[k] < 0);
     if (faltam.length) {
       problemas.push({ aba: ABA, linha: 1, mensagem: `Faltam as colunas ${faltam.map((k) => COLUNAS[k].rotulo).join(', ')}.`, solucao: 'Baixe o modelo na tela de importação e cole os dados nele.' });
@@ -132,6 +153,10 @@ export const importadorPeculio: Importador<Plano> = {
     const emailsEmUso = new Map(
       (await tx.query<{ email: string; matricula: string; nome_guerra: string }>('select lower(email) as email, matricula, nome_guerra from militar where email is not null')).rows.map((r) => [r.email, r]),
     );
+    const cpfsEmUso = new Map(
+      (await tx.query<{ cpf: string; matricula: string; nome_guerra: string }>('select cpf, matricula, nome_guerra from militar where cpf is not null')).rows.map((r) => [r.cpf, r]),
+    );
+    const cpfsDaPlanilha = new Map<string, { matricula: string; nome_guerra: string }>();
     // o e-mail também pode estar guardado no usuário de outro militar (acesso desativado, administrador de instalação); e quem tem acesso ativo não fica sem e-mail
     for (const r of (await tx.query<{ email: string; matricula: string; nome_guerra: string }>('select lower(u.email) as email, m.matricula, m.nome_guerra from usuario u join militar m on m.id = u.militar_id')).rows) {
       if (!emailsEmUso.has(r.email)) emailsEmUso.set(r.email, r);
@@ -207,15 +232,59 @@ export const importadorPeculio: Importador<Plano> = {
       let nascimento: Dados['nascimento'] = null;
       const nascTxt = pega(cel, c.nascimento);
       if (nascTxt) {
-        // dd/mm; o Excel que converteu a célula em data entrega dd/mm/aaaa, e o ano é descartado (a ficha não o guarda: D7)
-        const m = /^(\d{1,2})\/(\d{1,2})(\/\d{4})?$/.exec(nascTxt);
-        const lido = m ? Nascimento.safeParse({ dia: Number(m[1]), mes: Number(m[2]) }) : null;
+        // dd/mm/aaaa (o ano é guardado) ou só dd/mm
+        const m = /^(\d{1,2})\/(\d{1,2})(?:\/(\d{4}))?$/.exec(nascTxt);
+        const lido = m ? Nascimento.safeParse({ dia: Number(m[1]), mes: Number(m[2]), ano: m[3] ? Number(m[3]) : null }) : null;
         if (!lido?.success) {
-          problema(`Nascimento "${nascTxt}" inválido.`, 'Use dd/mm (só dia e mês, sem o ano), de um dia que exista no mês (ex.: 15/03).');
+          problema(`Nascimento "${nascTxt}" inválido.`, 'Use dd/mm/aaaa ou dd/mm, de um dia que exista (ex.: 15/03/1985 ou 15/03).');
           continue;
         }
-        nascimento = lido.data;
+        nascimento = { dia: lido.data.dia, mes: lido.data.mes, ano: lido.data.ano ?? null };
       }
+
+      const cpfTxt = pega(cel, c.cpf);
+      let cpf: string | null = null;
+      if (cpfTxt) {
+        const lido = Cpf.safeParse(cpfTxt);
+        if (!lido.success) {
+          problema(MSG_CPF, 'Confira os 11 dígitos (ou deixe vazio).');
+          continue;
+        }
+        cpf = lido.data;
+      }
+      const cepTxt = pega(cel, c.cep);
+      let cep: string | null = null;
+      if (cepTxt) {
+        const lido = Cep.safeParse(cepTxt);
+        if (!lido.success) {
+          problema(MSG_CEP, 'Use 8 dígitos, com ou sem traço (ou deixe vazio).');
+          continue;
+        }
+        cep = lido.data;
+      }
+      const ufTxt = pega(cel, c.uf);
+      let uf: string | null = null;
+      if (ufTxt) {
+        const lido = Uf.safeParse(ufTxt);
+        if (!lido.success) {
+          problema(MSG_UF, 'Use uma das 27 siglas (ou deixe vazio).');
+          continue;
+        }
+        uf = lido.data;
+      }
+      const textoDoEndereco = (rotulo: string, valor: string): string | null | false => {
+        if (valor.length > 120) {
+          problema(`${rotulo} com mais de 120 caracteres.`, 'Use no máximo 120 caracteres.');
+          return false;
+        }
+        return valor || null;
+      };
+      const logradouro = textoDoEndereco('Logradouro', pega(cel, c.logradouro));
+      const numero = textoDoEndereco('Número', pega(cel, c.numero));
+      const complemento = textoDoEndereco('Complemento', pega(cel, c.complemento));
+      const bairro = textoDoEndereco('Bairro', pega(cel, c.bairro));
+      const cidade = textoDoEndereco('Cidade', pega(cel, c.cidade));
+      if ([logradouro, numero, complemento, bairro, cidade].includes(false)) continue;
 
       const emailTxt = pega(cel, c.email);
       let email: string | null = null;
@@ -280,6 +349,17 @@ export const importadorPeculio: Importador<Plano> = {
         }
       }
 
+      // o CPF é único: de outro militar ou repetido na própria planilha é problema, não erro do banco na gravação
+      if (cpf) {
+        const dono = cpfsEmUso.get(cpf);
+        const naPlanilha = cpfsDaPlanilha.get(cpf);
+        const de = naPlanilha && naPlanilha.matricula !== mat.valor ? naPlanilha : dono && dono.matricula !== mat.valor ? dono : null;
+        if (de) {
+          problema(`Este CPF já é de ${de.nome_guerra}.`, 'Corrija o CPF na planilha ou o do outro militar na ficha.');
+          continue;
+        }
+      }
+
       // dono do bloco: papel acima da lotação do militar (a atual, se ele já existe; senão a da linha)
       const referencia = e?.unidade_id ?? lotacao.id;
       if (!(await donoDe(referencia))) {
@@ -291,9 +371,11 @@ export const importadorPeculio: Importador<Plano> = {
         continue;
       }
       if (email) emailsDaPlanilha.set(email.toLowerCase(), mat.valor);
+      if (cpf) cpfsDaPlanilha.set(cpf, { matricula: mat.valor, nome_guerra: nomeGuerra });
 
       const dados: Dados = {
         matricula: mat.valor, postoId: posto.id, posto: posto.sigla, nomeCompleto, nomeGuerra, antiguidade, sexo, nascimento, telefone, email, comportamento, boletim: boletimTxt || null,
+        cpf, endereco: { cep, logradouro: logradouro as string | null, numero: numero as string | null, complemento: complemento as string | null, bairro: bairro as string | null, cidade: cidade as string | null, uf },
       };
       const descricao = `${posto.sigla} ${nomeGuerra}`;
       if (!e) {
@@ -312,8 +394,15 @@ export const importadorPeculio: Importador<Plano> = {
       if (e.nome_guerra !== nomeGuerra) mudancas.push(`nome de guerra: ${e.nome_guerra} → ${nomeGuerra}`);
       if (e.antiguidade !== antiguidade) mudancas.push(`antiguidade: ${vazioDe(e.antiguidade, true)} → ${vazioDe(antiguidade, true)}`);
       if (e.sexo !== sexo) mudancas.push(`sexo: ${vazioDe(e.sexo)} → ${vazioDe(sexo)}`);
-      const antes = e.nascimento_dia !== null && e.nascimento_mes !== null ? { dia: e.nascimento_dia, mes: e.nascimento_mes } : null;
+      const antes = e.nascimento_dia !== null && e.nascimento_mes !== null ? { dia: e.nascimento_dia, mes: e.nascimento_mes, ano: e.nascimento_ano } : null;
       if (textoNascimento(antes) !== textoNascimento(nascimento)) mudancas.push(`nascimento: ${textoNascimento(antes)} → ${textoNascimento(nascimento)}`);
+      if (e.cpf !== cpf) mudancas.push(`CPF: ${vazioDe(maskCpf(e.cpf))} → ${vazioDe(maskCpf(cpf))}`);
+      for (const [rotulo, antesV, depoisV] of [
+        ['CEP', e.cep, dados.endereco.cep], ['logradouro', e.logradouro, dados.endereco.logradouro], ['número', e.numero, dados.endereco.numero],
+        ['complemento', e.complemento, dados.endereco.complemento], ['bairro', e.bairro, dados.endereco.bairro], ['cidade', e.cidade, dados.endereco.cidade], ['UF', e.uf, dados.endereco.uf],
+      ] as const) {
+        if (antesV !== depoisV) mudancas.push(`${rotulo}: ${vazioDe(antesV)} → ${vazioDe(depoisV)}`);
+      }
       if (e.telefone !== telefone) mudancas.push(`telefone: ${vazioDe(e.telefone)} → ${vazioDe(telefone)}`);
       if (e.email !== email) mudancas.push(`e-mail: ${vazioDe(e.email)} → ${vazioDe(email)}`);
       if (e.comportamento !== comportamento) mudancas.push(`comportamento: ${vazioDe(e.comportamento)} → ${vazioDe(comportamento)}`);
@@ -331,30 +420,45 @@ export const importadorPeculio: Importador<Plano> = {
     return { previa: { novos, alterados, iguais, problemas, avisos }, plano: { itens, mes } };
   },
 
-  async aplicar(plano, { tx }) {
+  async aplicar(plano, { tx, hoje }) {
     const desde = mesParaData(plano.mes);
     for (const it of plano.itens) {
       const d = it.dados;
-      // o quadro acompanha o posto (mesma regra da ficha): fica o que serve, senão o do posto, se for um só, senão nenhum (pendência "Sem quadro")
-      const atualDoMilitar = it.id ? (await tx.query<{ quadro_id: string | null }>('select quadro_id from militar where id = $1', [it.id])).rows[0]!.quadro_id : null;
-      const quadro = await quadroParaOPosto(tx, d.postoId, undefined, atualDoMilitar);
-      const quadroId = 'erro' in quadro ? null : quadro.quadroId;
-      const valores = [d.postoId, d.nomeCompleto, d.nomeGuerra, d.antiguidade, d.sexo, d.nascimento?.dia ?? null, d.nascimento?.mes ?? null, d.telefone, d.email, d.comportamento, d.boletim];
+      const e = d.endereco;
+      const valores = [
+        d.postoId, d.nomeCompleto, d.nomeGuerra, d.antiguidade, d.sexo, d.nascimento?.dia ?? null, d.nascimento?.mes ?? null, d.nascimento?.ano ?? null, d.telefone, d.email, d.comportamento, d.boletim,
+        d.cpf, e.cep, e.logradouro, e.numero, e.complemento, e.bairro, e.cidade, e.uf,
+      ];
       if (!it.id) {
+        // o quadro vale por período: o do posto, quando ele só existe em um (senão, sem quadro, com a pendência "Sem quadro")
+        const quadro = await quadroParaOPosto(tx, d.postoId, undefined, null);
         const id = (await tx.query<{ id: string }>(
-          `insert into militar (matricula, posto_grad_id, nome_completo, nome_guerra, antiguidade, sexo, nascimento_dia, nascimento_mes, telefone, email, comportamento, comportamento_boletim, quadro_id)
-           values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) returning id`,
-          [d.matricula, ...valores, quadroId],
+          `insert into militar (matricula, posto_grad_id, nome_completo, nome_guerra, antiguidade, sexo, nascimento_dia, nascimento_mes, nascimento_ano, telefone, email, comportamento, comportamento_boletim,
+                                cpf, cep, logradouro, numero, complemento, bairro, cidade, uf)
+           values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21) returning id`,
+          [d.matricula, ...valores],
         )).rows[0]!.id;
-        // lotação na seção da linha, a partir do mês atual, Pronto e sem equipe: equipe e jornada ficam com o escalante
-        await tx.query("insert into rastreio (militar_id, unidade_id, equipe_id, jornada, desde) values ($1, $2, null, 'pronto', $3)", [id, it.unidadeId, desde]);
+        // lotação na seção da linha, a partir do mês atual, Pronto e sem equipe (equipe e jornada ficam com o escalante); situação "Ativa" por padrão
+        await tx.query("insert into rastreio (militar_id, unidade_id, equipe_id, jornada, desde, quadro_id) values ($1, $2, null, 'pronto', $3, $4)", [
+          id, it.unidadeId, desde, 'erro' in quadro ? null : quadro.quadroId,
+        ]);
         continue;
       }
+      const antes = (await tx.query<{ posto_grad_id: string }>('select posto_grad_id from militar where id = $1', [it.id])).rows[0]!.posto_grad_id;
       await tx.query(
-        `update militar set posto_grad_id = $2, nome_completo = $3, nome_guerra = $4, antiguidade = $5, sexo = $6, nascimento_dia = $7, nascimento_mes = $8,
-                telefone = $9, email = $10, comportamento = $11, comportamento_boletim = $12, quadro_id = $13 where id = $1`,
-        [it.id, ...valores, quadroId],
+        `update militar set posto_grad_id = $2, nome_completo = $3, nome_guerra = $4, antiguidade = $5, sexo = $6, nascimento_dia = $7, nascimento_mes = $8, nascimento_ano = $9,
+                telefone = $10, email = $11, comportamento = $12, comportamento_boletim = $13,
+                cpf = $14, cep = $15, logradouro = $16, numero = $17, complemento = $18, bairro = $19, cidade = $20, uf = $21 where id = $1`,
+        [it.id, ...valores],
       );
+      // o quadro acompanha o posto (mesma regra da ficha): trocar o posto leva o período aberto ao quadro que serve
+      if (antes !== d.postoId) {
+        const aberto = (await tx.query<{ quadro_id: string | null }>('select quadro_id from rastreio where militar_id = $1 and ate is null', [it.id])).rows[0];
+        if (aberto) {
+          const quadro = await quadroParaOPosto(tx, d.postoId, undefined, aberto.quadro_id);
+          if (!('erro' in quadro)) await mudarPeriodoAberto(tx, it.id, hoje, { quadroId: quadro.quadroId });
+        }
+      }
     }
     return plano.itens.length;
   },

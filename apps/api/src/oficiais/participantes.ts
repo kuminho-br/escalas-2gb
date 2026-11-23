@@ -1,4 +1,4 @@
-// Quem participa da escala dos oficiais num mês: militar ativo dos quadros QOC e QOA com rastreio na unidade
+// Quem participa da escala dos oficiais num mês: militar dos quadros QOC e QOA (pelo período) com situação que deixa escalar e rastreio na unidade
 // (ou abaixo dela) em algum dia do mês. A presença vem do motor (`diasPresentes`).
 import { diasPresentes } from 'dominio';
 import type { Consulta } from '../banco/banco.ts';
@@ -48,37 +48,29 @@ export async function afastamentosDoMes(c: Consulta, ids: string[], mes: string)
   return mapa;
 }
 
-/** Os participantes do mês (AAAA-MM), sem ordem definida: quem ordena é `ordemDeEscolha`. */
+/**
+ * Os participantes do mês (AAAA-MM), sem ordem definida: quem ordena é `ordemDeEscolha`. Participa quem tem, na unidade ou abaixo dela, período
+ * com quadro QOC ou QOA e situação que deixa escalar; só os dias desses períodos contam (o quadro e a situação valem por período).
+ */
 export async function participantesDoMes(c: Consulta, unidadeId: string, mes: string): Promise<Participante[]> {
   const { inicio, fim } = limitesDoMes(mes);
-  const { rows: militares } = await c.query<{
-    id: string; matricula: string; posto: string; posto_ordem: number; nome_guerra: string; antiguidade: number | null; quadro: 'QOC' | 'QOA';
-  }>(
-    `select m.id, m.matricula, p.sigla as posto, -p.ordem as posto_ordem, m.nome_guerra, m.antiguidade, q.sigla as quadro
-       from militar m
-       join posto_grad p on p.id = m.posto_grad_id
-       join quadro q on q.id = m.quadro_id
-      where m.ativo and q.sigla in ('QOC', 'QOA')
-        and exists (
-          select 1 from rastreio r
-            join unidade un on un.id = r.unidade_id
-            join unidade alvo on alvo.id = $1
-           where r.militar_id = m.id and un.caminho <@ alvo.caminho
-             and r.desde <= $3::date and (r.ate is null or r.ate >= $2::date)
-        )`,
-    [unidadeId, inicio, fim],
-  );
-  if (militares.length === 0) return [];
-  const ids = militares.map((m) => m.id);
-  const { rows: rastreios } = await c.query<{ militar_id: string; desde: string; ate: string | null; sigla: string }>(
-    `select r.militar_id, to_char(r.desde, 'YYYY-MM-DD') as desde, to_char(r.ate, 'YYYY-MM-DD') as ate, un.sigla
+  const { rows: rastreios } = await c.query<{ militar_id: string; desde: string; ate: string | null; sigla: string; quadro: 'QOC' | 'QOA' }>(
+    `select r.militar_id, to_char(r.desde, 'YYYY-MM-DD') as desde, to_char(r.ate, 'YYYY-MM-DD') as ate, un.sigla, q.sigla as quadro
        from rastreio r
        join unidade un on un.id = r.unidade_id
        join unidade alvo on alvo.id = $1
-      where r.militar_id = any($4::uuid[]) and un.caminho <@ alvo.caminho
-        and r.desde <= $3::date and (r.ate is null or r.ate >= $2::date)
+       join quadro q on q.id = r.quadro_id and q.sigla in ('QOC', 'QOA')
+       join situacao_militar sm on sm.id = r.situacao_id and sm.escalavel
+      where un.caminho <@ alvo.caminho and r.desde <= $3::date and (r.ate is null or r.ate >= $2::date)
       order by r.desde`,
-    [unidadeId, inicio, fim, ids],
+    [unidadeId, inicio, fim],
+  );
+  if (rastreios.length === 0) return [];
+  const ids = [...new Set(rastreios.map((r) => r.militar_id))];
+  const { rows: militares } = await c.query<{ id: string; matricula: string; posto: string; posto_ordem: number; nome_guerra: string; antiguidade: number | null }>(
+    `select m.id, m.matricula, p.sigla as posto, -p.ordem as posto_ordem, m.nome_guerra, m.antiguidade
+       from militar m join posto_grad p on p.id = m.posto_grad_id where m.id = any($1::uuid[])`,
+    [ids],
   );
   const afast = await afastamentosDoMes(c, ids, mes);
   return militares.map((m) => {
@@ -91,7 +83,7 @@ export async function participantesDoMes(c: Consulta, unidadeId: string, mes: st
       postoOrdem: m.posto_ordem,
       nomeGuerra: m.nome_guerra,
       antiguidade: m.antiguidade,
-      quadro: m.quadro,
+      quadro: periodos.at(-1)!.quadro,
       lotacao: periodos.at(-1)?.sigla ?? '',
       afastamentos,
       dias: diasPresentes(mes, periodos.map((p) => ({ desde: p.desde, ate: p.ate })), afastamentos),
