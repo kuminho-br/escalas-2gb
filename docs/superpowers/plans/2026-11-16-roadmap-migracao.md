@@ -103,7 +103,7 @@ Design: `docs/superpowers/specs/2026-11-21-usuarios-e-modulos-design.md`. Plano:
 | 10 a 12 | Divisões (10); camadas de visão e consulta (11); escalas só para leitura (12) | mescladas (#135, #140, #143) |
 | 13 | Pecúlio como origem dos dados: importação única, apagar militar, postos | mesclada (#130) |
 | 14 | Animação de entrada como preferência | mesclada (#126) |
-| 15 a 18 | Pendências antes da fase 7: abono e função; três lotes de acabamento | planejadas |
+| 15 a 18 | Pendências antes da fase 7: abono e função; três lotes de acabamento | 15 mesclada (#146); 16 a 18 em execução |
 | 19 | Correções de interface sem desenho (N0) | mesclada (#128) |
 
 **Fora:** e-mail, usuários acima do GB (fase 11), Visualização (fase 7).
