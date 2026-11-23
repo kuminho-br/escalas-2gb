@@ -2,7 +2,7 @@
 
 16/11/2026 · v0.1 · parte do design (`2026-11-16-migracao-design.md`)
 
-Em dia com as migrações até a `0029_cadastro_no_tempo.sql` (22/11/2026; quadros, escala dos oficiais, rastreio por dia e cadastro no tempo nas suas seções). As tabelas das entregas 4.x estão na seção 9 e as mudanças da fase 5 (rastreio e CNH; ficha do Pecúlio), na seção 10.
+Em dia com as migrações até a `0030_oficiais_participantes.sql` (23/11/2026; quadros, escala dos oficiais, rastreio por dia, cadastro no tempo e participantes da rodada nas suas seções). As tabelas das entregas 4.x estão na seção 9 e as mudanças da fase 5 (rastreio e CNH; ficha do Pecúlio), na seção 10.
 
 Ponto de partida: o "ER proposto" do documento *Modelo ER — Sistema de Escalas 2º GB* (v0.8). Acréscimos: unidades em árvore, rastreio (lotação, equipe e jornada com vigência), vínculo de militar externo, usuários e papéis, modelos de impressão, documentos gerados e auditoria. Também entram as mudanças vindas dos esboços de tela (versão 12), que ainda podem mudar.
 
@@ -641,6 +641,12 @@ Quatro tabelas, todas com auditoria (a função `registrar_auditoria` ganhou um 
 - **"Alterar situação"** (`POST /api/militares/:id/situacao`) aceita `quadroId` e `situacaoId` (de quem cuida do Pecúlio); omitidos, o período novo repete os do atual. Trocar o posto ajusta o quadro do período aberto (no lugar, se começou hoje; senão fecha na véspera e abre outro).
 - **Dados pessoais (D7 revista):** `militar` ganha `cpf`, `nascimento_ano` e o endereço (`cep`, `logradouro`, `numero`, `complemento`, `bairro`, `cidade`, `uf`).
 - A migração confere cada passo antes de mudar e pode rodar de novo.
+
+### Entrega paralela P1.5: quem participa da rodada (migração 0030)
+
+- **`oficiais_participante`:** quem o gestor marcou para a rodada do mês (PK `mes_id, militar_id`; `mes_id` → `oficiais_mes` com `on delete cascade`; com auditoria). Ser QOC ou QOA, com situação que deixa escalar e período na unidade ou abaixo dela, torna o oficial **elegível**; só quem está marcado entra nas cotas, na vez de escolher e nos turnos.
+- **Mês novo:** as marcas vêm copiadas do mês anterior da unidade quando o mês é gravado; no primeiro mês da unidade, ninguém vem marcado. A API devolve `novo` para o elegível que não era elegível no mês anterior.
+- **Carga:** nos meses que já existiam, participa quem tem cota; no mês gravado ainda sem cotas, todo elegível (a regra de antes). Um mês que já tem alguma marca não é recarregado. A migração pode rodar de novo.
 
 ## Mudanças em relação ao ER proposto (v0.8)
 

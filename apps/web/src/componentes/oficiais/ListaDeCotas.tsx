@@ -9,6 +9,8 @@ interface Props {
   escala: EscalaDosOficiais;
   /** Grava a ordem à mão (os ids de quem não tem antiguidade, na ordem nova); sem ela, os botões não aparecem. */
   aoOrdenar?: (militarIds: string[]) => void;
+  /** Grava quem participa da rodada (a lista inteira dos marcados); sem ela, a marca fica só para leitura. */
+  aoMarcar?: (militarIds: string[]) => void;
   desabilitado?: boolean;
 }
 
@@ -37,22 +39,31 @@ export function VezDeEscolher({ escala: e }: { escala: EscalaDosOficiais }) {
   );
 }
 
-/** A lista de cotas do mês: ordem, oficial, saldo até o mês anterior, dias presentes, cota e quanto já escolheu. */
-export function ListaDeCotas({ escala: e, aoOrdenar, desabilitado }: Props) {
+/**
+ * A lista de cotas do mês: a marca de quem participa da rodada, a ordem, o oficial, o saldo até o mês anterior, os dias presentes, a cota e quanto já
+ * escolheu. Com a escala aberta, aparecem todos os elegíveis; fechada, só quem participa.
+ */
+export function ListaDeCotas({ escala: e, aoOrdenar, aoMarcar, desabilitado }: Props) {
   const comCota = e.etapa !== 'sem-cotas';
+  const aberta = e.etapa === 'sem-cotas' || e.etapa === 'escolhas';
+  const oficiais = aberta ? e.oficiais : e.oficiais.filter((o) => o.participa);
+  const marcados = e.oficiais.filter((o) => o.participa).map((o) => o.militarId);
+  const marcar = (o: Oficial, participa: boolean) =>
+    aoMarcar?.(participa ? e.oficiais.filter((x) => x.participa || x.militarId === o.militarId).map((x) => x.militarId) : marcados.filter((id) => id !== o.militarId));
   const total = e.turnos.length;
   const sobras = e.oficiais.filter((o) => o.sobra).length;
   const podeOrdenar = !!aoOrdenar && e.etapa !== 'fechada' && e.etapa !== 'encerrada';
   // "Subir" e "Descer" só trocam de lugar quem não tem antiguidade, entre os do mesmo posto
+  // a ordem só vale entre quem participa
   const vizinho = (i: number, passo: -1 | 1): number | null => {
-    const a = e.oficiais[i]!;
-    const b = e.oficiais[i + passo];
-    return a.semAntiguidade && b && b.semAntiguidade && b.posto === a.posto ? i + passo : null;
+    const a = oficiais[i]!;
+    const b = oficiais[i + passo];
+    return a.participa && a.semAntiguidade && b && b.participa && b.semAntiguidade && b.posto === a.posto ? i + passo : null;
   };
   const mover = (i: number, passo: -1 | 1) => {
     const j = vizinho(i, passo);
     if (j === null || !aoOrdenar) return;
-    const lista = [...e.oficiais];
+    const lista = oficiais.filter((o) => o.participa);
     [lista[i], lista[j]] = [lista[j]!, lista[i]!];
     aoOrdenar(lista.filter((o) => o.semAntiguidade).map((o) => o.militarId));
   };
@@ -60,10 +71,21 @@ export function ListaDeCotas({ escala: e, aoOrdenar, desabilitado }: Props) {
     const sobe = podeOrdenar && vizinho(i, -1) !== null;
     const desce = podeOrdenar && vizinho(i, 1) !== null;
     return (
-      <tr key={o.militarId} className={`border-t border-linha ${o.militarId === e.vez ? 'bg-pendencia-fundo/50' : ''}`}>
-        <td className="px-2 py-1.5 text-center text-apagado">{o.ordem}</td>
+      <tr key={o.militarId} className={`border-t border-linha ${o.militarId === e.vez ? 'bg-pendencia-fundo/50' : ''} ${o.participa ? '' : 'text-apagado'}`}>
+        <td className="px-2 py-1.5 text-center">
+          <input
+            type="checkbox"
+            aria-label={`${o.posto} ${o.nomeGuerra} participa da rodada`}
+            checked={o.participa}
+            disabled={!aoMarcar || !aberta || desabilitado}
+            onChange={(ev) => marcar(o, ev.target.checked)}
+            className="size-4 accent-vinho"
+          />
+        </td>
+        <td className="px-2 py-1.5 text-center text-apagado">{o.participa ? o.ordem : '—'}</td>
         <td className="px-2 py-1.5">
           <b className="whitespace-nowrap">{o.posto} {o.nomeGuerra}</b> <span className="text-xs text-apagado">{o.quadro}</span>
+          {o.novo && <span className="ml-1 rounded border border-linha px-1 text-xs text-tinta">novo</span>}
           <small className="block text-apagado">
             {o.lotacao}
             {o.semAntiguidade && ' · ordenado à mão'}
@@ -107,6 +129,7 @@ export function ListaDeCotas({ escala: e, aoOrdenar, desabilitado }: Props) {
         <table aria-label={`Cotas de ${mesPorExtenso(e.mes)}`} className="w-full text-sm">
           <thead>
             <tr className="text-left text-xs text-apagado">
+              <th scope="col" className="px-2 py-1 text-center font-medium" title="Quem entra nas cotas, na vez de escolher e nos turnos deste mês">Participa</th>
               <th scope="col" className="px-2 py-1 text-center font-medium" title="Ordem de escolha">Ordem</th>
               <th scope="col" className="px-2 py-1 font-medium">Oficial</th>
               <th scope="col" className="px-2 py-1 text-right font-medium" title="Saldo acumulado até o mês anterior">Saldo</th>
@@ -115,7 +138,7 @@ export function ListaDeCotas({ escala: e, aoOrdenar, desabilitado }: Props) {
               {comCota && <th scope="col" className="px-2 py-1 font-medium">Escolhidos</th>}
             </tr>
           </thead>
-          <tbody>{e.oficiais.map(linha)}</tbody>
+          <tbody>{oficiais.map(linha)}</tbody>
         </table>
       </div>
       <p className="text-xs text-apagado">

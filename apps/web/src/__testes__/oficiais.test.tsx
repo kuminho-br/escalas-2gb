@@ -76,7 +76,7 @@ const TURNOS_DO_SERVICO = [
 const dia = (n: number) => `2027-01-${String(n).padStart(2, '0')}`;
 const vazios = () => Array.from({ length: 31 }, (_, i) => i + 1).flatMap((n) => ['t-a', 't-b'].map((turnoId) => ({ dia: dia(n), turnoId, militarId: null as string | null, saiuMilitarId: null as string | null })));
 const oficial = (o: Partial<OficialDoMes> & Pick<OficialDoMes, 'militarId' | 'nomeGuerra' | 'posto' | 'ordem'>): OficialDoMes => ({
-  matricula: '990100-0', quadro: 'QOC', lotacao: '2º GB', semAntiguidade: false, saldoAnterior: 0, dias: 31, devido: 20.5, cota: 21, sobra: false, escolhidos: 0, afastamentos: [], ...o,
+  matricula: '990100-0', quadro: 'QOC', lotacao: '2º GB', semAntiguidade: false, saldoAnterior: 0, dias: 31, devido: 20.5, cota: 21, sobra: false, escolhidos: 0, afastamentos: [], participa: true, novo: false, ...o,
 });
 const O1 = oficial({ militarId: 'm-1', nomeGuerra: 'ALFA', posto: 'CEL', ordem: 1, matricula: '990101-1', saldoAnterior: 0.75 });
 const O2 = oficial({ militarId: 'm-2', nomeGuerra: 'BRAVO', posto: 'CAP', ordem: 2, matricula: '990102-2', semAntiguidade: true, cota: 21, sobra: true });
@@ -224,6 +224,60 @@ describe('a aba Escala do mês', () => {
       await userEvent.click(await screen.findByRole('button', { name: 'Subir CHARLIE' }));
       await waitFor(() => expect(corpoEnviado(f, `PUT ${URL_MES}/ordem`)).toEqual({ militarIds: ['m-3', 'm-2'] }));
       expect(screen.queryByRole('button', { name: 'Subir BRAVO' })).toBeNull();
+    });
+  });
+
+  describe('quem participa da rodada', () => {
+    const FORA = oficial({ militarId: 'm-4', nomeGuerra: 'DELTA', posto: 'MAJ', ordem: 4, matricula: '990104-4', participa: false, cota: null, devido: null });
+    const NOVO = oficial({ militarId: 'm-5', nomeGuerra: 'ECO', posto: 'CAP', ordem: 5, matricula: '990105-5', participa: false, novo: true, cota: null, devido: null });
+    const URL_PART = `PUT ${URL_MES}/participantes`;
+
+    it('antes de fechar, a lista mostra todos os elegíveis, cada um com a marca "Participa", e "novo" em quem é novo', async () => {
+      abrirEscala(escala({ oficiais: [O1, O2, O3, FORA, NOVO] }));
+      const lista = await screen.findByRole('table', { name: 'Cotas de janeiro de 2027' });
+      expect(within(lista).getByRole('columnheader', { name: 'Participa' })).toBeInTheDocument();
+      expect(within(lista).getByRole('checkbox', { name: 'CEL ALFA participa da rodada' })).toBeChecked();
+      expect(within(lista).getByRole('checkbox', { name: 'MAJ DELTA participa da rodada' })).not.toBeChecked();
+      expect(within(lista).getByRole('checkbox', { name: 'CAP ECO participa da rodada' })).not.toBeChecked();
+      const eco = within(lista).getByRole('checkbox', { name: 'CAP ECO participa da rodada' }).closest('tr')!;
+      expect(within(eco).getByText('novo')).toBeInTheDocument();
+      expect(within(lista).getByRole('checkbox', { name: 'MAJ DELTA participa da rodada' }).closest('tr')!.textContent).not.toContain('novo');
+    });
+
+    it('marcar ou desmarcar grava a lista inteira de quem participa', async () => {
+      const f = abrirEscala(escala({ oficiais: [O1, O2, O3, FORA] }), { [URL_PART]: { status: 200, corpo: { ...escala({ oficiais: [O1, O2, O3, FORA] }), liberados: [] } } });
+      await userEvent.click(await screen.findByRole('checkbox', { name: 'MAJ DELTA participa da rodada' }));
+      await waitFor(() => expect(corpoEnviado(f, URL_PART)).toEqual({ militarIds: ['m-1', 'm-2', 'm-3', 'm-4'] }));
+      await userEvent.click(screen.getByRole('checkbox', { name: 'CAP BRAVO participa da rodada' }));
+      await waitFor(() => expect(corpoEnviado(f, URL_PART)).toEqual({ militarIds: ['m-1', 'm-3'] }));
+    });
+
+    it('o aviso dos turnos que ficaram sem ninguém aparece depois de desmarcar', async () => {
+      abrirEscala(escala(), { [URL_PART]: { status: 200, corpo: { ...escala(), liberados: ['3 turnos de CAP BRAVO ficaram sem ninguém.'] } } });
+      await userEvent.click(await screen.findByRole('checkbox', { name: 'CAP BRAVO participa da rodada' }));
+      expect(await screen.findByText('3 turnos de CAP BRAVO ficaram sem ninguém.')).toBeInTheDocument();
+    });
+
+    it('o erro da API (marcar com a escala fechada em outra aba) aparece na tela', async () => {
+      abrirEscala(escala({ oficiais: [O1, O2, O3, FORA] }), { [URL_PART]: { status: 409, corpo: { erro: 'Com a escala fechada, os participantes não mudam mais.' } } });
+      await userEvent.click(await screen.findByRole('checkbox', { name: 'MAJ DELTA participa da rodada' }));
+      expect(await screen.findByRole('alert')).toHaveTextContent('Com a escala fechada, os participantes não mudam mais.');
+    });
+
+    it('com a escala fechada, a marca fica só para leitura e quem não participa some da lista e do diálogo do turno', async () => {
+      abrirEscala(escala({ etapa: 'fechada', fechadaEm: '2027-01-05T10:00:00', oficiais: [O1, O2, O3, FORA] }));
+      const lista = await screen.findByRole('table', { name: 'Cotas de janeiro de 2027' });
+      expect(within(lista).queryByRole('checkbox', { name: 'MAJ DELTA participa da rodada' })).toBeNull();
+      expect(within(lista).getByRole('checkbox', { name: 'CEL ALFA participa da rodada' })).toBeDisabled();
+      await userEvent.click(celula(2, 'Dia'));
+      const dialogo = within(await screen.findByRole('dialog'));
+      expect(dialogo.queryByRole('button', { name: 'MAJ DELTA' })).toBeNull();
+      expect(dialogo.getByRole('button', { name: 'CEL ALFA' })).toBeInTheDocument();
+    });
+
+    it('sem cotas e sem ninguém marcado, a tela pede para marcar quem participa', async () => {
+      abrirEscala(escala({ etapa: 'sem-cotas', cotasEm: null, vez: null, turnos: [], oficiais: [{ ...FORA, ordem: 1 }, { ...NOVO, ordem: 2 }] }));
+      expect(await screen.findByText('Marque na lista quem participa da rodada e calcule as cotas.')).toBeInTheDocument();
     });
   });
 
