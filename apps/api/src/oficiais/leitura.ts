@@ -63,14 +63,14 @@ export async function escolherEscala(c: Consulta, unidadeId: string, pedida?: st
 }
 
 export interface ServicosDaRodada {
-  jes: { id: string; nome: string } | null;
-  saldo: { id: string; nome: string } | null;
+  jes: { id: string; nome: string; cor: string } | null;
+  saldo: { id: string; nome: string; cor: string } | null;
 }
 
 /** Os dois serviços da rodada: o JES (o de nome "JES", sem diferenciar caixa e acento) e o Saldo (o primeiro dos outros, na ordem da escala). */
 export async function servicosDaRodada(c: Consulta, escalaId: string): Promise<ServicosDaRodada> {
-  const { rows } = await c.query<{ id: string; nome: string }>(
-    'select s.id, s.nome from escala_servico es join servico s on s.id = es.servico_id where es.escala_id = $1 order by es.ordem', [escalaId]);
+  const { rows } = await c.query<{ id: string; nome: string; cor: string }>(
+    'select s.id, s.nome, s.cor from escala_servico es join servico s on s.id = es.servico_id where es.escala_id = $1 order by es.ordem', [escalaId]);
   const jes = rows.find((s) => normalizar(s.nome) === 'JES') ?? null;
   return { jes, saldo: rows.find((s) => s.id !== jes?.id) ?? null };
 }
@@ -94,6 +94,15 @@ export async function lancamentosDoMes(c: Consulta, escalaId: string, mes: strin
     [escalaId, inicio, fim],
   );
   return rows.map((r) => ({ id: r.id, dia: r.dia, letra: r.letra, servicoId: r.servico_id, turnoId: r.turno_id, militarId: r.militar_id, saiuMilitarId: r.saiu }));
+}
+
+/** A cota de JES da unidade no mês e quantos JES já foram lançados nele, em todas as escalas da unidade (só informa; nada bloqueia). */
+export async function jesDoMes(c: Consulta, unidadeId: string, servicoJesId: string | null, mes: string): Promise<{ cota: number | null; usados: number }> {
+  if (!servicoJesId) return { cota: null, usados: 0 };
+  const { inicio, fim } = limitesDoMes(mes);
+  const cota = (await c.query<{ total: string | null }>('select sum(quantidade)::text as total from cota where unidade_id = $1 and servico_id = $2 and mes = $3::date', [unidadeId, servicoJesId, inicio])).rows[0]!.total;
+  const usados = (await c.query<{ n: number }>('select count(*)::int as n from alocacao where servico_id = $1 and data between $2::date and $3::date', [servicoJesId, inicio, fim])).rows[0]!.n;
+  return { cota: cota === null ? null : Number(cota), usados };
 }
 
 /** Os dias vermelhos da escala no mês, em ordem. */
@@ -270,6 +279,7 @@ export async function lerEscala(c: Consulta, unidadeId: string, mes: string, esc
     vez,
     turnos,
     lugaresDeSaldo,
+    jes: await jesDoMes(c, unidadeId, servicos.jes?.id ?? null, mes),
     diasVermelhos,
     avisos,
   };
