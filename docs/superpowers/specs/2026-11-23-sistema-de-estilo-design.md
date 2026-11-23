@@ -109,6 +109,8 @@ Só a guarnição tem caixa: o cartão, um por guarnição em cada turno, com a 
 | Envio de arquivo | Vazio: borda tracejada de 1 px `encaixe` e botão secundário. Com arquivo: borda cheia `linha`, o nome em peso 600 e "Trocar" |
 | Abas | Linha de 1 px embaixo da faixa; aba na altura de controle, `apagado`, peso 500; a escolhida em `tinta`, peso 600, com 2 px embaixo; a faixa rola dentro dela mesma |
 | Tabela | Cabeçalho em 13 px, peso 500, `apagado`; linha de 44 px; mouse em cima, `passa`; números à direita; a tabela rola dentro do próprio quadro |
+| Linha de lista de militares | Decisão da PLANEJAMENTO com aval do usuário (23/11/2026; item 32 da 6.17, `docs/decisoes.md`). Três linhas: patente (13 px, `apagado`) e nome de guerra (17 px estreita, 600); o nome completo em 15 px, `tinta`; os dados em etiquetas de dado. Pecúlio: matrícula, telefone e e-mail. Militares: matrícula, jornada e equipe, e a CNH ("Motorista B"). O dado que falta vira etiqueta âmbar ("Sem telefone"), junto do aviso de cadastro incompleto. Sem uma cor por tipo de dado |
+| Etiqueta de dado | Como a etiqueta (24 px, raio 6, 13 px, peso 500), com fundo `passa`, borda de 1 px `linha`, texto `tinta` e um ícone de 14 px, em `apagado`, antes do texto |
 | Etiqueta | Altura de 24 px, folga de 8 px, raio 6, 13 px, peso 500. Serviço: quadradinho de 8 px com a cor e texto `tinta`. Falta: `pendencia`. Erro: `alerta`, com ícone. Neutra: `passa` e `apagado` |
 
 ## Resposta do sistema
