@@ -106,7 +106,7 @@ Design: `docs/superpowers/specs/2026-11-21-usuarios-e-modulos-design.md`. Plano:
 | 15 a 18 | Pendências antes da fase 7: abono e função; três lotes de acabamento | 15 e 16 mescladas (#146, #149); 17 e 18 em execução |
 | 19 | Correções de interface sem desenho (N0) | mesclada (#128) |
 | 20 e 21 | Fundação da interface: sistema de estilo (N1); resposta do sistema (N2) | planejadas |
-| 22 a 24 | Oficiais; mover pela hierarquia; admin como militar | urgentes |
+| 22 a 24 | Oficiais; mover na hierarquia; admin como militar | 22 mesclada (#157) |
 
 **Fora:** e-mail, usuários acima do GB (fase 11), Visualização (fase 7).
 
