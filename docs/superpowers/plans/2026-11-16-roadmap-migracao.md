@@ -101,11 +101,11 @@ Design: `docs/superpowers/specs/2026-11-21-usuarios-e-modulos-design.md`. Plano:
 | 1 | Contas e papéis: senha provisória, troca no primeiro login, papéis na ficha, "Auxiliar administrativo" | mesclada (#86), migração 0025 aplicada no teste |
 | 2 | Unidade de trabalho: o seletor substitui a 1ª SB fixa, e o auxiliar gera a senha de um colega auxiliar | mesclada (#88) |
 | 3 | Tela inicial e módulos por papel, Minha ficha com o próprio telefone; conta desativada só volta por quem dá o papel | mesclada (#90) |
-| 4 | Transição do login (as mangueiras), se o mockup estiver aprovado | condicional |
+| 4 | Transição do login (as mangueiras), mockup aprovado | planejada |
 | 5 | Retorno da validação: recolher equipe, rastreio por dia, "Vale desde" antigo | mesclada (#104), migração 0028 aplicada no teste |
 | 6 | Retorno da validação com mockup: sete ajustes de interface | aguardando a DESIGN |
 | 7 | Militares só no Pecúlio | mesclada (#107) |
-| 8 | Nível de acesso, "até" e Enter no Pecúlio | em PR (#108) |
+| 8 | Nível de acesso, "até" e Enter no Pecúlio | mesclada (#108) |
 | 9 | Quadro e situação no rastreio; CPF, nascimento e endereço | planejada (0029) |
 
 **Fora:** e-mail, usuários acima do GB (fase 11), Visualização (fase 7).

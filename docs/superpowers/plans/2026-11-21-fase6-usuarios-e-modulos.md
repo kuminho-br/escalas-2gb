@@ -8,7 +8,7 @@
 1. **Contas e papéis:** a senha provisória, a troca obrigatória no primeiro login, desativar o acesso, os papéis na ficha e o nome "Auxiliar administrativo". **Mesclada (#86), migração 0025 aplicada no teste.**
 2. **Unidade de trabalho:** o seletor de unidade substitui a 1ª SB fixa; antes, a folga do auxiliar na senha provisória (decisão de 21/11/2026). **Mesclada (#88).**
 3. **Tela inicial e módulos:** os cartões por papel, o trilho por módulo e a Minha ficha com o próprio telefone; antes, a conta desativada só volta por quem dá o papel (decisão de 21/11/2026). **Mesclada (#90).**
-4. **Transição do login** (as mangueiras), **condicional**: só começa se o usuário tiver aprovado o mockup (ajustes R1 a R6). As tarefas são escritas quando ela for começar.
+4. **Transição do login** (as mangueiras): o mockup foi aprovado pelo usuário em 22/11/2026. **Detalhada abaixo** (Tasks 26 e 27); sem migração.
 5. **Retorno da validação, parte sem mockup** (lote de 21/11/2026): recolher equipe na Grade geral, rastreio por dia e "Vale desde" do modelo de guarnição aceitando mês passado. **Detalhada abaixo. Começa depois da P1.3 e da P1.4** (entrega paralela, decisão do usuário de 22/11/2026).
 6. **Retorno da validação, parte com mockup** (mesmo lote): sete ajustes de interface que esperam o mockup da DESIGN. Lista no fim; as tarefas são escritas quando o mockup for aprovado.
 7. **Militares só no Pecúlio** (decisão do usuário, 22/11/2026): o "Novo militar" passa ao Pecúlio, e a importação de MILITARES vira a importação "Dados da escala", que atualiza e não cria. **Detalhada abaixo.**
@@ -529,9 +529,123 @@ Decisão do usuário (21/11/2026, `docs/decisoes.md`): a folga do auxiliar (Task
 
 ---
 
-# Entrega 4 — Transição do login (condicional)
+# Entrega 4 — Transição do login
 
-Só começa se o usuário tiver aprovado o mockup `docs/telas/transicao-login/mockup.html` depois dos ajustes R1 a R6, sem som. As tarefas são escritas quando ela for começar, a partir do design `docs/superpowers/specs/2026-11-20-transicao-login-design.md` ("Como é feita" e "Testes"). Sem a aprovação, a entrega passa para a fase seguinte, e a faixa continua com a cena parada da entrega 3.
+**Goal:** no clique em **Entrar**, a animação das mangueiras toca por cima do login e termina na faixa de boas-vindas da tela inicial, como no mockup aprovado pelo usuário em 22/11/2026 (`docs/telas/transicao-login/mockup.html`).
+
+**Branch:** `fase6-4-transicao-login`, a partir da `main`. **Sem migração e sem mudança na API.**
+
+**Spec:** `docs/superpowers/specs/2026-11-20-transicao-login-design.md`. O mockup é a referência do desenho: o código da cena é **portado dele**, sem redesenhar.
+
+**Architecture:**
+- **Uma camada por cima das duas telas.** O `canvas` da animação é montado no `__root.tsx`, fora das rotas, para continuar na tela enquanto o site troca `/entrar` por `/`. A tela de login só manda nela por um pequeno armazém (`iniciar`, `aprovar`, `recusar`).
+- **Três peças, uma responsabilidade cada:**
+  - `regra.ts`: quando toca inteira (12 h, menos movimento);
+  - `linha-do-tempo.ts`: em que quadro a cena está, dado o tempo desde o clique. Pura, sem tela;
+  - `cena.ts`: o desenho de um quadro no `canvas`, portado do script do mockup.
+- **O pouso:** a faixa da tela inicial tem a marca `data-faixa-boas-vindas`. No afastamento da câmera, a camada mede essa faixa e encolhe até ela. Sem a faixa na tela (a pessoa volta para outra página, ou vai criar a senha), a camada some em 0,3 s.
+
+**Global Constraints** (valores da spec):
+- Batida aos **0,50 s** do clique, sempre. A água nunca começa antes de **0,90 s**. Com a aprovação depois disso, as boas-vindas aparecem **1,7 s** depois dela.
+- Erro (senha errada, conta recusada ou servidor fora) nunca antes de **0,85 s**; o recuo das mangueiras dura **0,5 s**; só depois o cartão volta, com a mensagem de hoje e os campos preenchidos.
+- "Entrando…" aparece **1,6 s** depois do clique, se o servidor ainda não respondeu.
+- Brasas sobre a faixa por **4 s** depois do pouso; depois a tela fica parada.
+- Inteira só se passaram mais de **12 h** desde a última vez em que tocou inteira **neste navegador**. O intervalo fica numa constante só.
+- **Entrada curta** (sem cena e sem efeitos; o botão mostra "Entrando…" e o login se desfaz em 0,3 s) quando:
+  - a inteira tocou há menos de 12 h;
+  - o aparelho pede menos movimento (`prefers-reduced-motion`);
+  - a imagem não carregou, ou o navegador não tem `canvas`;
+  - o destino não é a tela inicial (`voltar` preenchido).
+- Sem som. Sem biblioteca de animação. Nenhuma dependência nova no site.
+- Medidas da imagem (1536 × 1024): junta em (310, 741); faixa no computador, linhas 300 a 876 (8:3); no celular, 16:9 pela direita.
+
+**Decisões desta entrega** (minhas):
+- **A marca das 12 h** fica no `localStorage`, na chave `escalas2gb.login-animacao`, com o instante em milissegundos. É gravada quando a animação inteira chega às boas-vindas; a que termina em erro não conta.
+- **Navegador que bloqueia o `localStorage`:** a animação toca inteira toda vez, sem erro.
+- **Resolução do `canvas`:** a densidade de pixels é limitada a 2, para o celular fraco.
+- **A imagem** passa a JPG de até 500 KB em `apps/web/public/boas-vindas.jpg`, no lugar da antiga, e é carregada quando a tela de login abre.
+- **Foco:** no erro, vai para o campo da senha; no sucesso, para a saudação. O `canvas` fica fora da leitura de tela, e "Entrando…" é um aviso lido (`role="status"`).
+
+## Review Focus
+
+1. **Servidor fora do ar no meio da animação:** as mangueiras recuam e o cartão volta com "Não foi possível falar com o servidor. Tente de novo.", com o e-mail e a senha preenchidos. Task 27.
+2. **Senha provisória vencida (403):** mesmo recuo, com a mensagem que o servidor mandou. Task 27.
+3. **Resposta que chega antes da batida:** nada é cortado; a água começa aos 0,90 s e o erro aos 0,85 s. Task 26.
+4. **Sessão que terminou e a pessoa volta para outra página:** entrada curta, e ela cai na página em que estava. Task 27.
+5. **Navegador sem `localStorage` ou sem `canvas`:** entra normalmente. Tasks 26 e 27.
+
+### Task 26: a regra e a linha do tempo
+
+**Files:**
+- Create: `apps/web/src/lib/transicao-login/regra.ts`, `apps/web/src/lib/transicao-login/linha-do-tempo.ts`
+- Test: `apps/web/src/__testes__/transicao-login.test.ts`
+
+**Interfaces:**
+- Produces, em `regra.ts`:
+  - `INTERVALO_DA_ANIMACAO_MS = 12 * 60 * 60 * 1000`;
+  - `type Entrada = 'inteira' | 'curta'`;
+  - `entradaDaVez(o: { agora: number; ultimaInteira: number | null; menosMovimento: boolean; cenaPronta: boolean; destinoEhOInicio: boolean }): Entrada`;
+  - `lerUltimaInteira(): number | null` e `marcarInteira(agora: number): void`, que nunca lançam erro.
+- Produces, em `linha-do-tempo.ts` (tempos em segundos desde o clique):
+  - `type Resposta = { tipo: 'aprovada' | 'recusada'; em: number } | null`;
+  - `type Quadro = 'clique' | 'chegada' | 'batida' | 'espera' | 'agua' | 'afastamento' | 'boas-vindas' | 'recuo' | 'fim-do-erro'`;
+  - `inicioDaAgua(resposta: Resposta): number | null` → `max(0,90; em)`;
+  - `inicioDoRecuo(resposta: Resposta): number | null` → `max(0,85; em)`;
+  - `quadroEm(t: number, resposta: Resposta): Quadro`;
+  - `mostraEntrando(t: number, resposta: Resposta): boolean`.
+
+- [ ] **Step 1: testes** de `entradaDaVez`:
+  - nunca tocou → `inteira`; tocou há 11 h 59 min → `curta`; há 12 h e 1 min → `inteira`;
+  - menos movimento, cena não pronta ou destino diferente do início → `curta`, mesmo sem nunca ter tocado;
+  - `lerUltimaInteira` com o `localStorage` lançando erro devolve `null`, e `marcarInteira` não lança. Review Focus 5.
+- [ ] **Step 2: testes** da linha do tempo:
+  - aprovada aos 0,2 s → a água começa aos 0,90 s; aprovada aos 3 s → aos 3 s, e `boas-vindas` aos 4,7 s;
+  - recusada aos 0,1 s → o recuo começa aos 0,85 s, e `fim-do-erro` aos 1,35 s. Review Focus 3;
+  - sem resposta: `batida` aos 0,5 s, `espera` aos 0,8 s e aos 30 s;
+  - `mostraEntrando`: falso em 1,5 s, verdadeiro em 1,7 s sem resposta, falso depois da aprovação.
+- [ ] **Step 3:** rodar `pnpm --filter web test transicao-login`. Esperado: FAIL.
+- [ ] **Step 4:** implementar os dois arquivos.
+- [ ] **Step 5:** rodar. Esperado: PASS.
+- [ ] **Step 6:** `git commit -m "Fase 6.4: a regra das 12 h e a linha do tempo da transição do login"`
+
+### Task 27: a cena, a camada e o login
+
+**Files:**
+- Create: `apps/web/src/lib/transicao-login/cena.ts` (o desenho, portado do `<script>` do mockup), `apps/web/src/lib/transicao-login/armazem.ts`, `apps/web/src/componentes/TransicaoDoLogin.tsx`
+- Modify: `apps/web/src/routes/__root.tsx` (monta a camada), `apps/web/src/routes/entrar.tsx`, `apps/web/src/routes/_app/index.tsx` (a marca na faixa e o foco na saudação)
+- Replace: `apps/web/public/boas-vindas.jpg` (a partir de `docs/telas/transicao-login/img/combate-storz.png`)
+- Test: `apps/web/src/__testes__/entrar.test.tsx`, `apps/web/src/__testes__/inicio.test.tsx`
+
+**Interfaces:**
+- Consumes: tudo da Task 26.
+- Produces, em `cena.ts`: `desenhar(ctx: CanvasRenderingContext2D, o: { t: number; resposta: Resposta; largura: number; altura: number; faixa: DOMRect | null; imagem: HTMLImageElement }): void`. Cada quadro depende só de `t` e do tamanho atual: redimensionar a janela não faz as peças saltarem.
+- Produces, em `armazem.ts`:
+  - `preparar(): void` (carrega a imagem; chamado quando o login abre);
+  - `cenaPronta(): boolean`;
+  - `iniciar(): void`, `aprovar(): void`, `recusar(): Promise<void>` (resolve quando o recuo acaba).
+
+- [ ] **Step 1: testes** em `entrar.test.tsx`. O jsdom não tem `canvas`, então os testes de hoje passam a cobrir a entrada curta; os da animação usam uma cena pronta de mentira e relógio falso.
+  - Os três de hoje continuam: senha certa navega; senha errada mostra a mensagem; servidor fora mostra a mensagem.
+  - `it('na entrada curta, o botão mostra "Entrando…"')`.
+  - `it('com a animação, o cartão some no clique e a mensagem de erro só aparece depois do recuo')`, com o e-mail e a senha ainda preenchidos e o foco na senha. Review Focus 1.
+  - `it('o 403 do servidor mostra a mensagem dele depois do recuo')`. Review Focus 2.
+  - `it('com "voltar", a entrada é curta e a pessoa cai na página em que estava')`. Review Focus 4.
+  - `it('só marca as 12 h quando a animação inteira chega às boas-vindas')`.
+  - `it('com menos movimento, não inicia a animação')`.
+- [ ] **Step 2: teste** em `inicio.test.tsx`: `it('a faixa tem a marca do pouso e usa /boas-vindas.jpg')`.
+- [ ] **Step 3:** rodar `pnpm --filter web test entrar inicio`. Esperado: FAIL.
+- [ ] **Step 4: implementar.**
+  - **Cena:** portar do mockup as medidas (os contornos do anel, da luva e das garras, as bordas da mangueira e o ponto de foco) e os efeitos, sem os controles de teste e sem a legenda do quadro. A linha do tempo vem da Task 26, e não dos números soltos do script.
+  - **Camada:** `canvas` fixo, cobrindo a tela, fora da leitura de tela e sem receber cliques depois do pouso; um quadro por `requestAnimationFrame`; some quando a cena acaba. A tela inicial não recebe foco enquanto a camada cobre tudo.
+  - **Login:** o `enviar` escolhe a entrada com `entradaDaVez`. Na inteira, chama `iniciar` no clique, `aprovar` antes de navegar e `await recusar()` antes de mostrar o erro.
+  - **Imagem:** converter para JPG com o que já houver na máquina, sem pôr dependência no projeto.
+- [ ] **Step 5:** rodar `pnpm --filter web test`. Esperado: PASS.
+- [ ] **Step 6:** conferir no navegador, no computador e no celular, ao lado do mockup: a chegada, a batida, a espera com o servidor lento (limitar a rede nas ferramentas do navegador), a senha errada e o pouso na faixa, sem emenda entre a cena e a foto.
+- [ ] **Step 7:** `git commit -m "Fase 6.4: a transição do login para as boas-vindas"`
+- [ ] **Step 8: fechar a entrega.**
+  - `pnpm test && pnpm typecheck && pnpm build:vercel` e as contagens.
+  - Atualizar `docs/superpowers/specs/2026-11-16-telas.md` (a entrada no sistema).
+  - Enviar à PLANEJAMENTO o resumo, com o que foi visto no navegador, a taxa de quadros medida num celular (ou no modo de celular lento do navegador) e o tamanho final da imagem.
 
 ---
 
