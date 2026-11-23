@@ -253,6 +253,32 @@ describe('mover para… (6.25)', () => {
   });
 });
 
+describe('erros que a API aponta num campo sem campo na janela (revisão final)', () => {
+  it('mover para onde já existe a sigla mostra o aviso na janela, que continua aberta', async () => {
+    const aviso = 'Já existe DA abaixo de DivOp.';
+    comEstrutura({ 'GET /api/unidades/u-da/efeito-de-mover': { status: 200, corpo: EFEITO }, 'PATCH /api/unidades/u-da': { status: 409, corpo: { erro: aviso, campos: { sigla: aviso } } } });
+    abrir('/configuracoes?aba=estrutura');
+    await abrirMenu('DA');
+    await userEvent.click(screen.getByRole('menuitem', { name: 'Mover para…' }));
+    const janela = await screen.findByRole('dialog');
+    await userEvent.click(within(janela).getByRole('radio', { name: /DivOp/ }));
+    await within(janela).findByLabelText('O que muda');
+    await userEvent.click(within(janela).getByRole('button', { name: 'Mover' }));
+    expect(await within(janela).findByRole('alert')).toHaveTextContent(aviso);
+  });
+
+  it('extinguir com o último dia antes do início mostra o aviso na janela', async () => {
+    const aviso = 'A unidade não pode terminar antes de começar.';
+    comEstrutura({ 'POST /api/unidades/u-divop/extinguir': { status: 400, corpo: { erro: aviso, campos: { ate: aviso } } } });
+    abrir('/configuracoes?aba=estrutura');
+    await abrirMenu('DivOp');
+    await userEvent.click(screen.getByRole('menuitem', { name: 'Extinguir' }));
+    const janela = await screen.findByRole('dialog');
+    await userEvent.click(within(janela).getByRole('button', { name: 'Extinguir' }));
+    expect(await within(janela).findByRole('alert')).toHaveTextContent(aviso);
+  });
+});
+
 describe('quem vê a aba Estrutura (6.25)', () => {
   it('o auxiliar, o gestor e o administrador veem a aba', async () => {
     for (const [eu, aparece] of [[EU_EXEMPLO, true], [GESTOR_GB, true], [ADMIN, true]] as const) {

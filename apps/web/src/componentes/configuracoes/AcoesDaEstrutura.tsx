@@ -28,11 +28,11 @@ function useErros() {
   return {
     campos, erro,
     limpar: () => { setCampos({}); setErro(null); },
-    registrar: (e: unknown) => {
+    /** `soNoCampo`: a janela tem o campo que a API aponta, e a mensagem aparece embaixo dele; nas outras, a mensagem aparece sempre na janela. */
+    registrar: (e: unknown, soNoCampo = false) => {
       const doCampo = camposDe(e);
       setCampos(doCampo);
-      // a mensagem do campo já aparece embaixo dele; a geral só quando a API não apontou um campo
-      setErro(Object.keys(doCampo).length ? null : mensagemDe(e));
+      setErro(soNoCampo && Object.keys(doCampo).length ? null : mensagemDe(e));
     },
   };
 }
@@ -71,7 +71,8 @@ export function NovaUnidadeAbaixo({ no, tipos, aoFechar }: Comum & { tipos: Tipo
       atualizar();
       aoFechar();
     } catch (e) {
-      registrar(e);
+      // a unidade de cima (`maeId`) não tem campo na janela: sem outro campo apontado, a mensagem fica na janela
+      registrar(e, !('maeId' in camposDe(e)));
     }
   });
   return (
@@ -107,7 +108,7 @@ export function RenomearUnidade({ no, tipos, aoFechar }: Comum & { tipos: TipoDe
       atualizar();
       aoFechar();
     } catch (e) {
-      registrar(e);
+      registrar(e, !('maeId' in camposDe(e)));
     }
   });
   return (

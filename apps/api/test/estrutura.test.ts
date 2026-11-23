@@ -175,6 +175,18 @@ describe('renomear e mover', () => {
     expect((await lateral.pedir('PATCH', `/api/unidades/${mover}`, { nome: 'Movida' })).status).toBe(200);
   });
 
+  it('revisão final: renomear ao mesmo tempo que outra pessoa move não desfaz o "mover"', async () => {
+    const id = await nova('CORRIDA', da);
+    const dono = await entrarComo(api, { matricula: '990763-3', nome: 'DONOCORRIDA', nivel: { papel: 'gestor', unidadeId: id } });
+    const [renomeou, moveu] = await Promise.all([
+      dono.pedir('PATCH', `/api/unidades/${id}`, { nome: 'Renomeada na corrida' }),
+      api.pedir('gestorGb', 'PATCH', `/api/unidades/${id}`, { maeId: divOp }),
+    ]);
+    expect([renomeou.status, moveu.status]).toEqual([200, 200]);
+    expect(await maeDe(id)).toBe(divOp);
+    expect((await api.banco.query<{ nome: string }>('select nome from unidade where id = $1', [id])).rows[0]!.nome).toBe('Renomeada na corrida');
+  });
+
   it('Review Focus 1: mover para dentro de uma filha, direto, em dois passos ou com uma extinta no meio, é recusado e nada muda', async () => {
     const a = await nova('CIC-A', da);
     const b = await nova('CIC-B', a);

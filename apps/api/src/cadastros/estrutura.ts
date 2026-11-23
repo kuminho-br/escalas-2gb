@@ -288,17 +288,20 @@ export function rotasEstrutura(dep: { banco: Banco; auth: Auth }): Hono<Ambiente
       maeId = destino.id;
     }
     if (d.tipo !== undefined && !(await tipoExiste(banco, d.tipo))) return c.json({ erro: MSG_TIPO, campos: { tipo: MSG_TIPO } }, 400);
-    const sigla = d.sigla ?? un.sigla;
     const aviso = await comUsuario(banco, c.get('usuarioId'), async (tx) => {
-      if (maeId) {
-        await tx.query('select 1 from unidade where id = $1 for update', [maeId]);
-        const repetida = (muda || d.sigla !== undefined) && (await avisoDeSiglaRepetida(tx, maeId, sigla, un.id, hoje));
+      // a unidade é lida de novo, já travada: renomear não desfaz um "mover" que outra pessoa fez entre a leitura de cima e esta gravação
+      const atual = (await tx.query<{ mae_id: string | null; sigla: string }>('select mae_id, sigla from unidade where id = $1 for update', [un.id])).rows[0]!;
+      const maeEfetiva = muda ? maeId : atual.mae_id;
+      if (maeEfetiva) {
+        await tx.query('select 1 from unidade where id = $1 for update', [maeEfetiva]);
+        const repetida = (muda || d.sigla !== undefined) && (await avisoDeSiglaRepetida(tx, maeEfetiva, d.sigla ?? atual.sigla, un.id, hoje));
         if (repetida) return repetida;
       }
+      // só o que o pedido manda é gravado: o lugar (`mae_id`) só muda quando o pedido é de mover
       await tx.query(
-        `update unidade set sigla = $2, nome = coalesce($3, nome), tipo = coalesce($4, tipo), mae_id = $5
-          where id = $1 and (sigla, nome, tipo, mae_id) is distinct from ($2, coalesce($3, nome), coalesce($4, tipo), $5::uuid)`,
-        [un.id, sigla, d.nome ?? null, d.tipo ?? null, maeId],
+        `update unidade set sigla = coalesce($2, sigla), nome = coalesce($3, nome), tipo = coalesce($4, tipo), mae_id = case when $6::boolean then $5::uuid else mae_id end
+          where id = $1 and (sigla, nome, tipo, mae_id) is distinct from (coalesce($2, sigla), coalesce($3, nome), coalesce($4, tipo), case when $6::boolean then $5::uuid else mae_id end)`,
+        [un.id, d.sigla ?? null, d.nome ?? null, d.tipo ?? null, maeId, muda],
       );
       return null;
     });
