@@ -171,12 +171,34 @@ describe('contas e níveis de acesso: o que a ficha avisa (6.16, Task 2)', () =>
     expect(doGestor.podeDesativar).toBe(true);
   });
 
+  // uma unidade nova direto abaixo da raiz: sem nenhum gestor acima dela, para o "último gestor" não vir de outro teste
+  const unidadeSozinha = (sigla: string) => inserir(api.banco, 'unidade', { tipo: 'grupamento', sigla, nome: `Grupamento ${sigla}`, mae_id: api.ids.raiz, desde: '2020-01-01' });
+  const ultimoGestorDe = async (id: string) => (await acessoDe(id)).papeis.find((p) => p.papel === 'gestor')!.ultimoGestorAte ?? null;
+
   it('item 12: o último gestor vigente de uma unidade, com "até" marcado, vem marcado na ficha; com outro gestor sem fim, não', async () => {
-    const gestor = await comConta({ papel: 'gestor', unidadeId: api.ids.secao, ate: mais(20) });
-    const r = (await acessoDe(gestor.m.id)).papeis.find((p) => p.papel === 'gestor')!;
-    expect(r.ultimoGestorAte).toBe(mais(20));
-    const outro = await comConta({ papel: 'gestor', unidadeId: api.ids.secao });
-    expect((await acessoDe(gestor.m.id)).papeis.find((p) => p.papel === 'gestor')!.ultimoGestorAte ?? null).toBeNull();
+    const u = await unidadeSozinha('G-ULT1');
+    const gestor = await comConta({ papel: 'gestor', unidadeId: u, ate: mais(20) });
+    expect(await ultimoGestorDe(gestor.m.id)).toBe(mais(20));
+    const outro = await comConta({ papel: 'gestor', unidadeId: u });
+    expect(await ultimoGestorDe(gestor.m.id)).toBeNull();
     expect(outro.papelId).toBeTruthy();
+  });
+
+  it('item 18 (6.18): o aviso não aparece quando há gestor vigente numa unidade acima, que dura mais', async () => {
+    const acima = await unidadeSozinha('G-ULT2');
+    const abaixo = await inserir(api.banco, 'unidade', { tipo: 'secao', sigla: 'S-ULT2', nome: 'Seção ULT2', mae_id: acima, desde: '2020-01-01' });
+    const gestor = await comConta({ papel: 'gestor', unidadeId: abaixo, ate: mais(20) });
+    expect(await ultimoGestorDe(gestor.m.id)).toBe(mais(20));
+    await comConta({ papel: 'gestor', unidadeId: acima });
+    expect(await ultimoGestorDe(gestor.m.id)).toBeNull();
+  });
+
+  it('item 18 (6.18): conta o gestor que começa no futuro, antes de o nível atual terminar', async () => {
+    const u = await unidadeSozinha('G-ULT3');
+    const gestor = await comConta({ papel: 'gestor', unidadeId: u, ate: mais(20) });
+    expect(await ultimoGestorDe(gestor.m.id)).toBe(mais(20));
+    const sucessor = await comConta();
+    await inserir(api.banco, 'papel_usuario', { usuario_id: sucessor.usuarioId, unidade_id: u, papel: 'gestor', desde: mais(10), ate: null });
+    expect(await ultimoGestorDe(gestor.m.id)).toBeNull();
   });
 });

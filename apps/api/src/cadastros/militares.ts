@@ -37,6 +37,13 @@ const MSG_SITUACAO_NAO_ACHADA = 'Situação não encontrada.';
 const MSG_PERIODO_ANTES = (desde: string) => `Use uma data a partir de ${desde.slice(8, 10)}/${desde.slice(5, 7)}/${desde.slice(0, 4)}.`;
 const MSG_EQUIPE_DE_OUTRA = 'Escolha uma equipe da unidade da lotação.';
 const MSG_EMAIL_REPETIDO = 'Este e-mail já é de outro militar.';
+const MSG_29_FEV = 'Informe o ano: 29/02 só existe em ano bissexto.';
+/** Uma recusa de campo dentro da transação da ficha: vira 400 no campo, e a transação desfaz tudo. */
+class RecusaDeCampo extends Error {
+  constructor(mensagem: string, readonly campo: string) {
+    super(mensagem);
+  }
+}
 const MSG_EMAIL_COM_ACESSO = 'Desative o acesso antes de apagar o e-mail.';
 const MSG_SITUACAO_MUDOU = 'A situação do militar mudou enquanto você alterava. Recarregue a ficha e tente de novo.';
 const MSG_MATRICULA = { '23505': 'Já existe um militar com essa matrícula.', '23503': 'Posto, unidade ou equipe não encontrado.' };
@@ -84,6 +91,8 @@ type LinhaBanco = {
   situacao_nome: string | null;
   equipe: string | null;
   jornada: 'pronto' | 'adm' | null;
+  /** o dia em que começa o período mostrado */
+  periodo_desde: string | null;
 };
 
 async function afastamentosNoMes(c: Consulta, ids: string[], mes: string) {
@@ -95,6 +104,11 @@ async function afastamentosNoMes(c: Consulta, ids: string[], mes: string) {
     [ids, primeiro, ultimo],
   );
   return rows;
+}
+
+/** A data em que a lotação mostrada começa, só quando ela ainda não chegou ('Lotação a partir de…'); a chave fica ausente quando a lotação já valia. */
+function aPartirDe(m: { periodo_desde: string | null }, mes: string): { lotacaoAPartirDe?: string } {
+  return m.periodo_desde && m.periodo_desde > diaDeReferencia(mes) ? { lotacaoAPartirDe: m.periodo_desde } : {};
 }
 
 function linhaDe(m: LinhaBanco, afast: { tipo: string; inicio: string; fim: string }[], mes: string, repetidaCom: string[] = []): LinhaMilitar {
@@ -112,6 +126,7 @@ function linhaDe(m: LinhaBanco, afast: { tipo: string; inicio: string; fim: stri
     ativo: m.ativo,
     situacao: situacaoNoMes(afast, mes),
     pendencias: pendenciasDoMilitar({ motorista: m.motorista, cnh: m.cnh, jornada: m.jornada, equipe: m.equipe, antiguidade: m.antiguidade, nomeCompleto: m.nome_completo, quadro: m.quadro_id, repetidaCom }),
+    ...aPartirDe(m, mes),
   };
 }
 
@@ -136,7 +151,7 @@ const SELECT_MILITAR = `
          m.cpf, m.cep, m.logradouro, m.numero, m.complemento, m.bairro, m.cidade, m.uf,
          m.telefone, m.email, m.comportamento, m.comportamento_boletim, m.antiguidade, m.motorista, m.cnh,
          m.voluntario_jes, m.funcao_militar_id, (select f.nome from funcao_militar f where f.id = m.funcao_militar_id) as funcao_nome, m.abono_permanencia,
-         coalesce(sm.escalavel, false) as ativo, l.situacao_id, sm.nome as situacao_nome, e.nome as equipe, l.jornada`;
+         coalesce(sm.escalavel, false) as ativo, l.situacao_id, sm.nome as situacao_nome, e.nome as equipe, l.jornada, to_char(l.desde, 'YYYY-MM-DD') as periodo_desde`;
 
 /** Ficha completa; a lotação "atual" é a que cobre o mês. null se o militar não existe. */
 async function carregarFicha(c: Consulta, id: string, mes: string, usuarioId: string): Promise<FichaMilitar | null> {
@@ -464,6 +479,7 @@ export function rotasMilitares(dep: { banco: Banco; auth: Auth }): Hono<Ambiente
         lotacao: m.lotacao,
         telefone: m.telefone,
         email: m.email,
+        ...aPartirDe(m, mes),
         pendencias: pendenciasDoMilitar({
           motorista: m.motorista, cnh: m.cnh, jornada: m.jornada, equipe: m.equipe, antiguidade: m.antiguidade, nomeCompleto: m.nome_completo, quadro: m.quadro_id, repetidaCom: repetidas.get(m.id),
         }),
@@ -588,6 +604,11 @@ export function rotasMilitares(dep: { banco: Banco; auth: Auth }): Hono<Ambiente
         const novo = <T,>(valor: T | undefined, gravado: T): T => (valor === undefined ? gravado : valor);
         const nascimentoDia = d.nascimento === undefined ? atual.nascimento_dia : (d.nascimento?.dia ?? null);
         const nascimentoMes = d.nascimento === undefined ? atual.nascimento_mes : (d.nascimento?.mes ?? null);
+        // 29/02 sem ano (e sem um ano bissexto já gravado) não tem como ser conferido: o pedido é recusado e o que está gravado, inclusive o ano, fica como está
+        if (d.nascimento && d.nascimento.dia === 29 && d.nascimento.mes === 2 && d.nascimento.ano == null) {
+          const gravado = d.nascimento.ano === undefined ? atual.nascimento_ano : null;
+          if (gravado === null || !((gravado % 4 === 0 && gravado % 100 !== 0) || gravado % 400 === 0)) throw new RecusaDeCampo(MSG_29_FEV, 'nascimento');
+        }
         // sem o ano no pedido, o ano gravado continua (se a data ainda existe nele: 29/02 só em ano bissexto); `ano: null` limpa
         const anoMantido = atual.nascimento_ano !== null && !(d.nascimento?.dia === 29 && d.nascimento.mes === 2 && !((atual.nascimento_ano % 4 === 0 && atual.nascimento_ano % 100 !== 0) || atual.nascimento_ano % 400 === 0)) ? atual.nascimento_ano : null;
         const nascimentoAno = d.nascimento === undefined ? atual.nascimento_ano : d.nascimento === null ? null : d.nascimento.ano === undefined ? anoMantido : d.nascimento.ano;
@@ -643,6 +664,7 @@ export function rotasMilitares(dep: { banco: Banco; auth: Auth }): Hono<Ambiente
       });
       return c.json(ficha);
     } catch (e) {
+      if (e instanceof RecusaDeCampo) return c.json({ erro: e.message, campos: { [e.campo]: e.message } }, 400);
       // o e-mail é único sem distinção de maiúsculas (índice militar_email_unico): o 409 vai no campo
       const doBanco = e as { code?: string; message?: string; constraint?: string } | null;
       // quem tem acesso ativo entra pelo e-mail da ficha (gatilho militar_email_para_usuario): apagá-lo pede desativar o acesso antes

@@ -1,7 +1,7 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import type { ItemDoPeculio } from 'contratos';
-import { IdCard, Mail, Phone, TriangleAlert, UserPlus } from 'lucide-react';
+import { CalendarClock, IdCard, Mail, Phone, TriangleAlert, UserPlus } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { mensagemDe } from '@/api/cliente';
 import { atualizarPeculio, consultaPeculio, podeCadastrarMilitar, unidadeDoPeculio } from '@/api/peculio';
@@ -12,7 +12,7 @@ import { Selecao } from '@/componentes/Selecao';
 import { Button } from '@/componentes/ui/button';
 import { Input } from '@/componentes/ui/input';
 import { Label } from '@/componentes/ui/label';
-import { mesAtual } from '@/lib/meses';
+import { dataBr, mesAtual } from '@/lib/meses';
 import { correspondeABusca, normalizarBusca } from '@/lib/texto';
 import { cn } from '@/lib/utils';
 import { classeItemEscolhido } from '@/componentes/ListaDetalhe';
@@ -152,6 +152,7 @@ function ItemDoPeculioNaLista({ m, destaque }: { m: ItemDoPeculio; destaque: boo
           <EtiquetaDeDado icone={IdCard}>{m.matricula}</EtiquetaDeDado>
           {m.telefone ? <EtiquetaDeDado icone={Phone}>{m.telefone}</EtiquetaDeDado> : <EtiquetaDeDado icone={Phone} falta>Sem telefone</EtiquetaDeDado>}
           {m.email ? <EtiquetaDeDado icone={Mail}>{m.email}</EtiquetaDeDado> : <EtiquetaDeDado icone={Mail} falta>Sem e-mail</EtiquetaDeDado>}
+          {m.lotacaoAPartirDe && <EtiquetaDeDado icone={CalendarClock}>{`Lotação a partir de ${dataBr(m.lotacaoAPartirDe)}`}</EtiquetaDeDado>}
         </span>
       </Link>
     </li>

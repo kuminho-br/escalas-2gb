@@ -18,7 +18,7 @@ export const Sexo = z.enum(['M', 'F']);
 const DIAS_DE_CADA_MES = [31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
 const ehBissexto = (ano: number) => (ano % 4 === 0 && ano % 100 !== 0) || ano % 400 === 0;
 /**
- * Nascimento: dia e mês, e o ano (opcional). Sem o ano, 29 de fevereiro vale (não há como saber se ele é bissexto); com o ano, a data precisa existir.
+ * Nascimento: dia e mês, e o ano (opcional). Sem o ano, 29 de fevereiro vale no contrato (a planilha pode trazer só dia e mês), mas a ficha (PATCH) pede o ano: 29/02 só existe em ano bissexto; com o ano, a data precisa existir.
  */
 export const Nascimento = z
   .object({
@@ -186,6 +186,8 @@ export type LinhaMilitar = {
   ativo: boolean;
   situacao: string;
   pendencias: string[];
+  /** O dia em que a lotação que a lista mostra começa, quando ele ainda não chegou ('Lotação a partir de dd/mm/aaaa'); null (ou ausente) se já valia. */
+  lotacaoAPartirDe?: string | null;
 };
 
 /** Uma linha do módulo Pecúlio: o militar lotado na unidade (ou numa de baixo) com os dados de contato e as pendências do cadastro. */
@@ -200,6 +202,8 @@ export type ItemDoPeculio = {
   telefone: string | null;
   email: string | null;
   pendencias: string[];
+  /** O dia em que esta lotação começa, quando ainda não chegou; null (ou ausente) se já valia. */
+  lotacaoAPartirDe?: string | null;
 };
 export type AniversarianteDoMes = { militarId: string; posto: string; nomeGuerra: string; dia: number; lotacao: string };
 /**

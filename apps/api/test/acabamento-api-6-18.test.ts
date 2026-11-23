@@ -1,5 +1,6 @@
-import { hashPassword } from 'better-auth/crypto';
+import type { ItemDoPeculio, LinhaMilitar, ListaDoPeculio } from 'contratos';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { hojeRecife, somarDias } from '../src/datas.ts';
 import { inserir } from './banco-teste.ts';
 import { criarMilitar, montarApi, URL_BASE, type ApiDeTeste } from './apoio-api.ts';
 
@@ -62,5 +63,34 @@ describe('item 4: e-mail com tab ou quebra de linha é 400 no campo, e não 500'
     expect((await api.banco.query<{ email: string }>('select email from militar where id = $1', [m.id])).rows[0]!.email).toBe(m.email);
   });
 });
-void hashPassword;
-void inserir;
+
+describe('item 16: as listas dizem "Lotação a partir de" para quem só começa a ser lotado depois do dia de referência', () => {
+  it('a lista de Militares e a do Pecúlio trazem a data do período que ainda não começou; o militar já lotado traz null', async () => {
+    const proximoMes = somarDias(`${hojeRecife().slice(0, 7)}-28`, 10).slice(0, 7);
+    const posto = (await api.banco.query<{ id: string }>("select id from posto_grad where sigla = 'SD'")).rows[0]!.id;
+    const futuro = await inserir(api.banco, 'militar', { matricula: '990890-0', posto_grad_id: posto, nome_guerra: 'FUTURO' });
+    await inserir(api.banco, 'rastreio', { militar_id: futuro, unidade_id: api.ids.secao, jornada: 'adm', desde: `${proximoMes}-15` });
+    const antigo = await criarMilitar(api, { matricula: '990891-1', email: null, unidadeId: api.ids.secao });
+    const lista: LinhaMilitar[] = await (await api.pedir('gestorGb', 'GET', `/api/unidades/${api.ids.secao}/militares?mes=${proximoMes}`)).json();
+    expect(lista.find((m) => m.id === futuro)!.lotacaoAPartirDe).toBe(`${proximoMes}-15`);
+    expect(lista.find((m) => m.id === antigo)!.lotacaoAPartirDe ?? null).toBeNull();
+    const peculio: ListaDoPeculio = await (await api.pedir('gestorGb', 'GET', `/api/unidades/${api.ids.secao}/peculio?mes=${proximoMes}`)).json();
+    const item = (id: string): ItemDoPeculio => peculio.militares.find((m) => m.militarId === id)!;
+    expect(item(futuro).lotacaoAPartirDe).toBe(`${proximoMes}-15`);
+    expect(item(antigo).lotacaoAPartirDe ?? null).toBeNull();
+  });
+});
+
+describe('item 17: nascimento em 29/02 pede o ano', () => {
+  it('29/02 sem ano no PATCH da ficha é 400 "Informe o ano…", e o ano gravado não se apaga; com ano bissexto vale', async () => {
+    const m = await novoMilitar();
+    expect((await api.pedir('gestorGb', 'PATCH', `/api/militares/${m.id}`, { nascimento: { dia: 10, mes: 3, ano: 1993 } })).status).toBe(200);
+    const r = await api.pedir('gestorGb', 'PATCH', `/api/militares/${m.id}`, { nascimento: { dia: 29, mes: 2 } });
+    expect(r.status).toBe(400);
+    expect(await r.json()).toMatchObject({ erro: 'Informe o ano: 29/02 só existe em ano bissexto.', campos: { nascimento: 'Informe o ano: 29/02 só existe em ano bissexto.' } });
+    const gravado = (await api.banco.query<{ nascimento_dia: number; nascimento_mes: number; nascimento_ano: number }>('select nascimento_dia, nascimento_mes, nascimento_ano from militar where id = $1', [m.id])).rows[0]!;
+    expect(gravado).toEqual({ nascimento_dia: 10, nascimento_mes: 3, nascimento_ano: 1993 });
+    expect((await api.pedir('gestorGb', 'PATCH', `/api/militares/${m.id}`, { nascimento: { dia: 29, mes: 2, ano: 1992 } })).status).toBe(200);
+    expect((await api.pedir('gestorGb', 'PATCH', `/api/militares/${m.id}`, { nascimento: { dia: 29, mes: 2, ano: 1993 } })).status).toBe(400);
+  });
+});

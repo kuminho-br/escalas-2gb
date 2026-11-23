@@ -572,7 +572,7 @@ describe('dono por bloco (Review Focus 1 e 2)', () => {
   it('grava e devolve os campos novos da ficha; null limpa', async () => {
     const m = await criar('990186-6');
     const r = await api.pedir('gestorGb', 'PATCH', `/api/militares/${m.id}`, {
-      nomeCompleto: 'Maria de Souza Lima', sexo: 'F', nascimento: { dia: 29, mes: 2 }, telefone: '(81) 99999-0000', email: 'Maria.Lima@bombeiros.pe.gov.br', comportamento: 'Ótimo', comportamentoBoletim: 'BG 05/2026',
+      nomeCompleto: 'Maria de Souza Lima', sexo: 'F', nascimento: { dia: 29, mes: 2, ano: 1992 }, telefone: '(81) 99999-0000', email: 'Maria.Lima@bombeiros.pe.gov.br', comportamento: 'Ótimo', comportamentoBoletim: 'BG 05/2026',
     });
     expect(r.status).toBe(200);
     expect(await r.json()).toMatchObject({
