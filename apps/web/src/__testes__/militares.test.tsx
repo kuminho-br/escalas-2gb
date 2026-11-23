@@ -1299,5 +1299,19 @@ describe('mover pela hierarquia e quem moveu (6.23)', () => {
     expect(lotacao).toHaveDisplayValue('2ª SB (2º GB)');
     expect(within(lotacao).getAllByRole('option').map((o) => o.textContent)).toEqual(['2ª SB (1º GB)', '2ª SB (2º GB)', '1ª SB']);
   });
-});
 
+  it('militar só com período futuro: a lotação sugerida é a desse período, e não a unidade da tela (achado da revisão final)', async () => {
+    const futuro = { ...periodo, id: 'r9', desde: somarDias(hoje(), 20), alteradoPor: null, alteradoEm: null };
+    api({
+      'GET /api/militares/m1': { status: 200, corpo: { ...FICHA, rastreio: [futuro] } },
+      'GET /api/situacoes-do-militar': { status: 200, corpo: SITUACOES },
+      'GET /api/secoes': { status: 200, corpo: SECOES },
+    });
+    abrir('/militares/m1');
+    await userEvent.click(await screen.findByRole('button', { name: /Histórico de rastreio/ }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Alterar situação' }));
+    const lotacao = within(await screen.findByRole('dialog')).getByLabelText('Lotação');
+    await within(lotacao).findByRole('option', { name: '2ª SB (2º GB)' });
+    expect(lotacao).toHaveDisplayValue('2ª SB (2º GB)');
+  });
+});

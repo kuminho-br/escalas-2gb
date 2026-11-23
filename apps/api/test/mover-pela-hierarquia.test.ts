@@ -198,11 +198,41 @@ describe('quem moveu fica registrado (6.23, Task 2)', () => {
     const f = await (await api.pedir('admin', 'GET', `/api/militares/${id}`)).json();
     const nomeDoAutor = (await api.banco.query<{ nome_guerra: string; sigla: string }>('select m.nome_guerra, p.sigla from usuario u join militar m on m.id = u.militar_id join posto_grad p on p.id = m.posto_grad_id where u.id = $1', [quem.usuarioId])).rows[0]!;
     expect(f.rastreio).toHaveLength(2);
-    for (const p of f.rastreio) {
-      expect(p.alteradoPor).toEqual({ patente: nomeDoAutor.sigla.replace(/ BM$/, ''), nomeGuerra: nomeDoAutor.nome_guerra });
-      expect(p.alteradoEm).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/);
-    }
-    expect(f.rastreio[0]).toMatchObject({ unidadeId: u.secaoSemDivisao });
+    // o período novo é de quem moveu; o antigo (criado sem autor) continua sem autor: fechá-lo não o torna de quem fechou (achado da revisão final)
+    expect(f.rastreio[0]).toMatchObject({ unidadeId: u.secaoSemDivisao, alteradoPor: { patente: nomeDoAutor.sigla.replace(/ BM$/, ''), nomeGuerra: nomeDoAutor.nome_guerra } });
+    expect(f.rastreio[0].alteradoEm).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/);
+    expect(f.rastreio[1]).toMatchObject({ unidadeId: u.sb2, alteradoPor: null, alteradoEm: null });
+  });
+});
+
+describe('achados da revisão final da 6.23', () => {
+  it('fechar um período não o passa para quem fechou: o período segue com quem o abriu', async () => {
+    const a = await ator('gestor', api.ids.raiz);
+    const b = await ator('gestor', api.ids.raiz);
+    const id = await militar(u.sb2, [{ desde: mais(-60), unidadeId: u.sb2 }]);
+    await mover(a, id, u.secaoSemDivisao, { desde: mais(-30) });
+    await mover(b, id, u.naDA, { desde: mais(-5) });
+    const f = await (await api.pedir('admin', 'GET', `/api/militares/${id}`)).json();
+    const porUnidade = (unidadeId: string) => f.rastreio.find((p: { unidadeId: string }) => p.unidadeId === unidadeId);
+    const nomeDe = async (pessoa: Pessoa) => (await api.banco.query<{ nome_guerra: string }>('select m.nome_guerra from militar m where m.id = $1', [pessoa.militarId])).rows[0]!.nome_guerra;
+    expect(porUnidade(u.secaoSemDivisao).alteradoPor.nomeGuerra).toBe(await nomeDe(a));
+    expect(porUnidade(u.naDA).alteradoPor.nomeGuerra).toBe(await nomeDe(b));
+  });
+
+  it('na ficha, a sigla que se repete entre grupamentos leva o grupamento ("2ª SB (2º GB)"); a que não se repete fica só com a sigla', async () => {
+    const id = await militar(u.sb2);
+    const f = await (await api.pedir('admin', 'GET', `/api/militares/${id}`)).json();
+    expect(f.rastreio[0].unidadeSigla).toBe('2ª SB (2º GB)');
+    const outro = await militar(u.naDA);
+    expect((await (await api.pedir('admin', 'GET', `/api/militares/${outro}`)).json()).rastreio[0].unidadeSigla).toBe('SB-DA-1');
+  });
+
+  it('"Alterar situação" para uma unidade que não é seção é 400', async () => {
+    const id = await militar(u.sb2);
+    const r = await mover({ pedir: (m, c, b) => api.pedir('admin', m, c, b) } as Pessoa, id, u.gb);
+    expect(r.status).toBe(400);
+    expect((await r.json()).campos.unidadeId).toBe('Escolha uma seção.');
+    expect(await lotacaoAtual(id)).toBe('2ª SB');
   });
 });
 
