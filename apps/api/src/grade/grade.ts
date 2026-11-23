@@ -59,8 +59,8 @@ export async function montarGradeDoMes(c: Consulta, unidadeId: string, mes: stri
     await c.query<{ id: string; militar_id: string; data: string; servico_id: string; nome: string; cor: string; tipo: Tipo; letra: string; inicio: string; fim: string }>(
       `select a.id, a.militar_id, to_char(a.data, 'YYYY-MM-DD') as data, s.id as servico_id, s.nome, s.cor, s.tipo, t.letra,
               to_char(t.inicio, 'HH24:MI') as inicio, to_char(t.fim, 'HH24:MI') as fim
-         from alocacao a join servico s on s.id = a.servico_id join turno t on t.id = a.turno_id
-        where s.unidade_id = $1 and a.data between $2::date and $3::date`,
+         from alocacao a join servico s on s.id = a.servico_id join turno t on t.id = a.turno_id join escala e on e.id = a.escala_id
+        where s.unidade_id = $1 and a.data between $2::date and $3::date and e.distribuicao = 'pre_escala'`,
       [unidadeId, antes, depois],
     )
   ).rows.map((r): Alocacao => ({ id: r.id, militarId: r.militar_id, data: r.data, servicoId: r.servico_id, nome: r.nome, cor: r.cor, tipo: r.tipo, letra: r.letra, inicio: r.inicio, fim: r.fim }));

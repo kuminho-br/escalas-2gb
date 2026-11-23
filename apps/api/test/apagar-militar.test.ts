@@ -1,4 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { escalaDaRodada } from './apoio-oficiais.ts';
 import { inserir } from './banco-teste.ts';
 import { montarApi, type ApiDeTeste } from './apoio-api.ts';
 
@@ -9,6 +10,7 @@ let alvo: string;
 let matricula: string;
 let outro: string;
 let alocacaoDoOutro: string;
+let alocacaoCobertura: string;
 let alocDoOutroNaPermuta: string;
 
 const exclusao = (id: string) => `/api/militares/${id}/exclusao`;
@@ -67,13 +69,13 @@ beforeAll(async () => {
   // dois níveis de acesso
   await inserir(api.banco, 'papel_usuario', { usuario_id: usuario, unidade_id: u, papel: 'escalante', desde: '2026-01-01', ate: '2026-06-30' });
   await inserir(api.banco, 'papel_usuario', { usuario_id: usuario, unidade_id: api.ids.gb, papel: 'escalante', desde: '2026-01-01', ate: '2026-03-31' });
-  // escala dos oficiais: cota, saldo e um turno com ele e outro de que ele saiu
-  const servicoOf = await inserir(api.banco, 'servico', { unidade_id: api.ids.gb, nome: 'Oficial', tipo: 'ordinario', cor: '#2F8F5B' });
-  const turnoOf = await inserir(api.banco, 'turno', { servico_id: servicoOf, letra: 'A', inicio: '07:00', fim: '19:00' });
-  const mes = await inserir(api.banco, 'oficiais_mes', { unidade_id: api.ids.gb, mes: '2026-12-01', servico_id: servicoOf, cotas_em: '2026-11-28T10:00:00Z' });
+  // escala dos oficiais (uma escala comum de rodada de cotas): cota, saldo, um lugar com ele e outro de que ele saiu (cobertura)
+  const of = await escalaDaRodada(api.banco, api.ids.gb);
+  const mes = await inserir(api.banco, 'oficiais_mes', { unidade_id: api.ids.gb, escala_id: of.escalaId, mes: '2026-12-01', aberto_em: '2026-11-28T10:00:00Z' });
   await inserir(api.banco, 'oficiais_cota', { mes_id: mes, militar_id: alvo, ordem: 1, dias: 31, devido: 31, cota: 31, sobra: false }, 'mes_id');
-  await inserir(api.banco, 'oficiais_turno', { mes_id: mes, dia: '2026-12-01', turno_id: turnoOf, militar_id: alvo });
-  await inserir(api.banco, 'oficiais_turno', { mes_id: mes, dia: '2026-12-02', turno_id: turnoOf, militar_id: outro, saiu_militar_id: alvo });
+  await inserir(api.banco, 'alocacao', { militar_id: alvo, escala_id: of.escalaId, servico_id: of.saldo, turno_id: of.saldoA, data: '2026-12-01', origem: 'distribuicao' });
+  alocacaoCobertura = await inserir(api.banco, 'alocacao', { militar_id: outro, escala_id: of.escalaId, servico_id: of.saldo, turno_id: of.saldoA, data: '2026-12-02', origem: 'distribuicao' });
+  await inserir(api.banco, 'oficiais_cobertura', { alocacao_id: alocacaoCobertura, saiu_militar_id: alvo }, 'alocacao_id');
   await inserir(api.banco, 'oficiais_saldo', { unidade_id: api.ids.gb, militar_id: alvo, tipo: 'ajuste', valor: 1, motivo: 'teste', usuario_id: api.usuarios.admin });
 });
 afterAll(async () => {
@@ -95,7 +97,7 @@ describe('apagar um militar', () => {
     expect(r.status).toBe(200);
     // outros: remoção, acúmulo, voluntariado, disponibilidade, cota e saldo dos oficiais, e a permuta com os dois itens (a conta tem linha própria:
     // a sessão e a senha dela não entram em "outros")
-    expect(await r.json()).toEqual({ alocacoes: 2, afastamentos: 1, periodosDoRastreio: 3, temConta: true, niveisDeAcesso: 2, outros: 9 });
+    expect(await r.json()).toEqual({ alocacoes: 3, afastamentos: 1, periodosDoRastreio: 3, temConta: true, niveisDeAcesso: 2, outros: 10 });
   });
 
   it('a matrícula digitada errada é 400, e nada é apagado', async () => {
@@ -124,7 +126,7 @@ describe('apagar um militar', () => {
       const r = await apagar(alvo, matricula);
       expect(r.status).toBeGreaterThanOrEqual(400);
       expect((await api.banco.query('select 1 from militar where id = $1', [alvo])).rows).toHaveLength(1);
-      expect((await api.banco.query('select 1 from alocacao where militar_id = $1', [alvo])).rows).toHaveLength(2);
+      expect((await api.banco.query('select 1 from alocacao where militar_id = $1', [alvo])).rows).toHaveLength(3);
       expect((await api.banco.query('select 1 from usuario where militar_id = $1', [alvo])).rows).toHaveLength(1);
     } finally {
       await api.banco.exec('drop trigger falhar_no_teste on afastamento; drop function falhar_no_teste();');
@@ -145,9 +147,10 @@ describe('apagar um militar', () => {
     }
     expect((await api.banco.query('select 1 from militar where id = $1', [alvo])).rows).toHaveLength(0);
     expect((await api.banco.query('select 1 from usuario where id = $1', [usuario])).rows).toHaveLength(0);
-    // onde a coluna aceita vazio, a linha fica e o militar sai dela
-    expect((await api.banco.query<{ militar_id: string | null; saiu: string | null }>("select militar_id, saiu_militar_id as saiu from oficiais_turno where dia = '2026-12-02'")).rows).toEqual([{ militar_id: outro, saiu: null }]);
-    expect((await api.banco.query<{ militar_id: string | null }>("select militar_id from oficiais_turno where dia = '2026-12-01'")).rows).toEqual([{ militar_id: null }]);
+    // o lugar dele na escala dos oficiais sai com ele; o lugar do outro oficial continua, sem a cobertura que citava o militar apagado
+    expect((await api.banco.query("select 1 from alocacao where data = '2026-12-01' and escala_id in (select id from escala where distribuicao = 'rodada_de_cotas')")).rows).toHaveLength(0);
+    expect((await api.banco.query<{ militar_id: string }>("select militar_id from alocacao where data = '2026-12-02' and escala_id in (select id from escala where distribuicao = 'rodada_de_cotas')")).rows).toEqual([{ militar_id: outro }]);
+    expect((await api.banco.query('select 1 from oficiais_cobertura')).rows).toHaveLength(0);
     // o outro militar da mesma escala continua com a alocação dele (sem o autor que sumiu)
     expect((await api.banco.query<{ presenca_por: string | null }>('select presenca_por from alocacao where id = $1', [alocacaoDoOutro])).rows).toEqual([{ presenca_por: null }]);
     // a auditoria guarda o delete do militar, com o administrador como autor
@@ -160,7 +163,7 @@ describe('apagar um militar', () => {
     const r = await api.pedir('semPapel', 'GET', `/api/unidades/${api.ids.secao}/militares`);
     expect(r.status).toBe(401);
     expect((await r.json()).erro).toBe('Entre no sistema para continuar.');
-    expect(contagens.alocacoes).toBe(2);
+    expect(contagens.alocacoes).toBe(3);
     // a permuta saiu inteira; a alocação do outro militar ficou
     expect((await api.banco.query('select 1 from permuta')).rows).toHaveLength(0);
     expect((await api.banco.query('select 1 from alocacao where id = $1', [alocDoOutroNaPermuta])).rows).toHaveLength(1);

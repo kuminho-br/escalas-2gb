@@ -528,7 +528,7 @@ describe('efetivo por dia: a navegação', () => {
     const MES = mesAtual();
     const dia = (n: number): DiaDaEscala => ({ data: `${MES}-0${n}`, diaDaSemana: n % 7, feriado: null, faixas: [], obrigatoriasVazias: 0 });
     const ESCALA: EscalaDoMes = { escalaId: 'e1', nome: 'Ordinário', mes: MES, dias: [dia(1), dia(2), dia(3)], resumo: { preenchidas: 0, obrigatorias: 0, obrigatoriasVazias: 0 } };
-    const LISTA: LinhaEscala[] = [{ id: 'e1', nome: 'Ordinário', ativa: true, servicos: ['Pronto'], montaBlocosVoluntariado: true }];
+    const LISTA: LinhaEscala[] = [{ id: 'e1', nome: 'Ordinário', ativa: true, servicos: ['Pronto'], montaBlocosVoluntariado: true, distribuicao: 'pre_escala' }];
 
     it('rola até o dia pedido, e sem "dia" na busca não rola', async () => {
       const rolar = vi.fn();

@@ -50,7 +50,7 @@ export async function opcoesDeTroca(c: Consulta, alocacaoId: string): Promise<Op
          from alocacao a2 join escala e on e.id = a2.escala_id join servico s on s.id = a2.servico_id join turno t on t.id = a2.turno_id
          join militar m on m.id = a2.militar_id join posto_grad p on p.id = m.posto_grad_id
          left join guarnicao g on g.id = a2.guarnicao_id left join funcao f on f.id = a2.funcao_id
-        where s.unidade_id = $1 and a2.data = $2::date and a2.militar_id <> $3
+        where s.unidade_id = $1 and a2.data = $2::date and a2.militar_id <> $3 and e.distribuicao = 'pre_escala'
         order by t.inicio, s.nome`,
       [a.unidade_id, a.data, a.militar_id],
     )

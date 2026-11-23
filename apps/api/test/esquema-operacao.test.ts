@@ -145,20 +145,34 @@ describe('casos validos', () => {
   });
 });
 
-describe('escala dos oficiais (P1.2)', () => {
+describe('escala dos oficiais (P1.2 e 6.27)', () => {
+  let rodada: string;
+  let servicoSaldo: string;
+  let turnoSaldo: string;
+  beforeAll(async () => {
+    // a escala dos oficiais é uma escala comum de rodada de cotas, com um serviço de saldo
+    rodada = await inserir(banco, 'escala', { unidade_id: unidade, nome: 'Oficiais de teste', titulo: 'OFICIAIS', militares_doc: 'escalados', dias_doc: 'com_escalados', distribuicao: 'rodada_de_cotas' });
+    servicoSaldo = await inserir(banco, 'servico', { unidade_id: unidade, nome: 'Saldo de teste', tipo: 'ordinario', cor: '#2B7BB9' });
+    turnoSaldo = await inserir(banco, 'turno', { servico_id: servicoSaldo, letra: 'A', inicio: '07:00', fim: '19:00' });
+    await banco.query('insert into escala_servico (escala_id, servico_id, ordem) values ($1, $2, 1)', [rodada, servicoSaldo]);
+  });
   async function mes(mesData: string, extra: Record<string, unknown> = {}) {
-    return inserir(banco, 'oficiais_mes', { unidade_id: unidade, mes: mesData, ...extra });
+    return inserir(banco, 'oficiais_mes', { unidade_id: unidade, escala_id: rodada, mes: mesData, ...extra });
   }
 
-  it('o mesmo mês duas vezes na mesma unidade falha com 23505', async () => {
+  it('o mesmo mês duas vezes na mesma escala falha com 23505', async () => {
     await mes('2030-01-01');
     await expect(mes('2030-01-01')).rejects.toMatchObject({ code: '23505' });
   });
 
-  it('cotas_em sem servico_id, fechada_em sem cotas_em e encerrada_em sem fechada_em falham com 23514', async () => {
-    await expect(mes('2029-12-01', { cotas_em: '2029-12-01T10:00:00Z' })).rejects.toMatchObject({ code: '23514' });
-    await expect(mes('2030-02-01', { servico_id: pronto, fechada_em: '2030-02-01T10:00:00Z' })).rejects.toMatchObject({ code: '23514' });
-    await expect(mes('2030-03-01', { servico_id: pronto, cotas_em: '2030-03-01T10:00:00Z', encerrada_em: '2030-03-02T10:00:00Z' })).rejects.toMatchObject({ code: '23514' });
+  it('o mês sem escala falha com 23502; a escala só aceita os dois jeitos de distribuir (23514)', async () => {
+    await expect(inserir(banco, 'oficiais_mes', { unidade_id: unidade, mes: '2030-01-01' })).rejects.toMatchObject({ code: '23502' });
+    await expect(inserir(banco, 'escala', { unidade_id: unidade, nome: 'Jeito errado', titulo: 'X', militares_doc: 'escalados', dias_doc: 'todos', distribuicao: 'sorteio' })).rejects.toMatchObject({ code: '23514' });
+  });
+
+  it('fechada_em sem aberto_em e encerrada_em sem fechada_em falham com 23514', async () => {
+    await expect(mes('2030-02-01', { fechada_em: '2030-02-01T10:00:00Z' })).rejects.toMatchObject({ code: '23514' });
+    await expect(mes('2030-03-01', { aberto_em: '2030-03-01T10:00:00Z', encerrada_em: '2030-03-02T10:00:00Z' })).rejects.toMatchObject({ code: '23514' });
   });
 
   it('ajuste sem motivo falha com 23514; com motivo grava', async () => {
@@ -178,23 +192,22 @@ describe('escala dos oficiais (P1.2)', () => {
     await expect(lanc()).rejects.toMatchObject({ code: '23505' });
   });
 
-  it('a auditoria de um update em oficiais_turno sai com a unidade do mês', async () => {
-    const m = await militar();
-    const id = await mes('2030-05-01');
-    const turno = await inserir(banco, 'oficiais_turno', { mes_id: id, dia: '2030-05-01', turno_id: turnoA });
-    await banco.query('update oficiais_turno set militar_id = $1 where id = $2', [m, turno]);
-    const { rows } = await banco.query<{ unidade_id: string }>(
-      "select unidade_id from auditoria where tabela = 'oficiais_turno' and registro_id = $1 and acao = 'update'", [turno]);
+  it('a auditoria da cobertura sai com a unidade da escala', async () => {
+    const quem = await militar();
+    const saiu = await militar();
+    const aloc = await inserir(banco, 'alocacao', { militar_id: quem, escala_id: rodada, servico_id: servicoSaldo, turno_id: turnoSaldo, data: '2030-05-01', origem: 'distribuicao' });
+    await banco.query('insert into oficiais_cobertura (alocacao_id, saiu_militar_id) values ($1, $2)', [aloc, saiu]);
+    const { rows } = await banco.query<{ unidade_id: string }>("select unidade_id from auditoria where tabela = 'oficiais_cobertura' and acao = 'insert' and depois ->> 'alocacao_id' = $1", [aloc]);
     expect(rows[0]?.unidade_id).toBe(unidade);
   });
 
-  it('turno: quem saiu precisa de quem cobriu e ser outra pessoa; o mesmo turno no mesmo dia não se repete', async () => {
-    const a = await militar();
-    const id = await mes('2030-06-01');
-    const t = (extra: Record<string, unknown>, turno = turnoA) => inserir(banco, 'oficiais_turno', { mes_id: id, dia: '2030-06-02', turno_id: turno, ...extra });
-    await expect(t({ saiu_militar_id: a })).rejects.toMatchObject({ code: '23514' });
-    await expect(t({ militar_id: a, saiu_militar_id: a })).rejects.toMatchObject({ code: '23514' });
-    await t({});
-    await expect(t({})).rejects.toMatchObject({ code: '23505' });
+  it('cobertura: uma por alocação, e apagar a alocação apaga a cobertura', async () => {
+    const quem = await militar();
+    const saiu = await militar();
+    const aloc = await inserir(banco, 'alocacao', { militar_id: quem, escala_id: rodada, servico_id: servicoSaldo, turno_id: turnoSaldo, data: '2030-06-02', origem: 'distribuicao' });
+    await banco.query('insert into oficiais_cobertura (alocacao_id, saiu_militar_id) values ($1, $2)', [aloc, saiu]);
+    await expect(banco.query('insert into oficiais_cobertura (alocacao_id, saiu_militar_id) values ($1, $2)', [aloc, saiu])).rejects.toMatchObject({ code: '23505' });
+    await banco.query('delete from alocacao where id = $1', [aloc]);
+    expect((await banco.query('select 1 from oficiais_cobertura where alocacao_id = $1', [aloc])).rows).toHaveLength(0);
   });
 });

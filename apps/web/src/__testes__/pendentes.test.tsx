@@ -8,11 +8,11 @@ import { mesAtual } from '@/lib/meses';
 import { abrir, chamadasA, corpoEnviado, EU_EXEMPLO, simularApi } from './apoio';
 
 const LISTA: LinhaEscala[] = [
-  { id: 'e1', nome: 'Ordinário', ativa: true, servicos: ['Pronto'], montaBlocosVoluntariado: true },
-  { id: 'e2', nome: 'Nova', ativa: true, servicos: [], montaBlocosVoluntariado: true },
+  { id: 'e1', nome: 'Ordinário', ativa: true, servicos: ['Pronto'], montaBlocosVoluntariado: true, distribuicao: 'pre_escala' },
+  { id: 'e2', nome: 'Nova', ativa: true, servicos: [], montaBlocosVoluntariado: true, distribuicao: 'pre_escala' },
 ];
 const escala = (e: Partial<Escala>): Escala => ({
-  id: 'e1', nome: 'Ordinário', titulo: 'ESCALA ORDINÁRIO', militaresDoc: 'todos', diasDoc: 'todos', ativa: true, montaBlocosVoluntariado: true,
+  id: 'e1', nome: 'Ordinário', titulo: 'ESCALA ORDINÁRIO', militaresDoc: 'todos', diasDoc: 'todos', ativa: true, montaBlocosVoluntariado: true, distribuicao: 'pre_escala',
   servicos: [{ id: 's1', nome: 'Pronto', cor: '#2F8F5B', ativo: true }], faixas: [], comLetra: true, vinculos: [], ...e,
 });
 const BIOMA: Servico = {

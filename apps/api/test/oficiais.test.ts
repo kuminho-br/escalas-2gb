@@ -2,17 +2,16 @@ import type { EscalaDosOficiais, OficialNoSaldo } from 'contratos';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { inserir } from './banco-teste.ts';
 import { montarApi, type ApiDeTeste } from './apoio-api.ts';
+import { escalaDaRodada, type RodadaDeTeste } from './apoio-oficiais.ts';
 
 // Dados fictícios (D7): oficiais 990400-x em diante, no 2º GB e na 1ª SB.
 let api: ApiDeTeste;
 const posto: Record<string, string> = {};
 const quadro: Record<string, string> = {};
 const ids: Record<string, string> = {};
-let servico: string;
-let turnoA: string;
-let turnoB: string;
-let servicoDeOutraUnidade: string;
-let servicoSemTurno: string;
+let rodada: RodadaDeTeste;
+let escalaDeOutraUnidade: string;
+let escalaSemServicos: string;
 const NOMES = ['a1', 'a2', 'a3', 'a4', 'a5', 'f', 'm1', 'm2'];
 const COTAS = [8, 8, 8, 8, 8, 4, 9, 9];
 let seq = 0;
@@ -33,17 +32,22 @@ async function oficial(nome: string, antiguidade: number | null, opcoes: { posto
 
 const rota = (mes: string, resto = '') => `/api/unidades/${api.ids.gb}/oficiais/${mes}${resto}`;
 const ler = async (mes: string): Promise<EscalaDosOficiais> => (await api.pedir('gestorGb', 'GET', rota(mes))).json();
-// até a P1.5 todo elegível participava: estes testes marcam todos os elegíveis do mês antes de calcular (com a escala aberta)
-const calcular = async (mes: string) => {
+// até a P1.5 todo elegível participava: estes testes marcam todos os elegíveis do mês antes de abrir (com a escala aberta)
+const abrir = async (mes: string) => {
   const e = await ler(mes);
-  if (e.etapa === 'sem-cotas' || e.etapa === 'escolhas') await api.pedir('gestorGb', 'PUT', rota(mes, '/participantes'), { militarIds: e.oficiais.map((o) => o.militarId) });
-  return api.pedir('gestorGb', 'POST', rota(mes, '/cotas'));
+  if (e.etapa === 'nao-aberto' || e.etapa === 'escolhas') await api.pedir('gestorGb', 'PUT', rota(mes, '/participantes'), { militarIds: e.oficiais.map((o) => o.militarId) });
+  return api.pedir('gestorGb', 'POST', rota(mes, '/abrir'));
 };
-const lancar = (mes: string, dia: string, turno: string, militarId: string | null) => api.pedir('gestorGb', 'PUT', rota(mes, `/turnos/${dia}/${turno}`), { militarId });
+const lancar = (mes: string, dia: string, letra: string, militarId: string, servico: 'jes' | 'saldo' = 'saldo') =>
+  api.pedir('gestorGb', 'POST', rota(mes, '/lancamentos'), { dia, letra, servico, militarId });
+const tirar = async (mes: string, dia: string, letra: string) => {
+  const t = (await ler(mes)).turnos.find((x) => x.dia === dia && x.letra === letra)!;
+  return api.pedir('gestorGb', 'DELETE', rota(mes, `/lancamentos/${t.alocacaoId}`));
+};
 const painel = async (): Promise<OficialNoSaldo[]> => (await api.pedir('gestorGb', 'GET', `/api/unidades/${api.ids.gb}/oficiais-saldo`)).json();
 const dono = (i: number) => NOMES.flatMap((n, k) => Array<string>(COTAS[k]!).fill(n))[i]!;
-const posicao = (i: number) => ({ dia: `2027-01-${String(Math.floor(i / 2) + 1).padStart(2, '0')}`, turno: i % 2 === 0 ? turnoA : turnoB });
-const escolherServico = (mes: string, servicoId: string) => api.pedir('gestorGb', 'PUT', rota(mes, '/servico'), { servicoId });
+const posicao = (i: number) => ({ dia: `2027-01-${String(Math.floor(i / 2) + 1).padStart(2, '0')}`, letra: i % 2 === 0 ? 'A' : 'B' });
+const doLugar = (e: EscalaDosOficiais, dia: string, letra: string) => e.turnos.find((t) => t.dia === dia && t.letra === letra)!;
 
 beforeAll(async () => {
   api = await montarApi();
@@ -55,12 +59,10 @@ beforeAll(async () => {
   }
   await oficial('praca', 1, { posto: '2º SGT', quadro: 'QBMG' });
   await oficial('semquadro', 2, { posto: 'MAJ', quadro: null });
-  servico = await inserir(api.banco, 'servico', { unidade_id: api.ids.gb, nome: 'Oficial de operações', tipo: 'ordinario', cor: '#2F8F5B' });
-  turnoA = await inserir(api.banco, 'turno', { servico_id: servico, letra: 'A', inicio: '07:00', fim: '19:00' });
-  turnoB = await inserir(api.banco, 'turno', { servico_id: servico, letra: 'B', inicio: '19:00', fim: '07:00' });
-  servicoDeOutraUnidade = await inserir(api.banco, 'servico', { unidade_id: api.ids.secao, nome: 'Oficial da seção', tipo: 'ordinario', cor: '#2F8F5B' });
-  await inserir(api.banco, 'turno', { servico_id: servicoDeOutraUnidade, letra: 'A', inicio: '07:00', fim: '19:00' });
-  servicoSemTurno = await inserir(api.banco, 'servico', { unidade_id: api.ids.gb, nome: 'Sem turno', tipo: 'ordinario', cor: '#2F8F5B' });
+  rodada = await escalaDaRodada(api.banco, api.ids.gb);
+  // a escala de outra unidade e uma sem serviços não servem a esta tela
+  escalaDeOutraUnidade = (await escalaDaRodada(api.banco, api.ids.secao)).escalaId;
+  escalaSemServicos = await inserir(api.banco, 'escala', { unidade_id: api.ids.gb, nome: 'Sem serviços', titulo: 'SEM SERVIÇOS', militares_doc: 'escalados', dias_doc: 'todos', distribuicao: 'rodada_de_cotas' });
   const ferias = (await api.banco.query<{ id: string }>("select id from tipo_afastamento where nome = 'Férias'")).rows[0]!.id;
   await inserir(api.banco, 'afastamento', { militar_id: ids.f, tipo_afastamento_id: ferias, inicio: '2027-01-17', fim: '2027-01-31' });
 });
@@ -73,9 +75,10 @@ describe('acesso', () => {
     const t = `/api/unidades/${api.ids.gb}`;
     for (const [m, c, corpo] of [
       ['GET', `${t}/oficiais/2027-01`, undefined],
-      ['POST', `${t}/oficiais/2027-01/cotas`, undefined],
+      ['POST', `${t}/oficiais/2027-01/abrir`, undefined],
       ['PUT', `${t}/oficiais/2027-01/ordem`, { militarIds: [] }],
-      ['PUT', `${t}/oficiais/2027-01/turnos/2027-01-01/dia`, { militarId: null }],
+      ['POST', `${t}/oficiais/2027-01/lancamentos`, { dia: '2027-01-01', letra: 'A', servico: 'saldo', militarId: ids.a1 }],
+      ['DELETE', `${t}/oficiais/2027-01/lancamentos/${ids.a1}`, undefined],
       ['POST', `${t}/oficiais/2027-01/fechar`, undefined],
       ['POST', `${t}/oficiais/2027-01/encerrar`, undefined],
       ['GET', `${t}/oficiais-saldo`, undefined],
@@ -92,146 +95,186 @@ describe('acesso', () => {
   });
 });
 
-describe('antes do cálculo', () => {
-  it('só os oficiais QOC e QOA da unidade e de baixo dela; a etapa é sem-cotas, com os dias e sem cota', async () => {
+describe('a escala da rodada', () => {
+  it('a unidade sem escala de rodada de cotas lê vazio, e abrir o mês dá 409 com o texto', async () => {
+    const url = (resto = '') => `/api/unidades/${api.ids.raiz}/oficiais/2027-01${resto}`;
+    const e: EscalaDosOficiais = await (await api.pedir('admin', 'GET', url())).json();
+    expect(e.escala).toBeNull();
+    expect(e.escalas).toEqual([]);
+    const r = await api.pedir('admin', 'POST', url('/abrir'));
+    expect(r.status).toBe(409);
+    expect((await r.json()).erro).toBe('A unidade ainda não tem uma escala com rodada de cotas. Cadastre uma em Escalas.');
+  });
+
+  it('a tela traz as escalas da unidade com rodada de cotas, com os serviços JES e Saldo e os lugares do dia', async () => {
     const e = await ler('2027-01');
-    expect(e.etapa).toBe('sem-cotas');
+    expect(e.escalas.map((x) => x.nome)).toEqual(['Oficiais de operações', 'Sem serviços']);
+    expect(e.escala).toEqual({ id: rodada.escalaId, nome: 'Oficiais de operações' });
+    expect(e.servicos).toEqual({ jes: { id: rodada.jes, nome: 'JES' }, saldo: { id: rodada.saldo, nome: 'Saldo' } });
+    expect(e.turnosDoServico).toEqual([
+      { id: rodada.saldoA, letra: 'A', inicio: '07:00', fim: '19:00', rotulo: 'Dia' },
+      { id: rodada.saldoB, letra: 'B', inicio: '19:00', fim: '07:00', rotulo: 'Noite' },
+    ]);
+  });
+
+  it('a escala pedida precisa ser uma da unidade com rodada de cotas: a de outra unidade, a que não existe e uma pré-escala dão 400', async () => {
+    const preEscala = await inserir(api.banco, 'escala', { unidade_id: api.ids.gb, nome: 'Pré-escala comum', titulo: 'PRÉ', militares_doc: 'escalados', dias_doc: 'todos' });
+    for (const id of [escalaDeOutraUnidade, preEscala, '00000000-0000-4000-8000-000000000000']) {
+      const r = await api.pedir('gestorGb', 'GET', `${rota('2027-01')}?escala=${id}`);
+      expect(r.status, id).toBe(400);
+      expect((await r.json()).erro).toBe('Escolha uma escala da unidade com rodada de cotas.');
+    }
+    expect((await api.pedir('gestorGb', 'GET', `${rota('2027-01')}?escala=${rodada.escalaId}`)).status).toBe(200);
+  });
+
+  it('a rodada de cotas não tem pré-escala: gerar a pré-escala dela dá 409', async () => {
+    const r = await api.pedir('gestorGb', 'POST', `/api/escalas/${rodada.escalaId}/mes/2027-01/pre-escala`, { equipeDia1Id: '00000000-0000-4000-8000-000000000000' });
+    expect(r.status).toBe(409);
+    expect((await r.json()).erro).toBe('Esta escala é uma rodada de cotas: ela é montada em Oficiais, e não tem pré-escala.');
+  });
+
+  it('abrir o mês numa escala sem serviço de Saldo dá 409 com o texto, e nada é aberto', async () => {
+    const r = await api.pedir('gestorGb', 'POST', `${rota('2027-01', '/abrir')}?escala=${escalaSemServicos}`);
+    expect(r.status).toBe(409);
+    expect((await r.json()).erro).toBe('A escala precisa de um serviço de Saldo, com turnos, para abrir o mês.');
+    expect((await api.banco.query('select 1 from oficiais_mes where escala_id = $1 and aberto_em is not null', [escalaSemServicos])).rows).toHaveLength(0);
+  });
+});
+
+describe('antes de abrir o mês', () => {
+  it('só os oficiais QOC e QOA da unidade e de baixo dela; a etapa é nao-aberto, com os dias e sem cota', async () => {
+    const e = await ler('2027-01');
+    expect(e.etapa).toBe('nao-aberto');
     expect(e.oficiais.map((o) => o.nomeGuerra)).toEqual(NOMES.map((n) => n.toUpperCase()));
     expect(e.oficiais.map((o) => o.dias)).toEqual([31, 31, 31, 31, 31, 16, 31, 31]);
     expect(e.oficiais.every((o) => o.cota === null && o.devido === null)).toBe(true);
     expect(e.turnos).toEqual([]);
-    expect(e.servico).toBeNull();
-    expect(e.turnosDoServico).toEqual([]);
     expect(e.oficiais.find((o) => o.nomeGuerra === 'M2')!.lotacao).toBe('1ª SB');
     expect(e.oficiais[5]!.afastamentos).toEqual([{ inicio: '2027-01-17', fim: '2027-01-31', tipo: 'Férias' }]);
   });
 
-  it('calcular sem serviço dá 409 com o texto', async () => {
-    const r = await calcular('2027-01');
+  it('lançar antes de abrir dá 409 com o texto "Abra o mês para lançar."', async () => {
+    const r = await lancar('2027-01', '2027-01-01', 'A', ids.a1!);
     expect(r.status).toBe(409);
-    expect((await r.json()).erro).toBe('Escolha o serviço da escala antes de calcular as cotas.');
+    expect((await r.json()).erro).toBe('Abra o mês para lançar.');
+    expect((await api.pedir('gestorGb', 'DELETE', rota('2027-01', `/lancamentos/${ids.a1}`))).status).toBe(409);
   });
 
-  it('um serviço sem turno, de outra unidade, que não existe ou que não é ordinário dá 400', async () => {
-    const outro = await inserir(api.banco, 'servico', { unidade_id: api.ids.gb, nome: 'Operação especial', tipo: 'diaria', cor: '#2F8F5B' });
-    await inserir(api.banco, 'turno', { servico_id: outro, letra: 'A', inicio: '07:00', fim: '19:00' });
-    for (const id of [servicoSemTurno, servicoDeOutraUnidade, outro, '00000000-0000-4000-8000-000000000000']) {
-      const r = await escolherServico('2027-01', id);
-      expect(r.status, id).toBe(400);
-      expect((await r.json()).erro).toBe('Escolha um serviço da unidade com turnos cadastrados.');
-    }
+  it('as cotas não existem antes de abrir: ler não grava o mês', async () => {
+    expect((await api.banco.query("select 1 from oficiais_mes where mes = '2027-01-01'")).rows).toHaveLength(0);
   });
 
-  it('escolher o serviço mostra os turnos com o rótulo pelo horário', async () => {
-    const r = await escolherServico('2027-01', servico);
-    expect(r.status).toBe(200);
-    const e: EscalaDosOficiais = await r.json();
-    expect(e.servico).toEqual({ id: servico, nome: 'Oficial de operações' });
-    expect(e.turnosDoServico).toEqual([
-      { id: turnoA, letra: 'A', inicio: '07:00', fim: '19:00', rotulo: 'Dia' },
-      { id: turnoB, letra: 'B', inicio: '19:00', fim: '07:00', rotulo: 'Noite' },
-    ]);
-    expect(e.etapa).toBe('sem-cotas');
-  });
-
-  it('mês sem participantes: lista vazia, sem divisão por zero', async () => {
+  it('mês sem participantes: lista vazia, sem divisão por zero, e os 62 lugares nascem ao abrir', async () => {
     const e = await ler('2026-10');
     expect(e.oficiais).toEqual([]);
-    expect((await escolherServico('2026-10', servico)).status).toBe(200);
-    expect((await calcular('2026-10')).status).toBe(200);
+    expect((await abrir('2026-10')).status).toBe(200);
     const depois = await ler('2026-10');
     expect(depois.oficiais).toEqual([]);
     expect(depois.turnos).toHaveLength(62);
+    expect(depois.etapa).toBe('escolhas');
   });
 });
 
 describe('o mês de janeiro de 2027', () => {
-  it('calcular grava 62 turnos e as cotas 8,8,8,8,8,4,9,9', async () => {
-    const r = await calcular('2027-01');
+  it('abrir o mês grava as cotas de saldo 8,8,8,8,8,4,9,9, e o mês tem 62 lugares livres', async () => {
+    const r = await abrir('2027-01');
     expect(r.status).toBe(200);
     const e: EscalaDosOficiais = await r.json();
     expect(e.etapa).toBe('escolhas');
     expect(e.turnos).toHaveLength(62);
-    expect(new Set(e.turnos.map((t) => t.turnoId))).toEqual(new Set([turnoA, turnoB]));
+    expect(e.turnos.every((t) => t.servico === null && t.militarId === null && t.alocacaoId === null)).toBe(true);
+    expect(new Set(e.turnos.map((t) => t.turnoId))).toEqual(new Set([rodada.saldoA, rodada.saldoB]));
+    expect(e.lugaresDeSaldo).toBe(62);
     expect(e.oficiais.map((o) => o.cota)).toEqual(COTAS);
     expect(e.oficiais.map((o) => o.sobra)).toEqual([false, false, false, false, false, false, true, true]);
     expect(e.vez).toBe(ids.a1);
   });
 
-  it('trocar o serviço depois das cotas dá 409; um turno de outro serviço dá 400', async () => {
-    const r = await escolherServico('2027-01', servico);
-    expect(r.status).toBe(409);
-    expect((await r.json()).erro).toBe('Com as cotas calculadas, o serviço não muda mais.');
-    const alheio = (await api.banco.query<{ id: string }>('select id from turno where servico_id = $1', [servicoDeOutraUnidade])).rows[0]!.id;
-    const t = await lancar('2027-01', '2027-01-01', alheio, ids.a1!);
-    expect(t.status).toBe(400);
-    expect((await t.json()).erro).toBe('Este turno não é do serviço da escala.');
-  });
-
-  it('um oficial fora da cota é recusado no turno', async () => {
+  it('um oficial fora da cota é recusado no lugar de Saldo', async () => {
     for (const quem of ['praca', 'semquadro']) {
-      const r = await lancar('2027-01', '2027-01-01', turnoA, ids[quem]!);
+      const r = await lancar('2027-01', '2027-01-01', 'A', ids[quem]!);
       expect(r.status).toBe(400);
       expect((await r.json()).erro).toBe('Este oficial não está na escala deste mês.');
     }
   });
 
-  it('a vez passa ao seguinte quando o mais antigo lança toda a cota', async () => {
-    for (let i = 0; i < 8; i++) expect((await lancar('2027-01', posicao(i).dia, posicao(i).turno, ids.a1!)).status).toBe(200);
-    expect((await ler('2027-01')).vez).toBe(ids.a2);
+  it('um dia de outro mês e uma letra que o serviço não tem dão 400', async () => {
+    expect((await lancar('2027-01', '2027-02-01', 'A', ids.a1!)).status).toBe(400);
+    const r = await lancar('2027-01', '2027-01-01', 'C', ids.a1!);
+    expect(r.status).toBe(400);
+    expect((await r.json()).erro).toBe('O serviço Saldo desta escala não tem o turno C.');
   });
 
-  it('calcular de novo mantém as escolhas', async () => {
-    const e: EscalaDosOficiais = await (await calcular('2027-01')).json();
+  it('a vez passa ao seguinte quando o mais antigo lança toda a cota; o lançamento é uma alocação comum da escala', async () => {
+    for (let i = 0; i < 8; i++) expect((await lancar('2027-01', posicao(i).dia, posicao(i).letra, ids.a1!)).status).toBe(200);
+    expect((await ler('2027-01')).vez).toBe(ids.a2);
+    const { rows } = await api.banco.query<{ origem: string; servico_id: string; n: number }>(
+      'select origem, servico_id, count(*)::int as n from alocacao where escala_id = $1 and militar_id = $2 group by origem, servico_id', [rodada.escalaId, ids.a1]);
+    expect(rows).toEqual([{ origem: 'distribuicao', servico_id: rodada.saldo, n: 8 }]);
+  });
+
+  it('abrir de novo mantém os lançamentos', async () => {
+    const e: EscalaDosOficiais = await (await abrir('2027-01')).json();
     expect(e.oficiais[0]!.escolhidos).toBe(8);
     expect(e.turnos.filter((t) => t.militarId === ids.a1)).toHaveLength(8);
   });
 
-  it('a ordem manual regrava as cotas e também mantém as escolhas', async () => {
+  it('a ordem manual refaz as cotas e também mantém os lançamentos', async () => {
     const r = await api.pedir('gestorGb', 'PUT', rota('2027-01', '/ordem'), { militarIds: [ids.a1!] });
     expect(r.status).toBe(200);
     expect((await ler('2027-01')).turnos.filter((t) => t.militarId === ids.a1)).toHaveLength(8);
   });
 
-  it('um afastamento lançado depois do turno gera o aviso, e fechar continua 200', async () => {
-    // o turno de a2 no dia 17 não existe ainda: lança f no dia 20 (já de férias) para ver o aviso
-    expect((await lancar('2027-01', '2027-01-20', turnoA, ids.f!)).status).toBe(200);
+  it('um afastamento lançado depois do lugar gera o aviso, e fechar continua 200', async () => {
+    // lança f no dia 20 (já de férias) para ver o aviso
+    expect((await lancar('2027-01', '2027-01-20', 'A', ids.f!)).status).toBe(200);
     const e = await ler('2027-01');
     expect(e.avisos).toEqual([
-      { dia: '2027-01-20', turnoId: turnoA, militarId: ids.f, texto: 'CAP F está afastado em 20/01 (Férias) e está no turno do dia. A escala pode ser fechada mesmo assim.' },
+      { dia: '2027-01-20', turnoId: rodada.saldoA, militarId: ids.f, texto: 'CAP F está afastado em 20/01 (Férias) e está no turno do dia. A escala pode ser fechada mesmo assim.' },
     ]);
-    // devolve o turno: o resto do roteiro lança as cotas certas
-    await lancar('2027-01', '2027-01-20', turnoA, null);
+    // devolve o lugar: o resto do roteiro lança as cotas certas
+    expect((await tirar('2027-01', '2027-01-20', 'A')).status).toBe(200);
   });
 
-  it('lança todos os turnos menos 10 e fecha: 200, etapa fechada, e calcular depois dá 409', async () => {
-    for (let i = 8; i < 52; i++) expect((await lancar('2027-01', posicao(i).dia, posicao(i).turno, ids[dono(i)]!)).status).toBe(200);
+  it('lança todos os lugares menos 10 e fecha: 200, etapa fechada, e abrir depois dá 409', async () => {
+    for (let i = 8; i < 52; i++) expect((await lancar('2027-01', posicao(i).dia, posicao(i).letra, ids[dono(i)]!)).status).toBe(200);
     expect((await api.pedir('gestorGb', 'POST', rota('2027-01', '/encerrar'))).status).toBe(409);
     const r = await api.pedir('gestorGb', 'POST', rota('2027-01', '/fechar'));
     expect(r.status).toBe(200);
     const e: EscalaDosOficiais = await r.json();
     expect(e.etapa).toBe('fechada');
     expect(e.turnos.filter((t) => t.militarId === null)).toHaveLength(10);
-    const de_novo = await calcular('2027-01');
+    const de_novo = await abrir('2027-01');
     expect(de_novo.status).toBe(409);
     expect((await de_novo.json()).erro).toBe('Com a escala fechada, a cota não muda mais. Se alguém sair agora, troque o nome no turno: vira cobertura.');
     expect((await api.pedir('gestorGb', 'PUT', rota('2027-01', '/ordem'), { militarIds: [] })).status).toBe(409);
   });
 
-  it('cobertura: A por B grava quem saiu; voltar a A limpa; tirar o nome deixa o turno vazio', async () => {
-    const { dia, turno } = posicao(10); // turno de a2
-    const turnoDe = async () => (await ler('2027-01')).turnos.find((t) => t.dia === dia && t.turnoId === turno)!;
-    expect(await (await lancar('2027-01', dia, turno, ids.a3!)).json().then((e: EscalaDosOficiais) => e.turnos.find((t) => t.dia === dia && t.turnoId === turno))).toMatchObject({ militarId: ids.a3, saiuMilitarId: ids.a2 });
-    await lancar('2027-01', dia, turno, ids.a2!);
-    expect(await turnoDe()).toMatchObject({ militarId: ids.a2, saiuMilitarId: null });
-    await lancar('2027-01', dia, turno, null);
-    expect(await turnoDe()).toMatchObject({ militarId: null, saiuMilitarId: null });
-    await lancar('2027-01', dia, turno, ids.a2!);
-    expect(await turnoDe()).toMatchObject({ militarId: ids.a2, saiuMilitarId: null });
+  it('Review Focus 4: um afastamento lançado depois de fechar não muda a cota; só avisa', async () => {
+    const antes = await ler('2027-01');
+    const ferias = (await api.banco.query<{ id: string }>("select id from tipo_afastamento where nome = 'Férias'")).rows[0]!.id;
+    const af = await inserir(api.banco, 'afastamento', { militar_id: ids.a3, tipo_afastamento_id: ferias, inicio: '2027-01-10', fim: '2027-01-14' });
+    const depois = await ler('2027-01');
+    expect(depois.oficiais.map((o) => [o.cota, o.dias])).toEqual(antes.oficiais.map((o) => [o.cota, o.dias]));
+    // os lugares que a3 já tem nesses dias avisam
+    expect(depois.avisos.some((x) => x.militarId === ids.a3)).toBe(true);
+    await api.banco.query('delete from afastamento where id = $1', [af]);
   });
 
-  it('completa os 10 turnos vazios depois de fechar e encerra: 8 lançamentos mes com os valores do motor', async () => {
-    for (let i = 52; i < 62; i++) await lancar('2027-01', posicao(i).dia, posicao(i).turno, ids[dono(i)]!);
+  it('cobertura: A por B grava quem saiu; voltar a A limpa; tirar o nome deixa o lugar vazio', async () => {
+    const { dia, letra } = posicao(10); // lugar de a2
+    const lugar = async () => doLugar(await ler('2027-01'), dia, letra);
+    expect(doLugar(await (await lancar('2027-01', dia, letra, ids.a3!)).json(), dia, letra)).toMatchObject({ militarId: ids.a3, saiuMilitarId: ids.a2 });
+    await lancar('2027-01', dia, letra, ids.a2!);
+    expect(await lugar()).toMatchObject({ militarId: ids.a2, saiuMilitarId: null });
+    expect((await tirar('2027-01', dia, letra)).status).toBe(200);
+    expect(await lugar()).toMatchObject({ militarId: null, saiuMilitarId: null, alocacaoId: null });
+    await lancar('2027-01', dia, letra, ids.a2!);
+    expect(await lugar()).toMatchObject({ militarId: ids.a2, saiuMilitarId: null });
+  });
+
+  it('completa os 10 lugares vazios depois de fechar e encerra: 8 lançamentos mes com os valores do motor', async () => {
+    for (let i = 52; i < 62; i++) await lancar('2027-01', posicao(i).dia, posicao(i).letra, ids[dono(i)]!);
     const r = await api.pedir('gestorGb', 'POST', rota('2027-01', '/encerrar'));
     expect(r.status).toBe(200);
     expect(((await r.json()) as EscalaDosOficiais).etapa).toBe('encerrada');
@@ -249,7 +292,7 @@ describe('o mês de janeiro de 2027', () => {
     expect((await r.json()).erro).toBe('O mês já foi encerrado. Correções agora só por ajuste no painel de saldo.');
     const { rows } = await api.banco.query<{ n: number }>("select count(*)::int as n from oficiais_saldo where tipo = 'mes'");
     expect(rows[0]!.n).toBe(8);
-    expect((await lancar('2027-01', '2027-01-01', turnoA, ids.a1!)).status).toBe(409);
+    expect((await lancar('2027-01', '2027-01-01', 'A', ids.a1!)).status).toBe(409);
     expect((await api.pedir('gestorGb', 'POST', rota('2027-01', '/fechar'))).status).toBe(409);
   });
 
@@ -273,17 +316,17 @@ describe('depois de janeiro', () => {
     expect((await r.json()).erro).toBe('Feche a escala antes de encerrar o mês: o saldo é calculado com a escala fechada.');
   });
 
-  it('fechar sem cotas dá 409 com o texto', async () => {
+  it('fechar sem abrir dá 409 com o texto', async () => {
     const r = await api.pedir('gestorGb', 'POST', rota('2027-02', '/fechar'));
     expect(r.status).toBe(409);
-    expect((await r.json()).erro).toBe('Calcule as cotas antes de fechar a escala.');
+    expect((await r.json()).erro).toBe('Abra o mês para lançar.');
   });
 
   it('um oficial que entra no mês seguinte ganha a entrada com a média, e o painel mostra o registro', async () => {
     await oficial('novato', 9, { quadro: 'QOA', desde: '2027-02-01' });
-    // sem mês gravado, o serviço vem copiado do último mês da unidade
-    expect((await ler('2027-02')).servico).toEqual({ id: servico, nome: 'Oficial de operações' });
-    expect((await calcular('2027-02')).status).toBe(200);
+    // sem mês gravado, a escala é a do último mês da unidade
+    expect((await ler('2027-02')).escala).toEqual({ id: rodada.escalaId, nome: 'Oficiais de operações' });
+    expect((await abrir('2027-02')).status).toBe(200);
     expect((await api.pedir('gestorGb', 'POST', rota('2027-02', '/fechar'))).status).toBe(200);
     expect((await api.pedir('gestorGb', 'POST', rota('2027-02', '/encerrar'))).status).toBe(200);
     const { rows } = await api.banco.query<{ valor: string }>("select valor::text from oficiais_saldo where tipo = 'mes' and mes_id in (select id from oficiais_mes where mes = '2027-01-01')");
@@ -309,18 +352,17 @@ describe('depois de janeiro', () => {
   });
 
   it('o painel registra cobertura e quem saiu', async () => {
-    // a cobertura de janeiro (a2 por a3 e de volta) foi desfeita: o registro não tem cobertura; cria uma em março
-    expect((await calcular('2027-03')).status).toBe(200);
-    expect((await api.pedir('gestorGb', 'PUT', rota('2027-03', `/turnos/2027-03-05/${turnoA}`), { militarId: ids.a2 })).status).toBe(200);
+    expect((await abrir('2027-03')).status).toBe(200);
+    expect((await lancar('2027-03', '2027-03-05', 'A', ids.a2!)).status).toBe(200);
     expect((await api.pedir('gestorGb', 'POST', rota('2027-03', '/fechar'))).status).toBe(200);
-    expect((await api.pedir('gestorGb', 'PUT', rota('2027-03', `/turnos/2027-03-05/${turnoA}`), { militarId: ids.a3 })).status).toBe(200);
+    expect((await lancar('2027-03', '2027-03-05', 'A', ids.a3!)).status).toBe(200);
     const lista = await painel();
     expect(lista.find((o) => o.militarId === ids.a3)!.registro.some((x) => x.tipo === 'cobriu' && x.texto === 'Cobriu CAP A2 em 05/03/2027.')).toBe(true);
     expect(lista.find((o) => o.militarId === ids.a2)!.registro.some((x) => x.tipo === 'saiu' && x.texto === 'Saiu em 05/03/2027; CAP A3 cobriu. Não fica devendo.')).toBe(true);
   });
 
   it('dois encerramentos ao mesmo tempo: um só vale', async () => {
-    expect((await calcular('2027-04')).status).toBe(200);
+    expect((await abrir('2027-04')).status).toBe(200);
     expect((await api.pedir('gestorGb', 'POST', rota('2027-04', '/fechar'))).status).toBe(200);
     const [a, b] = await Promise.all([api.pedir('gestorGb', 'POST', rota('2027-04', '/encerrar')), api.pedir('gestorGb', 'POST', rota('2027-04', '/encerrar'))]);
     expect([a.status, b.status].sort()).toEqual([200, 409]);
@@ -329,40 +371,152 @@ describe('depois de janeiro', () => {
   });
 });
 
-describe('correções da revisão final', () => {
-  it('um turno cadastrado no serviço depois das cotas não vira 500: dá 400, antes e depois de fechar', async () => {
-    expect((await calcular('2027-05')).status).toBe(200);
-    const novo = await inserir(api.banco, 'turno', { servico_id: servico, letra: 'C', inicio: '12:00', fim: '18:00' });
-    const antes = await lancar('2027-05', '2027-05-03', novo, ids.a1!);
-    expect(antes.status).toBe(400);
-    expect((await antes.json()).erro).toBe('Este turno não faz parte da escala deste mês.');
-    expect((await api.pedir('gestorGb', 'POST', rota('2027-05', '/fechar'))).status).toBe(200);
-    const depois = await lancar('2027-05', '2027-05-03', novo, ids.a1!);
-    expect(depois.status).toBe(400);
-    await api.banco.query('delete from turno where id = $1', [novo]);
+describe('JES à mão e Saldo pela rodada (6.27)', () => {
+  // maio de 2027: 31 dias, 62 lugares; o mês é aberto com os 9 oficiais (8 de antes e o novato)
+  const voluntarios = ['a1', 'a2', 'f'];
+
+  it('abrir o mês de maio: sem JES, a cota de saldo reparte os 62 lugares', async () => {
+    await api.banco.query('update militar set voluntario_jes = true where id = any($1::uuid[])', [voluntarios.map((n) => ids[n])]);
+    const e: EscalaDosOficiais = await (await abrir('2027-05')).json();
+    expect(e.lugaresDeSaldo).toBe(62);
+    expect(e.oficiais.reduce((s, o) => s + (o.cota ?? 0), 0)).toBe(62);
   });
 
-  it('quem sai da lista num novo cálculo não deixa turnos com o nome dele: os turnos ficam vazios', async () => {
-    expect((await calcular('2027-06')).status).toBe(200);
-    for (const dia of ['2027-06-01', '2027-06-02']) expect((await lancar('2027-06', dia, turnoA, ids.a1!)).status).toBe(200);
+  it('JES só para voluntário JES (400 com o texto); para o voluntário, grava como alocação manual do serviço JES', async () => {
+    const r = await lancar('2027-05', '2027-05-03', 'A', ids.a3!, 'jes');
+    expect(r.status).toBe(400);
+    expect((await r.json()).erro).toBe('JES só para voluntário JES.');
+    const ok = await lancar('2027-05', '2027-05-03', 'A', ids.a1!, 'jes');
+    expect(ok.status).toBe(200);
+    const { rows } = await api.banco.query<{ origem: string; servico_id: string; turno_id: string }>(
+      "select origem, servico_id, turno_id from alocacao where escala_id = $1 and data = '2027-05-03'", [rodada.escalaId]);
+    expect(rows).toEqual([{ origem: 'manual', servico_id: rodada.jes, turno_id: rodada.jesA }]);
+  });
+
+  it('lançar JES refaz a cota de saldo sozinho: os lugares que sobram são 61, e o lugar mostra JES na placa', async () => {
+    const e = await ler('2027-05');
+    expect(e.lugaresDeSaldo).toBe(61);
+    expect(e.oficiais.reduce((s, o) => s + (o.cota ?? 0), 0)).toBe(61);
+    expect(doLugar(e, '2027-05-03', 'A')).toMatchObject({ servico: 'jes', militarId: ids.a1, turnoId: rodada.saldoA });
+    expect(e.oficiais.find((o) => o.militarId === ids.a1)).toMatchObject({ jes: 1, escolhidos: 0, voluntarioJes: true });
+    expect(e.oficiais.find((o) => o.militarId === ids.a3)!.voluntarioJes).toBe(false);
+  });
+
+  it('Review Focus 1: JES num lugar já tomado por Saldo, e Saldo num lugar de JES, são recusados e nada muda', async () => {
+    expect((await lancar('2027-05', '2027-05-04', 'B', ids.a2!)).status).toBe(200); // Saldo de a2
+    const jesNoSaldo = await lancar('2027-05', '2027-05-04', 'B', ids.a1!, 'jes');
+    expect(jesNoSaldo.status).toBe(409);
+    expect((await jesNoSaldo.json()).erro).toBe('Este lugar já está tomado por Saldo.');
+    const saldoNoJes = await lancar('2027-05', '2027-05-03', 'A', ids.a2!);
+    expect(saldoNoJes.status).toBe(409);
+    expect((await saldoNoJes.json()).erro).toBe('Este lugar já está tomado por JES.');
+    const e = await ler('2027-05');
+    expect(doLugar(e, '2027-05-04', 'B')).toMatchObject({ servico: 'saldo', militarId: ids.a2 });
+    expect(doLugar(e, '2027-05-03', 'A')).toMatchObject({ servico: 'jes', militarId: ids.a1 });
+    expect(e.lugaresDeSaldo).toBe(61);
+  });
+
+  it('Review Focus 2: tirar um JES com o mês aberto devolve o lugar à rodada e refaz as cotas, mantendo as escolhas de quem continua', async () => {
+    const r = await tirar('2027-05', '2027-05-03', 'A');
+    expect(r.status).toBe(200);
+    const e: EscalaDosOficiais = await r.json();
+    expect(e.liberados).toEqual([]);
+    expect(e.lugaresDeSaldo).toBe(62);
+    expect(e.oficiais.reduce((s, o) => s + (o.cota ?? 0), 0)).toBe(62);
+    expect(doLugar(e, '2027-05-03', 'A')).toMatchObject({ servico: null, militarId: null });
+    expect(e.oficiais.find((o) => o.militarId === ids.a2)!.escolhidos).toBe(1);
+  });
+
+  it('a ordem é só uma sugestão: Saldo fora da vez grava e devolve o aviso; para o da vez, sem aviso', async () => {
+    // a vez é de a1 (nenhum Saldo lançado por ele em maio)
+    const fora = await lancar('2027-05', '2027-05-10', 'A', ids.a3!);
+    expect(fora.status).toBe(200);
+    const e: EscalaDosOficiais = await fora.json();
+    expect(e.foraDaOrdem).toBe('Fora da ordem: a vez era de CAP A1.');
+    expect(doLugar(e, '2027-05-10', 'A')).toMatchObject({ militarId: ids.a3 });
+    const certo: EscalaDosOficiais = await (await lancar('2027-05', '2027-05-10', 'B', ids.a1!)).json();
+    expect(certo.foraDaOrdem).toBeUndefined();
+  });
+
+  it('Review Focus 3: mudar a antiguidade de quem já participa refaz a ordem na hora, sem desmarcar e marcar', async () => {
+    const antes = (await ler('2027-05')).oficiais.map((o) => o.nomeGuerra);
+    expect(antes.slice(0, 5)).toEqual(['A1', 'A2', 'A3', 'A4', 'A5']);
+    // a5 passa à frente de a1 (mesmo posto, antiguidade menor)
+    await api.banco.query('update militar set antiguidade = 0 where id = $1', [ids.a5]);
+    const depois = await ler('2027-05');
+    expect(depois.oficiais.map((o) => o.nomeGuerra).slice(0, 5)).toEqual(['A5', 'A1', 'A2', 'A3', 'A4']);
+    expect(depois.oficiais[0]!.ordem).toBe(1);
+    // voltando a antiguidade, a ordem volta
+    await api.banco.query('update militar set antiguidade = 5 where id = $1', [ids.a5]);
+    expect((await ler('2027-05')).oficiais.map((o) => o.nomeGuerra).slice(0, 5)).toEqual(['A1', 'A2', 'A3', 'A4', 'A5']);
+  });
+
+  it('um afastamento lançado com o mês aberto refaz as cotas sozinho (a presença do oficial muda)', async () => {
+    const antes = (await ler('2027-05')).oficiais.find((o) => o.militarId === ids.a4)!;
+    const ferias = (await api.banco.query<{ id: string }>("select id from tipo_afastamento where nome = 'Férias'")).rows[0]!.id;
+    const af = await inserir(api.banco, 'afastamento', { militar_id: ids.a4, tipo_afastamento_id: ferias, inicio: '2027-05-01', fim: '2027-05-15' });
+    const depois = (await ler('2027-05')).oficiais.find((o) => o.militarId === ids.a4)!;
+    expect(depois.dias).toBe(antes.dias - 15);
+    expect(depois.cota!).toBeLessThan(antes.cota!);
+    await api.banco.query('delete from afastamento where id = $1', [af]);
+    expect((await ler('2027-05')).oficiais.find((o) => o.militarId === ids.a4)!.dias).toBe(antes.dias);
+  });
+});
+
+describe('revisão final da 6.27', () => {
+  it('as telas das praças não mostram nem mexem na escala dos oficiais: Grade, Escala do mês, remover e trocar', async () => {
+    // a3 tem Saldo em 2027-05-10 (nos testes de maio)
+    const aloc = (await api.banco.query<{ id: string }>("select id from alocacao where escala_id = $1 and militar_id = $2 and data = '2027-05-10'", [rodada.escalaId, ids.a3])).rows[0]!.id;
+    const grade = JSON.stringify(await (await api.pedir('gestorGb', 'GET', `/api/unidades/${api.ids.gb}/grade/2027-05`)).json());
+    expect(grade).not.toContain('"A3"');
+    const aviso = 'Esta escala é uma rodada de cotas: os lançamentos dela são feitos em Oficiais.';
+    for (const [m, c, corpo] of [
+      ['POST', `/api/escalas/${rodada.escalaId}/alocacoes`, { militarId: ids.a3, servicoId: rodada.saldo, turnoId: rodada.saldoA, data: '2027-05-11' }],
+      ['DELETE', `/api/alocacoes/${aloc}`, undefined],
+      ['POST', `/api/alocacoes/${aloc}/trocar`, { militarId: ids.a2 }],
+      ['POST', `/api/alocacoes/${aloc}/acumulos`, {}],
+    ] as const) {
+      const r = await api.pedir('gestorGb', m, c, corpo);
+      expect(r.status, `${m} ${c}`).toBe(409);
+      expect((await r.json()).erro).toBe(aviso);
+    }
+    expect((await api.banco.query('select 1 from alocacao where id = $1', [aloc])).rows).toHaveLength(1);
+  });
+
+  it('fechar a escala e lançar JES não apagam o Saldo de quem deixou de ser elegível: só refazem a cota dos que estão na rodada', async () => {
+    expect((await abrir('2027-09')).status).toBe(200);
+    for (const dia of ['2027-09-01', '2027-09-02']) expect((await lancar('2027-09', dia, 'A', ids.a1!)).status).toBe(200);
     await api.banco.query("update rastreio set situacao_id = (select id from situacao_militar where nome = 'Desativado') where militar_id = $1", [ids.a1]);
-    const e: EscalaDosOficiais = await (await calcular('2027-06')).json();
-    expect(e.oficiais.some((o) => o.militarId === ids.a1)).toBe(false);
-    expect(e.turnos.filter((t) => t.militarId === ids.a1)).toHaveLength(0);
-    expect(e.turnos.filter((t) => t.militarId === ids.a1 || t.saiuMilitarId === ids.a1)).toHaveLength(0);
+    // um JES lançado agora refaz a cota, mas o Saldo de a1 fica onde estava
+    const jes = await lancar('2027-09', '2027-09-05', 'A', ids.a2!, 'jes');
+    expect(jes.status).toBe(200);
+    expect(((await jes.json()) as EscalaDosOficiais).liberados).toEqual([]);
+    const fechada: EscalaDosOficiais = await (await api.pedir('gestorGb', 'POST', rota('2027-09', '/fechar'))).json();
+    expect(fechada.liberados).toEqual([]);
+    expect(fechada.turnos.filter((t) => t.militarId === ids.a1)).toHaveLength(2);
     await api.banco.query("update rastreio set situacao_id = (select id from situacao_militar where nome = 'Ativa') where militar_id = $1", [ids.a1]);
   });
 
-  it('o serviço copiado do último mês é conferido no cálculo', async () => {
-    const x = await inserir(api.banco, 'servico', { unidade_id: api.ids.gb, nome: 'Oficial reserva', tipo: 'ordinario', cor: '#2F8F5B' });
-    await inserir(api.banco, 'turno', { servico_id: x, letra: 'A', inicio: '07:00', fim: '19:00' });
-    expect((await escolherServico('2027-07', x)).status).toBe(200);
-    await api.banco.query('update servico set ativo = false where id = $1', [x]);
-    const r = await calcular('2027-08');
-    expect(r.status).toBe(409);
-    expect((await r.json()).erro).toBe('Escolha um serviço da unidade com turnos cadastrados.');
-    // o gestor escolhe outro e segue
-    expect((await escolherServico('2027-08', servico)).status).toBe(200);
-    expect((await calcular('2027-08')).status).toBe(200);
+  it('um lançamento de um serviço antigo da escala (migrado) conta como Saldo: trocar o nome nele funciona', async () => {
+    const antigo = await inserir(api.banco, 'servico', { unidade_id: api.ids.gb, nome: 'Oficial antigo', tipo: 'ordinario', cor: '#336699' });
+    const turnoAntigo = await inserir(api.banco, 'turno', { servico_id: antigo, letra: 'A', inicio: '07:00', fim: '19:00' });
+    await api.banco.query('insert into escala_servico (escala_id, servico_id, ordem) values ($1, $2, 3)', [rodada.escalaId, antigo]);
+    expect((await abrir('2027-10')).status).toBe(200);
+    await inserir(api.banco, 'alocacao', { militar_id: ids.a2, escala_id: rodada.escalaId, servico_id: antigo, turno_id: turnoAntigo, data: '2027-10-03', origem: 'distribuicao' });
+    const r = await lancar('2027-10', '2027-10-03', 'A', ids.a3!);
+    expect(r.status).toBe(200);
+    expect(doLugar(await r.json(), '2027-10-03', 'A')).toMatchObject({ servico: 'saldo', militarId: ids.a3 });
+  });
+});
+
+describe('correções da revisão final', () => {
+  it('quem sai da lista num novo cálculo não deixa lugares com o nome dele: os lugares ficam vazios', async () => {
+    expect((await abrir('2027-07')).status).toBe(200);
+    for (const dia of ['2027-07-01', '2027-07-02']) expect((await lancar('2027-07', dia, 'A', ids.a1!)).status).toBe(200);
+    await api.banco.query("update rastreio set situacao_id = (select id from situacao_militar where nome = 'Desativado') where militar_id = $1", [ids.a1]);
+    const e: EscalaDosOficiais = await (await abrir('2027-07')).json();
+    expect(e.oficiais.some((o) => o.militarId === ids.a1)).toBe(false);
+    expect(e.turnos.filter((t) => t.militarId === ids.a1 || t.saiuMilitarId === ids.a1)).toHaveLength(0);
+    await api.banco.query("update rastreio set situacao_id = (select id from situacao_militar where nome = 'Ativa') where militar_id = $1", [ids.a1]);
   });
 });
