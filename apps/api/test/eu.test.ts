@@ -95,7 +95,22 @@ describe('a própria ficha: GET /api/eu/ficha e PATCH /api/eu/telefone', () => {
     const m = (await api.banco.query<{ id: string }>("select id from militar where matricula = '990903-3'")).rows[0]!.id;
     await api.banco.query('delete from rastreio where militar_id = $1', [m]);
     await inserir(api.banco, 'rastreio', { militar_id: m, unidade_id: api.ids.secao, jornada: 'adm', desde: inicioDoMes });
-    expect((await ficha('semPapel')).situacao).toEqual({ lotacao: '1ª SB', equipe: null, jornada: 'adm' });
+    expect((await ficha('semPapel')).situacao).toMatchObject({ lotacao: '1ª SB', equipe: null, jornada: 'adm' });
+  });
+
+  it('traz o CPF, o endereço, o quadro e a situação de hoje, só para leitura', async () => {
+    const m = (await api.banco.query<{ id: string }>("select id from militar where matricula = '990903-3'")).rows[0]!.id;
+    await api.banco.query(
+      "update militar set cpf = '52998224725', cep = '50030230', logradouro = 'Rua Fictícia', numero = '10', cidade = 'Recife', uf = 'PE', nascimento_ano = 1990, nascimento_dia = 5, nascimento_mes = 3 where id = $1",
+      [m],
+    );
+    const f = await ficha('semPapel');
+    expect(f.cpf).toBe('52998224725');
+    expect(f.endereco).toEqual({ cep: '50030230', logradouro: 'Rua Fictícia', numero: '10', complemento: null, bairro: null, cidade: 'Recife', uf: 'PE' });
+    expect(f.nascimento).toEqual({ dia: 5, mes: 3, ano: 1990 });
+    const emHoje = await ficha('semPapel');
+    expect(emHoje.situacao).toMatchObject({ situacaoDoMilitar: 'Ativa' });
+    expect(emHoje.situacao).toHaveProperty('quadro');
   });
 
   it('altera o próprio telefone e fica na auditoria', async () => {

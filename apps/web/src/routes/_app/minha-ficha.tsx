@@ -6,6 +6,7 @@ import { camposDe, mensagemDe } from '@/api/cliente';
 import { alterarTelefone, consultaMinhaFicha } from '@/api/minha-ficha';
 import { Campo } from '@/componentes/Campo';
 import { Secao } from '@/componentes/militares/Secao';
+import { mascararCep, mascararCpf } from '@/lib/militares';
 import { Button } from '@/componentes/ui/button';
 import { Input } from '@/componentes/ui/input';
 
@@ -27,7 +28,7 @@ function Dado({ rotulo, valor }: { rotulo: string; valor: ReactNode }) {
 }
 const Dados = ({ children }: { children: ReactNode }) => <dl className="grid gap-x-6 gap-y-3 sm:grid-cols-2">{children}</dl>;
 
-/** Os dados do próprio militar, só para leitura; só o telefone se altera aqui. O resto, quem cuida do cadastro altera. */
+/** Os dados do próprio militar, só para leitura; só o telefone se altera aqui (CPF e endereço, só para leitura). O resto, quem cuida do cadastro altera. */
 function MinhaFichaTela() {
   const { data: f, error, isPending } = useQuery(consultaMinhaFicha);
   if (isPending) return <p className="text-apagado">Carregando…</p>;
@@ -48,7 +49,17 @@ function MinhaFichaTela() {
         <Secao titulo="Dados pessoais">
           <Dados>
             <Dado rotulo="Sexo" valor={f.sexo && SEXO[f.sexo]} />
-            <Dado rotulo="Aniversário" valor={f.nascimento && `${dois(f.nascimento.dia)}/${dois(f.nascimento.mes)}`} />
+            <Dado rotulo="Aniversário" valor={f.nascimento && `${dois(f.nascimento.dia)}/${dois(f.nascimento.mes)}${f.nascimento.ano ? `/${f.nascimento.ano}` : ''}`} />
+            <Dado rotulo="CPF" valor={f.cpf && mascararCpf(f.cpf)} />
+          </Dados>
+        </Secao>
+        <Secao titulo="Endereço">
+          <Dados>
+            <Dado rotulo="CEP" valor={f.endereco.cep && mascararCep(f.endereco.cep)} />
+            <Dado rotulo="Logradouro" valor={[f.endereco.logradouro, f.endereco.numero].filter(Boolean).join(', ')} />
+            <Dado rotulo="Complemento" valor={f.endereco.complemento} />
+            <Dado rotulo="Bairro" valor={f.endereco.bairro} />
+            <Dado rotulo="Cidade" valor={[f.endereco.cidade, f.endereco.uf].filter(Boolean).join(' / ')} />
           </Dados>
         </Secao>
         <Secao titulo="Comportamento">
@@ -63,6 +74,8 @@ function MinhaFichaTela() {
               <Dado rotulo="Lotação" valor={f.situacao.lotacao} />
               <Dado rotulo="Equipe" valor={f.situacao.equipe} />
               <Dado rotulo="Jornada" valor={JORNADA[f.situacao.jornada]} />
+              <Dado rotulo="Quadro" valor={f.situacao.quadro} />
+              <Dado rotulo="Situação" valor={f.situacao.situacaoDoMilitar} />
             </Dados>
           ) : (
             <p className="text-sm text-apagado">Sem lotação neste momento.</p>

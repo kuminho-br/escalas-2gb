@@ -13,9 +13,11 @@ const FICHA: MinhaFicha = {
   email: 'andrade@bombeiros.pe.gov.br',
   sexo: 'M',
   nascimento: { dia: 3, mes: 7 },
+  cpf: '52998224725',
+  endereco: { cep: '50030230', logradouro: 'Rua Fictícia', numero: '10', complemento: null, bairro: 'Centro', cidade: 'Recife', uf: 'PE' },
   comportamento: 'Bom',
   comportamentoBoletim: 'BG 12/2026',
-  situacao: { lotacao: '1ª SB', equipe: 'Alfa', jornada: 'pronto' },
+  situacao: { lotacao: '1ª SB', equipe: 'Alfa', jornada: 'pronto', quadro: 'QBMG', situacaoDoMilitar: 'Ativa' },
   motorista: true,
   cnh: ['D'],
   cnhPorHierarquia: ['B', 'C'],
@@ -31,7 +33,7 @@ describe('Minha ficha', () => {
     abrir('/minha-ficha');
     expect(await screen.findByRole('heading', { level: 1, name: 'Minha ficha' })).toBeInTheDocument();
     const principal = within(screen.getByRole('main'));
-    for (const texto of ['João da Silva Andrade', '990001-1', 'andrade@bombeiros.pe.gov.br', '03/07', 'Bom', 'BG 12/2026', '1ª SB', 'Alfa']) expect(principal.getByText(texto)).toBeInTheDocument();
+    for (const texto of ['João da Silva Andrade', '990001-1', 'andrade@bombeiros.pe.gov.br', '03/07', '529.982.247-25', '50030-230', 'Rua Fictícia, 10', 'Recife / PE', 'QBMG', 'Ativa', 'Bom', 'BG 12/2026', '1ª SB', 'Alfa']) expect(principal.getByText(texto)).toBeInTheDocument();
     // o telefone é o único campo editável
     expect(screen.getAllByRole('textbox')).toHaveLength(1);
     expect(screen.getByLabelText('Telefone')).toHaveValue('(81) 99999-0001');

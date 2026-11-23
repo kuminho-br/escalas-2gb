@@ -8,6 +8,7 @@ import { consultaCatalogo, consultaParametros, editarNoCatalogo, incluirNoCatalo
 import { ehAdministrador, podeMudarParametro } from '@/api/eu';
 import { useTrava } from '@/componentes/AlteracoesPendentes';
 import { MetaDeAtivacao } from '@/componentes/configuracoes/MetaDeAtivacao';
+import { SituacoesDoMilitar } from '@/componentes/configuracoes/SituacoesDoMilitar';
 import { ImportarPlanilha } from '@/componentes/ImportarPlanilha';
 import { Button } from '@/componentes/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/componentes/ui/dialog';
@@ -19,7 +20,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/componentes/ui/tabs'
 import { AcoesDosModelos, ListaDeModelos } from '@/componentes/guarnicoes/ListaDeModelos';
 import { mesAtual } from '@/lib/meses';
 
-const ABAS = ['regras', 'voluntariado', 'modelos', 'meta', 'tipos'] as const;
+const ABAS = ['regras', 'voluntariado', 'modelos', 'meta', 'tipos', 'situacoes'] as const;
 type Aba = (typeof ABAS)[number];
 
 export const Route = createFileRoute('/_app/configuracoes')({
@@ -48,6 +49,7 @@ function Configuracoes() {
           <TabsTrigger value="modelos">Modelos de guarnição</TabsTrigger>
           <TabsTrigger value="meta">Meta de ativação</TabsTrigger>
           <TabsTrigger value="tipos">Tipos de afastamento</TabsTrigger>
+          <TabsTrigger value="situacoes">Situações do militar</TabsTrigger>
         </TabsList>
         <TabsContent value="regras">
           <RegrasDoProcesso unidadeId={eu.unidade.id} sigla={eu.unidade.sigla} podeMudar={podeMudar} />
@@ -72,6 +74,9 @@ function Configuracoes() {
         </TabsContent>
         <TabsContent value="tipos">
           <ListaDoCatalogo catalogo="tipos-afastamento" rotuloNovo="Novo tipo de afastamento" podeEditar={admin} />
+        </TabsContent>
+        <TabsContent value="situacoes">
+          <SituacoesDoMilitar podeEditar={admin} />
         </TabsContent>
       </Tabs>
     </section>

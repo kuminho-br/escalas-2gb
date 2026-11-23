@@ -1,7 +1,7 @@
 // Contas e papéis: o acesso de um militar ao sistema (fase 6). A ficha mostra a situação da conta e quem pode dar papel.
 import { z } from 'zod';
 import { Data } from './comum.ts';
-import { Telefone, type Nascimento } from './militares.ts';
+import { Telefone, type Endereco, type Nascimento } from './militares.ts';
 
 export const Papel = z.enum(['administrador', 'gestor', 'escalante']);
 export type Papel = z.infer<typeof Papel>;
@@ -55,10 +55,13 @@ export type MinhaFicha = {
   email: string | null;
   sexo: 'M' | 'F' | null;
   nascimento: Nascimento | null;
+  /** Só os 11 dígitos; a tela põe a máscara. */
+  cpf: string | null;
+  endereco: Endereco;
   comportamento: string | null;
   comportamentoBoletim: string | null;
   /** A situação de hoje; null sem lotação. */
-  situacao: { lotacao: string; equipe: string | null; jornada: 'pronto' | 'adm' } | null;
+  situacao: { lotacao: string; equipe: string | null; jornada: 'pronto' | 'adm'; quadro: string | null; situacaoDoMilitar: string } | null;
   motorista: boolean;
   cnh: string[];
   cnhPorHierarquia: string[];
