@@ -18,6 +18,7 @@
 13. **O Pecúlio como origem dos dados** (decisões do usuário, 23/11/2026): a planilha do Pecúlio importa tudo, só com a matrícula obrigatória; sai a importação "Dados da escala" da entrega 7; o administrador apaga um militar; postos editáveis. **Executada antes da 10.** Plano à parte: `docs/superpowers/plans/2026-11-23-fase6-13-peculio-origem-dos-dados.md`.
 14. **A animação de entrada como preferência** (pedido do usuário, 23/11/2026): cada pessoa escolhe se a animação toca em toda entrada, uma vez a cada 12 h ou nunca. **Detalhada no fim.** Pequena e independente: executada logo depois da P1.5, antes da 13.
 15. a 18. **Pendências antes da fase 7** (pedido do usuário, 23/11/2026): abono de permanência e função do militar, e três lotes de acabamento. Plano à parte: `docs/superpowers/plans/2026-11-23-fase6-pendencias-antes-da-fase-7.md`.
+19. **Correções de interface que não dependem de desenho** (bloco N0 da análise da DESIGN, 23/11/2026). **Detalhada no fim.** Pequena: executada logo depois da 14.
 
 O retorno da validação que chegar durante a fase vira uma entrega depois da última prevista.
 
@@ -1173,4 +1174,41 @@ Do mesmo lote de 21/11/2026. Cada item espera o mockup da DESIGN e a aprovação
 - [ ] **Step 4:** implementar.
 - [ ] **Step 5:** rodar `pnpm test && pnpm typecheck && pnpm build:vercel`. Esperado: PASS. Atualizar as contagens.
 - [ ] **Step 6:** `git commit -m "Fase 6.14: a animação de entrada como preferência"` e abrir o PR, com a lista para a sandbox: escolher "Em toda entrada" e entrar duas vezes; escolher "Nunca" e entrar.
+
+---
+
+# Entrega 19 — Correções de interface que não dependem de desenho
+
+**Goal:** as cinco correções do bloco N0 da análise da interface, que não esperam decisão do usuário nem mockup.
+
+**Spec:** `docs/superpowers/specs/2026-11-23-refatoracao-da-interface-design.md` ("Achados" C1, S4, R6, T4 e R4; "N0"). Fotos em `docs/telas/analise-da-interface/evidencias.html`.
+
+**Branch:** `fase6-19-correcoes-de-interface`, a partir da `main`. Sem migração e sem mudança na API.
+
+**Decisões desta entrega** (minhas):
+- **O contorno de foco que fica é o do projeto** (`estilo.css`: 2 px, cor tinta, afastado 2 px). Saem dos componentes de `componentes/ui/` as classes de anel de foco da biblioteca.
+- **O título da aba** é "{tela} · Sistema de Gestão - 2º GB". O nome da tela é o do menu; na ficha, "Militar"; no login, "Entrar"; na tela inicial, só "Sistema de Gestão - 2º GB". Nenhum nome de militar vai para o título.
+- **A Grade só rola até hoje ao abrir**, uma vez, e só no mês corrente. Trocar de filtro ou atualizar os dados não rola de novo.
+
+### Task 29: as cinco correções
+
+**Files:**
+- Modify: `apps/web/src/routes/_app/configuracoes.tsx`, `apps/web/src/componentes/ui/*.tsx`, `apps/web/src/estilo.css`, `apps/web/index.html`, `apps/web/src/routes/__root.tsx` (ou `_app.tsx`), `apps/web/src/lib/modulos.ts`, `apps/web/src/componentes/grade/TabelaDaGrade.tsx`, `apps/web/src/routes/_app/grade.tsx`, `apps/web/src/componentes/AlteracoesPendentes.tsx`
+- Create: `apps/web/src/lib/titulo-da-aba.ts`
+- Test: `configuracoes.test.tsx`, `casca.test.tsx`, os testes da Grade, o teste do `AlteracoesPendentes`, e um teste novo `apps/web/src/__testes__/foco.test.tsx`
+
+**Interfaces:**
+- Produces, em `titulo-da-aba.ts`: `tituloDaAba(caminho: string): string`, usado por um efeito na raiz das rotas que grava `document.title` a cada navegação.
+
+- [ ] **Step 1: testes.**
+  - **N0.1:** a faixa das abas das Configurações rola dentro dela mesma (`overflow-x-auto`, sem quebrar o texto das abas), e cada tabela da tela fica dentro de um quadro que rola (`overflow-x-auto`). O jsdom não mede largura: o teste confere as classes, e a medida de verdade é o Step 5.
+  - **N0.2:** nenhum arquivo de `componentes/ui/` tem classe `focus-visible:ring` ou `focus-visible:border-ring` (o teste lê os arquivos); um botão, uma aba e um campo recebem o foco pelo teclado e têm o contorno do projeto.
+  - **N0.3:** `tituloDaAba('/grade')` é "Grade geral · Sistema de Gestão - 2º GB"; `/militares/abc`, "Militar · …"; `/entrar`, "Entrar · …"; `/`, "Sistema de Gestão - 2º GB". Navegar de `/grade` para `/cotas` muda o `document.title`.
+  - **N0.4:** no mês corrente, a coluna de hoje tem `aria-current="date"` no cabeçalho e uma marca visível; `scrollIntoView` é chamado uma vez ao abrir. Em outro mês, não há marca nem rolagem. Depois de trocar um filtro, a rolagem não se repete.
+  - **N0.5:** "Alterações não salvas" usa a cor de pendência (`text-pendencia`), e não `text-alerta`; o `role="status"` continua.
+- [ ] **Step 2:** rodar `pnpm --filter web test`. Esperado: FAIL nos testes novos.
+- [ ] **Step 3:** implementar.
+- [ ] **Step 4:** rodar `pnpm test && pnpm typecheck && pnpm build:vercel`. Esperado: PASS. Atualizar as contagens.
+- [ ] **Step 5:** medir no navegador sem janela, em 390 × 844, com a carga de exemplo: em **todas** as rotas do site, `document.documentElement.scrollWidth` é no máximo 390. A lista das rotas e a medida de cada uma vão no resumo do PR. Rota que passar de 390 e não for a de Configurações entra no resumo, sem ser corrigida aqui.
+- [ ] **Step 6:** `git commit -m "Fase 6.19: correções de interface que não dependem de desenho"` e abrir o PR, com a lista para a sandbox: abrir as Configurações no celular; andar pelo site com a tecla Tab; olhar o nome das abas do navegador; abrir a Grade no mês corrente.
 

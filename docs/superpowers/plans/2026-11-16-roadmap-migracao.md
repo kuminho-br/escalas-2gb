@@ -56,15 +56,13 @@ Repositório reorganizado (protótipo em `prototipo/`), banco com o esquema comp
 
 O motor está em `pacotes/dominio`. Os casos são gravados do protótipo (`pnpm casos:gravar`) e conferidos contra os dois sistemas. A pré-escala, a distribuição do Adm e os parâmetros ganharam testes de caracterização.
 
-A regra das remoções existe só no sistema novo. A exposição do motor pela API ficou para as fases 3 e 4, junto com as telas que a usam. PR #12. Plano: `docs/superpowers/plans/2026-11-17-fase2-motor.md`.
+A regra das remoções existe só no sistema novo. PR #12. Plano: `docs/superpowers/plans/2026-11-17-fase2-motor.md`.
 
 ## Fase 3 — Cadastros · concluída
 
 Um cadastro por vez, cada um com API, tela e importação, num PR próprio. Plano: `docs/superpowers/plans/2026-11-17-fase3-cadastros.md`.
 
 Entregas 1 a 5 (configurações, militares e afastamentos, guarnições, serviços e escalas, cotas e feriados), PRs #13 a #24.
-
-Os PRs #15 e #32 foram refeitos na entrega 4.3 (PR #57) e estão fechados.
 
 ## Revisões antes da fase 4 · concluídas
 
@@ -75,10 +73,6 @@ Pendências de interface, testes com pessoas e revisão de código (2 críticos 
 Montar e conferir a escala do mês à mão, nas telas de trabalho (Escala do mês, Efetivo por dia, Grade geral). Plano: `docs/superpowers/plans/2026-11-18-fase4-escala.md`.
 
 Entregas 1 a 4.7, PRs #28 a #68: Escala do mês à mão, acúmulo, voluntariado por faixa, ordem de escala, pré-escala do Pronto, meta de ativação, Efetivo por dia, Grade geral e quatro lotes de acabamento. A tabela com cada entrega está no plano da fase.
-
-As specs da fase estão listadas no plano e no `docs/LEIAME.md`.
-
-**Painel do dia:** medido em 33 consultas na 4.3 e 42 na 4.4 (cresce cerca de 9 por faixa); passou do limite de 40, e "otimizar o painel do dia" entrou na fase 8.
 
 **A fase fechou na 4.7** (21/11/2026), o terceiro lote de pendências simples. Os escalantes conseguem montar e conferir a escala de um mês à mão, sem os tropeços conhecidos.
 
@@ -103,7 +97,7 @@ Design: `docs/superpowers/specs/2026-11-21-usuarios-e-modulos-design.md`. Plano:
 | 3 | Tela inicial, módulos por nível de acesso e Minha ficha | mesclada (#90) |
 | 4 | Transição do login (as mangueiras) | mesclada (#118) |
 | 5 | Retorno da validação: recolher equipe, rastreio por dia | mesclada (#104) |
-| 6 | Retorno da validação com mockup | aguardando a DESIGN |
+| 6 | Retorno da validação com mockup | a DESIGN propõe absorver na refatoração |
 | 7 | Militares só no Pecúlio | mesclada (#107) |
 | 8 | Nível de acesso, "até" e Enter no Pecúlio | mesclada (#108) |
 | 9 | Quadro e situação no rastreio; CPF, nascimento e endereço | mesclada (#110) |
@@ -111,8 +105,15 @@ Design: `docs/superpowers/specs/2026-11-21-usuarios-e-modulos-design.md`. Plano:
 | 13 | Pecúlio como origem dos dados (antes da 10): importação única, apagar militar, postos | planejada |
 | 14 | Animação de entrada como preferência | planejada |
 | 15 a 18 | Pendências antes da fase 7: abono e função; três lotes de acabamento | planejadas |
+| 19 | Correções de interface sem desenho (N0), logo depois da 14 | planejada |
 
 **Fora:** e-mail, usuários acima do GB (fase 11), Visualização (fase 7).
+
+## Refatoração da interface · aguardando o usuário
+
+Análise e necessidades (blocos N0 a N6): `docs/superpowers/specs/2026-11-23-refatoracao-da-interface-design.md`. O N0 é a entrega 6.19. O resto espera as decisões D1 a D4 do usuário e os mockups da DESIGN.
+
+Ordem proposta pela DESIGN: N1 e N2 (sistema de estilo e resposta do sistema) antes da fase 7; N4.1 e N4.2 (Grade geral e Escala do mês) antes do piloto; N3, N5 e o resto entre as duas; N6.3 com a fase 7.
 
 ## Fase 7 — Visualização de escalas · planejada
 
