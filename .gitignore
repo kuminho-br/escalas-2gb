@@ -7,3 +7,8 @@ dist/
 .vercel/
 pacotes/dominio/tipos/
 docs/fontes de dados/
+# Planilhas com dados pessoais reais nunca vão ao git (régua de privacidade do CLAUDE.md)
+*.xlsx
+*.xls
+*.csv
+*.ods
