@@ -75,6 +75,7 @@
 | [superpowers/plans/2026-11-23-fase6-13-peculio-origem-dos-dados.md](superpowers/plans/2026-11-23-fase6-13-peculio-origem-dos-dados.md) | Entrega 6.13: importação única do Pecúlio, apagar militar e postos editáveis | DESENVOLVIMENTO | planejado |
 | [superpowers/plans/2026-11-23-fase6-pendencias-antes-da-fase-7.md](superpowers/plans/2026-11-23-fase6-pendencias-antes-da-fase-7.md) | Entregas 6.15 a 6.18: abono e função, e três lotes de acabamento | DESENVOLVIMENTO | planejado |
 | [superpowers/plans/2026-11-23-fundacao-da-interface.md](superpowers/plans/2026-11-23-fundacao-da-interface.md) | Entregas 6.20 e 6.21: sistema de estilo e resposta do sistema | DESENVOLVIMENTO | planejado |
+| [superpowers/plans/2026-11-23-fase6-22-escala-dos-oficiais.md](superpowers/plans/2026-11-23-fase6-22-escala-dos-oficiais.md) | Entrega 6.22: Escala dos oficiais refeita (urgente) | DESENVOLVIMENTO | planejado |
 | [superpowers/plans/2026-11-18-fase4-escala.md](superpowers/plans/2026-11-18-fase4-escala.md) | Fase 4: montagem da escala (entregas 1 a 4.3) | DESENVOLVIMENTO | em execução (grande demais: dividir) |
 | [superpowers/plans/2026-11-20-roadmap-documentacao.md](superpowers/plans/2026-11-20-roadmap-documentacao.md) | Roadmap da documentação | DOCUMENTAÇÃO | em execução |
 
