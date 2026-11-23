@@ -16,18 +16,22 @@ const MSG_DIVISAO = 'Escolha uma divisão deste grupamento.';
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const ORDEM = new Intl.Collator('pt-BR', { numeric: true });
 
-type Linha = { id: string; sigla: string; nome: string; tipo: TipoDoNo; mae_id: string | null };
+type Linha = { id: string; sigla: string; nome: string; tipo: TipoDoNo; mae_id: string | null; proprios: number | null };
 
 /** O grupamento com as divisões e as seções vigentes, as filhas na ordem das siglas. null se a unidade não é um grupamento. */
 export async function estruturaDoGrupamento(c: Consulta, grupamentoId: string, hoje: string): Promise<NoDaEstrutura | null> {
   const { rows } = await c.query<Linha>(
-    `select u.id, u.sigla, u.nome, u.tipo, u.mae_id
+    `select u.id, u.sigla, u.nome, u.tipo, u.mae_id,
+            case when u.tipo = 'divisao' then (select count(*)::int from parametro x where x.unidade_id = u.id)
+                                           + (select count(*)::int from feriado x where x.unidade_id = u.id)
+                                           + (select count(*)::int from funcao x where x.unidade_id = u.id) end as proprios
        from unidade g join unidade u on u.caminho <@ g.caminho
       where g.id = $1 and g.tipo = 'grupamento' and (u.id = g.id or u.ate is null or u.ate >= $2::date)`,
     [grupamentoId, hoje],
   );
   const no = (l: Linha): NoDaEstrutura => ({
     id: l.id, sigla: l.sigla, nome: l.nome, tipo: l.tipo,
+    ...(l.tipo === 'divisao' ? { cadastrosProprios: l.proprios ?? 0 } : {}),
     filhas: rows.filter((f) => f.mae_id === l.id).sort((a, b) => ORDEM.compare(a.sigla, b.sigla)).map(no),
   });
   const raiz = rows.find((l) => l.id === grupamentoId);
@@ -94,7 +98,7 @@ export function rotasEstrutura(dep: { banco: Banco; auth: Auth }): Hono<Ambiente
       return (await tx.query<{ id: string }>("insert into unidade (tipo, sigla, nome, mae_id, desde) values ('divisao', $1, $2, $3, $4) returning id", [sigla, nome, u, inicioDoMes(hoje)])).rows[0]!.id;
     });
     if (!nova) return c.json({ erro: MSG_SIGLA, campos: { sigla: MSG_SIGLA } }, 409);
-    return c.json({ id: nova, sigla, nome, tipo: 'divisao', filhas: [] } satisfies NoDaEstrutura, 201);
+    return c.json({ id: nova, sigla, nome, tipo: 'divisao', filhas: [], cadastrosProprios: 0 } satisfies NoDaEstrutura, 201);
   });
 
   r.patch('/divisoes/:id', async (c) => {

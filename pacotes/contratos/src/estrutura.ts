@@ -3,7 +3,18 @@ import { z } from 'zod';
 
 export type TipoDoNo = 'grupamento' | 'divisao' | 'secao';
 /** Um nó da árvore do grupamento, com as filhas na ordem das siglas. */
-export type NoDaEstrutura = { id: string; sigla: string; nome: string; tipo: TipoDoNo; filhas: NoDaEstrutura[] };
+export type NoDaEstrutura = {
+  id: string;
+  sigla: string;
+  nome: string;
+  tipo: TipoDoNo;
+  filhas: NoDaEstrutura[];
+  /**
+   * Só nas divisões: quantos parâmetros, feriados e funções a própria divisão cadastrou. As seções de dentro herdam esses cadastros,
+   * então mover uma seção de uma divisão para outra muda o que vale para ela.
+   */
+  cadastrosProprios?: number;
+};
 
 export const NovaDivisao = z.object({
   sigla: z.string().trim().min(1, 'Informe a sigla.').max(20, 'Use no máximo 20 caracteres.'),

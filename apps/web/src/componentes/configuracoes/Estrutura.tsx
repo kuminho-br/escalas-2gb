@@ -31,6 +31,8 @@ export function Estrutura({ grupamentos, inicial }: { grupamentos: UnidadeDeTrab
     // os caminhos das unidades mudam (o seletor de unidade e o que cada um alcança)
     void queryClient.invalidateQueries({ queryKey: ['eu'] });
   };
+  // mover uma seção muda o que ela herda da divisão (parâmetros, feriados, funções): o que já foi carregado dela fica velho, e as telas buscam de novo
+  const atualizarTudo = () => void queryClient.invalidateQueries();
 
   const seletor = grupamentos.length > 1 && (
     <div className="mb-4 max-w-xs">
@@ -112,7 +114,7 @@ export function Estrutura({ grupamentos, inicial }: { grupamentos: UnidadeDeTrab
           aoMover={async () => {
             const arvore = await moverSecao(movimento.secao.id, movimento.para?.id ?? null);
             queryClient.setQueryData(['estrutura', grupamentoId], arvore);
-            void queryClient.invalidateQueries({ queryKey: ['eu'] });
+            atualizarTudo();
           }}
         />
       )}
@@ -186,6 +188,13 @@ function ConfirmarMovimento({ movimento, aoFechar, aoMover }: { movimento: Movim
           <DialogTitle>{para ? `Mover ${secao.sigla} para ${para.sigla}?` : `Tirar ${secao.sigla} de ${de?.sigla ?? 'a divisão'}?`}</DialogTitle>
           <DialogDescription>{AVISO_AO_MOVER}</DialogDescription>
         </DialogHeader>
+        {/* a seção herda da divisão: o que a de origem cadastrou deixa de valer e o que a nova cadastrou passa a valer */}
+        {(de?.cadastrosProprios || para?.cadastrosProprios) ? (
+          <div className="grid gap-1 text-sm">
+            {de?.cadastrosProprios ? <p>{`Os parâmetros, feriados e funções de ${de.sigla} deixam de valer para ${secao.sigla}.`}</p> : null}
+            {para?.cadastrosProprios ? <p>{`Os parâmetros, feriados e funções de ${para.sigla} passam a valer para ${secao.sigla}.`}</p> : null}
+          </div>
+        ) : null}
         {erro && <p role="alert" className="text-sm text-alerta">{erro}</p>}
         <DialogFooter>
           <Button type="button" variant="ghost" onClick={aoFechar}>Cancelar</Button>

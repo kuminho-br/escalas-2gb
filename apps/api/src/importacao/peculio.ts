@@ -5,7 +5,7 @@ import { COMPORTAMENTOS, mesParaData, type CelulaIgnorada, type ItemPrevia, type
 import { CICLO_EQUIPES, normalizar } from 'dominio';
 import { mudarPeriodoAberto } from '../cadastros/periodo-aberto.ts';
 import { quadroParaOPosto } from '../cadastros/quadros.ts';
-import { CADASTRO, temPapelAcima } from '../acesso.ts';
+import { CADASTRO, siglaDaUnidadeDeCima, temPapelAcima } from '../acesso.ts';
 import type { Consulta } from '../banco/banco.ts';
 import {
   cpfMascarado, lerAntiguidade, lerCep, lerCnh, lerComportamento, lerCpf, lerEmail, lerEquipe, lerJornada, lerNascimento, lerNomeDeGuerra, lerPosto, lerQuadro,
@@ -192,7 +192,7 @@ export const importadorPeculio: Importador<Plano> = {
       return papelDeCima.get(unidade)!;
     };
     const siglaDe = async (unidade: string) => (await tx.query<{ sigla: string }>('select sigla from unidade where id = $1', [unidade])).rows[0]?.sigla ?? 'outra seção';
-    const cima = async (unidade: string) => (await tx.query<{ sigla: string }>('select m.sigla from unidade u join unidade m on m.id = u.mae_id where u.id = $1', [unidade])).rows[0]?.sigla ?? 'nível acima';
+    const cima = async (unidade: string) => (await siglaDaUnidadeDeCima(tx, unidade)) ?? 'nível acima';
     // as equipes que a importação vai criar, por seção (só as das linhas que entram)
     const equipesNovas = new Map<string, Set<string>>();
     const temEquipe = (unidade: string, nome: string) =>

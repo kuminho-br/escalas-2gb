@@ -43,7 +43,7 @@ describe('ver a estrutura', () => {
     const gb: NoDaEstrutura = await r.json();
     expect(gb).toMatchObject({ id: api.ids.gb, sigla: '2º GB', tipo: 'grupamento' });
     expect(siglas(gb)).toEqual(['1ª SB', '2ª SB', '3ª SB', '4ª SB', '5ª SB', '6ª SB', '7ª SB', 'DA', 'DivOp']);
-    expect(filha(gb, 'DA')).toEqual({ id: da, sigla: 'DA', nome: 'Divisão Administrativa', tipo: 'divisao', filhas: [] });
+    expect(filha(gb, 'DA')).toEqual({ id: da, sigla: 'DA', nome: 'Divisão Administrativa', tipo: 'divisao', filhas: [], cadastrosProprios: 0 });
     expect(filha(gb, '1ª SB')).toMatchObject({ id: sb1, tipo: 'secao', filhas: [] });
   });
 
@@ -77,7 +77,7 @@ describe('criar e renomear uma divisão', () => {
     const r = await criar({ sigla: ' DEns ', nome: 'Divisão de Ensino' });
     expect(r.status).toBe(201);
     const nova: NoDaEstrutura = await r.json();
-    expect(nova).toEqual({ id: expect.any(String), sigla: 'DEns', nome: 'Divisão de Ensino', tipo: 'divisao', filhas: [] });
+    expect(nova).toEqual({ id: expect.any(String), sigla: 'DEns', nome: 'Divisão de Ensino', tipo: 'divisao', filhas: [], cadastrosProprios: 0 });
     const gravada = (await api.banco.query<{ tipo: string; mae_id: string; desde: string }>("select tipo, mae_id, to_char(desde, 'YYYY-MM-DD') as desde from unidade where id = $1", [nova.id])).rows[0]!;
     expect(gravada).toEqual({ tipo: 'divisao', mae_id: api.ids.gb, desde: `${mes}-01` });
     expect(await auditorias()).toBe(antes + 1);
@@ -209,5 +209,31 @@ describe('pôr uma seção numa divisão', () => {
     expect((await mover(sb1, divOp, 'escalante')).status).toBe(403);
     expect((await gestorDaSecao.pedir('PUT', `/api/secoes/${sb1}/divisao`, { divisaoId: divOp })).status).toBe(403);
     expect((await api.banco.query<{ mae_id: string }>('select mae_id from unidade where id = $1', [sb1])).rows[0]!.mae_id).toBe(api.ids.gb);
+  });
+});
+
+describe('o que a divisão cadastrou e as seções de dentro herdam (revisão da 6.10)', () => {
+  const cadastrar = async (caminho: string, corpo: unknown) => expect([200, 201]).toContain((await api.pedir('gestorGb', 'POST', caminho, corpo)).status);
+
+  it('a divisão traz quantos parâmetros, feriados e funções cadastrou; a seção e o grupamento não trazem o campo', async () => {
+    const antes: NoDaEstrutura = await (await arvore()).json();
+    expect(filha(antes, 'DA').cadastrosProprios).toBe(0);
+    expect(filha(antes, 'DivOp').cadastrosProprios).toBe(0);
+    expect('cadastrosProprios' in antes).toBe(false);
+    expect('cadastrosProprios' in filha(antes, '2ª SB')).toBe(false);
+    await cadastrar(`/api/unidades/${da}/parametros`, { chave: 'SALDOS_ADM_POR_MILITAR', valor: '3', vigencia: mes });
+    await cadastrar(`/api/unidades/${divOp}/feriados`, { data: `${mes}-20`, descricao: 'Feriado da divisão', fixo: false });
+    await cadastrar(`/api/unidades/${divOp}/funcoes`, { nome: 'Função da divisão' });
+    const depois: NoDaEstrutura = await (await arvore()).json();
+    expect(filha(depois, 'DA').cadastrosProprios).toBe(1);
+    expect(filha(depois, 'DivOp').cadastrosProprios).toBe(2);
+    // o cadastro de uma seção não entra na conta da divisão
+    await cadastrar(`/api/unidades/${sb1}/feriados`, { data: `${mes}-21`, descricao: 'Feriado da seção', fixo: false });
+    expect(filha(await (await arvore()).json(), 'DivOp').cadastrosProprios).toBe(2);
+  });
+
+  it('renomear a divisão devolve a contagem dela', async () => {
+    const r = await api.pedir('gestorGb', 'PATCH', `/api/divisoes/${divOp}`, { sigla: 'DivOp', nome: 'Divisão Operacional' });
+    expect(((await r.json()) as NoDaEstrutura).cadastrosProprios).toBe(2);
   });
 });

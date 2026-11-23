@@ -24,8 +24,8 @@ export type AcessoDoMilitar = {
   /** Sem e-mail na ficha não há como dar acesso. */
   podeGerarSenha: boolean;
   papeisQuePodeDar: Papel[];
-  /** `tipo` é o tipo da unidade (`divisao`, `secao`…): o nível de chefe de divisão só é dado numa divisão. */
-  unidadesParaPapel: { id: string; sigla: string; nivel: number; tipo: string }[];
+  /** `tipo` é o tipo da unidade (`divisao`, `secao`…): o nível de chefe de divisão só é dado numa divisão. `maeSigla` é a sigla da unidade mãe (as divisões "DA" e "DivOp" existem em todo grupamento). */
+  unidadesParaPapel: { id: string; sigla: string; nivel: number; tipo: string; maeSigla: string | null }[];
 };
 
 /** A senha provisória, que aparece uma vez, e até quando vale (instante ISO). */

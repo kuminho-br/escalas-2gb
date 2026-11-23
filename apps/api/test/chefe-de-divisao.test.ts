@@ -3,6 +3,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { hojeRecife } from '../src/datas.ts';
 import { temPapel, temPapelAcima, CADASTRO, GESTAO } from '../src/acesso.ts';
 import { criarMilitar, divisoesDoGb, entrarComo, montarApi, type ApiDeTeste, type Pessoa } from './apoio-api.ts';
+import { formulario, planilha } from './planilha-teste.ts';
 
 // Entrega 6.10, Task 2: o chefe de divisão edita como gestor na sua divisão e nas seções de dentro. Dados fictícios (D7).
 let api: ApiDeTeste;
@@ -130,6 +131,9 @@ describe('dar e encerrar níveis de acesso', () => {
     expect(doGestor.papeisQuePodeDar).toEqual(['gestor', 'chefe_divisao', 'escalante']);
     expect(doGestor.unidadesParaPapel.filter((u) => u.tipo === 'divisao').map((u) => u.sigla).sort()).toEqual(['DA', 'DivOp']);
     expect(doGestor.unidadesParaPapel.find((u) => u.id === sb1)!.tipo).toBe('secao');
+    // cada unidade diz a sigla da mãe: as divisões de grupamentos diferentes (todas "DA" e "DivOp") não se confundem na lista
+    expect(doGestor.unidadesParaPapel.find((u) => u.id === da)!.maeSigla).toBe('2º GB');
+    expect(doGestor.unidadesParaPapel.find((u) => u.id === sb1)!.maeSigla).toBe('DivOp');
     expect(doGestor.unidadesParaPapel.find((u) => u.id === api.ids.gb)!.tipo).toBe('grupamento');
     const doAdmin: AcessoDoMilitar = await (await api.pedir('admin', 'GET', `/api/militares/${m}/acesso`)).json();
     expect(doAdmin.papeisQuePodeDar).toEqual(['administrador', 'gestor', 'chefe_divisao', 'escalante']);
@@ -158,5 +162,32 @@ describe('/api/eu do chefe de divisão', () => {
     expect(eu.papeis).toEqual([{ papel: 'chefe_divisao', unidadeId: divOp, unidadeSigla: 'DivOp' }]);
     expect(eu.unidades.map((u: { sigla: string }) => u.sigla)).toEqual(['DivOp', '1ª SB']);
     expect(eu.unidades[1].caminho.slice(-3)).toEqual(['2º GB', 'DivOp', '1ª SB']);
+  });
+});
+
+describe('os avisos do Pecúlio citam o grupamento, e não a divisão (revisão da 6.10)', () => {
+  it('o auxiliar de uma seção que está numa divisão lê "no 2º GB" no aviso do campo, na ficha e na importação', async () => {
+    const m = await novoMilitar(sb1);
+    const campo = await api.pedir('escalante', 'PATCH', `/api/militares/${m}`, { nomeCompleto: 'Outro Nome Completo' });
+    expect(campo.status).toBe(403);
+    expect((await campo.json()).erro).toBe('Este campo é alterado por quem tem nível de acesso no 2º GB.');
+    expect((await (await api.pedir('escalante', 'GET', `/api/militares/${m}`)).json()).podeEditar.unidadeDeCima).toBe('2º GB');
+    const importar = await api.pedir('escalante', 'POST', `/api/unidades/${sb1}/importacao/peculio`, formulario(await planilha({ 'PECÚLIO': [['MATRÍCULA'], ['990753-3']] })));
+    expect(importar.status).toBe(403);
+    expect((await importar.json()).erro).toBe('A importação do Pecúlio é de quem tem nível de acesso no 2º GB.');
+  });
+
+  it('a seção direto no grupamento continua citando o 2º GB', async () => {
+    const sb3 = (await api.banco.query<{ id: string }>("select id from unidade where sigla = '3ª SB'")).rows[0]!.id;
+    const auxiliar = await entrarComo(api, { matricula: '990764-4', nome: 'AUXSB3', nivel: { papel: 'escalante', unidadeId: sb3 } });
+    const m = await novoMilitar(sb3);
+    const r = await auxiliar.pedir('PATCH', `/api/militares/${m}`, { nomeCompleto: 'Outro Nome Completo' });
+    expect(r.status).toBe(403);
+    expect((await r.json()).erro).toBe('Este campo é alterado por quem tem nível de acesso no 2º GB.');
+  });
+
+  it('quem cuida do Pecúlio da divisão (o chefe) altera o campo de um militar de uma seção de dentro', async () => {
+    const m = await novoMilitar(sb1);
+    expect((await chefe.pedir('PATCH', `/api/militares/${m}`, { nomeCompleto: 'Nome Completo do Militar' })).status).toBe(200);
   });
 });

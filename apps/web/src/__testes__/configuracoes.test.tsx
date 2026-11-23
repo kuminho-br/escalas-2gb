@@ -400,6 +400,11 @@ describe('configurações: estrutura do grupamento (6.10)', () => {
     no('u-da', 'DA', 'Divisão Administrativa', 'divisao', [no('u-3sb', '3ª SB', '3ª Seção de Bombeiros', 'secao')]),
     no('u-divop', 'DivOp', 'Divisão Operacional', 'divisao'),
   ]);
+  const COM_CADASTROS = no('u-gb', '2º GB', '2º Grupamento de Bombeiros', 'grupamento', [
+    no('u-1sb', '1ª SB', '1ª Seção de Bombeiros', 'secao'),
+    { ...no('u-da', 'DA', 'Divisão Administrativa', 'divisao', [no('u-3sb', '3ª SB', '3ª Seção de Bombeiros', 'secao')]), cadastrosProprios: 2 },
+    { ...no('u-divop', 'DivOp', 'Divisão Operacional', 'divisao'), cadastrosProprios: 0 },
+  ]);
   const ESTRUTURA = 'GET /api/unidades/u-gb/estrutura';
   const comEstrutura = (extra: Parameters<typeof simularApi>[0] = {}, eu: typeof EU_EXEMPLO = GESTOR_GB) => api({ [ESTRUTURA]: { status: 200, corpo: ARVORE }, ...extra }, eu);
   const AVISO = 'Mover a seção muda na hora quem tem acesso a ela.';
@@ -491,5 +496,55 @@ describe('configurações: estrutura do grupamento (6.10)', () => {
     await userEvent.selectOptions(await screen.findByLabelText('Divisão de 1ª SB'), 'u-da');
     await userEvent.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Mover' }));
     expect(await within(screen.getByRole('dialog')).findByRole('alert')).toHaveTextContent('Você não tem permissão nos cadastros de 2º GB.');
+  });
+  it('mover mostra também o que a seção herda: o que a divisão de origem cadastrou deixa de valer e o da divisão nova passa a valer', async () => {
+    comEstrutura({ [ESTRUTURA]: { status: 200, corpo: COM_CADASTROS } });
+    abrir('/configuracoes?aba=estrutura');
+    // 3ª SB sai da DA (que tem cadastros) para a DivOp (que não tem): só o que deixa de valer
+    await userEvent.selectOptions(await screen.findByLabelText('Divisão de 3ª SB'), 'u-divop');
+    let janela = within(await screen.findByRole('dialog'));
+    expect(janela.getByText(AVISO)).toBeInTheDocument();
+    expect(janela.getByText('Os parâmetros, feriados e funções de DA deixam de valer para 3ª SB.')).toBeInTheDocument();
+    expect(janela.queryByText(/passam a valer/)).toBeNull();
+    await userEvent.click(janela.getByRole('button', { name: 'Cancelar' }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    // 1ª SB entra na DA: só o que passa a valer
+    await userEvent.selectOptions(screen.getByLabelText('Divisão de 1ª SB'), 'u-da');
+    janela = within(await screen.findByRole('dialog'));
+    expect(janela.getByText('Os parâmetros, feriados e funções de DA passam a valer para 1ª SB.')).toBeInTheDocument();
+    expect(janela.queryByText(/deixam de valer/)).toBeNull();
+    await userEvent.click(janela.getByRole('button', { name: 'Cancelar' }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    // 1ª SB entra na DivOp, que não tem cadastros, vindo do grupamento: só o aviso do acesso
+    await userEvent.selectOptions(screen.getByLabelText('Divisão de 1ª SB'), 'u-divop');
+    janela = within(await screen.findByRole('dialog'));
+    expect(janela.getByText(AVISO)).toBeInTheDocument();
+    expect(janela.queryByText(/valer/)).toBeNull();
+  });
+
+  it('a divisão de origem e a de destino com cadastros: o aviso mostra as duas frases', async () => {
+    const dois = no('u-gb', '2º GB', '2º Grupamento de Bombeiros', 'grupamento', [
+      { ...no('u-da', 'DA', 'Divisão Administrativa', 'divisao', [no('u-3sb', '3ª SB', '3ª Seção de Bombeiros', 'secao')]), cadastrosProprios: 2 },
+      { ...no('u-divop', 'DivOp', 'Divisão Operacional', 'divisao', [no('u-4sb', '4ª SB', '4ª Seção de Bombeiros', 'secao')]), cadastrosProprios: 1 },
+    ]);
+    comEstrutura({ [ESTRUTURA]: { status: 200, corpo: dois } });
+    abrir('/configuracoes?aba=estrutura');
+    await userEvent.selectOptions(await screen.findByLabelText('Divisão de 3ª SB'), 'u-divop');
+    const janela = within(await screen.findByRole('dialog'));
+    expect(janela.getByText('Os parâmetros, feriados e funções de DA deixam de valer para 3ª SB.')).toBeInTheDocument();
+    expect(janela.getByText('Os parâmetros, feriados e funções de DivOp passam a valer para 3ª SB.')).toBeInTheDocument();
+  });
+
+  it('depois de mover, tudo o que a seção herda (parâmetros, feriados, funções) é buscado de novo', async () => {
+    comEstrutura({ 'PUT /api/secoes/u-1sb/divisao': { status: 200, corpo: ARVORE } });
+    const router = abrir('/configuracoes?aba=estrutura');
+    const queryClient = router.options.context.queryClient;
+    queryClient.setQueryData(['parametros', 'u-1sb', '2026-11'], []);
+    queryClient.setQueryData(['feriados', 'u-1sb', 2026], []);
+    queryClient.setQueryData(['funcoes', 'u-1sb'], []);
+    await userEvent.selectOptions(await screen.findByLabelText('Divisão de 1ª SB'), 'u-divop');
+    await userEvent.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Mover' }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    for (const chave of [['parametros', 'u-1sb', '2026-11'], ['feriados', 'u-1sb', 2026], ['funcoes', 'u-1sb']]) expect(queryClient.getQueryState(chave)?.isInvalidated).toBe(true);
   });
 });

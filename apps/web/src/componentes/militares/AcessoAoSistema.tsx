@@ -205,7 +205,8 @@ function DarPapel({ acesso, erros, aberto, desligado, aoAbrir, aoFechar, aoDar }
     aoAbrir();
   };
   if (!aberto) return <div><Button type="button" variant="outline" size="sm" disabled={desligado} onClick={abrir}>Dar nível de acesso</Button></div>;
-  // o nível de chefe de divisão só existe numa divisão: a lista de unidades fica só com elas
+  // o nível de chefe de divisão só existe numa divisão: a lista de unidades fica só com elas, cada uma com o grupamento ao lado (todo
+  // grupamento tem uma "DA" e uma "DivOp", e sem o recuo da árvore as de grupamentos diferentes seriam iguais na lista)
   const unidades = papel === 'chefe_divisao' ? acesso.unidadesParaPapel.filter((u) => u.tipo === 'divisao') : acesso.unidadesParaPapel;
   const menor = Math.min(...unidades.map((u) => u.nivel));
   // a unidade escolhida só vale se continua na lista (uma seção não vai junto quando o nível passa a ser o de chefe)
@@ -222,7 +223,7 @@ function DarPapel({ acesso, erros, aberto, desligado, aoAbrir, aoFechar, aoDar }
       </Campo>
       <Campo id="np-unidade" rotulo="Unidade" erro={erros.unidadeId}>
         <Selecao id="np-unidade" value={unidade} onChange={(e) => setUnidadeId(e.target.value)}>
-          {unidades.map((u) => <option key={u.id} value={u.id}>{`${'  '.repeat(u.nivel - menor)}${u.sigla}`}</option>)}
+          {unidades.map((u) => <option key={u.id} value={u.id}>{`${'  '.repeat(u.nivel - menor)}${u.sigla}${papel === 'chefe_divisao' && u.maeSigla ? ` (${u.maeSigla})` : ''}`}</option>)}
         </Selecao>
       </Campo>
       <Campo id="np-desde" rotulo="A partir de" erro={erros.desde}>

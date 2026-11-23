@@ -88,11 +88,11 @@ async function quemPodeDar(c: Consulta, usuarioId: string, hoje: string): Promis
     papeisQuePodeDar.push('gestor', ...(gestao.acima ? (['chefe_divisao'] as const) : []), 'escalante');
     filtro = `and exists (select 1 from papel_usuario pu join unidade a on a.id = pu.unidade_id where pu.usuario_id = $1 and pu.papel in ('gestor', 'chefe_divisao') and ${vigente} and a.caminho @> u.caminho)`;
   }
-  const { rows } = await c.query<{ id: string; sigla: string; nivel: number; tipo: string }>(
-    `select u.id, u.sigla, u.tipo, nlevel(u.caminho) - 1 as nivel from unidade u where (u.ate is null or u.ate >= $2::date) and $1::uuid is not null ${filtro} order by u.caminho`,
+  const { rows } = await c.query<{ id: string; sigla: string; nivel: number; tipo: string; mae_sigla: string | null }>(
+    `select u.id, u.sigla, u.tipo, (select m.sigla from unidade m where m.id = u.mae_id) as mae_sigla, nlevel(u.caminho) - 1 as nivel from unidade u where (u.ate is null or u.ate >= $2::date) and $1::uuid is not null ${filtro} order by u.caminho`,
     [usuarioId, hoje],
   );
-  return { papeisQuePodeDar, unidadesParaPapel: rows.map((u) => ({ id: u.id, sigla: u.sigla, nivel: Number(u.nivel), tipo: u.tipo })) };
+  return { papeisQuePodeDar, unidadesParaPapel: rows.map((u) => ({ id: u.id, sigla: u.sigla, nivel: Number(u.nivel), tipo: u.tipo, maeSigla: u.mae_sigla })) };
 }
 
 /** O acesso do militar, com o que quem pede pode dar. */

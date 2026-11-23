@@ -63,6 +63,20 @@ export async function temPapelAcima(c: Consulta, usuarioId: string, unidadeId: s
 }
 
 /**
+ * A sigla da "unidade de cima" que as mensagens do Pecúlio citam ("quem tem nível de acesso no 2º GB"): a unidade mais próxima acima que não é
+ * divisão. A divisão fica entre a seção e o grupamento, mas quem cuida do Pecúlio é o grupamento: sem este desvio a frase mandaria a pessoa
+ * falar com a "DivOp". null se não há unidade acima.
+ */
+export async function siglaDaUnidadeDeCima(c: Consulta, unidadeId: string): Promise<string | null> {
+  const { rows } = await c.query<{ sigla: string }>(
+    `select m.sigla from unidade u join unidade m on m.caminho @> u.caminho and m.id <> u.id and m.tipo <> 'divisao'
+      where u.id = $1 order by nlevel(m.caminho) desc limit 1`,
+    [unidadeId],
+  );
+  return rows[0]?.sigla ?? null;
+}
+
+/**
  * Importar o Pecúlio é de quem tem papel numa unidade ACIMA das seções da unidade importada (o dono dos blocos do Pecúlio): existe, na unidade
  * ou abaixo dela, uma seção cuja unidade de cima a pessoa tem. 403 com a frase de quem altera (a unidade mãe da importada, "2º GB" para a 1ª SB).
  */
@@ -80,8 +94,8 @@ export async function exigirPapelDeCimaDasSecoes(c: Context<AmbienteApi>, unidad
     [c.get('usuarioId'), hojeRecife(), unidadeId, papeis],
   );
   if (rows[0]!.ok) return null;
-  const mae = (await banco.query<{ sigla: string }>('select m.sigla from unidade u join unidade m on m.id = u.mae_id where u.id = $1', [unidadeId])).rows[0]?.sigla;
-  return c.json({ erro: `A importação do Pecúlio é de quem tem nível de acesso no ${mae ?? 'nível acima'}.` }, 403);
+  const cima = await siglaDaUnidadeDeCima(banco, unidadeId);
+  return c.json({ erro: `A importação do Pecúlio é de quem tem nível de acesso no ${cima ?? 'nível acima'}.` }, 403);
 }
 
 /** Exige sessão; põe o usuário e o banco no contexto. */
