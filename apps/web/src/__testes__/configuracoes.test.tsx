@@ -29,7 +29,7 @@ const TIPOS = [{ id: 't1', nome: 'Férias', ativo: true }, { id: 't2', nome: 'Cu
 const FUNCOES = [{ id: 'fun-chefe', nome: 'Chefe de seção', ativo: true }, { id: 'fun-antiga', nome: 'Função antiga', ativo: false }];
 
 const ESCALAS = '/api/unidades/u-1sb/escalas';
-const escalaDaLista = (e: Partial<LinhaEscala>): LinhaEscala => ({ id: 'e1', nome: 'Ordinário', ativa: true, servicos: ['Pronto'], montaBlocosVoluntariado: true, ...e });
+const escalaDaLista = (e: Partial<LinhaEscala>): LinhaEscala => ({ id: 'e1', nome: 'Ordinário', ativa: true, servicos: ['Pronto'], montaBlocosVoluntariado: true, distribuicao: 'pre_escala', ...e });
 const ESCALAS_LISTA = [
   escalaDaLista({}),
   escalaDaLista({ id: 'e2', nome: 'CPRH Eleições', servicos: ['CPRH'] }),
@@ -360,7 +360,7 @@ describe('configurações: blocos do voluntariado', () => {
   it('o gestor desliga uma escala: manda o PATCH com montaBlocos falso e refaz a lista', async () => {
     const f = api({
       [`GET ${ESCALAS}`]: { status: 200, corpo: ESCALAS_LISTA },
-      'PATCH /api/escalas/e2/blocos-do-voluntariado': { status: 200, corpo: { id: 'e2', montaBlocosVoluntariado: false } },
+      'PATCH /api/escalas/e2/blocos-do-voluntariado': { status: 200, corpo: { id: 'e2', montaBlocosVoluntariado: false, distribuicao: 'pre_escala' } },
     }, GESTOR);
     await aba();
     await userEvent.click(await interruptor('CPRH Eleições'));

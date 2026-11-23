@@ -369,6 +369,7 @@ Vagas obrigatórias = `minimo`; vagas acima do mínimo = `maximo - minimo` (sem 
 | dias_doc | text | `todos` ou `com_escalados` |
 | ativa | boolean | |
 | monta_blocos_voluntariado | boolean | `default true`; se os blocos do dia do voluntariado são montados pelos horários desta escala (migração 0019) |
+| distribuicao | text | `pre_escala` (`default`: as escalas do Pronto, com pré-escala) ou `rodada_de_cotas` (a escala dos oficiais: o JES é lançado à mão e o que sobra vai pela rodada, como Saldo; migração 0036) |
 
 ### escala_servico
 Troca a lista em texto `ESCALAS.SERVIÇOS` (RN-100).
@@ -640,9 +641,10 @@ Fonte: "ER da meta de ativação" do claude.ai (20/11/2026), colhido em 20/11/20
 
 Quatro tabelas, todas com auditoria (a função `registrar_auditoria` ganhou um ramo que acha a unidade pelo `mes_id`):
 
-- **`oficiais_mes`:** um mês por unidade (`unique (unidade_id, mes)`, `mes` é o dia 1). `servico_id` é o serviço do oficial de operações, escolhido por mês (nulo até a escolha; vem copiado do último mês e só muda antes das cotas); os turnos e os horários vêm dele. `ordem_manual uuid[]` guarda a ordem à mão dos oficiais sem antiguidade; `cotas_em`, `fechada_em` e `encerrada_em` marcam as etapas (checks: calcular exige o serviço; fechar exige cotas; encerrar exige fechada).
-- **`oficiais_cota`:** a cota gravada no último "Calcular cotas" (PK `mes_id, militar_id`; `unique (mes_id, ordem)`): `dias` presentes, `devido numeric(12,6)`, `cota` e `sobra`. O `id` só serve à auditoria.
-- **`oficiais_turno`:** um registro por dia e por turno do serviço (`turno_id` → `turno`), com `militar_id` (vazio = turno sem nome) e `saiu_militar_id` (a cobertura: quem saiu, só com a escala fechada). `unique (mes_id, dia, turno_id)`; a API garante que o turno é do serviço do mês.
+- **`oficiais_mes`:** um mês por escala de rodada de cotas (`unique (escala_id, mes)`, `mes` é o dia 1; `unidade_id` segue gravado, e é dele que vem o saldo). `escala_id` é a escala (`distribuicao = 'rodada_de_cotas'`) com os serviços JES (o de nome "JES") e Saldo (o outro); os lugares do mês, um por dia e por letra de turno do serviço de Saldo, e os horários vêm dela. `ordem_manual uuid[]` guarda a ordem à mão dos oficiais sem antiguidade; `aberto_em` ("Abrir o mês"), `fechada_em` e `encerrada_em` marcam as etapas (checks: fechar exige o mês aberto; encerrar exige fechada). Entre abrir e fechar, as cotas se refazem sozinhas (migração 0036).
+- **`oficiais_cota`:** a cota de saldo gravada na última vez que as cotas foram feitas (PK `mes_id, militar_id`; `unique (mes_id, ordem)`): `dias` presentes, `devido numeric(12,6)`, `cota` e `sobra`. O `id` só serve à auditoria.
+- **Os lançamentos** são `alocacao` comuns da escala (JES: `origem = 'manual'`; Saldo da rodada: `origem = 'distribuicao'`); o lugar vazio não é gravado. **`oficiais_cobertura`:** `alocacao_id` (PK, `on delete cascade`) e `saiu_militar_id`: quem saiu do lugar quando o nome foi trocado com a escala fechada. Antes da 0036 os lançamentos ficavam em `oficiais_turno`, que deixou de existir (a migração os copiou).
+- **Dias vermelhos (migração 0037):** `dia_vermelho` (`escala_id` → `escala` `on delete cascade`, `dia`; PK `(escala_id, dia)`; `id` só para a auditoria). Ligado à escala, e não ao mês dos oficiais, para servir às outras escalas depois. Todos os dias vermelhos pesam igual; o sistema conta, por oficial, os lugares tomados neles (no mês e, nos meses encerrados, no acumulado) e eles não mudam a cota.
 - **`oficiais_saldo`:** os lançamentos do saldo por unidade e oficial: `mes` (calculado no encerramento, com tirado, devido e a contagem de turnos por rótulo: `turnos_dia` e `turnos_noite`, o rótulo vindo do horário de início do turno), `entrada` (média de quem chega) e `ajuste` (do gestor, com `motivo` de 1 a 200 caracteres e o `usuario_id`). Um `mes` e uma `entrada` por oficial e mês (índice único parcial). O saldo acumulado é a soma de `valor`.
 
 ### Fase 6, entrega 5: rastreio por dia (migração 0028)

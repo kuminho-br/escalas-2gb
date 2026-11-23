@@ -6,7 +6,12 @@ import { LetraTurno } from './servicos.ts';
 export const MilitaresDoc = z.enum(['todos', 'escalados']);
 export const DiasDoc = z.enum(['todos', 'com_escalados']);
 
-export const DadosEscala = z.object({ nome: Nome, titulo: Nome, militaresDoc: MilitaresDoc, diasDoc: DiasDoc });
+/** O jeito de distribuir os serviços da escala: a pré-escala (as de sempre) ou a rodada de cotas (a escala dos oficiais, entrega 6.27). */
+export const Distribuicao = z.enum(['pre_escala', 'rodada_de_cotas']);
+export type Distribuicao = z.infer<typeof Distribuicao>;
+
+/** `distribuicao` é opcional na edição: sem ele, o jeito de distribuir não muda. */
+export const DadosEscala = z.object({ nome: Nome, titulo: Nome, militaresDoc: MilitaresDoc, diasDoc: DiasDoc, distribuicao: Distribuicao.optional() });
 export type DadosEscala = z.infer<typeof DadosEscala>;
 
 export const NovaEscala = z.object({ nome: Nome });
@@ -41,7 +46,7 @@ export type VinculosDaEscala = z.infer<typeof VinculosDaEscala>;
 /** Uma coluna da matriz: um horário distinto entre os turnos dos serviços da escala. */
 export type FaixaDaEscala = { inicio: string; fim: string; letras: LetraTurno[]; servicos: string[] };
 
-export type LinhaEscala = { id: string; nome: string; ativa: boolean; servicos: string[]; montaBlocosVoluntariado: boolean };
+export type LinhaEscala = { id: string; nome: string; ativa: boolean; servicos: string[]; montaBlocosVoluntariado: boolean; distribuicao: Distribuicao };
 
 export type VinculoSalvo = { guarnicaoId: string; guarnicao: string; ativaNoMes: boolean; inicio: string; fim: string };
 
@@ -52,6 +57,7 @@ export type Escala = {
   militaresDoc: z.infer<typeof MilitaresDoc>;
   diasDoc: z.infer<typeof DiasDoc>;
   ativa: boolean;
+  distribuicao: Distribuicao;
   /** os serviços desta escala que pedem voluntariado cortam o dia em blocos no voluntariado */
   montaBlocosVoluntariado: boolean;
   servicos: { id: string; nome: string; cor: string; ativo: boolean }[];

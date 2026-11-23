@@ -7,7 +7,7 @@ import { abrir, chamadasA, corpoEnviado, EU_EXEMPLO, simularApi, trava } from '.
 
 // Dados fictícios (D7): a escala do mês vazia e a prévia da pré-escala do Pronto.
 const MES = mesAtual();
-const LISTA: LinhaEscala[] = [{ id: 'e1', nome: 'Ordinário', ativa: true, servicos: ['Pronto'], montaBlocosVoluntariado: true }];
+const LISTA: LinhaEscala[] = [{ id: 'e1', nome: 'Ordinário', ativa: true, servicos: ['Pronto'], montaBlocosVoluntariado: true, distribuicao: 'pre_escala' }];
 const ESCALA: EscalaDoMes = { escalaId: 'e1', nome: 'Ordinário', mes: MES, dias: [], resumo: { preenchidas: 0, obrigatorias: 0, obrigatoriasVazias: 0 } };
 const EQUIPES = [{ id: 'q1', nome: 'Alfa' }, { id: 'q2', nome: 'Bravo' }, { id: 'q3', nome: 'Charlie' }, { id: 'q4', nome: 'Delta' }];
 const previa = (extra: Partial<PreviaDaPreEscala> = {}): PreviaDaPreEscala => ({

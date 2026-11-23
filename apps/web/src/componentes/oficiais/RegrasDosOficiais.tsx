@@ -40,6 +40,14 @@ export function RegrasDosOficiais() {
         <p>As cotas somam 5 × 8 + 2 × 9 + 4 = 62 turnos. A parte quebrada (os −0,25, +0,75 e −0,26) não se perde: vai para o saldo de cada um.</p>
       </section>
       <section>
+        <h2>Os dias vermelhos</h2>
+        <ul>
+          <li>Dia vermelho é um dia ruim, que ninguém quer tirar. O escalante marca no calendário do mês, até o mês ser encerrado.</li>
+          <li>Todos os dias vermelhos pesam igual. O sistema só conta quantos cada oficial tirou, no mês e no acumulado do painel de saldo.</li>
+          <li>Os dias vermelhos não mudam a cota de ninguém.</li>
+        </ul>
+      </section>
+      <section>
         <h2>O saldo</h2>
         <p>O saldo é o que você tirou menos o que devia tirar, somado mês a mês. Ele tem casas decimais e não é zerado de um mês para o outro.</p>
         <ul>

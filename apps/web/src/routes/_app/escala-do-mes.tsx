@@ -43,12 +43,14 @@ function EscalaDoMes() {
   const [erro, setErro] = useState<string | null>(null);
   const [gerando, setGerando] = useState(false);
   const [gravadas, setGravadas] = useState<number | null>(null);
-  const ativas = escalas.data?.filter((e) => e.ativa) ?? [];
+  // a escala de rodada de cotas (a dos oficiais) é montada em Oficiais: não aparece aqui
+  const daPreEscala = escalas.data?.filter((e) => e.distribuicao === 'pre_escala') ?? [];
+  const ativas = daPreEscala.filter((e) => e.ativa);
   const escalaId = busca.escala ?? ativas[0]?.id;
   const mes = busca.mes ?? mesAtual();
   const dados = useQuery({ ...consultaEscalaDoMes(escalaId ?? '', mes), enabled: Boolean(escalaId) });
   const cotas = useQuery({ ...consultaCotas(eu.unidade.id, mes), enabled: Boolean(escalaId) });
-  const opcoes = escalas.data?.filter((e) => e.ativa || e.id === escalaId) ?? [];
+  const opcoes = daPreEscala.filter((e) => e.ativa || e.id === escalaId);
   // rola uma vez ao carregar a escala (não a cada gravação, que troca os dados mas não a escala nem o mês)
   const carregada = dados.data ? `${dados.data.escalaId}|${dados.data.mes}` : null;
   useEffect(() => {

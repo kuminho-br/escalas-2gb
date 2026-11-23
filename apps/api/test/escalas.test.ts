@@ -57,9 +57,9 @@ afterAll(async () => {
 describe('escalas', () => {
   it('nova escala nasce com título ESCALA <NOME>, só escalados e todos os dias', async () => {
     const e = await criar('Defensoria');
-    expect(e).toMatchObject({ nome: 'Defensoria', titulo: 'ESCALA DEFENSORIA', militaresDoc: 'escalados', diasDoc: 'todos', ativa: true, servicos: [], faixas: [], comLetra: true, vinculos: [], montaBlocosVoluntariado: true });
+    expect(e).toMatchObject({ nome: 'Defensoria', titulo: 'ESCALA DEFENSORIA', militaresDoc: 'escalados', diasDoc: 'todos', ativa: true, distribuicao: 'pre_escala', servicos: [], faixas: [], comLetra: true, vinculos: [], montaBlocosVoluntariado: true });
     const lista: LinhaEscala[] = await (await api.pedir('escalante', 'GET', `${secao()}/escalas`)).json();
-    expect(lista.find((x) => x.id === e.id)).toEqual({ id: e.id, nome: 'Defensoria', ativa: true, servicos: [], montaBlocosVoluntariado: true });
+    expect(lista.find((x) => x.id === e.id)).toEqual({ id: e.id, nome: 'Defensoria', ativa: true, servicos: [], montaBlocosVoluntariado: true, distribuicao: 'pre_escala' });
   });
 
   it('editar identificação', async () => {
@@ -67,6 +67,38 @@ describe('escalas', () => {
     const r = await api.pedir('escalante', 'PATCH', `/api/escalas/${e.id}`, { nome: 'CPRH', titulo: 'ESCALA DE SERVIÇO CPRH', militaresDoc: 'todos', diasDoc: 'com_escalados' });
     expect(r.status).toBe(200);
     expect(await r.json()).toMatchObject({ titulo: 'ESCALA DE SERVIÇO CPRH', militaresDoc: 'todos', diasDoc: 'com_escalados' });
+  });
+
+  it('o jeito de distribuir (6.27): editar sem ele não muda; com ele, grava e aparece na lista; um valor que não existe é 400', async () => {
+    const e = await criar('Rodada');
+    const base = { nome: 'Rodada', titulo: 'ESCALA RODADA', militaresDoc: 'escalados', diasDoc: 'todos' };
+    expect(((await (await api.pedir('escalante', 'PATCH', `/api/escalas/${e.id}`, base)).json()) as { distribuicao: string }).distribuicao).toBe('pre_escala');
+    const r = await api.pedir('escalante', 'PATCH', `/api/escalas/${e.id}`, { ...base, distribuicao: 'rodada_de_cotas' });
+    expect(r.status).toBe(200);
+    expect((await r.json()).distribuicao).toBe('rodada_de_cotas');
+    const lista: LinhaEscala[] = await (await api.pedir('escalante', 'GET', `${secao()}/escalas`)).json();
+    expect(lista.find((x) => x.id === e.id)!.distribuicao).toBe('rodada_de_cotas');
+    // editar de novo sem o campo mantém a rodada de cotas
+    expect(((await (await api.pedir('escalante', 'PATCH', `/api/escalas/${e.id}`, base)).json()) as { distribuicao: string }).distribuicao).toBe('rodada_de_cotas');
+    expect((await api.pedir('escalante', 'PATCH', `/api/escalas/${e.id}`, { ...base, distribuicao: 'sorteio' })).status).toBe(400);
+  });
+
+  it('revisão final da 6.27: o jeito de distribuir não muda com militares escalados nem com mês de oficiais gravado (409), e muda quando a escala está vazia', async () => {
+    const militar = (await api.banco.query<{ id: string }>('select id from militar limit 1')).rows[0]!.id;
+    const comAlocacao = await criar('Com alocação');
+    await servicosDa(comAlocacao.id, [pronto.id]);
+    await inserir(api.banco, 'alocacao', { militar_id: militar, escala_id: comAlocacao.id, servico_id: pronto.id, turno_id: pronto.turnos[0]!.id, data: `${atual}-10`, origem: 'manual' });
+    const base = { nome: 'Com alocação', titulo: 'ESCALA COM ALOCAÇÃO', militaresDoc: 'escalados', diasDoc: 'todos' };
+    const r = await api.pedir('escalante', 'PATCH', `/api/escalas/${comAlocacao.id}`, { ...base, distribuicao: 'rodada_de_cotas' });
+    expect(r.status).toBe(409);
+    expect((await r.json()).erro).toBe('Esta escala já tem militares escalados ou um mês dos oficiais: o jeito de distribuir não muda.');
+    // a mesma escala com o mesmo valor segue editável, e a vazia troca
+    expect((await api.pedir('escalante', 'PATCH', `/api/escalas/${comAlocacao.id}`, { ...base, distribuicao: 'pre_escala' })).status).toBe(200);
+    const vazia = await criar('Vazia');
+    expect((await api.pedir('escalante', 'PATCH', `/api/escalas/${vazia.id}`, { nome: 'Vazia', titulo: 'ESCALA VAZIA', militaresDoc: 'escalados', diasDoc: 'todos', distribuicao: 'rodada_de_cotas' })).status).toBe(200);
+    await inserir(api.banco, 'oficiais_mes', { unidade_id: api.ids.secao, escala_id: vazia.id, mes: `${atual}-01` });
+    const volta = await api.pedir('escalante', 'PATCH', `/api/escalas/${vazia.id}`, { nome: 'Vazia', titulo: 'ESCALA VAZIA', militaresDoc: 'escalados', diasDoc: 'todos', distribuicao: 'pre_escala' });
+    expect(volta.status).toBe(409);
   });
 
   it('reúne serviços na ordem e devolve as faixas', async () => {

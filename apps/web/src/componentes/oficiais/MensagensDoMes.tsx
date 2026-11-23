@@ -4,7 +4,7 @@ import type { ReactNode } from 'react';
 import { Button } from '@/componentes/ui/button';
 import { cn } from '@/lib/utils';
 
-export type Confirmacao = 'fechar' | 'encerrar' | 'encerrar-antes' | 'calcular-fechada' | null;
+export type Confirmacao = 'fechar' | 'encerrar' | 'encerrar-antes' | 'abrir-fechada' | null;
 
 const dataBr = (iso: string) => `${iso.slice(8, 10)}/${iso.slice(5, 7)}/${iso.slice(0, 4)}`;
 
@@ -23,8 +23,8 @@ function Caixa({ tom = 'info', children, rotulo }: { tom?: 'info' | 'aviso' | 'o
 }
 
 const PASSOS = [
-  { nome: 'Participantes e cotas', frase: 'Marque quem participa e calcule as cotas' },
-  { nome: 'Escolhas', frase: 'Os oficiais escolhem os turnos na ordem' },
+  { nome: 'Abrir o mês', frase: 'Marque quem participa e abra o mês: as cotas se refazem sozinhas' },
+  { nome: 'Escolhas', frase: 'JES à mão primeiro; o resto, pela rodada, como Saldo' },
   { nome: 'Escala fechada', frase: 'Trocar é cobrir: fica o registro de quem saiu' },
   { nome: 'Mês encerrado', frase: 'O saldo entra no acumulado' },
 ] as const;
@@ -32,9 +32,9 @@ const PASSOS = [
 interface PropsDasEtapas {
   etapa: EscalaDosOficiais['etapa'];
   ocupado: boolean;
-  /** sem o serviço escolhido não há o que calcular */
-  podeCalcular: boolean;
-  aoCalcular: () => void;
+  /** sem a escala (e o serviço de Saldo dela) não há como abrir o mês */
+  podeAbrir: boolean;
+  aoAbrir: () => void;
   aoFechar: () => void;
   aoEncerrar: () => void;
 }
@@ -43,11 +43,11 @@ interface PropsDasEtapas {
  * As etapas do mês como uma linha de processo: quatro passos com um círculo (feito: visto; atual: preenchido com o número; por vir: contorno), o nome e uma
  * frase do que acontece nele. A ação que leva ao próximo passo fica sobre a seta que sai dele; a seta se preenche (220 ms) quando o passo é vencido.
  */
-export function EtapasDoMes({ etapa, ocupado, podeCalcular, aoCalcular, aoFechar, aoEncerrar }: PropsDasEtapas) {
+export function EtapasDoMes({ etapa, ocupado, podeAbrir, aoAbrir, aoFechar, aoEncerrar }: PropsDasEtapas) {
   const atual = etapa === 'encerrada' ? 3 : etapa === 'fechada' ? 2 : etapa === 'escolhas' ? 1 : 0;
-  // a ação de cada seta: "Calcular cotas" também recalcula; "Encerrar o mês" também vale direto das escolhas (o sistema avisa para fechar antes)
+  // a ação de cada seta: "Abrir o mês" também refaz as cotas; "Encerrar o mês" também vale direto das escolhas (o sistema avisa para fechar antes)
   const acao = (i: number) => {
-    if (i === 0 && etapa !== 'encerrada') return { rotulo: 'Calcular cotas', principal: atual === 0, desligado: ocupado || !podeCalcular, aoClicar: aoCalcular };
+    if (i === 0 && etapa !== 'encerrada') return { rotulo: 'Abrir o mês', principal: atual === 0, desligado: ocupado || !podeAbrir, aoClicar: aoAbrir };
     if (i === 1 && etapa === 'escolhas') return { rotulo: 'Fechar a escala', principal: true, desligado: ocupado, aoClicar: aoFechar };
     if (i === 2 && (etapa === 'escolhas' || etapa === 'fechada')) return { rotulo: 'Encerrar o mês', principal: etapa === 'fechada', desligado: ocupado, aoClicar: aoEncerrar };
     return null;
@@ -145,7 +145,7 @@ export function MensagensDoMes({ escala: e, confirmacao, ocupado, aoFechar, aoEn
           </div>
         </Caixa>
       )}
-      {confirmacao === 'calcular-fechada' && (
+      {confirmacao === 'abrir-fechada' && (
         <Caixa rotulo="Aviso">
           <p>Com a escala fechada, a cota não muda mais. Se alguém sair agora, troque o nome no turno: vira cobertura.</p>
           <div><Button type="button" size="sm" variant="outline" onClick={aoDesistir}>Entendi</Button></div>
