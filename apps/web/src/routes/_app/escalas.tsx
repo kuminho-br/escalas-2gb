@@ -9,6 +9,7 @@ import { atualizarGuarnicoes } from '@/api/guarnicoes';
 import { atualizarServicos } from '@/api/servicos';
 import { ImportarPlanilha } from '@/componentes/ImportarPlanilha';
 import { classeItemEscolhido, ListaDetalhe } from '@/componentes/ListaDetalhe';
+import { useDescartarDigitado } from '@/componentes/DescartarDigitado';
 import { Button } from '@/componentes/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/componentes/ui/dialog';
 import { Input } from '@/componentes/ui/input';
@@ -99,6 +100,7 @@ function ItemEscala({ e, escolhida }: { e: LinhaEscala; escolhida: boolean }) {
 
 function NovaEscalaDialogo({ unidadeId, aoFechar }: { unidadeId: string; aoFechar: () => void }) {
   const queryClient = useQueryClient();
+  const descarte = useDescartarDigitado(aoFechar);
   const navigate = useNavigate();
   const [erro, setErro] = useState<string | null>(null);
   const [salvando, setSalvando] = useState(false);
@@ -121,13 +123,13 @@ function NovaEscalaDialogo({ unidadeId, aoFechar }: { unidadeId: string; aoFecha
   }
 
   return (
-    <Dialog open onOpenChange={(v) => !v && aoFechar()}>
+    <Dialog open onOpenChange={descarte.aoMudarAberto}>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Nova escala</DialogTitle>
           <DialogDescription>Depois de criar, reúna os serviços e ligue as guarnições na ficha.</DialogDescription>
         </DialogHeader>
-        <form onSubmit={criar} className="grid gap-3">
+        <form ref={descarte.ref} onSubmit={criar} className="grid gap-3">
           <div className="grid gap-1.5">
             <Label htmlFor="ne-nome">Nome da escala</Label>
             <Input id="ne-nome" name="nome" required />
@@ -137,6 +139,7 @@ function NovaEscalaDialogo({ unidadeId, aoFechar }: { unidadeId: string; aoFecha
             <Button type="submit" disabled={salvando}>Criar</Button>
           </DialogFooter>
         </form>
+        {descarte.confirmacao}
       </DialogContent>
     </Dialog>
   );
