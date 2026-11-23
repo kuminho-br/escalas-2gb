@@ -107,7 +107,10 @@ Design: `docs/superpowers/specs/2026-11-21-usuarios-e-modulos-design.md`. Plano:
 | 7 | Militares só no Pecúlio | mesclada (#107) |
 | 8 | Nível de acesso, "até" e Enter no Pecúlio | mesclada (#108) |
 | 9 | Quadro e situação no rastreio; CPF, nascimento e endereço | mesclada (#110) |
-| 10 a 12 | Camadas de visão e chefe de divisão: divisões e o quinto nível; consulta de militares; escalas só para leitura. Plano: `docs/superpowers/plans/2026-11-23-camadas-de-visao.md` | planejadas |
+| 10 a 12 | Camadas de visão e chefe de divisão: divisões e o quinto nível; consulta de militares; escalas só para leitura | planejadas |
+| 13 | Pecúlio como origem dos dados: importação única, apagar militar, postos editáveis. Antes da 10 | planejada |
+
+Planos das entregas 10 a 13: `docs/superpowers/plans/2026-11-23-*.md`.
 
 **Fora:** e-mail, usuários acima do GB (fase 11), Visualização (fase 7).
 

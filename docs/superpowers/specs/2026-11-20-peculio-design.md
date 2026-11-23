@@ -123,6 +123,8 @@ O histórico das mudanças de comportamento fica na auditoria (relação de um c
 
 **Militar novo** só entra pelo módulo Pecúlio, pela ficha ou pela importação do Pecúlio; o módulo de escalas não cadastra militar (decisão do usuário, 22/11/2026; entrega 6.7).
 
+**Apagar um militar** é só do administrador, e leva junto tudo o que é dele (decisão do usuário, 23/11/2026; entrega 6.13). Os **postos e graduações** têm a sigla e o nome editados pelo administrador, nas Configurações.
+
 | Bloco | Quem edita |
 |---|---|
 | Identificação, contato, dados pessoais, comportamento, afastamentos e o rastreio (lotação) | gestor ou auxiliar administrativo (escalante) com papel numa **unidade acima** da lotação do militar (a "seção de pessoal" é o papel da unidade de cima) |
@@ -152,9 +154,13 @@ Ficha do militar
 
 ## Importação do Pecúlio
 
-- Um **modelo de planilha próprio** (aba `PECÚLIO`), gerado pela API como os outros, com a aba `AJUDA`. As colunas são as do modelo acima: nome completo e nome de guerra em colunas separadas.
-- A matrícula liga a linha ao militar que já existe; o resto segue o padrão das importações (prévia, problemas com a solução, importar de novo sem duplicar).
-- Quem envia adapta a planilha ao modelo.
+O Pecúlio é a **origem dos dados do militar**: a planilha dele importa tudo, e o módulo de escalas não importa militares (decisão do usuário, 23/11/2026; entrega 6.13).
+
+- Um **modelo de planilha próprio** (aba `PECÚLIO`), gerado pela API, com a aba `AJUDA`. Traz os dados da ficha, o quadro, a situação e os dados da escala (jornada, equipe, motorista, CNH e voluntário JES).
+- **Só a matrícula é obrigatória.** Coluna ausente ou célula vazia não altera nada; nenhuma célula apaga um dado.
+- **Dado inválido é ignorado**, célula por célula, e aparece na prévia com o motivo. O resto da linha entra, e o botão de importar não trava.
+- **Militar novo** precisa de posto/graduação, nome de guerra e lotação válidos; sem um deles, não é criado.
+- O CPF nunca aparece inteiro na prévia nem em mensagem.
 
 ## Ideias futuras (registradas, fora da fase 5)
 
