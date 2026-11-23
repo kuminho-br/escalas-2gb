@@ -139,9 +139,9 @@ describe('o mês seguinte', () => {
     expect(painel.filter((o) => o.registro.some((r) => r.tipo === 'mes')).map((o) => o.nomeGuerra)).toEqual(['A']);
   });
 
-  it('sem mês gravado, abril vem com a cópia de março: A marcado; B e C desmarcados; quem chegou em abril é "novo"', async () => {
+  it('sem mês gravado, abril vem com a cópia de março: A marcado; B e C desmarcados; quem chegou em abril não participa, e por isso ainda não é "novo" (decisão de 23/11)', async () => {
     await oficial('d', 4, { desde: '2027-04-01' });
-    expect(resumo(await ler('2027-04'))).toEqual([['A', true, false], ['B', false, false], ['C', false, false], ['D', false, true]]);
+    expect(resumo(await ler('2027-04'))).toEqual([['A', true, false], ['B', false, false], ['C', false, false], ['D', false, false]]);
     // ler não grava o mês
     expect((await api.banco.query("select 1 from oficiais_mes where mes = '2027-04-01'")).rows).toHaveLength(0);
   });
@@ -150,12 +150,13 @@ describe('o mês seguinte', () => {
     expect((await calcular('2027-04')).status).toBe(200);
     const e = await ler('2027-04');
     expect(e.oficiais.filter((o) => o.cota !== null).map((o) => o.nomeGuerra)).toEqual(['A']);
-    expect(de(e, 'd')).toMatchObject({ participa: false, novo: true });
+    expect(de(e, 'd')).toMatchObject({ participa: false, novo: false });
   });
 
-  it('quem nunca participou e é marcado entra com a média no encerramento, e deixa de ser "novo" (Review Focus 4)', async () => {
+  it('quem não participou no mês anterior e é marcado neste vira "novo" (a marca é de quem participa e é novo na rodada); entra com a média no encerramento (Review Focus 4)', async () => {
     const e: Resposta = await (await marcar('2027-04', ['a', 'd'])).json();
-    expect(de(e, 'd')).toMatchObject({ participa: true, novo: false });
+    expect(de(e, 'd')).toMatchObject({ participa: true, novo: true });
+    expect(de(e, 'a')).toMatchObject({ participa: true, novo: false });
     expect((await api.pedir('gestorGb', 'POST', rota('2027-04', '/fechar'))).status).toBe(200);
     expect((await api.pedir('gestorGb', 'POST', rota('2027-04', '/encerrar'))).status).toBe(200);
     const { rows } = await api.banco.query<{ tipo: string }>(

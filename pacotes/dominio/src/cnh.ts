@@ -64,6 +64,15 @@ export function cnhParaEscala(m: { motorista: boolean; cnh: unknown[] | null | u
   return m.motorista ? cnhHabilitadas(m.cnh) : [];
 }
 
+/**
+ * Por que o militar não pode ocupar uma vaga que exige a categoria `exigida`: null se pode; "Fora do quadro de motoristas" se a carteira dele habilita a
+ * categoria mas ele não está no quadro (o que ele precisa é entrar no quadro, e não tirar a carteira); senão, "Sem a CNH exigida".
+ */
+export function motivoDaCnh(m: { motorista: boolean; cnh: unknown[] | null | undefined }, exigida: string): 'Sem a CNH exigida' | 'Fora do quadro de motoristas' | null {
+  if (cnhParaEscala(m).includes(exigida)) return null;
+  return !m.motorista && (cnhHabilitadas(m.cnh) as string[]).includes(exigida) ? 'Fora do quadro de motoristas' : 'Sem a CNH exigida';
+}
+
 /** Categorias da coluna CNH do militar: "AD" é A + D; pedaços que não são categoria voltam em invalidas. */
 export function categoriasCnh(bruto: unknown): { categorias: string[]; invalidas: string[] } {
   const categorias: string[] = [];

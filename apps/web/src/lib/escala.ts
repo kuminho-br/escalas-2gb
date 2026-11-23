@@ -3,6 +3,7 @@ const COMO_SE_LE: Record<string, [singular: string, plural: string]> = {
   Afastado: ['afastado', 'afastados'],
   Desativado: ['desativado', 'desativados'],
   'Sem a CNH exigida': ['sem a CNH exigida', 'sem a CNH exigida'],
+  'Fora do quadro de motoristas': ['fora do quadro de motoristas', 'fora do quadro de motoristas'],
   'Choque de horário': ['com choque de horário', 'com choque de horário'],
   'Já escalado neste horário': ['já escalado neste horário', 'já escalados neste horário'],
   'Não é voluntário JES': ['sem ser voluntário JES', 'sem ser voluntários JES'],

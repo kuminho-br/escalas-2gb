@@ -129,6 +129,17 @@ describe('módulo Pecúlio', () => {
     expect((await militares()).getByText('ANDRADE')).toBeInTheDocument();
   });
 
+  it('o botão "Importar" só aparece para quem pode importar (nível acima das seções); o auxiliar só da seção não o vê (6.17, item 22)', async () => {
+    api(EU_EXEMPLO);
+    abrir('/peculio');
+    await militares();
+    expect(screen.queryByRole('button', { name: /^Importar/ })).toBeNull();
+    cleanup();
+    api(GESTOR_GB);
+    abrir('/peculio');
+    expect(await screen.findByRole('button', { name: /^Importar/ })).toBeInTheDocument();
+  });
+
   it('o botão "Importar" abre a importação do Pecúlio, com o modelo do Pecúlio da unidade do módulo', async () => {
     api();
     abrir('/peculio');
@@ -390,3 +401,37 @@ describe('o Novo militar, no Pecúlio', () => {
     expect(await dialogo.findByText('Não deu para carregar a lista. Recarregue a página.')).toBeInTheDocument();
   });
 });
+
+describe('a lista com mais de 100 militares (6.17, item 23)', () => {
+  const muitos: ListaDoPeculio = {
+    militares: Array.from({ length: 250 }, (_, i) => ({
+      militarId: `m${i}`, matricula: `99${String(1000 + i).padStart(4, '0')}-${i % 10}`, posto: 'SD', nomeGuerra: `NOME${String(i).padStart(3, '0')}`, nomeCompleto: `Fulano ${i}`, lotacao: '1ª SB', telefone: null, email: null, pendencias: [],
+    })),
+  };
+  const linhas = async () => (await militares()).getAllByRole('listitem');
+
+  it('mostra de 100 em 100, com "Mostrar mais" e o total; o último trecho some o botão', async () => {
+    api(EU_EXEMPLO, muitos);
+    abrir('/peculio');
+    expect(await linhas()).toHaveLength(100);
+    expect(screen.getByText('Mostrando 100 de 250 militares')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Mostrar mais' }));
+    expect(await linhas()).toHaveLength(200);
+    await userEvent.click(screen.getByRole('button', { name: 'Mostrar mais' }));
+    expect(await linhas()).toHaveLength(250);
+    expect(screen.queryByRole('button', { name: 'Mostrar mais' })).toBeNull();
+  });
+
+  it('a busca olha a lista inteira, e voltar ao filtro começa de novo nos 100 primeiros', async () => {
+    api(EU_EXEMPLO, muitos);
+    abrir('/peculio');
+    await linhas();
+    await userEvent.click(screen.getByRole('button', { name: 'Mostrar mais' }));
+    expect(await linhas()).toHaveLength(200);
+    fireEvent.change(screen.getByLabelText('Buscar por nome ou matrícula'), { target: { value: 'NOME249' } });
+    await waitFor(async () => expect(await linhas()).toHaveLength(1));
+    fireEvent.change(screen.getByLabelText('Buscar por nome ou matrícula'), { target: { value: '' } });
+    await waitFor(async () => expect(await linhas()).toHaveLength(100));
+  });
+});
+

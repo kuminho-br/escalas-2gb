@@ -43,6 +43,8 @@ export function EscalaDoMes({ unidadeId, escala: e, aoVer }: Props) {
         depois?.();
       } catch (x) {
         mostrar(mensagemDe(x));
+        // um 409 quer dizer que a escala mudou desde que a tela abriu: os dados vêm de novo
+        void queryClient.invalidateQueries({ queryKey: ['oficiais', unidadeId] });
       }
     });
   // as mudanças que refazem as cotas dizem os turnos de quem saiu da rodada que ficaram sem ninguém; uma ação nova limpa o aviso anterior
@@ -81,21 +83,15 @@ export function EscalaDoMes({ unidadeId, escala: e, aoVer }: Props) {
     } else if (e.vez) void lancar(t, e.vez);
   };
   const aberto = e.etapa === 'escolhas' || e.etapa === 'fechada';
+  const donoDoTurno = turnoAberto ? e.oficiais.find((o) => o.militarId === e.turnos.find((x) => x.dia === turnoAberto.dia && x.turnoId === turnoAberto.turnoId)?.militarId) : undefined;
 
   return (
     <div className="grid gap-3">
-      <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2">
-        <EtapasDoMes etapa={e.etapa} />
-        <div className="flex flex-wrap gap-2">
-          {e.etapa !== 'encerrada' && (
-            <Button type="button" variant={e.etapa === 'fechada' ? 'outline' : 'default'} disabled={salvando || !e.servico} onClick={aoCalcular}>
-              Calcular cotas
-            </Button>
-          )}
-          {e.etapa === 'escolhas' && <Button type="button" variant="outline" disabled={salvando} onClick={aoFechar}>Fechar a escala</Button>}
-          {(e.etapa === 'escolhas' || e.etapa === 'fechada') && (
-            <Button type="button" variant={e.etapa === 'fechada' ? 'default' : 'outline'} disabled={salvando} onClick={aoEncerrar}>Encerrar o mês</Button>
-          )}
+      <div className="flex flex-wrap items-start justify-between gap-x-6 gap-y-3">
+        <div className="min-w-0 basis-full">
+          <EtapasDoMes etapa={e.etapa} ocupado={salvando} podeCalcular={Boolean(e.servico)} aoCalcular={aoCalcular} aoFechar={aoFechar} aoEncerrar={aoEncerrar} />
+        </div>
+        <div className="ml-auto flex flex-wrap gap-2">
           {e.etapa === 'encerrada' && <Button type="button" variant="outline" onClick={() => aoVer('saldo')}>Ver o saldo</Button>}
           <Button type="button" variant="outline" onClick={() => aoVer('regras')}>Regras</Button>
         </div>
@@ -158,7 +154,7 @@ export function EscalaDoMes({ unidadeId, escala: e, aoVer }: Props) {
           <DialogHeader>
             <DialogTitle>Quem fica neste turno?</DialogTitle>
             <DialogDescription>
-              {turnoAberto ? `${turnoAberto.dia.slice(8)}/${turnoAberto.dia.slice(5, 7)}. Quem cobre ganha o turno, e quem saiu não fica devendo.` : ''}
+              {turnoAberto ? `${turnoAberto.dia.slice(8)}/${turnoAberto.dia.slice(5, 7)}, turno ${e.turnosDoServico.find((x) => x.id === turnoAberto.turnoId)?.rotulo ?? ''}${donoDoTurno ? `, hoje com ${donoDoTurno.posto} ${donoDoTurno.nomeGuerra}` : ', hoje sem ninguém'}. Quem cobre ganha o turno, e quem saiu não fica devendo.` : ''}
             </DialogDescription>
           </DialogHeader>
           {erroDoTurno && <p role="alert" className="text-alerta">{erroDoTurno}</p>}

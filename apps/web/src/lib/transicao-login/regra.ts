@@ -45,7 +45,8 @@ export function gravarQuando(q: Quando): void {
 export function lerUltimaInteira(): number | null {
   try {
     const v = Number(localStorage.getItem(CHAVE));
-    return Number.isFinite(v) && v > 0 ? v : null;
+    // uma data no futuro (relógio mexido, valor estranho) é tratada como se não existisse: senão a animação inteira ficaria de fora até lá
+    return Number.isFinite(v) && v > 0 && v <= Date.now() ? v : null;
   } catch {
     return null;
   }

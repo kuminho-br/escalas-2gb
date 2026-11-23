@@ -779,4 +779,15 @@ describe('CPF, nascimento e endereço são de quem cuida do Pecúlio (6.11)', ()
     expect(await nomes('gestorGb')).toContain('TESTE601');
     expect(await nomes('admin')).toContain('NOGB');
   });
+
+  it('aniversariantes: só quem está numa situação que pode ser escalada (6.17, item 22); quem está de reserva sai da lista de aniversários e continua na lista do Pecúlio', async () => {
+    const posto = (await api.banco.query<{ id: string }>("select id from posto_grad where sigla = 'SD'")).rows[0]!.id;
+    const id = await inserir(api.banco, 'militar', { matricula: '990604-4', posto_grad_id: posto, nome_guerra: 'NAORESERVA', nome_completo: 'Fulano da Reserva', nascimento_dia: 9, nascimento_mes: numeroDoMes });
+    const reserva = (await api.banco.query<{ id: string }>("select id from situacao_militar where nome = 'Reserva'")).rows[0]!.id;
+    await inserir(api.banco, 'rastreio', { militar_id: id, unidade_id: api.ids.secao, jornada: 'adm', desde: `${atual}-01`, situacao_id: reserva });
+    const lista: ListaDoPeculio = await (await peculio('gestorGb', api.ids.secao)).json();
+    expect(lista.militares.map((m) => m.nomeGuerra)).toContain('NAORESERVA');
+    expect(lista.aniversariantes!.map((a) => a.nomeGuerra)).not.toContain('NAORESERVA');
+    expect(lista.aniversariantes!.map((a) => a.nomeGuerra)).toContain('TESTE601');
+  });
 });

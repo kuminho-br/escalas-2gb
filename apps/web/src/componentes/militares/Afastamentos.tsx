@@ -9,7 +9,7 @@ import { Selecao } from '@/componentes/Selecao';
 import { Button } from '@/componentes/ui/button';
 import { Input } from '@/componentes/ui/input';
 import { Label } from '@/componentes/ui/label';
-import { DonoDoBloco, dataBr, LISTA_NAO_CARREGOU, Secao } from './Secao';
+import { avisoDaLista, DonoDoBloco, dataBr, Secao } from './Secao';
 
 export function Afastamentos({ ficha }: { ficha: FichaMilitar }) {
   const queryClient = useQueryClient();
@@ -18,6 +18,7 @@ export function Afastamentos({ ficha }: { ficha: FichaMilitar }) {
   const tipos = useQuery(consultaCatalogo('tipos-afastamento'));
   const ativos = tipos.data?.filter((t) => t.ativo) ?? [];
   // o aviso é para quando não há lista nenhuma: uma nova busca que falha deixa a lista que já estava na tela
+  const avisoDosTipos = avisoDaLista(tipos);
   const tiposNaoCarregaram = tipos.isError && !tipos.data;
   const [tipo, setTipo] = useState('');
   const [aberto, setAberto] = useState(false);
@@ -93,7 +94,7 @@ export function Afastamentos({ ficha }: { ficha: FichaMilitar }) {
             <Selecao id="af-tipo" value={tipoEscolhido} onChange={(e) => setTipo(e.target.value)} aria-invalid={tiposNaoCarregaram || undefined} aria-describedby={tiposNaoCarregaram ? 'af-tipo-erro' : undefined}>
               {ativos.map((t) => <option key={t.id} value={t.id}>{t.nome}</option>)}
             </Selecao>
-            {tiposNaoCarregaram && <p id="af-tipo-erro" className="text-xs text-alerta">{LISTA_NAO_CARREGOU}</p>}
+            {avisoDosTipos && <p id="af-tipo-erro" className="text-[13px] text-alerta">{avisoDosTipos}</p>}
           </div>
           <div className="grid grid-cols-2 gap-3 sm:max-w-md">
             <div className="grid gap-1.5">

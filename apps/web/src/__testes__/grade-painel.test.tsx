@@ -217,9 +217,9 @@ describe('grade geral: adicionar serviço neste dia', () => {
 
   it('cada botão "Escalar" tem o nome da faixa, e dois turnos não têm o mesmo nome', async () => {
     const { p } = await abrirAdicionar(COM_ABAS);
-    expect(within(linhaDe(p, '08h–20h')).getByRole('button', { name: 'Escalar às 08h–20h' })).toHaveTextContent(/^Escalar$/);
+    expect(within(linhaDe(p, '08h–20h')).getByRole('button', { name: /^Escalar .+ às 08h–20h$/ })).toHaveTextContent(/^Escalar$/);
     const nomes = within(p).getAllByRole('button', { name: /^Escalar/ }).map((b) => b.getAttribute('aria-label'));
-    expect(nomes.sort()).toEqual(['Escalar às 08h–20h', 'Escalar às 20h–08h']);
+    expect(nomes.sort()).toEqual([expect.stringMatching(/^Escalar [^ ]+ [^ ]+ às 08h–20h$/), expect.stringMatching(/^Escalar [^ ]+ [^ ]+ às 20h–08h$/)]);
     expect(new Set(nomes).size).toBe(nomes.length);
   });
 

@@ -4,6 +4,7 @@ import type { Candidato, Candidatos } from 'contratos';
 import {
   chaveAloc,
   cnhParaEscala,
+  motivoDaCnh,
   compararAntiguidade,
   detectarChoques,
   diaDaSemana,
@@ -124,7 +125,8 @@ export async function avaliarFaixa(c: Consulta, v: VagaConsultada, somenteMilita
     if (ehOficial(m.quadro)) return pronto(MOTIVO_OFICIAL);
     if (!m.ativo) return pronto(m.situacao);
     if (afastados.has(m.id)) return pronto('Afastado');
-    if (exigida && !cnhParaEscala(m).includes(exigida)) return pronto('Sem a CNH exigida');
+    const motivoCnh = exigida ? motivoDaCnh(m, exigida) : null;
+    if (motivoCnh) return pronto(motivoCnh);
     const dele = janela.filter((a) => a.militar_id === m.id);
     if (dele.some((a) => a.data === v.data && a.inicio === v.inicio && a.fim === v.fim)) return pronto(JA_ESCALADO);
     const existentes: AlocChoque[] = dele.map((a) => ({ mat: m.id, dia: a.data, turno: a.letra, servico: a.nome }));

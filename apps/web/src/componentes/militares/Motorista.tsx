@@ -45,6 +45,8 @@ export function Motorista({ ficha }: { ficha: FichaMilitar }) {
   //   acendiam (senão ela continuaria acesa por elas) e as menores que ela já cobre (agora vêm dela).
   const alternar = (c: string) =>
     setCarteira((atual) => {
+      // acesa só pela hierarquia (não está na carteira): clicar não a põe na carteira; a dica diz de onde ela vale
+      if (!atual.includes(c) && atual.some((x) => CNH_HABILITA[x]?.includes(c))) return atual;
       const acendiam = atual.filter((x) => x !== c && CNH_HABILITA[x]?.includes(c));
       const cobertas = CNH_HABILITA[c] ?? [c];
       if (atual.includes(c) && acendiam.length === 0) return atual.filter((x) => !cobertas.includes(x));
@@ -92,6 +94,7 @@ export function Motorista({ ficha }: { ficha: FichaMilitar }) {
                   type="button"
                   aria-label={`${c} ${veiculo}${pela ? ` pela ${pela}` : ''}`}
                   aria-pressed={naCarteira || !!pela}
+                  title={pela ? `Vale pela categoria ${pela}.` : undefined}
                   data-origem={naCarteira ? 'carteira' : pela ? 'hierarquia' : 'nenhuma'}
                   onClick={() => alternar(c)}
                   className={cn(

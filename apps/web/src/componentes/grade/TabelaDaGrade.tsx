@@ -91,8 +91,6 @@ export function TabelaDaGrade({ grade, grupos, maximos, escolhida, aoEscolher, r
                   <span aria-hidden className={cn('block text-base font-semibold', vinho ? 'text-vinho' : 'text-tinta')}>{n}</span>
                   <span aria-hidden className={cn(vinho && 'text-vinho')}>{SIGLA_DO_DIA[d.diaDaSemana]}</span>
                   {d.feriado && <span aria-hidden data-ponto-feriado className="mx-auto mt-0.5 block size-1 rounded-full bg-vinho" />}
-                  {/* hoje: uma faixa embaixo do número do dia */}
-                  {d.data === diaDeHoje && <span aria-hidden data-marca-hoje className="absolute inset-x-1 bottom-0 h-[3px] rounded-t bg-tinta" />}
                 </th>
               );
             })}

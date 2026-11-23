@@ -30,6 +30,8 @@ describe('a regra das 12 h', () => {
   });
 
   it('marca e lê a última vez na chave do navegador', () => {
+    // o relógio de agora é o do teste: uma marca no futuro (6.17, item 11) não vale
+    vi.spyOn(Date, 'now').mockReturnValue(AGORA);
     expect(lerUltimaInteira()).toBeNull();
     marcarInteira(AGORA);
     expect(localStorage.getItem('escalas2gb.login-animacao')).toBe(String(AGORA));
