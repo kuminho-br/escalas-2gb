@@ -123,7 +123,7 @@ describe('entrar', () => {
     });
     await preencherEEntrar();
     await waitFor(() => expect(router.state.location.pathname).toBe('/'));
-    expect(await screen.findByText('SD BM ANDRADE')).toBeInTheDocument();
+    expect(await screen.findByText('SD ANDRADE')).toBeInTheDocument();
   });
 });
 

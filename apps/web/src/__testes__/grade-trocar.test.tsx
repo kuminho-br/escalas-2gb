@@ -11,11 +11,11 @@ const DIAS = Array.from({ length: 31 }, (_, i) => ({ data: `${MES}-${String(i + 
 const PRONTO = { id: 's-pronto', nome: 'Pronto', cor: '#2F8F5B', tipo: 'ordinario' as const };
 const BLOCO: BlocoDaGrade = { alocacaoId: 'a-1', servico: PRONTO, letra: 'A', inicio: '08:00', fim: '20:00', expediente: false };
 const CABO: LinhaDaGrade = {
-  militarId: 'm-CABO', posto: 'SD BM', nomeGuerra: 'CABO', matricula: '990001-1', jornada: 'pronto', dias: { [DIA]: [BLOCO] }, choques: [], pjes: 0, diarias: 0, horasTiradas: 0, horasPedidas: 0,
+  militarId: 'm-CABO', posto: 'SD', nomeGuerra: 'CABO', matricula: '990001-1', jornada: 'pronto', dias: { [DIA]: [BLOCO] }, choques: [], pjes: 0, diarias: 0, horasTiradas: 0, horasPedidas: 0,
 };
 const GRADE: GradeDoMes = { mes: MES, dias: DIAS, grupos: [{ chave: 'eq-alfa', nome: 'Alfa', linhas: [CABO] }] };
 const PAINEL: PainelDoDia = {
-  militar: { militarId: 'm-CABO', posto: 'SD BM', nomeGuerra: 'CABO', matricula: '990001-1', equipe: 'Alfa', jornada: 'pronto', cnh: ['D'], voluntarioJes: true },
+  militar: { militarId: 'm-CABO', posto: 'SD', nomeGuerra: 'CABO', matricula: '990001-1', equipe: 'Alfa', jornada: 'pronto', cnh: ['D'], voluntarioJes: true },
   data: DIA, afastamento: null, disponibilidade: [],
   servicos: [{ alocacaoId: 'a-1', escalaId: 'e-ord', escala: 'Ordinário', servico: PRONTO, letra: 'A', inicio: '08:00', fim: '20:00', guarnicao: 'ABT', funcao: 'Combatente', acumulaCom: [] }],
   choques: [], opcoes: [],
@@ -23,13 +23,13 @@ const PAINEL: PainelDoDia = {
 const TROCAS: OpcoesDeTroca = {
   livres: {
     aptos: [{
-      militarId: 'm-livre', posto: 'SD BM', nomeGuerra: 'CHARLIE', matricula: '990003-3', equipe: 'Alfa', jornada: 'pronto',
+      militarId: 'm-livre', posto: 'SD', nomeGuerra: 'CHARLIE', matricula: '990003-3', equipe: 'Alfa', jornada: 'pronto',
       servicos: [{ servicoId: 's-pronto', turnoId: 't-a', nome: 'Pronto' }, { servicoId: 's-jes', turnoId: 't-jes', nome: 'JES' }],
     }],
     semVoluntariado: [], fora: [{ motivo: 'Afastado', quantidade: 2 }], acumular: [],
   },
   escalados: [{
-    militarId: 'm-bravo', posto: 'SD BM', nomeGuerra: 'BRAVO', matricula: '990002-2',
+    militarId: 'm-bravo', posto: 'SD', nomeGuerra: 'BRAVO', matricula: '990002-2',
     alocacoes: [
       { alocacaoId: 'a-b1', onde: 'Ordinário, 20h–08h, Motorista do ABT', permuta: true },
       { alocacaoId: 'a-b2', onde: 'Ordinário, 08h–16h, sem guarnição', permuta: false },
@@ -66,7 +66,7 @@ describe('grade geral: trocar', () => {
     expect(await within(d).findByRole('button', { name: /CHARLIE/ })).toBeInTheDocument();
     expect(within(d).getByText('Ficaram de fora: 2 afastados')).toBeInTheDocument();
     expect(within(d).getByRole('heading', { name: 'Já escalados neste dia' })).toBeInTheDocument();
-    expect(within(d).getByText('SD BM BRAVO')).toBeInTheDocument();
+    expect(within(d).getByText('SD BRAVO')).toBeInTheDocument();
     expect(within(d).getByRole('button', { name: 'Ordinário, 20h–08h, Motorista do ABT' })).toBeInTheDocument();
     expect(within(d).getByRole('button', { name: 'Ordinário, 08h–16h, sem guarnição' })).toBeInTheDocument();
   });
@@ -107,7 +107,7 @@ describe('grade geral: trocar', () => {
   });
 
   it('quem só não marcou o horário no voluntariado vem numa seção própria, com o aviso na confirmação (achado da revisão final)', async () => {
-    const delta = { militarId: 'm-delta', posto: 'SD BM', nomeGuerra: 'DELTA', matricula: '990004-4', equipe: 'Alfa', jornada: 'pronto' as const, servicos: [{ servicoId: 's-jes', turnoId: 't-jes', nome: 'JES' }] };
+    const delta = { militarId: 'm-delta', posto: 'SD', nomeGuerra: 'DELTA', matricula: '990004-4', equipe: 'Alfa', jornada: 'pronto' as const, servicos: [{ servicoId: 's-jes', turnoId: 't-jes', nome: 'JES' }] };
     const f = api({ 'GET /api/alocacoes/a-1/trocas': { status: 200, corpo: { ...TROCAS, livres: { ...TROCAS.livres, semVoluntariado: [delta] } } } });
     abrir(ABERTA);
     const d = await abrirTroca();

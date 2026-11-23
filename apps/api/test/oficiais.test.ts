@@ -21,7 +21,7 @@ async function oficial(nome: string, antiguidade: number | null, opcoes: { posto
   seq++;
   const id = await inserir(api.banco, 'militar', {
     matricula: `9904${String(seq).padStart(2, '0')}-${seq % 10}`,
-    posto_grad_id: posto[opcoes.posto ?? 'CAP BM'],
+    posto_grad_id: posto[opcoes.posto ?? 'CAP'],
     nome_guerra: nome.toUpperCase(),
     antiguidade,
   });
@@ -53,8 +53,8 @@ beforeAll(async () => {
     // m2 é lotado na 1ª SB, abaixo do 2º GB: também entra na escala dele; m1 é do QOA
     await oficial(nome, k + 1, { quadro: nome === 'm1' ? 'QOA' : 'QOC', unidade: nome === 'm2' ? api.ids.secao : api.ids.gb });
   }
-  await oficial('praca', 1, { posto: '2º SGT BM', quadro: 'QBMG' });
-  await oficial('semquadro', 2, { posto: 'MAJ BM', quadro: null });
+  await oficial('praca', 1, { posto: '2º SGT', quadro: 'QBMG' });
+  await oficial('semquadro', 2, { posto: 'MAJ', quadro: null });
   servico = await inserir(api.banco, 'servico', { unidade_id: api.ids.gb, nome: 'Oficial de operações', tipo: 'ordinario', cor: '#2F8F5B' });
   turnoA = await inserir(api.banco, 'turno', { servico_id: servico, letra: 'A', inicio: '07:00', fim: '19:00' });
   turnoB = await inserir(api.banco, 'turno', { servico_id: servico, letra: 'B', inicio: '19:00', fim: '07:00' });

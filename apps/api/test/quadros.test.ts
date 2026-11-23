@@ -41,25 +41,25 @@ describe('quadroParaOPosto', () => {
     quadroParaOPosto(api.banco, posto[postoSigla]!, pedido === undefined || pedido === null ? pedido : quadro[pedido]!, atualSigla ? quadro[atualSigla]! : null);
 
   it('pedido que contém o posto vale', async () => {
-    expect(await escolher('CAP BM', 'QOA', null)).toEqual({ quadroId: quadro.QOA });
+    expect(await escolher('CAP', 'QOA', null)).toEqual({ quadroId: quadro.QOA });
   });
   it('pedido fora do posto é erro', async () => {
-    expect(await escolher('CAP BM', 'QBMG', null)).toEqual({ erro: MSG_FORA });
+    expect(await escolher('CAP', 'QBMG', null)).toEqual({ erro: MSG_FORA });
   });
   it('sem pedido, o atual fica se tiver o posto', async () => {
-    expect(await escolher('2º TEN BM', undefined, 'QOC')).toEqual({ quadroId: quadro.QOC });
-    expect(await escolher('2º TEN BM', undefined, 'QOA')).toEqual({ quadroId: quadro.QOA });
+    expect(await escolher('2º TEN', undefined, 'QOC')).toEqual({ quadroId: quadro.QOC });
+    expect(await escolher('2º TEN', undefined, 'QOA')).toEqual({ quadroId: quadro.QOA });
   });
   it('sem pedido, posto de um quadro só', async () => {
-    expect(await escolher('CEL BM', undefined, 'QOA')).toEqual({ quadroId: quadro.QOC });
-    expect(await escolher('SD BM', undefined, null)).toEqual({ quadroId: quadro.QBMG });
+    expect(await escolher('CEL', undefined, 'QOA')).toEqual({ quadroId: quadro.QOC });
+    expect(await escolher('SD', undefined, null)).toEqual({ quadroId: quadro.QBMG });
   });
   it('sem pedido, ambíguo e o atual não serve', async () => {
-    expect(await escolher('MAJ BM', undefined, 'QBMG')).toEqual({ quadroId: null });
-    expect(await escolher('MAJ BM', undefined, null)).toEqual({ quadroId: null });
+    expect(await escolher('MAJ', undefined, 'QBMG')).toEqual({ quadroId: null });
+    expect(await escolher('MAJ', undefined, null)).toEqual({ quadroId: null });
   });
   it('pedido null limpa', async () => {
-    expect(await escolher('MAJ BM', null, 'QOA')).toEqual({ quadroId: null });
+    expect(await escolher('MAJ', null, 'QOA')).toEqual({ quadroId: null });
   });
 });
 
@@ -70,7 +70,7 @@ describe('GET /api/quadros', () => {
     const quadros: Quadro[] = await r.json();
     expect(quadros.map((q) => q.sigla)).toEqual(['QOC', 'QOA', 'QBMG']);
     expect(quadros[1]).toMatchObject({ id: quadro.QOA, nome: 'Quadro de Oficiais da Administração' });
-    expect([...quadros[1]!.postoGradIds].sort()).toEqual(['2º TEN BM', '1º TEN BM', 'CAP BM', 'MAJ BM'].map((s) => posto[s]!).sort());
+    expect([...quadros[1]!.postoGradIds].sort()).toEqual(['2º TEN', '1º TEN', 'CAP', 'MAJ'].map((s) => posto[s]!).sort());
   });
   it('até quem não tem papel lê (a lista não é sigilosa; sem sessão, o teste de acesso às rotas confere o 401)', async () => {
     expect((await api.pedir('semPapel', 'GET', '/api/quadros')).status).toBe(200);
@@ -79,35 +79,35 @@ describe('GET /api/quadros', () => {
 
 describe('o quadro na ficha', () => {
   it('militar novo de posto único recebe o quadro; de posto ambíguo fica sem, com a pendência', async () => {
-    const sd = await (await criar('990601-1', 'SD BM')).json();
+    const sd = await (await criar('990601-1', 'SD')).json();
     expect(sd.quadro).toMatchObject({ sigla: 'QBMG' });
     expect(sd.pendencias).not.toContain('Sem quadro');
-    const maj = await (await criar('990602-2', 'MAJ BM')).json();
+    const maj = await (await criar('990602-2', 'MAJ')).json();
     expect(maj.quadro).toBeNull();
     expect(maj.pendencias).toContain('Sem quadro');
   });
 
   it('criar já com o quadro pedido', async () => {
-    const f = await (await criar('990603-3', 'MAJ BM', { quadroId: quadro.QOA })).json();
+    const f = await (await criar('990603-3', 'MAJ', { quadroId: quadro.QOA })).json();
     expect(f.quadro).toMatchObject({ id: quadro.QOA, sigla: 'QOA' });
     expect(f.pendencias).not.toContain('Sem quadro');
   });
 
   it('trocar o posto de MAJ do QOA para CEL passa a QOC sozinho', async () => {
-    const f = await (await criar('990604-4', 'MAJ BM', { quadroId: quadro.QOA })).json();
-    const r = await alterar(f.id, { postoGradId: posto['CEL BM'] });
+    const f = await (await criar('990604-4', 'MAJ', { quadroId: quadro.QOA })).json();
+    const r = await alterar(f.id, { postoGradId: posto['CEL'] });
     expect(r.status).toBe(200);
     expect((await r.json()).quadro).toMatchObject({ sigla: 'QOC' });
   });
 
   it('trocar o posto de 2º TEN do QOC para CAP mantém o QOC', async () => {
-    const f = await (await criar('990605-5', '2º TEN BM', { quadroId: quadro.QOC })).json();
-    const r = await alterar(f.id, { postoGradId: posto['CAP BM'] });
+    const f = await (await criar('990605-5', '2º TEN', { quadroId: quadro.QOC })).json();
+    const r = await alterar(f.id, { postoGradId: posto['CAP'] });
     expect((await r.json()).quadro).toMatchObject({ sigla: 'QOC' });
   });
 
   it('escolher QBMG para um CAP: 400 no campo', async () => {
-    const f = await (await criar('990606-6', 'CAP BM', { quadroId: quadro.QOA })).json();
+    const f = await (await criar('990606-6', 'CAP', { quadroId: quadro.QOA })).json();
     const r = await situacao(f.id, { quadroId: quadro.QBMG });
     expect(r.status).toBe(400);
     expect((await r.json()).campos.quadroId).toBe(MSG_FORA);
@@ -115,19 +115,19 @@ describe('o quadro na ficha', () => {
   });
 
   it('criar com quadro que não contém o posto: 400 no campo', async () => {
-    const r = await criar('990607-7', 'CAP BM', { quadroId: quadro.QBMG });
+    const r = await criar('990607-7', 'CAP', { quadroId: quadro.QBMG });
     expect(r.status).toBe(400);
     expect((await r.json()).campos.quadroId).toBe(MSG_FORA);
   });
 
   it('o PATCH não aceita mais quadroId nem ativo (o quadro e a situação vão pelo "Alterar situação")', async () => {
-    const f = await (await criar('990608-8', 'CAP BM', { quadroId: quadro.QOA })).json();
+    const f = await (await criar('990608-8', 'CAP', { quadroId: quadro.QOA })).json();
     expect((await alterar(f.id, { quadroId: quadro.QBMG })).status).toBe(400);
     expect((await ficha(f.id)).quadro).toMatchObject({ sigla: 'QOA' });
   });
 
   it('pedido null limpa o quadro e a pendência aparece', async () => {
-    const f = await (await criar('990609-9', 'CAP BM', { quadroId: quadro.QOA })).json();
+    const f = await (await criar('990609-9', 'CAP', { quadroId: quadro.QOA })).json();
     const r = await situacao(f.id, { quadroId: null });
     expect(r.status).toBeLessThan(300);
     const depois = await r.json();
@@ -136,7 +136,7 @@ describe('o quadro na ficha', () => {
   });
 
   it('o quadro é do Pecúlio: quem só tem nível de acesso na seção não altera', async () => {
-    const f = await (await criar('990610-1', 'CAP BM')).json();
+    const f = await (await criar('990610-1', 'CAP')).json();
     const r = await situacao(f.id, { quadroId: quadro.QOA }, 'escalante');
     expect(r.status).toBe(403);
     expect((await r.json()).erro).toBe('Este campo é alterado por quem tem nível de acesso no 2º GB.');
@@ -152,7 +152,7 @@ describe('o quadro na ficha', () => {
 describe('correções da revisão final', () => {
 
   it('um campo da escala (voluntário JES) não preenche o quadro, que é do Pecúlio', async () => {
-    const f = await (await criar('990620-1', 'CEL BM')).json();
+    const f = await (await criar('990620-1', 'CEL')).json();
     await api.banco.query('update rastreio set quadro_id = null where militar_id = $1', [f.id]);
     const r = await api.pedir('escalante', 'PATCH', `/api/militares/${f.id}`, { voluntarioJes: true });
     expect(r.status).toBe(200);

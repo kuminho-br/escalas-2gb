@@ -35,19 +35,19 @@ const GRADE: GradeDoMes = {
   grupos: [{
     chave: 'eq-alfa', nome: 'Alfa',
     linhas: [{
-      militarId: 'm-cabo', posto: 'SD BM', nomeGuerra: 'CABO', matricula: '990001-1', jornada: 'pronto', choques: [], pjes: 0, diarias: 0, horasTiradas: 0, horasPedidas: 0,
+      militarId: 'm-cabo', posto: 'SD', nomeGuerra: 'CABO', matricula: '990001-1', jornada: 'pronto', choques: [], pjes: 0, diarias: 0, horasTiradas: 0, horasPedidas: 0,
       dias: { [dia(10)]: [{ alocacaoId: 'a1', servico: { id: 's-pronto', nome: 'Pronto', cor: '#2F8F5B', tipo: 'ordinario' }, letra: 'A', inicio: '08:00', fim: '20:00', expediente: false }] },
     }],
   }],
 };
 const PAINEL: PainelDoDia = {
-  militar: { militarId: 'm-cabo', posto: 'SD BM', nomeGuerra: 'CABO', matricula: '990001-1', equipe: 'Alfa', jornada: 'pronto', cnh: [], voluntarioJes: true },
+  militar: { militarId: 'm-cabo', posto: 'SD', nomeGuerra: 'CABO', matricula: '990001-1', equipe: 'Alfa', jornada: 'pronto', cnh: [], voluntarioJes: true },
   data: dia(10), afastamento: null, disponibilidade: [], choques: [],
   servicos: [{ alocacaoId: 'a1', escalaId: 'e1', servico: { id: 's-pronto', nome: 'Pronto', cor: '#2F8F5B', tipo: 'ordinario' }, letra: 'A', inicio: '08:00', fim: '20:00', escala: 'Ordinário', guarnicao: 'ABT', funcao: 'Motorista', acumulaCom: [] }],
   opcoes: [],
 };
 const ocupante = (nome: string): OcupanteDaVaga => ({
-  alocacaoId: `a-${nome}`, acumuloId: null, acumulaCom: [], militarId: `m-${nome}`, posto: 'SD BM', nomeGuerra: nome, matricula: '990001-1', servico: { id: 's1', nome: 'Pronto', cor: '#2F8F5B' }, letra: 'A',
+  alocacaoId: `a-${nome}`, acumuloId: null, acumulaCom: [], militarId: `m-${nome}`, posto: 'SD', nomeGuerra: nome, matricula: '990001-1', servico: { id: 's1', nome: 'Pronto', cor: '#2F8F5B' }, letra: 'A',
 });
 const CARD: CardDaGuarnicao = {
   guarnicaoId: 'g-abt', nome: 'ABT', viatura: 'ABT-01', prioridade: 1, completa: false, faltam: ['Falta 1 Combatente'],
@@ -67,7 +67,7 @@ const COTAS: Cota[] = [{ id: 'c1', mes: MES, servicoId: 'sv-jes', quantidade: 30
 const DIA_DO_EFETIVO = hoje();
 const trecho = (inicio: number, fim: number, ocupado: boolean): TrechoNoEfetivo => ({
   inicio, fim, opcoes: ocupado ? [] : [{ escalaId: 'e1', escala: 'Ordinário', inicio: '08:00', fim: '20:00' }],
-  ocupante: ocupado ? { militarId: 'm-alfa', posto: 'SD BM', nomeGuerra: 'ALFA', servico: { id: 's1', nome: 'Pronto', cor: '#2F8F5B' }, acumulo: false, alocacoes: [{ alocacaoId: 'a-alfa', acumuloId: null, inicio: '08:00', fim: '20:00', acumulaCom: [] }] } : null,
+  ocupante: ocupado ? { militarId: 'm-alfa', posto: 'SD', nomeGuerra: 'ALFA', servico: { id: 's1', nome: 'Pronto', cor: '#2F8F5B' }, acumulo: false, alocacoes: [{ alocacaoId: 'a-alfa', acumuloId: null, inicio: '08:00', fim: '20:00', acumulaCom: [] }] } : null,
 });
 const EFETIVO: EfetivoDoDia = {
   data: DIA_DO_EFETIVO, meta: { origem: 'dia', total: 1, ativadas: 0 },
@@ -77,7 +77,7 @@ const EFETIVO: EfetivoDoDia = {
   }],
   desativadas: [{ guarnicaoId: 'g9', nome: 'Antiga', viatura: null }], cotas: [],
 };
-const MILITARES: MilitarDoVoluntariado[] = [{ militarId: 'm1', posto: 'SD BM', nomeGuerra: 'CABRAL', matricula: '990021-1', equipe: 'Alfa', jornada: 'pronto', voluntarioJes: true, lancado: true, horas: 12, dias: 1 }];
+const MILITARES: MilitarDoVoluntariado[] = [{ militarId: 'm1', posto: 'SD', nomeGuerra: 'CABRAL', matricula: '990021-1', equipe: 'Alfa', jornada: 'pronto', voluntarioJes: true, lancado: true, horas: 12, dias: 1 }];
 const MES_DO_VOLUNTARIADO = (() => {
   const d = new Date();
   const proximo = new Date(d.getFullYear(), d.getMonth() + 1, 1);
@@ -175,7 +175,7 @@ describe('as cinco telas numa unidade só de consulta', () => {
     abrirEmConsulta(`/grade?mes=${MES}&militar=m-cabo&dia=${dia(10)}`);
     expect(await screen.findByText(FAIXA_DE_CONSULTA)).toBeInTheDocument();
     await screen.findByRole('table', { name: /Grade geral/ });
-    const painel = await screen.findByRole('complementary', { name: 'Dia de SD BM CABO' });
+    const painel = await screen.findByRole('complementary', { name: 'Dia de SD CABO' });
     expect(await within(painel).findByRole('listitem', { name: 'Pronto A, 08h–20h' })).toBeInTheDocument();
     expect(within(painel).getByText('ABT, Motorista', { exact: false })).toBeInTheDocument();
     semBotaoDeAlterar();
@@ -204,7 +204,7 @@ describe('as cinco telas numa unidade só de consulta', () => {
     abrirEmConsulta(`/efetivo-por-dia?data=${DIA_DO_EFETIVO}`);
     expect(await screen.findByText(FAIXA_DE_CONSULTA)).toBeInTheDocument();
     const card = await screen.findByRole('region', { name: '1º ABT' });
-    expect(within(card).getByRole('group', { name: /Motorista: SD BM ALFA/ })).toBeInTheDocument();
+    expect(within(card).getByRole('group', { name: /Motorista: SD ALFA/ })).toBeInTheDocument();
     expect(within(card).getByRole('group', { name: /Motorista: vaga/ })).toBeInTheDocument();
     expect(within(card).queryAllByRole('button')).toHaveLength(0);
     // o que foi desativado hoje continua listado, só sem "Reativar"

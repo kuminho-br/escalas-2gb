@@ -23,6 +23,9 @@ describe('nucleo', () => {
   it('posto desconhecido vai para o fim (Infinity)', () => {
     expect(ordemDoPosto('CEL BM')).toBe(0);
     expect(ordemDoPosto('Subtenente')).toBe(ordemDoPosto('ST BM'));
+    // o posto sem "BM" (as siglas do cadastro, desde a 6.15) vale o mesmo que o antigo, e a ordem não muda
+    for (const [sem, com] of [['SD', 'SD BM'], ['CB', 'CB BM'], ['3º SGT', '3º SGT BM'], ['ST', 'ST BM'], ['2º TEN', '2º TEN BM'], ['TEN CEL', 'TEN CEL BM'], ['CEL', 'CEL BM']]) expect(ordemDoPosto(sem), sem).toBe(ordemDoPosto(com));
+    expect(ordemDoPosto('CEL')).toBe(0);
     expect(ordemDoPosto('Almirante')).toBe(Infinity);
     expect(ordemDoPosto('')).toBe(Infinity);
   });

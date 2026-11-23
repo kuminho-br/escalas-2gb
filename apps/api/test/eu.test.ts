@@ -79,7 +79,7 @@ describe('a própria ficha: GET /api/eu/ficha e PATCH /api/eu/telefone', () => {
     const r = await api.pedir('semPapel', 'GET', '/api/eu/ficha');
     expect(r.status).toBe(200);
     const f = await r.json();
-    expect(f).toMatchObject({ matricula: '990903-3', nomeGuerra: 'COMUM', postoGrad: 'SD BM', telefone: null, voluntarioJes: expect.any(Boolean), cnh: expect.any(Array) });
+    expect(f).toMatchObject({ matricula: '990903-3', nomeGuerra: 'COMUM', postoGrad: 'SD', telefone: null, voluntarioJes: expect.any(Boolean), cnh: expect.any(Array) });
     expect(f).not.toHaveProperty('podeEditar');
     expect(f).not.toHaveProperty('antiguidade');
   });

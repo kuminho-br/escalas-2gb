@@ -13,8 +13,8 @@ const atual = hojeRecife().slice(0, 7);
 beforeAll(async () => {
   api = await montarApi();
   const postos: Posto[] = await (await api.pedir('escalante', 'GET', '/api/postos')).json();
-  sd = postos.find((p) => p.sigla === 'SD BM')!.id;
-  cb = postos.find((p) => p.sigla === 'CB BM')!.id;
+  sd = postos.find((p) => p.sigla === 'SD')!.id;
+  cb = postos.find((p) => p.sigla === 'CB')!.id;
   const alfa = await inserir(api.banco, 'equipe', { unidade_id: api.ids.secao, nome: 'Alfa', ordem_ciclo: 1 });
   const r = await api.pedir('gestorGb', 'POST', `/api/unidades/${api.ids.secao}/militares`, {
     matricula: '990950-1', postoGradId: sd, nomeCompleto: 'Fulano de Tal Entrada', nomeGuerra: 'ENTRADA', antiguidade: 1, motorista: false, cnh: [], voluntarioJes: false,

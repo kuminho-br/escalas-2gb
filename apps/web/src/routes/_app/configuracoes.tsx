@@ -11,6 +11,7 @@ import { Estrutura } from '@/componentes/configuracoes/Estrutura';
 import { MetaDeAtivacao } from '@/componentes/configuracoes/MetaDeAtivacao';
 import { Postos } from '@/componentes/configuracoes/Postos';
 import { QuemVeOQue } from '@/componentes/configuracoes/QuemVeOQue';
+import { FuncoesDoMilitar } from '@/componentes/configuracoes/FuncoesDoMilitar';
 import { SituacoesDoMilitar } from '@/componentes/configuracoes/SituacoesDoMilitar';
 import { ImportarPlanilha } from '@/componentes/ImportarPlanilha';
 import { Button } from '@/componentes/ui/button';
@@ -23,7 +24,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/componentes/ui/tabs'
 import { AcoesDosModelos, ListaDeModelos } from '@/componentes/guarnicoes/ListaDeModelos';
 import { mesAtual } from '@/lib/meses';
 
-const ABAS = ['regras', 'voluntariado', 'modelos', 'meta', 'tipos', 'situacoes', 'postos', 'estrutura', 'quem-ve-o-que'] as const;
+const ABAS = ['regras', 'voluntariado', 'modelos', 'meta', 'tipos', 'situacoes', 'funcoes', 'postos', 'estrutura', 'quem-ve-o-que'] as const;
 type Aba = (typeof ABAS)[number];
 
 export const Route = createFileRoute('/_app/configuracoes')({
@@ -57,6 +58,7 @@ function Configuracoes() {
           <TabsTrigger value="meta">Meta de ativação</TabsTrigger>
           <TabsTrigger value="tipos">Tipos de afastamento</TabsTrigger>
           <TabsTrigger value="situacoes">Situações do militar</TabsTrigger>
+          <TabsTrigger value="funcoes">Funções do militar</TabsTrigger>
           {admin && <TabsTrigger value="postos">Postos e graduações</TabsTrigger>}
           {grupamentoInicial && <TabsTrigger value="estrutura">Estrutura</TabsTrigger>}
           {admin && <TabsTrigger value="quem-ve-o-que">Quem vê o quê</TabsTrigger>}
@@ -102,6 +104,9 @@ function Configuracoes() {
         )}
         <TabsContent value="situacoes">
           <SituacoesDoMilitar podeEditar={admin} />
+        </TabsContent>
+        <TabsContent value="funcoes">
+          <FuncoesDoMilitar podeEditar={admin} />
         </TabsContent>
       </Tabs>
     </section>

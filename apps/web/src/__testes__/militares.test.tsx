@@ -8,7 +8,7 @@ import { hoje, mesAtual } from '@/lib/meses';
 import { abrir, chamadasA, corpoEnviado, EU_EXEMPLO, simularApi, trava } from './apoio';
 
 const linha = (l: Partial<LinhaMilitar>): LinhaMilitar => ({
-  id: 'm1', matricula: '990001-1', posto: 'SD BM', quadro: { id: 'q-qbmg', sigla: 'QBMG' }, nomeGuerra: 'ANDRADE', equipe: 'Alfa', jornada: 'pronto', motorista: null,
+  id: 'm1', matricula: '990001-1', posto: 'SD', quadro: { id: 'q-qbmg', sigla: 'QBMG' }, nomeGuerra: 'ANDRADE', equipe: 'Alfa', jornada: 'pronto', motorista: null,
   voluntarioJes: false, ativo: true, situacao: 'Disponível', pendencias: [], ...l,
 });
 const LISTA = [
@@ -19,10 +19,17 @@ const LISTA = [
 const FICHA: FichaMilitar = {
   ...linha({ motorista: 'D' }),
   podeEditar: { peculio: true, escala: true, unidadeDeCima: '2º GB' },
-  postoGradId: 'p-sd', veDadosRestritos: true, cpf: null, endereco: { cep: null, logradouro: null, numero: null, complemento: null, bairro: null, cidade: null, uf: null }, situacaoDoMilitar: { id: 'sit-ativa', nome: 'Ativa', escalavel: true }, nomeCompleto: 'João da Silva Andrade', sexo: 'M', nascimento: { dia: 15, mes: 3 }, telefone: '(81) 99999-0000', email: 'andrade@bombeiros.pe.gov.br', comportamento: 'Bom', comportamentoBoletim: 'BG 01/2026', antiguidade: 3, antiguidadeRepetidaCom: [], noQuadroDeMotoristas: true, cnh: ['D'], cnhPorHierarquia: ['C', 'B'],
+  postoGradId: 'p-sd', veDadosRestritos: true, cpf: null, endereco: { cep: null, logradouro: null, numero: null, complemento: null, bairro: null, cidade: null, uf: null }, situacaoDoMilitar: { id: 'sit-ativa', nome: 'Ativa', escalavel: true }, nomeCompleto: 'João da Silva Andrade', sexo: 'M', nascimento: { dia: 15, mes: 3 }, telefone: '(81) 99999-0000', email: 'andrade@bombeiros.pe.gov.br', comportamento: 'Bom', comportamentoBoletim: 'BG 01/2026', antiguidade: 3, antiguidadeRepetidaCom: [], funcao: null, funcaoMilitarId: null, abonoPermanencia: false, noQuadroDeMotoristas: true, cnh: ['D'], cnhPorHierarquia: ['C', 'B'],
   rastreio: [{ id: 'l1', unidadeSigla: '1ª SB', equipe: 'Alfa', jornada: 'pronto', desde: '2026-11-01', quadro: 'QBMG', situacao: 'Ativa', ate: null }],
   afastamentos: [{ id: 'a1', tipo: 'Férias', tipoAfastamentoId: 't-ferias', inicio: '2026-12-01', fim: '2026-12-10', motivo: null, boletim: null }],
 };
+
+const FUNCOES = [
+  { id: 'fun-chefe', nome: 'Chefe de seção', ativo: true },
+  { id: 'fun-motorista', nome: 'Motorista de viatura', ativo: true },
+  { id: 'fun-antiga', nome: 'Função antiga', ativo: false },
+  { id: 'fun-velha', nome: 'Função velha', ativo: false },
+];
 
 const QUADROS = [
   { id: 'q-qoc', sigla: 'QOC', nome: 'Quadro de Oficiais Combatentes', postoGradIds: ['p-maj', 'p-cel'] },
@@ -30,8 +37,8 @@ const QUADROS = [
   { id: 'q-qbmg', sigla: 'QBMG', nome: 'Qualificação Bombeiro Militar Geral', postoGradIds: ['p-sd', 'p-cb'] },
 ];
 const POSTOS_COM_OFICIAIS = [
-  { id: 'p-sd', sigla: 'SD BM', nome: 'Soldado', ordem: 1 }, { id: 'p-cb', sigla: 'CB BM', nome: 'Cabo', ordem: 2 },
-  { id: 'p-maj', sigla: 'MAJ BM', nome: 'Major', ordem: 11 }, { id: 'p-cel', sigla: 'CEL BM', nome: 'Coronel', ordem: 13 },
+  { id: 'p-sd', sigla: 'SD', nome: 'Soldado', ordem: 1 }, { id: 'p-cb', sigla: 'CB', nome: 'Cabo', ordem: 2 },
+  { id: 'p-maj', sigla: 'MAJ', nome: 'Major', ordem: 11 }, { id: 'p-cel', sigla: 'CEL', nome: 'Coronel', ordem: 13 },
 ];
 
 function api(extra: Parameters<typeof simularApi>[0] = {}) {
@@ -39,9 +46,10 @@ function api(extra: Parameters<typeof simularApi>[0] = {}) {
     '/api/eu': { status: 200, corpo: EU_EXEMPLO },
     'GET /api/unidades/u-1sb/militares': { status: 200, corpo: LISTA },
     'GET /api/unidades/u-1sb/equipes': { status: 200, corpo: [{ id: 'e-alfa', nome: 'Alfa', ordemCiclo: 1 }, { id: 'e-bravo', nome: 'Bravo', ordemCiclo: 2 }] },
-    'GET /api/postos': { status: 200, corpo: [{ id: 'p-sd', sigla: 'SD BM', nome: 'Soldado', ordem: 1 }, { id: 'p-cb', sigla: 'CB BM', nome: 'Cabo', ordem: 2 }] },
+    'GET /api/postos': { status: 200, corpo: [{ id: 'p-sd', sigla: 'SD', nome: 'Soldado', ordem: 1 }, { id: 'p-cb', sigla: 'CB', nome: 'Cabo', ordem: 2 }] },
     'GET /api/quadros': { status: 200, corpo: QUADROS },
     'GET /api/situacoes-do-militar': { status: 200, corpo: [{ id: 'sit-ativa', nome: 'Ativa', escalavel: true, ativo: true }] },
+    'GET /api/funcoes-do-militar': { status: 200, corpo: FUNCOES },
     'GET /api/militares/m1': { status: 200, corpo: FICHA },
     'GET /api/sistema/tipos-afastamento': { status: 200, corpo: [{ id: 't-ferias', nome: 'Férias', ativo: true }, { id: 't-curso', nome: 'Curso', ativo: false }] },
     ...extra,
@@ -222,7 +230,7 @@ describe('listas que não carregam explicam o botão apagado', () => {
 
 describe('lista já carregada cuja nova busca falha (Review Focus 3)', () => {
   const MSG = 'Não deu para carregar a lista. Recarregue a página.';
-  const POSTOS = [{ id: 'p-sd', sigla: 'SD BM', nome: 'Soldado', ordem: 1 }, { id: 'p-cb', sigla: 'CB BM', nome: 'Cabo', ordem: 2 }];
+  const POSTOS = [{ id: 'p-sd', sigla: 'SD', nome: 'Soldado', ordem: 1 }, { id: 'p-cb', sigla: 'CB', nome: 'Cabo', ordem: 2 }];
   const TIPOS = [{ id: 't-ferias', nome: 'Férias', ativo: true }];
   type Rota = { status: number; corpo?: unknown };
 
@@ -240,9 +248,9 @@ describe('lista já carregada cuja nova busca falha (Review Focus 3)', () => {
     api({ 'GET /api/postos': postos });
     const router = abrir('/militares/m1');
     const campo = await screen.findByLabelText('Posto-graduação');
-    await within(campo).findByRole('option', { name: 'SD BM' });
+    await within(campo).findByRole('option', { name: 'SD' });
     await buscarDeNovoEFalhar(router, postos, ['postos']);
-    expect(within(campo).getByRole('option', { name: 'SD BM' })).toBeInTheDocument();
+    expect(within(campo).getByRole('option', { name: 'SD' })).toBeInTheDocument();
     expect(screen.queryByText(MSG)).toBeNull();
   });
 
@@ -626,6 +634,44 @@ describe('ficha ampliada (fase 5)', () => {
     fireEvent.change(screen.getByLabelText('Sexo'), { target: { value: 'F' } });
     await userEvent.click(screen.getByRole('button', { name: 'Salvar alterações' }));
     await waitFor(() => expect(corpoEnviado(f, PATCH)).toEqual({ sexo: 'F' }));
+  });
+
+  it('Identificação: a Função (só as ativas) e o abono de permanência gravam só o que mudou (6.15)', async () => {
+    const f = comFicha();
+    abrir('/militares/m1');
+    const funcao = await screen.findByLabelText('Função');
+    await within(funcao).findByRole('option', { name: 'Chefe de seção' });
+    expect(funcao).toHaveDisplayValue('Sem função');
+    expect(within(funcao).getAllByRole('option').map((o) => o.textContent)).toEqual(['Sem função', 'Chefe de seção', 'Motorista de viatura']);
+    const abono = screen.getByRole('checkbox', { name: 'Abono de permanência' });
+    expect(abono).not.toBeChecked();
+    fireEvent.change(funcao, { target: { value: 'fun-motorista' } });
+    await userEvent.click(screen.getByRole('button', { name: 'Salvar alterações' }));
+    await waitFor(() => expect(corpoEnviado(f, PATCH)).toEqual({ funcaoMilitarId: 'fun-motorista' }));
+    await userEvent.click(abono);
+    await userEvent.click(screen.getByRole('button', { name: 'Salvar alterações' }));
+    await waitFor(() => expect(corpoEnviado(f, PATCH)).toEqual({ abonoPermanencia: true }));
+    fireEvent.change(funcao, { target: { value: '' } });
+    await userEvent.click(screen.getByRole('button', { name: 'Salvar alterações' }));
+    await waitFor(() => expect(corpoEnviado(f, PATCH)).toEqual({ funcaoMilitarId: null }));
+  });
+
+  it('Identificação: a função desativada que o militar já tem continua escolhida e na lista, e as outras desativadas não (6.15)', async () => {
+    comFicha({ funcao: 'Função antiga', funcaoMilitarId: 'fun-antiga', abonoPermanencia: true });
+    abrir('/militares/m1');
+    const funcao = await screen.findByLabelText('Função');
+    await within(funcao).findByRole('option', { name: 'Chefe de seção' });
+    expect(funcao).toHaveDisplayValue('Função antiga (desativada)');
+    expect(within(funcao).getAllByRole('option').map((o) => o.textContent)).toEqual(['Sem função', 'Chefe de seção', 'Motorista de viatura', 'Função antiga (desativada)']);
+    expect(screen.getByRole('checkbox', { name: 'Abono de permanência' })).toBeChecked();
+  });
+
+  it('Identificação: sem nível de acesso no Pecúlio, a Função e o abono ficam só para leitura (6.15)', async () => {
+    comFicha({ ...SEM_PECULIO, funcao: 'Chefe de seção', funcaoMilitarId: 'fun-chefe', abonoPermanencia: undefined });
+    abrir('/militares/m1');
+    expect(await screen.findByLabelText('Função')).toBeDisabled();
+    // o abono nem vem da API para quem não cuida do Pecúlio: a caixa não aparece
+    expect(screen.queryByRole('checkbox', { name: 'Abono de permanência' })).toBeNull();
   });
 
   it('Dados pessoais: o nascimento é dia e mês, com o ano opcional, grava junto e limpar manda null; 31 de fevereiro mostra a mensagem sem chamar a API (Review Focus 4)', async () => {
