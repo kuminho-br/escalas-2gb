@@ -1,8 +1,10 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useRouter } from '@tanstack/react-router';
 import type { AcessoDoMilitar, FichaMilitar, Papel, SituacaoDoAcesso } from 'contratos';
 import { useState } from 'react';
 import { atualizarAcesso, consultaAcesso, darPapel, desativarAcesso, encerrarPapel, gerarSenhaProvisoria } from '@/api/acesso';
 import { camposDe, mensagemDe } from '@/api/cliente';
+import { consultaEu } from '@/api/eu';
 import { Campo } from '@/componentes/Campo';
 import { Selecao } from '@/componentes/Selecao';
 import { Button } from '@/componentes/ui/button';
@@ -25,6 +27,7 @@ function textoDaSituacao(a: AcessoDoMilitar): string {
 /** Acesso ao sistema: a situação da conta, a senha provisória, desativar e os papéis (dar e encerrar). */
 export function AcessoAoSistema({ ficha }: { ficha: FichaMilitar }) {
   const queryClient = useQueryClient();
+  const router = useRouter();
   const { data: acesso, error } = useQuery(consultaAcesso(ficha.id));
   const [erro, setErro] = useState<string | null>(null);
   const [senha, setSenha] = useState<{ senha: string; validaAte: string } | null>(null);
@@ -52,6 +55,13 @@ export function AcessoAoSistema({ ficha }: { ficha: FichaMilitar }) {
     try {
       await fn();
       await atualizarAcesso(queryClient, ficha.id);
+      // dar ou encerrar um nível muda as unidades do seletor do topo (e a Minha ficha de quem está olhando): sem recarregar a página
+      try {
+        await queryClient.fetchQuery({ ...consultaEu, staleTime: 0 });
+        await router.invalidate();
+      } catch {
+        // o seletor se atualiza na próxima carga; o que foi gravado já valeu
+      }
       return true;
     } catch (e) {
       setErro(mensagemDe(e));
@@ -86,7 +96,7 @@ export function AcessoAoSistema({ ficha }: { ficha: FichaMilitar }) {
         <p className="text-sm"><span className="text-apagado">E-mail de entrada: </span>{acesso.email ?? '—'}</p>
         <div className="flex flex-wrap items-center gap-2">
           <Button type="button" disabled={!acesso.podeGerarSenha || ocupado} onClick={() => void gerar()}>Gerar senha provisória</Button>
-          {acesso.situacao !== 'sem-acesso' && acesso.situacao !== 'desativado' && (
+          {acesso.podeDesativar && acesso.situacao !== 'sem-acesso' && acesso.situacao !== 'desativado' && (
             <Button type="button" variant="outline" disabled={ocupado} onClick={() => void desativar()}>Desativar acesso</Button>
           )}
         </div>
@@ -102,7 +112,6 @@ export function AcessoAoSistema({ ficha }: { ficha: FichaMilitar }) {
               <LinhaDoPapel
                 key={p.id}
                 p={p}
-                pode={acesso.papeisQuePodeDar.includes(p.papel)}
                 aberto={aberto?.tipo === 'encerrar' && aberto.papelId === p.id}
                 desligado={aberto !== null}
                 aoAbrir={() => mudarFormulario({ tipo: 'encerrar', papelId: p.id })}
@@ -151,9 +160,8 @@ export function AcessoAoSistema({ ficha }: { ficha: FichaMilitar }) {
   );
 }
 
-function LinhaDoPapel({ p, pode, aberto, desligado, aoAbrir, aoFechar, aoEncerrar }: {
+function LinhaDoPapel({ p, aberto, desligado, aoAbrir, aoFechar, aoEncerrar }: {
   p: AcessoDoMilitar['papeis'][number];
-  pode: boolean;
   aberto: boolean;
   /** há outro formulário aberto (ou este): o botão "Encerrar" fica desligado */
   desligado: boolean;
@@ -167,7 +175,8 @@ function LinhaDoPapel({ p, pode, aberto, desligado, aoAbrir, aoFechar, aoEncerra
       <span className="font-medium">{nomeDoPapel(p.papel)}</span>
       <span>{p.unidadeSigla}</span>
       <span className="text-apagado">{p.ate ? `de ${dataBr(p.desde)} a ${dataBr(p.ate)}` : `desde ${dataBr(p.desde)}`}</span>
-      {pode && !p.ate && !aberto && <Button type="button" size="xs" variant="ghost" className="ml-auto" disabled={desligado} onClick={() => { setAte(hoje()); aoAbrir(); }}>Encerrar</Button>}
+      {p.podeEncerrar && (!p.ate || p.ate > hoje()) && !aberto && <Button type="button" size="xs" variant="ghost" className="ml-auto" disabled={desligado} onClick={() => { setAte(hoje()); aoAbrir(); }}>Encerrar</Button>}
+      {p.ultimoGestorAte && <span className="basis-full text-pendencia">Último gestor de {p.unidadeSigla}: o nível termina em {dataBr(p.ultimoGestorAte)}.</span>}
       {aberto && (
         <span className="flex basis-full flex-wrap items-end gap-2">
           <Campo id={`ate-${p.id}`} rotulo="Encerrar em">

@@ -119,9 +119,8 @@ describe('casca', () => {
 
   it('o militar comum em /militares vai para o início com o aviso, sem ver nada da lista (Review Focus 1)', async () => {
     simularApi({ '/api/eu': { status: 200, corpo: { ...EU_EXEMPLO, papeis: [] } } });
-    const router = abrir('/militares');
-    await waitFor(() => expect(router.state.location.pathname).toBe('/'));
-    expect((router.state.location.search as { aviso?: string }).aviso).toBe('outro-papel');
+    abrir('/militares');
+    expect(await screen.findByText('Essa área é de outro nível de acesso.')).toBeInTheDocument();
     expect(await screen.findByText('SD ANDRADE')).toBeInTheDocument();
     expect(screen.queryByRole('navigation', { name: 'Navegação principal' })).toBeNull();
     expect(screen.queryByText('Militares')).toBeNull();
@@ -318,7 +317,7 @@ describe('unidade de trabalho (fase 6)', () => {
     });
     const router = abrir('/militares/abc');
     await userEvent.click(await screen.findByRole('button', { name: /Unidade de trabalho/ }));
-    await userEvent.click(await screen.findByRole('menuitem', { name: '1ª SB' }));
+    await userEvent.click(await screen.findByRole('menuitem', { name: /^1ª SB/ }));
     await waitFor(() => expect(router.state.location.pathname).toBe('/militares'));
     expect(localStorage.getItem('unidade-de-trabalho')).toBe('u-1sb');
     expect(await screen.findByRole('button', { name: /Unidade de trabalho: CBMPE \/ DGO \/ DInter\/1 \/ 2º GB \/ 1ª SB/ })).toBeInTheDocument();
@@ -342,7 +341,7 @@ describe('unidade de trabalho (fase 6)', () => {
     const router = abrir('/militares/m1');
     await userEvent.type(await screen.findByLabelText('Telefone'), '(81) 9');
     await userEvent.click(screen.getByRole('button', { name: /Unidade de trabalho/ }));
-    await userEvent.click(await screen.findByRole('menuitem', { name: '1ª SB' }));
+    await userEvent.click(await screen.findByRole('menuitem', { name: /^1ª SB/ }));
     expect(confirmar).toHaveBeenCalled();
     expect(localStorage.getItem('unidade-de-trabalho')).toBeNull();
     expect(router.state.location.pathname).toBe('/militares/m1');
@@ -374,10 +373,10 @@ describe('unidade de trabalho (fase 6)', () => {
     await waitFor(() => expect(router.state.location.pathname).toBe('/entrar'));
   });
 
-  it('a Escala do mês com o 2º GB escolhido mostra o vazio de sempre (Review Focus 2)', async () => {
+  it('a Escala do mês com o 2º GB escolhido pede para escolher uma seção (Review Focus 2; texto novo na 6.16)', async () => {
     localStorage.setItem('unidade-de-trabalho', 'u-gb');
     simularApi({ '/api/eu': { status: 200, corpo: GESTOR }, 'GET /api/unidades/u-gb/escalas': { status: 200, corpo: [] } });
     abrir('/escala-do-mes');
-    expect(await screen.findByText(/Nenhuma escala ativa/)).toBeInTheDocument();
+    expect(await screen.findByText('Escolha uma seção no seletor de unidade para ver a escala.')).toBeInTheDocument();
   });
 });

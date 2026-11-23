@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { createFileRoute, Link, Outlet, useParams } from '@tanstack/react-router';
+import { createFileRoute, Link, Outlet, useParams, useSearch } from '@tanstack/react-router';
 import type { LinhaMilitar } from 'contratos';
 import { TriangleAlert } from 'lucide-react';
 import { useMemo, useState } from 'react';
@@ -101,12 +101,15 @@ function ListaDeMilitares({ unidadeId, escolhido }: { unidadeId: string; escolhi
 }
 
 function ItemMilitar({ m, escolhido }: { m: LinhaMilitar; escolhido: boolean }) {
+  // a ficha aberta pelo Pecúlio continua sendo do Pecúlio ao passar para outro militar da lista
+  const { de } = useSearch({ strict: false }) as { de?: 'peculio' };
   const disponivel = m.situacao === 'Disponível';
   return (
     <li>
       <Link
         to="/militares/$id"
         params={{ id: m.id }}
+        search={de === 'peculio' ? { de } : undefined}
         className={cn('grid gap-0.5 rounded-lg px-3 py-2 hover:bg-accent', escolhido && classeItemEscolhido)}
         aria-current={escolhido ? 'page' : undefined}
       >

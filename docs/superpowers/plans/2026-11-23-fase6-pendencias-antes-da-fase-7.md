@@ -193,7 +193,7 @@
   25. Escala dos oficiais: a marca "novo" → só em quem participa neste mês e não participou no mês anterior da unidade; sem mês anterior gravado, ninguém é "novo" (decisão de 23/11).
   26. Escala dos oficiais: desmarcar "Participa" de quem já tem turnos escolhidos → o diálogo do sistema pergunta "Tirar {posto e nome} da rodada? Os {n} turnos escolhidos ficam sem ninguém.", com o botão "Tirar da rodada". Sem turnos escolhidos, não pergunta (decisão de 23/11).
   27. Grade geral → sem a marca do dia de hoje (diretriz do usuário, 23/11); no mês corrente a tabela continua abrindo no dia de hoje.
-  28. Escala dos oficiais → o painel de Cotas cabe sem rolagem de lado em 1440 px: o calendário cede largura, o painel ganha a das colunas, e os textos longos ("1ª SB · ordenado à mão") quebram a linha (diretriz do usuário, 23/11).
+  28. (passou para a entrega 6.22)
   29. Da 6.12: o vazio da Escala do mês no modo só consulta não mostra o link "Crie uma em Escalas".
   30. Da 6.12: no modo só consulta, os trechos ocupados do Efetivo por dia não param o teclado.
   31. No celular, abrir a escolha de militar para uma vaga → o foco não vai para a busca, e o teclado só aparece quando a pessoa toca na caixa de busca (diretriz do usuário, 23/11).
@@ -223,6 +223,11 @@
   13. Da 6.10: seção dentro de divisão extinta → aparece na aba Estrutura direto no grupamento.
   14. Da 6.10: teste de encerrar o próprio nível também no caso recusado.
   15. A busca de militares (`/api/consulta/militares`) → 429 com "Muitas buscas em pouco tempo. Espere um minuto e tente de novo." acima de 30 pedidos por minuto por conta; a tela mostra a mesma frase. A exportação completa do banco não passa por essa rota (decisão de 23/11).
+  16. Da 6.16: as listas de Militares e do Pecúlio dizem "Lotação a partir de dd/mm/aaaa" para quem só tem período no futuro (a data do próximo período vem na linha da lista).
+  17. Da 6.16: nascimento 29/02 sem ano no `PATCH` da ficha → 400 "Informe o ano: 29/02 só existe em ano bissexto.", sem apagar o ano gravado.
+  18. Da 6.16: o aviso do último gestor não aparece quando há gestor vigente numa unidade acima; conta o gestor com início futuro.
+  19. Da 6.16: a linha do tempo da ficha mostra o ano quando o intervalo atravessa a virada do ano.
+  20. Da 6.16: Salvar do "Alterar situação" não fica preso quando a lista de seções falha (mostra o erro com "Tentar de novo"); `/oficiais` olha o nível de acesso na unidade escolhida; o 403 do telefone vem antes do 400.
 - [ ] **Commit** `Fase 6.18: acabamento da API`.
 
 ### Task 8: importação

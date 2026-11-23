@@ -14,6 +14,9 @@ import {
   DropdownMenuTrigger,
 } from '@/componentes/ui/dropdown-menu';
 
+/** O nome da opção para o leitor de tela: a sigla e a unidade em que ela fica (o recuo é só visual). */
+const nomeDaOpcao = (u: { sigla: string; caminho: string[] }) => (u.caminho.length > 1 ? `${u.sigla}, dentro de ${u.caminho.at(-2)}` : u.sigla);
+
 /** `botaoDoMenu` é a referência do botão que abre o menu do celular: o foco volta a ele quando o menu fecha pelo teclado. */
 export function Topo({ eu, aoAbrirMenu, botaoDoMenu, semTrilho = false }: { eu: Eu; aoAbrirMenu: () => void; botaoDoMenu?: Ref<HTMLButtonElement>; semTrilho?: boolean }) {
   const router = useRouter();
@@ -38,7 +41,9 @@ export function Topo({ eu, aoAbrirMenu, botaoDoMenu, semTrilho = false }: { eu: 
     // trocar de unidade leva à lista da tela atual (/militares/abc vai para /militares): uma ficha de outra unidade não fica aberta
     const primeiro = router.state.location.pathname.split('/')[1] ?? '';
     void router.invalidate();
-    void router.navigate({ to: `/${primeiro}` as '/', ignoreBlocker: true });
+    // o mês que a pessoa está olhando continua na outra unidade (o resto da busca é da unidade de antes)
+    const mes = (router.state.location.search as { mes?: unknown }).mes;
+    void router.navigate({ to: `/${primeiro}` as '/', ...(typeof mes === 'string' ? { search: { mes } as never } : {}), ignoreBlocker: true });
   }
 
   return (
@@ -65,7 +70,7 @@ export function Topo({ eu, aoAbrirMenu, botaoDoMenu, semTrilho = false }: { eu: 
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start" className="min-w-56">
               {trabalho.map((u) => (
-                <DropdownMenuItem key={u.id} data-nivel={u.nivel - menorNivel} aria-current={u.id === eu.unidade.id ? 'true' : undefined} style={{ paddingLeft: `${0.5 + (u.nivel - menorNivel) * 1}rem` }} onSelect={() => escolher(u.id, false)}>
+                <DropdownMenuItem key={u.id} data-nivel={u.nivel - menorNivel} aria-label={nomeDaOpcao(u)} aria-current={u.id === eu.unidade.id ? 'true' : undefined} style={{ paddingLeft: `${0.5 + (u.nivel - menorNivel) * 1}rem` }} onSelect={() => escolher(u.id, false)}>
                   <span className={u.id === eu.unidade.id ? 'font-semibold text-tinta' : undefined}>{u.sigla}</span>
                 </DropdownMenuItem>
               ))}
@@ -74,7 +79,7 @@ export function Topo({ eu, aoAbrirMenu, botaoDoMenu, semTrilho = false }: { eu: 
                   {trabalho.length > 0 && <DropdownMenuSeparator />}
                   <DropdownMenuLabel className="font-cond text-xs font-medium text-apagado">Só consulta</DropdownMenuLabel>
                   {consulta.map((u) => (
-                    <DropdownMenuItem key={u.id} data-nivel={u.nivel - menorNivelDaConsulta} data-so-consulta aria-current={u.id === eu.unidade.id ? 'true' : undefined} style={{ paddingLeft: `${0.5 + (u.nivel - menorNivelDaConsulta) * 1}rem` }} onSelect={() => escolher(u.id, true)}>
+                    <DropdownMenuItem key={u.id} data-nivel={u.nivel - menorNivelDaConsulta} data-so-consulta aria-label={nomeDaOpcao(u)} aria-current={u.id === eu.unidade.id ? 'true' : undefined} style={{ paddingLeft: `${0.5 + (u.nivel - menorNivelDaConsulta) * 1}rem` }} onSelect={() => escolher(u.id, true)}>
                       <span className={u.id === eu.unidade.id ? 'font-semibold text-tinta' : undefined}>{u.sigla}</span>
                     </DropdownMenuItem>
                   ))}

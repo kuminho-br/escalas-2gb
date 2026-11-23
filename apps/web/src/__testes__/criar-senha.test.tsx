@@ -27,6 +27,14 @@ describe('Crie a sua senha', () => {
     expect(f.mock.calls.some(([e]) => String(e).endsWith('/api/eu/senha'))).toBe(false);
   });
 
+  it('tem "Sair", para quem não quer criar a senha agora (6.16)', async () => {
+    const f = simularApi({ '/api/eu': { status: 200, corpo: PROVISORIA }, '/api/auth/sign-out': { status: 200, corpo: { success: true } } });
+    const router = abrir('/criar-senha');
+    await userEvent.click(await screen.findByRole('button', { name: 'Sair' }));
+    await waitFor(() => expect(router.state.location.pathname).toBe('/entrar'));
+    expect(f.mock.calls.some(([e]) => String(e).endsWith('/api/auth/sign-out'))).toBe(true);
+  });
+
   it('salvar leva para o início', async () => {
     let trocou = false;
     const f = simularApi({ '/api/eu': { status: 200, corpo: PROVISORIA }, 'POST /api/eu/senha': { status: 204 } });

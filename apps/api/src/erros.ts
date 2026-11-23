@@ -13,6 +13,9 @@ export async function lerCorpo<T>(c: Context, esquema: z.ZodType<T>): Promise<{ 
   const r = esquema.safeParse(bruto);
   if (r.success) return { ok: true, dados: r.data };
   const campos: Record<string, string> = {};
+  // chave que o contrato não conhece: diz qual (e não só "confira os campos")
+  const desconhecidas = r.error.issues.flatMap((p) => (p.code === 'unrecognized_keys' ? (p as { keys: string[] }).keys : []));
+  if (desconhecidas.length) return { ok: false, resposta: c.json({ erro: `Campo desconhecido: ${desconhecidas.join(', ')}.` }, 400) };
   for (const p of r.error.issues) {
     const k = p.path.join('.');
     if (!(k in campos)) campos[k] = p.message;

@@ -3,7 +3,7 @@ import type { EscalaDosOficiais, EtapaDosOficiais, OficialDoMes, OficialNoSaldo 
 import { ordemDeEscolha, rotuloDoTurno } from 'dominio';
 import type { Consulta } from '../banco/banco.ts';
 import { hojeRecife } from '../datas.ts';
-import { afastamentosDoMes, elegiveisDoMes, marcasDoMes, postoCurto, type AfastamentoDoMes } from './participantes.ts';
+import { afastamentosDoMes, elegiveisDoMes, limitesDoMes, marcasDoMes, postoCurto, type AfastamentoDoMes } from './participantes.ts';
 
 export interface LinhaDoMes {
   id: string;
@@ -12,6 +12,19 @@ export interface LinhaDoMes {
   cotas_em: string | null;
   fechada_em: string | null;
   encerrada_em: string | null;
+}
+
+/**
+ * O quadro do período que vale no mês: o que cobre o dia de referência (hoje, no mês de hoje; o primeiro dia, num mês futuro; o último, num
+ * passado) e, sem ele, o mais recente dentro do mês. `$2` e `$3` são os limites do mês e `$4`, o dia de referência. Um período que só começa
+ * depois do mês (um quadro marcado para o mês que vem) não vale para ele.
+ */
+const QUADRO_DO_MES = `(select q.sigla from rastreio r join quadro q on q.id = r.quadro_id
+   where r.militar_id = m.id and r.desde <= $3::date and (r.ate is null or r.ate >= $2::date)
+   order by (r.desde <= $4::date and (r.ate is null or r.ate >= $4::date)) desc, r.desde desc limit 1)`;
+function referenciaDoMes(mes: string, hoje = hojeRecife()): [string, string, string] {
+  const { inicio, fim } = limitesDoMes(mes);
+  return [inicio, fim, hoje < inicio ? inicio : hoje > fim ? fim : hoje];
 }
 
 const ISO = (col: string) => `to_char(${col} at time zone 'America/Recife', 'YYYY-MM-DD"T"HH24:MI:SS')`;
@@ -108,8 +121,8 @@ export async function lerEscala(c: Consulta, unidadeId: string, mes: string): Pr
   const extras = new Map<string, { matricula: string; posto: string; nomeGuerra: string; antiguidade: number | null; quadro: string | null; afastamentos: AfastamentoDoMes[] }>();
   if (foraDaLista.length > 0) {
     const { rows } = await c.query<{ id: string; matricula: string; posto: string; nome_guerra: string; antiguidade: number | null; quadro: string | null }>(
-      `select m.id, m.matricula, p.sigla as posto, m.nome_guerra, m.antiguidade, (select q.sigla from rastreio r join quadro q on q.id = r.quadro_id where r.militar_id = m.id order by r.desde desc limit 1) as quadro
-         from militar m join posto_grad p on p.id = m.posto_grad_id where m.id = any($1::uuid[])`, [foraDaLista]);
+      `select m.id, m.matricula, p.sigla as posto, m.nome_guerra, m.antiguidade, ${QUADRO_DO_MES} as quadro
+         from militar m join posto_grad p on p.id = m.posto_grad_id where m.id = any($1::uuid[])`, [foraDaLista, ...referenciaDoMes(mes)]);
     const afast = await afastamentosDoMes(c, foraDaLista, mes);
     for (const r of rows) extras.set(r.id, { matricula: r.matricula, posto: postoCurto(r.posto), nomeGuerra: r.nome_guerra, antiguidade: r.antiguidade, quadro: r.quadro, afastamentos: afast.get(r.id) ?? [] });
   }
@@ -211,8 +224,8 @@ export async function lerSaldo(c: Consulta, unidadeId: string, hoje = hojeRecife
   const ids = [...new Set([...ordemIds, ...lanc.map((l) => l.militar_id), ...coberturas.flatMap((t) => [t.militar_id, t.saiu_id])])];
   if (ids.length === 0) return [];
   const { rows: cadastro } = await c.query<{ id: string; matricula: string; posto: string; posto_ordem: number; nome_guerra: string; quadro: string | null }>(
-    `select m.id, m.matricula, p.sigla as posto, -p.ordem as posto_ordem, m.nome_guerra, (select q.sigla from rastreio r join quadro q on q.id = r.quadro_id where r.militar_id = m.id order by r.desde desc limit 1) as quadro
-       from militar m join posto_grad p on p.id = m.posto_grad_id where m.id = any($1::uuid[])`, [ids]);
+    `select m.id, m.matricula, p.sigla as posto, -p.ordem as posto_ordem, m.nome_guerra, ${QUADRO_DO_MES} as quadro
+       from militar m join posto_grad p on p.id = m.posto_grad_id where m.id = any($1::uuid[])`, [ids, ...referenciaDoMes(mesAtual, hoje)]);
   const por = new Map(cadastro.map((m) => [m.id, m]));
   const lotacaoDe = new Map(participantes.map((p) => [p.militarId, p.lotacao]));
   const nome = (id: string) => {

@@ -1,5 +1,5 @@
-import { createFileRoute, Link, redirect } from '@tanstack/react-router';
-import { useEffect, useRef } from 'react';
+import { createFileRoute, Link, redirect, useNavigate } from '@tanstack/react-router';
+import { useEffect, useRef, useState } from 'react';
 import { ArrowRight } from 'lucide-react';
 import { MODULOS, type Modulo } from '@/lib/modulos';
 import { buscaDaGrade, temBuscaDaGrade, type BuscaDaGrade } from '@/lib/busca-da-grade';
@@ -21,7 +21,15 @@ export const Route = createFileRoute('/_app/')({
 /** A tela inicial: a faixa de boas-vindas e um cartão por módulo que a pessoa pode usar (docs/telas/login-e-inicio/mockup.html). */
 function Inicio() {
   const { eu } = Route.useRouteContext();
-  const { aviso } = Route.useSearch();
+  const { aviso: avisoDoEndereco } = Route.useSearch();
+  const navigate = useNavigate();
+  // o aviso aparece uma vez: depois de mostrado sai do endereço, e recarregar a página não o mostra de novo
+  const [aviso, setAviso] = useState(avisoDoEndereco);
+  useEffect(() => {
+    if (!avisoDoEndereco) return;
+    setAviso(avisoDoEndereco);
+    void navigate({ to: '/', search: (s: Record<string, unknown>) => ({ ...s, aviso: undefined }) as never, replace: true });
+  }, [avisoDoEndereco, navigate]);
   const agora = new Date();
   // a chegada pela animação do login: a cena pousa nesta faixa; a saudação entra no pouso e recebe o foco, e os cartões sobem durante o afastamento
   const { fase, cartoes } = useTransicao();

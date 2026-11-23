@@ -33,7 +33,7 @@ import { categoriaMaisAlta, pendenciasDoMilitar, repetidasPorAntiguidade, situac
 type Ctx = Context<AmbienteApi>;
 const MSG_SITUACAO_DESATIVADA = 'Esta situação está desativada.';
 const MSG_SITUACAO_NAO_ACHADA = 'Situação não encontrada.';
-const MSG_PERIODO_ANTES = 'Use o dia do período aberto ou um dia depois.';
+const MSG_PERIODO_ANTES = (desde: string) => `Use uma data a partir de ${desde.slice(8, 10)}/${desde.slice(5, 7)}/${desde.slice(0, 4)}.`;
 const MSG_EQUIPE_DE_OUTRA = 'Escolha uma equipe da unidade da lotação.';
 const MSG_EMAIL_REPETIDO = 'Este e-mail já é de outro militar.';
 const MSG_EMAIL_COM_ACESSO = 'Desative o acesso antes de apagar o e-mail.';
@@ -168,7 +168,7 @@ async function carregarFicha(c: Consulta, id: string, mes: string, usuarioId: st
   const cnh = [...m.cnh].sort();
   // compara com os ativos lotados, no mês, na mesma unidade; sem lotação ou inativo, não compara
   const colegas = await c.query<{ id: string; nome_guerra: string; antiguidade: number | null }>(
-    `select m2.id, m2.nome_guerra, m2.antiguidade
+    `select distinct m2.id, m2.nome_guerra, m2.antiguidade
        from rastreio l0
        join rastreio l2 on l2.unidade_id = l0.unidade_id and l2.desde <= $3 and (l2.ate is null or l2.ate >= $2)
        join situacao_militar sm2 on sm2.id = l2.situacao_id and sm2.escalavel
@@ -549,7 +549,9 @@ export function rotasMilitares(dep: { banco: Banco; auth: Auth }): Hono<Ambiente
         const novo = <T,>(valor: T | undefined, gravado: T): T => (valor === undefined ? gravado : valor);
         const nascimentoDia = d.nascimento === undefined ? atual.nascimento_dia : (d.nascimento?.dia ?? null);
         const nascimentoMes = d.nascimento === undefined ? atual.nascimento_mes : (d.nascimento?.mes ?? null);
-        const nascimentoAno = d.nascimento === undefined ? atual.nascimento_ano : (d.nascimento?.ano ?? null);
+        // sem o ano no pedido, o ano gravado continua (se a data ainda existe nele: 29/02 só em ano bissexto); `ano: null` limpa
+        const anoMantido = atual.nascimento_ano !== null && !(d.nascimento?.dia === 29 && d.nascimento.mes === 2 && !((atual.nascimento_ano % 4 === 0 && atual.nascimento_ano % 100 !== 0) || atual.nascimento_ano % 400 === 0)) ? atual.nascimento_ano : null;
+        const nascimentoAno = d.nascimento === undefined ? atual.nascimento_ano : d.nascimento === null ? null : d.nascimento.ano === undefined ? anoMantido : d.nascimento.ano;
         const endereco = d.endereco ?? {};
         // desmarcar o quadro de motoristas não apaga a CNH: ela só deixa de valer para a escala
         const motorista = d.motorista ?? atual.motorista;
@@ -667,10 +669,11 @@ export function rotasMilitares(dep: { banco: Banco; auth: Auth }): Hono<Ambiente
         const aberta = await periodoAberto(tx, id);
         // outra gravação trocou a unidade do período aberto entre a conferência do papel e agora: confere de novo, com a ficha atualizada
         if (aberta && aberta.unidade_id !== d.unidadeId && aberta.unidade_id !== unidadeAberta) return 'mudou' as const;
-        if (aberta && d.desde < aberta.desde) return 'antes' as const;
+        if (aberta && d.desde < aberta.desde) return { antes: aberta.desde };
         // o quadro precisa conter o posto (o posto não tem histórico: vale o de agora)
         let quadroId = aberta?.quadro_id ?? null;
-        if (d.quadroId !== undefined) {
+        // sem período aberto (todos fechados), o período novo nasce com o quadro do posto, quando só um serve
+        if (d.quadroId !== undefined || !aberta) {
           const posto = (await tx.query<{ posto_grad_id: string }>('select posto_grad_id from militar where id = $1', [id])).rows[0]!.posto_grad_id;
           const q = await quadroParaOPosto(tx, posto, d.quadroId, aberta?.quadro_id ?? null);
           if ('erro' in q) return { quadroErro: q.erro };
@@ -689,7 +692,7 @@ export function rotasMilitares(dep: { banco: Banco; auth: Auth }): Hono<Ambiente
         return { ficha: await carregarFicha(tx, id, mes, c.get('usuarioId')), criado: true };
       });
       if (resultado === 'mudou') return c.json({ erro: MSG_SITUACAO_MUDOU }, 409);
-      if (resultado === 'antes') return c.json({ erro: MSG_PERIODO_ANTES, campos: { desde: MSG_PERIODO_ANTES } }, 400);
+      if ('antes' in resultado && resultado.antes) return c.json({ erro: MSG_PERIODO_ANTES(resultado.antes), campos: { desde: MSG_PERIODO_ANTES(resultado.antes) } }, 400);
       if ('quadroErro' in resultado) return c.json({ erro: resultado.quadroErro, campos: { quadroId: resultado.quadroErro } }, 400);
       return c.json(resultado.ficha, resultado.criado ? 201 : 200);
     } catch (e) {
