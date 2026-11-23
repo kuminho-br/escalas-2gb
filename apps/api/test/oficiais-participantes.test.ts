@@ -181,6 +181,23 @@ describe('o elegível que deixa de ser elegível', () => {
     expect(e.turnos.filter((t) => t.militarId === ids.d)).toEqual([]);
   });
 
+  it('quem deixou de ser elegível mas ainda tem cota não trava a marcação: a lista da tela vai com o nome dele, e ele sai da rodada (achado da revisão final)', async () => {
+    expect((await calcular('2027-07')).status).toBe(200);
+    await oficial('e', 5, { desde: '2027-07-01' });
+    expect((await marcar('2027-07', ['a', 'e'])).status).toBe(200);
+    expect((await lancar('2027-07', '2027-07-03', turnoA, 'e')).status).toBe(200);
+    await api.banco.query('update rastreio set quadro_id = $2 where militar_id = $1', [ids.e, quadro.QBMG]);
+    // a tela ainda mostra E marcado (tem cota): marcar ou desmarcar outro manda a lista inteira, com ele
+    const r = await marcar('2027-07', ['a', 'e']);
+    expect(r.status).toBe(200);
+    const e: Resposta = await r.json();
+    expect(e.liberados).toEqual(['1 turno de CAP E ficou sem ninguém.']);
+    expect(de(e, 'e')).toBeUndefined();
+    expect(de(e, 'a')!.cota).toBe(62);
+    // quem nunca esteve na rodada nem é elegível continua dando 400
+    expect((await marcar('2027-07', ['a', 'praca'])).status).toBe(400);
+  });
+
   it('a marca de quem deixou de ser elegível não volta sozinha: junho copia maio só com quem é elegível', async () => {
     expect(resumo(await ler('2027-06')).filter((x) => x[1]).map((x) => x[0])).toEqual(['A']);
   });

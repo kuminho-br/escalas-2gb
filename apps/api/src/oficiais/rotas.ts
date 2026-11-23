@@ -182,12 +182,19 @@ export function rotasOficiais(dep: { banco: Banco; auth: Auth }): Hono<AmbienteA
     const marcar = [...new Set(corpo.dados.militarIds)];
     return mudar(c, a.u, a.mes, async (tx) => {
       const elegiveis = new Set((await elegiveisDoMes(tx, a.u, a.mes)).map((p) => p.militarId));
-      if (marcar.some((id) => !elegiveis.has(id))) throw new Recusa(400, MSG_NAO_ELEGIVEL);
       await garantirMes(tx, a.u, a.mes);
       const linha = (await linhaDoMes(tx, a.u, a.mes, true))!;
       if (linha.fechada_em) throw new Recusa(409, MSG_PARTICIPANTES_FECHADOS);
-      await tx.query('delete from oficiais_participante where mes_id = $1 and not (militar_id = any($2::uuid[]))', [linha.id, marcar]);
-      await tx.query('insert into oficiais_participante (mes_id, militar_id) select $1, unnest($2::uuid[]) on conflict do nothing', [linha.id, marcar]);
+      // quem já estava na rodada (marcado ou com cota) e deixou de ser elegível pode vir na lista da tela: ele só sai da rodada.
+      // Quem nunca esteve nela e não é elegível é recusado.
+      const naRodada = new Set([
+        ...(await marcasDoMes(tx, a.u, a.mes, linha.id)).marcados,
+        ...(await tx.query<{ militar_id: string }>('select militar_id from oficiais_cota where mes_id = $1', [linha.id])).rows.map((r) => r.militar_id),
+      ]);
+      if (marcar.some((id) => !elegiveis.has(id) && !naRodada.has(id))) throw new Recusa(400, MSG_NAO_ELEGIVEL);
+      const ficam = marcar.filter((id) => elegiveis.has(id));
+      await tx.query('delete from oficiais_participante where mes_id = $1 and not (militar_id = any($2::uuid[]))', [linha.id, ficam]);
+      await tx.query('insert into oficiais_participante (mes_id, militar_id) select $1, unnest($2::uuid[]) on conflict do nothing', [linha.id, ficam]);
       // com as cotas já calculadas, mudar quem participa refaz as cotas (as escolhas de quem continua ficam)
       if (linha.cotas_em) return calcularEGravar(tx, a.u, a.mes);
     });

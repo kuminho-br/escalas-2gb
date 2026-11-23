@@ -258,6 +258,12 @@ describe('a aba Escala do mês', () => {
       expect(await screen.findByText('3 turnos de CAP BRAVO ficaram sem ninguém.')).toBeInTheDocument();
     });
 
+    it('o aviso também aparece quando os turnos somem no "Calcular cotas" (quem deixou de ser elegível; achado da revisão final)', async () => {
+      abrirEscala(escala(), { [`POST ${URL_MES}/cotas`]: { status: 200, corpo: { ...escala(), liberados: ['1 turno de CAP BRAVO ficou sem ninguém.'] } } });
+      await userEvent.click(await screen.findByRole('button', { name: 'Calcular cotas' }));
+      expect(await screen.findByText('1 turno de CAP BRAVO ficou sem ninguém.')).toBeInTheDocument();
+    });
+
     it('o erro da API (marcar com a escala fechada em outra aba) aparece na tela', async () => {
       abrirEscala(escala({ oficiais: [O1, O2, O3, FORA] }), { [URL_PART]: { status: 409, corpo: { erro: 'Com a escala fechada, os participantes não mudam mais.' } } });
       await userEvent.click(await screen.findByRole('checkbox', { name: 'MAJ DELTA participa da rodada' }));

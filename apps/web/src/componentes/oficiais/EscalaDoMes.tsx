@@ -43,16 +43,16 @@ export function EscalaDoMes({ unidadeId, escala: e, aoVer }: Props) {
         mostrar(mensagemDe(x));
       }
     });
-  const calcular = rodar(() => calcularCotas(queryClient, unidadeId, e.mes));
+  // as mudanças que refazem as cotas dizem os turnos de quem saiu da rodada que ficaram sem ninguém; uma ação nova limpa o aviso anterior
+  const comAviso = (f: () => Promise<EscalaDosOficiais>) => async () => {
+    setLiberados([]);
+    setLiberados((await f()).liberados ?? []);
+  };
+  const calcular = rodar(comAviso(() => calcularCotas(queryClient, unidadeId, e.mes)));
   const fechar = rodar(() => fecharEscala(queryClient, unidadeId, e.mes), () => setConfirmacao(null));
   const encerrar = rodar(() => encerrarMes(queryClient, unidadeId, e.mes), () => setConfirmacao(null));
-  const ordenar = (ids: string[]) => void rodar(() => gravarOrdem(queryClient, unidadeId, e.mes, ids))();
-  const marcar = (ids: string[]) =>
-    void rodar(async () => {
-      setLiberados([]);
-      const r = await gravarParticipantes(queryClient, unidadeId, e.mes, ids);
-      setLiberados(r.liberados ?? []);
-    })();
+  const ordenar = (ids: string[]) => void rodar(comAviso(() => gravarOrdem(queryClient, unidadeId, e.mes, ids)))();
+  const marcar = (ids: string[]) => void rodar(comAviso(() => gravarParticipantes(queryClient, unidadeId, e.mes, ids)))();
   const lancar = (t: Turno, militarId: string | null, noDialogo = false) =>
     rodar(() => trocarTurno(queryClient, unidadeId, e.mes, t.dia, t.turnoId, militarId), () => setTurnoAberto(null), noDialogo ? setErroDoTurno : setErro)();
   const fecharDialogo = () => {
