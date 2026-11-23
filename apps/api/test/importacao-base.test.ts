@@ -95,7 +95,8 @@ describe('lerPlanilha', () => {
     );
     expect(abas.X!.cab).toEqual(['DATA', 'HORA', 'NUM']);
     expect(abas.X!.linhas).toEqual([
-      { linha: 2, celulas: ['01/12/2026', '08:00', '7'] },
+      // a célula que veio como data do Excel fica marcada (a NASCIMENTO do Pecúlio a ignora)
+      { linha: 2, celulas: ['01/12/2026', '08:00', '7'], datas: [true, false, false] },
       { linha: 4, celulas: ['a', '', ''] },
     ]);
   });

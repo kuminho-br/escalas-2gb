@@ -1,6 +1,5 @@
 import { importadorConfiguracoes } from './configuracoes.ts';
 import { importadorCotas } from './cotas.ts';
-import { importadorDadosDaEscala } from './dados-da-escala.ts';
 import { importadorFeriados } from './feriados.ts';
 import { importadorGuarnicoes } from './guarnicoes.ts';
 import { importadorPeculio } from './peculio.ts';
@@ -13,7 +12,6 @@ export const IMPORTADORES: Record<string, Importador<unknown>> = {
   cotas: importadorCotas as Importador<unknown>,
   feriados: importadorFeriados as Importador<unknown>,
   guarnicoes: importadorGuarnicoes as Importador<unknown>,
-  'dados-da-escala': importadorDadosDaEscala as Importador<unknown>,
   peculio: importadorPeculio as Importador<unknown>,
   'servicos-escalas': importadorServicosEscalas as Importador<unknown>,
 };

@@ -108,7 +108,7 @@ export function ImportarPlanilha({ cadastro, rotulo, aoConcluir, unidadeId }: { 
         {etapa.tipo === 'escolher' && (
           <form onSubmit={verPrevia} className="grid gap-3">
             <p className="text-sm text-apagado">
-              Baixe o modelo, cole os dados nas abas dele e envie o arquivo aqui.{cadastro !== 'dados-da-escala' && ' A planilha sandbox baixada em .xlsx também serve.'}
+              Baixe o modelo, cole os dados nas abas dele e envie o arquivo aqui. A planilha sandbox baixada em .xlsx também serve.
             </p>
             <a
               href={`${caminho}/modelo`}
@@ -176,6 +176,20 @@ function PreviaImportacao({ previa, erro, enviando, aoImportar }: { previa: Prev
             {previa.problemas.map((p, i) => (
               <li key={i}>
                 Linha {p.linha} da aba {p.aba}: {p.mensagem} <span className="text-apagado">{p.solucao}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {previa.ignoradas.length > 0 && (
+        <section aria-labelledby="dados-ignorados">
+          <h3 id="dados-ignorados" className="font-medium text-pendencia">Dados ignorados ({previa.ignoradas.length})</h3>
+          <p className="text-apagado">Estas células não foram gravadas; o resto de cada linha entra.</p>
+          <ul className="mt-1 grid gap-1.5">
+            {previa.ignoradas.map((c, i) => (
+              <li key={i}>
+                Linha {c.linha}, {c.chave}, {c.coluna}: <span className="text-apagado">{c.motivo}</span>
               </li>
             ))}
           </ul>

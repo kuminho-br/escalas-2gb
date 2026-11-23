@@ -392,13 +392,16 @@ export function expandirSlots(esc: Pick<Escala, 'slots'>, turno: string) {
   return out;
 }
 
+/** A posição do posto na hierarquia (menor = mais antigo): pela ordem do cadastro, quando vem; senão, pela sigla. */
+const posicaoDoPosto = (m: Militar) => (typeof m.postoOrdem === 'number' ? -m.postoOrdem : ordemDoPosto(m.posto));
+
 /**
  * Do mais antigo para o mais moderno (RN-02, RN-81): posto/graduação, depois a antiguidade, depois
  * a ordem do cadastro. Militar fora do cadastro vai para o fim, pela matrícula.
  */
 export function compararAntiguidade(x: { mat: string; m?: Militar | null }, y: { mat: string; m?: Militar | null }): number {
-  const px = x.m ? ordemDoPosto(x.m.posto) : Infinity;
-  const py = y.m ? ordemDoPosto(y.m.posto) : Infinity;
+  const px = x.m ? posicaoDoPosto(x.m) : Infinity;
+  const py = y.m ? posicaoDoPosto(y.m) : Infinity;
   if (px !== py) return px < py ? -1 : 1;
   const ax = x.m ? antigNum(x.m.antig) : null;
   const ay = y.m ? antigNum(y.m.antig) : null;

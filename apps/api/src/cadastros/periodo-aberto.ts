@@ -15,22 +15,29 @@ export async function periodoAberto(tx: Consulta, militarId: string): Promise<Pe
 }
 
 /**
- * Muda o quadro e/ou a situação do período aberto a partir de `hoje`: se o período começou hoje (ou depois), ele é ajustado no lugar; senão, termina
- * na véspera e outro, igual a ele, abre hoje com a mudança. Devolve se mudou alguma coisa.
+ * Muda o quadro, a situação, a equipe e/ou a jornada do período aberto a partir de `hoje`: se o período começou hoje (ou depois), ele é ajustado no
+ * lugar; senão, termina na véspera e outro, igual a ele, abre hoje com as mudanças (várias de uma vez viram um período só). Devolve se mudou alguma coisa.
  */
-export async function mudarPeriodoAberto(tx: Consulta, militarId: string, hoje: string, mudanca: { quadroId?: string | null; situacaoId?: string }): Promise<boolean> {
+export async function mudarPeriodoAberto(
+  tx: Consulta,
+  militarId: string,
+  hoje: string,
+  mudanca: { quadroId?: string | null; situacaoId?: string; equipeId?: string | null; jornada?: 'pronto' | 'adm' },
+): Promise<boolean> {
   const aberto = await periodoAberto(tx, militarId);
   if (!aberto) return false;
   const quadroId = mudanca.quadroId === undefined ? aberto.quadro_id : mudanca.quadroId;
   const situacaoId = mudanca.situacaoId ?? aberto.situacao_id;
-  if (quadroId === aberto.quadro_id && situacaoId === aberto.situacao_id) return false;
+  const equipeId = mudanca.equipeId === undefined ? aberto.equipe_id : mudanca.equipeId;
+  const jornada = mudanca.jornada ?? aberto.jornada;
+  if (quadroId === aberto.quadro_id && situacaoId === aberto.situacao_id && equipeId === aberto.equipe_id && jornada === aberto.jornada) return false;
   if (aberto.desde >= hoje) {
-    await tx.query('update rastreio set quadro_id = $2, situacao_id = $3 where id = $1', [aberto.id, quadroId, situacaoId]);
+    await tx.query('update rastreio set quadro_id = $2, situacao_id = $3, equipe_id = $4, jornada = $5 where id = $1', [aberto.id, quadroId, situacaoId, equipeId, jornada]);
     return true;
   }
   await tx.query("update rastreio set ate = $2::date - interval '1 day' where id = $1", [aberto.id, hoje]);
   await tx.query('insert into rastreio (militar_id, unidade_id, equipe_id, jornada, desde, quadro_id, situacao_id) values ($1, $2, $3, $4, $5, $6, $7)', [
-    militarId, aberto.unidade_id, aberto.equipe_id, aberto.jornada, hoje, quadroId, situacaoId,
+    militarId, aberto.unidade_id, equipeId, jornada, hoje, quadroId, situacaoId,
   ]);
   return true;
 }

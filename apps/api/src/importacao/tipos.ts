@@ -46,6 +46,7 @@ export interface Importador<P> {
   exigeDonoDoPeculio?: boolean;
   /** Planilha em branco que o escalante baixa na tela de importação. */
   modelo: ModeloImportacao;
-  planejar(abas: Record<string, Aba>, ctx: Contexto): Promise<{ previa: Previa; plano: P }>;
+  /** A prévia; `ignoradas` pode faltar (a rota completa com a lista vazia). */
+  planejar(abas: Record<string, Aba>, ctx: Contexto): Promise<{ previa: Omit<Previa, 'ignoradas'> & { ignoradas?: Previa['ignoradas'] }; plano: P }>;
   aplicar(plano: P, ctx: Contexto): Promise<number>;
 }

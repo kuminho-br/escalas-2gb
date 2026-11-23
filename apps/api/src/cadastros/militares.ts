@@ -1,6 +1,8 @@
 // Militares: identificação, rastreio (alterar situação), CNH e afastamentos.
 import {
   AlteracaoDeSituacao,
+  ConfirmarExclusao,
+  NovoPosto,
   EdicaoAfastamento,
   EdicaoMilitar,
   MENSAGEM_FIM_ANTES_DO_INICIO,
@@ -19,11 +21,12 @@ import {
 } from 'contratos';
 import { cnhHabilitadas, diasDoMes } from 'dominio';
 import { Hono, type Context } from 'hono';
-import { CADASTRO, exigirAlgumPapel, exigirPapel, exigirSessao, temPapel, temPapelAcima, unidadeDoRegistro, type AmbienteApi } from '../acesso.ts';
+import { CADASTRO, exigirAdministradorRaiz, exigirAlgumPapel, exigirPapel, exigirSessao, temPapel, temPapelAcima, unidadeDoRegistro, type AmbienteApi } from '../acesso.ts';
 import type { Auth } from '../auth.ts';
 import { comUsuario, type Banco, type Consulta } from '../banco/banco.ts';
 import { hojeRecife } from '../datas.ts';
 import { lerCorpo, respostaDoErroDoBanco } from '../erros.ts';
+import { apagarMilitar, oQueVaiJunto } from './apagar-militar.ts';
 import { mudarPeriodoAberto, periodoAberto } from './periodo-aberto.ts';
 import { quadroParaOPosto } from './quadros.ts';
 import { categoriaMaisAlta, pendenciasDoMilitar, repetidasPorAntiguidade, situacaoNoMes } from './militares-regras.ts';
@@ -293,7 +296,7 @@ const mesDaConsulta = (c: Ctx) => c.req.query('mes') ?? hojeRecife().slice(0, 7)
 export function rotasMilitares(dep: { banco: Banco; auth: Auth }): Hono<AmbienteApi> {
   const r = new Hono<AmbienteApi>();
   const sessao = exigirSessao(dep.banco, dep.auth);
-  for (const caminho of ['/postos', '/quadros', '/secoes', '/unidades/:u/equipes', '/unidades/:u/militares', '/unidades/:u/peculio', '/militares/*', '/afastamentos/*']) r.use(caminho, sessao);
+  for (const caminho of ['/postos', '/postos/*', '/quadros', '/secoes', '/unidades/:u/equipes', '/unidades/:u/militares', '/unidades/:u/peculio', '/militares/*', '/afastamentos/*']) r.use(caminho, sessao);
 
   r.get('/postos', async (c) => {
     const negado = await exigirAlgumPapel(c);
@@ -303,6 +306,28 @@ export function rotasMilitares(dep: { banco: Banco; auth: Auth }): Hono<Ambiente
   });
 
   // os quadros são fixos e não têm nada sigiloso: qualquer pessoa com sessão lê
+  // a sigla e o nome de um posto ou graduação: só o administrador. A ordem não muda (a antiguidade nas escalas vem dela, e não da sigla), e não há
+  // rota para criar nem apagar posto. A auditoria vem do gatilho da tabela.
+  r.patch('/postos/:id', async (c) => {
+    const negado = await exigirAdministradorRaiz(c);
+    if (negado) return negado;
+    const corpo = await lerCorpo(c, NovoPosto);
+    if (!corpo.ok) return corpo.resposta;
+    const id = c.req.param('id');
+    const { sigla, nome } = corpo.dados;
+    const MSG = 'Já existe um posto com esta sigla.';
+    const resultado = await comUsuario(dep.banco, c.get('usuarioId'), async (tx) => {
+      const antes = (await tx.query<Posto>('select id, sigla, nome, ordem from posto_grad where id::text = $1 for update', [id])).rows[0];
+      if (!antes) return { status: 404 as const };
+      if ((await tx.query('select 1 from posto_grad where lower(sigla) = lower($1) and id <> $2', [sigla, antes.id])).rows.length) return { status: 409 as const };
+      const depois = (await tx.query<Posto>('update posto_grad set sigla = $2, nome = $3 where id = $1 returning id, sigla, nome, ordem', [antes.id, sigla, nome])).rows[0]!;
+      return { status: 200 as const, posto: depois };
+    });
+    if (resultado.status === 404) return c.json({ erro: 'Posto não encontrado.' }, 404);
+    if (resultado.status === 409) return c.json({ erro: MSG, campos: { sigla: MSG } }, 409);
+    return c.json(resultado.posto);
+  });
+
   r.get('/quadros', async (c) => {
     const { rows } = await dep.banco.query<Quadro>(
       `select q.id, q.sigla, q.nome, coalesce(array_agg(qp.posto_grad_id order by p.ordem) filter (where qp.posto_grad_id is not null), '{}') as "postoGradIds"
@@ -445,6 +470,37 @@ export function rotasMilitares(dep: { banco: Banco; auth: Auth }): Hono<Ambiente
     const mes = mesDaConsulta(c);
     if (!Mes.safeParse(mes).success) return c.json({ erro: 'Mês inválido: use o formato aaaa-mm.' }, 400);
     return c.json(await carregarFicha(dep.banco, id, mes, c.get('usuarioId')));
+  });
+
+  // apagar um militar, com tudo o que é dele: só o administrador, depois de ver o que vai junto e de digitar a matrícula (entrega 6.13)
+  const MSG_SO_ADMIN = 'Só o administrador do sistema apaga um militar.';
+  const militarDe = async (id: string) =>
+    (await dep.banco.query<{ matricula: string }>('select matricula from militar where id::text = $1', [id])).rows[0];
+  r.get('/militares/:id/exclusao', async (c) => {
+    const negado = await exigirAdministradorRaiz(c, MSG_SO_ADMIN);
+    if (negado) return negado;
+    const id = c.req.param('id');
+    if (!(await militarDe(id))) return c.json({ erro: 'Militar não encontrado.' }, 404);
+    return c.json(await dep.banco.transacao((tx) => oQueVaiJunto(tx, id)));
+  });
+
+  r.delete('/militares/:id', async (c) => {
+    const negado = await exigirAdministradorRaiz(c, MSG_SO_ADMIN);
+    if (negado) return negado;
+    const id = c.req.param('id');
+    const corpo = await lerCorpo(c, ConfirmarExclusao);
+    if (!corpo.ok) return corpo.resposta;
+    const m = await militarDe(id);
+    if (!m) return c.json({ erro: 'Militar não encontrado.' }, 404);
+    if (corpo.dados.matricula.trim() !== m.matricula) return c.json({ erro: 'Digite a matrícula para confirmar.', campos: { matricula: 'Digite a matrícula para confirmar.' } }, 400);
+    const meu = (await dep.banco.query<{ militar_id: string | null }>('select militar_id from usuario where id = $1', [c.get('usuarioId')])).rows[0]?.militar_id;
+    if (meu === id) return c.json({ erro: 'Você não pode apagar o seu próprio cadastro.' }, 409);
+    try {
+      await comUsuario(dep.banco, c.get('usuarioId'), (tx) => apagarMilitar(tx, id));
+    } catch (e) {
+      return respostaDoErroDoBanco(c, e);
+    }
+    return c.body(null, 204);
   });
 
   r.patch('/militares/:id', async (c) => {

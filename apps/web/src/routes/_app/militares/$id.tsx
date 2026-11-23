@@ -4,7 +4,9 @@ import type { FichaMilitar } from 'contratos';
 import { useState } from 'react';
 import { mensagemDe } from '@/api/cliente';
 import { consultaFicha } from '@/api/militares';
+import { ehAdministrador } from '@/api/eu';
 import { AcessoAoSistema } from '@/componentes/militares/AcessoAoSistema';
+import { ApagarMilitar } from '@/componentes/militares/ApagarMilitar';
 import { Afastamentos } from '@/componentes/militares/Afastamentos';
 import { Comportamento } from '@/componentes/militares/Comportamento';
 import { Contato } from '@/componentes/militares/Contato';
@@ -49,6 +51,8 @@ function Ficha() {
       <Afastamentos key={`a-${ficha.id}`} ficha={ficha} />
       <Rastreio key={`r-${ficha.id}`} ficha={ficha} unidadeId={eu.unidade.id} />
       <AcessoAoSistema key={`s-${ficha.id}`} ficha={ficha} />
+      {/* só o administrador do sistema apaga um militar, e no fim da ficha */}
+      {ehAdministrador(eu) && <ApagarMilitar key={`x-${ficha.id}`} ficha={ficha} />}
     </FichaPainel>
     </ProvedorDePendencias>
   );

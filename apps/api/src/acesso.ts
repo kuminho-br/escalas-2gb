@@ -126,11 +126,11 @@ export async function exigirAlgumPapel(c: Context<AmbienteApi>): Promise<Respons
 }
 
 /** Catálogos do sistema: só o administrador (que só existe na raiz). */
-export async function exigirAdministradorRaiz(c: Context<AmbienteApi>): Promise<Response | null> {
+export async function exigirAdministradorRaiz(c: Context<AmbienteApi>, erro = 'Só o administrador do sistema altera esta lista.'): Promise<Response | null> {
   const banco = c.get('banco');
   const raiz = (await banco.query<{ id: string }>('select id from unidade where mae_id is null')).rows[0]!.id;
   if (await temPapel(banco, c.get('usuarioId'), raiz, ['administrador'], hojeRecife())) return null;
-  return c.json({ erro: 'Só o administrador do sistema altera esta lista.' }, 403);
+  return c.json({ erro }, 403);
 }
 
 type TabelaComUnidade = 'militar' | 'afastamento' | 'funcao' | 'guarnicao' | 'servico' | 'turno' | 'escala' | 'feriado' | 'cota' | 'alocacao' | 'remocao' | 'acumulo';

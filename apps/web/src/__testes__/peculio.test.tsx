@@ -130,6 +130,47 @@ describe('módulo Pecúlio', () => {
     expect(dialogo.getByRole('link', { name: 'Baixar modelo' })).toHaveAttribute('href', '/api/unidades/u-gb/importacao/peculio/modelo');
   });
 
+  describe('a prévia da importação do Pecúlio (6.13)', () => {
+    const PREVIA = {
+      novos: [], alterados: [{ chave: '990001-1', descricao: 'SD BM ANDRADE', mudancas: ['telefone: vazio → (81) 99999-0000'] }], iguais: 0, avisos: [],
+      problemas: [{ aba: 'PECÚLIO', linha: 4, mensagem: 'Militar novo sem lotação: não foi criado.', solucao: 'Preencha a coluna LOTAÇÃO.' }],
+      ignoradas: [
+        { linha: 2, chave: '990001-1', coluna: 'E-MAIL', motivo: 'Use o e-mail institucional (@bombeiros.pe.gov.br).' },
+        { linha: 3, chave: '990002-2', coluna: 'NASCIMENTO', motivo: 'Use dd/mm/aaaa ou dd/mm, em formato de texto.' },
+      ],
+    };
+    const verPrevia = async (previa: object) => {
+      api(GESTOR_GB, LISTA, { 'POST /api/unidades/u-gb/importacao/peculio': { status: 200, corpo: previa } });
+      abrir('/peculio');
+      await userEvent.click(await screen.findByRole('button', { name: /^Importar/ }));
+      const dialogo = within(await screen.findByRole('dialog'));
+      await userEvent.upload(dialogo.getByLabelText('Arquivo da planilha (.xlsx)'), new File(['x'], 'peculio.xlsx'));
+      await userEvent.click(dialogo.getByRole('button', { name: 'Ver o que vai entrar' }));
+      return dialogo;
+    };
+
+    it('mostra o bloco "Dados ignorados", uma linha por célula: a linha, o militar, a coluna e o motivo', async () => {
+      const dialogo = await verPrevia(PREVIA);
+      const bloco = within(await dialogo.findByRole('region', { name: 'Dados ignorados (2)' }));
+      const linhas = bloco.getAllByRole('listitem').map((l) => l.textContent);
+      expect(linhas).toEqual([
+        'Linha 2, 990001-1, E-MAIL: Use o e-mail institucional (@bombeiros.pe.gov.br).',
+        'Linha 3, 990002-2, NASCIMENTO: Use dd/mm/aaaa ou dd/mm, em formato de texto.',
+      ]);
+    });
+
+    it('o botão "Importar" fica ligado com células ignoradas e linhas de fora, se há algo a gravar', async () => {
+      const dialogo = await verPrevia(PREVIA);
+      expect(await dialogo.findByRole('button', { name: 'Importar 1, pular 1' })).toBeEnabled();
+    });
+
+    it('sem célula ignorada, o bloco não aparece', async () => {
+      const dialogo = await verPrevia({ ...PREVIA, ignoradas: [] });
+      await dialogo.findByRole('button', { name: /^Importar 1/ });
+      expect(dialogo.queryByRole('region', { name: /Dados ignorados/ })).toBeNull();
+    });
+  });
+
   it('sem militar lotado, a tela diz o que fazer', async () => {
     api(GESTOR_GB, { militares: [], aniversariantes: [] });
     abrir('/peculio');
