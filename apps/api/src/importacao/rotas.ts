@@ -66,7 +66,8 @@ export function rotasImportacao(dep: { banco: Banco; auth: Auth }, importadores:
     if (c.req.query('confirmar') !== '1') {
       const previa = await dep.banco.transacao(async (tx) => {
         await tx.query('set transaction read only');
-        return (await imp.planejar(abas, { tx, unidadeId, hoje, usuarioId: c.get('usuarioId') })).previa;
+        const { previa: p } = await imp.planejar(abas, { tx, unidadeId, hoje, usuarioId: c.get('usuarioId') });
+        return { ...p, ignoradas: p.ignoradas ?? [] };
       });
       return c.json(previa);
     }
@@ -74,7 +75,7 @@ export function rotasImportacao(dep: { banco: Banco; auth: Auth }, importadores:
       const resultado: ResultadoImportacao = await comUsuario(dep.banco, c.get('usuarioId'), async (tx) => {
         const ctx = { tx, unidadeId, hoje, usuarioId: c.get('usuarioId') };
         const { previa, plano } = await imp.planejar(abas, ctx);
-        return { ...previa, gravados: await imp.aplicar(plano, ctx) };
+        return { ...previa, ignoradas: previa.ignoradas ?? [], gravados: await imp.aplicar(plano, ctx) };
       });
       return c.json(resultado);
     } catch (e) {

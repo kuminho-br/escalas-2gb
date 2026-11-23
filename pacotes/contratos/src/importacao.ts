@@ -1,12 +1,16 @@
 // Importação da planilha sandbox (adendo do design, "Importação inicial").
 export type ItemPrevia = { chave: string; descricao: string; mudancas?: string[] };
 export type ProblemaImportacao = { aba: string; linha: number; mensagem: string; solucao: string };
+/** Uma célula que a importação não gravou (dado inválido), com o motivo; as outras células da linha valem. */
+export type CelulaIgnorada = { linha: number; chave: string; coluna: string; motivo: string };
 export type Previa = {
   novos: ItemPrevia[];
   alterados: ItemPrevia[];
   iguais: number;
   problemas: ProblemaImportacao[];
   avisos: string[];
+  /** Só a importação do Pecúlio ignora célula por célula; as outras devolvem a lista vazia. */
+  ignoradas: CelulaIgnorada[];
 };
 export type ResultadoImportacao = Previa & { gravados: number };
 

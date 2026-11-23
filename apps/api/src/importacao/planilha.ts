@@ -3,7 +3,8 @@ import { Data, Mes } from 'contratos';
 import { normalizar } from 'dominio';
 import ExcelJS from 'exceljs';
 
-export type Aba = { cab: string[]; linhas: { linha: number; celulas: string[] }[] };
+/** `datas[i]` diz se a célula i veio como data do Excel (o texto dela é o dd/mm/aaaa que o Excel guardou, e não o que a pessoa digitou). */
+export type Aba = { cab: string[]; linhas: { linha: number; celulas: string[]; datas?: boolean[] }[] };
 
 const dois = (n: number) => String(n).padStart(2, '0');
 
@@ -12,6 +13,11 @@ function textoDaData(d: Date): string {
   if (d.getUTCFullYear() <= 1900) return `${dois(d.getUTCHours())}:${dois(d.getUTCMinutes())}`;
   return `${dois(d.getUTCDate())}/${dois(d.getUTCMonth() + 1)}/${d.getUTCFullYear()}`;
 }
+
+const ehDataDoExcel = (cel: ExcelJS.Cell) => {
+  const v = cel.value;
+  return v instanceof Date || (v != null && typeof v === 'object' && 'result' in v && v.result instanceof Date);
+};
 
 function textoDaCelula(cel: ExcelJS.Cell): string {
   const v = cel.value;
@@ -41,7 +47,8 @@ export async function lerPlanilha(arquivo: ArrayBuffer): Promise<Record<string, 
     ws.eachRow({ includeEmpty: false }, (row, n) => {
       if (n === 1) return;
       const celulas = Array.from({ length: largura }, (_, i) => textoDaCelula(row.getCell(i + 1)));
-      if (celulas.some((c) => c !== '')) linhas.push({ linha: n, celulas });
+      const datas = Array.from({ length: largura }, (_, i) => ehDataDoExcel(row.getCell(i + 1)));
+      if (celulas.some((c) => c !== '')) linhas.push({ linha: n, celulas, ...(datas.some(Boolean) ? { datas } : {}) });
     });
     abas[ws.name] = { cab, linhas };
   });
