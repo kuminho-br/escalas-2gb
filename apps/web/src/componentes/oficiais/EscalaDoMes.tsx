@@ -29,6 +29,8 @@ export function EscalaDoMes({ unidadeId, escala: e, aoVer }: Props) {
   const [erroDoTurno, setErroDoTurno] = useState<string | null>(null);
   // depois de mudar quem participa: os turnos de quem saiu que ficaram sem ninguém
   const [liberados, setLiberados] = useState<string[]>([]);
+  // o último turno lançado: fica marcado no calendário, e o aviso diz quem ficou com ele, até o próximo lançamento
+  const [recente, setRecente] = useState<{ dia: string; turnoId: string; texto: string } | null>(null);
 
   const semParticipantes = e.etapa === 'sem-cotas' && e.oficiais.length === 0;
   if (semParticipantes) return <p className="text-apagado">Nenhum oficial QOC ou QOA nesta unidade neste mês.</p>;
@@ -54,7 +56,16 @@ export function EscalaDoMes({ unidadeId, escala: e, aoVer }: Props) {
   const ordenar = (ids: string[]) => void rodar(comAviso(() => gravarOrdem(queryClient, unidadeId, e.mes, ids)))();
   const marcar = (ids: string[]) => void rodar(comAviso(() => gravarParticipantes(queryClient, unidadeId, e.mes, ids)))();
   const lancar = (t: Turno, militarId: string | null, noDialogo = false) =>
-    rodar(() => trocarTurno(queryClient, unidadeId, e.mes, t.dia, t.turnoId, militarId), () => setTurnoAberto(null), noDialogo ? setErroDoTurno : setErro)();
+    rodar(
+      () => trocarTurno(queryClient, unidadeId, e.mes, t.dia, t.turnoId, militarId),
+      () => {
+        setTurnoAberto(null);
+        const o = e.oficiais.find((x) => x.militarId === militarId);
+        const rotulo = e.turnosDoServico.find((x) => x.id === t.turnoId)?.rotulo ?? 'turno';
+        setRecente(o ? { dia: t.dia, turnoId: t.turnoId, texto: `${o.posto} ${o.nomeGuerra} ficou com o turno ${rotulo} de ${t.dia.slice(8)}/${t.dia.slice(5, 7)}.` } : null);
+      },
+      noDialogo ? setErroDoTurno : setErro,
+    )();
   const fecharDialogo = () => {
     setTurnoAberto(null);
     setErroDoTurno(null);
@@ -112,26 +123,29 @@ export function EscalaDoMes({ unidadeId, escala: e, aoVer }: Props) {
               : 'Marque na lista quem participa da rodada e calcule as cotas.'}
         </p>
       )}
-      <div className="grid grid-cols-[minmax(0,1fr)] items-start gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,24rem)]">
+      {/* o painel é largo (30 rem) e o calendário cede; abaixo de 1280 px ele vem antes dos dias, na largura toda */}
+      <div className="grid grid-cols-[minmax(0,1fr)] items-start gap-4 xl:grid-cols-[minmax(0,1fr)_30rem]">
         {aberto || e.etapa === 'encerrada' ? (
-          <section className="grid gap-2 rounded-lg border border-linha bg-superficie p-3">
+          <section className="grid gap-2 rounded-lg border border-linha bg-superficie p-2">
             <header className="flex flex-wrap items-baseline justify-between gap-2">
               <h2 className="font-cond text-lg font-semibold">Turnos do mês</h2>
-              <small className="text-apagado">{`${e.turnos.filter((t) => t.militarId !== null).length} de ${e.turnos.length} turnos com nome`}</small>
+              <small className="text-[13px] text-apagado">{`${e.turnos.filter((t) => t.militarId !== null).length} de ${e.turnos.length} turnos com nome`}</small>
             </header>
             <LegendaDosTurnos turnos={e.turnosDoServico} />
+            {recente && recente.dia.startsWith(e.mes) && <p role="status" className="text-[15px] leading-[22px] font-medium">{recente.texto}</p>}
             <CalendarioDosOficiais
               escala={e}
               aoClicarTurno={aberto ? clicarTurno : undefined}
               aoTirar={e.etapa === 'escolhas' ? (t) => void lancar(t, null) : undefined}
               desabilitado={salvando}
+              recente={recente && recente.dia.startsWith(e.mes) ? recente : null}
             />
           </section>
         ) : (
           <div />
         )}
         {/* no celular a vez de escolher e as cotas vêm antes dos dias, como no mockup */}
-        <aside className="order-first grid min-w-0 gap-3 lg:order-none">
+        <aside className="order-first grid min-w-0 gap-3 xl:order-none">
           <VezDeEscolher escala={e} />
           <section className="grid gap-2 rounded-lg border border-linha bg-superficie p-3">
             <h2 className="font-cond text-lg font-semibold">Cotas</h2>
