@@ -80,6 +80,13 @@ export type EdicaoDeEndereco = z.infer<typeof EdicaoDeEndereco>;
 export type Endereco = { cep: string | null; logradouro: string | null; numero: string | null; complemento: string | null; bairro: string | null; cidade: string | null; uf: string | null };
 
 /** Uma situação do militar (Ativa, Reserva, Agregado, Adido…): `escalavel` diz se quem está nela pode ser escalado. */
+/** Uma função do militar (Chefe de seção, Instrutor…): o catálogo das Configurações, até o QOD ser modelado. Não é a função da guarnição. */
+export type FuncaoDoMilitar = { id: string; nome: string; ativo: boolean };
+export const NovaFuncaoDoMilitar = z.object({ nome: z.string().trim().min(1, 'Informe o nome.').max(80, 'Use no máximo 80 caracteres.') });
+export type NovaFuncaoDoMilitar = z.infer<typeof NovaFuncaoDoMilitar>;
+export const EdicaoDaFuncaoDoMilitar = z.object({ nome: NovaFuncaoDoMilitar.shape.nome.optional(), ativo: z.boolean().optional() });
+export type EdicaoDaFuncaoDoMilitar = z.infer<typeof EdicaoDaFuncaoDoMilitar>;
+
 export type SituacaoDoMilitar = { id: string; nome: string; escalavel: boolean; ativo: boolean };
 export const NovaSituacaoDoMilitar = z.object({ nome: Nome, escalavel: z.boolean() });
 export type NovaSituacaoDoMilitar = z.infer<typeof NovaSituacaoDoMilitar>;
@@ -128,6 +135,9 @@ export const EdicaoMilitar = z.object({
   motorista: z.boolean().optional(),
   cnh: CnhSemRepetir.optional(),
   voluntarioJes: z.boolean().optional(),
+  // a função (do catálogo; null limpa) e o abono de permanência são do Pecúlio, como o e-mail
+  funcaoMilitarId: Id.nullable().optional(),
+  abonoPermanencia: z.boolean().optional(),
   // estrito: o `ativo` e o `quadroId` saíram da ficha (a situação e o quadro valem por período: "Alterar situação")
 }).strict();
 export type EdicaoMilitar = z.infer<typeof EdicaoMilitar>;
@@ -206,6 +216,11 @@ export type FichaMilitar = LinhaMilitar & {
   /** 11 dígitos, sem pontuação; a tela mostra 000.000.000-00 */
   cpf?: string | null;
   endereco?: Endereco;
+  /** A função do militar (do catálogo das Configurações), pelo nome; a que foi desativada continua na ficha de quem a tem. null: ainda sem função. */
+  funcao: string | null;
+  funcaoMilitarId: string | null;
+  /** Abono de permanência: sim ou não. Só aparece na ficha completa. */
+  abonoPermanencia: boolean;
   /** Vê o CPF, o nascimento e o endereço: quem tem nível de acesso numa unidade acima da lotação do militar, e o administrador. */
   veDadosRestritos: boolean;
   /** A situação do período que vale (Ativa, Reserva…); null quando o militar não tem período. */

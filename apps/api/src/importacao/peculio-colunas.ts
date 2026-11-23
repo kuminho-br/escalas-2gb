@@ -142,6 +142,18 @@ export function lerSituacao(texto: string, ativas: { id: string; nome: string }[
   return s ? valor(s) : motivo(`Situação "${texto}" não existe ou está desativada. Use uma destas: ${ativas.map((x) => x.nome).join(', ')}.`);
 }
 
+/** O nome de uma função do catálogo, ativa. */
+export function lerFuncao(texto: string, ativas: { id: string; nome: string }[]): Leitura<{ id: string; nome: string }> {
+  if (!texto) return VAZIO;
+  const f = ativas.find((x) => normalizar(x.nome) === normalizar(texto));
+  if (f) return valor(f);
+  return motivo(
+    ativas.length
+      ? `Função "${texto}" não existe ou está desativada. Use uma destas: ${ativas.map((x) => x.nome).join(', ')}.`
+      : `Função "${texto}" não existe: o catálogo de funções está vazio.`,
+  );
+}
+
 /** A sigla de um quadro que tenha o posto do militar. */
 export function lerQuadro(texto: string, quadros: (ComSigla & { postoGradIds: string[] })[], postoGradId: string, postoSigla: string): Leitura<ComSigla> {
   if (!texto) return VAZIO;

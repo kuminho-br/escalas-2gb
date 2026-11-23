@@ -68,4 +68,7 @@ export type MinhaFicha = {
   cnh: string[];
   cnhPorHierarquia: string[];
   voluntarioJes: boolean;
+  /** A função do militar, pelo nome (só para leitura); null sem função. */
+  funcao: string | null;
+  abonoPermanencia: boolean;
 };

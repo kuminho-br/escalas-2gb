@@ -74,6 +74,9 @@ type LinhaBanco = {
   motorista: boolean;
   cnh: string[];
   voluntario_jes: boolean;
+  funcao_militar_id: string | null;
+  funcao_nome: string | null;
+  abono_permanencia: boolean;
   /** a situação do período pode ser escalada (substitui o antigo `ativo` do militar) */
   ativo: boolean;
   situacao_id: string | null;
@@ -130,7 +133,8 @@ const SELECT_MILITAR = `
   select m.id, m.matricula, p.sigla as posto, m.posto_grad_id, l.quadro_id, (select q.sigla from quadro q where q.id = l.quadro_id) as quadro_sigla, m.nome_guerra, m.nome_completo, m.sexo, m.nascimento_dia, m.nascimento_mes, m.nascimento_ano,
          m.cpf, m.cep, m.logradouro, m.numero, m.complemento, m.bairro, m.cidade, m.uf,
          m.telefone, m.email, m.comportamento, m.comportamento_boletim, m.antiguidade, m.motorista, m.cnh,
-         m.voluntario_jes, coalesce(sm.escalavel, false) as ativo, l.situacao_id, sm.nome as situacao_nome, e.nome as equipe, l.jornada`;
+         m.voluntario_jes, m.funcao_militar_id, (select f.nome from funcao_militar f where f.id = m.funcao_militar_id) as funcao_nome, m.abono_permanencia,
+         coalesce(sm.escalavel, false) as ativo, l.situacao_id, sm.nome as situacao_nome, e.nome as equipe, l.jornada`;
 
 /** Ficha completa; a lotação "atual" é a que cobre o mês. null se o militar não existe. */
 async function carregarFicha(c: Consulta, id: string, mes: string, usuarioId: string): Promise<FichaMilitar | null> {
@@ -198,6 +202,9 @@ async function carregarFicha(c: Consulta, id: string, mes: string, usuarioId: st
     postoGradId: m.posto_grad_id,
     nomeCompleto: m.nome_completo,
     sexo: m.sexo,
+    funcao: m.funcao_nome,
+    funcaoMilitarId: m.funcao_militar_id,
+    abonoPermanencia: m.abono_permanencia,
     veDadosRestritos,
     ...(veDadosRestritos
       ? {
@@ -280,7 +287,7 @@ const FRASE_CADASTRAR = (cima: string) => `Cadastrar militar é com quem tem ní
 const FRASE_AFASTAMENTOS = (cima: string) => `Os afastamentos são alterados por quem tem nível de acesso no ${cima}.`;
 
 /** Os campos da ficha que são do Pecúlio (o resto do PATCH é da escala: motorista, CNH e voluntário JES). */
-const CAMPOS_DO_PECULIO = ['postoGradId', 'nomeCompleto', 'nomeGuerra', 'antiguidade', 'sexo', 'nascimento', 'cpf', 'endereco', 'telefone', 'email', 'comportamento', 'comportamentoBoletim'] as const;
+const CAMPOS_DO_PECULIO = ['postoGradId', 'nomeCompleto', 'nomeGuerra', 'antiguidade', 'sexo', 'nascimento', 'cpf', 'endereco', 'telefone', 'email', 'comportamento', 'comportamentoBoletim', 'funcaoMilitarId', 'abonoPermanencia'] as const;
 
 const militarDoAfastamento = async (c: Consulta, afastamentoId: string): Promise<string> =>
   (await c.query<{ militar_id: string }>('select militar_id from afastamento where id = $1', [afastamentoId])).rows[0]!.militar_id;
@@ -522,13 +529,20 @@ export function rotasMilitares(dep: { banco: Banco; auth: Auth }): Hono<Ambiente
       const naoEDono = await exigirDonoDoPeculioDoMilitar(c, id, FRASE_CAMPO);
       if (naoEDono) return naoEDono;
     }
+    // a função é do catálogo: precisa existir e estar ativa (a que o militar já tem pode ser regravada, mesmo desativada)
+    if (d.funcaoMilitarId) {
+      const f = (await dep.banco.query<{ ativo: boolean; dele: boolean }>(
+        'select f.ativo, exists (select 1 from militar m where m.id = $2 and m.funcao_militar_id = f.id) as dele from funcao_militar f where f.id = $1', [d.funcaoMilitarId, id])).rows[0];
+      const msg = !f ? 'Escolha uma função da lista.' : !f.ativo && !f.dele ? 'Esta função está desativada.' : null;
+      if (msg) return c.json({ erro: msg, campos: { funcaoMilitarId: msg } }, 400);
+    }
     try {
       const ficha = await comUsuario(dep.banco, c.get('usuarioId'), async (tx) => {
         // o estado atual é lido já dentro da transação, com a linha travada: duas edições ao mesmo tempo, em campos
         // diferentes, não se atropelam (a segunda parte do que a primeira gravou)
-        const atual = (await tx.query<Pick<LinhaBanco, 'posto_grad_id' | 'nome_completo' | 'nome_guerra' | 'sexo' | 'nascimento_dia' | 'nascimento_mes' | 'nascimento_ano' | 'cpf' | 'cep' | 'logradouro' | 'numero' | 'complemento' | 'bairro' | 'cidade' | 'uf' | 'telefone' | 'email' | 'comportamento' | 'comportamento_boletim' | 'antiguidade' | 'motorista' | 'cnh' | 'voluntario_jes'>>(
+        const atual = (await tx.query<Pick<LinhaBanco, 'posto_grad_id' | 'nome_completo' | 'nome_guerra' | 'sexo' | 'nascimento_dia' | 'nascimento_mes' | 'nascimento_ano' | 'cpf' | 'cep' | 'logradouro' | 'numero' | 'complemento' | 'bairro' | 'cidade' | 'uf' | 'telefone' | 'email' | 'comportamento' | 'comportamento_boletim' | 'antiguidade' | 'motorista' | 'cnh' | 'voluntario_jes' | 'funcao_militar_id' | 'abono_permanencia'>>(
           `select posto_grad_id, nome_completo, nome_guerra, sexo, nascimento_dia, nascimento_mes, nascimento_ano, cpf, cep, logradouro, numero, complemento, bairro, cidade, uf,
-                  telefone, email, comportamento, comportamento_boletim, antiguidade, motorista, cnh, voluntario_jes from militar where id = $1 for update`,
+                  telefone, email, comportamento, comportamento_boletim, antiguidade, motorista, cnh, voluntario_jes, funcao_militar_id, abono_permanencia from militar where id = $1 for update`,
           [id],
         )).rows[0]!;
         // `undefined` mantém o que está gravado; `null` limpa
@@ -544,7 +558,8 @@ export function rotasMilitares(dep: { banco: Banco; auth: Auth }): Hono<Ambiente
         await tx.query(
           `update militar set posto_grad_id = $2, nome_guerra = $3, antiguidade = $4, motorista = $5, cnh = $6, voluntario_jes = $7,
                   nome_completo = $8, sexo = $9, nascimento_dia = $10, nascimento_mes = $11, nascimento_ano = $12, telefone = $13, email = $14, comportamento = $15, comportamento_boletim = $16,
-                  cpf = $17, cep = $18, logradouro = $19, numero = $20, complemento = $21, bairro = $22, cidade = $23, uf = $24
+                  cpf = $17, cep = $18, logradouro = $19, numero = $20, complemento = $21, bairro = $22, cidade = $23, uf = $24,
+                  funcao_militar_id = $25, abono_permanencia = $26
             where id = $1`,
           [
             id,
@@ -571,6 +586,8 @@ export function rotasMilitares(dep: { banco: Banco; auth: Auth }): Hono<Ambiente
             novo(endereco.bairro, atual.bairro),
             novo(endereco.cidade, atual.cidade),
             novo(endereco.uf, atual.uf),
+            novo(d.funcaoMilitarId, atual.funcao_militar_id),
+            d.abonoPermanencia ?? atual.abono_permanencia,
           ],
         );
         // o quadro vale por período e acompanha o posto: trocar o MAJ do QOA por CEL leva o período aberto ao QOC (um período novo, a partir de hoje)
