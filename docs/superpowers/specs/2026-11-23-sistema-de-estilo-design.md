@@ -1,6 +1,6 @@
 # Diretrizes gerais da interface — valores e medidas
 
-23/11/2026 · design · **mockup em revisão pelo usuário.** É a fundação da refatoração da interface: os blocos N1 (sistema de estilo) e N2 (resposta do sistema), mais a identidade e os ícones. É a semente do brandbook do projeto.
+23/11/2026 · design · **aprovado pelo usuário em 23/11/2026, com espaço para revisões.** É a seção "Diretrizes gerais" do Manual de Identidade Visual. É a fundação da refatoração da interface: os blocos N1 (sistema de estilo) e N2 (resposta do sistema), mais a identidade e os ícones. É a semente do brandbook do projeto.
 
 - Mockup: a área "Diretrizes gerais", em `docs/telas/refatoracao/diretrizes-gerais/index.html`. O índice de todas as áreas está em `docs/telas/refatoracao/index.html` e em https://claude.ai/artifact/GNMQKUXn463nYqDLErXE6X
 - Peças compartilhadas pelos mockups: `docs/telas/refatoracao/pecas.css` (cores, letra, componentes, moldura) e `pecas.js` (ícones)
@@ -47,7 +47,7 @@ Barlow no texto (pesos 400, 500 e 600). Barlow Semi Condensed, peso 600, em nome
 | 20 / 26 px | estreita, 600 | Título de bloco, de painel e de diálogo; o dia; o título da tela no celular |
 | 17 / 24 px | estreita, 600 | Nome de guerra, guarnição, turno e número em destaque |
 | 15 / 22 px | Barlow, 400 (rótulo e botão em 500) | Texto, campos, botões e tabelas |
-| 13 / 18 px | Barlow, 400 ou 500 | Apoio: posto, matrícula, rótulo da função, cabeçalho de tabela |
+| 13 / 18 px | Barlow, 400 ou 500 | Apoio: patente, matrícula, rótulo da função, cabeçalho de tabela |
 
 Nenhum texto fica abaixo de 13 px.
 
@@ -71,19 +71,19 @@ Nenhum texto fica abaixo de 13 px.
 | Peça | Medidas |
 |---|---|
 | Placa | Altura de controle; borda de 1 px `linha`; raio 6; fundo `superficie`; sombra apoiada; faixa do serviço de 5 px à esquerda, na altura toda; folga de 15 px à esquerda e 4 px à direita |
-| Texto da placa | Posto sem "BM" (SD, CB, 3º SGT, SUB TEN), em 13 px, peso 500, `apagado`; nome em 17 px estreita, espaçamento de 0,01 em; os dois pela linha de base, com 6 px entre eles; o nome longo corta com reticências e a dica traz posto, nome, matrícula e serviço |
-| Largura da placa | O posto mais longo (SUB TEN) ocupa perto de 48 px. Com 148 px cabem o posto e um nome de 8 letras; é a largura mínima de um lugar no quadro do mês |
+| Texto da placa | Patente (posto ou graduação) sem "BM" (SD, CB, 3º SGT, SUB TEN), em 13 px, peso 500, `apagado`; nome em 17 px estreita, espaçamento de 0,01 em; os dois pela linha de base, com 6 px entre eles; o nome longo corta com reticências e a dica traz posto, nome, matrícula e serviço |
+| Largura da placa | A patente mais longa (SUB TEN) ocupa perto de 48 px. Com 148 px cabem a patente, um nome de 7 letras e o botão das ações; é a largura mínima de um lugar no quadro do mês |
 | Serviço na placa | Em 13 px `apagado`, à direita, só quando a origem não é Pronto. "Acumula com X" ocupa o mesmo lugar |
-| Sinal de ações | Três pontos numa área de 28 px, só em placa com 200 px ou mais de largura; aparece com o mouse em cima e no foco, e sempre no toque |
+| Botão das ações | Três pontos numa área de 28 px, sempre à mostra (decisão do usuário de 23/11/2026), em `apagado`; com o mouse em cima, no foco e com o menu aberto, em `tinta`. Quando falta largura, quem corta é o nome, com reticências |
 | Estados da placa | Mouse em cima: fundo `passa`, borda `encaixe`. Menu aberto ou escolhida: borda e contorno de 1 px `tinta`. Choque: borda e contorno de 1 px `alerta`, ícone e a frase embaixo |
 | Linha (listas) | Placa de 44 px, com a matrícula em 13 px `apagado` e a etiqueta do serviço |
-| Marca (Grade) | 32 por 32 px, borda de 1 px `linha`, raio 6, letra do turno em 15 px estreita, faixa do serviço de 4 px embaixo |
+| Marca (Grade) | 32 por 32 px, borda de 1 px `linha`, raio 6, letra do turno em 15 px estreita, faixa do serviço de 4 px embaixo. Provisória: o usuário se preocupa com distinguir muitos serviços só pela cor, e o desenho final fica na área da Grade geral |
 | Encaixe obrigatório | A caixa da placa; fundo `pendencia-fundo`; borda tracejada de 1,5 px `pendencia`; texto em 15 px, peso 500, `pendencia`; ícone de mais e "Escolher militar" |
 | Encaixe opcional | Sem fundo; borda tracejada de 1 px `encaixe`; texto `apagado`, peso 400; ícone de mais e "Vaga opcional" |
 | Encaixe com o mouse | O tracejado vira linha cheia; no opcional, fundo `superficie` e texto e borda em `tinta` |
-| Cartão da guarnição | Junta a equipe: fundo `superficie`, borda de 1 px `linha`, raio 12, folga de 12 px (14 embaixo); nome em 17 px estreita, viatura em 13 px `apagado`. Os cartões de um turno ficam lado a lado, com 264 px no mínimo e 12 px entre eles |
+| Cartão da guarnição | Junta a equipe: fundo `superficie`, borda de 1 px `linha`, raio 12, folga de 12 px (14 embaixo); nome em 17 px estreita, viatura em 13 px `apagado`. Os cartões de um turno ficam lado a lado, com 300 px no mínimo e 12 px entre eles |
 | Estado da guarnição | À direita do nome: etiqueta "Falta 1" ou "Faltam N", ou um visto de 16 px em `encaixe` com "Completa" para leitor de tela |
-| Função, na guarnição em caixa | Rótulo numa coluna de 84 px (nome em 13 px, peso 500; a CNH embaixo, `apagado`) e os lugares em coluna, com 6 px entre eles |
+| Função, no cartão | Rótulo numa coluna de 72 px (nome em 13 px, peso 500; a CNH embaixo, `apagado`) e os lugares em coluna, com 6 px entre eles. Em cartão com menos de 340 px, o rótulo vai para cima dos lugares, numa linha |
 | Menu da placa | Lista colada à placa (4 px), nunca mais estreita que o texto, com "Trocar militar" e "Remover da vaga" (em "Sem guarnição", "Remover do turno"); abre para cima quando falta espaço; fecha com Esc e devolve o foco |
 
 Só a guarnição tem caixa: o cartão, um por guarnição em cada turno, com a equipe que sai junta na viatura naquele turno (decisão do usuário de 23/11/2026). Dia e turno são títulos, e a função é um rótulo. Na Escala do mês os turnos ficam em colunas, com os dias um depois do outro; o desenho fica na área dela.
@@ -189,6 +189,8 @@ A página de cada área é um documento completo; o índice é publicado como a 
 - O teste que recusa cor e tamanho fora dos tokens (N1.5): é da DESENVOLVIMENTO, com os valores das tabelas acima.
 
 ## Pendências
+
+- Grade geral: a cor do serviço sozinha pode não bastar quando há muitos serviços. Resolver na área da Grade geral.
 
 - Aprovação do mockup pelo usuário.
 - Confirmar que o cartão da guarnição traz a origem do serviço, para a regra do nome do serviço na placa.

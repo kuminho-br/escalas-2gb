@@ -12,10 +12,10 @@
 <div class="pagina">
 
 <header class="abre">
-  <p class="de-quem"><a class="voltar" href="../index.html">Todas as áreas</a></p>
+  <p class="de-quem"><a class="voltar" href="../index.html">Manual de Identidade Visual</a></p>
   <h1>Diretrizes gerais</h1>
-  <p>A base de todas as telas das Escalas do 2º GB: a identidade, as cores, a letra, a forma, os ícones, a placa do militar, o encaixe da vaga, os componentes, a resposta do sistema e a moldura da tela. É a semente do brandbook do projeto.</p>
-  <p class="menor">Em revisão por você. É guia de desenho e de identidade, não gabarito: a implementação adequa cada peça ao software que existe. Os nomes e as matrículas são fictícios. Nenhuma tela do site mudou ainda.</p>
+  <p>A base de todas as telas das Escalas do 2º GB: a identidade, as cores, a letra, a forma, os ícones, a placa do militar, o encaixe da vaga, os componentes, a resposta do sistema e a moldura da tela. É a primeira seção do Manual de Identidade Visual do projeto.</p>
+  <p class="menor">Aprovada em 23/11/2026, com espaço para revisões. É guia de desenho e de identidade, não gabarito: a implementação adequa cada peça ao software que existe. Os nomes e as matrículas são fictícios. Nenhuma tela do site mudou ainda.</p>
   <ul class="indice">
     <li><a href="#identidade">Identidade</a></li>
     <li><a href="#diretrizes">Diretrizes do usuário</a></li>
@@ -66,7 +66,8 @@
         <table class="tabela">
           <thead><tr><th scope="col">Assim</th><th scope="col">E não assim</th><th scope="col">Por quê</th></tr></thead>
           <tbody>
-            <tr><td class="quebra">2º SGT RAMALHO</td><td class="quebra">2º SGT BM RAMALHO</td><td class="quebra">"BM" não é posto: o sistema é só de bombeiros.</td></tr>
+            <tr><td class="quebra">2º SGT RAMALHO</td><td class="quebra">2º SGT BM RAMALHO</td><td class="quebra">"BM" não é patente: o sistema é só de bombeiros.</td></tr>
+            <tr><td class="quebra">Patente</td><td class="quebra">Posto, para todos</td><td class="quebra">Patente é posto ou graduação: posto é de oficial, graduação é de praça.</td></tr>
             <tr><td class="quebra">Nível de acesso</td><td class="quebra">Papel</td><td class="quebra">É o nome que as telas usam desde 22/11/2026.</td></tr>
             <tr><td class="quebra">Salvar ficha</td><td class="quebra">Enviar</td><td class="quebra">O botão diz o que vai acontecer.</td></tr>
             <tr><td class="quebra">A matrícula tem 6 números, um traço e 1 número.</td><td class="quebra">Formato inválido.</td><td class="quebra">O erro diz como acertar.</td></tr>
@@ -88,7 +89,7 @@
     <div class="sup">
       <ul class="regras-da-casa">
         <li><b>Mockup é guia, não gabarito</b>As peças dão a direção de desenho e a identidade. Não se copiam inteiras: a implementação adequa cada uma ao software que existe e registra a diferença.</li>
-        <li><b>Posto sem "BM"</b>Em toda tela e peça o posto aparece como SD, CB, 3º SGT, 2º TEN, SUB TEN.</li>
+        <li><b>Patente sem "BM"</b>Em toda tela e peça a patente aparece como SD, CB, 3º SGT, 2º TEN, SUB TEN.</li>
         <li><b>O menu tem ícones</b>Ajudam a lembrar de cada tela. Ficam antes do nome, na mesma linha; no celular, numa barra embaixo, em cima do nome.</li>
         <li><b>O topo do menu acompanha a unidade</b>O brasão e o nome são os da unidade escolhida na árvore. Cada nível tem o seu brasão.</li>
       </ul>
@@ -176,7 +177,7 @@
         <li><span class="px">20</span><span class="a20">Terça, 24 de novembro</span><span class="uso">Título de bloco, de painel e de diálogo.</span></li>
         <li><span class="px">17</span><span class="a17">RAMALHO, ABT, Turno A</span><span class="uso">Nome de guerra, guarnição, turno e número em destaque.</span></li>
         <li><span class="px">15</span><span class="a15">Escolha o militar para a vaga de Motorista.</span><span class="uso">Texto, campos, botões e tabelas. Barlow, peso 400; rótulos e botões em 500.</span></li>
-        <li><span class="px">13</span><span class="a13">2º SGT, matrícula 990012-3, CNH D</span><span class="uso">Apoio: posto, matrícula, rótulo da função e cabeçalho de tabela. Nada menor que isto.</span></li>
+        <li><span class="px">13</span><span class="a13">2º SGT, matrícula 990012-3, CNH D</span><span class="uso">Apoio: patente, matrícula, rótulo da função e cabeçalho de tabela. Nada menor que isto.</span></li>
       </ol>
     </div>
     <div class="peca">
@@ -262,22 +263,22 @@
       </div>
       <ol class="numerada">
         <li><span>1</span><span>A cor do serviço, na borda. Vem do cadastro do serviço.</span></li>
-        <li><span>2</span><span>O posto, em 13 px, apagado.</span></li>
+        <li><span>2</span><span>A patente (posto ou graduação), em 13 px, apagada.</span></li>
         <li><span>3</span><span>O nome de guerra, em 17 px, na letra estreita e forte.</span></li>
         <li><span>4</span><span>O serviço por extenso, só quando não é o Pronto.</span></li>
-        <li><span>5</span><span>As ações ficam recolhidas: a placa inteira é o botão.</span></li>
+        <li><span>5</span><span>O botão das ações, sempre à mostra. Clicar em qualquer ponto da placa também abre as ações.</span></li>
       </ol>
     </div>
 
     <div class="peca">
       <h3>Estados da placa</h3>
       <div class="tripla">
-        <div class="caso"><span class="placa parada" style="--servico:var(--pronto)"><span class="quem"><span class="posto">2º SGT</span><span class="nome">RAMALHO</span></span></span><small>Parada. No Pronto, só a cor diz o serviço.</small></div>
-        <div class="caso"><span class="placa parada e-passa" style="--servico:var(--pronto)"><span class="quem"><span class="posto">2º SGT</span><span class="nome">RAMALHO</span></span><span class="abre-acoes"><svg class="i"><use href="#i-pontos"/></svg></span></span><small>Com o mouse em cima: as ações se anunciam.</small></div>
-        <div class="caso"><span class="placa parada e-foco" style="--servico:var(--pronto)"><span class="quem"><span class="posto">2º SGT</span><span class="nome">RAMALHO</span></span><span class="abre-acoes" style="opacity:1"><svg class="i"><use href="#i-pontos"/></svg></span></span><small>Em foco, pelo teclado.</small></div>
-        <div class="caso"><span class="placa parada" style="--servico:var(--saldo)"><span class="quem"><span class="posto">SD</span><span class="nome">LEAL</span></span><span class="serv">Saldo</span></span><small>De outro serviço: a cor e o nome.</small></div>
-        <div class="caso"><span class="placa parada" style="--servico:var(--pronto)"><span class="quem"><span class="posto">CB</span><span class="nome">VIEIRA</span></span><span class="serv">acumula com APH</span></span><small>Acumula duas guarnições no mesmo turno.</small></div>
-        <div class="caso"><span class="placa parada em-choque" style="--servico:var(--jes)"><span class="quem"><span class="posto">SD</span><span class="nome">MOURA</span></span><svg class="i"><use href="#i-erro"/></svg></span><p class="msg-erro"><svg class="i"><use href="#i-erro"/></svg>Choque: MOURA já está no JES das 13h às 19h.</p></div>
+        <div class="caso"><span class="placa parada" style="--servico:var(--pronto)"><span class="quem"><span class="posto">2º SGT</span><span class="nome">RAMALHO</span></span><span class="abre-acoes"><svg class="i"><use href="#i-pontos"/></svg></span></span><small>Parada. No Pronto, só a cor diz o serviço.</small></div>
+        <div class="caso"><span class="placa parada e-passa" style="--servico:var(--pronto)"><span class="quem"><span class="posto">2º SGT</span><span class="nome">RAMALHO</span></span><span class="abre-acoes"><svg class="i"><use href="#i-pontos"/></svg></span></span><small>Com o mouse em cima: o fundo e a borda escurecem.</small></div>
+        <div class="caso"><span class="placa parada e-foco" style="--servico:var(--pronto)"><span class="quem"><span class="posto">2º SGT</span><span class="nome">RAMALHO</span></span><span class="abre-acoes"><svg class="i"><use href="#i-pontos"/></svg></span></span><small>Em foco, pelo teclado.</small></div>
+        <div class="caso"><span class="placa parada" style="--servico:var(--saldo)"><span class="quem"><span class="posto">SD</span><span class="nome">LEAL</span></span><span class="serv">Saldo</span><span class="abre-acoes"><svg class="i"><use href="#i-pontos"/></svg></span></span><small>De outro serviço: a cor e o nome.</small></div>
+        <div class="caso"><span class="placa parada" style="--servico:var(--pronto)"><span class="quem"><span class="posto">CB</span><span class="nome">VIEIRA</span></span><span class="serv">acumula com APH</span><span class="abre-acoes"><svg class="i"><use href="#i-pontos"/></svg></span></span><small>Acumula duas guarnições no mesmo turno.</small></div>
+        <div class="caso"><span class="placa parada em-choque" style="--servico:var(--jes)"><span class="quem"><span class="posto">SD</span><span class="nome">MOURA</span></span><svg class="i"><use href="#i-erro"/></svg><span class="abre-acoes"><svg class="i"><use href="#i-pontos"/></svg></span></span><p class="msg-erro"><svg class="i"><use href="#i-erro"/></svg>Choque: MOURA já está no JES das 13h às 19h.</p></div>
       </div>
     </div>
 
@@ -294,7 +295,7 @@
       <h3>Três tamanhos, o mesmo desenho</h3>
       <div class="dupla">
         <div class="caso">
-          <span class="placa parada" style="--servico:var(--pronto)"><span class="quem"><span class="posto">1º SGT</span><span class="nome">FALCÃO</span></span></span>
+          <span class="placa parada" style="--servico:var(--pronto)"><span class="quem"><span class="posto">1º SGT</span><span class="nome">FALCÃO</span></span><span class="abre-acoes"><svg class="i"><use href="#i-pontos"/></svg></span></span>
           <small>Placa, de 36 px: nos quadros de guarnição. No toque, 44 px.</small>
         </div>
         <div class="caso">
@@ -338,9 +339,9 @@
         <div class="caso">
           <div class="guarnicao">
             <header><div><p class="titulo">ABT</p><p>ABT-014</p></div><span class="estado etiqueta falta">Falta 1</span></header>
-            <div class="funcao"><p class="rotulo"><b>Comandante</b></p><ul class="lugares"><li><span class="placa parada" style="--servico:var(--pronto)"><span class="quem"><span class="posto">2º SGT</span><span class="nome">RAMALHO</span></span></span></li></ul></div>
+            <div class="funcao"><p class="rotulo"><b>Comandante</b></p><ul class="lugares"><li><span class="placa parada" style="--servico:var(--pronto)"><span class="quem"><span class="posto">2º SGT</span><span class="nome">RAMALHO</span></span><span class="abre-acoes"><svg class="i"><use href="#i-pontos"/></svg></span></span></li></ul></div>
             <div class="funcao"><p class="rotulo"><b>Motorista</b>CNH D</p><ul class="lugares"><li><span class="encaixe obrigatoria"><svg class="i"><use href="#i-mais"/></svg>Escolher militar</span></li></ul></div>
-            <div class="funcao"><p class="rotulo"><b>Auxiliar</b></p><ul class="lugares"><li><span class="placa parada" style="--servico:var(--pronto)"><span class="quem"><span class="posto">CB</span><span class="nome">VIEIRA</span></span></span></li></ul></div>
+            <div class="funcao"><p class="rotulo"><b>Auxiliar</b></p><ul class="lugares"><li><span class="placa parada" style="--servico:var(--pronto)"><span class="quem"><span class="posto">CB</span><span class="nome">VIEIRA</span></span><span class="abre-acoes"><svg class="i"><use href="#i-pontos"/></svg></span></span></li></ul></div>
           </div>
           <small>Com as peças novas: um cartão por guarnição, que junta a equipe; a placa inteira clicável e a falta em âmbar. A matrícula passa para a lista de escolha e para a ficha.</small>
         </div>
