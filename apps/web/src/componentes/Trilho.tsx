@@ -49,7 +49,8 @@ export function Trilho({ modulo, eu, aberto, aoFechar }: { modulo: Modulo; eu: E
   }, [aberto]);
   // o item que a pessoa não pode usar não aparece (e o bloco que ficou vazio some)
   const blocos = modulo.itens.map((b) => b.filter((i) => !i.ve || i.ve(eu))).filter((b) => b.length > 0);
-  const pe = modulo.pe ?? [];
+  // numa unidade só de consulta o pé (Configurações, Estrutura, Histórico, Ajuda) não aparece: tudo ali altera ou ainda não existe
+  const pe = eu.soConsulta ? [] : (modulo.pe ?? []);
   return (
     <>
       {aberto && <div className="fixed inset-0 z-30 bg-tinta/40 md:hidden" onClick={() => aoFechar()} aria-hidden />}

@@ -2,7 +2,7 @@ import type { EfetivoDoDia } from 'contratos';
 import { Button } from '@/componentes/ui/button';
 
 /** "Desativadas hoje": as guarnições da meta padrão do dia que não estão na meta do dia. "Reativar" põe a guarnição no fim da meta do dia. */
-export function Desativadas({ guarnicoes, salvando, aoReativar }: { guarnicoes: EfetivoDoDia['desativadas']; salvando: boolean; aoReativar: (guarnicaoId: string) => void }) {
+export function Desativadas({ guarnicoes, salvando, aoReativar }: { guarnicoes: EfetivoDoDia['desativadas']; salvando: boolean; /** sem ele (unidade só de consulta) a lista não tem o "Reativar" */ aoReativar?: (guarnicaoId: string) => void }) {
   if (!guarnicoes.length) return null;
   return (
     <section aria-label="Desativadas hoje" className="grid gap-2">
@@ -14,7 +14,7 @@ export function Desativadas({ guarnicoes, salvando, aoReativar }: { guarnicoes: 
               <p className="truncate font-cond text-base leading-tight font-semibold">{g.nome}</p>
               {g.viatura && <p className="truncate text-xs text-apagado">{g.viatura}</p>}
             </div>
-            <Button type="button" variant="outline" size="sm" aria-label={`Reativar ${g.nome}`} disabled={salvando} onClick={() => aoReativar(g.guarnicaoId)}>Reativar</Button>
+            {aoReativar && <Button type="button" variant="outline" size="sm" aria-label={`Reativar ${g.nome}`} disabled={salvando} onClick={() => aoReativar(g.guarnicaoId)}>Reativar</Button>}
           </li>
         ))}
       </ul>

@@ -1,3 +1,4 @@
+import type { Quadro } from 'contratos';
 import type { Consulta } from '../banco/banco.ts';
 
 export const MSG_POSTO_FORA_DO_QUADRO = 'Este posto-graduação não existe nesse quadro.';
@@ -20,4 +21,16 @@ export async function quadroParaOPosto(
   if (pedido !== undefined) return doPosto.includes(pedido) ? { quadroId: pedido } : { erro: MSG_POSTO_FORA_DO_QUADRO };
   if (atual && doPosto.includes(atual)) return { quadroId: atual };
   return { quadroId: doPosto.length === 1 ? doPosto[0]! : null };
+}
+
+/** Os quadros, na ordem do cadastro, cada um com os postos-graduações que pertencem a ele; com `id`, só esse (vazio se não existe). */
+export async function lerQuadros(c: Consulta, id?: string): Promise<Quadro[]> {
+  const { rows } = await c.query<Quadro>(
+    `select q.id, q.sigla, q.nome, q.oficial, coalesce(array_agg(qp.posto_grad_id order by p.ordem) filter (where qp.posto_grad_id is not null), '{}') as "postoGradIds"
+       from quadro q left join quadro_posto_grad qp on qp.quadro_id = q.id left join posto_grad p on p.id = qp.posto_grad_id
+      where ($1::text is null or q.id::text = $1)
+      group by q.id order by q.ordem`,
+    [id ?? null],
+  );
+  return rows;
 }

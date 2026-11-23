@@ -4,7 +4,7 @@ import type { Ref } from 'react';
 import type { Eu } from '@/api/eu';
 import { podeDescartar } from '@/componentes/AlteracoesPendentes';
 import { useSair } from '@/componentes/useSair';
-import { guardarUnidade } from '@/lib/unidade-de-trabalho';
+import { guardarUnidade, guardarUnidadeDeConsulta } from '@/lib/unidade-de-trabalho';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -19,13 +19,22 @@ export function Topo({ eu, aoAbrirMenu, botaoDoMenu, semTrilho = false }: { eu: 
   const router = useRouter();
   const nome = `${eu.militar.postoGrad} ${eu.militar.nomeGuerra}`;
   const { sair, erroSair } = useSair();
+  // as unidades de trabalho e, num grupo à parte, as só de consulta (o militar comum tem a lotação nas duas listas: ali ela é de consulta)
+  const consulta = eu.unidadesSoConsulta;
+  const trabalho = eu.unidades.filter((u) => !consulta.some((c) => c.id === u.id));
   // o seletor só existe com mais de uma unidade; com uma só (o auxiliar de uma seção, o militar comum), o caminho é só para leitura
-  const menorNivel = Math.min(...eu.unidades.map((u) => u.nivel));
+  const menorNivel = Math.min(...trabalho.map((u) => u.nivel));
+  const menorNivelDaConsulta = Math.min(...consulta.map((u) => u.nivel));
 
-  function escolher(id: string) {
+  function escolher(id: string, soConsulta: boolean) {
     // com alteração pendente, pergunta antes de mexer em qualquer coisa: se a pessoa desiste, a unidade e a tela continuam como estavam
     if (!podeDescartar()) return;
-    guardarUnidade(id);
+    // a unidade de consulta vale só nesta aba e não é lembrada na próxima entrada: o sistema abre na última unidade de trabalho
+    if (soConsulta) guardarUnidadeDeConsulta(id);
+    else {
+      guardarUnidade(id);
+      guardarUnidadeDeConsulta(null);
+    }
     // trocar de unidade leva à lista da tela atual (/militares/abc vai para /militares): uma ficha de outra unidade não fica aberta
     const primeiro = router.state.location.pathname.split('/')[1] ?? '';
     void router.invalidate();
@@ -47,19 +56,30 @@ export function Topo({ eu, aoAbrirMenu, botaoDoMenu, semTrilho = false }: { eu: 
       )}
       {/* no celular só a seção atual cabe; o caminho inteiro vale do computador em diante */}
       <nav aria-label="Unidade" className="min-w-0 flex-1 font-cond text-[15px] text-apagado">
-        {eu.unidades.length > 1 ? (
+        {trabalho.length + consulta.length > 1 ? (
           <DropdownMenu>
-            <DropdownMenuTrigger aria-label={`Unidade de trabalho: ${eu.unidade.caminho.join(' / ')}`} className="flex max-w-full items-center gap-1.5 rounded-md px-2 py-1.5 hover:bg-accent">
+            <DropdownMenuTrigger aria-label={`Unidade de trabalho: ${eu.unidade.caminho.join(' / ')}${eu.soConsulta ? ' (só consulta)' : ''}`} className="flex max-w-full items-center gap-1.5 rounded-md px-2 py-1.5 hover:bg-accent">
               <span data-caminho-curto aria-hidden className="truncate font-medium text-tinta md:hidden">{eu.unidade.sigla}</span>
               <span aria-hidden className="max-md:hidden truncate font-medium text-tinta">{eu.unidade.caminho.join(' / ')}</span>
               <ChevronDown className="size-4 shrink-0 text-apagado" aria-hidden />
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start" className="min-w-56">
-              {eu.unidades.map((u) => (
-                <DropdownMenuItem key={u.id} data-nivel={u.nivel - menorNivel} aria-current={u.id === eu.unidade.id ? 'true' : undefined} style={{ paddingLeft: `${0.5 + (u.nivel - menorNivel) * 1}rem` }} onSelect={() => escolher(u.id)}>
+              {trabalho.map((u) => (
+                <DropdownMenuItem key={u.id} data-nivel={u.nivel - menorNivel} aria-current={u.id === eu.unidade.id ? 'true' : undefined} style={{ paddingLeft: `${0.5 + (u.nivel - menorNivel) * 1}rem` }} onSelect={() => escolher(u.id, false)}>
                   <span className={u.id === eu.unidade.id ? 'font-semibold text-tinta' : undefined}>{u.sigla}</span>
                 </DropdownMenuItem>
               ))}
+              {consulta.length > 0 && (
+                <>
+                  {trabalho.length > 0 && <DropdownMenuSeparator />}
+                  <DropdownMenuLabel className="font-cond text-xs font-medium text-apagado">Só consulta</DropdownMenuLabel>
+                  {consulta.map((u) => (
+                    <DropdownMenuItem key={u.id} data-nivel={u.nivel - menorNivelDaConsulta} data-so-consulta aria-current={u.id === eu.unidade.id ? 'true' : undefined} style={{ paddingLeft: `${0.5 + (u.nivel - menorNivelDaConsulta) * 1}rem` }} onSelect={() => escolher(u.id, true)}>
+                      <span className={u.id === eu.unidade.id ? 'font-semibold text-tinta' : undefined}>{u.sigla}</span>
+                    </DropdownMenuItem>
+                  ))}
+                </>
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
         ) : (

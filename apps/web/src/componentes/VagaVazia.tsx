@@ -14,6 +14,10 @@ export const classeDaVaga = (obrigatoria: boolean) =>
     'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-tinta',
   );
 
+/** A vaga que espera um militar, numa tela só de consulta: o mesmo contorno tracejado, sem hover nem foco (não há o que clicar). */
+export const classeDaVagaSoLeitura = (obrigatoria: boolean) =>
+  cn('border-[1.5px] border-dashed bg-superficie', obrigatoria ? 'border-encaixe text-tinta' : 'border-encaixe-claro text-apagado');
+
 /** A barra vinho à esquerda da vaga obrigatória. Só decora: quem lê a tela ouve a obrigatória pelo `data-obrigatoria` e pelo nome da vaga. */
 export function BarraDaVaga() {
   return <span aria-hidden data-barra className="absolute inset-y-0 left-0 w-[3px] rounded-l-sm bg-vinho" />;

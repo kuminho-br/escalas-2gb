@@ -15,6 +15,7 @@ import { Route as EntrarRouteImport } from './routes/entrar'
 import { Route as SemLotacaoRouteImport } from './routes/sem-lotacao'
 import { Route as AppIndexRouteImport } from './routes/_app/index'
 import { Route as AppConfiguracoesRouteImport } from './routes/_app/configuracoes'
+import { Route as AppConsultaRouteImport } from './routes/_app/consulta'
 import { Route as AppCotasRouteImport } from './routes/_app/cotas'
 import { Route as AppEfetivoDoDiaRouteImport } from './routes/_app/efetivo-do-dia'
 import { Route as AppEfetivoPorDiaRouteImport } from './routes/_app/efetivo-por-dia'
@@ -28,6 +29,7 @@ import { Route as AppOficiaisRouteImport } from './routes/_app/oficiais'
 import { Route as AppPeculioRouteImport } from './routes/_app/peculio'
 import { Route as AppServicosRouteImport } from './routes/_app/servicos'
 import { Route as AppVoluntariadoRouteImport } from './routes/_app/voluntariado'
+import { Route as AppConsultaIdRouteImport } from './routes/_app/consulta_.$id'
 import { Route as AppEscalasIndexRouteImport } from './routes/_app/escalas/index'
 import { Route as AppEscalasIdRouteImport } from './routes/_app/escalas/$id'
 import { Route as AppGuarnicoesIndexRouteImport } from './routes/_app/guarnicoes/index'
@@ -66,6 +68,11 @@ const AppIndexRoute = AppIndexRouteImport.update({
 const AppConfiguracoesRoute = AppConfiguracoesRouteImport.update({
   id: '/configuracoes',
   path: '/configuracoes',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppConsultaRoute = AppConsultaRouteImport.update({
+  id: '/consulta',
+  path: '/consulta',
   getParentRoute: () => AppRoute,
 } as any)
 const AppCotasRoute = AppCotasRouteImport.update({
@@ -133,6 +140,11 @@ const AppVoluntariadoRoute = AppVoluntariadoRouteImport.update({
   path: '/voluntariado',
   getParentRoute: () => AppRoute,
 } as any)
+const AppConsultaIdRoute = AppConsultaIdRouteImport.update({
+  id: '/consulta_/$id',
+  path: '/consulta/$id',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppEscalasIndexRoute = AppEscalasIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -191,6 +203,7 @@ export interface FileRoutesByFullPath {
   '/entrar': typeof EntrarRoute
   '/sem-lotacao': typeof SemLotacaoRoute
   '/configuracoes': typeof AppConfiguracoesRoute
+  '/consulta': typeof AppConsultaRoute
   '/cotas': typeof AppCotasRoute
   '/efetivo-do-dia': typeof AppEfetivoDoDiaRoute
   '/efetivo-por-dia': typeof AppEfetivoPorDiaRoute
@@ -204,6 +217,7 @@ export interface FileRoutesByFullPath {
   '/peculio': typeof AppPeculioRoute
   '/servicos': typeof AppServicosRouteWithChildren
   '/voluntariado': typeof AppVoluntariadoRoute
+  '/consulta/$id': typeof AppConsultaIdRoute
   '/escalas/$id': typeof AppEscalasIdRoute
   '/guarnicoes/$id': typeof AppGuarnicoesIdRoute
   '/militares/$id': typeof AppMilitaresIdRoute
@@ -220,6 +234,7 @@ export interface FileRoutesByTo {
   '/entrar': typeof EntrarRoute
   '/sem-lotacao': typeof SemLotacaoRoute
   '/configuracoes': typeof AppConfiguracoesRoute
+  '/consulta': typeof AppConsultaRoute
   '/cotas': typeof AppCotasRoute
   '/efetivo-do-dia': typeof AppEfetivoDoDiaRoute
   '/efetivo-por-dia': typeof AppEfetivoPorDiaRoute
@@ -231,6 +246,7 @@ export interface FileRoutesByTo {
   '/peculio': typeof AppPeculioRoute
   '/voluntariado': typeof AppVoluntariadoRoute
   '/': typeof AppIndexRoute
+  '/consulta/$id': typeof AppConsultaIdRoute
   '/escalas/$id': typeof AppEscalasIdRoute
   '/guarnicoes/$id': typeof AppGuarnicoesIdRoute
   '/militares/$id': typeof AppMilitaresIdRoute
@@ -249,6 +265,7 @@ export interface FileRoutesById {
   '/entrar': typeof EntrarRoute
   '/sem-lotacao': typeof SemLotacaoRoute
   '/_app/configuracoes': typeof AppConfiguracoesRoute
+  '/_app/consulta': typeof AppConsultaRoute
   '/_app/cotas': typeof AppCotasRoute
   '/_app/efetivo-do-dia': typeof AppEfetivoDoDiaRoute
   '/_app/efetivo-por-dia': typeof AppEfetivoPorDiaRoute
@@ -263,6 +280,7 @@ export interface FileRoutesById {
   '/_app/servicos': typeof AppServicosRouteWithChildren
   '/_app/voluntariado': typeof AppVoluntariadoRoute
   '/_app/': typeof AppIndexRoute
+  '/_app/consulta_/$id': typeof AppConsultaIdRoute
   '/_app/escalas/$id': typeof AppEscalasIdRoute
   '/_app/guarnicoes/$id': typeof AppGuarnicoesIdRoute
   '/_app/militares/$id': typeof AppMilitaresIdRoute
@@ -282,6 +300,7 @@ export interface FileRouteTypes {
     | '/entrar'
     | '/sem-lotacao'
     | '/configuracoes'
+    | '/consulta'
     | '/cotas'
     | '/efetivo-do-dia'
     | '/efetivo-por-dia'
@@ -295,6 +314,7 @@ export interface FileRouteTypes {
     | '/peculio'
     | '/servicos'
     | '/voluntariado'
+    | '/consulta/$id'
     | '/escalas/$id'
     | '/guarnicoes/$id'
     | '/militares/$id'
@@ -311,6 +331,7 @@ export interface FileRouteTypes {
     | '/entrar'
     | '/sem-lotacao'
     | '/configuracoes'
+    | '/consulta'
     | '/cotas'
     | '/efetivo-do-dia'
     | '/efetivo-por-dia'
@@ -322,6 +343,7 @@ export interface FileRouteTypes {
     | '/peculio'
     | '/voluntariado'
     | '/'
+    | '/consulta/$id'
     | '/escalas/$id'
     | '/guarnicoes/$id'
     | '/militares/$id'
@@ -339,6 +361,7 @@ export interface FileRouteTypes {
     | '/entrar'
     | '/sem-lotacao'
     | '/_app/configuracoes'
+    | '/_app/consulta'
     | '/_app/cotas'
     | '/_app/efetivo-do-dia'
     | '/_app/efetivo-por-dia'
@@ -353,6 +376,7 @@ export interface FileRouteTypes {
     | '/_app/servicos'
     | '/_app/voluntariado'
     | '/_app/'
+    | '/_app/consulta_/$id'
     | '/_app/escalas/$id'
     | '/_app/guarnicoes/$id'
     | '/_app/militares/$id'
@@ -414,6 +438,13 @@ declare module '@tanstack/react-router' {
       path: '/configuracoes'
       fullPath: '/configuracoes'
       preLoaderRoute: typeof AppConfiguracoesRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/consulta': {
+      id: '/_app/consulta'
+      path: '/consulta'
+      fullPath: '/consulta'
+      preLoaderRoute: typeof AppConsultaRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/cotas': {
@@ -505,6 +536,13 @@ declare module '@tanstack/react-router' {
       path: '/voluntariado'
       fullPath: '/voluntariado'
       preLoaderRoute: typeof AppVoluntariadoRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/consulta_/$id': {
+      id: '/_app/consulta_/$id'
+      path: '/consulta/$id'
+      fullPath: '/consulta/$id'
+      preLoaderRoute: typeof AppConsultaIdRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/escalas/': {
@@ -624,6 +662,7 @@ const AppServicosRouteWithChildren = AppServicosRoute._addFileChildren(
 
 interface AppRouteChildren {
   AppConfiguracoesRoute: typeof AppConfiguracoesRoute
+  AppConsultaRoute: typeof AppConsultaRoute
   AppCotasRoute: typeof AppCotasRoute
   AppEfetivoDoDiaRoute: typeof AppEfetivoDoDiaRoute
   AppEfetivoPorDiaRoute: typeof AppEfetivoPorDiaRoute
@@ -638,6 +677,7 @@ interface AppRouteChildren {
   AppServicosRoute: typeof AppServicosRouteWithChildren
   AppVoluntariadoRoute: typeof AppVoluntariadoRoute
   AppIndexRoute: typeof AppIndexRoute
+  AppConsultaIdRoute: typeof AppConsultaIdRoute
   AppGuarnicoesIdRoute: typeof AppGuarnicoesIdRoute
   AppGuarnicoesIndexRoute: typeof AppGuarnicoesIndexRoute
   AppConfiguracoesModelosDeGuarnicaoIdRoute: typeof AppConfiguracoesModelosDeGuarnicaoIdRoute
@@ -646,6 +686,7 @@ interface AppRouteChildren {
 
 const AppRouteChildren: AppRouteChildren = {
   AppConfiguracoesRoute: AppConfiguracoesRoute,
+  AppConsultaRoute: AppConsultaRoute,
   AppCotasRoute: AppCotasRoute,
   AppEfetivoDoDiaRoute: AppEfetivoDoDiaRoute,
   AppEfetivoPorDiaRoute: AppEfetivoPorDiaRoute,
@@ -660,6 +701,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppServicosRoute: AppServicosRouteWithChildren,
   AppVoluntariadoRoute: AppVoluntariadoRoute,
   AppIndexRoute: AppIndexRoute,
+  AppConsultaIdRoute: AppConsultaIdRoute,
   AppGuarnicoesIdRoute: AppGuarnicoesIdRoute,
   AppGuarnicoesIndexRoute: AppGuarnicoesIndexRoute,
   AppConfiguracoesModelosDeGuarnicaoIdRoute:

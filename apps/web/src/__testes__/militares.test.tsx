@@ -19,7 +19,7 @@ const LISTA = [
 const FICHA: FichaMilitar = {
   ...linha({ motorista: 'D' }),
   podeEditar: { peculio: true, escala: true, unidadeDeCima: '2º GB' },
-  postoGradId: 'p-sd', cpf: null, endereco: { cep: null, logradouro: null, numero: null, complemento: null, bairro: null, cidade: null, uf: null }, situacaoDoMilitar: { id: 'sit-ativa', nome: 'Ativa', escalavel: true }, nomeCompleto: 'João da Silva Andrade', sexo: 'M', nascimento: { dia: 15, mes: 3 }, telefone: '(81) 99999-0000', email: 'andrade@bombeiros.pe.gov.br', comportamento: 'Bom', comportamentoBoletim: 'BG 01/2026', antiguidade: 3, antiguidadeRepetidaCom: [], noQuadroDeMotoristas: true, cnh: ['D'], cnhPorHierarquia: ['C', 'B'],
+  postoGradId: 'p-sd', veDadosRestritos: true, cpf: null, endereco: { cep: null, logradouro: null, numero: null, complemento: null, bairro: null, cidade: null, uf: null }, situacaoDoMilitar: { id: 'sit-ativa', nome: 'Ativa', escalavel: true }, nomeCompleto: 'João da Silva Andrade', sexo: 'M', nascimento: { dia: 15, mes: 3 }, telefone: '(81) 99999-0000', email: 'andrade@bombeiros.pe.gov.br', comportamento: 'Bom', comportamentoBoletim: 'BG 01/2026', antiguidade: 3, antiguidadeRepetidaCom: [], noQuadroDeMotoristas: true, cnh: ['D'], cnhPorHierarquia: ['C', 'B'],
   rastreio: [{ id: 'l1', unidadeSigla: '1ª SB', equipe: 'Alfa', jornada: 'pronto', desde: '2026-11-01', quadro: 'QBMG', situacao: 'Ativa', ate: null }],
   afastamentos: [{ id: 'a1', tipo: 'Férias', tipoAfastamentoId: 't-ferias', inicio: '2026-12-01', fim: '2026-12-10', motivo: null, boletim: null }],
 };
@@ -610,7 +610,8 @@ describe('ficha ampliada (fase 5)', () => {
   const PATCH = 'PATCH /api/militares/m1';
   const comFicha = (extra: Partial<FichaMilitar> = {}, rotas: Parameters<typeof simularApi>[0] = {}) =>
     api({ 'GET /api/militares/m1': { status: 200, corpo: { ...FICHA, ...extra } }, [PATCH]: { status: 200, corpo: FICHA }, ...rotas });
-  const SEM_PECULIO = { podeEditar: { peculio: false, escala: true, unidadeDeCima: '2º GB' } };
+  // quem não cuida do Pecúlio não recebe o CPF, o nascimento e o endereço: as chaves ficam ausentes (a API não manda)
+  const SEM_PECULIO = { podeEditar: { peculio: false, escala: true, unidadeDeCima: '2º GB' }, veDadosRestritos: false, cpf: undefined, nascimento: undefined, endereco: undefined };
   const FRASE = 'Este bloco é alterado por quem tem nível de acesso em 2º GB.';
 
   it('Identificação: o nome completo e o sexo aparecem e gravam só o que mudou', async () => {
@@ -706,16 +707,33 @@ describe('ficha ampliada (fase 5)', () => {
     comFicha(SEM_PECULIO);
     abrir('/militares/m1');
     await screen.findByLabelText('Nome completo');
-    for (const rotulo of ['Posto-graduação', 'Nome completo', 'Nome de guerra', 'Antiguidade', 'Sexo', 'Dia', 'Mês', 'Telefone', 'E-mail institucional', 'Comportamento', 'Boletim']) {
+    for (const rotulo of ['Posto-graduação', 'Nome completo', 'Nome de guerra', 'Antiguidade', 'Sexo', 'Telefone', 'E-mail institucional', 'Comportamento', 'Boletim']) {
       expect(screen.getByLabelText(rotulo), rotulo).toBeDisabled();
     }
-    // Identificação, Dados pessoais, Contato, Comportamento e Afastamentos
-    expect(screen.getAllByText(FRASE)).toHaveLength(5);
+    // Identificação, Contato, Comportamento e Afastamentos (os Dados pessoais nem aparecem: ver abaixo)
+    expect(screen.getAllByText(FRASE)).toHaveLength(4);
     expect(screen.queryByRole('button', { name: 'Incluir afastamento' })).toBeNull();
     expect(screen.queryByRole('button', { name: 'Remover' })).toBeNull();
     // o que é da escala continua com quem tem papel na seção
     expect(screen.getByLabelText('Voluntário JES')).toBeEnabled();
     expect(screen.getByRole('button', { name: /^D\b/ })).toBeEnabled();
+  });
+
+  it('sem os dados restritos, o bloco Dados pessoais nem aparece: nada de CPF, nascimento e endereço, e a tela não diz que falta acesso', async () => {
+    comFicha(SEM_PECULIO);
+    abrir('/militares/m1');
+    await screen.findByLabelText('Nome completo');
+    expect(screen.queryByRole('heading', { name: 'Dados pessoais' })).toBeNull();
+    for (const rotulo of ['CPF', 'Dia', 'Mês', 'Ano', 'CEP', 'Logradouro', 'Cidade']) expect(screen.queryByLabelText(rotulo), rotulo).toBeNull();
+    expect(screen.queryByText('Endereço')).toBeNull();
+    expect(screen.queryByText(/não tem acesso|sem acesso/i)).toBeNull();
+  });
+
+  it('com os dados restritos, o bloco Dados pessoais aparece com o CPF, o nascimento e o endereço', async () => {
+    comFicha();
+    abrir('/militares/m1');
+    expect(await screen.findByRole('heading', { name: 'Dados pessoais' })).toBeInTheDocument();
+    for (const rotulo of ['CPF', 'Dia', 'Mês', 'Ano', 'CEP', 'Logradouro']) expect(screen.getByLabelText(rotulo), rotulo).toBeInTheDocument();
   });
 
   it('com papel acima da lotação, nenhum bloco mostra a frase e todos os campos são editáveis', async () => {

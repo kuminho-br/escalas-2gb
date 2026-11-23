@@ -3,6 +3,7 @@ import { Data, Hora, Id, Mes, NovaAlocacao, NovaPreEscala, NovoAcumulo, OrdemDeE
 import { z } from 'zod';
 import { Hono } from 'hono';
 import { CADASTRO, exigirPapel, exigirSessao, unidadeDoRegistro, type AmbienteApi } from '../acesso.ts';
+import { exigirLeituraDaEscala } from '../visao/leitura.ts';
 import type { Auth } from '../auth.ts';
 import { comUsuario, type Banco } from '../banco/banco.ts';
 import { mesPassado } from '../cadastros/guarnicoes.ts';
@@ -25,7 +26,7 @@ export function rotasEscalaDoMes(dep: { banco: Banco; auth: Auth }): Hono<Ambien
     const id = c.req.param('id');
     const unidadeId = await unidadeDoRegistro(dep.banco, 'escala', id);
     if (!unidadeId) return c.json({ erro: 'Escala não encontrada.' }, 404);
-    const negado = await exigirPapel(c, unidadeId, CADASTRO);
+    const negado = await exigirLeituraDaEscala(c, unidadeId);
     if (negado) return negado;
     const mes = c.req.param('mes');
     if (!Mes.safeParse(mes).success) return c.json({ erro: 'Mês inválido: use o formato aaaa-mm.' }, 400);

@@ -2,6 +2,7 @@
 import { Data, DesativarGuarnicao, DesfazerDesativacao, NovaMetaDoDia, NovaMetaPadrao } from 'contratos';
 import { Hono, type Context } from 'hono';
 import { CADASTRO, GESTAO, exigirPapel, exigirSessao, type AmbienteApi } from '../acesso.ts';
+import { exigirLeituraDaEscala } from '../visao/leitura.ts';
 import type { Auth } from '../auth.ts';
 import { comUsuario, type Banco } from '../banco/banco.ts';
 import { hojeRecife } from '../datas.ts';
@@ -126,7 +127,7 @@ export function rotasEfetivo(dep: { banco: Banco; auth: Auth }): Hono<AmbienteAp
 
   r.get('/unidades/:u/efetivo-do-dia/:data', async (c) => {
     const u = c.req.param('u');
-    const negado = await exigirPapel(c, u, CADASTRO);
+    const negado = await exigirLeituraDaEscala(c, u);
     if (negado) return negado;
     const data = dataDaRota(c);
     if (!data) return c.json({ erro: MSG_DATA }, 400);

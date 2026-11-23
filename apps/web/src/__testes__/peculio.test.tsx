@@ -8,7 +8,7 @@ import { hoje, mesAtual } from '@/lib/meses';
 import { abrir, chamadasA, corpoEnviado, EU_EXEMPLO, simularApi } from './apoio';
 
 const MES = mesAtual();
-const comUnidade = (e: EuDaApi): Eu => ({ ...e, unidade: e.unidades[0]! });
+const comUnidade = (e: EuDaApi): Eu => ({ ...e, unidade: e.unidades[0]!, soConsulta: false });
 const GESTOR_GB: EuDaApi = {
   ...EU_EXEMPLO,
   papeis: [{ papel: 'gestor', unidadeId: 'u-gb', unidadeSigla: '2º GB' }, { papel: 'escalante', unidadeId: 'u-1sb', unidadeSigla: '1ª SB' }],
@@ -112,6 +112,14 @@ describe('módulo Pecúlio', () => {
     expect(itens[0]).toContain(`05/${MES.slice(5)}`);
     expect(itens[1]).toContain('ANDRADE');
     expect(itens[1]).toContain(`20/${MES.slice(5)}`);
+  });
+
+  it('sem poder ver o nascimento de ninguém da lista (a chave não vem), a seção de aniversariantes nem aparece, e não diz que ninguém faz aniversário', async () => {
+    api(GESTOR_GB, { militares: LISTA.militares });
+    abrir('/peculio');
+    expect((await militares()).getByText('ANDRADE')).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Aniversariantes do mês' })).toBeNull();
+    expect(screen.queryByText('Nenhum aniversariante neste mês.')).toBeNull();
   });
 
   it('um mês sem aniversariante diz "Nenhum aniversariante neste mês." (Review Focus 4)', async () => {

@@ -3,21 +3,21 @@ import type { EuDaApi } from '@/api/eu';
 import { MODULOS, moduloDoEndereco } from '@/lib/modulos';
 import { EU_EXEMPLO } from './apoio';
 
-const comPapel = (papel: 'administrador' | 'gestor' | 'escalante'): EuDaApi => ({ ...EU_EXEMPLO, papeis: [{ papel, unidadeId: 'u-1sb', unidadeSigla: '1ª SB' }] });
+const comPapel = (papel: 'administrador' | 'gestor' | 'chefe_divisao' | 'escalante'): EuDaApi => ({ ...EU_EXEMPLO, papeis: [{ papel, unidadeId: 'u-1sb', unidadeSigla: '1ª SB' }] });
 const COMUM: EuDaApi = { ...EU_EXEMPLO, papeis: [] };
 const quemVe = (eu: EuDaApi) => MODULOS.filter((m) => m.ve({ ...eu, unidade: eu.unidades[0]! })).map((m) => m.id);
 
 describe('os módulos e quem os vê', () => {
-  it('o militar comum vê Visualização e Minha ficha', () => {
-    expect(quemVe(COMUM)).toEqual(['visualizacao', 'minha-ficha']);
+  it('o militar comum vê a Consulta, a Visualização e a Minha ficha', () => {
+    expect(quemVe(COMUM)).toEqual(['consulta', 'visualizacao', 'minha-ficha']);
   });
 
-  it('o auxiliar, o gestor e o administrador veem os quatro', () => {
-    for (const papel of ['escalante', 'gestor', 'administrador'] as const) expect(quemVe(comPapel(papel))).toEqual(['escalas', 'peculio', 'visualizacao', 'minha-ficha']);
+  it('o auxiliar, o chefe de divisão, o gestor e o administrador veem os cinco', () => {
+    for (const papel of ['escalante', 'chefe_divisao', 'gestor', 'administrador'] as const) expect(quemVe(comPapel(papel))).toEqual(['escalas', 'peculio', 'consulta', 'visualizacao', 'minha-ficha']);
   });
 
   it('só a Visualização não tem rota', () => {
-    expect(MODULOS.map((m) => [m.id, m.rota])).toEqual([['escalas', '/grade'], ['peculio', '/peculio'], ['visualizacao', null], ['minha-ficha', '/minha-ficha']]);
+    expect(MODULOS.map((m) => [m.id, m.rota])).toEqual([['escalas', '/grade'], ['peculio', '/peculio'], ['consulta', '/consulta'], ['visualizacao', null], ['minha-ficha', '/minha-ficha']]);
   });
 });
 
@@ -33,6 +33,11 @@ describe('o módulo de cada endereço', () => {
     expect(id('/militares/m1')).toBe('escalas');
     expect(id('/militares/m1', { de: 'peculio' })).toBe('peculio');
     expect(id('/militares/m1', { de: 'outra-coisa' })).toBe('escalas');
+  });
+
+  it('a Consulta e a ficha de consulta são do módulo Consulta, que não tem trilho, e o endereço com maiúsculas vale o mesmo', () => {
+    for (const c of ['/consulta', '/consulta/m1', '/Consulta', '/CONSULTA/m1']) expect(id(c), c).toBe('consulta');
+    expect(MODULOS.find((m) => m.id === 'consulta')!.itens).toEqual([]);
   });
 
   it('/ e /minha-ficha não têm trilho', () => {

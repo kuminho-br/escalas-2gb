@@ -18,6 +18,7 @@ import {
 import { normalizar } from 'dominio';
 import { Hono, type Context } from 'hono';
 import { CADASTRO, GESTAO, exigirPapel, exigirSessao, unidadeDoRegistro, type AmbienteApi } from '../acesso.ts';
+import { exigirLeituraDaEscala } from '../visao/leitura.ts';
 import type { Auth } from '../auth.ts';
 import { comUsuario, type Banco, type Consulta } from '../banco/banco.ts';
 import { lerCorpo, respostaDoErroDoBanco } from '../erros.ts';
@@ -164,7 +165,7 @@ export function rotasEscalas(dep: { banco: Banco; auth: Auth }): Hono<AmbienteAp
 
   r.get('/unidades/:u/escalas', async (c) => {
     const u = c.req.param('u');
-    const negado = await exigirPapel(c, u, CADASTRO);
+    const negado = await exigirLeituraDaEscala(c, u);
     if (negado) return negado;
     const escalas = (
       await dep.banco.query<{ id: string; nome: string; ativa: boolean; montaBlocosVoluntariado: boolean }>(

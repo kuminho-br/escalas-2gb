@@ -63,7 +63,7 @@ function Voluntariado() {
         {celular && !aberto && todosLancados && <p role="status" className="text-sm text-apagado">Todos os militares deste mês foram lançados.</p>}
         {lista.data && militares.length > 0 && (
           <div className={celular ? 'grid gap-4' : 'grid items-start gap-4 lg:grid-cols-[20rem_1fr]'}>
-            {!(celular && aberto) && <ListaDoVoluntariado militares={militares} abertoId={aberto?.militarId} mes={mes} busca={texto} aoBuscar={setTexto} />}
+            {!(celular && aberto) && <ListaDoVoluntariado militares={militares} abertoId={aberto?.militarId} mes={mes} busca={texto} aoBuscar={setTexto} soLeitura={eu.soConsulta} />}
             {aberto && (
             <div className="grid gap-3">
               {celular && (
@@ -79,6 +79,7 @@ function Voluntariado() {
                   dados={dados.data}
                   focarAoAbrir={focoAoAbrir.current}
                   aoAbrir={() => (focoAoAbrir.current = false)}
+                  soLeitura={eu.soConsulta}
                   guiaAberto={guiaAberto}
                   aoAbrirGuia={() => setGuiaAberto(true)}
                   aoFecharGuia={() => {

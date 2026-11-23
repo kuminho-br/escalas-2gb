@@ -12,14 +12,19 @@ export interface EuDaApi {
   papeis: { papel: Papel; unidadeId: string; unidadeSigla: string }[];
   /** As unidades em que a pessoa pode trabalhar, na ordem da árvore (o militar comum: só a lotação). */
   unidades: UnidadeDeTrabalho[];
+  /** As unidades que a pessoa só consulta (a "Escala em montagem" vem das camadas de visão): as telas de escala abrem nelas sem nenhum botão de alterar. */
+  unidadesSoConsulta: UnidadeDeTrabalho[];
   /** A unidade do período do rastreio de hoje; null sem lotação. */
   lotacao: UnidadeDeTrabalho | null;
   /** Entrou com a senha provisória: só a tela de criar a senha abre até a troca. */
   trocarSenha: boolean;
 }
 
-/** Quem está logado, com a unidade em que as telas trabalham agora (a escolhida no seletor, calculada no `_app`). */
-export type Eu = EuDaApi & { unidade: UnidadeDeTrabalho };
+/**
+ * Quem está logado, com a unidade em que as telas trabalham agora (a escolhida no seletor, calculada no `_app`). `soConsulta`: essa unidade é só de
+ * consulta (a pessoa a vê e não a altera), então as telas de escala abrem sem os botões de alterar.
+ */
+export type Eu = EuDaApi & { unidade: UnidadeDeTrabalho; soConsulta: boolean };
 
 /** Quem está logado; null se não houver sessão. */
 export async function buscarEu(): Promise<EuDaApi | null> {

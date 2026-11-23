@@ -2,6 +2,7 @@
 import { Data, Id, Mes } from 'contratos';
 import { Hono } from 'hono';
 import { CADASTRO, exigirPapel, exigirSessao, type AmbienteApi } from '../acesso.ts';
+import { exigirLeituraDaEscala } from '../visao/leitura.ts';
 import type { Auth } from '../auth.ts';
 import type { Banco } from '../banco/banco.ts';
 import { montarPainelDoDia } from './dia.ts';
@@ -13,7 +14,7 @@ export function rotasGrade(dep: { banco: Banco; auth: Auth }): Hono<AmbienteApi>
 
   r.get('/unidades/:u/grade/:mes', async (c) => {
     const u = c.req.param('u');
-    const negado = await exigirPapel(c, u, CADASTRO);
+    const negado = await exigirLeituraDaEscala(c, u);
     if (negado) return negado;
     const mes = c.req.param('mes');
     if (!Mes.safeParse(mes).success) return c.json({ erro: 'Mês inválido: use o formato aaaa-mm.' }, 400);
@@ -23,7 +24,7 @@ export function rotasGrade(dep: { banco: Banco; auth: Auth }): Hono<AmbienteApi>
   /** O dia de um militar na grade: serviços, choques e onde ele pode entrar ("Adicionar serviço neste dia"). */
   r.get('/unidades/:u/grade/:mes/militares/:militarId/dias/:data', async (c) => {
     const u = c.req.param('u');
-    const negado = await exigirPapel(c, u, CADASTRO);
+    const negado = await exigirLeituraDaEscala(c, u);
     if (negado) return negado;
     const mes = c.req.param('mes');
     const data = c.req.param('data');

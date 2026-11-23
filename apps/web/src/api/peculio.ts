@@ -9,12 +9,19 @@ export const consultaPeculio = (unidadeId: string, mes: string) =>
 
 /**
  * A unidade do módulo: a mais alta em que a pessoa tem papel (o 2º GB para quem cuida do pessoal, a 1ª SB para o escalante da seção),
- * pela posição da sigla no caminho da unidade em que as telas trabalham; sem nenhuma, a própria unidade das telas.
+ * pela posição da sigla no caminho da unidade em que as telas trabalham; sem nenhuma, a própria unidade das telas. Numa unidade só de consulta (que não é
+ * de nenhum nível de acesso da pessoa), vale o nível dela na unidade mais alta.
  */
 export function unidadeDoPeculio(eu: Eu): { id: string; sigla: string } {
   const posicao = (sigla: string) => eu.unidade.caminho.indexOf(sigla);
   const dele = eu.papeis.filter((p) => posicao(p.unidadeSigla) >= 0).sort((a, b) => posicao(a.unidadeSigla) - posicao(b.unidadeSigla))[0];
-  return dele ? { id: dele.unidadeId, sigla: dele.unidadeSigla } : { id: eu.unidade.id, sigla: eu.unidade.sigla };
+  if (dele) return { id: dele.unidadeId, sigla: dele.unidadeSigla };
+  if (eu.soConsulta && eu.papeis.length > 0) {
+    const nivelDe = (id: string) => eu.unidades.find((u) => u.id === id)?.nivel ?? Number.MAX_SAFE_INTEGER;
+    const maisAlto = [...eu.papeis].sort((a, b) => nivelDe(a.unidadeId) - nivelDe(b.unidadeId))[0]!;
+    return { id: maisAlto.unidadeId, sigla: maisAlto.unidadeSigla };
+  }
+  return { id: eu.unidade.id, sigla: eu.unidade.sigla };
 }
 
 /** A unidade `u` está abaixo de alguma unidade em que a pessoa tem nível de acesso? (nunca a própria unidade do nível de acesso) */
