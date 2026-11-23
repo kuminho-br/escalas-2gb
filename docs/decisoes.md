@@ -8,6 +8,8 @@ Siglas dos documentos: **Design** = `superpowers/specs/2026-11-16-migracao-desig
 
 | Data | Decisão | Onde está |
 |---|---|---|
+| 22/11/2026 | Transição do login com clima de login de jogo online: efeitos visuais moderados (clarão, onda de choque, faíscas, brasas no ambiente), sem explosões grandes e sem som. Cerca de 3 s do clique às boas-vindas, em teste. As brasas ficam alguns segundos sobre a imagem das boas-vindas e param. | `superpowers/specs/2026-11-20-transicao-login-design.md`, Decisões do usuário e Efeitos |
+| 22/11/2026 | Transição do login: a imagem final passa a ser a versão com a junta Storz de um anel só (vedação preta e duas garras). Fica em teste e pode ser melhorada depois. | `superpowers/specs/2026-11-20-transicao-login-design.md`, A imagem final |
 | 22/11/2026 | Quadro e situação do militar no rastreio, com data. A situação (Ativa, Reserva, Agregado, Adido…) é um catálogo das Configurações com "pode ser escalado" e substitui o "ativo". Situação e tipo de afastamento são colunas diferentes, com sentidos diferentes, e podem ter os mesmos valores. Entrega 6.9. | Pecúlio, Rastreio do militar; plano da fase 6, Entrega 9 |
 | 22/11/2026 | D7 revista: o banco guarda CPF, data de nascimento completa e endereço (CEP, logradouro, número, complemento, bairro, cidade e UF), que o Pecúlio passa a trazer. Entrega 6.9. | Pecúlio, Restrições e Militar |
 | 22/11/2026 | O "Voluntário PJES" do Pecúlio é o "voluntário JES" da escala: um campo só. | Pecúlio, Militar |
