@@ -611,7 +611,7 @@ describe('ficha ampliada (fase 5)', () => {
   const comFicha = (extra: Partial<FichaMilitar> = {}, rotas: Parameters<typeof simularApi>[0] = {}) =>
     api({ 'GET /api/militares/m1': { status: 200, corpo: { ...FICHA, ...extra } }, [PATCH]: { status: 200, corpo: FICHA }, ...rotas });
   const SEM_PECULIO = { podeEditar: { peculio: false, escala: true, unidadeDeCima: '2º GB' } };
-  const FRASE = 'Este bloco é alterado por quem tem papel em 2º GB.';
+  const FRASE = 'Este bloco é alterado por quem tem nível de acesso em 2º GB.';
 
   it('Identificação: o nome completo e o sexo aparecem e gravam só o que mudou', async () => {
     const f = comFicha();
@@ -734,7 +734,7 @@ describe('ficha ampliada (fase 5)', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Alterar situação' }));
     const dialogo = within(await screen.findByRole('dialog'));
     expect(dialogo.getByLabelText('Lotação')).toBeDisabled();
-    expect(dialogo.getByText('A lotação, o quadro e a situação são alterados por quem tem papel em 2º GB.')).toBeInTheDocument();
+    expect(dialogo.getByText('A lotação, o quadro e a situação são alterados por quem tem nível de acesso em 2º GB.')).toBeInTheDocument();
     expect(dialogo.getByLabelText('Equipe')).toBeEnabled();
     expect(dialogo.getByLabelText('Jornada')).toBeEnabled();
   });

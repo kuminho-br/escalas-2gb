@@ -473,7 +473,7 @@ describe('pendência "Nome completo em falta"', () => {
 });
 
 describe('dono por bloco (Review Focus 1 e 2)', () => {
-  const MSG = 'Este campo é alterado por quem tem papel no 2º GB.';
+  const MSG = 'Este campo é alterado por quem tem nível de acesso no 2º GB.';
   const papelEmOutraSecao = async <T>(quem: 'escalante', f: () => Promise<T>) => {
     // o escalante também com papel na 2ª SB: tem as duas pontas da lotação, mas nenhuma unidade acima
     const id = await inserir(api.banco, 'papel_usuario', { usuario_id: api.usuarios[quem], unidade_id: outraSecao, papel: 'escalante', desde: '2026-01-01' });
@@ -510,12 +510,12 @@ describe('dono por bloco (Review Focus 1 e 2)', () => {
     await papelEmOutraSecao('escalante', async () => {
       const lotacao = await api.pedir('escalante', 'POST', `/api/militares/${m.id}/situacao`, { unidadeId: outraSecao, equipeId: null, jornada: 'adm', desde: `${proximo}-01` });
       expect(lotacao.status).toBe(403);
-      expect((await lotacao.json()).erro).toBe('A lotação é alterada por quem tem papel no 2º GB.');
+      expect((await lotacao.json()).erro).toBe('A lotação é alterada por quem tem nível de acesso no 2º GB.');
       expect((await ficha(m.id)).rastreio).toHaveLength(1);
     });
     const novoM = await api.pedir('escalante', 'POST', `/api/unidades/${api.ids.secao}/militares`, novo('990182-2'));
     expect(novoM.status).toBe(403);
-    expect((await novoM.json()).erro).toBe('Cadastrar militar é com quem tem papel no 2º GB.');
+    expect((await novoM.json()).erro).toBe('Cadastrar militar é com quem tem nível de acesso no 2º GB.');
   });
 
   it('escalante da 1ª SB: incluir, editar e remover afastamento é 403', async () => {
@@ -525,7 +525,7 @@ describe('dono por bloco (Review Focus 1 e 2)', () => {
     const afId = (await af.json()).id;
     const incluir = await api.pedir('escalante', 'POST', `/api/militares/${m.id}/afastamentos`, { tipoAfastamentoId: ferias, inicio: `${atual}-10`, fim: `${atual}-11` });
     expect(incluir.status).toBe(403);
-    expect((await incluir.json()).erro).toBe('Os afastamentos são alterados por quem tem papel no 2º GB.');
+    expect((await incluir.json()).erro).toBe('Os afastamentos são alterados por quem tem nível de acesso no 2º GB.');
     expect((await api.pedir('escalante', 'PATCH', `/api/afastamentos/${afId}`, { fim: `${atual}-07` })).status).toBe(403);
     expect((await api.pedir('escalante', 'DELETE', `/api/afastamentos/${afId}`)).status).toBe(403);
     expect((await ficha(m.id)).afastamentos).toHaveLength(1);

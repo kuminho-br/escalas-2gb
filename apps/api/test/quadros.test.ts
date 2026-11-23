@@ -139,7 +139,7 @@ describe('o quadro na ficha', () => {
     const f = await (await criar('990610-1', 'CAP BM')).json();
     const r = await situacao(f.id, { quadroId: quadro.QOA }, 'escalante');
     expect(r.status).toBe(403);
-    expect((await r.json()).erro).toBe('Este campo é alterado por quem tem papel no 2º GB.');
+    expect((await r.json()).erro).toBe('Este campo é alterado por quem tem nível de acesso no 2º GB.');
   });
 
   it('a linha da lista traz o quadro', async () => {

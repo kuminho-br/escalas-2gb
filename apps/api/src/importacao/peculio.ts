@@ -365,8 +365,8 @@ export const importadorPeculio: Importador<Plano> = {
       if (!(await donoDe(referencia))) {
         const sigla = e?.unidade_sigla ?? lotacao.sigla;
         problema(
-          e ? `${nomeGuerra} (${mat.valor}) está lotado na ${sigla}: o Pecúlio dele é de quem tem papel no ${await cima(referencia)}.` : `Cadastrar militar na ${sigla} é de quem tem papel no ${await cima(referencia)}.`,
-          'Peça a quem tem esse papel para importar a linha.',
+          e ? `${nomeGuerra} (${mat.valor}) está lotado na ${sigla}: o Pecúlio dele é de quem tem nível de acesso no ${await cima(referencia)}.` : `Cadastrar militar na ${sigla} é de quem tem nível de acesso no ${await cima(referencia)}.`,
+          'Peça a quem tem esse nível de acesso para importar a linha.',
         );
         continue;
       }

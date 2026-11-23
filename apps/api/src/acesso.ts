@@ -44,7 +44,7 @@ export async function temPapel(c: Consulta, usuarioId: string, unidadeId: string
 }
 
 /**
- * Tem um dos papéis, vigente na data, numa unidade ACIMA da unidade (a mãe ou mais alta), nunca nela própria? É o "papel de cima"
+ * Tem um dos papéis, vigente na data, numa unidade ACIMA da unidade (a mãe ou mais alta), nunca nela própria? É o "nível de acesso de cima"
  * que dá a posse dos blocos do Pecúlio da ficha do militar (o escalante da seção não é dono do que é da seção de pessoal).
  */
 export async function temPapelAcima(c: Consulta, usuarioId: string, unidadeId: string, papeis: Papel[], hoje: string): Promise<boolean> {
@@ -80,7 +80,7 @@ export async function exigirPapelDeCimaDasSecoes(c: Context<AmbienteApi>, unidad
   );
   if (rows[0]!.ok) return null;
   const mae = (await banco.query<{ sigla: string }>('select m.sigla from unidade u join unidade m on m.id = u.mae_id where u.id = $1', [unidadeId])).rows[0]?.sigla;
-  return c.json({ erro: `A importação do Pecúlio é de quem tem papel no ${mae ?? 'nível acima'}.` }, 403);
+  return c.json({ erro: `A importação do Pecúlio é de quem tem nível de acesso no ${mae ?? 'nível acima'}.` }, 403);
 }
 
 /** Exige sessão; põe o usuário e o banco no contexto. */

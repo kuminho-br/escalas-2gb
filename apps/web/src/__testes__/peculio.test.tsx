@@ -143,6 +143,71 @@ describe('módulo Pecúlio', () => {
   });
 });
 
+describe('Enter na busca do Pecúlio', () => {
+  const buscar = async (texto: string) => userEvent.type(await screen.findByLabelText('Buscar por nome ou matrícula'), texto);
+  const doBarreto = (lista: HTMLElement) => within(lista).getByRole('link', { name: /BARRETO/ });
+
+  it('com um resultado só, ele fica em destaque e o Enter abre a ficha dele, com ?de=peculio', async () => {
+    api();
+    const router = abrir('/peculio');
+    await buscar('barr');
+    const lista = await screen.findByRole('list', { name: 'Militares do Pecúlio' });
+    expect(doBarreto(lista)).toHaveAttribute('aria-current', 'true');
+    await userEvent.keyboard('{Enter}');
+    await waitFor(() => expect(router.state.location.pathname).toBe('/militares/m2'));
+    expect(router.state.location.search).toMatchObject({ de: 'peculio' });
+  });
+
+  it('com dois resultados, nada fica em destaque e o Enter não abre nada', async () => {
+    api();
+    const router = abrir('/peculio');
+    await buscar('b');
+    const lista = await screen.findByRole('list', { name: 'Militares do Pecúlio' });
+    expect(within(lista).getAllByRole('link')).toHaveLength(2);
+    expect(within(lista).getAllByRole('link').some((l) => l.getAttribute('aria-current') === 'true')).toBe(false);
+    await userEvent.keyboard('{Enter}');
+    expect(router.state.location.pathname).toBe('/peculio');
+  });
+
+  it('com zero resultados, o Enter não faz nada', async () => {
+    api();
+    const router = abrir('/peculio');
+    await buscar('zzzz');
+    await userEvent.keyboard('{Enter}');
+    expect(router.state.location.pathname).toBe('/peculio');
+  });
+
+  it('a ficha nunca abre sozinha: só digitar, mesmo ficando um resultado, não navega', async () => {
+    api();
+    const router = abrir('/peculio');
+    await buscar('barr');
+    await screen.findByRole('list', { name: 'Militares do Pecúlio' });
+    expect(router.state.location.pathname).toBe('/peculio');
+  });
+
+  it('digitar até sobrar um e apagar uma letra: o destaque some e o Enter não abre', async () => {
+    api();
+    const router = abrir('/peculio');
+    await buscar('ba');
+    const lista = await screen.findByRole('list', { name: 'Militares do Pecúlio' });
+    expect(doBarreto(lista)).toHaveAttribute('aria-current', 'true');
+    await userEvent.keyboard('{Backspace}');
+    await waitFor(() => expect(within(lista).getAllByRole('link')).toHaveLength(2));
+    expect(within(lista).getAllByRole('link').some((l) => l.getAttribute('aria-current') === 'true')).toBe(false);
+    await userEvent.keyboard('{Enter}');
+    expect(router.state.location.pathname).toBe('/peculio');
+  });
+
+  it('sem texto na busca, o único militar da lista não vira destaque nem abre com Enter', async () => {
+    api(GESTOR_GB, { militares: [LISTA.militares[0]!], aniversariantes: [] });
+    const router = abrir('/peculio');
+    const lista = await screen.findByRole('list', { name: 'Militares do Pecúlio' });
+    expect(within(lista).getByRole('link', { name: /ANDRADE/ })).not.toHaveAttribute('aria-current', 'true');
+    await userEvent.type(screen.getByLabelText('Buscar por nome ou matrícula'), '{Enter}');
+    expect(router.state.location.pathname).toBe('/peculio');
+  });
+});
+
 describe('quem cadastra militar: nível de acesso numa unidade acima da seção', () => {
   const DI = { id: 'u-di', sigla: 'DInter/1', caminho: ['CBMPE', 'DGO', 'DInter/1'], nivel: 2 };
   it('o auxiliar só da seção não pode, esteja a seção no nível que estiver da árvore', () => {

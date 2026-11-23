@@ -57,14 +57,14 @@ describe('tela inicial', () => {
   it('com ?aviso=outro-papel, mostra o aviso', async () => {
     simularApi({ '/api/eu': { status: 200, corpo: comum } });
     abrir('/?aviso=outro-papel');
-    expect(await screen.findByRole('status')).toHaveTextContent('Essa área é de outro papel.');
+    expect(await screen.findByRole('status')).toHaveTextContent('Essa área é de outro nível de acesso.');
   });
 
   it('sem o aviso, não mostra nada de aviso', async () => {
     simularApi({ '/api/eu': { status: 200, corpo: comum } });
     abrir('/');
     await screen.findByRole('heading', { level: 1 });
-    expect(screen.queryByText('Essa área é de outro papel.')).toBeNull();
+    expect(screen.queryByText('Essa área é de outro nível de acesso.')).toBeNull();
   });
 
   it('um cartão leva ao módulo', async () => {

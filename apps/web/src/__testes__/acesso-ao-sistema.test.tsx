@@ -1,8 +1,8 @@
 import type { AcessoDoMilitar, FichaMilitar } from 'contratos';
-import { screen, waitFor, within } from '@testing-library/react';
+import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
-import { abrir, corpoEnviado, EU_EXEMPLO, simularApi } from './apoio';
+import { abrir, chamadasA, corpoEnviado, EU_EXEMPLO, simularApi } from './apoio';
 
 const FICHA: FichaMilitar = {
   id: 'm1', matricula: '990001-1', posto: 'SD BM', quadro: { id: 'q-qbmg', sigla: 'QBMG' }, nomeGuerra: 'ANDRADE', equipe: 'Alfa', jornada: 'pronto', motorista: null, voluntarioJes: false, ativo: true, situacao: 'Disponível', pendencias: [],
@@ -81,7 +81,7 @@ describe('Acesso ao sistema', () => {
     confirmar.mockRestore();
   });
 
-  it('lista os papéis com "Auxiliar administrativo" e dá papel', async () => {
+  it('lista os níveis de acesso com "Auxiliar administrativo" e dá nível de acesso', async () => {
     const dada: AcessoDoMilitar = { ...ACESSO, papeis: [{ id: 'p1', papel: 'escalante', unidadeId: 'u-1sb', unidadeSigla: '1ª SB', desde: '2026-11-01', ate: null }] };
     const f = api(
       { papeis: [{ id: 'p0', papel: 'gestor', unidadeId: 'u-gb', unidadeSigla: '2º GB', desde: '2026-01-01', ate: '2026-06-30' }], papeisQuePodeDar: ['gestor', 'escalante'], unidadesParaPapel: [{ id: 'u-gb', sigla: '2º GB', nivel: 3 }, { id: 'u-1sb', sigla: '1ª SB', nivel: 4 }] },
@@ -91,19 +91,166 @@ describe('Acesso ao sistema', () => {
     const b = within(await bloco());
     expect(await b.findByText('Gestor')).toBeInTheDocument();
     expect(b.getByText('de 01/01/2026 a 30/06/2026')).toBeInTheDocument();
-    await userEvent.click(b.getByRole('button', { name: 'Dar papel' }));
-    await userEvent.selectOptions(b.getByLabelText('Papel'), 'Auxiliar administrativo');
+    await userEvent.click(b.getByRole('button', { name: 'Dar nível de acesso' }));
+    await userEvent.selectOptions(b.getByLabelText('Nível de acesso'), 'Auxiliar administrativo');
     await userEvent.selectOptions(b.getByLabelText('Unidade'), 'u-1sb');
     expect(b.getByLabelText('A partir de')).toBeInTheDocument();
-    await userEvent.click(b.getAllByRole('button', { name: 'Dar papel' }).at(-1)!);
+    await userEvent.click(b.getAllByRole('button', { name: 'Dar nível de acesso' }).at(-1)!);
     await waitFor(() => expect(corpoEnviado(f, 'POST /api/militares/m1/papeis')).toMatchObject({ papel: 'escalante', unidadeId: 'u-1sb' }));
   });
 
-  it('sem papéis para dar, não aparece "Dar papel"', async () => {
+  it('sem níveis de acesso para dar, não aparece "Dar nível de acesso"', async () => {
     api({ papeisQuePodeDar: [] });
     abrir('/militares/m1');
     const b = within(await bloco());
-    await b.findByText('Nenhum papel.');
-    expect(b.queryByRole('button', { name: 'Dar papel' })).toBeNull();
+    await b.findByText('Nenhum nível de acesso.');
+    expect(b.queryByRole('button', { name: 'Dar nível de acesso' })).toBeNull();
   });
 });
+
+describe('um formulário por vez no Acesso ao sistema', () => {
+  const DOIS: Partial<AcessoDoMilitar> = {
+    papeis: [
+      { id: 'p1', papel: 'escalante', unidadeId: 'u-1sb', unidadeSigla: '1ª SB', desde: '2026-11-01', ate: null },
+      { id: 'p2', papel: 'gestor', unidadeId: 'u-gb', unidadeSigla: '2º GB', desde: '2026-10-01', ate: null },
+    ],
+    papeisQuePodeDar: ['gestor', 'escalante'],
+    unidadesParaPapel: [{ id: 'u-gb', sigla: '2º GB', nivel: 3 }, { id: 'u-1sb', sigla: '1ª SB', nivel: 4 }],
+  };
+  const encerrar = (b: { getAllByRole: (papel: 'button', o: { name: string }) => HTMLElement[] }) => b.getAllByRole('button', { name: 'Encerrar' }) as HTMLButtonElement[];
+
+  it('abrir "Dar nível de acesso" desliga os "Encerrar"', async () => {
+    api(DOIS);
+    abrir('/militares/m1');
+    const b = within(await bloco());
+    await b.findByText('Gestor');
+    expect(encerrar(b).every((x) => !x.disabled)).toBe(true);
+    await userEvent.click(b.getByRole('button', { name: 'Dar nível de acesso' }));
+    expect(encerrar(b)).toHaveLength(2);
+    expect(encerrar(b).every((x) => x.disabled)).toBe(true);
+  });
+
+  it('abrir um "Encerrar" desliga "Dar nível de acesso" e os outros "Encerrar"', async () => {
+    api(DOIS);
+    abrir('/militares/m1');
+    const b = within(await bloco());
+    await b.findByText('Gestor');
+    await userEvent.click(encerrar(b)[0]!);
+    expect(b.getByLabelText('Encerrar em')).toBeInTheDocument();
+    expect(b.getByRole('button', { name: 'Dar nível de acesso' })).toBeDisabled();
+    expect(encerrar(b)).toHaveLength(1);
+    expect(encerrar(b)[0]).toBeDisabled();
+  });
+
+  it('"Cancelar" libera tudo', async () => {
+    api(DOIS);
+    abrir('/militares/m1');
+    const b = within(await bloco());
+    await b.findByText('Gestor');
+    await userEvent.click(encerrar(b)[0]!);
+    await userEvent.click(b.getByRole('button', { name: 'Cancelar' }));
+    expect(b.getByRole('button', { name: 'Dar nível de acesso' })).toBeEnabled();
+    expect(encerrar(b).every((x) => x.disabled === false)).toBe(true);
+    await userEvent.click(b.getByRole('button', { name: 'Dar nível de acesso' }));
+    await userEvent.click(b.getByRole('button', { name: 'Cancelar' }));
+    expect(encerrar(b).every((x) => x.disabled === false)).toBe(true);
+  });
+
+  it('um erro da API mantém o formulário de dar aberto, com a mensagem, e não libera os "Encerrar"', async () => {
+    api(DOIS, { 'POST /api/militares/m1/papeis': { status: 409, corpo: { erro: 'Este nível de acesso já existe.' } } });
+    abrir('/militares/m1');
+    const b = within(await bloco());
+    await b.findByText('Gestor');
+    await userEvent.click(b.getByRole('button', { name: 'Dar nível de acesso' }));
+    await userEvent.click(b.getAllByRole('button', { name: 'Dar nível de acesso' }).at(-1)!);
+    expect(await b.findByText('Este nível de acesso já existe.')).toBeInTheDocument();
+    expect(b.getByLabelText('A partir de')).toBeInTheDocument();
+    expect(encerrar(b).every((x) => x.disabled)).toBe(true);
+  });
+
+  it('o formulário de dar abre limpo: o "Até" e o nível do anterior não ficam', async () => {
+    const dada: AcessoDoMilitar = { ...ACESSO, ...DOIS, papeis: [] };
+    api(DOIS, { 'POST /api/militares/m1/papeis': { status: 201, corpo: dada } });
+    abrir('/militares/m1');
+    const b = within(await bloco());
+    await b.findByText('Gestor');
+    await userEvent.click(b.getByRole('button', { name: 'Dar nível de acesso' }));
+    fireEvent.change(b.getByLabelText('Até (opcional)'), { target: { value: '2026-12-31' } });
+    await userEvent.selectOptions(b.getByLabelText('Nível de acesso'), 'Auxiliar administrativo');
+    await userEvent.click(b.getAllByRole('button', { name: 'Dar nível de acesso' }).at(-1)!);
+    await waitFor(() => expect(b.queryByLabelText('A partir de')).toBeNull());
+    await userEvent.click(b.getByRole('button', { name: 'Dar nível de acesso' }));
+    expect(b.getByLabelText('Até (opcional)')).toHaveValue('');
+    expect(b.getByLabelText('Nível de acesso')).toHaveDisplayValue('Gestor');
+    // fechar sem dar também limpa
+    fireEvent.change(b.getByLabelText('Até (opcional)'), { target: { value: '2026-12-31' } });
+    await userEvent.click(b.getByRole('button', { name: 'Cancelar' }));
+    await userEvent.click(b.getByRole('button', { name: 'Dar nível de acesso' }));
+    expect(b.getByLabelText('Até (opcional)')).toHaveValue('');
+  });
+
+  it('o erro de um formulário não sobra depois do "Cancelar" nem aparece no outro', async () => {
+    api(DOIS, { 'POST /api/papeis/p1/encerrar': { status: 400, corpo: { erro: 'O encerramento não pode ser antes do início do nível de acesso.', campos: { ate: 'O encerramento não pode ser antes do início do nível de acesso.' } } } });
+    abrir('/militares/m1');
+    const b = within(await bloco());
+    await b.findByText('Gestor');
+    await userEvent.click(encerrar(b)[0]!);
+    await userEvent.click(b.getByRole('button', { name: 'Confirmar encerramento' }));
+    expect(await b.findAllByText(/O encerramento não pode ser antes do início/)).not.toHaveLength(0);
+    await userEvent.click(b.getByRole('button', { name: 'Cancelar' }));
+    expect(b.queryByText(/O encerramento não pode ser antes do início/)).toBeNull();
+    await userEvent.click(b.getByRole('button', { name: 'Dar nível de acesso' }));
+    expect(b.queryByText(/O encerramento não pode ser antes do início/)).toBeNull();
+  });
+
+  it('um erro ao encerrar mantém o formulário de encerrar aberto', async () => {
+    api(DOIS, { 'POST /api/papeis/p1/encerrar': { status: 409, corpo: { erro: 'Este nível de acesso já foi encerrado.' } } });
+    abrir('/militares/m1');
+    const b = within(await bloco());
+    await b.findByText('Gestor');
+    await userEvent.click(encerrar(b)[0]!);
+    await userEvent.click(b.getByRole('button', { name: 'Confirmar encerramento' }));
+    expect(await b.findByText('Este nível de acesso já foi encerrado.')).toBeInTheDocument();
+    expect(b.getByLabelText('Encerrar em')).toBeInTheDocument();
+  });
+});
+
+describe('o "até" ao dar o nível de acesso (6.8)', () => {
+  const PODE: Partial<AcessoDoMilitar> = { papeisQuePodeDar: ['escalante'], unidadesParaPapel: [{ id: 'u-1sb', sigla: '1ª SB', nivel: 4 }] };
+  const dada: AcessoDoMilitar = { ...ACESSO, papeis: [{ id: 'p1', papel: 'escalante', unidadeId: 'u-1sb', unidadeSigla: '1ª SB', desde: '2026-11-01', ate: '2026-12-31' }] };
+
+  it('o campo "Até (opcional)" fica ao lado de "A partir de", e preenchido vai no corpo', async () => {
+    const f = api(PODE, { 'POST /api/militares/m1/papeis': { status: 201, corpo: dada } });
+    abrir('/militares/m1');
+    const b = within(await bloco());
+    await userEvent.click(await b.findByRole('button', { name: 'Dar nível de acesso' }));
+    expect(b.getByLabelText('A partir de')).toBeInTheDocument();
+    expect(b.getByLabelText('Até (opcional)')).toHaveValue('');
+    fireEvent.change(b.getByLabelText('Até (opcional)'), { target: { value: '2026-12-31' } });
+    await userEvent.click(b.getAllByRole('button', { name: 'Dar nível de acesso' }).at(-1)!);
+    await waitFor(() => expect(corpoEnviado(f, 'POST /api/militares/m1/papeis')).toMatchObject({ papel: 'escalante', unidadeId: 'u-1sb', ate: '2026-12-31' }));
+  });
+
+  it('sem "até", o corpo não leva o campo', async () => {
+    const f = api(PODE, { 'POST /api/militares/m1/papeis': { status: 201, corpo: dada } });
+    abrir('/militares/m1');
+    const b = within(await bloco());
+    await userEvent.click(await b.findByRole('button', { name: 'Dar nível de acesso' }));
+    await userEvent.click(b.getAllByRole('button', { name: 'Dar nível de acesso' }).at(-1)!);
+    await waitFor(() => expect(chamadasA(f, 'POST /api/militares/m1/papeis')).toBe(1));
+    expect(corpoEnviado(f, 'POST /api/militares/m1/papeis')).not.toHaveProperty('ate');
+  });
+
+  it('o erro do fim aparece ao lado do campo', async () => {
+    api(PODE, { 'POST /api/militares/m1/papeis': { status: 400, corpo: { erro: 'Confira os campos destacados.', campos: { ate: 'O fim não pode ser antes do início.' } } } });
+    abrir('/militares/m1');
+    const b = within(await bloco());
+    await userEvent.click(await b.findByRole('button', { name: 'Dar nível de acesso' }));
+    fireEvent.change(b.getByLabelText('Até (opcional)'), { target: { value: '2020-01-01' } });
+    await userEvent.click(b.getAllByRole('button', { name: 'Dar nível de acesso' }).at(-1)!);
+    const campo = b.getByLabelText('Até (opcional)');
+    expect(await b.findByText('O fim não pode ser antes do início.')).toBeInTheDocument();
+    expect(campo.parentElement).toContainElement(b.getByText('O fim não pode ser antes do início.'));
+  });
+});
+

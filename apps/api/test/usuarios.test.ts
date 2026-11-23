@@ -288,16 +288,73 @@ describe('papéis na ficha', () => {
     expect((await r.json()).campos.ate).toBeTruthy();
   });
 
-  it('ninguém encerra o próprio último papel de gestor; o administrador pode', async () => {
+  it('ninguém encerra o próprio último nível de acesso de gestor; o administrador pode', async () => {
     const g = await comoNovo('gestor', api.ids.secao);
     const r = await como(g.cookie, 'POST', `/api/papeis/${g.papelId}/encerrar`, { ate: hojeRecife() });
     expect(r.status).toBe(409);
-    expect((await r.json()).erro).toBe('Você não pode encerrar o seu último papel de gestor. Peça a outro gestor ou ao administrador.');
+    expect((await r.json()).erro).toBe('Você não pode encerrar o seu último nível de acesso de gestor. Peça a outro gestor ou ao administrador.');
     expect((await api.pedir('admin', 'POST', `/api/papeis/${g.papelId}/encerrar`, { ate: hojeRecife() })).status).toBe(200);
     // com outro papel de gestor vigente, encerrar um deles vale
     const h = await comoNovo('gestor', api.ids.secao);
     await inserir(api.banco, 'papel_usuario', { usuario_id: h.usuarioId, unidade_id: outraSecao, papel: 'gestor', desde: inicioDoMes });
     expect((await como(h.cookie, 'POST', `/api/papeis/${h.papelId}/encerrar`, { ate: hojeRecife() })).status).toBe(200);
+  });
+});
+
+describe('o "até" ao dar o nível de acesso (6.8)', () => {
+  const inicioDoMes = hojeRecife().slice(0, 7) + '-01';
+  const dar = (id: string, corpo: unknown, quem: Quem = 'gestorGb') => api.pedir(quem, 'POST', `/api/militares/${id}/papeis`, corpo);
+  async function comoGestor() {
+    const m = await novoMilitar();
+    const usuarioId = await inserir(api.banco, 'usuario', { nome: `SD BM ${m.id}`, email: m.email, militar_id: m.id });
+    await inserir(api.banco, 'conta', { usuario_id: usuarioId, conta_id: usuarioId, provedor_id: 'credential', senha: await hashPassword('senha-de-teste-123') });
+    const papelId = await inserir(api.banco, 'papel_usuario', { usuario_id: usuarioId, unidade_id: api.ids.secao, papel: 'gestor', desde: inicioDoMes });
+    return { m, usuarioId, papelId, cookie: cookieDe(await entrar(m.email, 'senha-de-teste-123')) };
+  }
+
+  it('dar com "até" grava o fim, e a ficha mostra o período', async () => {
+    const m = await novoMilitar();
+    const r = await dar(m.id, { papel: 'escalante', unidadeId: api.ids.secao, desde: inicioDoMes, ate: '2099-12-31' });
+    expect(r.status).toBe(201);
+    expect(((await r.json()) as AcessoDoMilitar).papeis).toMatchObject([{ papel: 'escalante', desde: inicioDoMes, ate: '2099-12-31' }]);
+  });
+
+  it('"até" antes de "a partir de" é 400 no campo, com o texto fixo, e nada é gravado', async () => {
+    const m = await novoMilitar();
+    const r = await dar(m.id, { papel: 'escalante', unidadeId: api.ids.secao, desde: '2027-02-01', ate: '2027-01-31' });
+    expect(r.status).toBe(400);
+    const corpo = await r.json();
+    expect(corpo.campos.ate).toBe('O fim não pode ser antes do início.');
+    expect((await acessoDe(m.id)).papeis).toEqual([]);
+  });
+
+  it('"até" nulo ou ausente fica como antes (sem fim)', async () => {
+    const m = await novoMilitar();
+    const r = await dar(m.id, { papel: 'escalante', unidadeId: api.ids.secao, desde: inicioDoMes, ate: null });
+    expect(r.status).toBe(201);
+    expect(((await r.json()) as AcessoDoMilitar).papeis[0]!.ate).toBeNull();
+  });
+
+  it('"até" no mesmo dia do início vale (um dia só)', async () => {
+    const m = await novoMilitar();
+    expect((await dar(m.id, { papel: 'escalante', unidadeId: api.ids.secao, desde: '2027-02-01', ate: '2027-02-01' })).status).toBe(201);
+  });
+
+  it('dar o mesmo nível, com "até", a quem já o tem aberto: vale a regra de hoje (não há trava de repetição; os dois ficam na lista)', async () => {
+    const m = await novoMilitar();
+    expect((await dar(m.id, { papel: 'gestor', unidadeId: api.ids.secao, desde: inicioDoMes })).status).toBe(201);
+    const repetido = await dar(m.id, { papel: 'gestor', unidadeId: api.ids.secao, desde: inicioDoMes, ate: '2099-12-31' });
+    expect(repetido.status).toBe(201);
+    expect(((await repetido.json()) as AcessoDoMilitar).papeis.map((p) => [p.papel, p.ate])).toEqual(expect.arrayContaining([['gestor', null], ['gestor', '2099-12-31']]));
+  });
+
+  it('um nível com "até" vencido não conta para a regra do último gestor, e um com "até" no futuro conta', async () => {
+    const g = await comoGestor();
+    await inserir(api.banco, 'papel_usuario', { usuario_id: g.usuarioId, unidade_id: outraSecao, papel: 'gestor', desde: '2020-01-01', ate: '2020-12-31' });
+    const sem = await como(g.cookie, 'POST', `/api/papeis/${g.papelId}/encerrar`, { ate: hojeRecife() });
+    expect(sem.status).toBe(409);
+    await inserir(api.banco, 'papel_usuario', { usuario_id: g.usuarioId, unidade_id: outraSecao, papel: 'gestor', desde: inicioDoMes, ate: '2099-12-31' });
+    expect((await como(g.cookie, 'POST', `/api/papeis/${g.papelId}/encerrar`, { ate: hojeRecife() })).status).toBe(200);
   });
 });
 
@@ -338,7 +395,7 @@ describe('revisão final da 6.1', () => {
       expect((await acessoDe(alvo.id)).podeGerarSenha).toBe(false);
       const r = await gerar(alvo.id, 'escalante');
       expect(r.status).toBe(403);
-      expect((await r.json()).erro).toBe('Só quem pode dar o papel dessa pessoa mexe no acesso dela.');
+      expect((await r.json()).erro).toBe('Só quem pode dar o nível de acesso dessa pessoa mexe no acesso dela.');
     }
     // sem e-mail, o botão continua desligado
     const semEmail = await novoMilitar({ email: null });
@@ -361,7 +418,7 @@ describe('revisão final da 6.1', () => {
       expect((await acessoDe(colega.id)).podeGerarSenha).toBe(false);
       const r = await gerar(colega.id, 'escalante');
       expect(r.status).toBe(403);
-      expect((await r.json()).erro).toBe('Só quem pode dar o papel dessa pessoa mexe no acesso dela.');
+      expect((await r.json()).erro).toBe('Só quem pode dar o nível de acesso dessa pessoa mexe no acesso dela.');
     });
 
     it('o gestor reativa o auxiliar desativado', async () => {
