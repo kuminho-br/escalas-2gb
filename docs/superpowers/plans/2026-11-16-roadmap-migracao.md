@@ -179,7 +179,7 @@ Entregas fora das fases, numeradas P1, P2…: usam os dados do projeto, mas não
 | P1.2 | Escala dos oficiais: motor, tabelas e API, com o serviço cadastrado | mesclada (#99), migração 0027 aplicada no teste |
 | P1.4 | Só o QBMG nas outras telas de escala | mesclada (#101) |
 | P1.3 | Escala dos oficiais: telas (escala do mês, saldo, regras), dia e noite só por cor | mesclada (#102) |
-| P1.5 | Quem participa da rodada (o gestor escolhe entre os elegíveis) | em PR (#125), espera a 0030 |
+| P1.5 | Quem participa da rodada (o gestor escolhe entre os elegíveis) | mesclada (#125) |
 
 Design: `docs/superpowers/specs/2026-11-22-escala-dos-oficiais-design.md`. Plano: `docs/superpowers/plans/2026-11-22-p1-escala-dos-oficiais.md`.
 
