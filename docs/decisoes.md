@@ -8,6 +8,7 @@ Siglas dos documentos: **Design** = `superpowers/specs/2026-11-16-migracao-desig
 
 | Data | Decisão | Onde está |
 |---|---|---|
+| 23/11/2026 | A animação do login vira preferência de cada pessoa: em toda entrada, uma vez a cada 12 h (padrão) ou nunca. | `superpowers/specs/2026-11-20-transicao-login-design.md`, "Decisões do usuário"; plano da fase 6, Entrega 14 |
 | 23/11/2026 | O Pecúlio é a origem dos dados do militar: a planilha dele importa tudo, e a importação "Dados da escala" sai do módulo de escalas. Refaz a opção (b) de 22/11. | `superpowers/plans/2026-11-23-fase6-13-peculio-origem-dos-dados.md`; `superpowers/specs/2026-11-20-peculio-design.md`, "Importação do Pecúlio" |
 | 23/11/2026 | Na importação do Pecúlio, só a matrícula é obrigatória; célula vazia não altera e dado inválido é ignorado, sem travar. Militar novo exige posto, nome de guerra e lotação. | `superpowers/plans/2026-11-23-fase6-13-peculio-origem-dos-dados.md` |
 | 23/11/2026 | O administrador apaga um militar, com tudo o que é dele. Os postos e graduações (sigla e nome) são editáveis nas Configurações. | `superpowers/plans/2026-11-23-fase6-13-peculio-origem-dos-dados.md` |

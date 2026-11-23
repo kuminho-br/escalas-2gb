@@ -102,13 +102,14 @@ Design: `docs/superpowers/specs/2026-11-21-usuarios-e-modulos-design.md`. Plano:
 | 2 | Unidade de trabalho: o seletor substitui a 1ª SB fixa | mesclada (#88) |
 | 3 | Tela inicial, módulos por nível de acesso e Minha ficha | mesclada (#90) |
 | 4 | Transição do login (as mangueiras) | mesclada (#118) |
-| 5 | Retorno da validação: recolher equipe, rastreio por dia, "Vale desde" antigo | mesclada (#104) |
-| 6 | Retorno da validação com mockup: sete ajustes de interface | aguardando a DESIGN |
+| 5 | Retorno da validação: recolher equipe, rastreio por dia | mesclada (#104) |
+| 6 | Retorno da validação com mockup | aguardando a DESIGN |
 | 7 | Militares só no Pecúlio | mesclada (#107) |
 | 8 | Nível de acesso, "até" e Enter no Pecúlio | mesclada (#108) |
 | 9 | Quadro e situação no rastreio; CPF, nascimento e endereço | mesclada (#110) |
 | 10 a 12 | Camadas de visão e chefe de divisão; consulta de militares; escalas só para leitura | planejadas |
 | 13 | Pecúlio como origem dos dados (antes da 10): importação única, apagar militar, postos | planejada |
+| 14 | Animação de entrada como preferência | planejada |
 
 **Fora:** e-mail, usuários acima do GB (fase 11), Visualização (fase 7).
 
