@@ -39,6 +39,7 @@ De 20/11/2026, salvo quando a linha traz outra data.
 | Som | **Não há**, nem botão de som. Substitui a decisão de som ligado por padrão |
 | Senha errada | Clarão vermelho, os engates destravam, as mangueiras voltam para as laterais e o cartão reaparece com a mensagem de erro |
 | Repetição | Inteira só se passaram mais de **12 h** desde a última vez que tocou inteira, contadas por navegador; antes disso, entrada curta |
+| Preferência | Cada pessoa escolhe, na Minha ficha: em toda entrada, uma vez a cada 12 h (padrão) ou nunca. Vale por navegador (23/11; entrega 6.14) |
 | No site | Entra junto com a tela inicial dos módulos |
 
 ## A imagem final

@@ -81,3 +81,43 @@
     animation: none !important;
   }
 }
+
+/* A chegada pela animação do login (docs/superpowers/specs/2026-11-20-transicao-login-design.md). Sem a animação, nada disto se aplica. */
+.saudacao-da-chegada[data-chegada='escondida'],
+.cartao-da-chegada[data-chegada='escondida'] {
+  opacity: 0;
+}
+/* no pouso, a saudação aparece e o título entra um pouco maior, com um brilho que some */
+.saudacao-da-chegada[data-chegada='entrando'] {
+  animation: chegada-aparece 0.3s ease-out both;
+}
+.saudacao-da-chegada[data-chegada='entrando'] h1 {
+  animation: chegada-do-titulo 1.3s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+/* os cartões dos módulos sobem um depois do outro, durante o afastamento da câmera */
+.cartao-da-chegada[data-chegada='entrando'] {
+  animation: chegada-do-cartao 0.48s ease-out both;
+}
+@keyframes chegada-aparece {
+  from { opacity: 0; }
+}
+@keyframes chegada-do-titulo {
+  0% { transform: scale(1.16); text-shadow: 0 0 26px rgba(255, 190, 110, 0.85); }
+  30% { transform: scale(1); }
+  100% { transform: scale(1); text-shadow: 0 0 0 rgba(255, 190, 110, 0); }
+}
+@keyframes chegada-do-cartao {
+  from { opacity: 0; transform: translateY(14px); }
+}
+/* a entrada curta: o login se desfaz sobre as boas-vindas em 0,3 s */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 0.3s;
+}
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
+  }
+}

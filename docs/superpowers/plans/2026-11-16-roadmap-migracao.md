@@ -101,14 +101,16 @@ Design: `docs/superpowers/specs/2026-11-21-usuarios-e-modulos-design.md`. Plano:
 | 1 | Contas e níveis de acesso: senha provisória e troca no primeiro login | mesclada (#86) |
 | 2 | Unidade de trabalho: o seletor substitui a 1ª SB fixa | mesclada (#88) |
 | 3 | Tela inicial, módulos por nível de acesso e Minha ficha | mesclada (#90) |
-| 4 | Transição do login (as mangueiras), mockup aprovado | planejada |
-| 5 | Retorno da validação: recolher equipe, rastreio por dia, "Vale desde" antigo | mesclada (#104) |
-| 6 | Retorno da validação com mockup: sete ajustes de interface | aguardando a DESIGN |
+| 4 | Transição do login (as mangueiras) | mesclada (#118) |
+| 5 | Retorno da validação: recolher equipe, rastreio por dia | mesclada (#104) |
+| 6 | Retorno da validação com mockup | aguardando a DESIGN |
 | 7 | Militares só no Pecúlio | mesclada (#107) |
 | 8 | Nível de acesso, "até" e Enter no Pecúlio | mesclada (#108) |
 | 9 | Quadro e situação no rastreio; CPF, nascimento e endereço | mesclada (#110) |
 | 10 a 12 | Camadas de visão e chefe de divisão; consulta de militares; escalas só para leitura | planejadas |
 | 13 | Pecúlio como origem dos dados (antes da 10): importação única, apagar militar, postos | planejada |
+| 14 | Animação de entrada como preferência | planejada |
+| 15 a 18 | Pendências antes da fase 7: abono e função; três lotes de acabamento | planejadas |
 
 **Fora:** e-mail, usuários acima do GB (fase 11), Visualização (fase 7).
 
@@ -183,7 +185,7 @@ Design: `docs/superpowers/specs/2026-11-22-escala-dos-oficiais-design.md`. Plano
 
 ## Pendências conhecidas
 
-Achadas nas revisões e nas validações. Nenhuma muda quem é escalado. Entram numa entrega quando houver oportunidade.
+Achadas nas revisões e nas validações. Nenhuma muda quem é escalado. As que já podem ser feitas viraram as entregas 6.15 a 6.18, e saem daqui quando cada uma for mesclada.
 
 **Rastreio por dia (6.5)** (PR #104): Grade sem choque na virada do período; período só futuro = "Sem lotação".
 
@@ -296,7 +298,6 @@ Achadas nas revisões e nas validações. Nenhuma muda quem é escalado. Entram 
 - a linha do tempo não mostra o intervalo entre dois períodos.
 
 **Da fase 5, entregas 2 e 3** (listas nos PRs #79 e #80):
-- **decisão do usuário pendente:** na importação do Pecúlio, célula vazia apaga o campo de quem já existe; alternativas: manter, manter com um resumo do que será apagado na prévia, ou exigir uma marca para apagar;
 - **pergunta aberta:** "a faixa do serviço fica mais grossa" (lote de 21/11, entrega 4) — qual elemento;
 - sem um usuário com papel no 2º GB, só o administrador cadastra militar, registra afastamento e importa o Pecúlio;
 - o 400 do contrato vem antes do 403; e-mail com tab ou quebra de linha dá 500; o botão "Novo militar" aparece para quem não pode cadastrar; a validação do navegador fala antes da do contrato no e-mail;
