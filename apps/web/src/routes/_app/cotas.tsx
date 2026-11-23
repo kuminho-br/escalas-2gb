@@ -11,6 +11,7 @@ import { CampoDeMes } from '@/componentes/CampoDeMes';
 import { ImportarPlanilha } from '@/componentes/ImportarPlanilha';
 import { QuadradoDaCor } from '@/componentes/QuadradoDaCor';
 import { Selecao } from '@/componentes/Selecao';
+import { useDescartarDigitado } from '@/componentes/DescartarDigitado';
 import { Button } from '@/componentes/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/componentes/ui/dialog';
 import { Input } from '@/componentes/ui/input';
@@ -182,6 +183,7 @@ function LinhaCota({ c, aoEditar, aoRemover }: { c: Cota; aoEditar?: () => void;
 
 function CotaDialogo({ unidadeId, mes, cota, proximaPrioridade, aoFechar }: { unidadeId: string; mes: string; cota?: Cota; proximaPrioridade: number; aoFechar: () => void }) {
   const queryClient = useQueryClient();
+  const descarte = useDescartarDigitado(aoFechar);
   const servicos = useQuery(consultaServicos(unidadeId));
   // cota só existe para serviço PJES ou diária; o da cota que se edita entra mesmo se foi desativado
   const opcoes = (servicos.data ?? []).filter((s) => s.tipo !== 'ordinario' && (s.ativo || s.id === cota?.servicoId));
@@ -211,13 +213,13 @@ function CotaDialogo({ unidadeId, mes, cota, proximaPrioridade, aoFechar }: { un
   }
 
   return (
-    <Dialog open onOpenChange={(v) => !v && aoFechar()}>
+    <Dialog open onOpenChange={descarte.aoMudarAberto}>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>{cota ? 'Editar cota' : 'Adicionar cota'}</DialogTitle>
           <DialogDescription>Cota de {mesPorExtenso(mes)}. A prioridade 1 é preenchida primeiro.</DialogDescription>
         </DialogHeader>
-        <form onSubmit={salvar} className="grid gap-3">
+        <form ref={descarte.ref} onSubmit={salvar} className="grid gap-3">
           <div className="grid gap-1.5">
             <Label htmlFor="ct-servico">Serviço</Label>
             <Selecao id="ct-servico" value={escolhido} onChange={(e) => setServicoId(e.target.value)}>
@@ -251,6 +253,7 @@ function CotaDialogo({ unidadeId, mes, cota, proximaPrioridade, aoFechar }: { un
             <Button type="submit" disabled={salvando || !escolhido}>Salvar</Button>
           </DialogFooter>
         </form>
+        {descarte.confirmacao}
       </DialogContent>
     </Dialog>
   );

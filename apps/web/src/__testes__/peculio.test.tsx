@@ -327,6 +327,14 @@ describe('o Novo militar, no Pecúlio', () => {
     expect(screen.queryByRole('button', { name: 'Novo militar' })).toBeNull();
   });
 
+  it('item 8 (6.17): se a lista de unidades não carregou, "Criar" fica apagado e o campo diz "Não deu para carregar a lista. Recarregue a página."', async () => {
+    rotas({ 'GET /api/unidades-de-lotacao': { status: 500, corpo: { erro: 'Falhou.' } } });
+    abrir('/peculio');
+    const dialogo = await abrirODialogo();
+    await waitFor(() => expect(dialogo.getByText('Não deu para carregar a lista. Recarregue a página.')).toBeInTheDocument());
+    expect(dialogo.getByRole('button', { name: 'Criar' })).toBeDisabled();
+  });
+
   it('o diálogo pede os dados do Pecúlio e a lotação, e não pede equipe, jornada, motorista, CNH nem voluntário', async () => {
     rotas();
     abrir('/peculio');

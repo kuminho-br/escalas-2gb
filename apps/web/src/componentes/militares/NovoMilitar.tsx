@@ -7,6 +7,7 @@ import type { Eu } from '@/api/eu';
 import { atualizarPeculio, secoesDoCadastro } from '@/api/peculio';
 import { Campo } from '@/componentes/Campo';
 import { Selecao } from '@/componentes/Selecao';
+import { useDescartarDigitado } from '@/componentes/DescartarDigitado';
 import { Button } from '@/componentes/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/componentes/ui/dialog';
 import { Input } from '@/componentes/ui/input';
@@ -20,6 +21,7 @@ import { avisoDaLista } from './Secao';
  */
 export function NovoMilitar({ eu, aoFechar }: { eu: Eu; aoFechar: () => void }) {
   const queryClient = useQueryClient();
+  const descarte = useDescartarDigitado(aoFechar);
   const navigate = useNavigate();
   const postos = useQuery(consultaPostos);
   const quadros = useQuery(consultaQuadros);
@@ -66,13 +68,13 @@ export function NovoMilitar({ eu, aoFechar }: { eu: Eu; aoFechar: () => void }) 
   }
 
   return (
-    <Dialog open onOpenChange={(v) => !v && aoFechar()}>
+    <Dialog open onOpenChange={descarte.aoMudarAberto}>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Novo militar</DialogTitle>
           <DialogDescription>Equipe, jornada, motorista, CNH e afastamentos ficam na ficha e nos dados da escala, depois de cadastrar.</DialogDescription>
         </DialogHeader>
-        <form onSubmit={cadastrar} className="grid gap-3">
+        <form ref={descarte.ref} onSubmit={cadastrar} className="grid gap-3">
           <div className="grid grid-cols-2 gap-3">
             <Campo id="nm-matricula" rotulo="Matrícula" erro={campos.matricula}>
               <Input id="nm-matricula" name="matricula" placeholder="123456-7" required />
@@ -101,7 +103,7 @@ export function NovoMilitar({ eu, aoFechar }: { eu: Eu; aoFechar: () => void }) 
             </Campo>
           </div>
           <div className="grid grid-cols-2 gap-3">
-            <Campo id="nm-secao" rotulo="Unidade" erro={campos.secao}>
+            <Campo id="nm-secao" rotulo="Unidade" erro={campos.secao ?? avisoDaLista(secoes)}>
               <Selecao id="nm-secao" name="secao" required>
                 {secoesDoCadastro(eu, secoes.data ?? []).map((s) => <option key={s.id} value={s.id}>{s.sigla}</option>)}
               </Selecao>
@@ -115,6 +117,7 @@ export function NovoMilitar({ eu, aoFechar }: { eu: Eu; aoFechar: () => void }) 
             <Button type="submit" disabled={salvando || !postos.data || !secoes.data}>Criar</Button>
           </DialogFooter>
         </form>
+        {descarte.confirmacao}
       </DialogContent>
     </Dialog>
   );

@@ -11,6 +11,7 @@ import { ImportarPlanilha } from '@/componentes/ImportarPlanilha';
 import { classeItemEscolhido, ListaDetalhe } from '@/componentes/ListaDetalhe';
 import { QuadradoDaCor } from '@/componentes/QuadradoDaCor';
 import { Selecao } from '@/componentes/Selecao';
+import { useDescartarDigitado } from '@/componentes/DescartarDigitado';
 import { Button } from '@/componentes/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/componentes/ui/dialog';
 import { Input } from '@/componentes/ui/input';
@@ -112,6 +113,7 @@ function ItemServico({ s, escolhido }: { s: Servico; escolhido: boolean }) {
 
 function NovoServicoDialogo({ unidadeId, aoFechar }: { unidadeId: string; aoFechar: () => void }) {
   const queryClient = useQueryClient();
+  const descarte = useDescartarDigitado(aoFechar);
   const navigate = useNavigate();
   const [erro, setErro] = useState<string | null>(null);
   const [salvando, setSalvando] = useState(false);
@@ -135,13 +137,13 @@ function NovoServicoDialogo({ unidadeId, aoFechar }: { unidadeId: string; aoFech
   }
 
   return (
-    <Dialog open onOpenChange={(v) => !v && aoFechar()}>
+    <Dialog open onOpenChange={descarte.aoMudarAberto}>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Novo serviço</DialogTitle>
           <DialogDescription>Depois de criar, inclua os turnos na ficha.</DialogDescription>
         </DialogHeader>
-        <form onSubmit={criar} className="grid gap-3">
+        <form ref={descarte.ref} onSubmit={criar} className="grid gap-3">
           <div className="grid gap-1.5">
             <Label htmlFor="ns-nome">Nome do serviço</Label>
             <Input id="ns-nome" name="nome" required />
@@ -157,6 +159,7 @@ function NovoServicoDialogo({ unidadeId, aoFechar }: { unidadeId: string; aoFech
             <Button type="submit" disabled={salvando}>Criar</Button>
           </DialogFooter>
         </form>
+        {descarte.confirmacao}
       </DialogContent>
     </Dialog>
   );

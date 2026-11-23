@@ -110,7 +110,7 @@ export async function trocar(tx: Consulta, alocacaoId: string, troca: Troca, usu
     try {
       await escalar(tx, daVaga.escala_id, { militarId: quem.militar_id, data: daVaga.data, turnoId: daVaga.turno_id, guarnicaoId: daVaga.guarnicao_id, funcaoId: daVaga.funcao_id });
     } catch (e) {
-      if (e instanceof Recusa) throw new Recusa(`${nomes.get(quem.militar_id)} não pode ir para a vaga de ${nomes.get(daVaga.militar_id)}: ${e.message}`);
+      if (e instanceof Recusa) throw new Recusa(`${nomes.get(quem.militar_id)} não pode ir para a vaga de ${nomes.get(daVaga.militar_id)}: ${e.message}. Escolha outro serviço para trocar.`);
       throw e;
     }
   };
