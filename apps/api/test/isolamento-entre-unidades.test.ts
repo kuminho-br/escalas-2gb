@@ -49,6 +49,9 @@ beforeAll(async () => {
   ids.remocoes = await inserir(api.banco, 'remocao', { ...chave, data: `${atual}-06` });
   // papel dado na 2ª SB (fase 6)
   ids.papeis = await inserir(api.banco, 'papel_usuario', { usuario_id: api.usuarios.semPapel, unidade_id: outra, papel: 'escalante', desde: '2026-11-01' });
+  // a estrutura do grupamento (6.10): a 2ª SB e uma divisão do 2º GB, em que o escalante da 1ª SB não manda
+  ids.secoes = outra;
+  ids.divisoes = (await api.banco.query<{ id: string }>("select id from unidade where sigla = 'DA' and mae_id = $1", [api.ids.gb])).rows[0]!.id;
   // acúmulo da alocação alheia (Fase 4.1.1)
   ids.acumulos = await inserir(api.banco, 'alocacao_acumulo', { alocacao_id: ids.alocacoes, guarnicao_id: ids.guarnicoes, funcao_id: ids.funcoes });
 });

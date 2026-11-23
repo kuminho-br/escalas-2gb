@@ -15,3 +15,4 @@ export * from './efetivo-do-dia.ts';
 export * from './grade.ts';
 export * from './usuarios.ts';
 export * from './oficiais.ts';
+export * from './estrutura.ts';
