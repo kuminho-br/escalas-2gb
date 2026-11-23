@@ -11,7 +11,7 @@ const FICHA: FichaMilitar = {
   rastreio: [{ id: 'l1', unidadeSigla: '1ª SB', equipe: 'Alfa', jornada: 'pronto', desde: '2026-11-01', quadro: 'QBMG', situacao: 'Ativa', ate: null }], afastamentos: [],
 };
 const ACESSO: AcessoDoMilitar = {
-  situacao: 'sem-acesso', email: 'andrade@bombeiros.pe.gov.br', senhaProvisoriaAte: null, papeis: [], podeGerarSenha: true, papeisQuePodeDar: [], unidadesParaPapel: [],
+  situacao: 'sem-acesso', email: 'andrade@bombeiros.pe.gov.br', senhaProvisoriaAte: null, papeis: [], podeGerarSenha: true, podeDesativar: true, papeisQuePodeDar: [], unidadesParaPapel: [],
 };
 
 function api(acesso: Partial<AcessoDoMilitar> = {}, extra: Parameters<typeof simularApi>[0] = {}) {
@@ -82,9 +82,9 @@ describe('Acesso ao sistema', () => {
   });
 
   it('lista os níveis de acesso com "Auxiliar administrativo" e dá nível de acesso', async () => {
-    const dada: AcessoDoMilitar = { ...ACESSO, papeis: [{ id: 'p1', papel: 'escalante', unidadeId: 'u-1sb', unidadeSigla: '1ª SB', desde: '2026-11-01', ate: null }] };
+    const dada: AcessoDoMilitar = { ...ACESSO, papeis: [{ id: 'p1', papel: 'escalante', unidadeId: 'u-1sb', unidadeSigla: '1ª SB', desde: '2026-11-01', ate: null, podeEncerrar: true, ultimoGestorAte: null }] };
     const f = api(
-      { papeis: [{ id: 'p0', papel: 'gestor', unidadeId: 'u-gb', unidadeSigla: '2º GB', desde: '2026-01-01', ate: '2026-06-30' }], papeisQuePodeDar: ['gestor', 'escalante'], unidadesParaPapel: [{ id: 'u-gb', sigla: '2º GB', nivel: 3, tipo: 'grupamento', maeSigla: 'DInter/1' }, { id: 'u-1sb', sigla: '1ª SB', nivel: 4, tipo: 'secao', maeSigla: '2º GB' }] },
+      { papeis: [{ id: 'p0', papel: 'gestor', unidadeId: 'u-gb', unidadeSigla: '2º GB', desde: '2026-01-01', ate: '2026-06-30', podeEncerrar: true, ultimoGestorAte: null }], papeisQuePodeDar: ['gestor', 'escalante'], unidadesParaPapel: [{ id: 'u-gb', sigla: '2º GB', nivel: 3, tipo: 'grupamento', maeSigla: 'DInter/1' }, { id: 'u-1sb', sigla: '1ª SB', nivel: 4, tipo: 'secao', maeSigla: '2º GB' }] },
       { 'POST /api/militares/m1/papeis': { status: 201, corpo: dada } },
     );
     abrir('/militares/m1');
@@ -107,7 +107,7 @@ describe('Acesso ao sistema', () => {
       { id: 'u-gb9', sigla: '9º GB', nivel: 3, tipo: 'grupamento', maeSigla: 'DInter/9' }, { id: 'u-da9', sigla: 'DA', nivel: 4, tipo: 'divisao', maeSigla: '9º GB' },
     ];
     const f = api(
-      { papeis: [{ id: 'p0', papel: 'chefe_divisao', unidadeId: 'u-da', unidadeSigla: 'DA', desde: '2026-11-01', ate: null }], papeisQuePodeDar: ['gestor', 'chefe_divisao', 'escalante'], unidadesParaPapel: unidades },
+      { papeis: [{ id: 'p0', papel: 'chefe_divisao', unidadeId: 'u-da', unidadeSigla: 'DA', desde: '2026-11-01', ate: null, podeEncerrar: true, ultimoGestorAte: null }], papeisQuePodeDar: ['gestor', 'chefe_divisao', 'escalante'], unidadesParaPapel: unidades },
       { 'POST /api/militares/m1/papeis': { status: 201, corpo: ACESSO } },
     );
     abrir('/militares/m1');
@@ -157,8 +157,8 @@ describe('Acesso ao sistema', () => {
 describe('um formulário por vez no Acesso ao sistema', () => {
   const DOIS: Partial<AcessoDoMilitar> = {
     papeis: [
-      { id: 'p1', papel: 'escalante', unidadeId: 'u-1sb', unidadeSigla: '1ª SB', desde: '2026-11-01', ate: null },
-      { id: 'p2', papel: 'gestor', unidadeId: 'u-gb', unidadeSigla: '2º GB', desde: '2026-10-01', ate: null },
+      { id: 'p1', papel: 'escalante', unidadeId: 'u-1sb', unidadeSigla: '1ª SB', desde: '2026-11-01', ate: null, podeEncerrar: true, ultimoGestorAte: null },
+      { id: 'p2', papel: 'gestor', unidadeId: 'u-gb', unidadeSigla: '2º GB', desde: '2026-10-01', ate: null, podeEncerrar: true, ultimoGestorAte: null },
     ],
     papeisQuePodeDar: ['gestor', 'escalante'],
     unidadesParaPapel: [{ id: 'u-gb', sigla: '2º GB', nivel: 3, tipo: 'grupamento', maeSigla: 'DInter/1' }, { id: 'u-1sb', sigla: '1ª SB', nivel: 4, tipo: 'secao', maeSigla: '2º GB' }],
@@ -263,7 +263,7 @@ describe('um formulário por vez no Acesso ao sistema', () => {
 
 describe('o "até" ao dar o nível de acesso (6.8)', () => {
   const PODE: Partial<AcessoDoMilitar> = { papeisQuePodeDar: ['escalante'], unidadesParaPapel: [{ id: 'u-1sb', sigla: '1ª SB', nivel: 4, tipo: 'secao', maeSigla: '2º GB' }] };
-  const dada: AcessoDoMilitar = { ...ACESSO, papeis: [{ id: 'p1', papel: 'escalante', unidadeId: 'u-1sb', unidadeSigla: '1ª SB', desde: '2026-11-01', ate: '2026-12-31' }] };
+  const dada: AcessoDoMilitar = { ...ACESSO, papeis: [{ id: 'p1', papel: 'escalante', unidadeId: 'u-1sb', unidadeSigla: '1ª SB', desde: '2026-11-01', ate: '2026-12-31', podeEncerrar: true, ultimoGestorAte: null }] };
 
   it('o campo "Até (opcional)" fica ao lado de "A partir de", e preenchido vai no corpo', async () => {
     const f = api(PODE, { 'POST /api/militares/m1/papeis': { status: 201, corpo: dada } });
@@ -300,3 +300,60 @@ describe('o "até" ao dar o nível de acesso (6.8)', () => {
   });
 });
 
+
+describe('Acesso ao sistema: acabamento (6.16)', () => {
+  const nivel = (extra: Partial<AcessoDoMilitar['papeis'][number]> = {}): AcessoDoMilitar['papeis'][number] => ({
+    id: 'p1', papel: 'escalante', unidadeId: 'u-1sb', unidadeSigla: '1ª SB', desde: '2026-01-01', ate: null, podeEncerrar: true, ultimoGestorAte: null, ...extra,
+  });
+
+  it('item 1: "Encerrar" só aparece no nível que quem olha pode encerrar (a API diz, por nível)', async () => {
+    api({ papeis: [nivel({ id: 'p1', podeEncerrar: false }), nivel({ id: 'p2', papel: 'gestor', unidadeSigla: '2º GB', podeEncerrar: true })], papeisQuePodeDar: ['escalante', 'gestor'] });
+    abrir('/militares/m1');
+    const b = within(await bloco());
+    await b.findByText('Gestor');
+    // só o do gestor tem o botão, mesmo que o nível de auxiliar esteja entre os que a pessoa sabe dar
+    expect(b.getAllByRole('button', { name: 'Encerrar' })).toHaveLength(1);
+    expect(b.getByText('Gestor').closest('li')!).toContainElement(b.getByRole('button', { name: 'Encerrar' }));
+  });
+
+  it('item 2: sem poder desativar, o botão "Desativar acesso" não aparece', async () => {
+    api({ situacao: 'ativo', podeDesativar: false });
+    abrir('/militares/m1');
+    const b = within(await bloco());
+    await b.findByText('Ativo');
+    expect(b.queryByRole('button', { name: 'Desativar acesso' })).toBeNull();
+  });
+
+  it('item 11: um nível com "até" no futuro ainda tem "Encerrar"; um que já terminou, não', async () => {
+    api({ papeis: [nivel({ id: 'p1', ate: '2999-12-31' }), nivel({ id: 'p2', desde: '2020-01-01', ate: '2021-01-01' })] });
+    abrir('/militares/m1');
+    const b = within(await bloco());
+    await b.findByText('de 01/01/2026 a 31/12/2999');
+    expect(b.getAllByRole('button', { name: 'Encerrar' })).toHaveLength(1);
+  });
+
+  it('item 12: o último gestor com "até" marcado mostra o aviso, que não bloqueia nada', async () => {
+    api({ papeis: [nivel({ papel: 'gestor', unidadeSigla: '1ª SB', ate: '2999-12-31', ultimoGestorAte: '2999-12-31' })], papeisQuePodeDar: ['gestor'] });
+    abrir('/militares/m1');
+    const b = within(await bloco());
+    expect(await b.findByText('Último gestor de 1ª SB: o nível termina em 31/12/2999.')).toBeInTheDocument();
+    expect(b.getByRole('button', { name: 'Encerrar' })).toBeEnabled();
+  });
+
+  it('item 8: dar ou encerrar um nível atualiza o seletor de unidade (o /api/eu é pedido de novo, sem recarregar a página)', async () => {
+    const f = api({ papeis: [nivel()], papeisQuePodeDar: ['escalante'], unidadesParaPapel: [{ id: 'u-1sb', sigla: '1ª SB', nivel: 4, tipo: 'secao', maeSigla: '2º GB' }] }, {
+      'POST /api/militares/m1/papeis': { status: 201, corpo: ACESSO },
+      'POST /api/papeis/p1/encerrar': { status: 200, corpo: ACESSO },
+    });
+    abrir('/militares/m1');
+    const b = within(await bloco());
+    await userEvent.click(await b.findByRole('button', { name: 'Encerrar' }));
+    const antes = chamadasA(f, 'GET /api/eu');
+    await userEvent.click(b.getByRole('button', { name: 'Confirmar encerramento' }));
+    await waitFor(() => expect(chamadasA(f, 'GET /api/eu')).toBeGreaterThan(antes));
+    const depoisDeEncerrar = chamadasA(f, 'GET /api/eu');
+    await userEvent.click(await b.findByRole('button', { name: 'Dar nível de acesso' }));
+    await userEvent.click(b.getAllByRole('button', { name: 'Dar nível de acesso' }).at(-1)!);
+    await waitFor(() => expect(chamadasA(f, 'GET /api/eu')).toBeGreaterThan(depoisDeEncerrar));
+  });
+});

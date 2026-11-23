@@ -11,7 +11,18 @@ export const SituacaoDoAcesso = z.enum(['sem-acesso', 'provisoria', 'provisoria-
 export type SituacaoDoAcesso = z.infer<typeof SituacaoDoAcesso>;
 
 /** Um papel do militar com a unidade e o período (`ate` null = em aberto). Datas 'aaaa-mm-dd'. */
-export type PapelDoMilitar = { id: string; papel: Papel; unidadeId: string; unidadeSigla: string; desde: string; ate: string | null };
+export type PapelDoMilitar = {
+  id: string;
+  papel: Papel;
+  unidadeId: string;
+  unidadeSigla: string;
+  desde: string;
+  ate: string | null;
+  /** Quem olha pode encerrar este nível (a regra da rota de encerrar); sem poder, o botão não aparece. */
+  podeEncerrar: boolean;
+  /** Gestor vigente que é o último da unidade e tem "até" marcado: a data em que o nível termina (aviso, não bloqueia). null nos demais. */
+  ultimoGestorAte: string | null;
+};
 
 /** O bloco "Acesso ao sistema" da ficha. `papeisQuePodeDar` e `unidadesParaPapel` são o que quem olha pode dar (vazio: não dá papel). */
 export type AcessoDoMilitar = {
@@ -23,6 +34,8 @@ export type AcessoDoMilitar = {
   papeis: PapelDoMilitar[];
   /** Sem e-mail na ficha não há como dar acesso. */
   podeGerarSenha: boolean;
+  /** Quem olha pode desativar o acesso (a regra da rota); sem poder, o botão não aparece. */
+  podeDesativar: boolean;
   papeisQuePodeDar: Papel[];
   /** `tipo` é o tipo da unidade (`divisao`, `secao`…): o nível de chefe de divisão só é dado numa divisão. `maeSigla` é a sigla da unidade mãe (as divisões "DA" e "DivOp" existem em todo grupamento). */
   unidadesParaPapel: { id: string; sigla: string; nivel: number; tipo: string; maeSigla: string | null }[];

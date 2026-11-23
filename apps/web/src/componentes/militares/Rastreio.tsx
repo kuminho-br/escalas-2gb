@@ -11,6 +11,7 @@ import { Input } from '@/componentes/ui/input';
 import { Label } from '@/componentes/ui/label';
 import { ddmmaaaa, linhaDoTempoDoMilitar, situacaoInteira } from '@/lib/linha-do-tempo-militar';
 import { hoje } from '@/lib/meses';
+import { proximoPeriodo } from '@/lib/militares';
 import { Secao } from './Secao';
 
 /** A situação de hoje: o período que cobre o dia de hoje (uma mudança marcada para depois ainda não vale). */
@@ -23,7 +24,8 @@ function periodoAtual(rastreio: FichaMilitar['rastreio']) {
 export function Rastreio({ ficha, unidadeId }: { ficha: FichaMilitar; unidadeId: string }) {
   const [alterando, setAlterando] = useState(false);
   const atual = periodoAtual(ficha.rastreio);
-  const situacaoAtual = atual ? `${situacaoInteira(atual)} (desde ${ddmmaaaa(atual.desde)})` : 'Sem lotação';
+  const proximo = proximoPeriodo(ficha.rastreio);
+  const situacaoAtual = atual ? `${situacaoInteira(atual)} (desde ${ddmmaaaa(atual.desde)})` : proximo ? `Lotação a partir de ${ddmmaaaa(proximo.desde)}` : 'Sem lotação';
   const itens = linhaDoTempoDoMilitar(ficha.rastreio, ficha.afastamentos);
   return (
     <Secao
@@ -38,7 +40,7 @@ export function Rastreio({ ficha, unidadeId }: { ficha: FichaMilitar; unidadeId:
           <li key={`${i.tipo}-${i.quando}-${n}`} className="relative">
             <span className={`absolute top-1.5 -left-[1.4rem] size-2.5 rounded-full ${n === 0 ? 'bg-vinho' : 'bg-linha'}`} aria-hidden />
             <span className="mr-2 font-cond text-apagado">{ddmmaaaa(i.quando)}</span>
-            <span className={i.tipo === 'afastamento' ? 'text-apagado' : 'font-medium'}>{i.texto}</span>
+            <span className={i.tipo === 'situacao' ? 'font-medium' : 'text-apagado'}>{i.texto}</span>
           </li>
         ))}
         {itens.length === 0 && <li className="text-apagado">Sem lotação registrada.</li>}
@@ -67,9 +69,11 @@ function AlterarSituacao({ ficha, unidadeAtualId, aoFechar }: { ficha: FichaMili
   const situacoes = useQuery(consultaSituacoesDoMilitar);
   const quadrosDoPosto = (quadros.data ?? []).filter((q) => q.postoGradIds.includes(ficha.postoGradId));
   const [quadroEscolhido, setQuadroEscolhido] = useState<string | null>(null);
-  const quadroId = quadroEscolhido ?? quadrosDoPosto.find((q) => q.sigla === atual?.quadro)?.id ?? '';
+  // o quadro e a situação que a API repete são os do período aberto (o que não tem fim, mesmo marcado para depois), e não os de hoje
+  const aberto = ficha.rastreio.find((p) => !p.ate) ?? atual;
+  const quadroId = quadroEscolhido ?? quadrosDoPosto.find((q) => q.sigla === aberto?.quadro)?.id ?? '';
   const [situacaoEscolhida, setSituacaoEscolhida] = useState<string | null>(null);
-  const situacaoAtual = situacoes.data?.find((s) => s.nome === atual?.situacao);
+  const situacaoAtual = situacoes.data?.find((s) => s.nome === aberto?.situacao);
   const situacaoId = situacaoEscolhida ?? situacaoAtual?.id ?? '';
   // as desativadas não aparecem, a não ser a que o militar já tem
   const situacoesParaEscolher = (situacoes.data ?? []).filter((s) => s.ativo || s.id === situacaoId);
@@ -152,7 +156,8 @@ function AlterarSituacao({ ficha, unidadeAtualId, aoFechar }: { ficha: FichaMili
           </div>
           {erro && <p role="alert" className="text-sm text-alerta">{erro}</p>}
           <DialogFooter>
-            <Button type="submit" disabled={salvando || !desde}>Salvar</Button>
+            {/* sem a lista de seções a lotação sugerida pode ser a da tela, e não a do período: espera chegar */}
+            <Button type="submit" disabled={salvando || !desde || !secoes.data}>Salvar</Button>
           </DialogFooter>
         </form>
       </DialogContent>

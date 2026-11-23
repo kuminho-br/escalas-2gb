@@ -82,6 +82,8 @@ type Existente = {
   funcao_militar_id: string | null; funcao_nome: string | null; abono_permanencia: boolean;
   /** a lotação de hoje (a do período que cobre o mês; sem ela, a mais recente) */
   unidade_id: string | null; unidade_sigla: string | null;
+  /** o dia em que essa lotação começa ('aaaa-mm-dd'): depois de hoje, ela ainda está só marcada */
+  unidade_desde: string | null;
   /** o período aberto do rastreio */
   aberto_unidade: string | null; aberto_equipe: string | null; aberto_jornada: 'pronto' | 'adm' | null; aberto_quadro_id: string | null; aberto_quadro: string | null;
   aberto_situacao_id: string | null; aberto_situacao: string | null;
@@ -99,14 +101,14 @@ async function existentes(tx: Consulta, mes: string): Promise<Map<string, Existe
   const { rows } = await tx.query<Existente>(
     `select m.id, m.matricula, m.posto_grad_id, p.sigla as posto, m.nome_completo, m.nome_guerra, m.antiguidade, m.sexo, m.nascimento_dia, m.nascimento_mes, m.nascimento_ano,
             m.cpf, m.cep, m.logradouro, m.numero, m.complemento, m.bairro, m.cidade, m.uf, m.telefone, m.email, m.comportamento, m.comportamento_boletim,
-            m.motorista, m.cnh, m.voluntario_jes, m.funcao_militar_id, fm.nome as funcao_nome, m.abono_permanencia, l.unidade_id, un.sigla as unidade_sigla,
+            m.motorista, m.cnh, m.voluntario_jes, m.funcao_militar_id, fm.nome as funcao_nome, m.abono_permanencia, l.unidade_id, un.sigla as unidade_sigla, to_char(l.desde, 'YYYY-MM-DD') as unidade_desde,
             a.unidade_id as aberto_unidade, ae.nome as aberto_equipe, a.jornada as aberto_jornada, a.quadro_id as aberto_quadro_id, aq.sigla as aberto_quadro,
             a.situacao_id as aberto_situacao_id, asm.nome as aberto_situacao
        from militar m
        join posto_grad p on p.id = m.posto_grad_id
        left join funcao_militar fm on fm.id = m.funcao_militar_id
        left join lateral (
-         select r.unidade_id from rastreio r where r.militar_id = m.id
+         select r.unidade_id, r.desde from rastreio r where r.militar_id = m.id
           order by (r.desde <= $1::date and (r.ate is null or r.ate >= $1::date)) desc, r.desde desc limit 1
        ) l on true
        left join unidade un on un.id = l.unidade_id
@@ -262,7 +264,7 @@ export const importadorPeculio: Importador<Plano> = {
       if (!(await donoDe(referencia))) {
         const sigla = e?.unidade_sigla ?? lotacao!.sigla;
         problema(
-          e ? `${nomeDaLinha} (${matricula}) está lotado na ${sigla}: o Pecúlio dele é de quem tem nível de acesso no ${await cima(referencia)}.` : `Cadastrar militar na ${sigla} é de quem tem nível de acesso no ${await cima(referencia)}.`,
+          e ? `${nomeDaLinha} (${matricula}) ${e.unidade_desde && e.unidade_desde > hoje ? `tem lotação marcada na ${sigla} a partir de ${e.unidade_desde.slice(8, 10)}/${e.unidade_desde.slice(5, 7)}/${e.unidade_desde.slice(0, 4)}` : `está lotado na ${sigla}`}: o Pecúlio dele é de quem tem nível de acesso no ${await cima(referencia)}.` : `Cadastrar militar na ${sigla} é de quem tem nível de acesso no ${await cima(referencia)}.`,
           'Peça a quem tem esse nível de acesso para importar a linha.',
         );
         continue;

@@ -3,11 +3,20 @@ import { hoje } from '@/lib/meses';
 
 export const NOME_JORNADA = { pronto: 'Pronto', adm: 'Adm' } as const;
 
-/** Uma linha com a lotação que cobre o dia de hoje. */
+/** O primeiro período que só começa depois de hoje (uma lotação já marcada), ou null. */
+export function proximoPeriodo(lotacoes: FichaMilitar['rastreio']): FichaMilitar['rastreio'][number] | null {
+  const dia = hoje();
+  return [...lotacoes].filter((x) => x.desde > dia).sort((a, b) => (a.desde < b.desde ? -1 : 1))[0] ?? null;
+}
+
+/** Uma linha com a lotação que cobre o dia de hoje; sem ela, a que já está marcada para depois, se houver. */
 export function resumoDaLotacao(lotacoes: FichaMilitar['rastreio']): string {
   const dia = hoje();
   const l = lotacoes.find((x) => x.desde <= dia && (!x.ate || x.ate >= dia));
-  if (!l) return 'Sem lotação';
+  if (!l) {
+    const proximo = proximoPeriodo(lotacoes);
+    return proximo ? `Lotação a partir de ${dataBr(proximo.desde)}` : 'Sem lotação';
+  }
   return `${l.unidadeSigla}, ${NOME_JORNADA[l.jornada]}${l.equipe ? ` (${l.equipe})` : ''} desde ${dataBr(l.desde)}`;
 }
 

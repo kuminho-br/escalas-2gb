@@ -5,6 +5,7 @@ import { trocarSenha } from '@/api/acesso';
 import { mensagemDe } from '@/api/cliente';
 import { consultaEu } from '@/api/eu';
 import { Campo } from '@/componentes/Campo';
+import { useSair } from '@/componentes/useSair';
 import { Button } from '@/componentes/ui/button';
 import { Input } from '@/componentes/ui/input';
 
@@ -26,6 +27,7 @@ function CriarSenha() {
   const [campos, setCampos] = useState<Record<string, string>>({});
   const [erro, setErro] = useState<string | null>(null);
   const [salvando, setSalvando] = useState(false);
+  const { sair, erroSair } = useSair();
 
   async function enviar(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -67,7 +69,11 @@ function CriarSenha() {
           </Campo>
           <p className="text-sm text-apagado">Use pelo menos 10 caracteres.</p>
           {erro && <p role="alert" className="text-sm text-alerta">{erro}</p>}
-          <Button type="submit" disabled={salvando}>Salvar senha</Button>
+          {erroSair && <p role="alert" className="text-sm text-alerta">{erroSair}</p>}
+          <div className="flex flex-wrap gap-2">
+            <Button type="submit" disabled={salvando}>Salvar senha</Button>
+            <Button type="button" variant="ghost" onClick={() => void sair()}>Sair</Button>
+          </div>
         </form>
       </div>
     </main>

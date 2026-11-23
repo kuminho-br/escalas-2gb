@@ -53,7 +53,8 @@ describe('o item Oficiais e a rota', () => {
     simularApi(rotas(comPapel('escalante')));
     const router = abrir(`/oficiais?mes=${MES}`);
     await waitFor(() => expect(router.state.location.pathname).toBe('/'));
-    expect(router.state.location.search).toMatchObject({ aviso: 'outro-papel' });
+    // o aviso aparece uma vez e sai do endereço (6.16)
+    expect(await screen.findByText('Essa área é de outro nível de acesso.')).toBeInTheDocument();
   });
 
   it('a página mostra o título, o subtítulo e as três abas', async () => {
