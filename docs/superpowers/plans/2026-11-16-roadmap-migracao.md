@@ -106,7 +106,7 @@ Design: `docs/superpowers/specs/2026-11-21-usuarios-e-modulos-design.md`. Plano:
 | 6 | Retorno da validação com mockup: sete ajustes de interface | aguardando a DESIGN |
 | 7 | Militares só no Pecúlio | mesclada (#107) |
 | 8 | Nível de acesso, "até" e Enter no Pecúlio | mesclada (#108) |
-| 9 | Quadro e situação no rastreio; CPF, nascimento e endereço | planejada (0029) |
+| 9 | Quadro e situação no rastreio; CPF, nascimento e endereço | mesclada (#110) |
 
 **Fora:** e-mail, usuários acima do GB (fase 11), Visualização (fase 7).
 
