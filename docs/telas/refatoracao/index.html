@@ -1,0 +1,135 @@
+<title>Manual de Identidade Visual</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Semi+Condensed:wght@600&display=swap">
+<link rel="stylesheet" href="pecas.css">
+<style>
+/* Layout: uma lista só. Cada linha é uma área, com o que ela cobre, o que já foi pedido e o estado em que está. */
+.areas{display:grid;padding:4px 20px}
+.area-linha{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 24px;align-items:start;padding:18px 0;border-top:1px solid var(--linha)}
+.area-linha:first-child{border-top:0}
+.area-linha h3{font:600 var(--t20)/26px var(--cond)}
+.area-linha h3 a{color:var(--tinta);text-decoration:underline;text-underline-offset:4px;text-decoration-thickness:2px}
+.area-linha p{grid-column:1;max-width:72ch}
+.area-linha .pedido{font-size:var(--t13);line-height:18px;color:var(--apagado)}
+.area-linha .pedido b{font-weight:600;color:var(--pendencia)}
+.area-linha .estado{grid-column:2;grid-row:1;justify-self:end}
+.etiqueta.feita{background:var(--tinta);border-color:transparent;color:var(--claro)}
+.legenda-de-estado{display:flex;flex-wrap:wrap;gap:8px 18px;align-items:center;font-size:var(--t13);color:var(--apagado)}
+.legenda-de-estado span{display:inline-flex;align-items:center;gap:8px}
+.fecho code{font:inherit;font-weight:500;overflow-wrap:anywhere}
+@media (max-width:560px){
+  .areas{padding:4px 14px}
+  .area-linha{grid-template-columns:minmax(0,1fr)}
+  .area-linha .estado{grid-column:1;grid-row:auto;justify-self:start;margin-top:4px}
+}
+</style>
+
+<div class="pagina">
+
+<header class="abre">
+  <p class="de-quem"><img src="img/brasao-2gb.png" alt="" width="32" height="34">Sistema de Escalas do 2º GB. Refatoração da interface.</p>
+  <h1>Manual de Identidade Visual</h1>
+  <p>O manual da interface das Escalas do 2º GB, em seções. As diretrizes gerais valem para todas as telas; depois vem uma área para cada tela principal, com o mockup dela e a lista do que muda em relação à tela de hoje. As telas são desenhadas uma por vez.</p>
+  <p class="menor">Mockup é guia de desenho e de identidade, não gabarito: a implementação adequa cada peça ao software que existe. Nenhuma tela do site mudou ainda. Atualizado em 23/11/2026.</p>
+</header>
+
+<section class="bloco largo" id="areas">
+  <div class="prancha">
+    <p class="legenda-de-estado">
+      <span><span class="etiqueta falta">Em revisão por você</span>espera a sua aprovação</span>
+      <span><span class="etiqueta feita">Aprovada</span>pode ir para o plano</span>
+      <span><span class="etiqueta neutra">Por fazer</span>ainda sem mockup</span>
+    </p>
+    <div class="sup areas">
+
+      <div class="area-linha">
+        <h3><a href="diretrizes-gerais/index.html">Diretrizes gerais</a></h3>
+        <span class="estado etiqueta feita">Aprovada</span>
+        <p>A identidade, as cores, a letra, a forma, os ícones, a placa e o encaixe, os componentes, a resposta do sistema e a moldura da tela. Vale para todas as telas.</p>
+        <p class="pedido"><b>Já pedido por você:</b> patente sem "BM", o botão de ações da placa sempre à mostra, menu com ícones e o topo do menu com o brasão e o nome da unidade escolhida.</p>
+      </div>
+
+      <div class="area-linha">
+        <h3>Grade geral</h3>
+        <span class="estado etiqueta neutra">Por fazer, é a próxima</span>
+        <p>O mês inteiro à vista, os totais compactos e o painel do dia por cima da tabela.</p>
+        <p class="pedido"><b>Já pedido por você:</b> sem a marca do dia de hoje; a tabela continua abrindo no dia. Cuidado com a cor: com muitos serviços, a cor sozinha não basta para distinguir um do outro.</p>
+      </div>
+
+      <div class="area-linha">
+        <h3>Escala do mês</h3>
+        <span class="estado etiqueta neutra">Por fazer</span>
+        <p>O mês inteiro numa tela, com os dias um depois do outro, e a escolha do militar para cada vaga.</p>
+        <p class="pedido"><b>Já pedido por você:</b> todos os dias na mesma tela, com os turnos em colunas, e um cartão por guarnição em cada turno, que reúne a equipe que sai junta na viatura naquele turno.</p>
+      </div>
+
+      <div class="area-linha">
+        <h3>Efetivo por dia</h3>
+        <span class="estado etiqueta neutra">Por fazer</span>
+        <p>Quem está de serviço num dia, com as mesmas placas e cartões da Escala do mês.</p>
+      </div>
+
+      <div class="area-linha">
+        <h3>Escala dos oficiais</h3>
+        <span class="estado etiqueta neutra">Por fazer</span>
+        <p>A escala do mês dos oficiais e o painel de Cotas, na moldura nova.</p>
+        <p class="pedido"><b>Já pedido por você:</b> o painel de Cotas, à direita, sem rolagem de lado.</p>
+      </div>
+
+      <div class="area-linha">
+        <h3>Voluntariado e Cotas</h3>
+        <span class="estado etiqueta neutra">Por fazer</span>
+        <p>O voluntariado por faixa de horário e as cotas de cada serviço no mês.</p>
+      </div>
+
+      <div class="area-linha">
+        <h3>Pecúlio</h3>
+        <span class="estado etiqueta neutra">Por fazer</span>
+        <p>Os dados de contato, os aniversariantes, as pendências do cadastro e a importação da planilha.</p>
+      </div>
+
+      <div class="area-linha">
+        <h3>Militares e ficha</h3>
+        <span class="estado etiqueta neutra">Por fazer</span>
+        <p>A lista com filtro de pendências e a ficha com um salvar só, numa barra parada embaixo. O campo que falta aparece marcado, com a orientação.</p>
+      </div>
+
+      <div class="area-linha">
+        <h3>Configurações</h3>
+        <span class="estado etiqueta neutra">Por fazer</span>
+        <p>As regras em lista de leitura, os modelos de guarnição sem formulário dentro de formulário, e a Estrutura.</p>
+      </div>
+
+      <div class="area-linha">
+        <h3>Tela inicial e moldura</h3>
+        <span class="estado etiqueta neutra">Por fazer</span>
+        <p>O início que mostra o que falta no mês, o menu, o topo, o seletor de unidade e o roteiro de preparação da primeira escala.</p>
+        <p class="pedido"><b>Já pedido por você:</b> o brasão e o nome do topo do menu acompanham a unidade escolhida. O desenho do topo já está nas diretrizes gerais.</p>
+      </div>
+
+      <div class="area-linha">
+        <h3>Turnos, Escalas e Feriados</h3>
+        <span class="estado etiqueta neutra">Por fazer</span>
+        <p>Os cadastros da seção. Não ganham mockup próprio se as diretrizes gerais bastarem.</p>
+      </div>
+
+      <div class="area-linha">
+        <h3>Consulta no celular</h3>
+        <span class="estado etiqueta neutra">Por fazer, com a fase 7</span>
+        <p>A Visualização de escalas e a Minha escala, para todos os militares. Nascem primeiro no celular.</p>
+      </div>
+
+    </div>
+    <p class="leg">A entrada no sistema (o login e a animação das mangueiras) foi aprovada em 22/11/2026 e não muda nesta refatoração.</p>
+  </div>
+</section>
+
+<section class="fecho">
+  <h2>De onde isto vem</h2>
+  <p>Da análise da interface de 23/11/2026, que mediu as telas de hoje, e das suas decisões e diretrizes do mesmo dia. As fotos das telas de hoje, com as marcas, estão em <a class="voltar" href="https://claude.ai/artifact/83wEEdCMkqm2VBvj2RJAfZ">Análise da interface</a>.</p>
+  <p>No repositório: os achados e as necessidades estão em <code>docs/superpowers/specs/2026-11-23-refatoracao-da-interface-design.md</code>, e as medidas das diretrizes gerais em <code>docs/superpowers/specs/2026-11-23-sistema-de-estilo-design.md</code>.</p>
+</section>
+
+</div>
+
+<script src="pecas.js"></script>
