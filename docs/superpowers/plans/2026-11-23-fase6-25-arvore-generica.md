@@ -118,6 +118,8 @@ Branch `fase6-26-configuracoes-gerais`, a partir da 6.25. Sem migração.
   - Estrutura vira **módulo próprio na tela inicial** (cartão "Estrutura", para quem tem nível de acesso), com a árvore e a aba "Tipos de unidade" (administrador); sai das Configurações gerais e sai o item "Estrutura" do trilho de escalas.
   - Na árvore, a contagem de lotados **acumula** a unidade e todas as de baixo; a dica diz quantos estão na própria unidade ("1 lotado aqui").
   - As Configurações (geral e da escala) usam **menu vertical à esquerda** no lugar das abas; no celular, uma lista de opções no alto.
+  - O módulo "Pecúlio do 2º GB" passa a se chamar **"Pecúlio"**, sem "do 2º GB" nos textos dele.
+  - A **Consulta de militares vira tela do módulo Pecúlio** (sai o cartão próprio da tela inicial). O cartão "Pecúlio" aparece para todo militar com conta; sem nível de acesso, abre direto na Consulta e o trilho só tem ela; com nível, a lista do Pecúlio e a Consulta. O endereço antigo da consulta continua funcionando.
 - [ ] **Step 2:** rodar; FAIL.
 - [ ] **Step 3:** implementar.
 - [ ] **Step 4:** PASS; verificações do fim de entrega; conferir no navegador.
