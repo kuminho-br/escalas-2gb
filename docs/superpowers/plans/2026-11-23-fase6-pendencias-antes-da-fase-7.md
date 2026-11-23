@@ -99,6 +99,9 @@
   8. Nível de acesso dado ou encerrado na ficha → o seletor de unidade se atualiza sem recarregar a página.
   9. A sessão conferida duas vezes nas rotas de acesso → uma vez só (conferir com um espião no teste).
   10. `/api/auth/change-password` com a senha provisória pendente → recusado; a troca é só pela rota de criar a senha.
+  11. Nível de acesso com "até" no futuro → "Encerrar" funciona antes da data: o "até" passa a ser hoje (decisão de 23/11).
+  12. O último gestor vigente de uma unidade com "até" marcado → a ficha e a lista de níveis mostram "Último gestor de {unidade}: o nível termina em dd/mm/aaaa.". É aviso, não bloqueia (decisão de 23/11).
+  13. O administrador encerrar ou pôr "até" no próprio último nível de administrador → 409 "Você é o único administrador. Dê o nível a outra pessoa antes." (decisão de 23/11).
 - [ ] **Commit** `Fase 6.16: acabamento das contas e dos níveis de acesso`.
 
 ### Task 3: unidade de trabalho e navegação
@@ -186,6 +189,8 @@
   22. Aniversariantes do Pecúlio → só quem está numa situação que pode ser escalada; o botão de importar o Pecúlio → só para quem pode importar.
   23. A lista do Pecúlio com mais de 100 militares → mostra de 100 em 100, com "Mostrar mais".
   24. `useSincronizar` → o campo não fica defasado quando a pessoa desfaz a edição depois de chegar dado novo; mais os testes de recarregamento sem pendência em Motorista, Identificação da escala, Identificação da guarnição e Serviços da escala.
+  25. Escala dos oficiais: a marca "novo" → só em quem participa neste mês e não participou no mês anterior da unidade; sem mês anterior gravado, ninguém é "novo" (decisão de 23/11).
+  26. Escala dos oficiais: desmarcar "Participa" de quem já tem turnos escolhidos → o diálogo do sistema pergunta "Tirar {posto e nome} da rodada? Os {n} turnos escolhidos ficam sem ninguém.", com o botão "Tirar da rodada". Sem turnos escolhidos, não pergunta (decisão de 23/11).
 - [ ] **Commit** `Fase 6.17: formulários, diálogos e nomes acessíveis` e, depois das verificações, abrir o PR.
 
 ---
@@ -222,6 +227,7 @@
   7. **Review Focus 5:** as consultas por linha → trocadas por consultas em lote antes do laço; o teste conta as consultas com 2.000 linhas e exige menos de 20.
   8. Linha recusada → não cria equipe nova na prévia.
   9. Antiguidade repetida → a prévia avisa, sem recusar.
+  10. NASCIMENTO que chega como data da planilha (Excel ou Google Planilhas) → aceito quando o ano não é o ano corrente; com o ano corrente continua ignorado, com o motivo de hoje (decisão de 23/11).
 - [ ] **Commit** `Fase 6.18: acabamento da importação`.
 
 ### Task 9: motor e contratos
@@ -244,9 +250,6 @@
 
 | Pendência | Motivo |
 |---|---|
-| Encurtar o "até" de um nível de acesso; aviso do último gestor com data para sair | esperam a aprovação do usuário (recomendações feitas em 23/11) |
-| O administrador encerrar o próprio último nível de administrador | sem decisão do usuário |
-| Imagem ainda não carregada no clique do login; lampejo por cima do título | decisões do usuário, depois do teste na sandbox |
 | "A faixa do serviço fica mais grossa" | pergunta aberta: qual elemento |
 | Os sete ajustes de interface da entrega 6.6 e a refatoração da interface | esperam a DESIGN |
 | Conferências visuais (rolagem e larguras da Grade, selo "ativada", cor crua na legenda) | dependem do olho do usuário ou do desenho novo da DESIGN |

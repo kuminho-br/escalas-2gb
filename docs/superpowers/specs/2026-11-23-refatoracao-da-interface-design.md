@@ -1,6 +1,6 @@
 # Refatoração da interface — análise e necessidades de implementação
 
-23/11/2026 · design · **análise concluída; a direção e quatro decisões esperam o usuário.** Nenhuma tela nova foi desenhada ainda.
+23/11/2026 · design · **análise concluída; direção e decisões D1 a D4 aprovadas pelo usuário em 23/11/2026 (a alternativa (a) nas quatro).** Os mockups vêm a seguir, começando pelo sistema de estilo.
 
 - Evidências (fotos das telas com as marcas): `docs/telas/analise-da-interface/evidencias.html` e https://claude.ai/artifact/83wEEdCMkqm2VBvj2RJAfZ
 - Identidade e telas de hoje: `docs/superpowers/specs/2026-11-16-telas.md`
@@ -144,7 +144,9 @@ O elemento que dá cara ao sistema. A **placa** é o militar: posto pequeno, nom
 
 Telas de leitura (cadastros e configurações) têm largura limitada; telas de trabalho usam a largura toda. No celular, o painel de detalhe sobe de baixo.
 
-## Decisões que esperam o usuário
+## Decisões do usuário
+
+Aprovadas em 23/11/2026: vale a alternativa **(a)** nas quatro, com as exceções da coluna "Recomendação". N1 e N2 entram antes da fase 7, e a entrega 6.6 é absorvida aqui.
 
 | # | Decisão | Alternativas | Recomendação |
 |---|---|---|---|
