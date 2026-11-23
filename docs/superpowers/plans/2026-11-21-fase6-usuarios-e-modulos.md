@@ -17,6 +17,7 @@
 10. a 12. **Camadas de visão e o chefe de divisão** (decisão do usuário, 23/11/2026): as divisões e o quinto nível de acesso; a borda do que cada um vê e a consulta de militares; as escalas só para leitura. **Plano à parte:** `docs/superpowers/plans/2026-11-23-camadas-de-visao.md`.
 13. **O Pecúlio como origem dos dados** (decisões do usuário, 23/11/2026): a planilha do Pecúlio importa tudo, só com a matrícula obrigatória; sai a importação "Dados da escala" da entrega 7; o administrador apaga um militar; postos editáveis. **Executada antes da 10.** Plano à parte: `docs/superpowers/plans/2026-11-23-fase6-13-peculio-origem-dos-dados.md`.
 14. **A animação de entrada como preferência** (pedido do usuário, 23/11/2026): cada pessoa escolhe se a animação toca em toda entrada, uma vez a cada 12 h ou nunca. **Detalhada no fim.** Pequena e independente: executada logo depois da P1.5, antes da 13.
+15. a 18. **Pendências antes da fase 7** (pedido do usuário, 23/11/2026): abono de permanência e função do militar, e três lotes de acabamento. Plano à parte: `docs/superpowers/plans/2026-11-23-fase6-pendencias-antes-da-fase-7.md`.
 
 O retorno da validação que chegar durante a fase vira uma entrega depois da última prevista.
 
