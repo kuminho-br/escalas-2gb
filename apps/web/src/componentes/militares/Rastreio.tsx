@@ -12,7 +12,7 @@ import { Label } from '@/componentes/ui/label';
 import { ddmmaaaa, linhaDoTempoDoMilitar, situacaoInteira } from '@/lib/linha-do-tempo-militar';
 import { hoje } from '@/lib/meses';
 import { proximoPeriodo } from '@/lib/militares';
-import { Secao } from './Secao';
+import { avisoDaLista, Secao } from './Secao';
 
 /** A situação de hoje: o período que cobre o dia de hoje (uma mudança marcada para depois ainda não vale). */
 function periodoAtual(rastreio: FichaMilitar['rastreio']) {
@@ -127,6 +127,8 @@ function AlterarSituacao({ ficha, unidadeAtualId, aoFechar }: { ficha: FichaMili
                 {unidadeId === '' && <option value="">Escolha a unidade</option>}
                 {(secoes.data ?? (unidadeId ? [{ id: unidadeId, sigla: atual?.unidadeSigla ?? '…', nome: '' }] : [])).map((s) => <option key={s.id} value={s.id}>{s.sigla}</option>)}
               </Selecao>
+              {avisoDaLista(secoes) && <p className="text-xs text-alerta">{avisoDaLista(secoes)}</p>}
+              {secoes.isError && <Button type="button" size="sm" variant="outline" className="justify-self-start" disabled={secoes.isFetching} onClick={() => void secoes.refetch()}>Tentar de novo</Button>}
               {!ficha.podeEditar.peculio && <p className="text-xs text-apagado">{`A lotação, o quadro e a situação são alterados por quem tem nível de acesso em ${ficha.podeEditar.unidadeDeCima ?? 'uma unidade acima'}.`}</p>}
             </div>
             <div className="grid gap-1.5">

@@ -94,3 +94,22 @@ describe('item 17: nascimento em 29/02 pede o ano', () => {
     expect((await api.pedir('gestorGb', 'PATCH', `/api/militares/${m.id}`, { nascimento: { dia: 29, mes: 2, ano: 1993 } })).status).toBe(400);
   });
 });
+
+describe('item 21: o administrador edita e apaga afastamento de militar sem lotação', () => {
+  it('inclui, edita e apaga; quem não é administrador não acha o afastamento (404)', async () => {
+    const posto = (await api.banco.query<{ id: string }>("select id from posto_grad where sigla = 'SD'")).rows[0]!.id;
+    const semLotacao = await inserir(api.banco, 'militar', { matricula: '990892-2', posto_grad_id: posto, nome_guerra: 'SEMLOT' });
+    const tipo = (await api.banco.query<{ id: string }>("select id from tipo_afastamento where nome = 'Férias'")).rows[0]!.id;
+    const dados = { tipoAfastamentoId: tipo, inicio: '2027-02-01', fim: '2027-02-10' };
+    const criado = await api.pedir('admin', 'POST', `/api/militares/${semLotacao}/afastamentos`, dados);
+    expect(criado.status).toBe(201);
+    const id = ((await criado.json()) as { id: string }).id;
+    expect((await api.pedir('gestorGb', 'PATCH', `/api/afastamentos/${id}`, { ...dados, fim: '2027-02-12' })).status).toBe(404);
+    expect((await api.pedir('gestorGb', 'DELETE', `/api/afastamentos/${id}`)).status).toBe(404);
+    const editado = await api.pedir('admin', 'PATCH', `/api/afastamentos/${id}`, { ...dados, fim: '2027-02-12' });
+    expect(editado.status).toBe(200);
+    expect((await api.banco.query<{ fim: string }>("select to_char(fim, 'YYYY-MM-DD') as fim from afastamento where id = $1", [id])).rows[0]!.fim).toBe('2027-02-12');
+    expect((await api.pedir('admin', 'DELETE', `/api/afastamentos/${id}`)).status).toBe(204);
+    expect((await api.banco.query('select 1 from afastamento where id = $1', [id])).rows).toHaveLength(0);
+  });
+});

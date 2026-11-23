@@ -289,7 +289,8 @@ export async function exigirPapelNoRegistro(c: Ctx, tabela: 'militar' | 'afastam
   const naoAchou = () => c.json({ erro: tabela === 'militar' ? 'Militar não encontrado.' : 'Afastamento não encontrado.' }, 404);
   if (!(await unidadeDoRegistro(banco, tabela, id))) {
     // um militar sem nenhuma lotação (o administrador criado na instalação, o cadastro que ainda não foi lotado): só o administrador o abre, para dar a primeira
-    const semLotacao = tabela === 'militar' && UUID.test(id) && (await banco.query('select 1 from militar where id = $1', [id])).rows.length > 0;
+    // (vale também para o afastamento dele: o administrador inclui, edita e apaga, e quem não é administrador não o acha)
+    const semLotacao = UUID.test(id) && (await banco.query(tabela === 'militar' ? 'select 1 from militar where id = $1' : 'select 1 from afastamento where id = $1', [id])).rows.length > 0;
     return semLotacao && (await ehAdministrador(banco, c.get('usuarioId'), hojeRecife())) ? null : naoAchou();
   }
   const militarId = tabela === 'militar' ? id : (await banco.query<{ militar_id: string }>('select militar_id from afastamento where id = $1', [id])).rows[0]!.militar_id;

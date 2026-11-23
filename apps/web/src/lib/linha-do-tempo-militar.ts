@@ -49,7 +49,10 @@ export function linhaDoTempoDoMilitar(rastreio: Periodo[], afastamentos: Afastam
   const intervalos = periodos.flatMap((p, i): ItemDaLinhaDoTempo[] => {
     const proximo = periodos[i + 1];
     if (!p.ate || !proximo || somarDias(p.ate, 1) >= proximo.desde) return [];
-    return [{ quando: somarDias(p.ate, 1), tipo: 'intervalo', texto: `Sem lotação de ${ddmm(somarDias(p.ate, 1))} a ${ddmm(somarDias(proximo.desde, -1))}` }];
+    const de = somarDias(p.ate, 1);
+    const ate = somarDias(proximo.desde, -1);
+    const mesmoAno = de.slice(0, 4) === ate.slice(0, 4);
+    return [{ quando: de, tipo: 'intervalo', texto: `Sem lotação de ${mesmoAno ? ddmm(de) : ddmmaaaa(de)} a ${mesmoAno ? ddmm(ate) : ddmmaaaa(ate)}` }];
   });
   const afastados = afastamentos.map((a): ItemDaLinhaDoTempo => ({ quando: a.inicio, tipo: 'afastamento', texto: textoDoAfastamento(a) }));
   const ordemDoTipo = { situacao: 0, intervalo: 1, afastamento: 2 };

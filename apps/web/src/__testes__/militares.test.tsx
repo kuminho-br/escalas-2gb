@@ -100,6 +100,24 @@ describe('o quadro e a situação no rastreio', () => {
     return screen.findByRole('dialog');
   };
 
+  it('item 20 (6.18): com a lista de unidades falhada, o diálogo diz "Não deu para carregar a lista" com "Tentar de novo", e o Salvar não fica preso', async () => {
+    let falhar = true;
+    const f = api({ 'GET /api/unidades-de-lotacao': { status: 500, corpo: { erro: 'Falhou.' } } });
+    const original = f.getMockImplementation()!;
+    f.mockImplementation(async (entrada: RequestInfo | URL, init?: RequestInit) => {
+      const url = typeof entrada === 'string' ? entrada : entrada instanceof URL ? entrada.href : entrada.url;
+      if (url.includes('/api/unidades-de-lotacao') && !falhar) return new Response(JSON.stringify([{ id: 'u-1sb', sigla: '1ª SB', nome: '1ª Seção de Bombeiros' }]), { status: 200, headers: { 'Content-Type': 'application/json' } });
+      return original(entrada, init);
+    });
+    const dialogo = within(await abrirAlterar());
+    expect(await dialogo.findByText('Não deu para carregar a lista. Recarregue a página.')).toBeInTheDocument();
+    expect(dialogo.getByRole('button', { name: 'Salvar' })).toBeDisabled();
+    falhar = false;
+    await userEvent.click(dialogo.getByRole('button', { name: 'Tentar de novo' }));
+    await waitFor(() => expect(dialogo.queryByText('Não deu para carregar a lista. Recarregue a página.')).toBeNull());
+    await waitFor(() => expect(dialogo.getByRole('button', { name: 'Salvar' })).toBeEnabled());
+  });
+
   it('a Identificação não tem mais "Quadro" nem "Ativo"', async () => {
     api();
     abrir('/militares/m1');

@@ -81,4 +81,11 @@ describe('linhaDoTempoDoMilitar', () => {
     const itens = linhaDoTempoDoMilitar([comAutor, semAutor], []);
     expect(itens.map((i) => i.autor)).toEqual(['por MAJ BARRETO em 23/11/2026 às 09:15', undefined]);
   });
+
+  // item 19 (6.18): o intervalo sem lotação que atravessa a virada do ano mostra o ano; dentro do mesmo ano, não
+  it('"Sem lotação de … a …" mostra o ano quando o intervalo atravessa a virada do ano', () => {
+    const rastreio = [periodo('r2', '2027-01-10', null, '1ª SB', 'Bravo', 'pronto'), periodo('r1', '2026-03-01', '2026-12-20', '1ª SB', 'Alfa', 'pronto')];
+    const intervalo = linhaDoTempoDoMilitar(rastreio, []).find((i) => i.tipo === 'intervalo')!;
+    expect(intervalo.texto).toBe('Sem lotação de 21/12/2026 a 09/01/2027');
+  });
 });
