@@ -11,7 +11,7 @@ const MES = mesAtual();
 const LISTA: LinhaEscala[] = [{ id: 'e1', nome: 'Ordinário', ativa: true, servicos: ['Pronto'], montaBlocosVoluntariado: true }, { id: 'e9', nome: 'Velha', ativa: false, servicos: [], montaBlocosVoluntariado: true }];
 
 const ocupante = (nome: string): OcupanteDaVaga => ({
-  alocacaoId: `a-${nome}`, acumuloId: null, acumulaCom: [], militarId: `m-${nome}`, posto: 'SD BM', nomeGuerra: nome, matricula: '990001-1', servico: { id: 's1', nome: 'Pronto', cor: '#2F8F5B' }, letra: 'A',
+  alocacaoId: `a-${nome}`, acumuloId: null, acumulaCom: [], militarId: `m-${nome}`, posto: 'SD', nomeGuerra: nome, matricula: '990001-1', servico: { id: 's1', nome: 'Pronto', cor: '#2F8F5B' }, letra: 'A',
 });
 const card = (motorista: boolean, combatente: boolean): CardDaGuarnicao => {
   const faltam = [...(motorista ? [] : ['Falta 1 Motorista (CNH D)']), ...(combatente ? [] : ['Falta 1 Combatente'])];
@@ -307,7 +307,7 @@ describe('escala do mês', () => {
     abrir('/escala-do-mes');
     const d1 = await screen.findByRole('region', { name: 'Dia 1' });
     const linha = within(d1).getAllByText('MOTOR')[0]!.closest('li')!;
-    expect(within(linha).getByText('SD BM')).toBeInTheDocument();
+    expect(within(linha).getByText('SD')).toBeInTheDocument();
     expect(within(linha).getByText('990001-1')).toBeInTheDocument();
     expect(within(linha).getByText('Pronto')).toBeInTheDocument();
   });
@@ -348,8 +348,8 @@ describe('escala do mês', () => {
 describe('escolher militar e remover', () => {
   const CANDIDATOS = {
     aptos: [
-      { militarId: 'm-zulu', posto: 'SD BM', nomeGuerra: 'ZULU', matricula: '990002-2', equipe: 'Alfa', jornada: 'pronto', servicos: [{ servicoId: 's1', turnoId: 't-a', nome: 'Pronto' }] },
-      { militarId: 'm-yuri', posto: 'CB BM', nomeGuerra: 'YURI', matricula: '990003-3', equipe: null, jornada: 'adm', servicos: [{ servicoId: 's1', turnoId: 't-a', nome: 'Pronto' }, { servicoId: 's2', turnoId: 't-jes', nome: 'JES' }] },
+      { militarId: 'm-zulu', posto: 'SD', nomeGuerra: 'ZULU', matricula: '990002-2', equipe: 'Alfa', jornada: 'pronto', servicos: [{ servicoId: 's1', turnoId: 't-a', nome: 'Pronto' }] },
+      { militarId: 'm-yuri', posto: 'CB', nomeGuerra: 'YURI', matricula: '990003-3', equipe: null, jornada: 'adm', servicos: [{ servicoId: 's1', turnoId: 't-a', nome: 'Pronto' }, { servicoId: 's2', turnoId: 't-jes', nome: 'JES' }] },
     ],
     semVoluntariado: [],
     fora: [{ motivo: 'Afastado', quantidade: 3 }, { motivo: 'Sem a CNH exigida', quantidade: 2 }, { motivo: 'Choque de horário', quantidade: 1 }], acumular: [],
@@ -437,7 +437,7 @@ describe('escolher militar e remover', () => {
 
   describe('quem só não marcou o voluntariado (o escalante pode combinar direto)', () => {
     const SEM_VOL = 'Não marcou voluntariado neste horário';
-    const dantas = { militarId: 'm-dantas', posto: 'SD BM', nomeGuerra: 'DANTAS', matricula: '990004-4', equipe: 'Alfa', jornada: 'pronto', servicos: [{ servicoId: 's2', turnoId: 't-jes', nome: 'JES' }] };
+    const dantas = { militarId: 'm-dantas', posto: 'SD', nomeGuerra: 'DANTAS', matricula: '990004-4', equipe: 'Alfa', jornada: 'pronto', servicos: [{ servicoId: 's2', turnoId: 't-jes', nome: 'JES' }] };
     const COM_GRUPO = { ...CANDIDATOS, semVoluntariado: [dantas], fora: [{ motivo: SEM_VOL, quantidade: 1 }] };
 
     it('sem ninguém nesse grupo, não há botão "Mostrar"', async () => {
@@ -572,9 +572,9 @@ describe('escolher militar e remover', () => {
 
 
 describe('acumular funções', () => {
-  const sgt = { alocacaoId: 'a-CHEFE', militarId: 'm-chefe', posto: 'SGT BM', nomeGuerra: 'CHEFE', matricula: '990010-1', vaga: 'Chefe ABT' };
+  const sgt = { alocacaoId: 'a-CHEFE', militarId: 'm-chefe', posto: 'SGT', nomeGuerra: 'CHEFE', matricula: '990010-1', vaga: 'Chefe ABT' };
   const CANDIDATOS = {
-    aptos: [{ militarId: 'm-zulu', posto: 'SD BM', nomeGuerra: 'ZULU', matricula: '990002-2', equipe: 'Alfa', jornada: 'pronto', servicos: [{ servicoId: 's1', turnoId: 't-a', nome: 'Pronto' }] }],
+    aptos: [{ militarId: 'm-zulu', posto: 'SD', nomeGuerra: 'ZULU', matricula: '990002-2', equipe: 'Alfa', jornada: 'pronto', servicos: [{ servicoId: 's1', turnoId: 't-a', nome: 'Pronto' }] }],
     semVoluntariado: [],
     fora: [],
     acumular: [sgt],

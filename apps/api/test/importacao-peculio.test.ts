@@ -20,13 +20,13 @@ const CAB_DE_20 = CAB.slice(0, 20);
 type Celula = string | number | Date;
 type Linha = Record<string, Celula>;
 const NOVO = (mat: string, guerra: string, extra: Linha = {}): Linha => ({
-  'MATRÍCULA': mat, 'POSTO/GRAD': 'SD BM', 'NOME COMPLETO': `${guerra} de Tal`, 'NOME DE GUERRA': guerra, 'LOTAÇÃO': '1ª SB', ...extra,
+  'MATRÍCULA': mat, 'POSTO/GRAD': 'SD', 'NOME COMPLETO': `${guerra} de Tal`, 'NOME DE GUERRA': guerra, 'LOTAÇÃO': '1ª SB', ...extra,
 });
 const ANDRADE: Linha = {
-  'MATRÍCULA': '990301-1', 'POSTO/GRAD': 'SD BM', 'NOME COMPLETO': 'João da Silva Andrade', 'NOME DE GUERRA': 'andrade', 'ANTIGUIDADE': 4001, 'SEXO': 'M', 'NASCIMENTO': '15/03',
+  'MATRÍCULA': '990301-1', 'POSTO/GRAD': 'SD', 'NOME COMPLETO': 'João da Silva Andrade', 'NOME DE GUERRA': 'andrade', 'ANTIGUIDADE': 4001, 'SEXO': 'M', 'NASCIMENTO': '15/03',
   'TELEFONE': '(81) 99999-0001', 'E-MAIL': 'andrade@bombeiros.pe.gov.br', 'COMPORTAMENTO': 'Bom', 'BOLETIM DO COMPORTAMENTO': 'BG 01/2026', 'LOTAÇÃO': '1ª SB',
 };
-const LIMA: Linha = { 'MATRÍCULA': '990302-2', 'POSTO/GRAD': 'CB BM', 'NOME COMPLETO': 'Maria de Souza Lima', 'NOME DE GUERRA': 'LIMA', 'SEXO': 'F', 'NASCIMENTO': '29/02', 'LOTAÇÃO': '2ª SB' };
+const LIMA: Linha = { 'MATRÍCULA': '990302-2', 'POSTO/GRAD': 'CB', 'NOME COMPLETO': 'Maria de Souza Lima', 'NOME DE GUERRA': 'LIMA', 'SEXO': 'F', 'NASCIMENTO': '29/02', 'LOTAÇÃO': '2ª SB' };
 
 const modelo = (u: string) => `/api/unidades/${u}/importacao/peculio/modelo`;
 const caminho = (u: string, confirmar = false) => `/api/unidades/${u}/importacao/peculio${confirmar ? '?confirmar=1' : ''}`;
@@ -80,7 +80,7 @@ describe('modelo do Pecúlio', () => {
     expect(linhas.filter((l) => l[0] === 'PECÚLIO' && l[2] === 'Obrigatória').map((l) => l[1])).toEqual(['MATRÍCULA']);
     const ajuda = linhas.flat().join('\n');
     expect(ajuda).toContain('Só a matrícula é obrigatória. Célula vazia não altera nada. Dado inválido é ignorado e aparece no resumo.');
-    for (const valor of ['SD BM', '1ª SB', '7ª SB', 'QBMG', 'QOC', 'Ativa', 'Reserva', 'dd/mm/aaaa', 'PRONTO']) expect(ajuda, valor).toContain(valor);
+    for (const valor of ['SD', '1ª SB', '7ª SB', 'QBMG', 'QOC', 'Ativa', 'Reserva', 'dd/mm/aaaa', 'PRONTO']) expect(ajuda, valor).toContain(valor);
   });
 });
 
@@ -94,7 +94,7 @@ describe('importar o Pecúlio célula por célula (Task 1)', () => {
     expect(await auditoria()).toBe(antes);
     expect((await importar([ANDRADE, LIMA], true)).gravados).toBe(2);
     expect(await militar('990301-1')).toMatchObject({
-      posto: 'SD BM', nome_completo: 'João da Silva Andrade', nome_guerra: 'ANDRADE', antiguidade: 4001, sexo: 'M', nascimento_dia: 15, nascimento_mes: 3,
+      posto: 'SD', nome_completo: 'João da Silva Andrade', nome_guerra: 'ANDRADE', antiguidade: 4001, sexo: 'M', nascimento_dia: 15, nascimento_mes: 3,
       telefone: '(81) 99999-0001', email: 'andrade@bombeiros.pe.gov.br', comportamento: 'Bom', comportamento_boletim: 'BG 01/2026', motorista: false, cnh: [], voluntario_jes: false,
     });
     expect(await rastreio('990301-1')).toEqual([{ sigla: '1ª SB', equipe: null, jornada: 'pronto', quadro: 'QBMG', situacao: 'Ativa', desde: `${atual}-01`, ate: null }]);
@@ -109,7 +109,7 @@ describe('importar o Pecúlio célula por célula (Task 1)', () => {
   it('planilha só com MATRÍCULA e TELEFONE altera o telefone e não toca em mais nada', async () => {
     const antes = await militar('990301-1');
     const previa = await importar([{ 'MATRÍCULA': '990301-1', 'TELEFONE': '(81) 98888-0002' }], true, ['MATRÍCULA', 'TELEFONE']);
-    expect(previa.alterados).toEqual([{ chave: '990301-1', descricao: 'SD BM ANDRADE', mudancas: ['telefone: (81) 99999-0001 → (81) 98888-0002'] }]);
+    expect(previa.alterados).toEqual([{ chave: '990301-1', descricao: 'SD ANDRADE', mudancas: ['telefone: (81) 99999-0001 → (81) 98888-0002'] }]);
     expect(await militar('990301-1')).toEqual({ ...antes, telefone: '(81) 98888-0002' });
   });
 
@@ -135,7 +135,7 @@ describe('importar o Pecúlio célula por célula (Task 1)', () => {
   it('posto que não existe, para quem já existe, é ignorado, e o posto atual fica', async () => {
     const previa = await importar([{ 'MATRÍCULA': '990301-1', 'POSTO/GRAD': 'XYZ', 'ANTIGUIDADE': 4005 }], true);
     expect(previa.ignoradas).toEqual([expect.objectContaining({ coluna: 'POSTO/GRAD', motivo: expect.stringContaining('Posto "XYZ" não existe.') })]);
-    expect(await militar('990301-1')).toMatchObject({ posto: 'SD BM', antiguidade: 4005 });
+    expect(await militar('990301-1')).toMatchObject({ posto: 'SD', antiguidade: 4005 });
   });
 
   it('SEXO, COMPORTAMENTO, NASCIMENTO 31/02, ANTIGUIDADE e UF fora do formato são ignorados; as outras células valem', async () => {
@@ -196,7 +196,7 @@ describe('importar o Pecúlio célula por célula (Task 1)', () => {
 
   it('militar novo só com os três dados é criado, com o nome completo vazio', async () => {
     await importar([{ 'MATRÍCULA': '990314-4', 'POSTO/GRAD': 'CB', 'NOME DE GUERRA': 'MINIMO', 'LOTAÇÃO': '1ª SB' }], true, ['MATRÍCULA', 'POSTO/GRAD', 'NOME DE GUERRA', 'LOTAÇÃO']);
-    expect(await militar('990314-4')).toMatchObject({ posto: 'CB BM', nome_guerra: 'MINIMO', nome_completo: null });
+    expect(await militar('990314-4')).toMatchObject({ posto: 'CB', nome_guerra: 'MINIMO', nome_completo: null });
   });
 
   it('matrícula inválida ou repetida continua sendo problema da linha', async () => {
@@ -209,7 +209,7 @@ describe('importar o Pecúlio célula por célula (Task 1)', () => {
 
   it('quem tem acesso ao sistema e vem sem e-mail na planilha não é recusado (célula vazia não apaga)', async () => {
     const m = (await militar('990301-1'))!;
-    await api.banco.query("insert into usuario (nome, email, militar_id) values ('SD BM ANDRADE', 'andrade@bombeiros.pe.gov.br', $1)", [m.id]);
+    await api.banco.query("insert into usuario (nome, email, militar_id) values ('SD ANDRADE', 'andrade@bombeiros.pe.gov.br', $1)", [m.id]);
     const previa = await importar([{ ...ANDRADE, 'E-MAIL': '', 'TELEFONE': '(81) 96666-0000' }], true);
     expect(previa.problemas).toEqual([]);
     expect(await militar('990301-1')).toMatchObject({ email: 'andrade@bombeiros.pe.gov.br', telefone: '(81) 96666-0000' });
@@ -282,7 +282,7 @@ describe('os dados da escala, o quadro e a situação na planilha do Pecúlio (T
   });
 
   it('um 2º TEN novo com QUADRO = QOA nasce no QOA; sem a coluna, nasce sem quadro', async () => {
-    await importar([NOVO('990402-2', 'TENQOA', { 'POSTO/GRAD': '2º TEN BM', 'QUADRO': 'qoa' }), NOVO('990403-3', 'TENSEM', { 'POSTO/GRAD': '2º TEN BM' })], true);
+    await importar([NOVO('990402-2', 'TENQOA', { 'POSTO/GRAD': '2º TEN', 'QUADRO': 'qoa' }), NOVO('990403-3', 'TENSEM', { 'POSTO/GRAD': '2º TEN' })], true);
     expect((await rastreio('990402-2'))[0]!.quadro).toBe('QOA');
     expect((await rastreio('990403-3'))[0]!.quadro).toBeNull();
   });
@@ -290,7 +290,7 @@ describe('os dados da escala, o quadro e a situação na planilha do Pecúlio (T
   it('QUADRO que não tem o posto, ou que não existe, é ignorado com o motivo e os quadros que servem', async () => {
     const previa = await importar([{ 'MATRÍCULA': '990401-1', 'QUADRO': 'QOC' }, { 'MATRÍCULA': '990402-2', 'QUADRO': 'QXX' }]);
     expect(previa.ignoradas.map((i: Ignorada) => [i.chave, i.motivo])).toEqual([
-      ['990401-1', 'O quadro QOC não tem o posto SD BM. Use um destes: QBMG.'],
+      ['990401-1', 'O quadro QOC não tem o posto SD. Use um destes: QBMG.'],
       ['990402-2', 'Quadro "QXX" não existe. Use um destes: QOA, QOC.'],
     ]);
   });
@@ -355,7 +355,7 @@ describe('os dados da escala, o quadro e a situação na planilha do Pecúlio (T
     const antes = await militar('990405-5');
     const periodos = await rastreio('990405-5');
     await api.banco.query("update militar set motorista = true, cnh = '{D}', voluntario_jes = true where matricula = '990405-5'");
-    const previa = await importar([{ 'MATRÍCULA': '990405-5', 'POSTO/GRAD': 'SD BM', 'NOME COMPLETO': 'Quatro de Tal Novo', 'NOME DE GUERRA': 'QUATRO', 'LOTAÇÃO': '1ª SB' }], true, CAB_DE_20);
+    const previa = await importar([{ 'MATRÍCULA': '990405-5', 'POSTO/GRAD': 'SD', 'NOME COMPLETO': 'Quatro de Tal Novo', 'NOME DE GUERRA': 'QUATRO', 'LOTAÇÃO': '1ª SB' }], true, CAB_DE_20);
     expect(previa.alterados[0].mudancas).toEqual(['nome completo: QUATRO de Tal → Quatro de Tal Novo']);
     expect(await militar('990405-5')).toMatchObject({ motorista: true, cnh: ['D'], voluntario_jes: true, nome_completo: 'Quatro de Tal Novo' });
     expect(await rastreio('990405-5')).toEqual(periodos);
@@ -398,8 +398,8 @@ describe('os dados da escala, o quadro e a situação na planilha do Pecúlio (T
   });
 
   it('trocar o posto pela planilha leva o quadro junto, como na ficha', async () => {
-    await importar([NOVO('990420-0', 'MAJOR', { 'POSTO/GRAD': 'MAJ BM', 'QUADRO': 'QOA' })], true);
-    await importar([{ 'MATRÍCULA': '990420-0', 'POSTO/GRAD': 'CEL BM' }], true);
+    await importar([NOVO('990420-0', 'MAJOR', { 'POSTO/GRAD': 'MAJ', 'QUADRO': 'QOA' })], true);
+    await importar([{ 'MATRÍCULA': '990420-0', 'POSTO/GRAD': 'CEL' }], true);
     expect((await rastreio('990420-0')).at(-1)!.quadro).toBe('QOC');
   });
 });

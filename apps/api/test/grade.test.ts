@@ -49,8 +49,8 @@ beforeAll(async () => {
   const alfa = await inserir(api.banco, 'equipe', { unidade_id: api.ids.secao, nome: 'Alfa', ordem_ciclo: 1 });
   const bravo = await inserir(api.banco, 'equipe', { unidade_id: api.ids.secao, nome: 'Bravo', ordem_ciclo: 2 });
   await inserir(api.banco, 'feriado', { unidade_id: api.ids.secao, data: dia(8), descricao: 'Feriado de teste' });
-  const cb = (await api.banco.query<{ id: string }>("select id from posto_grad where sigla = 'CB BM'")).rows[0]!.id;
-  const sd = (await api.banco.query<{ id: string }>("select id from posto_grad where sigla = 'SD BM'")).rows[0]!.id;
+  const cb = (await api.banco.query<{ id: string }>("select id from posto_grad where sigla = 'CB'")).rows[0]!.id;
+  const sd = (await api.banco.query<{ id: string }>("select id from posto_grad where sigla = 'SD'")).rows[0]!.id;
   let seq = 0;
   const criar = async (nome: string, posto: string, antiguidade: number | null, lotacao: { unidade?: string; equipe: string | null; jornada: 'pronto' | 'adm'; desde?: string; ate?: string | null }) => {
     seq++;

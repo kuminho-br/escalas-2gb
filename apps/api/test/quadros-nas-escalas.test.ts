@@ -36,11 +36,11 @@ beforeAll(async () => {
   await inserir(api.banco, 'turno', { servico_id: servico, letra: 'B', inicio: '20:00', fim: '08:00' });
   escalaId = await inserir(api.banco, 'escala', { unidade_id: api.ids.secao, nome: 'Ordinário', titulo: 'Escala', militares_doc: 'todos', dias_doc: 'todos' });
   await inserir(api.banco, 'escala_servico', { escala_id: escalaId, servico_id: servico, ordem: 1 }, 'escala_id');
-  await criar('SOLDADO', 'SD BM', 'QBMG', alfa);
-  await criar('MAJOR', 'MAJ BM', null, alfa);
-  await criar('CAPITAO', 'CAP BM', 'QOC', alfa);
-  await criar('CAPOFICIAL', 'CAP BM', 'QOA', alfa);
-  await criar('CAPBRAVO', 'CAP BM', 'QOC', bravo); // a equipe Bravo só tem um oficial
+  await criar('SOLDADO', 'SD', 'QBMG', alfa);
+  await criar('MAJOR', 'MAJ', null, alfa);
+  await criar('CAPITAO', 'CAP', 'QOC', alfa);
+  await criar('CAPOFICIAL', 'CAP', 'QOA', alfa);
+  await criar('CAPBRAVO', 'CAP', 'QOC', bravo); // a equipe Bravo só tem um oficial
 });
 afterAll(async () => {
   await api.fechar();
@@ -108,11 +108,11 @@ describe('só o QBMG (e quem está sem quadro) nas telas de escala de praças', 
   });
 
   it('promoção de QBMG para QOA: sai das telas dos meses sem alocação', async () => {
-    await criar('PROMOVIDO', 'SD BM', 'QBMG', (await api.banco.query<{ id: string }>("select id from equipe where nome = 'Alfa'")).rows[0]!.id);
+    await criar('PROMOVIDO', 'SD', 'QBMG', (await api.banco.query<{ id: string }>("select id from equipe where nome = 'Alfa'")).rows[0]!.id);
     const antes: GradeDoMes = await (await api.pedir('escalante', 'GET', `${secao()}/grade/${mes}`)).json();
     expect(nomesDaGrade(antes)).toContain('PROMOVIDO');
     const qoa = (await api.banco.query<{ id: string }>("select id from quadro where sigla = 'QOA'")).rows[0]!.id;
-    const posto = (await api.banco.query<{ id: string }>("select id from posto_grad where sigla = '2º TEN BM'")).rows[0]!.id;
+    const posto = (await api.banco.query<{ id: string }>("select id from posto_grad where sigla = '2º TEN'")).rows[0]!.id;
     await api.banco.query('update militar set posto_grad_id = $2 where id = $1', [militar.PROMOVIDO, posto]);
     await api.banco.query('update rastreio set quadro_id = $2 where militar_id = $1', [militar.PROMOVIDO, qoa]);
     const depois: GradeDoMes = await (await api.pedir('escalante', 'GET', `${secao()}/grade/${mes}`)).json();

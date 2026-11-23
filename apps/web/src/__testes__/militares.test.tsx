@@ -8,7 +8,7 @@ import { hoje, mesAtual } from '@/lib/meses';
 import { abrir, chamadasA, corpoEnviado, EU_EXEMPLO, simularApi, trava } from './apoio';
 
 const linha = (l: Partial<LinhaMilitar>): LinhaMilitar => ({
-  id: 'm1', matricula: '990001-1', posto: 'SD BM', quadro: { id: 'q-qbmg', sigla: 'QBMG' }, nomeGuerra: 'ANDRADE', equipe: 'Alfa', jornada: 'pronto', motorista: null,
+  id: 'm1', matricula: '990001-1', posto: 'SD', quadro: { id: 'q-qbmg', sigla: 'QBMG' }, nomeGuerra: 'ANDRADE', equipe: 'Alfa', jornada: 'pronto', motorista: null,
   voluntarioJes: false, ativo: true, situacao: 'Disponível', pendencias: [], ...l,
 });
 const LISTA = [
@@ -30,8 +30,8 @@ const QUADROS = [
   { id: 'q-qbmg', sigla: 'QBMG', nome: 'Qualificação Bombeiro Militar Geral', postoGradIds: ['p-sd', 'p-cb'] },
 ];
 const POSTOS_COM_OFICIAIS = [
-  { id: 'p-sd', sigla: 'SD BM', nome: 'Soldado', ordem: 1 }, { id: 'p-cb', sigla: 'CB BM', nome: 'Cabo', ordem: 2 },
-  { id: 'p-maj', sigla: 'MAJ BM', nome: 'Major', ordem: 11 }, { id: 'p-cel', sigla: 'CEL BM', nome: 'Coronel', ordem: 13 },
+  { id: 'p-sd', sigla: 'SD', nome: 'Soldado', ordem: 1 }, { id: 'p-cb', sigla: 'CB', nome: 'Cabo', ordem: 2 },
+  { id: 'p-maj', sigla: 'MAJ', nome: 'Major', ordem: 11 }, { id: 'p-cel', sigla: 'CEL', nome: 'Coronel', ordem: 13 },
 ];
 
 function api(extra: Parameters<typeof simularApi>[0] = {}) {
@@ -39,7 +39,7 @@ function api(extra: Parameters<typeof simularApi>[0] = {}) {
     '/api/eu': { status: 200, corpo: EU_EXEMPLO },
     'GET /api/unidades/u-1sb/militares': { status: 200, corpo: LISTA },
     'GET /api/unidades/u-1sb/equipes': { status: 200, corpo: [{ id: 'e-alfa', nome: 'Alfa', ordemCiclo: 1 }, { id: 'e-bravo', nome: 'Bravo', ordemCiclo: 2 }] },
-    'GET /api/postos': { status: 200, corpo: [{ id: 'p-sd', sigla: 'SD BM', nome: 'Soldado', ordem: 1 }, { id: 'p-cb', sigla: 'CB BM', nome: 'Cabo', ordem: 2 }] },
+    'GET /api/postos': { status: 200, corpo: [{ id: 'p-sd', sigla: 'SD', nome: 'Soldado', ordem: 1 }, { id: 'p-cb', sigla: 'CB', nome: 'Cabo', ordem: 2 }] },
     'GET /api/quadros': { status: 200, corpo: QUADROS },
     'GET /api/situacoes-do-militar': { status: 200, corpo: [{ id: 'sit-ativa', nome: 'Ativa', escalavel: true, ativo: true }] },
     'GET /api/militares/m1': { status: 200, corpo: FICHA },
@@ -222,7 +222,7 @@ describe('listas que não carregam explicam o botão apagado', () => {
 
 describe('lista já carregada cuja nova busca falha (Review Focus 3)', () => {
   const MSG = 'Não deu para carregar a lista. Recarregue a página.';
-  const POSTOS = [{ id: 'p-sd', sigla: 'SD BM', nome: 'Soldado', ordem: 1 }, { id: 'p-cb', sigla: 'CB BM', nome: 'Cabo', ordem: 2 }];
+  const POSTOS = [{ id: 'p-sd', sigla: 'SD', nome: 'Soldado', ordem: 1 }, { id: 'p-cb', sigla: 'CB', nome: 'Cabo', ordem: 2 }];
   const TIPOS = [{ id: 't-ferias', nome: 'Férias', ativo: true }];
   type Rota = { status: number; corpo?: unknown };
 
@@ -240,9 +240,9 @@ describe('lista já carregada cuja nova busca falha (Review Focus 3)', () => {
     api({ 'GET /api/postos': postos });
     const router = abrir('/militares/m1');
     const campo = await screen.findByLabelText('Posto-graduação');
-    await within(campo).findByRole('option', { name: 'SD BM' });
+    await within(campo).findByRole('option', { name: 'SD' });
     await buscarDeNovoEFalhar(router, postos, ['postos']);
-    expect(within(campo).getByRole('option', { name: 'SD BM' })).toBeInTheDocument();
+    expect(within(campo).getByRole('option', { name: 'SD' })).toBeInTheDocument();
     expect(screen.queryByText(MSG)).toBeNull();
   });
 

@@ -16,13 +16,13 @@ const GESTOR_GB: EuDaApi = {
 };
 const LISTA: ListaDoPeculio = {
   militares: [
-    { militarId: 'm1', matricula: '990001-1', posto: 'SD BM', nomeGuerra: 'ANDRADE', nomeCompleto: 'João da Silva Andrade', lotacao: '1ª SB', telefone: '(81) 99999-0001', email: 'andrade@bombeiros.pe.gov.br', pendencias: [] },
-    { militarId: 'm2', matricula: '990002-2', posto: 'CB BM', nomeGuerra: 'BARRETO', nomeCompleto: null, lotacao: '2ª SB', telefone: null, email: null, pendencias: ['Nome completo em falta'] },
-    { militarId: 'm3', matricula: '990003-3', posto: 'SD BM', nomeGuerra: 'CÁBRAL', nomeCompleto: 'Carlos Cabral Neto', lotacao: '1ª SB', telefone: null, email: null, pendencias: [] },
+    { militarId: 'm1', matricula: '990001-1', posto: 'SD', nomeGuerra: 'ANDRADE', nomeCompleto: 'João da Silva Andrade', lotacao: '1ª SB', telefone: '(81) 99999-0001', email: 'andrade@bombeiros.pe.gov.br', pendencias: [] },
+    { militarId: 'm2', matricula: '990002-2', posto: 'CB', nomeGuerra: 'BARRETO', nomeCompleto: null, lotacao: '2ª SB', telefone: null, email: null, pendencias: ['Nome completo em falta'] },
+    { militarId: 'm3', matricula: '990003-3', posto: 'SD', nomeGuerra: 'CÁBRAL', nomeCompleto: 'Carlos Cabral Neto', lotacao: '1ª SB', telefone: null, email: null, pendencias: [] },
   ],
   aniversariantes: [
-    { militarId: 'm2', posto: 'CB BM', nomeGuerra: 'BARRETO', dia: 5, lotacao: '2ª SB' },
-    { militarId: 'm1', posto: 'SD BM', nomeGuerra: 'ANDRADE', dia: 20, lotacao: '1ª SB' },
+    { militarId: 'm2', posto: 'CB', nomeGuerra: 'BARRETO', dia: 5, lotacao: '2ª SB' },
+    { militarId: 'm1', posto: 'SD', nomeGuerra: 'ANDRADE', dia: 20, lotacao: '1ª SB' },
   ],
 };
 
@@ -55,7 +55,7 @@ describe('módulo Pecúlio', () => {
   it('o militar comum não vê o item no menu', async () => {
     api({ ...EU_EXEMPLO, papeis: [] });
     abrir('/');
-    await screen.findByText('SD BM ANDRADE');
+    await screen.findByText('SD ANDRADE');
     expect(screen.queryByRole('link', { name: 'Pecúlio' })).toBeNull();
   });
 
@@ -65,7 +65,7 @@ describe('módulo Pecúlio', () => {
     const lista = await militares();
     const andrade = lista.getByText('ANDRADE').closest('li')!;
     expect(chamadasDaLista(f)[0]).toContain(`/api/unidades/u-gb/peculio?mes=${MES}`);
-    expect(within(andrade).getByText('SD BM')).toBeInTheDocument();
+    expect(within(andrade).getByText('SD')).toBeInTheDocument();
     expect(within(andrade).getByText('João da Silva Andrade')).toBeInTheDocument();
     expect(within(andrade).getByText('1ª SB')).toBeInTheDocument();
     expect(within(andrade).getByText('(81) 99999-0001')).toBeInTheDocument();
@@ -140,7 +140,7 @@ describe('módulo Pecúlio', () => {
 
   describe('a prévia da importação do Pecúlio (6.13)', () => {
     const PREVIA = {
-      novos: [], alterados: [{ chave: '990001-1', descricao: 'SD BM ANDRADE', mudancas: ['telefone: vazio → (81) 99999-0000'] }], iguais: 0, avisos: [],
+      novos: [], alterados: [{ chave: '990001-1', descricao: 'SD ANDRADE', mudancas: ['telefone: vazio → (81) 99999-0000'] }], iguais: 0, avisos: [],
       problemas: [{ aba: 'PECÚLIO', linha: 4, mensagem: 'Militar novo sem lotação: não foi criado.', solucao: 'Preencha a coluna LOTAÇÃO.' }],
       ignoradas: [
         { linha: 2, chave: '990001-1', coluna: 'E-MAIL', motivo: 'Use o e-mail institucional (@bombeiros.pe.gov.br).' },
@@ -288,7 +288,7 @@ describe('quem cadastra militar: nível de acesso numa unidade acima da seção'
 });
 
 describe('o Novo militar, no Pecúlio', () => {
-  const POSTOS = [{ id: 'p-sd', sigla: 'SD BM', nome: 'Soldado', ordem: 1 }, { id: 'p-cb', sigla: 'CB BM', nome: 'Cabo', ordem: 2 }, { id: 'p-maj', sigla: 'MAJ BM', nome: 'Major', ordem: 11 }];
+  const POSTOS = [{ id: 'p-sd', sigla: 'SD', nome: 'Soldado', ordem: 1 }, { id: 'p-cb', sigla: 'CB', nome: 'Cabo', ordem: 2 }, { id: 'p-maj', sigla: 'MAJ', nome: 'Major', ordem: 11 }];
   const QUADROS = [
     { id: 'q-qoc', sigla: 'QOC', nome: 'Oficiais Combatentes', postoGradIds: ['p-maj'] },
     { id: 'q-qoa', sigla: 'QOA', nome: 'Oficiais da Administração', postoGradIds: ['p-maj'] },
@@ -331,7 +331,7 @@ describe('o Novo militar, no Pecúlio', () => {
     const router = abrir('/peculio');
     const dialogo = await abrirODialogo();
     await userEvent.type(dialogo.getByLabelText('Matrícula'), '990010-0');
-    await userEvent.selectOptions(dialogo.getByLabelText('Posto-graduação'), 'CB BM');
+    await userEvent.selectOptions(dialogo.getByLabelText('Posto-graduação'), 'CB');
     await userEvent.type(dialogo.getByLabelText('Nome completo'), 'Novo da Silva');
     await userEvent.type(dialogo.getByLabelText('Nome de guerra'), 'novo');
     await userEvent.selectOptions(dialogo.getByLabelText('Seção'), '2ª SB');
@@ -350,7 +350,7 @@ describe('o Novo militar, no Pecúlio', () => {
     rotas();
     abrir('/peculio');
     const dialogo = await abrirODialogo();
-    await userEvent.selectOptions(dialogo.getByLabelText('Posto-graduação'), 'MAJ BM');
+    await userEvent.selectOptions(dialogo.getByLabelText('Posto-graduação'), 'MAJ');
     const quadro = within(dialogo.getByLabelText('Quadro'));
     expect(quadro.getByRole('option', { name: 'Escolher depois' })).toBeInTheDocument();
     expect(quadro.getByRole('option', { name: 'QOC' })).toBeInTheDocument();

@@ -28,7 +28,7 @@ async function enviarArquivo() {
 }
 
 const PREVIA = {
-  novos: [{ chave: '990001-1', descricao: 'SD BM ANDRADE' }, { chave: '990002-2', descricao: 'SD BM BARRETO' }],
+  novos: [{ chave: '990001-1', descricao: 'SD ANDRADE' }, { chave: '990002-2', descricao: 'SD BARRETO' }],
   alterados: [],
   iguais: 3,
   ignoradas: [],
@@ -138,7 +138,7 @@ describe('importar da planilha', () => {
     await enviarArquivo();
     expect(await screen.findByRole('button', { name: 'Importar 2, pular 1' })).toBeInTheDocument();
     expect(screen.getByText(/Use 6 dígitos, hífen e 1 dígito\./)).toBeInTheDocument();
-    expect(screen.getByText('SD BM ANDRADE')).toBeInTheDocument();
+    expect(screen.getByText('SD ANDRADE')).toBeInTheDocument();
   });
 
   it('confirmar envia confirmar=1', async () => {

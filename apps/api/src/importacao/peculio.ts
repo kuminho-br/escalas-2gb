@@ -20,7 +20,7 @@ const SIM_NAO = ['SIM', 'NÃO'];
 // rótulos lidos por planejar e escritos no cabeçalho do modelo, na ordem da ficha: uma lista só
 const COLUNAS = {
   mat: { rotulo: 'MATRÍCULA', obrigatoria: true, ajuda: '6 dígitos, hífen e 1 dígito (ex.: 123456-7). Sem o hífen, o sistema corrige e avisa.' },
-  posto: { rotulo: 'POSTO/GRAD', obrigatoria: false, ajuda: 'Sigla do posto ou graduação, como na lista abaixo. "SD" vale como "SD BM". Obrigatório para militar novo.' },
+  posto: { rotulo: 'POSTO/GRAD', obrigatoria: false, ajuda: 'Sigla do posto ou graduação, como na lista abaixo. Obrigatório para militar novo.' },
   completo: { rotulo: 'NOME COMPLETO', obrigatoria: false, ajuda: 'O nome completo do militar (até 120 caracteres).' },
   guerra: { rotulo: 'NOME DE GUERRA', obrigatoria: false, ajuda: 'Como o militar aparece na escala (o sistema escreve em maiúsculas). Obrigatório para militar novo.' },
   antig: { rotulo: 'ANTIGUIDADE', obrigatoria: false, ajuda: 'Número da antiguidade, de 1 a 99999.' },

@@ -26,7 +26,7 @@ const ve = (quem: Pessoa, militar: string) => blocosDoMilitar(api.banco, quem.us
 const marca = (bloco: string, camada: string, valor: boolean) => api.banco.query('update visao_bloco set ve = $3 where bloco = $1 and camada = $2', [bloco, camada, valor]);
 
 /** Um militar fictício lotado na unidade (período de hoje em diante), com o quadro dado. */
-async function lotado(matricula: string, unidadeId: string | null, quadroSigla: string | null = null, posto = 'SD BM') {
+async function lotado(matricula: string, unidadeId: string | null, quadroSigla: string | null = null, posto = 'SD') {
   const postoId = (await api.banco.query<{ id: string }>('select id from posto_grad where sigla = $1', [posto])).rows[0]!.id;
   const id = await inserir(api.banco, 'militar', { matricula, posto_grad_id: postoId, nome_guerra: `V${matricula.slice(3, 6)}` });
   if (unidadeId) await inserir(api.banco, 'rastreio', { militar_id: id, unidade_id: unidadeId, jornada: 'adm', desde: dia1, ...(quadroSigla ? { quadro_id: quadro[quadroSigla] } : {}) });
@@ -54,10 +54,10 @@ beforeAll(async () => {
 
   // quem olha: o militar comum, o oficial (um capitão do QOC, lotado na 3ª SB), o chefe de divisão da DivOp, e o chefe que também é oficial
   pessoa.comum = await entrarComo(api, { matricula: '990801-1', nome: 'VCOMUM' });
-  pessoa.oficial = await entrarComo(api, { matricula: '990802-2', nome: 'VOFICIAL', posto: 'CAP BM' });
+  pessoa.oficial = await entrarComo(api, { matricula: '990802-2', nome: 'VOFICIAL', posto: 'CAP' });
   await inserir(api.banco, 'rastreio', { militar_id: pessoa.oficial.militarId, unidade_id: sb3, jornada: 'adm', desde: dia1, quadro_id: quadro.QOC });
   pessoa.chefe = await entrarComo(api, { matricula: '990803-3', nome: 'VCHEFE', nivel: { papel: 'chefe_divisao', unidadeId: divOp } });
-  pessoa.chefeOficial = await entrarComo(api, { matricula: '990804-4', nome: 'VCHEFEOF', posto: 'MAJ BM', nivel: { papel: 'chefe_divisao', unidadeId: divOp } });
+  pessoa.chefeOficial = await entrarComo(api, { matricula: '990804-4', nome: 'VCHEFEOF', posto: 'MAJ', nivel: { papel: 'chefe_divisao', unidadeId: divOp } });
   await inserir(api.banco, 'rastreio', { militar_id: pessoa.chefeOficial.militarId, unidade_id: sb3, jornada: 'adm', desde: dia1, quadro_id: quadro.QOA });
 });
 afterAll(async () => {
@@ -161,7 +161,7 @@ describe('a borda se ajusta, e as camadas se somam', () => {
   });
 
   it('a camada do oficial vale pelo quadro de hoje: quem muda para o QBMG no mês que vem ainda a tem hoje (Review Focus 4)', async () => {
-    const quemMuda = await entrarComo(api, { matricula: '990806-6', nome: 'VMUDA', posto: 'CAP BM' });
+    const quemMuda = await entrarComo(api, { matricula: '990806-6', nome: 'VMUDA', posto: 'CAP' });
     await inserir(api.banco, 'rastreio', { militar_id: quemMuda.militarId, unidade_id: sb3, jornada: 'adm', desde: dia1, ate: somarDias(hoje, 29), quadro_id: quadro.QOC });
     await inserir(api.banco, 'rastreio', { militar_id: quemMuda.militarId, unidade_id: sb3, jornada: 'adm', desde: somarDias(hoje, 30), quadro_id: quadro.QBMG });
     expect(await camadasSobreUnidade(api.banco, quemMuda.usuarioId, sb2, hoje)).toEqual(['todos', 'oficial']);

@@ -36,7 +36,7 @@ beforeAll(async () => {
   await inserir(api.banco, 'escala_servico', { escala_id: escala, servico_id: jes.id, ordem: 2 }, 'escala_id');
   alfa = await inserir(api.banco, 'equipe', { unidade_id: api.ids.secao, nome: 'Alfa', ordem_ciclo: 1 });
   bravo = await inserir(api.banco, 'equipe', { unidade_id: api.ids.secao, nome: 'Bravo', ordem_ciclo: 2 });
-  const sd = (await api.banco.query<{ id: string }>("select id from posto_grad where sigla = 'SD BM'")).rows[0]!.id;
+  const sd = (await api.banco.query<{ id: string }>("select id from posto_grad where sigla = 'SD'")).rows[0]!.id;
   let seq = 0;
   const criar = async (nome: string, periodos: { equipe: string; desde: string; ate?: string }[]) => {
     seq++;
@@ -123,7 +123,7 @@ describe('uma linha por militar nas listas', () => {
   const daquiAQuatorze = `${mesDeHoje}-14`;
 
   it('quem muda de equipe no meio do mês aparece uma vez na lista de Militares, com a equipe de hoje, e a ficha mostra desde quando', async () => {
-    const sd = (await api.banco.query<{ id: string }>("select id from posto_grad where sigla = 'SD BM'")).rows[0]!.id;
+    const sd = (await api.banco.query<{ id: string }>("select id from posto_grad where sigla = 'SD'")).rows[0]!.id;
     const id = await inserir(api.banco, 'militar', { matricula: '991399-9', posto_grad_id: sd, nome_guerra: 'MUDOU', antiguidade: 9 });
     await inserir(api.banco, 'rastreio', { militar_id: id, unidade_id: api.ids.secao, equipe_id: alfa, jornada: 'pronto', desde: `${mesDeHoje}-01`, ate: daquiAQuatorze });
     await inserir(api.banco, 'rastreio', { militar_id: id, unidade_id: api.ids.secao, equipe_id: bravo, jornada: 'pronto', desde: `${mesDeHoje}-15` });

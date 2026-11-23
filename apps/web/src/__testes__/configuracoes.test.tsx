@@ -185,9 +185,9 @@ describe('configurações: situações do militar', () => {
 describe('configurações: postos e graduações (6.13)', () => {
   const ADMIN = { ...EU_EXEMPLO, papeis: [{ papel: 'administrador' as const, unidadeId: 'raiz', unidadeSigla: 'CBMPE' }] };
   const POSTOS = [
-    { id: 'p-sd', sigla: 'SD BM', nome: 'Soldado', ordem: 1 },
-    { id: 'p-cb', sigla: 'CB BM', nome: 'Cabo', ordem: 2 },
-    { id: 'p-3s', sigla: '3º SGT BM', nome: 'Terceiro-Sargento', ordem: 3 },
+    { id: 'p-sd', sigla: 'SD', nome: 'Soldado', ordem: 1 },
+    { id: 'p-cb', sigla: 'CB', nome: 'Cabo', ordem: 2 },
+    { id: 'p-3s', sigla: '3º SGT', nome: 'Terceiro-Sargento', ordem: 3 },
   ];
   const comPostos = (extra: Parameters<typeof simularApi>[0] = {}, eu: typeof EU_EXEMPLO = ADMIN) => api({ 'GET /api/postos': { status: 200, corpo: POSTOS }, ...extra }, eu);
 
@@ -202,15 +202,15 @@ describe('configurações: postos e graduações (6.13)', () => {
     comPostos();
     abrir('/configuracoes?aba=postos');
     const lista = await screen.findByRole('list', { name: 'Postos e graduações' });
-    expect(within(lista).getAllByRole('listitem').map((l) => l.querySelector('[data-sigla]')?.textContent)).toEqual(['SD BM', 'CB BM', '3º SGT BM']);
+    expect(within(lista).getAllByRole('listitem').map((l) => l.querySelector('[data-sigla]')?.textContent)).toEqual(['SD', 'CB', '3º SGT']);
   });
 
   it('edita a sigla e o nome numa linha por vez, e grava', async () => {
     const f = comPostos({ 'PATCH /api/postos/p-3s': { status: 200, corpo: { ...POSTOS[2], sigla: '3º SGT' } } });
     abrir('/configuracoes?aba=postos');
-    await userEvent.click(await screen.findByRole('button', { name: 'Corrigir 3º SGT BM' }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Corrigir 3º SGT' }));
     // com uma linha aberta, as outras não abrem
-    expect(screen.queryByRole('button', { name: 'Corrigir SD BM' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Corrigir SD' })).toBeNull();
     const sigla = screen.getByLabelText('Sigla');
     await userEvent.clear(sigla);
     await userEvent.type(sigla, '3º SGT');
@@ -221,10 +221,10 @@ describe('configurações: postos e graduações (6.13)', () => {
   it('a sigla repetida mostra o erro no campo', async () => {
     comPostos({ 'PATCH /api/postos/p-cb': { status: 409, corpo: { erro: 'Já existe um posto com esta sigla.', campos: { sigla: 'Já existe um posto com esta sigla.' } } } });
     abrir('/configuracoes?aba=postos');
-    await userEvent.click(await screen.findByRole('button', { name: 'Corrigir CB BM' }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Corrigir CB' }));
     const sigla = screen.getByLabelText('Sigla');
     await userEvent.clear(sigla);
-    await userEvent.type(sigla, 'SD BM');
+    await userEvent.type(sigla, 'SD');
     await userEvent.click(screen.getByRole('button', { name: 'Salvar' }));
     expect(await screen.findByText('Já existe um posto com esta sigla.')).toBeInTheDocument();
     expect(screen.getByLabelText('Sigla')).toHaveAccessibleDescription('Já existe um posto com esta sigla.');

@@ -17,7 +17,7 @@ export type AcoesDaLinha = {
 const hora = (m: number) => (m === 1440 ? '24h' : textoMinutos(m));
 const faixa = (t: TrechoNoEfetivo) => `${hora(t.inicio)}–${hora(t.fim)}`;
 
-/** O nome acessível do trecho: "Motorista: SD BM ALFA, 08h–08h, Pronto" ou "Motorista: vaga 00h–24h". */
+/** O nome acessível do trecho: "Motorista: SD ALFA, 08h–08h, Pronto" ou "Motorista: vaga 00h–24h". */
 export function nomeDoTrecho(funcao: string, t: TrechoNoEfetivo): string {
   return t.ocupante ? `${funcao}: ${t.ocupante.posto} ${t.ocupante.nomeGuerra}, ${faixa(t)}, ${t.ocupante.servico.nome}` : `${funcao}: vaga ${faixa(t)}`;
 }

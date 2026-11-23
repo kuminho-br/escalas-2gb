@@ -5,7 +5,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { abrir, corpoEnviado, EU_EXEMPLO, simularApi } from './apoio';
 
 const FICHA: MinhaFicha = {
-  postoGrad: 'SD BM',
+  postoGrad: 'SD',
   nomeGuerra: 'ANDRADE',
   nomeCompleto: 'João da Silva Andrade',
   matricula: '990001-1',

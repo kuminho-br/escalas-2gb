@@ -4,7 +4,7 @@ import { cn } from '@/lib/utils';
 
 const COR_DO_EXPEDIENTE = '#8A94A1';
 
-/** O nome acessível da célula: "SD BM ALFA, dia 12: Pronto A, JES A, choque". */
+/** O nome acessível da célula: "SD ALFA, dia 12: Pronto A, JES A, choque". */
 export function nomeDaCelula(l: Pick<LinhaDaGrade, 'posto' | 'nomeGuerra'>, dia: number, blocos: BlocoDaGrade[], choque: boolean): string {
   const o = blocos.length ? blocos.map((b) => (b.expediente ? 'expediente' : `${b.servico?.nome} ${b.letra}`)).join(', ') : 'sem serviço';
   return `${l.posto} ${l.nomeGuerra}, dia ${dia}: ${o}${choque ? ', choque' : ''}`;

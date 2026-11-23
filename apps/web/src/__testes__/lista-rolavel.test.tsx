@@ -11,7 +11,7 @@ const ROLA = '[data-lista-rolavel]';
 const dentro = (el: HTMLElement) => el.closest(ROLA) !== null;
 
 const MILITAR: LinhaMilitar = {
-  id: 'm1', matricula: '990001-1', posto: 'SD BM', quadro: null, nomeGuerra: 'ALVES', equipe: 'Alfa', jornada: 'pronto', motorista: null,
+  id: 'm1', matricula: '990001-1', posto: 'SD', quadro: null, nomeGuerra: 'ALVES', equipe: 'Alfa', jornada: 'pronto', motorista: null,
   voluntarioJes: false, ativo: true, situacao: 'Disponível', pendencias: [],
 };
 const GUARNICAO: LinhaGuarnicao = { id: 'g1', nome: 'Auto Bomba 1', viatura: null, prioridade: 1, ativa: true, minimo: 1, maximo: 2, aPartirDe: null };

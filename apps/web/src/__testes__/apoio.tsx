@@ -6,8 +6,8 @@ import type { EuDaApi } from '@/api/eu';
 import { criarRoteador } from '@/roteador';
 
 export const EU_EXEMPLO: EuDaApi = {
-  usuario: { id: 'u1', nome: 'SD BM ANDRADE', email: 'andrade@exemplo.test' },
-  militar: { matricula: '990001-1', postoGrad: 'SD BM', nomeGuerra: 'ANDRADE' },
+  usuario: { id: 'u1', nome: 'SD ANDRADE', email: 'andrade@exemplo.test' },
+  militar: { matricula: '990001-1', postoGrad: 'SD', nomeGuerra: 'ANDRADE' },
   papeis: [{ papel: 'escalante', unidadeId: 'u-1sb', unidadeSigla: '1ª SB' }],
   unidades: [{ id: 'u-1sb', sigla: '1ª SB', caminho: ['CBMPE', 'DGO', 'DInter/1', '2º GB', '1ª SB'], nivel: 4, tipo: 'secao' }],
   lotacao: null,

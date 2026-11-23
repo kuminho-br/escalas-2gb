@@ -32,7 +32,7 @@ beforeAll(async () => {
   const m = (await api.banco.query<{ militar_id: string; matricula: string }>('select u.militar_id, m.matricula from usuario u join militar m on m.id = u.militar_id where u.id = $1', [usuario])).rows[0]!;
   alvo = m.militar_id;
   matricula = m.matricula;
-  outro = await inserir(api.banco, 'militar', { matricula: '990501-1', posto_grad_id: (await api.banco.query<{ id: string }>("select id from posto_grad where sigla = 'SD BM'")).rows[0]!.id, nome_guerra: 'OUTRO' });
+  outro = await inserir(api.banco, 'militar', { matricula: '990501-1', posto_grad_id: (await api.banco.query<{ id: string }>("select id from posto_grad where sigla = 'SD'")).rows[0]!.id, nome_guerra: 'OUTRO' });
 
   // três períodos de rastreio
   await api.banco.query('delete from rastreio where militar_id = $1', [alvo]);

@@ -21,11 +21,11 @@ export function matriculaDe(bruto: string): { valor: string | null; corrigida: b
 type ComSigla = { id: string; sigla: string };
 const lista = (itens: { sigla: string }[]) => itens.map((i) => i.sigla).join(', ');
 
-/** O posto pela sigla; "SD" vale como "SD BM" enquanto existir uma sigla terminada em "BM". */
+/** O posto pela sigla, sem diferenciar maiúsculas nem acentos. O posto não leva "BM" (a sigla antiga "SD BM" não vale mais: a importação é contrato). */
 export function lerPosto(texto: string, postos: ComSigla[]): Leitura<ComSigla> {
   if (!texto) return VAZIO;
   const porChave = new Map(postos.map((p) => [normalizar(p.sigla), p]));
-  const p = porChave.get(normalizar(texto)) ?? porChave.get(`${normalizar(texto)}BM`);
+  const p = porChave.get(normalizar(texto));
   return p ? valor(p) : motivo(`Posto "${texto}" não existe. Use uma destas siglas: ${lista(postos)}.`);
 }
 
