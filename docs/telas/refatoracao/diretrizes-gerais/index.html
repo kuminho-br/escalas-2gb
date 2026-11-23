@@ -1,638 +1,97 @@
-<title>Sistema de estilo 2º GB</title>
-<meta name="claude:viewport-fit-sides" content="cover">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Semi+Condensed:wght@500;600;700&display=swap">
-<style>
-/* Layout: ficha técnica. Abre com a tela em uso; depois, à esquerda a regra em poucas palavras e à direita a prancha com a peça de verdade.
-   As pranchas usam os valores do site (claros, fixos); a página em volta segue o tema de quem vê. */
-:root{
-  /* o site */
-  --vinho:#8E1B1B; --vinho-escuro:#6F1414;
-  --tinta:#1C2430; --apagado:#5B6675; --encaixe:#7D8A9C; --linha:#D8DDE4;
-  --fundo:#EDEFF2; --passa:#F3F5F8; --superficie:#FFFFFF; --claro:#FFFFFF;
-  --pendencia:#8A5A00; --pendencia-fundo:#FCF1D6;
-  --alerta:#B3261E; --alerta-fundo:#FBEAE8;
-  --veu:rgba(28,36,48,.45);
-  --pronto:#2F8F5B; --jes:#6E56A8; --saldo:#2B7BB9; --bioma:#C08A1E; --pe-seguro:#3C5F9C; --defensoria:#8C4A7A; --expediente:#8A94A1;
-  --texto:"Barlow",system-ui,"Segoe UI",sans-serif;
-  --cond:"Barlow Semi Condensed","Barlow","Arial Narrow",system-ui,sans-serif;
-  --t13:.8125rem; --t15:.9375rem; --t17:1.0625rem; --t20:1.25rem; --t28:1.75rem; --t40:2.5rem;
-  --raio:6px; --raio-sup:12px;
-  --apoiada:0 1px 2px rgba(28,36,48,.12);
-  --por-cima:0 18px 44px rgba(28,36,48,.22),0 2px 8px rgba(28,36,48,.10);
-  --h:36px;
-  /* só para o quadro "hoje", que recria a tela atual */
-  --hoje-painel:#F6F7F9;
-  /* a página em volta */
-  --pg:#F7F8FA; --pg-tinta:#1C2430; --pg-apagado:#5B6675; --pg-linha:#CDD3DB;
-}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--pg:#12161C;--pg-tinta:#E8ECF1;--pg-apagado:#A3AEBC;--pg-linha:#343D4A;color-scheme:dark}}
-:root[data-theme="dark"]{--pg:#12161C;--pg-tinta:#E8ECF1;--pg-apagado:#A3AEBC;--pg-linha:#343D4A;color-scheme:dark}
-
-*{box-sizing:border-box}
-[hidden]{display:none!important}
-img{max-width:100%}
-body{margin:0;background:var(--pg);color:var(--pg-tinta);font:400 var(--t15)/22px var(--texto);font-variant-numeric:tabular-nums;padding-block:40px 88px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
-button,input{font:inherit;color:inherit}
-h1,h2,h3,h4,h5,h6,p,ul,ol,figure{margin:0}
-ul,ol{padding:0;list-style:none}
-:focus-visible{outline:2px solid var(--pg-tinta);outline-offset:2px}
-.prancha :focus-visible,.tela :focus-visible{outline-color:var(--tinta)}
-.tela .menu :focus-visible,.aviso :focus-visible{outline-color:var(--claro)}
-.so-leitor{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
-.i{width:16px;height:16px;flex:none;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
-.i.g{width:20px;height:20px}
-
-/* ---------- a página em volta ---------- */
-.pagina{max-width:1200px;margin:0 auto;display:grid;gap:80px;grid-template-columns:minmax(0,1fr)}
-.abre{display:grid;gap:14px;grid-template-columns:minmax(0,1fr)}
-.de-quem{display:flex;align-items:center;gap:10px;color:var(--pg-apagado)}
-.de-quem img{width:32px;height:auto}
-.abre h1{font:600 var(--t40)/44px var(--cond);text-wrap:balance}
-.abre p{font-size:var(--t17);line-height:26px;max-width:68ch}
-.abre p.menor{font-size:var(--t15);line-height:22px;color:var(--pg-apagado)}
-.indice{display:flex;flex-wrap:wrap;gap:6px 22px;margin-top:6px}
-.indice a{color:var(--pg-tinta);font-weight:500;text-decoration:underline;text-decoration-color:var(--pg-apagado);text-underline-offset:3px}
-.bloco{display:grid;gap:20px 40px;grid-template-columns:minmax(0,1fr);scroll-margin-top:16px}
-.regra{display:grid;gap:10px;align-content:start;max-width:64ch}
-.regra h2{font:600 var(--t28)/32px var(--cond);text-wrap:balance}
-.regra .nota{font-size:var(--t13);line-height:18px;color:var(--pg-apagado)}
-@media (min-width:1040px){
-  .bloco:not(.largo){grid-template-columns:minmax(0,256px) minmax(0,1fr);align-items:start}
-  .bloco:not(.largo) .regra{position:sticky;top:calc(env(safe-area-inset-top,0px) + 16px)}
-}
-.olhar{display:grid;gap:14px 32px;grid-template-columns:repeat(auto-fit,minmax(min(100%,230px),1fr))}
-.olhar b{display:block;font:600 var(--t17)/24px var(--cond)}
-.fecho{display:grid;gap:10px;max-width:68ch}
-.fecho h2{font:600 var(--t28)/32px var(--cond)}
-.fecho ul{display:grid;gap:6px;padding-left:18px;list-style:disc}
-
-/* ---------- prancha: onde as peças aparecem, com os valores do site ---------- */
-.prancha{background:var(--fundo);color:var(--tinta);color-scheme:light;border:1px solid var(--pg-linha);border-radius:var(--raio-sup);padding:24px;display:grid;gap:28px;grid-template-columns:minmax(0,1fr);min-width:0}
-.peca{display:grid;gap:12px;grid-template-columns:minmax(0,1fr);min-width:0}
-.prancha > .peca + .peca{border-top:1px solid var(--linha);padding-top:24px}
-.peca > h3{font:600 var(--t17)/24px var(--cond)}
-.leg{font-size:var(--t13);line-height:18px;color:var(--apagado);max-width:76ch}
-.fila{display:flex;flex-wrap:wrap;gap:12px 16px;align-items:center}
-.fila.alto{align-items:flex-start}
-.sup{background:var(--superficie);border:1px solid var(--linha);border-radius:var(--raio-sup);padding:16px;min-width:0}
-.dupla{display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr));align-items:start}
-.tripla{display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(min(100%,210px),1fr));align-items:start}
-.caso{display:grid;gap:6px;align-content:start;min-width:0}
-.caso > small{font-size:var(--t13);line-height:18px;color:var(--apagado)}
-@media (pointer:coarse){.prancha,.tela{--h:44px}}
-
-/* ---------- botão ---------- */
-.botao{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:var(--h);padding:0 14px;border:1px solid transparent;border-radius:var(--raio);font:500 var(--t15)/1 var(--texto);white-space:nowrap;cursor:pointer;text-decoration:none}
-.botao.principal{background:var(--vinho);color:var(--claro)}
-.botao.principal:hover,.botao.principal.e-passa{background:var(--vinho-escuro)}
-.botao.secundario{background:var(--superficie);color:var(--tinta);border-color:var(--encaixe)}
-.botao.secundario:hover{background:var(--passa);border-color:var(--tinta)}
-.botao.discreto{background:transparent;color:var(--tinta)}
-.botao.discreto:hover{background:color-mix(in srgb,var(--tinta) 8%,transparent)}
-.botao.perigoso{background:var(--superficie);color:var(--alerta);border-color:var(--alerta)}
-.botao.perigoso:hover{background:var(--alerta-fundo)}
-.botao.perigoso.cheio{background:var(--alerta);color:var(--claro)}
-.botao.so-icone{width:var(--h);padding:0}
-.botao:disabled,.botao.principal:disabled,.botao.perigoso.cheio:disabled{background:var(--linha);color:var(--apagado);border-color:transparent;cursor:not-allowed}
-.e-foco{outline:2px solid var(--tinta);outline-offset:2px}
-.gira{animation:gira .8s linear infinite}
-@keyframes gira{to{transform:rotate(360deg)}}
-.elo{color:var(--tinta);font-weight:500;text-decoration:underline;text-underline-offset:3px}
-
-/* ---------- etiqueta ---------- */
-.etiqueta{display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 8px;border:1px solid var(--linha);border-radius:var(--raio);background:var(--superficie);color:var(--tinta);font:500 var(--t13)/1 var(--texto);white-space:nowrap}
-.etiqueta .cor{width:8px;height:8px;background:var(--servico,var(--apagado))}
-.etiqueta.falta{background:var(--pendencia-fundo);border-color:transparent;color:var(--pendencia);font-weight:600}
-.etiqueta.erro{background:var(--alerta-fundo);border-color:transparent;color:var(--alerta);font-weight:600}
-.etiqueta.neutra{background:var(--passa);color:var(--apagado)}
-.quieto{display:inline-flex;align-items:center;gap:6px;color:var(--apagado);font-size:var(--t13);line-height:18px}
-.quieto .i{color:var(--encaixe)}
-
-/* ---------- placa e encaixe ---------- */
-.placa{position:relative;display:flex;align-items:center;gap:8px;width:100%;min-height:var(--h);padding:0 4px 0 15px;border:1px solid var(--linha);border-radius:var(--raio);background:var(--superficie);box-shadow:var(--apoiada);color:var(--tinta);text-align:left;cursor:pointer;overflow:hidden}
-.placa::before{content:"";position:absolute;left:0;top:0;bottom:0;width:5px;background:var(--servico,var(--apagado))}
-.placa .quem{display:inline-flex;align-items:baseline;gap:6px;min-width:0;flex:1}
-.placa .posto{font:500 var(--t13)/18px var(--texto);color:var(--apagado);white-space:nowrap}
-.placa .nome{font:600 var(--t17)/24px var(--cond);letter-spacing:.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.placa .serv,.placa .mat{font:400 var(--t13)/18px var(--texto);color:var(--apagado);white-space:nowrap}
-.placa .abre-acoes{display:grid;place-items:center;width:28px;height:28px;color:var(--apagado);opacity:0;flex:none}
-.placa:hover,.placa.e-passa{background:var(--passa);border-color:var(--encaixe)}
-.placa:hover .abre-acoes,.placa:focus-visible .abre-acoes,.placa[aria-expanded="true"] .abre-acoes,.placa.e-passa .abre-acoes{opacity:1}
-.placa[aria-expanded="true"],.placa.escolhida{border-color:var(--tinta);box-shadow:0 0 0 1px var(--tinta)}
-.placa.parada{cursor:default}
-.placa.parada:hover{background:var(--superficie);border-color:var(--linha)}
-.placa.linha{min-height:44px;padding-right:10px}
-.placa.em-choque{border-color:var(--alerta);box-shadow:0 0 0 1px var(--alerta)}
-.placa.em-choque .i{color:var(--alerta);margin-right:6px}
-.placa.pousa{animation:pousa .22s ease-out}
-@keyframes pousa{from{transform:translateY(-7px);box-shadow:0 8px 16px rgba(28,36,48,.20)}}
-@media (pointer:coarse){.placa .abre-acoes{opacity:1}}
-
-.encaixe{display:flex;align-items:center;gap:8px;width:100%;min-height:var(--h);padding:0 10px;white-space:nowrap;border-radius:var(--raio);font:500 var(--t15)/1 var(--texto);text-align:left;cursor:pointer}
-.encaixe.obrigatoria{background:var(--pendencia-fundo);border:1.5px dashed var(--pendencia);color:var(--pendencia)}
-.encaixe.opcional{background:transparent;border:1px dashed var(--encaixe);color:var(--apagado);font-weight:400}
-.encaixe:hover,.encaixe.e-passa{border-style:solid}
-.encaixe.opcional:hover,.encaixe.opcional.e-passa{background:var(--superficie);color:var(--tinta);border-color:var(--tinta)}
-
-.guarnicao{background:var(--superficie);border:1px solid var(--linha);border-radius:var(--raio-sup);padding:12px 12px 14px;display:grid;gap:10px;align-content:start;min-width:0}
-.guarnicao > header{display:flex;align-items:flex-start;gap:8px}
-.guarnicao h6,.guarnicao .titulo{font:600 var(--t17)/22px var(--cond)}
-.guarnicao header p{font-size:var(--t13);line-height:18px;color:var(--apagado)}
-.guarnicao .estado{margin-left:auto}
-.funcao{display:grid;grid-template-columns:84px minmax(0,1fr);gap:10px;align-items:start}
-.funcao .rotulo{display:flex;flex-direction:column;justify-content:center;min-height:var(--h);font-size:var(--t13);line-height:16px;color:var(--apagado)}
-.funcao .rotulo b{font-weight:500;color:var(--tinta)}
-.lugares{display:grid;gap:6px}
-.lugares li{position:relative;min-width:0;container-type:inline-size;container-name:lugar}
-@container lugar (max-width:199px){.placa .abre-acoes{display:none}}
-.acoes-da-placa{position:absolute;z-index:6;left:0;min-width:100%;width:max-content;top:calc(100% + 4px);display:grid;padding:4px;background:var(--superficie);border:1px solid var(--linha);border-radius:var(--raio);box-shadow:var(--por-cima)}
-.acoes-da-placa.acima{top:auto;bottom:calc(100% + 4px)}
-.acoes-da-placa button{display:flex;align-items:center;gap:8px;min-height:var(--h);padding:0 10px;border:0;border-radius:var(--raio);background:none;text-align:left;cursor:pointer}
-.acoes-da-placa button:hover{background:var(--passa)}
-
-/* anatomia */
-.anatomia{position:relative;display:inline-block;margin-bottom:44px;max-width:100%}
-.anatomia .zoom{zoom:2;width:250px}
-.anatomia .n{position:absolute;top:calc(100% + 14px);transform:translateX(-50%);display:grid;place-items:center;width:24px;height:24px;border-radius:50%;background:var(--tinta);color:var(--claro);font:600 var(--t13)/1 var(--cond)}
-.anatomia .n::before{content:"";position:absolute;bottom:100%;left:50%;width:1px;height:12px;background:var(--tinta)}
-.numerada{display:grid;gap:6px 28px;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr))}
-.numerada li{display:grid;grid-template-columns:24px minmax(0,1fr);gap:8px;align-items:start}
-.numerada li > span:first-child{display:grid;place-items:center;width:24px;height:24px;border-radius:50%;background:var(--tinta);color:var(--claro);font:600 var(--t13)/1 var(--cond)}
-@media (max-width:640px){.anatomia .zoom{zoom:1.25}}
-
-/* a marca na Grade */
-.rolagem{overflow-x:auto;max-width:100%}
-.grade{border-collapse:separate;border-spacing:0;background:var(--superficie)}
-.grade th,.grade td{padding:0;border-bottom:1px solid var(--linha)}
-.grade thead th{min-width:40px;height:44px;text-align:center;font:400 var(--t13)/16px var(--texto);color:var(--apagado)}
-.grade thead th b{display:block;font:600 var(--t15)/18px var(--cond);color:var(--tinta)}
-.grade thead th.hoje{background:var(--tinta);color:var(--claro)}
-.grade thead th.hoje b{color:var(--claro)}
-.grade .fds{background:var(--passa)}
-.grade tbody th{padding:0 16px 0 12px;text-align:left;white-space:nowrap;font-weight:400}
-.grade tbody th .posto{font:500 var(--t13)/18px var(--texto);color:var(--apagado);margin-right:6px}
-.grade tbody th .nome{font:600 var(--t17)/24px var(--cond)}
-.grade td{height:40px;text-align:center}
-.grade td.hoje{box-shadow:inset 1px 0 0 var(--tinta),inset -1px 0 0 var(--tinta)}
-.marca{display:inline-grid;place-items:center;width:32px;height:32px;border:1px solid var(--linha);border-radius:var(--raio);background:var(--superficie);box-shadow:inset 0 -4px 0 var(--servico,var(--apagado));font:600 var(--t15)/1 var(--cond);padding-bottom:3px}
-
-/* o quadro "hoje": recria a tela atual, com as medidas dela */
-.hoje-dia{border:1px solid var(--linha);border-radius:8px;background:var(--superficie);padding:10px;display:grid;gap:8px;font-size:14px;line-height:20px}
-.hoje-dia > b{font:600 16px/20px var(--cond)}
-.hoje-turno{border:1px solid var(--linha);border-radius:8px;background:var(--fundo);padding:8px;display:grid;gap:6px}
-.hoje-turno > span{font-size:13px;color:var(--apagado)}
-.hoje-card{border:1px solid var(--linha);border-radius:8px;background:var(--superficie);padding:12px;display:grid;gap:8px}
-.hoje-card header{display:flex;align-items:center;gap:8px}
-.hoje-card header b{font:600 16px/20px var(--cond);flex:1}
-.hoje-faltam{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--linha);border-radius:999px;padding:2px 8px 2px 6px;font-size:12.5px;font-weight:500}
-.hoje-faltam i{width:3px;height:12px;border-radius:2px;background:var(--vinho)}
-.hoje-funcao{background:var(--hoje-painel);border-radius:6px;padding:6px 8px 8px;display:grid;gap:4px}
-.hoje-funcao > span{font-size:13px;font-weight:500;color:var(--apagado)}
-.hoje-linha{display:flex;flex-wrap:wrap;align-items:center;gap:2px 8px}
-.hoje-linha small{font-size:13px;color:var(--apagado)}
-.hoje-linha b{font:600 16px/20px var(--cond)}
-.hoje-linha .chip{border-radius:4px;padding:0 6px;font-size:13px;font-weight:500;background:var(--pronto);color:var(--claro)}
-.hoje-linha .remover{margin-left:auto;font-size:13px;line-height:17px;color:var(--apagado);padding:0 6px}
-.hoje-vaga{position:relative;display:flex;align-items:center;gap:8px;min-height:32px;padding:4px 10px 4px 12px;border:1px dashed var(--encaixe);border-radius:6px;font-weight:500}
-.hoje-vaga::before{content:"";position:absolute;left:3px;top:6px;bottom:6px;width:3px;border-radius:2px;background:var(--vinho)}
-
-/* ---------- campos ---------- */
-.campo{display:grid;gap:6px;min-width:0;align-content:start}
-.campo > label,.campo > .rot{font-weight:500}
-.campo .opc{font-weight:400;color:var(--apagado)}
-.campo input[type="text"],.campo input[type="search"],.campo input[type="tel"]{width:100%;height:var(--h);padding:0 12px;border:1px solid var(--encaixe);border-radius:var(--raio);background:var(--superficie);color:var(--tinta)}
-.campo input::placeholder{color:var(--apagado);opacity:1}
-.campo input:hover{border-color:var(--tinta)}
-.campo .ajuda{font-size:var(--t13);line-height:18px;color:var(--apagado)}
-.campo.com-erro input{border:2px solid var(--alerta);padding:0 11px}
-.msg-erro{display:flex;align-items:flex-start;gap:6px;font-size:var(--t13);line-height:18px;font-weight:500;color:var(--alerta)}
-.msg-erro .i{margin-top:1px}
-.com-icone{position:relative;display:block}
-.com-icone .i{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--apagado)}
-.campo .com-icone input{padding-left:36px}
-.seletor{display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;height:var(--h);padding:0 10px 0 12px;border:1px solid var(--encaixe);border-radius:var(--raio);background:var(--superficie);text-align:left;cursor:pointer}
-.seletor:hover{border-color:var(--tinta)}
-.seletor .i{color:var(--apagado)}
-.lista-aberta{display:grid;padding:4px;background:var(--superficie);border:1px solid var(--linha);border-radius:var(--raio);box-shadow:var(--por-cima)}
-.lista-aberta [role="option"]{display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:var(--h);padding:0 8px;border-radius:var(--raio)}
-.lista-aberta [aria-selected="true"]{font-weight:600}
-.lista-aberta .e-passa{background:var(--passa)}
-.marcar{display:inline-flex;align-items:center;gap:8px;min-height:var(--h);cursor:pointer}
-.marcar input{appearance:none;-webkit-appearance:none;display:grid;place-items:center;flex:none;width:20px;height:20px;margin:0;border:1px solid var(--encaixe);border-radius:var(--raio);background:var(--superficie);cursor:pointer}
-.marcar input[type="radio"]{border-radius:50%}
-.marcar input:hover{border-color:var(--tinta)}
-.marcar input:checked{background:var(--tinta);border-color:var(--tinta)}
-.marcar input[type="checkbox"]:checked::after{content:"";width:10px;height:5px;border:2px solid var(--claro);border-top:0;border-right:0;transform:translateY(-1px) rotate(-45deg)}
-.marcar input[type="radio"]:checked::after{content:"";width:8px;height:8px;border-radius:50%;background:var(--claro)}
-.passo,.mes{display:inline-flex;align-items:center;height:var(--h);border:1px solid var(--encaixe);border-radius:var(--raio);background:var(--superficie)}
-.passo button,.mes button{display:grid;place-items:center;width:var(--h);height:100%;border:0;border-radius:var(--raio);background:none;cursor:pointer}
-.passo button:hover,.mes button:hover{background:var(--passa)}
-.passo button:disabled,.mes button:disabled{color:var(--encaixe);cursor:not-allowed;background:none}
-.passo output{min-width:36px;text-align:center;font:600 var(--t17)/1 var(--cond)}
-.mes output{min-width:150px;padding:0 4px;text-align:center;font:600 var(--t17)/1 var(--cond)}
-.calendario{width:272px;padding:12px}
-.calendario .cab,.meses .cab{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;font:600 var(--t17)/1 var(--cond)}
-.calendario table{width:100%;border-collapse:collapse}
-.calendario th{height:28px;font:500 var(--t13)/1 var(--texto);color:var(--apagado)}
-.calendario td{padding:1px 0;text-align:center}
-.calendario td span{position:relative;display:grid;place-items:center;width:32px;height:32px;margin:0 auto;border-radius:var(--raio);font-weight:500}
-.calendario .fds{color:var(--apagado)}
-.calendario .eh-hoje{box-shadow:inset 0 0 0 1px var(--tinta)}
-.calendario .sel{background:var(--tinta);color:var(--claro)}
-.calendario .feriado::after{content:"";position:absolute;bottom:3px;left:50%;width:4px;height:4px;margin-left:-2px;background:var(--apagado)}
-.meses{width:272px;padding:12px}
-.meses ol{display:grid;grid-template-columns:repeat(4,1fr);gap:4px}
-.meses li{display:grid;place-items:center;height:var(--h);border-radius:var(--raio);font-weight:500}
-.meses .sel{background:var(--tinta);color:var(--claro)}
-.arquivo{display:flex;flex-wrap:wrap;align-items:center;gap:10px 12px;padding:14px 16px;border:1px dashed var(--encaixe);border-radius:var(--raio);background:var(--superficie);color:var(--apagado)}
-.arquivo.cheio{border-style:solid;border-color:var(--linha);color:var(--tinta)}
-.arquivo .ate-o-fim{margin-left:auto}
-.abas{display:flex;gap:4px;border-bottom:1px solid var(--linha);overflow-x:auto;scrollbar-width:thin}
-.abas button{flex:none;height:var(--h);padding:0 12px;border:0;border-bottom:2px solid transparent;margin-bottom:-1px;background:none;color:var(--apagado);font-weight:500;white-space:nowrap;cursor:pointer}
-.abas button:hover{color:var(--tinta)}
-.abas button[aria-selected="true"]{color:var(--tinta);border-bottom-color:var(--tinta);font-weight:600}
-.tabela{width:100%;border-collapse:collapse;min-width:520px}
-.tabela th{padding:8px 12px;text-align:left;font:500 var(--t13)/18px var(--texto);color:var(--apagado);border-bottom:1px solid var(--linha);white-space:nowrap}
-.tabela td{height:44px;padding:0 12px;border-bottom:1px solid var(--linha);white-space:nowrap}
-.tabela tbody tr:last-child td{border-bottom:0}
-.tabela tbody tr:hover td{background:var(--passa)}
-.tabela .nome{font:600 var(--t17)/24px var(--cond)}
-.tabela .num{text-align:right}
-
-/* ---------- cores, letra e forma ---------- */
-.cores{display:grid;gap:0}
-.cor-linha{display:grid;grid-template-columns:56px minmax(0,1fr);gap:8px 16px;padding:16px 0;border-top:1px solid var(--linha);align-items:start}
-.cor-linha:first-child{border-top:0;padding-top:0}
-.amostra{width:56px;height:56px;border-radius:var(--raio);border:1px solid var(--linha)}
-.cor-linha .quem-e{display:grid;gap:8px 24px;grid-template-columns:repeat(auto-fit,minmax(min(100%,230px),1fr));align-items:start}
-.cor-linha h4{font:600 var(--t17)/24px var(--cond)}
-.cor-linha .cod{font-size:var(--t13);line-height:18px;color:var(--apagado)}
-.cor-linha .deixa{font-size:var(--t13);line-height:18px;color:var(--apagado)}
-.neutros{display:grid;gap:10px 20px;grid-template-columns:repeat(auto-fit,minmax(min(100%,230px),1fr))}
-.neutros li{display:grid;grid-template-columns:32px minmax(0,1fr);gap:10px;align-items:start}
-.neutros i{width:32px;height:32px;border-radius:var(--raio);border:1px solid var(--linha)}
-.neutros b{display:block;font-weight:500}
-.neutros span{font-size:var(--t13);line-height:18px;color:var(--apagado)}
-.escala{display:grid}
-.escala li{display:grid;grid-template-columns:64px minmax(0,1fr);gap:4px 16px;padding:14px 0;border-top:1px solid var(--linha);align-items:baseline}
-.escala li:first-child{border-top:0;padding-top:0}
-.escala .px{font:600 var(--t17)/24px var(--cond);color:var(--apagado)}
-.escala .uso{grid-column:2;font-size:var(--t13);line-height:18px;color:var(--apagado)}
-.a40{font:600 var(--t40)/44px var(--cond)}
-.a28{font:600 var(--t28)/32px var(--cond)}
-.a20{font:600 var(--t20)/26px var(--cond)}
-.a17{font:600 var(--t17)/24px var(--cond)}
-.a15{font:400 var(--t15)/22px var(--texto)}
-.a13{font:400 var(--t13)/18px var(--texto)}
-.colunas-de-numero{border-collapse:collapse;justify-self:start}
-.colunas-de-numero td{padding:2px 0 2px 28px;text-align:right;font:600 var(--t17)/24px var(--cond)}
-.colunas-de-numero td:first-child{padding-left:0;text-align:left;font:400 var(--t15)/24px var(--texto);color:var(--apagado)}
-.forma{display:grid;gap:20px 28px;grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr));align-items:start}
-.canto{width:96px;height:56px;border:1px solid var(--encaixe);background:var(--superficie)}
-.sombra{width:120px;height:56px;border:1px solid var(--linha);border-radius:var(--raio);background:var(--superficie)}
-.altura{display:flex;align-items:flex-end;gap:12px}
-.altura i{display:grid;place-items:center;width:64px;border-radius:var(--raio);background:var(--tinta);color:var(--claro);font:600 var(--t15)/1 var(--cond);font-style:normal}
-.espacos{display:flex;align-items:flex-end;gap:10px;flex-wrap:wrap}
-.espacos li{display:grid;gap:4px;justify-items:center;font-size:var(--t13);color:var(--apagado)}
-.espacos i{display:block;height:24px;background:var(--tinta)}
-
-/* ---------- resposta do sistema ---------- */
-.aviso{display:inline-flex;align-items:center;gap:4px;max-width:100%;min-height:44px;padding:4px 4px 4px 16px;border-radius:var(--raio);background:var(--tinta);color:var(--claro);box-shadow:var(--por-cima);pointer-events:auto}
-.aviso .dito{padding:6px 10px 6px 0;min-width:0;line-height:20px}
-.aviso button{display:inline-grid;place-items:center;min-width:36px;height:36px;padding:0 12px;border:0;border-radius:var(--raio);background:none;color:inherit;font-weight:600;cursor:pointer;white-space:nowrap}
-.aviso button.sub{text-decoration:underline;text-underline-offset:3px}
-.aviso button:hover{background:color-mix(in srgb,var(--claro) 16%,transparent)}
-.aviso button.fecha{padding:0}
-.aviso.deu-erro{background:var(--superficie);color:var(--tinta);border:1px solid var(--alerta);padding-left:12px}
-.aviso.deu-erro > .i{color:var(--alerta);margin-right:8px}
-.aviso.deu-erro button:hover{background:var(--passa)}
-.barra-de-salvar{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;padding:10px 16px;border:1px solid var(--linha);border-radius:var(--raio-sup);background:var(--superficie);box-shadow:var(--por-cima)}
-.barra-de-salvar .ate-o-fim{margin-left:auto;display:flex;gap:8px}
-.palco-do-dialogo{display:grid;place-items:center;padding:24px 16px;border-radius:var(--raio-sup);background:var(--veu)}
-.dialogo{display:grid;gap:12px;width:min(440px,100%);padding:24px;border-radius:var(--raio-sup);background:var(--superficie);box-shadow:var(--por-cima)}
-.dialogo h4{font:600 var(--t20)/26px var(--cond)}
-.dialogo .acoes{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:8px;margin-top:8px}
-.espera{display:block;height:var(--h);border-radius:var(--raio);background:linear-gradient(90deg,var(--linha) 0%,var(--passa) 50%,var(--linha) 100%);background-size:200% 100%;animation:espera 1.3s linear infinite}
-@keyframes espera{from{background-position:200% 0}to{background-position:0 0}}
-.linha-com-erro{display:grid;gap:6px}
-.linha-com-erro .campos{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:flex-end}
-.vazio{display:grid;gap:10px;justify-items:start;max-width:52ch}
-.area .vazio{padding:8px 0}
-.vazio h4{font:600 var(--t20)/26px var(--cond)}
-.vazio p{color:var(--apagado)}
-
-/* ---------- moldura: a tela ---------- */
-.moldura{container-type:inline-size;container-name:moldura;min-width:0}
-.moldura.celular{width:390px;max-width:100%}
-.tela{position:relative;display:grid;grid-template-columns:196px minmax(0,1fr);height:840px;background:var(--fundo);color:var(--tinta);color-scheme:light;border:1px solid var(--pg-linha);border-radius:var(--raio-sup);overflow:hidden}
-.celular .tela{height:780px}
-.im{width:20px;height:20px;flex:none;fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round}
-.menu{display:flex;flex-direction:column;gap:12px;min-height:0;padding:16px 10px;background:var(--vinho);color:var(--claro);overflow:hidden}
-.menu .casa{display:flex;align-items:center;gap:10px;padding:0 6px;font:600 var(--t17)/20px var(--cond)}
-.menu .casa img{width:36px;height:auto;flex:none}
-.menu .casa small{display:block;font:400 var(--t13)/18px var(--texto);color:color-mix(in srgb,var(--claro) 84%,transparent)}
-.menu ul{display:grid;gap:2px}
-.menu ul + ul{padding-top:10px;border-top:1px solid color-mix(in srgb,var(--claro) 24%,transparent)}
-.menu li{display:flex;align-items:center;gap:10px;height:36px;padding:0 10px;border-radius:var(--raio);color:color-mix(in srgb,var(--claro) 90%,transparent)}
-.menu li.atual{background:var(--claro);color:var(--vinho);font-weight:600}
-.nav-baixo{display:none}
-.palco{position:relative;display:grid;grid-template-rows:auto auto minmax(0,1fr);min-width:0;min-height:0}
-.cabeca{display:flex;flex-wrap:wrap;align-items:center;gap:10px 16px;padding:16px 24px 12px}
-.cabeca h3{margin-right:auto;font:600 var(--t28)/32px var(--cond)}
-.parada{min-width:0;background:var(--superficie);border-block:1px solid var(--linha)}
-.filtros{display:flex;flex-wrap:wrap;align-items:center;gap:6px 16px;min-height:48px;padding:6px 24px}
-.filtros .legenda{display:flex;flex-wrap:wrap;gap:6px}
-.filtros .total{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;margin-left:auto}
-.regua{position:relative;display:flex;padding:0 24px 8px;overflow-x:auto;scrollbar-width:thin}
-.regua button{position:relative;flex:1 0 26px;display:grid;justify-items:center;align-content:center;gap:1px;height:44px;padding:0;border:0;border-radius:var(--raio);background:none;cursor:pointer}
-.regua small{font:400 var(--t13)/14px var(--texto);color:var(--apagado)}
-.regua b{min-width:22px;border-radius:var(--raio);font:600 var(--t15)/20px var(--cond);text-align:center}
-.regua .fds{background:var(--passa)}
-.regua .falta{background:var(--pendencia-fundo)}
-.regua .falta b,.regua .falta small{color:var(--pendencia)}
-.regua .hoje b{background:var(--tinta);color:var(--claro)}
-.regua button:hover b{text-decoration:underline}
-.regua button:disabled{opacity:.45;cursor:default}
-.regua button:disabled:hover b{text-decoration:none}
-.regua [aria-current="true"]::after{content:"";position:absolute;left:3px;right:3px;bottom:0;height:3px;background:var(--tinta)}
-.regua .feriado::before{content:"";position:absolute;top:3px;right:3px;width:4px;height:4px;background:var(--apagado)}
-.area{position:relative;grid-row:3;grid-column:1;min-height:0;overflow:auto;padding:0 24px 88px;scroll-padding-bottom:88px}
-.dia{display:grid;grid-template-columns:60px minmax(0,1fr);gap:0 16px;margin:0 -24px;padding:12px 24px 14px;border-top:1px solid var(--linha)}
-.dia:first-child{border-top:0}
-.dia.fds{background:var(--passa)}
-.dia .data{position:sticky;top:10px;align-self:start;display:grid;gap:2px;justify-items:start}
-.dia .data b{font:600 var(--t40)/40px var(--cond)}
-.dia .data span{font-size:var(--t13);line-height:16px;color:var(--apagado)}
-.etiqueta.eh-hoje{margin-top:2px;background:var(--tinta);border-color:transparent;color:var(--claro)}
-.quadro{display:grid;grid-template-columns:56px 96px repeat(var(--faixas,2),minmax(0,1fr));gap:4px 12px;align-items:start;min-width:0}
-.q-faixa{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;min-height:28px;margin-bottom:2px;font:600 var(--t17)/22px var(--cond)}
-.q-faixa .letra,.turno h5 .letra{font:400 var(--t15)/22px var(--texto);color:var(--apagado)}
-.q-faixa .falta,.turno h5 .falta{margin-left:auto}
-.q-guarn{grid-column:1;padding-top:7px;font:600 var(--t17)/22px var(--cond)}
-.q-guarn small{display:block;font:400 var(--t13)/16px var(--texto);color:var(--apagado)}
-.q-funcao{grid-column:2;display:flex;flex-direction:column;justify-content:center;min-height:var(--h);font:500 var(--t13)/16px var(--texto)}
-.q-funcao small{font-size:inherit;font-weight:400;color:var(--apagado)}
-.q-linha{grid-column:1/-1;height:1px;margin:4px 0;background:var(--linha)}
-.q-solto{grid-column:1/3;display:flex;align-items:center;min-height:var(--h);font-size:var(--t13);line-height:16px;color:var(--apagado)}
-.lugares.lado{grid-template-columns:repeat(auto-fill,minmax(148px,1fr))}
-.removidos{display:flex;flex-wrap:wrap;align-items:center;gap:2px 14px;min-height:var(--h);font-size:var(--t13);line-height:18px}
-.removidos li{display:flex;align-items:baseline;gap:6px}
-.removidos b{font:600 var(--t15)/20px var(--cond)}
-.removidos button{padding:0;border:0;background:none;color:var(--tinta);font-weight:500;text-decoration:underline;text-underline-offset:3px;cursor:pointer}
-.dica-do-mes{padding:14px 0 12px;color:var(--apagado)}
-.dica-do-mes b{color:var(--tinta);font-weight:600}
-.dia-so{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;margin-bottom:12px}
-.dia-so h4{font:600 var(--t20)/26px var(--cond)}
-.turno{display:grid;gap:10px;margin-bottom:22px}
-.turno h5{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;font:600 var(--t17)/24px var(--cond)}
-.guarnicoes{display:grid;gap:12px;align-items:start}
-.solto{font-size:var(--t13);line-height:18px;color:var(--apagado)}
-.nada{color:var(--apagado);padding:14px 0}
-.lugar-do-aviso{position:absolute;left:0;right:0;bottom:16px;z-index:4;display:flex;justify-content:center;padding:0 16px;pointer-events:none}
-.lugar-do-aviso .aviso{animation:sobe .18s ease-out}
-@keyframes sobe{from{transform:translateY(14px);opacity:0}}
-.sob-o-painel{display:none}
-.painel{grid-row:3;grid-column:1;justify-self:end;position:relative;z-index:5;display:grid;grid-template-rows:auto minmax(0,1fr);width:min(384px,100%);min-height:0;background:var(--superficie);border-left:1px solid var(--linha);box-shadow:var(--por-cima);animation:entra .18s ease-out}
-@keyframes entra{from{transform:translateX(24px);opacity:0}}
-.painel > header{display:grid;gap:10px;padding:16px 16px 12px;border-bottom:1px solid var(--linha)}
-.painel .alto{display:flex;align-items:flex-start;gap:8px}
-.painel h4{flex:1;font:600 var(--t20)/26px var(--cond);padding-top:4px}
-.painel .para{color:var(--apagado)}
-.painel .corpo{display:grid;gap:10px;align-content:start;overflow:auto;padding:12px 16px 24px}
-.escolha{display:grid;gap:6px}
-.fora-resumo{font-size:var(--t13);line-height:18px;color:var(--apagado)}
-.veu{position:absolute;inset:0;z-index:8;display:grid;place-items:center;padding:16px;background:var(--veu)}
-.dialogo .resumo{display:grid;gap:2px}
-.marcar input:disabled{opacity:.55;cursor:not-allowed}
-
-@container moldura (max-width:720px){
-  .tela{grid-template-columns:minmax(0,1fr);grid-template-rows:auto minmax(0,1fr) auto;--h:44px}
-  .menu{flex-direction:row;align-items:center;padding:8px 12px}
-  .menu ul{display:none}
-  .nav-baixo{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px;padding:6px 8px;background:var(--vinho);color:color-mix(in srgb,var(--claro) 90%,transparent)}
-  .nav-baixo span{display:grid;justify-items:center;gap:2px;padding:5px 2px 4px;border-radius:var(--raio);font:500 var(--t13)/16px var(--texto)}
-  .nav-baixo .im{width:22px;height:22px}
-  .nav-baixo .atual{background:var(--claro);color:var(--vinho);font-weight:600}
-  .cabeca{gap:10px 12px;padding:12px 16px 10px}
-  .cabeca h3{font:600 var(--t20)/26px var(--cond)}
-  .cabeca .mes{order:3;width:100%}
-  .mes output{flex:1}
-  .filtros{padding:6px 16px}
-  .filtros .legenda,.filtros .total .quieto{display:none}
-  .regua{padding:0 16px 8px}
-  .regua button{flex:0 0 44px}
-  .area{padding:12px 16px 96px;scroll-padding-bottom:96px}
-  .sob-o-painel{display:block;position:absolute;inset:0;z-index:4;background:var(--veu)}
-  .painel{position:absolute;left:0;right:0;bottom:0;width:auto;max-height:84%;border-left:0;border-radius:var(--raio-sup) var(--raio-sup) 0 0;animation-name:sobe}
-  .placa .abre-acoes{opacity:1}
-}
-
-/* ícones do menu */
-.icones{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:4px 16px}
-.icones li{display:flex;align-items:center;gap:10px;min-height:36px}
-.icones .im{width:24px;height:24px}
-
-/* esquemas da moldura */
-.esquema{position:relative;display:grid;gap:6px;padding:6px;border:1px solid var(--linha);border-radius:var(--raio-sup);background:var(--fundo);font-size:var(--t13);line-height:16px;min-height:250px}
-.esquema > div{display:grid;place-items:center;padding:6px 8px;text-align:center;border:1px solid var(--linha);border-radius:var(--raio);background:var(--superficie)}
-.esquema .e-menu{background:var(--vinho);border-color:var(--vinho);color:var(--claro)}
-.esquema .e-acao{background:var(--vinho);border-color:var(--vinho);color:var(--claro)}
-.esquema .e-resposta{background:var(--tinta);border-color:var(--tinta);color:var(--claro)}
-.esquema .e-painel{box-shadow:var(--por-cima)}
-.esquema .e-area{border-style:dashed;border-color:var(--encaixe);background:transparent;color:var(--apagado)}
-.esquema.pc{grid-template-columns:64px minmax(0,1fr) 72px 118px;grid-template-rows:36px 30px minmax(0,1fr);grid-template-areas:"menu titulo mes acao" "menu filtros filtros filtros" "menu area area area"}
-.esquema.leitura{grid-template-columns:64px minmax(0,1fr) minmax(0,1fr);grid-template-rows:36px minmax(0,1fr);grid-template-areas:"menu titulo acao" "menu area area"}
-.esquema.cel{grid-template-columns:minmax(0,1fr) auto;grid-template-rows:26px 32px 30px minmax(0,1fr) 44px;grid-template-areas:"topo topo" "titulo acao" "mes mes" "area area" "menu menu";max-width:216px;min-height:350px}
-.e-topo{grid-area:topo}
-.esquema .e-topo{background:var(--vinho);border-color:var(--vinho);color:var(--claro)}
-.e-menu{grid-area:menu}.e-titulo{grid-area:titulo}.e-mes{grid-area:mes}.e-acao{grid-area:acao}.e-filtros{grid-area:filtros}.e-area{grid-area:area}
-.esquema .e-painel{position:absolute;top:84px;right:12px;bottom:12px;width:30%}
-.esquema .e-resposta{position:absolute;left:calc(64px + 14%);bottom:16px;width:30%;min-height:28px}
-.esquema.pc .e-area{justify-items:start;padding-left:16px;text-align:left}
-.esquema.leitura .e-area{justify-self:start;width:62%;height:100%}
-.esquema.leitura .e-resposta{left:calc(64px + 6%);width:48%}
-.esquema.cel .e-painel{top:auto;left:6px;right:6px;bottom:56px;width:auto;height:40%}
-.esquema.cel .e-resposta{left:14px;right:14px;width:auto;bottom:64px}
-.esquema.cel .e-painel + .e-resposta{display:none}
-
-@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
-</style>
-
-<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
-  <defs>
-    <symbol id="i-mais" viewBox="0 0 24 24"><path d="M5 12h14M12 5v14"/></symbol>
-    <symbol id="i-menos" viewBox="0 0 24 24"><path d="M5 12h14"/></symbol>
-    <symbol id="i-ok" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
-    <symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></symbol>
-    <symbol id="i-baixo" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
-    <symbol id="i-esq" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></symbol>
-    <symbol id="i-dir" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></symbol>
-    <symbol id="i-pontos" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></symbol>
-    <symbol id="i-busca" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.6-3.6"/></symbol>
-    <symbol id="i-alerta" viewBox="0 0 24 24"><path d="m21.7 18-8-14a2 2 0 0 0-3.4 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.7-3Z"/><path d="M12 9v4M12 17h.01"/></symbol>
-    <symbol id="i-erro" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/></symbol>
-    <symbol id="i-enviar" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></symbol>
-    <symbol id="i-calendario" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></symbol>
-    <symbol id="i-lixo" viewBox="0 0 24 24"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M10 11v6M14 11v6"/></symbol>
-    <symbol id="i-planilha" viewBox="0 0 24 24"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7ZM14 2v4a2 2 0 0 0 2 2h4M8 13h2M14 13h2M8 17h2M14 17h2"/></symbol>
-    <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></symbol>
-    <symbol id="i-troca" viewBox="0 0 24 24"><path d="M8 3 4 7l4 4M4 7h16M16 21l4-4-4-4M20 17H4"/></symbol>
-    <symbol id="i-giro" viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-6.2-8.56"/></symbol>
-    <symbol id="m-grade" viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.5"/></symbol>
-    <symbol id="m-escala" viewBox="0 0 24 24"><path d="M8 6h12M13 12h7M13 18h7M4 6v9.5A2.5 2.5 0 0 0 6.5 18h3M4 12h5.5"/></symbol>
-    <symbol id="m-efetivo" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2.5V5M12 19v2.5M2.5 12H5M19 12h2.5M5.3 5.3l1.8 1.8M16.9 16.9l1.8 1.8M5.3 18.7l1.8-1.8M16.9 7.1l1.8-1.8"/></symbol>
-    <symbol id="m-oficiais" viewBox="0 0 24 24"><circle cx="12" cy="15" r="5.5"/><circle cx="12" cy="15" r="1.5"/><path d="M8.6 10.6 6 3.5h4.2L12 8l1.8-4.5H18l-2.6 7.1"/></symbol>
-    <symbol id="m-voluntariado" viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="15.5" rx="2"/><path d="M8 3v4M16 3v4M3.5 10h17M9 15.2l2.1 2.1 4-4.1"/></symbol>
-    <symbol id="m-cotas" viewBox="0 0 24 24"><path d="M20.5 13.5a8.5 8.5 0 1 1-10-10v10Z"/><path d="M14 3.2a8.5 8.5 0 0 1 6.8 6.8H14Z"/></symbol>
-    <symbol id="m-militares" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20v-1.5a5 5 0 0 1 5-5h3a5 5 0 0 1 5 5V20M15.5 4.8a3.5 3.5 0 0 1 0 6.4M18.5 13.9a5 5 0 0 1 3 4.6V20"/></symbol>
-    <symbol id="m-turnos" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 7v5l3.2 2"/></symbol>
-    <symbol id="m-escalas" viewBox="0 0 24 24"><path d="M13.5 3h-6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h9a2 2 0 0 0 2-2V8Z"/><path d="M13.5 3v5h5M9 13h6M9 17h6"/></symbol>
-    <symbol id="m-feriados" viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="15.5" rx="2"/><path d="M8 3v4M16 3v4M3.5 10h17M8 14h.01M12 14h.01M16 14h.01M8 17.5h.01M12 17.5h.01"/></symbol>
-    <symbol id="m-config" viewBox="0 0 24 24"><path d="M12 2.8 20 7.4v9.2l-8 4.6-8-4.6V7.4Z"/><circle cx="12" cy="12" r="3"/></symbol>
-    <symbol id="m-estrutura" viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="5" rx="1"/><rect x="3" y="16" width="6" height="5" rx="1"/><rect x="15" y="16" width="6" height="5" rx="1"/><path d="M12 8v4M6 16v-2a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v2"/></symbol>
-    <symbol id="m-historico" viewBox="0 0 24 24"><path d="M3.5 12A8.5 8.5 0 1 0 6 6L3.5 8.5M3.5 4v4.5H8M12 7.5V12l3 2"/></symbol>
-    <symbol id="m-ajuda" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M9.7 9.5a2.4 2.4 0 1 1 3.5 2.1c-.8.4-1.2 1-1.2 1.9M12 16.8h.01"/></symbol>
-    <symbol id="m-mais" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></symbol>
-  </defs>
-</svg>
-
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Diretrizes gerais</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Semi+Condensed:wght@600&display=swap">
+<link rel="stylesheet" href="../pecas.css">
+</head>
+<body>
+<!-- Área "Diretrizes gerais" dos mockups da refatoração da interface. As peças (cores, letra, componentes, ícones) estão em ../pecas.css e ../pecas.js. -->
 <div class="pagina">
 
 <header class="abre">
-  <p class="de-quem"><img src="img/brasao-2gb.png" alt="" width="32" height="34">Sistema de Escalas do 2º GB. Mockup para aprovação, 23/11/2026.</p>
-  <h1>Sistema de estilo</h1>
-  <p>As peças com que todas as telas vão ser montadas: a placa do militar, o encaixe da vaga, as cores, a letra, os componentes, a resposta do sistema e a moldura da tela.</p>
-  <p class="menor">Segue as decisões e as diretrizes de 23/11/2026: a identidade fica, a base vem primeiro, cada ficha tem um salvar só, a tela inicial mostra o que falta no mês, o posto aparece sem "BM", a Escala do mês mostra todos os dias na mesma tela e o menu tem ícones. Os nomes e as matrículas são fictícios. Nenhuma tela do site mudou ainda.</p>
+  <p class="de-quem"><a class="voltar" href="../index.html">Todas as áreas</a></p>
+  <h1>Diretrizes gerais</h1>
+  <p>A base de todas as telas das Escalas do 2º GB: a identidade, as cores, a letra, a forma, os ícones, a placa do militar, o encaixe da vaga, os componentes, a resposta do sistema e a moldura da tela. É a semente do brandbook do projeto.</p>
+  <p class="menor">Em revisão por você. É guia de desenho e de identidade, não gabarito: a implementação adequa cada peça ao software que existe. Os nomes e as matrículas são fictícios. Nenhuma tela do site mudou ainda.</p>
   <ul class="indice">
-    <li><a href="#em-uso">Em uso</a></li>
-    <li><a href="#placa">Placa e encaixe</a></li>
+    <li><a href="#identidade">Identidade</a></li>
+    <li><a href="#diretrizes">Diretrizes do usuário</a></li>
     <li><a href="#cores">Cores</a></li>
     <li><a href="#letra">Letra</a></li>
     <li><a href="#forma">Forma e medidas</a></li>
+    <li><a href="#icones">Ícones</a></li>
+    <li><a href="#placa">Placa, encaixe e cartão</a></li>
     <li><a href="#componentes">Componentes</a></li>
     <li><a href="#resposta">Resposta do sistema</a></li>
     <li><a href="#moldura">Moldura da tela</a></li>
+    <li><a href="#em-uso">Em uso</a></li>
     <li><a href="#celular">No celular</a></li>
+    <li><a href="#o-que-muda">O que muda</a></li>
   </ul>
 </header>
 
-<section class="bloco largo" id="em-uso">
+<section class="bloco" id="identidade">
   <div class="regra">
-    <h2>As peças em uso</h2>
-    <p>O mês inteiro numa tela só, com os dias um depois do outro. A régua no alto mostra todos os dias e leva a qualquer um deles; os que estão em âmbar têm vaga obrigatória vazia. Clique numa vaga tracejada para escolher o militar, numa placa para trocar ou remover, e em Gerar pré-escala.</p>
-    <p class="nota">É um exemplo para ver as peças juntas, montado como a tela funciona hoje. Não traz tudo o que ela tem: a escolha da escala, as cotas restantes e o acúmulo ficam para o mockup da Escala do mês.</p>
-  </div>
-  <div class="moldura" id="quadro-pc" data-quadro></div>
-  <noscript><p class="nota">O exemplo precisa de JavaScript ligado no navegador.</p></noscript>
-  <ul class="olhar">
-    <li><b>O mês numa tela só</b>Os dias vêm um depois do outro, com o número parado à esquerda. A régua mostra onde você está e onde falta gente.</li>
-    <li><b>Sem caixa dentro de caixa</b>Turnos em colunas, funções em linhas, e só a placa e a vaga têm contorno. Hoje são quatro caixas, uma dentro da outra.</li>
-    <li><b>O que falta aparece de longe</b>Vaga obrigatória vazia fica em âmbar, na tela e na régua, e é contada no alto. O que está completo fica quieto.</li>
-    <li><b>Remover responde com Desfazer</b>Hoje pede confirmação. Aqui a resposta aparece embaixo, e Removidos continua lá, com Permitir de novo.</li>
-  </ul>
-</section>
-
-<section class="bloco" id="placa">
-  <div class="regra">
-    <h2>Placa e encaixe</h2>
-    <p>A placa é o militar. O encaixe é a vaga. O mesmo desenho vale na Grade, na Escala do mês, no Efetivo por dia e na lista de escolha.</p>
-    <p>Tracejado quer dizer sempre a mesma coisa: lugar vazio à espera.</p>
-    <p class="nota">A cor do serviço vem do cadastro e nunca fica atrás de texto. Qualquer cor que o usuário escolher continua legível.</p>
+    <h2>Identidade</h2>
+    <p>O vinho, a Barlow, os brasões e a foto do combate dizem de quem é o sistema. Isso fica.</p>
+    <p class="nota">O que muda é o que está por baixo: onde cada coisa fica e o que cada cor quer dizer.</p>
   </div>
   <div class="prancha">
     <div class="peca">
-      <h3>A placa por dentro</h3>
-      <div>
-        <div class="anatomia">
-          <div class="zoom"><span class="placa parada e-passa" style="--servico:var(--jes)"><span class="quem"><span class="posto">SD</span><span class="nome">MOURA</span></span><span class="serv">JES</span><span class="abre-acoes"><svg class="i"><use href="#i-pontos"/></svg></span></span></div>
-          <span class="n" style="left:1%">1</span><span class="n" style="left:15%">2</span><span class="n" style="left:38%">3</span><span class="n" style="left:79%">4</span><span class="n" style="left:93.5%">5</span>
-        </div>
-      </div>
-      <ol class="numerada">
-        <li><span>1</span><span>A cor do serviço, na borda. Vem do cadastro do serviço.</span></li>
-        <li><span>2</span><span>O posto, em 13 px, apagado.</span></li>
-        <li><span>3</span><span>O nome de guerra, em 17 px, na letra estreita e forte.</span></li>
-        <li><span>4</span><span>O serviço por extenso, só quando não é o Pronto.</span></li>
-        <li><span>5</span><span>As ações ficam recolhidas: a placa inteira é o botão.</span></li>
-      </ol>
+      <h3>A casa</h3>
+      <div class="marca-da-casa"><img src="../img/brasao-2gb.png" alt="Brasão do 2º Grupamento de Bombeiros"><span><b>Escalas 2º GB</b><span>Corpo de Bombeiros Militar de Pernambuco</span></span></div>
+      <p class="leg">O vinho é a cor da casa: o menu, a entrada e a ação principal de cada tela. A letra é a Barlow, com a versão estreita nos nomes e nos títulos.</p>
     </div>
-
     <div class="peca">
-      <h3>Estados da placa</h3>
-      <div class="tripla">
-        <div class="caso"><span class="placa parada" style="--servico:var(--pronto)"><span class="quem"><span class="posto">2º SGT</span><span class="nome">RAMALHO</span></span></span><small>Parada. No Pronto, só a cor diz o serviço.</small></div>
-        <div class="caso"><span class="placa parada e-passa" style="--servico:var(--pronto)"><span class="quem"><span class="posto">2º SGT</span><span class="nome">RAMALHO</span></span><span class="abre-acoes"><svg class="i"><use href="#i-pontos"/></svg></span></span><small>Com o mouse em cima: as ações se anunciam.</small></div>
-        <div class="caso"><span class="placa parada e-foco" style="--servico:var(--pronto)"><span class="quem"><span class="posto">2º SGT</span><span class="nome">RAMALHO</span></span><span class="abre-acoes" style="opacity:1"><svg class="i"><use href="#i-pontos"/></svg></span></span><small>Em foco, pelo teclado.</small></div>
-        <div class="caso"><span class="placa parada" style="--servico:var(--saldo)"><span class="quem"><span class="posto">SD</span><span class="nome">LEAL</span></span><span class="serv">Saldo</span></span><small>De outro serviço: a cor e o nome.</small></div>
-        <div class="caso"><span class="placa parada" style="--servico:var(--pronto)"><span class="quem"><span class="posto">CB</span><span class="nome">VIEIRA</span></span><span class="serv">acumula com APH</span></span><small>Acumula duas guarnições no mesmo turno.</small></div>
-        <div class="caso"><span class="placa parada em-choque" style="--servico:var(--jes)"><span class="quem"><span class="posto">SD</span><span class="nome">MOURA</span></span><svg class="i"><use href="#i-erro"/></svg></span><p class="msg-erro"><svg class="i"><use href="#i-erro"/></svg>Choque: MOURA já está no JES das 13h às 19h.</p></div>
+      <h3>Brasões</h3>
+      <div class="brasoes">
+        <figure><img src="../img/brasao-cbmpe.png" alt="Brasão do Corpo de Bombeiros Militar de Pernambuco">CBMPE</figure>
+        <figure><img src="../img/brasao-2gb.png" alt="Brasão do 2º Grupamento de Bombeiros">2º GB</figure>
+        <figure class="no-vinho"><img src="../img/brasao-cbmpe.png" alt="">CBMPE, sobre o vinho</figure>
+        <figure class="no-vinho"><img src="../img/brasao-2gb.png" alt="">2º GB, sobre o vinho</figure>
       </div>
+      <p class="leg">Cada nível da estrutura tem o seu brasão, e o menu mostra o da unidade escolhida. Quem ainda não tem usa o do nível de cima. O brasão aparece inteiro, sem recorte redondo e sem moldura.</p>
     </div>
-
     <div class="peca">
-      <h3>O encaixe</h3>
-      <div class="tripla">
-        <div class="caso"><span class="encaixe obrigatoria"><svg class="i"><use href="#i-mais"/></svg>Escolher militar</span><small>Vaga obrigatória: âmbar, porque falta.</small></div>
-        <div class="caso"><span class="encaixe opcional"><svg class="i"><use href="#i-mais"/></svg>Vaga opcional</span><small>Vaga opcional: cinza e quieta.</small></div>
-        <div class="caso"><span class="encaixe obrigatoria e-passa"><svg class="i"><use href="#i-mais"/></svg>Escolher militar</span><small>Com o mouse em cima, o tracejado fecha.</small></div>
+      <h3>Foto</h3>
+      <img class="faixa-de-foto" src="../img/boas-vindas.jpg" alt="Dois bombeiros com a mangueira diante de um prédio em chamas, à noite.">
+      <p class="leg">A foto do combate aparece na entrada e, numa faixa baixa, na tela inicial. Nunca fica atrás de texto de trabalho nem empurra o conteúdo para fora da tela.</p>
+    </div>
+    <div class="peca">
+      <h3>Como o sistema fala</h3>
+      <div class="sup rolagem" style="padding:0">
+        <table class="tabela">
+          <thead><tr><th scope="col">Assim</th><th scope="col">E não assim</th><th scope="col">Por quê</th></tr></thead>
+          <tbody>
+            <tr><td class="quebra">2º SGT RAMALHO</td><td class="quebra">2º SGT BM RAMALHO</td><td class="quebra">"BM" não é posto: o sistema é só de bombeiros.</td></tr>
+            <tr><td class="quebra">Nível de acesso</td><td class="quebra">Papel</td><td class="quebra">É o nome que as telas usam desde 22/11/2026.</td></tr>
+            <tr><td class="quebra">Salvar ficha</td><td class="quebra">Enviar</td><td class="quebra">O botão diz o que vai acontecer.</td></tr>
+            <tr><td class="quebra">A matrícula tem 6 números, um traço e 1 número.</td><td class="quebra">Formato inválido.</td><td class="quebra">O erro diz como acertar.</td></tr>
+            <tr><td class="quebra">Faltam 2</td><td class="quebra">2 pendências de alocação</td><td class="quebra">Frase curta, sem jargão.</td></tr>
+          </tbody>
+        </table>
       </div>
     </div>
+  </div>
+</section>
 
-    <div class="peca">
-      <h3>Três tamanhos, o mesmo desenho</h3>
-      <div class="dupla">
-        <div class="caso">
-          <span class="placa parada" style="--servico:var(--pronto)"><span class="quem"><span class="posto">1º SGT</span><span class="nome">FALCÃO</span></span></span>
-          <small>Placa, de 36 px: nos quadros de guarnição. No toque, 44 px.</small>
-        </div>
-        <div class="caso">
-          <span class="placa parada linha" style="--servico:var(--jes)"><span class="quem"><span class="posto">3º SGT</span><span class="nome">LACERDA</span></span><span class="mat">990018-7</span><span class="etiqueta"><span class="cor" style="--servico:var(--jes)"></span>JES</span></span>
-          <small>Linha, de 44 px: nas listas. Ganha a matrícula e a etiqueta do serviço.</small>
-        </div>
-      </div>
-      <div class="caso">
-        <div class="sup rolagem" style="padding:0;width:fit-content">
-          <table class="grade">
-            <thead><tr><th scope="col"><span class="so-leitor">Militar</span></th><th scope="col" class="hoje">seg<b>23</b></th><th scope="col">ter<b>24</b></th><th scope="col">qua<b>25</b></th><th scope="col">qui<b>26</b></th><th scope="col">sex<b>27</b></th><th scope="col" class="fds">sáb<b>28</b></th><th scope="col" class="fds">dom<b>29</b></th></tr></thead>
-            <tbody>
-              <tr><th scope="row"><span class="posto">2º SGT</span><span class="nome">RAMALHO</span></th><td class="hoje"></td><td><span class="marca" style="--servico:var(--pronto)">A</span></td><td></td><td></td><td><span class="marca" style="--servico:var(--pronto)">A</span></td><td class="fds"></td><td class="fds"></td></tr>
-              <tr><th scope="row"><span class="posto">CB</span><span class="nome">VIEIRA</span></th><td class="hoje"><span class="marca" style="--servico:var(--pronto)">B</span></td><td><span class="marca" style="--servico:var(--pronto)">A</span></td><td></td><td><span class="marca" style="--servico:var(--pronto)">B</span></td><td></td><td class="fds"></td><td class="fds"><span class="marca" style="--servico:var(--pronto)">B</span></td></tr>
-              <tr><th scope="row"><span class="posto">SD</span><span class="nome">MOURA</span></th><td class="hoje"></td><td><span class="marca" style="--servico:var(--jes)">A</span></td><td><span class="marca" style="--servico:var(--pronto)">B</span></td><td></td><td></td><td class="fds"><span class="marca" style="--servico:var(--pronto)">B</span></td><td class="fds"></td></tr>
-            </tbody>
-          </table>
-        </div>
-        <small>Marca, de 32 px: na Grade, a placa vira a letra do turno com a cor do serviço embaixo. O dia de hoje fica marcado e o fim de semana em cinza. O desenho da Grade vem no mockup dela.</small>
-      </div>
-    </div>
-
-    <div class="peca">
-      <h3>A mesma guarnição, hoje e com as peças novas</h3>
-      <div class="dupla">
-        <div class="caso">
-          <div class="hoje-dia" aria-label="Como é hoje">
-            <b>Terça, 24 de novembro</b>
-            <div class="hoje-turno">
-              <span>Turno A, 07h às 19h</span>
-              <div class="hoje-card">
-                <header><b>ABT</b><span class="hoje-faltam"><i></i>Faltam 1</span></header>
-                <div class="hoje-funcao"><span>Comandante</span><div class="hoje-linha"><small>2º SGT</small><b>RAMALHO</b><small>990012-3</small><span class="chip">Pronto</span><span class="remover">Remover</span></div></div>
-                <div class="hoje-funcao"><span>Motorista (CNH D)</span><div class="hoje-vaga"><svg class="i"><use href="#i-mais"/></svg>Escolher militar</div></div>
-                <div class="hoje-funcao"><span>Auxiliar</span><div class="hoje-linha"><small>CB</small><b>VIEIRA</b><small>990027-5</small><span class="chip">Pronto</span><span class="remover">Remover</span></div></div>
-              </div>
-            </div>
-          </div>
-          <small>Hoje (recriado a partir do site): quatro caixas, o serviço em letra branca sobre a cor, e um Remover de 17 px de altura em cada linha.</small>
-        </div>
-        <div class="caso">
-          <div class="guarnicao">
-            <header><div><p class="titulo">ABT</p><p>ABT-014</p></div><span class="estado etiqueta falta">Falta 1</span></header>
-            <div class="funcao"><p class="rotulo"><b>Comandante</b></p><ul class="lugares"><li><span class="placa parada" style="--servico:var(--pronto)"><span class="quem"><span class="posto">2º SGT</span><span class="nome">RAMALHO</span></span></span></li></ul></div>
-            <div class="funcao"><p class="rotulo"><b>Motorista</b>CNH D</p><ul class="lugares"><li><span class="encaixe obrigatoria"><svg class="i"><use href="#i-mais"/></svg>Escolher militar</span></li></ul></div>
-            <div class="funcao"><p class="rotulo"><b>Auxiliar</b></p><ul class="lugares"><li><span class="placa parada" style="--servico:var(--pronto)"><span class="quem"><span class="posto">CB</span><span class="nome">VIEIRA</span></span></span></li></ul></div>
-          </div>
-          <small>Com as peças novas, na forma do celular: uma caixa, a placa inteira clicável e a falta em âmbar. No computador, o mês usa as mesmas peças em linhas, como no exemplo do alto. A matrícula passa para a lista de escolha e para a ficha.</small>
-        </div>
-      </div>
+<section class="bloco" id="diretrizes">
+  <div class="regra">
+    <h2>Diretrizes do usuário</h2>
+    <p>De 23/11/2026. Valem acima de qualquer mockup.</p>
+    <p class="nota">As diretrizes de uma tela só ficam na área dela: todos os dias na mesma tela, turnos em colunas e um cartão por guarnição em cada turno, na Escala do mês; sem a marca do dia de hoje, na Grade geral; o painel de Cotas sem rolagem de lado, na Escala dos oficiais.</p>
+  </div>
+  <div class="prancha">
+    <div class="sup">
+      <ul class="regras-da-casa">
+        <li><b>Mockup é guia, não gabarito</b>As peças dão a direção de desenho e a identidade. Não se copiam inteiras: a implementação adequa cada uma ao software que existe e registra a diferença.</li>
+        <li><b>Posto sem "BM"</b>Em toda tela e peça o posto aparece como SD, CB, 3º SGT, 2º TEN, SUB TEN.</li>
+        <li><b>O menu tem ícones</b>Ajudam a lembrar de cada tela. Ficam antes do nome, na mesma linha; no celular, numa barra embaixo, em cima do nome.</li>
+        <li><b>O topo do menu acompanha a unidade</b>O brasão e o nome são os da unidade escolhida na árvore. Cada nível tem o seu brasão.</li>
+      </ul>
     </div>
   </div>
 </section>
@@ -749,6 +208,142 @@ ul,ol{padding:0;list-style:none}
       <div class="caso">
         <ul class="espacos"><li><i style="width:4px"></i>4</li><li><i style="width:8px"></i>8</li><li><i style="width:12px"></i>12</li><li><i style="width:16px"></i>16</li><li><i style="width:24px"></i>24</li><li><i style="width:32px"></i>32</li><li><i style="width:48px"></i>48</li></ul>
         <small>Sete espaços, em px. Separar por espaço e por linha vem antes de pôr mais uma caixa.</small>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="bloco" id="icones">
+  <div class="regra">
+    <h2>Ícones</h2>
+    <p>Os desenhos de hoje, refeitos num traço só, para lembrar de cada tela sem competir com o nome.</p>
+    <p class="nota">Todo ícone do menu vem com o nome. Sozinho, só em botão de uso conhecido, como fechar e as setas, e sempre com o nome para leitor de tela.</p>
+  </div>
+  <div class="prancha">
+    <div class="peca">
+      <h3>Ícones do menu</h3>
+      <div class="sup"><ul class="icones">
+        <li><svg class="im" aria-hidden="true"><use href="#m-grade"/></svg>Grade geral</li>
+        <li><svg class="im" aria-hidden="true"><use href="#m-escala"/></svg>Escala do mês</li>
+        <li><svg class="im" aria-hidden="true"><use href="#m-efetivo"/></svg>Efetivo por dia</li>
+        <li><svg class="im" aria-hidden="true"><use href="#m-oficiais"/></svg>Oficiais</li>
+        <li><svg class="im" aria-hidden="true"><use href="#m-voluntariado"/></svg>Voluntariado</li>
+        <li><svg class="im" aria-hidden="true"><use href="#m-cotas"/></svg>Cotas</li>
+        <li><svg class="im" aria-hidden="true"><use href="#m-militares"/></svg>Militares</li>
+        <li><svg class="im" aria-hidden="true"><use href="#m-turnos"/></svg>Turnos</li>
+        <li><svg class="im" aria-hidden="true"><use href="#m-escalas"/></svg>Escalas</li>
+        <li><svg class="im" aria-hidden="true"><use href="#m-feriados"/></svg>Feriados</li>
+        <li><svg class="im" aria-hidden="true"><use href="#m-config"/></svg>Configurações</li>
+        <li><svg class="im" aria-hidden="true"><use href="#m-estrutura"/></svg>Estrutura</li>
+        <li><svg class="im" aria-hidden="true"><use href="#m-historico"/></svg>Histórico</li>
+        <li><svg class="im" aria-hidden="true"><use href="#m-ajuda"/></svg>Ajuda</li>
+      </ul></div>
+      <p class="leg">Traço de 1,75 numa grade de 24, pontas redondas e nada preenchido. No menu ficam antes do nome, na mesma linha, com 20 px; na barra de baixo do celular, em cima do nome, com 22 px.</p>
+    </div>
+  </div>
+  </div>
+</section>
+
+<section class="bloco" id="placa">
+  <div class="regra">
+    <h2>Placa, encaixe e cartão</h2>
+    <p>A placa é o militar. O encaixe é a vaga. O cartão da guarnição junta a equipe. O mesmo desenho vale na Grade, na Escala do mês, no Efetivo por dia e na lista de escolha.</p>
+    <p>Tracejado quer dizer sempre a mesma coisa: lugar vazio à espera.</p>
+    <p class="nota">A cor do serviço vem do cadastro e nunca fica atrás de texto. Qualquer cor que o usuário escolher continua legível.</p>
+  </div>
+  <div class="prancha">
+    <div class="peca">
+      <h3>A placa por dentro</h3>
+      <div>
+        <div class="anatomia">
+          <div class="zoom"><span class="placa parada e-passa" style="--servico:var(--jes)"><span class="quem"><span class="posto">SD</span><span class="nome">MOURA</span></span><span class="serv">JES</span><span class="abre-acoes"><svg class="i"><use href="#i-pontos"/></svg></span></span></div>
+          <span class="n" style="left:1%">1</span><span class="n" style="left:15%">2</span><span class="n" style="left:38%">3</span><span class="n" style="left:79%">4</span><span class="n" style="left:93.5%">5</span>
+        </div>
+      </div>
+      <ol class="numerada">
+        <li><span>1</span><span>A cor do serviço, na borda. Vem do cadastro do serviço.</span></li>
+        <li><span>2</span><span>O posto, em 13 px, apagado.</span></li>
+        <li><span>3</span><span>O nome de guerra, em 17 px, na letra estreita e forte.</span></li>
+        <li><span>4</span><span>O serviço por extenso, só quando não é o Pronto.</span></li>
+        <li><span>5</span><span>As ações ficam recolhidas: a placa inteira é o botão.</span></li>
+      </ol>
+    </div>
+
+    <div class="peca">
+      <h3>Estados da placa</h3>
+      <div class="tripla">
+        <div class="caso"><span class="placa parada" style="--servico:var(--pronto)"><span class="quem"><span class="posto">2º SGT</span><span class="nome">RAMALHO</span></span></span><small>Parada. No Pronto, só a cor diz o serviço.</small></div>
+        <div class="caso"><span class="placa parada e-passa" style="--servico:var(--pronto)"><span class="quem"><span class="posto">2º SGT</span><span class="nome">RAMALHO</span></span><span class="abre-acoes"><svg class="i"><use href="#i-pontos"/></svg></span></span><small>Com o mouse em cima: as ações se anunciam.</small></div>
+        <div class="caso"><span class="placa parada e-foco" style="--servico:var(--pronto)"><span class="quem"><span class="posto">2º SGT</span><span class="nome">RAMALHO</span></span><span class="abre-acoes" style="opacity:1"><svg class="i"><use href="#i-pontos"/></svg></span></span><small>Em foco, pelo teclado.</small></div>
+        <div class="caso"><span class="placa parada" style="--servico:var(--saldo)"><span class="quem"><span class="posto">SD</span><span class="nome">LEAL</span></span><span class="serv">Saldo</span></span><small>De outro serviço: a cor e o nome.</small></div>
+        <div class="caso"><span class="placa parada" style="--servico:var(--pronto)"><span class="quem"><span class="posto">CB</span><span class="nome">VIEIRA</span></span><span class="serv">acumula com APH</span></span><small>Acumula duas guarnições no mesmo turno.</small></div>
+        <div class="caso"><span class="placa parada em-choque" style="--servico:var(--jes)"><span class="quem"><span class="posto">SD</span><span class="nome">MOURA</span></span><svg class="i"><use href="#i-erro"/></svg></span><p class="msg-erro"><svg class="i"><use href="#i-erro"/></svg>Choque: MOURA já está no JES das 13h às 19h.</p></div>
+      </div>
+    </div>
+
+    <div class="peca">
+      <h3>O encaixe</h3>
+      <div class="tripla">
+        <div class="caso"><span class="encaixe obrigatoria"><svg class="i"><use href="#i-mais"/></svg>Escolher militar</span><small>Vaga obrigatória: âmbar, porque falta.</small></div>
+        <div class="caso"><span class="encaixe opcional"><svg class="i"><use href="#i-mais"/></svg>Vaga opcional</span><small>Vaga opcional: cinza e quieta.</small></div>
+        <div class="caso"><span class="encaixe obrigatoria e-passa"><svg class="i"><use href="#i-mais"/></svg>Escolher militar</span><small>Com o mouse em cima, o tracejado fecha.</small></div>
+      </div>
+    </div>
+
+    <div class="peca">
+      <h3>Três tamanhos, o mesmo desenho</h3>
+      <div class="dupla">
+        <div class="caso">
+          <span class="placa parada" style="--servico:var(--pronto)"><span class="quem"><span class="posto">1º SGT</span><span class="nome">FALCÃO</span></span></span>
+          <small>Placa, de 36 px: nos quadros de guarnição. No toque, 44 px.</small>
+        </div>
+        <div class="caso">
+          <span class="placa parada linha" style="--servico:var(--jes)"><span class="quem"><span class="posto">3º SGT</span><span class="nome">LACERDA</span></span><span class="mat">990018-7</span><span class="etiqueta"><span class="cor" style="--servico:var(--jes)"></span>JES</span></span>
+          <small>Linha, de 44 px: nas listas. Ganha a matrícula e a etiqueta do serviço.</small>
+        </div>
+      </div>
+      <div class="caso">
+        <div class="sup rolagem" style="padding:0;width:fit-content">
+          <table class="grade">
+            <thead><tr><th scope="col"><span class="so-leitor">Militar</span></th><th scope="col">seg<b>23</b></th><th scope="col">ter<b>24</b></th><th scope="col">qua<b>25</b></th><th scope="col">qui<b>26</b></th><th scope="col">sex<b>27</b></th><th scope="col" class="fds">sáb<b>28</b></th><th scope="col" class="fds">dom<b>29</b></th></tr></thead>
+            <tbody>
+              <tr><th scope="row"><span class="posto">2º SGT</span><span class="nome">RAMALHO</span></th><td></td><td><span class="marca" style="--servico:var(--pronto)">A</span></td><td></td><td></td><td><span class="marca" style="--servico:var(--pronto)">A</span></td><td class="fds"></td><td class="fds"></td></tr>
+              <tr><th scope="row"><span class="posto">CB</span><span class="nome">VIEIRA</span></th><td><span class="marca" style="--servico:var(--pronto)">B</span></td><td><span class="marca" style="--servico:var(--pronto)">A</span></td><td></td><td><span class="marca" style="--servico:var(--pronto)">B</span></td><td></td><td class="fds"></td><td class="fds"><span class="marca" style="--servico:var(--pronto)">B</span></td></tr>
+              <tr><th scope="row"><span class="posto">SD</span><span class="nome">MOURA</span></th><td></td><td><span class="marca" style="--servico:var(--jes)">A</span></td><td><span class="marca" style="--servico:var(--pronto)">B</span></td><td></td><td></td><td class="fds"><span class="marca" style="--servico:var(--pronto)">B</span></td><td class="fds"></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <small>Marca, de 32 px: na Grade, a placa vira a letra do turno com a cor do serviço embaixo. O fim de semana fica em cinza e a Grade não marca o dia de hoje. O desenho dela fica na área da Grade geral.</small>
+      </div>
+    </div>
+
+    <div class="peca">
+      <h3>A mesma guarnição, hoje e com as peças novas</h3>
+      <div class="dupla">
+        <div class="caso">
+          <div class="hoje-dia" aria-label="Como é hoje">
+            <b>Terça, 24 de novembro</b>
+            <div class="hoje-turno">
+              <span>Turno A, 07h às 19h</span>
+              <div class="hoje-card">
+                <header><b>ABT</b><span class="hoje-faltam"><i></i>Faltam 1</span></header>
+                <div class="hoje-funcao"><span>Comandante</span><div class="hoje-linha"><small>2º SGT</small><b>RAMALHO</b><small>990012-3</small><span class="chip">Pronto</span><span class="remover">Remover</span></div></div>
+                <div class="hoje-funcao"><span>Motorista (CNH D)</span><div class="hoje-vaga"><svg class="i"><use href="#i-mais"/></svg>Escolher militar</div></div>
+                <div class="hoje-funcao"><span>Auxiliar</span><div class="hoje-linha"><small>CB</small><b>VIEIRA</b><small>990027-5</small><span class="chip">Pronto</span><span class="remover">Remover</span></div></div>
+              </div>
+            </div>
+          </div>
+          <small>Hoje (recriado a partir do site): quatro caixas, o serviço em letra branca sobre a cor, e um Remover de 17 px de altura em cada linha.</small>
+        </div>
+        <div class="caso">
+          <div class="guarnicao">
+            <header><div><p class="titulo">ABT</p><p>ABT-014</p></div><span class="estado etiqueta falta">Falta 1</span></header>
+            <div class="funcao"><p class="rotulo"><b>Comandante</b></p><ul class="lugares"><li><span class="placa parada" style="--servico:var(--pronto)"><span class="quem"><span class="posto">2º SGT</span><span class="nome">RAMALHO</span></span></span></li></ul></div>
+            <div class="funcao"><p class="rotulo"><b>Motorista</b>CNH D</p><ul class="lugares"><li><span class="encaixe obrigatoria"><svg class="i"><use href="#i-mais"/></svg>Escolher militar</span></li></ul></div>
+            <div class="funcao"><p class="rotulo"><b>Auxiliar</b></p><ul class="lugares"><li><span class="placa parada" style="--servico:var(--pronto)"><span class="quem"><span class="posto">CB</span><span class="nome">VIEIRA</span></span></span></li></ul></div>
+          </div>
+          <small>Com as peças novas: um cartão por guarnição, que junta a equipe; a placa inteira clicável e a falta em âmbar. A matrícula passa para a lista de escolha e para a ficha.</small>
+        </div>
       </div>
     </div>
   </div>
@@ -932,7 +527,7 @@ ul,ol{padding:0;list-style:none}
     <h2>Moldura da tela</h2>
     <p>Título, mês, ação principal, filtros e resposta ficam no mesmo ponto em todas as telas.</p>
     <p>Tela de trabalho usa a largura toda. Tela de leitura, como cadastros e configurações, tem largura limitada.</p>
-    <p class="nota">O menu, o topo e o seletor de unidade ganham desenho próprio no mockup da navegação. Os ícones já estão aqui.</p>
+    <p class="nota">O menu, o topo e o seletor de unidade ganham desenho próprio na área "Tela inicial e moldura". O topo do menu e os ícones já estão aqui.</p>
   </div>
   <div class="prancha">
     <div class="dupla">
@@ -950,64 +545,84 @@ ul,ol{padding:0;list-style:none}
       </div>
     </div>
     <div class="fila alto">
-      <div class="caso"><div class="esquema cel" role="img" aria-label="Celular: a marca no alto; título e ação principal; mês e dias; a área de trabalho com um dia por vez; a resposta; e o menu numa barra embaixo."><div class="e-topo">Marca</div><div class="e-titulo">Título</div><div class="e-acao">Ação</div><div class="e-mes">Mês e dias</div><div class="e-area">Um dia por vez</div><div class="e-resposta">Resposta</div><div class="e-menu">Menu, com o ícone em cima do nome</div></div><small>Celular.</small></div>
-      <div class="caso"><div class="esquema cel" role="img" aria-label="Celular com o painel de detalhe aberto, subindo de baixo, acima do menu."><div class="e-topo">Marca</div><div class="e-titulo">Título</div><div class="e-acao">Ação</div><div class="e-mes">Mês e dias</div><div class="e-area">Um dia por vez</div><div class="e-painel">Painel de detalhe, subindo de baixo</div><div class="e-resposta">Resposta</div><div class="e-menu">Menu, com o ícone em cima do nome</div></div><small>Celular, com o painel aberto.</small></div>
+      <div class="caso"><div class="esquema cel" role="img" aria-label="Celular: a marca no alto; título e ação principal; mês e dias; a área de trabalho com um dia por vez; a resposta; e o menu numa barra embaixo."><div class="e-topo">Marca</div><div class="e-titulo">Título</div><div class="e-acao">Ação</div><div class="e-mes">Mês ou dia</div><div class="e-area">Área de trabalho</div><div class="e-resposta">Resposta</div><div class="e-menu">Menu, com o ícone em cima do nome</div></div><small>Celular.</small></div>
+      <div class="caso"><div class="esquema cel" role="img" aria-label="Celular com o painel de detalhe aberto, subindo de baixo, acima do menu."><div class="e-topo">Marca</div><div class="e-titulo">Título</div><div class="e-acao">Ação</div><div class="e-mes">Mês ou dia</div><div class="e-area">Área de trabalho</div><div class="e-painel">Painel de detalhe, subindo de baixo</div><div class="e-resposta">Resposta</div><div class="e-menu">Menu, com o ícone em cima do nome</div></div><small>Celular, com o painel aberto.</small></div>
     </div>
     <div class="peca">
-      <h3>Ícones do menu</h3>
-      <div class="sup"><ul class="icones">
-        <li><svg class="im" aria-hidden="true"><use href="#m-grade"/></svg>Grade geral</li>
-        <li><svg class="im" aria-hidden="true"><use href="#m-escala"/></svg>Escala do mês</li>
-        <li><svg class="im" aria-hidden="true"><use href="#m-efetivo"/></svg>Efetivo por dia</li>
-        <li><svg class="im" aria-hidden="true"><use href="#m-oficiais"/></svg>Oficiais</li>
-        <li><svg class="im" aria-hidden="true"><use href="#m-voluntariado"/></svg>Voluntariado</li>
-        <li><svg class="im" aria-hidden="true"><use href="#m-cotas"/></svg>Cotas</li>
-        <li><svg class="im" aria-hidden="true"><use href="#m-militares"/></svg>Militares</li>
-        <li><svg class="im" aria-hidden="true"><use href="#m-turnos"/></svg>Turnos</li>
-        <li><svg class="im" aria-hidden="true"><use href="#m-escalas"/></svg>Escalas</li>
-        <li><svg class="im" aria-hidden="true"><use href="#m-feriados"/></svg>Feriados</li>
-        <li><svg class="im" aria-hidden="true"><use href="#m-config"/></svg>Configurações</li>
-        <li><svg class="im" aria-hidden="true"><use href="#m-estrutura"/></svg>Estrutura</li>
-        <li><svg class="im" aria-hidden="true"><use href="#m-historico"/></svg>Histórico</li>
-        <li><svg class="im" aria-hidden="true"><use href="#m-ajuda"/></svg>Ajuda</li>
-      </ul></div>
-      <p class="leg">Os desenhos de hoje, refeitos num traço só: 1,75 de espessura numa grade de 24, pontas redondas e nada preenchido. No menu ficam antes do nome, na mesma linha; na barra de baixo do celular, em cima do nome.</p>
+      <h3>Topo do menu</h3>
+      <div class="topos">
+        <div class="caso"><div class="menu avulso"><div class="casa"><img src="../img/brasao-cbmpe.png" alt=""><span><b>CBMPE</b><small>Corpo de Bombeiros Militar de Pernambuco</small></span></div></div><small>O nível mais alto, com o brasão dele.</small></div>
+        <div class="caso"><div class="menu avulso"><div class="casa"><img src="../img/brasao-2gb.png" alt=""><span><b>2º GB</b><small>2º Grupamento de Bombeiros</small></span></div></div><small>O grupamento.</small></div>
+        <div class="caso"><div class="menu avulso"><div class="casa"><img src="../img/brasao-2gb.png" alt=""><span><b>DivOp</b><small>Divisão Operacional</small></span></div></div><small>Nível que ainda não tem brasão: usa o do nível de cima.</small></div>
+        <div class="caso"><div class="menu avulso"><div class="casa"><img src="../img/brasao-2gb.png" alt=""><span><b>1ª SB</b><small>1ª Seção de Bombeiros</small></span></div></div><small>A seção.</small></div>
+        <div class="caso"><div class="menu avulso"><div class="casa" title="3ª SB Destacada do Litoral Norte: Terceira Seção de Bombeiros Destacada do Litoral Norte e da Zona da Mata"><img src="../img/brasao-2gb.png" alt=""><span><b>3ª SB Destacada do Litoral Norte</b><small>Terceira Seção de Bombeiros Destacada do Litoral Norte e da Zona da Mata</small></span></div></div><small>Nome longo (fictício): a sigla numa linha e o nome em até duas. O que não cabe corta com reticências e aparece inteiro na dica.</small></div>
+      </div>
+      <p class="leg">O brasão e o texto são os da unidade escolhida na árvore, e mudam quando a pessoa troca de unidade. O brasão aparece inteiro, sem recorte redondo, numa área de 40 px. No celular, a área é de 32 px e o nome fica numa linha só.</p>
     </div>
   </div>
+</section>
+
+<section class="bloco largo" id="em-uso">
+  <div class="regra">
+    <h2>As peças em uso</h2>
+    <p>Um dia de exemplo com as peças juntas: os dois turnos, as guarnições em cartões, o menu com ícones e o topo com a unidade. Clique numa vaga tracejada para escolher o militar, numa placa para trocar ou remover, e em Gerar pré-escala. Avance para dezembro para ver o mês sem ninguém escalado.</p>
+    <p class="nota">Não é o desenho de nenhuma tela. Os cartões seguem a sua escolha: um por guarnição em cada turno, com a equipe que sai junta na viatura. O mês inteiro, com os turnos em colunas, fica na área da Escala do mês.</p>
   </div>
+  <div class="moldura" id="quadro-pc" data-quadro></div>
+  <noscript><p class="nota">O exemplo precisa de JavaScript ligado no navegador.</p></noscript>
 </section>
 
 <section class="bloco" id="celular">
   <div class="regra">
     <h2>No celular</h2>
-    <p>Outro desenho, e não o do computador mais estreito: um dia por vez, escolhido na régua; alvos de 44 px; o menu numa barra embaixo, com o ícone em cima do nome; e o painel subindo de baixo.</p>
-    <p class="nota">É o mesmo exemplo de cima, com as mesmas peças. Os itens da barra de baixo e o desenho final de cada tela no celular vêm nos mockups da navegação e das telas.</p>
+    <p>Outro desenho, e não o do computador mais estreito: alvos de 44 px; o menu numa barra embaixo, com o ícone em cima do nome; a ação principal no alto, ao lado do título; e o painel subindo de baixo.</p>
+    <p class="nota">É o mesmo exemplo de cima, com as mesmas peças. Quais itens vão na barra de baixo fica na área "Tela inicial e moldura"; o desenho de cada tela no celular, na área dela.</p>
   </div>
   <div class="prancha" style="justify-items:center">
     <div class="moldura celular" id="quadro-cel" data-quadro></div>
   </div>
 </section>
 
+<section class="bloco" id="o-que-muda">
+  <div class="regra">
+    <h2>O que muda em todas as telas</h2>
+    <p>O que estas diretrizes propõem de diferente do comportamento de hoje. Cada item precisa do seu aceite antes de entrar num plano.</p>
+    <p class="nota">O resto é desenho: a mesma informação e as mesmas ações de hoje, com outra forma.</p>
+  </div>
+  <div class="prancha">
+    <div class="sup rolagem" style="padding:0">
+      <table class="tabela">
+        <thead><tr><th scope="col">Hoje</th><th scope="col">Proposta</th></tr></thead>
+        <tbody>
+          <tr><td class="quebra">Remover pede confirmação pela caixa do navegador. O militar vai para Removidos, e Permitir de novo tira a marca sem devolver à vaga.</td><td class="quebra">Remover não pergunta: responde com o aviso, que diz a mesma consequência, e Desfazer, que devolve o militar à vaga. Removidos e Permitir de novo continuam.</td></tr>
+          <tr><td class="quebra">Para trocar, remove-se um e escolhe-se outro.</td><td class="quebra">Trocar militar, no menu da placa: remove e abre a escolha em seguida.</td></tr>
+          <tr><td class="quebra">Escolher militar é um diálogo no meio da tela.</td><td class="quebra">Abre no painel de detalhe, ao lado, com o quadro à vista. O conteúdo é o de hoje.</td></tr>
+          <tr><td class="quebra">A matrícula aparece em cada linha da guarnição.</td><td class="quebra">Sai da placa. Fica na dica da placa, na lista de escolha e na ficha.</td></tr>
+          <tr><td class="quebra">No celular, o menu abre de lado, por um botão.</td><td class="quebra">O menu fica numa barra embaixo, com o ícone em cima do nome.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
 <section class="fecho">
   <h2>O que vem depois</h2>
-  <p>Com este mockup aprovado, a base entra no código: as cores e os tamanhos com nome, os componentes, a placa, o encaixe, a moldura e a resposta do sistema. Nenhuma regra de negócio muda.</p>
-  <ul>
-    <li>Depois vem um mockup por tela: Grade geral, Escala do mês, navegação e tela inicial, fichas.</li>
-    <li>As telas de consulta da fase 7 já nascem com estas peças.</li>
-  </ul>
+  <p>Com estas diretrizes aprovadas, a base entra no código: as cores e os tamanhos com nome, os componentes, a placa, o encaixe, o cartão, a moldura e a resposta do sistema. Nenhuma regra de negócio muda.</p>
+  <p>As telas vêm uma por vez, cada uma na sua área. A próxima é a Grade geral. <a class="voltar" href="../index.html">Ver todas as áreas</a></p>
 </section>
 
 </div>
 
+<script src="../pecas.js"></script>
 <script>
 (function () {
   'use strict';
+  // Demonstração das peças: um dia de exemplo, com as guarnições em cartões. Não é o desenho de nenhuma tela.
   var COR = { Pronto: 'var(--pronto)', JES: 'var(--jes)', Saldo: 'var(--saldo)' };
   var ORDEM = ['Pronto', 'JES', 'Saldo'];
   // hierarquia do CTB usada no sistema: a categoria de quem dirige e as que ela habilita
   var HABILITA = { A: ['A'], B: ['B'], C: ['C', 'B'], D: ['D', 'C', 'B'], E: ['E', 'D', 'C', 'B'] };
   var SEMANA = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
-  var INICIAL = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S'];
   var P = {
     ramalho: { posto: '2º SGT', nome: 'RAMALHO', mat: '990012-3', serv: 'Pronto', cnh: 'D', eq: 'Alfa' },
     dantas: { posto: 'CB', nome: 'DANTAS', mat: '990025-9', serv: 'Pronto', cnh: 'D', eq: 'Alfa' },
@@ -1029,18 +644,16 @@ ul,ol{padding:0;list-style:none}
     azevedo: { posto: 'CB', nome: 'AZEVEDO', mat: '990029-8', serv: 'Pronto', cnh: 'D', eq: 'Bravo', fora: true },
     barros: { posto: 'SD', nome: 'BARROS', mat: '990038-9', serv: 'Pronto', cnh: null, eq: 'Alfa' }
   };
-  // a equipe de cada dia: quem ocupa cada função quando ninguém falta
+  // a equipe do dia: quem ocupa cada função quando ninguém falta
   var EQUIPE = {
     Alfa: { abtCmt: 'ramalho', abtMot: 'dantas', abtAux: ['vieira'], aphMot: 'falcao', aphSoc: ['correia', 'moura'] },
     Bravo: { abtCmt: 'siqueira', abtMot: 'brandao', abtAux: ['rezende', 'leal'], aphMot: 'monteiro', aphSoc: ['amorim', 'freire'] }
   };
   var RESERVA = ['tavares', 'nogueira', 'lacerda', 'pimentel', 'azevedo', 'barros'];
-  // 1º/11/2026 cai num domingo e 1º/12/2026 numa terça; "hoje" é 23/11
+  // o exemplo tem um dia de cada mês: 24/11/2026 (terça) e 3/12/2026 (quinta)
   var MESES = {
-    nov: { nome: 'novembro', dias: 30, dow1: 0, hoje: 23, feriados: { 2: 'Finados', 15: 'Proclamação da República', 20: 'Consciência Negra' },
-      faltas: { '24A': 'abtMot', '25B': 'aphSoc1', '27A': 'abtCmt', '28B': 'aphMot', '29A': 'aphSoc0', '30B': 'abtMot' }, sem: { '24A': ['tavares'], '26B': ['barros'] } },
-    dez: { nome: 'dezembro', dias: 31, dow1: 2, hoje: 0, feriados: { 25: 'Natal' },
-      faltas: { '3A': 'abtMot', '9B': 'aphSoc1', '14A': 'aphMot', '20B': 'abtCmt', '26A': 'aphSoc0' }, sem: { '3A': ['tavares'] } }
+    nov: { nome: 'novembro', dia: 24, dow: 2, alfaDeDia: false, faltas: { A: 'abtMot' }, sem: { A: ['tavares'] } },
+    dez: { nome: 'dezembro', dia: 3, dow: 4, alfaDeDia: true, faltas: { B: 'aphSoc1' }, sem: { A: ['barros'] } }
   };
   var ITENS = [
     [['grade', 'Grade geral'], ['escala', 'Escala do mês'], ['efetivo', 'Efetivo por dia'], ['oficiais', 'Oficiais']],
@@ -1050,11 +663,11 @@ ul,ol{padding:0;list-style:none}
   ];
 
   function vagas(nome, cnh, min, max, ocup) { return { nome: nome, cnh: cnh, min: min, max: max, ocup: ocup }; }
-  function faixaNova(qual, n, letra, horas, eq, vazio) {
-    var e = EQUIPE[eq], falta = MESES[qual].faltas[n + letra] || '';
+  function faixaNova(qual, letra, horas, eq, vazio) {
+    var e = EQUIPE[eq], falta = MESES[qual].faltas[letra] || '';
     function quem(chave, ids) { return vazio ? [] : ids.filter(function (id, i) { return falta !== chave && falta !== chave + i; }); }
     return {
-      letra: letra, horas: horas, sem: vazio ? [] : (MESES[qual].sem[n + letra] || []).slice(), removidos: [], liberados: [],
+      letra: letra, horas: horas, sem: vazio ? [] : (MESES[qual].sem[letra] || []).slice(), removidos: [], liberados: [],
       guarnicoes: [
         { nome: 'ABT', viatura: 'ABT-014', funcoes: [vagas('Comandante', null, 1, 1, quem('abtCmt', [e.abtCmt])), vagas('Motorista', 'D', 1, 1, quem('abtMot', [e.abtMot])), vagas('Auxiliar', null, 1, 2, quem('abtAux', e.abtAux))] },
         { nome: 'APH', viatura: 'APH-022', funcoes: [vagas('Motorista', 'D', 1, 1, quem('aphMot', [e.aphMot])), vagas('Socorrista', null, 2, 2, quem('aphSoc', e.aphSoc))] }
@@ -1062,13 +675,9 @@ ul,ol{padding:0;list-style:none}
     };
   }
   function mesNovo(qual, vazio, inverte) {
-    var info = MESES[qual], dias = [];
-    for (var n = 1; n <= info.dias; n++) {
-      var alfa = (n % 2 === 1) !== !!inverte;
-      dias.push({ n: n, dow: (info.dow1 + n - 1) % 7, feriado: info.feriados[n] || null,
-        faixas: [faixaNova(qual, n, 'A', '07h às 19h', alfa ? 'Alfa' : 'Bravo', vazio), faixaNova(qual, n, 'B', '19h às 07h', alfa ? 'Bravo' : 'Alfa', vazio)] });
-    }
-    return { dias: dias, gerado: !vazio };
+    var info = MESES[qual], alfa = info.alfaDeDia !== !!inverte;
+    return { gerado: !vazio, dias: [{ n: info.dia, dow: info.dow,
+      faixas: [faixaNova(qual, 'A', '07h às 19h', alfa ? 'Alfa' : 'Bravo', vazio), faixaNova(qual, 'B', '19h às 07h', alfa ? 'Bravo' : 'Alfa', vazio)] }] };
   }
   function ic(nome, extra) { return '<svg class="i' + (extra ? ' ' + extra : '') + '" aria-hidden="true"><use href="#i-' + nome + '"/></svg>'; }
   function im(nome) { return '<svg class="im" aria-hidden="true"><use href="#m-' + nome + '"/></svg>'; }
@@ -1077,8 +686,7 @@ ul,ol{padding:0;list-style:none}
   function soma(lista, f) { return lista.reduce(function (n, x) { return n + f(x); }, 0); }
   function faltamNa(g) { return soma(g.funcoes, function (x) { return Math.max(0, x.min - x.ocup.length); }); }
   function faltamNaFaixa(fx) { return soma(fx.guarnicoes, faltamNa); }
-  function faltamNoDia(d) { return soma(d.faixas, faltamNaFaixa); }
-  function faltamNoMes(m) { return soma(m.dias, faltamNoDia); }
+  function faltamNoMes(m) { return soma(m.dias, function (d) { return soma(d.faixas, faltamNaFaixa); }); }
   function obrigatoriasDo(m) { return soma(m.dias, function (d) { return soma(d.faixas, function (fx) { return soma(fx.guarnicoes, function (g) { return soma(g.funcoes, function (x) { return x.min; }); }); }); }); }
   function semGuarnicaoDo(m) { return soma(m.dias, function (d) { return soma(d.faixas, function (fx) { return fx.sem.length; }); }); }
   function servicosDo(m) { return semGuarnicaoDo(m) + soma(m.dias, function (d) { return soma(d.faixas, function (fx) { return soma(fx.guarnicoes, function (g) { return soma(g.funcoes, function (x) { return x.ocup.length; }); }); }); }); }
@@ -1117,7 +725,7 @@ ul,ol{padding:0;list-style:none}
     raiz.innerHTML =
       '<div class="tela">' +
         '<nav class="menu" aria-label="Menu, só para situar">' +
-          '<div class="casa"><img src="img/brasao-2gb.png" alt="" width="36" height="38"><span>Escalas 2º GB<small>1ª SB</small></span></div>' +
+          '<div class="casa"><img src="../img/brasao-2gb.png" alt=""><span><b>1ª SB</b><small>1ª Seção de Bombeiros</small></span></div>' +
           ITENS.map(function (bloco) { return '<ul>' + bloco.map(function (it) { return '<li' + (it[0] === 'escala' ? ' class="atual"' : '') + '>' + im(it[0]) + it[1] + '</li>'; }).join('') + '</ul>'; }).join('') +
         '</nav>' +
         '<div class="palco">' +
@@ -1132,9 +740,8 @@ ul,ol{padding:0;list-style:none}
               '<span class="legenda" aria-label="Serviços"><span class="etiqueta"><span class="cor" style="--servico:var(--pronto)"></span>Pronto</span><span class="etiqueta"><span class="cor" style="--servico:var(--jes)"></span>JES</span><span class="etiqueta"><span class="cor" style="--servico:var(--saldo)"></span>Saldo</span></span>' +
               '<span class="total" data-total></span>' +
             '</div>' +
-            '<div class="regua" data-regua role="group" aria-label="Dias do mês"></div>' +
           '</div>' +
-          '<div class="area" data-area tabindex="0" role="region" aria-label="Dias da escala"></div>' +
+          '<div class="area" data-area tabindex="0" role="region" aria-label="Dia de exemplo"></div>' +
           '<div class="lugar-do-aviso" data-aviso role="status" aria-live="polite"></div>' +
           '<div class="sob-o-painel" data-sob hidden></div>' +
           '<aside class="painel" data-painel tabindex="-1" aria-label="Escolher militar" hidden></aside>' +
@@ -1144,12 +751,10 @@ ul,ol{padding:0;list-style:none}
       '</div>';
 
     var area = raiz.querySelector('[data-area]'), painel = raiz.querySelector('[data-painel]'), sob = raiz.querySelector('[data-sob]'), veu = raiz.querySelector('[data-veu]');
-    var lugar = raiz.querySelector('[data-aviso]'), rotMes = raiz.querySelector('[data-mes]'), total = raiz.querySelector('[data-total]'), regua = raiz.querySelector('[data-regua]');
+    var lugar = raiz.querySelector('[data-aviso]'), rotMes = raiz.querySelector('[data-mes]'), total = raiz.querySelector('[data-total]');
     var ant = raiz.querySelector('[data-acao="mes-ant"]'), prox = raiz.querySelector('[data-acao="mes-prox"]'), gerarBt = raiz.querySelector('[data-acao="gerar"]');
     var mes = 'nov', dados = { nov: mesNovo('nov', false), dez: mesNovo('dez', true) };
-    var estreito = raiz.clientWidth <= 720, diaSel = 23;
-    var esperando = false, soFalta = false, menu = null, vaga = null, guardado = null, relogio = null, voltarFoco = null, medindo = false, pedido = 0, ultimoAlto = 0;
-    var semMovimento = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    var esperando = false, soFalta = false, menu = null, vaga = null, guardado = null, relogio = null, voltarFoco = null;
 
     function em(l) { var p = l.split('-').map(Number), d = dados[mes].dias[p[0]], fx = d.faixas[p[1]], g = fx.guarnicoes[p[2]]; return { d: d, fx: fx, g: g, f: g && g.funcoes[p[3]], i: p[4] }; }
     function guardar() { guardado = { dados: JSON.stringify(dados), mes: mes }; }
@@ -1174,51 +779,12 @@ ul,ol{padding:0;list-style:none}
       }
       return h;
     }
-    function semGuarnicao(fx, loc) { return fx.sem.map(function (pid, i) { return '<li>' + placa(pid, 's', loc.concat(i).join('-')) + '</li>'; }).join(''); }
-    function removidos(fx, loc) {
-      return fx.removidos.map(function (pid) { return '<li><b>' + P[pid].nome + '</b><button type="button" data-acao="permitir" data-l="' + loc.join('-') + '" data-quem="' + pid + '" title="A pré-escala poderá escalar este militar neste turno de novo. Ele não volta para a vaga agora.">Permitir de novo</button></li>'; }).join('');
-    }
     function etiquetaDeFalta(n) { return n ? '<span class="etiqueta falta">' + (n === 1 ? 'Falta 1' : 'Faltam ' + n) + '</span>' : ''; }
 
-    // computador: o dia é uma faixa do quadro, com os turnos em colunas e as funções em linhas
-    function diaLargo(d, di) {
-      var info = MESES[mes], nomes = [];
-      d.faixas.forEach(function (fx) { fx.guarnicoes.forEach(function (g) { if (nomes.indexOf(g.nome) < 0) nomes.push(g.nome); }); });
-      var h = '<section class="dia' + (d.dow === 0 || d.dow === 6 ? ' fds' : '') + '" data-dia="' + d.n + '" aria-label="Dia ' + d.n + '">' +
-        '<div class="data"><b>' + d.n + '</b><span>' + SEMANA[d.dow].toLowerCase() + '</span>' + (d.n === info.hoje ? '<span class="etiqueta eh-hoje">hoje</span>' : '') + (d.feriado ? '<span>' + d.feriado + '</span>' : '') + '</div>' +
-        '<div class="quadro" style="--faixas:' + d.faixas.length + '"><span style="grid-column:1/3"></span>';
-      d.faixas.forEach(function (fx, k) { h += '<div class="q-faixa" style="grid-column:' + (3 + k) + '">' + fx.horas + '<span class="letra">' + fx.letra + '</span>' + etiquetaDeFalta(faltamNaFaixa(fx)) + '</div>'; });
-      var primeira = true;
-      nomes.forEach(function (nome) {
-        var onde = d.faixas.map(function (fx) { for (var gi = 0; gi < fx.guarnicoes.length; gi++) if (fx.guarnicoes[gi].nome === nome) return gi; return -1; });
-        var k0 = onde.findIndex(function (gi) { return gi >= 0; }), ref = d.faixas[k0].guarnicoes[onde[k0]];
-        if (soFalta && !d.faixas.some(function (fx, k) { return onde[k] >= 0 && faltamNa(fx.guarnicoes[onde[k]]); })) return;
-        if (!primeira) h += '<div class="q-linha"></div>';
-        primeira = false;
-        h += '<div class="q-guarn" style="grid-row:span ' + ref.funcoes.length + '">' + ref.nome + '<small>' + ref.viatura + '</small></div>';
-        ref.funcoes.forEach(function (x, fi) {
-          h += '<div class="q-funcao">' + x.nome + (x.cnh ? '<small>CNH ' + x.cnh + '</small>' : '') + '</div>';
-          d.faixas.forEach(function (fx, k) {
-            var g = onde[k] >= 0 ? fx.guarnicoes[onde[k]] : null;
-            h += g && g.funcoes[fi] ? '<ul class="lugares lado" style="grid-column:' + (3 + k) + '" aria-label="' + x.nome + ' de ' + g.nome + ', ' + fx.horas + '">' + lugares(g.funcoes[fi], [di, k, onde[k], fi], g) + '</ul>' : '<span style="grid-column:' + (3 + k) + '"></span>';
-          });
-        });
-      });
-      if (d.faixas.some(function (fx) { return fx.sem.length; })) {
-        h += '<div class="q-linha"></div><div class="q-solto">Sem guarnição</div>';
-        d.faixas.forEach(function (fx, k) { h += '<ul class="lugares lado" style="grid-column:' + (3 + k) + '" aria-label="Sem guarnição, ' + fx.horas + '">' + semGuarnicao(fx, [di, k]) + '</ul>'; });
-      }
-      if (d.faixas.some(function (fx) { return fx.removidos.length; })) {
-        h += '<div class="q-solto">Removidos</div>';
-        d.faixas.forEach(function (fx, k) { h += '<ul class="removidos" style="grid-column:' + (3 + k) + '" aria-label="Removidos, ' + fx.horas + '">' + removidos(fx, [di, k]) + '</ul>'; });
-      }
-      return h + '</div></section>';
-    }
-    // celular: um dia por vez, um turno embaixo do outro e uma caixa por guarnição
-    function diaEstreito(d, di) {
+    // o dia: um turno embaixo do outro e um cartão por guarnição, que junta a equipe
+    function dia(d, di) {
       var info = MESES[mes];
-      var h = '<div class="dia-so"><h4>' + SEMANA[d.dow] + ', ' + (d.n === 1 ? '1º' : d.n) + ' de ' + info.nome + '</h4>' + (d.n === info.hoje ? '<span class="etiqueta eh-hoje">hoje</span>' : '') + (d.feriado ? '<span class="etiqueta neutra">' + d.feriado + '</span>' : '') + '</div>';
-      if (soFalta && !faltamNoDia(d)) return h + '<p class="nada">Nada falta neste dia.</p>';
+      var h = '<div class="dia-so"><h4>' + SEMANA[d.dow] + ', ' + d.n + ' de ' + info.nome + '</h4></div>', mostrou = false;
       d.faixas.forEach(function (fx, k) {
         var gs = '';
         fx.guarnicoes.forEach(function (g, gi) {
@@ -1229,54 +795,16 @@ ul,ol{padding:0;list-style:none}
           gs += '</article>';
         });
         if (soFalta && !gs) return;
+        mostrou = true;
         h += '<section class="turno"><h5>' + fx.horas + '<span class="letra">' + fx.letra + '</span>' + etiquetaDeFalta(faltamNaFaixa(fx)) + '</h5><div class="guarnicoes">' + gs + '</div>' +
-          (fx.sem.length ? '<p class="solto">Sem guarnição</p><ul class="lugares">' + semGuarnicao(fx, [di, k]) + '</ul>' : '') +
-          (fx.removidos.length ? '<p class="solto">Removidos</p><ul class="removidos">' + removidos(fx, [di, k]) + '</ul>' : '') + '</section>';
+          (fx.sem.length ? '<div class="solta"><p class="solto">Sem guarnição</p><ul class="lugares em-fila">' + fx.sem.map(function (pid, i) { return '<li>' + placa(pid, 's', [di, k, i].join('-')) + '</li>'; }).join('') + '</ul></div>' : '') +
+          (fx.removidos.length ? '<div class="solta"><p class="solto">Removidos</p><ul class="removidos">' + fx.removidos.map(function (pid) { return '<li><b>' + P[pid].nome + '</b><button type="button" data-acao="permitir" data-l="' + [di, k].join('-') + '" data-quem="' + pid + '" title="A pré-escala poderá escalar este militar neste turno de novo. Ele não volta para a vaga agora.">Permitir de novo</button></li>'; }).join('') + '</ul></div>' : '') + '</section>';
       });
-      return h;
+      return mostrou ? h : h + '<p class="nada">Nada falta neste dia.</p>';
     }
     function emEspera() {
-      var d = '<div class="dia" aria-hidden="true"><span class="espera" style="width:40px;height:40px"></span><div style="display:grid;gap:6px"><span class="espera" style="width:32%;height:22px"></span><span class="espera"></span><span class="espera"></span><span class="espera" style="width:72%"></span></div></div>';
-      return '<p class="so-leitor">Carregando a escala.</p>' + d + d + d;
-    }
-
-    function desenharRegua() {
-      var m = dados[mes], info = MESES[mes];
-      regua.innerHTML = m.dias.map(function (d) {
-        var f = faltamNoDia(d), c = [];
-        if (d.dow === 0 || d.dow === 6) c.push('fds');
-        if (f) c.push('falta');
-        if (d.n === info.hoje) c.push('hoje');
-        if (d.feriado) c.push('feriado');
-        return '<button type="button" class="' + c.join(' ') + '" data-acao="dia" data-n="' + d.n + '"' + (soFalta && !estreito && !f ? ' disabled' : '') +
-          ' aria-label="Dia ' + d.n + ', ' + SEMANA[d.dow].toLowerCase() + (d.n === info.hoje ? ', hoje' : '') + (d.feriado ? ', ' + d.feriado : '') + (f ? ', ' + (f === 1 ? 'falta 1' : 'faltam ' + f) : '') + '"><small>' + INICIAL[d.dow] + '</small><b>' + d.n + '</b></button>';
-      }).join('');
-    }
-    // a régua marca o dia que está no alto da área (no celular, o dia escolhido)
-    function marcarDia() {
-      var atual = 0;
-      if (estreito) atual = diaSel;
-      else {
-        var secs = area.querySelectorAll('.dia[data-dia]'), alto = area.scrollTop + 12;
-        for (var i = 0; i < secs.length; i++) if (secs[i].offsetTop + secs[i].offsetHeight > alto) { atual = Number(secs[i].getAttribute('data-dia')); break; }
-        // no fim do mês a área não rola mais: vale o dia pedido na régua, até a pessoa rolar para cima
-        if (area.scrollTop < ultimoAlto - 2) pedido = 0;
-        ultimoAlto = area.scrollTop;
-        if (pedido > atual && area.scrollTop + area.clientHeight >= area.scrollHeight - 2) atual = pedido;
-      }
-      regua.querySelectorAll('button').forEach(function (b) {
-        if (Number(b.getAttribute('data-n')) === atual) b.setAttribute('aria-current', 'true'); else b.removeAttribute('aria-current');
-      });
-    }
-    function centrarNaRegua(n) {
-      var b = regua.querySelector('[data-n="' + n + '"]');
-      if (b) regua.scrollLeft = b.offsetLeft - regua.clientWidth / 2 + b.offsetWidth / 2;
-    }
-    function irAoDia(n, suave) {
-      if (estreito) { diaSel = n; area.scrollTop = 0; desenhar('[data-regua] [data-n="' + n + '"]'); centrarNaRegua(n); return; }
-      var s = area.querySelector('.dia[data-dia="' + n + '"]');
-      pedido = n;
-      if (s) area.scrollTo({ top: s.offsetTop, behavior: suave && !semMovimento ? 'smooth' : 'auto' });
+      var c = '<div class="guarnicao"><span class="espera" style="width:45%;height:22px"></span><span class="espera"></span><span class="espera"></span><span class="espera" style="width:80%"></span></div>';
+      return '<p class="so-leitor">Carregando a escala.</p><div class="dia-so"><span class="espera" style="width:230px;height:26px"></span></div><div class="turno" aria-hidden="true"><span class="espera" style="width:150px;height:24px"></span><div class="guarnicoes">' + c + c + '</div></div>';
     }
 
     function desenhar(foco, pousou) {
@@ -1285,25 +813,15 @@ ul,ol{padding:0;list-style:none}
       ant.disabled = mes === 'nov'; prox.disabled = mes === 'dez';
       ant.title = ant.disabled ? 'O exemplo tem só novembro e dezembro' : ''; prox.title = prox.disabled ? 'O exemplo tem só novembro e dezembro' : '';
       gerarBt.disabled = esperando;
-      if (diaSel > info.dias) diaSel = info.dias;
-      desenharRegua();
-      if (esperando) { area.innerHTML = emEspera(); total.innerHTML = ''; marcarDia(); return; }
+      if (esperando) { area.innerHTML = emEspera(); total.innerHTML = ''; return; }
       var n = faltamNoMes(m), ob = obrigatoriasDo(m);
       total.innerHTML = '<span class="quieto">' + (ob - n) + ' de ' + ob + ' vagas obrigatórias preenchidas</span>' + (n ? '<span class="etiqueta falta">' + (n === 1 ? '1 vazia' : n + ' vazias') + '</span>' : '');
-      var h = m.gerado ? '' : '<p class="dica-do-mes"><b>Ninguém escalado em ' + info.nome + '.</b> Gere a pré-escala para começar o mês. Depois você ajusta à mão.</p>';
-      if (estreito) h += diaEstreito(m.dias[diaSel - 1], diaSel - 1);
-      else {
-        var dias = '';
-        m.dias.forEach(function (d, di) { if (!soFalta || faltamNoDia(d)) dias += diaLargo(d, di); });
-        h += dias || '<p class="nada">Nada falta neste mês.</p>';
-      }
-      area.innerHTML = h;
+      area.innerHTML = (m.gerado ? '' : '<p class="dica-do-mes"><b>Ninguém escalado em ' + info.nome + '.</b> Gere a pré-escala para começar o mês. Depois você ajusta à mão.</p>') + dia(m.dias[0], 0);
       area.scrollTop = alto;
       var lista = area.querySelector('.acoes-da-placa');
       if (lista && lista.getBoundingClientRect().bottom > area.getBoundingClientRect().bottom - 8) lista.classList.add('acima');
       if (pousou) { var pl = area.querySelector(pousou); if (pl) pl.classList.add('pousa'); }
       if (foco) { var el = raiz.querySelector(foco); if (el) el.focus(); }
-      marcarDia();
     }
 
     function avisar(texto, comDesfazer) {
@@ -1398,7 +916,7 @@ ul,ol{padding:0;list-style:none}
             ['Alfa', 'Bravo'].map(function (e, i) { return '<label class="marcar"><input type="radio" name="' + id + '-equipe" id="' + id + '-eq-' + i + '" value="' + e + '"' + (i === 0 ? ' checked' : '') + (m.gerado ? ' disabled' : '') + '><span>' + e + '</span></label>'; }).join('') + '</span>' +
             '<p class="ajuda">' + (m.gerado ? 'O Pronto deste mês já começa com a equipe Alfa no dia 1.' : 'Pelo mês anterior, o dia 1 é da equipe Alfa.') + '</p></div>' +
           '<div class="resumo"><p>' + (entram === 1 ? 'Entra 1 serviço' : 'Entram ' + entram + ' serviços') + ' de Pronto.</p>' +
-            '<p>Ficam ' + plural(vazias, 'vaga obrigatória vazia', 'vagas obrigatórias vazias') + ' e ' + plural(soltos, 'militar', 'militares') + ' sem guarnição.</p></div>' +
+            '<p>' + (vazias === 1 ? 'Fica 1 vaga obrigatória vazia' : 'Ficam ' + vazias + ' vagas obrigatórias vazias') + ' e ' + plural(soltos, 'militar', 'militares') + ' sem guarnição.</p></div>' +
           '<div class="acoes"><button type="button" class="botao secundario" data-acao="fechar-dialogo">Cancelar</button><button type="button" class="botao principal" data-acao="gravar">Gravar pré-escala</button></div>' +
         '</div>';
       veu.hidden = false;
@@ -1419,15 +937,12 @@ ul,ol{padding:0;list-style:none}
         if (!dados[mes].gerado) { dados[mes] = mesNovo(mes, false, inverte); n = servicosDo(dados[mes]); }
         else n = completar(dados[mes]);
         esperando = false; desenhar();
-        if (!estreito && MESES[mes].hoje) irAoDia(MESES[mes].hoje, false);
         avisar(n ? 'Pré-escala gravada: ' + plural(n, 'serviço', 'serviços') + '.' : 'Pré-escala gravada. Não havia lacuna para completar.', false);
       }, 1100);
     }
     function trocarMes(para) {
       fecharPainel(false); menu = null; calarAviso();
-      mes = para; diaSel = MESES[mes].hoje || 1; area.scrollTop = 0; desenhar();
-      if (estreito) centrarNaRegua(diaSel); else if (MESES[mes].hoje) irAoDia(MESES[mes].hoje, false);
-      marcarDia();
+      mes = para; area.scrollTop = 0; desenhar();
     }
 
     raiz.addEventListener('click', function (e) {
@@ -1446,7 +961,6 @@ ul,ol{padding:0;list-style:none}
       else if (acao === 'gerar') abrirGerar();
       else if (acao === 'gravar') gravar();
       else if (acao === 'fechar-dialogo') fecharDialogo(true);
-      else if (acao === 'dia') irAoDia(Number(alvo.getAttribute('data-n')), true);
       else if (acao === 'mes-ant') trocarMes('nov');
       else if (acao === 'mes-prox') trocarMes('dez');
       else if (acao === 'fechar-aviso') calarAviso();
@@ -1461,7 +975,6 @@ ul,ol{padding:0;list-style:none}
     raiz.addEventListener('change', function (e) {
       if (!e.target.matches('[data-so-falta]')) return;
       soFalta = e.target.checked; menu = null; area.scrollTop = 0; desenhar();
-      if (!soFalta && !estreito && MESES[mes].hoje) irAoDia(MESES[mes].hoje, false);
     });
     raiz.addEventListener('input', function (e) {
       if (!e.target.matches('[data-busca]')) return;
@@ -1491,42 +1004,17 @@ ul,ol{padding:0;list-style:none}
         itens[(at2 + (e.key === 'ArrowDown' ? 1 : -1) + itens.length) % itens.length].focus();
       }
     });
-    area.addEventListener('scroll', function () {
-      if (medindo) return;
-      medindo = true;
-      requestAnimationFrame(function () { medindo = false; marcarDia(); });
-    });
     // o caminho do clique é o de quando ele saiu: o alvo pode já ter sido redesenhado
     document.addEventListener('click', function (e) { if (menu && e.composedPath().indexOf(raiz) < 0) { menu = null; desenhar(); } });
 
-    function comecar() {
-      desenhar();
-      if (estreito) centrarNaRegua(diaSel); else if (MESES[mes].hoje) irAoDia(MESES[mes].hoje, false);
-      marcarDia();
-    }
-    if (window.ResizeObserver) new ResizeObserver(function () {
-      var e = raiz.clientWidth <= 720;
-      if (e !== estreito) { estreito = e; fecharPainel(false); menu = null; comecar(); }
-    }).observe(raiz);
-    comecar();
+    desenhar();
   }
 
   document.querySelectorAll('[data-quadro]').forEach(Quadro);
 
-  // as peças soltas que respondem
-  document.querySelectorAll('[data-abas]').forEach(function (faixa) {
-    faixa.addEventListener('click', function (e) {
-      var b = e.target.closest('[role="tab"]'); if (!b) return;
-      faixa.querySelectorAll('[role="tab"]').forEach(function (x) { x.setAttribute('aria-selected', String(x === b)); });
-    });
-  });
-  document.querySelectorAll('[data-passo]').forEach(function (passo) {
-    var saida = passo.querySelector('output'), bs = passo.querySelectorAll('button');
-    function mostrar(v) { saida.textContent = v; bs[0].disabled = v <= 0; bs[1].disabled = v >= 9; }
-    bs[0].addEventListener('click', function () { mostrar(Number(saida.textContent) - 1); });
-    bs[1].addEventListener('click', function () { mostrar(Number(saida.textContent) + 1); });
-  });
   var campoApagar = document.getElementById('apagar-matricula'), botaoApagar = document.getElementById('apagar-botao');
   if (campoApagar && botaoApagar) campoApagar.addEventListener('input', function () { botaoApagar.disabled = campoApagar.value.trim() !== '990049-6'; });
 })();
 </script>
+</body>
+</html>
