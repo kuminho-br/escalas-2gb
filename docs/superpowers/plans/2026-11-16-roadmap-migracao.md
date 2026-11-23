@@ -101,7 +101,7 @@ Design: `docs/superpowers/specs/2026-11-21-usuarios-e-modulos-design.md`. Plano:
 | 1 | Contas e níveis de acesso: senha provisória e troca no primeiro login | mesclada (#86) |
 | 2 | Unidade de trabalho: o seletor substitui a 1ª SB fixa | mesclada (#88) |
 | 3 | Tela inicial, módulos por nível de acesso e Minha ficha | mesclada (#90) |
-| 4 | Transição do login (as mangueiras), mockup aprovado | planejada |
+| 4 | Transição do login (as mangueiras) | mesclada (#118) |
 | 5 | Retorno da validação: recolher equipe, rastreio por dia, "Vale desde" antigo | mesclada (#104) |
 | 6 | Retorno da validação com mockup: sete ajustes de interface | aguardando a DESIGN |
 | 7 | Militares só no Pecúlio | mesclada (#107) |
