@@ -11,8 +11,7 @@
 - O porquê de cada decisão está em `docs/decisoes.md`.
 - Cada fase tem um plano de tarefas, escrito por entrega, só quando ela está para começar. Plano pedido pelo usuário vai direto ao GitHub, é mesclado e vai para a execução (Sonnet executa, Opus revisa).
 - Ao terminar uma entrega, a DESENVOLVIMENTO envia o branch; a PLANEJAMENTO abre o PR, mescla e avisa a VALIDAÇÃO, que monta os testes de navegador para o usuário.
-- Não há datas: o desenvolvimento é de uma pessoa, e a ordem importa mais que o prazo.
-- O número da entrega é a ordem de execução.
+- Não há datas: a ordem importa mais que o prazo.
 
 ## Princípios
 
@@ -315,7 +314,7 @@ Achadas nas revisões e nas validações. Nenhuma muda quem é escalado. As que 
 
 **Regras próprias por vaga** (pendentes desde a ordem de escala, 18/11/2026, sem fase): o graduado de dia é o mais antigo do dia (exceto Adm); o chefe é o mais antigo da guarnição.
 
-**Validação das entregas 3.3 e 4:** o selo "ativada / não ativada" e o tom do aviso "Falta…" no Efetivo por dia.
+**Validação das entregas 3.3 e 4:** o selo "ativada" e o tom do "Falta…" no Efetivo por dia.
 
 ## Fluxo de uma regra nova
 
