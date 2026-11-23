@@ -2,7 +2,7 @@
 
 16/11/2026 · v0.1 · parte do design (`2026-11-16-migracao-design.md`)
 
-Em dia com as migrações até a `0030_oficiais_participantes.sql` (23/11/2026; quadros, escala dos oficiais, rastreio por dia, cadastro no tempo e participantes da rodada nas suas seções). As tabelas das entregas 4.x estão na seção 9 e as mudanças da fase 5 (rastreio e CNH; ficha do Pecúlio), na seção 10.
+Em dia com as migrações até a `0031_divisoes.sql` (23/11/2026; quadros, escala dos oficiais, rastreio por dia, cadastro no tempo, participantes da rodada e as divisões nas suas seções). As tabelas das entregas 4.x estão na seção 9 e as mudanças da fase 5 (rastreio e CNH; ficha do Pecúlio), na seção 10.
 
 Ponto de partida: o "ER proposto" do documento *Modelo ER — Sistema de Escalas 2º GB* (v0.8). Acréscimos: unidades em árvore, rastreio (lotação, equipe e jornada com vigência), vínculo de militar externo, usuários e papéis, modelos de impressão, documentos gerados e auditoria. Também entram as mudanças vindas dos esboços de tela (versão 12), que ainda podem mudar.
 
@@ -89,9 +89,11 @@ Tipos de unidade, em tabela para que um nível novo (ex.: pelotão) não exija m
 
 | Coluna | Tipo | Regra |
 |---|---|---|
-| codigo | text PK | `corporacao`, `diretoria_geral`, `diretoria_integrada`, `grupamento`, `secao` |
+| codigo | text PK | `corporacao`, `diretoria_geral`, `diretoria_integrada`, `grupamento`, `divisao`, `secao` |
 | nome | text not null | "Grupamento" |
-| nivel | int not null | 0 a 4, ordem na árvore |
+| nivel | int not null | 0 a 5, ordem na árvore; único |
+
+A **divisão** (nível 4, migração 0031) fica entre o grupamento (3) e a seção (5, antes 4). A unidade mãe precisa ser de nível acima do da filha: uma seção fica direto no grupamento ou dentro de uma divisão, e uma divisão não fica dentro de outra divisão nem de uma seção. A migração cria em cada grupamento, vazias, a Divisão Administrativa (`DA`) e a Divisão Operacional (`DivOp`); quais seções vão para cada uma decide o gestor do grupamento, na tela "Estrutura".
 
 ### unidade
 | Coluna | Tipo | Regra |
@@ -245,8 +247,10 @@ O e-mail do `usuario` é o da ficha do militar: o gatilho `militar_email_para_us
 | id | uuid PK | |
 | usuario_id | uuid FK | |
 | unidade_id | uuid FK | o papel vale para a unidade e as de baixo |
-| papel | text | `administrador` (só na unidade raiz; superusuário), `gestor` (antigo `chefe`), `escalante` |
+| papel | text | `administrador` (só na unidade raiz; superusuário), `gestor` (antigo `chefe`), `chefe_divisao` (só numa unidade do tipo `divisao`; migração 0031), `escalante` |
 | desde / ate | date | |
+
+O gatilho `papel_chefe_divisao` (0031) recusa o `chefe_divisao` numa unidade que não é divisão, com "Chefe de divisão só existe numa divisão.", como o `papel_administrador` faz com o administrador fora da raiz. O chefe de divisão edita como o gestor na sua divisão e nas seções de dentro; quem dá o nível é o gestor de uma unidade acima da divisão ou o administrador.
 
 O **militar comum** não tem linha nesta tabela: é o usuário sem papel vigente. Ele vê os próprios serviços (com quem compõe cada guarnição) e as escalas publicadas da unidade da lotação dele, e não vê cadastros (adendo de 17/11/2026).
 

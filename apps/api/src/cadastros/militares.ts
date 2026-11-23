@@ -21,7 +21,7 @@ import {
 } from 'contratos';
 import { cnhHabilitadas, diasDoMes } from 'dominio';
 import { Hono, type Context } from 'hono';
-import { CADASTRO, exigirAdministradorRaiz, exigirAlgumPapel, exigirPapel, exigirSessao, temPapel, temPapelAcima, unidadeDoRegistro, type AmbienteApi } from '../acesso.ts';
+import { CADASTRO, exigirAdministradorRaiz, exigirAlgumPapel, exigirPapel, exigirSessao, siglaDaUnidadeDeCima, temPapel, temPapelAcima, unidadeDoRegistro, type AmbienteApi } from '../acesso.ts';
 import type { Auth } from '../auth.ts';
 import { comUsuario, type Banco, type Consulta } from '../banco/banco.ts';
 import { hojeRecife } from '../datas.ts';
@@ -259,12 +259,6 @@ async function unidadeAtualDoMilitar(c: Consulta, militarId: string, hoje: strin
     [militarId, hoje],
   );
   return rows[0]?.unidade_id ?? null;
-}
-
-/** A sigla da unidade mãe: a "unidade de cima" que a mensagem cita ("quem tem papel no 2º GB"). */
-async function siglaDaUnidadeDeCima(c: Consulta, unidadeId: string): Promise<string | null> {
-  const { rows } = await c.query<{ sigla: string }>('select m.sigla from unidade u join unidade m on m.id = u.mae_id where u.id = $1', [unidadeId]);
-  return rows[0]?.sigla ?? null;
 }
 
 /** 403 do bloco do Pecúlio: só quem tem papel numa unidade acima da lotação altera. `quem` completa a frase ("Este campo", "Os afastamentos"...). */

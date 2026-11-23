@@ -2,7 +2,7 @@ import { queryOptions } from '@tanstack/react-query';
 import type { UnidadeDeTrabalho } from 'contratos';
 import { ErroApi, SEM_CONEXAO } from './cliente';
 
-export type Papel = 'administrador' | 'gestor' | 'escalante';
+export type Papel = 'administrador' | 'gestor' | 'chefe_divisao' | 'escalante';
 
 /** Resposta de GET /api/eu (mesmo formato de apps/api/src/rotas/eu.ts). */
 export interface EuDaApi {
@@ -43,7 +43,20 @@ export const consultaEu = queryOptions({ queryKey: ['eu'], queryFn: buscarEu, st
 
 export const ehAdministrador = (eu: EuDaApi) => eu.papeis.some((p) => p.papel === 'administrador');
 export const ehMilitarComum = (eu: EuDaApi) => eu.papeis.length === 0;
-/** Quem muda os parâmetros: gestor ou administrador (espelha ESCREVE_PARAMETRO na API). */
-/** Quem usa a Escala dos oficiais: gestor ou administrador (a API confere o papel na unidade de qualquer jeito). */
-export const ehGestorOuAdministrador = (eu: EuDaApi) => eu.papeis.some((p) => p.papel === 'gestor' || p.papel === 'administrador');
-export const podeMudarParametro = (eu: EuDaApi) => eu.papeis.some((p) => p.papel === 'gestor' || p.papel === 'administrador');
+/** Os níveis que editam como gestor (espelha GESTAO na API): o chefe de divisão é um gestor da sua divisão. */
+const GESTAO: Papel[] = ['gestor', 'chefe_divisao', 'administrador'];
+/** Quem usa a Escala dos oficiais: gestor, chefe de divisão ou administrador (a API confere o nível na unidade de qualquer jeito). */
+export const ehGestorOuAdministrador = (eu: EuDaApi) => eu.papeis.some((p) => GESTAO.includes(p.papel));
+/** Quem muda os parâmetros: os mesmos níveis. */
+export const podeMudarParametro = ehGestorOuAdministrador;
+
+/**
+ * Os grupamentos cuja estrutura (divisões e seções) a pessoa gere: os que ela alcança como administrador, ou como gestor do próprio
+ * grupamento ou de uma unidade acima dele. O chefe de divisão e o gestor de uma seção não gerem a estrutura.
+ */
+export function grupamentosQueGere(eu: EuDaApi): UnidadeDeTrabalho[] {
+  const grupamentos = eu.unidades.filter((u) => u.tipo === 'grupamento');
+  if (ehAdministrador(eu)) return grupamentos;
+  const dosGestores = eu.papeis.filter((p) => p.papel === 'gestor').map((p) => eu.unidades.find((u) => u.id === p.unidadeId)?.caminho).filter((c) => c !== undefined);
+  return grupamentos.filter((g) => dosGestores.some((c) => c.length <= g.caminho.length && c.every((sigla, i) => g.caminho[i] === sigla)));
+}

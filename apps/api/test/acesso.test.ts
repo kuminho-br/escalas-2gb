@@ -129,7 +129,7 @@ describe('eu', () => {
       expect(eu.papeis).toEqual([]);
       expect(eu).toMatchObject({ unidades: [], lotacao: null });
       const dela = await (await api2.pedir('escalante', 'GET', '/api/eu')).json();
-      expect(dela.unidades).toEqual([{ id: api2.ids.secao, sigla: '1ª SB', caminho: ['CBMPE', 'DGO', 'DInter/1', '2º GB', '1ª SB'], nivel: 4 }]);
+      expect(dela.unidades).toEqual([{ id: api2.ids.secao, sigla: '1ª SB', caminho: ['CBMPE', 'DGO', 'DInter/1', '2º GB', '1ª SB'], nivel: 4, tipo: 'secao' }]);
     } finally {
       await api2.fechar();
     }

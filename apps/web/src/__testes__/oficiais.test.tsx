@@ -6,7 +6,7 @@ import type { EuDaApi } from '@/api/eu';
 import { abrir, chamadasA, corpoEnviado, EU_EXEMPLO, simularApi, trava } from './apoio';
 
 // Dados fictícios (D7): o 2º GB, oficiais 990xxx-x.
-const UNIDADE = { id: 'u-gb', sigla: '2º GB', caminho: ['CBMPE', 'DGO', 'DInter/1', '2º GB'], nivel: 3 };
+const UNIDADE = { id: 'u-gb', sigla: '2º GB', caminho: ['CBMPE', 'DGO', 'DInter/1', '2º GB'], nivel: 3, tipo: 'grupamento' };
 const comPapel = (papel: 'administrador' | 'gestor' | 'escalante'): EuDaApi => ({
   ...EU_EXEMPLO,
   papeis: [{ papel, unidadeId: 'u-gb', unidadeSigla: '2º GB' }],

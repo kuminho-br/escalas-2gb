@@ -17,7 +17,7 @@ import {
 } from 'contratos';
 import { normalizar } from 'dominio';
 import { Hono, type Context } from 'hono';
-import { CADASTRO, ESCREVE_PARAMETRO, exigirPapel, exigirSessao, unidadeDoRegistro, type AmbienteApi } from '../acesso.ts';
+import { CADASTRO, GESTAO, exigirPapel, exigirSessao, unidadeDoRegistro, type AmbienteApi } from '../acesso.ts';
 import type { Auth } from '../auth.ts';
 import { comUsuario, type Banco, type Consulta } from '../banco/banco.ts';
 import { lerCorpo, respostaDoErroDoBanco } from '../erros.ts';
@@ -255,7 +255,7 @@ export function rotasEscalas(dep: { banco: Banco; auth: Auth }): Hono<AmbienteAp
     const id = c.req.param('id');
     const unidadeId = await unidadeDoRegistro(dep.banco, 'escala', id);
     if (!unidadeId) return c.json({ erro: 'Escala não encontrada.' }, 404);
-    const negado = await exigirPapel(c, unidadeId, ESCREVE_PARAMETRO);
+    const negado = await exigirPapel(c, unidadeId, GESTAO);
     if (negado) return negado;
     const corpo = await lerCorpo(c, MarcaDeBlocos);
     if (!corpo.ok) return corpo.resposta;

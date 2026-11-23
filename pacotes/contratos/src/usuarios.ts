@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { Data } from './comum.ts';
 import { Telefone, type Endereco, type Nascimento } from './militares.ts';
 
-export const Papel = z.enum(['administrador', 'gestor', 'escalante']);
+export const Papel = z.enum(['administrador', 'gestor', 'chefe_divisao', 'escalante']);
 export type Papel = z.infer<typeof Papel>;
 
 /** Sem acesso (ainda não há senha), senha provisória no prazo ou vencida, acesso ativo ou desativado. */
@@ -24,7 +24,8 @@ export type AcessoDoMilitar = {
   /** Sem e-mail na ficha não há como dar acesso. */
   podeGerarSenha: boolean;
   papeisQuePodeDar: Papel[];
-  unidadesParaPapel: { id: string; sigla: string; nivel: number }[];
+  /** `tipo` é o tipo da unidade (`divisao`, `secao`…): o nível de chefe de divisão só é dado numa divisão. `maeSigla` é a sigla da unidade mãe (as divisões "DA" e "DivOp" existem em todo grupamento). */
+  unidadesParaPapel: { id: string; sigla: string; nivel: number; tipo: string; maeSigla: string | null }[];
 };
 
 /** A senha provisória, que aparece uma vez, e até quando vale (instante ISO). */
@@ -39,7 +40,8 @@ export const EncerrarPapel = z.object({ ate: Data });
 export type EncerrarPapel = z.infer<typeof EncerrarPapel>;
 
 /** Uma unidade em que a pessoa trabalha: as siglas desde a raiz e o nível (0 = raiz). */
-export type UnidadeDeTrabalho = { id: string; sigla: string; caminho: string[]; nivel: number };
+/** `tipo` é o tipo da unidade (`grupamento`, `divisao`, `secao`…). */
+export type UnidadeDeTrabalho = { id: string; sigla: string; caminho: string[]; nivel: number; tipo: string };
 
 /** Só o telefone se altera na Minha ficha; qualquer outro campo no corpo é recusado. */
 export const NovoTelefone = z.object({ telefone: Telefone.nullable() }).strict();

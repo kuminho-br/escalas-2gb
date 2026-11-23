@@ -291,8 +291,8 @@ describe('revisão 3: falhas ao abrir o sistema', () => {
 });
 
 describe('unidade de trabalho (fase 6)', () => {
-  const unidade = (id: string, sigla: string, nivel: number) => ({ id, sigla, nivel, caminho: ['CBMPE', 'DGO', 'DInter/1', ...(nivel === 3 ? [] : ['2º GB']), sigla].slice(0, nivel + 1) });
-  const GB = { id: 'u-gb', sigla: '2º GB', nivel: 3, caminho: ['CBMPE', 'DGO', 'DInter/1', '2º GB'] };
+  const unidade = (id: string, sigla: string, nivel: number) => ({ id, sigla, nivel, caminho: ['CBMPE', 'DGO', 'DInter/1', ...(nivel === 3 ? [] : ['2º GB']), sigla].slice(0, nivel + 1), tipo: nivel === 3 ? 'grupamento' : 'secao' });
+  const GB = { id: 'u-gb', sigla: '2º GB', nivel: 3, caminho: ['CBMPE', 'DGO', 'DInter/1', '2º GB'], tipo: 'grupamento' };
   const SB1 = EU_EXEMPLO.unidades[0]!;
   const SB2 = { ...unidade('u-2sb', '2ª SB', 4), caminho: ['CBMPE', 'DGO', 'DInter/1', '2º GB', '2ª SB'] };
   const GESTOR: EuDaApi = { ...EU_EXEMPLO, papeis: [{ papel: 'gestor', unidadeId: 'u-gb', unidadeSigla: '2º GB' }], unidades: [GB, SB1, SB2] };
