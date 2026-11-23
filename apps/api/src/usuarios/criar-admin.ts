@@ -1,4 +1,3 @@
-import { quadroParaOPosto } from '../cadastros/quadros.ts';
 import { hashPassword } from 'better-auth/crypto';
 import type { Banco } from '../banco/banco.ts';
 import { inicioDoMes } from '../datas.ts';
@@ -26,14 +25,11 @@ export async function criarAdmin(banco: Banco, d: DadosAdmin): Promise<{ usuario
     const posto = await tx.query<{ id: string }>('select id from posto_grad where sigla = $1', [d.postoSigla]);
     if (!posto.rows[0]) throw new Error(`Posto/graduação não encontrado: ${d.postoSigla}`);
 
-    const quadroEscolhido = await quadroParaOPosto(tx, posto.rows[0].id, undefined, null);
-    const quadro = { quadroId: 'erro' in quadroEscolhido ? null : quadroEscolhido.quadroId };
-
     let militarId = (await tx.query<{ id: string }>('select id from militar where matricula = $1', [d.matricula])).rows[0]?.id;
     militarId ??= (
       await tx.query<{ id: string }>(
-        'insert into militar (matricula, posto_grad_id, quadro_id, nome_guerra) values ($1, $2, $3, $4) returning id',
-        [d.matricula, posto.rows[0].id, quadro.quadroId, d.nomeGuerra],
+        'insert into militar (matricula, posto_grad_id, nome_guerra) values ($1, $2, $3) returning id',
+        [d.matricula, posto.rows[0].id, d.nomeGuerra],
       )
     ).rows[0]!.id;
 

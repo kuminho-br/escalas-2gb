@@ -30,7 +30,7 @@ beforeAll(async () => {
   cel = await mil(2, 'CEL BM');
   maj = await mil(3, 'MAJ BM');
   cap = await mil(4, 'CAP BM');
-  await migrarAte(banco, '9999');
+  await migrarAte(banco, '0027');
 });
 afterAll(async () => {
   await banco.fechar();
@@ -63,7 +63,7 @@ describe('migração 0026: quadros', () => {
   });
 
   it('pode rodar de novo sem duplicar', async () => {
-    await migrarAte(banco, '9999');
+    await migrarAte(banco, '0027');
     expect((await banco.query('select 1 from quadro')).rows).toHaveLength(3);
   });
 });

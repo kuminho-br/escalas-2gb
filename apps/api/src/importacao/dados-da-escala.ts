@@ -247,7 +247,12 @@ export const importadorDadosDaEscala: Importador<Plano> = {
         continue;
       }
       await tx.query("update rastreio set ate = $2::date - interval '1 day' where id = $1", [l.id, desde]);
-      await tx.query('insert into rastreio (militar_id, unidade_id, equipe_id, jornada, desde) values ($1, $2, $3, $4, $5)', [it.id, unidadeId, equipeId, d.jornada, desde]);
+      // o período novo leva o quadro e a situação do que fechou (a importação só muda equipe e jornada)
+      await tx.query(
+        `insert into rastreio (militar_id, unidade_id, equipe_id, jornada, desde, quadro_id, situacao_id)
+         select militar_id, $2, $3, $4, $5, quadro_id, situacao_id from rastreio where id = $1`,
+        [l.id, unidadeId, equipeId, d.jornada, desde],
+      );
     }
     return plano.itens.length;
   },

@@ -327,7 +327,7 @@ describe('unidade de trabalho (fase 6)', () => {
   it('com alteração pendente, trocar de unidade pergunta antes e, se a pessoa desiste, nada muda', async () => {
     const ficha = {
       id: 'm1', matricula: '990001-1', posto: 'SD BM', quadro: { id: 'q-qbmg', sigla: 'QBMG' }, nomeGuerra: 'ANDRADE', equipe: null, jornada: 'adm', motorista: null, voluntarioJes: false, ativo: true, situacao: 'Disponível', pendencias: [],
-      podeEditar: { peculio: true, escala: true, unidadeDeCima: '2º GB' }, postoGradId: 'p', nomeCompleto: 'João', sexo: null, nascimento: null, telefone: '', email: null, comportamento: null,
+      podeEditar: { peculio: true, escala: true, unidadeDeCima: '2º GB' }, postoGradId: 'p', nomeCompleto: 'João', sexo: null, nascimento: null, cpf: null, endereco: { cep: null, logradouro: null, numero: null, complemento: null, bairro: null, cidade: null, uf: null }, situacaoDoMilitar: null, telefone: '', email: null, comportamento: null,
       comportamentoBoletim: null, antiguidade: 1, antiguidadeRepetidaCom: [], noQuadroDeMotoristas: false, cnh: [], cnhPorHierarquia: [], rastreio: [], afastamentos: [],
     };
     simularApi({

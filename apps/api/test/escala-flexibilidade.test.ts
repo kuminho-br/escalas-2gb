@@ -51,7 +51,7 @@ beforeAll(async () => {
   let seq = 0;
   for (const nome of ['OITO16', 'CHOQUE', 'VIRADA', 'VIRADACURTA']) {
     seq++;
-    militar[nome] = await inserir(api.banco, 'militar', { matricula: `99${String(4000 + seq).padStart(4, '0')}-${seq}`, posto_grad_id: posto, nome_guerra: nome, motorista: false, cnh: [], voluntario_jes: false, ativo: true });
+    militar[nome] = await inserir(api.banco, 'militar', { matricula: `99${String(4000 + seq).padStart(4, '0')}-${seq}`, posto_grad_id: posto, nome_guerra: nome, motorista: false, cnh: [], voluntario_jes: false });
     await inserir(api.banco, 'rastreio', { militar_id: militar[nome], unidade_id: api.ids.secao, equipe_id: equipe, jornada: 'pronto', desde: `${atual}-01` });
   }
   await faixaMarcada('OITO16', D, 480, 960);
@@ -109,7 +109,7 @@ describe('flexibilidade do voluntariado na lista "Escolher militar"', () => {
     await criarServico('Noite23', 'diaria', 'A', { inicio: '23:00', fim: '07:00' });
     expect((await api.pedir('escalante', 'PUT', `/api/escalas/${escalaId}/servicos`, { servicoIds: [servico.Pronto, servico['Eleições'], servico['Plantão'], servico.Noite23] })).status).toBe(200);
     const posto = (await api.banco.query<{ id: string }>("select id from posto_grad where sigla = 'SD-F'")).rows[0]!.id;
-    militar.MEIANOITE = await inserir(api.banco, 'militar', { matricula: '994099-9', posto_grad_id: posto, nome_guerra: 'MEIANOITE', motorista: false, cnh: [], voluntario_jes: false, ativo: true });
+    militar.MEIANOITE = await inserir(api.banco, 'militar', { matricula: '994099-9', posto_grad_id: posto, nome_guerra: 'MEIANOITE', motorista: false, cnh: [], voluntario_jes: false });
     await inserir(api.banco, 'rastreio', { militar_id: militar.MEIANOITE, unidade_id: api.ids.secao, equipe_id: (await api.banco.query<{ id: string }>('select id from equipe limit 1')).rows[0]!.id, jornada: 'pronto', desde: `${atual}-01` });
     await faixaMarcada('MEIANOITE', amanha(D), 0, 360);
     const noite = { inicio: '23:00', fim: '07:00' };

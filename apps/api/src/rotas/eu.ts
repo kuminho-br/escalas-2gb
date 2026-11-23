@@ -61,7 +61,9 @@ async function lotacaoDeHoje(c: Consulta, usuarioId: string, hoje: string): Prom
 
 type LinhaDaFicha = {
   posto: string; nome_guerra: string; nome_completo: string | null; matricula: string; telefone: string | null; email: string | null; sexo: 'M' | 'F' | null;
-  nascimento_dia: number | null; nascimento_mes: number | null; comportamento: string | null; comportamento_boletim: string | null;
+  nascimento_dia: number | null; nascimento_mes: number | null; nascimento_ano: number | null; cpf: string | null;
+  cep: string | null; logradouro: string | null; numero: string | null; complemento: string | null; bairro: string | null; cidade: string | null; uf: string | null;
+  quadro: string | null; situacao_nome: string | null; comportamento: string | null; comportamento_boletim: string | null;
   motorista: boolean; cnh: string[]; voluntario_jes: boolean;
   lotacao: string | null; equipe: string | null; jornada: 'pronto' | 'adm' | null;
 };
@@ -69,13 +71,16 @@ type LinhaDaFicha = {
 /** A ficha do próprio militar (o da sessão), só com o que ele pode ver; a situação é a do período do rastreio que cobre hoje. */
 async function minhaFicha(c: Consulta, usuarioId: string, hoje: string): Promise<MinhaFicha | null> {
   const { rows } = await c.query<LinhaDaFicha>(
-    `select p.sigla as posto, m.nome_guerra, m.nome_completo, m.matricula, m.telefone, m.email, m.sexo, m.nascimento_dia, m.nascimento_mes,
+    `select p.sigla as posto, m.nome_guerra, m.nome_completo, m.matricula, m.telefone, m.email, m.sexo, m.nascimento_dia, m.nascimento_mes, m.nascimento_ano, m.cpf,
+            m.cep, m.logradouro, m.numero, m.complemento, m.bairro, m.cidade, m.uf, q.sigla as quadro, sm.nome as situacao_nome,
             m.comportamento, m.comportamento_boletim, m.motorista, m.cnh, m.voluntario_jes,
             un.sigla as lotacao, e.nome as equipe, r.jornada
        from usuario u join militar m on m.id = u.militar_id join posto_grad p on p.id = m.posto_grad_id
        left join rastreio r on r.militar_id = m.id and r.desde <= $2 and (r.ate is null or r.ate >= $2)
        left join unidade un on un.id = r.unidade_id
        left join equipe e on e.id = r.equipe_id
+       left join quadro q on q.id = r.quadro_id
+       left join situacao_militar sm on sm.id = r.situacao_id
       where u.id = $1 and u.ativo limit 1`,
     [usuarioId, hoje],
   );
@@ -90,10 +95,12 @@ async function minhaFicha(c: Consulta, usuarioId: string, hoje: string): Promise
     telefone: m.telefone,
     email: m.email,
     sexo: m.sexo,
-    nascimento: m.nascimento_dia !== null && m.nascimento_mes !== null ? { dia: m.nascimento_dia, mes: m.nascimento_mes } : null,
+    nascimento: m.nascimento_dia !== null && m.nascimento_mes !== null ? { dia: m.nascimento_dia, mes: m.nascimento_mes, ...(m.nascimento_ano !== null ? { ano: m.nascimento_ano } : {}) } : null,
+    cpf: m.cpf,
+    endereco: { cep: m.cep, logradouro: m.logradouro, numero: m.numero, complemento: m.complemento, bairro: m.bairro, cidade: m.cidade, uf: m.uf },
     comportamento: m.comportamento,
     comportamentoBoletim: m.comportamento_boletim,
-    situacao: m.lotacao && m.jornada ? { lotacao: m.lotacao, equipe: m.equipe, jornada: m.jornada } : null,
+    situacao: m.lotacao && m.jornada ? { lotacao: m.lotacao, equipe: m.equipe, jornada: m.jornada, quadro: m.quadro, situacaoDoMilitar: m.situacao_nome ?? 'Ativa' } : null,
     motorista: m.motorista,
     cnh,
     cnhPorHierarquia: cnhHabilitadas(cnh).filter((x) => !cnh.includes(x)),

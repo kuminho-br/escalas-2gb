@@ -15,7 +15,7 @@ import type { Consulta } from '../banco/banco.ts';
 import { feriadosDoAno } from '../cadastros/feriados.ts';
 import { somarDias } from '../datas.ts';
 import { EXPEDIENTE, horariosDaUnidade, type Tipo } from '../escala/horarios.ts';
-import { SO_QBMG_OU_SEM_QUADRO } from '../escala/quadros-da-escala.ts';
+import { PODE_SER_ESCALADO, SO_QBMG_OU_SEM_QUADRO } from '../escala/quadros-da-escala.ts';
 
 type Pessoa = { id: string; matricula: string; nomeGuerra: string; posto: string; antiguidade: number | null; ativo: boolean };
 type Lotado = Pessoa & { jornada: 'pronto' | 'adm'; equipeId: string | null; equipe: string | null; ordemCiclo: number | null; desde: string; ate: string | null };
@@ -41,7 +41,7 @@ export async function montarGradeDoMes(c: Consulta, unidadeId: string, mes: stri
       id: string; matricula: string; nome_guerra: string; posto: string; antiguidade: number | null; ativo: boolean; jornada: 'pronto' | 'adm';
       equipe_id: string | null; equipe: string | null; ordem_ciclo: number | null; desde: string; ate: string | null;
     }>(
-      `select m.id, m.matricula, m.nome_guerra, p.sigla as posto, m.antiguidade, m.ativo, l.jornada, l.equipe_id, e.nome as equipe, e.ordem_ciclo,
+      `select m.id, m.matricula, m.nome_guerra, p.sigla as posto, m.antiguidade, ${PODE_SER_ESCALADO} as ativo, l.jornada, l.equipe_id, e.nome as equipe, e.ordem_ciclo,
               to_char(l.desde, 'YYYY-MM-DD') as desde, to_char(l.ate, 'YYYY-MM-DD') as ate
          from rastreio l join militar m on m.id = l.militar_id join posto_grad p on p.id = m.posto_grad_id
          left join equipe e on e.id = l.equipe_id
@@ -71,7 +71,7 @@ export async function montarGradeDoMes(c: Consulta, unidadeId: string, mes: stri
   const deFora: Pessoa[] = idsDeFora.length
     ? (
         await c.query<{ id: string; matricula: string; nome_guerra: string; posto: string; antiguidade: number | null; ativo: boolean }>(
-          'select m.id, m.matricula, m.nome_guerra, p.sigla as posto, m.antiguidade, m.ativo from militar m join posto_grad p on p.id = m.posto_grad_id where m.id = any($1::uuid[])',
+          'select m.id, m.matricula, m.nome_guerra, p.sigla as posto, m.antiguidade, true as ativo from militar m join posto_grad p on p.id = m.posto_grad_id where m.id = any($1::uuid[])',
           [idsDeFora],
         )
       ).rows.map((r) => ({ id: r.id, matricula: r.matricula, nomeGuerra: r.nome_guerra, posto: r.posto, antiguidade: r.antiguidade, ativo: r.ativo }))
@@ -101,8 +101,10 @@ export async function montarGradeDoMes(c: Consulta, unidadeId: string, mes: stri
   const afastado = (id: string, d: string) => afastamentos.some((a) => a.militar_id === id && a.inicio <= d && a.fim >= d);
 
   /** `soDoPeriodo`: o militar tem mais de um período no mês (mudou de equipe ou de jornada); cada linha vale só nos dias do seu período. */
-  function montarLinha(p: Pessoa, jornada: 'pronto' | 'adm', lotacao: { desde: string; ate: string | null }[] | null, soDoPeriodo = false): LinhaDaGrade {
+  function montarLinha(p: Pessoa, jornada: 'pronto' | 'adm', lotacao: { desde: string; ate: string | null; ativo: boolean }[] | null, soDoPeriodo = false): LinhaDaGrade {
     const cobre = (d: string) => !!lotacao?.some((x) => x.desde <= d && (x.ate === null || x.ate >= d));
+    // o expediente só vale nos dias de um período em que ele pode ser escalado (não nos da Reserva, por exemplo)
+    const podeNoDia = (d: string) => !!lotacao?.some((x) => x.ativo && x.desde <= d && (x.ate === null || x.ate >= d));
     const dentro = (d: string) => !soDoPeriodo || !lotacao || cobre(d);
     const dele = alocacoes.filter((a) => a.militarId === p.id && dentro(a.data));
     const duracao = (a: Alocacao) => {
@@ -122,7 +124,7 @@ export async function montarGradeDoMes(c: Consulta, unidadeId: string, mes: stri
     if (jornada === 'adm' && lotacao) {
       for (let n = -1; n <= dias.length; n++) {
         const d = somarDias(primeiro, n);
-        if (!util(d) || !cobre(d) || afastado(p.id, d)) continue;
+        if (!util(d) || !podeNoDia(d) || afastado(p.id, d)) continue;
         expediente.push({ mat: p.id, dia: d, turno: EXPEDIENTE.turno, servico: EXPEDIENTE.servico, implicito: true });
         const doDia = dele.filter((a) => a.data === d);
         const substituido = doDia.some((a) => {
@@ -173,15 +175,16 @@ export async function montarGradeDoMes(c: Consulta, unidadeId: string, mes: stri
   };
   // quem volta à mesma equipe (ou fica no Adm) no mês tem uma linha só nela, valendo nos dias de todos os períodos dela
   const chaveDoGrupo = (l: Lotado) => (l.jornada === 'adm' ? 'adm' : (l.equipeId ?? 'sem-equipe'));
-  const porLinha = new Map<string, { l: Lotado; periodos: { desde: string; ate: string | null }[] }>();
+  const porLinha = new Map<string, { l: Lotado; periodos: { desde: string; ate: string | null; ativo: boolean }[] }>();
   for (const l of lotados) {
     const k = `${l.id}|${chaveDoGrupo(l)}`;
     const e = porLinha.get(k) ?? { l, periodos: [] };
-    e.periodos.push({ desde: l.desde, ate: l.ate });
+    e.periodos.push({ desde: l.desde, ate: l.ate, ativo: l.ativo });
     porLinha.set(k, e);
   }
   for (const { l, periodos } of porLinha.values()) {
-    if (!l.ativo && !temAlocacaoNoMes(l.id)) continue;
+    // a linha fica se ele pode ser escalado em algum dos períodos dela (ou se já tem escala no mês)
+    if (!periodos.some((p) => p.ativo) && !temAlocacaoNoMes(l.id)) continue;
     const linha = montarLinha(l, l.jornada, periodos, periodosDoMilitar.get(l.id)! > 1);
     if (l.jornada === 'adm') poe('adm', 'Adm', 1_000_000, linha, l.antiguidade);
     else if (l.equipeId) poe(l.equipeId, l.equipe ?? '', l.ordemCiclo ?? 0, linha, l.antiguidade);

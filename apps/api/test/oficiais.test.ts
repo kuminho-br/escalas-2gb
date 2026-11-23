@@ -24,9 +24,9 @@ async function oficial(nome: string, antiguidade: number | null, opcoes: { posto
     posto_grad_id: posto[opcoes.posto ?? 'CAP BM'],
     nome_guerra: nome.toUpperCase(),
     antiguidade,
-    quadro_id: opcoes.quadro === null ? null : quadro[opcoes.quadro ?? 'QOC'],
   });
-  await inserir(api.banco, 'rastreio', { militar_id: id, unidade_id: opcoes.unidade ?? api.ids.gb, jornada: 'adm', desde: opcoes.desde ?? '2026-12-01' });
+  // o quadro vale por período
+  await inserir(api.banco, 'rastreio', { militar_id: id, unidade_id: opcoes.unidade ?? api.ids.gb, jornada: 'adm', desde: opcoes.desde ?? '2026-12-01', quadro_id: opcoes.quadro === null ? null : quadro[opcoes.quadro ?? 'QOC'] });
   ids[nome] = id;
   return id;
 }
@@ -340,12 +340,12 @@ describe('correções da revisão final', () => {
   it('quem sai da lista num novo cálculo não deixa turnos com o nome dele: os turnos ficam vazios', async () => {
     expect((await calcular('2027-06')).status).toBe(200);
     for (const dia of ['2027-06-01', '2027-06-02']) expect((await lancar('2027-06', dia, turnoA, ids.a1!)).status).toBe(200);
-    await api.banco.query('update militar set ativo = false where id = $1', [ids.a1]);
+    await api.banco.query("update rastreio set situacao_id = (select id from situacao_militar where nome = 'Desativado') where militar_id = $1", [ids.a1]);
     const e: EscalaDosOficiais = await (await calcular('2027-06')).json();
     expect(e.oficiais.some((o) => o.militarId === ids.a1)).toBe(false);
     expect(e.turnos.filter((t) => t.militarId === ids.a1)).toHaveLength(0);
     expect(e.turnos.filter((t) => t.militarId === ids.a1 || t.saiuMilitarId === ids.a1)).toHaveLength(0);
-    await api.banco.query('update militar set ativo = true where id = $1', [ids.a1]);
+    await api.banco.query("update rastreio set situacao_id = (select id from situacao_militar where nome = 'Ativa') where militar_id = $1", [ids.a1]);
   });
 
   it('o serviço copiado do último mês é conferido no cálculo', async () => {

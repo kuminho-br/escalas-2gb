@@ -1,5 +1,5 @@
 import { mesPorExtenso, somarMeses, type LinhaEscala, type LinhaGuarnicao, type Parametro, type VersaoDaMetaPadrao } from 'contratos';
-import { screen, within } from '@testing-library/react';
+import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { hoje } from '@/lib/meses';
@@ -41,6 +41,7 @@ function api(extra: Parameters<typeof simularApi>[0] = {}, eu = EU_EXEMPLO) {
     '/api/eu': { status: 200, corpo: eu },
     [`GET ${PARAMS}`]: { status: 200, corpo: LISTA },
     'GET /api/sistema/tipos-afastamento': { status: 200, corpo: TIPOS },
+    'GET /api/situacoes-do-militar': { status: 200, corpo: SITUACOES },
     ...extra,
   });
 }
@@ -98,7 +99,7 @@ describe('configurações', () => {
     abrir('/configuracoes');
     await screen.findByRole('tab', { name: 'Tipos de afastamento' });
     expect(screen.queryByRole('tab', { name: 'Atividades' })).toBeNull();
-    expect(screen.getAllByRole('tab').map((t) => t.textContent)).toEqual(['Regras do processo', 'Voluntariado', 'Modelos de guarnição', 'Meta de ativação', 'Tipos de afastamento']);
+    expect(screen.getAllByRole('tab').map((t) => t.textContent)).toEqual(['Regras do processo', 'Voluntariado', 'Modelos de guarnição', 'Meta de ativação', 'Tipos de afastamento', 'Situações do militar']);
   });
 
   it('o endereço antigo com ?aba=atividades abre a primeira aba', async () => {
@@ -124,6 +125,39 @@ describe('configurações', () => {
     await userEvent.type(await screen.findByLabelText('Novo tipo de afastamento'), 'Luto');
     await userEvent.click(screen.getByRole('button', { name: 'Incluir' }));
     expect(corpoEnviado(f, 'POST /api/sistema/tipos-afastamento')).toEqual({ nome: 'Luto' });
+  });
+});
+
+const SITUACOES = [{ id: 'sit-ativa', nome: 'Ativa', escalavel: true, ativo: true }, { id: 'sit-reserva', nome: 'Reserva', escalavel: false, ativo: true }];
+describe('configurações: situações do militar', () => {
+  const ADMIN = { ...EU_EXEMPLO, papeis: [{ papel: 'administrador' as const, unidadeId: 'raiz', unidadeSigla: 'CBMPE' }] };
+  const abrirAba = async () => userEvent.click(await screen.findByRole('tab', { name: 'Situações do militar' }));
+
+  it('o administrador cria, liga e desliga "Pode ser escalado", renomeia e desativa', async () => {
+    const f = api({
+      'POST /api/situacoes-do-militar': { status: 201, corpo: { id: 'sit-nova', nome: 'Licença', escalavel: false, ativo: true } },
+      'PATCH /api/situacoes-do-militar/sit-reserva': { status: 200, corpo: SITUACOES[1] },
+    }, ADMIN);
+    abrir('/configuracoes');
+    await abrirAba();
+    expect(await screen.findByText('Reserva')).toBeInTheDocument();
+    await userEvent.type(screen.getByLabelText('Nova situação do militar'), 'Licença');
+    await userEvent.click(screen.getByRole('checkbox', { name: 'Pode ser escalado' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Incluir' }));
+    await waitFor(() => expect(corpoEnviado(f, 'POST /api/situacoes-do-militar')).toEqual({ nome: 'Licença', escalavel: false }));
+    await userEvent.click(screen.getByRole('checkbox', { name: 'Reserva: pode ser escalado' }));
+    await waitFor(() => expect(corpoEnviado(f, 'PATCH /api/situacoes-do-militar/sit-reserva')).toEqual({ escalavel: true }));
+    await userEvent.click(screen.getAllByRole('button', { name: 'Desativar' })[1]!);
+    await waitFor(() => expect(corpoEnviado(f, 'PATCH /api/situacoes-do-militar/sit-reserva')).toEqual({ ativo: false }));
+  });
+
+  it('quem não é administrador só lê a lista', async () => {
+    api();
+    abrir('/configuracoes');
+    await abrirAba();
+    expect(await screen.findByText('Reserva')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Incluir' })).toBeNull();
+    expect(screen.getByRole('checkbox', { name: 'Reserva: pode ser escalado' })).toBeDisabled();
   });
 });
 

@@ -2,7 +2,7 @@
 
 16/11/2026 · v0.1 · parte do design (`2026-11-16-migracao-design.md`)
 
-Em dia com as migrações até a `0028_rastreio_por_dia.sql` (22/11/2026; quadros, escala dos oficiais e rastreio por dia nas suas seções). As tabelas das entregas 4.x estão na seção 9 e as mudanças da fase 5 (rastreio e CNH; ficha do Pecúlio), na seção 10.
+Em dia com as migrações até a `0029_cadastro_no_tempo.sql` (22/11/2026; quadros, escala dos oficiais, rastreio por dia e cadastro no tempo nas suas seções). As tabelas das entregas 4.x estão na seção 9 e as mudanças da fase 5 (rastreio e CNH; ficha do Pecúlio), na seção 10.
 
 Ponto de partida: o "ER proposto" do documento *Modelo ER — Sistema de Escalas 2º GB* (v0.8). Acréscimos: unidades em árvore, rastreio (lotação, equipe e jornada com vigência), vínculo de militar externo, usuários e papéis, modelos de impressão, documentos gerados e auditoria. Também entram as mudanças vindas dos esboços de tela (versão 12), que ainda podem mudar.
 
@@ -27,6 +27,8 @@ erDiagram
   unidade ||--o{ rastreio : lota
   militar ||--o{ rastreio : "lotado em"
   equipe |o--o{ rastreio : agrupa
+  quadro |o--o{ rastreio : "quadro em"
+  situacao_militar ||--o{ rastreio : "situacao em"
   militar ||--o{ vinculo_externo : "externo em"
   unidade ||--o{ vinculo_externo : aceita
   posto_grad ||--o{ militar : classifica
@@ -131,11 +133,15 @@ Os postos-graduações de cada quadro (PK `quadro_id, posto_grad_id`); o mesmo p
 | id | uuid PK | |
 | matricula | text único | `^\d{6}-\d$` |
 | posto_grad_id | uuid FK | |
-| quadro_id | uuid null | o posto precisa pertencer ao quadro: FK composta `(quadro_id, posto_grad_id)` para `quadro_posto_grad` (0026); nulo passa e a ficha mostra a pendência "Sem quadro". A API escolhe o quadro quando ele não vem: o atual, se contém o posto; senão o do posto, se for um só |
 | nome_completo | text null | obrigatório para militar novo (a API); vazio para quem já existia, e a ficha mostra a pendência "Nome completo em falta" (0024) |
 | nome_guerra | text not null | |
 | sexo | text null | `M` ou `F` (check; 0024) |
-| nascimento_dia / nascimento_mes | smallint null | só dia e mês, **sem o ano** (D7); os dois juntos ou nenhum; o dia precisa existir no mês, e 29/02 vale (check; 0024) |
+| nascimento_dia / nascimento_mes | smallint null | os dois juntos ou nenhum; o dia precisa existir no mês, e 29/02 vale sem o ano (check; 0024) |
+| nascimento_ano | smallint null | opcional (D7 revista, 0029); só com dia e mês, de 1900 a 2100, e a data inteira precisa existir (check `militar_nascimento_ano_valido`) |
+| cpf | text null | 11 dígitos (check) e único (índice `militar_cpf_unico`); os dígitos verificadores são conferidos pela API (0029) |
+| cep | text null | 8 dígitos (check; 0029) |
+| logradouro / numero / complemento / bairro / cidade | text null | texto livre, até 120 caracteres cada (0029) |
+| uf | text null | uma das 27 siglas (check; 0029) |
 | telefone | text null | texto livre curto (0024) |
 | email | text null | institucional: só `@bombeiros.pe.gov.br`, sem distinção de maiúsculas (check) e único entre os militares (índice `militar_email_unico`, sobre `lower(email)`); pode ficar vazio (0024) |
 | comportamento | text null | Excepcional, Ótimo, Bom, Insuficiente ou Mau (check; 0024) |
@@ -144,7 +150,8 @@ Os postos-graduações de cada quadro (PK `quadro_id, posto_grad_id`); o mesmo p
 | motorista | boolean not null default false | está no quadro de motoristas |
 | cnh | text[] not null default '{}' | subconjunto de {A,B,C,D,E}, só as que constam na carteira. É do militar: pode estar gravada com `motorista = false`; para a escala só vale com `motorista = true` (regra do motor, `cnhParaEscala`). Até a 0022 havia um check que a exigia vazia fora do quadro; a 0023 o tirou |
 | voluntario_jes | boolean not null default false | RN-46 |
-| ativo | boolean not null default true | |
+
+O quadro e o "ativo" saíram do militar na 0029: valem por período, no `rastreio` (`quadro_id` e `situacao_id`). Nos testes e no CI, só CPF fictício com dígitos verificadores válidos.
 
 A hierarquia de CNH (decisão de 18/11/2026, regra do CTB): A é uma categoria isolada: não habilita nenhuma outra e nenhuma outra a habilita. As demais seguem a cadeia B, C, D, E (regra do CTB): B habilita B; C habilita C e B; D habilita D e C (e, pela cadeia, B); E habilita E e D (e, pela cadeia, C e B). É regra de domínio, no código (RN-12; `CNH_HABILITA` em `pacotes/dominio/src/cnh.ts`). Não vai para tabela. TELEFONE não existe (D7).
 
@@ -157,7 +164,7 @@ A hierarquia de CNH (decisão de 18/11/2026, regra do CTB): A é uma categoria i
 | ordem_ciclo | int | posição no ciclo do Pronto; única por unidade |
 
 ### rastreio
-O rastreio do militar: a lotação (a unidade), a equipe e a jornada em cada período. A escala de março continua mostrando a situação de março. "Lotação" é só a unidade; o conjunto no tempo é o rastreio. A tabela se chamava `lotacao` até a 0022 (renomeada na 0023, com as mesmas colunas, índices e regras).
+O rastreio do militar: a lotação (a unidade), a equipe, a jornada, o quadro e a situação em cada período. A escala de março continua mostrando a situação de março. "Lotação" é só a unidade; o conjunto no tempo é o rastreio. A tabela se chamava `lotacao` até a 0022 (renomeada na 0023, com as mesmas colunas, índices e regras).
 
 | Coluna | Tipo | Regra |
 |---|---|---|
@@ -166,10 +173,23 @@ O rastreio do militar: a lotação (a unidade), a equipe e a jornada em cada per
 | unidade_id | uuid FK | |
 | equipe_id | uuid FK null | equipe da mesma unidade (gatilho) |
 | jornada | text not null | `pronto` ou `adm` |
+| quadro_id | uuid FK null | o quadro no período (0029); nulo passa e a ficha mostra a pendência "Sem quadro". Que o posto pertence ao quadro é regra da API (o posto não tem histórico): ela escolhe o quadro quando ele não vem, o atual se contém o posto, senão o do posto se for um só |
+| situacao_id | uuid FK not null | a situação no período, do catálogo `situacao_militar` (0029); sem valor na inclusão, o gatilho `rastreio_situacao_padrao` põe "Ativa" |
 | desde | date not null | qualquer dia (o rastreio vale por dia, como os afastamentos; até a 0027 era o dia 1 do mês) |
 | ate | date null | inclusive; o período seguinte começa no dia depois |
 
 Regra: sem períodos sobrepostos por militar (exclude gist).
+
+### situacao_militar
+Catálogo do sistema, editado só pelo administrador (0029). Carga inicial: Ativa (pode ser escalado), Reserva, Agregado, Adido e Desativado (não podem). Com auditoria.
+
+| Coluna | Tipo | Regra |
+|---|---|---|
+| id | uuid PK | |
+| nome | text not null | único sem distinção de maiúsculas |
+| escalavel | boolean not null | quem está nesta situação pode ser escalado (substitui o antigo `militar.ativo`) |
+| ativo | boolean not null default true | desativada, sai da lista de escolha e fica nos registros antigos |
+| padrao | boolean not null default false | a situação dos períodos novos ("Ativa" na carga); uma só (índice único parcial). Pode ser renomeada, mas a API não deixa desativá-la nem tirar o "pode ser escalado" |
 
 ### vinculo_externo
 Militar de outra unidade autorizado a tirar serviço aqui.
@@ -613,6 +633,14 @@ Quatro tabelas, todas com auditoria (a função `registrar_auditoria` ganhou um 
 - **`rastreio.desde` aceita qualquer dia:** a migração tira a regra "dia 1" do `rastreio` (acha a regra pelo que ela diz, em `pg_constraint`; a da `unidade` fica). Os períodos que já começam no dia 1 não mudam, e a regra de não sobrepor continua.
 - **"Alterar situação"** (`POST /api/militares/:id/situacao`) recebe `desde` como data: no dia do período aberto, ele é substituído; depois, o período aberto termina no dia anterior; antes, 400 com "Use o dia do período aberto ou um dia depois.".
 - **Um militar, uma situação por mês nas listas e na ficha:** com dois períodos no mesmo mês, valem o de hoje (mês de hoje), o do primeiro dia (mês futuro) ou o do último (mês passado). A Grade mostra duas linhas (uma por período, cada uma só nos dias dele), e a escolha de militar e a pré-escala usam o período de cada dia.
+
+### Fase 6, entrega 9: cadastro no tempo (migração 0029)
+
+- **Quadro e situação por período:** `rastreio` ganha `quadro_id` e `situacao_id`; a migração copia o quadro e o "ativo" de cada militar para todos os períodos dele ("ativo" vira Ativa; o resto, Desativado) e só então tira `militar.quadro_id`, `militar.ativo` e a FK composta `militar_posto_no_quadro`.
+- **`situacao_militar`:** o catálogo das situações, com `escalavel`. As escalas, a Grade, o Voluntariado e a escala dos oficiais leem o quadro e a situação do período de cada dia.
+- **"Alterar situação"** (`POST /api/militares/:id/situacao`) aceita `quadroId` e `situacaoId` (de quem cuida do Pecúlio); omitidos, o período novo repete os do atual. Trocar o posto ajusta o quadro do período aberto (no lugar, se começou hoje; senão fecha na véspera e abre outro).
+- **Dados pessoais (D7 revista):** `militar` ganha `cpf`, `nascimento_ano` e o endereço (`cep`, `logradouro`, `numero`, `complemento`, `bairro`, `cidade`, `uf`).
+- A migração confere cada passo antes de mudar e pode rodar de novo.
 
 ## Mudanças em relação ao ER proposto (v0.8)
 

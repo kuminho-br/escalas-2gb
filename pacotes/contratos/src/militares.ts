@@ -12,14 +12,22 @@ export const Antiguidade = z
   .max(99999, 'Use um número de 1 a 99999.')
   .nullable();
 
-/** Nome completo (D7: sem CPF); para militar novo é obrigatório. */
+/** Nome completo; para militar novo é obrigatório. */
 export const NomeCompleto = Nome;
 export const Sexo = z.enum(['M', 'F']);
 const DIAS_DE_CADA_MES = [31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
-/** Nascimento só com dia e mês (D7: sem o ano). 29 de fevereiro vale, porque sem o ano não há como saber se ele é bissexto. */
+const ehBissexto = (ano: number) => (ano % 4 === 0 && ano % 100 !== 0) || ano % 400 === 0;
+/**
+ * Nascimento: dia e mês, e o ano (opcional). Sem o ano, 29 de fevereiro vale (não há como saber se ele é bissexto); com o ano, a data precisa existir.
+ */
 export const Nascimento = z
-  .object({ dia: z.number().int('Use um número inteiro.').min(1, 'Use um dia de 1 a 31.').max(31, 'Use um dia de 1 a 31.'), mes: z.number().int('Use um número inteiro.').min(1, 'Use um mês de 1 a 12.').max(12, 'Use um mês de 1 a 12.') })
-  .refine((n) => n.dia <= DIAS_DE_CADA_MES[n.mes - 1]!, { path: ['dia'], message: 'Esse dia não existe nesse mês.' });
+  .object({
+    dia: z.number().int('Use um número inteiro.').min(1, 'Use um dia de 1 a 31.').max(31, 'Use um dia de 1 a 31.'),
+    mes: z.number().int('Use um número inteiro.').min(1, 'Use um mês de 1 a 12.').max(12, 'Use um mês de 1 a 12.'),
+    ano: z.number().int('Use um número inteiro.').min(1900, 'Use um ano a partir de 1900.').max(2100, 'Use um ano até 2100.').nullable().optional(),
+  })
+  .refine((n) => n.dia <= DIAS_DE_CADA_MES[n.mes - 1]!, { path: ['dia'], message: 'Esse dia não existe nesse mês.' })
+  .refine((n) => n.ano == null || n.mes !== 2 || n.dia <= (ehBissexto(n.ano) ? 29 : 28), { path: ['dia'], message: 'Esse dia não existe nesse mês.' });
 export type Nascimento = z.infer<typeof Nascimento>;
 export const Telefone = z.string().trim().min(1, 'Preencha este campo.').max(20, 'Use no máximo 20 caracteres.');
 /** E-mail institucional: só do domínio do Corpo de Bombeiros, em qualquer caixa. */
@@ -37,8 +45,52 @@ export const BoletimDoComportamento = z.string().trim().min(1, 'Preencha este ca
 export const MotivoDoAfastamento = z.string().trim().min(1, 'Preencha este campo.').max(200, 'Use no máximo 200 caracteres.');
 export const BoletimDoAfastamento = z.string().trim().min(1, 'Preencha este campo.').max(60, 'Use no máximo 60 caracteres.');
 
-/** "Alterar situação": a lotação (unidade), a equipe e a jornada do militar a partir de um dia. */
-export const AlteracaoDeSituacao = z.object({ unidadeId: Id, equipeId: Id.nullable(), jornada: Jornada, desde: Data });
+const digitos = (v: string) => v.replace(/\D/g, '');
+/** Os dígitos verificadores do CPF (rejeita também os 11 dígitos iguais). */
+export function cpfValido(cpf: string): boolean {
+  if (!/^\d{11}$/.test(cpf) || /^(\d)\1{10}$/.test(cpf)) return false;
+  const dv = (base: string, peso: number) => {
+    let soma = 0;
+    for (const c of base) soma += Number(c) * peso--;
+    const r = (soma * 10) % 11;
+    return r === 10 ? 0 : r;
+  };
+  return dv(cpf.slice(0, 9), 10) === Number(cpf[9]) && dv(cpf.slice(0, 10), 11) === Number(cpf[10]);
+}
+export const MSG_CPF = 'CPF inválido: confira os 11 dígitos.';
+/** CPF: aceita com ou sem pontuação; vira os 11 dígitos. */
+export const Cpf = z.string().trim().transform(digitos).refine(cpfValido, MSG_CPF);
+export const MSG_CEP = 'O CEP tem 8 dígitos.';
+export const Cep = z.string().trim().transform(digitos).refine((v) => /^\d{8}$/.test(v), MSG_CEP);
+export const UFS = ['AC', 'AL', 'AP', 'AM', 'BA', 'CE', 'DF', 'ES', 'GO', 'MA', 'MT', 'MS', 'MG', 'PA', 'PB', 'PR', 'PE', 'PI', 'RJ', 'RN', 'RS', 'RO', 'RR', 'SC', 'SP', 'SE', 'TO'] as const;
+export const MSG_UF = 'Use a sigla do estado (ex.: PE).';
+export const Uf = z.string().trim().toUpperCase().refine((v): v is (typeof UFS)[number] => (UFS as readonly string[]).includes(v), MSG_UF);
+const TextoDoEndereco = z.string().trim().min(1, 'Preencha este campo.').max(120, 'Use no máximo 120 caracteres.');
+/** O endereço, campo a campo: o que não vem no pedido fica como está; `null` limpa. */
+export const EdicaoDeEndereco = z.object({
+  cep: Cep.nullable().optional(),
+  logradouro: TextoDoEndereco.nullable().optional(),
+  numero: TextoDoEndereco.nullable().optional(),
+  complemento: TextoDoEndereco.nullable().optional(),
+  bairro: TextoDoEndereco.nullable().optional(),
+  cidade: TextoDoEndereco.nullable().optional(),
+  uf: Uf.nullable().optional(),
+});
+export type EdicaoDeEndereco = z.infer<typeof EdicaoDeEndereco>;
+export type Endereco = { cep: string | null; logradouro: string | null; numero: string | null; complemento: string | null; bairro: string | null; cidade: string | null; uf: string | null };
+
+/** Uma situação do militar (Ativa, Reserva, Agregado, Adido…): `escalavel` diz se quem está nela pode ser escalado. */
+export type SituacaoDoMilitar = { id: string; nome: string; escalavel: boolean; ativo: boolean };
+export const NovaSituacaoDoMilitar = z.object({ nome: Nome, escalavel: z.boolean() });
+export type NovaSituacaoDoMilitar = z.infer<typeof NovaSituacaoDoMilitar>;
+export const EdicaoDaSituacaoDoMilitar = z.object({ nome: Nome.optional(), escalavel: z.boolean().optional(), ativo: z.boolean().optional() });
+export type EdicaoDaSituacaoDoMilitar = z.infer<typeof EdicaoDaSituacaoDoMilitar>;
+
+/**
+ * "Alterar situação": a lotação (unidade), a equipe, a jornada, o quadro e a situação do militar a partir de um dia. Sem `quadroId` e sem
+ * `situacaoId`, o período novo fica com o quadro e a situação de agora.
+ */
+export const AlteracaoDeSituacao = z.object({ unidadeId: Id, equipeId: Id.nullable(), jornada: Jornada, desde: Data, quadroId: Id.nullable().optional(), situacaoId: Id.optional() });
 export type AlteracaoDeSituacao = z.infer<typeof AlteracaoDeSituacao>;
 
 /** As categorias da carteira entram sem repetir e em ordem (A a E): "B, B, D" vira "B, D". */
@@ -62,11 +114,12 @@ export type NovoMilitar = z.infer<typeof NovoMilitar>;
 
 export const EdicaoMilitar = z.object({
   postoGradId: Id.optional(),
-  quadroId: Id.nullable().optional(),
   nomeCompleto: NomeCompleto.optional(),
   nomeGuerra: Nome.optional(),
   sexo: Sexo.nullable().optional(),
   nascimento: Nascimento.nullable().optional(),
+  cpf: Cpf.nullable().optional(),
+  endereco: EdicaoDeEndereco.optional(),
   telefone: Telefone.nullable().optional(),
   email: EmailInstitucional.nullable().optional(),
   comportamento: Comportamento.nullable().optional(),
@@ -75,8 +128,8 @@ export const EdicaoMilitar = z.object({
   motorista: z.boolean().optional(),
   cnh: CnhSemRepetir.optional(),
   voluntarioJes: z.boolean().optional(),
-  ativo: z.boolean().optional(),
-});
+  // estrito: o `ativo` e o `quadroId` saíram da ficha (a situação e o quadro valem por período: "Alterar situação")
+}).strict();
 export type EdicaoMilitar = z.infer<typeof EdicaoMilitar>;
 
 const MSG_FIM = 'O fim precisa ser no mesmo dia do início ou depois.';
@@ -139,6 +192,11 @@ export type FichaMilitar = LinhaMilitar & {
   nomeCompleto: string | null;
   sexo: 'M' | 'F' | null;
   nascimento: Nascimento | null;
+  /** 11 dígitos, sem pontuação; a tela mostra 000.000.000-00 */
+  cpf: string | null;
+  endereco: Endereco;
+  /** A situação do período que vale (Ativa, Reserva…); null quando o militar não tem período. */
+  situacaoDoMilitar: { id: string; nome: string; escalavel: boolean } | null;
   telefone: string | null;
   email: string | null;
   comportamento: Comportamento | null;
@@ -157,6 +215,6 @@ export type FichaMilitar = LinhaMilitar & {
    */
   podeEditar: { peculio: boolean; escala: boolean; unidadeDeCima: string | null };
   /** Os períodos de lotação + equipe + jornada, do mais novo para o mais velho. */
-  rastreio: { id: string; unidadeSigla: string; equipe: string | null; jornada: 'pronto' | 'adm'; desde: string; ate: string | null }[];
+  rastreio: { id: string; unidadeSigla: string; equipe: string | null; jornada: 'pronto' | 'adm'; quadro: string | null; situacao: string; desde: string; ate: string | null }[];
   afastamentos: { id: string; tipo: string; tipoAfastamentoId: string; inicio: string; fim: string; motivo: string | null; boletim: string | null }[];
 };

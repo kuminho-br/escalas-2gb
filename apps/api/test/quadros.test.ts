@@ -21,6 +21,9 @@ const criar = (matricula: string, postoSigla: string, extra: Record<string, unkn
   api.pedir('gestorGb', 'POST', `/api/unidades/${api.ids.secao}/militares`, novo(matricula, postoSigla, extra));
 const ficha = async (id: string): Promise<FichaMilitar> => (await api.pedir('gestorGb', 'GET', `/api/militares/${id}`)).json();
 const alterar = (id: string, corpo: Record<string, unknown>) => api.pedir('gestorGb', 'PATCH', `/api/militares/${id}`, corpo);
+// o quadro vale por período: muda-se pelo "Alterar situação" (a partir de hoje)
+const situacao = (id: string, corpo: Record<string, unknown>, quem: 'gestorGb' | 'escalante' = 'gestorGb') =>
+  api.pedir(quem, 'POST', `/api/militares/${id}/situacao`, { unidadeId: api.ids.secao, equipeId: alfa, jornada: 'pronto', desde: hojeRecife(), ...corpo });
 const siglaDoQuadro = async (id: string | null) => (id === null ? null : (await api.banco.query<{ sigla: string }>('select sigla from quadro where id = $1', [id])).rows[0]!.sigla);
 
 beforeAll(async () => {
@@ -105,7 +108,7 @@ describe('o quadro na ficha', () => {
 
   it('escolher QBMG para um CAP: 400 no campo', async () => {
     const f = await (await criar('990606-6', 'CAP BM', { quadroId: quadro.QOA })).json();
-    const r = await alterar(f.id, { quadroId: quadro.QBMG });
+    const r = await situacao(f.id, { quadroId: quadro.QBMG });
     expect(r.status).toBe(400);
     expect((await r.json()).campos.quadroId).toBe(MSG_FORA);
     expect((await ficha(f.id)).quadro).toMatchObject({ sigla: 'QOA' });
@@ -117,26 +120,26 @@ describe('o quadro na ficha', () => {
     expect((await r.json()).campos.quadroId).toBe(MSG_FORA);
   });
 
-  it('trocar o posto para um que o quadro pedido não tem: 400, sem 500', async () => {
+  it('o PATCH não aceita mais quadroId nem ativo (o quadro e a situação vão pelo "Alterar situação")', async () => {
     const f = await (await criar('990608-8', 'CAP BM', { quadroId: quadro.QOA })).json();
-    const r = await alterar(f.id, { postoGradId: posto['SD BM'], quadroId: quadro.QOA });
-    expect(r.status).toBe(400);
-    expect((await r.json()).campos.quadroId).toBe(MSG_FORA);
+    expect((await alterar(f.id, { quadroId: quadro.QBMG })).status).toBe(400);
+    expect((await ficha(f.id)).quadro).toMatchObject({ sigla: 'QOA' });
   });
 
   it('pedido null limpa o quadro e a pendência aparece', async () => {
     const f = await (await criar('990609-9', 'CAP BM', { quadroId: quadro.QOA })).json();
-    const r = await alterar(f.id, { quadroId: null });
-    expect(r.status).toBe(200);
+    const r = await situacao(f.id, { quadroId: null });
+    expect(r.status).toBeLessThan(300);
     const depois = await r.json();
     expect(depois.quadro).toBeNull();
     expect(depois.pendencias).toContain('Sem quadro');
   });
 
-  it('o quadro é do Pecúlio: quem só tem papel na seção não altera', async () => {
+  it('o quadro é do Pecúlio: quem só tem nível de acesso na seção não altera', async () => {
     const f = await (await criar('990610-1', 'CAP BM')).json();
-    const r = await api.pedir('escalante', 'PATCH', `/api/militares/${f.id}`, { quadroId: quadro.QOA });
+    const r = await situacao(f.id, { quadroId: quadro.QOA }, 'escalante');
     expect(r.status).toBe(403);
+    expect((await r.json()).erro).toBe('Este campo é alterado por quem tem nível de acesso no 2º GB.');
   });
 
   it('a linha da lista traz o quadro', async () => {
@@ -147,15 +150,10 @@ describe('o quadro na ficha', () => {
 });
 
 describe('correções da revisão final', () => {
-  it('o militar do administrador criado na instalação já tem o quadro do posto', async () => {
-    const q = (await api.banco.query<{ sigla: string | null }>(
-      'select q.sigla from usuario u join militar m on m.id = u.militar_id left join quadro q on q.id = m.quadro_id where u.id = $1', [api.usuarios.admin])).rows[0]!.sigla;
-    expect(q).toBe('QBMG');
-  });
 
   it('um campo da escala (voluntário JES) não preenche o quadro, que é do Pecúlio', async () => {
     const f = await (await criar('990620-1', 'CEL BM')).json();
-    await api.banco.query('update militar set quadro_id = null where id = $1', [f.id]);
+    await api.banco.query('update rastreio set quadro_id = null where militar_id = $1', [f.id]);
     const r = await api.pedir('escalante', 'PATCH', `/api/militares/${f.id}`, { voluntarioJes: true });
     expect(r.status).toBe(200);
     expect((await r.json()).quadro).toBeNull();

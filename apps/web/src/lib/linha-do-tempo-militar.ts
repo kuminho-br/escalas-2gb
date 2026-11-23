@@ -10,9 +10,9 @@ export type ItemDaLinhaDoTempo = { quando: string; tipo: 'situacao' | 'afastamen
 const ddmm = (d: string) => `${d.slice(8, 10)}/${d.slice(5, 7)}`;
 export const ddmmaaaa = (d: string) => `${ddmm(d)}/${d.slice(0, 4)}`;
 
-/** A situação inteira de um período, como no primeiro item da linha do tempo: "1ª SB · Equipe Alfa · Pronto". */
-export const situacaoInteira = (p: Pick<Periodo, 'unidadeSigla' | 'equipe' | 'jornada'>): string =>
-  [p.unidadeSigla, p.equipe ? `Equipe ${p.equipe}` : null, NOME_JORNADA[p.jornada]].filter(Boolean).join(' · ');
+/** A situação inteira de um período, como no primeiro item da linha do tempo: "1ª SB · Equipe Alfa · Pronto · QBMG · Ativa". */
+export const situacaoInteira = (p: Pick<Periodo, 'unidadeSigla' | 'equipe' | 'jornada' | 'quadro' | 'situacao'>): string =>
+  [p.unidadeSigla, p.equipe ? `Equipe ${p.equipe}` : null, NOME_JORNADA[p.jornada], p.quadro, p.situacao].filter(Boolean).join(' · ');
 
 /** Só o que mudou do período anterior para este: "Equipe Alfa → Bravo", "Lotação 2ª SB → 1ª SB · Jornada Adm → Pronto". */
 function oQueMudou(antes: Periodo, depois: Periodo): string {
@@ -20,6 +20,8 @@ function oQueMudou(antes: Periodo, depois: Periodo): string {
   if (antes.unidadeSigla !== depois.unidadeSigla) partes.push(`Lotação ${antes.unidadeSigla} → ${depois.unidadeSigla}`);
   if (antes.equipe !== depois.equipe) partes.push(`Equipe ${antes.equipe ?? 'nenhuma'} → ${depois.equipe ?? 'nenhuma'}`);
   if (antes.jornada !== depois.jornada) partes.push(`Jornada ${NOME_JORNADA[antes.jornada]} → ${NOME_JORNADA[depois.jornada]}`);
+  if (antes.quadro !== depois.quadro) partes.push(`Quadro ${antes.quadro ?? 'nenhum'} → ${depois.quadro ?? 'nenhum'}`);
+  if (antes.situacao !== depois.situacao) partes.push(`Situação ${antes.situacao} → ${depois.situacao}`);
   return partes.length ? partes.join(' · ') : 'Sem mudança na situação';
 }
 

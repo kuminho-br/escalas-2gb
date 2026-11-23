@@ -9,7 +9,9 @@ let api: ApiDeTeste;
 let secao1: string;
 let secao2: string;
 const atual = hojeRecife().slice(0, 7);
-const CAB = ['MATRÍCULA', 'POSTO/GRAD', 'NOME COMPLETO', 'NOME DE GUERRA', 'ANTIGUIDADE', 'SEXO', 'NASCIMENTO', 'TELEFONE', 'E-MAIL', 'COMPORTAMENTO', 'BOLETIM DO COMPORTAMENTO', 'LOTAÇÃO'];
+const CAB = ['MATRÍCULA', 'POSTO/GRAD', 'NOME COMPLETO', 'NOME DE GUERRA', 'ANTIGUIDADE', 'SEXO', 'NASCIMENTO', 'TELEFONE', 'E-MAIL', 'COMPORTAMENTO', 'BOLETIM DO COMPORTAMENTO', 'CPF', 'CEP', 'LOGRADOURO', 'NÚMERO', 'COMPLEMENTO', 'BAIRRO', 'CIDADE', 'UF', 'LOTAÇÃO'];
+/** As linhas dos testes antigos têm as 12 colunas de antes; as 8 novas (CPF e endereço) entram vazias antes da LOTAÇÃO. */
+const comColunasNovas = (l: (string | number)[]) => (l.length === 12 ? [...l.slice(0, 11), ...Array<string>(8).fill(''), l[11]!] : l);
 type Linha = (string | number)[];
 const ANDRADE: Linha = ['990301-1', 'SD BM', 'João da Silva Andrade', 'andrade', 4001, 'M', '15/03', '(81) 99999-0001', 'andrade@bombeiros.pe.gov.br', 'Bom', 'BG 01/2026', '1ª SB'];
 const LIMA: Linha = ['990302-2', 'CB BM', 'Maria de Souza Lima', 'LIMA', 4002, 'F', '29/02', '', '', 'Ótimo', '', '2ª SB'];
@@ -17,7 +19,7 @@ const LIMA: Linha = ['990302-2', 'CB BM', 'Maria de Souza Lima', 'LIMA', 4002, '
 const modelo = (u: string) => `/api/unidades/${u}/importacao/peculio/modelo`;
 const caminho = (u: string, confirmar = false) => `/api/unidades/${u}/importacao/peculio${confirmar ? '?confirmar=1' : ''}`;
 async function enviar(linhas: Linha[], { quem = 'gestorGb', u = api.ids.gb, confirmar = false }: { quem?: Quem; u?: string; confirmar?: boolean } = {}) {
-  return api.pedir(quem, 'POST', caminho(u, confirmar), formulario(await planilha({ 'PECÚLIO': [CAB, ...linhas] })));
+  return api.pedir(quem, 'POST', caminho(u, confirmar), formulario(await planilha({ 'PECÚLIO': [CAB, ...linhas.map(comColunasNovas)] })));
 }
 async function importar(linhas: Linha[], confirmar = false) {
   const r = await enviar(linhas, { confirmar });
@@ -26,8 +28,8 @@ async function importar(linhas: Linha[], confirmar = false) {
 }
 const militar = async (matricula: string) =>
   (await api.banco.query<Record<string, unknown>>(
-    `select m.id, p.sigla as posto, m.nome_completo, m.nome_guerra, m.antiguidade, m.sexo, m.nascimento_dia, m.nascimento_mes, m.telefone, m.email,
-            m.comportamento, m.comportamento_boletim, m.motorista, m.cnh, m.voluntario_jes
+    `select m.id, p.sigla as posto, m.nome_completo, m.nome_guerra, m.antiguidade, m.sexo, m.nascimento_dia, m.nascimento_mes, m.nascimento_ano, m.telefone, m.email,
+            m.comportamento, m.comportamento_boletim, m.motorista, m.cnh, m.voluntario_jes, m.cpf, m.cep, m.logradouro, m.numero, m.complemento, m.bairro, m.cidade, m.uf
        from militar m join posto_grad p on p.id = m.posto_grad_id where m.matricula = $1`,
     [matricula],
   )).rows[0];
@@ -50,7 +52,7 @@ afterAll(async () => {
 });
 
 describe('modelo do Pecúlio', () => {
-  it('tem a aba PECÚLIO com as 12 colunas na ordem e a AJUDA com os valores aceitos', async () => {
+  it('tem a aba PECÚLIO com as 20 colunas na ordem e a AJUDA com os valores aceitos', async () => {
     const r = await api.pedir('gestorGb', 'GET', modelo(api.ids.gb));
     expect(r.status).toBe(200);
     expect(r.headers.get('content-disposition')).toBe('attachment; filename="modelo-peculio.xlsx"');
@@ -65,8 +67,7 @@ describe('modelo do Pecúlio', () => {
     wb.getWorksheet('AJUDA')!.eachRow((row) => row.eachCell((c) => partes.push(String(c.text))));
     const ajuda = partes.join('\n');
     for (const valor of ['M, F', 'Excepcional', 'Insuficiente', 'Mau', 'SD BM', '1ª SB', '7ª SB', 'dd/mm']) expect(ajuda, valor).toContain(valor);
-    // D7: nada de CPF nem de ano de nascimento
-    expect(CAB.join(' ')).not.toMatch(/CPF|ANO/);
+    for (const valor of ['dd/mm/aaaa', 'CPF', 'CEP', 'UF']) expect(ajuda, valor).toContain(valor);
   });
 });
 
@@ -196,7 +197,7 @@ describe('importar o Pecúlio', () => {
   });
 });
 
-describe('planilha sem alguma das 12 colunas do modelo (revisão final)', () => {
+describe('planilha sem alguma das colunas do modelo (revisão final)', () => {
   it('é problema "Faltam as colunas …" e nada é gravado: uma coluna ausente não apaga o campo de quem já existe', async () => {
     const existente: Linha = ['990350-0', 'SD BM', 'Existente de Tal', 'EXISTENTE', 8001, 'M', '10/10', '(81) 90000-0000', 'existente@bombeiros.pe.gov.br', 'Bom', 'BG 1/2026', '1ª SB'];
     await importar([existente], true);
@@ -210,7 +211,7 @@ describe('planilha sem alguma das 12 colunas do modelo (revisão final)', () => 
     expect(previa.problemas).toEqual([
       {
         aba: 'PECÚLIO', linha: 1,
-        mensagem: 'Faltam as colunas ANTIGUIDADE, SEXO, NASCIMENTO, TELEFONE, E-MAIL, COMPORTAMENTO, BOLETIM DO COMPORTAMENTO.',
+        mensagem: 'Faltam as colunas ANTIGUIDADE, SEXO, NASCIMENTO, TELEFONE, E-MAIL, COMPORTAMENTO, BOLETIM DO COMPORTAMENTO, CPF, CEP, LOGRADOURO, NÚMERO, COMPLEMENTO, BAIRRO, CIDADE, UF.',
         solucao: 'Baixe o modelo na tela de importação e cole os dados nele.',
       },
     ]);
@@ -281,8 +282,10 @@ describe('acesso ao sistema e e-mail (fase 6)', () => {
   });
 });
 
+// o quadro vale por período: o do período aberto
 const quadroDe = async (matricula: string) =>
-  (await api.banco.query<{ sigla: string | null }>('select q.sigla from militar m left join quadro q on q.id = m.quadro_id where m.matricula = $1', [matricula])).rows[0]!.sigla;
+  (await api.banco.query<{ sigla: string | null }>(
+    'select q.sigla from militar m join rastreio r on r.militar_id = m.id and r.ate is null left join quadro q on q.id = r.quadro_id where m.matricula = $1', [matricula])).rows[0]!.sigla;
 const pendenciasDe = async (matricula: string): Promise<string[]> => {
   const id = (await militar(matricula))!.id;
   return (await (await api.pedir('gestorGb', 'GET', `/api/militares/${id}`)).json()).pendencias;
@@ -300,10 +303,69 @@ describe('o quadro na importação do Pecúlio', () => {
   });
   it('trocar o posto pela planilha leva o quadro junto; o quadro que já serve fica', async () => {
     const id = (await militar('990311-1'))!.id;
-    await api.banco.query("update militar set quadro_id = (select id from quadro where sigla = 'QOA') where id = $1", [id]);
+    await api.banco.query("update rastreio set quadro_id = (select id from quadro where sigla = 'QOA') where militar_id = $1 and ate is null", [id]);
     await importar([['990311-1', 'CAP BM', 'Pedro de Souza Major', 'MAJOR', 4101, 'M', '10/05', '', '', 'Bom', '', '1ª SB']], true);
     expect(await quadroDe('990311-1')).toBe('QOA');
     await importar([['990311-1', 'CEL BM', 'Pedro de Souza Major', 'MAJOR', 4101, 'M', '10/05', '', '', 'Bom', '', '1ª SB']], true);
     expect(await quadroDe('990311-1')).toBe('QOC');
+  });
+});
+
+describe('CPF, ano de nascimento e endereço na importação do Pecúlio (6.9)', () => {
+  const CPF = '529.982.247-25';
+  const COMPLETA = (mat: string, guerra: string, extra: Record<number, string | number> = {}): Linha => {
+    const l: Linha = [mat, 'SD BM', 'Fulano de Tal Completo', guerra, 7001, 'M', '15/03/1985', '', '', 'Bom', '', CPF, '50030-000', 'Rua Fictícia', '10', 'Apto 2', 'Centro', 'Recife', 'PE', '1ª SB'];
+    for (const [i, v] of Object.entries(extra)) l[Number(i)] = v;
+    return l;
+  };
+
+  it('NASCIMENTO dd/mm/aaaa grava o ano; dd/mm grava sem ano; CPF, CEP e endereço entram só com dígitos', async () => {
+    const r = await importar([COMPLETA('990401-1', 'COMANO'), COMPLETA('990402-2', 'SEMANO', { 6: '16/03', 11: '' })], true);
+    expect(r.problemas).toEqual([]);
+    expect(await militar('990401-1')).toMatchObject({ nascimento_dia: 15, nascimento_mes: 3, nascimento_ano: 1985, cpf: '52998224725', cep: '50030000', logradouro: 'Rua Fictícia', numero: '10', complemento: 'Apto 2', bairro: 'Centro', cidade: 'Recife', uf: 'PE' });
+    expect(await militar('990402-2')).toMatchObject({ nascimento_dia: 16, nascimento_mes: 3, nascimento_ano: null, cpf: null });
+  });
+
+  it('o militar novo entra com a situação "Ativa" e o quadro do posto (regra da P1.1)', async () => {
+    const m = (await militar('990401-1'))!;
+    const { rows } = await api.banco.query<{ situacao: string; quadro: string | null }>(
+      'select s.nome as situacao, q.sigla as quadro from rastreio r join situacao_militar s on s.id = r.situacao_id left join quadro q on q.id = r.quadro_id where r.militar_id = $1', [m.id]);
+    expect(rows).toEqual([{ situacao: 'Ativa', quadro: 'QBMG' }]);
+  });
+
+  it('CPF, CEP e UF inválidos viram problema na linha, com o texto fixo, e nada é gravado', async () => {
+    const r = await importar([
+      COMPLETA('990403-3', 'CPFRUIM', { 11: '111.111.111-11' }),
+      COMPLETA('990404-4', 'CEPRUIM', { 11: '', 12: '5003' }),
+      COMPLETA('990405-5', 'UFRUIM', { 11: '', 18: 'XX' }),
+    ], true);
+    expect(r.problemas.map((p: { mensagem: string }) => p.mensagem)).toEqual(['CPF inválido: confira os 11 dígitos.', 'O CEP tem 8 dígitos.', 'Use a sigla do estado (ex.: PE).']);
+    expect(r.gravados).toBe(0);
+    expect(await militar('990403-3')).toBeUndefined();
+  });
+
+  it('o CPF de um militar que já existe, noutra linha ou noutro militar, é problema "Este CPF já é de …", e nada é gravado', async () => {
+    const r = await importar([COMPLETA('990406-6', 'OUTRODONO')], true);
+    expect(r.problemas).toEqual([expect.objectContaining({ mensagem: 'Este CPF já é de COMANO.' })]);
+    expect(await militar('990406-6')).toBeUndefined();
+    // repetido na própria planilha
+    const dois = await importar([COMPLETA('990407-7', 'REPETIDO', { 11: '390.533.447-05' }), COMPLETA('990408-8', 'REPETIDO2', { 11: '39053344705' })], true);
+    expect(dois.problemas).toEqual([expect.objectContaining({ mensagem: 'Este CPF já é de REPETIDO.' })]);
+    expect(await militar('990407-7')).toBeDefined();
+    expect(await militar('990408-8')).toBeUndefined();
+  });
+
+  it('a coluna CPF vazia limpa o CPF de quem já existe (a planilha é o contrato)', async () => {
+    const r = await importar([COMPLETA('990401-1', 'COMANO', { 11: '' })], true);
+    expect(r.alterados[0].mudancas).toContain('CPF: 529.982.247-25 → vazio');
+    expect(await militar('990401-1')).toMatchObject({ cpf: null });
+  });
+
+  it('uma planilha sem as colunas novas recebe "Faltam as colunas …", e nada é gravado', async () => {
+    const velha = ['MATRÍCULA', 'POSTO/GRAD', 'NOME COMPLETO', 'NOME DE GUERRA', 'ANTIGUIDADE', 'SEXO', 'NASCIMENTO', 'TELEFONE', 'E-MAIL', 'COMPORTAMENTO', 'BOLETIM DO COMPORTAMENTO', 'LOTAÇÃO'];
+    const r = await api.pedir('gestorGb', 'POST', caminho(api.ids.gb, true), formulario(await planilha({ 'PECÚLIO': [velha, ['990409-9', 'SD BM', 'X Y', 'XY', 1, 'M', '10/10', '', '', 'Bom', '', '1ª SB']] })));
+    const corpo = await r.json();
+    expect(corpo.problemas[0].mensagem).toBe('Faltam as colunas CPF, CEP, LOGRADOURO, NÚMERO, COMPLEMENTO, BAIRRO, CIDADE, UF.');
+    expect(await militar('990409-9')).toBeUndefined();
   });
 });
