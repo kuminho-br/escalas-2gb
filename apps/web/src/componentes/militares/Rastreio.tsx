@@ -61,11 +61,15 @@ function AlterarSituacao({ ficha, unidadeAtualId, aoFechar }: { ficha: FichaMili
   const aberto = ficha.rastreio.find((p) => !p.ate) ?? null;
   const daLotacao = secoes.data?.find((s) => s.id === (atual?.unidadeId ?? aberto?.unidadeId))?.id;
   const [escolhida, setEscolhida] = useState<string | null>(null);
-  const unidadeId = escolhida ?? daLotacao ?? unidadeAtualId;
-  const equipes = useQuery(consultaEquipes(unidadeId));
+  // sem lotação nenhuma (o primeiro lançamento, que o administrador faz): a unidade da tela, se for uma seção da lista; senão, nenhuma vem escolhida (a unidade da
+  // tela de quem trabalha na raiz é o CBMPE, que não é seção, e uma seção escolhida por acaso lotaria o militar no lugar errado). A API só aceita seção como destino.
+  const daTela = secoes.data?.find((x) => x.id === unidadeAtualId)?.id;
+  const sugerida = daLotacao ?? daTela ?? '';
+  const unidadeId = escolhida ?? sugerida;
+  const equipes = useQuery({ ...consultaEquipes(unidadeId), enabled: Boolean(unidadeId) });
   // a equipe sugerida é a de hoje, se a lotação não mudou; trocar de lotação zera a equipe (cada unidade tem as suas)
   const [equipeEscolhida, setEquipeEscolhida] = useState<string | null>(null);
-  const equipeId = equipeEscolhida ?? (unidadeId === (daLotacao ?? unidadeAtualId) ? (equipes.data?.find((e) => e.nome === atual?.equipe)?.id ?? '') : '');
+  const equipeId = equipeEscolhida ?? (unidadeId === sugerida ? (equipes.data?.find((e) => e.nome === atual?.equipe)?.id ?? '') : '');
   const [jornada, setJornada] = useState<'pronto' | 'adm'>(atual?.jornada ?? 'pronto');
   // o quadro e a situação do período de hoje valem de novo, se nada for escolhido
   const quadros = useQuery(consultaQuadros);
@@ -120,7 +124,8 @@ function AlterarSituacao({ ficha, unidadeAtualId, aoFechar }: { ficha: FichaMili
                   setEquipeEscolhida('');
                 }}
               >
-                {(secoes.data ?? [{ id: unidadeId, sigla: atual?.unidadeSigla ?? '…', nome: '' }]).map((s) => <option key={s.id} value={s.id}>{s.sigla}</option>)}
+                {unidadeId === '' && <option value="">Escolha a seção</option>}
+                {(secoes.data ?? (unidadeId ? [{ id: unidadeId, sigla: atual?.unidadeSigla ?? '…', nome: '' }] : [])).map((s) => <option key={s.id} value={s.id}>{s.sigla}</option>)}
               </Selecao>
               {!ficha.podeEditar.peculio && <p className="text-xs text-apagado">{`A lotação, o quadro e a situação são alterados por quem tem nível de acesso em ${ficha.podeEditar.unidadeDeCima ?? 'uma unidade acima'}.`}</p>}
             </div>
@@ -160,7 +165,7 @@ function AlterarSituacao({ ficha, unidadeAtualId, aoFechar }: { ficha: FichaMili
           {erro && <p role="alert" className="text-sm text-alerta">{erro}</p>}
           <DialogFooter>
             {/* sem a lista de seções a lotação sugerida pode ser a da tela, e não a do período: espera chegar */}
-            <Button type="submit" disabled={salvando || !desde || !secoes.data}>Salvar</Button>
+            <Button type="submit" disabled={salvando || !desde || !secoes.data || !unidadeId}>Salvar</Button>
           </DialogFooter>
         </form>
       </DialogContent>

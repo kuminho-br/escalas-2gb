@@ -197,20 +197,24 @@ async function carregarFicha(c: Consulta, id: string, mes: string, usuarioId: st
   // o que quem pede pode editar: o Pecúlio é de quem tem papel acima da lotação atual; a escala, de quem tem papel nela ou acima
   const hoje = hojeRecife();
   const lotacaoAtual = await unidadeAtualDoMilitar(c, id, hoje);
-  let escala = false;
-  for (const u of await unidadesDoAcesso(c, id)) {
-    if (await temPapel(c, usuarioId, u, CADASTRO, hoje)) {
-      escala = true;
-      break;
+  // o administrador age em todo militar, tenha ele lotação ou não (o militar recém-criado ainda não tem a primeira)
+  const admin = await ehAdministrador(c, usuarioId, hoje);
+  let escala = !lotacaoAtual && admin;
+  if (lotacaoAtual) {
+    for (const u of await unidadesDoAcesso(c, id)) {
+      if (await temPapel(c, usuarioId, u, CADASTRO, hoje)) {
+        escala = true;
+        break;
+      }
     }
   }
   const podeEditar = {
-    peculio: lotacaoAtual ? await temPapelAcima(c, usuarioId, lotacaoAtual, CADASTRO, hoje) : false,
+    peculio: lotacaoAtual ? await temPapelAcima(c, usuarioId, lotacaoAtual, CADASTRO, hoje) : admin,
     escala,
     unidadeDeCima: lotacaoAtual ? await siglaDaUnidadeDeCima(c, lotacaoAtual) : null,
   };
   // CPF, nascimento, endereço e abono de permanência: de quem cuida do Pecúlio (nível de acesso acima da lotação) e do administrador; para os outros as chaves nem saem
-  const veDadosRestritos = podeEditar.peculio || (await ehAdministrador(c, usuarioId, hoje));
+  const veDadosRestritos = podeEditar.peculio || admin;
   return {
     ...linhaDe(m, afastamentos.rows, mes, repetidaCom),
     antiguidadeRepetidaCom: repetidaCom,
@@ -248,6 +252,8 @@ async function carregarFicha(c: Consulta, id: string, mes: string, usuarioId: st
   };
 }
 
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 /** As unidades que dão acesso ao militar: as lotações deste mês em diante; sem nenhuma, a lotação mais recente. */
 async function unidadesDoAcesso(banco: Consulta, militarId: string): Promise<string[]> {
   const inicioDoMes = `${hojeRecife().slice(0, 7)}-01`;
@@ -266,7 +272,11 @@ async function unidadesDoAcesso(banco: Consulta, militarId: string): Promise<str
 export async function exigirPapelNoRegistro(c: Ctx, tabela: 'militar' | 'afastamento', id: string): Promise<Response | null> {
   const banco = c.get('banco');
   const naoAchou = () => c.json({ erro: tabela === 'militar' ? 'Militar não encontrado.' : 'Afastamento não encontrado.' }, 404);
-  if (!(await unidadeDoRegistro(banco, tabela, id))) return naoAchou();
+  if (!(await unidadeDoRegistro(banco, tabela, id))) {
+    // um militar sem nenhuma lotação (o administrador criado na instalação, o cadastro que ainda não foi lotado): só o administrador o abre, para dar a primeira
+    const semLotacao = tabela === 'militar' && UUID.test(id) && (await banco.query('select 1 from militar where id = $1', [id])).rows.length > 0;
+    return semLotacao && (await ehAdministrador(banco, c.get('usuarioId'), hojeRecife())) ? null : naoAchou();
+  }
   const militarId = tabela === 'militar' ? id : (await banco.query<{ militar_id: string }>('select militar_id from afastamento where id = $1', [id])).rows[0]!.militar_id;
   const unidades = await unidadesDoAcesso(banco, militarId);
   let negado: Response | null = null;
@@ -316,7 +326,9 @@ const militarDoAfastamento = async (c: Consulta, afastamentoId: string): Promise
 /** Exige o dono do Pecúlio sobre o militar (pela lotação atual dele); 404 se o militar não existe. */
 async function exigirDonoDoPeculioDoMilitar(c: Ctx, militarId: string, frase: (cima: string) => string): Promise<Response | null> {
   const ref = await unidadeAtualDoMilitar(c.get('banco'), militarId, hojeRecife());
-  return ref ? exigirDonoDoPeculio(c, ref, frase) : c.json({ erro: 'Este militar ainda não tem lotação.' }, 409);
+  if (ref) return exigirDonoDoPeculio(c, ref, frase);
+  // sem lotação só o administrador age (ele dá a primeira); para os outros o militar nem aparece
+  return (await ehAdministrador(c.get('banco'), c.get('usuarioId'), hojeRecife())) ? null : c.json({ erro: 'Este militar ainda não tem lotação.' }, 409);
 }
 
 const mesDaConsulta = (c: Ctx) => c.req.query('mes') ?? hojeRecife().slice(0, 7);
