@@ -175,7 +175,7 @@ describe('as cinco telas numa unidade só de consulta', () => {
     abrirEmConsulta(`/grade?mes=${MES}&militar=m-cabo&dia=${dia(10)}`);
     expect(await screen.findByText(FAIXA_DE_CONSULTA)).toBeInTheDocument();
     await screen.findByRole('table', { name: /Grade geral/ });
-    const painel = await screen.findByRole('complementary', { name: 'Dia de SD BM CABO' });
+    const painel = await screen.findByRole('complementary', { name: 'Dia de SD CABO' });
     expect(await within(painel).findByRole('listitem', { name: 'Pronto A, 08h–20h' })).toBeInTheDocument();
     expect(within(painel).getByText('ABT, Motorista', { exact: false })).toBeInTheDocument();
     semBotaoDeAlterar();
@@ -204,7 +204,7 @@ describe('as cinco telas numa unidade só de consulta', () => {
     abrirEmConsulta(`/efetivo-por-dia?data=${DIA_DO_EFETIVO}`);
     expect(await screen.findByText(FAIXA_DE_CONSULTA)).toBeInTheDocument();
     const card = await screen.findByRole('region', { name: '1º ABT' });
-    expect(within(card).getByRole('group', { name: /Motorista: SD BM ALFA/ })).toBeInTheDocument();
+    expect(within(card).getByRole('group', { name: /Motorista: SD ALFA/ })).toBeInTheDocument();
     expect(within(card).getByRole('group', { name: /Motorista: vaga/ })).toBeInTheDocument();
     expect(within(card).queryAllByRole('button')).toHaveLength(0);
     // o que foi desativado hoje continua listado, só sem "Reativar"
