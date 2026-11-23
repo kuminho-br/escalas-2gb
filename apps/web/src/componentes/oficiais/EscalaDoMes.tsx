@@ -87,18 +87,11 @@ export function EscalaDoMes({ unidadeId, escala: e, aoVer }: Props) {
 
   return (
     <div className="grid gap-3">
-      <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2">
-        <EtapasDoMes etapa={e.etapa} />
+      <div className="flex flex-wrap items-start justify-between gap-x-6 gap-y-3">
+        <div className="min-w-0 flex-1">
+          <EtapasDoMes etapa={e.etapa} ocupado={salvando} podeCalcular={Boolean(e.servico)} aoCalcular={aoCalcular} aoFechar={aoFechar} aoEncerrar={aoEncerrar} />
+        </div>
         <div className="flex flex-wrap gap-2">
-          {e.etapa !== 'encerrada' && (
-            <Button type="button" variant={e.etapa === 'fechada' ? 'outline' : 'default'} disabled={salvando || !e.servico} onClick={aoCalcular}>
-              Calcular cotas
-            </Button>
-          )}
-          {e.etapa === 'escolhas' && <Button type="button" variant="outline" disabled={salvando} onClick={aoFechar}>Fechar a escala</Button>}
-          {(e.etapa === 'escolhas' || e.etapa === 'fechada') && (
-            <Button type="button" variant={e.etapa === 'fechada' ? 'default' : 'outline'} disabled={salvando} onClick={aoEncerrar}>Encerrar o mês</Button>
-          )}
           {e.etapa === 'encerrada' && <Button type="button" variant="outline" onClick={() => aoVer('saldo')}>Ver o saldo</Button>}
           <Button type="button" variant="outline" onClick={() => aoVer('regras')}>Regras</Button>
         </div>

@@ -1,7 +1,8 @@
 import { mesPorExtenso, type EscalaDosOficiais } from 'contratos';
-import { AlertTriangle, Check, Info } from 'lucide-react';
+import { AlertTriangle, Check, ChevronRight, Info } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { Button } from '@/componentes/ui/button';
+import { cn } from '@/lib/utils';
 
 export type Confirmacao = 'fechar' | 'encerrar' | 'encerrar-antes' | 'calcular-fechada' | null;
 
@@ -21,18 +22,83 @@ function Caixa({ tom = 'info', children, rotulo }: { tom?: 'info' | 'aviso' | 'o
   );
 }
 
-/** As etapas do mês: Escolhas, Escala fechada e Mês encerrado. */
-export function EtapasDoMes({ etapa }: { etapa: EscalaDosOficiais['etapa'] }) {
-  const nomes = ['Escolhas', 'Escala fechada', 'Mês encerrado'];
-  const atual = etapa === 'encerrada' ? 2 : etapa === 'fechada' ? 1 : 0;
+const PASSOS = [
+  { nome: 'Participantes e cotas', frase: 'Marque quem participa e calcule as cotas' },
+  { nome: 'Escolhas', frase: 'Os oficiais escolhem os turnos na ordem' },
+  { nome: 'Escala fechada', frase: 'Trocar é cobrir: fica o registro de quem saiu' },
+  { nome: 'Mês encerrado', frase: 'O saldo entra no acumulado' },
+] as const;
+
+interface PropsDasEtapas {
+  etapa: EscalaDosOficiais['etapa'];
+  ocupado: boolean;
+  /** sem o serviço escolhido não há o que calcular */
+  podeCalcular: boolean;
+  aoCalcular: () => void;
+  aoFechar: () => void;
+  aoEncerrar: () => void;
+}
+
+/**
+ * As etapas do mês como uma linha de processo: quatro passos com um círculo (feito: visto; atual: preenchido com o número; por vir: contorno), o nome e uma
+ * frase do que acontece nele. A ação que leva ao próximo passo fica sobre a seta que sai dele; a seta se preenche (220 ms) quando o passo é vencido.
+ */
+export function EtapasDoMes({ etapa, ocupado, podeCalcular, aoCalcular, aoFechar, aoEncerrar }: PropsDasEtapas) {
+  const atual = etapa === 'encerrada' ? 3 : etapa === 'fechada' ? 2 : etapa === 'escolhas' ? 1 : 0;
+  // a ação de cada seta: "Calcular cotas" também recalcula; "Encerrar o mês" também vale direto das escolhas (o sistema avisa para fechar antes)
+  const acao = (i: number) => {
+    if (i === 0 && etapa !== 'encerrada') return { rotulo: 'Calcular cotas', principal: atual === 0, desligado: ocupado || !podeCalcular, aoClicar: aoCalcular };
+    if (i === 1 && etapa === 'escolhas') return { rotulo: 'Fechar a escala', principal: true, desligado: ocupado, aoClicar: aoFechar };
+    if (i === 2 && (etapa === 'escolhas' || etapa === 'fechada')) return { rotulo: 'Encerrar o mês', principal: etapa === 'fechada', desligado: ocupado, aoClicar: aoEncerrar };
+    return null;
+  };
   return (
-    <ol className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm" aria-label="Etapas do mês">
-      {nomes.map((n, i) => (
-        <li key={n} aria-current={i === atual && etapa !== 'sem-cotas' ? 'step' : undefined} className={i === atual && etapa !== 'sem-cotas' ? 'font-semibold' : i < atual ? 'text-apagado' : 'text-apagado/70'}>
-          {i < atual ? '✓ ' : ''}
-          {n}
-        </li>
-      ))}
+    <ol className="flex flex-col gap-3 md:flex-row md:gap-0" aria-label="Etapas do mês">
+      {PASSOS.map((p, i) => {
+        const feito = i < atual;
+        const eAtual = i === atual;
+        const a = i < PASSOS.length - 1 ? acao(i) : null;
+        return (
+          <li key={p.nome} aria-current={eAtual ? 'step' : undefined} className={cn('flex flex-col md:flex-row md:items-start', i < PASSOS.length - 1 ? 'md:flex-1' : '')}>
+            <div className="flex shrink-0 gap-3 md:w-44 md:flex-col md:gap-1.5">
+              <span
+                aria-hidden
+                className={cn(
+                  'grid size-6 shrink-0 place-items-center rounded-full border text-[13px] leading-none font-semibold',
+                  eAtual ? 'border-tinta bg-tinta text-white' : feito ? 'border-tinta text-tinta' : 'border-encaixe text-apagado',
+                )}
+              >
+                {feito ? <Check className="size-3.5" strokeWidth={2.5} /> : i + 1}
+              </span>
+              <div className="grid gap-0.5">
+                <h3 className={cn('text-[15px] leading-[22px]', eAtual ? 'font-semibold text-tinta' : 'text-apagado')}>
+                  {p.nome}
+                  {feito && <span className="sr-only">{" feito"}</span>}
+                </h3>
+                <p className="text-[13px] leading-[18px] text-apagado">{p.frase}</p>
+              </div>
+            </div>
+            {i < PASSOS.length - 1 && (
+              // no computador, a seta é uma linha entre os passos, com a ação por cima; no celular, os passos ficam em coluna e a seta desce pela esquerda, com a ação ao lado
+              <div className="relative flex min-h-6 items-center max-md:ml-3 max-md:min-h-10 max-md:border-l-2 max-md:border-linha max-md:pl-6 md:flex-1 md:justify-center">
+                <span aria-hidden className={cn('absolute top-3 right-0 left-0 h-0.5 bg-linha max-md:hidden')} />
+                <span
+                  aria-hidden
+                  data-seta-feita={feito ? '' : undefined}
+                  className="absolute top-3 left-0 h-0.5 bg-tinta transition-[width] duration-[220ms] motion-reduce:transition-none max-md:hidden"
+                  style={{ width: feito ? '100%' : '0%' }}
+                />
+                <ChevronRight aria-hidden className={cn('absolute top-[5px] right-0 size-3.5 max-md:hidden', feito ? 'text-tinta' : 'text-encaixe')} />
+                {a && (
+                  <Button type="button" size="sm" variant={a.principal ? 'default' : 'outline'} disabled={a.desligado} onClick={a.aoClicar} className="relative z-10 md:-mt-1 md:self-start">
+                    {a.rotulo}
+                  </Button>
+                )}
+              </div>
+            )}
+          </li>
+        );
+      })}
     </ol>
   );
 }

@@ -760,3 +760,59 @@ describe('acabamento do painel e da troca de turno (6.17, itens 21, 26 e 34)', (
   });
 });
 
+describe('as etapas do mês como linha de processo (6.17, item 33)', () => {
+  afterEach(() => {
+    cleanup();
+    vi.unstubAllGlobals();
+  });
+  const passos = () => within(screen.getByRole('list', { name: 'Etapas do mês' })).getAllByRole('listitem');
+  const atual = () => passos().filter((p) => p.getAttribute('aria-current') === 'step').map((p) => within(p).getByRole('heading', { level: 3 }).textContent);
+  const acoes = () => ['Calcular cotas', 'Fechar a escala', 'Encerrar o mês'].filter((n) => screen.queryAllByRole('button', { name: n }).length > 0);
+
+  it('sem cotas: o passo atual é "Participantes e cotas", e a ação sobre a seta é "Calcular cotas"', async () => {
+    abrirEscala(escala({ etapa: 'sem-cotas', cotasEm: null, vez: null, turnos: [] }));
+    await screen.findByRole('list', { name: 'Etapas do mês' });
+    expect(passos().map((p) => within(p).getByRole('heading', { level: 3 }).textContent)).toEqual(['Participantes e cotas', 'Escolhas', 'Escala fechada', 'Mês encerrado']);
+    expect(atual()).toEqual(['Participantes e cotas']);
+    expect(acoes()).toEqual(['Calcular cotas']);
+  });
+
+  it('nas escolhas: "Escolhas" é o atual, "Participantes e cotas" está feito, e cada ação aparece uma vez, sobre a seta do passo', async () => {
+    abrirEscala(escala());
+    await screen.findByRole('list', { name: 'Etapas do mês' });
+    expect(atual()).toEqual(['Escolhas']);
+    expect(within(passos()[0]!).getByText('feito')).toHaveClass('sr-only');
+    expect(within(passos()[1]!).getByText('Os oficiais escolhem os turnos na ordem')).toHaveClass('text-[13px]');
+    expect(acoes()).toEqual(['Calcular cotas', 'Fechar a escala', 'Encerrar o mês']);
+    for (const n of acoes()) expect(screen.getAllByRole('button', { name: n })).toHaveLength(1);
+    // "Fechar a escala" é a ação principal e fica na seta que sai de "Escolhas"
+    expect(within(passos()[1]!).getByRole('button', { name: 'Fechar a escala' })).toBeInTheDocument();
+  });
+
+  it('com a escala fechada: "Escala fechada" é o atual, e a ação principal é "Encerrar o mês", sobre a seta que sai dele', async () => {
+    abrirEscala(escala({ etapa: 'fechada', fechadaEm: '2027-01-05T10:00:00' }));
+    await screen.findByRole('list', { name: 'Etapas do mês' });
+    expect(atual()).toEqual(['Escala fechada']);
+    expect(within(passos()[2]!).getByRole('button', { name: 'Encerrar o mês' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Fechar a escala' })).toBeNull();
+    expect(within(passos()[2]!).getByText('Trocar é cobrir: fica o registro de quem saiu')).toBeInTheDocument();
+  });
+
+  it('com o mês encerrado: "Mês encerrado" é o atual, sem ação de avançar; "Ver o saldo" e "Regras" ficam', async () => {
+    abrirEscala(escala({ etapa: 'encerrada', fechadaEm: '2027-01-05T10:00:00', encerradaEm: '2027-02-01T10:00:00' }));
+    await screen.findByRole('list', { name: 'Etapas do mês' });
+    expect(atual()).toEqual(['Mês encerrado']);
+    expect(acoes()).toEqual([]);
+    expect(screen.getByRole('button', { name: 'Ver o saldo' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Regras' })).toBeInTheDocument();
+    expect(within(passos()[3]!).getByText('O saldo entra no acumulado')).toBeInTheDocument();
+  });
+
+  it('a seta que já foi vencida se preenche com a transição de 220 ms, parada com movimento reduzido', async () => {
+    abrirEscala(escala());
+    await screen.findByRole('list', { name: 'Etapas do mês' });
+    const enchimento = document.querySelector('[data-seta-feita]') as HTMLElement;
+    expect(enchimento).toHaveClass('duration-[220ms]', 'motion-reduce:transition-none');
+  });
+});
+
