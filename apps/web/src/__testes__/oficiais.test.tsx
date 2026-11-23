@@ -538,7 +538,8 @@ describe('o calendário com o nome em destaque (6.22)', () => {
     vi.unstubAllGlobals();
   });
   const turnoCom = (marcas: Record<string, string | [string, string]>, extra: Partial<EscalaDosOficiais> = {}) => escala({ turnos: comNome(escala(), marcas), ...extra });
-  const placa = (titulo: string) => screen.getByTitle(titulo);
+  // a dica traz o nome e o turno ("CEL ALFA · Dia"): acha pelo começo
+  const placa = (titulo: string) => screen.getByTitle(new RegExp(`^${titulo}( · |$)`));
 
   it('o turno com nome mostra a patente (13 px, apagado) e o nome (17 px, estreita, 600) numa placa clara, com a faixa do turno à esquerda', async () => {
     abrirEscala(turnoCom({ [`${dia(2)}|t-a`]: 'm-1', [`${dia(2)}|t-b`]: 'm-2' }));
@@ -596,6 +597,16 @@ describe('o calendário com o nome em destaque (6.22)', () => {
     await userEvent.click(await screen.findByRole('button', { name: /^04\/01, Dia/ }));
     expect(await screen.findByText('CEL ALFA ficou com o turno Dia de 04/01.')).toBeInTheDocument();
     await waitFor(() => expect(document.querySelectorAll('[data-recente="true"]')).toHaveLength(1));
+  });
+
+  it('o turno com nome diz Dia ou Noite a quem não vê a cor: na dica e para o leitor de tela (achado da revisão final)', async () => {
+    abrirEscala(turnoCom({ [`${dia(2)}|t-a`]: 'm-1', [`${dia(2)}|t-b`]: 'm-2' }));
+    await screen.findByText('2 de 62 turnos com nome');
+    const dia2 = placa('CEL ALFA');
+    expect(dia2).toHaveAttribute('title', 'CEL ALFA · Dia');
+    expect(within(dia2).getByText('02/01, Dia, 07h às 19h')).toHaveClass('sr-only');
+    expect(placa('CAP BRAVO')).toHaveAttribute('title', 'CAP BRAVO · Noite');
+    expect(within(placa('CAP BRAVO')).getByText('02/01, Noite, 19h às 07h')).toHaveClass('sr-only');
   });
 
   it('os turnos do oficial da vez ficam com o contorno de 1 px vinho; os dos outros, não', async () => {

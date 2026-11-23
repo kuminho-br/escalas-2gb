@@ -114,24 +114,26 @@ export function CalendarioDosOficiais({ escala: e, aoClicarTurno, aoTirar, desab
     // a patente nunca é cortada; o nome longo corta com reticências (a dica mostra tudo)
     const conteudo = (
       <>
+        {/* o turno (Dia ou Noite) e a data para o leitor de tela: a placa de quem foi escalado não traz a palavra escrita */}
+        <span className="sr-only">{base}</span>
         <span className={cn('flex min-w-0 flex-wrap items-baseline gap-x-1.5', comTirar && 'pr-6')}>
           {dono && <span className="shrink-0 text-[13px] leading-[18px] font-medium text-apagado">{dono.posto}</span>}
           {marca}
         </span>
-        {/* o turno (Dia ou Noite) está na faixa, no fundo, na dica e no nome do botão: o nome ganha a largura da célula */}
+        {/* o turno está na faixa, no fundo, na dica e no texto para o leitor de tela: o nome ganha a largura da célula */}
         <span className="min-w-0 truncate font-cond text-[17px] leading-6 font-semibold tracking-[0.01em] text-tinta">{nome}</span>
         {saiu && <span className="text-[13px] leading-[18px] text-apagado">cobriu {saiu.nomeGuerra}</span>}
       </>
     );
     if (e.etapa === 'fechada' && aoClicarTurno) {
       return (
-        <button key={t.id} type="button" {...comum} disabled={desabilitado} aria-label={`${base}: ${nome}`} onClick={() => aoClicarTurno(x)} className={cn(placa, 'hover:border-encaixe')} title={dono ? `${dono.posto} ${dono.nomeGuerra}` : undefined}>
+        <button key={t.id} type="button" {...comum} disabled={desabilitado} aria-label={`${base}: ${nome}`} onClick={() => aoClicarTurno(x)} className={cn(placa, 'hover:border-encaixe')} title={dono ? `${dono.posto} ${dono.nomeGuerra} · ${t.rotulo}` : undefined}>
           {conteudo}
         </button>
       );
     }
     return (
-      <div key={t.id} {...comum} className={placa} title={dono ? `${dono.posto} ${dono.nomeGuerra}` : undefined}>
+      <div key={t.id} {...comum} className={placa} title={dono ? `${dono.posto} ${dono.nomeGuerra} · ${t.rotulo}` : undefined}>
         {conteudo}
         {e.etapa === 'escolhas' && aoTirar && (
           <button
