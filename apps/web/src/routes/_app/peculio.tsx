@@ -37,6 +37,8 @@ function Peculio() {
   const [busca, setBusca] = useState('');
   const [lotacao, setLotacao] = useState('');
   const [novo, setNovo] = useState(false);
+  // a lista aparece de 100 em 100 (a busca e o filtro olham a lista inteira); mudar o filtro volta aos 100 primeiros
+  const [limite, setLimite] = useState(100);
   const lotacoes = useMemo(() => [...new Set((lista.data?.militares ?? []).map((m) => m.lotacao))].sort(), [lista.data]);
   const filtrados = useMemo(() => {
     const b = normalizarBusca(busca);
@@ -75,7 +77,7 @@ function Peculio() {
                   id="busca-peculio"
                   placeholder="Buscar por nome ou matrícula"
                   value={busca}
-                  onChange={(e) => setBusca(e.target.value)}
+                  onChange={(e) => { setBusca(e.target.value); setLimite(100); }}
                   onKeyDown={(e) => {
                     if (e.key !== 'Enter' || !unico) return;
                     e.preventDefault();
@@ -85,17 +87,20 @@ function Peculio() {
               </div>
               <div className="grid gap-1">
                 <Label htmlFor="filtro-lotacao" className="text-xs text-apagado">Lotação</Label>
-                <Selecao id="filtro-lotacao" value={lotacao} onChange={(e) => setLotacao(e.target.value)}>
+                <Selecao id="filtro-lotacao" value={lotacao} onChange={(e) => { setLotacao(e.target.value); setLimite(100); }}>
                   <option value="">Todas</option>
                   {lotacoes.map((l) => <option key={l} value={l}>{l}</option>)}
                 </Selecao>
               </div>
             </div>
-            <p className="px-4 pt-3 text-xs text-apagado">{filtrados.length} de {lista.data.militares.length} militares</p>
+            <p className="px-4 pt-3 text-[13px] text-apagado">{filtrados.length > limite ? `Mostrando ${limite} de ${filtrados.length}` : `${filtrados.length} de ${lista.data.militares.length}`} militares</p>
             <ul aria-label="Militares do Pecúlio" className="p-2">
-              {filtrados.map((m) => <ItemDoPeculioNaLista key={m.militarId} m={m} destaque={m.militarId === unico?.militarId} />)}
+              {filtrados.slice(0, limite).map((m) => <ItemDoPeculioNaLista key={m.militarId} m={m} destaque={m.militarId === unico?.militarId} />)}
               {lista.data.militares.length === 0 && <li className="p-3 text-apagado">Nenhum militar lotado. Cadastre com "Novo militar" ou use "Importar".</li>}
             </ul>
+            {filtrados.length > limite && (
+              <div className="px-4 pb-3"><Button type="button" variant="outline" onClick={() => setLimite((n) => n + 100)}>Mostrar mais</Button></div>
+            )}
           </div>
 
           {/* o nascimento é de quem cuida do Pecúlio: sem poder ver o de ninguém da lista, a seção nem aparece (e não diz que ninguém faz aniversário) */}
