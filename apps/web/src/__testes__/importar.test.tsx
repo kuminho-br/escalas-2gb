@@ -31,6 +31,7 @@ const PREVIA = {
   novos: [{ chave: '990001-1', descricao: 'SD BM ANDRADE' }, { chave: '990002-2', descricao: 'SD BM BARRETO' }],
   alterados: [],
   iguais: 3,
+  ignoradas: [],
   problemas: [{ aba: 'MILITARES', linha: 7, mensagem: 'Matrícula inválida: "12-3".', solucao: 'Use 6 dígitos, hífen e 1 dígito.' }],
   avisos: [],
 };
@@ -47,7 +48,6 @@ describe('o botão se chama só Importar', () => {
   });
 
   it.each([
-    ['/militares', 'GET /api/unidades/u-1sb/militares', 'Nenhum militar lotado. O militar novo é cadastrado no Pecúlio.'],
     ['/servicos', 'GET /api/unidades/u-1sb/servicos', 'Nenhum serviço. Use "Novo serviço" ou "Importar".'],
     ['/escalas', 'GET /api/unidades/u-1sb/escalas', 'Nenhuma escala. Use "Nova escala" ou "Importar".'],
   ])('a lista vazia de %s manda para o botão "Importar"', async (rota, api, frase) => {

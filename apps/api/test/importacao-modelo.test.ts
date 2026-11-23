@@ -3,7 +3,6 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { hojeRecife } from '../src/datas.ts';
 import { coluna, lerPlanilha } from '../src/importacao/planilha.ts';
 import { IMPORTADORES } from '../src/importacao/registro.ts';
-import { inserir } from './banco-teste.ts';
 import { montarApi, type ApiDeTeste } from './apoio-api.ts';
 import { formulario, planilha } from './planilha-teste.ts';
 
@@ -58,39 +57,34 @@ describe('modelo de planilha de cada importador', () => {
     });
   }
 
-  it('a AJUDA dos dados da escala traz as equipes da unidade e as colunas', async () => {
-    await inserir(api.banco, 'equipe', { unidade_id: api.ids.secao, nome: 'Alfa', ordem_ciclo: 1 });
-    const wb = new ExcelJS.Workbook();
-    await wb.xlsx.load(await baixar('dados-da-escala'));
-    const ajuda = textoDaAjuda(wb);
-    expect(ajuda).toContain('Alfa');
-    expect(ajuda).toContain('MATRÍCULA');
-    expect(ajuda).not.toContain('POSTO/GRAD');
-    // a planilha sandbox tem a aba MILITARES, que esta importação não lê: a ajuda não manda enviá-la
-    expect(ajuda).not.toContain('sandbox baixada');
-  });
-
   it('a AJUDA de configurações lista as chaves que o sistema usa', async () => {
     const wb = new ExcelJS.Workbook();
     await wb.xlsx.load(await baixar('configuracoes'));
     expect(textoDaAjuda(wb)).toContain('CARGA_MENSAL_HORAS');
   });
 
-  it('JORNADA tem lista de opções', async () => {
+  it('a JORNADA do Pecúlio tem lista de opções', async () => {
     const wb = new ExcelJS.Workbook();
-    await wb.xlsx.load(await baixar('dados-da-escala'));
-    const ws = wb.getWorksheet('DADOS DA ESCALA')!;
-    const col = IMPORTADORES['dados-da-escala']!.modelo.abas[0]!.colunas.findIndex((c) => c.rotulo === 'JORNADA') + 1;
+    await wb.xlsx.load(await baixar('peculio'));
+    const ws = wb.getWorksheet('PECÚLIO')!;
+    const col = IMPORTADORES.peculio!.modelo.abas[0]!.colunas.findIndex((c) => c.rotulo === 'JORNADA') + 1;
     expect(ws.getCell(2, col).dataValidation).toMatchObject({ type: 'list', formulae: ['"PRONTO,ADM"'] });
+  });
+
+  it('a importação "Dados da escala" saiu: o modelo e o envio respondem 404 (6.13)', async () => {
+    expect(IMPORTADORES['dados-da-escala']).toBeUndefined();
+    expect((await api.pedir('admin', 'GET', caminhoModelo('dados-da-escala'))).status).toBe(404);
+    const r = await api.pedir('admin', 'POST', `/api/unidades/${api.ids.secao}/importacao/dados-da-escala`, formulario(await planilha({ 'DADOS DA ESCALA': [['MATRÍCULA']] })));
+    expect(r.status).toBe(404);
   });
 });
 
 describe('rota do modelo', () => {
   it('entrega o .xlsx com o nome do cadastro', async () => {
-    const r = await api.pedir('escalante', 'GET', caminhoModelo('dados-da-escala'));
+    const r = await api.pedir('escalante', 'GET', caminhoModelo('feriados'));
     expect(r.status).toBe(200);
     expect(r.headers.get('content-type')).toBe('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-    expect(r.headers.get('content-disposition')).toBe('attachment; filename="modelo-dados-da-escala.xlsx"');
+    expect(r.headers.get('content-disposition')).toBe('attachment; filename="modelo-feriados.xlsx"');
   });
 
   it('modelo de configurações é 403 para escalante e 200 para quem escreve parâmetros', async () => {
@@ -99,7 +93,7 @@ describe('rota do modelo', () => {
   });
 
   it('sem papel é 403', async () => {
-    expect((await api.pedir('semPapel', 'GET', caminhoModelo('dados-da-escala'))).status).toBe(403);
+    expect((await api.pedir('semPapel', 'GET', caminhoModelo('feriados'))).status).toBe(403);
   });
 
   it('cadastro desconhecido é 404', async () => {
@@ -109,14 +103,14 @@ describe('rota do modelo', () => {
 
 describe('mensagens da importação', () => {
   const enviar = async (arquivo: ArrayBuffer) => {
-    const r = await api.pedir('escalante', 'POST', `/api/unidades/${api.ids.secao}/importacao/dados-da-escala`, formulario(arquivo));
+    const r = await api.pedir('escalante', 'POST', `/api/unidades/${api.ids.secao}/importacao/feriados`, formulario(arquivo));
     expect(r.status).toBe(400);
     return (await r.json()).erro as string;
   };
 
   it('aba que falta sugere o modelo', async () => {
     const erro = await enviar(await planilha({ OUTRA: [['X']] }));
-    expect(erro).toBe('A planilha não tem a aba "DADOS DA ESCALA". Baixe o modelo na tela de importação e cole os dados nele, ou confira o nome da aba.');
+    expect(erro).toBe('A planilha não tem a aba "FERIADOS". Baixe o modelo na tela de importação e cole os dados nele, ou confira o nome da aba.');
   });
 
   it('arquivo ilegível sugere colar só as abas no modelo', async () => {

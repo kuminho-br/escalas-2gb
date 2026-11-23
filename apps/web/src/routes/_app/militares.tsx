@@ -1,11 +1,10 @@
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { createFileRoute, Link, Outlet, useParams } from '@tanstack/react-router';
 import type { LinhaMilitar } from 'contratos';
 import { TriangleAlert } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { mensagemDe } from '@/api/cliente';
-import { atualizarMilitares, consultaEquipes, consultaMilitares } from '@/api/militares';
-import { ImportarPlanilha } from '@/componentes/ImportarPlanilha';
+import { consultaEquipes, consultaMilitares } from '@/api/militares';
 import { classeItemEscolhido, ListaDetalhe } from '@/componentes/ListaDetalhe';
 import { Selecao } from '@/componentes/Selecao';
 import { Input } from '@/componentes/ui/input';
@@ -21,17 +20,11 @@ export const Route = createFileRoute('/_app/militares')({
 
 function Militares() {
   const { eu } = Route.useRouteContext();
-  const queryClient = useQueryClient();
   const { id } = useParams({ strict: false });
   return (
     <ListaDetalhe
       titulo="Militares"
       temDetalhe={Boolean(id)}
-      acoes={
-        <>
-          <ImportarPlanilha cadastro="dados-da-escala" rotulo="os dados da escala" aoConcluir={() => atualizarMilitares(queryClient)} />
-        </>
-      }
       lista={<ListaDeMilitares unidadeId={eu.unidade.id} escolhido={id} />}
       detalhe={<Outlet />}
     />

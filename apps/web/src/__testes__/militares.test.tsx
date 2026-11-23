@@ -898,16 +898,13 @@ describe('a tela Militares não cadastra mais (o militar novo é do Pecúlio)', 
     abrir('/militares');
     expect(await screen.findByText('Nenhum militar lotado. O militar novo é cadastrado no Pecúlio.')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Novo militar' })).toBeNull();
-    expect(screen.getByRole('button', { name: 'Importar' })).toBeInTheDocument();
   });
 
-  it('o importar da tela é o dos "Dados da escala"', async () => {
+  it('a tela Militares não tem mais botão de importar: os dados do militar vêm do Pecúlio (6.13)', async () => {
     api();
     abrir('/militares');
-    await userEvent.click(await screen.findByRole('button', { name: 'Importar' }));
-    expect(screen.getByRole('heading', { name: 'Importar os dados da escala da planilha' })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Baixar modelo' })).toHaveAttribute('href', '/api/unidades/u-1sb/importacao/dados-da-escala/modelo');
-    expect(screen.queryByText(/sandbox baixada/)).toBeNull();
+    await screen.findByText('ANDRADE');
+    expect(screen.queryByRole('button', { name: /^Importar/ })).toBeNull();
   });
 });
 
