@@ -2,7 +2,7 @@ import type { UnidadeDeTrabalho } from 'contratos';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { escolherUnidade, esquecerUnidadeDaAba, guardarUnidade, lerUnidadeGuardada } from '@/lib/unidade-de-trabalho';
 
-const u = (id: string, sigla: string, nivel: number): UnidadeDeTrabalho => ({ id, sigla, nivel, caminho: ['CBMPE', ...Array(nivel).fill('x'), sigla] });
+const u = (id: string, sigla: string, nivel: number): UnidadeDeTrabalho => ({ id, sigla, nivel, caminho: ['CBMPE', ...Array(nivel).fill('x'), sigla], tipo: nivel === 3 ? 'grupamento' : 'secao' });
 const GB = u('gb', '2º GB', 3);
 const SB1 = u('sb1', '1ª SB', 4);
 const SB2 = u('sb2', '2ª SB', 4);

@@ -5,8 +5,9 @@ import { useState, type FormEvent } from 'react';
 import { mensagemDe } from '@/api/cliente';
 import { atualizarEscalas, consultaEscalas, marcarBlocosDoVoluntariado } from '@/api/escalas';
 import { consultaCatalogo, consultaParametros, editarNoCatalogo, incluirNoCatalogo, salvarParametro, type Catalogo } from '@/api/configuracoes';
-import { ehAdministrador, podeMudarParametro } from '@/api/eu';
+import { ehAdministrador, grupamentosQueGere, podeMudarParametro } from '@/api/eu';
 import { useTrava } from '@/componentes/AlteracoesPendentes';
+import { Estrutura } from '@/componentes/configuracoes/Estrutura';
 import { MetaDeAtivacao } from '@/componentes/configuracoes/MetaDeAtivacao';
 import { Postos } from '@/componentes/configuracoes/Postos';
 import { SituacoesDoMilitar } from '@/componentes/configuracoes/SituacoesDoMilitar';
@@ -21,7 +22,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/componentes/ui/tabs'
 import { AcoesDosModelos, ListaDeModelos } from '@/componentes/guarnicoes/ListaDeModelos';
 import { mesAtual } from '@/lib/meses';
 
-const ABAS = ['regras', 'voluntariado', 'modelos', 'meta', 'tipos', 'situacoes', 'postos'] as const;
+const ABAS = ['regras', 'voluntariado', 'modelos', 'meta', 'tipos', 'situacoes', 'postos', 'estrutura'] as const;
 type Aba = (typeof ABAS)[number];
 
 export const Route = createFileRoute('/_app/configuracoes')({
@@ -34,6 +35,9 @@ function Configuracoes() {
   const queryClient = useQueryClient();
   const admin = ehAdministrador(eu);
   const podeMudar = podeMudarParametro(eu);
+  // a estrutura é do gestor do grupamento e do administrador; abre no grupamento da unidade de trabalho, se a pessoa o gere
+  const grupamentos = grupamentosQueGere(eu);
+  const grupamentoInicial = grupamentos.find((g) => g.caminho.every((sigla, i) => eu.unidade.caminho[i] === sigla)) ?? grupamentos[0];
   const aba = Route.useSearch().aba ?? 'regras';
   const navigate = Route.useNavigate();
 
@@ -53,6 +57,7 @@ function Configuracoes() {
           <TabsTrigger value="tipos">Tipos de afastamento</TabsTrigger>
           <TabsTrigger value="situacoes">Situações do militar</TabsTrigger>
           {admin && <TabsTrigger value="postos">Postos e graduações</TabsTrigger>}
+          {grupamentoInicial && <TabsTrigger value="estrutura">Estrutura</TabsTrigger>}
         </TabsList>
         <TabsContent value="regras">
           <RegrasDoProcesso unidadeId={eu.unidade.id} sigla={eu.unidade.sigla} podeMudar={podeMudar} />
@@ -81,6 +86,11 @@ function Configuracoes() {
         {admin && (
           <TabsContent value="postos">
             <Postos />
+          </TabsContent>
+        )}
+        {grupamentoInicial && (
+          <TabsContent value="estrutura">
+            <Estrutura grupamentos={grupamentos} inicial={grupamentoInicial.id} />
           </TabsContent>
         )}
         <TabsContent value="situacoes">

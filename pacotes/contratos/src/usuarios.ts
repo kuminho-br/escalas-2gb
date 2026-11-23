@@ -40,7 +40,8 @@ export const EncerrarPapel = z.object({ ate: Data });
 export type EncerrarPapel = z.infer<typeof EncerrarPapel>;
 
 /** Uma unidade em que a pessoa trabalha: as siglas desde a raiz e o nível (0 = raiz). */
-export type UnidadeDeTrabalho = { id: string; sigla: string; caminho: string[]; nivel: number };
+/** `tipo` é o tipo da unidade (`grupamento`, `divisao`, `secao`…). */
+export type UnidadeDeTrabalho = { id: string; sigla: string; caminho: string[]; nivel: number; tipo: string };
 
 /** Só o telefone se altera na Minha ficha; qualquer outro campo no corpo é recusado. */
 export const NovoTelefone = z.object({ telefone: Telefone.nullable() }).strict();

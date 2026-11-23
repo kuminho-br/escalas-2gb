@@ -205,8 +205,11 @@ function DarPapel({ acesso, erros, aberto, desligado, aoAbrir, aoFechar, aoDar }
     aoAbrir();
   };
   if (!aberto) return <div><Button type="button" variant="outline" size="sm" disabled={desligado} onClick={abrir}>Dar nível de acesso</Button></div>;
-  const menor = Math.min(...acesso.unidadesParaPapel.map((u) => u.nivel));
-  const unidade = unidadeId || acesso.unidadesParaPapel[0]?.id || '';
+  // o nível de chefe de divisão só existe numa divisão: a lista de unidades fica só com elas
+  const unidades = papel === 'chefe_divisao' ? acesso.unidadesParaPapel.filter((u) => u.tipo === 'divisao') : acesso.unidadesParaPapel;
+  const menor = Math.min(...unidades.map((u) => u.nivel));
+  // a unidade escolhida só vale se continua na lista (uma seção não vai junto quando o nível passa a ser o de chefe)
+  const unidade = unidades.find((u) => u.id === unidadeId)?.id ?? unidades[0]?.id ?? '';
   return (
     <form
       className="grid gap-3 sm:grid-cols-[12rem_1fr_10rem_10rem]"
@@ -217,9 +220,9 @@ function DarPapel({ acesso, erros, aberto, desligado, aoAbrir, aoFechar, aoDar }
           {acesso.papeisQuePodeDar.map((p) => <option key={p} value={p}>{nomeDoPapel(p)}</option>)}
         </Selecao>
       </Campo>
-      <Campo id="np-unidade" rotulo="Unidade">
+      <Campo id="np-unidade" rotulo="Unidade" erro={erros.unidadeId}>
         <Selecao id="np-unidade" value={unidade} onChange={(e) => setUnidadeId(e.target.value)}>
-          {acesso.unidadesParaPapel.map((u) => <option key={u.id} value={u.id}>{`${'  '.repeat(u.nivel - menor)}${u.sigla}`}</option>)}
+          {unidades.map((u) => <option key={u.id} value={u.id}>{`${'  '.repeat(u.nivel - menor)}${u.sigla}`}</option>)}
         </Selecao>
       </Campo>
       <Campo id="np-desde" rotulo="A partir de" erro={erros.desde}>

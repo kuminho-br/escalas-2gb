@@ -32,9 +32,9 @@ const porCaminho = (a: UnidadeDeTrabalho, b: UnidadeDeTrabalho) => {
   return a.caminho.length - b.caminho.length;
 };
 
-const COM_CAMINHO = `select u.id, u.sigla, array(select a.sigla from unidade a where a.caminho @> u.caminho order by nlevel(a.caminho)) as caminho from unidade u`;
-type LinhaDaUnidade = { id: string; sigla: string; caminho: string[] };
-const paraUnidade = (r: LinhaDaUnidade): UnidadeDeTrabalho => ({ id: r.id, sigla: r.sigla, caminho: r.caminho, nivel: r.caminho.length - 1 });
+const COM_CAMINHO = `select u.id, u.sigla, u.tipo, array(select a.sigla from unidade a where a.caminho @> u.caminho order by nlevel(a.caminho)) as caminho from unidade u`;
+type LinhaDaUnidade = { id: string; sigla: string; tipo: string; caminho: string[] };
+const paraUnidade = (r: LinhaDaUnidade): UnidadeDeTrabalho => ({ id: r.id, sigla: r.sigla, caminho: r.caminho, nivel: r.caminho.length - 1, tipo: r.tipo });
 
 /** As unidades dos papéis vigentes e as de baixo (as extintas não entram). */
 async function unidadesDosPapeis(c: Consulta, usuarioId: string, hoje: string): Promise<UnidadeDeTrabalho[]> {

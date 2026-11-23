@@ -1,9 +1,10 @@
-import { mesPorExtenso, somarMeses, type LinhaEscala, type LinhaGuarnicao, type Parametro, type VersaoDaMetaPadrao } from 'contratos';
+import { mesPorExtenso, somarMeses, type LinhaEscala, type LinhaGuarnicao, type NoDaEstrutura, type Parametro, type VersaoDaMetaPadrao } from 'contratos';
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { hoje } from '@/lib/meses';
-import { abrir, corpoEnviado, EU_EXEMPLO, simularApi } from './apoio';
+import { cleanup } from '@testing-library/react';
+import { abrir, chamadasA, corpoEnviado, EU_EXEMPLO, simularApi } from './apoio';
 
 const PARAMS = '/api/unidades/u-1sb/parametros';
 const mesAtual = () => {
@@ -383,5 +384,112 @@ describe('meta de ativação', () => {
   it('sem nenhuma meta gravada, diz isso', async () => {
     abaMeta({ [`GET ${META}`]: { status: 200, corpo: [] } });
     expect(await screen.findByText('Nenhuma meta padrão gravada ainda.')).toBeInTheDocument();
+  });
+});
+
+describe('configurações: estrutura do grupamento (6.10)', () => {
+  const GB = { id: 'u-gb', sigla: '2º GB', caminho: ['CBMPE', 'DGO', 'DInter/1', '2º GB'], nivel: 3, tipo: 'grupamento' };
+  const DIVOP = { id: 'u-divop', sigla: 'DivOp', caminho: [...GB.caminho, 'DivOp'], nivel: 4, tipo: 'divisao' };
+  const SB1 = EU_EXEMPLO.unidades[0]!;
+  const GESTOR_GB = { ...EU_EXEMPLO, papeis: [{ papel: 'gestor' as const, unidadeId: 'u-gb', unidadeSigla: '2º GB' }], unidades: [GB, SB1] };
+  const ADMIN = { ...EU_EXEMPLO, papeis: [{ papel: 'administrador' as const, unidadeId: 'raiz', unidadeSigla: 'CBMPE' }], unidades: [GB, SB1] };
+  const CHEFE = { ...EU_EXEMPLO, papeis: [{ papel: 'chefe_divisao' as const, unidadeId: 'u-divop', unidadeSigla: 'DivOp' }], unidades: [DIVOP, SB1] };
+  const no = (id: string, sigla: string, nome: string, tipo: NoDaEstrutura['tipo'], filhas: NoDaEstrutura[] = []): NoDaEstrutura => ({ id, sigla, nome, tipo, filhas });
+  const ARVORE = no('u-gb', '2º GB', '2º Grupamento de Bombeiros', 'grupamento', [
+    no('u-1sb', '1ª SB', '1ª Seção de Bombeiros', 'secao'),
+    no('u-da', 'DA', 'Divisão Administrativa', 'divisao', [no('u-3sb', '3ª SB', '3ª Seção de Bombeiros', 'secao')]),
+    no('u-divop', 'DivOp', 'Divisão Operacional', 'divisao'),
+  ]);
+  const ESTRUTURA = 'GET /api/unidades/u-gb/estrutura';
+  const comEstrutura = (extra: Parameters<typeof simularApi>[0] = {}, eu: typeof EU_EXEMPLO = GESTOR_GB) => api({ [ESTRUTURA]: { status: 200, corpo: ARVORE }, ...extra }, eu);
+  const AVISO = 'Mover a seção muda na hora quem tem acesso a ela.';
+
+  it('a aba só aparece para o gestor do grupamento e o administrador', async () => {
+    for (const [eu, aparece] of [[EU_EXEMPLO, false], [GESTOR, false], [CHEFE, false], [GESTOR_GB, true], [ADMIN, true]] as const) {
+      comEstrutura({}, eu);
+      abrir('/configuracoes');
+      await screen.findByRole('tab', { name: 'Regras do processo' });
+      expect(screen.queryAllByRole('tab', { name: 'Estrutura' })).toHaveLength(aparece ? 1 : 0);
+      cleanup();
+    }
+  });
+
+  it('mostra o grupamento, as divisões com as seções de dentro, e as seções sem divisão', async () => {
+    comEstrutura();
+    abrir('/configuracoes?aba=estrutura');
+    const arvore = await screen.findByRole('list', { name: 'Estrutura de 2º GB' });
+    expect(within(arvore).getAllByRole('listitem').map((l) => l.querySelector('[data-sigla]')?.textContent)).toEqual(['DA', '3ª SB', 'DivOp', '1ª SB']);
+    expect(within(arvore).getByText('Divisão Administrativa')).toBeInTheDocument();
+    // cada seção tem o seletor "Divisão", com a divisão em que ela está
+    expect(screen.getByLabelText('Divisão de 3ª SB')).toHaveValue('u-da');
+    expect(screen.getByLabelText('Divisão de 1ª SB')).toHaveValue('');
+    expect(within(screen.getByLabelText('Divisão de 1ª SB')).getAllByRole('option').map((o) => o.textContent)).toEqual(['Sem divisão', 'DA', 'DivOp']);
+  });
+
+  it('cria uma divisão', async () => {
+    const f = comEstrutura({ 'POST /api/unidades/u-gb/divisoes': { status: 201, corpo: no('u-dens', 'DEns', 'Divisão de Ensino', 'divisao') } });
+    abrir('/configuracoes?aba=estrutura');
+    await userEvent.click(await screen.findByRole('button', { name: 'Nova divisão' }));
+    await userEvent.type(screen.getByLabelText('Sigla'), 'DEns');
+    await userEvent.type(screen.getByLabelText('Nome'), 'Divisão de Ensino');
+    await userEvent.click(screen.getByRole('button', { name: 'Criar divisão' }));
+    await waitFor(() => expect(corpoEnviado(f, 'POST /api/unidades/u-gb/divisoes')).toEqual({ sigla: 'DEns', nome: 'Divisão de Ensino' }));
+    // o formulário fecha e a árvore é buscada de novo
+    await waitFor(() => expect(screen.queryByRole('button', { name: 'Criar divisão' })).toBeNull());
+    expect(chamadasA(f, ESTRUTURA)).toBeGreaterThan(1);
+  });
+
+  it('renomeia uma divisão, e a sigla repetida mostra o erro no campo', async () => {
+    const repetida = 'Já existe uma unidade com esta sigla neste grupamento.';
+    const f = comEstrutura({ 'PATCH /api/divisoes/u-da': { status: 409, corpo: { erro: repetida, campos: { sigla: repetida } } } });
+    abrir('/configuracoes?aba=estrutura');
+    await userEvent.click(await screen.findByRole('button', { name: 'Renomear DA' }));
+    const sigla = screen.getByLabelText('Sigla');
+    expect(sigla).toHaveValue('DA');
+    expect(screen.getByLabelText('Nome')).toHaveValue('Divisão Administrativa');
+    await userEvent.clear(sigla);
+    await userEvent.type(sigla, 'DivOp');
+    await userEvent.click(screen.getByRole('button', { name: 'Salvar' }));
+    await waitFor(() => expect(corpoEnviado(f, 'PATCH /api/divisoes/u-da')).toEqual({ sigla: 'DivOp', nome: 'Divisão Administrativa' }));
+    expect(await screen.findByText(repetida)).toBeInTheDocument();
+    expect(screen.getByLabelText('Sigla')).toHaveAccessibleDescription(repetida);
+  });
+
+  it('mover uma seção mostra o aviso e só grava depois de confirmar', async () => {
+    const f = comEstrutura({ 'PUT /api/secoes/u-1sb/divisao': { status: 200, corpo: ARVORE } });
+    abrir('/configuracoes?aba=estrutura');
+    await userEvent.selectOptions(await screen.findByLabelText('Divisão de 1ª SB'), 'u-divop');
+    const janela = within(await screen.findByRole('dialog'));
+    expect(janela.getByRole('heading', { name: 'Mover 1ª SB para DivOp?' })).toBeInTheDocument();
+    expect(janela.getByText(AVISO)).toBeInTheDocument();
+    expect(chamadasA(f, 'PUT /api/secoes/u-1sb/divisao')).toBe(0);
+    // cancelar não grava, e o seletor volta ao que estava
+    await userEvent.click(janela.getByRole('button', { name: 'Cancelar' }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    expect(chamadasA(f, 'PUT /api/secoes/u-1sb/divisao')).toBe(0);
+    expect(screen.getByLabelText('Divisão de 1ª SB')).toHaveValue('');
+    await userEvent.selectOptions(screen.getByLabelText('Divisão de 1ª SB'), 'u-divop');
+    await userEvent.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Mover' }));
+    await waitFor(() => expect(corpoEnviado(f, 'PUT /api/secoes/u-1sb/divisao')).toEqual({ divisaoId: 'u-divop' }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+  });
+
+  it('tirar a seção da divisão manda "sem divisão", com o mesmo aviso', async () => {
+    const f = comEstrutura({ 'PUT /api/secoes/u-3sb/divisao': { status: 200, corpo: ARVORE } });
+    abrir('/configuracoes?aba=estrutura');
+    await userEvent.selectOptions(await screen.findByLabelText('Divisão de 3ª SB'), '');
+    const janela = within(await screen.findByRole('dialog'));
+    expect(janela.getByRole('heading', { name: 'Tirar 3ª SB de DA?' })).toBeInTheDocument();
+    expect(janela.getByText(AVISO)).toBeInTheDocument();
+    await userEvent.click(janela.getByRole('button', { name: 'Mover' }));
+    await waitFor(() => expect(corpoEnviado(f, 'PUT /api/secoes/u-3sb/divisao')).toEqual({ divisaoId: null }));
+  });
+
+  it('o erro ao mover aparece na janela, que continua aberta', async () => {
+    comEstrutura({ 'PUT /api/secoes/u-1sb/divisao': { status: 403, corpo: { erro: 'Você não tem permissão nos cadastros de 2º GB.' } } });
+    abrir('/configuracoes?aba=estrutura');
+    await userEvent.selectOptions(await screen.findByLabelText('Divisão de 1ª SB'), 'u-da');
+    await userEvent.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Mover' }));
+    expect(await within(screen.getByRole('dialog')).findByRole('alert')).toHaveTextContent('Você não tem permissão nos cadastros de 2º GB.');
   });
 });
