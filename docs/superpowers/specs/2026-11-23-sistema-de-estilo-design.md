@@ -11,6 +11,8 @@ Dá à DESENVOLVIMENTO os valores exatos, para implementar sem adivinhar. O mock
 
 Nada aqui muda regra de negócio. Os nomes dos tokens são os que já existem em `apps/web/src/estilo.css`; só `alerta-fundo` é novo.
 
+Valem acima deste documento as diretrizes do usuário de 23/11/2026, na seção "Diretrizes do usuário" da especificação da refatoração: o mockup é guia e não gabarito, o posto aparece sem "BM", a Escala do mês mostra todos os dias na mesma tela e o menu tem ícones. O que muda o comportamento de hoje está marcado em "Propostas de mudança de comportamento".
+
 ## Cores
 
 | Token | Valor | Papel único |
@@ -58,7 +60,7 @@ Nenhum texto fica abaixo de 13 px.
 | Sombra por cima | `0 18px 44px rgba(28,36,48,.22), 0 2px 8px rgba(28,36,48,.10)`: painel, lista aberta, diálogo, aviso e barra de salvar |
 | Contorno de foco | 2 px de `tinta`, afastado 2 px; branco sobre o menu e sobre o aviso escuro |
 | Altura de controle | 36 px; 44 px no toque (`pointer: coarse`) e na largura de celular |
-| Menor alvo de clique | 32 px, só na marca da Grade |
+| Menor alvo de clique | 32 px na marca da Grade; na régua dos dias, a célula tem 44 px de altura e nunca menos de 26 px de largura |
 | Espaços | 4, 8, 12, 16, 24, 32 e 48 px |
 | Movimento | Painel e aviso entram em 180 ms; a placa pousa em 220 ms; a espera corre em 1,3 s. Tudo para com `prefers-reduced-motion` |
 | Largura de celular | O ponto de quebra que o site já usa (768 px); o mockup troca em 720 px por causa do quadro em que está |
@@ -68,21 +70,40 @@ Nenhum texto fica abaixo de 13 px.
 | Peça | Medidas |
 |---|---|
 | Placa | Altura de controle; borda de 1 px `linha`; raio 6; fundo `superficie`; sombra apoiada; faixa do serviço de 5 px à esquerda, na altura toda; folga de 15 px à esquerda e 4 px à direita |
-| Texto da placa | Posto em 13 px, peso 500, `apagado`; nome em 17 px estreita, espaçamento de 0,01 em; os dois pela linha de base, com 6 px entre eles; o nome longo corta com reticências e a dica traz posto, nome, matrícula e serviço |
+| Texto da placa | Posto sem "BM" (SD, CB, 3º SGT, SUB TEN), em 13 px, peso 500, `apagado`; nome em 17 px estreita, espaçamento de 0,01 em; os dois pela linha de base, com 6 px entre eles; o nome longo corta com reticências e a dica traz posto, nome, matrícula e serviço |
+| Largura da placa | O posto mais longo (SUB TEN) ocupa perto de 48 px. Com 148 px cabem o posto e um nome de 8 letras; é a largura mínima de um lugar no quadro do mês |
 | Serviço na placa | Em 13 px `apagado`, à direita, só quando a origem não é Pronto. "Acumula com X" ocupa o mesmo lugar |
-| Sinal de ações | Três pontos numa área de 28 px, só em placa com 228 px ou mais de largura; aparece com o mouse em cima e no foco, e sempre no toque |
+| Sinal de ações | Três pontos numa área de 28 px, só em placa com 200 px ou mais de largura; aparece com o mouse em cima e no foco, e sempre no toque |
 | Estados da placa | Mouse em cima: fundo `passa`, borda `encaixe`. Menu aberto ou escolhida: borda e contorno de 1 px `tinta`. Choque: borda e contorno de 1 px `alerta`, ícone e a frase embaixo |
 | Linha (listas) | Placa de 44 px, com a matrícula em 13 px `apagado` e a etiqueta do serviço |
 | Marca (Grade) | 32 por 32 px, borda de 1 px `linha`, raio 6, letra do turno em 15 px estreita, faixa do serviço de 4 px embaixo |
 | Encaixe obrigatório | A caixa da placa; fundo `pendencia-fundo`; borda tracejada de 1,5 px `pendencia`; texto em 15 px, peso 500, `pendencia`; ícone de mais e "Escolher militar" |
 | Encaixe opcional | Sem fundo; borda tracejada de 1 px `encaixe`; texto `apagado`, peso 400; ícone de mais e "Vaga opcional" |
 | Encaixe com o mouse | O tracejado vira linha cheia; no opcional, fundo `superficie` e texto e borda em `tinta` |
-| Guarnição | Fundo `superficie`, borda de 1 px `linha`, raio 12, folga de 12 px (14 embaixo); nome em 17 px estreita, viatura em 13 px `apagado` |
+| Guarnição em caixa | No celular e onde a guarnição aparece sozinha: fundo `superficie`, borda de 1 px `linha`, raio 12, folga de 12 px (14 embaixo); nome em 17 px estreita, viatura em 13 px `apagado` |
 | Estado da guarnição | À direita do nome: etiqueta "Falta 1" ou "Faltam N", ou um visto de 16 px em `encaixe` com "Completa" para leitor de tela |
-| Função | Rótulo numa coluna de 84 px (nome em 13 px, peso 500; a CNH embaixo, `apagado`) e os lugares em coluna, com 6 px entre eles |
-| Menu da placa | Lista colada à placa (4 px), com "Trocar militar" e "Remover da vaga"; abre para cima quando falta espaço; fecha com Esc e devolve o foco |
+| Função, na guarnição em caixa | Rótulo numa coluna de 84 px (nome em 13 px, peso 500; a CNH embaixo, `apagado`) e os lugares em coluna, com 6 px entre eles |
+| Menu da placa | Lista colada à placa (4 px), nunca mais estreita que o texto, com "Trocar militar" e "Remover da vaga" (em "Sem guarnição", "Remover do turno"); abre para cima quando falta espaço; fecha com Esc e devolve o foco |
 
-Uma caixa por nível: só a guarnição tem moldura. Dia e turno são títulos, e a função é um rótulo.
+Sem caixa dentro de caixa. No quadro do mês, só a placa e o encaixe têm contorno; no celular, a guarnição é a única caixa. Dia e turno são títulos, e a função é um rótulo.
+
+## Quadro do mês
+
+É o arranjo do exemplo do mockup: o mês inteiro numa tela, com os dias um depois do outro. O desenho final é da peça N4.2.
+
+| Parte | Medidas |
+|---|---|
+| Dia | Faixa na largura toda, separada da anterior por uma linha de 1 px; fim de semana com fundo `passa`; folga de 12 px em cima e 14 embaixo |
+| Número do dia | Coluna de 60 px, parada ao rolar: o número em 40 px estreita, o dia da semana em 13 px `apagado`, a etiqueta "hoje" (fundo `tinta`) e o nome do feriado em 13 px `apagado` |
+| Colunas do quadro | Guarnição (56 px), função (96 px) e uma coluna igual para cada turno do dia, com 12 px entre elas |
+| Cabeça do turno | O horário em 17 px estreita, a letra em 15 px `apagado` e, à direita, a etiqueta "Falta 1" ou "Faltam N" |
+| Linhas | Uma por função, com 4 px entre elas; o nome da guarnição (17 px estreita, com a viatura embaixo) ocupa as linhas das suas funções; uma linha de 1 px separa as guarnições |
+| Lugares | Lado a lado dentro do turno, com 148 px no mínimo cada um e 6 px entre eles |
+| Sem guarnição | Última linha do dia, com o rótulo em 13 px `apagado` e uma placa por militar, na coluna do turno |
+| Removidos | Depois de "Sem guarnição": o nome em 15 px estreita e "Permitir de novo" como link, na coluna do turno |
+| Régua dos dias | Na faixa parada, abaixo dos filtros: um botão por dia, com a inicial do dia da semana (13 px) em cima do número (15 px estreita); 44 px de altura; divide a largura por igual e rola de lado quando não cabe |
+| Marcas da régua | Hoje: o número em fundo `tinta`. Dia com vaga obrigatória vazia: fundo `pendencia-fundo` e texto `pendencia`. Fim de semana: fundo `passa`. Feriado: um ponto de 4 px. Dia que está no alto da tela: 3 px de `tinta` embaixo |
+| Resumo do mês | À direita dos filtros: "N de M vagas obrigatórias preenchidas" em 13 px `apagado` e a etiqueta âmbar "N vazias" |
 
 ## Componentes
 
@@ -111,7 +132,7 @@ Uma caixa por nível: só a guarnição tem moldura. Dia e turno são títulos, 
 
 | Peça | Medidas e comportamento |
 |---|---|
-| Aviso de resultado | Embaixo, no meio da área de trabalho, a 16 px da borda (no celular, acima da barra de ação). Fundo `tinta`, texto branco, raio 6, sombra por cima, 44 px de altura mínima. `role="status"` |
+| Aviso de resultado | Embaixo, no meio da área de trabalho, a 16 px da borda (no celular, acima da barra do menu). Fundo `tinta`, texto branco, raio 6, sombra por cima, 44 px de altura mínima. `role="status"` |
 | Tempo do aviso | 8 s com "Desfazer", 4 s sem; não some com o mouse em cima nem em foco; o de erro espera a pessoa |
 | Aviso de erro | Fundo `superficie`, borda de 1 px `alerta`, ícone de 20 px, texto `tinta` e "Tentar de novo" |
 | Confirmação | Diálogo de até 440 px, folga de 24 px, raio 12, sombra por cima, sobre o véu; título em 20 px; "Cancelar" (secundário) e o verbo (principal) à direita |
@@ -127,25 +148,43 @@ Uma caixa por nível: só a guarnição tem moldura. Dia e turno são títulos, 
 |---|---|
 | Cabeçalho | Título em 28 px à esquerda; mês e ação principal à direita; folga de 16 px em cima, 24 dos lados e 12 embaixo |
 | Filtros | Faixa `superficie` com linha em cima e embaixo, 52 px de altura mínima, parada ao rolar; o total do que falta fica à direita |
-| Área de trabalho | Folga de 16 px em cima e 24 dos lados; usa a largura toda; as guarnições em colunas de 248 px no mínimo, com 12 px entre elas |
+| Área de trabalho | Folga de 24 px dos lados; usa a largura toda. O arranjo do mês está em "Quadro do mês" |
 | Tela de leitura | Conteúdo com até 720 px de largura |
 | Painel de detalhe | 384 px, por cima da área de trabalho e só dela: título, mês, ação e filtros continuam à vista. Fecha com Esc e devolve o foco |
-| Celular | Título em 20 px; o mês na largura toda; a ação principal numa barra embaixo; o painel sobe de baixo, até 84% da altura, com o véu |
+| Menu | Cada item com o ícone de 20 px antes do nome, na mesma linha, a 10 px; item de 36 px de altura; o da tela aberta em fundo branco e texto `vinho` |
+| Ícones do menu | Os desenhos de hoje, refeitos num traço só: grade de 24, espessura de 1,75, pontas redondas, nada preenchido |
+| Celular | Título em 20 px e a ação principal à direita dele; o mês na largura toda; a régua rola de lado, com 44 px por dia, e escolhe o dia que aparece; o painel sobe de baixo, até 84% da altura, com o véu |
+| Menu no celular | Uma barra embaixo, em `vinho`: o ícone de 22 px em cima do nome, em 13 px; o item da tela aberta em fundo branco e texto `vinho` |
 
-O menu, o topo e o seletor de unidade aparecem no mockup só para situar. O desenho deles é do bloco N3.
+O menu aparece no mockup com os ícones e a posição pedidos pelo usuário. Quais itens vão na barra de baixo do celular, o topo e o seletor de unidade são do bloco N3.
 
 ## Decisões de desenho
 
 Tomadas pela DESIGN dentro da direção aprovada. O usuário vê todas no mockup.
 
-1. Remover da vaga não pede confirmação: responde com o aviso e "Desfazer". O aviso diz o que a confirmação de hoje diz, que o militar não volta ao turno na próxima pré-escala.
-2. O item escolhido (aba, caixa marcada, dia do calendário) é marcado em `tinta`. O vinho fica para a marca e a ação principal.
-3. A etiqueta do serviço deixa de ter a cor atrás do texto: qualquer cor que o usuário escolher continua legível.
-4. A borda dos campos e dos botões secundários escurece para `encaixe`, que dá 3,5 de contraste.
-5. "Completa" deixa de ser um visto verde, igual ao do Pronto, e vira um visto cinza.
-6. A matrícula sai da placa do quadro. Fica na dica da placa, na lista de escolha e na ficha.
-7. No vazio, o próximo passo é um botão secundário. O principal continua no alto.
-8. No celular, a ação principal vai para uma barra embaixo.
+1. O item escolhido (aba, caixa marcada, dia do calendário) é marcado em `tinta`. O vinho fica para a marca e a ação principal.
+2. A etiqueta do serviço deixa de ter a cor atrás do texto: qualquer cor que o usuário escolher continua legível.
+3. A borda dos campos e dos botões secundários escurece para `encaixe`, que dá 3,5 de contraste.
+4. "Completa" deixa de ser um visto verde, igual ao do Pronto, e vira um visto cinza.
+5. No vazio, o próximo passo é um botão secundário. O principal continua no alto.
+6. O feriado deixa de ser escrito em vermelho, que passa a ser só de erro: fica em `apagado`, com um ponto na régua e no calendário.
+7. No quadro do mês, os turnos ficam em colunas e as funções em linhas, sem a caixa da guarnição. É arranjo, não regra: a mesma informação de hoje.
+
+## Propostas de mudança de comportamento
+
+O exemplo do mockup foi montado como a Escala do mês funciona hoje (conferido em `routes/_app/escala-do-mes.tsx` e em `componentes/escala-do-mes`). O que está abaixo é diferente de hoje e precisa de aceite antes de entrar num plano.
+
+| # | Hoje | Proposta |
+|---|---|---|
+| P1 | Remover pede confirmação pela caixa do navegador. O militar vai para "Removidos", e "Permitir de novo" tira a marca sem devolver à vaga | Remover não pergunta: responde com o aviso, que diz a mesma consequência, e "Desfazer", que devolve o militar à vaga e tira a marca. "Removidos" e "Permitir de novo" continuam |
+| P2 | Para trocar, remove-se um e escolhe-se outro | "Trocar militar" no menu da placa: remove e abre a escolha em seguida |
+| P3 | "Escolher militar" é um diálogo no meio da tela | Abre no painel de detalhe, ao lado, com o quadro à vista. O conteúdo é o de hoje: a busca, quem pode ocupar a vaga e a frase "Ficaram de fora" |
+| P4 | Anda-se pelo mês rolando a tela; só o atalho do Efetivo por dia abre num dia | A régua dos dias leva a qualquer dia e mostra onde falta gente. No mês corrente a tela abre no dia de hoje |
+| P5 | A matrícula aparece em cada linha da guarnição | Sai da placa do quadro. Fica na dica da placa, na lista de escolha e na ficha |
+| P6 | No mês sem ninguém escalado, a tela mostra só as vagas vazias | Uma frase no alto diz o próximo passo: gerar a pré-escala |
+| P7 | No celular, o menu abre de lado, por um botão | O menu fica numa barra embaixo, com o ícone em cima do nome (diretriz do usuário, posição escolhida pela PLANEJAMENTO) |
+
+"Gerar pré-escala" continua abrindo a conferência de hoje, com a equipe do dia 1 e o resumo do que entra. "Ocultar guarnições completas" continua com o nome e o efeito de hoje.
 
 ## Fora deste documento
 
@@ -156,5 +195,7 @@ Tomadas pela DESIGN dentro da direção aprovada. O usuário vê todas no mockup
 
 - Aprovação do mockup pelo usuário.
 - Confirmar que o cartão da guarnição traz a origem do serviço, para a regra do nome do serviço na placa.
+- O exemplo do mockup não traz a escolha da escala, as cotas restantes nem o acúmulo: entram no mockup da Escala do mês (N4.2).
+- P1 pede que a API devolva o militar à vaga ao desfazer; hoje ela só tira a marca de remoção.
 - Conferir o contraste e o foco com ferramenta e com leitor de tela, no site, depois da implementação.
 - `2026-11-16-telas.md` descreve a identidade de hoje: a DOCUMENTAÇÃO atualiza quando a fundação entrar no código.
