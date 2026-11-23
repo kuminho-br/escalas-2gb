@@ -16,6 +16,7 @@
 9. **Pendências de cadastro** (decisões do usuário, 22/11/2026): quadro e situação do militar com data, no rastreio; o catálogo de situações; ano de nascimento, CPF e endereço na ficha e na importação do Pecúlio. **Detalhada abaixo.**
 10. a 12. **Camadas de visão e o chefe de divisão** (decisão do usuário, 23/11/2026): as divisões e o quinto nível de acesso; a borda do que cada um vê e a consulta de militares; as escalas só para leitura. **Plano à parte:** `docs/superpowers/plans/2026-11-23-camadas-de-visao.md`.
 13. **O Pecúlio como origem dos dados** (decisões do usuário, 23/11/2026): a planilha do Pecúlio importa tudo, só com a matrícula obrigatória; sai a importação "Dados da escala" da entrega 7; o administrador apaga um militar; postos editáveis. **Executada antes da 10.** Plano à parte: `docs/superpowers/plans/2026-11-23-fase6-13-peculio-origem-dos-dados.md`.
+14. **A animação de entrada como preferência** (pedido do usuário, 23/11/2026): cada pessoa escolhe se a animação toca em toda entrada, uma vez a cada 12 h ou nunca. **Detalhada no fim.** Pequena e independente: executada logo depois da P1.5, antes da 13.
 
 O retorno da validação que chegar durante a fase vira uma entrega depois da última prevista.
 
@@ -1130,3 +1131,45 @@ Do mesmo lote de 21/11/2026. Cada item espera o mockup da DESIGN e a aprovação
   - preencher CPF e endereço;
   - importar um Pecúlio com as colunas novas;
   - criar uma situação nas Configurações.
+
+---
+
+# Entrega 14 — A animação de entrada como preferência
+
+**Goal:** a pessoa escolhe, na Minha ficha, quando a animação do login toca: em toda entrada, uma vez a cada 12 h (o padrão de hoje) ou nunca.
+
+**Branch:** `fase6-14-preferencia-da-animacao`, a partir da `main`. Sem migração e sem mudança na API.
+
+**Decisões desta entrega** (minhas):
+- **A preferência é de cada pessoa, e fica no navegador** (`localStorage`, chave `escalas2gb.login-animacao-quando`). A animação começa no clique em **Entrar**, antes de o servidor dizer quem é a pessoa, então a escolha precisa estar no aparelho. Em outro navegador ou aparelho, vale o padrão até a pessoa escolher de novo.
+- **Valores:** `sempre`, `12h` (padrão) e `nunca`.
+- **Onde:** na Minha ficha, um bloco "Animação de entrada", com três opções: "Em toda entrada", "Uma vez a cada 12 horas" e "Nunca". Embaixo, o texto: "Vale para este navegador."
+- **"Reduzir movimento" do aparelho continua mandando:** com ele ligado, não há animação, qualquer que seja a escolha, e o bloco avisa: "Seu aparelho pede menos movimento, então a animação não toca."
+- **"Sempre" não muda a marca das 12 h:** ela continua sendo gravada, para a volta ao padrão funcionar.
+
+### Task 28: a preferência
+
+**Files:**
+- Modify: `apps/web/src/lib/transicao-login/regra.ts`, `apps/web/src/routes/entrar.tsx`, `apps/web/src/routes/_app/minha-ficha.tsx`
+- Test: o teste da regra da transição, `apps/web/src/__testes__/minha-ficha.test.tsx`, o teste da animação do login
+
+**Interfaces:**
+- Produces, em `regra.ts`:
+  - `type Quando = 'sempre' | '12h' | 'nunca'`;
+  - `lerQuando(): Quando` (padrão `'12h'`; valor estranho ou `localStorage` bloqueado também dão `'12h'`) e `gravarQuando(q: Quando): void`, que nunca lançam erro;
+  - `entradaDaVez` ganha o campo `quando: Quando`.
+
+- [ ] **Step 1: testes** da regra.
+  - `sempre`: inteira mesmo tendo tocado há 1 minuto.
+  - `nunca`: curta mesmo sem nunca ter tocado.
+  - `12h`: os casos de hoje, sem mudança.
+  - Menos movimento, cena não pronta ou destino diferente do início continuam dando curta com `sempre`.
+- [ ] **Step 2: testes** de tela.
+  - A Minha ficha mostra o bloco com "Uma vez a cada 12 horas" marcada na primeira vez; escolher outra grava e continua marcada ao reabrir.
+  - Com menos movimento, o aviso aparece.
+  - No login, com `nunca` gravado, a animação não inicia; com `sempre`, inicia duas vezes seguidas.
+- [ ] **Step 3:** rodar `pnpm --filter web test`. Esperado: FAIL nos testes novos.
+- [ ] **Step 4:** implementar.
+- [ ] **Step 5:** rodar `pnpm test && pnpm typecheck && pnpm build:vercel`. Esperado: PASS. Atualizar as contagens.
+- [ ] **Step 6:** `git commit -m "Fase 6.14: a animação de entrada como preferência"` e abrir o PR, com a lista para a sandbox: escolher "Em toda entrada" e entrar duas vezes; escolher "Nunca" e entrar.
+
