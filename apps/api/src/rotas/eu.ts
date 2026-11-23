@@ -5,6 +5,7 @@ import { Hono } from 'hono';
 import { papeisVigentes, type Papel } from '../acesso.ts';
 import type { Auth } from '../auth.ts';
 import { comUsuario, type Banco, type Consulta } from '../banco/banco.ts';
+import { COM_CAMINHO, paraUnidade, porCaminho, type LinhaDaUnidade } from '../arvore.ts';
 import { hojeRecife } from '../datas.ts';
 import { lerCorpo } from '../erros.ts';
 import { MSG_SENHA_VENCIDA } from '../usuarios/mensagens.ts';
@@ -21,20 +22,6 @@ export interface Eu {
   /** Entrou com a senha provisória: só a tela de criar a senha abre até a troca. */
   trocarSenha: boolean;
 }
-
-const ORDEM = new Intl.Collator('pt-BR', { numeric: true });
-/** A ordem da árvore: o pai antes dos filhos, e os irmãos pela sigla. */
-const porCaminho = (a: UnidadeDeTrabalho, b: UnidadeDeTrabalho) => {
-  for (let i = 0; i < Math.min(a.caminho.length, b.caminho.length); i++) {
-    const c = ORDEM.compare(a.caminho[i]!, b.caminho[i]!);
-    if (c) return c;
-  }
-  return a.caminho.length - b.caminho.length;
-};
-
-const COM_CAMINHO = `select u.id, u.sigla, u.tipo, array(select a.sigla from unidade a where a.caminho @> u.caminho order by nlevel(a.caminho)) as caminho from unidade u`;
-type LinhaDaUnidade = { id: string; sigla: string; tipo: string; caminho: string[] };
-const paraUnidade = (r: LinhaDaUnidade): UnidadeDeTrabalho => ({ id: r.id, sigla: r.sigla, caminho: r.caminho, nivel: r.caminho.length - 1, tipo: r.tipo });
 
 /** As unidades dos papéis vigentes e as de baixo (as extintas não entram). */
 async function unidadesDosPapeis(c: Consulta, usuarioId: string, hoje: string): Promise<UnidadeDeTrabalho[]> {
