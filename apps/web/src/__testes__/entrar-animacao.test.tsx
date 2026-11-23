@@ -215,6 +215,30 @@ describe('entrar com a animação', () => {
     expect(localStorage.getItem(CHAVE)).toBeNull();
   });
 
+  it('com "nunca" gravado, a animação não inicia (6.14)', async () => {
+    localStorage.setItem('escalas2gb.login-animacao-quando', 'nunca');
+    const api = simularApi({ '/api/eu': { status: 401 } });
+    const router = abrir('/entrar');
+    await screen.findByLabelText('E-mail');
+    depoisDeEntrar(api);
+    await preencherEEntrar();
+    await waitFor(() => expect(router.state.location.pathname).toBe('/'));
+    expect(relogio.quadro).not.toHaveBeenCalled();
+  });
+
+  it('com "sempre" gravado, a animação inicia mesmo logo depois de ter tocado inteira (6.14)', async () => {
+    localStorage.setItem('escalas2gb.login-animacao-quando', 'sempre');
+    localStorage.setItem(CHAVE, String(Date.now() - 60_000));
+    const api = simularApi({ '/api/eu': { status: 401 } });
+    abrir('/entrar');
+    await screen.findByLabelText('E-mail');
+    depoisDeEntrar(api);
+    await preencherEEntrar();
+    await assentar();
+    expect(relogio.quadro).toHaveBeenCalled();
+    expect(cartaoEscondido()).toBe(true);
+  });
+
   it('com menos movimento, não inicia a animação', async () => {
     vi.stubGlobal('matchMedia', (q: string) => ({ matches: q.includes('prefers-reduced-motion'), media: q, addEventListener: () => {}, removeEventListener: () => {} }));
     const api = simularApi({ '/api/eu': { status: 401 } });

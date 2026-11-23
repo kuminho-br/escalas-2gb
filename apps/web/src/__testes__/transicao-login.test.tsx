@@ -1,11 +1,11 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { inicioDaAgua, inicioDoRecuo, mostraEntrando, quadroEm, type Resposta } from '@/lib/transicao-login/linha-do-tempo';
-import { entradaDaVez, INTERVALO_DA_ANIMACAO_MS, lerUltimaInteira, marcarInteira } from '@/lib/transicao-login/regra';
+import { entradaDaVez, gravarQuando, INTERVALO_DA_ANIMACAO_MS, lerQuando, lerUltimaInteira, marcarInteira } from '@/lib/transicao-login/regra';
 
 const H = 60 * 60 * 1000;
 const MIN = 60 * 1000;
 const AGORA = 1_800_000_000_000;
-const base = { agora: AGORA, ultimaInteira: null, menosMovimento: false, cenaPronta: true, destinoEhOInicio: true };
+const base = { agora: AGORA, ultimaInteira: null, menosMovimento: false, cenaPronta: true, destinoEhOInicio: true, quando: '12h' as const };
 
 describe('a regra das 12 h', () => {
   afterEach(() => {
@@ -50,6 +50,53 @@ describe('a regra das 12 h', () => {
     });
     expect(lerUltimaInteira()).toBeNull();
     expect(() => marcarInteira(AGORA)).not.toThrow();
+  });
+});
+
+describe('a preferência de quando a animação toca (6.14)', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+    localStorage.clear();
+  });
+
+  it('sempre: inteira mesmo tendo tocado há 1 minuto', () => {
+    expect(entradaDaVez({ ...base, quando: 'sempre', ultimaInteira: AGORA - MIN })).toBe('inteira');
+  });
+
+  it('nunca: curta mesmo sem nunca ter tocado', () => {
+    expect(entradaDaVez({ ...base, quando: 'nunca' })).toBe('curta');
+  });
+
+  it('12h: os casos de antes, sem mudança', () => {
+    expect(entradaDaVez({ ...base, quando: '12h' })).toBe('inteira');
+    expect(entradaDaVez({ ...base, quando: '12h', ultimaInteira: AGORA - MIN })).toBe('curta');
+    expect(entradaDaVez({ ...base, quando: '12h', ultimaInteira: AGORA - (12 * H + MIN) })).toBe('inteira');
+  });
+
+  it('menos movimento, cena não pronta ou destino diferente do início continuam dando curta com "sempre"', () => {
+    expect(entradaDaVez({ ...base, quando: 'sempre', menosMovimento: true })).toBe('curta');
+    expect(entradaDaVez({ ...base, quando: 'sempre', cenaPronta: false })).toBe('curta');
+    expect(entradaDaVez({ ...base, quando: 'sempre', destinoEhOInicio: false })).toBe('curta');
+  });
+
+  it('o padrão é 12h; grava e lê na chave do navegador; valor estranho vale como o padrão', () => {
+    expect(lerQuando()).toBe('12h');
+    gravarQuando('nunca');
+    expect(localStorage.getItem('escalas2gb.login-animacao-quando')).toBe('nunca');
+    expect(lerQuando()).toBe('nunca');
+    localStorage.setItem('escalas2gb.login-animacao-quando', 'às vezes');
+    expect(lerQuando()).toBe('12h');
+  });
+
+  it('com o localStorage lançando erro, lê o padrão e gravar não lança', () => {
+    vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
+      throw new Error('bloqueado');
+    });
+    vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      throw new Error('bloqueado');
+    });
+    expect(lerQuando()).toBe('12h');
+    expect(() => gravarQuando('sempre')).not.toThrow();
   });
 });
 
