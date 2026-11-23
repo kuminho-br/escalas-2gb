@@ -54,7 +54,8 @@ function Peculio() {
       <header className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="font-cond text-[28px] leading-tight font-semibold">Pecúlio</h1>
         <div className="flex flex-wrap gap-2">
-          <ImportarPlanilha cadastro="peculio" rotulo="o Pecúlio" unidadeId={unidade.id} aoConcluir={() => atualizarPeculio(queryClient)} />
+          {/* a importação é de quem cuida do pessoal (nível acima das seções), a mesma regra do cadastro de militar novo */}
+          {podeCadastrarMilitar(eu) && <ImportarPlanilha cadastro="peculio" rotulo="o Pecúlio" unidadeId={unidade.id} aoConcluir={() => atualizarPeculio(queryClient)} />}
           {podeCadastrarMilitar(eu) && (
             <Button onClick={() => setNovo(true)}>
               <UserPlus aria-hidden />

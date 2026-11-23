@@ -129,6 +129,17 @@ describe('módulo Pecúlio', () => {
     expect((await militares()).getByText('ANDRADE')).toBeInTheDocument();
   });
 
+  it('o botão "Importar" só aparece para quem pode importar (nível acima das seções); o auxiliar só da seção não o vê (6.17, item 22)', async () => {
+    api(EU_EXEMPLO);
+    abrir('/peculio');
+    await militares();
+    expect(screen.queryByRole('button', { name: /^Importar/ })).toBeNull();
+    cleanup();
+    api(GESTOR_GB);
+    abrir('/peculio');
+    expect(await screen.findByRole('button', { name: /^Importar/ })).toBeInTheDocument();
+  });
+
   it('o botão "Importar" abre a importação do Pecúlio, com o modelo do Pecúlio da unidade do módulo', async () => {
     api();
     abrir('/peculio');
