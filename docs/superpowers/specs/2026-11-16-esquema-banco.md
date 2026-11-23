@@ -85,15 +85,16 @@ erDiagram
 ## 1. Estrutura e pessoas
 
 ### tipo_unidade
-Tipos de unidade, em tabela para que um nível novo (ex.: pelotão) não exija mudar o esquema.
+Tipos de unidade: um cadastro de nomes (grupamento, divisão, seção, pelotão…), que o administrador mantém na tela "Tipos de unidade". O tipo é só um nome: nenhuma regra do sistema depende dele (migração 0035).
 
 | Coluna | Tipo | Regra |
 |---|---|---|
-| codigo | text PK | `corporacao`, `diretoria_geral`, `diretoria_integrada`, `grupamento`, `divisao`, `secao` |
+| codigo | text PK | sai do nome (minúsculas, sem acento, `_`): `corporacao`, `diretoria_geral`, `diretoria_integrada`, `grupamento`, `divisao`, `secao`… |
+| id | uuid único | o que as rotas de alterar e excluir usam; a auditoria exige um `id` |
 | nome | text not null | "Grupamento" |
-| nivel | int not null | 0 a 5, ordem na árvore; único |
+| ordem | int not null | só ordena listas; pode repetir (era `nivel`, único, até a 0035) |
 
-A **divisão** (nível 4, migração 0031) fica entre o grupamento (3) e a seção (5, antes 4). A unidade mãe precisa ser de nível acima do da filha: uma seção fica direto no grupamento ou dentro de uma divisão, e uma divisão não fica dentro de outra divisão nem de uma seção. A migração cria em cada grupamento, vazias, a Divisão Administrativa (`DA`) e a Divisão Operacional (`DivOp`); quais seções vão para cada uma decide o gestor do grupamento, na tela "Estrutura".
+Qualquer tipo fica abaixo de qualquer tipo. Só se exclui o tipo que nenhuma unidade usa, nem extinta. A auditoria dos tipos está ligada.
 
 ### unidade
 | Coluna | Tipo | Regra |
@@ -107,7 +108,7 @@ A **divisão** (nível 4, migração 0031) fica entre o grupamento (3) e a seç�
 | desde | date not null | mês de criação |
 | ate | date null | mês de extinção |
 
-Regra: o `nivel` do tipo da mãe é menor que o da filha.
+Regras: a unidade nunca fica abaixo de si mesma (o gatilho `unidade_caminho` recusa o ciclo, com extintas no meio também); a **sigla não se repete entre irmãs ativas** (mesma `mae_id`, `ate` nulo), sem diferenciar maiúsculas — índice `unidade_sigla_entre_irmas` (0035). Entre unidades de unidades de cima diferentes a sigla repete, e as listas a mostram com a de cima ("1ª SB (2º GB)"). Quem muda a árvore: o administrador, tudo; o gestor, da sua unidade para baixo.
 
 ### posto_grad
 | Coluna | Tipo | Regra |
@@ -133,7 +134,7 @@ A borda das camadas de visão (entrega 6.11, migração 0032): quais blocos de d
 |---|---|---|
 | id | uuid único | só serve à auditoria (a chave é a natural) |
 | bloco | text | `identificacao`, `contato`, `situacao`, `afastamentos`, `dados_da_escala`, `comportamento`, `escala_em_montagem` |
-| camada | text | `todos`, `oficial`, `chefe_divisao` |
+| camada | text | `todos`, `oficial`, `gestor_lateral` |
 | ve | boolean not null | a camada vê o bloco? |
 
 PK `(bloco, camada)`. O banco recusa `identificacao`/`todos` com `ve = false` (sem a identificação a consulta não mostra nada). CPF, nascimento e endereço não são bloco: ficam de fora da borda, com regra fixa (quem tem nível de acesso acima da lotação do militar, o administrador e o próprio militar).
@@ -259,10 +260,10 @@ O e-mail do `usuario` é o da ficha do militar: o gatilho `militar_email_para_us
 | id | uuid PK | |
 | usuario_id | uuid FK | |
 | unidade_id | uuid FK | o papel vale para a unidade e as de baixo |
-| papel | text | `administrador` (só na unidade raiz; superusuário), `gestor` (antigo `chefe`), `chefe_divisao` (só numa unidade do tipo `divisao`; migração 0031), `escalante` |
+| papel | text | `administrador` (só na unidade raiz; superusuário), `gestor` (antigo `chefe`), `gestor_lateral` (o quinto nível; em qualquer unidade menos a raiz; antes `chefe_divisao`, só numa divisão — migração 0035), `escalante` |
 | desde / ate | date | |
 
-O gatilho `papel_chefe_divisao` (0031) recusa o `chefe_divisao` numa unidade que não é divisão, com "Chefe de divisão só existe numa divisão.", como o `papel_administrador` faz com o administrador fora da raiz. O chefe de divisão edita como o gestor na sua divisão e nas seções de dentro; quem dá o nível é o gestor de uma unidade acima da divisão ou o administrador.
+O gatilho `papel_gestor_lateral` (0035) recusa o `gestor_lateral` na unidade raiz, com "O nível não existe na unidade raiz.", como o `papel_administrador` faz com o administrador fora da raiz. O quinto nível edita como o gestor na sua unidade e abaixo, e vê, sem editar, as unidades irmãs (mesma unidade de cima) e o que há abaixo delas, pela camada própria da borda de "Quem vê o quê"; quem dá o nível é o gestor de uma unidade acima ou o administrador. O nome na tela fica só em `apps/web/src/lib/papeis.ts` (provisório: "Coordenador").
 
 O **militar comum** não tem linha nesta tabela: é o usuário sem papel vigente. Ele vê os próprios serviços (com quem compõe cada guarnição) e as escalas publicadas da unidade da lotação dele, e não vê cadastros (adendo de 17/11/2026).
 

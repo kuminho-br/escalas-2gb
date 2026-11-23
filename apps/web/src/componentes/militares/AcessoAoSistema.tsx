@@ -214,11 +214,11 @@ function DarPapel({ acesso, erros, aberto, desligado, aoAbrir, aoFechar, aoDar }
     aoAbrir();
   };
   if (!aberto) return <div><Button type="button" variant="outline" size="sm" disabled={desligado} onClick={abrir}>Dar nível de acesso</Button></div>;
-  // o nível de chefe de divisão só existe numa divisão: a lista de unidades fica só com elas, cada uma com o grupamento ao lado (todo
-  // grupamento tem uma "DA" e uma "DivOp", e sem o recuo da árvore as de grupamentos diferentes seriam iguais na lista)
-  const unidades = papel === 'chefe_divisao' ? acesso.unidadesParaPapel.filter((u) => u.tipo === 'divisao') : acesso.unidadesParaPapel;
+  // o quinto nível vale em qualquer unidade menos a raiz, e só onde quem dá está acima (a API diz em `aceitaLateral`). A sigla que se repete
+  // (a "1ª SB" de cada grupamento, sem o recuo da árvore) leva a unidade de cima: "1ª SB (2º GB)"
+  const unidades = papel === 'gestor_lateral' ? acesso.unidadesParaPapel.filter((u) => u.aceitaLateral) : acesso.unidadesParaPapel;
   const menor = Math.min(...unidades.map((u) => u.nivel));
-  // a unidade escolhida só vale se continua na lista (uma seção não vai junto quando o nível passa a ser o de chefe)
+  // a unidade escolhida só vale se continua na lista (uma unidade não vai junto quando o nível passa a ser o do quinto nível)
   const unidade = unidades.find((u) => u.id === unidadeId)?.id ?? unidades[0]?.id ?? '';
   return (
     <form
@@ -232,7 +232,7 @@ function DarPapel({ acesso, erros, aberto, desligado, aoAbrir, aoFechar, aoDar }
       </Campo>
       <Campo id="np-unidade" rotulo="Unidade" erro={erros.unidadeId}>
         <Selecao id="np-unidade" value={unidade} onChange={(e) => setUnidadeId(e.target.value)}>
-          {unidades.map((u) => <option key={u.id} value={u.id}>{`${'  '.repeat(u.nivel - menor)}${u.sigla}${papel === 'chefe_divisao' && u.maeSigla ? ` (${u.maeSigla})` : ''}`}</option>)}
+          {unidades.map((u) => <option key={u.id} value={u.id}>{`${'  '.repeat(u.nivel - menor)}${u.sigla}${u.maeSigla && unidades.some((o) => o.id !== u.id && o.sigla === u.sigla) ? ` (${u.maeSigla})` : ''}`}</option>)}
         </Selecao>
       </Campo>
       <Campo id="np-desde" rotulo="A partir de" erro={erros.desde}>

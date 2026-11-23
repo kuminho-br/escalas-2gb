@@ -35,7 +35,7 @@ async function escala(nome: string, servicos: string[]) {
 
 beforeAll(async () => {
   api = await montarApi();
-  outraSecao = await inserir(api.banco, 'unidade', { tipo: 'secao', sigla: '2ª SB', nome: '2ª Seção de Bombeiros', mae_id: api.ids.gb, desde: '2026-11-01' });
+  outraSecao = (await api.banco.query<{ id: string }>("select id from unidade where sigla = '2ª SB' and mae_id = $1", [api.ids.gb])).rows[0]!.id; // a 2ª SB da carga base (a sigla não se repete entre irmãs)
   const jes = await servico('JES', 'pjes');
   const peSeguro = await servico('PE Seguro', 'diaria', 'PE Seguro');
   const bioma = await servico('Bioma', 'diaria', 'Guardiões do Bioma');

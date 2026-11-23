@@ -166,8 +166,8 @@ export const NovoPosto = z.object({
 export type NovoPosto = z.infer<typeof NovoPosto>;
 /** QOC, QOA ou QBMG, com os postos-graduações que pertencem a ele (o mesmo posto pode estar em mais de um quadro). */
 export type Quadro = { id: string; sigla: string; nome: string; postoGradIds: string[]; /** Quem está nele tem a camada de visão do oficial (QOC e QOA nascem marcados). */ oficial: boolean };
-/** Seção em que o usuário pode lotar um militar (as que ele pode cadastrar). */
-export type SecaoDeLotacao = { id: string; sigla: string; nome: string };
+/** Unidade, de qualquer tipo, em que o usuário pode lotar um militar (as que ele pode cadastrar). */
+export type UnidadeDeLotacao = { id: string; sigla: string; nome: string };
 export type Equipe = { id: string; nome: string; ordemCiclo: number };
 
 export type LinhaMilitar = {

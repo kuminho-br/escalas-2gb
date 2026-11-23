@@ -299,7 +299,7 @@ describe('o Novo militar, no Pecúlio', () => {
   // o gestor do 2º GB alcança as duas seções (a lista de unidades dele traz a árvore de baixo)
   const GB_COM_SECOES: EuDaApi = { ...GESTOR_GB, unidades: [...GESTOR_GB.unidades, { id: 'u-2sb', sigla: '2ª SB', caminho: ['CBMPE', 'DGO', 'DInter/1', '2º GB', '2ª SB'], nivel: 4, tipo: 'secao' }] };
   const rotas = (extra: Parameters<typeof simularApi>[0] = {}) =>
-    api(GB_COM_SECOES, LISTA, { 'GET /api/postos': { status: 200, corpo: POSTOS }, 'GET /api/quadros': { status: 200, corpo: QUADROS }, 'GET /api/secoes': { status: 200, corpo: SECOES }, ...extra });
+    api(GB_COM_SECOES, LISTA, { 'GET /api/postos': { status: 200, corpo: POSTOS }, 'GET /api/quadros': { status: 200, corpo: QUADROS }, 'GET /api/unidades-de-lotacao': { status: 200, corpo: SECOES }, ...extra });
   async function abrirODialogo() {
     await userEvent.click(await screen.findByRole('button', { name: 'Novo militar' }));
     return within(await screen.findByRole('dialog'));
@@ -320,7 +320,7 @@ describe('o Novo militar, no Pecúlio', () => {
     rotas();
     abrir('/peculio');
     const dialogo = await abrirODialogo();
-    for (const campo of ['Matrícula', 'Posto-graduação', 'Quadro', 'Nome completo', 'Nome de guerra', 'Antiguidade', 'Seção', 'Lotado desde']) expect(dialogo.getByLabelText(campo)).toBeInTheDocument();
+    for (const campo of ['Matrícula', 'Posto-graduação', 'Quadro', 'Nome completo', 'Nome de guerra', 'Antiguidade', 'Unidade', 'Lotado desde']) expect(dialogo.getByLabelText(campo)).toBeInTheDocument();
     for (const campo of ['Equipe', 'Jornada', 'Motorista', 'CNH', 'Voluntário JES']) expect(dialogo.queryByLabelText(campo)).toBeNull();
     expect(dialogo.getByLabelText('Lotado desde')).toHaveAttribute('type', 'date');
     expect(dialogo.getByLabelText('Lotado desde')).toHaveValue(hoje());
@@ -334,7 +334,7 @@ describe('o Novo militar, no Pecúlio', () => {
     await userEvent.selectOptions(dialogo.getByLabelText('Posto-graduação'), 'CB');
     await userEvent.type(dialogo.getByLabelText('Nome completo'), 'Novo da Silva');
     await userEvent.type(dialogo.getByLabelText('Nome de guerra'), 'novo');
-    await userEvent.selectOptions(dialogo.getByLabelText('Seção'), '2ª SB');
+    await userEvent.selectOptions(dialogo.getByLabelText('Unidade'), '2ª SB');
     fireEvent.change(dialogo.getByLabelText('Lotado desde'), { target: { value: '2026-12-15' } });
     await userEvent.click(dialogo.getByRole('button', { name: 'Criar' }));
     await waitFor(() =>

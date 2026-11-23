@@ -85,14 +85,9 @@ function EscalaDoMes() {
     return (
       <section>
         <h1 className="font-cond text-[28px] leading-tight font-semibold">Escala do mês</h1>
-        {eu.unidade.tipo !== 'secao' ? (
-          // as escalas são das seções: num grupamento ou numa divisão não há o que mostrar
-          <p className="mt-4 text-apagado">Escolha uma seção no seletor de unidade para ver a escala.</p>
-        ) : (
         <p className="mt-4 text-apagado">
           Nenhuma escala ativa. Crie uma em <Link to="/escalas" className="font-medium text-vinho underline underline-offset-2">Escalas</Link>.
         </p>
-        )}
       </section>
     );
   }

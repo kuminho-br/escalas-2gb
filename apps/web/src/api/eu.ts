@@ -2,7 +2,7 @@ import { queryOptions } from '@tanstack/react-query';
 import type { UnidadeDeTrabalho } from 'contratos';
 import { ErroApi, SEM_CONEXAO } from './cliente';
 
-export type Papel = 'administrador' | 'gestor' | 'chefe_divisao' | 'escalante';
+export type Papel = 'administrador' | 'gestor' | 'gestor_lateral' | 'escalante';
 
 /** Resposta de GET /api/eu (mesmo formato de apps/api/src/rotas/eu.ts). */
 export interface EuDaApi {
@@ -50,12 +50,12 @@ export const consultaEu = queryOptions({ queryKey: ['eu'], queryFn: buscarEu, st
 
 export const ehAdministrador = (eu: EuDaApi) => eu.papeis.some((p) => p.papel === 'administrador');
 export const ehMilitarComum = (eu: EuDaApi) => eu.papeis.length === 0;
-/** Os níveis que editam como gestor (espelha GESTAO na API): o chefe de divisão é um gestor da sua divisão. */
-const GESTAO: Papel[] = ['gestor', 'chefe_divisao', 'administrador'];
-/** Quem usa a Escala dos oficiais: gestor, chefe de divisão ou administrador (a API confere o nível na unidade de qualquer jeito). */
+/** Os níveis que editam como gestor (espelha GESTAO na API): o quinto nível edita como gestor na sua unidade e abaixo dela. */
+const GESTAO: Papel[] = ['gestor', 'gestor_lateral', 'administrador'];
+/** Quem usa a Escala dos oficiais: gestor, o quinto nível ou administrador (a API confere o nível na unidade de qualquer jeito). */
 export const ehGestorOuAdministrador = (eu: EuDaApi) => eu.papeis.some((p) => GESTAO.includes(p.papel));
 /**
- * Gestor, chefe de divisão ou administrador na unidade escolhida (ou acima dela): o nível que vale para as telas daquela unidade. Um nível
+ * Gestor, quinto nível ou administrador na unidade escolhida (ou acima dela): o nível que vale para as telas daquela unidade. Um nível
  * em outra unidade, que não alcança esta, não conta.
  */
 export const ehGestorNaUnidade = (eu: Eu) =>
@@ -68,12 +68,11 @@ export const ehGestorNaUnidade = (eu: Eu) =>
 export const podeMudarParametro = ehGestorOuAdministrador;
 
 /**
- * Os grupamentos cuja estrutura (divisões e seções) a pessoa gere: os que ela alcança como administrador, ou como gestor do próprio
- * grupamento ou de uma unidade acima dele. O chefe de divisão e o gestor de uma seção não gerem a estrutura.
+ * As unidades de onde a árvore da pessoa começa: cada unidade em que ela tem nível de acesso e que não está abaixo de outra em que ela também tem
+ * (quem tem nível numa unidade e na de cima dela só começa pela de cima).
  */
-export function grupamentosQueGere(eu: EuDaApi): UnidadeDeTrabalho[] {
-  const grupamentos = eu.unidades.filter((u) => u.tipo === 'grupamento');
-  if (ehAdministrador(eu)) return grupamentos;
-  const dosGestores = eu.papeis.filter((p) => p.papel === 'gestor').map((p) => eu.unidades.find((u) => u.id === p.unidadeId)?.caminho).filter((c) => c !== undefined);
-  return grupamentos.filter((g) => dosGestores.some((c) => c.length <= g.caminho.length && c.every((sigla, i) => g.caminho[i] === sigla)));
+export function raizesDaEstrutura(eu: EuDaApi): UnidadeDeTrabalho[] {
+  const dosNiveis = eu.papeis.map((p) => eu.unidades.find((u) => u.id === p.unidadeId)).filter((u): u is UnidadeDeTrabalho => u !== undefined);
+  const raizes = dosNiveis.filter((u) => !dosNiveis.some((o) => o.id !== u.id && o.caminho.length < u.caminho.length && o.caminho.every((sigla, i) => u.caminho[i] === sigla)));
+  return raizes.filter((u, i) => raizes.findIndex((o) => o.id === u.id) === i);
 }

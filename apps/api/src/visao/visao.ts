@@ -10,7 +10,7 @@ export type BordaPorCamada = Record<Camada, Set<Bloco>>;
 
 export async function carregarBorda(c: Consulta): Promise<BordaPorCamada> {
   const { rows } = await c.query<{ bloco: Bloco; camada: Camada }>('select bloco, camada from visao_bloco where ve');
-  const borda: BordaPorCamada = { todos: new Set(), oficial: new Set(), chefe_divisao: new Set() };
+  const borda: BordaPorCamada = { todos: new Set(), oficial: new Set(), gestor_lateral: new Set() };
   for (const r of rows) borda[r.camada].add(r.bloco);
   return borda;
 }
@@ -18,7 +18,7 @@ export async function carregarBorda(c: Consulta): Promise<BordaPorCamada> {
 /** A borda como a tela "Quem vê o quê" a mostra: uma linha por bloco, na ordem fixa dos blocos. */
 export async function lerBorda(c: Consulta): Promise<Borda> {
   const porCamada = await carregarBorda(c);
-  return BLOCOS.map((bloco) => ({ bloco, todos: porCamada.todos.has(bloco), oficial: porCamada.oficial.has(bloco), chefeDivisao: porCamada.chefe_divisao.has(bloco) }));
+  return BLOCOS.map((bloco) => ({ bloco, todos: porCamada.todos.has(bloco), oficial: porCamada.oficial.has(bloco), gestorLateral: porCamada.gestor_lateral.has(bloco) }));
 }
 
 /** Está, hoje, num quadro marcado como "de oficiais"? Vale o quadro do período do rastreio de hoje: uma mudança marcada para depois não conta ainda. */
@@ -36,9 +36,9 @@ async function ehOficial(c: Consulta, usuarioId: string, hoje: string): Promise<
 }
 
 /**
- * A unidade está numa divisão irmã de uma em que a pessoa é chefe de divisão (vigente), ou abaixo dela? Divisão irmã é a que tem a mesma
- * unidade mãe (o grupamento); a própria divisão da pessoa entra na conta, mas lá a hierarquia já dá tudo. Seção direto no grupamento, o
- * grupamento e as unidades de outro grupamento ficam de fora.
+ * A unidade está numa irmã de uma em que a pessoa tem o quinto nível (`gestor_lateral`, vigente), ou abaixo dela? Irmã é a que tem a mesma unidade
+ * de cima, qualquer que seja o tipo; a própria unidade da pessoa entra na conta, mas lá a hierarquia já dá tudo. A unidade de cima e as unidades
+ * de outra unidade de cima ficam de fora.
  */
 async function ehChefeSobre(c: Consulta, usuarioId: string, unidadeId: string, hoje: string): Promise<boolean> {
   const { rows } = await c.query<{ ok: boolean }>(
@@ -46,9 +46,9 @@ async function ehChefeSobre(c: Consulta, usuarioId: string, unidadeId: string, h
        select 1
          from papel_usuario pu
          join unidade x on x.id = pu.unidade_id
-         join unidade d on d.tipo = 'divisao' and d.mae_id = x.mae_id
+         join unidade d on d.mae_id = x.mae_id
          join unidade alvo on alvo.id = $3 and d.caminho @> alvo.caminho
-        where pu.usuario_id = $1 and pu.papel = 'chefe_divisao' and pu.desde <= $2::date and (pu.ate is null or pu.ate >= $2::date)
+        where pu.usuario_id = $1 and pu.papel = 'gestor_lateral' and pu.desde <= $2::date and (pu.ate is null or pu.ate >= $2::date)
      ) as ok`,
     [usuarioId, hoje, unidadeId],
   );
@@ -57,12 +57,12 @@ async function ehChefeSobre(c: Consulta, usuarioId: string, unidadeId: string, h
 
 /**
  * As camadas que a pessoa tem sobre uma unidade (ou sobre quem não tem lotação, com `unidadeId` null): `todos` sempre; `oficial` pelo quadro
- * do período de hoje de quem pede; `chefe_divisao` quando a unidade está numa divisão irmã de uma em que ela é chefe, ou abaixo.
+ * do período de hoje de quem pede; `gestor_lateral` quando a unidade está numa irmã de uma em que ela tem o quinto nível, ou abaixo.
  */
 export async function camadasSobreUnidade(c: Consulta, usuarioId: string, unidadeId: string | null, hoje: string): Promise<Camada[]> {
   const camadas: Camada[] = ['todos'];
   if (await ehOficial(c, usuarioId, hoje)) camadas.push('oficial');
-  if (unidadeId && (await ehChefeSobre(c, usuarioId, unidadeId, hoje))) camadas.push('chefe_divisao');
+  if (unidadeId && (await ehChefeSobre(c, usuarioId, unidadeId, hoje))) camadas.push('gestor_lateral');
   return camadas.sort((a, b) => CAMADAS.indexOf(a) - CAMADAS.indexOf(b));
 }
 
@@ -95,7 +95,7 @@ export async function blocosDoMilitar(c: Consulta, usuarioId: string, militarId:
 
 /**
  * As unidades cuja "Escala em montagem" a pessoa vê pelas camadas de visão (a hierarquia fica de fora: as unidades em que ela trabalha já vêm dos níveis
- * de acesso dela). `todos` e `oficial` valem para a corporação inteira; `chefe_divisao`, para as divisões irmãs das dela e o que está abaixo delas.
+ * de acesso dela). `todos` e `oficial` valem para a corporação inteira; `gestor_lateral`, para as unidades irmãs das dela e o que está abaixo delas.
  * As unidades extintas não entram.
  */
 export async function unidadesComEscalaEmMontagem(c: Consulta, usuarioId: string, hoje: string): Promise<LinhaDaUnidade[]> {
@@ -104,7 +104,7 @@ export async function unidadesComEscalaEmMontagem(c: Consulta, usuarioId: string
   if (borda.todos.has(bloco) || (borda.oficial.has(bloco) && (await ehOficial(c, usuarioId, hoje)))) {
     return (await c.query<LinhaDaUnidade>(`${COM_CAMINHO} where u.ate is null or u.ate >= $1::date`, [hoje])).rows;
   }
-  if (!borda.chefe_divisao.has(bloco)) return [];
+  if (!borda.gestor_lateral.has(bloco)) return [];
   const { rows } = await c.query<LinhaDaUnidade>(
     `${COM_CAMINHO}
       where (u.ate is null or u.ate >= $2::date)
@@ -112,8 +112,8 @@ export async function unidadesComEscalaEmMontagem(c: Consulta, usuarioId: string
           select 1
             from papel_usuario pu
             join unidade x on x.id = pu.unidade_id
-            join unidade d on d.tipo = 'divisao' and d.mae_id = x.mae_id
-           where pu.usuario_id = $1 and pu.papel = 'chefe_divisao' and pu.desde <= $2::date and (pu.ate is null or pu.ate >= $2::date) and d.caminho @> u.caminho
+            join unidade d on d.mae_id = x.mae_id
+           where pu.usuario_id = $1 and pu.papel = 'gestor_lateral' and pu.desde <= $2::date and (pu.ate is null or pu.ate >= $2::date) and d.caminho @> u.caminho
         )`,
     [usuarioId, hoje],
   );

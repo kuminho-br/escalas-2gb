@@ -63,12 +63,13 @@ describe('o seletor de unidade (6.16, Task 3)', () => {
 });
 
 describe('o vazio da Escala do mês (6.16, Task 3)', () => {
-  it('item 3: com um grupamento escolhido, pede para escolher uma seção no seletor de unidade', async () => {
+  it('6.25: numa unidade de qualquer tipo sem escalas (um grupamento), o vazio é o de sempre, com o caminho para criar uma', async () => {
     simularApi({ '/api/eu': { status: 200, corpo: GESTOR }, 'GET /api/unidades/u-gb/escalas': { status: 200, corpo: [] } });
     localStorage.setItem('unidade-de-trabalho', 'u-gb');
     abrir('/escala-do-mes');
-    expect(await screen.findByText('Escolha uma seção no seletor de unidade para ver a escala.')).toBeInTheDocument();
-    expect(screen.queryByText(/Nenhuma escala ativa/)).toBeNull();
+    expect(await screen.findByText(/Nenhuma escala ativa\./)).toHaveTextContent('Nenhuma escala ativa. Crie uma em Escalas.');
+    expect(within(screen.getByText(/Nenhuma escala ativa\./)).getByRole('link', { name: 'Escalas' })).toBeInTheDocument();
+    expect(screen.queryByText(/Escolha uma seção/)).toBeNull();
   });
 
   it('item 3 (conferência): numa seção sem escala ativa, o texto de sempre', async () => {

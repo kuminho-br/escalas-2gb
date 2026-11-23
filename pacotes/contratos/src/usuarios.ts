@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { Data } from './comum.ts';
 import { Telefone, type Endereco, type Nascimento } from './militares.ts';
 
-export const Papel = z.enum(['administrador', 'gestor', 'chefe_divisao', 'escalante']);
+export const Papel = z.enum(['administrador', 'gestor', 'gestor_lateral', 'escalante']);
 export type Papel = z.infer<typeof Papel>;
 
 /** Sem acesso (ainda não há senha), senha provisória no prazo ou vencida, acesso ativo ou desativado. */
@@ -37,8 +37,11 @@ export type AcessoDoMilitar = {
   /** Quem olha pode desativar o acesso (a regra da rota); sem poder, o botão não aparece. */
   podeDesativar: boolean;
   papeisQuePodeDar: Papel[];
-  /** `tipo` é o tipo da unidade (`divisao`, `secao`…): o nível de chefe de divisão só é dado numa divisão. `maeSigla` é a sigla da unidade mãe (as divisões "DA" e "DivOp" existem em todo grupamento). */
-  unidadesParaPapel: { id: string; sigla: string; nivel: number; tipo: string; maeSigla: string | null }[];
+  /**
+   * `tipo` é só o nome do tipo da unidade. `maeSigla` é a sigla da unidade de cima (as siglas se repetem entre unidades de cima diferentes).
+   * `aceitaLateral`: quem olha pode dar o quinto nível (`gestor_lateral`) nesta unidade (não é a raiz e, fora o administrador, ele é gestor de uma unidade acima).
+   */
+  unidadesParaPapel: { id: string; sigla: string; nivel: number; tipo: string; maeSigla: string | null; aceitaLateral: boolean }[];
 };
 
 /** A senha provisória, que aparece uma vez, e até quando vale (instante ISO). */

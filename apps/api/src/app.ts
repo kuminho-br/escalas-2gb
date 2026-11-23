@@ -4,6 +4,7 @@ import type { Banco } from './banco/banco.ts';
 import { rotasConfiguracoes } from './cadastros/configuracoes.ts';
 import { rotasCotas } from './cadastros/cotas.ts';
 import { rotasEstrutura } from './cadastros/estrutura.ts';
+import { rotasTiposDeUnidade } from './cadastros/tipos-de-unidade.ts';
 import { rotasFeriados } from './cadastros/feriados.ts';
 import { rotasFuncoesDoMilitar } from './cadastros/funcoes-do-militar.ts';
 import { rotasGuarnicoes } from './cadastros/guarnicoes.ts';
@@ -65,6 +66,7 @@ export function criarApp(dep: Dependencias): Hono {
     app.route('/api', rotasCotas(comAuth));
     app.route('/api', rotasFeriados(comAuth));
     app.route('/api', rotasEstrutura(comAuth));
+    app.route('/api', rotasTiposDeUnidade(comAuth));
     app.route('/api', rotasEscalas(comAuth));
     app.route('/api', rotasEscalaDoMes(comAuth));
     app.route('/api', rotasEfetivo(comAuth));

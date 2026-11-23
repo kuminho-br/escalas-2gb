@@ -14,7 +14,7 @@ let ids: Record<string, string>;
 
 beforeAll(async () => {
   api = await montarApi(({ banco, auth }) => (hono = criarApp({ banco, auth })));
-  outra = await inserir(api.banco, 'unidade', { tipo: 'secao', sigla: '2ª SB', nome: '2ª Seção de Bombeiros', mae_id: api.ids.gb, desde: '2026-11-01' });
+  outra = await inserir(api.banco, 'unidade', { tipo: 'secao', sigla: '8ª SB', nome: '8ª Seção de Bombeiros', mae_id: api.ids.gb, desde: '2026-11-01' });
   ids = await criarRegistrosAlheios(api, outra);
 });
 afterAll(async () => {

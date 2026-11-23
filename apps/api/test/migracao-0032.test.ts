@@ -33,7 +33,7 @@ const INICIAL: Record<string, [boolean, boolean, boolean]> = {
 beforeAll(async () => {
   banco = await bancoPglite();
   await migrarAte(banco, '0032');
-  await migrarAte(banco, '9999');
+  await migrarAte(banco, '0035'); // só até a 0034: a 0035 troca o nome da camada "chefe_divisao"
 });
 afterAll(async () => {
   await banco.fechar();
