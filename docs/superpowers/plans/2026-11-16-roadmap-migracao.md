@@ -102,7 +102,7 @@ Design: `docs/superpowers/specs/2026-11-21-usuarios-e-modulos-design.md`. Plano:
 | 9 | Quadro e situação no rastreio; CPF, nascimento e endereço | mesclada (#110) |
 | 10 a 12 | Camadas de visão e chefe de divisão; consulta de militares; escalas só para leitura | planejadas |
 | 13 | Pecúlio como origem dos dados (antes da 10): importação única, apagar militar, postos | planejada |
-| 14 | Animação de entrada como preferência | planejada |
+| 14 | Animação de entrada como preferência | mesclada (#126) |
 | 15 a 18 | Pendências antes da fase 7: abono e função; três lotes de acabamento | planejadas |
 | 19 | Correções de interface sem desenho (N0), logo depois da 14 | planejada |
 
@@ -179,7 +179,7 @@ Entregas fora das fases, numeradas P1, P2…: usam os dados do projeto, mas não
 | P1.2 | Escala dos oficiais: motor, tabelas e API, com o serviço cadastrado | mesclada (#99), migração 0027 aplicada no teste |
 | P1.4 | Só o QBMG nas outras telas de escala | mesclada (#101) |
 | P1.3 | Escala dos oficiais: telas (escala do mês, saldo, regras), dia e noite só por cor | mesclada (#102) |
-| P1.5 | Quem participa da rodada (o gestor escolhe entre os elegíveis) | planejada (0030), depois da 6.9 |
+| P1.5 | Quem participa da rodada (o gestor escolhe entre os elegíveis) | em PR (#125), espera a 0030 |
 
 Design: `docs/superpowers/specs/2026-11-22-escala-dos-oficiais-design.md`. Plano: `docs/superpowers/plans/2026-11-22-p1-escala-dos-oficiais.md`.
 
