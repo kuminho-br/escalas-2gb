@@ -1,5 +1,5 @@
 import { queryOptions, type QueryClient } from '@tanstack/react-query';
-import type { AlteracaoDeSituacao, EdicaoAfastamento, EdicaoMilitar, Equipe, FichaMilitar, LinhaMilitar, NovoAfastamento, NovoMilitar, Posto, OQueVaiJunto, Quadro, SecaoDeLotacao, SituacaoDoMilitar } from 'contratos';
+import type { AlteracaoDeSituacao, EdicaoAfastamento, EdicaoMilitar, Equipe, FichaMilitar, LinhaMilitar, NovoAfastamento, NovoMilitar, NovoPosto, Posto, OQueVaiJunto, Quadro, SecaoDeLotacao, SituacaoDoMilitar } from 'contratos';
 import { pedir } from './cliente';
 
 export const consultaMilitares = (unidadeId: string, mes: string) =>
@@ -22,6 +22,7 @@ export const consultaSituacoesDoMilitar = queryOptions({ queryKey: ['situacoes-d
 /** O que sai junto quando o administrador apaga o militar, e a exclusão (com a matrícula digitada). */
 export const consultaExclusao = (id: string) => queryOptions({ queryKey: ['militar', id, 'exclusao'], queryFn: () => pedir<OQueVaiJunto>('GET', `/api/militares/${id}/exclusao`), staleTime: 0 });
 export const apagarMilitar = (id: string, matricula: string) => pedir('DELETE', `/api/militares/${id}`, { matricula });
+export const editarPosto = (id: string, d: NovoPosto) => pedir<Posto>('PATCH', `/api/postos/${id}`, d);
 export const alterarSituacao = (id: string, d: AlteracaoDeSituacao) => pedir<FichaMilitar>('POST', `/api/militares/${id}/situacao`, d);
 export const criarAfastamento = (militarId: string, d: NovoAfastamento) => pedir('POST', `/api/militares/${militarId}/afastamentos`, d);
 export const editarAfastamento = (id: string, d: EdicaoAfastamento) => pedir('PATCH', `/api/afastamentos/${id}`, d);

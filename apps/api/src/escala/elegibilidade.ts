@@ -30,7 +30,7 @@ import { nomeDaVaga } from './vagas.ts';
 export type VagaConsultada = { escalaId: string; data: string; inicio: string; fim: string; guarnicaoId: string | null; funcaoId: string | null };
 
 export type TurnoDaFaixa = { turnoId: string; servicoId: string; nome: string; tipo: Tipo; letra: 'A' | 'B' | 'C'; inicio: string; fim: string };
-export type Avaliado = { candidato: Omit<Candidato, 'servicos'>; militarMotivo: string | null; porTurno: { turno: TurnoDaFaixa; motivo: string | null }[]; antig: number | null; cnh: string[] };
+export type Avaliado = { candidato: Omit<Candidato, 'servicos'>; militarMotivo: string | null; porTurno: { turno: TurnoDaFaixa; motivo: string | null }[]; antig: number | null; postoOrdem: number; cnh: string[] };
 
 const NAO_LOTADO = 'Não está lotado na seção neste dia';
 export const JA_ESCALADO = 'Já escalado neste horário';
@@ -54,10 +54,10 @@ export async function avaliarFaixa(c: Consulta, v: VagaConsultada, somenteMilita
   // quem tem lotação na seção em algum momento do mês da vaga (ou só o militar pedido)
   const pool = (
     await c.query<{
-      id: string; matricula: string; nome_guerra: string; ativo: boolean; situacao: string; motorista: boolean; cnh: string[]; voluntario_jes: boolean; posto: string; antiguidade: number | null;
+      id: string; matricula: string; nome_guerra: string; ativo: boolean; situacao: string; motorista: boolean; cnh: string[]; voluntario_jes: boolean; posto: string; posto_ordem: number; antiguidade: number | null;
       jornada: 'pronto' | 'adm'; equipe: string | null; lotado_no_dia: boolean; quadro: string | null;
     }>(
-      `select m.id, m.matricula, m.nome_guerra, sm.escalavel as ativo, sm.nome as situacao, m.motorista, m.cnh, m.voluntario_jes, p.sigla as posto, m.antiguidade, l.jornada, e.nome as equipe, q.sigla as quadro,
+      `select m.id, m.matricula, m.nome_guerra, sm.escalavel as ativo, sm.nome as situacao, m.motorista, m.cnh, m.voluntario_jes, p.sigla as posto, p.ordem as posto_ordem, m.antiguidade, l.jornada, e.nome as equipe, q.sigla as quadro,
               (l.desde <= $2::date and (l.ate is null or l.ate >= $2::date)) as lotado_no_dia
          from militar m join posto_grad p on p.id = m.posto_grad_id
          join rastreio l on l.militar_id = m.id and l.unidade_id = $1
@@ -119,7 +119,7 @@ export async function avaliarFaixa(c: Consulta, v: VagaConsultada, somenteMilita
 
   const avaliados = militares.map((m): Avaliado => {
     const base = { militarId: m.id, posto: m.posto, nomeGuerra: m.nome_guerra, matricula: m.matricula, equipe: m.equipe, jornada: m.jornada };
-    const pronto = (militarMotivo: string | null, porTurno: Avaliado['porTurno'] = []): Avaliado => ({ candidato: base, militarMotivo, porTurno, antig: m.antiguidade, cnh: cnhParaEscala(m) });
+    const pronto = (militarMotivo: string | null, porTurno: Avaliado['porTurno'] = []): Avaliado => ({ candidato: base, militarMotivo, porTurno, antig: m.antiguidade, postoOrdem: m.posto_ordem, cnh: cnhParaEscala(m) });
     if (!m.lotado_no_dia) return pronto(NAO_LOTADO);
     if (ehOficial(m.quadro)) return pronto(MOTIVO_OFICIAL);
     if (!m.ativo) return pronto(m.situacao);
@@ -162,8 +162,8 @@ const motivoFinal = (a: Avaliado): string | null => a.militarMotivo ?? (a.porTur
 
 export const porAntiguidade = (x: Avaliado, y: Avaliado) =>
   compararAntiguidade(
-    { mat: x.candidato.matricula, m: { mat: x.candidato.matricula, posto: x.candidato.posto, antig: x.antig } as Militar },
-    { mat: y.candidato.matricula, m: { mat: y.candidato.matricula, posto: y.candidato.posto, antig: y.antig } as Militar },
+    { mat: x.candidato.matricula, m: { mat: x.candidato.matricula, posto: x.candidato.posto, postoOrdem: x.postoOrdem, antig: x.antig } as Militar },
+    { mat: y.candidato.matricula, m: { mat: y.candidato.matricula, posto: y.candidato.posto, postoOrdem: y.postoOrdem, antig: y.antig } as Militar },
   );
 
 /**

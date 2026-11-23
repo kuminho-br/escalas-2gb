@@ -8,6 +8,7 @@ import { consultaCatalogo, consultaParametros, editarNoCatalogo, incluirNoCatalo
 import { ehAdministrador, podeMudarParametro } from '@/api/eu';
 import { useTrava } from '@/componentes/AlteracoesPendentes';
 import { MetaDeAtivacao } from '@/componentes/configuracoes/MetaDeAtivacao';
+import { Postos } from '@/componentes/configuracoes/Postos';
 import { SituacoesDoMilitar } from '@/componentes/configuracoes/SituacoesDoMilitar';
 import { ImportarPlanilha } from '@/componentes/ImportarPlanilha';
 import { Button } from '@/componentes/ui/button';
@@ -20,7 +21,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/componentes/ui/tabs'
 import { AcoesDosModelos, ListaDeModelos } from '@/componentes/guarnicoes/ListaDeModelos';
 import { mesAtual } from '@/lib/meses';
 
-const ABAS = ['regras', 'voluntariado', 'modelos', 'meta', 'tipos', 'situacoes'] as const;
+const ABAS = ['regras', 'voluntariado', 'modelos', 'meta', 'tipos', 'situacoes', 'postos'] as const;
 type Aba = (typeof ABAS)[number];
 
 export const Route = createFileRoute('/_app/configuracoes')({
@@ -50,6 +51,7 @@ function Configuracoes() {
           <TabsTrigger value="meta">Meta de ativação</TabsTrigger>
           <TabsTrigger value="tipos">Tipos de afastamento</TabsTrigger>
           <TabsTrigger value="situacoes">Situações do militar</TabsTrigger>
+          {admin && <TabsTrigger value="postos">Postos e graduações</TabsTrigger>}
         </TabsList>
         <TabsContent value="regras">
           <RegrasDoProcesso unidadeId={eu.unidade.id} sigla={eu.unidade.sigla} podeMudar={podeMudar} />
@@ -75,6 +77,11 @@ function Configuracoes() {
         <TabsContent value="tipos">
           <ListaDoCatalogo catalogo="tipos-afastamento" rotuloNovo="Novo tipo de afastamento" podeEditar={admin} />
         </TabsContent>
+        {admin && (
+          <TabsContent value="postos">
+            <Postos />
+          </TabsContent>
+        )}
         <TabsContent value="situacoes">
           <SituacoesDoMilitar podeEditar={admin} />
         </TabsContent>

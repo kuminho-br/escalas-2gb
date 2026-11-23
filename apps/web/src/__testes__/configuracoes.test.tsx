@@ -161,6 +161,55 @@ describe('configurações: situações do militar', () => {
   });
 });
 
+describe('configurações: postos e graduações (6.13)', () => {
+  const ADMIN = { ...EU_EXEMPLO, papeis: [{ papel: 'administrador' as const, unidadeId: 'raiz', unidadeSigla: 'CBMPE' }] };
+  const POSTOS = [
+    { id: 'p-sd', sigla: 'SD BM', nome: 'Soldado', ordem: 1 },
+    { id: 'p-cb', sigla: 'CB BM', nome: 'Cabo', ordem: 2 },
+    { id: 'p-3s', sigla: '3º SGT BM', nome: 'Terceiro-Sargento', ordem: 3 },
+  ];
+  const comPostos = (extra: Parameters<typeof simularApi>[0] = {}, eu: typeof EU_EXEMPLO = ADMIN) => api({ 'GET /api/postos': { status: 200, corpo: POSTOS }, ...extra }, eu);
+
+  it('a aba só aparece para o administrador', async () => {
+    comPostos({}, EU_EXEMPLO);
+    abrir('/configuracoes');
+    await screen.findByRole('tab', { name: 'Regras do processo' });
+    expect(screen.queryByRole('tab', { name: 'Postos e graduações' })).toBeNull();
+  });
+
+  it('lista os postos na ordem, do mais moderno para o mais antigo, como o cadastro', async () => {
+    comPostos();
+    abrir('/configuracoes?aba=postos');
+    const lista = await screen.findByRole('list', { name: 'Postos e graduações' });
+    expect(within(lista).getAllByRole('listitem').map((l) => l.querySelector('[data-sigla]')?.textContent)).toEqual(['SD BM', 'CB BM', '3º SGT BM']);
+  });
+
+  it('edita a sigla e o nome numa linha por vez, e grava', async () => {
+    const f = comPostos({ 'PATCH /api/postos/p-3s': { status: 200, corpo: { ...POSTOS[2], sigla: '3º SGT' } } });
+    abrir('/configuracoes?aba=postos');
+    await userEvent.click(await screen.findByRole('button', { name: 'Corrigir 3º SGT BM' }));
+    // com uma linha aberta, as outras não abrem
+    expect(screen.queryByRole('button', { name: 'Corrigir SD BM' })).toBeNull();
+    const sigla = screen.getByLabelText('Sigla');
+    await userEvent.clear(sigla);
+    await userEvent.type(sigla, '3º SGT');
+    await userEvent.click(screen.getByRole('button', { name: 'Salvar' }));
+    await waitFor(() => expect(corpoEnviado(f, 'PATCH /api/postos/p-3s')).toEqual({ sigla: '3º SGT', nome: 'Terceiro-Sargento' }));
+  });
+
+  it('a sigla repetida mostra o erro no campo', async () => {
+    comPostos({ 'PATCH /api/postos/p-cb': { status: 409, corpo: { erro: 'Já existe um posto com esta sigla.', campos: { sigla: 'Já existe um posto com esta sigla.' } } } });
+    abrir('/configuracoes?aba=postos');
+    await userEvent.click(await screen.findByRole('button', { name: 'Corrigir CB BM' }));
+    const sigla = screen.getByLabelText('Sigla');
+    await userEvent.clear(sigla);
+    await userEvent.type(sigla, 'SD BM');
+    await userEvent.click(screen.getByRole('button', { name: 'Salvar' }));
+    expect(await screen.findByText('Já existe um posto com esta sigla.')).toBeInTheDocument();
+    expect(screen.getByLabelText('Sigla')).toHaveAccessibleDescription('Já existe um posto com esta sigla.');
+  });
+});
+
 describe('configurações: papéis e campos', () => {
   const ADM_CUMPRE = parametro({ chave: 'ADM_CUMPRE_CARGA', rotulo: 'Adm cumpre a carga mensal', tipo: 'simnao', valor: false });
   const apiComSimNao = (eu = GESTOR, extra: Parameters<typeof simularApi>[0] = {}) =>

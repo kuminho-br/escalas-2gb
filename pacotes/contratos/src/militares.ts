@@ -148,6 +148,12 @@ export type EdicaoAfastamento = z.infer<typeof EdicaoAfastamento>;
 export const MENSAGEM_FIM_ANTES_DO_INICIO = MSG_FIM;
 
 export type Posto = { id: string; sigla: string; nome: string; ordem: number };
+/** A sigla e o nome de um posto ou graduação, que o administrador corrige nas Configurações (a ordem não muda). */
+export const NovoPosto = z.object({
+  sigla: z.string().trim().min(1, 'Preencha a sigla.').max(20, 'Use no máximo 20 caracteres.'),
+  nome: z.string().trim().min(1, 'Preencha o nome.').max(60, 'Use no máximo 60 caracteres.'),
+});
+export type NovoPosto = z.infer<typeof NovoPosto>;
 /** QOC, QOA ou QBMG, com os postos-graduações que pertencem a ele (o mesmo posto pode estar em mais de um quadro). */
 export type Quadro = { id: string; sigla: string; nome: string; postoGradIds: string[] };
 /** Seção em que o usuário pode lotar um militar (as que ele pode cadastrar). */

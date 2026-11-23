@@ -10,6 +10,8 @@ export interface Militar {
   jornada?: string;
   equipe?: string;
   antig?: unknown;
+  /** A ordem do posto no cadastro (posto_grad.ordem: maior = mais antigo). Com ela, a antiguidade não depende da sigla, que o administrador pode renomear. */
+  postoOrdem?: number;
   ordem?: number;
   [campo: string]: unknown;
 }

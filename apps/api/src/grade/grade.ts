@@ -17,7 +17,7 @@ import { somarDias } from '../datas.ts';
 import { EXPEDIENTE, horariosDaUnidade, type Tipo } from '../escala/horarios.ts';
 import { PODE_SER_ESCALADO, SO_QBMG_OU_SEM_QUADRO } from '../escala/quadros-da-escala.ts';
 
-type Pessoa = { id: string; matricula: string; nomeGuerra: string; posto: string; antiguidade: number | null; ativo: boolean };
+type Pessoa = { id: string; matricula: string; nomeGuerra: string; posto: string; postoOrdem: number; antiguidade: number | null; ativo: boolean };
 type Lotado = Pessoa & { jornada: 'pronto' | 'adm'; equipeId: string | null; equipe: string | null; ordemCiclo: number | null; desde: string; ate: string | null };
 type Alocacao = { id: string; militarId: string; data: string; servicoId: string; nome: string; cor: string; tipo: Tipo; letra: string; inicio: string; fim: string };
 
@@ -38,10 +38,10 @@ export async function montarGradeDoMes(c: Consulta, unidadeId: string, mes: stri
 
   const lotados = (
     await c.query<{
-      id: string; matricula: string; nome_guerra: string; posto: string; antiguidade: number | null; ativo: boolean; jornada: 'pronto' | 'adm';
+      id: string; matricula: string; nome_guerra: string; posto: string; posto_ordem: number; antiguidade: number | null; ativo: boolean; jornada: 'pronto' | 'adm';
       equipe_id: string | null; equipe: string | null; ordem_ciclo: number | null; desde: string; ate: string | null;
     }>(
-      `select m.id, m.matricula, m.nome_guerra, p.sigla as posto, m.antiguidade, ${PODE_SER_ESCALADO} as ativo, l.jornada, l.equipe_id, e.nome as equipe, e.ordem_ciclo,
+      `select m.id, m.matricula, m.nome_guerra, p.sigla as posto, p.ordem as posto_ordem, m.antiguidade, ${PODE_SER_ESCALADO} as ativo, l.jornada, l.equipe_id, e.nome as equipe, e.ordem_ciclo,
               to_char(l.desde, 'YYYY-MM-DD') as desde, to_char(l.ate, 'YYYY-MM-DD') as ate
          from rastreio l join militar m on m.id = l.militar_id join posto_grad p on p.id = m.posto_grad_id
          left join equipe e on e.id = l.equipe_id
@@ -50,7 +50,7 @@ export async function montarGradeDoMes(c: Consulta, unidadeId: string, mes: stri
       [unidadeId, primeiro, ultimo],
     )
   ).rows.map((r): Lotado => ({
-    id: r.id, matricula: r.matricula, nomeGuerra: r.nome_guerra, posto: r.posto, antiguidade: r.antiguidade, ativo: r.ativo,
+    id: r.id, matricula: r.matricula, nomeGuerra: r.nome_guerra, posto: r.posto, postoOrdem: r.posto_ordem, antiguidade: r.antiguidade, ativo: r.ativo,
     jornada: r.jornada, equipeId: r.equipe_id, equipe: r.equipe, ordemCiclo: r.ordem_ciclo, desde: r.desde, ate: r.ate,
   }));
 
@@ -70,11 +70,11 @@ export async function montarGradeDoMes(c: Consulta, unidadeId: string, mes: stri
   const idsDeFora = [...new Set(alocacoes.filter((a) => doMes(a.data, mes) && !idsLotados.has(a.militarId)).map((a) => a.militarId))];
   const deFora: Pessoa[] = idsDeFora.length
     ? (
-        await c.query<{ id: string; matricula: string; nome_guerra: string; posto: string; antiguidade: number | null; ativo: boolean }>(
-          'select m.id, m.matricula, m.nome_guerra, p.sigla as posto, m.antiguidade, true as ativo from militar m join posto_grad p on p.id = m.posto_grad_id where m.id = any($1::uuid[])',
+        await c.query<{ id: string; matricula: string; nome_guerra: string; posto: string; posto_ordem: number; antiguidade: number | null; ativo: boolean }>(
+          'select m.id, m.matricula, m.nome_guerra, p.sigla as posto, p.ordem as posto_ordem, m.antiguidade, true as ativo from militar m join posto_grad p on p.id = m.posto_grad_id where m.id = any($1::uuid[])',
           [idsDeFora],
         )
-      ).rows.map((r) => ({ id: r.id, matricula: r.matricula, nomeGuerra: r.nome_guerra, posto: r.posto, antiguidade: r.antiguidade, ativo: r.ativo }))
+      ).rows.map((r) => ({ id: r.id, matricula: r.matricula, nomeGuerra: r.nome_guerra, posto: r.posto, postoOrdem: r.posto_ordem, antiguidade: r.antiguidade, ativo: r.ativo }))
     : [];
 
   const ids = [...idsLotados, ...idsDeFora];
@@ -157,10 +157,12 @@ export async function montarGradeDoMes(c: Consulta, unidadeId: string, mes: stri
     };
   }
 
+  // a ordem do posto vem do cadastro: a antiguidade não depende da sigla, que o administrador pode renomear
+  const ordemDoPostoDe = new Map([...lotados, ...deFora].map((p) => [p.id, p.postoOrdem]));
   const antiguidade = (x: LinhaDaGrade & { antig: number | null }, y: LinhaDaGrade & { antig: number | null }) =>
     compararAntiguidade(
-      { mat: x.matricula, m: { mat: x.matricula, posto: x.posto, antig: x.antig } as Militar },
-      { mat: y.matricula, m: { mat: y.matricula, posto: y.posto, antig: y.antig } as Militar },
+      { mat: x.matricula, m: { mat: x.matricula, posto: x.posto, postoOrdem: ordemDoPostoDe.get(x.militarId), antig: x.antig } as Militar },
+      { mat: y.matricula, m: { mat: y.matricula, posto: y.posto, postoOrdem: ordemDoPostoDe.get(y.militarId), antig: y.antig } as Militar },
     );
 
   // quem aparece: lotados no mês (um militar inativo só se foi escalado) e, no fim, os de fora escalados aqui

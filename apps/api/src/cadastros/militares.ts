@@ -2,6 +2,7 @@
 import {
   AlteracaoDeSituacao,
   ConfirmarExclusao,
+  NovoPosto,
   EdicaoAfastamento,
   EdicaoMilitar,
   MENSAGEM_FIM_ANTES_DO_INICIO,
@@ -295,7 +296,7 @@ const mesDaConsulta = (c: Ctx) => c.req.query('mes') ?? hojeRecife().slice(0, 7)
 export function rotasMilitares(dep: { banco: Banco; auth: Auth }): Hono<AmbienteApi> {
   const r = new Hono<AmbienteApi>();
   const sessao = exigirSessao(dep.banco, dep.auth);
-  for (const caminho of ['/postos', '/quadros', '/secoes', '/unidades/:u/equipes', '/unidades/:u/militares', '/unidades/:u/peculio', '/militares/*', '/afastamentos/*']) r.use(caminho, sessao);
+  for (const caminho of ['/postos', '/postos/*', '/quadros', '/secoes', '/unidades/:u/equipes', '/unidades/:u/militares', '/unidades/:u/peculio', '/militares/*', '/afastamentos/*']) r.use(caminho, sessao);
 
   r.get('/postos', async (c) => {
     const negado = await exigirAlgumPapel(c);
@@ -305,6 +306,28 @@ export function rotasMilitares(dep: { banco: Banco; auth: Auth }): Hono<Ambiente
   });
 
   // os quadros são fixos e não têm nada sigiloso: qualquer pessoa com sessão lê
+  // a sigla e o nome de um posto ou graduação: só o administrador. A ordem não muda (a antiguidade nas escalas vem dela, e não da sigla), e não há
+  // rota para criar nem apagar posto. A auditoria vem do gatilho da tabela.
+  r.patch('/postos/:id', async (c) => {
+    const negado = await exigirAdministradorRaiz(c);
+    if (negado) return negado;
+    const corpo = await lerCorpo(c, NovoPosto);
+    if (!corpo.ok) return corpo.resposta;
+    const id = c.req.param('id');
+    const { sigla, nome } = corpo.dados;
+    const MSG = 'Já existe um posto com esta sigla.';
+    const resultado = await comUsuario(dep.banco, c.get('usuarioId'), async (tx) => {
+      const antes = (await tx.query<Posto>('select id, sigla, nome, ordem from posto_grad where id::text = $1 for update', [id])).rows[0];
+      if (!antes) return { status: 404 as const };
+      if ((await tx.query('select 1 from posto_grad where lower(sigla) = lower($1) and id <> $2', [sigla, antes.id])).rows.length) return { status: 409 as const };
+      const depois = (await tx.query<Posto>('update posto_grad set sigla = $2, nome = $3 where id = $1 returning id, sigla, nome, ordem', [antes.id, sigla, nome])).rows[0]!;
+      return { status: 200 as const, posto: depois };
+    });
+    if (resultado.status === 404) return c.json({ erro: 'Posto não encontrado.' }, 404);
+    if (resultado.status === 409) return c.json({ erro: MSG, campos: { sigla: MSG } }, 409);
+    return c.json(resultado.posto);
+  });
+
   r.get('/quadros', async (c) => {
     const { rows } = await dep.banco.query<Quadro>(
       `select q.id, q.sigla, q.nome, coalesce(array_agg(qp.posto_grad_id order by p.ordem) filter (where qp.posto_grad_id is not null), '{}') as "postoGradIds"

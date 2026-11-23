@@ -39,10 +39,10 @@ export async function opcoesDeTroca(c: Consulta, alocacaoId: string): Promise<Op
   const doDia = (
     await c.query<{
       id: string; militar_id: string; escala: string; servico: string; tipo: string; inicio: string; fim: string; guarnicao: string | null; funcao: string | null;
-      nome_guerra: string; matricula: string; posto: string; antiguidade: number | null;
+      nome_guerra: string; matricula: string; posto: string; posto_ordem: number; antiguidade: number | null;
     }>(
       `select a2.id, a2.militar_id, e.nome as escala, s.nome as servico, s.tipo, to_char(t.inicio, 'HH24:MI') as inicio, to_char(t.fim, 'HH24:MI') as fim,
-              g.nome as guarnicao, f.nome as funcao, m.nome_guerra, m.matricula, p.sigla as posto, m.antiguidade
+              g.nome as guarnicao, f.nome as funcao, m.nome_guerra, m.matricula, p.sigla as posto, p.ordem as posto_ordem, m.antiguidade
          from alocacao a2 join escala e on e.id = a2.escala_id join servico s on s.id = a2.servico_id join turno t on t.id = a2.turno_id
          join militar m on m.id = a2.militar_id join posto_grad p on p.id = m.posto_grad_id
          left join guarnicao g on g.id = a2.guarnicao_id left join funcao f on f.id = a2.funcao_id
@@ -61,8 +61,8 @@ export async function opcoesDeTroca(c: Consulta, alocacaoId: string): Promise<Op
   const escalados: EscaladoNoDia[] = [...porMilitar.values()]
     .sort((x, y) =>
       compararAntiguidade(
-        { mat: x.base.matricula, m: { mat: x.base.matricula, posto: x.base.posto, antig: x.base.antiguidade } as Militar },
-        { mat: y.base.matricula, m: { mat: y.base.matricula, posto: y.base.posto, antig: y.base.antiguidade } as Militar },
+        { mat: x.base.matricula, m: { mat: x.base.matricula, posto: x.base.posto, postoOrdem: x.base.posto_ordem, antig: x.base.antiguidade } as Militar },
+        { mat: y.base.matricula, m: { mat: y.base.matricula, posto: y.base.posto, postoOrdem: y.base.posto_ordem, antig: y.base.antiguidade } as Militar },
       ),
     )
     .map(({ base, alocacoes }) => ({ militarId: base.militar_id, posto: base.posto, nomeGuerra: base.nome_guerra, matricula: base.matricula, alocacoes }));
