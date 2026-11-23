@@ -8,6 +8,7 @@ Siglas dos documentos: **Design** = `superpowers/specs/2026-11-16-migracao-desig
 
 | Data | Decisão | Onde está |
 |---|---|---|
+| 23/11/2026 | Painel de cotas dos oficiais sem o número "Dias"; quem tem cota menor por afastamento ganha uma frase curta embaixo da cota (6.17, item 34). | plano das 6.15 a 6.18, Task 6, item 34 |
 | 23/11/2026 | Administrador é nível de acesso, não muda o militar: quem o tem aparece em buscas, listas e escalas como qualquer militar da sua lotação, e os poderes valem em toda a árvore, sem depender da lotação (entrega 6.24, urgente). | roadmap, fase 6, entrega 24 |
 | 23/11/2026 | Escala dos oficiais: as etapas do mês viram uma linha de processo com setas (participantes e cotas, escolhas, escala fechada, mês encerrado), com a ação do próximo passo sobre a seta. Entra na 6.17, item 33. | plano das 6.15 a 6.18, Task 6, item 33 |
 | 23/11/2026 | Listas do Pecúlio e de Militares: nome completo em destaque e os dados (matrícula, telefone, e-mail, jornada e equipe) em etiquetas com ícone; o que falta em etiqueta âmbar. Sem cor por tipo de dado (a cor tem um sentido só). Usuário aprovou de antemão o que a PLANEJAMENTO e a DESIGN decidissem. | plano das 6.15 a 6.18, Task 6, item 32 |
