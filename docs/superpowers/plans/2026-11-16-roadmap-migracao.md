@@ -108,11 +108,11 @@ Design: `docs/superpowers/specs/2026-11-21-usuarios-e-modulos-design.md`. Plano:
 
 **Fora:** e-mail, usuários acima do GB (fase 11), Visualização (fase 7).
 
-## Refatoração da interface · aguardando o usuário
+## Refatoração da interface · aguardando os mockups
 
-Análise e necessidades (blocos N0 a N6): `docs/superpowers/specs/2026-11-23-refatoracao-da-interface-design.md`. O N0 é a entrega 6.19. O resto espera as decisões D1 a D4 do usuário e os mockups da DESIGN.
+Análise e necessidades (blocos N0 a N6): `docs/superpowers/specs/2026-11-23-refatoracao-da-interface-design.md`. O N0 é a entrega 6.19. D1 a D4 aprovadas em 23/11 (a alternativa (a)); o resto espera os mockups da DESIGN.
 
-Ordem proposta pela DESIGN: N1 e N2 (sistema de estilo e resposta do sistema) antes da fase 7; N4.1 e N4.2 (Grade geral e Escala do mês) antes do piloto; N3, N5 e o resto entre as duas; N6.3 com a fase 7.
+Ordem aprovada: N1 e N2 (sistema de estilo e resposta do sistema) antes da fase 7; N4.1 e N4.2 (Grade geral e Escala do mês) antes do piloto; N3, N5 e o resto entre as duas; N6.3 com a fase 7.
 
 ## Fase 7 — Visualização de escalas · planejada
 
