@@ -101,7 +101,7 @@ Design: `docs/superpowers/specs/2026-11-21-usuarios-e-modulos-design.md`. Plano:
 | 8 | Nível de acesso, "até" e Enter no Pecúlio | mesclada (#108) |
 | 9 | Quadro e situação no rastreio; CPF, nascimento e endereço | mesclada (#110) |
 | 10 a 12 | Camadas de visão e chefe de divisão; consulta de militares; escalas só para leitura | planejadas |
-| 13 | Pecúlio como origem dos dados (antes da 10): importação única, apagar militar, postos | planejada |
+| 13 | Pecúlio como origem dos dados: importação única, apagar militar, postos | mesclada (#130) |
 | 14 | Animação de entrada como preferência | mesclada (#126) |
 | 15 a 18 | Pendências antes da fase 7: abono e função; três lotes de acabamento | planejadas |
 | 19 | Correções de interface sem desenho (N0) | mesclada (#128) |
