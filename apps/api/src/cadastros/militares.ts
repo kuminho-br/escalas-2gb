@@ -404,9 +404,9 @@ export function rotasMilitares(dep: { banco: Banco; auth: Auth }): Hono<Ambiente
           )
         ).rows[0]!.id;
         await tx.query('insert into rastreio (militar_id, unidade_id, equipe_id, jornada, desde) values ($1, $2, $3, $4, $5)', [
-          id, u, d.lotacao.equipeId, d.lotacao.jornada, mesParaData(d.lotacao.desde),
+          id, u, d.lotacao.equipeId, d.lotacao.jornada, d.lotacao.desde,
         ]);
-        return carregarFicha(tx, id, d.lotacao.desde, c.get('usuarioId'));
+        return carregarFicha(tx, id, d.lotacao.desde.slice(0, 7), c.get('usuarioId'));
       });
       return c.json(ficha, 201);
     } catch (e) {

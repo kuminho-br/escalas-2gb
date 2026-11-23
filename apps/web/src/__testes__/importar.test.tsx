@@ -47,7 +47,7 @@ describe('o botão se chama só Importar', () => {
   });
 
   it.each([
-    ['/militares', 'GET /api/unidades/u-1sb/militares', 'Nenhum militar lotado. Use "Novo militar" ou "Importar".'],
+    ['/militares', 'GET /api/unidades/u-1sb/militares', 'Nenhum militar lotado. O militar novo é cadastrado no Pecúlio.'],
     ['/servicos', 'GET /api/unidades/u-1sb/servicos', 'Nenhum serviço. Use "Novo serviço" ou "Importar".'],
     ['/escalas', 'GET /api/unidades/u-1sb/escalas', 'Nenhuma escala. Use "Nova escala" ou "Importar".'],
   ])('a lista vazia de %s manda para o botão "Importar"', async (rota, api, frase) => {

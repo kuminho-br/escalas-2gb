@@ -9,7 +9,7 @@ afterAll(async () => {
   await api.fechar();
 });
 
-const importacao = () => `/api/unidades/${api.ids.secao}/importacao/militares`;
+const importacao = () => `/api/unidades/${api.ids.secao}/importacao/dados-da-escala`;
 const MB = 1024 * 1024;
 
 describe('envio malformado e envio grande', () => {

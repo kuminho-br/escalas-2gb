@@ -1,12 +1,14 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import type { ItemDoPeculio } from 'contratos';
-import { TriangleAlert } from 'lucide-react';
+import { TriangleAlert, UserPlus } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { mensagemDe } from '@/api/cliente';
-import { atualizarPeculio, consultaPeculio, unidadeDoPeculio } from '@/api/peculio';
+import { atualizarPeculio, consultaPeculio, podeCadastrarMilitar, unidadeDoPeculio } from '@/api/peculio';
 import { ImportarPlanilha } from '@/componentes/ImportarPlanilha';
+import { NovoMilitar } from '@/componentes/militares/NovoMilitar';
 import { Selecao } from '@/componentes/Selecao';
+import { Button } from '@/componentes/ui/button';
 import { Input } from '@/componentes/ui/input';
 import { Label } from '@/componentes/ui/label';
 import { mesAtual } from '@/lib/meses';
@@ -33,6 +35,7 @@ function Peculio() {
   const lista = useQuery(consultaPeculio(unidade.id, mes));
   const [busca, setBusca] = useState('');
   const [lotacao, setLotacao] = useState('');
+  const [novo, setNovo] = useState(false);
   const lotacoes = useMemo(() => [...new Set((lista.data?.militares ?? []).map((m) => m.lotacao))].sort(), [lista.data]);
   const filtrados = useMemo(() => {
     const b = normalizarBusca(busca);
@@ -49,6 +52,13 @@ function Peculio() {
         <h1 className="font-cond text-[28px] leading-tight font-semibold">Pecúlio</h1>
         <div className="flex flex-wrap gap-2">
           <ImportarPlanilha cadastro="peculio" rotulo="o Pecúlio" unidadeId={unidade.id} aoConcluir={() => atualizarPeculio(queryClient)} />
+          {podeCadastrarMilitar(eu) && (
+            <Button onClick={() => setNovo(true)}>
+              <UserPlus aria-hidden />
+              Novo militar
+            </Button>
+          )}
+          {novo && <NovoMilitar eu={eu} aoFechar={() => setNovo(false)} />}
         </div>
       </header>
 
@@ -83,7 +93,7 @@ function Peculio() {
             <p className="px-4 pt-3 text-xs text-apagado">{filtrados.length} de {lista.data.militares.length} militares</p>
             <ul aria-label="Militares do Pecúlio" className="p-2">
               {filtrados.map((m) => <ItemDoPeculioNaLista key={m.militarId} m={m} destaque={m.militarId === unico?.militarId} />)}
-              {lista.data.militares.length === 0 && <li className="p-3 text-apagado">Nenhum militar lotado. Cadastre pela tela Militares ou use "Importar".</li>}
+              {lista.data.militares.length === 0 && <li className="p-3 text-apagado">Nenhum militar lotado. Cadastre com "Novo militar" ou use "Importar".</li>}
             </ul>
           </div>
 
