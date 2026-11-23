@@ -288,7 +288,7 @@ describe('militar fora do quadro de motoristas, com CNH D (Review Focus 2)', () 
     const b = (await de('FORAQUADRO', d))[0]!.id;
     const r = await trocar(motorista1, { comAlocacaoId: b });
     expect(r.status).toBe(409);
-    expect((await r.json()).erro).toBe('SD FORAQUADRO não pode ir para a vaga de SD F2: Sem a CNH exigida');
+    expect((await r.json()).erro).toBe('SD FORAQUADRO não pode ir para a vaga de SD F2: Fora do quadro de motoristas');
     expect(await de('F2', d)).toEqual([expect.objectContaining({ id: motorista1, funcao_id: motorista })]);
   });
 });
