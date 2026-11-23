@@ -100,6 +100,9 @@ describe('a busca', () => {
     expect(nomes(await buscar('semPapel', 'texto=Silva%20Andrade'))).toEqual(['ANDRADE']);
     expect(nomes(await buscar('semPapel', 'texto=990821'))).toEqual(['ANDRADE']);
     expect(nomes(await buscar('semPapel', 'texto=990821-1'))).toEqual(['ANDRADE']);
+    // a matrícula digitada sem o hífen (como se costuma digitar, e como a importação aceita) também acha
+    expect(nomes(await buscar('semPapel', 'texto=9908211'))).toEqual(['ANDRADE']);
+    expect(nomes(await buscar('semPapel', 'texto=9908219'))).toEqual([]);
     // acentos dos dois lados: o texto sem acento acha o nome com acento e vice-versa
     expect(nomes(await buscar('semPapel', 'texto=jose%20antonio%20cavalcante%20nandu'))).toEqual(['JOAO']);
     expect(nomes(await buscar('semPapel', `texto=${encodeURIComponent('JOSÉ ANTÔNIO')}`))).toEqual(['JOAO']);

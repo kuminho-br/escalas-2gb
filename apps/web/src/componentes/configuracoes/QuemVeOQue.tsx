@@ -32,37 +32,40 @@ const CAMADAS: { camada: Camada; nome: string; quem: string }[] = [
  */
 export function QuemVeOQue() {
   const borda = useQuery(consultaBorda);
+  // o aviso fica aqui, e não na tabela: ao salvar, a borda gravada volta do servidor, a tabela recomeça com ela (key) e levaria o aviso junto
+  const [aviso, setAviso] = useState<Aviso | null>(null);
   if (borda.isPending) return <p className="py-6 text-apagado">Carregando…</p>;
   if (borda.error) return <p role="alert" className="py-6 text-alerta">{mensagemDe(borda.error)}</p>;
   return (
     <div className="grid max-w-4xl gap-8">
-      {/* key: uma borda nova do servidor (outra gravação) recomeça a tabela */}
-      <TabelaDaBorda key={JSON.stringify(borda.data)} inicial={borda.data} />
+      {/* key: uma borda nova do servidor (a que acabou de ser gravada, ou outra gravação) recomeça a tabela */}
+      <TabelaDaBorda key={JSON.stringify(borda.data)} inicial={borda.data} aviso={aviso} aoAvisar={setAviso} />
       <QuadrosDeOficiais />
     </div>
   );
 }
 
-function TabelaDaBorda({ inicial }: { inicial: Borda }) {
+type Aviso = { erro: boolean; texto: string };
+
+function TabelaDaBorda({ inicial, aviso, aoAvisar }: { inicial: Borda; aviso: Aviso | null; aoAvisar: (a: Aviso | null) => void }) {
   const queryClient = useQueryClient();
   const [linhas, setLinhas] = useState(inicial);
-  const [aviso, setAviso] = useState<{ erro: boolean; texto: string } | null>(null);
   const { salvando, travar } = useTrava();
   const sujo = JSON.stringify(linhas) !== JSON.stringify(inicial);
 
   const marcar = (bloco: Bloco, camada: Camada, marcada: boolean) => {
-    setAviso(null);
+    aoAvisar(null);
     // "Todos" marca as outras duas: as camadas se somam, então o que todos veem o oficial e o chefe de divisão também veem
     setLinhas((ls) => ls.map((l) => (l.bloco !== bloco ? l : (({ ...l, [camada]: marcada }) as Borda[number]))).map((l) => (l.todos ? { ...l, oficial: true, chefeDivisao: true } : l)));
   };
   const salvar = travar(async () => {
-    setAviso(null);
+    aoAvisar(null);
     try {
       await salvarBorda(linhas);
+      aoAvisar({ erro: false, texto: 'Alterações salvas.' });
       atualizarVisao(queryClient);
-      setAviso({ erro: false, texto: 'Alterações salvas.' });
     } catch (e) {
-      setAviso({ erro: true, texto: mensagemDe(e) });
+      aoAvisar({ erro: true, texto: mensagemDe(e) });
     }
   });
 

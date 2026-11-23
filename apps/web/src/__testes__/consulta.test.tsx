@@ -50,6 +50,15 @@ describe('a consulta de militares', () => {
     expect(unidade).toHaveValue('');
   });
 
+  it('o recuo da árvore usa espaço que o navegador não junta: as divisões de cada grupamento têm a mesma sigla e só o recuo diz de qual é', async () => {
+    api();
+    abrir('/consulta');
+    const unidade = await screen.findByLabelText('Lotados em');
+    await waitFor(() => expect(within(unidade).getAllByRole('option')).toHaveLength(5));
+    const nbsp = (n: number) => ' '.repeat(n);
+    expect(within(unidade).getAllByRole('option').map((o) => o.textContent)).toEqual(['Toda a corporação', 'CBMPE', `${nbsp(6)}2º GB`, `${nbsp(8)}DivOp`, `${nbsp(10)}1ª SB`]);
+  });
+
   it('busca por texto: mostra a identificação de cada militar, e a lotação e o quadro quando há', async () => {
     const f = api();
     abrir('/consulta');

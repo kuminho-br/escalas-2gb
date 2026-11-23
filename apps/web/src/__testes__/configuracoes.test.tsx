@@ -637,6 +637,23 @@ describe('configurações: quem vê o quê (6.11)', () => {
     expect(await screen.findByText('Alterações salvas.')).toBeInTheDocument();
   });
 
+  it('a confirmação "Alterações salvas." continua na tela depois que a borda nova volta do servidor (a tabela recomeça com ela)', async () => {
+    const nova = BORDA.map((l) => (l.bloco === 'contato' ? { ...l, todos: true, oficial: true, chefeDivisao: true } : l));
+    const doServidor = { status: 200, corpo: BORDA as unknown };
+    const f = comBorda({ 'GET /api/visao': doServidor, 'PUT /api/visao': { status: 200, corpo: nova } });
+    abrir('/configuracoes?aba=quem-ve-o-que');
+    await screen.findByRole('table');
+    await userEvent.click(marca('Contato', 'Todos'));
+    // daqui em diante o servidor devolve a borda gravada, diferente da que a tabela tinha
+    doServidor.corpo = nova;
+    await userEvent.click(screen.getByRole('button', { name: 'Salvar' }));
+    expect(await screen.findByText('Alterações salvas.')).toBeInTheDocument();
+    await waitFor(() => expect(chamadasA(f, 'GET /api/visao')).toBeGreaterThan(1));
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Salvar' })).toBeDisabled());
+    expect(screen.getByText('Alterações salvas.')).toBeInTheDocument();
+    expect(marca('Contato', 'Oficial')).toBeDisabled();
+  });
+
   it('o erro da API aparece, e a tabela fica como a pessoa deixou', async () => {
     comBorda({ 'PUT /api/visao': { status: 403, corpo: { erro: 'Só o administrador do sistema ajusta quem vê o quê.' } } });
     abrir('/configuracoes?aba=quem-ve-o-que');

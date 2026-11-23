@@ -56,6 +56,7 @@ function Formulario({ texto, unidade }: { texto: string; unidade: string }) {
     setErro(null);
     void navigate({ search: { texto: campo.trim() || undefined, unidade: escolhida || undefined } });
   };
+  // o recuo usa espaço que o navegador não junta: toda unidade "DA" e "DivOp" existe em cada grupamento, e só o recuo diz de qual é
   const menor = Math.min(...(unidades.data ?? []).map((u) => u.nivel));
   return (
     <form onSubmit={buscar} className="mt-6 grid max-w-3xl gap-3 sm:grid-cols-[1fr_14rem_auto] sm:items-end" role="search">
@@ -75,7 +76,7 @@ function Formulario({ texto, unidade }: { texto: string; unidade: string }) {
         <Label htmlFor="consulta-unidade">Lotados em</Label>
         <Selecao id="consulta-unidade" value={escolhida} onChange={(e) => setEscolhida(e.target.value)}>
           <option value="">Toda a corporação</option>
-          {(unidades.data ?? []).map((u) => <option key={u.id} value={u.id}>{`${'  '.repeat(u.nivel - menor)}${u.sigla}`}</option>)}
+          {(unidades.data ?? []).map((u) => <option key={u.id} value={u.id}>{`${'\u00a0\u00a0'.repeat(u.nivel - menor)}${u.sigla}`}</option>)}
         </Selecao>
       </div>
       <Button type="submit">
