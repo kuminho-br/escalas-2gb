@@ -41,21 +41,18 @@ Por isso o acesso passa a ter duas perguntas separadas: **o que a pessoa edita**
 | **Bloco** | Um grupo de dados que se libera junto (por exemplo, "Contato") |
 | **Borda** | A tabela que diz quais blocos cada camada vê |
 
-## As divisões
+## As divisões e a árvore
 
-- Tipo de unidade novo, **Divisão**, entre o Grupamento e a Seção. Uma seção pode ficar direto no grupamento ou dentro de uma divisão.
-- As padrão são a **Divisão Administrativa** (sigla **DA**) e a **Divisão Operacional** (sigla **DivOp**). A migração cria as duas em cada grupamento, vazias. Quais seções vão para cada uma é dado: quem decide é o gestor do grupamento, na tela.
-- **Tela "Estrutura"**, nas Configurações, para o gestor do grupamento e o administrador: ver a árvore do grupamento, criar e renomear uma divisão, e pôr uma seção dentro de uma divisão (ou tirá-la).
-- Mover uma seção muda na hora quem a alcança pela hierarquia. A tela avisa isso antes de salvar.
-- Uma divisão com seções dentro não é apagada. Não há "apagar" nesta versão: a divisão vazia fica.
+- A DA (Divisão Administrativa) e a DivOp (Divisão Operacional) existem em cada grupamento desde a migração 0031.
+- Desde 23/11/2026 a árvore é genérica (`2026-11-23-arvore-generica-design.md`): a divisão é uma unidade como outra qualquer, os tipos de unidade são um cadastro, e a tela Estrutura cria, renomeia, move, extingue e exclui qualquer unidade.
 
-## O chefe de divisão
+## O quinto nível de acesso
 
-- **Nome provisório.** O usuário ainda não escolheu o nome. Nas telas aparece "Chefe de divisão"; no banco, `chefe_divisao`. O texto fica num lugar só, para trocar depois.
-- **Só existe numa divisão.** O nível não pode ser dado numa seção nem no grupamento (regra no banco, como a do administrador na raiz).
-- **Edita como o gestor**, na sua divisão e nas seções de dentro: tudo o que o gestor edita, inclusive dar e encerrar os níveis de auxiliar e de gestor.
-- **Quem dá o nível:** o gestor de uma unidade acima da divisão (o do grupamento) e o administrador. Um chefe de divisão não dá o próprio nível a outra pessoa.
-- **O que ele vê a mais:** a camada "chefe de divisão", nas divisões irmãs (as que têm a mesma unidade mãe) e em tudo abaixo delas.
+- **Nome a escolher.** No banco, `gestor_lateral` (era `chefe_divisao`); na tela, provisório "Coordenador", num lugar só.
+- **Vale em qualquer unidade**, menos na raiz.
+- **Edita como o gestor**, na sua unidade e nas de baixo, inclusive dar e encerrar os níveis de auxiliar e de gestor.
+- **Quem dá o nível:** o gestor de uma unidade acima e o administrador. Quem o tem não o dá a outra pessoa.
+- **O que vê a mais:** a camada própria, nas unidades irmãs (as que têm a mesma unidade de cima) e em tudo abaixo delas.
 
 ## As camadas de visão
 
@@ -63,7 +60,7 @@ Por isso o acesso passa a ter duas perguntas separadas: **o que a pessoa edita**
 |---|---|---|
 | **Todos** | Todo militar com conta | Todos os militares da corporação |
 | **Oficial** | Quem está, hoje, num quadro marcado como "de oficiais" (QOC e QOA) | Todos os militares da corporação |
-| **Chefe de divisão** | Quem tem esse nível vigente | Os militares e as unidades das divisões irmãs e de baixo delas |
+| **Quinto nível** | Quem tem esse nível vigente | Os militares e as unidades das unidades irmãs e de baixo delas |
 
 Regras:
 

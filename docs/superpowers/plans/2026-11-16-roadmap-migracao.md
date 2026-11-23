@@ -91,22 +91,13 @@ Design: `docs/superpowers/specs/2026-11-21-usuarios-e-modulos-design.md`. Plano:
 
 | Entrega | O que traz | Situação |
 |---|---|---|
-| 1 | Contas e níveis de acesso: senha provisória e troca no primeiro login | mesclada (#86) |
-| 2 | Unidade de trabalho: o seletor substitui a 1ª SB fixa | mesclada (#88) |
-| 3 | Tela inicial, módulos por nível de acesso e Minha ficha | mesclada (#90) |
-| 4 | Transição do login (as mangueiras) | mesclada (#118) |
-| 5 | Retorno da validação sem mockup | mesclada (#104) |
+| 1 a 5, 7 a 14 | Contas, unidade de trabalho, tela inicial, transição do login, retornos da validação, Pecúlio, níveis de acesso, divisões, camadas de visão, consulta, escalas só para leitura, animação | mescladas (#86 a #143) |
 | 6 | Retorno da validação com mockup | absorvida na refatoração |
-| 7 | Militares só no Pecúlio | mesclada (#107) |
-| 8 | Nível de acesso e busca do Pecúlio | mesclada (#108) |
-| 9 | Quadro e situação no rastreio; CPF, nascimento e endereço | mesclada (#110) |
-| 10 a 12 | Divisões (10); camadas de visão e consulta (11); escalas só para leitura (12) | mescladas (#135, #140, #143) |
-| 13 | Pecúlio como origem dos dados | mesclada (#130) |
-| 14 | Animação de entrada como preferência | mesclada (#126) |
 | 15 a 18 | Pendências antes da fase 7: abono e função; três lotes de acabamento | 15 e 16 mescladas (#146, #149); 17 e 18 em execução |
 | 19 | Correções de interface sem desenho (N0) | mesclada (#128) |
 | 20 e 21 | Fundação da interface: sistema de estilo (N1); resposta do sistema (N2) | planejadas |
-| 22 a 24 | Oficiais; mover na hierarquia; admin como militar | 22 mesclada (#157) |
+| 22 a 24 | Oficiais; mover na hierarquia; admin como militar | mescladas (#157, #161, #162) |
+| 25 e 26 | Árvore genérica (migração 0035); configurações gerais na tela inicial | planejadas, depois da 17 |
 
 **Fora:** e-mail, usuários acima do GB (fase 11), Visualização (fase 7).
 

@@ -222,7 +222,7 @@
   9. O teste das edições simultâneas do militar → passa a provar a trava (duas transações de verdade no banco de teste).
   10. Da 6.10: a função de auditoria usa `codigo` quando a tabela não tem `id` (gravar em `tipo_unidade` não quebra mais, sem desligar o gatilho).
   11. Da 6.10: `PATCH /api/divisoes/:id` numa divisão encerrada → 409 "Esta divisão foi encerrada.".
-  12. Da 6.10: a importação do Pecúlio não aceita divisão como lotação ("A lotação é uma seção ou o grupamento.") e resolve a sigla dentro do grupamento da importação.
+  12. (coberto pela 6.25: a lotação vale em qualquer unidade, e a sigla é resolvida abaixo da unidade da importação)
   13. Da 6.10: seção dentro de divisão extinta → aparece na aba Estrutura direto no grupamento.
   14. Da 6.10: teste de encerrar o próprio nível também no caso recusado.
   15. A busca de militares (`/api/consulta/militares`) → 429 com "Muitas buscas em pouco tempo. Espere um minuto e tente de novo." acima de 30 pedidos por minuto por conta; a tela mostra a mesma frase. A exportação completa do banco não passa por essa rota (decisão de 23/11).
@@ -231,6 +231,7 @@
   18. Da 6.16: o aviso do último gestor não aparece quando há gestor vigente numa unidade acima; conta o gestor com início futuro.
   19. Da 6.16: a linha do tempo da ficha mostra o ano quando o intervalo atravessa a virada do ano.
   20. Da 6.16: Salvar do "Alterar situação" não fica preso quando a lista de seções falha (mostra o erro com "Tentar de novo"); `/oficiais` olha o nível de acesso na unidade escolhida; o 403 do telefone vem antes do 400.
+  21. Da 6.24: o administrador edita e apaga afastamento de militar sem lotação (hoje só inclui).
 - [ ] **Commit** `Fase 6.18: acabamento da API`.
 
 ### Task 8: importação
