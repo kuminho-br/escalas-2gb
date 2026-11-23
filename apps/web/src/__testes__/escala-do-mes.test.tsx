@@ -8,7 +8,7 @@ import { abrir, chamadasA, corpoEnviado, EU_EXEMPLO, simularApi, trava } from '.
 
 // Escala fictícia de 3 dias, uma guarnição (ABT: Motorista 1–1 CNH D, Combatente 1–2), duas faixas por dia.
 const MES = mesAtual();
-const LISTA: LinhaEscala[] = [{ id: 'e1', nome: 'Ordinário', ativa: true, servicos: ['Pronto'], montaBlocosVoluntariado: true }, { id: 'e9', nome: 'Velha', ativa: false, servicos: [], montaBlocosVoluntariado: true }];
+const LISTA: LinhaEscala[] = [{ id: 'e1', nome: 'Ordinário', ativa: true, servicos: ['Pronto'], montaBlocosVoluntariado: true, distribuicao: 'pre_escala' }, { id: 'e9', nome: 'Velha', ativa: false, servicos: [], montaBlocosVoluntariado: true, distribuicao: 'pre_escala' }];
 
 const ocupante = (nome: string): OcupanteDaVaga => ({
   alocacaoId: `a-${nome}`, acumuloId: null, acumulaCom: [], militarId: `m-${nome}`, posto: 'SD', nomeGuerra: nome, matricula: '990001-1', servico: { id: 's1', nome: 'Pronto', cor: '#2F8F5B' }, letra: 'A',
@@ -60,6 +60,14 @@ describe('escala do mês', () => {
     expect(await screen.findByRole('region', { name: 'Dia 1' })).toBeInTheDocument();
     expect(screen.getByLabelText('Escala')).toHaveValue('e1');
     expect(screen.getByLabelText('Mês')).toHaveValue(MES);
+  });
+
+  it('a escala de rodada de cotas (a dos oficiais) não aparece aqui: ela é montada em Oficiais (6.27)', async () => {
+    api(ESCALA, { 'GET /api/unidades/u-1sb/escalas': { status: 200, corpo: [{ id: 'e-of', nome: 'Oficiais de operações', ativa: true, servicos: ['JES', 'Saldo'], montaBlocosVoluntariado: false, distribuicao: 'rodada_de_cotas' }, ...LISTA] } });
+    abrir('/escala-do-mes');
+    const campo = await screen.findByLabelText('Escala');
+    await waitFor(() => expect(campo).toHaveValue('e1'));
+    expect(within(campo).queryByRole('option', { name: 'Oficiais de operações' })).toBeNull();
   });
 
   it('mostra o resumo das vagas obrigatórias, com as vazias em âmbar', async () => {

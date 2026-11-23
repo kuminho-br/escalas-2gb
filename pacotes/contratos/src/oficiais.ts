@@ -27,6 +27,8 @@ export interface OficialDoMes {
   escolhidos: number;
   /** Quantos lugares de JES ele tomou no mês (não contam na cota de saldo). */
   jes: number;
+  /** É voluntário JES: só quem é pode tomar um lugar de JES. */
+  voluntarioJes: boolean;
   afastamentos: { inicio: string; fim: string; tipo: string }[];
   /** O gestor marcou este oficial para a rodada do mês. Quem não participa não tem cota, vez nem turno. */
   participa: boolean;

@@ -11,7 +11,7 @@ const mesCurto = (mes: string) => MES_CURTO[Number(mes.slice(5, 7)) - 1] ?? mes;
 const AMOSTRA = { Dia: 'border-linha bg-superficie', Noite: 'border-tinta bg-tinta' } as const;
 
 /** O saldo de cada oficial: o acumulado, a barra de mais ou menos, o saldo mês a mês e os turnos tirados. */
-export function PainelDeSaldo({ unidadeId, lista }: { unidadeId: string; lista: OficialNoSaldo[] }) {
+export function PainelDeSaldo({ unidadeId, escalaId, lista }: { unidadeId: string; escalaId?: string; lista: OficialNoSaldo[] }) {
   const [escolhido, setEscolhido] = useState<string | null>(null);
   const maior = Math.max(1, ...lista.map((o) => Math.abs(o.saldo)));
   const o = lista.find((x) => x.militarId === escolhido) ?? null;
@@ -83,7 +83,7 @@ export function PainelDeSaldo({ unidadeId, lista }: { unidadeId: string; lista: 
             <p className="text-xs text-apagado">Positivo: trabalhou mais do que devia. Negativo: trabalhou menos. O número tem casas decimais porque a parte quebrada da cota nunca se perde.</p>
             <p className="text-xs text-apagado">A soma dos saldos não é zero: cada vez que alguém cobre um colega, o total cresce um turno.</p>
           </section>
-          {o ? <RegistroDoOficial key={o.militarId} unidadeId={unidadeId} oficial={o} /> : <p className="text-sm text-apagado">Clique num oficial para ver o registro dele.</p>}
+          {o ? <RegistroDoOficial key={o.militarId} unidadeId={unidadeId} escalaId={escalaId} oficial={o} /> : <p className="text-sm text-apagado">Clique num oficial para ver o registro dele.</p>}
         </div>
       )}
     </div>

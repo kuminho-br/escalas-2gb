@@ -14,7 +14,7 @@ const MSG_VALOR = 'Informe um valor diferente de zero, de até 100.';
 const MSG_MOTIVO = 'Diga o motivo do ajuste.';
 
 /** O registro de um oficial: os lançamentos e as coberturas, do mais novo para o mais velho, e o ajuste manual do gestor. */
-export function RegistroDoOficial({ unidadeId, oficial: o }: { unidadeId: string; oficial: OficialNoSaldo }) {
+export function RegistroDoOficial({ unidadeId, escalaId, oficial: o }: { unidadeId: string; escalaId?: string; oficial: OficialNoSaldo }) {
   const queryClient = useQueryClient();
   const { salvando, travar } = useTrava();
   const [aberto, setAberto] = useState(false);
@@ -36,7 +36,7 @@ export function RegistroDoOficial({ unidadeId, oficial: o }: { unidadeId: string
     setErros(e);
     if (e.valor || e.motivo) return;
     try {
-      await lancarAjuste(queryClient, unidadeId, o.militarId, n, motivo.trim());
+      await lancarAjuste(queryClient, unidadeId, o.militarId, n, motivo.trim(), escalaId);
       fechar();
     } catch (x) {
       setErros({ geral: mensagemDe(x) });

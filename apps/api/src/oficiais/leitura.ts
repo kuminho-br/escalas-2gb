@@ -160,13 +160,13 @@ export async function lerEscala(c: Consulta, unidadeId: string, mes: string, esc
 
   // quem está na cota mas já não é participante (saiu da unidade depois do cálculo) mantém os dados do cadastro
   const foraDaLista = [...new Set([...cotas.map((x) => x.militarId), ...lancados.map((l) => l.militarId)])].filter((id) => !porId.has(id));
-  const extras = new Map<string, { matricula: string; posto: string; nomeGuerra: string; antiguidade: number | null; quadro: string | null; afastamentos: AfastamentoDoMes[] }>();
+  const extras = new Map<string, { matricula: string; posto: string; nomeGuerra: string; antiguidade: number | null; voluntarioJes: boolean; quadro: string | null; afastamentos: AfastamentoDoMes[] }>();
   if (foraDaLista.length > 0) {
-    const { rows } = await c.query<{ id: string; matricula: string; posto: string; nome_guerra: string; antiguidade: number | null; quadro: string | null }>(
-      `select m.id, m.matricula, p.sigla as posto, m.nome_guerra, m.antiguidade, ${QUADRO_DO_MES} as quadro
+    const { rows } = await c.query<{ id: string; matricula: string; posto: string; nome_guerra: string; antiguidade: number | null; voluntario_jes: boolean; quadro: string | null }>(
+      `select m.id, m.matricula, p.sigla as posto, m.nome_guerra, m.antiguidade, m.voluntario_jes, ${QUADRO_DO_MES} as quadro
          from militar m join posto_grad p on p.id = m.posto_grad_id where m.id = any($1::uuid[])`, [foraDaLista, ...referenciaDoMes(mes)]);
     const afast = await afastamentosDoMes(c, foraDaLista, mes);
-    for (const r of rows) extras.set(r.id, { matricula: r.matricula, posto: postoCurto(r.posto), nomeGuerra: r.nome_guerra, antiguidade: r.antiguidade, quadro: r.quadro, afastamentos: afast.get(r.id) ?? [] });
+    for (const r of rows) extras.set(r.id, { matricula: r.matricula, posto: postoCurto(r.posto), nomeGuerra: r.nome_guerra, antiguidade: r.antiguidade, voluntarioJes: r.voluntario_jes, quadro: r.quadro, afastamentos: afast.get(r.id) ?? [] });
   }
 
   const escolhidos = (id: string) => lancados.filter((l) => l.militarId === id && !ehJes(l)).length;
@@ -190,6 +190,7 @@ export async function lerEscala(c: Consulta, unidadeId: string, mes: string, esc
       sobra: cota ? cota.sobra : false,
       escolhidos: escolhidos(militarId),
       jes: jesDe(militarId),
+      voluntarioJes: p?.voluntarioJes ?? x?.voluntarioJes ?? false,
       afastamentos: p?.afastamentos ?? x?.afastamentos ?? [],
       participa,
       // "novo" é de quem participa neste mês e não participou no mês anterior da escala; sem mês anterior gravado, ninguém é novo (decisão de 23/11)

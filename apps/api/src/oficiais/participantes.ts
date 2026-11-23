@@ -18,6 +18,7 @@ export interface Participante {
   postoOrdem: number;
   nomeGuerra: string;
   antiguidade: number | null;
+  voluntarioJes: boolean;
   quadro: 'QOC' | 'QOA';
   lotacao: string;
   afastamentos: AfastamentoDoMes[];
@@ -68,8 +69,8 @@ export async function elegiveisDoMes(c: Consulta, unidadeId: string, mes: string
   );
   if (rastreios.length === 0) return [];
   const ids = [...new Set(rastreios.map((r) => r.militar_id))];
-  const { rows: militares } = await c.query<{ id: string; matricula: string; posto: string; posto_ordem: number; nome_guerra: string; antiguidade: number | null }>(
-    `select m.id, m.matricula, p.sigla as posto, -p.ordem as posto_ordem, m.nome_guerra, m.antiguidade
+  const { rows: militares } = await c.query<{ id: string; matricula: string; posto: string; posto_ordem: number; nome_guerra: string; antiguidade: number | null; voluntario_jes: boolean }>(
+    `select m.id, m.matricula, p.sigla as posto, -p.ordem as posto_ordem, m.nome_guerra, m.antiguidade, m.voluntario_jes
        from militar m join posto_grad p on p.id = m.posto_grad_id where m.id = any($1::uuid[])`,
     [ids],
   );
@@ -84,6 +85,7 @@ export async function elegiveisDoMes(c: Consulta, unidadeId: string, mes: string
       postoOrdem: m.posto_ordem,
       nomeGuerra: m.nome_guerra,
       antiguidade: m.antiguidade,
+      voluntarioJes: m.voluntario_jes,
       quadro: periodos.at(-1)!.quadro,
       lotacao: periodos.at(-1)?.sigla ?? '',
       afastamentos,

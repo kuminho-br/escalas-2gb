@@ -15,7 +15,7 @@ import { copiarMarcasDoMesAnterior, elegiveisDoMes, limitesDoMes, marcasDoMes, p
 type Ctx = Context<AmbienteApi>;
 
 const MSG_ENCERRADO = 'O mês já foi encerrado. Correções agora só por ajuste no painel de saldo.';
-const MSG_COTA_FECHADA = 'Com a escala fechada, a cota não muda mais. Se alguém sair agora, troque o nome no lugar: vira cobertura.';
+const MSG_COTA_FECHADA = 'Com a escala fechada, a cota não muda mais. Se alguém sair agora, troque o nome no turno: vira cobertura.';
 const MSG_NAO_ABERTO = 'Abra o mês para lançar.';
 const MSG_ENCERRAR_ANTES_DE_FECHAR = 'Feche a escala antes de encerrar o mês: o saldo é calculado com a escala fechada.';
 const MSG_SEM_ESCALA = 'A unidade ainda não tem uma escala com rodada de cotas. Cadastre uma em Escalas.';

@@ -19,7 +19,7 @@ const ordem = (vigencia: string | null, posicoes: (number | null)[]): OrdemDeEsc
 const SUGESTAO = ordem(null, [1, 2, 3, 4, 5]);
 // ordem cadastrada com duas vagas ainda fora: Combatente 2 e Combatente 3 da ABT
 const PARCIAL = ordem(MES, [1, 2, null, null, 3]);
-const ficha = { id: 'e1', nome: 'Ordinário', titulo: 'ESCALA ORDINÁRIO', militaresDoc: 'todos', diasDoc: 'todos', ativa: true, montaBlocosVoluntariado: true, servicos: [], faixas: [], comLetra: false, vinculos: [] } as Escala;
+const ficha = { id: 'e1', nome: 'Ordinário', titulo: 'ESCALA ORDINÁRIO', militaresDoc: 'todos', diasDoc: 'todos', ativa: true, montaBlocosVoluntariado: true, distribuicao: 'pre_escala', servicos: [], faixas: [], comLetra: false, vinculos: [] } as Escala;
 const rotaOrdem = `/api/escalas/e1/ordem/${MES}`;
 
 function api(corpo: OrdemDeEscalacao = PARCIAL, extra: Parameters<typeof simularApi>[0] = {}) {

@@ -69,6 +69,20 @@ describe('escalas', () => {
     expect(await r.json()).toMatchObject({ titulo: 'ESCALA DE SERVIÇO CPRH', militaresDoc: 'todos', diasDoc: 'com_escalados' });
   });
 
+  it('o jeito de distribuir (6.27): editar sem ele não muda; com ele, grava e aparece na lista; um valor que não existe é 400', async () => {
+    const e = await criar('Rodada');
+    const base = { nome: 'Rodada', titulo: 'ESCALA RODADA', militaresDoc: 'escalados', diasDoc: 'todos' };
+    expect(((await (await api.pedir('escalante', 'PATCH', `/api/escalas/${e.id}`, base)).json()) as { distribuicao: string }).distribuicao).toBe('pre_escala');
+    const r = await api.pedir('escalante', 'PATCH', `/api/escalas/${e.id}`, { ...base, distribuicao: 'rodada_de_cotas' });
+    expect(r.status).toBe(200);
+    expect((await r.json()).distribuicao).toBe('rodada_de_cotas');
+    const lista: LinhaEscala[] = await (await api.pedir('escalante', 'GET', `${secao()}/escalas`)).json();
+    expect(lista.find((x) => x.id === e.id)!.distribuicao).toBe('rodada_de_cotas');
+    // editar de novo sem o campo mantém a rodada de cotas
+    expect(((await (await api.pedir('escalante', 'PATCH', `/api/escalas/${e.id}`, base)).json()) as { distribuicao: string }).distribuicao).toBe('rodada_de_cotas');
+    expect((await api.pedir('escalante', 'PATCH', `/api/escalas/${e.id}`, { ...base, distribuicao: 'sorteio' })).status).toBe(400);
+  });
+
   it('reúne serviços na ordem e devolve as faixas', async () => {
     const e = await criar('Ordinário');
     const r = await servicosDa(e.id, [expediente.id, pronto.id]);

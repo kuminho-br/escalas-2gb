@@ -33,7 +33,7 @@ export function VezDeEscolher({ escala: e }: { escala: EscalaDosOficiais }) {
           </p>
           {faltam !== null && <p className="text-[15px]">{faltam === 1 ? 'Falta 1 turno para ele.' : `Faltam ${faltam} turnos para ele.`}</p>}
           <p className="text-[13px] text-apagado">
-            Clique num turno livre para lançar a escolha dele.
+            Clique num turno livre para lançar a escolha dele. A ordem é uma sugestão: dá para lançar outro oficial.
             {v.afastamentos.length > 0 && ` Os dias de afastamento não são oferecidos.`}
           </p>
         </>
@@ -52,8 +52,8 @@ export function VezDeEscolher({ escala: e }: { escala: EscalaDosOficiais }) {
  * quanto já escolheu (com uma barra fina), mais os afastamentos. Com a escala aberta, aparecem todos os elegíveis; fechada, só quem participa.
  */
 export function ListaDeCotas({ escala: e, aoOrdenar, aoMarcar, desabilitado }: Props) {
-  const comCota = e.etapa !== 'sem-cotas';
-  const aberta = e.etapa === 'sem-cotas' || e.etapa === 'escolhas';
+  const comCota = e.etapa !== 'nao-aberto';
+  const aberta = e.etapa === 'nao-aberto' || e.etapa === 'escolhas';
   const oficiais = aberta ? e.oficiais : e.oficiais.filter((o) => o.participa);
   const marcados = e.oficiais.filter((o) => o.participa).map((o) => o.militarId);
   // desmarcar quem já tem turnos escolhidos deixa esses turnos sem ninguém: o sistema pergunta antes (decisão de 23/11); sem turnos escolhidos, desmarca direto
@@ -82,7 +82,7 @@ export function ListaDeCotas({ escala: e, aoOrdenar, aoMarcar, desabilitado }: P
   };
   const marcar = (o: Oficial, participa: boolean) =>
     aoMarcar?.(participa ? e.oficiais.filter((x) => x.participa || x.militarId === o.militarId).map((x) => x.militarId) : marcados.filter((id) => id !== o.militarId));
-  const total = e.turnos.length;
+  const total = e.lugaresDeSaldo;
   const sobras = e.oficiais.filter((o) => o.sobra).length;
   const podeOrdenar = !!aoOrdenar && e.etapa !== 'fechada' && e.etapa !== 'encerrada';
   // "Subir" e "Descer" só trocam de lugar quem não tem antiguidade, entre os do mesmo posto
@@ -128,6 +128,7 @@ export function ListaDeCotas({ escala: e, aoOrdenar, aoMarcar, desabilitado }: P
             <p className="text-[13px] leading-[18px] text-apagado">
               {o.quadro} · {o.lotacao}
               {o.semAntiguidade && ' · ordenado à mão'}
+              {o.jes > 0 && ` · ${o.jes} JES`}
             </p>
           </div>
           {(sobe || desce) && (
@@ -203,7 +204,7 @@ export function ListaDeCotas({ escala: e, aoOrdenar, aoMarcar, desabilitado }: P
         </DialogContent>
       </Dialog>
       <p className="text-[13px] leading-[18px] text-apagado">
-        {comCota ? `${total} turnos no mês.${sobras > 0 ? ` Depois do arredondamento, sobraram ${sobras}, entregues aos ${sobras} mais modernos.` : ''} ` : ''}O saldo aparece na lista, mas ainda não entra na conta.
+        {comCota ? `${total} turnos para a rodada de Saldo no mês.${sobras > 0 ? ` Depois do arredondamento, sobraram ${sobras}, entregues aos ${sobras} mais modernos.` : ''} ` : ''}O saldo aparece na lista, mas ainda não entra na conta.
       </p>
     </div>
   );

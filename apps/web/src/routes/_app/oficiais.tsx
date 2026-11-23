@@ -1,12 +1,9 @@
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { createFileRoute, redirect } from '@tanstack/react-router';
+import { useQuery } from '@tanstack/react-query';
+import { createFileRoute, Link, redirect } from '@tanstack/react-router';
 import { Mes, somarMeses } from 'contratos';
-import { useState } from 'react';
 import { ehGestorOuAdministrador } from '@/api/eu';
 import { mensagemDe } from '@/api/cliente';
-import { consultaEscalaDosOficiais, consultaSaldoDosOficiais, escolherServico } from '@/api/oficiais';
-import { consultaServicos } from '@/api/servicos';
-import { useTrava } from '@/componentes/AlteracoesPendentes';
+import { consultaEscalaDosOficiais, consultaSaldoDosOficiais } from '@/api/oficiais';
 import { CampoDeMes } from '@/componentes/CampoDeMes';
 import { EscalaDoMes } from '@/componentes/oficiais/EscalaDoMes';
 import { PainelDeSaldo } from '@/componentes/oficiais/PainelDeSaldo';
@@ -24,9 +21,10 @@ export const Route = createFileRoute('/_app/oficiais')({
   beforeLoad: ({ context }) => {
     if (!ehGestorOuAdministrador(context.eu)) throw redirect({ to: '/', search: { aviso: 'outro-papel' } });
   },
-  validateSearch: (s: Record<string, unknown>): { mes?: string; aba?: Aba } => ({
+  validateSearch: (s: Record<string, unknown>): { mes?: string; aba?: Aba; escala?: string } => ({
     mes: typeof s.mes === 'string' && Mes.safeParse(s.mes).success ? s.mes : undefined,
     aba: ABAS.find((a) => a === s.aba),
+    escala: typeof s.escala === 'string' && s.escala ? s.escala : undefined,
   }),
   component: Oficiais,
 });
@@ -35,29 +33,15 @@ function Oficiais() {
   const { eu } = Route.useRouteContext();
   const busca = Route.useSearch();
   const navigate = Route.useNavigate();
-  const queryClient = useQueryClient();
   const mes = busca.mes ?? somarMeses(mesAtual(), 1);
   const aba = busca.aba ?? 'escala';
   const unidadeId = eu.unidade.id;
-  const escala = useQuery(consultaEscalaDosOficiais(unidadeId, mes));
-  const saldo = useQuery(consultaSaldoDosOficiais(unidadeId));
-  const servicos = useQuery(consultaServicos(unidadeId));
-  const { salvando, travar } = useTrava();
-  const [erro, setErro] = useState<string | null>(null);
-  const irPara = (a: Aba) => void navigate({ search: (s) => ({ ...s, aba: a }) });
+  const escala = useQuery(consultaEscalaDosOficiais(unidadeId, mes, busca.escala));
   const e = escala.data;
-
-  // os serviços ordinários ativos da unidade com turno; o do mês aparece mesmo que tenha saído da lista
-  const opcoes = (servicos.data ?? []).filter((s) => s.tipo === 'ordinario' && s.ativo && s.turnos.length > 0).map((s) => ({ id: s.id, nome: s.nome }));
-  if (e?.servico && !opcoes.some((o) => o.id === e.servico!.id)) opcoes.push(e.servico);
-  const escolher = travar(async (servicoId: string) => {
-    setErro(null);
-    try {
-      await escolherServico(queryClient, unidadeId, mes, servicoId);
-    } catch (x) {
-      setErro(mensagemDe(x));
-    }
-  });
+  // a escala em que a tela trabalha: a escolhida, ou a que a API escolheu (a do último mês da unidade)
+  const escalaId = busca.escala ?? e?.escala?.id;
+  const saldo = useQuery(consultaSaldoDosOficiais(unidadeId, escalaId));
+  const irPara = (a: Aba) => void navigate({ search: (s) => ({ ...s, aba: a }) });
 
   return (
     <section className="grid gap-4">
@@ -71,20 +55,19 @@ function Oficiais() {
           <CampoDeMes id="oficiais-mes" valor={mes} aoMudar={(m) => void navigate({ search: (s) => ({ ...s, mes: m }) })} />
         </div>
         <div className="grid gap-1.5">
-          <Label htmlFor="oficiais-servico">Serviço</Label>
+          <Label htmlFor="oficiais-escala">Escala</Label>
           <Selecao
-            id="oficiais-servico"
+            id="oficiais-escala"
             className="w-64"
-            value={e?.servico?.id ?? ''}
-            disabled={!e || e.etapa !== 'sem-cotas' || salvando}
-            onChange={(ev) => ev.target.value && void escolher(ev.target.value)}
+            value={e?.escala?.id ?? ''}
+            disabled={!e || e.escalas.length === 0}
+            onChange={(ev) => void navigate({ search: (s) => ({ ...s, escala: ev.target.value || undefined }) })}
           >
-            {!e?.servico && <option value="">Escolha o serviço</option>}
-            {opcoes.map((o) => <option key={o.id} value={o.id}>{o.nome}</option>)}
+            {!e?.escala && <option value="">Escolha a escala</option>}
+            {(e?.escalas ?? []).map((x) => <option key={x.id} value={x.id}>{x.nome}</option>)}
           </Selecao>
         </div>
       </div>
-      {erro && <p role="alert" className="text-alerta">{erro}</p>}
       <Tabs value={aba} onValueChange={(v) => irPara(v as Aba)}>
         <TabsList>
           <TabsTrigger value="escala">Escala do mês</TabsTrigger>
@@ -94,12 +77,17 @@ function Oficiais() {
         <TabsContent value="escala">
           {escala.isPending && <p className="text-apagado">Carregando…</p>}
           {escala.error && <p role="alert" className="text-alerta">{mensagemDe(escala.error)}</p>}
-          {e && <EscalaDoMes key={`${unidadeId}|${mes}`} unidadeId={unidadeId} escala={e} aoVer={irPara} />}
+          {e && !e.escala && (
+            <p className="text-apagado">
+              A unidade ainda não tem uma escala com rodada de cotas. Cadastre uma em <Link to="/escalas" className="font-medium text-vinho underline underline-offset-2">Escalas</Link>, escolhendo o jeito de distribuir "rodada de cotas".
+            </p>
+          )}
+          {e?.escala && <EscalaDoMes key={`${unidadeId}|${e.escala.id}|${mes}`} unidadeId={unidadeId} escala={e} aoVer={irPara} />}
         </TabsContent>
         <TabsContent value="saldo">
           {saldo.isPending && <p className="text-apagado">Carregando…</p>}
           {saldo.error && <p role="alert" className="text-alerta">{mensagemDe(saldo.error)}</p>}
-          {saldo.data && <PainelDeSaldo key={unidadeId} unidadeId={unidadeId} lista={saldo.data} />}
+          {saldo.data && <PainelDeSaldo key={`${unidadeId}|${escalaId ?? ''}`} unidadeId={unidadeId} escalaId={escalaId} lista={saldo.data} />}
         </TabsContent>
         <TabsContent value="regras">
           <RegrasDosOficiais />

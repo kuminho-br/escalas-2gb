@@ -1,6 +1,6 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { createFileRoute, Link } from '@tanstack/react-router';
-import { DiasDoc, MilitaresDoc, type Escala } from 'contratos';
+import { DiasDoc, Distribuicao, MilitaresDoc, type Escala } from 'contratos';
 import { useState } from 'react';
 import { mensagemDe } from '@/api/cliente';
 import { atualizarEscalas, consultaEscala, editarEscala, mudarSituacaoEscala } from '@/api/escalas';
@@ -72,18 +72,20 @@ function Identificacao({ e }: { e: Escala }) {
   const [titulo, setTitulo] = useState(e.titulo);
   const [militaresDoc, setMilitares] = useState(e.militaresDoc);
   const [diasDoc, setDias] = useState(e.diasDoc);
+  const [distribuicao, setDistribuicao] = useState(e.distribuicao);
   const [aviso, setAviso] = useState<{ erro: boolean; texto: string } | null>(null);
-  const assinatura = () => JSON.stringify([nome.trim(), titulo.trim(), militaresDoc, diasDoc]);
+  const assinatura = () => JSON.stringify([nome.trim(), titulo.trim(), militaresDoc, diasDoc, distribuicao]);
   // o último gravado (começa com o que veio do servidor): o que difere dele é alteração pendente
-  const [salvo, setSalvo] = useState(() => JSON.stringify([e.nome, e.titulo, e.militaresDoc, e.diasDoc]));
+  const [salvo, setSalvo] = useState(() => JSON.stringify([e.nome, e.titulo, e.militaresDoc, e.diasDoc, e.distribuicao]));
   const sujo = assinatura() !== salvo;
   usePendencia('identificacao', sujo);
-  const doServidor = JSON.stringify([e.nome, e.titulo, e.militaresDoc, e.diasDoc]);
+  const doServidor = JSON.stringify([e.nome, e.titulo, e.militaresDoc, e.diasDoc, e.distribuicao]);
   useSincronizar(doServidor, sujo, () => {
     setNome(e.nome);
     setTitulo(e.titulo);
     setMilitares(e.militaresDoc);
     setDias(e.diasDoc);
+    setDistribuicao(e.distribuicao);
     setSalvo(doServidor);
   });
 
@@ -92,7 +94,7 @@ function Identificacao({ e }: { e: Escala }) {
   async function gravar() {
     setAviso(null);
     try {
-      await editarEscala(e.id, { nome: nome.trim(), titulo: titulo.trim(), militaresDoc, diasDoc });
+      await editarEscala(e.id, { nome: nome.trim(), titulo: titulo.trim(), militaresDoc, diasDoc, distribuicao });
       setSalvo(assinatura());
       atualizarEscalas(queryClient);
       setAviso({ erro: false, texto: 'Alterações salvas.' });
@@ -126,6 +128,16 @@ function Identificacao({ e }: { e: Escala }) {
               <option value="todos">Todos os dias</option>
               <option value="com_escalados">Só os dias com escalados</option>
             </Selecao>
+          </div>
+          <div className="grid gap-1.5 sm:col-span-2">
+            <Label htmlFor="es-distribuicao">Jeito de distribuir</Label>
+            <Selecao id="es-distribuicao" value={distribuicao} onChange={(ev) => setDistribuicao(Distribuicao.parse(ev.target.value))}>
+              <option value="pre_escala">Pré-escala (as escalas do Pronto)</option>
+              <option value="rodada_de_cotas">Rodada de cotas (a escala dos oficiais)</option>
+            </Selecao>
+            <p className="text-[13px] text-apagado">
+              {distribuicao === 'rodada_de_cotas' ? 'Esta escala é montada em Oficiais: o JES é lançado à mão e o que sobra vai pela rodada, como Saldo. Ela não tem pré-escala.' : 'Esta escala é montada na Escala do mês, com a pré-escala.'}
+            </p>
           </div>
         </div>
         <AcoesDoBloco salvando={salvando} sujo={sujo} aviso={aviso} />

@@ -246,7 +246,7 @@ describe('o mês de janeiro de 2027', () => {
     expect(e.turnos.filter((t) => t.militarId === null)).toHaveLength(10);
     const de_novo = await abrir('2027-01');
     expect(de_novo.status).toBe(409);
-    expect((await de_novo.json()).erro).toBe('Com a escala fechada, a cota não muda mais. Se alguém sair agora, troque o nome no lugar: vira cobertura.');
+    expect((await de_novo.json()).erro).toBe('Com a escala fechada, a cota não muda mais. Se alguém sair agora, troque o nome no turno: vira cobertura.');
     expect((await api.pedir('gestorGb', 'PUT', rota('2027-01', '/ordem'), { militarIds: [] })).status).toBe(409);
   });
 
@@ -398,7 +398,8 @@ describe('JES à mão e Saldo pela rodada (6.27)', () => {
     expect(e.lugaresDeSaldo).toBe(61);
     expect(e.oficiais.reduce((s, o) => s + (o.cota ?? 0), 0)).toBe(61);
     expect(doLugar(e, '2027-05-03', 'A')).toMatchObject({ servico: 'jes', militarId: ids.a1, turnoId: rodada.saldoA });
-    expect(e.oficiais.find((o) => o.militarId === ids.a1)).toMatchObject({ jes: 1, escolhidos: 0 });
+    expect(e.oficiais.find((o) => o.militarId === ids.a1)).toMatchObject({ jes: 1, escolhidos: 0, voluntarioJes: true });
+    expect(e.oficiais.find((o) => o.militarId === ids.a3)!.voluntarioJes).toBe(false);
   });
 
   it('Review Focus 1: JES num lugar já tomado por Saldo, e Saldo num lugar de JES, são recusados e nada muda', async () => {

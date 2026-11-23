@@ -21,11 +21,11 @@ const TOM = {
 
 interface Props {
   escala: EscalaDosOficiais;
-  /** O clique num turno: livre (nas escolhas) ou qualquer um (com a escala fechada). Sem ele, o calendário é só de leitura. */
+  /** O clique num lugar: livre (nas escolhas) ou qualquer um (com a escala fechada). Sem ele, o calendário é só de leitura. */
   aoClicarTurno?: (t: Sorteado) => void;
   aoTirar?: (t: Sorteado) => void;
   desabilitado?: boolean;
-  /** O turno que acabou de ser lançado: fica marcado até o próximo lançamento. */
+  /** O lugar que acabou de ser lançado: fica marcado até o próximo lançamento. */
   recente?: { dia: string; turnoId: string } | null;
 }
 
@@ -46,10 +46,10 @@ export function CalendarioDosOficiais({ escala: e, aoClicarTurno, aoTirar, desab
   const turnos = e.turnosDoServico;
   const porId = new Map(e.oficiais.map((o) => [o.militarId, o] as const));
   const vez = e.etapa === 'escolhas' ? (porId.get(e.vez ?? '') ?? null) : null;
+  const nomeDoServico = { jes: 'JES', saldo: 'Saldo' } as const;
   const avisados = new Set(e.avisos.map((a) => `${a.dia}|${a.turnoId}`));
   const dias = [...new Set(e.turnos.map((t) => t.dia))].sort();
   const primeiro = dias[0] ? new Date(`${dias[0]}T00:00:00Z`).getUTCDay() : 0;
-  const afastado = (o: Oficial | null, d: string) => !!o?.afastamentos.some((a) => a.inicio <= d && d <= a.fim);
 
   function celula(d: string, t: Turno) {
     const x = e.turnos.find((y) => y.dia === d && y.turnoId === t.id);
@@ -76,15 +76,7 @@ export function CalendarioDosOficiais({ escala: e, aoClicarTurno, aoTirar, desab
     const comum = { 'data-turno': t.rotulo === 'Noite' ? 'noite' : 'dia', 'data-alerta': alerta ? 'true' : undefined, 'data-recente': eRecente ? 'true' : undefined } as const;
 
     if (x.militarId === null) {
-      // sem nome: nas escolhas é livre (ou afastado, para a vez); com a escala fechada qualquer turno abre a escolha
-      if (e.etapa === 'escolhas' && afastado(vez, d)) {
-        return (
-          <div key={t.id} {...comum} className={cn(livre, 'opacity-60')} title={`${vez!.posto} ${vez!.nomeGuerra} está afastado neste dia: o dia não é oferecido`}>
-            {rotulo}
-            <span className="text-[13px] leading-[18px] font-medium text-apagado">afastado</span>
-          </div>
-        );
-      }
+      // sem nome: nas escolhas é livre; com a escala fechada qualquer lugar abre a escolha
       if (e.etapa === 'escolhas' && aoClicarTurno) {
         return (
           <button key={t.id} type="button" {...comum} disabled={desabilitado} aria-label={`${base}: livre`} onClick={() => aoClicarTurno(x)} className={cn(livre, 'hover:border-tinta focus-visible:outline-2')}>
@@ -115,9 +107,10 @@ export function CalendarioDosOficiais({ escala: e, aoClicarTurno, aoTirar, desab
     const conteudo = (
       <>
         {/* o turno (Dia ou Noite) e a data para o leitor de tela: a placa de quem foi escalado não traz a palavra escrita */}
-        <span className="sr-only">{base}</span>
+        <span className="sr-only">{`${base}${x.servico ? ` (${nomeDoServico[x.servico]})` : ''}`}</span>
         <span className={cn('flex min-w-0 flex-wrap items-baseline gap-x-1.5', comTirar && 'pr-6')}>
           {dono && <span className="shrink-0 text-[13px] leading-[18px] font-medium text-apagado">{dono.posto}</span>}
+          {x.servico && <span data-servico={x.servico} aria-hidden className="shrink-0 rounded border border-linha px-1 text-[13px] leading-[18px] font-medium text-tinta">{nomeDoServico[x.servico]}</span>}
           {marca}
         </span>
         {/* o turno está na faixa, no fundo, na dica e no texto para o leitor de tela: o nome ganha a largura da célula */}
@@ -127,7 +120,7 @@ export function CalendarioDosOficiais({ escala: e, aoClicarTurno, aoTirar, desab
     );
     if (e.etapa === 'fechada' && aoClicarTurno) {
       return (
-        <button key={t.id} type="button" {...comum} disabled={desabilitado} aria-label={`${base}: ${nome}`} onClick={() => aoClicarTurno(x)} className={cn(placa, 'hover:border-encaixe')} title={dono ? `${dono.posto} ${dono.nomeGuerra} · ${t.rotulo}` : undefined}>
+        <button key={t.id} type="button" {...comum} disabled={desabilitado} aria-label={`${base}: ${nome} (${nomeDoServico[x.servico!]})`} onClick={() => aoClicarTurno(x)} className={cn(placa, 'hover:border-encaixe')} title={dono ? `${dono.posto} ${dono.nomeGuerra} · ${t.rotulo}` : undefined}>
           {conteudo}
         </button>
       );

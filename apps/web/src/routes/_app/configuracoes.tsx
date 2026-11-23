@@ -139,7 +139,7 @@ function BlocosDoVoluntariado({ unidadeId, podeMudar }: { unidadeId: string; pod
 
   if (isPending) return <p className="py-6 text-apagado">Carregando…</p>;
   if (error) return <p role="alert" className="py-6 text-alerta">{mensagemDe(error)}</p>;
-  const ativas = data.filter((e) => e.ativa);
+  const ativas = data.filter((e) => e.ativa && e.distribuicao === 'pre_escala');
 
   return (
     <div className="rounded-xl border border-linha bg-superficie">
