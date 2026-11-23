@@ -281,7 +281,7 @@ export function rotasAcesso(dep: { banco: Banco; auth: Auth }): Hono<AmbienteApi
     // o administrador também não encerra o próprio último nível de administrador: o sistema não pode ficar sem um
     if (p.usuario_id === quem && p.papel === 'administrador') {
       const outro = (await banco.query<{ ok: boolean }>(
-        "select exists (select 1 from papel_usuario where papel = 'administrador' and id <> $2 and desde <= $1 and (ate is null or ate >= $1)) as ok",
+        "select exists (select 1 from papel_usuario pu join usuario u on u.id = pu.usuario_id where pu.papel = 'administrador' and pu.id <> $2 and u.ativo and pu.desde <= $1 and (pu.ate is null or pu.ate >= $1)) as ok",
         [hojeRecife(), papelId],
       )).rows[0]!.ok;
       if (!outro) return c.json({ erro: MSG_UNICO_ADMIN }, 409);

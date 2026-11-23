@@ -144,6 +144,20 @@ describe('item 7: quem só tem nível de acesso em unidade extinta (6.16, Task 2
   });
 });
 
+describe('item 13, achado da revisão final: outro administrador com a conta desativada não conta', () => {
+  it('o administrador não encerra o próprio nível se o outro administrador está com o acesso desativado', async () => {
+    const eu = await comConta({ papel: 'administrador', unidadeId: api.ids.raiz });
+    const outro = await comConta({ papel: 'administrador', unidadeId: api.ids.raiz });
+    // só os dois são administradores vigentes; o outro perde o acesso, e o nível dele continua valendo no papel
+    const demais = (await api.banco.query<{ id: string }>("select id from papel_usuario where papel = 'administrador' and id not in ($1, $2) and (ate is null or ate >= $3::date)", [eu.papelId, outro.papelId, hoje])).rows.map((x) => x.id);
+    await api.banco.query('update papel_usuario set ate = $2::date - 1 where id = any($1::uuid[])', [demais, hoje]);
+    await api.banco.query('update usuario set ativo = false where id = $1', [outro.usuarioId]);
+    const r = await como(eu.cookie, 'POST', `/api/papeis/${eu.papelId}/encerrar`, { ate: hoje });
+    expect(r.status).toBe(409);
+    expect((await r.json()).erro).toBe('Você é o único administrador. Dê o nível a outra pessoa antes.');
+  });
+});
+
 describe('contas e níveis de acesso: o que a ficha avisa (6.16, Task 2)', () => {
   it('itens 1 e 2: a ficha diz, por nível, se quem olha pode encerrar, e se pode desativar o acesso', async () => {
     // um colega com conta, um nível de auxiliar na 1ª SB e outro de gestor no 2º GB
