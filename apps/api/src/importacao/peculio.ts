@@ -191,6 +191,7 @@ export const importadorPeculio: Importador<Plano> = {
       if (!papelDeCima.has(unidade)) papelDeCima.set(unidade, usuarioId ? await temPapelAcima(tx, usuarioId, unidade, CADASTRO, hoje) : false);
       return papelDeCima.get(unidade)!;
     };
+    const siglaDe = async (unidade: string) => (await tx.query<{ sigla: string }>('select sigla from unidade where id = $1', [unidade])).rows[0]?.sigla ?? 'outra seção';
     const cima = async (unidade: string) => (await tx.query<{ sigla: string }>('select m.sigla from unidade u join unidade m on m.id = u.mae_id where u.id = $1', [unidade])).rows[0]?.sigla ?? 'nível acima';
     // as equipes que a importação vai criar, por seção (só as das linhas que entram)
     const equipesNovas = new Map<string, Set<string>>();
@@ -306,8 +307,15 @@ export const importadorPeculio: Importador<Plano> = {
       const situacao = ler('situacao', lerSituacao(texto('situacao'), cat.situacoes));
       const jornada = ler('jornada', lerJornada(texto('jornada')));
       const equipeTxt = ler('equipe', lerEquipe(texto('equipe')));
-      if (semPeriodo) {
-        for (const [k, v] of [['quadro', quadro], ['situacao', situacao], ['jornada', jornada], ['equipe', equipeTxt]] as const) if (v !== undefined) ignorar(k, MSG_SEM_PERIODO);
+      // o período aberto pode ser de outra seção (transferência já marcada): mexer nele pede nível de acesso acima dela, como no "Alterar situação"
+      const periodoDeFora = Boolean(e?.aberto_unidade && e.aberto_unidade !== referencia && !(await donoDe(e.aberto_unidade)));
+      const motivoDoRastreio = semPeriodo
+        ? MSG_SEM_PERIODO
+        : periodoDeFora
+          ? `O período aberto é da ${cat.unidades.find((u) => u.id === e!.aberto_unidade)?.sigla ?? (await siglaDe(e!.aberto_unidade!))}: muda quem tem nível de acesso no ${await cima(e!.aberto_unidade!)}.`
+          : null;
+      if (motivoDoRastreio) {
+        for (const [k, v] of [['quadro', quadro], ['situacao', situacao], ['jornada', jornada], ['equipe', equipeTxt]] as const) if (v !== undefined) ignorar(k, motivoDoRastreio);
       } else {
         if (quadro) rastreio.quadroId = quadro.id;
         if (situacao) rastreio.situacaoId = situacao.id;
@@ -317,8 +325,8 @@ export const importadorPeculio: Importador<Plano> = {
           if (jornadaFinal === 'adm') ignorar('equipe', MSG_SEM_EQUIPE_NO_ADM);
           else rastreio.equipe = equipeTxt;
         }
-        // passar para o ADM esvazia a equipe
-        if (jornadaFinal === 'adm' && e?.aberto_equipe) rastreio.equipe = null;
+        // passar para o ADM (a JORNADA da própria linha) esvazia a equipe; sem a coluna, a equipe de hoje fica
+        if (jornada === 'adm' && e?.aberto_equipe) rastreio.equipe = null;
       }
       const secaoDasEquipes = e?.aberto_unidade ?? lotacao?.id ?? referencia;
 

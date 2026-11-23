@@ -362,6 +362,32 @@ describe('os dados da escala, o quadro e a situação na planilha do Pecúlio (T
     void antes;
   });
 
+  it('quem está no ADM com equipe (pela ficha) não perde a equipe numa planilha sem a coluna JORNADA (achado da revisão final)', async () => {
+    await importar([NOVO('990430-0', 'ADMCOMEQUIPE')], true);
+    const equipe = (await api.banco.query<{ id: string }>("select id from equipe where unidade_id = $1 and nome = 'ALFA'", [secao1])).rows[0]!.id;
+    await api.banco.query("update rastreio set jornada = 'adm', equipe_id = $2 where militar_id = (select id from militar where matricula = $1)", ['990430-0', equipe]);
+    const periodos = await rastreio('990430-0');
+    const previa = await importar([{ 'MATRÍCULA': '990430-0', 'TELEFONE': '(81) 94444-0000' }], true, ['MATRÍCULA', 'TELEFONE']);
+    expect(previa.alterados[0].mudancas).toEqual(['telefone: vazio → (81) 94444-0000']);
+    expect(await rastreio('990430-0')).toEqual(periodos);
+  });
+
+  it('o período aberto em outra seção só muda com nível de acesso acima dela: sem ele, as células do rastreio são ignoradas (achado da revisão final)', async () => {
+    const raiz = (await api.banco.query<{ id: string }>('select id from unidade where mae_id is null')).rows[0]!.id;
+    const outroGb = (await api.banco.query<{ id: string }>("insert into unidade (tipo, sigla, nome, mae_id, desde) values ('grupamento', '9º GB', 'Nono Grupamento', $1, '2020-01-01') returning id", [raiz])).rows[0]!.id;
+    const secaoDeFora = (await api.banco.query<{ id: string }>("insert into unidade (tipo, sigla, nome, mae_id, desde) values ('secao', '1ª SB/9', 'Seção do 9º GB', $1, '2020-01-01') returning id", [outroGb])).rows[0]!.id;
+    await importar([NOVO('990431-1', 'TRANSFERIDO')], true);
+    // lotado na 1ª SB neste mês, com a transferência para fora do 2º GB já marcada (o período aberto é o de lá)
+    const id = (await militar('990431-1'))!.id;
+    await api.banco.query("update rastreio set ate = $2::date + interval '40 days' where militar_id = $1", [id, hoje]);
+    await api.banco.query("insert into rastreio (militar_id, unidade_id, jornada, desde) values ($1, $2, 'pronto', $3::date + interval '41 days')", [id, secaoDeFora, hoje]);
+    const periodos = await rastreio('990431-1');
+    const previa = await importar([{ 'MATRÍCULA': '990431-1', 'JORNADA': 'ADM', 'TELEFONE': '(81) 93333-0000' }], true);
+    expect(previa.ignoradas).toEqual([expect.objectContaining({ coluna: 'JORNADA', motivo: expect.stringContaining('1ª SB/9') })]);
+    expect(await rastreio('990431-1')).toEqual(periodos);
+    expect(await militar('990431-1')).toMatchObject({ telefone: '(81) 93333-0000' });
+  });
+
   it('importar duas vezes a mesma planilha completa: na segunda, tudo cai em iguais e nenhum período novo é aberto', async () => {
     const linha = NOVO('990410-0', 'COMPLETO', { 'QUADRO': 'QBMG', 'SITUAÇÃO': 'Ativa', 'JORNADA': 'PRONTO', 'EQUIPE': 'ALFA', 'MOTORISTA': 'SIM', 'CNH': 'D', 'VOLUNTÁRIO JES': 'NÃO' });
     await importar([linha], true);

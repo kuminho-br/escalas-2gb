@@ -27,7 +27,7 @@ const nome = (n: string) => {
  * Percorre o que sai junto com as linhas de `tabela` em que `coluna` está em `valores`: devolve quantas linhas de cada tabela seriam apagadas e,
  * com `apagar`, apaga (e esvazia as referências que aceitam vazio). Tudo na transação de quem chama.
  */
-async function percorrer(tx: Consulta, todas: Ligacao[], tabela: string, coluna: string, valores: unknown[], apagar: boolean, contas: Map<string, number>, visitadas: Set<string>) {
+async function percorrer(tx: Consulta, todas: Ligacao[], tabela: string, coluna: string, valores: unknown[], apagar: boolean, contas: Map<string, Set<string>>, visitadas: Set<string>) {
   if (!valores.length) return;
   const chave = `${tabela}.${coluna}:${valores.join(',')}`;
   if (visitadas.has(chave)) return;
@@ -41,22 +41,36 @@ async function percorrer(tx: Consulta, todas: Ligacao[], tabela: string, coluna:
     }
     await percorrer(tx, todas, l.tabela, l.coluna, alvos, apagar, contas, visitadas);
   }
-  const n = (await tx.query<{ n: number }>(`select count(*)::int as n from ${nome(tabela)} where ${nome(coluna)} = any($1)`, [valores])).rows[0]!.n;
-  contas.set(tabela, (contas.get(tabela) ?? 0) + n);
-  if (apagar && n) await tx.query(`delete from ${nome(tabela)} where ${nome(coluna)} = any($1)`, [valores]);
+  // cada linha conta uma vez, mesmo alcançada por dois caminhos (as mesmas contagens no GET e no DELETE)
+  const linhas = (await tx.query<{ l: string }>(`select ctid::text as l from ${nome(tabela)} where ${nome(coluna)} = any($1)`, [valores])).rows.map((r) => r.l);
+  const ja = contas.get(tabela) ?? new Set<string>();
+  for (const l of linhas) ja.add(l);
+  contas.set(tabela, ja);
+  if (apagar && linhas.length) await tx.query(`delete from ${nome(tabela)} where ${nome(coluna)} = any($1)`, [valores]);
 }
 
 async function rodar(tx: Consulta, militarId: string, apagar: boolean): Promise<Map<string, number>> {
-  const contas = new Map<string, number>();
-  await percorrer(tx, await ligacoes(tx), 'militar', 'id', [militarId], apagar, contas, new Set());
-  return contas;
+  const contas = new Map<string, Set<string>>();
+  const todas = await ligacoes(tx);
+  const visitadas = new Set<string>();
+  // a permuta precisa de exatamente 2 itens: a que tem um item dele sai inteira (os dois itens), e a alocação do outro militar fica
+  const permutas = (
+    await tx.query<{ permuta_id: string }>(
+      'select distinct permuta_id from permuta_item where militar_original_id = $1 or alocacao_id in (select id from alocacao where militar_id = $1)',
+      [militarId],
+    )
+  ).rows.map((r) => r.permuta_id);
+  await percorrer(tx, todas, 'permuta', 'id', permutas, apagar, contas, visitadas);
+  await percorrer(tx, todas, 'militar', 'id', [militarId], apagar, contas, visitadas);
+  return new Map([...contas].map(([t, l]) => [t, l.size]));
 }
 
 /** O que sai junto: as mesmas contagens que `apagarMilitar` apaga. */
 export async function oQueVaiJunto(tx: Consulta, militarId: string): Promise<OQueVaiJunto> {
   const c = await rodar(tx, militarId, false);
   const de = (t: string) => c.get(t) ?? 0;
-  const contados = ['militar', 'alocacao', 'afastamento', 'rastreio', 'usuario', 'papel_usuario'];
+  // a sessão e a senha fazem parte da conta (temConta): não entram em "outros"
+  const contados = ['militar', 'alocacao', 'afastamento', 'rastreio', 'usuario', 'papel_usuario', 'sessao', 'conta'];
   return {
     alocacoes: de('alocacao'),
     afastamentos: de('afastamento'),

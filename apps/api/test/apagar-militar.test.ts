@@ -9,6 +9,7 @@ let alvo: string;
 let matricula: string;
 let outro: string;
 let alocacaoDoOutro: string;
+let alocDoOutroNaPermuta: string;
 
 const exclusao = (id: string) => `/api/militares/${id}/exclusao`;
 const apagar = (id: string, mat: string, quem: 'admin' | 'gestorGb' | 'escalante' = 'admin') => api.pedir(quem, 'DELETE', `/api/militares/${id}`, { matricula: mat });
@@ -47,11 +48,17 @@ beforeAll(async () => {
   const guarnicao = await inserir(api.banco, 'guarnicao', { unidade_id: u, nome: 'ABT' });
   const funcao = await inserir(api.banco, 'funcao', { unidade_id: u, nome: 'Chefe' });
   const aloc = await inserir(api.banco, 'alocacao', { militar_id: alvo, escala_id: escala, servico_id: servico, turno_id: turno, data: '2026-12-01', origem: 'manual' });
-  await inserir(api.banco, 'alocacao', { militar_id: alvo, escala_id: escala, servico_id: servico, turno_id: turno, data: '2026-12-02', origem: 'manual' });
+  const aloc2 = await inserir(api.banco, 'alocacao', { militar_id: alvo, escala_id: escala, servico_id: servico, turno_id: turno, data: '2026-12-02', origem: 'manual' });
   await inserir(api.banco, 'alocacao_acumulo', { alocacao_id: aloc, guarnicao_id: guarnicao, funcao_id: funcao });
   await inserir(api.banco, 'remocao', { militar_id: alvo, escala_id: escala, servico_id: servico, turno_id: turno, data: '2026-12-03' });
   // a alocação do outro militar foi marcada pelo usuário que vai sumir: a linha fica, sem o autor
   alocacaoDoOutro = await inserir(api.banco, 'alocacao', { militar_id: outro, escala_id: escala, servico_id: servico, turno_id: turno, data: '2026-12-01', origem: 'manual', presenca_por: usuario });
+  // uma permuta entre ele e o outro militar (a permuta precisa de exatamente 2 itens): ela sai inteira, e a alocação do outro fica
+  alocDoOutroNaPermuta = await inserir(api.banco, 'alocacao', { militar_id: outro, escala_id: escala, servico_id: servico, turno_id: turno, data: '2026-12-02', origem: 'permuta' });
+  await api.banco.transacao(async (tx) => {
+    const permuta = (await tx.query<{ id: string }>("insert into permuta (mes) values ('2026-12-01') returning id")).rows[0]!.id;
+    await tx.query('insert into permuta_item (permuta_id, alocacao_id, militar_original_id) values ($1, $2, $3), ($1, $4, $5)', [permuta, aloc2, alvo, alocDoOutroNaPermuta, outro]);
+  });
   // afastamento, voluntariado e disponibilidade
   const tipo = (await api.banco.query<{ id: string }>('select id from tipo_afastamento limit 1')).rows[0]!.id;
   await inserir(api.banco, 'afastamento', { militar_id: alvo, tipo_afastamento_id: tipo, inicio: '2026-11-01', fim: '2026-11-05' });
@@ -86,8 +93,9 @@ describe('apagar um militar', () => {
   it('o GET diz o que vai junto', async () => {
     const r = await api.pedir('admin', 'GET', exclusao(alvo));
     expect(r.status).toBe(200);
-    // outros: remoção, acúmulo, voluntariado, disponibilidade, cota e saldo dos oficiais, e a conta (sessão e senha)
-    expect(await r.json()).toEqual({ alocacoes: 2, afastamentos: 1, periodosDoRastreio: 3, temConta: true, niveisDeAcesso: 2, outros: expect.any(Number) });
+    // outros: remoção, acúmulo, voluntariado, disponibilidade, cota e saldo dos oficiais, e a permuta com os dois itens (a conta tem linha própria:
+    // a sessão e a senha dela não entram em "outros")
+    expect(await r.json()).toEqual({ alocacoes: 2, afastamentos: 1, periodosDoRastreio: 3, temConta: true, niveisDeAcesso: 2, outros: 9 });
   });
 
   it('a matrícula digitada errada é 400, e nada é apagado', async () => {
@@ -153,5 +161,8 @@ describe('apagar um militar', () => {
     expect(r.status).toBe(401);
     expect((await r.json()).erro).toBe('Entre no sistema para continuar.');
     expect(contagens.alocacoes).toBe(2);
+    // a permuta saiu inteira; a alocação do outro militar ficou
+    expect((await api.banco.query('select 1 from permuta')).rows).toHaveLength(0);
+    expect((await api.banco.query('select 1 from alocacao where id = $1', [alocDoOutroNaPermuta])).rows).toHaveLength(1);
   });
 });
