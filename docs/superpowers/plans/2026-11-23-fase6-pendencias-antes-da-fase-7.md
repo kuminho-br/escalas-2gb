@@ -75,6 +75,7 @@
   - A importação do Pecúlio ganha as colunas FUNÇÃO (o nome de uma função ativa) e ABONO DE PERMANÊNCIA (SIM ou NÃO), opcionais, com a regra da 6.13: vazio não altera, inválido é ignorado com o motivo.
   - A ficha de consulta traz a função dentro do bloco `situacao`, e nunca traz o abono.
   - No site: a aba "Funções do militar" nas Configurações (administrador); o campo "Função" e a marca "Abono de permanência" na ficha; os dois só para leitura na Minha ficha.
+  - **Posto sem "BM"** (diretriz do usuário, 23/11/2026): uma segunda migração da entrega, `00NN_postos_sem_bm.sql`, tira o " BM" do fim da sigla de todo posto (`SD BM` → `SD`), sem tocar em sigla que o usuário já mudou para outra forma, e pode rodar de novo. A carga base, a carga de exemplo, o `criar-admin`, o modelo da planilha do Pecúlio e os testes passam a usar as siglas sem "BM". Teste: depois da migração nenhuma sigla termina em " BM"; a planilha com `SD` importa; com `SD BM` a célula é ignorada com o motivo de posto desconhecido (a importação é contrato, sem tolerância ao formato antigo).
 - [ ] **Step 2:** rodar `pnpm test`. Esperado: FAIL nos testes novos.
 - [ ] **Step 3:** implementar.
 - [ ] **Step 4:** rodar as verificações do fim de entrega. Esperado: PASS. Atualizar o esquema do banco e a spec do Pecúlio (as duas linhas deixam de dizer "sem entrega").
