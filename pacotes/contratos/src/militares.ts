@@ -218,3 +218,9 @@ export type FichaMilitar = LinhaMilitar & {
   rastreio: { id: string; unidadeSigla: string; equipe: string | null; jornada: 'pronto' | 'adm'; quadro: string | null; situacao: string; desde: string; ate: string | null }[];
   afastamentos: { id: string; tipo: string; tipoAfastamentoId: string; inicio: string; fim: string; motivo: string | null; boletim: string | null }[];
 };
+
+/** O que sai junto quando o administrador apaga um militar (entrega 6.13). `outros`: as linhas das outras tabelas (remoções, voluntariado, oficiais…). */
+export type OQueVaiJunto = { alocacoes: number; afastamentos: number; periodosDoRastreio: number; temConta: boolean; niveisDeAcesso: number; outros: number };
+/** A matrícula digitada na confirmação. */
+export const ConfirmarExclusao = z.object({ matricula: z.string() }).strict();
+export type ConfirmarExclusao = z.infer<typeof ConfirmarExclusao>;

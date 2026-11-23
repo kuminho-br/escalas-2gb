@@ -1,5 +1,5 @@
 import type { FichaMilitar, LinhaMilitar } from 'contratos';
-import { act, fireEvent, screen, waitFor, within } from '@testing-library/react';
+import { act, cleanup, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient } from '@tanstack/react-query';
 import { describe, expect, it, vi } from 'vitest';
@@ -1083,5 +1083,64 @@ describe('revisão 3: o aviso de salvo e o afastamento', () => {
     fireEvent.click(salvar);
     soltar();
     await waitFor(() => expect(chamadasA(f, 'POST /api/militares/m1/afastamentos')).toBe(1));
+  });
+});
+
+describe('apagar um militar (6.13)', () => {
+  const ADMIN = { ...EU_EXEMPLO, papeis: [{ papel: 'administrador' as const, unidadeId: 'u-1sb', unidadeSigla: '1ª SB' }] };
+  const JUNTO = { alocacoes: 3, afastamentos: 1, periodosDoRastreio: 2, temConta: true, niveisDeAcesso: 1, outros: 4 };
+  const comAdmin = (extra: Parameters<typeof simularApi>[0] = {}) =>
+    api({ '/api/eu': { status: 200, corpo: ADMIN }, 'GET /api/militares/m1/exclusao': { status: 200, corpo: JUNTO }, 'GET /api/unidades/u-1sb/peculio': { status: 200, corpo: { militares: [], aniversariantes: [] } }, ...extra });
+
+  it('"Apagar militar" só aparece para o administrador, no fim da ficha', async () => {
+    api();
+    abrir('/militares/m1');
+    await screen.findByLabelText('Posto-graduação');
+    expect(screen.queryByRole('button', { name: 'Apagar militar' })).toBeNull();
+    cleanup();
+    comAdmin();
+    abrir('/militares/m1');
+    const botao = await screen.findByRole('button', { name: 'Apagar militar' });
+    const titulos = [...document.querySelectorAll('h3')].map((h) => h.textContent ?? '');
+    expect(titulos.at(-1)).toBe('Apagar militar');
+    expect(botao).toBeInTheDocument();
+  });
+
+  it('o diálogo lista o que vai junto, avisa que não pode ser desfeito e só liga o botão com a matrícula digitada igual', async () => {
+    comAdmin();
+    abrir('/militares/m1');
+    await userEvent.click(await screen.findByRole('button', { name: 'Apagar militar' }));
+    const dialogo = within(await screen.findByRole('dialog'));
+    expect(await dialogo.findByText('3 alocações')).toBeInTheDocument();
+    for (const t of ['1 afastamento', '2 períodos do rastreio', 'a conta de acesso ao sistema', '1 nível de acesso', '4 outros registros']) expect(dialogo.getByText(t)).toBeInTheDocument();
+    expect(dialogo.getByText('Isto não pode ser desfeito.')).toBeInTheDocument();
+    const confirmar = dialogo.getByRole('button', { name: 'Apagar' });
+    expect(confirmar).toBeDisabled();
+    await userEvent.type(dialogo.getByLabelText('Digite a matrícula para confirmar.'), '990001-0');
+    expect(confirmar).toBeDisabled();
+    await userEvent.clear(dialogo.getByLabelText('Digite a matrícula para confirmar.'));
+    await userEvent.type(dialogo.getByLabelText('Digite a matrícula para confirmar.'), '990001-1');
+    expect(confirmar).toBeEnabled();
+  });
+
+  it('depois de apagar, volta para a lista do Pecúlio', async () => {
+    const f = comAdmin({ 'DELETE /api/militares/m1': { status: 204 } });
+    const router = abrir('/militares/m1');
+    await userEvent.click(await screen.findByRole('button', { name: 'Apagar militar' }));
+    const dialogo = within(await screen.findByRole('dialog'));
+    await userEvent.type(await dialogo.findByLabelText('Digite a matrícula para confirmar.'), '990001-1');
+    await userEvent.click(dialogo.getByRole('button', { name: 'Apagar' }));
+    await waitFor(() => expect(corpoEnviado(f, 'DELETE /api/militares/m1')).toEqual({ matricula: '990001-1' }));
+    await waitFor(() => expect(router.state.location.pathname).toBe('/peculio'));
+  });
+
+  it('o erro da API aparece no diálogo', async () => {
+    comAdmin({ 'DELETE /api/militares/m1': { status: 409, corpo: { erro: 'Você não pode apagar o seu próprio cadastro.' } } });
+    abrir('/militares/m1');
+    await userEvent.click(await screen.findByRole('button', { name: 'Apagar militar' }));
+    const dialogo = within(await screen.findByRole('dialog'));
+    await userEvent.type(await dialogo.findByLabelText('Digite a matrícula para confirmar.'), '990001-1');
+    await userEvent.click(dialogo.getByRole('button', { name: 'Apagar' }));
+    expect(await dialogo.findByRole('alert')).toHaveTextContent('Você não pode apagar o seu próprio cadastro.');
   });
 });
