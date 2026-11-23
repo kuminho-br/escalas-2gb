@@ -8,6 +8,9 @@ Siglas dos documentos: **Design** = `superpowers/specs/2026-11-16-migracao-desig
 
 | Data | Decisão | Onde está |
 |---|---|---|
+| 23/11/2026 | O Pecúlio é a origem dos dados do militar: a planilha dele importa tudo, e a importação "Dados da escala" sai do módulo de escalas. Refaz a opção (b) de 22/11. | `superpowers/plans/2026-11-23-fase6-13-peculio-origem-dos-dados.md`; `superpowers/specs/2026-11-20-peculio-design.md`, "Importação do Pecúlio" |
+| 23/11/2026 | Na importação do Pecúlio, só a matrícula é obrigatória; célula vazia não altera e dado inválido é ignorado, sem travar. Militar novo exige posto, nome de guerra e lotação. | `superpowers/plans/2026-11-23-fase6-13-peculio-origem-dos-dados.md` |
+| 23/11/2026 | O administrador apaga um militar, com tudo o que é dele. Os postos e graduações (sigla e nome) são editáveis nas Configurações. | `superpowers/plans/2026-11-23-fase6-13-peculio-origem-dos-dados.md` |
 | 23/11/2026 | Siglas das divisões: DA (Divisão Administrativa) e DivOp (Divisão Operacional). As seis decisões da PLANEJAMENTO na spec das camadas de visão foram aprovadas. | `superpowers/specs/2026-11-23-camadas-de-visao-design.md` |
 | 23/11/2026 | O acesso separa ver de editar. Editar segue a hierarquia; ver vem de três camadas que se somam (todos, oficial e chefe de divisão), e a borda do que cada camada vê fica nas Configurações (caminho B). | `superpowers/specs/2026-11-23-camadas-de-visao-design.md` |
 | 23/11/2026 | Quinto nível de acesso, o chefe de divisão (nome provisório): edita como gestor na sua divisão e vê a hierarquia das divisões irmãs, sem editar. As divisões (administrativa e operacional) entram na árvore, entre o grupamento e as seções. | `superpowers/specs/2026-11-23-camadas-de-visao-design.md` |
