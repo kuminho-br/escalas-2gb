@@ -96,7 +96,7 @@ export async function lerEscala(c: Consulta, unidadeId: string, mes: string): Pr
   const doServico = await turnosDoServico(c, servicoId);
   const rotuloDe = new Map(doServico.map((t) => [t.id, t.rotulo]));
   const elegiveis = await elegiveisDoMes(c, unidadeId, mes);
-  const { marcados, elegiveisAntes } = await marcasDoMes(c, unidadeId, mes, linha?.id ?? null);
+  const { marcados, participantesAntes } = await marcasDoMes(c, unidadeId, mes, linha?.id ?? null);
   const participantes = elegiveis.filter((p) => marcados.has(p.militarId));
   const anteriores = await saldosAnteriores(c, unidadeId, mes);
   const porId = new Map(elegiveis.map((p) => [p.militarId, p]));
@@ -148,7 +148,8 @@ export async function lerEscala(c: Consulta, unidadeId: string, mes: string): Pr
       escolhidos: escolhidos(militarId),
       afastamentos: p?.afastamentos ?? x?.afastamentos ?? [],
       participa,
-      novo: !participa && elegiveisAntes !== null && !elegiveisAntes.has(militarId),
+      // "novo" é de quem participa neste mês e não participou no mês anterior da unidade; sem mês anterior gravado, ninguém é novo (decisão de 23/11)
+      novo: participa && participantesAntes !== null && !participantesAntes.has(militarId),
     };
   };
 
