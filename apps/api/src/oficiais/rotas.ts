@@ -26,7 +26,6 @@ const MSG_FORA_DA_ESCALA = 'Este oficial não está na escala deste mês.';
 const MSG_SEM_PARTICIPANTES = 'Marque quem participa da rodada antes de abrir o mês.';
 const MSG_NAO_ELEGIVEL = 'Este oficial não é elegível neste mês.';
 const MSG_PARTICIPANTES_FECHADOS = 'Com a escala fechada, os participantes não mudam mais.';
-const MSG_SO_VOLUNTARIO = 'JES só para voluntário JES.';
 const MSG_LUGAR_FORA_DO_MES = 'Este dia não é do mês escolhido.';
 const MSG_LANCAMENTO_FORA_DO_MES = 'Este lançamento não é deste mês.';
 
@@ -330,15 +329,13 @@ export function rotasOficiais(dep: { banco: Banco; auth: Auth }): Hono<AmbienteA
       if (!alvo) throw new Recusa(400, servico === 'jes' ? MSG_SEM_JES : MSG_SEM_SALDO);
       const turno = (await turnosDoServico(tx, alvo.id)).find((t) => t.letra === letra);
       if (!turno) throw new Recusa(400, `O serviço ${alvo.nome} desta escala não tem o turno ${letra}.`);
-      // quem pode: o Saldo, quem está na rodada do mês (tem cota); o JES, o voluntário JES elegível (ou que já está na rodada)
+      // quem pode: o Saldo, quem está na rodada do mês (tem cota); o JES, o elegível (ou quem já está na rodada): na escala dos oficiais todos são voluntários por natureza (6.29)
       const naCota = (await tx.query('select 1 from oficiais_cota where mes_id = $1 and militar_id = $2', [linha.id, militarId])).rows.length > 0;
       if (servico === 'saldo') {
         if (!naCota) throw new Recusa(400, MSG_FORA_DA_ESCALA);
       } else {
         const elegivel = (await elegiveisDoMes(tx, rod.unidadeId, rod.mes)).some((p) => p.militarId === militarId);
         if (!elegivel && !naCota) throw new Recusa(400, MSG_FORA_DA_ESCALA);
-        const voluntario = (await tx.query<{ v: boolean }>('select voluntario_jes as v from militar where id = $1', [militarId])).rows[0]?.v;
-        if (!voluntario) throw new Recusa(400, MSG_SO_VOLUNTARIO);
       }
       const atual = (await lancamentosDoMes(tx, rod.escalaId, rod.mes)).find((l) => l.dia === dia && l.letra === letra);
       let foraDaOrdem: string | undefined;

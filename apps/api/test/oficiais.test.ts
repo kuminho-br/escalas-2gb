@@ -382,10 +382,10 @@ describe('JES à mão e Saldo pela rodada (6.27)', () => {
     expect(e.oficiais.reduce((s, o) => s + (o.cota ?? 0), 0)).toBe(62);
   });
 
-  it('JES só para voluntário JES (400 com o texto); para o voluntário, grava como alocação manual do serviço JES', async () => {
-    const r = await lancar('2027-05', '2027-05-03', 'A', ids.a3!, 'jes');
-    expect(r.status).toBe(400);
-    expect((await r.json()).erro).toBe('JES só para voluntário JES.');
+  it('JES vale para todo elegível (na escala dos oficiais todos são voluntários por natureza, 6.29) e grava como alocação manual do serviço JES', async () => {
+    const r = await lancar('2027-05', '2027-05-03', 'B', ids.a3!, 'jes');
+    expect(r.status).toBe(200);
+    expect((await tirar('2027-05', '2027-05-03', 'B')).status).toBe(200);
     const ok = await lancar('2027-05', '2027-05-03', 'A', ids.a1!, 'jes');
     expect(ok.status).toBe(200);
     const { rows } = await api.banco.query<{ origem: string; servico_id: string; turno_id: string }>(

@@ -59,6 +59,8 @@ export interface EscalaDosOficiais {
   turnos: { dia: string; letra: string; turnoId: string; servico: ServicoDaRodada | null; alocacaoId: string | null; militarId: string | null; saiuMilitarId: string | null }[];
   /** Quantos lugares o mês tem para a rodada de Saldo: os lugares do mês menos os de JES. */
   lugaresDeSaldo: number;
+  /** A cota de JES da unidade no mês: `cota` é a soma das cotas do serviço JES da escala no mês (null sem cadastro) e `usados`, os JES lançados no mês em todas as escalas da unidade. Só informa: nada bloqueia. */
+  jes: { cota: number | null; usados: number };
   /** Os dias vermelhos do mês (dias ruins, que ninguém quer tirar), em ordem. */
   diasVermelhos: string[];
   avisos: { dia: string; turnoId: string; militarId: string; texto: string }[];
