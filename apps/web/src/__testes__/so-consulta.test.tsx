@@ -23,7 +23,7 @@ const OFICIAL: EuDaApi = { ...EU_EXEMPLO, papeis: [], unidades: [SB2], lotacao: 
 const FAIXA_DE_CONSULTA = 'Só consulta: você não altera nada em 2ª SB.';
 const MES = mesAtual();
 const dia = (n: number) => `${MES}-${String(n).padStart(2, '0')}`;
-const EDITAR = [/Salvar/, /Alterar/, /Editar/, /Incluir/, /Adicionar/, /Remover/, /Trocar/, /Desativar/, /Reativar/, /Gerar/, /Importar/, /Copiar/, /Voltar ao padrão/, /Escolher militar/, /Limpar/, /Tirar/, /Permitir de novo/, /Mover/];
+const EDITAR = [/Desfazer/, /sábados e domingos/, /folga/i, /Como marcar/, /Salvar/, /Alterar/, /Editar/, /Incluir/, /Adicionar/, /Remover/, /Trocar/, /Desativar/, /Reativar/, /Gerar/, /Importar/, /Copiar/, /Voltar ao padrão/, /Escolher militar/, /Limpar/, /Tirar/, /Permitir de novo/, /Mover/];
 const semBotaoDeAlterar = () => {
   for (const nome of EDITAR) expect(screen.queryByRole('button', { name: nome }), String(nome)).toBeNull();
 };

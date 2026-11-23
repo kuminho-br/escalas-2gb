@@ -27,7 +27,7 @@ export function guardarUnidade(id: string): void {
 }
 
 /**
- * A unidade escolhida só para consulta (a pessoa a vê e não a altera): vale enquanto a aba está aberta e NUNCA vai para o navegador. Na próxima entrada o
+ * A unidade escolhida só para consulta (a pessoa a vê e não a altera): vale enquanto a página fica aberta (recarregar a tela volta à última unidade de trabalho) e NUNCA vai para o navegador. Na próxima entrada o
  * sistema abre na última unidade de trabalho, e não numa unidade em que a pessoa não pode alterar nada.
  */
 let consultaDaAba: string | null = null;

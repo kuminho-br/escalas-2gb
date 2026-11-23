@@ -19,7 +19,7 @@ export interface Eu {
   /** As unidades em que a pessoa pode trabalhar: as dos papéis vigentes e as de baixo (o administrador, todas), na ordem da árvore. O militar comum: só a lotação. */
   unidades: UnidadeDeTrabalho[];
   /**
-   * As unidades cuja "Escala em montagem" a pessoa vê pelas camadas de visão e em que ela não trabalha (não estão em `unidades`): as telas de escala abrem nelas só
+   * As unidades cuja "Escala em montagem" a pessoa vê pelas camadas de visão e em que ela não trabalha: as que os níveis de acesso dela já cobrem ficam de fora (o militar comum, sem nível, tem a lotação nas duas listas): as telas de escala abrem nelas só
    * para leitura. Na ordem da árvore; vazia para quem já trabalha em tudo o que vê (o gestor, o administrador).
    */
   unidadesSoConsulta: UnidadeDeTrabalho[];

@@ -102,8 +102,11 @@ describe('as leituras das cinco telas, para quem vê a escala em montagem', () =
       expect((await ler(quem, `/api/unidades/${unidade}/grade/${mes}`)).status, quem).toBe(200);
       expect((await ler(quem, `/api/unidades/${unidade}/cotas?mes=${proximo}`)).status, quem).toBe(200);
     }
-    // a unidade que não existe segue 404, e não 403
+    // a unidade que não existe, ou um id que nem é uuid, segue 404, e não 403
     expect((await chefe.pedir('GET', `/api/unidades/00000000-0000-4000-8000-000000000000/grade/${mes}`)).status).toBe(404);
+    expect((await chefe.pedir('GET', `/api/unidades/x/grade/${mes}`)).status).toBe(404);
+    // a própria divisão irmã também se lê (a camada vale na divisão e abaixo dela)
+    expect((await chefe.pedir('GET', `/api/unidades/${da}/cotas?mes=${proximo}`)).status).toBe(200);
   });
 
   it('todo pedido que não é um desses GET, na seção da outra divisão, responde 403 ao chefe de divisão (a mesma varredura do isolamento)', async () => {
