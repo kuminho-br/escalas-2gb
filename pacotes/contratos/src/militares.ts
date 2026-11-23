@@ -56,7 +56,7 @@ export const NovoMilitar = z.object({
   motorista: z.boolean(),
   cnh: CnhSemRepetir,
   voluntarioJes: z.boolean(),
-  lotacao: z.object({ equipeId: Id.nullable(), jornada: Jornada, desde: Mes }),
+  lotacao: z.object({ equipeId: Id.nullable(), jornada: Jornada, desde: Data }),
 });
 export type NovoMilitar = z.infer<typeof NovoMilitar>;
 

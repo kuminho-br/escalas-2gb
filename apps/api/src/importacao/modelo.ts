@@ -40,9 +40,9 @@ async function ajuda(wb: ExcelJS.Workbook, imp: Importador<unknown>, ctx: Contex
   texto('Este arquivo tem as abas e as colunas que o sistema espera. Preencha, salve como .xlsx e envie na tela de importação: o sistema mostra o que vai entrar antes de gravar qualquer coisa.');
   vazia();
   texto('Como preencher', { negrito: true });
-  texto('1. Cole os dados da sandbox nas abas deste arquivo (ou digite), a partir da linha 2.');
+  texto(imp.modelo.semSandbox ? '1. Digite os dados nas abas deste arquivo (ou cole), a partir da linha 2.' : '1. Cole os dados da sandbox nas abas deste arquivo (ou digite), a partir da linha 2.');
   texto('2. Não mude o nome das abas nem o cabeçalho (a primeira linha). Pode haver outras colunas à direita; o sistema as ignora.');
-  texto('3. Se preferir, envie a sandbox baixada em .xlsx. Se o Google Planilhas disser que o arquivo está com defeito, use este modelo e cole só as abas necessárias.');
+  if (!imp.modelo.semSandbox) texto('3. Se preferir, envie a sandbox baixada em .xlsx. Se o Google Planilhas disser que o arquivo está com defeito, use este modelo e cole só as abas necessárias.');
   vazia();
 
   texto('Colunas', { negrito: true });

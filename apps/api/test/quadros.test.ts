@@ -15,7 +15,7 @@ const MSG_FORA = 'Este posto-graduação não existe nesse quadro.';
 
 const novo = (matricula: string, postoSigla: string, extra: Record<string, unknown> = {}) => ({
   matricula, postoGradId: posto[postoSigla], nomeCompleto: `Fulano de Tal ${matricula}`, nomeGuerra: `TESTE${matricula.slice(3, 6)}`, antiguidade: 1, motorista: false, cnh: [], voluntarioJes: false,
-  lotacao: { equipeId: alfa, jornada: 'pronto', desde: atual }, ...extra,
+  lotacao: { equipeId: alfa, jornada: 'pronto', desde: `${atual}-01` }, ...extra,
 });
 const criar = (matricula: string, postoSigla: string, extra: Record<string, unknown> = {}) =>
   api.pedir('gestorGb', 'POST', `/api/unidades/${api.ids.secao}/militares`, novo(matricula, postoSigla, extra));

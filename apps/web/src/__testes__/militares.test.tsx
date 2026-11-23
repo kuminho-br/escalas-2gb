@@ -77,26 +77,6 @@ describe('lista de militares', () => {
     expect(screen.queryByText('ANDRADE')).toBeNull();
   });
 
-  it('novo militar envia a lotação', async () => {
-    const f = api({ 'POST /api/unidades/u-1sb/militares': { status: 201, corpo: FICHA } });
-    abrir('/militares');
-    await userEvent.click(await screen.findByRole('button', { name: 'Novo militar' }));
-    const dialogo = await screen.findByRole('dialog');
-    await userEvent.type(within(dialogo).getByLabelText('Matrícula'), '990010-0');
-    await userEvent.selectOptions(within(dialogo).getByLabelText('Posto-graduação'), 'CB BM');
-    await userEvent.type(within(dialogo).getByLabelText('Nome completo'), 'Novo da Silva');
-    await userEvent.type(within(dialogo).getByLabelText('Nome de guerra'), 'NOVO');
-    await userEvent.selectOptions(within(dialogo).getByLabelText('Equipe'), 'Bravo');
-    await userEvent.selectOptions(within(dialogo).getByLabelText('Jornada'), 'Adm');
-    fireEvent.change(within(dialogo).getByLabelText('Lotado desde'), { target: { value: '2026-12' } });
-    await userEvent.click(within(dialogo).getByRole('button', { name: 'Criar' }));
-    await waitFor(() =>
-      expect(corpoEnviado(f, 'POST /api/unidades/u-1sb/militares')).toEqual({
-        matricula: '990010-0', postoGradId: 'p-cb', nomeCompleto: 'Novo da Silva', nomeGuerra: 'NOVO', antiguidade: null, motorista: false, cnh: [], voluntarioJes: false,
-        lotacao: { equipeId: 'e-bravo', jornada: 'adm', desde: '2026-12' },
-      }),
-    );
-  });
 });
 
 describe('o quadro na ficha', () => {
@@ -172,15 +152,6 @@ describe('listas que não carregam explicam o botão apagado', () => {
     expect(campo).toHaveAccessibleDescription(MSG);
   });
 
-  it('postos em 500: o "Novo militar" também', async () => {
-    api({ 'GET /api/postos': { status: 500, corpo: { erro: 'Falha.' } } });
-    abrir('/militares');
-    await userEvent.click(await screen.findByRole('button', { name: 'Novo militar' }));
-    const dialogo = await screen.findByRole('dialog');
-    expect(await within(dialogo).findByText(MSG)).toBeInTheDocument();
-    expect(within(dialogo).getByLabelText('Posto-graduação')).toHaveAccessibleDescription(MSG);
-  });
-
   it('tipos de afastamento em 500: "Incluir afastamento" diz que a lista não carregou', async () => {
     api({ 'GET /api/sistema/tipos-afastamento': { status: 500, corpo: { erro: 'Falha.' } } });
     abrir('/militares/m1');
@@ -222,18 +193,6 @@ describe('lista já carregada cuja nova busca falha (Review Focus 3)', () => {
     await buscarDeNovoEFalhar(router, postos, ['postos']);
     expect(within(campo).getByRole('option', { name: 'SD BM' })).toBeInTheDocument();
     expect(screen.queryByText(MSG)).toBeNull();
-  });
-
-  it('postos: o "Novo militar" continua com as opções e sem o aviso', async () => {
-    const postos: Rota = { status: 200, corpo: POSTOS };
-    api({ 'GET /api/postos': postos });
-    const router = abrir('/militares');
-    await userEvent.click(await screen.findByRole('button', { name: 'Novo militar' }));
-    const dialogo = await screen.findByRole('dialog');
-    await within(dialogo).findByRole('option', { name: 'CB BM' });
-    await buscarDeNovoEFalhar(router, postos, ['postos']);
-    expect(within(dialogo).getByRole('option', { name: 'CB BM' })).toBeInTheDocument();
-    expect(within(dialogo).queryByText(MSG)).toBeNull();
   });
 
   it('tipos de afastamento: "Incluir afastamento" continua com as opções e sem o aviso', async () => {
@@ -727,17 +686,6 @@ describe('ficha ampliada (fase 5)', () => {
     expect((await screen.findAllByLabelText('Cadastro incompleto: Nome completo em falta')).length).toBeGreaterThan(0);
   });
 
-  it('"Novo militar" exige o nome completo: sem ele o cadastro não é enviado', async () => {
-    const f = api({ 'POST /api/unidades/u-1sb/militares': { status: 201, corpo: FICHA } });
-    abrir('/militares');
-    await userEvent.click(await screen.findByRole('button', { name: 'Novo militar' }));
-    const dialogo = within(await screen.findByRole('dialog'));
-    expect(dialogo.getByLabelText('Nome completo')).toBeRequired();
-    await userEvent.type(dialogo.getByLabelText('Matrícula'), '990010-0');
-    await userEvent.type(dialogo.getByLabelText('Nome de guerra'), 'NOVO');
-    await userEvent.click(dialogo.getByRole('button', { name: 'Criar' }));
-    expect(chamadasA(f, 'POST /api/unidades/u-1sb/militares')).toBe(0);
-  });
 });
 
 describe('afastamento com motivo e boletim (fase 5)', () => {
@@ -881,19 +829,24 @@ describe('remover, nomes das ações e erros por campo', () => {
     expect(campo.parentElement).toContainElement(screen.getByText('Use até 30 letras.'));
   });
 
-  it('novo militar mostra o erro da data de lotação ao lado do campo', async () => {
-    api({ 'POST /api/unidades/u-1sb/militares': { status: 400, corpo: { erro: 'Confira os campos destacados.', campos: { 'lotacao.desde': 'Use um mês válido.', postoGradId: 'Escolha o posto.' } } } });
+});
+
+describe('a tela Militares não cadastra mais (o militar novo é do Pecúlio)', () => {
+  it('não tem "Novo militar", e a lista vazia diz onde cadastrar', async () => {
+    api({ 'GET /api/unidades/u-1sb/militares': { status: 200, corpo: [] } });
     abrir('/militares');
-    await userEvent.click(await screen.findByRole('button', { name: 'Novo militar' }));
-    const dialogo = await screen.findByRole('dialog');
-    await userEvent.type(within(dialogo).getByLabelText('Matrícula'), '990010-0');
-    await userEvent.type(within(dialogo).getByLabelText('Nome completo'), 'Novo da Silva');
-    await userEvent.type(within(dialogo).getByLabelText('Nome de guerra'), 'NOVO');
-    await userEvent.click(within(dialogo).getByRole('button', { name: 'Criar' }));
-    const desde = within(dialogo).getByLabelText('Lotado desde');
-    expect(await within(dialogo).findByText('Use um mês válido.')).toBeInTheDocument();
-    expect(desde.parentElement).toContainElement(within(dialogo).getByText('Use um mês válido.'));
-    expect(within(dialogo).getByLabelText('Posto-graduação').parentElement).toContainElement(within(dialogo).getByText('Escolha o posto.'));
+    expect(await screen.findByText('Nenhum militar lotado. O militar novo é cadastrado no Pecúlio.')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Novo militar' })).toBeNull();
+    expect(screen.getByRole('button', { name: 'Importar' })).toBeInTheDocument();
+  });
+
+  it('o importar da tela é o dos "Dados da escala"', async () => {
+    api();
+    abrir('/militares');
+    await userEvent.click(await screen.findByRole('button', { name: 'Importar' }));
+    expect(screen.getByRole('heading', { name: 'Importar os dados da escala da planilha' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Baixar modelo' })).toHaveAttribute('href', '/api/unidades/u-1sb/importacao/dados-da-escala/modelo');
+    expect(screen.queryByText(/sandbox baixada/)).toBeNull();
   });
 });
 

@@ -17,7 +17,7 @@ const proximo = somarMeses(atual, 1);
 
 const novo = (matricula: string, extra: Record<string, unknown> = {}) => ({
   matricula, postoGradId: sd, nomeCompleto: `Fulano de Tal ${matricula}`, nomeGuerra: `TESTE${matricula.slice(3, 6)}`, antiguidade: 1, motorista: false, cnh: [], voluntarioJes: false,
-  lotacao: { equipeId: alfa, jornada: 'pronto', desde: atual }, ...extra,
+  lotacao: { equipeId: alfa, jornada: 'pronto', desde: `${atual}-01` }, ...extra,
 });
 async function criar(matricula: string, extra: Record<string, unknown> = {}): Promise<FichaMilitar> {
   const r = await api.pedir('gestorGb', 'POST', `/api/unidades/${api.ids.secao}/militares`, novo(matricula, extra));
@@ -69,7 +69,7 @@ describe('cadastro de militares', () => {
   });
 
   it('lista do mês traz situação e pendências', async () => {
-    const m = await criar('990102-2', { antiguidade: null, lotacao: { equipeId: null, jornada: 'pronto', desde: atual } });
+    const m = await criar('990102-2', { antiguidade: null, lotacao: { equipeId: null, jornada: 'pronto', desde: `${atual}-01` } });
     await api.pedir('gestorGb', 'POST', `/api/militares/${m.id}/afastamentos`, { tipoAfastamentoId: lts, inicio: `${atual}-03`, fim: `${atual}-05` });
     const lista: LinhaMilitar[] = await (await api.pedir('gestorGb', 'GET', `/api/unidades/${api.ids.secao}/militares?mes=${atual}`)).json();
     const linha = lista.find((l) => l.matricula === '990102-2')!;
@@ -178,6 +178,18 @@ describe('alterar situação (rastreio)', () => {
     const r = await situacao(m.id, { unidadeId: api.ids.secao, equipeId: null, jornada: 'adm', desde: proximo });
     expect(r.status).toBe(400);
     expect((await r.json()).campos.desde).toBeTruthy();
+  });
+
+  it('o militar novo entra lotado a partir do dia escolhido, não do dia 1', async () => {
+    const r = await api.pedir('gestorGb', 'POST', `/api/unidades/${api.ids.secao}/militares`, novo('990169-9', { lotacao: { equipeId: null, jornada: 'pronto', desde: `${atual}-15` } }));
+    expect(r.status).toBe(201);
+    expect(((await r.json()) as FichaMilitar).rastreio.map((l) => [l.desde, l.ate])).toEqual([[`${atual}-15`, null]]);
+  });
+
+  it('o militar novo com mês em vez de data na lotação é recusado no campo', async () => {
+    const r = await api.pedir('gestorGb', 'POST', `/api/unidades/${api.ids.secao}/militares`, novo('990179-9', { lotacao: { equipeId: null, jornada: 'pronto', desde: atual } }));
+    expect(r.status).toBe(400);
+    expect((await r.json()).campos['lotacao.desde']).toBeTruthy();
   });
 
   it('equipe de outra unidade é 400 no campo equipeId', async () => {
@@ -402,7 +414,7 @@ describe('motorista e permissões', () => {
   });
 
   it('escalante de outra unidade não edita (403)', async () => {
-    const r = await api.pedir('admin', 'POST', `/api/unidades/${outraSecao}/militares`, novo('990112-2', { lotacao: { equipeId: null, jornada: 'adm', desde: atual } }));
+    const r = await api.pedir('admin', 'POST', `/api/unidades/${outraSecao}/militares`, novo('990112-2', { lotacao: { equipeId: null, jornada: 'adm', desde: `${atual}-01` } }));
     expect(r.status).toBe(201);
     const id = (await r.json()).id;
     expect((await api.pedir('escalante', 'PATCH', `/api/militares/${id}`, { voluntarioJes: true })).status).toBe(403);
@@ -571,7 +583,7 @@ describe('lista do Pecúlio e aniversariantes (módulo)', () => {
     api.pedir(quem, 'GET', `/api/unidades/${u}/peculio?mes=${mes}`);
   const doPeculio = async (u: string, mes = mesDoAniversario): Promise<ListaDoPeculio> => (await peculio(u, 'gestorGb', mes)).json();
   const naSegundaSecao = async (matricula: string, extra: Record<string, unknown> = {}): Promise<FichaMilitar> => {
-    const r = await api.pedir('gestorGb', 'POST', `/api/unidades/${outraSecao}/militares`, novo(matricula, { lotacao: { equipeId: null, jornada: 'adm', desde: atual }, ...extra }));
+    const r = await api.pedir('gestorGb', 'POST', `/api/unidades/${outraSecao}/militares`, novo(matricula, { lotacao: { equipeId: null, jornada: 'adm', desde: `${atual}-01` }, ...extra }));
     expect(r.status).toBe(201);
     return r.json();
   };
