@@ -3,7 +3,7 @@
 23/11/2026 · design · **análise concluída; direção e decisões D1 a D4 aprovadas pelo usuário em 23/11/2026 (a alternativa (a) nas quatro).** Os mockups vêm a seguir, começando pelo sistema de estilo.
 
 - Evidências (fotos das telas com as marcas): `docs/telas/analise-da-interface/evidencias.html` e https://claude.ai/artifact/83wEEdCMkqm2VBvj2RJAfZ
-- Sistema de estilo (valores e medidas dos blocos N1 e N2): `docs/superpowers/specs/2026-11-23-sistema-de-estilo-design.md`, com o mockup em `docs/telas/sistema-de-estilo/mockup.html`
+- Diretrizes gerais (valores e medidas dos blocos N1 e N2): `docs/superpowers/specs/2026-11-23-sistema-de-estilo-design.md`. Os mockups ficam em `docs/telas/refatoracao/`, um por área, com o índice em `index.html`
 - Identidade e telas de hoje: `docs/superpowers/specs/2026-11-16-telas.md`
 
 ## Por quê
