@@ -1,8 +1,8 @@
 import type { AcessoDoMilitar, FichaMilitar } from 'contratos';
-import { screen, waitFor, within } from '@testing-library/react';
+import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
-import { abrir, corpoEnviado, EU_EXEMPLO, simularApi } from './apoio';
+import { abrir, chamadasA, corpoEnviado, EU_EXEMPLO, simularApi } from './apoio';
 
 const FICHA: FichaMilitar = {
   id: 'm1', matricula: '990001-1', posto: 'SD BM', quadro: { id: 'q-qbmg', sigla: 'QBMG' }, nomeGuerra: 'ANDRADE', equipe: 'Alfa', jornada: 'pronto', motorista: null, voluntarioJes: false, ativo: true, situacao: 'Disponível', pendencias: [],
@@ -177,6 +177,45 @@ describe('um formulário por vez no Acesso ao sistema', () => {
     await userEvent.click(b.getByRole('button', { name: 'Confirmar encerramento' }));
     expect(await b.findByText('Este nível de acesso já foi encerrado.')).toBeInTheDocument();
     expect(b.getByLabelText('Encerrar em')).toBeInTheDocument();
+  });
+});
+
+describe('o "até" ao dar o nível de acesso (6.8)', () => {
+  const PODE: Partial<AcessoDoMilitar> = { papeisQuePodeDar: ['escalante'], unidadesParaPapel: [{ id: 'u-1sb', sigla: '1ª SB', nivel: 4 }] };
+  const dada: AcessoDoMilitar = { ...ACESSO, papeis: [{ id: 'p1', papel: 'escalante', unidadeId: 'u-1sb', unidadeSigla: '1ª SB', desde: '2026-11-01', ate: '2026-12-31' }] };
+
+  it('o campo "Até (opcional)" fica ao lado de "A partir de", e preenchido vai no corpo', async () => {
+    const f = api(PODE, { 'POST /api/militares/m1/papeis': { status: 201, corpo: dada } });
+    abrir('/militares/m1');
+    const b = within(await bloco());
+    await userEvent.click(await b.findByRole('button', { name: 'Dar nível de acesso' }));
+    expect(b.getByLabelText('A partir de')).toBeInTheDocument();
+    expect(b.getByLabelText('Até (opcional)')).toHaveValue('');
+    fireEvent.change(b.getByLabelText('Até (opcional)'), { target: { value: '2026-12-31' } });
+    await userEvent.click(b.getAllByRole('button', { name: 'Dar nível de acesso' }).at(-1)!);
+    await waitFor(() => expect(corpoEnviado(f, 'POST /api/militares/m1/papeis')).toMatchObject({ papel: 'escalante', unidadeId: 'u-1sb', ate: '2026-12-31' }));
+  });
+
+  it('sem "até", o corpo não leva o campo', async () => {
+    const f = api(PODE, { 'POST /api/militares/m1/papeis': { status: 201, corpo: dada } });
+    abrir('/militares/m1');
+    const b = within(await bloco());
+    await userEvent.click(await b.findByRole('button', { name: 'Dar nível de acesso' }));
+    await userEvent.click(b.getAllByRole('button', { name: 'Dar nível de acesso' }).at(-1)!);
+    await waitFor(() => expect(chamadasA(f, 'POST /api/militares/m1/papeis')).toBe(1));
+    expect(corpoEnviado(f, 'POST /api/militares/m1/papeis')).not.toHaveProperty('ate');
+  });
+
+  it('o erro do fim aparece ao lado do campo', async () => {
+    api(PODE, { 'POST /api/militares/m1/papeis': { status: 400, corpo: { erro: 'Confira os campos destacados.', campos: { ate: 'O fim não pode ser antes do início.' } } } });
+    abrir('/militares/m1');
+    const b = within(await bloco());
+    await userEvent.click(await b.findByRole('button', { name: 'Dar nível de acesso' }));
+    fireEvent.change(b.getByLabelText('Até (opcional)'), { target: { value: '2020-01-01' } });
+    await userEvent.click(b.getAllByRole('button', { name: 'Dar nível de acesso' }).at(-1)!);
+    const campo = b.getByLabelText('Até (opcional)');
+    expect(await b.findByText('O fim não pode ser antes do início.')).toBeInTheDocument();
+    expect(campo.parentElement).toContainElement(b.getByText('O fim não pode ser antes do início.'));
   });
 });
 

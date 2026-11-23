@@ -2,7 +2,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { AcessoDoMilitar, FichaMilitar, Papel, SituacaoDoAcesso } from 'contratos';
 import { useState } from 'react';
 import { atualizarAcesso, consultaAcesso, darPapel, desativarAcesso, encerrarPapel, gerarSenhaProvisoria } from '@/api/acesso';
-import { mensagemDe } from '@/api/cliente';
+import { camposDe, mensagemDe } from '@/api/cliente';
 import { Campo } from '@/componentes/Campo';
 import { Selecao } from '@/componentes/Selecao';
 import { Button } from '@/componentes/ui/button';
@@ -30,6 +30,7 @@ export function AcessoAoSistema({ ficha }: { ficha: FichaMilitar }) {
   const [senha, setSenha] = useState<{ senha: string; validaAte: string } | null>(null);
   const [copiada, setCopiada] = useState(false);
   const [ocupado, setOcupado] = useState(false);
+  const [campos, setCampos] = useState<Record<string, string>>({});
   // um formulário por vez: dar um nível de acesso ou encerrar um deles (os outros botões ficam desligados enquanto um está aberto)
   const [aberto, setAberto] = useState<{ tipo: 'dar' } | { tipo: 'encerrar'; papelId: string } | null>(null);
 
@@ -39,6 +40,7 @@ export function AcessoAoSistema({ ficha }: { ficha: FichaMilitar }) {
   /** Devolve se deu certo: o formulário só fecha quando deu. */
   async function agir(fn: () => Promise<unknown>): Promise<boolean> {
     setErro(null);
+    setCampos({});
     setOcupado(true);
     try {
       await fn();
@@ -46,6 +48,7 @@ export function AcessoAoSistema({ ficha }: { ficha: FichaMilitar }) {
       return true;
     } catch (e) {
       setErro(mensagemDe(e));
+      setCampos(camposDe(e));
       return false;
     } finally {
       setOcupado(false);
@@ -107,6 +110,7 @@ export function AcessoAoSistema({ ficha }: { ficha: FichaMilitar }) {
         {acesso.papeisQuePodeDar.length > 0 && (
           <DarPapel
             acesso={acesso}
+            erros={campos}
             aberto={aberto?.tipo === 'dar'}
             desligado={aberto?.tipo === 'encerrar'}
             aoAbrir={() => setAberto({ tipo: 'dar' })}
@@ -170,25 +174,28 @@ function LinhaDoPapel({ p, pode, aberto, desligado, aoAbrir, aoFechar, aoEncerra
   );
 }
 
-function DarPapel({ acesso, aberto, desligado, aoAbrir, aoFechar, aoDar }: {
+function DarPapel({ acesso, erros, aberto, desligado, aoAbrir, aoFechar, aoDar }: {
   acesso: AcessoDoMilitar;
+  /** o erro de cada campo, quando a API recusa */
+  erros: Record<string, string>;
   aberto: boolean;
   /** um "Encerrar" está aberto: o botão que abre este formulário fica desligado */
   desligado: boolean;
   aoAbrir: () => void;
   aoFechar: () => void;
-  aoDar: (d: { papel: Papel; unidadeId: string; desde: string }) => Promise<void>;
+  aoDar: (d: { papel: Papel; unidadeId: string; desde: string; ate?: string }) => Promise<void>;
 }) {
   const [papel, setPapel] = useState<Papel>(acesso.papeisQuePodeDar[0]!);
   const [unidadeId, setUnidadeId] = useState('');
   const [desde, setDesde] = useState(hoje());
+  const [ate, setAte] = useState('');
   if (!aberto) return <div><Button type="button" variant="outline" size="sm" disabled={desligado} onClick={aoAbrir}>Dar nível de acesso</Button></div>;
   const menor = Math.min(...acesso.unidadesParaPapel.map((u) => u.nivel));
   const unidade = unidadeId || acesso.unidadesParaPapel[0]?.id || '';
   return (
     <form
-      className="grid gap-3 sm:grid-cols-[12rem_1fr_10rem]"
-      onSubmit={(e) => { e.preventDefault(); void aoDar({ papel, unidadeId: unidade, desde }); }}
+      className="grid gap-3 sm:grid-cols-[12rem_1fr_10rem_10rem]"
+      onSubmit={(e) => { e.preventDefault(); void aoDar({ papel, unidadeId: unidade, desde, ...(ate ? { ate } : {}) }); }}
     >
       <Campo id="np-papel" rotulo="Nível de acesso">
         <Selecao id="np-papel" value={papel} onChange={(e) => setPapel(e.target.value as Papel)}>
@@ -200,10 +207,13 @@ function DarPapel({ acesso, aberto, desligado, aoAbrir, aoFechar, aoDar }: {
           {acesso.unidadesParaPapel.map((u) => <option key={u.id} value={u.id}>{`${'  '.repeat(u.nivel - menor)}${u.sigla}`}</option>)}
         </Selecao>
       </Campo>
-      <Campo id="np-desde" rotulo="A partir de">
+      <Campo id="np-desde" rotulo="A partir de" erro={erros.desde}>
         <Input id="np-desde" type="date" value={desde} onChange={(e) => setDesde(e.target.value)} />
       </Campo>
-      <div className="flex gap-2 sm:col-span-3">
+      <Campo id="np-ate" rotulo="Até (opcional)" erro={erros.ate}>
+        <Input id="np-ate" type="date" value={ate} onChange={(e) => setAte(e.target.value)} />
+      </Campo>
+      <div className="flex gap-2 sm:col-span-4">
         <Button type="submit" size="sm">Dar nível de acesso</Button>
         <Button type="button" size="sm" variant="ghost" onClick={aoFechar}>Cancelar</Button>
       </div>

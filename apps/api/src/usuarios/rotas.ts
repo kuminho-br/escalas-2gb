@@ -16,6 +16,7 @@ const MSG_SO_ADMIN = 'Só o administrador dá ou encerra o nível de acesso de a
 const MSG_SEM_PODER = 'Você só dá e encerra níveis de acesso na sua unidade e nas de baixo.';
 const MSG_ADMIN_NA_RAIZ = 'O nível de acesso de administrador só existe na unidade raiz.';
 const MSG_JA_ENCERRADO = 'Este nível de acesso já foi encerrado.';
+const MSG_FIM_ANTES = 'O fim não pode ser antes do início.';
 const MSG_ATE_ANTES = 'O encerramento não pode ser antes do início do nível de acesso.';
 const MSG_EMAIL_EM_USO = 'Este e-mail já é de outro militar.';
 const MSG_SO_QUEM_PODE_DAR = 'Só quem pode dar o nível de acesso dessa pessoa mexe no acesso dela.';
@@ -194,6 +195,7 @@ export function rotasAcesso(dep: { banco: Banco; auth: Auth }): Hono<AmbienteApi
     const corpo = await lerCorpo(c, NovoPapel);
     if (!corpo.ok) return corpo.resposta;
     const d = corpo.dados;
+    if (d.ate && d.ate < d.desde) return c.json({ erro: MSG_FIM_ANTES, campos: { ate: MSG_FIM_ANTES } }, 400);
     const unidade = (await banco.query<{ mae_id: string | null }>('select mae_id from unidade where id = $1', [d.unidadeId])).rows[0];
     if (!unidade) return c.json({ erro: 'Unidade não encontrada.', campos: { unidadeId: 'Escolha a unidade.' } }, 400);
     const sem = await podeNaUnidade(banco, c.get('usuarioId'), d.papel, d.unidadeId);
@@ -204,7 +206,7 @@ export function rotasAcesso(dep: { banco: Banco; auth: Auth }): Hono<AmbienteApi
       gravou = await comUsuario(banco, c.get('usuarioId'), async (tx) => {
         const usuarioId = await garantirUsuario(tx, id);
         if (!usuarioId) return false;
-        await tx.query('insert into papel_usuario (usuario_id, unidade_id, papel, desde) values ($1, $2, $3, $4)', [usuarioId, d.unidadeId, d.papel, d.desde]);
+        await tx.query('insert into papel_usuario (usuario_id, unidade_id, papel, desde, ate) values ($1, $2, $3, $4, $5)', [usuarioId, d.unidadeId, d.papel, d.desde, d.ate ?? null]);
         return true;
       });
     } catch (e) {
