@@ -1,7 +1,8 @@
 import { useQuery } from '@tanstack/react-query';
 import { createFileRoute, Link, Outlet, useParams, useSearch } from '@tanstack/react-router';
 import type { LinhaMilitar } from 'contratos';
-import { TriangleAlert } from 'lucide-react';
+import { Briefcase, CalendarOff, Car, Clock, IdCard, TriangleAlert } from 'lucide-react';
+import { EtiquetaDeDado } from '@/componentes/EtiquetaDeDado';
 import { useMemo, useState } from 'react';
 import { mensagemDe } from '@/api/cliente';
 import { consultaEquipes, consultaMilitares } from '@/api/militares';
@@ -123,12 +124,13 @@ function ItemMilitar({ m, escolhido }: { m: LinhaMilitar; escolhido: boolean }) 
               aria-label={`Cadastro incompleto: ${m.pendencias.join('; ')}`}
             />
           )}
-          {m.motorista && <span className="ml-auto rounded border border-linha px-1.5 font-cond text-xs">Motorista {m.motorista}</span>}
         </span>
-        <span className="flex flex-wrap gap-x-3 text-xs text-apagado">
-          <span>{m.matricula}</span>
-          {m.jornada && <span>{NOME_JORNADA[m.jornada]}{m.equipe ? ` ${m.equipe}` : ''}</span>}
-          {!disponivel && <span className="font-medium text-tinta">{m.situacao}</span>}
+        {m.nomeCompleto && <span className="text-[15px] leading-[22px] text-tinta">{m.nomeCompleto}</span>}
+        <span className="mt-1 flex flex-wrap gap-1.5">
+          <EtiquetaDeDado icone={IdCard}>{m.matricula}</EtiquetaDeDado>
+          {m.jornada && <EtiquetaDeDado icone={m.jornada === 'adm' ? Briefcase : Clock}>{`${NOME_JORNADA[m.jornada]}${m.equipe ? ` · ${m.equipe.toUpperCase()}` : ''}`}</EtiquetaDeDado>}
+          {m.motorista && <EtiquetaDeDado icone={Car}>{`Motorista ${m.motorista}`}</EtiquetaDeDado>}
+          {!disponivel && <EtiquetaDeDado icone={CalendarOff}>{m.situacao}</EtiquetaDeDado>}
         </span>
       </Link>
     </li>

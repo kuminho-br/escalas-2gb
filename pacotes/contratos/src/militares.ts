@@ -176,6 +176,8 @@ export type LinhaMilitar = {
   posto: string;
   quadro: { id: string; sigla: string } | null;
   nomeGuerra: string;
+  /** O nome completo, para a segunda linha da lista; null enquanto não preenchido. */
+  nomeCompleto?: string | null;
   equipe: string | null;
   jornada: 'pronto' | 'adm' | null;
   /** Categoria mais alta da carteira, se está no quadro de motoristas. */

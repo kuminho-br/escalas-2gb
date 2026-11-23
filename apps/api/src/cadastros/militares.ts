@@ -105,6 +105,7 @@ function linhaDe(m: LinhaBanco, afast: { tipo: string; inicio: string; fim: stri
     posto: m.posto,
     quadro: m.quadro_id && m.quadro_sigla ? { id: m.quadro_id, sigla: m.quadro_sigla } : null,
     nomeGuerra: m.nome_guerra,
+    nomeCompleto: m.nome_completo,
     equipe: m.equipe,
     jornada: m.jornada,
     motorista: m.motorista ? categoriaMaisAlta(m.cnh) : null,

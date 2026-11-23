@@ -1,10 +1,11 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import type { ItemDoPeculio } from 'contratos';
-import { TriangleAlert, UserPlus } from 'lucide-react';
+import { IdCard, Mail, Phone, TriangleAlert, UserPlus } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { mensagemDe } from '@/api/cliente';
 import { atualizarPeculio, consultaPeculio, podeCadastrarMilitar, unidadeDoPeculio } from '@/api/peculio';
+import { EtiquetaDeDado } from '@/componentes/EtiquetaDeDado';
 import { ImportarPlanilha } from '@/componentes/ImportarPlanilha';
 import { NovoMilitar } from '@/componentes/militares/NovoMilitar';
 import { Selecao } from '@/componentes/Selecao';
@@ -138,13 +139,13 @@ function ItemDoPeculioNaLista({ m, destaque }: { m: ItemDoPeculio; destaque: boo
           <span className="font-cond text-[13px] text-apagado">{m.posto}</span>
           <span className="font-cond text-base font-semibold">{m.nomeGuerra}</span>
           {m.pendencias.length > 0 && <TriangleAlert className="size-4 text-pendencia" role="img" aria-label={`Cadastro incompleto: ${m.pendencias.join('; ')}`} />}
-          <span className="ml-auto rounded border border-linha px-1.5 font-cond text-xs">{m.lotacao}</span>
+          <span className="ml-auto rounded-md border border-linha px-2 font-cond text-[13px] font-medium">{m.lotacao}</span>
         </span>
-        <span className="flex flex-wrap gap-x-3 text-xs text-apagado">
-          {m.nomeCompleto && <span>{m.nomeCompleto}</span>}
-          <span>{m.matricula}</span>
-          {m.telefone && <span>{m.telefone}</span>}
-          {m.email && <span>{m.email}</span>}
+        {m.nomeCompleto && <span className="text-[15px] leading-[22px] text-tinta">{m.nomeCompleto}</span>}
+        <span className="mt-1 flex flex-wrap gap-1.5">
+          <EtiquetaDeDado icone={IdCard}>{m.matricula}</EtiquetaDeDado>
+          {m.telefone ? <EtiquetaDeDado icone={Phone}>{m.telefone}</EtiquetaDeDado> : <EtiquetaDeDado icone={Phone} falta>Sem telefone</EtiquetaDeDado>}
+          {m.email ? <EtiquetaDeDado icone={Mail}>{m.email}</EtiquetaDeDado> : <EtiquetaDeDado icone={Mail} falta>Sem e-mail</EtiquetaDeDado>}
         </span>
       </Link>
     </li>
