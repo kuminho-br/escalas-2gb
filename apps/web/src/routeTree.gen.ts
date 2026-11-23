@@ -15,6 +15,7 @@ import { Route as EntrarRouteImport } from './routes/entrar'
 import { Route as SemLotacaoRouteImport } from './routes/sem-lotacao'
 import { Route as AppIndexRouteImport } from './routes/_app/index'
 import { Route as AppConfiguracoesRouteImport } from './routes/_app/configuracoes'
+import { Route as AppConfiguracoesDaEscalaRouteImport } from './routes/_app/configuracoes-da-escala'
 import { Route as AppConsultaRouteImport } from './routes/_app/consulta'
 import { Route as AppCotasRouteImport } from './routes/_app/cotas'
 import { Route as AppEfetivoDoDiaRouteImport } from './routes/_app/efetivo-do-dia'
@@ -70,6 +71,12 @@ const AppConfiguracoesRoute = AppConfiguracoesRouteImport.update({
   path: '/configuracoes',
   getParentRoute: () => AppRoute,
 } as any)
+const AppConfiguracoesDaEscalaRoute =
+  AppConfiguracoesDaEscalaRouteImport.update({
+    id: '/configuracoes-da-escala',
+    path: '/configuracoes-da-escala',
+    getParentRoute: () => AppRoute,
+  } as any)
 const AppConsultaRoute = AppConsultaRouteImport.update({
   id: '/consulta',
   path: '/consulta',
@@ -203,6 +210,7 @@ export interface FileRoutesByFullPath {
   '/entrar': typeof EntrarRoute
   '/sem-lotacao': typeof SemLotacaoRoute
   '/configuracoes': typeof AppConfiguracoesRoute
+  '/configuracoes-da-escala': typeof AppConfiguracoesDaEscalaRoute
   '/consulta': typeof AppConsultaRoute
   '/cotas': typeof AppCotasRoute
   '/efetivo-do-dia': typeof AppEfetivoDoDiaRoute
@@ -234,6 +242,7 @@ export interface FileRoutesByTo {
   '/entrar': typeof EntrarRoute
   '/sem-lotacao': typeof SemLotacaoRoute
   '/configuracoes': typeof AppConfiguracoesRoute
+  '/configuracoes-da-escala': typeof AppConfiguracoesDaEscalaRoute
   '/consulta': typeof AppConsultaRoute
   '/cotas': typeof AppCotasRoute
   '/efetivo-do-dia': typeof AppEfetivoDoDiaRoute
@@ -265,6 +274,7 @@ export interface FileRoutesById {
   '/entrar': typeof EntrarRoute
   '/sem-lotacao': typeof SemLotacaoRoute
   '/_app/configuracoes': typeof AppConfiguracoesRoute
+  '/_app/configuracoes-da-escala': typeof AppConfiguracoesDaEscalaRoute
   '/_app/consulta': typeof AppConsultaRoute
   '/_app/cotas': typeof AppCotasRoute
   '/_app/efetivo-do-dia': typeof AppEfetivoDoDiaRoute
@@ -300,6 +310,7 @@ export interface FileRouteTypes {
     | '/entrar'
     | '/sem-lotacao'
     | '/configuracoes'
+    | '/configuracoes-da-escala'
     | '/consulta'
     | '/cotas'
     | '/efetivo-do-dia'
@@ -331,6 +342,7 @@ export interface FileRouteTypes {
     | '/entrar'
     | '/sem-lotacao'
     | '/configuracoes'
+    | '/configuracoes-da-escala'
     | '/consulta'
     | '/cotas'
     | '/efetivo-do-dia'
@@ -361,6 +373,7 @@ export interface FileRouteTypes {
     | '/entrar'
     | '/sem-lotacao'
     | '/_app/configuracoes'
+    | '/_app/configuracoes-da-escala'
     | '/_app/consulta'
     | '/_app/cotas'
     | '/_app/efetivo-do-dia'
@@ -438,6 +451,13 @@ declare module '@tanstack/react-router' {
       path: '/configuracoes'
       fullPath: '/configuracoes'
       preLoaderRoute: typeof AppConfiguracoesRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/configuracoes-da-escala': {
+      id: '/_app/configuracoes-da-escala'
+      path: '/configuracoes-da-escala'
+      fullPath: '/configuracoes-da-escala'
+      preLoaderRoute: typeof AppConfiguracoesDaEscalaRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/consulta': {
@@ -662,6 +682,7 @@ const AppServicosRouteWithChildren = AppServicosRoute._addFileChildren(
 
 interface AppRouteChildren {
   AppConfiguracoesRoute: typeof AppConfiguracoesRoute
+  AppConfiguracoesDaEscalaRoute: typeof AppConfiguracoesDaEscalaRoute
   AppConsultaRoute: typeof AppConsultaRoute
   AppCotasRoute: typeof AppCotasRoute
   AppEfetivoDoDiaRoute: typeof AppEfetivoDoDiaRoute
@@ -686,6 +707,7 @@ interface AppRouteChildren {
 
 const AppRouteChildren: AppRouteChildren = {
   AppConfiguracoesRoute: AppConfiguracoesRoute,
+  AppConfiguracoesDaEscalaRoute: AppConfiguracoesDaEscalaRoute,
   AppConsultaRoute: AppConsultaRoute,
   AppCotasRoute: AppCotasRoute,
   AppEfetivoDoDiaRoute: AppEfetivoDoDiaRoute,

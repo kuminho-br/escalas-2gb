@@ -23,7 +23,7 @@ import {
 import { ehGestorNaUnidade, ehMilitarComum, type Eu, type EuDaApi } from '@/api/eu';
 
 export type Item = { nome: string; icone: LucideIcon; para?: LinkProps['to']; /** O item só aparece para quem passa neste teste (sem ele, todos veem). */ ve?: (eu: Eu | EuDaApi) => boolean };
-export type IdModulo = 'escalas' | 'peculio' | 'consulta' | 'visualizacao' | 'minha-ficha';
+export type IdModulo = 'escalas' | 'peculio' | 'consulta' | 'visualizacao' | 'minha-ficha' | 'configuracoes';
 
 /**
  * Um módulo do sistema: o cartão da tela inicial e o trilho de dentro dele. `itens` são os blocos do trilho (vazio = sem trilho) e `pe` os itens
@@ -76,7 +76,7 @@ export const MODULOS: Modulo[] = [
       ],
     ],
     pe: [
-      { nome: 'Configurações', icone: Settings, para: '/configuracoes' },
+      { nome: 'Configurações da escala', icone: Settings, para: '/configuracoes-da-escala' },
       { nome: 'Estrutura', icone: Network },
       { nome: 'Histórico', icone: History },
       { nome: 'Ajuda', icone: CircleHelp },
@@ -95,12 +95,14 @@ export const MODULOS: Modulo[] = [
   { id: 'consulta', nome: 'Consulta de militares', descricao: 'Buscar um militar da corporação e ver o que você pode ver dele.', rota: '/consulta', icone: Search, ve: () => true, itens: [] },
   { id: 'visualizacao', nome: 'Visualização de escalas', descricao: 'Ver a escala publicada do mês.', rota: null, icone: Eye, ve: () => true, itens: [] },
   { id: 'minha-ficha', nome: 'Minha ficha', descricao: 'Seus dados e o seu telefone.', rota: '/minha-ficha', icone: UserRound, ve: () => true, itens: [] },
+  // o painel das configurações gerais (entrega 6.26): todos abrem, e cada seção só aparece para quem a vê; as configurações da escala ficam no módulo de escalas
+  { id: 'configuracoes', nome: 'Configurações', descricao: 'Suas preferências e as configurações gerais do sistema.', rota: '/configuracoes', icone: Settings, ve: () => true, itens: [] },
 ];
 
 const porId = (id: IdModulo) => MODULOS.find((m) => m.id === id)!;
 /** O primeiro trecho do endereço de cada tela e o módulo dela (as fichas em /militares dependem da origem). */
 const DO_PECULIO = new Set(['peculio']);
-const DA_CONFECCAO = new Set(['grade', 'escala-do-mes', 'efetivo-por-dia', 'efetivo-do-dia', 'oficiais', 'voluntariado', 'cotas', 'servicos', 'escalas', 'guarnicoes', 'feriados', 'configuracoes', 'militares']);
+const DA_CONFECCAO = new Set(['grade', 'escala-do-mes', 'efetivo-por-dia', 'efetivo-do-dia', 'oficiais', 'voluntariado', 'cotas', 'servicos', 'escalas', 'guarnicoes', 'feriados', 'configuracoes-da-escala', 'militares']);
 
 /**
  * O módulo a que o endereço pertence; null na tela inicial e em endereços que não existem. A ficha aberta pelo Pecúlio (`?de=peculio`) é do
@@ -111,6 +113,8 @@ export function moduloDoEndereco(caminho: string, busca: Record<string, unknown>
   const primeiro = (caminho.split('/')[1] ?? '').toLowerCase();
   if (primeiro === 'minha-ficha') return porId('minha-ficha');
   if (primeiro === 'consulta') return porId('consulta');
+  // o modelo de guarnição abre de dentro das configurações da escala (o endereço antigo /configuracoes/modelos-de-guarnicao/:id continua valendo)
+  if (primeiro === 'configuracoes') return (caminho.split('/')[2] ?? '').toLowerCase() === 'modelos-de-guarnicao' ? porId('escalas') : porId('configuracoes');
   if (primeiro === 'militares' && busca.de === 'peculio') return porId('peculio');
   if (DO_PECULIO.has(primeiro)) return porId('peculio');
   if (DA_CONFECCAO.has(primeiro)) return porId('escalas');
