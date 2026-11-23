@@ -52,6 +52,17 @@ describe('a tela inicial e o painel geral (6.26)', () => {
     expect(localStorage.getItem('escalas2gb.login-animacao-quando')).toBe('sempre');
   });
 
+  it('revisão final: o endereço de uma seção que a pessoa não vê abre as preferências, e não uma tela em branco', async () => {
+    api(COMUM);
+    abrir('/configuracoes?aba=postos');
+    expect(await screen.findByRole('radiogroup', { name: 'Animação de entrada' })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Minhas preferências' })).toHaveAttribute('aria-selected', 'true');
+    cleanup();
+    api(AUXILIAR);
+    abrir('/configuracoes?aba=quem-ve-o-que');
+    expect(await screen.findByRole('radiogroup', { name: 'Animação de entrada' })).toBeInTheDocument();
+  });
+
   it('com menos movimento, o aviso aparece nas preferências', async () => {
     vi.stubGlobal('matchMedia', (q: string) => ({ matches: q.includes('prefers-reduced-motion'), media: q, addEventListener: () => {}, removeEventListener: () => {} }));
     api(COMUM);

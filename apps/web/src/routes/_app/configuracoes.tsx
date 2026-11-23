@@ -41,8 +41,11 @@ function Configuracoes() {
   const admin = ehAdministrador(eu);
   const comNivel = !ehMilitarComum(eu);
   const raizes = comNivel ? raizesDaEstrutura(eu) : [];
+  // as seções que esta pessoa vê; o endereço de uma que ela não vê abre as preferências
+  const visiveis: Aba[] = ['preferencias', ...(raizes.length > 0 ? (['estrutura'] as const) : []), ...(admin ? (['tipos-de-unidade'] as const) : []),
+    ...(comNivel ? (['postos', 'funcoes', 'situacoes', 'tipos'] as const) : []), ...(admin ? (['quem-ve-o-que'] as const) : [])];
   const pedida = Route.useSearch().aba;
-  const aba: Aba = ABAS.find((a) => a === pedida) ?? 'preferencias';
+  const aba: Aba = visiveis.find((a) => a === pedida) ?? 'preferencias';
   const navigate = Route.useNavigate();
 
   return (
