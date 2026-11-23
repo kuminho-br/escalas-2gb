@@ -1,6 +1,8 @@
 import { mesPorExtenso, type EscalaDosOficiais } from 'contratos';
 import { ArrowDown, ArrowUp } from 'lucide-react';
+import { useState } from 'react';
 import { Button } from '@/componentes/ui/button';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/componentes/ui/dialog';
 import { formatarSaldo } from '@/lib/numeros-do-saldo';
 import { cn } from '@/lib/utils';
 
@@ -54,6 +56,30 @@ export function ListaDeCotas({ escala: e, aoOrdenar, aoMarcar, desabilitado }: P
   const aberta = e.etapa === 'sem-cotas' || e.etapa === 'escolhas';
   const oficiais = aberta ? e.oficiais : e.oficiais.filter((o) => o.participa);
   const marcados = e.oficiais.filter((o) => o.participa).map((o) => o.militarId);
+  // desmarcar quem já tem turnos escolhidos deixa esses turnos sem ninguém: o sistema pergunta antes (decisão de 23/11); sem turnos escolhidos, desmarca direto
+  const [tirando, setTirando] = useState<Oficial | null>(null);
+  const pedirMarca = (o: Oficial, participa: boolean) => {
+    if (!participa && o.escolhidos > 0) setTirando(o);
+    else marcar(o, participa);
+  };
+  // o mais que alguém tem de dias no mês: quem tem menos tem a cota menor, e a linha diz por quê (afastamento, ou só menos dias na unidade)
+  const maisDias = comCota ? Math.max(0, ...e.oficiais.filter((o) => o.cota !== null).map((o) => o.dias)) : 0;
+  const diasAfastado = (o: Oficial) => {
+    const primeiro = `${e.mes}-01`;
+    const ultimo = `${e.mes}-${String(new Date(Date.UTC(Number(e.mes.slice(0, 4)), Number(e.mes.slice(5, 7)), 0)).getUTCDate()).padStart(2, '0')}`;
+    const dias = new Set<string>();
+    for (const a of o.afastamentos) {
+      for (let d = new Date(`${a.inicio < primeiro ? primeiro : a.inicio}T00:00:00Z`); d.toISOString().slice(0, 10) <= (a.fim > ultimo ? ultimo : a.fim); d.setUTCDate(d.getUTCDate() + 1)) dias.add(d.toISOString().slice(0, 10));
+    }
+    return dias.size;
+  };
+  const frasesDaCotaMenor = (o: Oficial): string | null => {
+    if (o.cota === null || o.dias >= maisDias) return null;
+    const afastado = diasAfastado(o);
+    if (afastado > 0) return `cota menor: afastado ${afastado} ${afastado === 1 ? 'dia' : 'dias'}`;
+    const menos = maisDias - o.dias;
+    return `cota menor: ${menos} ${menos === 1 ? 'dia' : 'dias'} a menos no mês`;
+  };
   const marcar = (o: Oficial, participa: boolean) =>
     aoMarcar?.(participa ? e.oficiais.filter((x) => x.participa || x.militarId === o.militarId).map((x) => x.militarId) : marcados.filter((id) => id !== o.militarId));
   const total = e.turnos.length;
@@ -89,7 +115,7 @@ export function ListaDeCotas({ escala: e, aoOrdenar, aoMarcar, desabilitado }: P
             aria-label={`${o.posto} ${o.nomeGuerra} participa da rodada`}
             checked={o.participa}
             disabled={!aoMarcar || !aberta || desabilitado}
-            onChange={(ev) => marcar(o, ev.target.checked)}
+            onChange={(ev) => pedirMarca(o, ev.target.checked)}
             className="mt-0.5 size-5 shrink-0 accent-vinho"
           />
           <span className="w-6 shrink-0 text-center font-cond text-[17px] leading-6 font-semibold tabular-nums text-apagado" title="Ordem de escolha">{o.participa ? o.ordem : '—'}</span>
@@ -119,19 +145,16 @@ export function ListaDeCotas({ escala: e, aoOrdenar, aoMarcar, desabilitado }: P
             </span>
           )}
         </div>
-        <dl className={cn('grid gap-x-3 gap-y-1', comCota ? 'grid-cols-2 min-[420px]:grid-cols-4' : 'grid-cols-3')}>
+        <dl className={cn('grid gap-x-3 gap-y-1', comCota ? 'grid-cols-3' : 'grid-cols-2')}>
           <div title="Saldo acumulado até o mês anterior">
             <dt className={rotulo}>Saldo</dt>
             <dd className={numero}>{formatarSaldo(o.saldoAnterior)}</dd>
           </div>
-          <div title="Dias presentes no mês">
-            <dt className={rotulo}>Dias</dt>
-            <dd className={numero}>{o.dias}</dd>
-          </div>
-          <div>
+          <div title={`${o.dias} dias disponíveis no mês`}>
             <dt className={rotulo}>Cota</dt>
             <dd className={numero}>{o.cota ?? '—'}</dd>
             {o.sobra && <dd className={rotulo}>+1 sobra</dd>}
+            {frasesDaCotaMenor(o) && <dd className={rotulo}>{frasesDaCotaMenor(o)}</dd>}
           </div>
           {comCota && (
             <div>
@@ -157,6 +180,28 @@ export function ListaDeCotas({ escala: e, aoOrdenar, aoMarcar, desabilitado }: P
       <ul aria-label={`Cotas de ${mesPorExtenso(e.mes)}`} className="grid gap-2">
         {oficiais.map(linha)}
       </ul>
+      <Dialog open={tirando !== null} onOpenChange={(aberto) => !aberto && setTirando(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{tirando ? `Tirar ${tirando.posto} ${tirando.nomeGuerra} da rodada?` : ''}</DialogTitle>
+            <DialogDescription>
+              {tirando ? (tirando.escolhidos === 1 ? 'O turno escolhido fica sem ninguém.' : `Os ${tirando.escolhidos} turnos escolhidos ficam sem ninguém.`) : ''}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setTirando(null)}>Cancelar</Button>
+            <Button
+              type="button"
+              onClick={() => {
+                if (tirando) marcar(tirando, false);
+                setTirando(null);
+              }}
+            >
+              Tirar da rodada
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       <p className="text-[13px] leading-[18px] text-apagado">
         {comCota ? `${total} turnos no mês.${sobras > 0 ? ` Depois do arredondamento, sobraram ${sobras}, entregues aos ${sobras} mais modernos.` : ''} ` : ''}O saldo aparece na lista, mas ainda não entra na conta.
       </p>

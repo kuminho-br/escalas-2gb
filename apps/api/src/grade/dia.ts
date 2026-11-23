@@ -104,7 +104,7 @@ export async function montarPainelDoDia(c: Consulta, unidadeId: string, militarI
   const opcoes = afastamento ? [] : await opcoesDoDia(c, unidadeId, militarId, data, mes, cnhParaEscala(m));
 
   return {
-    militar: { militarId: m.id, posto: m.posto, nomeGuerra: m.nome_guerra, matricula: m.matricula, equipe: m.equipe, jornada, cnh: m.cnh, voluntarioJes: m.voluntario_jes },
+    militar: { militarId: m.id, posto: m.posto, nomeGuerra: m.nome_guerra, matricula: m.matricula, equipe: m.equipe, jornada, cnh: m.motorista ? m.cnh : [], voluntarioJes: m.voluntario_jes },
     data, afastamento, disponibilidade, servicos, choques, opcoes,
   };
 }

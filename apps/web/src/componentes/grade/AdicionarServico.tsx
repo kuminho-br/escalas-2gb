@@ -1,5 +1,5 @@
 import { textoFaixa, type OpcaoDeServico } from 'contratos';
-import { useState } from 'react';
+import { createContext, useContext, useState } from 'react';
 import { Selecao } from '@/componentes/Selecao';
 import { Button } from '@/componentes/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/componentes/ui/tabs';
@@ -37,6 +37,7 @@ function textoDaVaga(o: OpcaoDeServico, maisDeUmaGuarnicao: boolean): string {
  * marcados; ao trocar a vaga, o serviço volta ao primeiro da vaga nova. A etiqueta "não marcou" segue o serviço marcado.
  */
 function LinhaDoTurno({ turno, salvando, aoEscolher }: { turno: Turno; salvando: boolean; aoEscolher: (o: OpcaoDeServico, turnoId: string) => void }) {
+  const militar = useContext(Militar);
   const [vaga, setVaga] = useState(0);
   const [turnoEscolhido, setTurnoEscolhido] = useState<string | null>(null);
   const opcao = turno.vagas[vaga] ?? turno.vagas[0]!;
@@ -54,7 +55,7 @@ function LinhaDoTurno({ turno, salvando, aoEscolher }: { turno: Turno; salvando:
           </Selecao>
         )}
         {servico.semVoluntariado && <span className="text-xs text-pendencia">não marcou</span>}
-        <Button type="button" size="sm" className="ml-auto" aria-label={`Escalar às ${turno.faixa}`} disabled={salvando} onClick={() => aoEscolher(opcao, turnoId)}>Escalar</Button>
+        <Button type="button" size="sm" className="ml-auto" aria-label={`Escalar${militar ? ` ${militar}` : ''} às ${turno.faixa}`} disabled={salvando} onClick={() => aoEscolher(opcao, turnoId)}>Escalar</Button>
       </div>
       <Selecao
         aria-label={`Vaga de ${turno.faixa}`}
@@ -91,7 +92,10 @@ function Grupos({ opcoes, salvando, aoEscolher }: { opcoes: OpcaoDeServico[]; sa
  * com o número de turnos que têm opção. Dentro da aba, um grupo por escala e uma linha por turno; quem só não marcou o horário no
  * voluntariado aparece com a etiqueta "não marcou" e pode ser escalado mesmo assim. A aba que abre é a primeira que tiver opções.
  */
-export function AdicionarServico({ opcoes, salvando, aoEscolher }: { opcoes: OpcaoDeServico[]; salvando: boolean; aoEscolher: (o: OpcaoDeServico, turnoId: string) => void }) {
+/** O militar a quem o serviço é adicionado ("CB ALMEIDA"): entra no nome acessível de cada "Escalar", que sem ele seria igual para o dia todo. */
+const Militar = createContext('');
+
+export function AdicionarServico({ opcoes, salvando, aoEscolher, militar = '' }: { opcoes: OpcaoDeServico[]; salvando: boolean; aoEscolher: (o: OpcaoDeServico, turnoId: string) => void; militar?: string }) {
   const [escolhida, setEscolhida] = useState<'ordinario' | 'operacoes'>('ordinario');
   if (!opcoes.length) return <p className="text-sm text-apagado">Nenhum serviço disponível para ele neste dia.</p>;
   const ordinario = opcoes.filter((o) => o.ordinario);
@@ -99,6 +103,7 @@ export function AdicionarServico({ opcoes, salvando, aoEscolher }: { opcoes: Opc
   // a aba aberta que fica sem opções (as opções são buscadas de novo depois de uma recusa) passa para a outra, que tem
   const aba = escolhida === 'ordinario' ? (ordinario.length ? 'ordinario' : 'operacoes') : operacoes.length ? 'operacoes' : 'ordinario';
   return (
+    <Militar.Provider value={militar}>
     <Tabs value={aba} onValueChange={(v) => setEscolhida(v === 'operacoes' ? 'operacoes' : 'ordinario')}>
       {/* as abas dividem a largura do painel; cada aba abre o seu painel, separado e com borda */}
       <TabsList className="w-full">
@@ -108,5 +113,6 @@ export function AdicionarServico({ opcoes, salvando, aoEscolher }: { opcoes: Opc
       <TabsContent value="ordinario" className="rounded-lg border border-linha p-2.5"><Grupos opcoes={ordinario} salvando={salvando} aoEscolher={aoEscolher} /></TabsContent>
       <TabsContent value="operacoes" className="rounded-lg border border-linha p-2.5"><Grupos opcoes={operacoes} salvando={salvando} aoEscolher={aoEscolher} /></TabsContent>
     </Tabs>
+    </Militar.Provider>
   );
 }

@@ -104,6 +104,7 @@ function linhaDe(m: LinhaBanco, afast: { tipo: string; inicio: string; fim: stri
     posto: m.posto,
     quadro: m.quadro_id && m.quadro_sigla ? { id: m.quadro_id, sigla: m.quadro_sigla } : null,
     nomeGuerra: m.nome_guerra,
+    nomeCompleto: m.nome_completo,
     equipe: m.equipe,
     jornada: m.jornada,
     motorista: m.motorista ? categoriaMaisAlta(m.cnh) : null,
@@ -467,12 +468,12 @@ export function rotasMilitares(dep: { banco: Banco; auth: Auth }): Hono<Ambiente
           motorista: m.motorista, cnh: m.cnh, jornada: m.jornada, equipe: m.equipe, antiguidade: m.antiguidade, nomeCompleto: m.nome_completo, quadro: m.quadro_id, repetidaCom: repetidas.get(m.id),
         }),
       })),
-      // quem não tem o nascimento preenchido não entra; no mesmo dia, a ordem é a da lista (posto, antiguidade, nome). Sem ver o nascimento de nenhum
+      // quem não tem o nascimento preenchido não entra, nem quem está numa situação que não pode ser escalada (reserva, adido…); no mesmo dia, a ordem é a da lista (posto, antiguidade, nome). Sem ver o nascimento de nenhum
       // militar da lista, a chave nem existe (a tela esconde a seção, em vez de dizer que ninguém faz aniversário)
       ...(rows.some(veNascimento)
         ? {
             aniversariantes: rows
-              .flatMap((m) => (veNascimento(m) && m.nascimento_dia !== null && m.nascimento_mes === numeroDoMes ? [{ militarId: m.id, posto: m.posto, nomeGuerra: m.nome_guerra, dia: m.nascimento_dia, lotacao: m.lotacao }] : []))
+              .flatMap((m) => (veNascimento(m) && m.ativo && m.nascimento_dia !== null && m.nascimento_mes === numeroDoMes ? [{ militarId: m.id, posto: m.posto, nomeGuerra: m.nome_guerra, dia: m.nascimento_dia, lotacao: m.lotacao }] : []))
               .sort((a, b) => a.dia - b.dia),
           }
         : {}),

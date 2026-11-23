@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { cnhAtende, cnhHabilitadas, cnhParaEscala } from '../src/cnh.ts';
+import { cnhAtende, cnhHabilitadas, cnhParaEscala, motivoDaCnh } from '../src/cnh.ts';
 
 describe('cnh: hierarquia do CTB (RN-12)', () => {
   it('categoria maior atende a menor; a menor não atende a maior', () => {
@@ -37,3 +37,19 @@ describe('cnhParaEscala: a CNH só vale para a escala com o militar no quadro de
     expect(cnhParaEscala({ motorista: false, cnh: undefined })).toEqual([]);
   });
 });
+
+describe('motivoDaCnh: por que o militar não serve para a vaga de condutor (6.17, item 14)', () => {
+  it('serve: no quadro e com a categoria (ou uma que a habilita) → nenhum motivo', () => {
+    expect(motivoDaCnh({ motorista: true, cnh: ['D'] }, 'C')).toBeNull();
+  });
+  it('sem a carteira, ou com uma categoria que não habilita: "Sem a CNH exigida" (esteja ou não no quadro)', () => {
+    expect(motivoDaCnh({ motorista: true, cnh: ['B'] }, 'D')).toBe('Sem a CNH exigida');
+    expect(motivoDaCnh({ motorista: false, cnh: [] }, 'D')).toBe('Sem a CNH exigida');
+    expect(motivoDaCnh({ motorista: false, cnh: ['B'] }, 'D')).toBe('Sem a CNH exigida');
+  });
+  it('tem a carteira que habilita, mas está fora do quadro de motoristas: "Fora do quadro de motoristas"', () => {
+    expect(motivoDaCnh({ motorista: false, cnh: ['D'] }, 'D')).toBe('Fora do quadro de motoristas');
+    expect(motivoDaCnh({ motorista: false, cnh: ['E'] }, 'C')).toBe('Fora do quadro de motoristas');
+  });
+});
+

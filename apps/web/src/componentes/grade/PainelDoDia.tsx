@@ -136,7 +136,7 @@ export function PainelDoDia({ unidadeId, militarId, data, aoFechar }: { unidadeI
                       Adicionar serviço neste dia
                     </Button>
                   </div>
-                  {adicionando && <AdicionarServico opcoes={p.opcoes} salvando={salvando} aoEscolher={(o, turnoId) => void adicionar(o, turnoId)} />}
+                  {adicionando && <AdicionarServico opcoes={p.opcoes} militar={nome ?? ''} salvando={salvando} aoEscolher={(o, turnoId) => void adicionar(o, turnoId)} />}
                 </>
               )}
             </section>

@@ -1,7 +1,7 @@
 // Escalar, remover e desfazer a remoção (telas: "Escolher militar", "Remover", "Desfazer").
 // A conferência e a gravação acontecem na mesma transação; a recusa sai como Recusa (409) com a frase que a tela mostra.
 import type { NovaAlocacao, NovoAcumulo } from 'contratos';
-import { cnhParaEscala } from 'dominio';
+import { motivoDaCnh } from 'dominio';
 import type { Consulta } from '../banco/banco.ts';
 import { vinculosDaEscala } from '../cadastros/escalas.ts';
 import { versaoNoMes } from '../cadastros/guarnicoes-regras.ts';
@@ -50,7 +50,10 @@ export async function ocupantesDaFuncao(tx: Consulta, escalaId: string, data: st
  */
 export async function vagaTemLugar(tx: Consulta, escalaId: string, data: string, faixa: { inicio: string; fim: string }, guarnicaoId: string, funcaoId: string, militar: { motorista: boolean; cnh: string[] }): Promise<boolean> {
   const vaga = await conferirVaga(tx, escalaId, data.slice(0, 7), faixa, guarnicaoId, funcaoId);
-  if (vaga.cnhExigida && !cnhParaEscala(militar).includes(vaga.cnhExigida)) throw new Recusa('Sem a CNH exigida');
+  if (vaga.cnhExigida) {
+    const motivo = motivoDaCnh(militar, vaga.cnhExigida);
+    if (motivo) throw new Recusa(motivo);
+  }
   await travaDaFaixa(tx, escalaId, data, faixa);
   return (await ocupantesDaFuncao(tx, escalaId, data, faixa, guarnicaoId, funcaoId)) < vaga.maximo;
 }
@@ -143,7 +146,10 @@ export async function acumular(tx: Consulta, alocacaoId: string, d: NovoAcumulo)
   const naOriginal = a.guarnicao_id === d.guarnicaoId && a.funcao_id === d.funcaoId;
   const emAcumulo = (await tx.query('select 1 from alocacao_acumulo where alocacao_id = $1 and guarnicao_id = $2 and funcao_id = $3', [alocacaoId, d.guarnicaoId, d.funcaoId])).rows.length > 0;
   if (naOriginal || emAcumulo) throw new Recusa(jaOcupaMsg);
-  if (vaga.cnhExigida && !cnhParaEscala(a).includes(vaga.cnhExigida)) throw new Recusa('Sem a CNH exigida');
+  if (vaga.cnhExigida) {
+    const motivo = motivoDaCnh(a, vaga.cnhExigida);
+    if (motivo) throw new Recusa(motivo);
+  }
   if ((await ocupantesDaFuncao(tx, a.escala_id, a.data, a, d.guarnicaoId, d.funcaoId)) >= vaga.maximo) {
     throw new Recusa(`A função ${vaga.funcao} já está completa nesta guarnição.`);
   }

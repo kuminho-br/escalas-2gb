@@ -2,11 +2,12 @@ import { QueryClient } from '@tanstack/react-query';
 import { ErroApi } from '@/api/cliente';
 
 /**
- * Uma consulta que falhou tenta de novo? Erro 4xx (a ficha não existe mais, sem permissão, pedido recusado) não: tentar não muda a resposta e a
+ * Uma consulta que falhou tenta de novo? Erro 4xx (a ficha não existe mais, sem permissão, pedido recusado) não, fora o 408 e o 429: tentar não muda a resposta e a
  * tela ficaria em "Carregando…" até as tentativas acabarem. Sem conexão (status 0), erro 5xx e qualquer outra falha tentam mais duas vezes.
  */
 export function deveTentarDeNovo(falhas: number, erro: unknown): boolean {
-  if (erro instanceof ErroApi && erro.status >= 400 && erro.status <= 499) return false;
+  // 408 (o pedido demorou) e 429 (muitos pedidos) passam sozinhos: tentar de novo ajuda
+  if (erro instanceof ErroApi && erro.status >= 400 && erro.status <= 499 && erro.status !== 408 && erro.status !== 429) return false;
   return falhas < 2;
 }
 

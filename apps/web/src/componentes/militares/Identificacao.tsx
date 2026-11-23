@@ -8,7 +8,7 @@ import { Selecao } from '@/componentes/Selecao';
 import { AcoesDoBloco, usePendencia, useTrava, useSincronizar } from '@/componentes/AlteracoesPendentes';
 import { Input } from '@/componentes/ui/input';
 import { alteracoesDaIdentificacao, type ValoresIdentificacao } from './alteracoes';
-import { DonoDoBloco, LISTA_NAO_CARREGOU, Secao } from './Secao';
+import { avisoDaLista, DonoDoBloco, Secao } from './Secao';
 
 /**
  * Identificação (posto-graduação, nome completo, nome de guerra, antiguidade, sexo, função e abono de permanência: do Pecúlio) e, na mesma ficha, o voluntário JES (da escala).
@@ -95,7 +95,7 @@ export function Identificacao({ ficha }: { ficha: FichaMilitar }) {
           </Campo>
         </div>
         <div className="grid gap-3 sm:grid-cols-[10rem_7rem_9rem]">
-          <Campo id="id-posto" rotulo="Posto-graduação" erro={campos.postoGradId ?? ((postos.isError && !postos.data) ? LISTA_NAO_CARREGOU : undefined)}>
+          <Campo id="id-posto" rotulo="Posto-graduação" erro={campos.postoGradId ?? avisoDaLista(postos)}>
             <Selecao id="id-posto" value={posto} disabled={!peculio} onChange={(e) => setPosto(e.target.value)}>
               {postos.data?.map((p) => <option key={p.id} value={p.id}>{p.sigla}</option>)}
             </Selecao>
@@ -112,7 +112,7 @@ export function Identificacao({ ficha }: { ficha: FichaMilitar }) {
           </Campo>
         </div>
         <div className="grid gap-3 sm:grid-cols-[16rem]">
-          <Campo id="id-funcao" rotulo="Função" erro={campos.funcaoMilitarId ?? ((funcoes.isError && !funcoes.data) ? LISTA_NAO_CARREGOU : undefined)}>
+          <Campo id="id-funcao" rotulo="Função" erro={campos.funcaoMilitarId ?? avisoDaLista(funcoes)}>
             <Selecao id="id-funcao" value={funcaoId} disabled={!peculio} onChange={(e) => setFuncaoId(e.target.value)}>
               <option value="">Sem função</option>
               {funcoesAtivas.map((f) => <option key={f.id} value={f.id}>{f.nome}</option>)}

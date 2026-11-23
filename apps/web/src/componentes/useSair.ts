@@ -23,7 +23,7 @@ export function useSair() {
       if (error) throw error;
     } catch {
       saida.marcar(false);
-      setErroSair('Não foi possível sair. Verifique a conexão e tente de novo.');
+      setErroSair('Não foi possível sair. Confira a conexão e tente de novo.');
       return;
     }
     queryClient.clear();

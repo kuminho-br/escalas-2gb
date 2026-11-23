@@ -75,7 +75,16 @@ export function EscolherMilitar({ escalaId, vaga, aoFechar }: { escalaId: string
 
   return (
     <Dialog open onOpenChange={(v) => !v && aoFechar()}>
-      <DialogContent className="max-h-[85dvh] overflow-y-auto sm:max-w-lg">
+      {/* no celular (toque) o foco não vai para a busca: o teclado cobriria a lista, e só aparece quando a pessoa toca na caixa */}
+      <DialogContent
+        className="max-h-[85dvh] overflow-y-auto sm:max-w-lg"
+        onOpenAutoFocus={(e) => {
+          if (typeof window.matchMedia === 'function' && window.matchMedia('(pointer: coarse)').matches) {
+            e.preventDefault();
+            (e.currentTarget as HTMLElement).focus();
+          }
+        }}
+      >
         <DialogHeader>
           <DialogTitle>Escolher militar</DialogTitle>
           <DialogDescription>

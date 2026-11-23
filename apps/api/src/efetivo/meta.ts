@@ -135,7 +135,7 @@ export async function desativar(tx: Consulta, unidadeId: string, data: string, g
 }
 
 const NAO_DEU_PARA_DESFAZER = 'Não deu para desfazer: alguém já ocupa um desses lugares.';
-const ESCALA_MUDOU = 'Não deu para desfazer: a escala mudou desde então.';
+const ESCALA_MUDOU = 'A escala mudou desde então. Não dá mais para desfazer.';
 
 /**
  * Desfaz a desativação, na mesma transação. O corpo vem do cliente, então nada nele vale por si: tudo precisa ser desta seção e deste dia, e
@@ -187,7 +187,7 @@ export async function desfazerDesativacao(tx: Consulta, unidadeId: string, data:
   // a recusa de uma regra de escalar vira a frase do "Desfazer"; o lugar já ocupado pelo mesmo militar tem a frase própria
   const comoRecusaDoDesfazer = (e: unknown): never => {
     if (e instanceof Recusa) {
-      const jaDiz = e.message.startsWith('Não deu para desfazer');
+      const jaDiz = e.message.startsWith('Não deu para desfazer') || e.message === ESCALA_MUDOU;
       throw new Recusa(e.message === JA_ESCALADO_NO_TURNO ? NAO_DEU_PARA_DESFAZER : jaDiz ? e.message : `Não deu para desfazer: ${e.message}`);
     }
     const codigo = (e as { code?: string } | null)?.code;

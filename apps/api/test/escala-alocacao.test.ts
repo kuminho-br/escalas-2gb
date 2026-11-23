@@ -183,11 +183,11 @@ describe('acesso', () => {
 });
 
 describe('militar fora do quadro de motoristas, com CNH D (Review Focus 2)', () => {
-  it('escalar na vaga de motorista é 409 com "Sem a CNH exigida"; na de combatente é 201', async () => {
+  it('escalar na vaga de motorista é 409 com "Fora do quadro de motoristas" (6.17, item 14: tem a carteira, falta o quadro); na de combatente é 201', async () => {
     await criarMilitar('FORAQUADRO', ['D'], false, true);
     const recusada = await escalar('FORAQUADRO', dia(27), { funcaoId: motorista });
     expect(recusada.status).toBe(409);
-    expect((await recusada.json()).erro).toBe('Sem a CNH exigida');
+    expect((await recusada.json()).erro).toBe('Fora do quadro de motoristas');
     expect((await escalar('FORAQUADRO', dia(27), { funcaoId: combatente })).status).toBe(201);
   });
 });

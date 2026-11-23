@@ -4,11 +4,13 @@ import { ErroApi } from '@/api/cliente';
 import { Button } from '@/componentes/ui/button';
 
 /**
- * O conselho de cada falha: o que o servidor disse (503: banco desatualizado) vale mais; sem conexão, conferir a internet; qualquer outro
+ * O conselho de cada falha: o que o servidor disse (503: banco desatualizado, permissão, pedido recusado) vale mais; sem conexão, conferir a internet; qualquer outro
  * erro é do sistema, e repetir em alguns minutos é o que a pessoa pode fazer.
  */
 function conselhoDaFalha(error: unknown): string {
   if (error instanceof ErroApi && error.status === 503) return error.message;
+  // o que o servidor explicou (permissão, pedido recusado…) vale mais que o conselho geral; só a falta de conexão fala em internet
+  if (error instanceof ErroApi && error.status !== 0 && !error.padrao) return error.message;
   if (error instanceof ErroApi && error.status === 0) return 'Sem conexão com o sistema. Confira a internet e tente de novo.';
   return 'O sistema encontrou um erro. Tente de novo em alguns minutos.';
 }

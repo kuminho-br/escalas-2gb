@@ -76,7 +76,7 @@ function TrechoOcupado({ funcao, t, o, base, estilo, acoes }: { funcao: FuncaoNo
   const Raiz = acoes.soLeitura ? 'div' : 'button';
   return (
     <Raiz
-      {...(acoes.soLeitura ? { role: 'group', tabIndex: 0 } : { type: 'button' as const, onClick: () => acoes.aoClicarOcupado?.(funcao, t) })}
+      {...(acoes.soLeitura ? { role: 'group' } : { type: 'button' as const, onClick: () => acoes.aoClicarOcupado?.(funcao, t) })}
       aria-label={nomeDoTrecho(funcao.funcao, t)}
       title={faixa(t)}
       onFocus={() => setMostrarHorario(true)}

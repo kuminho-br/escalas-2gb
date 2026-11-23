@@ -284,11 +284,11 @@ describe('quem ficou de fora só por falta de voluntariado (o escalante pode com
 });
 
 describe('militar fora do quadro de motoristas, com CNH D (Review Focus 2)', () => {
-  it('não vale para a vaga de motorista: "Sem a CNH exigida"; para a de combatente, que não exige CNH, segue apto', async () => {
+  it('não vale para a vaga de motorista: "Fora do quadro de motoristas" (tem a carteira, falta o quadro); para a de combatente, que não exige CNH, segue apto', async () => {
     const posto = (await api.banco.query<{ id: string }>("select id from posto_grad where sigla = 'SD-C'")).rows[0]!.id;
     await criarMilitar('FORAQUADRO', { posto, cnh: ['D'], foraDoQuadro: true });
     await criarMilitar('NOQUADRO', { posto, cnh: ['D'] });
-    expect(await motivo('FORAQUADRO', D, FAIXA.A, T('Pronto A'), true)).toBe('Sem a CNH exigida');
+    expect(await motivo('FORAQUADRO', D, FAIXA.A, T('Pronto A'), true)).toBe('Fora do quadro de motoristas');
     expect(await motivo('NOQUADRO', D, FAIXA.A, T('Pronto A'), true)).toBeNull();
     expect(await motivo('FORAQUADRO', D, FAIXA.A, T('Pronto A'))).toBeNull();
     // a lista de quem pode ocupar a vaga de motorista também deixa o militar de fora, com o motivo

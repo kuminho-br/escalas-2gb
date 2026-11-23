@@ -107,16 +107,16 @@ async function marcasDe(c: Consulta, mesId: string): Promise<Set<string>> {
 export interface Marcas {
   /** Quem o gestor marcou: as marcas do mês gravado ou, sem ele, a cópia das do mês anterior da unidade. Pode trazer quem já não é elegível. */
   marcados: Set<string>;
-  /** Quem era elegível no mês anterior da unidade; null no primeiro mês dela (aí ninguém é "novo"). */
-  elegiveisAntes: Set<string> | null;
+  /** Quem participou da rodada no mês anterior da unidade (as marcas dele); null no primeiro mês dela (aí ninguém é "novo"). */
+  participantesAntes: Set<string> | null;
 }
 
 /** As marcas do mês. `mesId` é o do mês gravado (null se ainda não foi). */
 export async function marcasDoMes(c: Consulta, unidadeId: string, mes: string, mesId: string | null): Promise<Marcas> {
   const anterior = await mesAnterior(c, unidadeId, mes);
   const marcados = mesId ? await marcasDe(c, mesId) : anterior ? await marcasDe(c, anterior.id) : new Set<string>();
-  const elegiveisAntes = anterior ? new Set((await elegiveisDoMes(c, unidadeId, anterior.mes)).map((p) => p.militarId)) : null;
-  return { marcados, elegiveisAntes };
+  const participantesAntes = anterior ? await marcasDe(c, anterior.id) : null;
+  return { marcados, participantesAntes };
 }
 
 /** Ao criar o mês, as marcas vêm copiadas do mês anterior da unidade (no primeiro mês, ninguém vem marcado). */
