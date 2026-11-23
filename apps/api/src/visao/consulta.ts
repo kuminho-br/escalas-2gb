@@ -2,7 +2,7 @@
 // ficha mostra só os blocos que a borda das camadas libera para quem pede (a chave de um bloco que a pessoa não vê fica ausente). CPF,
 // nascimento e endereço nem são lidos do banco aqui: não há como vazarem por esta rota.
 import type { FichaDeConsulta, LinhaDaConsulta, PeriodoDaConsulta, ResultadoDaConsulta, UnidadeDaConsulta } from 'contratos';
-import { CADASTRO, temPapel } from '../acesso.ts';
+import { CADASTRO, ehAdministrador, temPapel } from '../acesso.ts';
 import { COM_CAMINHO, paraUnidade, porCaminho, type LinhaDaUnidade } from '../arvore.ts';
 import type { Consulta } from '../banco/banco.ts';
 import { blocosDaUnidade } from './visao.ts';
@@ -74,7 +74,8 @@ export async function fichaDeConsulta(c: Consulta, usuarioId: string, militarId:
   )).rows[0];
   if (!m) return null;
   const blocos = await blocosDaUnidade(c, usuarioId, m.unidade_id, hoje);
-  const ficha: FichaDeConsulta = { ...paraLinha(m), podeAbrirFichaCompleta: m.unidade_id ? await temPapel(c, usuarioId, m.unidade_id, CADASTRO, hoje) : false };
+  const ficha: FichaDeConsulta = { ...paraLinha(m), // sem lotação (o militar recém-criado, o administrador da instalação) só o administrador abre a ficha, para dar a primeira
+    podeAbrirFichaCompleta: m.unidade_id ? await temPapel(c, usuarioId, m.unidade_id, CADASTRO, hoje) : await ehAdministrador(c, usuarioId, hoje) };
 
   if (blocos.has('contato')) ficha.contato = { telefone: m.telefone, email: m.email };
 
