@@ -463,6 +463,52 @@ describe('JES à mão e Saldo pela rodada (6.27)', () => {
   });
 });
 
+describe('revisão final da 6.27', () => {
+  it('as telas das praças não mostram nem mexem na escala dos oficiais: Grade, Escala do mês, remover e trocar', async () => {
+    // a3 tem Saldo em 2027-05-10 (nos testes de maio)
+    const aloc = (await api.banco.query<{ id: string }>("select id from alocacao where escala_id = $1 and militar_id = $2 and data = '2027-05-10'", [rodada.escalaId, ids.a3])).rows[0]!.id;
+    const grade = JSON.stringify(await (await api.pedir('gestorGb', 'GET', `/api/unidades/${api.ids.gb}/grade/2027-05`)).json());
+    expect(grade).not.toContain('"A3"');
+    const aviso = 'Esta escala é uma rodada de cotas: os lançamentos dela são feitos em Oficiais.';
+    for (const [m, c, corpo] of [
+      ['POST', `/api/escalas/${rodada.escalaId}/alocacoes`, { militarId: ids.a3, servicoId: rodada.saldo, turnoId: rodada.saldoA, data: '2027-05-11' }],
+      ['DELETE', `/api/alocacoes/${aloc}`, undefined],
+      ['POST', `/api/alocacoes/${aloc}/trocar`, { militarId: ids.a2 }],
+      ['POST', `/api/alocacoes/${aloc}/acumulos`, {}],
+    ] as const) {
+      const r = await api.pedir('gestorGb', m, c, corpo);
+      expect(r.status, `${m} ${c}`).toBe(409);
+      expect((await r.json()).erro).toBe(aviso);
+    }
+    expect((await api.banco.query('select 1 from alocacao where id = $1', [aloc])).rows).toHaveLength(1);
+  });
+
+  it('fechar a escala e lançar JES não apagam o Saldo de quem deixou de ser elegível: só refazem a cota dos que estão na rodada', async () => {
+    expect((await abrir('2027-09')).status).toBe(200);
+    for (const dia of ['2027-09-01', '2027-09-02']) expect((await lancar('2027-09', dia, 'A', ids.a1!)).status).toBe(200);
+    await api.banco.query("update rastreio set situacao_id = (select id from situacao_militar where nome = 'Desativado') where militar_id = $1", [ids.a1]);
+    // um JES lançado agora refaz a cota, mas o Saldo de a1 fica onde estava
+    const jes = await lancar('2027-09', '2027-09-05', 'A', ids.a2!, 'jes');
+    expect(jes.status).toBe(200);
+    expect(((await jes.json()) as EscalaDosOficiais).liberados).toEqual([]);
+    const fechada: EscalaDosOficiais = await (await api.pedir('gestorGb', 'POST', rota('2027-09', '/fechar'))).json();
+    expect(fechada.liberados).toEqual([]);
+    expect(fechada.turnos.filter((t) => t.militarId === ids.a1)).toHaveLength(2);
+    await api.banco.query("update rastreio set situacao_id = (select id from situacao_militar where nome = 'Ativa') where militar_id = $1", [ids.a1]);
+  });
+
+  it('um lançamento de um serviço antigo da escala (migrado) conta como Saldo: trocar o nome nele funciona', async () => {
+    const antigo = await inserir(api.banco, 'servico', { unidade_id: api.ids.gb, nome: 'Oficial antigo', tipo: 'ordinario', cor: '#336699' });
+    const turnoAntigo = await inserir(api.banco, 'turno', { servico_id: antigo, letra: 'A', inicio: '07:00', fim: '19:00' });
+    await api.banco.query('insert into escala_servico (escala_id, servico_id, ordem) values ($1, $2, 3)', [rodada.escalaId, antigo]);
+    expect((await abrir('2027-10')).status).toBe(200);
+    await inserir(api.banco, 'alocacao', { militar_id: ids.a2, escala_id: rodada.escalaId, servico_id: antigo, turno_id: turnoAntigo, data: '2027-10-03', origem: 'distribuicao' });
+    const r = await lancar('2027-10', '2027-10-03', 'A', ids.a3!);
+    expect(r.status).toBe(200);
+    expect(doLugar(await r.json(), '2027-10-03', 'A')).toMatchObject({ servico: 'saldo', militarId: ids.a3 });
+  });
+});
+
 describe('correções da revisão final', () => {
   it('quem sai da lista num novo cálculo não deixa lugares com o nome dele: os lugares ficam vazios', async () => {
     expect((await abrir('2027-07')).status).toBe(200);

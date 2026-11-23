@@ -27,7 +27,7 @@ begin
     return;
   end if;
 
-  -- a escala "Oficiais de operações" de cada unidade com mês gravado, com o serviço que os meses usavam
+  -- a escala "Oficiais de operações" de cada unidade com mês gravado, com os serviços que os meses usavam (o do mês mais recente primeiro: é o serviço de Saldo)
   insert into escala (unidade_id, nome, titulo, militares_doc, dias_doc, ativa, monta_blocos_voluntariado, distribuicao)
   select distinct unidade_id, 'Oficiais de operações', 'ESCALA OFICIAIS DE OPERAÇÕES', 'escalados', 'com_escalados', true, false, 'rodada_de_cotas'
     from oficiais_mes
@@ -35,8 +35,8 @@ begin
 
   insert into escala_servico (escala_id, servico_id, ordem)
   select e.id, x.servico_id,
-         coalesce((select max(es.ordem) from escala_servico es where es.escala_id = e.id), 0) + row_number() over (partition by e.id order by x.primeiro_mes, x.servico_id)
-    from (select unidade_id, servico_id, min(mes) as primeiro_mes from oficiais_mes where servico_id is not null group by unidade_id, servico_id) x
+         coalesce((select max(es.ordem) from escala_servico es where es.escala_id = e.id), 0) + row_number() over (partition by e.id order by x.ultimo_mes desc, x.servico_id)
+    from (select unidade_id, servico_id, max(mes) as ultimo_mes from oficiais_mes where servico_id is not null group by unidade_id, servico_id) x
     join escala e on e.unidade_id = x.unidade_id and e.nome = 'Oficiais de operações'
   on conflict do nothing;
 

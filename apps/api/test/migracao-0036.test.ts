@@ -25,6 +25,7 @@ let mesVazio: string;
 let capitao: string;
 let major: string;
 let tenente: string;
+let servicoNovo: string;
 const q = async <T>(sql: string, p: unknown[] = []) => (await banco.query<T>(sql, p)).rows;
 
 beforeAll(async () => {
@@ -48,8 +49,10 @@ beforeAll(async () => {
   await banco.query("insert into oficiais_turno (mes_id, dia, turno_id, militar_id, saiu_militar_id) values ($1, '2026-09-02', $2, $3, $4)", [mes, turnoA, major, capitao]);
   await banco.query("insert into oficiais_saldo (unidade_id, militar_id, mes_id, tipo, valor, tirado, devido, turnos_dia, turnos_noite) values ($1, $2, $3, 'mes', 0.5, 1, 0.5, 1, 0)", [unidade, capitao, mes]);
   await banco.query("insert into oficiais_saldo (unidade_id, militar_id, tipo, valor, motivo) values ($1, $2, 'ajuste', 2, 'Ajuste de teste')", [unidade, major]);
-  // um mês ainda sem cotas, só com o serviço escolhido
-  mesVazio = await inserir(banco, 'oficiais_mes', { unidade_id: unidade, mes: '2026-12-01', servico_id: servico });
+  // um mês mais novo, ainda sem cotas, com outro serviço escolhido: o serviço de Saldo da escala passa a ser o do mês mais recente
+  servicoNovo = await inserir(banco, 'servico', { unidade_id: unidade, nome: 'Oficiais 2', tipo: 'ordinario', cor: '#339966' });
+  await inserir(banco, 'turno', { servico_id: servicoNovo, letra: 'A', inicio: '07:00', fim: '19:00' });
+  mesVazio = await inserir(banco, 'oficiais_mes', { unidade_id: unidade, mes: '2026-12-01', servico_id: servicoNovo });
   await banco.query('insert into oficiais_participante (mes_id, militar_id) values ($1, $2)', [mesVazio, tenente]);
   await migrarAte(banco, '9999');
 });
@@ -62,7 +65,7 @@ describe('migração 0036: a escala dos oficiais como escala comum', () => {
     const escalas = await q<{ id: string; nome: string; distribuicao: string; monta: boolean }>(
       'select id, nome, distribuicao, monta_blocos_voluntariado as monta from escala where unidade_id = $1', [unidade]);
     expect(escalas).toEqual([{ id: expect.any(String), nome: 'Oficiais de operações', distribuicao: 'rodada_de_cotas', monta: false }]);
-    expect((await q<{ servico_id: string }>('select servico_id from escala_servico where escala_id = $1', [escalas[0]!.id])).map((r) => r.servico_id)).toEqual([servico]);
+    expect((await q<{ servico_id: string }>('select servico_id from escala_servico where escala_id = $1 order by ordem', [escalas[0]!.id])).map((r) => r.servico_id)).toEqual([servicoNovo, servico]);
     // as escalas de antes seguem como pré-escala
     expect((await q('select 1 from escala where distribuicao <> $1 and unidade_id <> $2 limit 1', ['pre_escala', unidade]))).toHaveLength(0);
   });

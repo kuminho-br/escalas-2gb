@@ -154,7 +154,7 @@ async function frasesDeChoque(
 
 /** "Adicionar serviço neste dia": para cada escala ativa e cada faixa dos turnos dela, onde ele entra (vagas com função livre e CNH que vale para a escala, e "Sem guarnição"). */
 async function opcoesDoDia(c: Consulta, unidadeId: string, militarId: string, data: string, mes: string, habilitadas: string[]): Promise<OpcaoDeServico[]> {
-  const escalas = (await c.query<{ id: string; nome: string }>('select id, nome from escala where unidade_id = $1 and ativa order by nome', [unidadeId])).rows;
+  const escalas = (await c.query<{ id: string; nome: string }>("select id, nome from escala where unidade_id = $1 and ativa and distribuicao = 'pre_escala' order by nome", [unidadeId])).rows;
   const resultado: OpcaoDeServico[] = [];
   for (const e of escalas) {
     const faixas = (

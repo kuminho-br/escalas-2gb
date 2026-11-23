@@ -228,6 +228,12 @@ export function rotasEscalas(dep: { banco: Banco; auth: Auth }): Hono<AmbienteAp
     const d = corpo.dados;
     const igual = await escalaComNome(dep.banco, acesso.unidadeId, d.nome, id);
     if (igual) return c.json({ erro: `Já existe a escala "${igual}".` }, 409);
+    // o jeito de distribuir só muda enquanto a escala está vazia: com militares escalados (ou um mês dos oficiais gravado), trocar mudaria o que as telas fazem com eles
+    if (d.distribuicao) {
+      const atual = (await dep.banco.query<{ distribuicao: string; em_uso: boolean }>(
+        'select distribuicao, (exists (select 1 from alocacao where escala_id = $1) or exists (select 1 from oficiais_mes where escala_id = $1)) as em_uso from escala where id = $1', [id])).rows[0]!;
+      if (atual.distribuicao !== d.distribuicao && atual.em_uso) return c.json({ erro: 'Esta escala já tem militares escalados ou um mês dos oficiais: o jeito de distribuir não muda.', campos: { distribuicao: 'O jeito de distribuir não muda com militares escalados.' } }, 409);
+    }
     try {
       const e = await comUsuario(dep.banco, c.get('usuarioId'), async (tx) => {
         await tx.query('update escala set nome = $2, titulo = $3, militares_doc = $4, dias_doc = $5, distribuicao = coalesce($6, distribuicao) where id = $1', [id, d.nome, d.titulo, d.militaresDoc, d.diasDoc, d.distribuicao ?? null]);

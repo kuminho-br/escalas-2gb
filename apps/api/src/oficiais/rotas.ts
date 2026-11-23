@@ -96,52 +96,67 @@ async function refazerCotas(tx: Consulta, r: Rodada, ordemManual?: string[]): Pr
   const { rows: soltos } = await tx.query<{ n: number; posto: string; nome_guerra: string }>(
     `select count(*)::int as n, p.sigla as posto, m.nome_guerra
        from alocacao a join militar m on m.id = a.militar_id join posto_grad p on p.id = m.posto_grad_id
-      where a.escala_id = $1 and a.data between $2::date and $3::date and a.servico_id is distinct from $4::uuid and not (a.militar_id = any($5::uuid[]))
+      where a.escala_id = $1 and a.data between $2::date and $3::date and a.origem = 'distribuicao' and a.servico_id is distinct from $4::uuid and not (a.militar_id = any($5::uuid[]))
       group by m.id, p.sigla, p.ordem, m.nome_guerra order by p.ordem desc, m.nome_guerra`,
     [r.escalaId, inicio, fim, jesId, ficam],
   );
   const liberados = soltos.map((x) => `${x.n} ${x.n === 1 ? 'turno' : 'turnos'} de ${postoCurto(x.posto)} ${x.nome_guerra} ${x.n === 1 ? 'ficou' : 'ficaram'} sem ninguém.`);
   await tx.query(
-    `delete from alocacao where escala_id = $1 and data between $2::date and $3::date and servico_id is distinct from $4::uuid and not (militar_id = any($5::uuid[]))`,
+    `delete from alocacao where escala_id = $1 and data between $2::date and $3::date and origem = 'distribuicao' and servico_id is distinct from $4::uuid and not (militar_id = any($5::uuid[]))`,
     [r.escalaId, inicio, fim, jesId, ficam],
   );
   await tx.query('update oficiais_mes set ordem_manual = $2::uuid[] where id = $1', [linha.id, manual]);
   return liberados;
 }
 
+type CotaGravada = { militar_id: string; dias: number; devido: string; cota: number; sobra: boolean };
+
 /**
- * As cotas se refazem sozinhas entre "Abrir o mês" e fechar a escala: a presença (afastamentos), a antiguidade e o posto de quem está na rodada podem ter
- * mudado desde a última vez. Compara o que está gravado com o que sairia agora e só grava se mudou (nenhum participante entra nem sai por aqui).
+ * As cotas de quem já está na rodada, como sairiam agora (a presença, a antiguidade e o posto podem ter mudado): ninguém entra nem sai por aqui, e quem
+ * deixou de ser elegível segue com os dias gravados, no fim, na ordem de antes. null se o mês não está aberto ou já foi fechado.
  */
-async function atualizarCotasSeMudaram(banco: Banco, usuarioId: string, r: Rodada): Promise<void> {
-  const linha = await linhaDoMes(banco, r.escalaId, r.mes);
-  if (!linha?.aberto_em || linha.fechada_em || linha.encerrada_em) return;
-  const gravadas = (await banco.query<{ militar_id: string; dias: number; devido: string; cota: number; sobra: boolean }>(
+async function cotasDosMembros(c: Consulta, r: Rodada, linha: LinhaDoMes): Promise<{ gravadas: CotaGravada[]; novas: ReturnType<typeof calcularCotas> } | null> {
+  if (!linha.aberto_em || linha.fechada_em || linha.encerrada_em) return null;
+  const gravadas = (await c.query<CotaGravada>(
     'select militar_id, dias, devido::text as devido, cota, sobra from oficiais_cota where mes_id = $1 order by ordem', [linha.id])).rows;
-  if (gravadas.length === 0) return;
+  if (gravadas.length === 0) return null;
   const membros = new Set(gravadas.map((g) => g.militar_id));
-  const elegiveis = (await elegiveisDoMes(banco, r.unidadeId, r.mes)).filter((p) => membros.has(p.militarId));
+  const elegiveis = (await elegiveisDoMes(c, r.unidadeId, r.mes)).filter((p) => membros.has(p.militarId));
   const porId = new Map(elegiveis.map((p) => [p.militarId, p]));
-  // quem já não é elegível (saiu do quadro ou da unidade) segue com os dias gravados, no fim, na ordem de antes
   const restantes = gravadas.filter((g) => !porId.has(g.militar_id)).map((g) => ({ militarId: g.militar_id, dias: g.dias }));
   const lista = [...ordemDeEscolha(elegiveis, linha.ordem_manual).map((id) => ({ militarId: id, dias: porId.get(id)!.dias })), ...restantes];
-  let total: number;
+  return { gravadas, novas: calcularCotas(await lugaresDeSaldo(c, r), lista) };
+}
+const cotasIguais = (gravadas: CotaGravada[], novas: ReturnType<typeof calcularCotas>) =>
+  novas.length === gravadas.length && novas.every((n, i) => {
+    const g = gravadas[i]!;
+    return n.militarId === g.militar_id && n.dias === g.dias && n.cota === g.cota && n.sobra === g.sobra && Math.abs(n.devido - Number(g.devido)) < 1e-6;
+  });
+
+/**
+ * Refaz as cotas de quem já está na rodada, sem mexer em nenhum lançamento (o que um JES lançado ou tirado, o fechamento e a leitura pedem): só grava se
+ * mudou. Dentro da transação e com o mês travado, então não pega cota velha de uma leitura que ficou para trás.
+ */
+async function refazerDosMembros(tx: Consulta, r: Rodada): Promise<void> {
+  const linha = await linhaDoMes(tx, r.escalaId, r.mes, true);
+  if (!linha) return;
+  const c = await cotasDosMembros(tx, r, linha);
+  if (c && !cotasIguais(c.gravadas, c.novas)) await gravarCotas(tx, linha.id, c.novas);
+}
+
+/** As cotas se refazem sozinhas entre "Abrir o mês" e fechar a escala; a leitura confere e, se mudou, grava (nenhum participante entra nem sai por aqui). */
+async function atualizarCotasSeMudaram(banco: Banco, usuarioId: string, r: Rodada): Promise<void> {
+  const linha = await linhaDoMes(banco, r.escalaId, r.mes);
+  if (!linha) return;
+  let c: Awaited<ReturnType<typeof cotasDosMembros>>;
   try {
-    total = await lugaresDeSaldo(banco, r);
+    c = await cotasDosMembros(banco, r, linha);
   } catch (e) {
     if (e instanceof Recusa) return;
     throw e;
   }
-  const novas = calcularCotas(total, lista);
-  const igual = novas.length === gravadas.length && novas.every((n, i) => {
-    const g = gravadas[i]!;
-    return n.militarId === g.militar_id && n.dias === g.dias && n.cota === g.cota && n.sobra === g.sobra && Math.abs(n.devido - Number(g.devido)) < 1e-6;
-  });
-  if (igual) return;
-  await comUsuario(banco, usuarioId, async (tx) => {
-    const de_novo = await linhaDoMes(tx, r.escalaId, r.mes, true);
-    if (de_novo?.aberto_em && !de_novo.fechada_em) await gravarCotas(tx, de_novo.id, novas);
-  });
+  if (!c || cotasIguais(c.gravadas, c.novas)) return;
+  await comUsuario(banco, usuarioId, (tx) => refazerDosMembros(tx, r));
 }
 
 /** Os lançamentos do mês como `TurnoDoMes` do motor: só os de Saldo contam para o saldo do oficial (o JES é voluntário e fica fora). */
@@ -308,9 +323,9 @@ export function rotasOficiais(dep: { banco: Banco; auth: Auth }): Hono<AmbienteA
           'insert into alocacao (militar_id, escala_id, servico_id, turno_id, data, origem) values ($1, $2, $3, $4, $5::date, $6)',
           [militarId, rod.escalaId, alvo.id, turno.id, dia, servico === 'jes' ? 'manual' : 'distribuicao'],
         );
-      } else if (atual.servicoId !== alvo.id) {
-        const quem = atual.servicoId === servicos.jes?.id ? 'JES' : 'Saldo';
-        throw new Recusa(409, `Este lugar já está tomado por ${quem}.`);
+      } else if ((atual.servicoId === servicos.jes?.id ? 'jes' : 'saldo') !== servico) {
+        // todo serviço da escala que não é o JES é Saldo (inclusive o de meses migrados, de outro serviço)
+        throw new Recusa(409, `Este lugar já está tomado por ${servico === 'jes' ? 'Saldo' : 'JES'}.`);
       } else if (atual.militarId !== militarId) {
         // com a escala fechada, trocar o nome é uma cobertura: quem saiu conta como tirado, e quem cobriu também; voltar ao nome original desfaz a cobertura
         const original = atual.saiuMilitarId ?? atual.militarId;
@@ -319,7 +334,7 @@ export function rotasOficiais(dep: { banco: Banco; auth: Auth }): Hono<AmbienteA
         if (linha.fechada_em && original !== militarId) await tx.query('insert into oficiais_cobertura (alocacao_id, saiu_militar_id) values ($1, $2)', [atual.id, original]);
       }
       // os lugares de JES mudam a cota de saldo: com a escala aberta (não fechada), as cotas se refazem sozinhas
-      if (servico === 'jes' && !linha.fechada_em && (!atual || atual.militarId !== militarId)) return { liberados: await refazerCotas(tx, rod), foraDaOrdem };
+      if (servico === 'jes' && !linha.fechada_em && (!atual || atual.militarId !== militarId)) await refazerDosMembros(tx, rod);
       return { foraDaOrdem };
     });
   });
@@ -340,7 +355,7 @@ export function rotasOficiais(dep: { banco: Banco; auth: Auth }): Hono<AmbienteA
       const servicos = await servicosDaRodada(tx, rod.escalaId);
       await tx.query('delete from alocacao where id = $1', [alocacaoId]);
       // tirar um JES devolve o lugar para a rodada: as cotas se refazem, mantendo os lançamentos de quem continua
-      if (doMes.servicoId === servicos.jes?.id && !linha.fechada_em) return refazerCotas(tx, rod);
+      if (doMes.servicoId === servicos.jes?.id && !linha.fechada_em) await refazerDosMembros(tx, rod);
     });
   });
 
@@ -355,8 +370,8 @@ export function rotasOficiais(dep: { banco: Banco; auth: Auth }): Hono<AmbienteA
       if (!linha || !linha.aberto_em) throw new Recusa(409, MSG_NAO_ABERTO);
       if (linha.encerrada_em) throw new Recusa(409, MSG_ENCERRADO);
       if (!linha.fechada_em) {
-        // a última refeita das cotas: a presença pode ter mudado desde a última leitura
-        await refazerCotas(tx, rod);
+        // a última refeita das cotas: a presença pode ter mudado desde a última leitura (sem mexer em nenhum lançamento)
+        await refazerDosMembros(tx, rod);
         await tx.query('update oficiais_mes set fechada_em = now() where id = $1', [linha.id]);
       }
     });
