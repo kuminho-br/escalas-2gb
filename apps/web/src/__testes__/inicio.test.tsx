@@ -58,11 +58,11 @@ describe('tela inicial', () => {
     expect(within(visualizacao).getByText('Em breve')).toBeInTheDocument();
   });
 
-  it('o militar comum vê três cartões: Consulta de militares, Visualização e Minha ficha', async () => {
+  it('o militar comum vê quatro cartões: Consulta de militares, Visualização, Minha ficha e Configurações', async () => {
     simularApi({ '/api/eu': { status: 200, corpo: comum } });
     abrir('/');
     await screen.findByRole('heading', { level: 1 });
-    expect(within(screen.getByRole('main')).getAllByRole('listitem').map((li) => li.querySelector('h2')?.textContent)).toEqual(['Consulta de militares', 'Visualização de escalas', 'Minha ficha']);
+    expect(within(screen.getByRole('main')).getAllByRole('listitem').map((li) => li.querySelector('h2')?.textContent)).toEqual(['Consulta de militares', 'Visualização de escalas', 'Minha ficha', 'Configurações']);
     expect(screen.queryByText('Confecção de escalas')).toBeNull();
   });
 

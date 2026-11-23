@@ -124,7 +124,7 @@ describe('casca', () => {
     expect(await screen.findByText('SD ANDRADE')).toBeInTheDocument();
     expect(screen.queryByRole('navigation', { name: 'Navegação principal' })).toBeNull();
     expect(screen.queryByText('Militares')).toBeNull();
-    expect(screen.queryByText('Configurações')).toBeNull();
+    expect(screen.queryByText('Configurações da escala')).toBeNull();
   });
 
   it('o militar comum na Grade geral também volta ao início', async () => {
@@ -166,7 +166,7 @@ describe('casca', () => {
 });
 
 describe('trilho', () => {
-  const NOMES = ['Grade geral', 'Escala do mês', 'Efetivo por dia', 'Voluntariado', 'Cotas', 'Militares', 'Turnos', 'Escalas', 'Feriados', 'Configurações', 'Estrutura', 'Histórico', 'Ajuda'];
+  const NOMES = ['Grade geral', 'Escala do mês', 'Efetivo por dia', 'Voluntariado', 'Cotas', 'Militares', 'Turnos', 'Escalas', 'Feriados', 'Configurações da escala', 'Estrutura', 'Histórico', 'Ajuda'];
   const menu = () => screen.getByRole('navigation', { name: 'Navegação principal' });
 
   it('no computador o menu é um trilho de 84 px', async () => {

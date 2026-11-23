@@ -27,7 +27,7 @@ describe('configurações: tipos de unidade (6.25)', () => {
     for (const [eu, aparece] of [[EU_EXEMPLO, false], [GESTOR, false], [ADMIN, true]] as const) {
       api({}, eu as typeof ADMIN);
       abrir('/configuracoes');
-      await screen.findByRole('tab', { name: 'Regras do processo' });
+      await screen.findByRole('tab', { name: 'Minhas preferências' });
       expect(screen.queryAllByRole('tab', { name: 'Tipos de unidade' })).toHaveLength(aparece ? 1 : 0);
       cleanup();
     }

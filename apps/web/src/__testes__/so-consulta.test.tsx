@@ -270,8 +270,8 @@ describe('o trilho e o endereço numa unidade só de consulta', () => {
     for (const fora of ['Oficiais', 'Militares', 'Turnos', 'Escalas', 'Feriados', 'Configurações', 'Estrutura', 'Histórico', 'Ajuda']) expect(within(trilho).queryByText(fora), fora).toBeNull();
   });
 
-  it('abrir uma tela de cadastro nesse modo leva à Grade geral (Militares, Turnos, Escalas, Feriados, Oficiais e Configurações)', async () => {
-    for (const caminho of ['/militares', '/servicos', '/escalas', '/feriados', '/oficiais', '/configuracoes']) {
+  it('abrir uma tela de cadastro nesse modo leva à Grade geral (Militares, Turnos, Escalas, Feriados, Oficiais e Configurações da escala)', async () => {
+    for (const caminho of ['/militares', '/servicos', '/escalas', '/feriados', '/oficiais', '/configuracoes-da-escala']) {
       guardarUnidadeDeConsulta('u-2sb');
       api();
       const router = abrir(caminho);

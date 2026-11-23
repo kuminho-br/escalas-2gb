@@ -284,7 +284,7 @@ describe('quem vê a aba Estrutura (6.25)', () => {
     for (const [eu, aparece] of [[EU_EXEMPLO, true], [GESTOR_GB, true], [ADMIN, true]] as const) {
       comEstrutura({}, eu);
       abrir('/configuracoes');
-      await screen.findByRole('tab', { name: 'Regras do processo' });
+      await screen.findByRole('tab', { name: 'Minhas preferências' });
       expect(screen.queryAllByRole('tab', { name: 'Estrutura' }), JSON.stringify(eu.papeis)).toHaveLength(aparece ? 1 : 0);
       cleanup();
     }
