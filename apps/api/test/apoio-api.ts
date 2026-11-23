@@ -92,3 +92,41 @@ export async function montarApi(fabricar?: (dep: { banco: Banco; auth: Auth }) =
     fechar: () => banco.fechar(),
   };
 }
+
+export interface Pessoa {
+  usuarioId: string;
+  militarId: string;
+  pedir(metodo: string, caminho: string, corpo?: unknown): Promise<Response>;
+}
+
+/**
+ * Mais uma pessoa fictícia (D7) com sessão aberta: sem nível de acesso, ou com um, vigente desde o dia 1 do mês. Para os atores que o
+ * `montarApi` não traz (o chefe de divisão, o gestor de uma seção, um oficial).
+ */
+export async function entrarComo(api: ApiDeTeste, d: { matricula: string; nome: string; posto?: string; nivel?: { papel: string; unidadeId: string } }): Promise<Pessoa> {
+  const email = `${d.nome.toLowerCase()}@exemplo.test`;
+  const { usuarioId, militarId } = await criarAdmin(api.banco, { matricula: d.matricula, postoSigla: d.posto ?? 'SD BM', nomeGuerra: d.nome, email, senha: SENHA, hoje: hojeRecife() });
+  if (d.nivel) await api.banco.query('update papel_usuario set papel = $2, unidade_id = $3 where usuario_id = $1', [usuarioId, d.nivel.papel, d.nivel.unidadeId]);
+  else await api.banco.query('delete from papel_usuario where usuario_id = $1', [usuarioId]);
+  const r = await api.app.request(`${URL_BASE}/api/auth/sign-in/email`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Origin: URL_BASE },
+    body: JSON.stringify({ email, password: SENHA }),
+  });
+  const cookie = r.headers.getSetCookie().map((c) => c.split(';')[0]).join('; ');
+  return {
+    usuarioId,
+    militarId,
+    async pedir(metodo, caminho, corpo) {
+      const headers: Record<string, string> = { Cookie: cookie, Origin: URL_BASE };
+      if (corpo !== undefined) headers['Content-Type'] = 'application/json';
+      return api.app.request(`${URL_BASE}${caminho}`, { method: metodo, headers, body: corpo === undefined ? undefined : JSON.stringify(corpo) });
+    },
+  };
+}
+
+/** As duas divisões padrão do 2º GB (a migração 0031 cria as duas, vazias). */
+export async function divisoesDoGb(api: ApiDeTeste): Promise<{ da: string; divOp: string }> {
+  const de = async (sigla: string) => (await api.banco.query<{ id: string }>('select id from unidade where sigla = $1 and mae_id = $2', [sigla, api.ids.gb])).rows[0]!.id;
+  return { da: await de('DA'), divOp: await de('DivOp') };
+}

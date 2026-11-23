@@ -95,6 +95,8 @@ A borda inicial é um ponto de partida, proposto pela PLANEJAMENTO. O administra
 
 Ficam **fora da borda**, com regra fixa. Vê e edita quem cuida do Pecúlio, ou seja, quem tem nível de acesso numa **unidade acima** da lotação do militar, além do administrador. O próprio militar vê na Minha ficha.
 
+A divisão conta como unidade acima das suas seções: o chefe de divisão, e o gestor ou o auxiliar dados numa divisão, cuidam do Pecúlio dos militares das seções dela (usuário, 23/11/2026).
+
 Isso muda um comportamento de hoje: quem tem nível de acesso só na seção deixa de ver esses três dados na ficha. Era a pergunta aberta da entrega 6.9, respondida aqui. O sexo continua no bloco de dados pessoais da ficha, visível como hoje.
 
 ## Telas

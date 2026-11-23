@@ -1,7 +1,7 @@
 // Rotas do efetivo do dia: a meta de ativação (padrão e dias diferentes).
 import { Data, DesativarGuarnicao, DesfazerDesativacao, NovaMetaDoDia, NovaMetaPadrao } from 'contratos';
 import { Hono, type Context } from 'hono';
-import { CADASTRO, ESCREVE_PARAMETRO, exigirPapel, exigirSessao, type AmbienteApi } from '../acesso.ts';
+import { CADASTRO, GESTAO, exigirPapel, exigirSessao, type AmbienteApi } from '../acesso.ts';
 import type { Auth } from '../auth.ts';
 import { comUsuario, type Banco } from '../banco/banco.ts';
 import { hojeRecife } from '../datas.ts';
@@ -29,7 +29,7 @@ export function rotasEfetivo(dep: { banco: Banco; auth: Auth }): Hono<AmbienteAp
 
   r.put('/unidades/:u/meta-padrao', async (c) => {
     const u = c.req.param('u');
-    const negado = await exigirPapel(c, u, ESCREVE_PARAMETRO);
+    const negado = await exigirPapel(c, u, GESTAO);
     if (negado) return negado;
     const corpo = await lerCorpo(c, NovaMetaPadrao);
     if (!corpo.ok) return corpo.resposta;

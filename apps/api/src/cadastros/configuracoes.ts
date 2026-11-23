@@ -2,7 +2,7 @@
 import { EdicaoItemCatalogo, Mes, mesParaData, mesPorExtenso, NovoItemCatalogo, NovoParametro, type ItemCatalogo, type Parametro } from 'contratos';
 import { defDoSistema, PARAM_CATALOGO, PARAM_SISTEMA_NOVO, paramConverter, type DefParametro, type ValorParametro } from 'dominio';
 import { Hono } from 'hono';
-import { ESCREVE_PARAMETRO, exigirAdministradorRaiz, exigirAlgumPapel, exigirPapel, exigirSessao, type AmbienteApi } from '../acesso.ts';
+import { CADASTRO, GESTAO, exigirAdministradorRaiz, exigirAlgumPapel, exigirPapel, exigirSessao, type AmbienteApi } from '../acesso.ts';
 import type { Auth } from '../auth.ts';
 import { comUsuario, type Banco, type Consulta } from '../banco/banco.ts';
 import { hojeRecife } from '../datas.ts';
@@ -115,7 +115,7 @@ export function rotasConfiguracoes(dep: { banco: Banco; auth: Auth }): Hono<Ambi
 
   r.get('/unidades/:u/parametros', async (c) => {
     const u = c.req.param('u');
-    const negado = await exigirPapel(c, u, ['escalante', 'gestor', 'administrador']);
+    const negado = await exigirPapel(c, u, CADASTRO);
     if (negado) return negado;
     const mes = c.req.query('mes') ?? hojeRecife().slice(0, 7);
     if (!Mes.safeParse(mes).success) return c.json({ erro: 'Mês inválido: use o formato aaaa-mm.' }, 400);
@@ -125,7 +125,7 @@ export function rotasConfiguracoes(dep: { banco: Banco; auth: Auth }): Hono<Ambi
 
   r.post('/unidades/:u/parametros', async (c) => {
     const u = c.req.param('u');
-    const negado = await exigirPapel(c, u, ESCREVE_PARAMETRO);
+    const negado = await exigirPapel(c, u, GESTAO);
     if (negado) return negado;
     const corpo = await lerCorpo(c, NovoParametro);
     if (!corpo.ok) return corpo.resposta;

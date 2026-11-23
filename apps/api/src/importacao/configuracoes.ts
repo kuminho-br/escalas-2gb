@@ -1,7 +1,7 @@
 // Importação da aba CONFIGURAÇÕES: parâmetros da unidade, por vigência.
 import { mesParaData, mesPorExtenso, type ItemPrevia, type ProblemaImportacao } from 'contratos';
 import { normalizar, PARAM_CATALOGO, paramDef, paramValidarLinhas, type ValorParametro } from 'dominio';
-import { ESCREVE_PARAMETRO } from '../acesso.ts';
+import { GESTAO } from '../acesso.ts';
 import { CHAVES_SISTEMA } from '../cadastros/configuracoes.ts';
 import { coluna, lerMes } from './planilha.ts';
 import type { ColunaModelo, Importador } from './tipos.ts';
@@ -34,7 +34,7 @@ const textoValor = (v: unknown) => (typeof v === 'boolean' ? (v ? 'Sim' : 'Não'
 
 export const importadorConfiguracoes: Importador<Item[]> = {
   abas: [ABA],
-  papeis: ESCREVE_PARAMETRO,
+  papeis: GESTAO,
   modelo: {
     abas: [{ nome: ABA, colunas: Object.values(COLUNAS) }],
     async valores() {

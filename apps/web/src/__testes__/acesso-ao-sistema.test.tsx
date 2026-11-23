@@ -84,7 +84,7 @@ describe('Acesso ao sistema', () => {
   it('lista os níveis de acesso com "Auxiliar administrativo" e dá nível de acesso', async () => {
     const dada: AcessoDoMilitar = { ...ACESSO, papeis: [{ id: 'p1', papel: 'escalante', unidadeId: 'u-1sb', unidadeSigla: '1ª SB', desde: '2026-11-01', ate: null }] };
     const f = api(
-      { papeis: [{ id: 'p0', papel: 'gestor', unidadeId: 'u-gb', unidadeSigla: '2º GB', desde: '2026-01-01', ate: '2026-06-30' }], papeisQuePodeDar: ['gestor', 'escalante'], unidadesParaPapel: [{ id: 'u-gb', sigla: '2º GB', nivel: 3 }, { id: 'u-1sb', sigla: '1ª SB', nivel: 4 }] },
+      { papeis: [{ id: 'p0', papel: 'gestor', unidadeId: 'u-gb', unidadeSigla: '2º GB', desde: '2026-01-01', ate: '2026-06-30' }], papeisQuePodeDar: ['gestor', 'escalante'], unidadesParaPapel: [{ id: 'u-gb', sigla: '2º GB', nivel: 3, tipo: 'grupamento', maeSigla: 'DInter/1' }, { id: 'u-1sb', sigla: '1ª SB', nivel: 4, tipo: 'secao', maeSigla: '2º GB' }] },
       { 'POST /api/militares/m1/papeis': { status: 201, corpo: dada } },
     );
     abrir('/militares/m1');
@@ -97,6 +97,52 @@ describe('Acesso ao sistema', () => {
     expect(b.getByLabelText('A partir de')).toBeInTheDocument();
     await userEvent.click(b.getAllByRole('button', { name: 'Dar nível de acesso' }).at(-1)!);
     await waitFor(() => expect(corpoEnviado(f, 'POST /api/militares/m1/papeis')).toMatchObject({ papel: 'escalante', unidadeId: 'u-1sb' }));
+  });
+
+  it('escolher "Chefe de divisão" deixa na lista só as divisões, e a lista de níveis mostra "Chefe de divisão" (6.10)', async () => {
+    const unidades = [
+      { id: 'u-gb', sigla: '2º GB', nivel: 3, tipo: 'grupamento', maeSigla: 'DInter/1' }, { id: 'u-1sb', sigla: '1ª SB', nivel: 4, tipo: 'secao', maeSigla: '2º GB' },
+      { id: 'u-da', sigla: 'DA', nivel: 4, tipo: 'divisao', maeSigla: '2º GB' }, { id: 'u-divop', sigla: 'DivOp', nivel: 4, tipo: 'divisao', maeSigla: '2º GB' }, { id: 'u-3sb', sigla: '3ª SB', nivel: 5, tipo: 'secao', maeSigla: 'DA' },
+      // outro grupamento, com as mesmas siglas de divisão
+      { id: 'u-gb9', sigla: '9º GB', nivel: 3, tipo: 'grupamento', maeSigla: 'DInter/9' }, { id: 'u-da9', sigla: 'DA', nivel: 4, tipo: 'divisao', maeSigla: '9º GB' },
+    ];
+    const f = api(
+      { papeis: [{ id: 'p0', papel: 'chefe_divisao', unidadeId: 'u-da', unidadeSigla: 'DA', desde: '2026-11-01', ate: null }], papeisQuePodeDar: ['gestor', 'chefe_divisao', 'escalante'], unidadesParaPapel: unidades },
+      { 'POST /api/militares/m1/papeis': { status: 201, corpo: ACESSO } },
+    );
+    abrir('/militares/m1');
+    const b = within(await bloco());
+    expect(await b.findByText('Chefe de divisão')).toBeInTheDocument();
+    await userEvent.click(b.getByRole('button', { name: 'Dar nível de acesso' }));
+    const opcoes = () => within(b.getByLabelText('Unidade')).getAllByRole('option').map((o) => o.textContent?.trim());
+    expect(opcoes()).toEqual(['2º GB', '1ª SB', 'DA', 'DivOp', '3ª SB', '9º GB', 'DA']);
+    // uma seção já escolhida não vai junto quando o nível passa a ser o de chefe de divisão
+    await userEvent.selectOptions(b.getByLabelText('Unidade'), 'u-1sb');
+    await userEvent.selectOptions(b.getByLabelText('Nível de acesso'), 'Chefe de divisão');
+    // as divisões de grupamentos diferentes têm a mesma sigla: a lista diz de qual grupamento é cada uma
+    expect(opcoes()).toEqual(['DA (2º GB)', 'DivOp (2º GB)', 'DA (9º GB)']);
+    expect(b.getByLabelText('Unidade')).toHaveValue('u-da');
+    await userEvent.selectOptions(b.getByLabelText('Unidade'), 'u-divop');
+    await userEvent.click(b.getAllByRole('button', { name: 'Dar nível de acesso' }).at(-1)!);
+    await waitFor(() => expect(corpoEnviado(f, 'POST /api/militares/m1/papeis')).toMatchObject({ papel: 'chefe_divisao', unidadeId: 'u-divop' }));
+    // de volta a "Gestor", a lista inteira volta, sem a sigla da mãe ao lado (o recuo já mostra onde cada unidade está)
+    await userEvent.click(await b.findByRole('button', { name: 'Dar nível de acesso' }));
+    await userEvent.selectOptions(b.getByLabelText('Nível de acesso'), 'Chefe de divisão');
+    await userEvent.selectOptions(b.getByLabelText('Nível de acesso'), 'Gestor');
+    expect(opcoes()).toEqual(['2º GB', '1ª SB', 'DA', 'DivOp', '3ª SB', '9º GB', 'DA']);
+  });
+
+  it('o erro de "Chefe de divisão só existe numa divisão." aparece no campo da unidade', async () => {
+    const msg = 'Chefe de divisão só existe numa divisão.';
+    api(
+      { papeisQuePodeDar: ['chefe_divisao'], unidadesParaPapel: [{ id: 'u-da', sigla: 'DA', nivel: 4, tipo: 'divisao', maeSigla: '2º GB' }] },
+      { 'POST /api/militares/m1/papeis': { status: 400, corpo: { erro: msg, campos: { unidadeId: msg } } } },
+    );
+    abrir('/militares/m1');
+    const b = within(await bloco());
+    await userEvent.click(await b.findByRole('button', { name: 'Dar nível de acesso' }));
+    await userEvent.click(b.getAllByRole('button', { name: 'Dar nível de acesso' }).at(-1)!);
+    await waitFor(() => expect(b.getByLabelText('Unidade')).toHaveAccessibleDescription(msg));
   });
 
   it('sem níveis de acesso para dar, não aparece "Dar nível de acesso"', async () => {
@@ -115,7 +161,7 @@ describe('um formulário por vez no Acesso ao sistema', () => {
       { id: 'p2', papel: 'gestor', unidadeId: 'u-gb', unidadeSigla: '2º GB', desde: '2026-10-01', ate: null },
     ],
     papeisQuePodeDar: ['gestor', 'escalante'],
-    unidadesParaPapel: [{ id: 'u-gb', sigla: '2º GB', nivel: 3 }, { id: 'u-1sb', sigla: '1ª SB', nivel: 4 }],
+    unidadesParaPapel: [{ id: 'u-gb', sigla: '2º GB', nivel: 3, tipo: 'grupamento', maeSigla: 'DInter/1' }, { id: 'u-1sb', sigla: '1ª SB', nivel: 4, tipo: 'secao', maeSigla: '2º GB' }],
   };
   const encerrar = (b: { getAllByRole: (papel: 'button', o: { name: string }) => HTMLElement[] }) => b.getAllByRole('button', { name: 'Encerrar' }) as HTMLButtonElement[];
 
@@ -216,7 +262,7 @@ describe('um formulário por vez no Acesso ao sistema', () => {
 });
 
 describe('o "até" ao dar o nível de acesso (6.8)', () => {
-  const PODE: Partial<AcessoDoMilitar> = { papeisQuePodeDar: ['escalante'], unidadesParaPapel: [{ id: 'u-1sb', sigla: '1ª SB', nivel: 4 }] };
+  const PODE: Partial<AcessoDoMilitar> = { papeisQuePodeDar: ['escalante'], unidadesParaPapel: [{ id: 'u-1sb', sigla: '1ª SB', nivel: 4, tipo: 'secao', maeSigla: '2º GB' }] };
   const dada: AcessoDoMilitar = { ...ACESSO, papeis: [{ id: 'p1', papel: 'escalante', unidadeId: 'u-1sb', unidadeSigla: '1ª SB', desde: '2026-11-01', ate: '2026-12-31' }] };
 
   it('o campo "Até (opcional)" fica ao lado de "A partir de", e preenchido vai no corpo', async () => {

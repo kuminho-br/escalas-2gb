@@ -12,7 +12,7 @@ const comUnidade = (e: EuDaApi): Eu => ({ ...e, unidade: e.unidades[0]! });
 const GESTOR_GB: EuDaApi = {
   ...EU_EXEMPLO,
   papeis: [{ papel: 'gestor', unidadeId: 'u-gb', unidadeSigla: '2º GB' }, { papel: 'escalante', unidadeId: 'u-1sb', unidadeSigla: '1ª SB' }],
-  unidades: [{ id: 'u-gb', sigla: '2º GB', caminho: ['CBMPE', 'DGO', 'DInter/1', '2º GB'], nivel: 3 }, ...EU_EXEMPLO.unidades],
+  unidades: [{ id: 'u-gb', sigla: '2º GB', caminho: ['CBMPE', 'DGO', 'DInter/1', '2º GB'], nivel: 3, tipo: 'grupamento' }, ...EU_EXEMPLO.unidades],
 };
 const LISTA: ListaDoPeculio = {
   militares: [
@@ -250,12 +250,12 @@ describe('Enter na busca do Pecúlio', () => {
 });
 
 describe('quem cadastra militar: nível de acesso numa unidade acima da seção', () => {
-  const DI = { id: 'u-di', sigla: 'DInter/1', caminho: ['CBMPE', 'DGO', 'DInter/1'], nivel: 2 };
+  const DI = { id: 'u-di', sigla: 'DInter/1', caminho: ['CBMPE', 'DGO', 'DInter/1'], nivel: 2, tipo: 'diretoria_integrada' };
   it('o auxiliar só da seção não pode, esteja a seção no nível que estiver da árvore', () => {
     const daSecao = (nivel: number): EuDaApi => ({
       ...EU_EXEMPLO,
       papeis: [{ papel: 'escalante', unidadeId: 'u-sec', unidadeSigla: 'SEC-X' }],
-      unidades: [{ id: 'u-sec', sigla: 'SEC-X', caminho: ['CBMPE', 'DGO', 'DInter/1', 'SEC-X'].slice(0, nivel + 1), nivel }],
+      unidades: [{ id: 'u-sec', sigla: 'SEC-X', caminho: ['CBMPE', 'DGO', 'DInter/1', 'SEC-X'].slice(0, nivel + 1), nivel, tipo: 'secao' }],
     });
     expect(podeCadastrarMilitar(daSecao(3))).toBe(false);
     expect(podeCadastrarMilitar(daSecao(4))).toBe(false);
@@ -265,7 +265,7 @@ describe('quem cadastra militar: nível de acesso numa unidade acima da seção'
     const gestorDaDiretoria: EuDaApi = {
       ...EU_EXEMPLO,
       papeis: [{ papel: 'gestor', unidadeId: 'u-di', unidadeSigla: 'DInter/1' }],
-      unidades: [DI, { id: 'u-sec', sigla: 'SEC-X', caminho: ['CBMPE', 'DGO', 'DInter/1', 'SEC-X'], nivel: 3 }],
+      unidades: [DI, { id: 'u-sec', sigla: 'SEC-X', caminho: ['CBMPE', 'DGO', 'DInter/1', 'SEC-X'], nivel: 3, tipo: 'grupamento' }],
     };
     expect(podeCadastrarMilitar(gestorDaDiretoria)).toBe(true);
     expect(podeCadastrarMilitar(GESTOR_GB)).toBe(true);
@@ -273,7 +273,7 @@ describe('quem cadastra militar: nível de acesso numa unidade acima da seção'
 
   it('as seções do diálogo são só as que estão abaixo de um nível de acesso da pessoa', () => {
     const eu: EuDaApi = { ...GESTOR_GB, papeis: [{ papel: 'gestor', unidadeId: 'u-gb', unidadeSigla: '2º GB' }, { papel: 'escalante', unidadeId: 'u-outra', unidadeSigla: '9ª SB' }],
-      unidades: [GESTOR_GB.unidades[0]!, { id: 'u-1sb', sigla: '1ª SB', caminho: ['CBMPE', 'DGO', 'DInter/1', '2º GB', '1ª SB'], nivel: 4 }, { id: 'u-outra', sigla: '9ª SB', caminho: ['CBMPE', 'DGO', 'DInter/9', '9º GB', '9ª SB'], nivel: 4 }] };
+      unidades: [GESTOR_GB.unidades[0]!, { id: 'u-1sb', sigla: '1ª SB', caminho: ['CBMPE', 'DGO', 'DInter/1', '2º GB', '1ª SB'], nivel: 4, tipo: 'secao' }, { id: 'u-outra', sigla: '9ª SB', caminho: ['CBMPE', 'DGO', 'DInter/9', '9º GB', '9ª SB'], nivel: 4, tipo: 'secao' }] };
     const secoes = [{ id: 'u-1sb', sigla: '1ª SB', nome: '' }, { id: 'u-outra', sigla: '9ª SB', nome: '' }, { id: 'u-x', sigla: 'X', nome: '' }];
     expect(secoesDoCadastro(eu, secoes).map((x) => x.sigla)).toEqual(['1ª SB']);
   });
@@ -289,7 +289,7 @@ describe('o Novo militar, no Pecúlio', () => {
   const SECOES = [{ id: 'u-1sb', sigla: '1ª SB', nome: '1ª Seção de Bombeiros' }, { id: 'u-2sb', sigla: '2ª SB', nome: '2ª Seção de Bombeiros' }];
   const FICHA_CRIADA = { id: 'm9' };
   // o gestor do 2º GB alcança as duas seções (a lista de unidades dele traz a árvore de baixo)
-  const GB_COM_SECOES: EuDaApi = { ...GESTOR_GB, unidades: [...GESTOR_GB.unidades, { id: 'u-2sb', sigla: '2ª SB', caminho: ['CBMPE', 'DGO', 'DInter/1', '2º GB', '2ª SB'], nivel: 4 }] };
+  const GB_COM_SECOES: EuDaApi = { ...GESTOR_GB, unidades: [...GESTOR_GB.unidades, { id: 'u-2sb', sigla: '2ª SB', caminho: ['CBMPE', 'DGO', 'DInter/1', '2º GB', '2ª SB'], nivel: 4, tipo: 'secao' }] };
   const rotas = (extra: Parameters<typeof simularApi>[0] = {}) =>
     api(GB_COM_SECOES, LISTA, { 'GET /api/postos': { status: 200, corpo: POSTOS }, 'GET /api/quadros': { status: 200, corpo: QUADROS }, 'GET /api/secoes': { status: 200, corpo: SECOES }, ...extra });
   async function abrirODialogo() {
