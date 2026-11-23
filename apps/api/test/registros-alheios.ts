@@ -45,9 +45,8 @@ export async function criarRegistrosAlheios(api: ApiDeTeste, outra: string): Pro
   ids.remocoes = await inserir(api.banco, 'remocao', { ...chave, data: `${atual}-06` });
   // papel dado na unidade (fase 6)
   ids.papeis = await inserir(api.banco, 'papel_usuario', { usuario_id: api.usuarios.semPapel, unidade_id: outra, papel: 'escalante', desde: '2026-11-01' });
-  // a estrutura do grupamento (6.10): a seção e uma divisão do 2º GB
-  ids.secoes = outra;
-  ids.divisoes = (await api.banco.query<{ id: string }>("select id from unidade where sigla = 'DA' and mae_id = $1", [api.ids.gb])).rows[0]!.id;
+  // a árvore de unidades (6.25): mover, extinguir, excluir e renomear a unidade alheia
+  ids.unidades = outra;
   // acúmulo da alocação alheia (Fase 4.1.1)
   ids.acumulos = await inserir(api.banco, 'alocacao_acumulo', { alocacao_id: ids.alocacoes, guarnicao_id: ids.guarnicoes, funcao_id: ids.funcoes });
   return ids;
@@ -66,7 +65,7 @@ export function rotasDaVarredura(hono: Hono, ids: Record<string, string>, outra:
   for (const r of hono.routes) {
     if (r.method === 'ALL' || !r.path.startsWith('/api/')) continue;
     if (!(r.path.includes(':u') || r.path.includes(':id'))) continue;
-    if (['/api/sistema', '/api/situacoes-do-militar', '/api/funcoes-do-militar', '/api/postos', '/api/quadros', '/api/consulta'].some((p) => r.path.startsWith(p))) continue;
+    if (['/api/sistema', '/api/situacoes-do-militar', '/api/funcoes-do-militar', '/api/postos', '/api/quadros', '/api/consulta', '/api/tipos-de-unidade'].some((p) => r.path.startsWith(p))) continue;
     const recurso = /^\/api\/([a-z]+)\/:id/.exec(r.path)?.[1];
     if (r.path.includes(':id') && !(recurso && ids[recurso])) throw new Error(`recurso sem registro de teste: ${r.path}`);
     const caminho = r.path.replace(':u', outra).replace(':id', recurso ? ids[recurso]! : 'x').replace(':mes', mes).replace(':cadastro', 'feriados');
