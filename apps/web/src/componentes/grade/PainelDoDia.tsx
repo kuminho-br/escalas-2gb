@@ -6,6 +6,7 @@ import { mensagemDe } from '@/api/cliente';
 import { escalar, removerAlocacao } from '@/api/escala-do-mes';
 import { consultaPainelDoDia } from '@/api/grade';
 import { useTrava } from '@/componentes/AlteracoesPendentes';
+import { useSoConsulta } from '@/componentes/FaixaSoConsulta';
 import { Button } from '@/componentes/ui/button';
 import { estiloDaCor } from '@/lib/cores';
 import { listaComE } from '@/lib/escala';
@@ -19,6 +20,8 @@ import { TrocarServico } from './TrocarServico';
  */
 export function PainelDoDia({ unidadeId, militarId, data, aoFechar }: { unidadeId: string; militarId: string; data: string; aoFechar: () => void }) {
   const queryClient = useQueryClient();
+  // numa unidade só de consulta o painel mostra o dia e nada mais: sem trocar, remover nem adicionar
+  const soConsulta = useSoConsulta();
   const painel = useQuery(consultaPainelDoDia(unidadeId, data.slice(0, 7), militarId, data));
   const [adicionando, setAdicionando] = useState(false);
   const [trocando, setTrocando] = useState<{ alocacaoId: string; acumulaCom: string[] } | null>(null);
@@ -105,31 +108,37 @@ export function PainelDoDia({ unidadeId, militarId, data, aoFechar }: { unidadeI
                           {s.servico.nome} {s.letra}
                         </span>
                         <span aria-hidden className="text-sm">{textoFaixa(s.inicio, s.fim)}</span>
-                        <span className="ml-auto flex gap-1.5">
-                          <Button type="button" variant="outline" size="sm" disabled={salvando} onClick={() => setTrocando({ alocacaoId: s.alocacaoId, acumulaCom: s.acumulaCom })}>
-                            Trocar
-                          </Button>
-                          <Button type="button" variant="outline" size="sm" disabled={salvando} onClick={() => void remover(s.alocacaoId)}>
-                            Remover
-                          </Button>
-                        </span>
+                        {!soConsulta && (
+                          <span className="ml-auto flex gap-1.5">
+                            <Button type="button" variant="outline" size="sm" disabled={salvando} onClick={() => setTrocando({ alocacaoId: s.alocacaoId, acumulaCom: s.acumulaCom })}>
+                              Trocar
+                            </Button>
+                            <Button type="button" variant="outline" size="sm" disabled={salvando} onClick={() => void remover(s.alocacaoId)}>
+                              Remover
+                            </Button>
+                          </span>
+                        )}
                       </div>
                       <p className="text-sm">{s.escala} · {s.guarnicao ? `${s.guarnicao}, ${s.funcao}` : 'sem guarnição'}</p>
                       {s.acumulaCom.length > 0 && <p className="text-xs text-apagado">Acumula {listaComE(s.acumulaCom)}.</p>}
                       {/* os avisos do "Remover", como na Escala do mês */}
-                      <p className="text-xs text-apagado">Ele não volta para este turno quando a pré-escala for gerada de novo.</p>
-                      {s.acumulaCom.length > 0 && <p className="text-xs text-apagado">Sai também de: {listaComE(s.acumulaCom)}.</p>}
+                      {!soConsulta && <p className="text-xs text-apagado">Ele não volta para este turno quando a pré-escala for gerada de novo.</p>}
+                      {!soConsulta && s.acumulaCom.length > 0 && <p className="text-xs text-apagado">Sai também de: {listaComE(s.acumulaCom)}.</p>}
                     </li>
                   ))}
                 </ul>
               )}
               {erro && <p role="alert" className="text-sm text-alerta">{erro}</p>}
-              <div>
-                <Button type="button" variant={adicionando ? 'secondary' : 'outline'} aria-expanded={adicionando} onClick={() => setAdicionando((v) => !v)}>
-                  Adicionar serviço neste dia
-                </Button>
-              </div>
-              {adicionando && <AdicionarServico opcoes={p.opcoes} salvando={salvando} aoEscolher={(o, turnoId) => void adicionar(o, turnoId)} />}
+              {!soConsulta && (
+                <>
+                  <div>
+                    <Button type="button" variant={adicionando ? 'secondary' : 'outline'} aria-expanded={adicionando} onClick={() => setAdicionando((v) => !v)}>
+                      Adicionar serviço neste dia
+                    </Button>
+                  </div>
+                  {adicionando && <AdicionarServico opcoes={p.opcoes} salvando={salvando} aoEscolher={(o, turnoId) => void adicionar(o, turnoId)} />}
+                </>
+              )}
             </section>
           </>
         )}

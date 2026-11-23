@@ -38,6 +38,8 @@ function EfetivoPorDia() {
   const busca = Route.useSearch();
   const navigate = Route.useNavigate();
   const queryClient = useQueryClient();
+  // numa unidade só de consulta o dia se vê e não se altera: sem voltar ao padrão, adicionar, desativar, reativar, mover, escalar nem remover
+  const soConsulta = eu.soConsulta;
   // sem data no endereço, abre no último dia visto nesta tela (guardado no navegador); sem ele, hoje
   const [inicial] = useState(() => ultimoDiaVisto() ?? hoje());
   const data = busca.data ?? inicial;
@@ -171,18 +173,20 @@ function EfetivoPorDia() {
               Meta do dia: {e.meta.total === 0 ? 'nenhuma guarnição' : `${plural(e.meta.total, 'guarnição', 'guarnições')}, ${plural(e.meta.ativadas, 'ativada', 'ativadas')}`}
             </p>
             {e.meta.origem === 'dia' && <span className="rounded-full bg-pendencia-fundo px-2 py-0.5 text-xs font-medium text-pendencia">Meta alterada neste dia</span>}
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              disabled={salvando || e.meta.origem === 'padrao'}
-              onClick={() => {
-                setErroNoDialogo(null);
-                setVoltando(true);
-              }}
-            >
-              Voltar ao padrão
-            </Button>
+            {!soConsulta && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={salvando || e.meta.origem === 'padrao'}
+                onClick={() => {
+                  setErroNoDialogo(null);
+                  setVoltando(true);
+                }}
+              >
+                Voltar ao padrão
+              </Button>
+            )}
           </div>
           <CotasRestantes cotas={e.cotas} />
           {aviso && <AvisoDesfazer texto={aviso.texto} erro={erroDoAviso} salvando={salvando} aoDesfazer={() => void desfazerUltima()} aoSumir={limparAviso} />}
@@ -195,26 +199,28 @@ function EfetivoPorDia() {
                   key={g.guarnicaoId}
                   g={g}
                   janela={janela}
-                  acoes={{ aoClicarVaga: clicarVaga(g), aoClicarOcupado: (funcao, trecho) => setOcupado({ funcao: funcao.funcao, trecho }) }}
-                  meta={controlesDa(g)}
+                  acoes={soConsulta ? { soLeitura: true } : { aoClicarVaga: clicarVaga(g), aoClicarOcupado: (funcao, trecho) => setOcupado({ funcao: funcao.funcao, trecho }) }}
+                  meta={soConsulta ? undefined : controlesDa(g)}
                 />
               ))}
             </div>
           )}
-          <Desativadas guarnicoes={e.desativadas} salvando={salvando} aoReativar={(id) => void gravarMeta([...naMeta, id])} />
-          <div>
-            <Button
-              type="button"
-              variant="outline"
-              disabled={salvando}
-              onClick={() => {
-                setErroNoDialogo(null);
-                setAdicionando(true);
-              }}
-            >
-              Adicionar guarnição
-            </Button>
-          </div>
+          <Desativadas guarnicoes={e.desativadas} salvando={salvando} aoReativar={soConsulta ? undefined : (id) => void gravarMeta([...naMeta, id])} />
+          {!soConsulta && (
+            <div>
+              <Button
+                type="button"
+                variant="outline"
+                disabled={salvando}
+                onClick={() => {
+                  setErroNoDialogo(null);
+                  setAdicionando(true);
+                }}
+              >
+                Adicionar guarnição
+              </Button>
+            </div>
+          )}
           {vaga && !opcao && vaga.trecho.opcoes.length > 1 && <EscolherHorarioDaVaga opcoes={vaga.trecho.opcoes} aoEscolher={setOpcao} aoFechar={fecharVaga} />}
           {vaga && opcao && (
             <EscolherMilitar
