@@ -148,13 +148,13 @@ describe('a aba Escala do mês', () => {
       expect(celula(31, 'Noite')).toBeInTheDocument();
     });
 
-    it('sem desenho de sol ou lua: nenhuma célula tem ícone, e a Noite é de tom escuro', async () => {
+    it('sem desenho de sol ou lua: nenhuma célula tem ícone, e o Dia e a Noite se distinguem sem o bloco preto', async () => {
       abrirEscala(escala());
       await screen.findByText('0 de 62 turnos com nome');
       const cal = screen.getByLabelText('Calendário do mês');
       expect(cal.querySelectorAll('svg').length).toBe(0);
-      expect(celula(1, 'Dia')).toHaveAttribute('data-tom', 'claro');
-      expect(celula(1, 'Noite')).toHaveAttribute('data-tom', 'escuro');
+      expect(celula(1, 'Dia')).toHaveAttribute('data-turno', 'dia');
+      expect(celula(1, 'Noite')).toHaveAttribute('data-turno', 'noite');
     });
 
     it('conta os turnos com nome', async () => {
@@ -169,8 +169,9 @@ describe('a aba Escala do mês', () => {
       const base = escala();
       abrirEscala(escala({ oficiais: [{ ...O1, escolhidos: 4 }, O2, O3], turnos: comNome(base, {}) }));
       const quadro = await screen.findByLabelText('Vez de escolher');
-      expect(within(quadro).getByText('CEL ALFA, 1º na ordem')).toBeInTheDocument();
-      expect(within(quadro).getByText(/Já lançou 4 de 21/)).toBeInTheDocument();
+      expect(within(quadro).getByText('CEL ALFA')).toBeInTheDocument();
+      expect(within(quadro).getByText('1º na ordem')).toBeInTheDocument();
+      expect(within(quadro).getByText('Faltam 17 turnos para ele.')).toBeInTheDocument();
     });
 
     it('um clique num turno livre lança a escolha da vez', async () => {
@@ -211,8 +212,8 @@ describe('a aba Escala do mês', () => {
   describe('a lista de cotas', () => {
     it('tem as colunas, a sobra e a marca de ordenado à mão', async () => {
       abrirEscala(escala());
-      const lista = await screen.findByRole('table', { name: 'Cotas de janeiro de 2027' });
-      for (const c of ['Ordem', 'Oficial', 'Saldo', 'Dias', 'Cota', 'Escolhidos']) expect(within(lista).getByRole('columnheader', { name: c })).toBeInTheDocument();
+      const lista = await screen.findByRole('list', { name: 'Cotas de janeiro de 2027' });
+      for (const c of ['Saldo', 'Dias', 'Cota', 'Escolhidos']) expect(within(lista).getAllByText(c).length).toBe(3);
       expect(within(lista).getByText('+1 sobra')).toBeInTheDocument();
       expect(within(lista).getAllByText(/ordenado à mão/).length).toBe(2);
       expect(within(lista).getByText('+0,75')).toBeInTheDocument();
@@ -234,14 +235,13 @@ describe('a aba Escala do mês', () => {
 
     it('antes de fechar, a lista mostra todos os elegíveis, cada um com a marca "Participa", e "novo" em quem é novo', async () => {
       abrirEscala(escala({ oficiais: [O1, O2, O3, FORA, NOVO] }));
-      const lista = await screen.findByRole('table', { name: 'Cotas de janeiro de 2027' });
-      expect(within(lista).getByRole('columnheader', { name: 'Participa' })).toBeInTheDocument();
+      const lista = await screen.findByRole('list', { name: 'Cotas de janeiro de 2027' });
       expect(within(lista).getByRole('checkbox', { name: 'CEL ALFA participa da rodada' })).toBeChecked();
       expect(within(lista).getByRole('checkbox', { name: 'MAJ DELTA participa da rodada' })).not.toBeChecked();
       expect(within(lista).getByRole('checkbox', { name: 'CAP ECO participa da rodada' })).not.toBeChecked();
-      const eco = within(lista).getByRole('checkbox', { name: 'CAP ECO participa da rodada' }).closest('tr')!;
+      const eco = within(lista).getByRole('checkbox', { name: 'CAP ECO participa da rodada' }).closest('li')!;
       expect(within(eco).getByText('novo')).toBeInTheDocument();
-      expect(within(lista).getByRole('checkbox', { name: 'MAJ DELTA participa da rodada' }).closest('tr')!.textContent).not.toContain('novo');
+      expect(within(lista).getByRole('checkbox', { name: 'MAJ DELTA participa da rodada' }).closest('li')!.textContent).not.toContain('novo');
     });
 
     it('marcar ou desmarcar grava a lista inteira de quem participa', async () => {
@@ -272,7 +272,7 @@ describe('a aba Escala do mês', () => {
 
     it('com a escala fechada, a marca fica só para leitura e quem não participa some da lista e do diálogo do turno', async () => {
       abrirEscala(escala({ etapa: 'fechada', fechadaEm: '2027-01-05T10:00:00', oficiais: [O1, O2, O3, FORA] }));
-      const lista = await screen.findByRole('table', { name: 'Cotas de janeiro de 2027' });
+      const lista = await screen.findByRole('list', { name: 'Cotas de janeiro de 2027' });
       expect(within(lista).queryByRole('checkbox', { name: 'MAJ DELTA participa da rodada' })).toBeNull();
       expect(within(lista).getByRole('checkbox', { name: 'CEL ALFA participa da rodada' })).toBeDisabled();
       await userEvent.click(celula(2, 'Dia'));
@@ -530,3 +530,169 @@ describe('as regras', () => {
     for (const n of ['8,25', '4,26', '−0,26']) expect(within(ex).getAllByText(n).length).toBeGreaterThan(0);
   });
 });
+
+// ---- a escala dos oficiais refeita (6.22): nome em destaque, fundo calmo, painel largo ----
+describe('o calendário com o nome em destaque (6.22)', () => {
+  afterEach(() => {
+    cleanup();
+    vi.unstubAllGlobals();
+  });
+  const turnoCom = (marcas: Record<string, string | [string, string]>, extra: Partial<EscalaDosOficiais> = {}) => escala({ turnos: comNome(escala(), marcas), ...extra });
+  const placa = (titulo: string) => screen.getByTitle(titulo);
+
+  it('o turno com nome mostra a patente (13 px, apagado) e o nome (17 px, estreita, 600) numa placa clara, com a faixa do turno à esquerda', async () => {
+    abrirEscala(turnoCom({ [`${dia(2)}|t-a`]: 'm-1', [`${dia(2)}|t-b`]: 'm-2' }));
+    await screen.findByText('2 de 62 turnos com nome');
+    const dia2 = placa('CEL ALFA');
+    const patente = within(dia2).getByText('CEL');
+    const nome = within(dia2).getByText('ALFA');
+    expect(patente).toHaveClass('text-[13px]', 'text-apagado');
+    expect(nome).toHaveClass('text-[17px]', 'font-cond', 'font-semibold', 'text-tinta');
+    expect(dia2).toHaveClass('bg-superficie', 'border-l-4', 'border-l-pendencia');
+    // a Noite tem outra faixa e um fundo leve, e nenhum turno tem fundo preto
+    const noite = placa('CAP BRAVO');
+    expect(noite).toHaveClass('bg-passa', 'border-l-4', 'border-l-tinta');
+    expect(screen.getByLabelText('Calendário do mês').innerHTML).not.toMatch(/bg-tinta|text-white/);
+  });
+
+  it('o turno livre mostra só "livre" em 13 px apagado, com borda tracejada e sem fundo cheio', async () => {
+    abrirEscala(escala());
+    const livre = await screen.findByRole('button', { name: /^05\/01, Dia.*livre/ });
+    expect(within(livre).getByText('livre')).toHaveClass('text-[13px]', 'text-apagado');
+    expect(livre).toHaveClass('border-dashed');
+    expect(livre.className).not.toMatch(/bg-superficie|bg-passa|bg-tinta/);
+  });
+
+  it('nenhum texto do calendário fica abaixo de 13 px', async () => {
+    abrirEscala(turnoCom({ [`${dia(2)}|t-a`]: ['m-2', 'm-3'] }, { avisos: [{ dia: dia(2), turnoId: 't-a', texto: 'aviso' } as never] }));
+    await screen.findByText('1 de 62 turnos com nome');
+    expect(screen.getByLabelText('Calendário do mês').innerHTML).not.toMatch(/text-\[11px\]|text-\[12px\]|text-xs/);
+    expect(screen.getByLabelText('Legenda dos turnos').innerHTML).not.toMatch(/text-\[11px\]|text-xs/);
+  });
+
+  it('a caixa do dia perde a borda e o fundo; o número fica em 15 px, 600; o nome do dia da semana só aparece no celular', async () => {
+    abrirEscala(escala());
+    await screen.findByText('0 de 62 turnos com nome');
+    const cal = screen.getByLabelText('Calendário do mês');
+    const numero = within(cal).getByText('3', { selector: 'b' });
+    expect(numero).toHaveClass('text-[15px]', 'font-semibold');
+    const caixa = numero.closest('[data-dia]') as HTMLElement;
+    expect(caixa.className).not.toMatch(/border-linha|bg-fundo/);
+    const semana = caixa.querySelector('[data-dia-da-semana]')!;
+    expect(semana).toHaveClass('md:hidden');
+  });
+
+  it('o turno que acabou de ser lançado fica marcado até o próximo lançamento, e o aviso diz quem ficou com ele', async () => {
+    const depois1 = turnoCom({ [`${dia(3)}|t-b`]: 'm-1' });
+    const depois2 = turnoCom({ [`${dia(3)}|t-b`]: 'm-1', [`${dia(4)}|t-a`]: 'm-1' });
+    abrirEscala(escala(), {
+      [`PUT ${URL_MES}/turnos/${dia(3)}/t-b`]: { status: 200, corpo: depois1 },
+      [`PUT ${URL_MES}/turnos/${dia(4)}/t-a`]: { status: 200, corpo: depois2 },
+    });
+    await userEvent.click(await screen.findByRole('button', { name: /^03\/01, Noite/ }));
+    expect(await screen.findByText('CEL ALFA ficou com o turno Noite de 03/01.')).toBeInTheDocument();
+    await waitFor(() => expect(document.querySelector('[data-recente="true"]')).toHaveClass('ring-2', 'ring-tinta'));
+    expect(document.querySelectorAll('[data-recente="true"]')).toHaveLength(1);
+    await userEvent.click(await screen.findByRole('button', { name: /^04\/01, Dia/ }));
+    expect(await screen.findByText('CEL ALFA ficou com o turno Dia de 04/01.')).toBeInTheDocument();
+    await waitFor(() => expect(document.querySelectorAll('[data-recente="true"]')).toHaveLength(1));
+  });
+
+  it('os turnos do oficial da vez ficam com o contorno de 1 px vinho; os dos outros, não', async () => {
+    abrirEscala(turnoCom({ [`${dia(2)}|t-a`]: 'm-1', [`${dia(2)}|t-b`]: 'm-2' }));
+    await screen.findByText('2 de 62 turnos com nome');
+    expect(placa('CEL ALFA')).toHaveClass('ring-1', 'ring-vinho');
+    expect(placa('CAP BRAVO')).not.toHaveClass('ring-vinho');
+  });
+
+  it('nome longo e patente longa: o nome corta com reticências, a patente nunca, e a dica mostra tudo (Review Focus 1)', async () => {
+    const longo = oficial({ militarId: 'm-9', nomeGuerra: 'MONTENEGRO-SANTOS', posto: 'SUB TEN', ordem: 4, matricula: '990109-9' });
+    abrirEscala(escala({ oficiais: [O1, O2, O3, longo], turnos: comNome(escala(), { [`${dia(2)}|t-a`]: 'm-9' }) }));
+    await screen.findByText('1 de 62 turnos com nome');
+    const dica = placa('SUB TEN MONTENEGRO-SANTOS');
+    expect(within(dica).getByText('SUB TEN')).toHaveClass('shrink-0');
+    expect(within(dica).getByText('MONTENEGRO-SANTOS')).toHaveClass('truncate');
+  });
+
+  it('turno com alerta e turno "cobriu X": o nome continua legível, com a marca e a linha extra em 13 px (Review Focus 3)', async () => {
+    abrirEscala(turnoCom({ [`${dia(2)}|t-a`]: ['m-2', 'm-3'] }, { avisos: [{ dia: dia(2), turnoId: 't-a', mensagem: 'x' } as never] }));
+    await screen.findByText('1 de 62 turnos com nome');
+    const alvo = placa('CAP BRAVO');
+    expect(within(alvo).getByText('BRAVO')).toBeInTheDocument();
+    expect(within(alvo).getByLabelText('Alerta')).toBeInTheDocument();
+    expect(within(alvo).getByText('cobriu CHARLIE')).toHaveClass('text-[13px]');
+  });
+});
+
+describe('o painel largo, com todos os dados do oficial (6.22)', () => {
+  afterEach(() => {
+    cleanup();
+    vi.unstubAllGlobals();
+  });
+
+  it('a divisão é o calendário (minmax(0,1fr)) e um painel de 30 rem, sem rolagem de lado (Review Focus 2 e 4)', async () => {
+    abrirEscala(escala());
+    const lista = await screen.findByRole('list', { name: 'Cotas de janeiro de 2027' });
+    const grade = lista.closest('aside')!.parentElement!;
+    expect(grade.className).toContain('xl:grid-cols-[minmax(0,1fr)_30rem]');
+    expect(lista.closest('aside')!.innerHTML).not.toContain('overflow-x-auto');
+  });
+
+  it('cada oficial é uma linha com a marca, a ordem, a patente, o nome, o quadro e a lotação, e os números em destaque', async () => {
+    abrirEscala(escala({ oficiais: [{ ...O1, escolhidos: 4 }, O2, O3] }));
+    const lista = await screen.findByRole('list', { name: 'Cotas de janeiro de 2027' });
+    const alfa = within(lista).getByRole('checkbox', { name: 'CEL ALFA participa da rodada' }).closest('li')!;
+    expect(within(alfa).getByText('ALFA')).toHaveClass('text-[17px]', 'font-cond');
+    expect(within(alfa).getByText('CEL')).toHaveClass('text-[13px]');
+    expect(alfa.textContent).toContain('QOC');
+    expect(alfa.textContent).toContain('2º GB');
+    for (const rotulo of ['Saldo', 'Dias', 'Cota', 'Escolhidos']) expect(within(alfa).getByText(rotulo)).toHaveClass('text-[13px]', 'text-apagado');
+    expect(within(alfa).getByText('+0,75')).toHaveClass('text-[17px]', 'tabular-nums');
+    expect(within(alfa).getByText('4 de 21')).toHaveClass('text-[17px]', 'tabular-nums');
+    // a barra fina do quanto já foi escolhido
+    expect((alfa.querySelector('[data-barra]') as HTMLElement).style.width).toBe('19%');
+    const bravo = within(lista).getByRole('checkbox', { name: 'CAP BRAVO participa da rodada' }).closest('li')!;
+    expect(within(bravo).getByText('+1 sobra')).toBeInTheDocument();
+    expect(within(bravo).getByText(/ordenado à mão/)).toBeInTheDocument();
+  });
+
+  it('os afastamentos vêm embaixo, em pendência, e "Escolhidos" acima da cota diz "{n} a mais"', async () => {
+    abrirEscala(escala({ oficiais: [{ ...O1, escolhidos: 23, afastamentos: [{ inicio: dia(10), fim: dia(11), tipo: 'Férias' }] }, O2, O3] }));
+    const alfa = (await screen.findByRole('checkbox', { name: 'CEL ALFA participa da rodada' })).closest('li')!;
+    expect(within(alfa).getByText('Férias, 10/01 a 11/01')).toHaveClass('text-pendencia');
+    expect(within(alfa).getByText('2 a mais')).toHaveClass('text-pendencia');
+    expect((alfa.querySelector('[data-barra]') as HTMLElement).style.width).toBe('100%');
+  });
+
+  it('o oficial da vez tem a linha marcada, e o cartão "Vez de escolher" diz o nome em 20 px e quantos turnos faltam', async () => {
+    abrirEscala(escala({ oficiais: [{ ...O1, escolhidos: 4 }, O2, O3] }));
+    const quadro = await screen.findByLabelText('Vez de escolher');
+    expect(within(quadro).getByText('CEL ALFA')).toHaveClass('text-[20px]', 'font-cond');
+    expect(within(quadro).getByText('1º na ordem')).toBeInTheDocument();
+    expect(within(quadro).getByText('Faltam 17 turnos para ele.')).toBeInTheDocument();
+    const lista = screen.getByRole('list', { name: 'Cotas de janeiro de 2027' });
+    expect(within(lista).getByRole('checkbox', { name: 'CEL ALFA participa da rodada' }).closest('li')).toHaveClass('border-vinho', 'bg-pendencia-fundo');
+    expect(within(lista).getByRole('checkbox', { name: 'CAP BRAVO participa da rodada' }).closest('li')).not.toHaveClass('border-vinho');
+  });
+
+  it('falta um turno só: "Falta 1 turno para ele."', async () => {
+    abrirEscala(escala({ oficiais: [{ ...O1, escolhidos: 20 }, O2, O3] }));
+    expect(await screen.findByText('Falta 1 turno para ele.')).toBeInTheDocument();
+  });
+
+  it('o painel não tem texto abaixo de 13 px, e o rodapé continua em 13 px', async () => {
+    abrirEscala(escala());
+    const lista = await screen.findByRole('list', { name: 'Cotas de janeiro de 2027' });
+    const painel = lista.closest('aside')!;
+    expect(painel.innerHTML).not.toMatch(/text-\[11px\]|text-xs/);
+    expect(within(painel).getByText(/62 turnos no mês/)).toHaveClass('text-[13px]');
+  });
+
+  it('no celular o painel vem antes do calendário, e nada rola de lado (Review Focus 5)', async () => {
+    abrirEscala(escala());
+    const lista = await screen.findByRole('list', { name: 'Cotas de janeiro de 2027' });
+    expect(lista.closest('aside')).toHaveClass('order-first', 'xl:order-none');
+    expect(lista.closest('aside')!.innerHTML).not.toContain('overflow-x-auto');
+  });
+});
+

@@ -10,10 +10,13 @@ const SEMANA = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'];
 export const faixaDoTurno = (t: Turno) => `${textoHora(t.inicio)} às ${textoHora(t.fim)}`;
 export const rotuloDoTurnoNaTela = (t: Turno) => `${t.rotulo}, ${faixaDoTurno(t)}`;
 
-/** Dia e noite se distinguem só pela cor (decisão do usuário, 22/11/2026): o Dia no fundo claro, a Noite num cinza escuro, com o texto do turno escrito. */
+/**
+ * Dia e noite se distinguem pela cor (decisão do usuário, 22/11/2026), sem o bloco escuro (6.22): uma faixa de 4 px à esquerda (âmbar no Dia, tinta na
+ * Noite) e um fundo leve (branco no Dia, `passa` na Noite). A cor diz o turno; quem domina a tela é o nome de quem foi escalado.
+ */
 const TOM = {
-  Dia: 'border-linha bg-superficie text-tinta',
-  Noite: 'border-tinta bg-tinta text-white',
+  Dia: { faixa: 'border-l-4 border-l-pendencia', fundo: 'bg-superficie' },
+  Noite: { faixa: 'border-l-4 border-l-tinta', fundo: 'bg-passa' },
 } as const;
 
 interface Props {
@@ -22,13 +25,15 @@ interface Props {
   aoClicarTurno?: (t: Sorteado) => void;
   aoTirar?: (t: Sorteado) => void;
   desabilitado?: boolean;
+  /** O turno que acabou de ser lançado: fica marcado até o próximo lançamento. */
+  recente?: { dia: string; turnoId: string } | null;
 }
 
 export function LegendaDosTurnos({ turnos }: { turnos: Turno[] }) {
   return (
     <div aria-label="Legenda dos turnos" role="group" className="flex flex-wrap items-center gap-2 text-sm">
       {turnos.map((t) => (
-        <span key={t.id} className={cn('inline-flex items-center gap-1.5 rounded-md border px-2 py-0.5', TOM[t.rotulo])}>
+        <span key={t.id} className={cn('inline-flex items-center gap-1.5 rounded-md border border-linha py-0.5 pr-2 pl-2 text-[13px]', TOM[t.rotulo].faixa, TOM[t.rotulo].fundo)}>
           {rotuloDoTurnoNaTela(t)}
         </span>
       ))}
@@ -37,7 +42,7 @@ export function LegendaDosTurnos({ turnos }: { turnos: Turno[] }) {
 }
 
 /** O mês em dias, com os turnos do serviço. No celular, uma coluna; no computador, a semana. */
-export function CalendarioDosOficiais({ escala: e, aoClicarTurno, aoTirar, desabilitado }: Props) {
+export function CalendarioDosOficiais({ escala: e, aoClicarTurno, aoTirar, desabilitado, recente }: Props) {
   const turnos = e.turnosDoServico;
   const porId = new Map(e.oficiais.map((o) => [o.militarId, o] as const));
   const vez = e.etapa === 'escolhas' ? (porId.get(e.vez ?? '') ?? null) : null;
@@ -51,67 +56,80 @@ export function CalendarioDosOficiais({ escala: e, aoClicarTurno, aoTirar, desab
     if (!x) return null;
     const dd = `${d.slice(8, 10)}/${d.slice(5, 7)}`;
     const base = `${dd}, ${rotuloDoTurnoNaTela(t)}`;
-    const tom = t.rotulo === 'Noite' ? 'escuro' : 'claro';
     const dono = x.militarId ? porId.get(x.militarId) : null;
     const alerta = avisados.has(`${d}|${t.id}`);
-    const classe = cn('relative flex min-h-12 min-w-0 flex-col justify-center rounded-md border px-1.5 py-1 text-left text-[13px] leading-tight', TOM[t.rotulo], alerta && 'ring-2 ring-pendencia');
-    const rotulo = <span className="text-[11px] opacity-80">{t.rotulo}</span>;
-    const marca = alerta ? <AlertTriangle className="absolute top-1 right-1 size-3.5 text-pendencia" aria-label="Alerta" /> : null;
-    const comum = { 'data-tom': tom, 'data-alerta': alerta ? 'true' : undefined } as const;
+    const eRecente = recente?.dia === d && recente.turnoId === t.id;
+    const daVez = Boolean(vez && x.militarId === vez.militarId);
+    const classe = cn(
+      'relative flex min-h-12 min-w-0 flex-col justify-center rounded-md border px-2 py-1 text-left leading-tight',
+      alerta && 'pr-6 ring-2 ring-pendencia',
+      eRecente && 'ring-2 ring-tinta',
+      !eRecente && !alerta && daVez && 'ring-1 ring-vinho',
+    );
+    // a placa de quem foi escalado: faixa do turno, fundo leve e uma sombra apoiada; o livre é só um contorno tracejado
+    const placa = cn(classe, 'border-linha shadow-[0_1px_2px_rgba(28,36,48,.12)]', TOM[t.rotulo].faixa, TOM[t.rotulo].fundo);
+    const livre = cn(classe, 'border-dashed border-encaixe');
+    const rotulo = <span className="text-[13px] leading-[18px] font-medium text-apagado">{t.rotulo}</span>;
+    const marca = alerta ? <AlertTriangle className="absolute top-1 right-1 size-4 text-pendencia" aria-label="Alerta" /> : null;
+    const comum = { 'data-turno': t.rotulo === 'Noite' ? 'noite' : 'dia', 'data-alerta': alerta ? 'true' : undefined, 'data-recente': eRecente ? 'true' : undefined } as const;
 
     if (x.militarId === null) {
       // sem nome: nas escolhas é livre (ou afastado, para a vez); com a escala fechada qualquer turno abre a escolha
       if (e.etapa === 'escolhas' && afastado(vez, d)) {
         return (
-          <div key={t.id} {...comum} className={cn(classe, 'opacity-60')} title={`${vez!.posto} ${vez!.nomeGuerra} está afastado neste dia: o dia não é oferecido`}>
+          <div key={t.id} {...comum} className={cn(livre, 'opacity-60')} title={`${vez!.posto} ${vez!.nomeGuerra} está afastado neste dia: o dia não é oferecido`}>
             {rotulo}
-            <span className="font-medium">afastado</span>
+            <span className="text-[13px] leading-[18px] font-medium text-apagado">afastado</span>
           </div>
         );
       }
       if (e.etapa === 'escolhas' && aoClicarTurno) {
         return (
-          <button key={t.id} type="button" {...comum} disabled={desabilitado} aria-label={`${base}: livre`} onClick={() => aoClicarTurno(x)} className={cn(classe, 'hover:border-encaixe focus-visible:outline-2')}>
+          <button key={t.id} type="button" {...comum} disabled={desabilitado} aria-label={`${base}: livre`} onClick={() => aoClicarTurno(x)} className={cn(livre, 'hover:border-tinta focus-visible:outline-2')}>
             {rotulo}
-            <span className="font-medium">livre</span>
+            <span className="text-[13px] leading-[18px] text-apagado">livre</span>
           </button>
         );
       }
       if (e.etapa === 'fechada' && aoClicarTurno) {
         return (
-          <button key={t.id} type="button" {...comum} disabled={desabilitado} aria-label={`${base}: vazio`} onClick={() => aoClicarTurno(x)} className={cn(classe, 'border-dashed hover:border-encaixe')}>
+          <button key={t.id} type="button" {...comum} disabled={desabilitado} aria-label={`${base}: vazio`} onClick={() => aoClicarTurno(x)} className={cn(livre, 'hover:border-tinta')}>
             {rotulo}
-            <span className="font-medium">vazio</span>
+            <span className="text-[13px] leading-[18px] text-apagado">vazio</span>
           </button>
         );
       }
       return (
-        <div key={t.id} {...comum} className={cn(classe, 'border-dashed')}>
+        <div key={t.id} {...comum} className={livre}>
           {rotulo}
-          <span className="font-medium">{e.etapa === 'encerrada' || e.etapa === 'fechada' ? 'vazio' : 'livre'}</span>
+          <span className="text-[13px] leading-[18px] text-apagado">{e.etapa === 'encerrada' || e.etapa === 'fechada' ? 'vazio' : 'livre'}</span>
         </div>
       );
     }
 
     const nome = dono?.nomeGuerra ?? 'outro oficial';
     const saiu = x.saiuMilitarId ? porId.get(x.saiuMilitarId) : null;
+    // a patente nunca é cortada; o nome longo corta com reticências (a dica mostra tudo)
     const conteudo = (
       <>
-        {rotulo}
-        <span className="font-medium">{nome}</span>
-        {saiu && <span className="text-[11px] opacity-80">cobriu {saiu.nomeGuerra}</span>}
+        <span className="flex min-w-0 flex-wrap items-baseline gap-x-1.5">
+          {dono && <span className="shrink-0 text-[13px] leading-[18px] font-medium text-apagado">{dono.posto}</span>}
+          {rotulo}
+        </span>
+        <span className="min-w-0 truncate font-cond text-[17px] leading-6 font-semibold tracking-[0.01em] text-tinta">{nome}</span>
+        {saiu && <span className="text-[13px] leading-[18px] text-apagado">cobriu {saiu.nomeGuerra}</span>}
         {marca}
       </>
     );
     if (e.etapa === 'fechada' && aoClicarTurno) {
       return (
-        <button key={t.id} type="button" {...comum} disabled={desabilitado} aria-label={`${base}: ${nome}`} onClick={() => aoClicarTurno(x)} className={cn(classe, 'hover:border-encaixe')}>
+        <button key={t.id} type="button" {...comum} disabled={desabilitado} aria-label={`${base}: ${nome}`} onClick={() => aoClicarTurno(x)} className={cn(placa, 'hover:border-encaixe')} title={dono ? `${dono.posto} ${dono.nomeGuerra}` : undefined}>
           {conteudo}
         </button>
       );
     }
     return (
-      <div key={t.id} {...comum} className={classe} title={dono ? `${dono.posto} ${dono.nomeGuerra}` : undefined}>
+      <div key={t.id} {...comum} className={placa} title={dono ? `${dono.posto} ${dono.nomeGuerra}` : undefined}>
         {conteudo}
         {e.etapa === 'escolhas' && aoTirar && (
           <button
@@ -119,9 +137,9 @@ export function CalendarioDosOficiais({ escala: e, aoClicarTurno, aoTirar, desab
             disabled={desabilitado}
             aria-label={`Tirar ${nome} deste turno`}
             onClick={() => aoTirar(x)}
-            className="absolute right-0.5 bottom-0.5 rounded p-0.5 opacity-70 hover:opacity-100"
+            className="absolute right-0.5 bottom-0.5 rounded p-1 text-apagado hover:text-tinta"
           >
-            <X className="size-3" aria-hidden />
+            <X className="size-4" aria-hidden />
           </button>
         )}
       </div>
@@ -129,16 +147,17 @@ export function CalendarioDosOficiais({ escala: e, aoClicarTurno, aoTirar, desab
   }
 
   return (
-    <div aria-label="Calendário do mês" role="group" className="grid gap-1.5 md:grid-cols-7">
+    <div aria-label="Calendário do mês" role="group" className="grid gap-x-1.5 gap-y-3 md:grid-cols-7">
       {SEMANA.map((s) => (
-        <div key={s} aria-hidden className="hidden text-center text-xs font-medium text-apagado md:block">{s}</div>
+        <div key={s} aria-hidden className="hidden text-center text-[13px] font-medium text-apagado md:block">{s}</div>
       ))}
       {Array.from({ length: primeiro }, (_, i) => <div key={`v${i}`} aria-hidden className="hidden md:block" />)}
       {dias.map((d) => (
-        <div key={d} className="grid gap-1 rounded-lg border border-linha bg-fundo/60 p-1.5">
-          <div className="flex items-baseline justify-between text-xs">
-            <b className="text-sm">{Number(d.slice(8))}</b>
-            <span className="text-apagado">{SEMANA[new Date(`${d}T00:00:00Z`).getUTCDay()]}</span>
+        <div key={d} data-dia className="grid content-start gap-1 p-0.5">
+          <div className="flex items-baseline gap-2">
+            <b className="font-cond text-[15px] leading-[22px] font-semibold">{Number(d.slice(8))}</b>
+            {/* o cabeçalho das colunas já diz o dia da semana; na coluna única do celular ele volta */}
+            <span data-dia-da-semana className="text-[13px] text-apagado md:hidden">{SEMANA[new Date(`${d}T00:00:00Z`).getUTCDay()]}</span>
           </div>
           <div className="grid grid-cols-2 gap-1 md:grid-cols-1">{turnos.map((t) => celula(d, t))}</div>
         </div>
