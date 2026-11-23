@@ -26,6 +26,9 @@ export const escolherServico = (qc: QueryClient, unidadeId: string, mes: string,
 export const calcularCotas = (qc: QueryClient, unidadeId: string, mes: string) => gravar(qc, unidadeId, pedir<EscalaDosOficiais>('POST', `${base(unidadeId, mes)}/cotas`));
 export const gravarOrdem = (qc: QueryClient, unidadeId: string, mes: string, militarIds: string[]) =>
   gravar(qc, unidadeId, pedir<EscalaDosOficiais>('PUT', `${base(unidadeId, mes)}/ordem`, { militarIds }));
+/** Quem participa da rodada do mês (a lista inteira). Com as cotas calculadas, a API refaz as cotas; `liberados` diz os turnos que ficaram sem ninguém. */
+export const gravarParticipantes = (qc: QueryClient, unidadeId: string, mes: string, militarIds: string[]) =>
+  gravar(qc, unidadeId, pedir<EscalaDosOficiais>('PUT', `${base(unidadeId, mes)}/participantes`, { militarIds }));
 export const trocarTurno = (qc: QueryClient, unidadeId: string, mes: string, dia: string, turnoId: string, militarId: string | null) =>
   gravar(qc, unidadeId, pedir<EscalaDosOficiais>('PUT', `${base(unidadeId, mes)}/turnos/${dia}/${turnoId}`, { militarId }));
 export const fecharEscala = (qc: QueryClient, unidadeId: string, mes: string) => gravar(qc, unidadeId, pedir<EscalaDosOficiais>('POST', `${base(unidadeId, mes)}/fechar`));

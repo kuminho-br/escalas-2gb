@@ -2,7 +2,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import type { EscalaDosOficiais } from 'contratos';
 import { useState } from 'react';
 import { mensagemDe } from '@/api/cliente';
-import { calcularCotas, encerrarMes, fecharEscala, gravarOrdem, trocarTurno } from '@/api/oficiais';
+import { calcularCotas, encerrarMes, fecharEscala, gravarOrdem, gravarParticipantes, trocarTurno } from '@/api/oficiais';
 import { useTrava } from '@/componentes/AlteracoesPendentes';
 import { Button } from '@/componentes/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/componentes/ui/dialog';
@@ -27,6 +27,8 @@ export function EscalaDoMes({ unidadeId, escala: e, aoVer }: Props) {
   const [turnoAberto, setTurnoAberto] = useState<Turno | null>(null);
   // o erro de uma troca feita no diálogo aparece nele (atrás do diálogo ninguém o veria)
   const [erroDoTurno, setErroDoTurno] = useState<string | null>(null);
+  // depois de mudar quem participa: os turnos de quem saiu que ficaram sem ninguém
+  const [liberados, setLiberados] = useState<string[]>([]);
 
   const semParticipantes = e.etapa === 'sem-cotas' && e.oficiais.length === 0;
   if (semParticipantes) return <p className="text-apagado">Nenhum oficial QOC ou QOA nesta unidade neste mês.</p>;
@@ -41,10 +43,16 @@ export function EscalaDoMes({ unidadeId, escala: e, aoVer }: Props) {
         mostrar(mensagemDe(x));
       }
     });
-  const calcular = rodar(() => calcularCotas(queryClient, unidadeId, e.mes));
+  // as mudanças que refazem as cotas dizem os turnos de quem saiu da rodada que ficaram sem ninguém; uma ação nova limpa o aviso anterior
+  const comAviso = (f: () => Promise<EscalaDosOficiais>) => async () => {
+    setLiberados([]);
+    setLiberados((await f()).liberados ?? []);
+  };
+  const calcular = rodar(comAviso(() => calcularCotas(queryClient, unidadeId, e.mes)));
   const fechar = rodar(() => fecharEscala(queryClient, unidadeId, e.mes), () => setConfirmacao(null));
   const encerrar = rodar(() => encerrarMes(queryClient, unidadeId, e.mes), () => setConfirmacao(null));
-  const ordenar = (ids: string[]) => void rodar(() => gravarOrdem(queryClient, unidadeId, e.mes, ids))();
+  const ordenar = (ids: string[]) => void rodar(comAviso(() => gravarOrdem(queryClient, unidadeId, e.mes, ids)))();
+  const marcar = (ids: string[]) => void rodar(comAviso(() => gravarParticipantes(queryClient, unidadeId, e.mes, ids)))();
   const lancar = (t: Turno, militarId: string | null, noDialogo = false) =>
     rodar(() => trocarTurno(queryClient, unidadeId, e.mes, t.dia, t.turnoId, militarId), () => setTurnoAberto(null), noDialogo ? setErroDoTurno : setErro)();
   const fecharDialogo = () => {
@@ -82,6 +90,11 @@ export function EscalaDoMes({ unidadeId, escala: e, aoVer }: Props) {
         </div>
       </div>
       {erro && <p role="alert" className="text-alerta">{erro}</p>}
+      {liberados.length > 0 && (
+        <div role="status" className="rounded-md bg-pendencia-fundo px-3 py-2 text-sm text-pendencia">
+          {liberados.map((l) => <p key={l}>{l}</p>)}
+        </div>
+      )}
       <MensagensDoMes
         escala={e}
         confirmacao={confirmacao}
@@ -90,7 +103,15 @@ export function EscalaDoMes({ unidadeId, escala: e, aoVer }: Props) {
         aoEncerrar={() => void encerrar()}
         aoDesistir={() => setConfirmacao(null)}
       />
-      {e.etapa === 'sem-cotas' && <p className="text-apagado">{e.servico ? 'Calcule as cotas para abrir os turnos do mês.' : 'Escolha o serviço da escala. Ele vem do cadastro de serviços (tela Turnos).'}</p>}
+      {e.etapa === 'sem-cotas' && (
+        <p className="text-apagado">
+          {!e.servico
+            ? 'Escolha o serviço da escala. Ele vem do cadastro de serviços (tela Turnos).'
+            : e.oficiais.some((o) => o.participa)
+              ? 'Calcule as cotas para abrir os turnos do mês.'
+              : 'Marque na lista quem participa da rodada e calcule as cotas.'}
+        </p>
+      )}
       <div className="grid grid-cols-[minmax(0,1fr)] items-start gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,24rem)]">
         {aberto || e.etapa === 'encerrada' ? (
           <section className="grid gap-2 rounded-lg border border-linha bg-superficie p-3">
@@ -114,7 +135,7 @@ export function EscalaDoMes({ unidadeId, escala: e, aoVer }: Props) {
           <VezDeEscolher escala={e} />
           <section className="grid gap-2 rounded-lg border border-linha bg-superficie p-3">
             <h2 className="font-cond text-lg font-semibold">Cotas</h2>
-            <ListaDeCotas escala={e} aoOrdenar={e.etapa === 'sem-cotas' ? undefined : ordenar} desabilitado={salvando} />
+            <ListaDeCotas escala={e} aoOrdenar={e.etapa === 'sem-cotas' ? undefined : ordenar} aoMarcar={marcar} desabilitado={salvando} />
           </section>
         </aside>
       </div>
@@ -128,7 +149,7 @@ export function EscalaDoMes({ unidadeId, escala: e, aoVer }: Props) {
           </DialogHeader>
           {erroDoTurno && <p role="alert" className="text-alerta">{erroDoTurno}</p>}
           <div className="grid gap-1.5">
-            {e.oficiais.map((o) => (
+            {e.oficiais.filter((o) => o.participa).map((o) => (
               <Button key={o.militarId} type="button" variant="outline" disabled={salvando} onClick={() => turnoAberto && lancar(turnoAberto, o.militarId, true)}>
                 {`${o.posto} ${o.nomeGuerra}`}
               </Button>

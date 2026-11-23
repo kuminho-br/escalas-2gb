@@ -1,5 +1,5 @@
 // Rotas da escala dos oficiais (QOC e QOA) e do painel de saldo. Só gestor e administrador da unidade.
-import { AjusteDeSaldo, OrdemManual, ServicoDoMes, TrocaDeTurno, type OficialNoSaldo } from 'contratos';
+import { AjusteDeSaldo, OrdemManual, Participantes, ServicoDoMes, TrocaDeTurno, type OficialNoSaldo } from 'contratos';
 import { Mes } from 'contratos';
 import { calcularCotas, diasDoMes, ordemDeEscolha, rotuloDoTurno, saldoDeEntrada, saldoDoMes, type TurnoDoMes } from 'dominio';
 import { Hono, type Context } from 'hono';
@@ -9,7 +9,7 @@ import { comUsuario, type Banco, type Consulta } from '../banco/banco.ts';
 import { hojeRecife } from '../datas.ts';
 import { lerCorpo, respostaDoErroDoBanco } from '../erros.ts';
 import { lerEscala, lerSaldo, linhaDoMes, servicoDoUltimoMes, turnosDoServico } from './leitura.ts';
-import { limitesDoMes, participantesDoMes } from './participantes.ts';
+import { copiarMarcasDoMesAnterior, elegiveisDoMes, limitesDoMes, marcasDoMes, postoCurto } from './participantes.ts';
 
 type Ctx = Context<AmbienteApi>;
 
@@ -23,6 +23,9 @@ const MSG_SERVICO_TRAVADO = 'Com as cotas calculadas, o serviço não muda mais.
 const MSG_TURNO_ALHEIO = 'Este turno não é do serviço da escala.';
 const MSG_TURNO_FORA_DO_MES = 'Este turno não faz parte da escala deste mês.';
 const MSG_FORA_DA_ESCALA = 'Este oficial não está na escala deste mês.';
+const MSG_SEM_PARTICIPANTES = 'Marque quem participa da rodada antes de calcular as cotas.';
+const MSG_NAO_ELEGIVEL = 'Este oficial não é elegível neste mês.';
+const MSG_PARTICIPANTES_FECHADOS = 'Com a escala fechada, os participantes não mudam mais.';
 
 class Recusa extends Error {
   constructor(readonly status: 400 | 409, mensagem: string) {
@@ -38,16 +41,20 @@ async function servicoValido(tx: Consulta, servicoId: string, unidadeId: string)
   return rows.length > 0;
 }
 
-/** Garante a linha do mês; ao criá-la, o serviço vem copiado do último mês da unidade. */
+/** Garante a linha do mês; ao criá-la, o serviço vem copiado do último mês da unidade, e as marcas de quem participa, do mês anterior. */
 async function garantirMes(tx: Consulta, unidadeId: string, mes: string): Promise<void> {
-  await tx.query(
-    'insert into oficiais_mes (unidade_id, mes, servico_id) values ($1, $2::date, $3) on conflict (unidade_id, mes) do nothing',
+  const { rows } = await tx.query<{ id: string }>(
+    'insert into oficiais_mes (unidade_id, mes, servico_id) values ($1, $2::date, $3) on conflict (unidade_id, mes) do nothing returning id',
     [unidadeId, `${mes}-01`, await servicoDoUltimoMes(tx, unidadeId)],
   );
+  if (rows[0]) await copiarMarcasDoMesAnterior(tx, unidadeId, mes, rows[0].id);
 }
 
-/** Cria o mês (e os turnos vazios) na primeira vez, recalcula a ordem, os dias e as cotas e regrava `oficiais_cota`. Mantém as escolhas. */
-async function calcularEGravar(tx: Consulta, unidadeId: string, mes: string, ordemManual?: string[]): Promise<void> {
+/**
+ * Cria o mês (e os turnos vazios) na primeira vez, recalcula a ordem, os dias e as cotas dos participantes e regrava `oficiais_cota`. Mantém as
+ * escolhas de quem continua; as de quem saiu da rodada são retiradas, e a resposta traz uma frase para cada um ("2 turnos de CAP X ficaram sem ninguém.").
+ */
+async function calcularEGravar(tx: Consulta, unidadeId: string, mes: string, ordemManual?: string[]): Promise<string[]> {
   await garantirMes(tx, unidadeId, mes);
   const linha = (await linhaDoMes(tx, unidadeId, mes, true))!;
   if (linha.fechada_em) throw new Recusa(409, MSG_COTA_FECHADA);
@@ -56,7 +63,10 @@ async function calcularEGravar(tx: Consulta, unidadeId: string, mes: string, ord
   if (!linha.cotas_em && !(await servicoValido(tx, linha.servico_id, unidadeId))) throw new Recusa(409, MSG_SERVICO_INVALIDO);
   const turnosDoMes = await turnosDoServico(tx, linha.servico_id);
   const manual = ordemManual ?? linha.ordem_manual;
-  const participantes = await participantesDoMes(tx, unidadeId, mes);
+  const elegiveis = await elegiveisDoMes(tx, unidadeId, mes);
+  const { marcados } = await marcasDoMes(tx, unidadeId, mes, linha.id);
+  const participantes = elegiveis.filter((p) => marcados.has(p.militarId));
+  if (elegiveis.length > 0 && participantes.length === 0) throw new Recusa(409, MSG_SEM_PARTICIPANTES);
   const ordem = ordemDeEscolha(participantes, manual);
   const porId = new Map(participantes.map((p) => [p.militarId, p]));
   const cotas = calcularCotas(turnosDoMes.length * diasDoMes(mes).length, ordem.map((id) => ({ militarId: id, dias: porId.get(id)!.dias })));
@@ -68,7 +78,15 @@ async function calcularEGravar(tx: Consulta, unidadeId: string, mes: string, ord
       [linha.id, x.militarId, i + 1, x.dias, x.devido, x.cota, x.sobra],
     );
   }
-  // quem saiu da lista (desativado, outro quadro, outra unidade) não pode ficar com turnos: o devido dos outros contaria turnos sem dono de saldo
+  // quem saiu da rodada (desmarcado, desativado, outro quadro, outra unidade) não pode ficar com turnos: o devido dos outros contaria turnos sem dono de saldo
+  const { rows: soltos } = await tx.query<{ n: number; posto: string; nome_guerra: string }>(
+    `select count(*)::int as n, p.sigla as posto, m.nome_guerra
+       from oficiais_turno t join militar m on m.id = t.militar_id join posto_grad p on p.id = m.posto_grad_id
+      where t.mes_id = $1 and not (t.militar_id = any($2::uuid[]))
+      group by m.id, p.sigla, p.ordem, m.nome_guerra order by p.ordem desc, m.nome_guerra`,
+    [linha.id, cotas.map((x) => x.militarId)],
+  );
+  const liberados = soltos.map((x) => `${x.n} ${x.n === 1 ? 'turno' : 'turnos'} de ${postoCurto(x.posto)} ${x.nome_guerra} ${x.n === 1 ? 'ficou' : 'ficaram'} sem ninguém.`);
   await tx.query(
     'update oficiais_turno set militar_id = null, saiu_militar_id = null where mes_id = $1 and militar_id is not null and not (militar_id = any($2::uuid[]))',
     [linha.id, cotas.map((x) => x.militarId)],
@@ -81,6 +99,7 @@ async function calcularEGravar(tx: Consulta, unidadeId: string, mes: string, ord
     [linha.id, inicio, fim, turnosDoMes.map((t) => t.id)],
   );
   await tx.query('update oficiais_mes set cotas_em = now(), ordem_manual = $2::uuid[] where id = $1', [linha.id, manual]);
+  return liberados;
 }
 
 async function turnosDoMes(c: Consulta, mesId: string): Promise<TurnoDoMes[]> {
@@ -106,12 +125,12 @@ export function rotasOficiais(dep: { banco: Banco; auth: Auth }): Hono<AmbienteA
     return { u, mes };
   }
 
-  /** Roda a mudança numa transação e devolve a escala do mês; uma `Recusa` vira 400 ou 409 com a mensagem. */
-  async function mudar(c: Ctx, u: string, mes: string, fn: (tx: Consulta) => Promise<void>): Promise<Response> {
+  /** Roda a mudança numa transação e devolve a escala do mês, com os avisos de turnos que ficaram sem ninguém; uma `Recusa` vira 400 ou 409 com a mensagem. */
+  async function mudar(c: Ctx, u: string, mes: string, fn: (tx: Consulta) => Promise<string[] | void>): Promise<Response> {
     try {
       const escala = await comUsuario(dep.banco, c.get('usuarioId'), async (tx) => {
-        await fn(tx);
-        return lerEscala(tx, u, mes);
+        const liberados = (await fn(tx)) ?? [];
+        return { ...(await lerEscala(tx, u, mes)), liberados };
       });
       return c.json(escala);
     } catch (e) {
@@ -153,6 +172,32 @@ export function rotasOficiais(dep: { banco: Banco; auth: Auth }): Hono<AmbienteA
     const corpo = await lerCorpo(c, OrdemManual);
     if (!corpo.ok) return corpo.resposta;
     return mudar(c, a.u, a.mes, (tx) => calcularEGravar(tx, a.u, a.mes, corpo.dados.militarIds));
+  });
+
+  r.put('/unidades/:u/oficiais/:mes/participantes', async (c) => {
+    const a = await entrada(c);
+    if ('resposta' in a) return a.resposta;
+    const corpo = await lerCorpo(c, Participantes);
+    if (!corpo.ok) return corpo.resposta;
+    const marcar = [...new Set(corpo.dados.militarIds)];
+    return mudar(c, a.u, a.mes, async (tx) => {
+      const elegiveis = new Set((await elegiveisDoMes(tx, a.u, a.mes)).map((p) => p.militarId));
+      await garantirMes(tx, a.u, a.mes);
+      const linha = (await linhaDoMes(tx, a.u, a.mes, true))!;
+      if (linha.fechada_em) throw new Recusa(409, MSG_PARTICIPANTES_FECHADOS);
+      // quem já estava na rodada (marcado ou com cota) e deixou de ser elegível pode vir na lista da tela: ele só sai da rodada.
+      // Quem nunca esteve nela e não é elegível é recusado.
+      const naRodada = new Set([
+        ...(await marcasDoMes(tx, a.u, a.mes, linha.id)).marcados,
+        ...(await tx.query<{ militar_id: string }>('select militar_id from oficiais_cota where mes_id = $1', [linha.id])).rows.map((r) => r.militar_id),
+      ]);
+      if (marcar.some((id) => !elegiveis.has(id) && !naRodada.has(id))) throw new Recusa(400, MSG_NAO_ELEGIVEL);
+      const ficam = marcar.filter((id) => elegiveis.has(id));
+      await tx.query('delete from oficiais_participante where mes_id = $1 and not (militar_id = any($2::uuid[]))', [linha.id, ficam]);
+      await tx.query('insert into oficiais_participante (mes_id, militar_id) select $1, unnest($2::uuid[]) on conflict do nothing', [linha.id, ficam]);
+      // com as cotas já calculadas, mudar quem participa refaz as cotas (as escolhas de quem continua ficam)
+      if (linha.cotas_em) return calcularEGravar(tx, a.u, a.mes);
+    });
   });
 
   r.put('/unidades/:u/oficiais/:mes/turnos/:dia/:turnoId', async (c) => {

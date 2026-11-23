@@ -1,7 +1,7 @@
 import type { Candidatos, FichaMilitar, GradeDoMes } from 'contratos';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { hojeRecife } from '../src/datas.ts';
-import { participantesDoMes } from '../src/oficiais/participantes.ts';
+import { elegiveisDoMes } from '../src/oficiais/participantes.ts';
 import { inserir, situacaoDoMilitar } from './banco-teste.ts';
 import { montarApi, type ApiDeTeste } from './apoio-api.ts';
 
@@ -68,9 +68,9 @@ describe('o quadro por período', () => {
   });
 
   it('entra na escala dos oficiais só com os dias a partir do 15, e num mês anterior à mudança não participa', async () => {
-    const p = (await participantesDoMes(api.banco, api.ids.gb, MES)).find((x) => x.nomeGuerra === 'MUDOU');
+    const p = (await elegiveisDoMes(api.banco, api.ids.gb, MES)).find((x) => x.nomeGuerra === 'MUDOU');
     expect(p).toMatchObject({ quadro: 'QOA', dias: 17 });
-    expect((await participantesDoMes(api.banco, api.ids.gb, '2026-11')).some((x) => x.nomeGuerra === 'MUDOU')).toBe(false);
+    expect((await elegiveisDoMes(api.banco, api.ids.gb, '2026-11')).some((x) => x.nomeGuerra === 'MUDOU')).toBe(false);
   });
 });
 

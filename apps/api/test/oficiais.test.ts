@@ -33,7 +33,12 @@ async function oficial(nome: string, antiguidade: number | null, opcoes: { posto
 
 const rota = (mes: string, resto = '') => `/api/unidades/${api.ids.gb}/oficiais/${mes}${resto}`;
 const ler = async (mes: string): Promise<EscalaDosOficiais> => (await api.pedir('gestorGb', 'GET', rota(mes))).json();
-const calcular = (mes: string) => api.pedir('gestorGb', 'POST', rota(mes, '/cotas'));
+// até a P1.5 todo elegível participava: estes testes marcam todos os elegíveis do mês antes de calcular (com a escala aberta)
+const calcular = async (mes: string) => {
+  const e = await ler(mes);
+  if (e.etapa === 'sem-cotas' || e.etapa === 'escolhas') await api.pedir('gestorGb', 'PUT', rota(mes, '/participantes'), { militarIds: e.oficiais.map((o) => o.militarId) });
+  return api.pedir('gestorGb', 'POST', rota(mes, '/cotas'));
+};
 const lancar = (mes: string, dia: string, turno: string, militarId: string | null) => api.pedir('gestorGb', 'PUT', rota(mes, `/turnos/${dia}/${turno}`), { militarId });
 const painel = async (): Promise<OficialNoSaldo[]> => (await api.pedir('gestorGb', 'GET', `/api/unidades/${api.ids.gb}/oficiais-saldo`)).json();
 const dono = (i: number) => NOMES.flatMap((n, k) => Array<string>(COTAS[k]!).fill(n))[i]!;

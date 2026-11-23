@@ -1,5 +1,6 @@
-// Quem participa da escala dos oficiais num mês: militar dos quadros QOC e QOA (pelo período) com situação que deixa escalar e rastreio na unidade
-// (ou abaixo dela) em algum dia do mês. A presença vem do motor (`diasPresentes`).
+// Quem pode participar da escala dos oficiais num mês (o elegível): militar dos quadros QOC e QOA (pelo período) com situação que deixa escalar e
+// rastreio na unidade (ou abaixo dela) em algum dia do mês. A presença vem do motor (`diasPresentes`). Quem participa de fato é o elegível que o
+// gestor marcou (`marcadosDoMes`).
 import { diasPresentes } from 'dominio';
 import type { Consulta } from '../banco/banco.ts';
 
@@ -49,10 +50,10 @@ export async function afastamentosDoMes(c: Consulta, ids: string[], mes: string)
 }
 
 /**
- * Os participantes do mês (AAAA-MM), sem ordem definida: quem ordena é `ordemDeEscolha`. Participa quem tem, na unidade ou abaixo dela, período
+ * Os elegíveis do mês (AAAA-MM), sem ordem definida: quem ordena é `ordemDeEscolha`. É elegível quem tem, na unidade ou abaixo dela, período
  * com quadro QOC ou QOA e situação que deixa escalar; só os dias desses períodos contam (o quadro e a situação valem por período).
  */
-export async function participantesDoMes(c: Consulta, unidadeId: string, mes: string): Promise<Participante[]> {
+export async function elegiveisDoMes(c: Consulta, unidadeId: string, mes: string): Promise<Participante[]> {
   const { inicio, fim } = limitesDoMes(mes);
   const { rows: rastreios } = await c.query<{ militar_id: string; desde: string; ate: string | null; sigla: string; quadro: 'QOC' | 'QOA' }>(
     `select r.militar_id, to_char(r.desde, 'YYYY-MM-DD') as desde, to_char(r.ate, 'YYYY-MM-DD') as ate, un.sigla, q.sigla as quadro
@@ -89,4 +90,39 @@ export async function participantesDoMes(c: Consulta, unidadeId: string, mes: st
       dias: diasPresentes(mes, periodos.map((p) => ({ desde: p.desde, ate: p.ate })), afastamentos),
     };
   });
+}
+
+/** O mês gravado da unidade imediatamente anterior a `mes`: é dele que vêm as marcas de um mês novo e a marca "novo". */
+async function mesAnterior(c: Consulta, unidadeId: string, mes: string): Promise<{ id: string; mes: string } | null> {
+  const { rows } = await c.query<{ id: string; mes: string }>(
+    "select id, to_char(mes, 'YYYY-MM') as mes from oficiais_mes where unidade_id = $1 and mes < $2::date order by mes desc limit 1", [unidadeId, `${mes}-01`]);
+  return rows[0] ?? null;
+}
+
+async function marcasDe(c: Consulta, mesId: string): Promise<Set<string>> {
+  const { rows } = await c.query<{ militar_id: string }>('select militar_id from oficiais_participante where mes_id = $1', [mesId]);
+  return new Set(rows.map((r) => r.militar_id));
+}
+
+export interface Marcas {
+  /** Quem o gestor marcou: as marcas do mês gravado ou, sem ele, a cópia das do mês anterior da unidade. Pode trazer quem já não é elegível. */
+  marcados: Set<string>;
+  /** Quem era elegível no mês anterior da unidade; null no primeiro mês dela (aí ninguém é "novo"). */
+  elegiveisAntes: Set<string> | null;
+}
+
+/** As marcas do mês. `mesId` é o do mês gravado (null se ainda não foi). */
+export async function marcasDoMes(c: Consulta, unidadeId: string, mes: string, mesId: string | null): Promise<Marcas> {
+  const anterior = await mesAnterior(c, unidadeId, mes);
+  const marcados = mesId ? await marcasDe(c, mesId) : anterior ? await marcasDe(c, anterior.id) : new Set<string>();
+  const elegiveisAntes = anterior ? new Set((await elegiveisDoMes(c, unidadeId, anterior.mes)).map((p) => p.militarId)) : null;
+  return { marcados, elegiveisAntes };
+}
+
+/** Ao criar o mês, as marcas vêm copiadas do mês anterior da unidade (no primeiro mês, ninguém vem marcado). */
+export async function copiarMarcasDoMesAnterior(c: Consulta, unidadeId: string, mes: string, mesId: string): Promise<void> {
+  const anterior = await mesAnterior(c, unidadeId, mes);
+  if (!anterior) return;
+  await c.query(
+    'insert into oficiais_participante (mes_id, militar_id) select $1, militar_id from oficiais_participante where mes_id = $2 on conflict do nothing', [mesId, anterior.id]);
 }
