@@ -19,7 +19,7 @@ const dia = (n: number) => `${MES}-${String(n).padStart(2, '0')}`;
 const secao = () => `/api/unidades/${api.ids.secao}`;
 
 async function criar(nome: string, postoSigla: string, periodos: { desde: string; ate?: string; quadro: string | null; situacao?: string }[]) {
-  const id = await inserir(api.banco, 'militar', { matricula: `99140${Object.keys(militar).length + 1}-${Object.keys(militar).length + 1}`, posto_grad_id: posto[postoSigla], nome_guerra: nome, antiguidade: Object.keys(militar).length + 1 });
+  const id = await inserir(api.banco, 'militar', { matricula: `99${1400 + Object.keys(militar).length + 1}-${(Object.keys(militar).length + 1) % 10}`, posto_grad_id: posto[postoSigla], nome_guerra: nome, antiguidade: Object.keys(militar).length + 1 });
   militar[nome] = id;
   for (const p of periodos) {
     await inserir(api.banco, 'rastreio', {
@@ -85,6 +85,31 @@ describe('a situação por período', () => {
     const linha = (await grade()).grupos.flatMap((x) => x.linhas).find((l) => l.nomeGuerra === 'RESERVA');
     expect(linha).toBeDefined();
     expect(Object.keys(linha!.dias)).toEqual([dia(5)]);
+  });
+});
+
+describe('a Grade com duas situações no mês (revisão final)', () => {
+  it('Desativado até o dia 14 e Ativa a partir do 15, sem escala no mês: aparece na Grade', async () => {
+    await criar('VOLTOU', 'SD BM', [{ desde: '2026-11-01', ate: dia(14), quadro: 'QBMG', situacao: 'Desativado' }, { desde: dia(15), quadro: 'QBMG' }]);
+    await criar('VOLTOU2', 'SD BM', [{ desde: dia(15), quadro: 'QBMG' }]);
+    await api.banco.query("insert into rastreio (militar_id, unidade_id, equipe_id, jornada, desde, ate, quadro_id, situacao_id) values ($1, $2, $3, 'pronto', '2026-11-01', $4, $5, $6)", [
+      militar.VOLTOU2, api.ids.secao, alfa, dia(14), quadro.QBMG, await situacaoDoMilitar(api.banco, 'Desativado'),
+    ]);
+    const nomes = nomesDaGrade(await grade());
+    expect(nomes).toContain('VOLTOU');
+    expect(nomes).toContain('VOLTOU2');
+  });
+
+  it('o Adm em Reserva a partir do dia 10 só tem expediente até o dia 9', async () => {
+    const id = await inserir(api.banco, 'militar', { matricula: '991499-9', posto_grad_id: posto['SD BM'], nome_guerra: 'ADMRES', antiguidade: 99 });
+    const base = { militar_id: id, unidade_id: api.ids.secao, jornada: 'adm', quadro_id: quadro.QBMG };
+    await inserir(api.banco, 'rastreio', { ...base, desde: '2026-11-01', ate: dia(9), situacao_id: await situacaoDoMilitar(api.banco, 'Ativa') });
+    await inserir(api.banco, 'rastreio', { ...base, desde: dia(10), situacao_id: await situacaoDoMilitar(api.banco, 'Reserva') });
+    const linha = (await grade()).grupos.flatMap((x) => x.linhas).find((l) => l.nomeGuerra === 'ADMRES');
+    expect(linha).toBeDefined();
+    const dias = Object.keys(linha!.dias).sort();
+    expect(dias.length).toBeGreaterThan(0);
+    expect(dias.every((d) => d < dia(10))).toBe(true);
   });
 });
 

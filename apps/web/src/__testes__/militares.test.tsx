@@ -157,6 +157,21 @@ describe('dados pessoais: CPF, nascimento e endereço', () => {
     await userEvent.type(screen.getByLabelText('Logradouro'), 'Rua Fictícia');
     await userEvent.click(screen.getByRole('button', { name: 'Salvar dados pessoais' }));
     await waitFor(() => expect(corpoEnviado(f, 'PATCH /api/militares/m1')).toEqual({ cpf: '52998224725', endereco: { logradouro: 'Rua Fictícia' } }));
+    // depois de gravar, o bloco não fica com alteração pendente (o CPF com a máscara é o mesmo que foi gravado)
+    expect(await screen.findByText('Alterações salvas.')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Salvar dados pessoais' })).toBeDisabled();
+  });
+
+  it('dígitos a mais no CPF e no CEP não entram', async () => {
+    api();
+    abrir('/militares/m1');
+    const cpf = await screen.findByLabelText('CPF');
+    await userEvent.type(cpf, '5299822472599');
+    expect(cpf).toHaveValue('529.982.247-25');
+    await userEvent.type(screen.getByLabelText('CEP'), '500302309');
+    expect(screen.getByLabelText('CEP')).toHaveValue('50030-230');
+    await userEvent.click(screen.getByRole('button', { name: 'Salvar dados pessoais' }));
+    expect(screen.queryByText('CPF inválido: confira os 11 dígitos.')).toBeNull();
   });
 
   it('CPF inválido é recusado no campo, sem ir ao servidor', async () => {

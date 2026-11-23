@@ -38,6 +38,18 @@ describe('situações do militar', () => {
     expect(await (await edit({ ativo: false })).json()).toMatchObject({ ativo: false });
   });
 
+  it('a situação padrão (a dos períodos novos) pode ser renomeada, mas não desativada nem deixar de poder ser escalada', async () => {
+    const ativa = (await api.banco.query<{ id: string }>('select id from situacao_militar where padrao')).rows[0]!.id;
+    const edit = (d: unknown) => api.pedir('admin', 'PATCH', `/api/situacoes-do-militar/${ativa}`, d);
+    for (const d of [{ ativo: false }, { escalavel: false }]) {
+      const r = await edit(d);
+      expect(r.status).toBe(409);
+      expect((await r.json()).erro).toBe('Esta é a situação dos períodos novos: ela não pode ser desativada nem deixar de poder ser escalada.');
+    }
+    expect((await edit({ nome: 'Na ativa' })).status).toBe(200);
+    expect((await edit({ nome: 'Ativa' })).status).toBe(200);
+  });
+
   it('nome repetido (sem caixa) é 409, e um item que não existe é 404', async () => {
     expect((await api.pedir('admin', 'POST', '/api/situacoes-do-militar', { nome: 'reserva', escalavel: false })).status).toBe(409);
     expect((await api.pedir('admin', 'PATCH', '/api/situacoes-do-militar/00000000-0000-4000-8000-000000000000', { ativo: false })).status).toBe(404);

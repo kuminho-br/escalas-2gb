@@ -101,8 +101,10 @@ export async function montarGradeDoMes(c: Consulta, unidadeId: string, mes: stri
   const afastado = (id: string, d: string) => afastamentos.some((a) => a.militar_id === id && a.inicio <= d && a.fim >= d);
 
   /** `soDoPeriodo`: o militar tem mais de um período no mês (mudou de equipe ou de jornada); cada linha vale só nos dias do seu período. */
-  function montarLinha(p: Pessoa, jornada: 'pronto' | 'adm', lotacao: { desde: string; ate: string | null }[] | null, soDoPeriodo = false): LinhaDaGrade {
+  function montarLinha(p: Pessoa, jornada: 'pronto' | 'adm', lotacao: { desde: string; ate: string | null; ativo: boolean }[] | null, soDoPeriodo = false): LinhaDaGrade {
     const cobre = (d: string) => !!lotacao?.some((x) => x.desde <= d && (x.ate === null || x.ate >= d));
+    // o expediente só vale nos dias de um período em que ele pode ser escalado (não nos da Reserva, por exemplo)
+    const podeNoDia = (d: string) => !!lotacao?.some((x) => x.ativo && x.desde <= d && (x.ate === null || x.ate >= d));
     const dentro = (d: string) => !soDoPeriodo || !lotacao || cobre(d);
     const dele = alocacoes.filter((a) => a.militarId === p.id && dentro(a.data));
     const duracao = (a: Alocacao) => {
@@ -122,7 +124,7 @@ export async function montarGradeDoMes(c: Consulta, unidadeId: string, mes: stri
     if (jornada === 'adm' && lotacao) {
       for (let n = -1; n <= dias.length; n++) {
         const d = somarDias(primeiro, n);
-        if (!util(d) || !cobre(d) || afastado(p.id, d)) continue;
+        if (!util(d) || !podeNoDia(d) || afastado(p.id, d)) continue;
         expediente.push({ mat: p.id, dia: d, turno: EXPEDIENTE.turno, servico: EXPEDIENTE.servico, implicito: true });
         const doDia = dele.filter((a) => a.data === d);
         const substituido = doDia.some((a) => {
@@ -173,15 +175,16 @@ export async function montarGradeDoMes(c: Consulta, unidadeId: string, mes: stri
   };
   // quem volta à mesma equipe (ou fica no Adm) no mês tem uma linha só nela, valendo nos dias de todos os períodos dela
   const chaveDoGrupo = (l: Lotado) => (l.jornada === 'adm' ? 'adm' : (l.equipeId ?? 'sem-equipe'));
-  const porLinha = new Map<string, { l: Lotado; periodos: { desde: string; ate: string | null }[] }>();
+  const porLinha = new Map<string, { l: Lotado; periodos: { desde: string; ate: string | null; ativo: boolean }[] }>();
   for (const l of lotados) {
     const k = `${l.id}|${chaveDoGrupo(l)}`;
     const e = porLinha.get(k) ?? { l, periodos: [] };
-    e.periodos.push({ desde: l.desde, ate: l.ate });
+    e.periodos.push({ desde: l.desde, ate: l.ate, ativo: l.ativo });
     porLinha.set(k, e);
   }
   for (const { l, periodos } of porLinha.values()) {
-    if (!l.ativo && !temAlocacaoNoMes(l.id)) continue;
+    // a linha fica se ele pode ser escalado em algum dos períodos dela (ou se já tem escala no mês)
+    if (!periodos.some((p) => p.ativo) && !temAlocacaoNoMes(l.id)) continue;
     const linha = montarLinha(l, l.jornada, periodos, periodosDoMilitar.get(l.id)! > 1);
     if (l.jornada === 'adm') poe('adm', 'Adm', 1_000_000, linha, l.antiguidade);
     else if (l.equipeId) poe(l.equipeId, l.equipe ?? '', l.ordemCiclo ?? 0, linha, l.antiguidade);

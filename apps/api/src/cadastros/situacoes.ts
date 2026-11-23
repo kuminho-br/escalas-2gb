@@ -9,6 +9,8 @@ import { lerCorpo, respostaDoErroDoBanco } from '../erros.ts';
 
 const MSG_NOME = { '23505': 'Já existe uma situação com esse nome.' };
 
+const MSG_PADRAO = 'Esta é a situação dos períodos novos: ela não pode ser desativada nem deixar de poder ser escalada.';
+
 export function rotasSituacoes(dep: { banco: Banco; auth: Auth }): Hono<AmbienteApi> {
   const r = new Hono<AmbienteApi>();
   r.use('/situacoes-do-militar', exigirSessao(dep.banco, dep.auth));
@@ -42,6 +44,11 @@ export function rotasSituacoes(dep: { banco: Banco; auth: Auth }): Hono<Ambiente
     const corpo = await lerCorpo(c, EdicaoDaSituacaoDoMilitar);
     if (!corpo.ok) return corpo.resposta;
     const d = corpo.dados;
+    // a situação dos períodos novos precisa continuar valendo e escalável: senão, o militar novo nasceria fora das escalas
+    if (d.ativo === false || d.escalavel === false) {
+      const { rows } = await c.get('banco').query<{ padrao: boolean }>('select padrao from situacao_militar where id::text = $1', [c.req.param('id')]);
+      if (rows[0]?.padrao) return c.json({ erro: MSG_PADRAO }, 409);
+    }
     try {
       const item = await comUsuario(c.get('banco'), c.get('usuarioId'), async (tx) =>
         (

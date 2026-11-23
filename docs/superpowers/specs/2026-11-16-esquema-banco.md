@@ -189,6 +189,7 @@ Catálogo do sistema, editado só pelo administrador (0029). Carga inicial: Ativ
 | nome | text not null | único sem distinção de maiúsculas |
 | escalavel | boolean not null | quem está nesta situação pode ser escalado (substitui o antigo `militar.ativo`) |
 | ativo | boolean not null default true | desativada, sai da lista de escolha e fica nos registros antigos |
+| padrao | boolean not null default false | a situação dos períodos novos ("Ativa" na carga); uma só (índice único parcial). Pode ser renomeada, mas a API não deixa desativá-la nem tirar o "pode ser escalado" |
 
 ### vinculo_externo
 Militar de outra unidade autorizado a tirar serviço aqui.

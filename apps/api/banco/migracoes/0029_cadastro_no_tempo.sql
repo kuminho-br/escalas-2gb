@@ -6,13 +6,18 @@ create table if not exists situacao_militar (
   id uuid primary key default gen_random_uuid(),
   nome text not null check (btrim(nome) <> ''),
   escalavel boolean not null default false,
-  ativo boolean not null default true
+  ativo boolean not null default true,
+  -- a situação dos períodos novos (uma só): marcada aqui, e não achada pelo nome, para o administrador poder renomeá-la
+  padrao boolean not null default false
 );
+alter table situacao_militar add column if not exists padrao boolean not null default false;
 create unique index if not exists situacao_militar_nome on situacao_militar (lower(nome));
-insert into situacao_militar (nome, escalavel)
-select v.nome, v.escalavel
-  from (values ('Ativa', true), ('Reserva', false), ('Agregado', false), ('Adido', false), ('Desativado', false)) as v (nome, escalavel)
- where not exists (select 1 from situacao_militar s where lower(s.nome) = lower(v.nome));
+-- a carga só entra no catálogo vazio: rodar de novo não recria o que o administrador renomeou
+insert into situacao_militar (nome, escalavel, padrao)
+select v.nome, v.escalavel, v.padrao
+  from (values ('Ativa', true, true), ('Reserva', false, false), ('Agregado', false, false), ('Adido', false, false), ('Desativado', false, false)) as v (nome, escalavel, padrao)
+ where not exists (select 1 from situacao_militar);
+create unique index if not exists situacao_militar_padrao on situacao_militar (padrao) where padrao;
 drop trigger if exists auditoria_registro on situacao_militar;
 create trigger auditoria_registro after insert or update or delete on situacao_militar
   for each row execute function registrar_auditoria();
@@ -32,15 +37,15 @@ begin
     update rastreio r set situacao_id = (select id from situacao_militar where lower(nome) = case when m.ativo then 'ativa' else 'desativado' end)
       from militar m where m.id = r.militar_id and r.situacao_id is null;
   end if;
-  update rastreio set situacao_id = (select id from situacao_militar where lower(nome) = 'ativa') where situacao_id is null;
+  update rastreio set situacao_id = (select id from situacao_militar where padrao) where situacao_id is null;
 end $$;
 alter table rastreio alter column situacao_id set not null;
 
--- um período aberto por quem não diz a situação (importações, carga) nasce "Ativa"
+-- um período aberto por quem não diz a situação (importações, carga) nasce na situação padrão ("Ativa")
 create or replace function rastreio_situacao_padrao() returns trigger language plpgsql as $$
 begin
   if new.situacao_id is null then
-    new.situacao_id := (select id from situacao_militar where lower(nome) = 'ativa');
+    new.situacao_id := (select id from situacao_militar where padrao);
   end if;
   return new;
 end $$;

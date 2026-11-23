@@ -1,4 +1,4 @@
-import { copyFileSync, mkdtempSync, readdirSync } from 'node:fs';
+import { copyFileSync, mkdtempSync, readdirSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -88,9 +88,25 @@ describe('migração 0029: quadro e situação no rastreio', () => {
     expect(await periodos(semPeriodo)).toEqual([{ quadro: null, situacao: 'Ativa' }]);
   });
 
-  it('pode rodar de novo sem duplicar o catálogo', async () => {
-    await migrarAte(banco, '9999');
+  it('pode rodar de novo sem duplicar o catálogo nem mexer nos períodos', async () => {
+    const antes = (await banco.query('select id, quadro_id, situacao_id from rastreio order by id')).rows;
+    // o arquivo inteiro de novo, direto (o `migrar` pularia o que já está registrado)
+    await banco.exec(readFileSync(join(PASTA_MIGRACOES, '0029_cadastro_no_tempo.sql'), 'utf8'));
     expect((await banco.query('select 1 from situacao_militar')).rows).toHaveLength(5);
+    expect((await banco.query('select id, quadro_id, situacao_id from rastreio order by id')).rows).toEqual(antes);
+  });
+
+  it('a situação padrão é marcada, e não achada pelo nome: renomear "Ativa" não quebra o período novo', async () => {
+    expect((await banco.query<{ nome: string }>('select nome from situacao_militar where padrao')).rows).toEqual([{ nome: 'Ativa' }]);
+    await banco.query("update situacao_militar set nome = 'Na ativa' where padrao");
+    const m = await inserir(banco, 'militar', { matricula: '990777-7', posto_grad_id: (await banco.query<{ id: string }>('select id from posto_grad limit 1')).rows[0]!.id, nome_guerra: 'RENOMEADA' });
+    await inserir(banco, 'rastreio', { militar_id: m, unidade_id: secao, jornada: 'pronto', desde: '2026-12-01' });
+    expect(await periodos(m)).toEqual([{ quadro: null, situacao: 'Na ativa' }]);
+    // rodar de novo depois de renomear não cria outra "Ativa" nem outra padrão
+    await banco.exec(readFileSync(join(PASTA_MIGRACOES, '0029_cadastro_no_tempo.sql'), 'utf8'));
+    expect((await banco.query('select 1 from situacao_militar where padrao')).rows).toHaveLength(1);
+    expect((await banco.query('select 1 from situacao_militar')).rows).toHaveLength(5);
+    await banco.query("update situacao_militar set nome = 'Ativa' where padrao");
   });
 });
 

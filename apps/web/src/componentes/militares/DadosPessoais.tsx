@@ -84,7 +84,8 @@ export function DadosPessoais({ ficha }: { ficha: FichaMilitar }) {
     }
     try {
       await editarMilitar(ficha.id, pedido);
-      setSalvo({ ...v, cpf: v.cpf.trim() ? v.cpf.replace(/\D/g, '') : '', cep: v.cep.trim() ? v.cep.replace(/\D/g, '') : '' });
+      // o CPF e o CEP ficam no estado só com os dígitos (a máscara é da tela): o enviado vira o novo "salvo"
+      setSalvo(v);
       atualizarMilitares(queryClient, ficha.id);
       setAviso({ erro: false, texto: 'Alterações salvas.' });
     } catch (err) {
@@ -101,7 +102,7 @@ export function DadosPessoais({ ficha }: { ficha: FichaMilitar }) {
       <form onSubmit={(e) => { e.preventDefault(); void salvar(); }} className="grid gap-4">
         <div className="grid gap-3 sm:grid-cols-[12rem_1fr]">
           <Campo id="dp-cpf" rotulo="CPF" erro={campos.cpf}>
-            <Input id="dp-cpf" inputMode="numeric" value={mascararCpf(v.cpf)} disabled={!peculio} onChange={(e) => mudar('cpf', e.target.value)} />
+            <Input id="dp-cpf" inputMode="numeric" value={mascararCpf(v.cpf)} disabled={!peculio} onChange={(e) => mudar('cpf', e.target.value.replace(/\D/g, '').slice(0, 11))} />
           </Campo>
           <fieldset className="grid gap-1.5">
             <legend className="mb-1.5 text-sm font-medium">Nascimento (o ano é opcional)</legend>
@@ -126,7 +127,7 @@ export function DadosPessoais({ ficha }: { ficha: FichaMilitar }) {
           <legend className="mb-1.5 text-sm font-medium">Endereço</legend>
           <div className="grid gap-3 sm:grid-cols-[9rem_1fr_6rem]">
             <Campo id="dp-cep" rotulo="CEP" erro={doEndereco('cep')}>
-              <Input id="dp-cep" inputMode="numeric" value={mascararCep(v.cep)} disabled={!peculio} onChange={(e) => mudar('cep', e.target.value)} />
+              <Input id="dp-cep" inputMode="numeric" value={mascararCep(v.cep)} disabled={!peculio} onChange={(e) => mudar('cep', e.target.value.replace(/\D/g, '').slice(0, 8))} />
             </Campo>
             <Campo id="dp-logradouro" rotulo="Logradouro" erro={doEndereco('logradouro')}>
               <Input id="dp-logradouro" value={v.logradouro} disabled={!peculio} onChange={(e) => mudar('logradouro', e.target.value)} />
