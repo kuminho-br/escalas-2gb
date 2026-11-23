@@ -344,7 +344,7 @@ describe('ficha do militar', () => {
     await waitFor(() => expect(corpoEnviado(f, 'PATCH /api/militares/m1')).toEqual({ cnh: ['A', 'E'] }));
   });
 
-  describe('CNH: clicar numa categoria acesa só pela hierarquia', () => {
+  describe('CNH: clicar numa categoria acesa só pela hierarquia não a põe na carteira (6.17, item 13)', () => {
     const quadrado = (letra: string) => screen.getByRole('button', { name: new RegExp(`^${letra}\\b`) });
     const apagado = (letra: string) => expect(quadrado(letra)).toHaveAttribute('data-origem', 'nenhuma');
     const daCarteira = (letra: string) => expect(quadrado(letra)).toHaveAttribute('data-origem', 'carteira');
@@ -358,20 +358,18 @@ describe('ficha do militar', () => {
       return f;
     };
 
-    it('com a E na carteira, clicar na C deixa só a C: a E e a D saem, e a B segue acesa pela C', async () => {
-      const f = abrirCom(['E']);
-      await screen.findByRole('button', { name: /^C\b/ });
-      pelaHierarquia('D');
+    it('com a E na carteira, clicar na C (acesa só pela hierarquia) não muda nada, e a dica diz "Vale pela categoria E." (6.17, item 13)', async () => {
+      abrirCom(['E']);
+      await screen.findByRole('button', { name: /^Salvar motorista/ });
+      pelaHierarquia('C');
+      expect(quadrado('C')).toHaveAttribute('title', 'Vale pela categoria E.');
       await userEvent.click(quadrado('C'));
-      daCarteira('C');
+      daCarteira('E');
+      pelaHierarquia('C');
+      pelaHierarquia('D');
       pelaHierarquia('B');
-      apagado('E');
-      apagado('D');
-      expect(screen.getByText('Alterações não salvas')).toBeInTheDocument();
-      await userEvent.click(screen.getByRole('button', { name: 'Salvar motorista' }));
-      await waitFor(() => expect(corpoEnviado(f, 'PATCH /api/militares/m1')).toEqual({ cnh: ['C'] }));
+      expect(screen.queryByText('Alterações não salvas')).toBeNull();
     });
-
     it('clicar na categoria que está na carteira (E) apaga ela e as que ela acendeu, e a moto fica como estava', async () => {
       abrirCom(['A', 'E']);
       await screen.findByRole('button', { name: /^E\b/ });
@@ -380,27 +378,23 @@ describe('ficha do militar', () => {
       daCarteira('A');
     });
 
-    it('a moto é separada: clicar na C com a moto e a E na carteira mexe só na E e na C', async () => {
-      const f = abrirCom(['A', 'E']);
+    it('a moto é separada: apagar a E com a moto e a E na carteira mexe só nas categorias de B a E; clicar na C (só pela hierarquia) não muda nada', async () => {
+      abrirCom(['A', 'E']);
       await screen.findByRole('button', { name: /^C\b/ });
       await userEvent.click(quadrado('C'));
       daCarteira('A');
-      daCarteira('C');
-      await userEvent.click(screen.getByRole('button', { name: 'Salvar motorista' }));
-      await waitFor(() => expect(corpoEnviado(f, 'PATCH /api/militares/m1')).toEqual({ cnh: ['A', 'C'] }));
+      daCarteira('E');
+      expect(screen.queryByText('Alterações não salvas')).toBeNull();
     });
 
-    it('com a E e a D juntas na carteira, clicar na C tira as duas que a acendiam (senão ela continuaria acesa pela D)', async () => {
-      const f = abrirCom(['D', 'E']);
+    it('com a E e a D juntas na carteira, clicar na C (só pela hierarquia) não muda nada', async () => {
+      abrirCom(['D', 'E']);
       await screen.findByRole('button', { name: /^C\b/ });
       await userEvent.click(quadrado('C'));
-      daCarteira('C');
-      apagado('D');
-      apagado('E');
-      await userEvent.click(screen.getByRole('button', { name: 'Salvar motorista' }));
-      await waitFor(() => expect(corpoEnviado(f, 'PATCH /api/militares/m1')).toEqual({ cnh: ['C'] }));
+      pelaHierarquia('C');
+      daCarteira('E');
+      expect(screen.queryByText('Alterações não salvas')).toBeNull();
     });
-
     it('carteira que veio com a C e a E juntas: clicar na C deixa só a C (a E sai)', async () => {
       const f = abrirCom(['C', 'E']);
       await screen.findByRole('button', { name: /^C\b/ });

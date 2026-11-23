@@ -1,9 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { MARCA_DA_FAIXA, registrarPintor, useTransicao, type QuadroDaCamada } from '@/lib/transicao-login/armazem';
 import { desenhar } from '@/lib/transicao-login/cena';
-
-/** A densidade de pixels do `canvas` é limitada a 2, para o celular fraco. */
-const DENSIDADE_MAXIMA = 2;
+import { medidasDaCamada } from '@/lib/transicao-login/medidas';
 
 /**
  * A camada da transição do login (as mangueiras): um `canvas` fixo por cima das telas, montado fora das rotas para continuar enquanto o site
@@ -23,11 +21,7 @@ export function TransicaoDoLogin() {
         canvas.height = 0;
         return;
       }
-      const largura = window.innerWidth;
-      const altura = window.innerHeight;
-      const densidade = Math.min(window.devicePixelRatio || 1, DENSIDADE_MAXIMA);
-      const cw = Math.round(largura * densidade);
-      const ch = Math.round(altura * densidade);
+      const { largura, altura, cw, ch } = medidasDaCamada(window);
       if (canvas.width !== cw || canvas.height !== ch) {
         canvas.width = cw;
         canvas.height = ch;

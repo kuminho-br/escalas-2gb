@@ -8,16 +8,16 @@ const COMUM: EuDaApi = { ...EU_EXEMPLO, papeis: [] };
 const quemVe = (eu: EuDaApi) => MODULOS.filter((m) => m.ve({ ...eu, unidade: eu.unidades[0]! })).map((m) => m.id);
 
 describe('os módulos e quem os vê', () => {
-  it('o militar comum vê a Consulta, a Visualização e a Minha ficha', () => {
-    expect(quemVe(COMUM)).toEqual(['consulta', 'visualizacao', 'minha-ficha']);
+  it('o militar comum vê o Pecúlio (só a Consulta), a Visualização, a Minha ficha e as Configurações', () => {
+    expect(quemVe(COMUM)).toEqual(['peculio', 'visualizacao', 'minha-ficha', 'configuracoes']);
   });
 
-  it('o auxiliar, o quinto nível, o gestor e o administrador veem os cinco', () => {
-    for (const papel of ['escalante', 'gestor_lateral', 'gestor', 'administrador'] as const) expect(quemVe(comPapel(papel))).toEqual(['escalas', 'peculio', 'consulta', 'visualizacao', 'minha-ficha']);
+  it('o auxiliar, o quinto nível, o gestor e o administrador veem os seis', () => {
+    for (const papel of ['escalante', 'gestor_lateral', 'gestor', 'administrador'] as const) expect(quemVe(comPapel(papel))).toEqual(['escalas', 'peculio', 'estrutura', 'visualizacao', 'minha-ficha', 'configuracoes']);
   });
 
   it('só a Visualização não tem rota', () => {
-    expect(MODULOS.map((m) => [m.id, m.rota])).toEqual([['escalas', '/grade'], ['peculio', '/peculio'], ['consulta', '/consulta'], ['visualizacao', null], ['minha-ficha', '/minha-ficha']]);
+    expect(MODULOS.map((m) => [m.id, m.rota])).toEqual([['escalas', '/grade'], ['peculio', '/peculio'], ['estrutura', '/estrutura'], ['visualizacao', null], ['minha-ficha', '/minha-ficha'], ['configuracoes', '/configuracoes']]);
   });
 });
 
@@ -25,7 +25,12 @@ describe('o módulo de cada endereço', () => {
   const id = (caminho: string, busca: Record<string, unknown> = {}) => moduloDoEndereco(caminho, busca)?.id ?? null;
 
   it('as telas de escala são da Confecção, e o Pecúlio é do Pecúlio', () => {
-    for (const c of ['/grade', '/escala-do-mes', '/efetivo-por-dia', '/oficiais', '/voluntariado', '/cotas', '/servicos', '/escalas/e1/ordem', '/feriados', '/configuracoes', '/militares']) expect(id(c)).toBe('escalas');
+    for (const c of ['/grade', '/escala-do-mes', '/efetivo-por-dia', '/oficiais', '/voluntariado', '/cotas', '/servicos', '/escalas/e1/ordem', '/feriados', '/configuracoes-da-escala', '/militares', '/configuracoes/modelos-de-guarnicao/g1']) expect(id(c)).toBe('escalas');
+    expect(id('/estrutura')).toBe('estrutura');
+    expect(MODULOS.find((m) => m.id === 'estrutura')!.itens).toEqual([]);
+    // as configurações gerais são do módulo Configurações, sem trilho
+    for (const c of ['/configuracoes', '/Configuracoes']) expect(id(c), c).toBe('configuracoes');
+    expect(MODULOS.find((m) => m.id === 'configuracoes')!.itens).toEqual([]);
     expect(id('/peculio')).toBe('peculio');
   });
 
@@ -35,9 +40,9 @@ describe('o módulo de cada endereço', () => {
     expect(id('/militares/m1', { de: 'outra-coisa' })).toBe('escalas');
   });
 
-  it('a Consulta e a ficha de consulta são do módulo Consulta, que não tem trilho, e o endereço com maiúsculas vale o mesmo', () => {
-    for (const c of ['/consulta', '/consulta/m1', '/Consulta', '/CONSULTA/m1']) expect(id(c), c).toBe('consulta');
-    expect(MODULOS.find((m) => m.id === 'consulta')!.itens).toEqual([]);
+  it('a Consulta e a ficha de consulta são do Pecúlio (uma tela dele), e o endereço com maiúsculas vale o mesmo', () => {
+    for (const c of ['/consulta', '/consulta/m1', '/Consulta', '/CONSULTA/m1']) expect(id(c), c).toBe('peculio');
+    expect(MODULOS.find((m) => m.id === 'consulta' as never)).toBeUndefined();
   });
 
   it('/ e /minha-ficha não têm trilho', () => {
@@ -60,9 +65,9 @@ describe('o módulo de cada endereço', () => {
     expect(id('/nao-existe')).toBeNull();
   });
 
-  it('o trilho da Confecção tem os blocos de hoje e o do Pecúlio só o Pecúlio', () => {
+  it('o trilho da Confecção tem os blocos de hoje e o do Pecúlio, o Pecúlio e a Consulta', () => {
     const nomes = (m: string) => MODULOS.find((x) => x.id === m)!.itens.flat().map((i) => i.nome);
     expect(nomes('escalas')).toEqual(['Grade geral', 'Escala do mês', 'Efetivo por dia', 'Oficiais', 'Voluntariado', 'Cotas', 'Militares', 'Turnos', 'Escalas', 'Feriados']);
-    expect(nomes('peculio')).toEqual(['Pecúlio']);
+    expect(nomes('peculio')).toEqual(['Pecúlio', 'Consulta de militares']);
   });
 });

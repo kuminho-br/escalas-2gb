@@ -214,7 +214,8 @@ describe('a aba Escala do mês', () => {
     it('tem as colunas, a sobra e a marca de ordenado à mão', async () => {
       abrirEscala(escala());
       const lista = await screen.findByRole('list', { name: 'Cotas de janeiro de 2027' });
-      for (const c of ['Saldo', 'Dias', 'Cota', 'Escolhidos']) expect(within(lista).getAllByText(c).length).toBe(3);
+      for (const c of ['Saldo', 'Cota', 'Escolhidos']) expect(within(lista).getAllByText(c).length).toBe(3);
+      expect(within(lista).queryByText('Dias')).toBeNull();
       expect(within(lista).getByText('+1 sobra')).toBeInTheDocument();
       expect(within(lista).getAllByText(/ordenado à mão/).length).toBe(2);
       expect(within(lista).getByText('+0,75')).toBeInTheDocument();
@@ -658,7 +659,7 @@ describe('o painel largo, com todos os dados do oficial (6.22)', () => {
     expect(within(alfa).getByText('CEL')).toHaveClass('text-[13px]');
     expect(alfa.textContent).toContain('QOC');
     expect(alfa.textContent).toContain('2º GB');
-    for (const rotulo of ['Saldo', 'Dias', 'Cota', 'Escolhidos']) expect(within(alfa).getByText(rotulo)).toHaveClass('text-[13px]', 'text-apagado');
+    for (const rotulo of ['Saldo', 'Cota', 'Escolhidos']) expect(within(alfa).getByText(rotulo)).toHaveClass('text-[13px]', 'text-apagado');
     expect(within(alfa).getByText('+0,75')).toHaveClass('text-[17px]', 'tabular-nums');
     expect(within(alfa).getByText('4 de 21')).toHaveClass('text-[17px]', 'tabular-nums');
     // a barra fina do quanto já foi escolhido
@@ -705,6 +706,134 @@ describe('o painel largo, com todos os dados do oficial (6.22)', () => {
     const lista = await screen.findByRole('list', { name: 'Cotas de janeiro de 2027' });
     expect(lista.closest('aside')).toHaveClass('order-first', 'xl:order-none');
     expect(lista.closest('aside')!.innerHTML).not.toContain('overflow-x-auto');
+  });
+});
+
+describe('acabamento do painel e da troca de turno (6.17, itens 21, 26 e 34)', () => {
+  afterEach(() => {
+    cleanup();
+    vi.unstubAllGlobals();
+  });
+
+  it('item 34: o número "Dias" sai do painel; a conta da cota não muda; só quem tem menos dias que os outros ganha "cota menor: afastado {n} dias", e a dica da cota diz os dias disponíveis', async () => {
+    const afastado = { ...O2, dias: 25 };
+    abrirEscala(escala({ oficiais: [O1, afastado, O3] }));
+    const lista = await screen.findByRole('list', { name: 'Cotas de janeiro de 2027' });
+    expect(within(lista).queryByText('Dias')).toBeNull();
+    const bravo = within(lista).getByRole('checkbox', { name: 'CAP BRAVO participa da rodada' }).closest('li')!;
+    // sem afastamento que explique, a frase não diz "afastado" (menos dias pode ser chegada ou saída da unidade no meio do mês)
+    expect(within(bravo).getByText('cota menor: 6 dias a menos no mês')).toHaveClass('text-[13px]', 'text-apagado');
+    expect(within(bravo).getByText('Cota').closest('div')).toHaveAttribute('title', '25 dias disponíveis no mês');
+    const alfa = within(lista).getByRole('checkbox', { name: 'CEL ALFA participa da rodada' }).closest('li')!;
+    expect(within(alfa).queryByText(/cota menor/)).toBeNull();
+    expect(within(alfa).getByText('Cota')).toBeInTheDocument();
+  });
+
+  it('item 34 (achado da revisão final): com afastamento no mês, a frase diz "afastado {n} dias" pelos dias do afastamento; sem cotas calculadas, nenhuma frase', async () => {
+    const afastado = { ...O2, dias: 25, afastamentos: [{ inicio: dia(10), fim: dia(15), tipo: 'Férias' }] };
+    abrirEscala(escala({ oficiais: [O1, afastado, O3] }));
+    const lista = await screen.findByRole('list', { name: 'Cotas de janeiro de 2027' });
+    const bravo = within(lista).getByRole('checkbox', { name: 'CAP BRAVO participa da rodada' }).closest('li')!;
+    expect(within(bravo).getByText('cota menor: afastado 6 dias')).toBeInTheDocument();
+    cleanup();
+    abrirEscala(escala({ etapa: 'sem-cotas', cotasEm: null, vez: null, turnos: [], oficiais: [{ ...O1, cota: null, devido: null }, { ...afastado, cota: null, devido: null }, O3] }));
+    const antes = await screen.findByRole('list', { name: 'Cotas de janeiro de 2027' });
+    expect(within(antes).queryByText(/cota menor/)).toBeNull();
+  });
+
+  it('item 33 (achado da revisão final): a linha de etapas não estoura a largura: o horizontal só a partir de 1280 px (xl), e em linha própria, sem disputar com "Regras"', async () => {
+    abrirEscala(escala());
+    const linha = await screen.findByRole('list', { name: 'Etapas do mês' });
+    expect(linha.className).toContain('xl:flex-row');
+    expect(linha.className).not.toMatch(/(^|\s)md:flex-row/);
+    expect(linha.parentElement!.className).toContain('basis-full');
+  });
+
+  it('item 26: desmarcar "Participa" de quem já tem turnos escolhidos pergunta antes ("Tirar da rodada"); sem turnos, não pergunta', async () => {
+    const PART = `PUT ${URL_MES}/participantes`;
+    const f = abrirEscala(escala({ oficiais: [{ ...O1, escolhidos: 3 }, O2, O3] }), { [PART]: { status: 200, corpo: { ...escala(), liberados: [] } } });
+    await userEvent.click(await screen.findByRole('checkbox', { name: 'CEL ALFA participa da rodada' }));
+    const dialogo = within(await screen.findByRole('dialog'));
+    expect(dialogo.getByText('Tirar CEL ALFA da rodada?')).toBeInTheDocument();
+    expect(dialogo.getByText('Os 3 turnos escolhidos ficam sem ninguém.')).toBeInTheDocument();
+    expect(chamadasA(f, PART)).toBe(0);
+    await userEvent.click(dialogo.getByRole('button', { name: 'Cancelar' }));
+    expect(chamadasA(f, PART)).toBe(0);
+    await userEvent.click(screen.getByRole('checkbox', { name: 'CEL ALFA participa da rodada' }));
+    await userEvent.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Tirar da rodada' }));
+    await waitFor(() => expect(corpoEnviado(f, PART)).toEqual({ militarIds: ['m-2', 'm-3'] }));
+    // sem turnos escolhidos, desmarca direto
+    await userEvent.click(await screen.findByRole('checkbox', { name: 'CAP BRAVO participa da rodada' }));
+    await waitFor(() => expect(chamadasA(f, PART)).toBe(2));
+    expect(screen.queryByRole('dialog')).toBeNull();
+  });
+
+  it('item 21: o diálogo de troca diz ao leitor de tela o dia, o turno e o oficial que está nele; depois de um 409 a tela recarrega os dados', async () => {
+    const fechada = escala({ etapa: 'fechada', fechadaEm: '2027-01-05T10:00:00', turnos: comNome(escala(), { [`${dia(2)}|t-a`]: 'm-2' }) });
+    const f = abrirEscala(fechada, { [`PUT ${URL_MES}/turnos/${dia(2)}/t-a`]: { status: 409, corpo: { erro: 'A escala mudou. Confira os turnos.' } } });
+    await userEvent.click(await screen.findByRole('button', { name: /^02\/01, Dia.*BRAVO/ }));
+    const dialogo = within(await screen.findByRole('dialog'));
+    expect(dialogo.getByText(/02\/01, turno Dia, hoje com CAP BRAVO/)).toBeInTheDocument();
+    const antes = chamadasA(f, `GET ${URL_MES}`);
+    await userEvent.click(dialogo.getByRole('button', { name: 'CEL ALFA' }));
+    expect(await dialogo.findByText('A escala mudou. Confira os turnos.')).toBeInTheDocument();
+    await waitFor(() => expect(chamadasA(f, `GET ${URL_MES}`)).toBeGreaterThan(antes));
+  });
+});
+
+describe('as etapas do mês como linha de processo (6.17, item 33)', () => {
+  afterEach(() => {
+    cleanup();
+    vi.unstubAllGlobals();
+  });
+  const passos = () => within(screen.getByRole('list', { name: 'Etapas do mês' })).getAllByRole('listitem');
+  const atual = () => passos().filter((p) => p.getAttribute('aria-current') === 'step').map((p) => within(p).getByRole('heading', { level: 3 }).textContent);
+  const acoes = () => ['Calcular cotas', 'Fechar a escala', 'Encerrar o mês'].filter((n) => screen.queryAllByRole('button', { name: n }).length > 0);
+
+  it('sem cotas: o passo atual é "Participantes e cotas", e a ação sobre a seta é "Calcular cotas"', async () => {
+    abrirEscala(escala({ etapa: 'sem-cotas', cotasEm: null, vez: null, turnos: [] }));
+    await screen.findByRole('list', { name: 'Etapas do mês' });
+    expect(passos().map((p) => within(p).getByRole('heading', { level: 3 }).textContent)).toEqual(['Participantes e cotas', 'Escolhas', 'Escala fechada', 'Mês encerrado']);
+    expect(atual()).toEqual(['Participantes e cotas']);
+    expect(acoes()).toEqual(['Calcular cotas']);
+  });
+
+  it('nas escolhas: "Escolhas" é o atual, "Participantes e cotas" está feito, e cada ação aparece uma vez, sobre a seta do passo', async () => {
+    abrirEscala(escala());
+    await screen.findByRole('list', { name: 'Etapas do mês' });
+    expect(atual()).toEqual(['Escolhas']);
+    expect(within(passos()[0]!).getByText('feito')).toHaveClass('sr-only');
+    expect(within(passos()[1]!).getByText('Os oficiais escolhem os turnos na ordem')).toHaveClass('text-[13px]');
+    expect(acoes()).toEqual(['Calcular cotas', 'Fechar a escala', 'Encerrar o mês']);
+    for (const n of acoes()) expect(screen.getAllByRole('button', { name: n })).toHaveLength(1);
+    // "Fechar a escala" é a ação principal e fica na seta que sai de "Escolhas"
+    expect(within(passos()[1]!).getByRole('button', { name: 'Fechar a escala' })).toBeInTheDocument();
+  });
+
+  it('com a escala fechada: "Escala fechada" é o atual, e a ação principal é "Encerrar o mês", sobre a seta que sai dele', async () => {
+    abrirEscala(escala({ etapa: 'fechada', fechadaEm: '2027-01-05T10:00:00' }));
+    await screen.findByRole('list', { name: 'Etapas do mês' });
+    expect(atual()).toEqual(['Escala fechada']);
+    expect(within(passos()[2]!).getByRole('button', { name: 'Encerrar o mês' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Fechar a escala' })).toBeNull();
+    expect(within(passos()[2]!).getByText('Trocar é cobrir: fica o registro de quem saiu')).toBeInTheDocument();
+  });
+
+  it('com o mês encerrado: "Mês encerrado" é o atual, sem ação de avançar; "Ver o saldo" e "Regras" ficam', async () => {
+    abrirEscala(escala({ etapa: 'encerrada', fechadaEm: '2027-01-05T10:00:00', encerradaEm: '2027-02-01T10:00:00' }));
+    await screen.findByRole('list', { name: 'Etapas do mês' });
+    expect(atual()).toEqual(['Mês encerrado']);
+    expect(acoes()).toEqual([]);
+    expect(screen.getByRole('button', { name: 'Ver o saldo' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Regras' })).toBeInTheDocument();
+    expect(within(passos()[3]!).getByText('O saldo entra no acumulado')).toBeInTheDocument();
+  });
+
+  it('a seta que já foi vencida se preenche com a transição de 220 ms, parada com movimento reduzido', async () => {
+    abrirEscala(escala());
+    await screen.findByRole('list', { name: 'Etapas do mês' });
+    const enchimento = document.querySelector('[data-seta-feita]') as HTMLElement;
+    expect(enchimento).toHaveClass('duration-[220ms]', 'motion-reduce:transition-none');
   });
 });
 

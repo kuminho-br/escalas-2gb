@@ -51,6 +51,7 @@
 | [superpowers/specs/2026-11-23-sistema-de-estilo-design.md](superpowers/specs/2026-11-23-sistema-de-estilo-design.md) | Diretrizes gerais da interface: valores dos tokens e medidas dos componentes (blocos N1 e N2 da refatoração) e a organização dos mockups em áreas | DESIGN | aprovado |
 | [superpowers/specs/2026-11-23-camadas-de-visao-design.md](superpowers/specs/2026-11-23-camadas-de-visao-design.md) | Camadas de visão e o chefe de divisão: ver separado de editar, a borda nas Configurações, a consulta e as escalas só para leitura | PLANEJAMENTO | vigente |
 | [superpowers/specs/2026-11-23-arvore-generica-design.md](superpowers/specs/2026-11-23-arvore-generica-design.md) | Árvore genérica e configurações gerais | PLANEJAMENTO | aprovado |
+| [superpowers/specs/2026-11-23-oficiais-escala-comum-design.md](superpowers/specs/2026-11-23-oficiais-escala-comum-design.md) | Escala dos oficiais como escala comum e dias vermelhos | PLANEJAMENTO | aprovado |
 
 ## Controle da documentação
 
@@ -79,6 +80,7 @@
 | [superpowers/plans/2026-11-23-fase6-22-escala-dos-oficiais.md](superpowers/plans/2026-11-23-fase6-22-escala-dos-oficiais.md) | Entrega 6.22: Escala dos oficiais refeita (urgente) | DESENVOLVIMENTO | planejado |
 | [superpowers/plans/2026-11-23-fase6-23-mover-pela-hierarquia.md](superpowers/plans/2026-11-23-fase6-23-mover-pela-hierarquia.md) | Entrega 6.23: mover o militar pela hierarquia e registrar quem moveu (urgente) | DESENVOLVIMENTO | planejado |
 | [superpowers/plans/2026-11-23-fase6-25-arvore-generica.md](superpowers/plans/2026-11-23-fase6-25-arvore-generica.md) | Entregas 6.25 e 6.26: árvore genérica e configurações gerais | DESENVOLVIMENTO | planejado |
+| [superpowers/plans/2026-11-23-fase6-27-oficiais-escala-comum.md](superpowers/plans/2026-11-23-fase6-27-oficiais-escala-comum.md) | Entregas 6.27 e 6.28: oficiais como escala comum e dias vermelhos | DESENVOLVIMENTO | planejado |
 | [superpowers/plans/2026-11-18-fase4-escala.md](superpowers/plans/2026-11-18-fase4-escala.md) | Fase 4: montagem da escala (entregas 1 a 4.3) | DESENVOLVIMENTO | em execução (grande demais: dividir) |
 | [superpowers/plans/2026-11-20-roadmap-documentacao.md](superpowers/plans/2026-11-20-roadmap-documentacao.md) | Roadmap da documentação | DOCUMENTAÇÃO | em execução |
 

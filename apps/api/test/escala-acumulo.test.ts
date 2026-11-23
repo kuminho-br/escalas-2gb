@@ -223,7 +223,7 @@ describe('acumular funções', () => {
 });
 
 describe('militar fora do quadro de motoristas, com CNH D (Review Focus 2)', () => {
-  it('não aparece para acumular a vaga de motorista e a recusa é 409 com "Sem a CNH exigida"', async () => {
+  it('não aparece para acumular a vaga de motorista e a recusa é 409 com "Fora do quadro de motoristas"', async () => {
     await criarMilitar('FORAQUADRO', ['D'], true);
     const dd = dia(27);
     await escalar('FORAQUADRO', dd, VAGAS().combatente);
@@ -231,6 +231,6 @@ describe('militar fora do quadro de motoristas, com CNH D (Review Focus 2)', () 
     expect(c.acumular.map((x) => x.nomeGuerra)).not.toContain('FORAQUADRO');
     const r = await acumular('FORAQUADRO', dd, VAGAS().motorista);
     expect(r.status).toBe(409);
-    expect((await r.json()).erro).toBe('Sem a CNH exigida');
+    expect((await r.json()).erro).toBe('Fora do quadro de motoristas');
   });
 });

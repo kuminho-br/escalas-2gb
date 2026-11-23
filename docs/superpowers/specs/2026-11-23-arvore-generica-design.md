@@ -69,7 +69,7 @@ Hoje a árvore não é genérica. Os tipos de unidade e a ordem entre eles estã
 - Pode ser dado em qualquer unidade, menos na raiz (que não tem irmãs).
 - Edita como o gestor na sua unidade e abaixo; vê as unidades irmãs (mesma unidade de cima) e tudo abaixo delas, sem editar, pela camada própria da borda de "Quem vê o quê".
 - Quem dá: o gestor de uma unidade acima e o administrador. Ele não dá o próprio nível.
-- No banco e no código passa a se chamar `gestor_lateral` (nome técnico, que não aparece na tela). O nome na tela fica num lugar só (`apps/web/src/lib/papeis.ts`): provisório "Coordenador", até o usuário escolher.
+- No banco e no código passa a se chamar `gestor_lateral` (nome técnico, que não aparece na tela). O nome na tela fica num lugar só (`apps/web/src/lib/papeis.ts`): "Coordenador" (aprovado pelo usuário em 23/11/2026).
 
 ## Configurações gerais
 

@@ -69,7 +69,8 @@ describe('grade geral: o dia de hoje (N0.4, achado T4)', () => {
     await screen.findByRole('table', { name: 'Grade geral de dezembro de 2026' });
     const cab = screen.getByRole('columnheader', { name: /^Dia 10,/ });
     expect(cab).toHaveAttribute('aria-current', 'date');
-    expect(cab.querySelector('[data-marca-hoje]')).not.toBeNull();
+    // sem a marca visual do dia de hoje (diretriz do usuário, 23/11): o dia continua sendo o atual para o leitor de tela, e a tabela abre rolada até ele
+    expect(cab.querySelector('[data-marca-hoje]')).toBeNull();
     expect(screen.getAllByRole('columnheader').filter((h) => h.getAttribute('aria-current') === 'date')).toHaveLength(1);
     await waitFor(() => expect(rolar).toHaveBeenCalledTimes(1));
     expect(rolar.mock.contexts[0]).toBe(cab);

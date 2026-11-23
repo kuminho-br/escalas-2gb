@@ -91,7 +91,7 @@ describe('o aviso "Essa área é de outro nível de acesso." (6.16, Task 3)', ()
     const de = router.state.location.href;
     cleanup();
     abrir(de);
-    await screen.findAllByText(/Confecção de escalas|Consulta de militares/);
+    await screen.findAllByText(/Minha ficha/);
     expect(screen.queryByText('Essa área é de outro nível de acesso.')).toBeNull();
   });
 });
