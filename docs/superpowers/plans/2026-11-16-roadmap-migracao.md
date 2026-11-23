@@ -104,7 +104,7 @@ Design: `docs/superpowers/specs/2026-11-21-usuarios-e-modulos-design.md`. Plano:
 | 13 | Pecúlio como origem dos dados (antes da 10): importação única, apagar militar, postos | planejada |
 | 14 | Animação de entrada como preferência | mesclada (#126) |
 | 15 a 18 | Pendências antes da fase 7: abono e função; três lotes de acabamento | planejadas |
-| 19 | Correções de interface sem desenho (N0), logo depois da 14 | planejada |
+| 19 | Correções de interface sem desenho (N0) | mesclada (#128) |
 
 **Fora:** e-mail, usuários acima do GB (fase 11), Visualização (fase 7).
 
