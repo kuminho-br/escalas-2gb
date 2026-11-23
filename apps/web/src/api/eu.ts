@@ -54,6 +54,16 @@ export const ehMilitarComum = (eu: EuDaApi) => eu.papeis.length === 0;
 const GESTAO: Papel[] = ['gestor', 'chefe_divisao', 'administrador'];
 /** Quem usa a Escala dos oficiais: gestor, chefe de divisão ou administrador (a API confere o nível na unidade de qualquer jeito). */
 export const ehGestorOuAdministrador = (eu: EuDaApi) => eu.papeis.some((p) => GESTAO.includes(p.papel));
+/**
+ * Gestor, chefe de divisão ou administrador na unidade escolhida (ou acima dela): o nível que vale para as telas daquela unidade. Um nível
+ * em outra unidade, que não alcança esta, não conta.
+ */
+export const ehGestorNaUnidade = (eu: Eu) =>
+  eu.papeis.some((p) => {
+    if (!GESTAO.includes(p.papel)) return false;
+    const dele = eu.unidades.find((u) => u.id === p.unidadeId)?.caminho;
+    return dele !== undefined && dele.length <= eu.unidade.caminho.length && dele.every((sigla, i) => eu.unidade.caminho[i] === sigla);
+  });
 /** Quem muda os parâmetros: os mesmos níveis. */
 export const podeMudarParametro = ehGestorOuAdministrador;
 
