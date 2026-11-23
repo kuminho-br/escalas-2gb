@@ -2,7 +2,7 @@
 
 16/11/2026 · v0.1 · parte do design (`2026-11-16-migracao-design.md`)
 
-Em dia com as migrações até a `0031_divisoes.sql` (23/11/2026; quadros, escala dos oficiais, rastreio por dia, cadastro no tempo, participantes da rodada e as divisões nas suas seções). As tabelas das entregas 4.x estão na seção 9 e as mudanças da fase 5 (rastreio e CNH; ficha do Pecúlio), na seção 10.
+Em dia com as migrações até a `0032_camadas_de_visao.sql` (23/11/2026; quadros, escala dos oficiais, rastreio por dia, cadastro no tempo, participantes da rodada, as divisões e as camadas de visão nas suas seções). As tabelas das entregas 4.x estão na seção 9 e as mudanças da fase 5 (rastreio e CNH; ficha do Pecúlio), na seção 10.
 
 Ponto de partida: o "ER proposto" do documento *Modelo ER — Sistema de Escalas 2º GB* (v0.8). Acréscimos: unidades em árvore, rastreio (lotação, equipe e jornada com vigência), vínculo de militar externo, usuários e papéis, modelos de impressão, documentos gerados e auditoria. Também entram as mudanças vindas dos esboços de tela (versão 12), que ainda podem mudar.
 
@@ -125,6 +125,18 @@ Fixo na migração (0026), como a hierarquia de CNH: QOC (ordem 1), QOA (2) e QB
 | sigla | text único | QOC, QOA, QBMG |
 | nome | text | "Quadro de Oficiais Combatentes", "Quadro de Oficiais da Administração", "Qualificação Bombeiro Militar Geral" |
 | ordem | int único | |
+| oficial | boolean not null default false | quem está hoje neste quadro tem a camada de visão do oficial; QOC e QOA nascem `true` (migração 0032). O administrador marca e desmarca nas Configurações, e a mudança entra na auditoria |
+
+### visao_bloco
+A borda das camadas de visão (entrega 6.11, migração 0032): quais blocos de dados cada camada vê de um militar. Quem EDITA continua pela hierarquia (`papel_usuario`); aqui é só quem VÊ, e as camadas se somam. Vinte e uma linhas (sete blocos por três camadas), com a borda inicial da spec das camadas de visão; o administrador ajusta nas Configurações ("Quem vê o quê").
+| Coluna | Tipo | Regra |
+|---|---|---|
+| id | uuid único | só serve à auditoria (a chave é a natural) |
+| bloco | text | `identificacao`, `contato`, `situacao`, `afastamentos`, `dados_da_escala`, `comportamento`, `escala_em_montagem` |
+| camada | text | `todos`, `oficial`, `chefe_divisao` |
+| ve | boolean not null | a camada vê o bloco? |
+
+PK `(bloco, camada)`. O banco recusa `identificacao`/`todos` com `ve = false` (sem a identificação a consulta não mostra nada). CPF, nascimento e endereço não são bloco: ficam de fora da borda, com regra fixa (quem tem nível de acesso acima da lotação do militar, o administrador e o próprio militar).
 
 ### quadro_posto_grad
 Os postos-graduações de cada quadro (PK `quadro_id, posto_grad_id`); o mesmo posto pode estar em mais de um quadro. QOC: ASP OF, 2º TEN, 1º TEN, CAP, MAJ, TEN CEL e CEL. QOA: 2º TEN, 1º TEN, CAP e MAJ. QBMG: SD, CB, 3º SGT, 2º SGT, 1º SGT e ST. O ASP OF não aparece no QOD e entra no QOC (decisão de implementação).

@@ -16,19 +16,18 @@ import {
   type LinhaMilitar,
   type ListaDoPeculio,
   type Posto,
-  type Quadro,
   type SecaoDeLotacao,
 } from 'contratos';
 import { cnhHabilitadas, diasDoMes } from 'dominio';
 import { Hono, type Context } from 'hono';
-import { CADASTRO, exigirAdministradorRaiz, exigirAlgumPapel, exigirPapel, exigirSessao, siglaDaUnidadeDeCima, temPapel, temPapelAcima, unidadeDoRegistro, type AmbienteApi } from '../acesso.ts';
+import { CADASTRO, ehAdministrador, exigirAdministradorRaiz, exigirAlgumPapel, exigirPapel, exigirSessao, siglaDaUnidadeDeCima, temPapel, temPapelAcima, unidadeDoRegistro, type AmbienteApi } from '../acesso.ts';
 import type { Auth } from '../auth.ts';
 import { comUsuario, type Banco, type Consulta } from '../banco/banco.ts';
 import { hojeRecife } from '../datas.ts';
 import { lerCorpo, respostaDoErroDoBanco } from '../erros.ts';
 import { apagarMilitar, oQueVaiJunto } from './apagar-militar.ts';
 import { mudarPeriodoAberto, periodoAberto } from './periodo-aberto.ts';
-import { quadroParaOPosto } from './quadros.ts';
+import { lerQuadros, quadroParaOPosto } from './quadros.ts';
 import { categoriaMaisAlta, pendenciasDoMilitar, repetidasPorAntiguidade, situacaoNoMes } from './militares-regras.ts';
 
 type Ctx = Context<AmbienteApi>;
@@ -190,6 +189,8 @@ async function carregarFicha(c: Consulta, id: string, mes: string, usuarioId: st
     escala,
     unidadeDeCima: lotacaoAtual ? await siglaDaUnidadeDeCima(c, lotacaoAtual) : null,
   };
+  // CPF, nascimento e endereço: de quem cuida do Pecúlio (nível de acesso acima da lotação) e do administrador; para os outros as chaves nem saem
+  const veDadosRestritos = podeEditar.peculio || (await ehAdministrador(c, usuarioId, hoje));
   return {
     ...linhaDe(m, afastamentos.rows, mes, repetidaCom),
     antiguidadeRepetidaCom: repetidaCom,
@@ -197,9 +198,14 @@ async function carregarFicha(c: Consulta, id: string, mes: string, usuarioId: st
     postoGradId: m.posto_grad_id,
     nomeCompleto: m.nome_completo,
     sexo: m.sexo,
-    nascimento: m.nascimento_dia !== null && m.nascimento_mes !== null ? { dia: m.nascimento_dia, mes: m.nascimento_mes, ano: m.nascimento_ano } : null,
-    cpf: m.cpf,
-    endereco: { cep: m.cep, logradouro: m.logradouro, numero: m.numero, complemento: m.complemento, bairro: m.bairro, cidade: m.cidade, uf: m.uf },
+    veDadosRestritos,
+    ...(veDadosRestritos
+      ? {
+          nascimento: m.nascimento_dia !== null && m.nascimento_mes !== null ? { dia: m.nascimento_dia, mes: m.nascimento_mes, ano: m.nascimento_ano } : null,
+          cpf: m.cpf,
+          endereco: { cep: m.cep, logradouro: m.logradouro, numero: m.numero, complemento: m.complemento, bairro: m.bairro, cidade: m.cidade, uf: m.uf },
+        }
+      : {}),
     situacaoDoMilitar: m.situacao_id && m.situacao_nome ? { id: m.situacao_id, nome: m.situacao_nome, escalavel: m.ativo } : null,
     telefone: m.telefone,
     email: m.email,
@@ -322,14 +328,7 @@ export function rotasMilitares(dep: { banco: Banco; auth: Auth }): Hono<Ambiente
     return c.json(resultado.posto);
   });
 
-  r.get('/quadros', async (c) => {
-    const { rows } = await dep.banco.query<Quadro>(
-      `select q.id, q.sigla, q.nome, coalesce(array_agg(qp.posto_grad_id order by p.ordem) filter (where qp.posto_grad_id is not null), '{}') as "postoGradIds"
-         from quadro q left join quadro_posto_grad qp on qp.quadro_id = q.id left join posto_grad p on p.id = qp.posto_grad_id
-        group by q.id order by q.ordem`,
-    );
-    return c.json(rows);
-  });
+  r.get('/quadros', async (c) => c.json(await lerQuadros(dep.banco)));
 
   // as seções em que a pessoa pode lotar um militar: as que ela pode cadastrar (o administrador, todas)
   r.get('/secoes', async (c) => {
@@ -387,8 +386,8 @@ export function rotasMilitares(dep: { banco: Banco; auth: Auth }): Hono<Ambiente
     const mes = mesDaConsulta(c);
     if (!Mes.safeParse(mes).success) return c.json({ erro: 'Mês inválido: use o formato aaaa-mm.' }, 400);
     const { primeiro, ultimo } = limitesDoMes(mes);
-    const { rows } = await dep.banco.query<LinhaBanco & { lotacao: string }>(
-      `${SELECT_MILITAR}, un.sigla as lotacao
+    const { rows } = await dep.banco.query<LinhaBanco & { lotacao: string; lotacao_id: string }>(
+      `${SELECT_MILITAR}, un.sigla as lotacao, un.id as lotacao_id
          from rastreio l
          join unidade un on un.id = l.unidade_id
          join unidade alvo on alvo.id = $1
@@ -403,6 +402,12 @@ export function rotasMilitares(dep: { banco: Banco; auth: Auth }): Hono<Ambiente
     );
     const repetidas = repetidasPorAntiguidade(rows.filter((m) => m.ativo).map((m) => ({ id: m.id, nomeGuerra: m.nome_guerra, antiguidade: m.antiguidade })));
     const numeroDoMes = Number(mes.slice(5, 7));
+    // o nascimento é de quem cuida do Pecúlio do militar (nível de acesso acima da lotação dele, ou o administrador): a lista só traz os aniversários desses
+    const hoje = hojeRecife();
+    const admin = await ehAdministrador(dep.banco, c.get('usuarioId'), hoje);
+    const veDaUnidade = new Map<string, boolean>();
+    for (const un of new Set(rows.map((m) => m.lotacao_id))) veDaUnidade.set(un, admin || (await temPapelAcima(dep.banco, c.get('usuarioId'), un, CADASTRO, hoje)));
+    const veNascimento = (m: { lotacao_id: string }) => veDaUnidade.get(m.lotacao_id) === true;
     const lista: ListaDoPeculio = {
       militares: rows.map((m) => ({
         militarId: m.id,
@@ -417,10 +422,15 @@ export function rotasMilitares(dep: { banco: Banco; auth: Auth }): Hono<Ambiente
           motorista: m.motorista, cnh: m.cnh, jornada: m.jornada, equipe: m.equipe, antiguidade: m.antiguidade, nomeCompleto: m.nome_completo, quadro: m.quadro_id, repetidaCom: repetidas.get(m.id),
         }),
       })),
-      // quem não tem o nascimento preenchido não entra; no mesmo dia, a ordem é a da lista (posto, antiguidade, nome)
-      aniversariantes: rows
-        .flatMap((m) => (m.nascimento_dia !== null && m.nascimento_mes === numeroDoMes ? [{ militarId: m.id, posto: m.posto, nomeGuerra: m.nome_guerra, dia: m.nascimento_dia, lotacao: m.lotacao }] : []))
-        .sort((a, b) => a.dia - b.dia),
+      // quem não tem o nascimento preenchido não entra; no mesmo dia, a ordem é a da lista (posto, antiguidade, nome). Sem ver o nascimento de nenhum
+      // militar da lista, a chave nem existe (a tela esconde a seção, em vez de dizer que ninguém faz aniversário)
+      ...(rows.some(veNascimento)
+        ? {
+            aniversariantes: rows
+              .flatMap((m) => (veNascimento(m) && m.nascimento_dia !== null && m.nascimento_mes === numeroDoMes ? [{ militarId: m.id, posto: m.posto, nomeGuerra: m.nome_guerra, dia: m.nascimento_dia, lotacao: m.lotacao }] : []))
+              .sort((a, b) => a.dia - b.dia),
+          }
+        : {}),
     };
     return c.json(lista);
   });

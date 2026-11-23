@@ -155,7 +155,7 @@ export const NovoPosto = z.object({
 });
 export type NovoPosto = z.infer<typeof NovoPosto>;
 /** QOC, QOA ou QBMG, com os postos-graduações que pertencem a ele (o mesmo posto pode estar em mais de um quadro). */
-export type Quadro = { id: string; sigla: string; nome: string; postoGradIds: string[] };
+export type Quadro = { id: string; sigla: string; nome: string; postoGradIds: string[]; /** Quem está nele tem a camada de visão do oficial (QOC e QOA nascem marcados). */ oficial: boolean };
 /** Seção em que o usuário pode lotar um militar (as que ele pode cadastrar). */
 export type SecaoDeLotacao = { id: string; sigla: string; nome: string };
 export type Equipe = { id: string; nome: string; ordemCiclo: number };
@@ -190,17 +190,24 @@ export type ItemDoPeculio = {
   pendencias: string[];
 };
 export type AniversarianteDoMes = { militarId: string; posto: string; nomeGuerra: string; dia: number; lotacao: string };
-/** GET /api/unidades/:u/peculio?mes=aaaa-mm: os militares lotados em :u e nas de baixo, e os que fazem aniversário no mês (em ordem de dia). */
-export type ListaDoPeculio = { militares: ItemDoPeculio[]; aniversariantes: AniversarianteDoMes[] };
+/**
+ * GET /api/unidades/:u/peculio?mes=aaaa-mm: os militares lotados em :u e nas de baixo, e os que fazem aniversário no mês (em ordem de dia).
+ * O nascimento é um dado restrito (de quem cuida do Pecúlio): só entram os aniversariantes cujo nascimento quem pede pode ver, e a chave fica
+ * ausente quando não pode ver o de nenhum militar da lista.
+ */
+export type ListaDoPeculio = { militares: ItemDoPeculio[]; aniversariantes?: AniversarianteDoMes[] };
 
 export type FichaMilitar = LinhaMilitar & {
   postoGradId: string;
   nomeCompleto: string | null;
   sexo: 'M' | 'F' | null;
-  nascimento: Nascimento | null;
+  /** O nascimento, o CPF e o endereço só vêm para quem cuida do Pecúlio (`veDadosRestritos`): para os outros as chaves ficam ausentes. */
+  nascimento?: Nascimento | null;
   /** 11 dígitos, sem pontuação; a tela mostra 000.000.000-00 */
-  cpf: string | null;
-  endereco: Endereco;
+  cpf?: string | null;
+  endereco?: Endereco;
+  /** Vê o CPF, o nascimento e o endereço: quem tem nível de acesso numa unidade acima da lotação do militar, e o administrador. */
+  veDadosRestritos: boolean;
   /** A situação do período que vale (Ativa, Reserva…); null quando o militar não tem período. */
   situacaoDoMilitar: { id: string; nome: string; escalavel: boolean } | null;
   telefone: string | null;

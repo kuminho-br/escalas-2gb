@@ -3,7 +3,7 @@ import { somarMeses, type FichaMilitar, type LinhaMilitar, type ListaDoPeculio, 
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { hojeRecife } from '../src/datas.ts';
 import { inserir } from './banco-teste.ts';
-import { criarMilitar, montarApi, URL_BASE, type ApiDeTeste } from './apoio-api.ts';
+import { criarMilitar, entrarComo, montarApi, URL_BASE, type ApiDeTeste, type Pessoa } from './apoio-api.ts';
 
 let api: ApiDeTeste;
 let sd: string;
@@ -634,7 +634,7 @@ describe('lista do Pecúlio e aniversariantes (módulo)', () => {
       { militarId: a1.id, posto: 'SD BM', nomeGuerra: 'ALFAUM', dia: 20, lotacao: '1ª SB' },
     ]);
     // quem é só da 1ª SB: só o A
-    expect((await doPeculio(api.ids.secao)).aniversariantes.map((x) => x.nomeGuerra)).toEqual(['ALFAUM']);
+    expect((await doPeculio(api.ids.secao)).aniversariantes!.map((x) => x.nomeGuerra)).toEqual(['ALFAUM']);
   });
 
   it('um mês sem ninguém faz a lista de aniversariantes vir vazia, e a lista de militares continua', async () => {
@@ -701,5 +701,81 @@ describe('e-mail de entrada igual ao da ficha (fase 6)', () => {
     const { militarId } = await comAcesso('990704-4', null);
     const r = await api.pedir('gestorGb', 'PATCH', `/api/militares/${militarId}`, { nomeGuerra: 'NOVONOME' });
     expect(r.status).toBe(200);
+  });
+});
+
+describe('CPF, nascimento e endereço são de quem cuida do Pecúlio (6.11)', () => {
+  const CPF = '52998224725';
+  const RESTRITAS = ['cpf', 'nascimento', 'endereco'];
+  const mesDoAniversario = somarMeses(atual, 2);
+  const numeroDoMes = Number(mesDoAniversario.slice(5));
+  let alvoId: string;
+  let doGb: Pessoa;
+  const aberta = async (quem: 'escalante' | 'gestorGb' | 'admin') => {
+    const r = await api.pedir(quem, 'GET', `/api/militares/${alvoId}`);
+    expect(r.status).toBe(200);
+    return (await r.json()) as FichaMilitar;
+  };
+
+  beforeAll(async () => {
+    alvoId = (await criar('990601-1')).id;
+    await api.banco.query(
+      `update militar set cpf = $2, nascimento_dia = 15, nascimento_mes = $3, nascimento_ano = 1985,
+              cep = '50000000', logradouro = 'Rua Fictícia', numero = '10', bairro = 'Centro', cidade = 'Recife', uf = 'PE' where id = $1`,
+      [alvoId, CPF, numeroDoMes],
+    );
+    doGb = await entrarComo(api, { matricula: '990602-2', nome: 'AUXGB', nivel: { papel: 'escalante', unidadeId: api.ids.gb } });
+  });
+
+  it('o auxiliar da 1ª SB abre a ficha de um militar da 1ª SB sem o CPF, o nascimento e o endereço: as chaves nem existem', async () => {
+    const f = await aberta('escalante');
+    expect(f.veDadosRestritos).toBe(false);
+    for (const chave of RESTRITAS) expect(chave in f, chave).toBe(false);
+    // o resto da ficha continua o mesmo
+    expect(f).toMatchObject({ matricula: '990601-1', nomeCompleto: 'Fulano de Tal 990601-1', sexo: null, podeEditar: { peculio: false, escala: true } });
+    expect(JSON.stringify(f)).not.toMatch(/52998224725|Rua Fictícia|50000000/);
+  });
+
+  it('o gestor do 2º GB, o auxiliar do 2º GB e o administrador recebem os três', async () => {
+    for (const f of [await aberta('gestorGb'), await aberta('admin'), (await (await doGb.pedir('GET', `/api/militares/${alvoId}`)).json()) as FichaMilitar]) {
+      expect(f.veDadosRestritos).toBe(true);
+      expect(f.cpf).toBe(CPF);
+      expect(f.nascimento).toEqual({ dia: 15, mes: numeroDoMes, ano: 1985 });
+      expect(f.endereco).toMatchObject({ cep: '50000000', logradouro: 'Rua Fictícia', cidade: 'Recife', uf: 'PE' });
+    }
+  });
+
+  it('a ficha que volta de uma gravação segue a mesma regra', async () => {
+    const r = await api.pedir('escalante', 'PATCH', `/api/militares/${alvoId}`, { voluntarioJes: true });
+    expect(r.status).toBe(200);
+    const f = (await r.json()) as FichaMilitar;
+    expect(f.voluntarioJes).toBe(true);
+    for (const chave of RESTRITAS) expect(chave in f, chave).toBe(false);
+    expect(f.veDadosRestritos).toBe(false);
+  });
+
+  const peculio = (quem: 'escalante' | 'gestorGb' | 'admin', u: string) => api.pedir(quem, 'GET', `/api/unidades/${u}/peculio?mes=${mesDoAniversario}`);
+
+  it('a lista do Pecúlio segue a mesma regra: sem o nascimento, não há aniversariantes (a chave nem existe)', async () => {
+    const doAuxiliar = await (await peculio('escalante', api.ids.secao)).json();
+    expect(doAuxiliar.militares.some((m: { matricula: string }) => m.matricula === '990601-1')).toBe(true);
+    expect('aniversariantes' in doAuxiliar).toBe(false);
+    expect(JSON.stringify(doAuxiliar)).not.toMatch(/"dia":/);
+    for (const quem of ['gestorGb', 'admin'] as const) {
+      const lista: ListaDoPeculio = await (await peculio(quem, api.ids.secao)).json();
+      expect(lista.aniversariantes!.map((a) => a.nomeGuerra)).toContain('TESTE601');
+    }
+    const doAuxiliarDoGb: ListaDoPeculio = await (await doGb.pedir('GET', `/api/unidades/${api.ids.secao}/peculio?mes=${mesDoAniversario}`)).json();
+    expect(doAuxiliarDoGb.aniversariantes!.map((a) => a.nomeGuerra)).toContain('TESTE601');
+  });
+
+  it('o aniversariante é por militar: quem está lotado no próprio 2º GB só aparece para quem está acima do 2º GB', async () => {
+    const posto = (await api.banco.query<{ id: string }>("select id from posto_grad where sigla = 'SD BM'")).rows[0]!.id;
+    const id = await inserir(api.banco, 'militar', { matricula: '990603-3', posto_grad_id: posto, nome_guerra: 'NOGB', nome_completo: 'Fulano Lotado no Grupamento', nascimento_dia: 7, nascimento_mes: numeroDoMes });
+    await inserir(api.banco, 'rastreio', { militar_id: id, unidade_id: api.ids.gb, jornada: 'adm', desde: `${atual}-01` });
+    const nomes = async (quem: 'gestorGb' | 'admin') => ((await (await peculio(quem, api.ids.gb)).json()) as ListaDoPeculio).aniversariantes!.map((a) => a.nomeGuerra);
+    expect(await nomes('gestorGb')).not.toContain('NOGB');
+    expect(await nomes('gestorGb')).toContain('TESTE601');
+    expect(await nomes('admin')).toContain('NOGB');
   });
 });

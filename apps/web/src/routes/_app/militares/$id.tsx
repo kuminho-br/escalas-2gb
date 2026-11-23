@@ -45,7 +45,8 @@ function Ficha() {
       {/* key: ao trocar de militar, os formulários começam do zero; os dados entram nela para uma gravação de fora (ex.: importação) recarregar o bloco */}
       <Identificacao key={`i-${ficha.id}`} ficha={ficha} />
       <Contato key={`c-${ficha.id}`} ficha={ficha} />
-      <DadosPessoais key={`d-${ficha.id}`} ficha={ficha} />
+      {/* CPF, nascimento e endereço são de quem cuida do Pecúlio: sem poder ver, o bloco nem aparece */}
+      {ficha.veDadosRestritos && <DadosPessoais key={`d-${ficha.id}`} ficha={ficha} />}
       <Comportamento key={`p-${ficha.id}`} ficha={ficha} />
       <Motorista key={`m-${ficha.id}`} ficha={ficha} />
       <Afastamentos key={`a-${ficha.id}`} ficha={ficha} />

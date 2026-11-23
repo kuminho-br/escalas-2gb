@@ -16,3 +16,5 @@ export * from './grade.ts';
 export * from './usuarios.ts';
 export * from './oficiais.ts';
 export * from './estrutura.ts';
+export * from './visao.ts';
+export * from './consulta.ts';

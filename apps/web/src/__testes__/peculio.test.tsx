@@ -114,6 +114,14 @@ describe('módulo Pecúlio', () => {
     expect(itens[1]).toContain(`20/${MES.slice(5)}`);
   });
 
+  it('sem poder ver o nascimento de ninguém da lista (a chave não vem), a seção de aniversariantes nem aparece, e não diz que ninguém faz aniversário', async () => {
+    api(GESTOR_GB, { militares: LISTA.militares });
+    abrir('/peculio');
+    expect((await militares()).getByText('ANDRADE')).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Aniversariantes do mês' })).toBeNull();
+    expect(screen.queryByText('Nenhum aniversariante neste mês.')).toBeNull();
+  });
+
   it('um mês sem aniversariante diz "Nenhum aniversariante neste mês." (Review Focus 4)', async () => {
     api(GESTOR_GB, { ...LISTA, aniversariantes: [] });
     abrir('/peculio');

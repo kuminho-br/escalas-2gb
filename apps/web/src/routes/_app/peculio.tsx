@@ -65,7 +65,7 @@ function Peculio() {
       {lista.isPending && <p className="mt-6 text-apagado">Carregando…</p>}
       {lista.error && <p role="alert" className="mt-6 text-alerta">{mensagemDe(lista.error)}</p>}
       {lista.data && (
-        <div className="mt-6 grid items-start gap-6 lg:grid-cols-[1fr_20rem]">
+        <div className={cn('mt-6 grid items-start gap-6', lista.data.aniversariantes && 'lg:grid-cols-[1fr_20rem]')}>
           <div className="rounded-xl border border-linha bg-superficie">
             <div className="grid gap-2 border-b border-linha p-3 sm:grid-cols-[1fr_12rem]">
               <div className="grid gap-1">
@@ -97,6 +97,8 @@ function Peculio() {
             </ul>
           </div>
 
+          {/* o nascimento é de quem cuida do Pecúlio: sem poder ver o de ninguém da lista, a seção nem aparece (e não diz que ninguém faz aniversário) */}
+          {lista.data.aniversariantes && (
           <section className="rounded-xl border border-linha bg-superficie p-4">
             <h2 className="font-cond text-lg font-semibold">Aniversariantes do mês</h2>
             {lista.data.aniversariantes.length === 0 ? (
@@ -115,6 +117,7 @@ function Peculio() {
               </ul>
             )}
           </section>
+          )}
         </div>
       )}
     </section>
