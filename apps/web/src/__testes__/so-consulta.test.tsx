@@ -270,8 +270,8 @@ describe('o trilho e o endereço numa unidade só de consulta', () => {
     for (const fora of ['Oficiais', 'Militares', 'Turnos', 'Escalas', 'Feriados', 'Configurações', 'Estrutura', 'Histórico', 'Ajuda']) expect(within(trilho).queryByText(fora), fora).toBeNull();
   });
 
-  it('abrir uma tela de cadastro nesse modo leva à Grade geral (Militares, Turnos, Escalas, Feriados, Oficiais e Configurações)', async () => {
-    for (const caminho of ['/militares', '/servicos', '/escalas', '/feriados', '/oficiais', '/configuracoes']) {
+  it('abrir uma tela de cadastro nesse modo leva à Grade geral (Militares, Turnos, Escalas, Feriados, Oficiais e Configurações da escala)', async () => {
+    for (const caminho of ['/militares', '/servicos', '/escalas', '/feriados', '/oficiais', '/configuracoes-da-escala']) {
       guardarUnidadeDeConsulta('u-2sb');
       api();
       const router = abrir(caminho);
@@ -297,8 +297,8 @@ describe('quem só tem unidades de consulta: o oficial, com a marca ligada', () 
     abrir('/');
     const cartao = await screen.findByRole('link', { name: /Confecção de escalas/ });
     expect(cartao).toHaveAttribute('href', '/grade');
-    // o Pecúlio é de quem tem nível de acesso
-    expect(screen.queryByRole('link', { name: /Pecúlio/ })).toBeNull();
+    // o Pecúlio é de todos; sem nível de acesso, o cartão leva direto à Consulta de militares
+    expect(screen.getByRole('link', { name: /Pecúlio/ })).toHaveAttribute('href', '/consulta');
   });
 
   it('sem nenhuma unidade de consulta, o cartão não aparece (o militar comum de sempre)', async () => {

@@ -113,7 +113,7 @@ describe('casca', () => {
     expect(within(caminho).getAllByRole('listitem').at(-1)).toHaveAttribute('aria-current', 'location');
     expect(screen.getByRole('img', { name: 'Brasão do Corpo de Bombeiros Militar de Pernambuco' })).toHaveAttribute('src', '/brasao-cbmpe.png');
     expect(screen.getByRole('link', { name: 'Grade geral' })).toHaveAttribute('aria-current', 'page');
-    expect(screen.getByText('Estrutura').closest('[aria-disabled="true"]')).not.toBeNull();
+    expect(screen.queryByText('Estrutura')).toBeNull();
     expect(screen.getByRole('heading', { name: 'Grade geral', level: 1 })).toBeInTheDocument();
   });
 
@@ -124,7 +124,7 @@ describe('casca', () => {
     expect(await screen.findByText('SD ANDRADE')).toBeInTheDocument();
     expect(screen.queryByRole('navigation', { name: 'Navegação principal' })).toBeNull();
     expect(screen.queryByText('Militares')).toBeNull();
-    expect(screen.queryByText('Configurações')).toBeNull();
+    expect(screen.queryByText('Configurações da escala')).toBeNull();
   });
 
   it('o militar comum na Grade geral também volta ao início', async () => {
@@ -148,12 +148,12 @@ describe('casca', () => {
     expect(screen.queryByRole('button', { name: 'Abrir menu' })).toBeNull();
   });
 
-  it('dentro do Pecúlio, o trilho só tem o Pecúlio, e a ficha aberta por ele continua nesse trilho (Review Focus 4)', async () => {
+  it('dentro do Pecúlio, o trilho tem o Pecúlio e a Consulta de militares, e a ficha aberta por ele continua nesse trilho (Review Focus 4)', async () => {
     simularApi({ '/api/eu': { status: 200, corpo: EU_EXEMPLO } });
     abrir('/militares/m1?de=peculio');
     await screen.findByText('SD ANDRADE');
     const menu = screen.getByRole('navigation', { name: 'Navegação principal' });
-    expect(within(menu).getAllByRole('listitem').map((l) => l.textContent)).toEqual(['Pecúlio']);
+    expect(within(menu).getAllByRole('listitem').map((l) => l.textContent)).toEqual(['Pecúlio', 'Consulta de militares']);
     expect(within(menu).queryByText('Militares')).toBeNull();
   });
 
@@ -166,7 +166,7 @@ describe('casca', () => {
 });
 
 describe('trilho', () => {
-  const NOMES = ['Grade geral', 'Escala do mês', 'Efetivo por dia', 'Voluntariado', 'Cotas', 'Militares', 'Turnos', 'Escalas', 'Feriados', 'Configurações', 'Estrutura', 'Histórico', 'Ajuda'];
+  const NOMES = ['Grade geral', 'Escala do mês', 'Efetivo por dia', 'Voluntariado', 'Cotas', 'Militares', 'Turnos', 'Escalas', 'Feriados', 'Configurações da escala', 'Histórico', 'Ajuda'];
   const menu = () => screen.getByRole('navigation', { name: 'Navegação principal' });
 
   it('no computador o menu é um trilho de 84 px', async () => {
@@ -185,8 +185,8 @@ describe('trilho', () => {
     expect(within(menu()).getByRole('link', { name: 'Militares' })).toHaveAttribute('href', '/militares');
     expect(within(menu()).getByRole('link', { name: 'Escala do mês' })).toHaveAttribute('href', '/escala-do-mes');
     expect(within(menu()).getByRole('link', { name: 'Efetivo por dia' })).toHaveAttribute('href', '/efetivo-por-dia');
-    expect(within(menu()).getByText('Estrutura').closest('[aria-disabled="true"]')).not.toBeNull();
-    expect(within(menu()).queryByRole('link', { name: 'Estrutura' })).toBeNull();
+    // a Estrutura saiu do trilho: é um módulo próprio, na tela inicial
+    expect(within(menu()).queryByText('Estrutura')).toBeNull();
   });
 
   it('o menu do celular abre e fecha', async () => {

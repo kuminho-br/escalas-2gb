@@ -1,6 +1,7 @@
 import { createFileRoute, Link, redirect, useNavigate } from '@tanstack/react-router';
 import { useEffect, useRef, useState } from 'react';
 import { ArrowRight } from 'lucide-react';
+import type { Eu } from '@/api/eu';
 import { MODULOS, type Modulo } from '@/lib/modulos';
 import { buscaDaGrade, temBuscaDaGrade, type BuscaDaGrade } from '@/lib/busca-da-grade';
 import { dataPorExtenso, saudacao } from '@/lib/saudacao';
@@ -56,7 +57,7 @@ function Inicio() {
       <ul className="grid gap-3 px-4 pt-5 pb-8 md:grid-cols-3 md:gap-[18px] md:px-12 md:pt-7 md:pb-10">
         {MODULOS.filter((m) => m.ve(eu)).map((m, i) => (
           <li key={m.id} data-chegada={chegadaDosCartoes} style={chegadaDosCartoes ? { animationDelay: `${i * 135}ms` } : undefined} className="cartao-da-chegada flex">
-            <Cartao modulo={m} />
+            <Cartao modulo={m} eu={eu} />
           </li>
         ))}
       </ul>
@@ -67,7 +68,8 @@ function Inicio() {
 const classeDoCartao =
   'flex w-full flex-col gap-2.5 rounded-xl border border-transparent bg-superficie p-4 shadow-[0_1px_2px_rgba(28,36,48,.08),0_8px_24px_rgba(28,36,48,.08)] md:p-[22px]';
 
-function Cartao({ modulo }: { modulo: Modulo }) {
+function Cartao({ modulo, eu }: { modulo: Modulo; eu: Eu }) {
+  const rota = modulo.rotaDe?.(eu) ?? modulo.rota;
   const Icone = modulo.icone;
   const corpo = (
     <>
@@ -77,7 +79,7 @@ function Cartao({ modulo }: { modulo: Modulo }) {
       <h2 className="font-cond text-xl leading-[1.15] font-semibold md:text-2xl">{modulo.nome}</h2>
       <p className="text-sm text-apagado md:text-base">{modulo.descricao}</p>
       <span className="mt-auto flex items-center justify-between gap-2 border-t border-linha pt-3 text-sm font-medium">
-        {modulo.rota ? (
+        {rota ? (
           <>
             Abrir
             <ArrowRight className="size-[18px] text-vinho" aria-hidden />
@@ -88,9 +90,9 @@ function Cartao({ modulo }: { modulo: Modulo }) {
       </span>
     </>
   );
-  if (!modulo.rota) return <div className={`${classeDoCartao} opacity-75`}>{corpo}</div>;
+  if (!rota) return <div className={`${classeDoCartao} opacity-75`}>{corpo}</div>;
   return (
-    <Link to={modulo.rota} className={`${classeDoCartao} transition-colors hover:border-vinho focus-visible:outline-2 focus-visible:outline-tinta motion-reduce:transition-none`}>
+    <Link to={rota} className={`${classeDoCartao} transition-colors hover:border-vinho focus-visible:outline-2 focus-visible:outline-tinta motion-reduce:transition-none`}>
       {corpo}
     </Link>
   );

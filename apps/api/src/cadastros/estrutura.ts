@@ -88,7 +88,7 @@ async function historicoDas(c: Consulta, ids: string[]): Promise<Map<string, str
 
 type Linha = {
   id: string; sigla: string; nome: string; mae_id: string | null; desde: string; ate: string | null;
-  codigo: string; tipo_nome: string; ordem: number; pode_editar: boolean; pode_reorganizar: boolean; abaixo: number; lotados: number;
+  codigo: string; tipo_nome: string; ordem: number; pode_editar: boolean; pode_reorganizar: boolean; abaixo: number; lotados: number; lotados_na_arvore: number;
 };
 
 /**
@@ -104,7 +104,8 @@ export async function arvoreDaUnidade(c: Consulta, raizId: string, usuarioId: st
             ${gestao}) as pode_editar,
             ${gestao} and a.id <> u.id) and u.mae_id is not null as pode_reorganizar,
             (select count(*)::int from unidade d where d.caminho <@ u.caminho and d.id <> u.id and (d.ate is null or d.ate >= $2::date)) as abaixo,
-            (select count(distinct r.militar_id)::int from rastreio r where r.unidade_id = u.id and r.desde <= $2::date and (r.ate is null or r.ate >= $2::date)) as lotados
+            (select count(distinct r.militar_id)::int from rastreio r where r.unidade_id = u.id and r.desde <= $2::date and (r.ate is null or r.ate >= $2::date)) as lotados,
+            (select count(distinct r.militar_id)::int from rastreio r join unidade d on d.id = r.unidade_id where d.caminho <@ u.caminho and r.desde <= $2::date and (r.ate is null or r.ate >= $2::date)) as lotados_na_arvore
        from unidade r join unidade u on u.caminho <@ r.caminho join tipo_unidade t on t.codigo = u.tipo
       where r.id = $1 and (u.id = r.id or u.ate is null or u.ate >= $2::date)`,
     [raizId, hoje, usuarioId, GESTAO],
@@ -114,7 +115,7 @@ export async function arvoreDaUnidade(c: Consulta, raizId: string, usuarioId: st
     id: l.id, sigla: l.sigla, nome: l.nome, tipo: { codigo: l.codigo, nome: l.tipo_nome, ordem: l.ordem }, desde: l.desde, ate: l.ate,
     filhas: rows.filter((f) => f.mae_id === l.id).sort((a, b) => ORDEM.compare(a.sigla, b.sigla)).map(no),
     podeEditar: l.pode_editar, podeReorganizar: l.pode_reorganizar,
-    ligados: { unidades: l.abaixo, militaresHoje: l.lotados, historico: historico.get(l.id) ?? [] } satisfies LigadosAUnidade,
+    ligados: { unidades: l.abaixo, militaresHoje: l.lotados, militaresNaArvore: l.lotados_na_arvore, historico: historico.get(l.id) ?? [] } satisfies LigadosAUnidade,
   });
   const raiz = rows.find((l) => l.id === raizId);
   return raiz ? no(raiz) : null;
