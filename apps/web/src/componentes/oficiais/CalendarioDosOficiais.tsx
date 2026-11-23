@@ -24,9 +24,47 @@ interface Props {
   /** O clique num lugar: livre (nas escolhas) ou qualquer um (com a escala fechada). Sem ele, o calendário é só de leitura. */
   aoClicarTurno?: (t: Sorteado) => void;
   aoTirar?: (t: Sorteado) => void;
+  /** O clique no número do dia marca ou tira o dia vermelho. Sem ele (mês encerrado), o dia vermelho só aparece marcado. */
+  aoMarcarDia?: (dia: string) => void;
   desabilitado?: boolean;
   /** O lugar que acabou de ser lançado: fica marcado até o próximo lançamento. */
   recente?: { dia: string; turnoId: string } | null;
+}
+
+/**
+ * O número do dia. O dia vermelho (um dia ruim, que ninguém quer tirar) leva um ponto na cor de alerta e o texto "Dia vermelho" para o leitor de tela. Com a
+ * escala editável, o número é um botão que marca ou tira o dia vermelho; sem ela, é só o número.
+ */
+function CabecalhoDoDia({ dia, vermelho, aoMarcar, desabilitado }: { dia: string; vermelho: boolean; aoMarcar?: (dia: string) => void; desabilitado?: boolean }) {
+  const dm = `${dia.slice(8, 10)}/${dia.slice(5, 7)}`;
+  const numero = (
+    <>
+      <b className="font-cond text-[15px] leading-[22px] font-semibold">{Number(dia.slice(8))}</b>
+      {vermelho && <i data-marca-vermelha aria-hidden className="size-2 shrink-0 self-center rounded-full bg-alerta" />}
+      {vermelho && <span className="sr-only">Dia vermelho</span>}
+    </>
+  );
+  return (
+    <div className="flex items-baseline gap-2">
+      {aoMarcar ? (
+        <button
+          type="button"
+          aria-pressed={vermelho}
+          aria-label={`Dia vermelho: ${dm}`}
+          title={vermelho ? 'Tirar a marca de dia vermelho' : 'Marcar como dia vermelho'}
+          disabled={desabilitado}
+          onClick={() => aoMarcar(dia)}
+          className={cn('-ml-1 flex items-baseline gap-1.5 rounded px-1 hover:bg-passa focus-visible:outline-2', vermelho && 'text-alerta')}
+        >
+          {numero}
+        </button>
+      ) : (
+        <span className={cn('flex items-baseline gap-1.5', vermelho && 'text-alerta')}>{numero}</span>
+      )}
+      {/* o cabeçalho das colunas já diz o dia da semana; na coluna única do celular ele volta */}
+      <span data-dia-da-semana className="text-[13px] text-apagado md:hidden">{SEMANA[new Date(`${dia}T00:00:00Z`).getUTCDay()]}</span>
+    </div>
+  );
 }
 
 export function LegendaDosTurnos({ turnos }: { turnos: Turno[] }) {
@@ -42,13 +80,14 @@ export function LegendaDosTurnos({ turnos }: { turnos: Turno[] }) {
 }
 
 /** O mês em dias, com os turnos do serviço. No celular, uma coluna; no computador, a semana. */
-export function CalendarioDosOficiais({ escala: e, aoClicarTurno, aoTirar, desabilitado, recente }: Props) {
+export function CalendarioDosOficiais({ escala: e, aoClicarTurno, aoTirar, aoMarcarDia, desabilitado, recente }: Props) {
   const turnos = e.turnosDoServico;
   const porId = new Map(e.oficiais.map((o) => [o.militarId, o] as const));
   const vez = e.etapa === 'escolhas' ? (porId.get(e.vez ?? '') ?? null) : null;
   const nomeDoServico = { jes: 'JES', saldo: 'Saldo' } as const;
   const avisados = new Set(e.avisos.map((a) => `${a.dia}|${a.turnoId}`));
   const dias = [...new Set(e.turnos.map((t) => t.dia))].sort();
+  const vermelhos = new Set(e.diasVermelhos);
   const primeiro = dias[0] ? new Date(`${dias[0]}T00:00:00Z`).getUTCDay() : 0;
 
   function celula(d: string, t: Turno) {
@@ -151,11 +190,7 @@ export function CalendarioDosOficiais({ escala: e, aoClicarTurno, aoTirar, desab
       {Array.from({ length: primeiro }, (_, i) => <div key={`v${i}`} aria-hidden className="hidden md:block" />)}
       {dias.map((d) => (
         <div key={d} data-dia className="grid content-start gap-1 p-0.5">
-          <div className="flex items-baseline gap-2">
-            <b className="font-cond text-[15px] leading-[22px] font-semibold">{Number(d.slice(8))}</b>
-            {/* o cabeçalho das colunas já diz o dia da semana; na coluna única do celular ele volta */}
-            <span data-dia-da-semana className="text-[13px] text-apagado md:hidden">{SEMANA[new Date(`${d}T00:00:00Z`).getUTCDay()]}</span>
-          </div>
+          <CabecalhoDoDia dia={d} vermelho={vermelhos.has(d)} aoMarcar={aoMarcarDia} desabilitado={desabilitado} />
           <div className="grid grid-cols-2 gap-1 md:grid-cols-1">{turnos.map((t) => celula(d, t))}</div>
         </div>
       ))}

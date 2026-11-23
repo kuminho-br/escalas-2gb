@@ -1,6 +1,6 @@
 // Rotas da escala dos oficiais (QOC e QOA) e do painel de saldo. Só gestor e administrador da unidade.
 // A escala dos oficiais é uma escala comum de rodada de cotas (entrega 6.27): cada lançamento é uma alocação de JES (à mão) ou de Saldo (a rodada).
-import { AjusteDeSaldo, Lancamento, OrdemManual, Participantes, type OficialNoSaldo } from 'contratos';
+import { AjusteDeSaldo, DiasVermelhos, Lancamento, OrdemManual, Participantes, type OficialNoSaldo } from 'contratos';
 import { Mes } from 'contratos';
 import { calcularCotas, diasDoMes, ordemDeEscolha, rotuloDoTurno, saldoDeEntrada, saldoDoMes, type TurnoDoMes } from 'dominio';
 import { Hono, type Context } from 'hono';
@@ -279,6 +279,31 @@ export function rotasOficiais(dep: { banco: Banco; auth: Auth }): Hono<AmbienteA
       await tx.query('insert into oficiais_participante (mes_id, militar_id) select $1, unnest($2::uuid[]) on conflict do nothing', [linha.id, ficam]);
       // com o mês aberto, mudar quem participa refaz as cotas (os lançamentos de quem continua ficam)
       if (linha.aberto_em) return refazerCotas(tx, rod);
+    });
+  });
+
+  /**
+   * Os dias vermelhos do mês: a lista inteira troca a do mês (o que não vem deixa de ser vermelho; os outros meses ficam). Vale em qualquer etapa até o mês
+   * ser encerrado, e não mexe em lançamento nem em cota: os dias vermelhos só são contados.
+   */
+  r.put('/unidades/:u/oficiais/:mes/dias-vermelhos', async (c) => {
+    const a = await entrada(c);
+    if ('resposta' in a) return a.resposta;
+    const sem = daEscala(a, c);
+    if (sem) return sem;
+    const corpo = await lerCorpo(c, DiasVermelhos);
+    if (!corpo.ok) return corpo.resposta;
+    const doMes = new Set(diasDoMes(a.mes));
+    if (corpo.dados.dias.some((d) => !doMes.has(d))) return c.json({ erro: MSG_LUGAR_FORA_DO_MES }, 400);
+    const dias = [...new Set(corpo.dados.dias)].sort();
+    const rod = { unidadeId: a.u, escalaId: a.escala!.id, mes: a.mes };
+    return mudar(c, rod, async (tx) => {
+      await garantirMes(tx, rod);
+      const linha = (await linhaDoMes(tx, rod.escalaId, rod.mes, true))!;
+      if (linha.encerrada_em) throw new Recusa(409, MSG_ENCERRADO);
+      const { inicio, fim } = limitesDoMes(rod.mes);
+      await tx.query('delete from dia_vermelho where escala_id = $1 and dia between $2::date and $3::date and not (dia = any($4::date[]))', [rod.escalaId, inicio, fim, dias]);
+      await tx.query('insert into dia_vermelho (escala_id, dia) select $1, unnest($2::date[]) on conflict do nothing', [rod.escalaId, dias]);
     });
   });
 

@@ -37,6 +37,9 @@ export const lancarNoLugar = (qc: QueryClient, unidadeId: string, mes: string, l
 /** Tira o oficial do lugar (o lugar volta para a rodada). */
 export const tirarDoLugar = (qc: QueryClient, unidadeId: string, mes: string, alocacaoId: string, escalaId?: string) =>
   gravar(qc, unidadeId, pedir<EscalaDosOficiais>('DELETE', `${base(unidadeId, mes)}/lancamentos/${alocacaoId}${daEscala(escalaId)}`));
+/** Os dias vermelhos do mês: a lista inteira (o que não vem deixa de ser vermelho). Vale até o mês ser encerrado e não muda a cota. */
+export const marcarDiasVermelhos = (qc: QueryClient, unidadeId: string, mes: string, dias: string[], escalaId?: string) =>
+  gravar(qc, unidadeId, pedir<EscalaDosOficiais>('PUT', `${base(unidadeId, mes)}/dias-vermelhos${daEscala(escalaId)}`, { dias }));
 export const fecharEscala = (qc: QueryClient, unidadeId: string, mes: string, escalaId?: string) =>
   gravar(qc, unidadeId, pedir<EscalaDosOficiais>('POST', `${base(unidadeId, mes)}/fechar${daEscala(escalaId)}`));
 export const encerrarMes = (qc: QueryClient, unidadeId: string, mes: string, escalaId?: string) =>

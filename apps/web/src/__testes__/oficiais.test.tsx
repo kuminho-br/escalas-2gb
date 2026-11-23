@@ -22,7 +22,7 @@ describe('o item Oficiais e a rota', () => {
   });
   const SEM_ESCALA: EscalaDosOficiais = {
     mes: MES, etapa: 'nao-aberto', abertaEm: null, fechadaEm: null, encerradaEm: null, escala: { id: 'e-of', nome: 'Oficiais de operações' }, escalas: [{ id: 'e-of', nome: 'Oficiais de operações' }],
-    servicos: { jes: null, saldo: null }, turnosDoServico: [], oficiais: [], vez: null, turnos: [], lugaresDeSaldo: 0, avisos: [],
+    servicos: { jes: null, saldo: null }, turnosDoServico: [], oficiais: [], vez: null, turnos: [], lugaresDeSaldo: 0, diasVermelhos: [], avisos: [],
   };
   const rotas = (eu: EuDaApi) => ({
     '/api/eu': { status: 200, corpo: eu },
@@ -58,12 +58,13 @@ describe('o item Oficiais e a rota', () => {
     expect(await screen.findByText('Essa área é de outro nível de acesso.')).toBeInTheDocument();
   });
 
-  it('a página mostra o título, o subtítulo e as três abas', async () => {
+  it('a página mostra o título, o subtítulo e as duas abas (as regras abrem pelo botão, na Escala do mês)', async () => {
     simularApi(rotas(GESTOR));
     abrir(`/oficiais?mes=${MES}`);
     expect(await screen.findByRole('heading', { name: 'Escala dos oficiais' })).toBeInTheDocument();
     expect(screen.getByText('Oficiais QOC e QOA.')).toBeInTheDocument();
-    for (const aba of ['Escala do mês', 'Painel de saldo', 'Regras']) expect(screen.getByRole('tab', { name: aba })).toBeInTheDocument();
+    for (const aba of ['Escala do mês', 'Painel de saldo']) expect(screen.getByRole('tab', { name: aba })).toBeInTheDocument();
+    expect(screen.queryByRole('tab', { name: 'Regras' })).toBeNull();
   });
 });
 
@@ -79,7 +80,7 @@ const dia = (n: number) => `2027-01-${String(n).padStart(2, '0')}`;
 const LETRA: Record<string, string> = { 't-a': 'A', 't-b': 'B' };
 const vazios = (): EscalaDosOficiais['turnos'] => Array.from({ length: 31 }, (_, i) => i + 1).flatMap((n) => ['t-a', 't-b'].map((turnoId) => ({ dia: dia(n), letra: LETRA[turnoId]!, turnoId, servico: null, alocacaoId: null, militarId: null as string | null, saiuMilitarId: null as string | null })));
 const oficial = (o: Partial<OficialDoMes> & Pick<OficialDoMes, 'militarId' | 'nomeGuerra' | 'posto' | 'ordem'>): OficialDoMes => ({
-  matricula: '990100-0', quadro: 'QOC', lotacao: '2º GB', semAntiguidade: false, saldoAnterior: 0, dias: 31, devido: 20.5, cota: 21, sobra: false, escolhidos: 0, jes: 0, voluntarioJes: false, afastamentos: [], participa: true, novo: false, ...o,
+  matricula: '990100-0', quadro: 'QOC', lotacao: '2º GB', semAntiguidade: false, saldoAnterior: 0, dias: 31, devido: 20.5, cota: 21, sobra: false, escolhidos: 0, jes: 0, vermelhos: 0, voluntarioJes: false, afastamentos: [], participa: true, novo: false, ...o,
 });
 const O1 = oficial({ militarId: 'm-1', nomeGuerra: 'ALFA', posto: 'CEL', ordem: 1, matricula: '990101-1', saldoAnterior: 0.75 });
 const O2 = oficial({ militarId: 'm-2', nomeGuerra: 'BRAVO', posto: 'CAP', ordem: 2, matricula: '990102-2', semAntiguidade: true, cota: 21, sobra: true });
@@ -88,7 +89,7 @@ const escala = (e: Partial<EscalaDosOficiais> = {}): EscalaDosOficiais => ({
   mes: MES, etapa: 'escolhas', abertaEm: '2026-12-28T10:12:00', fechadaEm: null, encerradaEm: null,
   escala: { id: 'e-of', nome: 'Oficiais de operações' }, escalas: [{ id: 'e-of', nome: 'Oficiais de operações' }],
   servicos: { jes: { id: 's-jes', nome: 'JES' }, saldo: { id: 's-op', nome: 'Saldo' } }, turnosDoServico: TURNOS_DO_SERVICO,
-  oficiais: [O1, O2, O3], vez: 'm-1', turnos: vazios(), lugaresDeSaldo: 62, avisos: [], ...e,
+  oficiais: [O1, O2, O3], vez: 'm-1', turnos: vazios(), lugaresDeSaldo: 62, diasVermelhos: [], avisos: [], ...e,
 });
 const URL_MES = `/api/unidades/u-gb/oficiais/${MES}`;
 function abrirEscala(e: EscalaDosOficiais, extra: Record<string, { status: number; corpo?: unknown; espera?: Promise<unknown> }> = {}) {
@@ -459,7 +460,7 @@ describe('a aba Escala do mês', () => {
 const reg = (r: OficialNoSaldo['registro'][number]) => r;
 const S1: OficialNoSaldo = {
   militarId: 'm-1', matricula: '990101-1', posto: 'CEL', nomeGuerra: 'ALFA', quadro: 'QOC', lotacao: '2º GB', saldo: 0.75,
-  meses: [{ mes: '2026-11', valor: 0.5 }, { mes: '2026-12', valor: 0.25 }], turnos: [{ rotulo: 'Dia', quantidade: 12 }, { rotulo: 'Noite', quantidade: 10 }],
+  vermelhos: 3, meses: [{ mes: '2026-11', valor: 0.5 }, { mes: '2026-12', valor: 0.25 }], turnos: [{ rotulo: 'Dia', quantidade: 12 }, { rotulo: 'Noite', quantidade: 10 }],
   registro: [
     reg({ tipo: 'mes', data: '2026-11-30', mes: '2026-11', valor: 0.5, texto: 'Devia 20,50, tirou 21' }),
     reg({ tipo: 'cobriu', data: '2026-12-24', mes: '2026-12', valor: 1, texto: 'Cobriu CAP BRAVO em 24/12/2026.' }),
@@ -468,7 +469,7 @@ const S1: OficialNoSaldo = {
 };
 const S2: OficialNoSaldo = {
   militarId: 'm-2', matricula: '990102-2', posto: 'CAP', nomeGuerra: 'BRAVO', quadro: 'QOA', lotacao: '1ª SB', saldo: -0.25,
-  meses: [{ mes: '2026-12', valor: -0.65 }], turnos: [{ rotulo: 'Dia', quantidade: 4 }, { rotulo: 'Noite', quantidade: 5 }],
+  vermelhos: 0, meses: [{ mes: '2026-12', valor: -0.65 }], turnos: [{ rotulo: 'Dia', quantidade: 4 }, { rotulo: 'Noite', quantidade: 5 }],
   registro: [
     reg({ tipo: 'entrada', data: '2026-12-10', mes: '2026-12', valor: 0.4, texto: 'Entrou com a média dos saldos de quem já estava.' }),
     reg({ tipo: 'mes', data: '2026-12-31', mes: '2026-12', valor: -0.65, texto: 'Devia 9,65, tirou 9' }),
@@ -562,15 +563,16 @@ describe('as regras', () => {
     vi.unstubAllGlobals();
   });
 
-  it('mostra os títulos e a tabela do exemplo', async () => {
+  it('o botão Regras abre os títulos e a tabela do exemplo, numa janela, sem aba', async () => {
     simularApi({
       '/api/eu': { status: 200, corpo: GESTOR },
       [`GET ${URL_MES}`]: { status: 200, corpo: escala() },
       'GET /api/unidades/u-gb/oficiais-saldo': { status: 200, corpo: [] },
       'GET /api/unidades/u-gb/servicos': { status: 200, corpo: [SERVICO] },
     });
-    abrir(`/oficiais?mes=${MES}&aba=regras`);
-    for (const t of ['Como a escala é montada', 'Como a cota é calculada', 'O saldo', 'O que muda o saldo', 'Os dois momentos do mês', 'O que fica registrado']) {
+    abrir(`/oficiais?mes=${MES}`);
+    await userEvent.click(await screen.findByRole('button', { name: 'Regras' }));
+    for (const t of ['Como a escala é montada', 'Como a cota é calculada', 'Os dias vermelhos', 'O saldo', 'O que muda o saldo', 'Os dois momentos do mês', 'O que fica registrado']) {
       expect(await screen.findByRole('heading', { name: t })).toBeInTheDocument();
     }
     const ex = screen.getByRole('table', { name: 'Exemplo de 62 turnos' });
@@ -877,6 +879,86 @@ describe('as etapas do mês como linha de processo (6.17, item 33)', () => {
     await screen.findByRole('list', { name: 'Etapas do mês' });
     const enchimento = document.querySelector('[data-seta-feita]') as HTMLElement;
     expect(enchimento).toHaveClass('duration-[220ms]', 'motion-reduce:transition-none');
+  });
+});
+
+// ---- os dias vermelhos (6.28) ----
+describe('os dias vermelhos', () => {
+  afterEach(() => {
+    cleanup();
+    vi.unstubAllGlobals();
+  });
+  const URL_VERMELHOS = `PUT ${URL_MES}/dias-vermelhos`;
+  const diaDoCalendario = (n: number) => screen.findByRole('button', { name: new RegExp(`^Dia vermelho: ${String(n).padStart(2, '0')}/01`) });
+
+  it('o calendário marca o dia vermelho com um ponto e o texto "Dia vermelho" para o leitor de tela; o outro dia fica sem marca', async () => {
+    abrirEscala(escala({ diasVermelhos: [dia(5)] }));
+    expect(await diaDoCalendario(5)).toHaveAttribute('aria-pressed', 'true');
+    expect(await diaDoCalendario(6)).toHaveAttribute('aria-pressed', 'false');
+    expect(within(await diaDoCalendario(5)).getByText('Dia vermelho')).toHaveClass('sr-only');
+    expect((await diaDoCalendario(5)).querySelector('[data-marca-vermelha]')).not.toBeNull();
+    expect((await diaDoCalendario(6)).querySelector('[data-marca-vermelha]')).toBeNull();
+  });
+
+  it('um clique no dia marca: a tela manda a lista inteira com o dia a mais', async () => {
+    const f = abrirEscala(escala({ diasVermelhos: [dia(5)] }), { [URL_VERMELHOS]: { status: 200, corpo: escala({ diasVermelhos: [dia(5), dia(9)] }) } });
+    await userEvent.click(await diaDoCalendario(9));
+    await waitFor(() => expect(corpoEnviado(f, URL_VERMELHOS)).toEqual({ dias: [dia(5), dia(9)] }));
+  });
+
+  it('um clique no dia vermelho tira a marca: a lista vai sem ele', async () => {
+    const f = abrirEscala(escala({ diasVermelhos: [dia(5), dia(9)] }), { [URL_VERMELHOS]: { status: 200, corpo: escala({ diasVermelhos: [dia(9)] }) } });
+    await userEvent.click(await diaDoCalendario(5));
+    await waitFor(() => expect(corpoEnviado(f, URL_VERMELHOS)).toEqual({ dias: [dia(9)] }));
+  });
+
+  it('com a escala fechada ainda se marca', async () => {
+    const f = abrirEscala(escala({ etapa: 'fechada', fechadaEm: '2027-01-05T10:00:00' }), { [URL_VERMELHOS]: { status: 200, corpo: escala() } });
+    await userEvent.click(await diaDoCalendario(3));
+    await waitFor(() => expect(chamadasA(f, URL_VERMELHOS)).toBe(1));
+  });
+
+  it('com o mês encerrado o dia vermelho só aparece marcado, sem botão', async () => {
+    abrirEscala(escala({ etapa: 'encerrada', fechadaEm: '2027-01-05T10:00:00', encerradaEm: '2027-02-01T10:00:00', diasVermelhos: [dia(5)] }));
+    await screen.findByRole('group', { name: 'Calendário do mês' });
+    expect(screen.queryByRole('button', { name: /^Dia vermelho:/ })).toBeNull();
+    expect(screen.getByText('Dia vermelho')).toBeInTheDocument();
+  });
+
+  it('o erro da API aparece na tela, e a lista de antes continua marcada', async () => {
+    abrirEscala(escala({ diasVermelhos: [dia(5)] }), { [URL_VERMELHOS]: { status: 409, corpo: { erro: 'O mês já foi encerrado. Correções agora só por ajuste no painel de saldo.' } } });
+    await userEvent.click(await diaDoCalendario(9));
+    expect(await screen.findByRole('alert')).toHaveTextContent('O mês já foi encerrado.');
+    expect(await diaDoCalendario(5)).toHaveAttribute('aria-pressed', 'true');
+  });
+
+  it('a lista de cotas mostra quantos dias vermelhos cada oficial tirou, só quando o mês tem dia vermelho', async () => {
+    abrirEscala(escala({ diasVermelhos: [dia(5)], oficiais: [{ ...O1, vermelhos: 2 }, O2, O3] }));
+    const lista = await screen.findByRole('list', { name: 'Cotas de janeiro de 2027' });
+    const alfa = within(lista).getByText('ALFA').closest('li')!;
+    expect(within(alfa).getByText('Vermelhos')).toBeInTheDocument();
+    expect(within(alfa).getByText('Vermelhos').nextElementSibling).toHaveTextContent('2');
+    expect(within(lista).getAllByText('Vermelhos')).toHaveLength(3);
+  });
+
+  it('sem dia vermelho no mês, a lista de cotas não ganha a coluna', async () => {
+    abrirEscala(escala());
+    const lista = await screen.findByRole('list', { name: 'Cotas de janeiro de 2027' });
+    expect(within(lista).queryByText('Vermelhos')).toBeNull();
+  });
+
+  it('o painel das cotas se chama "Cota de saldo"', async () => {
+    abrirEscala(escala());
+    expect(await screen.findByRole('heading', { name: 'Cota de saldo' })).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Cotas' })).toBeNull();
+  });
+
+  it('o painel de saldo mostra o acumulado de dias vermelhos de cada oficial', async () => {
+    abrirSaldo([S1, S2]);
+    const tabela = await screen.findByRole('table', { name: 'Saldo de cada oficial' });
+    expect(within(tabela).getByRole('columnheader', { name: 'Dias vermelhos' })).toBeInTheDocument();
+    expect(within(within(tabela).getByRole('row', { name: /CEL ALFA/ })).getByLabelText('3 dias vermelhos')).toHaveTextContent('3');
+    expect(within(within(tabela).getByRole('row', { name: /CAP BRAVO/ })).getByLabelText('0 dias vermelhos')).toHaveTextContent('0');
   });
 });
 

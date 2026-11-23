@@ -35,6 +35,7 @@ export function PainelDeSaldo({ unidadeId, escalaId, lista }: { unidadeId: strin
                     <th scope="col" className="px-2 py-1 font-medium"><span className="flex w-28 justify-between"><span>menos</span><span>mais</span></span></th>
                     <th scope="col" className="px-2 py-1 font-medium">Saldo de cada mês</th>
                     <th scope="col" className="px-2 py-1 font-medium">Turnos tirados</th>
+                    <th scope="col" className="px-2 py-1 text-right font-medium">Dias vermelhos</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -75,6 +76,7 @@ export function PainelDeSaldo({ unidadeId, escalaId, lista }: { unidadeId: strin
                           ))}
                         </span>
                       </td>
+                      <td className="px-2 py-1.5 text-right font-semibold tabular-nums" aria-label={`${x.vermelhos} dias vermelhos`}>{x.vermelhos}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -82,6 +84,7 @@ export function PainelDeSaldo({ unidadeId, escalaId, lista }: { unidadeId: strin
             </div>
             <p className="text-xs text-apagado">Positivo: trabalhou mais do que devia. Negativo: trabalhou menos. O número tem casas decimais porque a parte quebrada da cota nunca se perde.</p>
             <p className="text-xs text-apagado">A soma dos saldos não é zero: cada vez que alguém cobre um colega, o total cresce um turno.</p>
+            <p className="text-xs text-apagado">Dias vermelhos: quantos lugares em dia vermelho cada oficial tirou nos meses encerrados. Todos pesam igual e não mudam a cota.</p>
           </section>
           {o ? <RegistroDoOficial key={o.militarId} unidadeId={unidadeId} escalaId={escalaId} oficial={o} /> : <p className="text-sm text-apagado">Clique num oficial para ver o registro dele.</p>}
         </div>

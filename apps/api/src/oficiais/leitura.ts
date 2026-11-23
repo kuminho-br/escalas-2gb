@@ -96,6 +96,14 @@ export async function lancamentosDoMes(c: Consulta, escalaId: string, mes: strin
   return rows.map((r) => ({ id: r.id, dia: r.dia, letra: r.letra, servicoId: r.servico_id, turnoId: r.turno_id, militarId: r.militar_id, saiuMilitarId: r.saiu }));
 }
 
+/** Os dias vermelhos da escala no mês, em ordem. */
+export async function diasVermelhosDoMes(c: Consulta, escalaId: string, mes: string): Promise<string[]> {
+  const { inicio, fim } = limitesDoMes(mes);
+  const { rows } = await c.query<{ dia: string }>(
+    "select to_char(dia, 'YYYY-MM-DD') as dia from dia_vermelho where escala_id = $1 and dia between $2::date and $3::date order by dia", [escalaId, inicio, fim]);
+  return rows.map((r) => r.dia);
+}
+
 export interface TurnoDoServico {
   id: string;
   letra: string;
@@ -157,6 +165,8 @@ export async function lerEscala(c: Consulta, unidadeId: string, mes: string, esc
   }
   if (escala) lancados = await lancamentosDoMes(c, escala.id, mes);
   const ehJes = (l: Lancamento) => l.servicoId === servicos.jes?.id;
+  const diasVermelhos = escala ? await diasVermelhosDoMes(c, escala.id, mes) : [];
+  const ehVermelho = new Set(diasVermelhos);
 
   // quem está na cota mas já não é participante (saiu da unidade depois do cálculo) mantém os dados do cadastro
   const foraDaLista = [...new Set([...cotas.map((x) => x.militarId), ...lancados.map((l) => l.militarId)])].filter((id) => !porId.has(id));
@@ -171,6 +181,7 @@ export async function lerEscala(c: Consulta, unidadeId: string, mes: string, esc
 
   const escolhidos = (id: string) => lancados.filter((l) => l.militarId === id && !ehJes(l)).length;
   const jesDe = (id: string) => lancados.filter((l) => l.militarId === id && ehJes(l)).length;
+  const vermelhosDe = (id: string) => lancados.filter((l) => l.militarId === id && ehVermelho.has(l.dia)).length;
   const montar = (militarId: string, ordem: number, cota: Cota | null, dias: number, participa: boolean): OficialDoMes => {
     const p = porId.get(militarId);
     const x = extras.get(militarId);
@@ -190,6 +201,7 @@ export async function lerEscala(c: Consulta, unidadeId: string, mes: string, esc
       sobra: cota ? cota.sobra : false,
       escolhidos: escolhidos(militarId),
       jes: jesDe(militarId),
+      vermelhos: vermelhosDe(militarId),
       voluntarioJes: p?.voluntarioJes ?? x?.voluntarioJes ?? false,
       afastamentos: p?.afastamentos ?? x?.afastamentos ?? [],
       participa,
@@ -258,6 +270,7 @@ export async function lerEscala(c: Consulta, unidadeId: string, mes: string, esc
     vez,
     turnos,
     lugaresDeSaldo,
+    diasVermelhos,
     avisos,
   };
 }
@@ -292,7 +305,21 @@ export async function lerSaldo(c: Consulta, unidadeId: string, hoje = hojeRecife
     [unidadeId],
   );
 
-  const ids = [...new Set([...ordemIds, ...lanc.map((l) => l.militar_id), ...coberturas.flatMap((t) => [t.militar_id, t.saiu_id])])];
+  // os lugares em dia vermelho que cada oficial tirou nos meses encerrados da escala
+  const vermelhosDoOficial = new Map<string, number>();
+  if (escala) {
+    const { rows } = await c.query<{ militar_id: string; n: number }>(
+      `select a.militar_id, count(*)::int as n
+         from alocacao a
+         join dia_vermelho d on d.escala_id = a.escala_id and d.dia = a.data
+         join oficiais_mes m on m.escala_id = a.escala_id and m.mes = date_trunc('month', a.data)::date and m.encerrada_em is not null
+        where a.escala_id = $1 group by a.militar_id`,
+      [escala.id],
+    );
+    for (const r of rows) vermelhosDoOficial.set(r.militar_id, r.n);
+  }
+
+  const ids = [...new Set([...ordemIds, ...vermelhosDoOficial.keys(), ...lanc.map((l) => l.militar_id), ...coberturas.flatMap((t) => [t.militar_id, t.saiu_id])])];
   if (ids.length === 0) return [];
   const { rows: cadastro } = await c.query<{ id: string; matricula: string; posto: string; posto_ordem: number; nome_guerra: string; quadro: string | null }>(
     `select m.id, m.matricula, p.sigla as posto, -p.ordem as posto_ordem, m.nome_guerra, ${QUADRO_DO_MES} as quadro
@@ -335,6 +362,7 @@ export async function lerSaldo(c: Consulta, unidadeId: string, hoje = hojeRecife
       lotacao: lotacaoDe.get(id) ?? null,
       saldo: meus.reduce((s, l) => s + Number(l.valor), 0),
       meses: doMes.map((l) => ({ mes: l.mes!, valor: Number(l.valor) })),
+      vermelhos: vermelhosDoOficial.get(id) ?? 0,
       turnos: [
         { rotulo: 'Dia' as const, quantidade: doMes.reduce((s, l) => s + (l.turnos_dia ?? 0), 0) },
         { rotulo: 'Noite' as const, quantidade: doMes.reduce((s, l) => s + (l.turnos_noite ?? 0), 0) },

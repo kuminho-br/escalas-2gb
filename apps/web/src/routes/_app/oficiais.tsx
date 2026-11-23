@@ -7,14 +7,14 @@ import { consultaEscalaDosOficiais, consultaSaldoDosOficiais } from '@/api/ofici
 import { CampoDeMes } from '@/componentes/CampoDeMes';
 import { EscalaDoMes } from '@/componentes/oficiais/EscalaDoMes';
 import { PainelDeSaldo } from '@/componentes/oficiais/PainelDeSaldo';
-import { RegrasDosOficiais } from '@/componentes/oficiais/RegrasDosOficiais';
 import { Selecao } from '@/componentes/Selecao';
 import { Label } from '@/componentes/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/componentes/ui/tabs';
 import { mesAtual } from '@/lib/meses';
 
-type Aba = 'escala' | 'saldo' | 'regras';
-const ABAS: Aba[] = ['escala', 'saldo', 'regras'];
+// as regras abrem num botão da Escala do mês (6.28): um endereço antigo com `aba=regras` cai na Escala do mês
+type Aba = 'escala' | 'saldo';
+const ABAS: Aba[] = ['escala', 'saldo'];
 
 export const Route = createFileRoute('/_app/oficiais')({
   // o auxiliar não usa esta tela: volta ao início com o aviso, como nos outros módulos (a API confere o papel de qualquer jeito)
@@ -72,7 +72,6 @@ function Oficiais() {
         <TabsList>
           <TabsTrigger value="escala">Escala do mês</TabsTrigger>
           <TabsTrigger value="saldo">Painel de saldo</TabsTrigger>
-          <TabsTrigger value="regras">Regras</TabsTrigger>
         </TabsList>
         <TabsContent value="escala">
           {escala.isPending && <p className="text-apagado">Carregando…</p>}
@@ -88,9 +87,6 @@ function Oficiais() {
           {saldo.isPending && <p className="text-apagado">Carregando…</p>}
           {saldo.error && <p role="alert" className="text-alerta">{mensagemDe(saldo.error)}</p>}
           {saldo.data && <PainelDeSaldo key={`${unidadeId}|${escalaId ?? ''}`} unidadeId={unidadeId} escalaId={escalaId} lista={saldo.data} />}
-        </TabsContent>
-        <TabsContent value="regras">
-          <RegrasDosOficiais />
         </TabsContent>
       </Tabs>
     </section>

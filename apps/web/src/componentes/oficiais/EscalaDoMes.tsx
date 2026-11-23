@@ -2,12 +2,13 @@ import { useQueryClient } from '@tanstack/react-query';
 import type { EscalaDosOficiais, LetraTurno, ServicoDaRodada } from 'contratos';
 import { useState } from 'react';
 import { mensagemDe } from '@/api/cliente';
-import { abrirMes, encerrarMes, fecharEscala, gravarOrdem, gravarParticipantes, lancarNoLugar, tirarDoLugar } from '@/api/oficiais';
+import { abrirMes, encerrarMes, fecharEscala, gravarOrdem, gravarParticipantes, lancarNoLugar, marcarDiasVermelhos, tirarDoLugar } from '@/api/oficiais';
 import { useTrava } from '@/componentes/AlteracoesPendentes';
 import { Button } from '@/componentes/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/componentes/ui/dialog';
 import { CalendarioDosOficiais, LegendaDosTurnos } from './CalendarioDosOficiais';
 import { ListaDeCotas, VezDeEscolher } from './ListaDeCotas';
+import { RegrasDosOficiais } from './RegrasDosOficiais';
 import { EtapasDoMes, MensagensDoMes, type Confirmacao } from './MensagensDoMes';
 
 type Lugar = EscalaDosOficiais['turnos'][number];
@@ -15,7 +16,7 @@ type Lugar = EscalaDosOficiais['turnos'][number];
 interface Props {
   unidadeId: string;
   escala: EscalaDosOficiais;
-  aoVer: (aba: 'saldo' | 'regras') => void;
+  aoVer: (aba: 'saldo') => void;
 }
 
 const dm = (dia: string) => `${dia.slice(8)}/${dia.slice(5, 7)}`;
@@ -32,6 +33,8 @@ export function EscalaDoMes({ unidadeId, escala: e, aoVer }: Props) {
   const [erro, setErro] = useState<string | null>(null);
   const [confirmacao, setConfirmacao] = useState<Confirmacao>(null);
   const [lugarAberto, setLugarAberto] = useState<Lugar | null>(null);
+  // o botão "Regras" abre o texto das regras numa janela (6.28: a aba do alto saiu)
+  const [verRegras, setVerRegras] = useState(false);
   // o que se lança no lugar livre aberto: Saldo (a rodada) ou JES (à mão)
   const [servico, setServico] = useState<ServicoDaRodada>('saldo');
   // o erro de um lançamento feito no diálogo aparece nele (atrás do diálogo ninguém o veria)
@@ -99,6 +102,12 @@ export function EscalaDoMes({ unidadeId, escala: e, aoVer }: Props) {
       },
       noDialogo ? setErroDoLugar : setErro,
     )();
+  // marcar ou tirar um dia vermelho: a lista inteira do mês vai de novo, com o dia a mais ou a menos (vale até o mês ser encerrado)
+  const marcarDia = (d: string) =>
+    void rodar(async () => {
+      const nova = e.diasVermelhos.includes(d) ? e.diasVermelhos.filter((x) => x !== d) : [...e.diasVermelhos, d].sort();
+      await marcarDiasVermelhos(queryClient, unidadeId, e.mes, nova, escalaId);
+    })();
   const fecharDialogo = () => {
     setLugarAberto(null);
     setErroDoLugar(null);
@@ -131,7 +140,7 @@ export function EscalaDoMes({ unidadeId, escala: e, aoVer }: Props) {
         </div>
         <div className="ml-auto flex flex-wrap gap-2">
           {e.etapa === 'encerrada' && <Button type="button" variant="outline" onClick={() => aoVer('saldo')}>Ver o saldo</Button>}
-          <Button type="button" variant="outline" onClick={() => aoVer('regras')}>Regras</Button>
+          <Button type="button" variant="outline" onClick={() => setVerRegras(true)}>Regras</Button>
         </div>
       </div>
       {erro && <p role="alert" className="text-alerta">{erro}</p>}
@@ -167,11 +176,13 @@ export function EscalaDoMes({ unidadeId, escala: e, aoVer }: Props) {
               <small className="text-[13px] text-apagado">{`${e.turnos.filter((t) => t.militarId !== null).length} de ${e.turnos.length} turnos com nome`}</small>
             </header>
             <LegendaDosTurnos turnos={e.turnosDoServico} />
+            {aberto && <p className="text-[13px] leading-[18px] text-apagado">Clique no número do dia para marcar ou tirar o dia vermelho.</p>}
             {recente && recente.dia.startsWith(e.mes) && <p role="status" className="text-[15px] leading-[22px] font-medium">{recente.texto}</p>}
             <CalendarioDosOficiais
               escala={e}
               aoClicarTurno={aberto ? clicarLugar : undefined}
               aoTirar={e.etapa === 'escolhas' ? (t) => void tirar(t) : undefined}
+              aoMarcarDia={aberto ? marcarDia : undefined}
               desabilitado={salvando}
               recente={recente && recente.dia.startsWith(e.mes) ? recente : null}
             />
@@ -183,11 +194,20 @@ export function EscalaDoMes({ unidadeId, escala: e, aoVer }: Props) {
         <aside className="order-first grid min-w-0 gap-3 xl:order-none">
           <VezDeEscolher escala={e} />
           <section className="grid gap-2 rounded-lg border border-linha bg-superficie p-3">
-            <h2 className="font-cond text-lg font-semibold">Cotas</h2>
+            <h2 className="font-cond text-lg font-semibold">Cota de saldo</h2>
             <ListaDeCotas escala={e} aoOrdenar={e.etapa === 'nao-aberto' ? undefined : ordenar} aoMarcar={marcar} desabilitado={salvando} />
           </section>
         </aside>
       </div>
+      <Dialog open={verRegras} onOpenChange={setVerRegras}>
+        <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>Regras da escala dos oficiais</DialogTitle>
+            <DialogDescription className="sr-only">Como a escala é montada, como a cota e o saldo são calculados e o que são os dias vermelhos.</DialogDescription>
+          </DialogHeader>
+          <RegrasDosOficiais />
+        </DialogContent>
+      </Dialog>
       <Dialog open={lugar !== null} onOpenChange={(o) => !o && fecharDialogo()}>
         <DialogContent>
           <DialogHeader>
