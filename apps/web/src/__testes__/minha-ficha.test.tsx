@@ -5,7 +5,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { abrir, corpoEnviado, EU_EXEMPLO, simularApi } from './apoio';
 
 const FICHA: MinhaFicha = {
-  postoGrad: 'SD BM',
+  postoGrad: 'SD',
   nomeGuerra: 'ANDRADE',
   nomeCompleto: 'João da Silva Andrade',
   matricula: '990001-1',
@@ -22,6 +22,8 @@ const FICHA: MinhaFicha = {
   cnh: ['D'],
   cnhPorHierarquia: ['B', 'C'],
   voluntarioJes: true,
+  funcao: 'Chefe de seção',
+  abonoPermanencia: false,
 };
 
 const api = (extra: Parameters<typeof simularApi>[0] = {}) =>
@@ -56,6 +58,14 @@ describe('Minha ficha: a animação de entrada (6.14)', () => {
 });
 
 describe('Minha ficha', () => {
+  it('mostra a função e o abono de permanência, só para leitura (6.15)', async () => {
+    api();
+    abrir('/minha-ficha');
+    const bloco = (await screen.findByRole('heading', { name: 'Identificação' })).closest('section')!;
+    expect(within(bloco).getByText('Função').nextSibling).toHaveTextContent('Chefe de seção');
+    expect(within(bloco).getByText('Abono de permanência').nextSibling).toHaveTextContent('Não');
+  });
+
   it('mostra os próprios dados só para leitura, menos o telefone', async () => {
     api();
     abrir('/minha-ficha');

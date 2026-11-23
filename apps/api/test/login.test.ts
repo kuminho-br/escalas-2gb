@@ -33,7 +33,7 @@ beforeAll(async () => {
   const auth = criarAuth({ banco, segredo: 'segredo-de-teste-com-tamanho-suficiente-123', urlBase: URL_BASE });
   app = criarApp({ banco, auth });
   ({ usuarioId } = await criarAdmin(banco, {
-    matricula: '990900-0', postoSigla: 'CAP BM', nomeGuerra: 'ADMIN', email: 'admin@exemplo.test', senha: SENHA, hoje: '2026-11-17',
+    matricula: '990900-0', postoSigla: 'CAP', nomeGuerra: 'ADMIN', email: 'admin@exemplo.test', senha: SENHA, hoje: '2026-11-17',
   }));
 });
 afterAll(async () => {
@@ -68,8 +68,8 @@ describe('login', () => {
     const r = await app.request(`${URL_BASE}/api/eu`, { headers: { Cookie: cookie } });
     expect(r.status).toBe(200);
     const eu = await r.json();
-    expect(eu.usuario).toMatchObject({ id: usuarioId, email: 'admin@exemplo.test', nome: 'CAP BM ADMIN' });
-    expect(eu.militar).toEqual({ matricula: '990900-0', postoGrad: 'CAP BM', nomeGuerra: 'ADMIN' });
+    expect(eu.usuario).toMatchObject({ id: usuarioId, email: 'admin@exemplo.test', nome: 'CAP ADMIN' });
+    expect(eu.militar).toEqual({ matricula: '990900-0', postoGrad: 'CAP', nomeGuerra: 'ADMIN' });
     expect(eu.papeis).toHaveLength(1);
     expect(eu.papeis[0]).toMatchObject({ papel: 'administrador', unidadeSigla: 'CBMPE' });
   });
@@ -87,13 +87,13 @@ describe('login', () => {
 
   it('admin com email repetido', async () => {
     await expect(
-      criarAdmin(banco, { matricula: '990901-1', postoSigla: 'SD BM', nomeGuerra: 'OUTRO', email: 'admin@exemplo.test', senha: SENHA, hoje: '2026-11-17' }),
+      criarAdmin(banco, { matricula: '990901-1', postoSigla: 'SD', nomeGuerra: 'OUTRO', email: 'admin@exemplo.test', senha: SENHA, hoje: '2026-11-17' }),
     ).rejects.toThrow('Já existe usuário com este e-mail');
   });
 
   it('eu sem papel', async () => {
     const { usuarioId: semPapel } = await criarAdmin(banco, {
-      matricula: '990902-2', postoSigla: 'SD BM', nomeGuerra: 'SEMPAPEL', email: 'sempapel@exemplo.test', senha: SENHA, hoje: '2026-11-17',
+      matricula: '990902-2', postoSigla: 'SD', nomeGuerra: 'SEMPAPEL', email: 'sempapel@exemplo.test', senha: SENHA, hoje: '2026-11-17',
     });
     await banco.query("update papel_usuario set ate = desde where usuario_id = $1", [semPapel]);
     await banco.query("update papel_usuario set desde = '2020-01-01', ate = '2020-01-31' where usuario_id = $1", [semPapel]);
@@ -105,7 +105,7 @@ describe('login', () => {
 
   it('inativo nao entra', async () => {
     await criarAdmin(banco, {
-      matricula: '990903-3', postoSigla: 'SD BM', nomeGuerra: 'INATIVO', email: 'inativo@exemplo.test', senha: SENHA, hoje: '2026-11-17',
+      matricula: '990903-3', postoSigla: 'SD', nomeGuerra: 'INATIVO', email: 'inativo@exemplo.test', senha: SENHA, hoje: '2026-11-17',
     });
     await banco.query("update usuario set ativo = false where email = 'inativo@exemplo.test'");
     const r = await entrar('inativo@exemplo.test', SENHA);

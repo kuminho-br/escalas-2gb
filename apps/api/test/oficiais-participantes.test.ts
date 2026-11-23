@@ -16,7 +16,7 @@ let seq = 0;
 
 async function oficial(nome: string, antiguidade: number, opcoes: { posto?: string; quadro?: string; desde?: string } = {}) {
   seq++;
-  const id = await inserir(api.banco, 'militar', { matricula: `9905${String(seq).padStart(2, '0')}-${seq % 10}`, posto_grad_id: posto[opcoes.posto ?? 'CAP BM'], nome_guerra: nome.toUpperCase(), antiguidade });
+  const id = await inserir(api.banco, 'militar', { matricula: `9905${String(seq).padStart(2, '0')}-${seq % 10}`, posto_grad_id: posto[opcoes.posto ?? 'CAP'], nome_guerra: nome.toUpperCase(), antiguidade });
   await inserir(api.banco, 'rastreio', { militar_id: id, unidade_id: api.ids.gb, jornada: 'adm', desde: opcoes.desde ?? '2026-12-01', quadro_id: quadro[opcoes.quadro ?? 'QOC'] });
   ids[nome] = id;
   return id;
@@ -39,7 +39,7 @@ beforeAll(async () => {
   await oficial('a', 1);
   await oficial('b', 2);
   await oficial('c', 3);
-  await oficial('praca', 1, { posto: '2º SGT BM', quadro: 'QBMG' });
+  await oficial('praca', 1, { posto: '2º SGT', quadro: 'QBMG' });
   servico = await inserir(api.banco, 'servico', { unidade_id: api.ids.gb, nome: 'Oficial de operações', tipo: 'ordinario', cor: '#2F8F5B' });
   turnoA = await inserir(api.banco, 'turno', { servico_id: servico, letra: 'A', inicio: '07:00', fim: '19:00' });
   turnoB = await inserir(api.banco, 'turno', { servico_id: servico, letra: 'B', inicio: '19:00', fim: '07:00' });

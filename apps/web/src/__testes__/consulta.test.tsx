@@ -10,7 +10,7 @@ const MENSAGEM_CURTA = 'Digite pelo menos 3 letras ou escolha uma unidade.';
 const AVISO_MAIS = 'Há mais militares. Refine a busca.';
 
 const linha = (id: string, nomeGuerra: string, extra: Partial<LinhaDaConsulta> = {}): LinhaDaConsulta => ({
-  id, postoGrad: 'SD BM', nomeGuerra, nomeCompleto: `Fulano de Tal ${nomeGuerra}`, matricula: '990001-1', lotacao: '1ª SB', quadro: 'QBMG', ...extra,
+  id, postoGrad: 'SD', nomeGuerra, nomeCompleto: `Fulano de Tal ${nomeGuerra}`, matricula: '990001-1', lotacao: '1ª SB', quadro: 'QBMG', ...extra,
 });
 const UNIDADES: UnidadeDaConsulta[] = [
   { id: 'u-cbmpe', sigla: 'CBMPE', nivel: 0 }, { id: 'u-gb', sigla: '2º GB', nivel: 3 }, { id: 'u-divop', sigla: 'DivOp', nivel: 4 }, { id: 'u-1sb', sigla: '1ª SB', nivel: 5 },
@@ -21,7 +21,7 @@ function api(extra: Parameters<typeof simularApi>[0] = {}) {
   return simularApi({
     '/api/eu': { status: 200, corpo: COMUM },
     'GET /api/consulta/unidades': { status: 200, corpo: UNIDADES },
-    [BUSCA]: { status: 200, corpo: { militares: [linha('m1', 'ANDRADE'), linha('m2', 'BARRETO', { postoGrad: '3º SGT BM', lotacao: null, quadro: null, nomeCompleto: null })], haMais: false } },
+    [BUSCA]: { status: 200, corpo: { militares: [linha('m1', 'ANDRADE'), linha('m2', 'BARRETO', { postoGrad: '3º SGT', lotacao: null, quadro: null, nomeCompleto: null })], haMais: false } },
     ...extra,
   });
 }
@@ -67,14 +67,14 @@ describe('a consulta de militares', () => {
     const lista = await screen.findByRole('list', { name: 'Militares encontrados' });
     const itens = within(lista).getAllByRole('listitem');
     expect(itens).toHaveLength(2);
-    expect(itens[0]).toHaveTextContent('SD BM');
+    expect(itens[0]).toHaveTextContent('SD');
     expect(itens[0]).toHaveTextContent('ANDRADE');
     expect(itens[0]).toHaveTextContent('Fulano de Tal ANDRADE');
     expect(itens[0]).toHaveTextContent('990001-1');
     expect(itens[0]).toHaveTextContent('1ª SB');
     expect(itens[0]).toHaveTextContent('QBMG');
     // quem está sem lotação hoje aparece mesmo assim, e a linha diz isso
-    expect(itens[1]).toHaveTextContent('3º SGT BM');
+    expect(itens[1]).toHaveTextContent('3º SGT');
     expect(itens[1]).toHaveTextContent('Sem lotação');
     expect([...pedidos(f)[0]!.entries()]).toEqual([['texto', 'andr']]);
     // a lista não mostra nenhum dado além da identificação
@@ -160,7 +160,7 @@ describe('a ficha de consulta', () => {
     ...linha('m1', 'ANDRADE'),
     contato: { telefone: '(81) 99999-0001', email: 'andrade@bombeiros.pe.gov.br' },
     situacao: {
-      equipe: 'Alfa', jornada: 'pronto', situacaoDoMilitar: 'Ativa',
+      equipe: 'Alfa', jornada: 'pronto', situacaoDoMilitar: 'Ativa', funcao: 'Chefe de seção',
       historico: [
         { desde: '2026-11-01', ate: null, lotacao: '1ª SB', equipe: 'Alfa', jornada: 'pronto', quadro: 'QBMG', situacaoDoMilitar: 'Ativa' },
         { desde: '2026-01-05', ate: '2026-10-31', lotacao: '3ª SB', equipe: null, jornada: 'adm', quadro: 'QBMG', situacaoDoMilitar: 'Ativa' },
@@ -197,6 +197,7 @@ describe('a ficha de consulta', () => {
     expect(blocos()).toEqual(['Identificação', 'Contato', 'Situação', 'Afastamentos', 'Dados da escala', 'Comportamento']);
     expect(screen.getByText('(81) 99999-0001')).toBeInTheDocument();
     expect(screen.getByText('andrade@bombeiros.pe.gov.br')).toBeInTheDocument();
+    expect(screen.getByText('Função').nextSibling).toHaveTextContent('Chefe de seção');
     const historico = within(screen.getByRole('list', { name: 'Histórico de lotação' })).getAllByRole('listitem');
     expect(historico).toHaveLength(2);
     expect(historico[0]).toHaveTextContent('1ª SB');

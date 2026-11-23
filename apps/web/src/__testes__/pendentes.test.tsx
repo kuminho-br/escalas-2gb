@@ -117,7 +117,7 @@ describe('alterações não salvas', () => {
     const confirmar = vi.spyOn(window, 'confirm').mockReturnValue(false);
     abrir('/escalas/e1');
     await trocarTitulo();
-    await userEvent.click(await screen.findByRole('button', { name: /SD BM ANDRADE/ }));
+    await userEvent.click(await screen.findByRole('button', { name: /SD ANDRADE/ }));
     await userEvent.click(await screen.findByRole('menuitem', { name: 'Sair' }));
     await waitFor(() => expect(confirmar).toHaveBeenCalledWith(MENSAGEM_PENDENTE));
     const chamouSaida = f.mock.calls.some(([e]) => String(typeof e === 'string' ? e : e instanceof URL ? e.href : (e as Request).url).includes('sign-out'));
@@ -299,18 +299,18 @@ describe('Salvar que mostra o estado', () => {
 
   describe('fichas de militar e de guarnição', () => {
     const linhaM = (l: Partial<LinhaMilitar>): LinhaMilitar => ({
-      id: 'm1', matricula: '990001-1', posto: 'SD BM', quadro: null, nomeGuerra: 'ANDRADE', equipe: 'Alfa', jornada: 'pronto', motorista: null,
+      id: 'm1', matricula: '990001-1', posto: 'SD', quadro: null, nomeGuerra: 'ANDRADE', equipe: 'Alfa', jornada: 'pronto', motorista: null,
       voluntarioJes: false, ativo: true, situacao: 'Disponível', pendencias: [], ...l,
     });
     const FICHA_M: FichaMilitar = {
-      ...linhaM({}), podeEditar: { peculio: true, escala: true, unidadeDeCima: '2º GB' }, postoGradId: 'p-sd', veDadosRestritos: true, cpf: null, endereco: { cep: null, logradouro: null, numero: null, complemento: null, bairro: null, cidade: null, uf: null }, situacaoDoMilitar: { id: 'sit-ativa', nome: 'Ativa', escalavel: true }, nomeCompleto: 'João da Silva Andrade', sexo: 'M', nascimento: { dia: 15, mes: 3 }, telefone: '(81) 99999-0000', email: 'andrade@bombeiros.pe.gov.br', comportamento: 'Bom', comportamentoBoletim: 'BG 01/2026', antiguidade: 3, antiguidadeRepetidaCom: [], noQuadroDeMotoristas: false, cnh: [], cnhPorHierarquia: [],
+      ...linhaM({}), podeEditar: { peculio: true, escala: true, unidadeDeCima: '2º GB' }, postoGradId: 'p-sd', veDadosRestritos: true, cpf: null, endereco: { cep: null, logradouro: null, numero: null, complemento: null, bairro: null, cidade: null, uf: null }, situacaoDoMilitar: { id: 'sit-ativa', nome: 'Ativa', escalavel: true }, nomeCompleto: 'João da Silva Andrade', sexo: 'M', nascimento: { dia: 15, mes: 3 }, telefone: '(81) 99999-0000', email: 'andrade@bombeiros.pe.gov.br', comportamento: 'Bom', comportamentoBoletim: 'BG 01/2026', antiguidade: 3, antiguidadeRepetidaCom: [], funcao: null, funcaoMilitarId: null, abonoPermanencia: false, noQuadroDeMotoristas: false, cnh: [], cnhPorHierarquia: [],
       rastreio: [{ id: 'l1', unidadeSigla: '1ª SB', equipe: 'Alfa', jornada: 'pronto', desde: '2020-01-01', quadro: 'QBMG', situacao: 'Ativa', ate: null }], afastamentos: [],
     };
     const rotasM = (): Parameters<typeof simularApi>[0] => ({
       '/api/eu': { status: 200, corpo: EU_EXEMPLO },
       'GET /api/unidades/u-1sb/militares': { status: 200, corpo: [linhaM({}), linhaM({ id: 'm2', matricula: '990002-2', nomeGuerra: 'BARRETO' })] },
       'GET /api/unidades/u-1sb/equipes': { status: 200, corpo: [] },
-      'GET /api/postos': { status: 200, corpo: [{ id: 'p-sd', sigla: 'SD BM', nome: 'Soldado', ordem: 1 }] },
+      'GET /api/postos': { status: 200, corpo: [{ id: 'p-sd', sigla: 'SD', nome: 'Soldado', ordem: 1 }] },
       'GET /api/militares/m1': { status: 200, corpo: FICHA_M },
       'GET /api/militares/m2': { status: 200, corpo: { ...FICHA_M, id: 'm2', nomeGuerra: 'BARRETO', matricula: '990002-2' } },
       'GET /api/sistema/tipos-afastamento': { status: 200, corpo: [] },

@@ -30,7 +30,7 @@ describe('tela inicial', () => {
     vi.useFakeTimers({ toFake: ['Date'], now: new Date('2026-11-19T13:30:00Z') });
     simularApi({ '/api/eu': { status: 200, corpo: comPapel } });
     abrir('/');
-    expect(await screen.findByRole('heading', { level: 1, name: 'Bom dia, SD BM ANDRADE' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { level: 1, name: 'Bom dia, SD ANDRADE' })).toBeInTheDocument();
     expect(screen.getByText('Quinta-feira, 19 de novembro de 2026')).toBeInTheDocument();
   });
 

@@ -19,11 +19,11 @@ const NOMES = [
 type Grupo = { jornada: 'adm' | 'pronto'; equipe: string | null; postos: [string, number][] };
 
 const GRUPOS: Grupo[] = [
-  { jornada: 'adm', equipe: null, postos: [['ST BM', 2], ['2º SGT BM', 3], ['3º SGT BM', 6], ['CB BM', 4], ['SD BM', 2]] },
-  { jornada: 'pronto', equipe: 'Alfa', postos: [['2º SGT BM', 1], ['3º SGT BM', 3], ['SD BM', 5]] },
-  { jornada: 'pronto', equipe: 'Bravo', postos: [['ST BM', 1], ['3º SGT BM', 4], ['CB BM', 1], ['SD BM', 4]] },
-  { jornada: 'pronto', equipe: 'Charlie', postos: [['ST BM', 1], ['2º SGT BM', 1], ['3º SGT BM', 2], ['CB BM', 1], ['SD BM', 4]] },
-  { jornada: 'pronto', equipe: 'Delta', postos: [['2º SGT BM', 1], ['3º SGT BM', 2], ['CB BM', 1], ['SD BM', 4]] },
+  { jornada: 'adm', equipe: null, postos: [['ST', 2], ['2º SGT', 3], ['3º SGT', 6], ['CB', 4], ['SD', 2]] },
+  { jornada: 'pronto', equipe: 'Alfa', postos: [['2º SGT', 1], ['3º SGT', 3], ['SD', 5]] },
+  { jornada: 'pronto', equipe: 'Bravo', postos: [['ST', 1], ['3º SGT', 4], ['CB', 1], ['SD', 4]] },
+  { jornada: 'pronto', equipe: 'Charlie', postos: [['ST', 1], ['2º SGT', 1], ['3º SGT', 2], ['CB', 1], ['SD', 4]] },
+  { jornada: 'pronto', equipe: 'Delta', postos: [['2º SGT', 1], ['3º SGT', 2], ['CB', 1], ['SD', 4]] },
 ];
 const EQUIPES = ['Alfa', 'Bravo', 'Charlie', 'Delta'];
 

@@ -63,7 +63,7 @@ beforeAll(async () => {
   });
   expect(v.status).toBe(200);
   const alfa = await inserir(api.banco, 'equipe', { unidade_id: api.ids.secao, nome: 'Alfa', ordem_ciclo: 1 });
-  const sd = (await api.banco.query<{ id: string }>("select id from posto_grad where sigla = 'SD BM'")).rows[0]!.id;
+  const sd = (await api.banco.query<{ id: string }>("select id from posto_grad where sigla = 'SD'")).rows[0]!.id;
   let seq = 0;
   const criar = async (nome: string, extra: { cnh?: string[]; jes?: boolean; unidade?: string; foraDoQuadro?: boolean } = {}) => {
     seq++;
@@ -175,7 +175,7 @@ describe('trocar de lugar com quem já está escalado', () => {
     const b = (await de('SEMCNH', d))[0]!.id;
     const r = await trocar(motorista1, { comAlocacaoId: b });
     expect(r.status).toBe(409);
-    expect((await r.json()).erro).toBe('SD BM SEMCNH não pode ir para a vaga de SD BM F1: Sem a CNH exigida');
+    expect((await r.json()).erro).toBe('SD SEMCNH não pode ir para a vaga de SD F1: Sem a CNH exigida');
     expect(await de('F1', d)).toEqual([expect.objectContaining({ id: motorista1, funcao_id: motorista })]);
     expect(await de('SEMCNH', d)).toEqual([expect.objectContaining({ id: b, funcao_id: combatente })]);
   });
@@ -188,7 +188,7 @@ describe('trocar de lugar com quem já está escalado', () => {
     for (const [clicada, outra, quem, outro] of [[doSemCnh, doOutro, 'SEMCNH', 'SEMCNH2'], [doOutro, doSemCnh, 'SEMCNH2', 'SEMCNH']] as const) {
       const r = await trocar(clicada, { comAlocacaoId: outra });
       expect(r.status).toBe(409);
-      expect((await r.json()).erro).toBe(`SD BM ${quem} não pode ir para a vaga de SD BM ${outro}: Sem a CNH exigida`);
+      expect((await r.json()).erro).toBe(`SD ${quem} não pode ir para a vaga de SD ${outro}: Sem a CNH exigida`);
     }
     expect(await de('SEMCNH', d)).toEqual([expect.objectContaining({ id: doSemCnh, turno_id: servico.Pronto!.a, funcao_id: motorista })]);
     expect(await de('SEMCNH2', d)).toEqual([expect.objectContaining({ id: doOutro, turno_id: servico.Pronto!.b, funcao_id: motorista })]);
@@ -233,7 +233,7 @@ describe('trocar de lugar com quem já está escalado', () => {
     // o F2 iria para o Bioma (08h–16h) e continuaria com o Pronto A (08h–20h)
     const r = await trocar(meu, { comAlocacaoId: noite });
     expect(r.status).toBe(409);
-    expect((await r.json()).erro).toBe('SD BM F2 não pode ir para a vaga de SD BM F1: Choque de horário');
+    expect((await r.json()).erro).toBe('SD F2 não pode ir para a vaga de SD F1: Choque de horário');
     expect(await de('F1', d)).toEqual([expect.objectContaining({ id: meu })]);
     expect(await de('F2', d)).toHaveLength(2);
   });
@@ -288,7 +288,7 @@ describe('militar fora do quadro de motoristas, com CNH D (Review Focus 2)', () 
     const b = (await de('FORAQUADRO', d))[0]!.id;
     const r = await trocar(motorista1, { comAlocacaoId: b });
     expect(r.status).toBe(409);
-    expect((await r.json()).erro).toBe('SD BM FORAQUADRO não pode ir para a vaga de SD BM F2: Sem a CNH exigida');
+    expect((await r.json()).erro).toBe('SD FORAQUADRO não pode ir para a vaga de SD F2: Sem a CNH exigida');
     expect(await de('F2', d)).toEqual([expect.objectContaining({ id: motorista1, funcao_id: motorista })]);
   });
 });

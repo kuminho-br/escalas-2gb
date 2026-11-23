@@ -12,7 +12,7 @@ const DIA = '2026-12-12';
 const SEGUINTE = '2026-12-13';
 const PRONTO = { id: 's-pronto', nome: 'Pronto', cor: '#2F8F5B' };
 const ocupado = (nomeGuerra: string, inicio: number, fim: number, alocacoes: AlocacaoNoTrecho[] = [{ alocacaoId: `a-${nomeGuerra}`, acumuloId: null, inicio: '08:00', fim: '20:00', acumulaCom: [] }]): TrechoNoEfetivo => ({
-  inicio, fim, opcoes: [], ocupante: { militarId: `m-${nomeGuerra}`, posto: 'SD BM', nomeGuerra, servico: PRONTO, acumulo: false, alocacoes },
+  inicio, fim, opcoes: [], ocupante: { militarId: `m-${nomeGuerra}`, posto: 'SD', nomeGuerra, servico: PRONTO, acumulo: false, alocacoes },
 });
 const vaga = (inicio: number, fim: number, opcoes = [{ escalaId: 'e-ord', escala: 'Ordinário', inicio: '20:00', fim: '08:00' }]): TrechoNoEfetivo => ({ inicio, fim, ocupante: null, opcoes });
 const guarnicao = (g: Partial<GuarnicaoNoEfetivo> & Pick<GuarnicaoNoEfetivo, 'guarnicaoId' | 'nome'>): GuarnicaoNoEfetivo => ({
@@ -120,8 +120,8 @@ describe('efetivo por dia: a linha do tempo', () => {
     api();
     abrir(`/efetivo-por-dia?data=${DIA}`);
     const aco = await screen.findByRole('region', { name: '1º ACO' });
-    expect(within(aco).getByRole('button', { name: 'Motorista: SD BM ALFA, 08h–08h, Pronto' })).toBeInTheDocument();
-    expect(within(aco).getByRole('button', { name: 'Motorista: SD BM BRAVO, 08h–20h, Pronto' })).toBeInTheDocument();
+    expect(within(aco).getByRole('button', { name: 'Motorista: SD ALFA, 08h–08h, Pronto' })).toBeInTheDocument();
+    expect(within(aco).getByRole('button', { name: 'Motorista: SD BRAVO, 08h–20h, Pronto' })).toBeInTheDocument();
     expect(within(aco).getByRole('button', { name: 'Motorista: vaga 20h–08h' })).toBeInTheDocument();
     // o nome da função só na primeira linha dela
     expect(within(aco).getAllByText('Motorista', { selector: '[data-funcao]' })).toHaveLength(1);
@@ -144,7 +144,7 @@ describe('efetivo por dia: a linha do tempo', () => {
   it('o trecho ocupado mostra o nome do serviço numa etiqueta de contorno', async () => {
     api();
     abrir(`/efetivo-por-dia?data=${DIA}`);
-    const alfa = await screen.findByRole('button', { name: 'Motorista: SD BM ALFA, 08h–08h, Pronto' });
+    const alfa = await screen.findByRole('button', { name: 'Motorista: SD ALFA, 08h–08h, Pronto' });
     const etiqueta = within(alfa).getByText('Pronto');
     expect(etiqueta).toHaveAttribute('data-etiqueta-servico');
     expect(etiqueta).toHaveAttribute('data-variante', 'contorno');
@@ -154,7 +154,7 @@ describe('efetivo por dia: a linha do tempo', () => {
   it('o horário de um trecho ocupado não está no texto visível: aparece no title, ao focar e ao tocar', async () => {
     api();
     abrir(`/efetivo-por-dia?data=${DIA}`);
-    const alfa = await screen.findByRole('button', { name: 'Motorista: SD BM ALFA, 08h–08h, Pronto' });
+    const alfa = await screen.findByRole('button', { name: 'Motorista: SD ALFA, 08h–08h, Pronto' });
     expect(within(alfa).queryByText('08h–08h')).toBeNull();
     expect(alfa).toHaveAttribute('title', '08h–08h');
     fireEvent.focus(alfa);
@@ -169,7 +169,7 @@ describe('efetivo por dia: a linha do tempo', () => {
   it('só a etiqueta se esconde quando o trecho é estreito; o nome do militar nunca perde lugar para ela (achado da revisão final)', async () => {
     api();
     abrir(`/efetivo-por-dia?data=${DIA}`);
-    const alfa = await screen.findByRole('button', { name: 'Motorista: SD BM ALFA, 08h–08h, Pronto' });
+    const alfa = await screen.findByRole('button', { name: 'Motorista: SD ALFA, 08h–08h, Pronto' });
     // o trecho mede a própria largura (container query) e a etiqueta só aparece quando cabe ao lado do nome; o horário não está no texto visível
     expect(alfa).toHaveClass('@container');
     expect(within(alfa).getByText('Pronto')).toHaveClass('hidden', '@min-[14rem]:inline-flex');
@@ -192,7 +192,7 @@ describe('efetivo por dia: a linha do tempo', () => {
     // só posição e largura no estilo: a cor do serviço é de quem já está escalado
     expect(vagaDoAco.style.backgroundColor).toBe('');
     expect(vagaDoAco.style.color).toBe('');
-    const ocupado = screen.getByRole('button', { name: 'Motorista: SD BM ALFA, 08h–08h, Pronto' });
+    const ocupado = screen.getByRole('button', { name: 'Motorista: SD ALFA, 08h–08h, Pronto' });
     expect(ocupado.style.backgroundColor).not.toBe('');
     expect(ocupado.querySelector('[data-barra]')).toBeNull();
   });
@@ -200,7 +200,7 @@ describe('efetivo por dia: a linha do tempo', () => {
   it('o texto sobre a cor do serviço não usa transparência: o contraste de 4,5:1 vale para o posto e o horário também', async () => {
     api();
     abrir(`/efetivo-por-dia?data=${DIA}`);
-    const alfa = await screen.findByRole('button', { name: 'Motorista: SD BM ALFA, 08h–08h, Pronto' });
+    const alfa = await screen.findByRole('button', { name: 'Motorista: SD ALFA, 08h–08h, Pronto' });
     fireEvent.focus(alfa);
     expect(await within(alfa).findByText('08h–08h')).toBeInTheDocument();
     expect(alfa.querySelectorAll('[class*="opacity-"]')).toHaveLength(0);
@@ -562,7 +562,7 @@ describe('efetivo por dia: a navegação', () => {
 describe('efetivo por dia: escalar e remover', () => {
   const ROTA = `GET /api/unidades/u-1sb/efetivo-do-dia/${DIA}`;
   const CANDIDATOS = {
-    aptos: [{ militarId: 'm-zulu', posto: 'SD BM', nomeGuerra: 'ZULU', matricula: '990099-9', equipe: null, jornada: 'pronto', servicos: [{ servicoId: 's-pronto', turnoId: 't-b', nome: 'Pronto' }] }],
+    aptos: [{ militarId: 'm-zulu', posto: 'SD', nomeGuerra: 'ZULU', matricula: '990099-9', equipe: null, jornada: 'pronto', servicos: [{ servicoId: 's-pronto', turnoId: 't-b', nome: 'Pronto' }] }],
     semVoluntariado: [], fora: [], acumular: [],
   };
   const ESCALA_VAZIA = (escalaId: string) => ({ escalaId, nome: 'Ordinário', mes: '2026-12', dias: [], resumo: { preenchidas: 0, obrigatorias: 0, obrigatoriasVazias: 0 } });
@@ -625,8 +625,8 @@ describe('efetivo por dia: escalar e remover', () => {
   it('o trecho ocupado mostra as alocações dele, e "Remover" tira a escolhida', async () => {
     const f = api(EFETIVO, EU_EXEMPLO, { 'DELETE /api/alocacoes/a-2': { status: 200, corpo: ESCALA_VAZIA('e-ord') } });
     abrir(`/efetivo-por-dia?data=${DIA}`);
-    await userEvent.click(await screen.findByRole('button', { name: 'Motorista: SD BM ALFA, 08h–08h, Pronto' }));
-    const dialogo = await screen.findByRole('dialog', { name: 'SD BM ALFA' });
+    await userEvent.click(await screen.findByRole('button', { name: 'Motorista: SD ALFA, 08h–08h, Pronto' }));
+    const dialogo = await screen.findByRole('dialog', { name: 'SD ALFA' });
     expect(within(dialogo).getByText('08h–20h')).toBeInTheDocument();
     // os mesmos avisos da Escala do mês (achado da revisão final)
     expect(within(dialogo).getAllByText('Ele não volta para este turno quando a pré-escala for gerada de novo.')).toHaveLength(2);
@@ -643,8 +643,8 @@ describe('efetivo por dia: escalar e remover', () => {
       'DELETE /api/acumulos/ac-1': { status: 200, corpo: ESCALA_VAZIA('e-ord') },
     });
     abrir(`/efetivo-por-dia?data=${DIA}`);
-    await userEvent.click(await screen.findByRole('button', { name: 'Auxiliar: SD BM ECHO, 08h–20h, Pronto' }));
-    const dialogo = await screen.findByRole('dialog', { name: 'SD BM ECHO' });
+    await userEvent.click(await screen.findByRole('button', { name: 'Auxiliar: SD ECHO, 08h–20h, Pronto' }));
+    const dialogo = await screen.findByRole('dialog', { name: 'SD ECHO' });
     expect(within(dialogo).queryByRole('button', { name: /^Remover/ })).toBeNull();
     expect(within(dialogo).getByText('Ele continua em Motorista ABT.')).toBeInTheDocument();
     await userEvent.click(within(dialogo).getByRole('button', { name: 'Tirar acúmulo 08h–20h' }));

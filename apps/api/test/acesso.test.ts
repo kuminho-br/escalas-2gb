@@ -41,7 +41,7 @@ describe('papéis por unidade', () => {
   it('gestor do 2º GB pode escrever na 1ª SB', async () => {
     const { banco, ids } = api;
     const gestor = await inserir(banco, 'usuario', { nome: 'GESTOR', email: 'gestor@exemplo.test', militar_id: await inserir(banco, 'militar', {
-      matricula: '990904-4', posto_grad_id: (await banco.query<{ id: string }>("select id from posto_grad where sigla = 'CAP BM'")).rows[0]!.id, nome_guerra: 'GESTOR',
+      matricula: '990904-4', posto_grad_id: (await banco.query<{ id: string }>("select id from posto_grad where sigla = 'CAP'")).rows[0]!.id, nome_guerra: 'GESTOR',
     }) });
     await inserir(banco, 'papel_usuario', { usuario_id: gestor, unidade_id: ids.gb, papel: 'gestor', desde: '2026-01-01' });
     expect(await temPapel(banco, gestor, ids.secao, CADASTRO, hoje)).toBe(true);

@@ -39,9 +39,9 @@ beforeAll(async () => {
   pronto = { id: s, a: await inserir(api.banco, 'turno', { servico_id: s, letra: 'A', inicio: '08:00', fim: '20:00' }) };
   escala = await inserir(api.banco, 'escala', { unidade_id: api.ids.secao, nome: 'Ordinário', titulo: 'Escala', militares_doc: 'todos', dias_doc: 'todos' });
   await inserir(api.banco, 'escala_servico', { escala_id: escala, servico_id: s, ordem: 1 }, 'escala_id');
-  await criar('PRACA', 'SD BM', [{ desde: '2026-11-01', quadro: 'QBMG' }]);
-  await criar('MUDOU', 'CAP BM', [{ desde: '2026-11-01', ate: dia(14), quadro: 'QBMG' }, { desde: dia(15), quadro: 'QOA' }]);
-  await criar('RESERVA', 'SD BM', [{ desde: '2026-11-01', ate: dia(9), quadro: 'QBMG' }, { desde: dia(10), quadro: 'QBMG', situacao: 'Reserva' }]);
+  await criar('PRACA', 'SD', [{ desde: '2026-11-01', quadro: 'QBMG' }]);
+  await criar('MUDOU', 'CAP', [{ desde: '2026-11-01', ate: dia(14), quadro: 'QBMG' }, { desde: dia(15), quadro: 'QOA' }]);
+  await criar('RESERVA', 'SD', [{ desde: '2026-11-01', ate: dia(9), quadro: 'QBMG' }, { desde: dia(10), quadro: 'QBMG', situacao: 'Reserva' }]);
   await inserir(api.banco, 'alocacao', { militar_id: militar.RESERVA, escala_id: escala, servico_id: pronto.id, turno_id: pronto.a, data: dia(5), origem: 'manual' });
 });
 afterAll(async () => {
@@ -90,8 +90,8 @@ describe('a situação por período', () => {
 
 describe('a Grade com duas situações no mês (revisão final)', () => {
   it('Desativado até o dia 14 e Ativa a partir do 15, sem escala no mês: aparece na Grade', async () => {
-    await criar('VOLTOU', 'SD BM', [{ desde: '2026-11-01', ate: dia(14), quadro: 'QBMG', situacao: 'Desativado' }, { desde: dia(15), quadro: 'QBMG' }]);
-    await criar('VOLTOU2', 'SD BM', [{ desde: dia(15), quadro: 'QBMG' }]);
+    await criar('VOLTOU', 'SD', [{ desde: '2026-11-01', ate: dia(14), quadro: 'QBMG', situacao: 'Desativado' }, { desde: dia(15), quadro: 'QBMG' }]);
+    await criar('VOLTOU2', 'SD', [{ desde: dia(15), quadro: 'QBMG' }]);
     await api.banco.query("insert into rastreio (militar_id, unidade_id, equipe_id, jornada, desde, ate, quadro_id, situacao_id) values ($1, $2, $3, 'pronto', '2026-11-01', $4, $5, $6)", [
       militar.VOLTOU2, api.ids.secao, alfa, dia(14), quadro.QBMG, await situacaoDoMilitar(api.banco, 'Desativado'),
     ]);
@@ -101,7 +101,7 @@ describe('a Grade com duas situações no mês (revisão final)', () => {
   });
 
   it('o Adm em Reserva a partir do dia 10 só tem expediente até o dia 9', async () => {
-    const id = await inserir(api.banco, 'militar', { matricula: '991499-9', posto_grad_id: posto['SD BM'], nome_guerra: 'ADMRES', antiguidade: 99 });
+    const id = await inserir(api.banco, 'militar', { matricula: '991499-9', posto_grad_id: posto['SD'], nome_guerra: 'ADMRES', antiguidade: 99 });
     const base = { militar_id: id, unidade_id: api.ids.secao, jornada: 'adm', quadro_id: quadro.QBMG };
     await inserir(api.banco, 'rastreio', { ...base, desde: '2026-11-01', ate: dia(9), situacao_id: await situacaoDoMilitar(api.banco, 'Ativa') });
     await inserir(api.banco, 'rastreio', { ...base, desde: dia(10), situacao_id: await situacaoDoMilitar(api.banco, 'Reserva') });
@@ -115,8 +115,8 @@ describe('a Grade com duas situações no mês (revisão final)', () => {
 
 describe('o posto e o quadro do período', () => {
   it('trocar o posto de um 2º TEN do QOA para CEL leva o período aberto ao QOC, sem erro', async () => {
-    const id = await criar('PROMOVIDO', '2º TEN BM', [{ desde: '2026-11-01', quadro: 'QOA' }]);
-    const r = await api.pedir('gestorGb', 'PATCH', `/api/militares/${id}`, { postoGradId: posto['CEL BM'] });
+    const id = await criar('PROMOVIDO', '2º TEN', [{ desde: '2026-11-01', quadro: 'QOA' }]);
+    const r = await api.pedir('gestorGb', 'PATCH', `/api/militares/${id}`, { postoGradId: posto['CEL'] });
     expect(r.status).toBe(200);
     const f: FichaMilitar = await r.json();
     expect(f.quadro).toMatchObject({ sigla: 'QOC' });
@@ -137,7 +137,7 @@ describe('"Alterar situação" com situação', () => {
     api.pedir(quem, 'POST', `/api/militares/${id}/situacao`, { unidadeId: api.ids.secao, equipeId: alfa, jornada: 'pronto', desde: hojeRecife(), ...corpo });
 
   it('muda a situação a partir do dia: o período novo leva a situação, e a anterior fica até a véspera', async () => {
-    const id = await criar('SITUADO', 'SD BM', [{ desde: '2026-11-01', quadro: 'QBMG' }]);
+    const id = await criar('SITUADO', 'SD', [{ desde: '2026-11-01', quadro: 'QBMG' }]);
     const reserva = await situacaoDoMilitar(api.banco, 'Reserva');
     const r = await alterar(id, { situacaoId: reserva, desde: '2026-11-20' });
     expect(r.status).toBe(201);
@@ -146,7 +146,7 @@ describe('"Alterar situação" com situação', () => {
   });
 
   it('quem só tem nível de acesso na seção não muda a situação (403, com o texto do Pecúlio)', async () => {
-    const id = await criar('TRAVADO', 'SD BM', [{ desde: '2026-11-01', quadro: 'QBMG' }]);
+    const id = await criar('TRAVADO', 'SD', [{ desde: '2026-11-01', quadro: 'QBMG' }]);
     const r = await alterar(id, { situacaoId: await situacaoDoMilitar(api.banco, 'Reserva') }, 'escalante');
     expect(r.status).toBe(403);
     // mudar só equipe e jornada continua valendo para ele
@@ -154,7 +154,7 @@ describe('"Alterar situação" com situação', () => {
   });
 
   it('situação desativada no catálogo é recusada, com o texto fixo', async () => {
-    const id = await criar('DESATIVADA', 'SD BM', [{ desde: '2026-11-01', quadro: 'QBMG' }]);
+    const id = await criar('DESATIVADA', 'SD', [{ desde: '2026-11-01', quadro: 'QBMG' }]);
     const adido = await situacaoDoMilitar(api.banco, 'Adido');
     await api.banco.query('update situacao_militar set ativo = false where id = $1', [adido]);
     const r = await alterar(id, { situacaoId: adido });
@@ -164,7 +164,7 @@ describe('"Alterar situação" com situação', () => {
   });
 
   it('o período novo sem situação nem quadro no pedido leva os de agora', async () => {
-    const id = await criar('HERDA', 'CAP BM', [{ desde: '2026-11-01', quadro: 'QOA', situacao: 'Agregado' }]);
+    const id = await criar('HERDA', 'CAP', [{ desde: '2026-11-01', quadro: 'QOA', situacao: 'Agregado' }]);
     const f: FichaMilitar = await (await alterar(id, { desde: '2026-11-20' })).json();
     expect(f.rastreio[0]).toMatchObject({ quadro: 'QOA', situacao: 'Agregado', desde: '2026-11-20' });
   });

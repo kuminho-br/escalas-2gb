@@ -12,7 +12,7 @@ const DIAS = Array.from({ length: 31 }, (_, i) => ({ data: `${MES}-${String(i + 
 const PRONTO = { id: 's-pronto', nome: 'Pronto', cor: '#2F8F5B', tipo: 'ordinario' as const };
 const BLOCO: BlocoDaGrade = { alocacaoId: 'a-1', servico: PRONTO, letra: 'A', inicio: '08:00', fim: '20:00', expediente: false };
 const CABO: LinhaDaGrade = {
-  militarId: 'm-CABO', posto: 'SD BM', nomeGuerra: 'CABO', matricula: '990001-1', jornada: 'pronto', dias: { [DIA]: [BLOCO] }, choques: [], pjes: 0, diarias: 0, horasTiradas: 0, horasPedidas: 0,
+  militarId: 'm-CABO', posto: 'SD', nomeGuerra: 'CABO', matricula: '990001-1', jornada: 'pronto', dias: { [DIA]: [BLOCO] }, choques: [], pjes: 0, diarias: 0, horasTiradas: 0, horasPedidas: 0,
 };
 const GRADE: GradeDoMes = { mes: MES, dias: DIAS, grupos: [{ chave: 'eq-alfa', nome: 'Alfa', linhas: [CABO] }] };
 const opcao = (o: Partial<OpcaoDeServico>): OpcaoDeServico => ({
@@ -20,7 +20,7 @@ const opcao = (o: Partial<OpcaoDeServico>): OpcaoDeServico => ({
   servicos: [{ servicoId: 's-pronto', turnoId: 't-a', nome: 'Pronto', semVoluntariado: false }], semVoluntariado: false, ordinario: true, ...o,
 });
 const PAINEL: PainelDoDia = {
-  militar: { militarId: 'm-CABO', posto: 'SD BM', nomeGuerra: 'CABO', matricula: '990001-1', equipe: 'Alfa', jornada: 'pronto', cnh: ['D'], voluntarioJes: true },
+  militar: { militarId: 'm-CABO', posto: 'SD', nomeGuerra: 'CABO', matricula: '990001-1', equipe: 'Alfa', jornada: 'pronto', cnh: ['D'], voluntarioJes: true },
   data: DIA,
   afastamento: null,
   disponibilidade: [{ inicio: '08:00', fim: '20:00' }],
@@ -48,14 +48,14 @@ function api(painel: PainelDoDia = PAINEL, extra: Parameters<typeof simularApi>[
     ...extra,
   });
 }
-const painel = () => screen.findByRole('complementary', { name: 'Dia de SD BM CABO' });
+const painel = () => screen.findByRole('complementary', { name: 'Dia de SD CABO' });
 
 describe('grade geral: o painel do dia', () => {
   it('abrir com militar e dia na busca mostra o militar, os horários marcados e os serviços', async () => {
     api();
     abrir(ABERTA);
     const p = await painel();
-    expect(within(p).getByRole('heading', { name: 'SD BM CABO' })).toBeInTheDocument();
+    expect(within(p).getByRole('heading', { name: 'SD CABO' })).toBeInTheDocument();
     expect(within(p).getByText(/990001-1/)).toBeInTheDocument();
     expect(within(p).getByText(/Alfa/)).toBeInTheDocument();
     expect(within(p).getByText('CNH D')).toBeInTheDocument();
@@ -66,7 +66,7 @@ describe('grade geral: o painel do dia', () => {
     expect(within(servico).getByText('Ordinário · ABT, Combatente')).toBeInTheDocument();
     expect(within(servico).getByText('Acumula Motorista ABT.')).toBeInTheDocument();
     // a célula escolhida da grade fica marcada
-    expect(screen.getByRole('button', { name: 'SD BM CABO, dia 10: Pronto A' })).toHaveAttribute('data-escolhida');
+    expect(screen.getByRole('button', { name: 'SD CABO, dia 10: Pronto A' })).toHaveAttribute('data-escolhida');
   });
 
   it('ao abrir o painel, a célula escolhida rola para ficar à vista', async () => {
@@ -78,7 +78,7 @@ describe('grade geral: o painel do dia', () => {
       abrir(ABERTA);
       await painel();
       await waitFor(() => expect(rolar).toHaveBeenCalledWith({ inline: 'nearest', block: 'nearest' }));
-      expect(rolar.mock.contexts.at(-1)).toBe(screen.getByRole('button', { name: 'SD BM CABO, dia 10: Pronto A' }));
+      expect(rolar.mock.contexts.at(-1)).toBe(screen.getByRole('button', { name: 'SD CABO, dia 10: Pronto A' }));
     } finally {
       delete (Element.prototype as { scrollIntoView?: unknown }).scrollIntoView;
     }
@@ -101,7 +101,7 @@ describe('grade geral: o painel do dia', () => {
     await userEvent.click(within(await painel()).getByRole('button', { name: 'Fechar' }));
     await waitFor(() => expect(router.state.location.search).not.toHaveProperty('militar'));
     expect(router.state.location.search).not.toHaveProperty('dia');
-    expect(screen.queryByRole('complementary', { name: 'Dia de SD BM CABO' })).toBeNull();
+    expect(screen.queryByRole('complementary', { name: 'Dia de SD CABO' })).toBeNull();
   });
 });
 
@@ -118,14 +118,14 @@ describe('grade geral: teclado e celular (achado da revisão final)', () => {
     await waitFor(() => expect(p).toHaveFocus());
     await userEvent.keyboard('{Escape}');
     await waitFor(() => expect(router.state.location.search).not.toHaveProperty('militar'));
-    await waitFor(() => expect(screen.getByRole('button', { name: 'SD BM CABO, dia 10: Pronto A' })).toHaveFocus());
+    await waitFor(() => expect(screen.getByRole('button', { name: 'SD CABO, dia 10: Pronto A' })).toHaveFocus());
   });
 
   it('"Fechar" também devolve o foco à célula', async () => {
     api();
     abrir(ABERTA);
     await userEvent.click(within(await painel()).getByRole('button', { name: 'Fechar' }));
-    await waitFor(() => expect(screen.getByRole('button', { name: 'SD BM CABO, dia 10: Pronto A' })).toHaveFocus());
+    await waitFor(() => expect(screen.getByRole('button', { name: 'SD CABO, dia 10: Pronto A' })).toHaveFocus());
   });
 
   it('no celular o painel cobre a tela e a grade atrás fica inerte; no computador, não', async () => {

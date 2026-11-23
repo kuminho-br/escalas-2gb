@@ -41,7 +41,7 @@ const chaves = (v: unknown, acc = new Set<string>()): Set<string> => {
 };
 
 /** Um militar fictício; `unidadeId` null deixa sem lotação. */
-async function militar(chave: string, matricula: string, unidadeId: string | null, extra: Record<string, unknown> = {}, quadroSigla: string | null = 'QBMG', posto = 'SD BM') {
+async function militar(chave: string, matricula: string, unidadeId: string | null, extra: Record<string, unknown> = {}, quadroSigla: string | null = 'QBMG', posto = 'SD') {
   const postoId = (await api.banco.query<{ id: string }>('select id from posto_grad where sigla = $1', [posto])).rows[0]!.id;
   const id = await inserir(api.banco, 'militar', { matricula, posto_grad_id: postoId, nome_guerra: chave, ...extra });
   if (unidadeId) await inserir(api.banco, 'rastreio', { militar_id: id, unidade_id: unidadeId, jornada: 'pronto', desde: dia1, ...(quadroSigla ? { quadro_id: quadro[quadroSigla] } : {}) });
@@ -77,7 +77,7 @@ beforeAll(async () => {
   // um lote de 51 militares na 3ª SB, para o limite de 50 linhas
   for (let i = 1; i <= 51; i++) await militar(`LOTE${String(i).padStart(2, '0')}`, `99084${Math.floor(i / 10)}-${i % 10}`, sb3);
 
-  pessoa.oficial = await entrarComo(api, { matricula: '990831-1', nome: 'COFICIAL', posto: 'CAP BM' });
+  pessoa.oficial = await entrarComo(api, { matricula: '990831-1', nome: 'COFICIAL', posto: 'CAP' });
   await inserir(api.banco, 'rastreio', { militar_id: pessoa.oficial.militarId, unidade_id: sb3, jornada: 'adm', desde: dia1, quadro_id: quadro.QOC });
   pessoa.chefe = await entrarComo(api, { matricula: '990832-2', nome: 'CCHEFE', nivel: { papel: 'chefe_divisao', unidadeId: divOp } });
   pessoa.auxiliarDoGb = await entrarComo(api, { matricula: '990833-3', nome: 'CAUXGB', nivel: { papel: 'escalante', unidadeId: api.ids.gb } });
@@ -115,7 +115,7 @@ describe('a busca', () => {
   it('a linha traz só a identificação: posto, nomes, matrícula, lotação e quadro', async () => {
     const r = await buscar('semPapel', 'texto=andrade');
     expect(r).toEqual({
-      militares: [{ id: alvo.ANDRADE, postoGrad: 'SD BM', nomeGuerra: 'ANDRADE', nomeCompleto: 'João da Silva Andrade', matricula: '990821-1', lotacao: '2ª SB', quadro: 'QBMG' }],
+      militares: [{ id: alvo.ANDRADE, postoGrad: 'SD', nomeGuerra: 'ANDRADE', nomeCompleto: 'João da Silva Andrade', matricula: '990821-1', lotacao: '2ª SB', quadro: 'QBMG' }],
       haMais: false,
     });
   });
@@ -172,7 +172,7 @@ describe('a busca', () => {
 
   it('o militar sem lotação aparece na busca por texto, só com a identificação (Review Focus 3)', async () => {
     const r = await buscar('semPapel', 'texto=sem%20lotacao');
-    expect(r.militares).toEqual([{ id: alvo.SEMLOTACAO, postoGrad: 'SD BM', nomeGuerra: 'SEMLOTACAO', nomeCompleto: 'Pessoa Sem Lotação Hoje', matricula: '990823-3', lotacao: null, quadro: null }]);
+    expect(r.militares).toEqual([{ id: alvo.SEMLOTACAO, postoGrad: 'SD', nomeGuerra: 'SEMLOTACAO', nomeCompleto: 'Pessoa Sem Lotação Hoje', matricula: '990823-3', lotacao: null, quadro: null }]);
   });
 
   it('a unidade de escolha: a árvore da corporação inteira, na ordem da árvore, para qualquer pessoa com conta', async () => {

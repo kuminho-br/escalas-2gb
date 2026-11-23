@@ -1,5 +1,5 @@
 // Cria o administrador. Uso:
-//   pnpm --filter api criar-admin -- --matricula 123456-7 --posto "CAP BM" --nome-guerra FULANO --email fulano@exemplo.com
+//   pnpm --filter api criar-admin -- --matricula 123456-7 --posto "CAP" --nome-guerra FULANO --email fulano@exemplo.com
 // A senha vem de SENHA_ADMIN ou é pedida no terminal. Usa DATABASE_URL (sem ela, o PGlite local).
 import { createInterface } from 'node:readline/promises';
 import { parseArgs } from 'node:util';

@@ -96,7 +96,7 @@ export async function trocar(tx: Consulta, alocacaoId: string, troca: Troca, usu
   const comAcumulo = (await tx.query('select 1 from alocacao_acumulo where alocacao_id = any($1::uuid[]) limit 1', [[a.id, b.id]])).rows.length;
   if (comAcumulo) throw new Recusa('Tire os acúmulos antes de trocar.');
 
-  // os nomes só servem para a recusa dizer quem não pode ir para onde ("SD BM FULANO")
+  // os nomes só servem para a recusa dizer quem não pode ir para onde ("SD FULANO")
   const nomes = new Map(
     (
       await tx.query<{ id: string; nome: string }>(
