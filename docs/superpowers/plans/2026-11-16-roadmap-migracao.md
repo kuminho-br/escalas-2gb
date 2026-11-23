@@ -93,11 +93,11 @@ Design: `docs/superpowers/specs/2026-11-21-usuarios-e-modulos-design.md`. Plano:
 |---|---|---|
 | 1 a 5, 7 a 14 | Contas, unidade de trabalho, tela inicial, transição do login, retornos da validação, Pecúlio, níveis de acesso, divisões, camadas de visão, consulta, escalas só para leitura, animação | mescladas (#86 a #143) |
 | 6 | Retorno da validação com mockup | absorvida na refatoração |
-| 15 a 18 | Pendências antes da fase 7: abono e função; três lotes de acabamento | 15 e 16 mescladas (#146, #149); 17 e 18 em execução |
+| 15 a 18 | Pendências antes da fase 7: abono e função; três lotes de acabamento | 15, 16 e 17 (parte 1) mescladas (#146, #149, #166); 17 (parte 2) e 18 a fazer |
 | 19 | Correções de interface sem desenho (N0) | mesclada (#128) |
 | 20 e 21 | Fundação da interface: sistema de estilo (N1); resposta do sistema (N2) | planejadas |
 | 22 a 24 | Oficiais; mover na hierarquia; admin como militar | mescladas (#157, #161, #162) |
-| 25 e 26 | Árvore genérica (migração 0035); configurações gerais na tela inicial | planejadas, depois da 17 |
+| 25 e 26 | Árvore genérica (0035); configurações gerais | 25 mesclada (#167); 26 em execução |
 
 **Fora:** e-mail, usuários acima do GB (fase 11), Visualização (fase 7).
 
