@@ -57,9 +57,9 @@ afterAll(async () => {
 describe('escalas', () => {
   it('nova escala nasce com título ESCALA <NOME>, só escalados e todos os dias', async () => {
     const e = await criar('Defensoria');
-    expect(e).toMatchObject({ nome: 'Defensoria', titulo: 'ESCALA DEFENSORIA', militaresDoc: 'escalados', diasDoc: 'todos', ativa: true, servicos: [], faixas: [], comLetra: true, vinculos: [], montaBlocosVoluntariado: true });
+    expect(e).toMatchObject({ nome: 'Defensoria', titulo: 'ESCALA DEFENSORIA', militaresDoc: 'escalados', diasDoc: 'todos', ativa: true, distribuicao: 'pre_escala', servicos: [], faixas: [], comLetra: true, vinculos: [], montaBlocosVoluntariado: true });
     const lista: LinhaEscala[] = await (await api.pedir('escalante', 'GET', `${secao()}/escalas`)).json();
-    expect(lista.find((x) => x.id === e.id)).toEqual({ id: e.id, nome: 'Defensoria', ativa: true, servicos: [], montaBlocosVoluntariado: true });
+    expect(lista.find((x) => x.id === e.id)).toEqual({ id: e.id, nome: 'Defensoria', ativa: true, servicos: [], montaBlocosVoluntariado: true, distribuicao: 'pre_escala' });
   });
 
   it('editar identificação', async () => {

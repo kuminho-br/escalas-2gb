@@ -92,10 +92,10 @@ export async function elegiveisDoMes(c: Consulta, unidadeId: string, mes: string
   });
 }
 
-/** O mês gravado da unidade imediatamente anterior a `mes`: é dele que vêm as marcas de um mês novo e a marca "novo". */
-async function mesAnterior(c: Consulta, unidadeId: string, mes: string): Promise<{ id: string; mes: string } | null> {
+/** O mês gravado da escala imediatamente anterior a `mes`: é dele que vêm as marcas de um mês novo e a marca "novo". */
+async function mesAnterior(c: Consulta, escalaId: string, mes: string): Promise<{ id: string; mes: string } | null> {
   const { rows } = await c.query<{ id: string; mes: string }>(
-    "select id, to_char(mes, 'YYYY-MM') as mes from oficiais_mes where unidade_id = $1 and mes < $2::date order by mes desc limit 1", [unidadeId, `${mes}-01`]);
+    "select id, to_char(mes, 'YYYY-MM') as mes from oficiais_mes where escala_id = $1 and mes < $2::date order by mes desc limit 1", [escalaId, `${mes}-01`]);
   return rows[0] ?? null;
 }
 
@@ -107,21 +107,22 @@ async function marcasDe(c: Consulta, mesId: string): Promise<Set<string>> {
 export interface Marcas {
   /** Quem o gestor marcou: as marcas do mês gravado ou, sem ele, a cópia das do mês anterior da unidade. Pode trazer quem já não é elegível. */
   marcados: Set<string>;
-  /** Quem participou da rodada no mês anterior da unidade (as marcas dele); null no primeiro mês dela (aí ninguém é "novo"). */
+  /** Quem participou da rodada no mês anterior da escala (as marcas dele); null no primeiro mês dela (aí ninguém é "novo"). */
   participantesAntes: Set<string> | null;
 }
 
-/** As marcas do mês. `mesId` é o do mês gravado (null se ainda não foi). */
-export async function marcasDoMes(c: Consulta, unidadeId: string, mes: string, mesId: string | null): Promise<Marcas> {
-  const anterior = await mesAnterior(c, unidadeId, mes);
+/** As marcas do mês. `mesId` é o do mês gravado (null se ainda não foi); sem escala (a unidade ainda não tem uma), ninguém está marcado. */
+export async function marcasDoMes(c: Consulta, escalaId: string | null, mes: string, mesId: string | null): Promise<Marcas> {
+  if (!escalaId) return { marcados: new Set(), participantesAntes: null };
+  const anterior = await mesAnterior(c, escalaId, mes);
   const marcados = mesId ? await marcasDe(c, mesId) : anterior ? await marcasDe(c, anterior.id) : new Set<string>();
   const participantesAntes = anterior ? await marcasDe(c, anterior.id) : null;
   return { marcados, participantesAntes };
 }
 
-/** Ao criar o mês, as marcas vêm copiadas do mês anterior da unidade (no primeiro mês, ninguém vem marcado). */
-export async function copiarMarcasDoMesAnterior(c: Consulta, unidadeId: string, mes: string, mesId: string): Promise<void> {
-  const anterior = await mesAnterior(c, unidadeId, mes);
+/** Ao criar o mês, as marcas vêm copiadas do mês anterior da escala (no primeiro mês, ninguém vem marcado). */
+export async function copiarMarcasDoMesAnterior(c: Consulta, escalaId: string, mes: string, mesId: string): Promise<void> {
+  const anterior = await mesAnterior(c, escalaId, mes);
   if (!anterior) return;
   await c.query(
     'insert into oficiais_participante (mes_id, militar_id) select $1, militar_id from oficiais_participante where mes_id = $2 on conflict do nothing', [mesId, anterior.id]);

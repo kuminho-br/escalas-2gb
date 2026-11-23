@@ -89,8 +89,8 @@ export async function vinculosDaEscala(c: Consulta, escalaId: string): Promise<E
 
 async function carregarEscala(c: Consulta, id: string): Promise<Escala> {
   const e = (
-    await c.query<{ id: string; nome: string; titulo: string; militares_doc: Escala['militaresDoc']; dias_doc: Escala['diasDoc']; ativa: boolean; monta_blocos_voluntariado: boolean }>(
-      'select id, nome, titulo, militares_doc, dias_doc, ativa, monta_blocos_voluntariado from escala where id = $1',
+    await c.query<{ id: string; nome: string; titulo: string; militares_doc: Escala['militaresDoc']; dias_doc: Escala['diasDoc']; ativa: boolean; monta_blocos_voluntariado: boolean; distribuicao: Escala['distribuicao'] }>(
+      'select id, nome, titulo, militares_doc, dias_doc, ativa, monta_blocos_voluntariado, distribuicao from escala where id = $1',
       [id],
     )
   ).rows[0]!;
@@ -102,6 +102,7 @@ async function carregarEscala(c: Consulta, id: string): Promise<Escala> {
     militaresDoc: e.militares_doc,
     diasDoc: e.dias_doc,
     ativa: e.ativa,
+    distribuicao: e.distribuicao,
     montaBlocosVoluntariado: e.monta_blocos_voluntariado,
     servicos,
     ...(await faixasDaEscala(c, servicos.map((s) => s.id))),
@@ -168,8 +169,8 @@ export function rotasEscalas(dep: { banco: Banco; auth: Auth }): Hono<AmbienteAp
     const negado = await exigirLeituraDaEscala(c, u);
     if (negado) return negado;
     const escalas = (
-      await dep.banco.query<{ id: string; nome: string; ativa: boolean; montaBlocosVoluntariado: boolean }>(
-        'select id, nome, ativa, monta_blocos_voluntariado as "montaBlocosVoluntariado" from escala where unidade_id = $1',
+      await dep.banco.query<{ id: string; nome: string; ativa: boolean; montaBlocosVoluntariado: boolean; distribuicao: LinhaEscala['distribuicao'] }>(
+        'select id, nome, ativa, monta_blocos_voluntariado as "montaBlocosVoluntariado", distribuicao from escala where unidade_id = $1',
         [u],
       )
     ).rows;
@@ -229,7 +230,7 @@ export function rotasEscalas(dep: { banco: Banco; auth: Auth }): Hono<AmbienteAp
     if (igual) return c.json({ erro: `Já existe a escala "${igual}".` }, 409);
     try {
       const e = await comUsuario(dep.banco, c.get('usuarioId'), async (tx) => {
-        await tx.query('update escala set nome = $2, titulo = $3, militares_doc = $4, dias_doc = $5 where id = $1', [id, d.nome, d.titulo, d.militaresDoc, d.diasDoc]);
+        await tx.query('update escala set nome = $2, titulo = $3, militares_doc = $4, dias_doc = $5, distribuicao = coalesce($6, distribuicao) where id = $1', [id, d.nome, d.titulo, d.militaresDoc, d.diasDoc, d.distribuicao ?? null]);
         return carregarEscala(tx, id);
       });
       return c.json(e);

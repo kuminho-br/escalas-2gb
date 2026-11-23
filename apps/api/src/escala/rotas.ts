@@ -66,6 +66,9 @@ export function rotasEscalaDoMes(dep: { banco: Banco; auth: Auth }): Hono<Ambien
     if (!Mes.safeParse(mes).success) return c.json({ erro: 'Mês inválido: use o formato aaaa-mm.' }, 400);
     const corpo = await lerCorpo(c, NovaPreEscala);
     if (!corpo.ok) return corpo.resposta;
+    // a escala de rodada de cotas (a dos oficiais) não tem pré-escala: ela é montada em Oficiais
+    const jeito = (await dep.banco.query<{ distribuicao: string }>('select distribuicao from escala where id = $1', [id])).rows[0]!.distribuicao;
+    if (jeito !== 'pre_escala') return c.json({ erro: 'Esta escala é uma rodada de cotas: ela é montada em Oficiais, e não tem pré-escala.' }, 409);
     try {
       const gravadas = await comUsuario(dep.banco, c.get('usuarioId'), async (tx) => {
         await tx.query('select pg_advisory_xact_lock(hashtext($1))', [`pre-escala|${id}|${mes}`]);
