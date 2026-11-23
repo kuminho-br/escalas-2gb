@@ -409,7 +409,7 @@ describe('desativar e desfazer (Review Focus 1 a 4)', () => {
   };
 
   // pendências da 4.4: a promovida que sumiu ou mudou de lugar é "a escala mudou", a de outra seção continua sendo 400
-  const ESCALA_MUDOU = 'Não deu para desfazer: a escala mudou desde então.';
+  const ESCALA_MUDOU = 'A escala mudou desde então. Não dá mais para desfazer.';
 
   it('desfazer com a promovida removida depois da desativação é 409 "a escala mudou desde então" e nada muda', async () => {
     const d = dia(328);
