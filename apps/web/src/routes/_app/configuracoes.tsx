@@ -43,7 +43,8 @@ function Configuracoes() {
         {podeMudar && <ImportarPlanilha cadastro="configuracoes" rotulo="as configurações" aoConcluir={() => queryClient.invalidateQueries({ queryKey: ['parametros'] })} />}
       </header>
       <Tabs value={aba} onValueChange={(v) => void navigate({ search: { aba: ABAS.find((a) => a === v) }, replace: true })} className="mt-6">
-        <TabsList>
+        {/* no celular as abas rolam dentro da própria faixa, e não a página inteira */}
+        <TabsList className="max-w-full justify-start overflow-x-auto">
           <TabsTrigger value="regras">Regras do processo</TabsTrigger>
           <TabsTrigger value="voluntariado">Voluntariado</TabsTrigger>
           <TabsTrigger value="modelos">Modelos de guarnição</TabsTrigger>

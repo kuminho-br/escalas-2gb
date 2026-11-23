@@ -93,7 +93,7 @@ export function useSincronizar(doServidor: string, sujo: boolean, aoRecarregar: 
 }
 
 export function EtiquetaPendente({ sujo }: { sujo: boolean }) {
-  return sujo ? <p role="status" className="text-xs text-alerta">Alterações não salvas</p> : null;
+  return sujo ? <p role="status" className="text-xs text-pendencia">Alterações não salvas</p> : null;
 }
 
 /**

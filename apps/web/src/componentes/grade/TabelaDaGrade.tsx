@@ -1,6 +1,7 @@
 import { mesPorExtenso, type GradeDoMes, type GrupoDaGrade, type LinhaDaGrade } from 'contratos';
 import { ChevronDown, ChevronRight } from 'lucide-react';
-import { Fragment } from 'react';
+import { Fragment, useEffect, useRef } from 'react';
+import { hoje } from '@/lib/meses';
 import { textoDuracao } from '@/lib/turnos';
 import { cn } from '@/lib/utils';
 import { BarraComparativa } from './BarraComparativa';
@@ -50,6 +51,16 @@ export function TabelaDaGrade({ grade, grupos, maximos, escolhida, aoEscolher, r
   aoAlternar: (chave: string) => void;
 }) {
   const colunas = grade.dias.length + 4;
+  // o dia de hoje, só no mês corrente; ao abrir, a tabela rola até ele uma vez (trocar o filtro ou atualizar os dados não rola de novo)
+  const diaDeHoje = hoje();
+  const temHoje = grade.dias.some((d) => d.data === diaDeHoje);
+  const colunaDeHoje = useRef<HTMLTableCellElement>(null);
+  const jaRolou = useRef(false);
+  useEffect(() => {
+    if (jaRolou.current || !temHoje || !colunaDeHoje.current) return;
+    jaRolou.current = true;
+    colunaDeHoje.current.scrollIntoView({ block: 'nearest', inline: 'center' });
+  }, [temHoje]);
   return (
     // a tabela rola nas duas direções dentro da própria caixa: assim o cabeçalho dos dias e a coluna "Militar" grudam nela (com
     // `overflow-x-auto` e a página rolando na vertical, o cabeçalho não tinha onde grudar). Vale também no celular. O `scroll-p*` deixa folga
@@ -66,6 +77,8 @@ export function TabelaDaGrade({ grade, grupos, maximos, escolhida, aoEscolher, r
               return (
                 <th
                   key={d.data}
+                  ref={d.data === diaDeHoje ? colunaDeHoje : undefined}
+                  aria-current={d.data === diaDeHoje ? 'date' : undefined}
                   scope="col"
                   aria-label={`Dia ${n}, ${NOME_DO_DIA[d.diaDaSemana]}${d.feriado ? `, feriado: ${d.feriado}` : ''}`}
                   data-feriado={d.feriado ? '' : undefined}
@@ -78,6 +91,8 @@ export function TabelaDaGrade({ grade, grupos, maximos, escolhida, aoEscolher, r
                   <span aria-hidden className={cn('block text-base font-semibold', vinho ? 'text-vinho' : 'text-tinta')}>{n}</span>
                   <span aria-hidden className={cn(vinho && 'text-vinho')}>{SIGLA_DO_DIA[d.diaDaSemana]}</span>
                   {d.feriado && <span aria-hidden data-ponto-feriado className="mx-auto mt-0.5 block size-1 rounded-full bg-vinho" />}
+                  {/* hoje: uma faixa embaixo do número do dia */}
+                  {d.data === diaDeHoje && <span aria-hidden data-marca-hoje className="absolute inset-x-1 bottom-0 h-[3px] rounded-t bg-tinta" />}
                 </th>
               );
             })}
