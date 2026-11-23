@@ -144,6 +144,15 @@ O elemento que dá cara ao sistema. A **placa** é o militar: posto pequeno, nom
 
 Telas de leitura (cadastros e configurações) têm largura limitada; telas de trabalho usam a largura toda. No celular, o painel de detalhe sobe de baixo.
 
+## Diretrizes do usuário
+
+De 23/11/2026. Valem acima de qualquer mockup.
+
+- **Mockup é guia, não gabarito.** As peças da DESIGN dão a direção de desenho e a identidade. Não se copiam inteiras sem avaliação: a DESENVOLVIMENTO adequa ao software que existe, com a skill de design front-end, e registra a diferença no resumo do PR.
+- **Posto sem "BM".** "BM" não é posto: só diz que a corporação é o Bombeiro Militar, e o sistema é só de bombeiros. Em toda tela e peça o posto aparece como SD, CB, 3º SGT, 2º TEN, sem "BM". As siglas do cadastro são acertadas na entrega 6.15.
+- **Escala do mês com todos os dias na mesma tela.** O escalante preenche o mês inteiro numa tela única, com os dias um depois do outro. "Um dia por vez" só vale para o celular (N6.2).
+- **O menu lateral tem ícones.** Eles ajudam a lembrar de cada tela. Os ícones de hoje são redesenhados, num traço só. Ficam antes do nome, na mesma linha; na barra de baixo do celular, acima do nome (escolha da PLANEJAMENTO).
+
 ## Decisões do usuário
 
 Aprovadas em 23/11/2026: vale a alternativa **(a)** nas quatro, com as exceções da coluna "Recomendação". N1 e N2 entram antes da fase 7, e a entrega 6.6 é absorvida aqui.
