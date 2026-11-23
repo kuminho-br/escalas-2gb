@@ -181,7 +181,8 @@ describe('Adicionar serviço neste dia', () => {
 
   it('fora do quadro de motoristas, a CNH D não vale: o painel não oferece a vaga de motorista (Review Focus 2)', async () => {
     const p = await ler('FORAQUADRO');
-    expect(p.militar.cnh).toEqual(['D']);
+    // a etiqueta "CNH D" do painel é de quem está no quadro: fora dele, a carteira não conta para a escala e não aparece (6.17, item 14)
+    expect(p.militar.cnh).toEqual([]);
     expect(opcoes(p, '20:00-08:00').map((o) => o[0])).toEqual(['Combatente ABT', 'Sem guarnição']);
     const noQuadro = await ler('DRV2');
     expect(opcoes(noQuadro, '20:00-08:00').map((o) => o[0])).toContain('Motorista ABT');
