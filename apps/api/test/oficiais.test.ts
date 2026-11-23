@@ -110,7 +110,7 @@ describe('a escala da rodada', () => {
     const e = await ler('2027-01');
     expect(e.escalas.map((x) => x.nome)).toEqual(['Oficiais de operações', 'Sem serviços']);
     expect(e.escala).toEqual({ id: rodada.escalaId, nome: 'Oficiais de operações' });
-    expect(e.servicos).toEqual({ jes: { id: rodada.jes, nome: 'JES' }, saldo: { id: rodada.saldo, nome: 'Saldo' } });
+    expect(e.servicos).toEqual({ jes: { id: rodada.jes, nome: 'JES', cor: '#6E56A8' }, saldo: { id: rodada.saldo, nome: 'Saldo', cor: '#2B7BB9' } });
     expect(e.turnosDoServico).toEqual([
       { id: rodada.saldoA, letra: 'A', inicio: '07:00', fim: '19:00', rotulo: 'Dia' },
       { id: rodada.saldoB, letra: 'B', inicio: '19:00', fim: '07:00', rotulo: 'Noite' },
@@ -382,10 +382,10 @@ describe('JES à mão e Saldo pela rodada (6.27)', () => {
     expect(e.oficiais.reduce((s, o) => s + (o.cota ?? 0), 0)).toBe(62);
   });
 
-  it('JES só para voluntário JES (400 com o texto); para o voluntário, grava como alocação manual do serviço JES', async () => {
-    const r = await lancar('2027-05', '2027-05-03', 'A', ids.a3!, 'jes');
-    expect(r.status).toBe(400);
-    expect((await r.json()).erro).toBe('JES só para voluntário JES.');
+  it('JES vale para todo elegível (na escala dos oficiais todos são voluntários por natureza, 6.29) e grava como alocação manual do serviço JES', async () => {
+    const r = await lancar('2027-05', '2027-05-03', 'B', ids.a3!, 'jes');
+    expect(r.status).toBe(200);
+    expect((await tirar('2027-05', '2027-05-03', 'B')).status).toBe(200);
     const ok = await lancar('2027-05', '2027-05-03', 'A', ids.a1!, 'jes');
     expect(ok.status).toBe(200);
     const { rows } = await api.banco.query<{ origem: string; servico_id: string; turno_id: string }>(
