@@ -34,6 +34,17 @@ describe('tela inicial', () => {
     expect(screen.getByText('Quinta-feira, 19 de novembro de 2026')).toBeInTheDocument();
   });
 
+  it('a faixa tem a marca do pouso e usa /boas-vindas.jpg', async () => {
+    simularApi({ '/api/eu': { status: 200, corpo: comPapel } });
+    abrir('/');
+    const titulo = await screen.findByRole('heading', { level: 1 });
+    const faixa = titulo.closest('[data-faixa-boas-vindas]');
+    expect(faixa).not.toBeNull();
+    expect(faixa!.querySelector('img')).toHaveAttribute('src', '/boas-vindas.jpg');
+    // sem a animação, a saudação e os cartões aparecem direto
+    expect(titulo.closest('[data-chegada]')).toBeNull();
+  });
+
   it('mostra um cartão por módulo visível; Visualização sem link e com "Em breve"', async () => {
     simularApi({ '/api/eu': { status: 200, corpo: comPapel } });
     abrir('/');

@@ -89,6 +89,20 @@ describe('entrar', () => {
     expect(await screen.findByText('E-mail ou senha incorretos.')).toBeInTheDocument();
   });
 
+  it('na entrada curta, o botão mostra "Entrando…" enquanto o servidor não responde, e o cartão continua na tela', async () => {
+    let soltar = () => {};
+    const espera = new Promise<void>((r) => (soltar = r));
+    simularApi({ '/api/eu': { status: 401 }, '/api/auth/sign-in/email': { status: 401, corpo: {}, espera } });
+    abrir('/entrar');
+    await preencherEEntrar();
+    expect(await screen.findByRole('button', { name: 'Entrando…' })).toBeDisabled();
+    expect(screen.getByRole('main')).not.toHaveAttribute('data-cena', 'tocando');
+    soltar();
+    expect(await screen.findByRole('button', { name: 'Entrar' })).toBeEnabled();
+    // no erro, o foco vai para o campo da senha
+    expect(screen.getByLabelText('Senha')).toHaveFocus();
+  });
+
   it('entrar mostra erro de rede', async () => {
     simularApi({ '/api/eu': { status: 401 }, '/api/auth/sign-in/email': 'rede' });
     abrir('/entrar');
