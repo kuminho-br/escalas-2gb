@@ -96,7 +96,7 @@ Design: `docs/superpowers/specs/2026-11-21-usuarios-e-modulos-design.md`. Plano:
 | 3 | Tela inicial, módulos por nível de acesso e Minha ficha | mesclada (#90) |
 | 4 | Transição do login (as mangueiras) | mesclada (#118) |
 | 5 | Retorno da validação: recolher equipe, rastreio por dia | mesclada (#104) |
-| 6 | Retorno da validação com mockup | a DESIGN propõe absorver na refatoração |
+| 6 | Retorno da validação com mockup | absorvida na refatoração |
 | 7 | Militares só no Pecúlio | mesclada (#107) |
 | 8 | Nível de acesso, "até" e Enter no Pecúlio | mesclada (#108) |
 | 9 | Quadro e situação no rastreio; CPF, nascimento e endereço | mesclada (#110) |
