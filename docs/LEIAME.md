@@ -47,7 +47,8 @@
 | [superpowers/specs/2026-11-21-usuarios-e-modulos-design.md](superpowers/specs/2026-11-21-usuarios-e-modulos-design.md) | Usuários e módulos (fase 6): contas, papéis, unidade de trabalho e tela inicial | PLANEJAMENTO | vigente |
 | [superpowers/specs/2026-11-22-escala-dos-oficiais-design.md](superpowers/specs/2026-11-22-escala-dos-oficiais-design.md) | Escala dos oficiais (entrega paralela P1): cota, saldo e regras; mockup em `telas/escala-dos-oficiais/` | PLANEJAMENTO | vigente |
 | [superpowers/specs/2026-11-20-transicao-login-design.md](superpowers/specs/2026-11-20-transicao-login-design.md) | Transição do login (as mangueiras), com o mockup em `telas/transicao-login/` | DESIGN | mockup aprovado |
-| [superpowers/specs/2026-11-23-refatoracao-da-interface-design.md](superpowers/specs/2026-11-23-refatoracao-da-interface-design.md) | Refatoração da interface: achados da análise, direção proposta e necessidades de implementação | DESIGN | vigente (direção e quatro decisões à espera do usuário) |
+| [superpowers/specs/2026-11-23-refatoracao-da-interface-design.md](superpowers/specs/2026-11-23-refatoracao-da-interface-design.md) | Refatoração da interface: achados da análise, direção proposta e necessidades de implementação | DESIGN | vigente (direção e decisões D1 a D4 aprovadas em 23/11/2026) |
+| [superpowers/specs/2026-11-23-sistema-de-estilo-design.md](superpowers/specs/2026-11-23-sistema-de-estilo-design.md) | Diretrizes gerais da interface: valores dos tokens e medidas dos componentes (blocos N1 e N2 da refatoração) e a organização dos mockups em áreas | DESIGN | aprovado |
 | [superpowers/specs/2026-11-23-camadas-de-visao-design.md](superpowers/specs/2026-11-23-camadas-de-visao-design.md) | Camadas de visão e o chefe de divisão: ver separado de editar, a borda nas Configurações, a consulta e as escalas só para leitura | PLANEJAMENTO | vigente |
 
 ## Controle da documentação
@@ -73,6 +74,7 @@
 | [superpowers/plans/2026-11-23-camadas-de-visao.md](superpowers/plans/2026-11-23-camadas-de-visao.md) | Entregas 6.10 a 6.12: divisões e chefe de divisão, camadas de visão e consulta, escalas só para leitura | DESENVOLVIMENTO | planejado |
 | [superpowers/plans/2026-11-23-fase6-13-peculio-origem-dos-dados.md](superpowers/plans/2026-11-23-fase6-13-peculio-origem-dos-dados.md) | Entrega 6.13: importação única do Pecúlio, apagar militar e postos editáveis | DESENVOLVIMENTO | planejado |
 | [superpowers/plans/2026-11-23-fase6-pendencias-antes-da-fase-7.md](superpowers/plans/2026-11-23-fase6-pendencias-antes-da-fase-7.md) | Entregas 6.15 a 6.18: abono e função, e três lotes de acabamento | DESENVOLVIMENTO | planejado |
+| [superpowers/plans/2026-11-23-fundacao-da-interface.md](superpowers/plans/2026-11-23-fundacao-da-interface.md) | Entregas 6.20 e 6.21: sistema de estilo e resposta do sistema | DESENVOLVIMENTO | planejado |
 | [superpowers/plans/2026-11-18-fase4-escala.md](superpowers/plans/2026-11-18-fase4-escala.md) | Fase 4: montagem da escala (entregas 1 a 4.3) | DESENVOLVIMENTO | em execução (grande demais: dividir) |
 | [superpowers/plans/2026-11-20-roadmap-documentacao.md](superpowers/plans/2026-11-20-roadmap-documentacao.md) | Roadmap da documentação | DOCUMENTAÇÃO | em execução |
 
@@ -85,6 +87,8 @@
 | [telas/mockup-voluntariado-faixas.html](telas/mockup-voluntariado-faixas.html) | Voluntariado por faixa de horário | PLANEJAMENTO | concluído |
 | [telas/mockup-entrega-2-4.html](telas/mockup-entrega-2-4.html) | Acabamento do voluntariado e da Escala do mês | PLANEJAMENTO | concluído |
 | [telas/analise-da-interface/evidencias.html](telas/analise-da-interface/evidencias.html) | Fotos das telas de 23/11/2026 com as marcas da análise da interface (dados fictícios) | DESIGN | concluído |
+| [telas/refatoracao/index.html](telas/refatoracao/index.html) | Manual de Identidade Visual: o índice das seções (uma por tela, mais as diretrizes gerais), com o estado de cada uma | DESIGN | vigente |
+| [telas/refatoracao/diretrizes-gerais/index.html](telas/refatoracao/diretrizes-gerais/index.html) | Área "Diretrizes gerais": identidade, cores, letra, ícones, placa e encaixe, componentes, resposta do sistema e moldura da tela (dados fictícios) | DESIGN | aprovado |
 
 As versões v5 a v11 dos esboços ficam só na pasta local `.superpowers/` (fora do git) e estão superadas pela v12.
 

@@ -31,8 +31,8 @@ describe('carga base', () => {
   it('postos em ordem', async () => {
     const { rows } = await banco.query<{ sigla: string }>('select sigla from posto_grad order by ordem');
     expect(rows.map((r) => r.sigla)).toEqual([
-      'SD BM', 'CB BM', '3º SGT BM', '2º SGT BM', '1º SGT BM', 'ST BM', 'ASP OF BM',
-      '2º TEN BM', '1º TEN BM', 'CAP BM', 'MAJ BM', 'TEN CEL BM', 'CEL BM',
+      'SD', 'CB', '3º SGT', '2º SGT', '1º SGT', 'ST', 'ASP OF',
+      '2º TEN', '1º TEN', 'CAP', 'MAJ', 'TEN CEL', 'CEL',
     ]);
   });
 });
@@ -60,7 +60,7 @@ describe('carga de exemplo', () => {
 
   it('exemplo cria 53 militares', async () => {
     // um militar 990 que não é da carga (ex.: o administrador local) não pode impedir a carga
-    const posto = (await banco.query<{ id: string }>("select id from posto_grad where sigla = 'CAP BM'")).rows[0]!.id;
+    const posto = (await banco.query<{ id: string }>("select id from posto_grad where sigla = 'CAP'")).rows[0]!.id;
     await banco.query("insert into militar (matricula, posto_grad_id, nome_guerra) values ('990999-9', $1, 'DEV')", [posto]);
     expect(await cargaExemplo(banco, undefined, '2026-11-01')).toEqual({ militares: 53 });
     await banco.query("delete from militar where matricula = '990999-9'");

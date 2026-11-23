@@ -20,7 +20,7 @@ const bloco = (servico: typeof PRONTO | typeof JES, letra: string, inicio = '08:
 });
 const EXPEDIENTE: BlocoDaGrade = { alocacaoId: null, servico: null, letra: null, inicio: '08:00', fim: '16:00', expediente: true };
 const linha = (nomeGuerra: string, extra: Partial<LinhaDaGrade> = {}): LinhaDaGrade => ({
-  militarId: `m-${nomeGuerra}`, posto: 'SD BM', nomeGuerra, matricula: '990001-1', jornada: 'pronto', dias: {}, choques: [], pjes: 0, diarias: 0, horasTiradas: 0, horasPedidas: 0, ...extra,
+  militarId: `m-${nomeGuerra}`, posto: 'SD', nomeGuerra, matricula: '990001-1', jornada: 'pronto', dias: {}, choques: [], pjes: 0, diarias: 0, horasTiradas: 0, horasPedidas: 0, ...extra,
 });
 const GRADE: GradeDoMes = {
   mes: MES,
@@ -46,7 +46,7 @@ function api(grade: GradeDoMes = GRADE) {
   return simularApi({ '/api/eu': { status: 200, corpo: EU_EXEMPLO }, [ROTA]: { status: 200, corpo: grade } });
 }
 const linhaDe = (nome: string) => screen.getByRole('rowheader', { name: new RegExp(nome) }).closest('tr') as HTMLElement;
-const celula = (nome: string, n: number, texto: string) => within(linhaDe(nome)).getByRole('button', { name: `SD BM ${nome}, dia ${n}: ${texto}` });
+const celula = (nome: string, n: number, texto: string) => within(linhaDe(nome)).getByRole('button', { name: `SD ${nome}, dia ${n}: ${texto}` });
 const larguras = (nome: string) => [...linhaDe(nome).querySelectorAll<HTMLElement>('[data-barra]')].map((b) => b.style.width);
 
 describe('grade geral: o dia de hoje (N0.4, achado T4)', () => {
@@ -219,7 +219,7 @@ describe('grade geral: a tabela', () => {
     const cabeca = screen.getByRole('rowheader', { name: /CABO/ });
     const nome = within(cabeca).getByText('CABO');
     expect(nome.tagName).toBe('STRONG');
-    expect(nome.parentElement).toHaveTextContent('SD BM');
+    expect(nome.parentElement).toHaveTextContent('SD');
     expect(within(cabeca).getByText('990001-1')).toHaveClass('text-xs');
     expect(cabeca).toHaveClass('min-w-[13rem]');
     // o nome acessível da célula não muda
@@ -286,8 +286,8 @@ describe('grade geral: a tabela', () => {
   it('a célula escolhida com choque mantém o contorno vermelho e ganha o fundo da escolhida', async () => {
     api();
     abrir(`/?mes=${MES}`);
-    await userEvent.click(await screen.findByRole('button', { name: 'SD BM CABO, dia 31: Pronto B, choque' }));
-    const c = await screen.findByRole('button', { name: 'SD BM CABO, dia 31: Pronto B, choque' });
+    await userEvent.click(await screen.findByRole('button', { name: 'SD CABO, dia 31: Pronto B, choque' }));
+    const c = await screen.findByRole('button', { name: 'SD CABO, dia 31: Pronto B, choque' });
     await waitFor(() => expect(c).toHaveAttribute('data-escolhida'));
     expect(c).toHaveAttribute('data-choque');
     expect(c).toHaveClass('ring-alerta', 'bg-vinho/15');
@@ -297,7 +297,7 @@ describe('grade geral: a tabela', () => {
   it('a célula com choque tem contorno vermelho e "choque" no nome; o expediente é um bloco sem letra', async () => {
     api();
     abrir(`/?mes=${MES}`);
-    const c = await screen.findByRole('button', { name: 'SD BM CABO, dia 31: Pronto B, choque' });
+    const c = await screen.findByRole('button', { name: 'SD CABO, dia 31: Pronto B, choque' });
     expect(c).toHaveAttribute('data-choque');
     expect(c).toHaveClass('ring-alerta');
     const exp = celula('ADM', 2, 'expediente');
@@ -490,7 +490,7 @@ describe('grade geral: o filtro de equipes e o clique', () => {
   it('clicar na célula põe o militar e o dia na busca, e a célula escolhida fica marcada', async () => {
     api();
     const router = abrir(`/?mes=${MES}`);
-    await userEvent.click(await screen.findByRole('button', { name: 'SD BM CABO, dia 2: Pronto A' }));
+    await userEvent.click(await screen.findByRole('button', { name: 'SD CABO, dia 2: Pronto A' }));
     await waitFor(() => expect(router.state.location.search).toMatchObject({ militar: 'm-CABO', dia: dia(2) }));
     expect(celula('CABO', 2, 'Pronto A')).toHaveAttribute('data-escolhida');
     expect(celula('CABO', 3, 'sem serviço')).not.toHaveAttribute('data-escolhida');

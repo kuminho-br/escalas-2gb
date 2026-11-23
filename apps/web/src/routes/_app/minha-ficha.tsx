@@ -44,6 +44,8 @@ function MinhaFichaTela() {
             <Dado rotulo="Nome de guerra" valor={f.nomeGuerra} />
             <Dado rotulo="Nome completo" valor={f.nomeCompleto} />
             <Dado rotulo="Matrícula" valor={f.matricula} />
+            <Dado rotulo="Função" valor={f.funcao} />
+            <Dado rotulo="Abono de permanência" valor={f.abonoPermanencia ? 'Sim' : 'Não'} />
           </Dados>
         </Secao>
         <Contato ficha={f} />

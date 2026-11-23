@@ -113,7 +113,7 @@ describe('gerar a senha provisória', () => {
     }
     // o auxiliar da 2ª SB (conta feita direto no banco) não mexe em quem é da 1ª SB
     const dele = await novoMilitar({ unidadeId: outraSecao });
-    const usuarioId = await inserir(api.banco, 'usuario', { nome: 'SD BM OUTRA', email: 'outra.secao@bombeiros.pe.gov.br', militar_id: dele.id });
+    const usuarioId = await inserir(api.banco, 'usuario', { nome: 'SD OUTRA', email: 'outra.secao@bombeiros.pe.gov.br', militar_id: dele.id });
     await inserir(api.banco, 'conta', { usuario_id: usuarioId, conta_id: usuarioId, provedor_id: 'credential', senha: await hashPassword('senha-de-teste-123') });
     await inserir(api.banco, 'papel_usuario', { usuario_id: usuarioId, unidade_id: outraSecao, papel: 'escalante', desde: hojeRecife().slice(0, 7) + '-01' });
     const cookie = cookieDe(await entrar('outra.secao@bombeiros.pe.gov.br', 'senha-de-teste-123'));
@@ -216,7 +216,7 @@ describe('papéis na ficha', () => {
   /** Um militar com conta e um papel, já com sessão aberta (feita direto no banco). */
   async function comoNovo(papel: 'gestor' | 'escalante', unidadeId: string) {
     const m = await novoMilitar();
-    const usuarioId = await inserir(api.banco, 'usuario', { nome: `SD BM ${m.id}`, email: m.email, militar_id: m.id });
+    const usuarioId = await inserir(api.banco, 'usuario', { nome: `SD ${m.id}`, email: m.email, militar_id: m.id });
     await inserir(api.banco, 'conta', { usuario_id: usuarioId, conta_id: usuarioId, provedor_id: 'credential', senha: await hashPassword('senha-de-teste-123') });
     const papelId = await inserir(api.banco, 'papel_usuario', { usuario_id: usuarioId, unidade_id: unidadeId, papel, desde: inicioDoMes });
     const cookie = cookieDe(await entrar(m.email, 'senha-de-teste-123'));
@@ -307,7 +307,7 @@ describe('o "até" ao dar o nível de acesso (6.8)', () => {
   const dar = (id: string, corpo: unknown, quem: Quem = 'gestorGb') => api.pedir(quem, 'POST', `/api/militares/${id}/papeis`, corpo);
   async function comoGestor() {
     const m = await novoMilitar();
-    const usuarioId = await inserir(api.banco, 'usuario', { nome: `SD BM ${m.id}`, email: m.email, militar_id: m.id });
+    const usuarioId = await inserir(api.banco, 'usuario', { nome: `SD ${m.id}`, email: m.email, militar_id: m.id });
     await inserir(api.banco, 'conta', { usuario_id: usuarioId, conta_id: usuarioId, provedor_id: 'credential', senha: await hashPassword('senha-de-teste-123') });
     const papelId = await inserir(api.banco, 'papel_usuario', { usuario_id: usuarioId, unidade_id: api.ids.secao, papel: 'gestor', desde: inicioDoMes });
     return { m, usuarioId, papelId, cookie: cookieDe(await entrar(m.email, 'senha-de-teste-123')) };
@@ -363,7 +363,7 @@ describe('revisão final da 6.1', () => {
   const inicioDoMes = hojeRecife().slice(0, 7) + '-01';
   async function comPapel(papel: 'gestor' | 'escalante' | 'administrador', unidadeId: string) {
     const m = await novoMilitar();
-    const usuarioId = await inserir(api.banco, 'usuario', { nome: `SD BM ${m.id}`, email: m.email, militar_id: m.id });
+    const usuarioId = await inserir(api.banco, 'usuario', { nome: `SD ${m.id}`, email: m.email, militar_id: m.id });
     await inserir(api.banco, 'conta', { usuario_id: usuarioId, conta_id: usuarioId, provedor_id: 'credential', senha: await hashPassword('senha-de-teste-123') });
     await inserir(api.banco, 'papel_usuario', { usuario_id: usuarioId, unidade_id: unidadeId, papel, desde: inicioDoMes });
     return m;

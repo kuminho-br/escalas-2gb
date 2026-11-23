@@ -90,6 +90,7 @@ function Blocos({ f }: { f: FichaDeConsulta }) {
             <Dado rotulo="Equipe">{f.situacao.equipe}</Dado>
             <Dado rotulo="Jornada">{JORNADA[f.situacao.jornada]}</Dado>
             <Dado rotulo="Situação do militar">{f.situacao.situacaoDoMilitar}</Dado>
+            <Dado rotulo="Função">{f.situacao.funcao}</Dado>
           </Dados>
           <h4 className="mt-4 mb-1.5 text-sm font-medium">Histórico de lotação</h4>
           <ul aria-label="Histórico de lotação" className="grid gap-1 text-sm">

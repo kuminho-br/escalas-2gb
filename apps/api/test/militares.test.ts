@@ -29,8 +29,8 @@ const ficha = async (id: string): Promise<FichaMilitar> => (await api.pedir('ges
 beforeAll(async () => {
   api = await montarApi();
   const postos: Posto[] = await (await api.pedir('gestorGb', 'GET', '/api/postos')).json();
-  sd = postos.find((p) => p.sigla === 'SD BM')!.id;
-  cb = postos.find((p) => p.sigla === 'CB BM')!.id;
+  sd = postos.find((p) => p.sigla === 'SD')!.id;
+  cb = postos.find((p) => p.sigla === 'CB')!.id;
   const tipos = (await api.banco.query<{ id: string; nome: string }>('select id, nome from tipo_afastamento')).rows;
   ferias = tipos.find((t) => t.nome === 'Férias')!.id;
   lts = tipos.find((t) => t.nome === 'LTS')!.id;
@@ -45,14 +45,14 @@ afterAll(async () => {
 describe('cadastro de militares', () => {
   it('postos em ordem de hierarquia e equipes da unidade', async () => {
     const postos: Posto[] = await (await api.pedir('gestorGb', 'GET', '/api/postos')).json();
-    expect(postos[0]!.sigla).toBe('SD BM');
+    expect(postos[0]!.sigla).toBe('SD');
     const equipes = await (await api.pedir('gestorGb', 'GET', `/api/unidades/${api.ids.secao}/equipes`)).json();
     expect(equipes).toEqual([{ id: alfa, nome: 'Alfa', ordemCiclo: 1 }]);
   });
 
   it('cria militar com a primeira lotação', async () => {
     const f = await criar('990101-1', { motorista: true, cnh: ['B'] });
-    expect(f).toMatchObject({ matricula: '990101-1', posto: 'SD BM', equipe: 'Alfa', jornada: 'pronto', motorista: 'B', pendencias: [] });
+    expect(f).toMatchObject({ matricula: '990101-1', posto: 'SD', equipe: 'Alfa', jornada: 'pronto', motorista: 'B', pendencias: [] });
     expect(f.rastreio).toEqual([{ id: expect.any(String), unidadeSigla: '1ª SB', equipe: 'Alfa', jornada: 'pronto', quadro: 'QBMG', situacao: 'Ativa', desde: `${atual}-01`, ate: null }]);
   });
 
@@ -82,7 +82,7 @@ describe('cadastro de militares', () => {
     await criar('990104-4', { postoGradId: cb, nomeGuerra: 'ALFA', antiguidade: null });
     await criar('990105-5', { postoGradId: cb, nomeGuerra: 'BRAVO', antiguidade: 1 });
     const lista: LinhaMilitar[] = await (await api.pedir('gestorGb', 'GET', `/api/unidades/${api.ids.secao}/militares?mes=${atual}`)).json();
-    expect(lista.filter((l) => l.posto === 'CB BM').map((l) => l.nomeGuerra)).toEqual(['BRAVO', 'ZULU', 'ALFA']);
+    expect(lista.filter((l) => l.posto === 'CB').map((l) => l.nomeGuerra)).toEqual(['BRAVO', 'ZULU', 'ALFA']);
   });
 });
 
@@ -611,7 +611,7 @@ describe('lista do Pecúlio e aniversariantes (módulo)', () => {
     const gb = await doPeculio(api.ids.gb);
     const por = (matricula: string) => gb.militares.find((m) => m.matricula === matricula);
     expect(por('990501-1')).toEqual({
-      militarId: a1.id, matricula: '990501-1', posto: 'SD BM', nomeGuerra: 'ALFAUM', nomeCompleto: 'Fulano de Tal 990501-1', lotacao: '1ª SB', telefone: null, email: null, pendencias: [],
+      militarId: a1.id, matricula: '990501-1', posto: 'SD', nomeGuerra: 'ALFAUM', nomeCompleto: 'Fulano de Tal 990501-1', lotacao: '1ª SB', telefone: null, email: null, pendencias: [],
     });
     expect(por('990502-2')).toMatchObject({ lotacao: '2ª SB', nomeGuerra: 'BRAVODOIS' });
     const daPrimeira = await doPeculio(api.ids.secao);
@@ -630,8 +630,8 @@ describe('lista do Pecúlio e aniversariantes (módulo)', () => {
   it('os aniversariantes do mês vêm em ordem de dia; quem não tem nascimento ou faz em outro mês não aparece (Review Focus 5)', async () => {
     const gb = await doPeculio(api.ids.gb);
     expect(gb.aniversariantes).toEqual([
-      { militarId: b2.id, posto: 'SD BM', nomeGuerra: 'BRAVODOIS', dia: 5, lotacao: '2ª SB' },
-      { militarId: a1.id, posto: 'SD BM', nomeGuerra: 'ALFAUM', dia: 20, lotacao: '1ª SB' },
+      { militarId: b2.id, posto: 'SD', nomeGuerra: 'BRAVODOIS', dia: 5, lotacao: '2ª SB' },
+      { militarId: a1.id, posto: 'SD', nomeGuerra: 'ALFAUM', dia: 20, lotacao: '1ª SB' },
     ]);
     // quem é só da 1ª SB: só o A
     expect((await doPeculio(api.ids.secao)).aniversariantes!.map((x) => x.nomeGuerra)).toEqual(['ALFAUM']);
@@ -656,7 +656,7 @@ describe('e-mail de entrada igual ao da ficha (fase 6)', () => {
   // o usuário com conta e senha, como a Task 2 vai criá-lo pela API; aqui direto no banco, para testar só o e-mail
   async function comAcesso(matricula: string, email: string | null) {
     const militarId = await criarMilitar(api, { matricula, email, unidadeId: api.ids.secao });
-    const usuarioId = await inserir(api.banco, 'usuario', { nome: `SD BM ${matricula}`, email: email ?? `${matricula}@exemplo.test`, militar_id: militarId });
+    const usuarioId = await inserir(api.banco, 'usuario', { nome: `SD ${matricula}`, email: email ?? `${matricula}@exemplo.test`, militar_id: militarId });
     await inserir(api.banco, 'conta', { usuario_id: usuarioId, conta_id: usuarioId, provedor_id: 'credential', senha: await hashPassword('senha-de-teste-123') });
     return { militarId, usuarioId };
   }
@@ -770,7 +770,7 @@ describe('CPF, nascimento e endereço são de quem cuida do Pecúlio (6.11)', ()
   });
 
   it('o aniversariante é por militar: quem está lotado no próprio 2º GB só aparece para quem está acima do 2º GB', async () => {
-    const posto = (await api.banco.query<{ id: string }>("select id from posto_grad where sigla = 'SD BM'")).rows[0]!.id;
+    const posto = (await api.banco.query<{ id: string }>("select id from posto_grad where sigla = 'SD'")).rows[0]!.id;
     const id = await inserir(api.banco, 'militar', { matricula: '990603-3', posto_grad_id: posto, nome_guerra: 'NOGB', nome_completo: 'Fulano Lotado no Grupamento', nascimento_dia: 7, nascimento_mes: numeroDoMes });
     await inserir(api.banco, 'rastreio', { militar_id: id, unidade_id: api.ids.gb, jornada: 'adm', desde: `${atual}-01` });
     const nomes = async (quem: 'gestorGb' | 'admin') => ((await (await peculio(quem, api.ids.gb)).json()) as ListaDoPeculio).aniversariantes!.map((a) => a.nomeGuerra);

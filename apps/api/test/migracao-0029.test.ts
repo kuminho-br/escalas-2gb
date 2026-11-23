@@ -113,7 +113,7 @@ describe('migração 0029: quadro e situação no rastreio', () => {
 describe('migração 0029: dados pessoais', () => {
   const militar = (n: number, extra: Record<string, unknown>) =>
     inserir(banco, 'militar', { matricula: `99${7100 + n}-${n % 10}`, posto_grad_id: undefined, nome_guerra: `DADOS${n}`, ...extra });
-  const comPosto = async (n: number, extra: Record<string, unknown>) => militar(n, { posto_grad_id: await postoId('SD BM'), ...extra });
+  const comPosto = async (n: number, extra: Record<string, unknown>) => militar(n, { posto_grad_id: await postoId('SD'), ...extra });
   const CPF = '52998224725';
 
   it('CPF com 10 dígitos falha (23514), com 11 grava, e repetido falha (23505)', async () => {

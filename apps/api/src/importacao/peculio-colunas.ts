@@ -21,11 +21,11 @@ export function matriculaDe(bruto: string): { valor: string | null; corrigida: b
 type ComSigla = { id: string; sigla: string };
 const lista = (itens: { sigla: string }[]) => itens.map((i) => i.sigla).join(', ');
 
-/** O posto pela sigla; "SD" vale como "SD BM" enquanto existir uma sigla terminada em "BM". */
+/** O posto pela sigla, sem diferenciar maiúsculas nem acentos. O posto não leva "BM" (a sigla antiga "SD BM" não vale mais: a importação é contrato). */
 export function lerPosto(texto: string, postos: ComSigla[]): Leitura<ComSigla> {
   if (!texto) return VAZIO;
   const porChave = new Map(postos.map((p) => [normalizar(p.sigla), p]));
-  const p = porChave.get(normalizar(texto)) ?? porChave.get(`${normalizar(texto)}BM`);
+  const p = porChave.get(normalizar(texto));
   return p ? valor(p) : motivo(`Posto "${texto}" não existe. Use uma destas siglas: ${lista(postos)}.`);
 }
 
@@ -140,6 +140,18 @@ export function lerSituacao(texto: string, ativas: { id: string; nome: string }[
   if (!texto) return VAZIO;
   const s = ativas.find((x) => normalizar(x.nome) === normalizar(texto));
   return s ? valor(s) : motivo(`Situação "${texto}" não existe ou está desativada. Use uma destas: ${ativas.map((x) => x.nome).join(', ')}.`);
+}
+
+/** O nome de uma função do catálogo, ativa. */
+export function lerFuncao(texto: string, ativas: { id: string; nome: string }[]): Leitura<{ id: string; nome: string }> {
+  if (!texto) return VAZIO;
+  const f = ativas.find((x) => normalizar(x.nome) === normalizar(texto));
+  if (f) return valor(f);
+  return motivo(
+    ativas.length
+      ? `Função "${texto}" não existe ou está desativada. Use uma destas: ${ativas.map((x) => x.nome).join(', ')}.`
+      : `Função "${texto}" não existe: o catálogo de funções está vazio.`,
+  );
 }
 
 /** A sigla de um quadro que tenha o posto do militar. */

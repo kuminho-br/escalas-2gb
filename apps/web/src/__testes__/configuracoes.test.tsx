@@ -26,6 +26,7 @@ const FLEXIBILIDADE = parametro({
   descricao: 'Horas que podem faltar no começo ou no fim do turno para o militar ainda contar como voluntário. Buraco no meio do turno não conta.',
 });
 const TIPOS = [{ id: 't1', nome: 'Férias', ativo: true }, { id: 't2', nome: 'Curso', ativo: false }];
+const FUNCOES = [{ id: 'fun-chefe', nome: 'Chefe de seção', ativo: true }, { id: 'fun-antiga', nome: 'Função antiga', ativo: false }];
 
 const ESCALAS = '/api/unidades/u-1sb/escalas';
 const escalaDaLista = (e: Partial<LinhaEscala>): LinhaEscala => ({ id: 'e1', nome: 'Ordinário', ativa: true, servicos: ['Pronto'], montaBlocosVoluntariado: true, ...e });
@@ -43,6 +44,7 @@ function api(extra: Parameters<typeof simularApi>[0] = {}, eu = EU_EXEMPLO) {
     [`GET ${PARAMS}`]: { status: 200, corpo: LISTA },
     'GET /api/sistema/tipos-afastamento': { status: 200, corpo: TIPOS },
     'GET /api/situacoes-do-militar': { status: 200, corpo: SITUACOES },
+    'GET /api/funcoes-do-militar': { status: 200, corpo: FUNCOES },
     ...extra,
   });
 }
@@ -120,7 +122,7 @@ describe('configurações', () => {
     abrir('/configuracoes');
     await screen.findByRole('tab', { name: 'Tipos de afastamento' });
     expect(screen.queryByRole('tab', { name: 'Atividades' })).toBeNull();
-    expect(screen.getAllByRole('tab').map((t) => t.textContent)).toEqual(['Regras do processo', 'Voluntariado', 'Modelos de guarnição', 'Meta de ativação', 'Tipos de afastamento', 'Situações do militar']);
+    expect(screen.getAllByRole('tab').map((t) => t.textContent)).toEqual(['Regras do processo', 'Voluntariado', 'Modelos de guarnição', 'Meta de ativação', 'Tipos de afastamento', 'Situações do militar', 'Funções do militar']);
   });
 
   it('o endereço antigo com ?aba=atividades abre a primeira aba', async () => {
@@ -182,12 +184,62 @@ describe('configurações: situações do militar', () => {
   });
 });
 
+describe('configurações: funções do militar (6.15)', () => {
+  const ADMIN = { ...EU_EXEMPLO, papeis: [{ papel: 'administrador' as const, unidadeId: 'raiz', unidadeSigla: 'CBMPE' }] };
+  const abrirAba = async () => userEvent.click(await screen.findByRole('tab', { name: 'Funções do militar' }));
+
+  it('o administrador inclui, renomeia, desativa e reativa uma função', async () => {
+    const f = api({
+      'POST /api/funcoes-do-militar': { status: 201, corpo: { id: 'fun-nova', nome: 'Motorista de viatura', ativo: true } },
+      'PATCH /api/funcoes-do-militar/fun-chefe': { status: 200, corpo: FUNCOES[0] },
+      'PATCH /api/funcoes-do-militar/fun-antiga': { status: 200, corpo: FUNCOES[1] },
+    }, ADMIN);
+    abrir('/configuracoes');
+    await abrirAba();
+    expect(await screen.findByText('Chefe de seção')).toBeInTheDocument();
+    expect(screen.getByText('desativada')).toBeInTheDocument();
+    await userEvent.type(screen.getByLabelText('Nova função do militar'), 'Motorista de viatura');
+    await userEvent.click(screen.getByRole('button', { name: 'Incluir' }));
+    await waitFor(() => expect(corpoEnviado(f, 'POST /api/funcoes-do-militar')).toEqual({ nome: 'Motorista de viatura' }));
+    await userEvent.click(screen.getAllByRole('button', { name: 'Renomear' })[0]!);
+    const campo = screen.getByLabelText('Novo nome de Chefe de seção');
+    await userEvent.clear(campo);
+    await userEvent.type(campo, 'Chefe da seção');
+    await userEvent.click(screen.getByRole('button', { name: 'Salvar' }));
+    await waitFor(() => expect(corpoEnviado(f, 'PATCH /api/funcoes-do-militar/fun-chefe')).toEqual({ nome: 'Chefe da seção' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Desativar' }));
+    await waitFor(() => expect(corpoEnviado(f, 'PATCH /api/funcoes-do-militar/fun-chefe')).toEqual({ ativo: false }));
+    await userEvent.click(screen.getByRole('button', { name: 'Reativar' }));
+    await waitFor(() => expect(corpoEnviado(f, 'PATCH /api/funcoes-do-militar/fun-antiga')).toEqual({ ativo: true }));
+  });
+
+  it('nome repetido mostra a mensagem do servidor e a lista continua', async () => {
+    api({ 'POST /api/funcoes-do-militar': { status: 409, corpo: { erro: 'Já existe uma função com esse nome.' } } }, ADMIN);
+    abrir('/configuracoes');
+    await abrirAba();
+    await userEvent.type(await screen.findByLabelText('Nova função do militar'), 'Chefe de seção');
+    await userEvent.click(screen.getByRole('button', { name: 'Incluir' }));
+    expect(await screen.findByText('Já existe uma função com esse nome.')).toBeInTheDocument();
+    expect(screen.getByText('Chefe de seção')).toBeInTheDocument();
+  });
+
+  it('quem não é administrador só lê a lista', async () => {
+    api();
+    abrir('/configuracoes');
+    await abrirAba();
+    expect(await screen.findByText('Chefe de seção')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Incluir' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Renomear' })).toBeNull();
+    expect(screen.getByText('Só o administrador altera.', { exact: false })).toBeInTheDocument();
+  });
+});
+
 describe('configurações: postos e graduações (6.13)', () => {
   const ADMIN = { ...EU_EXEMPLO, papeis: [{ papel: 'administrador' as const, unidadeId: 'raiz', unidadeSigla: 'CBMPE' }] };
   const POSTOS = [
-    { id: 'p-sd', sigla: 'SD BM', nome: 'Soldado', ordem: 1 },
-    { id: 'p-cb', sigla: 'CB BM', nome: 'Cabo', ordem: 2 },
-    { id: 'p-3s', sigla: '3º SGT BM', nome: 'Terceiro-Sargento', ordem: 3 },
+    { id: 'p-sd', sigla: 'SD', nome: 'Soldado', ordem: 1 },
+    { id: 'p-cb', sigla: 'CB', nome: 'Cabo', ordem: 2 },
+    { id: 'p-3s', sigla: '3º SGT', nome: 'Terceiro-Sargento', ordem: 3 },
   ];
   const comPostos = (extra: Parameters<typeof simularApi>[0] = {}, eu: typeof EU_EXEMPLO = ADMIN) => api({ 'GET /api/postos': { status: 200, corpo: POSTOS }, ...extra }, eu);
 
@@ -202,15 +254,15 @@ describe('configurações: postos e graduações (6.13)', () => {
     comPostos();
     abrir('/configuracoes?aba=postos');
     const lista = await screen.findByRole('list', { name: 'Postos e graduações' });
-    expect(within(lista).getAllByRole('listitem').map((l) => l.querySelector('[data-sigla]')?.textContent)).toEqual(['SD BM', 'CB BM', '3º SGT BM']);
+    expect(within(lista).getAllByRole('listitem').map((l) => l.querySelector('[data-sigla]')?.textContent)).toEqual(['SD', 'CB', '3º SGT']);
   });
 
   it('edita a sigla e o nome numa linha por vez, e grava', async () => {
     const f = comPostos({ 'PATCH /api/postos/p-3s': { status: 200, corpo: { ...POSTOS[2], sigla: '3º SGT' } } });
     abrir('/configuracoes?aba=postos');
-    await userEvent.click(await screen.findByRole('button', { name: 'Corrigir 3º SGT BM' }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Corrigir 3º SGT' }));
     // com uma linha aberta, as outras não abrem
-    expect(screen.queryByRole('button', { name: 'Corrigir SD BM' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Corrigir SD' })).toBeNull();
     const sigla = screen.getByLabelText('Sigla');
     await userEvent.clear(sigla);
     await userEvent.type(sigla, '3º SGT');
@@ -221,10 +273,10 @@ describe('configurações: postos e graduações (6.13)', () => {
   it('a sigla repetida mostra o erro no campo', async () => {
     comPostos({ 'PATCH /api/postos/p-cb': { status: 409, corpo: { erro: 'Já existe um posto com esta sigla.', campos: { sigla: 'Já existe um posto com esta sigla.' } } } });
     abrir('/configuracoes?aba=postos');
-    await userEvent.click(await screen.findByRole('button', { name: 'Corrigir CB BM' }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Corrigir CB' }));
     const sigla = screen.getByLabelText('Sigla');
     await userEvent.clear(sigla);
-    await userEvent.type(sigla, 'SD BM');
+    await userEvent.type(sigla, 'SD');
     await userEvent.click(screen.getByRole('button', { name: 'Salvar' }));
     expect(await screen.findByText('Já existe um posto com esta sigla.')).toBeInTheDocument();
     expect(screen.getByLabelText('Sigla')).toHaveAccessibleDescription('Já existe um posto com esta sigla.');

@@ -8,7 +8,7 @@ import { quadroParaOPosto } from '../cadastros/quadros.ts';
 import { CADASTRO, siglaDaUnidadeDeCima, temPapelAcima } from '../acesso.ts';
 import type { Consulta } from '../banco/banco.ts';
 import {
-  cpfMascarado, lerAntiguidade, lerCep, lerCnh, lerComportamento, lerCpf, lerEmail, lerEquipe, lerJornada, lerNascimento, lerNomeDeGuerra, lerPosto, lerQuadro,
+  cpfMascarado, lerAntiguidade, lerCep, lerCnh, lerComportamento, lerCpf, lerEmail, lerEquipe, lerFuncao, lerJornada, lerNascimento, lerNomeDeGuerra, lerPosto, lerQuadro,
   lerSexo, lerSigla, lerSimNao, lerSituacao, lerTelefone, lerTexto, lerUf, matriculaDe, type Leitura,
 } from './peculio-colunas.ts';
 import { coluna } from './planilha.ts';
@@ -20,7 +20,7 @@ const SIM_NAO = ['SIM', 'NÃO'];
 // rótulos lidos por planejar e escritos no cabeçalho do modelo, na ordem da ficha: uma lista só
 const COLUNAS = {
   mat: { rotulo: 'MATRÍCULA', obrigatoria: true, ajuda: '6 dígitos, hífen e 1 dígito (ex.: 123456-7). Sem o hífen, o sistema corrige e avisa.' },
-  posto: { rotulo: 'POSTO/GRAD', obrigatoria: false, ajuda: 'Sigla do posto ou graduação, como na lista abaixo. "SD" vale como "SD BM". Obrigatório para militar novo.' },
+  posto: { rotulo: 'POSTO/GRAD', obrigatoria: false, ajuda: 'Sigla do posto ou graduação, como na lista abaixo. Obrigatório para militar novo.' },
   completo: { rotulo: 'NOME COMPLETO', obrigatoria: false, ajuda: 'O nome completo do militar (até 120 caracteres).' },
   guerra: { rotulo: 'NOME DE GUERRA', obrigatoria: false, ajuda: 'Como o militar aparece na escala (o sistema escreve em maiúsculas). Obrigatório para militar novo.' },
   antig: { rotulo: 'ANTIGUIDADE', obrigatoria: false, ajuda: 'Número da antiguidade, de 1 a 99999.' },
@@ -46,6 +46,8 @@ const COLUNAS = {
   motorista: { rotulo: 'MOTORISTA', obrigatoria: false, ajuda: 'SIM se o militar está no quadro de motoristas; NÃO se não está.', opcoes: SIM_NAO },
   cnh: { rotulo: 'CNH', obrigatoria: false, ajuda: 'Categorias da carteira, juntas (ex.: AD). Para a escala, só vale com o militar no quadro de motoristas.' },
   vjes: { rotulo: 'VOLUNTÁRIO JES', obrigatoria: false, ajuda: 'SIM se o militar é voluntário JES; NÃO se não é.', opcoes: SIM_NAO },
+  funcao: { rotulo: 'FUNÇÃO', obrigatoria: false, ajuda: 'O nome de uma função do catálogo (lista abaixo). Célula vazia não tira a função do militar.' },
+  abono: { rotulo: 'ABONO DE PERMANÊNCIA', obrigatoria: false, ajuda: 'SIM se o militar recebe abono de permanência; NÃO se não recebe.', opcoes: SIM_NAO },
 } satisfies Record<string, ColunaModelo>;
 type Chave = keyof typeof COLUNAS;
 
@@ -77,6 +79,7 @@ type Existente = {
   nascimento_dia: number | null; nascimento_mes: number | null; nascimento_ano: number | null; cpf: string | null; cep: string | null; logradouro: string | null;
   numero: string | null; complemento: string | null; bairro: string | null; cidade: string | null; uf: string | null; telefone: string | null; email: string | null;
   comportamento: string | null; comportamento_boletim: string | null; motorista: boolean; cnh: string[]; voluntario_jes: boolean;
+  funcao_militar_id: string | null; funcao_nome: string | null; abono_permanencia: boolean;
   /** a lotação de hoje (a do período que cobre o mês; sem ela, a mais recente) */
   unidade_id: string | null; unidade_sigla: string | null;
   /** o dia em que essa lotação começa ('aaaa-mm-dd'): depois de hoje, ela ainda está só marcada */
@@ -98,11 +101,12 @@ async function existentes(tx: Consulta, mes: string): Promise<Map<string, Existe
   const { rows } = await tx.query<Existente>(
     `select m.id, m.matricula, m.posto_grad_id, p.sigla as posto, m.nome_completo, m.nome_guerra, m.antiguidade, m.sexo, m.nascimento_dia, m.nascimento_mes, m.nascimento_ano,
             m.cpf, m.cep, m.logradouro, m.numero, m.complemento, m.bairro, m.cidade, m.uf, m.telefone, m.email, m.comportamento, m.comportamento_boletim,
-            m.motorista, m.cnh, m.voluntario_jes, l.unidade_id, un.sigla as unidade_sigla, to_char(l.desde, 'YYYY-MM-DD') as unidade_desde,
+            m.motorista, m.cnh, m.voluntario_jes, m.funcao_militar_id, fm.nome as funcao_nome, m.abono_permanencia, l.unidade_id, un.sigla as unidade_sigla, to_char(l.desde, 'YYYY-MM-DD') as unidade_desde,
             a.unidade_id as aberto_unidade, ae.nome as aberto_equipe, a.jornada as aberto_jornada, a.quadro_id as aberto_quadro_id, aq.sigla as aberto_quadro,
             a.situacao_id as aberto_situacao_id, asm.nome as aberto_situacao
        from militar m
        join posto_grad p on p.id = m.posto_grad_id
+       left join funcao_militar fm on fm.id = m.funcao_militar_id
        left join lateral (
          select r.unidade_id, r.desde from rastreio r where r.militar_id = m.id
           order by (r.desde <= $1::date and (r.ate is null or r.ate >= $1::date)) desc, r.desde desc limit 1
@@ -140,7 +144,8 @@ async function catalogos(tx: Consulta, unidadeId: string) {
       [unidadeId],
     )
   ).rows;
-  return { postos, unidades, quadros, situacoes, equipes };
+  const funcoes = (await tx.query<{ id: string; nome: string }>('select id, nome from funcao_militar where ativo order by nome')).rows;
+  return { postos, unidades, quadros, situacoes, equipes, funcoes };
 }
 
 export const importadorPeculio: Importador<Plano> = {
@@ -159,6 +164,7 @@ export const importadorPeculio: Importador<Plano> = {
         { titulo: 'Lotações desta importação (coluna LOTAÇÃO)', itens: c.unidades.map((u) => u.sigla) },
         { titulo: 'Quadros (coluna QUADRO)', itens: c.quadros.map((q) => `${q.sigla}: ${c.postos.filter((p) => q.postoGradIds.includes(p.id)).map((p) => p.sigla).join(', ')}`) },
         { titulo: 'Situações (coluna SITUAÇÃO)', itens: c.situacoes.map((s) => s.nome) },
+        { titulo: 'Funções do militar (coluna FUNÇÃO)', itens: c.funcoes.length ? c.funcoes.map((f) => f.nome) : ['Ainda não há funções: o administrador as cadastra em Configurações.'] },
         { titulo: 'Equipes de cada seção (coluna EQUIPE)', itens: porSecao.size ? [...porSecao].map(([s, nomes]) => `${s}: ${nomes.join(', ')}`) : ['Ainda não há equipes: a importação cria as que aparecerem na coluna EQUIPE.'] },
         { titulo: 'Linha de militar novo', itens: ['Precisa de POSTO/GRAD, NOME DE GUERRA e LOTAÇÃO. O sistema cria o militar com lotação na seção da coluna LOTAÇÃO, a partir do mês atual. Sem as colunas JORNADA, EQUIPE, QUADRO e SITUAÇÃO, ele entra no Pronto, sem equipe, com o quadro do posto (quando só um serve) e na situação padrão.'] },
       ];
@@ -285,6 +291,8 @@ export const importadorPeculio: Importador<Plano> = {
       const motorista = ler('motorista', lerSimNao(texto('motorista')));
       const voluntarioJes = ler('vjes', lerSimNao(texto('vjes')));
       const cnh = ler('cnh', lerCnh(texto('cnh')));
+      const funcao = ler('funcao', lerFuncao(texto('funcao'), cat.funcoes));
+      const abono = ler('abono', lerSimNao(texto('abono')));
 
       // e-mail e CPF são únicos: o de outro militar, ou repetido na planilha, é ignorado (sem dizer de quem é)
       if (email) {
@@ -372,6 +380,11 @@ export const importadorPeculio: Importador<Plano> = {
       comparar('UF', 'uf', e?.uf, uf);
       comparar('motorista', 'motorista', e?.motorista, motorista, (v) => simNao(Boolean(v)));
       comparar('voluntário JES', 'voluntario_jes', e?.voluntario_jes, voluntarioJes, (v) => simNao(Boolean(v)));
+      if (funcao && !(e && funcao.id === e.funcao_militar_id)) {
+        campos.funcao_militar_id = funcao.id;
+        if (e) mudancas.push(`função: ${e.funcao_nome ?? 'vazia'} → ${funcao.nome}`);
+      }
+      comparar('abono de permanência', 'abono_permanencia', e?.abono_permanencia, abono, (v) => simNao(Boolean(v)));
       if (cnh && !(e && textoCnh(e.cnh) === textoCnh(cnh))) {
         campos.cnh = cnh;
         if (e) mudancas.push(`CNH: ${textoCnh(e.cnh)} → ${textoCnh(cnh)}`);

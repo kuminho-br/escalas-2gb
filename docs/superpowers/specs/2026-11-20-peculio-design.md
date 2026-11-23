@@ -25,8 +25,7 @@ Rotas consideradas para o roadmap (20/11/2026): seguir com o documento e o pilot
 
 Ficam para depois, sem bloquear a interface com a escala:
 
-- o abono de permanência (decidido: um campo de sim ou não; falta a entrega);
-- a função do militar (decidido: todo militar tem uma, cadastrada nas Configurações até o QOD ser modelado; falta a entrega) e as missões extras;
+- as missões extras;
 - o QOD, que é um domínio à parte: cada função com as vagas e os postos-graduações que podem ocupá-la, a árvore de órgãos e o previsto por posto. Entra como uma consulta no módulo Pecúlio; a modelagem fica pendente;
 - férias (rascunho, módulo à parte);
 - quem vê cada atributo (pesa quando o militar comum entrar, na fase 6; na fase 5 a ficha é usada por quem tem papel);
@@ -83,8 +82,8 @@ Ficam para depois, sem bloquear a interface com a escala:
 | Quadro de motoristas | já existe | Escala |
 | CNH | já existe; **independente do quadro** (sai a regra que a apagava) | Escala |
 | Voluntário JES | já existe; é o "Voluntário PJES" do Pecúlio | Escala |
-| Abono de permanência | decidido, sem entrega: sim ou não | Pecúlio |
-| Função | decidida, sem entrega: de todo militar, de um catálogo nas Configurações (depois, do QOD) | Pecúlio |
+| Abono de permanência | novo (entrega 6.15); sim ou não, começa em não; só quem cuida do Pecúlio vê e altera, e não aparece na consulta | Pecúlio |
+| Função | nova (entrega 6.15); uma do catálogo "Funções do militar" das Configurações (depois, do QOD), ou nenhuma; a ficha de consulta mostra no bloco Situação | Pecúlio |
 
 O histórico das mudanças de comportamento fica na auditoria (relação de um comportamento para muitos militares, com o boletim da última publicação no próprio militar; decisão do usuário).
 

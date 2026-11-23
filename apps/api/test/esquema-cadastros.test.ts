@@ -17,7 +17,7 @@ beforeAll(async () => {
   raiz = (await banco.query<{ id: string }>('select id from unidade where mae_id is null')).rows[0]!.id;
   secao = (await banco.query<{ id: string }>("select id from unidade where sigla = '1ª SB'")).rows[0]!.id;
   ({ usuarioId: usuario, militarId: militar } = await criarAdmin(banco, {
-    matricula: '990950-0', postoSigla: 'SD BM', nomeGuerra: 'CADASTRO', email: 'cadastro@exemplo.test', senha: 'senha-de-teste-123', hoje: '2026-11-17',
+    matricula: '990950-0', postoSigla: 'SD', nomeGuerra: 'CADASTRO', email: 'cadastro@exemplo.test', senha: 'senha-de-teste-123', hoje: '2026-11-17',
   }));
 });
 afterAll(async () => {

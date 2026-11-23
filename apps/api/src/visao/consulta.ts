@@ -61,14 +61,14 @@ export async function buscarMilitares(c: Consulta, d: { texto: string; unidadeId
 }
 
 type LinhaDaFicha = LinhaBanco & {
-  unidade_id: string | null; telefone: string | null; email: string | null; comportamento: string | null; comportamento_boletim: string | null;
+  funcao: string | null; unidade_id: string | null; telefone: string | null; email: string | null; comportamento: string | null; comportamento_boletim: string | null;
   motorista: boolean; cnh: string[]; voluntario_jes: boolean;
 };
 
 /** A ficha de consulta de um militar, só com os blocos que `usuarioId` vê; null se o militar não existe. */
 export async function fichaDeConsulta(c: Consulta, usuarioId: string, militarId: string, hoje: string): Promise<FichaDeConsulta | null> {
   const m = (await c.query<LinhaDaFicha>(
-    `select ${COLUNAS}, un.id as unidade_id, m.telefone, m.email, m.comportamento, m.comportamento_boletim, m.motorista, m.cnh, m.voluntario_jes
+    `select ${COLUNAS}, (select f.nome from funcao_militar f where f.id = m.funcao_militar_id) as funcao, un.id as unidade_id, m.telefone, m.email, m.comportamento, m.comportamento_boletim, m.motorista, m.cnh, m.voluntario_jes
        ${DO_MILITAR_HOJE} where m.id = $2`,
     [hoje, militarId],
   )).rows[0];
@@ -93,7 +93,7 @@ export async function fichaDeConsulta(c: Consulta, usuarioId: string, militarId:
     const atual = rows.find((r) => r.atual);
     if (atual) {
       const historico: PeriodoDaConsulta[] = rows.map((r) => ({ desde: r.desde, ate: r.ate, lotacao: r.lotacao, equipe: r.equipe, jornada: r.jornada, quadro: r.quadro, situacaoDoMilitar: r.situacao }));
-      ficha.situacao = { equipe: atual.equipe, jornada: atual.jornada, situacaoDoMilitar: atual.situacao, historico };
+      ficha.situacao = { equipe: atual.equipe, jornada: atual.jornada, situacaoDoMilitar: atual.situacao, funcao: m.funcao, historico };
     }
   }
 

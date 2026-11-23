@@ -59,7 +59,7 @@ type LinhaDaFicha = {
   nascimento_dia: number | null; nascimento_mes: number | null; nascimento_ano: number | null; cpf: string | null;
   cep: string | null; logradouro: string | null; numero: string | null; complemento: string | null; bairro: string | null; cidade: string | null; uf: string | null;
   quadro: string | null; situacao_nome: string | null; comportamento: string | null; comportamento_boletim: string | null;
-  motorista: boolean; cnh: string[]; voluntario_jes: boolean;
+  motorista: boolean; cnh: string[]; voluntario_jes: boolean; funcao: string | null; abono_permanencia: boolean;
   lotacao: string | null; equipe: string | null; jornada: 'pronto' | 'adm' | null;
 };
 
@@ -69,6 +69,7 @@ async function minhaFicha(c: Consulta, usuarioId: string, hoje: string): Promise
     `select p.sigla as posto, m.nome_guerra, m.nome_completo, m.matricula, m.telefone, m.email, m.sexo, m.nascimento_dia, m.nascimento_mes, m.nascimento_ano, m.cpf,
             m.cep, m.logradouro, m.numero, m.complemento, m.bairro, m.cidade, m.uf, q.sigla as quadro, sm.nome as situacao_nome,
             m.comportamento, m.comportamento_boletim, m.motorista, m.cnh, m.voluntario_jes,
+            (select f.nome from funcao_militar f where f.id = m.funcao_militar_id) as funcao, m.abono_permanencia,
             un.sigla as lotacao, e.nome as equipe, r.jornada
        from usuario u join militar m on m.id = u.militar_id join posto_grad p on p.id = m.posto_grad_id
        left join rastreio r on r.militar_id = m.id and r.desde <= $2 and (r.ate is null or r.ate >= $2)
@@ -100,6 +101,8 @@ async function minhaFicha(c: Consulta, usuarioId: string, hoje: string): Promise
     cnh,
     cnhPorHierarquia: cnhHabilitadas(cnh).filter((x) => !cnh.includes(x)),
     voluntarioJes: m.voluntario_jes,
+    funcao: m.funcao,
+    abonoPermanencia: m.abono_permanencia,
   };
 }
 

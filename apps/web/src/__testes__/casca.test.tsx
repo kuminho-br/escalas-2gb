@@ -6,7 +6,7 @@ import { abrir, EU_EXEMPLO, simularApi } from './apoio';
 import type { EuDaApi } from '@/api/eu';
 
 async function clicarSair() {
-  await userEvent.click(await screen.findByRole('button', { name: /SD BM ANDRADE/ }));
+  await userEvent.click(await screen.findByRole('button', { name: /SD ANDRADE/ }));
   await userEvent.click(await screen.findByRole('menuitem', { name: 'Sair' }));
 }
 
@@ -107,7 +107,7 @@ describe('casca', () => {
   it('casca mostra o militar', async () => {
     simularApi({ '/api/eu': { status: 200, corpo: EU_EXEMPLO } });
     abrir('/grade');
-    expect(await screen.findByText('SD BM ANDRADE')).toBeInTheDocument();
+    expect(await screen.findByText('SD ANDRADE')).toBeInTheDocument();
     const caminho = screen.getByRole('navigation', { name: 'Unidade' });
     expect(within(caminho).getAllByRole('listitem').map((li) => li.textContent)).toEqual(['CBMPE', 'DGO', 'DInter/1', '2º GB', '1ª SB']);
     expect(within(caminho).getAllByRole('listitem').at(-1)).toHaveAttribute('aria-current', 'location');
@@ -121,7 +121,7 @@ describe('casca', () => {
     simularApi({ '/api/eu': { status: 200, corpo: { ...EU_EXEMPLO, papeis: [] } } });
     abrir('/militares');
     expect(await screen.findByText('Essa área é de outro nível de acesso.')).toBeInTheDocument();
-    expect(await screen.findByText('SD BM ANDRADE')).toBeInTheDocument();
+    expect(await screen.findByText('SD ANDRADE')).toBeInTheDocument();
     expect(screen.queryByRole('navigation', { name: 'Navegação principal' })).toBeNull();
     expect(screen.queryByText('Militares')).toBeNull();
     expect(screen.queryByText('Configurações')).toBeNull();
@@ -143,7 +143,7 @@ describe('casca', () => {
   it('o início e a Minha ficha não têm trilho', async () => {
     simularApi({ '/api/eu': { status: 200, corpo: EU_EXEMPLO } });
     abrir('/');
-    await screen.findByText('SD BM ANDRADE');
+    await screen.findByText('SD ANDRADE');
     expect(screen.queryByRole('navigation', { name: 'Navegação principal' })).toBeNull();
     expect(screen.queryByRole('button', { name: 'Abrir menu' })).toBeNull();
   });
@@ -151,7 +151,7 @@ describe('casca', () => {
   it('dentro do Pecúlio, o trilho só tem o Pecúlio, e a ficha aberta por ele continua nesse trilho (Review Focus 4)', async () => {
     simularApi({ '/api/eu': { status: 200, corpo: EU_EXEMPLO } });
     abrir('/militares/m1?de=peculio');
-    await screen.findByText('SD BM ANDRADE');
+    await screen.findByText('SD ANDRADE');
     const menu = screen.getByRole('navigation', { name: 'Navegação principal' });
     expect(within(menu).getAllByRole('listitem').map((l) => l.textContent)).toEqual(['Pecúlio']);
     expect(within(menu).queryByText('Militares')).toBeNull();
@@ -172,7 +172,7 @@ describe('trilho', () => {
   it('no computador o menu é um trilho de 84 px', async () => {
     simularApi({ '/api/eu': { status: 200, corpo: EU_EXEMPLO } });
     abrir('/grade');
-    await screen.findByText('SD BM ANDRADE');
+    await screen.findByText('SD ANDRADE');
     expect(menu().parentElement?.className).toContain('md:grid-cols-[84px_1fr]');
     expect(menu().className).toContain('md:w-[84px]');
   });
@@ -180,7 +180,7 @@ describe('trilho', () => {
   it('cada item do trilho mantém o nome', async () => {
     simularApi({ '/api/eu': { status: 200, corpo: { ...EU_EXEMPLO, papeis: [{ papel: 'administrador', unidadeId: 'u-1sb', unidadeSigla: '1ª SB' }] } } });
     abrir('/grade');
-    await screen.findByText('SD BM ANDRADE');
+    await screen.findByText('SD ANDRADE');
     for (const nome of NOMES) expect(within(menu()).getByText(nome)).toBeInTheDocument();
     expect(within(menu()).getByRole('link', { name: 'Militares' })).toHaveAttribute('href', '/militares');
     expect(within(menu()).getByRole('link', { name: 'Escala do mês' })).toHaveAttribute('href', '/escala-do-mes');
@@ -192,7 +192,7 @@ describe('trilho', () => {
   it('o menu do celular abre e fecha', async () => {
     simularApi({ '/api/eu': { status: 200, corpo: EU_EXEMPLO } });
     abrir('/grade');
-    await screen.findByText('SD BM ANDRADE');
+    await screen.findByText('SD ANDRADE');
     expect(menu().className).toContain('-translate-x-full');
     await userEvent.click(screen.getByRole('button', { name: 'Abrir menu' }));
     expect(menu().className).toContain('translate-x-0');
@@ -204,7 +204,7 @@ describe('trilho', () => {
   it('abrir o menu do celular leva o foco ao primeiro item', async () => {
     simularApi({ '/api/eu': { status: 200, corpo: EU_EXEMPLO } });
     abrir('/grade');
-    await screen.findByText('SD BM ANDRADE');
+    await screen.findByText('SD ANDRADE');
     await userEvent.click(screen.getByRole('button', { name: 'Abrir menu' }));
     expect(within(menu()).getByRole('link', { name: 'Grade geral' })).toHaveFocus();
   });
@@ -212,7 +212,7 @@ describe('trilho', () => {
   it('Esc fecha o menu do celular e devolve o foco ao botão que o abriu', async () => {
     simularApi({ '/api/eu': { status: 200, corpo: EU_EXEMPLO } });
     abrir('/grade');
-    await screen.findByText('SD BM ANDRADE');
+    await screen.findByText('SD ANDRADE');
     const abrirMenu = screen.getByRole('button', { name: 'Abrir menu' });
     await userEvent.click(abrirMenu);
     expect(menu().className).not.toContain('-translate-x-full');
@@ -224,7 +224,7 @@ describe('trilho', () => {
   it('o botão "Fechar menu" também devolve o foco, e clicar fora continua fechando', async () => {
     simularApi({ '/api/eu': { status: 200, corpo: EU_EXEMPLO } });
     abrir('/grade');
-    await screen.findByText('SD BM ANDRADE');
+    await screen.findByText('SD ANDRADE');
     const abrirMenu = screen.getByRole('button', { name: 'Abrir menu' });
     await userEvent.click(abrirMenu);
     await userEvent.click(screen.getByRole('button', { name: 'Fechar menu' }));
@@ -240,7 +240,7 @@ describe('trilho', () => {
   it('no celular o caminho mostra a seção atual', async () => {
     simularApi({ '/api/eu': { status: 200, corpo: EU_EXEMPLO } });
     abrir('/grade');
-    await screen.findByText('SD BM ANDRADE');
+    await screen.findByText('SD ANDRADE');
     expect(document.querySelector('[data-caminho-curto]')).toHaveTextContent('1ª SB');
   });
 });
@@ -325,9 +325,9 @@ describe('unidade de trabalho (fase 6)', () => {
 
   it('com alteração pendente, trocar de unidade pergunta antes e, se a pessoa desiste, nada muda', async () => {
     const ficha = {
-      id: 'm1', matricula: '990001-1', posto: 'SD BM', quadro: { id: 'q-qbmg', sigla: 'QBMG' }, nomeGuerra: 'ANDRADE', equipe: null, jornada: 'adm', motorista: null, voluntarioJes: false, ativo: true, situacao: 'Disponível', pendencias: [],
+      id: 'm1', matricula: '990001-1', posto: 'SD', quadro: { id: 'q-qbmg', sigla: 'QBMG' }, nomeGuerra: 'ANDRADE', equipe: null, jornada: 'adm', motorista: null, voluntarioJes: false, ativo: true, situacao: 'Disponível', pendencias: [],
       podeEditar: { peculio: true, escala: true, unidadeDeCima: '2º GB' }, postoGradId: 'p', nomeCompleto: 'João', sexo: null, nascimento: null, cpf: null, endereco: { cep: null, logradouro: null, numero: null, complemento: null, bairro: null, cidade: null, uf: null }, situacaoDoMilitar: null, telefone: '', email: null, comportamento: null,
-      comportamentoBoletim: null, antiguidade: 1, antiguidadeRepetidaCom: [], noQuadroDeMotoristas: false, cnh: [], cnhPorHierarquia: [], rastreio: [], afastamentos: [],
+      comportamentoBoletim: null, antiguidade: 1, antiguidadeRepetidaCom: [], funcao: null, funcaoMilitarId: null, abonoPermanencia: false, noQuadroDeMotoristas: false, cnh: [], cnhPorHierarquia: [], rastreio: [], afastamentos: [],
     };
     simularApi({
       '/api/eu': { status: 200, corpo: GESTOR },
@@ -352,7 +352,7 @@ describe('unidade de trabalho (fase 6)', () => {
   it('com uma unidade só (o auxiliar de uma seção), não há seletor', async () => {
     simularApi({ '/api/eu': { status: 200, corpo: EU_EXEMPLO } });
     abrir('/');
-    await screen.findByRole('button', { name: /SD BM ANDRADE/ });
+    await screen.findByRole('button', { name: /SD ANDRADE/ });
     expect(screen.queryByRole('button', { name: /Unidade de trabalho/ })).toBeNull();
   });
 

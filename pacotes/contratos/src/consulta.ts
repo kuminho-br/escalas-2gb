@@ -27,7 +27,8 @@ export type PeriodoDaConsulta = { desde: string; ate: string | null; lotacao: st
  */
 export type FichaDeConsulta = LinhaDaConsulta & {
   contato?: { telefone: string | null; email: string | null };
-  situacao?: { equipe: string | null; jornada: 'pronto' | 'adm'; situacaoDoMilitar: string; historico: PeriodoDaConsulta[] };
+  /** A função do militar entra aqui, no bloco "Situação"; o abono de permanência nunca vem. */
+  situacao?: { equipe: string | null; jornada: 'pronto' | 'adm'; situacaoDoMilitar: string; funcao: string | null; historico: PeriodoDaConsulta[] };
   afastamentos?: { tipo: string; inicio: string; fim: string; motivo?: string | null; boletim?: string | null }[];
   dadosDaEscala?: { motorista: boolean; cnh: string[]; voluntarioJes: boolean };
   comportamento?: { comportamento: string | null; boletim: string | null };

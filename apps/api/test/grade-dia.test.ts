@@ -63,7 +63,7 @@ beforeAll(async () => {
   });
   expect(v.status).toBe(200);
   const alfa = await inserir(api.banco, 'equipe', { unidade_id: api.ids.secao, nome: 'Alfa', ordem_ciclo: 1 });
-  const sd = (await api.banco.query<{ id: string }>("select id from posto_grad where sigla = 'SD BM'")).rows[0]!.id;
+  const sd = (await api.banco.query<{ id: string }>("select id from posto_grad where sigla = 'SD'")).rows[0]!.id;
   let seq = 0;
   const criar = async (nome: string, extra: { cnh?: string[]; jes?: boolean; jornada?: 'pronto' | 'adm'; unidade?: string; foraDoQuadro?: boolean } = {}) => {
     seq++;
@@ -105,7 +105,7 @@ describe('o dia do militar', () => {
   it('traz o militar, os serviços do dia com escala, horário, guarnição, função e acumulaCom, e os horários marcados', async () => {
     const p = await ler('ALFA');
     expect(p.data).toBe(DIA);
-    expect(p.militar).toMatchObject({ militarId: militar.ALFA, posto: 'SD BM', nomeGuerra: 'ALFA', equipe: 'Alfa', jornada: 'pronto', cnh: ['E'], voluntarioJes: false });
+    expect(p.militar).toMatchObject({ militarId: militar.ALFA, posto: 'SD', nomeGuerra: 'ALFA', equipe: 'Alfa', jornada: 'pronto', cnh: ['E'], voluntarioJes: false });
     expect(p.afastamento).toBeNull();
     expect(p.disponibilidade).toEqual([{ inicio: '08:00', fim: '20:00' }]);
     expect(p.servicos).toEqual([
@@ -236,7 +236,7 @@ describe('quanto custa abrir o painel', () => {
   it('o painel do dia faz no máximo 42 consultas no cenário mais cheio (40 para o Pronto, 42 para o Adm)', async () => {
     const natal = `${MES}-25`;
     await inserir(api.banco, 'feriado', { unidade_id: api.ids.secao, data: natal, descricao: 'Natal' });
-    const sd = (await api.banco.query<{ id: string }>("select id from posto_grad where sigla = 'SD BM'")).rows[0]!.id;
+    const sd = (await api.banco.query<{ id: string }>("select id from posto_grad where sigla = 'SD'")).rows[0]!.id;
     const alfa = (await api.banco.query<{ id: string }>("select id from equipe where unidade_id = $1 and nome = 'Alfa'", [api.ids.secao])).rows[0]!.id;
     const criarCheio = async (nome: string, matricula: string, jornada: 'pronto' | 'adm') => {
       militar[nome] = await inserir(api.banco, 'militar', { matricula, posto_grad_id: sd, nome_guerra: nome, motorista: true, cnh: ['E'], voluntario_jes: true });

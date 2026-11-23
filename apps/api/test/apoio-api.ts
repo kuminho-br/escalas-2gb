@@ -29,7 +29,7 @@ export interface ApiDeTeste {
  * acesso gera a senha pela API. Devolve o `militar.id`.
  */
 export async function criarMilitar(api: ApiDeTeste, d: { matricula: string; email: string | null; unidadeId: string }): Promise<string> {
-  const posto = (await api.banco.query<{ id: string }>("select id from posto_grad where sigla = 'SD BM'")).rows[0]!.id;
+  const posto = (await api.banco.query<{ id: string }>("select id from posto_grad where sigla = 'SD'")).rows[0]!.id;
   const id = await inserir(api.banco, 'militar', { matricula: d.matricula, posto_grad_id: posto, nome_guerra: `TESTE${d.matricula.slice(3, 6)}`, email: d.email });
   await inserir(api.banco, 'rastreio', { militar_id: id, unidade_id: d.unidadeId, jornada: 'adm', desde: `${hojeRecife().slice(0, 7)}-01` });
   return id;
@@ -50,7 +50,7 @@ export async function montarApi(fabricar?: (dep: { banco: Banco; auth: Auth }) =
   const hoje = hojeRecife();
 
   const novo = (matricula: string, nome: string, email: string) =>
-    criarAdmin(banco, { matricula, postoSigla: 'SD BM', nomeGuerra: nome, email, senha: SENHA, hoje });
+    criarAdmin(banco, { matricula, postoSigla: 'SD', nomeGuerra: nome, email, senha: SENHA, hoje });
   const admin = (await novo('990901-1', 'ADMIN', 'admin@exemplo.test')).usuarioId;
   const escalante = (await novo('990902-2', 'ESCALANTE', 'escalante@exemplo.test')).usuarioId;
   await banco.query("update papel_usuario set papel = 'escalante', unidade_id = $2 where usuario_id = $1", [escalante, ids.secao]);
@@ -105,7 +105,7 @@ export interface Pessoa {
  */
 export async function entrarComo(api: ApiDeTeste, d: { matricula: string; nome: string; posto?: string; nivel?: { papel: string; unidadeId: string } }): Promise<Pessoa> {
   const email = `${d.nome.toLowerCase()}@exemplo.test`;
-  const { usuarioId, militarId } = await criarAdmin(api.banco, { matricula: d.matricula, postoSigla: d.posto ?? 'SD BM', nomeGuerra: d.nome, email, senha: SENHA, hoje: hojeRecife() });
+  const { usuarioId, militarId } = await criarAdmin(api.banco, { matricula: d.matricula, postoSigla: d.posto ?? 'SD', nomeGuerra: d.nome, email, senha: SENHA, hoje: hojeRecife() });
   if (d.nivel) await api.banco.query('update papel_usuario set papel = $2, unidade_id = $3 where usuario_id = $1', [usuarioId, d.nivel.papel, d.nivel.unidadeId]);
   else await api.banco.query('delete from papel_usuario where usuario_id = $1', [usuarioId]);
   const r = await api.app.request(`${URL_BASE}/api/auth/sign-in/email`, {
