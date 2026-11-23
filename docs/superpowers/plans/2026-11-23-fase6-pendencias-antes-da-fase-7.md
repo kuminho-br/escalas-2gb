@@ -217,6 +217,7 @@
   12. Da 6.10: a importação do Pecúlio não aceita divisão como lotação ("A lotação é uma seção ou o grupamento.") e resolve a sigla dentro do grupamento da importação.
   13. Da 6.10: seção dentro de divisão extinta → aparece na aba Estrutura direto no grupamento.
   14. Da 6.10: teste de encerrar o próprio nível também no caso recusado.
+  15. A busca de militares (`/api/consulta/militares`) → 429 com "Muitas buscas em pouco tempo. Espere um minuto e tente de novo." acima de 30 pedidos por minuto por conta; a tela mostra a mesma frase. A exportação completa do banco não passa por essa rota (decisão de 23/11).
 - [ ] **Commit** `Fase 6.18: acabamento da API`.
 
 ### Task 8: importação
