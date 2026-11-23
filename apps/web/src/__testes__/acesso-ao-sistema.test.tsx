@@ -107,3 +107,76 @@ describe('Acesso ao sistema', () => {
     expect(b.queryByRole('button', { name: 'Dar nível de acesso' })).toBeNull();
   });
 });
+
+describe('um formulário por vez no Acesso ao sistema', () => {
+  const DOIS: Partial<AcessoDoMilitar> = {
+    papeis: [
+      { id: 'p1', papel: 'escalante', unidadeId: 'u-1sb', unidadeSigla: '1ª SB', desde: '2026-11-01', ate: null },
+      { id: 'p2', papel: 'gestor', unidadeId: 'u-gb', unidadeSigla: '2º GB', desde: '2026-10-01', ate: null },
+    ],
+    papeisQuePodeDar: ['gestor', 'escalante'],
+    unidadesParaPapel: [{ id: 'u-gb', sigla: '2º GB', nivel: 3 }, { id: 'u-1sb', sigla: '1ª SB', nivel: 4 }],
+  };
+  const encerrar = (b: { getAllByRole: (papel: 'button', o: { name: string }) => HTMLElement[] }) => b.getAllByRole('button', { name: 'Encerrar' }) as HTMLButtonElement[];
+
+  it('abrir "Dar nível de acesso" desliga os "Encerrar"', async () => {
+    api(DOIS);
+    abrir('/militares/m1');
+    const b = within(await bloco());
+    await b.findByText('Gestor');
+    expect(encerrar(b).every((x) => !x.disabled)).toBe(true);
+    await userEvent.click(b.getByRole('button', { name: 'Dar nível de acesso' }));
+    expect(encerrar(b)).toHaveLength(2);
+    expect(encerrar(b).every((x) => x.disabled)).toBe(true);
+  });
+
+  it('abrir um "Encerrar" desliga "Dar nível de acesso" e os outros "Encerrar"', async () => {
+    api(DOIS);
+    abrir('/militares/m1');
+    const b = within(await bloco());
+    await b.findByText('Gestor');
+    await userEvent.click(encerrar(b)[0]!);
+    expect(b.getByLabelText('Encerrar em')).toBeInTheDocument();
+    expect(b.getByRole('button', { name: 'Dar nível de acesso' })).toBeDisabled();
+    expect(encerrar(b)).toHaveLength(1);
+    expect(encerrar(b)[0]).toBeDisabled();
+  });
+
+  it('"Cancelar" libera tudo', async () => {
+    api(DOIS);
+    abrir('/militares/m1');
+    const b = within(await bloco());
+    await b.findByText('Gestor');
+    await userEvent.click(encerrar(b)[0]!);
+    await userEvent.click(b.getByRole('button', { name: 'Cancelar' }));
+    expect(b.getByRole('button', { name: 'Dar nível de acesso' })).toBeEnabled();
+    expect(encerrar(b).every((x) => x.disabled === false)).toBe(true);
+    await userEvent.click(b.getByRole('button', { name: 'Dar nível de acesso' }));
+    await userEvent.click(b.getByRole('button', { name: 'Cancelar' }));
+    expect(encerrar(b).every((x) => x.disabled === false)).toBe(true);
+  });
+
+  it('um erro da API mantém o formulário de dar aberto, com a mensagem, e não libera os "Encerrar"', async () => {
+    api(DOIS, { 'POST /api/militares/m1/papeis': { status: 409, corpo: { erro: 'Este nível de acesso já existe.' } } });
+    abrir('/militares/m1');
+    const b = within(await bloco());
+    await b.findByText('Gestor');
+    await userEvent.click(b.getByRole('button', { name: 'Dar nível de acesso' }));
+    await userEvent.click(b.getAllByRole('button', { name: 'Dar nível de acesso' }).at(-1)!);
+    expect(await b.findByText('Este nível de acesso já existe.')).toBeInTheDocument();
+    expect(b.getByLabelText('A partir de')).toBeInTheDocument();
+    expect(encerrar(b).every((x) => x.disabled)).toBe(true);
+  });
+
+  it('um erro ao encerrar mantém o formulário de encerrar aberto', async () => {
+    api(DOIS, { 'POST /api/papeis/p1/encerrar': { status: 409, corpo: { erro: 'Este nível de acesso já foi encerrado.' } } });
+    abrir('/militares/m1');
+    const b = within(await bloco());
+    await b.findByText('Gestor');
+    await userEvent.click(encerrar(b)[0]!);
+    await userEvent.click(b.getByRole('button', { name: 'Confirmar encerramento' }));
+    expect(await b.findByText('Este nível de acesso já foi encerrado.')).toBeInTheDocument();
+    expect(b.getByLabelText('Encerrar em')).toBeInTheDocument();
+  });
+});
+
