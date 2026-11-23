@@ -28,8 +28,8 @@ function Pagina() {
       temDetalhe
       acoes={
         <>
-          <Link to="/configuracoes" search={{ aba: 'modelos' }} className="self-center text-sm font-medium text-vinho hover:underline">
-            Voltar para Configurações
+          <Link to="/configuracoes-da-escala" search={{ aba: 'modelos' }} className="self-center text-sm font-medium text-vinho hover:underline">
+            Voltar para Configurações da escala
           </Link>
           <AcoesDosModelos unidadeId={eu.unidade.id} />
         </>

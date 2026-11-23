@@ -53,7 +53,25 @@ describe('ver a árvore', () => {
     expect(siglas(gb)).toEqual(['1ª SB', '2ª SB', '3ª SB', '4ª SB', '5ª SB', '6ª SB', '7ª SB', 'DA', 'DivOp']);
     expect(filha(gb, 'DA')).toMatchObject({ id: da, tipo: { codigo: 'divisao' }, filhas: [], podeEditar: true, podeReorganizar: true });
     expect(filha(gb, '1ª SB')).toMatchObject({ id: sb1, tipo: { codigo: 'secao' }, podeEditar: true, podeReorganizar: true });
-    expect(gb.ligados).toEqual({ unidades: 9, militaresHoje: 0, historico: expect.arrayContaining(['9 unidades abaixo']) });
+    expect(gb.ligados).toEqual({ unidades: 9, militaresHoje: 0, militaresNaArvore: 0, historico: expect.arrayContaining(['9 unidades abaixo']) });
+  });
+
+  it('a contagem de lotados acumula: cada unidade soma os lotados nela e nas unidades de baixo; "militaresHoje" é só os da própria unidade', async () => {
+    const sec = await nova('CONTA-A', da);
+    const sec2 = await nova('CONTA-B', da);
+    await criarMilitar(api, { matricula: '990764-4', email: null, unidadeId: sec });
+    await criarMilitar(api, { matricula: '990765-5', email: null, unidadeId: sec });
+    await criarMilitar(api, { matricula: '990766-6', email: null, unidadeId: sec2 });
+    await criarMilitar(api, { matricula: '990767-7', email: null, unidadeId: da });
+    const gb: NoDaArvore = await (await arvore()).json();
+    const daNo = filha(gb, 'DA');
+    expect(daNo.ligados).toMatchObject({ militaresHoje: 1, militaresNaArvore: 4 });
+    expect(filha(daNo, 'CONTA-A').ligados).toMatchObject({ militaresHoje: 2, militaresNaArvore: 2 });
+    expect(filha(daNo, 'CONTA-B').ligados).toMatchObject({ militaresHoje: 1, militaresNaArvore: 1 });
+    expect(gb.ligados).toMatchObject({ militaresHoje: 0, militaresNaArvore: 4 });
+    // quem saiu da unidade (período que já terminou) não conta
+    await api.banco.query("update rastreio set ate = '2020-12-31', desde = '2020-01-01' where unidade_id = $1", [sec2]);
+    expect(filha(filha(await (await arvore()).json(), 'DA'), 'CONTA-B').ligados.militaresNaArvore).toBe(0);
   });
 
   it('o administrador vê a partir da raiz, e pode pedir uma unidade mais baixa', async () => {

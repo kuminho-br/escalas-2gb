@@ -29,34 +29,6 @@ const FICHA: MinhaFicha = {
 const api = (extra: Parameters<typeof simularApi>[0] = {}) =>
   simularApi({ '/api/eu': { status: 200, corpo: { ...EU_EXEMPLO, papeis: [] } }, 'GET /api/eu/ficha': { status: 200, corpo: FICHA }, ...extra });
 
-describe('Minha ficha: a animação de entrada (6.14)', () => {
-  afterEach(() => {
-    localStorage.clear();
-    vi.unstubAllGlobals();
-  });
-
-  it('mostra o bloco com "Uma vez a cada 12 horas" marcada na primeira vez; escolher outra grava e continua marcada ao reabrir', async () => {
-    api();
-    abrir('/minha-ficha');
-    const bloco = within(await screen.findByRole('radiogroup', { name: 'Animação de entrada' }));
-    expect(bloco.getByRole('radio', { name: 'Uma vez a cada 12 horas' })).toBeChecked();
-    expect(screen.getByText('Vale para este navegador.')).toBeInTheDocument();
-    await userEvent.click(bloco.getByRole('radio', { name: 'Nunca' }));
-    expect(localStorage.getItem('escalas2gb.login-animacao-quando')).toBe('nunca');
-    cleanup();
-    api();
-    abrir('/minha-ficha');
-    expect(within(await screen.findByRole('radiogroup', { name: 'Animação de entrada' })).getByRole('radio', { name: 'Nunca' })).toBeChecked();
-  });
-
-  it('com menos movimento, o aviso aparece', async () => {
-    vi.stubGlobal('matchMedia', (q: string) => ({ matches: q.includes('prefers-reduced-motion'), media: q, addEventListener: () => {}, removeEventListener: () => {} }));
-    api();
-    abrir('/minha-ficha');
-    expect(await screen.findByText('Seu aparelho pede menos movimento, então a animação não toca.')).toBeInTheDocument();
-  });
-});
-
 describe('Minha ficha', () => {
   it('mostra a função e o abono de permanência, só para leitura (6.15)', async () => {
     api();

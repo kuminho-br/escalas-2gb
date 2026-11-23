@@ -8,6 +8,7 @@ Siglas dos documentos: **Design** = `superpowers/specs/2026-11-16-migracao-desig
 
 | Data | Decisão | Onde está |
 |---|---|---|
+| 23/11/2026 | Escala dos oficiais como escala comum: lançamentos viram alocações de uma escala com `rodada_de_cotas` (JES e Saldo); JES lançado à mão primeiro e o resto pela rodada como Saldo ("Cota de saldo"); "Abrir o mês" com cotas automáticas até fechar; ordem de antiguidade só sugerida; dias vermelhos de mesmo peso, contados por oficial. Caminho e divisão (6.27 e 6.28, depois da 6.26) escolhidos pela PLANEJAMENTO, por delegação do usuário. E-mail pessoal além do institucional (6.18). | `superpowers/specs/2026-11-23-oficiais-escala-comum-design.md` |
 | 23/11/2026 | O módulo passa a ser "Pecúlio" (o sistema é da corporação), e a Consulta de militares vira tela dele: o cartão aparece para todos, e quem não tem nível de acesso vê só a Consulta (entrega 6.26). | `superpowers/plans/2026-11-23-fase6-25-arvore-generica.md`, Task 5 |
 | 23/11/2026 | "Coordenador" é o nome do quinto nível. Estrutura vira módulo próprio na tela inicial (com Tipos de unidade). A árvore mostra os lotados somados com os de baixo. As Configurações usam menu vertical em vez de abas (entrega 6.26). | `superpowers/plans/2026-11-23-fase6-25-arvore-generica.md`, Task 5 |
 | 23/11/2026 | Contato com máscara: telefone com DDD formatado ao digitar; e-mail só com o usuário, com o domínio @bombeiros.pe.gov.br fixo no campo (6.18, item 22). | plano das 6.15 a 6.18, Task 7, item 22 |
