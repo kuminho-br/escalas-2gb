@@ -1,4 +1,4 @@
-import { screen, waitFor, within } from '@testing-library/react';
+import { cleanup, screen, waitFor, within } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { abrir, EU_EXEMPLO, simularApi } from './apoio';
 
@@ -27,6 +27,16 @@ describe('o Pecúlio e a Consulta de militares (6.26)', () => {
     const router = abrir('/peculio');
     expect(await screen.findByText('Essa área é de outro nível de acesso.')).toBeInTheDocument();
     await waitFor(() => expect(router.state.location.pathname).toBe('/'));
+  });
+
+  it('revisão final: quem não tem nível também não abre a ficha aberta pelo Pecúlio, nem o endereço com maiúsculas', async () => {
+    for (const caminho of ['/militares/m1?de=peculio', '/Peculio', '/PECULIO']) {
+      simularApi({ '/api/eu': { status: 200, corpo: COMUM } });
+      const router = abrir(caminho);
+      expect(await screen.findByText('Essa área é de outro nível de acesso.'), caminho).toBeInTheDocument();
+      await waitFor(() => expect(router.state.location.pathname, caminho).toBe('/'));
+      cleanup();
+    }
   });
 
   it('quem tem nível de acesso vê a lista do Pecúlio e a Consulta, no mesmo trilho, e o endereço antigo da consulta continua valendo', async () => {
