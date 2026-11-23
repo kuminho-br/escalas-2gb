@@ -130,4 +130,4 @@ Branch `fase6-21-resposta-do-sistema`, a partir da 6.20. Sem migração prevista
 
 ## Depois desta fundação
 
-O modo ágil termina com a 6.21 (diretriz do usuário, 23/11/2026): a fila passa a ser validação e reparo. As áreas de tela (Grade geral, Escala do mês com a P3, moldura e navegação, fichas, celular) entram uma por vez, conforme a DESIGN entregar e o usuário aprovar.
+As áreas de tela (Grade geral, Escala do mês com a P3, moldura e navegação, fichas, celular) entram uma por vez, conforme a DESIGN entregar e o usuário aprovar.
