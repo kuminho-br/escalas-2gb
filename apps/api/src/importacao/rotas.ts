@@ -1,6 +1,7 @@
 // GET /api/unidades/:u/importacao/:cadastro/modelo — planilha em branco, com a ajuda.
 // POST /api/unidades/:u/importacao/:cadastro — prévia (sem gravar) ou, com ?confirmar=1, gravação.
 // Sem estado: a confirmação recebe o mesmo arquivo e refaz o plano antes de gravar.
+import { normalizar } from 'dominio';
 import { Hono } from 'hono';
 import type { ResultadoImportacao } from 'contratos';
 import { CADASTRO, exigirPapel, exigirPapelDeCimaDasSecoes, exigirSessao, type AmbienteApi } from '../acesso.ts';
@@ -56,6 +57,12 @@ export function rotasImportacao(dep: { banco: Banco; auth: Auth }, importadores:
       abas = await lerPlanilha(await arquivo.arrayBuffer());
     } catch {
       return c.json({ erro: 'Não foi possível ler o arquivo. Se ele veio da sandbox inteira, o Google Planilhas pode ter exportado com defeito: baixe o modelo e cole só as abas nele.' }, 400);
+    }
+    // o nome da aba vale sem diferenciar maiúsculas, acentos e espaços nas pontas
+    for (const esperado of imp.abas) {
+      if (esperado in abas) continue;
+      const achada = Object.keys(abas).find((n) => normalizar(n.trim()) === normalizar(esperado));
+      if (achada) abas[esperado] = abas[achada]!;
     }
     const falta = imp.abas.find((a) => !(a in abas));
     if (falta) {

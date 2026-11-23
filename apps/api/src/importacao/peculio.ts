@@ -210,6 +210,10 @@ export const importadorPeculio: Importador<Plano> = {
     const temEquipe = (unidade: string, nome: string) =>
       cat.equipes.some((e) => e.unidade_id === unidade && normalizar(e.nome) === normalizar(nome)) || [...(equipesNovas.get(unidade) ?? [])].some((n) => normalizar(n) === normalizar(nome));
 
+    // antiguidade repetida: quem já tem no sistema (de outra matrícula) e as linhas da planilha; a prévia só avisa, sem recusar
+    const donosDaAntiguidade = new Map<number, string[]>();
+    for (const x of ja.values()) if (x.antiguidade !== null) donosDaAntiguidade.set(x.antiguidade, [...(donosDaAntiguidade.get(x.antiguidade) ?? []), x.matricula]);
+    const antiguidadesDaPlanilha = new Map<number, string[]>();
     const vistos = new Set<string>();
     const novos: ItemPrevia[] = [];
     const alterados: ItemPrevia[] = [];
@@ -278,8 +282,9 @@ export const importadorPeculio: Importador<Plano> = {
       const postoFinal = posto ?? { id: e!.posto_grad_id, sigla: e!.posto };
       const nomeCompleto = ler('completo', lerTexto(texto('completo'), 120));
       const antiguidade = ler('antig', lerAntiguidade(texto('antig')));
+      if (antiguidade !== undefined) antiguidadesDaPlanilha.set(antiguidade, [...(antiguidadesDaPlanilha.get(antiguidade) ?? []), matricula]);
       const sexo = ler('sexo', lerSexo(texto('sexo')));
-      const nascimento = ler('nascimento', lerNascimento(texto('nascimento'), Boolean(c.nascimento >= 0 && l.datas?.[c.nascimento])));
+      const nascimento = ler('nascimento', lerNascimento(texto('nascimento'), Boolean(c.nascimento >= 0 && l.datas?.[c.nascimento]), Number(hoje.slice(0, 4))));
       const telefone = ler('telefone', lerTelefone(texto('telefone')));
       let email = ler('email', lerEmail(texto('email')));
       let emailPessoal = ler('emailPessoal', lerEmailPessoal(texto('emailPessoal')));
@@ -296,6 +301,9 @@ export const importadorPeculio: Importador<Plano> = {
       const motorista = ler('motorista', lerSimNao(texto('motorista')));
       const voluntarioJes = ler('vjes', lerSimNao(texto('vjes')));
       const cnh = ler('cnh', lerCnh(texto('cnh')));
+      // categoria repetida (AAD) vale como as categorias distintas (AD), e a prévia avisa
+      const cnhDigitada = texto('cnh').replace(/[^A-Za-z]/g, '').toUpperCase();
+      if (cnh && new Set(cnhDigitada).size !== cnhDigitada.length) avisos.push(`A CNH "${texto('cnh')}" da linha ${l.linha} tem categoria repetida e vale como ${[...cnh].sort().join('')}.`);
       const funcao = ler('funcao', lerFuncao(texto('funcao'), cat.funcoes));
       const abono = ler('abono', lerSimNao(texto('abono')));
 
@@ -433,6 +441,10 @@ export const importadorPeculio: Importador<Plano> = {
       });
     }
 
+    for (const [n, daPlanilha] of antiguidadesDaPlanilha) {
+      const donos = [...(donosDaAntiguidade.get(n) ?? []).filter((m) => !daPlanilha.includes(m)), ...daPlanilha];
+      if (donos.length > 1) avisos.push(`Antiguidade ${n} repetida: ${donos.length === 2 ? donos.join(' e ') : `${donos.slice(0, -1).join(', ')} e ${donos.at(-1)}`}.`);
+    }
     for (const [secao, nomes] of equipesNovas) avisos.push(`Equipes novas na ${cat.unidades.find((u) => u.id === secao)?.sigla ?? 'seção'}: ${[...nomes].join(', ')}.`);
     const lotados = [...ja.values()].filter((x) => x.unidade_id && cat.unidades.some((u) => u.id === x.unidade_id) && !vistos.has(x.matricula)).length;
     if (lotados) avisos.push(`${lotados} militares do sistema não estão na planilha (nada foi apagado).`);

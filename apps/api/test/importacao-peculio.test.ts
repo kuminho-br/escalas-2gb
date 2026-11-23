@@ -218,9 +218,10 @@ describe('importar o Pecúlio célula por célula (Task 1)', () => {
     expect(await militar('990301-1')).toMatchObject({ email: 'andrade@bombeiros.pe.gov.br', telefone: '(81) 96666-0000' });
   });
 
-  it('NASCIMENTO que o Excel transformou em data, ou o número de série dele, é ignorado com o motivo (Review Focus 5)', async () => {
+  it('NASCIMENTO que o Excel transformou em data do ano corrente, ou o número de série dele, é ignorado com o motivo (Review Focus 5)', async () => {
     const previa = await importar([
-      { 'MATRÍCULA': '990302-2', 'NASCIMENTO': new Date(Date.UTC(1985, 2, 15)) },
+      // a data do ano corrente continua ignorada (o Excel põe o ano de hoje num "15/03" digitado); a de outro ano vale (6.18, item 10)
+      { 'MATRÍCULA': '990302-2', 'NASCIMENTO': new Date(Date.UTC(Number(hoje.slice(0, 4)), 2, 15)) },
       { 'MATRÍCULA': '990303-3', 'NASCIMENTO': 31121 },
       { 'MATRÍCULA': '990304-4', 'NASCIMENTO': '1985-03-15' },
     ], true);

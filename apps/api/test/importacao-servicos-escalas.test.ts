@@ -104,6 +104,16 @@ describe('importação de serviços, turnos e escalas', () => {
     expect((await servico('Pronto')).cor).toBe('#123456');
   });
 
+  it('item 6 (6.18): horário digitado como "8h" ou "8" em TURNOS é problema na linha, e não um horário válido', async () => {
+    const previa = await importar({ t: [...TURNOS, ['JES', 'B', '8h', '20:00', 12, '', ''], ['JES', 'C', '08:00', '20', 12, '', '']] });
+    expect(previa.problemas).toEqual(
+      expect.arrayContaining([
+        { aba: 'TURNOS', linha: 8, mensagem: 'Horário "8h" de JES B', solucao: 'Use HH:MM (ex.: 08:00).' },
+        { aba: 'TURNOS', linha: 9, mensagem: 'Horário "20" de JES C', solucao: 'Use HH:MM (ex.: 08:00).' },
+      ]),
+    );
+  });
+
   it('turno com letra inválida e horário inválido viram problemas com a solução', async () => {
     const previa = await importar({ t: [...TURNOS, ['Pronto', 'D', '08:00', '20:00', 12, '', ''], ['JES', 'B', '25:00', '08:00', 12, '', '']] });
     expect(previa.problemas).toEqual(
