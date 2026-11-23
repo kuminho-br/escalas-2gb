@@ -6,8 +6,8 @@ export type Quadro = 'clique' | 'chegada' | 'batida' | 'espera' | 'agua' | 'afas
 
 /** Os tempos da cena. A batida é sempre aos 0,50 s; a água nunca antes de 0,90 s; o erro nunca antes de 0,85 s. */
 export const TEMPOS = {
-  /** o cartão de login se desfaz */
-  cartao: 0.28,
+  /** o escuro fecha de vez: a partir daqui a tela por baixo da cena pode ser trocada */
+  coberta: 0.4,
   /** as mangueiras começam a entrar */
   chegada: 0.1,
   batida: 0.5,

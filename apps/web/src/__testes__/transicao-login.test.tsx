@@ -110,3 +110,49 @@ describe('a linha do tempo', () => {
     expect(mostraEntrando(3.2, recusada(3))).toBe(false);
   });
 });
+
+describe('o desenho de um quadro (achados da revisão final)', () => {
+  // um contexto que aceita qualquer desenho e anota o que foi chamado e o que foi atribuído
+  function contextoAnotado() {
+    const chamadas: Record<string, number> = {};
+    const atribuicoes: [string, unknown][] = [];
+    const fazer = (canvas: object) => {
+      const alvo: Record<string | symbol, unknown> = { canvas };
+      const ctx: unknown = new Proxy(alvo, {
+        get: (a, p) => (p in a ? a[p] : () => {
+          chamadas[String(p)] = (chamadas[String(p)] ?? 0) + 1;
+          return ctx;
+        }),
+        set: (a, p, v) => {
+          a[p] = v;
+          atribuicoes.push([String(p), v]);
+          return true;
+        },
+      });
+      return ctx as CanvasRenderingContext2D;
+    };
+    vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockImplementation(function (this: HTMLCanvasElement) {
+      return fazer(this);
+    } as never);
+    return { ctx: fazer({ width: 1280, height: 800 }), chamadas, atribuicoes };
+  }
+  const quadro = async (t: number, resposta: Resposta) => {
+    const { desenhar } = await import('@/lib/transicao-login/cena');
+    const c = contextoAnotado();
+    desenhar(c.ctx, { t, resposta, largura: 1280, altura: 800, faixa: null, imagem: {} as HTMLImageElement });
+    return c;
+  };
+  afterEach(() => vi.restoreAllMocks());
+
+  it('com o erro logo depois da batida, as faíscas e a onda de choque da batida continuam durante o recuo', async () => {
+    // erro aos 0,85 s: 0,36 s depois da batida ainda há faíscas douradas em voo e o anel da onda, além das 22 faíscas vermelhas
+    const { chamadas } = await quadro(0.86, { tipo: 'recusada', em: 0.1 });
+    expect(chamadas.stroke).toBeGreaterThan(30);
+  });
+
+  it('a franja de cor da batida não usa sombra peça a peça (que pintaria por dentro delas)', async () => {
+    const { atribuicoes } = await quadro(0.52, null);
+    expect(atribuicoes.filter(([p, v]) => p === 'shadowOffsetX' && v !== 0)).toEqual([]);
+    expect(atribuicoes.some(([p, v]) => p === 'globalCompositeOperation' && v === 'source-in')).toBe(true);
+  });
+});

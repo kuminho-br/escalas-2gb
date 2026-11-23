@@ -135,14 +135,14 @@ describe('entrar com a animação', () => {
     depoisDeEntrar(api);
     await preencherEEntrar();
     await assentar();
-    // aprovada logo depois do clique: a tela de login só dá lugar à inicial quando a água começa (0,90 s) e a cena cobre tudo
-    await avancar(0.6);
+    // aprovada logo depois do clique: a tela de login só dá lugar à inicial quando o escuro cobre tudo (0,40 s)
+    await avancar(0.3);
     await assentar();
     expect(router.state.location.pathname).toBe('/entrar');
-    await avancar(0.95);
+    await avancar(0.45);
     await waitFor(() => expect(router.state.location.pathname).toBe('/'));
     const titulo = await screen.findByRole('heading', { level: 1 });
-    // as boas-vindas chegam 1,7 s depois da água
+    // a água só começa com a tela inicial já montada, nunca antes de 0,90 s; as boas-vindas chegam 1,7 s depois dela
     await avancar(1);
     await avancar(2.5);
     expect(localStorage.getItem(CHAVE)).toBeNull();
@@ -150,6 +150,47 @@ describe('entrar com a animação', () => {
     await avancar(2.65);
     expect(localStorage.getItem(CHAVE)).not.toBeNull();
     await waitFor(() => expect(titulo).toHaveFocus());
+  });
+
+  it('a tela inicial que demora a montar segura a água: a cena espera na junta e pousa do mesmo jeito (achado da revisão final)', async () => {
+    const api = simularApi({ '/api/eu': { status: 401 } });
+    const router = abrir('/entrar');
+    await screen.findByLabelText('E-mail');
+    depoisDeEntrar(api);
+    await preencherEEntrar();
+    await assentar();
+    // o escuro cobre a tela aos 0,40 s e a troca de tela começa; a tela inicial só fica pronta aos 3 s (o relógio salta enquanto ela monta)
+    await act(async () => {
+      const f = pendente;
+      pendente = null;
+      agora = 450;
+      f?.(agora);
+      agora = 3000;
+      await Promise.resolve();
+    });
+    await waitFor(() => expect(router.state.location.pathname).toBe('/'));
+    await screen.findByRole('heading', { level: 1 });
+    // a cena esperou na junta: a água começa aos 3 s, e não aos 0,90 s; as boas-vindas vêm 1,7 s depois dela
+    await avancar(3.1);
+    await avancar(4.5);
+    expect(screen.getByRole('main').closest('[inert]')).not.toBeNull();
+    expect(localStorage.getItem(CHAVE)).toBeNull();
+    await avancar(4.75);
+    expect(localStorage.getItem(CHAVE)).not.toBeNull();
+  });
+
+  it('se o desenho de um quadro falhar, a cena não prende a tela: o erro do servidor aparece do mesmo jeito (achado da revisão final)', async () => {
+    simularApi({ '/api/eu': { status: 401 }, '/api/auth/sign-in/email': 'rede' });
+    abrir('/entrar');
+    await preencherEEntrar();
+    await assentar();
+    vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockImplementation(() => {
+      throw new Error('canvas quebrou');
+    });
+    await avancar(0.6);
+    await avancar(1.4);
+    expect(await screen.findByText('Não foi possível falar com o servidor. Tente de novo.')).toBeInTheDocument();
+    expect(cartaoEscondido()).toBe(false);
   });
 
   it('a segunda entrada dentro das 12 h é curta: não inicia a animação', async () => {

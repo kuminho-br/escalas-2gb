@@ -6,7 +6,7 @@ import { authCliente } from '@/auth-cliente';
 import { Button } from '@/componentes/ui/button';
 import { Input } from '@/componentes/ui/input';
 import { Label } from '@/componentes/ui/label';
-import { aprovar, cenaPronta, iniciar, preparar, recusar, useTransicao } from '@/lib/transicao-login/armazem';
+import { aprovar, cenaPronta, cobrir, iniciar, preparar, recusar, useTransicao } from '@/lib/transicao-login/armazem';
 import { entradaDaVez, lerUltimaInteira, pedeMenosMovimento } from '@/lib/transicao-login/regra';
 
 /** Só caminho interno do próprio site (começa com uma barra, não com duas nem com barra e contrabarra): nada que mande a pessoa para fora. */
@@ -74,12 +74,14 @@ function Entrar() {
       saida.marcar(false);
       // busca de novo: o cache pode guardar "sem sessão" da visita anterior
       await queryClient.fetchQuery({ ...consultaEu, staleTime: 0 });
-      // a água só corre com tudo certo; a tela inicial entra por baixo da cena, quando ela cobre a tela toda
-      if (inteira) await aprovar();
+      // com a cena, a tela inicial entra por baixo dela, depois que o escuro cobre a tela toda
+      if (inteira) await cobrir();
       // depois de uma sessão que terminou, volta para a página em que a pessoa estava
       if (voltar) router.history.push(voltar);
       // na entrada curta, o login se desfaz sobre as boas-vindas (0,3 s, no estilo.css), se o navegador souber e o aparelho não pedir menos movimento
       else await navigate({ to: '/', viewTransition: !inteira && !menosMovimento });
+      // a água só corre com a tela inicial já montada (até lá a cena espera na junta), para a câmera ter onde pousar
+      if (inteira) aprovar();
     } catch {
       await falhar(ERRO_REDE);
     } finally {

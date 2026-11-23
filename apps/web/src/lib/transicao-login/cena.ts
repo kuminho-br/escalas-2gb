@@ -120,6 +120,8 @@ type Recortes = {
   entorno: HTMLCanvasElement;
   mangE: Recorte; mangD: Recorte; mangEv: HTMLCanvasElement; mangDv: HTMLCanvasElement; tmpE: HTMLCanvasElement; tmpD: HTMLCanvasElement;
   anel: Recorte; luva: Recorte; garraC: Recorte; garraB: Recorte; luz: HTMLCanvasElement;
+  /** auxiliares da franja de cor da batida, do tamanho da tela só enquanto ela dura */
+  franja: HTMLCanvasElement; silhueta: HTMLCanvasElement;
 };
 const ctxDe = (c: HTMLCanvasElement): Ctx => c.getContext('2d')!;
 
@@ -332,6 +334,8 @@ export function prepararRecortes(img: HTMLImageElement): Recortes {
     garraC: recorte(img, [P_GARRA_C], 286, 664, 54, 42),
     garraB: recorte(img, [P_GARRA_B], 290, 782, 54, 46),
     luz: cv(190, 250),
+    franja: cv(1, 1),
+    silhueta: cv(1, 1),
   };
   RECORTES.set(img, R);
   return R;
@@ -836,6 +840,8 @@ export function desenhar(ctx: Ctx, o: OpcoesDaCena): void {
   ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
   if (o.t < 0) return;
   if (s.th >= 0) {
+    // os auxiliares da franja já não servem: devolvem a memória
+    if (R.franja.width > 1) R.franja.width = R.franja.height = R.silhueta.width = R.silhueta.height = 1;
     desenharPouso(ctx, PR, L, s);
     return;
   }
@@ -854,14 +860,14 @@ export function desenhar(ctx: Ctx, o: OpcoesDaCena): void {
     ctx.rect(lam * f.bx, lam * f.by, L.W - lam * (L.W - f.bw), L.H - lam * (L.H - f.bh));
     ctx.clip();
   }
-  // a tela escurece quase até o preto, com o centro avermelhado; com a água, fecha de vez (a tela inicial já está por baixo)
+  // a tela escurece até fechar (0,40 s), com o centro avermelhado; depois disso a tela por baixo pode ser trocada sem aparecer
   const cx = 0.5 * L.W;
   const cy = 0.58 * L.H;
   const fundo = ctx.createRadialGradient(cx, cy, 0, cx, cy, Math.hypot(Math.max(cx, L.W - cx), Math.max(cy, L.H - cy)));
   fundo.addColorStop(0, '#2b0d0b');
   fundo.addColorStop(0.46, '#150605');
   fundo.addColorStop(1, '#070202');
-  ctx.globalAlpha = s.ta >= 0 ? 1 : s.escuro * 0.94;
+  ctx.globalAlpha = s.escuro;
   ctx.fillStyle = fundo;
   ctx.fillRect(0, 0, L.W, L.H);
   ctx.globalAlpha = 1;
@@ -876,23 +882,42 @@ export function desenhar(ctx: Ctx, o: OpcoesDaCena): void {
   }
   if (s.pecas) {
     ctx.setTransform(PR * cam.s, 0, 0, PR * cam.s, PR * (cam.tx + tr.x), PR * (cam.ty + tr.y));
-    // franja de cor no instante da batida: as peças ganham uma borda vermelha de um lado e azul do outro
+    // franja de cor no instante da batida: o conjunto das peças ganha uma borda vermelha de um lado e azul do outro. As peças vão para um
+    // `canvas` auxiliar e a silhueta dele, tingida, é colada deslocada por baixo (sombra peça a peça pintaria por dentro delas)
     const franja = s.ti >= 0 && s.ti < 0.3 ? 4.5 * Math.exp(-s.ti / 0.07) : 0;
     if (franja > 0.35) {
-      ctx.shadowBlur = 0;
-      ctx.shadowColor = 'rgba(255,70,40,.5)';
-      ctx.shadowOffsetX = franja * PR;
-      pecas(ctx, R, L, s, kj);
-      ctx.shadowColor = 'rgba(70,200,255,.4)';
-      ctx.shadowOffsetX = -franja * PR;
-      pecas(ctx, R, L, s, kj);
-      ctx.shadowColor = 'transparent';
-      ctx.shadowOffsetX = 0;
+      const cw = ctx.canvas.width;
+      const ch = ctx.canvas.height;
+      for (const c of [R.franja, R.silhueta]) {
+        if (c.width !== cw || c.height !== ch) {
+          c.width = cw;
+          c.height = ch;
+        }
+      }
+      const g = ctxDe(R.franja);
+      g.setTransform(1, 0, 0, 1, 0, 0);
+      g.clearRect(0, 0, cw, ch);
+      g.setTransform(PR * cam.s, 0, 0, PR * cam.s, PR * (cam.tx + tr.x), PR * (cam.ty + tr.y));
+      pecas(g, R, L, s, kj);
+      const sil = ctxDe(R.silhueta);
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      for (const [cor, lado] of [['rgba(255,70,40,.5)', 1], ['rgba(70,200,255,.4)', -1]] as const) {
+        sil.setTransform(1, 0, 0, 1, 0, 0);
+        sil.globalCompositeOperation = 'source-over';
+        sil.clearRect(0, 0, cw, ch);
+        sil.drawImage(R.franja, 0, 0);
+        sil.globalCompositeOperation = 'source-in';
+        sil.fillStyle = cor;
+        sil.fillRect(0, 0, cw, ch);
+        ctx.drawImage(R.silhueta, lado * franja * PR, 0);
+      }
+      ctx.drawImage(R.franja, 0, 0);
+      ctx.setTransform(PR * cam.s, 0, 0, PR * cam.s, PR * (cam.tx + tr.x), PR * (cam.ty + tr.y));
     } else pecas(ctx, R, L, s, kj);
     // luzes
     ctx.globalCompositeOperation = 'lighter';
     if (s.carga > 0) brilhoRedondo(ctx, FOCO.x - 10, FOCO.y, 36 + 70 * s.carga, BRANCO, 0.5 * s.carga);
-    if (s.ti >= 0 && s.terr < 0) {
+    if (s.ti >= 0) {
       const a = Math.exp(-s.ti / 0.1);
       if (s.ti < 0.6) {
         brilhoRedondo(ctx, FOCO.x, FOCO.y, 430, BRANCO, 0.5 * a);

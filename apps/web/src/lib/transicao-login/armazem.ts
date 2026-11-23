@@ -95,7 +95,11 @@ function terminar() {
   sumirDesde = null;
   resolverErro();
   resolverCobertura();
-  pintor?.(null);
+  try {
+    pintor?.(null);
+  } catch {
+    // idem
+  }
   publicar(PARADA);
 }
 function tique() {
@@ -106,9 +110,8 @@ function tique() {
   const chegando = quadro === 'afastamento' || quadro === 'boas-vindas';
   if (chegando && sumirDesde === null && !document.querySelector(`[${MARCA_DA_FAIXA}]`)) sumirDesde = t;
 
-  // com a água, o fundo fecha de vez: é a hora de trocar a tela de login pela inicial, por baixo da cena
-  const agua = inicioDaAgua(resposta);
-  if (agua !== null && t >= agua) resolverCobertura();
+  // com o escuro fechado, a tela de login já pode dar lugar à inicial, por baixo da cena
+  if (t >= TEMPOS.coberta) resolverCobertura();
 
   let fim = false;
   if (sumirDesde !== null) {
@@ -136,7 +139,11 @@ function tique() {
     terminar();
     return;
   }
-  pintor?.({ t, resposta, imagem, botao, some: sumirDesde === null ? 1 : Math.max(0, 1 - (t - sumirDesde) / SUMICO) });
+  try {
+    pintor?.({ t, resposta, imagem, botao, some: sumirDesde === null ? 1 : Math.max(0, 1 - (t - sumirDesde) / SUMICO) });
+  } catch {
+    // um quadro que não deu para desenhar não pode prender a tela: a linha do tempo segue, e as promessas se cumprem na hora delas
+  }
   pedido = relogio.quadro(tique);
 }
 
@@ -156,14 +163,21 @@ export function iniciar(doBotao?: DOMRect | null): void {
 }
 
 /**
- * O servidor aprovou: a água começa (nunca antes de 0,90 s) e a cena segue até as boas-vindas. A promessa se cumpre quando a água começa e a
- * cena cobre a tela toda (ou na hora, sem cena tocando): só então a tela de login deve dar lugar à inicial, para a troca não aparecer.
+ * Cumpre-se quando o escuro cobre a tela toda (0,40 s depois do clique), ou na hora, sem cena tocando. Só então a tela de login deve dar
+ * lugar à inicial, para a troca não aparecer por baixo da cena.
  */
-export function aprovar(): Promise<void> {
-  if (t0 === null) return Promise.resolve();
-  if (!resposta) resposta = { tipo: 'aprovada', em: (relogio.agora() - t0) / 1000 };
-  if (resposta.tipo !== 'aprovada') return Promise.resolve();
+export function cobrir(): Promise<void> {
+  if (t0 === null || (relogio.agora() - t0) / 1000 >= TEMPOS.coberta) return Promise.resolve();
   return new Promise((resolve) => aoCobrir.push(resolve));
+}
+
+/**
+ * O servidor aprovou e a tela inicial já está montada por baixo da cena: a água começa (nunca antes de 0,90 s) e a cena segue até as
+ * boas-vindas. Enquanto isto não é chamado, a cena espera na junta travada.
+ */
+export function aprovar(): void {
+  if (t0 === null || resposta) return;
+  resposta = { tipo: 'aprovada', em: (relogio.agora() - t0) / 1000 };
 }
 
 /** O servidor recusou ou não respondeu: as mangueiras recuam. A promessa se cumpre quando o recuo acaba (ou na hora, sem cena tocando). */
