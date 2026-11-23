@@ -70,7 +70,7 @@ describe('mover a lotação pela hierarquia (6.23)', () => {
 
   it('a ficha diz que quem tem nível acima (no CBMPE, no grupamento, na divisão) altera a lotação, e quem tem só a seção não', async () => {
     const id = await militar(u.naDA);
-    for (const [papel, unidade, esperado] of [['gestor', api.ids.raiz, true], ['administrador', api.ids.raiz, true], ['gestor', u.gb, true], ['chefe_divisao', u.da, true], ['escalante', u.da, true], ['escalante', u.naDA, false]] as const) {
+    for (const [papel, unidade, esperado] of [['gestor', api.ids.raiz, true], ['administrador', api.ids.raiz, true], ['gestor', u.gb, true], ['gestor_lateral', u.da, true], ['escalante', u.da, true], ['escalante', u.naDA, false]] as const) {
       const quem = await ator(papel, unidade);
       const f = await (await quem.pedir('GET', `/api/militares/${id}`)).json();
       expect(f.podeEditar.peculio, `${papel} em ${unidade}`).toBe(esperado);
@@ -87,14 +87,14 @@ describe('mover a lotação pela hierarquia (6.23)', () => {
   it('depois de mover uma seção para dentro de uma divisão (pelo cadastro de estrutura), o nível no CBMPE e no grupamento continuam movendo os militares dela', async () => {
     const gestorGb = await ator('gestor', u.gb);
     const sb = await secao('SB-PARA-DIVISAO', u.gb);
-    expect((await api.pedir('admin', 'PUT', `/api/secoes/${sb}/divisao`, { divisaoId: u.divOp })).status).toBe(200);
+    expect((await api.pedir('admin', 'PATCH', `/api/unidades/${sb}`, { maeId: u.divOp })).status).toBe(200);
     const id = await militar(sb);
     const doCbmpe = await ator('gestor', api.ids.raiz);
     expect((await mover(doCbmpe, id, u.secaoSemDivisao)).status).toBeLessThan(300);
     const outro = await militar(sb);
     expect((await mover(gestorGb, outro, u.naDA)).status).toBeLessThan(300);
     // e de volta para fora da divisão
-    expect((await api.pedir('admin', 'PUT', `/api/secoes/${sb}/divisao`, { divisaoId: null })).status).toBe(200);
+    expect((await api.pedir('admin', 'PATCH', `/api/unidades/${sb}`, { maeId: u.gb })).status).toBe(200);
     const terceiro = await militar(sb);
     expect((await mover(doCbmpe, terceiro, u.naDivOp)).status).toBeLessThan(300);
   });
@@ -105,7 +105,7 @@ describe('mover a lotação pela hierarquia (6.23)', () => {
   });
 
   it('chefe de divisão na DA move entre duas seções da DA; para uma seção da DivOp, 403', async () => {
-    const quem = await ator('chefe_divisao', u.da);
+    const quem = await ator('gestor_lateral', u.da);
     const id = await militar(u.naDA);
     expect((await mover(quem, id, u.naDA2)).status).toBeLessThan(300);
     expect((await mover(quem, id, u.naDivOp)).status).toBe(403);
@@ -143,9 +143,9 @@ describe('mover a lotação pela hierarquia (6.23)', () => {
 });
 
 describe('a lista de destinos (6.23)', () => {
-  it('traz todas as seções abaixo das unidades em que a pessoa tem nível, de qualquer grupamento, com o grupamento quando a sigla se repete', async () => {
+  it('traz todas as unidades abaixo das unidades em que a pessoa tem nível, de qualquer grupamento, com o grupamento quando a sigla se repete', async () => {
     const quem = await ator('gestor', api.ids.raiz);
-    const lista: { id: string; sigla: string }[] = await (await quem.pedir('GET', '/api/secoes')).json();
+    const lista: { id: string; sigla: string }[] = await (await quem.pedir('GET', '/api/unidades-de-lotacao')).json();
     const siglas = lista.map((s) => s.sigla);
     expect(lista.map((s) => s.id)).toEqual(expect.arrayContaining([u.sb2, u.sbDoOutroGb, u.naDA, u.naDivOp, u.secaoSemDivisao]));
     expect(siglas).toContain('2ª SB (2º GB)');
@@ -156,7 +156,7 @@ describe('a lista de destinos (6.23)', () => {
 
   it('quem tem nível só numa seção vê só ela', async () => {
     const quem = await ator('escalante', u.naDA);
-    const lista: { sigla: string }[] = await (await quem.pedir('GET', '/api/secoes')).json();
+    const lista: { sigla: string }[] = await (await quem.pedir('GET', '/api/unidades-de-lotacao')).json();
     expect(lista.map((s) => s.sigla)).toEqual(['SB-DA-1']);
   });
 });
@@ -227,12 +227,10 @@ describe('achados da revisão final da 6.23', () => {
     expect((await (await api.pedir('admin', 'GET', `/api/militares/${outro}`)).json()).rastreio[0].unidadeSigla).toBe('SB-DA-1');
   });
 
-  it('"Alterar situação" para uma unidade que não é seção é 400', async () => {
+  it('"Alterar situação" aceita qualquer unidade, de qualquer tipo: um grupamento também (6.25)', async () => {
     const id = await militar(u.sb2);
     const r = await mover({ pedir: (m, c, b) => api.pedir('admin', m, c, b) } as Pessoa, id, u.gb);
-    expect(r.status).toBe(400);
-    expect((await r.json()).campos.unidadeId).toBe('Escolha uma seção.');
-    expect(await lotacaoAtual(id)).toBe('2ª SB');
+    expect(r.status).toBeLessThan(300);
+    expect(await lotacaoAtual(id)).toBe('2º GB');
   });
 });
-

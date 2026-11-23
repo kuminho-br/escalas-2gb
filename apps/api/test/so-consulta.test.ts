@@ -73,7 +73,7 @@ beforeAll(async () => {
             telefone = '(81) 99999-0001', email = 'alheio@bombeiros.pe.gov.br' where id = $1`,
     [ids.militares],
   );
-  chefe = await entrarComo(api, { matricula: '990851-1', nome: 'SCHEFE', nivel: { papel: 'chefe_divisao', unidadeId: divOp } });
+  chefe = await entrarComo(api, { matricula: '990851-1', nome: 'SCHEFE', nivel: { papel: 'gestor_lateral', unidadeId: divOp } });
   comum = await entrarComo(api, { matricula: '990854-4', nome: 'SCOMUM' });
   oficial = await entrarComo(api, { matricula: '990852-2', nome: 'SOFICIAL', posto: 'CAP' });
   await inserir(api.banco, 'rastreio', { militar_id: oficial.militarId, unidade_id: sb1, jornada: 'adm', desde: dia1, quadro_id: quadro.QOC });
@@ -83,18 +83,20 @@ afterAll(async () => {
 });
 
 describe('as leituras das cinco telas, para quem vê a escala em montagem', () => {
-  it('o chefe de divisão lê as cinco telas de uma seção da divisão irmã (200 em cada GET)', async () => {
+  it('o quinto nível lê as cinco telas de uma seção da unidade irmã (200 em cada GET)', async () => {
     expect(await statusDasLeituras(chefe)).toEqual(todas(200));
   });
 
-  it('as leituras de uma seção que ele não alcança por nenhuma camada continuam 403: a seção de outro grupamento e a que está direto no grupamento', async () => {
+  it('as leituras de uma unidade que ele não alcança por nenhuma camada continuam 403: a de outro grupamento e a unidade de cima', async () => {
     const gb9 = await inserir(api.banco, 'unidade', { tipo: 'grupamento', sigla: '9º GB', nome: '9º Grupamento', mae_id: api.ids.raiz, desde: '2026-11-01' });
     const sb9 = await inserir(api.banco, 'unidade', { tipo: 'secao', sigla: '9ª SB', nome: '9ª Seção', mae_id: gb9, desde: '2026-11-01' });
     const sb3 = (await api.banco.query<{ id: string }>("select id from unidade where sigla = '3ª SB'")).rows[0]!.id;
-    for (const unidade of [sb9, sb3, gb9, api.ids.gb]) {
+    for (const unidade of [sb9, gb9, api.ids.gb]) {
       expect((await chefe.pedir('GET', `/api/unidades/${unidade}/grade/${mes}`)).status, unidade).toBe(403);
       expect((await chefe.pedir('GET', `/api/unidades/${unidade}/cotas?mes=${proximo}`)).status, unidade).toBe(403);
     }
+    // a seção direto no grupamento é irmã da DivOp (mesma unidade de cima): o tipo não conta, e ele a lê
+    expect((await chefe.pedir('GET', `/api/unidades/${sb3}/grade/${mes}`)).status).toBe(200);
   });
 
   it('quem tem nível de acesso na unidade continua lendo como antes: o auxiliar da seção, o gestor do grupamento e o administrador', async () => {
@@ -109,7 +111,7 @@ describe('as leituras das cinco telas, para quem vê a escala em montagem', () =
     expect((await chefe.pedir('GET', `/api/unidades/${da}/cotas?mes=${proximo}`)).status).toBe(200);
   });
 
-  it('todo pedido que não é um desses GET, na seção da outra divisão, responde 403 ao chefe de divisão (a mesma varredura do isolamento)', async () => {
+  it('todo pedido que não é um desses GET, na seção da outra unidade irmã, responde 403 ao quinto nível (a mesma varredura do isolamento)', async () => {
     const rotas = rotasDaVarredura(hono, ids, outra);
     // a lista escrita acima existe de verdade nas rotas do sistema (um erro de digitação deixaria uma rota de leitura sem teste)
     for (const modelo of LEITURAS) expect(rotas.some((r) => r.metodo === 'GET' && r.modelo === modelo), modelo).toBe(true);
@@ -199,12 +201,13 @@ describe('/api/eu: as unidades só para consulta', () => {
   const eu = async (quem: Parameters<typeof ler>[0]) => (await (await ler(quem, '/api/eu')).json()) as { unidades: { sigla: string; id: string; nivel: number; tipo: string; caminho: string[] }[]; unidadesSoConsulta: { sigla: string; id: string; nivel: number; tipo: string; caminho: string[] }[] };
   const siglas = (l: { sigla: string }[]) => l.map((u) => u.sigla);
 
-  it('o chefe da DivOp tem a DivOp e a 1ª SB para trabalhar, e a DA e a seção dela só para consulta, na ordem da árvore', async () => {
+  it('o quinto nível na DivOp tem a DivOp e a 1ª SB para trabalhar, e as irmãs (a DA, as seções direto no 2º GB) e o que há abaixo delas só para consulta, na ordem da árvore', async () => {
     const r = await eu(chefe);
     expect(siglas(r.unidades)).toEqual(['DivOp', '1ª SB']);
-    expect(siglas(r.unidadesSoConsulta)).toEqual(['DA', '2ª SB']);
-    expect(r.unidadesSoConsulta[0]).toMatchObject({ id: da, tipo: 'divisao', nivel: r.unidades[0]!.nivel });
-    expect(r.unidadesSoConsulta[1]!.caminho.slice(-3)).toEqual(['2º GB', 'DA', '2ª SB']);
+    // as irmãs da DivOp (todas as filhas do 2º GB, de qualquer tipo: as seções direto nele também) e o que há abaixo delas, na ordem da árvore
+    expect(siglas(r.unidadesSoConsulta)).toEqual(['2ª SB', '3ª SB', '4ª SB', '5ª SB', '6ª SB', '7ª SB', 'DA', '2ª SB']);
+    expect(r.unidadesSoConsulta[6]).toMatchObject({ id: da, tipo: 'divisao', nivel: r.unidades[0]!.nivel });
+    expect(r.unidadesSoConsulta[7]!.caminho.slice(-3)).toEqual(['2º GB', 'DA', '2ª SB']);
     // nenhuma unidade está nas duas listas
     expect(r.unidadesSoConsulta.filter((u) => r.unidades.some((x) => x.id === u.id))).toEqual([]);
   });
@@ -213,7 +216,7 @@ describe('/api/eu: as unidades só para consulta', () => {
     const gb7 = await inserir(api.banco, 'unidade', { tipo: 'grupamento', sigla: '7º GB', nome: '7º Grupamento', mae_id: api.ids.raiz, desde: '2026-11-01' });
     const unica = await inserir(api.banco, 'unidade', { tipo: 'divisao', sigla: 'DivÚnica', nome: 'Divisão única', mae_id: gb7, desde: '2026-11-01' });
     await inserir(api.banco, 'unidade', { tipo: 'secao', sigla: '7ª SB', nome: '7ª Seção', mae_id: unica, desde: '2026-11-01' });
-    const solitario = await entrarComo(api, { matricula: '990853-3', nome: 'SSOLO', nivel: { papel: 'chefe_divisao', unidadeId: unica } });
+    const solitario = await entrarComo(api, { matricula: '990853-3', nome: 'SSOLO', nivel: { papel: 'gestor_lateral', unidadeId: unica } });
     const r = await eu(solitario);
     expect(siglas(r.unidades)).toEqual(['DivÚnica', '7ª SB']);
     expect(r.unidadesSoConsulta).toEqual([]);
@@ -248,12 +251,12 @@ describe('/api/eu: as unidades só para consulta', () => {
   });
 
   it('com a marca ligada para o chefe de divisão desligada, ele não tem unidade só para consulta', async () => {
-    await marca('escala_em_montagem', 'chefe_divisao', false);
+    await marca('escala_em_montagem', 'gestor_lateral', false);
     try {
       expect((await eu(chefe)).unidadesSoConsulta).toEqual([]);
       expect((await ler(chefe, `/api/unidades/${outra}/grade/${mes}`)).status).toBe(403);
     } finally {
-      await marca('escala_em_montagem', 'chefe_divisao', true);
+      await marca('escala_em_montagem', 'gestor_lateral', true);
     }
   });
 });

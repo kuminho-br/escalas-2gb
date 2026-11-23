@@ -27,7 +27,7 @@ const reativar = (id: string) => api.banco.query('update servico set ativo = tru
 
 beforeAll(async () => {
   api = await montarApi();
-  outraSecao = await inserir(api.banco, 'unidade', { tipo: 'secao', sigla: '2ª SB', nome: '2ª Seção de Bombeiros', mae_id: api.ids.gb, desde: '2026-11-01' });
+  outraSecao = (await api.banco.query<{ id: string }>("select id from unidade where sigla = '2ª SB' and mae_id = $1", [api.ids.gb])).rows[0]!.id; // a 2ª SB da carga base (a sigla não se repete entre irmãs)
   jes = await servico(api.ids.secao, 'JES', 'pjes', '#6E56A8');
   peSeguro = await servico(api.ids.secao, 'PE Seguro', 'diaria', '#3C5F9C');
   bioma = await servico(api.ids.secao, 'Bioma', 'diaria', '#C08A1E');

@@ -373,10 +373,10 @@ describe('unidade de trabalho (fase 6)', () => {
     await waitFor(() => expect(router.state.location.pathname).toBe('/entrar'));
   });
 
-  it('a Escala do mês com o 2º GB escolhido pede para escolher uma seção (Review Focus 2; texto novo na 6.16)', async () => {
+  it('a Escala do mês com o 2º GB escolhido, sem escalas, diz "Crie uma em Escalas" como em qualquer unidade (6.25)', async () => {
     localStorage.setItem('unidade-de-trabalho', 'u-gb');
     simularApi({ '/api/eu': { status: 200, corpo: GESTOR }, 'GET /api/unidades/u-gb/escalas': { status: 200, corpo: [] } });
     abrir('/escala-do-mes');
-    expect(await screen.findByText('Escolha uma seção no seletor de unidade para ver a escala.')).toBeInTheDocument();
+    expect(await screen.findByText(/Nenhuma escala ativa\./)).toHaveTextContent('Nenhuma escala ativa. Crie uma em Escalas.');
   });
 });

@@ -1,44 +1,51 @@
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import type { NoDaEstrutura, UnidadeDeTrabalho } from 'contratos';
-import { useState, type FormEvent } from 'react';
-import { camposDe, mensagemDe } from '@/api/cliente';
-import { consultaEstrutura, criarDivisao, moverSecao, renomearDivisao } from '@/api/estrutura';
-import { useTrava } from '@/componentes/AlteracoesPendentes';
+import { useQuery } from '@tanstack/react-query';
+import type { NoDaArvore, UnidadeDeTrabalho } from 'contratos';
+import { ChevronRight, Ellipsis } from 'lucide-react';
+import { useState } from 'react';
+import { mensagemDe } from '@/api/cliente';
+import { consultaEstrutura, consultaTiposDeUnidade } from '@/api/estrutura';
+import { ExcluirUnidade, ExtinguirUnidade, MoverUnidade, NovaUnidadeAbaixo, RenomearUnidade } from '@/componentes/configuracoes/AcoesDaEstrutura';
 import { Campo } from '@/componentes/Campo';
 import { Selecao } from '@/componentes/Selecao';
 import { Button } from '@/componentes/ui/button';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/componentes/ui/dialog';
-import { Input } from '@/componentes/ui/input';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/componentes/ui/dropdown-menu';
 
-const AVISO_AO_MOVER = 'Mover a seção muda na hora quem tem acesso a ela.';
+type Acao = { qual: 'nova' | 'renomear' | 'mover' | 'extinguir' | 'excluir'; no: NoDaArvore };
 
-type Movimento = { secao: NoDaEstrutura; de: NoDaEstrutura | null; para: NoDaEstrutura | null };
+const total = (no: NoDaArvore): number => 1 + no.filhas.reduce((n, f) => n + total(f), 0);
+/** Uma árvore grande abre só até a segunda linha de baixo; uma pequena abre inteira. */
+function recolhidasNoComeco(raiz: NoDaArvore): Set<string> {
+  const fechadas = new Set<string>();
+  if (total(raiz) <= 40) return fechadas;
+  const percorrer = (no: NoDaArvore, profundidade: number) => {
+    if (profundidade >= 2 && no.filhas.length) fechadas.add(no.id);
+    no.filhas.forEach((f) => percorrer(f, profundidade + 1));
+  };
+  percorrer(raiz, 0);
+  return fechadas;
+}
+
+const lotados = (n: number) => `${n} ${n === 1 ? 'lotado' : 'lotados'}`;
+/** Excluir só existe para a unidade sem nada ligado: nem filhas (ainda que extintas), nem militares, nem histórico. */
+const semNadaLigado = (no: NoDaArvore) => no.ligados.unidades === 0 && no.ligados.militaresHoje === 0 && no.ligados.historico.length === 0;
 
 /**
- * A estrutura do grupamento (entrega 6.10): as divisões, com as seções de dentro, e as seções sem divisão. O gestor do grupamento e o
- * administrador criam e renomeiam divisões e põem cada seção numa divisão (ou a tiram), pelo seletor "Divisão" da seção.
+ * A árvore de unidades (entrega 6.25), editável: cada unidade mostra sigla, nome, tipo e quantos militares estão lotados nela hoje, e o menu da linha
+ * traz só o que a pessoa pode fazer. O administrador edita tudo; o gestor, da sua unidade para baixo; quem só tem nível de auxiliar vê.
  */
-export function Estrutura({ grupamentos, inicial }: { grupamentos: UnidadeDeTrabalho[]; inicial: string }) {
-  const [grupamentoId, setGrupamentoId] = useState(inicial);
-  const queryClient = useQueryClient();
-  const { data: gb, error, isPending } = useQuery(consultaEstrutura(grupamentoId));
-  // um formulário por vez: a divisão nova ou a que está sendo renomeada
-  const [aberto, setAberto] = useState<'nova' | string | null>(null);
-  const [movimento, setMovimento] = useState<Movimento | null>(null);
+export function Estrutura({ raizes }: { raizes: UnidadeDeTrabalho[] }) {
+  const [raizId, setRaizId] = useState(raizes[0]?.id);
+  const { data: arvore, error, isPending } = useQuery(consultaEstrutura(raizId));
+  const tipos = useQuery(consultaTiposDeUnidade);
+  const [acao, setAcao] = useState<Acao | null>(null);
+  // as unidades recolhidas pela pessoa; o começo depende do tamanho da árvore
+  const [fechadas, setFechadas] = useState<{ raiz: string; ids: Set<string> } | null>(null);
 
-  const atualizar = async () => {
-    await queryClient.invalidateQueries({ queryKey: ['estrutura', grupamentoId] });
-    // os caminhos das unidades mudam (o seletor de unidade e o que cada um alcança)
-    void queryClient.invalidateQueries({ queryKey: ['eu'] });
-  };
-  // mover uma seção muda o que ela herda da divisão (parâmetros, feriados, funções): o que já foi carregado dela fica velho, e as telas buscam de novo
-  const atualizarTudo = () => void queryClient.invalidateQueries();
-
-  const seletor = grupamentos.length > 1 && (
+  const seletor = raizes.length > 1 && (
     <div className="mb-4 max-w-xs">
-      <Campo id="estrutura-grupamento" rotulo="Grupamento">
-        <Selecao id="estrutura-grupamento" value={grupamentoId} onChange={(e) => { setAberto(null); setGrupamentoId(e.target.value); }}>
-          {grupamentos.map((g) => <option key={g.id} value={g.id}>{g.sigla}</option>)}
+      <Campo id="estrutura-raiz" rotulo="Árvore de">
+        <Selecao id="estrutura-raiz" value={raizId} onChange={(e) => { setAcao(null); setFechadas(null); setRaizId(e.target.value); }}>
+          {raizes.map((r) => <option key={r.id} value={r.id}>{r.sigla}</option>)}
         </Selecao>
       </Campo>
     </div>
@@ -46,161 +53,68 @@ export function Estrutura({ grupamentos, inicial }: { grupamentos: UnidadeDeTrab
   if (isPending) return <>{seletor}<p className="py-6 text-apagado">Carregando…</p></>;
   if (error) return <>{seletor}<p role="alert" className="py-6 text-alerta">{mensagemDe(error)}</p></>;
 
-  const divisoes = gb.filhas.filter((f) => f.tipo === 'divisao');
-  const semDivisao = gb.filhas.filter((f) => f.tipo === 'secao');
-  const linhaDaSecao = (secao: NoDaEstrutura, divisao: NoDaEstrutura | null) => (
-    <li key={secao.id} className={`flex flex-wrap items-center gap-x-3 gap-y-1.5 py-2.5 pr-4 ${divisao ? 'pl-10' : 'pl-4'}`}>
-      <span data-sigla className="w-20 shrink-0 font-cond font-semibold">{secao.sigla}</span>
-      <span className="min-w-0 flex-1 truncate text-sm text-apagado">{secao.nome}</span>
-      <Selecao
-        aria-label={`Divisão de ${secao.sigla}`}
-        className="w-40"
-        value={divisao?.id ?? ''}
-        onChange={(e) => setMovimento({ secao, de: divisao, para: divisoes.find((d) => d.id === e.target.value) ?? null })}
-      >
-        <option value="">Sem divisão</option>
-        {divisoes.map((d) => <option key={d.id} value={d.id}>{d.sigla}</option>)}
-      </Selecao>
-    </li>
-  );
+  const recolhidas = fechadas?.raiz === arvore.id ? fechadas.ids : recolhidasNoComeco(arvore);
+  const alternar = (id: string) => {
+    const novas = new Set(recolhidas);
+    if (!novas.delete(id)) novas.add(id);
+    setFechadas({ raiz: arvore.id, ids: novas });
+  };
+
+  const linha = (no: NoDaArvore, profundidade: number) => {
+    const aberta = !recolhidas.has(no.id);
+    const temFilhas = no.filhas.length > 0;
+    const podeMexer = no.podeEditar || no.podeReorganizar;
+    return (
+      <li key={no.id} data-sigla={no.sigla}>
+        <div className="group flex flex-wrap items-center gap-x-2 gap-y-0.5 rounded-md py-1.5 pr-1 pl-1 hover:bg-fundo/70">
+          {temFilhas ? (
+            <Button type="button" variant="ghost" size="icon-sm" aria-expanded={aberta} aria-label={`${aberta ? 'Recolher' : 'Abrir'} ${no.sigla}`} onClick={() => alternar(no.id)}>
+              <ChevronRight aria-hidden className={`size-4 transition-transform ${aberta ? 'rotate-90' : ''}`} />
+            </Button>
+          ) : <span aria-hidden className="size-8 shrink-0" />}
+          <span className={`font-cond text-[17px] font-semibold ${profundidade === 0 ? 'text-vinho' : ''}`}>{no.sigla}</span>
+          <span className="min-w-0 flex-[1_1_9rem] truncate text-sm text-apagado">{no.nome}</span>
+          <span className="rounded border border-linha px-1.5 text-[13px] text-apagado">{no.tipo.nome}</span>
+          {no.ligados.militaresHoje > 0 && <span className="text-[13px] text-apagado">{lotados(no.ligados.militaresHoje)}</span>}
+          {no.ate && <span className="text-[13px] text-alerta">{`até ${no.ate.split('-').reverse().join('/')}`}</span>}
+          {podeMexer ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button type="button" variant="ghost" size="icon-sm" className="ml-auto" aria-label={`Ações de ${no.sigla}`}><Ellipsis aria-hidden className="size-4" /></Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="min-w-48">
+                {no.podeEditar && <DropdownMenuItem onSelect={() => setAcao({ qual: 'nova', no })}>Nova unidade abaixo</DropdownMenuItem>}
+                {no.podeEditar && <DropdownMenuItem onSelect={() => setAcao({ qual: 'renomear', no })}>Renomear</DropdownMenuItem>}
+                {no.podeReorganizar && <DropdownMenuItem onSelect={() => setAcao({ qual: 'mover', no })}>Mover para…</DropdownMenuItem>}
+                {no.podeReorganizar && <DropdownMenuItem onSelect={() => setAcao({ qual: 'extinguir', no })}>Extinguir</DropdownMenuItem>}
+                {no.podeReorganizar && semNadaLigado(no) && <DropdownMenuItem variant="destructive" onSelect={() => setAcao({ qual: 'excluir', no })}>Excluir</DropdownMenuItem>}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : <span aria-hidden className="ml-auto" />}
+        </div>
+        {temFilhas && aberta && (
+          <ul aria-label={`Dentro de ${no.sigla}`} className="ml-4 border-l border-linha pl-2">
+            {no.filhas.map((f) => linha(f, profundidade + 1))}
+          </ul>
+        )}
+      </li>
+    );
+  };
 
   return (
-    <div className="max-w-2xl">
+    <div className="max-w-3xl">
       {seletor}
       <div className="rounded-xl border border-linha bg-superficie">
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-linha px-4 py-3">
-          <p className="text-sm text-apagado">
-            As divisões e as seções de <strong className="text-tinta">{gb.sigla}</strong>. Quem tem nível de acesso numa divisão alcança as seções de dentro dela.
-          </p>
-          {aberto === null && <Button size="sm" variant="outline" onClick={() => setAberto('nova')}>Nova divisão</Button>}
-        </div>
-        {aberto === 'nova' && (
-          <FormularioDaDivisao
-            rotuloDoBotao="Criar divisão"
-            aoSalvar={(d) => criarDivisao(grupamentoId, d)}
-            aoFechar={() => setAberto(null)}
-            aoGravar={atualizar}
-          />
-        )}
-        <ul aria-label={`Estrutura de ${gb.sigla}`} className="divide-y divide-linha">
-          {divisoes.flatMap((d) => [
-            aberto === d.id ? (
-              <li key={d.id}>
-                <FormularioDaDivisao
-                  divisao={d}
-                  rotuloDoBotao="Salvar"
-                  aoSalvar={(dados) => renomearDivisao(d.id, dados)}
-                  aoFechar={() => setAberto(null)}
-                  aoGravar={atualizar}
-                />
-              </li>
-            ) : (
-              <li key={d.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 bg-fundo/60 px-4 py-2.5">
-                <span data-sigla className="w-20 shrink-0 font-cond font-semibold">{d.sigla}</span>
-                <span className="min-w-0 flex-1 truncate text-sm">{d.nome}</span>
-                {d.filhas.length === 0 && <span className="text-xs text-apagado">Sem seções</span>}
-                {aberto === null && <Button size="sm" variant="ghost" aria-label={`Renomear ${d.sigla}`} onClick={() => setAberto(d.id)}>Renomear</Button>}
-              </li>
-            ),
-            ...d.filhas.map((s) => linhaDaSecao(s, d)),
-          ])}
-          {semDivisao.map((s) => linhaDaSecao(s, null))}
-        </ul>
+        <p className="border-b border-linha px-4 py-3 text-sm text-apagado">
+          As unidades de <strong className="text-tinta">{arvore.sigla}</strong> para baixo. {arvore.podeEditar ? 'O menu de cada linha mostra o que você pode fazer nela.' : 'Você só consulta: quem muda a estrutura é o gestor.'}
+        </p>
+        <ul aria-label={`Estrutura de ${arvore.sigla}`} className="p-2">{linha(arvore, 0)}</ul>
       </div>
-      {movimento && (
-        <ConfirmarMovimento
-          movimento={movimento}
-          aoFechar={() => setMovimento(null)}
-          aoMover={async () => {
-            const arvore = await moverSecao(movimento.secao.id, movimento.para?.id ?? null);
-            queryClient.setQueryData(['estrutura', grupamentoId], arvore);
-            atualizarTudo();
-          }}
-        />
-      )}
+      {acao?.qual === 'nova' && <NovaUnidadeAbaixo no={acao.no} tipos={tipos.data ?? []} aoFechar={() => setAcao(null)} />}
+      {acao?.qual === 'renomear' && <RenomearUnidade no={acao.no} tipos={tipos.data ?? []} aoFechar={() => setAcao(null)} />}
+      {acao?.qual === 'mover' && <MoverUnidade no={acao.no} arvore={arvore} aoFechar={() => setAcao(null)} />}
+      {acao?.qual === 'extinguir' && <ExtinguirUnidade no={acao.no} aoFechar={() => setAcao(null)} />}
+      {acao?.qual === 'excluir' && <ExcluirUnidade no={acao.no} aoFechar={() => setAcao(null)} />}
     </div>
-  );
-}
-
-function FormularioDaDivisao({ divisao, rotuloDoBotao, aoSalvar, aoFechar, aoGravar }: {
-  divisao?: NoDaEstrutura;
-  rotuloDoBotao: string;
-  aoSalvar: (d: { sigla: string; nome: string }) => Promise<unknown>;
-  aoFechar: () => void;
-  aoGravar: () => Promise<void>;
-}) {
-  const [sigla, setSigla] = useState(divisao?.sigla ?? '');
-  const [nome, setNome] = useState(divisao?.nome ?? '');
-  const [campos, setCampos] = useState<Record<string, string>>({});
-  const [erro, setErro] = useState<string | null>(null);
-  const { salvando, travar } = useTrava();
-  const id = divisao?.id ?? 'nova';
-  const salvar = travar(async () => {
-    setCampos({});
-    setErro(null);
-    try {
-      await aoSalvar({ sigla, nome });
-      await aoGravar();
-      aoFechar();
-    } catch (e) {
-      const doCampo = camposDe(e);
-      setCampos(doCampo);
-      if (!Object.keys(doCampo).length) setErro(mensagemDe(e));
-    }
-  });
-  return (
-    <div className="border-b border-linha px-4 py-3 last:border-b-0">
-      <form onSubmit={(e: FormEvent) => { e.preventDefault(); void salvar(); }} className="grid gap-3 sm:grid-cols-[8rem_1fr_auto] sm:items-end">
-        <Campo id={`divisao-sigla-${id}`} rotulo="Sigla" erro={campos.sigla}>
-          <Input id={`divisao-sigla-${id}`} value={sigla} onChange={(e) => setSigla(e.target.value)} maxLength={20} required autoFocus />
-        </Campo>
-        <Campo id={`divisao-nome-${id}`} rotulo="Nome" erro={campos.nome}>
-          <Input id={`divisao-nome-${id}`} value={nome} onChange={(e) => setNome(e.target.value)} maxLength={80} required />
-        </Campo>
-        <span className="flex gap-1">
-          <Button type="submit" size="sm" disabled={salvando}>{rotuloDoBotao}</Button>
-          <Button type="button" size="sm" variant="ghost" onClick={aoFechar}>Cancelar</Button>
-        </span>
-      </form>
-      {erro && <p role="alert" className="mt-2 text-sm text-alerta">{erro}</p>}
-    </div>
-  );
-}
-
-/** O aviso antes de gravar: o acesso à seção muda na hora. Só o "Mover" grava. */
-function ConfirmarMovimento({ movimento, aoFechar, aoMover }: { movimento: Movimento; aoFechar: () => void; aoMover: () => Promise<void> }) {
-  const [erro, setErro] = useState<string | null>(null);
-  const { salvando, travar } = useTrava();
-  const { secao, de, para } = movimento;
-  const mover = travar(async () => {
-    setErro(null);
-    try {
-      await aoMover();
-      aoFechar();
-    } catch (e) {
-      setErro(mensagemDe(e));
-    }
-  });
-  return (
-    <Dialog open onOpenChange={(aberto) => { if (!aberto) aoFechar(); }}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>{para ? `Mover ${secao.sigla} para ${para.sigla}?` : `Tirar ${secao.sigla} de ${de?.sigla ?? 'a divisão'}?`}</DialogTitle>
-          <DialogDescription>{AVISO_AO_MOVER}</DialogDescription>
-        </DialogHeader>
-        {/* a seção herda da divisão: o que a de origem cadastrou deixa de valer e o que a nova cadastrou passa a valer */}
-        {(de?.cadastrosProprios || para?.cadastrosProprios) ? (
-          <div className="grid gap-1 text-sm">
-            {de?.cadastrosProprios ? <p>{`Os parâmetros, feriados e funções de ${de.sigla} deixam de valer para ${secao.sigla}.`}</p> : null}
-            {para?.cadastrosProprios ? <p>{`Os parâmetros, feriados e funções de ${para.sigla} passam a valer para ${secao.sigla}.`}</p> : null}
-          </div>
-        ) : null}
-        {erro && <p role="alert" className="text-sm text-alerta">{erro}</p>}
-        <DialogFooter>
-          <Button type="button" variant="ghost" onClick={aoFechar}>Cancelar</Button>
-          <Button type="button" disabled={salvando} onClick={() => void mover()}>Mover</Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
   );
 }

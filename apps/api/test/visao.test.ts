@@ -56,8 +56,8 @@ beforeAll(async () => {
   pessoa.comum = await entrarComo(api, { matricula: '990801-1', nome: 'VCOMUM' });
   pessoa.oficial = await entrarComo(api, { matricula: '990802-2', nome: 'VOFICIAL', posto: 'CAP' });
   await inserir(api.banco, 'rastreio', { militar_id: pessoa.oficial.militarId, unidade_id: sb3, jornada: 'adm', desde: dia1, quadro_id: quadro.QOC });
-  pessoa.chefe = await entrarComo(api, { matricula: '990803-3', nome: 'VCHEFE', nivel: { papel: 'chefe_divisao', unidadeId: divOp } });
-  pessoa.chefeOficial = await entrarComo(api, { matricula: '990804-4', nome: 'VCHEFEOF', posto: 'MAJ', nivel: { papel: 'chefe_divisao', unidadeId: divOp } });
+  pessoa.chefe = await entrarComo(api, { matricula: '990803-3', nome: 'VCHEFE', nivel: { papel: 'gestor_lateral', unidadeId: divOp } });
+  pessoa.chefeOficial = await entrarComo(api, { matricula: '990804-4', nome: 'VCHEFEOF', posto: 'MAJ', nivel: { papel: 'gestor_lateral', unidadeId: divOp } });
   await inserir(api.banco, 'rastreio', { militar_id: pessoa.chefeOficial.militarId, unidade_id: sb3, jornada: 'adm', desde: dia1, quadro_id: quadro.QOA });
 });
 afterAll(async () => {
@@ -67,16 +67,16 @@ afterAll(async () => {
 describe('as camadas que a pessoa tem sobre uma unidade', () => {
   const camadas = (quem: Pessoa, unidadeId: string | null) => camadasSobreUnidade(api.banco, quem.usuarioId, unidadeId, hoje);
 
-  it('todo mundo tem a camada "todos"; o oficial, a do oficial; o chefe de divisão, a sua nas divisões irmãs e abaixo delas', async () => {
+  it('todo mundo tem a camada "todos"; o oficial, a do oficial; o quinto nível, a sua nas unidades irmãs e abaixo delas', async () => {
     expect(await camadas(pessoa.comum, sb1)).toEqual(['todos']);
     expect(await camadas(pessoa.oficial, sb1)).toEqual(['todos', 'oficial']);
-    // a camada do chefe: na própria divisão e nas irmãs (as da mesma unidade mãe), e em tudo abaixo delas
-    for (const unidade of [divOp, sb1, da, sb2]) expect(await camadas(pessoa.chefe, unidade), unidade).toEqual(['todos', 'chefe_divisao']);
-    expect(await camadas(pessoa.chefeOficial, sb2)).toEqual(['todos', 'oficial', 'chefe_divisao']);
+    // a camada do quinto nível: na própria unidade e nas irmãs (as da mesma unidade de cima, de qualquer tipo, como a seção direto no grupamento), e em tudo abaixo delas
+    for (const unidade of [divOp, sb1, da, sb2, sb3]) expect(await camadas(pessoa.chefe, unidade), unidade).toEqual(['todos', 'gestor_lateral']);
+    expect(await camadas(pessoa.chefeOficial, sb2)).toEqual(['todos', 'oficial', 'gestor_lateral']);
   });
 
-  it('o chefe de divisão não tem a camada dele fora das divisões irmãs: seção sem divisão, o grupamento e a divisão de outro grupamento', async () => {
-    for (const unidade of [sb3, api.ids.gb, gb9, sb9]) expect(await camadas(pessoa.chefe, unidade), unidade).toEqual(['todos']);
+  it('o quinto nível não tem a camada dele fora das irmãs: a unidade de cima e as unidades de outra unidade de cima', async () => {
+    for (const unidade of [api.ids.gb, gb9, sb9]) expect(await camadas(pessoa.chefe, unidade), unidade).toEqual(['todos']);
   });
 
   it('sem unidade (militar sem lotação), só "todos" e "oficial"', async () => {
@@ -84,8 +84,8 @@ describe('as camadas que a pessoa tem sobre uma unidade', () => {
     expect(await camadas(pessoa.chefeOficial, null)).toEqual(['todos', 'oficial']);
   });
 
-  it('o nível de chefe de divisão que já terminou não vale', async () => {
-    const velho = await entrarComo(api, { matricula: '990805-5', nome: 'VVELHO', nivel: { papel: 'chefe_divisao', unidadeId: divOp } });
+  it('o quinto nível que já terminou não vale', async () => {
+    const velho = await entrarComo(api, { matricula: '990805-5', nome: 'VVELHO', nivel: { papel: 'gestor_lateral', unidadeId: divOp } });
     await api.banco.query("update papel_usuario set ate = $2 where usuario_id = $1", [velho.usuarioId, somarDias(hoje, -1)]);
     expect(await camadas(velho, sb2)).toEqual(['todos']);
   });
@@ -102,11 +102,11 @@ describe('os blocos que a pessoa vê de um militar (a borda inicial)', () => {
     expect(await ve(pessoa.oficial, 'sb3')).toEqual(DO_OFICIAL);
   });
 
-  it('o chefe da DivOp vê os 7 de uma seção da DA e da própria DivOp; de uma seção de outro grupamento, só o que o quadro dele dá', async () => {
+  it('o quinto nível na DivOp vê os 7 de uma seção da DA, da própria DivOp e da irmã direto no grupamento; de uma seção de outro grupamento, só o que o quadro dele dá', async () => {
     expect(await ve(pessoa.chefe, 'sb2')).toEqual(TODOS_OS_BLOCOS);
     expect(await ve(pessoa.chefe, 'sb1')).toEqual(TODOS_OS_BLOCOS);
     expect(await ve(pessoa.chefe, 'sb9')).toEqual(SO_IDENTIFICACAO);
-    expect(await ve(pessoa.chefe, 'sb3')).toEqual(SO_IDENTIFICACAO);
+    expect(await ve(pessoa.chefe, 'sb3')).toEqual(TODOS_OS_BLOCOS);
     // o chefe que também é oficial: de fora da divisão, os blocos do oficial
     expect(await ve(pessoa.chefeOficial, 'sb9')).toEqual(DO_OFICIAL);
   });
@@ -173,7 +173,7 @@ describe('a borda se ajusta, e as camadas se somam', () => {
     await api.banco.query("update quadro set oficial = false where sigla = 'QOC'");
     try {
       expect(await camadasSobreUnidade(api.banco, pessoa.oficial.usuarioId, sb2, hoje)).toEqual(['todos']);
-      expect(await camadasSobreUnidade(api.banco, pessoa.chefeOficial.usuarioId, sb2, hoje)).toEqual(['todos', 'oficial', 'chefe_divisao']);
+      expect(await camadasSobreUnidade(api.banco, pessoa.chefeOficial.usuarioId, sb2, hoje)).toEqual(['todos', 'oficial', 'gestor_lateral']);
     } finally {
       await api.banco.query("update quadro set oficial = true where sigla = 'QOC'");
     }
@@ -192,10 +192,10 @@ describe('a borda e a marca "de oficiais" nas rotas (só o administrador)', () =
     expect(r.status).toBe(200);
     const borda: Borda = await r.json();
     expect(borda.map((l) => l.bloco)).toEqual([...BLOCOS]);
-    expect(linha(borda, 'identificacao')).toEqual({ bloco: 'identificacao', todos: true, oficial: true, chefeDivisao: true });
-    expect(linha(borda, 'contato')).toEqual({ bloco: 'contato', todos: false, oficial: true, chefeDivisao: true });
-    expect(linha(borda, 'comportamento')).toEqual({ bloco: 'comportamento', todos: false, oficial: false, chefeDivisao: true });
-    expect(linha(borda, 'escala_em_montagem')).toEqual({ bloco: 'escala_em_montagem', todos: false, oficial: false, chefeDivisao: true });
+    expect(linha(borda, 'identificacao')).toEqual({ bloco: 'identificacao', todos: true, oficial: true, gestorLateral: true });
+    expect(linha(borda, 'contato')).toEqual({ bloco: 'contato', todos: false, oficial: true, gestorLateral: true });
+    expect(linha(borda, 'comportamento')).toEqual({ bloco: 'comportamento', todos: false, oficial: false, gestorLateral: true });
+    expect(linha(borda, 'escala_em_montagem')).toEqual({ bloco: 'escala_em_montagem', todos: false, oficial: false, gestorLateral: true });
   });
 
   it('o gestor, o auxiliar e o militar comum recebem 403 ao ler e ao gravar, e nada é gravado', async () => {
@@ -231,9 +231,9 @@ describe('a borda e a marca "de oficiais" nas rotas (só o administrador)', () =
 
   it('marcar "todos" marca as outras duas camadas (as camadas se somam)', async () => {
     const borda = await inicial();
-    const r = await gravar(borda.map((l) => (l.bloco === 'escala_em_montagem' ? { ...l, todos: true, oficial: false, chefeDivisao: false } : l)));
+    const r = await gravar(borda.map((l) => (l.bloco === 'escala_em_montagem' ? { ...l, todos: true, oficial: false, gestorLateral: false } : l)));
     expect(r.status).toBe(200);
-    expect(linha(await r.json(), 'escala_em_montagem')).toEqual({ bloco: 'escala_em_montagem', todos: true, oficial: true, chefeDivisao: true });
+    expect(linha(await r.json(), 'escala_em_montagem')).toEqual({ bloco: 'escala_em_montagem', todos: true, oficial: true, gestorLateral: true });
     expect((await gravar(borda)).status).toBe(200);
   });
 

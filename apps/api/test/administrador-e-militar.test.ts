@@ -75,9 +75,9 @@ describe('a lotação do administrador na instalação (6.24)', () => {
     expect(e.oficiais.map((o: { nomeGuerra: string }) => o.nomeGuerra)).toContain(a.nome);
   });
 
-  it('seção que não existe é erro, e nada é criado', async () => {
+  it('unidade que não existe é erro, e nada é criado', async () => {
     seq++;
-    await expect(criarAdmin(api.banco, { matricula: `990${String(300 + seq).padStart(3, '0')}-${seq % 10}`, postoSigla: 'CEL', nomeGuerra: 'SEMSECAO', email: `semsecao${seq}@exemplo.test`, senha: SENHA, hoje, lotacao: 'SEÇÃO QUE NÃO EXISTE' })).rejects.toThrow(/Seção não encontrada/);
+    await expect(criarAdmin(api.banco, { matricula: `990${String(300 + seq).padStart(3, '0')}-${seq % 10}`, postoSigla: 'CEL', nomeGuerra: 'SEMSECAO', email: `semsecao${seq}@exemplo.test`, senha: SENHA, hoje, lotacao: 'SEÇÃO QUE NÃO EXISTE' })).rejects.toThrow(/Unidade não encontrada/);
     expect((await api.banco.query('select 1 from militar where nome_guerra = $1', ['SEMSECAO'])).rows).toHaveLength(0);
   });
 
@@ -149,7 +149,7 @@ describe('achados da revisão final da 6.24', () => {
     seq++;
     const base = { postoSigla: 'CEL', senha: SENHA, hoje };
     await expect(criarAdmin(api.banco, { ...base, matricula: `990${String(300 + seq).padStart(3, '0')}-${seq % 10}`, nomeGuerra: 'AMBIGUO', email: `ambiguo${seq}@exemplo.test`, lotacao: '1ª SB' }))
-      .rejects.toThrow('use a sigla com o grupamento, por exemplo "1ª SB (2º GB)"');
+      .rejects.toThrow('use a sigla com a unidade de cima, por exemplo "1ª SB (2º GB)"');
     seq++;
     const r = await criarAdmin(api.banco, { ...base, matricula: `990${String(300 + seq).padStart(3, '0')}-${seq % 10}`, nomeGuerra: 'COMGRUPAMENTO', email: `comgrupamento${seq}@exemplo.test`, lotacao: '1ª SB (2º GB)' });
     expect(r.lotado).toBe(true);

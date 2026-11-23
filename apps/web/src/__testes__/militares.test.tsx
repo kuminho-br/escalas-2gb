@@ -127,7 +127,7 @@ describe('o quadro e a situação no rastreio', () => {
   });
 
   it('trocar a situação manda o quadro e a situação escolhidos', async () => {
-    const f = api({ 'GET /api/situacoes-do-militar': { status: 200, corpo: SITUACOES }, 'GET /api/secoes': { status: 200, corpo: [{ id: 'u-1sb', sigla: '1ª SB', nome: '1ª Seção de Bombeiros' }] }, 'POST /api/militares/m1/situacao': { status: 200, corpo: FICHA } });
+    const f = api({ 'GET /api/situacoes-do-militar': { status: 200, corpo: SITUACOES }, 'GET /api/unidades-de-lotacao': { status: 200, corpo: [{ id: 'u-1sb', sigla: '1ª SB', nome: '1ª Seção de Bombeiros' }] }, 'POST /api/militares/m1/situacao': { status: 200, corpo: FICHA } });
     const caixa = within(await abrirAlterar());
     const situacao = caixa.getByLabelText('Situação');
     await within(situacao).findByRole('option', { name: 'Reserva' });
@@ -543,7 +543,7 @@ describe('alterar situação', () => {
   const SECOES = [{ id: 'u-1sb', sigla: '1ª SB', nome: '1ª Seção de Bombeiros' }, { id: 'u-2sb', sigla: '2ª SB', nome: '2ª Seção de Bombeiros' }];
   const rotas = (extra: Parameters<typeof simularApi>[0] = {}) =>
     api({
-      'GET /api/secoes': { status: 200, corpo: SECOES },
+      'GET /api/unidades-de-lotacao': { status: 200, corpo: SECOES },
       'GET /api/unidades/u-2sb/equipes': { status: 200, corpo: [{ id: 'e-2sb', nome: 'Delta', ordemCiclo: 1 }] },
       'POST /api/militares/m1/situacao': { status: 200, corpo: FICHA },
       ...extra,
@@ -792,7 +792,7 @@ describe('ficha ampliada (fase 5)', () => {
   });
 
   it('"Alterar situação" trava o campo Lotação sem papel acima da lotação, e a equipe e a jornada seguem editáveis', async () => {
-    comFicha(SEM_PECULIO, { 'GET /api/secoes': { status: 200, corpo: [{ id: 'u-1sb', sigla: '1ª SB', nome: '1ª Seção de Bombeiros' }] } });
+    comFicha(SEM_PECULIO, { 'GET /api/unidades-de-lotacao': { status: 200, corpo: [{ id: 'u-1sb', sigla: '1ª SB', nome: '1ª Seção de Bombeiros' }] } });
     abrir('/militares/m1');
     await userEvent.click(await screen.findByRole('button', { name: /Histórico de rastreio/ }));
     await userEvent.click(screen.getByRole('button', { name: 'Alterar situação' }));
@@ -1221,7 +1221,7 @@ describe('o rastreio da ficha: acabamento (6.16, Task 4)', () => {
     api({
       'GET /api/militares/m1': { status: 200, corpo: { ...FICHA, rastreio } },
       'GET /api/situacoes-do-militar': { status: 200, corpo: SITUACOES },
-      'GET /api/secoes': { status: 200, corpo: SECOES },
+      'GET /api/unidades-de-lotacao': { status: 200, corpo: SECOES },
       ...rotas,
     });
   const abrirAlterar = async () => {
@@ -1258,7 +1258,7 @@ describe('o rastreio da ficha: acabamento (6.16, Task 4)', () => {
 
   it('item 12: enquanto a lista de seções carrega, o "Salvar" do "Alterar situação" fica desligado, e liga quando ela chega', async () => {
     const { espera, soltar } = trava();
-    comRastreio([periodo('r1', somarDias(hoje(), -30), null, 'QBMG', 'Ativa')], { 'GET /api/secoes': { status: 200, corpo: SECOES, espera } });
+    comRastreio([periodo('r1', somarDias(hoje(), -30), null, 'QBMG', 'Ativa')], { 'GET /api/unidades-de-lotacao': { status: 200, corpo: SECOES, espera } });
     const caixa = await abrirAlterar();
     expect(caixa.getByRole('button', { name: 'Salvar' })).toBeDisabled();
     soltar();
@@ -1278,7 +1278,7 @@ describe('mover pela hierarquia e quem moveu (6.23)', () => {
   const comPeriodo = () => api({
     'GET /api/militares/m1': { status: 200, corpo: { ...FICHA, rastreio: [periodo] } },
     'GET /api/situacoes-do-militar': { status: 200, corpo: SITUACOES },
-    'GET /api/secoes': { status: 200, corpo: SECOES },
+    'GET /api/unidades-de-lotacao': { status: 200, corpo: SECOES },
   });
 
   it('o histórico de rastreio mostra "por MAJ BARRETO em 23/11/2026 às 09:15"', async () => {
@@ -1305,7 +1305,7 @@ describe('mover pela hierarquia e quem moveu (6.23)', () => {
     api({
       'GET /api/militares/m1': { status: 200, corpo: { ...FICHA, rastreio: [futuro] } },
       'GET /api/situacoes-do-militar': { status: 200, corpo: SITUACOES },
-      'GET /api/secoes': { status: 200, corpo: SECOES },
+      'GET /api/unidades-de-lotacao': { status: 200, corpo: SECOES },
     });
     abrir('/militares/m1');
     await userEvent.click(await screen.findByRole('button', { name: /Histórico de rastreio/ }));
@@ -1323,7 +1323,7 @@ describe('mover pela hierarquia e quem moveu (6.23)', () => {
       'GET /api/unidades/u-raiz/equipes': { status: 200, corpo: [] },
       'GET /api/militares/m1': { status: 200, corpo: { ...FICHA, rastreio: [], podeEditar: { peculio: true, escala: true, unidadeDeCima: null } } },
       'GET /api/situacoes-do-militar': { status: 200, corpo: SITUACOES },
-      'GET /api/secoes': { status: 200, corpo: SECOES },
+      'GET /api/unidades-de-lotacao': { status: 200, corpo: SECOES },
       'POST /api/militares/m1/situacao': { status: 201, corpo: FICHA },
     });
     abrir('/militares/m1');

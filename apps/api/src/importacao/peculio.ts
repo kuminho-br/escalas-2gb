@@ -38,7 +38,7 @@ const COLUNAS = {
   bairro: { rotulo: 'BAIRRO', obrigatoria: false, ajuda: 'Até 120 caracteres.' },
   cidade: { rotulo: 'CIDADE', obrigatoria: false, ajuda: 'Até 120 caracteres.' },
   uf: { rotulo: 'UF', obrigatoria: false, ajuda: 'Sigla do estado (ex.: PE).', texto: true },
-  lotacao: { rotulo: 'LOTAÇÃO', obrigatoria: false, ajuda: 'Sigla da seção do militar, como na lista abaixo. Obrigatória para militar novo. Para quem já existe, a lotação não muda por aqui: use "Alterar situação" na ficha.' },
+  lotacao: { rotulo: 'LOTAÇÃO', obrigatoria: false, ajuda: 'Sigla da unidade do militar (de qualquer tipo), como na lista abaixo. Obrigatória para militar novo. Para quem já existe, a lotação não muda por aqui: use "Alterar situação" na ficha.' },
   quadro: { rotulo: 'QUADRO', obrigatoria: false, ajuda: 'Sigla de um quadro que tenha o posto do militar (lista abaixo). Para quem já existe, vale a partir de hoje.' },
   situacao: { rotulo: 'SITUAÇÃO', obrigatoria: false, ajuda: 'O nome de uma situação do catálogo (lista abaixo). Para quem já existe, vale a partir de hoje.' },
   jornada: { rotulo: 'JORNADA', obrigatoria: false, ajuda: 'PRONTO (turnos de 12h) ou ADM (expediente). Para quem já existe, vale a partir de hoje.', opcoes: ['PRONTO', 'ADM'] },
@@ -124,13 +124,14 @@ async function existentes(tx: Consulta, mes: string): Promise<Map<string, Existe
 /** As listas de valores da unidade (postos, lotações, quadros, situações e equipes), para ler as células e para a AJUDA do modelo. */
 async function catalogos(tx: Consulta, unidadeId: string) {
   const postos = (await tx.query<{ id: string; sigla: string }>('select id, sigla from posto_grad order by ordem')).rows;
+  // qualquer unidade em vigor da importação, de qualquer tipo; a sigla que se repete leva a unidade de cima
   const unidades = (
-    await tx.query<{ id: string; sigla: string }>(
-      `select s.id, s.sigla from unidade s join unidade u on u.id = $1 and s.caminho <@ u.caminho
-        join tipo_unidade t on t.codigo = s.tipo order by t.nivel, s.sigla`,
+    await tx.query<{ id: string; sigla: string; mae: string | null }>(
+      `select s.id, s.sigla, m.sigla as mae from unidade s join unidade u on u.id = $1 and s.caminho <@ u.caminho left join unidade m on m.id = s.mae_id
+        where s.ate is null or s.ate >= current_date order by nlevel(s.caminho), s.sigla`,
       [unidadeId],
     )
-  ).rows;
+  ).rows.map((u, _, todas) => ({ id: u.id, sigla: u.sigla, rotulo: u.mae && todas.filter((o) => normalizar(o.sigla) === normalizar(u.sigla)).length > 1 ? `${u.sigla} (${u.mae})` : u.sigla }));
   const quadros = (
     await tx.query<{ id: string; sigla: string; posto_grad_ids: string[] }>(
       'select q.id, q.sigla, array_agg(qp.posto_grad_id) as posto_grad_ids from quadro q join quadro_posto_grad qp on qp.quadro_id = q.id group by q.id, q.sigla order by q.sigla',
@@ -161,7 +162,7 @@ export const importadorPeculio: Importador<Plano> = {
       return [
         { titulo: 'Como a planilha é lida', itens: ['Só a matrícula é obrigatória. Célula vazia não altera nada. Dado inválido é ignorado e aparece no resumo.'] },
         { titulo: 'Postos e graduações (coluna POSTO/GRAD)', itens: c.postos.map((p) => p.sigla) },
-        { titulo: 'Lotações desta importação (coluna LOTAÇÃO)', itens: c.unidades.map((u) => u.sigla) },
+        { titulo: 'Lotações desta importação (coluna LOTAÇÃO)', itens: c.unidades.map((u) => u.rotulo) },
         { titulo: 'Quadros (coluna QUADRO)', itens: c.quadros.map((q) => `${q.sigla}: ${c.postos.filter((p) => q.postoGradIds.includes(p.id)).map((p) => p.sigla).join(', ')}`) },
         { titulo: 'Situações (coluna SITUAÇÃO)', itens: c.situacoes.map((s) => s.nome) },
         { titulo: 'Funções do militar (coluna FUNÇÃO)', itens: c.funcoes.length ? c.funcoes.map((f) => f.nome) : ['Ainda não há funções: o administrador as cadastra em Configurações.'] },

@@ -18,11 +18,11 @@ const BLOCOS: Record<Bloco, { nome: string; tem: string }> = {
   comportamento: { nome: 'Comportamento', tem: 'Comportamento e boletim; motivo e boletim dos afastamentos' },
   escala_em_montagem: { nome: 'Escala em montagem', tem: 'Grade geral, escala do mês, efetivo por dia, cotas e voluntariado da unidade, só para leitura' },
 };
-type Camada = 'todos' | 'oficial' | 'chefeDivisao';
+type Camada = 'todos' | 'oficial' | 'gestorLateral';
 const CAMADAS: { camada: Camada; nome: string; quem: string }[] = [
   { camada: 'todos', nome: 'Todos', quem: 'todo militar com conta' },
   { camada: 'oficial', nome: 'Oficial', quem: 'quem está num quadro de oficiais' },
-  { camada: 'chefeDivisao', nome: nomeDoPapel('chefe_divisao'), quem: 'nas divisões irmãs' },
+  { camada: 'gestorLateral', nome: nomeDoPapel('gestor_lateral'), quem: 'nas unidades irmãs' },
 ];
 
 /**
@@ -55,8 +55,8 @@ function TabelaDaBorda({ inicial, aviso, aoAvisar }: { inicial: Borda; aviso: Av
 
   const marcar = (bloco: Bloco, camada: Camada, marcada: boolean) => {
     aoAvisar(null);
-    // "Todos" marca as outras duas: as camadas se somam, então o que todos veem o oficial e o chefe de divisão também veem
-    setLinhas((ls) => ls.map((l) => (l.bloco !== bloco ? l : (({ ...l, [camada]: marcada }) as Borda[number]))).map((l) => (l.todos ? { ...l, oficial: true, chefeDivisao: true } : l)));
+    // "Todos" marca as outras duas: as camadas se somam, então o que todos veem o oficial e o quinto nível também veem
+    setLinhas((ls) => ls.map((l) => (l.bloco !== bloco ? l : (({ ...l, [camada]: marcada }) as Borda[number]))).map((l) => (l.todos ? { ...l, oficial: true, gestorLateral: true } : l)));
   };
   const salvar = travar(async () => {
     aoAvisar(null);

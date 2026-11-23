@@ -16,7 +16,7 @@ import {
   type LinhaMilitar,
   type ListaDoPeculio,
   type Posto,
-  type SecaoDeLotacao,
+  type UnidadeDeLotacao,
 } from 'contratos';
 import { cnhHabilitadas, diasDoMes } from 'dominio';
 import { Hono, type Context } from 'hono';
@@ -34,7 +34,6 @@ import { categoriaMaisAlta, pendenciasDoMilitar, repetidasPorAntiguidade, situac
 type Ctx = Context<AmbienteApi>;
 const MSG_SITUACAO_DESATIVADA = 'Esta situação está desativada.';
 const MSG_SITUACAO_NAO_ACHADA = 'Situação não encontrada.';
-const MSG_SO_SECAO = 'Escolha uma seção.';
 const MSG_PERIODO_ANTES = (desde: string) => `Use uma data a partir de ${desde.slice(8, 10)}/${desde.slice(5, 7)}/${desde.slice(0, 4)}.`;
 const MSG_EQUIPE_DE_OUTRA = 'Escolha uma equipe da unidade da lotação.';
 const MSG_EMAIL_REPETIDO = 'Este e-mail já é de outro militar.';
@@ -155,11 +154,11 @@ async function carregarFicha(c: Consulta, id: string, mes: string, usuarioId: st
   if (!m) return null;
   const rastreio = await c.query<{
     id: string; unidade_id: string; sigla: string; equipe: string | null; jornada: 'pronto' | 'adm'; quadro: string | null; situacao: string; desde: string; ate: string | null;
-    autor_nome: string | null; autor_posto: string | null; alterado_em: string | null; grupamento: string | null; sigla_repetida: boolean;
+    autor_nome: string | null; autor_posto: string | null; alterado_em: string | null; cima: string | null; sigla_repetida: boolean;
   }>(
     `select l.id, l.unidade_id, un.sigla, e.nome as equipe,
-            (select g.sigla from unidade g where g.tipo = 'grupamento' and g.caminho @> un.caminho order by nlevel(g.caminho) desc limit 1) as grupamento,
-            exists (select 1 from unidade o where o.tipo = 'secao' and o.sigla = un.sigla and o.id <> un.id and (o.ate is null or o.ate >= current_date)) as sigla_repetida, l.jornada, q.sigla as quadro, sm.nome as situacao, to_char(l.desde, 'YYYY-MM-DD') as desde, to_char(l.ate, 'YYYY-MM-DD') as ate,
+            (select m.sigla from unidade m where m.id = un.mae_id) as cima,
+            exists (select 1 from unidade o where lower(o.sigla) = lower(un.sigla) and o.id <> un.id and (o.ate is null or o.ate >= current_date)) as sigla_repetida, l.jornada, q.sigla as quadro, sm.nome as situacao, to_char(l.desde, 'YYYY-MM-DD') as desde, to_char(l.ate, 'YYYY-MM-DD') as ate,
             mm.nome_guerra as autor_nome, pp.sigla as autor_posto, to_char(la.em at time zone 'America/Recife', 'YYYY-MM-DD"T"HH24:MI:SS') as alterado_em
        from rastreio l join unidade un on un.id = l.unidade_id left join equipe e on e.id = l.equipe_id left join quadro q on q.id = l.quadro_id
        join situacao_militar sm on sm.id = l.situacao_id
@@ -243,8 +242,8 @@ async function carregarFicha(c: Consulta, id: string, mes: string, usuarioId: st
     cnh,
     cnhPorHierarquia: cnhHabilitadas(cnh).filter((x) => !cnh.includes(x)),
     rastreio: rastreio.rows.map((l) => ({
-      // a sigla que se repete entre grupamentos leva o grupamento ("2ª SB (2º GB)"), como na lista de destinos
-      id: l.id, unidadeId: l.unidade_id, unidadeSigla: l.sigla_repetida && l.grupamento ? `${l.sigla} (${l.grupamento})` : l.sigla, equipe: l.equipe, jornada: l.jornada, quadro: l.quadro, situacao: l.situacao, desde: l.desde, ate: l.ate,
+      // a sigla que se repete leva a unidade de cima ("2ª SB (2º GB)"), como na lista de destinos
+      id: l.id, unidadeId: l.unidade_id, unidadeSigla: l.sigla_repetida && l.cima ? `${l.sigla} (${l.cima})` : l.sigla, equipe: l.equipe, jornada: l.jornada, quadro: l.quadro, situacao: l.situacao, desde: l.desde, ate: l.ate,
       alteradoPor: l.autor_nome && l.autor_posto ? { patente: postoCurto(l.autor_posto), nomeGuerra: l.autor_nome } : null,
       alteradoEm: l.autor_nome && l.autor_posto ? l.alterado_em : null,
     })),
@@ -336,7 +335,7 @@ const mesDaConsulta = (c: Ctx) => c.req.query('mes') ?? hojeRecife().slice(0, 7)
 export function rotasMilitares(dep: { banco: Banco; auth: Auth }): Hono<AmbienteApi> {
   const r = new Hono<AmbienteApi>();
   const sessao = exigirSessao(dep.banco, dep.auth);
-  for (const caminho of ['/postos', '/postos/*', '/quadros', '/secoes', '/unidades/:u/equipes', '/unidades/:u/militares', '/unidades/:u/peculio', '/militares/*', '/afastamentos/*']) r.use(caminho, sessao);
+  for (const caminho of ['/postos', '/postos/*', '/quadros', '/unidades-de-lotacao', '/unidades/:u/equipes', '/unidades/:u/militares', '/unidades/:u/peculio', '/militares/*', '/afastamentos/*']) r.use(caminho, sessao);
 
   r.get('/postos', async (c) => {
     const negado = await exigirAlgumPapel(c);
@@ -370,21 +369,21 @@ export function rotasMilitares(dep: { banco: Banco; auth: Auth }): Hono<Ambiente
 
   r.get('/quadros', async (c) => c.json(await lerQuadros(dep.banco)));
 
-  // as seções em que a pessoa pode lotar um militar: as que ela pode cadastrar (o administrador, todas)
-  r.get('/secoes', async (c) => {
+  // as unidades em que a pessoa pode lotar um militar, de qualquer tipo: as que ela pode cadastrar (o administrador, todas). A sigla que se repete
+  // (a "1ª SB" de cada grupamento) leva a unidade de cima: "1ª SB (2º GB)"
+  r.get('/unidades-de-lotacao', async (c) => {
     const negado = await exigirAlgumPapel(c);
     if (negado) return negado;
     const hoje = hojeRecife();
-    // todas as seções abaixo das unidades em que a pessoa tem nível, de qualquer grupamento; a sigla que se repete (a "1ª SB" de cada grupamento) leva o grupamento
-    const { rows } = await dep.banco.query<SecaoDeLotacao & { grupamento: string | null }>(
-      `select s.id, s.sigla, s.nome, (select a.sigla from unidade a where a.tipo = 'grupamento' and a.caminho @> s.caminho order by nlevel(a.caminho) desc limit 1) as grupamento
-         from unidade s where s.tipo = 'secao' and (s.ate is null or s.ate >= $1::date) order by s.sigla, s.caminho`,
+    const { rows } = await dep.banco.query<UnidadeDeLotacao & { cima: string | null }>(
+      `select u.id, u.sigla, u.nome, (select m.sigla from unidade m where m.id = u.mae_id) as cima
+         from unidade u where (u.ate is null or u.ate >= $1::date) order by u.sigla, u.caminho`,
       [hoje],
     );
-    const permitidas: (SecaoDeLotacao & { grupamento: string | null })[] = [];
+    const permitidas: (UnidadeDeLotacao & { cima: string | null })[] = [];
     for (const u of rows) if (await temPapel(dep.banco, c.get('usuarioId'), u.id, CADASTRO, hoje)) permitidas.push(u);
-    const repetidas = new Set(permitidas.map((u) => u.sigla).filter((sigla, i, todas) => todas.indexOf(sigla) !== i));
-    return c.json(permitidas.map(({ grupamento, ...u }): SecaoDeLotacao => (repetidas.has(u.sigla) && grupamento ? { ...u, sigla: `${u.sigla} (${grupamento})` } : u)));
+    const repetidas = new Set(permitidas.map((u) => u.sigla.toLowerCase()).filter((sigla, i, todas) => todas.indexOf(sigla) !== i));
+    return c.json(permitidas.map(({ cima, ...u }): UnidadeDeLotacao => (repetidas.has(u.sigla.toLowerCase()) && cima ? { ...u, sigla: `${u.sigla} (${cima})` } : u)));
   });
 
   r.get('/unidades/:u/equipes', async (c) => {
@@ -670,9 +669,6 @@ export function rotasMilitares(dep: { banco: Banco; auth: Auth }): Hono<Ambiente
     const corpo = await lerCorpo(c, AlteracaoDeSituacao);
     if (!corpo.ok) return corpo.resposta;
     const d = corpo.dados;
-    // o destino é uma seção (e não o grupamento, a divisão ou o CBMPE)
-    const doDestino = (await dep.banco.query<{ tipo: string }>('select tipo from unidade where id = $1', [d.unidadeId])).rows[0];
-    if (doDestino && doDestino.tipo !== 'secao') return c.json({ erro: MSG_SO_SECAO, campos: { unidadeId: MSG_SO_SECAO } }, 400);
     // a unidade de destino também precisa ser de quem registra
     const negadoDestino = await exigirPapel(c, d.unidadeId, CADASTRO);
     if (negadoDestino) return negadoDestino;

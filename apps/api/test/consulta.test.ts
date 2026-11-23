@@ -79,7 +79,7 @@ beforeAll(async () => {
 
   pessoa.oficial = await entrarComo(api, { matricula: '990831-1', nome: 'COFICIAL', posto: 'CAP' });
   await inserir(api.banco, 'rastreio', { militar_id: pessoa.oficial.militarId, unidade_id: sb3, jornada: 'adm', desde: dia1, quadro_id: quadro.QOC });
-  pessoa.chefe = await entrarComo(api, { matricula: '990832-2', nome: 'CCHEFE', nivel: { papel: 'chefe_divisao', unidadeId: divOp } });
+  pessoa.chefe = await entrarComo(api, { matricula: '990832-2', nome: 'CCHEFE', nivel: { papel: 'gestor_lateral', unidadeId: divOp } });
   pessoa.auxiliarDoGb = await entrarComo(api, { matricula: '990833-3', nome: 'CAUXGB', nivel: { papel: 'escalante', unidadeId: api.ids.gb } });
 });
 afterAll(async () => {
