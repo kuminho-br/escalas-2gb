@@ -3,7 +3,7 @@ import type { EscalaDosOficiais, EtapaDosOficiais, OficialDoMes, OficialNoSaldo 
 import { ordemDeEscolha, rotuloDoTurno } from 'dominio';
 import type { Consulta } from '../banco/banco.ts';
 import { hojeRecife } from '../datas.ts';
-import { afastamentosDoMes, participantesDoMes, postoCurto, type AfastamentoDoMes } from './participantes.ts';
+import { afastamentosDoMes, elegiveisDoMes, marcasDoMes, postoCurto, type AfastamentoDoMes } from './participantes.ts';
 
 export interface LinhaDoMes {
   id: string;
@@ -69,7 +69,10 @@ async function saldosAnteriores(c: Consulta, unidadeId: string, mes: string): Pr
   return new Map(rows.map((r) => [r.militar_id, Number(r.total)]));
 }
 
-/** A escala do mês: antes do cálculo, os participantes do momento; depois, as cotas gravadas. */
+/**
+ * A escala do mês: os elegíveis, cada um com a marca de quem participa. Antes do cálculo, os participantes vêm primeiro, na ordem de escolha;
+ * depois, as cotas gravadas. Quem não participa vem no fim, sem cota. A vez, as cotas e os turnos só contam participantes.
+ */
 export async function lerEscala(c: Consulta, unidadeId: string, mes: string): Promise<EscalaDosOficiais> {
   const linha = await linhaDoMes(c, unidadeId, mes);
   const etapa = etapaDoMes(linha);
@@ -79,9 +82,11 @@ export async function lerEscala(c: Consulta, unidadeId: string, mes: string): Pr
     : null;
   const doServico = await turnosDoServico(c, servicoId);
   const rotuloDe = new Map(doServico.map((t) => [t.id, t.rotulo]));
-  const participantes = await participantesDoMes(c, unidadeId, mes);
+  const elegiveis = await elegiveisDoMes(c, unidadeId, mes);
+  const { marcados, elegiveisAntes } = await marcasDoMes(c, unidadeId, mes, linha?.id ?? null);
+  const participantes = elegiveis.filter((p) => marcados.has(p.militarId));
   const anteriores = await saldosAnteriores(c, unidadeId, mes);
-  const porId = new Map(participantes.map((p) => [p.militarId, p]));
+  const porId = new Map(elegiveis.map((p) => [p.militarId, p]));
 
   type Cota = { militarId: string; ordem: number; dias: number; devido: number; cota: number; sobra: boolean };
   let cotas: Cota[] = [];
@@ -110,7 +115,7 @@ export async function lerEscala(c: Consulta, unidadeId: string, mes: string): Pr
   }
 
   const escolhidos = (id: string) => turnos.filter((t) => t.militarId === id).length;
-  const montar = (militarId: string, ordem: number, cota: Cota | null, dias: number): OficialDoMes => {
+  const montar = (militarId: string, ordem: number, cota: Cota | null, dias: number, participa: boolean): OficialDoMes => {
     const p = porId.get(militarId);
     const x = extras.get(militarId);
     return {
@@ -129,16 +134,22 @@ export async function lerEscala(c: Consulta, unidadeId: string, mes: string): Pr
       sobra: cota ? cota.sobra : false,
       escolhidos: escolhidos(militarId),
       afastamentos: p?.afastamentos ?? x?.afastamentos ?? [],
+      participa,
+      novo: !participa && elegiveisAntes !== null && !elegiveisAntes.has(militarId),
     };
   };
 
   let oficiais: OficialDoMes[];
   if (cotas.length > 0) {
-    oficiais = cotas.map((x) => montar(x.militarId, x.ordem, x, x.dias));
+    oficiais = cotas.map((x) => montar(x.militarId, x.ordem, x, x.dias, true));
   } else {
     const ordemIds = ordemDeEscolha(participantes, linha?.ordem_manual ?? []);
-    oficiais = ordemIds.map((id, i) => montar(id, i + 1, null, porId.get(id)!.dias));
+    oficiais = ordemIds.map((id, i) => montar(id, i + 1, null, porId.get(id)!.dias, true));
   }
+  // os elegíveis que não participam vêm depois, na mesma regra de ordem, sem cota
+  const naRodada = new Set(oficiais.map((o) => o.militarId));
+  const fora = elegiveis.filter((p) => !naRodada.has(p.militarId));
+  for (const id of ordemDeEscolha(fora, [])) oficiais.push(montar(id, oficiais.length + 1, null, porId.get(id)!.dias, false));
 
   const vez = etapa === 'sem-cotas' ? null : (oficiais.find((o) => o.cota !== null && o.escolhidos < o.cota)?.militarId ?? null);
 
@@ -170,11 +181,12 @@ export async function lerEscala(c: Consulta, unidadeId: string, mes: string): Pr
   };
 }
 
-/** O painel de saldo: quem tem lançamento na unidade ou participa do mês corrente. */
+/** O painel de saldo: quem tem lançamento na unidade ou participa (está marcado) do mês corrente. */
 export async function lerSaldo(c: Consulta, unidadeId: string, hoje = hojeRecife()): Promise<OficialNoSaldo[]> {
   const mesAtual = hoje.slice(0, 7);
-  const participantes = await participantesDoMes(c, unidadeId, mesAtual);
   const linhaAtual = await linhaDoMes(c, unidadeId, mesAtual);
+  const { marcados } = await marcasDoMes(c, unidadeId, mesAtual, linhaAtual?.id ?? null);
+  const participantes = (await elegiveisDoMes(c, unidadeId, mesAtual)).filter((p) => marcados.has(p.militarId));
   const ordemIds = ordemDeEscolha(participantes, linhaAtual?.ordem_manual ?? []);
 
   const { rows: lanc } = await c.query<{

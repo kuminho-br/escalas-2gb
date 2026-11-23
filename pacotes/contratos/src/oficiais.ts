@@ -20,6 +20,10 @@ export interface OficialDoMes {
   sobra: boolean;
   escolhidos: number;
   afastamentos: { inicio: string; fim: string; tipo: string }[];
+  /** O gestor marcou este oficial para a rodada do mês. Quem não participa não tem cota, vez nem turno. */
+  participa: boolean;
+  /** Elegível que não estava no mês anterior da unidade e ainda não foi marcado. */
+  novo: boolean;
 }
 
 export interface EscalaDosOficiais {
@@ -36,6 +40,8 @@ export interface EscalaDosOficiais {
   vez: string | null;
   turnos: { dia: string; turnoId: string; militarId: string | null; saiuMilitarId: string | null }[];
   avisos: { dia: string; turnoId: string; militarId: string; texto: string }[];
+  /** Só na resposta de uma mudança: uma frase para cada oficial que saiu da rodada e deixou turnos sem ninguém. */
+  liberados?: string[];
 }
 
 export interface OficialNoSaldo {
@@ -55,6 +61,8 @@ export interface OficialNoSaldo {
 export const ServicoDoMes = z.object({ servicoId: Id });
 export const TrocaDeTurno = z.object({ militarId: Id.nullable() });
 export const OrdemManual = z.object({ militarIds: z.array(Id).max(200) });
+/** Quem participa da rodada do mês: a lista inteira (quem não vem fica desmarcado). */
+export const Participantes = z.object({ militarIds: z.array(Id).max(200) });
 export const AjusteDeSaldo = z.object({
   militarId: Id,
   valor: z.number('Informe o valor do ajuste.').refine((v) => v !== 0 && Math.abs(v) <= 100, 'Use um valor diferente de zero, de até 100 (para mais ou para menos).'),
@@ -63,4 +71,5 @@ export const AjusteDeSaldo = z.object({
 export type ServicoDoMesEntrada = z.infer<typeof ServicoDoMes>;
 export type TrocaDeTurnoEntrada = z.infer<typeof TrocaDeTurno>;
 export type OrdemManualEntrada = z.infer<typeof OrdemManual>;
+export type ParticipantesEntrada = z.infer<typeof Participantes>;
 export type AjusteDeSaldoEntrada = z.infer<typeof AjusteDeSaldo>;
