@@ -61,8 +61,8 @@ export function CalendarioDosOficiais({ escala: e, aoClicarTurno, aoTirar, desab
     const eRecente = recente?.dia === d && recente.turnoId === t.id;
     const daVez = Boolean(vez && x.militarId === vez.militarId);
     const classe = cn(
-      'relative flex min-h-12 min-w-0 flex-col justify-center rounded-md border px-2 py-1 text-left leading-tight',
-      alerta && 'pr-6 ring-2 ring-pendencia',
+      'relative flex min-h-12 min-w-0 flex-col justify-center rounded-md border px-1 py-1 text-left leading-tight',
+      alerta && 'ring-2 ring-pendencia',
       eRecente && 'ring-2 ring-tinta',
       !eRecente && !alerta && daVez && 'ring-1 ring-vinho',
     );
@@ -70,7 +70,9 @@ export function CalendarioDosOficiais({ escala: e, aoClicarTurno, aoTirar, desab
     const placa = cn(classe, 'border-linha shadow-[0_1px_2px_rgba(28,36,48,.12)]', TOM[t.rotulo].faixa, TOM[t.rotulo].fundo);
     const livre = cn(classe, 'border-dashed border-encaixe');
     const rotulo = <span className="text-[13px] leading-[18px] font-medium text-apagado">{t.rotulo}</span>;
-    const marca = alerta ? <AlertTriangle className="absolute top-1 right-1 size-4 text-pendencia" aria-label="Alerta" /> : null;
+    const marca = alerta ? <AlertTriangle className="ml-auto size-4 shrink-0 self-center text-pendencia" aria-label="Alerta" /> : null;
+    // com o "Tirar", a primeira linha reserva o canto da direita (o nome fica com a largura toda da linha de baixo)
+    const comTirar = !x.militarId ? false : e.etapa === 'escolhas' && Boolean(aoTirar);
     const comum = { 'data-turno': t.rotulo === 'Noite' ? 'noite' : 'dia', 'data-alerta': alerta ? 'true' : undefined, 'data-recente': eRecente ? 'true' : undefined } as const;
 
     if (x.militarId === null) {
@@ -112,13 +114,13 @@ export function CalendarioDosOficiais({ escala: e, aoClicarTurno, aoTirar, desab
     // a patente nunca é cortada; o nome longo corta com reticências (a dica mostra tudo)
     const conteudo = (
       <>
-        <span className="flex min-w-0 flex-wrap items-baseline gap-x-1.5">
+        <span className={cn('flex min-w-0 flex-wrap items-baseline gap-x-1.5', comTirar && 'pr-6')}>
           {dono && <span className="shrink-0 text-[13px] leading-[18px] font-medium text-apagado">{dono.posto}</span>}
-          {rotulo}
+          {marca}
         </span>
+        {/* o turno (Dia ou Noite) está na faixa, no fundo, na dica e no nome do botão: o nome ganha a largura da célula */}
         <span className="min-w-0 truncate font-cond text-[17px] leading-6 font-semibold tracking-[0.01em] text-tinta">{nome}</span>
         {saiu && <span className="text-[13px] leading-[18px] text-apagado">cobriu {saiu.nomeGuerra}</span>}
-        {marca}
       </>
     );
     if (e.etapa === 'fechada' && aoClicarTurno) {
@@ -137,7 +139,7 @@ export function CalendarioDosOficiais({ escala: e, aoClicarTurno, aoTirar, desab
             disabled={desabilitado}
             aria-label={`Tirar ${nome} deste turno`}
             onClick={() => aoTirar(x)}
-            className="absolute right-0.5 bottom-0.5 rounded p-1 text-apagado hover:text-tinta"
+            className="absolute top-0.5 right-0.5 rounded p-1 text-apagado hover:text-tinta"
           >
             <X className="size-4" aria-hidden />
           </button>
@@ -147,7 +149,7 @@ export function CalendarioDosOficiais({ escala: e, aoClicarTurno, aoTirar, desab
   }
 
   return (
-    <div aria-label="Calendário do mês" role="group" className="grid gap-x-1.5 gap-y-3 md:grid-cols-7">
+    <div aria-label="Calendário do mês" role="group" className="grid gap-x-1 gap-y-3 md:grid-cols-7">
       {SEMANA.map((s) => (
         <div key={s} aria-hidden className="hidden text-center text-[13px] font-medium text-apagado md:block">{s}</div>
       ))}

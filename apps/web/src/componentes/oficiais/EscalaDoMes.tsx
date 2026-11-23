@@ -126,7 +126,7 @@ export function EscalaDoMes({ unidadeId, escala: e, aoVer }: Props) {
       {/* o painel é largo (30 rem) e o calendário cede; abaixo de 1280 px ele vem antes dos dias, na largura toda */}
       <div className="grid grid-cols-[minmax(0,1fr)] items-start gap-4 xl:grid-cols-[minmax(0,1fr)_30rem]">
         {aberto || e.etapa === 'encerrada' ? (
-          <section className="grid gap-2 rounded-lg border border-linha bg-superficie p-3">
+          <section className="grid gap-2 rounded-lg border border-linha bg-superficie p-2">
             <header className="flex flex-wrap items-baseline justify-between gap-2">
               <h2 className="font-cond text-lg font-semibold">Turnos do mês</h2>
               <small className="text-[13px] text-apagado">{`${e.turnos.filter((t) => t.militarId !== null).length} de ${e.turnos.length} turnos com nome`}</small>
