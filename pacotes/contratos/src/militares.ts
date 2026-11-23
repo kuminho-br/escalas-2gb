@@ -128,7 +128,8 @@ export const EdicaoMilitar = z.object({
   motorista: z.boolean().optional(),
   cnh: CnhSemRepetir.optional(),
   voluntarioJes: z.boolean().optional(),
-});
+  // estrito: o `ativo` e o `quadroId` saíram da ficha (a situação e o quadro valem por período: "Alterar situação")
+}).strict();
 export type EdicaoMilitar = z.infer<typeof EdicaoMilitar>;
 
 const MSG_FIM = 'O fim precisa ser no mesmo dia do início ou depois.';

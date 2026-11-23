@@ -3,7 +3,7 @@ import { diaDaSemana, diasDoMes } from 'dominio';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { hojeRecife } from '../src/datas.ts';
 import { avaliarCandidatos, motivoDeFora } from '../src/escala/elegibilidade.ts';
-import { inserir } from './banco-teste.ts';
+import { inserir, situacaoDoMilitar } from './banco-teste.ts';
 import { montarApi, type ApiDeTeste } from './apoio-api.ts';
 
 // Cenário fictício (D7): seção com Pronto A/B (08h–20h, 20h–08h), "Madrugada" (06h–14h), JES (PJES, 09h–17h) e Bioma
@@ -42,10 +42,10 @@ async function criarMilitar(nome: string, extra: { cnh?: string[]; jes?: boolean
   seq++;
   const id = await inserir(api.banco, 'militar', {
     matricula: `99${String(3000 + seq).padStart(4, '0')}-${seq % 10}`, posto_grad_id: extra.posto, nome_guerra: nome,
-    motorista: !extra.foraDoQuadro && (extra.cnh ?? []).length > 0, cnh: extra.cnh ?? [], voluntario_jes: extra.jes ?? false, ativo: extra.ativo ?? true,
+    motorista: !extra.foraDoQuadro && (extra.cnh ?? []).length > 0, cnh: extra.cnh ?? [], voluntario_jes: extra.jes ?? false,
   });
   militar[nome] = id;
-  await inserir(api.banco, 'rastreio', { militar_id: id, unidade_id: api.ids.secao, equipe_id: extra.jornada === 'adm' ? null : equipe, jornada: extra.jornada ?? 'pronto', desde: extra.desde ?? `${atual}-01` });
+  await inserir(api.banco, 'rastreio', { militar_id: id, unidade_id: api.ids.secao, equipe_id: extra.jornada === 'adm' ? null : equipe, jornada: extra.jornada ?? 'pronto', desde: extra.desde ?? `${atual}-01`, situacao_id: await situacaoDoMilitar(api.banco, extra.ativo === false ? 'Desativado' : 'Ativa') });
   return id;
 }
 let equipe: string;

@@ -21,8 +21,8 @@ async function criar(nome: string, postoSigla: string, quadroSigla: string | nul
   seq++;
   const posto = (await api.banco.query<{ id: string }>('select id from posto_grad where sigla = $1', [postoSigla])).rows[0]!.id;
   const quadro = quadroSigla ? (await api.banco.query<{ id: string }>('select id from quadro where sigla = $1', [quadroSigla])).rows[0]!.id : null;
-  const id = await inserir(api.banco, 'militar', { matricula: `9905${String(seq).padStart(2, '0')}-${seq % 10}`, posto_grad_id: posto, nome_guerra: nome, quadro_id: quadro });
-  await inserir(api.banco, 'rastreio', { militar_id: id, unidade_id: api.ids.secao, equipe_id: equipe, jornada: 'pronto', desde: `${mes}-01` });
+  const id = await inserir(api.banco, 'militar', { matricula: `9905${String(seq).padStart(2, '0')}-${seq % 10}`, posto_grad_id: posto, nome_guerra: nome });
+  await inserir(api.banco, 'rastreio', { militar_id: id, unidade_id: api.ids.secao, equipe_id: equipe, jornada: 'pronto', desde: `${mes}-01`, quadro_id: quadro });
   militar[nome] = id;
   return id;
 }
@@ -113,7 +113,8 @@ describe('só o QBMG (e quem está sem quadro) nas telas de escala de praças', 
     expect(nomesDaGrade(antes)).toContain('PROMOVIDO');
     const qoa = (await api.banco.query<{ id: string }>("select id from quadro where sigla = 'QOA'")).rows[0]!.id;
     const posto = (await api.banco.query<{ id: string }>("select id from posto_grad where sigla = '2º TEN BM'")).rows[0]!.id;
-    await api.banco.query('update militar set posto_grad_id = $2, quadro_id = $3 where id = $1', [militar.PROMOVIDO, posto, qoa]);
+    await api.banco.query('update militar set posto_grad_id = $2 where id = $1', [militar.PROMOVIDO, posto]);
+    await api.banco.query('update rastreio set quadro_id = $2 where militar_id = $1', [militar.PROMOVIDO, qoa]);
     const depois: GradeDoMes = await (await api.pedir('escalante', 'GET', `${secao()}/grade/${mes}`)).json();
     expect(nomesDaGrade(depois)).not.toContain('PROMOVIDO');
   });

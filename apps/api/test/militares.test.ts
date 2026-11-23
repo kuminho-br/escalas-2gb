@@ -53,7 +53,7 @@ describe('cadastro de militares', () => {
   it('cria militar com a primeira lotação', async () => {
     const f = await criar('990101-1', { motorista: true, cnh: ['B'] });
     expect(f).toMatchObject({ matricula: '990101-1', posto: 'SD BM', equipe: 'Alfa', jornada: 'pronto', motorista: 'B', pendencias: [] });
-    expect(f.rastreio).toEqual([{ id: expect.any(String), unidadeSigla: '1ª SB', equipe: 'Alfa', jornada: 'pronto', desde: `${atual}-01`, ate: null }]);
+    expect(f.rastreio).toEqual([{ id: expect.any(String), unidadeSigla: '1ª SB', equipe: 'Alfa', jornada: 'pronto', quadro: 'QBMG', situacao: 'Ativa', desde: `${atual}-01`, ate: null }]);
   });
 
   it('matrícula repetida é 409', async () => {
@@ -125,7 +125,7 @@ describe('alterar situação (rastreio)', () => {
     const r = await situacao(m.id, { unidadeId: api.ids.secao, equipeId: null, jornada: 'adm', desde: `${atual}-01` });
     expect(r.status).toBe(200);
     const f = (await r.json()) as FichaMilitar;
-    expect(f.rastreio).toEqual([{ id: expect.any(String), unidadeSigla: '1ª SB', equipe: null, jornada: 'adm', desde: `${atual}-01`, ate: null }]);
+    expect(f.rastreio).toEqual([{ id: expect.any(String), unidadeSigla: '1ª SB', equipe: null, jornada: 'adm', quadro: 'QBMG', situacao: 'Ativa', desde: `${atual}-01`, ate: null }]);
     expect(f).toMatchObject({ jornada: 'adm', equipe: null });
   });
 
@@ -358,7 +358,8 @@ describe('antiguidade repetida', () => {
     const c = await criar('990122-2', { nomeGuerra: 'REPETIDOC', antiguidade: 778 });
     const d = await criar('990123-3', { nomeGuerra: 'REPETIDOD', antiguidade: 778 });
     expect((await ficha(c.id)).pendencias).toContain('Antiguidade repetida com REPETIDOD');
-    expect((await api.pedir('gestorGb', 'PATCH', `/api/militares/${d.id}`, { ativo: false })).status).toBe(200);
+    // a situação vale por período: "Desativado" não pode ser escalado, então não conta como repetido
+    await api.banco.query("update rastreio set situacao_id = (select id from situacao_militar where nome = 'Desativado') where militar_id = $1", [d.id]);
     expect((await ficha(c.id)).pendencias.some((p) => p.startsWith('Antiguidade repetida'))).toBe(false);
   });
 

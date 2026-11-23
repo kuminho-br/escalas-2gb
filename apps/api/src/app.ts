@@ -8,6 +8,7 @@ import { rotasGuarnicoes } from './cadastros/guarnicoes.ts';
 import { rotasEscalas } from './cadastros/escalas.ts';
 import { rotasMilitares } from './cadastros/militares.ts';
 import { rotasServicos } from './cadastros/servicos.ts';
+import { rotasSituacoes } from './cadastros/situacoes.ts';
 import { exigirMigracoesEmDia } from './migracoes-pendentes.ts';
 import { IMPORTADORES } from './importacao/registro.ts';
 import { limiteDeEnvio } from './limites.ts';
@@ -47,6 +48,7 @@ export function criarApp(dep: Dependencias): Hono {
     app.route('/api', rotasMilitares(comAuth));
     app.route('/api', rotasAcesso(comAuth));
     app.route('/api', rotasServicos(comAuth));
+    app.route('/api', rotasSituacoes(comAuth));
     app.route('/api', rotasCotas(comAuth));
     app.route('/api', rotasFeriados(comAuth));
     app.route('/api', rotasEscalas(comAuth));

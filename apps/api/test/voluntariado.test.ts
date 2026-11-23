@@ -2,7 +2,7 @@ import { mesPorExtenso, somarMeses, type FaixaDeDisponibilidade, type Voluntaria
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { hojeRecife } from '../src/datas.ts';
 import { blocosDaSecao } from '../src/voluntariado/leitura.ts';
-import { inserir } from './banco-teste.ts';
+import { inserir, situacaoDoMilitar } from './banco-teste.ts';
 import { montarApi, type ApiDeTeste } from './apoio-api.ts';
 
 // Cenário fictício (D7): mês de lançamento = o mês seguinte ao atual; Pronto A (08h às 20h) escalado no último dia do mês atual;
@@ -26,11 +26,11 @@ let seq = 0;
 async function criarMilitar(nome: string, o: { jornada?: 'pronto' | 'adm'; equipe?: string; desde?: string; ate?: string | null; ativo?: boolean } = {}) {
   seq++;
   const id = await inserir(api.banco, 'militar', {
-    matricula: `99${String(6000 + seq).padStart(4, '0')}-${seq % 10}`, posto_grad_id: posto, nome_guerra: nome, ativo: o.ativo ?? true,
+    matricula: `99${String(6000 + seq).padStart(4, '0')}-${seq % 10}`, posto_grad_id: posto, nome_guerra: nome,
   });
   militar[nome] = id;
   await inserir(api.banco, 'rastreio', {
-    militar_id: id, unidade_id: api.ids.secao, equipe_id: o.equipe ? equipe[o.equipe] : null, jornada: o.jornada ?? 'pronto', desde: o.desde ?? `${atual}-01`, ate: o.ate ?? null,
+    militar_id: id, unidade_id: api.ids.secao, equipe_id: o.equipe ? equipe[o.equipe] : null, jornada: o.jornada ?? 'pronto', desde: o.desde ?? `${atual}-01`, ate: o.ate ?? null, situacao_id: await situacaoDoMilitar(api.banco, o.ativo === false ? 'Desativado' : 'Ativa'),
   });
 }
 const marcar = (nome: string, data: string, inicio: number, fim: number, origem = 'manual') =>
