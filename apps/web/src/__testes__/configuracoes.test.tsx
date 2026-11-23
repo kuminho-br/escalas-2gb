@@ -53,6 +53,8 @@ describe('configurações no celular (N0.1, achado C1)', () => {
     const faixa = await screen.findByRole('tablist');
     expect(faixa.className).toMatch(/\boverflow-x-auto\b/);
     expect(faixa.className).toMatch(/\bmax-w-full\b/);
+    // o traço de cada aba passa um pouco da faixa: sem isto, a faixa ganha uma rolagem vertical (achado da revisão final)
+    expect(faixa.className).toMatch(/\boverflow-y-hidden\b/);
     for (const aba of screen.getAllByRole('tab')) expect(aba.className).toMatch(/\bwhitespace-nowrap\b/);
   });
 

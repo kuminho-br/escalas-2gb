@@ -75,7 +75,7 @@ export function SeletorDeCor({ id, valor, aoMudar }: { id: string; valor: string
           id={id}
           type="button"
           aria-label={`Cor: ${atual}`}
-          className="relative size-9 shrink-0 rounded-md border border-black/15 shadow-xs focus-visible:ring-[3px] focus-visible:ring-ring/50"
+          className="relative size-9 shrink-0 rounded-md border border-black/15 shadow-xs"
           style={{ backgroundColor: valor }}
         >
           <ChevronDown className="absolute right-0.5 bottom-0.5 size-3" style={{ color: corDoTexto(valor) }} aria-hidden />

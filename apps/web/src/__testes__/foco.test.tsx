@@ -19,6 +19,15 @@ describe('um contorno de foco só', () => {
     expect(comAnel).toEqual([]);
   });
 
+  it('os controles do site fora de componentes/ui também não põem o anel nem apagam o contorno (achado da revisão final)', () => {
+    const ARQUIVOS = ['Selecao.tsx', 'SeletorDeCor.tsx'];
+    const errados = ARQUIVOS.filter((f) => {
+      const t = readFileSync(join(__dirname, '..', 'componentes', f), 'utf8');
+      return DA_BIBLIOTECA.test(t) || /(?<![\w:-])outline-none/.test(t);
+    });
+    expect(errados).toEqual([]);
+  });
+
   it('um botão, uma aba e um campo recebem o foco pelo teclado sem as classes do anel da biblioteca', async () => {
     render(
       <>
