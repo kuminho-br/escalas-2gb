@@ -1,6 +1,6 @@
 # Transição do login para as boas-vindas (as mangueiras)
 
-22/11/2026 · design · mockup em revisão: a versão com efeitos de jogo está pronta e espera a aprovação do usuário; a chegada e o enchimento da mangueira ainda dependem de um vídeo do quartel
+22/11/2026 · design · **mockup aprovado pelo usuário em 22/11/2026**; implementação na entrega 6.4 (`docs/superpowers/plans/2026-11-21-fase6-usuarios-e-modulos.md`). A chegada e o enchimento da mangueira podem ser afinados depois, com o vídeo do quartel
 
 - Mockup: `docs/telas/transicao-login/mockup.html` (abrir no navegador) e https://claude.ai/artifact/W5RAADdsUP7Nx2QMSmmuns
 - Imagem final: `docs/telas/transicao-login/img/combate-storz.png`
@@ -152,13 +152,13 @@ Modelo: o mockup foi feito com o **Fable**. A primeira versão teve o código re
 | R4 | 20/11 | A mangueira enche de uma vez, de forma brusca | **Em parte.** Enche em 1,05 s (eram 0,55 s). O ritmo fino depende do vídeo |
 | R5 | 20/11 | A câmera só se afasta depois que a mangueira enche toda | **Feito** |
 | R6 | 20/11 | Tirar todo o som e o botão de som | **Feito** |
-| R7 | 22/11 | A animação está fraca; deve parecer o login de um jogo online, com efeitos na junta e partículas no ambiente | **Feito**, à espera da aprovação |
-| R8 | 22/11 | Onda de choque e explosões moderadas, nada gigante | **Feito**, à espera da aprovação |
+| R7 | 22/11 | A animação está fraca; deve parecer o login de um jogo online, com efeitos na junta e partículas no ambiente | **Feito** e aprovado |
+| R8 | 22/11 | Onda de choque e explosões moderadas, nada gigante | **Feito** e aprovado |
 | R9 | 22/11 | Testar com cerca de 3 s e com a junta de um anel só | **Feito**, em teste |
 
 ## Pendências
 
-1. **Aprovação do mockup** pelo usuário, no computador e no celular: a força da batida e o ritmo.
+1. **Aprovação do mockup:** dada pelo usuário em 22/11/2026.
 2. **Vídeo da mangueira enchendo no quartel**, para fechar R1 e R4.
 3. **Junta de um anel só:** se o teste não agradar, ajustar a imagem para as duas metades espelhadas das fotos do quartel e refazer as medidas.
 4. **Defeitos conhecidos do mockup:**
@@ -166,7 +166,7 @@ Modelo: o mockup foi feito com o **Fable**. A primeira versão teve o código re
    - durante o afastamento da câmera, sobra uma sombra leve embaixo da mangueira, junto à borda esquerda da imagem.
 5. **Imagem para o site:** a atual é um PNG de 2,1 MB; converter para JPG na implementação. Ampliar é opcional: com 1536 px de largura, a junta em primeiro plano fica um pouco mole em telas de alta densidade.
 6. **Aba da nuca** dos capacetes: decidir se vale gerar a imagem de novo só por isso.
-7. **Revisão do código** da versão com efeitos, ainda não feita.
+7. **Revisão do código** da versão com efeitos: fica com a revisão final da entrega 6.4.
 8. **Para a implementação no site:**
    - o mockup não simula o servidor fora do ar (a mensagem "Não foi possível falar com o servidor…" segue o caminho da senha errada, mas não há controle para testá-la);
    - a taxa de quadros em celular fraco não foi medida, e agora há mais coisa desenhada por quadro;
