@@ -16,7 +16,7 @@ const DA = unidade('u-da', 'DA', 4, 'divisao', [...GB.caminho, 'DA']);
 const SB2 = unidade('u-2sb', '2ª SB', 5, 'secao', [...DA.caminho, '2ª SB']);
 /** O chefe da DivOp: trabalha na DivOp e na 1ª SB; a DA e a 2ª SB (da divisão irmã) ele só consulta. */
 const CHEFE: EuDaApi = {
-  ...EU_EXEMPLO, papeis: [{ papel: 'chefe_divisao', unidadeId: 'u-divop', unidadeSigla: 'DivOp' }], unidades: [DIVOP, SB1], unidadesSoConsulta: [DA, SB2],
+  ...EU_EXEMPLO, papeis: [{ papel: 'gestor_lateral', unidadeId: 'u-divop', unidadeSigla: 'DivOp' }], unidades: [DIVOP, SB1], unidadesSoConsulta: [DA, SB2],
 };
 /** O oficial: sem nível de acesso, lotado na 2ª SB; com a marca ligada, vê a escala em montagem de toda a corporação. */
 const OFICIAL: EuDaApi = { ...EU_EXEMPLO, papeis: [], unidades: [SB2], lotacao: SB2, unidadesSoConsulta: [GB, DIVOP, SB1, DA, SB2] };

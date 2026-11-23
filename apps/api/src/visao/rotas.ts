@@ -32,12 +32,12 @@ export function rotasVisao(dep: { banco: Banco; auth: Auth }): Hono<AmbienteApi>
     const corpo = await lerCorpo(c, NovaBorda);
     if (!corpo.ok) return corpo.resposta;
     if (!corpo.dados.find((l) => l.bloco === 'identificacao')!.todos) return c.json({ erro: MSG_IDENTIFICACAO }, 400);
-    // as camadas se somam: o que "todos" vê o oficial e o chefe de divisão também veem (a tela marca e trava as outras duas)
-    const linhas = corpo.dados.map((l) => (l.todos ? { ...l, oficial: true, chefeDivisao: true } : l));
+    // as camadas se somam: o que "todos" vê o oficial e o quinto nível também veem (a tela marca e trava as outras duas)
+    const linhas = corpo.dados.map((l) => (l.todos ? { ...l, oficial: true, gestorLateral: true } : l));
     await comUsuario(c.get('banco'), c.get('usuarioId'), async (tx) => {
       const atual = await carregarBorda(tx);
       for (const l of linhas) {
-        for (const [camada, ve] of [['todos', l.todos], ['oficial', l.oficial], ['chefe_divisao', l.chefeDivisao]] as const) {
+        for (const [camada, ve] of [['todos', l.todos], ['oficial', l.oficial], ['gestor_lateral', l.gestorLateral]] as const) {
           // só as marcas que mudaram: a auditoria registra uma linha por mudança, e não 21 a cada "Salvar"
           if (atual[camada].has(l.bloco) !== ve) await tx.query('update visao_bloco set ve = $3 where bloco = $1 and camada = $2', [l.bloco, camada, ve]);
         }

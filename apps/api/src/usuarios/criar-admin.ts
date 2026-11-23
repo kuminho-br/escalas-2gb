@@ -12,8 +12,8 @@ export interface DadosAdmin {
   /** 'aaaa-mm-dd', normalmente hojeRecife() */
   hoje: string;
   /**
-   * A sigla da seção em que o militar do administrador está lotado (opcional). O administrador é um nível de acesso e o militar dele é um militar como
-   * qualquer outro: sem lotação ele não aparece nas buscas, nas listas nem nas escalas. Sem ela, a lotação é dada depois, na ficha.
+   * A sigla da unidade em que o militar do administrador está lotado (opcional), de qualquer tipo. O administrador é um nível de acesso e o militar dele é
+   * um militar como qualquer outro: sem lotação ele não aparece nas buscas, nas listas nem nas escalas. Sem ela, a lotação é dada depois, na ficha.
    */
   lotacao?: string;
 }
@@ -30,20 +30,20 @@ export async function criarAdmin(banco: Banco, d: DadosAdmin): Promise<{ usuario
 
     const posto = await tx.query<{ id: string }>('select id from posto_grad where sigla = $1', [d.postoSigla]);
     if (!posto.rows[0]) throw new Error(`Posto/graduação não encontrado: ${d.postoSigla}`);
-    // a seção da lotação é conferida antes de criar qualquer coisa
-    let secaoId: string | null = null;
+    // a unidade da lotação é conferida antes de criar qualquer coisa
+    let unidadeDaLotacao: string | null = null;
     if (d.lotacao) {
-      // a sigla pode vir com o grupamento ("1ª SB (2º GB)"), como na lista de destinos da ficha
-      const comGrupamento = /^(.+?) \((.+)\)$/.exec(d.lotacao);
-      const sigla = comGrupamento ? comGrupamento[1]! : d.lotacao;
-      const secoes = (await tx.query<{ id: string }>(
-        `select s.id from unidade s where s.tipo = 'secao' and s.sigla = $1 and (s.ate is null or s.ate >= $2::date)
-            and ($3::text is null or exists (select 1 from unidade g where g.tipo = 'grupamento' and g.sigla = $3 and g.caminho @> s.caminho))`,
-        [sigla, d.hoje, comGrupamento?.[2] ?? null],
+      // a sigla pode vir com a unidade de cima ("1ª SB (2º GB)"), como na lista de destinos da ficha
+      const comCima = /^(.+?) \((.+)\)$/.exec(d.lotacao);
+      const sigla = comCima ? comCima[1]! : d.lotacao;
+      const achadas = (await tx.query<{ id: string }>(
+        `select s.id from unidade s left join unidade m on m.id = s.mae_id
+          where lower(s.sigla) = lower($1) and (s.ate is null or s.ate >= $2::date) and ($3::text is null or lower(m.sigla) = lower($3))`,
+        [sigla, d.hoje, comCima?.[2] ?? null],
       )).rows;
-      if (!secoes.length) throw new Error(`Seção não encontrada: ${d.lotacao}`);
-      if (secoes.length > 1) throw new Error(`Há mais de uma seção com a sigla ${sigla}: use a sigla com o grupamento, por exemplo "${sigla} (2º GB)".`);
-      secaoId = secoes[0]!.id;
+      if (!achadas.length) throw new Error(`Unidade não encontrada: ${d.lotacao}`);
+      if (achadas.length > 1) throw new Error(`Há mais de uma unidade com a sigla ${sigla}: use a sigla com a unidade de cima, por exemplo "${sigla} (2º GB)".`);
+      unidadeDaLotacao = achadas[0]!.id;
     }
 
     let militarId = (await tx.query<{ id: string }>('select id from militar where matricula = $1', [d.matricula])).rows[0]?.id;
@@ -71,9 +71,9 @@ export async function criarAdmin(banco: Banco, d: DadosAdmin): Promise<{ usuario
     );
     // lotado desde o dia 1 do mês, no Adm, com o quadro do posto (quando só um serve), como o cadastro de um militar novo
     let lotado = false;
-    if (secaoId && !(await tx.query('select 1 from rastreio where militar_id = $1', [militarId])).rows.length) {
+    if (unidadeDaLotacao && !(await tx.query('select 1 from rastreio where militar_id = $1', [militarId])).rows.length) {
       const quadro = await quadroParaOPosto(tx, posto.rows[0].id, undefined, null);
-      await tx.query("insert into rastreio (militar_id, unidade_id, jornada, desde, quadro_id) values ($1, $2, 'adm', $3, $4)", [militarId, secaoId, inicioDoMes(d.hoje), 'erro' in quadro ? null : quadro.quadroId]);
+      await tx.query("insert into rastreio (militar_id, unidade_id, jornada, desde, quadro_id) values ($1, $2, 'adm', $3, $4)", [militarId, unidadeDaLotacao, inicioDoMes(d.hoje), 'erro' in quadro ? null : quadro.quadroId]);
       lotado = true;
     }
     return { usuarioId, militarId, lotado };

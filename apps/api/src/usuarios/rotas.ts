@@ -14,8 +14,8 @@ import { gerarSenhaProvisoria } from './senha-provisoria.ts';
 
 const MSG_SO_ADMIN = 'Só o administrador dá ou encerra o nível de acesso de administrador.';
 const MSG_SEM_PODER = 'Você só dá e encerra níveis de acesso na sua unidade e nas de baixo.';
-const MSG_SO_ACIMA_DA_DIVISAO = 'Só o gestor de uma unidade acima da divisão e o administrador dão ou encerram o nível de chefe de divisão.';
-const MSG_CHEFE_NA_DIVISAO = 'Chefe de divisão só existe numa divisão.';
+const MSG_SO_ACIMA = 'Só o gestor de uma unidade acima e o administrador dão ou encerram este nível de acesso.';
+const MSG_LATERAL_NA_RAIZ = 'O nível não existe na unidade raiz.';
 const MSG_ADMIN_NA_RAIZ = 'O nível de acesso de administrador só existe na unidade raiz.';
 const MSG_JA_ENCERRADO = 'Este nível de acesso já foi encerrado.';
 const MSG_FIM_ANTES = 'O fim não pode ser antes do início.';
@@ -72,32 +72,36 @@ export async function montarAcesso(c: Consulta, militarId: string): Promise<Aces
 }
 
 /**
- * O que quem olha pode dar: o administrador, qualquer papel em qualquer unidade; o gestor e o chefe de divisão, gestor e auxiliar na unidade
- * deles e nas de baixo. O nível de chefe de divisão, só o gestor de uma unidade acima de alguma divisão (o do grupamento).
+ * O que quem olha pode dar: o administrador, qualquer nível em qualquer unidade; o gestor e o quinto nível, gestor e auxiliar na unidade deles e nas
+ * de baixo. O quinto nível (`gestor_lateral`), só o gestor de uma unidade ACIMA da escolhida e o administrador, em qualquer unidade menos a raiz.
  */
 async function quemPodeDar(c: Consulta, usuarioId: string, hoje: string): Promise<Pick<AcessoDoMilitar, 'papeisQuePodeDar' | 'unidadesParaPapel'>> {
   const vigente = 'pu.desde <= $2 and (pu.ate is null or pu.ate >= $2)';
   const admin = (await c.query<{ ok: boolean }>(`select exists (select 1 from papel_usuario pu where pu.usuario_id = $1 and pu.papel = 'administrador' and ${vigente}) as ok`, [usuarioId, hoje])).rows[0]!.ok;
   const papeisQuePodeDar: Papel[] = [];
   let filtro = '';
-  if (admin) papeisQuePodeDar.push('administrador', 'gestor', 'chefe_divisao', 'escalante');
+  // a unidade aceita o quinto nível: não é a raiz e, fora o administrador, o gestor dela está numa unidade acima
+  let aceitaLateral = 'u.mae_id is not null';
+  if (admin) papeisQuePodeDar.push('administrador', 'gestor', 'gestor_lateral', 'escalante');
   else {
     const gestao = (await c.query<{ ok: boolean; acima: boolean }>(
-      `select exists (select 1 from papel_usuario pu where pu.usuario_id = $1 and pu.papel in ('gestor', 'chefe_divisao') and ${vigente}) as ok,
+      `select exists (select 1 from papel_usuario pu where pu.usuario_id = $1 and pu.papel in ('gestor', 'gestor_lateral') and ${vigente}) as ok,
               exists (select 1 from papel_usuario pu join unidade a on a.id = pu.unidade_id
-                        join unidade d on d.tipo = 'divisao' and a.caminho @> d.caminho and a.id <> d.id and (d.ate is null or d.ate >= $2::date)
+                        join unidade d on a.caminho @> d.caminho and a.id <> d.id and (d.ate is null or d.ate >= $2::date)
                        where pu.usuario_id = $1 and pu.papel = 'gestor' and ${vigente}) as acima`,
       [usuarioId, hoje],
     )).rows[0]!;
     if (!gestao.ok) return { papeisQuePodeDar: [], unidadesParaPapel: [] };
-    papeisQuePodeDar.push('gestor', ...(gestao.acima ? (['chefe_divisao'] as const) : []), 'escalante');
-    filtro = `and exists (select 1 from papel_usuario pu join unidade a on a.id = pu.unidade_id where pu.usuario_id = $1 and pu.papel in ('gestor', 'chefe_divisao') and ${vigente} and a.caminho @> u.caminho)`;
+    papeisQuePodeDar.push('gestor', ...(gestao.acima ? (['gestor_lateral'] as const) : []), 'escalante');
+    filtro = `and exists (select 1 from papel_usuario pu join unidade a on a.id = pu.unidade_id where pu.usuario_id = $1 and pu.papel in ('gestor', 'gestor_lateral') and ${vigente} and a.caminho @> u.caminho)`;
+    aceitaLateral = `exists (select 1 from papel_usuario pu join unidade a on a.id = pu.unidade_id where pu.usuario_id = $1 and pu.papel = 'gestor' and ${vigente} and a.caminho @> u.caminho and a.id <> u.id)`;
   }
-  const { rows } = await c.query<{ id: string; sigla: string; nivel: number; tipo: string; mae_sigla: string | null }>(
-    `select u.id, u.sigla, u.tipo, (select m.sigla from unidade m where m.id = u.mae_id) as mae_sigla, nlevel(u.caminho) - 1 as nivel from unidade u where (u.ate is null or u.ate >= $2::date) and $1::uuid is not null ${filtro} order by u.caminho`,
+  const { rows } = await c.query<{ id: string; sigla: string; nivel: number; tipo: string; mae_sigla: string | null; aceita_lateral: boolean }>(
+    `select u.id, u.sigla, u.tipo, (select m.sigla from unidade m where m.id = u.mae_id) as mae_sigla, nlevel(u.caminho) - 1 as nivel, ${aceitaLateral} as aceita_lateral
+       from unidade u where (u.ate is null or u.ate >= $2::date) and $1::uuid is not null ${filtro} order by u.caminho`,
     [usuarioId, hoje],
   );
-  return { papeisQuePodeDar, unidadesParaPapel: rows.map((u) => ({ id: u.id, sigla: u.sigla, nivel: Number(u.nivel), tipo: u.tipo, maeSigla: u.mae_sigla })) };
+  return { papeisQuePodeDar, unidadesParaPapel: rows.map((u) => ({ id: u.id, sigla: u.sigla, nivel: Number(u.nivel), tipo: u.tipo, maeSigla: u.mae_sigla, aceitaLateral: u.aceita_lateral })) };
 }
 
 /** O acesso do militar, com o que quem pede pode dar. */
@@ -118,13 +122,10 @@ async function podeNaUnidade(c: Consulta, usuarioId: string, papel: Papel, unida
     const raiz = (await c.query<{ id: string }>('select id from unidade where mae_id is null')).rows[0]!.id;
     return (await temPapel(c, usuarioId, raiz, ['administrador'], hoje)) ? null : MSG_SO_ADMIN;
   }
-  if (papel === 'chefe_divisao') {
-    // quem dá é o gestor de uma unidade ACIMA da divisão, ou o administrador; o chefe de divisão não dá o próprio nível a outra pessoa.
-    // Numa unidade que não é divisão, passa quem a alcança como gestor: a rota responde depois que o nível só existe numa divisão.
+  if (papel === 'gestor_lateral') {
+    // quem dá é o gestor de uma unidade ACIMA da escolhida, ou o administrador; o quinto nível não dá o próprio nível a outra pessoa
     if (await temPapel(c, usuarioId, unidadeId, ['administrador'], hoje)) return null;
-    const divisao = (await c.query<{ ok: boolean }>("select tipo = 'divisao' as ok from unidade where id = $1", [unidadeId])).rows[0]?.ok;
-    const pode = divisao ? await temPapelAcima(c, usuarioId, unidadeId, ['gestor'], hoje) : await temPapel(c, usuarioId, unidadeId, ['gestor'], hoje);
-    return pode ? null : MSG_SO_ACIMA_DA_DIVISAO;
+    return (await temPapelAcima(c, usuarioId, unidadeId, ['gestor'], hoje)) ? null : MSG_SO_ACIMA;
   }
   return (await temPapel(c, usuarioId, unidadeId, GESTAO, hoje)) ? null : MSG_SEM_PODER;
 }
@@ -226,13 +227,13 @@ export function rotasAcesso(dep: { banco: Banco; auth: Auth }): Hono<AmbienteApi
     if (!corpo.ok) return corpo.resposta;
     const d = corpo.dados;
     if (d.ate && d.ate < d.desde) return c.json({ erro: MSG_FIM_ANTES, campos: { ate: MSG_FIM_ANTES } }, 400);
-    const unidade = (await banco.query<{ mae_id: string | null; tipo: string; extinta: boolean }>('select mae_id, tipo, (ate is not null and ate < $2::date) as extinta from unidade where id = $1', [d.unidadeId, hojeRecife()])).rows[0];
+    const unidade = (await banco.query<{ mae_id: string | null; extinta: boolean }>('select mae_id, (ate is not null and ate < $2::date) as extinta from unidade where id = $1', [d.unidadeId, hojeRecife()])).rows[0];
     if (!unidade) return c.json({ erro: 'Unidade não encontrada.', campos: { unidadeId: 'Escolha a unidade.' } }, 400);
     const sem = await podeNaUnidade(banco, c.get('usuarioId'), d.papel, d.unidadeId);
     if (sem) return c.json({ erro: sem }, 403);
     if (unidade.extinta) return c.json({ erro: MSG_UNIDADE_EXTINTA, campos: { unidadeId: MSG_UNIDADE_EXTINTA } }, 400);
     if (d.papel === 'administrador' && unidade.mae_id !== null) return c.json({ erro: MSG_ADMIN_NA_RAIZ, campos: { unidadeId: MSG_ADMIN_NA_RAIZ } }, 400);
-    if (d.papel === 'chefe_divisao' && unidade.tipo !== 'divisao') return c.json({ erro: MSG_CHEFE_NA_DIVISAO, campos: { unidadeId: MSG_CHEFE_NA_DIVISAO } }, 400);
+    if (d.papel === 'gestor_lateral' && unidade.mae_id === null) return c.json({ erro: MSG_LATERAL_NA_RAIZ, campos: { unidadeId: MSG_LATERAL_NA_RAIZ } }, 400);
     let gravou: boolean;
     try {
       gravou = await comUsuario(banco, c.get('usuarioId'), async (tx) => {
@@ -268,11 +269,11 @@ export function rotasAcesso(dep: { banco: Banco; auth: Auth }): Hono<AmbienteApi
     // um "até" no futuro ainda deixa encerrar antes da data (o fim passa a ser o dia escolhido); um que já passou, ou que ia durar menos, não
     if (p.ate !== null && (p.ate <= hojeRecife() || corpo.dados.ate > p.ate)) return c.json({ erro: MSG_JA_ENCERRADO }, 409);
     if (corpo.dados.ate < p.desde) return c.json({ erro: MSG_ATE_ANTES, campos: { ate: MSG_ATE_ANTES } }, 400);
-    // ninguém encerra o próprio último nível de gestão, de gestor ou de chefe de divisão (o administrador pode)
-    if (p.usuario_id === quem && (p.papel === 'gestor' || p.papel === 'chefe_divisao')) {
+    // ninguém encerra o próprio último nível de gestão, de gestor ou do quinto nível (o administrador pode)
+    if (p.usuario_id === quem && (p.papel === 'gestor' || p.papel === 'gestor_lateral')) {
       const hoje = hojeRecife();
       const outros = (await banco.query<{ gestor: boolean; admin: boolean }>(
-        `select exists (select 1 from papel_usuario where usuario_id = $1 and papel in ('gestor', 'chefe_divisao') and id <> $3 and desde <= $2 and (ate is null or ate >= $2)) as gestor,
+        `select exists (select 1 from papel_usuario where usuario_id = $1 and papel in ('gestor', 'gestor_lateral') and id <> $3 and desde <= $2 and (ate is null or ate >= $2)) as gestor,
                 exists (select 1 from papel_usuario where usuario_id = $1 and papel = 'administrador' and desde <= $2 and (ate is null or ate >= $2)) as admin`,
         [quem, hoje, papelId],
       )).rows[0]!;

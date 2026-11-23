@@ -2,7 +2,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { FichaMilitar } from 'contratos';
 import { useState, type FormEvent } from 'react';
 import { mensagemDe } from '@/api/cliente';
-import { alterarSituacao, atualizarMilitares, consultaEquipes, consultaQuadros, consultaSecoes, consultaSituacoesDoMilitar } from '@/api/militares';
+import { alterarSituacao, atualizarMilitares, consultaEquipes, consultaQuadros, consultaUnidadesDeLotacao, consultaSituacoesDoMilitar } from '@/api/militares';
 import { useTrava } from '@/componentes/AlteracoesPendentes';
 import { Selecao } from '@/componentes/Selecao';
 import { Button } from '@/componentes/ui/button';
@@ -54,7 +54,7 @@ export function Rastreio({ ficha, unidadeId }: { ficha: FichaMilitar; unidadeId:
 /** O formulário flutuante: lotação, equipe (da lotação escolhida), jornada, quadro (só os do posto), situação e "a partir de" (um dia, sugerido o de hoje). */
 function AlterarSituacao({ ficha, unidadeAtualId, aoFechar }: { ficha: FichaMilitar; unidadeAtualId: string; aoFechar: () => void }) {
   const queryClient = useQueryClient();
-  const secoes = useQuery(consultaSecoes);
+  const secoes = useQuery(consultaUnidadesDeLotacao);
   const atual = periodoAtual(ficha.rastreio);
   // a lotação sugerida é a do período de hoje (achada pelo id: a mesma sigla existe em mais de um grupamento); sem ela, a unidade em que a tela trabalha
   // sem período de hoje (só um marcado para depois), vale o período aberto; a unidade da tela (que pode ser o grupamento ou o CBMPE) só entra se nada mais houver
@@ -124,7 +124,7 @@ function AlterarSituacao({ ficha, unidadeAtualId, aoFechar }: { ficha: FichaMili
                   setEquipeEscolhida('');
                 }}
               >
-                {unidadeId === '' && <option value="">Escolha a seção</option>}
+                {unidadeId === '' && <option value="">Escolha a unidade</option>}
                 {(secoes.data ?? (unidadeId ? [{ id: unidadeId, sigla: atual?.unidadeSigla ?? '…', nome: '' }] : [])).map((s) => <option key={s.id} value={s.id}>{s.sigla}</option>)}
               </Selecao>
               {!ficha.podeEditar.peculio && <p className="text-xs text-apagado">{`A lotação, o quadro e a situação são alterados por quem tem nível de acesso em ${ficha.podeEditar.unidadeDeCima ?? 'uma unidade acima'}.`}</p>}

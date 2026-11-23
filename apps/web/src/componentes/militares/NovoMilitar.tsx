@@ -2,7 +2,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
 import { useState, type FormEvent } from 'react';
 import { camposDe, mensagemDe } from '@/api/cliente';
-import { atualizarMilitares, consultaPostos, consultaQuadros, consultaSecoes, criarMilitar } from '@/api/militares';
+import { atualizarMilitares, consultaPostos, consultaQuadros, consultaUnidadesDeLotacao, criarMilitar } from '@/api/militares';
 import type { Eu } from '@/api/eu';
 import { atualizarPeculio, secoesDoCadastro } from '@/api/peculio';
 import { Campo } from '@/componentes/Campo';
@@ -23,7 +23,7 @@ export function NovoMilitar({ eu, aoFechar }: { eu: Eu; aoFechar: () => void }) 
   const navigate = useNavigate();
   const postos = useQuery(consultaPostos);
   const quadros = useQuery(consultaQuadros);
-  const secoes = useQuery(consultaSecoes);
+  const secoes = useQuery(consultaUnidadesDeLotacao);
   const [posto, setPosto] = useState('');
   const [quadro, setQuadro] = useState('');
   const [erro, setErro] = useState<string | null>(null);
@@ -101,7 +101,7 @@ export function NovoMilitar({ eu, aoFechar }: { eu: Eu; aoFechar: () => void }) 
             </Campo>
           </div>
           <div className="grid grid-cols-2 gap-3">
-            <Campo id="nm-secao" rotulo="Seção" erro={campos.secao}>
+            <Campo id="nm-secao" rotulo="Unidade" erro={campos.secao}>
               <Selecao id="nm-secao" name="secao" required>
                 {secoesDoCadastro(eu, secoes.data ?? []).map((s) => <option key={s.id} value={s.id}>{s.sigla}</option>)}
               </Selecao>

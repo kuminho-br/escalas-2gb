@@ -86,15 +86,16 @@ describe('cadastro de militares', () => {
   });
 });
 
-describe('seções para a lotação', () => {
-  it('o escalante da 1ª SB vê só a 1ª SB; o administrador vê as sete; quem não tem papel não vê nenhuma (403)', async () => {
-    const dele: { id: string; sigla: string }[] = await (await api.pedir('escalante', 'GET', '/api/secoes')).json();
+describe('unidades para a lotação', () => {
+  it('o escalante da 1ª SB vê só a 1ª SB; o administrador vê todas, de qualquer tipo; quem não tem papel não vê nenhuma (403)', async () => {
+    const dele: { id: string; sigla: string }[] = await (await api.pedir('escalante', 'GET', '/api/unidades-de-lotacao')).json();
     expect(dele.map((x) => x.sigla)).toEqual(['1ª SB']);
     expect(dele[0]!.id).toBe(api.ids.secao);
-    const todas: { id: string; sigla: string; nome: string }[] = await (await api.pedir('admin', 'GET', '/api/secoes')).json();
-    expect(todas.map((x) => x.sigla)).toEqual(['1ª SB', '2ª SB', '3ª SB', '4ª SB', '5ª SB', '6ª SB', '7ª SB']);
+    const todas: { id: string; sigla: string; nome: string }[] = await (await api.pedir('admin', 'GET', '/api/unidades-de-lotacao')).json();
+    // o 2º GB (um grupamento), a DA (uma divisão) e as sete seções: o tipo não importa
+    expect(todas.map((x) => x.sigla)).toEqual(expect.arrayContaining(['1ª SB', '2ª SB', '3ª SB', '4ª SB', '5ª SB', '6ª SB', '7ª SB', 'CBMPE', '2º GB', 'DA', 'DivOp']));
     expect(todas[1]).toEqual({ id: outraSecao, sigla: '2ª SB', nome: '2ª Seção de Bombeiros' });
-    expect((await api.pedir('semPapel', 'GET', '/api/secoes')).status).toBe(403);
+    expect((await api.pedir('semPapel', 'GET', '/api/unidades-de-lotacao')).status).toBe(403);
   });
 });
 

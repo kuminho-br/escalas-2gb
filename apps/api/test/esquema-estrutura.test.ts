@@ -158,10 +158,10 @@ describe('estrutura e pessoas', () => {
     ).rejects.toThrow();
   });
 
-  it('mae de nivel maior', async () => {
-    await expect(
-      inserir(banco, 'unidade', { tipo: 'grupamento', sigla: 'X-T', nome: 'X', mae_id: secao, desde: '2026-11-01' }),
-    ).rejects.toThrow();
+  // 6.25: o tipo é só um nome, então qualquer tipo fica abaixo de qualquer tipo
+  it('a mae pode ser de qualquer tipo', async () => {
+    const id = await inserir(banco, 'unidade', { tipo: 'grupamento', sigla: 'X-T', nome: 'X', mae_id: secao, desde: '2026-11-01' });
+    expect(id).toBeTruthy();
   });
 
   it('caminho da unidade', async () => {

@@ -5,7 +5,7 @@ import { useState, type FormEvent } from 'react';
 import { mensagemDe } from '@/api/cliente';
 import { atualizarEscalas, consultaEscalas, marcarBlocosDoVoluntariado } from '@/api/escalas';
 import { consultaCatalogo, consultaParametros, editarNoCatalogo, incluirNoCatalogo, salvarParametro, type Catalogo } from '@/api/configuracoes';
-import { ehAdministrador, grupamentosQueGere, podeMudarParametro } from '@/api/eu';
+import { ehAdministrador, ehMilitarComum, podeMudarParametro, raizesDaEstrutura } from '@/api/eu';
 import { useTrava } from '@/componentes/AlteracoesPendentes';
 import { Estrutura } from '@/componentes/configuracoes/Estrutura';
 import { MetaDeAtivacao } from '@/componentes/configuracoes/MetaDeAtivacao';
@@ -13,6 +13,7 @@ import { Postos } from '@/componentes/configuracoes/Postos';
 import { QuemVeOQue } from '@/componentes/configuracoes/QuemVeOQue';
 import { FuncoesDoMilitar } from '@/componentes/configuracoes/FuncoesDoMilitar';
 import { SituacoesDoMilitar } from '@/componentes/configuracoes/SituacoesDoMilitar';
+import { TiposDeUnidade } from '@/componentes/configuracoes/TiposDeUnidade';
 import { ImportarPlanilha } from '@/componentes/ImportarPlanilha';
 import { Button } from '@/componentes/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/componentes/ui/dialog';
@@ -24,7 +25,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/componentes/ui/tabs'
 import { AcoesDosModelos, ListaDeModelos } from '@/componentes/guarnicoes/ListaDeModelos';
 import { mesAtual } from '@/lib/meses';
 
-const ABAS = ['regras', 'voluntariado', 'modelos', 'meta', 'tipos', 'situacoes', 'funcoes', 'postos', 'estrutura', 'quem-ve-o-que'] as const;
+const ABAS = ['regras', 'voluntariado', 'modelos', 'meta', 'tipos', 'situacoes', 'funcoes', 'postos', 'estrutura', 'tipos-de-unidade', 'quem-ve-o-que'] as const;
 type Aba = (typeof ABAS)[number];
 
 export const Route = createFileRoute('/_app/configuracoes')({
@@ -37,9 +38,8 @@ function Configuracoes() {
   const queryClient = useQueryClient();
   const admin = ehAdministrador(eu);
   const podeMudar = podeMudarParametro(eu);
-  // a estrutura é do gestor do grupamento e do administrador; abre no grupamento da unidade de trabalho, se a pessoa o gere
-  const grupamentos = grupamentosQueGere(eu);
-  const grupamentoInicial = grupamentos.find((g) => g.caminho.every((sigla, i) => eu.unidade.caminho[i] === sigla)) ?? grupamentos[0];
+  // a estrutura é vista por quem tem nível de acesso (cada nó diz o que a pessoa pode fazer nele); a árvore abre onde começa o nível mais alto dela
+  const raizes = ehMilitarComum(eu) ? [] : raizesDaEstrutura(eu);
   const aba = Route.useSearch().aba ?? 'regras';
   const navigate = Route.useNavigate();
 
@@ -60,7 +60,8 @@ function Configuracoes() {
           <TabsTrigger value="situacoes">Situações do militar</TabsTrigger>
           <TabsTrigger value="funcoes">Funções do militar</TabsTrigger>
           {admin && <TabsTrigger value="postos">Postos e graduações</TabsTrigger>}
-          {grupamentoInicial && <TabsTrigger value="estrutura">Estrutura</TabsTrigger>}
+          {raizes.length > 0 && <TabsTrigger value="estrutura">Estrutura</TabsTrigger>}
+          {admin && <TabsTrigger value="tipos-de-unidade">Tipos de unidade</TabsTrigger>}
           {admin && <TabsTrigger value="quem-ve-o-que">Quem vê o quê</TabsTrigger>}
         </TabsList>
         <TabsContent value="regras">
@@ -92,9 +93,14 @@ function Configuracoes() {
             <Postos />
           </TabsContent>
         )}
-        {grupamentoInicial && (
+        {raizes.length > 0 && (
           <TabsContent value="estrutura">
-            <Estrutura grupamentos={grupamentos} inicial={grupamentoInicial.id} />
+            <Estrutura raizes={raizes} />
+          </TabsContent>
+        )}
+        {admin && (
+          <TabsContent value="tipos-de-unidade">
+            <TiposDeUnidade />
           </TabsContent>
         )}
         {admin && (

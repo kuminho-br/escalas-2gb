@@ -1,5 +1,5 @@
 import { queryOptions, type QueryClient } from '@tanstack/react-query';
-import type { AlteracaoDeSituacao, EdicaoAfastamento, EdicaoMilitar, Equipe, FichaMilitar, FuncaoDoMilitar, LinhaMilitar, NovoAfastamento, NovoMilitar, NovoPosto, Posto, OQueVaiJunto, Quadro, SecaoDeLotacao, SituacaoDoMilitar } from 'contratos';
+import type { AlteracaoDeSituacao, EdicaoAfastamento, EdicaoMilitar, Equipe, FichaMilitar, FuncaoDoMilitar, LinhaMilitar, NovoAfastamento, NovoMilitar, NovoPosto, Posto, OQueVaiJunto, Quadro, UnidadeDeLotacao, SituacaoDoMilitar } from 'contratos';
 import { pedir } from './cliente';
 
 export const consultaMilitares = (unidadeId: string, mes: string) =>
@@ -14,7 +14,7 @@ export const consultaPostos = queryOptions({ queryKey: ['postos'], queryFn: () =
 export const consultaQuadros = queryOptions({ queryKey: ['quadros'], queryFn: () => pedir<Quadro[]>('GET', '/api/quadros'), staleTime: Infinity });
 
 /** As seções em que a pessoa pode lotar um militar. */
-export const consultaSecoes = queryOptions({ queryKey: ['secoes'], queryFn: () => pedir<SecaoDeLotacao[]>('GET', '/api/secoes'), staleTime: 300_000 });
+export const consultaUnidadesDeLotacao = queryOptions({ queryKey: ['unidades-de-lotacao'], queryFn: () => pedir<UnidadeDeLotacao[]>('GET', '/api/unidades-de-lotacao'), staleTime: 300_000 });
 
 export const criarMilitar = (unidadeId: string, d: NovoMilitar) => pedir<FichaMilitar>('POST', `/api/unidades/${unidadeId}/militares`, d);
 export const editarMilitar = (id: string, d: EdicaoMilitar) => pedir<FichaMilitar>('PATCH', `/api/militares/${id}`, d);

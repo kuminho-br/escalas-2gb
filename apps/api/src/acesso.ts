@@ -7,13 +7,13 @@ import type { Banco, Consulta } from './banco/banco.ts';
 import { hojeRecife } from './datas.ts';
 import { MSG_CRIE_A_SENHA, MSG_SENHA_VENCIDA } from './usuarios/mensagens.ts';
 
-export type Papel = 'administrador' | 'gestor' | 'chefe_divisao' | 'escalante';
+export type Papel = 'administrador' | 'gestor' | 'gestor_lateral' | 'escalante';
 
 export type AmbienteApi = { Variables: { usuarioId: string; banco: Banco } };
 
-export const CADASTRO: Papel[] = ['escalante', 'gestor', 'chefe_divisao', 'administrador'];
-/** Quem edita como gestor: o chefe de divisão é um gestor da sua divisão e das seções de dentro. */
-export const GESTAO: Papel[] = ['gestor', 'chefe_divisao', 'administrador'];
+export const CADASTRO: Papel[] = ['escalante', 'gestor', 'gestor_lateral', 'administrador'];
+/** Quem edita como gestor: o quinto nível (`gestor_lateral`) edita como gestor na sua unidade e nas de baixo; as irmãs ele só vê. */
+export const GESTAO: Papel[] = ['gestor', 'gestor_lateral', 'administrador'];
 
 const VIGENTE = 'pu.desde <= $2 and (pu.ate is null or pu.ate >= $2)';
 
@@ -63,22 +63,20 @@ export async function temPapelAcima(c: Consulta, usuarioId: string, unidadeId: s
 }
 
 /**
- * A sigla da "unidade de cima" que as mensagens do Pecúlio citam ("quem tem nível de acesso no 2º GB"): a unidade mais próxima acima que não é
- * divisão. A divisão fica entre a seção e o grupamento, mas quem cuida do Pecúlio é o grupamento: sem este desvio a frase mandaria a pessoa
- * falar com a "DivOp". null se não há unidade acima.
+ * A sigla da "unidade de cima" que as mensagens do Pecúlio citam ("quem tem nível de acesso no 2º GB"): a unidade logo acima, qualquer que seja
+ * o tipo dela. null se não há unidade acima.
  */
 export async function siglaDaUnidadeDeCima(c: Consulta, unidadeId: string): Promise<string | null> {
   const { rows } = await c.query<{ sigla: string }>(
-    `select m.sigla from unidade u join unidade m on m.caminho @> u.caminho and m.id <> u.id and m.tipo <> 'divisao'
-      where u.id = $1 order by nlevel(m.caminho) desc limit 1`,
+    `select m.sigla from unidade u join unidade m on m.id = u.mae_id where u.id = $1`,
     [unidadeId],
   );
   return rows[0]?.sigla ?? null;
 }
 
 /**
- * Importar o Pecúlio é de quem tem papel numa unidade ACIMA das seções da unidade importada (o dono dos blocos do Pecúlio): existe, na unidade
- * ou abaixo dela, uma seção cuja unidade de cima a pessoa tem. 403 com a frase de quem altera (a unidade mãe da importada, "2º GB" para a 1ª SB).
+ * Importar o Pecúlio é de quem tem papel numa unidade ACIMA das unidades da importação (o dono dos blocos do Pecúlio): existe, na unidade
+ * importada ou abaixo dela, uma unidade cuja unidade de cima a pessoa tem. 403 com a frase de quem altera (a unidade mãe da importada, "2º GB" para a 1ª SB).
  */
 export async function exigirPapelDeCimaDasSecoes(c: Context<AmbienteApi>, unidadeId: string, papeis: Papel[]): Promise<Response | null> {
   const banco = c.get('banco');

@@ -35,7 +35,7 @@ beforeAll(async () => {
   const militar = await inserir(banco, 'militar', { matricula: '990731-1', posto_grad_id: posto, nome_guerra: 'M31' });
   usuario = await inserir(banco, 'usuario', { nome: 'SD BM M31', email: 'm31@exemplo.test', militar_id: militar });
   await darPapel('gestor', secao);
-  await migrarAte(banco, '9999');
+  await migrarAte(banco, '0032'); // só até a 0031: a 0035 muda o que esta migração criou (tipos com nível, chefe de divisão)
 });
 afterAll(async () => {
   await banco.fechar();

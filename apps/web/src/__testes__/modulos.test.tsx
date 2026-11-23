@@ -3,7 +3,7 @@ import type { EuDaApi } from '@/api/eu';
 import { MODULOS, moduloDoEndereco } from '@/lib/modulos';
 import { EU_EXEMPLO } from './apoio';
 
-const comPapel = (papel: 'administrador' | 'gestor' | 'chefe_divisao' | 'escalante'): EuDaApi => ({ ...EU_EXEMPLO, papeis: [{ papel, unidadeId: 'u-1sb', unidadeSigla: '1ª SB' }] });
+const comPapel = (papel: 'administrador' | 'gestor' | 'gestor_lateral' | 'escalante'): EuDaApi => ({ ...EU_EXEMPLO, papeis: [{ papel, unidadeId: 'u-1sb', unidadeSigla: '1ª SB' }] });
 const COMUM: EuDaApi = { ...EU_EXEMPLO, papeis: [] };
 const quemVe = (eu: EuDaApi) => MODULOS.filter((m) => m.ve({ ...eu, unidade: eu.unidades[0]! })).map((m) => m.id);
 
@@ -12,8 +12,8 @@ describe('os módulos e quem os vê', () => {
     expect(quemVe(COMUM)).toEqual(['consulta', 'visualizacao', 'minha-ficha']);
   });
 
-  it('o auxiliar, o chefe de divisão, o gestor e o administrador veem os cinco', () => {
-    for (const papel of ['escalante', 'chefe_divisao', 'gestor', 'administrador'] as const) expect(quemVe(comPapel(papel))).toEqual(['escalas', 'peculio', 'consulta', 'visualizacao', 'minha-ficha']);
+  it('o auxiliar, o quinto nível, o gestor e o administrador veem os cinco', () => {
+    for (const papel of ['escalante', 'gestor_lateral', 'gestor', 'administrador'] as const) expect(quemVe(comPapel(papel))).toEqual(['escalas', 'peculio', 'consulta', 'visualizacao', 'minha-ficha']);
   });
 
   it('só a Visualização não tem rota', () => {
