@@ -27,7 +27,7 @@ describe('sair', () => {
     simularApi({ '/api/eu': { status: 200, corpo: EU_EXEMPLO }, '/api/auth/sign-out': 'rede' });
     const router = abrir('/');
     await clicarSair();
-    expect(await screen.findByText('Não foi possível sair. Verifique a conexão e tente de novo.')).toBeInTheDocument();
+    expect(await screen.findByText('Não foi possível sair. Confira a conexão e tente de novo.')).toBeInTheDocument();
     expect(router.state.location.pathname).toBe('/');
   });
 
@@ -51,7 +51,7 @@ describe('sair', () => {
     simularApi({ '/api/eu': { status: 200, corpo: EU_EXEMPLO }, '/api/auth/sign-out': 'rede', 'GET /api/qualquer': { status: 401, corpo: { erro: 'Sessão inválida.' } } });
     abrir('/');
     await clicarSair();
-    await screen.findByText('Não foi possível sair. Verifique a conexão e tente de novo.');
+    await screen.findByText('Não foi possível sair. Confira a conexão e tente de novo.');
     await expect(pedir('GET', '/api/qualquer')).rejects.toMatchObject({ status: 401 });
     expect(ir).toHaveBeenCalledWith(expect.stringContaining('sessao=terminou'));
   });

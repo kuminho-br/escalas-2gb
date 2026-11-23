@@ -37,5 +37,15 @@ export function DonoDoBloco({ unidadeDeCima }: { unidadeDeCima: string | null })
 
 /** O que a tela diz perto do campo quando uma lista (postos, tipos de afastamento) não carrega: sem isso o botão ficaria apagado sem explicação. */
 export const LISTA_NAO_CARREGOU = 'Não deu para carregar a lista. Recarregue a página.';
+export const LISTA_NAO_ATUALIZOU = 'Não deu para atualizar.';
+
+/**
+ * O aviso de uma lista (postos, funções, tipos) que falhou: sem lista na tela, "não deu para carregar" (o campo fica sem opções); com a lista já carregada,
+ * só um aviso pequeno de que não atualizou (as opções que estão na tela continuam valendo).
+ */
+export function avisoDaLista(consulta: { isError: boolean; data?: unknown }): string | undefined {
+  if (!consulta.isError) return undefined;
+  return consulta.data ? LISTA_NAO_ATUALIZOU : LISTA_NAO_CARREGOU;
+}
 
 export const dataBr = (d: string) => `${d.slice(8, 10)}/${d.slice(5, 7)}/${d.slice(0, 4)}`;

@@ -11,7 +11,7 @@ import { Button } from '@/componentes/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/componentes/ui/dialog';
 import { Input } from '@/componentes/ui/input';
 import { hoje } from '@/lib/meses';
-import { LISTA_NAO_CARREGOU } from './Secao';
+import { avisoDaLista } from './Secao';
 
 /**
  * O militar novo, no módulo Pecúlio: os dados do Pecúlio (matrícula, posto-graduação, quadro, nome completo, nome de guerra, antiguidade) e a
@@ -77,7 +77,7 @@ export function NovoMilitar({ eu, aoFechar }: { eu: Eu; aoFechar: () => void }) 
             <Campo id="nm-matricula" rotulo="Matrícula" erro={campos.matricula}>
               <Input id="nm-matricula" name="matricula" placeholder="123456-7" required />
             </Campo>
-            <Campo id="nm-posto" rotulo="Posto-graduação" erro={campos.postoGradId ?? (postos.isError && !postos.data ? LISTA_NAO_CARREGOU : undefined)}>
+            <Campo id="nm-posto" rotulo="Posto-graduação" erro={campos.postoGradId ?? avisoDaLista(postos)}>
               <Selecao id="nm-posto" name="posto" value={postoEscolhido} onChange={(e) => setPosto(e.target.value)} required>
                 {postos.data?.map((p) => <option key={p.id} value={p.id}>{p.sigla}</option>)}
               </Selecao>
