@@ -104,8 +104,15 @@ export function EscalaDoMes({ unidadeId, escala: e, aoVer }: Props) {
     fila.current = fila.current.then(tarefa).catch(() => undefined).finally(() => setPendentes((n) => n - 1));
   };
   const lugarAgora = (dia: string, letra: string) => maisNova.current.turnos.find((x) => x.dia === dia && x.letra === letra);
-  const lancar = (l: Lugar, o: Oficial, qual: ServicoDaRodada) =>
+  // `escolhidoAMao` null com Saldo: quem é lançado é o da vez na hora de gravar (cliques rápidos passam ao próximo quando o primeiro completa a cota)
+  const lancar = (l: Lugar, escolhidoAMao: Oficial | null, qual: ServicoDaRodada) =>
     enfileirar(async () => {
+      const novo = maisNova.current;
+      const o = escolhidoAMao ?? (novo.etapa === 'escolhas' ? novo.oficiais.find((x) => x.militarId === novo.vez && x.participa) : undefined);
+      if (!o) {
+        setAviso('Escolha um oficial na lista.');
+        return;
+      }
       // o estado mais novo: se o turno já é deste oficial neste serviço (um clique repetido), não há o que lançar
       const agora = lugarAgora(l.dia, l.letra);
       if (agora?.militarId === o.militarId && agora.servico === qual) return;
@@ -119,7 +126,7 @@ export function EscalaDoMes({ unidadeId, escala: e, aoVer }: Props) {
         setRecente({ dia: l.dia, turnoId: l.turnoId, texto: `${nomeDe(o)} ficou com o turno ${rotulo} de ${dm(l.dia)} (${NOME_DO_SERVICO[qual]}).` });
         // com Saldo, o oficial que completou a cota larga a escolha: ela volta à vez
         const depois = r.oficiais.find((x) => x.militarId === o.militarId);
-        if (qual === 'saldo' && depois && depois.cota !== null && depois.escolhidos >= depois.cota) setManual(null);
+        if (qual === 'saldo' && r.etapa === 'escolhas' && depois && depois.cota !== null && depois.escolhidos >= depois.cota) setManual((m) => (m === o.militarId ? null : m));
       } catch (x) {
         setErro(mensagemDe(x));
         void queryClient.invalidateQueries({ queryKey: ['oficiais', unidadeId] });
@@ -157,6 +164,11 @@ export function EscalaDoMes({ unidadeId, escala: e, aoVer }: Props) {
       tirar(agora);
       return;
     }
+    // o lugar é do outro serviço: o servidor recusaria (e a pergunta de trocar enganaria); a tela avisa antes
+    if (agora.militarId && agora.servico && agora.servico !== servico) {
+      setAviso(`Este turno é ${NOME_DO_SERVICO[agora.servico]}. Mude para ${NOME_DO_SERVICO[agora.servico]} para tirar ou trocar.`);
+      return;
+    }
     const afastamento = afastadoEm(escolhido, l.dia);
     if (afastamento) {
       setAviso(`${nomeDe(escolhido)} está afastado em ${dm(l.dia)} (${afastamento.tipo}) e não pode ficar com este turno.`);
@@ -164,7 +176,7 @@ export function EscalaDoMes({ unidadeId, escala: e, aoVer }: Props) {
     }
     const dono = agora.militarId ? e.oficiais.find((o) => o.militarId === agora.militarId) : undefined;
     if (dono && dono.militarId !== escolhido.militarId) setTroca({ lugar: agora, de: dono, para: escolhido });
-    else lancar(agora, escolhido, servico);
+    else lancar(agora, doManual, servico);
   };
   const escolherOficial = (id: string) => {
     setAviso(null);
@@ -182,6 +194,7 @@ export function EscalaDoMes({ unidadeId, escala: e, aoVer }: Props) {
     lancar(lugar, para, servico);
   };
 
+  const ocupado = salvando || pendentes > 0;
   const aoFechar = () => (e.turnos.some((t) => t.militarId === null) ? setConfirmacao('fechar') : void fechar());
   const aoEncerrar = () => setConfirmacao('encerrar');
   const editavel = e.etapa === 'escolhas' || e.etapa === 'fechada';
@@ -190,7 +203,7 @@ export function EscalaDoMes({ unidadeId, escala: e, aoVer }: Props) {
     <div className="grid gap-3">
       <FaixaDoMes
         etapa={e.etapa}
-        ocupado={salvando}
+        ocupado={ocupado}
         podeAbrir={Boolean(e.escala && e.servicos.saldo)}
         aoAbrir={() => void abrir()}
         aoFechar={aoFechar}
@@ -209,7 +222,7 @@ export function EscalaDoMes({ unidadeId, escala: e, aoVer }: Props) {
         </div>
       )}
       {foraDaOrdem && <p role="status" className="rounded-md bg-pendencia-fundo px-3 py-2 text-sm text-pendencia">{foraDaOrdem}</p>}
-      <MensagensDoMes escala={e} confirmacao={confirmacao} ocupado={salvando} aoFechar={() => void fechar()} aoEncerrar={() => void encerrar()} aoDesistir={() => setConfirmacao(null)} />
+      <MensagensDoMes escala={e} confirmacao={confirmacao} ocupado={ocupado} aoFechar={() => void fechar()} aoEncerrar={() => void encerrar()} aoDesistir={() => setConfirmacao(null)} />
       {e.etapa === 'nao-aberto' && (
         <p className="text-apagado">
           {!e.servicos.saldo
@@ -262,7 +275,7 @@ export function EscalaDoMes({ unidadeId, escala: e, aoVer }: Props) {
                 escala={e}
                 aoOrdenar={e.etapa === 'nao-aberto' ? undefined : ordenar}
                 aoMarcar={marcar}
-                desabilitado={salvando}
+                desabilitado={ocupado}
                 escolhido={editavel ? (escolhido?.militarId ?? null) : null}
                 aoEscolher={editavel ? escolherOficial : undefined}
               />

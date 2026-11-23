@@ -345,6 +345,52 @@ describe('a aba Escala do mês', () => {
       expect(chamadasA(f, URL_LANC)).toBe(0);
     });
 
+    it('revisão final: clicar num turno de outro serviço (JES escolhido, turno de Saldo) avisa na tela, sem perguntar "Trocar" e sem chamar a API', async () => {
+      const f = abrirEscala(escala({ turnos: comNome(escala(), { [`${dia(2)}|t-a`]: 'm-2' }) }));
+      await userEvent.click(await screen.findByRole('button', { name: /^CEL ALFA/ }));
+      await escolher(/^02\/01, Dia.*BRAVO/);
+      expect(await screen.findByText('Este turno é Saldo. Mude para Saldo para tirar ou trocar.')).toBeInTheDocument();
+      expect(screen.queryByRole('dialog')).toBeNull();
+      expect(chamadasA(f, URL_LANC)).toBe(0);
+      // o próprio oficial, em outro serviço, também não vai ao servidor
+      await userEvent.click(within(lista()).getByRole('button', { name: /^CAP BRAVO/ }));
+      await escolher(/^02\/01, Dia.*BRAVO/);
+      expect(await screen.findByText('Este turno é Saldo. Mude para Saldo para tirar ou trocar.')).toBeInTheDocument();
+      expect(chamadasA(f, URL_LANC)).toBe(0);
+      expect(chamadasA(f, URL_TIRAR(2, 'A'))).toBe(0);
+    });
+
+    it('revisão final: com Saldo, cliques rápidos passam ao próximo da vez quando o primeiro completa a cota (o oficial é decidido na hora de gravar)', async () => {
+      const t = trava();
+      const { lancados } = servidorVivo(escala({ oficiais: [{ ...O1, cota: 2, escolhidos: 1 }, O2, O3] }), { esperaDoPost: t.espera });
+      await userEvent.click(await screen.findByRole('radio', { name: 'Saldo' }));
+      for (const d of [3, 4, 5]) await userEvent.click(await screen.findByRole('button', { name: new RegExp(`^0${d}/01, Dia`) }));
+      t.soltar();
+      await waitFor(() => expect(lancados.map((l) => l.militarId)).toEqual(['m-1', 'm-2', 'm-2']));
+    });
+
+    it('revisão final: com a escala fechada, a escolha à mão não cai quando o oficial já está na cota (várias coberturas seguidas)', async () => {
+      const fechada = escala({ etapa: 'fechada', fechadaEm: '2027-01-05T10:00:00', vez: null, oficiais: [{ ...O1, cota: 2, escolhidos: 2 }, O2, O3] });
+      const { lancados } = servidorVivo(fechada);
+      await userEvent.click(await screen.findByRole('radio', { name: 'Saldo' }));
+      await userEvent.click(within(lista()).getByRole('button', { name: /^CEL ALFA/ }));
+      await escolher(/^03\/01, Dia/);
+      await escolher(/^04\/01, Dia/);
+      await waitFor(() => expect(lancados.map((l) => l.militarId)).toEqual(['m-1', 'm-1']));
+      expect(screen.queryByText('Escolha um oficial na lista.', { selector: 'p.font-medium' })).toBeNull();
+    });
+
+    it('revisão final: enquanto a fila grava, "Fechar a escala" e as marcas da lista ficam desligadas', async () => {
+      const t = trava();
+      servidorVivo(escala(), { esperaDoPost: t.espera });
+      await userEvent.click(await screen.findByRole('radio', { name: 'Saldo' }));
+      await escolher(/^03\/01, Dia/);
+      await waitFor(() => expect(screen.getByRole('button', { name: 'Fechar a escala' })).toBeDisabled());
+      expect(screen.getByRole('checkbox', { name: 'CEL ALFA participa da rodada' })).toBeDisabled();
+      t.soltar();
+      await waitFor(() => expect(screen.getByRole('button', { name: 'Fechar a escala' })).toBeEnabled());
+    });
+
     it('sem o serviço JES na escala, a opção JES fica desligada, com a dica, e o Saldo vem escolhido', async () => {
       abrirEscala(escala({ servicos: { jes: null, saldo: { id: 's-op', nome: 'Saldo' } } }));
       await screen.findByRole('radiogroup', { name: 'Escalar:' });
