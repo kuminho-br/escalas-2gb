@@ -2,7 +2,7 @@ import { QueryClient } from '@tanstack/react-query';
 import type { BlocoDaGrade, EfetivoDoDia, GradeDoMes, LinhaDaGrade } from 'contratos';
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { escalar } from '@/api/escala-do-mes';
 import { TabelaDaGrade } from '@/componentes/grade/TabelaDaGrade';
 import { desativar } from '@/api/efetivo-do-dia';
@@ -48,6 +48,54 @@ function api(grade: GradeDoMes = GRADE) {
 const linhaDe = (nome: string) => screen.getByRole('rowheader', { name: new RegExp(nome) }).closest('tr') as HTMLElement;
 const celula = (nome: string, n: number, texto: string) => within(linhaDe(nome)).getByRole('button', { name: `SD BM ${nome}, dia ${n}: ${texto}` });
 const larguras = (nome: string) => [...linhaDe(nome).querySelectorAll<HTMLElement>('[data-barra]')].map((b) => b.style.width);
+
+describe('grade geral: o dia de hoje (N0.4, achado T4)', () => {
+  const original = Element.prototype.scrollIntoView;
+  afterEach(() => {
+    Element.prototype.scrollIntoView = original;
+    vi.useRealTimers();
+  });
+  const comHoje = (data: string) => {
+    vi.useFakeTimers({ toFake: ['Date'], now: new Date(`${data}T15:00:00Z`) });
+    const rolar = vi.fn();
+    Element.prototype.scrollIntoView = rolar;
+    return rolar;
+  };
+
+  it('no mês corrente, a coluna de hoje tem aria-current="date" e uma marca visível, e a tabela rola até ela uma vez ao abrir', async () => {
+    const rolar = comHoje(dia(10));
+    api();
+    abrir(`/grade?mes=${MES}`);
+    await screen.findByRole('table', { name: 'Grade geral de dezembro de 2026' });
+    const cab = screen.getByRole('columnheader', { name: /^Dia 10,/ });
+    expect(cab).toHaveAttribute('aria-current', 'date');
+    expect(cab.querySelector('[data-marca-hoje]')).not.toBeNull();
+    expect(screen.getAllByRole('columnheader').filter((h) => h.getAttribute('aria-current') === 'date')).toHaveLength(1);
+    await waitFor(() => expect(rolar).toHaveBeenCalledTimes(1));
+    expect(rolar.mock.contexts[0]).toBe(cab);
+  });
+
+  it('trocar o filtro de equipes não rola de novo', async () => {
+    const rolar = comHoje(dia(10));
+    api();
+    abrir(`/grade?mes=${MES}`);
+    await screen.findByRole('table', { name: 'Grade geral de dezembro de 2026' });
+    await waitFor(() => expect(rolar).toHaveBeenCalledTimes(1));
+    await userEvent.click(within(screen.getByRole('group', { name: 'Equipes' })).getByRole('button', { name: 'Bravo' }));
+    await screen.findByRole('rowheader', { name: /BRAVO/ });
+    expect(rolar).toHaveBeenCalledTimes(1);
+  });
+
+  it('em outro mês, não há marca nem rolagem', async () => {
+    const rolar = comHoje('2027-01-10');
+    api();
+    abrir(`/grade?mes=${MES}`);
+    await screen.findByRole('table', { name: 'Grade geral de dezembro de 2026' });
+    expect(screen.getAllByRole('columnheader').some((h) => h.hasAttribute('aria-current'))).toBe(false);
+    expect(document.querySelector('[data-marca-hoje]')).toBeNull();
+    expect(rolar).not.toHaveBeenCalled();
+  });
+});
 
 describe('grade geral: a tabela', () => {
   it('mostra os grupos na ordem da API e as linhas com os blocos (letra e cor do serviço)', async () => {

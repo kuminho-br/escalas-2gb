@@ -46,6 +46,26 @@ function api(extra: Parameters<typeof simularApi>[0] = {}, eu = EU_EXEMPLO) {
   });
 }
 
+describe('configurações no celular (N0.1, achado C1)', () => {
+  it('a faixa das abas rola dentro dela mesma, sem quebrar o texto das abas', async () => {
+    api();
+    abrir('/configuracoes');
+    const faixa = await screen.findByRole('tablist');
+    expect(faixa.className).toMatch(/\boverflow-x-auto\b/);
+    expect(faixa.className).toMatch(/\bmax-w-full\b/);
+    // o traço de cada aba passa um pouco da faixa: sem isto, a faixa ganha uma rolagem vertical (achado da revisão final)
+    expect(faixa.className).toMatch(/\boverflow-y-hidden\b/);
+    for (const aba of screen.getAllByRole('tab')) expect(aba.className).toMatch(/\bwhitespace-nowrap\b/);
+  });
+
+  it('cada tabela da tela fica dentro de um quadro que rola', async () => {
+    api();
+    abrir('/configuracoes');
+    await screen.findByRole('table');
+    for (const t of screen.getAllByRole('table')) expect(t.parentElement!.className).toMatch(/\boverflow-x-auto\b/);
+  });
+});
+
 describe('configurações', () => {
   it('mostra o valor e a origem herdada', async () => {
     api({}, GESTOR);
