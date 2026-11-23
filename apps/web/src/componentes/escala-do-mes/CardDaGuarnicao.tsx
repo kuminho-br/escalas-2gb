@@ -31,6 +31,9 @@ function Ocupante({ o, vaga, aoRemover }: { o: OcupanteDaVaga; vaga: string; aoR
   );
 }
 
+/** O contador do cabeçalho do card: "Falta 1" e "Faltam 2". */
+export const textoDoContador = (faltam: number) => (faltam === 1 ? 'Falta 1' : `Faltam ${faltam}`);
+
 /** Um card por guarnição: nome, viatura, o ícone de completa (ou o contador "Faltam N") e uma linha por vaga. */
 export function CardDaGuarnicao({ card, aoEscolher, aoRemover }: { card: Card; aoEscolher?: (vaga: Omit<VagaDaTela, 'data' | 'inicio' | 'fim'>) => void; aoRemover?: (o: OcupanteDaVaga, guarnicao: string, vaga: string) => void }) {
   const frases = card.faltam.join('. ');
@@ -51,7 +54,7 @@ export function CardDaGuarnicao({ card, aoEscolher, aoRemover }: { card: Card; a
           // só o número: o que falta, em frases, fica no title e no nome acessível
           <span role="img" aria-label={frases} title={frases} className="inline-flex items-center gap-1.5 rounded-full border border-linha py-0.5 pr-2 pl-1.5 text-[12.5px] font-medium whitespace-nowrap text-tinta">
             <span aria-hidden className="h-3 w-[3px] rounded-sm bg-vinho" />
-            Faltam {faltam}
+            {textoDoContador(faltam)}
           </span>
         )}
       </header>

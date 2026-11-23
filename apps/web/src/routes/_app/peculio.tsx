@@ -13,7 +13,7 @@ import { Button } from '@/componentes/ui/button';
 import { Input } from '@/componentes/ui/input';
 import { Label } from '@/componentes/ui/label';
 import { mesAtual } from '@/lib/meses';
-import { normalizarBusca } from '@/lib/texto';
+import { correspondeABusca, normalizarBusca } from '@/lib/texto';
 import { cn } from '@/lib/utils';
 import { classeItemEscolhido } from '@/componentes/ListaDetalhe';
 
@@ -41,7 +41,7 @@ function Peculio() {
   const filtrados = useMemo(() => {
     const b = normalizarBusca(busca);
     return (lista.data?.militares ?? []).filter(
-      (m) => (!lotacao || m.lotacao === lotacao) && (!b || normalizarBusca(`${m.nomeGuerra} ${m.nomeCompleto ?? ''} ${m.matricula}`).includes(b)),
+      (m) => (!lotacao || m.lotacao === lotacao) && (!b || correspondeABusca(`${m.nomeGuerra} ${m.nomeCompleto ?? ''} ${m.matricula}`, busca)),
     );
   }, [lista.data, busca, lotacao]);
   // com texto na busca e um resultado só, ele fica em destaque e o Enter abre a ficha (a ficha nunca abre sozinha)

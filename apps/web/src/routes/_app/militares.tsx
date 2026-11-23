@@ -12,7 +12,7 @@ import { Input } from '@/componentes/ui/input';
 import { Label } from '@/componentes/ui/label';
 import { mesAtual } from '@/lib/meses';
 import { NOME_JORNADA } from '@/lib/militares';
-import { normalizarBusca } from '@/lib/texto';
+import { correspondeABusca, normalizarBusca } from '@/lib/texto';
 import { cn } from '@/lib/utils';
 
 export const Route = createFileRoute('/_app/militares')({
@@ -49,7 +49,7 @@ function ListaDeMilitares({ unidadeId, escolhido }: { unidadeId: string; escolhi
         (!soIncompletos || m.pendencias.length > 0) &&
         (!equipe || m.equipe === equipe) &&
         (!jornada || m.jornada === jornada) &&
-        (!b || normalizarBusca(`${m.nomeGuerra} ${m.matricula}`).includes(b)),
+        (!b || correspondeABusca(`${m.nomeGuerra} ${m.nomeCompleto ?? ''} ${m.matricula}`, busca)),
     );
   }, [militares.data, soIncompletos, equipe, jornada, busca]);
 

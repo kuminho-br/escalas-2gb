@@ -336,3 +336,22 @@ describe('quem só tem unidades de consulta: o oficial, com a marca ligada', () 
     semBotaoDeAlterar();
   });
 });
+
+describe('acabamento do modo só consulta (6.17, itens 29 e 30)', () => {
+  it('item 29: o vazio da Escala do mês não mostra o link "Crie uma em Escalas" (a pessoa não cria nada)', async () => {
+    api(CHEFE, { 'GET /api/unidades/u-2sb/escalas': { status: 200, corpo: [] } });
+    abrirEmConsulta('/escala-do-mes');
+    expect(await screen.findByText('Nenhuma escala ativa.')).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Escalas' })).toBeNull();
+    expect(screen.queryByText(/Crie uma em/)).toBeNull();
+  });
+
+  it('item 30: os trechos ocupados do Efetivo por dia não são paradas do teclado (o horário está no nome e na dica)', async () => {
+    api();
+    abrirEmConsulta(`/efetivo-por-dia?dia=${DIA_DO_EFETIVO}`);
+    await screen.findByText(FAIXA_DE_CONSULTA);
+    const ocupado = (await screen.findAllByRole('group', { name: /Motorista: SD ALFA/ }))[0]!;
+    expect(ocupado).not.toHaveAttribute('tabindex');
+  });
+});
+

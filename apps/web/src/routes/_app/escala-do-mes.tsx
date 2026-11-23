@@ -89,8 +89,9 @@ function EscalaDoMes() {
           // as escalas são das seções: num grupamento ou numa divisão não há o que mostrar
           <p className="mt-4 text-apagado">Escolha uma seção no seletor de unidade para ver a escala.</p>
         ) : (
+        // numa unidade só de consulta a pessoa não cria escala: sem o link
         <p className="mt-4 text-apagado">
-          Nenhuma escala ativa. Crie uma em <Link to="/escalas" className="font-medium text-vinho underline underline-offset-2">Escalas</Link>.
+          Nenhuma escala ativa.{!soConsulta && <> Crie uma em <Link to="/escalas" className="font-medium text-vinho underline underline-offset-2">Escalas</Link>.</>}
         </p>
         )}
       </section>

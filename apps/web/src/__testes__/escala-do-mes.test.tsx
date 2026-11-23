@@ -378,6 +378,26 @@ describe('escolher militar e remover', () => {
     expect(Object.fromEntries(chamada.searchParams)).toEqual({ data: `${MES}-02`, inicio: '08:00', fim: '20:00', guarnicaoId: 'g-abt', funcaoId: 'f-comb' });
   });
 
+  it('item 31: no celular (toque), abrir a escolha de militar não põe o foco na busca (o teclado só aparece quando a pessoa toca na caixa)', async () => {
+    vi.stubGlobal('matchMedia', (q: string) => ({ matches: q.includes('pointer: coarse'), media: q, addEventListener: () => {}, removeEventListener: () => {}, addListener: () => {}, removeListener: () => {} }));
+    api(ESCALA, { [rotaCandidatos]: { status: 200, corpo: CANDIDATOS } });
+    abrir('/escala-do-mes');
+    await screen.findByRole('region', { name: 'Dia 2' });
+    const dialogo = await abrirVaga();
+    await within(dialogo).findByRole('button', { name: /ZULU/ });
+    expect(within(dialogo).getByLabelText('Buscar por nome ou matrícula')).not.toHaveFocus();
+    vi.unstubAllGlobals();
+  });
+
+  it('item 31 (conferência): com mouse, a busca recebe o foco ao abrir, como sempre', async () => {
+    api(ESCALA, { [rotaCandidatos]: { status: 200, corpo: CANDIDATOS } });
+    abrir('/escala-do-mes');
+    await screen.findByRole('region', { name: 'Dia 2' });
+    const dialogo = await abrirVaga();
+    await within(dialogo).findByRole('button', { name: /ZULU/ });
+    expect(within(dialogo).getByLabelText('Buscar por nome ou matrícula')).toHaveFocus();
+  });
+
   it('escolher manda a alocação, a linha passa a mostrar o militar e o diálogo fecha', async () => {
     const f = api(ESCALA, { [rotaCandidatos]: { status: 200, corpo: CANDIDATOS }, 'POST /api/escalas/e1/alocacoes': { status: 201, corpo: COM_ZULU } });
     abrir('/escala-do-mes');
