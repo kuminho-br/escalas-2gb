@@ -85,6 +85,8 @@
 | [superpowers/plans/2026-11-23-fase6-27-oficiais-escala-comum.md](superpowers/plans/2026-11-23-fase6-27-oficiais-escala-comum.md) | Entregas 6.27 e 6.28: oficiais como escala comum e dias vermelhos | DESENVOLVIMENTO | planejado |
 | [superpowers/plans/2026-11-23-fase6-29-oficiais-tela-de-escalar.md](superpowers/plans/2026-11-23-fase6-29-oficiais-tela-de-escalar.md) | Entrega 6.29: a tela de escalar dos oficiais | DESENVOLVIMENTO | planejado |
 | [superpowers/plans/2026-11-23-fase6-30-oficiais-memorial-e-pendencias.md](superpowers/plans/2026-11-23-fase6-30-oficiais-memorial-e-pendencias.md) | Entrega 6.30: memorial de cálculo e pendências dos oficiais | DESENVOLVIMENTO | planejado |
+| [superpowers/plans/2026-11-24-fase6-32-ficha-da-escala.md](superpowers/plans/2026-11-24-fase6-32-ficha-da-escala.md) | Entrega 6.32: a ficha do militar na escala e a Escala do mês no ordinário | DESENVOLVIMENTO | planejado |
+| [superpowers/plans/2026-11-24-fase6-33-militar-externo.md](superpowers/plans/2026-11-24-fase6-33-militar-externo.md) | Entrega 6.33: o militar externo | DESENVOLVIMENTO | planejado |
 | [superpowers/plans/2026-11-18-fase4-escala.md](superpowers/plans/2026-11-18-fase4-escala.md) | Fase 4: montagem da escala (entregas 1 a 4.3) | DESENVOLVIMENTO | em execução (grande demais: dividir) |
 | [superpowers/plans/2026-11-20-roadmap-documentacao.md](superpowers/plans/2026-11-20-roadmap-documentacao.md) | Roadmap da documentação | DOCUMENTAÇÃO | em execução |
 

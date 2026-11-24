@@ -93,27 +93,27 @@ Design: `docs/superpowers/specs/2026-11-21-usuarios-e-modulos-design.md`. Plano:
 |---|---|---|
 | 1 a 5, 7 a 14 | Contas, unidade de trabalho, tela inicial, transição do login, retornos da validação, Pecúlio, níveis de acesso, divisões, camadas de visão, consulta, escalas só para leitura, animação | mescladas (#86 a #143) |
 | 6 | Retorno da validação com mockup | absorvida na refatoração |
-| 15 a 18 | Pendências antes da fase 7: abono e função; três lotes de acabamento | 15, 16 e 17 (parte 1) mescladas (#146, #149, #166); 17 (parte 2) e 18 a fazer |
+| 15 a 18 | Pendências antes da fase 7: abono e função; três lotes de acabamento | mescladas (#146, #149, #166, #175, #178) |
 | 19 | Correções de interface sem desenho (N0) | mesclada (#128) |
-| 20 e 21 | Fundação da interface: sistema de estilo (N1); resposta do sistema (N2) | planejadas |
-| 22 a 24 | Oficiais; mover na hierarquia; admin como militar | mescladas (#157, #161, #162) |
-| 25 e 26 | Árvore genérica (0035); configurações gerais | 25 mesclada (#167); 26 em execução |
-| 27 e 28 | Oficiais como escala comum (0036); dias vermelhos (0037) | mescladas (#172, #173) |
-| 29 a 30 | Tela de escalar dos oficiais (29, 29.1, 29.2); memorial de cálculo e pendências (30) | 29 e 29.1 mescladas (#177, #180); 29.2 e 30 a seguir |
+| 20 e 21 | Fundação da interface: sistema de estilo (N1); resposta do sistema (N2) | em execução (24/11), uma depois da outra |
+| 25 e 26 | Árvore genérica (0035); configurações gerais | mescladas (#167, #171) |
+| 22 a 24, 27 a 31 | Oficiais (refeitos, escala comum 0036, dias vermelhos 0037, tela de escalar, memorial 0039); mover na hierarquia; admin como militar; raiz sem "nível acima" | mescladas (#157 a #185) |
+| 32 | Ficha do militar na escala (Habilitações; a SB edita só elas) e Escala do mês no ordinário | planejada, depois da 21 |
+| 33 | Militar externo: o gestor traz pela Consulta; equipe "Externo"; só serviço extra, à mão (decisão de 24/11: entra na fase 6) | planejada, depois da 32 |
 
 **Fora:** e-mail, usuários acima do GB (fase 11), Visualização (fase 7).
 
-## Refatoração da interface · fundação planejada
+## Refatoração da interface · fundação em execução
 
 Spec: `docs/superpowers/specs/2026-11-23-refatoracao-da-interface-design.md`. N0 = 6.19; N1 e N2 = 6.20 e 6.21 (plano `2026-11-23-fundacao-da-interface.md`). As telas seguem as áreas do Manual de Identidade Visual: Grade geral e Escala do mês antes do piloto; moldura, fichas e celular entre as duas.
 
 ## Fase 7 — Visualização de escalas · planejada
 
+- **Prioridade (24/11):** o próprio militar marca o voluntariado; o lançamento pelo escalante continua.
 - Publicar a escala no sistema (o documento em .xlsx é a fase 8).
 - As escalas publicadas da unidade.
 - A Minha escala: os próprios serviços, com quem compõe cada guarnição. É a Escala por militar com um militar só, e as duas telas são desenhadas juntas (fase 8).
 - Na área pessoal, a comparação da própria escala com a de outro militar entra com a Escala por militar (fase 8); a busca por permutantes, na fase 9.
-- O próprio militar marca o voluntariado; o lançamento pelo escalante continua.
 
 **A decidir:** se a escala publicada fica travada e como se corrige depois. Junto: o "dia passado travado" (RN-85, pergunta P-17) não existe hoje; escalar e trocar aceitam qualquer data.
 
