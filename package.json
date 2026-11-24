@@ -6,8 +6,9 @@
     "node": ">=22"
   },
   "scripts": {
-    "test": "node scripts/testes-prototipo.mjs && node casos/reproduzir-prototipo.mjs && pnpm -r --workspace-concurrency=1 --if-present test",
+    "test": "node scripts/testar-deploy-so-com-codigo.mjs && node scripts/testes-prototipo.mjs && node casos/reproduzir-prototipo.mjs && pnpm -r --workspace-concurrency=1 --if-present test",
     "test:prototipo": "node scripts/testes-prototipo.mjs",
+    "test:deploy": "node scripts/testar-deploy-so-com-codigo.mjs",
     "typecheck": "pnpm -r --if-present typecheck",
     "build": "pnpm -r --if-present build",
     "dev": "pnpm --parallel --filter api --filter web dev",
