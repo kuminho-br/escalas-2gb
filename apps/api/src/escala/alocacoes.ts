@@ -102,25 +102,66 @@ export async function escalar(tx: Consulta, escalaId: string, d: NovaAlocacao): 
   return mes;
 }
 
-/** Tira o militar da vaga e guarda a remoção (a pré-escala não o põe de volta nessa combinação). Devolve a escala e o mês. */
-export async function remover(tx: Consulta, alocacaoId: string, usuarioId: string): Promise<{ escalaId: string; mes: string }> {
+/**
+ * Tira o militar da vaga e guarda a remoção (a pré-escala não o põe de volta nessa combinação), com a vaga de onde ele saiu: guarnição, função e as vagas acumuladas,
+ * para o "Desfazer" devolvê-lo ao mesmo lugar. Devolve a escala, o mês e o id da remoção.
+ */
+export async function remover(tx: Consulta, alocacaoId: string, usuarioId: string): Promise<{ escalaId: string; mes: string; remocaoId: string }> {
+  const acumulos = (await tx.query<{ guarnicaoId: string; funcaoId: string }>('select guarnicao_id as "guarnicaoId", funcao_id as "funcaoId" from alocacao_acumulo where alocacao_id = $1', [alocacaoId])).rows;
   const a = (
-    await tx.query<{ escala_id: string; militar_id: string; servico_id: string; turno_id: string; data: string }>(
-      `delete from alocacao where id = $1 returning escala_id, militar_id, servico_id, turno_id, to_char(data, 'YYYY-MM-DD') as data`,
+    await tx.query<{ escala_id: string; militar_id: string; servico_id: string; turno_id: string; data: string; guarnicao_id: string | null; funcao_id: string | null }>(
+      `delete from alocacao where id = $1 returning escala_id, militar_id, servico_id, turno_id, to_char(data, 'YYYY-MM-DD') as data, guarnicao_id, funcao_id`,
       [alocacaoId],
     )
   ).rows[0]!;
-  await tx.query(
-    `insert into remocao (militar_id, escala_id, servico_id, turno_id, data, removida_por) values ($1, $2, $3, $4, $5::date, $6)
-       on conflict (militar_id, data, servico_id, turno_id) do nothing`,
-    [a.militar_id, a.escala_id, a.servico_id, a.turno_id, a.data, usuarioId],
-  );
-  return { escalaId: a.escala_id, mes: a.data.slice(0, 7) };
+  const remocaoId = (
+    await tx.query<{ id: string }>(
+      `insert into remocao (militar_id, escala_id, servico_id, turno_id, data, removida_por, guarnicao_id, funcao_id, acumulos, devolvivel) values ($1, $2, $3, $4, $5::date, $6, $7, $8, $9::jsonb, true)
+         on conflict (militar_id, data, servico_id, turno_id) do update set removida_por = excluded.removida_por, guarnicao_id = excluded.guarnicao_id, funcao_id = excluded.funcao_id, acumulos = excluded.acumulos, devolvivel = true
+         returning id`,
+      [a.militar_id, a.escala_id, a.servico_id, a.turno_id, a.data, usuarioId, a.guarnicao_id, a.funcao_id, JSON.stringify(acumulos)],
+    )
+  ).rows[0]!.id;
+  return { escalaId: a.escala_id, mes: a.data.slice(0, 7), remocaoId };
 }
 
 /** Desfaz a remoção. Devolve a escala e o mês. */
 export async function desfazerRemocao(tx: Consulta, remocaoId: string): Promise<{ escalaId: string; mes: string }> {
   const r = (await tx.query<{ escala_id: string; data: string }>(`delete from remocao where id = $1 returning escala_id, to_char(data, 'YYYY-MM-DD') as data`, [remocaoId])).rows[0]!;
+  return { escalaId: r.escala_id, mes: r.data.slice(0, 7) };
+}
+
+export const NAO_DA_PARA_DESFAZER = 'A escala mudou desde então. Não dá mais para desfazer.';
+
+/**
+ * "Desfazer" a remoção: devolve o militar à vaga de onde saiu (mesmo dia, turno, guarnição e função) e às vagas que acumulava, tirando a marca de removido, numa transação.
+ * As mesmas regras de escalar valem de novo: se a vaga já foi ocupada, a guarnição saiu da faixa ou o militar já não pode ocupá-la, recusa com NAO_DA_PARA_DESFAZER e nada muda.
+ * A remoção antiga, que não guardou a vaga, também recusa: nela só vale "Permitir de novo".
+ */
+export async function devolverRemocao(tx: Consulta, remocaoId: string): Promise<{ escalaId: string; mes: string }> {
+  const r = (
+    await tx.query<{ escala_id: string; militar_id: string; servico_id: string; turno_id: string; data: string; guarnicao_id: string | null; funcao_id: string | null; acumulos: { guarnicaoId: string; funcaoId: string }[]; devolvivel: boolean }>(
+      `select escala_id, militar_id, servico_id, turno_id, to_char(data, 'YYYY-MM-DD') as data, guarnicao_id, funcao_id, acumulos, devolvivel from remocao where id = $1 for update`,
+      [remocaoId],
+    )
+  ).rows[0];
+  if (!r || !r.devolvivel) throw new Recusa(NAO_DA_PARA_DESFAZER);
+  try {
+    await escalar(tx, r.escala_id, { militarId: r.militar_id, data: r.data, turnoId: r.turno_id, guarnicaoId: r.guarnicao_id, funcaoId: r.funcao_id });
+  } catch (e) {
+    throw e instanceof Recusa ? new Recusa(NAO_DA_PARA_DESFAZER) : e;
+  }
+  // as vagas acumuladas voltam se ainda couberem: o que não cabe mais fica de fora, sem desfazer o resto
+  const nova = (await tx.query<{ id: string }>('select id from alocacao where militar_id = $1 and data = $2::date and servico_id = $3 and turno_id = $4', [r.militar_id, r.data, r.servico_id, r.turno_id])).rows[0]!.id;
+  for (const x of r.acumulos) {
+    await tx.query('savepoint acumulo_devolvido');
+    try {
+      await acumular(tx, nova, x);
+      await tx.query('release savepoint acumulo_devolvido');
+    } catch {
+      await tx.query('rollback to savepoint acumulo_devolvido');
+    }
+  }
   return { escalaId: r.escala_id, mes: r.data.slice(0, 7) };
 }
 

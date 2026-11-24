@@ -19,6 +19,7 @@ import { Label } from '@/componentes/ui/label';
 import { corSugerida, NOME_TIPO } from '@/lib/servicos';
 import { cn } from '@/lib/utils';
 import { Checkbox } from '@/componentes/ui/checkbox';
+import { Espera } from '@/componentes/resposta/Espera';
 
 export const Route = createFileRoute('/_app/servicos')({
   component: Servicos,
@@ -63,7 +64,7 @@ function ListaDeServicos({ unidadeId, escolhido }: { unidadeId: string; escolhid
   const visiveis = servicos.data?.filter((s) => s.ativo || desativados) ?? [];
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      {servicos.isPending && <p className="p-4 text-apagado">Carregando…</p>}
+      {servicos.isPending && <Espera className="p-4" />}
       {servicos.error && <p role="alert" className="p-4 text-alerta">{mensagemDe(servicos.error)}</p>}
       {servicos.data && (
         <>

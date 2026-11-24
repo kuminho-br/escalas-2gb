@@ -76,6 +76,9 @@ export type DiaDaEscala = {
   obrigatoriasVazias: number;
 };
 
+/** A resposta de remover da vaga: a escala do mês e o id da remoção que ficou (o "Desfazer" do aviso usa). */
+export type RemocaoFeita = EscalaDoMes & { remocaoId: string };
+
 export type EscalaDoMes = {
   escalaId: string;
   nome: string;

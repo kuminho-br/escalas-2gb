@@ -9,6 +9,7 @@ import { Button } from '@/componentes/ui/button';
 import { Input } from '@/componentes/ui/input';
 import { Label } from '@/componentes/ui/label';
 import { dataBr, hoje } from '@/lib/meses';
+import { Espera } from '@/componentes/resposta/Espera';
 
 const frase = (v: VersaoDaMetaPadrao) => `A partir de ${dataBr(v.desde)}: ${v.guarnicoes.map((g, i) => `${i + 1}º ${g.nome}`).join(', ') || 'nenhuma guarnição'}`;
 
@@ -32,7 +33,7 @@ function GravarMetaPadrao({ unidadeId, emVigor }: { unidadeId: string; emVigor: 
     }
   });
 
-  if (modelos.isPending) return <p className="px-4 py-3 text-apagado">Carregando…</p>;
+  if (modelos.isPending) return <Espera className="px-4 py-3" />;
   if (modelos.error) return <p role="alert" className="px-4 py-3 text-alerta">{mensagemDe(modelos.error)}</p>;
   return (
     <div className="grid gap-4 border-t border-linha px-4 py-4">
@@ -54,7 +55,7 @@ function GravarMetaPadrao({ unidadeId, emVigor }: { unidadeId: string; emVigor: 
 /** Aba "Meta de ativação" das Configurações: a meta padrão em vigor, as que começam depois, e o editor. */
 export function MetaDeAtivacao({ unidadeId, podeMudar }: { unidadeId: string; podeMudar: boolean }) {
   const versoes = useQuery(consultaMetaPadrao(unidadeId));
-  if (versoes.isPending) return <p className="py-6 text-apagado">Carregando…</p>;
+  if (versoes.isPending) return <Espera className="py-6" />;
   if (versoes.error) return <p role="alert" className="py-6 text-alerta">{mensagemDe(versoes.error)}</p>;
   // da mais nova para a mais antiga: a que vale hoje é a primeira que já começou
   const emVigor = versoes.data.find((v) => v.desde <= hoje());

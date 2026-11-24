@@ -377,6 +377,7 @@ describe('unidade de trabalho (fase 6)', () => {
     localStorage.setItem('unidade-de-trabalho', 'u-gb');
     simularApi({ '/api/eu': { status: 200, corpo: GESTOR }, 'GET /api/unidades/u-gb/escalas': { status: 200, corpo: [] } });
     abrir('/escala-do-mes');
-    expect(await screen.findByText(/Nenhuma escala ativa\./)).toHaveTextContent('Nenhuma escala ativa. Crie uma em Escalas.');
+    expect(await screen.findByRole('heading', { name: 'Nenhuma escala ativa' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Ir para Escalas' })).toBeInTheDocument();
   });
 });

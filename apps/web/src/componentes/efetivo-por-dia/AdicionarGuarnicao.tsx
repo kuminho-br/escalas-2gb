@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { consultaGuarnicoes } from '@/api/guarnicoes';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/componentes/ui/dialog';
+import { Espera } from '@/componentes/resposta/Espera';
 
 /** Todos os modelos ativos da seção no mês do dia; o que já está na meta do dia aparece "já está no dia", desabilitado. O escolhido entra no fim da meta. */
 export function AdicionarGuarnicao({ unidadeId, data, naMeta, salvando, erro, aoEscolher, aoFechar }: {
@@ -22,7 +23,7 @@ export function AdicionarGuarnicao({ unidadeId, data, naMeta, salvando, erro, ao
           <DialogDescription>A guarnição entra no fim da meta deste dia.</DialogDescription>
         </DialogHeader>
         {erro && <p role="alert" className="text-sm text-alerta">{erro}</p>}
-        {modelos.isPending && <p className="text-apagado">Carregando…</p>}
+        {modelos.isPending && <Espera />}
         {modelos.data && !ativos.length && <p className="text-apagado">Nenhum modelo de guarnição ativo neste mês.</p>}
         <ul className="grid gap-2">
           {ativos.map((m) => {

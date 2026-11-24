@@ -16,6 +16,10 @@ import { Label } from '@/componentes/ui/label';
 import { hoje } from '@/lib/meses';
 import { Checkbox } from '@/componentes/ui/checkbox';
 import { Moldura } from '@/componentes/Moldura';
+import { useConfirmar } from '@/componentes/resposta/useConfirmar';
+import { useAviso } from '@/componentes/resposta/useAviso';
+import { Espera } from '@/componentes/resposta/Espera';
+import { Vazio } from '@/componentes/resposta/Vazio';
 
 export const Route = createFileRoute('/_app/feriados')({
   component: Feriados,
@@ -31,25 +35,24 @@ function Feriados() {
   const [ano, setAno] = useState(anoAtual);
   const feriados = useQuery(consultaFeriados(eu.unidade.id, ano));
   const [dialogo, setDialogo] = useState<{ feriado?: Feriado } | null>(null);
-  const [aviso, setAviso] = useState<{ erro: boolean; texto: string } | null>(null);
+  const avisar = useAviso();
+  const confirmar = useConfirmar();
   const anos = [...new Set([...Array.from({ length: 7 }, (_, i) => anoAtual - 3 + i), ano])].sort();
 
   const { salvando: copiando, travar } = useTrava();
   // travada: dois cliques seguidos mandam um pedido só, e o botão fica apagado enquanto copia
   const copiar = travar(async () => {
-    setAviso(null);
     try {
       const { copiados } = await copiarFeriadosFixos(eu.unidade.id, ano - 1, ano);
       atualizarFeriados(queryClient);
-      setAviso({
-        erro: false,
+      avisar({
         texto:
           copiados === 0
             ? `Nenhum feriado novo: os fixos de ${ano - 1} já estão em ${ano}, ou não há nenhum.`
             : `${copiados} ${copiados === 1 ? 'feriado copiado' : 'feriados copiados'}.`,
       });
     } catch (err) {
-      setAviso({ erro: true, texto: mensagemDe(err) });
+      avisar({ texto: mensagemDe(err), erro: true });
     }
   });
 
@@ -58,17 +61,17 @@ function Feriados() {
     const doAno = Number(f.data.slice(0, 4));
     if (doAno === ano) return;
     setAno(doAno);
-    setAviso({ erro: false, texto: `Feriado salvo em ${doAno}.` });
+    avisar({ texto: `Feriado salvo em ${doAno}.` });
   }
 
   async function remover(f: Feriado) {
-    if (!window.confirm(`Remover o feriado "${f.descricao}" (${diaMes(f.data)})?`)) return;
-    setAviso(null);
+    if (!(await confirmar({ titulo: 'Remover o feriado?', texto: `${f.descricao} (${diaMes(f.data)}).`, verbo: 'Remover', perigoso: true }))) return;
     try {
       await removerFeriado(f.id);
       atualizarFeriados(queryClient);
+      avisar({ texto: `Feriado "${f.descricao}" removido.` });
     } catch (err) {
-      setAviso({ erro: true, texto: mensagemDe(err) });
+      avisar({ texto: mensagemDe(err), erro: true });
     }
   }
 
@@ -97,13 +100,14 @@ function Feriados() {
               {anos.map((a) => <option key={a} value={a}>{a}</option>)}
             </Selecao>
           </div>
-          {aviso && <p role={aviso.erro ? 'alert' : 'status'} className={aviso.erro ? 'pb-2 text-sm text-alerta' : 'pb-2 text-sm text-apagado'}>{aviso.texto}</p>}
         </div>
 
-        {feriados.isPending && <p className="p-4 text-apagado">Carregando…</p>}
+        {feriados.isPending && <Espera className="p-4" />}
         {feriados.error && <p role="alert" className="p-4 text-alerta">{mensagemDe(feriados.error)}</p>}
         {feriados.data && feriados.data.length === 0 && (
-          <p className="p-4 text-apagado">Nenhum feriado em {ano}. Use "Novo feriado" ou "Copiar feriados fixos de {ano - 1}".</p>
+          <div className="px-4">
+            <Vazio titulo={`Nenhum feriado em ${ano}`} frase={`Cadastre um feriado ou copie os fixos de ${ano - 1}, pelos botões do alto.`} />
+          </div>
         )}
         {feriados.data && feriados.data.length > 0 && (
           <ul className="p-2">

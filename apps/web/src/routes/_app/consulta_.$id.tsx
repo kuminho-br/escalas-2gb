@@ -7,6 +7,7 @@ import { consultaDaFicha } from '@/api/consulta';
 import { FichaPainel } from '@/componentes/ListaDetalhe';
 import { dataBr, Secao } from '@/componentes/militares/Secao';
 import { Button } from '@/componentes/ui/button';
+import { Espera } from '@/componentes/resposta/Espera';
 
 export const Route = createFileRoute('/_app/consulta_/$id')({
   // a busca de onde a pessoa veio: "Voltar" a leva de volta ao mesmo resultado
@@ -40,7 +41,7 @@ function FichaDeConsultaDoMilitar() {
   const { id } = Route.useParams();
   const busca = Route.useSearch();
   const { data: f, error, isPending } = useQuery(consultaDaFicha(id));
-  if (isPending) return <p className="p-4 text-apagado">Carregando…</p>;
+  if (isPending) return <Espera className="p-4" />;
   if (error) return <p role="alert" className="p-4 text-alerta">{mensagemDe(error)}</p>;
   return (
     <FichaPainel

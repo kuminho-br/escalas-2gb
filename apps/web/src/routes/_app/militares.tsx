@@ -14,6 +14,7 @@ import { dataBr, mesAtual } from '@/lib/meses';
 import { NOME_JORNADA } from '@/lib/militares';
 import { correspondeABusca, normalizarBusca } from '@/lib/texto';
 import { cn } from '@/lib/utils';
+import { Espera } from '@/componentes/resposta/Espera';
 
 export const Route = createFileRoute('/_app/militares')({
   component: Militares,
@@ -78,7 +79,7 @@ function ListaDeMilitares({ unidadeId, escolhido }: { unidadeId: string; escolhi
           </div>
         </div>
       </div>
-      {militares.isPending && <p className="p-4 text-apagado">Carregando…</p>}
+      {militares.isPending && <Espera className="p-4" />}
       {militares.error && <p role="alert" className="p-4 text-alerta">{mensagemDe(militares.error)}</p>}
       {militares.data && (
         <>

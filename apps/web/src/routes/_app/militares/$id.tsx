@@ -17,6 +17,7 @@ import { FichaPainel } from '@/componentes/ListaDetalhe';
 import { Motorista } from '@/componentes/militares/Motorista';
 import { Rastreio } from '@/componentes/militares/Rastreio';
 import { resumoDaLotacao } from '@/lib/militares';
+import { Espera } from '@/componentes/resposta/Espera';
 
 export const Route = createFileRoute('/_app/militares/$id')({
   // `de=peculio`: a ficha foi aberta pelo Pecúlio, que continua sendo o módulo e o destino do "Voltar"
@@ -30,7 +31,7 @@ function Ficha() {
   const { eu } = Route.useRouteContext();
   const { data: ficha, error, isPending } = useQuery(consultaFicha(id));
 
-  if (isPending) return <p className="p-4 text-apagado">Carregando…</p>;
+  if (isPending) return <Espera className="p-4" />;
   if (error) return <p role="alert" className="p-4 text-alerta">{mensagemDe(error)}</p>;
 
   return (

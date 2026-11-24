@@ -10,6 +10,7 @@ import { OrdemDeEscalacao } from '@/componentes/escalas/OrdemDeEscalacao';
 import { Label } from '@/componentes/ui/label';
 import { mesAtual } from '@/lib/meses';
 import { Moldura } from '@/componentes/Moldura';
+import { Espera } from '@/componentes/resposta/Espera';
 
 export const Route = createFileRoute('/_app/escalas_/$id/ordem')({
   validateSearch: (s: Record<string, unknown>): { mes?: string } => ({ mes: typeof s.mes === 'string' && Mes.safeParse(s.mes).success ? s.mes : undefined }),
@@ -35,7 +36,7 @@ function Ordem() {
           <Label htmlFor="oe-mes">Vale a partir de</Label>
           <CampoDeMes id="oe-mes" valor={mes} aoMudar={(m) => void navigate({ search: { mes: m } })} />
         </div>
-        {(escala.isPending || ordem.isPending) && <p className="text-apagado">Carregando…</p>}
+        {(escala.isPending || ordem.isPending) && <Espera />}
         {escala.error && <p role="alert" className="text-alerta">{mensagemDe(escala.error)}</p>}
         {ordem.error && <p role="alert" className="text-alerta">{mensagemDe(ordem.error)}</p>}
         {ordem.data && <OrdemDeEscalacao key={`${id}|${mes}`} escalaId={id} mes={mes} dados={ordem.data} />}

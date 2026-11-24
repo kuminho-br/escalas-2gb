@@ -13,6 +13,7 @@ import { Label } from '@/componentes/ui/label';
 import { limites } from '@/lib/guarnicoes';
 import { mesAtual } from '@/lib/meses';
 import { Checkbox } from '@/componentes/ui/checkbox';
+import { Espera } from '@/componentes/resposta/Espera';
 
 /** Guarnições por faixa de horário, com versões por vigência (como as versões da guarnição). */
 export function Matriz({ escala, unidadeId }: { escala: Escala; unidadeId: string }) {
@@ -132,7 +133,7 @@ function Editor({ escala, unidadeId, versao, aoSalvar }: { escala: Escala; unida
         </p>
       ))}
       {escala.faixas.length === 0 && <p className="text-sm text-apagado">Reúna os serviços primeiro: as colunas são os horários dos turnos deles.</p>}
-      {guarnicoes.isPending && <p className="text-apagado">Carregando…</p>}
+      {guarnicoes.isPending && <Espera />}
       {guarnicoes.error && <p role="alert" className="text-alerta">{mensagemDe(guarnicoes.error)}</p>}
       {guarnicoes.data && escala.faixas.length > 0 && (
         <div className="overflow-x-auto">

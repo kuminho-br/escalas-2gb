@@ -17,6 +17,7 @@ import { PainelComMenu } from '@/componentes/PainelComMenu';
 import { TabsContent } from '@/componentes/ui/tabs';
 import { ABAS_DA_ESCALA, type AbaDaEscala } from '@/lib/configuracoes';
 import { Moldura } from '@/componentes/Moldura';
+import { Espera } from '@/componentes/resposta/Espera';
 
 const ABAS = ['preferencias', 'postos', 'funcoes', 'situacoes', 'tipos', 'quem-ve-o-que'] as const;
 /** As seções que saíram daqui para o módulo Estrutura: o endereço antigo leva a elas. */
@@ -117,7 +118,7 @@ function ListaDoCatalogo({ catalogo, rotuloNovo, podeEditar }: { catalogo: Catal
     if (await executar(() => incluirNoCatalogo(catalogo, novo))) setNovo('');
   }
 
-  if (isPending) return <p className="py-6 text-apagado">Carregando…</p>;
+  if (isPending) return <Espera className="py-6" />;
   if (error) return <p role="alert" className="py-6 text-alerta">{mensagemDe(error)}</p>;
 
   return (

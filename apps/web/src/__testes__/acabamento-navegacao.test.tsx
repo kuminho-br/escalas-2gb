@@ -67,8 +67,8 @@ describe('o vazio da Escala do mês (6.16, Task 3)', () => {
     simularApi({ '/api/eu': { status: 200, corpo: GESTOR }, 'GET /api/unidades/u-gb/escalas': { status: 200, corpo: [] } });
     localStorage.setItem('unidade-de-trabalho', 'u-gb');
     abrir('/escala-do-mes');
-    expect(await screen.findByText(/Nenhuma escala ativa\./)).toHaveTextContent('Nenhuma escala ativa. Crie uma em Escalas.');
-    expect(within(screen.getByText(/Nenhuma escala ativa\./)).getByRole('link', { name: 'Escalas' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Nenhuma escala ativa' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Ir para Escalas' })).toHaveAttribute('href', '/escalas');
     expect(screen.queryByText(/Escolha uma seção/)).toBeNull();
   });
 

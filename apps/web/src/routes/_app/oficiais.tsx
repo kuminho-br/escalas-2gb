@@ -14,6 +14,7 @@ import { Label } from '@/componentes/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/componentes/ui/tabs';
 import { mesAtual } from '@/lib/meses';
 import { Moldura } from '@/componentes/Moldura';
+import { Espera } from '@/componentes/resposta/Espera';
 
 // as regras abrem num botão da Escala do mês (6.28): um endereço antigo com `aba=regras` cai na Escala do mês
 type Aba = 'escala' | 'saldo' | 'memorial';
@@ -74,7 +75,7 @@ function Oficiais() {
           <TabsTrigger value="memorial">Memorial de cálculo</TabsTrigger>
         </TabsList>
         <TabsContent value="escala">
-          {escala.isPending && <p className="text-apagado">Carregando…</p>}
+          {escala.isPending && <Espera />}
           {escala.error && <p role="alert" className="text-alerta">{mensagemDe(escala.error)}</p>}
           {e && !e.escala && (
             <div className="flex justify-end">
@@ -92,7 +93,7 @@ function Oficiais() {
           {e?.escala && <MemorialDeCalculo unidadeId={unidadeId} mes={mes} escalaId={e.escala.id} />}
         </TabsContent>
         <TabsContent value="saldo">
-          {saldo.isPending && <p className="text-apagado">Carregando…</p>}
+          {saldo.isPending && <Espera />}
           {saldo.error && <p role="alert" className="text-alerta">{mensagemDe(saldo.error)}</p>}
           {saldo.data && <PainelDeSaldo key={`${unidadeId}|${escalaId ?? ''}`} unidadeId={unidadeId} escalaId={escalaId} lista={saldo.data} />}
         </TabsContent>

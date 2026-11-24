@@ -7,6 +7,7 @@ import { useTrava } from '@/componentes/AlteracoesPendentes';
 import { Campo } from '@/componentes/Campo';
 import { Button } from '@/componentes/ui/button';
 import { Input } from '@/componentes/ui/input';
+import { Espera } from '@/componentes/resposta/Espera';
 
 /**
  * Os postos e graduações (entrega 6.13): o administrador corrige a sigla e o nome, uma linha por vez. A ordem não muda (a antiguidade nas escalas
@@ -15,7 +16,7 @@ import { Input } from '@/componentes/ui/input';
 export function Postos({ podeEditar = true }: { podeEditar?: boolean }) {
   const { data, error, isPending } = useQuery(consultaPostos);
   const [editando, setEditando] = useState<string | null>(null);
-  if (isPending) return <p className="py-6 text-apagado">Carregando…</p>;
+  if (isPending) return <Espera className="py-6" />;
   if (error) return <p role="alert" className="py-6 text-alerta">{mensagemDe(error)}</p>;
   return (
     <div className="max-w-xl rounded-xl border border-linha bg-superficie">

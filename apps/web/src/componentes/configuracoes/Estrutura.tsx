@@ -9,6 +9,7 @@ import { Campo } from '@/componentes/Campo';
 import { Selecao } from '@/componentes/Selecao';
 import { Button } from '@/componentes/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/componentes/ui/dropdown-menu';
+import { Espera } from '@/componentes/resposta/Espera';
 
 type Acao = { qual: 'nova' | 'renomear' | 'mover' | 'extinguir' | 'excluir'; no: NoDaArvore };
 
@@ -50,7 +51,7 @@ export function Estrutura({ raizes }: { raizes: UnidadeDeTrabalho[] }) {
       </Campo>
     </div>
   );
-  if (isPending) return <>{seletor}<p className="py-6 text-apagado">Carregando…</p></>;
+  if (isPending) return <>{seletor}<Espera className="py-6" /></>;
   if (error) return <>{seletor}<p role="alert" className="py-6 text-alerta">{mensagemDe(error)}</p></>;
 
   const recolhidas = fechadas?.raiz === arvore.id ? fechadas.ids : recolhidasNoComeco(arvore);

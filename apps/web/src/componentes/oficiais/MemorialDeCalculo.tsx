@@ -6,6 +6,7 @@ import { consultaMemorialDosOficiais } from '@/api/oficiais';
 import { Button } from '@/componentes/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/componentes/ui/table';
 import { formatarDevido } from '@/lib/numeros-do-saldo';
+import { Espera } from '@/componentes/resposta/Espera';
 
 interface Props {
   unidadeId: string;
@@ -125,7 +126,7 @@ function Registro({ r }: { r: RegistroDoMemorial }) {
  */
 export function MemorialDeCalculo({ unidadeId, mes, escalaId }: Props) {
   const q = useQuery(consultaMemorialDosOficiais(unidadeId, mes, escalaId));
-  if (q.isPending) return <p className="text-apagado">Carregando…</p>;
+  if (q.isPending) return <Espera />;
   if (q.error) return <p role="alert" className="text-alerta">{mensagemDe(q.error)}</p>;
   const m: MemorialDaEscala | undefined = q.data;
   if (!m || !m.contaAtual) return <p className="text-apagado">Ainda não há cotas para este mês: abra o mês para o memorial começar.</p>;
