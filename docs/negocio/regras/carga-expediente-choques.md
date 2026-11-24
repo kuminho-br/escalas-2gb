@@ -6,13 +6,13 @@ Quem cuida: DOCUMENTAÇÃO. Conferido contra o sistema novo em 21/11/2026. Índi
 
 ## Carga horária e saldos
 
-O Pronto cumpre 160h por mês; o Adm hoje cumpre só a cota de saldos, 6 por militar. Os três números são parâmetros em Configurações, com vigência, valendo para a unidade e as de baixo.
+O Pronto cumpre 160h por mês; o Adm hoje cumpre só a cota de saldos, 6 por militar. Os números são parâmetros em Configurações, com vigência, valendo para a unidade e as de baixo.
 
 | ID | Regra | Situação | No sistema novo | Barreira |
 |---|---|---|---|---|
 | RN-15 | A carga mensal do Pronto é o parâmetro "Carga mensal (horas)" (hoje 160h), não fixa no código. | Confirmada | Parâmetro existe; quem o usa são as distribuições (fase 8) | Ambas |
 | RN-16 | JES e diárias não contam na carga horária. Exceção: o voluntário escalado de forma compulsória por não ter marcado voluntariado (RN-41) tem essa escala abatida da carga padrão; o valor do abatimento é parâmetro. | Confirmada | Fase 8 | Ambas |
-| RN-17 | Pela portaria, o Adm tem expediente das 08h às 16h, cumpre 160h por mês e não tira serviço extra no horário do expediente. Na prática, o Adm reforça o operacional com saldos e, em troca, pode tirar PJES (ex.: JES) mesmo quando choca com o expediente. O parâmetro "Adm cumpre a carga mensal" escolhe entre os dois: ligado, vale a portaria (carga de 160h, nenhum extra no horário do expediente); desligado, vale a prática (o Adm tira saldos e pode tirar PJES no horário do expediente). Hoje desligado. Se é preciso separar a carga da liberação do PJES está em aberto (P-34), sem prioridade agora. | A esclarecer | Parâmetro existe; nada o lê ainda (fase 8): o sistema age como se estivesse desligado | Ambas |
+| RN-17 | Pela portaria, o Adm tem expediente das 08h às 16h e não tira serviço extra no horário do expediente. Na prática, o Adm reforça o operacional com saldos. A regra vale para todos, sem configuração: o militar do Adm não tira nenhum serviço (Pronto, JES, PJES, Diária) no horário do expediente em dia útil. A única exceção é de um **serviço**, e não do militar: o serviço cadastrado com "Pode tirar o militar do Adm do expediente" (hoje o Saldo) pode, depois de o escalante confirmar, tirá-lo do expediente do dia (RN-25). O parâmetro "Adm cumpre a carga mensal" saiu do sistema em 24/11/2026 (decisão do usuário). | Confirmada | Funciona (6.37): o parâmetro saiu e o choque vale para todos; a opção é do cadastro do serviço | Ambas |
 | RN-18 | A quantidade de saldos por militar do Adm no mês é parâmetro; padrão 6. | Confirmada | Parâmetro existe; quem o usa é a distribuição de saldos (fase 8) | Ambas |
 
 ## Expediente do Adm
@@ -20,8 +20,8 @@ O Pronto cumpre 160h por mês; o Adm hoje cumpre só a cota de saldos, 6 por mil
 | ID | Regra | Situação | No sistema novo | Barreira |
 |---|---|---|---|---|
 | RN-19 | O Adm está de expediente todo dia útil; o expediente nunca cai em fim de semana ou feriado. | Confirmada | Funciona (expediente implícito nas conferências) | Ambas |
-| RN-20 | A distribuição automática do expediente do Adm é só uma pré-escala: equaliza a carga entre os militares do Adm e ao longo da semana. Só se aplica quando o Adm cumpre as 160h (RN-17 ligada). | Confirmada | No motor (`distribuirAdm`); fase 8 | Automação |
-| RN-91 | Na escala automática do Adm, o militar é lançado em todo dia útil; se no dia ele tiver Saldo no turno A, o expediente sai do dia dele, para não dar choque. | Confirmada | No motor; fase 8 | Automação |
+| RN-20 | A distribuição automática do expediente do Adm é só uma pré-escala: lança o militar do Adm no expediente em todo dia útil, sem parâmetro que a ligue. Os saldos e os JES do Adm são lançados à mão; a distribuição automática de saldos saiu do plano (decisão de 24/11/2026). | Confirmada | Fase 8; enquanto não existe, o expediente é implícito (RN-19) | Automação |
+| RN-91 | Na escala automática do Adm, o militar é lançado no expediente em todo dia útil. Se no dia ele tiver um serviço que pode tirar do expediente (o Saldo) no mesmo horário, o expediente sai do dia dele e o serviço ocupa o lugar. | Confirmada | Hoje o expediente é implícito e some sob o serviço que pode tirar do expediente; o lançamento do expediente é da fase 8 | Automação |
 
 ## Pré-escala
 
@@ -42,7 +42,7 @@ Por ora a validação obrigatória é impedir choque de horário; as regras de d
 
 | ID | Regra | Situação | No sistema novo | Barreira |
 |---|---|---|---|---|
-| RN-23 | Um militar não pode ter dois serviços com horários sobrepostos. O acúmulo de funções (RN-104) não é choque: é o mesmo turno. | Confirmada | Funciona (lista "Escolher militar", gravação e troca) | Ambas |
+| RN-23 | Um militar não pode ter dois serviços com horários sobrepostos, em nenhuma unidade (o choque olha as alocações dele em todas) e sem exceção por jornada. O expediente do Adm conta como um serviço. O acúmulo de funções (RN-104) não é choque: é o mesmo turno. O choque trava a alocação, não o fechamento da escala. | Confirmada | Funciona (6.37): lista "Escolher militar", gravação, troca e Grade geral, em todas as unidades | Ambas |
 | RN-24 | O militar não pode tirar JES e emendar com Pronto; pode tirar Pronto e emendar com JES. | Confirmada | Funciona | Ambas |
-| RN-25 | O Adm não pode tirar diária no horário do expediente em dia útil (janela do turno do serviço Expediente, hoje 08h–16h). Só os serviços do tipo Diária são impedidos; PJES e Ordinário não. Vale quando a RN-17 está desligada. Um Saldo no mesmo horário dispensa o expediente do dia. | Confirmada | Funciona, sempre: o sistema ainda não lê a RN-17 | Ambas |
+| RN-25 | O serviço do Adm no horário do expediente em dia útil (janela do turno do serviço Expediente, hoje 08h–16h) é choque, qualquer que seja o tipo do serviço. O serviço cadastrado com a opção "Pode tirar o militar do Adm do expediente" (hoje o Saldo) continua sendo choque ao ser lançado, mas o escalante pode decidir tirar o militar do expediente do dia e pôr o serviço por cima, com alerta e confirmação (6.38). Um Saldo já lançado sobre o expediente tira o expediente do dia: não há choque. O JES e os demais serviços não têm a opção. | Confirmada | Funciona (6.37): o motivo é "De expediente neste dia"; a decisão com confirmação é da 6.38 | Ambas |
 | RN-26 | As regras de descanso e de bloco da Portaria do Comando Geral nº 314/2025 serão aplicadas no futuro (RN-57, RN-58). | Confirmada | Fase 10 | Ambas |
