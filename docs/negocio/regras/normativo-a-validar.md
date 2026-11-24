@@ -54,6 +54,7 @@ Só perguntas em aberto. Quando uma é respondida, a resposta vai para a regra e
 | P-18 | RN-90 | Quais funções contam como difíceis ou específicas e que preferência elas dão? |
 | P-30 | RN-108 | O mesmo modelo de guarnição mais de uma vez no mesmo dia (ex.: APH-1 e APH-2): completar a primeira antes de começar a segunda? Decisão tomada em 20/11 de tratar na fase 8; o design falta. |
 | P-32 | RS-01 | Escala do dia: formato de saída, campos de cada linha, ordem (por horário ou por escala), se entram vagas vazias e militares sem função. |
+| P-37 | RN-17, RN-19 | Jornada dos oficiais: por ora seguem a do Adm (não tiram JES em dia útil das 8h às 16h; o Saldo no expediente pede confirmação). Confirmar com o usuário e decidir se a pré-escala lança o expediente deles. Em elucidação (24/11/2026). |
 | P-36 | Jornada | Como a jornada (Adm ou Pronto) muda o funcionamento das equipes de que o militar faz parte? Em elucidação (usuário, 24/11/2026). |
 | P-35 | RN-35 | A cota tem um campo "prioridade" (vem da importação e ordena as operações na distribuição automática), mas nenhuma regra diz para que serve. O que ela significa para o escalante? O usuário ainda não sabe (21/11/2026); talvez não sirva para nada e o campo deva ser removido. |
 | P-33 | RN-102 × RN-108 | Relação entre a ordem de ativação (meta) e a ordem de escalação (vagas): adiada pelo usuário em 20/11; hoje a ordem de escalação é tratada como teste. |

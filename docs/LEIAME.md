@@ -31,7 +31,8 @@
 
 | Documento | Para que serve | Quem cuida | Situação |
 |---|---|---|---|
-| [decisoes.md](decisoes.md) | Registro de decisões: uma linha por decisão, da mais nova para a mais velha, com onde está o resultado | PLANEJAMENTO | vigente |
+| [decisoes.md](decisoes.md) | Registro de decisões da fase em andamento: uma linha por decisão, da mais nova para a mais velha, com onde está o resultado | PLANEJAMENTO | vigente |
+| [decisoes/fases-0-a-4.md](decisoes/fases-0-a-4.md) e [decisoes/fase-5.md](decisoes/fase-5.md) | Decisões das fases já fechadas (16 a 21/11/2026) | PLANEJAMENTO | concluído |
 | [superpowers/specs/2026-11-16-migracao-design.md](superpowers/specs/2026-11-16-migracao-design.md) | Como o sistema é pensado hoje: decisões técnicas (D1 a D7), atores, cadastros, montagem da escala e módulos | PLANEJAMENTO | vigente |
 | [superpowers/specs/2026-11-16-esquema-banco.md](superpowers/specs/2026-11-16-esquema-banco.md) | Esquema do banco: diagrama ER e uma seção por tabela | DESENVOLVIMENTO | vigente (em dia até a migração 0022) |
 | [superpowers/specs/2026-11-16-telas.md](superpowers/specs/2026-11-16-telas.md) | Identidade visual, navegação e cada tela | PLANEJAMENTO | vigente |
@@ -69,6 +70,7 @@
 | Documento | Para que serve | Quem cuida | Situação |
 |---|---|---|---|
 | [superpowers/plans/2026-11-16-roadmap-migracao.md](superpowers/plans/2026-11-16-roadmap-migracao.md) | Roadmap: a ordem das fases, a situação de cada entrega e as pendências conhecidas | PLANEJAMENTO | vigente |
+| [pendencias.md](pendencias.md) | Pendências conhecidas, achadas nas revisões e validações, ainda sem entrega | PLANEJAMENTO | vigente |
 | [superpowers/plans/2026-11-16-fase1-fundacao.md](superpowers/plans/2026-11-16-fase1-fundacao.md) | Fase 1: fundação | DESENVOLVIMENTO | concluído |
 | [superpowers/plans/2026-11-17-fase2-motor.md](superpowers/plans/2026-11-17-fase2-motor.md) | Fase 2: motor de regras | DESENVOLVIMENTO | concluído |
 | [superpowers/plans/2026-11-17-fase3-cadastros.md](superpowers/plans/2026-11-17-fase3-cadastros.md) | Fase 3: cadastros | DESENVOLVIMENTO | concluído |
