@@ -176,10 +176,11 @@ const SQL_UNIDADE: Record<TabelaComUnidade, string> = {
   escala: 'select unidade_id from escala where id = $1',
   feriado: 'select unidade_id from feriado where id = $1',
   cota: 'select unidade_id from cota where id = $1',
-  alocacao: 'select e.unidade_id from alocacao a join escala e on e.id = a.escala_id where a.id = $1',
-  remocao: 'select e.unidade_id from remocao r join escala e on e.id = r.escala_id where r.id = $1',
+  // o serviço é da unidade (e a alocação do expediente do Adm não tem escala, 6.40): a unidade vem do serviço
+  alocacao: 'select s.unidade_id from alocacao a join servico s on s.id = a.servico_id where a.id = $1',
+  remocao: 'select s.unidade_id from remocao r join servico s on s.id = r.servico_id where r.id = $1',
   acumulo:
-    'select e.unidade_id from alocacao_acumulo x join alocacao a on a.id = x.alocacao_id join escala e on e.id = a.escala_id where x.id = $1',
+    'select s.unidade_id from alocacao_acumulo x join alocacao a on a.id = x.alocacao_id join servico s on s.id = a.servico_id where x.id = $1',
 };
 
 /** Unidade dona de um registro (para conferir o papel); null se não existe. */

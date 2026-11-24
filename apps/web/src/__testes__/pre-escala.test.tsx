@@ -11,9 +11,7 @@ const LISTA: LinhaEscala[] = [{ id: 'e1', nome: 'Ordinário', ativa: true, servi
 const ESCALA: EscalaDoMes = { escalaId: 'e1', nome: 'Ordinário', mes: MES, dias: [], resumo: { preenchidas: 0, obrigatorias: 0, obrigatoriasVazias: 0 } };
 const EQUIPES = [{ id: 'q1', nome: 'Alfa' }, { id: 'q2', nome: 'Bravo' }, { id: 'q3', nome: 'Charlie' }, { id: 'q4', nome: 'Delta' }];
 const previa = (extra: Partial<PreviaDaPreEscala> = {}): PreviaDaPreEscala => ({
-  mes: MES, equipes: EQUIPES, equipeDetectada: { equipeId: 'q2', motivo: '' }, equipeNoMes: null, equipeUsada: { id: 'q2', nome: 'Bravo' }, entram: 24,
-  vazias: [{ data: `${MES}-02`, faixa: '08h–20h', vaga: 'Motorista ABT', obrigatoria: true }, { data: `${MES}-02`, faixa: '08h–20h', vaga: 'Combatente ABT', obrigatoria: false }],
-  semGuarnicao: [{ data: `${MES}-02`, faixa: '08h–20h', nomeGuerra: 'B4' }, { data: `${MES}-02`, faixa: '20h–08h', nomeGuerra: 'B5' }],
+  mes: MES, equipes: EQUIPES, equipeDetectada: { equipeId: 'q2', motivo: '' }, equipeNoMes: null, equipeUsada: { id: 'q2', nome: 'Bravo' }, entramNoTurno: 24, entramNoExpediente: 10,
   removidosQueNaoVoltam: 0, avisos: [], ...extra,
 });
 const ROTA = `/api/escalas/e1/mes/${MES}/pre-escala`;
@@ -39,13 +37,15 @@ describe('gerar pré-escala', () => {
     const d = await abrirDialogo();
     expect(await within(d).findByText('Pelo mês anterior, o dia 1 é da equipe Bravo.')).toBeInTheDocument();
     expect(within(d).getByLabelText('Equipe do dia 1')).toHaveValue('q2');
-    expect(within(d).getByText('Entram 24 serviços de Pronto.')).toBeInTheDocument();
-    // as vagas extras (acima do mínimo) não contam no resumo, como no cabeçalho da Escala do mês (achado da revisão final)
-    expect(within(d).getByText('Ficam 1 vaga obrigatória vazia e 2 militares sem guarnição.')).toBeInTheDocument();
+    expect(within(d).getByText('Entram 24 militares no turno do Pronto e 10 no expediente.')).toBeInTheDocument();
+    // a pré-escala só põe gente nos turnos: não fala mais de vagas vazias nem de quem ficou sem guarnição (6.40)
+    expect(within(d).queryByText(/vaga obrigatória/)).toBeNull();
+    expect(within(d).queryByText(/sem guarnição/)).toBeNull();
+    expect(within(d).queryByRole('button', { name: 'Ver o que ficou de fora' })).toBeNull();
   });
 
   it('sem detecção, diz o motivo, pede a escolha e só deixa gravar depois dela (Review Focus 2)', async () => {
-    const f = api(previa({ equipeDetectada: { equipeId: null, motivo: 'empate entre ALFA e BRAVO' }, equipeUsada: null, entram: 0, vazias: [], semGuarnicao: [], avisos: ['Escolha a equipe do dia 1.'] }));
+    const f = api(previa({ equipeDetectada: { equipeId: null, motivo: 'empate entre ALFA e BRAVO' }, equipeUsada: null, entramNoTurno: 0, entramNoExpediente: 0, avisos: ['Escolha a equipe do dia 1.'] }));
     const d = await abrirDialogo();
     expect(await within(d).findByText('Não deu para saber pelo mês anterior (empate entre ALFA e BRAVO). Escolha a equipe do dia 1.')).toBeInTheDocument();
     expect(within(d).getByRole('button', { name: 'Gravar pré-escala' })).toBeDisabled();
@@ -57,7 +57,7 @@ describe('gerar pré-escala', () => {
   it('trocar a equipe refaz a prévia com ?equipe=', async () => {
     const f = api();
     const d = await abrirDialogo();
-    await within(d).findByText('Entram 24 serviços de Pronto.');
+    await within(d).findByText('Entram 24 militares no turno do Pronto e 10 no expediente.');
     await userEvent.selectOptions(within(d).getByLabelText('Equipe do dia 1'), 'q3');
     await waitFor(() =>
       expect(f.mock.calls.some(([e]) => String(typeof e === 'string' ? e : e instanceof URL ? e.href : e.url).includes(`${ROTA}?equipe=q3`))).toBe(true),
@@ -67,7 +67,7 @@ describe('gerar pré-escala', () => {
   it('"Gravar pré-escala" manda a equipe, fecha o diálogo e conta os serviços gravados', async () => {
     const f = api(previa(), { [`POST ${ROTA}`]: { status: 201, corpo: { escala: ESCALA, gravadas: 22 } } });
     const d = await abrirDialogo();
-    await within(d).findByText('Entram 24 serviços de Pronto.');
+    await within(d).findByText('Entram 24 militares no turno do Pronto e 10 no expediente.');
     await userEvent.click(within(d).getByRole('button', { name: 'Gravar pré-escala' }));
     await waitFor(() => expect(corpoEnviado(f, `POST ${ROTA}`)).toEqual({ equipeDia1Id: 'q2' }));
     expect(await screen.findByText('Pré-escala gravada: 22 serviços.')).toBeInTheDocument();
@@ -78,7 +78,7 @@ describe('gerar pré-escala', () => {
     const { espera, soltar } = trava();
     const f = api(previa(), { [`POST ${ROTA}`]: { status: 201, corpo: { escala: ESCALA, gravadas: 22 }, espera } });
     const d = await abrirDialogo();
-    await within(d).findByText('Entram 24 serviços de Pronto.');
+    await within(d).findByText('Entram 24 militares no turno do Pronto e 10 no expediente.');
     const gravar = within(d).getByRole('button', { name: 'Gravar pré-escala' });
     await userEvent.click(gravar);
     await userEvent.click(gravar);
@@ -89,23 +89,21 @@ describe('gerar pré-escala', () => {
   it('o erro da API aparece no diálogo, que fica aberto', async () => {
     api(previa(), { [`POST ${ROTA}`]: { status: 400, corpo: { erro: 'Esta equipe não é do ciclo desta seção.' } } });
     const d = await abrirDialogo();
-    await within(d).findByText('Entram 24 serviços de Pronto.');
+    await within(d).findByText('Entram 24 militares no turno do Pronto e 10 no expediente.');
     await userEvent.click(within(d).getByRole('button', { name: 'Gravar pré-escala' }));
     expect(await within(d).findByRole('alert')).toHaveTextContent('Esta equipe não é do ciclo desta seção.');
     expect(screen.getByRole('dialog', { name: 'Gerar pré-escala' })).toBeInTheDocument();
   });
 
-  it('"Ver o que ficou de fora" lista as vagas vazias e quem ficou sem guarnição; também mostra os removidos e os avisos', async () => {
-    api(previa({ removidosQueNaoVoltam: 2, avisos: ['A equipe Charlie não tem militares do Pronto na seção; nenhum serviço foi gerado para os dias dela.'] }));
+  it('mostra os removidos que não voltam e os avisos da API, entre eles o do expediente sem serviço', async () => {
+    api(previa({
+      removidosQueNaoVoltam: 2, semExpediente: 'Sem o serviço Expediente na unidade: o expediente não foi gerado.',
+      avisos: ['A equipe Charlie não tem militares do Pronto na seção; nenhum serviço foi gerado para os dias dela.', 'Sem o serviço Expediente na unidade: o expediente não foi gerado.'],
+    }));
     const d = await abrirDialogo();
     expect(await within(d).findByText('2 removidos não voltam.')).toBeInTheDocument();
     expect(within(d).getByText(/A equipe Charlie não tem militares/)).toBeInTheDocument();
-    expect(within(d).queryByText('Dia 2, 08h–20h: Motorista ABT')).not.toBeInTheDocument();
-    await userEvent.click(within(d).getByRole('button', { name: 'Ver o que ficou de fora' }));
-    expect(within(d).getByText('Dia 2, 08h–20h: Motorista ABT')).toBeInTheDocument();
-    expect(within(d).getByText('Dia 2, 08h–20h: Combatente ABT (extra)')).toBeInTheDocument();
-    expect(within(d).getByText('Dia 2, 08h–20h: B4 sem guarnição')).toBeInTheDocument();
-    expect(within(d).getByText('Dia 2, 20h–08h: B5 sem guarnição')).toBeInTheDocument();
+    expect(within(d).getByText('Sem o serviço Expediente na unidade: o expediente não foi gerado.')).toBeInTheDocument();
   });
 
   it('com o Pronto do mês já gravado, a frase diz a equipe do mês (gerar de novo não troca de equipe)', async () => {
@@ -124,11 +122,11 @@ describe('gerar pré-escala', () => {
     };
     simularApi(rotas);
     const d = await abrirDialogo();
-    await within(d).findByText('Entram 24 serviços de Pronto.');
+    await within(d).findByText('Entram 24 militares no turno do Pronto e 10 no expediente.');
     rotas[`GET ${ROTA}`] = { status: 200, corpo: previa(), espera: new Promise(() => {}) };
     await userEvent.selectOptions(within(d).getByLabelText('Equipe do dia 1'), 'q3');
     expect(within(d).getByLabelText('Equipe do dia 1')).toHaveValue('q3');
-    expect(within(d).getByText('Entram 24 serviços de Pronto.')).toBeInTheDocument();
+    expect(within(d).getByText('Entram 24 militares no turno do Pronto e 10 no expediente.')).toBeInTheDocument();
     expect(within(d).getByText('Atualizando…')).toBeInTheDocument();
   });
 });

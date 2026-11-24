@@ -216,7 +216,8 @@ describe('quem pode ocupar a vaga', () => {
   });
 
   it('quem já está nesta faixa, neste dia, não aparece de novo', async () => {
-    await alocar('APTO', 'Pronto', 'A', dia(20));
+    // já está numa vaga (com guarnição) neste horário; quem está no turno sem guarnição é movido para a vaga (6.40) e tem teste próprio
+    await inserir(api.banco, 'alocacao', { militar_id: militar.APTO, escala_id: escalaId, servico_id: servico.Pronto, turno_id: turno['Pronto A'], data: dia(20), guarnicao_id: abt, funcao_id: motorista, origem: 'manual' });
     expect(await motivo('APTO', dia(20), FAIXA.A, T('Pronto A'))).toBe('Já escalado neste horário');
     expect(nomes(await avaliarCandidatos(api.banco, vaga(dia(20), FAIXA.A)))).not.toContain('APTO');
   });

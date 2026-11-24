@@ -258,3 +258,73 @@ describe('desfazer a resolução (6.38)', () => {
     expect(await doMilitar(x, dia(16))).toEqual(['Pronto']);
   });
 });
+
+describe('o expediente lançado pela pré-escala (6.40)', () => {
+  let expedienteDoSecao: { id: string; turno: string };
+  beforeAll(async () => {
+    const id = ((await (await api.pedir('admin', 'POST', `/api/unidades/${api.ids.secao}/servicos`, { nome: 'Expediente', tipo: 'ordinario', operacao: null, rotuloImpressao: null, cor: '#8A94A1' })).json()) as { id: string }).id;
+    const turno = (await (await api.pedir('admin', 'POST', `/api/servicos/${id}/turnos`, { letra: 'A', inicio: '08:00', fim: '16:00' })).json()).turnos[0].id as string;
+    expedienteDoSecao = { id, turno };
+  });
+  const lancarExpediente = (militarId: string, data: string) =>
+    inserir(api.banco, 'alocacao', { militar_id: militarId, escala_id: null, servico_id: expedienteDoSecao.id, turno_id: expedienteDoSecao.turno, data, origem: 'pre_escala' });
+
+  it('o Saldo por cima de um expediente lançado: a lista dá o botão, resolver tira o expediente lançado (remoção devolvível) e escala o Saldo; o "Desfazer" devolve o expediente', async () => {
+    const adm = await criar('ADMLANC', { unidade: api.ids.secao, jornada: 'adm' });
+    const lancado = await lancarExpediente(adm, dia(11));
+    const lista = await candidatos('escalante', unidades.secao, dia(11));
+    const c = lista.emChoque.find((e) => e.nomeGuerra === 'ADMLANC')!;
+    expect(c.servicos.map((s) => [s.nome, s.choque.tipo, s.choque.podeResolver])).toEqual([['Saldo', 'expediente', true], ['Pronto', 'expediente', false]]);
+    // sem pedir a resolução, o Saldo continua sendo choque
+    expect((await escalarAqui('escalante', unidades.secao, adm, 'Saldo', dia(11))).status).toBe(409);
+    const r = await escalarAqui('escalante', unidades.secao, adm, 'Saldo', dia(11), { expediente: true });
+    expect(r.status).toBe(201);
+    const feito = (await r.json()) as AlocacaoResolvida;
+    expect(await existe(lancado)).toBe(false);
+    expect(await doMilitar(adm, dia(11))).toEqual(['Saldo']);
+    expect(feito.desfazer.remocaoId).toEqual(expect.any(String));
+    const desfeito = await api.pedir('escalante', 'POST', '/api/resolucoes/desfazer', feito.desfazer);
+    expect(desfeito.status).toBe(200);
+    expect(await doMilitar(adm, dia(11))).toEqual(['Expediente']);
+    expect(await remocoes(adm, dia(11))).toBe(0);
+  });
+
+  it('o JES e o Pronto não tiram o expediente lançado: 409 "De expediente neste dia" e o expediente continua', async () => {
+    const adm = await criar('ADMLANC2', { unidade: api.ids.secao, jornada: 'adm' });
+    const lancado = await lancarExpediente(adm, dia(12));
+    for (const servico of ['JES', 'Pronto']) {
+      const r = await escalarAqui('escalante', unidades.secao, adm, servico, dia(12), { expediente: true });
+      expect(r.status).toBe(409);
+      expect((await r.json()).erro).toBe('De expediente neste dia');
+    }
+    expect(await existe(lancado)).toBe(true);
+  });
+
+  it('tirar o expediente lançado sem pôr nada: o calculado continua valendo (o choque continua)', async () => {
+    const adm = await criar('ADMTIRADO', { unidade: api.ids.secao, jornada: 'adm' });
+    const lancado = await lancarExpediente(adm, dia(13));
+    expect((await api.pedir('escalante', 'DELETE', `/api/alocacoes/${lancado}`)).status).toBe(200);
+    expect(await existe(lancado)).toBe(false);
+    expect(await remocoes(adm, dia(13))).toBe(1);
+    expect((await escalarAqui('escalante', unidades.secao, adm, 'Saldo', dia(13))).status).toBe(409);
+    // e a escala do mês não mostra o expediente (ele não é de nenhuma escala): a leitura continua inteira
+    const outro = await criar('ADMLEITURA', { unidade: api.ids.secao, jornada: 'adm' });
+    await lancarExpediente(outro, dia(14));
+    expect((await api.pedir('escalante', 'GET', `/api/escalas/${unidades.secao.escalaId}/mes/${atual}`)).status).toBe(200);
+  });
+
+  it('Review Focus 1: a Grade e o painel do dia mostram o expediente lançado (sem duplicar o calculado); a Escala do mês e o Efetivo por dia não o mostram e continuam inteiros', async () => {
+    const adm = await criar('ADMMOSTRA', { unidade: api.ids.secao, jornada: 'adm' });
+    await lancarExpediente(adm, dia(15));
+    const grade = (await (await api.pedir('escalante', 'GET', `/api/unidades/${api.ids.secao}/grade/${atual}`)).json()) as { grupos: { linhas: { nomeGuerra: string; dias: Record<string, { servico: { nome: string } | null; expediente: boolean }[]> }[] }[] };
+    const linha = grade.grupos.flatMap((g) => g.linhas).find((l) => l.nomeGuerra === 'ADMMOSTRA')!;
+    expect(linha.dias[dia(15)]!.map((b) => [b.servico?.nome ?? null, b.expediente])).toEqual([['Expediente', false]]);
+    const painel = (await (await api.pedir('escalante', 'GET', `/api/unidades/${api.ids.secao}/grade/${atual}/militares/${adm}/dias/${dia(15)}`)).json()) as { servicos: { escalaId: string | null; servico: { nome: string } }[]; choques: string[] };
+    expect(painel.servicos.map((x) => [x.servico.nome, x.escalaId])).toEqual([['Expediente', null]]);
+    expect(painel.choques).toEqual([]);
+    const mes = (await api.pedir('escalante', 'GET', `/api/escalas/${unidades.secao.escalaId}/mes/${atual}`));
+    expect(mes.status).toBe(200);
+    expect(JSON.stringify(await mes.json())).not.toContain('ADMMOSTRA');
+    expect((await api.pedir('escalante', 'GET', `/api/unidades/${api.ids.secao}/efetivo-do-dia/${dia(15)}`)).status).toBeLessThan(500);
+  });
+});

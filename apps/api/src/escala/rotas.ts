@@ -9,7 +9,7 @@ import { comUsuario, type Banco } from '../banco/banco.ts';
 import { mesPassado } from '../cadastros/guarnicoes.ts';
 import { hojeRecife } from '../datas.ts';
 import { lerCorpo, respostaDoErroDoBanco } from '../erros.ts';
-import { acumular, desfazerRemocao, desfazerResolucao, devolverRemocao, escalar, escalarResolvendo, NAO_DA_PARA_DESFAZER, Proibida, Recusa, remover, tirarAcumulo } from './alocacoes.ts';
+import { acumular, desfazerRemocao, desfazerResolucao, devolverRemocao, escalar, escalarResolvendo, NAO_DA_PARA_DESFAZER, Proibida, Recusa, remover, tirarAcumulo, voltarAoTurno } from './alocacoes.ts';
 import { avaliarCandidatos } from './elegibilidade.ts';
 import { montarEscalaDoMes } from './leitura.ts';
 import { gravarOrdem, ordemDoMes } from './ordem-do-mes.ts';
@@ -79,10 +79,11 @@ export function rotasEscalaDoMes(dep: { banco: Banco; auth: Auth }): Hono<Ambien
         if (!novas.length) return 0;
         const { rows } = await tx.query<{ id: string }>(
           `insert into alocacao (militar_id, escala_id, servico_id, turno_id, data, guarnicao_id, funcao_id, origem)
-           select x.m, $1, x.s, x.t, x.d, x.g, x.f, 'pre_escala'
-             from unnest($2::uuid[], $3::uuid[], $4::uuid[], $5::date[], $6::uuid[], $7::uuid[]) as x(m, s, t, d, g, f)
+           select x.m, x.e, x.s, x.t, x.d, x.g, x.f, 'pre_escala'
+             from unnest($1::uuid[], $2::uuid[], $3::uuid[], $4::date[], $5::uuid[], $6::uuid[], $7::uuid[]) as x(m, s, t, d, g, f, e)
            on conflict do nothing returning id`,
-          [id, novas.map((n) => n.militarId), novas.map((n) => n.servicoId), novas.map((n) => n.turnoId), novas.map((n) => n.data), novas.map((n) => n.guarnicaoId), novas.map((n) => n.funcaoId)],
+          // o expediente do Adm (6.40) não tem escala: `escalaId` nulo
+          [novas.map((n) => n.militarId), novas.map((n) => n.servicoId), novas.map((n) => n.turnoId), novas.map((n) => n.data), novas.map((n) => n.guarnicaoId), novas.map((n) => n.funcaoId), novas.map((n) => (n.escalaId === null ? null : id))],
         );
         return rows.length;
       });
@@ -159,6 +160,25 @@ export function rotasEscalaDoMes(dep: { banco: Banco; auth: Auth }): Hono<Ambien
     }
   });
 
+  /** "Desfazer" o movimento do turno para a vaga (6.40): a alocação volta ao turno sem guarnição; 409 se a escala mudou desde então. */
+  r.post('/alocacoes/:id/voltar-ao-turno', async (c) => {
+    const id = c.req.param('id');
+    const unidadeId = await unidadeDoRegistro(dep.banco, 'alocacao', id);
+    // a que já não existe tem a mesma frase de quando a escala mudou
+    if (!unidadeId) return c.json({ erro: NAO_DA_PARA_DESFAZER }, 409);
+    const negado = await exigirPapel(c, unidadeId, CADASTRO);
+    if (negado) return negado;
+    const corpo = await lerCorpo(c, z.object({ guarnicaoId: Id, funcaoId: Id }));
+    if (!corpo.ok) return corpo.resposta;
+    try {
+      const { escalaId, mes } = await comUsuario(dep.banco, c.get('usuarioId'), (tx) => voltarAoTurno(tx, id, corpo.dados));
+      return c.json(await montarEscalaDoMes(dep.banco, escalaId, mes));
+    } catch (e) {
+      if (e instanceof Recusa) return c.json({ erro: e.message }, 409);
+      return respostaDoErroDoBanco(c, e);
+    }
+  });
+
   /** "Desfazer" a resolução do choque: tira o serviço novo e devolve o de lá; 409 se a escala mudou desde então. */
   r.post('/resolucoes/desfazer', async (c) => {
     const corpo = await lerCorpo(c, DesfazerResolucao);
@@ -187,6 +207,8 @@ export function rotasEscalaDoMes(dep: { banco: Banco; auth: Auth }): Hono<Ambien
     if (await daRodadaDaAlocacao(id)) return c.json({ erro: MSG_RODADA }, 409);
     const { escalaId, mes, remocaoId } = await comUsuario(dep.banco, c.get('usuarioId'), (tx) => remover(tx, id, c.get('usuarioId')));
     // a escala do mês e o id da remoção: o aviso da tela usa o id para o "Desfazer"
+    // o expediente lançado pela pré-escala não é de nenhuma escala (6.40): só o id da remoção
+    if (escalaId === null) return c.json({ escalaId: null, remocaoId });
     return c.json({ ...(await montarEscalaDoMes(dep.banco, escalaId, mes)), remocaoId });
   });
 
@@ -199,6 +221,7 @@ export function rotasEscalaDoMes(dep: { banco: Banco; auth: Auth }): Hono<Ambien
     if (negado) return negado;
     try {
       const { escalaId, mes } = await comUsuario(dep.banco, c.get('usuarioId'), (tx) => devolverRemocao(tx, id));
+      if (escalaId === null) return c.json({ escalaId: null });
       return c.json(await montarEscalaDoMes(dep.banco, escalaId, mes));
     } catch (e) {
       if (e instanceof Recusa) return c.json({ erro: e.message }, 409);
@@ -213,6 +236,7 @@ export function rotasEscalaDoMes(dep: { banco: Banco; auth: Auth }): Hono<Ambien
     const negado = await exigirPapel(c, unidadeId, CADASTRO);
     if (negado) return negado;
     const { escalaId, mes } = await comUsuario(dep.banco, c.get('usuarioId'), (tx) => desfazerRemocao(tx, id));
+    if (escalaId === null) return c.json({ escalaId: null });
     return c.json(await montarEscalaDoMes(dep.banco, escalaId, mes));
   });
 

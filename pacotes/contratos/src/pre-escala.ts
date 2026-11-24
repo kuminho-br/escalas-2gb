@@ -15,13 +15,13 @@ export type PreviaDaPreEscala = {
   equipeNoMes: { id: string; nome: string } | null;
   /** a escolhida ou, sem escolha, a detectada */
   equipeUsada: { id: string; nome: string } | null;
-  /** serviços de Pronto que a gravação criaria */
-  entram: number;
-  /** vagas que ficariam sem ninguém, na ordem do mês (ex.: "08h–20h", "Combatente ABT") */
-  vazias: { data: string; faixa: string; vaga: string; obrigatoria: boolean }[];
-  /** da equipe do dia e sem vaga de guarnição: entram no Pronto sem guarnição */
-  semGuarnicao: { data: string; faixa: string; nomeGuerra: string }[];
-  /** militares da equipe do dia que o escalante removeu e que a geração não devolve */
+  /** militares da equipe do dia que a gravação poria no turno do Pronto (sem guarnição: o escalante põe cada um numa vaga depois, à mão) */
+  entramNoTurno: number;
+  /** militares do Adm que a gravação poria no expediente (dias úteis; fora fim de semana, feriado, afastamento e dia com Saldo no horário); sem escala */
+  entramNoExpediente: number;
+  /** a unidade não tem o serviço Expediente: o expediente não foi gerado (a frase também vai em `avisos`) */
+  semExpediente?: string;
+  /** militares (do Pronto ou do expediente) que o escalante removeu e que a geração não devolve */
   removidosQueNaoVoltam: number;
   avisos: string[];
 };

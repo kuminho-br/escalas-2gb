@@ -36,10 +36,13 @@ export type VagaConsultada = { escalaId: string; data: string; inicio: string; f
 export type TurnoDaFaixa = { turnoId: string; servicoId: string; nome: string; tipo: Tipo; letra: 'A' | 'B' | 'C'; inicio: string; fim: string; tira: boolean };
 /** `externo`: veio de outra unidade pelo vínculo (6.33); é candidato em qualquer serviço lançado à mão (6.36), mas a pré-escala e as distribuições automáticas nunca o põem. */
 /** O que choca com o militar num turno: as alocações dele que se sobrepõem e se o expediente também (6.38). */
-export type Conflito = { alocacoes: AlocacaoDaJanela[]; expediente: boolean };
+/** `expedienteLancado`: o expediente que a pré-escala lançou (sem escala) está entre o que choca; só um serviço que tira do expediente o tira (6.40). */
+export type Conflito = { alocacoes: AlocacaoDaJanela[]; expediente: boolean; expedienteLancado?: AlocacaoDaJanela };
 export type Avaliado = {
   externo: boolean; candidato: Omit<Candidato, 'servicos'>; militarMotivo: string | null; porTurno: { turno: TurnoDaFaixa; motivo: string | null; conflito?: Conflito }[];
   antig: number | null; postoOrdem: number; cnh: string[]; lotacaoUnidadeId: string;
+  /** a alocação que a pré-escala pôs neste turno sem guarnição (6.40) e o turno dela */
+  noTurno?: { alocacaoId: string; turnoId: string };
 };
 
 const NAO_LOTADO = 'Não está lotado na seção neste dia';
@@ -118,7 +121,6 @@ export async function avaliarFaixa(c: Consulta, v: VagaConsultada, somenteMilita
   // (o choque vale em qualquer unidade; o serviço de fora entra com a sigla: "Pronto (2ª SB)")
   const todas = await alocacoesDaJanela(c, ids, somarDias(v.data, -1), somarDias(v.data, 1), unidadeId);
   somarOutrasUnidades(regras, todas);
-  const janela = todas.map((a) => ({ militar_id: a.militarId, data: a.data, nome: a.servico, letra: a.letra, inicio: a.inicio, fim: a.fim }));
   const porChave = new Map(todas.map((a) => [chaveAloc({ mat: a.militarId, dia: a.data, servico: a.servico, turno: a.letra }), a] as const));
   // a disponibilidade lançada no dia e no dia seguinte (o turno pertence ao dia em que começa; o que passa da meia-noite usa o dia seguinte)
   const disponibilidade = new Map<string, Faixa[]>();
@@ -145,16 +147,22 @@ export async function avaliarFaixa(c: Consulta, v: VagaConsultada, somenteMilita
 
   const avaliados = militares.map((m): Avaliado => {
     const base = { militarId: m.id, posto: m.posto, nomeGuerra: m.nome_guerra, matricula: m.matricula, equipe: m.equipe, jornada: m.jornada };
-    const pronto = (militarMotivo: string | null, porTurno: Avaliado['porTurno'] = []): Avaliado => ({ externo: m.externo, candidato: base, militarMotivo, porTurno, antig: m.antiguidade, postoOrdem: m.posto_ordem, cnh: cnhParaEscala(m), lotacaoUnidadeId: m.lotacao_unidade });
+    let noTurno: AlocacaoDaJanela | undefined;
+    const pronto = (militarMotivo: string | null, porTurno: Avaliado['porTurno'] = []): Avaliado => ({ externo: m.externo, candidato: base, militarMotivo, porTurno, antig: m.antiguidade, postoOrdem: m.posto_ordem, cnh: cnhParaEscala(m), lotacaoUnidadeId: m.lotacao_unidade, ...(noTurno ? { noTurno: { alocacaoId: noTurno.id, turnoId: noTurno.turnoId } } : {}) });
     if (!m.lotado_no_dia) return pronto(NAO_LOTADO);
     if (ehOficial(m.quadro)) return pronto(MOTIVO_OFICIAL);
     if (!m.ativo) return pronto(m.situacao);
     if (afastados.has(m.id)) return pronto('Afastado');
     const motivoCnh = exigida ? motivoDaCnh(m, exigida) : null;
     if (motivoCnh) return pronto(motivoCnh);
-    const dele = janela.filter((a) => a.militar_id === m.id);
-    if (dele.some((a) => a.data === v.data && a.inicio === v.inicio && a.fim === v.fim)) return pronto(JA_ESCALADO);
-    const existentes: AlocChoque[] = dele.map((a) => ({ mat: m.id, dia: a.data, turno: a.letra, servico: a.nome }));
+    const dele = todas.filter((a) => a.militarId === m.id);
+    // quem já está neste horário: "Já escalado". Exceção (6.40): numa vaga de guarnição, quem a pré-escala pôs neste turno desta escala sem guarnição não é "já escalado": é candidato,
+    // e escolhê-lo MOVE a alocação dele para a vaga (ela não conta como choque consigo mesma)
+    const mesmoHorario = dele.filter((a) => a.data === v.data && a.inicio === v.inicio && a.fim === v.fim);
+    const movivel = v.guarnicaoId !== null && mesmoHorario.length > 0 && mesmoHorario.every((a) => a.escalaId === v.escalaId && a.guarnicaoId === null);
+    if (mesmoHorario.length && !movivel) return pronto(JA_ESCALADO);
+    noTurno = movivel ? mesmoHorario[0] : undefined;
+    const existentes: AlocChoque[] = dele.filter((a) => !movivel || !mesmoHorario.includes(a)).map((a) => ({ mat: m.id, dia: a.data, turno: a.letra, servico: a.servico }));
     const expediente: AlocChoque[] =
       m.jornada === 'adm'
         ? [-1, 0, 1].map((n) => somarDias(v.data, n)).filter(util).map((dia) => ({ mat: m.id, dia, turno: EXPEDIENTE.turno, servico: EXPEDIENTE.servico, implicito: true }))
@@ -206,12 +214,13 @@ export function choqueDoTurno(d: {
   const dela = choques.filter((x) => x.a.chave === chave || x.b.chave === chave);
   if (!dela.length) return null;
   const lados = dela.flatMap((x) => [x.a, x.b]).filter((l) => l.chave !== chave && !l.implicito);
+  const reais = [...new Map(lados.flatMap((l) => (d.porChave.has(l.chave) ? [[l.chave, d.porChave.get(l.chave)!] as const] : []))).values()];
+  // o expediente lançado pela pré-escala (o serviço Expediente) é o expediente: o choque com ele é "De expediente neste dia", e não com um serviço qualquer
+  const lancado = reais.find((a) => a.servicoNome.trim().toLowerCase() === 'expediente');
+  const expediente = dela.some((x) => x.tipo === 'expediente') || !!lancado;
   return {
-    motivo: dela.some((x) => x.tipo === 'expediente') ? DE_EXPEDIENTE : 'Choque de horário',
-    conflito: {
-      alocacoes: [...new Map(lados.flatMap((l) => (d.porChave.has(l.chave) ? [[l.chave, d.porChave.get(l.chave)!] as const] : []))).values()],
-      expediente: dela.some((x) => x.tipo === 'expediente'),
-    },
+    motivo: expediente ? DE_EXPEDIENTE : 'Choque de horário',
+    conflito: { alocacoes: reais.filter((a) => a !== lancado), expediente, ...(lancado ? { expedienteLancado: lancado } : {}) },
   };
 }
 
@@ -267,12 +276,17 @@ export async function avaliarCandidatos(c: Consulta, v: VagaConsultada, quem?: {
   const { avaliados } = await avaliarFaixa(c, v);
   const acumulando = v.guarnicaoId && v.funcaoId ? await quemPodeAcumular(c, v, avaliados) : [];
   const idsAcumulando = new Set(acumulando.map((x) => x.a.candidato.militarId));
-  const ordem = (x: Avaliado, y: Avaliado) => Number(x.candidato.jornada === 'adm') - Number(y.candidato.jornada === 'adm') || porAntiguidade(x, y);
+  // quem já está no turno sem guarnição vem primeiro (6.40); depois o Pronto antes do Adm, por posto e antiguidade
+  const ordem = (x: Avaliado, y: Avaliado) => Number(!!y.noTurno) - Number(!!x.noTurno) || Number(x.candidato.jornada === 'adm') - Number(y.candidato.jornada === 'adm') || porAntiguidade(x, y);
   const comServicos = (a: Avaliado, motivo: string | null): Candidato => ({
     ...a.candidato,
-    servicos: a.porTurno.filter((t) => t.motivo === motivo).map((t) => ({ servicoId: t.turno.servicoId, turnoId: t.turno.turnoId, nome: t.turno.nome })),
+    ...(a.noTurno ? { noTurno: { alocacaoId: a.noTurno.alocacaoId } } : {}),
+    // quem está no turno só vai para a vaga no serviço em que já está
+    servicos: a.porTurno.filter((t) => t.motivo === motivo && (!a.noTurno || t.turno.turnoId === a.noTurno.turnoId)).map((t) => ({ servicoId: t.turno.servicoId, turnoId: t.turno.turnoId, nome: t.turno.nome })),
   });
-  const aptos = avaliados.filter((a) => motivoFinal(a) === null).sort(ordem).map((a) => comServicos(a, null));
+  // quem está no turno só serve se o turno em que ele já está passa em todas as regras da vaga
+  const apto = (a: Avaliado) => motivoFinal(a) === null && (!a.noTurno || a.porTurno.find((t) => t.turno.turnoId === a.noTurno!.turnoId)?.motivo === null);
+  const aptos = avaliados.filter(apto).sort(ordem).map((a) => comServicos(a, null));
   // sem turno livre, mas com ao menos um turno em que só falta o voluntariado
   const semVoluntariado = avaliados
     .filter((a) => a.militarMotivo === null && motivoFinal(a) !== null && a.porTurno.some((t) => t.motivo === SEM_VOLUNTARIADO))

@@ -87,7 +87,8 @@ describe('a equipe do dia 1', () => {
     expect(await equipeDoDia1(api.banco, api.ids.secao, mes)).toEqual({ equipeId: null, motivo: 'sem Pronto turno A no mês anterior' });
     const { previa, novas } = await planejarPreEscala(api.banco, escala, mes, null);
     expect(previa.equipeUsada).toBeNull();
-    expect(previa.entram).toBe(0);
+    expect(previa.entramNoTurno).toBe(0);
+    expect(previa.entramNoExpediente).toBe(0);
     expect(novas).toEqual([]);
     expect(previa.avisos).toContain('Escolha a equipe do dia 1.');
     expect(previa.equipes.map((e) => e.nome)).toEqual(['Alfa', 'Bravo', 'Charlie', 'Delta']);
@@ -110,44 +111,32 @@ describe('a equipe do dia 1', () => {
   });
 });
 
-describe('quem entra em cada vaga (equipe do dia 1 = ALFA: dias 1, 5, 9… ALFA; 2, 6… BRAVO; 3, 7… CHARLIE; 4, 8… DELTA)', () => {
-  it('a ordem decide a vez, a CNH decide quem pode e a antiguidade decide entre os aptos (Review Focus 4)', async () => {
+describe('quem entra em cada turno (equipe do dia 1 = ALFA: dias 1, 5, 9… ALFA; 2, 6… BRAVO; 3, 7… CHARLIE; 4, 8… DELTA)', () => {
+  it('6.40: a equipe do dia entra no turno do Pronto sem guarnição e sem função, nos dois turnos; a prévia conta os que entram no turno', async () => {
     const { novas, previa } = await planejarPreEscala(api.banco, escala, mes, equipe.Alfa!);
-    const a = noTurno(novas, 1, turnoA);
-    // A2 tem a CNH E (serve para o Motorista); o mais antigo entre os outros (A1) fica com o Chefe AR e A3 com o Combatente 1
-    expect(a.A2).toMatchObject({ guarnicaoId: abt, funcaoId: motorista });
-    expect(a.A1).toMatchObject({ guarnicaoId: ar, funcaoId: chefe });
-    expect(a.A3).toMatchObject({ guarnicaoId: abt, funcaoId: combatente });
-    expect(Object.keys(a)).toHaveLength(3);
-    // menos gente que vagas: sobra vazia a última da ordem, nas duas faixas
-    expect(previa.vazias).toContainEqual({ data: dia(1), faixa: '08h–20h', vaga: 'Combatente ABT', obrigatoria: false });
-    expect(previa.vazias).toContainEqual({ data: dia(1), faixa: '20h–08h', vaga: 'Combatente ABT', obrigatoria: false });
-    expect(previa.entram).toBe(novas.length);
+    for (const t of [turnoA, turnoB]) {
+      const dia1 = noTurno(novas, 1, t);
+      expect(Object.keys(dia1).sort()).toEqual(['A1', 'A2', 'A3']);
+      for (const x of Object.values(dia1)) expect(x).toMatchObject({ guarnicaoId: null, funcaoId: null });
+    }
+    // cinco militares da BRAVO no dia 2, todos sem guarnição (a pré-escala não preenche vagas)
+    expect(Object.keys(noTurno(novas, 2, turnoA))).toHaveLength(5);
+    expect(novas.every((n) => n.guarnicaoId === null && n.funcaoId === null)).toBe(true);
+    expect(previa.entramNoTurno).toBe(novas.filter((n) => n.servicoId === pronto).length);
+    expect('vazias' in previa).toBe(false);
+    expect('semGuarnicao' in previa).toBe(false);
   });
 
-  it('mais gente que vagas: sem ninguém com a CNH do Motorista, a vaga fica vazia e os dois mais novos ficam sem guarnição (Review Focus 5)', async () => {
-    const { novas, previa } = await planejarPreEscala(api.banco, escala, mes, equipe.Alfa!);
-    const dois = noTurno(novas, 2, turnoA);
-    expect(Object.keys(dois)).toHaveLength(5);
-    expect(dois.B1).toMatchObject({ guarnicaoId: ar, funcaoId: chefe });
-    expect(dois.B2).toMatchObject({ guarnicaoId: abt, funcaoId: combatente });
-    expect(dois.B4).toMatchObject({ guarnicaoId: null, funcaoId: null });
-    expect(dois.B5).toMatchObject({ guarnicaoId: null, funcaoId: null });
-    expect(previa.vazias).toContainEqual({ data: dia(2), faixa: '08h–20h', vaga: 'Motorista ABT', obrigatoria: true });
-    expect(previa.semGuarnicao.filter((x) => x.data === dia(2) && x.faixa === '08h–20h').map((x) => x.nomeGuerra)).toEqual(['B4', 'B5']);
+  it('a antiguidade decide a ordem em que entram; quem não tem a CNH da vaga entra igual (a vaga é do escalante)', async () => {
+    const { novas } = await planejarPreEscala(api.banco, escala, mes, equipe.Alfa!);
+    const ordem = novas.filter((x) => x.data === dia(1) && x.turnoId === turnoA).map((x) => nomeDe(x.militarId));
+    expect(ordem).toEqual(['A1', 'A2', 'A3']);
   });
 
   it('o dia de uma equipe sem ninguém não gera nada, e a prévia avisa', async () => {
     const { novas, previa } = await planejarPreEscala(api.banco, escala, mes, equipe.Alfa!);
-    expect(novas.filter((x) => x.data === dia(3))).toEqual([]);
+    expect(novas.filter((x) => x.data === dia(3) && x.servicoId === pronto)).toEqual([]);
     expect(previa.avisos).toContain('A equipe Charlie não tem militares do Pronto na seção; nenhum serviço foi gerado para os dias dela.');
-  });
-
-  it('uma faixa só considera as guarnições vinculadas a ela (nesta escala a AR só existe no turno A: sem ordem cadastrada a ABT enche primeiro)', async () => {
-    const { previa } = await planejarPreEscala(api.banco, escalaSoNoA, mes, equipe.Alfa!);
-    const doDia1 = previa.vazias.filter((x) => x.data === dia(1));
-    expect(doDia1).toContainEqual({ data: dia(1), faixa: '08h–20h', vaga: 'AR', obrigatoria: true });
-    expect(doDia1.filter((x) => x.faixa === '20h–08h')).toEqual([]);
   });
 
   it('o afastado fica de fora só nos dias do afastamento; nos outros dias a equipe dele entra (Review Focus 3)', async () => {
@@ -164,43 +153,35 @@ describe('quem entra em cada vaga (equipe do dia 1 = ALFA: dias 1, 5, 9… ALFA;
   it('uma escala sem o serviço Pronto não tem o que gerar, e a prévia avisa', async () => {
     const { novas, previa } = await planejarPreEscala(api.banco, escalaSemPronto, mes, equipe.Alfa!);
     expect(novas).toEqual([]);
-    expect(previa.entram).toBe(0);
+    expect(previa.entramNoTurno).toBe(0);
     expect(previa.avisos).toContain('Esta escala não tem o serviço Pronto: não há o que gerar.');
   });
 });
 
 describe('gerar de novo (Review Focus 1)', () => {
-  it('quem já está escalado à mão não é mexido e a vaga dele não é usada de novo', async () => {
+  it('quem já está escalado à mão (com guarnição, no turno) não é mexido nem duplicado', async () => {
     await inserir(api.banco, 'alocacao', { militar_id: militar.A3, escala_id: escala, servico_id: pronto, turno_id: turnoA, data: dia(1), guarnicao_id: abt, funcao_id: combatente, origem: 'manual' });
-    const { novas, previa } = await planejarPreEscala(api.banco, escala, mes, equipe.Alfa!);
+    const { novas } = await planejarPreEscala(api.banco, escala, mes, equipe.Alfa!);
     const a = noTurno(novas, 1, turnoA);
     expect(a).not.toHaveProperty('A3');
-    expect(a.A2).toMatchObject({ guarnicaoId: abt, funcaoId: motorista });
-    expect(a.A1).toMatchObject({ guarnicaoId: ar, funcaoId: chefe });
-    expect(Object.values(a).some((x) => x.funcaoId === combatente)).toBe(false);
-    expect(previa.vazias).toContainEqual({ data: dia(1), faixa: '08h–20h', vaga: 'Combatente ABT', obrigatoria: false });
+    expect(Object.keys(a).sort()).toEqual(['A1', 'A2']);
     // no turno B do mesmo dia ninguém estava escalado: A3 entra normalmente
     expect(noTurno(novas, 1, turnoB)).toHaveProperty('A3');
   });
 
-  it('a vaga ocupada à mão sai da lista mesmo sobrando gente: com o Combatente 1 da BRAVO ocupado, só um combatente é completado e o resto fica sem guarnição', async () => {
-    await inserir(api.banco, 'alocacao', { militar_id: militar.B2, escala_id: escala, servico_id: pronto, turno_id: turnoA, data: dia(2), guarnicao_id: abt, funcao_id: combatente, origem: 'manual' });
+  it('quem já está no turno sem guarnição (de uma pré-escala anterior) também não é duplicado', async () => {
+    await inserir(api.banco, 'alocacao', { militar_id: militar.B2, escala_id: escala, servico_id: pronto, turno_id: turnoA, data: dia(2), origem: 'manual' });
     const { novas } = await planejarPreEscala(api.banco, escala, mes, equipe.Alfa!);
-    const dois = noTurno(novas, 2, turnoA);
-    expect(dois).not.toHaveProperty('B2');
-    expect(dois.B1).toMatchObject({ guarnicaoId: ar, funcaoId: chefe });
-    expect(dois.B3).toMatchObject({ guarnicaoId: abt, funcaoId: combatente });
-    expect(dois.B4).toMatchObject({ guarnicaoId: null, funcaoId: null });
-    expect(dois.B5).toMatchObject({ guarnicaoId: null, funcaoId: null });
+    expect(noTurno(novas, 2, turnoA)).not.toHaveProperty('B2');
+    expect(noTurno(novas, 2, turnoA)).toHaveProperty('B1');
   });
 
-  it('o removido não volta ao dia e turno de onde saiu, mas outro militar pode ocupar a vaga dele', async () => {
+  it('o removido não volta ao dia e turno de onde saiu', async () => {
     await inserir(api.banco, 'remocao', { militar_id: militar.A1, escala_id: escala, servico_id: pronto, turno_id: turnoA, data: dia(5) });
     const { novas, previa } = await planejarPreEscala(api.banco, escala, mes, equipe.Alfa!);
     const a = noTurno(novas, 5, turnoA);
     expect(a).not.toHaveProperty('A1');
-    expect(a.A2).toMatchObject({ guarnicaoId: abt, funcaoId: motorista });
-    expect(a.A3).toMatchObject({ guarnicaoId: ar, funcaoId: chefe });
+    expect(a).toHaveProperty('A2');
     expect(noTurno(novas, 5, turnoB)).toHaveProperty('A1');
     expect(previa.removidosQueNaoVoltam).toBe(1);
   });
@@ -238,15 +219,17 @@ describe('as rotas da prévia e da gravação', () => {
     expect((await api.pedir('escalante', 'GET', url('00000000-0000-0000-0000-000000000000'))).status).toBe(404);
   });
 
-  it('gravar cria as alocações do Pronto (origem pré-escala) e a escala do mês mostra os ocupantes e os sem guarnição', async () => {
+  it('gravar cria as alocações do Pronto (origem pré-escala), todas no turno sem guarnição, e a escala do mês as mostra em "sem posto"', async () => {
     const { previa } = await planejarPreEscala(api.banco, escala, mes, equipe.Alfa!);
     const r = await api.pedir('escalante', 'POST', url(escala), { equipeDia1Id: equipe.Alfa });
     expect(r.status).toBe(201);
     const corpo = await r.json();
-    expect(corpo.gravadas).toBe(previa.entram);
-    expect(await gravadasNoBanco(mes)).toBe(previa.entram);
+    expect(corpo.gravadas).toBe(previa.entramNoTurno + previa.entramNoExpediente);
+    expect(await gravadasNoBanco(mes)).toBe(previa.entramNoTurno + previa.entramNoExpediente);
+    const comGuarnicao = (await api.banco.query<{ n: number }>("select count(*)::int as n from alocacao where origem = 'pre_escala' and guarnicao_id is not null")).rows[0]!.n;
+    expect(comGuarnicao).toBe(0);
     const dia2 = corpo.escala.dias[1].faixas.find((f: { inicio: string }) => f.inicio === '08:00');
-    expect(dia2.semPosto.map((o: { nomeGuerra: string }) => o.nomeGuerra).sort()).toEqual(['B4', 'B5']);
+    expect(dia2.semPosto.map((o: { nomeGuerra: string }) => o.nomeGuerra).sort()).toEqual(['B1', 'B2', 'B3', 'B4', 'B5']);
   });
 
   it('gravar de novo não duplica nem tira ninguém (Review Focus 1)', async () => {
@@ -263,7 +246,7 @@ describe('as rotas da prévia e da gravação', () => {
     expect(semEscolha.equipeNoMes).toEqual({ id: equipe.Alfa, nome: 'Alfa' });
     expect(semEscolha.equipeUsada).toEqual({ id: equipe.Alfa, nome: 'Alfa' });
     const outra = await (await api.pedir('escalante', 'GET', `${url(escala)}?equipe=${equipe.Bravo}`)).json();
-    expect(outra.entram).toBe(0);
+    expect(outra.entramNoTurno).toBe(0);
     expect(outra.avisos).toContain('O Pronto deste mês já começa com a equipe Alfa no dia 1. Gerar com outra equipe poria duas equipes no mesmo dia.');
     const recusada = await api.pedir('escalante', 'POST', url(escala), { equipeDia1Id: equipe.Bravo });
     expect(recusada.status).toBe(409);
@@ -274,12 +257,12 @@ describe('as rotas da prévia e da gravação', () => {
   it('duas gravações ao mesmo tempo somam as alocações de uma só, sem erro (outro mês, mesmas regras)', async () => {
     const mes2 = somarMeses(mes, 1);
     const { previa } = await planejarPreEscala(api.banco, escala, mes2, equipe.Alfa!);
-    expect(previa.entram).toBeGreaterThan(0);
+    expect(previa.entramNoTurno + previa.entramNoExpediente).toBeGreaterThan(0);
     const [x, y] = await Promise.all([1, 2].map(() => api.pedir('escalante', 'POST', url(escala, mes2), { equipeDia1Id: equipe.Alfa })));
     expect([x!.status, y!.status]).toEqual([201, 201]);
     const soma = (await x!.json()).gravadas + (await y!.json()).gravadas;
-    expect(soma).toBe(previa.entram);
-    expect(await gravadasNoBanco(mes2)).toBe(previa.entram);
+    expect(soma).toBe(previa.entramNoTurno + previa.entramNoExpediente);
+    expect(await gravadasNoBanco(mes2)).toBe(previa.entramNoTurno + previa.entramNoExpediente);
   });
 
   it('sem equipe do dia 1 é 400 com o campo; equipe de outra seção também (Review Focus 2); sem papel é 403 e nada é gravado', async () => {

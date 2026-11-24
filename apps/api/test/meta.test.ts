@@ -499,8 +499,8 @@ describe('desativar e desfazer (Review Focus 1 a 4)', () => {
     expect((await gravarDia(d, [abt, resgate])).status).toBe(200);
     await alocar('ALFA', d, abt);
     const c = await corpoDe(await desativar(d, abt));
-    // enquanto isso, alguém escalou o mesmo militar no mesmo serviço e turno
-    const intruso = await alocar('ALFA', d, null);
+    // enquanto isso, alguém escalou o mesmo militar no mesmo serviço e turno, em outra vaga (sem guarnição ele seria movido para a vaga: 6.40)
+    const intruso = await alocar('ALFA', d, resgate);
     const r = await desfazer(d, c.desfazer);
     expect(r.status).toBe(409);
     expect((await r.json()).erro).toBe('Não deu para desfazer: alguém já ocupa um desses lugares.');

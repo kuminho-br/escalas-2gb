@@ -461,6 +461,53 @@ describe('escolher militar e remover', () => {
     expect(within(secaoDoDia(2)).getAllByText('ZULU').length).toBeGreaterThan(0);
   });
 
+  describe('mover do turno para a vaga (6.40)', () => {
+    const NO_TURNO = {
+      ...CANDIDATOS,
+      aptos: [
+        { militarId: 'm-turno', posto: 'SD', nomeGuerra: 'NOTURNO', matricula: '990008-8', equipe: 'Alfa', jornada: 'pronto', noTurno: { alocacaoId: 'a-turno' }, servicos: [{ servicoId: 's1', turnoId: 't-a', nome: 'Pronto' }] },
+        ...CANDIDATOS.aptos,
+      ],
+    };
+
+    it('quem está no turno sem guarnição vem primeiro, com "No turno, sem guarnição"; os outros não têm a marca', async () => {
+      api(ESCALA, { [rotaCandidatos]: { status: 200, corpo: NO_TURNO } });
+      abrir('/escala-do-mes');
+      await screen.findByRole('region', { name: 'Dia 2' });
+      const dialogo = await abrirVaga();
+      const itens = await within(dialogo).findAllByRole('button', { name: /NOTURNO|ZULU|YURI/ });
+      expect(itens[0]).toHaveTextContent('NOTURNO');
+      expect(itens[0]).toHaveTextContent('No turno, sem guarnição');
+      expect(within(dialogo).getAllByText('No turno, sem guarnição')).toHaveLength(1);
+    });
+
+    it('escolher manda a escolha de sempre; o aviso diz que ele foi para a vaga e o "Desfazer" o devolve ao turno sem guarnição', async () => {
+      const f = api(ESCALA, {
+        [rotaCandidatos]: { status: 200, corpo: NO_TURNO },
+        'POST /api/escalas/e1/alocacoes': { status: 201, corpo: COM_ZULU },
+        'POST /api/alocacoes/a-turno/voltar-ao-turno': { status: 200, corpo: ESCALA },
+      });
+      abrir('/escala-do-mes');
+      await screen.findByRole('region', { name: 'Dia 2' });
+      const dialogo = await abrirVaga();
+      await userEvent.click(await within(dialogo).findByRole('button', { name: /NOTURNO/ }));
+      await waitFor(() => expect(corpoEnviado(f, 'POST /api/escalas/e1/alocacoes')).toEqual({ militarId: 'm-turno', data: `${MES}-02`, turnoId: 't-a', guarnicaoId: 'g-abt', funcaoId: 'f-comb' }));
+      expect(await screen.findByText('SD NOTURNO saiu do turno sem guarnição e foi para a vaga de Combatente na ABT.')).toBeInTheDocument();
+      await userEvent.click(await screen.findByRole('button', { name: 'Desfazer' }));
+      await waitFor(() => expect(corpoEnviado(f, 'POST /api/alocacoes/a-turno/voltar-ao-turno')).toEqual({ guarnicaoId: 'g-abt', funcaoId: 'f-comb' }));
+    });
+
+    it('escolher alguém que não estava no turno não ganha aviso nem "Desfazer" (a escolha de sempre)', async () => {
+      api(ESCALA, { [rotaCandidatos]: { status: 200, corpo: NO_TURNO }, 'POST /api/escalas/e1/alocacoes': { status: 201, corpo: COM_ZULU } });
+      abrir('/escala-do-mes');
+      await screen.findByRole('region', { name: 'Dia 2' });
+      const dialogo = await abrirVaga();
+      await userEvent.click(await within(dialogo).findByRole('button', { name: /ZULU/ }));
+      await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+      expect(screen.queryByRole('button', { name: 'Desfazer' })).toBeNull();
+    });
+  });
+
   describe('a cota de saldo (6.38)', () => {
     it('na lista de candidatos, o militar do Adm traz a barra na frente da matrícula; o do Pronto não', async () => {
       const comCota = {

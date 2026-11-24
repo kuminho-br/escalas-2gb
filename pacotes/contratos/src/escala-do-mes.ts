@@ -116,6 +116,8 @@ export type Candidato = {
   jornada: 'pronto' | 'adm';
   /** só no militar do Adm: a cota de saldo do mês, a barra na frente da matrícula */
   saldos?: SaldosDoMes;
+  /** a pré-escala o pôs no turno sem guarnição (6.40): escolhê-lo para a vaga MOVE a alocação dele (`alocacaoId`) para ela, em vez de criar outra */
+  noTurno?: { alocacaoId: string };
   /** serviços da escala em que ele pode entrar nesta faixa, na ordem da escala */
   servicos: { servicoId: string; turnoId: string; nome: string }[];
 };
