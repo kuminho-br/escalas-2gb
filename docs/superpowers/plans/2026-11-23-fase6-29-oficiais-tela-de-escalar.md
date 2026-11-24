@@ -70,3 +70,38 @@ Branch `fase6-29-1-ajustes-oficiais`, a partir da `main`. Sem migração. Antes 
   - **Elegíveis só da unidade da escala e das de baixo.** Um oficial QOC lotado numa unidade **acima** da unidade da escala (ex.: na DInter/1, com a escala na 1ª SB) não aparece na lista nem é aceito na participação (400 "Este oficial não é elegível neste mês."). A unidade de referência é a da escala, não a escolhida no seletor. Conferir também o mês já gravado: quem está fora deixa de aparecer como elegível (os lançamentos já feitos ficam).
   - **Como as cotas foram calculadas:** sai o parágrafo solto do pé da lista ("56 turnos para a rodada de Saldo…") e entra o botão discreto "Como as cotas foram calculadas", que abre um painel recolhível com a conta do mês, em frases curtas: turnos do mês; menos os de JES; turnos para a rodada de Saldo; quantos participam; a divisão (inteira e quebrada); quantos sobraram depois do arredondamento e para quem foram (os mais modernos); os dias de afastamento que reduziram a cota de alguém (o que saiu da linha do oficial); e "O saldo aparece na lista, mas ainda não entra na conta.".
 - [ ] **Step 2:** FAIL. **Step 3:** implementar (skill `frontend-design:frontend-design`). **Step 4:** PASS; `pnpm test && pnpm typecheck && pnpm build:vercel`; conferir no navegador. **Step 5:** commit `Fase 6.29.1: ajustes da tela dos oficiais` e abrir o PR.
+
+---
+
+# Entrega 6.29.2 — Segundo retorno do usuário na tela dos oficiais (23/11/2026)
+
+Branch `fase6-29-2-oficiais`, a partir da `main`. Sem migração. Antes de seguir a 6.20. Skill `frontend-design:frontend-design`.
+
+### Task 5: seleção, cliques e lançamento
+
+**Files:** `apps/web/src/componentes/oficiais/EscalaDoMes.tsx`, `CalendarioDosOficiais.tsx`, `ListaDeCotas.tsx`, `SeletorDeServico.tsx`; Create `apps/web/src/componentes/oficiais/EscolherOficial.tsx`; Test `apps/web/src/__testes__/oficiais.test.tsx`
+
+- [ ] **Step 1: testes:**
+  - O serviço que já vem escolhido ao abrir a tela é **Saldo**.
+  - Qualquer oficial da lista pode ser escolhido, em qualquer ordem (nada trava depois de quem está na vez). O oficial da vez só fica destacado: fundo avermelhado claro e borda escura.
+  - Depois de cada lançamento, nenhum contorno de foco fica preso no último turno clicado (o contorno aparece só na navegação pelo teclado, `:focus-visible`).
+  - Clicar em qualquer área da tela que não seja uma placa do calendário **tira a escolha do oficial**.
+  - **Sem oficial escolhido:** clicar numa placa preenchida pergunta "Remover {patente} {nome} do dia {dd/mm} ({Dia|Noite})?" e, confirmando, tira o lançamento; clicar numa placa livre abre `EscolherOficial`: a lista dos participantes com uma busca por nome (filtra enquanto digita, sem diferenciar maiúsculas e acentos); escolher lança o oficial no serviço escolhido.
+  - Sai o aviso que diz quem foi o último lançado ("X ficou com o turno…").
+- [ ] **Step 2:** FAIL. **Step 3:** implementar. **Step 4:** PASS. **Step 5:** commit `Fase 6.29.2: escolher, tirar e lançar sem travar a ordem`.
+
+### Task 6: painel, saldo do mês, dias vermelhos e legenda
+
+**Files:** os mesmos, mais `apps/api/src/oficiais/leitura.ts` e `pacotes/contratos/src/oficiais.ts` (a prévia do saldo); Test os de oficiais da API e do site
+
+**Interfaces:**
+- Produces: na linha de cada oficial, `saldoPrevisto: number` = saldo acumulado até o mês anterior + (turnos de Saldo tirados no mês − devido no mês, com a parte quebrada); ex.: saldo 0, devido 1,5, tirou 1 → −0,50.
+
+- [ ] **Step 1: testes:**
+  - Sai a marca "novo" do nome do oficial.
+  - A linha do oficial mostra o saldo do mês já durante a montagem: "Saldo 0,00 → −0,50 no mês" (a prévia muda a cada lançamento; o acumulado só muda ao encerrar, como hoje).
+  - **Tela na altura da janela:** a página termina pouco depois do calendário (com uma folga de 24 px embaixo do calendário), e o painel da direita rola sozinho, por dentro, enquanto o calendário fica parado.
+  - **Dias vermelhos à vista:** um botão "Marcar dias vermelhos" ao lado do seletor de serviço liga um modo em que clicar no dia marca ou tira o dia vermelho (o botão fica ligado e diz "Concluir"); o dia vermelho tem a faixa vermelha à esquerda das duas placas e "Dia vermelho" para leitor de tela.
+  - **A legenda vai para baixo do calendário**: Dia, Noite, JES, Saldo e Dia vermelho.
+  - Sem rolagem de lado em 1440, 1280 e 390 px (no celular a página volta a rolar inteira).
+- [ ] **Step 2:** FAIL. **Step 3:** implementar. **Step 4:** PASS; `pnpm test && pnpm typecheck && pnpm build:vercel`; conferir no navegador e fotografar. **Step 5:** commit `Fase 6.29.2: painel rolando, saldo do mês, dias vermelhos e legenda` e abrir o PR.
