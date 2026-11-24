@@ -79,10 +79,11 @@ export function rotasEscalaDoMes(dep: { banco: Banco; auth: Auth }): Hono<Ambien
         if (!novas.length) return 0;
         const { rows } = await tx.query<{ id: string }>(
           `insert into alocacao (militar_id, escala_id, servico_id, turno_id, data, guarnicao_id, funcao_id, origem)
-           select x.m, $1, x.s, x.t, x.d, x.g, x.f, 'pre_escala'
-             from unnest($2::uuid[], $3::uuid[], $4::uuid[], $5::date[], $6::uuid[], $7::uuid[]) as x(m, s, t, d, g, f)
+           select x.m, x.e, x.s, x.t, x.d, x.g, x.f, 'pre_escala'
+             from unnest($1::uuid[], $2::uuid[], $3::uuid[], $4::date[], $5::uuid[], $6::uuid[], $7::uuid[]) as x(m, s, t, d, g, f, e)
            on conflict do nothing returning id`,
-          [id, novas.map((n) => n.militarId), novas.map((n) => n.servicoId), novas.map((n) => n.turnoId), novas.map((n) => n.data), novas.map((n) => n.guarnicaoId), novas.map((n) => n.funcaoId)],
+          // o expediente do Adm (6.40) não tem escala: `escalaId` nulo
+          [novas.map((n) => n.militarId), novas.map((n) => n.servicoId), novas.map((n) => n.turnoId), novas.map((n) => n.data), novas.map((n) => n.guarnicaoId), novas.map((n) => n.funcaoId), novas.map((n) => (n.escalaId === null ? null : id))],
         );
         return rows.length;
       });

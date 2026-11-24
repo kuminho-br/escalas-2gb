@@ -1,18 +1,16 @@
-// Pré-escala do Pronto (entrega 3.1): a equipe do dia 1, a prévia do que entra e as alocações que a gravação criaria.
+// Pré-escala (entrega 3.1; 6.40): a equipe do dia 1, a prévia do que entra e as alocações que a gravação criaria. Só os turnos do Pronto (sem guarnição) e o expediente do Adm.
 // O banco é traduzido para o que o motor recebe (matrícula = id do militar, equipe = nome do ciclo ALFA…DELTA pela ordem do ciclo).
-import { mesParaData, textoFaixa, type PreviaDaPreEscala } from 'contratos';
-import { CICLO_EQUIPES, detectarEquipeInicial, diasDoMes, equipeDoDia, mesAnterior, mesVizinho, normalizar, preencherVagas, PRE_ESCALA, type Militar } from 'dominio';
+import { mesParaData, type PreviaDaPreEscala } from 'contratos';
+import { CICLO_EQUIPES, detectarEquipeInicial, diaDaSemana, diasDoMes, equipeDoDia, intervaloDoTurno, mesAnterior, mesVizinho, normalizar, PRE_ESCALA, type Militar } from 'dominio';
 import type { Consulta } from '../banco/banco.ts';
-import { vinculosDaEscala } from '../cadastros/escalas.ts';
-import { versaoNoMes } from '../cadastros/guarnicoes-regras.ts';
-import { versoesDasGuarnicoes } from '../cadastros/guarnicoes.ts';
+import { feriadosDoAno } from '../cadastros/feriados.ts';
 import { avaliarFaixa, porAntiguidade, type Avaliado } from './elegibilidade.ts';
 import { PODE_SER_ESCALADO, SO_QBMG_OU_SEM_QUADRO } from './quadros-da-escala.ts';
-import { ordemDoMes } from './ordem-do-mes.ts';
-import { sequenciaDePreenchimento } from './ordem.ts';
-import { nomeDaVaga } from './vagas.ts';
 
-export type AlocacaoPlanejada = { militarId: string; data: string; servicoId: string; turnoId: string; guarnicaoId: string | null; funcaoId: string | null };
+/** `escalaId` nulo: o expediente do Adm, que não entra em nenhuma escala (6.40). */
+export type AlocacaoPlanejada = { militarId: string; data: string; servicoId: string; turnoId: string; guarnicaoId: string | null; funcaoId: string | null; escalaId?: null };
+
+export const SEM_EXPEDIENTE = 'Sem o serviço Expediente na unidade: o expediente não foi gerado.';
 
 /** O que o escalante pediu não cabe nesta seção (a rota devolve 400). */
 export class PreEscalaInvalida extends Error {}
@@ -104,9 +102,8 @@ export async function planejarPreEscala(
     equipeDetectada: detectada,
     equipeNoMes: noMes ? { id: noMes.id, nome: noMes.nome } : null,
     equipeUsada: usada ? { id: usada.id, nome: usada.nome } : null,
-    entram: 0,
-    vazias: [],
-    semGuarnicao: [],
+    entramNoTurno: 0,
+    entramNoExpediente: 0,
     removidosQueNaoVoltam: 0,
     avisos: [],
   };
@@ -147,34 +144,6 @@ export async function planejarPreEscala(
     if (!membros.some((m) => m.equipe_id === e.id)) previa.avisos.push(`A equipe ${e.nome} não tem militares do Pronto na seção; nenhum serviço foi gerado para os dias dela.`);
   }
 
-  // as vagas: a ordem do mês (guarnições vinculadas à faixa no vínculo vigente); a CNH e o tamanho da composição vêm da versão do mês
-  const vinculo = (await vinculosDaEscala(c, escalaId)).find((v) => v.vigencia <= mes);
-  const versoes = await versoesDasGuarnicoes(c, [...new Set((vinculo?.itens ?? []).map((i) => i.guarnicaoId))]);
-  const composicao = new Map<string, { cnhExigida: string | null; funcoes: number }>();
-  for (const it of vinculo?.itens ?? []) {
-    const v = versaoNoMes(versoes.get(it.guarnicaoId) ?? [], mes);
-    for (const f of v?.ativa ? v.composicao : []) composicao.set(`${it.guarnicaoId}|${f.funcaoId}`, { cnhExigida: f.cnhExigida, funcoes: v!.composicao.length });
-  }
-  const sequencia = sequenciaDePreenchimento((await ordemDoMes(c, escalaId, mes)).vagas);
-
-  // o que já está ocupado (alocações com guarnição e função, e acúmulos), por dia, faixa, guarnição e função
-  const ocupados = new Map<string, number>();
-  const ocupacao = (
-    await c.query<{ data: string; inicio: string; fim: string; guarnicao_id: string; funcao_id: string; n: number }>(
-      `select to_char(a.data, 'YYYY-MM-DD') as data, to_char(t.inicio, 'HH24:MI') as inicio, to_char(t.fim, 'HH24:MI') as fim, a.guarnicao_id, a.funcao_id, count(*)::int as n
-         from alocacao a join turno t on t.id = a.turno_id
-        where a.escala_id = $1 and a.data >= $2::date and a.data < $3::date and a.guarnicao_id is not null and a.funcao_id is not null group by 1, 2, 3, 4, 5
-       union all
-       select to_char(a.data, 'YYYY-MM-DD'), to_char(t.inicio, 'HH24:MI'), to_char(t.fim, 'HH24:MI'), x.guarnicao_id, x.funcao_id, count(*)::int
-         from alocacao_acumulo x join alocacao a on a.id = x.alocacao_id join turno t on t.id = a.turno_id
-        where a.escala_id = $1 and a.data >= $2::date and a.data < $3::date group by 1, 2, 3, 4, 5`,
-      [escalaId, inicioDoMes, inicioDoSeguinte],
-    )
-  ).rows;
-  for (const o of ocupacao) {
-    const k = `${o.data}|${o.inicio}|${o.fim}|${o.guarnicao_id}|${o.funcao_id}`;
-    ocupados.set(k, (ocupados.get(k) ?? 0) + o.n);
-  }
   const removidos = new Set(
     (
       await c.query<{ militar_id: string; data: string; turno_id: string }>(
@@ -191,7 +160,6 @@ export async function planejarPreEscala(
     const daEquipe = equipes.find((e) => cicloDaEquipe(e) === equipeDoDia(cicloDoDia1, i));
     if (!daEquipe) continue;
     for (const t of turnosDoPronto) {
-      const faixa = textoFaixa(t.inicio, t.fim);
       const { avaliados } = await avaliarFaixa(c, { escalaId, data, inicio: t.inicio, fim: t.fim, guarnicaoId: null, funcaoId: null });
       const candidatos: Avaliado[] = [];
       for (const a of avaliados) {
@@ -205,34 +173,96 @@ export async function planejarPreEscala(
         candidatos.push(a);
       }
       candidatos.sort(porAntiguidade);
-
-      const aindaOcupadas = new Map<string, number>();
-      const livres = sequencia
-        .filter((v) => (vinculo?.itens ?? []).some((it) => it.guarnicaoId === v.guarnicaoId && it.inicio === t.inicio && it.fim === t.fim))
-        .filter((v) => {
-          const k = `${v.guarnicaoId}|${v.funcaoId}`;
-          const restam = aindaOcupadas.get(k) ?? ocupados.get(`${data}|${t.inicio}|${t.fim}|${k}`) ?? 0;
-          aindaOcupadas.set(k, Math.max(0, restam - 1));
-          return restam <= 0;
-        });
-      const resultado = preencherVagas(
-        livres.map((v) => ({ chave: `${v.guarnicaoId}|${v.funcaoId}|${v.vaga}`, cnhExigida: composicao.get(`${v.guarnicaoId}|${v.funcaoId}`)?.cnhExigida ?? null })),
-        candidatos.map((a) => ({ id: a.candidato.militarId, cnh: a.cnh })),
-      );
-      for (const at of resultado.atribuicoes) {
-        const [guarnicaoId, funcaoId] = at.chave.split('|') as [string, string];
-        novas.push({ militarId: at.id, data, servicoId: t.servico_id, turnoId: t.turno_id, guarnicaoId, funcaoId });
-      }
-      for (const id of resultado.semVaga) {
-        novas.push({ militarId: id, data, servicoId: t.servico_id, turnoId: t.turno_id, guarnicaoId: null, funcaoId: null });
-        previa.semGuarnicao.push({ data, faixa, nomeGuerra: candidatos.find((a) => a.candidato.militarId === id)!.candidato.nomeGuerra });
-      }
-      for (const chave of resultado.vazias) {
-        const v = livres.find((x) => `${x.guarnicaoId}|${x.funcaoId}|${x.vaga}` === chave)!;
-        previa.vazias.push({ data, faixa, vaga: nomeDaVaga(v.guarnicao, v.funcao, composicao.get(`${v.guarnicaoId}|${v.funcaoId}`)?.funcoes ?? 1), obrigatoria: v.obrigatoria });
-      }
+      // a pré-escala só põe a equipe do dia no turno: sem guarnição e sem função (o escalante move cada um para uma vaga, à mão)
+      for (const a of candidatos) novas.push({ militarId: a.candidato.militarId, data, servicoId: t.servico_id, turnoId: t.turno_id, guarnicaoId: null, funcaoId: null });
     }
   }
-  previa.entram = novas.length;
-  return { previa, novas, conflito: null };
+  previa.entramNoTurno = novas.length;
+  const expediente = await planejarExpediente(c, unidadeId, mes, previa);
+  previa.entramNoExpediente = expediente.length;
+  return { previa, novas: [...novas, ...expediente], conflito: null };
+}
+
+/**
+ * O expediente do Adm (6.40): uma alocação do serviço Expediente, sem escala, em cada dia útil, para cada militar lotado na unidade com jornada Adm no período que vale no dia
+ * (mesmo filtro de situação e de quadro do Pronto). Não vai no fim de semana, no feriado da unidade (nem no de uma unidade de cima), no dia de afastamento, no dia em que ele já
+ * tem expediente nem no dia em que já tem, no horário do expediente, um serviço que tira do expediente (o Saldo). O expediente que o escalante removeu não volta.
+ */
+async function planejarExpediente(c: Consulta, unidadeId: string, mes: string, previa: PreviaDaPreEscala): Promise<AlocacaoPlanejada[]> {
+  const exp = (
+    await c.query<{ servico_id: string; turno_id: string; inicio: string; fim: string }>(
+      `select s.id as servico_id, t.id as turno_id, to_char(t.inicio, 'HH24:MI') as inicio, to_char(t.fim, 'HH24:MI') as fim
+         from servico s join turno t on t.servico_id = s.id where s.unidade_id = $1 and lower(btrim(s.nome)) = 'expediente' and t.letra = 'A'`,
+      [unidadeId],
+    )
+  ).rows[0];
+  if (!exp) {
+    previa.semExpediente = SEM_EXPEDIENTE;
+    previa.avisos.push(SEM_EXPEDIENTE);
+    return [];
+  }
+  const horario = intervaloDoTurno(exp.inicio, exp.fim);
+  const inicioDoMes = mesParaData(mes);
+  const inicioDoSeguinte = mesParaData(mesVizinho(mes, 1));
+  const periodos = (
+    await c.query<{ militar_id: string; desde: string; ate: string | null }>(
+      `select l.militar_id, to_char(l.desde, 'YYYY-MM-DD') as desde, to_char(l.ate, 'YYYY-MM-DD') as ate
+         from rastreio l join militar m on m.id = l.militar_id
+        where l.unidade_id = $1 and l.jornada = 'adm' and ${PODE_SER_ESCALADO} and ${SO_QBMG_OU_SEM_QUADRO} and l.desde < $3::date and (l.ate is null or l.ate >= $2::date)`,
+      [unidadeId, inicioDoMes, inicioDoSeguinte],
+    )
+  ).rows;
+  if (!periodos.length) return [];
+  const ids = [...new Set(periodos.map((p) => p.militar_id))];
+  const afastamentos = (
+    await c.query<{ militar_id: string; inicio: string; fim: string }>(
+      "select militar_id, to_char(inicio, 'YYYY-MM-DD') as inicio, to_char(fim, 'YYYY-MM-DD') as fim from afastamento where militar_id = any($1::uuid[]) and inicio < $3::date and fim >= $2::date",
+      [ids, inicioDoMes, inicioDoSeguinte],
+    )
+  ).rows;
+  // o que já está lançado (em qualquer escala e unidade) do dia anterior ao seguinte: o expediente que já existe e os serviços que tiram do expediente
+  const lancados = (
+    await c.query<{ militar_id: string; data: string; expediente: boolean; tira: boolean; inicio: string; fim: string }>(
+      `select a.militar_id, to_char(a.data, 'YYYY-MM-DD') as data, lower(btrim(s.nome)) = 'expediente' as expediente, s.tira_do_expediente as tira,
+              to_char(t.inicio, 'HH24:MI') as inicio, to_char(t.fim, 'HH24:MI') as fim
+         from alocacao a join servico s on s.id = a.servico_id join turno t on t.id = a.turno_id
+        where a.militar_id = any($1::uuid[]) and a.data >= $2::date - 1 and a.data <= $3::date and (lower(btrim(s.nome)) = 'expediente' or s.tira_do_expediente)`,
+      [ids, inicioDoMes, inicioDoSeguinte],
+    )
+  ).rows;
+  const removidos = new Set(
+    (
+      await c.query<{ militar_id: string; data: string }>(
+        "select militar_id, to_char(data, 'YYYY-MM-DD') as data from remocao where servico_id = $1 and data >= $2::date and data < $3::date",
+        [exp.servico_id, inicioDoMes, inicioDoSeguinte],
+      )
+    ).rows.map((r) => `${r.militar_id}|${r.data}`),
+  );
+  const feriados = new Set((await feriadosDoAno(c, unidadeId, Number(mes.slice(0, 4)))).map((f) => f.data));
+  const diasEntre = (de: string, ate: string) => Math.round((Date.parse(`${ate}T00:00:00Z`) - Date.parse(`${de}T00:00:00Z`)) / 86400000);
+
+  const novas: AlocacaoPlanejada[] = [];
+  for (const data of diasDoMes(mes)) {
+    if (diaDaSemana(data) < 1 || diaDaSemana(data) > 5 || feriados.has(data)) continue;
+    for (const id of ids) {
+      if (!periodos.some((p) => p.militar_id === id && p.desde <= data && (p.ate === null || p.ate >= data))) continue;
+      if (afastamentos.some((a) => a.militar_id === id && a.inicio <= data && a.fim >= data)) continue;
+      const dele = lancados.filter((l) => l.militar_id === id);
+      if (dele.some((l) => l.expediente && l.data === data)) continue;
+      // um serviço que tira do expediente, no horário dele: o turno do dia anterior que passa da meia-noite também conta
+      const cobre = dele.some((l) => {
+        if (!l.tira) return false;
+        const i = intervaloDoTurno(l.inicio, l.fim);
+        const d = diasEntre(data, l.data) * 1440;
+        return i.inicio + d < horario.fim && horario.inicio < i.fim + d;
+      });
+      if (cobre) continue;
+      if (removidos.has(`${id}|${data}`)) {
+        previa.removidosQueNaoVoltam++;
+        continue;
+      }
+      novas.push({ militarId: id, data, servicoId: exp.servico_id, turnoId: exp.turno_id, guarnicaoId: null, funcaoId: null, escalaId: null });
+    }
+  }
+  return novas;
 }
