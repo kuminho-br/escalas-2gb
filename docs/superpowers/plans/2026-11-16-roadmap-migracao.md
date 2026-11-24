@@ -124,14 +124,14 @@ Spec: `docs/superpowers/specs/2026-11-23-refatoracao-da-interface-design.md`. N0
 - **O mesmo modelo de guarnição mais de uma vez no dia.**
 - **Otimizar o painel do dia** da Grade geral: 42 consultas com uma escala e três faixas, e cresce com cada faixa.
 - **Escala por militar:** militares escolhidos, o mês, comparados. Forma com a Grade geral, a Escala do mês e o Efetivo por dia as quatro telas principais. A Minha escala (fase 7) é o caso de um militar só.
-- **Piloto na 1ª SB:** um mês real montado no sistema novo, em paralelo com as planilhas, e comparado no fim.
+- **Piloto na 1ª SB:** dezembro de 2026, em paralelo com as planilhas, **só à mão**: saber se o sistema faz a escala como hoje se faz (24/11). A automação fica para uma rodada seguinte.
 
 **A decidir:**
 - distribuições: onde se configura a ordem dos buracos do Pronto; o saldo que não cabe; se a cota limita as vagas; se a compulsória (RN-41, RN-43) entra já;
 - documento: o modelo atual de impressão; só o Ordinário ou também as operações;
 - Escala por militar: o que se compara, quantos militares, se escala ou só mostra, como se liga às outras telas. Hipótese: o uso é a permuta; se for, a tela pode ir junto com as permutas (fase 9).
-- `ADM_CUMPRE_CARGA` existe em Configurações, mas nada o lê (o sistema age como desligado, o que bate com a RN-17: desligado, o Adm tira saldos e pode tirar PJES no expediente). Em aberto, sem prioridade (P-34): um segundo parâmetro para "cumpre 160h mas pode tirar PJES no expediente".
-- A "prioridade" da cota ordena as operações na distribuição, mas não tem regra no catálogo; o usuário não sabe para que serve e talvez o campo saia (P-35, sem prioridade).
+- `ADM_CUMPRE_CARGA` existe em Configurações, mas nada o lê (age como desligado, como na RN-17). Sem prioridade (P-34): um parâmetro para "cumpre 160h mas pode tirar PJES no expediente".
+- A "prioridade" da cota ordena as operações na distribuição, sem regra no catálogo; talvez o campo saia (P-35, sem prioridade).
 
 **Pendências técnicas para as distribuições** (achadas na revisão 3):
 - `distribuirAdm` ignora as remoções quando a entrada vem sem `servico`;
