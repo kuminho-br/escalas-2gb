@@ -67,6 +67,45 @@ describe('escala do mês', () => {
     expect(screen.getByLabelText('Mês')).toHaveValue(MES);
   });
 
+  describe('a escala escolhida ao abrir (6.32)', () => {
+    const ESCALAS: LinhaEscala[] = [
+      { id: 'e-x', nome: 'Operação X', ativa: true, servicos: ['JES'], montaBlocosVoluntariado: false, distribuicao: 'pre_escala' },
+      { id: 'e1', nome: 'Ordinário', ativa: true, servicos: ['Pronto', 'Saldo'], montaBlocosVoluntariado: true, distribuicao: 'pre_escala' },
+    ];
+    const rotas = (lista: LinhaEscala[]) => ({
+      'GET /api/unidades/u-1sb/escalas': { status: 200, corpo: lista },
+      [`GET /api/escalas/e-x/mes/${MES}`]: { status: 200, corpo: { ...ESCALA, escalaId: 'e-x', nome: 'Operação X' } },
+    });
+
+    it('com a Operação X (JES) antes do Ordinário (Pronto, Saldo), a tela abre com o Ordinário escolhido', async () => {
+      api(ESCALA, rotas(ESCALAS));
+      abrir('/escala-do-mes');
+      expect(await screen.findByRole('region', { name: 'Dia 1' })).toBeInTheDocument();
+      expect(screen.getByLabelText('Escala')).toHaveValue('e1');
+    });
+
+    it('sem escala com o Pronto, abre na primeira ativa, como antes', async () => {
+      api(ESCALA, rotas([ESCALAS[0]!, { ...ESCALAS[1]!, servicos: ['Saldo'] }]));
+      abrir('/escala-do-mes');
+      await screen.findByRole('region', { name: 'Dia 1' });
+      expect(screen.getByLabelText('Escala')).toHaveValue('e-x');
+    });
+
+    it('o Pronto inativo (escala desativada) não conta: abre na primeira ativa', async () => {
+      api(ESCALA, rotas([ESCALAS[0]!, { ...ESCALAS[1]!, ativa: false }]));
+      abrir('/escala-do-mes');
+      await screen.findByRole('region', { name: 'Dia 1' });
+      expect(screen.getByLabelText('Escala')).toHaveValue('e-x');
+    });
+
+    it('Review Focus 5: com ?escala=<id> na URL, ela vence sempre', async () => {
+      api(ESCALA, rotas(ESCALAS));
+      abrir('/escala-do-mes?escala=e-x');
+      await screen.findByRole('region', { name: 'Dia 1' });
+      expect(screen.getByLabelText('Escala')).toHaveValue('e-x');
+    });
+  });
+
   it('a escala de rodada de cotas (a dos oficiais) não aparece aqui: ela é montada em Oficiais (6.27)', async () => {
     api(ESCALA, { 'GET /api/unidades/u-1sb/escalas': { status: 200, corpo: [{ id: 'e-of', nome: 'Oficiais de operações', ativa: true, servicos: ['JES', 'Saldo'], montaBlocosVoluntariado: false, distribuicao: 'rodada_de_cotas' }, ...LISTA] } });
     abrir('/escala-do-mes');
