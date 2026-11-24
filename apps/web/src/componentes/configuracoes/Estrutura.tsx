@@ -9,6 +9,7 @@ import { Campo } from '@/componentes/Campo';
 import { Selecao } from '@/componentes/Selecao';
 import { Button } from '@/componentes/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/componentes/ui/dropdown-menu';
+import { Espera } from '@/componentes/resposta/Espera';
 
 type Acao = { qual: 'nova' | 'renomear' | 'mover' | 'extinguir' | 'excluir'; no: NoDaArvore };
 
@@ -50,7 +51,7 @@ export function Estrutura({ raizes }: { raizes: UnidadeDeTrabalho[] }) {
       </Campo>
     </div>
   );
-  if (isPending) return <>{seletor}<p className="py-6 text-apagado">Carregando…</p></>;
+  if (isPending) return <>{seletor}<Espera className="py-6" /></>;
   if (error) return <>{seletor}<p role="alert" className="py-6 text-alerta">{mensagemDe(error)}</p></>;
 
   const recolhidas = fechadas?.raiz === arvore.id ? fechadas.ids : recolhidasNoComeco(arvore);
@@ -68,22 +69,22 @@ export function Estrutura({ raizes }: { raizes: UnidadeDeTrabalho[] }) {
       <li key={no.id} data-sigla={no.sigla}>
         <div className="group flex flex-wrap items-center gap-x-2 gap-y-0.5 rounded-md py-1.5 pr-1 pl-1 hover:bg-fundo/70">
           {temFilhas ? (
-            <Button type="button" variant="ghost" size="icon-sm" aria-expanded={aberta} aria-label={`${aberta ? 'Recolher' : 'Abrir'} ${no.sigla}`} onClick={() => alternar(no.id)}>
+            <Button type="button" variant="discreto" size="icon-sm" aria-expanded={aberta} aria-label={`${aberta ? 'Recolher' : 'Abrir'} ${no.sigla}`} onClick={() => alternar(no.id)}>
               <ChevronRight aria-hidden className={`size-4 transition-transform ${aberta ? 'rotate-90' : ''}`} />
             </Button>
           ) : <span aria-hidden className="size-8 shrink-0" />}
-          <span className={`font-cond text-[17px] font-semibold ${profundidade === 0 ? 'text-vinho' : ''}`}>{no.sigla}</span>
+          <span className={`font-cond text-nome font-semibold ${profundidade === 0 ? 'text-vinho' : ''}`}>{no.sigla}</span>
           <span className="min-w-0 flex-[1_1_9rem] truncate text-sm text-apagado">{no.nome}</span>
-          <span className="rounded border border-linha px-1.5 text-[13px] text-apagado">{no.tipo.nome}</span>
+          <span className="rounded border border-linha px-1.5 text-apoio text-apagado">{no.tipo.nome}</span>
           {no.ligados.militaresNaArvore > 0 && (
             // o número soma os lotados na unidade e em todas as de baixo; a dica diz quantos estão lotados nela mesma
-            <span className="text-[13px] text-apagado" title={`${lotados(no.ligados.militaresHoje)} aqui`}>{lotados(no.ligados.militaresNaArvore)}</span>
+            <span className="text-apoio text-apagado" title={`${lotados(no.ligados.militaresHoje)} aqui`}>{lotados(no.ligados.militaresNaArvore)}</span>
           )}
-          {no.ate && <span className="text-[13px] text-alerta">{`até ${no.ate.split('-').reverse().join('/')}`}</span>}
+          {no.ate && <span className="text-apoio text-alerta">{`até ${no.ate.split('-').reverse().join('/')}`}</span>}
           {podeMexer ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button type="button" variant="ghost" size="icon-sm" className="ml-auto" aria-label={`Ações de ${no.sigla}`}><Ellipsis aria-hidden className="size-4" /></Button>
+                <Button type="button" variant="discreto" size="icon-sm" className="ml-auto" aria-label={`Ações de ${no.sigla}`}><Ellipsis aria-hidden className="size-4" /></Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="min-w-48">
                 {no.podeEditar && <DropdownMenuItem onSelect={() => setAcao({ qual: 'nova', no })}>Nova unidade abaixo</DropdownMenuItem>}

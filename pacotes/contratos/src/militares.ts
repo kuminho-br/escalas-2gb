@@ -195,6 +195,8 @@ export type LinhaMilitar = {
   pendencias: string[];
   /** O dia em que a lotação que a lista mostra começa, quando ele ainda não chegou ('Lotação a partir de dd/mm/aaaa'); null (ou ausente) se já valia. */
   lotacaoAPartirDe?: string | null;
+  /** Militar externo (6.33): de outra unidade, trazido para a escala daqui; `lotacaoSigla` é a unidade de origem dele. Ausente para quem é da unidade. */
+  externo?: { lotacaoSigla: string };
 };
 
 /** Uma linha do módulo Pecúlio: o militar lotado na unidade (ou numa de baixo) com os dados de contato e as pendências do cadastro. */
@@ -253,7 +255,7 @@ export type FichaMilitar = LinhaMilitar & {
   cnhPorHierarquia: string[];
   /**
    * O que quem pede pode editar: `peculio` (identificação, dados pessoais, contato, comportamento, afastamentos e a lotação) é de quem tem papel numa
-   * unidade acima da lotação do militar; `escala` (equipe, jornada, motorista, CNH, voluntário) é de quem tem papel na lotação ou acima.
+   * unidade acima da lotação do militar; `escala` (as habilitações: motorista e CNH) é de quem tem papel na lotação ou acima. Equipe, jornada e voluntário JES são do Pecúlio (6.32).
    * `unidadeDeCima` é a sigla da unidade acima da lotação que cuida do Pecúlio (a mais próxima que não é divisão: o grupamento), para a tela dizer com quem falar.
    */
   podeEditar: { peculio: boolean; escala: boolean; unidadeDeCima: string | null };

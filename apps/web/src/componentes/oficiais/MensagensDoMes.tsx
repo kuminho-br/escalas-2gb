@@ -42,7 +42,7 @@ export function MensagensDoMes({ escala: e, confirmacao, ocupado, aoFechar, aoEn
           </p>
           <div className="flex gap-2">
             <Button type="button" size="sm" disabled={ocupado} onClick={aoFechar}>Fechar a escala</Button>
-            <Button type="button" size="sm" variant="outline" onClick={aoDesistir}>Voltar</Button>
+            <Button type="button" size="sm" variant="secundario" onClick={aoDesistir}>Voltar</Button>
           </div>
         </Caixa>
       )}
@@ -53,7 +53,7 @@ export function MensagensDoMes({ escala: e, confirmacao, ocupado, aoFechar, aoEn
           </p>
           <div className="flex gap-2">
             <Button type="button" size="sm" disabled={ocupado} onClick={aoEncerrar}>Encerrar o mês</Button>
-            <Button type="button" size="sm" variant="outline" onClick={aoDesistir}>Voltar</Button>
+            <Button type="button" size="sm" variant="secundario" onClick={aoDesistir}>Voltar</Button>
           </div>
         </Caixa>
       )}

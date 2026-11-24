@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from '@/componentes/ui/input';
 import { Label } from '@/componentes/ui/label';
 import { Secao } from './Secao';
+import { Espera } from '@/componentes/resposta/Espera';
 
 const contar = (n: number, um: string, varios: string) => `${n} ${n === 1 ? um : varios}`;
 
@@ -32,9 +33,9 @@ function linhasDoQueVaiJunto(j: OQueVaiJunto): string[] {
 export function ApagarMilitar({ ficha }: { ficha: FichaMilitar }) {
   const [aberto, setAberto] = useState(false);
   return (
-    <Secao titulo="Apagar militar">
+    <Secao titulo="Apagar do sistema">
       <p className="mb-3 text-sm text-apagado">Apaga o militar e tudo o que é dele: escalas, afastamentos, rastreio e a conta de acesso.</p>
-      <Button variant="outline" className="border-alerta text-alerta hover:bg-alerta/10" onClick={() => setAberto(true)}>
+      <Button variant="secundario" className="border-alerta text-alerta hover:bg-alerta/10" onClick={() => setAberto(true)}>
         Apagar militar
       </Button>
       {aberto && <DialogoDeExclusao ficha={ficha} aoFechar={() => setAberto(false)} />}
@@ -70,7 +71,7 @@ function DialogoDeExclusao({ ficha, aoFechar }: { ficha: FichaMilitar; aoFechar:
           <DialogTitle>{`Apagar ${ficha.posto} ${ficha.nomeGuerra}`}</DialogTitle>
           <DialogDescription>Isto não pode ser desfeito.</DialogDescription>
         </DialogHeader>
-        {junto.isPending && <p className="text-sm text-apagado">Carregando…</p>}
+        {junto.isPending && <Espera />}
         {junto.error && <p role="alert" className="text-sm text-alerta">{mensagemDe(junto.error)}</p>}
         {junto.data && (
           <div className="grid gap-1 text-sm">
@@ -89,8 +90,8 @@ function DialogoDeExclusao({ ficha, aoFechar }: { ficha: FichaMilitar; aoFechar:
           </div>
           {erro && <p role="alert" className="text-sm text-alerta">{erro}</p>}
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={aoFechar}>Cancelar</Button>
-            <Button type="submit" variant="destructive" disabled={!confere || salvando || !junto.data}>Apagar</Button>
+            <Button type="button" variant="secundario" onClick={aoFechar}>Cancelar</Button>
+            <Button type="submit" variant="perigoso-cheio" disabled={!confere || salvando || !junto.data}>Apagar</Button>
           </DialogFooter>
         </form>
       </DialogContent>

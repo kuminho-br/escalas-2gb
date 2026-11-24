@@ -24,17 +24,21 @@ import { vinculosDaEscala } from '../cadastros/escalas.ts';
 import { feriadosDoAno } from '../cadastros/feriados.ts';
 import { versaoNoMes } from '../cadastros/guarnicoes-regras.ts';
 import { versoesDasGuarnicoes } from '../cadastros/guarnicoes.ts';
+import { montarHorarios } from 'dominio';
 import { somarDias } from '../datas.ts';
-import { EXPEDIENTE, horariosDaUnidade, type Tipo } from './horarios.ts';
+import { EXPEDIENTE, horariosDaUnidade, NOME_DO_TIPO, type Tipo } from './horarios.ts';
 import { nomeDaVaga } from './vagas.ts';
 
 export type VagaConsultada = { escalaId: string; data: string; inicio: string; fim: string; guarnicaoId: string | null; funcaoId: string | null };
 
 export type TurnoDaFaixa = { turnoId: string; servicoId: string; nome: string; tipo: Tipo; letra: 'A' | 'B' | 'C'; inicio: string; fim: string };
-export type Avaliado = { candidato: Omit<Candidato, 'servicos'>; militarMotivo: string | null; porTurno: { turno: TurnoDaFaixa; motivo: string | null }[]; antig: number | null; postoOrdem: number; cnh: string[] };
+/** `externo`: veio de outra unidade pelo vínculo (6.33); a pré-escala e as distribuições do ordinário nunca o põem. */
+export type Avaliado = { externo: boolean; candidato: Omit<Candidato, 'servicos'>; militarMotivo: string | null; porTurno: { turno: TurnoDaFaixa; motivo: string | null }[]; antig: number | null; postoOrdem: number; cnh: string[] };
 
 const NAO_LOTADO = 'Não está lotado na seção neste dia';
 export const JA_ESCALADO = 'Já escalado neste horário';
+/** O externo (de outra unidade, trazido pelo gestor) só tira serviço extra: JES, Diária e PJES. */
+export const SO_SERVICO_EXTRA = 'Externo só em serviço extra';
 /** O motivo "só falta marcar o horário": é a última conferência de cada turno, então ele quer dizer que todas as outras regras passaram. */
 export const SEM_VOLUNTARIADO = 'Não marcou voluntariado neste horário';
 
@@ -53,13 +57,16 @@ export async function avaliarFaixa(c: Consulta, v: VagaConsultada, somenteMilita
   ).rows.map((t): TurnoDaFaixa => ({ turnoId: t.id, servicoId: t.servico_id, nome: t.nome, tipo: t.tipo, letra: t.letra, inicio: t.inicio, fim: t.fim }));
 
   // quem tem lotação na seção em algum momento do mês da vaga (ou só o militar pedido)
+  // (uma consulta só, com os externos em `union all`: o painel do dia conta as consultas)
+  // os externos: militares de outra unidade que o gestor trouxe (vinculo_externo) e cujo vínculo vale em algum dia do mês da vaga. Os dados dele (jornada, situação,
+  // quadro) são do período de rastreio que vale no dia, na lotação dele; a equipe é "Externo"; `lotado_no_dia` é o vínculo cobrir o dia
   const pool = (
     await c.query<{
       id: string; matricula: string; nome_guerra: string; ativo: boolean; situacao: string; motorista: boolean; cnh: string[]; voluntario_jes: boolean; posto: string; posto_ordem: number; antiguidade: number | null;
-      jornada: 'pronto' | 'adm'; equipe: string | null; lotado_no_dia: boolean; quadro: string | null;
+      jornada: 'pronto' | 'adm'; equipe: string | null; lotado_no_dia: boolean; quadro: string | null; externo: boolean;
     }>(
       `select m.id, m.matricula, m.nome_guerra, sm.escalavel as ativo, sm.nome as situacao, m.motorista, m.cnh, m.voluntario_jes, p.sigla as posto, p.ordem as posto_ordem, m.antiguidade, l.jornada, e.nome as equipe, q.sigla as quadro,
-              (l.desde <= $2::date and (l.ate is null or l.ate >= $2::date)) as lotado_no_dia
+              (l.desde <= $2::date and (l.ate is null or l.ate >= $2::date)) as lotado_no_dia, false as externo
          from militar m join posto_grad p on p.id = m.posto_grad_id
          join rastreio l on l.militar_id = m.id and l.unidade_id = $1
          left join equipe e on e.id = l.equipe_id
@@ -67,7 +74,19 @@ export async function avaliarFaixa(c: Consulta, v: VagaConsultada, somenteMilita
          left join quadro q on q.id = l.quadro_id
         where ($3::uuid is null or m.id = $3)
           and l.desde <= (date_trunc('month', $2::date) + interval '1 month' - interval '1 day')::date
-          and (l.ate is null or l.ate >= date_trunc('month', $2::date)::date)`,
+          and (l.ate is null or l.ate >= date_trunc('month', $2::date)::date)
+       union all
+       select m.id, m.matricula, m.nome_guerra, sm.escalavel as ativo, sm.nome as situacao, m.motorista, m.cnh, m.voluntario_jes, p.sigla as posto, p.ordem as posto_ordem, m.antiguidade,
+              l.jornada, 'Externo' as equipe, q.sigla as quadro, (ve.desde <= $2::date and (ve.ate is null or ve.ate >= $2::date)) as lotado_no_dia, true as externo
+         from vinculo_externo ve
+         join militar m on m.id = ve.militar_id join posto_grad p on p.id = m.posto_grad_id
+         join lateral (select r.* from rastreio r where r.militar_id = m.id
+                        order by (r.desde <= $2::date and (r.ate is null or r.ate >= $2::date)) desc, r.desde desc limit 1) l on true
+         join situacao_militar sm on sm.id = l.situacao_id
+         left join quadro q on q.id = l.quadro_id
+        where ve.unidade_id = $1 and ($3::uuid is null or m.id = $3)
+          and ve.desde <= (date_trunc('month', $2::date) + interval '1 month' - interval '1 day')::date
+          and (ve.ate is null or ve.ate >= date_trunc('month', $2::date)::date)`,
       [unidadeId, v.data, somenteMilitar ?? null],
     )
   ).rows;
@@ -77,6 +96,7 @@ export async function avaliarFaixa(c: Consulta, v: VagaConsultada, somenteMilita
   // as telas de praças só pegam o QBMG e quem está sem quadro, pelo quadro do período que vale no dia; o militar pedido pelo id passa (e recebe o motivo)
   const militares = [...porMilitar.values()].filter((m) => somenteMilitar !== undefined || !ehOficial(m.quadro));
   const ids = militares.map((m) => m.id);
+  const idsExternos = militares.filter((m) => m.externo).map((m) => m.id);
 
   const afastados = new Set(
     ids.length
@@ -90,11 +110,24 @@ export async function avaliarFaixa(c: Consulta, v: VagaConsultada, somenteMilita
         await c.query<{ militar_id: string; data: string; nome: string; letra: 'A' | 'B' | 'C'; inicio: string; fim: string }>(
           `select a.militar_id, to_char(a.data, 'YYYY-MM-DD') as data, s.nome, t.letra, to_char(t.inicio, 'HH24:MI') as inicio, to_char(t.fim, 'HH24:MI') as fim
              from alocacao a join turno t on t.id = a.turno_id join servico s on s.id = a.servico_id
-            where a.militar_id = any($1) and a.data between $2::date - 1 and $2::date + 1 and s.unidade_id = $3`,
-          [ids, v.data, unidadeId],
+            where a.militar_id = any($1) and a.data between $2::date - 1 and $2::date + 1 and (s.unidade_id = $3 or a.militar_id = any($4))`,
+          [ids, v.data, unidadeId, idsExternos],
         )
       ).rows
     : [];
+  // o externo tem lançamentos nas outras unidades: choque e descanso olham todos, então os horários desses serviços entram na conta (os da unidade valem primeiro)
+  if (idsExternos.length) {
+    const deFora = (
+      await c.query<{ nome: string; tipo: Tipo; letra: 'A' | 'B' | 'C'; inicio: string; fim: string }>(
+        `select s.nome, s.tipo, t.letra, to_char(t.inicio, 'HH24:MI') as inicio, to_char(t.fim, 'HH24:MI') as fim
+           from turno t join servico s on s.id = t.servico_id
+          where s.unidade_id <> $1 and s.id in (select a.servico_id from alocacao a where a.militar_id = any($2) and a.data between $3::date - 1 and $3::date + 1)`,
+        [unidadeId, idsExternos, v.data],
+      )
+    ).rows;
+    for (const [k, h] of Object.entries(montarHorarios(deFora.map((t) => ({ servico: t.nome, turno: t.letra, inicio: t.inicio, fim: t.fim }))).porChave)) horarios[k] ??= h;
+    for (const t of deFora) tipos[t.nome] ??= NOME_DO_TIPO[t.tipo];
+  }
   // a disponibilidade lançada no dia e no dia seguinte (o turno pertence ao dia em que começa; o que passa da meia-noite usa o dia seguinte)
   const disponibilidade = new Map<string, Faixa[]>();
   if (ids.length) {
@@ -120,7 +153,7 @@ export async function avaliarFaixa(c: Consulta, v: VagaConsultada, somenteMilita
 
   const avaliados = militares.map((m): Avaliado => {
     const base = { militarId: m.id, posto: m.posto, nomeGuerra: m.nome_guerra, matricula: m.matricula, equipe: m.equipe, jornada: m.jornada };
-    const pronto = (militarMotivo: string | null, porTurno: Avaliado['porTurno'] = []): Avaliado => ({ candidato: base, militarMotivo, porTurno, antig: m.antiguidade, postoOrdem: m.posto_ordem, cnh: cnhParaEscala(m) });
+    const pronto = (militarMotivo: string | null, porTurno: Avaliado['porTurno'] = []): Avaliado => ({ externo: m.externo, candidato: base, militarMotivo, porTurno, antig: m.antiguidade, postoOrdem: m.posto_ordem, cnh: cnhParaEscala(m) });
     if (!m.lotado_no_dia) return pronto(NAO_LOTADO);
     if (ehOficial(m.quadro)) return pronto(MOTIVO_OFICIAL);
     if (!m.ativo) return pronto(m.situacao);
@@ -140,8 +173,10 @@ export async function avaliarFaixa(c: Consulta, v: VagaConsultada, somenteMilita
       null,
       ordemDosTurnos.map((turno) => {
         let motivo: string | null = null;
+        // o externo só tira serviço extra (JES, Diária, PJES)
+        if (m.externo && turno.tipo === 'ordinario') motivo = SO_SERVICO_EXTRA;
         // RN-03: o Saldo é do Adm (a regra e a frase são do motor; aqui sem o código da regra)
-        if (violacoesSaldo([{ mat: m.id, dia: v.data, servico: turno.nome, turno: turno.letra }], { adm: m.jornada === 'adm' ? { [m.id]: true } : {} }).length) motivo = 'Saldo só para militar do Adm';
+        else if (violacoesSaldo([{ mat: m.id, dia: v.data, servico: turno.nome, turno: turno.letra }], { adm: m.jornada === 'adm' ? { [m.id]: true } : {} }).length) motivo = 'Saldo só para militar do Adm';
         else if ((turno.tipo === 'pjes' || exigeVoluntarioJes(turno.nome)) && !m.voluntario_jes) motivo = 'Não é voluntário JES';
         else {
           const candidata: AlocChoque = { mat: m.id, dia: v.data, turno: turno.letra, servico: turno.nome };
@@ -151,7 +186,8 @@ export async function avaliarFaixa(c: Consulta, v: VagaConsultada, somenteMilita
           // RN-36: uma diária por dia para o mesmo militar
           else if (violacoesDiariaUnica([...existentes, candidata], { tipos }).some((x) => x.chave === chave)) motivo = 'Já tem uma diária neste dia';
           // por último: só o voluntariado pode ser contornado pelo escalante (com a flexibilidade do gestor já aplicada)
-          else if (turno.tipo !== 'ordinario' && !turnoCoberto((dia) => unirFaixas(disponibilidade.get(`${m.id}|${dia}`) ?? []), v.data, turno.inicio, turno.fim, flexibilidadeMin)) motivo = SEM_VOLUNTARIADO;
+          // (o externo não marca voluntariado: quem o gestor trouxe já veio para isso)
+          else if (turno.tipo !== 'ordinario' && !m.externo && !turnoCoberto((dia) => unirFaixas(disponibilidade.get(`${m.id}|${dia}`) ?? []), v.data, turno.inicio, turno.fim, flexibilidadeMin)) motivo = SEM_VOLUNTARIADO;
         }
         return { turno, motivo };
       }),

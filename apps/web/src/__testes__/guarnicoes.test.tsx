@@ -6,7 +6,7 @@ import { MENSAGEM_PENDENTE, haAlteracoesPendentes } from '@/componentes/Alteraco
 import { navegador, pedir } from '@/api/cliente';
 import { atualizarGuarnicoes } from '@/api/guarnicoes';
 import { mesAtual } from '@/lib/meses';
-import { abrir, chamadasA, corpoEnviado, EU_EXEMPLO, simularApi, trava } from './apoio';
+import { abrir, chamadasA, corpoEnviado, EU_EXEMPLO, simularApi, trava, responderConfirmacao } from './apoio';
 
 const linha = (l: Partial<LinhaGuarnicao>): LinhaGuarnicao => ({
   id: 'g1', nome: 'Auto Bomba 1', viatura: 'ABT-01', prioridade: 1, ativa: true, minimo: 2, maximo: 4, aPartirDe: null, ...l,
@@ -331,27 +331,23 @@ describe('ficha da guarnição', () => {
   });
 
   it('"Desativar agora" pergunta antes e, cancelado, não grava', async () => {
-    const confirmar = vi.spyOn(window, 'confirm').mockReturnValue(false);
     const f = api({ 'POST /api/guarnicoes/g1/situacao': { status: 200, corpo: FICHA } });
     abrir('/configuracoes/modelos-de-guarnicao/g1');
     await userEvent.click(await screen.findByRole('button', { name: 'Desativar agora' }));
-    expect(confirmar).toHaveBeenCalledTimes(1);
-    expect(confirmar).toHaveBeenCalledWith(`Desativar o modelo ${FICHA.nome} agora? As escalas deixam de usá-lo a partir de ${mesPorExtenso(mesAtual())}.`);
+    expect(await screen.findByRole('dialog', { name: 'Desativar o modelo?' })).toHaveTextContent(`${FICHA.nome}: as escalas deixam de usá-lo a partir de ${mesPorExtenso(mesAtual())}.`);
+    await responderConfirmacao('Cancelar');
     expect(chamadasA(f, 'POST /api/guarnicoes/g1/situacao')).toBe(0);
-    confirmar.mockRestore();
   });
 
   it('confirmado, desativa no mês atual', async () => {
-    const confirmar = vi.spyOn(window, 'confirm').mockReturnValue(true);
     const f = api({ 'POST /api/guarnicoes/g1/situacao': { status: 200, corpo: FICHA } });
     abrir('/configuracoes/modelos-de-guarnicao/g1');
     await userEvent.click(await screen.findByRole('button', { name: 'Desativar agora' }));
+    await responderConfirmacao('Desativar');
     await waitFor(() => expect(corpoEnviado(f, 'POST /api/guarnicoes/g1/situacao')).toEqual({ ativa: false, aPartirDe: mesAtual() }));
-    confirmar.mockRestore();
   });
 
   it('"Desativar a partir de…", "Reativar agora" e "Cancelar desativação" não perguntam', async () => {
-    const confirmar = vi.spyOn(window, 'confirm').mockReturnValue(false);
     const f = api({
       'GET /api/guarnicoes/g11': { status: 200, corpo: { ...FICHA, id: 'g11', desativadaAPartirDe: '2026-01' } },
       'GET /api/guarnicoes/g12': { status: 200, corpo: { ...FICHA, id: 'g12', desativadaAPartirDe: '2099-01' } },
@@ -375,8 +371,7 @@ describe('ficha da guarnição', () => {
     abrir('/configuracoes/modelos-de-guarnicao/g12');
     await userEvent.click(await screen.findByRole('button', { name: 'Cancelar desativação' }));
     await waitFor(() => expect(corpoEnviado(f, 'POST /api/guarnicoes/g12/situacao')).toEqual({ ativa: true, aPartirDe: '2099-01' }));
-    expect(confirmar).not.toHaveBeenCalled();
-    confirmar.mockRestore();
+    expect(screen.queryByRole('dialog')).toBeNull();
   });
 
   it('desativar a partir de envia o mês escolhido', async () => {
@@ -398,14 +393,13 @@ describe('ficha da guarnição', () => {
       'POST /api/guarnicoes/g1/situacao': { status: 200, corpo: inativa },
     };
     simularApi(rotas);
-    const confirmar = vi.spyOn(window, 'confirm').mockReturnValue(true);
     abrir('/configuracoes/modelos-de-guarnicao/g1');
     const desativar = await screen.findByRole('button', { name: 'Desativar agora' });
     rotas['GET /api/guarnicoes/g1'] = { status: 200, corpo: inativa };
     await userEvent.click(desativar);
+    await responderConfirmacao('Desativar');
     await screen.findByText('Desativada desde janeiro de 2026.');
     expect(await screen.findByRole('button', { name: 'Reativar agora' })).toBeInTheDocument();
-    confirmar.mockRestore();
   });
 
   it('guarnição desativada mostra reativar agora', async () => {
@@ -555,13 +549,14 @@ describe('guarnições: singular, ordem, versões e composição', () => {
 
 describe('revisão final: guarnição', () => {
   it('Desativar agora com a composição pendente pergunta e, cancelando, não perde a edição', async () => {
-    // aceita a pergunta da desativação e recusa a da edição pendente
-    const confirmar = vi.spyOn(window, 'confirm').mockImplementation((mensagem) => mensagem !== MENSAGEM_PENDENTE);
+    // a pergunta da desativação é do sistema (o diálogo); a da edição pendente é do navegador, e a pessoa recusa
+    const confirmar = vi.spyOn(window, 'confirm').mockReturnValue(false);
     const f = api({ 'POST /api/guarnicoes/g1/situacao': { status: 200, corpo: FICHA } });
     abrir('/configuracoes/modelos-de-guarnicao/g1');
     await userEvent.click(await screen.findByRole('button', { name: 'Incluir função' }));
     expect(screen.getByText('Alterações não salvas')).toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', { name: 'Desativar agora' }));
+    await responderConfirmacao('Desativar');
     expect(confirmar).toHaveBeenCalledWith(MENSAGEM_PENDENTE);
     expect(f.mock.calls.some(([, init]) => init?.method === 'POST')).toBe(false);
     expect(screen.getByText('Alterações não salvas')).toBeInTheDocument();
@@ -574,6 +569,7 @@ describe('revisão final: guarnição', () => {
     abrir('/configuracoes/modelos-de-guarnicao/g1');
     await userEvent.click(await screen.findByRole('button', { name: 'Incluir função' }));
     await userEvent.click(screen.getByRole('button', { name: 'Desativar agora' }));
+    await responderConfirmacao('Desativar');
     await waitFor(() => expect(corpoEnviado(f, 'POST /api/guarnicoes/g1/situacao')).toEqual({ ativa: false, aPartirDe: mesAtual() }));
     confirmar.mockRestore();
   });

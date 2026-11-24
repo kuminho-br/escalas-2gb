@@ -15,6 +15,8 @@ import { useEhCelular } from '@/lib/useEhCelular';
 import { mesAtual } from '@/lib/meses';
 import { normalizarBusca } from '@/lib/texto';
 import { cn } from '@/lib/utils';
+import { Moldura } from '@/componentes/Moldura';
+import { Espera } from '@/componentes/resposta/Espera';
 
 export const Route = createFileRoute('/_app/grade')({
   validateSearch: buscaDaGrade,
@@ -76,8 +78,7 @@ function GradeGeral() {
   }, [militarEscolhido, diaEscolhido, gradeCarregada]);
 
   return (
-    <section className="grid gap-4">
-      <h1 className="font-cond text-[28px] leading-tight font-semibold">Grade geral</h1>
+    <Moldura titulo="Grade geral">
       <div className="flex flex-wrap items-end gap-3">
         <div className="grid gap-1.5">
           <Label htmlFor="gg-mes">Mês</Label>
@@ -110,7 +111,7 @@ function GradeGeral() {
       </div>
 
       {comum && <p className="text-apagado">A grade geral é dos auxiliares administrativos e gestores.</p>}
-      {!comum && dados.isPending && <p className="text-apagado">Carregando…</p>}
+      {!comum && dados.isPending && <Espera />}
       {dados.error && <p role="alert" className="text-alerta">{mensagemDe(dados.error)}</p>}
       {grade && grade.grupos.length === 0 && <p className="text-apagado">Ninguém para mostrar neste mês.</p>}
       {grade && grade.grupos.length > 0 && grupos.length === 0 && <p className="text-apagado">Ninguém com esse nome nas equipes escolhidas.</p>}
@@ -144,6 +145,6 @@ function GradeGeral() {
           )}
         </div>
       )}
-    </section>
+    </Moldura>
   );
 }

@@ -19,7 +19,7 @@ export function DesativarGuarnicao({ nome, salvando, erro, aoDesativar, aoFechar
         {erro && <p role="alert" className="text-sm text-alerta">{erro}</p>}
         <DialogFooter className="gap-2 sm:justify-start">
           <Button type="button" disabled={salvando} onClick={aoDesativar}>Desativar</Button>
-          <Button type="button" variant="ghost" onClick={aoFechar}>Cancelar</Button>
+          <Button type="button" variant="discreto" onClick={aoFechar}>Cancelar</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

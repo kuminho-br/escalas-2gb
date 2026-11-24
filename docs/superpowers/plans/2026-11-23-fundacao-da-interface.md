@@ -88,7 +88,7 @@ Branch `fase6-20-sistema-de-estilo`, a partir da `main` depois da 6.18. Sem migr
 
 # Entrega 6.21 — Resposta do sistema (N2, com a P1)
 
-Branch `fase6-21-resposta-do-sistema`, a partir da 6.20. Sem migração prevista; se a P1 precisar guardar a vaga de origem da remoção, a migração é a 0035 e o PR leva "tem migração" no título.
+Branch `fase6-21-resposta-do-sistema`, a partir da 6.20. Sem migração prevista; se a P1 precisar guardar a vaga de origem da remoção, a migração é a 0040 (a próxima livre) e o PR leva "tem migração" no título.
 
 ### Task 4: aviso, confirmação, espera, erro junto e vazio
 
@@ -122,7 +122,7 @@ Branch `fase6-21-resposta-do-sistema`, a partir da 6.20. Sem migração prevista
   - Site: remover não pergunta; mostra o aviso "{patente} {nome} saiu de {função} da {guarnição}." com "Desfazer"; desfazer devolve à vaga; "Removidos" e "Permitir de novo" continuam como hoje.
   - No celular, abrir a escolha de militar para uma vaga **não** põe o foco na busca: o teclado só aparece quando a pessoa toca na caixa de busca (diretriz do usuário, 23/11/2026; o item também está na 6.17 e, se já estiver feito, só manter o teste).
 - [ ] **Step 2:** rodar; FAIL.
-- [ ] **Step 3:** implementar. Se a marca de remoção já guarda a vaga, usar; senão, a migração 0035 acrescenta as colunas da vaga de origem.
+- [ ] **Step 3:** implementar. Se a marca de remoção já guarda a vaga, usar; senão, a migração 0040 acrescenta as colunas da vaga de origem.
 - [ ] **Step 4:** PASS; verificações do fim de entrega; conferir no navegador.
 - [ ] **Step 5:** commit `Fase 6.21: remover com Desfazer (P1)` e abrir o PR.
 

@@ -1,6 +1,7 @@
 import { QueryClient } from '@tanstack/react-query';
 import { createMemoryHistory, RouterProvider } from '@tanstack/react-router';
-import { render } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { vi } from 'vitest';
 import type { EuDaApi } from '@/api/eu';
 import { criarRoteador } from '@/roteador';
@@ -71,4 +72,10 @@ export function trava(): { espera: Promise<void>; soltar: () => void } {
   let soltar!: () => void;
   const espera = new Promise<void>((r) => (soltar = r));
   return { espera, soltar };
+}
+
+/** Responde à confirmação do sistema (o diálogo que a ação abre): o verbo dela ("Remover", "Desativar"…) ou "Cancelar". */
+export async function responderConfirmacao(verbo: string) {
+  const dialogo = await screen.findByRole('dialog');
+  await userEvent.click(within(dialogo).getByRole('button', { name: verbo }));
 }

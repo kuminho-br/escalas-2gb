@@ -13,6 +13,8 @@ import { Selecao } from '@/componentes/Selecao';
 import { Button } from '@/componentes/ui/button';
 import { Input } from '@/componentes/ui/input';
 import { Label } from '@/componentes/ui/label';
+import { useConfirmar } from '@/componentes/resposta/useConfirmar';
+import { Espera } from '@/componentes/resposta/Espera';
 
 export const Route = createFileRoute('/_app/escalas/$id')({
   component: Ficha,
@@ -22,7 +24,7 @@ function Ficha() {
   const { id } = Route.useParams();
   const { eu } = Route.useRouteContext();
   const { data: e, error, isPending } = useQuery(consultaEscala(id));
-  if (isPending) return <p className="p-4 text-apagado">Carregando…</p>;
+  if (isPending) return <Espera className="p-4" />;
   if (error) return <p role="alert" className="p-4 text-alerta">{mensagemDe(error)}</p>;
   return (
     <ProvedorDePendencias>
@@ -46,8 +48,9 @@ function Ficha() {
 function Situacao({ e }: { e: Escala }) {
   const queryClient = useQueryClient();
   const [erro, setErro] = useState<string | null>(null);
+  const confirmar = useConfirmar();
   async function mudar() {
-    if (e.ativa && !window.confirm(`Desativar a escala ${e.nome}? Ela some da lista.`)) return;
+    if (e.ativa && !(await confirmar({ titulo: 'Desativar a escala?', texto: `${e.nome} some da lista.`, verbo: 'Desativar' }))) return;
     setErro(null);
     try {
       await mudarSituacaoEscala(e.id, !e.ativa);
@@ -58,7 +61,7 @@ function Situacao({ e }: { e: Escala }) {
   }
   return (
     <>
-      <Button type="button" variant="outline" size="sm" onClick={() => void mudar()}>
+      <Button type="button" variant="secundario" size="sm" onClick={() => void mudar()}>
         {e.ativa ? 'Desativar' : 'Reativar'}
       </Button>
       {erro && <p role="alert" className="w-full text-right text-sm text-alerta">{erro}</p>}
@@ -135,7 +138,7 @@ function Identificacao({ e }: { e: Escala }) {
               <option value="pre_escala">Pré-escala (as escalas do Pronto)</option>
               <option value="rodada_de_cotas">Rodada de cotas (a escala dos oficiais)</option>
             </Selecao>
-            <p className="text-[13px] text-apagado">
+            <p className="text-apoio text-apagado">
               {distribuicao === 'rodada_de_cotas' ? 'Esta escala é montada em Oficiais: o JES é lançado à mão e o que sobra vai pela rodada, como Saldo. Ela não tem pré-escala.' : 'Esta escala é montada na Escala do mês, com a pré-escala.'}
             </p>
           </div>

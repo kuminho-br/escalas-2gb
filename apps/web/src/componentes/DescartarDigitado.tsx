@@ -36,7 +36,7 @@ export function useDescartarDigitado(aoFechar: () => void) {
           <AlertDialog.Description className="text-sm text-apagado">O que você escreveu nesta janela se perde.</AlertDialog.Description>
           <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
             <AlertDialog.Cancel asChild>
-              <Button type="button" variant="outline">Continuar editando</Button>
+              <Button type="button" variant="secundario">Continuar editando</Button>
             </AlertDialog.Cancel>
             <AlertDialog.Action asChild>
               <Button type="button" onClick={aoFechar}>Descartar</Button>

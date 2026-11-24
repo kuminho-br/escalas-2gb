@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { createFileRoute, Link, Outlet, useParams, useSearch } from '@tanstack/react-router';
 import type { LinhaMilitar } from 'contratos';
-import { Briefcase, CalendarClock, CalendarOff, Car, Clock, IdCard, TriangleAlert } from 'lucide-react';
+import { ArrowRightLeft, Briefcase, CalendarClock, CalendarOff, Car, Clock, IdCard, TriangleAlert } from 'lucide-react';
 import { EtiquetaDeDado } from '@/componentes/EtiquetaDeDado';
 import { useMemo, useState } from 'react';
 import { mensagemDe } from '@/api/cliente';
@@ -14,6 +14,7 @@ import { dataBr, mesAtual } from '@/lib/meses';
 import { NOME_JORNADA } from '@/lib/militares';
 import { correspondeABusca, normalizarBusca } from '@/lib/texto';
 import { cn } from '@/lib/utils';
+import { Espera } from '@/componentes/resposta/Espera';
 
 export const Route = createFileRoute('/_app/militares')({
   component: Militares,
@@ -66,6 +67,7 @@ function ListaDeMilitares({ unidadeId, escolhido }: { unidadeId: string; escolhi
             <Selecao id="filtro-equipe" value={equipe} onChange={(e) => setEquipe(e.target.value)}>
               <option value="">Todas</option>
               {equipes.data?.map((e) => <option key={e.id} value={e.nome}>{e.nome}</option>)}
+              {(militares.data ?? []).some((m) => m.externo) && <option value="Externo">Externo</option>}
             </Selecao>
           </div>
           <div className="grid gap-1">
@@ -78,7 +80,7 @@ function ListaDeMilitares({ unidadeId, escolhido }: { unidadeId: string; escolhi
           </div>
         </div>
       </div>
-      {militares.isPending && <p className="p-4 text-apagado">Carregando…</p>}
+      {militares.isPending && <Espera className="p-4" />}
       {militares.error && <p role="alert" className="p-4 text-alerta">{mensagemDe(militares.error)}</p>}
       {militares.data && (
         <>
@@ -105,17 +107,15 @@ function ItemMilitar({ m, escolhido }: { m: LinhaMilitar; escolhido: boolean }) 
   // a ficha aberta pelo Pecúlio continua sendo do Pecúlio ao passar para outro militar da lista
   const { de } = useSearch({ strict: false }) as { de?: 'peculio' };
   const disponivel = m.situacao === 'Disponível';
+  const externo = m.externo;
+  const classe = cn('grid gap-0.5 rounded-lg px-3 py-2 hover:bg-accent', escolhido && classeItemEscolhido);
   return (
     <li>
-      <Link
-        to="/militares/$id"
-        params={{ id: m.id }}
-        search={de === 'peculio' ? { de } : undefined}
-        className={cn('grid gap-0.5 rounded-lg px-3 py-2 hover:bg-accent', escolhido && classeItemEscolhido)}
-        aria-current={escolhido ? 'page' : undefined}
-      >
+      {m.externo ? (
+        // o militar externo é de outra unidade: a ficha da escala é da lotação dele, e aqui só se consulta
+        <Link to="/consulta/$id" params={{ id: m.id }} className={classe}>
         <span className="flex items-center gap-2">
-          <span className="font-cond text-[13px] text-apagado">{m.posto}</span>
+          <span className="font-cond text-apoio text-apagado">{m.posto}</span>
           <span className="font-cond text-base font-semibold">{m.nomeGuerra}</span>
           {m.pendencias.length > 0 && (
             <TriangleAlert
@@ -125,15 +125,40 @@ function ItemMilitar({ m, escolhido }: { m: LinhaMilitar; escolhido: boolean }) 
             />
           )}
         </span>
-        {m.nomeCompleto && <span className="text-[15px] leading-[22px] text-tinta">{m.nomeCompleto}</span>}
+        {m.nomeCompleto && <span className="text-corpo leading-[22px] text-tinta">{m.nomeCompleto}</span>}
         <span className="mt-1 flex flex-wrap gap-1.5">
           <EtiquetaDeDado icone={IdCard}>{m.matricula}</EtiquetaDeDado>
-          {m.jornada && <EtiquetaDeDado icone={m.jornada === 'adm' ? Briefcase : Clock}>{`${NOME_JORNADA[m.jornada]}${m.equipe ? ` · ${m.equipe.toUpperCase()}` : ''}`}</EtiquetaDeDado>}
+          {m.jornada && <EtiquetaDeDado icone={m.jornada === 'adm' ? Briefcase : Clock}>{`${NOME_JORNADA[m.jornada]}${m.equipe && !externo ? ` · ${m.equipe.toUpperCase()}` : ''}`}</EtiquetaDeDado>}
+          {externo && <EtiquetaDeDado icone={ArrowRightLeft}>{`Externo · ${externo.lotacaoSigla}`}</EtiquetaDeDado>}
           {m.motorista && <EtiquetaDeDado icone={Car}>{`Motorista ${m.motorista}`}</EtiquetaDeDado>}
           {!disponivel && <EtiquetaDeDado icone={CalendarOff}>{m.situacao}</EtiquetaDeDado>}
           {m.lotacaoAPartirDe && <EtiquetaDeDado icone={CalendarClock}>{`Lotação a partir de ${dataBr(m.lotacaoAPartirDe)}`}</EtiquetaDeDado>}
         </span>
-      </Link>
+        </Link>
+      ) : (
+        <Link to="/militares/$id" params={{ id: m.id }} search={de === 'peculio' ? { de } : undefined} className={classe} aria-current={escolhido ? 'page' : undefined}>
+        <span className="flex items-center gap-2">
+          <span className="font-cond text-apoio text-apagado">{m.posto}</span>
+          <span className="font-cond text-base font-semibold">{m.nomeGuerra}</span>
+          {m.pendencias.length > 0 && (
+            <TriangleAlert
+              className="size-4 text-pendencia"
+              role="img"
+              aria-label={`Cadastro incompleto: ${m.pendencias.join('; ')}`}
+            />
+          )}
+        </span>
+        {m.nomeCompleto && <span className="text-corpo leading-[22px] text-tinta">{m.nomeCompleto}</span>}
+        <span className="mt-1 flex flex-wrap gap-1.5">
+          <EtiquetaDeDado icone={IdCard}>{m.matricula}</EtiquetaDeDado>
+          {m.jornada && <EtiquetaDeDado icone={m.jornada === 'adm' ? Briefcase : Clock}>{`${NOME_JORNADA[m.jornada]}${m.equipe && !externo ? ` · ${m.equipe.toUpperCase()}` : ''}`}</EtiquetaDeDado>}
+          {externo && <EtiquetaDeDado icone={ArrowRightLeft}>{`Externo · ${externo.lotacaoSigla}`}</EtiquetaDeDado>}
+          {m.motorista && <EtiquetaDeDado icone={Car}>{`Motorista ${m.motorista}`}</EtiquetaDeDado>}
+          {!disponivel && <EtiquetaDeDado icone={CalendarOff}>{m.situacao}</EtiquetaDeDado>}
+          {m.lotacaoAPartirDe && <EtiquetaDeDado icone={CalendarClock}>{`Lotação a partir de ${dataBr(m.lotacaoAPartirDe)}`}</EtiquetaDeDado>}
+        </span>
+        </Link>
+      )}
     </li>
   );
 }

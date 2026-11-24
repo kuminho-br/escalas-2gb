@@ -22,6 +22,9 @@ import { Input } from '@/componentes/ui/input';
 import { Label } from '@/componentes/ui/label';
 import { guardarUltimoDia, janelaDoDia, ultimoDiaVisto } from '@/lib/efetivo';
 import { diaDaSemanaPorExtenso, hoje, somarDias } from '@/lib/meses';
+import { Moldura } from '@/componentes/Moldura';
+import { Espera } from '@/componentes/resposta/Espera';
+import { Vazio } from '@/componentes/resposta/Vazio';
 
 export const Route = createFileRoute('/_app/efetivo-por-dia')({
   validateSearch: (s: Record<string, unknown>): { data?: string } => ({ data: typeof s.data === 'string' && Data.safeParse(s.data).success ? s.data : undefined }),
@@ -147,23 +150,22 @@ function EfetivoPorDia() {
     };
   };
   return (
-    <section className="grid gap-4">
-      <h1 className="font-cond text-[28px] leading-tight font-semibold">Efetivo por dia</h1>
+    <Moldura titulo="Efetivo por dia">
       <div className="flex flex-wrap items-end gap-3">
-        <Button type="button" variant="outline" size="icon" aria-label="Dia anterior" onClick={() => irPara(somarDias(data, -1))}>
+        <Button type="button" variant="secundario" size="icon" aria-label="Dia anterior" onClick={() => irPara(somarDias(data, -1))}>
           <ChevronLeft aria-hidden />
         </Button>
         <div className="grid gap-1.5">
           <Label htmlFor="ed-data">Dia</Label>
           <Input id="ed-data" type="date" value={data} onChange={(ev) => ev.target.value && irPara(ev.target.value)} className="w-44" />
         </div>
-        <Button type="button" variant="outline" size="icon" aria-label="Dia seguinte" onClick={() => irPara(somarDias(data, 1))}>
+        <Button type="button" variant="secundario" size="icon" aria-label="Dia seguinte" onClick={() => irPara(somarDias(data, 1))}>
           <ChevronRight aria-hidden />
         </Button>
         <p className="text-sm text-apagado">{diaDaSemanaPorExtenso(data)}</p>
       </div>
 
-      {dados.isPending && <p className="text-apagado">Carregando…</p>}
+      {dados.isPending && <Espera />}
       {dados.error && <p role="alert" className="text-alerta">{mensagemDe(dados.error)}</p>}
       {erro && <p role="alert" className="text-alerta">{erro}</p>}
       {e && (
@@ -176,7 +178,7 @@ function EfetivoPorDia() {
             {!soConsulta && (
               <Button
                 type="button"
-                variant="outline"
+                variant="secundario"
                 size="sm"
                 disabled={salvando || e.meta.origem === 'padrao'}
                 onClick={() => {
@@ -191,7 +193,7 @@ function EfetivoPorDia() {
           <CotasRestantes cotas={e.cotas} />
           {aviso && <AvisoDesfazer texto={aviso.texto} erro={erroDoAviso} salvando={salvando} aoDesfazer={() => void desfazerUltima()} aoSumir={limparAviso} />}
           {e.guarnicoes.length === 0 ? (
-            <p className="text-apagado">Nenhuma guarnição na meta nem escalada neste dia.</p>
+            <Vazio titulo="Nenhuma guarnição neste dia" frase="Nenhuma está na meta nem escalada." />
           ) : (
             <div data-cards-do-efetivo className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,24rem),1fr))] items-start gap-3">
               {e.guarnicoes.map((g) => (
@@ -210,7 +212,7 @@ function EfetivoPorDia() {
             <div>
               <Button
                 type="button"
-                variant="outline"
+                variant="secundario"
                 disabled={salvando}
                 onClick={() => {
                   setErroNoDialogo(null);
@@ -250,6 +252,6 @@ function EfetivoPorDia() {
           {voltando && <ConfirmarVoltarAoPadrao salvando={salvando} erro={erroNoDialogo} aoVoltar={() => void voltarAoPadrao()} aoFechar={() => setVoltando(false)} />}
         </>
       )}
-    </section>
+    </Moldura>
   );
 }

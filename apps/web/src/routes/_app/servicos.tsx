@@ -18,6 +18,8 @@ import { Input } from '@/componentes/ui/input';
 import { Label } from '@/componentes/ui/label';
 import { corSugerida, NOME_TIPO } from '@/lib/servicos';
 import { cn } from '@/lib/utils';
+import { Checkbox } from '@/componentes/ui/checkbox';
+import { Espera } from '@/componentes/resposta/Espera';
 
 export const Route = createFileRoute('/_app/servicos')({
   component: Servicos,
@@ -62,7 +64,7 @@ function ListaDeServicos({ unidadeId, escolhido }: { unidadeId: string; escolhid
   const visiveis = servicos.data?.filter((s) => s.ativo || desativados) ?? [];
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      {servicos.isPending && <p className="p-4 text-apagado">Carregando…</p>}
+      {servicos.isPending && <Espera className="p-4" />}
       {servicos.error && <p role="alert" className="p-4 text-alerta">{mensagemDe(servicos.error)}</p>}
       {servicos.data && (
         <>
@@ -83,7 +85,7 @@ function ListaDeServicos({ unidadeId, escolhido }: { unidadeId: string; escolhid
             {servicos.data.length > 0 && visiveis.length === 0 && <p className="p-4 text-apagado">Todos os serviços estão desativados. Marque "Mostrar desativados" para vê-los.</p>}
           </div>
           <label className="flex shrink-0 items-center gap-2 border-t border-linha px-4 py-2.5 text-xs text-apagado">
-            <input type="checkbox" checked={desativados} onChange={(e) => setDesativados(e.target.checked)} className="size-4 accent-vinho" />
+            <Checkbox checked={desativados} onChange={(e) => setDesativados(e.target.checked)} />
             Mostrar desativados
           </label>
         </>

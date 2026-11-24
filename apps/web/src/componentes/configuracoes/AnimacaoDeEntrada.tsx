@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { gravarQuando, lerQuando, pedeMenosMovimento, type Quando } from '@/lib/transicao-login/regra';
+import { Radio } from '@/componentes/ui/radio';
 
 const OPCOES_DA_ANIMACAO: { valor: Quando; rotulo: string }[] = [
   { valor: 'sempre', rotulo: 'Em toda entrada' },
@@ -21,7 +22,7 @@ export function AnimacaoDeEntrada() {
       <fieldset role="radiogroup" aria-label="Animação de entrada" className="grid gap-2">
         {OPCOES_DA_ANIMACAO.map((o) => (
           <label key={o.valor} className="flex items-center gap-2 text-sm">
-            <input type="radio" name="animacao-de-entrada" value={o.valor} checked={quando === o.valor} onChange={() => escolher(o.valor)} className="size-4 accent-vinho" />
+            <Radio name="animacao-de-entrada" value={o.valor} checked={quando === o.valor} onChange={() => escolher(o.valor)} />
             {o.rotulo}
           </label>
         ))}

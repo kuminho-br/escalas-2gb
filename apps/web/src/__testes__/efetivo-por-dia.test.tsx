@@ -11,8 +11,9 @@ import { abrir, chamadasA, corpoEnviado, EU_EXEMPLO, simularApi } from './apoio'
 const DIA = '2026-12-12';
 const SEGUINTE = '2026-12-13';
 const PRONTO = { id: 's-pronto', nome: 'Pronto', cor: '#2F8F5B' };
-const ocupado = (nomeGuerra: string, inicio: number, fim: number, alocacoes: AlocacaoNoTrecho[] = [{ alocacaoId: `a-${nomeGuerra}`, acumuloId: null, inicio: '08:00', fim: '20:00', acumulaCom: [] }]): TrechoNoEfetivo => ({
-  inicio, fim, opcoes: [], ocupante: { militarId: `m-${nomeGuerra}`, posto: 'SD', nomeGuerra, servico: PRONTO, acumulo: false, alocacoes },
+const JES = { id: 's-jes', nome: 'JES', cor: '#6E56A8' };
+const ocupado = (nomeGuerra: string, inicio: number, fim: number, alocacoes: AlocacaoNoTrecho[] = [{ alocacaoId: `a-${nomeGuerra}`, acumuloId: null, inicio: '08:00', fim: '20:00', acumulaCom: [] }], servico = PRONTO): TrechoNoEfetivo => ({
+  inicio, fim, opcoes: [], ocupante: { militarId: `m-${nomeGuerra}`, posto: 'SD', nomeGuerra, servico, acumulo: false, alocacoes },
 });
 const vaga = (inicio: number, fim: number, opcoes = [{ escalaId: 'e-ord', escala: 'Ordinário', inicio: '20:00', fim: '08:00' }]): TrechoNoEfetivo => ({ inicio, fim, ocupante: null, opcoes });
 const guarnicao = (g: Partial<GuarnicaoNoEfetivo> & Pick<GuarnicaoNoEfetivo, 'guarnicaoId' | 'nome'>): GuarnicaoNoEfetivo => ({
@@ -141,13 +142,22 @@ describe('efetivo por dia: a linha do tempo', () => {
     expect(grade).toHaveClass('items-start');
   });
 
-  it('o trecho ocupado mostra o nome do serviço numa etiqueta de contorno', async () => {
+  it('o trecho ocupado é a placa do militar, com a faixa na cor do serviço; o nome do serviço só aparece quando não é o Pronto', async () => {
     api();
     abrir(`/efetivo-por-dia?data=${DIA}`);
     const alfa = await screen.findByRole('button', { name: 'Motorista: SD ALFA, 08h–08h, Pronto' });
-    const etiqueta = within(alfa).getByText('Pronto');
-    expect(etiqueta).toHaveAttribute('data-etiqueta-servico');
-    expect(etiqueta).toHaveAttribute('data-variante', 'contorno');
+    expect(alfa).toHaveAttribute('data-placa');
+    expect((alfa.querySelector('[data-faixa-servico]') as HTMLElement).style.backgroundColor).toBe('rgb(47, 143, 91)');
+    expect(within(alfa).queryByText('Pronto')).toBeNull();
+  });
+
+  it('o trecho de um serviço que não é o Pronto traz o nome dele, só quando cabe', async () => {
+    api({ ...EFETIVO, guarnicoes: [guarnicao({ guarnicaoId: 'g7', nome: 'Bioma', ordem: null, funcoes: [{ funcaoId: 'f-aux', funcao: 'Auxiliar', minimo: 1, cnhExigida: null, linhas: [[ocupado('CHARLIE', 480, 1200, undefined, JES)]] }] })] });
+    abrir(`/efetivo-por-dia?data=${DIA}`);
+    const charlie = await screen.findByRole('button', { name: 'Auxiliar: SD CHARLIE, 08h–20h, JES' });
+    expect(charlie).toHaveClass('@container');
+    expect(within(charlie).getByText('JES')).toHaveClass('hidden', '@min-[14rem]:inline');
+    expect(within(charlie).getByText('CHARLIE')).not.toHaveClass('hidden');
   });
 
   // [foco 4] o horário não fica no texto visível: no title (mouse), ao focar (teclado) e ao tocar (celular)
@@ -166,35 +176,33 @@ describe('efetivo por dia: a linha do tempo', () => {
     expect(within(alfa).getByText('08h–08h')).toBeInTheDocument();
   });
 
-  it('só a etiqueta se esconde quando o trecho é estreito; o nome do militar nunca perde lugar para ela (achado da revisão final)', async () => {
+  it('o nome do militar nunca perde lugar: o trecho mede a própria largura e o nome é quem corta, com reticências', async () => {
     api();
     abrir(`/efetivo-por-dia?data=${DIA}`);
     const alfa = await screen.findByRole('button', { name: 'Motorista: SD ALFA, 08h–08h, Pronto' });
-    // o trecho mede a própria largura (container query) e a etiqueta só aparece quando cabe ao lado do nome; o horário não está no texto visível
     expect(alfa).toHaveClass('@container');
-    expect(within(alfa).getByText('Pronto')).toHaveClass('hidden', '@min-[14rem]:inline-flex');
+    expect(within(alfa).getByText('ALFA')).toHaveClass('truncate');
     expect(within(alfa).getByText('ALFA')).not.toHaveClass('hidden');
   });
 
-  it('a vaga vazia é um botão de contorno tracejado com a barra vinho de obrigatória, sem listras amarelas e sem a cor do serviço', async () => {
+  it('a vaga vazia é um botão de borda tracejada com o fundo de pendência (obrigatória), sem listras amarelas e sem a cor do serviço', async () => {
     api();
     abrir(`/efetivo-por-dia?data=${DIA}`);
     const vagaDoAco = await screen.findByRole('button', { name: 'Motorista: vaga 20h–08h' });
     expect(vagaDoAco.tagName).toBe('BUTTON');
-    expect(vagaDoAco).toHaveClass('border-dashed', 'bg-superficie', 'border-encaixe');
+    expect(vagaDoAco).toHaveClass('border-dashed', 'bg-pendencia-fundo', 'border-pendencia');
     // continua presa na régua (posicionada pela faixa), como o trecho ocupado: o estilo da vaga não pode trocar o `absolute` por `relative`
-    expect(vagaDoAco).toHaveClass('absolute', 'inset-y-0.5', 'focus-visible:z-20');
+    expect(vagaDoAco).toHaveClass('absolute', 'inset-y-0', 'focus-visible:z-20');
     expect(vagaDoAco).not.toHaveClass('relative');
     expect(vagaDoAco.className).not.toMatch(/repeating-linear-gradient|F2C200|FFF3B8/);
     // a faixa da API só traz vagas até o mínimo da função: toda vaga aqui é obrigatória (falta para a guarnição sair)
     expect(vagaDoAco).toHaveAttribute('data-obrigatoria');
-    expect(vagaDoAco.querySelector('[data-barra]')).toHaveClass('bg-vinho');
+    expect(vagaDoAco.querySelector('[data-barra]')).toBeNull();
     // só posição e largura no estilo: a cor do serviço é de quem já está escalado
     expect(vagaDoAco.style.backgroundColor).toBe('');
     expect(vagaDoAco.style.color).toBe('');
     const ocupado = screen.getByRole('button', { name: 'Motorista: SD ALFA, 08h–08h, Pronto' });
-    expect(ocupado.style.backgroundColor).not.toBe('');
-    expect(ocupado.querySelector('[data-barra]')).toBeNull();
+    expect(ocupado.querySelector('[data-faixa-servico]')).not.toBeNull();
   });
 
   it('o texto sobre a cor do serviço não usa transparência: o contraste de 4,5:1 vale para o posto e o horário também', async () => {
@@ -206,12 +214,11 @@ describe('efetivo por dia: a linha do tempo', () => {
     expect(alfa.querySelectorAll('[class*="opacity-"]')).toHaveLength(0);
   });
 
-  it('ao passar o mouse e com o foco do teclado a vaga da linha do tempo muda de estado visível', async () => {
+  it('ao passar o mouse o tracejado da vaga da linha do tempo vira linha cheia', async () => {
     api();
     abrir(`/efetivo-por-dia?data=${DIA}`);
     const vagaDoAco = await screen.findByRole('button', { name: 'Motorista: vaga 20h–08h' });
-    expect(vagaDoAco).toHaveClass('hover:border-solid', 'hover:border-apagado', 'hover:bg-passa', 'hover:text-tinta');
-    expect(vagaDoAco).toHaveClass('focus-visible:outline-2', 'focus-visible:outline-tinta');
+    expect(vagaDoAco).toHaveClass('hover:border-solid');
   });
 
   it('na vaga, o horário também só aparece quando cabe, e a palavra "vaga" fica', async () => {
@@ -235,7 +242,7 @@ describe('efetivo por dia: a linha do tempo', () => {
   it('sem guarnição no dia, não há grade de cards', async () => {
     api(VAZIO);
     abrir(`/efetivo-por-dia?data=${DIA}`);
-    await screen.findByText('Nenhuma guarnição na meta nem escalada neste dia.');
+    await screen.findByText('Nenhuma guarnição neste dia');
     expect(document.querySelector('[data-cards-do-efetivo]')).toBeNull();
   });
 });
@@ -265,7 +272,7 @@ describe('efetivo por dia: o topo', () => {
     await userEvent.click(await screen.findByRole('button', { name: 'Dia seguinte' }));
     await waitFor(() => expect((router.state.location.search as { data?: string }).data).toBe(SEGUINTE));
     await waitFor(() => expect(chamadasA(f, `GET /api/unidades/u-1sb/efetivo-do-dia/${SEGUINTE}`)).toBe(1));
-    expect(await screen.findByText('Nenhuma guarnição na meta nem escalada neste dia.')).toBeInTheDocument();
+    expect(await screen.findByText('Nenhuma guarnição neste dia')).toBeInTheDocument();
   });
 
   it('sem data na busca e sem dia guardado, vale hoje', async () => {
@@ -274,7 +281,7 @@ describe('efetivo por dia: o topo', () => {
       [`GET /api/unidades/u-1sb/efetivo-do-dia/${hoje()}`]: { status: 200, corpo: { ...VAZIO, data: hoje() } },
     });
     abrir('/efetivo-por-dia');
-    await screen.findByText('Nenhuma guarnição na meta nem escalada neste dia.');
+    await screen.findByText('Nenhuma guarnição neste dia');
     expect(chamadasA(f, `GET /api/unidades/u-1sb/efetivo-do-dia/${hoje()}`)).toBe(1);
   });
 

@@ -17,6 +17,12 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from '@/componentes/ui/input';
 import { Label } from '@/componentes/ui/label';
 import { mesAtual } from '@/lib/meses';
+import { Radio } from '@/componentes/ui/radio';
+import { Moldura } from '@/componentes/Moldura';
+import { useConfirmar } from '@/componentes/resposta/useConfirmar';
+import { useAviso } from '@/componentes/resposta/useAviso';
+import { Espera } from '@/componentes/resposta/Espera';
+import { Vazio } from '@/componentes/resposta/Vazio';
 
 export const Route = createFileRoute('/_app/cotas')({
   component: Cotas,
@@ -32,13 +38,13 @@ function Cotas() {
   const [mes, setMes] = useState(mesAtual());
   const cotas = useQuery(consultaCotas(eu.unidade.id, mes));
   const [dialogo, setDialogo] = useState<{ cota?: Cota } | null>(null);
-  const [aviso, setAviso] = useState<{ erro: boolean; texto: string } | null>(null);
+  const avisar = useAviso();
+  const confirmar = useConfirmar();
   const anterior = somarMeses(mes, -1);
 
   const { salvando: copiando, travar } = useTrava();
   // travada: dois cliques seguidos mandam um pedido só, e o botão fica apagado enquanto copia
   const copiar = travar(async () => {
-    setAviso(null);
     try {
       const { copiados, puladas } = await copiarCotas(eu.unidade.id, anterior, mes);
       atualizarCotas(queryClient);
@@ -49,40 +55,43 @@ function Cotas() {
       // só diz o que ficou de fora: o mês pode ter outras cotas que o destino já tinha, então não afirma que "todas" são de serviço desativado
       else if (puladas > 0) texto = `Nenhuma cota copiada: ${deFora}. Reative o serviço na tela de Turnos para ${puladas === 1 ? 'copiá-la' : 'copiá-las'}.`;
       else texto = `Nenhuma cota nova: ${deAntes} não tem cotas, ou elas já estão em ${mesPorExtenso(mes)}.`;
-      setAviso({ erro: false, texto });
+      avisar({ texto });
     } catch (err) {
-      setAviso({ erro: true, texto: mensagemDe(err) });
+      avisar({ texto: mensagemDe(err), erro: true });
     }
   });
 
   async function remover(c: Cota) {
-    if (!window.confirm(`Remover a cota de ${c.servico} (${c.origem}) de ${mesPorExtenso(mes)}?`)) return;
-    setAviso(null);
+    if (!(await confirmar({ titulo: 'Remover a cota?', texto: `Cota de ${c.servico} (${c.origem}) de ${mesPorExtenso(mes)}.`, verbo: 'Remover', perigoso: true }))) return;
     try {
       await removerCota(c.id);
       atualizarCotas(queryClient);
+      avisar({ texto: `Cota de ${c.servico} removida.` });
     } catch (err) {
-      setAviso({ erro: true, texto: mensagemDe(err) });
+      avisar({ texto: mensagemDe(err), erro: true });
     }
   }
 
   return (
-    <section>
-      <header className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="font-cond text-[28px] leading-tight font-semibold">Cotas</h1>
-        {!soConsulta && (
-          <div className="flex flex-wrap gap-2">
-            <ImportarPlanilha cadastro="cotas" rotulo="as cotas" aoConcluir={() => atualizarCotas(queryClient)} />
-            <Button variant="outline" disabled={copiando} onClick={() => void copiar()}>Copiar do mês anterior</Button>
-            <Button onClick={() => setDialogo({})}>
-              <Plus aria-hidden />
-              Adicionar cota
-            </Button>
-          </div>
-        )}
-      </header>
+    <Moldura
+      titulo="Cotas"
+      acaoPrincipal={
+        <>
+          {!soConsulta && (
+              <div className="flex flex-wrap gap-2">
+                <ImportarPlanilha cadastro="cotas" rotulo="as cotas" aoConcluir={() => atualizarCotas(queryClient)} />
+                <Button variant="secundario" disabled={copiando} onClick={() => void copiar()}>Copiar do mês anterior</Button>
+                <Button onClick={() => setDialogo({})}>
+                  <Plus aria-hidden />
+                  Adicionar cota
+                </Button>
+              </div>
+            )}
+        </>
+      }
+    >
 
-      <div className="mt-6 rounded-xl border border-linha bg-superficie">
+      <div className="rounded-xl border border-linha bg-superficie">
         <div className="flex flex-wrap items-end gap-4 border-b border-linha p-4">
           <div className="grid gap-1.5">
             <Label htmlFor="cotas-mes">Mês</Label>
@@ -90,13 +99,14 @@ function Cotas() {
           </div>
           {/* o destino é de quem grava (adicionar e copiar); na consulta não há nada para gravar */}
           {!soConsulta && <p className="pb-2 text-sm text-apagado">Destino: {eu.unidade.sigla}</p>}
-          {aviso && <p role={aviso.erro ? 'alert' : 'status'} className={aviso.erro ? 'pb-2 text-sm text-alerta' : 'pb-2 text-sm text-apagado'}>{aviso.texto}</p>}
         </div>
 
-        {cotas.isPending && <p className="p-4 text-apagado">Carregando…</p>}
+        {cotas.isPending && <Espera className="p-4" />}
         {cotas.error && <p role="alert" className="p-4 text-alerta">{mensagemDe(cotas.error)}</p>}
         {cotas.data && cotas.data.length === 0 && (
-          <p className="p-4 text-apagado">Nenhuma cota em {mesPorExtenso(mes)}.{soConsulta ? '' : ' Use "Adicionar cota" ou "Copiar do mês anterior".'}</p>
+          <div className="px-4">
+            <Vazio titulo={`Nenhuma cota em ${mesPorExtenso(mes)}`} frase={soConsulta ? 'Não há cotas neste mês.' : 'Adicione uma cota ou copie as do mês anterior, pelos botões do alto.'} />
+          </div>
         )}
         {cotas.data && cotas.data.length > 0 && (
           <div className="overflow-x-auto">
@@ -128,7 +138,7 @@ function Cotas() {
           aoFechar={() => setDialogo(null)}
         />
       )}
-    </section>
+    </Moldura>
   );
 }
 
@@ -168,10 +178,10 @@ function LinhaCota({ c, aoEditar, aoRemover }: { c: Cota; aoEditar?: () => void;
       {aoEditar && aoRemover && (
         <td className="px-4 py-2.5">
           <span className="flex justify-end gap-1">
-            <Button type="button" size="icon" variant="ghost" aria-label={`Editar cota de ${nome}`} onClick={aoEditar}>
+            <Button type="button" size="icon" variant="discreto" aria-label={`Editar cota de ${nome}`} onClick={aoEditar}>
               <Pencil aria-hidden />
             </Button>
-            <Button type="button" size="icon" variant="ghost" aria-label={`Remover cota de ${nome}`} onClick={aoRemover}>
+            <Button type="button" size="icon" variant="discreto" aria-label={`Remover cota de ${nome}`} onClick={aoRemover}>
               <Trash2 aria-hidden />
             </Button>
           </span>
@@ -232,7 +242,7 @@ function CotaDialogo({ unidadeId, mes, cota, proximaPrioridade, aoFechar }: { un
             <div className="flex gap-4 text-sm">
               {(['interna', 'externa'] as const).map((o) => (
                 <label key={o} className="flex items-center gap-2">
-                  <input type="radio" name="origem" checked={origem === o} onChange={() => setOrigem(o)} className="size-4 accent-vinho" />
+                  <Radio name="origem" checked={origem === o} onChange={() => setOrigem(o)} />
                   {NOME_ORIGEM[o]}
                 </label>
               ))}

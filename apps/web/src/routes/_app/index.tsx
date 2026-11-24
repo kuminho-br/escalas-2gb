@@ -42,12 +42,12 @@ function Inicio() {
   const chegadaDosCartoes = fase === 'parada' ? undefined : cartoes ? 'entrando' : 'escondida';
   return (
     <div className="-mx-4 -my-6 md:-mx-8">
-      <section data-faixa-boas-vindas className="relative aspect-video overflow-hidden bg-[#1a0d0c] text-white md:aspect-[8/3]">
+      <section data-faixa-boas-vindas className="relative aspect-video overflow-hidden bg-tinta text-white md:aspect-[8/3]">
         {/* a cena final da animação do login: as linhas 300 a 876 da imagem na altura da faixa (177,78% = 1024/576; -52,08% = 300/576), encostada
             à direita. No computador (8:3) cabe a largura toda; no celular (16:9) fica a parte da direita. A animação pousa nesta mesma conta */}
         <img src="/boas-vindas.jpg" alt="" className="absolute top-[-52.0833%] right-0 h-[177.7778%] w-auto max-w-none" />
-        <div data-chegada={chegadaDaSaudacao} className="saudacao-da-chegada absolute inset-0 flex flex-col gap-1 bg-gradient-to-br from-[rgba(28,36,48,.88)] via-[rgba(28,36,48,.4)] to-transparent px-5 pt-6 md:px-12 md:pt-10">
-          <h1 ref={titulo} tabIndex={-1} className="origin-[0_60%] font-cond text-[28px] leading-[1.05] font-semibold outline-none md:text-[40px]">{`${saudacao(agora)}, ${eu.militar.postoGrad} ${eu.militar.nomeGuerra}`}</h1>
+        <div data-chegada={chegadaDaSaudacao} className="saudacao-da-chegada absolute inset-0 flex flex-col gap-1 bg-gradient-to-br from-tinta/90 via-tinta/40 to-transparent px-5 pt-6 md:px-12 md:pt-10">
+          <h1 ref={titulo} tabIndex={-1} className="origin-[0_60%] font-cond text-titulo leading-[1.05] font-semibold outline-none md:text-abertura">{`${saudacao(agora)}, ${eu.militar.postoGrad} ${eu.militar.nomeGuerra}`}</h1>
           <p className="text-sm text-white/90 md:text-base">{dataPorExtenso(agora)}</p>
         </div>
       </section>
@@ -73,7 +73,7 @@ function Cartao({ modulo, eu }: { modulo: Modulo; eu: Eu }) {
   const Icone = modulo.icone;
   const corpo = (
     <>
-      <span aria-hidden className="grid size-11 place-items-center rounded-full bg-[#F5E7E7] text-vinho md:size-12">
+      <span aria-hidden className="grid size-11 place-items-center rounded-full bg-passa text-vinho md:size-12">
         <Icone className="size-[22px] md:size-6" />
       </span>
       <h2 className="font-cond text-xl leading-[1.15] font-semibold md:text-2xl">{modulo.nome}</h2>

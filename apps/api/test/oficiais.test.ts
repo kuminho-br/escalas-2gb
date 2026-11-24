@@ -45,7 +45,11 @@ const tirar = async (mes: string, dia: string, letra: string) => {
   return api.pedir('gestorGb', 'DELETE', rota(mes, `/lancamentos/${t.alocacaoId}`));
 };
 const painel = async (): Promise<OficialNoSaldo[]> => (await api.pedir('gestorGb', 'GET', `/api/unidades/${api.ids.gb}/oficiais-saldo`)).json();
-const dono = (i: number) => NOMES.flatMap((n, k) => Array<string>(COTAS[k]!).fill(n))[i]!;
+// quem fica com cada lugar: a ordem das cotas, com quatro lugares do F trocados com quatro do A3 (que estão nos dias em que ele está presente). A contagem de
+// cada um não muda, e o saldo só conta lugares; a API recusa o lugar de quem está de férias no dia (6.30)
+const DONOS = NOMES.flatMap((n, k) => Array<string>(COTAS[k]!).fill(n));
+for (let k = 0; k < 4; k++) [DONOS[16 + k], DONOS[40 + k]] = [DONOS[40 + k]!, DONOS[16 + k]!];
+const dono = (i: number) => DONOS[i]!;
 const posicao = (i: number) => ({ dia: `2027-01-${String(Math.floor(i / 2) + 1).padStart(2, '0')}`, letra: i % 2 === 0 ? 'A' : 'B' });
 const doLugar = (e: EscalaDosOficiais, dia: string, letra: string) => e.turnos.find((t) => t.dia === dia && t.letra === letra)!;
 
@@ -213,6 +217,19 @@ describe('o mês de janeiro de 2027', () => {
     expect(rows).toEqual([{ origem: 'distribuicao', servico_id: rodada.saldo, n: 8 }]);
   });
 
+  it('6.29.2: o saldo previsto é o acumulado até o mês anterior mais os turnos de Saldo tirados menos o devido (com a parte quebrada), e muda a cada lançamento', async () => {
+    const e = await ler('2027-01');
+    const a1 = e.oficiais.find((o) => o.militarId === ids.a1)!;
+    const a2 = e.oficiais.find((o) => o.militarId === ids.a2)!;
+    expect(a1.escolhidos).toBe(8);
+    expect(a1.saldoPrevisto).toBeCloseTo(a1.saldoAnterior + 8 - a1.devido!, 6);
+    expect(a1.saldoPrevisto).not.toBe(a1.saldoAnterior);
+    expect(a2.saldoPrevisto).toBeCloseTo(a2.saldoAnterior - a2.devido!, 6);
+    // antes das cotas (sem devido), a prévia é o saldo que o oficial já traz
+    const antes = await ler('2027-03');
+    expect(antes.oficiais.every((o) => o.saldoPrevisto === o.saldoAnterior)).toBe(true);
+  });
+
   it('abrir de novo mantém os lançamentos', async () => {
     const e: EscalaDosOficiais = await (await abrir('2027-01')).json();
     expect(e.oficiais[0]!.escolhidos).toBe(8);
@@ -226,12 +243,15 @@ describe('o mês de janeiro de 2027', () => {
   });
 
   it('um afastamento lançado depois do lugar gera o aviso, e fechar continua 200', async () => {
-    // lança f no dia 20 (já de férias) para ver o aviso
-    expect((await lancar('2027-01', '2027-01-20', 'A', ids.f!)).status).toBe(200);
+    // lança a4 no dia 20 (ainda sem afastamento) e depois o afastamento cai em cima do lugar: o aviso aparece, e a API não recusa o que já estava lançado
+    expect((await lancar('2027-01', '2027-01-20', 'A', ids.a4!)).status).toBe(200);
+    const ferias = (await api.banco.query<{ id: string }>("select id from tipo_afastamento where nome = 'Férias'")).rows[0]!.id;
+    const af = await inserir(api.banco, 'afastamento', { militar_id: ids.a4, tipo_afastamento_id: ferias, inicio: '2027-01-20', fim: '2027-01-20' });
     const e = await ler('2027-01');
     expect(e.avisos).toEqual([
-      { dia: '2027-01-20', turnoId: rodada.saldoA, militarId: ids.f, texto: 'CAP F está afastado em 20/01 (Férias) e está no turno do dia. A escala pode ser fechada mesmo assim.' },
+      { dia: '2027-01-20', turnoId: rodada.saldoA, militarId: ids.a4, texto: 'CAP A4 está afastado em 20/01 (Férias) e está no turno do dia. A escala pode ser fechada mesmo assim.' },
     ]);
+    await api.banco.query('delete from afastamento where id = $1', [af]);
     // devolve o lugar: o resto do roteiro lança as cotas certas
     expect((await tirar('2027-01', '2027-01-20', 'A')).status).toBe(200);
   });

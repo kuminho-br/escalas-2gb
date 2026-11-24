@@ -13,6 +13,8 @@ import { Input } from '@/componentes/ui/input';
 import { hoje } from '@/lib/meses';
 import { nomeDoPapel } from '@/lib/papeis';
 import { dataBr, Secao } from './Secao';
+import { useConfirmar } from '@/componentes/resposta/useConfirmar';
+import { Espera } from '@/componentes/resposta/Espera';
 
 const SEM_EMAIL = 'Preencha o e-mail institucional para dar acesso.';
 
@@ -27,6 +29,7 @@ function textoDaSituacao(a: AcessoDoMilitar): string {
 /** Acesso ao sistema: a situação da conta, a senha provisória, desativar e os papéis (dar e encerrar). */
 export function AcessoAoSistema({ ficha }: { ficha: FichaMilitar }) {
   const queryClient = useQueryClient();
+  const confirmar = useConfirmar();
   const router = useRouter();
   const { data: acesso, error } = useQuery(consultaAcesso(ficha.id));
   const [erro, setErro] = useState<string | null>(null);
@@ -38,7 +41,7 @@ export function AcessoAoSistema({ ficha }: { ficha: FichaMilitar }) {
   const [aberto, setAberto] = useState<{ tipo: 'dar' } | { tipo: 'encerrar'; papelId: string } | null>(null);
 
   if (error) return <Secao titulo="Acesso ao sistema"><p role="alert" className="text-sm text-alerta">{mensagemDe(error)}</p></Secao>;
-  if (!acesso) return <Secao titulo="Acesso ao sistema"><p className="text-sm text-apagado">Carregando…</p></Secao>;
+  if (!acesso) return <Secao titulo="Acesso ao sistema"><Espera /></Secao>;
 
   // abrir ou fechar um formulário limpa o erro do anterior (ele não sobra na tela nem cai no campo do outro)
   const mudarFormulario = (novo: typeof aberto) => {
@@ -72,8 +75,8 @@ export function AcessoAoSistema({ ficha }: { ficha: FichaMilitar }) {
     }
   }
   const gerar = () => agir(async () => setSenha(await gerarSenhaProvisoria(ficha.id)));
-  const desativar = () => {
-    if (!window.confirm('Desativar o acesso? A pessoa deixa de entrar e as sessões abertas se encerram.')) return;
+  const desativar = async () => {
+    if (!(await confirmar({ titulo: 'Desativar o acesso?', texto: 'A pessoa deixa de entrar e as sessões abertas se encerram.', verbo: 'Desativar' }))) return;
     return agir(() => desativarAcesso(ficha.id));
   };
   async function copiar() {
@@ -97,7 +100,7 @@ export function AcessoAoSistema({ ficha }: { ficha: FichaMilitar }) {
         <div className="flex flex-wrap items-center gap-2">
           <Button type="button" disabled={!acesso.podeGerarSenha || ocupado} onClick={() => void gerar()}>Gerar senha provisória</Button>
           {acesso.podeDesativar && acesso.situacao !== 'sem-acesso' && acesso.situacao !== 'desativado' && (
-            <Button type="button" variant="outline" disabled={ocupado} onClick={() => void desativar()}>Desativar acesso</Button>
+            <Button type="button" variant="secundario" disabled={ocupado} onClick={() => void desativar()}>Desativar acesso</Button>
           )}
         </div>
         {!acesso.email && <p className="text-sm text-pendencia">{SEM_EMAIL}</p>}
@@ -151,7 +154,7 @@ export function AcessoAoSistema({ ficha }: { ficha: FichaMilitar }) {
             </div>
           )}
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => void copiar()}>{copiada ? 'Copiada' : 'Copiar'}</Button>
+            <Button type="button" variant="secundario" onClick={() => void copiar()}>{copiada ? 'Copiada' : 'Copiar'}</Button>
             <Button type="button" onClick={fecharSenha}>Já entreguei</Button>
           </DialogFooter>
         </DialogContent>
@@ -175,7 +178,7 @@ function LinhaDoPapel({ p, aberto, desligado, aoAbrir, aoFechar, aoEncerrar }: {
       <span className="font-medium">{nomeDoPapel(p.papel)}</span>
       <span>{p.unidadeSigla}</span>
       <span className="text-apagado">{p.ate ? `de ${dataBr(p.desde)} a ${dataBr(p.ate)}` : `desde ${dataBr(p.desde)}`}</span>
-      {p.podeEncerrar && (!p.ate || p.ate > hoje()) && !aberto && <Button type="button" size="xs" variant="ghost" className="ml-auto" disabled={desligado} onClick={() => { setAte(hoje()); aoAbrir(); }}>Encerrar</Button>}
+      {p.podeEncerrar && (!p.ate || p.ate > hoje()) && !aberto && <Button type="button" size="xs" variant="discreto" className="ml-auto" disabled={desligado} onClick={() => { setAte(hoje()); aoAbrir(); }}>Encerrar</Button>}
       {p.ultimoGestorAte && <span className="basis-full text-pendencia">Último gestor de {p.unidadeSigla}: o nível termina em {dataBr(p.ultimoGestorAte)}.</span>}
       {aberto && (
         <span className="flex basis-full flex-wrap items-end gap-2">
@@ -183,7 +186,7 @@ function LinhaDoPapel({ p, aberto, desligado, aoAbrir, aoFechar, aoEncerrar }: {
             <Input id={`ate-${p.id}`} type="date" value={ate} onChange={(e) => setAte(e.target.value)} className="w-44" />
           </Campo>
           <Button type="button" size="sm" onClick={() => void aoEncerrar(ate)}>Confirmar encerramento</Button>
-          <Button type="button" size="sm" variant="ghost" onClick={aoFechar}>Cancelar</Button>
+          <Button type="button" size="sm" variant="discreto" onClick={aoFechar}>Cancelar</Button>
         </span>
       )}
     </li>
@@ -213,7 +216,7 @@ function DarPapel({ acesso, erros, aberto, desligado, aoAbrir, aoFechar, aoDar }
     setAte('');
     aoAbrir();
   };
-  if (!aberto) return <div><Button type="button" variant="outline" size="sm" disabled={desligado} onClick={abrir}>Dar nível de acesso</Button></div>;
+  if (!aberto) return <div><Button type="button" variant="secundario" size="sm" disabled={desligado} onClick={abrir}>Dar nível de acesso</Button></div>;
   // o quinto nível vale em qualquer unidade menos a raiz, e só onde quem dá está acima (a API diz em `aceitaLateral`). A sigla que se repete
   // (a "1ª SB" de cada grupamento, sem o recuo da árvore) leva a unidade de cima: "1ª SB (2º GB)"
   const unidades = papel === 'gestor_lateral' ? acesso.unidadesParaPapel.filter((u) => u.aceitaLateral) : acesso.unidadesParaPapel;
@@ -238,12 +241,12 @@ function DarPapel({ acesso, erros, aberto, desligado, aoAbrir, aoFechar, aoDar }
       <Campo id="np-desde" rotulo="A partir de" erro={erros.desde}>
         <Input id="np-desde" type="date" value={desde} onChange={(e) => setDesde(e.target.value)} />
       </Campo>
-      <Campo id="np-ate" rotulo="Até (opcional)" erro={erros.ate}>
+      <Campo id="np-ate" rotulo="Até" opcional erro={erros.ate}>
         <Input id="np-ate" type="date" value={ate} onChange={(e) => setAte(e.target.value)} />
       </Campo>
       <div className="flex gap-2 sm:col-span-4">
         <Button type="submit" size="sm">Dar nível de acesso</Button>
-        <Button type="button" size="sm" variant="ghost" onClick={aoFechar}>Cancelar</Button>
+        <Button type="button" size="sm" variant="discreto" onClick={aoFechar}>Cancelar</Button>
       </div>
     </form>
   );

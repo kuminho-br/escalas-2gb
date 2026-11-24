@@ -24,9 +24,13 @@ export function unidadeDoPeculio(eu: Eu): { id: string; sigla: string } {
   return { id: eu.unidade.id, sigla: eu.unidade.sigla };
 }
 
-/** A unidade `u` está abaixo de alguma unidade em que a pessoa tem nível de acesso? (nunca a própria unidade do nível de acesso) */
+/**
+ * A unidade `u` está abaixo de alguma unidade em que a pessoa tem nível de acesso? (nunca a própria unidade do nível de acesso, salvo a raiz: ela não tem
+ * unidade de cima, e quem tem nível de acesso nela age sobre o Pecúlio dela mesma, como a API.)
+ */
 function abaixoDeUmNivelDeAcesso(eu: Pick<Eu, 'papeis'>, u: { id: string; caminho: string[] }): boolean {
-  return eu.papeis.some((p) => p.unidadeId !== u.id && u.caminho.includes(p.unidadeSigla));
+  const ehRaiz = u.caminho.length === 1;
+  return eu.papeis.some((p) => (p.unidadeId === u.id ? ehRaiz : u.caminho.includes(p.unidadeSigla)));
 }
 
 /**

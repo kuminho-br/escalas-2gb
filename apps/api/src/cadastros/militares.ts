@@ -20,7 +20,7 @@ import {
 } from 'contratos';
 import { cnhHabilitadas, diasDoMes } from 'dominio';
 import { Hono, type Context } from 'hono';
-import { CADASTRO, ehAdministrador, exigirAdministradorRaiz, exigirAlgumPapel, exigirPapel, exigirSessao, siglaDaUnidadeDeCima, temPapel, temPapelAcima, unidadeDoRegistro, type AmbienteApi } from '../acesso.ts';
+import { CADASTRO, ehAdministrador, exigirAdministradorRaiz, exigirAlgumPapel, exigirPapel, exigirSessao, siglaDaUnidadeDeCima, temNivelDeCima, temPapel, unidadeDoRegistro, type AmbienteApi } from '../acesso.ts';
 import type { Auth } from '../auth.ts';
 import { comUsuario, type Banco, type Consulta } from '../banco/banco.ts';
 import { hojeRecife } from '../datas.ts';
@@ -226,7 +226,7 @@ async function carregarFicha(c: Consulta, id: string, mes: string, usuarioId: st
     }
   }
   const podeEditar = {
-    peculio: lotacaoAtual ? await temPapelAcima(c, usuarioId, lotacaoAtual, CADASTRO, hoje) : admin,
+    peculio: lotacaoAtual ? await temNivelDeCima(c, usuarioId, lotacaoAtual, CADASTRO, hoje) : admin,
     escala,
     unidadeDeCima: lotacaoAtual ? await siglaDaUnidadeDeCima(c, lotacaoAtual) : null,
   };
@@ -327,17 +327,19 @@ async function unidadeAtualDoMilitar(c: Consulta, militarId: string, hoje: strin
 /** 403 do bloco do Pecúlio: só quem tem papel numa unidade acima da lotação altera. `quem` completa a frase ("Este campo", "Os afastamentos"...). */
 async function exigirDonoDoPeculio(c: Ctx, unidadeId: string, frase: (cima: string) => string): Promise<Response | null> {
   const banco = c.get('banco');
-  if (await temPapelAcima(banco, c.get('usuarioId'), unidadeId, CADASTRO, hojeRecife())) return null;
+  if (await temNivelDeCima(banco, c.get('usuarioId'), unidadeId, CADASTRO, hojeRecife())) return null;
   const cima = await siglaDaUnidadeDeCima(banco, unidadeId);
-  return c.json({ erro: frase(cima ?? 'uma unidade acima') }, 403);
+  // a raiz não tem unidade de cima: a frase fala do nível de acesso nela mesma, nunca de um "nível acima"
+  return c.json({ erro: cima ? frase(cima) : FRASE_DA_RAIZ }, 403);
 }
+const FRASE_DA_RAIZ = 'Esta alteração é de quem tem nível de acesso na própria raiz.';
 const FRASE_CAMPO = (cima: string) => `Este campo é alterado por quem tem nível de acesso no ${cima}.`;
 const FRASE_LOTACAO = (cima: string) => `A lotação é alterada por quem tem nível de acesso no ${cima}.`;
 const FRASE_CADASTRAR = (cima: string) => `Cadastrar militar é com quem tem nível de acesso no ${cima}.`;
 const FRASE_AFASTAMENTOS = (cima: string) => `Os afastamentos são alterados por quem tem nível de acesso no ${cima}.`;
 
-/** Os campos da ficha que são do Pecúlio (o resto do PATCH é da escala: motorista, CNH e voluntário JES). */
-const CAMPOS_DO_PECULIO = ['postoGradId', 'nomeCompleto', 'nomeGuerra', 'antiguidade', 'sexo', 'nascimento', 'cpf', 'endereco', 'telefone', 'email', 'emailPessoal', 'comportamento', 'comportamentoBoletim', 'funcaoMilitarId', 'abonoPermanencia'] as const;
+/** Os campos da ficha que são do Pecúlio, de quem tem nível de acesso acima da lotação. O resto do PATCH é da escala (a SB edita): as habilitações, motorista e CNH. O voluntário JES é da SP (6.32). */
+const CAMPOS_DO_PECULIO = ['postoGradId', 'nomeCompleto', 'nomeGuerra', 'antiguidade', 'sexo', 'nascimento', 'cpf', 'endereco', 'telefone', 'email', 'emailPessoal', 'comportamento', 'comportamentoBoletim', 'funcaoMilitarId', 'abonoPermanencia', 'voluntarioJes'] as const;
 
 const militarDoAfastamento = async (c: Consulta, afastamentoId: string): Promise<string> =>
   (await c.query<{ militar_id: string }>('select militar_id from afastamento where id = $1', [afastamentoId])).rows[0]!.militar_id;
@@ -437,9 +439,29 @@ export function rotasMilitares(dep: { banco: Banco; auth: Auth }): Hono<Ambiente
         order by p.ordem desc, m.antiguidade asc nulls last, m.nome_guerra`,
       [u, primeiro, ultimo, diaDeReferencia(mes)],
     );
-    const afast = await afastamentosNoMes(dep.banco, rows.map((m) => m.id), mes);
+    // os externos (6.33): militares de outra unidade trazidos para a escala daqui, vigentes no dia de referência; o resto da linha é a do período deles na lotação de origem
+    const externos = (
+      await dep.banco.query<LinhaBanco & { lotacao_sigla: string | null }>(
+        `${SELECT_MILITAR}, un.sigla as lotacao_sigla
+           from vinculo_externo ve
+           join militar m on m.id = ve.militar_id
+           join posto_grad p on p.id = m.posto_grad_id
+           left join rastreio l on l.militar_id = m.id and l.id = ${PERIODO_DO_DIA('m.id')}
+           left join unidade un on un.id = l.unidade_id
+           left join equipe e on e.id = l.equipe_id
+           left join situacao_militar sm on sm.id = l.situacao_id
+          where ve.unidade_id = $1 and ve.desde <= $3 and (ve.ate is null or ve.ate >= $2)
+          order by p.ordem desc, m.antiguidade asc nulls last, m.nome_guerra`,
+        [u, primeiro, ultimo, diaDeReferencia(mes)],
+      )
+    ).rows.filter((x) => !rows.some((m) => m.id === x.id));
+    const afast = await afastamentosNoMes(dep.banco, [...rows, ...externos].map((m) => m.id), mes);
     const repetidas = repetidasPorAntiguidade(rows.filter((m) => m.ativo).map((m) => ({ id: m.id, nomeGuerra: m.nome_guerra, antiguidade: m.antiguidade })));
-    return c.json(rows.map((m) => linhaDe(m, afast.filter((a) => a.militar_id === m.id), mes, repetidas.get(m.id))));
+    return c.json([
+      ...rows.map((m) => linhaDe(m, afast.filter((a) => a.militar_id === m.id), mes, repetidas.get(m.id))),
+      // o cadastro incompleto do externo é da unidade dele, e não daqui: sem pendências, com a equipe "Externo" e a unidade de origem
+      ...externos.map((m) => ({ ...linhaDe(m, afast.filter((a) => a.militar_id === m.id), mes), equipe: 'Externo', pendencias: [], externo: { lotacaoSigla: m.lotacao_sigla ?? '' } })),
+    ]);
   });
 
   // O módulo Pecúlio: os militares lotados em :u e nas unidades de baixo no mês, com os dados de contato, e os aniversariantes do mês.
@@ -471,7 +493,7 @@ export function rotasMilitares(dep: { banco: Banco; auth: Auth }): Hono<Ambiente
     const hoje = hojeRecife();
     const admin = await ehAdministrador(dep.banco, c.get('usuarioId'), hoje);
     const veDaUnidade = new Map<string, boolean>();
-    for (const un of new Set(rows.map((m) => m.lotacao_id))) veDaUnidade.set(un, admin || (await temPapelAcima(dep.banco, c.get('usuarioId'), un, CADASTRO, hoje)));
+    for (const un of new Set(rows.map((m) => m.lotacao_id))) veDaUnidade.set(un, admin || (await temNivelDeCima(dep.banco, c.get('usuarioId'), un, CADASTRO, hoje)));
     const veNascimento = (m: { lotacao_id: string }) => veDaUnidade.get(m.lotacao_id) === true;
     const lista: ListaDoPeculio = {
       militares: rows.map((m) => ({
@@ -713,17 +735,19 @@ export function rotasMilitares(dep: { banco: Banco; auth: Auth }): Hono<Ambiente
       const negadoAberta = await exigirPapel(c, unidadeAberta, CADASTRO);
       if (negadoAberta) return negadoAberta;
     }
-    // mudar a LOTAÇÃO (a unidade) é do Pecúlio: papel acima da lotação atual. Equipe e jornada, com a lotação travada, são da escala (papel na lotação ou acima)
+    // mudar a LOTAÇÃO (a unidade), a equipe e a jornada é do Pecúlio: papel acima da lotação atual (a SB vê a equipe e a jornada no histórico de rastreio, mas não as muda)
     const lotacaoAtual = await unidadeAtualDoMilitar(dep.banco, id, hojeRecife());
     if (lotacaoAtual && d.unidadeId !== (unidadeAberta ?? lotacaoAtual)) {
       const naoEDono = await exigirDonoDoPeculio(c, lotacaoAtual, FRASE_LOTACAO);
       if (naoEDono) return naoEDono;
     }
     // o quadro e a situação são do Pecúlio, como a lotação: só quem tem nível de acesso acima da lotação os muda
-    const aberta0 = (await dep.banco.query<{ quadro_id: string | null; situacao_id: string }>('select quadro_id, situacao_id from rastreio where militar_id = $1 and ate is null', [id])).rows[0];
+    const aberta0 = (await dep.banco.query<{ quadro_id: string | null; situacao_id: string; equipe_id: string | null; jornada: string }>('select quadro_id, situacao_id, equipe_id, jornada from rastreio where militar_id = $1 and ate is null', [id])).rows[0];
     const mudaQuadro = d.quadroId !== undefined && d.quadroId !== (aberta0?.quadro_id ?? null);
     const mudaSituacao = d.situacaoId !== undefined && d.situacaoId !== aberta0?.situacao_id;
-    if (mudaQuadro || mudaSituacao) {
+    const mudaEquipe = (d.equipeId ?? null) !== (aberta0?.equipe_id ?? null);
+    const mudaJornada = d.jornada !== aberta0?.jornada;
+    if (mudaQuadro || mudaSituacao || mudaEquipe || mudaJornada) {
       const naoEDono = await exigirDonoDoPeculioDoMilitar(c, id, FRASE_CAMPO);
       if (naoEDono) return naoEDono;
     }

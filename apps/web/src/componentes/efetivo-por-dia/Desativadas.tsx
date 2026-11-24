@@ -14,7 +14,7 @@ export function Desativadas({ guarnicoes, salvando, aoReativar }: { guarnicoes: 
               <p className="truncate font-cond text-base leading-tight font-semibold">{g.nome}</p>
               {g.viatura && <p className="truncate text-xs text-apagado">{g.viatura}</p>}
             </div>
-            {aoReativar && <Button type="button" variant="outline" size="sm" aria-label={`Reativar ${g.nome}`} disabled={salvando} onClick={() => aoReativar(g.guarnicaoId)}>Reativar</Button>}
+            {aoReativar && <Button type="button" variant="secundario" size="sm" aria-label={`Reativar ${g.nome}`} disabled={salvando} onClick={() => aoReativar(g.guarnicaoId)}>Reativar</Button>}
           </li>
         ))}
       </ul>
