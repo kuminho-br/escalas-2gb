@@ -95,11 +95,11 @@ Design: `docs/superpowers/specs/2026-11-21-usuarios-e-modulos-design.md`. Plano:
 | 6 | Retorno da validação com mockup | absorvida na refatoração |
 | 15 a 18 | Pendências antes da fase 7: abono e função; três lotes de acabamento | 15, 16 e 17 (parte 1) mescladas (#146, #149, #166); 17 (parte 2) e 18 a fazer |
 | 19 | Correções de interface sem desenho (N0) | mesclada (#128) |
-| 20 e 21 | Fundação da interface: sistema de estilo (N1); resposta do sistema (N2) | planejadas |
+| 20 e 21 | Fundação da interface: sistema de estilo (N1); resposta do sistema (N2) | paradas por decisão do usuário (24/11); a 6.20 tem tokens e guarda na branch |
 | 22 a 24 | Oficiais; mover na hierarquia; admin como militar | mescladas (#157, #161, #162) |
 | 25 e 26 | Árvore genérica (0035); configurações gerais | 25 mesclada (#167); 26 em execução |
 | 27 e 28 | Oficiais como escala comum (0036); dias vermelhos (0037) | mescladas (#172, #173) |
-| 29 a 30 | Tela de escalar dos oficiais (29, 29.1, 29.2); memorial de cálculo e pendências (30) | 29 e 29.1 mescladas (#177, #180); 29.2 e 30 a seguir |
+| 29 a 31 | Tela de escalar dos oficiais (29 a 29.2); memorial e pendências (30, 0039); raiz sem "nível acima" e dia vermelho (31) | mescladas (#177, #180, #183, #184, #185) |
 
 **Fora:** e-mail, usuários acima do GB (fase 11), Visualização (fase 7).
 
