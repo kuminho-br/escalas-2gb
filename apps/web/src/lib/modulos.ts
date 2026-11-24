@@ -21,20 +21,22 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import { ehGestorNaUnidade, ehMilitarComum, type Eu, type EuDaApi } from '@/api/eu';
+import { mesPorExtenso } from '@/lib/saudacao';
 
 export type Item = { nome: string; icone: LucideIcon; para?: LinkProps['to']; /** O item só aparece para quem passa neste teste (sem ele, todos veem). */ ve?: (eu: Eu | EuDaApi) => boolean };
 export type IdModulo = 'escalas' | 'peculio' | 'visualizacao' | 'minha-ficha' | 'configuracoes' | 'estrutura';
 
 /**
- * Um módulo do sistema: o cartão da tela inicial e o trilho de dentro dele. `itens` são os blocos do trilho (vazio = sem trilho) e `pe` os itens
- * de baixo (configurações, ajuda). `rota` null = ainda não existe (o cartão mostra "Em breve").
+ * Um módulo do sistema: o atalho da tela inicial e o trilho de dentro dele. `itens` são os blocos do trilho (vazio = sem trilho) e `pe` os itens
+ * de baixo (configurações, ajuda). `rota` null = ainda não existe (o atalho não é link, e a situação diz quando chega).
  */
 export interface Modulo {
   id: IdModulo;
   nome: string;
-  descricao: string;
+  /** A linha de situação do atalho (6.42), montada só com o que a tela já sabe: a unidade de trabalho e o dia de hoje. Sem consulta nova. */
+  situacao(eu: Eu, agora: Date): string;
   rota: LinkProps['to'] | null;
-  /** Para onde o cartão leva esta pessoa, quando não é a `rota` de todos (o Pecúlio leva quem não tem nível de acesso direto à Consulta). */
+  /** Para onde o atalho leva esta pessoa, quando não é a `rota` de todos (o Pecúlio leva quem não tem nível de acesso direto à Consulta). */
   rotaDe?(eu: Eu | EuDaApi): LinkProps['to'];
   icone: LucideIcon;
   ve(eu: Eu | EuDaApi): boolean;
@@ -54,7 +56,8 @@ export const MODULOS: Modulo[] = [
   {
     id: 'escalas',
     nome: 'Confecção de escalas',
-    descricao: 'Grade geral, escala do mês, voluntariado e o cadastro da seção.',
+    // a unidade não entra na frase: já está no Topo, e o artigo erraria o gênero ("da 2º GB")
+    situacao: (eu, agora) => `Escalas de ${mesPorExtenso(agora)}${eu.soConsulta ? ', só para ver' : ''}`,
     rota: '/grade',
     icone: LayoutGrid,
     // quem não tem nível de acesso mas vê a escala em montagem de alguma unidade (as camadas de visão) também a abre, só para consulta
@@ -88,7 +91,7 @@ export const MODULOS: Modulo[] = [
   {
     id: 'peculio',
     nome: 'Pecúlio',
-    descricao: 'Dados de contato, aniversariantes e pendências do cadastro, e a consulta de militares da corporação.',
+    situacao: (eu) => (temPapel(eu) ? 'Contatos e cadastros' : 'Consulta de militares'),
     rota: '/peculio',
     rotaDe: (eu) => (temPapel(eu) ? '/peculio' : '/consulta'),
     icone: Contact,
@@ -99,11 +102,11 @@ export const MODULOS: Modulo[] = [
     ]],
   },
   // a árvore de unidades (entrega 6.26): quem tem nível de acesso a vê; só quem tem poder sobre ela a edita (cada unidade diz o que a pessoa pode fazer)
-  { id: 'estrutura', nome: 'Estrutura', descricao: 'A árvore de unidades: criar, renomear, mover e extinguir.', rota: '/estrutura', icone: Network, ve: temPapel, itens: [] },
-  { id: 'visualizacao', nome: 'Visualização de escalas', descricao: 'Ver a escala publicada do mês.', rota: null, icone: Eye, ve: () => true, itens: [] },
-  { id: 'minha-ficha', nome: 'Minha ficha', descricao: 'Seus dados e o seu telefone.', rota: '/minha-ficha', icone: UserRound, ve: () => true, itens: [] },
+  { id: 'estrutura', nome: 'Estrutura', situacao: () => 'A árvore de unidades', rota: '/estrutura', icone: Network, ve: temPapel, itens: [] },
+  { id: 'visualizacao', nome: 'Visualização de escalas', situacao: () => 'Chega com a fase 7', rota: null, icone: Eye, ve: () => true, itens: [] },
+  { id: 'minha-ficha', nome: 'Minha ficha', situacao: () => 'Seus dados e o seu telefone', rota: '/minha-ficha', icone: UserRound, ve: () => true, itens: [] },
   // o painel das configurações gerais (entrega 6.26): todos abrem, e cada seção só aparece para quem a vê; as configurações da escala ficam no módulo de escalas
-  { id: 'configuracoes', nome: 'Configurações', descricao: 'Suas preferências e as configurações gerais do sistema.', rota: '/configuracoes', icone: Settings, ve: () => true, itens: [] },
+  { id: 'configuracoes', nome: 'Configurações', situacao: () => 'Suas preferências', rota: '/configuracoes', icone: Settings, ve: () => true, itens: [] },
 ];
 
 const porId = (id: IdModulo) => MODULOS.find((m) => m.id === id)!;
