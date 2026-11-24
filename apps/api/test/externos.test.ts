@@ -144,3 +144,39 @@ describe('tirar o militar externo da escala', () => {
     expect((await api.banco.query<{ n: string }>('select count(*) as n from alocacao')).rows[0]!.n).toBe(antes);
   });
 });
+
+describe('o militar externo na Consulta e na lista de Militares (6.33, Task 3)', () => {
+  const fichaDaConsulta = async (id: string, quem: 'escalante' | 'gestorGb' | 'admin', unidadeId?: string) =>
+    (await api.pedir(quem, 'GET', `/api/consulta/militares/${id}${unidadeId ? `?unidade=${unidadeId}` : ''}`)).json();
+  const lista = async (quem: 'escalante' | 'gestorGb' = 'escalante') => (await api.pedir(quem, 'GET', `/api/unidades/${api.ids.secao}/militares`)).json();
+
+  it('na ficha da Consulta, o gestor da unidade de trabalho vê `externo` (sem vínculo: pode trazer; com vínculo aberto: pode tirar)', async () => {
+    const id = await militarDe();
+    const antes = await fichaDaConsulta(id, 'gestorGb', api.ids.secao);
+    expect(antes.externo).toEqual({ unidadeSigla: '1ª SB', vinculoId: null });
+    const v: MilitarExterno = await (await trazer(id)).json();
+    const depois = await fichaDaConsulta(id, 'gestorGb', api.ids.secao);
+    expect(depois.externo).toEqual({ unidadeSigla: '1ª SB', vinculoId: v.vinculoId });
+  });
+
+  it('o auxiliar, quem é da própria unidade (ou de baixo) e a ficha pedida sem a unidade de trabalho não recebem `externo`', async () => {
+    const deFora = await militarDe();
+    expect((await fichaDaConsulta(deFora, 'escalante', api.ids.secao)).externo).toBeUndefined();
+    expect((await fichaDaConsulta(deFora, 'gestorGb')).externo).toBeUndefined();
+    const daUnidade = await militarDe(api.ids.secao);
+    expect((await fichaDaConsulta(daUnidade, 'gestorGb', api.ids.secao)).externo).toBeUndefined();
+    // o 2º GB recebe o militar da 2ª SB (uma unidade de baixo dele): nada a trazer
+    expect((await fichaDaConsulta(deFora, 'gestorGb', api.ids.gb)).externo).toBeUndefined();
+  });
+
+  it('a lista de Militares da unidade traz os externos vigentes: equipe "Externo", a lotação de origem e nenhuma pendência de cadastro; tirar os faz sumir', async () => {
+    const id = await militarDe();
+    const v: MilitarExterno = await (await trazer(id)).json();
+    const linha = (await lista()).find((l: { id: string }) => l.id === id);
+    expect(linha).toMatchObject({ id, equipe: 'Externo', externo: { lotacaoSigla: '2ª SB' }, pendencias: [] });
+    // quem é da unidade não tem a chave
+    expect((await lista()).filter((l: { externo?: unknown }) => l.externo === undefined).length).toBeGreaterThan(0);
+    await api.pedir('gestorGb', 'DELETE', `/api/unidades/${api.ids.secao}/externos/${v.vinculoId}`);
+    expect((await lista()).some((l: { id: string }) => l.id === id)).toBe(false);
+  });
+});

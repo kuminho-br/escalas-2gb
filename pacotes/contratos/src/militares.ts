@@ -195,6 +195,8 @@ export type LinhaMilitar = {
   pendencias: string[];
   /** O dia em que a lotação que a lista mostra começa, quando ele ainda não chegou ('Lotação a partir de dd/mm/aaaa'); null (ou ausente) se já valia. */
   lotacaoAPartirDe?: string | null;
+  /** Militar externo (6.33): de outra unidade, trazido para a escala daqui; `lotacaoSigla` é a unidade de origem dele. Ausente para quem é da unidade. */
+  externo?: { lotacaoSigla: string };
 };
 
 /** Uma linha do módulo Pecúlio: o militar lotado na unidade (ou numa de baixo) com os dados de contato e as pendências do cadastro. */

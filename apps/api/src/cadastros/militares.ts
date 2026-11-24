@@ -439,9 +439,29 @@ export function rotasMilitares(dep: { banco: Banco; auth: Auth }): Hono<Ambiente
         order by p.ordem desc, m.antiguidade asc nulls last, m.nome_guerra`,
       [u, primeiro, ultimo, diaDeReferencia(mes)],
     );
-    const afast = await afastamentosNoMes(dep.banco, rows.map((m) => m.id), mes);
+    // os externos (6.33): militares de outra unidade trazidos para a escala daqui, vigentes no dia de referência; o resto da linha é a do período deles na lotação de origem
+    const externos = (
+      await dep.banco.query<LinhaBanco & { lotacao_sigla: string | null }>(
+        `${SELECT_MILITAR}, un.sigla as lotacao_sigla
+           from vinculo_externo ve
+           join militar m on m.id = ve.militar_id
+           join posto_grad p on p.id = m.posto_grad_id
+           left join rastreio l on l.militar_id = m.id and l.id = ${PERIODO_DO_DIA('m.id')}
+           left join unidade un on un.id = l.unidade_id
+           left join equipe e on e.id = l.equipe_id
+           left join situacao_militar sm on sm.id = l.situacao_id
+          where ve.unidade_id = $1 and ve.desde <= $3 and (ve.ate is null or ve.ate >= $2)
+          order by p.ordem desc, m.antiguidade asc nulls last, m.nome_guerra`,
+        [u, primeiro, ultimo, diaDeReferencia(mes)],
+      )
+    ).rows.filter((x) => !rows.some((m) => m.id === x.id));
+    const afast = await afastamentosNoMes(dep.banco, [...rows, ...externos].map((m) => m.id), mes);
     const repetidas = repetidasPorAntiguidade(rows.filter((m) => m.ativo).map((m) => ({ id: m.id, nomeGuerra: m.nome_guerra, antiguidade: m.antiguidade })));
-    return c.json(rows.map((m) => linhaDe(m, afast.filter((a) => a.militar_id === m.id), mes, repetidas.get(m.id))));
+    return c.json([
+      ...rows.map((m) => linhaDe(m, afast.filter((a) => a.militar_id === m.id), mes, repetidas.get(m.id))),
+      // o cadastro incompleto do externo é da unidade dele, e não daqui: sem pendências, com a equipe "Externo" e a unidade de origem
+      ...externos.map((m) => ({ ...linhaDe(m, afast.filter((a) => a.militar_id === m.id), mes), equipe: 'Externo', pendencias: [], externo: { lotacaoSigla: m.lotacao_sigla ?? '' } })),
+    ]);
   });
 
   // O módulo Pecúlio: os militares lotados em :u e nas unidades de baixo no mês, com os dados de contato, e os aniversariantes do mês.

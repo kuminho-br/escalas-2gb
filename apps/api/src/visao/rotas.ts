@@ -79,7 +79,9 @@ export function rotasVisao(dep: { banco: Banco; auth: Auth; limiteDeBuscas?: num
 
   r.get('/consulta/militares/:id', async (c) => {
     const id = c.req.param('id');
-    const ficha = UUID.test(id) ? await fichaDeConsulta(c.get('banco'), c.get('usuarioId'), id, hojeRecife()) : null;
+    // `?unidade=`: a unidade de trabalho de quem pede, para a ficha dizer se ele pode trazer o militar para a escala dela (o militar externo)
+    const unidadeDeTrabalho = c.req.query('unidade');
+    const ficha = UUID.test(id) ? await fichaDeConsulta(c.get('banco'), c.get('usuarioId'), id, hojeRecife(), unidadeDeTrabalho && UUID.test(unidadeDeTrabalho) ? unidadeDeTrabalho : undefined) : null;
     return ficha ? c.json(ficha) : c.json({ erro: 'Militar não encontrado.' }, 404);
   });
 
