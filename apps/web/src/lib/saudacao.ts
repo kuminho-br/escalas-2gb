@@ -6,6 +6,11 @@ export function saudacao(agora: Date): 'Bom dia' | 'Boa tarde' | 'Boa noite' {
   return hora < 12 ? 'Bom dia' : hora < 18 ? 'Boa tarde' : 'Boa noite';
 }
 
+/** "novembro", no dia de Recife. */
+export function mesPorExtenso(agora: Date): string {
+  return new Intl.DateTimeFormat('pt-BR', { month: 'long', timeZone: FUSO }).format(agora);
+}
+
 /** "Quinta-feira, 19 de novembro de 2026", no dia de Recife. */
 export function dataPorExtenso(agora: Date): string {
   const texto = new Intl.DateTimeFormat('pt-BR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: FUSO }).format(agora);

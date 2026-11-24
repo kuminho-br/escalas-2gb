@@ -1,6 +1,5 @@
 import { createFileRoute, Link, redirect, useNavigate } from '@tanstack/react-router';
 import { useEffect, useRef, useState, type RefObject } from 'react';
-import { ArrowRight } from 'lucide-react';
 import type { Eu } from '@/api/eu';
 import { MODULOS, type Modulo } from '@/lib/modulos';
 import { buscaDaGrade, temBuscaDaGrade, type BuscaDaGrade } from '@/lib/busca-da-grade';
@@ -107,45 +106,36 @@ function Inicio() {
       {aviso === 'outro-papel' && (
         <p role="status" className="mt-4 rounded-controle bg-pendencia-fundo px-3 py-2 text-sm text-pendencia">Essa área é de outro nível de acesso.</p>
       )}
-      <ul className="grid gap-3 pt-5 pb-8 md:grid-cols-3 md:gap-[18px] md:pt-7 md:pb-10">
-        {MODULOS.filter((m) => m.ve(eu)).map((m, i) => (
-          <li key={m.id} data-chegada={chegadaDosCartoes} style={chegadaDosCartoes ? { animationDelay: `${i * 135}ms` } : undefined} className="cartao-da-chegada flex">
-            <Cartao modulo={m} eu={eu} />
-          </li>
-        ))}
-      </ul>
+      {/* os módulos, um atalho por módulo que a pessoa pode usar: o nome e uma linha do que está acontecendo nele */}
+      <nav aria-label="Módulos" className="pt-5 pb-8 md:pt-6 md:pb-10">
+        <ul className="grid grid-cols-2 gap-2 md:grid-cols-3">
+          {MODULOS.filter((m) => m.ve(eu)).map((m, i) => (
+            <li key={m.id} data-chegada={chegadaDosCartoes} style={chegadaDosCartoes ? { animationDelay: `${i * 135}ms` } : undefined} className="cartao-da-chegada flex min-w-0">
+              <Atalho modulo={m} eu={eu} agora={agora} />
+            </li>
+          ))}
+        </ul>
+      </nav>
     </div>
   );
 }
 
-const classeDoCartao =
-  'flex w-full flex-col gap-2.5 rounded-xl border border-transparent bg-superficie p-4 shadow-[0_1px_2px_rgba(28,36,48,.08),0_8px_24px_rgba(28,36,48,.08)] md:p-[22px]';
+const classeDoAtalho = 'grid w-full grid-cols-[28px_minmax(0,1fr)] items-center gap-x-2 rounded-controle border px-2.5 py-2 md:min-h-16 md:grid-cols-[36px_minmax(0,1fr)] md:gap-x-3 md:px-3.5 md:py-2.5';
 
-function Cartao({ modulo, eu }: { modulo: Modulo; eu: Eu }) {
+/** Um atalho: o ícone, o nome do módulo e a linha de situação. O módulo que ainda não existe não é link: fica tracejado, e a situação diz quando chega. */
+function Atalho({ modulo, eu, agora }: { modulo: Modulo; eu: Eu; agora: Date }) {
   const rota = modulo.rotaDe?.(eu) ?? modulo.rota;
   const Icone = modulo.icone;
   const corpo = (
     <>
-      <span aria-hidden className="grid size-11 place-items-center rounded-full bg-passa text-vinho md:size-12">
-        <Icone className="size-[22px] md:size-6" />
-      </span>
-      <h2 className="font-cond text-xl leading-[1.15] font-semibold md:text-2xl">{modulo.nome}</h2>
-      <p className="text-sm text-apagado md:text-base">{modulo.descricao}</p>
-      <span className="mt-auto flex items-center justify-between gap-2 border-t border-linha pt-3 text-sm font-medium">
-        {rota ? (
-          <>
-            Abrir
-            <ArrowRight className="size-[18px] text-vinho" aria-hidden />
-          </>
-        ) : (
-          'Em breve'
-        )}
-      </span>
+      <Icone aria-hidden className="row-span-2 size-[22px] justify-self-center" />
+      <b className="font-cond text-nome leading-5 font-semibold">{modulo.nome}</b>
+      <small className="text-apoio leading-[18px] text-apagado md:truncate">{modulo.situacao(eu, agora)}</small>
     </>
   );
-  if (!rota) return <div className={`${classeDoCartao} opacity-75`}>{corpo}</div>;
+  if (!rota) return <div className={`${classeDoAtalho} border-dashed border-encaixe text-apagado`}>{corpo}</div>;
   return (
-    <Link to={rota} className={`${classeDoCartao} transition-colors hover:border-vinho focus-visible:outline-2 focus-visible:outline-tinta motion-reduce:transition-none`}>
+    <Link to={rota} className={`${classeDoAtalho} border-linha bg-superficie text-tinta transition-colors hover:border-encaixe hover:bg-passa motion-reduce:transition-none [&>svg]:text-vinho`}>
       {corpo}
     </Link>
   );

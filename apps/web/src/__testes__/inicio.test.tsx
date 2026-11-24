@@ -101,28 +101,57 @@ describe('tela inicial', () => {
     });
   });
 
-  it('mostra um cartão por módulo visível; Visualização sem link e com "Em breve"', async () => {
+  // 6.42: os cartões grandes viram uma fila de atalhos, cada um com o nome do módulo e uma linha de situação montada com o que a tela já sabe
+  it('mostra um atalho por módulo visível, num nav "Módulos", com a situação da unidade e do mês; Visualização sem link e com "Chega com a fase 7"', async () => {
+    vi.useFakeTimers({ toFake: ['Date'], now: new Date('2026-11-19T13:30:00Z') });
     simularApi({ '/api/eu': { status: 200, corpo: comPapel } });
     abrir('/');
     await screen.findByRole('heading', { level: 1 });
-    expect(screen.getByRole('link', { name: /Confecção de escalas/ })).toHaveAttribute('href', '/grade');
-    expect(screen.getByRole('link', { name: /Pecúlio/ })).toHaveAttribute('href', '/peculio');
-    expect(screen.getByRole('link', { name: /Estrutura/ })).toHaveAttribute('href', '/estrutura');
-    // a Consulta de militares não é mais um cartão: é uma tela do Pecúlio
-    expect(screen.queryByRole('link', { name: /^Consulta de militares/ })).toBeNull();
-    expect(screen.getByRole('link', { name: /Minha ficha/ })).toHaveAttribute('href', '/minha-ficha');
+    const nav = screen.getByRole('navigation', { name: 'Módulos' });
+    expect(within(nav).getByRole('link', { name: /Confecção de escalas/ })).toHaveAttribute('href', '/grade');
+    // a unidade não entra na frase: já está no Topo, e o artigo erraria o gênero ("da 2º GB")
+    expect(within(nav).getByRole('link', { name: /Confecção de escalas/ })).toHaveTextContent('Escalas de novembro');
+    expect(within(nav).getByRole('link', { name: /Confecção de escalas/ })).not.toHaveTextContent('1ª SB');
+    expect(within(nav).getByRole('link', { name: /Pecúlio/ })).toHaveAttribute('href', '/peculio');
+    expect(within(nav).getByRole('link', { name: /Pecúlio/ })).toHaveTextContent('Contatos e cadastros');
+    expect(within(nav).getByRole('link', { name: /Estrutura/ })).toHaveAttribute('href', '/estrutura');
+    // a Consulta de militares não é um atalho: é uma tela do Pecúlio
+    expect(within(nav).queryByRole('link', { name: /^Consulta de militares/ })).toBeNull();
+    expect(within(nav).getByRole('link', { name: /Minha ficha/ })).toHaveAttribute('href', '/minha-ficha');
     const visualizacao = screen.getByText('Visualização de escalas').closest('li')!;
     expect(within(visualizacao).queryByRole('link')).toBeNull();
-    expect(within(visualizacao).getByText('Em breve')).toBeInTheDocument();
+    expect(within(visualizacao).getByText('Chega com a fase 7')).toBeInTheDocument();
+    // saíram os cartões grandes: nenhum h2 de módulo, nenhum "Abrir"
+    expect(within(nav).queryByRole('heading')).toBeNull();
+    expect(within(nav).queryByText('Abrir')).toBeNull();
   });
 
-  it('o militar comum vê quatro cartões: Pecúlio (que leva direto à Consulta), Visualização, Minha ficha e Configurações', async () => {
+  it('o militar comum vê quatro atalhos: Pecúlio (que leva direto à Consulta), Visualização, Minha ficha e Configurações (Review Focus 5)', async () => {
     simularApi({ '/api/eu': { status: 200, corpo: comum } });
     abrir('/');
     await screen.findByRole('heading', { level: 1 });
-    expect(within(screen.getByRole('main')).getAllByRole('listitem').map((li) => li.querySelector('h2')?.textContent)).toEqual(['Pecúlio', 'Visualização de escalas', 'Minha ficha', 'Configurações']);
-    expect(screen.getByRole('link', { name: /Pecúlio/ })).toHaveAttribute('href', '/consulta');
+    const nav = screen.getByRole('navigation', { name: 'Módulos' });
+    expect(within(nav).getAllByRole('listitem').map((li) => li.querySelector('b')?.textContent)).toEqual(['Pecúlio', 'Visualização de escalas', 'Minha ficha', 'Configurações']);
+    const peculio = within(nav).getByRole('link', { name: /Pecúlio/ });
+    expect(peculio).toHaveAttribute('href', '/consulta');
+    expect(peculio).toHaveTextContent('Consulta de militares');
     expect(screen.queryByText('Confecção de escalas')).toBeNull();
+  });
+
+  it('numa unidade só de consulta, o atalho da Confecção diz que é só para ver', async () => {
+    const unidade = { id: 'u-2sb', sigla: '2ª SB', caminho: ['CBMPE', 'DGO', 'DInter/1', '2º GB', '2ª SB'], nivel: 4, tipo: 'secao' };
+    simularApi({ '/api/eu': { status: 200, corpo: { ...comum, unidades: [unidade], unidadesSoConsulta: [unidade] } } });
+    abrir('/');
+    await screen.findByRole('heading', { level: 1 });
+    expect(screen.getByRole('link', { name: /Confecção de escalas/ })).toHaveTextContent(/Escalas de \w+, só para ver/);
+  });
+
+  it('não há aniversariantes nem "O que falta no mês" na tela inicial', async () => {
+    simularApi({ '/api/eu': { status: 200, corpo: comPapel } });
+    abrir('/');
+    await screen.findByRole('heading', { level: 1 });
+    expect(screen.queryByText(/aniversariante/i)).toBeNull();
+    expect(screen.queryByText(/o que falta no mês/i)).toBeNull();
   });
 
   it('com ?aviso=outro-papel, mostra o aviso', async () => {

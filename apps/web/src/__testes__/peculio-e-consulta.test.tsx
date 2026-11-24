@@ -7,10 +7,12 @@ const COMUM = { ...EU_EXEMPLO, papeis: [] };
 const trilho = async () => within(await screen.findByRole('navigation', { name: 'Navegação principal' }));
 
 describe('o Pecúlio e a Consulta de militares (6.26)', () => {
-  it('o cartão se chama "Pecúlio", sem "do 2º GB"', async () => {
+  it('o atalho se chama "Pecúlio", sem "do 2º GB"', async () => {
     simularApi({ '/api/eu': { status: 200, corpo: EU_EXEMPLO } });
     abrir('/');
-    expect(await screen.findByRole('heading', { level: 2, name: 'Pecúlio' })).toBeInTheDocument();
+    // 6.42: o cartão virou um atalho (link) na tela inicial
+    const atalho = await screen.findByRole('link', { name: /^Pecúlio/ });
+    expect(atalho.querySelector('b')).toHaveTextContent(/^Pecúlio$/);
     expect(screen.queryByText(/Pecúlio do 2º GB/)).toBeNull();
   });
 
