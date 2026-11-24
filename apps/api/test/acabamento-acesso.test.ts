@@ -69,9 +69,9 @@ describe('contas e níveis de acesso: o que o servidor recusa ou aceita (6.16, T
     expect((await api.banco.query<{ telefone: string | null }>('select telefone from militar where id = $1', [m.id])).rows[0]!.telefone).toBeNull();
   });
 
-  it('item 6: o auxiliar desativa de novo um colega auxiliar já desativado: 200, sem mudar nada', async () => {
+  it('item 6: o gestor desativa de novo um colega auxiliar já desativado: 200, sem mudar nada', async () => {
     const colega = await comConta({ papel: 'escalante', unidadeId: api.ids.secao });
-    const desativar = () => api.pedir('escalante', 'POST', `/api/militares/${colega.m.id}/desativar-acesso`);
+    const desativar = () => api.pedir('gestorGb', 'POST', `/api/militares/${colega.m.id}/desativar-acesso`);
     expect((await desativar()).status).toBe(200);
     const antes = (await api.banco.query<{ atualizado_em: string }>('select atualizado_em::text from usuario where id = $1', [colega.usuarioId])).rows[0]!.atualizado_em;
     const r = await desativar();

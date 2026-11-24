@@ -338,8 +338,8 @@ const FRASE_LOTACAO = (cima: string) => `A lotação é alterada por quem tem n�
 const FRASE_CADASTRAR = (cima: string) => `Cadastrar militar é com quem tem nível de acesso no ${cima}.`;
 const FRASE_AFASTAMENTOS = (cima: string) => `Os afastamentos são alterados por quem tem nível de acesso no ${cima}.`;
 
-/** Os campos da ficha que são do Pecúlio (o resto do PATCH é da escala: motorista, CNH e voluntário JES). */
-const CAMPOS_DO_PECULIO = ['postoGradId', 'nomeCompleto', 'nomeGuerra', 'antiguidade', 'sexo', 'nascimento', 'cpf', 'endereco', 'telefone', 'email', 'emailPessoal', 'comportamento', 'comportamentoBoletim', 'funcaoMilitarId', 'abonoPermanencia'] as const;
+/** Os campos da ficha que são do Pecúlio, de quem tem nível de acesso acima da lotação. O resto do PATCH é da escala (a SB edita): as habilitações, motorista e CNH. O voluntário JES é da SP (6.32). */
+const CAMPOS_DO_PECULIO = ['postoGradId', 'nomeCompleto', 'nomeGuerra', 'antiguidade', 'sexo', 'nascimento', 'cpf', 'endereco', 'telefone', 'email', 'emailPessoal', 'comportamento', 'comportamentoBoletim', 'funcaoMilitarId', 'abonoPermanencia', 'voluntarioJes'] as const;
 
 const militarDoAfastamento = async (c: Consulta, afastamentoId: string): Promise<string> =>
   (await c.query<{ militar_id: string }>('select militar_id from afastamento where id = $1', [afastamentoId])).rows[0]!.militar_id;
@@ -715,17 +715,19 @@ export function rotasMilitares(dep: { banco: Banco; auth: Auth }): Hono<Ambiente
       const negadoAberta = await exigirPapel(c, unidadeAberta, CADASTRO);
       if (negadoAberta) return negadoAberta;
     }
-    // mudar a LOTAÇÃO (a unidade) é do Pecúlio: papel acima da lotação atual. Equipe e jornada, com a lotação travada, são da escala (papel na lotação ou acima)
+    // mudar a LOTAÇÃO (a unidade), a equipe e a jornada é do Pecúlio: papel acima da lotação atual (a SB vê a equipe e a jornada no histórico de rastreio, mas não as muda)
     const lotacaoAtual = await unidadeAtualDoMilitar(dep.banco, id, hojeRecife());
     if (lotacaoAtual && d.unidadeId !== (unidadeAberta ?? lotacaoAtual)) {
       const naoEDono = await exigirDonoDoPeculio(c, lotacaoAtual, FRASE_LOTACAO);
       if (naoEDono) return naoEDono;
     }
     // o quadro e a situação são do Pecúlio, como a lotação: só quem tem nível de acesso acima da lotação os muda
-    const aberta0 = (await dep.banco.query<{ quadro_id: string | null; situacao_id: string }>('select quadro_id, situacao_id from rastreio where militar_id = $1 and ate is null', [id])).rows[0];
+    const aberta0 = (await dep.banco.query<{ quadro_id: string | null; situacao_id: string; equipe_id: string | null; jornada: string }>('select quadro_id, situacao_id, equipe_id, jornada from rastreio where militar_id = $1 and ate is null', [id])).rows[0];
     const mudaQuadro = d.quadroId !== undefined && d.quadroId !== (aberta0?.quadro_id ?? null);
     const mudaSituacao = d.situacaoId !== undefined && d.situacaoId !== aberta0?.situacao_id;
-    if (mudaQuadro || mudaSituacao) {
+    const mudaEquipe = (d.equipeId ?? null) !== (aberta0?.equipe_id ?? null);
+    const mudaJornada = d.jornada !== aberta0?.jornada;
+    if (mudaQuadro || mudaSituacao || mudaEquipe || mudaJornada) {
       const naoEDono = await exigirDonoDoPeculioDoMilitar(c, id, FRASE_CAMPO);
       if (naoEDono) return naoEDono;
     }
