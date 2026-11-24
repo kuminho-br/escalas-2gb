@@ -1,14 +1,13 @@
 # Relatório da documentação
 
-Gerado em 2026-11-24 pelo script `docs/ferramentas/checar-documentacao.sh`, sobre o commit `4269d08`.
+Gerado em 2026-11-24 pelo script `docs/ferramentas/checar-documentacao.sh`, sobre o commit `557b110`.
 
-**Resumo:** 27 alerta(s). CLAUDE.md: bom.
+**Resumo:** 25 alerta(s). CLAUDE.md: bom.
 
-Relatório anterior: Resumo: 12 alerta(s). CLAUDE.md: bom.
+Relatório anterior: Resumo: 27 alerta(s). CLAUDE.md: bom.
 
 ## Documentos grandes (acima de 25 KB)
 
-- `docs/decisoes.md`: 42 KB
 - `docs/superpowers/specs/2026-11-16-esquema-banco.md`: 43 KB
 - `docs/superpowers/specs/2026-11-16-telas.md`: 25 KB
 
@@ -25,7 +24,6 @@ Relatório anterior: Resumo: 12 alerta(s). CLAUDE.md: bom.
 - `docs/superpowers/specs/2026-11-24-pre-escala-turnos-e-expediente-design.md`: 1 parágrafo(s)
 - `docs/superpowers/specs/2026-11-23-oficiais-tela-de-escalar-design.md`: 1 parágrafo(s)
 - `docs/superpowers/specs/2026-11-20-grade-geral-design.md`: 1 parágrafo(s)
-- `docs/decisoes.md`: 1 parágrafo(s)
 
 ## Documentos com mais de 3 adendos
 
@@ -40,7 +38,7 @@ Nenhum.
 
 ## Esquema do banco × migrações
 
-Última migração: `0042_choque_universal.sql`.
+Última migração: `0043_expediente_sem_escala.sql`.
 - tabela sem título no esquema: `convite`
 - tabela sem título no esquema: `dia_vermelho`
 - tabela sem título no esquema: `funcao_militar`
@@ -52,7 +50,7 @@ Nenhum.
 - tabela sem título no esquema: `oficiais_participante`
 - tabela sem título no esquema: `oficiais_saldo`
 - tabela sem título no esquema: `oficiais_turno`
-- o esquema não cita a última migração (`0042_choque_universal.sql`)
+- o esquema não cita a última migração (`0043_expediente_sem_escala.sql`)
 
 ## Índice e links
 

@@ -39,7 +39,7 @@ A escala é montada em três etapas: serviços do Pronto, depois JES do Pronto, 
 
 | ID | Regra | Situação | No sistema novo | Barreira |
 |---|---|---|---|---|
-| RN-38 | A montagem segue a ordem: serviços do Pronto, depois JES do Pronto, depois JES do Adm. | Confirmada | Em parte: a pré-escala do Pronto funciona; os JES, fase 8 | Automação |
+| RN-38 | A montagem segue a ordem: serviços do Pronto, depois JES do Pronto, depois JES do Adm. | Confirmada | Em parte: a pré-escala põe o Pronto nos turnos (6.40); o JES do Pronto, fase 8; o JES do Adm é lançado à mão (a automação dele saiu do plano em 24/11/2026) | Automação |
 | RN-40 | Os extras são alocados em duas fases: primeiro a voluntária, respeitando o voluntariado; depois a compulsória, para completar as cotas. | Confirmada | No motor; fase 8 | Automação |
 | RN-41 | O voluntário que não marcou voluntariado no mês ainda pode ser escalado de forma compulsória; nesse caso a escala abate a carga padrão dele (RN-16). | Confirmada | No motor; fase 8 (se a compulsória entra já está a decidir) | Automação |
 | RN-42 | Na fase compulsória, o sistema equilibra entre os militares as situações boas e ruins que cada um tira. | Confirmada | No motor, só como desempate; o equilíbrio completo, fase 10 | Ambas |
