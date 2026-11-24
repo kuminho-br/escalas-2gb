@@ -13,7 +13,7 @@ export function ConfirmarVoltarAoPadrao({ salvando, erro, aoVoltar, aoFechar }: 
         {erro && <p role="alert" className="text-sm text-alerta">{erro}</p>}
         <DialogFooter className="gap-2 sm:justify-start">
           <Button type="button" disabled={salvando} onClick={aoVoltar}>Voltar</Button>
-          <Button type="button" variant="ghost" onClick={aoFechar}>Cancelar</Button>
+          <Button type="button" variant="discreto" onClick={aoFechar}>Cancelar</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

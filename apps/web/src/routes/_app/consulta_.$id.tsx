@@ -51,9 +51,9 @@ function FichaDeConsultaDoMilitar() {
       resumo={f.lotacao ? `Lotado em ${f.lotacao}${f.quadro ? `, ${f.quadro}` : ''}` : 'Sem lotação hoje'}
       acoes={
         <>
-          <Button asChild variant="ghost" size="sm"><Link to="/consulta" search={busca}>Voltar à busca</Link></Button>
+          <Button asChild variant="discreto" size="sm"><Link to="/consulta" search={busca}>Voltar à busca</Link></Button>
           {f.podeAbrirFichaCompleta && (
-            <Button asChild variant="outline" size="sm"><Link to="/militares/$id" params={{ id: f.id }}>Abrir a ficha completa</Link></Button>
+            <Button asChild variant="secundario" size="sm"><Link to="/militares/$id" params={{ id: f.id }}>Abrir a ficha completa</Link></Button>
           )}
         </>
       }

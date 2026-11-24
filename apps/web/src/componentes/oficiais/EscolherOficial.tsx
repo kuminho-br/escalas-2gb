@@ -47,8 +47,8 @@ export function EscolherOficial({ lugar, oficiais, aoEscolher, aoFechar }: Props
                 }}
                 className="flex w-full items-baseline gap-2 rounded-md px-3 py-2 text-left hover:bg-passa focus-visible:outline-2 focus-visible:outline-tinta"
               >
-                <span className="text-[13px] leading-[18px] font-medium text-apagado">{o.posto}</span>
-                <b className="font-cond text-[17px] leading-6 font-semibold">{o.nomeGuerra}</b>
+                <span className="text-apoio leading-[18px] font-medium text-apagado">{o.posto}</span>
+                <b className="font-cond text-nome leading-6 font-semibold">{o.nomeGuerra}</b>
               </button>
             </li>
           ))}

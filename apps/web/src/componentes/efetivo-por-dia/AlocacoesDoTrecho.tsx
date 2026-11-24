@@ -44,7 +44,7 @@ export function AlocacoesDoTrecho({ funcao, trecho, aoFechar }: { funcao: string
               <li key={a.acumuloId ?? a.alocacaoId} className="grid gap-1">
                 <div className="flex items-center gap-3">
                   <span className="flex-1">{faixa}</span>
-                  <Button type="button" variant="outline" size="sm" disabled={salvando} aria-label={`${acao} ${faixa}`} onClick={() => void agir(a)}>
+                  <Button type="button" variant="secundario" size="sm" disabled={salvando} aria-label={`${acao} ${faixa}`} onClick={() => void agir(a)}>
                     {acao}
                   </Button>
                 </div>

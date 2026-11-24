@@ -35,7 +35,7 @@ export function frasesDaConta(c: ContaDasCotas): string[] {
 function Conta({ conta }: { conta: ContaDasCotas }) {
   return (
     <div className="grid gap-3">
-      <ul className="grid gap-1 text-[15px] leading-[22px]">
+      <ul className="grid gap-1 text-corpo leading-[22px]">
         {frasesDaConta(conta).map((f) => <li key={f}>{f}</li>)}
       </ul>
       <Table>
@@ -53,12 +53,12 @@ function Conta({ conta }: { conta: ContaDasCotas }) {
           {conta.participantes.map((p) => (
             <TableRow key={p.militarId}>
               <TableCell>
-                <span className="text-[13px] text-apagado">{p.patente}</span> <b className="font-cond font-semibold">{p.nomeGuerra}</b>
+                <span className="text-apoio text-apagado">{p.patente}</span> <b className="font-cond font-semibold">{p.nomeGuerra}</b>
               </TableCell>
               <TableCell>
                 {p.diasNoMes}
                 {p.afastamentos.map((a) => (
-                  <span key={a.inicio} className="block text-[13px] leading-[18px] text-pendencia">{`${a.tipo}, ${dm(a.inicio)} a ${dm(a.fim)}`}</span>
+                  <span key={a.inicio} className="block text-apoio leading-[18px] text-pendencia">{`${a.tipo}, ${dm(a.inicio)} a ${dm(a.fim)}`}</span>
                 ))}
               </TableCell>
               <TableCell className="tabular-nums">{formatarDevido(p.devido)}</TableCell>
@@ -96,7 +96,7 @@ function Servicos({ servicos }: { servicos: ServicoDoMemorial[] }) {
       <TableBody>
         {[...linhas.values()].map((l) => (
           <TableRow key={l.nome}>
-            <TableCell><span className="text-[13px] text-apagado">{l.patente}</span> <b className="font-cond font-semibold">{l.nome}</b></TableCell>
+            <TableCell><span className="text-apoio text-apagado">{l.patente}</span> <b className="font-cond font-semibold">{l.nome}</b></TableCell>
             <TableCell className="tabular-nums">{l.jes}</TableCell>
             <TableCell className="tabular-nums">{l.saldo}</TableCell>
             <TableCell className="tabular-nums">{l.cobriu}</TableCell>
@@ -110,8 +110,8 @@ function Servicos({ servicos }: { servicos: ServicoDoMemorial[] }) {
 function Registro({ r }: { r: RegistroDoMemorial }) {
   return (
     <li className="grid gap-0.5">
-      <p className="text-[15px] font-medium">{r.motivo}</p>
-      <p className="text-[13px] leading-[18px] text-apagado">
+      <p className="text-corpo font-medium">{r.motivo}</p>
+      <p className="text-apoio leading-[18px] text-apagado">
         {dataHora(r.criadoEm)}
         {r.por ? ` · ${r.por.patente} ${r.por.nomeGuerra}` : ''}
       </p>
@@ -133,25 +133,25 @@ export function MemorialDeCalculo({ unidadeId, mes, escalaId }: Props) {
   return (
     <section aria-label="Memorial de cálculo" className="memorial-impressao grid gap-5">
       <header className="flex flex-wrap items-baseline justify-between gap-3">
-        <h2 className="font-cond text-[20px] leading-[26px] font-semibold">Memorial de cálculo de {mesPorExtenso(mes)}</h2>
-        <Button type="button" variant="outline" className="print:hidden" onClick={() => window.print()}>
+        <h2 className="font-cond text-bloco leading-[26px] font-semibold">Memorial de cálculo de {mesPorExtenso(mes)}</h2>
+        <Button type="button" variant="secundario" className="print:hidden" onClick={() => window.print()}>
           <Printer aria-hidden /> Imprimir
         </Button>
       </header>
 
       <div className="grid gap-2">
-        <h3 className="text-[17px] leading-6 font-semibold">Como as cotas foram distribuídas</h3>
-        {!ultimo && <p className="text-[15px] text-apagado">Cálculo refeito agora: o histórico começa nesta versão.</p>}
+        <h3 className="text-nome leading-6 font-semibold">Como as cotas foram distribuídas</h3>
+        {!ultimo && <p className="text-corpo text-apagado">Cálculo refeito agora: o histórico começa nesta versão.</p>}
         <Conta conta={m.contaAtual} />
       </div>
 
       <div className="grid gap-2">
-        <h3 className="text-[17px] leading-6 font-semibold">Quem tirou cada serviço</h3>
+        <h3 className="text-nome leading-6 font-semibold">Quem tirou cada serviço</h3>
         <Servicos servicos={m.servicos} />
       </div>
 
       <div className="grid gap-2">
-        <h3 className="text-[17px] leading-6 font-semibold">Histórico dos recálculos</h3>
+        <h3 className="text-nome leading-6 font-semibold">Histórico dos recálculos</h3>
         {ultimo ? (
           <>
             <ul className="grid gap-2">
@@ -159,7 +159,7 @@ export function MemorialDeCalculo({ unidadeId, mes, escalaId }: Props) {
             </ul>
             {anteriores.length > 0 && (
               <details className="rounded-md border border-linha p-3">
-                <summary className="cursor-pointer text-[15px] font-medium">Ver os {anteriores.length} recálculos anteriores</summary>
+                <summary className="cursor-pointer text-corpo font-medium">Ver os {anteriores.length} recálculos anteriores</summary>
                 <ul className="mt-2 grid gap-2">
                   {anteriores.map((r) => <Registro key={r.criadoEm + r.motivo} r={r} />)}
                 </ul>
@@ -167,7 +167,7 @@ export function MemorialDeCalculo({ unidadeId, mes, escalaId }: Props) {
             )}
           </>
         ) : (
-          <p className="text-[15px] text-apagado">Nenhum recálculo gravado ainda.</p>
+          <p className="text-corpo text-apagado">Nenhum recálculo gravado ainda.</p>
         )}
       </div>
     </section>

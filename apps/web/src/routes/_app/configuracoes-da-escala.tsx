@@ -20,6 +20,8 @@ import { TabsContent } from '@/componentes/ui/tabs';
 import { AcoesDosModelos, ListaDeModelos } from '@/componentes/guarnicoes/ListaDeModelos';
 import { ABAS_DA_ESCALA, type AbaDaEscala as Aba } from '@/lib/configuracoes';
 import { mesAtual } from '@/lib/meses';
+import { Checkbox } from '@/componentes/ui/checkbox';
+import { Moldura } from '@/componentes/Moldura';
 
 
 export const Route = createFileRoute('/_app/configuracoes-da-escala')({
@@ -35,11 +37,14 @@ function ConfiguracoesDaEscala() {
   const navigate = Route.useNavigate();
 
   return (
-    <section>
-      <header className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="font-cond text-[28px] leading-tight font-semibold">Configurações da escala</h1>
-        {podeMudar && <ImportarPlanilha cadastro="configuracoes" rotulo="as configurações" aoConcluir={() => queryClient.invalidateQueries({ queryKey: ['parametros'] })} />}
-      </header>
+    <Moldura
+      titulo="Configurações da escala"
+      acaoPrincipal={
+        <>
+          {podeMudar && <ImportarPlanilha cadastro="configuracoes" rotulo="as configurações" aoConcluir={() => queryClient.invalidateQueries({ queryKey: ['parametros'] })} />}
+        </>
+      }
+    >
       <PainelComMenu
         secoes={[{ valor: 'regras', nome: 'Regras do processo' }, { valor: 'voluntariado', nome: 'Voluntariado' }, { valor: 'modelos', nome: 'Modelos de guarnição' }, { valor: 'meta', nome: 'Meta de ativação' }]}
         valor={aba}
@@ -68,7 +73,7 @@ function ConfiguracoesDaEscala() {
           </div>
         </TabsContent>
       </PainelComMenu>
-    </section>
+    </Moldura>
   );
 }
 
@@ -109,13 +114,11 @@ function BlocosDoVoluntariado({ unidadeId, podeMudar }: { unidadeId: string; pod
               <span className="block text-sm text-apagado">{e.servicos.join(', ') || 'sem serviços'}</span>
             </span>
             <label className="flex shrink-0 items-center gap-2 text-sm">
-              <input
-                type="checkbox"
+              <Checkbox
                 aria-label={`${e.nome}: entra nos blocos do voluntariado`}
                 checked={e.montaBlocosVoluntariado}
                 disabled={!podeMudar || salvando}
                 onChange={(ev) => void mudar(e.id, ev.target.checked)}
-                className="size-4 accent-vinho"
               />
               Entra nos blocos
             </label>
@@ -173,7 +176,7 @@ function RegrasDoProcesso({ unidadeId, sigla, podeMudar }: { unidadeId: string; 
               </TableCell>
               <TableCell className="text-right">
                 {podeMudar && (
-                  <Button variant="outline" size="sm" onClick={() => setMudando(p)}>
+                  <Button variant="secundario" size="sm" onClick={() => setMudando(p)}>
                     Mudar a partir de…
                   </Button>
                 )}

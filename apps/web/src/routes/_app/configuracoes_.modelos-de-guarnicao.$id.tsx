@@ -152,19 +152,19 @@ function Situacao({ ficha }: { ficha: FichaGuarnicao }) {
         {desde && desde <= mes && (
           <>
             <p className="font-medium text-alerta">Desativada desde {mesPorExtenso(desde)}.</p>
-            <Button type="button" size="sm" variant="outline" onClick={() => void mudar(true, mes)}>Reativar agora</Button>
+            <Button type="button" size="sm" variant="secundario" onClick={() => void mudar(true, mes)}>Reativar agora</Button>
           </>
         )}
         {desde && desde > mes && (
           <>
             <p className="font-medium">Será desativada em {mesPorExtenso(desde)}.</p>
-            <Button type="button" size="sm" variant="outline" onClick={() => void mudar(true, desde)}>Cancelar desativação</Button>
+            <Button type="button" size="sm" variant="secundario" onClick={() => void mudar(true, desde)}>Cancelar desativação</Button>
           </>
         )}
         {!desde && (
           <>
-            <Button type="button" size="sm" variant="outline" onClick={() => desativarAgora()}>Desativar agora</Button>
-            <Button type="button" size="sm" variant="ghost" onClick={() => setEscolhendo(!escolhendo)}>Desativar a partir de…</Button>
+            <Button type="button" size="sm" variant="secundario" onClick={() => desativarAgora()}>Desativar agora</Button>
+            <Button type="button" size="sm" variant="discreto" onClick={() => setEscolhendo(!escolhendo)}>Desativar a partir de…</Button>
           </>
         )}
       </div>

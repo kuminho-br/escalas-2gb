@@ -7,6 +7,7 @@ import { atualizarVisao, consultaBorda, marcarQuadro, salvarBorda } from '@/api/
 import { useTrava } from '@/componentes/AlteracoesPendentes';
 import { Button } from '@/componentes/ui/button';
 import { nomeDoPapel } from '@/lib/papeis';
+import { Checkbox } from '@/componentes/ui/checkbox';
 
 /** O nome de cada bloco e o que ele tem (o texto da spec, "Os blocos e a borda inicial"). */
 const BLOCOS: Record<Bloco, { nome: string; tem: string }> = {
@@ -100,13 +101,11 @@ function TabelaDaBorda({ inicial, aviso, aoAvisar }: { inicial: Borda; aviso: Av
                   const travada = (l.bloco === 'identificacao' && c.camada === 'todos') || (c.camada !== 'todos' && l.todos);
                   return (
                     <td key={c.camada} className="px-3 py-2.5 text-center">
-                      <input
-                        type="checkbox"
+                      <Checkbox
                         aria-label={`${BLOCOS[l.bloco].nome}: ${c.nome}`}
                         checked={l[c.camada]}
                         disabled={travada}
                         onChange={(e) => marcar(l.bloco, c.camada, e.target.checked)}
-                        className="size-4 accent-vinho"
                       />
                     </td>
                   );
@@ -153,7 +152,7 @@ function QuadrosDeOficiais() {
             <span className="w-16 shrink-0 font-cond font-semibold">{q.sigla}</span>
             <span className="min-w-0 flex-1 text-sm text-apagado">{q.nome}</span>
             <label className="flex items-center gap-2 text-sm">
-              <input type="checkbox" aria-label={`${q.sigla}: de oficiais`} checked={q.oficial} onChange={(e) => mudar(q, e.target.checked)} className="size-4 accent-vinho" />
+              <Checkbox aria-label={`${q.sigla}: de oficiais`} checked={q.oficial} onChange={(e) => mudar(q, e.target.checked)} />
               de oficiais
             </label>
           </li>

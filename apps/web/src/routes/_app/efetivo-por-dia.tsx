@@ -22,6 +22,7 @@ import { Input } from '@/componentes/ui/input';
 import { Label } from '@/componentes/ui/label';
 import { guardarUltimoDia, janelaDoDia, ultimoDiaVisto } from '@/lib/efetivo';
 import { diaDaSemanaPorExtenso, hoje, somarDias } from '@/lib/meses';
+import { Moldura } from '@/componentes/Moldura';
 
 export const Route = createFileRoute('/_app/efetivo-por-dia')({
   validateSearch: (s: Record<string, unknown>): { data?: string } => ({ data: typeof s.data === 'string' && Data.safeParse(s.data).success ? s.data : undefined }),
@@ -147,17 +148,16 @@ function EfetivoPorDia() {
     };
   };
   return (
-    <section className="grid gap-4">
-      <h1 className="font-cond text-[28px] leading-tight font-semibold">Efetivo por dia</h1>
+    <Moldura titulo="Efetivo por dia">
       <div className="flex flex-wrap items-end gap-3">
-        <Button type="button" variant="outline" size="icon" aria-label="Dia anterior" onClick={() => irPara(somarDias(data, -1))}>
+        <Button type="button" variant="secundario" size="icon" aria-label="Dia anterior" onClick={() => irPara(somarDias(data, -1))}>
           <ChevronLeft aria-hidden />
         </Button>
         <div className="grid gap-1.5">
           <Label htmlFor="ed-data">Dia</Label>
           <Input id="ed-data" type="date" value={data} onChange={(ev) => ev.target.value && irPara(ev.target.value)} className="w-44" />
         </div>
-        <Button type="button" variant="outline" size="icon" aria-label="Dia seguinte" onClick={() => irPara(somarDias(data, 1))}>
+        <Button type="button" variant="secundario" size="icon" aria-label="Dia seguinte" onClick={() => irPara(somarDias(data, 1))}>
           <ChevronRight aria-hidden />
         </Button>
         <p className="text-sm text-apagado">{diaDaSemanaPorExtenso(data)}</p>
@@ -176,7 +176,7 @@ function EfetivoPorDia() {
             {!soConsulta && (
               <Button
                 type="button"
-                variant="outline"
+                variant="secundario"
                 size="sm"
                 disabled={salvando || e.meta.origem === 'padrao'}
                 onClick={() => {
@@ -210,7 +210,7 @@ function EfetivoPorDia() {
             <div>
               <Button
                 type="button"
-                variant="outline"
+                variant="secundario"
                 disabled={salvando}
                 onClick={() => {
                   setErroNoDialogo(null);
@@ -250,6 +250,6 @@ function EfetivoPorDia() {
           {voltando && <ConfirmarVoltarAoPadrao salvando={salvando} erro={erroNoDialogo} aoVoltar={() => void voltarAoPadrao()} aoFechar={() => setVoltando(false)} />}
         </>
       )}
-    </section>
+    </Moldura>
   );
 }

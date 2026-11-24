@@ -141,8 +141,8 @@ export function OrdemDeEscalacao({ escalaId, mes, dados }: { escalaId: string; m
                   <li key={k} className="flex items-center gap-1.5 text-sm">
                     <span className="w-6 text-right font-cond font-semibold">{i + 1}</span>
                     <span className="min-w-0 flex-1">{nomeDaVaga(v)}</span>
-                    <Button type="button" variant="ghost" size="icon" aria-label={`Subir ${nomeDaVaga(v)}`} disabled={i === 0} onClick={() => mover(i, -1)}><ArrowUp aria-hidden /></Button>
-                    <Button type="button" variant="ghost" size="icon" aria-label={`Descer ${nomeDaVaga(v)}`} disabled={i === ativa.length - 1} onClick={() => mover(i, 1)}><ArrowDown aria-hidden /></Button>
+                    <Button type="button" variant="discreto" size="icon" aria-label={`Subir ${nomeDaVaga(v)}`} disabled={i === 0} onClick={() => mover(i, -1)}><ArrowUp aria-hidden /></Button>
+                    <Button type="button" variant="discreto" size="icon" aria-label={`Descer ${nomeDaVaga(v)}`} disabled={i === ativa.length - 1} onClick={() => mover(i, 1)}><ArrowDown aria-hidden /></Button>
                   </li>
                 );
               })}
@@ -152,7 +152,7 @@ export function OrdemDeEscalacao({ escalaId, mes, dados }: { escalaId: string; m
       </div>
       <p data-testid="rodape-da-ordem" className="text-sm text-apagado">{rodape}</p>
       <div className="flex flex-wrap items-center gap-3">
-        <Button type="button" variant="outline" onClick={() => setOrdem([])} disabled={salvando}>Limpar</Button>
+        <Button type="button" variant="secundario" onClick={() => setOrdem([])} disabled={salvando}>Limpar</Button>
         <AcoesDoBloco sujo={sujo} forcar={dados.vigencia === null} salvando={salvando} aviso={aviso} tipo="button" aoSalvar={() => void salvar()} />
       </div>
     </div>

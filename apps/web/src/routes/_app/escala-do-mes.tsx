@@ -19,6 +19,7 @@ import { Button } from '@/componentes/ui/button';
 import { Label } from '@/componentes/ui/label';
 import { mesAtual } from '@/lib/meses';
 import { cn } from '@/lib/utils';
+import { Moldura } from '@/componentes/Moldura';
 
 export const Route = createFileRoute('/_app/escala-do-mes')({
   validateSearch: (s: Record<string, unknown>): { escala?: string; mes?: string; dia?: string } => ({
@@ -72,6 +73,16 @@ function EscalaDoMes() {
       setErro(mensagemDe(e));
     }
   }
+  // "Trocar militar": tira quem está na vaga (sem perguntar: a pessoa acabou de escolher trocar) e abre a escolha da mesma vaga em seguida
+  async function trocar(o: OcupanteDaVaga, daVaga: VagaDaTela) {
+    setErro(null);
+    try {
+      await (o.acumuloId !== null ? tirarAcumulo(queryClient, o.acumuloId) : removerAlocacao(queryClient, o.alocacaoId));
+      setVaga(daVaga);
+    } catch (e) {
+      setErro(mensagemDe(e));
+    }
+  }
   async function desfazer(remocaoId: string) {
     setErro(null);
     try {
@@ -85,13 +96,12 @@ function EscalaDoMes() {
   if (escalas.error) return <p role="alert" className="text-alerta">{mensagemDe(escalas.error)}</p>;
   if (!escalaId) {
     return (
-      <section>
-        <h1 className="font-cond text-[28px] leading-tight font-semibold">Escala do mês</h1>
+      <Moldura titulo="Escala do mês">
         {/* numa unidade só de consulta a pessoa não cria escala: sem o link */}
-        <p className="mt-4 text-apagado">
+        <p className="text-apagado">
           Nenhuma escala ativa.{!soConsulta && <> Crie uma em <Link to="/escalas" className="font-medium text-vinho underline underline-offset-2">Escalas</Link>.</>}
         </p>
-      </section>
+      </Moldura>
     );
   }
 
@@ -99,8 +109,7 @@ function EscalaDoMes() {
   // as cotas dos serviços que aparecem nos turnos das faixas do mês
   const servicosDaEscala = [...new Set((dados.data?.dias ?? []).flatMap((d) => d.faixas.flatMap((f) => f.turnos.map((t) => t.servicoId))))];
   return (
-    <section className="grid gap-4">
-      <h1 className="font-cond text-[28px] leading-tight font-semibold">Escala do mês</h1>
+    <Moldura titulo="Escala do mês">
       <div className="flex flex-wrap items-end gap-3">
         <div className="grid gap-1.5">
           <Label htmlFor="em-escala">Escala</Label>
@@ -123,7 +132,7 @@ function EscalaDoMes() {
             Gerar pré-escala
           </Button>
         )}
-        <Button type="button" variant="outline" aria-pressed={soVazias} onClick={() => setSoVazias(!soVazias)} className={soConsulta ? 'ml-auto' : undefined}>
+        <Button type="button" variant="secundario" aria-pressed={soVazias} onClick={() => setSoVazias(!soVazias)} className={soConsulta ? 'ml-auto' : undefined}>
           Ocultar guarnições completas
         </Button>
       </div>
@@ -139,11 +148,11 @@ function EscalaDoMes() {
           data-dias-em-grade={dados.data.dias.length > 0 && dados.data.dias.every((d) => d.faixas.length <= 1) ? '' : undefined}
           className={cn('grid gap-3', dados.data.dias.length > 0 && dados.data.dias.every((d) => d.faixas.length <= 1) && 'grid-cols-[repeat(auto-fill,minmax(min(100%,22rem),1fr))] items-start')}
         >
-          {dados.data.dias.map((d) => <DiaDaEscalaVista key={d.data} dia={d} soVazias={soVazias} aoEscolher={soConsulta ? undefined : setVaga} aoRemover={soConsulta ? undefined : (o, g, n, v) => void remover(o, g, n, v)} aoDesfazer={soConsulta ? undefined : (id) => void desfazer(id)} />)}
+          {dados.data.dias.map((d) => <DiaDaEscalaVista key={d.data} dia={d} soVazias={soVazias} aoEscolher={soConsulta ? undefined : setVaga} aoRemover={soConsulta ? undefined : (o, g, n, v) => void remover(o, g, n, v)} aoTrocar={soConsulta ? undefined : (o, _g, _n, _v, daVaga) => void trocar(o, daVaga)} aoDesfazer={soConsulta ? undefined : (id) => void desfazer(id)} />)}
         </div>
       )}
       {gerando && <GerarPreEscala escalaId={escalaId} mes={mes} aoFechar={() => setGerando(false)} aoGravar={setGravadas} />}
       {vaga && <EscolherMilitar key={`${vaga.data}|${vaga.inicio}|${vaga.guarnicaoId}|${vaga.funcaoId}`} escalaId={escalaId} vaga={vaga} aoFechar={() => setVaga(null)} />}
-    </section>
+    </Moldura>
   );
 }

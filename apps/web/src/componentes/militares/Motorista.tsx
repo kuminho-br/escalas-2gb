@@ -7,6 +7,7 @@ import { atualizarMilitares, editarMilitar } from '@/api/militares';
 import { AcoesDoBloco, usePendencia, useTrava, useSincronizar } from '@/componentes/AlteracoesPendentes';
 import { cn } from '@/lib/utils';
 import { Secao } from './Secao';
+import { Radio } from '@/componentes/ui/radio';
 
 const CATEGORIAS = [
   ['A', 'moto'],
@@ -79,7 +80,7 @@ export function Motorista({ ficha }: { ficha: FichaMilitar }) {
         <div className="flex gap-4 text-sm">
           {[true, false].map((v) => (
             <label key={String(v)} className="flex items-center gap-2">
-              <input type="radio" name="quadro" checked={quadro === v} onChange={() => setQuadro(v)} className="size-4 accent-vinho" />
+              <Radio name="quadro" checked={quadro === v} onChange={() => setQuadro(v)} />
               {v ? 'Sim' : 'Não'}
             </label>
           ))}
@@ -104,7 +105,7 @@ export function Motorista({ ficha }: { ficha: FichaMilitar }) {
                   )}
                 >
                   <span className="font-cond text-lg leading-none font-semibold">{c}</span>
-                  <span className="text-[10px] leading-tight">{veiculo}</span>
+                  <span className="text-apoio leading-tight">{veiculo}</span>
                 </button>
               );
             })}

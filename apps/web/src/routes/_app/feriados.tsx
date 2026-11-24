@@ -14,6 +14,8 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from '@/componentes/ui/input';
 import { Label } from '@/componentes/ui/label';
 import { hoje } from '@/lib/meses';
+import { Checkbox } from '@/componentes/ui/checkbox';
+import { Moldura } from '@/componentes/Moldura';
 
 export const Route = createFileRoute('/_app/feriados')({
   component: Feriados,
@@ -71,20 +73,23 @@ function Feriados() {
   }
 
   return (
-    <section>
-      <header className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="font-cond text-[28px] leading-tight font-semibold">Feriados</h1>
-        <div className="flex flex-wrap gap-2">
-          <ImportarPlanilha cadastro="feriados" rotulo="os feriados" aoConcluir={() => atualizarFeriados(queryClient)} />
-          <Button variant="outline" disabled={copiando} onClick={() => void copiar()}>Copiar feriados fixos de {ano - 1}</Button>
-          <Button onClick={() => setDialogo({})}>
-            <Plus aria-hidden />
-            Novo feriado
-          </Button>
-        </div>
-      </header>
+    <Moldura
+      titulo="Feriados"
+      acaoPrincipal={
+        <>
+          <div className="flex flex-wrap gap-2">
+              <ImportarPlanilha cadastro="feriados" rotulo="os feriados" aoConcluir={() => atualizarFeriados(queryClient)} />
+              <Button variant="secundario" disabled={copiando} onClick={() => void copiar()}>Copiar feriados fixos de {ano - 1}</Button>
+              <Button onClick={() => setDialogo({})}>
+                <Plus aria-hidden />
+                Novo feriado
+              </Button>
+            </div>
+        </>
+      }
+    >
 
-      <div className="mt-6 rounded-xl border border-linha bg-superficie">
+      <div className="rounded-xl border border-linha bg-superficie">
         <div className="flex flex-wrap items-end gap-4 border-b border-linha p-4">
           <div className="grid gap-1.5">
             <Label htmlFor="feriados-ano">Ano</Label>
@@ -108,7 +113,7 @@ function Feriados() {
       </div>
 
       {dialogo && <FeriadoDialogo key={dialogo.feriado?.id ?? 'novo'} unidadeId={eu.unidade.id} ano={ano} feriado={dialogo.feriado} aoFechar={() => setDialogo(null)} aoSalvar={salvou} />}
-    </section>
+    </Moldura>
   );
 }
 
@@ -126,10 +131,10 @@ function ItemFeriado({ f, aoEditar, aoRemover }: { f: Feriado; aoEditar: () => v
         </span>
       ) : (
         <span className="ml-auto flex gap-1">
-          <Button type="button" size="icon" variant="ghost" aria-label={`Editar ${f.descricao}`} onClick={aoEditar}>
+          <Button type="button" size="icon" variant="discreto" aria-label={`Editar ${f.descricao}`} onClick={aoEditar}>
             <Pencil aria-hidden />
           </Button>
-          <Button type="button" size="icon" variant="ghost" aria-label={`Remover ${f.descricao}`} onClick={aoRemover}>
+          <Button type="button" size="icon" variant="discreto" aria-label={`Remover ${f.descricao}`} onClick={aoRemover}>
             <Trash2 aria-hidden />
           </Button>
         </span>
@@ -183,7 +188,7 @@ function FeriadoDialogo({ unidadeId, ano, feriado, aoFechar, aoSalvar }: { unida
             </div>
           </div>
           <label className="flex items-center gap-2 text-sm">
-            <input type="checkbox" checked={fixo} onChange={(e) => setFixo(e.target.checked)} className="size-4 accent-vinho" />
+            <Checkbox checked={fixo} onChange={(e) => setFixo(e.target.checked)} />
             Cai no mesmo dia todo ano
           </label>
           {erro && <p role="alert" className="text-sm text-alerta">{erro}</p>}

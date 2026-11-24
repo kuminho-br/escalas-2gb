@@ -228,7 +228,7 @@ describe('Salvar que mostra o estado', () => {
     fireEvent.change(await screen.findByLabelText('Nome'), { target: { value: 'Bioma 2' } });
     const salvar = screen.getByRole('button', { name: 'Salvar' });
     expect(salvar).toBeEnabled();
-    expect(salvar).toHaveAttribute('data-variant', 'default');
+    expect(salvar).toHaveAttribute('data-variant', 'principal');
   });
 
   it('o aviso de salvo some ao mexer de novo', async () => {

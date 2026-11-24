@@ -28,9 +28,36 @@ describe('estilo', () => {
     expect(aberturas.at(-1)?.[0]).toContain('(min-width: 48rem)');
   });
 
-  it('botão secundário tem texto vinho', () => {
-    const { getByRole } = render(<Button variant="outline">Importar</Button>);
-    expect(getByRole('button', { name: 'Importar' }).className).toContain('text-vinho');
+  it('o botão tem as cinco variantes do sistema de estilo, cada uma com o token certo (6.20)', () => {
+    const { getByRole } = render(
+      <>
+        <Button variant="principal">Salvar</Button>
+        <Button variant="secundario">Importar</Button>
+        <Button variant="discreto">Regras</Button>
+        <Button variant="perigoso">Remover</Button>
+        <Button variant="perigoso-cheio">Apagar</Button>
+      </>,
+    );
+    const classe = (nome: string) => getByRole('button', { name: nome }).className;
+    expect(classe('Salvar')).toContain('bg-vinho');
+    expect(classe('Salvar')).toContain('text-white');
+    expect(classe('Importar')).toContain('border-encaixe');
+    expect(classe('Importar')).toContain('text-tinta');
+    expect(classe('Regras')).not.toMatch(/border|bg-vinho/);
+    expect(classe('Remover')).toContain('border-alerta');
+    expect(classe('Remover')).toContain('text-alerta');
+    expect(classe('Apagar')).toContain('bg-alerta');
+    // a altura é a de controle, e o raio, o de controle
+    expect(classe('Salvar')).toContain('h-(--altura-controle)');
+    expect(classe('Salvar')).toContain('rounded-controle');
+  });
+
+  it('o botão ocupado mostra o verbo no lugar do texto, fica apagado e diz aria-busy', () => {
+    const { getByRole } = render(<Button ocupado="Salvando…">Salvar</Button>);
+    const b = getByRole('button', { name: 'Salvando…' });
+    expect(b).toBeDisabled();
+    expect(b).toHaveAttribute('aria-busy', 'true');
+    expect(b).not.toHaveTextContent('Salvar');
   });
 
   it('cor clara ganha borda', () => {
@@ -104,7 +131,14 @@ describe('vaga vazia (opção A do mockup): as cores do tema', () => {
     expect(razaoDeContraste(token('apagado'), token('superficie'))).toBeGreaterThanOrEqual(4.5);
   });
 
-  it('o contorno da vaga extra é mais claro que o da obrigatória (a extra também se reconhece pelo "opcional")', () => {
-    expect(razaoDeContraste(token('encaixe-claro'), token('superficie'))).toBeLessThan(razaoDeContraste(token('encaixe'), token('superficie')));
+  it('o contorno da vaga opcional é o mesmo da obrigatória (a opcional se reconhece pelo tracejado fino e pelo "Vaga opcional")', () => {
+    expect(razaoDeContraste(token('encaixe'), token('superficie'))).toBeGreaterThanOrEqual(3);
+    expect(css).not.toContain('encaixe-claro');
+  });
+
+  it('os tokens novos do sistema de estilo: o fundo de alerta com 5,5:1, os seis tamanhos de letra, os dois raios, as duas sombras e a altura de controle de 44 px no toque', () => {
+    expect(razaoDeContraste(token('alerta'), token('alerta-fundo'))).toBeGreaterThanOrEqual(5.5);
+    for (const trecho of ['--text-apoio: 0.8125rem', '--text-corpo: 0.9375rem', '--text-nome: 1.0625rem', '--text-bloco: 1.25rem', '--text-titulo: 1.75rem', '--text-abertura: 2.5rem']) expect(css).toContain(trecho);
+    for (const trecho of ['--radius-controle: 6px', '--radius-superficie: 12px', '--shadow-apoiada:', '--shadow-por-cima:', '--altura-controle: 36px', '--altura-controle: 44px', '@media (pointer: coarse)']) expect(css).toContain(trecho);
   });
 });

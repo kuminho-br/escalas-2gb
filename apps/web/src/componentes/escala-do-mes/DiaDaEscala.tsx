@@ -1,17 +1,18 @@
 import { textoFaixa, type DiaDaEscala, type FaixaDoDia, type OcupanteDaVaga } from 'contratos';
-import { EtiquetaDoServico } from '@/componentes/EtiquetaDoServico';
+import { Etiqueta } from '@/componentes/ui/etiqueta';
 import { cn } from '@/lib/utils';
-import { CardDaGuarnicao, type VagaDaTela } from './CardDaGuarnicao';
+import { CardDaGuarnicao, PlacaDoOcupante, type VagaDaTela } from './CardDaGuarnicao';
 
 const DIA_DA_SEMANA = ['domingo', 'segunda', 'terça', 'quarta', 'quinta', 'sexta', 'sábado'];
 
 type Acoes = {
   aoEscolher?: (vaga: VagaDaTela) => void;
   aoRemover?: (o: OcupanteDaVaga, guarnicao: string, dia: number, vaga: string) => void;
+  aoTrocar?: (o: OcupanteDaVaga, guarnicao: string, dia: number, vaga: string, daVaga: VagaDaTela) => void;
   aoDesfazer?: (remocaoId: string) => void;
 };
 
-function Faixa({ faixa, dia, soVazias, aoEscolher, aoRemover }: { faixa: FaixaDoDia; dia: string; soVazias: boolean } & Acoes) {
+function Faixa({ faixa, dia, soVazias, aoEscolher, aoRemover, aoTrocar }: { faixa: FaixaDoDia; dia: string; soVazias: boolean } & Acoes) {
   const cards = soVazias ? faixa.guarnicoes.filter((g) => !g.completa) : faixa.guarnicoes;
   if (soVazias && cards.length === 0) return null;
   const letras = [...new Set(faixa.turnos.map((t) => t.letra))].join(', ');
@@ -24,29 +25,26 @@ function Faixa({ faixa, dia, soVazias, aoEscolher, aoRemover }: { faixa: FaixaDo
         <p className="flex flex-wrap items-center gap-x-2 gap-y-1 font-cond text-sm font-semibold">
           <span>{textoFaixa(faixa.inicio, faixa.fim)}</span>
           <span className="font-normal text-apagado">{letras}</span>
-          {servicos.map((t) => <EtiquetaDoServico key={t.servicoId} nome={t.servico} cor={t.cor} />)}
+          {servicos.map((t) => <Etiqueta key={t.servicoId} tipo="servico" cor={t.cor}>{t.servico}</Etiqueta>)}
         </p>
         {cards.length > 0 && (
           <div data-cards-do-turno className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,18rem),1fr))] items-start gap-3">
             {cards.map((g) => (
-              <CardDaGuarnicao key={g.guarnicaoId} card={g} aoEscolher={aoEscolher && ((v) => aoEscolher({ ...v, data: dia, inicio: faixa.inicio, fim: faixa.fim }))} aoRemover={aoRemover && ((o, guarnicao, vaga) => aoRemover(o, guarnicao, Number(dia.slice(8)), vaga))} />
+              <CardDaGuarnicao key={g.guarnicaoId} card={g} aoEscolher={aoEscolher && ((v) => aoEscolher({ ...v, data: dia, inicio: faixa.inicio, fim: faixa.fim }))} aoRemover={aoRemover && ((o, guarnicao, vaga) => aoRemover(o, guarnicao, Number(dia.slice(8)), vaga))} aoTrocar={aoTrocar && aoEscolher && ((o, guarnicao, vaga, v) => aoTrocar(o, guarnicao, Number(dia.slice(8)), vaga, { ...v, data: dia, inicio: faixa.inicio, fim: faixa.fim }))} />
             ))}
           </div>
         )}
         {faixa.semPosto.length > 0 && (
-          <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
-            <span className="text-apagado">Sem guarnição:</span>
-            {faixa.semPosto.map((o) => (
-              <span key={o.alocacaoId} className="inline-flex items-center gap-1.5">
-                {o.nomeGuerra}
-                {aoRemover && (
-                  <button type="button" aria-label={`Remover ${o.nomeGuerra}`} onClick={() => aoRemover(o, 'Sem guarnição', Number(dia.slice(8)), 'Sem guarnição')} className="rounded px-1.5 text-xs text-apagado hover:bg-accent hover:text-tinta">
-                    Remover
-                  </button>
-                )}
-              </span>
-            ))}
-          </p>
+          <div className="grid gap-1.5">
+            <p className="text-apoio font-medium text-apagado">Sem guarnição</p>
+            <ul className="grid gap-1.5">
+              {faixa.semPosto.map((o) => (
+                <li key={o.alocacaoId}>
+                  <PlacaDoOcupante o={o} vaga="Sem guarnição" acoes={aoRemover ? [{ rotulo: 'Remover do turno', aoEscolher: () => aoRemover(o, 'Sem guarnição', Number(dia.slice(8)), 'Sem guarnição') }] : undefined} />
+                </li>
+              ))}
+            </ul>
+          </div>
         )}
       </div>
     </div>
@@ -61,7 +59,7 @@ function Removidos({ dia, aoDesfazer }: { dia: DiaDaEscala; aoDesfazer?: Acoes['
   const removidos = dia.faixas.flatMap((f) => f.removidos.map((r) => ({ ...r, horario: textoFaixa(f.inicio, f.fim) })));
   if (removidos.length === 0) return null;
   return (
-    <section aria-label="Removidos" data-removidos className="col-span-full grid gap-1.5 rounded-lg bg-[#F6F7F9] px-3 py-2 text-xs">
+    <section aria-label="Removidos" data-removidos className="col-span-full grid gap-1.5 rounded-lg bg-passa px-3 py-2 text-xs">
       <h4 className="font-medium text-apagado">Removidos</h4>
       <ul className="grid gap-1">
         {removidos.map((r) => (
@@ -87,7 +85,7 @@ function Removidos({ dia, aoDesfazer }: { dia: DiaDaEscala; aoDesfazer?: Acoes['
 }
 
 /** Um dia: o número grande parado à esquerda durante a rolagem e, ao lado, as faixas do dia. */
-export function DiaDaEscalaVista({ dia, soVazias, aoEscolher, aoRemover, aoDesfazer }: { dia: DiaDaEscala; soVazias: boolean } & Acoes) {
+export function DiaDaEscalaVista({ dia, soVazias, aoEscolher, aoRemover, aoTrocar, aoDesfazer }: { dia: DiaDaEscala; soVazias: boolean } & Acoes) {
   if (soVazias && dia.obrigatoriasVazias === 0) return null;
   const n = Number(dia.data.slice(8));
   const fimDeSemana = dia.diaDaSemana === 0 || dia.diaDaSemana === 6;
@@ -102,7 +100,7 @@ export function DiaDaEscalaVista({ dia, soVazias, aoEscolher, aoRemover, aoDesfa
       <div data-barra-do-dia aria-hidden className="w-1.5 self-stretch rounded-full bg-linha" />
       {/* os turnos do dia lado a lado, numa grade de ~20rem (adendo de 19/11 depois da 2.4): no celular, um embaixo do outro */}
       <div data-faixas-do-dia className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,20rem),1fr))] gap-4">
-        {dia.faixas.map((f) => <Faixa key={`${f.inicio}|${f.fim}`} faixa={f} dia={dia.data} soVazias={soVazias} aoEscolher={aoEscolher} aoRemover={aoRemover} />)}
+        {dia.faixas.map((f) => <Faixa key={`${f.inicio}|${f.fim}`} faixa={f} dia={dia.data} soVazias={soVazias} aoEscolher={aoEscolher} aoRemover={aoRemover} aoTrocar={aoTrocar} />)}
         <Removidos dia={dia} aoDesfazer={aoDesfazer} />
       </div>
     </section>

@@ -72,7 +72,7 @@ function Item({ funcao, podeEditar, aoSalvar }: { funcao: FuncaoDoMilitar; podeE
         <form onSubmit={renomear} className="flex items-center gap-2">
           <Input aria-label={`Novo nome de ${funcao.nome}`} value={nome} maxLength={80} onChange={(e) => setNome(e.target.value)} autoFocus />
           <Button type="submit" size="sm">Salvar</Button>
-          <Button type="button" size="sm" variant="ghost" onClick={() => setEditando(false)}>Cancelar</Button>
+          <Button type="button" size="sm" variant="discreto" onClick={() => setEditando(false)}>Cancelar</Button>
         </form>
       </li>
     );
@@ -83,8 +83,8 @@ function Item({ funcao, podeEditar, aoSalvar }: { funcao: FuncaoDoMilitar; podeE
       {!funcao.ativo && <span className="rounded bg-muted px-1.5 text-xs text-apagado">desativada</span>}
       {podeEditar && (
         <span className="ml-auto flex gap-1">
-          <Button size="sm" variant="ghost" onClick={() => setEditando(true)}>Renomear</Button>
-          <Button size="sm" variant="ghost" onClick={() => void aoSalvar({ ativo: !funcao.ativo })}>{funcao.ativo ? 'Desativar' : 'Reativar'}</Button>
+          <Button size="sm" variant="discreto" onClick={() => setEditando(true)}>Renomear</Button>
+          <Button size="sm" variant="discreto" onClick={() => void aoSalvar({ ativo: !funcao.ativo })}>{funcao.ativo ? 'Desativar' : 'Reativar'}</Button>
         </span>
       )}
     </li>

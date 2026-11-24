@@ -11,6 +11,7 @@ import { Button } from '@/componentes/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/componentes/ui/dialog';
 import { Input } from '@/componentes/ui/input';
 import { hoje, mesAtual } from '@/lib/meses';
+import { Radio } from '@/componentes/ui/radio';
 
 /** A janela de uma ação sobre uma unidade: some quando a ação grava, e quem a abriu atualiza a árvore. */
 type Comum = { no: NoDaArvore; aoFechar: () => void };
@@ -84,7 +85,7 @@ export function NovaUnidadeAbaixo({ no, tipos, aoFechar }: Comum & { tipos: Tipo
         <Campo id="nu-mes" rotulo="Vale a partir de" erro={campos.desde}><Input id="nu-mes" type="month" value={mes} onChange={(e) => setMes(e.target.value)} required /></Campo>
         <Erro texto={erro} />
         <DialogFooter>
-          <Button type="button" variant="ghost" onClick={aoFechar}>Cancelar</Button>
+          <Button type="button" variant="discreto" onClick={aoFechar}>Cancelar</Button>
           <Button type="submit" disabled={salvando || !tipo}>Criar unidade</Button>
         </DialogFooter>
       </form>
@@ -125,7 +126,7 @@ export function RenomearUnidade({ no, tipos, aoFechar }: Comum & { tipos: TipoDe
         </Campo>
         <Erro texto={erro} />
         <DialogFooter>
-          <Button type="button" variant="ghost" onClick={aoFechar}>Cancelar</Button>
+          <Button type="button" variant="discreto" onClick={aoFechar}>Cancelar</Button>
           <Button type="submit" disabled={salvando || Object.keys(mudou).length === 0}>Salvar</Button>
         </DialogFooter>
       </form>
@@ -182,7 +183,7 @@ export function MoverUnidade({ no, arvore, aoFechar }: Comum & { arvore: NoDaArv
           <div className="max-h-60 overflow-y-auto rounded-md border border-linha p-1">
             {opcoes.map(({ no: o, profundidade }) => (
               <label key={o.id} className="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-sm hover:bg-fundo/70" style={{ paddingLeft: `${0.5 + profundidade * 1}rem` }}>
-                <input type="radio" name="destino" value={o.id} checked={destino === o.id} onChange={() => setDestino(o.id)} className="size-4 accent-vinho" />
+                <Radio name="destino" value={o.id} checked={destino === o.id} onChange={() => setDestino(o.id)} />
                 <span className="font-cond font-semibold">{o.sigla}</span>
                 <span className="min-w-0 truncate text-apagado">{o.nome}</span>
               </label>
@@ -208,7 +209,7 @@ export function MoverUnidade({ no, arvore, aoFechar }: Comum & { arvore: NoDaArv
         )}
         <Erro texto={erro} />
         <DialogFooter>
-          <Button type="button" variant="ghost" onClick={aoFechar}>Cancelar</Button>
+          <Button type="button" variant="discreto" onClick={aoFechar}>Cancelar</Button>
           <Button type="submit" disabled={salvando || !e}>Mover</Button>
         </DialogFooter>
       </form>
@@ -246,7 +247,7 @@ export function ExtinguirUnidade({ no, aoFechar }: Comum) {
         <Campo id="ex-ate" rotulo="Último dia da unidade"><Input id="ex-ate" type="date" value={ate} onChange={(e) => setAte(e.target.value)} required /></Campo>
         <Erro texto={erro} />
         <DialogFooter>
-          <Button type="button" variant="ghost" onClick={aoFechar}>Cancelar</Button>
+          <Button type="button" variant="discreto" onClick={aoFechar}>Cancelar</Button>
           <Button type="submit" disabled={salvando || !ate}>Extinguir</Button>
         </DialogFooter>
       </form>
@@ -273,8 +274,8 @@ export function ExcluirUnidade({ no, aoFechar }: Comum) {
     <Janela titulo={`Excluir ${no.sigla}?`} descricao="A unidade não tem nada ligado a ela. Excluir não se desfaz." aoFechar={aoFechar}>
       <Erro texto={erro} />
       <DialogFooter>
-        <Button type="button" variant="ghost" onClick={aoFechar}>Cancelar</Button>
-        <Button type="button" variant="destructive" disabled={salvando} onClick={() => void excluir()}>Excluir</Button>
+        <Button type="button" variant="discreto" onClick={aoFechar}>Cancelar</Button>
+        <Button type="button" variant="perigoso-cheio" disabled={salvando} onClick={() => void excluir()}>Excluir</Button>
       </DialogFooter>
     </Janela>
   );

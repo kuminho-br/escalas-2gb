@@ -39,11 +39,11 @@ export function FaixaDoMes({ etapa, ocupado, podeAbrir, aoAbrir, aoFechar, aoEnc
     <section aria-label="Etapa do mês" className="grid gap-3">
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
         <p className="flex items-baseline gap-2">
-          <span className="text-[13px] leading-[18px] text-apagado">Etapa</span>
-          <b className="font-cond text-[20px] leading-[26px] font-semibold text-tinta">{PASSOS[atual]!.nome}</b>
-          <span className="text-[13px] leading-[18px] text-apagado">{`${atual + 1} de 4`}</span>
+          <span className="text-apoio leading-[18px] text-apagado">Etapa</span>
+          <b className="font-cond text-bloco leading-[26px] font-semibold text-tinta">{PASSOS[atual]!.nome}</b>
+          <span className="text-apoio leading-[18px] text-apagado">{`${atual + 1} de 4`}</span>
         </p>
-        <Button type="button" variant="ghost" size="sm" aria-expanded={aberta} aria-controls="como-funciona-o-mes" onClick={() => setAberta((a) => !a)}>
+        <Button type="button" variant="discreto" size="sm" aria-expanded={aberta} aria-controls="como-funciona-o-mes" onClick={() => setAberta((a) => !a)}>
           Como funciona o mês
           <ChevronDown aria-hidden className={cn('transition-transform motion-reduce:transition-none', aberta && 'rotate-180')} />
         </Button>
@@ -64,18 +64,18 @@ export function FaixaDoMes({ etapa, ocupado, podeAbrir, aoAbrir, aoFechar, aoEnc
                 <span
                   aria-hidden
                   className={cn(
-                    'mt-0.5 grid size-6 shrink-0 place-items-center rounded-full border text-[13px] leading-none font-semibold',
+                    'mt-0.5 grid size-6 shrink-0 place-items-center rounded-full border text-apoio leading-none font-semibold',
                     i === atual ? 'border-tinta bg-tinta text-white' : i < atual ? 'border-tinta text-tinta' : 'border-encaixe text-apagado',
                   )}
                 >
                   {i < atual ? <Check className="size-3.5" strokeWidth={2.5} /> : i + 1}
                 </span>
                 <div className="grid gap-0.5">
-                  <h3 className={cn('text-[15px] leading-[22px]', i === atual ? 'font-semibold text-tinta' : 'text-apagado')}>
+                  <h3 className={cn('text-corpo leading-[22px]', i === atual ? 'font-semibold text-tinta' : 'text-apagado')}>
                     {p.nome}
                     {i < atual && <span className="sr-only"> feito</span>}
                   </h3>
-                  <p className="text-[13px] leading-[18px] text-apagado">{p.frase}</p>
+                  <p className="text-apoio leading-[18px] text-apagado">{p.frase}</p>
                 </div>
               </li>
             ))}

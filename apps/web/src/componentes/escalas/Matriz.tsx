@@ -12,6 +12,7 @@ import { Input } from '@/componentes/ui/input';
 import { Label } from '@/componentes/ui/label';
 import { limites } from '@/lib/guarnicoes';
 import { mesAtual } from '@/lib/meses';
+import { Checkbox } from '@/componentes/ui/checkbox';
 
 /** Guarnições por faixa de horário, com versões por vigência (como as versões da guarnição). */
 export function Matriz({ escala, unidadeId }: { escala: Escala; unidadeId: string }) {
@@ -162,7 +163,7 @@ function Editor({ escala, unidadeId, versao, aoSalvar }: { escala: Escala; unida
                       const nome = escala.comLetra ? `${g.nome} em ${f.letras[0]} (${textoFaixa(f.inicio, f.fim)})` : `${g.nome} em ${textoFaixa(f.inicio, f.fim)}`;
                       return (
                         <td key={c} className="px-4 py-1.5 text-center">
-                          <input type="checkbox" aria-label={nome} checked={marcas.get(g.id)?.has(c) ?? false} onChange={(ev) => alternar(g.id, c, ev.target.checked)} className="size-4 accent-vinho" />
+                          <Checkbox aria-label={nome} checked={marcas.get(g.id)?.has(c) ?? false} onChange={(ev) => alternar(g.id, c, ev.target.checked)} />
                         </td>
                       );
                     })}

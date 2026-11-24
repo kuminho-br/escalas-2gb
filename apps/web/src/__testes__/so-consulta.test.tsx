@@ -23,7 +23,7 @@ const OFICIAL: EuDaApi = { ...EU_EXEMPLO, papeis: [], unidades: [SB2], lotacao: 
 const FAIXA_DE_CONSULTA = 'Só consulta: você não altera nada em 2ª SB.';
 const MES = mesAtual();
 const dia = (n: number) => `${MES}-${String(n).padStart(2, '0')}`;
-const EDITAR = [/Desfazer/, /sábados e domingos/, /folga/i, /Como marcar/, /Salvar/, /Alterar/, /Editar/, /Incluir/, /Adicionar/, /Remover/, /Trocar/, /Desativar/, /Reativar/, /Gerar/, /Importar/, /Copiar/, /Voltar ao padrão/, /Escolher militar/, /Limpar/, /Tirar/, /Permitir de novo/, /Mover/];
+const EDITAR = [/Desfazer/, /sábados e domingos/, /folga/i, /Como marcar/, /Salvar/, /Alterar/, /Editar/, /Incluir/, /Adicionar/, /Remover/, /Trocar/, /Desativar/, /Reativar/, /Gerar/, /Importar/, /Copiar/, /Voltar ao padrão/, /Escolher militar/, /Ações de/, /Limpar/, /Tirar/, /Permitir de novo/, /Mover/];
 const semBotaoDeAlterar = () => {
   for (const nome of EDITAR) expect(screen.queryByRole('button', { name: nome }), String(nome)).toBeNull();
 };
@@ -191,8 +191,8 @@ describe('as cinco telas numa unidade só de consulta', () => {
     const secao = await screen.findByRole('region', { name: 'Dia 1' });
     expect(within(secao).getByText('MOTOR')).toBeInTheDocument();
     // a vaga que falta (obrigatória) e a opcional: as duas são só um aviso
-    expect(within(secao).getAllByText('Vaga livre')).toHaveLength(2);
-    expect(within(secao).getByText('opcional')).toBeInTheDocument();
+    expect(within(secao).getAllByText('Vaga livre')).toHaveLength(1);
+    expect(within(secao).getByText('Vaga opcional')).toBeInTheDocument();
     // o resto da tela continua: o filtro das guarnições completas e quem foi removido
     expect(screen.getByRole('button', { name: 'Ocultar guarnições completas' })).toBeInTheDocument();
     expect(within(secao).getByText('REMOVIDO')).toBeInTheDocument();

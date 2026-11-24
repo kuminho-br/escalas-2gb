@@ -231,8 +231,8 @@ export function EscalaDoMes({ unidadeId, escala: e, aoVer }: Props) {
         aoEncerrar={aoEncerrar}
         extras={
           <>
-            {e.etapa === 'encerrada' && <Button type="button" variant="outline" onClick={() => aoVer('saldo')}>Ver o saldo</Button>}
-            {e.etapa !== 'nao-aberto' && <Button type="button" variant="outline" onClick={() => aoVer('memorial')}>Memorial de cálculo</Button>}
+            {e.etapa === 'encerrada' && <Button type="button" variant="secundario" onClick={() => aoVer('saldo')}>Ver o saldo</Button>}
+            {e.etapa !== 'nao-aberto' && <Button type="button" variant="secundario" onClick={() => aoVer('memorial')}>Memorial de cálculo</Button>}
             <BotaoDasRegras />
           </>
         }
@@ -259,23 +259,23 @@ export function EscalaDoMes({ unidadeId, escala: e, aoVer }: Props) {
         {editavel || e.etapa === 'encerrada' ? (
           <section className="grid min-w-0 gap-2.5 rounded-xl border border-linha bg-superficie p-3">
             <header className="flex flex-wrap items-baseline justify-between gap-2">
-              <h2 className="font-cond text-[20px] leading-[26px] font-semibold">Turnos do mês</h2>
-              <small className="text-[13px] text-apagado">{`${e.turnos.filter((t) => t.militarId !== null).length} de ${e.turnos.length} turnos com nome`}</small>
+              <h2 className="font-cond text-bloco leading-[26px] font-semibold">Turnos do mês</h2>
+              <small className="text-apoio text-apagado">{`${e.turnos.filter((t) => t.militarId !== null).length} de ${e.turnos.length} turnos com nome`}</small>
             </header>
             {editavel && (
               <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
                 <SeletorDeServico servico={servico} aoMudar={mudarServico} jes={e.jes} temJes={Boolean(e.servicos.jes)} />
-                <Button type="button" variant="outline" aria-pressed={modoVermelho} className={cn('ml-auto', modoVermelho && 'border-alerta text-alerta')} onClick={() => setModoVermelho((m) => !m)}>
+                <Button type="button" variant="secundario" aria-pressed={modoVermelho} className={cn('ml-auto', modoVermelho && 'border-alerta text-alerta')} onClick={() => setModoVermelho((m) => !m)}>
                   {modoVermelho ? 'Concluir' : 'Marcar dias vermelhos'}
                 </Button>
               </div>
             )}
             {editavel && (
-              <p role="status" className={cn('min-h-[22px] text-[15px] leading-[22px]', aviso ? 'font-medium text-pendencia' : 'text-apagado')}>
+              <p role="status" className={cn('min-h-[22px] text-corpo leading-[22px]', aviso ? 'font-medium text-pendencia' : 'text-apagado')}>
                 {aviso ?? (modoVermelho ? 'Clique nos dias para marcar ou tirar o dia vermelho.' : escolhido ? <>Escalando <b className="font-semibold text-tinta">{nomeDe(escolhido)}</b> no {NOME_DO_SERVICO[servico]}: clique nos turnos.</> : 'Escolha um oficial na lista.')}
               </p>
             )}
-            {pendentes > 0 && <p role="status" className="text-[13px] text-apagado">Salvando…</p>}
+            {pendentes > 0 && <p role="status" className="text-apoio text-apagado">Salvando…</p>}
             <CalendarioDosOficiais
               escala={e}
               aoClicarTurno={editavel && !modoVermelho ? clicarTurno : undefined}
@@ -291,8 +291,8 @@ export function EscalaDoMes({ unidadeId, escala: e, aoVer }: Props) {
         <aside className="order-first min-w-0 xl:relative xl:order-none xl:min-h-96">
           <section className="grid content-start gap-2 rounded-xl border border-linha bg-superficie p-3 xl:absolute xl:inset-0 xl:overflow-y-auto">
             <header className="flex items-center justify-between gap-2">
-              <h2 className="font-cond text-[20px] leading-[26px] font-semibold">Cota de saldo</h2>
-              <Button type="button" variant="ghost" size="sm" className="xl:hidden" aria-expanded={listaAberta} aria-controls="lista-de-oficiais" onClick={() => setListaAberta((a) => !a)}>
+              <h2 className="font-cond text-bloco leading-[26px] font-semibold">Cota de saldo</h2>
+              <Button type="button" variant="discreto" size="sm" className="xl:hidden" aria-expanded={listaAberta} aria-controls="lista-de-oficiais" onClick={() => setListaAberta((a) => !a)}>
                 {listaAberta ? 'Recolher' : 'Mostrar'}
                 <ChevronDown aria-hidden className={cn('transition-transform motion-reduce:transition-none', listaAberta && 'rotate-180')} />
               </Button>
@@ -319,7 +319,7 @@ export function EscalaDoMes({ unidadeId, escala: e, aoVer }: Props) {
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setTroca(null)}>Cancelar</Button>
+            <Button type="button" variant="secundario" onClick={() => setTroca(null)}>Cancelar</Button>
             <Button type="button" onClick={confirmarTroca}>Trocar</Button>
           </DialogFooter>
         </DialogContent>
@@ -331,7 +331,7 @@ export function EscalaDoMes({ unidadeId, escala: e, aoVer }: Props) {
             <DialogDescription>{remocao ? 'O turno fica livre de novo.' : ''}</DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setRemocao(null)}>Cancelar</Button>
+            <Button type="button" variant="secundario" onClick={() => setRemocao(null)}>Cancelar</Button>
             <Button type="button" onClick={confirmarRemocao}>Remover</Button>
           </DialogFooter>
         </DialogContent>

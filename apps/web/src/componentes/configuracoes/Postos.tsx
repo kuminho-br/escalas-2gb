@@ -31,7 +31,7 @@ export function Postos({ podeEditar = true }: { podeEditar?: boolean }) {
               <span data-sigla className="w-24 shrink-0 font-cond font-semibold">{p.sigla}</span>
               <span className="text-apagado">{p.nome}</span>
               {podeEditar && editando === null && (
-                <Button size="sm" variant="ghost" className="ml-auto" aria-label={`Corrigir ${p.sigla}`} onClick={() => setEditando(p.id)}>
+                <Button size="sm" variant="discreto" className="ml-auto" aria-label={`Corrigir ${p.sigla}`} onClick={() => setEditando(p.id)}>
                   Corrigir
                 </Button>
               )}
@@ -74,7 +74,7 @@ function EdicaoDoPosto({ posto, aoFechar }: { posto: Posto; aoFechar: () => void
         </Campo>
         <span className="flex gap-1">
           <Button type="submit" size="sm" disabled={salvando}>Salvar</Button>
-          <Button type="button" size="sm" variant="ghost" onClick={aoFechar}>Cancelar</Button>
+          <Button type="button" size="sm" variant="discreto" onClick={aoFechar}>Cancelar</Button>
         </span>
       </form>
       {erro && <p role="alert" className="mt-2 text-sm text-alerta">{erro}</p>}

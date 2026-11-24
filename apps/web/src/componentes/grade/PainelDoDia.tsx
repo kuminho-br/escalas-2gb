@@ -79,7 +79,7 @@ export function PainelDoDia({ unidadeId, militarId, data, aoFechar }: { unidadeI
               </>
             )}
           </div>
-          <Button type="button" variant="ghost" size="icon" aria-label="Fechar" onClick={aoFechar}>
+          <Button type="button" variant="discreto" size="icon" aria-label="Fechar" onClick={aoFechar}>
             <X aria-hidden />
           </Button>
         </header>
@@ -110,10 +110,10 @@ export function PainelDoDia({ unidadeId, militarId, data, aoFechar }: { unidadeI
                         <span aria-hidden className="text-sm">{textoFaixa(s.inicio, s.fim)}</span>
                         {!soConsulta && (
                           <span className="ml-auto flex gap-1.5">
-                            <Button type="button" variant="outline" size="sm" disabled={salvando} onClick={() => setTrocando({ alocacaoId: s.alocacaoId, acumulaCom: s.acumulaCom })}>
+                            <Button type="button" variant="secundario" size="sm" disabled={salvando} onClick={() => setTrocando({ alocacaoId: s.alocacaoId, acumulaCom: s.acumulaCom })}>
                               Trocar
                             </Button>
-                            <Button type="button" variant="outline" size="sm" disabled={salvando} onClick={() => void remover(s.alocacaoId)}>
+                            <Button type="button" variant="secundario" size="sm" disabled={salvando} onClick={() => void remover(s.alocacaoId)}>
                               Remover
                             </Button>
                           </span>
@@ -132,7 +132,7 @@ export function PainelDoDia({ unidadeId, militarId, data, aoFechar }: { unidadeI
               {!soConsulta && (
                 <>
                   <div>
-                    <Button type="button" variant={adicionando ? 'secondary' : 'outline'} aria-expanded={adicionando} onClick={() => setAdicionando((v) => !v)}>
+                    <Button type="button" variant={adicionando ? 'discreto' : 'secundario'} aria-expanded={adicionando} onClick={() => setAdicionando((v) => !v)}>
                       Adicionar serviço neste dia
                     </Button>
                   </div>

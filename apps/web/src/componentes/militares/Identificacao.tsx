@@ -9,6 +9,7 @@ import { AcoesDoBloco, usePendencia, useTrava, useSincronizar } from '@/componen
 import { Input } from '@/componentes/ui/input';
 import { alteracoesDaIdentificacao, type ValoresIdentificacao } from './alteracoes';
 import { avisoDaLista, DonoDoBloco, Secao } from './Secao';
+import { Checkbox } from '@/componentes/ui/checkbox';
 
 /**
  * Identificação (posto-graduação, nome completo, nome de guerra, antiguidade, sexo, função e abono de permanência: do Pecúlio) e, na mesma ficha, o voluntário JES (da escala).
@@ -122,12 +123,12 @@ export function Identificacao({ ficha }: { ficha: FichaMilitar }) {
         </div>
         <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm">
           <label className="flex items-center gap-2">
-            <input type="checkbox" checked={jes} disabled={!escala} onChange={(e) => setJes(e.target.checked)} className="size-4 accent-vinho" />
+            <Checkbox checked={jes} disabled={!escala} onChange={(e) => setJes(e.target.checked)} />
             Voluntário JES
           </label>
           {ficha.abonoPermanencia !== undefined && (
           <label className="flex items-center gap-2">
-            <input type="checkbox" checked={abono} disabled={!peculio} onChange={(e) => setAbono(e.target.checked)} className="size-4 accent-vinho" />
+            <Checkbox checked={abono} disabled={!peculio} onChange={(e) => setAbono(e.target.checked)} />
             Abono de permanência
           </label>
           )}

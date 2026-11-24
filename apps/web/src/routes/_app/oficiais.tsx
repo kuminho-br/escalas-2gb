@@ -13,6 +13,7 @@ import { Selecao } from '@/componentes/Selecao';
 import { Label } from '@/componentes/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/componentes/ui/tabs';
 import { mesAtual } from '@/lib/meses';
+import { Moldura } from '@/componentes/Moldura';
 
 // as regras abrem num botão da Escala do mês (6.28): um endereço antigo com `aba=regras` cai na Escala do mês
 type Aba = 'escala' | 'saldo' | 'memorial';
@@ -46,11 +47,7 @@ function Oficiais() {
   const irPara = (a: Aba) => void navigate({ search: (s) => ({ ...s, aba: a }) });
 
   return (
-    <section className="grid gap-4">
-      <div>
-        <h1 className="font-cond text-[28px] leading-tight font-semibold">Escala dos oficiais</h1>
-        <p className="text-sm text-apagado">Oficiais QOC e QOA.</p>
-      </div>
+    <Moldura titulo="Escala dos oficiais" subtitulo="Oficiais QOC e QOA.">
       <div className="flex flex-wrap items-end gap-4">
         <div className="grid gap-1.5">
           <Label htmlFor="oficiais-mes">Mês</Label>
@@ -100,6 +97,6 @@ function Oficiais() {
           {saldo.data && <PainelDeSaldo key={`${unidadeId}|${escalaId ?? ''}`} unidadeId={unidadeId} escalaId={escalaId} lista={saldo.data} />}
         </TabsContent>
       </Tabs>
-    </section>
+    </Moldura>
   );
 }

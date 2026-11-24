@@ -4,6 +4,7 @@ import { Estrutura } from '@/componentes/configuracoes/Estrutura';
 import { TiposDeUnidade } from '@/componentes/configuracoes/TiposDeUnidade';
 import { PainelComMenu } from '@/componentes/PainelComMenu';
 import { TabsContent } from '@/componentes/ui/tabs';
+import { Moldura } from '@/componentes/Moldura';
 
 const ABAS = ['arvore', 'tipos-de-unidade'] as const;
 type Aba = (typeof ABAS)[number];
@@ -26,8 +27,7 @@ function EstruturaDoSistema() {
   const aba: Aba = secoes.find((x) => x.valor === pedida)?.valor ?? 'arvore';
   const navigate = Route.useNavigate();
   return (
-    <section>
-      <h1 className="font-cond text-[28px] leading-tight font-semibold">Estrutura</h1>
+    <Moldura titulo="Estrutura">
       <PainelComMenu secoes={secoes} valor={aba} rotulo="Seção da estrutura" aoEscolher={(v) => void navigate({ search: { aba: ABAS.find((a) => a === v) }, replace: true })}>
         <TabsContent value="arvore">
           <Estrutura raizes={raizes} />
@@ -38,6 +38,6 @@ function EstruturaDoSistema() {
           </TabsContent>
         )}
       </PainelComMenu>
-    </section>
+    </Moldura>
   );
 }

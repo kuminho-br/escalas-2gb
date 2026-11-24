@@ -16,6 +16,7 @@ import { Label } from '@/componentes/ui/label';
 import { limites } from '@/lib/guarnicoes';
 import { mesAtual } from '@/lib/meses';
 import { cn } from '@/lib/utils';
+import { Checkbox } from '@/componentes/ui/checkbox';
 
 /** Importar da planilha e "Novo modelo": as ações da lista de modelos de guarnição (aba de Configurações e ficha). */
 export function AcoesDosModelos({ unidadeId }: { unidadeId: string }) {
@@ -50,7 +51,7 @@ export function ListaDeModelos({ unidadeId, escolhida }: { unidadeId: string; es
             {guarnicoes.data.length > 0 && visiveis.length === 0 && <li className="p-3 text-apagado">Todos os modelos estão desativados. Marque "Mostrar desativados" para vê-los.</li>}
           </ul>
           <label className="flex shrink-0 items-center gap-2 border-t border-linha px-4 py-2.5 text-xs text-apagado">
-            <input type="checkbox" checked={desativadas} onChange={(e) => setDesativadas(e.target.checked)} className="size-4 accent-vinho" />
+            <Checkbox checked={desativadas} onChange={(e) => setDesativadas(e.target.checked)} />
             Mostrar desativados
           </label>
         </>

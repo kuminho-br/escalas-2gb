@@ -7,6 +7,7 @@ import { consultaSituacoesDoMilitar } from '@/api/militares';
 import { Button } from '@/componentes/ui/button';
 import { Input } from '@/componentes/ui/input';
 import { Label } from '@/componentes/ui/label';
+import { Checkbox } from '@/componentes/ui/checkbox';
 
 /** O catálogo "Situações do militar" (Ativa, Reserva…): só o administrador altera. "Pode ser escalado" diz se quem está na situação entra nas escalas. */
 export function SituacoesDoMilitar({ podeEditar }: { podeEditar: boolean }) {
@@ -52,7 +53,7 @@ export function SituacoesDoMilitar({ podeEditar }: { podeEditar: boolean }) {
             <Input id="nova-situacao" value={novo} onChange={(e) => setNovo(e.target.value)} />
           </div>
           <label className="flex items-center gap-2 text-sm">
-            <input type="checkbox" checked={novoEscalavel} onChange={(e) => setNovoEscalavel(e.target.checked)} className="size-4 accent-vinho" />
+            <Checkbox checked={novoEscalavel} onChange={(e) => setNovoEscalavel(e.target.checked)} />
             Pode ser escalado
           </label>
           <div><Button type="submit" disabled={!novo.trim()}>Incluir</Button></div>
@@ -76,7 +77,7 @@ function Item({ situacao, podeEditar, aoSalvar }: { situacao: SituacaoDoMilitar;
         <form onSubmit={renomear} className="flex items-center gap-2">
           <Input aria-label={`Novo nome de ${situacao.nome}`} value={nome} onChange={(e) => setNome(e.target.value)} autoFocus />
           <Button type="submit" size="sm">Salvar</Button>
-          <Button type="button" size="sm" variant="ghost" onClick={() => setEditando(false)}>Cancelar</Button>
+          <Button type="button" size="sm" variant="discreto" onClick={() => setEditando(false)}>Cancelar</Button>
         </form>
       </li>
     );
@@ -86,20 +87,18 @@ function Item({ situacao, podeEditar, aoSalvar }: { situacao: SituacaoDoMilitar;
       <span className={situacao.ativo ? '' : 'text-apagado'}>{situacao.nome}</span>
       {!situacao.ativo && <span className="rounded bg-muted px-1.5 text-xs text-apagado">desativada</span>}
       <label className="ml-auto flex items-center gap-2 text-sm">
-        <input
-          type="checkbox"
+        <Checkbox
           aria-label={`${situacao.nome}: pode ser escalado`}
           checked={situacao.escalavel}
           disabled={!podeEditar}
           onChange={(e) => void aoSalvar({ escalavel: e.target.checked })}
-          className="size-4 accent-vinho"
         />
         Pode ser escalado
       </label>
       {podeEditar && (
         <span className="flex gap-1">
-          <Button size="sm" variant="ghost" onClick={() => setEditando(true)}>Renomear</Button>
-          <Button size="sm" variant="ghost" onClick={() => void aoSalvar({ ativo: !situacao.ativo })}>{situacao.ativo ? 'Desativar' : 'Reativar'}</Button>
+          <Button size="sm" variant="discreto" onClick={() => setEditando(true)}>Renomear</Button>
+          <Button size="sm" variant="discreto" onClick={() => void aoSalvar({ ativo: !situacao.ativo })}>{situacao.ativo ? 'Desativar' : 'Reativar'}</Button>
         </span>
       )}
     </li>

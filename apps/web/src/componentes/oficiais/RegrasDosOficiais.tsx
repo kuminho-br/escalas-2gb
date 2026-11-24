@@ -93,7 +93,7 @@ export function BotaoDasRegras() {
   const [aberto, setAberto] = useState(false);
   return (
     <>
-      <Button type="button" variant="outline" onClick={() => setAberto(true)}>Regras</Button>
+      <Button type="button" variant="secundario" onClick={() => setAberto(true)}>Regras</Button>
       <Dialog open={aberto} onOpenChange={setAberto}>
         <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-3xl">
           <DialogHeader>

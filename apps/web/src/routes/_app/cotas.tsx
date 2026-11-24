@@ -17,6 +17,8 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from '@/componentes/ui/input';
 import { Label } from '@/componentes/ui/label';
 import { mesAtual } from '@/lib/meses';
+import { Radio } from '@/componentes/ui/radio';
+import { Moldura } from '@/componentes/Moldura';
 
 export const Route = createFileRoute('/_app/cotas')({
   component: Cotas,
@@ -67,22 +69,25 @@ function Cotas() {
   }
 
   return (
-    <section>
-      <header className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="font-cond text-[28px] leading-tight font-semibold">Cotas</h1>
-        {!soConsulta && (
-          <div className="flex flex-wrap gap-2">
-            <ImportarPlanilha cadastro="cotas" rotulo="as cotas" aoConcluir={() => atualizarCotas(queryClient)} />
-            <Button variant="outline" disabled={copiando} onClick={() => void copiar()}>Copiar do mês anterior</Button>
-            <Button onClick={() => setDialogo({})}>
-              <Plus aria-hidden />
-              Adicionar cota
-            </Button>
-          </div>
-        )}
-      </header>
+    <Moldura
+      titulo="Cotas"
+      acaoPrincipal={
+        <>
+          {!soConsulta && (
+              <div className="flex flex-wrap gap-2">
+                <ImportarPlanilha cadastro="cotas" rotulo="as cotas" aoConcluir={() => atualizarCotas(queryClient)} />
+                <Button variant="secundario" disabled={copiando} onClick={() => void copiar()}>Copiar do mês anterior</Button>
+                <Button onClick={() => setDialogo({})}>
+                  <Plus aria-hidden />
+                  Adicionar cota
+                </Button>
+              </div>
+            )}
+        </>
+      }
+    >
 
-      <div className="mt-6 rounded-xl border border-linha bg-superficie">
+      <div className="rounded-xl border border-linha bg-superficie">
         <div className="flex flex-wrap items-end gap-4 border-b border-linha p-4">
           <div className="grid gap-1.5">
             <Label htmlFor="cotas-mes">Mês</Label>
@@ -128,7 +133,7 @@ function Cotas() {
           aoFechar={() => setDialogo(null)}
         />
       )}
-    </section>
+    </Moldura>
   );
 }
 
@@ -168,10 +173,10 @@ function LinhaCota({ c, aoEditar, aoRemover }: { c: Cota; aoEditar?: () => void;
       {aoEditar && aoRemover && (
         <td className="px-4 py-2.5">
           <span className="flex justify-end gap-1">
-            <Button type="button" size="icon" variant="ghost" aria-label={`Editar cota de ${nome}`} onClick={aoEditar}>
+            <Button type="button" size="icon" variant="discreto" aria-label={`Editar cota de ${nome}`} onClick={aoEditar}>
               <Pencil aria-hidden />
             </Button>
-            <Button type="button" size="icon" variant="ghost" aria-label={`Remover cota de ${nome}`} onClick={aoRemover}>
+            <Button type="button" size="icon" variant="discreto" aria-label={`Remover cota de ${nome}`} onClick={aoRemover}>
               <Trash2 aria-hidden />
             </Button>
           </span>
@@ -232,7 +237,7 @@ function CotaDialogo({ unidadeId, mes, cota, proximaPrioridade, aoFechar }: { un
             <div className="flex gap-4 text-sm">
               {(['interna', 'externa'] as const).map((o) => (
                 <label key={o} className="flex items-center gap-2">
-                  <input type="radio" name="origem" checked={origem === o} onChange={() => setOrigem(o)} className="size-4 accent-vinho" />
+                  <Radio name="origem" checked={origem === o} onChange={() => setOrigem(o)} />
                   {NOME_ORIGEM[o]}
                 </label>
               ))}
