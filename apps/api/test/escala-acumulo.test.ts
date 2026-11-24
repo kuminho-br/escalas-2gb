@@ -114,9 +114,9 @@ describe('acumular funções', () => {
     );
     const c = await candidatos(11, VAGAS().motorista);
     expect(c.acumular.map((x) => [x.nomeGuerra, x.vaga])).toEqual([['MOTE', 'Combatente ABT']]);
-    // MOTB (CNH B) fica de fora por CNH; quem está sem posto ou na outra escala segue como "já escalado"; quem aparece em "acumular" não conta como de fora
+    // MOTB (CNH B) fica de fora por CNH; quem está na outra escala segue como "já escalado"; quem está no turno sem posto (6.40) é candidato a ser movido para a vaga (aqui sem a CNH D, fica de fora por ela); quem aparece em "acumular" não conta como de fora
     const fora = Object.fromEntries(c.fora.map((f) => [f.motivo, f.quantidade]));
-    expect(fora['Já escalado neste horário']).toBe(2);
+    expect(fora['Já escalado neste horário']).toBe(1);
     expect(fora['Sem a CNH exigida']).toBeGreaterThanOrEqual(1);
     // quem já é Combatente da ABT não pode acumular Combatente da ABT
     const mesmaFuncao = await candidatos(11, VAGAS().combatente);
