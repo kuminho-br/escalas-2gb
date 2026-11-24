@@ -36,16 +36,16 @@ O usuário vai montar as escalas de dezembro no sistema, em paralelo ao processo
 ## 3. Militar externo
 
 - **Quem:** um militar de outra unidade que vem tirar **serviço extra** (JES, Diária, PJES) aqui.
-- **Como entra:** o **gestor da unidade que recebe** (ou quem está acima dele, como o administrador) acha o militar na Consulta de militares (módulo Pecúlio) e clica em **"Trazer para a escala de {unidade}"**. A lotação dele não muda.
+- **Como entra:** o **gestor da unidade que recebe** (ou quem está acima dele, como o administrador) busca o militar em **Configurações da escala > Voluntariado**, na seção "Militares de outras unidades", e clica em **"Trazer"** (decisão de 24/11/2026; na 6.33 o botão ficava na Consulta). A lotação dele não muda.
 - **Por quanto tempo:** **até alguém tirar**. O gestor desfaz quando quiser ("Tirar da escala de {unidade}").
-- **Onde aparece:** na unidade que recebe, numa equipe chamada **"Externo"**, nas telas de escala. Só pode ser lançado nos **serviços extras** (JES, Diária e PJES), à mão; não entra no Pronto nem na pré-escala do ordinário.
+- **Onde aparece:** na unidade que recebe, numa equipe chamada **"Externo"**, nas telas de escala. Pode ser lançado **em qualquer serviço, à mão** (decisão de 24/11/2026: ele vem tirar serviço de uma forma geral; na 6.33 era só serviço extra); não entra na pré-escala nem nas distribuições automáticas.
 - **O auxiliar** vê quem foi trazido, mas não traz nem tira.
 - **Banco:** a tabela `vinculo_externo` (militar, unidade, início, fim, observação), criada na migração 0001 e nunca usada, serve para isso: "até alguém tirar" é o fim vazio; tirar grava o fim. Decisão antiga que isto cumpre: "Militar de fora só por vínculo" (16/11/2026).
 
 ## Não objetivos
 
 - O catálogo de habilitações.
-- O militar externo no Pronto ou na pré-escala.
+- O militar externo na pré-escala e nas distribuições automáticas.
 - Mudar a ficha do Pecúlio.
 
 ## Anti-objetivos
