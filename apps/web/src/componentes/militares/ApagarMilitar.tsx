@@ -33,7 +33,7 @@ function linhasDoQueVaiJunto(j: OQueVaiJunto): string[] {
 export function ApagarMilitar({ ficha }: { ficha: FichaMilitar }) {
   const [aberto, setAberto] = useState(false);
   return (
-    <Secao titulo="Apagar militar">
+    <Secao titulo="Apagar do sistema">
       <p className="mb-3 text-sm text-apagado">Apaga o militar e tudo o que é dele: escalas, afastamentos, rastreio e a conta de acesso.</p>
       <Button variant="secundario" className="border-alerta text-alerta hover:bg-alerta/10" onClick={() => setAberto(true)}>
         Apagar militar

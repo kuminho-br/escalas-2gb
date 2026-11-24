@@ -30,9 +30,10 @@ export function Rastreio({ ficha, unidadeId }: { ficha: FichaMilitar; unidadeId:
   return (
     <Secao
       titulo="Histórico de rastreio"
-      recolhida
+      recolhidaDeInicio
       resumo={situacaoAtual}
-      acoes={<Button size="sm" variant="secundario" onClick={() => setAlterando(true)}>Alterar situação</Button>}
+      // alterar a situação (lotação, equipe, jornada, quadro) é de quem tem nível de acesso acima da lotação; a SB só vê o histórico
+      acoes={ficha.podeEditar.peculio ? <Button size="sm" variant="secundario" onClick={() => setAlterando(true)}>Alterar situação</Button> : undefined}
     >
       <p className="mb-3 text-sm">Situação atual: {situacaoAtual}</p>
       <ol className="relative grid gap-3 border-l-2 border-linha pl-4">

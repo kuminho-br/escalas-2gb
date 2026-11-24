@@ -355,3 +355,14 @@ describe('Acesso ao sistema: acabamento (6.16)', () => {
     await waitFor(() => expect(chamadasA(f, 'GET /api/eu')).toBeGreaterThan(depoisDeEncerrar));
   });
 });
+
+describe('Acesso ao sistema para o auxiliar (6.32)', () => {
+  it('o auxiliar só gera a senha: sem "Desativar acesso" e sem "Dar nível de acesso", mesmo com a conta ativa', async () => {
+    api({ situacao: 'ativo', podeGerarSenha: true, podeDesativar: false, papeisQuePodeDar: [], papeis: [] });
+    abrir('/militares/m1');
+    const b = within(await bloco());
+    expect(await b.findByRole('button', { name: 'Gerar senha provisória' })).toBeEnabled();
+    expect(b.queryByRole('button', { name: 'Desativar acesso' })).toBeNull();
+    expect(b.queryByRole('button', { name: 'Dar nível de acesso' })).toBeNull();
+  });
+});
