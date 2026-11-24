@@ -21,7 +21,6 @@ export function Identificacao({ ficha }: { ficha: FichaMilitar }) {
   const postos = useQuery(consultaPostos);
   const funcoes = useQuery(consultaFuncoesDoMilitar);
   const peculio = ficha.podeEditar.peculio;
-  const escala = ficha.podeEditar.escala;
   const [posto, setPosto] = useState(ficha.postoGradId);
   const [nomeCompleto, setNomeCompleto] = useState(ficha.nomeCompleto ?? '');
   const [nome, setNome] = useState(ficha.nomeGuerra);
@@ -123,7 +122,7 @@ export function Identificacao({ ficha }: { ficha: FichaMilitar }) {
         </div>
         <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm">
           <label className="flex items-center gap-2">
-            <Checkbox checked={jes} disabled={!escala} onChange={(e) => setJes(e.target.checked)} />
+            <Checkbox checked={jes} disabled={!peculio} onChange={(e) => setJes(e.target.checked)} />
             Voluntário JES
           </label>
           {ficha.abonoPermanencia !== undefined && (

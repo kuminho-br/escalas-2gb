@@ -55,7 +55,9 @@ function EscalaDoMes() {
   // a escala de rodada de cotas (a dos oficiais) é montada em Oficiais: não aparece aqui
   const daPreEscala = escalas.data?.filter((e) => e.distribuicao === 'pre_escala') ?? [];
   const ativas = daPreEscala.filter((e) => e.ativa);
-  const escalaId = busca.escala ?? ativas[0]?.id;
+  // ao abrir, a escala do ordinário (a que tem o serviço Pronto, reconhecido pelo nome como os outros serviços fixos); sem ela, a primeira ativa. `?escala=` vence sempre
+  const doOrdinario = ativas.find((e) => e.servicos.some((s) => s.trim().toLowerCase() === 'pronto'));
+  const escalaId = busca.escala ?? doOrdinario?.id ?? ativas[0]?.id;
   const mes = busca.mes ?? mesAtual();
   const dados = useQuery({ ...consultaEscalaDoMes(escalaId ?? '', mes), enabled: Boolean(escalaId) });
   const cotas = useQuery({ ...consultaCotas(eu.unidade.id, mes), enabled: Boolean(escalaId) });

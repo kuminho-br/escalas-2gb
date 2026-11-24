@@ -253,7 +253,7 @@ export type FichaMilitar = LinhaMilitar & {
   cnhPorHierarquia: string[];
   /**
    * O que quem pede pode editar: `peculio` (identificação, dados pessoais, contato, comportamento, afastamentos e a lotação) é de quem tem papel numa
-   * unidade acima da lotação do militar; `escala` (equipe, jornada, motorista, CNH, voluntário) é de quem tem papel na lotação ou acima.
+   * unidade acima da lotação do militar; `escala` (as habilitações: motorista e CNH) é de quem tem papel na lotação ou acima. Equipe, jornada e voluntário JES são do Pecúlio (6.32).
    * `unidadeDeCima` é a sigla da unidade acima da lotação que cuida do Pecúlio (a mais próxima que não é divisão: o grupamento), para a tela dizer com quem falar.
    */
   podeEditar: { peculio: boolean; escala: boolean; unidadeDeCima: string | null };

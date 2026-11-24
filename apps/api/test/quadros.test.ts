@@ -151,10 +151,10 @@ describe('o quadro na ficha', () => {
 
 describe('correções da revisão final', () => {
 
-  it('um campo da escala (voluntário JES) não preenche o quadro, que é do Pecúlio', async () => {
+  it('um campo da escala (a CNH) não preenche o quadro, que é do Pecúlio', async () => {
     const f = await (await criar('990620-1', 'CEL')).json();
     await api.banco.query('update rastreio set quadro_id = null where militar_id = $1', [f.id]);
-    const r = await api.pedir('escalante', 'PATCH', `/api/militares/${f.id}`, { voluntarioJes: true });
+    const r = await api.pedir('escalante', 'PATCH', `/api/militares/${f.id}`, { cnh: ['B'] });
     expect(r.status).toBe(200);
     expect((await r.json()).quadro).toBeNull();
   });

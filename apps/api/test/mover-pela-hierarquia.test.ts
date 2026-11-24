@@ -112,14 +112,17 @@ describe('mover a lotação pela hierarquia (6.23)', () => {
     expect(await lotacaoAtual(id)).toBe('SB-DA-2');
   });
 
-  it('nível só na seção: mudar a lotação é 403 com a frase de sempre; mudar equipe e jornada é 200', async () => {
+  it('nível só na seção: mudar a lotação é 403 com a frase de sempre; mudar a jornada também (equipe e jornada são da SP desde a 6.32)', async () => {
     const quem = await ator('escalante', u.secaoSemDivisao);
     await api.banco.query("insert into papel_usuario (usuario_id, unidade_id, papel, desde) values ($1, $2, 'escalante', $3)", [quem.usuarioId, u.sb2, `${hoje.slice(0, 7)}-01`]);
     const id = await militar(u.secaoSemDivisao);
     const r = await mover(quem, id, u.sb2);
     expect(r.status).toBe(403);
     expect((await r.json()).erro).toBe('A lotação é alterada por quem tem nível de acesso no 2º GB.');
-    expect((await mover(quem, id, u.secaoSemDivisao, { jornada: 'pronto' })).status).toBeLessThan(300);
+    // a jornada do militar é 'adm' no cenário: mudar para 'pronto' é mudar a jornada, que a SB só vê
+    const jornada = await mover(quem, id, u.secaoSemDivisao, { jornada: 'pronto' });
+    expect(jornada.status).toBe(403);
+    expect((await jornada.json()).erro).toBe('Este campo é alterado por quem tem nível de acesso no 2º GB.');
     expect(await lotacaoAtual(id)).toBe('1ª SB');
   });
 
