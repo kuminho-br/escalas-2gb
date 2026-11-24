@@ -1,6 +1,6 @@
 // Rotas da escala dos oficiais (QOC e QOA) e do painel de saldo. Só gestor e administrador da unidade.
 // A escala dos oficiais é uma escala comum de rodada de cotas (entrega 6.27): cada lançamento é uma alocação de JES (à mão) ou de Saldo (a rodada).
-import { AjusteDeSaldo, DiasVermelhos, Lancamento, OrdemManual, Participantes, type OficialNoSaldo } from 'contratos';
+import { AjusteDeSaldo, DiasVermelhos, Lancamento, MarcaDiaVermelho, OrdemManual, Participantes, type ContaDasCotas, type EscalaDosOficiais, type MemorialDaEscala, type OficialNoSaldo } from 'contratos';
 import { Mes } from 'contratos';
 import { calcularCotas, diasDoMes, ordemDeEscolha, rotuloDoTurno, saldoDeEntrada, saldoDoMes, type TurnoDoMes } from 'dominio';
 import { Hono, type Context } from 'hono';
@@ -10,7 +10,7 @@ import { comUsuario, type Banco, type Consulta } from '../banco/banco.ts';
 import { hojeRecife } from '../datas.ts';
 import { lerCorpo, respostaDoErroDoBanco } from '../erros.ts';
 import { escolherEscala, lancamentosDoMes, lerEscala, lerSaldo, linhaDoMes, servicosDaRodada, turnosDoServico, type LinhaDoMes } from './leitura.ts';
-import { copiarMarcasDoMesAnterior, elegiveisDoMes, limitesDoMes, marcasDoMes, postoCurto } from './participantes.ts';
+import { afastamentosDoMes, copiarMarcasDoMesAnterior, elegiveisDoMes, limitesDoMes, marcasDoMes, postoCurto } from './participantes.ts';
 
 type Ctx = Context<AmbienteApi>;
 
@@ -136,11 +136,62 @@ const cotasIguais = (gravadas: CotaGravada[], novas: ReturnType<typeof calcularC
  * Refaz as cotas de quem já está na rodada, sem mexer em nenhum lançamento (o que um JES lançado ou tirado, o fechamento e a leitura pedem): só grava se
  * mudou. Dentro da transação e com o mês travado, então não pega cota velha de uma leitura que ficou para trás.
  */
-async function refazerDosMembros(tx: Consulta, r: Rodada): Promise<void> {
+async function refazerDosMembros(tx: Consulta, r: Rodada): Promise<string | null> {
+  const linha = await linhaDoMes(tx, r.escalaId, r.mes, true);
+  if (!linha) return null;
+  const c = await cotasDosMembros(tx, r, linha);
+  if (!c || cotasIguais(c.gravadas, c.novas)) return null;
+  const motivo = await motivoDaMudanca(tx, r, c.gravadas, c.novas);
+  await gravarCotas(tx, linha.id, c.novas);
+  return motivo;
+}
+
+/**
+ * O motivo de uma mudança que o sistema fez sozinho: o afastamento de quem teve os dias ou a cota mudados (se ele tem afastamento no mês), e, do contrário,
+ * a presença ou a antiguidade.
+ */
+async function motivoDaMudanca(c: Consulta, r: Rodada, gravadas: CotaGravada[], novas: ReturnType<typeof calcularCotas>): Promise<string> {
+  const antes = new Map(gravadas.map((g) => [g.militar_id, g]));
+  const mudou = novas.find((n) => {
+    const g = antes.get(n.militarId);
+    return !g || g.dias !== n.dias || g.cota !== n.cota;
+  });
+  if (mudou) {
+    const afast = (await afastamentosDoMes(c, [mudou.militarId], r.mes)).get(mudou.militarId) ?? [];
+    if (afast.length > 0) {
+      return `Afastamento de ${await rotuloDoMilitar(c, mudou.militarId)}`;
+    }
+  }
+  return 'Mudou a presença ou a antiguidade';
+}
+
+/** A conta das cotas como a lista do mês a mostra agora: o que entrou na divisão, o devido e a cota de cada um, e as sobras. */
+function contaDoMes(e: EscalaDosOficiais): ContaDasCotas {
+  const comCota = e.oficiais.filter((o) => o.cota !== null && o.devido !== null);
+  return {
+    turnos: e.turnos.length,
+    jes: e.oficiais.reduce((n, o) => n + o.jes, 0),
+    rodada: e.lugaresDeSaldo,
+    participantes: comCota.map((o) => ({
+      militarId: o.militarId,
+      patente: o.posto,
+      nomeGuerra: o.nomeGuerra,
+      diasNoMes: o.dias,
+      afastamentos: o.afastamentos,
+      devido: o.devido!,
+      cota: o.cota!,
+      sobra: o.sobra,
+    })),
+    sobraram: comCota.filter((o) => o.sobra).length,
+  };
+}
+
+/** Acrescenta um registro do memorial: o motivo, quem fez e a conta do momento. Nunca apaga nem edita um registro anterior. */
+async function registrarMemorial(tx: Consulta, r: Rodada, motivo: string, usuarioId: string | null): Promise<void> {
   const linha = await linhaDoMes(tx, r.escalaId, r.mes, true);
   if (!linha) return;
-  const c = await cotasDosMembros(tx, r, linha);
-  if (c && !cotasIguais(c.gravadas, c.novas)) await gravarCotas(tx, linha.id, c.novas);
+  const e = await lerEscala(tx, r.unidadeId, r.mes, r.escalaId);
+  await tx.query('insert into oficiais_memorial (mes_id, usuario_id, motivo, conta) values ($1, $2, $3, $4::jsonb)', [linha.id, usuarioId, motivo, JSON.stringify(contaDoMes(e))]);
 }
 
 /** As cotas se refazem sozinhas entre "Abrir o mês" e fechar a escala; a leitura confere e, se mudou, grava (nenhum participante entra nem sai por aqui). */
@@ -155,7 +206,44 @@ async function atualizarCotasSeMudaram(banco: Banco, usuarioId: string, r: Rodad
     throw e;
   }
   if (!c || cotasIguais(c.gravadas, c.novas)) return;
-  await comUsuario(banco, usuarioId, (tx) => refazerDosMembros(tx, r));
+  await comUsuario(banco, usuarioId, async (tx) => {
+    const motivo = await refazerDosMembros(tx, r);
+    if (motivo) await registrarMemorial(tx, r, motivo, usuarioId);
+  });
+}
+
+/** O memorial de um mês (ver `MemorialDaEscala`). Um mês sem registros (gravado antes do memorial) mostra só a conta atual. */
+async function lerMemorial(c: Consulta, r: Rodada): Promise<MemorialDaEscala> {
+  const e = await lerEscala(c, r.unidadeId, r.mes, r.escalaId);
+  const linha = await linhaDoMes(c, r.escalaId, r.mes);
+  const { rows } = linha
+    ? await c.query<{ criado_ms: string; motivo: string; conta: ContaDasCotas; patente: string | null; nome_guerra: string | null }>(
+        `select extract(epoch from mm.criado_em) * 1000 as criado_ms, mm.motivo, mm.conta, p.sigla as patente, m.nome_guerra
+           from oficiais_memorial mm left join usuario u on u.id = mm.usuario_id left join militar m on m.id = u.militar_id left join posto_grad p on p.id = m.posto_grad_id
+          where mm.mes_id = $1 order by mm.criado_em desc`,
+        [linha.id],
+      )
+    : { rows: [] };
+  const nomes = new Map(e.oficiais.map((o) => [o.militarId, { patente: o.posto, nome: o.nomeGuerra }] as const));
+  return {
+    contaAtual: e.etapa === 'nao-aberto' ? null : contaDoMes(e),
+    registros: rows.map((x) => ({
+      criadoEm: new Date(Number(x.criado_ms)).toISOString(),
+      por: x.nome_guerra ? { patente: x.patente ?? '', nomeGuerra: x.nome_guerra } : null,
+      motivo: x.motivo,
+      conta: x.conta,
+    })),
+    servicos: e.turnos
+      .filter((t) => t.militarId !== null)
+      .map((t) => ({
+        dia: t.dia,
+        letra: t.letra,
+        servico: t.servico ?? 'saldo',
+        patente: nomes.get(t.militarId!)?.patente ?? '',
+        nomeGuerra: nomes.get(t.militarId!)?.nome ?? '',
+        cobriu: t.saiuMilitarId ? (nomes.get(t.saiuMilitarId)?.nome ?? null) : null,
+      })),
+  };
 }
 
 /** Os lançamentos do mês como `TurnoDoMes` do motor: só os de Saldo contam para o saldo do oficial (o JES é voluntário e fica fora). */
@@ -191,11 +279,13 @@ export function rotasOficiais(dep: { banco: Banco; auth: Auth }): Hono<AmbienteA
   const daEscala = (a: { escala: { id: string } | null }, c: Ctx) => (a.escala ? null : c.json({ erro: MSG_SEM_ESCALA }, 409));
 
   /** Roda a mudança numa transação e devolve a escala do mês, com os avisos; uma `Recusa` vira 400 ou 409 com a mensagem. */
-  async function mudar(c: Ctx, rod: Rodada, fn: (tx: Consulta) => Promise<{ liberados?: string[]; foraDaOrdem?: string } | string[] | void>): Promise<Response> {
+  async function mudar(c: Ctx, rod: Rodada, fn: (tx: Consulta) => Promise<{ liberados?: string[]; foraDaOrdem?: string; motivo?: string } | void>): Promise<Response> {
     try {
       const escala = await comUsuario(dep.banco, c.get('usuarioId'), async (tx) => {
         const extra = (await fn(tx)) ?? {};
-        const { liberados, foraDaOrdem } = Array.isArray(extra) ? { liberados: extra, foraDaOrdem: undefined } : extra;
+        const { liberados, foraDaOrdem, motivo } = extra;
+        // a ação que refaz as cotas diz o motivo: o registro do memorial sai na mesma transação
+        if (motivo) await registrarMemorial(tx, rod, motivo, c.get('usuarioId'));
         return { ...(await lerEscala(tx, rod.unidadeId, rod.mes, rod.escalaId)), liberados: liberados ?? [], ...(foraDaOrdem ? { foraDaOrdem } : {}) };
       });
       return c.json(escala);
@@ -213,6 +303,34 @@ export function rotasOficiais(dep: { banco: Banco; auth: Auth }): Hono<AmbienteA
     return c.json(await lerEscala(dep.banco, a.u, a.mes, a.escala?.id ?? null));
   });
 
+  /** O memorial do mês: a conta atual, os registros do recálculo (do mais novo) e os serviços do mês. Sem escala ou sem mês aberto, vazio. */
+  /** Marca ou tira um dia vermelho só (a outra tela não é apagada). Mexe em nenhum lançamento nem cota. */
+  r.post('/unidades/:u/oficiais/:mes/dias-vermelhos/marcar', async (c) => {
+    const a = await entrada(c);
+    if ('resposta' in a) return a.resposta;
+    const sem = daEscala(a, c);
+    if (sem) return sem;
+    const corpo = await lerCorpo(c, MarcaDiaVermelho);
+    if (!corpo.ok) return corpo.resposta;
+    const { dia, vermelho } = corpo.dados;
+    if (!diasDoMes(a.mes).includes(dia)) return c.json({ erro: MSG_LUGAR_FORA_DO_MES }, 400);
+    const rod = { unidadeId: a.u, escalaId: a.escala!.id, mes: a.mes };
+    return mudar(c, rod, async (tx) => {
+      await garantirMes(tx, rod);
+      const linha = (await linhaDoMes(tx, rod.escalaId, rod.mes, true))!;
+      if (linha.encerrada_em) throw new Recusa(409, MSG_ENCERRADO);
+      if (vermelho) await tx.query('insert into dia_vermelho (escala_id, dia) values ($1, $2::date) on conflict do nothing', [rod.escalaId, dia]);
+      else await tx.query('delete from dia_vermelho where escala_id = $1 and dia = $2::date', [rod.escalaId, dia]);
+    });
+  });
+
+  r.get('/unidades/:u/oficiais/:mes/memorial', async (c) => {
+    const a = await entrada(c);
+    if ('resposta' in a) return a.resposta;
+    if (!a.escala) return c.json<MemorialDaEscala>({ contaAtual: null, registros: [], servicos: [] });
+    return c.json(await lerMemorial(dep.banco, { unidadeId: a.u, escalaId: a.escala.id, mes: a.mes }));
+  });
+
   // "Abrir o mês": cria o mês, calcula as cotas de saldo e libera os lançamentos; antes dele as cotas não existem, e depois dele se refazem sozinhas
   r.post('/unidades/:u/oficiais/:mes/abrir', async (c) => {
     const a = await entrada(c);
@@ -226,7 +344,7 @@ export function rotasOficiais(dep: { banco: Banco; auth: Auth }): Hono<AmbienteA
       if (linha.encerrada_em) throw new Recusa(409, MSG_ENCERRADO);
       if (linha.fechada_em) throw new Recusa(409, MSG_COTA_FECHADA);
       if (!linha.aberto_em) await tx.query('update oficiais_mes set aberto_em = now() where id = $1', [linha.id]);
-      return refazerCotas(tx, rod);
+      return { motivo: 'Abriu o mês', liberados: await refazerCotas(tx, rod) };
     });
   });
 
@@ -248,7 +366,7 @@ export function rotasOficiais(dep: { banco: Banco; auth: Auth }): Hono<AmbienteA
         await tx.query('update oficiais_mes set ordem_manual = $2::uuid[] where id = $1', [linha.id, corpo.dados.militarIds]);
         return;
       }
-      return refazerCotas(tx, rod, corpo.dados.militarIds);
+      return { motivo: 'Mudou a ordem', liberados: await refazerCotas(tx, rod, corpo.dados.militarIds) };
     });
   });
 
@@ -274,7 +392,7 @@ export function rotasOficiais(dep: { banco: Banco; auth: Auth }): Hono<AmbienteA
       await tx.query('delete from oficiais_participante where mes_id = $1 and not (militar_id = any($2::uuid[]))', [linha.id, ficam]);
       await tx.query('insert into oficiais_participante (mes_id, militar_id) select $1, unnest($2::uuid[]) on conflict do nothing', [linha.id, ficam]);
       // com o mês aberto, mudar quem participa refaz as cotas (os lançamentos de quem continua ficam)
-      if (linha.aberto_em) return refazerCotas(tx, rod);
+      if (linha.aberto_em) return { motivo: 'Mudou quem participa', liberados: await refazerCotas(tx, rod) };
     });
   });
 
@@ -334,6 +452,9 @@ export function rotasOficiais(dep: { banco: Banco; auth: Auth }): Hono<AmbienteA
         const elegivel = (await elegiveisDoMes(tx, rod.unidadeId, rod.mes)).some((p) => p.militarId === militarId);
         if (!elegivel && !naCota) throw new Recusa(400, MSG_FORA_DA_ESCALA);
       }
+      // o afastado não pega turno no dia do afastamento (a tela já avisa; a API recusa também)
+      const afast = (await afastamentosDoMes(tx, [militarId], rod.mes)).get(militarId)?.find((x) => x.inicio <= dia && dia <= x.fim);
+      if (afast) throw new Recusa(409, `${await rotuloDoMilitar(tx, militarId)} está afastado em ${dia.slice(8)}/${dia.slice(5, 7)} (${afast.tipo}) e não pode ficar com este turno.`);
       const atual = (await lancamentosDoMes(tx, rod.escalaId, rod.mes)).find((l) => l.dia === dia && l.letra === letra);
       let foraDaOrdem: string | undefined;
       if (servico === 'saldo' && !atual) foraDaOrdem = await avisoDeOrdem(tx, rod, linha, militarId);
@@ -354,7 +475,7 @@ export function rotasOficiais(dep: { banco: Banco; auth: Auth }): Hono<AmbienteA
       }
       // os lugares de JES mudam a cota de saldo: com a escala aberta (não fechada), as cotas se refazem sozinhas
       if (servico === 'jes' && !linha.fechada_em && (!atual || atual.militarId !== militarId)) await refazerDosMembros(tx, rod);
-      return { foraDaOrdem };
+      return { foraDaOrdem, motivo: servico === 'jes' && !linha.fechada_em ? 'Lançou JES' : undefined };
     });
   });
 
@@ -374,7 +495,10 @@ export function rotasOficiais(dep: { banco: Banco; auth: Auth }): Hono<AmbienteA
       const servicos = await servicosDaRodada(tx, rod.escalaId);
       await tx.query('delete from alocacao where id = $1', [alocacaoId]);
       // tirar um JES devolve o lugar para a rodada: as cotas se refazem, mantendo os lançamentos de quem continua
-      if (doMes.servicoId === servicos.jes?.id && !linha.fechada_em) await refazerDosMembros(tx, rod);
+      if (doMes.servicoId === servicos.jes?.id && !linha.fechada_em) {
+        await refazerDosMembros(tx, rod);
+        return { motivo: 'Tirou JES' };
+      }
     });
   });
 
@@ -392,6 +516,7 @@ export function rotasOficiais(dep: { banco: Banco; auth: Auth }): Hono<AmbienteA
         // a última refeita das cotas: a presença pode ter mudado desde a última leitura (sem mexer em nenhum lançamento)
         await refazerDosMembros(tx, rod);
         await tx.query('update oficiais_mes set fechada_em = now() where id = $1', [linha.id]);
+        return { motivo: 'Fechou a escala' };
       }
     });
   });
@@ -437,6 +562,7 @@ export function rotasOficiais(dep: { banco: Banco; auth: Auth }): Hono<AmbienteA
         );
       }
       await tx.query('update oficiais_mes set encerrada_em = now() where id = $1', [linha.id]);
+      return { motivo: 'Encerrou o mês' };
     });
   });
 
@@ -462,6 +588,12 @@ export function rotasOficiais(dep: { banco: Banco; auth: Auth }): Hono<AmbienteA
   });
 
   return r;
+}
+
+/** O nome do oficial como as telas dizem: "CAP FULANO" (sem o "BM" do posto). */
+async function rotuloDoMilitar(c: Consulta, militarId: string): Promise<string> {
+  const { rows } = await c.query<{ sigla: string; nome_guerra: string }>('select p.sigla, m.nome_guerra from militar m join posto_grad p on p.id = m.posto_grad_id where m.id = $1', [militarId]);
+  return `${postoCurto(rows[0]!.sigla)} ${rows[0]!.nome_guerra}`;
 }
 
 /** "Fora da ordem: a vez era de CAP FULANO." quando o Saldo vai para quem não é o da vez; a ordem é só uma sugestão, e o lançamento grava de qualquer jeito. */

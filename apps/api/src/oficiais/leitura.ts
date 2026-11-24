@@ -314,8 +314,8 @@ export async function lerSaldo(c: Consulta, unidadeId: string, hoje = hojeRecife
        from oficiais_cobertura cb
        join alocacao a on a.id = cb.alocacao_id
        join oficiais_mes m on m.escala_id = a.escala_id and m.mes = date_trunc('month', a.data)::date
-      where m.unidade_id = $1 order by a.data, a.turno_id`,
-    [unidadeId],
+      where m.unidade_id = $1 and ($2::uuid is null or m.escala_id = $2::uuid) order by a.data, a.turno_id`,
+    [unidadeId, escala?.id ?? null],
   );
 
   // os lugares em dia vermelho que cada oficial tirou nos meses encerrados da escala
