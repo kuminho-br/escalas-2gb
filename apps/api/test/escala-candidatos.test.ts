@@ -75,6 +75,7 @@ beforeAll(async () => {
   await criarServico('Madrugada', 'ordinario', 'A', FAIXA.MADRUGADA);
   await criarServico('JES', 'pjes', 'A', FAIXA.JES);
   await criarServico('Bioma', 'diaria', 'A', FAIXA.BIOMA);
+  turno['JES B'] = (await (await api.pedir('escalante', 'POST', `/api/servicos/${servico.JES}/turnos`, { letra: 'B', inicio: '17:00', fim: '21:00' })).json()).turnos.find((t: { letra: string }) => t.letra === 'B').id;
   turno['Bioma C'] = (await (await api.pedir('escalante', 'POST', `/api/servicos/${servico.Bioma}/turnos`, { letra: 'C', ...FAIXA.BIOMA_C })).json()).turnos.find((t: { letra: string }) => t.letra === 'C').id;
   await criarServico('Saldo', 'ordinario', 'A', FAIXA.A);
   // PE Seguro: diária com turno A das 00h às 08h e B das 20h às 08h
@@ -101,6 +102,7 @@ beforeAll(async () => {
   await criarMilitar('NAOJES', p);
   await criarMilitar('INATIVO', { ...p, ativo: false });
   await criarMilitar('ADMIN', { ...p, jornada: 'adm' });
+  await criarMilitar('ADMJES', { ...p, jornada: 'adm', jes: true });
   await criarMilitar('DIARIAS', p);
   const tipo = (await api.banco.query<{ id: string }>('select id from tipo_afastamento limit 1')).rows[0]!.id;
   expect((await api.pedir('gestorGb', 'POST', `/api/militares/${militar.AFASTADO}/afastamentos`, { tipoAfastamentoId: tipo, inicio: dia(8), fim: dia(12) })).status).toBe(201);
@@ -116,10 +118,11 @@ afterAll(async () => {
 describe('quem pode ocupar a vaga', () => {
   it('o apto vem com o serviço da faixa; os demais ficam fora com o motivo agrupado', async () => {
     const r = await avaliarCandidatos(api.banco, vaga(D, FAIXA.A));
-    expect(nomes(r)).toEqual(['APTO', 'CHOQUE', 'CNHB', 'CNHE', 'DIARIAS', 'JESSEM', 'JESVOL', 'NAOJES', 'VIRADA'].concat(['ADMIN']).sort());
+    // 6.37: o Adm (ADMIN) não é mais apto no Pronto nem no Saldo em dia útil: o expediente choca com qualquer serviço
+    expect(nomes(r)).toEqual(['APTO', 'CHOQUE', 'CNHB', 'CNHE', 'DIARIAS', 'JESSEM', 'JESVOL', 'NAOJES', 'VIRADA'].sort());
     expect(r.aptos.find((a) => a.nomeGuerra === 'APTO')).toMatchObject({ matricula: expect.stringMatching(/^99\d{4}-\d$/), jornada: 'pronto', equipe: 'Alfa', servicos: [{ servicoId: servico.Pronto, turnoId: T('Pronto A'), nome: 'Pronto' }] });
     // quem só entra na seção no mês seguinte não pesa na contagem de "ficaram de fora"
-    expect(r.fora).toEqual([{ motivo: 'Afastado', quantidade: 1 }, { motivo: 'Desativado', quantidade: 1 }]);
+    expect(r.fora).toEqual([{ motivo: 'De expediente neste dia', quantidade: 2 }, { motivo: 'Afastado', quantidade: 1 }, { motivo: 'Desativado', quantidade: 1 }]);
   });
 
   it('a CNH exigida vale pela hierarquia: B não basta para D, E basta', async () => {
@@ -168,15 +171,46 @@ describe('quem pode ocupar a vaga', () => {
     expect(await motivo('JESSEM', D, FAIXA.JES, T('JES A'))).toBe('Não marcou voluntariado neste horário');
   });
 
-  it('o expediente do Adm só choca com diária, e só em dia útil', async () => {
+  it('6.37: o expediente do Adm choca com qualquer serviço (Diária, Pronto, JES), e só em dia útil', async () => {
     const util = diasDoMes(atual).find((d) => d > dia(16) && diaDaSemana(d) >= 1 && diaDaSemana(d) <= 5)!;
     const fim = diasDoMes(atual).find((d) => d > dia(16) && (diaDaSemana(d) === 0 || diaDaSemana(d) === 6))!;
     await voluntariar('ADMIN', util, 'A');
     await voluntariar('ADMIN', fim, 'A');
-    expect(await motivo('ADMIN', util, FAIXA.BIOMA, T('Bioma A'))).toBe('Choque de horário');
+    await faixaMarcada('ADMJES', util, 1020, 1260);
+    await voluntariar('ADMJES', fim, 'A');
+    expect(await motivo('ADMIN', util, FAIXA.BIOMA, T('Bioma A'))).toBe('De expediente neste dia');
     expect(await motivo('ADMIN', fim, FAIXA.BIOMA, T('Bioma A'))).toBeNull();
-    // no Pronto o Adm entra como Saldo: o expediente não o barra
-    expect(await motivo('ADMIN', util, FAIXA.A, T('Pronto A'))).toBeNull();
+    // o Pronto e o JES não passam mais pelo expediente (antes só a diária era barrada)
+    expect(await motivo('ADMIN', util, FAIXA.A, T('Pronto A'))).toBe('De expediente neste dia');
+    expect(await motivo('ADMJES', util, FAIXA.JES, T('JES A'))).toBe('De expediente neste dia');
+    expect(await motivo('ADMJES', fim, FAIXA.JES, T('JES A'))).toBeNull();
+    // o JES depois das 16h (sem tocar o expediente) passa: o horário é que decide
+    expect(await motivo('ADMJES', util, { inicio: '17:00', fim: '21:00' }, T('JES B'))).toBeNull();
+  });
+
+  it('6.37: o Saldo, que pode tirar do expediente, continua sendo choque com ele (a resolução vem na 6.38); sem a opção, o Saldo também chocaria', async () => {
+    const util = diasDoMes(atual).find((d) => d > dia(22) && diaDaSemana(d) >= 1 && diaDaSemana(d) <= 5)!;
+    expect(await motivo('ADMIN', util, FAIXA.A, T('Saldo A'))).toBe('De expediente neste dia');
+  });
+
+  it('6.37 (Review Focus 2): um Saldo já gravado sobre o expediente tira o expediente do dia: o JES depois dele choca com o Saldo, não com o expediente', async () => {
+    const util = diasDoMes(atual).find((d) => d > dia(22) && diaDaSemana(d) >= 1 && diaDaSemana(d) <= 5)!;
+    await alocar('ADMJES', 'Saldo', 'A', util);
+    // o Saldo (08h às 20h) cobre o expediente; o JES das 09h às 17h choca com o próprio Saldo
+    expect(await motivo('ADMJES', util, FAIXA.JES, T('JES A'))).toBe('Choque de horário');
+    // o JES das 17h às 21h, que o expediente não pegava, agora choca com o Saldo (até as 20h)
+    expect(await motivo('ADMJES', util, { inicio: '17:00', fim: '21:00' }, T('JES B'))).toBe('Choque de horário');
+  });
+
+  it('6.37 (Review Focus 1): gravar o Adm num JES no horário do expediente é 409 com o motivo, e nada é gravado; o do fim de semana passa', async () => {
+    const util = diasDoMes(atual).find((d) => d > dia(24) && diaDaSemana(d) >= 1 && diaDaSemana(d) <= 5)!;
+    const fim = diasDoMes(atual).find((d) => d > dia(24) && (diaDaSemana(d) === 0 || diaDaSemana(d) === 6))!;
+    const pedir = (data: string) => api.pedir('escalante', 'POST', `/api/escalas/${escalaId}/alocacoes`, { militarId: militar.ADMJES, data, turnoId: T('JES A'), guarnicaoId: null, funcaoId: null });
+    const barrado = await pedir(util);
+    expect(barrado.status).toBe(409);
+    expect((await barrado.json()).erro).toBe('De expediente neste dia');
+    expect((await api.banco.query('select 1 from alocacao where militar_id = $1 and data = $2::date', [militar.ADMJES, util])).rows).toHaveLength(0);
+    expect((await pedir(fim)).status).toBe(201);
   });
 
   it('quem já está nesta faixa, neste dia, não aparece de novo', async () => {
@@ -198,13 +232,15 @@ describe('quem pode ocupar a vaga', () => {
 });
 
 describe('regras do motor que a lista aplica: Saldo só para o Adm (RN-03) e uma diária por dia (RN-36)', () => {
-  it('o Saldo é recusado para quem não é do Adm e aceito para o Adm', async () => {
+  it('o Saldo é recusado para quem não é do Adm e, para o Adm, no fim de semana (sem expediente) é aceito', async () => {
+    const fim = diasDoMes(atual).find((d) => d > dia(16) && (diaDaSemana(d) === 0 || diaDaSemana(d) === 6))!;
     expect(await motivo('APTO', D, FAIXA.A, T('Saldo A'))).toBe('Saldo só para militar do Adm');
-    expect(await motivo('ADMIN', D, FAIXA.A, T('Saldo A'))).toBeNull();
+    expect(await motivo('ADMIN', fim, FAIXA.A, T('Saldo A'))).toBeNull();
   });
 
-  it('na lista, o Adm vem com o Saldo como primeiro serviço e o do Pronto só com o Pronto', async () => {
-    const r = await avaliarCandidatos(api.banco, vaga(D, FAIXA.A));
+  it('na lista de um dia sem expediente, o Adm vem com o Saldo como primeiro serviço e o do Pronto só com o Pronto', async () => {
+    const fim = diasDoMes(atual).find((d) => d > dia(16) && (diaDaSemana(d) === 0 || diaDaSemana(d) === 6))!;
+    const r = await avaliarCandidatos(api.banco, vaga(fim, FAIXA.A));
     expect(r.aptos.find((a) => a.nomeGuerra === 'ADMIN')!.servicos.map((s) => s.nome)).toEqual(['Saldo', 'Pronto']);
     expect(r.aptos.find((a) => a.nomeGuerra === 'APTO')!.servicos.map((s) => s.nome)).toEqual(['Pronto']);
   });
@@ -382,6 +418,19 @@ describe('o militar externo como candidato (6.33)', () => {
     const vinculo = (await api.banco.query<{ id: string }>('select id from vinculo_externo where militar_id = $1', [externo.EXTJES])).rows[0]!.id;
     expect((await api.pedir('admin', 'DELETE', `/api/unidades/${api.ids.secao}/externos/${vinculo}`)).status).toBe(204);
     expect((await api.banco.query('select 1 from alocacao where militar_id = $1 and data = $2::date', [externo.EXTJES, dia(15)])).rows).toHaveLength(1);
+  });
+
+  it('6.37: o choque olha todas as unidades, também para quem é da unidade: o serviço de outra seção no mesmo horário é "Já escalado", e sobreposto é choque', async () => {
+    const multi = await criarMilitar('MULTI', { jes: true, posto: (await api.banco.query<{ id: string }>("select id from posto_grad where sigla = 'SD-C'")).rows[0]!.id });
+    const sPronto = (await api.banco.query<{ id: string }>('select id from servico where unidade_id = $1 and nome = $2', [outraSecao, 'Pronto'])).rows[0]!.id;
+    const tPronto = (await api.banco.query<{ id: string }>('select id from turno where servico_id = $1', [sPronto])).rows[0]!.id;
+    await inserir(api.banco, 'alocacao', { militar_id: multi, escala_id: outraEscala, servico_id: sPronto, turno_id: tPronto, data: dia(12), origem: 'manual' });
+    // o Pronto da 2ª SB (08h às 20h) no dia 12: o Pronto daqui no mesmo horário é "Já escalado", e o JES das 09h às 17h é choque
+    expect(await motivo('MULTI', dia(12), FAIXA.A, T('Pronto A'))).toBe('Já escalado neste horário');
+    expect(await motivo('MULTI', dia(12), FAIXA.JES, T('JES A'))).toBe('Choque de horário');
+    expect(nomes(await avaliarCandidatos(api.banco, vaga(dia(12), FAIXA.A)))).not.toContain('MULTI');
+    // em outro dia ele está livre
+    expect(await motivo('MULTI', dia(13), FAIXA.A, T('Pronto A'))).toBeNull();
   });
 
   it('Review Focus 2: a pré-escala do Pronto nunca põe um externo, mesmo com o vínculo vigente e o voluntariado marcado', async () => {

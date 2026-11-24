@@ -54,9 +54,9 @@ describe('importação de configurações', () => {
   it('valor inválido vira problema e o resto entra', async () => {
     const r = await importar([
       ['SALDOS_ADM_POR_MILITAR', 'muitos', '2027-02', ''],
-      ['ADM_CUMPRE_CARGA', 'SIM', '', ''],
+      ['CARGA_MENSAL_HORAS', 155, '', ''],
     ]);
-    expect(r.novos.map((n: { chave: string }) => n.chave)).toEqual(['ADM_CUMPRE_CARGA|2026-11']);
+    expect([...r.novos, ...r.alterados].map((n: { chave: string }) => n.chave)).toEqual(['CARGA_MENSAL_HORAS|2026-11']);
     expect(r.problemas).toEqual([
       { aba: 'CONFIGURAÇÕES', linha: 2, mensagem: 'SALDOS_ADM_POR_MILITAR: Use um número inteiro.', solucao: 'Corrija a linha na sandbox e importe de novo.' },
     ]);
@@ -92,10 +92,10 @@ describe('importação de configurações', () => {
   it('vigência de um mês que já passou vira problema e não grava; a do mês atual e a de um mês futuro entram (Review Focus 5)', async () => {
     const passado = somarMeses(atual, -2);
     const futuro = somarMeses(atual, 4);
-    const linhas = [['CARGA_MENSAL_HORAS', 150, passado, ''], ['SALDOS_ADM_POR_MILITAR', 7, atual, ''], ['ADM_CUMPRE_CARGA', 'SIM', futuro, '']];
+    const linhas = [['CARGA_MENSAL_HORAS', 150, passado, ''], ['SALDOS_ADM_POR_MILITAR', 7, atual, ''], ['CARGA_MENSAL_HORAS', 152, futuro, '']];
     const previa = await importar(linhas);
     expect(previa.problemas).toEqual([{ aba: 'CONFIGURAÇÕES', linha: 2, mensagem: `Mês já passou na linha 2: Carga mensal (horas), ${mesPorExtenso(passado)}`, solucao: 'Use o mês atual ou um mês futuro.' }]);
-    expect([...previa.novos, ...previa.alterados].map((n: { chave: string }) => n.chave).sort()).toEqual([`ADM_CUMPRE_CARGA|${futuro}`, `SALDOS_ADM_POR_MILITAR|${atual}`].sort());
+    expect([...previa.novos, ...previa.alterados].map((n: { chave: string }) => n.chave).sort()).toEqual([`CARGA_MENSAL_HORAS|${futuro}`, `SALDOS_ADM_POR_MILITAR|${atual}`].sort());
     expect((await importar(linhas, true)).gravados).toBe(2);
     const { rows } = await api.banco.query<{ vig: string }>("select to_char(vigencia_desde, 'YYYY-MM') as vig from parametro where unidade_id = $1 and chave = 'CARGA_MENSAL_HORAS'", [api.ids.secao]);
     expect(rows.map((r) => r.vig)).not.toContain(passado);
@@ -126,5 +126,12 @@ describe('importação de configurações', () => {
       [api.ids.secao, `${alvo}-01`],
     );
     expect(rows).toEqual([{ chave: 'CARGA_MENSAL_HORAS', vig: alvo }, { chave: 'SALDOS_ADM_POR_MILITAR', vig: depois }]);
+  });
+
+  it('6.37: a linha do parâmetro "Adm cumpre a carga mensal" vira problema ("não existe mais") e não grava', async () => {
+    const r = await importar([['ADM_CUMPRE_CARGA', 'SIM', '', '']]);
+    expect(r.novos).toEqual([]);
+    expect(r.problemas).toHaveLength(1);
+    expect(r.problemas[0].mensagem).toContain('ADM_CUMPRE_CARGA');
   });
 });

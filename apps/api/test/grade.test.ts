@@ -89,6 +89,13 @@ beforeAll(async () => {
   // ADM: uma diária num dia útil (choca com o expediente) e um Saldo (que substitui o expediente do dia)
   await alocar('ADM', 'Bioma', 'a', dia(22));
   await alocar('ADM', 'Saldo', 'a', dia(23));
+  // 6.37: o JES num dia útil choca com o expediente (antes só a diária chocava); o Pronto de outra seção (08h às 20h), no dia 29, também
+  await alocar('ADM', 'JES', 'a', dia(24));
+  const escalaDeFora = (await (await api.pedir('admin', 'POST', `/api/unidades/${outraSecao}/escalas`, { nome: 'Ordinário 2ª SB' })).json()).id as string;
+  const prontoDeFora = await inserir(api.banco, 'servico', { unidade_id: outraSecao, nome: 'Pronto', tipo: 'ordinario', cor: '#2F8F5B' });
+  const turnoDeFora = await inserir(api.banco, 'turno', { servico_id: prontoDeFora, letra: 'A', inicio: '08:00', fim: '20:00' });
+  await api.banco.query('insert into escala_servico (escala_id, servico_id, ordem) values ($1, $2, 1)', [escalaDeFora, prontoDeFora]);
+  await inserir(api.banco, 'alocacao', { militar_id: militar.ADM, escala_id: escalaDeFora, servico_id: prontoDeFora, turno_id: turnoDeFora, data: dia(29), origem: 'manual' });
 
   // o que o CABO marcou no voluntariado: 12h + 12h + 8h + 8h em dezembro (e uma faixa de novembro, que não conta)
   await faixa('CABO', dia(10), 480, 1200);
@@ -160,8 +167,8 @@ describe('choques (Review Focus 1)', () => {
     expect(l.choques).toEqual([dia(31)]);
   });
 
-  it('a diária num dia útil choca com o expediente do Adm', async () => {
-    expect(linhaDe(await ler(), 'ADM').choques).toEqual([dia(22)]);
+  it('a diária e, desde a 6.37, o JES e o serviço de outra seção num dia útil chocam com o expediente do Adm; o Saldo no lugar dele não', async () => {
+    expect(linhaDe(await ler(), 'ADM').choques).toEqual([dia(22), dia(24), dia(29)]);
   });
 
   it('o Saldo no lugar do expediente não é choque, e quem não tem choque vem com a lista vazia', async () => {

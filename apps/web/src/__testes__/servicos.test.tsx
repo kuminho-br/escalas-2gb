@@ -6,7 +6,7 @@ import { textoDuracao } from '@/lib/turnos';
 import { abrir, chamadasA, corpoEnviado, EU_EXEMPLO, simularApi, trava, responderConfirmacao } from './apoio';
 
 const servico = (s: Partial<Servico>): Servico => ({
-  id: 's1', nome: 'Pronto', tipo: 'ordinario', operacao: null, rotuloImpressao: null, cor: '#2F8F5B', ativo: true, fixo: false, turnos: [], ...s,
+  id: 's1', nome: 'Pronto', tipo: 'ordinario', operacao: null, rotuloImpressao: null, cor: '#2F8F5B', tiraDoExpediente: false, ativo: true, fixo: false, turnos: [], ...s,
 });
 const BIOMA = servico({
   id: 's3', nome: 'Bioma', tipo: 'diaria', operacao: 'Guardiões do Bioma', cor: '#C08A1E',
@@ -225,8 +225,25 @@ describe('serviços', () => {
     expect(screen.queryByLabelText('Operação')).toBeNull();
     await userEvent.click(screen.getByRole('button', { name: 'Salvar' }));
     await waitFor(() =>
-      expect(corpoEnviado(f, 'PATCH /api/servicos/s3')).toEqual({ nome: 'Bioma', tipo: 'pjes', operacao: null, rotuloImpressao: null, cor: '#C08A1E' }),
+      expect(corpoEnviado(f, 'PATCH /api/servicos/s3')).toEqual({ nome: 'Bioma', tipo: 'pjes', operacao: null, rotuloImpressao: null, cor: '#C08A1E', tiraDoExpediente: false }),
     );
+  });
+
+  it('6.37: a opção "Pode tirar o militar do Adm do expediente" vem com a ajuda, mostra o que está gravado e grava ao ligar', async () => {
+    const f = api({ 'PATCH /api/servicos/s3': { status: 200, corpo: { ...BIOMA, tiraDoExpediente: true } } });
+    abrir('/servicos/s3');
+    const opcao = await screen.findByRole('checkbox', { name: 'Pode tirar o militar do Adm do expediente' });
+    expect(opcao).not.toBeChecked();
+    expect(screen.getByText('Ligada: lançar este serviço no horário do expediente tira o militar do expediente do dia, depois de confirmar. Desligada: é choque.')).toBeInTheDocument();
+    await userEvent.click(opcao);
+    await userEvent.click(screen.getByRole('button', { name: 'Salvar' }));
+    await waitFor(() => expect(corpoEnviado(f, 'PATCH /api/servicos/s3')).toMatchObject({ tiraDoExpediente: true }));
+  });
+
+  it('6.37: o Saldo, que vem ligado, aparece marcado', async () => {
+    api({ 'GET /api/servicos/s3': { status: 200, corpo: servico({ id: 's3', nome: 'Saldo', tiraDoExpediente: true, fixo: true }) } });
+    abrir('/servicos/s3');
+    expect(await screen.findByRole('checkbox', { name: 'Pode tirar o militar do Adm do expediente' })).toBeChecked();
   });
 
   it('remover turno pede à API e mostra o erro dela', async () => {

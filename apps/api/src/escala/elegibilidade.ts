@@ -24,9 +24,8 @@ import { vinculosDaEscala } from '../cadastros/escalas.ts';
 import { feriadosDoAno } from '../cadastros/feriados.ts';
 import { versaoNoMes } from '../cadastros/guarnicoes-regras.ts';
 import { versoesDasGuarnicoes } from '../cadastros/guarnicoes.ts';
-import { montarHorarios } from 'dominio';
 import { somarDias } from '../datas.ts';
-import { EXPEDIENTE, horariosDaUnidade, NOME_DO_TIPO, type Tipo } from './horarios.ts';
+import { alocacoesDaJanela, EXPEDIENTE, horariosDaUnidade, somarOutrasUnidades, type Tipo } from './horarios.ts';
 import { nomeDaVaga } from './vagas.ts';
 
 export type VagaConsultada = { escalaId: string; data: string; inicio: string; fim: string; guarnicaoId: string | null; funcaoId: string | null };
@@ -36,6 +35,10 @@ export type TurnoDaFaixa = { turnoId: string; servicoId: string; nome: string; t
 export type Avaliado = { externo: boolean; candidato: Omit<Candidato, 'servicos'>; militarMotivo: string | null; porTurno: { turno: TurnoDaFaixa; motivo: string | null }[]; antig: number | null; postoOrdem: number; cnh: string[] };
 
 const NAO_LOTADO = 'Não está lotado na seção neste dia';
+/** O choque com o expediente do Adm (o militar está de expediente no horário): o serviço que pode tirá-lo de lá tem o botão de resolver (6.38). */
+export const DE_EXPEDIENTE = 'De expediente neste dia';
+// sufixo do nome da candidata no motor (ver mais abaixo): nunca é igual ao nome de um serviço cadastrado
+const NOVA = ' (nova)';
 export const JA_ESCALADO = 'Já escalado neste horário';
 /** O motivo "só falta marcar o horário": é a última conferência de cada turno, então ele quer dizer que todas as outras regras passaram. */
 export const SEM_VOLUNTARIADO = 'Não marcou voluntariado neste horário';
@@ -94,38 +97,20 @@ export async function avaliarFaixa(c: Consulta, v: VagaConsultada, somenteMilita
   // as telas de praças só pegam o QBMG e quem está sem quadro, pelo quadro do período que vale no dia; o militar pedido pelo id passa (e recebe o motivo)
   const militares = [...porMilitar.values()].filter((m) => somenteMilitar !== undefined || !ehOficial(m.quadro));
   const ids = militares.map((m) => m.id);
-  const idsExternos = militares.filter((m) => m.externo).map((m) => m.id);
 
   const afastados = new Set(
     ids.length
       ? (await c.query<{ militar_id: string }>('select militar_id from afastamento where militar_id = any($1) and inicio <= $2::date and fim >= $2::date', [ids, v.data])).rows.map((r) => r.militar_id)
       : [],
   );
-  const { horarios, tipos } = await horariosDaUnidade(c, unidadeId);
+  const regras = await horariosDaUnidade(c, unidadeId);
+  const { horarios, tipos } = regras;
 
-  const janela = ids.length
-    ? (
-        await c.query<{ militar_id: string; data: string; nome: string; letra: 'A' | 'B' | 'C'; inicio: string; fim: string }>(
-          `select a.militar_id, to_char(a.data, 'YYYY-MM-DD') as data, s.nome, t.letra, to_char(t.inicio, 'HH24:MI') as inicio, to_char(t.fim, 'HH24:MI') as fim
-             from alocacao a join turno t on t.id = a.turno_id join servico s on s.id = a.servico_id
-            where a.militar_id = any($1) and a.data between $2::date - 1 and $2::date + 1 and (s.unidade_id = $3 or a.militar_id = any($4))`,
-          [ids, v.data, unidadeId, idsExternos],
-        )
-      ).rows
-    : [];
-  // o externo tem lançamentos nas outras unidades: choque e descanso olham todos, então os horários desses serviços entram na conta (os da unidade valem primeiro)
-  if (idsExternos.length) {
-    const deFora = (
-      await c.query<{ nome: string; tipo: Tipo; letra: 'A' | 'B' | 'C'; inicio: string; fim: string }>(
-        `select s.nome, s.tipo, t.letra, to_char(t.inicio, 'HH24:MI') as inicio, to_char(t.fim, 'HH24:MI') as fim
-           from turno t join servico s on s.id = t.servico_id
-          where s.unidade_id <> $1 and s.id in (select a.servico_id from alocacao a where a.militar_id = any($2) and a.data between $3::date - 1 and $3::date + 1)`,
-        [unidadeId, idsExternos, v.data],
-      )
-    ).rows;
-    for (const [k, h] of Object.entries(montarHorarios(deFora.map((t) => ({ servico: t.nome, turno: t.letra, inicio: t.inicio, fim: t.fim }))).porChave)) horarios[k] ??= h;
-    for (const t of deFora) tipos[t.nome] ??= NOME_DO_TIPO[t.tipo];
-  }
+  // as alocações do dia anterior ao seguinte (o turno que passa da meia-noite pega o dia vizinho): as dos serviços da seção e, desde a 6.37, as de todas as outras unidades
+  // (o choque vale em qualquer unidade; o serviço de fora entra com a sigla: "Pronto (2ª SB)")
+  const todas = await alocacoesDaJanela(c, ids, somarDias(v.data, -1), somarDias(v.data, 1), unidadeId);
+  somarOutrasUnidades(regras, todas);
+  const janela = todas.map((a) => ({ militar_id: a.militarId, data: a.data, nome: a.servico, letra: a.letra, inicio: a.inicio, fim: a.fim }));
   // a disponibilidade lançada no dia e no dia seguinte (o turno pertence ao dia em que começa; o que passa da meia-noite usa o dia seguinte)
   const disponibilidade = new Map<string, Faixa[]>();
   if (ids.length) {
@@ -176,12 +161,16 @@ export async function avaliarFaixa(c: Consulta, v: VagaConsultada, somenteMilita
         if (violacoesSaldo([{ mat: m.id, dia: v.data, servico: turno.nome, turno: turno.letra }], { adm: m.jornada === 'adm' ? { [m.id]: true } : {} }).length) motivo = 'Saldo só para militar do Adm';
         else if ((turno.tipo === 'pjes' || exigeVoluntarioJes(turno.nome)) && !m.voluntario_jes) motivo = 'Não é voluntário JES';
         else {
-          const candidata: AlocChoque = { mat: m.id, dia: v.data, turno: turno.letra, servico: turno.nome };
+          // a candidata entra no motor com outro nome: o serviço que pode tirar o militar do expediente, lançado agora, continua sendo choque (a resolução é da 6.38);
+          // só o que já está gravado tira o expediente do dia
+          const candidata: AlocChoque = { mat: m.id, dia: v.data, turno: turno.letra, servico: `${turno.nome}${NOVA}` };
+          horarios[`${candidata.servico}|${turno.letra}`] = horarios[`${turno.nome}|${turno.letra}`]!;
           const chave = chaveAloc(candidata);
-          const { choques } = detectarChoques([...existentes, ...expediente, candidata], horarios, { tipos });
-          if (choques.some((x) => x.a.chave === chave || x.b.chave === chave)) motivo = 'Choque de horário';
+          const { choques } = detectarChoques([...existentes, ...expediente, candidata], horarios, { tiramDoExpediente: regras.tiramDoExpediente });
+          const dela = choques.filter((x) => x.a.chave === chave || x.b.chave === chave);
+          if (dela.length) motivo = dela.some((x) => x.tipo === 'expediente') ? DE_EXPEDIENTE : 'Choque de horário';
           // RN-36: uma diária por dia para o mesmo militar
-          else if (violacoesDiariaUnica([...existentes, candidata], { tipos }).some((x) => x.chave === chave)) motivo = 'Já tem uma diária neste dia';
+          else if (violacoesDiariaUnica([...existentes, { ...candidata, servico: turno.nome }], { tipos }).some((x) => x.chave === chaveAloc({ ...candidata, servico: turno.nome }))) motivo = 'Já tem uma diária neste dia';
           // por último: só o voluntariado pode ser contornado pelo escalante (com a flexibilidade do gestor já aplicada)
           // (o externo não marca voluntariado: quem o gestor trouxe já veio para isso)
           else if (turno.tipo !== 'ordinario' && !m.externo && !turnoCoberto((dia) => unirFaixas(disponibilidade.get(`${m.id}|${dia}`) ?? []), v.data, turno.inicio, turno.fim, flexibilidadeMin)) motivo = SEM_VOLUNTARIADO;

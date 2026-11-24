@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest';
 import { abrir, corpoEnviado, EU_EXEMPLO, simularApi } from './apoio';
 
 const BIOMA: Servico = {
-  id: 's3', nome: 'Bioma', tipo: 'diaria', operacao: 'Guardiões do Bioma', rotuloImpressao: null, cor: '#C08A1E', ativo: true, fixo: false,
+  id: 's3', nome: 'Bioma', tipo: 'diaria', operacao: 'Guardiões do Bioma', rotuloImpressao: null, cor: '#C08A1E', tiraDoExpediente: false, ativo: true, fixo: false,
   turnos: [{ id: 't1', letra: 'A', inicio: '00:00', fim: '08:00', duracaoMinutos: 480, turnosPadrao: [{ dia: -1, turno: 'B' }] }],
 };
 
@@ -28,7 +28,7 @@ describe('seletor de cor', () => {
     expect(botaoDe('#4A86E8')).toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', { name: 'Salvar' }));
     await waitFor(() =>
-      expect(corpoEnviado(f, 'PATCH /api/servicos/s3')).toEqual({ nome: 'Bioma', tipo: 'diaria', operacao: 'Guardiões do Bioma', rotuloImpressao: null, cor: '#4A86E8' }),
+      expect(corpoEnviado(f, 'PATCH /api/servicos/s3')).toEqual({ nome: 'Bioma', tipo: 'diaria', operacao: 'Guardiões do Bioma', rotuloImpressao: null, cor: '#4A86E8', tiraDoExpediente: false }),
     );
   });
 

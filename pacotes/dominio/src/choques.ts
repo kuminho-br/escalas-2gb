@@ -7,7 +7,8 @@ import { chaveAloc, normalizar, numeroDoDia, partesDaChave } from './nucleo.ts';
 
 // emenda proibida: o serviço 'de' terminando exatamente quando o serviço 'para' começa
 export const EMENDA_PROIBIDA = { de: 'JES', para: 'PRONTO' };
-// serviços que ocupam o lugar do expediente no dia em que se sobrepõem a ele
+// serviços que ocupam o lugar do expediente no dia em que se sobrepõem a ele (a regra do protótipo; o sistema novo usa
+// `op.tiramDoExpediente`, a lista dos serviços cadastrados com essa opção)
 export const SUBSTITUEM_EXPEDIENTE = ['SALDO'];
 
 export interface Horario { ini: number; fim: number; dur: number }
@@ -67,12 +68,15 @@ const lado = (x: Intervalo, implicito: boolean): LadoDoChoque => ({ dia: x.dia, 
  * Procura sobreposições entre as alocações de cada militar (passe todos os meses: assim o dia 31
  * enxerga o dia 01).
  * op.mes: só relata choques em que pelo menos uma das duas alocações é desse mês.
- * op.tipos: { 'Serviço': 'Tipo' }; com ele, o expediente implícito só choca com Diária.
+ * op.tipos: { 'Serviço': 'Tipo' }; com ele, o expediente implícito só choca com Diária (regra do protótipo).
+ * op.tiramDoExpediente: a regra do sistema novo (6.37), a que vale na API. Lista dos nomes dos serviços que podem tirar o militar do expediente. O
+ * expediente implícito choca com **qualquer** serviço (op.tipos é ignorado) e some do dia só sob um serviço real da lista que se sobrepõe a ele
+ * (ou sob o próprio Adm real do dia). Sem a opção, vale a regra do protótipo.
  */
 export function detectarChoques(
   alocs: AlocChoque[],
   horarios: Horarios,
-  op?: { mes?: string; tipos?: Record<string, string> | null } | null,
+  op?: { mes?: string; tipos?: Record<string, string> | null; tiramDoExpediente?: string[] | null } | null,
 ): { choques: Choque[]; semHorario: { servico: string; turno: string; qtd: number }[] } {
   const o = op || {};
   const porMat: Record<string, Intervalo[]> = Object.create(null);
@@ -91,14 +95,17 @@ export function detectarChoques(
     });
   });
 
-  // o expediente implícito de um dia some se o militar tem Adm de verdade nesse dia ou um Saldo no mesmo horário
+  // o expediente implícito de um dia some se o militar tem Adm de verdade nesse dia ou um serviço que tira do expediente no mesmo horário
+  // (regra nova: os da lista `tiramDoExpediente`; regra do protótipo: o Saldo, pelo nome)
+  const substituem = o.tiramDoExpediente ? o.tiramDoExpediente.map(normalizar) : SUBSTITUEM_EXPEDIENTE;
+  const universal = !!o.tiramDoExpediente;
   Object.keys(porMat).forEach((mat) => {
     const reais = porMat[mat].filter((x) => !x.implicito);
     porMat[mat] = porMat[mat].filter((x) => {
       if (!x.implicito) return true;
       return !reais.some((r) => {
         if (r.dia === x.dia && r.servico === x.servico) return true;
-        return SUBSTITUEM_EXPEDIENTE.indexOf(normalizar(r.servico)) >= 0 && r.ini < x.fim && x.ini < r.fim;
+        return substituem.indexOf(normalizar(r.servico)) >= 0 && r.ini < x.fim && x.ini < r.fim;
       });
     });
   });
@@ -112,7 +119,7 @@ export function detectarChoques(
         const y = l[j];
         if (o.mes && x.dia.slice(0, 7) !== o.mes && y.dia.slice(0, 7) !== o.mes) continue;
         if (x.implicito && y.implicito) continue;
-        if (!expedienteChocaCom(x, y, o.tipos)) continue;
+        if (!universal && !expedienteChocaCom(x, y, o.tipos)) continue;
         choques.push({
           mat,
           tipo: x.implicito || y.implicito ? 'expediente' : x.chave === y.chave ? 'duplicata' : 'sobreposicao',

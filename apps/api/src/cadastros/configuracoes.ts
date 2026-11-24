@@ -9,10 +9,10 @@ import { hojeRecife } from '../datas.ts';
 import { lerCorpo, respostaDoErroDoBanco } from '../erros.ts';
 
 /**
- * Chaves editáveis. Saíram: SECAO_PADRAO (o seletor de unidade substitui) e LINHAS_POR_MILITAR
- * (espaço da grade na planilha; não se aplica ao sistema novo).
+ * Chaves editáveis. Saíram: SECAO_PADRAO (o seletor de unidade substitui), LINHAS_POR_MILITAR
+ * (espaço da grade na planilha; não se aplica ao sistema novo) e ADM_CUMPRE_CARGA (6.37: o choque de horário vale para todos, sem configuração).
  */
-export const CHAVES_SISTEMA = ['CARGA_MENSAL_HORAS', 'SALDOS_ADM_POR_MILITAR', 'ADM_CUMPRE_CARGA', 'FLEXIBILIDADE_VOLUNTARIADO_HORAS'];
+export const CHAVES_SISTEMA = ['CARGA_MENSAL_HORAS', 'SALDOS_ADM_POR_MILITAR', 'FLEXIBILIDADE_VOLUNTARIADO_HORAS'];
 const DEFINICOES: DefParametro[] = [...PARAM_CATALOGO, ...PARAM_SISTEMA_NOVO].filter((d) => CHAVES_SISTEMA.includes(d.chave));
 
 const ordenarPorNome = <T extends { nome: string }>(l: T[]) => l.sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));

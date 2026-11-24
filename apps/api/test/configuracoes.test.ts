@@ -71,7 +71,7 @@ describe('parâmetros', () => {
     const r = await parametros(api.ids.secao);
     expect(r.status).toBe(200);
     const lista = await r.json();
-    expect(lista.map((p: { chave: string }) => p.chave)).toEqual(['CARGA_MENSAL_HORAS', 'SALDOS_ADM_POR_MILITAR', 'ADM_CUMPRE_CARGA', 'FLEXIBILIDADE_VOLUNTARIADO_HORAS']);
+    expect(lista.map((p: { chave: string }) => p.chave)).toEqual(['CARGA_MENSAL_HORAS', 'SALDOS_ADM_POR_MILITAR', 'FLEXIBILIDADE_VOLUNTARIADO_HORAS']);
     expect(doCatalogo(lista, 'CARGA_MENSAL_HORAS')).toMatchObject({ valor: 160, origem: 'padrao', unidadeSigla: null, rotulo: 'Carga mensal (horas)' });
   });
 
@@ -147,13 +147,20 @@ describe('parâmetros', () => {
     expect(r.status).toBe(403);
   });
 
+  it('6.37: "Adm cumpre a carga mensal" não existe mais: gravar a chave é 400, e a migração apagou os valores que havia', async () => {
+    const r = await api.pedir('admin', 'POST', `/api/unidades/${api.ids.secao}/parametros`, { chave: 'ADM_CUMPRE_CARGA', valor: 'SIM', vigencia: proximo });
+    expect(r.status).toBe(400);
+    expect((await r.json()).erro).toBe('Esta configuração não existe.');
+    expect((await api.banco.query("select 1 from parametro where chave = 'ADM_CUMPRE_CARGA'")).rows).toHaveLength(0);
+  });
+
   it('escalante não muda parâmetro (403)', async () => {
     const r = await api.pedir('escalante', 'POST', `/api/unidades/${api.ids.secao}/parametros`, { chave: 'CARGA_MENSAL_HORAS', valor: '150', vigencia: proximo });
     expect(r.status).toBe(403);
   });
 
   it('gravação deixa o usuario_id na auditoria', async () => {
-    await api.pedir('admin', 'POST', `/api/unidades/${api.ids.secao}/parametros`, { chave: 'ADM_CUMPRE_CARGA', valor: 'SIM', vigencia: proximo });
+    await api.pedir('admin', 'POST', `/api/unidades/${api.ids.secao}/parametros`, { chave: 'CARGA_MENSAL_HORAS', valor: '151', vigencia: proximo });
     const { rows } = await api.banco.query<{ usuario_id: string }>(
       "select usuario_id from auditoria where tabela = 'parametro' order by id desc limit 1",
     );
