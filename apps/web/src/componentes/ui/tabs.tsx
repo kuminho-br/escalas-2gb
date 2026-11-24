@@ -33,7 +33,7 @@ function TabsList({
     <TabsPrimitive.List
       data-slot="tabs-list"
       className={cn(
-        "flex w-full items-end gap-1 overflow-x-auto border-b border-linha group-data-[orientation=vertical]/tabs:h-fit group-data-[orientation=vertical]/tabs:flex-col",
+        "flex w-full items-end gap-1 overflow-x-auto overflow-y-hidden border-b border-linha group-data-[orientation=vertical]/tabs:h-fit group-data-[orientation=vertical]/tabs:flex-col",
         className
       )}
       {...props}
@@ -49,7 +49,7 @@ function TabsTrigger({
     <TabsPrimitive.Trigger
       data-slot="tabs-trigger"
       className={cn(
-        "-mb-px inline-flex h-(--altura-controle) shrink-0 items-center justify-center gap-1.5 border-b-2 border-transparent px-3 text-corpo font-medium whitespace-nowrap text-apagado transition-colors hover:text-tinta disabled:pointer-events-none disabled:opacity-50 data-[state=active]:border-tinta data-[state=active]:font-semibold data-[state=active]:text-tinta group-data-[orientation=vertical]/tabs:w-full group-data-[orientation=vertical]/tabs:justify-start [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+        "inline-flex h-(--altura-controle) shrink-0 items-center justify-center gap-1.5 border-b-2 border-transparent px-3 text-corpo font-medium whitespace-nowrap text-apagado transition-colors hover:text-tinta disabled:pointer-events-none disabled:opacity-50 data-[state=active]:border-tinta data-[state=active]:font-semibold data-[state=active]:text-tinta group-data-[orientation=vertical]/tabs:w-full group-data-[orientation=vertical]/tabs:justify-start [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
         className
       )}
       {...props}

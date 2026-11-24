@@ -1,6 +1,7 @@
 import { Link, type LinkProps } from '@tanstack/react-router';
 import { ArrowLeft } from 'lucide-react';
 import type { ReactNode } from 'react';
+import { Moldura } from '@/componentes/Moldura';
 import { cn } from '@/lib/utils';
 
 /**
@@ -21,12 +22,8 @@ export function ListaDetalhe({
   temDetalhe: boolean;
 }) {
   return (
-    <section>
-      <header className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="font-cond text-titulo leading-tight font-semibold">{titulo}</h1>
-        {acoes && <div className="flex flex-wrap gap-2">{acoes}</div>}
-      </header>
-      <div className="mt-6 grid items-start gap-6 lg:grid-cols-[minmax(280px,380px)_1fr]">
+    <Moldura titulo={titulo} acaoPrincipal={acoes}>
+      <div className="grid items-start gap-6 lg:grid-cols-[minmax(280px,380px)_1fr]">
         {/* a lista fica parada e só os itens dela rolam (a lista marca a área com data-lista-rolavel); o detalhe rola com a página. 10rem = o que está acima da coluna ao abrir a página, para o rodapé da lista caber à vista */}
         <div
           className={cn(
@@ -38,7 +35,7 @@ export function ListaDetalhe({
         </div>
         <div className={cn('min-w-0', !temDetalhe && 'max-lg:hidden')}>{detalhe}</div>
       </div>
-    </section>
+    </Moldura>
   );
 }
 

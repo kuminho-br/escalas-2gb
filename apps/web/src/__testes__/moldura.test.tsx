@@ -59,3 +59,22 @@ describe('o título de cada tela vem da Moldura', () => {
     expect(escrevem).toEqual([]);
   });
 });
+
+// o menu lateral: o ícone de 20 px antes do nome, num traço só (6.20, Task 3)
+describe('o menu lateral', () => {
+  it('cada item tem o ícone de 20 px, de traço de 1,75, antes do nome', async () => {
+    const { abrir, EU_EXEMPLO, simularApi } = await import('./apoio');
+    simularApi({ '/api/eu': { status: 200, corpo: EU_EXEMPLO } });
+    abrir('/grade');
+    const menu = await screen.findByRole('navigation', { name: 'Navegação principal' });
+    const itens = within(menu).getAllByRole('link').filter((a) => a.querySelector('svg:not(img)') && a.textContent);
+    expect(itens.length).toBeGreaterThan(2);
+    for (const item of itens) {
+      const icone = item.querySelector('svg')!;
+      expect(icone, item.textContent ?? '').toHaveClass('size-5');
+      expect(icone, item.textContent ?? '').toHaveAttribute('stroke-width', '1.75');
+      // o ícone vem antes do nome, na mesma linha
+      expect(item.firstElementChild).toBe(icone);
+    }
+  });
+});
