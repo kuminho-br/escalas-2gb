@@ -1,12 +1,13 @@
 // Escalar, remover e desfazer a remoção (telas: "Escolher militar", "Remover", "Desfazer").
 // A conferência e a gravação acontecem na mesma transação; a recusa sai como Recusa (409) com a frase que a tela mostra.
-import type { NovaAlocacao, NovoAcumulo } from 'contratos';
+import type { DesfazerResolucao, NovaAlocacao, NovoAcumulo, ResolverChoque } from 'contratos';
 import { motivoDaCnh } from 'dominio';
+import { CADASTRO, temPapel } from '../acesso.ts';
 import type { Consulta } from '../banco/banco.ts';
 import { vinculosDaEscala } from '../cadastros/escalas.ts';
 import { versaoNoMes } from '../cadastros/guarnicoes-regras.ts';
 import { versoesDasGuarnicoes } from '../cadastros/guarnicoes.ts';
-import { motivoDeFora, SEM_VOLUNTARIADO } from './elegibilidade.ts';
+import { avaliarFaixa, motivoDeFora, podeTirarDe, SEM_VOLUNTARIADO } from './elegibilidade.ts';
 
 /** A frase de quando o militar já está escalado naquele serviço e turno (o "Desfazer" da desativação a reconhece). */
 export const JA_ESCALADO_NO_TURNO = 'Este militar já está escalado neste turno.';
@@ -16,6 +17,9 @@ export class Recusa extends Error {
     super(mensagem);
   }
 }
+
+/** A recusa por falta de nível de acesso (403), como a de `exigirPapel`, mas dentro da transação. */
+export class Proibida extends Error {}
 
 type VagaConferida = { funcao: string; maximo: number; cnhExigida: string | null };
 
@@ -63,7 +67,7 @@ const travaDaFaixa = (tx: Consulta, escalaId: string, data: string, faixa: { ini
   tx.query('select pg_advisory_xact_lock(hashtext($1))', [`${escalaId}|${data}|${faixa.inicio}|${faixa.fim}`]);
 
 /** Escala o militar na vaga e devolve o mês da alocação. */
-export async function escalar(tx: Consulta, escalaId: string, d: NovaAlocacao): Promise<string> {
+export async function escalar(tx: Consulta, escalaId: string, d: Omit<NovaAlocacao, 'resolverChoque'>, opcoes: { tirarDoExpediente?: boolean } = {}): Promise<string> {
   const turno = (
     await tx.query<{ servico_id: string; inicio: string; fim: string }>(
       `select t.servico_id, to_char(t.inicio, 'HH24:MI') as inicio, to_char(t.fim, 'HH24:MI') as fim
@@ -86,7 +90,7 @@ export async function escalar(tx: Consulta, escalaId: string, d: NovaAlocacao): 
     await tx.query('select 1 from alocacao where militar_id = $1 and data = $2::date and servico_id = $3 and turno_id = $4', [d.militarId, d.data, turno.servico_id, d.turnoId])
   ).rows.length;
   if (igual) throw new Recusa(JA_ESCALADO_NO_TURNO);
-  const motivo = await motivoDeFora(tx, { escalaId, data: d.data, inicio: turno.inicio, fim: turno.fim, guarnicaoId: d.guarnicaoId, funcaoId: d.funcaoId, militarId: d.militarId, turnoId: d.turnoId });
+  const motivo = await motivoDeFora(tx, { escalaId, data: d.data, inicio: turno.inicio, fim: turno.fim, guarnicaoId: d.guarnicaoId, funcaoId: d.funcaoId, militarId: d.militarId, turnoId: d.turnoId, tirarDoExpediente: opcoes.tirarDoExpediente });
   // só o voluntariado pode ser contornado: o escalante combina direto com o militar; as demais regras continuam recusando
   if (motivo && motivo !== SEM_VOLUNTARIADO) throw new Recusa(motivo);
 
@@ -213,4 +217,52 @@ export async function tirarAcumulo(tx: Consulta, acumuloId: string): Promise<{ e
   ).rows[0]!;
   await tx.query('delete from alocacao_acumulo where id = $1', [acumuloId]);
   return { escalaId: a.escala_id, mes: a.data.slice(0, 7) };
+}
+
+export const MSG_NAO_CHOCA = 'Este serviço não choca com esta vaga. Atualize a lista e tente de novo.';
+export const MSG_SEM_PODER_LA = 'Você não pode tirar o militar deste serviço: ele é de uma escala de fora da sua unidade ou de uma unidade acima da sua.';
+export const MSG_SEM_PODER_NA_LOTACAO = 'Você não pode tirar o militar do expediente: ele é de uma unidade em que você não tem nível de acesso.';
+
+/**
+ * Escala o militar na vaga resolvendo o choque (6.38), numa transação só (a do chamador): ou as duas coisas, ou nenhuma.
+ * `alocacaoId`: tira o militar do serviço que choca (pela remoção devolvível) e o escala aqui; `expediente`: escala por cima do expediente do dia.
+ * Devolve o mês e o que o "Desfazer" precisa. Recusa (409) quando o serviço de lá não choca de verdade ou quando a vaga já não aceita o militar; Proibida (403) quando
+ * quem pede não pode mexer lá.
+ */
+export async function escalarResolvendo(
+  tx: Consulta, escalaId: string, d: Omit<NovaAlocacao, 'resolverChoque'>, resolver: ResolverChoque, usuarioId: string, hoje: string,
+): Promise<{ mes: string; desfazer: { alocacaoId: string; remocaoId: string | null } }> {
+  const novaAlocacao = async () => (await tx.query<{ id: string }>('select id from alocacao where militar_id = $1 and data = $2::date and turno_id = $3', [d.militarId, d.data, d.turnoId])).rows[0]!.id;
+  if ('expediente' in resolver) {
+    const turno = (await tx.query<{ tira: boolean }>('select s.tira_do_expediente as tira from turno t join servico s on s.id = t.servico_id where t.id = $1', [d.turnoId])).rows[0];
+    const lotacao = (await tx.query<{ unidade_id: string }>('select unidade_id from rastreio where militar_id = $1 and desde <= $2::date and (ate is null or ate >= $2::date) limit 1', [d.militarId, d.data])).rows[0];
+    // o pedido só muda o que acontece quando o serviço pode tirar do expediente; o motivo "De expediente" de quem não pode continua valendo
+    if (turno?.tira && lotacao && !(await temPapel(tx, usuarioId, lotacao.unidade_id, CADASTRO, hoje))) throw new Proibida(MSG_SEM_PODER_NA_LOTACAO);
+    const mes = await escalar(tx, escalaId, d, { tirarDoExpediente: true });
+    return { mes, desfazer: { alocacaoId: await novaAlocacao(), remocaoId: null } };
+  }
+
+  // o serviço de lá precisa chocar de verdade com esta vaga, e ser do mesmo militar (senão o pedido removeria um serviço qualquer)
+  const turno = (await tx.query<{ inicio: string; fim: string }>("select to_char(inicio, 'HH24:MI') as inicio, to_char(fim, 'HH24:MI') as fim from turno where id = $1", [d.turnoId])).rows[0];
+  if (!turno) throw new Recusa('Este turno não faz parte desta escala.');
+  const { avaliados } = await avaliarFaixa(tx, { escalaId, data: d.data, inicio: turno.inicio, fim: turno.fim, guarnicaoId: d.guarnicaoId, funcaoId: d.funcaoId }, d.militarId);
+  const doTurno = avaliados[0]?.porTurno.find((t) => t.turno.turnoId === d.turnoId);
+  const ali = doTurno?.conflito?.alocacoes.find((a) => a.id === resolver.alocacaoId);
+  if (!ali) throw new Recusa(doTurno?.motivo && !doTurno.conflito ? doTurno.motivo : MSG_NAO_CHOCA);
+  const unidadeDaEscala = (await tx.query<{ unidade_id: string }>('select unidade_id from escala where id = $1', [escalaId])).rows[0]!.unidade_id;
+  if (!(await podeTirarDe(tx, { usuarioId, hoje }, ali, unidadeDaEscala))) throw new Proibida(MSG_SEM_PODER_LA);
+  const { remocaoId } = await remover(tx, ali.id, usuarioId);
+  await escalar(tx, escalaId, d);
+  return { mes: d.data.slice(0, 7), desfazer: { alocacaoId: await novaAlocacao(), remocaoId } };
+}
+
+/** "Desfazer" a resolução (6.38): tira a alocação nova (sem deixar marca de remoção) e devolve a de lá; nada muda se a escala mudou desde então. */
+export async function desfazerResolucao(tx: Consulta, d: DesfazerResolucao): Promise<{ escalaId: string; mes: string }> {
+  const nova = (await tx.query<{ escala_id: string; data: string }>("delete from alocacao where id = $1 returning escala_id, to_char(data, 'YYYY-MM-DD') as data", [d.alocacaoId])).rows[0];
+  if (!nova) throw new Recusa(NAO_DA_PARA_DESFAZER);
+  if (d.remocaoId) {
+    const devolvida = await devolverRemocao(tx, d.remocaoId);
+    return devolvida;
+  }
+  return { escalaId: nova.escala_id, mes: nova.data.slice(0, 7) };
 }

@@ -4,7 +4,7 @@ import { textoFaixa, type Candidatos, type EscaladoNoDia, type OpcoesDeTroca, ty
 import { compararAntiguidade, type Militar } from 'dominio';
 import type { Consulta } from '../banco/banco.ts';
 import { Recusa, escalar, remover } from './alocacoes.ts';
-import { avaliarCandidatos, JA_ESCALADO } from './elegibilidade.ts';
+import { avaliarCandidatos, DE_EXPEDIENTE, JA_ESCALADO } from './elegibilidade.ts';
 
 export class NaoEncontrada extends Error {}
 
@@ -27,6 +27,16 @@ async function carregar(c: Consulta, id: string): Promise<Aloc | null> {
   return rows[0] ?? null;
 }
 
+/** A troca ainda não resolve choque (a 6.38 é só de escolher o militar da vaga): quem está em choque conta entre os que ficaram de fora, com o motivo. */
+function paraFora(emChoque: Candidatos['emChoque']): Candidatos['fora'] {
+  const contagem = new Map<string, number>();
+  for (const x of emChoque) {
+    const motivo = x.servicos[0]!.choque.tipo === 'expediente' ? DE_EXPEDIENTE : 'Choque de horário';
+    contagem.set(motivo, (contagem.get(motivo) ?? 0) + 1);
+  }
+  return [...contagem.entries()].map(([motivo, quantidade]) => ({ motivo, quantidade }));
+}
+
 /** Quem pode ocupar a vaga (sem o próprio militar) e quem já está escalado no mesmo dia, com onde está. */
 export async function opcoesDeTroca(c: Consulta, alocacaoId: string): Promise<OpcoesDeTroca | null> {
   const a = await carregar(c, alocacaoId);
@@ -36,8 +46,9 @@ export async function opcoesDeTroca(c: Consulta, alocacaoId: string): Promise<Op
   const livres: Candidatos = {
     aptos: todos.aptos.filter((x) => x.militarId !== a.militar_id),
     semVoluntariado: todos.semVoluntariado.filter((x) => x.militarId !== a.militar_id),
-    fora: todos.fora.map((f) => (f.motivo === JA_ESCALADO ? { ...f, quantidade: f.quantidade - 1 } : f)).filter((f) => f.quantidade > 0),
+    fora: [...todos.fora.map((f) => (f.motivo === JA_ESCALADO ? { ...f, quantidade: f.quantidade - 1 } : f)).filter((f) => f.quantidade > 0), ...paraFora(todos.emChoque)],
     acumular: [],
+    emChoque: [],
   };
 
   const doDia = (

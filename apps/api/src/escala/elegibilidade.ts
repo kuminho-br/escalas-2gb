@@ -1,6 +1,6 @@
 // Quem pode ocupar uma vaga da escala (telas: "Escolher militar"). As regras de choque, CNH e voluntariado vêm do motor
 // (`pacotes/dominio`); aqui o banco é traduzido para o que o motor recebe (matrícula = id do militar, serviço = nome, turno = letra).
-import type { Candidato, Candidatos } from 'contratos';
+import type { Candidato, Candidatos, CandidatoEmChoque, ChoqueDoCandidato } from 'contratos';
 import {
   chaveAloc,
   cnhParaEscala,
@@ -18,6 +18,7 @@ import {
   type AlocChoque,
   type Militar,
 } from 'dominio';
+import { CADASTRO, temPapel } from '../acesso.ts';
 import type { Consulta } from '../banco/banco.ts';
 import { parametroEmVigor } from '../cadastros/configuracoes.ts';
 import { vinculosDaEscala } from '../cadastros/escalas.ts';
@@ -25,14 +26,20 @@ import { feriadosDoAno } from '../cadastros/feriados.ts';
 import { versaoNoMes } from '../cadastros/guarnicoes-regras.ts';
 import { versoesDasGuarnicoes } from '../cadastros/guarnicoes.ts';
 import { somarDias } from '../datas.ts';
-import { alocacoesDaJanela, EXPEDIENTE, horariosDaUnidade, somarOutrasUnidades, type Tipo } from './horarios.ts';
+import { alocacoesDaJanela, type AlocacaoDaJanela, EXPEDIENTE, horariosDaUnidade, somarOutrasUnidades, type Tipo } from './horarios.ts';
 import { nomeDaVaga } from './vagas.ts';
 
-export type VagaConsultada = { escalaId: string; data: string; inicio: string; fim: string; guarnicaoId: string | null; funcaoId: string | null };
+/** `tirarDoExpediente` (6.38): o escalante decidiu pôr o serviço por cima do expediente do dia; vale só para o serviço cadastrado com a opção. */
+export type VagaConsultada = { escalaId: string; data: string; inicio: string; fim: string; guarnicaoId: string | null; funcaoId: string | null; tirarDoExpediente?: boolean };
 
-export type TurnoDaFaixa = { turnoId: string; servicoId: string; nome: string; tipo: Tipo; letra: 'A' | 'B' | 'C'; inicio: string; fim: string };
+export type TurnoDaFaixa = { turnoId: string; servicoId: string; nome: string; tipo: Tipo; letra: 'A' | 'B' | 'C'; inicio: string; fim: string; tira: boolean };
 /** `externo`: veio de outra unidade pelo vínculo (6.33); é candidato em qualquer serviço lançado à mão (6.36), mas a pré-escala e as distribuições automáticas nunca o põem. */
-export type Avaliado = { externo: boolean; candidato: Omit<Candidato, 'servicos'>; militarMotivo: string | null; porTurno: { turno: TurnoDaFaixa; motivo: string | null }[]; antig: number | null; postoOrdem: number; cnh: string[] };
+/** O que choca com o militar num turno: as alocações dele que se sobrepõem e se o expediente também (6.38). */
+export type Conflito = { alocacoes: AlocacaoDaJanela[]; expediente: boolean };
+export type Avaliado = {
+  externo: boolean; candidato: Omit<Candidato, 'servicos'>; militarMotivo: string | null; porTurno: { turno: TurnoDaFaixa; motivo: string | null; conflito?: Conflito }[];
+  antig: number | null; postoOrdem: number; cnh: string[]; lotacaoUnidadeId: string;
+};
 
 const NAO_LOTADO = 'Não está lotado na seção neste dia';
 /** O choque com o expediente do Adm (o militar está de expediente no horário): o serviço que pode tirá-lo de lá tem o botão de resolver (6.38). */
@@ -49,13 +56,13 @@ import { ehOficial, MOTIVO_OFICIAL } from './quadros-da-escala.ts';
 export async function avaliarFaixa(c: Consulta, v: VagaConsultada, somenteMilitar?: string): Promise<{ turnos: TurnoDaFaixa[]; avaliados: Avaliado[] }> {
   const unidadeId = (await c.query<{ unidade_id: string }>('select unidade_id from escala where id = $1', [v.escalaId])).rows[0]!.unidade_id;
   const turnos = (
-    await c.query<{ id: string; servico_id: string; nome: string; tipo: Tipo; letra: 'A' | 'B' | 'C'; inicio: string; fim: string }>(
-      `select t.id, s.id as servico_id, s.nome, s.tipo, t.letra, to_char(t.inicio, 'HH24:MI') as inicio, to_char(t.fim, 'HH24:MI') as fim
+    await c.query<{ id: string; servico_id: string; nome: string; tipo: Tipo; tira: boolean; letra: 'A' | 'B' | 'C'; inicio: string; fim: string }>(
+      `select t.id, s.id as servico_id, s.nome, s.tipo, s.tira_do_expediente as tira, t.letra, to_char(t.inicio, 'HH24:MI') as inicio, to_char(t.fim, 'HH24:MI') as fim
          from escala_servico es join servico s on s.id = es.servico_id join turno t on t.servico_id = s.id
         where es.escala_id = $1 and t.inicio = $2::time and t.fim = $3::time order by es.ordem, t.letra`,
       [v.escalaId, v.inicio, v.fim],
     )
-  ).rows.map((t): TurnoDaFaixa => ({ turnoId: t.id, servicoId: t.servico_id, nome: t.nome, tipo: t.tipo, letra: t.letra, inicio: t.inicio, fim: t.fim }));
+  ).rows.map((t): TurnoDaFaixa => ({ turnoId: t.id, servicoId: t.servico_id, nome: t.nome, tipo: t.tipo, letra: t.letra, inicio: t.inicio, fim: t.fim, tira: t.tira }));
 
   // quem tem lotação na seção em algum momento do mês da vaga (ou só o militar pedido)
   // (uma consulta só, com os externos em `union all`: o painel do dia conta as consultas)
@@ -64,10 +71,10 @@ export async function avaliarFaixa(c: Consulta, v: VagaConsultada, somenteMilita
   const pool = (
     await c.query<{
       id: string; matricula: string; nome_guerra: string; ativo: boolean; situacao: string; motorista: boolean; cnh: string[]; voluntario_jes: boolean; posto: string; posto_ordem: number; antiguidade: number | null;
-      jornada: 'pronto' | 'adm'; equipe: string | null; lotado_no_dia: boolean; quadro: string | null; externo: boolean;
+      jornada: 'pronto' | 'adm'; equipe: string | null; lotado_no_dia: boolean; quadro: string | null; externo: boolean; lotacao_unidade: string;
     }>(
       `select m.id, m.matricula, m.nome_guerra, sm.escalavel as ativo, sm.nome as situacao, m.motorista, m.cnh, m.voluntario_jes, p.sigla as posto, p.ordem as posto_ordem, m.antiguidade, l.jornada, e.nome as equipe, q.sigla as quadro,
-              (l.desde <= $2::date and (l.ate is null or l.ate >= $2::date)) as lotado_no_dia, false as externo
+              (l.desde <= $2::date and (l.ate is null or l.ate >= $2::date)) as lotado_no_dia, false as externo, l.unidade_id as lotacao_unidade
          from militar m join posto_grad p on p.id = m.posto_grad_id
          join rastreio l on l.militar_id = m.id and l.unidade_id = $1
          left join equipe e on e.id = l.equipe_id
@@ -78,7 +85,7 @@ export async function avaliarFaixa(c: Consulta, v: VagaConsultada, somenteMilita
           and (l.ate is null or l.ate >= date_trunc('month', $2::date)::date)
        union all
        select m.id, m.matricula, m.nome_guerra, sm.escalavel as ativo, sm.nome as situacao, m.motorista, m.cnh, m.voluntario_jes, p.sigla as posto, p.ordem as posto_ordem, m.antiguidade,
-              l.jornada, 'Externo' as equipe, q.sigla as quadro, (ve.desde <= $2::date and (ve.ate is null or ve.ate >= $2::date)) as lotado_no_dia, true as externo
+              l.jornada, 'Externo' as equipe, q.sigla as quadro, (ve.desde <= $2::date and (ve.ate is null or ve.ate >= $2::date)) as lotado_no_dia, true as externo, l.unidade_id as lotacao_unidade
          from vinculo_externo ve
          join militar m on m.id = ve.militar_id join posto_grad p on p.id = m.posto_grad_id
          join lateral (select r.* from rastreio r where r.militar_id = m.id
@@ -111,6 +118,7 @@ export async function avaliarFaixa(c: Consulta, v: VagaConsultada, somenteMilita
   const todas = await alocacoesDaJanela(c, ids, somarDias(v.data, -1), somarDias(v.data, 1), unidadeId);
   somarOutrasUnidades(regras, todas);
   const janela = todas.map((a) => ({ militar_id: a.militarId, data: a.data, nome: a.servico, letra: a.letra, inicio: a.inicio, fim: a.fim }));
+  const porChave = new Map(todas.map((a) => [chaveAloc({ mat: a.militarId, dia: a.data, servico: a.servico, turno: a.letra }), a] as const));
   // a disponibilidade lançada no dia e no dia seguinte (o turno pertence ao dia em que começa; o que passa da meia-noite usa o dia seguinte)
   const disponibilidade = new Map<string, Faixa[]>();
   if (ids.length) {
@@ -136,7 +144,7 @@ export async function avaliarFaixa(c: Consulta, v: VagaConsultada, somenteMilita
 
   const avaliados = militares.map((m): Avaliado => {
     const base = { militarId: m.id, posto: m.posto, nomeGuerra: m.nome_guerra, matricula: m.matricula, equipe: m.equipe, jornada: m.jornada };
-    const pronto = (militarMotivo: string | null, porTurno: Avaliado['porTurno'] = []): Avaliado => ({ externo: m.externo, candidato: base, militarMotivo, porTurno, antig: m.antiguidade, postoOrdem: m.posto_ordem, cnh: cnhParaEscala(m) });
+    const pronto = (militarMotivo: string | null, porTurno: Avaliado['porTurno'] = []): Avaliado => ({ externo: m.externo, candidato: base, militarMotivo, porTurno, antig: m.antiguidade, postoOrdem: m.posto_ordem, cnh: cnhParaEscala(m), lotacaoUnidadeId: m.lotacao_unidade });
     if (!m.lotado_no_dia) return pronto(NAO_LOTADO);
     if (ehOficial(m.quadro)) return pronto(MOTIVO_OFICIAL);
     if (!m.ativo) return pronto(m.situacao);
@@ -156,6 +164,7 @@ export async function avaliarFaixa(c: Consulta, v: VagaConsultada, somenteMilita
       null,
       ordemDosTurnos.map((turno) => {
         let motivo: string | null = null;
+        let conflito: Conflito | undefined;
         // o externo (6.36) é candidato em qualquer serviço lançado à mão, com as regras de todos
         // RN-03: o Saldo é do Adm (a regra e a frase são do motor; aqui sem o código da regra)
         if (violacoesSaldo([{ mat: m.id, dia: v.data, servico: turno.nome, turno: turno.letra }], { adm: m.jornada === 'adm' ? { [m.id]: true } : {} }).length) motivo = 'Saldo só para militar do Adm';
@@ -163,19 +172,28 @@ export async function avaliarFaixa(c: Consulta, v: VagaConsultada, somenteMilita
         else {
           // a candidata entra no motor com outro nome: o serviço que pode tirar o militar do expediente, lançado agora, continua sendo choque (a resolução é da 6.38);
           // só o que já está gravado tira o expediente do dia
-          const candidata: AlocChoque = { mat: m.id, dia: v.data, turno: turno.letra, servico: `${turno.nome}${NOVA}` };
+          // (a 6.38: se o escalante decidiu pôr o serviço por cima do expediente, e o serviço pode, a candidata entra com o nome de verdade e tira o expediente)
+          const poePorCima = !!v.tirarDoExpediente && turno.tira;
+          const candidata: AlocChoque = { mat: m.id, dia: v.data, turno: turno.letra, servico: poePorCima ? turno.nome : `${turno.nome}${NOVA}` };
           horarios[`${candidata.servico}|${turno.letra}`] = horarios[`${turno.nome}|${turno.letra}`]!;
           const chave = chaveAloc(candidata);
           const { choques } = detectarChoques([...existentes, ...expediente, candidata], horarios, { tiramDoExpediente: regras.tiramDoExpediente });
           const dela = choques.filter((x) => x.a.chave === chave || x.b.chave === chave);
-          if (dela.length) motivo = dela.some((x) => x.tipo === 'expediente') ? DE_EXPEDIENTE : 'Choque de horário';
+          if (dela.length) {
+            motivo = dela.some((x) => x.tipo === 'expediente') ? DE_EXPEDIENTE : 'Choque de horário';
+            const lados = dela.flatMap((x) => [x.a, x.b]).filter((l) => l.chave !== chave && !l.implicito);
+            conflito = {
+              alocacoes: [...new Map(lados.flatMap((l) => (porChave.has(l.chave) ? [[l.chave, porChave.get(l.chave)!] as const] : []))).values()],
+              expediente: dela.some((x) => x.tipo === 'expediente'),
+            };
+          }
           // RN-36: uma diária por dia para o mesmo militar
           else if (violacoesDiariaUnica([...existentes, { ...candidata, servico: turno.nome }], { tipos }).some((x) => x.chave === chaveAloc({ ...candidata, servico: turno.nome }))) motivo = 'Já tem uma diária neste dia';
           // por último: só o voluntariado pode ser contornado pelo escalante (com a flexibilidade do gestor já aplicada)
           // (o externo não marca voluntariado: quem o gestor trouxe já veio para isso)
           else if (turno.tipo !== 'ordinario' && !m.externo && !turnoCoberto((dia) => unirFaixas(disponibilidade.get(`${m.id}|${dia}`) ?? []), v.data, turno.inicio, turno.fim, flexibilidadeMin)) motivo = SEM_VOLUNTARIADO;
         }
-        return { turno, motivo };
+        return { turno, motivo, ...(conflito ? { conflito } : {}) };
       }),
     );
   });
@@ -230,7 +248,7 @@ async function quemPodeAcumular(c: Consulta, v: VagaConsultada, avaliados: Avali
 }
 
 /** Os que podem ocupar a vaga (Pronto antes do Adm, depois por posto e antiguidade), os que podem acumulá-la e quantos ficaram de fora, por motivo. */
-export async function avaliarCandidatos(c: Consulta, v: VagaConsultada): Promise<Candidatos> {
+export async function avaliarCandidatos(c: Consulta, v: VagaConsultada, quem?: { usuarioId: string; hoje: string }): Promise<Candidatos> {
   const { avaliados } = await avaliarFaixa(c, v);
   const acumulando = v.guarnicaoId && v.funcaoId ? await quemPodeAcumular(c, v, avaliados) : [];
   const idsAcumulando = new Set(acumulando.map((x) => x.a.candidato.militarId));
@@ -245,9 +263,16 @@ export async function avaliarCandidatos(c: Consulta, v: VagaConsultada): Promise
     .filter((a) => a.militarMotivo === null && motivoFinal(a) !== null && a.porTurno.some((t) => t.motivo === SEM_VOLUNTARIADO))
     .sort(ordem)
     .map((a) => comServicos(a, SEM_VOLUNTARIADO));
+  // em choque (6.38): sem turno livre nem "só falta o voluntariado", e ao menos um turno que só não passa porque choca; aparece com o que choca
+  const semVoluntariadoIds = new Set(semVoluntariado.map((x) => x.militarId));
+  const emChoqueAvaliados = avaliados.filter(
+    (a) => a.militarMotivo === null && motivoFinal(a) !== null && !semVoluntariadoIds.has(a.candidato.militarId) && !idsAcumulando.has(a.candidato.militarId) && a.porTurno.some((t) => t.conflito),
+  );
+  const idsEmChoque = new Set(emChoqueAvaliados.map((a) => a.candidato.militarId));
+  const emChoque = await Promise.all(emChoqueAvaliados.sort(ordem).map((a) => comChoque(c, v, a, quem)));
   const contagem = new Map<string, number>();
   for (const a of avaliados) {
-    if (idsAcumulando.has(a.candidato.militarId)) continue; // quem pode acumular aparece na outra lista, não como "de fora"
+    if (idsAcumulando.has(a.candidato.militarId) || idsEmChoque.has(a.candidato.militarId)) continue; // quem pode acumular ou está em choque aparece nas outras listas, não como "de fora"
     const m = motivoFinal(a);
     if (m) contagem.set(m, (contagem.get(m) ?? 0) + 1);
   }
@@ -255,7 +280,37 @@ export async function avaliarCandidatos(c: Consulta, v: VagaConsultada): Promise
   const acumular = acumulando.map(({ a, alocacaoId, vaga }) => ({
     alocacaoId, militarId: a.candidato.militarId, posto: a.candidato.posto, nomeGuerra: a.candidato.nomeGuerra, matricula: a.candidato.matricula, vaga,
   }));
-  return { aptos, semVoluntariado, fora, acumular };
+  return { aptos, emChoque, semVoluntariado, fora, acumular };
+}
+
+/** O militar em choque, com o choque de cada turno em que ele acontece e se quem pede pode resolvê-lo. */
+async function comChoque(c: Consulta, v: VagaConsultada, a: Avaliado, quem?: { usuarioId: string; hoje: string }): Promise<CandidatoEmChoque> {
+  const unidadeDaEscala = (await c.query<{ unidade_id: string }>('select unidade_id from escala where id = $1', [v.escalaId])).rows[0]!.unidade_id;
+  const servicos: CandidatoEmChoque['servicos'] = [];
+  for (const t of a.porTurno.filter((x) => x.conflito)) {
+    const { alocacoes, expediente } = t.conflito!;
+    let choque: ChoqueDoCandidato;
+    if (alocacoes.length > 0) {
+      // o primeiro que choca (o mais cedo); só se resolve quando ele é o único e o expediente não entra na conta
+      const l = [...alocacoes].sort((x, y) => `${x.data}${x.inicio}`.localeCompare(`${y.data}${y.inicio}`))[0]!;
+      const unico = alocacoes.length === 1 && !expediente;
+      choque = { tipo: 'alocacao', alocacaoId: l.id, servico: l.servicoNome, data: l.data, inicio: l.inicio, fim: l.fim, escala: l.escala, unidadeSigla: l.unidadeSigla, podeResolver: unico && !!quem && (await podeTirarDe(c, quem, l, unidadeDaEscala)) };
+    } else {
+      choque = { tipo: 'expediente', data: v.data, podeResolver: t.turno.tira && !!quem && (await temPapel(c, quem.usuarioId, a.lotacaoUnidadeId, CADASTRO, quem.hoje)) };
+    }
+    servicos.push({ servicoId: t.turno.servicoId, turnoId: t.turno.turnoId, nome: t.turno.nome, choque });
+  }
+  return { ...a.candidato, servicos };
+}
+
+/**
+ * Quem escala aqui pode tirar o militar do serviço de lá (6.38): a escala de lá é de escalante (não é uma rodada de cotas) numa unidade igual à da escala daqui ou
+ * abaixo dela, e quem pede tem nível de acesso nela.
+ */
+export async function podeTirarDe(c: Consulta, quem: { usuarioId: string; hoje: string }, onde: { unidadeId: string; distribuicao: string }, unidadeDaEscalaDeAqui: string): Promise<boolean> {
+  if (onde.distribuicao !== 'pre_escala') return false;
+  const abaixo = (await c.query<{ ok: boolean }>('select a.caminho @> l.caminho as ok from unidade a, unidade l where a.id = $1 and l.id = $2', [unidadeDaEscalaDeAqui, onde.unidadeId])).rows[0]?.ok;
+  return !!abaixo && (await temPapel(c, quem.usuarioId, onde.unidadeId, CADASTRO, quem.hoje));
 }
 
 /** Por que o militar não pode ocupar a vaga neste turno (a frase que a tela mostra); null se pode. */
