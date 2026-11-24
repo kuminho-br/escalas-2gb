@@ -74,7 +74,7 @@ export function Afastamentos({ ficha }: { ficha: FichaMilitar }) {
           <li key={a.id} className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-sm">
             <span className="font-medium">{a.tipo}</span>
             <span className="text-apagado">de {dataBr(a.inicio)} a {dataBr(a.fim)}</span>
-            {peculio && <Button size="xs" variant="ghost" className="ml-auto" onClick={() => void apagar(a)}>Remover</Button>}
+            {peculio && <Button size="xs" variant="discreto" className="ml-auto" onClick={() => void apagar(a)}>Remover</Button>}
             {a.motivo && <span className="basis-full text-xs text-apagado">{`Motivo: ${a.motivo}`}</span>}
             {a.boletim && <span className="basis-full text-xs text-apagado">{`Boletim: ${a.boletim}`}</span>}
           </li>
@@ -84,7 +84,7 @@ export function Afastamentos({ ficha }: { ficha: FichaMilitar }) {
       {erro && <p role="alert" className="mb-3 text-sm text-alerta">{erro}</p>}
       {peculio && !aberto && (
         <div>
-          <Button type="button" variant="outline" onClick={() => setAberto(true)}>Incluir afastamento</Button>
+          <Button type="button" variant="secundario" onClick={() => setAberto(true)}>Incluir afastamento</Button>
         </div>
       )}
       {peculio && aberto && (
@@ -117,7 +117,7 @@ export function Afastamentos({ ficha }: { ficha: FichaMilitar }) {
           </div>
           <div className="flex gap-2">
             <Button type="submit" disabled={!tipoEscolhido || salvando}>Salvar</Button>
-            <Button type="button" variant="ghost" onClick={fechar}>Cancelar</Button>
+            <Button type="button" variant="discreto" onClick={fechar}>Cancelar</Button>
           </div>
         </form>
       )}

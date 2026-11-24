@@ -133,7 +133,7 @@ export function SeletorDeCor({ id, valor, aoMudar }: { id: string; valor: string
                 onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); usarPersonalizada(); } }}
                 className="h-9 w-28 rounded-md border border-input bg-superficie px-2.5 font-cond text-base"
               />
-              <Button type="button" size="sm" variant="outline" onClick={usarPersonalizada}>Usar esta cor</Button>
+              <Button type="button" size="sm" variant="secundario" onClick={usarPersonalizada}>Usar esta cor</Button>
             </div>
             {erro && <p role="alert" className="text-xs text-alerta">{erro}</p>}
           </div>

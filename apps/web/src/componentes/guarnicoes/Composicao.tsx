@@ -21,9 +21,9 @@ function Passo({ grandeza, nome, valor, onMenos, onMais, menosOff, maisOff }: {
 }) {
   return (
     <span className="inline-flex items-center gap-1">
-      <Button type="button" variant="outline" size="icon-xs" aria-label={`Diminuir ${grandeza} de ${nome}`} disabled={menosOff} onClick={onMenos}>−</Button>
+      <Button type="button" variant="secundario" size="icon-xs" aria-label={`Diminuir ${grandeza} de ${nome}`} disabled={menosOff} onClick={onMenos}>−</Button>
       <span aria-label={`${grandeza === 'mínimo' ? 'Mínimo' : 'Máximo'} de ${nome}`} className="min-w-6 text-center tabular-nums">{valor}</span>
-      <Button type="button" variant="outline" size="icon-xs" aria-label={`Aumentar ${grandeza} de ${nome}`} disabled={maisOff} onClick={onMais}>+</Button>
+      <Button type="button" variant="secundario" size="icon-xs" aria-label={`Aumentar ${grandeza} de ${nome}`} disabled={maisOff} onClick={onMais}>+</Button>
     </span>
   );
 }
@@ -117,7 +117,7 @@ export function Composicao({ linhas, aoMudar, funcoes, unidadeId, aoMudarFuncao 
                     <option value={NOVA}>Nova função…</option>
                   </Selecao>
                   {funcao && !funcao.herdada && (
-                    <Button type="button" variant="ghost" size="icon-sm" aria-label={`Renomear ${funcao.nome}`} onClick={() => setRenomeando({ chave: l.chave, nome: funcao.nome })}>
+                    <Button type="button" variant="discreto" size="icon-sm" aria-label={`Renomear ${funcao.nome}`} onClick={() => setRenomeando({ chave: l.chave, nome: funcao.nome })}>
                       <Pencil aria-hidden />
                     </Button>
                   )}
@@ -163,7 +163,7 @@ export function Composicao({ linhas, aoMudar, funcoes, unidadeId, aoMudarFuncao 
                     </Selecao>
                   )}
                 </span>
-                <Button type="button" variant="ghost" size="xs" aria-label={`Remover ${nome}`} className="justify-self-end" onClick={() => remover(l.chave)}>
+                <Button type="button" variant="discreto" size="xs" aria-label={`Remover ${nome}`} className="justify-self-end" onClick={() => remover(l.chave)}>
                   Remover
                 </Button>
               </div>
@@ -177,7 +177,7 @@ export function Composicao({ linhas, aoMudar, funcoes, unidadeId, aoMudarFuncao 
                       className="max-w-xs"
                     />
                     <Button type="button" size="sm" disabled={!renomeando.nome.trim() || gravando} onClick={() => void renomear(funcao.id)}>Salvar nome</Button>
-                    <Button type="button" size="sm" variant="ghost" onClick={() => setRenomeando(null)}>Cancelar</Button>
+                    <Button type="button" size="sm" variant="discreto" onClick={() => setRenomeando(null)}>Cancelar</Button>
                   </div>
                   <p className="text-xs text-apagado">O nome muda em todas as guarnições.</p>
                 </div>
@@ -186,7 +186,7 @@ export function Composicao({ linhas, aoMudar, funcoes, unidadeId, aoMudarFuncao 
                 <div className="flex flex-wrap items-center gap-2">
                   <Input aria-label="Nome da nova função" value={nomeNovo} onChange={(e) => setNomeNovo(e.target.value)} className="max-w-xs" />
                   <Button type="button" size="sm" disabled={!nomeNovo.trim() || gravando} onClick={() => void criar(l.chave)}>Criar</Button>
-                  <Button type="button" size="sm" variant="ghost" disabled={gravando} onClick={() => setCriando(null)}>Cancelar</Button>
+                  <Button type="button" size="sm" variant="discreto" disabled={gravando} onClick={() => setCriando(null)}>Cancelar</Button>
                 </div>
               )}
             </li>
@@ -196,7 +196,7 @@ export function Composicao({ linhas, aoMudar, funcoes, unidadeId, aoMudarFuncao 
       </ul>
       {erro && <p role="alert" className="text-sm text-alerta">{erro}</p>}
       <div>
-        <Button type="button" variant="outline" onClick={() => aoMudar([...linhas, { chave: Math.max(0, ...linhas.map((x) => x.chave)) + 1, funcaoId: '', minimo: 1, maximo: 1, cnh: '' }])}>
+        <Button type="button" variant="secundario" onClick={() => aoMudar([...linhas, { chave: Math.max(0, ...linhas.map((x) => x.chave)) + 1, funcaoId: '', minimo: 1, maximo: 1, cnh: '' }])}>
           Incluir função
         </Button>
       </div>

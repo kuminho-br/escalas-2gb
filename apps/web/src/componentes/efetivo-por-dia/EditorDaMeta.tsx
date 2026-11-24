@@ -49,10 +49,10 @@ export function EditorDaMeta({ opcoes, escolhidos, aoMudar, semNenhum }: { opcoe
             <li key={id} className="flex items-center gap-2 text-sm">
               <span className="w-6 text-center font-cond text-lg font-semibold">{i + 1}º</span>
               <span className="flex-1">{nomeDe(id)}</span>
-              <Button type="button" variant="outline" size="sm" aria-label={`Subir ${nomeDe(id)}`} disabled={i === 0} onClick={() => mover(i, -1)}>
+              <Button type="button" variant="secundario" size="sm" aria-label={`Subir ${nomeDe(id)}`} disabled={i === 0} onClick={() => mover(i, -1)}>
                 <ArrowUp aria-hidden /> Subir
               </Button>
-              <Button type="button" variant="outline" size="sm" aria-label={`Descer ${nomeDe(id)}`} disabled={i === escolhidos.length - 1} onClick={() => mover(i, 1)}>
+              <Button type="button" variant="secundario" size="sm" aria-label={`Descer ${nomeDe(id)}`} disabled={i === escolhidos.length - 1} onClick={() => mover(i, 1)}>
                 <ArrowDown aria-hidden /> Descer
               </Button>
             </li>

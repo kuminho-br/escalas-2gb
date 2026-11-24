@@ -123,7 +123,7 @@ export function AcoesDoBloco({
 }) {
   return (
     <div className="flex flex-wrap items-center gap-3">
-      <Button type={tipo} variant={sujo || forcar ? 'default' : 'outline'} disabled={(!sujo && !forcar) || salvando || desabilitado} onClick={aoSalvar}>
+      <Button type={tipo} variant={sujo || forcar ? 'principal' : 'secundario'} disabled={(!sujo && !forcar) || salvando || desabilitado} onClick={aoSalvar}>
         {rotulo}
       </Button>
       <EtiquetaPendente sujo={sujo} />

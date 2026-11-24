@@ -94,7 +94,7 @@ export function ImportarPlanilha({ cadastro, rotulo, aoConcluir, unidadeId }: { 
   return (
     <Dialog open={aberto} onOpenChange={abrirOuFechar}>
       <DialogTrigger asChild>
-        <Button variant="outline">
+        <Button variant="secundario">
           <FileUp aria-hidden />
           Importar
         </Button>

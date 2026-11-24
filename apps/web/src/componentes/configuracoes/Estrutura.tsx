@@ -68,7 +68,7 @@ export function Estrutura({ raizes }: { raizes: UnidadeDeTrabalho[] }) {
       <li key={no.id} data-sigla={no.sigla}>
         <div className="group flex flex-wrap items-center gap-x-2 gap-y-0.5 rounded-md py-1.5 pr-1 pl-1 hover:bg-fundo/70">
           {temFilhas ? (
-            <Button type="button" variant="ghost" size="icon-sm" aria-expanded={aberta} aria-label={`${aberta ? 'Recolher' : 'Abrir'} ${no.sigla}`} onClick={() => alternar(no.id)}>
+            <Button type="button" variant="discreto" size="icon-sm" aria-expanded={aberta} aria-label={`${aberta ? 'Recolher' : 'Abrir'} ${no.sigla}`} onClick={() => alternar(no.id)}>
               <ChevronRight aria-hidden className={`size-4 transition-transform ${aberta ? 'rotate-90' : ''}`} />
             </Button>
           ) : <span aria-hidden className="size-8 shrink-0" />}
@@ -83,7 +83,7 @@ export function Estrutura({ raizes }: { raizes: UnidadeDeTrabalho[] }) {
           {podeMexer ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button type="button" variant="ghost" size="icon-sm" className="ml-auto" aria-label={`Ações de ${no.sigla}`}><Ellipsis aria-hidden className="size-4" /></Button>
+                <Button type="button" variant="discreto" size="icon-sm" className="ml-auto" aria-label={`Ações de ${no.sigla}`}><Ellipsis aria-hidden className="size-4" /></Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="min-w-48">
                 {no.podeEditar && <DropdownMenuItem onSelect={() => setAcao({ qual: 'nova', no })}>Nova unidade abaixo</DropdownMenuItem>}

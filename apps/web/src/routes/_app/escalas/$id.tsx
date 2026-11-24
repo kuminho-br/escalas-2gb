@@ -58,7 +58,7 @@ function Situacao({ e }: { e: Escala }) {
   }
   return (
     <>
-      <Button type="button" variant="outline" size="sm" onClick={() => void mudar()}>
+      <Button type="button" variant="secundario" size="sm" onClick={() => void mudar()}>
         {e.ativa ? 'Desativar' : 'Reativar'}
       </Button>
       {erro && <p role="alert" className="w-full text-right text-sm text-alerta">{erro}</p>}

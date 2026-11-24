@@ -25,16 +25,16 @@ export function CardDoEfetivo({ g, janela, acoes, meta }: { g: GuarnicaoNoEfetiv
         {meta && (
           <span className="ml-auto flex flex-wrap gap-1">
             {meta.aoMoverAntes && (
-              <Button type="button" variant="ghost" size="sm" aria-label={`Mover ${g.nome} para antes`} title="Mover antes" disabled={meta.salvando} onClick={meta.aoMoverAntes}>
+              <Button type="button" variant="discreto" size="sm" aria-label={`Mover ${g.nome} para antes`} title="Mover antes" disabled={meta.salvando} onClick={meta.aoMoverAntes}>
                 <ArrowLeft aria-hidden />
               </Button>
             )}
             {meta.aoMoverDepois && (
-              <Button type="button" variant="ghost" size="sm" aria-label={`Mover ${g.nome} para depois`} title="Mover depois" disabled={meta.salvando} onClick={meta.aoMoverDepois}>
+              <Button type="button" variant="discreto" size="sm" aria-label={`Mover ${g.nome} para depois`} title="Mover depois" disabled={meta.salvando} onClick={meta.aoMoverDepois}>
                 <ArrowRight aria-hidden />
               </Button>
             )}
-            <Button type="button" variant="ghost" size="sm" disabled={meta.salvando} onClick={meta.aoDesativar}>Desativar guarnição</Button>
+            <Button type="button" variant="discreto" size="sm" disabled={meta.salvando} onClick={meta.aoDesativar}>Desativar guarnição</Button>
           </span>
         )}
       </header>

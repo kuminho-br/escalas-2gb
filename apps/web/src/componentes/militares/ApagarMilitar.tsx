@@ -34,7 +34,7 @@ export function ApagarMilitar({ ficha }: { ficha: FichaMilitar }) {
   return (
     <Secao titulo="Apagar militar">
       <p className="mb-3 text-sm text-apagado">Apaga o militar e tudo o que é dele: escalas, afastamentos, rastreio e a conta de acesso.</p>
-      <Button variant="outline" className="border-alerta text-alerta hover:bg-alerta/10" onClick={() => setAberto(true)}>
+      <Button variant="secundario" className="border-alerta text-alerta hover:bg-alerta/10" onClick={() => setAberto(true)}>
         Apagar militar
       </Button>
       {aberto && <DialogoDeExclusao ficha={ficha} aoFechar={() => setAberto(false)} />}
@@ -89,8 +89,8 @@ function DialogoDeExclusao({ ficha, aoFechar }: { ficha: FichaMilitar; aoFechar:
           </div>
           {erro && <p role="alert" className="text-sm text-alerta">{erro}</p>}
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={aoFechar}>Cancelar</Button>
-            <Button type="submit" variant="destructive" disabled={!confere || salvando || !junto.data}>Apagar</Button>
+            <Button type="button" variant="secundario" onClick={aoFechar}>Cancelar</Button>
+            <Button type="submit" variant="perigoso-cheio" disabled={!confere || salvando || !junto.data}>Apagar</Button>
           </DialogFooter>
         </form>
       </DialogContent>

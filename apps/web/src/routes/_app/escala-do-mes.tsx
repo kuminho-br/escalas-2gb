@@ -123,7 +123,7 @@ function EscalaDoMes() {
             Gerar pré-escala
           </Button>
         )}
-        <Button type="button" variant="outline" aria-pressed={soVazias} onClick={() => setSoVazias(!soVazias)} className={soConsulta ? 'ml-auto' : undefined}>
+        <Button type="button" variant="secundario" aria-pressed={soVazias} onClick={() => setSoVazias(!soVazias)} className={soConsulta ? 'ml-auto' : undefined}>
           Ocultar guarnições completas
         </Button>
       </div>

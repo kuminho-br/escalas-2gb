@@ -84,7 +84,7 @@ export function NovaUnidadeAbaixo({ no, tipos, aoFechar }: Comum & { tipos: Tipo
         <Campo id="nu-mes" rotulo="Vale a partir de" erro={campos.desde}><Input id="nu-mes" type="month" value={mes} onChange={(e) => setMes(e.target.value)} required /></Campo>
         <Erro texto={erro} />
         <DialogFooter>
-          <Button type="button" variant="ghost" onClick={aoFechar}>Cancelar</Button>
+          <Button type="button" variant="discreto" onClick={aoFechar}>Cancelar</Button>
           <Button type="submit" disabled={salvando || !tipo}>Criar unidade</Button>
         </DialogFooter>
       </form>
@@ -125,7 +125,7 @@ export function RenomearUnidade({ no, tipos, aoFechar }: Comum & { tipos: TipoDe
         </Campo>
         <Erro texto={erro} />
         <DialogFooter>
-          <Button type="button" variant="ghost" onClick={aoFechar}>Cancelar</Button>
+          <Button type="button" variant="discreto" onClick={aoFechar}>Cancelar</Button>
           <Button type="submit" disabled={salvando || Object.keys(mudou).length === 0}>Salvar</Button>
         </DialogFooter>
       </form>
@@ -208,7 +208,7 @@ export function MoverUnidade({ no, arvore, aoFechar }: Comum & { arvore: NoDaArv
         )}
         <Erro texto={erro} />
         <DialogFooter>
-          <Button type="button" variant="ghost" onClick={aoFechar}>Cancelar</Button>
+          <Button type="button" variant="discreto" onClick={aoFechar}>Cancelar</Button>
           <Button type="submit" disabled={salvando || !e}>Mover</Button>
         </DialogFooter>
       </form>
@@ -246,7 +246,7 @@ export function ExtinguirUnidade({ no, aoFechar }: Comum) {
         <Campo id="ex-ate" rotulo="Último dia da unidade"><Input id="ex-ate" type="date" value={ate} onChange={(e) => setAte(e.target.value)} required /></Campo>
         <Erro texto={erro} />
         <DialogFooter>
-          <Button type="button" variant="ghost" onClick={aoFechar}>Cancelar</Button>
+          <Button type="button" variant="discreto" onClick={aoFechar}>Cancelar</Button>
           <Button type="submit" disabled={salvando || !ate}>Extinguir</Button>
         </DialogFooter>
       </form>
@@ -273,8 +273,8 @@ export function ExcluirUnidade({ no, aoFechar }: Comum) {
     <Janela titulo={`Excluir ${no.sigla}?`} descricao="A unidade não tem nada ligado a ela. Excluir não se desfaz." aoFechar={aoFechar}>
       <Erro texto={erro} />
       <DialogFooter>
-        <Button type="button" variant="ghost" onClick={aoFechar}>Cancelar</Button>
-        <Button type="button" variant="destructive" disabled={salvando} onClick={() => void excluir()}>Excluir</Button>
+        <Button type="button" variant="discreto" onClick={aoFechar}>Cancelar</Button>
+        <Button type="button" variant="perigoso-cheio" disabled={salvando} onClick={() => void excluir()}>Excluir</Button>
       </DialogFooter>
     </Janela>
   );

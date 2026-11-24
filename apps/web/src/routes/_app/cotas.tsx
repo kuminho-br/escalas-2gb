@@ -73,7 +73,7 @@ function Cotas() {
         {!soConsulta && (
           <div className="flex flex-wrap gap-2">
             <ImportarPlanilha cadastro="cotas" rotulo="as cotas" aoConcluir={() => atualizarCotas(queryClient)} />
-            <Button variant="outline" disabled={copiando} onClick={() => void copiar()}>Copiar do mês anterior</Button>
+            <Button variant="secundario" disabled={copiando} onClick={() => void copiar()}>Copiar do mês anterior</Button>
             <Button onClick={() => setDialogo({})}>
               <Plus aria-hidden />
               Adicionar cota
@@ -168,10 +168,10 @@ function LinhaCota({ c, aoEditar, aoRemover }: { c: Cota; aoEditar?: () => void;
       {aoEditar && aoRemover && (
         <td className="px-4 py-2.5">
           <span className="flex justify-end gap-1">
-            <Button type="button" size="icon" variant="ghost" aria-label={`Editar cota de ${nome}`} onClick={aoEditar}>
+            <Button type="button" size="icon" variant="discreto" aria-label={`Editar cota de ${nome}`} onClick={aoEditar}>
               <Pencil aria-hidden />
             </Button>
-            <Button type="button" size="icon" variant="ghost" aria-label={`Remover cota de ${nome}`} onClick={aoRemover}>
+            <Button type="button" size="icon" variant="discreto" aria-label={`Remover cota de ${nome}`} onClick={aoRemover}>
               <Trash2 aria-hidden />
             </Button>
           </span>

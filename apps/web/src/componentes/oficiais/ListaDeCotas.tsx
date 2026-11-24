@@ -116,12 +116,12 @@ export function ListaDeCotas({ escala: e, aoOrdenar, aoMarcar, desabilitado, esc
           {(sobe || desce) && (
             <span className="flex shrink-0 gap-1">
               {sobe && (
-                <Button type="button" variant="outline" size="sm" disabled={desabilitado} aria-label={`Subir ${o.nomeGuerra}`} onClick={() => mover(i, -1)}>
+                <Button type="button" variant="secundario" size="sm" disabled={desabilitado} aria-label={`Subir ${o.nomeGuerra}`} onClick={() => mover(i, -1)}>
                   <ArrowUp aria-hidden /> Subir
                 </Button>
               )}
               {desce && (
-                <Button type="button" variant="outline" size="sm" disabled={desabilitado} aria-label={`Descer ${o.nomeGuerra}`} onClick={() => mover(i, 1)}>
+                <Button type="button" variant="secundario" size="sm" disabled={desabilitado} aria-label={`Descer ${o.nomeGuerra}`} onClick={() => mover(i, 1)}>
                   <ArrowDown aria-hidden /> Descer
                 </Button>
               )}
@@ -178,7 +178,7 @@ export function ListaDeCotas({ escala: e, aoOrdenar, aoMarcar, desabilitado, esc
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setTirando(null)}>Cancelar</Button>
+            <Button type="button" variant="secundario" onClick={() => setTirando(null)}>Cancelar</Button>
             <Button
               type="button"
               onClick={() => {

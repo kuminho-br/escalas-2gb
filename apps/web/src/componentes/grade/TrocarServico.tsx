@@ -92,7 +92,7 @@ export function TrocarServico({ alocacaoId, nomeAtual, acumulaCom, aoFechar }: {
               <Button type="button" disabled={salvando} onClick={() => void confirmar()}>
                 {escolha.tipo === 'livre' ? 'Trocar' : escolha.permuta ? 'Fazer a permuta' : 'Trocar os dois'}
               </Button>
-              <Button type="button" variant="ghost" onClick={() => { setErro(null); setEscolha(null); }}>Voltar</Button>
+              <Button type="button" variant="discreto" onClick={() => { setErro(null); setEscolha(null); }}>Voltar</Button>
             </div>
           </div>
         ) : (

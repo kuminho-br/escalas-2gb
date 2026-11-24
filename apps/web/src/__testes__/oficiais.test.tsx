@@ -1006,7 +1006,7 @@ describe('a faixa do mês (6.29)', () => {
     expect(acoes()).toEqual(['Fechar a escala']);
     expect(within(faixa()).getByRole('button', { name: 'Fechar a escala' })).toBeInTheDocument();
     // os outros botões da faixa são secundários ou discretos: só a ação do mês é cheia (vinho)
-    const cheios = within(faixa()).getAllByRole('button').filter((b) => b.className.includes('bg-primary'));
+    const cheios = within(faixa()).getAllByRole('button').filter((b) => b.className.includes('bg-vinho'));
     expect(cheios.map((b) => b.textContent)).toEqual(['Fechar a escala']);
   });
 

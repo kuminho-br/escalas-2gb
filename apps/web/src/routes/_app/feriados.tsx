@@ -76,7 +76,7 @@ function Feriados() {
         <h1 className="font-cond text-titulo leading-tight font-semibold">Feriados</h1>
         <div className="flex flex-wrap gap-2">
           <ImportarPlanilha cadastro="feriados" rotulo="os feriados" aoConcluir={() => atualizarFeriados(queryClient)} />
-          <Button variant="outline" disabled={copiando} onClick={() => void copiar()}>Copiar feriados fixos de {ano - 1}</Button>
+          <Button variant="secundario" disabled={copiando} onClick={() => void copiar()}>Copiar feriados fixos de {ano - 1}</Button>
           <Button onClick={() => setDialogo({})}>
             <Plus aria-hidden />
             Novo feriado
@@ -126,10 +126,10 @@ function ItemFeriado({ f, aoEditar, aoRemover }: { f: Feriado; aoEditar: () => v
         </span>
       ) : (
         <span className="ml-auto flex gap-1">
-          <Button type="button" size="icon" variant="ghost" aria-label={`Editar ${f.descricao}`} onClick={aoEditar}>
+          <Button type="button" size="icon" variant="discreto" aria-label={`Editar ${f.descricao}`} onClick={aoEditar}>
             <Pencil aria-hidden />
           </Button>
-          <Button type="button" size="icon" variant="ghost" aria-label={`Remover ${f.descricao}`} onClick={aoRemover}>
+          <Button type="button" size="icon" variant="discreto" aria-label={`Remover ${f.descricao}`} onClick={aoRemover}>
             <Trash2 aria-hidden />
           </Button>
         </span>

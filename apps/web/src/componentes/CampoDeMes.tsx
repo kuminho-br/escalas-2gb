@@ -22,11 +22,11 @@ export function CampoDeMes({ id, valor, aoMudar }: { id: string; valor: string; 
   };
   return (
     <div className="flex items-center gap-1.5">
-      <Button type="button" variant="outline" size="icon" aria-label="Mês anterior" onClick={() => aoMudar(somarMeses(valor, -1))}>
+      <Button type="button" variant="secundario" size="icon" aria-label="Mês anterior" onClick={() => aoMudar(somarMeses(valor, -1))}>
         <ChevronLeft aria-hidden />
       </Button>
       <Input id={id} type="month" value={texto} onChange={(e) => digitar(e.target.value)} className="w-44" />
-      <Button type="button" variant="outline" size="icon" aria-label="Próximo mês" onClick={() => aoMudar(somarMeses(valor, 1))}>
+      <Button type="button" variant="secundario" size="icon" aria-label="Próximo mês" onClick={() => aoMudar(somarMeses(valor, 1))}>
         <ChevronRight aria-hidden />
       </Button>
     </div>

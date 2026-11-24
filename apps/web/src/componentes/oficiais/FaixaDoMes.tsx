@@ -43,7 +43,7 @@ export function FaixaDoMes({ etapa, ocupado, podeAbrir, aoAbrir, aoFechar, aoEnc
           <b className="font-cond text-bloco leading-[26px] font-semibold text-tinta">{PASSOS[atual]!.nome}</b>
           <span className="text-apoio leading-[18px] text-apagado">{`${atual + 1} de 4`}</span>
         </p>
-        <Button type="button" variant="ghost" size="sm" aria-expanded={aberta} aria-controls="como-funciona-o-mes" onClick={() => setAberta((a) => !a)}>
+        <Button type="button" variant="discreto" size="sm" aria-expanded={aberta} aria-controls="como-funciona-o-mes" onClick={() => setAberta((a) => !a)}>
           Como funciona o mês
           <ChevronDown aria-hidden className={cn('transition-transform motion-reduce:transition-none', aberta && 'rotate-180')} />
         </Button>

@@ -173,7 +173,7 @@ function RegrasDoProcesso({ unidadeId, sigla, podeMudar }: { unidadeId: string; 
               </TableCell>
               <TableCell className="text-right">
                 {podeMudar && (
-                  <Button variant="outline" size="sm" onClick={() => setMudando(p)}>
+                  <Button variant="secundario" size="sm" onClick={() => setMudando(p)}>
                     Mudar a partir de…
                   </Button>
                 )}

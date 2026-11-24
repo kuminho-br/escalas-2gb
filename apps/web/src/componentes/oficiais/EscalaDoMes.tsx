@@ -210,8 +210,8 @@ export function EscalaDoMes({ unidadeId, escala: e, aoVer }: Props) {
         aoEncerrar={aoEncerrar}
         extras={
           <>
-            {e.etapa === 'encerrada' && <Button type="button" variant="outline" onClick={() => aoVer('saldo')}>Ver o saldo</Button>}
-            <Button type="button" variant="outline" onClick={() => setVerRegras(true)}>Regras</Button>
+            {e.etapa === 'encerrada' && <Button type="button" variant="secundario" onClick={() => aoVer('saldo')}>Ver o saldo</Button>}
+            <Button type="button" variant="secundario" onClick={() => setVerRegras(true)}>Regras</Button>
           </>
         }
       />
@@ -265,7 +265,7 @@ export function EscalaDoMes({ unidadeId, escala: e, aoVer }: Props) {
           <section className="grid gap-2 rounded-xl border border-linha bg-superficie p-3">
             <header className="flex items-center justify-between gap-2">
               <h2 className="font-cond text-bloco leading-[26px] font-semibold">Cota de saldo</h2>
-              <Button type="button" variant="ghost" size="sm" className="xl:hidden" aria-expanded={listaAberta} aria-controls="lista-de-oficiais" onClick={() => setListaAberta((a) => !a)}>
+              <Button type="button" variant="discreto" size="sm" className="xl:hidden" aria-expanded={listaAberta} aria-controls="lista-de-oficiais" onClick={() => setListaAberta((a) => !a)}>
                 {listaAberta ? 'Recolher' : 'Mostrar'}
                 <ChevronDown aria-hidden className={cn('transition-transform motion-reduce:transition-none', listaAberta && 'rotate-180')} />
               </Button>
@@ -301,7 +301,7 @@ export function EscalaDoMes({ unidadeId, escala: e, aoVer }: Props) {
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setTroca(null)}>Cancelar</Button>
+            <Button type="button" variant="secundario" onClick={() => setTroca(null)}>Cancelar</Button>
             <Button type="button" onClick={confirmarTroca}>Trocar</Button>
           </DialogFooter>
         </DialogContent>

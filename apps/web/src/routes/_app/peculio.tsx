@@ -100,7 +100,7 @@ function Peculio() {
               {lista.data.militares.length === 0 && <li className="p-3 text-apagado">Nenhum militar lotado. Cadastre com "Novo militar" ou use "Importar".</li>}
             </ul>
             {filtrados.length > limite && (
-              <div className="px-4 pb-3"><Button type="button" variant="outline" onClick={() => setLimite((n) => n + 100)}>Mostrar mais</Button></div>
+              <div className="px-4 pb-3"><Button type="button" variant="secundario" onClick={() => setLimite((n) => n + 100)}>Mostrar mais</Button></div>
             )}
           </div>
 

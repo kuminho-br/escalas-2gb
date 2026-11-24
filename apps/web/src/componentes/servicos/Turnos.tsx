@@ -26,7 +26,7 @@ export function Turnos({ servico }: { servico: Servico }) {
       </ul>
       {servico.turnos.length === 0 && !novo && <p className="text-sm text-apagado">Nenhum turno ainda.</p>}
       {!novo && (
-        <Button type="button" variant="outline" size="sm" className="mt-3" onClick={() => setNovo(true)}>
+        <Button type="button" variant="secundario" size="sm" className="mt-3" onClick={() => setNovo(true)}>
           Incluir turno
         </Button>
       )}
@@ -118,16 +118,16 @@ function LinhaTurno({
           <EtiquetaPendente sujo={sujo} />
           {/* a linha gravada só mostra Salvar quando muda; a linha nova sempre */}
           {(sujo || !turno) && (
-            <Button type="button" size="sm" variant="default" disabled={salvando} onClick={() => void salvar()} aria-label={`Salvar ${nome}`}>
+            <Button type="button" size="sm" variant="principal" disabled={salvando} onClick={() => void salvar()} aria-label={`Salvar ${nome}`}>
               Salvar
             </Button>
           )}
           {turno ? (
-            <Button type="button" size="sm" variant="ghost" onClick={() => void remover()} aria-label={`Remover ${nome}`}>
+            <Button type="button" size="sm" variant="discreto" onClick={() => void remover()} aria-label={`Remover ${nome}`}>
               Remover
             </Button>
           ) : (
-            <Button type="button" size="sm" variant="ghost" onClick={aoCancelar}>
+            <Button type="button" size="sm" variant="discreto" onClick={aoCancelar}>
               Cancelar
             </Button>
           )}

@@ -28,9 +28,36 @@ describe('estilo', () => {
     expect(aberturas.at(-1)?.[0]).toContain('(min-width: 48rem)');
   });
 
-  it('botão secundário tem texto vinho', () => {
-    const { getByRole } = render(<Button variant="outline">Importar</Button>);
-    expect(getByRole('button', { name: 'Importar' }).className).toContain('text-vinho');
+  it('o botão tem as cinco variantes do sistema de estilo, cada uma com o token certo (6.20)', () => {
+    const { getByRole } = render(
+      <>
+        <Button variant="principal">Salvar</Button>
+        <Button variant="secundario">Importar</Button>
+        <Button variant="discreto">Regras</Button>
+        <Button variant="perigoso">Remover</Button>
+        <Button variant="perigoso-cheio">Apagar</Button>
+      </>,
+    );
+    const classe = (nome: string) => getByRole('button', { name: nome }).className;
+    expect(classe('Salvar')).toContain('bg-vinho');
+    expect(classe('Salvar')).toContain('text-white');
+    expect(classe('Importar')).toContain('border-encaixe');
+    expect(classe('Importar')).toContain('text-tinta');
+    expect(classe('Regras')).not.toMatch(/border|bg-vinho/);
+    expect(classe('Remover')).toContain('border-alerta');
+    expect(classe('Remover')).toContain('text-alerta');
+    expect(classe('Apagar')).toContain('bg-alerta');
+    // a altura é a de controle, e o raio, o de controle
+    expect(classe('Salvar')).toContain('h-(--altura-controle)');
+    expect(classe('Salvar')).toContain('rounded-controle');
+  });
+
+  it('o botão ocupado mostra o verbo no lugar do texto, fica apagado e diz aria-busy', () => {
+    const { getByRole } = render(<Button ocupado="Salvando…">Salvar</Button>);
+    const b = getByRole('button', { name: 'Salvando…' });
+    expect(b).toBeDisabled();
+    expect(b).toHaveAttribute('aria-busy', 'true');
+    expect(b).not.toHaveTextContent('Salvar');
   });
 
   it('cor clara ganha borda', () => {

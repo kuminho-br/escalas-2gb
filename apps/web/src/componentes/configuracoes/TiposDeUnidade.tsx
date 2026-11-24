@@ -80,7 +80,7 @@ function Item({ tipo, aoSalvar, aoExcluir }: { tipo: TipoDeUnidadeComUso; aoSalv
           <Input aria-label={`Novo nome de ${tipo.nome}`} className="min-w-40 flex-1" value={nome} maxLength={40} onChange={(e) => setNome(e.target.value)} autoFocus />
           <Input aria-label={`Ordem de ${tipo.nome}`} className="w-24" type="number" min={0} max={1000} value={ordem} onChange={(e) => setOrdem(e.target.value)} />
           <Button type="submit" size="sm" disabled={salvando}>Salvar</Button>
-          <Button type="button" size="sm" variant="ghost" onClick={() => { setNome(tipo.nome); setOrdem(String(tipo.ordem)); setEditando(false); }}>Cancelar</Button>
+          <Button type="button" size="sm" variant="discreto" onClick={() => { setNome(tipo.nome); setOrdem(String(tipo.ordem)); setEditando(false); }}>Cancelar</Button>
         </form>
       </li>
     );
@@ -90,9 +90,9 @@ function Item({ tipo, aoSalvar, aoExcluir }: { tipo: TipoDeUnidadeComUso; aoSalv
       <span className="font-medium">{tipo.nome}</span>
       <span className="text-apoio text-apagado">{tipo.unidades === 0 ? 'Nenhuma unidade' : tipo.unidades === 1 ? '1 unidade' : `${tipo.unidades} unidades`} · ordem {tipo.ordem}</span>
       <span className="ml-auto flex gap-1">
-        <Button size="sm" variant="ghost" onClick={() => setEditando(true)}>Renomear</Button>
+        <Button size="sm" variant="discreto" onClick={() => setEditando(true)}>Renomear</Button>
         {/* o tipo em uso não se exclui: o botão fica desligado e diz por quê */}
-        <Button size="sm" variant="ghost" disabled={tipo.unidades > 0} title={tipo.unidades > 0 ? 'Há unidades deste tipo.' : undefined} aria-label={`Excluir ${tipo.nome}`} onClick={() => void aoExcluir()}>Excluir</Button>
+        <Button size="sm" variant="discreto" disabled={tipo.unidades > 0} title={tipo.unidades > 0 ? 'Há unidades deste tipo.' : undefined} aria-label={`Excluir ${tipo.nome}`} onClick={() => void aoExcluir()}>Excluir</Button>
       </span>
     </li>
   );

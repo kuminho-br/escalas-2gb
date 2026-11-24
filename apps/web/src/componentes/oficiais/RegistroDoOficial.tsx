@@ -63,7 +63,7 @@ export function RegistroDoOficial({ unidadeId, escalaId, oficial: o }: { unidade
       <p className="text-sm">Saldo agora: <b>{formatarSaldo(o.saldo)}</b></p>
       {!aberto ? (
         <div>
-          <Button type="button" variant="outline" size="sm" onClick={() => setAberto(true)}>Ajuste manual</Button>
+          <Button type="button" variant="secundario" size="sm" onClick={() => setAberto(true)}>Ajuste manual</Button>
         </div>
       ) : (
         <form onSubmit={enviar} className="grid gap-2 rounded-md border border-linha p-2.5" noValidate>
@@ -80,7 +80,7 @@ export function RegistroDoOficial({ unidadeId, escalaId, oficial: o }: { unidade
           {erros.geral && <p role="alert" className="text-sm text-alerta">{erros.geral}</p>}
           <div className="flex gap-2">
             <Button type="submit" size="sm" disabled={salvando}>Lançar ajuste</Button>
-            <Button type="button" size="sm" variant="outline" onClick={fechar}>Cancelar</Button>
+            <Button type="button" size="sm" variant="secundario" onClick={fechar}>Cancelar</Button>
           </div>
         </form>
       )}
