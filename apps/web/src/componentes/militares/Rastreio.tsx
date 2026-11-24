@@ -129,7 +129,7 @@ function AlterarSituacao({ ficha, unidadeAtualId, aoFechar }: { ficha: FichaMili
               </Selecao>
               {avisoDaLista(secoes) && <p className="text-xs text-alerta">{avisoDaLista(secoes)}</p>}
               {secoes.isError && <Button type="button" size="sm" variant="secundario" className="justify-self-start" disabled={secoes.isFetching} onClick={() => void secoes.refetch()}>Tentar de novo</Button>}
-              {!ficha.podeEditar.peculio && <p className="text-xs text-apagado">{`A lotação, o quadro e a situação são alterados por quem tem nível de acesso em ${ficha.podeEditar.unidadeDeCima ?? 'uma unidade acima'}.`}</p>}
+              {!ficha.podeEditar.peculio && <p className="text-xs text-apagado">{`A lotação, o quadro e a situação são alterados por quem tem nível de acesso ${ficha.podeEditar.unidadeDeCima ? `em ${ficha.podeEditar.unidadeDeCima}` : 'na raiz'}.`}</p>}
             </div>
             <div className="grid gap-1.5">
               <Label htmlFor="rs-equipe">Equipe</Label>

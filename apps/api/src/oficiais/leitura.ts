@@ -173,6 +173,9 @@ export async function lerEscala(c: Consulta, unidadeId: string, mes: string, esc
     ).rows.map((r) => ({ militarId: r.militar_id, ordem: r.ordem, dias: r.dias, devido: Number(r.devido), cota: r.cota, sobra: r.sobra }));
   }
   if (escala) lancados = await lancamentosDoMes(c, escala.id, mes);
+  // quem a cota gravada ainda traz mas já não é elegível (lotado numa unidade acima, ou de antes da regra) deixa de aparecer, a menos que tenha lançamento no mês: o lançamento não some
+  const comLancamento = new Set(lancados.map((l) => l.militarId));
+  cotas = cotas.filter((x) => porId.has(x.militarId) || comLancamento.has(x.militarId));
   const ehJes = (l: Lancamento) => l.servicoId === servicos.jes?.id;
   const diasVermelhos = escala ? await diasVermelhosDoMes(c, escala.id, mes) : [];
   const ehVermelho = new Set(diasVermelhos);
@@ -204,6 +207,7 @@ export async function lerEscala(c: Consulta, unidadeId: string, mes: string, esc
       ordem,
       semAntiguidade: (p?.antiguidade ?? x?.antiguidade ?? null) === null,
       saldoAnterior: anteriores.get(militarId) ?? 0,
+      saldoPrevisto: (anteriores.get(militarId) ?? 0) + (cota ? escolhidos(militarId) - cota.devido : 0),
       dias,
       devido: cota ? cota.devido : null,
       cota: cota ? cota.cota : null,
@@ -311,8 +315,8 @@ export async function lerSaldo(c: Consulta, unidadeId: string, hoje = hojeRecife
        from oficiais_cobertura cb
        join alocacao a on a.id = cb.alocacao_id
        join oficiais_mes m on m.escala_id = a.escala_id and m.mes = date_trunc('month', a.data)::date
-      where m.unidade_id = $1 order by a.data, a.turno_id`,
-    [unidadeId],
+      where m.unidade_id = $1 and ($2::uuid is null or m.escala_id = $2::uuid) order by a.data, a.turno_id`,
+    [unidadeId, escala?.id ?? null],
   );
 
   // os lugares em dia vermelho que cada oficial tirou nos meses encerrados da escala

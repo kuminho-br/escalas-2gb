@@ -18,10 +18,8 @@ interface Props {
   escala: EscalaDosOficiais;
   /** O clique num turno (livre ou com nome): a tela decide se lança, tira ou pergunta. Sem ele (mês encerrado), o calendário é só de leitura. */
   aoClicarTurno?: (t: Lugar) => void;
-  /** O clique no número do dia marca ou tira o dia vermelho. Sem ele (mês encerrado), o dia vermelho só aparece marcado. */
+  /** O clique no número do dia marca ou tira o dia vermelho (só no modo de marcar dias vermelhos). Sem ele, o dia vermelho só aparece marcado. */
   aoMarcarDia?: (dia: string) => void;
-  /** O último turno lançado: fica marcado até o próximo lançamento. */
-  recente?: { dia: string; turnoId: string } | null;
   /** O oficial escolhido na lista: os turnos dele ganham um contorno leve. */
   oficialEscolhido?: string | null;
 }
@@ -42,25 +40,35 @@ export function LegendaDosTurnos({ turnos, escala }: { turnos: Turno[]; escala?:
           {NOME_DO_SERVICO[s]}
         </span>
       ))}
+      {escala && (
+        <span className="inline-flex items-center gap-1.5">
+          <i aria-hidden data-amostra-dia-vermelho className="inline-block size-[18px] rounded-sm bg-alerta" />
+          Dia vermelho
+        </span>
+      )}
     </div>
   );
 }
 
 /**
- * O número do dia. O dia vermelho (um dia ruim, que ninguém quer tirar) leva um ponto na cor de alerta e o texto "Dia vermelho" para o leitor de tela. Com a
- * escala editável, o número é um botão que marca ou tira o dia vermelho; sem ela, é só o número.
+ * O número do dia. O dia vermelho (um dia ruim, que ninguém quer tirar) leva o número em branco dentro de um quadrado vermelho (a cor de alerta) e o texto "Dia vermelho"
+ * para o leitor de tela. No modo de marcar dias vermelhos, o número é um botão que marca ou tira o dia vermelho; fora dele, é só o número.
  */
 function CabecalhoDoDia({ dia, vermelho, aoMarcar }: { dia: string; vermelho: boolean; aoMarcar?: (dia: string) => void }) {
   const dm = `${dia.slice(8, 10)}/${dia.slice(5, 7)}`;
+  // o dia vermelho é o número em branco dentro de um quadrado vermelho (a cor de alerta: branco sobre ela tem 6,5:1); o dia comum é só o número
   const numero = (
     <>
-      <b className="font-cond text-corpo leading-[22px] font-semibold">{Number(dia.slice(8))}</b>
-      {vermelho && <i data-marca-vermelha aria-hidden className="size-2 shrink-0 self-center rounded-full bg-alerta" />}
+      {vermelho ? (
+        <b data-quadrado-vermelho className="grid size-7 place-items-center rounded-md bg-alerta font-cond text-corpo leading-none font-semibold text-white">{Number(dia.slice(8))}</b>
+      ) : (
+        <b className="font-cond text-corpo leading-7 font-semibold">{Number(dia.slice(8))}</b>
+      )}
       {vermelho && <span className="sr-only">Dia vermelho</span>}
     </>
   );
   return (
-    <div className="flex items-baseline gap-2">
+    <div className="flex items-center gap-2">
       {aoMarcar ? (
         <button
           type="button"
@@ -68,12 +76,12 @@ function CabecalhoDoDia({ dia, vermelho, aoMarcar }: { dia: string; vermelho: bo
           aria-label={`Dia vermelho: ${dm}`}
           title={vermelho ? 'Tirar a marca de dia vermelho' : 'Marcar como dia vermelho'}
           onClick={() => aoMarcar(dia)}
-          className={cn('-ml-1 flex items-baseline gap-1.5 rounded px-1 hover:bg-passa focus-visible:outline-2', vermelho && 'text-alerta')}
+          className="-ml-1 flex min-h-11 min-w-11 items-center gap-1.5 rounded px-1 hover:bg-passa focus-visible:outline-2"
         >
           {numero}
         </button>
       ) : (
-        <span className={cn('flex items-baseline gap-1.5', vermelho && 'text-alerta')}>{numero}</span>
+        <span className="flex items-center gap-1.5">{numero}</span>
       )}
       {/* o cabeçalho das colunas já diz o dia da semana; na coluna única do celular ele volta */}
       <span data-dia-da-semana className="text-apoio text-apagado md:hidden">{SEMANA[new Date(`${dia}T00:00:00Z`).getUTCDay()]}</span>
@@ -86,7 +94,7 @@ function CabecalhoDoDia({ dia, vermelho, aoMarcar }: { dia: string; vermelho: bo
  * serviço à esquerda (JES ou Saldo; o nome do serviço vai na dica e para o leitor de tela), a patente em 13 px e o nome em 15 px. O turno livre é um contorno
  * tracejado. No computador, a semana; no celular, uma coluna.
  */
-export function CalendarioDosOficiais({ escala: e, aoClicarTurno, aoMarcarDia, recente, oficialEscolhido }: Props) {
+export function CalendarioDosOficiais({ escala: e, aoClicarTurno, aoMarcarDia, oficialEscolhido }: Props) {
   const turnos = e.turnosDoServico;
   const porId = new Map(e.oficiais.map((o) => [o.militarId, o] as const));
   const avisados = new Set(e.avisos.map((a) => `${a.dia}|${a.turnoId}`));
@@ -101,14 +109,12 @@ export function CalendarioDosOficiais({ escala: e, aoClicarTurno, aoMarcarDia, r
     const base = `${dd}, ${rotuloDoTurnoNaTela(t)}`;
     const dono = x.militarId ? porId.get(x.militarId) : null;
     const alerta = avisados.has(`${d}|${t.id}`);
-    const eRecente = recente?.dia === d && recente.turnoId === t.id;
     const doEscolhido = Boolean(oficialEscolhido && x.militarId === oficialEscolhido);
-    const comum = { 'data-turno': t.rotulo === 'Noite' ? 'noite' : 'dia', 'data-alerta': alerta ? 'true' : undefined, 'data-recente': eRecente ? 'true' : undefined, 'data-servico': x.servico ?? undefined } as const;
+    const comum = { 'data-turno': t.rotulo === 'Noite' ? 'noite' : 'dia', 'data-alerta': alerta ? 'true' : undefined, 'data-servico': x.servico ?? undefined } as const;
     const base36 = cn(
       'relative flex h-9 min-w-0 items-center gap-1.5 rounded-md border pr-1.5 pl-3 text-left leading-none',
       alerta && 'ring-2 ring-pendencia',
-      eRecente && 'ring-2 ring-tinta',
-      !eRecente && !alerta && doEscolhido && 'ring-1 ring-tinta',
+      !alerta && doEscolhido && 'ring-1 ring-tinta',
     );
     const interativo = Boolean(aoClicarTurno);
 
@@ -134,7 +140,7 @@ export function CalendarioDosOficiais({ escala: e, aoClicarTurno, aoMarcarDia, r
     const saiu = x.saiuMilitarId ? porId.get(x.saiuMilitarId) : null;
     const dica = dono ? `${dono.posto} ${dono.nomeGuerra} · ${t.rotulo} · ${NOME_DO_SERVICO[servico]}${saiu ? ` · cobriu ${saiu.nomeGuerra}` : ''}` : undefined;
     // o Dia é branco e a Noite, o cinza leve de painel: a linha de cima e a de baixo do dia se distinguem sem letra
-    const classe = cn(base36, 'border-linha shadow-[0_1px_2px_rgba(28,36,48,.12)]', t.rotulo === 'Noite' ? 'bg-passa' : 'bg-superficie');
+    const classe = cn(base36, 'border-linha shadow-apoiada', t.rotulo === 'Noite' ? 'bg-passa' : 'bg-superficie');
     const conteudo = (
       <>
         {/* a faixa da cor do serviço, na altura toda da placa; o nome do serviço vai na dica e no texto para o leitor de tela */}

@@ -20,7 +20,7 @@ import {
 } from 'contratos';
 import { cnhHabilitadas, diasDoMes } from 'dominio';
 import { Hono, type Context } from 'hono';
-import { CADASTRO, ehAdministrador, exigirAdministradorRaiz, exigirAlgumPapel, exigirPapel, exigirSessao, siglaDaUnidadeDeCima, temPapel, temPapelAcima, unidadeDoRegistro, type AmbienteApi } from '../acesso.ts';
+import { CADASTRO, ehAdministrador, exigirAdministradorRaiz, exigirAlgumPapel, exigirPapel, exigirSessao, siglaDaUnidadeDeCima, temNivelDeCima, temPapel, unidadeDoRegistro, type AmbienteApi } from '../acesso.ts';
 import type { Auth } from '../auth.ts';
 import { comUsuario, type Banco, type Consulta } from '../banco/banco.ts';
 import { hojeRecife } from '../datas.ts';
@@ -226,7 +226,7 @@ async function carregarFicha(c: Consulta, id: string, mes: string, usuarioId: st
     }
   }
   const podeEditar = {
-    peculio: lotacaoAtual ? await temPapelAcima(c, usuarioId, lotacaoAtual, CADASTRO, hoje) : admin,
+    peculio: lotacaoAtual ? await temNivelDeCima(c, usuarioId, lotacaoAtual, CADASTRO, hoje) : admin,
     escala,
     unidadeDeCima: lotacaoAtual ? await siglaDaUnidadeDeCima(c, lotacaoAtual) : null,
   };
@@ -327,10 +327,12 @@ async function unidadeAtualDoMilitar(c: Consulta, militarId: string, hoje: strin
 /** 403 do bloco do Pecúlio: só quem tem papel numa unidade acima da lotação altera. `quem` completa a frase ("Este campo", "Os afastamentos"...). */
 async function exigirDonoDoPeculio(c: Ctx, unidadeId: string, frase: (cima: string) => string): Promise<Response | null> {
   const banco = c.get('banco');
-  if (await temPapelAcima(banco, c.get('usuarioId'), unidadeId, CADASTRO, hojeRecife())) return null;
+  if (await temNivelDeCima(banco, c.get('usuarioId'), unidadeId, CADASTRO, hojeRecife())) return null;
   const cima = await siglaDaUnidadeDeCima(banco, unidadeId);
-  return c.json({ erro: frase(cima ?? 'uma unidade acima') }, 403);
+  // a raiz não tem unidade de cima: a frase fala do nível de acesso nela mesma, nunca de um "nível acima"
+  return c.json({ erro: cima ? frase(cima) : FRASE_DA_RAIZ }, 403);
 }
+const FRASE_DA_RAIZ = 'Esta alteração é de quem tem nível de acesso na própria raiz.';
 const FRASE_CAMPO = (cima: string) => `Este campo é alterado por quem tem nível de acesso no ${cima}.`;
 const FRASE_LOTACAO = (cima: string) => `A lotação é alterada por quem tem nível de acesso no ${cima}.`;
 const FRASE_CADASTRAR = (cima: string) => `Cadastrar militar é com quem tem nível de acesso no ${cima}.`;
@@ -471,7 +473,7 @@ export function rotasMilitares(dep: { banco: Banco; auth: Auth }): Hono<Ambiente
     const hoje = hojeRecife();
     const admin = await ehAdministrador(dep.banco, c.get('usuarioId'), hoje);
     const veDaUnidade = new Map<string, boolean>();
-    for (const un of new Set(rows.map((m) => m.lotacao_id))) veDaUnidade.set(un, admin || (await temPapelAcima(dep.banco, c.get('usuarioId'), un, CADASTRO, hoje)));
+    for (const un of new Set(rows.map((m) => m.lotacao_id))) veDaUnidade.set(un, admin || (await temNivelDeCima(dep.banco, c.get('usuarioId'), un, CADASTRO, hoje)));
     const veNascimento = (m: { lotacao_id: string }) => veDaUnidade.get(m.lotacao_id) === true;
     const lista: ListaDoPeculio = {
       militares: rows.map((m) => ({

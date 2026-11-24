@@ -1,5 +1,5 @@
 import { queryOptions, type QueryClient } from '@tanstack/react-query';
-import type { EscalaDosOficiais, LancamentoEntrada, OficialNoSaldo } from 'contratos';
+import type { EscalaDosOficiais, LancamentoEntrada, MemorialDaEscala, OficialNoSaldo } from 'contratos';
 import { pedir } from './cliente';
 
 // A escala dos oficiais (QOC e QOA): uma escala comum de rodada de cotas. O mês com os lugares e as cotas de saldo, e o painel de saldo.
@@ -38,11 +38,15 @@ export const lancarNoLugar = (qc: QueryClient, unidadeId: string, mes: string, l
 export const tirarDoLugar = (qc: QueryClient, unidadeId: string, mes: string, alocacaoId: string, escalaId?: string) =>
   gravar(qc, unidadeId, pedir<EscalaDosOficiais>('DELETE', `${base(unidadeId, mes)}/lancamentos/${alocacaoId}${daEscala(escalaId)}`));
 /** Os dias vermelhos do mês: a lista inteira (o que não vem deixa de ser vermelho). Vale até o mês ser encerrado e não muda a cota. */
-export const marcarDiasVermelhos = (qc: QueryClient, unidadeId: string, mes: string, dias: string[], escalaId?: string) =>
-  gravar(qc, unidadeId, pedir<EscalaDosOficiais>('PUT', `${base(unidadeId, mes)}/dias-vermelhos${daEscala(escalaId)}`, { dias }));
+export const marcarDiaVermelho = (qc: QueryClient, unidadeId: string, mes: string, dia: string, vermelho: boolean, escalaId?: string) =>
+  gravar(qc, unidadeId, pedir<EscalaDosOficiais>('POST', `${base(unidadeId, mes)}/dias-vermelhos/marcar${daEscala(escalaId)}`, { dia, vermelho }));
 export const fecharEscala = (qc: QueryClient, unidadeId: string, mes: string, escalaId?: string) =>
   gravar(qc, unidadeId, pedir<EscalaDosOficiais>('POST', `${base(unidadeId, mes)}/fechar${daEscala(escalaId)}`));
 export const encerrarMes = (qc: QueryClient, unidadeId: string, mes: string, escalaId?: string) =>
   gravar(qc, unidadeId, pedir<EscalaDosOficiais>('POST', `${base(unidadeId, mes)}/encerrar${daEscala(escalaId)}`));
 export const lancarAjuste = (qc: QueryClient, unidadeId: string, militarId: string, valor: number, motivo: string, escalaId?: string) =>
   gravar(qc, unidadeId, pedir<OficialNoSaldo>('POST', `/api/unidades/${unidadeId}/oficiais-saldo/ajustes${daEscala(escalaId)}`, { militarId, valor, motivo }));
+
+/** O memorial de cálculo do mês: a conta atual, os registros de cada recálculo (do mais novo) e os serviços do mês (6.30). */
+export const consultaMemorialDosOficiais = (unidadeId: string, mes: string, escalaId?: string) =>
+  queryOptions({ queryKey: ['oficiais', unidadeId, 'memorial', mes, escalaId ?? 'padrao'], queryFn: () => pedir<MemorialDaEscala>('GET', `${base(unidadeId, mes)}/memorial${daEscala(escalaId)}`) });
