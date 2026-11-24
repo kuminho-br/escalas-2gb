@@ -71,6 +71,8 @@ export type MinhaFicha = {
   matricula: string;
   telefone: string | null;
   email: string | null;
+  /** O e-mail pessoal, só para leitura. */
+  emailPessoal?: string | null;
   sexo: 'M' | 'F' | null;
   nascimento: Nascimento | null;
   /** Só os 11 dígitos; a tela põe a máscara. */

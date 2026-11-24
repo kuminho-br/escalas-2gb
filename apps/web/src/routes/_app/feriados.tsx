@@ -13,6 +13,7 @@ import { Button } from '@/componentes/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/componentes/ui/dialog';
 import { Input } from '@/componentes/ui/input';
 import { Label } from '@/componentes/ui/label';
+import { hoje } from '@/lib/meses';
 
 export const Route = createFileRoute('/_app/feriados')({
   component: Feriados,
@@ -24,7 +25,7 @@ const diaDaSemana = (data: string) => new Date(`${data}T00:00:00Z`).toLocaleDate
 function Feriados() {
   const { eu } = Route.useRouteContext();
   const queryClient = useQueryClient();
-  const anoAtual = new Date().getFullYear();
+  const anoAtual = Number(hoje().slice(0, 4));
   const [ano, setAno] = useState(anoAtual);
   const feriados = useQuery(consultaFeriados(eu.unidade.id, ano));
   const [dialogo, setDialogo] = useState<{ feriado?: Feriado } | null>(null);

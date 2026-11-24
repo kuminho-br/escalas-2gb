@@ -1,7 +1,18 @@
 import { QueryClient } from '@tanstack/react-query';
 import { describe, expect, it } from 'vitest';
 import { ErroApi } from '@/api/cliente';
-import { criarQueryClient, deveTentarDeNovo } from '@/lib/consultas';
+import { criarQueryClient, deveTentarDeNovo, deveTentarDeNovoNaBusca } from '@/lib/consultas';
+
+describe('a busca de militares (item 15 da 6.18)', () => {
+  it('o 429 do limite de buscas não tenta de novo: tentar só gasta a janela do minuto, e a frase aparece na hora', () => {
+    expect(deveTentarDeNovoNaBusca(0, new ErroApi('Muitas buscas em pouco tempo. Espere um minuto e tente de novo.', 429))).toBe(false);
+    // o resto segue a regra das consultas
+    expect(deveTentarDeNovoNaBusca(0, new ErroApi('x', 503))).toBe(true);
+    expect(deveTentarDeNovoNaBusca(0, new ErroApi('x', 408))).toBe(true);
+    expect(deveTentarDeNovoNaBusca(0, new ErroApi('x', 404))).toBe(false);
+    expect(deveTentarDeNovoNaBusca(2, new ErroApi('x', 503))).toBe(false);
+  });
+});
 
 describe('quando uma consulta tenta de novo', () => {
   it('erro 4xx não tenta de novo: o erro aparece na hora (Review Focus 3)', () => {

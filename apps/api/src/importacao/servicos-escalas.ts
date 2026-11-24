@@ -169,8 +169,10 @@ export const importadorServicosEscalas: Importador<Plano> = {
       }
       const ini = pega(l.celulas, cT.inicio);
       const fim = pega(l.celulas, cT.fim);
-      const inicio = normalizarHora(ini);
-      const termino = normalizarHora(fim);
+      // só HH:MM vale aqui ("8h" e "8" não): a hora escrita errada não vira um horário válido por engano
+      const hhmm = (t: string) => (/^\d{1,2}:\d{2}$/.test(t.trim()) ? normalizarHora(t) : null);
+      const inicio = hhmm(ini);
+      const termino = hhmm(fim);
       if (!inicio || !termino) {
         problemas.push({ aba: ABA_T, linha: l.linha, mensagem: `Horário "${!inicio ? ini : fim}" de ${nome} ${letra}`, solucao: 'Use HH:MM (ex.: 08:00).' });
         continue;

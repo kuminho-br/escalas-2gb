@@ -72,3 +72,28 @@ describe('a lista de Militares', () => {
     expect(linhaDe('ANDRADE').innerHTML).not.toMatch(/text-xs|text-\[11px\]|text-\[12px\]/);
   });
 });
+
+describe('"Lotação a partir de" nas listas (item 16 da 6.18)', () => {
+  it('Pecúlio: quem só começa depois ganha a etiqueta com a data; quem já está lotado não', async () => {
+    simularApi({
+      '/api/eu': { status: 200, corpo: GESTOR },
+      'GET /api/unidades/u-1sb/peculio': { status: 200, corpo: { militares: [PECULIO.militares[0]!, { ...PECULIO.militares[1]!, lotacaoAPartirDe: '2026-12-15' }] } },
+    });
+    abrir('/peculio');
+    await screen.findByRole('list', { name: 'Militares do Pecúlio' });
+    expect(within(linhaDe('BARRETO')).getByText('Lotação a partir de 15/12/2026').closest('[data-etiqueta]')).not.toBeNull();
+    expect(within(linhaDe('ANDRADE')).queryByText(/Lotação a partir de/)).toBeNull();
+  });
+
+  it('Militares: o mesmo', async () => {
+    simularApi({
+      '/api/eu': { status: 200, corpo: GESTOR },
+      'GET /api/unidades/u-1sb/militares': { status: 200, corpo: [MILITARES[0]!, { ...MILITARES[1]!, lotacaoAPartirDe: '2026-12-15' }] },
+      'GET /api/unidades/u-1sb/equipes': { status: 200, corpo: [] },
+    });
+    abrir('/militares');
+    await screen.findByText('ANDRADE', { selector: 'span.font-cond' });
+    expect(within(linhaDe('BARRETO')).getByText('Lotação a partir de 15/12/2026')).toBeInTheDocument();
+    expect(within(linhaDe('ANDRADE')).queryByText(/Lotação a partir de/)).toBeNull();
+  });
+});

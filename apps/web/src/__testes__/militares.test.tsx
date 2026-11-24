@@ -100,6 +100,24 @@ describe('o quadro e a situação no rastreio', () => {
     return screen.findByRole('dialog');
   };
 
+  it('item 20 (6.18): com a lista de unidades falhada, o diálogo diz "Não deu para carregar a lista" com "Tentar de novo", e o Salvar não fica preso', async () => {
+    let falhar = true;
+    const f = api({ 'GET /api/unidades-de-lotacao': { status: 500, corpo: { erro: 'Falhou.' } } });
+    const original = f.getMockImplementation()!;
+    f.mockImplementation(async (entrada: RequestInfo | URL, init?: RequestInit) => {
+      const url = typeof entrada === 'string' ? entrada : entrada instanceof URL ? entrada.href : entrada.url;
+      if (url.includes('/api/unidades-de-lotacao') && !falhar) return new Response(JSON.stringify([{ id: 'u-1sb', sigla: '1ª SB', nome: '1ª Seção de Bombeiros' }]), { status: 200, headers: { 'Content-Type': 'application/json' } });
+      return original(entrada, init);
+    });
+    const dialogo = within(await abrirAlterar());
+    expect(await dialogo.findByText('Não deu para carregar a lista. Recarregue a página.')).toBeInTheDocument();
+    expect(dialogo.getByRole('button', { name: 'Salvar' })).toBeDisabled();
+    falhar = false;
+    await userEvent.click(dialogo.getByRole('button', { name: 'Tentar de novo' }));
+    await waitFor(() => expect(dialogo.queryByText('Não deu para carregar a lista. Recarregue a página.')).toBeNull());
+    await waitFor(() => expect(dialogo.getByRole('button', { name: 'Salvar' })).toBeEnabled());
+  });
+
   it('a Identificação não tem mais "Quadro" nem "Ativo"', async () => {
     api();
     abrir('/militares/m1');
@@ -701,30 +719,84 @@ describe('ficha ampliada (fase 5)', () => {
     await waitFor(() => expect(corpoEnviado(f, PATCH)).toEqual({ nascimento: null }));
   });
 
-  it('Contato: telefone e e-mail gravam só o que mudou; e-mail de outro domínio mostra a mensagem do contrato no campo, sem chamar a API (Review Focus 3)', async () => {
+  it('Contato: telefone e e-mail gravam só o que mudou; o e-mail só recebe o usuário, e o de outro domínio mostra a frase no campo, sem chamar a API (6.18, item 22)', async () => {
     const f = comFicha();
     abrir('/militares/m1');
     const telefone = await screen.findByLabelText('Telefone');
     const email = screen.getByLabelText('E-mail institucional');
     expect(telefone).toHaveValue('(81) 99999-0000');
-    expect(email).toHaveValue('andrade@bombeiros.pe.gov.br');
-    fireEvent.change(telefone, { target: { value: '(81) 98888-1111' } });
+    // o e-mail gravado aparece só com o usuário, e o domínio fica fixo à direita
+    expect(email).toHaveValue('andrade');
+    expect(screen.getByText('@bombeiros.pe.gov.br')).toBeInTheDocument();
+    fireEvent.change(telefone, { target: { value: '81988881111' } });
+    expect(telefone).toHaveValue('(81) 98888-1111');
     await userEvent.click(screen.getByRole('button', { name: 'Salvar contato' }));
     await waitFor(() => expect(corpoEnviado(f, PATCH)).toEqual({ telefone: '(81) 98888-1111' }));
     fireEvent.change(email, { target: { value: 'andrade@gmail.com' } });
+    expect(await screen.findByText('Use só o usuário do e-mail institucional.')).toBeInTheDocument();
+    expect(email).toHaveAccessibleDescription(/Use só o usuário do e-mail institucional\./);
     await userEvent.click(screen.getByRole('button', { name: 'Salvar contato' }));
-    expect(await screen.findByText('Use o e-mail institucional (@bombeiros.pe.gov.br).')).toBeInTheDocument();
-    expect(email).toHaveAccessibleDescription('Use o e-mail institucional (@bombeiros.pe.gov.br).');
     expect(chamadasA(f, PATCH)).toBe(1);
+  });
+
+  it('Contato: o e-mail pessoal aparece e grava de qualquer domínio; o institucional segue com o seu nome (6.18, item 23)', async () => {
+    const f = comFicha({ emailPessoal: 'andrade.pessoal@exemplo.test' });
+    abrir('/militares/m1');
+    const pessoal = await screen.findByLabelText('E-mail pessoal');
+    expect(pessoal).toHaveValue('andrade.pessoal@exemplo.test');
+    expect(screen.getByLabelText('E-mail institucional')).toHaveValue('andrade');
+    fireEvent.change(pessoal, { target: { value: 'novo.pessoal@gmail.com' } });
+    await userEvent.click(screen.getByRole('button', { name: 'Salvar contato' }));
+    await waitFor(() => expect(corpoEnviado(f, PATCH)).toEqual({ emailPessoal: 'novo.pessoal@gmail.com' }));
+    // vazio limpa
+    fireEvent.change(pessoal, { target: { value: '' } });
+    await userEvent.click(screen.getByRole('button', { name: 'Salvar contato' }));
+    await waitFor(() => expect(corpoEnviado(f, PATCH)).toEqual({ emailPessoal: null }));
+  });
+
+  it('Contato: o e-mail pessoal malformado mostra a frase no campo sem chamar a API, e o da API (institucional de alguém) também aparece no campo (6.18, item 23)', async () => {
+    const f = comFicha({}, { [PATCH]: { status: 400, corpo: { erro: 'Este é um e-mail institucional: use outro, pessoal.', campos: { emailPessoal: 'Este é um e-mail institucional: use outro, pessoal.' } } } });
+    abrir('/militares/m1');
+    const pessoal = await screen.findByLabelText('E-mail pessoal');
+    fireEvent.change(pessoal, { target: { value: 'sem-arroba' } });
+    await userEvent.click(screen.getByRole('button', { name: 'Salvar contato' }));
+    expect(await screen.findByText('Use um e-mail válido.')).toBeInTheDocument();
+    expect(chamadasA(f, PATCH)).toBe(0);
+    fireEvent.change(pessoal, { target: { value: 'dono@bombeiros.pe.gov.br' } });
+    await userEvent.click(screen.getByRole('button', { name: 'Salvar contato' }));
+    expect(await screen.findByText('Este é um e-mail institucional: use outro, pessoal.')).toBeInTheDocument();
+  });
+
+  it('Contato: colar o e-mail inteiro do domínio fica só com o usuário, e o e-mail gravado vai com o domínio (6.18, item 22)', async () => {
+    const f = comFicha();
+    abrir('/militares/m1');
+    const email = await screen.findByLabelText('E-mail institucional');
+    await userEvent.clear(email);
+    await userEvent.click(email);
+    await userEvent.paste('maria.lima@bombeiros.pe.gov.br');
+    expect(email).toHaveValue('maria.lima');
+    await userEvent.click(screen.getByRole('button', { name: 'Salvar contato' }));
+    await waitFor(() => expect(corpoEnviado(f, PATCH)).toEqual({ email: 'maria.lima@bombeiros.pe.gov.br' }));
+  });
+
+  it('Contato: telefone com outra quantidade de dígitos mostra "Use o DDD e o número: 10 ou 11 dígitos." e não chama a API (6.18, item 22)', async () => {
+    const f = comFicha();
+    abrir('/militares/m1');
+    const telefone = await screen.findByLabelText('Telefone');
+    fireEvent.change(telefone, { target: { value: '8199668' } });
+    await userEvent.click(screen.getByRole('button', { name: 'Salvar contato' }));
+    expect(await screen.findByText('Use o DDD e o número: 10 ou 11 dígitos.')).toBeInTheDocument();
+    expect(chamadasA(f, PATCH)).toBe(0);
   });
 
   it('Contato: o e-mail de outro militar volta da API como erro no campo', async () => {
     comFicha({}, { [PATCH]: { status: 409, corpo: { erro: 'Este e-mail já é de outro militar.', campos: { email: 'Este e-mail já é de outro militar.' } } } });
     abrir('/militares/m1');
-    fireEvent.change(await screen.findByLabelText('E-mail institucional'), { target: { value: 'outro@bombeiros.pe.gov.br' } });
+    fireEvent.change(await screen.findByLabelText('E-mail institucional'), { target: { value: 'outro' } });
     await userEvent.click(screen.getByRole('button', { name: 'Salvar contato' }));
     expect(await screen.findByText('Este e-mail já é de outro militar.')).toBeInTheDocument();
-    expect(screen.getByLabelText('E-mail institucional')).toHaveAccessibleDescription('Este e-mail já é de outro militar.');
+    // a descrição do campo traz o erro e, depois, o domínio fixo (que o leitor de tela ouve)
+    expect(screen.getByLabelText('E-mail institucional')).toHaveAccessibleDescription('Este e-mail já é de outro militar. no domínio @bombeiros.pe.gov.br');
   });
 
   it('Comportamento: grava o comportamento e o boletim; "Sem informação" limpa', async () => {
