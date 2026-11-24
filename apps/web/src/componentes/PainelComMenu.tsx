@@ -26,12 +26,12 @@ export function PainelComMenu({ secoes, valor, aoEscolher, rotulo, children }: {
         </Selecao>
       </div>
       {/* computador: o menu vertical, com a seção escolhida marcada pela barra vinho */}
-      <TabsList variant="line" aria-label={rotulo} className="hidden w-56 shrink-0 gap-0 self-start p-0 md:flex md:flex-col md:items-stretch">
+      <TabsList aria-label={rotulo} className="hidden w-56 shrink-0 gap-0 self-start overflow-visible border-b-0 p-0 md:flex md:flex-col md:items-stretch">
         {secoes.map((s) => (
           <TabsTrigger
             key={s.valor}
             value={s.valor}
-            className="h-auto flex-none justify-start rounded-none border-0 border-l-2 border-linha px-3 py-2 text-left text-corpo whitespace-normal after:hidden hover:bg-fundo/70 data-[state=active]:border-vinho data-[state=active]:bg-passa data-[state=active]:font-semibold data-[state=active]:text-vinho"
+            className="h-auto flex-none justify-start rounded-none border-0 border-l-2 border-linha px-3 py-2 text-left text-corpo whitespace-normal after:hidden hover:bg-fundo/70 data-[state=active]:border-tinta data-[state=active]:bg-passa data-[state=active]:font-semibold data-[state=active]:text-tinta"
           >
             {s.nome}
           </TabsTrigger>

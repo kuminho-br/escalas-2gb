@@ -20,6 +20,7 @@ import { TabsContent } from '@/componentes/ui/tabs';
 import { AcoesDosModelos, ListaDeModelos } from '@/componentes/guarnicoes/ListaDeModelos';
 import { ABAS_DA_ESCALA, type AbaDaEscala as Aba } from '@/lib/configuracoes';
 import { mesAtual } from '@/lib/meses';
+import { Checkbox } from '@/componentes/ui/checkbox';
 
 
 export const Route = createFileRoute('/_app/configuracoes-da-escala')({
@@ -109,13 +110,11 @@ function BlocosDoVoluntariado({ unidadeId, podeMudar }: { unidadeId: string; pod
               <span className="block text-sm text-apagado">{e.servicos.join(', ') || 'sem serviços'}</span>
             </span>
             <label className="flex shrink-0 items-center gap-2 text-sm">
-              <input
-                type="checkbox"
+              <Checkbox
                 aria-label={`${e.nome}: entra nos blocos do voluntariado`}
                 checked={e.montaBlocosVoluntariado}
                 disabled={!podeMudar || salvando}
                 onChange={(ev) => void mudar(e.id, ev.target.checked)}
-                className="size-4 accent-vinho"
               />
               Entra nos blocos
             </label>

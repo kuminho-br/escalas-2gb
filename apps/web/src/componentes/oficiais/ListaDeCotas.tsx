@@ -5,6 +5,7 @@ import { Button } from '@/componentes/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/componentes/ui/dialog';
 import { formatarSaldo } from '@/lib/numeros-do-saldo';
 import { cn } from '@/lib/utils';
+import { Checkbox } from '@/componentes/ui/checkbox';
 
 type Oficial = EscalaDosOficiais['oficiais'][number];
 
@@ -101,13 +102,12 @@ export function ListaDeCotas({ escala: e, aoOrdenar, aoMarcar, desabilitado, esc
     return (
       <li key={o.militarId} className={cn('grid gap-1.5 rounded-xl border p-2.5', daVez ? 'border-vinho bg-vinho/10' : 'border-linha bg-superficie', !o.participa && 'text-apagado', o.militarId === escolhido && 'ring-2 ring-tinta')}>
         <div className="flex items-start gap-3">
-          <input
-            type="checkbox"
+          <Checkbox
             aria-label={`${o.posto} ${o.nomeGuerra} participa da rodada`}
             checked={o.participa}
             disabled={!aoMarcar || !aberta || desabilitado}
             onChange={(ev) => pedirMarca(o, ev.target.checked)}
-            className="mt-0.5 size-5 shrink-0 accent-vinho"
+            className="mt-0.5"
           />
           <span className="w-6 shrink-0 text-center font-cond text-nome leading-6 font-semibold tabular-nums text-apagado" title="Ordem de escolha">{o.participa ? o.ordem : '—'}</span>
           <button

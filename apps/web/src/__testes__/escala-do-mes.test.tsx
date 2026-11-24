@@ -147,8 +147,11 @@ describe('escala do mês', () => {
     expect(within(f).getByText('08h–16h')).toBeInTheDocument();
     expect(within(f).getByText('B')).toBeInTheDocument();
     const etiqueta = within(f).getByText('Bioma');
-    expect(etiqueta).toHaveAttribute('data-etiqueta-servico');
-    expect(etiqueta).toHaveStyle({ backgroundColor: '#C97A00' });
+    const caixa = etiqueta.closest('[data-etiqueta]')!;
+    expect(caixa).toHaveAttribute('data-tipo', 'servico');
+    // a cor do serviço fica só no quadradinho: nunca atrás do texto
+    expect(caixa.querySelector('[data-quadradinho]')).toHaveStyle({ backgroundColor: '#C97A00' });
+    expect(caixa).not.toHaveStyle({ backgroundColor: '#C97A00' });
   });
 
   it('uma faixa com vários serviços traz uma etiqueta para cada um', async () => {
@@ -160,7 +163,7 @@ describe('escala do mês', () => {
     api({ ...ESCALA, dias: [dia(1, null, [dupla])] });
     abrir('/escala-do-mes');
     const f = (await screen.findByRole('region', { name: 'Dia 1' })).querySelector('[data-faixa]') as HTMLElement;
-    expect([...f.querySelectorAll('[data-etiqueta-servico]')].map((e) => e.textContent)).toEqual(['Pronto', 'JES']);
+    expect([...f.querySelectorAll('[data-etiqueta][data-tipo="servico"]')].map((e) => e.textContent)).toEqual(['Pronto', 'JES']);
   });
 
   it('a escala com um turno por dia em todo o mês põe os dias em grade (Defensoria, CPRH) (4.2)', async () => {

@@ -7,7 +7,9 @@ import { criarFuncao, renomearFuncao } from '@/api/guarnicoes';
 import { usePendencia, useTrava } from '@/componentes/AlteracoesPendentes';
 import { Selecao } from '@/componentes/Selecao';
 import { Button } from '@/componentes/ui/button';
+import { Contador } from '@/componentes/ui/contador';
 import { Input } from '@/componentes/ui/input';
+import { Checkbox } from '@/componentes/ui/checkbox';
 
 /** `cnh` vazia = não exige CNH. */
 export type LinhaEdicao = { chave: number; funcaoId: string; minimo: number; maximo: number; cnh: string };
@@ -15,18 +17,6 @@ export type LinhaEdicao = { chave: number; funcaoId: string; minimo: number; max
 const NOVA = '__nova';
 // as categorias da carteira vêm do contrato (uma fonte só)
 const CATEGORIAS = CategoriaCnh.options;
-
-function Passo({ grandeza, nome, valor, onMenos, onMais, menosOff, maisOff }: {
-  grandeza: 'mínimo' | 'máximo'; nome: string; valor: number; onMenos: () => void; onMais: () => void; menosOff: boolean; maisOff: boolean;
-}) {
-  return (
-    <span className="inline-flex items-center gap-1">
-      <Button type="button" variant="secundario" size="icon-xs" aria-label={`Diminuir ${grandeza} de ${nome}`} disabled={menosOff} onClick={onMenos}>−</Button>
-      <span aria-label={`${grandeza === 'mínimo' ? 'Mínimo' : 'Máximo'} de ${nome}`} className="min-w-6 text-center tabular-nums">{valor}</span>
-      <Button type="button" variant="secundario" size="icon-xs" aria-label={`Aumentar ${grandeza} de ${nome}`} disabled={maisOff} onClick={onMais}>+</Button>
-    </span>
-  );
-}
 
 /** Uma linha por função, lida como frase: "Chefe de 1 a 2 militares, exige CNH D". */
 export function Composicao({ linhas, aoMudar, funcoes, unidadeId, aoMudarFuncao }: {
@@ -124,36 +114,18 @@ export function Composicao({ linhas, aoMudar, funcoes, unidadeId, aoMudarFuncao 
                 </span>
                 <span className="inline-flex items-center gap-1.5">
                   de
-                  <Passo
-                    grandeza="mínimo"
-                    nome={nome}
-                    valor={l.minimo}
-                    menosOff={l.minimo <= 0}
-                    maisOff={l.minimo >= l.maximo}
-                    onMenos={() => mudar(l.chave, { minimo: l.minimo - 1 })}
-                    onMais={() => mudar(l.chave, { minimo: l.minimo + 1 })}
-                  />
+                  <Contador rotulo={`Mínimo de ${nome}`} valor={l.minimo} minimo={0} maximo={l.maximo} aoMudar={(v) => mudar(l.chave, { minimo: v })} />
                   a
-                  <Passo
-                    grandeza="máximo"
-                    nome={nome}
-                    valor={l.maximo}
-                    menosOff={l.maximo <= l.minimo}
-                    // o contrato limita a quantidade (99): o botão para ali, em vez de a API recusar ao salvar
-                    maisOff={!QuantidadeDeMilitares.safeParse(l.maximo + 1).success}
-                    onMenos={() => mudar(l.chave, { maximo: l.maximo - 1 })}
-                    onMais={() => mudar(l.chave, { maximo: l.maximo + 1 })}
-                  />
+                  {/* o contrato limita a quantidade (99): o botão para ali, em vez de a API recusar ao salvar */}
+                  <Contador rotulo={`Máximo de ${nome}`} valor={l.maximo} minimo={l.minimo} maximo={QuantidadeDeMilitares.safeParse(l.maximo + 1).success ? l.maximo + 1 : l.maximo} aoMudar={(v) => mudar(l.chave, { maximo: v })} />
                   militares
                 </span>
                 <span className="inline-flex items-center gap-2">
                   <label className="inline-flex items-center gap-1.5 whitespace-nowrap">
-                    <input
-                      type="checkbox"
+                    <Checkbox
                       aria-label={`Exige CNH para ${nome}`}
                       checked={exige}
                       onChange={(e) => mudar(l.chave, { cnh: e.target.checked ? 'D' : '' })}
-                      className="size-4 accent-vinho"
                     />
                     Exige CNH
                   </label>

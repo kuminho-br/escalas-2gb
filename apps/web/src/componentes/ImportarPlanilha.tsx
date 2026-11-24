@@ -6,7 +6,7 @@ import { enviarArquivo, ErroApi, mensagemDe } from '@/api/cliente';
 import { consultaEu } from '@/api/eu';
 import { Button } from '@/componentes/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/componentes/ui/dialog';
-import { Label } from '@/componentes/ui/label';
+import { EnvioDeArquivo } from '@/componentes/ui/envio-de-arquivo';
 import { escolherUnidade, lerUnidadeGuardada } from '@/lib/unidade-de-trabalho';
 
 type Etapa = { tipo: 'escolher' } | { tipo: 'previa'; previa: Previa } | { tipo: 'feito'; gravados: number };
@@ -118,16 +118,7 @@ export function ImportarPlanilha({ cadastro, rotulo, aoConcluir, unidadeId }: { 
               <Download className="size-4" aria-hidden />
               Baixar modelo
             </a>
-            <div className="grid gap-1.5">
-              <Label htmlFor="arquivo-planilha">Arquivo da planilha (.xlsx)</Label>
-              <input
-                id="arquivo-planilha"
-                type="file"
-                accept=".xlsx"
-                onChange={(e) => setArquivo(e.target.files?.[0] ?? null)}
-                className="text-sm file:mr-3 file:rounded-md file:border file:border-linha file:bg-superficie file:px-3 file:py-1.5"
-              />
-            </div>
+            <EnvioDeArquivo id="arquivo-planilha" rotulo="Arquivo da planilha (.xlsx)" accept=".xlsx" arquivo={arquivo} aoEscolher={setArquivo} />
             {erro && <p role="alert" className="text-sm text-alerta">{erro}</p>}
             <DialogFooter>
               <Button type="submit" disabled={!arquivo || enviando}>

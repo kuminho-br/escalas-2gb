@@ -141,13 +141,14 @@ describe('efetivo por dia: a linha do tempo', () => {
     expect(grade).toHaveClass('items-start');
   });
 
-  it('o trecho ocupado mostra o nome do serviço numa etiqueta de contorno', async () => {
+  it('o trecho ocupado mostra o nome do serviço numa etiqueta, com o quadradinho da cor e o texto em tinta', async () => {
     api();
     abrir(`/efetivo-por-dia?data=${DIA}`);
     const alfa = await screen.findByRole('button', { name: 'Motorista: SD ALFA, 08h–08h, Pronto' });
     const etiqueta = within(alfa).getByText('Pronto');
-    expect(etiqueta).toHaveAttribute('data-etiqueta-servico');
-    expect(etiqueta).toHaveAttribute('data-variante', 'contorno');
+    const caixa = etiqueta.closest('[data-etiqueta]')!;
+    expect(caixa).toHaveAttribute('data-tipo', 'servico');
+    expect(caixa.querySelector('[data-quadradinho]')).not.toBeNull();
   });
 
   // [foco 4] o horário não fica no texto visível: no title (mouse), ao focar (teclado) e ao tocar (celular)
@@ -172,7 +173,7 @@ describe('efetivo por dia: a linha do tempo', () => {
     const alfa = await screen.findByRole('button', { name: 'Motorista: SD ALFA, 08h–08h, Pronto' });
     // o trecho mede a própria largura (container query) e a etiqueta só aparece quando cabe ao lado do nome; o horário não está no texto visível
     expect(alfa).toHaveClass('@container');
-    expect(within(alfa).getByText('Pronto')).toHaveClass('hidden', '@min-[14rem]:inline-flex');
+    expect(within(alfa).getByText('Pronto').closest('[data-etiqueta]')).toHaveClass('hidden', '@min-[14rem]:inline-flex');
     expect(within(alfa).getByText('ALFA')).not.toHaveClass('hidden');
   });
 

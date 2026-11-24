@@ -1,6 +1,6 @@
 import type { FuncaoNoEfetivo, GuarnicaoNoEfetivo, TrechoNoEfetivo } from 'contratos';
 import { useState } from 'react';
-import { EtiquetaDoServico } from '@/componentes/EtiquetaDoServico';
+import { Etiqueta } from '@/componentes/ui/etiqueta';
 import { BarraDaVaga, classeDaVaga, classeDaVagaSoLeitura } from '@/componentes/VagaVazia';
 import { estiloDaCor } from '@/lib/cores';
 import { posicao, type Janela } from '@/lib/efetivo';
@@ -90,7 +90,7 @@ function TrechoOcupado({ funcao, t, o, base, estilo, acoes }: { funcao: FuncaoNo
         {o.acumulo && <span className="ml-1 text-apoio font-normal">acumula</span>}
       </span>
       {mostrarHorario && <span data-horario className="shrink-0 text-apoio">{faixa(t)}</span>}
-      <EtiquetaDoServico nome={o.servico.nome} cor={o.servico.cor} variante="contorno" className="hidden @min-[14rem]:inline-flex" />
+      <Etiqueta tipo="servico" cor={o.servico.cor} className="hidden @min-[14rem]:inline-flex">{o.servico.nome}</Etiqueta>
     </Raiz>
   );
 }

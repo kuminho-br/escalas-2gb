@@ -11,6 +11,7 @@ import { Button } from '@/componentes/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/componentes/ui/dialog';
 import { Input } from '@/componentes/ui/input';
 import { hoje, mesAtual } from '@/lib/meses';
+import { Radio } from '@/componentes/ui/radio';
 
 /** A janela de uma ação sobre uma unidade: some quando a ação grava, e quem a abriu atualiza a árvore. */
 type Comum = { no: NoDaArvore; aoFechar: () => void };
@@ -182,7 +183,7 @@ export function MoverUnidade({ no, arvore, aoFechar }: Comum & { arvore: NoDaArv
           <div className="max-h-60 overflow-y-auto rounded-md border border-linha p-1">
             {opcoes.map(({ no: o, profundidade }) => (
               <label key={o.id} className="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-sm hover:bg-fundo/70" style={{ paddingLeft: `${0.5 + profundidade * 1}rem` }}>
-                <input type="radio" name="destino" value={o.id} checked={destino === o.id} onChange={() => setDestino(o.id)} className="size-4 accent-vinho" />
+                <Radio name="destino" value={o.id} checked={destino === o.id} onChange={() => setDestino(o.id)} />
                 <span className="font-cond font-semibold">{o.sigla}</span>
                 <span className="min-w-0 truncate text-apagado">{o.nome}</span>
               </label>

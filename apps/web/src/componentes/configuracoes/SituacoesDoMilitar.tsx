@@ -7,6 +7,7 @@ import { consultaSituacoesDoMilitar } from '@/api/militares';
 import { Button } from '@/componentes/ui/button';
 import { Input } from '@/componentes/ui/input';
 import { Label } from '@/componentes/ui/label';
+import { Checkbox } from '@/componentes/ui/checkbox';
 
 /** O catálogo "Situações do militar" (Ativa, Reserva…): só o administrador altera. "Pode ser escalado" diz se quem está na situação entra nas escalas. */
 export function SituacoesDoMilitar({ podeEditar }: { podeEditar: boolean }) {
@@ -52,7 +53,7 @@ export function SituacoesDoMilitar({ podeEditar }: { podeEditar: boolean }) {
             <Input id="nova-situacao" value={novo} onChange={(e) => setNovo(e.target.value)} />
           </div>
           <label className="flex items-center gap-2 text-sm">
-            <input type="checkbox" checked={novoEscalavel} onChange={(e) => setNovoEscalavel(e.target.checked)} className="size-4 accent-vinho" />
+            <Checkbox checked={novoEscalavel} onChange={(e) => setNovoEscalavel(e.target.checked)} />
             Pode ser escalado
           </label>
           <div><Button type="submit" disabled={!novo.trim()}>Incluir</Button></div>
@@ -86,13 +87,11 @@ function Item({ situacao, podeEditar, aoSalvar }: { situacao: SituacaoDoMilitar;
       <span className={situacao.ativo ? '' : 'text-apagado'}>{situacao.nome}</span>
       {!situacao.ativo && <span className="rounded bg-muted px-1.5 text-xs text-apagado">desativada</span>}
       <label className="ml-auto flex items-center gap-2 text-sm">
-        <input
-          type="checkbox"
+        <Checkbox
           aria-label={`${situacao.nome}: pode ser escalado`}
           checked={situacao.escalavel}
           disabled={!podeEditar}
           onChange={(e) => void aoSalvar({ escalavel: e.target.checked })}
-          className="size-4 accent-vinho"
         />
         Pode ser escalado
       </label>

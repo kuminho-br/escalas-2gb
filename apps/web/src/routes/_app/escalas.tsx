@@ -15,6 +15,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from '@/componentes/ui/input';
 import { Label } from '@/componentes/ui/label';
 import { cn } from '@/lib/utils';
+import { Checkbox } from '@/componentes/ui/checkbox';
 
 export const Route = createFileRoute('/_app/escalas')({
   component: Escalas,
@@ -70,7 +71,7 @@ function ListaDeEscalas({ unidadeId, escolhida }: { unidadeId: string; escolhida
             {escalas.data.length > 0 && visiveis.length === 0 && <li className="p-3 text-apagado">Todas as escalas estão desativadas. Marque "Mostrar desativadas" para vê-las.</li>}
           </ul>
           <label className="flex shrink-0 items-center gap-2 border-t border-linha px-4 py-2.5 text-xs text-apagado">
-            <input type="checkbox" checked={desativadas} onChange={(ev) => setDesativadas(ev.target.checked)} className="size-4 accent-vinho" />
+            <Checkbox checked={desativadas} onChange={(ev) => setDesativadas(ev.target.checked)} />
             Mostrar desativadas
           </label>
         </>

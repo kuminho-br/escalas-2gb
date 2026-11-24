@@ -57,7 +57,7 @@ export function TiposDeUnidade() {
       </ul>
       <form onSubmit={(e: FormEvent) => { e.preventDefault(); void incluir(); }} className="grid gap-3 border-t border-linha px-4 py-3 sm:grid-cols-[1fr_7rem_auto] sm:items-end">
         <Campo id="novo-tipo-nome" rotulo="Novo tipo de unidade" erro={campos.nome}><Input id="novo-tipo-nome" value={nome} maxLength={40} onChange={(e) => setNome(e.target.value)} /></Campo>
-        <Campo id="novo-tipo-ordem" rotulo="Ordem (opcional)" erro={campos.ordem}><Input id="novo-tipo-ordem" type="number" min={0} max={1000} value={ordem} onChange={(e) => setOrdem(e.target.value)} /></Campo>
+        <Campo id="novo-tipo-ordem" rotulo="Ordem" opcional erro={campos.ordem}><Input id="novo-tipo-ordem" type="number" min={0} max={1000} value={ordem} onChange={(e) => setOrdem(e.target.value)} /></Campo>
         <Button type="submit" disabled={!nome.trim() || salvando}>Incluir</Button>
       </form>
       {erro && <p role="alert" className="px-4 pb-3 text-sm text-alerta">{erro}</p>}

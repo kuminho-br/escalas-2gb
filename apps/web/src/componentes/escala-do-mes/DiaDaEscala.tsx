@@ -1,5 +1,5 @@
 import { textoFaixa, type DiaDaEscala, type FaixaDoDia, type OcupanteDaVaga } from 'contratos';
-import { EtiquetaDoServico } from '@/componentes/EtiquetaDoServico';
+import { Etiqueta } from '@/componentes/ui/etiqueta';
 import { cn } from '@/lib/utils';
 import { CardDaGuarnicao, type VagaDaTela } from './CardDaGuarnicao';
 
@@ -24,7 +24,7 @@ function Faixa({ faixa, dia, soVazias, aoEscolher, aoRemover }: { faixa: FaixaDo
         <p className="flex flex-wrap items-center gap-x-2 gap-y-1 font-cond text-sm font-semibold">
           <span>{textoFaixa(faixa.inicio, faixa.fim)}</span>
           <span className="font-normal text-apagado">{letras}</span>
-          {servicos.map((t) => <EtiquetaDoServico key={t.servicoId} nome={t.servico} cor={t.cor} />)}
+          {servicos.map((t) => <Etiqueta key={t.servicoId} tipo="servico" cor={t.cor}>{t.servico}</Etiqueta>)}
         </p>
         {cards.length > 0 && (
           <div data-cards-do-turno className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,18rem),1fr))] items-start gap-3">

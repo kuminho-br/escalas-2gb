@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { ArrowDown, ArrowUp } from 'lucide-react';
 import { consultaGuarnicoes } from '@/api/guarnicoes';
 import { Button } from '@/componentes/ui/button';
+import { Checkbox } from '@/componentes/ui/checkbox';
 
 export type ModeloDaMeta = { id: string; nome: string; ativa: boolean };
 
@@ -37,7 +38,7 @@ export function EditorDaMeta({ opcoes, escolhidos, aoMudar, semNenhum }: { opcoe
         {opcoes.length === 0 && <p className="text-sm text-apagado">Nenhum modelo de guarnição ativo. Cadastre na aba "Modelos de guarnição".</p>}
         {opcoes.map((o) => (
           <label key={o.id} className="flex items-center gap-2 text-sm">
-            <input type="checkbox" checked={escolhidos.includes(o.id)} onChange={() => alternar(o.id)} className="size-4 accent-vinho" />
+            <Checkbox checked={escolhidos.includes(o.id)} onChange={() => alternar(o.id)} />
             <span>{o.nome}</span>
             {!o.ativa && <span className="text-xs text-apagado">desativado</span>}
           </label>

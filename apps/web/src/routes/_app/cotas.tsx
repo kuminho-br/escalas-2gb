@@ -17,6 +17,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from '@/componentes/ui/input';
 import { Label } from '@/componentes/ui/label';
 import { mesAtual } from '@/lib/meses';
+import { Radio } from '@/componentes/ui/radio';
 
 export const Route = createFileRoute('/_app/cotas')({
   component: Cotas,
@@ -232,7 +233,7 @@ function CotaDialogo({ unidadeId, mes, cota, proximaPrioridade, aoFechar }: { un
             <div className="flex gap-4 text-sm">
               {(['interna', 'externa'] as const).map((o) => (
                 <label key={o} className="flex items-center gap-2">
-                  <input type="radio" name="origem" checked={origem === o} onChange={() => setOrigem(o)} className="size-4 accent-vinho" />
+                  <Radio name="origem" checked={origem === o} onChange={() => setOrigem(o)} />
                   {NOME_ORIGEM[o]}
                 </label>
               ))}

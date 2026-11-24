@@ -14,6 +14,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from '@/componentes/ui/input';
 import { Label } from '@/componentes/ui/label';
 import { hoje } from '@/lib/meses';
+import { Checkbox } from '@/componentes/ui/checkbox';
 
 export const Route = createFileRoute('/_app/feriados')({
   component: Feriados,
@@ -183,7 +184,7 @@ function FeriadoDialogo({ unidadeId, ano, feriado, aoFechar, aoSalvar }: { unida
             </div>
           </div>
           <label className="flex items-center gap-2 text-sm">
-            <input type="checkbox" checked={fixo} onChange={(e) => setFixo(e.target.checked)} className="size-4 accent-vinho" />
+            <Checkbox checked={fixo} onChange={(e) => setFixo(e.target.checked)} />
             Cai no mesmo dia todo ano
           </label>
           {erro && <p role="alert" className="text-sm text-alerta">{erro}</p>}

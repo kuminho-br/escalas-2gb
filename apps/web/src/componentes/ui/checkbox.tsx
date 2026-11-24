@@ -1,28 +1,21 @@
 import * as React from "react"
 import { cn } from "@/lib/utils"
-import { CheckIcon } from "lucide-react"
-import { Checkbox as CheckboxPrimitive } from "radix-ui"
 
-function Checkbox({
-  className,
-  ...props
-}: React.ComponentProps<typeof CheckboxPrimitive.Root>) {
+/**
+ * A caixa de marcar do sistema de estilo: 20 px, borda de 1 px `encaixe`; marcada, fica cheia de `tinta` com o visto branco (`--marca-de-visto`, em `estilo.css`).
+ * É um `<input type="checkbox">` de verdade: o teclado, o rótulo e o leitor de tela são os do navegador.
+ */
+function Checkbox({ className, ...props }: Omit<React.ComponentProps<"input">, "type">) {
   return (
-    <CheckboxPrimitive.Root
+    <input
+      type="checkbox"
       data-slot="checkbox"
       className={cn(
-        "peer size-4 shrink-0 rounded-sm border border-input shadow-xs transition-shadow disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-destructive/20 data-[state=checked]:border-primary data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground dark:bg-input/30 dark:aria-invalid:ring-destructive/40 dark:data-[state=checked]:bg-primary",
+        "size-5 shrink-0 appearance-none rounded-sm border border-encaixe bg-superficie bg-center bg-no-repeat transition-colors hover:border-tinta checked:border-tinta checked:bg-tinta checked:bg-(image:--marca-de-visto) disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-2 aria-invalid:border-alerta",
         className
       )}
       {...props}
-    >
-      <CheckboxPrimitive.Indicator
-        data-slot="checkbox-indicator"
-        className="grid place-content-center text-current transition-none"
-      >
-        <CheckIcon className="size-3.5" />
-      </CheckboxPrimitive.Indicator>
-    </CheckboxPrimitive.Root>
+    />
   )
 }
 

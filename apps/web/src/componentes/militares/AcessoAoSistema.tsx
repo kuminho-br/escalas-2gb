@@ -238,7 +238,7 @@ function DarPapel({ acesso, erros, aberto, desligado, aoAbrir, aoFechar, aoDar }
       <Campo id="np-desde" rotulo="A partir de" erro={erros.desde}>
         <Input id="np-desde" type="date" value={desde} onChange={(e) => setDesde(e.target.value)} />
       </Campo>
-      <Campo id="np-ate" rotulo="Até (opcional)" erro={erros.ate}>
+      <Campo id="np-ate" rotulo="Até" opcional erro={erros.ate}>
         <Input id="np-ate" type="date" value={ate} onChange={(e) => setAte(e.target.value)} />
       </Campo>
       <div className="flex gap-2 sm:col-span-4">
