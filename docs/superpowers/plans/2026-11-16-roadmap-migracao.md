@@ -34,7 +34,7 @@
 | Revisões antes da fase 4 | Pendências, testes com pessoas e revisão de código | Você e alguns usuários | concluídas |
 | 4. Montagem da escala | Montar e conferir a escala do mês à mão, nas telas de trabalho | Você e os escalantes | concluída |
 | 5. Pecúlio | A base de militares do 2º GB inteiro e o módulo Pecúlio | Você e a administração do GB | concluída |
-| 6. Usuários e módulos | Tipos de usuário, contas, acesso por lotação, tela inicial | Todos os militares | em execução |
+| 6. Usuários e módulos | Tipos de usuário, contas, acesso por lotação, tela inicial | Todos os militares | concluída |
 | 7. Visualização de escalas | Publicar a escala, publicações, Minha escala, próprio voluntariado | Todos os militares | planejada |
 | 8. Primeiro mês real | Distribuições automáticas, documento, Escala por militar e o piloto | ~5 escalantes (piloto 1ª SB) | planejada |
 | 9. Operação diária | Efetivo por dia na operação, permutas, escala executada | Escalantes | planejada |
@@ -85,7 +85,7 @@ Entregas: 1 rastreio e CNH (#73, migração 0023); 2 ficha e dono por bloco (#79
 
 **Postergado:** abono de permanência e função (decididos em 22/11), QOD, férias, quem vê cada atributo, jornada dos oficiais, cópia de segurança, data de ingresso e CPF.
 
-## Fase 6 — Usuários e módulos · em execução
+## Fase 6 — Usuários e módulos · concluída
 
 Design: `docs/superpowers/specs/2026-11-21-usuarios-e-modulos-design.md`. Plano: `docs/superpowers/plans/2026-11-21-fase6-usuarios-e-modulos.md`.
 
@@ -95,15 +95,15 @@ Design: `docs/superpowers/specs/2026-11-21-usuarios-e-modulos-design.md`. Plano:
 | 6 | Retorno da validação com mockup | absorvida na refatoração |
 | 15 a 18 | Pendências antes da fase 7: abono e função; três lotes de acabamento | mescladas (#146, #149, #166, #175, #178) |
 | 19 | Correções de interface sem desenho (N0) | mesclada (#128) |
-| 20 e 21 | Fundação da interface: sistema de estilo (N1); resposta do sistema (N2) | em execução (24/11), uma depois da outra |
+| 20 e 21 | Fundação da interface: sistema de estilo (N1); resposta do sistema (N2, 0040) | mescladas (#190, #191) |
 | 25 e 26 | Árvore genérica (0035); configurações gerais | mescladas (#167, #171) |
 | 22 a 24, 27 a 31 | Oficiais (refeitos, escala comum 0036, dias vermelhos 0037, tela de escalar, memorial 0039); mover na hierarquia; admin como militar; raiz sem "nível acima" | mescladas (#157 a #185) |
-| 32 | Ficha do militar na escala (Habilitações; a SB edita só elas) e Escala do mês no ordinário | planejada, depois da 21 |
-| 33 | Militar externo: o gestor traz pela Consulta; equipe "Externo"; só serviço extra, à mão (decisão de 24/11: entra na fase 6) | planejada, depois da 32 |
+| 32 | Ficha do militar na escala (Habilitações) e Escala do mês no ordinário | mesclada (#192) |
+| 33 | Militar externo: o gestor traz pela Consulta; equipe "Externo"; só serviço extra, à mão | mesclada (#193) |
 
 **Fora:** e-mail, usuários acima do GB (fase 11), Visualização (fase 7).
 
-## Refatoração da interface · fundação em execução
+## Refatoração da interface · fundação concluída
 
 Spec: `docs/superpowers/specs/2026-11-23-refatoracao-da-interface-design.md`. N0 = 6.19; N1 e N2 = 6.20 e 6.21 (plano `2026-11-23-fundacao-da-interface.md`). As telas seguem as áreas do Manual de Identidade Visual: Grade geral e Escala do mês antes do piloto; moldura, fichas e celular entre as duas.
 
