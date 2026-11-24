@@ -443,7 +443,8 @@ describe('escolher militar e remover', () => {
     await screen.findByRole('region', { name: 'Dia 2' });
     const dialogo = await abrirVaga();
     await within(dialogo).findByRole('button', { name: /ZULU/ });
-    expect(within(dialogo).getByLabelText('Buscar por nome ou matrícula')).toHaveFocus();
+    // o foco vai para a busca quando o diálogo abre (o Radix o move depois de montar): espera
+    await waitFor(() => expect(within(dialogo).getByLabelText('Buscar por nome ou matrícula')).toHaveFocus());
   });
 
   it('escolher manda a alocação, a linha passa a mostrar o militar e o diálogo fecha', async () => {

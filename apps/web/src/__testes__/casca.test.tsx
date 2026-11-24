@@ -206,7 +206,8 @@ describe('trilho', () => {
     abrir('/grade');
     await screen.findByText('SD ANDRADE');
     await userEvent.click(screen.getByRole('button', { name: 'Abrir menu' }));
-    expect(within(menu()).getByRole('link', { name: 'Grade geral' })).toHaveFocus();
+    // o foco vai para o primeiro item por um efeito: espera o efeito rodar
+    await waitFor(() => expect(within(menu()).getByRole('link', { name: 'Grade geral' })).toHaveFocus());
   });
 
   it('Esc fecha o menu do celular e devolve o foco ao botão que o abriu', async () => {
@@ -268,7 +269,8 @@ describe('revisão 3: falhas ao abrir o sistema', () => {
     const titulo = await screen.findByRole('heading', { level: 1, name: 'Não foi possível abrir o sistema.' });
     expect(screen.getByText('Sem conexão com o sistema. Confira a internet e tente de novo.')).toBeInTheDocument();
     expect(screen.queryByText(/O sistema encontrou um erro/)).toBeNull();
-    expect(titulo).toHaveFocus();
+    // o foco vai para o título por um efeito de montagem: espera o efeito rodar
+    await waitFor(() => expect(titulo).toHaveFocus());
   });
 
   it('erro do servidor: diz que o sistema errou e para tentar em alguns minutos, e o foco vai para o título', async () => {
@@ -277,7 +279,7 @@ describe('revisão 3: falhas ao abrir o sistema', () => {
     const titulo = await screen.findByRole('heading', { level: 1, name: 'Não foi possível abrir o sistema.' });
     expect(screen.getByText('O sistema encontrou um erro. Tente de novo em alguns minutos.')).toBeInTheDocument();
     expect(screen.queryByText(/Sem conexão/)).toBeNull();
-    expect(titulo).toHaveFocus();
+    await waitFor(() => expect(titulo).toHaveFocus());
   });
 
   it('o que o servidor disse (503, banco desatualizado) continua aparecendo no lugar do conselho genérico', async () => {
