@@ -5,7 +5,7 @@ import { COMPORTAMENTOS, mesParaData, type CelulaIgnorada, type ItemPrevia, type
 import { CICLO_EQUIPES, normalizar } from 'dominio';
 import { mudarPeriodoAberto } from '../cadastros/periodo-aberto.ts';
 import { quadroParaOPosto } from '../cadastros/quadros.ts';
-import { CADASTRO, siglaDaUnidadeDeCima, temPapelAcima } from '../acesso.ts';
+import { CADASTRO, siglaDaUnidadeDeCima, temNivelDeCima } from '../acesso.ts';
 import type { Consulta } from '../banco/banco.ts';
 import { hojeRecife } from '../datas.ts';
 import {
@@ -208,11 +208,15 @@ export const importadorPeculio: Importador<Plano> = {
     const cpfsDaPlanilha = new Map<string, string>();
     const papelDeCima = new Map<string, boolean>();
     const donoDe = async (unidade: string) => {
-      if (!papelDeCima.has(unidade)) papelDeCima.set(unidade, usuarioId ? await temPapelAcima(tx, usuarioId, unidade, CADASTRO, hoje) : false);
+      if (!papelDeCima.has(unidade)) papelDeCima.set(unidade, usuarioId ? await temNivelDeCima(tx, usuarioId, unidade, CADASTRO, hoje) : false);
       return papelDeCima.get(unidade)!;
     };
     const siglaDe = async (unidade: string) => (await tx.query<{ sigla: string }>('select sigla from unidade where id = $1', [unidade])).rows[0]?.sigla ?? 'outra seção';
-    const cima = async (unidade: string) => (await siglaDaUnidadeDeCima(tx, unidade)) ?? 'nível acima';
+    // "quem tem nível de acesso no 2º GB"; a raiz não tem unidade de cima, e a frase fala do nível dela mesma
+    const quemTemNivel = async (unidade: string) => {
+      const sigla = await siglaDaUnidadeDeCima(tx, unidade);
+      return sigla ? `quem tem nível de acesso no ${sigla}` : 'quem tem nível de acesso na própria raiz';
+    };
     // as equipes que a importação vai criar, por seção (só as das linhas que entram)
     const equipesNovas = new Map<string, Set<string>>();
     const temEquipe = (unidade: string, nome: string) =>
@@ -228,11 +232,16 @@ export const importadorPeculio: Importador<Plano> = {
     const alterados: ItemPrevia[] = [];
     const itens: ItemPlano[] = [];
     let iguais = 0;
+    // as linhas com dados e sem MATRÍCULA (de rodapé, de totais ou de sobra) não são militares: ficam de fora sem virar problema, e a prévia diz quantas foram
+    let semMatricula = 0;
 
     for (const l of aba.linhas) {
       const texto = (k: Chave) => (c[k] < 0 ? '' : (l.celulas[c[k]] ?? '').trim());
       const bruta = texto('mat');
-      if (!bruta) continue;
+      if (!bruta) {
+        semMatricula++;
+        continue;
+      }
       const problema = (mensagem: string, solucao: string) => problemas.push({ aba: ABA, linha: l.linha, mensagem, solucao });
 
       const mat = matriculaDe(bruta);
@@ -281,7 +290,7 @@ export const importadorPeculio: Importador<Plano> = {
       if (!(await donoDe(referencia))) {
         const sigla = e?.unidade_sigla ?? lotacao!.sigla;
         problema(
-          e ? `${nomeDaLinha} (${matricula}) ${e.unidade_desde && e.unidade_desde > hoje ? `tem lotação marcada na ${sigla} a partir de ${e.unidade_desde.slice(8, 10)}/${e.unidade_desde.slice(5, 7)}/${e.unidade_desde.slice(0, 4)}` : `está lotado na ${sigla}`}: o Pecúlio dele é de quem tem nível de acesso no ${await cima(referencia)}.` : `Cadastrar militar na ${sigla} é de quem tem nível de acesso no ${await cima(referencia)}.`,
+          e ? `${nomeDaLinha} (${matricula}) ${e.unidade_desde && e.unidade_desde > hoje ? `tem lotação marcada na ${sigla} a partir de ${e.unidade_desde.slice(8, 10)}/${e.unidade_desde.slice(5, 7)}/${e.unidade_desde.slice(0, 4)}` : `está lotado na ${sigla}`}: o Pecúlio dele é de ${await quemTemNivel(referencia)}.` : `Cadastrar militar na ${sigla} é de ${await quemTemNivel(referencia)}.`,
           'Peça a quem tem esse nível de acesso para importar a linha.',
         );
         continue;
@@ -349,7 +358,7 @@ export const importadorPeculio: Importador<Plano> = {
       const motivoDoRastreio = semPeriodo
         ? MSG_SEM_PERIODO
         : periodoDeFora
-          ? `O período aberto é da ${cat.unidades.find((u) => u.id === e!.aberto_unidade)?.sigla ?? (await siglaDe(e!.aberto_unidade!))}: muda quem tem nível de acesso no ${await cima(e!.aberto_unidade!)}.`
+          ? `O período aberto é da ${cat.unidades.find((u) => u.id === e!.aberto_unidade)?.sigla ?? (await siglaDe(e!.aberto_unidade!))}: muda ${await quemTemNivel(e!.aberto_unidade!)}.`
           : null;
       if (motivoDoRastreio) {
         for (const [k, v] of [['quadro', quadro], ['situacao', situacao], ['jornada', jornada], ['equipe', equipeTxt]] as const) if (v !== undefined) ignorar(k, motivoDoRastreio);
@@ -457,6 +466,7 @@ export const importadorPeculio: Importador<Plano> = {
       if (donos.length > 1) avisos.push(`Antiguidade ${n} repetida: ${donos.length === 2 ? donos.join(' e ') : `${donos.slice(0, -1).join(', ')} e ${donos.at(-1)}`}.`);
     }
     for (const [secao, nomes] of equipesNovas) avisos.push(`Equipes novas na ${cat.unidades.find((u) => u.id === secao)?.sigla ?? 'seção'}: ${[...nomes].join(', ')}.`);
+    if (semMatricula) avisos.push(`${semMatricula} ${semMatricula === 1 ? 'linha sem MATRÍCULA foi ignorada' : 'linhas sem MATRÍCULA foram ignoradas'}.`);
     const lotados = [...ja.values()].filter((x) => x.unidade_id && cat.unidades.some((u) => u.id === x.unidade_id) && !vistos.has(x.matricula)).length;
     if (lotados) avisos.push(`${lotados} militares do sistema não estão na planilha (nada foi apagado).`);
     return { previa: { novos, alterados, iguais, problemas, avisos, ignoradas }, plano: { itens, mes } };
