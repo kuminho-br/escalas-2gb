@@ -98,6 +98,7 @@
 | [superpowers/plans/2026-11-24-fase6-40-pre-escala-turnos-e-expediente.md](superpowers/plans/2026-11-24-fase6-40-pre-escala-turnos-e-expediente.md) | Entrega 6.40: a pré-escala só nos turnos e com o expediente | DESENVOLVIMENTO | planejado |
 | [superpowers/plans/2026-11-24-fase6-41-deploy-so-com-codigo.md](superpowers/plans/2026-11-24-fase6-41-deploy-so-com-codigo.md) | Entrega 6.41: o deploy é pulado quando o PR só mexe em documentação | DESENVOLVIMENTO | planejado |
 | [superpowers/plans/2026-11-24-fase6-42-tela-inicial.md](superpowers/plans/2026-11-24-fase6-42-tela-inicial.md) | Entrega 6.42: a tela inicial, versão 2 (cena menor e atalhos), no Fable | DESENVOLVIMENTO | planejado |
+| [superpowers/plans/2026-11-24-fase6-43-sem-previas.md](superpowers/plans/2026-11-24-fase6-43-sem-previas.md) | Entrega 6.43: os PRs não geram prévia no Vercel; só a main faz deploy | DESENVOLVIMENTO | planejado |
 | [superpowers/plans/2026-11-18-fase4-escala.md](superpowers/plans/2026-11-18-fase4-escala.md) | Fase 4: montagem da escala (entregas 1 a 4.3) | DESENVOLVIMENTO | concluído |
 | [superpowers/plans/2026-11-20-roadmap-documentacao.md](superpowers/plans/2026-11-20-roadmap-documentacao.md) | Roadmap da documentação | DOCUMENTAÇÃO | em execução |
 | [superpowers/plans/2026-11-24-revisao-da-documentacao.md](superpowers/plans/2026-11-24-revisao-da-documentacao.md) | Revisão geral da documentação de 24/11: o que foi corrigido e o que pede ação | DOCUMENTAÇÃO | vigente |

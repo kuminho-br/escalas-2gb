@@ -17,6 +17,7 @@ Siglas dos documentos:
 
 | Data | Decisão | Onde está |
 |---|---|---|
+| 24/11/2026 | Deploys no Vercel: um deploy é cada build (prévia de cada envio a um PR e cada merge na main). Para caber no limite de 100 por dia: PR só de documentos não faz deploy (6.41) e os PRs não geram prévia; só a main faz deploy (6.43). Merge: testes verdes (com o build:vercel do CI) e, depois do merge, o deploy de produção conferido antes de migrar. | `docs/superpowers/plans/2026-11-24-fase6-43-sem-previas.md` |
 | 24/11/2026 | O oficial segue a mesma jornada do Adm, por ora: não tira JES em dia útil das 8h às 16h, e o Saldo no expediente pede a confirmação (entrega 6.39). A pré-escala ainda não lança o expediente dos oficiais; o calculado os protege no choque. Elucidação da jornada dos oficiais em aberto. | `superpowers/plans/2026-11-24-fase6-39-choque-nos-oficiais.md` |
 | 24/11/2026 | A pré-escala (um botão só) gera o Pronto e o expediente do Adm; ela não aloca guarnições, só turnos (o escalante põe nas vagas à mão). O expediente fica sem escala por enquanto. O Adm não recebe expediente no fim de semana, no feriado, no afastamento e no dia com Saldo no horário. | `docs/superpowers/specs/2026-11-24-pre-escala-turnos-e-expediente-design.md` |
 | 24/11/2026 | A escala dos oficiais também confere o choque de horário (entrega 6.39, logo depois da 6.38). A 6.37 e a 6.38 são mescladas juntas, para o piloto não ficar sem lançar Saldo do Adm no expediente. | `docs/superpowers/plans/2026-11-24-fase6-39-choque-nos-oficiais.md` |
