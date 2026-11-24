@@ -6,7 +6,7 @@ import {
   detectarChoques,
   diaDaSemana,
   diasDoMes,
-  ehSaldo,
+  normalizar,
   intervaloDoTurno,
   type AlocChoque,
   type Militar,
@@ -14,7 +14,7 @@ import {
 import type { Consulta } from '../banco/banco.ts';
 import { feriadosDoAno } from '../cadastros/feriados.ts';
 import { somarDias } from '../datas.ts';
-import { EXPEDIENTE, horariosDaUnidade, type Tipo } from '../escala/horarios.ts';
+import { alocacoesDaJanela, EXPEDIENTE, horariosDaUnidade, somarOutrasUnidades, type Tipo } from '../escala/horarios.ts';
 import { PODE_SER_ESCALADO, SO_QBMG_OU_SEM_QUADRO } from '../escala/quadros-da-escala.ts';
 
 type Pessoa = { id: string; matricula: string; nomeGuerra: string; posto: string; postoOrdem: number; antiguidade: number | null; ativo: boolean };
@@ -95,7 +95,12 @@ export async function montarGradeDoMes(c: Consulta, unidadeId: string, mes: stri
     for (const r of rows) pedidasPorDia.set(r.militar_id, [...(pedidasPorDia.get(r.militar_id) ?? []), { data: r.data, minutos: r.minutos }]);
   }
   const pedidas = new Map([...pedidasPorDia].map(([id, lista]) => [id, lista.reduce((soma, x) => soma + x.minutos, 0)] as const));
-  const { horarios, tipos } = await horariosDaUnidade(c, unidadeId);
+  const regras = await horariosDaUnidade(c, unidadeId);
+  const { horarios } = regras;
+  // 6.37: o choque olha todas as unidades. Os serviços das outras unidades não aparecem na grade (só os da seção), mas entram na conta dos choques
+  const deOutras = (await alocacoesDaJanela(c, ids, antes, depois, unidadeId)).filter((a) => a.outra);
+  somarOutrasUnidades(regras, deOutras);
+  const tiram = new Set(regras.tiramDoExpediente.map(normalizar));
 
   const util = (d: string) => diaDaSemana(d) >= 1 && diaDaSemana(d) <= 5 && !feriados.has(d);
   const afastado = (id: string, d: string) => afastamentos.some((a) => a.militar_id === id && a.inicio <= d && a.fim >= d);
@@ -127,10 +132,10 @@ export async function montarGradeDoMes(c: Consulta, unidadeId: string, mes: stri
         if (!util(d) || !podeNoDia(d) || afastado(p.id, d)) continue;
         expediente.push({ mat: p.id, dia: d, turno: EXPEDIENTE.turno, servico: EXPEDIENTE.servico, implicito: true });
         const doDia = dele.filter((a) => a.data === d);
-        const substituido = doDia.some((a) => {
+        const substituido = [...doDia, ...deOutras.filter((a) => a.militarId === p.id && a.data === d).map((a) => ({ nome: a.servico, letra: a.letra }))].some((a) => {
           if (a.nome === EXPEDIENTE.servico) return true;
           const h = horarios[`${a.nome}|${a.letra}`];
-          return ehSaldo(a.nome) && !!h && h.ini < EXPEDIENTE.fim && EXPEDIENTE.ini < h.ini + h.dur;
+          return tiram.has(normalizar(a.nome)) && !!h && h.ini < EXPEDIENTE.fim && EXPEDIENTE.ini < h.ini + h.dur;
         });
         if (doMes(d, mes) && !substituido) {
           (blocos[d] ??= []).push({ alocacaoId: null, servico: null, letra: null, inicio: '08:00', fim: '16:00', expediente: true });
@@ -139,10 +144,13 @@ export async function montarGradeDoMes(c: Consulta, unidadeId: string, mes: stri
     }
     for (const lista of Object.values(blocos)) lista.sort((x, y) => x.inicio.localeCompare(y.inicio) || Number(y.expediente) - Number(x.expediente));
 
-    // choques: do motor, com o expediente implícito (que só choca com Diária); as células dos dois lados dentro do mês são marcadas
-    const existentes: AlocChoque[] = dele.map((a) => ({ mat: p.id, dia: a.data, turno: a.letra, servico: a.nome }));
+    // choques: do motor, com o expediente implícito (que choca com qualquer serviço, de qualquer unidade); as células dos dois lados dentro do mês são marcadas
+    const existentes: AlocChoque[] = [
+      ...dele.map((a) => ({ mat: p.id, dia: a.data, turno: a.letra, servico: a.nome })),
+      ...deOutras.filter((a) => a.militarId === p.id && dentro(a.data)).map((a) => ({ mat: p.id, dia: a.data, turno: a.letra, servico: a.servico })),
+    ];
     const marcados = new Set<string>();
-    for (const x of detectarChoques([...existentes, ...expediente], horarios, { mes, tipos }).choques) {
+    for (const x of detectarChoques([...existentes, ...expediente], horarios, { mes, tiramDoExpediente: regras.tiramDoExpediente }).choques) {
       for (const lado of [x.a.dia, x.b.dia]) if (doMes(lado, mes)) marcados.add(lado);
     }
 

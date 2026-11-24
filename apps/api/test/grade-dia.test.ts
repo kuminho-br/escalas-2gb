@@ -126,6 +126,18 @@ describe('o dia do militar', () => {
   });
 });
 
+describe('o expediente do Adm no painel do dia (6.37)', () => {
+  const util = `${MES}-15`; // terça
+  it('o JES no horário do expediente é choque com ele, em frase; o Saldo já gravado sobre o expediente não é (Review Focus 2)', async () => {
+    await alocar('ADM', 'JES', 'a', util);
+    const comJes = await ler('ADM', util);
+    expect(comJes.choques).toEqual([expect.stringMatching(/^Choque com o expediente (.*): JES A /)]);
+    await api.banco.query('delete from alocacao where militar_id = $1 and data = $2::date', [militar.ADM, util]);
+    await alocar('ADM', 'Saldo', 'a', util);
+    expect((await ler('ADM', util)).choques).toEqual([]);
+  });
+});
+
 describe('uma diária na mesma faixa do Pronto (achado da revisão final da 4.4)', () => {
   it('o Pronto e o JES continuam do Ordinário e a diária vira opção própria, nas Operações', async () => {
     await servicoComTurnos('Diária 12h', 'diaria', [['A', '08:00', '20:00']]);
@@ -202,12 +214,19 @@ describe('Adicionar serviço neste dia', () => {
     expect(o.servicos[0]).toMatchObject({ servicoId: servico.Pronto!.id, turnoId: servico.Pronto!.a });
   });
 
-  it('o Saldo só aparece para o Adm, e vem antes do Pronto', async () => {
-    const adm = await ler('ADM');
+  it('o Saldo só aparece para o Adm, e vem antes do Pronto (num dia sem expediente: 6.37, o expediente choca com qualquer serviço)', async () => {
+    const sabado = `${MES}-12`;
+    const adm = await ler('ADM', sabado);
     expect(opcoes(adm, '08:00-20:00')[0]![1]).toEqual(expect.arrayContaining(['Saldo']));
     expect((opcoes(adm, '08:00-20:00')[0]![1] as string[])[0]).toBe('Saldo');
     const outro = await ler('CNHB');
     expect(outro.opcoes.flatMap((o) => o.servicos.map((s) => s.nome))).not.toContain('Saldo');
+  });
+
+  it('6.37: num dia útil o Adm não recebe o Pronto, o Saldo nem o JES das 08h às 20h como opção: o expediente ocupa o dia (o Saldo se resolve na 6.38); o turno da noite continua', async () => {
+    const adm = await ler('ADM');
+    expect(opcoes(adm, '08:00-20:00')).toEqual([]);
+    expect(adm.opcoes.some((o) => `${o.inicio}-${o.fim}` === '20:00-08:00')).toBe(true);
   });
 });
 

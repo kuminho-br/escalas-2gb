@@ -11,7 +11,7 @@ import { versoesDasGuarnicoes } from '../cadastros/guarnicoes.ts';
 import { somarDias } from '../datas.ts';
 import { ocupantesDaFuncao } from '../escala/alocacoes.ts';
 import { avaliarFaixa, SEM_VOLUNTARIADO } from '../escala/elegibilidade.ts';
-import { EXPEDIENTE, horariosDaUnidade } from '../escala/horarios.ts';
+import { alocacoesDaJanela, EXPEDIENTE, horariosDaUnidade, somarOutrasUnidades, type HorariosDeChoque } from '../escala/horarios.ts';
 
 const hhmm = (min: number) => `${String(Math.floor(min / 60)).padStart(2, '0')}:${String(min % 60).padStart(2, '0')}`;
 const diaMes = (d: string) => `${d.slice(8)}/${d.slice(5, 7)}`;
@@ -98,8 +98,7 @@ export async function montarPainelDoDia(c: Consulta, unidadeId: string, militarI
     acumulaCom: acumulos.filter((x) => x.alocacao_id === a.id).map((x) => `${x.funcao} ${x.guarnicao}`),
   }));
 
-  const { horarios, tipos } = await horariosDaUnidade(c, unidadeId);
-  const choques = await frasesDeChoque(c, unidadeId, militarId, jornada, data, horarios, tipos);
+  const choques = await frasesDeChoque(c, unidadeId, militarId, jornada, data, await horariosDaUnidade(c, unidadeId));
 
   const opcoes = afastamento ? [] : await opcoesDoDia(c, unidadeId, militarId, data, mes, cnhParaEscala(m));
 
@@ -111,17 +110,13 @@ export async function montarPainelDoDia(c: Consulta, unidadeId: string, militarI
 
 /** Os choques que tocam o dia, como frases. Usa as alocações do dia anterior ao seguinte e o expediente implícito do Adm. */
 async function frasesDeChoque(
-  c: Consulta, unidadeId: string, militarId: string, jornada: 'pronto' | 'adm', data: string,
-  horarios: Record<string, { ini: number; fim: number; dur: number }>, tipos: Record<string, string>,
+  c: Consulta, unidadeId: string, militarId: string, jornada: 'pronto' | 'adm', data: string, regras: HorariosDeChoque,
 ): Promise<string[]> {
-  const janela = (
-    await c.query<{ data: string; nome: string; letra: string }>(
-      `select to_char(a.data, 'YYYY-MM-DD') as data, s.nome, t.letra from alocacao a join turno t on t.id = a.turno_id join servico s on s.id = a.servico_id
-        where a.militar_id = $1 and s.unidade_id = $2 and a.data between $3::date and $4::date`,
-      [militarId, unidadeId, somarDias(data, -1), somarDias(data, 1)],
-    )
-  ).rows;
-  const existentes: AlocChoque[] = janela.map((a) => ({ mat: militarId, dia: a.data, turno: a.letra, servico: a.nome }));
+  const { horarios } = regras;
+  // 6.37: o choque olha todas as unidades (o serviço de outra seção leva a sigla: "Pronto (2ª SB)")
+  const janela = await alocacoesDaJanela(c, [militarId], somarDias(data, -1), somarDias(data, 1), unidadeId);
+  somarOutrasUnidades(regras, janela);
+  const existentes: AlocChoque[] = janela.map((a) => ({ mat: militarId, dia: a.data, turno: a.letra, servico: a.servico }));
   const expediente: AlocChoque[] = [];
   if (jornada === 'adm') {
     const feriados = new Set<string>();
@@ -143,7 +138,7 @@ async function frasesDeChoque(
     return h ? textoFaixa(hhmm(h.ini % 1440), hhmm((h.ini + h.dur) % 1440)) : '';
   };
   const lado = (l: Choque['a']) => `${l.servico} ${l.turno} (${faixa(l.servico, l.turno)})${l.dia === data ? '' : ` do dia ${diaMes(l.dia)}`}`;
-  return detectarChoques([...existentes, ...expediente], horarios, { tipos })
+  return detectarChoques([...existentes, ...expediente], horarios, { tiramDoExpediente: regras.tiramDoExpediente })
     .choques.filter((x) => x.a.dia === data || x.b.dia === data)
     .map((x) => {
       if (x.tipo === 'expediente') return `Choque com o expediente (${faixa(EXPEDIENTE.servico, EXPEDIENTE.turno)}): ${lado(x.a.implicito ? x.b : x.a)}`;
