@@ -1,6 +1,7 @@
 import type { CardDaGuarnicao as Card, FuncaoNoCard, OcupanteDaVaga } from 'contratos';
 import { CartaoDaGuarnicao, FuncaoDoCartao } from '@/componentes/CartaoDaGuarnicao';
 import { Encaixe } from '@/componentes/Encaixe';
+import { NumeroDaCota } from '@/componentes/CotaDeSaldo';
 import { Placa, type AcaoDaPlaca } from '@/componentes/Placa';
 import { listaComE, nomeDaVaga } from '@/lib/escala';
 
@@ -16,6 +17,7 @@ export function PlacaDoOcupante({ o, vaga, acoes }: { o: OcupanteDaVaga; vaga: s
       matricula={o.matricula}
       servico={{ nome: o.servico.nome, cor: o.servico.cor }}
       acumulaCom={o.acumulaCom.length > 0 ? listaComE(o.acumulaCom) : undefined}
+      depoisDoServico={o.saldos ? <NumeroDaCota feitos={o.saldos.feitos} total={o.saldos.total} /> : undefined}
       acoes={acoes}
       rotuloDasAcoes={`Ações de ${o.nomeGuerra} em ${vaga}`}
     />

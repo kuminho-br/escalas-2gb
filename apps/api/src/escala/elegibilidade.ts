@@ -27,6 +27,7 @@ import { versaoNoMes } from '../cadastros/guarnicoes-regras.ts';
 import { versoesDasGuarnicoes } from '../cadastros/guarnicoes.ts';
 import { somarDias } from '../datas.ts';
 import { alocacoesDaJanela, type AlocacaoDaJanela, EXPEDIENTE, horariosDaUnidade, somarOutrasUnidades, type Tipo } from './horarios.ts';
+import { cotasDeSaldo } from './cota-de-saldo.ts';
 import { nomeDaVaga } from './vagas.ts';
 
 /** `tirarDoExpediente` (6.38): o escalante decidiu pôr o serviço por cima do expediente do dia; vale só para o serviço cadastrado com a opção. */
@@ -280,6 +281,13 @@ export async function avaliarCandidatos(c: Consulta, v: VagaConsultada, quem?: {
   const acumular = acumulando.map(({ a, alocacaoId, vaga }) => ({
     alocacaoId, militarId: a.candidato.militarId, posto: a.candidato.posto, nomeGuerra: a.candidato.nomeGuerra, matricula: a.candidato.matricula, vaga,
   }));
+  // a cota de saldo do Adm à vista (6.38): só quem é do Adm, numa consulta só
+  const doAdm = [...aptos, ...emChoque, ...semVoluntariado].filter((x) => x.jornada === 'adm');
+  if (doAdm.length) {
+    const unidadeId = (await c.query<{ unidade_id: string }>('select unidade_id from escala where id = $1', [v.escalaId])).rows[0]!.unidade_id;
+    const cotas = await cotasDeSaldo(c, unidadeId, doAdm.map((x) => x.militarId), v.data.slice(0, 7));
+    for (const x of doAdm) x.saldos = cotas.get(x.militarId)!;
+  }
   return { aptos, emChoque, semVoluntariado, fora, acumular };
 }
 

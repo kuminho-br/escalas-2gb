@@ -337,6 +337,27 @@ describe('grade geral: as colunas finais', () => {
   });
 });
 
+describe('a cota de saldo na Grade geral (6.38)', () => {
+  it('a linha do Adm traz a barra da cota na frente da matrícula, com o leitor de tela dizendo "{n} de {total} saldos no mês"; a do Pronto não tem barra', async () => {
+    const g: GradeDoMes = {
+      ...GRADE,
+      grupos: [
+        { chave: 'eq-alfa', nome: 'Alfa', linhas: [linha('CABO')] },
+        { chave: 'adm', nome: 'Adm', linhas: [linha('ADM', { jornada: 'adm', saldos: { feitos: 2, total: 6 } }), linha('SOBRA', { jornada: 'adm', saldos: { feitos: 7, total: 6 } })] },
+      ],
+    };
+    api(g);
+    abrir(`/?mes=${MES}`);
+    await screen.findByRole('table', { name: 'Grade geral de dezembro de 2026' });
+    const barra = within(linhaDe('ADM')).getByRole('img', { name: '2 de 6 saldos no mês' });
+    // na frente da matrícula: a barra é a primeira coisa da linha da matrícula
+    const matricula = within(linhaDe('ADM')).getByText('990001-1');
+    expect(matricula.firstElementChild).toBe(barra);
+    expect(within(linhaDe('SOBRA')).getByRole('img', { name: '7 de 6 saldos no mês' })).toHaveAttribute('data-estado', 'acima');
+    expect(within(linhaDe('CABO')).queryByRole('img')).toBeNull();
+  });
+});
+
 describe('grade geral: o filtro de equipes e o clique', () => {
   it('"Bravo" esconde os outros grupos, fica na busca e a barra continua comparando com todo o efetivo', async () => {
     api();

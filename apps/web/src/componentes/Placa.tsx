@@ -29,6 +29,10 @@ export type PropsDaPlaca = {
   servicoSoSeAmplo?: boolean;
   /** Algo à direita do nome (o horário do trecho). */
   extra?: ReactNode;
+  /** Na frente da matrícula (a barra da cota de saldo do Adm, 6.38). */
+  antesDaMatricula?: ReactNode;
+  /** Ao lado do nome do serviço, na ponta direita (o "2/6" da cota de saldo, 6.38). */
+  depoisDoServico?: ReactNode;
   role?: string;
   className?: string;
   style?: CSSProperties;
@@ -41,7 +45,7 @@ export const ehServicoPronto = (nome: string) => nome.trim().toLowerCase() === '
  * A placa do sistema de estilo: um militar num lugar. Altura de controle, borda de 1 px `linha`, raio de controle, sombra apoiada e a faixa do serviço de 5 px à esquerda.
  * Patente em 13 px, nome em 17 px estreita pela linha de base; quem corta, com reticências, é o nome. Os três pontos das ações ficam sempre à mostra.
  */
-export function Placa({ patente, nome, matricula, servico, acumulaCom, estado = 'normal', choque, acoes, rotuloDasAcoes, aoClicar, rotuloAcessivel, dica: dicaDeFora, servicoSoSeAmplo, extra, role, className, style }: PropsDaPlaca) {
+export function Placa({ patente, nome, matricula, servico, acumulaCom, estado = 'normal', choque, acoes, rotuloDasAcoes, aoClicar, rotuloAcessivel, dica: dicaDeFora, servicoSoSeAmplo, extra, antesDaMatricula, depoisDoServico, role, className, style }: PropsDaPlaca) {
   const idDoChoque = useId();
   const dica = dicaDeFora ?? [`${patente} ${nome}`, matricula, servico?.nome].filter(Boolean).join(', ');
   const aoLado = acumulaCom ? `acumula com ${acumulaCom}` : servico && !ehServicoPronto(servico.nome) ? servico.nome : null;
@@ -61,9 +65,10 @@ export function Placa({ patente, nome, matricula, servico, acumulaCom, estado = 
         <span className="shrink-0 text-apoio font-medium text-apagado">{patente}</span>
         <span className="min-w-0 truncate font-cond text-nome font-semibold tracking-[0.01em]">{nome}</span>
       </span>
+      {antesDaMatricula}
       {matricula && <span className="shrink-0 text-apoio text-apagado">{matricula}</span>}
       {extra}
-      {aoLado && <span className={cn('ml-auto shrink-0 pl-1 text-apoio text-apagado', servicoSoSeAmplo && 'hidden @min-[14rem]:inline')}>{aoLado}</span>}
+      {aoLado && <span className={cn('ml-auto shrink-0 pl-1 text-apoio text-apagado', servicoSoSeAmplo && 'hidden @min-[14rem]:inline')}>{aoLado}{depoisDoServico && <span className="ml-1.5">{depoisDoServico}</span>}</span>}
     </>
   );
   const placa = aoClicar ? (

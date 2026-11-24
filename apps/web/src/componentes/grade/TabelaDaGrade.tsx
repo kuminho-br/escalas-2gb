@@ -3,6 +3,7 @@ import { ChevronDown, ChevronRight } from 'lucide-react';
 import { Fragment, useEffect, useRef } from 'react';
 import { hoje } from '@/lib/meses';
 import { cn } from '@/lib/utils';
+import { CotaDeSaldo } from '@/componentes/CotaDeSaldo';
 import { BarraComparativa } from './BarraComparativa';
 import { CelulaDaGrade } from './CelulaDaGrade';
 
@@ -121,7 +122,10 @@ export function TabelaDaGrade({ grade, grupos, maximos, escolhida, aoEscolher, r
                       <span className="text-sm text-apagado">{l.posto}</span>
                       <strong className="text-[15px] leading-tight font-semibold">{l.nomeGuerra}</strong>
                     </span>
-                    <span className="block text-xs text-apagado">{l.matricula}</span>
+                    <span className="flex items-center gap-1.5 text-xs text-apagado">
+                      {l.saldos && <CotaDeSaldo feitos={l.saldos.feitos} total={l.saldos.total} />}
+                      {l.matricula}
+                    </span>
                   </th>
                   {grade.dias.map((d, i) => {
                     const fds = d.diaDaSemana === 0 || d.diaDaSemana === 6;

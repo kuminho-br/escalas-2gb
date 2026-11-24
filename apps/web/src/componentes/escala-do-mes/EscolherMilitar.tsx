@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { mensagemDe } from '@/api/cliente';
 import { acumular, consultaCandidatos, desfazerResolucao, escalar, escalarResolvendoChoque } from '@/api/escala-do-mes';
 import { useTrava } from '@/componentes/AlteracoesPendentes';
+import { CotaDeSaldo } from '@/componentes/CotaDeSaldo';
 import { Placa } from '@/componentes/Placa';
 import { useAviso } from '@/componentes/resposta/useAviso';
 import { useConfirmar } from '@/componentes/resposta/useConfirmar';
@@ -94,7 +95,10 @@ export function EscolherMilitar({ escalaId, vaga, aoFechar }: { escalaId: string
         >
           <span className="text-xs text-apagado">{c.posto}</span>
           <span className="font-cond text-base font-semibold">{c.nomeGuerra}</span>
-          <span className="text-xs text-apagado">{c.matricula}</span>
+          <span className="flex items-center gap-1.5 text-xs text-apagado">
+            {c.saldos && <CotaDeSaldo feitos={c.saldos.feitos} total={c.saldos.total} />}
+            {c.matricula}
+          </span>
           <span className="text-xs text-apagado">{c.equipe ?? 'Adm'}</span>
         </button>
         {c.servicos.length > 1 && (
@@ -200,7 +204,10 @@ function ItemEmChoque({ c, dataDaVaga, salvando, aoResolver }: { c: CandidatoEmC
   const botao = ch.tipo === 'alocacao' ? `Tirar de ${ch.servico} e escalar aqui` : 'Tirar do expediente e escalar aqui';
   return (
     <li className="grid gap-1.5">
-      <Placa patente={c.posto} nome={c.nomeGuerra} matricula={c.matricula} estado="choque" choque={frase} />
+      <Placa
+        patente={c.posto} nome={c.nomeGuerra} matricula={c.matricula} estado="choque" choque={frase}
+        antesDaMatricula={c.saldos ? <CotaDeSaldo feitos={c.saldos.feitos} total={c.saldos.total} /> : undefined}
+      />
       {ch.podeResolver && (
         <Button type="button" variant="secundario" size="sm" disabled={salvando} aria-label={`${botao}: ${c.posto} ${c.nomeGuerra}`} onClick={() => aoResolver(s)} className="justify-self-start">
           {botao}

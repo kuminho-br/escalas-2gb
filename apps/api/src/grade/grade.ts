@@ -15,6 +15,7 @@ import type { Consulta } from '../banco/banco.ts';
 import { feriadosDoAno } from '../cadastros/feriados.ts';
 import { somarDias } from '../datas.ts';
 import { alocacoesDaJanela, EXPEDIENTE, horariosDaUnidade, somarOutrasUnidades, type Tipo } from '../escala/horarios.ts';
+import { cotasDeSaldo } from '../escala/cota-de-saldo.ts';
 import { PODE_SER_ESCALADO, SO_QBMG_OU_SEM_QUADRO } from '../escala/quadros-da-escala.ts';
 
 type Pessoa = { id: string; matricula: string; nomeGuerra: string; posto: string; postoOrdem: number; antiguidade: number | null; ativo: boolean };
@@ -101,6 +102,8 @@ export async function montarGradeDoMes(c: Consulta, unidadeId: string, mes: stri
   const deOutras = (await alocacoesDaJanela(c, ids, antes, depois, unidadeId)).filter((a) => a.outra);
   somarOutrasUnidades(regras, deOutras);
   const tiram = new Set(regras.tiramDoExpediente.map(normalizar));
+  // a cota de saldo à vista (6.38): a linha do Adm mostra quantos Saldos ele tem no mês, de quanto é a cota
+  const cotas = await cotasDeSaldo(c, unidadeId, ids, mes);
 
   const util = (d: string) => diaDaSemana(d) >= 1 && diaDaSemana(d) <= 5 && !feriados.has(d);
   const afastado = (id: string, d: string) => afastamentos.some((a) => a.militar_id === id && a.inicio <= d && a.fim >= d);
@@ -156,7 +159,7 @@ export async function montarGradeDoMes(c: Consulta, unidadeId: string, mes: stri
 
     const doTipo = dele.filter((a) => doMes(a.data, mes) && (a.tipo === 'pjes' || a.tipo === 'diaria'));
     return {
-      militarId: p.id, posto: p.posto, nomeGuerra: p.nomeGuerra, matricula: p.matricula, jornada,
+      militarId: p.id, posto: p.posto, nomeGuerra: p.nomeGuerra, matricula: p.matricula, jornada, ...(jornada === 'adm' ? { saldos: cotas.get(p.id) } : {}),
       dias: blocos, choques: [...marcados].sort(),
       pjes: doTipo.filter((a) => a.tipo === 'pjes').length,
       diarias: doTipo.filter((a) => a.tipo === 'diaria').length,

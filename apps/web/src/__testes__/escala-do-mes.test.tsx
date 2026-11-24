@@ -461,6 +461,39 @@ describe('escolher militar e remover', () => {
     expect(within(secaoDoDia(2)).getAllByText('ZULU').length).toBeGreaterThan(0);
   });
 
+  describe('a cota de saldo (6.38)', () => {
+    it('na lista de candidatos, o militar do Adm traz a barra na frente da matrícula; o do Pronto não', async () => {
+      const comCota = {
+        ...CANDIDATOS,
+        aptos: [CANDIDATOS.aptos[0], { ...CANDIDATOS.aptos[1], saldos: { feitos: 2, total: 6 } }],
+      };
+      api(ESCALA, { [rotaCandidatos]: { status: 200, corpo: comCota } });
+      abrir('/escala-do-mes');
+      await screen.findByRole('region', { name: 'Dia 2' });
+      const dialogo = await abrirVaga();
+      const yuri = (await within(dialogo).findByRole('button', { name: /YURI/ })).closest('li')!;
+      const barra = within(yuri).getByRole('img', { name: '2 de 6 saldos no mês' });
+      expect(within(yuri).getByText('990003-3').firstElementChild).toBe(barra);
+      expect(within((await within(dialogo).findByRole('button', { name: /ZULU/ })).closest('li')!).queryByRole('img')).toBeNull();
+    });
+
+    it('na placa do ocupante de Saldo, o número "2/6" fica ao lado da etiqueta do Saldo; acima do total é "7/6"; o Pronto não traz número', async () => {
+      const doSaldo = (nome: string, saldos?: { feitos: number; total: number }): OcupanteDaVaga => ({ ...ocupante(nome), servico: { id: 's3', nome: 'Saldo', cor: '#2B7BB9' }, ...(saldos ? { saldos } : {}) });
+      const c = card(true, true);
+      c.funcoes[0]!.ocupantes = [doSaldo('MOTOR', { feitos: 2, total: 6 })];
+      c.funcoes[1]!.ocupantes = [doSaldo('COMB', { feitos: 7, total: 6 }), ocupante('PRONTOX')];
+      const escala: EscalaDoMes = { ...ESCALA, dias: ESCALA.dias.map((d, i) => (i !== 1 ? d : { ...d, faixas: [faixa(false, c), d.faixas[1]!] })) };
+      api(escala);
+      abrir('/escala-do-mes');
+      const regiao = await screen.findByRole('region', { name: 'Dia 2' });
+      const placa = (nome: string) => within(regiao).getAllByText(nome)[0]!.closest('[data-placa]') as HTMLElement;
+      expect(within(placa('MOTOR')).getByText('2/6')).toBeInTheDocument();
+      expect(placa('MOTOR').textContent).toMatch(/2\/6/);
+      expect(within(placa('COMB')).getByText('7/6')).toHaveClass('text-pendencia');
+      expect(within(placa('PRONTOX')).queryByText(/\d\/\d/)).toBeNull();
+    });
+  });
+
   describe('resolver o choque (6.38)', () => {
     const doDia = `${MES}-02`;
     const alocacao = (extra: Record<string, unknown> = {}) => ({ tipo: 'alocacao', alocacaoId: 'a-jes', servico: 'JES', data: doDia, inicio: '09:00', fim: '17:00', escala: 'Extra', unidadeSigla: '1ª SB', podeResolver: true, ...extra });
@@ -471,7 +504,7 @@ describe('escolher militar e remover', () => {
         { militarId: 'm-xavier', posto: 'SD', nomeGuerra: 'XAVIER', matricula: '990004-4', equipe: 'Alfa', jornada: 'pronto', servicos: [{ servicoId: 's1', turnoId: 't-a', nome: 'Pronto', choque: alocacao() }] },
         { militarId: 'm-walter', posto: 'SD', nomeGuerra: 'WALTER', matricula: '990005-5', equipe: 'Alfa', jornada: 'pronto', servicos: [{ servicoId: 's1', turnoId: 't-a', nome: 'Pronto', choque: alocacao({ alocacaoId: 'a-gb', escala: 'Ordinário', unidadeSigla: '2º GB', podeResolver: false }) }] },
         {
-          militarId: 'm-admir', posto: 'CB', nomeGuerra: 'ADMIR', matricula: '990006-6', equipe: null, jornada: 'adm',
+          militarId: 'm-admir', posto: 'CB', nomeGuerra: 'ADMIR', matricula: '990006-6', equipe: null, jornada: 'adm', saldos: { feitos: 3, total: 6 },
           servicos: [
             { servicoId: 's3', turnoId: 't-saldo', nome: 'Saldo', choque: { tipo: 'expediente', data: doDia, podeResolver: true } },
             { servicoId: 's1', turnoId: 't-a', nome: 'Pronto', choque: { tipo: 'expediente', data: doDia, podeResolver: false } },
@@ -501,6 +534,7 @@ describe('escolher militar e remover', () => {
       // o Adm: só o Saldo pode tirar do expediente; o Pronto e o JES ficam só com o motivo
       const admir = linhaDe(dialogo, 'ADMIR');
       expect(admir).toHaveTextContent('De expediente neste dia.');
+      expect(within(admir).getByRole('img', { name: '3 de 6 saldos no mês' })).toBeInTheDocument();
       expect(within(admir).getByRole('button', { name: /^Tirar do expediente e escalar aqui/ })).toBeInTheDocument();
       const jes = linhaDe(dialogo, 'JESADM');
       expect(jes).toHaveTextContent('De expediente neste dia.');

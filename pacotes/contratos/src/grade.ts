@@ -1,4 +1,5 @@
 // Grade geral: o mês de todo o efetivo da seção, agrupado em equipes (uma linha por militar, uma coluna por dia).
+import type { SaldosDoMes } from './escala-do-mes.ts';
 
 /** Um bloco de um dia: um serviço escalado (com a letra do turno) ou o expediente implícito do Adm (sem alocação, sem serviço e sem letra). */
 export type BlocoDaGrade = {
@@ -27,6 +28,8 @@ export type LinhaDaGrade = {
   /** em minutos: o que ele tirou em PJES e Diária no mês, e o que marcou no voluntariado do mês */
   horasTiradas: number;
   horasPedidas: number;
+  /** só na linha do Adm: a cota de saldo do mês, a barra na frente da matrícula */
+  saldos?: SaldosDoMes;
 };
 
 /** `chave`: o id da equipe, 'sem-equipe', 'adm' ou 'outras' (escalados na seção, lotados em outra unidade). */

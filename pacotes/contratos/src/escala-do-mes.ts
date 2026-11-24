@@ -28,6 +28,9 @@ export type NovaAlocacao = z.infer<typeof NovaAlocacao>;
 export const NovoAcumulo = z.object({ guarnicaoId: Id, funcaoId: Id });
 export type NovoAcumulo = z.infer<typeof NovoAcumulo>;
 
+/** A cota de saldo do militar do Adm no mês (6.38): quantos Saldos ele tem (em qualquer escala) e o total do parâmetro "Saldos por militar do Adm". `feitos` pode passar de `total`. */
+export type SaldosDoMes = { feitos: number; total: number };
+
 export type OcupanteDaVaga = {
   alocacaoId: string;
   /** null = a vaga original da alocação; senão, o id do acúmulo */
@@ -38,6 +41,8 @@ export type OcupanteDaVaga = {
   matricula: string;
   servico: { id: string; nome: string; cor: string };
   letra: LetraTurno;
+  /** só no ocupante de Saldo (do Adm): a cota do mês ao lado da etiqueta do Saldo */
+  saldos?: SaldosDoMes;
   /** as outras vagas do mesmo militar na faixa: "Chefe ABT" (função e guarnição) ou só o nome da guarnição quando ela tem uma função só */
   acumulaCom: string[];
 };
@@ -109,6 +114,8 @@ export type Candidato = {
   matricula: string;
   equipe: string | null;
   jornada: 'pronto' | 'adm';
+  /** só no militar do Adm: a cota de saldo do mês, a barra na frente da matrícula */
+  saldos?: SaldosDoMes;
   /** serviços da escala em que ele pode entrar nesta faixa, na ordem da escala */
   servicos: { servicoId: string; turnoId: string; nome: string }[];
 };
