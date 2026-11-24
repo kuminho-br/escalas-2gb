@@ -57,7 +57,10 @@ export async function avaliarFaixa(c: Consulta, v: VagaConsultada, somenteMilita
   ).rows.map((t): TurnoDaFaixa => ({ turnoId: t.id, servicoId: t.servico_id, nome: t.nome, tipo: t.tipo, letra: t.letra, inicio: t.inicio, fim: t.fim }));
 
   // quem tem lotação na seção em algum momento do mês da vaga (ou só o militar pedido)
-  const lotados = (
+  // (uma consulta só, com os externos em `union all`: o painel do dia conta as consultas)
+  // os externos: militares de outra unidade que o gestor trouxe (vinculo_externo) e cujo vínculo vale em algum dia do mês da vaga. Os dados dele (jornada, situação,
+  // quadro) são do período de rastreio que vale no dia, na lotação dele; a equipe é "Externo"; `lotado_no_dia` é o vínculo cobrir o dia
+  const pool = (
     await c.query<{
       id: string; matricula: string; nome_guerra: string; ativo: boolean; situacao: string; motorista: boolean; cnh: string[]; voluntario_jes: boolean; posto: string; posto_ordem: number; antiguidade: number | null;
       jornada: 'pronto' | 'adm'; equipe: string | null; lotado_no_dia: boolean; quadro: string | null; externo: boolean;
@@ -71,15 +74,9 @@ export async function avaliarFaixa(c: Consulta, v: VagaConsultada, somenteMilita
          left join quadro q on q.id = l.quadro_id
         where ($3::uuid is null or m.id = $3)
           and l.desde <= (date_trunc('month', $2::date) + interval '1 month' - interval '1 day')::date
-          and (l.ate is null or l.ate >= date_trunc('month', $2::date)::date)`,
-      [unidadeId, v.data, somenteMilitar ?? null],
-    )
-  ).rows;
-  // os externos: militares de outra unidade que o gestor trouxe (vinculo_externo) e cujo vínculo vale em algum dia do mês da vaga. Os dados dele (jornada, situação,
-  // quadro) são do período de rastreio que vale no dia, na lotação dele; a equipe é "Externo"; `lotado_no_dia` é o vínculo cobrir o dia
-  const externos = (
-    await c.query<(typeof lotados)[number]>(
-      `select m.id, m.matricula, m.nome_guerra, sm.escalavel as ativo, sm.nome as situacao, m.motorista, m.cnh, m.voluntario_jes, p.sigla as posto, p.ordem as posto_ordem, m.antiguidade,
+          and (l.ate is null or l.ate >= date_trunc('month', $2::date)::date)
+       union all
+       select m.id, m.matricula, m.nome_guerra, sm.escalavel as ativo, sm.nome as situacao, m.motorista, m.cnh, m.voluntario_jes, p.sigla as posto, p.ordem as posto_ordem, m.antiguidade,
               l.jornada, 'Externo' as equipe, q.sigla as quadro, (ve.desde <= $2::date and (ve.ate is null or ve.ate >= $2::date)) as lotado_no_dia, true as externo
          from vinculo_externo ve
          join militar m on m.id = ve.militar_id join posto_grad p on p.id = m.posto_grad_id
@@ -93,7 +90,6 @@ export async function avaliarFaixa(c: Consulta, v: VagaConsultada, somenteMilita
       [unidadeId, v.data, somenteMilitar ?? null],
     )
   ).rows;
-  const pool = [...lotados, ...externos];
   // um militar com duas lotações no mês vale pela que cobre o dia
   const porMilitar = new Map<string, (typeof pool)[number]>();
   for (const m of pool) if (!porMilitar.has(m.id) || m.lotado_no_dia) porMilitar.set(m.id, m);
