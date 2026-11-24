@@ -17,6 +17,8 @@ export interface DefParametro {
   descricao?: string;
 }
 
+// Porte do protótipo: os casos gravados (casos/) usam este catálogo inteiro. `ADM_CUMPRE_CARGA` continua aqui só por isso: no sistema novo (6.37) o
+// choque de horário vale para todos e o parâmetro não é oferecido nem lido (a API não o lista: `CHAVES_SISTEMA`).
 export const PARAM_CATALOGO: DefParametro[] = [
   {
     chave: 'CARGA_MENSAL_HORAS', grupo: 'Carga mensal', rotulo: 'Carga mensal (horas)', tipo: 'inteiro', padrao: 160, min: 1, max: 744,
