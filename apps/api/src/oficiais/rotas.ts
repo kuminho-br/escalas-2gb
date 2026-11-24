@@ -266,13 +266,10 @@ export function rotasOficiais(dep: { banco: Banco; auth: Auth }): Hono<AmbienteA
       await garantirMes(tx, rod);
       const linha = (await linhaDoMes(tx, rod.escalaId, rod.mes, true))!;
       if (linha.fechada_em) throw new Recusa(409, MSG_PARTICIPANTES_FECHADOS);
-      // quem já estava na rodada (marcado ou com cota) e deixou de ser elegível pode vir na lista da tela: ele só sai da rodada.
-      // Quem nunca esteve nela e não é elegível é recusado.
-      const naRodada = new Set([
-        ...(await marcasDoMes(tx, rod.escalaId, a.mes, linha.id)).marcados,
-        ...(await tx.query<{ militar_id: string }>('select militar_id from oficiais_cota where mes_id = $1', [linha.id])).rows.map((x) => x.militar_id),
-      ]);
-      if (marcar.some((id) => !elegiveis.has(id) && !naRodada.has(id))) throw new Recusa(400, MSG_NAO_ELEGIVEL);
+      // quem tem lançamento no mês e deixou de ser elegível ainda vem na lista da tela (o lançamento não some): ele só sai da rodada.
+      // Os outros que não são elegíveis (de uma unidade acima, por exemplo) são recusados.
+      const comLancamento = new Set((await lancamentosDoMes(tx, rod.escalaId, a.mes)).map((l) => l.militarId));
+      if (marcar.some((id) => !elegiveis.has(id) && !comLancamento.has(id))) throw new Recusa(400, MSG_NAO_ELEGIVEL);
       const ficam = marcar.filter((id) => elegiveis.has(id));
       await tx.query('delete from oficiais_participante where mes_id = $1 and not (militar_id = any($2::uuid[]))', [linha.id, ficam]);
       await tx.query('insert into oficiais_participante (mes_id, militar_id) select $1, unnest($2::uuid[]) on conflict do nothing', [linha.id, ficam]);

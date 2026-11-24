@@ -173,6 +173,9 @@ export async function lerEscala(c: Consulta, unidadeId: string, mes: string, esc
     ).rows.map((r) => ({ militarId: r.militar_id, ordem: r.ordem, dias: r.dias, devido: Number(r.devido), cota: r.cota, sobra: r.sobra }));
   }
   if (escala) lancados = await lancamentosDoMes(c, escala.id, mes);
+  // quem a cota gravada ainda traz mas já não é elegível (lotado numa unidade acima, ou de antes da regra) deixa de aparecer, a menos que tenha lançamento no mês: o lançamento não some
+  const comLancamento = new Set(lancados.map((l) => l.militarId));
+  cotas = cotas.filter((x) => porId.has(x.militarId) || comLancamento.has(x.militarId));
   const ehJes = (l: Lancamento) => l.servicoId === servicos.jes?.id;
   const diasVermelhos = escala ? await diasVermelhosDoMes(c, escala.id, mes) : [];
   const ehVermelho = new Set(diasVermelhos);
