@@ -9,6 +9,7 @@ import type { Auth } from '../auth.ts';
 import { comUsuario, type Banco, type Consulta } from '../banco/banco.ts';
 import { hojeRecife } from '../datas.ts';
 import { lerCorpo, respostaDoErroDoBanco } from '../erros.ts';
+import { choqueDoLancamento } from '../escala/choque-do-lancamento.ts';
 import { escolherEscala, lancamentosDoMes, lerEscala, lerSaldo, linhaDoMes, servicosDaRodada, turnosDoServico, type LinhaDoMes } from './leitura.ts';
 import { afastamentosDoMes, copiarMarcasDoMesAnterior, elegiveisDoMes, limitesDoMes, marcasDoMes, postoCurto } from './participantes.ts';
 
@@ -30,7 +31,8 @@ const MSG_LUGAR_FORA_DO_MES = 'Este dia não é do mês escolhido.';
 const MSG_LANCAMENTO_FORA_DO_MES = 'Este lançamento não é deste mês.';
 
 class Recusa extends Error {
-  constructor(readonly status: 400 | 409, mensagem: string) {
+  /** `extra`: o que a tela precisa além da frase (a decisão de pôr o serviço por cima do expediente, 6.39) */
+  constructor(readonly status: 400 | 409, mensagem: string, readonly extra?: Record<string, unknown>) {
     super(mensagem);
   }
 }
@@ -290,7 +292,7 @@ export function rotasOficiais(dep: { banco: Banco; auth: Auth }): Hono<AmbienteA
       });
       return c.json(escala);
     } catch (e) {
-      if (e instanceof Recusa) return c.json({ erro: e.message }, e.status);
+      if (e instanceof Recusa) return c.json({ erro: e.message, ...e.extra }, e.status);
       return respostaDoErroDoBanco(c, e);
     }
   }
@@ -432,7 +434,7 @@ export function rotasOficiais(dep: { banco: Banco; auth: Auth }): Hono<AmbienteA
     if (sem) return sem;
     const corpo = await lerCorpo(c, Lancamento);
     if (!corpo.ok) return corpo.resposta;
-    const { dia, letra, servico, militarId } = corpo.dados;
+    const { dia, letra, servico, militarId, resolverChoque } = corpo.dados;
     if (!diasDoMes(a.mes).includes(dia)) return c.json({ erro: MSG_LUGAR_FORA_DO_MES }, 400);
     const rod = { unidadeId: a.u, escalaId: a.escala!.id, mes: a.mes };
     return mudar(c, rod, async (tx) => {
@@ -456,6 +458,12 @@ export function rotasOficiais(dep: { banco: Banco; auth: Auth }): Hono<AmbienteA
       const afast = (await afastamentosDoMes(tx, [militarId], rod.mes)).get(militarId)?.find((x) => x.inicio <= dia && dia <= x.fim);
       if (afast) throw new Recusa(409, `${await rotuloDoMilitar(tx, militarId)} está afastado em ${dia.slice(8)}/${dia.slice(5, 7)} (${afast.tipo}) e não pode ficar com este turno.`);
       const atual = (await lancamentosDoMes(tx, rod.escalaId, rod.mes)).find((l) => l.dia === dia && l.letra === letra);
+      // o choque de horário vale aqui como em toda escala (6.37): o serviço em outro lugar no mesmo horário, ou o expediente do Adm. O Saldo (que pode tirar do expediente)
+      // pede a decisão do escalante: a recusa diz `resolvivel` e o pedido volta com `resolverChoque`
+      if (!atual || atual.militarId !== militarId) {
+        const choque = await choqueDoLancamento(tx, { unidadeId: rod.unidadeId, militarId, data: dia, turnoId: turno.id, tirarDoExpediente: !!resolverChoque, usuarioId: c.get('usuarioId'), hoje: hojeRecife() });
+        if (choque) throw new Recusa(409, choque.motivo, choque.podeResolver ? { resolvivel: 'expediente' } : undefined);
+      }
       let foraDaOrdem: string | undefined;
       if (servico === 'saldo' && !atual) foraDaOrdem = await avisoDeOrdem(tx, rod, linha, militarId);
       if (!atual) {

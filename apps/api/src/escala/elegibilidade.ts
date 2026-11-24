@@ -26,7 +26,7 @@ import { feriadosDoAno } from '../cadastros/feriados.ts';
 import { versaoNoMes } from '../cadastros/guarnicoes-regras.ts';
 import { versoesDasGuarnicoes } from '../cadastros/guarnicoes.ts';
 import { somarDias } from '../datas.ts';
-import { alocacoesDaJanela, type AlocacaoDaJanela, EXPEDIENTE, horariosDaUnidade, somarOutrasUnidades, type Tipo } from './horarios.ts';
+import { alocacoesDaJanela, type AlocacaoDaJanela, EXPEDIENTE, horariosDaUnidade, type HorariosDeChoque, somarOutrasUnidades, type Tipo } from './horarios.ts';
 import { cotasDeSaldo } from './cota-de-saldo.ts';
 import { nomeDaVaga } from './vagas.ts';
 
@@ -171,25 +171,13 @@ export async function avaliarFaixa(c: Consulta, v: VagaConsultada, somenteMilita
         if (violacoesSaldo([{ mat: m.id, dia: v.data, servico: turno.nome, turno: turno.letra }], { adm: m.jornada === 'adm' ? { [m.id]: true } : {} }).length) motivo = 'Saldo só para militar do Adm';
         else if ((turno.tipo === 'pjes' || exigeVoluntarioJes(turno.nome)) && !m.voluntario_jes) motivo = 'Não é voluntário JES';
         else {
-          // a candidata entra no motor com outro nome: o serviço que pode tirar o militar do expediente, lançado agora, continua sendo choque (a resolução é da 6.38);
-          // só o que já está gravado tira o expediente do dia
-          // (a 6.38: se o escalante decidiu pôr o serviço por cima do expediente, e o serviço pode, a candidata entra com o nome de verdade e tira o expediente)
-          const poePorCima = !!v.tirarDoExpediente && turno.tira;
-          const candidata: AlocChoque = { mat: m.id, dia: v.data, turno: turno.letra, servico: poePorCima ? turno.nome : `${turno.nome}${NOVA}` };
-          horarios[`${candidata.servico}|${turno.letra}`] = horarios[`${turno.nome}|${turno.letra}`]!;
-          const chave = chaveAloc(candidata);
-          const { choques } = detectarChoques([...existentes, ...expediente, candidata], horarios, { tiramDoExpediente: regras.tiramDoExpediente });
-          const dela = choques.filter((x) => x.a.chave === chave || x.b.chave === chave);
-          if (dela.length) {
-            motivo = dela.some((x) => x.tipo === 'expediente') ? DE_EXPEDIENTE : 'Choque de horário';
-            const lados = dela.flatMap((x) => [x.a, x.b]).filter((l) => l.chave !== chave && !l.implicito);
-            conflito = {
-              alocacoes: [...new Map(lados.flatMap((l) => (porChave.has(l.chave) ? [[l.chave, porChave.get(l.chave)!] as const] : []))).values()],
-              expediente: dela.some((x) => x.tipo === 'expediente'),
-            };
+          const choque = choqueDoTurno({ militarId: m.id, data: v.data, turno, existentes, expediente, regras, porChave, poePorCima: !!v.tirarDoExpediente && turno.tira });
+          if (choque) {
+            motivo = choque.motivo;
+            conflito = choque.conflito;
           }
           // RN-36: uma diária por dia para o mesmo militar
-          else if (violacoesDiariaUnica([...existentes, { ...candidata, servico: turno.nome }], { tipos }).some((x) => x.chave === chaveAloc({ ...candidata, servico: turno.nome }))) motivo = 'Já tem uma diária neste dia';
+          else if (violacoesDiariaUnica([...existentes, { mat: m.id, dia: v.data, turno: turno.letra, servico: turno.nome }], { tipos }).some((x) => x.chave === chaveAloc({ mat: m.id, dia: v.data, turno: turno.letra, servico: turno.nome }))) motivo = 'Já tem uma diária neste dia';
           // por último: só o voluntariado pode ser contornado pelo escalante (com a flexibilidade do gestor já aplicada)
           // (o externo não marca voluntariado: quem o gestor trouxe já veio para isso)
           else if (turno.tipo !== 'ordinario' && !m.externo && !turnoCoberto((dia) => unirFaixas(disponibilidade.get(`${m.id}|${dia}`) ?? []), v.data, turno.inicio, turno.fim, flexibilidadeMin)) motivo = SEM_VOLUNTARIADO;
@@ -199,6 +187,32 @@ export async function avaliarFaixa(c: Consulta, v: VagaConsultada, somenteMilita
     );
   });
   return { turnos, avaliados };
+}
+
+/**
+ * O choque de um serviço novo com o que o militar já tem (em todas as unidades) e com o expediente do Adm (6.37). A candidata entra no motor com outro nome: o serviço
+ * que pode tirar o militar do expediente, lançado agora, continua sendo choque; só o que já está gravado tira o expediente do dia. Com `poePorCima` (o escalante decidiu,
+ * 6.38, e o serviço pode), a candidata entra com o nome de verdade e tira o expediente. Quem confere o choque (a escala do mês, a dos oficiais) usa esta função.
+ */
+export function choqueDoTurno(d: {
+  militarId: string; data: string; turno: { nome: string; letra: 'A' | 'B' | 'C' }; existentes: AlocChoque[]; expediente: AlocChoque[];
+  regras: HorariosDeChoque; porChave: Map<string, AlocacaoDaJanela>; poePorCima: boolean;
+}): { motivo: string; conflito: Conflito } | null {
+  const { turno, regras } = d;
+  const candidata: AlocChoque = { mat: d.militarId, dia: d.data, turno: turno.letra, servico: d.poePorCima ? turno.nome : `${turno.nome}${NOVA}` };
+  regras.horarios[`${candidata.servico}|${turno.letra}`] = regras.horarios[`${turno.nome}|${turno.letra}`]!;
+  const chave = chaveAloc(candidata);
+  const { choques } = detectarChoques([...d.existentes, ...d.expediente, candidata], regras.horarios, { tiramDoExpediente: regras.tiramDoExpediente });
+  const dela = choques.filter((x) => x.a.chave === chave || x.b.chave === chave);
+  if (!dela.length) return null;
+  const lados = dela.flatMap((x) => [x.a, x.b]).filter((l) => l.chave !== chave && !l.implicito);
+  return {
+    motivo: dela.some((x) => x.tipo === 'expediente') ? DE_EXPEDIENTE : 'Choque de horário',
+    conflito: {
+      alocacoes: [...new Map(lados.flatMap((l) => (d.porChave.has(l.chave) ? [[l.chave, d.porChave.get(l.chave)!] as const] : []))).values()],
+      expediente: dela.some((x) => x.tipo === 'expediente'),
+    },
+  };
 }
 
 const motivoFinal = (a: Avaliado): string | null => a.militarMotivo ?? (a.porTurno.some((t) => t.motivo === null) ? null : (a.porTurno[0]?.motivo ?? 'Não há serviço nesta faixa'));

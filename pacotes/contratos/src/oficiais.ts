@@ -96,7 +96,11 @@ export interface OficialNoSaldo {
 }
 
 /** Um lançamento: o oficial toma o lugar do `dia` na `letra`, como JES ou como Saldo. */
-export const Lancamento = z.object({ dia: Data, letra: z.enum(['A', 'B', 'C', 'U'], 'Escolha o turno.'), servico: z.enum(['jes', 'saldo'], 'Escolha JES ou Saldo.'), militarId: Id });
+/** `resolverChoque` (6.39): o escalante decidiu pôr o serviço por cima do expediente do Adm (só vale para o serviço com a opção "Pode tirar o militar do Adm do expediente"). */
+export const Lancamento = z.object({
+  dia: Data, letra: z.enum(['A', 'B', 'C', 'U'], 'Escolha o turno.'), servico: z.enum(['jes', 'saldo'], 'Escolha JES ou Saldo.'), militarId: Id,
+  resolverChoque: z.object({ expediente: z.literal(true) }).optional(),
+});
 /** Os dias vermelhos do mês: a lista inteira (o que não vem deixa de ser vermelho). Cada dia é validado contra o mês na rota. */
 export const DiasVermelhos = z.object({ dias: z.array(Data).max(31, 'Um mês tem no máximo 31 dias.') });
 /** Marca ou tira um dia vermelho (um por vez: duas telas abertas não se apagam). */

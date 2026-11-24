@@ -2,9 +2,11 @@ import { useQueryClient } from '@tanstack/react-query';
 import type { EscalaDosOficiais, LetraTurno, ServicoDaRodada } from 'contratos';
 import { ChevronDown } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
-import { mensagemDe } from '@/api/cliente';
+import { ErroApi, mensagemDe } from '@/api/cliente';
 import { abrirMes, encerrarMes, fecharEscala, gravarOrdem, gravarParticipantes, lancarNoLugar, marcarDiaVermelho, tirarDoLugar } from '@/api/oficiais';
 import { useTrava } from '@/componentes/AlteracoesPendentes';
+import { useAviso } from '@/componentes/resposta/useAviso';
+import { useConfirmar } from '@/componentes/resposta/useConfirmar';
 import { Button } from '@/componentes/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/componentes/ui/dialog';
 import { cn } from '@/lib/utils';
@@ -37,6 +39,8 @@ const nomeDe = (o: Oficial) => `${o.posto} ${o.nomeGuerra}`;
  */
 export function EscalaDoMes({ unidadeId, escala: e, aoVer }: Props) {
   const queryClient = useQueryClient();
+  const avisar = useAviso();
+  const confirmar = useConfirmar();
   const escalaId = e.escala?.id;
   const { salvando, travar } = useTrava();
   const [erro, setErro] = useState<string | null>(null);
@@ -119,7 +123,19 @@ export function EscalaDoMes({ unidadeId, escala: e, aoVer }: Props) {
       if (agora?.militarId === o.militarId && agora.servico === qual) return;
       try {
         setLiberados([]);
-        const r = await lancarNoLugar(queryClient, unidadeId, e.mes, { dia: l.dia, letra: l.letra as LetraTurno, servico: qual, militarId: o.militarId }, escalaId);
+        const pedido = { dia: l.dia, letra: l.letra as LetraTurno, servico: qual, militarId: o.militarId };
+        let r: EscalaDosOficiais;
+        try {
+          r = await lancarNoLugar(queryClient, unidadeId, e.mes, pedido, escalaId);
+        } catch (x) {
+          // o Saldo no horário do expediente do Adm (6.39): a API diz que o escalante pode decidir; pergunta e repete o pedido por cima do expediente
+          if (!(x instanceof ErroApi && x.resolvivel === 'expediente')) throw x;
+          const dd = `${l.dia.slice(8)}/${l.dia.slice(5, 7)}`;
+          const nomeDoServico = e.servicos.saldo?.nome ?? 'Saldo';
+          if (!(await confirmar({ titulo: `${o.posto} ${o.nomeGuerra} está de expediente em ${dd}. Tirar do expediente e escalar em ${nomeDoServico}?`, verbo: 'Tirar e escalar' }))) return;
+          r = await lancarNoLugar(queryClient, unidadeId, e.mes, { ...pedido, resolverChoque: { expediente: true } }, escalaId);
+          avisar({ texto: `${o.posto} ${o.nomeGuerra} saiu do expediente e foi escalado em ${nomeDoServico}.` });
+        }
         maisNova.current = r;
         setLiberados(r.liberados ?? []);
         setForaDaOrdem(r.foraDaOrdem ?? null);

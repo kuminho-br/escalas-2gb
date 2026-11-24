@@ -4,7 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { EuDaApi } from '@/api/eu';
 import { guardarUnidade } from '@/lib/unidade-de-trabalho';
-import { abrir, chamadasA, corpoEnviado, EU_EXEMPLO, simularApi, trava } from './apoio';
+import { abrir, chamadasA, corpoEnviado, EU_EXEMPLO, responderConfirmacao, simularApi, trava } from './apoio';
 
 // Dados fictícios (D7): o 2º GB, oficiais 990xxx-x.
 const UNIDADE = { id: 'u-gb', sigla: '2º GB', caminho: ['CBMPE', 'DGO', 'DInter/1', '2º GB'], nivel: 3, tipo: 'grupamento' };
@@ -774,6 +774,72 @@ describe('a aba Escala do mês', () => {
       expect(pergunta.getByText(/Quem cobre ganha o turno, e quem saiu não fica devendo\./)).toBeInTheDocument();
       await userEvent.click(pergunta.getByRole('button', { name: 'Trocar' }));
       await waitFor(() => expect(corpoEnviado(f, `POST ${URL_MES}/lancamentos`)).toEqual({ dia: dia(5), letra: 'A', servico: 'saldo', militarId: 'm-3' }));
+    });
+  });
+
+  describe('o choque de horário (6.39)', () => {
+    const LANC = `POST ${URL_MES}/lancamentos`;
+    /** Responde cada lançamento pela regra dada (recebe o corpo enviado) e devolve o servidor falso. */
+    function comRegra(regra: (corpo: { dia: string; resolverChoque?: unknown }) => { status: number; corpo: unknown }) {
+      const f = abrirEscala(escala());
+      const original = f.getMockImplementation()!;
+      f.mockImplementation(async (entrada: RequestInfo | URL, init?: RequestInit) => {
+        const url = typeof entrada === 'string' ? entrada : entrada instanceof URL ? entrada.href : entrada.url;
+        if (new URL(url, 'http://localhost').pathname === `${URL_MES}/lancamentos` && (init?.method ?? 'GET').toUpperCase() === 'POST') {
+          const r = regra(JSON.parse(String(init!.body)));
+          return new Response(JSON.stringify(r.corpo), { status: r.status, headers: { 'Content-Type': 'application/json' } });
+        }
+        return original(entrada, init);
+      });
+      return f;
+    }
+    const escolherAlfa = async () => {
+      await userEvent.click(await screen.findByRole('radio', { name: 'Saldo' }));
+      await userEvent.click(within(screen.getByRole('list', { name: 'Cotas de janeiro de 2027' })).getByRole('button', { name: /^CEL ALFA/ }));
+    };
+
+    it('Review Focus 2: o clique recusado por choque mostra o motivo, o turno continua livre e o clique seguinte lança normalmente', async () => {
+      const f = comRegra((c) => (c.dia === dia(5) ? { status: 409, corpo: { erro: 'Já escalado neste horário' } } : { status: 200, corpo: escala() }));
+      await escolherAlfa();
+      await userEvent.click(await screen.findByRole('button', { name: /^05\/01, Dia/ }));
+      expect(await screen.findByRole('alert')).toHaveTextContent('Já escalado neste horário');
+      expect(screen.getByRole('button', { name: /^05\/01, Dia/ })).toBeInTheDocument();
+      await userEvent.click(screen.getByRole('button', { name: /^06\/01, Dia/ }));
+      await waitFor(() => expect(chamadasA(f, LANC)).toBe(2));
+      expect(corpoEnviado(f, LANC)).toEqual({ dia: dia(6), letra: 'A', servico: 'saldo', militarId: 'm-1' });
+    });
+
+    it('o Saldo no expediente pergunta com a frase fixa; Cancelar não manda nada; confirmar repete o pedido com `resolverChoque`', async () => {
+      const f = comRegra((c) => (c.resolverChoque ? { status: 200, corpo: escala() } : { status: 409, corpo: { erro: 'De expediente neste dia', resolvivel: 'expediente' } }));
+      await escolherAlfa();
+      await userEvent.click(await screen.findByRole('button', { name: /^05\/01, Dia/ }));
+      const pergunta = await screen.findByRole('dialog', { name: 'CEL ALFA está de expediente em 05/01. Tirar do expediente e escalar em Saldo?' });
+      await userEvent.click(within(pergunta).getByRole('button', { name: 'Cancelar' }));
+      expect(chamadasA(f, LANC)).toBe(1);
+      await userEvent.click(screen.getByRole('button', { name: /^05\/01, Dia/ }));
+      // o segundo clique pergunta de novo (a primeira resposta foi Cancelar); confirmar repete o pedido com a decisão
+      await responderConfirmacao('Tirar e escalar');
+      await waitFor(() => expect(chamadasA(f, LANC)).toBe(3));
+      expect(corpoEnviado(f, LANC)).toEqual({ dia: dia(5), letra: 'A', servico: 'saldo', militarId: 'm-1', resolverChoque: { expediente: true } });
+      expect(await screen.findByText('CEL ALFA saiu do expediente e foi escalado em Saldo.')).toBeInTheDocument();
+    });
+
+    it('o JES no expediente não tem decisão: só o motivo no aviso de erro, sem pergunta', async () => {
+      const f = comRegra(() => ({ status: 409, corpo: { erro: 'De expediente neste dia' } }));
+      await userEvent.click(await screen.findByRole('radio', { name: 'JES' }));
+      await userEvent.click(within(screen.getByRole('list', { name: 'Cotas de janeiro de 2027' })).getByRole('button', { name: /^CEL ALFA/ }));
+      await userEvent.click(await screen.findByRole('button', { name: /^05\/01, Dia/ }));
+      expect(await screen.findByRole('alert')).toHaveTextContent('De expediente neste dia');
+      expect(screen.queryByRole('dialog')).toBeNull();
+      expect(chamadasA(f, LANC)).toBe(1);
+    });
+
+    it('depois de recusado o pedido de resolver (a API recusa de novo), o motivo aparece no aviso de erro', async () => {
+      comRegra((c) => (c.resolverChoque ? { status: 409, corpo: { erro: 'Já escalado neste horário' } } : { status: 409, corpo: { erro: 'De expediente neste dia', resolvivel: 'expediente' } }));
+      await escolherAlfa();
+      await userEvent.click(await screen.findByRole('button', { name: /^05\/01, Dia/ }));
+      await responderConfirmacao('Tirar e escalar');
+      expect(await screen.findByRole('alert')).toHaveTextContent('Já escalado neste horário');
     });
   });
 
