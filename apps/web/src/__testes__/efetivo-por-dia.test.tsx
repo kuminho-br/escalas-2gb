@@ -242,7 +242,7 @@ describe('efetivo por dia: a linha do tempo', () => {
   it('sem guarnição no dia, não há grade de cards', async () => {
     api(VAZIO);
     abrir(`/efetivo-por-dia?data=${DIA}`);
-    await screen.findByText('Nenhuma guarnição na meta nem escalada neste dia.');
+    await screen.findByText('Nenhuma guarnição neste dia');
     expect(document.querySelector('[data-cards-do-efetivo]')).toBeNull();
   });
 });
@@ -272,7 +272,7 @@ describe('efetivo por dia: o topo', () => {
     await userEvent.click(await screen.findByRole('button', { name: 'Dia seguinte' }));
     await waitFor(() => expect((router.state.location.search as { data?: string }).data).toBe(SEGUINTE));
     await waitFor(() => expect(chamadasA(f, `GET /api/unidades/u-1sb/efetivo-do-dia/${SEGUINTE}`)).toBe(1));
-    expect(await screen.findByText('Nenhuma guarnição na meta nem escalada neste dia.')).toBeInTheDocument();
+    expect(await screen.findByText('Nenhuma guarnição neste dia')).toBeInTheDocument();
   });
 
   it('sem data na busca e sem dia guardado, vale hoje', async () => {
@@ -281,7 +281,7 @@ describe('efetivo por dia: o topo', () => {
       [`GET /api/unidades/u-1sb/efetivo-do-dia/${hoje()}`]: { status: 200, corpo: { ...VAZIO, data: hoje() } },
     });
     abrir('/efetivo-por-dia');
-    await screen.findByText('Nenhuma guarnição na meta nem escalada neste dia.');
+    await screen.findByText('Nenhuma guarnição neste dia');
     expect(chamadasA(f, `GET /api/unidades/u-1sb/efetivo-do-dia/${hoje()}`)).toBe(1);
   });
 

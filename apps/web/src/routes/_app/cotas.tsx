@@ -22,6 +22,7 @@ import { Moldura } from '@/componentes/Moldura';
 import { useConfirmar } from '@/componentes/resposta/useConfirmar';
 import { useAviso } from '@/componentes/resposta/useAviso';
 import { Espera } from '@/componentes/resposta/Espera';
+import { Vazio } from '@/componentes/resposta/Vazio';
 
 export const Route = createFileRoute('/_app/cotas')({
   component: Cotas,
@@ -103,7 +104,9 @@ function Cotas() {
         {cotas.isPending && <Espera className="p-4" />}
         {cotas.error && <p role="alert" className="p-4 text-alerta">{mensagemDe(cotas.error)}</p>}
         {cotas.data && cotas.data.length === 0 && (
-          <p className="p-4 text-apagado">Nenhuma cota em {mesPorExtenso(mes)}.{soConsulta ? '' : ' Use "Adicionar cota" ou "Copiar do mês anterior".'}</p>
+          <div className="px-4">
+            <Vazio titulo={`Nenhuma cota em ${mesPorExtenso(mes)}`} frase={soConsulta ? 'Não há cotas neste mês.' : 'Adicione uma cota ou copie as do mês anterior, pelos botões do alto.'} />
+          </div>
         )}
         {cotas.data && cotas.data.length > 0 && (
           <div className="overflow-x-auto">

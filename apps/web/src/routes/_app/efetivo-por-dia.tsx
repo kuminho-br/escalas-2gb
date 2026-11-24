@@ -24,6 +24,7 @@ import { guardarUltimoDia, janelaDoDia, ultimoDiaVisto } from '@/lib/efetivo';
 import { diaDaSemanaPorExtenso, hoje, somarDias } from '@/lib/meses';
 import { Moldura } from '@/componentes/Moldura';
 import { Espera } from '@/componentes/resposta/Espera';
+import { Vazio } from '@/componentes/resposta/Vazio';
 
 export const Route = createFileRoute('/_app/efetivo-por-dia')({
   validateSearch: (s: Record<string, unknown>): { data?: string } => ({ data: typeof s.data === 'string' && Data.safeParse(s.data).success ? s.data : undefined }),
@@ -192,7 +193,7 @@ function EfetivoPorDia() {
           <CotasRestantes cotas={e.cotas} />
           {aviso && <AvisoDesfazer texto={aviso.texto} erro={erroDoAviso} salvando={salvando} aoDesfazer={() => void desfazerUltima()} aoSumir={limparAviso} />}
           {e.guarnicoes.length === 0 ? (
-            <p className="text-apagado">Nenhuma guarnição na meta nem escalada neste dia.</p>
+            <Vazio titulo="Nenhuma guarnição neste dia" frase="Nenhuma está na meta nem escalada." />
           ) : (
             <div data-cards-do-efetivo className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,24rem),1fr))] items-start gap-3">
               {e.guarnicoes.map((g) => (

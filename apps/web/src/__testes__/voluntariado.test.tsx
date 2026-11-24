@@ -105,7 +105,7 @@ describe('voluntariado: calendário e salvar', () => {
   it('sem militares na seção no mês, a tela diz isso', async () => {
     api({}, { mes: MES, militares: [] });
     abrir('/voluntariado');
-    expect(await screen.findByText('Nenhum militar lotado na seção neste mês.')).toBeInTheDocument();
+    expect(await screen.findByText('Nenhum militar neste mês')).toBeInTheDocument();
   });
 });
 

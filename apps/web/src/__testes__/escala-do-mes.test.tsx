@@ -349,8 +349,8 @@ describe('escala do mês', () => {
   it('sem escala ativa, a tela manda criar uma', async () => {
     simularApi({ '/api/eu': { status: 200, corpo: EU_EXEMPLO }, 'GET /api/unidades/u-1sb/escalas': { status: 200, corpo: [] } });
     abrir('/escala-do-mes');
-    const aviso = await screen.findByText(/Nenhuma escala ativa\./);
-    expect(within(aviso).getByRole('link', { name: 'Escalas' })).toHaveAttribute('href', '/escalas');
+    expect(await screen.findByRole('heading', { name: 'Nenhuma escala ativa' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Ir para Escalas' })).toHaveAttribute('href', '/escalas');
   });
 });
 

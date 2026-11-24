@@ -25,6 +25,7 @@ import { cn } from '@/lib/utils';
 import { Moldura } from '@/componentes/Moldura';
 import { useAviso } from '@/componentes/resposta/useAviso';
 import { Espera } from '@/componentes/resposta/Espera';
+import { Vazio } from '@/componentes/resposta/Vazio';
 
 export const Route = createFileRoute('/_app/escala-do-mes')({
   validateSearch: (s: Record<string, unknown>): { escala?: string; mes?: string; dia?: string } => ({
@@ -109,10 +110,8 @@ function EscalaDoMes() {
   if (!escalaId) {
     return (
       <Moldura titulo="Escala do mês">
-        {/* numa unidade só de consulta a pessoa não cria escala: sem o link */}
-        <p className="text-apagado">
-          Nenhuma escala ativa.{!soConsulta && <> Crie uma em <Link to="/escalas" className="font-medium text-vinho underline underline-offset-2">Escalas</Link>.</>}
-        </p>
+        {/* numa unidade só de consulta a pessoa não cria escala: sem o caminho */}
+        <Vazio titulo="Nenhuma escala ativa" frase={soConsulta ? 'Esta unidade ainda não tem escala ativa.' : 'Crie uma escala para montar o mês.'} acao={soConsulta ? undefined : { rotulo: 'Ir para Escalas', para: '/escalas' }} />
       </Moldura>
     );
   }

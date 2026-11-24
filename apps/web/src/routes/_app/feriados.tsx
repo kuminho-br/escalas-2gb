@@ -19,6 +19,7 @@ import { Moldura } from '@/componentes/Moldura';
 import { useConfirmar } from '@/componentes/resposta/useConfirmar';
 import { useAviso } from '@/componentes/resposta/useAviso';
 import { Espera } from '@/componentes/resposta/Espera';
+import { Vazio } from '@/componentes/resposta/Vazio';
 
 export const Route = createFileRoute('/_app/feriados')({
   component: Feriados,
@@ -104,7 +105,9 @@ function Feriados() {
         {feriados.isPending && <Espera className="p-4" />}
         {feriados.error && <p role="alert" className="p-4 text-alerta">{mensagemDe(feriados.error)}</p>}
         {feriados.data && feriados.data.length === 0 && (
-          <p className="p-4 text-apagado">Nenhum feriado em {ano}. Use "Novo feriado" ou "Copiar feriados fixos de {ano - 1}".</p>
+          <div className="px-4">
+            <Vazio titulo={`Nenhum feriado em ${ano}`} frase={`Cadastre um feriado ou copie os fixos de ${ano - 1}, pelos botões do alto.`} />
+          </div>
         )}
         {feriados.data && feriados.data.length > 0 && (
           <ul className="p-2">
