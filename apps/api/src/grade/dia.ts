@@ -70,12 +70,12 @@ export async function montarPainelDoDia(c: Consulta, unidadeId: string, militarI
   // os serviços do dia
   const doDia = (
     await c.query<{
-      id: string; escala_id: string; escala: string; servico_id: string; servico: string; cor: string; tipo: string; letra: string; inicio: string; fim: string;
+      id: string; escala_id: string | null; escala: string; servico_id: string; servico: string; cor: string; tipo: string; letra: string; inicio: string; fim: string;
       guarnicao: string | null; funcao: string | null;
     }>(
-      `select a.id, a.escala_id, e.nome as escala, s.id as servico_id, s.nome as servico, s.cor, s.tipo, t.letra,
+      `select a.id, a.escala_id, coalesce(e.nome, '') as escala, s.id as servico_id, s.nome as servico, s.cor, s.tipo, t.letra,
               to_char(t.inicio, 'HH24:MI') as inicio, to_char(t.fim, 'HH24:MI') as fim, g.nome as guarnicao, f.nome as funcao
-         from alocacao a join escala e on e.id = a.escala_id join servico s on s.id = a.servico_id join turno t on t.id = a.turno_id
+         from alocacao a left join escala e on e.id = a.escala_id join servico s on s.id = a.servico_id join turno t on t.id = a.turno_id
          left join guarnicao g on g.id = a.guarnicao_id left join funcao f on f.id = a.funcao_id
         where a.militar_id = $1 and a.data = $2::date and s.unidade_id = $3
         order by t.inicio, s.nome`,

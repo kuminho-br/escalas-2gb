@@ -36,7 +36,8 @@ export type VagaConsultada = { escalaId: string; data: string; inicio: string; f
 export type TurnoDaFaixa = { turnoId: string; servicoId: string; nome: string; tipo: Tipo; letra: 'A' | 'B' | 'C'; inicio: string; fim: string; tira: boolean };
 /** `externo`: veio de outra unidade pelo vínculo (6.33); é candidato em qualquer serviço lançado à mão (6.36), mas a pré-escala e as distribuições automáticas nunca o põem. */
 /** O que choca com o militar num turno: as alocações dele que se sobrepõem e se o expediente também (6.38). */
-export type Conflito = { alocacoes: AlocacaoDaJanela[]; expediente: boolean };
+/** `expedienteLancado`: o expediente que a pré-escala lançou (sem escala) está entre o que choca; só um serviço que tira do expediente o tira (6.40). */
+export type Conflito = { alocacoes: AlocacaoDaJanela[]; expediente: boolean; expedienteLancado?: AlocacaoDaJanela };
 export type Avaliado = {
   externo: boolean; candidato: Omit<Candidato, 'servicos'>; militarMotivo: string | null; porTurno: { turno: TurnoDaFaixa; motivo: string | null; conflito?: Conflito }[];
   antig: number | null; postoOrdem: number; cnh: string[]; lotacaoUnidadeId: string;
@@ -206,12 +207,13 @@ export function choqueDoTurno(d: {
   const dela = choques.filter((x) => x.a.chave === chave || x.b.chave === chave);
   if (!dela.length) return null;
   const lados = dela.flatMap((x) => [x.a, x.b]).filter((l) => l.chave !== chave && !l.implicito);
+  const reais = [...new Map(lados.flatMap((l) => (d.porChave.has(l.chave) ? [[l.chave, d.porChave.get(l.chave)!] as const] : []))).values()];
+  // o expediente lançado pela pré-escala (o serviço Expediente) é o expediente: o choque com ele é "De expediente neste dia", e não com um serviço qualquer
+  const lancado = reais.find((a) => a.servicoNome.trim().toLowerCase() === 'expediente');
+  const expediente = dela.some((x) => x.tipo === 'expediente') || !!lancado;
   return {
-    motivo: dela.some((x) => x.tipo === 'expediente') ? DE_EXPEDIENTE : 'Choque de horário',
-    conflito: {
-      alocacoes: [...new Map(lados.flatMap((l) => (d.porChave.has(l.chave) ? [[l.chave, d.porChave.get(l.chave)!] as const] : []))).values()],
-      expediente: dela.some((x) => x.tipo === 'expediente'),
-    },
+    motivo: expediente ? DE_EXPEDIENTE : 'Choque de horário',
+    conflito: { alocacoes: reais.filter((a) => a !== lancado), expediente, ...(lancado ? { expedienteLancado: lancado } : {}) },
   };
 }
 

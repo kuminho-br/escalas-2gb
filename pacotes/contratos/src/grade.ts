@@ -44,7 +44,8 @@ export type GradeDoMes = {
 /** Um serviço do militar num dia: a alocação, com a escala, o horário, a guarnição e a função. `acumulaCom`: as vagas que ele também ocupa por acúmulo ("Função Guarnição"). */
 export type ServicoNoDia = {
   alocacaoId: string;
-  escalaId: string;
+  /** nulo no expediente do Adm lançado pela pré-escala (6.40): ele não é de nenhuma escala */
+  escalaId: string | null;
   escala: string;
   servico: { id: string; nome: string; cor: string; tipo: string };
   letra: string;

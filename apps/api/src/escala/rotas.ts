@@ -188,6 +188,8 @@ export function rotasEscalaDoMes(dep: { banco: Banco; auth: Auth }): Hono<Ambien
     if (await daRodadaDaAlocacao(id)) return c.json({ erro: MSG_RODADA }, 409);
     const { escalaId, mes, remocaoId } = await comUsuario(dep.banco, c.get('usuarioId'), (tx) => remover(tx, id, c.get('usuarioId')));
     // a escala do mês e o id da remoção: o aviso da tela usa o id para o "Desfazer"
+    // o expediente lançado pela pré-escala não é de nenhuma escala (6.40): só o id da remoção
+    if (escalaId === null) return c.json({ escalaId: null, remocaoId });
     return c.json({ ...(await montarEscalaDoMes(dep.banco, escalaId, mes)), remocaoId });
   });
 
@@ -200,6 +202,7 @@ export function rotasEscalaDoMes(dep: { banco: Banco; auth: Auth }): Hono<Ambien
     if (negado) return negado;
     try {
       const { escalaId, mes } = await comUsuario(dep.banco, c.get('usuarioId'), (tx) => devolverRemocao(tx, id));
+      if (escalaId === null) return c.json({ escalaId: null });
       return c.json(await montarEscalaDoMes(dep.banco, escalaId, mes));
     } catch (e) {
       if (e instanceof Recusa) return c.json({ erro: e.message }, 409);
@@ -214,6 +217,7 @@ export function rotasEscalaDoMes(dep: { banco: Banco; auth: Auth }): Hono<Ambien
     const negado = await exigirPapel(c, unidadeId, CADASTRO);
     if (negado) return negado;
     const { escalaId, mes } = await comUsuario(dep.banco, c.get('usuarioId'), (tx) => desfazerRemocao(tx, id));
+    if (escalaId === null) return c.json({ escalaId: null });
     return c.json(await montarEscalaDoMes(dep.banco, escalaId, mes));
   });
 

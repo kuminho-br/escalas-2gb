@@ -37,7 +37,7 @@ async function adm(nome: string, extra: { desde?: string; ate?: string | null; j
   return id;
 }
 const doDia = (novas: { militarId: string; data: string; servicoId: string }[], d: string) => novas.filter((n) => n.data === d && n.servicoId === expediente.id).map((n) => Object.entries(militar).find(([, v]) => v === n.militarId)![0]).sort();
-const expedientes = (novas: { servicoId: string }[]) => novas.filter((n) => n.servicoId === expediente.id);
+const expedientes = <T extends { servicoId: string }>(novas: T[]) => novas.filter((n) => n.servicoId === expediente.id);
 
 beforeAll(async () => {
   api = await montarApi();
@@ -91,7 +91,7 @@ describe('o expediente do Adm na pré-escala (6.40)', () => {
 
   it('Review Focus 3: a jornada que muda no meio do mês: expediente só até o dia 15; depois ele é do Pronto e não recebe expediente', async () => {
     const { novas } = await planejarPreEscala(api.banco, escala, mes, alfa);
-    const adm3 = expedientes(novas).filter((n) => n.militarId === militar.ADM3).map((n) => (n as { data: string }).data);
+    const adm3 = expedientes(novas).filter((n) => n.militarId === militar.ADM3).map((n) => n.data);
     expect(adm3.length).toBeGreaterThan(0);
     expect(adm3.every((d) => d <= `${mes}-15`)).toBe(true);
     expect(adm3).toContain(uteis.filter((d) => d <= `${mes}-15`).at(-1)!);

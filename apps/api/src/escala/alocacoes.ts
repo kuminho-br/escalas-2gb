@@ -110,7 +110,7 @@ export async function escalar(tx: Consulta, escalaId: string, d: Omit<NovaAlocac
  * Tira o militar da vaga e guarda a remoção (a pré-escala não o põe de volta nessa combinação), com a vaga de onde ele saiu: guarnição, função e as vagas acumuladas,
  * para o "Desfazer" devolvê-lo ao mesmo lugar. Devolve a escala, o mês e o id da remoção.
  */
-export async function remover(tx: Consulta, alocacaoId: string, usuarioId: string): Promise<{ escalaId: string; mes: string; remocaoId: string }> {
+export async function remover(tx: Consulta, alocacaoId: string, usuarioId: string): Promise<{ escalaId: string | null; mes: string; remocaoId: string }> {
   const acumulos = (await tx.query<{ guarnicaoId: string; funcaoId: string }>('select guarnicao_id as "guarnicaoId", funcao_id as "funcaoId" from alocacao_acumulo where alocacao_id = $1', [alocacaoId])).rows;
   const a = (
     await tx.query<{ escala_id: string; militar_id: string; servico_id: string; turno_id: string; data: string; guarnicao_id: string | null; funcao_id: string | null }>(
@@ -130,8 +130,8 @@ export async function remover(tx: Consulta, alocacaoId: string, usuarioId: strin
 }
 
 /** Desfaz a remoção. Devolve a escala e o mês. */
-export async function desfazerRemocao(tx: Consulta, remocaoId: string): Promise<{ escalaId: string; mes: string }> {
-  const r = (await tx.query<{ escala_id: string; data: string }>(`delete from remocao where id = $1 returning escala_id, to_char(data, 'YYYY-MM-DD') as data`, [remocaoId])).rows[0]!;
+export async function desfazerRemocao(tx: Consulta, remocaoId: string): Promise<{ escalaId: string | null; mes: string }> {
+  const r = (await tx.query<{ escala_id: string | null; data: string }>(`delete from remocao where id = $1 returning escala_id, to_char(data, 'YYYY-MM-DD') as data`, [remocaoId])).rows[0]!;
   return { escalaId: r.escala_id, mes: r.data.slice(0, 7) };
 }
 
@@ -142,14 +142,21 @@ export const NAO_DA_PARA_DESFAZER = 'A escala mudou desde então. Não dá mais 
  * As mesmas regras de escalar valem de novo: se a vaga já foi ocupada, a guarnição saiu da faixa ou o militar já não pode ocupá-la, recusa com NAO_DA_PARA_DESFAZER e nada muda.
  * A remoção antiga, que não guardou a vaga, também recusa: nela só vale "Permitir de novo".
  */
-export async function devolverRemocao(tx: Consulta, remocaoId: string): Promise<{ escalaId: string; mes: string }> {
+export async function devolverRemocao(tx: Consulta, remocaoId: string): Promise<{ escalaId: string | null; mes: string }> {
   const r = (
-    await tx.query<{ escala_id: string; militar_id: string; servico_id: string; turno_id: string; data: string; guarnicao_id: string | null; funcao_id: string | null; acumulos: { guarnicaoId: string; funcaoId: string }[]; devolvivel: boolean }>(
+    await tx.query<{ escala_id: string | null; militar_id: string; servico_id: string; turno_id: string; data: string; guarnicao_id: string | null; funcao_id: string | null; acumulos: { guarnicaoId: string; funcaoId: string }[]; devolvivel: boolean }>(
       `select escala_id, militar_id, servico_id, turno_id, to_char(data, 'YYYY-MM-DD') as data, guarnicao_id, funcao_id, acumulos, devolvivel from remocao where id = $1 for update`,
       [remocaoId],
     )
   ).rows[0];
   if (!r || !r.devolvivel) throw new Recusa(NAO_DA_PARA_DESFAZER);
+  // o expediente do Adm lançado pela pré-escala (6.40) não tem escala: volta como estava, sem vaga nem acúmulo
+  if (r.escala_id === null) {
+    const ocupado = (await tx.query('select 1 from alocacao where militar_id = $1 and data = $2::date and servico_id = $3 and turno_id = $4', [r.militar_id, r.data, r.servico_id, r.turno_id])).rows.length;
+    if (ocupado) throw new Recusa(NAO_DA_PARA_DESFAZER);
+    await tx.query("insert into alocacao (militar_id, escala_id, servico_id, turno_id, data, origem) values ($1, null, $2, $3, $4::date, 'pre_escala')", [r.militar_id, r.servico_id, r.turno_id, r.data]);
+    return { escalaId: null, mes: r.data.slice(0, 7) };
+  }
   try {
     await escalar(tx, r.escala_id, { militarId: r.militar_id, data: r.data, turnoId: r.turno_id, guarnicaoId: r.guarnicao_id, funcaoId: r.funcao_id });
   } catch (e) {
@@ -233,22 +240,28 @@ export async function escalarResolvendo(
   tx: Consulta, escalaId: string, d: Omit<NovaAlocacao, 'resolverChoque'>, resolver: ResolverChoque, usuarioId: string, hoje: string,
 ): Promise<{ mes: string; desfazer: { alocacaoId: string; remocaoId: string | null } }> {
   const novaAlocacao = async () => (await tx.query<{ id: string }>('select id from alocacao where militar_id = $1 and data = $2::date and turno_id = $3', [d.militarId, d.data, d.turnoId])).rows[0]!.id;
+  const turnoDaVaga = (await tx.query<{ inicio: string; fim: string; tira: boolean }>(
+    "select to_char(t.inicio, 'HH24:MI') as inicio, to_char(t.fim, 'HH24:MI') as fim, s.tira_do_expediente as tira from turno t join servico s on s.id = t.servico_id where t.id = $1", [d.turnoId],
+  )).rows[0];
+  if (!turnoDaVaga) throw new Recusa('Este turno não faz parte desta escala.');
+  const doTurno = async () => (await avaliarFaixa(tx, { escalaId, data: d.data, inicio: turnoDaVaga.inicio, fim: turnoDaVaga.fim, guarnicaoId: d.guarnicaoId, funcaoId: d.funcaoId }, d.militarId)).avaliados[0]?.porTurno.find((t) => t.turno.turnoId === d.turnoId);
+
   if ('expediente' in resolver) {
-    const turno = (await tx.query<{ tira: boolean }>('select s.tira_do_expediente as tira from turno t join servico s on s.id = t.servico_id where t.id = $1', [d.turnoId])).rows[0];
     const lotacao = (await tx.query<{ unidade_id: string }>('select unidade_id from rastreio where militar_id = $1 and desde <= $2::date and (ate is null or ate >= $2::date) limit 1', [d.militarId, d.data])).rows[0];
     // o pedido só muda o que acontece quando o serviço pode tirar do expediente; o motivo "De expediente" de quem não pode continua valendo
-    if (turno?.tira && lotacao && !(await temPapel(tx, usuarioId, lotacao.unidade_id, CADASTRO, hoje))) throw new Proibida(MSG_SEM_PODER_NA_LOTACAO);
+    if (turnoDaVaga.tira && lotacao && !(await temPapel(tx, usuarioId, lotacao.unidade_id, CADASTRO, hoje))) throw new Proibida(MSG_SEM_PODER_NA_LOTACAO);
+    // o expediente que a pré-escala lançou (6.40) sai antes, pela remoção devolvível; o expediente calculado some sozinho sob o serviço
+    let remocaoId: string | null = null;
+    const lancado = turnoDaVaga.tira ? (await doTurno())?.conflito?.expedienteLancado : undefined;
+    if (lancado) remocaoId = (await remover(tx, lancado.id, usuarioId)).remocaoId;
     const mes = await escalar(tx, escalaId, d, { tirarDoExpediente: true });
-    return { mes, desfazer: { alocacaoId: await novaAlocacao(), remocaoId: null } };
+    return { mes, desfazer: { alocacaoId: await novaAlocacao(), remocaoId } };
   }
 
   // o serviço de lá precisa chocar de verdade com esta vaga, e ser do mesmo militar (senão o pedido removeria um serviço qualquer)
-  const turno = (await tx.query<{ inicio: string; fim: string }>("select to_char(inicio, 'HH24:MI') as inicio, to_char(fim, 'HH24:MI') as fim from turno where id = $1", [d.turnoId])).rows[0];
-  if (!turno) throw new Recusa('Este turno não faz parte desta escala.');
-  const { avaliados } = await avaliarFaixa(tx, { escalaId, data: d.data, inicio: turno.inicio, fim: turno.fim, guarnicaoId: d.guarnicaoId, funcaoId: d.funcaoId }, d.militarId);
-  const doTurno = avaliados[0]?.porTurno.find((t) => t.turno.turnoId === d.turnoId);
-  const ali = doTurno?.conflito?.alocacoes.find((a) => a.id === resolver.alocacaoId);
-  if (!ali) throw new Recusa(doTurno?.motivo && !doTurno.conflito ? doTurno.motivo : MSG_NAO_CHOCA);
+  const noTurno = await doTurno();
+  const ali = noTurno?.conflito?.alocacoes.find((a) => a.id === resolver.alocacaoId);
+  if (!ali) throw new Recusa(noTurno?.motivo && !noTurno.conflito ? noTurno.motivo : MSG_NAO_CHOCA);
   const unidadeDaEscala = (await tx.query<{ unidade_id: string }>('select unidade_id from escala where id = $1', [escalaId])).rows[0]!.unidade_id;
   if (!(await podeTirarDe(tx, { usuarioId, hoje }, ali, unidadeDaEscala))) throw new Proibida(MSG_SEM_PODER_LA);
   const { remocaoId } = await remover(tx, ali.id, usuarioId);
@@ -260,9 +273,6 @@ export async function escalarResolvendo(
 export async function desfazerResolucao(tx: Consulta, d: DesfazerResolucao): Promise<{ escalaId: string; mes: string }> {
   const nova = (await tx.query<{ escala_id: string; data: string }>("delete from alocacao where id = $1 returning escala_id, to_char(data, 'YYYY-MM-DD') as data", [d.alocacaoId])).rows[0];
   if (!nova) throw new Recusa(NAO_DA_PARA_DESFAZER);
-  if (d.remocaoId) {
-    const devolvida = await devolverRemocao(tx, d.remocaoId);
-    return devolvida;
-  }
-  return { escalaId: nova.escala_id, mes: nova.data.slice(0, 7) };
+  if (d.remocaoId) await devolverRemocao(tx, d.remocaoId);
+  return { escalaId: nova.escala_id!, mes: nova.data.slice(0, 7) };
 }

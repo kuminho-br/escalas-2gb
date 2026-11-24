@@ -27,7 +27,8 @@ function atualizarQuemDependeDaEscala(queryClient: QueryClient) {
 }
 
 function guardar(queryClient: QueryClient, e: EscalaDoMes): EscalaDoMes {
-  atualizarEscalaDoMes(queryClient, e.escalaId, e.mes, e);
+  // o expediente do Adm lançado pela pré-escala não é de nenhuma escala (6.40): a API devolve só o id da remoção, sem escala do mês para guardar
+  if (e.escalaId) atualizarEscalaDoMes(queryClient, e.escalaId, e.mes, e);
   void queryClient.invalidateQueries({ queryKey: ['candidatos'] });
   atualizarQuemDependeDaEscala(queryClient);
   return e;
