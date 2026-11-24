@@ -8,6 +8,7 @@ Siglas dos documentos: **Design** = `superpowers/specs/2026-11-16-migracao-desig
 
 | Data | Decisão | Onde está |
 |---|---|---|
+| 24/11/2026 | O piloto de dezembro de 2026 testa só a escala feita à mão (o sistema consegue fazer a escala como hoje se faz?); a escalação automática fica para uma rodada seguinte. | `docs/superpowers/plans/2026-11-16-roadmap-migracao.md` (fase 8) |
 | 24/11/2026 | "Escala publicada" passa a se chamar **escala prévia**: não fica travada; é alterada ao longo do mês por todos menos o militar comum (e a camada Oficial não altera). O passado só é alterado por gestor, administrador ou coordenador (este na sua hierarquia de origem); o escalante não altera o passado. Alteração no passado fica num registro próprio, que o escalante também vê. | `docs/superpowers/plans/2026-11-16-roadmap-migracao.md` (fase 7) |
 | 24/11/2026 | Militar externo: trazido em Configurações da escala > Voluntariado (não mais pela Consulta) e lançado à mão em qualquer serviço; a pré-escala continua sem ele. Campo novo RG funcional nos dados pessoais. Sai a coluna Voluntariado da Grade geral. | `docs/superpowers/plans/2026-11-24-fase6-36-ajustes-do-piloto.md` |
 | 24/11/2026 | O militar externo entra já na fase 6 (6.33). Na fase 7, a prioridade é o próprio militar marcar o voluntariado. | `docs/superpowers/plans/2026-11-16-roadmap-migracao.md` |
