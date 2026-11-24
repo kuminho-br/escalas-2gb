@@ -49,6 +49,11 @@ function api(escala: EscalaDoMes = ESCALA, extra: Parameters<typeof simularApi>[
   });
 }
 const secaoDoDia = (n: number) => screen.getByRole('region', { name: `Dia ${n}` });
+/** Abre o menu da placa (os três pontos) e escolhe a ação. */
+async function agirNaPlaca(escopo: HTMLElement, nome: RegExp | string, acao: string) {
+  await userEvent.click(within(escopo).getByRole('button', { name: nome }));
+  await userEvent.click(await screen.findByRole('menuitem', { name: acao }));
+}
 
 describe('escala do mês', () => {
   it('o trilho leva a "Escala do mês", que abre a primeira escala ativa no mês atual', async () => {
@@ -216,7 +221,7 @@ describe('escala do mês', () => {
     expect(falta).toHaveAttribute('title', 'Falta 1 Motorista (CNH D). Falta 1 Combatente');
   });
 
-  it('vaga obrigatória vazia é "Escolher militar"; a vaga extra (entre o mínimo e o máximo) fica com a etiqueta "opcional"', async () => {
+  it('vaga obrigatória vazia é "Escolher militar"; a vaga extra (entre o mínimo e o máximo) é o encaixe "Vaga opcional"', async () => {
     api();
     abrir('/escala-do-mes');
     const d3 = await screen.findByRole('region', { name: 'Dia 3' });
@@ -224,22 +229,21 @@ describe('escala do mês', () => {
     const botoes = within(d3.querySelector('[data-faixa]') as HTMLElement).getAllByRole('button', { name: /^Escolher militar/ });
     expect(botoes).toHaveLength(1);
     expect(botoes[0]).not.toHaveAttribute('data-obrigatoria');
-    expect(within(botoes[0]!).getByText('opcional')).toBeInTheDocument();
+    expect(botoes[0]).toHaveTextContent('Vaga opcional');
     const d1 = secaoDoDia(1);
     const noite = within(d1.querySelectorAll('[data-faixa]')[1] as HTMLElement).getAllByRole('button', { name: /^Escolher militar/ });
     // Motorista e Combatente vazios (obrigatórias) e a segunda vaga do Combatente (opcional)
     expect(noite.map((b) => b.hasAttribute('data-obrigatoria'))).toEqual([true, true, false]);
-    // só a extra tem a etiqueta
-    expect(noite.map((b) => within(b).queryByText('opcional') !== null)).toEqual([false, false, true]);
+    expect(noite.map((b) => b.textContent)).toEqual(['Escolher militar', 'Escolher militar', 'Vaga opcional']);
   });
 
-  it('cada função da guarnição é um painel próprio, com o cabeçalho da função, e os cards se alinham pelo topo', async () => {
+  it('cada função da guarnição é uma linha do cartão, com o rótulo da função, e os cartões se alinham pelo topo', async () => {
     api();
     abrir('/escala-do-mes');
     const d1 = await screen.findByRole('region', { name: 'Dia 1' });
-    const cardDoDia = (d1.querySelector('[data-cards-do-turno] > div') as HTMLElement);
-    const paineis = cardDoDia.querySelectorAll('[data-painel-funcao]');
-    expect([...paineis].map((p) => p.querySelector('[data-cabecalho-funcao]')?.textContent)).toEqual(['Motorista (CNH D)', 'Combatente']);
+    const cartaoDoDia = d1.querySelector('[data-cards-do-turno] > [data-cartao]') as HTMLElement;
+    const funcoes = cartaoDoDia.querySelectorAll('[data-funcao-do-cartao]');
+    expect([...funcoes].map((p) => p.querySelector('[data-cabecalho-funcao]')?.textContent)).toEqual(['MotoristaCNH D', 'Combatente']);
     expect(d1.querySelector('[data-cards-do-turno]')).toHaveClass('items-start');
   });
 
@@ -250,21 +254,23 @@ describe('escala do mês', () => {
     expect(within(d1).queryByText(/^Falta\b.*(Motorista|Combatente)/)).toBeNull();
   });
 
-  it('o cabeçalho do card mostra o contador "Faltam N" (N = vagas obrigatórias vazias) no lugar do triângulo, e nada quando N é 0', async () => {
+  it('o cabeçalho do cartão mostra o contador "Faltam N" (N = vagas obrigatórias vazias) numa etiqueta de falta, e o visto de completa quando N é 0', async () => {
     api();
     abrir('/escala-do-mes');
     const d1 = await screen.findByRole('region', { name: 'Dia 1' });
     // dia 1, faixa do dia: falta 1 Motorista e 1 Combatente
-    const contador = within(d1).getByText('Faltam 2');
+    const etiqueta = within(d1).getByText('Faltam 2');
+    expect(etiqueta.closest('[data-etiqueta]')).toHaveAttribute('data-tipo', 'falta');
+    const contador = etiqueta.closest('[role="img"]')!;
     expect(contador).toHaveAttribute('title', 'Falta 1 Motorista (CNH D). Falta 1 Combatente');
     expect(contador).toHaveAttribute('aria-label', 'Falta 1 Motorista (CNH D). Falta 1 Combatente');
     expect(d1.querySelector('.lucide-triangle-alert')).toBeNull();
-    // o card completo não mostra contador nenhum (e segue com o ícone de completa)
-    const completo = within(d1).getByRole('img', { name: 'Completa' }).closest('div[class*="rounded-lg"]') as HTMLElement;
+    // o cartão completo não mostra contador nenhum (e segue com o visto de completa)
+    const completo = within(d1).getByRole('img', { name: 'Completa' }).closest('[data-cartao]') as HTMLElement;
     expect(within(completo).queryByText(/^Faltam?\b/)).toBeNull();
   });
 
-  it('a vaga vazia é um botão de contorno tracejado, sem as listras amarelas e sem a cor de nenhum serviço', async () => {
+  it('a vaga vazia é um botão de borda tracejada, sem as listras amarelas e sem a cor de nenhum serviço: a obrigatória tem o fundo de pendência, a extra não tem fundo', async () => {
     api();
     abrir('/escala-do-mes');
     await screen.findByRole('region', { name: 'Dia 1' });
@@ -274,53 +280,45 @@ describe('escala do mês', () => {
     for (const v of vagas) {
       expect(v.tagName).toBe('BUTTON');
       expect(v).toHaveClass('border-dashed');
-      // a barra vinho se apoia na vaga: ela é o ponto de referência da posição
-      expect(v).toHaveClass('relative');
       expect(v.className).not.toMatch(/repeating-linear-gradient|F2C200|FFF3B8/);
       // a cor de serviço é só de quem já está escalado: a vaga não leva estilo nenhum
       expect(v).not.toHaveAttribute('style');
-      expect(v).toHaveClass('bg-superficie');
     }
+    expect(vagas.map((v) => v.classList.contains('bg-pendencia-fundo'))).toEqual([true, true, false]);
   });
 
-  it('a vaga obrigatória tem a barra vinho à esquerda; a extra não tem barra e diz "opcional"', async () => {
+  it('a vaga obrigatória é o encaixe de pendência (sem a barra vinho); a extra tem a borda fina de encaixe e diz "Vaga opcional"', async () => {
     api();
     abrir('/escala-do-mes');
     await screen.findByRole('region', { name: 'Dia 1' });
     const d1 = secaoDoDia(1);
     const vagas = within(d1.querySelectorAll('[data-faixa]')[1] as HTMLElement).getAllByRole('button', { name: /^Escolher militar/ });
-    // Motorista e Combatente vazios (obrigatórias) e a segunda vaga do Combatente (opcional)
-    expect(vagas.map((v) => v.querySelector('[data-barra]') !== null)).toEqual([true, true, false]);
+    expect(vagas.map((v) => v.querySelector('[data-barra]') !== null)).toEqual([false, false, false]);
     expect(vagas.map((v) => v.hasAttribute('data-obrigatoria'))).toEqual([true, true, false]);
-    expect(vagas[0]!.querySelector('[data-barra]')).toHaveClass('bg-vinho');
-    expect(within(vagas[2]!).getByText('opcional')).toBeInTheDocument();
-    expect(vagas.slice(0, 2).map((v) => within(v).queryByText('opcional'))).toEqual([null, null]);
+    expect(vagas[0]).toHaveClass('border-pendencia', 'text-pendencia');
+    expect(vagas[2]).toHaveClass('border-encaixe', 'text-apagado');
+    expect(vagas[2]).toHaveTextContent('Vaga opcional');
   });
 
-  it('ao passar o mouse e com o foco do teclado a vaga muda de estado visível', async () => {
+  it('ao passar o mouse o tracejado da vaga vira linha cheia; a opcional ganha também o fundo e o texto escuros', async () => {
     api();
     abrir('/escala-do-mes');
     await screen.findByRole('region', { name: 'Dia 1' });
     const d1 = secaoDoDia(1);
     const [obrigatoria, , extra] = within(d1.querySelectorAll('[data-faixa]')[1] as HTMLElement).getAllByRole('button', { name: /^Escolher militar/ });
-    for (const v of [obrigatoria!, extra!]) {
-      // mouse: o contorno fica contínuo e escuro, e o fundo escurece um pouco; teclado: o anel escuro de foco do site
-      expect(v).toHaveClass('hover:border-solid', 'hover:border-apagado', 'hover:bg-passa', 'hover:text-tinta');
-      expect(v).toHaveClass('focus-visible:outline-2', 'focus-visible:outline-offset-2', 'focus-visible:outline-tinta');
-    }
-    // o contorno da obrigatória é o do tema (3:1 com o fundo); o da extra é mais claro
-    expect(obrigatoria).toHaveClass('border-encaixe');
-    expect(extra).toHaveClass('border-encaixe');
+    expect(obrigatoria).toHaveClass('hover:border-solid');
+    expect(extra).toHaveClass('hover:border-solid', 'hover:border-tinta', 'hover:bg-superficie', 'hover:text-tinta');
   });
 
-  it('a linha do ocupante tem posto, nome, matrícula e a etiqueta do serviço', async () => {
+  it('a placa do ocupante tem patente, nome e matrícula; o nome do serviço só aparece quando não é o Pronto', async () => {
     api();
     abrir('/escala-do-mes');
     const d1 = await screen.findByRole('region', { name: 'Dia 1' });
-    const linha = within(d1).getAllByText('MOTOR')[0]!.closest('li')!;
-    expect(within(linha).getByText('SD')).toBeInTheDocument();
-    expect(within(linha).getByText('990001-1')).toBeInTheDocument();
-    expect(within(linha).getByText('Pronto')).toBeInTheDocument();
+    const placa = within(d1).getAllByText('MOTOR')[0]!.closest('[data-placa]') as HTMLElement;
+    expect(within(placa).getByText('SD')).toBeInTheDocument();
+    expect(within(placa).getByText('990001-1')).toBeInTheDocument();
+    expect(within(placa).queryByText('Pronto')).toBeNull();
+    expect(placa).toHaveAttribute('title', 'SD MOTOR, 990001-1, Pronto');
   });
 
   it('"Ocultar guarnições completas" esconde o dia sem vagas vazias e os cards completos', async () => {
@@ -529,21 +527,47 @@ describe('escolher militar e remover', () => {
     expect(within(dialogo).getByRole('button', { name: /YURI/ })).toBeInTheDocument();
   });
 
-  it('Remover pergunta antes; confirmando manda o DELETE e a escala nova entra', async () => {
+  it('"Remover da vaga" pergunta antes; confirmando manda o DELETE e a escala nova entra', async () => {
     const semMotor: EscalaDoMes = { ...ESCALA, dias: ESCALA.dias.map((d, i) => (i === 0 ? { ...d, faixas: [faixa(false, card(false, true)), d.faixas[1]!] } : d)) };
     const f = api(ESCALA, { 'DELETE /api/alocacoes/a-MOTOR': { status: 200, corpo: semMotor } });
     const confirmar = vi.spyOn(window, 'confirm').mockReturnValueOnce(false).mockReturnValueOnce(true);
     abrir('/escala-do-mes');
     const d1 = await screen.findByRole('region', { name: 'Dia 1' });
-    const remover = within(d1.querySelector('[data-faixa]') as HTMLElement).getByRole('button', { name: 'Remover MOTOR' });
-    await userEvent.click(remover);
+    const faixaDoDia = d1.querySelector('[data-faixa]') as HTMLElement;
+    await agirNaPlaca(faixaDoDia, /^Ações de MOTOR/, 'Remover da vaga');
     expect(confirmar).toHaveBeenLastCalledWith('Remover MOTOR de ABT, dia 1? Ele não volta para este turno quando a pré-escala for gerada de novo.');
     expect(chamadasA(f, 'DELETE /api/alocacoes/a-MOTOR')).toBe(0);
-    await userEvent.click(remover);
+    await agirNaPlaca(faixaDoDia, /^Ações de MOTOR/, 'Remover da vaga');
     await waitFor(() => expect(chamadasA(f, 'DELETE /api/alocacoes/a-MOTOR')).toBe(1));
-    await waitFor(() => expect(within(secaoDoDia(1).querySelector('[data-faixa]') as HTMLElement).queryByRole('button', { name: 'Remover MOTOR' })).toBeNull());
+    await waitFor(() => expect(within(secaoDoDia(1).querySelector('[data-faixa]') as HTMLElement).queryByRole('button', { name: /^Ações de MOTOR/ })).toBeNull());
     confirmar.mockRestore();
   });
+
+  it('P2: "Trocar militar" tira quem está na vaga, sem perguntar, e abre a escolha da mesma vaga em seguida', async () => {
+    const semMotor: EscalaDoMes = { ...ESCALA, dias: ESCALA.dias.map((d, i) => (i === 0 ? { ...d, faixas: [faixa(false, card(false, true)), d.faixas[1]!] } : d)) };
+    const f = api(ESCALA, { 'DELETE /api/alocacoes/a-MOTOR': { status: 200, corpo: semMotor }, [rotaCandidatos]: { status: 200, corpo: CANDIDATOS } });
+    const confirmar = vi.spyOn(window, 'confirm');
+    abrir('/escala-do-mes');
+    const d1 = await screen.findByRole('region', { name: 'Dia 1' });
+    await agirNaPlaca(d1.querySelector('[data-faixa]') as HTMLElement, /^Ações de MOTOR/, 'Trocar militar');
+    await waitFor(() => expect(chamadasA(f, 'DELETE /api/alocacoes/a-MOTOR')).toBe(1));
+    expect(confirmar).not.toHaveBeenCalled();
+    const dialogo = await screen.findByRole('dialog', { name: 'Escolher militar' });
+    expect(dialogo).toHaveTextContent('Motorista');
+    // a escolha é da mesma vaga: a consulta dos candidatos traz o dia, a guarnição e a função de quem saiu
+    await waitFor(() => expect(f.mock.calls.some(([e]) => String(e).includes(`/candidatos`) && String(e).includes('funcaoId=f-mot'))).toBe(true));
+    confirmar.mockRestore();
+  });
+
+  it('P2: se a troca falha ao tirar quem está na vaga, mostra o erro e não abre a escolha', async () => {
+    api(ESCALA, { 'DELETE /api/alocacoes/a-MOTOR': { status: 404, corpo: { erro: 'Alocação não encontrada.' } } });
+    abrir('/escala-do-mes');
+    const d1 = await screen.findByRole('region', { name: 'Dia 1' });
+    await agirNaPlaca(d1.querySelector('[data-faixa]') as HTMLElement, /^Ações de MOTOR/, 'Trocar militar');
+    expect(await screen.findByRole('alert')).toHaveTextContent('Alocação não encontrada.');
+    expect(screen.queryByRole('dialog', { name: 'Escolher militar' })).toBeNull();
+  });
+
 
   it('"Permitir de novo" na linha dos removidos manda o DELETE da remoção (libera a pré-escala; não escala ninguém)', async () => {
     const comRemovido: EscalaDoMes = { ...ESCALA, dias: ESCALA.dias.map((d, i) => (i === 2 ? { ...d, faixas: [faixa(false, card(true, true), { removidos: [{ remocaoId: 'r1', militarId: 'm-x', nomeGuerra: 'XAVIER', servico: 'Pronto' }] }), d.faixas[1]!] } : d)) };
@@ -562,20 +586,22 @@ describe('escolher militar e remover', () => {
     vi.spyOn(window, 'confirm').mockReturnValue(true);
     abrir('/escala-do-mes');
     const d1 = await screen.findByRole('region', { name: 'Dia 1' });
-    await userEvent.click(within(d1.querySelector('[data-faixa]') as HTMLElement).getByRole('button', { name: 'Remover MOTOR' }));
+    await agirNaPlaca(d1.querySelector('[data-faixa]') as HTMLElement, /^Ações de MOTOR/, 'Remover da vaga');
     expect(await screen.findByRole('alert')).toHaveTextContent('Alocação não encontrada.');
   });
 
-  it('quem está em "Sem guarnição" também tem Remover', async () => {
+  it('quem está em "Sem guarnição" tem "Remover do turno" no menu da placa', async () => {
     const solto = ocupante('SOLTO');
     const comSolto: EscalaDoMes = { ...ESCALA, dias: ESCALA.dias.map((d, i) => (i === 2 ? { ...d, faixas: [faixa(false, card(true, true), { semPosto: [solto] }), d.faixas[1]!] } : d)) };
     const f = api(comSolto, { 'DELETE /api/alocacoes/a-SOLTO': { status: 200, corpo: ESCALA } });
     vi.spyOn(window, 'confirm').mockReturnValue(true);
     abrir('/escala-do-mes');
     const d3 = await screen.findByRole('region', { name: 'Dia 3' });
-    const linha = within(d3).getByText('Sem guarnição:').closest('p')!;
-    expect(linha).toHaveTextContent('SOLTO');
-    await userEvent.click(within(d3).getByRole('button', { name: 'Remover SOLTO' }));
+    const grupo = within(d3).getByText('Sem guarnição').closest('div')!;
+    expect(grupo).toHaveTextContent('SOLTO');
+    await userEvent.click(within(grupo).getByRole('button', { name: 'Ações de SOLTO em Sem guarnição' }));
+    expect(screen.getAllByRole('menuitem').map((i) => i.textContent)).toEqual(['Remover do turno']);
+    await userEvent.click(screen.getByRole('menuitem', { name: 'Remover do turno' }));
     await waitFor(() => expect(chamadasA(f, 'DELETE /api/alocacoes/a-SOLTO')).toBe(1));
   });
 
@@ -595,7 +621,7 @@ describe('escolher militar e remover', () => {
     vi.spyOn(window, 'confirm').mockReturnValue(true);
     abrir('/escala-do-mes');
     const d1 = await screen.findByRole('region', { name: 'Dia 1' });
-    await userEvent.click(within(d1.querySelector('[data-faixa]') as HTMLElement).getByRole('button', { name: 'Remover MOTOR' }));
+    await agirNaPlaca(d1.querySelector('[data-faixa]') as HTMLElement, /^Ações de MOTOR/, 'Remover da vaga');
     await screen.findByRole('alert');
     await waitFor(() => expect(chamadasA(f, `GET /api/escalas/e1/mes/${MES}`)).toBe(2));
   });
@@ -698,7 +724,7 @@ describe('acumular funções', () => {
     const confirmar = vi.spyOn(window, 'confirm').mockReturnValue(true);
     abrir('/escala-do-mes');
     const d2 = await screen.findByRole('region', { name: 'Dia 2' });
-    await userEvent.click(within(d2).getByRole('button', { name: 'Tirar CHEFE de Combatente ABT' }));
+    await agirNaPlaca(d2, 'Ações de CHEFE em Combatente ABT', 'Remover da vaga');
     expect(confirmar).toHaveBeenLastCalledWith('Tirar CHEFE de Combatente ABT? Ele continua em Chefe ABT.');
     await waitFor(() => expect(chamadasA(f, 'DELETE /api/acumulos/x1')).toBe(1));
     expect(chamadasA(f, 'DELETE /api/alocacoes/a-CHEFE')).toBe(0);
@@ -710,7 +736,7 @@ describe('acumular funções', () => {
     const confirmar = vi.spyOn(window, 'confirm').mockReturnValue(true);
     abrir('/escala-do-mes');
     const d3 = await screen.findByRole('region', { name: 'Dia 3' });
-    await userEvent.click(within(d3).getByRole('button', { name: 'Remover CHEFE' }));
+    await agirNaPlaca(d3, /^Ações de CHEFE/, 'Remover da vaga');
     expect(confirmar).toHaveBeenLastCalledWith('Remover CHEFE de ABT, dia 3? Ele não volta para este turno quando a pré-escala for gerada de novo. Sai também de: Graduado de dia.');
     await waitFor(() => expect(chamadasA(f, 'DELETE /api/alocacoes/a-CHEFE')).toBe(1));
   });
@@ -742,7 +768,7 @@ describe('cotas restantes na escala do mês', () => {
     await screen.findByText('JES: restam 38 de 40');
     expect(chamadasA(f, 'GET /api/unidades/u-1sb/cotas')).toBe(1);
     const d1 = await screen.findByRole('region', { name: 'Dia 1' });
-    await userEvent.click(within(d1.querySelector('[data-faixa]') as HTMLElement).getByRole('button', { name: 'Remover MOTOR' }));
+    await agirNaPlaca(d1.querySelector('[data-faixa]') as HTMLElement, /^Ações de MOTOR/, 'Remover da vaga');
     await waitFor(() => expect(chamadasA(f, 'DELETE /api/alocacoes/a-MOTOR')).toBe(1));
     await waitFor(() => expect(chamadasA(f, 'GET /api/unidades/u-1sb/cotas')).toBe(2));
   });

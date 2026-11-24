@@ -1,7 +1,7 @@
 import { screen, within } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { correspondeABusca } from '@/lib/texto';
-import { textoDoContador } from '@/componentes/escala-do-mes/CardDaGuarnicao';
+import { textoDoContador } from '@/componentes/CartaoDaGuarnicao';
 
 // Entrega 6.17, Task 6: formulários, diálogos e nomes acessíveis (itens pequenos).
 void screen;

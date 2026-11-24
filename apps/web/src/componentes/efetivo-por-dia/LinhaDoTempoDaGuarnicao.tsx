@@ -1,8 +1,7 @@
 import type { FuncaoNoEfetivo, GuarnicaoNoEfetivo, TrechoNoEfetivo } from 'contratos';
 import { useState } from 'react';
-import { Etiqueta } from '@/componentes/ui/etiqueta';
-import { BarraDaVaga, classeDaVaga, classeDaVagaSoLeitura } from '@/componentes/VagaVazia';
-import { estiloDaCor } from '@/lib/cores';
+import { classeDoEncaixe } from '@/componentes/Encaixe';
+import { Placa } from '@/componentes/Placa';
 import { posicao, type Janela } from '@/lib/efetivo';
 import type { CSSProperties } from 'react';
 import { textoMinutos } from '@/lib/turnos';
@@ -27,7 +26,7 @@ export function nomeDoTrecho(funcao: string, t: TrechoNoEfetivo): string {
 function Trecho({ funcao, t, janela, acoes }: { funcao: FuncaoNoEfetivo; t: TrechoNoEfetivo; janela: Janela; acoes: AcoesDaLinha }) {
   const estilo = { left: posicao(janela, t.inicio), width: `calc(${posicao(janela, t.fim)} - ${posicao(janela, t.inicio)})` };
   // o trecho mede a própria largura (container query): o horário e a etiqueta só aparecem quando cabem ao lado do nome, que nunca cede lugar a eles
-  const base = '@container absolute inset-y-0.5 flex min-w-0 items-center gap-1.5 overflow-hidden rounded px-1.5 text-left focus-visible:z-20 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-tinta';
+  const base = '@container absolute inset-y-0 flex min-w-0 items-center gap-1.5 overflow-hidden rounded-controle px-1.5 text-left focus-visible:z-20';
   if (!t.ocupante && acoes.soLeitura) {
     return (
       <div
@@ -35,10 +34,9 @@ function Trecho({ funcao, t, janela, acoes }: { funcao: FuncaoNoEfetivo; t: Trec
         aria-label={nomeDoTrecho(funcao.funcao, t)}
         data-vaga
         data-obrigatoria
-        className={cn(base, classeDaVagaSoLeitura(true), 'pl-2 text-xs font-medium')}
+        className={cn(base, classeDoEncaixe(true), 'pl-2 text-apoio hover:border-dashed')}
         style={estilo}
       >
-        <BarraDaVaga />
         <span className="truncate">vaga</span>
         <span className="hidden shrink-0 text-apoio opacity-80 @min-[8rem]:inline">{faixa(t)}</span>
       </div>
@@ -54,10 +52,9 @@ function Trecho({ funcao, t, janela, acoes }: { funcao: FuncaoNoEfetivo; t: Trec
         // a faixa só traz vagas até o mínimo da função: toda vaga aqui é obrigatória (a extra só existe na Escala do mês)
         data-obrigatoria
         // o mesmo desenho das vagas vazias da Escala do mês; sem estilo de cor: a cor de serviço é de quem já está escalado
-        className={cn(base, classeDaVaga(true), 'pl-2 text-xs font-medium')}
+        className={cn(base, classeDoEncaixe(true), 'pl-2 text-apoio')}
         style={estilo}
       >
-        <BarraDaVaga />
         <span className="truncate">vaga</span>
         <span className="hidden shrink-0 text-apoio opacity-80 @min-[8rem]:inline">{faixa(t)}</span>
       </button>
@@ -73,25 +70,33 @@ function Trecho({ funcao, t, janela, acoes }: { funcao: FuncaoNoEfetivo; t: Trec
  */
 function TrechoOcupado({ funcao, t, o, base, estilo, acoes }: { funcao: FuncaoNoEfetivo; t: TrechoNoEfetivo; o: NonNullable<TrechoNoEfetivo['ocupante']>; base: string; estilo: CSSProperties; acoes: AcoesDaLinha }) {
   const [mostrarHorario, setMostrarHorario] = useState(false);
-  const Raiz = acoes.soLeitura ? 'div' : 'button';
   return (
-    <Raiz
-      {...(acoes.soLeitura ? { role: 'group' } : { type: 'button' as const, onClick: () => acoes.aoClicarOcupado?.(funcao, t) })}
-      aria-label={nomeDoTrecho(funcao.funcao, t)}
-      title={faixa(t)}
+    // o trecho é a placa do militar, no lugar e na largura do horário dele; sem o menu das ações: clicar abre as alocações do trecho
+    <div
       onFocus={() => setMostrarHorario(true)}
       onBlur={() => setMostrarHorario(false)}
       onTouchStart={() => setMostrarHorario(true)}
-      className={`${base} border border-white/40 hover:brightness-95`}
-      style={{ ...estilo, ...estiloDaCor(o.servico.cor) }}
+      className={cn(base, 'overflow-visible p-0')}
+      style={estilo}
     >
-      <span className="truncate font-cond text-sm font-semibold">
-        <span className="text-apoio font-normal">{o.posto}</span> {o.nomeGuerra}
-        {o.acumulo && <span className="ml-1 text-apoio font-normal">acumula</span>}
-      </span>
-      {mostrarHorario && <span data-horario className="shrink-0 text-apoio">{faixa(t)}</span>}
-      <Etiqueta tipo="servico" cor={o.servico.cor} className="hidden @min-[14rem]:inline-flex">{o.servico.nome}</Etiqueta>
-    </Raiz>
+      <Placa
+        patente={o.posto}
+        nome={o.nomeGuerra}
+        servico={{ nome: o.servico.nome, cor: o.servico.cor }}
+        servicoSoSeAmplo
+        aoClicar={acoes.soLeitura ? undefined : () => acoes.aoClicarOcupado?.(funcao, t)}
+        role={acoes.soLeitura ? 'group' : undefined}
+        rotuloAcessivel={nomeDoTrecho(funcao.funcao, t)}
+        dica={faixa(t)}
+        extra={
+          <>
+            {o.acumulo && <span className="shrink-0 text-apoio text-apagado">acumula</span>}
+            {mostrarHorario && <span data-horario className="shrink-0 text-apoio text-apagado">{faixa(t)}</span>}
+          </>
+        }
+        className="h-full w-full"
+      />
+    </div>
   );
 }
 
@@ -111,7 +116,7 @@ export function LinhaDoTempoDaGuarnicao({ g, janela, acoes = {} }: { g: Guarnica
             ) : (
               <span aria-hidden className="hidden sm:block" />
             )}
-            <div className="relative h-8 rounded bg-black/[0.03]">
+            <div className="relative h-(--altura-controle) rounded-controle bg-tinta/5">
               {linha.map((t) => <Trecho key={`${t.inicio}|${t.fim}|${t.ocupante?.militarId ?? 'vaga'}`} funcao={f} t={t} janela={janela} acoes={acoes} />)}
             </div>
           </div>

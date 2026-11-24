@@ -72,6 +72,16 @@ function EscalaDoMes() {
       setErro(mensagemDe(e));
     }
   }
+  // "Trocar militar": tira quem está na vaga (sem perguntar: a pessoa acabou de escolher trocar) e abre a escolha da mesma vaga em seguida
+  async function trocar(o: OcupanteDaVaga, daVaga: VagaDaTela) {
+    setErro(null);
+    try {
+      await (o.acumuloId !== null ? tirarAcumulo(queryClient, o.acumuloId) : removerAlocacao(queryClient, o.alocacaoId));
+      setVaga(daVaga);
+    } catch (e) {
+      setErro(mensagemDe(e));
+    }
+  }
   async function desfazer(remocaoId: string) {
     setErro(null);
     try {
@@ -139,7 +149,7 @@ function EscalaDoMes() {
           data-dias-em-grade={dados.data.dias.length > 0 && dados.data.dias.every((d) => d.faixas.length <= 1) ? '' : undefined}
           className={cn('grid gap-3', dados.data.dias.length > 0 && dados.data.dias.every((d) => d.faixas.length <= 1) && 'grid-cols-[repeat(auto-fill,minmax(min(100%,22rem),1fr))] items-start')}
         >
-          {dados.data.dias.map((d) => <DiaDaEscalaVista key={d.data} dia={d} soVazias={soVazias} aoEscolher={soConsulta ? undefined : setVaga} aoRemover={soConsulta ? undefined : (o, g, n, v) => void remover(o, g, n, v)} aoDesfazer={soConsulta ? undefined : (id) => void desfazer(id)} />)}
+          {dados.data.dias.map((d) => <DiaDaEscalaVista key={d.data} dia={d} soVazias={soVazias} aoEscolher={soConsulta ? undefined : setVaga} aoRemover={soConsulta ? undefined : (o, g, n, v) => void remover(o, g, n, v)} aoTrocar={soConsulta ? undefined : (o, _g, _n, _v, daVaga) => void trocar(o, daVaga)} aoDesfazer={soConsulta ? undefined : (id) => void desfazer(id)} />)}
         </div>
       )}
       {gerando && <GerarPreEscala escalaId={escalaId} mes={mes} aoFechar={() => setGerando(false)} aoGravar={setGravadas} />}
