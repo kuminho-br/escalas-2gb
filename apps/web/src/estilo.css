@@ -121,3 +121,22 @@
     animation: none !important;
   }
 }
+
+/* Imprimir o memorial de cálculo (6.30): sai só o memorial, em preto sobre branco (sem o menu, nem os botões, nem o resto da tela). */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  .memorial-impressao,
+  .memorial-impressao * {
+    visibility: visible;
+  }
+  .memorial-impressao {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    color: #000;
+    background: #fff;
+  }
+}

@@ -6,6 +6,8 @@ import { mensagemDe } from '@/api/cliente';
 import { consultaEscalaDosOficiais, consultaSaldoDosOficiais } from '@/api/oficiais';
 import { CampoDeMes } from '@/componentes/CampoDeMes';
 import { EscalaDoMes } from '@/componentes/oficiais/EscalaDoMes';
+import { MemorialDeCalculo } from '@/componentes/oficiais/MemorialDeCalculo';
+import { BotaoDasRegras } from '@/componentes/oficiais/RegrasDosOficiais';
 import { PainelDeSaldo } from '@/componentes/oficiais/PainelDeSaldo';
 import { Selecao } from '@/componentes/Selecao';
 import { Label } from '@/componentes/ui/label';
@@ -13,8 +15,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/componentes/ui/tabs'
 import { mesAtual } from '@/lib/meses';
 
 // as regras abrem num botão da Escala do mês (6.28): um endereço antigo com `aba=regras` cai na Escala do mês
-type Aba = 'escala' | 'saldo';
-const ABAS: Aba[] = ['escala', 'saldo'];
+type Aba = 'escala' | 'saldo' | 'memorial';
+const ABAS: Aba[] = ['escala', 'saldo', 'memorial'];
 
 export const Route = createFileRoute('/_app/oficiais')({
   // quem não tem nível de gestão na unidade escolhida (ou acima dela) volta ao início com o aviso, como nos outros módulos (a API confere o papel de qualquer jeito)
@@ -72,16 +74,25 @@ function Oficiais() {
         <TabsList>
           <TabsTrigger value="escala">Escala do mês</TabsTrigger>
           <TabsTrigger value="saldo">Painel de saldo</TabsTrigger>
+          <TabsTrigger value="memorial">Memorial de cálculo</TabsTrigger>
         </TabsList>
         <TabsContent value="escala">
           {escala.isPending && <p className="text-apagado">Carregando…</p>}
           {escala.error && <p role="alert" className="text-alerta">{mensagemDe(escala.error)}</p>}
+          {e && !e.escala && (
+            <div className="flex justify-end">
+              <BotaoDasRegras />
+            </div>
+          )}
           {e && !e.escala && (
             <p className="text-apagado">
               A unidade ainda não tem uma escala com rodada de cotas. Cadastre uma em <Link to="/escalas" className="font-medium text-vinho underline underline-offset-2">Escalas</Link>, escolhendo o jeito de distribuir "rodada de cotas".
             </p>
           )}
           {e?.escala && <EscalaDoMes key={`${unidadeId}|${e.escala.id}|${mes}`} unidadeId={unidadeId} escala={e} aoVer={irPara} />}
+        </TabsContent>
+        <TabsContent value="memorial">
+          {e?.escala && <MemorialDeCalculo unidadeId={unidadeId} mes={mes} escalaId={e.escala.id} />}
         </TabsContent>
         <TabsContent value="saldo">
           {saldo.isPending && <p className="text-apagado">Carregando…</p>}

@@ -71,7 +71,7 @@ function CabecalhoDoDia({ dia, vermelho, aoMarcar }: { dia: string; vermelho: bo
           aria-label={`Dia vermelho: ${dm}`}
           title={vermelho ? 'Tirar a marca de dia vermelho' : 'Marcar como dia vermelho'}
           onClick={() => aoMarcar(dia)}
-          className={cn('-ml-1 flex items-baseline gap-1.5 rounded px-1 hover:bg-passa focus-visible:outline-2', vermelho && 'text-alerta')}
+          className={cn('-ml-1 flex min-h-11 min-w-11 items-center gap-1.5 rounded px-1 hover:bg-passa focus-visible:outline-2', vermelho && 'text-alerta')}
         >
           {numero}
         </button>

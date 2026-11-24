@@ -571,7 +571,7 @@ describe('a aba Escala do mês', () => {
     });
 
     it('os dias vermelhos têm um botão "Marcar dias vermelhos" ao lado do seletor de serviço: ligado, diz "Concluir", e clicar no dia marca ou tira; desligado, o número do dia não é botão', async () => {
-      const f = abrirEscala(escala(), { [`PUT ${URL_MES}/dias-vermelhos`]: { status: 200, corpo: escala({ diasVermelhos: [dia(5)] }) } });
+      const f = abrirEscala(escala(), { [`POST ${URL_MES}/dias-vermelhos/marcar`]: { status: 200, corpo: escala({ diasVermelhos: [dia(5)] }) } });
       const grupo = await screen.findByRole('radiogroup', { name: 'Escalar:' });
       expect(screen.queryByRole('button', { name: /^Dia vermelho: / })).toBeNull();
       const botao = screen.getByRole('button', { name: 'Marcar dias vermelhos' });
@@ -580,7 +580,7 @@ describe('a aba Escala do mês', () => {
       await userEvent.click(botao);
       expect(screen.getByRole('button', { name: 'Concluir' })).toHaveAttribute('aria-pressed', 'true');
       await userEvent.click(screen.getByRole('button', { name: 'Dia vermelho: 05/01' }));
-      await waitFor(() => expect(corpoEnviado(f, `PUT ${URL_MES}/dias-vermelhos`)).toEqual({ dias: [dia(5)] }));
+      await waitFor(() => expect(corpoEnviado(f, `POST ${URL_MES}/dias-vermelhos/marcar`)).toEqual({ dia: dia(5), vermelho: true }));
       await userEvent.click(screen.getByRole('button', { name: 'Concluir' }));
       expect(screen.queryByRole('button', { name: /^Dia vermelho: / })).toBeNull();
       expect(screen.getByRole('button', { name: 'Marcar dias vermelhos' })).toBeInTheDocument();
@@ -1229,7 +1229,7 @@ describe('os dias vermelhos', () => {
     cleanup();
     vi.unstubAllGlobals();
   });
-  const URL_VERMELHOS = `PUT ${URL_MES}/dias-vermelhos`;
+  const URL_VERMELHOS = `POST ${URL_MES}/dias-vermelhos/marcar`;
   const diaDoCalendario = async (n: number) => {
     // o clique no dia só vale no modo de marcar dias vermelhos: o botão "Marcar dias vermelhos" liga, e "Concluir" desliga
     if (!screen.queryByRole('button', { name: 'Concluir' })) await userEvent.click(await screen.findByRole('button', { name: 'Marcar dias vermelhos' }));
@@ -1246,13 +1246,13 @@ describe('os dias vermelhos', () => {
   it('um clique no dia marca: a tela manda a lista inteira com o dia a mais', async () => {
     const f = abrirEscala(escala({ diasVermelhos: [dia(5)] }), { [URL_VERMELHOS]: { status: 200, corpo: escala({ diasVermelhos: [dia(5), dia(9)] }) } });
     await userEvent.click(await diaDoCalendario(9));
-    await waitFor(() => expect(corpoEnviado(f, URL_VERMELHOS)).toEqual({ dias: [dia(5), dia(9)] }));
+    await waitFor(() => expect(corpoEnviado(f, URL_VERMELHOS)).toEqual({ dia: dia(9), vermelho: true }));
   });
 
   it('um clique no dia vermelho tira a marca: a lista vai sem ele', async () => {
     const f = abrirEscala(escala({ diasVermelhos: [dia(5), dia(9)] }), { [URL_VERMELHOS]: { status: 200, corpo: escala({ diasVermelhos: [dia(9)] }) } });
     await userEvent.click(await diaDoCalendario(5));
-    await waitFor(() => expect(corpoEnviado(f, URL_VERMELHOS)).toEqual({ dias: [dia(9)] }));
+    await waitFor(() => expect(corpoEnviado(f, URL_VERMELHOS)).toEqual({ dia: dia(5), vermelho: false }));
   });
 
   it('com a escala fechada ainda se marca', async () => {
@@ -1306,3 +1306,111 @@ describe('os dias vermelhos', () => {
   });
 });
 
+
+// ---- o memorial de cálculo (6.30) ----
+describe('o memorial de cálculo (6.30)', () => {
+  afterEach(() => {
+    cleanup();
+    vi.unstubAllGlobals();
+  });
+  const CONTA = {
+    turnos: 62, jes: 0, rodada: 62, sobraram: 1,
+    participantes: [
+      { militarId: 'm-1', patente: 'CEL', nomeGuerra: 'ALFA', diasNoMes: 31, afastamentos: [], devido: 20.5, cota: 21, sobra: false },
+      { militarId: 'm-2', patente: 'CAP', nomeGuerra: 'BRAVO', diasNoMes: 31, afastamentos: [{ tipo: 'Férias', inicio: '2027-01-17', fim: '2027-01-31' }], devido: 20.5, cota: 21, sobra: true },
+    ],
+  };
+  const REGISTRO = (motivo: string, criadoEm: string, por: { patente: string; nomeGuerra: string } | null = { patente: 'CAP', nomeGuerra: 'VERIF' }) => ({ criadoEm, por, motivo, conta: CONTA });
+  const MEMORIAL = {
+    contaAtual: CONTA,
+    registros: [REGISTRO('Mudou quem participa', '2027-01-05T13:00:00Z'), REGISTRO('Abriu o mês', '2026-12-28T13:00:00Z')],
+    servicos: [
+      { dia: '2027-01-03', letra: 'A', servico: 'saldo' as const, patente: 'CEL', nomeGuerra: 'ALFA', cobriu: null },
+      { dia: '2027-01-04', letra: 'A', servico: 'jes' as const, patente: 'CAP', nomeGuerra: 'BRAVO', cobriu: 'CHARLIE' },
+    ],
+  };
+  const abrirMemorial = async (memorial: unknown) => {
+    const f = abrirEscala(escala(), { [`GET ${URL_MES}/memorial`]: { status: 200, corpo: memorial } });
+    await userEvent.click(await screen.findByRole('tab', { name: 'Memorial de cálculo' }));
+    return f;
+  };
+
+  it('a aba "Memorial de cálculo" fica ao lado das outras, e o botão da Escala do mês leva a ela', async () => {
+    abrirEscala(escala(), { [`GET ${URL_MES}/memorial`]: { status: 200, corpo: MEMORIAL } });
+    await userEvent.click(await screen.findByRole('button', { name: 'Memorial de cálculo' }));
+    expect(await screen.findByRole('heading', { name: 'Memorial de cálculo de janeiro de 2027' })).toBeInTheDocument();
+  });
+
+  it('a conta atual aparece em frases curtas, com a tabela de cada oficial (devido, cota, sobra e os afastamentos)', async () => {
+    await abrirMemorial(MEMORIAL);
+    expect(await screen.findByText('O mês tem 62 turnos.')).toBeInTheDocument();
+    expect(screen.getByText('Nenhum turno de JES foi lançado.')).toBeInTheDocument();
+    expect(screen.getByText('Sobram 62 turnos para a rodada de Saldo.')).toBeInTheDocument();
+    expect(screen.getByText('Participam 2 oficiais.')).toBeInTheDocument();
+    expect(screen.getByText('Depois do arredondamento sobraram 1, entregues aos mais modernos da ordem: BRAVO.')).toBeInTheDocument();
+    const tabela = screen.getByRole('table', { name: 'Quanto deu para cada oficial' });
+    expect(within(tabela).getAllByText('20,50')).toHaveLength(2);
+    expect(within(tabela).getByText('Férias, 17/01 a 31/01')).toBeInTheDocument();
+  });
+
+  it('os serviços do mês por oficial: JES, Saldo e coberturas', async () => {
+    await abrirMemorial(MEMORIAL);
+    const servicos = await screen.findByRole('table', { name: 'Os serviços do mês, por oficial' });
+    const bravo = within(servicos).getByText('BRAVO').closest('tr')!;
+    expect(within(bravo).getAllByRole('cell').map((c) => c.textContent)).toEqual(['CAP BRAVO', '1', '0', '1']);
+    expect(within(within(servicos).getByText('ALFA').closest('tr')!).getAllByRole('cell')[2]).toHaveTextContent('1');
+  });
+
+  it('o histórico mostra o último recálculo aberto e os anteriores recolhidos, com quem fez e quando', async () => {
+    await abrirMemorial(MEMORIAL);
+    expect(await screen.findByText('Mudou quem participa')).toBeInTheDocument();
+    const recolhidos = screen.getByText('Ver os 1 recálculos anteriores').closest('details')!;
+    expect(recolhidos).not.toHaveAttribute('open');
+    expect(within(recolhidos).getByText('Abriu o mês')).toBeInTheDocument();
+    expect(screen.getAllByText(/CAP VERIF/)).toHaveLength(2);
+  });
+
+  it('um mês gravado antes do memorial (sem registros) mostra a conta atual e a frase de que o histórico começa agora', async () => {
+    await abrirMemorial({ ...MEMORIAL, registros: [] });
+    expect(await screen.findByText('Cálculo refeito agora: o histórico começa nesta versão.')).toBeInTheDocument();
+    expect(screen.getByText('O mês tem 62 turnos.')).toBeInTheDocument();
+  });
+
+  it('"Imprimir" chama a impressão do navegador; o botão some na impressão (print:hidden) e o memorial é a área marcada para imprimir', async () => {
+    await abrirMemorial(MEMORIAL);
+    const imprimir = vi.fn();
+    vi.stubGlobal('print', imprimir);
+    await userEvent.click(await screen.findByRole('button', { name: 'Imprimir' }));
+    expect(imprimir).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole('button', { name: 'Imprimir' })).toHaveClass('print:hidden');
+    expect(screen.getByRole('region', { name: 'Memorial de cálculo' })).toHaveClass('memorial-impressao');
+  });
+});
+
+// ---- as pendências da 6.30 na tela ----
+describe('pendências da 6.30 na tela', () => {
+  afterEach(() => {
+    cleanup();
+    vi.unstubAllGlobals();
+  });
+
+  it('o botão "Regras" aparece mesmo sem escala de rodada na unidade, e abre as regras', async () => {
+    abrirEscala(escala({ escala: null, escalas: [], etapa: 'nao-aberto', abertaEm: null, servicos: { jes: null, saldo: null }, turnosDoServico: [], oficiais: [], vez: null, turnos: [] }));
+    await screen.findByText(/A unidade ainda não tem uma escala com rodada de cotas\./);
+    await userEvent.click(screen.getByRole('button', { name: 'Regras' }));
+    expect(await screen.findByRole('dialog', { name: 'Regras da escala dos oficiais' })).toBeInTheDocument();
+  });
+
+  it('no modo de marcar dias vermelhos, a área de clique do dia tem 44 px (min-h-11 e min-w-11)', async () => {
+    abrirEscala(escala());
+    await userEvent.click(await screen.findByRole('button', { name: 'Marcar dias vermelhos' }));
+    expect(await screen.findByRole('button', { name: 'Dia vermelho: 05/01' })).toHaveClass('min-h-11', 'min-w-11');
+  });
+
+  it('cada clique no dia manda só o dia e a marca (POST .../dias-vermelhos/marcar), e não a lista inteira', async () => {
+    const f = abrirEscala(escala(), { [`POST ${URL_MES}/dias-vermelhos/marcar`]: { status: 200, corpo: escala({ diasVermelhos: [dia(7)] }) } });
+    await userEvent.click(await screen.findByRole('button', { name: 'Marcar dias vermelhos' }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Dia vermelho: 07/01' }));
+    await waitFor(() => expect(corpoEnviado(f, `POST ${URL_MES}/dias-vermelhos/marcar`)).toEqual({ dia: dia(7), vermelho: true }));
+  });
+});

@@ -99,6 +99,8 @@ export interface OficialNoSaldo {
 export const Lancamento = z.object({ dia: Data, letra: z.enum(['A', 'B', 'C', 'U'], 'Escolha o turno.'), servico: z.enum(['jes', 'saldo'], 'Escolha JES ou Saldo.'), militarId: Id });
 /** Os dias vermelhos do mês: a lista inteira (o que não vem deixa de ser vermelho). Cada dia é validado contra o mês na rota. */
 export const DiasVermelhos = z.object({ dias: z.array(Data).max(31, 'Um mês tem no máximo 31 dias.') });
+/** Marca ou tira um dia vermelho (um por vez: duas telas abertas não se apagam). */
+export const MarcaDiaVermelho = z.object({ dia: Data, vermelho: z.boolean() });
 export const OrdemManual = z.object({ militarIds: z.array(Id).max(200) });
 /** Quem participa da rodada do mês: a lista inteira (quem não vem fica desmarcado). */
 export const Participantes = z.object({ militarIds: z.array(Id).max(200) });
@@ -112,3 +114,46 @@ export type DiasVermelhosEntrada = z.infer<typeof DiasVermelhos>;
 export type OrdemManualEntrada = z.infer<typeof OrdemManual>;
 export type ParticipantesEntrada = z.infer<typeof Participantes>;
 export type AjusteDeSaldoEntrada = z.infer<typeof AjusteDeSaldo>;
+
+/** A conta das cotas num momento: o que entrou na divisão e quanto deu para cada um. Guardada inteira em cada registro do memorial. */
+export interface ContaDasCotas {
+  turnos: number;
+  jes: number;
+  rodada: number;
+  participantes: {
+    militarId: string;
+    patente: string;
+    nomeGuerra: string;
+    diasNoMes: number;
+    afastamentos: { tipo: string; inicio: string; fim: string }[];
+    devido: number;
+    cota: number;
+    sobra: boolean;
+  }[];
+  sobraram: number;
+}
+
+/** Um recálculo das cotas: quando, quem fez (null se o sistema refez sozinho sem usuário identificado), o motivo e a conta. */
+export interface RegistroDoMemorial {
+  criadoEm: string;
+  por: { patente: string; nomeGuerra: string } | null;
+  motivo: string;
+  conta: ContaDasCotas;
+}
+
+/** Um lugar tomado no mês, com o nome de quem ficou com ele (e de quem cobriu, se for cobertura). */
+export interface ServicoDoMemorial {
+  dia: string;
+  letra: string;
+  servico: 'jes' | 'saldo';
+  patente: string;
+  nomeGuerra: string;
+  cobriu: string | null;
+}
+
+/** O memorial do mês: a conta atual, os registros do mais novo ao mais antigo e a lista de serviços do mês. */
+export interface MemorialDaEscala {
+  contaAtual: ContaDasCotas | null;
+  registros: RegistroDoMemorial[];
+  servicos: ServicoDoMemorial[];
+}

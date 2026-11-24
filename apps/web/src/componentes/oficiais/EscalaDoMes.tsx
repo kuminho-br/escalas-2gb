@@ -3,7 +3,7 @@ import type { EscalaDosOficiais, LetraTurno, ServicoDaRodada } from 'contratos';
 import { ChevronDown } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { mensagemDe } from '@/api/cliente';
-import { abrirMes, encerrarMes, fecharEscala, gravarOrdem, gravarParticipantes, lancarNoLugar, marcarDiasVermelhos, tirarDoLugar } from '@/api/oficiais';
+import { abrirMes, encerrarMes, fecharEscala, gravarOrdem, gravarParticipantes, lancarNoLugar, marcarDiaVermelho, tirarDoLugar } from '@/api/oficiais';
 import { useTrava } from '@/componentes/AlteracoesPendentes';
 import { Button } from '@/componentes/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/componentes/ui/dialog';
@@ -13,7 +13,7 @@ import { EscolherOficial } from './EscolherOficial';
 import { FaixaDoMes } from './FaixaDoMes';
 import { ListaDeCotas } from './ListaDeCotas';
 import { MensagensDoMes, type Confirmacao } from './MensagensDoMes';
-import { RegrasDosOficiais } from './RegrasDosOficiais';
+import { BotaoDasRegras } from './RegrasDosOficiais';
 import { SeletorDeServico } from './SeletorDeServico';
 
 type Lugar = EscalaDosOficiais['turnos'][number];
@@ -22,7 +22,7 @@ type Oficial = EscalaDosOficiais['oficiais'][number];
 interface Props {
   unidadeId: string;
   escala: EscalaDosOficiais;
-  aoVer: (aba: 'saldo') => void;
+  aoVer: (aba: 'saldo' | 'memorial') => void;
 }
 
 const dm = (dia: string) => `${dia.slice(8)}/${dia.slice(5, 7)}`;
@@ -42,7 +42,6 @@ export function EscalaDoMes({ unidadeId, escala: e, aoVer }: Props) {
   const [erro, setErro] = useState<string | null>(null);
   const [aviso, setAviso] = useState<string | null>(null);
   const [confirmacao, setConfirmacao] = useState<Confirmacao>(null);
-  const [verRegras, setVerRegras] = useState(false);
   const [listaAberta, setListaAberta] = useState(true);
   // o serviço dos próximos cliques (Saldo, de começo) e o oficial escolhido à mão: nenhum vem escolhido, nem o da vez
   const [servico, setServico] = useState<ServicoDaRodada>(e.servicos.saldo ? 'saldo' : 'jes');
@@ -67,7 +66,15 @@ export function EscalaDoMes({ unidadeId, escala: e, aoVer }: Props) {
   }, [e]);
 
   const semParticipantes = e.etapa === 'nao-aberto' && e.oficiais.length === 0;
-  if (semParticipantes) return <p className="text-apagado">Nenhum oficial QOC ou QOA nesta unidade neste mês.</p>;
+  if (semParticipantes)
+    return (
+      <div className="grid gap-3">
+        <div className="flex justify-end">
+          <BotaoDasRegras />
+        </div>
+        <p className="text-apagado">Nenhum oficial QOC ou QOA nesta unidade neste mês.</p>
+      </div>
+    );
 
   const participantes = e.oficiais.filter((o) => o.participa);
   const rotuloDoTurno = (l: Lugar) => e.turnosDoServico.find((t) => t.id === l.turnoId)?.rotulo ?? 'turno';
@@ -97,11 +104,8 @@ export function EscalaDoMes({ unidadeId, escala: e, aoVer }: Props) {
   const ordenar = (ids: string[]) => void rodar(comAviso(() => gravarOrdem(queryClient, unidadeId, e.mes, ids, escalaId)))();
   const marcar = (ids: string[]) => void rodar(comAviso(() => gravarParticipantes(queryClient, unidadeId, e.mes, ids, escalaId)))();
   // marcar ou tirar um dia vermelho: a lista inteira do mês vai de novo, com o dia a mais ou a menos (vale até o mês ser encerrado)
-  const marcarDia = (d: string) =>
-    void rodar(async () => {
-      const nova = e.diasVermelhos.includes(d) ? e.diasVermelhos.filter((x) => x !== d) : [...e.diasVermelhos, d].sort();
-      await marcarDiasVermelhos(queryClient, unidadeId, e.mes, nova, escalaId);
-    })();
+  // um dia por vez: a outra tela aberta não perde as marcas dela (a lista inteira apagaria)
+  const marcarDia = (d: string) => void rodar(() => marcarDiaVermelho(queryClient, unidadeId, e.mes, d, !e.diasVermelhos.includes(d), escalaId))();
 
   const enfileirar = (tarefa: () => Promise<void>) => {
     setPendentes((n) => n + 1);
@@ -228,7 +232,8 @@ export function EscalaDoMes({ unidadeId, escala: e, aoVer }: Props) {
         extras={
           <>
             {e.etapa === 'encerrada' && <Button type="button" variant="outline" onClick={() => aoVer('saldo')}>Ver o saldo</Button>}
-            <Button type="button" variant="outline" onClick={() => setVerRegras(true)}>Regras</Button>
+            {e.etapa !== 'nao-aberto' && <Button type="button" variant="outline" onClick={() => aoVer('memorial')}>Memorial de cálculo</Button>}
+            <BotaoDasRegras />
           </>
         }
       />
@@ -305,15 +310,6 @@ export function EscalaDoMes({ unidadeId, escala: e, aoVer }: Props) {
           </section>
         </aside>
       </div>
-      <Dialog open={verRegras} onOpenChange={setVerRegras}>
-        <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-3xl">
-          <DialogHeader>
-            <DialogTitle>Regras da escala dos oficiais</DialogTitle>
-            <DialogDescription className="sr-only">Como a escala é montada, como a cota e o saldo são calculados e o que são os dias vermelhos.</DialogDescription>
-          </DialogHeader>
-          <RegrasDosOficiais />
-        </DialogContent>
-      </Dialog>
       <Dialog open={troca !== null} onOpenChange={(o) => !o && setTroca(null)}>
         <DialogContent>
           <DialogHeader>

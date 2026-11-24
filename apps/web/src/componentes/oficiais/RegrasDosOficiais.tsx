@@ -1,3 +1,7 @@
+import { useState } from 'react';
+import { Button } from '@/componentes/ui/button';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/componentes/ui/dialog';
+
 /** A aba Regras: o texto do mockup (docs/telas/escala-dos-oficiais/mockup.html, seção "Regras"), palavra por palavra. */
 export function RegrasDosOficiais() {
   return (
@@ -81,5 +85,24 @@ export function RegrasDosOficiais() {
         <p>Cada serviço tirado: quem, o dia, o turno (dia ou noite) e, quando for cobertura, no lugar de quem. Os ajustes do gestor ficam no mesmo histórico, com o motivo.</p>
       </section>
     </div>
+  );
+}
+
+/** O botão "Regras" com a janela das regras: aparece em qualquer tela de oficiais, mesmo sem escala de rodada (6.30). */
+export function BotaoDasRegras() {
+  const [aberto, setAberto] = useState(false);
+  return (
+    <>
+      <Button type="button" variant="outline" onClick={() => setAberto(true)}>Regras</Button>
+      <Dialog open={aberto} onOpenChange={setAberto}>
+        <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>Regras da escala dos oficiais</DialogTitle>
+            <DialogDescription className="sr-only">Como a escala é montada, como a cota e o saldo são calculados e o que são os dias vermelhos.</DialogDescription>
+          </DialogHeader>
+          <RegrasDosOficiais />
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
