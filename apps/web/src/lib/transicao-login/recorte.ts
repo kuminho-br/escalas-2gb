@@ -6,6 +6,8 @@ export const IW = 1536;
 export const IH = 1024;
 /** O ponto da imagem (fração da altura) que fica no mesmo ponto do quadro: o chão molhado e o engate ficam à mostra, o céu sai primeiro. */
 export const POSICAO_VERTICAL = 0.66;
+/** Os cantos do quadro (o raio de superfície, `rounded-superficie`); a câmera da animação pousa com a mesma silhueta. */
+export const RAIO_DO_QUADRO = 12;
 
 /**
  * A imagem cobre o quadro (`object-fit: cover`), centrada na horizontal e com `POSICAO_VERTICAL` na vertical (`object-position: center 66%`).

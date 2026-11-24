@@ -65,6 +65,8 @@ describe('tela inicial', () => {
     it('tem cantos arredondados, e a imagem cobre o quadro com o recorte da animação (centro, 66% na vertical)', async () => {
       const faixa = await quadro();
       expect(faixa.className).toMatch(/rounded-superficie/);
+      // antes de o script medir, o quadro já nasce com a altura cheia (sem salto na primeira pintura)
+      expect(faixa.className.split(' ')).toEqual(expect.arrayContaining(['h-[200px]', 'md:h-[300px]']));
       expect(faixa.className).not.toMatch(/aspect-/);
       const img = faixa.querySelector('img')!;
       expect(img.className).toMatch(/object-cover/);

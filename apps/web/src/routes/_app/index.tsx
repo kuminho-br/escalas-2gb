@@ -1,5 +1,5 @@
 import { createFileRoute, Link, redirect, useNavigate } from '@tanstack/react-router';
-import { useEffect, useRef, useState, type RefObject } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState, type RefObject } from 'react';
 import type { Eu } from '@/api/eu';
 import { MODULOS, type Modulo } from '@/lib/modulos';
 import { buscaDaGrade, temBuscaDaGrade, type BuscaDaGrade } from '@/lib/busca-da-grade';
@@ -29,10 +29,11 @@ const MARGEM = 24;
 /**
  * A cena num quadro que encolhe ao rolar (6.42): a altura cheia vem da largura (3:1, até 300 px), e a cada rolagem o quadro perde o que a
  * página subiu, até virar uma barra de 64 px. O quadro fica grudado abaixo do Topo; um espaçador compensa o que ele encolheu, para o que a pessoa
- * rola não mudar de tamanho enquanto rola. Escreve direto nos estilos (sem estado do React): é um quadro por rolagem.
+ * rola não mudar de tamanho enquanto rola. Escreve direto nos estilos (sem estado do React): é um quadro por rolagem. Mede antes da primeira
+ * pintura (`useLayoutEffect`), para a tela não nascer com o quadro de um tamanho e saltar para outro.
  */
 function useQuadroQueEncolhe(quadro: RefObject<HTMLElement | null>, espaco: RefObject<HTMLElement | null>) {
-  useEffect(() => {
+  useLayoutEffect(() => {
     const el = quadro.current;
     const esp = espaco.current;
     if (!el || !esp) return;
@@ -93,7 +94,8 @@ function Inicio() {
     <div className="-mt-6">
       {/* o que gruda abaixo do Topo é este bloco, com o fundo da página: ele cobre a margem entre o Topo e o quadro enquanto o conteúdo passa por baixo */}
       <div className="sticky z-10 bg-fundo" style={{ top: TOPO, paddingTop: MARGEM }}>
-        <section ref={quadro} data-faixa-boas-vindas className="cena-inicial relative overflow-hidden rounded-superficie bg-tinta text-white shadow-apoiada">
+        {/* a altura das classes é a cheia, para a tela já nascer do tamanho certo; o script a sobrescreve ao medir e ao rolar */}
+        <section ref={quadro} data-faixa-boas-vindas className="cena-inicial relative h-[200px] overflow-hidden rounded-superficie bg-tinta text-white shadow-apoiada md:h-[300px]">
           {/* a cena final da animação do login: a imagem cobre o quadro, centrada, a 66% na vertical. A animação pousa nesta mesma conta (recorte.ts) */}
           <img src="/boas-vindas.jpg" alt="" className="absolute inset-0 size-full object-cover" style={{ objectPosition: `center ${POSICAO_VERTICAL * 100}%` }} />
           <div data-chegada={chegadaDaSaudacao} className="saudacao-da-chegada saudacao absolute inset-0 flex flex-col bg-gradient-to-br from-tinta/90 via-tinta/40 to-transparent px-4 md:px-7">

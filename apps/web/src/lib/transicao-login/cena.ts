@@ -2,7 +2,7 @@
 // Cada quadro depende só do tempo desde o clique, da resposta do servidor e do tamanho atual da tela: redimensionar não faz as peças saltarem.
 // A mangueira e a junta são recortadas da própria imagem final; só a boca do anel é desenhada. Trocar a imagem exige refazer as medidas abaixo.
 import { inicioDaAgua, inicioDoRecuo, TEMPOS, type Resposta } from './linha-do-tempo';
-import { IH, IW, recorteDaFaixa } from './recorte';
+import { IH, IW, RAIO_DO_QUADRO, recorteDaFaixa } from './recorte';
 
 type Ponto = [number, number];
 type PontoComLargura = [number, number, number];
@@ -794,15 +794,21 @@ export type OpcoesDaCena = {
   botao?: { x: number; y: number; w: number } | null;
 };
 
+/** O recorte com a silhueta do quadro: cantos arredondados (num navegador sem `roundRect`, cantos vivos). */
+function recortarQuadro(ctx: Ctx, x: number, y: number, w: number, h: number, raio: number) {
+  ctx.beginPath();
+  if (typeof ctx.roundRect === 'function') ctx.roundRect(x, y, w, h, Math.max(0, Math.min(raio, w / 2, h / 2)));
+  else ctx.rect(x, y, w, h);
+  ctx.clip();
+}
+
 /** Depois do pouso: só as brasas sobre a faixa (4 s), o lampejo e o risco de luz que a cruza. */
 function desenharPouso(ctx: Ctx, PR: number, L: Palco, s: Estado) {
   const f = L.pouso;
   if (!f) return;
   ctx.setTransform(PR, 0, 0, PR, 0, 0);
   ctx.save();
-  ctx.beginPath();
-  ctx.rect(f.bx, f.by, f.bw, f.bh);
-  ctx.clip();
+  recortarQuadro(ctx, f.bx, f.by, f.bw, f.bh, RAIO_DO_QUADRO);
   const lampejo = 0.34 * (1 - ss(0, 0.4, s.th));
   if (lampejo > 0.004) {
     ctx.fillStyle = `rgba(255,236,208,${lampejo})`;
@@ -852,12 +858,10 @@ export function desenhar(ctx: Ctx, o: OpcoesDaCena): void {
   ctx.save();
   ctx.setTransform(PR, 0, 0, PR, 0, 0);
   if (L.pouso && s.zp > 0) {
-    // o quadro encolhe até a faixa
+    // o quadro encolhe até a faixa, e os cantos vão se arredondando até o raio do quadro
     const f = L.pouso;
     const lam = (L.s0 - cam.s) / (L.s0 - f.s1 || 1e-6);
-    ctx.beginPath();
-    ctx.rect(lam * f.bx, lam * f.by, L.W - lam * (L.W - f.bw), L.H - lam * (L.H - f.bh));
-    ctx.clip();
+    recortarQuadro(ctx, lam * f.bx, lam * f.by, L.W - lam * (L.W - f.bw), L.H - lam * (L.H - f.bh), lam * RAIO_DO_QUADRO);
   }
   // a tela escurece até fechar (0,40 s), com o centro avermelhado; depois disso a tela por baixo pode ser trocada sem aparecer
   const cx = 0.5 * L.W;
