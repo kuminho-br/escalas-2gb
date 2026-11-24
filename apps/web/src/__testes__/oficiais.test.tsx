@@ -586,14 +586,38 @@ describe('a aba Escala do mês', () => {
       expect(screen.getByRole('button', { name: 'Marcar dias vermelhos' })).toBeInTheDocument();
     });
 
-    it('o dia vermelho tem a faixa vermelha à esquerda das duas placas e o texto "Dia vermelho" para o leitor de tela; o outro dia não tem', async () => {
+    it('6.31: o dia vermelho tem o número em branco dentro de um quadrado vermelho (cor de alerta), e não tem mais a barra; o dia comum não muda', async () => {
       abrirEscala(escala({ diasVermelhos: [dia(5)] }));
       await screen.findByRole('radiogroup', { name: 'Escalar:' });
       const dias = screen.getByLabelText('Calendário do mês').querySelectorAll('[data-dia]');
       const cinco = dias[4]!;
-      expect(cinco.querySelector('[data-faixa-vermelha]')).toHaveClass('bg-alerta');
+      const quadrado = cinco.querySelector('[data-quadrado-vermelho]') as HTMLElement;
+      expect(quadrado).toHaveClass('bg-alerta', 'text-white');
+      expect(quadrado).toHaveTextContent('5');
       expect(within(cinco as HTMLElement).getByText('Dia vermelho')).toHaveClass('sr-only');
-      expect(dias[5]!.querySelector('[data-faixa-vermelha]')).toBeNull();
+      // sem a barra ao lado das placas, em nenhum dia
+      expect(document.querySelector('[data-faixa-vermelha]')).toBeNull();
+      // o dia comum: o número sem quadrado e sem a cor de alerta
+      expect(dias[5]!.querySelector('[data-quadrado-vermelho]')).toBeNull();
+      expect(within(dias[5] as HTMLElement).getByText('6')).not.toHaveClass('text-white', 'bg-alerta');
+    });
+
+    it('6.31: no modo de marcar, o quadrado vermelho continua sendo o botão ("Dia vermelho: dd/mm", aria-pressed), com 44 px de toque', async () => {
+      abrirEscala(escala({ diasVermelhos: [dia(5)] }));
+      await userEvent.click(await screen.findByRole('button', { name: 'Marcar dias vermelhos' }));
+      const botao = await screen.findByRole('button', { name: 'Dia vermelho: 05/01' });
+      expect(botao).toHaveAttribute('aria-pressed', 'true');
+      expect(botao).toHaveClass('min-h-11', 'min-w-11');
+      expect(botao.querySelector('[data-quadrado-vermelho]')).toHaveClass('bg-alerta', 'text-white');
+      expect((await screen.findByRole('button', { name: 'Dia vermelho: 06/01' })).querySelector('[data-quadrado-vermelho]')).toBeNull();
+    });
+
+    it('6.31: a legenda do dia vermelho é um quadradinho vermelho (e não a barra)', async () => {
+      abrirEscala(escala());
+      const legenda = await screen.findByLabelText('Legenda dos turnos');
+      const amostra = legenda.querySelector('[data-amostra-dia-vermelho]') as HTMLElement;
+      expect(amostra).toHaveClass('bg-alerta', 'size-[18px]');
+      expect(amostra).not.toHaveClass('w-[3px]');
     });
 
     it('a legenda fica embaixo do calendário e traz Dia, Noite, JES, Saldo e Dia vermelho; a frase "Clique no número do dia…" saiu', async () => {
