@@ -53,6 +53,7 @@
 | [superpowers/specs/2026-11-23-arvore-generica-design.md](superpowers/specs/2026-11-23-arvore-generica-design.md) | Árvore genérica e configurações gerais | PLANEJAMENTO | aprovado |
 | [superpowers/specs/2026-11-23-oficiais-escala-comum-design.md](superpowers/specs/2026-11-23-oficiais-escala-comum-design.md) | Escala dos oficiais como escala comum e dias vermelhos | PLANEJAMENTO | aprovado |
 | [superpowers/specs/2026-11-23-oficiais-tela-de-escalar-design.md](superpowers/specs/2026-11-23-oficiais-tela-de-escalar-design.md) | A tela de escalar dos oficiais | PLANEJAMENTO | aprovado |
+| [superpowers/specs/2026-11-24-ficha-da-escala-e-militar-externo-design.md](superpowers/specs/2026-11-24-ficha-da-escala-e-militar-externo-design.md) | Ficha do militar na escala, Escala do mês e militar externo | PLANEJAMENTO | aprovado |
 
 ## Controle da documentação
 
