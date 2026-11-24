@@ -32,7 +32,7 @@ function Consulta() {
   return (
     <section>
       <header>
-        <h1 className="font-cond text-[28px] leading-tight font-semibold">Consulta de militares</h1>
+        <h1 className="font-cond text-titulo leading-tight font-semibold">Consulta de militares</h1>
       </header>
       {/* key: voltar ou avançar no navegador põe os campos no que a busca do endereço diz */}
       <Formulario key={`${texto}|${unidade}`} texto={texto} unidade={unidade} />
@@ -106,7 +106,7 @@ function Resultado({ texto, unidade }: { texto: string; unidade: string }) {
             <li key={m.id}>
               <Link to="/consulta/$id" params={{ id: m.id }} search={{ texto: texto || undefined, unidade: unidade || undefined }} className="grid gap-0.5 rounded-lg px-3 py-2 hover:bg-accent">
                 <span className="flex items-center gap-2">
-                  <span className="font-cond text-[13px] text-apagado">{m.postoGrad}</span>
+                  <span className="font-cond text-apoio text-apagado">{m.postoGrad}</span>
                   <span className="font-cond text-base font-semibold">{m.nomeGuerra}</span>
                   <span className="ml-auto rounded border border-linha px-1.5 font-cond text-xs">{m.lotacao ?? 'Sem lotação'}</span>
                 </span>

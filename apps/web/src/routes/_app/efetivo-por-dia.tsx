@@ -148,7 +148,7 @@ function EfetivoPorDia() {
   };
   return (
     <section className="grid gap-4">
-      <h1 className="font-cond text-[28px] leading-tight font-semibold">Efetivo por dia</h1>
+      <h1 className="font-cond text-titulo leading-tight font-semibold">Efetivo por dia</h1>
       <div className="flex flex-wrap items-end gap-3">
         <Button type="button" variant="outline" size="icon" aria-label="Dia anterior" onClick={() => irPara(somarDias(data, -1))}>
           <ChevronLeft aria-hidden />

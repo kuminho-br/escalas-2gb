@@ -237,19 +237,19 @@ export function EscalaDoMes({ unidadeId, escala: e, aoVer }: Props) {
         {editavel || e.etapa === 'encerrada' ? (
           <section className="grid min-w-0 gap-2.5 rounded-xl border border-linha bg-superficie p-3">
             <header className="flex flex-wrap items-baseline justify-between gap-2">
-              <h2 className="font-cond text-[20px] leading-[26px] font-semibold">Turnos do mês</h2>
-              <small className="text-[13px] text-apagado">{`${e.turnos.filter((t) => t.militarId !== null).length} de ${e.turnos.length} turnos com nome`}</small>
+              <h2 className="font-cond text-bloco leading-[26px] font-semibold">Turnos do mês</h2>
+              <small className="text-apoio text-apagado">{`${e.turnos.filter((t) => t.militarId !== null).length} de ${e.turnos.length} turnos com nome`}</small>
             </header>
             {editavel && <SeletorDeServico servico={servico} aoMudar={mudarServico} jes={e.jes} temJes={Boolean(e.servicos.jes)} />}
             {editavel && (
-              <p role="status" className={cn('min-h-[22px] text-[15px] leading-[22px]', aviso ? 'font-medium text-pendencia' : 'text-apagado')}>
+              <p role="status" className={cn('min-h-[22px] text-corpo leading-[22px]', aviso ? 'font-medium text-pendencia' : 'text-apagado')}>
                 {aviso ?? (escolhido ? <>Escalando <b className="font-semibold text-tinta">{nomeDe(escolhido)}</b> no {NOME_DO_SERVICO[servico]}: clique nos turnos.</> : 'Escolha um oficial na lista.')}
               </p>
             )}
             <LegendaDosTurnos turnos={e.turnosDoServico} escala={e} />
-            {editavel && <p className="text-[13px] leading-[18px] text-apagado">Clique no número do dia para marcar ou tirar o dia vermelho.</p>}
-            {recente && recente.dia.startsWith(e.mes) && <p role="status" className="text-[15px] leading-[22px] font-medium">{recente.texto}</p>}
-            {pendentes > 0 && <p role="status" className="text-[13px] text-apagado">Salvando…</p>}
+            {editavel && <p className="text-apoio leading-[18px] text-apagado">Clique no número do dia para marcar ou tirar o dia vermelho.</p>}
+            {recente && recente.dia.startsWith(e.mes) && <p role="status" className="text-corpo leading-[22px] font-medium">{recente.texto}</p>}
+            {pendentes > 0 && <p role="status" className="text-apoio text-apagado">Salvando…</p>}
             <CalendarioDosOficiais
               escala={e}
               aoClicarTurno={editavel ? clicarTurno : undefined}
@@ -264,7 +264,7 @@ export function EscalaDoMes({ unidadeId, escala: e, aoVer }: Props) {
         <aside className="order-first grid min-w-0 gap-2 xl:order-none">
           <section className="grid gap-2 rounded-xl border border-linha bg-superficie p-3">
             <header className="flex items-center justify-between gap-2">
-              <h2 className="font-cond text-[20px] leading-[26px] font-semibold">Cota de saldo</h2>
+              <h2 className="font-cond text-bloco leading-[26px] font-semibold">Cota de saldo</h2>
               <Button type="button" variant="ghost" size="sm" className="xl:hidden" aria-expanded={listaAberta} aria-controls="lista-de-oficiais" onClick={() => setListaAberta((a) => !a)}>
                 {listaAberta ? 'Recolher' : 'Mostrar'}
                 <ChevronDown aria-hidden className={cn('transition-transform motion-reduce:transition-none', listaAberta && 'rotate-180')} />

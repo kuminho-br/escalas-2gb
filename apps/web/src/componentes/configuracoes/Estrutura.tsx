@@ -72,14 +72,14 @@ export function Estrutura({ raizes }: { raizes: UnidadeDeTrabalho[] }) {
               <ChevronRight aria-hidden className={`size-4 transition-transform ${aberta ? 'rotate-90' : ''}`} />
             </Button>
           ) : <span aria-hidden className="size-8 shrink-0" />}
-          <span className={`font-cond text-[17px] font-semibold ${profundidade === 0 ? 'text-vinho' : ''}`}>{no.sigla}</span>
+          <span className={`font-cond text-nome font-semibold ${profundidade === 0 ? 'text-vinho' : ''}`}>{no.sigla}</span>
           <span className="min-w-0 flex-[1_1_9rem] truncate text-sm text-apagado">{no.nome}</span>
-          <span className="rounded border border-linha px-1.5 text-[13px] text-apagado">{no.tipo.nome}</span>
+          <span className="rounded border border-linha px-1.5 text-apoio text-apagado">{no.tipo.nome}</span>
           {no.ligados.militaresNaArvore > 0 && (
             // o número soma os lotados na unidade e em todas as de baixo; a dica diz quantos estão lotados nela mesma
-            <span className="text-[13px] text-apagado" title={`${lotados(no.ligados.militaresHoje)} aqui`}>{lotados(no.ligados.militaresNaArvore)}</span>
+            <span className="text-apoio text-apagado" title={`${lotados(no.ligados.militaresHoje)} aqui`}>{lotados(no.ligados.militaresNaArvore)}</span>
           )}
-          {no.ate && <span className="text-[13px] text-alerta">{`até ${no.ate.split('-').reverse().join('/')}`}</span>}
+          {no.ate && <span className="text-apoio text-alerta">{`até ${no.ate.split('-').reverse().join('/')}`}</span>}
           {podeMexer ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>

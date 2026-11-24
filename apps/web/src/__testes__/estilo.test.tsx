@@ -104,7 +104,14 @@ describe('vaga vazia (opção A do mockup): as cores do tema', () => {
     expect(razaoDeContraste(token('apagado'), token('superficie'))).toBeGreaterThanOrEqual(4.5);
   });
 
-  it('o contorno da vaga extra é mais claro que o da obrigatória (a extra também se reconhece pelo "opcional")', () => {
-    expect(razaoDeContraste(token('encaixe-claro'), token('superficie'))).toBeLessThan(razaoDeContraste(token('encaixe'), token('superficie')));
+  it('o contorno da vaga opcional é o mesmo da obrigatória (a opcional se reconhece pelo tracejado fino e pelo "Vaga opcional")', () => {
+    expect(razaoDeContraste(token('encaixe'), token('superficie'))).toBeGreaterThanOrEqual(3);
+    expect(css).not.toContain('encaixe-claro');
+  });
+
+  it('os tokens novos do sistema de estilo: o fundo de alerta com 5,5:1, os seis tamanhos de letra, os dois raios, as duas sombras e a altura de controle de 44 px no toque', () => {
+    expect(razaoDeContraste(token('alerta'), token('alerta-fundo'))).toBeGreaterThanOrEqual(5.5);
+    for (const trecho of ['--text-apoio: 0.8125rem', '--text-corpo: 0.9375rem', '--text-nome: 1.0625rem', '--text-bloco: 1.25rem', '--text-titulo: 1.75rem', '--text-abertura: 2.5rem']) expect(css).toContain(trecho);
+    for (const trecho of ['--radius-controle: 6px', '--radius-superficie: 12px', '--shadow-apoiada:', '--shadow-por-cima:', '--altura-controle: 36px', '--altura-controle: 44px', '@media (pointer: coarse)']) expect(css).toContain(trecho);
   });
 });

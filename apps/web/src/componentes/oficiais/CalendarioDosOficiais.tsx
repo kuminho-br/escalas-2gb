@@ -29,7 +29,7 @@ interface Props {
 /** A legenda: o que cada linha do dia é (Dia em cima, Noite embaixo) e a cor de cada serviço. */
 export function LegendaDosTurnos({ turnos, escala }: { turnos: Turno[]; escala?: EscalaDosOficiais }) {
   return (
-    <div aria-label="Legenda dos turnos" role="group" className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[13px] leading-[18px]">
+    <div aria-label="Legenda dos turnos" role="group" className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-apoio leading-[18px]">
       {turnos.map((t) => (
         <span key={t.id} className="inline-flex items-center gap-1.5">
           <i aria-hidden data-amostra-do-turno={t.rotulo === 'Noite' ? 'noite' : 'dia'} className={cn('inline-block h-[18px] w-6 rounded border border-linha', t.rotulo === 'Noite' ? 'bg-passa' : 'bg-superficie')} />
@@ -54,7 +54,7 @@ function CabecalhoDoDia({ dia, vermelho, aoMarcar }: { dia: string; vermelho: bo
   const dm = `${dia.slice(8, 10)}/${dia.slice(5, 7)}`;
   const numero = (
     <>
-      <b className="font-cond text-[15px] leading-[22px] font-semibold">{Number(dia.slice(8))}</b>
+      <b className="font-cond text-corpo leading-[22px] font-semibold">{Number(dia.slice(8))}</b>
       {vermelho && <i data-marca-vermelha aria-hidden className="size-2 shrink-0 self-center rounded-full bg-alerta" />}
       {vermelho && <span className="sr-only">Dia vermelho</span>}
     </>
@@ -76,7 +76,7 @@ function CabecalhoDoDia({ dia, vermelho, aoMarcar }: { dia: string; vermelho: bo
         <span className={cn('flex items-baseline gap-1.5', vermelho && 'text-alerta')}>{numero}</span>
       )}
       {/* o cabeçalho das colunas já diz o dia da semana; na coluna única do celular ele volta */}
-      <span data-dia-da-semana className="text-[13px] text-apagado md:hidden">{SEMANA[new Date(`${dia}T00:00:00Z`).getUTCDay()]}</span>
+      <span data-dia-da-semana className="text-apoio text-apagado md:hidden">{SEMANA[new Date(`${dia}T00:00:00Z`).getUTCDay()]}</span>
     </div>
   );
 }
@@ -116,7 +116,7 @@ export function CalendarioDosOficiais({ escala: e, aoClicarTurno, aoMarcarDia, r
       const rotulo = e.etapa === 'encerrada' || e.etapa === 'fechada' ? 'vazio' : 'livre';
       const conteudo = (
         <>
-          <span className="truncate text-[13px] text-apagado">{rotulo}</span>
+          <span className="truncate text-apoio text-apagado">{rotulo}</span>
         </>
       );
       const classe = cn(base36, 'border-dashed border-encaixe pl-2');
@@ -141,8 +141,8 @@ export function CalendarioDosOficiais({ escala: e, aoClicarTurno, aoMarcarDia, r
         <i aria-hidden data-faixa-do-servico={servico} className="absolute inset-y-0 left-0 w-[5px] rounded-l-[5px]" style={{ backgroundColor: corDoServico(e, servico) }} />
         <span className="sr-only">{`${base} (${NOME_DO_SERVICO[servico]})${saiu ? `, cobriu ${saiu.nomeGuerra}` : ''}`}</span>
         {/* com a célula estreita (menos de 8,5 rem), a patente sai da placa para o nome caber inteiro; ela continua na dica e no texto do leitor de tela */}
-        {dono && <span aria-hidden className="hidden shrink-0 text-[13px] font-medium text-apagado @[8.5rem]:inline">{dono.posto}</span>}
-        <span aria-hidden className="min-w-0 flex-1 truncate font-cond text-[15px] leading-[22px] font-semibold tracking-[0.01em] text-tinta">{nome}</span>
+        {dono && <span aria-hidden className="hidden shrink-0 text-apoio font-medium text-apagado @[8.5rem]:inline">{dono.posto}</span>}
+        <span aria-hidden className="min-w-0 flex-1 truncate font-cond text-corpo leading-[22px] font-semibold tracking-[0.01em] text-tinta">{nome}</span>
         {alerta && <AlertTriangle className="size-4 shrink-0 text-pendencia" aria-label="Alerta" />}
       </>
     );
@@ -158,7 +158,7 @@ export function CalendarioDosOficiais({ escala: e, aoClicarTurno, aoMarcarDia, r
   return (
     <div aria-label="Calendário do mês" role="group" className="grid gap-x-1.5 gap-y-3 md:grid-cols-7">
       {SEMANA.map((s) => (
-        <div key={s} aria-hidden className="hidden text-center text-[13px] font-medium text-apagado md:block">{s}</div>
+        <div key={s} aria-hidden className="hidden text-center text-apoio font-medium text-apagado md:block">{s}</div>
       ))}
       {Array.from({ length: primeiro }, (_, i) => <div key={`v${i}`} aria-hidden className="hidden md:block" />)}
       {dias.map((d) => (

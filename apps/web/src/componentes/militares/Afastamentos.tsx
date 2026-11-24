@@ -94,7 +94,7 @@ export function Afastamentos({ ficha }: { ficha: FichaMilitar }) {
             <Selecao id="af-tipo" value={tipoEscolhido} onChange={(e) => setTipo(e.target.value)} aria-invalid={tiposNaoCarregaram || undefined} aria-describedby={tiposNaoCarregaram ? 'af-tipo-erro' : undefined}>
               {ativos.map((t) => <option key={t.id} value={t.id}>{t.nome}</option>)}
             </Selecao>
-            {avisoDosTipos && <p id="af-tipo-erro" className="text-[13px] text-alerta">{avisoDosTipos}</p>}
+            {avisoDosTipos && <p id="af-tipo-erro" className="text-apoio text-alerta">{avisoDosTipos}</p>}
           </div>
           <div className="grid grid-cols-2 gap-3 sm:max-w-md">
             <div className="grid gap-1.5">

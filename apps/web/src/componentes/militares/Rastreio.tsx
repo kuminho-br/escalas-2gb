@@ -41,7 +41,7 @@ export function Rastreio({ ficha, unidadeId }: { ficha: FichaMilitar; unidadeId:
             <span className={`absolute top-1.5 -left-[1.4rem] size-2.5 rounded-full ${n === 0 ? 'bg-vinho' : 'bg-linha'}`} aria-hidden />
             <span className="mr-2 font-cond text-apagado">{ddmmaaaa(i.quando)}</span>
             <span className={i.tipo === 'situacao' ? 'font-medium' : 'text-apagado'}>{i.texto}</span>
-            {i.autor && <span className="block text-[13px] leading-[18px] text-apagado">{i.autor}</span>}
+            {i.autor && <span className="block text-apoio leading-[18px] text-apagado">{i.autor}</span>}
           </li>
         ))}
         {itens.length === 0 && <li className="text-apagado">Sem lotação registrada.</li>}

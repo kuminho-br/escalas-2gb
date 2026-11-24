@@ -52,7 +52,7 @@ function Peculio() {
   return (
     <section>
       <header className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="font-cond text-[28px] leading-tight font-semibold">Pecúlio</h1>
+        <h1 className="font-cond text-titulo leading-tight font-semibold">Pecúlio</h1>
         <div className="flex flex-wrap gap-2">
           {/* a importação é de quem cuida do pessoal (nível acima das seções), a mesma regra do cadastro de militar novo */}
           {podeCadastrarMilitar(eu) && <ImportarPlanilha cadastro="peculio" rotulo="o Pecúlio" unidadeId={unidade.id} aoConcluir={() => atualizarPeculio(queryClient)} />}
@@ -94,7 +94,7 @@ function Peculio() {
                 </Selecao>
               </div>
             </div>
-            <p className="px-4 pt-3 text-[13px] text-apagado">{filtrados.length > limite ? `Mostrando ${limite} de ${filtrados.length}` : `${filtrados.length} de ${lista.data.militares.length}`} militares</p>
+            <p className="px-4 pt-3 text-apoio text-apagado">{filtrados.length > limite ? `Mostrando ${limite} de ${filtrados.length}` : `${filtrados.length} de ${lista.data.militares.length}`} militares</p>
             <ul aria-label="Militares do Pecúlio" className="p-2">
               {filtrados.slice(0, limite).map((m) => <ItemDoPeculioNaLista key={m.militarId} m={m} destaque={m.militarId === unico?.militarId} />)}
               {lista.data.militares.length === 0 && <li className="p-3 text-apagado">Nenhum militar lotado. Cadastre com "Novo militar" ou use "Importar".</li>}
@@ -142,12 +142,12 @@ function ItemDoPeculioNaLista({ m, destaque }: { m: ItemDoPeculio; destaque: boo
         className={cn('grid gap-0.5 rounded-lg px-3 py-2 hover:bg-accent', destaque && classeItemEscolhido)}
       >
         <span className="flex items-center gap-2">
-          <span className="font-cond text-[13px] text-apagado">{m.posto}</span>
+          <span className="font-cond text-apoio text-apagado">{m.posto}</span>
           <span className="font-cond text-base font-semibold">{m.nomeGuerra}</span>
           {m.pendencias.length > 0 && <TriangleAlert className="size-4 text-pendencia" role="img" aria-label={`Cadastro incompleto: ${m.pendencias.join('; ')}`} />}
-          <span className="ml-auto rounded-md border border-linha px-2 font-cond text-[13px] font-medium">{m.lotacao}</span>
+          <span className="ml-auto rounded-md border border-linha px-2 font-cond text-apoio font-medium">{m.lotacao}</span>
         </span>
-        {m.nomeCompleto && <span className="text-[15px] leading-[22px] text-tinta">{m.nomeCompleto}</span>}
+        {m.nomeCompleto && <span className="text-corpo leading-[22px] text-tinta">{m.nomeCompleto}</span>}
         <span className="mt-1 flex flex-wrap gap-1.5">
           <EtiquetaDeDado icone={IdCard}>{m.matricula}</EtiquetaDeDado>
           {m.telefone ? <EtiquetaDeDado icone={Phone}>{m.telefone}</EtiquetaDeDado> : <EtiquetaDeDado icone={Phone} falta>Sem telefone</EtiquetaDeDado>}

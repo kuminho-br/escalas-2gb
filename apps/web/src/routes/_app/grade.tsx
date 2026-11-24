@@ -77,7 +77,7 @@ function GradeGeral() {
 
   return (
     <section className="grid gap-4">
-      <h1 className="font-cond text-[28px] leading-tight font-semibold">Grade geral</h1>
+      <h1 className="font-cond text-titulo leading-tight font-semibold">Grade geral</h1>
       <div className="flex flex-wrap items-end gap-3">
         <div className="grid gap-1.5">
           <Label htmlFor="gg-mes">Mês</Label>

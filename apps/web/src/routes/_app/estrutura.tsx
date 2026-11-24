@@ -27,7 +27,7 @@ function EstruturaDoSistema() {
   const navigate = Route.useNavigate();
   return (
     <section>
-      <h1 className="font-cond text-[28px] leading-tight font-semibold">Estrutura</h1>
+      <h1 className="font-cond text-titulo leading-tight font-semibold">Estrutura</h1>
       <PainelComMenu secoes={secoes} valor={aba} rotulo="Seção da estrutura" aoEscolher={(v) => void navigate({ search: { aba: ABAS.find((a) => a === v) }, replace: true })}>
         <TabsContent value="arvore">
           <Estrutura raizes={raizes} />

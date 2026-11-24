@@ -69,7 +69,7 @@ function Cotas() {
   return (
     <section>
       <header className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="font-cond text-[28px] leading-tight font-semibold">Cotas</h1>
+        <h1 className="font-cond text-titulo leading-tight font-semibold">Cotas</h1>
         {!soConsulta && (
           <div className="flex flex-wrap gap-2">
             <ImportarPlanilha cadastro="cotas" rotulo="as cotas" aoConcluir={() => atualizarCotas(queryClient)} />

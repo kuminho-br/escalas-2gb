@@ -88,7 +88,7 @@ function Item({ tipo, aoSalvar, aoExcluir }: { tipo: TipoDeUnidadeComUso; aoSalv
   return (
     <li className="flex flex-wrap items-center gap-x-3 gap-y-1 px-4 py-2.5">
       <span className="font-medium">{tipo.nome}</span>
-      <span className="text-[13px] text-apagado">{tipo.unidades === 0 ? 'Nenhuma unidade' : tipo.unidades === 1 ? '1 unidade' : `${tipo.unidades} unidades`} · ordem {tipo.ordem}</span>
+      <span className="text-apoio text-apagado">{tipo.unidades === 0 ? 'Nenhuma unidade' : tipo.unidades === 1 ? '1 unidade' : `${tipo.unidades} unidades`} · ordem {tipo.ordem}</span>
       <span className="ml-auto flex gap-1">
         <Button size="sm" variant="ghost" onClick={() => setEditando(true)}>Renomear</Button>
         {/* o tipo em uso não se exclui: o botão fica desligado e diz por quê */}

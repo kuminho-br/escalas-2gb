@@ -29,7 +29,7 @@ function Ordem() {
       <section className="grid gap-4">
         <div>
           <Link to="/escalas/$id" params={{ id }} className="text-sm font-medium text-vinho underline underline-offset-2">Voltar para a escala</Link>
-          <h1 className="font-cond text-[28px] leading-tight font-semibold">Ordem de escalação{escala.data ? ` — ${escala.data.nome}` : ''}</h1>
+          <h1 className="font-cond text-titulo leading-tight font-semibold">Ordem de escalação{escala.data ? ` — ${escala.data.nome}` : ''}</h1>
         </div>
         <div className="grid gap-1.5">
           <Label htmlFor="oe-mes">Vale a partir de</Label>

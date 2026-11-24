@@ -307,7 +307,7 @@ describe('escala do mês', () => {
     }
     // o contorno da obrigatória é o do tema (3:1 com o fundo); o da extra é mais claro
     expect(obrigatoria).toHaveClass('border-encaixe');
-    expect(extra).toHaveClass('border-encaixe-claro');
+    expect(extra).toHaveClass('border-encaixe');
   });
 
   it('a linha do ocupante tem posto, nome, matrícula e a etiqueta do serviço', async () => {

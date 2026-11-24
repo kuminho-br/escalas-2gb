@@ -72,7 +72,7 @@ function Feriados() {
   return (
     <section>
       <header className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="font-cond text-[28px] leading-tight font-semibold">Feriados</h1>
+        <h1 className="font-cond text-titulo leading-tight font-semibold">Feriados</h1>
         <div className="flex flex-wrap gap-2">
           <ImportarPlanilha cadastro="feriados" rotulo="os feriados" aoConcluir={() => atualizarFeriados(queryClient)} />
           <Button variant="outline" disabled={copiando} onClick={() => void copiar()}>Copiar feriados fixos de {ano - 1}</Button>

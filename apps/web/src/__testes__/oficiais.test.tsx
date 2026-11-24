@@ -740,8 +740,8 @@ describe('o calendário compacto (6.29)', () => {
     abrirEscala(turnoCom({ [`${dia(2)}|t-a`]: 'm-1', [`${dia(2)}|t-b`]: 'm-2' }, { servicos: { jes: { id: 's-jes', nome: 'JES', cor: '#6E56A8' }, saldo: { id: 's-op', nome: 'Saldo', cor: '#2B7BB9' } } }));
     await screen.findByText('2 de 62 turnos com nome');
     const dia2 = placa('CEL ALFA');
-    expect(within(dia2).getByText('CEL', { selector: 'span[aria-hidden]' })).toHaveClass('text-[13px]', 'text-apagado');
-    expect(within(dia2).getByText('ALFA')).toHaveClass('text-[15px]', 'font-cond', 'font-semibold', 'text-tinta');
+    expect(within(dia2).getByText('CEL', { selector: 'span[aria-hidden]' })).toHaveClass('text-apoio', 'text-apagado');
+    expect(within(dia2).getByText('ALFA')).toHaveClass('text-corpo', 'font-cond', 'font-semibold', 'text-tinta');
     expect(dia2).toHaveClass('h-9', 'bg-superficie');
     const faixa = dia2.querySelector('[data-faixa-do-servico]') as HTMLElement;
     expect(faixa).toHaveAttribute('data-faixa-do-servico', 'saldo');
@@ -764,7 +764,7 @@ describe('o calendário compacto (6.29)', () => {
   it('o turno livre mostra só "livre" em 13 px apagado, com borda tracejada e sem fundo cheio', async () => {
     abrirEscala(escala());
     const livre = await screen.findByRole('button', { name: /^05\/01, Dia.*livre/ });
-    expect(within(livre).getByText('livre')).toHaveClass('text-[13px]', 'text-apagado');
+    expect(within(livre).getByText('livre')).toHaveClass('text-apoio', 'text-apagado');
     expect(livre).toHaveClass('border-dashed');
     expect(livre.className).not.toMatch(/bg-superficie|bg-passa|bg-tinta/);
   });
@@ -774,7 +774,7 @@ describe('o calendário compacto (6.29)', () => {
     await screen.findByText('0 de 62 turnos com nome');
     const cal = screen.getByLabelText('Calendário do mês');
     const numero = within(cal).getByText('3', { selector: 'b' });
-    expect(numero).toHaveClass('text-[15px]', 'font-semibold');
+    expect(numero).toHaveClass('text-corpo', 'font-semibold');
     const caixa = numero.closest('[data-dia]') as HTMLElement;
     expect(caixa.className).not.toMatch(/border|bg-/);
     expect(caixa.querySelectorAll('[data-turno]')).toHaveLength(2);
@@ -865,13 +865,13 @@ describe('o painel largo, com todos os dados do oficial (6.22)', () => {
     abrirEscala(escala({ oficiais: [{ ...O1, escolhidos: 4 }, O2, O3] }));
     const lista = await screen.findByRole('list', { name: 'Cotas de janeiro de 2027' });
     const alfa = within(lista).getByRole('checkbox', { name: 'CEL ALFA participa da rodada' }).closest('li')!;
-    expect(within(alfa).getByText('ALFA')).toHaveClass('text-[17px]', 'font-cond');
-    expect(within(alfa).getByText('CEL')).toHaveClass('text-[13px]');
+    expect(within(alfa).getByText('ALFA')).toHaveClass('text-nome', 'font-cond');
+    expect(within(alfa).getByText('CEL')).toHaveClass('text-apoio');
     expect(alfa.textContent).toContain('QOC');
     expect(alfa.textContent).toContain('2º GB');
-    for (const rotulo of ['Saldo', 'Cota', 'Escolhidos']) expect(within(alfa).getByText(rotulo)).toHaveClass('text-[13px]', 'text-apagado');
-    expect(within(alfa).getByText('+0,75')).toHaveClass('text-[17px]', 'tabular-nums');
-    expect(within(alfa).getByText('4 de 21')).toHaveClass('text-[17px]', 'tabular-nums');
+    for (const rotulo of ['Saldo', 'Cota', 'Escolhidos']) expect(within(alfa).getByText(rotulo)).toHaveClass('text-apoio', 'text-apagado');
+    expect(within(alfa).getByText('+0,75')).toHaveClass('text-nome', 'tabular-nums');
+    expect(within(alfa).getByText('4 de 21')).toHaveClass('text-nome', 'tabular-nums');
     // a barra fina do quanto já foi escolhido
     expect((alfa.querySelector('[data-barra]') as HTMLElement).style.width).toBe('19%');
     const bravo = within(lista).getByRole('checkbox', { name: 'CAP BRAVO participa da rodada' }).closest('li')!;
@@ -902,7 +902,7 @@ describe('o painel largo, com todos os dados do oficial (6.22)', () => {
     const lista = await screen.findByRole('list', { name: 'Cotas de janeiro de 2027' });
     const painel = lista.closest('aside')!;
     expect(painel.innerHTML).not.toMatch(/text-\[11px\]|text-xs/);
-    expect(within(painel).getByText(/62 turnos para a rodada de Saldo no mês/)).toHaveClass('text-[13px]');
+    expect(within(painel).getByText(/62 turnos para a rodada de Saldo no mês/)).toHaveClass('text-apoio');
   });
 
   it('no celular o painel vem antes do calendário, e nada rola de lado (Review Focus 5)', async () => {
@@ -926,7 +926,7 @@ describe('acabamento do painel e da troca de turno (6.17, itens 21, 26 e 34)', (
     expect(within(lista).queryByText('Dias')).toBeNull();
     const bravo = within(lista).getByRole('checkbox', { name: 'CAP BRAVO participa da rodada' }).closest('li')!;
     // sem afastamento que explique, a frase não diz "afastado" (menos dias pode ser chegada ou saída da unidade no meio do mês)
-    expect(within(bravo).getByText('cota menor: 6 dias a menos no mês')).toHaveClass('text-[13px]', 'text-apagado');
+    expect(within(bravo).getByText('cota menor: 6 dias a menos no mês')).toHaveClass('text-apoio', 'text-apagado');
     expect(within(bravo).getByText('Cota').closest('div')).toHaveAttribute('title', '25 dias disponíveis no mês');
     const alfa = within(lista).getByRole('checkbox', { name: 'CEL ALFA participa da rodada' }).closest('li')!;
     expect(within(alfa).queryByText(/cota menor/)).toBeNull();
@@ -1027,7 +1027,7 @@ describe('a faixa do mês (6.29)', () => {
     const passos = within(screen.getByRole('list', { name: 'As quatro etapas do mês' })).getAllByRole('listitem');
     expect(passos.map((p) => within(p).getByRole('heading', { level: 3 }).textContent)).toEqual(['Abrir o mês feito', 'Escolhas', 'Escala fechada', 'Mês encerrado']);
     expect(passos.filter((p) => p.getAttribute('aria-current') === 'step')).toHaveLength(1);
-    expect(within(passos[1]!).getByText('JES à mão primeiro; o resto, pela rodada, como Saldo.')).toHaveClass('text-[13px]');
+    expect(within(passos[1]!).getByText('JES à mão primeiro; o resto, pela rodada, como Saldo.')).toHaveClass('text-apoio');
     await userEvent.click(botao);
     expect(screen.queryByRole('list', { name: 'As quatro etapas do mês' })).toBeNull();
   });

@@ -23,7 +23,7 @@ export function ListaDetalhe({
   return (
     <section>
       <header className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="font-cond text-[28px] leading-tight font-semibold">{titulo}</h1>
+        <h1 className="font-cond text-titulo leading-tight font-semibold">{titulo}</h1>
         {acoes && <div className="flex flex-wrap gap-2">{acoes}</div>}
       </header>
       <div className="mt-6 grid items-start gap-6 lg:grid-cols-[minmax(280px,380px)_1fr]">
@@ -43,7 +43,7 @@ export function ListaDetalhe({
 }
 
 /** O item aberto na lista: fundo rosado e uma barra vinho à esquerda (esboço telas-v12). */
-export const classeItemEscolhido = 'bg-[#F8E9E9] shadow-[inset_3px_0_0_var(--color-vinho)]';
+export const classeItemEscolhido = 'bg-passa shadow-[inset_3px_0_0_var(--color-tinta)]';
 
 /**
  * A ficha de um cadastro: um painel só, com os blocos separados por uma linha fina.

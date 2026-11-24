@@ -40,7 +40,7 @@ function Trecho({ funcao, t, janela, acoes }: { funcao: FuncaoNoEfetivo; t: Trec
       >
         <BarraDaVaga />
         <span className="truncate">vaga</span>
-        <span className="hidden shrink-0 text-[11px] opacity-80 @min-[8rem]:inline">{faixa(t)}</span>
+        <span className="hidden shrink-0 text-apoio opacity-80 @min-[8rem]:inline">{faixa(t)}</span>
       </div>
     );
   }
@@ -59,7 +59,7 @@ function Trecho({ funcao, t, janela, acoes }: { funcao: FuncaoNoEfetivo; t: Trec
       >
         <BarraDaVaga />
         <span className="truncate">vaga</span>
-        <span className="hidden shrink-0 text-[11px] opacity-80 @min-[8rem]:inline">{faixa(t)}</span>
+        <span className="hidden shrink-0 text-apoio opacity-80 @min-[8rem]:inline">{faixa(t)}</span>
       </button>
     );
   }
@@ -86,10 +86,10 @@ function TrechoOcupado({ funcao, t, o, base, estilo, acoes }: { funcao: FuncaoNo
       style={{ ...estilo, ...estiloDaCor(o.servico.cor) }}
     >
       <span className="truncate font-cond text-sm font-semibold">
-        <span className="text-[11px] font-normal">{o.posto}</span> {o.nomeGuerra}
-        {o.acumulo && <span className="ml-1 text-[11px] font-normal">acumula</span>}
+        <span className="text-apoio font-normal">{o.posto}</span> {o.nomeGuerra}
+        {o.acumulo && <span className="ml-1 text-apoio font-normal">acumula</span>}
       </span>
-      {mostrarHorario && <span data-horario className="shrink-0 text-[11px]">{faixa(t)}</span>}
+      {mostrarHorario && <span data-horario className="shrink-0 text-apoio">{faixa(t)}</span>}
       <EtiquetaDoServico nome={o.servico.nome} cor={o.servico.cor} variante="contorno" className="hidden @min-[14rem]:inline-flex" />
     </Raiz>
   );

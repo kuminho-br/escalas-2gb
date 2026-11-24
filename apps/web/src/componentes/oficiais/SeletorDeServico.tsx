@@ -20,7 +20,7 @@ export function SeletorDeServico({ servico, aoMudar, jes, temJes }: Props) {
   return (
     <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
       <div className="flex items-center gap-2">
-        <span id="escalar-rotulo" className="text-[15px] font-medium">Escalar:</span>
+        <span id="escalar-rotulo" className="text-corpo font-medium">Escalar:</span>
         <div role="radiogroup" aria-labelledby="escalar-rotulo" className="inline-flex overflow-hidden rounded-md border border-encaixe">
           {(['jes', 'saldo'] as const).map((s) => {
             const escolhido = servico === s;
@@ -35,7 +35,7 @@ export function SeletorDeServico({ servico, aoMudar, jes, temJes }: Props) {
                 title={desligado ? 'A escala não tem o serviço JES.' : undefined}
                 onClick={() => aoMudar(s)}
                 className={cn(
-                  'h-9 min-w-16 px-3.5 text-[15px] font-medium transition-colors focus-visible:z-10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-tinta',
+                  'h-9 min-w-16 px-3.5 text-corpo font-medium transition-colors focus-visible:z-10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-tinta',
                   escolhido ? 'bg-tinta text-white' : 'bg-superficie text-tinta hover:bg-passa',
                   desligado && 'cursor-not-allowed bg-linha text-apagado hover:bg-linha',
                   s === 'saldo' && 'border-l border-encaixe',
@@ -48,15 +48,15 @@ export function SeletorDeServico({ servico, aoMudar, jes, temJes }: Props) {
         </div>
       </div>
       {servico === 'jes' && temJes && (
-        <p role="status" className="text-[15px]">
+        <p role="status" className="text-corpo">
           {restam === null ? (
             <span className="text-apagado">Sem cota de JES cadastrada no mês.</span>
           ) : (
             <>
               <span>JES restam </span>
-              <b className={cn('font-cond text-[17px] font-semibold tabular-nums', restam <= 0 ? 'rounded bg-pendencia-fundo px-1.5 text-pendencia' : 'text-tinta')}>{Math.max(restam, 0)}</b>
+              <b className={cn('font-cond text-nome font-semibold tabular-nums', restam <= 0 ? 'rounded bg-pendencia-fundo px-1.5 text-pendencia' : 'text-tinta')}>{Math.max(restam, 0)}</b>
               <span> de {jes.cota}</span>
-              {restam <= 0 && <span className="ml-2 text-[13px] font-medium text-pendencia">A cota de JES do mês acabou.</span>}
+              {restam <= 0 && <span className="ml-2 text-apoio font-medium text-pendencia">A cota de JES do mês acabou.</span>}
             </>
           )}
         </p>

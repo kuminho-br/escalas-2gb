@@ -60,7 +60,7 @@ function Configuracoes() {
   return (
     <section>
       <header className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="font-cond text-[28px] leading-tight font-semibold">Configurações</h1>
+        <h1 className="font-cond text-titulo leading-tight font-semibold">Configurações</h1>
       </header>
       <PainelComMenu secoes={secoes} valor={aba} rotulo="Seção das configurações" aoEscolher={(v) => void navigate({ search: { aba: ABAS.find((a) => a === v) }, replace: true })}>
         <TabsContent value="preferencias">

@@ -46,7 +46,7 @@ function Oficiais() {
   return (
     <section className="grid gap-4">
       <div>
-        <h1 className="font-cond text-[28px] leading-tight font-semibold">Escala dos oficiais</h1>
+        <h1 className="font-cond text-titulo leading-tight font-semibold">Escala dos oficiais</h1>
         <p className="text-sm text-apagado">Oficiais QOC e QOA.</p>
       </div>
       <div className="flex flex-wrap items-end gap-4">

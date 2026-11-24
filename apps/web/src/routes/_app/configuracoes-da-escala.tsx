@@ -37,7 +37,7 @@ function ConfiguracoesDaEscala() {
   return (
     <section>
       <header className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="font-cond text-[28px] leading-tight font-semibold">Configurações da escala</h1>
+        <h1 className="font-cond text-titulo leading-tight font-semibold">Configurações da escala</h1>
         {podeMudar && <ImportarPlanilha cadastro="configuracoes" rotulo="as configurações" aoConcluir={() => queryClient.invalidateQueries({ queryKey: ['parametros'] })} />}
       </header>
       <PainelComMenu

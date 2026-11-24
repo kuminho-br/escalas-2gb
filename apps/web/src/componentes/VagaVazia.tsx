@@ -9,14 +9,14 @@ import { cn } from '@/lib/utils';
 export const classeDaVaga = (obrigatoria: boolean) =>
   cn(
     'border-[1.5px] border-dashed bg-superficie',
-    obrigatoria ? 'border-encaixe text-tinta' : 'border-encaixe-claro text-apagado',
+    obrigatoria ? 'border-encaixe text-tinta' : 'border-encaixe text-apagado',
     'hover:border-solid hover:border-apagado hover:bg-passa hover:text-tinta',
     'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-tinta',
   );
 
 /** A vaga que espera um militar, numa tela só de consulta: o mesmo contorno tracejado, sem hover nem foco (não há o que clicar). */
 export const classeDaVagaSoLeitura = (obrigatoria: boolean) =>
-  cn('border-[1.5px] border-dashed bg-superficie', obrigatoria ? 'border-encaixe text-tinta' : 'border-encaixe-claro text-apagado');
+  cn('border-[1.5px] border-dashed bg-superficie', obrigatoria ? 'border-encaixe text-tinta' : 'border-encaixe text-apagado');
 
 /** A barra vinho à esquerda da vaga obrigatória. Só decora: quem lê a tela ouve a obrigatória pelo `data-obrigatoria` e pelo nome da vaga. */
 export function BarraDaVaga() {

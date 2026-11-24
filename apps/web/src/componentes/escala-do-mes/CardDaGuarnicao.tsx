@@ -47,12 +47,12 @@ export function CardDaGuarnicao({ card, aoEscolher, aoRemover }: { card: Card; a
           {card.viatura && <p className="text-xs text-apagado">{card.viatura}</p>}
         </div>
         {card.completa ? (
-          <span role="img" aria-label="Completa" title="Completa" className="text-[#2F8F5B]">
+          <span role="img" aria-label="Completa" title="Completa" className="text-encaixe">
             <Check className="size-5" aria-hidden />
           </span>
         ) : (
           // só o número: o que falta, em frases, fica no title e no nome acessível
-          <span role="img" aria-label={frases} title={frases} className="inline-flex items-center gap-1.5 rounded-full border border-linha py-0.5 pr-2 pl-1.5 text-[12.5px] font-medium whitespace-nowrap text-tinta">
+          <span role="img" aria-label={frases} title={frases} className="inline-flex items-center gap-1.5 rounded-full border border-linha py-0.5 pr-2 pl-1.5 text-apoio font-medium whitespace-nowrap text-tinta">
             <span aria-hidden className="h-3 w-[3px] rounded-sm bg-vinho" />
             {textoDoContador(faltam)}
           </span>
@@ -61,7 +61,7 @@ export function CardDaGuarnicao({ card, aoEscolher, aoRemover }: { card: Card; a
       <ul data-funcoes className="grid gap-1.5">
         {card.funcoes.map((f) => (
           // cada função é um painel próprio, com o cabeçalho dela
-          <li key={f.funcaoId} data-painel-funcao className="grid gap-1 rounded-md bg-[#F6F7F9] px-2 pt-1.5 pb-2">
+          <li key={f.funcaoId} data-painel-funcao className="grid gap-1 rounded-md bg-passa px-2 pt-1.5 pb-2">
             <p data-cabecalho-funcao className="text-xs font-medium text-apagado">
               {f.funcao}
               {f.cnhExigida && <span> (CNH {f.cnhExigida})</span>}

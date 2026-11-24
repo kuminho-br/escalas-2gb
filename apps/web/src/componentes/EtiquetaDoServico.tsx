@@ -13,7 +13,7 @@ export function EtiquetaDoServico({ nome, cor, variante = 'cheia', className }: 
     <span
       data-etiqueta-servico
       data-variante={variante}
-      className={cn('inline-flex shrink-0 items-center rounded-full border px-2 py-px text-[11px] leading-tight font-semibold whitespace-nowrap', className)}
+      className={cn('inline-flex shrink-0 items-center rounded-full border px-2 py-px text-apoio leading-tight font-semibold whitespace-nowrap', className)}
       style={variante === 'cheia' ? { backgroundColor: fundo, color: texto, borderColor: fundo } : { backgroundColor: 'transparent', color: texto, borderColor: texto }}
     >
       {nome}

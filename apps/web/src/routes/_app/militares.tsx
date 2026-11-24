@@ -115,7 +115,7 @@ function ItemMilitar({ m, escolhido }: { m: LinhaMilitar; escolhido: boolean }) 
         aria-current={escolhido ? 'page' : undefined}
       >
         <span className="flex items-center gap-2">
-          <span className="font-cond text-[13px] text-apagado">{m.posto}</span>
+          <span className="font-cond text-apoio text-apagado">{m.posto}</span>
           <span className="font-cond text-base font-semibold">{m.nomeGuerra}</span>
           {m.pendencias.length > 0 && (
             <TriangleAlert
@@ -125,7 +125,7 @@ function ItemMilitar({ m, escolhido }: { m: LinhaMilitar; escolhido: boolean }) 
             />
           )}
         </span>
-        {m.nomeCompleto && <span className="text-[15px] leading-[22px] text-tinta">{m.nomeCompleto}</span>}
+        {m.nomeCompleto && <span className="text-corpo leading-[22px] text-tinta">{m.nomeCompleto}</span>}
         <span className="mt-1 flex flex-wrap gap-1.5">
           <EtiquetaDeDado icone={IdCard}>{m.matricula}</EtiquetaDeDado>
           {m.jornada && <EtiquetaDeDado icone={m.jornada === 'adm' ? Briefcase : Clock}>{`${NOME_JORNADA[m.jornada]}${m.equipe ? ` · ${m.equipe.toUpperCase()}` : ''}`}</EtiquetaDeDado>}

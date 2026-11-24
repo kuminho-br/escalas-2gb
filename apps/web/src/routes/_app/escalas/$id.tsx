@@ -135,7 +135,7 @@ function Identificacao({ e }: { e: Escala }) {
               <option value="pre_escala">Pré-escala (as escalas do Pronto)</option>
               <option value="rodada_de_cotas">Rodada de cotas (a escala dos oficiais)</option>
             </Selecao>
-            <p className="text-[13px] text-apagado">
+            <p className="text-apoio text-apagado">
               {distribuicao === 'rodada_de_cotas' ? 'Esta escala é montada em Oficiais: o JES é lançado à mão e o que sobra vai pela rodada, como Saldo. Ela não tem pré-escala.' : 'Esta escala é montada na Escala do mês, com a pré-escala.'}
             </p>
           </div>

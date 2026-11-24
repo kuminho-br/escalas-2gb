@@ -104,7 +104,7 @@ export function Motorista({ ficha }: { ficha: FichaMilitar }) {
                   )}
                 >
                   <span className="font-cond text-lg leading-none font-semibold">{c}</span>
-                  <span className="text-[10px] leading-tight">{veiculo}</span>
+                  <span className="text-apoio leading-tight">{veiculo}</span>
                 </button>
               );
             })}

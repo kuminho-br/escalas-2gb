@@ -31,7 +31,7 @@ export function PainelComMenu({ secoes, valor, aoEscolher, rotulo, children }: {
           <TabsTrigger
             key={s.valor}
             value={s.valor}
-            className="h-auto flex-none justify-start rounded-none border-0 border-l-2 border-linha px-3 py-2 text-left text-[15px] whitespace-normal after:hidden hover:bg-fundo/70 data-[state=active]:border-vinho data-[state=active]:bg-[#F5E7E7] data-[state=active]:font-semibold data-[state=active]:text-vinho"
+            className="h-auto flex-none justify-start rounded-none border-0 border-l-2 border-linha px-3 py-2 text-left text-corpo whitespace-normal after:hidden hover:bg-fundo/70 data-[state=active]:border-vinho data-[state=active]:bg-passa data-[state=active]:font-semibold data-[state=active]:text-vinho"
           >
             {s.nome}
           </TabsTrigger>

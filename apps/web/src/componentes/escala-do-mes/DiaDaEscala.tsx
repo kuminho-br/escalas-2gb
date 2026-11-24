@@ -61,7 +61,7 @@ function Removidos({ dia, aoDesfazer }: { dia: DiaDaEscala; aoDesfazer?: Acoes['
   const removidos = dia.faixas.flatMap((f) => f.removidos.map((r) => ({ ...r, horario: textoFaixa(f.inicio, f.fim) })));
   if (removidos.length === 0) return null;
   return (
-    <section aria-label="Removidos" data-removidos className="col-span-full grid gap-1.5 rounded-lg bg-[#F6F7F9] px-3 py-2 text-xs">
+    <section aria-label="Removidos" data-removidos className="col-span-full grid gap-1.5 rounded-lg bg-passa px-3 py-2 text-xs">
       <h4 className="font-medium text-apagado">Removidos</h4>
       <ul className="grid gap-1">
         {removidos.map((r) => (

@@ -15,13 +15,37 @@
   --color-alerta: #B3261E;
   --color-pendencia: #8A5A00;
   --color-pendencia-fundo: #FCF1D6;
-  /* a vaga vazia: contorno da obrigatória (3,5:1 sobre branco), da extra (mais claro) e o fundo ao passar o mouse */
+  /* o contorno de campo, de botão secundário e da vaga opcional (3,5:1 sobre branco) e o único cinza de painel: mouse em cima, fim de semana, etiqueta neutra */
   --color-encaixe: #7D8A9C;
-  --color-encaixe-claro: #A3AEBC;
   --color-passa: #F3F5F8;
+  /* o fundo do erro e do choque (o texto de alerta, 5,6:1 sobre ele) */
+  --color-alerta-fundo: #FBEAE8;
 
   /* texto de apoio em 13 px (o padrão do Tailwind é 12) */
   --text-xs: 0.8125rem;
+
+  /* os seis tamanhos de letra do sistema (tamanho / entrelinha): nenhum texto fica abaixo de 13 px */
+  --text-apoio: 0.8125rem;
+  --text-apoio--line-height: 1.125rem;
+  --text-corpo: 0.9375rem;
+  --text-corpo--line-height: 1.375rem;
+  --text-nome: 1.0625rem;
+  --text-nome--line-height: 1.5rem;
+  --text-bloco: 1.25rem;
+  --text-bloco--line-height: 1.625rem;
+  --text-titulo: 1.75rem;
+  --text-titulo--line-height: 2rem;
+  --text-abertura: 2.5rem;
+  --text-abertura--line-height: 2.75rem;
+
+  /* forma: 6 px nos controles (botões, campos, placas, etiquetas, avisos) e 12 px nas superfícies (quadros, painéis, diálogos) */
+  --radius-controle: 6px;
+  --radius-superficie: 12px;
+  /* a sombra apoiada (placas) e a sombra por cima (painel, lista aberta, diálogo, aviso) */
+  --shadow-apoiada: 0 1px 2px rgba(28, 36, 48, 0.12);
+  --shadow-por-cima: 0 18px 44px rgba(28, 36, 48, 0.22), 0 2px 8px rgba(28, 36, 48, 0.1);
+  /* a altura de controle: 36 px; 44 px no toque e no celular (ver a regra de baixo) */
+  --altura-controle: 36px;
 
   --font-sans: "Barlow", system-ui, sans-serif;
   --font-cond: "Barlow Semi Condensed", "Barlow", system-ui, sans-serif;
@@ -32,20 +56,27 @@
   --color-foreground: var(--color-tinta);
   --color-primary: var(--color-vinho);
   --color-primary-foreground: #FFFFFF;
-  --color-secondary: #E3E7EC;
+  --color-secondary: var(--color-passa);
   --color-secondary-foreground: var(--color-tinta);
-  --color-muted: #E3E7EC;
+  --color-muted: var(--color-passa);
   --color-muted-foreground: var(--color-apagado);
-  --color-accent: #EEF1F4;
+  --color-accent: var(--color-passa);
   --color-accent-foreground: var(--color-tinta);
   --color-destructive: var(--color-alerta);
   --color-border: var(--color-linha);
-  --color-input: #C9CFD8;
+  --color-input: var(--color-encaixe);
   --color-ring: var(--color-tinta);
   --color-card: var(--color-superficie);
   --color-card-foreground: var(--color-tinta);
   --color-popover: var(--color-superficie);
   --color-popover-foreground: var(--color-tinta);
+}
+
+/* a altura de controle sobe para 44 px no toque e abaixo do ponto de quebra do site (768 px) */
+@media (pointer: coarse), (max-width: 47.99rem) {
+  :root {
+    --altura-controle: 44px;
+  }
 }
 
 @layer base {
