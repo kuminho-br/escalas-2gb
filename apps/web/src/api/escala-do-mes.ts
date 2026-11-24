@@ -1,5 +1,5 @@
 import { keepPreviousData, queryOptions, type QueryClient } from '@tanstack/react-query';
-import type { Candidatos, EscalaDoMes, NovaAlocacao, NovoAcumulo, OpcoesDeTroca, PreviaDaPreEscala, RemocaoFeita, ResultadoDaTroca, Troca } from 'contratos';
+import type { AlocacaoResolvida, Candidatos, DesfazerResolucao, EscalaDoMes, NovaAlocacao, NovoAcumulo, OpcoesDeTroca, PreviaDaPreEscala, RemocaoFeita, ResultadoDaTroca, Troca } from 'contratos';
 import { pedir } from './cliente';
 
 export const consultaEscalaDoMes = (escalaId: string, mes: string) =>
@@ -47,6 +47,20 @@ async function gravando(queryClient: QueryClient, pedido: Promise<EscalaDoMes>):
 
 export const escalar = (queryClient: QueryClient, escalaId: string, d: NovaAlocacao) =>
   gravando(queryClient, pedir<EscalaDoMes>('POST', `/api/escalas/${escalaId}/alocacoes`, d));
+/** Escalar tirando o militar do serviço que choca (ou por cima do expediente): a API faz as duas coisas numa transação só e devolve o que o "Desfazer" precisa. */
+export async function escalarResolvendoChoque(queryClient: QueryClient, escalaId: string, d: NovaAlocacao): Promise<{ escala: EscalaDoMes; desfazer: AlocacaoResolvida['desfazer'] }> {
+  let desfazer: AlocacaoResolvida['desfazer'] = { alocacaoId: '', remocaoId: null };
+  const escala = await gravando(
+    queryClient,
+    pedir<AlocacaoResolvida>('POST', `/api/escalas/${escalaId}/alocacoes`, d).then(({ desfazer: x, ...e }) => {
+      desfazer = x;
+      return e;
+    }),
+  );
+  return { escala, desfazer };
+}
+/** "Desfazer" a resolução: tira o serviço novo e devolve o de lá. A API recusa (409) se a escala mudou desde então. */
+export const desfazerResolucao = (queryClient: QueryClient, d: DesfazerResolucao) => gravando(queryClient, pedir<EscalaDoMes>('POST', '/api/resolucoes/desfazer', d));
 /** Remover da vaga devolve a escala e o id da remoção que ficou: o "Desfazer" do aviso usa. */
 export async function removerAlocacao(queryClient: QueryClient, alocacaoId: string): Promise<{ escala: EscalaDoMes; remocaoId: string }> {
   let remocaoId = '';

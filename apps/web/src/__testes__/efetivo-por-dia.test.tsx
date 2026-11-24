@@ -570,7 +570,7 @@ describe('efetivo por dia: escalar e remover', () => {
   const ROTA = `GET /api/unidades/u-1sb/efetivo-do-dia/${DIA}`;
   const CANDIDATOS = {
     aptos: [{ militarId: 'm-zulu', posto: 'SD', nomeGuerra: 'ZULU', matricula: '990099-9', equipe: null, jornada: 'pronto', servicos: [{ servicoId: 's-pronto', turnoId: 't-b', nome: 'Pronto' }] }],
-    semVoluntariado: [], fora: [], acumular: [],
+    semVoluntariado: [], emChoque: [], fora: [], acumular: [],
   };
   const ESCALA_VAZIA = (escalaId: string) => ({ escalaId, nome: 'Ordinário', mes: '2026-12', dias: [], resumo: { preenchidas: 0, obrigatorias: 0, obrigatoriasVazias: 0 } });
   const comVaga = (opcoes: TrechoNoEfetivo['opcoes']): EfetivoDoDia => ({

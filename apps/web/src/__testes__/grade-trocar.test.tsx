@@ -26,7 +26,7 @@ const TROCAS: OpcoesDeTroca = {
       militarId: 'm-livre', posto: 'SD', nomeGuerra: 'CHARLIE', matricula: '990003-3', equipe: 'Alfa', jornada: 'pronto',
       servicos: [{ servicoId: 's-pronto', turnoId: 't-a', nome: 'Pronto' }, { servicoId: 's-jes', turnoId: 't-jes', nome: 'JES' }],
     }],
-    semVoluntariado: [], fora: [{ motivo: 'Afastado', quantidade: 2 }], acumular: [],
+    semVoluntariado: [], emChoque: [], fora: [{ motivo: 'Afastado', quantidade: 2 }], acumular: [],
   },
   escalados: [{
     militarId: 'm-bravo', posto: 'SD', nomeGuerra: 'BRAVO', matricula: '990002-2',
