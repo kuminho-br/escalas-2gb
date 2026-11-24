@@ -4,7 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { hoje } from '@/lib/meses';
 import { cleanup } from '@testing-library/react';
-import { abrir, chamadasA, corpoEnviado, EU_EXEMPLO, simularApi } from './apoio';
+import { abrir, chamadasA, corpoEnviado, EU_EXEMPLO, responderConfirmacao, simularApi } from './apoio';
 
 const PARAMS = '/api/unidades/u-1sb/parametros';
 const mesAtual = () => {
@@ -379,6 +379,7 @@ describe('configurações: blocos do voluntariado', () => {
   it('erro da API aparece e o interruptor volta ao que estava', async () => {
     api({
       [`GET ${ESCALAS}`]: { status: 200, corpo: ESCALAS_LISTA },
+      'GET /api/unidades/u-1sb/externos': { status: 200, corpo: [] },
       'PATCH /api/escalas/e1/blocos-do-voluntariado': { status: 403, corpo: { erro: 'Você não tem permissão nesta seção.' } },
     }, GESTOR);
     await aba();
@@ -575,5 +576,140 @@ describe('configurações: quem vê o quê (6.11)', () => {
     abrir('/configuracoes?aba=quem-ve-o-que');
     await userEvent.click(await screen.findByRole('checkbox', { name: 'QOC: de oficiais' }));
     expect(await screen.findByText('Só o administrador do sistema ajusta quem vê o quê.')).toBeInTheDocument();
+  });
+});
+
+describe('militares de outras unidades na escala (6.36)', () => {
+  const EXTERNOS = '/api/unidades/u-1sb/externos';
+  const BUSCA = '/api/consulta/militares';
+  const alfa = { vinculoId: 'v1', militarId: 'm-alfa', posto: 'SD', nomeGuerra: 'ALFA', matricula: '990101-1', lotacaoSigla: '2ª SB', desde: '2026-11-20' };
+  const linhaDaBusca = (id: string, nomeGuerra: string, extra: Record<string, unknown> = {}) => ({
+    id, postoGrad: 'CB', nomeGuerra, nomeCompleto: `Fulano ${nomeGuerra}`, matricula: '990102-2', lotacao: '2ª SB', quadro: 'QBMG', daUnidade: false, ...extra,
+  });
+  const abrirAba = async () => {
+    abrir('/configuracoes-da-escala?aba=voluntariado');
+    return await screen.findByRole('heading', { name: 'Militares de outras unidades' });
+  };
+  const comEscalas = (extra: Parameters<typeof simularApi>[0] = {}, eu: typeof EU_EXEMPLO = GESTOR) =>
+    api({ [`GET ${ESCALAS}`]: { status: 200, corpo: ESCALAS_LISTA }, ...extra }, eu);
+
+  it('lista os externos vigentes: patente, nome, matrícula, "lotado em" a unidade de origem e desde quando', async () => {
+    comEscalas({ [`GET ${EXTERNOS}`]: { status: 200, corpo: [alfa] } });
+    await abrirAba();
+    const lista = await screen.findByRole('list', { name: 'Militares de outras unidades na escala' });
+    const item = within(lista).getAllByRole('listitem')[0]!;
+    expect(item).toHaveTextContent('SD');
+    expect(item).toHaveTextContent('ALFA');
+    expect(item).toHaveTextContent('990101-1');
+    expect(item).toHaveTextContent('lotado em 2ª SB');
+    expect(item).toHaveTextContent('desde 20/11/2026');
+  });
+
+  it('sem nenhum, diz que a escala de 1ª SB não tem militar de outra unidade', async () => {
+    comEscalas({ [`GET ${EXTERNOS}`]: { status: 200, corpo: [] } });
+    await abrirAba();
+    expect(await screen.findByText('Nenhum militar de outra unidade na escala de 1ª SB.')).toBeInTheDocument();
+  });
+
+  it('o gestor tira: a confirmação fixa, o DELETE do vínculo e o aviso; Cancelar não manda nada', async () => {
+    // as rotas são montadas aqui (e não por `api`, que copia o objeto): depois de tirar, a lista volta a ser pedida e já vem vazia
+    const rotas: Parameters<typeof simularApi>[0] = {
+      '/api/eu': { status: 200, corpo: GESTOR },
+      [`GET ${PARAMS}`]: { status: 200, corpo: LISTA },
+      [`GET ${ESCALAS}`]: { status: 200, corpo: ESCALAS_LISTA },
+      [`GET ${EXTERNOS}`]: { status: 200, corpo: [alfa] },
+      [`DELETE ${EXTERNOS}/v1`]: { status: 204 },
+    };
+    const f = simularApi(rotas);
+    await abrirAba();
+    await userEvent.click(await screen.findByRole('button', { name: 'Tirar SD ALFA' }));
+    const dialogo = await screen.findByRole('dialog', { name: 'Tirar SD ALFA da escala de 1ª SB?' });
+    expect(dialogo).toHaveTextContent('Os serviços já lançados ficam.');
+    await responderConfirmacao('Cancelar');
+    expect(chamadasA(f, `DELETE ${EXTERNOS}/v1`)).toBe(0);
+    rotas[`GET ${EXTERNOS}`] = { status: 200, corpo: [] };
+    await userEvent.click(screen.getByRole('button', { name: 'Tirar SD ALFA' }));
+    await responderConfirmacao('Tirar');
+    await waitFor(() => expect(chamadasA(f, `DELETE ${EXTERNOS}/v1`)).toBe(1));
+    expect(await screen.findByText('SD ALFA saiu da escala de 1ª SB.')).toBeInTheDocument();
+    expect(await screen.findByText('Nenhum militar de outra unidade na escala de 1ª SB.')).toBeInTheDocument();
+  });
+
+  it('o gestor busca por nome ou matrícula e traz: "Trazer" em quem é de outra unidade, o POST e o aviso', async () => {
+    const rotas: Parameters<typeof simularApi>[0] = {
+      [`GET ${EXTERNOS}`]: { status: 200, corpo: [] },
+      [`GET ${BUSCA}`]: { status: 200, corpo: { militares: [linhaDaBusca('m-bravo', 'BRAVO')], haMais: false } },
+      [`POST ${EXTERNOS}`]: { status: 201, corpo: { ...alfa, vinculoId: 'v2', militarId: 'm-bravo', posto: 'CB', nomeGuerra: 'BRAVO' } },
+    };
+    const f = comEscalas(rotas);
+    await abrirAba();
+    await userEvent.type(await screen.findByLabelText('Buscar militar de outra unidade por nome ou matrícula'), 'bravo');
+    await userEvent.click(screen.getByRole('button', { name: 'Buscar' }));
+    rotas[`GET ${EXTERNOS}`] = { status: 200, corpo: [{ ...alfa, vinculoId: 'v2', militarId: 'm-bravo', posto: 'CB', nomeGuerra: 'BRAVO' }] };
+    await userEvent.click(await screen.findByRole('button', { name: 'Trazer CB BRAVO' }));
+    await waitFor(() => expect(chamadasA(f, `POST ${EXTERNOS}`)).toBe(1));
+    expect(corpoEnviado(f, `POST ${EXTERNOS}`)).toEqual({ militarId: 'm-bravo' });
+    expect(await screen.findByText('CB BRAVO agora está na escala de 1ª SB.')).toBeInTheDocument();
+    // a busca é pedida com a unidade de trabalho, para a API dizer quem já é dela
+    const url = f.mock.calls.map(([e]) => String(e)).find((u) => u.startsWith(BUSCA))!;
+    expect(url).toContain('unidadeDeTrabalho=u-1sb');
+    expect(url).toContain('texto=bravo');
+  });
+
+  it('Review Focus 4: militar da própria unidade (ou de baixo) aparece com "Já é desta unidade." e sem botão; quem já está na escala também não tem "Trazer"', async () => {
+    comEscalas({
+      [`GET ${EXTERNOS}`]: { status: 200, corpo: [alfa] },
+      [`GET ${BUSCA}`]: {
+        status: 200,
+        corpo: { militares: [linhaDaBusca('m-daqui', 'DAQUI', { lotacao: '1ª SB', daUnidade: true }), linhaDaBusca('m-alfa', 'ALFA'), linhaDaBusca('m-bravo', 'BRAVO')], haMais: false },
+      },
+    });
+    await abrirAba();
+    await userEvent.type(await screen.findByLabelText('Buscar militar de outra unidade por nome ou matrícula'), 'alfa');
+    await userEvent.click(screen.getByRole('button', { name: 'Buscar' }));
+    const resultado = await screen.findByRole('list', { name: 'Resultado da busca' });
+    const daqui = within(resultado).getByText('DAQUI').closest('li')!;
+    expect(daqui).toHaveTextContent('Já é desta unidade.');
+    expect(within(daqui).queryByRole('button')).toBeNull();
+    const jaEsta = within(resultado).getByText('ALFA').closest('li')!;
+    expect(jaEsta).toHaveTextContent('Já está na escala.');
+    expect(within(jaEsta).queryByRole('button')).toBeNull();
+    expect(within(resultado).getByRole('button', { name: 'Trazer CB BRAVO' })).toBeInTheDocument();
+  });
+
+  it('busca curta pede 3 letras, sem ir ao servidor; sem resultado, diz que não achou', async () => {
+    const f = comEscalas({ [`GET ${EXTERNOS}`]: { status: 200, corpo: [] }, [`GET ${BUSCA}`]: { status: 200, corpo: { militares: [], haMais: false } } });
+    await abrirAba();
+    const campo = await screen.findByLabelText('Buscar militar de outra unidade por nome ou matrícula');
+    await userEvent.type(campo, 'ab');
+    await userEvent.click(screen.getByRole('button', { name: 'Buscar' }));
+    expect(await screen.findByText('Digite pelo menos 3 letras.')).toBeInTheDocument();
+    expect(chamadasA(f, `GET ${BUSCA}`)).toBe(0);
+    await userEvent.type(campo, 'c');
+    await userEvent.click(screen.getByRole('button', { name: 'Buscar' }));
+    expect(await screen.findByText('Nenhum militar encontrado. Confira o nome ou a matrícula.')).toBeInTheDocument();
+  });
+
+  it('a recusa da API (já está na escala) aparece no aviso de erro', async () => {
+    comEscalas({
+      [`GET ${EXTERNOS}`]: { status: 200, corpo: [] },
+      [`GET ${BUSCA}`]: { status: 200, corpo: { militares: [linhaDaBusca('m-bravo', 'BRAVO')], haMais: false } },
+      [`POST ${EXTERNOS}`]: { status: 409, corpo: { erro: 'Já está na escala de 1ª SB.' } },
+    });
+    await abrirAba();
+    await userEvent.type(await screen.findByLabelText('Buscar militar de outra unidade por nome ou matrícula'), 'bravo');
+    await userEvent.click(screen.getByRole('button', { name: 'Buscar' }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Trazer CB BRAVO' }));
+    expect(await screen.findByText('Já está na escala de 1ª SB.')).toBeInTheDocument();
+  });
+
+  it('o auxiliar vê a lista, sem a busca e sem nenhum botão', async () => {
+    comEscalas({ [`GET ${EXTERNOS}`]: { status: 200, corpo: [alfa] } }, EU_EXEMPLO);
+    await abrirAba();
+    const lista = await screen.findByRole('list', { name: 'Militares de outras unidades na escala' });
+    expect(within(lista).getByText('ALFA')).toBeInTheDocument();
+    expect(screen.queryByLabelText('Buscar militar de outra unidade por nome ou matrícula')).toBeNull();
+    expect(screen.queryByRole('button', { name: /^Tirar/ })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Buscar' })).toBeNull();
   });
 });

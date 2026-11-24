@@ -12,6 +12,8 @@ export type LinhaDaConsulta = {
   lotacao: string | null;
   /** A sigla do quadro do período de hoje; null sem quadro. */
   quadro: string | null;
+  /** Só vem quando a busca é pedida com a unidade de trabalho: o militar já é dela (lotado nela ou numa de baixo), então não há o que trazer. */
+  daUnidade?: boolean;
 };
 
 /** No máximo 50 linhas; `haMais` diz que há mais (a pessoa refina a busca). */

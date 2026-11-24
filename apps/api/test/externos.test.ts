@@ -180,3 +180,25 @@ describe('o militar externo na Consulta e na lista de Militares (6.33, Task 3)',
     expect((await lista()).some((l: { id: string }) => l.id === id)).toBe(false);
   });
 });
+
+describe('a busca da Consulta diz quem já é da unidade de trabalho (6.36)', () => {
+  const buscar = async (texto: string, unidadeDeTrabalho?: string) =>
+    (await (await api.pedir('gestorGb', 'GET', `/api/consulta/militares?texto=${encodeURIComponent(texto)}${unidadeDeTrabalho ? `&unidadeDeTrabalho=${unidadeDeTrabalho}` : ''}`)).json()) as { militares: { id: string; daUnidade?: boolean }[] };
+
+  it('com a unidade de trabalho, cada linha traz `daUnidade` (lotado nela ou numa de baixo); sem ela, a chave nem existe', async () => {
+    const deFora = await militarDe();
+    const daUnidade = await militarDe(api.ids.secao);
+    const nome = async (id: string) => (await api.banco.query<{ matricula: string }>('select matricula from militar where id = $1', [id])).rows[0]!.matricula;
+    const comUnidade = await buscar(await nome(deFora), api.ids.secao);
+    expect(comUnidade.militares.find((m) => m.id === deFora)!.daUnidade).toBe(false);
+    expect((await buscar(await nome(daUnidade), api.ids.secao)).militares.find((m) => m.id === daUnidade)!.daUnidade).toBe(true);
+    // o 2º GB tem a 2ª SB embaixo dele
+    expect((await buscar(await nome(deFora), api.ids.gb)).militares.find((m) => m.id === deFora)!.daUnidade).toBe(true);
+    expect('daUnidade' in (await buscar(await nome(deFora))).militares.find((m) => m.id === deFora)!).toBe(false);
+  });
+
+  it('unidade de trabalho que não existe é 404', async () => {
+    const r = await api.pedir('gestorGb', 'GET', '/api/consulta/militares?texto=abc&unidadeDeTrabalho=00000000-0000-4000-8000-000000000000');
+    expect(r.status).toBe(404);
+  });
+});

@@ -74,7 +74,12 @@ export function rotasVisao(dep: { banco: Banco; auth: Auth; limiteDeBuscas?: num
     if (unidadeId && !(UUID.test(unidadeId) && (await c.get('banco').query('select 1 from unidade where id = $1', [unidadeId])).rows.length)) {
       return c.json({ erro: 'Unidade não encontrada.' }, 404);
     }
-    return c.json(await buscarMilitares(c.get('banco'), { texto, unidadeId, hoje: hojeRecife() }));
+    // `unidadeDeTrabalho` (6.36): a unidade para a qual o gestor quer trazer militares; cada linha diz se o militar já é dela
+    const unidadeDeTrabalho = c.req.query('unidadeDeTrabalho') || null;
+    if (unidadeDeTrabalho && !(UUID.test(unidadeDeTrabalho) && (await c.get('banco').query('select 1 from unidade where id = $1', [unidadeDeTrabalho])).rows.length)) {
+      return c.json({ erro: 'Unidade não encontrada.' }, 404);
+    }
+    return c.json(await buscarMilitares(c.get('banco'), { texto, unidadeId, hoje: hojeRecife(), unidadeDeTrabalho }));
   });
 
   r.get('/consulta/militares/:id', async (c) => {
