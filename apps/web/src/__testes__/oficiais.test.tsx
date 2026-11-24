@@ -571,7 +571,7 @@ describe('a aba Escala do mês', () => {
     });
 
     it('os dias vermelhos têm um botão "Marcar dias vermelhos" ao lado do seletor de serviço: ligado, diz "Concluir", e clicar no dia marca ou tira; desligado, o número do dia não é botão', async () => {
-      const f = abrirEscala(escala(), { [`PUT ${URL_MES}/dias-vermelhos`]: { status: 200, corpo: escala({ diasVermelhos: [dia(5)] }) } });
+      const f = abrirEscala(escala(), { [`POST ${URL_MES}/dias-vermelhos/marcar`]: { status: 200, corpo: escala({ diasVermelhos: [dia(5)] }) } });
       const grupo = await screen.findByRole('radiogroup', { name: 'Escalar:' });
       expect(screen.queryByRole('button', { name: /^Dia vermelho: / })).toBeNull();
       const botao = screen.getByRole('button', { name: 'Marcar dias vermelhos' });
@@ -580,7 +580,7 @@ describe('a aba Escala do mês', () => {
       await userEvent.click(botao);
       expect(screen.getByRole('button', { name: 'Concluir' })).toHaveAttribute('aria-pressed', 'true');
       await userEvent.click(screen.getByRole('button', { name: 'Dia vermelho: 05/01' }));
-      await waitFor(() => expect(corpoEnviado(f, `PUT ${URL_MES}/dias-vermelhos`)).toEqual({ dias: [dia(5)] }));
+      await waitFor(() => expect(corpoEnviado(f, `POST ${URL_MES}/dias-vermelhos/marcar`)).toEqual({ dia: dia(5), vermelho: true }));
       await userEvent.click(screen.getByRole('button', { name: 'Concluir' }));
       expect(screen.queryByRole('button', { name: /^Dia vermelho: / })).toBeNull();
       expect(screen.getByRole('button', { name: 'Marcar dias vermelhos' })).toBeInTheDocument();
