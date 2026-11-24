@@ -5,6 +5,7 @@ import { rotasConfiguracoes } from './cadastros/configuracoes.ts';
 import { rotasCotas } from './cadastros/cotas.ts';
 import { rotasEstrutura } from './cadastros/estrutura.ts';
 import { rotasTiposDeUnidade } from './cadastros/tipos-de-unidade.ts';
+import { rotasExternos } from './cadastros/externos.ts';
 import { rotasFeriados } from './cadastros/feriados.ts';
 import { rotasFuncoesDoMilitar } from './cadastros/funcoes-do-militar.ts';
 import { rotasGuarnicoes } from './cadastros/guarnicoes.ts';
@@ -67,6 +68,7 @@ export function criarApp(dep: Dependencias): Hono {
     app.route('/api', rotasFuncoesDoMilitar(comAuth));
     app.route('/api', rotasCotas(comAuth));
     app.route('/api', rotasFeriados(comAuth));
+    app.route('/api', rotasExternos(comAuth));
     app.route('/api', rotasEstrutura(comAuth));
     app.route('/api', rotasTiposDeUnidade(comAuth));
     app.route('/api', rotasEscalas(comAuth));
