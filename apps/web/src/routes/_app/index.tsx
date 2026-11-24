@@ -1,11 +1,14 @@
 import { createFileRoute, Link, redirect, useNavigate } from '@tanstack/react-router';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type RefObject } from 'react';
 import { ArrowRight } from 'lucide-react';
 import type { Eu } from '@/api/eu';
 import { MODULOS, type Modulo } from '@/lib/modulos';
 import { buscaDaGrade, temBuscaDaGrade, type BuscaDaGrade } from '@/lib/busca-da-grade';
+import { alturaDaCena, quadroAoRolar } from '@/lib/cena-inicial';
 import { dataPorExtenso, saudacao } from '@/lib/saudacao';
 import { useTransicao } from '@/lib/transicao-login/armazem';
+import { POSICAO_VERTICAL } from '@/lib/transicao-login/recorte';
+import { pedeMenosMovimento } from '@/lib/transicao-login/regra';
 
 type Busca = BuscaDaGrade & { aviso?: 'outro-papel' };
 
@@ -19,7 +22,51 @@ export const Route = createFileRoute('/_app/')({
   component: Inicio,
 });
 
-/** A tela inicial: a faixa de boas-vindas e um cartão por módulo que a pessoa pode usar (docs/telas/login-e-inicio/mockup.html). */
+/** A altura do Topo (h-14), abaixo do qual o quadro fica grudado. */
+const TOPO = 56;
+/** O espaço entre o Topo e o quadro: o `py-6` do main, que o quadro cobre enquanto está grudado. */
+const MARGEM = 24;
+
+/**
+ * A cena num quadro que encolhe ao rolar (6.42): a altura cheia vem da largura (3:1, até 300 px), e a cada rolagem o quadro perde o que a
+ * página subiu, até virar uma barra de 64 px. O quadro fica grudado abaixo do Topo; um espaçador compensa o que ele encolheu, para o que a pessoa
+ * rola não mudar de tamanho enquanto rola. Escreve direto nos estilos (sem estado do React): é um quadro por rolagem.
+ */
+function useQuadroQueEncolhe(quadro: RefObject<HTMLElement | null>, espaco: RefObject<HTMLElement | null>) {
+  useEffect(() => {
+    const el = quadro.current;
+    const esp = espaco.current;
+    if (!el || !esp) return;
+    let alturaCheia = 0;
+    let pedido = 0;
+    const menos = pedeMenosMovimento();
+    const pintar = () => {
+      pedido = 0;
+      const { altura, encolhido } = quadroAoRolar(alturaCheia, window.scrollY, menos);
+      el.style.height = `${altura}px`;
+      el.style.setProperty('--e', String(encolhido));
+      esp.style.height = `${alturaCheia - altura}px`;
+    };
+    const medir = () => {
+      alturaCheia = alturaDaCena(el.getBoundingClientRect().width, window.innerWidth < 768);
+      pintar();
+    };
+    const aoRolar = () => {
+      if (pedido) return;
+      pedido = typeof requestAnimationFrame === 'function' ? requestAnimationFrame(pintar) : (pintar(), 0);
+    };
+    medir();
+    window.addEventListener('scroll', aoRolar, { passive: true });
+    window.addEventListener('resize', medir);
+    return () => {
+      if (pedido) cancelAnimationFrame(pedido);
+      window.removeEventListener('scroll', aoRolar);
+      window.removeEventListener('resize', medir);
+    };
+  }, [quadro, espaco]);
+}
+
+/** A tela inicial: a cena num quadro que encolhe ao rolar e um atalho por módulo que a pessoa pode usar (docs/telas/refatoracao/tela-inicial/index.html). */
 function Inicio() {
   const { eu } = Route.useRouteContext();
   const { aviso: avisoDoEndereco } = Route.useSearch();
@@ -40,21 +87,27 @@ function Inicio() {
   }, [fase]);
   const chegadaDaSaudacao = fase === 'pousou' ? 'entrando' : fase === 'parada' ? undefined : 'escondida';
   const chegadaDosCartoes = fase === 'parada' ? undefined : cartoes ? 'entrando' : 'escondida';
+  const quadro = useRef<HTMLElement>(null);
+  const espaco = useRef<HTMLDivElement>(null);
+  useQuadroQueEncolhe(quadro, espaco);
   return (
-    <div className="-mx-4 -my-6 md:-mx-8">
-      <section data-faixa-boas-vindas className="relative aspect-video overflow-hidden bg-tinta text-white md:aspect-[8/3]">
-        {/* a cena final da animação do login: as linhas 300 a 876 da imagem na altura da faixa (177,78% = 1024/576; -52,08% = 300/576), encostada
-            à direita. No computador (8:3) cabe a largura toda; no celular (16:9) fica a parte da direita. A animação pousa nesta mesma conta */}
-        <img src="/boas-vindas.jpg" alt="" className="absolute top-[-52.0833%] right-0 h-[177.7778%] w-auto max-w-none" />
-        <div data-chegada={chegadaDaSaudacao} className="saudacao-da-chegada absolute inset-0 flex flex-col gap-1 bg-gradient-to-br from-tinta/90 via-tinta/40 to-transparent px-5 pt-6 md:px-12 md:pt-10">
-          <h1 ref={titulo} tabIndex={-1} className="origin-[0_60%] font-cond text-titulo leading-[1.05] font-semibold outline-none md:text-abertura">{`${saudacao(agora)}, ${eu.militar.postoGrad} ${eu.militar.nomeGuerra}`}</h1>
-          <p className="text-sm text-white/90 md:text-base">{dataPorExtenso(agora)}</p>
-        </div>
-      </section>
+    <div className="-mt-6">
+      {/* o que gruda abaixo do Topo é este bloco, com o fundo da página: ele cobre a margem entre o Topo e o quadro enquanto o conteúdo passa por baixo */}
+      <div className="sticky z-10 bg-fundo" style={{ top: TOPO, paddingTop: MARGEM }}>
+        <section ref={quadro} data-faixa-boas-vindas className="cena-inicial relative overflow-hidden rounded-superficie bg-tinta text-white shadow-apoiada">
+          {/* a cena final da animação do login: a imagem cobre o quadro, centrada, a 66% na vertical. A animação pousa nesta mesma conta (recorte.ts) */}
+          <img src="/boas-vindas.jpg" alt="" className="absolute inset-0 size-full object-cover" style={{ objectPosition: `center ${POSICAO_VERTICAL * 100}%` }} />
+          <div data-chegada={chegadaDaSaudacao} className="saudacao-da-chegada saudacao absolute inset-0 flex flex-col bg-gradient-to-br from-tinta/90 via-tinta/40 to-transparent px-4 md:px-7">
+            <h1 ref={titulo} tabIndex={-1} className="origin-[0_60%] font-cond font-semibold text-balance outline-none">{`${saudacao(agora)}, ${eu.militar.postoGrad} ${eu.militar.nomeGuerra}`}</h1>
+            <p className="data text-corpo text-white/90 md:text-nome">{dataPorExtenso(agora)}</p>
+          </div>
+        </section>
+      </div>
+      <div ref={espaco} data-espaco-da-cena aria-hidden />
       {aviso === 'outro-papel' && (
-        <p role="status" className="mx-4 mt-4 rounded-md bg-pendencia-fundo px-3 py-2 text-sm text-pendencia md:mx-12">Essa área é de outro nível de acesso.</p>
+        <p role="status" className="mt-4 rounded-controle bg-pendencia-fundo px-3 py-2 text-sm text-pendencia">Essa área é de outro nível de acesso.</p>
       )}
-      <ul className="grid gap-3 px-4 pt-5 pb-8 md:grid-cols-3 md:gap-[18px] md:px-12 md:pt-7 md:pb-10">
+      <ul className="grid gap-3 pt-5 pb-8 md:grid-cols-3 md:gap-[18px] md:pt-7 md:pb-10">
         {MODULOS.filter((m) => m.ve(eu)).map((m, i) => (
           <li key={m.id} data-chegada={chegadaDosCartoes} style={chegadaDosCartoes ? { animationDelay: `${i * 135}ms` } : undefined} className="cartao-da-chegada flex">
             <Cartao modulo={m} eu={eu} />

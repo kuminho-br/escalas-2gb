@@ -45,6 +45,62 @@ describe('tela inicial', () => {
     expect(titulo.closest('[data-chegada]')).toBeNull();
   });
 
+  // 6.42: a cena num quadro com margens que encolhe ao rolar (docs/telas/refatoracao/tela-inicial/index.html)
+  describe('o quadro da cena', () => {
+    const quadro = async () => {
+      simularApi({ '/api/eu': { status: 200, corpo: comPapel } });
+      abrir('/');
+      const titulo = await screen.findByRole('heading', { level: 1 });
+      return titulo.closest<HTMLElement>('[data-faixa-boas-vindas]')!;
+    };
+    const rolar = (y: number) => {
+      Object.defineProperty(window, 'scrollY', { value: y, configurable: true });
+      window.dispatchEvent(new Event('scroll'));
+    };
+    afterEach(() => {
+      rolar(0);
+      vi.unstubAllGlobals();
+    });
+
+    it('tem cantos arredondados, e a imagem cobre o quadro com o recorte da animação (centro, 66% na vertical)', async () => {
+      const faixa = await quadro();
+      expect(faixa.className).toMatch(/rounded-superficie/);
+      expect(faixa.className).not.toMatch(/aspect-/);
+      const img = faixa.querySelector('img')!;
+      expect(img.className).toMatch(/object-cover/);
+      expect(img.style.objectPosition).toBe('center 66%');
+    });
+
+    it('sem rolagem tem a altura cheia (300 px no computador); ao rolar encolhe até 64 px e não passa disso; voltar ao topo devolve o tamanho', async () => {
+      const faixa = await quadro();
+      await waitFor(() => expect(faixa.style.height).toBe('300px'));
+      rolar(118);
+      await waitFor(() => expect(faixa.style.height).toBe('182px'));
+      rolar(5000);
+      await waitFor(() => expect(faixa.style.height).toBe('64px'));
+      expect(faixa.style.getPropertyValue('--e')).toBe('1');
+      rolar(0);
+      await waitFor(() => expect(faixa.style.height).toBe('300px'));
+    });
+
+    it('com menos movimento, o quadro não tem tamanho intermediário: muda do cheio para a barra', async () => {
+      vi.stubGlobal('matchMedia', (q: string) => ({ matches: q.includes('prefers-reduced-motion'), media: q, addEventListener: () => {}, removeEventListener: () => {} }));
+      const faixa = await quadro();
+      rolar(100);
+      await waitFor(() => expect(faixa.style.height).toBe('300px'));
+      rolar(130);
+      await waitFor(() => expect(faixa.style.height).toBe('64px'));
+    });
+
+    it('o que a pessoa rola não muda de tamanho: um espaçador compensa o que o quadro encolheu', async () => {
+      const faixa = await quadro();
+      rolar(5000);
+      await waitFor(() => expect(faixa.style.height).toBe('64px'));
+      const espaco = document.querySelector<HTMLElement>('[data-espaco-da-cena]')!;
+      expect(espaco.style.height).toBe('236px');
+    });
+  });
+
   it('mostra um cartão por módulo visível; Visualização sem link e com "Em breve"', async () => {
     simularApi({ '/api/eu': { status: 200, corpo: comPapel } });
     abrir('/');

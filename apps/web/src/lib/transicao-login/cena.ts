@@ -2,6 +2,7 @@
 // Cada quadro depende só do tempo desde o clique, da resposta do servidor e do tamanho atual da tela: redimensionar não faz as peças saltarem.
 // A mangueira e a junta são recortadas da própria imagem final; só a boca do anel é desenhada. Trocar a imagem exige refazer as medidas abaixo.
 import { inicioDaAgua, inicioDoRecuo, TEMPOS, type Resposta } from './linha-do-tempo';
+import { IH, IW, recorteDaFaixa } from './recorte';
 
 type Ponto = [number, number];
 type PontoComLargura = [number, number, number];
@@ -55,12 +56,7 @@ function rnd(i: number, k: number) {
 }
 const DOIS_PI = Math.PI * 2;
 
-/* ---------- geometria medida na imagem final (coordenadas da imagem, 1536 x 1024) ---------- */
-export const IW = 1536;
-export const IH = 1024;
-/** A faixa de boas-vindas mostra as linhas 300 a 876 da imagem. */
-export const CORTE_Y = 300;
-export const CORTE_H = 576;
+/* ---------- geometria medida na imagem final (coordenadas da imagem, 1536 x 1024; o tamanho e o recorte da faixa estão em recorte.ts) ---------- */
 /** Centro do anel do engate. */
 const FOCO = { x: 310, y: 741 };
 /** Direção da mangueira junto ao engate. */
@@ -423,6 +419,12 @@ type Palco = {
   /** a faixa de boas-vindas na tela e a escala da imagem dentro dela; null sem a faixa */
   pouso: { bx: number; by: number; bw: number; bh: number; s1: number; q: Ponto; P: Ponto } | null;
 };
+type Retangulo = { left: number; top: number; width: number; height: number };
+/** Onde a imagem pousa: a escala dela dentro da faixa e o ponto da tela em que fica o canto (0,0) da imagem. A conta é a do quadro (recorte.ts). */
+export function pousoNaFaixa(faixa: Retangulo): { s1: number; t1: Ponto } {
+  const r = recorteDaFaixa(faixa.width, faixa.height);
+  return { s1: r.escala, t1: [faixa.left - r.x0 * r.escala, faixa.top - r.y0 * r.escala] };
+}
 /** No celular (tela estreita) a câmera começa um pouco mais longe e a junta fica mais embaixo, como no mockup. */
 function medir(W: number, H: number, faixa: DOMRect | null): Palco {
   const cel = W < 768;
@@ -431,10 +433,7 @@ function medir(W: number, H: number, faixa: DOMRect | null): Palco {
   const t0: Ponto = [W / 2 - FOCO.x * s0, fy * H - FOCO.y * s0];
   let pouso: Palco['pouso'] = null;
   if (faixa && faixa.width > 0 && faixa.height > 0) {
-    // a imagem dentro da faixa: as linhas 300 a 876 na altura da faixa, encostada à direita
-    const s1 = faixa.height / CORTE_H;
-    const x0 = IW - faixa.width / s1;
-    const t1: Ponto = [faixa.left - x0 * s1, faixa.top - CORTE_Y * s1];
+    const { s1, t1 } = pousoNaFaixa(faixa);
     const d = s0 - s1 || 1e-6;
     const q: Ponto = [(t1[0] - t0[0]) / d, (t1[1] - t0[1]) / d];
     pouso = { bx: faixa.left, by: faixa.top, bw: faixa.width, bh: faixa.height, s1, q, P: [s0 * q[0] + t0[0], s0 * q[1] + t0[1]] };
