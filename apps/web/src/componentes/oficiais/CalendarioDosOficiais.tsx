@@ -42,7 +42,7 @@ export function LegendaDosTurnos({ turnos, escala }: { turnos: Turno[]; escala?:
       ))}
       {escala && (
         <span className="inline-flex items-center gap-1.5">
-          <i aria-hidden data-amostra-dia-vermelho className="inline-block h-[18px] w-[3px] rounded-sm bg-alerta" />
+          <i aria-hidden data-amostra-dia-vermelho className="inline-block size-[18px] rounded-sm bg-alerta" />
           Dia vermelho
         </span>
       )}
@@ -51,19 +51,24 @@ export function LegendaDosTurnos({ turnos, escala }: { turnos: Turno[]; escala?:
 }
 
 /**
- * O número do dia. O dia vermelho (um dia ruim, que ninguém quer tirar) leva o número na cor de alerta, a faixa vermelha ao lado das placas e o texto "Dia vermelho"
+ * O número do dia. O dia vermelho (um dia ruim, que ninguém quer tirar) leva o número em branco dentro de um quadrado vermelho (a cor de alerta) e o texto "Dia vermelho"
  * para o leitor de tela. No modo de marcar dias vermelhos, o número é um botão que marca ou tira o dia vermelho; fora dele, é só o número.
  */
 function CabecalhoDoDia({ dia, vermelho, aoMarcar }: { dia: string; vermelho: boolean; aoMarcar?: (dia: string) => void }) {
   const dm = `${dia.slice(8, 10)}/${dia.slice(5, 7)}`;
+  // o dia vermelho é o número em branco dentro de um quadrado vermelho (a cor de alerta: branco sobre ela tem 6,5:1); o dia comum é só o número
   const numero = (
     <>
-      <b className="font-cond text-[15px] leading-[22px] font-semibold">{Number(dia.slice(8))}</b>
+      {vermelho ? (
+        <b data-quadrado-vermelho className="grid size-7 place-items-center rounded-md bg-alerta font-cond text-[15px] leading-none font-semibold text-white">{Number(dia.slice(8))}</b>
+      ) : (
+        <b className="font-cond text-[15px] leading-7 font-semibold">{Number(dia.slice(8))}</b>
+      )}
       {vermelho && <span className="sr-only">Dia vermelho</span>}
     </>
   );
   return (
-    <div className="flex items-baseline gap-2">
+    <div className="flex items-center gap-2">
       {aoMarcar ? (
         <button
           type="button"
@@ -71,12 +76,12 @@ function CabecalhoDoDia({ dia, vermelho, aoMarcar }: { dia: string; vermelho: bo
           aria-label={`Dia vermelho: ${dm}`}
           title={vermelho ? 'Tirar a marca de dia vermelho' : 'Marcar como dia vermelho'}
           onClick={() => aoMarcar(dia)}
-          className={cn('-ml-1 flex min-h-11 min-w-11 items-center gap-1.5 rounded px-1 hover:bg-passa focus-visible:outline-2', vermelho && 'text-alerta')}
+          className="-ml-1 flex min-h-11 min-w-11 items-center gap-1.5 rounded px-1 hover:bg-passa focus-visible:outline-2"
         >
           {numero}
         </button>
       ) : (
-        <span className={cn('flex items-baseline gap-1.5', vermelho && 'text-alerta')}>{numero}</span>
+        <span className="flex items-center gap-1.5">{numero}</span>
       )}
       {/* o cabeçalho das colunas já diz o dia da semana; na coluna única do celular ele volta */}
       <span data-dia-da-semana className="text-[13px] text-apagado md:hidden">{SEMANA[new Date(`${dia}T00:00:00Z`).getUTCDay()]}</span>
@@ -165,10 +170,7 @@ export function CalendarioDosOficiais({ escala: e, aoClicarTurno, aoMarcarDia, o
       {dias.map((d) => (
         <div key={d} data-dia className="@container grid min-w-0 content-start gap-0.5">
           <CabecalhoDoDia dia={d} vermelho={vermelhos.has(d)} aoMarcar={aoMarcarDia} />
-          <div className="relative grid grid-cols-2 gap-0.5 md:grid-cols-1">
-            {vermelhos.has(d) && <i aria-hidden data-faixa-vermelha className="absolute inset-y-0 -left-[5px] w-[3px] rounded-sm bg-alerta" />}
-            {turnos.map((t) => placa(d, t))}
-          </div>
+          <div className="grid grid-cols-2 gap-0.5 md:grid-cols-1">{turnos.map((t) => placa(d, t))}</div>
         </div>
       ))}
     </div>
