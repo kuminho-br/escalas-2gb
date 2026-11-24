@@ -855,3 +855,50 @@ describe('a ficha da escala: o que a SB edita (6.32)', () => {
     expect(await ficha(id)).toMatchObject({ equipe: 'Bravo-632' });
   });
 });
+
+describe('RG funcional nos dados pessoais (6.36)', () => {
+  const FRASE = 'Este campo é alterado por quem tem nível de acesso no 2º GB.';
+  it('a SP grava e lê o RG funcional; null limpa', async () => {
+    const m = await criar('990636-1');
+    const r = await api.pedir('gestorGb', 'PATCH', `/api/militares/${m.id}`, { rgFuncional: '12345-6' });
+    expect(r.status).toBe(200);
+    expect((await r.json()).rgFuncional).toBe('12345-6');
+    expect((await ficha(m.id)).rgFuncional).toBe('12345-6');
+    const limpo = await api.pedir('gestorGb', 'PATCH', `/api/militares/${m.id}`, { rgFuncional: null });
+    expect(limpo.status).toBe(200);
+    expect((await ficha(m.id)).rgFuncional).toBeNull();
+  });
+
+  it('o auxiliar não recebe a chave e recebe 403 ao gravar, sem nada gravado', async () => {
+    const m = await criar('990636-2');
+    await api.pedir('gestorGb', 'PATCH', `/api/militares/${m.id}`, { rgFuncional: '777.888' });
+    const aberta = (await (await api.pedir('escalante', 'GET', `/api/militares/${m.id}`)).json()) as FichaMilitar;
+    expect('rgFuncional' in aberta).toBe(false);
+    expect(JSON.stringify(aberta)).not.toContain('777.888');
+    const r = await api.pedir('escalante', 'PATCH', `/api/militares/${m.id}`, { rgFuncional: '999' });
+    expect(r.status).toBe(403);
+    expect((await r.json()).erro).toBe(FRASE);
+    expect((await ficha(m.id)).rgFuncional).toBe('777.888');
+  });
+
+  it('repetido é 409 no campo, com o nome de guerra de quem já tem', async () => {
+    const a = await criar('990636-3', { nomeGuerra: 'DONORG' });
+    const b = await criar('990636-4');
+    await api.pedir('gestorGb', 'PATCH', `/api/militares/${a.id}`, { rgFuncional: 'RG-100' });
+    const r = await api.pedir('gestorGb', 'PATCH', `/api/militares/${b.id}`, { rgFuncional: 'RG-100' });
+    expect(r.status).toBe(409);
+    const msg = 'Este RG funcional já é de DONORG.';
+    expect(await r.json()).toEqual({ erro: msg, campos: { rgFuncional: msg } });
+    expect((await ficha(b.id)).rgFuncional).toBeNull();
+  });
+
+  it('caractere inválido, espaço nas pontas e mais de 20 caracteres são 400 no campo', async () => {
+    const m = await criar('990636-5');
+    for (const valor of ['12 34', ' 1234', '12/34', 'A'.repeat(21), '']) {
+      const r = await api.pedir('gestorGb', 'PATCH', `/api/militares/${m.id}`, { rgFuncional: valor });
+      expect(r.status, valor).toBe(400);
+      expect(Object.keys((await r.json()).campos), valor).toContain('rgFuncional');
+    }
+    expect((await ficha(m.id)).rgFuncional).toBeNull();
+  });
+});

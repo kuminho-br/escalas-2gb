@@ -1,5 +1,5 @@
 import { useQueryClient } from '@tanstack/react-query';
-import { Cpf, EdicaoDeEndereco, Nascimento, UFS, type EdicaoMilitar, type FichaMilitar } from 'contratos';
+import { Cpf, EdicaoDeEndereco, Nascimento, RgFuncional, UFS, type EdicaoMilitar, type FichaMilitar } from 'contratos';
 import { useState } from 'react';
 import { camposDe, mensagemDe } from '@/api/cliente';
 import { atualizarMilitares, editarMilitar } from '@/api/militares';
@@ -12,7 +12,7 @@ import { mascararCep, mascararCpf } from '@/lib/militares';
 import { DonoDoBloco, Secao } from './Secao';
 
 type Valores = {
-  dia: string; mes: string; ano: string; cpf: string;
+  dia: string; mes: string; ano: string; cpf: string; rgFuncional: string;
   cep: string; logradouro: string; numero: string; complemento: string; bairro: string; cidade: string; uf: string;
 };
 const CAMPOS_DO_ENDERECO = ['cep', 'logradouro', 'numero', 'complemento', 'bairro', 'cidade', 'uf'] as const;
@@ -23,6 +23,7 @@ const doServidor = (f: FichaMilitar): Valores => ({
   mes: f.nascimento ? String(f.nascimento.mes) : '',
   ano: f.nascimento?.ano ? String(f.nascimento.ano) : '',
   cpf: f.cpf ?? '',
+  rgFuncional: f.rgFuncional ?? '',
   cep: f.endereco?.cep ?? '', logradouro: f.endereco?.logradouro ?? '', numero: f.endereco?.numero ?? '', complemento: f.endereco?.complemento ?? '',
   bairro: f.endereco?.bairro ?? '', cidade: f.endereco?.cidade ?? '', uf: f.endereco?.uf ?? '',
 });
@@ -72,6 +73,14 @@ export function DadosPessoais({ ficha }: { ficha: FichaMilitar }) {
         else erros.cpf = lido.error.issues[0]!.message;
       }
     }
+    if (v.rgFuncional !== salvo.rgFuncional) {
+      if (!v.rgFuncional) pedido.rgFuncional = null;
+      else {
+        const lido = RgFuncional.safeParse(v.rgFuncional);
+        if (lido.success) pedido.rgFuncional = lido.data;
+        else erros.rgFuncional = lido.error.issues[0]!.message;
+      }
+    }
     const endereco: Record<string, string | null> = {};
     for (const k of CAMPOS_DO_ENDERECO) if (v[k].trim() !== salvo[k].trim()) endereco[k] = v[k].trim() || null;
     if (Object.keys(endereco).length) {
@@ -102,9 +111,14 @@ export function DadosPessoais({ ficha }: { ficha: FichaMilitar }) {
       {!peculio && <DonoDoBloco unidadeDeCima={ficha.podeEditar.unidadeDeCima} />}
       <form onSubmit={(e) => { e.preventDefault(); void salvar(); }} className="grid gap-4">
         <div className="grid gap-3 sm:grid-cols-[12rem_1fr]">
-          <Campo id="dp-cpf" rotulo="CPF" erro={campos.cpf}>
-            <Input id="dp-cpf" inputMode="numeric" value={mascararCpf(v.cpf)} disabled={!peculio} onChange={(e) => mudar('cpf', e.target.value.replace(/\D/g, '').slice(0, 11))} />
-          </Campo>
+          <div className="grid content-start gap-3">
+            <Campo id="dp-cpf" rotulo="CPF" erro={campos.cpf}>
+              <Input id="dp-cpf" inputMode="numeric" value={mascararCpf(v.cpf)} disabled={!peculio} onChange={(e) => mudar('cpf', e.target.value.replace(/\D/g, '').slice(0, 11))} />
+            </Campo>
+            <Campo id="dp-rg-funcional" rotulo="RG funcional" ajuda="Registro geral do militar nos órgãos estaduais de segurança pública." erro={campos.rgFuncional}>
+              <Input id="dp-rg-funcional" value={v.rgFuncional} maxLength={20} disabled={!peculio} onChange={(e) => mudar('rgFuncional', e.target.value)} />
+            </Campo>
+          </div>
           <fieldset className="grid gap-1.5">
             <legend className="mb-1.5 text-sm font-medium">Nascimento (o ano é opcional)</legend>
             <div className="grid grid-cols-3 gap-3 sm:max-w-sm">
