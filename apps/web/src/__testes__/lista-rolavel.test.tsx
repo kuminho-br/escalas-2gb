@@ -15,7 +15,7 @@ const MILITAR: LinhaMilitar = {
   voluntarioJes: false, ativo: true, situacao: 'Disponível', pendencias: [],
 };
 const GUARNICAO: LinhaGuarnicao = { id: 'g1', nome: 'Auto Bomba 1', viatura: null, prioridade: 1, ativa: true, minimo: 1, maximo: 2, aPartirDe: null };
-const SERVICO: Servico = { id: 's1', nome: 'Pronto', tipo: 'ordinario', operacao: null, rotuloImpressao: null, cor: '#2F8F5B', ativo: true, fixo: false, turnos: [] };
+const SERVICO: Servico = { id: 's1', nome: 'Pronto', tipo: 'ordinario', operacao: null, rotuloImpressao: null, cor: '#2F8F5B', tiraDoExpediente: false, ativo: true, fixo: false, turnos: [] };
 const ESCALA: LinhaEscala = { id: 'e1', nome: 'Ordinário', ativa: true, servicos: ['Pronto'], montaBlocosVoluntariado: true, distribuicao: 'pre_escala' };
 
 function api() {

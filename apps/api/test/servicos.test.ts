@@ -237,3 +237,39 @@ describe('serviços fixos', () => {
     expect((await p.json()).erro).toBe('O serviço "Saldo" é fixo e precisa ser do tipo Ordinário.');
   });
 });
+
+describe('a opção "Pode tirar o militar do Adm do expediente" (6.37)', () => {
+  it('o serviço novo nasce com a opção desligada; ligar e desligar grava e a leitura devolve', async () => {
+    const s = await criar('Operação Opção');
+    expect(s.tiraDoExpediente).toBe(false);
+    const liga = await api.pedir('escalante', 'PATCH', `/api/servicos/${s.id}`, dados('Operação Opção', { tiraDoExpediente: true }));
+    expect(liga.status).toBe(200);
+    expect(((await liga.json()) as Servico).tiraDoExpediente).toBe(true);
+    expect(((await (await api.pedir('escalante', 'GET', `/api/servicos/${s.id}`)).json()) as Servico).tiraDoExpediente).toBe(true);
+    const desliga = await api.pedir('escalante', 'PATCH', `/api/servicos/${s.id}`, dados('Operação Opção', { tiraDoExpediente: false }));
+    expect(((await desliga.json()) as Servico).tiraDoExpediente).toBe(false);
+  });
+
+  it('editar sem mandar a opção não a muda', async () => {
+    const s = await criar('Operação Mantida', { tiraDoExpediente: true });
+    expect(s.tiraDoExpediente).toBe(true);
+    const r = await api.pedir('escalante', 'PATCH', `/api/servicos/${s.id}`, dados('Operação Mantida', { cor: '#112233' }));
+    expect(((await r.json()) as Servico).tiraDoExpediente).toBe(true);
+  });
+
+  it('o Saldo vem ligado (o criado agora e o que já existia antes da migração); o JES e o Pronto, desligados', async () => {
+    const saldo = await criar('Saldo');
+    expect(saldo.tiraDoExpediente).toBe(true);
+    expect((await criar('JES', { tipo: 'pjes' })).tiraDoExpediente).toBe(false);
+    expect((await criar('Expediente')).tiraDoExpediente).toBe(false);
+    // dá para desligar pelo cadastro, e o PATCH seguinte (que não mexe no nome) não religa
+    const desliga = await api.pedir('escalante', 'PATCH', `/api/servicos/${saldo.id}`, dados('Saldo', { tiraDoExpediente: false }));
+    expect(((await desliga.json()) as Servico).tiraDoExpediente).toBe(false);
+  });
+
+  it('o Saldo de outra seção, criado direto no banco (importação, carga), também nasce ligado', async () => {
+    const id = await inserir(api.banco, 'servico', { unidade_id: outraSecao, nome: 'Saldo', tipo: 'ordinario', cor: '#2B7BB9' });
+    const { rows } = await api.banco.query<{ tira_do_expediente: boolean }>('select tira_do_expediente from servico where id = $1', [id]);
+    expect(rows[0]!.tira_do_expediente).toBe(true);
+  });
+});

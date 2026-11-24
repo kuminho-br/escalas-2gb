@@ -33,6 +33,8 @@ export const DadosServico = z
     operacao: TextoOpcional(120),
     rotuloImpressao: TextoOpcional(60),
     cor: z.string().regex(/^#[0-9A-Fa-f]{6}$/, 'Use a cor no formato #RRGGBB.'),
+    /** 6.37: lançar este serviço no horário do expediente do Adm tira o militar do expediente do dia, depois de confirmar. Sem o campo: no cadastro novo, desligada (o Saldo já nasce ligado); na edição, não muda. */
+    tiraDoExpediente: z.boolean().optional(),
   })
   .refine((s) => s.operacao === null || s.tipo === 'diaria', { path: ['operacao'], message: 'Operação só existe em serviço de diária.' });
 export type DadosServico = z.infer<typeof DadosServico>;
@@ -57,6 +59,8 @@ export type Servico = {
   operacao: string | null;
   rotuloImpressao: string | null;
   cor: string;
+  /** Pode tirar o militar do Adm do expediente (6.37): ligada no Saldo, desligada nos demais. Desligada, lançar no horário do expediente é choque. */
+  tiraDoExpediente: boolean;
   ativo: boolean;
   /** serviço fixo do sistema (Pronto, Saldo, Expediente e JES): nome, tipo e situação não mudam */
   fixo: boolean;

@@ -15,7 +15,7 @@ const COTAS: Cota[] = [
   cota({}),
   cota({ id: 'c2', servicoId: 'sv-pe', servico: 'PE Seguro', cor: '#3C5F9C', quantidade: 10, origem: 'externa', prioridade: 2, distribuidas: 13 }),
 ];
-const servico = (s: Partial<Servico>): Servico => ({ id: 'x', nome: 'X', tipo: 'diaria', operacao: null, rotuloImpressao: null, cor: '#000000', ativo: true, fixo: false, turnos: [], ...s });
+const servico = (s: Partial<Servico>): Servico => ({ id: 'x', nome: 'X', tipo: 'diaria', operacao: null, rotuloImpressao: null, cor: '#000000', tiraDoExpediente: false, ativo: true, fixo: false, turnos: [], ...s });
 const SERVICOS = [
   servico({ id: 'sv-jes', nome: 'JES', tipo: 'pjes' }),
   servico({ id: 'sv-pe', nome: 'PE Seguro', tipo: 'diaria' }),

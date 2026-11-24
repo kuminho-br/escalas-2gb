@@ -12,6 +12,7 @@ import { Turnos } from '@/componentes/servicos/Turnos';
 import { Selecao } from '@/componentes/Selecao';
 import { SeletorDeCor } from '@/componentes/SeletorDeCor';
 import { Button } from '@/componentes/ui/button';
+import { Checkbox } from '@/componentes/ui/checkbox';
 import { Input } from '@/componentes/ui/input';
 import { Label } from '@/componentes/ui/label';
 import { NOME_TIPO, resumoDoServico } from '@/lib/servicos';
@@ -73,20 +74,22 @@ function Identificacao({ s }: { s: Servico }) {
   const [operacao, setOperacao] = useState(s.operacao ?? '');
   const [rotulo, setRotulo] = useState(s.rotuloImpressao ?? '');
   const [cor, setCor] = useState(s.cor);
+  const [tira, setTira] = useState(s.tiraDoExpediente);
   const [aviso, setAviso] = useState<{ erro: boolean; texto: string } | null>(null);
-  const dados = () => ({ nome: nome.trim(), tipo, operacao: tipo === 'diaria' ? operacao.trim() || null : null, rotuloImpressao: rotulo.trim() || null, cor });
-  const assinatura = (d: ReturnType<typeof dados>) => JSON.stringify([d.nome, d.tipo, d.operacao, d.rotuloImpressao, d.cor]);
+  const dados = () => ({ nome: nome.trim(), tipo, operacao: tipo === 'diaria' ? operacao.trim() || null : null, rotuloImpressao: rotulo.trim() || null, cor, tiraDoExpediente: tira });
+  const assinatura = (d: ReturnType<typeof dados>) => JSON.stringify([d.nome, d.tipo, d.operacao, d.rotuloImpressao, d.cor, d.tiraDoExpediente]);
   // o último gravado (começa com o que veio do servidor): o que difere dele é alteração pendente
-  const [salvo, setSalvo] = useState(() => assinatura({ nome: s.nome, tipo: s.tipo, operacao: s.operacao, rotuloImpressao: s.rotuloImpressao, cor: s.cor }));
+  const [salvo, setSalvo] = useState(() => assinatura({ nome: s.nome, tipo: s.tipo, operacao: s.operacao, rotuloImpressao: s.rotuloImpressao, cor: s.cor, tiraDoExpediente: s.tiraDoExpediente }));
   const sujo = assinatura(dados()) !== salvo;
   usePendencia('identificacao', sujo);
-  const doServidor = assinatura({ nome: s.nome, tipo: s.tipo, operacao: s.operacao, rotuloImpressao: s.rotuloImpressao, cor: s.cor });
+  const doServidor = assinatura({ nome: s.nome, tipo: s.tipo, operacao: s.operacao, rotuloImpressao: s.rotuloImpressao, cor: s.cor, tiraDoExpediente: s.tiraDoExpediente });
   useSincronizar(doServidor, sujo, () => {
     setNome(s.nome);
     setTipo(s.tipo);
     setOperacao(s.operacao ?? '');
     setRotulo(s.rotuloImpressao ?? '');
     setCor(s.cor);
+    setTira(s.tiraDoExpediente);
     setSalvo(doServidor);
   });
 
@@ -135,6 +138,13 @@ function Identificacao({ s }: { s: Servico }) {
             <Label htmlFor="sv-cor">Cor</Label>
             <SeletorDeCor id="sv-cor" valor={cor} aoMudar={setCor} />
           </div>
+        </div>
+        <div className="grid gap-1">
+          <label htmlFor="sv-tira" className="flex items-center gap-2 text-sm font-medium">
+            <Checkbox id="sv-tira" checked={tira} onChange={(e) => setTira(e.target.checked)} aria-describedby="sv-tira-ajuda" />
+            Pode tirar o militar do Adm do expediente
+          </label>
+          <p id="sv-tira-ajuda" className="text-apoio text-apagado">Ligada: lançar este serviço no horário do expediente tira o militar do expediente do dia, depois de confirmar. Desligada: é choque.</p>
         </div>
         <AcoesDoBloco salvando={salvando} sujo={sujo} aviso={aviso} />
       </form>

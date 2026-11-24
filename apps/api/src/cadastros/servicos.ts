@@ -12,7 +12,7 @@ type Ctx = Context<AmbienteApi>;
 const ORDEM_LETRAS: LetraTurno[] = ['A', 'B', 'C'];
 const NOME_DO_TIPO: Record<TipoServico, string> = { ordinario: 'Ordinário', pjes: 'PJES', diaria: 'Diária' };
 
-type LinhaServico = { id: string; nome: string; tipo: Servico['tipo']; operacao: string | null; rotulo_impressao: string | null; cor: string; ativo: boolean; fixo: boolean };
+type LinhaServico = { id: string; nome: string; tipo: Servico['tipo']; operacao: string | null; rotulo_impressao: string | null; cor: string; tira_do_expediente: boolean; ativo: boolean; fixo: boolean };
 
 /** Turno como a tela mostra: duração e turnos padrão calculados pelo horário. */
 export function turnoSalvo(t: { id: string; letra: LetraTurno; inicio: string; fim: string }): TurnoSalvo {
@@ -22,7 +22,7 @@ export function turnoSalvo(t: { id: string; letra: LetraTurno; inicio: string; f
 /** Serviços pedidos (da unidade, ou pelos ids), com os turnos na ordem A, B, C. */
 export async function carregarServicos(c: Consulta, filtro: { unidadeId: string } | { ids: string[] }): Promise<Servico[]> {
   const { rows } = await c.query<LinhaServico>(
-    `select id, nome, tipo, operacao, rotulo_impressao, cor, ativo, fixo from servico where ${'unidadeId' in filtro ? 'unidade_id = $1' : 'id = any($1)'}`,
+    `select id, nome, tipo, operacao, rotulo_impressao, cor, tira_do_expediente, ativo, fixo from servico where ${'unidadeId' in filtro ? 'unidade_id = $1' : 'id = any($1)'}`,
     ['unidadeId' in filtro ? filtro.unidadeId : filtro.ids],
   );
   const turnos = rows.length
@@ -41,6 +41,7 @@ export async function carregarServicos(c: Consulta, filtro: { unidadeId: string 
       operacao: s.operacao,
       rotuloImpressao: s.rotulo_impressao,
       cor: s.cor,
+      tiraDoExpediente: s.tira_do_expediente,
       ativo: s.ativo,
       fixo: s.fixo,
       turnos: turnos
@@ -102,8 +103,8 @@ export function rotasServicos(dep: { banco: Banco; auth: Auth }): Hono<AmbienteA
       const s = await comUsuario(dep.banco, c.get('usuarioId'), async (tx) => {
         const id = (
           await tx.query<{ id: string }>(
-            'insert into servico (unidade_id, nome, tipo, operacao, rotulo_impressao, cor) values ($1, $2, $3, $4, $5, $6) returning id',
-            [u, d.nome, d.tipo, d.operacao, d.rotuloImpressao, d.cor],
+            'insert into servico (unidade_id, nome, tipo, operacao, rotulo_impressao, cor, tira_do_expediente) values ($1, $2, $3, $4, $5, $6, coalesce($7, false)) returning id',
+            [u, d.nome, d.tipo, d.operacao, d.rotuloImpressao, d.cor, d.tiraDoExpediente ?? null],
           )
         ).rows[0]!.id;
         return carregarServico(tx, id);
@@ -144,8 +145,8 @@ export function rotasServicos(dep: { banco: Banco; auth: Auth }): Hono<AmbienteA
     }
     try {
       const s = await comUsuario(dep.banco, c.get('usuarioId'), async (tx) => {
-        await tx.query('update servico set nome = $2, tipo = $3, operacao = $4, rotulo_impressao = $5, cor = $6 where id = $1', [
-          id, d.nome, d.tipo, d.operacao, d.rotuloImpressao, d.cor,
+        await tx.query('update servico set nome = $2, tipo = $3, operacao = $4, rotulo_impressao = $5, cor = $6, tira_do_expediente = coalesce($7, tira_do_expediente) where id = $1', [
+          id, d.nome, d.tipo, d.operacao, d.rotuloImpressao, d.cor, d.tiraDoExpediente ?? null,
         ]);
         return carregarServico(tx, id);
       });

@@ -287,9 +287,9 @@ describe('configurações: postos e graduações (6.13)', () => {
 });
 
 describe('configurações: papéis e campos', () => {
-  const ADM_CUMPRE = parametro({ chave: 'ADM_CUMPRE_CARGA', rotulo: 'Adm cumpre a carga mensal', tipo: 'simnao', valor: false });
+  const PARAMETRO_SIM_NAO_DE_TESTE = parametro({ chave: 'PARAMETRO_SIM_NAO', rotulo: 'Parâmetro de sim ou não', tipo: 'simnao', valor: false });
   const apiComSimNao = (eu = GESTOR, extra: Parameters<typeof simularApi>[0] = {}) =>
-    api({ [`GET ${PARAMS}`]: { status: 200, corpo: [...LISTA, ADM_CUMPRE] }, ...extra }, eu);
+    api({ [`GET ${PARAMS}`]: { status: 200, corpo: [...LISTA, PARAMETRO_SIM_NAO_DE_TESTE] }, ...extra }, eu);
 
   it('escalante não vê Mudar a partir de nem Importar', async () => {
     api();
@@ -312,7 +312,7 @@ describe('configurações: papéis e campos', () => {
   it('Sim ou Não se escolhe numa lista', async () => {
     const f = apiComSimNao(GESTOR, { [`POST ${PARAMS}`]: { status: 201, corpo: {} } });
     abrir('/configuracoes-da-escala');
-    const linha = (await screen.findByText('Adm cumpre a carga mensal')).closest('tr')!;
+    const linha = (await screen.findByText('Parâmetro de sim ou não')).closest('tr')!;
     await userEvent.click(within(linha).getByRole('button', { name: 'Mudar a partir de…' }));
     const campo = screen.getByLabelText('Novo valor');
     expect(campo.tagName).toBe('SELECT');
@@ -320,7 +320,7 @@ describe('configurações: papéis e campos', () => {
     expect(within(campo).getAllByRole('option').map((o) => o.textContent)).toEqual(['Sim', 'Não']);
     await userEvent.selectOptions(campo, 'Sim');
     await userEvent.click(screen.getByRole('button', { name: /^Salvar a partir de/ }));
-    expect(corpoEnviado(f, `POST ${PARAMS}`)).toMatchObject({ chave: 'ADM_CUMPRE_CARGA', valor: 'Sim' });
+    expect(corpoEnviado(f, `POST ${PARAMS}`)).toMatchObject({ chave: 'PARAMETRO_SIM_NAO', valor: 'Sim' });
   });
 
   it('número se digita em campo numérico', async () => {
