@@ -46,7 +46,7 @@ beforeAll(async () => {
   mesComCotas = await inserir(banco, 'oficiais_mes', { unidade_id: gb, mes: '2026-12-01', servico_id: servico, cotas_em: '2026-12-01T10:00:00Z' });
   await inserir(banco, 'oficiais_cota', { mes_id: mesComCotas, militar_id: id.COM_COTA, ordem: 1, dias: 31, devido: 62, cota: 62, sobra: false }, 'mes_id');
   mesSemCotas = await inserir(banco, 'oficiais_mes', { unidade_id: gb, mes: '2027-01-01' });
-  await migrarAte(banco, '9999');
+  await migrarAte(banco, '0031') // só até a 0030: a 0036 muda as tabelas dos oficiais;
 });
 afterAll(async () => {
   await banco.fechar();

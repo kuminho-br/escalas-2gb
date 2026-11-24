@@ -20,7 +20,7 @@ import {
 } from 'contratos';
 import { cnhHabilitadas, diasDoMes } from 'dominio';
 import { Hono, type Context } from 'hono';
-import { CADASTRO, ehAdministrador, exigirAdministradorRaiz, exigirAlgumPapel, exigirPapel, exigirSessao, siglaDaUnidadeDeCima, temPapel, temPapelAcima, unidadeDoRegistro, type AmbienteApi } from '../acesso.ts';
+import { CADASTRO, ehAdministrador, exigirAdministradorRaiz, exigirAlgumPapel, exigirPapel, exigirSessao, siglaDaUnidadeDeCima, temNivelDeCima, temPapel, unidadeDoRegistro, type AmbienteApi } from '../acesso.ts';
 import type { Auth } from '../auth.ts';
 import { comUsuario, type Banco, type Consulta } from '../banco/banco.ts';
 import { hojeRecife } from '../datas.ts';
@@ -37,6 +37,14 @@ const MSG_SITUACAO_NAO_ACHADA = 'Situação não encontrada.';
 const MSG_PERIODO_ANTES = (desde: string) => `Use uma data a partir de ${desde.slice(8, 10)}/${desde.slice(5, 7)}/${desde.slice(0, 4)}.`;
 const MSG_EQUIPE_DE_OUTRA = 'Escolha uma equipe da unidade da lotação.';
 const MSG_EMAIL_REPETIDO = 'Este e-mail já é de outro militar.';
+const MSG_EMAIL_PESSOAL_INSTITUCIONAL = 'Este é um e-mail institucional: use outro, pessoal.';
+const MSG_29_FEV = 'Informe o ano: 29/02 só existe em ano bissexto.';
+/** Uma recusa de campo dentro da transação da ficha: vira 400 no campo, e a transação desfaz tudo. */
+class RecusaDeCampo extends Error {
+  constructor(mensagem: string, readonly campo: string) {
+    super(mensagem);
+  }
+}
 const MSG_EMAIL_COM_ACESSO = 'Desative o acesso antes de apagar o e-mail.';
 const MSG_SITUACAO_MUDOU = 'A situação do militar mudou enquanto você alterava. Recarregue a ficha e tente de novo.';
 const MSG_MATRICULA = { '23505': 'Já existe um militar com essa matrícula.', '23503': 'Posto, unidade ou equipe não encontrado.' };
@@ -69,6 +77,7 @@ type LinhaBanco = {
   uf: string | null;
   telefone: string | null;
   email: string | null;
+  email_pessoal: string | null;
   comportamento: Comportamento | null;
   comportamento_boletim: string | null;
   antiguidade: number | null;
@@ -84,6 +93,8 @@ type LinhaBanco = {
   situacao_nome: string | null;
   equipe: string | null;
   jornada: 'pronto' | 'adm' | null;
+  /** o dia em que começa o período mostrado */
+  periodo_desde: string | null;
 };
 
 async function afastamentosNoMes(c: Consulta, ids: string[], mes: string) {
@@ -95,6 +106,11 @@ async function afastamentosNoMes(c: Consulta, ids: string[], mes: string) {
     [ids, primeiro, ultimo],
   );
   return rows;
+}
+
+/** A data em que a lotação mostrada começa, só quando ela ainda não chegou ('Lotação a partir de…'); a chave fica ausente quando a lotação já valia. */
+function aPartirDe(m: { periodo_desde: string | null }, mes: string): { lotacaoAPartirDe?: string } {
+  return m.periodo_desde && m.periodo_desde > diaDeReferencia(mes) ? { lotacaoAPartirDe: m.periodo_desde } : {};
 }
 
 function linhaDe(m: LinhaBanco, afast: { tipo: string; inicio: string; fim: string }[], mes: string, repetidaCom: string[] = []): LinhaMilitar {
@@ -112,6 +128,7 @@ function linhaDe(m: LinhaBanco, afast: { tipo: string; inicio: string; fim: stri
     ativo: m.ativo,
     situacao: situacaoNoMes(afast, mes),
     pendencias: pendenciasDoMilitar({ motorista: m.motorista, cnh: m.cnh, jornada: m.jornada, equipe: m.equipe, antiguidade: m.antiguidade, nomeCompleto: m.nome_completo, quadro: m.quadro_id, repetidaCom }),
+    ...aPartirDe(m, mes),
   };
 }
 
@@ -134,9 +151,9 @@ const PERIODO_DO_DIA = (quem: string, sub = '') =>
 const SELECT_MILITAR = `
   select m.id, m.matricula, p.sigla as posto, m.posto_grad_id, l.quadro_id, (select q.sigla from quadro q where q.id = l.quadro_id) as quadro_sigla, m.nome_guerra, m.nome_completo, m.sexo, m.nascimento_dia, m.nascimento_mes, m.nascimento_ano,
          m.cpf, m.cep, m.logradouro, m.numero, m.complemento, m.bairro, m.cidade, m.uf,
-         m.telefone, m.email, m.comportamento, m.comportamento_boletim, m.antiguidade, m.motorista, m.cnh,
+         m.telefone, m.email, m.email_pessoal, m.comportamento, m.comportamento_boletim, m.antiguidade, m.motorista, m.cnh,
          m.voluntario_jes, m.funcao_militar_id, (select f.nome from funcao_militar f where f.id = m.funcao_militar_id) as funcao_nome, m.abono_permanencia,
-         coalesce(sm.escalavel, false) as ativo, l.situacao_id, sm.nome as situacao_nome, e.nome as equipe, l.jornada`;
+         coalesce(sm.escalavel, false) as ativo, l.situacao_id, sm.nome as situacao_nome, e.nome as equipe, l.jornada, to_char(l.desde, 'YYYY-MM-DD') as periodo_desde`;
 
 /** Ficha completa; a lotação "atual" é a que cobre o mês. null se o militar não existe. */
 async function carregarFicha(c: Consulta, id: string, mes: string, usuarioId: string): Promise<FichaMilitar | null> {
@@ -159,7 +176,7 @@ async function carregarFicha(c: Consulta, id: string, mes: string, usuarioId: st
   }>(
     `select l.id, l.unidade_id, un.sigla, e.nome as equipe,
             (select m.sigla from unidade m where m.id = un.mae_id) as cima,
-            exists (select 1 from unidade o where lower(o.sigla) = lower(un.sigla) and o.id <> un.id and (o.ate is null or o.ate >= current_date)) as sigla_repetida, l.jornada, q.sigla as quadro, sm.nome as situacao, to_char(l.desde, 'YYYY-MM-DD') as desde, to_char(l.ate, 'YYYY-MM-DD') as ate,
+            exists (select 1 from unidade o where lower(o.sigla) = lower(un.sigla) and o.id <> un.id and (o.ate is null or o.ate >= $2::date)) as sigla_repetida, l.jornada, q.sigla as quadro, sm.nome as situacao, to_char(l.desde, 'YYYY-MM-DD') as desde, to_char(l.ate, 'YYYY-MM-DD') as ate,
             mm.nome_guerra as autor_nome, pp.sigla as autor_posto, to_char(la.em at time zone 'America/Recife', 'YYYY-MM-DD"T"HH24:MI:SS') as alterado_em
        from rastreio l join unidade un on un.id = l.unidade_id left join equipe e on e.id = l.equipe_id left join quadro q on q.id = l.quadro_id
        join situacao_militar sm on sm.id = l.situacao_id
@@ -172,7 +189,7 @@ async function carregarFicha(c: Consulta, id: string, mes: string, usuarioId: st
        ) la on true
        left join usuario uu on uu.id = la.usuario_id left join militar mm on mm.id = uu.militar_id left join posto_grad pp on pp.id = mm.posto_grad_id
       where l.militar_id = $1 order by l.desde desc`,
-    [id],
+    [id, hojeRecife()],
   );
   const afastamentos = await c.query<{ id: string; tipo: string; tipo_afastamento_id: string; inicio: string; fim: string; motivo: string | null; boletim: string | null }>(
     `select a.id, t.nome as tipo, a.tipo_afastamento_id, to_char(a.inicio, 'YYYY-MM-DD') as inicio, to_char(a.fim, 'YYYY-MM-DD') as fim, a.motivo, a.boletim
@@ -209,7 +226,7 @@ async function carregarFicha(c: Consulta, id: string, mes: string, usuarioId: st
     }
   }
   const podeEditar = {
-    peculio: lotacaoAtual ? await temPapelAcima(c, usuarioId, lotacaoAtual, CADASTRO, hoje) : admin,
+    peculio: lotacaoAtual ? await temNivelDeCima(c, usuarioId, lotacaoAtual, CADASTRO, hoje) : admin,
     escala,
     unidadeDeCima: lotacaoAtual ? await siglaDaUnidadeDeCima(c, lotacaoAtual) : null,
   };
@@ -236,6 +253,7 @@ async function carregarFicha(c: Consulta, id: string, mes: string, usuarioId: st
     situacaoDoMilitar: m.situacao_id && m.situacao_nome ? { id: m.situacao_id, nome: m.situacao_nome, escalavel: m.ativo } : null,
     telefone: m.telefone,
     email: m.email,
+    emailPessoal: m.email_pessoal,
     comportamento: m.comportamento,
     comportamentoBoletim: m.comportamento_boletim,
     antiguidade: m.antiguidade,
@@ -274,7 +292,8 @@ export async function exigirPapelNoRegistro(c: Ctx, tabela: 'militar' | 'afastam
   const naoAchou = () => c.json({ erro: tabela === 'militar' ? 'Militar não encontrado.' : 'Afastamento não encontrado.' }, 404);
   if (!(await unidadeDoRegistro(banco, tabela, id))) {
     // um militar sem nenhuma lotação (o administrador criado na instalação, o cadastro que ainda não foi lotado): só o administrador o abre, para dar a primeira
-    const semLotacao = tabela === 'militar' && UUID.test(id) && (await banco.query('select 1 from militar where id = $1', [id])).rows.length > 0;
+    // (vale também para o afastamento dele: o administrador inclui, edita e apaga, e quem não é administrador não o acha)
+    const semLotacao = UUID.test(id) && (await banco.query(tabela === 'militar' ? 'select 1 from militar where id = $1' : 'select 1 from afastamento where id = $1', [id])).rows.length > 0;
     return semLotacao && (await ehAdministrador(banco, c.get('usuarioId'), hojeRecife())) ? null : naoAchou();
   }
   const militarId = tabela === 'militar' ? id : (await banco.query<{ militar_id: string }>('select militar_id from afastamento where id = $1', [id])).rows[0]!.militar_id;
@@ -308,17 +327,19 @@ async function unidadeAtualDoMilitar(c: Consulta, militarId: string, hoje: strin
 /** 403 do bloco do Pecúlio: só quem tem papel numa unidade acima da lotação altera. `quem` completa a frase ("Este campo", "Os afastamentos"...). */
 async function exigirDonoDoPeculio(c: Ctx, unidadeId: string, frase: (cima: string) => string): Promise<Response | null> {
   const banco = c.get('banco');
-  if (await temPapelAcima(banco, c.get('usuarioId'), unidadeId, CADASTRO, hojeRecife())) return null;
+  if (await temNivelDeCima(banco, c.get('usuarioId'), unidadeId, CADASTRO, hojeRecife())) return null;
   const cima = await siglaDaUnidadeDeCima(banco, unidadeId);
-  return c.json({ erro: frase(cima ?? 'uma unidade acima') }, 403);
+  // a raiz não tem unidade de cima: a frase fala do nível de acesso nela mesma, nunca de um "nível acima"
+  return c.json({ erro: cima ? frase(cima) : FRASE_DA_RAIZ }, 403);
 }
+const FRASE_DA_RAIZ = 'Esta alteração é de quem tem nível de acesso na própria raiz.';
 const FRASE_CAMPO = (cima: string) => `Este campo é alterado por quem tem nível de acesso no ${cima}.`;
 const FRASE_LOTACAO = (cima: string) => `A lotação é alterada por quem tem nível de acesso no ${cima}.`;
 const FRASE_CADASTRAR = (cima: string) => `Cadastrar militar é com quem tem nível de acesso no ${cima}.`;
 const FRASE_AFASTAMENTOS = (cima: string) => `Os afastamentos são alterados por quem tem nível de acesso no ${cima}.`;
 
-/** Os campos da ficha que são do Pecúlio (o resto do PATCH é da escala: motorista, CNH e voluntário JES). */
-const CAMPOS_DO_PECULIO = ['postoGradId', 'nomeCompleto', 'nomeGuerra', 'antiguidade', 'sexo', 'nascimento', 'cpf', 'endereco', 'telefone', 'email', 'comportamento', 'comportamentoBoletim', 'funcaoMilitarId', 'abonoPermanencia'] as const;
+/** Os campos da ficha que são do Pecúlio, de quem tem nível de acesso acima da lotação. O resto do PATCH é da escala (a SB edita): as habilitações, motorista e CNH. O voluntário JES é da SP (6.32). */
+const CAMPOS_DO_PECULIO = ['postoGradId', 'nomeCompleto', 'nomeGuerra', 'antiguidade', 'sexo', 'nascimento', 'cpf', 'endereco', 'telefone', 'email', 'emailPessoal', 'comportamento', 'comportamentoBoletim', 'funcaoMilitarId', 'abonoPermanencia', 'voluntarioJes'] as const;
 
 const militarDoAfastamento = async (c: Consulta, afastamentoId: string): Promise<string> =>
   (await c.query<{ militar_id: string }>('select militar_id from afastamento where id = $1', [afastamentoId])).rows[0]!.militar_id;
@@ -418,9 +439,29 @@ export function rotasMilitares(dep: { banco: Banco; auth: Auth }): Hono<Ambiente
         order by p.ordem desc, m.antiguidade asc nulls last, m.nome_guerra`,
       [u, primeiro, ultimo, diaDeReferencia(mes)],
     );
-    const afast = await afastamentosNoMes(dep.banco, rows.map((m) => m.id), mes);
+    // os externos (6.33): militares de outra unidade trazidos para a escala daqui, vigentes no dia de referência; o resto da linha é a do período deles na lotação de origem
+    const externos = (
+      await dep.banco.query<LinhaBanco & { lotacao_sigla: string | null }>(
+        `${SELECT_MILITAR}, un.sigla as lotacao_sigla
+           from vinculo_externo ve
+           join militar m on m.id = ve.militar_id
+           join posto_grad p on p.id = m.posto_grad_id
+           left join rastreio l on l.militar_id = m.id and l.id = ${PERIODO_DO_DIA('m.id')}
+           left join unidade un on un.id = l.unidade_id
+           left join equipe e on e.id = l.equipe_id
+           left join situacao_militar sm on sm.id = l.situacao_id
+          where ve.unidade_id = $1 and ve.desde <= $3 and (ve.ate is null or ve.ate >= $2)
+          order by p.ordem desc, m.antiguidade asc nulls last, m.nome_guerra`,
+        [u, primeiro, ultimo, diaDeReferencia(mes)],
+      )
+    ).rows.filter((x) => !rows.some((m) => m.id === x.id));
+    const afast = await afastamentosNoMes(dep.banco, [...rows, ...externos].map((m) => m.id), mes);
     const repetidas = repetidasPorAntiguidade(rows.filter((m) => m.ativo).map((m) => ({ id: m.id, nomeGuerra: m.nome_guerra, antiguidade: m.antiguidade })));
-    return c.json(rows.map((m) => linhaDe(m, afast.filter((a) => a.militar_id === m.id), mes, repetidas.get(m.id))));
+    return c.json([
+      ...rows.map((m) => linhaDe(m, afast.filter((a) => a.militar_id === m.id), mes, repetidas.get(m.id))),
+      // o cadastro incompleto do externo é da unidade dele, e não daqui: sem pendências, com a equipe "Externo" e a unidade de origem
+      ...externos.map((m) => ({ ...linhaDe(m, afast.filter((a) => a.militar_id === m.id), mes), equipe: 'Externo', pendencias: [], externo: { lotacaoSigla: m.lotacao_sigla ?? '' } })),
+    ]);
   });
 
   // O módulo Pecúlio: os militares lotados em :u e nas unidades de baixo no mês, com os dados de contato, e os aniversariantes do mês.
@@ -452,7 +493,7 @@ export function rotasMilitares(dep: { banco: Banco; auth: Auth }): Hono<Ambiente
     const hoje = hojeRecife();
     const admin = await ehAdministrador(dep.banco, c.get('usuarioId'), hoje);
     const veDaUnidade = new Map<string, boolean>();
-    for (const un of new Set(rows.map((m) => m.lotacao_id))) veDaUnidade.set(un, admin || (await temPapelAcima(dep.banco, c.get('usuarioId'), un, CADASTRO, hoje)));
+    for (const un of new Set(rows.map((m) => m.lotacao_id))) veDaUnidade.set(un, admin || (await temNivelDeCima(dep.banco, c.get('usuarioId'), un, CADASTRO, hoje)));
     const veNascimento = (m: { lotacao_id: string }) => veDaUnidade.get(m.lotacao_id) === true;
     const lista: ListaDoPeculio = {
       militares: rows.map((m) => ({
@@ -464,6 +505,7 @@ export function rotasMilitares(dep: { banco: Banco; auth: Auth }): Hono<Ambiente
         lotacao: m.lotacao,
         telefone: m.telefone,
         email: m.email,
+        ...aPartirDe(m, mes),
         pendencias: pendenciasDoMilitar({
           motorista: m.motorista, cnh: m.cnh, jornada: m.jornada, equipe: m.equipe, antiguidade: m.antiguidade, nomeCompleto: m.nome_completo, quadro: m.quadro_id, repetidaCom: repetidas.get(m.id),
         }),
@@ -579,18 +621,26 @@ export function rotasMilitares(dep: { banco: Banco; auth: Auth }): Hono<Ambiente
       const ficha = await comUsuario(dep.banco, c.get('usuarioId'), async (tx) => {
         // o estado atual é lido já dentro da transação, com a linha travada: duas edições ao mesmo tempo, em campos
         // diferentes, não se atropelam (a segunda parte do que a primeira gravou)
-        const atual = (await tx.query<Pick<LinhaBanco, 'posto_grad_id' | 'nome_completo' | 'nome_guerra' | 'sexo' | 'nascimento_dia' | 'nascimento_mes' | 'nascimento_ano' | 'cpf' | 'cep' | 'logradouro' | 'numero' | 'complemento' | 'bairro' | 'cidade' | 'uf' | 'telefone' | 'email' | 'comportamento' | 'comportamento_boletim' | 'antiguidade' | 'motorista' | 'cnh' | 'voluntario_jes' | 'funcao_militar_id' | 'abono_permanencia'>>(
+        const atual = (await tx.query<Pick<LinhaBanco, 'posto_grad_id' | 'nome_completo' | 'nome_guerra' | 'sexo' | 'nascimento_dia' | 'nascimento_mes' | 'nascimento_ano' | 'cpf' | 'cep' | 'logradouro' | 'numero' | 'complemento' | 'bairro' | 'cidade' | 'uf' | 'telefone' | 'email' | 'email_pessoal' | 'comportamento' | 'comportamento_boletim' | 'antiguidade' | 'motorista' | 'cnh' | 'voluntario_jes' | 'funcao_militar_id' | 'abono_permanencia'>>(
           `select posto_grad_id, nome_completo, nome_guerra, sexo, nascimento_dia, nascimento_mes, nascimento_ano, cpf, cep, logradouro, numero, complemento, bairro, cidade, uf,
-                  telefone, email, comportamento, comportamento_boletim, antiguidade, motorista, cnh, voluntario_jes, funcao_militar_id, abono_permanencia from militar where id = $1 for update`,
+                  telefone, email, email_pessoal, comportamento, comportamento_boletim, antiguidade, motorista, cnh, voluntario_jes, funcao_militar_id, abono_permanencia from militar where id = $1 for update`,
           [id],
         )).rows[0]!;
         // `undefined` mantém o que está gravado; `null` limpa
         const novo = <T,>(valor: T | undefined, gravado: T): T => (valor === undefined ? gravado : valor);
         const nascimentoDia = d.nascimento === undefined ? atual.nascimento_dia : (d.nascimento?.dia ?? null);
         const nascimentoMes = d.nascimento === undefined ? atual.nascimento_mes : (d.nascimento?.mes ?? null);
+        // 29/02 sem ano (e sem um ano bissexto já gravado) não tem como ser conferido: o pedido é recusado e o que está gravado, inclusive o ano, fica como está
+        if (d.nascimento && d.nascimento.dia === 29 && d.nascimento.mes === 2 && d.nascimento.ano == null) {
+          const gravado = d.nascimento.ano === undefined ? atual.nascimento_ano : null;
+          if (gravado === null || !((gravado % 4 === 0 && gravado % 100 !== 0) || gravado % 400 === 0)) throw new RecusaDeCampo(MSG_29_FEV, 'nascimento');
+        }
         // sem o ano no pedido, o ano gravado continua (se a data ainda existe nele: 29/02 só em ano bissexto); `ano: null` limpa
         const anoMantido = atual.nascimento_ano !== null && !(d.nascimento?.dia === 29 && d.nascimento.mes === 2 && !((atual.nascimento_ano % 4 === 0 && atual.nascimento_ano % 100 !== 0) || atual.nascimento_ano % 400 === 0)) ? atual.nascimento_ano : null;
         const nascimentoAno = d.nascimento === undefined ? atual.nascimento_ano : d.nascimento === null ? null : d.nascimento.ano === undefined ? anoMantido : d.nascimento.ano;
+        // o e-mail pessoal não pode ser o institucional de ninguém (nem o do próprio militar), sem diferenciar a caixa
+        const emailPessoal = novo(d.emailPessoal, atual.email_pessoal);
+        if (d.emailPessoal && (await tx.query('select 1 from militar where lower(email) = lower($1)', [d.emailPessoal])).rows.length) throw new RecusaDeCampo(MSG_EMAIL_PESSOAL_INSTITUCIONAL, 'emailPessoal');
         const endereco = d.endereco ?? {};
         // desmarcar o quadro de motoristas não apaga a CNH: ela só deixa de valer para a escala
         const motorista = d.motorista ?? atual.motorista;
@@ -600,7 +650,7 @@ export function rotasMilitares(dep: { banco: Banco; auth: Auth }): Hono<Ambiente
           `update militar set posto_grad_id = $2, nome_guerra = $3, antiguidade = $4, motorista = $5, cnh = $6, voluntario_jes = $7,
                   nome_completo = $8, sexo = $9, nascimento_dia = $10, nascimento_mes = $11, nascimento_ano = $12, telefone = $13, email = $14, comportamento = $15, comportamento_boletim = $16,
                   cpf = $17, cep = $18, logradouro = $19, numero = $20, complemento = $21, bairro = $22, cidade = $23, uf = $24,
-                  funcao_militar_id = $25, abono_permanencia = $26
+                  funcao_militar_id = $25, abono_permanencia = $26, email_pessoal = $27
             where id = $1`,
           [
             id,
@@ -629,6 +679,7 @@ export function rotasMilitares(dep: { banco: Banco; auth: Auth }): Hono<Ambiente
             novo(endereco.uf, atual.uf),
             novo(d.funcaoMilitarId, atual.funcao_militar_id),
             d.abonoPermanencia ?? atual.abono_permanencia,
+            emailPessoal,
           ],
         );
         // o quadro vale por período e acompanha o posto: trocar o MAJ do QOA por CEL leva o período aberto ao QOC (um período novo, a partir de hoje)
@@ -643,6 +694,7 @@ export function rotasMilitares(dep: { banco: Banco; auth: Auth }): Hono<Ambiente
       });
       return c.json(ficha);
     } catch (e) {
+      if (e instanceof RecusaDeCampo) return c.json({ erro: e.message, campos: { [e.campo]: e.message } }, 400);
       // o e-mail é único sem distinção de maiúsculas (índice militar_email_unico): o 409 vai no campo
       const doBanco = e as { code?: string; message?: string; constraint?: string } | null;
       // quem tem acesso ativo entra pelo e-mail da ficha (gatilho militar_email_para_usuario): apagá-lo pede desativar o acesso antes
@@ -683,17 +735,19 @@ export function rotasMilitares(dep: { banco: Banco; auth: Auth }): Hono<Ambiente
       const negadoAberta = await exigirPapel(c, unidadeAberta, CADASTRO);
       if (negadoAberta) return negadoAberta;
     }
-    // mudar a LOTAÇÃO (a unidade) é do Pecúlio: papel acima da lotação atual. Equipe e jornada, com a lotação travada, são da escala (papel na lotação ou acima)
+    // mudar a LOTAÇÃO (a unidade), a equipe e a jornada é do Pecúlio: papel acima da lotação atual (a SB vê a equipe e a jornada no histórico de rastreio, mas não as muda)
     const lotacaoAtual = await unidadeAtualDoMilitar(dep.banco, id, hojeRecife());
     if (lotacaoAtual && d.unidadeId !== (unidadeAberta ?? lotacaoAtual)) {
       const naoEDono = await exigirDonoDoPeculio(c, lotacaoAtual, FRASE_LOTACAO);
       if (naoEDono) return naoEDono;
     }
     // o quadro e a situação são do Pecúlio, como a lotação: só quem tem nível de acesso acima da lotação os muda
-    const aberta0 = (await dep.banco.query<{ quadro_id: string | null; situacao_id: string }>('select quadro_id, situacao_id from rastreio where militar_id = $1 and ate is null', [id])).rows[0];
+    const aberta0 = (await dep.banco.query<{ quadro_id: string | null; situacao_id: string; equipe_id: string | null; jornada: string }>('select quadro_id, situacao_id, equipe_id, jornada from rastreio where militar_id = $1 and ate is null', [id])).rows[0];
     const mudaQuadro = d.quadroId !== undefined && d.quadroId !== (aberta0?.quadro_id ?? null);
     const mudaSituacao = d.situacaoId !== undefined && d.situacaoId !== aberta0?.situacao_id;
-    if (mudaQuadro || mudaSituacao) {
+    const mudaEquipe = (d.equipeId ?? null) !== (aberta0?.equipe_id ?? null);
+    const mudaJornada = d.jornada !== aberta0?.jornada;
+    if (mudaQuadro || mudaSituacao || mudaEquipe || mudaJornada) {
       const naoEDono = await exigirDonoDoPeculioDoMilitar(c, id, FRASE_CAMPO);
       if (naoEDono) return naoEDono;
     }

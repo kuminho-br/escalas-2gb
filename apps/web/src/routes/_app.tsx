@@ -1,6 +1,7 @@
 import { createFileRoute, Outlet, redirect, useLocation } from '@tanstack/react-router';
 import { useRef, useState } from 'react';
 import { consultaEu, ehMilitarComum, type Eu } from '@/api/eu';
+import { ProvedorDeResposta } from '@/componentes/resposta/ProvedorDeResposta';
 import { Topo } from '@/componentes/Topo';
 import { Trilho } from '@/componentes/Trilho';
 import { FaixaSoConsulta } from '@/componentes/FaixaSoConsulta';
@@ -44,6 +45,7 @@ function Casca() {
   };
 
   return (
+    <ProvedorDeResposta>
     <div className={comTrilho ? 'min-h-dvh md:grid md:grid-cols-[84px_1fr]' : 'min-h-dvh'}>
       {comTrilho && <Trilho modulo={modulo} eu={eu} aberto={menuAberto} aoFechar={fecharMenu} />}
       <div className="flex min-w-0 flex-col">
@@ -55,5 +57,6 @@ function Casca() {
         </main>
       </div>
     </div>
+    </ProvedorDeResposta>
   );
 }

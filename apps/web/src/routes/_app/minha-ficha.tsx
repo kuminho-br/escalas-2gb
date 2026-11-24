@@ -5,10 +5,13 @@ import { useState, type ReactNode } from 'react';
 import { camposDe, mensagemDe } from '@/api/cliente';
 import { alterarTelefone, consultaMinhaFicha } from '@/api/minha-ficha';
 import { Campo } from '@/componentes/Campo';
+import { erroDoTelefone, mascararTelefone } from '@/lib/mascaras';
+import { CampoDeTelefone } from '@/componentes/CamposDeContato';
 import { Secao } from '@/componentes/militares/Secao';
 import { mascararCep, mascararCpf } from '@/lib/militares';
 import { Button } from '@/componentes/ui/button';
-import { Input } from '@/componentes/ui/input';
+import { Moldura } from '@/componentes/Moldura';
+import { Espera } from '@/componentes/resposta/Espera';
 
 export const Route = createFileRoute('/_app/minha-ficha')({
   component: MinhaFichaTela,
@@ -31,11 +34,10 @@ const Dados = ({ children }: { children: ReactNode }) => <dl className="grid gap
 /** Os dados do próprio militar, só para leitura; só o telefone se altera aqui (CPF e endereço, só para leitura). O resto, quem cuida do cadastro altera. */
 function MinhaFichaTela() {
   const { data: f, error, isPending } = useQuery(consultaMinhaFicha);
-  if (isPending) return <p className="text-apagado">Carregando…</p>;
+  if (isPending) return <Espera />;
   if (error) return <p role="alert" className="text-alerta">{mensagemDe(error)}</p>;
   return (
-    <div className="mx-auto max-w-3xl">
-      <h1 className="mb-4 font-cond text-3xl font-semibold">Minha ficha</h1>
+    <Moldura titulo="Minha ficha" leitura>
       <div className="divide-y divide-linha rounded-lg border border-linha bg-superficie">
         <Secao titulo="Identificação">
           <Dados>
@@ -91,13 +93,13 @@ function MinhaFichaTela() {
           </Dados>
         </Secao>
       </div>
-    </div>
+    </Moldura>
   );
 }
 
 function Contato({ ficha }: { ficha: MinhaFicha }) {
   const queryClient = useQueryClient();
-  const [telefone, setTelefone] = useState(ficha.telefone ?? '');
+  const [telefone, setTelefone] = useState(ficha.telefone && erroDoTelefone(ficha.telefone) === null ? mascararTelefone(ficha.telefone) : (ficha.telefone ?? ''));
   const [erro, setErro] = useState<string | undefined>();
   const [aviso, setAviso] = useState<{ erro: boolean; texto: string } | null>(null);
   const [salvando, setSalvando] = useState(false);
@@ -106,9 +108,10 @@ function Contato({ ficha }: { ficha: MinhaFicha }) {
     setErro(undefined);
     setAviso(null);
     // vazio apaga; o que o contrato recusa aparece no campo, sem ir ao servidor
-    const lido = telefone.trim() ? Telefone.safeParse(telefone) : null;
-    if (lido && !lido.success) {
-      setErro(lido.error.issues[0]!.message);
+    const faltou = erroDoTelefone(telefone);
+    const lido = telefone.trim() ? Telefone.safeParse(telefone.trim()) : null;
+    if (faltou || (lido && !lido.success)) {
+      setErro(faltou ?? (lido && !lido.success ? lido.error.issues[0]!.message : undefined));
       return;
     }
     setSalvando(true);
@@ -131,9 +134,9 @@ function Contato({ ficha }: { ficha: MinhaFicha }) {
       <form onSubmit={(e) => { e.preventDefault(); void salvar(); }} className="grid gap-3">
         <div className="grid gap-3 sm:grid-cols-[12rem_1fr]">
           <Campo id="mf-telefone" rotulo="Telefone" erro={erro}>
-            <Input id="mf-telefone" type="tel" value={telefone} onChange={(e) => setTelefone(e.target.value)} />
+            <CampoDeTelefone id="mf-telefone" valor={telefone} aoMudar={setTelefone} />
           </Campo>
-          <Dados><Dado rotulo="E-mail institucional" valor={ficha.email} /></Dados>
+          <Dados><Dado rotulo="E-mail institucional" valor={ficha.email} /><Dado rotulo="E-mail pessoal" valor={ficha.emailPessoal ?? null} /></Dados>
         </div>
         <div className="flex items-center gap-3">
           <Button type="submit" disabled={salvando}>Salvar</Button>

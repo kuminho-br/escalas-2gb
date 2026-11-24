@@ -227,6 +227,14 @@ describe('renomear e mover', () => {
     expect([await caminhoDe(a), await caminhoDe(b)]).toEqual([antes[0], antes[1]]);
   });
 
+  it('item 11 (6.18): renomear ou mover uma unidade que já foi extinta é 409 "Esta unidade foi extinta.", e nada muda', async () => {
+    const extinta = await inserir(api.banco, 'unidade', { tipo: 'secao', sigla: 'EXT-P', nome: 'Extinta para editar', mae_id: api.ids.gb, desde: '2020-01-01', ate: '2020-12-31' });
+    const r = await alterar(extinta, { sigla: 'NOVA-EXT' });
+    expect(r.status).toBe(409);
+    expect((await r.json()).erro).toBe('Esta unidade foi extinta.');
+    expect((await api.banco.query<{ sigla: string }>('select sigla from unidade where id = $1', [extinta])).rows[0]!.sigla).toBe('EXT-P');
+  });
+
   it('a raiz não muda de lugar, e o destino extinto ou que não existe é recusado', async () => {
     const r = await alterar(api.ids.raiz, { maeId: api.ids.gb }, 'admin');
     expect(r.status).toBe(400);

@@ -8,10 +8,18 @@ import { atualizarFeriados, consultaFeriados, copiarFeriadosFixos, criarFeriado,
 import { useTrava } from '@/componentes/AlteracoesPendentes';
 import { ImportarPlanilha } from '@/componentes/ImportarPlanilha';
 import { Selecao } from '@/componentes/Selecao';
+import { useDescartarDigitado } from '@/componentes/DescartarDigitado';
 import { Button } from '@/componentes/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/componentes/ui/dialog';
 import { Input } from '@/componentes/ui/input';
 import { Label } from '@/componentes/ui/label';
+import { hoje } from '@/lib/meses';
+import { Checkbox } from '@/componentes/ui/checkbox';
+import { Moldura } from '@/componentes/Moldura';
+import { useConfirmar } from '@/componentes/resposta/useConfirmar';
+import { useAviso } from '@/componentes/resposta/useAviso';
+import { Espera } from '@/componentes/resposta/Espera';
+import { Vazio } from '@/componentes/resposta/Vazio';
 
 export const Route = createFileRoute('/_app/feriados')({
   component: Feriados,
@@ -23,29 +31,28 @@ const diaDaSemana = (data: string) => new Date(`${data}T00:00:00Z`).toLocaleDate
 function Feriados() {
   const { eu } = Route.useRouteContext();
   const queryClient = useQueryClient();
-  const anoAtual = new Date().getFullYear();
+  const anoAtual = Number(hoje().slice(0, 4));
   const [ano, setAno] = useState(anoAtual);
   const feriados = useQuery(consultaFeriados(eu.unidade.id, ano));
   const [dialogo, setDialogo] = useState<{ feriado?: Feriado } | null>(null);
-  const [aviso, setAviso] = useState<{ erro: boolean; texto: string } | null>(null);
+  const avisar = useAviso();
+  const confirmar = useConfirmar();
   const anos = [...new Set([...Array.from({ length: 7 }, (_, i) => anoAtual - 3 + i), ano])].sort();
 
   const { salvando: copiando, travar } = useTrava();
   // travada: dois cliques seguidos mandam um pedido só, e o botão fica apagado enquanto copia
   const copiar = travar(async () => {
-    setAviso(null);
     try {
       const { copiados } = await copiarFeriadosFixos(eu.unidade.id, ano - 1, ano);
       atualizarFeriados(queryClient);
-      setAviso({
-        erro: false,
+      avisar({
         texto:
           copiados === 0
             ? `Nenhum feriado novo: os fixos de ${ano - 1} já estão em ${ano}, ou não há nenhum.`
             : `${copiados} ${copiados === 1 ? 'feriado copiado' : 'feriados copiados'}.`,
       });
     } catch (err) {
-      setAviso({ erro: true, texto: mensagemDe(err) });
+      avisar({ texto: mensagemDe(err), erro: true });
     }
   });
 
@@ -54,35 +61,38 @@ function Feriados() {
     const doAno = Number(f.data.slice(0, 4));
     if (doAno === ano) return;
     setAno(doAno);
-    setAviso({ erro: false, texto: `Feriado salvo em ${doAno}.` });
+    avisar({ texto: `Feriado salvo em ${doAno}.` });
   }
 
   async function remover(f: Feriado) {
-    if (!window.confirm(`Remover o feriado "${f.descricao}" (${diaMes(f.data)})?`)) return;
-    setAviso(null);
+    if (!(await confirmar({ titulo: 'Remover o feriado?', texto: `${f.descricao} (${diaMes(f.data)}).`, verbo: 'Remover', perigoso: true }))) return;
     try {
       await removerFeriado(f.id);
       atualizarFeriados(queryClient);
+      avisar({ texto: `Feriado "${f.descricao}" removido.` });
     } catch (err) {
-      setAviso({ erro: true, texto: mensagemDe(err) });
+      avisar({ texto: mensagemDe(err), erro: true });
     }
   }
 
   return (
-    <section>
-      <header className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="font-cond text-[28px] leading-tight font-semibold">Feriados</h1>
-        <div className="flex flex-wrap gap-2">
-          <ImportarPlanilha cadastro="feriados" rotulo="os feriados" aoConcluir={() => atualizarFeriados(queryClient)} />
-          <Button variant="outline" disabled={copiando} onClick={() => void copiar()}>Copiar feriados fixos de {ano - 1}</Button>
-          <Button onClick={() => setDialogo({})}>
-            <Plus aria-hidden />
-            Novo feriado
-          </Button>
-        </div>
-      </header>
+    <Moldura
+      titulo="Feriados"
+      acaoPrincipal={
+        <>
+          <div className="flex flex-wrap gap-2">
+              <ImportarPlanilha cadastro="feriados" rotulo="os feriados" aoConcluir={() => atualizarFeriados(queryClient)} />
+              <Button variant="secundario" disabled={copiando} onClick={() => void copiar()}>Copiar feriados fixos de {ano - 1}</Button>
+              <Button onClick={() => setDialogo({})}>
+                <Plus aria-hidden />
+                Novo feriado
+              </Button>
+            </div>
+        </>
+      }
+    >
 
-      <div className="mt-6 rounded-xl border border-linha bg-superficie">
+      <div className="rounded-xl border border-linha bg-superficie">
         <div className="flex flex-wrap items-end gap-4 border-b border-linha p-4">
           <div className="grid gap-1.5">
             <Label htmlFor="feriados-ano">Ano</Label>
@@ -90,13 +100,14 @@ function Feriados() {
               {anos.map((a) => <option key={a} value={a}>{a}</option>)}
             </Selecao>
           </div>
-          {aviso && <p role={aviso.erro ? 'alert' : 'status'} className={aviso.erro ? 'pb-2 text-sm text-alerta' : 'pb-2 text-sm text-apagado'}>{aviso.texto}</p>}
         </div>
 
-        {feriados.isPending && <p className="p-4 text-apagado">Carregando…</p>}
+        {feriados.isPending && <Espera className="p-4" />}
         {feriados.error && <p role="alert" className="p-4 text-alerta">{mensagemDe(feriados.error)}</p>}
         {feriados.data && feriados.data.length === 0 && (
-          <p className="p-4 text-apagado">Nenhum feriado em {ano}. Use "Novo feriado" ou "Copiar feriados fixos de {ano - 1}".</p>
+          <div className="px-4">
+            <Vazio titulo={`Nenhum feriado em ${ano}`} frase={`Cadastre um feriado ou copie os fixos de ${ano - 1}, pelos botões do alto.`} />
+          </div>
         )}
         {feriados.data && feriados.data.length > 0 && (
           <ul className="p-2">
@@ -106,7 +117,7 @@ function Feriados() {
       </div>
 
       {dialogo && <FeriadoDialogo key={dialogo.feriado?.id ?? 'novo'} unidadeId={eu.unidade.id} ano={ano} feriado={dialogo.feriado} aoFechar={() => setDialogo(null)} aoSalvar={salvou} />}
-    </section>
+    </Moldura>
   );
 }
 
@@ -124,10 +135,10 @@ function ItemFeriado({ f, aoEditar, aoRemover }: { f: Feriado; aoEditar: () => v
         </span>
       ) : (
         <span className="ml-auto flex gap-1">
-          <Button type="button" size="icon" variant="ghost" aria-label={`Editar ${f.descricao}`} onClick={aoEditar}>
+          <Button type="button" size="icon" variant="discreto" aria-label={`Editar ${f.descricao}`} onClick={aoEditar}>
             <Pencil aria-hidden />
           </Button>
-          <Button type="button" size="icon" variant="ghost" aria-label={`Remover ${f.descricao}`} onClick={aoRemover}>
+          <Button type="button" size="icon" variant="discreto" aria-label={`Remover ${f.descricao}`} onClick={aoRemover}>
             <Trash2 aria-hidden />
           </Button>
         </span>
@@ -138,6 +149,7 @@ function ItemFeriado({ f, aoEditar, aoRemover }: { f: Feriado; aoEditar: () => v
 
 function FeriadoDialogo({ unidadeId, ano, feriado, aoFechar, aoSalvar }: { unidadeId: string; ano: number; feriado?: Feriado; aoFechar: () => void; aoSalvar: (f: Feriado) => void }) {
   const queryClient = useQueryClient();
+  const descarte = useDescartarDigitado(aoFechar);
   const [data, setData] = useState(feriado?.data ?? `${ano}-01-01`);
   const [descricao, setDescricao] = useState(feriado?.descricao ?? '');
   const [fixo, setFixo] = useState(feriado?.fixo ?? true);
@@ -162,13 +174,13 @@ function FeriadoDialogo({ unidadeId, ano, feriado, aoFechar, aoSalvar }: { unida
   }
 
   return (
-    <Dialog open onOpenChange={(v) => !v && aoFechar()}>
+    <Dialog open onOpenChange={descarte.aoMudarAberto}>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>{feriado ? 'Editar feriado' : 'Novo feriado'}</DialogTitle>
           <DialogDescription>O feriado vale para esta seção e para as de baixo.</DialogDescription>
         </DialogHeader>
-        <form onSubmit={salvar} className="grid gap-3">
+        <form ref={descarte.ref} onSubmit={salvar} className="grid gap-3">
           <div className="grid gap-3 sm:grid-cols-[11rem_1fr]">
             <div className="grid gap-1.5">
               <Label htmlFor="fr-data">Data</Label>
@@ -180,7 +192,7 @@ function FeriadoDialogo({ unidadeId, ano, feriado, aoFechar, aoSalvar }: { unida
             </div>
           </div>
           <label className="flex items-center gap-2 text-sm">
-            <input type="checkbox" checked={fixo} onChange={(e) => setFixo(e.target.checked)} className="size-4 accent-vinho" />
+            <Checkbox checked={fixo} onChange={(e) => setFixo(e.target.checked)} />
             Cai no mesmo dia todo ano
           </label>
           {erro && <p role="alert" className="text-sm text-alerta">{erro}</p>}
@@ -188,6 +200,7 @@ function FeriadoDialogo({ unidadeId, ano, feriado, aoFechar, aoSalvar }: { unida
             <Button type="submit" disabled={salvando}>Salvar</Button>
           </DialogFooter>
         </form>
+        {descarte.confirmacao}
       </DialogContent>
     </Dialog>
   );

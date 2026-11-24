@@ -1,7 +1,7 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import type { ItemDoPeculio } from 'contratos';
-import { IdCard, Mail, Phone, TriangleAlert, UserPlus } from 'lucide-react';
+import { CalendarClock, IdCard, Mail, Phone, TriangleAlert, UserPlus } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { mensagemDe } from '@/api/cliente';
 import { atualizarPeculio, consultaPeculio, podeCadastrarMilitar, unidadeDoPeculio } from '@/api/peculio';
@@ -12,10 +12,12 @@ import { Selecao } from '@/componentes/Selecao';
 import { Button } from '@/componentes/ui/button';
 import { Input } from '@/componentes/ui/input';
 import { Label } from '@/componentes/ui/label';
-import { mesAtual } from '@/lib/meses';
+import { dataBr, mesAtual } from '@/lib/meses';
 import { correspondeABusca, normalizarBusca } from '@/lib/texto';
 import { cn } from '@/lib/utils';
 import { classeItemEscolhido } from '@/componentes/ListaDetalhe';
+import { Moldura } from '@/componentes/Moldura';
+import { Espera } from '@/componentes/resposta/Espera';
 
 export const Route = createFileRoute('/_app/peculio')({
   component: Peculio,
@@ -50,24 +52,27 @@ function Peculio() {
   const unico = busca.trim() !== '' && filtrados.length === 1 ? filtrados[0]! : null;
 
   return (
-    <section>
-      <header className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="font-cond text-[28px] leading-tight font-semibold">Pecúlio</h1>
-        <div className="flex flex-wrap gap-2">
-          {/* a importação é de quem cuida do pessoal (nível acima das seções), a mesma regra do cadastro de militar novo */}
-          {podeCadastrarMilitar(eu) && <ImportarPlanilha cadastro="peculio" rotulo="o Pecúlio" unidadeId={unidade.id} aoConcluir={() => atualizarPeculio(queryClient)} />}
-          {podeCadastrarMilitar(eu) && (
-            <Button onClick={() => setNovo(true)}>
-              <UserPlus aria-hidden />
-              Novo militar
-            </Button>
-          )}
-          {novo && <NovoMilitar eu={eu} aoFechar={() => setNovo(false)} />}
-        </div>
-      </header>
+    <Moldura
+      titulo="Pecúlio"
+      acaoPrincipal={
+        <>
+          <div className="flex flex-wrap gap-2">
+              {/* a importação é de quem cuida do pessoal (nível acima das seções), a mesma regra do cadastro de militar novo */}
+              {podeCadastrarMilitar(eu) && <ImportarPlanilha cadastro="peculio" rotulo="o Pecúlio" unidadeId={unidade.id} aoConcluir={() => atualizarPeculio(queryClient)} />}
+              {podeCadastrarMilitar(eu) && (
+                <Button onClick={() => setNovo(true)}>
+                  <UserPlus aria-hidden />
+                  Novo militar
+                </Button>
+              )}
+              {novo && <NovoMilitar eu={eu} aoFechar={() => setNovo(false)} />}
+            </div>
+        </>
+      }
+    >
 
-      {lista.isPending && <p className="mt-6 text-apagado">Carregando…</p>}
-      {lista.error && <p role="alert" className="mt-6 text-alerta">{mensagemDe(lista.error)}</p>}
+      {lista.isPending && <Espera />}
+      {lista.error && <p role="alert" className="text-alerta">{mensagemDe(lista.error)}</p>}
       {lista.data && (
         <div className={cn('mt-6 grid items-start gap-6', lista.data.aniversariantes && 'lg:grid-cols-[1fr_20rem]')}>
           <div className="rounded-xl border border-linha bg-superficie">
@@ -94,13 +99,13 @@ function Peculio() {
                 </Selecao>
               </div>
             </div>
-            <p className="px-4 pt-3 text-[13px] text-apagado">{filtrados.length > limite ? `Mostrando ${limite} de ${filtrados.length}` : `${filtrados.length} de ${lista.data.militares.length}`} militares</p>
+            <p className="px-4 pt-3 text-apoio text-apagado">{filtrados.length > limite ? `Mostrando ${limite} de ${filtrados.length}` : `${filtrados.length} de ${lista.data.militares.length}`} militares</p>
             <ul aria-label="Militares do Pecúlio" className="p-2">
               {filtrados.slice(0, limite).map((m) => <ItemDoPeculioNaLista key={m.militarId} m={m} destaque={m.militarId === unico?.militarId} />)}
               {lista.data.militares.length === 0 && <li className="p-3 text-apagado">Nenhum militar lotado. Cadastre com "Novo militar" ou use "Importar".</li>}
             </ul>
             {filtrados.length > limite && (
-              <div className="px-4 pb-3"><Button type="button" variant="outline" onClick={() => setLimite((n) => n + 100)}>Mostrar mais</Button></div>
+              <div className="px-4 pb-3"><Button type="button" variant="secundario" onClick={() => setLimite((n) => n + 100)}>Mostrar mais</Button></div>
             )}
           </div>
 
@@ -127,7 +132,7 @@ function Peculio() {
           )}
         </div>
       )}
-    </section>
+    </Moldura>
   );
 }
 
@@ -142,16 +147,17 @@ function ItemDoPeculioNaLista({ m, destaque }: { m: ItemDoPeculio; destaque: boo
         className={cn('grid gap-0.5 rounded-lg px-3 py-2 hover:bg-accent', destaque && classeItemEscolhido)}
       >
         <span className="flex items-center gap-2">
-          <span className="font-cond text-[13px] text-apagado">{m.posto}</span>
+          <span className="font-cond text-apoio text-apagado">{m.posto}</span>
           <span className="font-cond text-base font-semibold">{m.nomeGuerra}</span>
           {m.pendencias.length > 0 && <TriangleAlert className="size-4 text-pendencia" role="img" aria-label={`Cadastro incompleto: ${m.pendencias.join('; ')}`} />}
-          <span className="ml-auto rounded-md border border-linha px-2 font-cond text-[13px] font-medium">{m.lotacao}</span>
+          <span className="ml-auto rounded-md border border-linha px-2 font-cond text-apoio font-medium">{m.lotacao}</span>
         </span>
-        {m.nomeCompleto && <span className="text-[15px] leading-[22px] text-tinta">{m.nomeCompleto}</span>}
+        {m.nomeCompleto && <span className="text-corpo leading-[22px] text-tinta">{m.nomeCompleto}</span>}
         <span className="mt-1 flex flex-wrap gap-1.5">
           <EtiquetaDeDado icone={IdCard}>{m.matricula}</EtiquetaDeDado>
           {m.telefone ? <EtiquetaDeDado icone={Phone}>{m.telefone}</EtiquetaDeDado> : <EtiquetaDeDado icone={Phone} falta>Sem telefone</EtiquetaDeDado>}
           {m.email ? <EtiquetaDeDado icone={Mail}>{m.email}</EtiquetaDeDado> : <EtiquetaDeDado icone={Mail} falta>Sem e-mail</EtiquetaDeDado>}
+          {m.lotacaoAPartirDe && <EtiquetaDeDado icone={CalendarClock}>{`Lotação a partir de ${dataBr(m.lotacaoAPartirDe)}`}</EtiquetaDeDado>}
         </span>
       </Link>
     </li>

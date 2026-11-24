@@ -4,7 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { restantesPorServico } from '@/lib/cotas';
 import { mesAtual } from '@/lib/meses';
-import { abrir, chamadasA, corpoEnviado, EU_EXEMPLO, simularApi, trava } from './apoio';
+import { abrir, chamadasA, corpoEnviado, EU_EXEMPLO, simularApi, trava, responderConfirmacao } from './apoio';
 
 const mes = mesAtual();
 const anterior = somarMeses(mes, -1);
@@ -203,18 +203,18 @@ describe('cotas', () => {
 
   it('remover pergunta antes e apaga a cota', async () => {
     const f = api({ 'DELETE /api/cotas/c1': { status: 204 } });
-    const confirmar = vi.spyOn(window, 'confirm').mockReturnValue(true);
     abrir('/cotas');
     await userEvent.click(await screen.findByRole('button', { name: 'Remover cota de JES (interna)' }));
-    expect(confirmar).toHaveBeenCalledWith(`Remover a cota de JES (interna) de ${mesPorExtenso(mes)}?`);
+    expect(await screen.findByRole('dialog', { name: 'Remover a cota?' })).toHaveTextContent(`Cota de JES (interna) de ${mesPorExtenso(mes)}.`);
+    await responderConfirmacao('Remover');
     await waitFor(() => expect(f.mock.calls.some(([e, i]) => String(e).includes('/api/cotas/c1') && i?.method === 'DELETE')).toBe(true));
   });
 
   it('desistir da pergunta não apaga', async () => {
     const f = api();
-    vi.spyOn(window, 'confirm').mockReturnValue(false);
     abrir('/cotas');
     await userEvent.click(await screen.findByRole('button', { name: 'Remover cota de JES (interna)' }));
+    await responderConfirmacao('Cancelar');
     expect(f.mock.calls.some(([, i]) => i?.method === 'DELETE')).toBe(false);
   });
 

@@ -102,7 +102,7 @@ describe('unidades para a lotação', () => {
 describe('alterar situação (rastreio)', () => {
   let bravo: string;
   let equipeDeOutra: string;
-  const situacao = (id: string, corpo: Record<string, unknown>, papel: Parameters<ApiDeTeste['pedir']>[0] = 'escalante') => api.pedir(papel, 'POST', `/api/militares/${id}/situacao`, corpo);
+  const situacao = (id: string, corpo: Record<string, unknown>, papel: Parameters<ApiDeTeste['pedir']>[0] = 'gestorGb') => api.pedir(papel, 'POST', `/api/militares/${id}/situacao`, corpo);
   const ultimoDiaDoMes = (mes: string) => new Date(Date.UTC(Number(mes.slice(0, 4)), Number(mes.slice(5, 7)), 0)).toISOString().slice(0, 10);
   beforeAll(async () => {
     bravo = await inserir(api.banco, 'equipe', { unidade_id: api.ids.secao, nome: 'Bravo', ordem_ciclo: 2 });
@@ -218,10 +218,10 @@ describe('alterar situação (rastreio)', () => {
     expect(marcada.status).toBe(201);
     const antes = (await ficha(m.id)).rastreio;
     // no mesmo mês do período da 2ª SB: trocaria a unidade dele para a 1ª SB
-    const substitui = await situacao(m.id, { unidadeId: api.ids.secao, equipeId: null, jornada: 'adm', desde: `${proximo}-01` });
+    const substitui = await situacao(m.id, { unidadeId: api.ids.secao, equipeId: null, jornada: 'adm', desde: `${proximo}-01` }, 'escalante');
     expect(substitui.status).toBe(403);
     // depois dele: fecharia o período da 2ª SB
-    const fecha = await situacao(m.id, { unidadeId: api.ids.secao, equipeId: null, jornada: 'adm', desde: `${somarMeses(proximo, 1)}-01` });
+    const fecha = await situacao(m.id, { unidadeId: api.ids.secao, equipeId: null, jornada: 'adm', desde: `${somarMeses(proximo, 1)}-01` }, 'escalante');
     expect(fecha.status).toBe(403);
     expect((await ficha(m.id)).rastreio).toEqual(antes);
     // quem tem papel nas duas pontas pode (o administrador)
@@ -384,6 +384,24 @@ describe('edição só do que mudou', () => {
     expect(await ficha(m.id)).toMatchObject({ nomeGuerra: 'NOVO', voluntarioJes: true });
   });
 
+  it('a trava é de verdade: a leitura do militar para editar roda dentro da transação, com a linha travada (for update)', async () => {
+    // o banco de teste tem uma conexão só e atende uma transação por vez, então o teste acima passaria mesmo sem a trava: aqui se prova que o comando
+    // que a garante (ler dentro da transação com `for update`, antes de gravar) é o que o servidor manda ao banco
+    const m = await criar('990152-2', { nomeGuerra: 'TRAVA' });
+    const comandos: string[] = [];
+    const original = api.banco.transacao.bind(api.banco);
+    api.banco.transacao = (fn) => original((tx) => fn({ ...tx, query: ((sql: string, p?: unknown[]) => (comandos.push(sql), tx.query(sql, p))) as typeof tx.query }));
+    try {
+      expect((await api.pedir('gestorGb', 'PATCH', `/api/militares/${m.id}`, { nomeGuerra: 'DESTRAVA' })).status).toBe(200);
+    } finally {
+      api.banco.transacao = original;
+    }
+    const leitura = comandos.findIndex((c) => /select posto_grad_id, nome_completo/.test(c) && /from militar where id = \$1 for update/.test(c.replace(/\s+/g, ' ')));
+    const gravacao = comandos.findIndex((c) => /^\s*update militar set/i.test(c));
+    expect(leitura).toBeGreaterThanOrEqual(0);
+    expect(gravacao).toBeGreaterThan(leitura);
+  });
+
   it('PATCH com antiguidade null apaga a antiguidade', async () => {
     const m = await criar('990151-1', { antiguidade: 4321 });
     expect(m.antiguidade).toBe(4321);
@@ -485,29 +503,30 @@ describe('dono por bloco (Review Focus 1 e 2)', () => {
     }
   };
 
-  it('escalante da 1ª SB: o campo da escala passa; o do Pecúlio é 403 (sozinho ou junto com o da escala) e nada é gravado', async () => {
+  it('escalante da 1ª SB: o campo da escala (habilitações) passa; o do Pecúlio, inclusive o voluntário JES, é 403 (sozinho ou junto com o da escala) e nada é gravado', async () => {
     const m = await criar('990180-0');
-    expect((await api.pedir('escalante', 'PATCH', `/api/militares/${m.id}`, { voluntarioJes: true })).status).toBe(200);
+    expect((await api.pedir('escalante', 'PATCH', `/api/militares/${m.id}`, { voluntarioJes: true })).status).toBe(403);
     expect((await api.pedir('escalante', 'PATCH', `/api/militares/${m.id}`, { motorista: true, cnh: ['B'] })).status).toBe(200);
     const sozinho = await api.pedir('escalante', 'PATCH', `/api/militares/${m.id}`, { nomeCompleto: 'Outro Nome Completo' });
     expect(sozinho.status).toBe(403);
     expect((await sozinho.json()).erro).toBe(MSG);
-    const junto = await api.pedir('escalante', 'PATCH', `/api/militares/${m.id}`, { nomeCompleto: 'Outro Nome Completo', voluntarioJes: false });
+    const junto = await api.pedir('escalante', 'PATCH', `/api/militares/${m.id}`, { nomeCompleto: 'Outro Nome Completo', motorista: false });
     expect(junto.status).toBe(403);
     expect((await junto.json()).erro).toBe(MSG);
     const depois = await ficha(m.id);
     expect(depois.nomeCompleto).toBe('Fulano de Tal 990180-0');
-    expect(depois.voluntarioJes).toBe(true);
+    expect(depois.motorista).toBe('B');
     // cada campo do Pecúlio é recusado
-    for (const campo of [{ postoGradId: cb }, { nomeGuerra: 'OUTRO' }, { antiguidade: 9 }, { sexo: 'F' }, { nascimento: { dia: 1, mes: 1 } }, { telefone: '(81) 9' }, { email: 'a@bombeiros.pe.gov.br' }, { comportamento: 'Bom' }, { comportamentoBoletim: 'BG 1' }]) {
+    for (const campo of [{ voluntarioJes: true }, { postoGradId: cb }, { nomeGuerra: 'OUTRO' }, { antiguidade: 9 }, { sexo: 'F' }, { nascimento: { dia: 1, mes: 1 } }, { telefone: '(81) 9' }, { email: 'a@bombeiros.pe.gov.br' }, { comportamento: 'Bom' }, { comportamentoBoletim: 'BG 1' }]) {
       expect((await api.pedir('escalante', 'PATCH', `/api/militares/${m.id}`, campo)).status, JSON.stringify(campo)).toBe(403);
     }
   });
 
-  it('escalante da 1ª SB: alterar situação mudando só equipe e jornada passa; mudar a lotação é 403; criar militar é 403', async () => {
+  it('escalante da 1ª SB: alterar situação mudando equipe ou jornada é 403 (6.32); mudar a lotação é 403; criar militar é 403', async () => {
     const m = await criar('990181-1');
     const soEquipe = await api.pedir('escalante', 'POST', `/api/militares/${m.id}/situacao`, { unidadeId: api.ids.secao, equipeId: null, jornada: 'adm', desde: `${atual}-01` });
-    expect(soEquipe.status).toBe(200);
+    expect(soEquipe.status).toBe(403);
+    expect((await ficha(m.id)).rastreio).toHaveLength(1);
     await papelEmOutraSecao('escalante', async () => {
       const lotacao = await api.pedir('escalante', 'POST', `/api/militares/${m.id}/situacao`, { unidadeId: outraSecao, equipeId: null, jornada: 'adm', desde: `${proximo}-01` });
       expect(lotacao.status).toBe(403);
@@ -554,7 +573,7 @@ describe('dono por bloco (Review Focus 1 e 2)', () => {
   it('grava e devolve os campos novos da ficha; null limpa', async () => {
     const m = await criar('990186-6');
     const r = await api.pedir('gestorGb', 'PATCH', `/api/militares/${m.id}`, {
-      nomeCompleto: 'Maria de Souza Lima', sexo: 'F', nascimento: { dia: 29, mes: 2 }, telefone: '(81) 99999-0000', email: 'Maria.Lima@bombeiros.pe.gov.br', comportamento: 'Ótimo', comportamentoBoletim: 'BG 05/2026',
+      nomeCompleto: 'Maria de Souza Lima', sexo: 'F', nascimento: { dia: 29, mes: 2, ano: 1992 }, telefone: '(81) 99999-0000', email: 'Maria.Lima@bombeiros.pe.gov.br', comportamento: 'Ótimo', comportamentoBoletim: 'BG 05/2026',
     });
     expect(r.status).toBe(200);
     expect(await r.json()).toMatchObject({
@@ -747,10 +766,10 @@ describe('CPF, nascimento e endereço são de quem cuida do Pecúlio (6.11)', ()
   });
 
   it('a ficha que volta de uma gravação segue a mesma regra', async () => {
-    const r = await api.pedir('escalante', 'PATCH', `/api/militares/${alvoId}`, { voluntarioJes: true });
+    const r = await api.pedir('escalante', 'PATCH', `/api/militares/${alvoId}`, { motorista: true, cnh: ['B'] });
     expect(r.status).toBe(200);
     const f = (await r.json()) as FichaMilitar;
-    expect(f.voluntarioJes).toBe(true);
+    expect(f.motorista).toBe('B');
     for (const chave of RESTRITAS) expect(chave in f, chave).toBe(false);
     expect(f.veDadosRestritos).toBe(false);
   });
@@ -789,5 +808,50 @@ describe('CPF, nascimento e endereço são de quem cuida do Pecúlio (6.11)', ()
     expect(lista.militares.map((m) => m.nomeGuerra)).toContain('NAORESERVA');
     expect(lista.aniversariantes!.map((a) => a.nomeGuerra)).not.toContain('NAORESERVA');
     expect(lista.aniversariantes!.map((a) => a.nomeGuerra)).toContain('TESTE601');
+  });
+});
+
+describe('a ficha da escala: o que a SB edita (6.32)', () => {
+  let bravo: string;
+  const FRASE = 'Este campo é alterado por quem tem nível de acesso no 2º GB.';
+  beforeAll(async () => {
+    bravo = await inserir(api.banco, 'equipe', { unidade_id: api.ids.secao, nome: 'Bravo-632', ordem_ciclo: 9 });
+  });
+
+  it('o voluntário JES é só da SP: o escalante da lotação recebe 403 com a frase do campo do Pecúlio, e nada é gravado; o gestor acima da lotação passa', async () => {
+    const m = await criar('990632-1');
+    const r = await api.pedir('escalante', 'PATCH', `/api/militares/${m.id}`, { voluntarioJes: true });
+    expect(r.status).toBe(403);
+    expect((await r.json()).erro).toBe(FRASE);
+    expect((await ficha(m.id)).voluntarioJes).toBe(false);
+    expect((await api.pedir('gestorGb', 'PATCH', `/api/militares/${m.id}`, { voluntarioJes: true })).status).toBe(200);
+    expect((await ficha(m.id)).voluntarioJes).toBe(true);
+  });
+
+  it('as habilitações continuam da SB: o escalante da lotação edita Motorista e a CNH', async () => {
+    const m = await criar('990632-2');
+    const r = await api.pedir('escalante', 'PATCH', `/api/militares/${m.id}`, { motorista: true, cnh: ['B'] });
+    expect(r.status).toBe(200);
+    expect(await r.json()).toMatchObject({ motorista: 'B' });
+  });
+
+  it('equipe e jornada são só da SP: o escalante recebe 403 ao mudar só a equipe ou só a jornada, e nada muda; o gestor acima passa', async () => {
+    const m = await criar('990632-3');
+    const soEquipe = await api.pedir('escalante', 'POST', `/api/militares/${m.id}/situacao`, { unidadeId: api.ids.secao, equipeId: bravo, jornada: 'pronto', desde: `${atual}-01` });
+    expect(soEquipe.status).toBe(403);
+    expect((await soEquipe.json()).erro).toBe(FRASE);
+    const soJornada = await api.pedir('escalante', 'POST', `/api/militares/${m.id}/situacao`, { unidadeId: api.ids.secao, equipeId: alfa, jornada: 'adm', desde: `${atual}-01` });
+    expect(soJornada.status).toBe(403);
+    expect(await ficha(m.id)).toMatchObject({ equipe: 'Alfa', jornada: 'pronto' });
+    const gestor = await api.pedir('gestorGb', 'POST', `/api/militares/${m.id}/situacao`, { unidadeId: api.ids.secao, equipeId: bravo, jornada: 'adm', desde: `${atual}-01` });
+    expect([200, 201]).toContain(gestor.status);
+    expect(await ficha(m.id)).toMatchObject({ equipe: 'Bravo-632', jornada: 'adm' });
+  });
+
+  it('Review Focus 2: o militar sem lotação (recém-criado): o administrador continua alterando a equipe e a situação dele', async () => {
+    const id = await inserir(api.banco, 'militar', { matricula: '990632-4', posto_grad_id: sd, nome_guerra: 'SEMLOT', nome_completo: 'Sem Lotação Fictício' });
+    const r = await api.pedir('admin', 'POST', `/api/militares/${id}/situacao`, { unidadeId: api.ids.secao, equipeId: bravo, jornada: 'pronto', desde: `${atual}-01` });
+    expect([200, 201]).toContain(r.status);
+    expect(await ficha(id)).toMatchObject({ equipe: 'Bravo-632' });
   });
 });

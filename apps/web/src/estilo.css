@@ -15,13 +15,37 @@
   --color-alerta: #B3261E;
   --color-pendencia: #8A5A00;
   --color-pendencia-fundo: #FCF1D6;
-  /* a vaga vazia: contorno da obrigatória (3,5:1 sobre branco), da extra (mais claro) e o fundo ao passar o mouse */
+  /* o contorno de campo, de botão secundário e da vaga opcional (3,5:1 sobre branco) e o único cinza de painel: mouse em cima, fim de semana, etiqueta neutra */
   --color-encaixe: #7D8A9C;
-  --color-encaixe-claro: #A3AEBC;
   --color-passa: #F3F5F8;
+  /* o fundo do erro e do choque (o texto de alerta, 5,6:1 sobre ele) */
+  --color-alerta-fundo: #FBEAE8;
 
   /* texto de apoio em 13 px (o padrão do Tailwind é 12) */
   --text-xs: 0.8125rem;
+
+  /* os seis tamanhos de letra do sistema (tamanho / entrelinha): nenhum texto fica abaixo de 13 px */
+  --text-apoio: 0.8125rem;
+  --text-apoio--line-height: 1.125rem;
+  --text-corpo: 0.9375rem;
+  --text-corpo--line-height: 1.375rem;
+  --text-nome: 1.0625rem;
+  --text-nome--line-height: 1.5rem;
+  --text-bloco: 1.25rem;
+  --text-bloco--line-height: 1.625rem;
+  --text-titulo: 1.75rem;
+  --text-titulo--line-height: 2rem;
+  --text-abertura: 2.5rem;
+  --text-abertura--line-height: 2.75rem;
+
+  /* forma: 6 px nos controles (botões, campos, placas, etiquetas, avisos) e 12 px nas superfícies (quadros, painéis, diálogos) */
+  --radius-controle: 6px;
+  --radius-superficie: 12px;
+  /* a sombra apoiada (placas) e a sombra por cima (painel, lista aberta, diálogo, aviso) */
+  --shadow-apoiada: 0 1px 2px rgba(28, 36, 48, 0.12);
+  --shadow-por-cima: 0 18px 44px rgba(28, 36, 48, 0.22), 0 2px 8px rgba(28, 36, 48, 0.1);
+  /* a altura de controle: 36 px; 44 px no toque e no celular (ver a regra de baixo) */
+  --altura-controle: 36px;
 
   --font-sans: "Barlow", system-ui, sans-serif;
   --font-cond: "Barlow Semi Condensed", "Barlow", system-ui, sans-serif;
@@ -32,20 +56,27 @@
   --color-foreground: var(--color-tinta);
   --color-primary: var(--color-vinho);
   --color-primary-foreground: #FFFFFF;
-  --color-secondary: #E3E7EC;
+  --color-secondary: var(--color-passa);
   --color-secondary-foreground: var(--color-tinta);
-  --color-muted: #E3E7EC;
+  --color-muted: var(--color-passa);
   --color-muted-foreground: var(--color-apagado);
-  --color-accent: #EEF1F4;
+  --color-accent: var(--color-passa);
   --color-accent-foreground: var(--color-tinta);
   --color-destructive: var(--color-alerta);
   --color-border: var(--color-linha);
-  --color-input: #C9CFD8;
+  --color-input: var(--color-encaixe);
   --color-ring: var(--color-tinta);
   --color-card: var(--color-superficie);
   --color-card-foreground: var(--color-tinta);
   --color-popover: var(--color-superficie);
   --color-popover-foreground: var(--color-tinta);
+}
+
+/* a altura de controle sobe para 44 px no toque e abaixo do ponto de quebra do site (768 px) */
+@media (pointer: coarse), (max-width: 47.99rem) {
+  :root {
+    --altura-controle: 44px;
+  }
 }
 
 @layer base {
@@ -120,4 +151,39 @@
   ::view-transition-new(*) {
     animation: none !important;
   }
+}
+
+/* Imprimir o memorial de cálculo (6.30): sai só o memorial, em preto sobre branco (sem o menu, nem os botões, nem o resto da tela). */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  .memorial-impressao,
+  .memorial-impressao * {
+    visibility: visible;
+  }
+  .memorial-impressao {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    color: #000;
+    background: #fff;
+  }
+}
+
+/* o visto branco da caixa de marcar (ui/checkbox.tsx): um desenho num traço só, como os ícones do sistema */
+:root {
+  --marca-de-visto: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7.5'/%3E%3C/svg%3E");
+}
+
+/* a espera (componentes/resposta/Espera.tsx): um brilho que corre de `linha` a `passa` em 1,3 s; parado com prefers-reduced-motion */
+.espera-brilho {
+  background-image: linear-gradient(90deg, var(--color-linha) 0%, var(--color-passa) 50%, var(--color-linha) 100%);
+  background-size: 200% 100%;
+  animation: espera-corre 1.3s ease-in-out infinite;
+}
+@keyframes espera-corre {
+  from { background-position: 200% 0; }
+  to { background-position: -200% 0; }
 }

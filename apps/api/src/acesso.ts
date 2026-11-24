@@ -63,6 +63,17 @@ export async function temPapelAcima(c: Consulta, usuarioId: string, unidadeId: s
 }
 
 /**
+ * O "nível de acesso de cima" do Pecúlio, com a raiz: o administrador passa em qualquer unidade, e na raiz (que não tem unidade de cima) quem tem o papel
+ * nela passa também. Nas outras unidades vale o papel numa unidade acima (`temPapelAcima`).
+ */
+export async function temNivelDeCima(c: Consulta, usuarioId: string, unidadeId: string, papeis: Papel[], hoje: string): Promise<boolean> {
+  if (await ehAdministrador(c, usuarioId, hoje)) return true;
+  const { rows } = await c.query<{ mae_id: string | null }>('select mae_id from unidade where id = $1', [unidadeId]);
+  if (rows[0] && rows[0].mae_id === null) return temPapel(c, usuarioId, unidadeId, papeis, hoje);
+  return temPapelAcima(c, usuarioId, unidadeId, papeis, hoje);
+}
+
+/**
  * A sigla da "unidade de cima" que as mensagens do Pecúlio citam ("quem tem nível de acesso no 2º GB"): a unidade logo acima, qualquer que seja
  * o tipo dela. null se não há unidade acima.
  */

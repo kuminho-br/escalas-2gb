@@ -5,6 +5,7 @@ import { rotasConfiguracoes } from './cadastros/configuracoes.ts';
 import { rotasCotas } from './cadastros/cotas.ts';
 import { rotasEstrutura } from './cadastros/estrutura.ts';
 import { rotasTiposDeUnidade } from './cadastros/tipos-de-unidade.ts';
+import { rotasExternos } from './cadastros/externos.ts';
 import { rotasFeriados } from './cadastros/feriados.ts';
 import { rotasFuncoesDoMilitar } from './cadastros/funcoes-do-militar.ts';
 import { rotasGuarnicoes } from './cadastros/guarnicoes.ts';
@@ -35,6 +36,8 @@ export interface Dependencias {
   migracoesEsperadas?: string[];
   /** Intervalo da reconferência enquanto falta migração (ms). */
   intervaloMs?: number;
+  /** Buscas por minuto, por conta, na consulta de militares (padrão 30); os testes da consulta, que buscam mais que isso, sobem o limite. */
+  limiteDeBuscas?: number;
 }
 
 export function criarApp(dep: Dependencias): Hono {
@@ -65,6 +68,7 @@ export function criarApp(dep: Dependencias): Hono {
     app.route('/api', rotasFuncoesDoMilitar(comAuth));
     app.route('/api', rotasCotas(comAuth));
     app.route('/api', rotasFeriados(comAuth));
+    app.route('/api', rotasExternos(comAuth));
     app.route('/api', rotasEstrutura(comAuth));
     app.route('/api', rotasTiposDeUnidade(comAuth));
     app.route('/api', rotasEscalas(comAuth));
@@ -73,7 +77,7 @@ export function criarApp(dep: Dependencias): Hono {
     app.route('/api', rotasGrade(comAuth));
     app.route('/api', rotasOficiais(comAuth));
     app.route('/api', rotasVoluntariado(comAuth));
-    app.route('/api', rotasVisao(comAuth));
+    app.route('/api', rotasVisao({ ...comAuth, limiteDeBuscas: dep.limiteDeBuscas }));
     app.route('/api', rotasImportacao(comAuth, IMPORTADORES));
   }
   return app;

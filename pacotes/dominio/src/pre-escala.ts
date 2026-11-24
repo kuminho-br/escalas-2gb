@@ -24,10 +24,6 @@ export function mesAnterior(mes: string): string {
   return mesVizinho(mes, -1);
 }
 
-export function proximoMes(mes: string): string {
-  return mesVizinho(mes, 1);
-}
-
 /** Equipe de turno no dia de índice i (0 = dia 01), dado quem trabalha no dia 01. */
 export function equipeDoDia(equipeDia1: string, i: number): string {
   return CICLO_EQUIPES[(CICLO_EQUIPES.indexOf(equipeDia1) + i) % 4];

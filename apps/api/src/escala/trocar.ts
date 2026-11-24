@@ -8,6 +8,10 @@ import { avaliarCandidatos, JA_ESCALADO } from './elegibilidade.ts';
 
 export class NaoEncontrada extends Error {}
 
+/** A recusa de uma troca: quem não pode ir para a vaga de quem, o motivo (sem o ponto final dele, para não dobrar) e o que fazer. */
+export const fraseDaRecusaDaTroca = (quem: string | undefined, daVaga: string | undefined, motivo: string) =>
+  `${quem} não pode ir para a vaga de ${daVaga}: ${motivo.replace(/\.$/, '')}. Escolha outro serviço para trocar.`;
+
 type Aloc = {
   id: string; militar_id: string; escala_id: string; turno_id: string; data: string; guarnicao_id: string | null; funcao_id: string | null;
   tipo: string; unidade_id: string; inicio: string; fim: string;
@@ -46,7 +50,7 @@ export async function opcoesDeTroca(c: Consulta, alocacaoId: string): Promise<Op
          from alocacao a2 join escala e on e.id = a2.escala_id join servico s on s.id = a2.servico_id join turno t on t.id = a2.turno_id
          join militar m on m.id = a2.militar_id join posto_grad p on p.id = m.posto_grad_id
          left join guarnicao g on g.id = a2.guarnicao_id left join funcao f on f.id = a2.funcao_id
-        where s.unidade_id = $1 and a2.data = $2::date and a2.militar_id <> $3
+        where s.unidade_id = $1 and a2.data = $2::date and a2.militar_id <> $3 and e.distribuicao = 'pre_escala'
         order by t.inicio, s.nome`,
       [a.unidade_id, a.data, a.militar_id],
     )
@@ -110,7 +114,7 @@ export async function trocar(tx: Consulta, alocacaoId: string, troca: Troca, usu
     try {
       await escalar(tx, daVaga.escala_id, { militarId: quem.militar_id, data: daVaga.data, turnoId: daVaga.turno_id, guarnicaoId: daVaga.guarnicao_id, funcaoId: daVaga.funcao_id });
     } catch (e) {
-      if (e instanceof Recusa) throw new Recusa(`${nomes.get(quem.militar_id)} não pode ir para a vaga de ${nomes.get(daVaga.militar_id)}: ${e.message}`);
+      if (e instanceof Recusa) throw new Recusa(fraseDaRecusaDaTroca(nomes.get(quem.militar_id), nomes.get(daVaga.militar_id), e.message));
       throw e;
     }
   };

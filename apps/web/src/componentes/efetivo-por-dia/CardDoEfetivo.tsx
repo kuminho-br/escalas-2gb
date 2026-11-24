@@ -1,7 +1,8 @@
 import type { GuarnicaoNoEfetivo } from 'contratos';
 import { ArrowLeft, ArrowRight } from 'lucide-react';
+import { CartaoDaGuarnicao } from '@/componentes/CartaoDaGuarnicao';
 import { Button } from '@/componentes/ui/button';
-import { cn } from '@/lib/utils';
+import { Etiqueta } from '@/componentes/ui/etiqueta';
 import { LinhaDoTempoDaGuarnicao, type AcoesDaLinha } from './LinhaDoTempoDaGuarnicao';
 import type { Janela } from '@/lib/efetivo';
 
@@ -15,31 +16,34 @@ export type ControlesDaMeta = { aoMoverAntes?: () => void; aoMoverDepois?: () =>
 export function CardDoEfetivo({ g, janela, acoes, meta }: { g: GuarnicaoNoEfetivo; janela: Janela | null; acoes?: AcoesDaLinha; meta?: ControlesDaMeta }) {
   const nome = g.ordem === null ? g.nome : `${g.ordem}º ${g.nome}`;
   return (
-    <section aria-label={nome} className="grid content-start gap-2 rounded-lg border border-linha bg-superficie p-3">
-      <header className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
-        <h2 className="font-cond text-lg leading-tight font-semibold">{nome}</h2>
-        {g.viatura && <span className="text-sm text-apagado">{g.viatura}</span>}
-        <span className={cn('rounded-full px-2 py-0.5 text-xs font-medium', g.ativada ? 'bg-black/[0.06] text-tinta' : 'bg-pendencia-fundo text-pendencia')}>
-          {g.ativada ? 'ativada' : 'não ativada'}
-        </span>
-        {meta && (
-          <span className="ml-auto flex flex-wrap gap-1">
-            {meta.aoMoverAntes && (
-              <Button type="button" variant="ghost" size="sm" aria-label={`Mover ${g.nome} para antes`} title="Mover antes" disabled={meta.salvando} onClick={meta.aoMoverAntes}>
-                <ArrowLeft aria-hidden />
-              </Button>
-            )}
-            {meta.aoMoverDepois && (
-              <Button type="button" variant="ghost" size="sm" aria-label={`Mover ${g.nome} para depois`} title="Mover depois" disabled={meta.salvando} onClick={meta.aoMoverDepois}>
-                <ArrowRight aria-hidden />
-              </Button>
-            )}
-            <Button type="button" variant="ghost" size="sm" disabled={meta.salvando} onClick={meta.aoDesativar}>Desativar guarnição</Button>
-          </span>
-        )}
-      </header>
-      {g.horarios.length === 0 && <p className="text-sm text-apagado">Sem horário vinculado neste dia</p>}
+    <CartaoDaGuarnicao
+      nome={nome}
+      viatura={g.viatura}
+      rotulo={nome}
+      nivel={2}
+      naCabeca={
+        <>
+          <Etiqueta tipo={g.ativada ? 'neutra' : 'falta'}>{g.ativada ? 'ativada' : 'não ativada'}</Etiqueta>
+          {meta && (
+            <span className="ml-auto flex flex-wrap gap-1">
+              {meta.aoMoverAntes && (
+                <Button type="button" variant="discreto" size="sm" aria-label={`Mover ${g.nome} para antes`} title="Mover antes" disabled={meta.salvando} onClick={meta.aoMoverAntes}>
+                  <ArrowLeft aria-hidden />
+                </Button>
+              )}
+              {meta.aoMoverDepois && (
+                <Button type="button" variant="discreto" size="sm" aria-label={`Mover ${g.nome} para depois`} title="Mover depois" disabled={meta.salvando} onClick={meta.aoMoverDepois}>
+                  <ArrowRight aria-hidden />
+                </Button>
+              )}
+              <Button type="button" variant="discreto" size="sm" disabled={meta.salvando} onClick={meta.aoDesativar}>Desativar guarnição</Button>
+            </span>
+          )}
+        </>
+      }
+    >
+      {g.horarios.length === 0 && <p className="text-corpo text-apagado">Sem horário vinculado neste dia</p>}
       {janela && <LinhaDoTempoDaGuarnicao g={g} janela={janela} acoes={acoes} />}
-    </section>
+    </CartaoDaGuarnicao>
   );
 }

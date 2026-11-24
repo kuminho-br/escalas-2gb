@@ -64,13 +64,13 @@ export function ServicosDaEscala({ escala, unidadeId }: { escala: Escala; unidad
             <QuadradoDaCor cor={s.cor} />
             <Link to="/servicos/$id" params={{ id: s.id }} className="font-medium text-vinho hover:underline">{s.nome}</Link>
             <span className="ml-auto flex gap-1">
-              <Button type="button" size="icon" variant="ghost" aria-label={`Subir ${s.nome}`} disabled={i === 0} onClick={() => mover(i, -1)}>
+              <Button type="button" size="icon" variant="discreto" aria-label={`Subir ${s.nome}`} disabled={i === 0} onClick={() => mover(i, -1)}>
                 <ArrowUp aria-hidden />
               </Button>
-              <Button type="button" size="icon" variant="ghost" aria-label={`Descer ${s.nome}`} disabled={i === itens.length - 1} onClick={() => mover(i, 1)}>
+              <Button type="button" size="icon" variant="discreto" aria-label={`Descer ${s.nome}`} disabled={i === itens.length - 1} onClick={() => mover(i, 1)}>
                 <ArrowDown aria-hidden />
               </Button>
-              <Button type="button" size="sm" variant="ghost" aria-label={`Remover ${s.nome}`} onClick={() => setItens(itens.filter((x) => x.id !== s.id))}>
+              <Button type="button" size="sm" variant="discreto" aria-label={`Remover ${s.nome}`} onClick={() => setItens(itens.filter((x) => x.id !== s.id))}>
                 Remover
               </Button>
             </span>
@@ -87,7 +87,7 @@ export function ServicosDaEscala({ escala, unidadeId }: { escala: Escala; unidad
             </Selecao>
             <Button
               type="button"
-              variant="outline"
+              variant="secundario"
               disabled={!doEscolhido}
               onClick={() => {
                 if (!doEscolhido) return;

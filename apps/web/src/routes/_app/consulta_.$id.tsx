@@ -1,12 +1,16 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { createFileRoute, Link } from '@tanstack/react-router';
 import type { FichaDeConsulta } from 'contratos';
 import type { ReactNode } from 'react';
 import { mensagemDe } from '@/api/cliente';
 import { consultaDaFicha } from '@/api/consulta';
+import { trazerExterno, tirarExterno } from '@/api/externos';
+import { useAviso } from '@/componentes/resposta/useAviso';
+import { useConfirmar } from '@/componentes/resposta/useConfirmar';
 import { FichaPainel } from '@/componentes/ListaDetalhe';
 import { dataBr, Secao } from '@/componentes/militares/Secao';
 import { Button } from '@/componentes/ui/button';
+import { Espera } from '@/componentes/resposta/Espera';
 
 export const Route = createFileRoute('/_app/consulta_/$id')({
   // a busca de onde a pessoa veio: "Voltar" a leva de volta ao mesmo resultado
@@ -39,9 +43,33 @@ const simNao = (v: boolean) => (v ? 'Sim' : 'Não');
 function FichaDeConsultaDoMilitar() {
   const { id } = Route.useParams();
   const busca = Route.useSearch();
-  const { data: f, error, isPending } = useQuery(consultaDaFicha(id));
-  if (isPending) return <p className="p-4 text-apagado">Carregando…</p>;
+  const { eu } = Route.useRouteContext();
+  const queryClient = useQueryClient();
+  const avisar = useAviso();
+  const confirmar = useConfirmar();
+  const { data: f, error, isPending } = useQuery(consultaDaFicha(id, eu.unidade.id));
+  if (isPending) return <Espera className="p-4" />;
   if (error) return <p role="alert" className="p-4 text-alerta">{mensagemDe(error)}</p>;
+  const quem = `${f.postoGrad} ${f.nomeGuerra}`;
+  // o militar externo: o gestor traz para a escala da unidade de trabalho (ou tira), até alguém tirar. Sem  na ficha, nenhum dos dois botões
+  async function trazer() {
+    try {
+      await trazerExterno(queryClient, eu.unidade.id, f!.id);
+      avisar({ texto: `${quem} agora está na escala de ${f!.externo!.unidadeSigla}.` });
+    } catch (e) {
+      avisar({ texto: mensagemDe(e), erro: true });
+    }
+  }
+  async function tirar() {
+    const sigla = f!.externo!.unidadeSigla;
+    if (!(await confirmar({ titulo: `Tirar ${quem} da escala de ${sigla}?`, texto: 'Os serviços já lançados ficam.', verbo: 'Tirar' }))) return;
+    try {
+      await tirarExterno(queryClient, eu.unidade.id, f!.externo!.vinculoId!);
+      avisar({ texto: `${quem} saiu da escala de ${sigla}.` });
+    } catch (e) {
+      avisar({ texto: mensagemDe(e), erro: true });
+    }
+  }
   return (
     <FichaPainel
       titulo={<><span className="text-apagado">{f.postoGrad}</span> {f.nomeGuerra}</>}
@@ -51,9 +79,14 @@ function FichaDeConsultaDoMilitar() {
       resumo={f.lotacao ? `Lotado em ${f.lotacao}${f.quadro ? `, ${f.quadro}` : ''}` : 'Sem lotação hoje'}
       acoes={
         <>
-          <Button asChild variant="ghost" size="sm"><Link to="/consulta" search={busca}>Voltar à busca</Link></Button>
+          <Button asChild variant="discreto" size="sm"><Link to="/consulta" search={busca}>Voltar à busca</Link></Button>
+          {f.externo && (f.externo.vinculoId === null ? (
+            <Button type="button" variant="secundario" size="sm" onClick={() => void trazer()}>{`Trazer para a escala de ${f.externo.unidadeSigla}`}</Button>
+          ) : (
+            <Button type="button" variant="secundario" size="sm" onClick={() => void tirar()}>{`Tirar da escala de ${f.externo.unidadeSigla}`}</Button>
+          ))}
           {f.podeAbrirFichaCompleta && (
-            <Button asChild variant="outline" size="sm"><Link to="/militares/$id" params={{ id: f.id }}>Abrir a ficha completa</Link></Button>
+            <Button asChild variant="secundario" size="sm"><Link to="/militares/$id" params={{ id: f.id }}>Abrir a ficha completa</Link></Button>
           )}
         </>
       }
@@ -80,7 +113,8 @@ function Blocos({ f }: { f: FichaDeConsulta }) {
         <Secao titulo="Contato">
           <Dados>
             <Dado rotulo="Telefone">{f.contato.telefone}</Dado>
-            <Dado rotulo="E-mail">{f.contato.email}</Dado>
+            <Dado rotulo="E-mail institucional">{f.contato.email}</Dado>
+            <Dado rotulo="E-mail pessoal">{f.contato.emailPessoal}</Dado>
           </Dados>
         </Secao>
       )}

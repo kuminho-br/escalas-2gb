@@ -13,6 +13,7 @@ import { listaComE } from '@/lib/escala';
 import { dataPorExtenso } from '@/lib/meses';
 import { AdicionarServico } from './AdicionarServico';
 import { TrocarServico } from './TrocarServico';
+import { Espera } from '@/componentes/resposta/Espera';
 
 /**
  * O painel do dia de um militar na Grade geral: como ele está naquele dia (afastamento, horários marcados, serviços, choques) e o que dá para
@@ -66,7 +67,7 @@ export function PainelDoDia({ unidadeId, militarId, data, aoFechar }: { unidadeI
       <div className="divide-y divide-linha rounded-xl border border-linha bg-superficie">
         <header className="flex items-start gap-3 p-4">
           <div className="min-w-0 flex-1">
-            <h2 className="font-cond text-2xl leading-tight font-semibold">{nome ?? 'Carregando…'}</h2>
+            <h2 className="font-cond text-2xl leading-tight font-semibold">{nome ?? <Espera linhas={1} className="w-48" />}</h2>
             {p && (
               <>
                 <p className="mt-1 text-sm text-apagado">
@@ -79,7 +80,7 @@ export function PainelDoDia({ unidadeId, militarId, data, aoFechar }: { unidadeI
               </>
             )}
           </div>
-          <Button type="button" variant="ghost" size="icon" aria-label="Fechar" onClick={aoFechar}>
+          <Button type="button" variant="discreto" size="icon" aria-label="Fechar" onClick={aoFechar}>
             <X aria-hidden />
           </Button>
         </header>
@@ -110,10 +111,10 @@ export function PainelDoDia({ unidadeId, militarId, data, aoFechar }: { unidadeI
                         <span aria-hidden className="text-sm">{textoFaixa(s.inicio, s.fim)}</span>
                         {!soConsulta && (
                           <span className="ml-auto flex gap-1.5">
-                            <Button type="button" variant="outline" size="sm" disabled={salvando} onClick={() => setTrocando({ alocacaoId: s.alocacaoId, acumulaCom: s.acumulaCom })}>
+                            <Button type="button" variant="secundario" size="sm" disabled={salvando} onClick={() => setTrocando({ alocacaoId: s.alocacaoId, acumulaCom: s.acumulaCom })}>
                               Trocar
                             </Button>
-                            <Button type="button" variant="outline" size="sm" disabled={salvando} onClick={() => void remover(s.alocacaoId)}>
+                            <Button type="button" variant="secundario" size="sm" disabled={salvando} onClick={() => void remover(s.alocacaoId)}>
                               Remover
                             </Button>
                           </span>
@@ -132,7 +133,7 @@ export function PainelDoDia({ unidadeId, militarId, data, aoFechar }: { unidadeI
               {!soConsulta && (
                 <>
                   <div>
-                    <Button type="button" variant={adicionando ? 'secondary' : 'outline'} aria-expanded={adicionando} onClick={() => setAdicionando((v) => !v)}>
+                    <Button type="button" variant={adicionando ? 'discreto' : 'secundario'} aria-expanded={adicionando} onClick={() => setAdicionando((v) => !v)}>
                       Adicionar serviço neste dia
                     </Button>
                   </div>

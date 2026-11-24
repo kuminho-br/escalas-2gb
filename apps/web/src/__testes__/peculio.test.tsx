@@ -290,6 +290,15 @@ describe('quem cadastra militar: nível de acesso numa unidade acima da seção'
     expect(podeCadastrarMilitar(GESTOR_GB)).toBe(true);
   });
 
+  it('6.31: quem tem nível de acesso na raiz (que não tem unidade de cima) também cadastra na própria raiz; fora da raiz, a própria unidade do nível continua de fora', () => {
+    const RAIZ = { id: 'u-raiz', sigla: 'CBMPE', caminho: ['CBMPE'], nivel: 0, tipo: 'corporacao' };
+    const adminDaRaiz: EuDaApi = { ...EU_EXEMPLO, papeis: [{ papel: 'administrador', unidadeId: 'u-raiz', unidadeSigla: 'CBMPE' }], unidades: [RAIZ] };
+    expect(podeCadastrarMilitar(adminDaRaiz)).toBe(true);
+    expect(secoesDoCadastro(adminDaRaiz, [{ id: 'u-raiz', sigla: 'CBMPE', nome: '' }]).map((x) => x.sigla)).toEqual(['CBMPE']);
+    // o gestor do 2º GB não alcança a própria unidade como seção de cadastro (o 2º GB não é raiz)
+    expect(secoesDoCadastro(GESTOR_GB, [{ id: 'u-gb', sigla: '2º GB', nome: '' }])).toEqual([]);
+  });
+
   it('as seções do diálogo são só as que estão abaixo de um nível de acesso da pessoa', () => {
     const eu: EuDaApi = { ...GESTOR_GB, papeis: [{ papel: 'gestor', unidadeId: 'u-gb', unidadeSigla: '2º GB' }, { papel: 'escalante', unidadeId: 'u-outra', unidadeSigla: '9ª SB' }],
       unidades: [GESTOR_GB.unidades[0]!, { id: 'u-1sb', sigla: '1ª SB', caminho: ['CBMPE', 'DGO', 'DInter/1', '2º GB', '1ª SB'], nivel: 4, tipo: 'secao' }, { id: 'u-outra', sigla: '9ª SB', caminho: ['CBMPE', 'DGO', 'DInter/9', '9º GB', '9ª SB'], nivel: 4, tipo: 'secao' }] };
@@ -325,6 +334,14 @@ describe('o Novo militar, no Pecúlio', () => {
     abrir('/peculio');
     await screen.findByRole('list', { name: 'Militares do Pecúlio' });
     expect(screen.queryByRole('button', { name: 'Novo militar' })).toBeNull();
+  });
+
+  it('item 8 (6.17): se a lista de unidades não carregou, "Criar" fica apagado e o campo diz "Não deu para carregar a lista. Recarregue a página."', async () => {
+    rotas({ 'GET /api/unidades-de-lotacao': { status: 500, corpo: { erro: 'Falhou.' } } });
+    abrir('/peculio');
+    const dialogo = await abrirODialogo();
+    await waitFor(() => expect(dialogo.getByText('Não deu para carregar a lista. Recarregue a página.')).toBeInTheDocument());
+    expect(dialogo.getByRole('button', { name: 'Criar' })).toBeDisabled();
   });
 
   it('o diálogo pede os dados do Pecúlio e a lotação, e não pede equipe, jornada, motorista, CNH nem voluntário', async () => {

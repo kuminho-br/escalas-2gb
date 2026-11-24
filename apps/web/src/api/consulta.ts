@@ -1,5 +1,6 @@
 import { queryOptions } from '@tanstack/react-query';
 import type { FichaDeConsulta, ResultadoDaConsulta, UnidadeDaConsulta } from 'contratos';
+import { deveTentarDeNovoNaBusca } from '@/lib/consultas';
 import { pedir } from './cliente';
 
 /** As unidades da corporação, na ordem da árvore, para escolher onde buscar. */
@@ -17,9 +18,14 @@ export const consultaDaBusca = (texto: string, unidadeId: string) => {
   return queryOptions({
     queryKey: ['consulta', 'militares', texto, unidadeId],
     queryFn: () => pedir<ResultadoDaConsulta>('GET', `/api/consulta/militares?${params}`),
+    retry: deveTentarDeNovoNaBusca,
   });
 };
 
 /** A ficha de consulta: só os blocos que a pessoa vê. */
-export const consultaDaFicha = (id: string) =>
-  queryOptions({ queryKey: ['consulta', 'militar', id], queryFn: () => pedir<FichaDeConsulta>('GET', `/api/consulta/militares/${id}`) });
+/** `unidadeId`: a unidade de trabalho, para a ficha dizer se o gestor pode trazer o militar para a escala dela (o militar externo). */
+export const consultaDaFicha = (id: string, unidadeId?: string) =>
+  queryOptions({
+    queryKey: ['consulta', 'militar', id, unidadeId ?? null],
+    queryFn: () => pedir<FichaDeConsulta>('GET', `/api/consulta/militares/${id}${unidadeId ? `?unidade=${unidadeId}` : ''}`),
+  });

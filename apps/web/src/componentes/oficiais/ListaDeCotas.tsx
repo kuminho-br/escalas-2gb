@@ -1,10 +1,11 @@
 import { mesPorExtenso, type EscalaDosOficiais } from 'contratos';
-import { ArrowDown, ArrowUp } from 'lucide-react';
+import { ArrowDown, ArrowUp, ChevronDown } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from '@/componentes/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/componentes/ui/dialog';
 import { formatarSaldo } from '@/lib/numeros-do-saldo';
 import { cn } from '@/lib/utils';
+import { Checkbox } from '@/componentes/ui/checkbox';
 
 type Oficial = EscalaDosOficiais['oficiais'][number];
 
@@ -15,49 +16,24 @@ interface Props {
   /** Grava quem participa da rodada (a lista inteira dos marcados); sem ela, a marca fica só para leitura. */
   aoMarcar?: (militarIds: string[]) => void;
   desabilitado?: boolean;
-}
-
-/** A vez de escolher: quem é (em 20 px), a posição e quantos turnos ainda faltam para ele. */
-export function VezDeEscolher({ escala: e }: { escala: EscalaDosOficiais }) {
-  if (e.etapa !== 'escolhas') return null;
-  const v = e.oficiais.find((o) => o.militarId === e.vez);
-  const faltam = v && v.cota !== null ? Math.max(v.cota - v.escolhidos, 0) : null;
-  return (
-    <section aria-label="Vez de escolher" className="rounded-xl border border-linha bg-superficie p-4">
-      <small className="text-[13px] text-apagado">Vez de escolher</small>
-      {v ? (
-        <>
-          <p className="flex flex-wrap items-baseline gap-x-2">
-            <span className="font-cond text-[20px] leading-[26px] font-semibold">{`${v.posto} ${v.nomeGuerra}`}</span>
-            <span className="text-[15px] text-apagado">{`${v.ordem}º na ordem`}</span>
-          </p>
-          {faltam !== null && <p className="text-[15px]">{faltam === 1 ? 'Falta 1 turno para ele.' : `Faltam ${faltam} turnos para ele.`}</p>}
-          <p className="text-[13px] text-apagado">
-            Clique num turno livre para lançar a escolha dele.
-            {v.afastamentos.length > 0 && ` Os dias de afastamento não são oferecidos.`}
-          </p>
-        </>
-      ) : (
-        <>
-          <p className="font-cond text-[20px] leading-[26px] font-semibold">Todos escolheram</p>
-          <p className="text-[15px] text-apagado">Confira os turnos e feche a escala.</p>
-        </>
-      )}
-    </section>
-  );
+  /** O oficial escolhido para os próximos cliques no calendário; sem `aoEscolher`, a linha não é um botão. */
+  escolhido?: string | null;
+  aoEscolher?: (militarId: string) => void;
 }
 
 /**
  * A lista de cotas do mês, uma linha por oficial: a marca de quem participa da rodada, a ordem, o oficial, o saldo até o mês anterior, os dias presentes, a cota e
  * quanto já escolheu (com uma barra fina), mais os afastamentos. Com a escala aberta, aparecem todos os elegíveis; fechada, só quem participa.
  */
-export function ListaDeCotas({ escala: e, aoOrdenar, aoMarcar, desabilitado }: Props) {
-  const comCota = e.etapa !== 'sem-cotas';
-  const aberta = e.etapa === 'sem-cotas' || e.etapa === 'escolhas';
+export function ListaDeCotas({ escala: e, aoOrdenar, aoMarcar, desabilitado, escolhido, aoEscolher }: Props) {
+  const comCota = e.etapa !== 'nao-aberto';
+  const aberta = e.etapa === 'nao-aberto' || e.etapa === 'escolhas';
   const oficiais = aberta ? e.oficiais : e.oficiais.filter((o) => o.participa);
   const marcados = e.oficiais.filter((o) => o.participa).map((o) => o.militarId);
   // desmarcar quem já tem turnos escolhidos deixa esses turnos sem ninguém: o sistema pergunta antes (decisão de 23/11); sem turnos escolhidos, desmarca direto
   const [tirando, setTirando] = useState<Oficial | null>(null);
+  // "Como as cotas foram calculadas": a conta do mês em frases curtas, recolhida
+  const [verConta, setVerConta] = useState(false);
   const pedirMarca = (o: Oficial, participa: boolean) => {
     if (!participa && o.escolhidos > 0) setTirando(o);
     else marcar(o, participa);
@@ -82,8 +58,23 @@ export function ListaDeCotas({ escala: e, aoOrdenar, aoMarcar, desabilitado }: P
   };
   const marcar = (o: Oficial, participa: boolean) =>
     aoMarcar?.(participa ? e.oficiais.filter((x) => x.participa || x.militarId === o.militarId).map((x) => x.militarId) : marcados.filter((id) => id !== o.militarId));
-  const total = e.turnos.length;
-  const sobras = e.oficiais.filter((o) => o.sobra).length;
+  const total = e.lugaresDeSaldo;
+  const comSobra = e.oficiais.filter((o) => o.sobra);
+  const sobras = comSobra.length;
+  // a conta do mês, em frases curtas: turnos do mês, menos os de JES, os que sobram para a rodada, quem participa, a divisão, as sobras e os afastamentos
+  const turnosDoMes = e.turnos.length;
+  const turnosDeJes = e.oficiais.reduce((n, o) => n + o.jes, 0);
+  const diasDoMes = new Set(e.turnos.map((t) => t.dia)).size;
+  const conta: string[] = [
+    `O mês tem ${turnosDoMes} turnos (${diasDoMes} dias, ${e.turnosDoServico.length} por dia).`,
+    turnosDeJes > 0 ? `Menos ${turnosDeJes} de JES, lançados à mão.` : 'Nenhum turno de JES foi lançado.',
+    `Sobram ${total} turnos para a rodada de Saldo.`,
+    `Participam ${e.oficiais.filter((o) => o.cota !== null).length} oficiais.`,
+    `A divisão, pela presença de cada um, dá ${total - sobras} turnos inteiros e uma parte quebrada.`,
+    ...(sobras > 0 ? [`Depois do arredondamento sobraram ${sobras}, entregues aos ${sobras} mais modernos: ${comSobra.map((o) => o.nomeGuerra).join(', ')}.`] : []),
+    ...e.oficiais.flatMap((o) => { const f = frasesDaCotaMenor(o); return f ? [`${o.nomeGuerra}: ${f.replace('cota menor: ', 'cota menor, ')}.`] : []; }),
+    'O saldo aparece na lista, mas ainda não entra na conta.',
+  ];
   const podeOrdenar = !!aoOrdenar && e.etapa !== 'fechada' && e.etapa !== 'encerrada';
   // "Subir" e "Descer" só trocam de lugar quem não tem antiguidade, entre os do mesmo posto
   // a ordem só vale entre quem participa
@@ -105,47 +96,56 @@ export function ListaDeCotas({ escala: e, aoOrdenar, aoMarcar, desabilitado }: P
     const daVez = o.militarId === e.vez && e.etapa === 'escolhas';
     // a barra fina do quanto já foi escolhido da cota (cheia quando passa dela)
     const feito = o.cota ? Math.min(Math.round((o.escolhidos / o.cota) * 100), 100) : 0;
-    const numero = 'font-cond text-[17px] leading-6 font-semibold tabular-nums';
-    const rotulo = 'text-[13px] leading-[18px] text-apagado';
+    const numero = 'font-cond text-nome leading-6 font-semibold tabular-nums';
+    const comVermelhos = comCota && e.diasVermelhos.length > 0;
+    const rotulo = 'text-apoio leading-[18px] text-apagado';
     return (
-      <li key={o.militarId} className={cn('grid gap-2 rounded-xl border p-3', daVez ? 'border-vinho bg-pendencia-fundo' : 'border-linha bg-superficie', !o.participa && 'text-apagado')}>
+      <li key={o.militarId} className={cn('grid gap-1.5 rounded-xl border p-2.5', daVez ? 'border-vinho bg-vinho/10' : 'border-linha bg-superficie', !o.participa && 'text-apagado', o.militarId === escolhido && 'ring-2 ring-tinta')}>
         <div className="flex items-start gap-3">
-          <input
-            type="checkbox"
+          <Checkbox
             aria-label={`${o.posto} ${o.nomeGuerra} participa da rodada`}
             checked={o.participa}
             disabled={!aoMarcar || !aberta || desabilitado}
             onChange={(ev) => pedirMarca(o, ev.target.checked)}
-            className="mt-0.5 size-5 shrink-0 accent-vinho"
+            className="mt-0.5"
           />
-          <span className="w-6 shrink-0 text-center font-cond text-[17px] leading-6 font-semibold tabular-nums text-apagado" title="Ordem de escolha">{o.participa ? o.ordem : '—'}</span>
-          <div className="min-w-0 flex-1">
-            <p className="flex flex-wrap items-baseline gap-x-2">
-              <span className="shrink-0 text-[13px] leading-[18px] font-medium text-apagado">{o.posto}</span>
-              <b className={cn('font-cond text-[17px] leading-6 font-semibold', o.participa && 'text-tinta')}>{o.nomeGuerra}</b>
-              {o.novo && <span className="rounded-md border border-linha px-2 text-[13px] font-medium text-tinta">novo</span>}
-            </p>
-            <p className="text-[13px] leading-[18px] text-apagado">
+          <span className="w-6 shrink-0 text-center font-cond text-nome leading-6 font-semibold tabular-nums text-apagado" title="Ordem de escolha">{o.participa ? o.ordem : '—'}</span>
+          <button
+            type="button"
+            data-escolher-oficial
+            aria-pressed={o.militarId === escolhido}
+            aria-label={`${o.posto} ${o.nomeGuerra}${daVez ? ', a vez' : ''}`}
+            disabled={!aoEscolher || !o.participa}
+            onClick={() => aoEscolher?.(o.militarId)}
+            className="min-w-0 flex-1 rounded-md text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-tinta disabled:cursor-default"
+          >
+            <span className="flex flex-wrap items-baseline gap-x-2">
+              <span className="shrink-0 text-apoio leading-[18px] font-medium text-apagado">{o.posto}</span>
+              <b className={cn('font-cond text-nome leading-6 font-semibold', o.participa && 'text-tinta')}>{o.nomeGuerra}</b>
+              {daVez && <span className="rounded-md bg-vinho px-2 text-apoio font-medium text-white">a vez</span>}
+            </span>
+            <span className="block text-apoio leading-[18px] text-apagado">
               {o.quadro} · {o.lotacao}
               {o.semAntiguidade && ' · ordenado à mão'}
-            </p>
-          </div>
+              {o.jes > 0 && ` · ${o.jes} JES`}
+            </span>
+          </button>
           {(sobe || desce) && (
             <span className="flex shrink-0 gap-1">
               {sobe && (
-                <Button type="button" variant="outline" size="sm" disabled={desabilitado} aria-label={`Subir ${o.nomeGuerra}`} onClick={() => mover(i, -1)}>
+                <Button type="button" variant="secundario" size="sm" disabled={desabilitado} aria-label={`Subir ${o.nomeGuerra}`} onClick={() => mover(i, -1)}>
                   <ArrowUp aria-hidden /> Subir
                 </Button>
               )}
               {desce && (
-                <Button type="button" variant="outline" size="sm" disabled={desabilitado} aria-label={`Descer ${o.nomeGuerra}`} onClick={() => mover(i, 1)}>
+                <Button type="button" variant="secundario" size="sm" disabled={desabilitado} aria-label={`Descer ${o.nomeGuerra}`} onClick={() => mover(i, 1)}>
                   <ArrowDown aria-hidden /> Descer
                 </Button>
               )}
             </span>
           )}
         </div>
-        <dl className={cn('grid gap-x-3 gap-y-1', comCota ? 'grid-cols-3' : 'grid-cols-2')}>
+        <dl className={cn('grid gap-x-3 gap-y-1', comCota ? (comVermelhos ? 'grid-cols-4' : 'grid-cols-3') : 'grid-cols-2')}>
           <div title="Saldo acumulado até o mês anterior">
             <dt className={rotulo}>Saldo</dt>
             <dd className={numero}>{formatarSaldo(o.saldoAnterior)}</dd>
@@ -154,23 +154,33 @@ export function ListaDeCotas({ escala: e, aoOrdenar, aoMarcar, desabilitado }: P
             <dt className={rotulo}>Cota</dt>
             <dd className={numero}>{o.cota ?? '—'}</dd>
             {o.sobra && <dd className={rotulo}>+1 sobra</dd>}
-            {frasesDaCotaMenor(o) && <dd className={rotulo}>{frasesDaCotaMenor(o)}</dd>}
           </div>
           {comCota && (
             <div>
               <dt className={rotulo}>Escolhidos</dt>
               <dd className={numero}>{o.escolhidos} de {o.cota}</dd>
-              {o.cota !== null && o.escolhidos > o.cota && <dd className="text-[13px] leading-[18px] font-medium text-pendencia">{o.escolhidos - o.cota} a mais</dd>}
+              {o.cota !== null && o.escolhidos > o.cota && <dd className="text-apoio leading-[18px] font-medium text-pendencia">{o.escolhidos - o.cota} a mais</dd>}
+            </div>
+          )}
+          {comVermelhos && (
+            <div title="Lugares em dia vermelho que ele tomou no mês">
+              <dt className={rotulo}>Vermelhos</dt>
+              <dd className={numero}>{o.vermelhos}</dd>
             </div>
           )}
         </dl>
+        {comCota && o.cota !== null && (
+          <p title="O saldo do mês como está agora; o acumulado só muda ao encerrar o mês" className={cn(rotulo, 'font-medium', o.saldoPrevisto < 0 && 'text-pendencia')}>
+            {`Saldo ${formatarSaldo(o.saldoAnterior)} → ${formatarSaldo(o.saldoPrevisto)} no mês`}
+          </p>
+        )}
         {comCota && o.cota !== null && (
           <div aria-hidden className="h-1.5 overflow-hidden rounded-full bg-linha">
             <div data-barra className={cn('h-full rounded-full', o.escolhidos > o.cota ? 'bg-pendencia' : 'bg-tinta')} style={{ width: `${feito}%` }} />
           </div>
         )}
         {o.afastamentos.map((a) => (
-          <p key={a.inicio} className="text-[13px] leading-[18px] text-pendencia">{a.tipo}, {a.inicio.slice(8)}/{a.inicio.slice(5, 7)} a {a.fim.slice(8)}/{a.fim.slice(5, 7)}</p>
+          <p key={a.inicio} className="text-apoio leading-[18px] text-pendencia">{a.tipo}, {a.inicio.slice(8)}/{a.inicio.slice(5, 7)} a {a.fim.slice(8)}/{a.fim.slice(5, 7)}</p>
         ))}
       </li>
     );
@@ -189,7 +199,7 @@ export function ListaDeCotas({ escala: e, aoOrdenar, aoMarcar, desabilitado }: P
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setTirando(null)}>Cancelar</Button>
+            <Button type="button" variant="secundario" onClick={() => setTirando(null)}>Cancelar</Button>
             <Button
               type="button"
               onClick={() => {
@@ -202,9 +212,19 @@ export function ListaDeCotas({ escala: e, aoOrdenar, aoMarcar, desabilitado }: P
           </DialogFooter>
         </DialogContent>
       </Dialog>
-      <p className="text-[13px] leading-[18px] text-apagado">
-        {comCota ? `${total} turnos no mês.${sobras > 0 ? ` Depois do arredondamento, sobraram ${sobras}, entregues aos ${sobras} mais modernos.` : ''} ` : ''}O saldo aparece na lista, mas ainda não entra na conta.
-      </p>
+      {comCota && (
+        <div className="grid gap-2">
+          <Button type="button" variant="discreto" size="sm" className="justify-self-start" aria-expanded={verConta} aria-controls="como-as-cotas" onClick={() => setVerConta((v) => !v)}>
+            Como as cotas foram calculadas
+            <ChevronDown aria-hidden className={cn('transition-transform motion-reduce:transition-none', verConta && 'rotate-180')} />
+          </Button>
+          {verConta && (
+            <ul id="como-as-cotas" aria-label="Como as cotas foram calculadas" className="grid gap-1 rounded-md border border-linha bg-passa p-3 text-corpo leading-[22px]">
+              {conta.map((f) => <li key={f}>{f}</li>)}
+            </ul>
+          )}
+        </div>
+      )}
     </div>
   );
 }

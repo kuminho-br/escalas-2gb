@@ -5,7 +5,7 @@ import { QueryClient } from '@tanstack/react-query';
 import { describe, expect, it, vi } from 'vitest';
 import { atualizarMilitares } from '@/api/militares';
 import { hoje, mesAtual, somarDias } from '@/lib/meses';
-import { abrir, chamadasA, corpoEnviado, EU_EXEMPLO, simularApi, trava } from './apoio';
+import { abrir, chamadasA, corpoEnviado, EU_EXEMPLO, simularApi, trava, responderConfirmacao } from './apoio';
 
 const linha = (l: Partial<LinhaMilitar>): LinhaMilitar => ({
   id: 'm1', matricula: '990001-1', posto: 'SD', quadro: { id: 'q-qbmg', sigla: 'QBMG' }, nomeGuerra: 'ANDRADE', equipe: 'Alfa', jornada: 'pronto', motorista: null,
@@ -57,6 +57,21 @@ function api(extra: Parameters<typeof simularApi>[0] = {}) {
 }
 
 describe('lista de militares', () => {
+  const EXTERNO = linha({ id: 'm9', matricula: '990009-9', nomeGuerra: 'FORASTEIRO', equipe: 'Externo', jornada: 'pronto', pendencias: [], externo: { lotacaoSigla: '2ª SB' } });
+
+  it('6.33: o militar externo aparece com a etiqueta "Externo · 2ª SB", a equipe "Externo" no filtro, e leva à ficha da Consulta (a ficha da escala é da lotação dele)', async () => {
+    api({ 'GET /api/unidades/u-1sb/militares': { status: 200, corpo: [...LISTA, EXTERNO] } });
+    abrir('/militares');
+    const item = (await screen.findByText('FORASTEIRO')).closest('li')!;
+    expect(within(item).getByText('Externo · 2ª SB')).toBeInTheDocument();
+    expect(within(item).queryByText(/EXTERNO/)).toBeNull();
+    expect(within(item).getByRole('link')).toHaveAttribute('href', '/consulta/m9');
+    expect(within(item).queryByLabelText(/Cadastro incompleto/)).toBeNull();
+    await userEvent.selectOptions(screen.getByLabelText('Equipe'), 'Externo');
+    expect(screen.getByText('FORASTEIRO')).toBeInTheDocument();
+    expect(screen.queryByText('ANDRADE')).toBeNull();
+  });
+
   it('lista mostra situação e pendência', async () => {
     api();
     abrir('/militares');
@@ -100,6 +115,24 @@ describe('o quadro e a situação no rastreio', () => {
     return screen.findByRole('dialog');
   };
 
+  it('item 20 (6.18): com a lista de unidades falhada, o diálogo diz "Não deu para carregar a lista" com "Tentar de novo", e o Salvar não fica preso', async () => {
+    let falhar = true;
+    const f = api({ 'GET /api/unidades-de-lotacao': { status: 500, corpo: { erro: 'Falhou.' } } });
+    const original = f.getMockImplementation()!;
+    f.mockImplementation(async (entrada: RequestInfo | URL, init?: RequestInit) => {
+      const url = typeof entrada === 'string' ? entrada : entrada instanceof URL ? entrada.href : entrada.url;
+      if (url.includes('/api/unidades-de-lotacao') && !falhar) return new Response(JSON.stringify([{ id: 'u-1sb', sigla: '1ª SB', nome: '1ª Seção de Bombeiros' }]), { status: 200, headers: { 'Content-Type': 'application/json' } });
+      return original(entrada, init);
+    });
+    const dialogo = within(await abrirAlterar());
+    expect(await dialogo.findByText('Não deu para carregar a lista. Recarregue a página.')).toBeInTheDocument();
+    expect(dialogo.getByRole('button', { name: 'Salvar' })).toBeDisabled();
+    falhar = false;
+    await userEvent.click(dialogo.getByRole('button', { name: 'Tentar de novo' }));
+    await waitFor(() => expect(dialogo.queryByText('Não deu para carregar a lista. Recarregue a página.')).toBeNull());
+    await waitFor(() => expect(dialogo.getByRole('button', { name: 'Salvar' })).toBeEnabled());
+  });
+
   it('a Identificação não tem mais "Quadro" nem "Ativo"', async () => {
     api();
     abrir('/militares/m1');
@@ -136,21 +169,12 @@ describe('o quadro e a situação no rastreio', () => {
     await waitFor(() => expect(corpoEnviado(f, 'POST /api/militares/m1/situacao')).toMatchObject({ situacaoId: 'sit-reserva' }));
   });
 
-  it('para quem não pode editar o bloco Pecúlio, o quadro e a situação ficam travados', async () => {
-    api({
-      'GET /api/situacoes-do-militar': { status: 200, corpo: SITUACOES },
-      'GET /api/militares/m1': { status: 200, corpo: { ...FICHA, podeEditar: { peculio: false, escala: true, unidadeDeCima: '2º GB' } } },
-    });
-    const caixa = within(await abrirAlterar());
-    expect(await caixa.findByLabelText('Quadro')).toBeDisabled();
-    expect(caixa.getByLabelText('Situação')).toBeDisabled();
-  });
 });
 
 describe('dados pessoais: CPF, nascimento e endereço', () => {
   it('o CPF e o CEP aparecem com a máscara, e a UF é uma lista com as 27 siglas', async () => {
     api({ 'GET /api/militares/m1': { status: 200, corpo: { ...FICHA, cpf: '52998224725', endereco: { ...FICHA.endereco, cep: '50030230', uf: 'PE' } } } });
-    abrir('/militares/m1');
+    abrir('/militares/m1?de=peculio');
     expect(await screen.findByLabelText('CPF')).toHaveValue('529.982.247-25');
     expect(screen.getByLabelText('CEP')).toHaveValue('50030-230');
     const uf = screen.getByLabelText('UF');
@@ -160,7 +184,7 @@ describe('dados pessoais: CPF, nascimento e endereço', () => {
 
   it('grava só o que mudou, com o CPF em dígitos e o endereço agrupado', async () => {
     const f = api({ 'PATCH /api/militares/m1': { status: 200, corpo: FICHA } });
-    abrir('/militares/m1');
+    abrir('/militares/m1?de=peculio');
     await userEvent.type(await screen.findByLabelText('CPF'), '52998224725');
     await userEvent.type(screen.getByLabelText('Logradouro'), 'Rua Fictícia');
     await userEvent.click(screen.getByRole('button', { name: 'Salvar dados pessoais' }));
@@ -172,7 +196,7 @@ describe('dados pessoais: CPF, nascimento e endereço', () => {
 
   it('dígitos a mais no CPF e no CEP não entram', async () => {
     api();
-    abrir('/militares/m1');
+    abrir('/militares/m1?de=peculio');
     const cpf = await screen.findByLabelText('CPF');
     await userEvent.type(cpf, '5299822472599');
     expect(cpf).toHaveValue('529.982.247-25');
@@ -184,7 +208,7 @@ describe('dados pessoais: CPF, nascimento e endereço', () => {
 
   it('CPF inválido é recusado no campo, sem ir ao servidor', async () => {
     const f = api({ 'PATCH /api/militares/m1': { status: 200, corpo: FICHA } });
-    abrir('/militares/m1');
+    abrir('/militares/m1?de=peculio');
     await userEvent.type(await screen.findByLabelText('CPF'), '11111111111');
     await userEvent.click(screen.getByRole('button', { name: 'Salvar dados pessoais' }));
     expect(await screen.findByText('CPF inválido: confira os 11 dígitos.')).toBeInTheDocument();
@@ -193,7 +217,7 @@ describe('dados pessoais: CPF, nascimento e endereço', () => {
 
   it('o erro da API (CPF repetido) aparece no campo', async () => {
     api({ 'PATCH /api/militares/m1': { status: 409, corpo: { erro: 'Este CPF já é de BARRETO.', campos: { cpf: 'Este CPF já é de BARRETO.' } } } });
-    abrir('/militares/m1');
+    abrir('/militares/m1?de=peculio');
     await userEvent.type(await screen.findByLabelText('CPF'), '39053344705');
     await userEvent.click(screen.getByRole('button', { name: 'Salvar dados pessoais' }));
     expect((await screen.findAllByText('Este CPF já é de BARRETO.')).length).toBeGreaterThan(0);
@@ -339,7 +363,7 @@ describe('ficha do militar', () => {
     // só a carteira é gravada: com a E de volta e a moto, vai ['A', 'E']
     await userEvent.click(screen.getByRole('button', { name: /^E\b/ }));
     await userEvent.click(screen.getByRole('button', { name: /^A\b/ }));
-    await userEvent.click(screen.getByRole('button', { name: 'Salvar motorista' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Salvar habilitações' }));
     // o quadro não mudou: o salvar manda só o que mudou (a carteira)
     await waitFor(() => expect(corpoEnviado(f, 'PATCH /api/militares/m1')).toEqual({ cnh: ['A', 'E'] }));
   });
@@ -360,7 +384,7 @@ describe('ficha do militar', () => {
 
     it('com a E na carteira, clicar na C (acesa só pela hierarquia) não muda nada, e a dica diz "Vale pela categoria E." (6.17, item 13)', async () => {
       abrirCom(['E']);
-      await screen.findByRole('button', { name: /^Salvar motorista/ });
+      await screen.findByRole('button', { name: /^Salvar habilitações/ });
       pelaHierarquia('C');
       expect(quadrado('C')).toHaveAttribute('title', 'Vale pela categoria E.');
       await userEvent.click(quadrado('C'));
@@ -402,7 +426,7 @@ describe('ficha do militar', () => {
       daCarteira('C');
       apagado('E');
       apagado('D');
-      await userEvent.click(screen.getByRole('button', { name: 'Salvar motorista' }));
+      await userEvent.click(screen.getByRole('button', { name: 'Salvar habilitações' }));
       await waitFor(() => expect(corpoEnviado(f, 'PATCH /api/militares/m1')).toEqual({ cnh: ['C'] }));
     });
 
@@ -412,7 +436,7 @@ describe('ficha do militar', () => {
       await userEvent.click(quadrado('E'));
       for (const letra of ['E', 'D', 'C', 'B']) apagado(letra);
       daCarteira('A');
-      await userEvent.click(screen.getByRole('button', { name: 'Salvar motorista' }));
+      await userEvent.click(screen.getByRole('button', { name: 'Salvar habilitações' }));
       await waitFor(() => expect(corpoEnviado(f, 'PATCH /api/militares/m1')).toEqual({ cnh: ['A'] }));
     });
 
@@ -425,7 +449,7 @@ describe('ficha do militar', () => {
       pelaHierarquia('C');
       pelaHierarquia('B');
       expect(screen.queryByText(/pela [A-E]/)).toBeNull();
-      await userEvent.click(screen.getByRole('button', { name: 'Salvar motorista' }));
+      await userEvent.click(screen.getByRole('button', { name: 'Salvar habilitações' }));
       await waitFor(() => expect(corpoEnviado(f, 'PATCH /api/militares/m1')).toEqual({ cnh: ['E'] }));
       // a frase de ajuda não muda
       expect(screen.getByText('Marque as categorias da carteira. As que ela habilita acendem sozinhas (a E acende D, C e B). A moto (A) é separada.')).toBeInTheDocument();
@@ -456,7 +480,7 @@ describe('ficha do militar', () => {
       await userEvent.click(quadro().getByRole('radio', { name: 'Não' }));
       expect(screen.getByRole('button', { name: /^D\b/ })).toHaveAttribute('aria-pressed', 'true');
       expect(screen.getByText('Alterações não salvas')).toBeInTheDocument();
-      await userEvent.click(screen.getByRole('button', { name: 'Salvar motorista' }));
+      await userEvent.click(screen.getByRole('button', { name: 'Salvar habilitações' }));
       await waitFor(() => expect(corpoEnviado(f, 'PATCH /api/militares/m1')).toEqual({ motorista: false }));
     });
   });
@@ -670,7 +694,7 @@ describe('ficha ampliada (fase 5)', () => {
 
   it('Dados pessoais: o nascimento é dia e mês, com o ano opcional, grava junto e limpar manda null; 31 de fevereiro mostra a mensagem sem chamar a API (Review Focus 4)', async () => {
     const f = comFicha();
-    abrir('/militares/m1');
+    abrir('/militares/m1?de=peculio');
     const dia = await screen.findByLabelText('Dia');
     const mes = screen.getByLabelText('Mês');
     expect(dia).toHaveValue(15);
@@ -701,35 +725,89 @@ describe('ficha ampliada (fase 5)', () => {
     await waitFor(() => expect(corpoEnviado(f, PATCH)).toEqual({ nascimento: null }));
   });
 
-  it('Contato: telefone e e-mail gravam só o que mudou; e-mail de outro domínio mostra a mensagem do contrato no campo, sem chamar a API (Review Focus 3)', async () => {
+  it('Contato: telefone e e-mail gravam só o que mudou; o e-mail só recebe o usuário, e o de outro domínio mostra a frase no campo, sem chamar a API (6.18, item 22)', async () => {
     const f = comFicha();
     abrir('/militares/m1');
     const telefone = await screen.findByLabelText('Telefone');
     const email = screen.getByLabelText('E-mail institucional');
     expect(telefone).toHaveValue('(81) 99999-0000');
-    expect(email).toHaveValue('andrade@bombeiros.pe.gov.br');
-    fireEvent.change(telefone, { target: { value: '(81) 98888-1111' } });
+    // o e-mail gravado aparece só com o usuário, e o domínio fica fixo à direita
+    expect(email).toHaveValue('andrade');
+    expect(screen.getByText('@bombeiros.pe.gov.br')).toBeInTheDocument();
+    fireEvent.change(telefone, { target: { value: '81988881111' } });
+    expect(telefone).toHaveValue('(81) 98888-1111');
     await userEvent.click(screen.getByRole('button', { name: 'Salvar contato' }));
     await waitFor(() => expect(corpoEnviado(f, PATCH)).toEqual({ telefone: '(81) 98888-1111' }));
     fireEvent.change(email, { target: { value: 'andrade@gmail.com' } });
+    expect(await screen.findByText('Use só o usuário do e-mail institucional.')).toBeInTheDocument();
+    expect(email).toHaveAccessibleDescription(/Use só o usuário do e-mail institucional\./);
     await userEvent.click(screen.getByRole('button', { name: 'Salvar contato' }));
-    expect(await screen.findByText('Use o e-mail institucional (@bombeiros.pe.gov.br).')).toBeInTheDocument();
-    expect(email).toHaveAccessibleDescription('Use o e-mail institucional (@bombeiros.pe.gov.br).');
     expect(chamadasA(f, PATCH)).toBe(1);
+  });
+
+  it('Contato: o e-mail pessoal aparece e grava de qualquer domínio; o institucional segue com o seu nome (6.18, item 23)', async () => {
+    const f = comFicha({ emailPessoal: 'andrade.pessoal@exemplo.test' });
+    abrir('/militares/m1');
+    const pessoal = await screen.findByLabelText('E-mail pessoal');
+    expect(pessoal).toHaveValue('andrade.pessoal@exemplo.test');
+    expect(screen.getByLabelText('E-mail institucional')).toHaveValue('andrade');
+    fireEvent.change(pessoal, { target: { value: 'novo.pessoal@gmail.com' } });
+    await userEvent.click(screen.getByRole('button', { name: 'Salvar contato' }));
+    await waitFor(() => expect(corpoEnviado(f, PATCH)).toEqual({ emailPessoal: 'novo.pessoal@gmail.com' }));
+    // vazio limpa
+    fireEvent.change(pessoal, { target: { value: '' } });
+    await userEvent.click(screen.getByRole('button', { name: 'Salvar contato' }));
+    await waitFor(() => expect(corpoEnviado(f, PATCH)).toEqual({ emailPessoal: null }));
+  });
+
+  it('Contato: o e-mail pessoal malformado mostra a frase no campo sem chamar a API, e o da API (institucional de alguém) também aparece no campo (6.18, item 23)', async () => {
+    const f = comFicha({}, { [PATCH]: { status: 400, corpo: { erro: 'Este é um e-mail institucional: use outro, pessoal.', campos: { emailPessoal: 'Este é um e-mail institucional: use outro, pessoal.' } } } });
+    abrir('/militares/m1');
+    const pessoal = await screen.findByLabelText('E-mail pessoal');
+    fireEvent.change(pessoal, { target: { value: 'sem-arroba' } });
+    await userEvent.click(screen.getByRole('button', { name: 'Salvar contato' }));
+    expect(await screen.findByText('Use um e-mail válido.')).toBeInTheDocument();
+    expect(chamadasA(f, PATCH)).toBe(0);
+    fireEvent.change(pessoal, { target: { value: 'dono@bombeiros.pe.gov.br' } });
+    await userEvent.click(screen.getByRole('button', { name: 'Salvar contato' }));
+    expect(await screen.findByText('Este é um e-mail institucional: use outro, pessoal.')).toBeInTheDocument();
+  });
+
+  it('Contato: colar o e-mail inteiro do domínio fica só com o usuário, e o e-mail gravado vai com o domínio (6.18, item 22)', async () => {
+    const f = comFicha();
+    abrir('/militares/m1');
+    const email = await screen.findByLabelText('E-mail institucional');
+    await userEvent.clear(email);
+    await userEvent.click(email);
+    await userEvent.paste('maria.lima@bombeiros.pe.gov.br');
+    expect(email).toHaveValue('maria.lima');
+    await userEvent.click(screen.getByRole('button', { name: 'Salvar contato' }));
+    await waitFor(() => expect(corpoEnviado(f, PATCH)).toEqual({ email: 'maria.lima@bombeiros.pe.gov.br' }));
+  });
+
+  it('Contato: telefone com outra quantidade de dígitos mostra "Use o DDD e o número: 10 ou 11 dígitos." e não chama a API (6.18, item 22)', async () => {
+    const f = comFicha();
+    abrir('/militares/m1');
+    const telefone = await screen.findByLabelText('Telefone');
+    fireEvent.change(telefone, { target: { value: '8199668' } });
+    await userEvent.click(screen.getByRole('button', { name: 'Salvar contato' }));
+    expect(await screen.findByText('Use o DDD e o número: 10 ou 11 dígitos.')).toBeInTheDocument();
+    expect(chamadasA(f, PATCH)).toBe(0);
   });
 
   it('Contato: o e-mail de outro militar volta da API como erro no campo', async () => {
     comFicha({}, { [PATCH]: { status: 409, corpo: { erro: 'Este e-mail já é de outro militar.', campos: { email: 'Este e-mail já é de outro militar.' } } } });
     abrir('/militares/m1');
-    fireEvent.change(await screen.findByLabelText('E-mail institucional'), { target: { value: 'outro@bombeiros.pe.gov.br' } });
+    fireEvent.change(await screen.findByLabelText('E-mail institucional'), { target: { value: 'outro' } });
     await userEvent.click(screen.getByRole('button', { name: 'Salvar contato' }));
     expect(await screen.findByText('Este e-mail já é de outro militar.')).toBeInTheDocument();
-    expect(screen.getByLabelText('E-mail institucional')).toHaveAccessibleDescription('Este e-mail já é de outro militar.');
+    // a descrição do campo traz o erro e, depois, o domínio fixo (que o leitor de tela ouve)
+    expect(screen.getByLabelText('E-mail institucional')).toHaveAccessibleDescription('Este e-mail já é de outro militar. no domínio @bombeiros.pe.gov.br');
   });
 
   it('Comportamento: grava o comportamento e o boletim; "Sem informação" limpa', async () => {
     const f = comFicha();
-    abrir('/militares/m1');
+    abrir('/militares/m1?de=peculio');
     const comportamento = await screen.findByLabelText('Comportamento');
     expect(comportamento).toHaveValue('Bom');
     expect(screen.getByLabelText('Boletim')).toHaveValue('BG 01/2026');
@@ -743,9 +821,9 @@ describe('ficha ampliada (fase 5)', () => {
   });
 
   // [foco 1] escalante só da seção: o Pecúlio é só leitura, com a frase; a escala segue editável
-  it('sem papel acima da lotação, os blocos do Pecúlio ficam só para leitura com a frase e os da escala seguem editáveis', async () => {
+  it('sem papel acima da lotação, os blocos do Pecúlio ficam só para leitura com a frase e as habilitações seguem editáveis', async () => {
     comFicha(SEM_PECULIO);
-    abrir('/militares/m1');
+    abrir('/militares/m1?de=peculio');
     await screen.findByLabelText('Nome completo');
     for (const rotulo of ['Posto-graduação', 'Nome completo', 'Nome de guerra', 'Antiguidade', 'Sexo', 'Telefone', 'E-mail institucional', 'Comportamento', 'Boletim']) {
       expect(screen.getByLabelText(rotulo), rotulo).toBeDisabled();
@@ -754,8 +832,8 @@ describe('ficha ampliada (fase 5)', () => {
     expect(screen.getAllByText(FRASE)).toHaveLength(4);
     expect(screen.queryByRole('button', { name: 'Incluir afastamento' })).toBeNull();
     expect(screen.queryByRole('button', { name: 'Remover' })).toBeNull();
-    // o que é da escala continua com quem tem papel na seção
-    expect(screen.getByLabelText('Voluntário JES')).toBeEnabled();
+    // o voluntário JES é da SP (6.32); o que é da escala (as habilitações: motorista e CNH) continua com quem tem papel na seção
+    expect(screen.getByLabelText('Voluntário JES')).toBeDisabled();
     expect(screen.getByRole('button', { name: /^D\b/ })).toBeEnabled();
   });
 
@@ -771,7 +849,7 @@ describe('ficha ampliada (fase 5)', () => {
 
   it('com os dados restritos, o bloco Dados pessoais aparece com o CPF, o nascimento e o endereço', async () => {
     comFicha();
-    abrir('/militares/m1');
+    abrir('/militares/m1?de=peculio');
     expect(await screen.findByRole('heading', { name: 'Dados pessoais' })).toBeInTheDocument();
     for (const rotulo of ['CPF', 'Dia', 'Mês', 'Ano', 'CEP', 'Logradouro']) expect(screen.getByLabelText(rotulo), rotulo).toBeInTheDocument();
   });
@@ -783,18 +861,6 @@ describe('ficha ampliada (fase 5)', () => {
     expect(screen.queryByText(FRASE)).toBeNull();
     expect(screen.getByLabelText('Telefone')).toBeEnabled();
     expect(screen.getByRole('button', { name: 'Incluir afastamento' })).toBeInTheDocument();
-  });
-
-  it('"Alterar situação" trava o campo Lotação sem papel acima da lotação, e a equipe e a jornada seguem editáveis', async () => {
-    comFicha(SEM_PECULIO, { 'GET /api/unidades-de-lotacao': { status: 200, corpo: [{ id: 'u-1sb', sigla: '1ª SB', nome: '1ª Seção de Bombeiros' }] } });
-    abrir('/militares/m1');
-    await userEvent.click(await screen.findByRole('button', { name: /Histórico de rastreio/ }));
-    await userEvent.click(screen.getByRole('button', { name: 'Alterar situação' }));
-    const dialogo = within(await screen.findByRole('dialog'));
-    expect(dialogo.getByLabelText('Lotação')).toBeDisabled();
-    expect(dialogo.getByText('A lotação, o quadro e a situação são alterados por quem tem nível de acesso em 2º GB.')).toBeInTheDocument();
-    expect(dialogo.getByLabelText('Equipe')).toBeEnabled();
-    expect(dialogo.getByLabelText('Jornada')).toBeEnabled();
   });
 
   it('a pendência "Nome completo em falta" aparece na lista e na ficha', async () => {
@@ -910,23 +976,20 @@ describe('ficha em painel único', () => {
 
 describe('remover, nomes das ações e erros por campo', () => {
   it('remover afastamento pergunta e, confirmando, envia o DELETE', async () => {
-    const confirmar = vi.spyOn(window, 'confirm').mockReturnValue(true);
     const f = api({ 'DELETE /api/afastamentos/a1': { status: 204 } });
     abrir('/militares/m1');
     await userEvent.click(await screen.findByRole('button', { name: 'Remover' }));
-    expect(confirmar).toHaveBeenCalledWith('Remover o afastamento Férias de 01/12/2026 a 10/12/2026?');
+    expect(await screen.findByRole('dialog', { name: 'Remover o afastamento?' })).toHaveTextContent('Férias, de 01/12/2026 a 10/12/2026.');
+    await responderConfirmacao('Remover');
     await waitFor(() => expect(f.mock.calls.some(([, init]) => init?.method === 'DELETE')).toBe(true));
-    confirmar.mockRestore();
   });
 
   it('remover afastamento, cancelando a pergunta, não envia', async () => {
-    const confirmar = vi.spyOn(window, 'confirm').mockReturnValue(false);
     const f = api({ 'DELETE /api/afastamentos/a1': { status: 204 } });
     abrir('/militares/m1');
     await userEvent.click(await screen.findByRole('button', { name: 'Remover' }));
-    expect(confirmar).toHaveBeenCalled();
+    await responderConfirmacao('Cancelar');
     expect(f.mock.calls.some(([, init]) => init?.method === 'DELETE')).toBe(false);
-    confirmar.mockRestore();
   });
 
   it('o formulário de afastamento salva com Salvar', async () => {
@@ -1160,7 +1223,7 @@ describe('apagar um militar (6.13)', () => {
     abrir('/militares/m1');
     const botao = await screen.findByRole('button', { name: 'Apagar militar' });
     const titulos = [...document.querySelectorAll('h3')].map((h) => h.textContent ?? '');
-    expect(titulos.at(-1)).toBe('Apagar militar');
+    expect(titulos.at(-1)).toBe('Apagar do sistema');
     expect(botao).toBeInTheDocument();
   });
 
@@ -1335,5 +1398,133 @@ describe('mover pela hierarquia e quem moveu (6.23)', () => {
     expect(caixa.getByRole('button', { name: 'Salvar' })).toBeEnabled();
     await userEvent.click(caixa.getByRole('button', { name: 'Salvar' }));
     await waitFor(() => expect(corpoEnviado(f, 'POST /api/militares/m1/situacao')).toMatchObject({ unidadeId: 'u-2sb' }));
+  });
+});
+
+describe('a ficha da escala (6.32)', () => {
+  const NOMES = ['Identificação', 'Contato', 'Dados pessoais', 'Comportamento', 'Habilitações', 'Afastamentos', 'Histórico de rastreio', 'Acesso ao sistema'];
+  const secoes = () => screen.getAllByRole('heading', { level: 3 }).map((h) => NOMES.find((n) => (h.textContent ?? '').startsWith(n))).filter(Boolean);
+  const SEM_PECULIO: FichaMilitar = { ...FICHA, podeEditar: { peculio: false, escala: true, unidadeDeCima: '2º GB' } };
+  const SO_LEITURA: FichaMilitar = { ...FICHA, podeEditar: { peculio: false, escala: false, unidadeDeCima: '2º GB' } };
+
+  it('aberta pela aba Militares (sem "de"), mesmo para quem vê os dados restritos, a ficha traz só o que serve à escala, nesta ordem', async () => {
+    api();
+    abrir('/militares/m1');
+    await screen.findByText('Férias');
+    expect(secoes()).toEqual(['Identificação', 'Contato', 'Habilitações', 'Afastamentos', 'Histórico de rastreio', 'Acesso ao sistema']);
+    expect(screen.queryByRole('heading', { name: 'Dados pessoais' })).toBeNull();
+    expect(screen.queryByRole('heading', { name: 'Comportamento' })).toBeNull();
+  });
+
+  it('Review Focus 3: aberta pelo Pecúlio (?de=peculio), a ficha continua completa, com Dados pessoais e Comportamento', async () => {
+    api();
+    abrir('/militares/m1?de=peculio');
+    await screen.findByText('Férias');
+    expect(secoes()).toEqual(['Identificação', 'Contato', 'Dados pessoais', 'Comportamento', 'Habilitações', 'Afastamentos', 'Histórico de rastreio', 'Acesso ao sistema']);
+  });
+
+  it('"Motorista" vira "Habilitações", com o quadro de motoristas, as categorias da CNH e o botão "Salvar habilitações"', async () => {
+    api();
+    abrir('/militares/m1');
+    const bloco = (await screen.findByRole('heading', { name: 'Habilitações' })).closest('section')!;
+    expect(screen.queryByRole('heading', { name: 'Motorista' })).toBeNull();
+    expect(within(bloco).getByText('Está no quadro de motoristas?')).toBeInTheDocument();
+    expect(within(bloco).getByRole('group', { name: 'Categorias da CNH' })).toBeInTheDocument();
+    expect(within(bloco).getByRole('button', { name: 'Salvar habilitações' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Salvar motorista' })).toBeNull();
+  });
+
+  it('sem poder sobre a escala, as habilitações aparecem só para leitura, com a frase de quem altera (bloquear não é esconder)', async () => {
+    api({ 'GET /api/militares/m1': { status: 200, corpo: SO_LEITURA } });
+    abrir('/militares/m1');
+    const bloco = within((await screen.findByRole('heading', { name: 'Habilitações' })).closest('section')!);
+    expect(bloco.getByText('Este bloco é alterado por quem tem nível de acesso em 2º GB.')).toBeInTheDocument();
+    for (const radio of bloco.getAllByRole('radio')) expect(radio).toBeDisabled();
+    for (const categoria of within(bloco.getByRole('group', { name: 'Categorias da CNH' })).getAllByRole('button')) expect(categoria).toBeDisabled();
+    expect(bloco.queryByRole('button', { name: 'Salvar habilitações' })).toBeNull();
+  });
+
+  it('a SB (sem nível de acesso acima da lotação): o voluntário JES é só para leitura e não há "Alterar situação"; quem tem nível acima edita o voluntário e altera a situação', async () => {
+    api({ 'GET /api/militares/m1': { status: 200, corpo: SEM_PECULIO } });
+    abrir('/militares/m1');
+    expect(await screen.findByLabelText('Voluntário JES')).toBeDisabled();
+    await userEvent.click(screen.getByRole('button', { name: /Histórico de rastreio/ }));
+    expect(screen.queryByRole('button', { name: 'Alterar situação' })).toBeNull();
+    cleanup();
+    api();
+    abrir('/militares/m1');
+    expect(await screen.findByLabelText('Voluntário JES')).toBeEnabled();
+    // a seção lembra que a pessoa a abriu acima: só abre se ainda estiver recolhida
+    const historico = screen.getByRole('button', { name: /Histórico de rastreio/ });
+    if (historico.getAttribute('aria-expanded') === 'false') await userEvent.click(historico);
+    expect(await screen.findByRole('button', { name: 'Alterar situação' })).toBeInTheDocument();
+  });
+});
+
+describe('toda seção da ficha recolhe, e a tela lembra (6.32)', () => {
+  const FICHA2: FichaMilitar = { ...FICHA, id: 'm2', matricula: '990002-2', nomeGuerra: 'BARRETO' };
+  const botaoDa = (titulo: string) => screen.getByRole('button', { name: new RegExp(`^${titulo}`) });
+
+  it('o título de cada seção é um botão (aria-expanded) que fecha e abre; todas começam abertas, menos o histórico de rastreio', async () => {
+    api();
+    abrir('/militares/m1');
+    await screen.findByText('Férias');
+    for (const t of ['Identificação', 'Contato', 'Habilitações', 'Afastamentos', 'Acesso ao sistema']) expect(botaoDa(t), t).toHaveAttribute('aria-expanded', 'true');
+    expect(botaoDa('Histórico de rastreio')).toHaveAttribute('aria-expanded', 'false');
+    await userEvent.click(botaoDa('Afastamentos'));
+    expect(botaoDa('Afastamentos')).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.queryByRole('button', { name: 'Incluir afastamento' })).toBeNull();
+    await userEvent.click(botaoDa('Afastamentos'));
+    expect(botaoDa('Afastamentos')).toHaveAttribute('aria-expanded', 'true');
+    expect(await screen.findByRole('button', { name: 'Incluir afastamento' })).toBeInTheDocument();
+  });
+
+  it('com a seção recolhida, o resumo aparece no título', async () => {
+    api();
+    abrir('/militares/m1');
+    await screen.findByText('Férias');
+    expect(within(botaoDa('Histórico de rastreio')).getByText('1ª SB · Equipe Alfa · Pronto · QBMG · Ativa (desde 01/11/2026)')).toBeInTheDocument();
+  });
+
+  it('o que a pessoa recolheu fica recolhido ao abrir a ficha de outro militar, e o que ela abriu (o histórico) fica aberto', async () => {
+    api({ 'GET /api/militares/m2': { status: 200, corpo: FICHA2 } });
+    const router = abrir('/militares/m1');
+    await screen.findByText('Férias');
+    await userEvent.click(botaoDa('Contato'));
+    await userEvent.click(botaoDa('Histórico de rastreio'));
+    await act(() => router.navigate({ to: '/militares/$id', params: { id: 'm2' } }));
+    await screen.findByText('BARRETO');
+    await waitFor(() => expect(botaoDa('Contato')).toHaveAttribute('aria-expanded', 'false'));
+    expect(botaoDa('Histórico de rastreio')).toHaveAttribute('aria-expanded', 'true');
+    expect(botaoDa('Identificação')).toHaveAttribute('aria-expanded', 'true');
+  });
+
+  it('Review Focus 4: sem armazenamento (o localStorage lança erro), a ficha abre com tudo aberto, sem quebrar', async () => {
+    const ler = vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
+      throw new Error('sem armazenamento');
+    });
+    const gravar = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      throw new Error('sem armazenamento');
+    });
+    try {
+      api();
+      abrir('/militares/m1');
+      await screen.findByText('Férias');
+      expect(botaoDa('Contato')).toHaveAttribute('aria-expanded', 'true');
+      await userEvent.click(botaoDa('Contato'));
+      expect(botaoDa('Contato')).toHaveAttribute('aria-expanded', 'false');
+    } finally {
+      ler.mockRestore();
+      gravar.mockRestore();
+    }
+  });
+
+  it('as ações da seção só aparecem com ela aberta', async () => {
+    api();
+    abrir('/militares/m1');
+    await userEvent.click(await screen.findByRole('button', { name: /Histórico de rastreio/ }));
+    expect(await screen.findByRole('button', { name: 'Alterar situação' })).toBeInTheDocument();
+    await userEvent.click(botaoDa('Histórico de rastreio'));
+    expect(screen.queryByRole('button', { name: 'Alterar situação' })).toBeNull();
   });
 });

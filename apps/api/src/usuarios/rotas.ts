@@ -3,7 +3,7 @@
 import { hashPassword } from 'better-auth/crypto';
 import { EncerrarPapel, NovoPapel, type AcessoDoMilitar, type Papel, type PapelDoMilitar, type SenhaProvisoria, type SituacaoDoAcesso } from 'contratos';
 import { Hono } from 'hono';
-import { exigirSessao, GESTAO, temPapel, temPapelAcima, type AmbienteApi } from '../acesso.ts';
+import { ehAdministrador, exigirSessao, GESTAO, temPapel, temPapelAcima, type AmbienteApi } from '../acesso.ts';
 import type { Auth } from '../auth.ts';
 import { comUsuario, type Banco, type Consulta } from '../banco/banco.ts';
 import { exigirPapelNoRegistro } from '../cadastros/militares.ts';
@@ -22,6 +22,7 @@ const MSG_FIM_ANTES = 'O fim não pode ser antes do início.';
 const MSG_ATE_ANTES = 'O encerramento não pode ser antes do início do nível de acesso.';
 const MSG_EMAIL_EM_USO = 'Este e-mail já é de outro militar.';
 const MSG_SO_QUEM_PODE_DAR = 'Só quem pode dar o nível de acesso dessa pessoa mexe no acesso dela.';
+const MSG_SO_QUEM_DA_NIVEL = 'Desativar o acesso é de quem dá o nível de acesso.';
 const MSG_SEM_ACESSO = 'Este militar ainda não tem acesso ao sistema.';
 const MSG_UNIDADE_EXTINTA = 'Esta unidade foi extinta.';
 
@@ -59,10 +60,12 @@ export async function montarAcesso(c: Consulta, militarId: string): Promise<Aces
   const papeis = m.usuario_id
     ? (await c.query<{ id: string; papel: PapelDoMilitar['papel']; unidade_id: string; sigla: string; desde: string; ate: string | null; ultimo_gestor: boolean }>(
         `select pu.id, pu.papel, pu.unidade_id, un.sigla, to_char(pu.desde, 'YYYY-MM-DD') as desde, to_char(pu.ate, 'YYYY-MM-DD') as ate,
-                -- gestor vigente com "até" marcado, sem outro gestor vigente na unidade que dure mais: o último dela
+                -- gestor vigente com "até" marcado, sem outro gestor na unidade (ou numa acima dela) que dure mais: o último dela. O outro conta mesmo que só comece
+                -- depois de hoje, desde que comece até o dia seguinte ao fim deste (sem buraco entre os dois)
                 (pu.papel = 'gestor' and pu.ate is not null and pu.ate >= $2::date and pu.desde <= $2::date and not exists (
-                   select 1 from papel_usuario o where o.unidade_id = pu.unidade_id and o.papel = 'gestor' and o.id <> pu.id
-                      and o.desde <= $2::date and (o.ate is null or o.ate > pu.ate))) as ultimo_gestor
+                   select 1 from papel_usuario o join unidade ua on ua.id = o.unidade_id
+                    where o.papel = 'gestor' and o.id <> pu.id and ua.caminho @> un.caminho
+                      and o.desde <= pu.ate + 1 and (o.ate is null or o.ate > pu.ate))) as ultimo_gestor
            from papel_usuario pu join unidade un on un.id = pu.unidade_id
           where pu.usuario_id = $1 order by pu.desde desc, un.sigla, pu.papel`,
         [m.usuario_id, hojeRecife()],
@@ -130,11 +133,26 @@ async function podeNaUnidade(c: Consulta, usuarioId: string, papel: Papel, unida
   return (await temPapel(c, usuarioId, unidadeId, GESTAO, hoje)) ? null : MSG_SEM_PODER;
 }
 
+/** Quem dá nível de acesso ao militar: gestor ou administrador na lotação dele ou acima; sem lotação, só o administrador. */
+async function daNivelDeAcesso(c: Consulta, usuarioId: string, militarId: string): Promise<boolean> {
+  const hoje = hojeRecife();
+  const lotacao = (
+    await c.query<{ unidade_id: string }>(
+      `select unidade_id from rastreio where militar_id = $1 order by (desde <= $2::date and (ate is null or ate >= $2::date)) desc, desde desc limit 1`,
+      [militarId, hoje],
+    )
+  ).rows[0]?.unidade_id;
+  if (!lotacao) return ehAdministrador(c, usuarioId, hoje);
+  return temPapel(c, usuarioId, lotacao, GESTAO, hoje);
+}
+
 /**
  * Gerar a senha e desativar o acesso valem só para quem poderia dar todos os papéis da pessoa (que ainda não terminaram): senão o auxiliar
  * geraria a senha de um gestor e entraria como ele. Devolve o texto do 403, ou null.
  */
 async function podeMexerNaConta(c: Consulta, usuarioId: string, militarId: string, paraDesativar = false): Promise<string | null> {
+  // desativar o acesso é de quem dá o nível de acesso (gestor na lotação do militar ou acima, ou o administrador): o auxiliar só gera a senha (6.32)
+  if (paraDesativar && !(await daNivelDeAcesso(c, usuarioId, militarId))) return MSG_SO_QUEM_DA_NIVEL;
   const { rows } = await c.query<{ papel: Papel; unidade_id: string; ativo: boolean }>(
     `select pu.papel, pu.unidade_id, u.ativo from papel_usuario pu join usuario u on u.id = pu.usuario_id
       where u.militar_id = $1 and (pu.ate is null or pu.ate >= $2::date)`,
@@ -145,7 +163,8 @@ async function podeMexerNaConta(c: Consulta, usuarioId: string, militarId: strin
     // a folga do auxiliar (decisão de 21/11/2026): o papel de auxiliar de um colega também passa para quem é auxiliar na unidade dele ou acima,
     // mas só enquanto a conta está ativa: gerar a senha de uma conta desativada a reativa, e isso fica para quem dá o papel.
     // Desativar de novo uma conta já desativada não muda nada, então não tem essa trava
-    if (p.papel === 'escalante' && (p.ativo || paraDesativar) && (await temPapel(c, usuarioId, p.unidade_id, ['escalante'], hojeRecife()))) continue;
+    // (a folga vale só para gerar a senha: desativar é de quem dá o nível, e isso já passou na checagem de cima)
+    if (p.papel === 'escalante' && p.ativo && !paraDesativar && (await temPapel(c, usuarioId, p.unidade_id, ['escalante'], hojeRecife()))) continue;
     return MSG_SO_QUEM_PODE_DAR;
   }
   return null;

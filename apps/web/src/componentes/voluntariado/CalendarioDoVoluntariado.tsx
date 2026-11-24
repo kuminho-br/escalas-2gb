@@ -263,23 +263,23 @@ export function CalendarioDoVoluntariado({
 
       {!soLeitura && (
       <div className="flex flex-wrap items-center gap-2">
-        <Button type="button" size="sm" variant="outline" onClick={() => setMarcas((m) => marcarDias(m, fimDeSemana(mes)))}>Todos os sábados e domingos</Button>
+        <Button type="button" size="sm" variant="secundario" onClick={() => setMarcas((m) => marcarDias(m, fimDeSemana(mes)))}>Todos os sábados e domingos</Button>
         {dados.folgas && militar.equipe && (
-          <Button type="button" size="sm" variant="outline" onClick={() => setMarcas((m) => marcarDias(m, dados.folgas!))}>{`Dias de folga da equipe ${militar.equipe}`}</Button>
+          <Button type="button" size="sm" variant="secundario" onClick={() => setMarcas((m) => marcarDias(m, dados.folgas!))}>{`Dias de folga da equipe ${militar.equipe}`}</Button>
         )}
-        <Button type="button" size="sm" variant="outline" disabled={dados.doMesAnterior.length === 0} onClick={() => setMarcas(copiarDoMes(dados.doMesAnterior, mes))}>
+        <Button type="button" size="sm" variant="secundario" disabled={dados.doMesAnterior.length === 0} onClick={() => setMarcas(copiarDoMes(dados.doMesAnterior, mes))}>
           {`Copiar de ${mesPorExtenso(anterior)}`}
         </Button>
       </div>
       )}
       {/* no celular o resumo e o Salvar ficam numa barra fixa embaixo: o botão não fica depois das 31 linhas */}
       <div data-barra-de-salvar className={cn('grid gap-2', celular && 'sticky bottom-0 z-10 -mx-4 -mb-4 border-t border-linha bg-superficie px-4 py-3')}>
-        <p className="text-sm text-apagado">{textoDoRodape(marcas)}</p>
+        <p className="text-sm break-words text-apagado">{textoDoRodape(marcas)}</p>
         {!soLeitura && (
           <>
             {!celular && <p className="text-xs text-apagado">Atalhos de teclado: setas movem, espaço marca, Enter salva e passa ao próximo.</p>}
             <div className="flex flex-wrap items-center gap-2">
-              <Button type="button" variant="outline" onClick={() => setMarcas(new Map())} disabled={salvando}>Limpar</Button>
+              <Button type="button" variant="secundario" onClick={() => setMarcas(new Map())} disabled={salvando}>Limpar</Button>
               <Button type="button" onClick={() => void gravar()} disabled={salvando}>{celular ? 'Salvar' : 'Salvar e ir para o próximo'}</Button>
               <EtiquetaPendente sujo={sujo} />
             </div>

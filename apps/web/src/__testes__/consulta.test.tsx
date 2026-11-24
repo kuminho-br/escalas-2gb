@@ -2,7 +2,7 @@ import type { FichaDeConsulta, LinhaDaConsulta, UnidadeDaConsulta } from 'contra
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
-import { abrir, chamadasA, EU_EXEMPLO, simularApi } from './apoio';
+import { abrir, chamadasA, corpoEnviado, EU_EXEMPLO, responderConfirmacao, simularApi } from './apoio';
 
 // Entrega 6.11, Task 7: a consulta de militares (todo militar com conta) e a ficha de consulta, só para leitura. Dados fictícios (D7).
 const COMUM = { ...EU_EXEMPLO, papeis: [], lotacao: EU_EXEMPLO.unidades[0]! };
@@ -158,7 +158,7 @@ describe('a ficha de consulta', () => {
   const FICHA_MINIMA: FichaDeConsulta = { ...linha('m1', 'ANDRADE'), podeAbrirFichaCompleta: false };
   const FICHA_COMPLETA: FichaDeConsulta = {
     ...linha('m1', 'ANDRADE'),
-    contato: { telefone: '(81) 99999-0001', email: 'andrade@bombeiros.pe.gov.br' },
+    contato: { telefone: '(81) 99999-0001', email: 'andrade@bombeiros.pe.gov.br', emailPessoal: 'andrade.pessoal@exemplo.test' },
     situacao: {
       equipe: 'Alfa', jornada: 'pronto', situacaoDoMilitar: 'Ativa', funcao: 'Chefe de seção',
       historico: [
@@ -197,6 +197,9 @@ describe('a ficha de consulta', () => {
     expect(blocos()).toEqual(['Identificação', 'Contato', 'Situação', 'Afastamentos', 'Dados da escala', 'Comportamento']);
     expect(screen.getByText('(81) 99999-0001')).toBeInTheDocument();
     expect(screen.getByText('andrade@bombeiros.pe.gov.br')).toBeInTheDocument();
+    // o e-mail institucional e o pessoal aparecem com o nome de cada um (6.18, item 23)
+    expect(screen.getByText('E-mail institucional').nextElementSibling).toHaveTextContent('andrade@bombeiros.pe.gov.br');
+    expect(screen.getByText('E-mail pessoal').nextElementSibling).toHaveTextContent('andrade.pessoal@exemplo.test');
     expect(screen.getByText('Função').nextSibling).toHaveTextContent('Chefe de seção');
     const historico = within(screen.getByRole('list', { name: 'Histórico de lotação' })).getAllByRole('listitem');
     expect(historico).toHaveLength(2);
@@ -258,5 +261,70 @@ describe('a ficha de consulta', () => {
     await screen.findByRole('heading', { level: 2, name: /ANDRADE/ });
     await waitFor(() => expect(document.title).toBe('Consulta de militares · Sistema de Gestão - 2º GB'));
     expect(document.title).not.toMatch(/ANDRADE/);
+  });
+});
+
+describe('o militar externo na ficha de consulta (6.33)', () => {
+  const FICHA: FichaDeConsulta = { ...linha('m1', 'ANDRADE', { lotacao: '2ª SB' }), podeAbrirFichaCompleta: false };
+  const COM_BOTAO = (vinculoId: string | null): FichaDeConsulta => ({ ...FICHA, externo: { unidadeSigla: '1ª SB', vinculoId } });
+  const urlsDaFicha = (f: ReturnType<typeof simularApi>) =>
+    f.mock.calls.map(([e]) => String(typeof e === 'string' ? e : e instanceof URL ? e.href : (e as Request).url)).filter((u) => u.startsWith('/api/consulta/militares/m1'));
+
+  it('a ficha é pedida com a unidade de trabalho; com a chave externo e sem vínculo, o gestor vê "Trazer para a escala de 1ª SB", e depois de trazer o botão vira "Tirar da escala de 1ª SB"', async () => {
+    const rotas: Parameters<typeof simularApi>[0] = {
+      '/api/eu': { status: 200, corpo: COMUM },
+      'GET /api/consulta/unidades': { status: 200, corpo: UNIDADES },
+      'GET /api/consulta/militares/m1': { status: 200, corpo: COM_BOTAO(null) },
+      'POST /api/unidades/u-1sb/externos': { status: 201, corpo: { vinculoId: 'v1', militarId: 'm1', posto: 'SD', nomeGuerra: 'ANDRADE', matricula: '990001-1', lotacaoSigla: '2ª SB', desde: '2026-11-24' } },
+    };
+    const f = simularApi(rotas);
+    abrir('/consulta/m1');
+    const trazer = await screen.findByRole('button', { name: 'Trazer para a escala de 1ª SB' });
+    expect(urlsDaFicha(f)[0]).toContain('unidade=u-1sb');
+    rotas['GET /api/consulta/militares/m1'] = { status: 200, corpo: COM_BOTAO('v1') };
+    await userEvent.click(trazer);
+    await waitFor(() => expect(chamadasA(f, 'POST /api/unidades/u-1sb/externos')).toBe(1));
+    expect(corpoEnviado(f, 'POST /api/unidades/u-1sb/externos')).toEqual({ militarId: 'm1' });
+    expect(await screen.findByRole('button', { name: 'Tirar da escala de 1ª SB' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Trazer para a escala de 1ª SB' })).toBeNull();
+  });
+
+  it('"Tirar da escala de 1ª SB" pede a confirmação fixa; confirmando, manda o DELETE do vínculo e o botão volta a "Trazer"; Cancelar não manda nada', async () => {
+    const rotas: Parameters<typeof simularApi>[0] = {
+      '/api/eu': { status: 200, corpo: COMUM },
+      'GET /api/consulta/unidades': { status: 200, corpo: UNIDADES },
+      'GET /api/consulta/militares/m1': { status: 200, corpo: COM_BOTAO('v1') },
+      'DELETE /api/unidades/u-1sb/externos/v1': { status: 204 },
+    };
+    const f = simularApi(rotas);
+    abrir('/consulta/m1');
+    await userEvent.click(await screen.findByRole('button', { name: 'Tirar da escala de 1ª SB' }));
+    const dialogo = await screen.findByRole('dialog', { name: 'Tirar SD ANDRADE da escala de 1ª SB?' });
+    expect(dialogo).toHaveTextContent('Os serviços já lançados ficam.');
+    await responderConfirmacao('Cancelar');
+    expect(chamadasA(f, 'DELETE /api/unidades/u-1sb/externos/v1')).toBe(0);
+    rotas['GET /api/consulta/militares/m1'] = { status: 200, corpo: COM_BOTAO(null) };
+    await userEvent.click(screen.getByRole('button', { name: 'Tirar da escala de 1ª SB' }));
+    await responderConfirmacao('Tirar');
+    await waitFor(() => expect(chamadasA(f, 'DELETE /api/unidades/u-1sb/externos/v1')).toBe(1));
+    expect(await screen.findByRole('button', { name: 'Trazer para a escala de 1ª SB' })).toBeInTheDocument();
+  });
+
+  it('sem a chave externo na ficha (o auxiliar, o militar da própria unidade): nenhum dos dois botões', async () => {
+    api({ 'GET /api/consulta/militares/m1': { status: 200, corpo: FICHA } });
+    abrir('/consulta/m1');
+    await screen.findByRole('heading', { level: 2, name: /ANDRADE/ });
+    expect(screen.queryByRole('button', { name: /Trazer para a escala/ })).toBeNull();
+    expect(screen.queryByRole('button', { name: /Tirar da escala/ })).toBeNull();
+  });
+
+  it('a recusa da API (já está na escala) aparece no aviso de erro', async () => {
+    api({
+      'GET /api/consulta/militares/m1': { status: 200, corpo: COM_BOTAO(null) },
+      'POST /api/unidades/u-1sb/externos': { status: 409, corpo: { erro: 'Já está na escala de 1ª SB.' } },
+    });
+    abrir('/consulta/m1');
+    await userEvent.click(await screen.findByRole('button', { name: 'Trazer para a escala de 1ª SB' }));
+    expect(await screen.findByText('Já está na escala de 1ª SB.')).toBeInTheDocument();
   });
 });

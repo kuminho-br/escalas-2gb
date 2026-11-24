@@ -14,6 +14,8 @@ import { Input } from '@/componentes/ui/input';
 import { Label } from '@/componentes/ui/label';
 import { resumoDaGuarnicao, versaoVigente } from '@/lib/guarnicoes';
 import { mesAtual } from '@/lib/meses';
+import { useConfirmar } from '@/componentes/resposta/useConfirmar';
+import { Espera } from '@/componentes/resposta/Espera';
 
 export const Route = createFileRoute('/_app/configuracoes_/modelos-de-guarnicao/$id')({
   component: Pagina,
@@ -45,7 +47,7 @@ function Ficha() {
   const { eu } = Route.useRouteContext();
   const { data: ficha, error, isPending } = useQuery(consultaGuarnicao(id));
 
-  if (isPending) return <p className="p-4 text-apagado">Carregando…</p>;
+  if (isPending) return <Espera className="p-4" />;
   if (error) return <p role="alert" className="p-4 text-alerta">{mensagemDe(error)}</p>;
 
   return (
@@ -118,6 +120,7 @@ function Identificacao({ ficha }: { ficha: FichaGuarnicao }) {
 /** Desativar agora, a partir de um mês, ou reativar. */
 function Situacao({ ficha }: { ficha: FichaGuarnicao }) {
   const queryClient = useQueryClient();
+  const confirmar = useConfirmar();
   const mes = mesAtual();
   // a lista olha a versão em vigor no mês; se só ela estiver inativa e uma futura voltar a ativa, `desativadaAPartirDe` vem nulo
   // e a ficha precisa dizer a mesma coisa que a lista: desativada, com o mês em que a versão inativa passou a valer
@@ -141,8 +144,8 @@ function Situacao({ ficha }: { ficha: FichaGuarnicao }) {
   }
 
   // só o "Desativar agora" pergunta: vale já neste mês e muda o que as escalas usam; os outros caminhos são marcados ou desfazem
-  function desativarAgora() {
-    if (!window.confirm(`Desativar o modelo ${ficha.nome} agora? As escalas deixam de usá-lo a partir de ${mesPorExtenso(mes)}.`)) return;
+  async function desativarAgora() {
+    if (!(await confirmar({ titulo: 'Desativar o modelo?', texto: `${ficha.nome}: as escalas deixam de usá-lo a partir de ${mesPorExtenso(mes)}.`, verbo: 'Desativar' }))) return;
     void mudar(false, mes);
   }
 
@@ -152,19 +155,19 @@ function Situacao({ ficha }: { ficha: FichaGuarnicao }) {
         {desde && desde <= mes && (
           <>
             <p className="font-medium text-alerta">Desativada desde {mesPorExtenso(desde)}.</p>
-            <Button type="button" size="sm" variant="outline" onClick={() => void mudar(true, mes)}>Reativar agora</Button>
+            <Button type="button" size="sm" variant="secundario" onClick={() => void mudar(true, mes)}>Reativar agora</Button>
           </>
         )}
         {desde && desde > mes && (
           <>
             <p className="font-medium">Será desativada em {mesPorExtenso(desde)}.</p>
-            <Button type="button" size="sm" variant="outline" onClick={() => void mudar(true, desde)}>Cancelar desativação</Button>
+            <Button type="button" size="sm" variant="secundario" onClick={() => void mudar(true, desde)}>Cancelar desativação</Button>
           </>
         )}
         {!desde && (
           <>
-            <Button type="button" size="sm" variant="outline" onClick={() => desativarAgora()}>Desativar agora</Button>
-            <Button type="button" size="sm" variant="ghost" onClick={() => setEscolhendo(!escolhendo)}>Desativar a partir de…</Button>
+            <Button type="button" size="sm" variant="secundario" onClick={() => desativarAgora()}>Desativar agora</Button>
+            <Button type="button" size="sm" variant="discreto" onClick={() => setEscolhendo(!escolhendo)}>Desativar a partir de…</Button>
           </>
         )}
       </div>

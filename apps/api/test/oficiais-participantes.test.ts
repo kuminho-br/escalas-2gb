@@ -2,6 +2,7 @@ import type { EscalaDosOficiais, OficialNoSaldo } from 'contratos';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { inserir } from './banco-teste.ts';
 import { montarApi, type ApiDeTeste } from './apoio-api.ts';
+import { escalaDaRodada } from './apoio-oficiais.ts';
 
 // P1.5: ser QOC ou QOA torna o oficial elegível; quem participa do mês é o gestor que marca.
 // Dados fictícios (D7): oficiais 9905xx-x no 2º GB. Março de 2027 é o primeiro mês da unidade; abril e maio copiam o anterior.
@@ -9,9 +10,6 @@ let api: ApiDeTeste;
 const posto: Record<string, string> = {};
 const quadro: Record<string, string> = {};
 const ids: Record<string, string> = {};
-let servico: string;
-let turnoA: string;
-let turnoB: string;
 let seq = 0;
 
 async function oficial(nome: string, antiguidade: number, opcoes: { posto?: string; quadro?: string; desde?: string } = {}) {
@@ -26,11 +24,11 @@ type Resposta = EscalaDosOficiais & { liberados?: string[] };
 const rota = (mes: string, resto = '') => `/api/unidades/${api.ids.gb}/oficiais/${mes}${resto}`;
 const ler = async (mes: string): Promise<EscalaDosOficiais> => (await api.pedir('gestorGb', 'GET', rota(mes))).json();
 const marcar = (mes: string, nomes: string[], quem: 'gestorGb' | 'escalante' = 'gestorGb') => api.pedir(quem, 'PUT', rota(mes, '/participantes'), { militarIds: nomes.map((n) => ids[n]) });
-const calcular = (mes: string) => api.pedir('gestorGb', 'POST', rota(mes, '/cotas'));
-const lancar = (mes: string, dia: string, turno: string, nome: string | null) => api.pedir('gestorGb', 'PUT', rota(mes, `/turnos/${dia}/${turno}`), { militarId: nome ? ids[nome] : null });
+const calcular = (mes: string) => api.pedir('gestorGb', 'POST', rota(mes, '/abrir'));
+const lancar = (mes: string, dia: string, letra: string, nome: string) => api.pedir('gestorGb', 'POST', rota(mes, '/lancamentos'), { dia, letra, servico: 'saldo', militarId: ids[nome] });
 const de = (e: EscalaDosOficiais, nome: string) => e.oficiais.find((o) => o.militarId === ids[nome]);
 const resumo = (e: EscalaDosOficiais) => e.oficiais.map((o) => [o.nomeGuerra, o.participa, o.novo]);
-const MSG_MARQUE = 'Marque quem participa da rodada antes de calcular as cotas.';
+const MSG_MARQUE = 'Marque quem participa da rodada antes de abrir o mês.';
 
 beforeAll(async () => {
   api = await montarApi();
@@ -40,10 +38,7 @@ beforeAll(async () => {
   await oficial('b', 2);
   await oficial('c', 3);
   await oficial('praca', 1, { posto: '2º SGT', quadro: 'QBMG' });
-  servico = await inserir(api.banco, 'servico', { unidade_id: api.ids.gb, nome: 'Oficial de operações', tipo: 'ordinario', cor: '#2F8F5B' });
-  turnoA = await inserir(api.banco, 'turno', { servico_id: servico, letra: 'A', inicio: '07:00', fim: '19:00' });
-  turnoB = await inserir(api.banco, 'turno', { servico_id: servico, letra: 'B', inicio: '19:00', fim: '07:00' });
-  expect((await api.pedir('gestorGb', 'PUT', rota('2027-03', '/servico'), { servicoId: servico })).status).toBe(200);
+  await escalaDaRodada(api.banco, api.ids.gb);
 });
 afterAll(async () => {
   await api.fechar();
@@ -54,7 +49,7 @@ describe('o primeiro mês da unidade', () => {
     expect(resumo(await ler('2027-03'))).toEqual([['A', false, false], ['B', false, false], ['C', false, false]]);
   });
 
-  it('com elegíveis e nenhum participante marcado, calcular as cotas dá 409 com o texto (Review Focus 3)', async () => {
+  it('com elegíveis e nenhum participante marcado, abrir o mês dá 409 com o texto (Review Focus 3)', async () => {
     const r = await calcular('2027-03');
     expect(r.status).toBe(409);
     expect((await r.json()).erro).toBe(MSG_MARQUE);
@@ -84,15 +79,15 @@ describe('o primeiro mês da unidade', () => {
   });
 
   it('quem não participa não recebe turno (400)', async () => {
-    expect((await lancar('2027-03', '2027-03-01', turnoA, 'c')).status).toBe(400);
+    expect((await lancar('2027-03', '2027-03-01', 'A', 'c')).status).toBe(400);
   });
 });
 
 describe('mudar os participantes depois das cotas', () => {
   it('desmarcar quem já tinha turnos: os turnos ficam vazios, a resposta avisa quantos e as cotas dos outros são refeitas (Review Focus 1)', async () => {
-    expect((await lancar('2027-03', '2027-03-02', turnoA, 'b')).status).toBe(200);
-    expect((await lancar('2027-03', '2027-03-03', turnoB, 'b')).status).toBe(200);
-    expect((await lancar('2027-03', '2027-03-01', turnoA, 'a')).status).toBe(200);
+    expect((await lancar('2027-03', '2027-03-02', 'A', 'b')).status).toBe(200);
+    expect((await lancar('2027-03', '2027-03-03', 'B', 'b')).status).toBe(200);
+    expect((await lancar('2027-03', '2027-03-01', 'A', 'a')).status).toBe(200);
     const r = await marcar('2027-03', ['a']);
     expect(r.status).toBe(200);
     const e: Resposta = await r.json();
@@ -111,7 +106,7 @@ describe('mudar os participantes depois das cotas', () => {
   });
 
   it('um turno só usa o singular no aviso', async () => {
-    expect((await lancar('2027-03', '2027-03-05', turnoA, 'b')).status).toBe(200);
+    expect((await lancar('2027-03', '2027-03-05', 'A', 'b')).status).toBe(200);
     const e: Resposta = await (await marcar('2027-03', ['a'])).json();
     expect(e.liberados).toEqual(['1 turno de CAP B ficou sem ninguém.']);
   });
@@ -171,7 +166,7 @@ describe('o elegível que deixa de ser elegível', () => {
   it('marcado e com turno, muda de quadro no mês: no cálculo seguinte sai da rodada, com o mesmo aviso (Review Focus 2)', async () => {
     // maio copia abril: A e D
     expect((await calcular('2027-05')).status).toBe(200);
-    expect((await lancar('2027-05', '2027-05-02', turnoA, 'd')).status).toBe(200);
+    expect((await lancar('2027-05', '2027-05-02', 'A', 'd')).status).toBe(200);
     await api.banco.query('update rastreio set quadro_id = $2 where militar_id = $1', [ids.d, quadro.QBMG]);
     const r = await calcular('2027-05');
     expect(r.status).toBe(200);
@@ -186,7 +181,7 @@ describe('o elegível que deixa de ser elegível', () => {
     expect((await calcular('2027-07')).status).toBe(200);
     await oficial('e', 5, { desde: '2027-07-01' });
     expect((await marcar('2027-07', ['a', 'e'])).status).toBe(200);
-    expect((await lancar('2027-07', '2027-07-03', turnoA, 'e')).status).toBe(200);
+    expect((await lancar('2027-07', '2027-07-03', 'A', 'e')).status).toBe(200);
     await api.banco.query('update rastreio set quadro_id = $2 where militar_id = $1', [ids.e, quadro.QBMG]);
     // a tela ainda mostra E marcado (tem cota): marcar ou desmarcar outro manda a lista inteira, com ele
     const r = await marcar('2027-07', ['a', 'e']);

@@ -12,7 +12,7 @@ import { Label } from '@/componentes/ui/label';
 import { ddmmaaaa, linhaDoTempoDoMilitar, situacaoInteira } from '@/lib/linha-do-tempo-militar';
 import { hoje } from '@/lib/meses';
 import { proximoPeriodo } from '@/lib/militares';
-import { Secao } from './Secao';
+import { avisoDaLista, Secao } from './Secao';
 
 /** A situação de hoje: o período que cobre o dia de hoje (uma mudança marcada para depois ainda não vale). */
 function periodoAtual(rastreio: FichaMilitar['rastreio']) {
@@ -30,9 +30,10 @@ export function Rastreio({ ficha, unidadeId }: { ficha: FichaMilitar; unidadeId:
   return (
     <Secao
       titulo="Histórico de rastreio"
-      recolhida
+      recolhidaDeInicio
       resumo={situacaoAtual}
-      acoes={<Button size="sm" variant="outline" onClick={() => setAlterando(true)}>Alterar situação</Button>}
+      // alterar a situação (lotação, equipe, jornada, quadro) é de quem tem nível de acesso acima da lotação; a SB só vê o histórico
+      acoes={ficha.podeEditar.peculio ? <Button size="sm" variant="secundario" onClick={() => setAlterando(true)}>Alterar situação</Button> : undefined}
     >
       <p className="mb-3 text-sm">Situação atual: {situacaoAtual}</p>
       <ol className="relative grid gap-3 border-l-2 border-linha pl-4">
@@ -41,7 +42,7 @@ export function Rastreio({ ficha, unidadeId }: { ficha: FichaMilitar; unidadeId:
             <span className={`absolute top-1.5 -left-[1.4rem] size-2.5 rounded-full ${n === 0 ? 'bg-vinho' : 'bg-linha'}`} aria-hidden />
             <span className="mr-2 font-cond text-apagado">{ddmmaaaa(i.quando)}</span>
             <span className={i.tipo === 'situacao' ? 'font-medium' : 'text-apagado'}>{i.texto}</span>
-            {i.autor && <span className="block text-[13px] leading-[18px] text-apagado">{i.autor}</span>}
+            {i.autor && <span className="block text-apoio leading-[18px] text-apagado">{i.autor}</span>}
           </li>
         ))}
         {itens.length === 0 && <li className="text-apagado">Sem lotação registrada.</li>}
@@ -127,7 +128,9 @@ function AlterarSituacao({ ficha, unidadeAtualId, aoFechar }: { ficha: FichaMili
                 {unidadeId === '' && <option value="">Escolha a unidade</option>}
                 {(secoes.data ?? (unidadeId ? [{ id: unidadeId, sigla: atual?.unidadeSigla ?? '…', nome: '' }] : [])).map((s) => <option key={s.id} value={s.id}>{s.sigla}</option>)}
               </Selecao>
-              {!ficha.podeEditar.peculio && <p className="text-xs text-apagado">{`A lotação, o quadro e a situação são alterados por quem tem nível de acesso em ${ficha.podeEditar.unidadeDeCima ?? 'uma unidade acima'}.`}</p>}
+              {avisoDaLista(secoes) && <p className="text-xs text-alerta">{avisoDaLista(secoes)}</p>}
+              {secoes.isError && <Button type="button" size="sm" variant="secundario" className="justify-self-start" disabled={secoes.isFetching} onClick={() => void secoes.refetch()}>Tentar de novo</Button>}
+              {!ficha.podeEditar.peculio && <p className="text-xs text-apagado">{`A lotação, o quadro e a situação são alterados por quem tem nível de acesso ${ficha.podeEditar.unidadeDeCima ? `em ${ficha.podeEditar.unidadeDeCima}` : 'na raiz'}.`}</p>}
             </div>
             <div className="grid gap-1.5">
               <Label htmlFor="rs-equipe">Equipe</Label>

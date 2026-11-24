@@ -14,7 +14,7 @@ const MSG_VALOR = 'Informe um valor diferente de zero, de até 100.';
 const MSG_MOTIVO = 'Diga o motivo do ajuste.';
 
 /** O registro de um oficial: os lançamentos e as coberturas, do mais novo para o mais velho, e o ajuste manual do gestor. */
-export function RegistroDoOficial({ unidadeId, oficial: o }: { unidadeId: string; oficial: OficialNoSaldo }) {
+export function RegistroDoOficial({ unidadeId, escalaId, oficial: o }: { unidadeId: string; escalaId?: string; oficial: OficialNoSaldo }) {
   const queryClient = useQueryClient();
   const { salvando, travar } = useTrava();
   const [aberto, setAberto] = useState(false);
@@ -36,7 +36,7 @@ export function RegistroDoOficial({ unidadeId, oficial: o }: { unidadeId: string
     setErros(e);
     if (e.valor || e.motivo) return;
     try {
-      await lancarAjuste(queryClient, unidadeId, o.militarId, n, motivo.trim());
+      await lancarAjuste(queryClient, unidadeId, o.militarId, n, motivo.trim(), escalaId);
       fechar();
     } catch (x) {
       setErros({ geral: mensagemDe(x) });
@@ -63,7 +63,7 @@ export function RegistroDoOficial({ unidadeId, oficial: o }: { unidadeId: string
       <p className="text-sm">Saldo agora: <b>{formatarSaldo(o.saldo)}</b></p>
       {!aberto ? (
         <div>
-          <Button type="button" variant="outline" size="sm" onClick={() => setAberto(true)}>Ajuste manual</Button>
+          <Button type="button" variant="secundario" size="sm" onClick={() => setAberto(true)}>Ajuste manual</Button>
         </div>
       ) : (
         <form onSubmit={enviar} className="grid gap-2 rounded-md border border-linha p-2.5" noValidate>
@@ -80,7 +80,7 @@ export function RegistroDoOficial({ unidadeId, oficial: o }: { unidadeId: string
           {erros.geral && <p role="alert" className="text-sm text-alerta">{erros.geral}</p>}
           <div className="flex gap-2">
             <Button type="submit" size="sm" disabled={salvando}>Lançar ajuste</Button>
-            <Button type="button" size="sm" variant="outline" onClick={fechar}>Cancelar</Button>
+            <Button type="button" size="sm" variant="secundario" onClick={fechar}>Cancelar</Button>
           </div>
         </form>
       )}

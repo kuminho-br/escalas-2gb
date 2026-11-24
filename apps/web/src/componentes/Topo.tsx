@@ -60,7 +60,7 @@ export function Topo({ eu, aoAbrirMenu, botaoDoMenu, semTrilho = false }: { eu: 
         </button>
       )}
       {/* no celular só a seção atual cabe; o caminho inteiro vale do computador em diante */}
-      <nav aria-label="Unidade" className="min-w-0 flex-1 font-cond text-[15px] text-apagado">
+      <nav aria-label="Unidade" className="min-w-0 flex-1 font-cond text-corpo text-apagado">
         {trabalho.length + consulta.length > 1 ? (
           <DropdownMenu>
             <DropdownMenuTrigger aria-label={`Unidade de trabalho: ${eu.unidade.caminho.join(' / ')}${eu.soConsulta ? ' (só consulta)' : ''}`} className="flex max-w-full items-center gap-1.5 rounded-md px-2 py-1.5 hover:bg-accent">
@@ -111,7 +111,7 @@ export function Topo({ eu, aoAbrirMenu, botaoDoMenu, semTrilho = false }: { eu: 
         </p>
       )}
       <DropdownMenu>
-        <DropdownMenuTrigger className="flex items-center gap-1.5 rounded-md px-2 py-1.5 font-cond text-[15px] font-medium hover:bg-accent">
+        <DropdownMenuTrigger className="flex items-center gap-1.5 rounded-md px-2 py-1.5 font-cond text-corpo font-medium hover:bg-accent">
           {nome}
           <ChevronDown className="size-4 text-apagado" aria-hidden />
         </DropdownMenuTrigger>

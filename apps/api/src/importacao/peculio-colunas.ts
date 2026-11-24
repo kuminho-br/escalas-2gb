@@ -1,7 +1,8 @@
 // As colunas da planilha do Pecúlio, uma peça por coluna: cada uma lê o texto da célula e devolve o valor, "vazio" (o sistema não mexe naquele
 // dado) ou o motivo de a célula ser ignorada. Só a MATRÍCULA é obrigatória; uma célula ignorada não recusa a linha.
-import { Antiguidade, Cep, COMPORTAMENTOS, Cpf, EmailInstitucional, MSG_CEP, MSG_CPF, MSG_UF, Nascimento, Telefone, Uf } from 'contratos';
+import { Antiguidade, Cep, COMPORTAMENTOS, Cpf, EmailInstitucional, EmailPessoal, MSG_CEP, MSG_CPF, MSG_UF, Nascimento, Telefone, Uf } from 'contratos';
 import { categoriasCnh, normalizar } from 'dominio';
+import { hojeRecife } from '../datas.ts';
 
 /** O que uma célula diz: nada (vazia), um valor, ou o motivo de ser ignorada. */
 export type Leitura<T> = { vazio: true } | { valor: T } | { motivo: string };
@@ -69,9 +70,13 @@ export const MSG_NASCIMENTO_DO_EXCEL = 'Use dd/mm/aaaa ou dd/mm, em formato de t
  * dd/mm/aaaa (o ano é guardado) ou só dd/mm. A célula que o Excel transformou em data (`ehData`), o número de série dele e o formato
  * aaaa-mm-dd são ignorados: o Excel põe o ano de hoje num "15/03" digitado, e o ano gravado sairia errado.
  */
-export function lerNascimento(texto: string, ehData: boolean): Leitura<{ dia: number; mes: number; ano: number | null }> {
+export function lerNascimento(texto: string, ehData: boolean, anoCorrente = Number(hojeRecife().slice(0, 4))): Leitura<{ dia: number; mes: number; ano: number | null }> {
   if (!texto) return VAZIO;
-  if (ehData || /^\d+([.,]\d+)?$/.test(texto) || /^\d{4}-\d{1,2}-\d{1,2}/.test(texto)) return motivo(MSG_NASCIMENTO_DO_EXCEL);
+  // a data que a planilha entregou como data (Excel ou Google Planilhas) vale quando o ano não é o ano corrente (o Excel põe o ano de hoje num "15/03" digitado)
+  if (ehData) {
+    const dataDaPlanilha = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(texto);
+    if (!dataDaPlanilha || Number(dataDaPlanilha[3]) === anoCorrente) return motivo(MSG_NASCIMENTO_DO_EXCEL);
+  } else if (/^\d+([.,]\d+)?$/.test(texto) || /^\d{4}-\d{1,2}-\d{1,2}/.test(texto)) return motivo(MSG_NASCIMENTO_DO_EXCEL);
   const m = /^(\d{1,2})\/(\d{1,2})(?:\/(\d{4}))?$/.exec(texto);
   const lido = m ? Nascimento.safeParse({ dia: Number(m[1]), mes: Number(m[2]), ano: m[3] ? Number(m[3]) : null }) : null;
   return lido?.success ? valor({ dia: lido.data.dia, mes: lido.data.mes, ano: lido.data.ano ?? null }) : motivo('Use dd/mm/aaaa ou dd/mm, de um dia que exista (ex.: 15/03/1985 ou 15/03).');
@@ -86,6 +91,13 @@ export function lerTelefone(texto: string): Leitura<string> {
 export function lerEmail(texto: string): Leitura<string> {
   if (!texto) return VAZIO;
   const lido = EmailInstitucional.safeParse(texto);
+  return lido.success ? valor(lido.data) : motivo(lido.error.issues[0]!.message);
+}
+
+/** O e-mail pessoal: opcional, de qualquer domínio; só o formato conta (a conferência com os institucionais é do importador). */
+export function lerEmailPessoal(texto: string): Leitura<string> {
+  if (!texto) return VAZIO;
+  const lido = EmailPessoal.safeParse(texto);
   return lido.success ? valor(lido.data) : motivo(lido.error.issues[0]!.message);
 }
 

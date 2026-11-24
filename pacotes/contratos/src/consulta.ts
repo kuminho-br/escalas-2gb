@@ -26,13 +26,18 @@ export type PeriodoDaConsulta = { desde: string; ate: string | null; lotacao: st
  * militar (ou acima) pode ir à ficha completa; para os outros o atalho não aparece.
  */
 export type FichaDeConsulta = LinhaDaConsulta & {
-  contato?: { telefone: string | null; email: string | null };
+  contato?: { telefone: string | null; email: string | null; emailPessoal?: string | null };
   /** A função do militar entra aqui, no bloco "Situação"; o abono de permanência nunca vem. */
   situacao?: { equipe: string | null; jornada: 'pronto' | 'adm'; situacaoDoMilitar: string; funcao: string | null; historico: PeriodoDaConsulta[] };
   afastamentos?: { tipo: string; inicio: string; fim: string; motivo?: string | null; boletim?: string | null }[];
   dadosDaEscala?: { motorista: boolean; cnh: string[]; voluntarioJes: boolean };
   comportamento?: { comportamento: string | null; boletim: string | null };
   podeAbrirFichaCompleta: boolean;
+  /**
+   * O botão do militar externo (6.33): só vem quando a ficha é pedida com a unidade de trabalho (`?unidade=`), quem pede é gestor nela ou acima e o militar não é
+   * da unidade (nem de uma de baixo). `vinculoId` nulo = pode trazer para a escala de `unidadeSigla`; com id = já está, e o gestor pode tirar.
+   */
+  externo?: { unidadeSigla: string; vinculoId: string | null };
 };
 
 /** A unidade na lista de escolha da busca, na ordem da árvore. */

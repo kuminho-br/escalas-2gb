@@ -25,10 +25,10 @@ describe('a lista do Pecúlio', () => {
     abrir('/peculio');
     await screen.findByRole('list', { name: 'Militares do Pecúlio' });
     const linha = within(linhaDe('ANDRADE'));
-    expect(linha.getByText('João da Silva Andrade')).toHaveClass('text-[15px]', 'text-tinta');
+    expect(linha.getByText('João da Silva Andrade')).toHaveClass('text-corpo', 'text-tinta');
     for (const texto of ['990001-1', '(81) 99999-0001']) {
       const etiqueta = linha.getByText(texto).closest('[data-etiqueta]')!;
-      expect(etiqueta).toHaveClass('h-6', 'rounded-md', 'text-[13px]', 'font-medium', 'bg-passa', 'border-linha', 'text-tinta');
+      expect(etiqueta).toHaveClass('h-6', 'rounded-md', 'text-apoio', 'font-medium', 'bg-passa', 'border-linha', 'text-tinta');
       expect(etiqueta.querySelector('svg')).not.toBeNull();
     }
     // o e-mail longo corta com reticências, e a dica mostra inteiro
@@ -62,7 +62,7 @@ describe('a lista de Militares', () => {
     abrir('/militares');
     await screen.findByText('ANDRADE', { selector: 'span.font-cond' });
     const a = within(linhaDe('ANDRADE'));
-    expect(a.getByText('João da Silva Andrade')).toHaveClass('text-[15px]', 'text-tinta');
+    expect(a.getByText('João da Silva Andrade')).toHaveClass('text-corpo', 'text-tinta');
     expect(a.getByText('990001-1').closest('[data-etiqueta]')!.querySelector('svg')).not.toBeNull();
     expect(a.getByText('Pronto · BRAVO').closest('[data-etiqueta]')).toHaveClass('bg-passa', 'border-linha');
     expect(a.getByText('Motorista B').closest('[data-etiqueta]')!.querySelector('svg')).not.toBeNull();
@@ -70,5 +70,30 @@ describe('a lista de Militares', () => {
     expect(b.getByText('Adm')).toBeInTheDocument();
     expect(b.queryByText(/Motorista/)).toBeNull();
     expect(linhaDe('ANDRADE').innerHTML).not.toMatch(/text-xs|text-\[11px\]|text-\[12px\]/);
+  });
+});
+
+describe('"Lotação a partir de" nas listas (item 16 da 6.18)', () => {
+  it('Pecúlio: quem só começa depois ganha a etiqueta com a data; quem já está lotado não', async () => {
+    simularApi({
+      '/api/eu': { status: 200, corpo: GESTOR },
+      'GET /api/unidades/u-1sb/peculio': { status: 200, corpo: { militares: [PECULIO.militares[0]!, { ...PECULIO.militares[1]!, lotacaoAPartirDe: '2026-12-15' }] } },
+    });
+    abrir('/peculio');
+    await screen.findByRole('list', { name: 'Militares do Pecúlio' });
+    expect(within(linhaDe('BARRETO')).getByText('Lotação a partir de 15/12/2026').closest('[data-etiqueta]')).not.toBeNull();
+    expect(within(linhaDe('ANDRADE')).queryByText(/Lotação a partir de/)).toBeNull();
+  });
+
+  it('Militares: o mesmo', async () => {
+    simularApi({
+      '/api/eu': { status: 200, corpo: GESTOR },
+      'GET /api/unidades/u-1sb/militares': { status: 200, corpo: [MILITARES[0]!, { ...MILITARES[1]!, lotacaoAPartirDe: '2026-12-15' }] },
+      'GET /api/unidades/u-1sb/equipes': { status: 200, corpo: [] },
+    });
+    abrir('/militares');
+    await screen.findByText('ANDRADE', { selector: 'span.font-cond' });
+    expect(within(linhaDe('BARRETO')).getByText('Lotação a partir de 15/12/2026')).toBeInTheDocument();
+    expect(within(linhaDe('ANDRADE')).queryByText(/Lotação a partir de/)).toBeNull();
   });
 });

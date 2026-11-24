@@ -31,7 +31,7 @@ function horaDoRelogio(minutos: number): string {
  * militar" recusaria essa faixa.
  */
 async function vinculosDoDia(c: Consulta, unidadeId: string, mes: string): Promise<Map<string, VinculoNoDia[]>> {
-  const escalas = (await c.query<{ id: string; nome: string }>('select id, nome from escala where unidade_id = $1 and ativa', [unidadeId])).rows.sort((a, b) => ALFABETICA(a.nome, b.nome));
+  const escalas = (await c.query<{ id: string; nome: string }>("select id, nome from escala where unidade_id = $1 and ativa and distribuicao = 'pre_escala'", [unidadeId])).rows.sort((a, b) => ALFABETICA(a.nome, b.nome));
   const porGuarnicao = new Map<string, VinculoNoDia[]>();
   for (const e of escalas) {
     const faixas = new Set(

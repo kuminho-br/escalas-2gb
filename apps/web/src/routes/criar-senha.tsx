@@ -72,7 +72,7 @@ function CriarSenha() {
           {erroSair && <p role="alert" className="text-sm text-alerta">{erroSair}</p>}
           <div className="flex flex-wrap gap-2">
             <Button type="submit" disabled={salvando}>Salvar senha</Button>
-            <Button type="button" variant="ghost" onClick={() => void sair()}>Sair</Button>
+            <Button type="button" variant="discreto" onClick={() => void sair()}>Sair</Button>
           </div>
         </form>
       </div>

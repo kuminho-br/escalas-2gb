@@ -203,7 +203,7 @@ describe('a ficha de consulta', () => {
 
   it('o oficial recebe contato, situação, afastamentos e dados da escala; os afastamentos vêm sem motivo e sem boletim', async () => {
     const f = await ficha(pessoa.oficial, 'ANDRADE');
-    expect(f.contato).toEqual({ telefone: '(81) 99999-0001', email: 'andrade@bombeiros.pe.gov.br' });
+    expect(f.contato).toEqual({ telefone: '(81) 99999-0001', email: 'andrade@bombeiros.pe.gov.br', emailPessoal: null });
     expect(f.situacao).toMatchObject({ equipe: null, jornada: 'pronto', situacaoDoMilitar: expect.any(String) });
     expect(f.situacao!.historico).toEqual([{ desde: dia1, ate: null, lotacao: '2ª SB', equipe: null, jornada: 'pronto', quadro: 'QBMG', situacaoDoMilitar: f.situacao!.situacaoDoMilitar }]);
     expect(f.afastamentos).toEqual([{ tipo: 'LTS', inicio: somarDias(hoje, 10), fim: somarDias(hoje, 20) }]);
@@ -269,7 +269,7 @@ describe('a ficha de consulta', () => {
 
   it('a borda ajustada vale na hora: ligar "contato" para todos o dá ao militar comum; desligar tira', async () => {
     await api.pedir('admin', 'PUT', '/api/visao', (await (await api.pedir('admin', 'GET', '/api/visao')).json()).map((l: { bloco: string }) => (l.bloco === 'contato' ? { ...l, todos: true } : l)));
-    expect((await ficha('semPapel', 'ANDRADE')).contato).toEqual({ telefone: '(81) 99999-0001', email: 'andrade@bombeiros.pe.gov.br' });
+    expect((await ficha('semPapel', 'ANDRADE')).contato).toEqual({ telefone: '(81) 99999-0001', email: 'andrade@bombeiros.pe.gov.br', emailPessoal: null });
     await api.pedir('admin', 'PUT', '/api/visao', (await (await api.pedir('admin', 'GET', '/api/visao')).json()).map((l: { bloco: string }) => (l.bloco === 'contato' ? { ...l, todos: false } : l)));
     expect('contato' in (await ficha('semPapel', 'ANDRADE'))).toBe(false);
   });

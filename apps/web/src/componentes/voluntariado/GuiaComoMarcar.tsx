@@ -36,7 +36,7 @@ export function GuiaComoMarcar({ blocos, celular, aoFechar }: { blocos: Faixa[];
     <section aria-label="Como marcar" className="grid gap-3 rounded-lg border border-dashed border-input bg-fundo/40 p-3">
       <header className="flex items-center justify-between gap-3">
         <h3 className="font-cond text-base font-semibold">Como marcar</h3>
-        <Button type="button" size="sm" variant="outline" onClick={aoFechar}>Entendi</Button>
+        <Button type="button" size="sm" variant="secundario" onClick={aoFechar}>Entendi</Button>
       </header>
       <div data-desenho-do-guia aria-hidden className="grid max-w-xl grid-cols-[auto_1fr] items-center gap-x-3 gap-y-1">
         <span className={cn(CLASSE_DA_TECLA, 'inline-flex min-h-7 min-w-8 items-center')}>5</span>

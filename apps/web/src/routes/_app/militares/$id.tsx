@@ -17,6 +17,7 @@ import { FichaPainel } from '@/componentes/ListaDetalhe';
 import { Motorista } from '@/componentes/militares/Motorista';
 import { Rastreio } from '@/componentes/militares/Rastreio';
 import { resumoDaLotacao } from '@/lib/militares';
+import { Espera } from '@/componentes/resposta/Espera';
 
 export const Route = createFileRoute('/_app/militares/$id')({
   // `de=peculio`: a ficha foi aberta pelo Pecúlio, que continua sendo o módulo e o destino do "Voltar"
@@ -29,8 +30,9 @@ function Ficha() {
   const { de } = Route.useSearch();
   const { eu } = Route.useRouteContext();
   const { data: ficha, error, isPending } = useQuery(consultaFicha(id));
+  const doPeculio = de === 'peculio';
 
-  if (isPending) return <p className="p-4 text-apagado">Carregando…</p>;
+  if (isPending) return <Espera className="p-4" />;
   if (error) return <p role="alert" className="p-4 text-alerta">{mensagemDe(error)}</p>;
 
   return (
@@ -45,9 +47,9 @@ function Ficha() {
       {/* key: ao trocar de militar, os formulários começam do zero; os dados entram nela para uma gravação de fora (ex.: importação) recarregar o bloco */}
       <Identificacao key={`i-${ficha.id}`} ficha={ficha} />
       <Contato key={`c-${ficha.id}`} ficha={ficha} />
-      {/* CPF, nascimento e endereço são de quem cuida do Pecúlio: sem poder ver, o bloco nem aparece */}
-      {ficha.veDadosRestritos && <DadosPessoais key={`d-${ficha.id}`} ficha={ficha} />}
-      <Comportamento key={`p-${ficha.id}`} ficha={ficha} />
+      {/* a ficha da escala (aberta pelo módulo de escalas) só traz o que serve à escala; Dados pessoais e Comportamento são da ficha completa, aberta pelo Pecúlio */}
+      {doPeculio && ficha.veDadosRestritos && <DadosPessoais key={`d-${ficha.id}`} ficha={ficha} />}
+      {doPeculio && <Comportamento key={`p-${ficha.id}`} ficha={ficha} />}
       <Motorista key={`m-${ficha.id}`} ficha={ficha} />
       <Afastamentos key={`a-${ficha.id}`} ficha={ficha} />
       <Rastreio key={`r-${ficha.id}`} ficha={ficha} unidadeId={eu.unidade.id} />

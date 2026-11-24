@@ -176,7 +176,9 @@ describe('turno com militares escalados', () => {
     const r = await edicao({ fim: '20:00' });
     expect(r.status).toBe(409);
     expect((await r.json()).erro).toBe('O turno A de Com alocação tem 1 militar escalado. Remova-o antes de mudar o horário ou a letra.');
-    expect((await edicao({ letra: 'B' })).status).toBe(409);
+    const trocaDeLetra = await edicao({ letra: 'B' });
+    expect(trocaDeLetra.status).toBe(409);
+    expect((await trocaDeLetra.json()).erro).toBe('Este turno tem militares escalados. Crie outro turno.');
     // gravar o mesmo horário e a mesma letra não muda nada e passa
     expect((await edicao({ fim: '19:00' })).status).toBe(200);
   });

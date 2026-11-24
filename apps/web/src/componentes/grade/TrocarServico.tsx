@@ -8,6 +8,7 @@ import { Selecao } from '@/componentes/Selecao';
 import { Button } from '@/componentes/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/componentes/ui/dialog';
 import { frasesDeFora, listaComE } from '@/lib/escala';
+import { Espera } from '@/componentes/resposta/Espera';
 
 type Escolha =
   | { tipo: 'livre'; livre: Candidato; turnoId: string; semVoluntariado: boolean }
@@ -92,12 +93,12 @@ export function TrocarServico({ alocacaoId, nomeAtual, acumulaCom, aoFechar }: {
               <Button type="button" disabled={salvando} onClick={() => void confirmar()}>
                 {escolha.tipo === 'livre' ? 'Trocar' : escolha.permuta ? 'Fazer a permuta' : 'Trocar os dois'}
               </Button>
-              <Button type="button" variant="ghost" onClick={() => { setErro(null); setEscolha(null); }}>Voltar</Button>
+              <Button type="button" variant="discreto" onClick={() => { setErro(null); setEscolha(null); }}>Voltar</Button>
             </div>
           </div>
         ) : (
           <>
-            {opcoes.isPending && <p className="text-apagado">Carregando…</p>}
+            {opcoes.isPending && <Espera />}
             {opcoes.error && <p role="alert" className="text-alerta">{mensagemDe(opcoes.error)}</p>}
             {opcoes.data && (
               <>

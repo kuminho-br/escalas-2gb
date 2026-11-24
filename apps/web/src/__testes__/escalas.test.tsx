@@ -5,12 +5,12 @@ import { describe, expect, it, vi } from 'vitest';
 import { mesAtual } from '@/lib/meses';
 import { mesPorExtenso } from 'contratos';
 import { atualizarEscalas } from '@/api/escalas';
-import { abrir, chamadasA, corpoEnviado, EU_EXEMPLO, simularApi } from './apoio';
+import { abrir, chamadasA, corpoEnviado, EU_EXEMPLO, simularApi, responderConfirmacao } from './apoio';
 
 const LISTA: LinhaEscala[] = [
-  { id: 'e1', nome: 'Ordinário', ativa: true, servicos: ['Pronto', 'JES'], montaBlocosVoluntariado: true },
-  { id: 'e2', nome: 'Nova', ativa: true, servicos: [], montaBlocosVoluntariado: true },
-  { id: 'e3', nome: 'Velha', ativa: false, servicos: [], montaBlocosVoluntariado: true },
+  { id: 'e1', nome: 'Ordinário', ativa: true, servicos: ['Pronto', 'JES'], montaBlocosVoluntariado: true, distribuicao: 'pre_escala' },
+  { id: 'e2', nome: 'Nova', ativa: true, servicos: [], montaBlocosVoluntariado: true, distribuicao: 'pre_escala' },
+  { id: 'e3', nome: 'Velha', ativa: false, servicos: [], montaBlocosVoluntariado: true, distribuicao: 'pre_escala' },
 ];
 const guarnicao = (g: Partial<LinhaGuarnicao>): LinhaGuarnicao => ({
   id: 'g1', nome: 'ABT', viatura: null, prioridade: 1, ativa: true, minimo: 2, maximo: 4, aPartirDe: null, ...g,
@@ -19,7 +19,7 @@ const GUARNICOES = [guarnicao({}), guarnicao({ id: 'g2', nome: 'APH', prioridade
 const DIA = { inicio: '08:00', fim: '20:00', letras: ['A' as const], servicos: ['Pronto', 'JES'] };
 const NOITE = { inicio: '20:00', fim: '08:00', letras: ['B' as const], servicos: ['Pronto'] };
 const escala = (e: Partial<Escala> = {}): Escala => ({
-  id: 'e1', nome: 'Ordinário', titulo: 'ESCALA ORDINÁRIO', militaresDoc: 'todos', diasDoc: 'todos', ativa: true, montaBlocosVoluntariado: true,
+  id: 'e1', nome: 'Ordinário', titulo: 'ESCALA ORDINÁRIO', militaresDoc: 'todos', diasDoc: 'todos', ativa: true, montaBlocosVoluntariado: true, distribuicao: 'pre_escala',
   servicos: [{ id: 's1', nome: 'Pronto', cor: '#2F8F5B', ativo: true }, { id: 's2', nome: 'JES', cor: '#6E56A8', ativo: true }],
   faixas: [DIA, NOITE],
   comLetra: true,
@@ -193,15 +193,14 @@ describe('ficha da escala em painel único', () => {
   });
 
   it('escala ativa só mostra Desativar, e pergunta antes', async () => {
-    const confirmar = vi.spyOn(window, 'confirm').mockReturnValue(true);
     const f = api(escala(), { 'POST /api/escalas/e1/situacao': { status: 200, corpo: escala({ ativa: false }) } });
     abrir('/escalas/e1');
     await screen.findByRole('heading', { level: 2, name: 'Ordinário' });
     expect(screen.queryByText(/Desativada/)).toBeNull();
     await userEvent.click(screen.getByRole('button', { name: 'Desativar' }));
-    expect(confirmar).toHaveBeenCalledWith('Desativar a escala Ordinário? Ela some da lista.');
+    expect(await screen.findByRole('dialog', { name: 'Desativar a escala?' })).toHaveTextContent('Ordinário some da lista.');
+    await responderConfirmacao('Desativar');
     await waitFor(() => expect(corpoEnviado(f, 'POST /api/escalas/e1/situacao')).toEqual({ ativa: false }));
-    confirmar.mockRestore();
   });
 
   it('escala desativada mostra a etiqueta e Reativar', async () => {
@@ -353,7 +352,6 @@ describe('revisão final: matriz', () => {
 
 describe('revisão 3: o erro de Desativar fica na ficha em que aconteceu', () => {
   it('escala: voltar a outra escala que já estava no cache não traz o erro da anterior', async () => {
-    vi.spyOn(window, 'confirm').mockReturnValue(true);
     api(escala(), {
       'GET /api/escalas/e2': { status: 200, corpo: escala({ id: 'e2', nome: 'Nova', titulo: 'ESCALA NOVA' }) },
       'POST /api/escalas/e1/situacao': { status: 409, corpo: { erro: 'Falhou ao desativar Ordinário.' } },
@@ -362,6 +360,7 @@ describe('revisão 3: o erro de Desativar fica na ficha em que aconteceu', () =>
     await screen.findByRole('heading', { name: 'Nova' });
     await act(() => router.navigate({ to: '/escalas/$id', params: { id: 'e1' } }));
     await userEvent.click(await screen.findByRole('button', { name: 'Desativar' }));
+    await responderConfirmacao('Desativar');
     expect(await screen.findByText('Falhou ao desativar Ordinário.')).toBeInTheDocument();
     await act(() => router.navigate({ to: '/escalas/$id', params: { id: 'e2' } }));
     await screen.findByRole('heading', { name: 'Nova' });
@@ -377,6 +376,18 @@ describe('recarregar o bloco com dado novo do servidor (revisão final da revis�
     'GET /api/unidades/u-1sb/guarnicoes': { status: 200, corpo: GUARNICOES },
     'GET /api/unidades/u-1sb/servicos': { status: 200, corpo: [] },
     'GET /api/escalas/e1': ficha,
+  });
+
+  it('Jeito de distribuir: pré-escala ou rodada de cotas; escolher a rodada explica onde ela é montada e grava (6.27)', async () => {
+    const f = api(escala(), { 'PATCH /api/escalas/e1': { status: 200, corpo: escala({ distribuicao: 'rodada_de_cotas' }) } });
+    abrir('/escalas/e1');
+    const campo = await screen.findByLabelText('Jeito de distribuir');
+    expect(campo).toHaveValue('pre_escala');
+    expect(screen.getByText('Esta escala é montada na Escala do mês, com a pré-escala.')).toBeInTheDocument();
+    await userEvent.selectOptions(campo, 'rodada_de_cotas');
+    expect(screen.getByText(/Esta escala é montada em Oficiais: o JES é lançado à mão e o que sobra vai pela rodada, como Saldo\./)).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Salvar' }));
+    await waitFor(() => expect(corpoEnviado(f, 'PATCH /api/escalas/e1')).toMatchObject({ distribuicao: 'rodada_de_cotas' }));
   });
 
   it('Identificação: sem alteração pendente, o nome e o título recarregam', async () => {

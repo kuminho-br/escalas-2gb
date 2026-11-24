@@ -8,6 +8,7 @@ import { comUsuario, type Banco } from '../banco/banco.ts';
 import { lerQuadros } from '../cadastros/quadros.ts';
 import { lerCorpo } from '../erros.ts';
 import { hojeRecife } from '../datas.ts';
+import { limitarPorConta } from '../limites.ts';
 import { buscarMilitares, fichaDeConsulta, unidadesDaConsulta } from './consulta.ts';
 import { carregarBorda, lerBorda } from './visao.ts';
 
@@ -15,7 +16,7 @@ const SO_ADMINISTRADOR = 'Só o administrador do sistema ajusta quem vê o quê.
 const MSG_IDENTIFICACAO = 'A identificação de “todos” não se desliga: sem ela a consulta não mostra nada.';
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-export function rotasVisao(dep: { banco: Banco; auth: Auth }): Hono<AmbienteApi> {
+export function rotasVisao(dep: { banco: Banco; auth: Auth; limiteDeBuscas?: number }): Hono<AmbienteApi> {
   const r = new Hono<AmbienteApi>();
   const sessao = exigirSessao(dep.banco, dep.auth);
   for (const caminho of ['/visao', '/quadros/:id', '/consulta/*']) r.use(caminho, sessao);
@@ -64,7 +65,9 @@ export function rotasVisao(dep: { banco: Banco; auth: Auth }): Hono<AmbienteApi>
 
   r.get('/consulta/unidades', async (c) => c.json(await unidadesDaConsulta(c.get('banco'), hojeRecife())));
 
-  r.get('/consulta/militares', async (c) => {
+  // a busca é a rota que se varre (a ficha pede um militar por vez): 30 por minuto por conta; a exportação completa do banco não passa por aqui
+  const limiteDaBusca = limitarPorConta({ max: dep.limiteDeBuscas ?? 30, janelaMs: 60_000, mensagem: 'Muitas buscas em pouco tempo. Espere um minuto e tente de novo.' });
+  r.get('/consulta/militares', limiteDaBusca, async (c) => {
     const texto = (c.req.query('texto') ?? '').trim();
     const unidadeId = c.req.query('unidadeId') || null;
     if (texto.length < 3 && !unidadeId) return c.json({ erro: MSG_BUSCA }, 400);
@@ -76,7 +79,9 @@ export function rotasVisao(dep: { banco: Banco; auth: Auth }): Hono<AmbienteApi>
 
   r.get('/consulta/militares/:id', async (c) => {
     const id = c.req.param('id');
-    const ficha = UUID.test(id) ? await fichaDeConsulta(c.get('banco'), c.get('usuarioId'), id, hojeRecife()) : null;
+    // `?unidade=`: a unidade de trabalho de quem pede, para a ficha dizer se ele pode trazer o militar para a escala dela (o militar externo)
+    const unidadeDeTrabalho = c.req.query('unidade');
+    const ficha = UUID.test(id) ? await fichaDeConsulta(c.get('banco'), c.get('usuarioId'), id, hojeRecife(), unidadeDeTrabalho && UUID.test(unidadeDeTrabalho) ? unidadeDeTrabalho : undefined) : null;
     return ficha ? c.json(ficha) : c.json({ erro: 'Militar não encontrado.' }, 404);
   });
 

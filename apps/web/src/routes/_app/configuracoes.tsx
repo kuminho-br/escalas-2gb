@@ -16,6 +16,8 @@ import { Label } from '@/componentes/ui/label';
 import { PainelComMenu } from '@/componentes/PainelComMenu';
 import { TabsContent } from '@/componentes/ui/tabs';
 import { ABAS_DA_ESCALA, type AbaDaEscala } from '@/lib/configuracoes';
+import { Moldura } from '@/componentes/Moldura';
+import { Espera } from '@/componentes/resposta/Espera';
 
 const ABAS = ['preferencias', 'postos', 'funcoes', 'situacoes', 'tipos', 'quem-ve-o-que'] as const;
 /** As seções que saíram daqui para o módulo Estrutura: o endereço antigo leva a elas. */
@@ -58,10 +60,7 @@ function Configuracoes() {
   const navigate = Route.useNavigate();
 
   return (
-    <section>
-      <header className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="font-cond text-[28px] leading-tight font-semibold">Configurações</h1>
-      </header>
+    <Moldura titulo="Configurações">
       <PainelComMenu secoes={secoes} valor={aba} rotulo="Seção das configurações" aoEscolher={(v) => void navigate({ search: { aba: ABAS.find((a) => a === v) }, replace: true })}>
         <TabsContent value="preferencias">
           <AnimacaoDeEntrada />
@@ -92,7 +91,7 @@ function Configuracoes() {
           </TabsContent>
         )}
       </PainelComMenu>
-    </section>
+    </Moldura>
   );
 }
 
@@ -119,7 +118,7 @@ function ListaDoCatalogo({ catalogo, rotuloNovo, podeEditar }: { catalogo: Catal
     if (await executar(() => incluirNoCatalogo(catalogo, novo))) setNovo('');
   }
 
-  if (isPending) return <p className="py-6 text-apagado">Carregando…</p>;
+  if (isPending) return <Espera className="py-6" />;
   if (error) return <p role="alert" className="py-6 text-alerta">{mensagemDe(error)}</p>;
 
   return (
@@ -163,7 +162,7 @@ function ItemDoCatalogo({ item, podeEditar, aoSalvar }: { item: ItemCatalogo; po
         <form onSubmit={renomear} className="flex items-center gap-2">
           <Input aria-label={`Novo nome de ${item.nome}`} value={nome} onChange={(e) => setNome(e.target.value)} autoFocus />
           <Button type="submit" size="sm">Salvar</Button>
-          <Button type="button" size="sm" variant="ghost" onClick={() => setEditando(false)}>Cancelar</Button>
+          <Button type="button" size="sm" variant="discreto" onClick={() => setEditando(false)}>Cancelar</Button>
         </form>
       </li>
     );
@@ -174,8 +173,8 @@ function ItemDoCatalogo({ item, podeEditar, aoSalvar }: { item: ItemCatalogo; po
       {!item.ativo && <span className="rounded bg-muted px-1.5 text-xs text-apagado">desativado</span>}
       {podeEditar && (
         <span className="ml-auto flex gap-1">
-          <Button size="sm" variant="ghost" onClick={() => setEditando(true)}>Renomear</Button>
-          <Button size="sm" variant="ghost" onClick={() => void aoSalvar({ ativo: !item.ativo })}>
+          <Button size="sm" variant="discreto" onClick={() => setEditando(true)}>Renomear</Button>
+          <Button size="sm" variant="discreto" onClick={() => void aoSalvar({ ativo: !item.ativo })}>
             {item.ativo ? 'Desativar' : 'Reativar'}
           </Button>
         </span>

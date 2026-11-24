@@ -19,7 +19,7 @@ describe('Crie a sua senha', () => {
     await userEvent.type(await screen.findByLabelText('Nova senha'), 'curta');
     await userEvent.type(screen.getByLabelText('Repita a nova senha'), 'curta');
     await userEvent.click(screen.getByRole('button', { name: 'Salvar senha' }));
-    expect(await screen.findByText('Use pelo menos 10 caracteres.', { selector: 'p.text-xs' })).toBeInTheDocument();
+    expect(await screen.findByText('Use pelo menos 10 caracteres.', { selector: 'p.text-apoio' })).toBeInTheDocument();
     await userEvent.clear(screen.getByLabelText('Nova senha'));
     await userEvent.type(screen.getByLabelText('Nova senha'), 'senha-nova-12345');
     await userEvent.click(screen.getByRole('button', { name: 'Salvar senha' }));

@@ -9,11 +9,14 @@ import { atualizarGuarnicoes } from '@/api/guarnicoes';
 import { atualizarServicos } from '@/api/servicos';
 import { ImportarPlanilha } from '@/componentes/ImportarPlanilha';
 import { classeItemEscolhido, ListaDetalhe } from '@/componentes/ListaDetalhe';
+import { useDescartarDigitado } from '@/componentes/DescartarDigitado';
 import { Button } from '@/componentes/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/componentes/ui/dialog';
 import { Input } from '@/componentes/ui/input';
 import { Label } from '@/componentes/ui/label';
 import { cn } from '@/lib/utils';
+import { Checkbox } from '@/componentes/ui/checkbox';
+import { Espera } from '@/componentes/resposta/Espera';
 
 export const Route = createFileRoute('/_app/escalas')({
   component: Escalas,
@@ -58,7 +61,7 @@ function ListaDeEscalas({ unidadeId, escolhida }: { unidadeId: string; escolhida
   const visiveis = escalas.data?.filter((e) => e.ativa || desativadas) ?? [];
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      {escalas.isPending && <p className="p-4 text-apagado">Carregando…</p>}
+      {escalas.isPending && <Espera className="p-4" />}
       {escalas.error && <p role="alert" className="p-4 text-alerta">{mensagemDe(escalas.error)}</p>}
       {escalas.data && (
         <>
@@ -69,7 +72,7 @@ function ListaDeEscalas({ unidadeId, escolhida }: { unidadeId: string; escolhida
             {escalas.data.length > 0 && visiveis.length === 0 && <li className="p-3 text-apagado">Todas as escalas estão desativadas. Marque "Mostrar desativadas" para vê-las.</li>}
           </ul>
           <label className="flex shrink-0 items-center gap-2 border-t border-linha px-4 py-2.5 text-xs text-apagado">
-            <input type="checkbox" checked={desativadas} onChange={(ev) => setDesativadas(ev.target.checked)} className="size-4 accent-vinho" />
+            <Checkbox checked={desativadas} onChange={(ev) => setDesativadas(ev.target.checked)} />
             Mostrar desativadas
           </label>
         </>
@@ -99,6 +102,7 @@ function ItemEscala({ e, escolhida }: { e: LinhaEscala; escolhida: boolean }) {
 
 function NovaEscalaDialogo({ unidadeId, aoFechar }: { unidadeId: string; aoFechar: () => void }) {
   const queryClient = useQueryClient();
+  const descarte = useDescartarDigitado(aoFechar);
   const navigate = useNavigate();
   const [erro, setErro] = useState<string | null>(null);
   const [salvando, setSalvando] = useState(false);
@@ -121,13 +125,13 @@ function NovaEscalaDialogo({ unidadeId, aoFechar }: { unidadeId: string; aoFecha
   }
 
   return (
-    <Dialog open onOpenChange={(v) => !v && aoFechar()}>
+    <Dialog open onOpenChange={descarte.aoMudarAberto}>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Nova escala</DialogTitle>
           <DialogDescription>Depois de criar, reúna os serviços e ligue as guarnições na ficha.</DialogDescription>
         </DialogHeader>
-        <form onSubmit={criar} className="grid gap-3">
+        <form ref={descarte.ref} onSubmit={criar} className="grid gap-3">
           <div className="grid gap-1.5">
             <Label htmlFor="ne-nome">Nome da escala</Label>
             <Input id="ne-nome" name="nome" required />
@@ -137,6 +141,7 @@ function NovaEscalaDialogo({ unidadeId, aoFechar }: { unidadeId: string; aoFecha
             <Button type="submit" disabled={salvando}>Criar</Button>
           </DialogFooter>
         </form>
+        {descarte.confirmacao}
       </DialogContent>
     </Dialog>
   );

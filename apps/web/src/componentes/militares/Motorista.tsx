@@ -6,7 +6,8 @@ import { mensagemDe } from '@/api/cliente';
 import { atualizarMilitares, editarMilitar } from '@/api/militares';
 import { AcoesDoBloco, usePendencia, useTrava, useSincronizar } from '@/componentes/AlteracoesPendentes';
 import { cn } from '@/lib/utils';
-import { Secao } from './Secao';
+import { DonoDoBloco, Secao } from './Secao';
+import { Radio } from '@/componentes/ui/radio';
 
 const CATEGORIAS = [
   ['A', 'moto'],
@@ -32,6 +33,8 @@ export function Motorista({ ficha }: { ficha: FichaMilitar }) {
   const [salvo, setSalvo] = useState(() => ({ quadro: ficha.noQuadroDeMotoristas, carteira: [...ficha.cnh].sort() }));
   const sujo = assinatura(quadro, carteira) !== assinatura(salvo.quadro, salvo.carteira);
   usePendencia('motorista', sujo);
+  // as habilitações são de quem tem papel na lotação ou acima (a SB); sem ele, só leitura, com a frase de quem altera
+  const podeEditar = ficha.podeEditar.escala;
   const doServidor = assinatura(ficha.noQuadroDeMotoristas, ficha.cnh);
   useSincronizar(doServidor, sujo, () => {
     setQuadro(ficha.noQuadroDeMotoristas);
@@ -73,13 +76,14 @@ export function Motorista({ ficha }: { ficha: FichaMilitar }) {
   }
 
   return (
-    <Secao titulo="Motorista">
-      <fieldset className="grid gap-3">
+    <Secao titulo="Habilitações">
+      {!podeEditar && <DonoDoBloco unidadeDeCima={ficha.podeEditar.unidadeDeCima} />}
+      <fieldset className="grid gap-3" disabled={!podeEditar}>
         <legend className="mb-2 text-sm">Está no quadro de motoristas?</legend>
         <div className="flex gap-4 text-sm">
           {[true, false].map((v) => (
             <label key={String(v)} className="flex items-center gap-2">
-              <input type="radio" name="quadro" checked={quadro === v} onChange={() => setQuadro(v)} className="size-4 accent-vinho" />
+              <Radio name="quadro" checked={quadro === v} disabled={!podeEditar} onChange={() => setQuadro(v)} />
               {v ? 'Sim' : 'Não'}
             </label>
           ))}
@@ -96,6 +100,7 @@ export function Motorista({ ficha }: { ficha: FichaMilitar }) {
                   aria-pressed={naCarteira || !!pela}
                   title={pela ? `Vale pela categoria ${pela}.` : undefined}
                   data-origem={naCarteira ? 'carteira' : pela ? 'hierarquia' : 'nenhuma'}
+                  disabled={!podeEditar}
                   onClick={() => alternar(c)}
                   className={cn(
                     'grid place-items-center rounded-md border px-0.5 py-0.5 text-center',
@@ -104,14 +109,14 @@ export function Motorista({ ficha }: { ficha: FichaMilitar }) {
                   )}
                 >
                   <span className="font-cond text-lg leading-none font-semibold">{c}</span>
-                  <span className="text-[10px] leading-tight">{veiculo}</span>
+                  <span className="text-apoio leading-tight">{veiculo}</span>
                 </button>
               );
             })}
         </div>
         <p className="text-xs text-apagado">Marque as categorias da carteira. As que ela habilita acendem sozinhas (a E acende D, C e B). A moto (A) é separada.</p>
         <p className="text-xs text-apagado">A CNH só vale para a escala com o militar no quadro de motoristas.</p>
-        <AcoesDoBloco salvando={salvando} sujo={sujo} aviso={aviso} rotulo="Salvar motorista" tipo="button" aoSalvar={() => void salvar()} />
+        {podeEditar && <AcoesDoBloco salvando={salvando} sujo={sujo} aviso={aviso} rotulo="Salvar habilitações" tipo="button" aoSalvar={() => void salvar()} />}
       </fieldset>
     </Secao>
   );

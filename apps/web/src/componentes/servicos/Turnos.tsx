@@ -12,6 +12,8 @@ import { Input } from '@/componentes/ui/input';
 import { ReguaDoDia } from '@/componentes/servicos/ReguaDoDia';
 import { estiloDaCor } from '@/lib/cores';
 import { textoDuracao } from '@/lib/turnos';
+import { useConfirmar } from '@/componentes/resposta/useConfirmar';
+import { useAviso } from '@/componentes/resposta/useAviso';
 
 /** Turnos dentro do serviço: cada linha grava sozinha. */
 export function Turnos({ servico }: { servico: Servico }) {
@@ -26,7 +28,7 @@ export function Turnos({ servico }: { servico: Servico }) {
       </ul>
       {servico.turnos.length === 0 && !novo && <p className="text-sm text-apagado">Nenhum turno ainda.</p>}
       {!novo && (
-        <Button type="button" variant="outline" size="sm" className="mt-3" onClick={() => setNovo(true)}>
+        <Button type="button" variant="secundario" size="sm" className="mt-3" onClick={() => setNovo(true)}>
           Incluir turno
         </Button>
       )}
@@ -66,6 +68,8 @@ function LinhaTurno({
   aoCancelar?: () => void;
 }) {
   const queryClient = useQueryClient();
+  const confirmar = useConfirmar();
+  const avisar = useAviso();
   const base = turno ?? padrao!;
   const [letra, setLetra] = useState<LetraTurno>(base.letra);
   const [inicio, setInicio] = useState(base.inicio);
@@ -94,13 +98,13 @@ function LinhaTurno({
     }
   }
   async function remover() {
-    if (!window.confirm(`Remover o turno ${turno!.letra} (${textoFaixa(turno!.inicio, turno!.fim)}) de ${servico.nome}?`)) return;
-    setErro(null);
+    if (!(await confirmar({ titulo: 'Remover o turno?', texto: `Turno ${turno!.letra} (${textoFaixa(turno!.inicio, turno!.fim)}) de ${servico.nome}.`, verbo: 'Remover', perigoso: true }))) return;
     try {
       await removerTurno(turno!.id);
       atualizarServicos(queryClient);
+      avisar({ texto: `Turno ${turno!.letra} de ${servico.nome} removido.` });
     } catch (err) {
-      setErro(mensagemDe(err));
+      avisar({ texto: mensagemDe(err), erro: true });
     }
   }
 
@@ -118,16 +122,16 @@ function LinhaTurno({
           <EtiquetaPendente sujo={sujo} />
           {/* a linha gravada só mostra Salvar quando muda; a linha nova sempre */}
           {(sujo || !turno) && (
-            <Button type="button" size="sm" variant="default" disabled={salvando} onClick={() => void salvar()} aria-label={`Salvar ${nome}`}>
+            <Button type="button" size="sm" variant="principal" disabled={salvando} onClick={() => void salvar()} aria-label={`Salvar ${nome}`}>
               Salvar
             </Button>
           )}
           {turno ? (
-            <Button type="button" size="sm" variant="ghost" onClick={() => void remover()} aria-label={`Remover ${nome}`}>
+            <Button type="button" size="sm" variant="discreto" onClick={() => void remover()} aria-label={`Remover ${nome}`}>
               Remover
             </Button>
           ) : (
-            <Button type="button" size="sm" variant="ghost" onClick={aoCancelar}>
+            <Button type="button" size="sm" variant="discreto" onClick={aoCancelar}>
               Cancelar
             </Button>
           )}

@@ -11,12 +11,15 @@ import { ImportarPlanilha } from '@/componentes/ImportarPlanilha';
 import { classeItemEscolhido, ListaDetalhe } from '@/componentes/ListaDetalhe';
 import { QuadradoDaCor } from '@/componentes/QuadradoDaCor';
 import { Selecao } from '@/componentes/Selecao';
+import { useDescartarDigitado } from '@/componentes/DescartarDigitado';
 import { Button } from '@/componentes/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/componentes/ui/dialog';
 import { Input } from '@/componentes/ui/input';
 import { Label } from '@/componentes/ui/label';
 import { corSugerida, NOME_TIPO } from '@/lib/servicos';
 import { cn } from '@/lib/utils';
+import { Checkbox } from '@/componentes/ui/checkbox';
+import { Espera } from '@/componentes/resposta/Espera';
 
 export const Route = createFileRoute('/_app/servicos')({
   component: Servicos,
@@ -61,7 +64,7 @@ function ListaDeServicos({ unidadeId, escolhido }: { unidadeId: string; escolhid
   const visiveis = servicos.data?.filter((s) => s.ativo || desativados) ?? [];
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      {servicos.isPending && <p className="p-4 text-apagado">Carregando…</p>}
+      {servicos.isPending && <Espera className="p-4" />}
       {servicos.error && <p role="alert" className="p-4 text-alerta">{mensagemDe(servicos.error)}</p>}
       {servicos.data && (
         <>
@@ -82,7 +85,7 @@ function ListaDeServicos({ unidadeId, escolhido }: { unidadeId: string; escolhid
             {servicos.data.length > 0 && visiveis.length === 0 && <p className="p-4 text-apagado">Todos os serviços estão desativados. Marque "Mostrar desativados" para vê-los.</p>}
           </div>
           <label className="flex shrink-0 items-center gap-2 border-t border-linha px-4 py-2.5 text-xs text-apagado">
-            <input type="checkbox" checked={desativados} onChange={(e) => setDesativados(e.target.checked)} className="size-4 accent-vinho" />
+            <Checkbox checked={desativados} onChange={(e) => setDesativados(e.target.checked)} />
             Mostrar desativados
           </label>
         </>
@@ -112,6 +115,7 @@ function ItemServico({ s, escolhido }: { s: Servico; escolhido: boolean }) {
 
 function NovoServicoDialogo({ unidadeId, aoFechar }: { unidadeId: string; aoFechar: () => void }) {
   const queryClient = useQueryClient();
+  const descarte = useDescartarDigitado(aoFechar);
   const navigate = useNavigate();
   const [erro, setErro] = useState<string | null>(null);
   const [salvando, setSalvando] = useState(false);
@@ -135,13 +139,13 @@ function NovoServicoDialogo({ unidadeId, aoFechar }: { unidadeId: string; aoFech
   }
 
   return (
-    <Dialog open onOpenChange={(v) => !v && aoFechar()}>
+    <Dialog open onOpenChange={descarte.aoMudarAberto}>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Novo serviço</DialogTitle>
           <DialogDescription>Depois de criar, inclua os turnos na ficha.</DialogDescription>
         </DialogHeader>
-        <form onSubmit={criar} className="grid gap-3">
+        <form ref={descarte.ref} onSubmit={criar} className="grid gap-3">
           <div className="grid gap-1.5">
             <Label htmlFor="ns-nome">Nome do serviço</Label>
             <Input id="ns-nome" name="nome" required />
@@ -157,6 +161,7 @@ function NovoServicoDialogo({ unidadeId, aoFechar }: { unidadeId: string; aoFech
             <Button type="submit" disabled={salvando}>Criar</Button>
           </DialogFooter>
         </form>
+        {descarte.confirmacao}
       </DialogContent>
     </Dialog>
   );

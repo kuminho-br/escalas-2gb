@@ -205,6 +205,8 @@ export function rotasServicos(dep: { banco: Banco; auth: Auth }): Hono<AmbienteA
     if (atual.letra !== d.letra || atual.inicio !== d.inicio || atual.fim !== d.fim) {
       const n = (await dep.banco.query<{ n: number }>('select count(*)::int as n from alocacao where turno_id = $1', [id])).rows[0]!.n;
       if (n > 0) {
+        // mudar a letra desfaz a escala (a letra é o que o turno é): o caminho é criar outro turno; o horário, o escalante remove antes
+        if (atual.letra !== d.letra) return c.json({ erro: 'Este turno tem militares escalados. Crie outro turno.' }, 409);
         const um = n === 1;
         return c.json({ erro: `O turno ${atual.letra} de ${atual.servico} tem ${n} ${um ? 'militar escalado' : 'militares escalados'}. Remova-${um ? 'o' : 'os'} antes de mudar o horário ou a letra.` }, 409);
       }

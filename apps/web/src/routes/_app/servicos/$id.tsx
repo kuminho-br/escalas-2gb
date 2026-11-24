@@ -15,6 +15,8 @@ import { Button } from '@/componentes/ui/button';
 import { Input } from '@/componentes/ui/input';
 import { Label } from '@/componentes/ui/label';
 import { NOME_TIPO, resumoDoServico } from '@/lib/servicos';
+import { useConfirmar } from '@/componentes/resposta/useConfirmar';
+import { Espera } from '@/componentes/resposta/Espera';
 
 export const Route = createFileRoute('/_app/servicos/$id')({
   component: Ficha,
@@ -24,7 +26,7 @@ function Ficha() {
   const { id } = Route.useParams();
   const { eu } = Route.useRouteContext();
   const { data: s, error, isPending } = useQuery(consultaServico(id));
-  if (isPending) return <p className="p-4 text-apagado">Carregando…</p>;
+  if (isPending) return <Espera className="p-4" />;
   if (error) return <p role="alert" className="p-4 text-alerta">{mensagemDe(error)}</p>;
   return (
     <ProvedorDePendencias>
@@ -43,8 +45,9 @@ function Ficha() {
 function Situacao({ s }: { s: Servico }) {
   const queryClient = useQueryClient();
   const [erro, setErro] = useState<string | null>(null);
+  const confirmar = useConfirmar();
   async function mudar() {
-    if (s.ativo && !window.confirm(`Desativar o serviço ${s.nome}? Ele some da lista e continua nas escalas que já o reúnem.`)) return;
+    if (s.ativo && !(await confirmar({ titulo: 'Desativar o serviço?', texto: `${s.nome} some da lista e continua nas escalas que já o reúnem.`, verbo: 'Desativar' }))) return;
     setErro(null);
     try {
       await mudarSituacaoServico(s.id, !s.ativo);
@@ -55,7 +58,7 @@ function Situacao({ s }: { s: Servico }) {
   }
   return (
     <>
-      <Button type="button" variant="outline" size="sm" onClick={() => void mudar()}>
+      <Button type="button" variant="secundario" size="sm" onClick={() => void mudar()}>
         {s.ativo ? 'Desativar' : 'Reativar'}
       </Button>
       {erro && <p role="alert" className="w-full text-right text-sm text-alerta">{erro}</p>}

@@ -2,7 +2,7 @@ import type { AcessoDoMilitar, FichaMilitar } from 'contratos';
 import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
-import { abrir, chamadasA, corpoEnviado, EU_EXEMPLO, simularApi } from './apoio';
+import { abrir, chamadasA, corpoEnviado, EU_EXEMPLO, simularApi, responderConfirmacao } from './apoio';
 
 const FICHA: FichaMilitar = {
   id: 'm1', matricula: '990001-1', posto: 'SD', quadro: { id: 'q-qbmg', sigla: 'QBMG' }, nomeGuerra: 'ANDRADE', equipe: 'Alfa', jornada: 'pronto', motorista: null, voluntarioJes: false, ativo: true, situacao: 'Disponível', pendencias: [],
@@ -70,15 +70,14 @@ describe('Acesso ao sistema', () => {
 
   it('desativar pede confirmação', async () => {
     const f = api({ situacao: 'ativo' }, { 'POST /api/militares/m1/desativar-acesso': { status: 200, corpo: { ...ACESSO, situacao: 'desativado' } } });
-    const confirmar = vi.spyOn(window, 'confirm').mockReturnValueOnce(false).mockReturnValueOnce(true);
     abrir('/militares/m1');
     const b = within(await bloco());
     await userEvent.click(await b.findByRole('button', { name: 'Desativar acesso' }));
+    await responderConfirmacao('Cancelar');
     expect(f.mock.calls.some(([, i]) => (i as RequestInit | undefined)?.method === 'POST')).toBe(false);
     await userEvent.click(b.getByRole('button', { name: 'Desativar acesso' }));
+    await responderConfirmacao('Desativar');
     await waitFor(() => expect(f.mock.calls.some(([e, i]) => String(e).endsWith('/desativar-acesso') && (i as RequestInit).method === 'POST')).toBe(true));
-    expect(confirmar).toHaveBeenCalledTimes(2);
-    confirmar.mockRestore();
   });
 
   it('lista os níveis de acesso com "Auxiliar administrativo" e dá nível de acesso', async () => {
@@ -354,5 +353,16 @@ describe('Acesso ao sistema: acabamento (6.16)', () => {
     await userEvent.click(await b.findByRole('button', { name: 'Dar nível de acesso' }));
     await userEvent.click(b.getAllByRole('button', { name: 'Dar nível de acesso' }).at(-1)!);
     await waitFor(() => expect(chamadasA(f, 'GET /api/eu')).toBeGreaterThan(depoisDeEncerrar));
+  });
+});
+
+describe('Acesso ao sistema para o auxiliar (6.32)', () => {
+  it('o auxiliar só gera a senha: sem "Desativar acesso" e sem "Dar nível de acesso", mesmo com a conta ativa', async () => {
+    api({ situacao: 'ativo', podeGerarSenha: true, podeDesativar: false, papeisQuePodeDar: [], papeis: [] });
+    abrir('/militares/m1');
+    const b = within(await bloco());
+    expect(await b.findByRole('button', { name: 'Gerar senha provisória' })).toBeEnabled();
+    expect(b.queryByRole('button', { name: 'Desativar acesso' })).toBeNull();
+    expect(b.queryByRole('button', { name: 'Dar nível de acesso' })).toBeNull();
   });
 });

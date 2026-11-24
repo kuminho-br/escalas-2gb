@@ -5,10 +5,11 @@ import { COMPORTAMENTOS, mesParaData, type CelulaIgnorada, type ItemPrevia, type
 import { CICLO_EQUIPES, normalizar } from 'dominio';
 import { mudarPeriodoAberto } from '../cadastros/periodo-aberto.ts';
 import { quadroParaOPosto } from '../cadastros/quadros.ts';
-import { CADASTRO, siglaDaUnidadeDeCima, temPapelAcima } from '../acesso.ts';
+import { CADASTRO, siglaDaUnidadeDeCima, temNivelDeCima } from '../acesso.ts';
 import type { Consulta } from '../banco/banco.ts';
+import { hojeRecife } from '../datas.ts';
 import {
-  cpfMascarado, lerAntiguidade, lerCep, lerCnh, lerComportamento, lerCpf, lerEmail, lerEquipe, lerFuncao, lerJornada, lerNascimento, lerNomeDeGuerra, lerPosto, lerQuadro,
+  cpfMascarado, lerAntiguidade, lerCep, lerCnh, lerComportamento, lerCpf, lerEmail, lerEmailPessoal, lerEquipe, lerFuncao, lerJornada, lerNascimento, lerNomeDeGuerra, lerPosto, lerQuadro,
   lerSexo, lerSigla, lerSimNao, lerSituacao, lerTelefone, lerTexto, lerUf, matriculaDe, type Leitura,
 } from './peculio-colunas.ts';
 import { coluna } from './planilha.ts';
@@ -28,6 +29,7 @@ const COLUNAS = {
   nascimento: { rotulo: 'NASCIMENTO', obrigatoria: false, ajuda: 'A data de nascimento, como texto: dd/mm/aaaa (ex.: 15/03/1985) ou só dd/mm (ex.: 15/03). Célula que o Excel transformou em data é ignorada.', texto: true },
   telefone: { rotulo: 'TELEFONE', obrigatoria: false, ajuda: 'Até 20 caracteres (ex.: (81) 99999-0000).', texto: true },
   email: { rotulo: 'E-MAIL', obrigatoria: false, ajuda: 'E-mail institucional, só do domínio @bombeiros.pe.gov.br. Não pode repetir entre militares.' },
+  emailPessoal: { rotulo: 'E-MAIL PESSOAL', obrigatoria: false, ajuda: 'E-mail pessoal, de qualquer domínio. Não pode ser o e-mail institucional de ninguém. A coluna é opcional.' },
   comportamento: { rotulo: 'COMPORTAMENTO', obrigatoria: false, ajuda: 'Um destes: Excepcional, Ótimo, Bom, Insuficiente, Mau.', opcoes: [...COMPORTAMENTOS] },
   boletim: { rotulo: 'BOLETIM DO COMPORTAMENTO', obrigatoria: false, ajuda: 'Boletim em que o comportamento foi publicado (até 60 caracteres).' },
   cpf: { rotulo: 'CPF', obrigatoria: false, ajuda: '11 dígitos, com ou sem pontos e traço (ex.: 529.982.247-25). Não pode repetir entre militares.', texto: true },
@@ -53,6 +55,7 @@ type Chave = keyof typeof COLUNAS;
 
 export const MSG_CPF_DE_OUTRO = 'Este CPF já está cadastrado em outro militar.';
 export const MSG_EMAIL_DE_OUTRO = 'Este e-mail já está cadastrado em outro militar.';
+export const MSG_EMAIL_PESSOAL_INSTITUCIONAL = 'Este é um e-mail institucional: use outro, pessoal.';
 export const MSG_SEM_EQUIPE_NO_ADM = 'No expediente não há equipe.';
 const MSG_SEM_PERIODO = 'O militar não tem período aberto no rastreio: use "Alterar situação" na ficha.';
 const NOME_DO_DADO = { posto: 'posto/graduação', guerra: 'nome de guerra', lotacao: 'lotação' } as const;
@@ -77,7 +80,7 @@ type Plano = { itens: ItemPlano[]; mes: string };
 type Existente = {
   id: string; matricula: string; posto_grad_id: string; posto: string; nome_completo: string | null; nome_guerra: string; antiguidade: number | null; sexo: 'M' | 'F' | null;
   nascimento_dia: number | null; nascimento_mes: number | null; nascimento_ano: number | null; cpf: string | null; cep: string | null; logradouro: string | null;
-  numero: string | null; complemento: string | null; bairro: string | null; cidade: string | null; uf: string | null; telefone: string | null; email: string | null;
+  numero: string | null; complemento: string | null; bairro: string | null; cidade: string | null; uf: string | null; telefone: string | null; email: string | null; email_pessoal: string | null;
   comportamento: string | null; comportamento_boletim: string | null; motorista: boolean; cnh: string[]; voluntario_jes: boolean;
   funcao_militar_id: string | null; funcao_nome: string | null; abono_permanencia: boolean;
   /** a lotação de hoje (a do período que cobre o mês; sem ela, a mais recente) */
@@ -100,7 +103,7 @@ async function existentes(tx: Consulta, mes: string): Promise<Map<string, Existe
   const primeiro = mesParaData(mes);
   const { rows } = await tx.query<Existente>(
     `select m.id, m.matricula, m.posto_grad_id, p.sigla as posto, m.nome_completo, m.nome_guerra, m.antiguidade, m.sexo, m.nascimento_dia, m.nascimento_mes, m.nascimento_ano,
-            m.cpf, m.cep, m.logradouro, m.numero, m.complemento, m.bairro, m.cidade, m.uf, m.telefone, m.email, m.comportamento, m.comportamento_boletim,
+            m.cpf, m.cep, m.logradouro, m.numero, m.complemento, m.bairro, m.cidade, m.uf, m.telefone, m.email, m.email_pessoal, m.comportamento, m.comportamento_boletim,
             m.motorista, m.cnh, m.voluntario_jes, m.funcao_militar_id, fm.nome as funcao_nome, m.abono_permanencia, l.unidade_id, un.sigla as unidade_sigla, to_char(l.desde, 'YYYY-MM-DD') as unidade_desde,
             a.unidade_id as aberto_unidade, ae.nome as aberto_equipe, a.jornada as aberto_jornada, a.quadro_id as aberto_quadro_id, aq.sigla as aberto_quadro,
             a.situacao_id as aberto_situacao_id, asm.nome as aberto_situacao
@@ -128,8 +131,8 @@ async function catalogos(tx: Consulta, unidadeId: string) {
   const unidades = (
     await tx.query<{ id: string; sigla: string; mae: string | null }>(
       `select s.id, s.sigla, m.sigla as mae from unidade s join unidade u on u.id = $1 and s.caminho <@ u.caminho left join unidade m on m.id = s.mae_id
-        where s.ate is null or s.ate >= current_date order by nlevel(s.caminho), s.sigla`,
-      [unidadeId],
+        where s.ate is null or s.ate >= $2::date order by nlevel(s.caminho), s.sigla`,
+      [unidadeId, hojeRecife()],
     )
   ).rows.map((u, _, todas) => ({ id: u.id, sigla: u.sigla, rotulo: u.mae && todas.filter((o) => normalizar(o.sigla) === normalizar(u.sigla)).length > 1 ? `${u.sigla} (${u.mae})` : u.sigla }));
   const quadros = (
@@ -174,7 +177,15 @@ export const importadorPeculio: Importador<Plano> = {
 
   async planejar(abas, { tx, unidadeId, hoje, usuarioId }) {
     const aba = abas[ABA]!;
-    const c = Object.fromEntries(Object.entries(COLUNAS).map(([k, v]) => [k, coluna(aba, v.rotulo)])) as Record<Chave, number>;
+    // a coluna pelo rótulo (aceita o começo dele), sem tomar o cabeçalho de outra coluna: "E-MAIL PESSOAL" não é o "E-MAIL"
+    const rotulos = new Set(Object.values(COLUNAS).map((v) => normalizar(v.rotulo)));
+    const achar = (rotulo: string) => {
+      const i = coluna(aba, rotulo);
+      if (i < 0) return i;
+      const achado = normalizar(aba.cab[i]!);
+      return achado === normalizar(rotulo) || !rotulos.has(achado) ? i : -1;
+    };
+    const c = Object.fromEntries(Object.entries(COLUNAS).map(([k, v]) => [k, achar(v.rotulo)])) as Record<Chave, number>;
     const problemas: ProblemaImportacao[] = [];
     const avisos: string[] = [];
     const ignoradas: CelulaIgnorada[] = [];
@@ -197,26 +208,40 @@ export const importadorPeculio: Importador<Plano> = {
     const cpfsDaPlanilha = new Map<string, string>();
     const papelDeCima = new Map<string, boolean>();
     const donoDe = async (unidade: string) => {
-      if (!papelDeCima.has(unidade)) papelDeCima.set(unidade, usuarioId ? await temPapelAcima(tx, usuarioId, unidade, CADASTRO, hoje) : false);
+      if (!papelDeCima.has(unidade)) papelDeCima.set(unidade, usuarioId ? await temNivelDeCima(tx, usuarioId, unidade, CADASTRO, hoje) : false);
       return papelDeCima.get(unidade)!;
     };
     const siglaDe = async (unidade: string) => (await tx.query<{ sigla: string }>('select sigla from unidade where id = $1', [unidade])).rows[0]?.sigla ?? 'outra seção';
-    const cima = async (unidade: string) => (await siglaDaUnidadeDeCima(tx, unidade)) ?? 'nível acima';
+    // "quem tem nível de acesso no 2º GB"; a raiz não tem unidade de cima, e a frase fala do nível dela mesma
+    const quemTemNivel = async (unidade: string) => {
+      const sigla = await siglaDaUnidadeDeCima(tx, unidade);
+      return sigla ? `quem tem nível de acesso no ${sigla}` : 'quem tem nível de acesso na própria raiz';
+    };
     // as equipes que a importação vai criar, por seção (só as das linhas que entram)
     const equipesNovas = new Map<string, Set<string>>();
     const temEquipe = (unidade: string, nome: string) =>
       cat.equipes.some((e) => e.unidade_id === unidade && normalizar(e.nome) === normalizar(nome)) || [...(equipesNovas.get(unidade) ?? [])].some((n) => normalizar(n) === normalizar(nome));
 
+    // antiguidade repetida: quem já tem no sistema (de outra matrícula) e as linhas da planilha; a prévia só avisa, sem recusar
+    const donosDaAntiguidade = new Map<number, string[]>();
+    // só quem está no alcance da importação (lotado numa unidade dela) conta; os outros, de outras unidades, a prévia não comenta
+    for (const x of ja.values()) if (x.antiguidade !== null && x.unidade_id && cat.unidades.some((u) => u.id === x.unidade_id)) donosDaAntiguidade.set(x.antiguidade, [...(donosDaAntiguidade.get(x.antiguidade) ?? []), x.matricula]);
+    const antiguidadesDaPlanilha = new Map<number, string[]>();
     const vistos = new Set<string>();
     const novos: ItemPrevia[] = [];
     const alterados: ItemPrevia[] = [];
     const itens: ItemPlano[] = [];
     let iguais = 0;
+    // as linhas com dados e sem MATRÍCULA (de rodapé, de totais ou de sobra) não são militares: ficam de fora sem virar problema, e a prévia diz quantas foram
+    let semMatricula = 0;
 
     for (const l of aba.linhas) {
       const texto = (k: Chave) => (c[k] < 0 ? '' : (l.celulas[c[k]] ?? '').trim());
       const bruta = texto('mat');
-      if (!bruta) continue;
+      if (!bruta) {
+        semMatricula++;
+        continue;
+      }
       const problema = (mensagem: string, solucao: string) => problemas.push({ aba: ABA, linha: l.linha, mensagem, solucao });
 
       const mat = matriculaDe(bruta);
@@ -265,7 +290,7 @@ export const importadorPeculio: Importador<Plano> = {
       if (!(await donoDe(referencia))) {
         const sigla = e?.unidade_sigla ?? lotacao!.sigla;
         problema(
-          e ? `${nomeDaLinha} (${matricula}) ${e.unidade_desde && e.unidade_desde > hoje ? `tem lotação marcada na ${sigla} a partir de ${e.unidade_desde.slice(8, 10)}/${e.unidade_desde.slice(5, 7)}/${e.unidade_desde.slice(0, 4)}` : `está lotado na ${sigla}`}: o Pecúlio dele é de quem tem nível de acesso no ${await cima(referencia)}.` : `Cadastrar militar na ${sigla} é de quem tem nível de acesso no ${await cima(referencia)}.`,
+          e ? `${nomeDaLinha} (${matricula}) ${e.unidade_desde && e.unidade_desde > hoje ? `tem lotação marcada na ${sigla} a partir de ${e.unidade_desde.slice(8, 10)}/${e.unidade_desde.slice(5, 7)}/${e.unidade_desde.slice(0, 4)}` : `está lotado na ${sigla}`}: o Pecúlio dele é de ${await quemTemNivel(referencia)}.` : `Cadastrar militar na ${sigla} é de ${await quemTemNivel(referencia)}.`,
           'Peça a quem tem esse nível de acesso para importar a linha.',
         );
         continue;
@@ -275,10 +300,12 @@ export const importadorPeculio: Importador<Plano> = {
       const postoFinal = posto ?? { id: e!.posto_grad_id, sigla: e!.posto };
       const nomeCompleto = ler('completo', lerTexto(texto('completo'), 120));
       const antiguidade = ler('antig', lerAntiguidade(texto('antig')));
+      if (antiguidade !== undefined) antiguidadesDaPlanilha.set(antiguidade, [...(antiguidadesDaPlanilha.get(antiguidade) ?? []), matricula]);
       const sexo = ler('sexo', lerSexo(texto('sexo')));
-      const nascimento = ler('nascimento', lerNascimento(texto('nascimento'), Boolean(c.nascimento >= 0 && l.datas?.[c.nascimento])));
+      const nascimento = ler('nascimento', lerNascimento(texto('nascimento'), Boolean(c.nascimento >= 0 && l.datas?.[c.nascimento]), Number(hoje.slice(0, 4))));
       const telefone = ler('telefone', lerTelefone(texto('telefone')));
       let email = ler('email', lerEmail(texto('email')));
+      let emailPessoal = ler('emailPessoal', lerEmailPessoal(texto('emailPessoal')));
       let cpf = ler('cpf', lerCpf(texto('cpf')));
       const cep = ler('cep', lerCep(texto('cep')));
       const logradouro = ler('logradouro', lerTexto(texto('logradouro'), 120));
@@ -292,6 +319,9 @@ export const importadorPeculio: Importador<Plano> = {
       const motorista = ler('motorista', lerSimNao(texto('motorista')));
       const voluntarioJes = ler('vjes', lerSimNao(texto('vjes')));
       const cnh = ler('cnh', lerCnh(texto('cnh')));
+      // categoria repetida (AAD) vale como as categorias distintas (AD), e a prévia avisa
+      const cnhDigitada = texto('cnh').replace(/[^A-Za-z]/g, '').toUpperCase();
+      if (cnh && new Set(cnhDigitada).size !== cnhDigitada.length) avisos.push(`A CNH "${texto('cnh')}" da linha ${l.linha} tem categoria repetida e vale como ${[...cnh].sort().join('')}.`);
       const funcao = ler('funcao', lerFuncao(texto('funcao'), cat.funcoes));
       const abono = ler('abono', lerSimNao(texto('abono')));
 
@@ -302,6 +332,11 @@ export const importadorPeculio: Importador<Plano> = {
           ignorar('email', MSG_EMAIL_DE_OUTRO);
           email = undefined;
         }
+      }
+      // o e-mail pessoal não pode ser o institucional de ninguém (o que já está no banco ou o que vem na planilha, na coluna E-MAIL)
+      if (emailPessoal && (emailsDaPlanilha.has(emailPessoal.toLowerCase()) || emailsEmUso.has(emailPessoal.toLowerCase()) || (email && email.toLowerCase() === emailPessoal.toLowerCase()))) {
+        ignorar('emailPessoal', MSG_EMAIL_PESSOAL_INSTITUCIONAL);
+        emailPessoal = undefined;
       }
       if (cpf) {
         const dono = cpfsDaPlanilha.get(cpf) ?? cpfsEmUso.get(cpf);
@@ -323,7 +358,7 @@ export const importadorPeculio: Importador<Plano> = {
       const motivoDoRastreio = semPeriodo
         ? MSG_SEM_PERIODO
         : periodoDeFora
-          ? `O período aberto é da ${cat.unidades.find((u) => u.id === e!.aberto_unidade)?.sigla ?? (await siglaDe(e!.aberto_unidade!))}: muda quem tem nível de acesso no ${await cima(e!.aberto_unidade!)}.`
+          ? `O período aberto é da ${cat.unidades.find((u) => u.id === e!.aberto_unidade)?.sigla ?? (await siglaDe(e!.aberto_unidade!))}: muda ${await quemTemNivel(e!.aberto_unidade!)}.`
           : null;
       if (motivoDoRastreio) {
         for (const [k, v] of [['quadro', quadro], ['situacao', situacao], ['jornada', jornada], ['equipe', equipeTxt]] as const) if (v !== undefined) ignorar(k, motivoDoRastreio);
@@ -369,6 +404,7 @@ export const importadorPeculio: Importador<Plano> = {
       }
       comparar('telefone', 'telefone', e?.telefone, telefone);
       comparar('e-mail', 'email', e?.email, email);
+      comparar('e-mail pessoal', 'email_pessoal', e?.email_pessoal, emailPessoal);
       comparar('comportamento', 'comportamento', e?.comportamento, comportamento);
       comparar('boletim do comportamento', 'comportamento_boletim', e?.comportamento_boletim, boletim);
       comparar('CPF', 'cpf', e?.cpf, cpf, (v) => cpfMascarado(v as string | null) ?? 'vazio');
@@ -423,7 +459,14 @@ export const importadorPeculio: Importador<Plano> = {
       });
     }
 
+    for (const [n, daPlanilha] of antiguidadesDaPlanilha) {
+      // quem a planilha também traz com outra antiguidade não conta no número que está saindo dele
+      const mudaram = new Set([...antiguidadesDaPlanilha].filter(([outro]) => outro !== n).flatMap(([, ms]) => ms));
+      const donos = [...(donosDaAntiguidade.get(n) ?? []).filter((m) => !daPlanilha.includes(m) && !mudaram.has(m)), ...daPlanilha];
+      if (donos.length > 1) avisos.push(`Antiguidade ${n} repetida: ${donos.length === 2 ? donos.join(' e ') : `${donos.slice(0, -1).join(', ')} e ${donos.at(-1)}`}.`);
+    }
     for (const [secao, nomes] of equipesNovas) avisos.push(`Equipes novas na ${cat.unidades.find((u) => u.id === secao)?.sigla ?? 'seção'}: ${[...nomes].join(', ')}.`);
+    if (semMatricula) avisos.push(`${semMatricula} ${semMatricula === 1 ? 'linha sem MATRÍCULA foi ignorada' : 'linhas sem MATRÍCULA foram ignoradas'}.`);
     const lotados = [...ja.values()].filter((x) => x.unidade_id && cat.unidades.some((u) => u.id === x.unidade_id) && !vistos.has(x.matricula)).length;
     if (lotados) avisos.push(`${lotados} militares do sistema não estão na planilha (nada foi apagado).`);
     return { previa: { novos, alterados, iguais, problemas, avisos, ignoradas }, plano: { itens, mes } };

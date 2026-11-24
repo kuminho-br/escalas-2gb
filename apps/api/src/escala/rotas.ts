@@ -8,13 +8,14 @@ import type { Auth } from '../auth.ts';
 import { comUsuario, type Banco } from '../banco/banco.ts';
 import { mesPassado } from '../cadastros/guarnicoes.ts';
 import { lerCorpo, respostaDoErroDoBanco } from '../erros.ts';
-import { acumular, desfazerRemocao, escalar, Recusa, remover, tirarAcumulo } from './alocacoes.ts';
+import { acumular, desfazerRemocao, devolverRemocao, escalar, Recusa, remover, tirarAcumulo } from './alocacoes.ts';
 import { avaliarCandidatos } from './elegibilidade.ts';
 import { montarEscalaDoMes } from './leitura.ts';
 import { gravarOrdem, ordemDoMes } from './ordem-do-mes.ts';
 import { planejarPreEscala, PreEscalaInvalida } from './pre-escala.ts';
 import { NaoEncontrada, opcoesDeTroca, trocar } from './trocar.ts';
 
+const MSG_RODADA = 'Esta escala é uma rodada de cotas: os lançamentos dela são feitos em Oficiais.';
 const ConsultaDeCandidatos = z.object({ data: Data, inicio: Hora, fim: Hora, guarnicaoId: Id.optional(), funcaoId: Id.optional() });
 
 export function rotasEscalaDoMes(dep: { banco: Banco; auth: Auth }): Hono<AmbienteApi> {
@@ -66,6 +67,9 @@ export function rotasEscalaDoMes(dep: { banco: Banco; auth: Auth }): Hono<Ambien
     if (!Mes.safeParse(mes).success) return c.json({ erro: 'Mês inválido: use o formato aaaa-mm.' }, 400);
     const corpo = await lerCorpo(c, NovaPreEscala);
     if (!corpo.ok) return corpo.resposta;
+    // a escala de rodada de cotas (a dos oficiais) não tem pré-escala: ela é montada em Oficiais
+    const jeito = (await dep.banco.query<{ distribuicao: string }>('select distribuicao from escala where id = $1', [id])).rows[0]!.distribuicao;
+    if (jeito !== 'pre_escala') return c.json({ erro: 'Esta escala é uma rodada de cotas: ela é montada em Oficiais, e não tem pré-escala.' }, 409);
     try {
       const gravadas = await comUsuario(dep.banco, c.get('usuarioId'), async (tx) => {
         await tx.query('select pg_advisory_xact_lock(hashtext($1))', [`pre-escala|${id}|${mes}`]);
@@ -117,6 +121,11 @@ export function rotasEscalaDoMes(dep: { banco: Banco; auth: Auth }): Hono<Ambien
     return c.json(await avaliarCandidatos(dep.banco, { escalaId: id, data, inicio, fim, guarnicaoId: guarnicaoId ?? null, funcaoId: funcaoId ?? null }));
   });
 
+  /** A escala de rodada de cotas (a dos oficiais) só se lança em Oficiais: a pré-escala, o escalar, o remover e o trocar das praças não mexem nela. */
+  const daRodada = async (escalaId: string) => (await dep.banco.query('select 1 from escala where id = $1 and distribuicao <> $2', [escalaId, 'pre_escala'])).rows.length > 0;
+  const daRodadaDaAlocacao = async (alocacaoId: string) =>
+    (await dep.banco.query('select 1 from alocacao a join escala e on e.id = a.escala_id where a.id = $1 and e.distribuicao <> $2', [alocacaoId, 'pre_escala'])).rows.length > 0;
+
   /** Escalar um militar numa vaga; devolve a escala do mês para a tela trocar o que tem. */
   r.post('/escalas/:id/alocacoes', async (c) => {
     const id = c.req.param('id');
@@ -124,6 +133,7 @@ export function rotasEscalaDoMes(dep: { banco: Banco; auth: Auth }): Hono<Ambien
     if (!unidadeId) return c.json({ erro: 'Escala não encontrada.' }, 404);
     const negado = await exigirPapel(c, unidadeId, CADASTRO);
     if (negado) return negado;
+    if (await daRodada(id)) return c.json({ erro: MSG_RODADA }, 409);
     const corpo = await lerCorpo(c, NovaAlocacao);
     if (!corpo.ok) return corpo.resposta;
     const d = corpo.dados;
@@ -148,8 +158,26 @@ export function rotasEscalaDoMes(dep: { banco: Banco; auth: Auth }): Hono<Ambien
     if (!unidadeId) return c.json({ erro: 'Alocação não encontrada.' }, 404);
     const negado = await exigirPapel(c, unidadeId, CADASTRO);
     if (negado) return negado;
-    const { escalaId, mes } = await comUsuario(dep.banco, c.get('usuarioId'), (tx) => remover(tx, id, c.get('usuarioId')));
-    return c.json(await montarEscalaDoMes(dep.banco, escalaId, mes));
+    if (await daRodadaDaAlocacao(id)) return c.json({ erro: MSG_RODADA }, 409);
+    const { escalaId, mes, remocaoId } = await comUsuario(dep.banco, c.get('usuarioId'), (tx) => remover(tx, id, c.get('usuarioId')));
+    // a escala do mês e o id da remoção: o aviso da tela usa o id para o "Desfazer"
+    return c.json({ ...(await montarEscalaDoMes(dep.banco, escalaId, mes)), remocaoId });
+  });
+
+  /** "Desfazer" a remoção: devolve o militar à mesma vaga e tira a marca de removido; 409 se a escala mudou desde então. */
+  r.post('/remocoes/:id/desfazer', async (c) => {
+    const id = c.req.param('id');
+    const unidadeId = await unidadeDoRegistro(dep.banco, 'remocao', id);
+    if (!unidadeId) return c.json({ erro: 'Remoção não encontrada.' }, 404);
+    const negado = await exigirPapel(c, unidadeId, CADASTRO);
+    if (negado) return negado;
+    try {
+      const { escalaId, mes } = await comUsuario(dep.banco, c.get('usuarioId'), (tx) => devolverRemocao(tx, id));
+      return c.json(await montarEscalaDoMes(dep.banco, escalaId, mes));
+    } catch (e) {
+      if (e instanceof Recusa) return c.json({ erro: e.message }, 409);
+      return respostaDoErroDoBanco(c, e);
+    }
   });
 
   r.delete('/remocoes/:id', async (c) => {
@@ -181,6 +209,7 @@ export function rotasEscalaDoMes(dep: { banco: Banco; auth: Auth }): Hono<Ambien
     if (!unidadeId) return c.json({ erro: 'Alocação não encontrada.' }, 404);
     const negado = await exigirPapel(c, unidadeId, CADASTRO);
     if (negado) return negado;
+    if (await daRodadaDaAlocacao(id)) return c.json({ erro: MSG_RODADA }, 409);
     const corpo = await lerCorpo(c, Troca);
     if (!corpo.ok) return corpo.resposta;
     try {
@@ -200,6 +229,7 @@ export function rotasEscalaDoMes(dep: { banco: Banco; auth: Auth }): Hono<Ambien
     if (!unidadeId) return c.json({ erro: 'Alocação não encontrada.' }, 404);
     const negado = await exigirPapel(c, unidadeId, CADASTRO);
     if (negado) return negado;
+    if (await daRodadaDaAlocacao(id)) return c.json({ erro: MSG_RODADA }, 409);
     const corpo = await lerCorpo(c, NovoAcumulo);
     if (!corpo.ok) return corpo.resposta;
     try {

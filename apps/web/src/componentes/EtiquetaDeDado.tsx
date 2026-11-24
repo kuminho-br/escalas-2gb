@@ -11,7 +11,7 @@ export function EtiquetaDeDado({ icone: Icone, falta = false, children }: { icon
       data-etiqueta
       title={children}
       className={cn(
-        'inline-flex h-6 max-w-full min-w-0 items-center gap-1.5 rounded-md border px-2 text-[13px] leading-none font-medium',
+        'inline-flex h-6 max-w-full min-w-0 items-center gap-1.5 rounded-md border px-2 text-apoio leading-none font-medium',
         falta ? 'border-pendencia/40 bg-pendencia-fundo text-pendencia' : 'border-linha bg-passa text-tinta',
       )}
     >

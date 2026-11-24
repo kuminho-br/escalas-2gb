@@ -192,7 +192,7 @@ describe('desativar o acesso', () => {
   it('desativar derruba a sessão e gerar de novo reativa', async () => {
     const m = await novoMilitar();
     const { cookie, senha } = await entrouComProvisoria(m);
-    const r = await api.pedir('escalante', 'POST', `/api/militares/${m.id}/desativar-acesso`);
+    const r = await api.pedir('gestorGb', 'POST', `/api/militares/${m.id}/desativar-acesso`);
     expect(r.status).toBe(200);
     expect(await r.json()).toMatchObject({ situacao: 'desativado' });
     expect((await como(cookie, 'GET', '/api/eu')).status).toBe(401);
@@ -205,7 +205,35 @@ describe('desativar o acesso', () => {
 
   it('quem nunca teve acesso não tem o que desativar', async () => {
     const m = await novoMilitar();
-    expect((await api.pedir('escalante', 'POST', `/api/militares/${m.id}/desativar-acesso`)).status).toBe(409);
+    expect((await api.pedir('gestorGb', 'POST', `/api/militares/${m.id}/desativar-acesso`)).status).toBe(409);
+  });
+
+  it('6.32: o auxiliar só gera a senha: num militar comum com acesso ativo, podeGerarSenha é true, podeDesativar é false e ele não dá nível de acesso', async () => {
+    const m = await novoMilitar();
+    await gerar(m.id);
+    const acesso = await acessoDe(m.id, 'escalante');
+    expect(acesso).toMatchObject({ podeGerarSenha: true, podeDesativar: false, papeisQuePodeDar: [] });
+    // o gestor acima da lotação continua podendo
+    expect((await acessoDe(m.id, 'gestorGb')).podeDesativar).toBe(true);
+  });
+
+  it('6.32: o auxiliar que tenta desativar o acesso recebe 403 "Desativar o acesso é de quem dá o nível de acesso." e nada muda; o gestor desativa', async () => {
+    const m = await novoMilitar();
+    await gerar(m.id);
+    const r = await api.pedir('escalante', 'POST', `/api/militares/${m.id}/desativar-acesso`);
+    expect(r.status).toBe(403);
+    expect((await r.json()).erro).toBe('Desativar o acesso é de quem dá o nível de acesso.');
+    expect((await acessoDe(m.id, 'gestorGb')).situacao).not.toBe('desativado');
+    expect((await api.pedir('gestorGb', 'POST', `/api/militares/${m.id}/desativar-acesso`)).status).toBe(200);
+  });
+
+  it('6.32: o auxiliar continua gerando a senha de um militar comum e a de um colega auxiliar com a conta ativa (folga de 21/11/2026)', async () => {
+    const comum = await novoMilitar();
+    expect((await gerar(comum.id, 'escalante')).status).toBe(201);
+    const colega = await novoMilitar();
+    await gerar(colega.id);
+    await comPapelNaSecao(colega.id);
+    expect((await gerar(colega.id, 'escalante')).status).toBe(201);
   });
 });
 
@@ -403,9 +431,10 @@ describe('revisão final da 6.1', () => {
     expect((await acessoDe(semEmail.id)).podeGerarSenha).toBe(false);
   });
 
-  it('o auxiliar desativa o acesso de um colega auxiliar da unidade dele', async () => {
+  it('o auxiliar não desativa o acesso nem de um colega auxiliar (6.32); o gestor desativa o da unidade dele', async () => {
     const colega = await comPapel('escalante', api.ids.secao);
-    const r = await api.pedir('escalante', 'POST', `/api/militares/${colega.id}/desativar-acesso`);
+    expect((await api.pedir('escalante', 'POST', `/api/militares/${colega.id}/desativar-acesso`)).status).toBe(403);
+    const r = await api.pedir('gestorGb', 'POST', `/api/militares/${colega.id}/desativar-acesso`);
     expect(r.status).toBe(200);
     expect((await r.json()).situacao).toBe('desativado');
     const doGb = await comPapel('escalante', api.ids.gb);

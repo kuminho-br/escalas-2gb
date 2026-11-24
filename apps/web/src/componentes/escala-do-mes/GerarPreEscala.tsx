@@ -7,6 +7,7 @@ import { Selecao } from '@/componentes/Selecao';
 import { Button } from '@/componentes/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/componentes/ui/dialog';
 import { Label } from '@/componentes/ui/label';
+import { Espera } from '@/componentes/resposta/Espera';
 
 const plural = (n: number, um: string, varios: string) => `${n} ${n === 1 ? um : varios}`;
 const diaDe = (data: string) => Number(data.slice(8));
@@ -44,7 +45,7 @@ export function GerarPreEscala({ escalaId, mes, aoFechar, aoGravar }: { escalaId
           <DialogTitle>Gerar pré-escala</DialogTitle>
           <DialogDescription>Coloca no Pronto a equipe de cada dia, nas vagas pela ordem de escalação. Quem já está escalado não é mexido.</DialogDescription>
         </DialogHeader>
-        {previa.isPending && <p className="text-apagado">Carregando…</p>}
+        {previa.isPending && <Espera />}
         {previa.error && <p role="alert" className="text-alerta">{mensagemDe(previa.error)}</p>}
         {p && (
           <>
@@ -73,7 +74,7 @@ export function GerarPreEscala({ escalaId, mes, aoFechar, aoGravar }: { escalaId
             {p.avisos.filter((a) => a !== 'Escolha a equipe do dia 1.').map((a) => <p key={a} className="text-sm text-pendencia">{a}</p>)}
             {p.vazias.length + p.semGuarnicao.length > 0 && (
               <div className="grid gap-1.5">
-                <Button type="button" variant="outline" size="sm" aria-expanded={verFora} onClick={() => setVerFora(!verFora)} className="justify-self-start">
+                <Button type="button" variant="secundario" size="sm" aria-expanded={verFora} onClick={() => setVerFora(!verFora)} className="justify-self-start">
                   Ver o que ficou de fora
                 </Button>
                 {verFora && (
@@ -88,7 +89,7 @@ export function GerarPreEscala({ escalaId, mes, aoFechar, aoGravar }: { escalaId
         )}
         {erro && <p role="alert" className="text-sm text-alerta">{erro}</p>}
         <DialogFooter>
-          <Button type="button" variant="outline" onClick={aoFechar}>Cancelar</Button>
+          <Button type="button" variant="secundario" onClick={aoFechar}>Cancelar</Button>
           <Button type="button" onClick={() => void gravar()} disabled={!p || previa.isPlaceholderData || !equipeDoDia1 || salvando}>Gravar pré-escala</Button>
         </DialogFooter>
       </DialogContent>
