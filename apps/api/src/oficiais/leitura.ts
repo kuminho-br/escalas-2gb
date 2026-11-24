@@ -207,6 +207,7 @@ export async function lerEscala(c: Consulta, unidadeId: string, mes: string, esc
       ordem,
       semAntiguidade: (p?.antiguidade ?? x?.antiguidade ?? null) === null,
       saldoAnterior: anteriores.get(militarId) ?? 0,
+      saldoPrevisto: (anteriores.get(militarId) ?? 0) + (cota ? escolhidos(militarId) - cota.devido : 0),
       dias,
       devido: cota ? cota.devido : null,
       cota: cota ? cota.cota : null,
