@@ -14,7 +14,13 @@
 
 | # | Data | Quem trouxe | Pedido (resumo) | Tipo | Estado | Entrega |
 |---|---|---|---|---|---|---|
-| — | — | — | (vazio: o usuário começa a passar feedbacks ao preparar dezembro) | — | — | — |
+| 1 | 24/11 | usuário | Grade geral: linha mais forte separando a área que rola (dias e alocações) da fixa (militar, PJES, Diárias e o cabeçalho das datas); padrão de UI com a DESIGN, para toda tabela com rolagem | secundária | aberto | — |
+| 2 | 24/11 | usuário | A barra de saldo do Adm fica à direita da matrícula, alinhada à direita na célula do militar (hoje está antes) | secundária | aberto | — |
+| 3 | 24/11 | usuário | Os filtros de equipe da Grade (Todas, ALFA…) sem identidade visual: repensar; "Adm" vira "ADM" | secundária | aberto | — |
+| 4 | 24/11 | usuário | Pecúlio reestruturado: o módulo vira "Pecúlio Geral", com as views "Pecúlio da unidade" (a de hoje, com um botão para incluir as unidades de baixo), "Pesquisar militares" (a corporação inteira, com vários filtros) e "Aniversários" (calendário) | secundária | aberto (falta definir os filtros) | — |
+| 5 | 24/11 | usuário | A lista de militares do Pecúlio precisa de linha divisória entre os itens, ou cartões dentro de um painel | secundária | aberto | — |
+| 6 | 24/11 | usuário | A ficha completa aberta pela busca do Pecúlio leva à aba Militares das escalas; deve abrir no próprio Pecúlio | secundária | aberto | — |
+| 7 | 24/11 | DESIGN | Tela inicial, versão 2, aprovada: cena menor que encolhe ao rolar e atalhos dos módulos (avisos e próximos serviços ficam para depois) | secundária | planejado | 6.42 (Fable) |
 
 ## Já conhecidos antes do pool
 
