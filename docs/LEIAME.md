@@ -37,16 +37,16 @@
 | [superpowers/specs/2026-11-16-telas.md](superpowers/specs/2026-11-16-telas.md) | Identidade visual, navegação e cada tela | PLANEJAMENTO | vigente |
 | [superpowers/specs/2026-11-18-ordem-de-escala-e-acumulo-design.md](superpowers/specs/2026-11-18-ordem-de-escala-e-acumulo-design.md) | Ordem de escala e acúmulo de funções | PLANEJAMENTO | concluído |
 | [superpowers/specs/2026-11-19-voluntariado-por-faixa-design.md](superpowers/specs/2026-11-19-voluntariado-por-faixa-design.md) | Voluntariado por faixa de horário, com 4 adendos | PLANEJAMENTO | concluído (a consolidar) |
-| [superpowers/specs/2026-11-20-meta-de-ativacao-design.md](superpowers/specs/2026-11-20-meta-de-ativacao-design.md) | Meta de ativação e Efetivo do dia | PLANEJAMENTO | em execução |
-| [superpowers/specs/2026-11-20-grade-geral-design.md](superpowers/specs/2026-11-20-grade-geral-design.md) | Grade geral (entrega 4) | PLANEJAMENTO | em execução |
-| [superpowers/specs/2026-11-20-grade-geral-ux-design.md](superpowers/specs/2026-11-20-grade-geral-ux-design.md) | Ajustes de interface da grade geral | PLANEJAMENTO | em execução |
+| [superpowers/specs/2026-11-20-meta-de-ativacao-design.md](superpowers/specs/2026-11-20-meta-de-ativacao-design.md) | Meta de ativação e Efetivo do dia | PLANEJAMENTO | concluído |
+| [superpowers/specs/2026-11-20-grade-geral-design.md](superpowers/specs/2026-11-20-grade-geral-design.md) | Grade geral (entrega 4) | PLANEJAMENTO | concluído |
+| [superpowers/specs/2026-11-20-grade-geral-ux-design.md](superpowers/specs/2026-11-20-grade-geral-ux-design.md) | Ajustes de interface da grade geral | PLANEJAMENTO | concluído |
 | [casos-de-uso.md](casos-de-uso.md) | Quem pode fazer o quê, um diagrama por tipo de usuário (militar comum, auxiliar administrativo, gestor, administrador) | DOCUMENTAÇÃO | vigente (atualizar com a fase 6) |
 | [superpowers/specs/2026-11-20-sintese-design-e-roadmap-design.md](superpowers/specs/2026-11-20-sintese-design-e-roadmap-design.md) | Intervenção para sintetizar o design e o roadmap | DOCUMENTAÇÃO (desenho); PLANEJAMENTO (execução) | vigente |
 | [superpowers/specs/2026-11-20-limpeza-da-fase-3-design.md](superpowers/specs/2026-11-20-limpeza-da-fase-3-design.md) | Limpeza das pendências da fase 3 | PLANEJAMENTO | vigente |
 | [superpowers/specs/2026-11-20-peculio-design.md](superpowers/specs/2026-11-20-peculio-design.md) | Pecúlio do 2º GB (fase 5): estrutura da ficha, rastreio e interface com a escala | PLANEJAMENTO | vigente |
 | [superpowers/specs/2026-11-21-usuarios-e-modulos-design.md](superpowers/specs/2026-11-21-usuarios-e-modulos-design.md) | Usuários e módulos (fase 6): contas, papéis, unidade de trabalho e tela inicial | PLANEJAMENTO | vigente |
-| [superpowers/specs/2026-11-22-escala-dos-oficiais-design.md](superpowers/specs/2026-11-22-escala-dos-oficiais-design.md) | Escala dos oficiais (entrega paralela P1): cota, saldo e regras; mockup em `telas/escala-dos-oficiais/` | PLANEJAMENTO | vigente |
-| [superpowers/specs/2026-11-20-transicao-login-design.md](superpowers/specs/2026-11-20-transicao-login-design.md) | Transição do login (as mangueiras), com o mockup em `telas/transicao-login/` | DESIGN | mockup aprovado |
+| [superpowers/specs/2026-11-22-escala-dos-oficiais-design.md](superpowers/specs/2026-11-22-escala-dos-oficiais-design.md) | Escala dos oficiais (entrega paralela P1): cota, saldo e regras; mockup em `telas/escala-dos-oficiais/mockup.html` | PLANEJAMENTO | vigente |
+| [superpowers/specs/2026-11-20-transicao-login-design.md](superpowers/specs/2026-11-20-transicao-login-design.md) | Transição do login (as mangueiras), com o mockup em `telas/transicao-login/mockup.html` | DESIGN | mockup aprovado |
 | [superpowers/specs/2026-11-23-refatoracao-da-interface-design.md](superpowers/specs/2026-11-23-refatoracao-da-interface-design.md) | Refatoração da interface: achados da análise, direção proposta e necessidades de implementação | DESIGN | vigente (direção e decisões D1 a D4 aprovadas em 23/11/2026) |
 | [superpowers/specs/2026-11-23-sistema-de-estilo-design.md](superpowers/specs/2026-11-23-sistema-de-estilo-design.md) | Diretrizes gerais da interface: valores dos tokens e medidas dos componentes (blocos N1 e N2 da refatoração) e a organização dos mockups em áreas | DESIGN | aprovado |
 | [superpowers/specs/2026-11-23-camadas-de-visao-design.md](superpowers/specs/2026-11-23-camadas-de-visao-design.md) | Camadas de visão e o chefe de divisão: ver separado de editar, a borda nas Configurações, a consulta e as escalas só para leitura | PLANEJAMENTO | vigente |
@@ -74,7 +74,7 @@
 | [superpowers/plans/2026-11-17-fase3-cadastros.md](superpowers/plans/2026-11-17-fase3-cadastros.md) | Fase 3: cadastros | DESENVOLVIMENTO | concluído |
 | [superpowers/plans/2026-11-18-revisao-1.md](superpowers/plans/2026-11-18-revisao-1.md) | Revisão 1: pendências de interface | DESENVOLVIMENTO | concluído |
 | [superpowers/plans/2026-11-18-revisao-3.md](superpowers/plans/2026-11-18-revisao-3.md) | Revisão 3: revisão de código | DESENVOLVIMENTO | concluído |
-| [superpowers/plans/2026-11-21-fase5-peculio.md](superpowers/plans/2026-11-21-fase5-peculio.md) | Fase 5: Pecúlio (entregas 1 a 3; 1 e 2 detalhadas) | DESENVOLVIMENTO | em execução |
+| [superpowers/plans/2026-11-21-fase5-peculio.md](superpowers/plans/2026-11-21-fase5-peculio.md) | Fase 5: Pecúlio (entregas 1 a 3; 1 e 2 detalhadas) | DESENVOLVIMENTO | concluído |
 | [superpowers/plans/2026-11-21-fase6-usuarios-e-modulos.md](superpowers/plans/2026-11-21-fase6-usuarios-e-modulos.md) | Fase 6: Usuários e módulos (entregas 1 a 3 detalhadas; 4 condicional) | DESENVOLVIMENTO | em execução |
 | [superpowers/plans/2026-11-22-p1-escala-dos-oficiais.md](superpowers/plans/2026-11-22-p1-escala-dos-oficiais.md) | Entrega paralela P1: quadros e Escala dos oficiais (P1.1 a P1.3) | DESENVOLVIMENTO | planejado |
 | [superpowers/plans/2026-11-23-camadas-de-visao.md](superpowers/plans/2026-11-23-camadas-de-visao.md) | Entregas 6.10 a 6.12: divisões e chefe de divisão, camadas de visão e consulta, escalas só para leitura | DESENVOLVIMENTO | planejado |
@@ -93,8 +93,9 @@
 | [superpowers/plans/2026-11-24-fase6-37-choque-universal.md](superpowers/plans/2026-11-24-fase6-37-choque-universal.md) | Entregas 6.37 e 6.38: choque universal; resolver o choque e a cota de saldo | DESENVOLVIMENTO | planejado |
 | [superpowers/plans/2026-11-24-fase6-39-choque-nos-oficiais.md](superpowers/plans/2026-11-24-fase6-39-choque-nos-oficiais.md) | Entrega 6.39: choque na escala dos oficiais | DESENVOLVIMENTO | planejado |
 | [superpowers/plans/2026-11-24-fase6-40-pre-escala-turnos-e-expediente.md](superpowers/plans/2026-11-24-fase6-40-pre-escala-turnos-e-expediente.md) | Entrega 6.40: a pré-escala só nos turnos e com o expediente | DESENVOLVIMENTO | planejado |
-| [superpowers/plans/2026-11-18-fase4-escala.md](superpowers/plans/2026-11-18-fase4-escala.md) | Fase 4: montagem da escala (entregas 1 a 4.3) | DESENVOLVIMENTO | em execução (grande demais: dividir) |
+| [superpowers/plans/2026-11-18-fase4-escala.md](superpowers/plans/2026-11-18-fase4-escala.md) | Fase 4: montagem da escala (entregas 1 a 4.3) | DESENVOLVIMENTO | concluído |
 | [superpowers/plans/2026-11-20-roadmap-documentacao.md](superpowers/plans/2026-11-20-roadmap-documentacao.md) | Roadmap da documentação | DOCUMENTAÇÃO | em execução |
+| [superpowers/plans/2026-11-24-revisao-da-documentacao.md](superpowers/plans/2026-11-24-revisao-da-documentacao.md) | Revisão geral da documentação de 24/11: o que foi corrigido e o que pede ação | DOCUMENTAÇÃO | vigente |
 
 ## Telas e mockups
 
@@ -120,7 +121,7 @@ Cada medida é um alerta, não um bloqueio. A DOCUMENTAÇÃO mede quando o usuá
 
 | Medida | Bom | Atenção |
 |---|---|---|
-| Documento lido inteiro (spec, guia, glossário, índice) | até 25 KB | acima de 50 KB é crítico |
+| Documento lido inteiro (spec, guia, glossário, índice) | até 25 KB (25.600 bytes, como mede o script) | acima de 50 KB é crítico |
 | `CLAUDE.md` da raiz | até 120 linhas, sem "estado atual" datado, sem número que envelhece (contagem de testes ou de arquivos) | |
 | Parágrafo (linha de tabela fica de fora) | até 400 caracteres | |
 | Adendos num mesmo documento (só os antigos; não se escreve adendo novo) | até 3 | mais de 3: consolidar |

@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Checagem da documentação (régua em docs/LEIAME.md). Roda da raiz do repositório e imprime o relatório em Markdown.
 # Uso: bash docs/ferramentas/checar-documentacao.sh > docs/relatorio-documentacao.md
+# Caminhos com <modelo> (ex.: docs/ideias/<tema>.md) não são conferidos.
 # Limites conhecidos: cercas de código indentadas e nomes de arquivo com espaço ou acento não são tratados.
 set -u
 export LC_ALL=C.UTF-8
@@ -50,7 +51,7 @@ linhas=$(wc -l < CLAUDE.md); echo "- Linhas: $linhas (limite $LIM_CLAUDE)"
 [ "$linhas" -gt $LIM_CLAUDE ] && claude_falhas=$((claude_falhas+1))
 env='Estado atual|[0-9]+ ok\b|[0-9]+ (arquivos|testes|migra)'
 if grep -qiE "$env" CLAUDE.md; then echo "- Tem \"estado atual\" ou número que envelhece: $(grep -ciE "$env" CLAUDE.md) linha(s)"; claude_falhas=$((claude_falhas+1)); else echo "- Sem \"estado atual\" nem número que envelhece."; fi
-quebrados=$(grep -ohE '`(apps|pacotes|docs|prototipo|casos|scripts)/[^` ]*`' CLAUDE.md prototipo/CLAUDE.md | tr -d '`' | sort -u | while read -r p; do [ -e "$p" ] || echo "$p"; done)
+quebrados=$(grep -ohE '`(apps|pacotes|docs|prototipo|casos|scripts)/[^` ]*`' CLAUDE.md prototipo/CLAUDE.md | tr -d '`' | grep -v '<' | sort -u | while read -r p; do [ -e "$p" ] || echo "$p"; done)
 if [ -n "$quebrados" ]; then echo "- Caminhos que não existem:"; echo "$quebrados" | sed 's/^/  - `/;s/$/`/'; claude_falhas=$((claude_falhas+1)); else echo "- Todos os caminhos citados existem."; fi
 if [ $claude_falhas -eq 0 ]; then nota="bom"; elif [ $claude_falhas -eq 1 ]; then nota="regular"; else nota="insatisfatório"; fi
 echo "- **Nota: $nota**"
