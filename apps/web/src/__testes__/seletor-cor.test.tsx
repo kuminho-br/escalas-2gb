@@ -28,7 +28,7 @@ describe('seletor de cor', () => {
     expect(botaoDe('#4A86E8')).toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', { name: 'Salvar' }));
     await waitFor(() =>
-      expect(corpoEnviado(f, 'PATCH /api/servicos/s3')).toEqual({ nome: 'Bioma', tipo: 'diaria', operacao: 'Guardiões do Bioma', rotuloImpressao: null, cor: '#4A86E8' }),
+      expect(corpoEnviado(f, 'PATCH /api/servicos/s3')).toEqual({ nome: 'Bioma', tipo: 'diaria', operacao: 'Guardiões do Bioma', rotuloImpressao: null, cor: '#4A86E8', tiraDoExpediente: false }),
     );
   });
 
