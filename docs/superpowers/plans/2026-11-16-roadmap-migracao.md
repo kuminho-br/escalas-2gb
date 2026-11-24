@@ -98,8 +98,8 @@ Design: `docs/superpowers/specs/2026-11-21-usuarios-e-modulos-design.md`. Plano:
 | 20 e 21 | Fundação da interface: sistema de estilo (N1); resposta do sistema (N2, 0040) | mescladas (#190, #191) |
 | 25 e 26 | Árvore genérica (0035); configurações gerais | mescladas (#167, #171) |
 | 22 a 24, 27 a 31 | Oficiais (refeitos, escala comum 0036, dias vermelhos 0037, tela de escalar, memorial 0039); mover na hierarquia; admin como militar; raiz sem "nível acima" | mescladas (#157 a #185) |
-| 32 a 35 | Ficha na escala e Escala do mês no ordinário; militar externo; testes instáveis | 32 a 34 mescladas (#192, #193, #195); 35 em execução |
-| 36 | Ajustes do piloto: RG funcional (0041), Grade sem Voluntariado, externo nas configurações e em qualquer serviço | planejada, depois da 35 |
+| 32 a 36 | Ficha na escala; Escala do mês no ordinário; militar externo; testes instáveis; RG funcional (0041), Grade sem Voluntariado | mescladas (#192 a #199) |
+| 37 e 38 | Choque universal (0042, sai o parâmetro do Adm); resolver o choque ao escalar; cota de saldo à vista | planejadas, antes da fase 7 |
 
 **Fora:** e-mail, usuários acima do GB (fase 11), Visualização (fase 7).
 
@@ -119,7 +119,7 @@ Spec: `docs/superpowers/specs/2026-11-23-refatoracao-da-interface-design.md`. N0
 
 ## Fase 8 — Primeiro mês real · planejada
 
-- **Distribuições automáticas:** completar com JES num dia ou período escolhido pelo chefe, saldos do Adm, operações pelas cotas e buracos do Pronto. O motor já tem `distribuirCotas` e `distribuirAdm`; falta ligá-los às vagas, no padrão da pré-escala do Pronto.
+- **Distribuições automáticas:** JES num dia ou período escolhido pelo chefe, o expediente do Adm em todo dia útil (os saldos são à mão, 24/11), operações pelas cotas e buracos do Pronto. O motor já tem `distribuirCotas` e `distribuirAdm`; falta ligá-los às vagas, no padrão da pré-escala do Pronto.
 - **Gerar documento:** modelos de impressão em Configurações, a escala em .xlsx a partir do modelo e o histórico dos documentos.
 - **O mesmo modelo de guarnição mais de uma vez no dia.**
 - **Otimizar o painel do dia** da Grade geral: 42 consultas com uma escala e três faixas, e cresce com cada faixa.

@@ -54,6 +54,7 @@
 | [superpowers/specs/2026-11-23-oficiais-escala-comum-design.md](superpowers/specs/2026-11-23-oficiais-escala-comum-design.md) | Escala dos oficiais como escala comum e dias vermelhos | PLANEJAMENTO | aprovado |
 | [superpowers/specs/2026-11-23-oficiais-tela-de-escalar-design.md](superpowers/specs/2026-11-23-oficiais-tela-de-escalar-design.md) | A tela de escalar dos oficiais | PLANEJAMENTO | aprovado |
 | [superpowers/specs/2026-11-24-ficha-da-escala-e-militar-externo-design.md](superpowers/specs/2026-11-24-ficha-da-escala-e-militar-externo-design.md) | Ficha do militar na escala, Escala do mês e militar externo | PLANEJAMENTO | aprovado |
+| [superpowers/specs/2026-11-24-choque-universal-design.md](superpowers/specs/2026-11-24-choque-universal-design.md) | Choque de horário universal, o expediente do Adm e a cota de saldo à vista | PLANEJAMENTO | aprovado |
 
 ## Controle da documentação
 
@@ -88,6 +89,7 @@
 | [superpowers/plans/2026-11-24-fase6-32-ficha-da-escala.md](superpowers/plans/2026-11-24-fase6-32-ficha-da-escala.md) | Entrega 6.32: a ficha do militar na escala e a Escala do mês no ordinário | DESENVOLVIMENTO | planejado |
 | [superpowers/plans/2026-11-24-fase6-33-militar-externo.md](superpowers/plans/2026-11-24-fase6-33-militar-externo.md) | Entrega 6.33: o militar externo | DESENVOLVIMENTO | planejado |
 | [superpowers/plans/2026-11-24-fase6-36-ajustes-do-piloto.md](superpowers/plans/2026-11-24-fase6-36-ajustes-do-piloto.md) | Entrega 6.36: RG funcional, Grade sem Voluntariado, militar externo nas configurações | DESENVOLVIMENTO | planejado |
+| [superpowers/plans/2026-11-24-fase6-37-choque-universal.md](superpowers/plans/2026-11-24-fase6-37-choque-universal.md) | Entregas 6.37 e 6.38: choque universal; resolver o choque e a cota de saldo | DESENVOLVIMENTO | planejado |
 | [superpowers/plans/2026-11-18-fase4-escala.md](superpowers/plans/2026-11-18-fase4-escala.md) | Fase 4: montagem da escala (entregas 1 a 4.3) | DESENVOLVIMENTO | em execução (grande demais: dividir) |
 | [superpowers/plans/2026-11-20-roadmap-documentacao.md](superpowers/plans/2026-11-20-roadmap-documentacao.md) | Roadmap da documentação | DOCUMENTAÇÃO | em execução |
 
