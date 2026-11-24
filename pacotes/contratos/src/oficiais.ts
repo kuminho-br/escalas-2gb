@@ -27,6 +27,8 @@ export interface OficialDoMes {
   saldoAnterior: number;
   dias: number;
   devido: number | null;
+  /** O saldo do oficial com o mês como está agora: o acumulado até o mês anterior + os lugares de Saldo tirados − o devido (com a parte quebrada). Sem cota, é o saldo que ele já traz. Só vale como prévia: o acumulado muda ao encerrar. */
+  saldoPrevisto: number;
   /** A cota de saldo: os lugares que sobram depois dos JES, repartidos pela presença. */
   cota: number | null;
   sobra: boolean;

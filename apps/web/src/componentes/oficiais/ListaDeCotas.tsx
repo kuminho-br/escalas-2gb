@@ -99,7 +99,7 @@ export function ListaDeCotas({ escala: e, aoOrdenar, aoMarcar, desabilitado, esc
     const comVermelhos = comCota && e.diasVermelhos.length > 0;
     const rotulo = 'text-[13px] leading-[18px] text-apagado';
     return (
-      <li key={o.militarId} className={cn('grid gap-1.5 rounded-xl border p-2.5', daVez ? 'border-vinho bg-pendencia-fundo' : 'border-linha bg-superficie', !o.participa && 'text-apagado', o.militarId === escolhido && 'ring-2 ring-tinta')}>
+      <li key={o.militarId} className={cn('grid gap-1.5 rounded-xl border p-2.5', daVez ? 'border-vinho bg-vinho/10' : 'border-linha bg-superficie', !o.participa && 'text-apagado', o.militarId === escolhido && 'ring-2 ring-tinta')}>
         <div className="flex items-start gap-3">
           <input
             type="checkbox"
@@ -112,6 +112,7 @@ export function ListaDeCotas({ escala: e, aoOrdenar, aoMarcar, desabilitado, esc
           <span className="w-6 shrink-0 text-center font-cond text-[17px] leading-6 font-semibold tabular-nums text-apagado" title="Ordem de escolha">{o.participa ? o.ordem : '—'}</span>
           <button
             type="button"
+            data-escolher-oficial
             aria-pressed={o.militarId === escolhido}
             aria-label={`${o.posto} ${o.nomeGuerra}${daVez ? ', a vez' : ''}`}
             disabled={!aoEscolher || !o.participa}
@@ -121,8 +122,7 @@ export function ListaDeCotas({ escala: e, aoOrdenar, aoMarcar, desabilitado, esc
             <span className="flex flex-wrap items-baseline gap-x-2">
               <span className="shrink-0 text-[13px] leading-[18px] font-medium text-apagado">{o.posto}</span>
               <b className={cn('font-cond text-[17px] leading-6 font-semibold', o.participa && 'text-tinta')}>{o.nomeGuerra}</b>
-              {o.novo && <span className="rounded-md border border-linha px-2 text-[13px] font-medium text-tinta">novo</span>}
-              {daVez && <span className="rounded-md bg-pendencia-fundo px-2 text-[13px] font-medium text-pendencia">a vez</span>}
+              {daVez && <span className="rounded-md bg-vinho px-2 text-[13px] font-medium text-white">a vez</span>}
             </span>
             <span className="block text-[13px] leading-[18px] text-apagado">
               {o.quadro} · {o.lotacao}
@@ -169,6 +169,11 @@ export function ListaDeCotas({ escala: e, aoOrdenar, aoMarcar, desabilitado, esc
             </div>
           )}
         </dl>
+        {comCota && o.cota !== null && (
+          <p title="O saldo do mês como está agora; o acumulado só muda ao encerrar o mês" className={cn(rotulo, 'font-medium', o.saldoPrevisto < 0 && 'text-pendencia')}>
+            {`Saldo ${formatarSaldo(o.saldoAnterior)} → ${formatarSaldo(o.saldoPrevisto)} no mês`}
+          </p>
+        )}
         {comCota && o.cota !== null && (
           <div aria-hidden className="h-1.5 overflow-hidden rounded-full bg-linha">
             <div data-barra className={cn('h-full rounded-full', o.escolhidos > o.cota ? 'bg-pendencia' : 'bg-tinta')} style={{ width: `${feito}%` }} />

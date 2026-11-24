@@ -217,6 +217,19 @@ describe('o mês de janeiro de 2027', () => {
     expect(rows).toEqual([{ origem: 'distribuicao', servico_id: rodada.saldo, n: 8 }]);
   });
 
+  it('6.29.2: o saldo previsto é o acumulado até o mês anterior mais os turnos de Saldo tirados menos o devido (com a parte quebrada), e muda a cada lançamento', async () => {
+    const e = await ler('2027-01');
+    const a1 = e.oficiais.find((o) => o.militarId === ids.a1)!;
+    const a2 = e.oficiais.find((o) => o.militarId === ids.a2)!;
+    expect(a1.escolhidos).toBe(8);
+    expect(a1.saldoPrevisto).toBeCloseTo(a1.saldoAnterior + 8 - a1.devido!, 6);
+    expect(a1.saldoPrevisto).not.toBe(a1.saldoAnterior);
+    expect(a2.saldoPrevisto).toBeCloseTo(a2.saldoAnterior - a2.devido!, 6);
+    // antes das cotas (sem devido), a prévia é o saldo que o oficial já traz
+    const antes = await ler('2027-03');
+    expect(antes.oficiais.every((o) => o.saldoPrevisto === o.saldoAnterior)).toBe(true);
+  });
+
   it('abrir de novo mantém os lançamentos', async () => {
     const e: EscalaDosOficiais = await (await abrir('2027-01')).json();
     expect(e.oficiais[0]!.escolhidos).toBe(8);

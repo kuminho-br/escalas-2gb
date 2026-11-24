@@ -92,7 +92,7 @@ const dia = (n: number) => `2027-01-${String(n).padStart(2, '0')}`;
 const LETRA: Record<string, string> = { 't-a': 'A', 't-b': 'B' };
 const vazios = (): EscalaDosOficiais['turnos'] => Array.from({ length: 31 }, (_, i) => i + 1).flatMap((n) => ['t-a', 't-b'].map((turnoId) => ({ dia: dia(n), letra: LETRA[turnoId]!, turnoId, servico: null, alocacaoId: null, militarId: null as string | null, saiuMilitarId: null as string | null })));
 const oficial = (o: Partial<OficialDoMes> & Pick<OficialDoMes, 'militarId' | 'nomeGuerra' | 'posto' | 'ordem'>): OficialDoMes => ({
-  matricula: '990100-0', quadro: 'QOC', lotacao: '2º GB', semAntiguidade: false, saldoAnterior: 0, dias: 31, devido: 20.5, cota: 21, sobra: false, escolhidos: 0, jes: 0, vermelhos: 0, voluntarioJes: false, afastamentos: [], participa: true, novo: false, ...o,
+  matricula: '990100-0', quadro: 'QOC', lotacao: '2º GB', semAntiguidade: false, saldoAnterior: 0, saldoPrevisto: o.saldoAnterior ?? 0, dias: 31, devido: 20.5, cota: 21, sobra: false, escolhidos: 0, jes: 0, vermelhos: 0, voluntarioJes: false, afastamentos: [], participa: true, novo: false, ...o,
 });
 const O1 = oficial({ militarId: 'm-1', nomeGuerra: 'ALFA', posto: 'CEL', ordem: 1, matricula: '990101-1', saldoAnterior: 0.75 });
 const O2 = oficial({ militarId: 'm-2', nomeGuerra: 'BRAVO', posto: 'CAP', ordem: 2, matricula: '990102-2', semAntiguidade: true, cota: 21, sobra: true });
@@ -236,18 +236,20 @@ describe('a aba Escala do mês', () => {
       return { f, lancados, estado: () => estado };
     }
 
-    it('"Escalar: JES | Saldo" no alto do calendário, com o JES escolhido de começo e o que resta da cota de JES da unidade', async () => {
+    it('"Escalar: JES | Saldo" no alto do calendário, com o Saldo escolhido de começo; escolhendo JES, mostra o que resta da cota de JES da unidade', async () => {
       abrirEscala(escala({ jes: { cota: 30, usados: 4 } }));
       const grupo = await screen.findByRole('radiogroup', { name: 'Escalar:' });
       expect(within(grupo).getAllByRole('radio').map((r) => r.textContent)).toEqual(['JES', 'Saldo']);
-      expect(servico('JES')).toBeChecked();
-      expect(servico('Saldo')).not.toBeChecked();
+      expect(servico('Saldo')).toBeChecked();
+      expect(servico('JES')).not.toBeChecked();
+      await userEvent.click(servico('JES'));
       expect(within(screen.getByText(/JES restam/).closest('p')!).getByText('26')).toHaveClass('font-cond');
       expect(screen.getByText(/JES restam/).closest('p')).toHaveTextContent('JES restam 26 de 30');
     });
 
     it('sem cota de JES cadastrada, diz "Sem cota de JES cadastrada no mês."; só aparece com o JES escolhido', async () => {
       abrirEscala(escala({ jes: { cota: null, usados: 3 } }));
+      await userEvent.click(await screen.findByRole('radio', { name: 'JES' }));
       expect(await screen.findByText('Sem cota de JES cadastrada no mês.')).toBeInTheDocument();
       await userEvent.click(servico('Saldo'));
       expect(screen.queryByText('Sem cota de JES cadastrada no mês.')).toBeNull();
@@ -255,6 +257,7 @@ describe('a aba Escala do mês', () => {
 
     it('com a cota de JES acabada, o número fica âmbar e diz "A cota de JES do mês acabou."; lançar continua permitido', async () => {
       const { f, lancados } = servidorVivo(escala({ jes: { cota: 4, usados: 4 } }));
+      await userEvent.click(await screen.findByRole('radio', { name: 'JES' }));
       expect(await screen.findByText('A cota de JES do mês acabou.')).toBeInTheDocument();
       expect(within(screen.getByText(/JES restam/).closest('p')!).getByText('0')).toHaveClass('text-pendencia', 'bg-pendencia-fundo');
       await userEvent.click(doOficial('CAP BRAVO'));
@@ -275,16 +278,16 @@ describe('a aba Escala do mês', () => {
 
     it('JES vale para qualquer participante (sem a exigência de ser voluntário): escolher o oficial e clicar no turno lança "jes"', async () => {
       const { lancados } = servidorVivo(escala({ oficiais: [O1, { ...O2, voluntarioJes: false }, O3] }));
-      await screen.findByRole('radiogroup', { name: 'Escalar:' });
+      await userEvent.click(await screen.findByRole('radio', { name: 'JES' }));
       await userEvent.click(doOficial('CAP BRAVO'));
       await escolher(/^03\/01, Dia/);
       await waitFor(() => expect(lancados).toEqual([{ dia: dia(3), letra: 'A', servico: 'jes', militarId: 'm-2' }]));
-      expect(await screen.findByText('CAP BRAVO ficou com o turno Dia de 03/01 (JES).')).toBeInTheDocument();
     });
 
-    it('com Saldo, o oficial da vez já vem escolhido: um clique no turno lança como Saldo', async () => {
+    it('com Saldo e o oficial escolhido na lista, um clique no turno lança como Saldo', async () => {
       const { lancados } = servidorVivo(escala());
       await userEvent.click(await screen.findByRole('radio', { name: 'Saldo' }));
+      await userEvent.click(doOficial('CEL ALFA'));
       expect(doOficial('CEL ALFA')).toHaveAttribute('aria-pressed', 'true');
       expect(screen.getByText(/Escalando/).closest('p')).toHaveTextContent('Escalando CEL ALFA no Saldo: clique nos turnos.');
       await escolher(/^03\/01, Noite/);
@@ -295,26 +298,18 @@ describe('a aba Escala do mês', () => {
       const aviso = 'Fora da ordem: a vez era de CEL ALFA.';
       const f = abrirEscala(escala(), { [URL_LANC]: { status: 200, corpo: { ...escala(), foraDaOrdem: aviso } } });
       await userEvent.click(await screen.findByRole('radio', { name: 'Saldo' }));
+      await userEvent.click(doOficial('CEL ALFA'));
       await userEvent.click(doOficial('CAP CHARLIE'));
       await escolher(/^03\/01, Dia/);
       await waitFor(() => expect(corpoEnviado(f, URL_LANC)).toMatchObject({ militarId: 'm-3', servico: 'saldo' }));
       expect(await screen.findByText(aviso)).toBeInTheDocument();
     });
 
-    it('Review Focus 2: o oficial da vez completa a cota no meio dos cliques e a escolha passa ao próximo, só com Saldo', async () => {
-      const curto = escala({ oficiais: [{ ...O1, cota: 2, escolhidos: 1 }, O2, O3] });
-      const { lancados } = servidorVivo(curto);
-      await userEvent.click(await screen.findByRole('radio', { name: 'Saldo' }));
-      await escolher(/^03\/01, Dia/);
-      await waitFor(() => expect(doOficial('CAP BRAVO')).toHaveAttribute('aria-pressed', 'true'));
-      await escolher(/^04\/01, Dia/);
-      await waitFor(() => expect(lancados.map((l) => l.militarId)).toEqual(['m-1', 'm-2']));
-    });
-
     it('Review Focus 1: cliques seguidos em vários dias lançam todos, na ordem, uma vez cada (sem esperar a resposta de cada um)', async () => {
       const t = trava();
       const { f, lancados } = servidorVivo(escala(), { esperaDoPost: t.espera });
       await userEvent.click(await screen.findByRole('radio', { name: 'Saldo' }));
+      await userEvent.click(doOficial('CEL ALFA'));
       for (const d of [3, 4, 5]) await userEvent.click(await screen.findByRole('button', { name: new RegExp(`^0${d}/01, Dia`) }));
       t.soltar();
       await waitFor(() => expect(lancados.map((l) => l.dia)).toEqual([dia(3), dia(4), dia(5)]));
@@ -325,6 +320,7 @@ describe('a aba Escala do mês', () => {
       const t = trava();
       const { f } = servidorVivo(escala(), { esperaDoPost: t.espera });
       await userEvent.click(await screen.findByRole('radio', { name: 'Saldo' }));
+      await userEvent.click(doOficial('CEL ALFA'));
       await userEvent.dblClick(await screen.findByRole('button', { name: /^03\/01, Dia/ }));
       t.soltar();
       await waitFor(() => expect(chamadasA(f, URL_LANC)).toBe(1));
@@ -333,6 +329,7 @@ describe('a aba Escala do mês', () => {
     it('um clique no turno do próprio oficial e serviço escolhidos tira o lançamento', async () => {
       const f = abrirEscala(escala({ turnos: comNome(escala(), { [`${dia(2)}|t-a`]: 'm-1' }) }), { [URL_TIRAR(2, 'A')]: { status: 200, corpo: escala() } });
       await userEvent.click(await screen.findByRole('radio', { name: 'Saldo' }));
+      await userEvent.click(doOficial('CEL ALFA'));
       await escolher(/^02\/01, Dia.*ALFA/);
       await waitFor(() => expect(chamadasA(f, URL_TIRAR(2, 'A'))).toBe(1));
     });
@@ -340,6 +337,7 @@ describe('a aba Escala do mês', () => {
     it('um clique no turno de outro oficial pergunta "Trocar {A} por {B}?": "Cancelar" não lança, "Trocar" lança', async () => {
       const f = abrirEscala(escala({ turnos: comNome(escala(), { [`${dia(2)}|t-a`]: 'm-2' }) }), { [URL_LANC]: { status: 200, corpo: escala() } });
       await userEvent.click(await screen.findByRole('radio', { name: 'Saldo' }));
+      await userEvent.click(doOficial('CEL ALFA'));
       await escolher(/^02\/01, Dia.*BRAVO/);
       const pergunta = within(await screen.findByRole('dialog', { name: 'Trocar CAP BRAVO por CEL ALFA?' }));
       await userEvent.click(pergunta.getByRole('button', { name: 'Cancelar' }));
@@ -352,6 +350,7 @@ describe('a aba Escala do mês', () => {
     it('Review Focus 4: o oficial escolhido afastado naquele dia não é lançado: a tela diz o afastamento, sem chamar a API', async () => {
       const f = abrirEscala(escala({ oficiais: [{ ...O1, afastamentos: [{ inicio: dia(10), fim: dia(11), tipo: 'Férias' }] }, O2, O3] }));
       await userEvent.click(await screen.findByRole('radio', { name: 'Saldo' }));
+      await userEvent.click(doOficial('CEL ALFA'));
       await escolher(/^10\/01, Dia/);
       expect(await screen.findByText('CEL ALFA está afastado em 10/01 (Férias) e não pode ficar com este turno.')).toBeInTheDocument();
       expect(chamadasA(f, URL_LANC)).toBe(0);
@@ -359,6 +358,7 @@ describe('a aba Escala do mês', () => {
 
     it('revisão final: clicar num turno de outro serviço (JES escolhido, turno de Saldo) avisa na tela, sem perguntar "Trocar" e sem chamar a API', async () => {
       const f = abrirEscala(escala({ turnos: comNome(escala(), { [`${dia(2)}|t-a`]: 'm-2' }) }));
+      await userEvent.click(await screen.findByRole('radio', { name: 'JES' }));
       await userEvent.click(await screen.findByRole('button', { name: /^CEL ALFA/ }));
       await escolher(/^02\/01, Dia.*BRAVO/);
       expect(await screen.findByText('Este turno é Saldo. Mude para Saldo para tirar ou trocar.')).toBeInTheDocument();
@@ -372,19 +372,11 @@ describe('a aba Escala do mês', () => {
       expect(chamadasA(f, URL_TIRAR(2, 'A'))).toBe(0);
     });
 
-    it('revisão final: com Saldo, cliques rápidos passam ao próximo da vez quando o primeiro completa a cota (o oficial é decidido na hora de gravar)', async () => {
-      const t = trava();
-      const { lancados } = servidorVivo(escala({ oficiais: [{ ...O1, cota: 2, escolhidos: 1 }, O2, O3] }), { esperaDoPost: t.espera });
-      await userEvent.click(await screen.findByRole('radio', { name: 'Saldo' }));
-      for (const d of [3, 4, 5]) await userEvent.click(await screen.findByRole('button', { name: new RegExp(`^0${d}/01, Dia`) }));
-      t.soltar();
-      await waitFor(() => expect(lancados.map((l) => l.militarId)).toEqual(['m-1', 'm-2', 'm-2']));
-    });
-
     it('revisão final: com a escala fechada, a escolha à mão não cai quando o oficial já está na cota (várias coberturas seguidas)', async () => {
       const fechada = escala({ etapa: 'fechada', fechadaEm: '2027-01-05T10:00:00', vez: null, oficiais: [{ ...O1, cota: 2, escolhidos: 2 }, O2, O3] });
       const { lancados } = servidorVivo(fechada);
       await userEvent.click(await screen.findByRole('radio', { name: 'Saldo' }));
+      await userEvent.click(doOficial('CEL ALFA'));
       await userEvent.click(within(lista()).getByRole('button', { name: /^CEL ALFA/ }));
       await escolher(/^03\/01, Dia/);
       await escolher(/^04\/01, Dia/);
@@ -396,6 +388,7 @@ describe('a aba Escala do mês', () => {
       const t = trava();
       servidorVivo(escala(), { esperaDoPost: t.espera });
       await userEvent.click(await screen.findByRole('radio', { name: 'Saldo' }));
+      await userEvent.click(doOficial('CEL ALFA'));
       await escolher(/^03\/01, Dia/);
       await waitFor(() => expect(screen.getByRole('button', { name: 'Fechar a escala' })).toBeDisabled());
       expect(screen.getByRole('checkbox', { name: 'CEL ALFA participa da rodada' })).toBeDisabled();
@@ -414,6 +407,7 @@ describe('a aba Escala do mês', () => {
     it('o erro da API (a escala mudou) aparece na tela, e os dados vêm de novo', async () => {
       const f = abrirEscala(escala(), { [URL_LANC]: { status: 409, corpo: { erro: 'A escala mudou. Confira os turnos.' } } });
       await userEvent.click(await screen.findByRole('radio', { name: 'Saldo' }));
+      await userEvent.click(doOficial('CEL ALFA'));
       const antes = chamadasA(f, `GET ${URL_MES}`);
       await escolher(/^03\/01, Dia/);
       expect(await screen.findByRole('alert')).toHaveTextContent('A escala mudou. Confira os turnos.');
@@ -428,6 +422,198 @@ describe('a aba Escala do mês', () => {
       expect(doOficial('CAP CHARLIE')).toHaveAttribute('aria-pressed', 'true');
       expect(doOficial('CAP CHARLIE').closest('li')).toHaveClass('ring-2', 'ring-tinta');
     });
+
+  describe('segundo retorno do usuário (6.29.2): escolher, tirar e lançar sem travar a ordem', () => {
+    const URL_LANC = `POST ${URL_MES}/lancamentos`;
+    const URL_TIRAR = (d: number, letra: string) => `DELETE ${URL_MES}/lancamentos/a-${dia(d)}-${letra}`;
+    const lista = () => screen.getByRole('list', { name: 'Cotas de janeiro de 2027' });
+    const doOficial = (nome: string) => within(lista()).getByRole('button', { name: new RegExp(nome) });
+    const turno = (d: number, t: 'Dia' | 'Noite') => screen.findByRole('button', { name: new RegExp(`^${String(d).padStart(2, '0')}/01, ${t}`) });
+
+    it('o serviço que vem escolhido ao abrir a tela é Saldo, mesmo havendo JES, e ninguém vem escolhido: a vez só fica destacada', async () => {
+      abrirEscala(escala());
+      await screen.findByRole('radiogroup', { name: 'Escalar:' });
+      expect(screen.getByRole('radio', { name: 'Saldo' })).toBeChecked();
+      expect(screen.queryByText(/JES restam/)).toBeNull();
+      for (const n of ['CEL ALFA', 'CAP BRAVO', 'CAP CHARLIE']) expect(doOficial(n)).toHaveAttribute('aria-pressed', 'false');
+      const alfa = doOficial('CEL ALFA').closest('li')!;
+      expect(alfa).toHaveClass('border-vinho', 'bg-vinho/10');
+      expect(alfa).not.toHaveClass('ring-2');
+      expect(doOficial('CAP BRAVO').closest('li')).not.toHaveClass('border-vinho');
+    });
+
+    it('qualquer oficial se escolhe, em qualquer ordem: do mais moderno ao mais antigo e de volta, e cada clique lança o escolhido', async () => {
+      const { lancados } = servidorVivo(escala());
+      await screen.findByRole('radiogroup', { name: 'Escalar:' });
+      for (const [nome, d] of [['CAP CHARLIE', 3], ['CAP BRAVO', 4], ['CEL ALFA', 5], ['CAP CHARLIE', 6]] as const) {
+        await userEvent.click(doOficial(nome));
+        expect(doOficial(nome)).toHaveAttribute('aria-pressed', 'true');
+        await userEvent.click(await turno(d, 'Dia'));
+      }
+      await waitFor(() => expect(lancados.map((l) => l.militarId)).toEqual(['m-3', 'm-2', 'm-1', 'm-3']));
+      // o oficial da vez segue destacado, mas não é o que está escolhido
+      expect(doOficial('CEL ALFA').closest('li')).toHaveClass('border-vinho', 'bg-vinho/10');
+    });
+
+    it('o oficial que completa a cota continua escolhido (nada passa sozinho para a vez)', async () => {
+      const curto = escala({ oficiais: [{ ...O1, cota: 1, escolhidos: 0 }, O2, O3] });
+      const { lancados } = servidorVivo(curto);
+      await screen.findByRole('radiogroup', { name: 'Escalar:' });
+      await userEvent.click(doOficial('CEL ALFA'));
+      await userEvent.click(await turno(3, 'Dia'));
+      await userEvent.click(await turno(4, 'Dia'));
+      await waitFor(() => expect(lancados.map((l) => l.militarId)).toEqual(['m-1', 'm-1']));
+      expect(doOficial('CEL ALFA')).toHaveAttribute('aria-pressed', 'true');
+    });
+
+    it('depois de lançar, nenhuma placa guarda contorno: o último turno lançado não fica marcado nem avisado', async () => {
+      servidorVivo(escala());
+      await screen.findByRole('radiogroup', { name: 'Escalar:' });
+      await userEvent.click(doOficial('CAP BRAVO'));
+      await userEvent.click(await turno(3, 'Dia'));
+      await waitFor(() => expect(document.querySelector('[data-servico="saldo"]')).not.toBeNull());
+      expect(document.querySelector('[data-recente]')).toBeNull();
+      expect(screen.queryByText(/ficou com o turno/)).toBeNull();
+      for (const placa of screen.getByLabelText('Calendário do mês').querySelectorAll<HTMLElement>('[data-turno]')) {
+        expect(placa.className).not.toMatch(/(^|\s)(ring-2|outline-2)(\s|$)/);
+        expect(placa.className).not.toMatch(/(^|\s)focus:/);
+      }
+    });
+
+    it('clicar fora de uma placa (no fundo, no texto, no calendário vazio) tira a escolha do oficial; clicar na placa não tira', async () => {
+      servidorVivo(escala());
+      await screen.findByRole('radiogroup', { name: 'Escalar:' });
+      await userEvent.click(doOficial('CAP BRAVO'));
+      expect(doOficial('CAP BRAVO')).toHaveAttribute('aria-pressed', 'true');
+      await userEvent.click(await turno(3, 'Dia'));
+      expect(doOficial('CAP BRAVO')).toHaveAttribute('aria-pressed', 'true');
+      await userEvent.click(screen.getByRole('heading', { name: 'Turnos do mês' }));
+      expect(doOficial('CAP BRAVO')).toHaveAttribute('aria-pressed', 'false');
+      expect(screen.getByText('Escolha um oficial na lista.')).toBeInTheDocument();
+      await userEvent.click(doOficial('CAP BRAVO'));
+      await userEvent.click(screen.getByRole('heading', { name: 'Cota de saldo' }));
+      expect(doOficial('CAP BRAVO')).toHaveAttribute('aria-pressed', 'false');
+    });
+
+    it('sem oficial escolhido, clicar numa placa preenchida pergunta "Remover … do dia dd/mm (Dia|Noite)?"; "Remover" tira o lançamento e "Cancelar" não faz nada', async () => {
+      const f = abrirEscala(escala({ turnos: comNome(escala(), { [`${dia(2)}|t-a`]: 'm-1', [`${dia(2)}|t-b`]: 'm-2' }) }), { [URL_TIRAR(2, 'B')]: { status: 200, corpo: escala() } });
+      await screen.findByRole('radiogroup', { name: 'Escalar:' });
+      await userEvent.click(await screen.findByRole('button', { name: /^02\/01, Noite.*BRAVO/ }));
+      const pergunta = await screen.findByRole('dialog', { name: 'Remover CAP BRAVO do dia 02/01 (Noite)?' });
+      await userEvent.click(within(pergunta).getByRole('button', { name: 'Cancelar' }));
+      expect(chamadasA(f, URL_TIRAR(2, 'B'))).toBe(0);
+      await userEvent.click(await screen.findByRole('button', { name: /^02\/01, Dia.*ALFA/ }));
+      expect(await screen.findByRole('dialog', { name: 'Remover CEL ALFA do dia 02/01 (Dia)?' })).toBeInTheDocument();
+    });
+
+    it('confirmar a remoção chama a API de tirar o lançamento daquele turno', async () => {
+      const f = abrirEscala(escala({ turnos: comNome(escala(), { [`${dia(2)}|t-b`]: 'm-2' }) }), { [URL_TIRAR(2, 'B')]: { status: 200, corpo: escala() } });
+      await screen.findByRole('radiogroup', { name: 'Escalar:' });
+      await userEvent.click(await screen.findByRole('button', { name: /^02\/01, Noite.*BRAVO/ }));
+      await userEvent.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Remover' }));
+      await waitFor(() => expect(chamadasA(f, URL_TIRAR(2, 'B'))).toBe(1));
+    });
+
+    it('sem oficial escolhido, clicar numa placa livre abre a lista dos participantes com busca por nome (sem acento nem caixa); escolher lança no serviço escolhido', async () => {
+      const acento = oficial({ militarId: 'm-4', nomeGuerra: 'JOSÉ', posto: 'TEN', ordem: 4, matricula: '990104-4' });
+      const { lancados } = servidorVivo(escala({ oficiais: [O1, O2, O3, acento, oficial({ militarId: 'm-5', nomeGuerra: 'FORA', posto: 'MAJ', ordem: 5, participa: false, cota: null, devido: null })] }));
+      await screen.findByRole('radiogroup', { name: 'Escalar:' });
+      await userEvent.click(await turno(3, 'Noite'));
+      const janela = await screen.findByRole('dialog', { name: /Escolher oficial/ });
+      expect(within(janela).getAllByRole('button', { name: /^(CEL|CAP|TEN) / }).map((b) => b.textContent)).toEqual(expect.arrayContaining([expect.stringContaining('ALFA'), expect.stringContaining('JOSÉ')]));
+      expect(within(janela).queryByRole('button', { name: /FORA/ })).toBeNull();
+      await userEvent.type(within(janela).getByRole('searchbox', { name: 'Buscar por nome' }), 'jose');
+      expect(within(janela).queryByRole('button', { name: /ALFA/ })).toBeNull();
+      await userEvent.click(within(janela).getByRole('button', { name: /JOSÉ/ }));
+      await waitFor(() => expect(lancados).toEqual([{ dia: dia(3), letra: 'B', servico: 'saldo', militarId: 'm-4' }]));
+      await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    });
+
+    it('a busca sem resultado diz "Nenhum oficial com esse nome."; o oficial afastado no dia não é lançado, e a tela diz o afastamento', async () => {
+      const f = abrirEscala(escala({ oficiais: [{ ...O1, afastamentos: [{ inicio: dia(10), fim: dia(11), tipo: 'Férias' }] }, O2, O3] }));
+      await screen.findByRole('radiogroup', { name: 'Escalar:' });
+      await userEvent.click(await turno(10, 'Dia'));
+      const janela = await screen.findByRole('dialog', { name: /Escolher oficial/ });
+      await userEvent.type(within(janela).getByRole('searchbox', { name: 'Buscar por nome' }), 'zzz');
+      expect(within(janela).getByText('Nenhum oficial com esse nome.')).toBeInTheDocument();
+      await userEvent.clear(within(janela).getByRole('searchbox', { name: 'Buscar por nome' }));
+      await userEvent.click(within(janela).getByRole('button', { name: /ALFA/ }));
+      expect(await screen.findByText('CEL ALFA está afastado em 10/01 (Férias) e não pode ficar com este turno.')).toBeInTheDocument();
+      expect(chamadasA(f, URL_LANC)).toBe(0);
+    });
+
+    it('com oficial escolhido, clicar na placa livre lança direto, sem abrir a lista', async () => {
+      const { lancados } = servidorVivo(escala());
+      await screen.findByRole('radiogroup', { name: 'Escalar:' });
+      await userEvent.click(doOficial('CAP BRAVO'));
+      await userEvent.click(await turno(3, 'Dia'));
+      await waitFor(() => expect(lancados).toHaveLength(1));
+      expect(screen.queryByRole('dialog')).toBeNull();
+    });
+
+    it('sai a marca "novo" do nome do oficial', async () => {
+      abrirEscala(escala({ oficiais: [O1, { ...O2, novo: true }, O3] }));
+      await screen.findByRole('radiogroup', { name: 'Escalar:' });
+      expect(within(lista()).queryByText('novo')).toBeNull();
+    });
+
+    it('a linha do oficial mostra o saldo do mês em prévia: "Saldo 0,00 → −0,50 no mês" (devido 1,5, tirou 1), e muda a cada lançamento', async () => {
+      abrirEscala(escala({ oficiais: [{ ...O1, saldoAnterior: 0, devido: 1.5, cota: 2, escolhidos: 1, saldoPrevisto: -0.5 }, O2, O3] }));
+      await screen.findByRole('radiogroup', { name: 'Escalar:' });
+      const alfa = doOficial('CEL ALFA').closest('li')!;
+      expect(within(alfa).getByText('Saldo 0,00 → −0,50 no mês')).toBeInTheDocument();
+    });
+
+    it('antes de abrir o mês (sem cota), a linha não traz prévia', async () => {
+      abrirEscala(escala({ etapa: 'nao-aberto', abertaEm: null, vez: null, turnos: [], oficiais: [{ ...O1, cota: null, devido: null }, O2, O3] }));
+      await screen.findByRole('list', { name: 'Cotas de janeiro de 2027' });
+      expect(screen.queryByText(/→ .* no mês$/)).toBeNull();
+    });
+
+    it('os dias vermelhos têm um botão "Marcar dias vermelhos" ao lado do seletor de serviço: ligado, diz "Concluir", e clicar no dia marca ou tira; desligado, o número do dia não é botão', async () => {
+      const f = abrirEscala(escala(), { [`PUT ${URL_MES}/dias-vermelhos`]: { status: 200, corpo: escala({ diasVermelhos: [dia(5)] }) } });
+      const grupo = await screen.findByRole('radiogroup', { name: 'Escalar:' });
+      expect(screen.queryByRole('button', { name: /^Dia vermelho: / })).toBeNull();
+      const botao = screen.getByRole('button', { name: 'Marcar dias vermelhos' });
+      expect(botao.compareDocumentPosition(grupo) & Node.DOCUMENT_POSITION_PRECEDING).toBeTruthy();
+      expect(botao).toHaveAttribute('aria-pressed', 'false');
+      await userEvent.click(botao);
+      expect(screen.getByRole('button', { name: 'Concluir' })).toHaveAttribute('aria-pressed', 'true');
+      await userEvent.click(screen.getByRole('button', { name: 'Dia vermelho: 05/01' }));
+      await waitFor(() => expect(corpoEnviado(f, `PUT ${URL_MES}/dias-vermelhos`)).toEqual({ dias: [dia(5)] }));
+      await userEvent.click(screen.getByRole('button', { name: 'Concluir' }));
+      expect(screen.queryByRole('button', { name: /^Dia vermelho: / })).toBeNull();
+      expect(screen.getByRole('button', { name: 'Marcar dias vermelhos' })).toBeInTheDocument();
+    });
+
+    it('o dia vermelho tem a faixa vermelha à esquerda das duas placas e o texto "Dia vermelho" para o leitor de tela; o outro dia não tem', async () => {
+      abrirEscala(escala({ diasVermelhos: [dia(5)] }));
+      await screen.findByRole('radiogroup', { name: 'Escalar:' });
+      const dias = screen.getByLabelText('Calendário do mês').querySelectorAll('[data-dia]');
+      const cinco = dias[4]!;
+      expect(cinco.querySelector('[data-faixa-vermelha]')).toHaveClass('bg-alerta');
+      expect(within(cinco as HTMLElement).getByText('Dia vermelho')).toHaveClass('sr-only');
+      expect(dias[5]!.querySelector('[data-faixa-vermelha]')).toBeNull();
+    });
+
+    it('a legenda fica embaixo do calendário e traz Dia, Noite, JES, Saldo e Dia vermelho; a frase "Clique no número do dia…" saiu', async () => {
+      abrirEscala(escala());
+      const cal = await screen.findByLabelText('Calendário do mês');
+      const legenda = screen.getByLabelText('Legenda dos turnos');
+      expect(cal.compareDocumentPosition(legenda) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+      for (const t of ['Dia, 07h às 19h', 'Noite, 19h às 07h', 'JES', 'Saldo', 'Dia vermelho']) expect(within(legenda).getByText(t)).toBeInTheDocument();
+      expect(screen.queryByText(/Clique no número do dia/)).toBeNull();
+    });
+
+    it('a tela cabe na janela: o painel da direita rola por dentro (sem crescer além do calendário), e no celular a página rola inteira', async () => {
+      abrirEscala(escala());
+      await screen.findByRole('radiogroup', { name: 'Escalar:' });
+      const painel = screen.getByRole('heading', { name: 'Cota de saldo' }).closest('section')!;
+      expect(painel).toHaveClass('xl:absolute', 'xl:inset-0', 'xl:overflow-y-auto');
+      expect(painel.closest('aside')).toHaveClass('xl:relative', 'xl:min-h-96');
+    });
+  });
+
   });
 
   describe('a lista de cotas', () => {
@@ -455,15 +641,13 @@ describe('a aba Escala do mês', () => {
     const NOVO = oficial({ militarId: 'm-5', nomeGuerra: 'ECO', posto: 'CAP', ordem: 5, matricula: '990105-5', participa: false, novo: true, cota: null, devido: null });
     const URL_PART = `PUT ${URL_MES}/participantes`;
 
-    it('antes de fechar, a lista mostra todos os elegíveis, cada um com a marca "Participa", e "novo" em quem é novo', async () => {
+    it('antes de fechar, a lista mostra todos os elegíveis, cada um com a marca "Participa" (e nenhuma marca "novo")', async () => {
       abrirEscala(escala({ oficiais: [O1, O2, O3, FORA, NOVO] }));
       const lista = await screen.findByRole('list', { name: 'Cotas de janeiro de 2027' });
       expect(within(lista).getByRole('checkbox', { name: 'CEL ALFA participa da rodada' })).toBeChecked();
       expect(within(lista).getByRole('checkbox', { name: 'MAJ DELTA participa da rodada' })).not.toBeChecked();
       expect(within(lista).getByRole('checkbox', { name: 'CAP ECO participa da rodada' })).not.toBeChecked();
-      const eco = within(lista).getByRole('checkbox', { name: 'CAP ECO participa da rodada' }).closest('li')!;
-      expect(within(eco).getByText('novo')).toBeInTheDocument();
-      expect(within(lista).getByRole('checkbox', { name: 'MAJ DELTA participa da rodada' }).closest('li')!.textContent).not.toContain('novo');
+      expect(within(lista).queryByText('novo')).toBeNull();
     });
 
     it('marcar ou desmarcar grava a lista inteira de quem participa', async () => {
@@ -746,6 +930,7 @@ describe('o calendário compacto (6.29)', () => {
   });
   const turnoCom = (marcas: Record<string, string | [string, string]>, extra: Partial<EscalaDosOficiais> = {}) => escala({ turnos: comNome(escala(), marcas), ...extra });
   // a dica traz o nome, o turno e o serviço ("CEL ALFA · Dia · Saldo"): acha pelo começo
+  const doOficialDaLista = (nome: string) => within(screen.getByRole('list', { name: 'Cotas de janeiro de 2027' })).getByRole('button', { name: new RegExp(nome) });
   const placa = (titulo: string) => screen.getByTitle(new RegExp(`^${titulo}( · |$)`));
 
   it('o turno com nome mostra a patente (13 px, apagado) e o nome (15 px, estreita, 600) numa placa de 36 px, com a faixa da cor do serviço à esquerda', async () => {
@@ -811,30 +996,10 @@ describe('o calendário compacto (6.29)', () => {
     expect(within(legenda).getByText('Saldo')).toBeInTheDocument();
   });
 
-  it('os dias vermelhos têm a legenda de como marcar acima do calendário', async () => {
-    abrirEscala(escala());
-    const dica = await screen.findByText('Clique no número do dia para marcar ou tirar o dia vermelho.');
-    const cal = screen.getByLabelText('Calendário do mês');
-    expect(dica.compareDocumentPosition(cal) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-  });
-
-  it('o turno que acabou de ser lançado fica marcado até o próximo lançamento, e o aviso diz quem ficou com ele', async () => {
-    const depois = turnoCom({ [`${dia(3)}|t-b`]: 'm-1' });
-    abrirEscala(escala(), { [`POST ${URL_MES}/lancamentos`]: { status: 200, corpo: depois } });
-    await userEvent.click(await screen.findByRole('radio', { name: 'Saldo' }));
-    await userEvent.click(await screen.findByRole('button', { name: /^03\/01, Noite/ }));
-    expect(await screen.findByText('CEL ALFA ficou com o turno Noite de 03/01 (Saldo).')).toBeInTheDocument();
-    await waitFor(() => expect(document.querySelector('[data-recente="true"]')).toHaveClass('ring-2', 'ring-tinta'));
-    expect(document.querySelectorAll('[data-recente="true"]')).toHaveLength(1);
-    await userEvent.click(await screen.findByRole('button', { name: /^04\/01, Dia/ }));
-    expect(await screen.findByText('CEL ALFA ficou com o turno Dia de 04/01 (Saldo).')).toBeInTheDocument();
-    await waitFor(() => expect(document.querySelectorAll('[data-recente="true"]')).toHaveLength(1));
-  });
-
   it('os turnos do oficial escolhido ficam com um contorno de 1 px tinta; os dos outros, não', async () => {
     abrirEscala(turnoCom({ [`${dia(2)}|t-a`]: 'm-1', [`${dia(2)}|t-b`]: 'm-2' }));
     await screen.findByText('2 de 62 turnos com nome');
-    await userEvent.click(await screen.findByRole('radio', { name: 'Saldo' }));
+    await userEvent.click(doOficialDaLista('CEL ALFA'));
     expect(placa('CEL ALFA')).toHaveClass('ring-1', 'ring-tinta');
     expect(placa('CAP BRAVO')).not.toHaveClass('ring-tinta');
   });
@@ -899,12 +1064,12 @@ describe('o painel largo, com todos os dados do oficial (6.22)', () => {
     expect((alfa.querySelector('[data-barra]') as HTMLElement).style.width).toBe('100%');
   });
 
-  it('o oficial da vez tem a linha marcada (borda vinho, fundo âmbar) e a etiqueta "a vez"; o cartão "Vez de escolher" não existe mais', async () => {
+  it('o oficial da vez tem a linha marcada (borda vinho, fundo avermelhado claro) e a etiqueta "a vez"; o cartão "Vez de escolher" não existe mais', async () => {
     abrirEscala(escala({ oficiais: [{ ...O1, escolhidos: 4 }, O2, O3] }));
     const lista = await screen.findByRole('list', { name: 'Cotas de janeiro de 2027' });
     expect(screen.queryByLabelText('Vez de escolher')).toBeNull();
     const alfa = within(lista).getByRole('checkbox', { name: 'CEL ALFA participa da rodada' }).closest('li')!;
-    expect(alfa).toHaveClass('border-vinho', 'bg-pendencia-fundo');
+    expect(alfa).toHaveClass('border-vinho', 'bg-vinho/10');
     expect(within(alfa).getByText('a vez')).toBeInTheDocument();
     expect(within(lista).getByRole('checkbox', { name: 'CAP BRAVO participa da rodada' }).closest('li')).not.toHaveClass('border-vinho');
   });
@@ -1065,15 +1230,17 @@ describe('os dias vermelhos', () => {
     vi.unstubAllGlobals();
   });
   const URL_VERMELHOS = `POST ${URL_MES}/dias-vermelhos/marcar`;
-  const diaDoCalendario = (n: number) => screen.findByRole('button', { name: new RegExp(`^Dia vermelho: ${String(n).padStart(2, '0')}/01`) });
+  const diaDoCalendario = async (n: number) => {
+    // o clique no dia só vale no modo de marcar dias vermelhos: o botão "Marcar dias vermelhos" liga, e "Concluir" desliga
+    if (!screen.queryByRole('button', { name: 'Concluir' })) await userEvent.click(await screen.findByRole('button', { name: 'Marcar dias vermelhos' }));
+    return screen.findByRole('button', { name: new RegExp(`^Dia vermelho: ${String(n).padStart(2, '0')}/01`) });
+  };
 
-  it('o calendário marca o dia vermelho com um ponto e o texto "Dia vermelho" para o leitor de tela; o outro dia fica sem marca', async () => {
+  it('no modo de marcar, o dia vermelho vem marcado (aria-pressed) com o texto "Dia vermelho" para o leitor de tela; o outro dia fica sem marca', async () => {
     abrirEscala(escala({ diasVermelhos: [dia(5)] }));
     expect(await diaDoCalendario(5)).toHaveAttribute('aria-pressed', 'true');
     expect(await diaDoCalendario(6)).toHaveAttribute('aria-pressed', 'false');
     expect(within(await diaDoCalendario(5)).getByText('Dia vermelho')).toHaveClass('sr-only');
-    expect((await diaDoCalendario(5)).querySelector('[data-marca-vermelha]')).not.toBeNull();
-    expect((await diaDoCalendario(6)).querySelector('[data-marca-vermelha]')).toBeNull();
   });
 
   it('um clique no dia marca: a tela manda a lista inteira com o dia a mais', async () => {
@@ -1098,7 +1265,8 @@ describe('os dias vermelhos', () => {
     abrirEscala(escala({ etapa: 'encerrada', fechadaEm: '2027-01-05T10:00:00', encerradaEm: '2027-02-01T10:00:00', diasVermelhos: [dia(5)] }));
     await screen.findByRole('group', { name: 'Calendário do mês' });
     expect(screen.queryByRole('button', { name: /^Dia vermelho:/ })).toBeNull();
-    expect(screen.getByText('Dia vermelho')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Marcar dias vermelhos' })).toBeNull();
+    expect(screen.getAllByText('Dia vermelho').length).toBeGreaterThan(0);
   });
 
   it('o erro da API aparece na tela, e a lista de antes continua marcada', async () => {

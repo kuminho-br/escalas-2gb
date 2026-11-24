@@ -18,10 +18,8 @@ interface Props {
   escala: EscalaDosOficiais;
   /** O clique num turno (livre ou com nome): a tela decide se lança, tira ou pergunta. Sem ele (mês encerrado), o calendário é só de leitura. */
   aoClicarTurno?: (t: Lugar) => void;
-  /** O clique no número do dia marca ou tira o dia vermelho. Sem ele (mês encerrado), o dia vermelho só aparece marcado. */
+  /** O clique no número do dia marca ou tira o dia vermelho (só no modo de marcar dias vermelhos). Sem ele, o dia vermelho só aparece marcado. */
   aoMarcarDia?: (dia: string) => void;
-  /** O último turno lançado: fica marcado até o próximo lançamento. */
-  recente?: { dia: string; turnoId: string } | null;
   /** O oficial escolhido na lista: os turnos dele ganham um contorno leve. */
   oficialEscolhido?: string | null;
 }
@@ -42,20 +40,25 @@ export function LegendaDosTurnos({ turnos, escala }: { turnos: Turno[]; escala?:
           {NOME_DO_SERVICO[s]}
         </span>
       ))}
+      {escala && (
+        <span className="inline-flex items-center gap-1.5">
+          <i aria-hidden data-amostra-dia-vermelho className="inline-block h-[18px] w-[3px] rounded-sm bg-alerta" />
+          Dia vermelho
+        </span>
+      )}
     </div>
   );
 }
 
 /**
- * O número do dia. O dia vermelho (um dia ruim, que ninguém quer tirar) leva um ponto na cor de alerta e o texto "Dia vermelho" para o leitor de tela. Com a
- * escala editável, o número é um botão que marca ou tira o dia vermelho; sem ela, é só o número.
+ * O número do dia. O dia vermelho (um dia ruim, que ninguém quer tirar) leva o número na cor de alerta, a faixa vermelha ao lado das placas e o texto "Dia vermelho"
+ * para o leitor de tela. No modo de marcar dias vermelhos, o número é um botão que marca ou tira o dia vermelho; fora dele, é só o número.
  */
 function CabecalhoDoDia({ dia, vermelho, aoMarcar }: { dia: string; vermelho: boolean; aoMarcar?: (dia: string) => void }) {
   const dm = `${dia.slice(8, 10)}/${dia.slice(5, 7)}`;
   const numero = (
     <>
       <b className="font-cond text-[15px] leading-[22px] font-semibold">{Number(dia.slice(8))}</b>
-      {vermelho && <i data-marca-vermelha aria-hidden className="size-2 shrink-0 self-center rounded-full bg-alerta" />}
       {vermelho && <span className="sr-only">Dia vermelho</span>}
     </>
   );
@@ -86,7 +89,7 @@ function CabecalhoDoDia({ dia, vermelho, aoMarcar }: { dia: string; vermelho: bo
  * serviço à esquerda (JES ou Saldo; o nome do serviço vai na dica e para o leitor de tela), a patente em 13 px e o nome em 15 px. O turno livre é um contorno
  * tracejado. No computador, a semana; no celular, uma coluna.
  */
-export function CalendarioDosOficiais({ escala: e, aoClicarTurno, aoMarcarDia, recente, oficialEscolhido }: Props) {
+export function CalendarioDosOficiais({ escala: e, aoClicarTurno, aoMarcarDia, oficialEscolhido }: Props) {
   const turnos = e.turnosDoServico;
   const porId = new Map(e.oficiais.map((o) => [o.militarId, o] as const));
   const avisados = new Set(e.avisos.map((a) => `${a.dia}|${a.turnoId}`));
@@ -101,14 +104,12 @@ export function CalendarioDosOficiais({ escala: e, aoClicarTurno, aoMarcarDia, r
     const base = `${dd}, ${rotuloDoTurnoNaTela(t)}`;
     const dono = x.militarId ? porId.get(x.militarId) : null;
     const alerta = avisados.has(`${d}|${t.id}`);
-    const eRecente = recente?.dia === d && recente.turnoId === t.id;
     const doEscolhido = Boolean(oficialEscolhido && x.militarId === oficialEscolhido);
-    const comum = { 'data-turno': t.rotulo === 'Noite' ? 'noite' : 'dia', 'data-alerta': alerta ? 'true' : undefined, 'data-recente': eRecente ? 'true' : undefined, 'data-servico': x.servico ?? undefined } as const;
+    const comum = { 'data-turno': t.rotulo === 'Noite' ? 'noite' : 'dia', 'data-alerta': alerta ? 'true' : undefined, 'data-servico': x.servico ?? undefined } as const;
     const base36 = cn(
       'relative flex h-9 min-w-0 items-center gap-1.5 rounded-md border pr-1.5 pl-3 text-left leading-none',
       alerta && 'ring-2 ring-pendencia',
-      eRecente && 'ring-2 ring-tinta',
-      !eRecente && !alerta && doEscolhido && 'ring-1 ring-tinta',
+      !alerta && doEscolhido && 'ring-1 ring-tinta',
     );
     const interativo = Boolean(aoClicarTurno);
 
@@ -164,7 +165,10 @@ export function CalendarioDosOficiais({ escala: e, aoClicarTurno, aoMarcarDia, r
       {dias.map((d) => (
         <div key={d} data-dia className="@container grid min-w-0 content-start gap-0.5">
           <CabecalhoDoDia dia={d} vermelho={vermelhos.has(d)} aoMarcar={aoMarcarDia} />
-          <div className="grid grid-cols-2 gap-0.5 md:grid-cols-1">{turnos.map((t) => placa(d, t))}</div>
+          <div className="relative grid grid-cols-2 gap-0.5 md:grid-cols-1">
+            {vermelhos.has(d) && <i aria-hidden data-faixa-vermelha className="absolute inset-y-0 -left-[5px] w-[3px] rounded-sm bg-alerta" />}
+            {turnos.map((t) => placa(d, t))}
+          </div>
         </div>
       ))}
     </div>
