@@ -99,9 +99,7 @@ Design: `docs/superpowers/specs/2026-11-21-usuarios-e-modulos-design.md`. Plano:
 | 25 e 26 | Árvore genérica (0035); configurações gerais | mescladas (#167, #171) |
 | 22 a 24, 27 a 31 | Oficiais (refeitos, escala comum 0036, dias vermelhos 0037, tela de escalar, memorial 0039); mover na hierarquia; admin como militar; raiz sem "nível acima" | mescladas (#157 a #185) |
 | 32 a 36 | Ficha na escala; Escala do mês no ordinário; militar externo; testes instáveis; RG funcional (0041), Grade sem Voluntariado | mescladas (#192 a #199) |
-| 37 e 38 | Choque universal (0042, sai o parâmetro do Adm); resolver o choque ao escalar; cota de saldo à vista | planejadas, antes da fase 7 |
-
-**Fora:** e-mail, usuários acima do GB (fase 11), Visualização (fase 7).
+| 37 a 40 | Choque universal (0042); resolver o choque; cota de saldo; choque nos Oficiais; pré-escala só nos turnos e com o expediente | 37 e 38 em execução; 39 e 40 planejadas |
 
 ## Refatoração da interface · fundação concluída
 
