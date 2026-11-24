@@ -60,6 +60,9 @@ export async function escalarResolvendoChoque(queryClient: QueryClient, escalaId
   );
   return { escala, desfazer };
 }
+/** "Desfazer" o movimento do turno para a vaga (6.40): a alocação volta ao turno sem guarnição. A API recusa (409) se a escala mudou desde então. */
+export const voltarAoTurno = (queryClient: QueryClient, alocacaoId: string, vaga: { guarnicaoId: string; funcaoId: string }) =>
+  gravando(queryClient, pedir<EscalaDoMes>('POST', `/api/alocacoes/${alocacaoId}/voltar-ao-turno`, vaga));
 /** "Desfazer" a resolução: tira o serviço novo e devolve o de lá. A API recusa (409) se a escala mudou desde então. */
 export const desfazerResolucao = (queryClient: QueryClient, d: DesfazerResolucao) => gravando(queryClient, pedir<EscalaDoMes>('POST', '/api/resolucoes/desfazer', d));
 /** Remover da vaga devolve a escala e o id da remoção que ficou: o "Desfazer" do aviso usa. */

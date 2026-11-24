@@ -87,13 +87,19 @@ export async function escalar(tx: Consulta, escalaId: string, d: Omit<NovaAlocac
     if (n >= funcaoDaVaga.maximo) throw new Recusa(`A função ${funcaoDaVaga.funcao} já está completa nesta guarnição.`);
   }
   const igual = (
-    await tx.query('select 1 from alocacao where militar_id = $1 and data = $2::date and servico_id = $3 and turno_id = $4', [d.militarId, d.data, turno.servico_id, d.turnoId])
-  ).rows.length;
-  if (igual) throw new Recusa(JA_ESCALADO_NO_TURNO);
+    await tx.query<{ id: string; escala_id: string | null; guarnicao_id: string | null }>('select id, escala_id, guarnicao_id from alocacao where militar_id = $1 and data = $2::date and servico_id = $3 and turno_id = $4', [d.militarId, d.data, turno.servico_id, d.turnoId])
+  ).rows[0];
+  // quem a pré-escala pôs neste turno desta escala sem guarnição (6.40) é movido para a vaga; qualquer outro caso é "já escalado"
+  const mover = igual && igual.escala_id === escalaId && igual.guarnicao_id === null && d.guarnicaoId !== null ? igual : null;
+  if (igual && !mover) throw new Recusa(JA_ESCALADO_NO_TURNO);
   const motivo = await motivoDeFora(tx, { escalaId, data: d.data, inicio: turno.inicio, fim: turno.fim, guarnicaoId: d.guarnicaoId, funcaoId: d.funcaoId, militarId: d.militarId, turnoId: d.turnoId, tirarDoExpediente: opcoes.tirarDoExpediente });
   // só o voluntariado pode ser contornado: o escalante combina direto com o militar; as demais regras continuam recusando
   if (motivo && motivo !== SEM_VOLUNTARIADO) throw new Recusa(motivo);
 
+  if (mover) {
+    await tx.query('update alocacao set guarnicao_id = $2, funcao_id = $3 where id = $1', [mover.id, d.guarnicaoId, d.funcaoId]);
+    return mes;
+  }
   try {
     await tx.query(
       `insert into alocacao (militar_id, escala_id, servico_id, turno_id, data, guarnicao_id, funcao_id, origem) values ($1, $2, $3, $4, $5::date, $6, $7, 'manual')`,
@@ -275,4 +281,21 @@ export async function desfazerResolucao(tx: Consulta, d: DesfazerResolucao): Pro
   if (!nova) throw new Recusa(NAO_DA_PARA_DESFAZER);
   if (d.remocaoId) await devolverRemocao(tx, d.remocaoId);
   return { escalaId: nova.escala_id!, mes: nova.data.slice(0, 7) };
+}
+
+/**
+ * "Desfazer" o movimento do turno para a vaga (6.40): devolve a alocação ao turno sem guarnição, se ela continua na vaga para onde foi movida e sem acúmulos;
+ * senão a escala mudou desde então e nada muda. Devolve a escala e o mês.
+ */
+export async function voltarAoTurno(tx: Consulta, alocacaoId: string, vaga: { guarnicaoId: string; funcaoId: string }): Promise<{ escalaId: string; mes: string }> {
+  const a = (
+    await tx.query<{ escala_id: string | null; data: string }>(
+      `select escala_id, to_char(data, 'YYYY-MM-DD') as data from alocacao a where id = $1 and guarnicao_id = $2 and funcao_id = $3
+          and not exists (select 1 from alocacao_acumulo x where x.alocacao_id = a.id) for update`,
+      [alocacaoId, vaga.guarnicaoId, vaga.funcaoId],
+    )
+  ).rows[0];
+  if (!a || !a.escala_id) throw new Recusa(NAO_DA_PARA_DESFAZER);
+  await tx.query('update alocacao set guarnicao_id = null, funcao_id = null where id = $1', [alocacaoId]);
+  return { escalaId: a.escala_id, mes: a.data.slice(0, 7) };
 }

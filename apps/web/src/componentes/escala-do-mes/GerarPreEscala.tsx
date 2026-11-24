@@ -10,23 +10,21 @@ import { Label } from '@/componentes/ui/label';
 import { Espera } from '@/componentes/resposta/Espera';
 
 const plural = (n: number, um: string, varios: string) => `${n} ${n === 1 ? um : varios}`;
-const diaDe = (data: string) => Number(data.slice(8));
 
 /**
- * "Gerar pré-escala": a equipe do dia 1 (a detectada pelo mês anterior, que o escalante pode trocar), o resumo do que entra e do que
- * fica de fora, e a gravação. Gerar de novo só completa lacunas: ninguém é tirado e quem foi removido não volta.
+ * "Gerar pré-escala": a equipe do dia 1 (a detectada pelo mês anterior, que o escalante pode trocar), o resumo do que entra (a equipe no turno do Pronto e o Adm no
+ * expediente) e a gravação. Não aloca guarnições: o escalante move cada um do turno para uma vaga, à mão. Gerar de novo só completa lacunas: ninguém é tirado e quem foi
+ * removido não volta.
  */
 export function GerarPreEscala({ escalaId, mes, aoFechar, aoGravar }: { escalaId: string; mes: string; aoFechar: () => void; aoGravar: (gravadas: number) => void }) {
   const queryClient = useQueryClient();
   const [escolhida, setEscolhida] = useState<string | null>(null);
-  const [verFora, setVerFora] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
   const previa = useQuery(consultaPreEscala(escalaId, mes, escolhida));
   const { salvando, travar } = useTrava();
   const p = previa.data;
   const equipeDoDia1 = escolhida ?? p?.equipeUsada?.id ?? '';
   const nomeDetectada = p?.equipes.find((e) => e.id === p.equipeDetectada.equipeId)?.nome;
-  const obrigatoriasVazias = p?.vazias.filter((v) => v.obrigatoria).length ?? 0;
 
   const gravar = travar(async () => {
     setErro(null);
@@ -43,7 +41,7 @@ export function GerarPreEscala({ escalaId, mes, aoFechar, aoGravar }: { escalaId
       <DialogContent className="max-h-[85dvh] overflow-y-auto sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>Gerar pré-escala</DialogTitle>
-          <DialogDescription>Coloca no Pronto a equipe de cada dia, nas vagas pela ordem de escalação. Quem já está escalado não é mexido.</DialogDescription>
+          <DialogDescription>Coloca a equipe de cada dia no turno do Pronto e o Adm no expediente dos dias úteis. Quem já está escalado não é mexido, e cada um vai para uma vaga depois, à mão.</DialogDescription>
         </DialogHeader>
         {previa.isPending && <Espera />}
         {previa.error && <p role="alert" className="text-alerta">{mensagemDe(previa.error)}</p>}
@@ -65,26 +63,12 @@ export function GerarPreEscala({ escalaId, mes, aoFechar, aoGravar }: { escalaId
             </div>
             {p.equipeUsada && (
               <div className="grid gap-1 text-sm">
-                <p>Entram {plural(p.entram, 'serviço', 'serviços')} de Pronto.</p>
-                <p>Ficam {plural(obrigatoriasVazias, 'vaga obrigatória vazia', 'vagas obrigatórias vazias')} e {plural(p.semGuarnicao.length, 'militar', 'militares')} sem guarnição.</p>
+                <p>Entram {plural(p.entramNoTurno, 'militar', 'militares')} no turno do Pronto e {p.entramNoExpediente} no expediente.</p>
                 {p.removidosQueNaoVoltam > 0 && <p>{plural(p.removidosQueNaoVoltam, 'removido não volta', 'removidos não voltam')}.</p>}
               </div>
             )}
             {previa.isPlaceholderData && <p role="status" className="text-sm text-apagado">Atualizando…</p>}
             {p.avisos.filter((a) => a !== 'Escolha a equipe do dia 1.').map((a) => <p key={a} className="text-sm text-pendencia">{a}</p>)}
-            {p.vazias.length + p.semGuarnicao.length > 0 && (
-              <div className="grid gap-1.5">
-                <Button type="button" variant="secundario" size="sm" aria-expanded={verFora} onClick={() => setVerFora(!verFora)} className="justify-self-start">
-                  Ver o que ficou de fora
-                </Button>
-                {verFora && (
-                  <ul className="grid max-h-56 gap-0.5 overflow-y-auto text-sm">
-                    {p.vazias.map((v, i) => <li key={`v|${i}`}>{`Dia ${diaDe(v.data)}, ${v.faixa}: ${v.vaga}${v.obrigatoria ? '' : ' (extra)'}`}</li>)}
-                    {p.semGuarnicao.map((s, i) => <li key={`s|${i}`}>{`Dia ${diaDe(s.data)}, ${s.faixa}: ${s.nomeGuerra} sem guarnição`}</li>)}
-                  </ul>
-                )}
-              </div>
-            )}
           </>
         )}
         {erro && <p role="alert" className="text-sm text-alerta">{erro}</p>}

@@ -20,8 +20,8 @@ O Pronto cumpre 160h por mês; o Adm hoje cumpre só a cota de saldos, 6 por mil
 | ID | Regra | Situação | No sistema novo | Barreira |
 |---|---|---|---|---|
 | RN-19 | O Adm está de expediente todo dia útil; o expediente nunca cai em fim de semana ou feriado. | Confirmada | Funciona (expediente implícito nas conferências) | Ambas |
-| RN-20 | A distribuição automática do expediente do Adm é só uma pré-escala: lança o militar do Adm no expediente em todo dia útil, sem parâmetro que a ligue. Os saldos e os JES do Adm são lançados à mão; a distribuição automática de saldos saiu do plano (decisão de 24/11/2026). | Confirmada | Fase 8; enquanto não existe, o expediente é implícito (RN-19) | Automação |
-| RN-91 | Na escala automática do Adm, o militar é lançado no expediente em todo dia útil. Se no dia ele tiver um serviço que pode tirar do expediente (o Saldo) no mesmo horário, o expediente sai do dia dele e o serviço ocupa o lugar. | Confirmada | Hoje o expediente é implícito e some sob o serviço que pode tirar do expediente; o lançamento do expediente é da fase 8 | Automação |
+| RN-20 | A pré-escala também lança o expediente do Adm: uma alocação do serviço Expediente, **sem escala**, em cada dia útil, para cada militar lotado na unidade com jornada Adm no período que vale no dia (QBMG e sem quadro; o expediente dos oficiais espera a jornada deles ser elucidada). Não vai no fim de semana, no feriado da unidade nem no de uma unidade de cima, no dia de afastamento nem no dia em que o militar já tem, no horário do expediente, um serviço que tira do expediente (o Saldo). Os saldos e os JES do Adm são lançados à mão; a distribuição automática de saldos saiu do plano (decisão de 24/11/2026). O expediente lançado só o torna visível (Grade e painel do dia); o calculado continua valendo para o choque, e só um serviço com "Pode tirar o militar do Adm do expediente" libera o militar (RN-25). | Confirmada | Funciona (6.40): um botão só, "Pré-escala", gera o Pronto e o expediente; a unidade sem o serviço Expediente gera só o Pronto e avisa | Automação |
+| RN-91 | Na pré-escala, o militar do Adm é lançado no expediente em todo dia útil (RN-20). Se no dia ele tiver um serviço que pode tirar do expediente (o Saldo) no mesmo horário, o expediente sai do dia dele e o serviço ocupa o lugar. | Confirmada | Funciona (6.40): o expediente lançado e o calculado somem sob o Saldo | Automação |
 
 ## Pré-escala
 
@@ -29,11 +29,11 @@ A pré-escala é uma sugestão automática que o escalante sempre revisa.
 
 | ID | Regra | Situação | No sistema novo | Barreira |
 |---|---|---|---|---|
-| RN-22 | A pré-escala do Pronto segue o rodízio das equipes do ciclo (Alfa, Bravo, Charlie, Delta). A equipe do dia 1 é descoberta pelo Pronto dos últimos dias do mês anterior. | Confirmada | Funciona (pré-escala do Pronto, entrega 3.1) | Automação |
+| RN-22 | A pré-escala do Pronto segue o rodízio das equipes do ciclo (Alfa, Bravo, Charlie, Delta). A equipe do dia 1 é descoberta pelo Pronto dos últimos dias do mês anterior. A pré-escala põe a equipe do dia **no turno do Pronto, sem guarnição e sem função**: o escalante move cada um para uma vaga depois, à mão (na escolha do militar da vaga, quem já está no turno aparece primeiro, e escolhê-lo move a alocação dele; o "Desfazer" o devolve ao turno). A distribuição nas guarnições fica para a automação da fase 8, se o usuário quiser. | Confirmada | Funciona (pré-escala, entrega 3.1; só nos turnos desde a 6.40) | Automação |
 | RN-44 | Na situação padrão, o Pronto emenda os turnos A e B: das 08h do dia D às 08h do dia D+1. | Confirmada | Funciona (pré-escala do Pronto) | Base |
 | RN-84 | A pré-escala é um guia, não a escala final: depois dela o escalante altera o que quiser, e as alterações passam pelas mesmas regras de alocação. | Confirmada | Funciona | Ambas |
-| RN-113 | Gerar a pré-escala de novo não sobrescreve o que já está escalado: só completa as lacunas. | Confirmada | Funciona | Automação |
-| RN-112 | Gerar de novo não devolve um militar a um dia e turno de onde o escalante o tirou. A remoção vale para o militar (militar, dia, serviço, turno), não para a vaga. Pôr o militar de volta à mão apaga a remoção. | Confirmada | Funciona | Automação |
+| RN-113 | Gerar a pré-escala de novo não sobrescreve o que já está escalado: só completa as lacunas (no Pronto e no expediente). | Confirmada | Funciona | Automação |
+| RN-112 | Gerar de novo não devolve um militar a um dia e turno de onde o escalante o tirou. A remoção vale para o militar (militar, dia, serviço, turno), não para a vaga; vale também para o expediente. Pôr o militar de volta à mão apaga a remoção. | Confirmada | Funciona | Automação |
 | RN-85 | Dias de hoje em diante se alteram livremente; os passados ficam travados, porque o serviço já aconteceu. Falta definir que correções continuam permitidas no passado (P-17). | A esclarecer | Não existe hoje: escalar e trocar aceitam qualquer data (ligado à publicação, fase 7) | Suporte |
 
 ## Choques e encadeamento de serviços

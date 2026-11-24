@@ -2,7 +2,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { mesPorExtenso, textoFaixa, textoHora, type Candidato, type CandidatoEmChoque } from 'contratos';
 import { useState } from 'react';
 import { mensagemDe } from '@/api/cliente';
-import { acumular, consultaCandidatos, desfazerResolucao, escalar, escalarResolvendoChoque } from '@/api/escala-do-mes';
+import { acumular, consultaCandidatos, desfazerResolucao, escalar, escalarResolvendoChoque, voltarAoTurno } from '@/api/escala-do-mes';
 import { useTrava } from '@/componentes/AlteracoesPendentes';
 import { CotaDeSaldo } from '@/componentes/CotaDeSaldo';
 import { Placa } from '@/componentes/Placa';
@@ -30,10 +30,17 @@ export function EscolherMilitar({ escalaId, vaga, aoFechar }: { escalaId: string
   const { salvando, travar } = useTrava();
   const dia = Number(vaga.data.slice(8));
 
-  const escolher = travar(async (militarId: string, turnoId: string) => {
+  const escolher = travar(async (militarId: string, turnoId: string, noTurno?: { alocacaoId: string }, quem?: string) => {
     setErro(null);
     try {
       await escalar(queryClient, escalaId, { militarId, data: vaga.data, turnoId, guarnicaoId: vaga.guarnicaoId, funcaoId: vaga.funcaoId });
+      // quem estava no turno sem guarnição (6.40) foi movido para a vaga: o aviso diz e o "Desfazer" o devolve ao turno
+      if (noTurno) {
+        avisar({
+          texto: `${quem} saiu do turno sem guarnição e foi para a vaga de ${vaga.funcao} na ${vaga.guarnicao}.`,
+          desfazer: async () => void (await voltarAoTurno(queryClient, noTurno.alocacaoId, { guarnicaoId: vaga.guarnicaoId, funcaoId: vaga.funcaoId })),
+        });
+      }
       aoFechar(true);
     } catch (e) {
       setErro(mensagemDe(e));
@@ -90,7 +97,7 @@ export function EscolherMilitar({ escalaId, vaga, aoFechar }: { escalaId: string
         <button
           type="button"
           disabled={salvando}
-          onClick={() => void escolher(c.militarId, turnoId)}
+          onClick={() => void escolher(c.militarId, turnoId, c.noTurno, `${c.posto} ${c.nomeGuerra}`)}
           className="flex min-w-0 flex-1 flex-wrap items-baseline gap-x-2 rounded-md border border-linha px-3 py-2 text-left hover:bg-accent disabled:opacity-60"
         >
           <span className="text-xs text-apagado">{c.posto}</span>
@@ -100,6 +107,7 @@ export function EscolherMilitar({ escalaId, vaga, aoFechar }: { escalaId: string
             {c.matricula}
           </span>
           <span className="text-xs text-apagado">{c.equipe ?? 'Adm'}</span>
+          {c.noTurno && <span className="text-apoio font-medium text-pendencia">No turno, sem guarnição</span>}
         </button>
         {c.servicos.length > 1 && (
           <Selecao aria-label={`Serviço de ${c.nomeGuerra}`} value={turnoId} onChange={(e) => setTurnoDe({ ...turnoDe, [c.militarId]: e.target.value })} className="w-28">
