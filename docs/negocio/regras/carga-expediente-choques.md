@@ -2,7 +2,7 @@
 
 Carga horária e saldos, expediente do Adm, pré-escala, choques de horário (RN-15 a RN-20, RN-22 a RN-26, RN-44, RN-84, RN-85, RN-91, RN-112, RN-113).
 
-Quem cuida: DOCUMENTAÇÃO. Conferido contra o sistema novo em 21/11/2026; choque e expediente revistos em 24/11/2026 (6.37 e 6.38). Índice e colunas: [LEIAME](LEIAME.md).
+Quem cuida: DOCUMENTAÇÃO. Conferido contra o sistema novo em 21/11/2026; choque, expediente e pré-escala revistos em 24/11/2026 (6.37 a 6.40). Índice e colunas: [LEIAME](LEIAME.md).
 
 ## Carga horária e saldos
 
@@ -12,14 +12,14 @@ O Pronto cumpre 160h por mês; o Adm hoje cumpre só a cota de saldos, 6 por mil
 |---|---|---|---|---|
 | RN-15 | A carga mensal do Pronto é o parâmetro "Carga mensal (horas)" (hoje 160h), não fixa no código. | Confirmada | Parâmetro existe; quem o usa são as distribuições (fase 8) | Ambas |
 | RN-16 | JES e diárias não contam na carga horária. Exceção: o voluntário escalado de forma compulsória por não ter marcado voluntariado (RN-41) tem essa escala abatida da carga padrão; o valor do abatimento é parâmetro. | Confirmada | Fase 8 | Ambas |
-| RN-17 | Pela portaria, o Adm tem expediente das 08h às 16h e não tira serviço extra no horário do expediente. Na prática, o Adm reforça o operacional com saldos. A regra vale para todos, sem configuração: o militar do Adm não tira nenhum serviço (Pronto, JES, PJES, Diária) no horário do expediente em dia útil. A única exceção é de um **serviço**, e não do militar: o serviço cadastrado com "Pode tirar o militar do Adm do expediente" (hoje o Saldo) pode, depois de o escalante confirmar, tirá-lo do expediente do dia (RN-25). O parâmetro "Adm cumpre a carga mensal" saiu do sistema em 24/11/2026 (decisão do usuário). | Confirmada | Funciona (6.37): o parâmetro saiu e o choque vale para todos; a opção é do cadastro do serviço | Ambas |
+| RN-17 | Pela portaria, o Adm tem expediente das 08h às 16h e não tira serviço extra no horário do expediente. Na prática, o Adm reforça o operacional com saldos. A regra vale para todos, sem configuração: o militar do Adm não tira nenhum serviço (Pronto, JES, PJES, Diária) no horário do expediente em dia útil. A única exceção é de um **serviço**, e não do militar: o serviço cadastrado com "Pode tirar o militar do Adm do expediente" (hoje o Saldo) pode, depois de o escalante confirmar, tirá-lo do expediente do dia (RN-25). O parâmetro "Adm cumpre a carga mensal" saiu do sistema em 24/11/2026 (decisão do usuário). Por ora, o oficial segue a mesma regra: não tira JES em dia útil das 8h às 16h, e o Saldo no expediente pede a confirmação (6.39; P-37). | Confirmada | Funciona (6.37): o parâmetro saiu e o choque vale para todos; a opção é do cadastro do serviço | Ambas |
 | RN-18 | A quantidade de saldos por militar do Adm no mês é parâmetro; padrão 6. | Confirmada | Funciona (6.38): é o total da barra da cota de saldo do Adm ("2/6"), que não trava; a distribuição automática de saldos saiu do plano (24/11/2026) | Ambas |
 
 ## Expediente do Adm
 
 | ID | Regra | Situação | No sistema novo | Barreira |
 |---|---|---|---|---|
-| RN-19 | O Adm está de expediente todo dia útil; o expediente nunca cai em fim de semana ou feriado. | Confirmada | Funciona (expediente implícito nas conferências) | Ambas |
+| RN-19 | O Adm está de expediente todo dia útil; o expediente nunca cai em fim de semana, em feriado da unidade (ou de uma de cima) nem em dia de afastamento. Por ora, o oficial segue a mesma jornada (6.39; em elucidação, P-37). | Confirmada | Funciona: calculado nas conferências de choque e, desde a 6.40, lançado pela pré-escala (RN-20); o expediente dos oficiais ainda não é lançado | Ambas |
 | RN-20 | A pré-escala também lança o expediente do Adm: uma alocação do serviço Expediente, **sem escala**, em cada dia útil, para cada militar lotado na unidade com jornada Adm no período que vale no dia (QBMG e sem quadro; o expediente dos oficiais espera a jornada deles ser elucidada). Não vai no fim de semana, no feriado da unidade nem no de uma unidade de cima, no dia de afastamento nem no dia em que o militar já tem, no horário do expediente, um serviço que tira do expediente (o Saldo). Os saldos e os JES do Adm são lançados à mão; a distribuição automática de saldos saiu do plano (decisão de 24/11/2026). O expediente lançado só o torna visível (Grade e painel do dia); o calculado continua valendo para o choque, e só um serviço com "Pode tirar o militar do Adm do expediente" libera o militar (RN-25). | Confirmada | Funciona (6.40): um botão só, "Pré-escala", gera o Pronto e o expediente; a unidade sem o serviço Expediente gera só o Pronto e avisa | Automação |
 | RN-91 | Na pré-escala, o militar do Adm é lançado no expediente em todo dia útil (RN-20). Se no dia ele tiver um serviço que pode tirar do expediente (o Saldo) no mesmo horário, o expediente sai do dia dele e o serviço ocupa o lugar. | Confirmada | Funciona (6.40): o expediente lançado e o calculado somem sob o Saldo | Automação |
 
