@@ -1,5 +1,5 @@
 import { mesPorExtenso, type EscalaDosOficiais } from 'contratos';
-import { ArrowDown, ArrowUp } from 'lucide-react';
+import { ArrowDown, ArrowUp, ChevronDown } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from '@/componentes/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/componentes/ui/dialog';
@@ -31,6 +31,8 @@ export function ListaDeCotas({ escala: e, aoOrdenar, aoMarcar, desabilitado, esc
   const marcados = e.oficiais.filter((o) => o.participa).map((o) => o.militarId);
   // desmarcar quem já tem turnos escolhidos deixa esses turnos sem ninguém: o sistema pergunta antes (decisão de 23/11); sem turnos escolhidos, desmarca direto
   const [tirando, setTirando] = useState<Oficial | null>(null);
+  // "Como as cotas foram calculadas": a conta do mês em frases curtas, recolhida
+  const [verConta, setVerConta] = useState(false);
   const pedirMarca = (o: Oficial, participa: boolean) => {
     if (!participa && o.escolhidos > 0) setTirando(o);
     else marcar(o, participa);
@@ -56,7 +58,22 @@ export function ListaDeCotas({ escala: e, aoOrdenar, aoMarcar, desabilitado, esc
   const marcar = (o: Oficial, participa: boolean) =>
     aoMarcar?.(participa ? e.oficiais.filter((x) => x.participa || x.militarId === o.militarId).map((x) => x.militarId) : marcados.filter((id) => id !== o.militarId));
   const total = e.lugaresDeSaldo;
-  const sobras = e.oficiais.filter((o) => o.sobra).length;
+  const comSobra = e.oficiais.filter((o) => o.sobra);
+  const sobras = comSobra.length;
+  // a conta do mês, em frases curtas: turnos do mês, menos os de JES, os que sobram para a rodada, quem participa, a divisão, as sobras e os afastamentos
+  const turnosDoMes = e.turnos.length;
+  const turnosDeJes = e.oficiais.reduce((n, o) => n + o.jes, 0);
+  const diasDoMes = new Set(e.turnos.map((t) => t.dia)).size;
+  const conta: string[] = [
+    `O mês tem ${turnosDoMes} turnos (${diasDoMes} dias, ${e.turnosDoServico.length} por dia).`,
+    turnosDeJes > 0 ? `Menos ${turnosDeJes} de JES, lançados à mão.` : 'Nenhum turno de JES foi lançado.',
+    `Sobram ${total} turnos para a rodada de Saldo.`,
+    `Participam ${e.oficiais.filter((o) => o.cota !== null).length} oficiais.`,
+    `A divisão, pela presença de cada um, dá ${total - sobras} turnos inteiros e uma parte quebrada.`,
+    ...(sobras > 0 ? [`Depois do arredondamento sobraram ${sobras}, entregues aos ${sobras} mais modernos: ${comSobra.map((o) => o.nomeGuerra).join(', ')}.`] : []),
+    ...e.oficiais.flatMap((o) => { const f = frasesDaCotaMenor(o); return f ? [`${o.nomeGuerra}: ${f.replace('cota menor: ', 'cota menor, ')}.`] : []; }),
+    'O saldo aparece na lista, mas ainda não entra na conta.',
+  ];
   const podeOrdenar = !!aoOrdenar && e.etapa !== 'fechada' && e.etapa !== 'encerrada';
   // "Subir" e "Descer" só trocam de lugar quem não tem antiguidade, entre os do mesmo posto
   // a ordem só vale entre quem participa
@@ -137,7 +154,6 @@ export function ListaDeCotas({ escala: e, aoOrdenar, aoMarcar, desabilitado, esc
             <dt className={rotulo}>Cota</dt>
             <dd className={numero}>{o.cota ?? '—'}</dd>
             {o.sobra && <dd className={rotulo}>+1 sobra</dd>}
-            {frasesDaCotaMenor(o) && <dd className={rotulo}>{frasesDaCotaMenor(o)}</dd>}
           </div>
           {comCota && (
             <div>
@@ -191,9 +207,19 @@ export function ListaDeCotas({ escala: e, aoOrdenar, aoMarcar, desabilitado, esc
           </DialogFooter>
         </DialogContent>
       </Dialog>
-      <p className="text-[13px] leading-[18px] text-apagado">
-        {comCota ? `${total} turnos para a rodada de Saldo no mês.${sobras > 0 ? ` Depois do arredondamento, sobraram ${sobras}, entregues aos ${sobras} mais modernos.` : ''} ` : ''}O saldo aparece na lista, mas ainda não entra na conta.
-      </p>
+      {comCota && (
+        <div className="grid gap-2">
+          <Button type="button" variant="ghost" size="sm" className="justify-self-start" aria-expanded={verConta} aria-controls="como-as-cotas" onClick={() => setVerConta((v) => !v)}>
+            Como as cotas foram calculadas
+            <ChevronDown aria-hidden className={cn('transition-transform motion-reduce:transition-none', verConta && 'rotate-180')} />
+          </Button>
+          {verConta && (
+            <ul id="como-as-cotas" aria-label="Como as cotas foram calculadas" className="grid gap-1 rounded-md border border-linha bg-passa p-3 text-[15px] leading-[22px]">
+              {conta.map((f) => <li key={f}>{f}</li>)}
+            </ul>
+          )}
+        </div>
+      )}
     </div>
   );
 }

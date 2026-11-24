@@ -909,12 +909,13 @@ describe('o painel largo, com todos os dados do oficial (6.22)', () => {
     expect(within(lista).getByRole('checkbox', { name: 'CAP BRAVO participa da rodada' }).closest('li')).not.toHaveClass('border-vinho');
   });
 
-  it('o painel não tem texto abaixo de 13 px, e o rodapé continua em 13 px', async () => {
+  it('o painel não tem texto abaixo de 13 px, e o parágrafo solto do pé saiu (6.29.1): fica o botão "Como as cotas foram calculadas"', async () => {
     abrirEscala(escala());
     const lista = await screen.findByRole('list', { name: 'Cotas de janeiro de 2027' });
     const painel = lista.closest('aside')!;
     expect(painel.innerHTML).not.toMatch(/text-\[11px\]|text-xs/);
-    expect(within(painel).getByText(/62 turnos para a rodada de Saldo no mês/)).toHaveClass('text-[13px]');
+    expect(within(painel).queryByText(/turnos para a rodada de Saldo no mês/)).toBeNull();
+    expect(within(painel).getByRole('button', { name: 'Como as cotas foram calculadas' })).toHaveAttribute('aria-expanded', 'false');
   });
 
   it('no celular o painel vem antes do calendário, e nada rola de lado (Review Focus 5)', async () => {
@@ -931,30 +932,42 @@ describe('acabamento do painel e da troca de turno (6.17, itens 21, 26 e 34)', (
     vi.unstubAllGlobals();
   });
 
-  it('item 34: o número "Dias" sai do painel; a conta da cota não muda; só quem tem menos dias que os outros ganha "cota menor: afastado {n} dias", e a dica da cota diz os dias disponíveis', async () => {
-    const afastado = { ...O2, dias: 25 };
-    abrirEscala(escala({ oficiais: [O1, afastado, O3] }));
-    const lista = await screen.findByRole('list', { name: 'Cotas de janeiro de 2027' });
-    expect(within(lista).queryByText('Dias')).toBeNull();
-    const bravo = within(lista).getByRole('checkbox', { name: 'CAP BRAVO participa da rodada' }).closest('li')!;
-    // sem afastamento que explique, a frase não diz "afastado" (menos dias pode ser chegada ou saída da unidade no meio do mês)
-    expect(within(bravo).getByText('cota menor: 6 dias a menos no mês')).toHaveClass('text-[13px]', 'text-apagado');
-    expect(within(bravo).getByText('Cota').closest('div')).toHaveAttribute('title', '25 dias disponíveis no mês');
-    const alfa = within(lista).getByRole('checkbox', { name: 'CEL ALFA participa da rodada' }).closest('li')!;
-    expect(within(alfa).queryByText(/cota menor/)).toBeNull();
-    expect(within(alfa).getByText('Cota')).toBeInTheDocument();
-  });
-
-  it('item 34 (achado da revisão final): com afastamento no mês, a frase diz "afastado {n} dias" pelos dias do afastamento; sem cotas calculadas, nenhuma frase', async () => {
+  it('item 34 (6.29.1): o número "Dias" e o texto "cota menor: …" saem da linha do oficial; a dica da cota diz os dias disponíveis', async () => {
     const afastado = { ...O2, dias: 25, afastamentos: [{ inicio: dia(10), fim: dia(15), tipo: 'Férias' }] };
     abrirEscala(escala({ oficiais: [O1, afastado, O3] }));
     const lista = await screen.findByRole('list', { name: 'Cotas de janeiro de 2027' });
+    expect(within(lista).queryByText('Dias')).toBeNull();
+    expect(within(lista).queryByText(/cota menor/)).toBeNull();
     const bravo = within(lista).getByRole('checkbox', { name: 'CAP BRAVO participa da rodada' }).closest('li')!;
-    expect(within(bravo).getByText('cota menor: afastado 6 dias')).toBeInTheDocument();
-    cleanup();
-    abrirEscala(escala({ etapa: 'nao-aberto', abertaEm: null, vez: null, turnos: [], oficiais: [{ ...O1, cota: null, devido: null }, { ...afastado, cota: null, devido: null }, O3] }));
-    const antes = await screen.findByRole('list', { name: 'Cotas de janeiro de 2027' });
-    expect(within(antes).queryByText(/cota menor/)).toBeNull();
+    expect(within(bravo).getByText('Cota').closest('div')).toHaveAttribute('title', '25 dias disponíveis no mês');
+  });
+
+  it('"Como as cotas foram calculadas" abre e fecha a conta do mês em frases curtas, e o que saiu da linha (os dias de afastamento) vem aqui', async () => {
+    const afastado = { ...O2, dias: 25, afastamentos: [{ inicio: dia(10), fim: dia(15), tipo: 'Férias' }], sobra: true };
+    abrirEscala(escala({ oficiais: [{ ...O1, jes: 2 }, afastado, O3], lugaresDeSaldo: 60 }));
+    const botao = await screen.findByRole('button', { name: 'Como as cotas foram calculadas' });
+    expect(screen.queryByRole('list', { name: 'Como as cotas foram calculadas' })).toBeNull();
+    await userEvent.click(botao);
+    expect(botao).toHaveAttribute('aria-expanded', 'true');
+    const conta = within(screen.getByRole('list', { name: 'Como as cotas foram calculadas' })).getAllByRole('listitem').map((li) => li.textContent);
+    expect(conta).toEqual([
+      'O mês tem 62 turnos (31 dias, 2 por dia).',
+      'Menos 2 de JES, lançados à mão.',
+      'Sobram 60 turnos para a rodada de Saldo.',
+      'Participam 3 oficiais.',
+      'A divisão, pela presença de cada um, dá 59 turnos inteiros e uma parte quebrada.',
+      'Depois do arredondamento sobraram 1, entregues aos 1 mais modernos: BRAVO.',
+      'BRAVO: cota menor, afastado 6 dias.',
+      'O saldo aparece na lista, mas ainda não entra na conta.',
+    ]);
+    await userEvent.click(botao);
+    expect(screen.queryByRole('list', { name: 'Como as cotas foram calculadas' })).toBeNull();
+  });
+
+  it('antes de abrir o mês (sem cotas) não há o botão da conta', async () => {
+    abrirEscala(escala({ etapa: 'nao-aberto', abertaEm: null, vez: null, turnos: [], oficiais: [{ ...O1, cota: null, devido: null }, O3] }));
+    await screen.findByRole('list', { name: 'Cotas de janeiro de 2027' });
+    expect(screen.queryByRole('button', { name: 'Como as cotas foram calculadas' })).toBeNull();
   });
 
   it('item 26: desmarcar "Participa" de quem já tem turnos escolhidos pergunta antes ("Tirar da rodada"); sem turnos, não pergunta', async () => {
