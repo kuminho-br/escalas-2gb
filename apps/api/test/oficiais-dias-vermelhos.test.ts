@@ -15,7 +15,7 @@ let seq = 0;
 async function oficial(nome: string, antiguidade: number, voluntarioJes = false) {
   seq++;
   const id = await inserir(api.banco, 'militar', { matricula: `9906${String(seq).padStart(2, '0')}-${seq % 10}`, posto_grad_id: posto.CAP, nome_guerra: nome.toUpperCase(), antiguidade, voluntario_jes: voluntarioJes });
-  await inserir(api.banco, 'rastreio', { militar_id: id, unidade_id: api.ids.gb, jornada: 'adm', desde: '2026-12-01', quadro_id: quadro.QOC });
+  await inserir(api.banco, 'rastreio', { militar_id: id, unidade_id: api.ids.gb, jornada: 'pronto', desde: '2026-12-01', quadro_id: quadro.QOC });
   ids[nome] = id;
 }
 

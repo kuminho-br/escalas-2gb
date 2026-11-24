@@ -16,7 +16,7 @@ const nomes = (e: EscalaDosOficiais) => e.oficiais.map((o) => o.nomeGuerra).sort
 
 async function oficial(nome: string, unidadeId: string, antiguidade: number) {
   const id = await inserir(api.banco, 'militar', { matricula: `9911${String(antiguidade).padStart(2, '0')}-${antiguidade % 10}`, posto_grad_id: posto.CAP, nome_guerra: nome.toUpperCase(), antiguidade });
-  await inserir(api.banco, 'rastreio', { militar_id: id, unidade_id: unidadeId, jornada: 'adm', desde: '2026-12-01', quadro_id: quadro.QOC });
+  await inserir(api.banco, 'rastreio', { militar_id: id, unidade_id: unidadeId, jornada: 'pronto', desde: '2026-12-01', quadro_id: quadro.QOC });
   ids[nome] = id;
 }
 

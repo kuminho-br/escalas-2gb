@@ -25,7 +25,7 @@ async function oficial(nome: string, antiguidade: number | null, opcoes: { posto
     antiguidade,
   });
   // o quadro vale por período
-  await inserir(api.banco, 'rastreio', { militar_id: id, unidade_id: opcoes.unidade ?? api.ids.gb, jornada: 'adm', desde: opcoes.desde ?? '2026-12-01', quadro_id: opcoes.quadro === null ? null : quadro[opcoes.quadro ?? 'QOC'] });
+  await inserir(api.banco, 'rastreio', { militar_id: id, unidade_id: opcoes.unidade ?? api.ids.gb, jornada: 'pronto', desde: opcoes.desde ?? '2026-12-01', quadro_id: opcoes.quadro === null ? null : quadro[opcoes.quadro ?? 'QOC'] });
   ids[nome] = id;
   return id;
 }
