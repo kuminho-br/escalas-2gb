@@ -17,6 +17,7 @@ import { limites } from '@/lib/guarnicoes';
 import { mesAtual } from '@/lib/meses';
 import { cn } from '@/lib/utils';
 import { Checkbox } from '@/componentes/ui/checkbox';
+import { Espera } from '@/componentes/resposta/Espera';
 
 /** Importar da planilha e "Novo modelo": as ações da lista de modelos de guarnição (aba de Configurações e ficha). */
 export function AcoesDosModelos({ unidadeId }: { unidadeId: string }) {
@@ -40,7 +41,7 @@ export function ListaDeModelos({ unidadeId, escolhida }: { unidadeId: string; es
   const visiveis = guarnicoes.data?.filter((g) => g.ativa || desativadas) ?? [];
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      {guarnicoes.isPending && <p className="p-4 text-apagado">Carregando…</p>}
+      {guarnicoes.isPending && <Espera className="p-4" />}
       {guarnicoes.error && <p role="alert" className="p-4 text-alerta">{mensagemDe(guarnicoes.error)}</p>}
       {guarnicoes.data && (
         <>

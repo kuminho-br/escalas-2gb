@@ -13,6 +13,8 @@ import { Input } from '@/componentes/ui/input';
 import { hoje } from '@/lib/meses';
 import { nomeDoPapel } from '@/lib/papeis';
 import { dataBr, Secao } from './Secao';
+import { useConfirmar } from '@/componentes/resposta/useConfirmar';
+import { Espera } from '@/componentes/resposta/Espera';
 
 const SEM_EMAIL = 'Preencha o e-mail institucional para dar acesso.';
 
@@ -27,6 +29,7 @@ function textoDaSituacao(a: AcessoDoMilitar): string {
 /** Acesso ao sistema: a situação da conta, a senha provisória, desativar e os papéis (dar e encerrar). */
 export function AcessoAoSistema({ ficha }: { ficha: FichaMilitar }) {
   const queryClient = useQueryClient();
+  const confirmar = useConfirmar();
   const router = useRouter();
   const { data: acesso, error } = useQuery(consultaAcesso(ficha.id));
   const [erro, setErro] = useState<string | null>(null);
@@ -38,7 +41,7 @@ export function AcessoAoSistema({ ficha }: { ficha: FichaMilitar }) {
   const [aberto, setAberto] = useState<{ tipo: 'dar' } | { tipo: 'encerrar'; papelId: string } | null>(null);
 
   if (error) return <Secao titulo="Acesso ao sistema"><p role="alert" className="text-sm text-alerta">{mensagemDe(error)}</p></Secao>;
-  if (!acesso) return <Secao titulo="Acesso ao sistema"><p className="text-sm text-apagado">Carregando…</p></Secao>;
+  if (!acesso) return <Secao titulo="Acesso ao sistema"><Espera /></Secao>;
 
   // abrir ou fechar um formulário limpa o erro do anterior (ele não sobra na tela nem cai no campo do outro)
   const mudarFormulario = (novo: typeof aberto) => {
@@ -72,8 +75,8 @@ export function AcessoAoSistema({ ficha }: { ficha: FichaMilitar }) {
     }
   }
   const gerar = () => agir(async () => setSenha(await gerarSenhaProvisoria(ficha.id)));
-  const desativar = () => {
-    if (!window.confirm('Desativar o acesso? A pessoa deixa de entrar e as sessões abertas se encerram.')) return;
+  const desativar = async () => {
+    if (!(await confirmar({ titulo: 'Desativar o acesso?', texto: 'A pessoa deixa de entrar e as sessões abertas se encerram.', verbo: 'Desativar' }))) return;
     return agir(() => desativarAcesso(ficha.id));
   };
   async function copiar() {

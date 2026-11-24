@@ -1,5 +1,5 @@
 import { keepPreviousData, queryOptions, type QueryClient } from '@tanstack/react-query';
-import type { Candidatos, EscalaDoMes, NovaAlocacao, NovoAcumulo, OpcoesDeTroca, PreviaDaPreEscala, ResultadoDaTroca, Troca } from 'contratos';
+import type { Candidatos, EscalaDoMes, NovaAlocacao, NovoAcumulo, OpcoesDeTroca, PreviaDaPreEscala, RemocaoFeita, ResultadoDaTroca, Troca } from 'contratos';
 import { pedir } from './cliente';
 
 export const consultaEscalaDoMes = (escalaId: string, mes: string) =>
@@ -47,7 +47,20 @@ async function gravando(queryClient: QueryClient, pedido: Promise<EscalaDoMes>):
 
 export const escalar = (queryClient: QueryClient, escalaId: string, d: NovaAlocacao) =>
   gravando(queryClient, pedir<EscalaDoMes>('POST', `/api/escalas/${escalaId}/alocacoes`, d));
-export const removerAlocacao = (queryClient: QueryClient, alocacaoId: string) => gravando(queryClient, pedir<EscalaDoMes>('DELETE', `/api/alocacoes/${alocacaoId}`));
+/** Remover da vaga devolve a escala e o id da remoção que ficou: o "Desfazer" do aviso usa. */
+export async function removerAlocacao(queryClient: QueryClient, alocacaoId: string): Promise<{ escala: EscalaDoMes; remocaoId: string }> {
+  let remocaoId = '';
+  const escala = await gravando(
+    queryClient,
+    pedir<RemocaoFeita>('DELETE', `/api/alocacoes/${alocacaoId}`).then(({ remocaoId: id, ...e }) => {
+      remocaoId = id;
+      return e;
+    }),
+  );
+  return { escala, remocaoId };
+}
+/** "Desfazer" a remoção: devolve o militar à mesma vaga e tira a marca de removido. A API recusa (409) se a escala mudou desde então. */
+export const devolverRemocao = (queryClient: QueryClient, remocaoId: string) => gravando(queryClient, pedir<EscalaDoMes>('POST', `/api/remocoes/${remocaoId}/desfazer`));
 /** Tira a marca de remoção: a pré-escala pode escalar o militar neste turno de novo. Não o põe de volta na vaga. */
 export const desfazerRemocao = (queryClient: QueryClient, remocaoId: string) => gravando(queryClient, pedir<EscalaDoMes>('DELETE', `/api/remocoes/${remocaoId}`));
 

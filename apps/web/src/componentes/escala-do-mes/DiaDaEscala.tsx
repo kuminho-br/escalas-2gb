@@ -7,7 +7,7 @@ const DIA_DA_SEMANA = ['domingo', 'segunda', 'terça', 'quarta', 'quinta', 'sext
 
 type Acoes = {
   aoEscolher?: (vaga: VagaDaTela) => void;
-  aoRemover?: (o: OcupanteDaVaga, guarnicao: string, dia: number, vaga: string) => void;
+  aoRemover?: (o: OcupanteDaVaga, guarnicao: string, dia: number, vaga: string, daVaga?: Omit<VagaDaTela, 'data' | 'inicio' | 'fim'>) => void;
   aoTrocar?: (o: OcupanteDaVaga, guarnicao: string, dia: number, vaga: string, daVaga: VagaDaTela) => void;
   aoDesfazer?: (remocaoId: string) => void;
 };
@@ -30,7 +30,7 @@ function Faixa({ faixa, dia, soVazias, aoEscolher, aoRemover, aoTrocar }: { faix
         {cards.length > 0 && (
           <div data-cards-do-turno className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,18rem),1fr))] items-start gap-3">
             {cards.map((g) => (
-              <CardDaGuarnicao key={g.guarnicaoId} card={g} aoEscolher={aoEscolher && ((v) => aoEscolher({ ...v, data: dia, inicio: faixa.inicio, fim: faixa.fim }))} aoRemover={aoRemover && ((o, guarnicao, vaga) => aoRemover(o, guarnicao, Number(dia.slice(8)), vaga))} aoTrocar={aoTrocar && aoEscolher && ((o, guarnicao, vaga, v) => aoTrocar(o, guarnicao, Number(dia.slice(8)), vaga, { ...v, data: dia, inicio: faixa.inicio, fim: faixa.fim }))} />
+              <CardDaGuarnicao key={g.guarnicaoId} card={g} aoEscolher={aoEscolher && ((v) => aoEscolher({ ...v, data: dia, inicio: faixa.inicio, fim: faixa.fim }))} aoRemover={aoRemover && ((o, guarnicao, vaga, daVaga) => aoRemover(o, guarnicao, Number(dia.slice(8)), vaga, daVaga))} aoTrocar={aoTrocar && aoEscolher && ((o, guarnicao, vaga, v) => aoTrocar(o, guarnicao, Number(dia.slice(8)), vaga, { ...v, data: dia, inicio: faixa.inicio, fim: faixa.fim }))} />
             ))}
           </div>
         )}

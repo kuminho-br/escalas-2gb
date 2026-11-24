@@ -5,7 +5,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { mesAtual } from '@/lib/meses';
 import { mesPorExtenso } from 'contratos';
 import { atualizarEscalas } from '@/api/escalas';
-import { abrir, chamadasA, corpoEnviado, EU_EXEMPLO, simularApi } from './apoio';
+import { abrir, chamadasA, corpoEnviado, EU_EXEMPLO, simularApi, responderConfirmacao } from './apoio';
 
 const LISTA: LinhaEscala[] = [
   { id: 'e1', nome: 'Ordinário', ativa: true, servicos: ['Pronto', 'JES'], montaBlocosVoluntariado: true, distribuicao: 'pre_escala' },
@@ -193,15 +193,14 @@ describe('ficha da escala em painel único', () => {
   });
 
   it('escala ativa só mostra Desativar, e pergunta antes', async () => {
-    const confirmar = vi.spyOn(window, 'confirm').mockReturnValue(true);
     const f = api(escala(), { 'POST /api/escalas/e1/situacao': { status: 200, corpo: escala({ ativa: false }) } });
     abrir('/escalas/e1');
     await screen.findByRole('heading', { level: 2, name: 'Ordinário' });
     expect(screen.queryByText(/Desativada/)).toBeNull();
     await userEvent.click(screen.getByRole('button', { name: 'Desativar' }));
-    expect(confirmar).toHaveBeenCalledWith('Desativar a escala Ordinário? Ela some da lista.');
+    expect(await screen.findByRole('dialog', { name: 'Desativar a escala?' })).toHaveTextContent('Ordinário some da lista.');
+    await responderConfirmacao('Desativar');
     await waitFor(() => expect(corpoEnviado(f, 'POST /api/escalas/e1/situacao')).toEqual({ ativa: false }));
-    confirmar.mockRestore();
   });
 
   it('escala desativada mostra a etiqueta e Reativar', async () => {
@@ -353,7 +352,6 @@ describe('revisão final: matriz', () => {
 
 describe('revisão 3: o erro de Desativar fica na ficha em que aconteceu', () => {
   it('escala: voltar a outra escala que já estava no cache não traz o erro da anterior', async () => {
-    vi.spyOn(window, 'confirm').mockReturnValue(true);
     api(escala(), {
       'GET /api/escalas/e2': { status: 200, corpo: escala({ id: 'e2', nome: 'Nova', titulo: 'ESCALA NOVA' }) },
       'POST /api/escalas/e1/situacao': { status: 409, corpo: { erro: 'Falhou ao desativar Ordinário.' } },
@@ -362,6 +360,7 @@ describe('revisão 3: o erro de Desativar fica na ficha em que aconteceu', () =>
     await screen.findByRole('heading', { name: 'Nova' });
     await act(() => router.navigate({ to: '/escalas/$id', params: { id: 'e1' } }));
     await userEvent.click(await screen.findByRole('button', { name: 'Desativar' }));
+    await responderConfirmacao('Desativar');
     expect(await screen.findByText('Falhou ao desativar Ordinário.')).toBeInTheDocument();
     await act(() => router.navigate({ to: '/escalas/$id', params: { id: 'e2' } }));
     await screen.findByRole('heading', { name: 'Nova' });

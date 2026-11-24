@@ -8,6 +8,7 @@ import { Button } from '@/componentes/ui/button';
 import { Input } from '@/componentes/ui/input';
 import { Label } from '@/componentes/ui/label';
 import { Checkbox } from '@/componentes/ui/checkbox';
+import { Espera } from '@/componentes/resposta/Espera';
 
 /** O catálogo "Situações do militar" (Ativa, Reserva…): só o administrador altera. "Pode ser escalado" diz se quem está na situação entra nas escalas. */
 export function SituacoesDoMilitar({ podeEditar }: { podeEditar: boolean }) {
@@ -36,7 +37,7 @@ export function SituacoesDoMilitar({ podeEditar }: { podeEditar: boolean }) {
     }
   }
 
-  if (isPending) return <p className="py-6 text-apagado">Carregando…</p>;
+  if (isPending) return <Espera className="py-6" />;
   if (error) return <p role="alert" className="py-6 text-alerta">{mensagemDe(error)}</p>;
   return (
     <div className="max-w-xl rounded-xl border border-linha bg-superficie">

@@ -7,6 +7,7 @@ import { Selecao } from '@/componentes/Selecao';
 import { Button } from '@/componentes/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/componentes/ui/dialog';
 import { Label } from '@/componentes/ui/label';
+import { Espera } from '@/componentes/resposta/Espera';
 
 const plural = (n: number, um: string, varios: string) => `${n} ${n === 1 ? um : varios}`;
 const diaDe = (data: string) => Number(data.slice(8));
@@ -44,7 +45,7 @@ export function GerarPreEscala({ escalaId, mes, aoFechar, aoGravar }: { escalaId
           <DialogTitle>Gerar pré-escala</DialogTitle>
           <DialogDescription>Coloca no Pronto a equipe de cada dia, nas vagas pela ordem de escalação. Quem já está escalado não é mexido.</DialogDescription>
         </DialogHeader>
-        {previa.isPending && <p className="text-apagado">Carregando…</p>}
+        {previa.isPending && <Espera />}
         {previa.error && <p role="alert" className="text-alerta">{mensagemDe(previa.error)}</p>}
         {p && (
           <>

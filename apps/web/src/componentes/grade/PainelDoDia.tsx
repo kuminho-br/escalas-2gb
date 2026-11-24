@@ -13,6 +13,7 @@ import { listaComE } from '@/lib/escala';
 import { dataPorExtenso } from '@/lib/meses';
 import { AdicionarServico } from './AdicionarServico';
 import { TrocarServico } from './TrocarServico';
+import { Espera } from '@/componentes/resposta/Espera';
 
 /**
  * O painel do dia de um militar na Grade geral: como ele está naquele dia (afastamento, horários marcados, serviços, choques) e o que dá para
@@ -66,7 +67,7 @@ export function PainelDoDia({ unidadeId, militarId, data, aoFechar }: { unidadeI
       <div className="divide-y divide-linha rounded-xl border border-linha bg-superficie">
         <header className="flex items-start gap-3 p-4">
           <div className="min-w-0 flex-1">
-            <h2 className="font-cond text-2xl leading-tight font-semibold">{nome ?? 'Carregando…'}</h2>
+            <h2 className="font-cond text-2xl leading-tight font-semibold">{nome ?? <Espera linhas={1} className="w-48" />}</h2>
             {p && (
               <>
                 <p className="mt-1 text-sm text-apagado">

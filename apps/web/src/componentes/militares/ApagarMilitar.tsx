@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from '@/componentes/ui/input';
 import { Label } from '@/componentes/ui/label';
 import { Secao } from './Secao';
+import { Espera } from '@/componentes/resposta/Espera';
 
 const contar = (n: number, um: string, varios: string) => `${n} ${n === 1 ? um : varios}`;
 
@@ -70,7 +71,7 @@ function DialogoDeExclusao({ ficha, aoFechar }: { ficha: FichaMilitar; aoFechar:
           <DialogTitle>{`Apagar ${ficha.posto} ${ficha.nomeGuerra}`}</DialogTitle>
           <DialogDescription>Isto não pode ser desfeito.</DialogDescription>
         </DialogHeader>
-        {junto.isPending && <p className="text-sm text-apagado">Carregando…</p>}
+        {junto.isPending && <Espera />}
         {junto.error && <p role="alert" className="text-sm text-alerta">{mensagemDe(junto.error)}</p>}
         {junto.data && (
           <div className="grid gap-1 text-sm">

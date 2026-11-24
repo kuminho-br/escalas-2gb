@@ -7,6 +7,7 @@ import { consultaFuncoesDoMilitar } from '@/api/militares';
 import { Button } from '@/componentes/ui/button';
 import { Input } from '@/componentes/ui/input';
 import { Label } from '@/componentes/ui/label';
+import { Espera } from '@/componentes/resposta/Espera';
 
 /** O catálogo "Funções do militar" (o que ele faz na seção): só o administrador altera. Desativar tira a função da lista de escolha, mas ela fica nas fichas que já a têm. */
 export function FuncoesDoMilitar({ podeEditar }: { podeEditar: boolean }) {
@@ -31,7 +32,7 @@ export function FuncoesDoMilitar({ podeEditar }: { podeEditar: boolean }) {
     if (await executar(() => incluirFuncaoDoMilitar({ nome: nova }))) setNova('');
   }
 
-  if (isPending) return <p className="py-6 text-apagado">Carregando…</p>;
+  if (isPending) return <Espera className="py-6" />;
   if (error) return <p role="alert" className="py-6 text-alerta">{mensagemDe(error)}</p>;
   return (
     <div className="max-w-xl rounded-xl border border-linha bg-superficie">

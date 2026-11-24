@@ -12,6 +12,8 @@ import { Input } from '@/componentes/ui/input';
 import { ReguaDoDia } from '@/componentes/servicos/ReguaDoDia';
 import { estiloDaCor } from '@/lib/cores';
 import { textoDuracao } from '@/lib/turnos';
+import { useConfirmar } from '@/componentes/resposta/useConfirmar';
+import { useAviso } from '@/componentes/resposta/useAviso';
 
 /** Turnos dentro do serviço: cada linha grava sozinha. */
 export function Turnos({ servico }: { servico: Servico }) {
@@ -66,6 +68,8 @@ function LinhaTurno({
   aoCancelar?: () => void;
 }) {
   const queryClient = useQueryClient();
+  const confirmar = useConfirmar();
+  const avisar = useAviso();
   const base = turno ?? padrao!;
   const [letra, setLetra] = useState<LetraTurno>(base.letra);
   const [inicio, setInicio] = useState(base.inicio);
@@ -94,13 +98,13 @@ function LinhaTurno({
     }
   }
   async function remover() {
-    if (!window.confirm(`Remover o turno ${turno!.letra} (${textoFaixa(turno!.inicio, turno!.fim)}) de ${servico.nome}?`)) return;
-    setErro(null);
+    if (!(await confirmar({ titulo: 'Remover o turno?', texto: `Turno ${turno!.letra} (${textoFaixa(turno!.inicio, turno!.fim)}) de ${servico.nome}.`, verbo: 'Remover', perigoso: true }))) return;
     try {
       await removerTurno(turno!.id);
       atualizarServicos(queryClient);
+      avisar({ texto: `Turno ${turno!.letra} de ${servico.nome} removido.` });
     } catch (err) {
-      setErro(mensagemDe(err));
+      avisar({ texto: mensagemDe(err), erro: true });
     }
   }
 

@@ -9,9 +9,10 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Input } from '@/componentes/ui/input';
 import { frasesDeFora } from '@/lib/escala';
 import type { VagaDaTela } from './CardDaGuarnicao';
+import { Espera } from '@/componentes/resposta/Espera';
 
 /** "Escolher militar": só quem pode ocupar a vaga (CNH, choque, afastamento, voluntariado, lotação) e, no rodapé, quantos ficaram de fora e por quê. */
-export function EscolherMilitar({ escalaId, vaga, aoFechar }: { escalaId: string; vaga: VagaDaTela; aoFechar: () => void }) {
+export function EscolherMilitar({ escalaId, vaga, aoFechar }: { escalaId: string; vaga: VagaDaTela; /** `escolheu`: fechou porque escalou (ou acumulou) alguém; sem ele, a pessoa desistiu. */ aoFechar: (escolheu?: boolean) => void }) {
   const queryClient = useQueryClient();
   const mes = vaga.data.slice(0, 7);
   const candidatos = useQuery(consultaCandidatos(escalaId, mes, { data: vaga.data, inicio: vaga.inicio, fim: vaga.fim, guarnicaoId: vaga.guarnicaoId, funcaoId: vaga.funcaoId }));
@@ -26,7 +27,7 @@ export function EscolherMilitar({ escalaId, vaga, aoFechar }: { escalaId: string
     setErro(null);
     try {
       await escalar(queryClient, escalaId, { militarId, data: vaga.data, turnoId, guarnicaoId: vaga.guarnicaoId, funcaoId: vaga.funcaoId });
-      aoFechar();
+      aoFechar(true);
     } catch (e) {
       setErro(mensagemDe(e));
     }
@@ -36,7 +37,7 @@ export function EscolherMilitar({ escalaId, vaga, aoFechar }: { escalaId: string
     setErro(null);
     try {
       await acumular(queryClient, alocacaoId, { guarnicaoId: vaga.guarnicaoId, funcaoId: vaga.funcaoId });
-      aoFechar();
+      aoFechar(true);
     } catch (e) {
       setErro(mensagemDe(e));
     }
@@ -74,7 +75,7 @@ export function EscolherMilitar({ escalaId, vaga, aoFechar }: { escalaId: string
   };
 
   return (
-    <Dialog open onOpenChange={(v) => !v && aoFechar()}>
+    <Dialog open onOpenChange={(v) => !v && aoFechar(false)}>
       {/* no celular (toque) o foco não vai para a busca: o teclado cobriria a lista, e só aparece quando a pessoa toca na caixa */}
       <DialogContent
         className="max-h-[85dvh] overflow-y-auto sm:max-w-lg"
@@ -93,7 +94,7 @@ export function EscolherMilitar({ escalaId, vaga, aoFechar }: { escalaId: string
           </DialogDescription>
         </DialogHeader>
         <Input aria-label="Buscar por nome ou matrícula" placeholder="Buscar por nome ou matrícula" value={busca} onChange={(e) => setBusca(e.target.value)} />
-        {candidatos.isPending && <p className="text-apagado">Carregando…</p>}
+        {candidatos.isPending && <Espera />}
         {candidatos.error && <p role="alert" className="text-alerta">{mensagemDe(candidatos.error)}</p>}
         {candidatos.data && (
           <>

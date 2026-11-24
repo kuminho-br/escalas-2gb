@@ -16,6 +16,7 @@ import { Input } from '@/componentes/ui/input';
 import { Label } from '@/componentes/ui/label';
 import { cn } from '@/lib/utils';
 import { Checkbox } from '@/componentes/ui/checkbox';
+import { Espera } from '@/componentes/resposta/Espera';
 
 export const Route = createFileRoute('/_app/escalas')({
   component: Escalas,
@@ -60,7 +61,7 @@ function ListaDeEscalas({ unidadeId, escolhida }: { unidadeId: string; escolhida
   const visiveis = escalas.data?.filter((e) => e.ativa || desativadas) ?? [];
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      {escalas.isPending && <p className="p-4 text-apagado">Carregando…</p>}
+      {escalas.isPending && <Espera className="p-4" />}
       {escalas.error && <p role="alert" className="p-4 text-alerta">{mensagemDe(escalas.error)}</p>}
       {escalas.data && (
         <>

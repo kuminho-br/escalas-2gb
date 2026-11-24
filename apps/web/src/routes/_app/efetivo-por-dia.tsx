@@ -23,6 +23,7 @@ import { Label } from '@/componentes/ui/label';
 import { guardarUltimoDia, janelaDoDia, ultimoDiaVisto } from '@/lib/efetivo';
 import { diaDaSemanaPorExtenso, hoje, somarDias } from '@/lib/meses';
 import { Moldura } from '@/componentes/Moldura';
+import { Espera } from '@/componentes/resposta/Espera';
 
 export const Route = createFileRoute('/_app/efetivo-por-dia')({
   validateSearch: (s: Record<string, unknown>): { data?: string } => ({ data: typeof s.data === 'string' && Data.safeParse(s.data).success ? s.data : undefined }),
@@ -163,7 +164,7 @@ function EfetivoPorDia() {
         <p className="text-sm text-apagado">{diaDaSemanaPorExtenso(data)}</p>
       </div>
 
-      {dados.isPending && <p className="text-apagado">Carregando…</p>}
+      {dados.isPending && <Espera />}
       {dados.error && <p role="alert" className="text-alerta">{mensagemDe(dados.error)}</p>}
       {erro && <p role="alert" className="text-alerta">{erro}</p>}
       {e && (

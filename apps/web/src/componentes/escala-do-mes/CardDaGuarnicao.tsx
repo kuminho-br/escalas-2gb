@@ -31,7 +31,7 @@ export function CardDaGuarnicao({
 }: {
   card: Card;
   aoEscolher?: (vaga: Omit<VagaDaTela, 'data' | 'inicio' | 'fim'>) => void;
-  aoRemover?: (o: OcupanteDaVaga, guarnicao: string, vaga: string) => void;
+  aoRemover?: (o: OcupanteDaVaga, guarnicao: string, vaga: string, daVaga: Omit<VagaDaTela, 'data' | 'inicio' | 'fim'>) => void;
   /** "Trocar militar": tira quem está na vaga e abre a escolha da mesma vaga em seguida. */
   aoTrocar?: (o: OcupanteDaVaga, guarnicao: string, vaga: string, daVaga: Omit<VagaDaTela, 'data' | 'inicio' | 'fim'>) => void;
 }) {
@@ -48,7 +48,7 @@ export function CardDaGuarnicao({
               {f.ocupantes.map((o) => {
                 const acoes: AcaoDaPlaca[] = [];
                 if (aoTrocar) acoes.push({ rotulo: 'Trocar militar', aoEscolher: () => aoTrocar(o, card.nome, vaga, daVaga) });
-                if (aoRemover) acoes.push({ rotulo: 'Remover da vaga', aoEscolher: () => aoRemover(o, card.nome, vaga) });
+                if (aoRemover) acoes.push({ rotulo: 'Remover da vaga', aoEscolher: () => aoRemover(o, card.nome, vaga, daVaga) });
                 return <PlacaDoOcupante key={`${o.alocacaoId}|${o.acumuloId ?? ''}`} o={o} vaga={vaga} acoes={acoes} />;
               })}
               {Array.from({ length: Math.max(0, f.maximo - f.ocupantes.length) }, (_, i) => (

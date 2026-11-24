@@ -5,7 +5,7 @@ import { QueryClient } from '@tanstack/react-query';
 import { describe, expect, it, vi } from 'vitest';
 import { atualizarMilitares } from '@/api/militares';
 import { hoje, mesAtual, somarDias } from '@/lib/meses';
-import { abrir, chamadasA, corpoEnviado, EU_EXEMPLO, simularApi, trava } from './apoio';
+import { abrir, chamadasA, corpoEnviado, EU_EXEMPLO, simularApi, trava, responderConfirmacao } from './apoio';
 
 const linha = (l: Partial<LinhaMilitar>): LinhaMilitar => ({
   id: 'm1', matricula: '990001-1', posto: 'SD', quadro: { id: 'q-qbmg', sigla: 'QBMG' }, nomeGuerra: 'ANDRADE', equipe: 'Alfa', jornada: 'pronto', motorista: null,
@@ -982,23 +982,20 @@ describe('ficha em painel único', () => {
 
 describe('remover, nomes das ações e erros por campo', () => {
   it('remover afastamento pergunta e, confirmando, envia o DELETE', async () => {
-    const confirmar = vi.spyOn(window, 'confirm').mockReturnValue(true);
     const f = api({ 'DELETE /api/afastamentos/a1': { status: 204 } });
     abrir('/militares/m1');
     await userEvent.click(await screen.findByRole('button', { name: 'Remover' }));
-    expect(confirmar).toHaveBeenCalledWith('Remover o afastamento Férias de 01/12/2026 a 10/12/2026?');
+    expect(await screen.findByRole('dialog', { name: 'Remover o afastamento?' })).toHaveTextContent('Férias, de 01/12/2026 a 10/12/2026.');
+    await responderConfirmacao('Remover');
     await waitFor(() => expect(f.mock.calls.some(([, init]) => init?.method === 'DELETE')).toBe(true));
-    confirmar.mockRestore();
   });
 
   it('remover afastamento, cancelando a pergunta, não envia', async () => {
-    const confirmar = vi.spyOn(window, 'confirm').mockReturnValue(false);
     const f = api({ 'DELETE /api/afastamentos/a1': { status: 204 } });
     abrir('/militares/m1');
     await userEvent.click(await screen.findByRole('button', { name: 'Remover' }));
-    expect(confirmar).toHaveBeenCalled();
+    await responderConfirmacao('Cancelar');
     expect(f.mock.calls.some(([, init]) => init?.method === 'DELETE')).toBe(false);
-    confirmar.mockRestore();
   });
 
   it('o formulário de afastamento salva com Salvar', async () => {

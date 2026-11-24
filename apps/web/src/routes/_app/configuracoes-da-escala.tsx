@@ -22,6 +22,7 @@ import { ABAS_DA_ESCALA, type AbaDaEscala as Aba } from '@/lib/configuracoes';
 import { mesAtual } from '@/lib/meses';
 import { Checkbox } from '@/componentes/ui/checkbox';
 import { Moldura } from '@/componentes/Moldura';
+import { Espera } from '@/componentes/resposta/Espera';
 
 
 export const Route = createFileRoute('/_app/configuracoes-da-escala')({
@@ -95,7 +96,7 @@ function BlocosDoVoluntariado({ unidadeId, podeMudar }: { unidadeId: string; pod
     }
   });
 
-  if (isPending) return <p className="py-6 text-apagado">Carregando…</p>;
+  if (isPending) return <Espera className="py-6" />;
   if (error) return <p role="alert" className="py-6 text-alerta">{mensagemDe(error)}</p>;
   const ativas = data.filter((e) => e.ativa && e.distribuicao === 'pre_escala');
 
@@ -137,7 +138,7 @@ function RegrasDoProcesso({ unidadeId, sigla, podeMudar }: { unidadeId: string; 
   const { data, error, isPending } = useQuery(consultaParametros(unidadeId, mes));
   const [mudando, setMudando] = useState<Parametro | null>(null);
 
-  if (isPending) return <p className="py-6 text-apagado">Carregando…</p>;
+  if (isPending) return <Espera className="py-6" />;
   if (error) return <p role="alert" className="py-6 text-alerta">{mensagemDe(error)}</p>;
 
   return (

@@ -8,6 +8,7 @@ import { useTrava } from '@/componentes/AlteracoesPendentes';
 import { Button } from '@/componentes/ui/button';
 import { nomeDoPapel } from '@/lib/papeis';
 import { Checkbox } from '@/componentes/ui/checkbox';
+import { Espera } from '@/componentes/resposta/Espera';
 
 /** O nome de cada bloco e o que ele tem (o texto da spec, "Os blocos e a borda inicial"). */
 const BLOCOS: Record<Bloco, { nome: string; tem: string }> = {
@@ -35,7 +36,7 @@ export function QuemVeOQue() {
   const borda = useQuery(consultaBorda);
   // o aviso fica aqui, e não na tabela: ao salvar, a borda gravada volta do servidor, a tabela recomeça com ela (key) e levaria o aviso junto
   const [aviso, setAviso] = useState<Aviso | null>(null);
-  if (borda.isPending) return <p className="py-6 text-apagado">Carregando…</p>;
+  if (borda.isPending) return <Espera className="py-6" />;
   if (borda.error) return <p role="alert" className="py-6 text-alerta">{mensagemDe(borda.error)}</p>;
   return (
     <div className="grid max-w-4xl gap-8">
@@ -140,7 +141,7 @@ function QuadrosDeOficiais() {
         setErro(mensagemDe(e));
       }
     })();
-  if (quadros.isPending) return <p className="text-apagado">Carregando…</p>;
+  if (quadros.isPending) return <Espera />;
   if (quadros.error) return <p role="alert" className="text-alerta">{mensagemDe(quadros.error)}</p>;
   return (
     <section>

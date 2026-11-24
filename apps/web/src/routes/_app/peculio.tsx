@@ -17,6 +17,7 @@ import { correspondeABusca, normalizarBusca } from '@/lib/texto';
 import { cn } from '@/lib/utils';
 import { classeItemEscolhido } from '@/componentes/ListaDetalhe';
 import { Moldura } from '@/componentes/Moldura';
+import { Espera } from '@/componentes/resposta/Espera';
 
 export const Route = createFileRoute('/_app/peculio')({
   component: Peculio,
@@ -70,7 +71,7 @@ function Peculio() {
       }
     >
 
-      {lista.isPending && <p className="text-apagado">Carregando…</p>}
+      {lista.isPending && <Espera />}
       {lista.error && <p role="alert" className="text-alerta">{mensagemDe(lista.error)}</p>}
       {lista.data && (
         <div className={cn('mt-6 grid items-start gap-6', lista.data.aniversariantes && 'lg:grid-cols-[1fr_20rem]')}>

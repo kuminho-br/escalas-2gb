@@ -7,6 +7,7 @@ import { useTrava } from '@/componentes/AlteracoesPendentes';
 import { Campo } from '@/componentes/Campo';
 import { Button } from '@/componentes/ui/button';
 import { Input } from '@/componentes/ui/input';
+import { Espera } from '@/componentes/resposta/Espera';
 
 /**
  * O cadastro "Tipos de unidade" (entrega 6.25, só o administrador): grupamento, divisão, seção, pelotão… O tipo é só um nome que aparece na árvore;
@@ -45,7 +46,7 @@ export function TiposDeUnidade() {
     }
   });
 
-  if (isPending) return <p className="py-6 text-apagado">Carregando…</p>;
+  if (isPending) return <Espera className="py-6" />;
   if (error) return <p role="alert" className="py-6 text-alerta">{mensagemDe(error)}</p>;
   return (
     <div className="max-w-xl rounded-xl border border-linha bg-superficie">

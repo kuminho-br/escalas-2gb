@@ -2,7 +2,7 @@ import type { Feriado } from 'contratos';
 import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { abrir, chamadasA, corpoEnviado, EU_EXEMPLO, simularApi, trava } from './apoio';
+import { abrir, chamadasA, corpoEnviado, EU_EXEMPLO, simularApi, trava, responderConfirmacao } from './apoio';
 
 const ano = new Date().getFullYear();
 const feriado = (f: Partial<Feriado>): Feriado => ({ id: 'f1', data: `${ano}-04-21`, descricao: 'Tiradentes', fixo: true, unidadeSigla: '1ª SB', herdado: false, ...f });
@@ -152,10 +152,10 @@ describe('feriados', () => {
 
   it('remover pergunta antes e apaga', async () => {
     const f = api({ 'DELETE /api/feriados/f1': { status: 204 } });
-    const confirmar = vi.spyOn(window, 'confirm').mockReturnValue(true);
     abrir('/feriados');
     await userEvent.click(await screen.findByRole('button', { name: 'Remover Tiradentes' }));
-    expect(confirmar).toHaveBeenCalledWith('Remover o feriado "Tiradentes" (21/04)?');
+    expect(await screen.findByRole('dialog', { name: 'Remover o feriado?' })).toHaveTextContent('Tiradentes (21/04).');
+    await responderConfirmacao('Remover');
     await waitFor(() => expect(f.mock.calls.some(([e, i]) => String(e).includes('/api/feriados/f1') && i?.method === 'DELETE')).toBe(true));
   });
 

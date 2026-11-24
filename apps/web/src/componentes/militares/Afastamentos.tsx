@@ -10,9 +10,13 @@ import { Button } from '@/componentes/ui/button';
 import { Input } from '@/componentes/ui/input';
 import { Label } from '@/componentes/ui/label';
 import { avisoDaLista, DonoDoBloco, dataBr, Secao } from './Secao';
+import { useConfirmar } from '@/componentes/resposta/useConfirmar';
+import { useAviso } from '@/componentes/resposta/useAviso';
 
 export function Afastamentos({ ficha }: { ficha: FichaMilitar }) {
   const queryClient = useQueryClient();
+  const confirmar = useConfirmar();
+  const avisar = useAviso();
   // afastamento é do Pecúlio: sem papel acima da lotação, a lista é só leitura
   const peculio = ficha.podeEditar.peculio;
   const tipos = useQuery(consultaCatalogo('tipos-afastamento'));
@@ -56,13 +60,13 @@ export function Afastamentos({ ficha }: { ficha: FichaMilitar }) {
   }
 
   async function apagar(a: FichaMilitar['afastamentos'][number]) {
-    if (!window.confirm(`Remover o afastamento ${a.tipo} de ${dataBr(a.inicio)} a ${dataBr(a.fim)}?`)) return;
-    setErro(null);
+    if (!(await confirmar({ titulo: 'Remover o afastamento?', texto: `${a.tipo}, de ${dataBr(a.inicio)} a ${dataBr(a.fim)}.`, verbo: 'Remover', perigoso: true }))) return;
     try {
       await apagarAfastamento(a.id);
       atualizarMilitares(queryClient, ficha.id);
+      avisar({ texto: 'Afastamento removido.' });
     } catch (err) {
-      setErro(mensagemDe(err));
+      avisar({ texto: mensagemDe(err), erro: true });
     }
   }
 

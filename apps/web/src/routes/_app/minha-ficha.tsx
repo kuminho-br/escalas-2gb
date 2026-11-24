@@ -11,6 +11,7 @@ import { Secao } from '@/componentes/militares/Secao';
 import { mascararCep, mascararCpf } from '@/lib/militares';
 import { Button } from '@/componentes/ui/button';
 import { Moldura } from '@/componentes/Moldura';
+import { Espera } from '@/componentes/resposta/Espera';
 
 export const Route = createFileRoute('/_app/minha-ficha')({
   component: MinhaFichaTela,
@@ -33,7 +34,7 @@ const Dados = ({ children }: { children: ReactNode }) => <dl className="grid gap
 /** Os dados do próprio militar, só para leitura; só o telefone se altera aqui (CPF e endereço, só para leitura). O resto, quem cuida do cadastro altera. */
 function MinhaFichaTela() {
   const { data: f, error, isPending } = useQuery(consultaMinhaFicha);
-  if (isPending) return <p className="text-apagado">Carregando…</p>;
+  if (isPending) return <Espera />;
   if (error) return <p role="alert" className="text-alerta">{mensagemDe(error)}</p>;
   return (
     <Moldura titulo="Minha ficha" leitura>

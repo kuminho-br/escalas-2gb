@@ -14,6 +14,7 @@ import { mesAtual } from '@/lib/meses';
 import { useEhCelular } from '@/lib/useEhCelular';
 import { proximoQueFalta } from '@/lib/voluntariado';
 import { Moldura } from '@/componentes/Moldura';
+import { Espera } from '@/componentes/resposta/Espera';
 
 export const Route = createFileRoute('/_app/voluntariado')({
   validateSearch: (s: Record<string, unknown>): { mes?: string; militar?: string } => ({
@@ -57,7 +58,7 @@ function Voluntariado() {
           <Label htmlFor="vo-mes">Mês</Label>
           <CampoDeMes id="vo-mes" valor={mes} aoMudar={(m) => void navigate({ search: { mes: m } })} />
         </div>
-        {lista.isPending && <p className="text-apagado">Carregando…</p>}
+        {lista.isPending && <Espera />}
         {lista.error && <p role="alert" className="text-alerta">{mensagemDe(lista.error)}</p>}
         {lista.data && militares.length === 0 && <p className="text-apagado">Nenhum militar lotado na seção neste mês.</p>}
         {celular && !aberto && todosLancados && <p role="status" className="text-sm text-apagado">Todos os militares deste mês foram lançados.</p>}
@@ -69,7 +70,7 @@ function Voluntariado() {
               {celular && (
                 <Link to="/voluntariado" search={{ mes }} className="justify-self-start rounded-md border border-linha px-3 py-2 text-sm font-medium hover:bg-accent">‹ Militares</Link>
               )}
-              {dados.isPending && <p className="text-apagado">Carregando…</p>}
+              {dados.isPending && <Espera />}
               {dados.error && <p role="alert" className="text-alerta">{mensagemDe(dados.error)}</p>}
               {dados.data && (
                 <CalendarioDoVoluntariado
