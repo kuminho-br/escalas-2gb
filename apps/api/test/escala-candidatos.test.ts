@@ -122,7 +122,9 @@ describe('quem pode ocupar a vaga', () => {
     expect(nomes(r)).toEqual(['APTO', 'CHOQUE', 'CNHB', 'CNHE', 'DIARIAS', 'JESSEM', 'JESVOL', 'NAOJES', 'VIRADA'].sort());
     expect(r.aptos.find((a) => a.nomeGuerra === 'APTO')).toMatchObject({ matricula: expect.stringMatching(/^99\d{4}-\d$/), jornada: 'pronto', equipe: 'Alfa', servicos: [{ servicoId: servico.Pronto, turnoId: T('Pronto A'), nome: 'Pronto' }] });
     // quem só entra na seção no mês seguinte não pesa na contagem de "ficaram de fora"
-    expect(r.fora).toEqual([{ motivo: 'De expediente neste dia', quantidade: 2 }, { motivo: 'Afastado', quantidade: 1 }, { motivo: 'Desativado', quantidade: 1 }]);
+    expect(r.fora).toEqual([{ motivo: 'Afastado', quantidade: 1 }, { motivo: 'Desativado', quantidade: 1 }]);
+    // 6.38: quem só não pode porque choca (aqui, de expediente) aparece à parte, com o que choca
+    expect(r.emChoque.map((e) => e.nomeGuerra).sort()).toEqual(['ADMIN', 'ADMJES']);
   });
 
   it('a CNH exigida vale pela hierarquia: B não basta para D, E basta', async () => {

@@ -1,10 +1,15 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { mesPorExtenso, textoFaixa, type Candidato } from 'contratos';
+import { mesPorExtenso, textoFaixa, textoHora, type Candidato, type CandidatoEmChoque } from 'contratos';
 import { useState } from 'react';
 import { mensagemDe } from '@/api/cliente';
-import { acumular, consultaCandidatos, escalar } from '@/api/escala-do-mes';
+import { acumular, consultaCandidatos, desfazerResolucao, escalar, escalarResolvendoChoque } from '@/api/escala-do-mes';
 import { useTrava } from '@/componentes/AlteracoesPendentes';
+import { CotaDeSaldo } from '@/componentes/CotaDeSaldo';
+import { Placa } from '@/componentes/Placa';
+import { useAviso } from '@/componentes/resposta/useAviso';
+import { useConfirmar } from '@/componentes/resposta/useConfirmar';
 import { Selecao } from '@/componentes/Selecao';
+import { Button } from '@/componentes/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/componentes/ui/dialog';
 import { Input } from '@/componentes/ui/input';
 import { frasesDeFora } from '@/lib/escala';
@@ -14,6 +19,8 @@ import { Espera } from '@/componentes/resposta/Espera';
 /** "Escolher militar": só quem pode ocupar a vaga (CNH, choque, afastamento, voluntariado, lotação) e, no rodapé, quantos ficaram de fora e por quê. */
 export function EscolherMilitar({ escalaId, vaga, aoFechar }: { escalaId: string; vaga: VagaDaTela; /** `escolheu`: fechou porque escalou (ou acumulou) alguém; sem ele, a pessoa desistiu. */ aoFechar: (escolheu?: boolean) => void }) {
   const queryClient = useQueryClient();
+  const avisar = useAviso();
+  const confirmar = useConfirmar();
   const mes = vaga.data.slice(0, 7);
   const candidatos = useQuery(consultaCandidatos(escalaId, mes, { data: vaga.data, inicio: vaga.inicio, fim: vaga.fim, guarnicaoId: vaga.guarnicaoId, funcaoId: vaga.funcaoId }));
   const [busca, setBusca] = useState('');
@@ -27,6 +34,31 @@ export function EscolherMilitar({ escalaId, vaga, aoFechar }: { escalaId: string
     setErro(null);
     try {
       await escalar(queryClient, escalaId, { militarId, data: vaga.data, turnoId, guarnicaoId: vaga.guarnicaoId, funcaoId: vaga.funcaoId });
+      aoFechar(true);
+    } catch (e) {
+      setErro(mensagemDe(e));
+    }
+  });
+
+  /** "Tirar de lá e escalar aqui" (ou "do expediente"): confirma com a frase fixa, escala resolvendo o choque numa transação só e avisa com "Desfazer". */
+  const resolver = travar(async (c: CandidatoEmChoque, s: CandidatoEmChoque['servicos'][number]) => {
+    setErro(null);
+    const quem = `${c.posto} ${c.nomeGuerra}`;
+    const dd = (d: string) => `${d.slice(8)}/${d.slice(5, 7)}`;
+    const ch = s.choque;
+    const pergunta = ch.tipo === 'alocacao'
+      ? `${quem} está em ${ch.servico}, ${dd(ch.data)} das ${textoHora(ch.inicio)} às ${textoHora(ch.fim)} (${ch.escala}). Tirar de lá e escalar aqui?`
+      : `${quem} está de expediente em ${dd(ch.data)}. Tirar do expediente e escalar em ${s.nome}?`;
+    if (!(await confirmar({ titulo: pergunta, verbo: 'Tirar e escalar' }))) return;
+    try {
+      const { desfazer } = await escalarResolvendoChoque(queryClient, escalaId, {
+        militarId: c.militarId, data: vaga.data, turnoId: s.turnoId, guarnicaoId: vaga.guarnicaoId, funcaoId: vaga.funcaoId,
+        resolverChoque: ch.tipo === 'alocacao' ? { alocacaoId: ch.alocacaoId } : { expediente: true },
+      });
+      avisar({
+        texto: ch.tipo === 'alocacao' ? `${quem} saiu de ${ch.servico} e foi escalado aqui.` : `${quem} saiu do expediente e foi escalado em ${s.nome}.`,
+        desfazer: async () => void (await desfazerResolucao(queryClient, desfazer)),
+      });
       aoFechar(true);
     } catch (e) {
       setErro(mensagemDe(e));
@@ -48,6 +80,7 @@ export function EscolherMilitar({ escalaId, vaga, aoFechar }: { escalaId: string
   const aptos = (candidatos.data?.aptos ?? []).filter(combina);
   const semVoluntariado = (candidatos.data?.semVoluntariado ?? []).filter(combina);
   const paraAcumular = (candidatos.data?.acumular ?? []).filter(combina);
+  const emChoque = (candidatos.data?.emChoque ?? []).filter(combina);
 
   /** Uma linha da lista (apto ou de quem só não marcou voluntariado): o botão de escolher e, havendo mais de um serviço, a troca de serviço. */
   const itemDe = (c: Candidato) => {
@@ -62,7 +95,10 @@ export function EscolherMilitar({ escalaId, vaga, aoFechar }: { escalaId: string
         >
           <span className="text-xs text-apagado">{c.posto}</span>
           <span className="font-cond text-base font-semibold">{c.nomeGuerra}</span>
-          <span className="text-xs text-apagado">{c.matricula}</span>
+          <span className="flex items-center gap-1.5 text-xs text-apagado">
+            {c.saldos && <CotaDeSaldo feitos={c.saldos.feitos} total={c.saldos.total} />}
+            {c.matricula}
+          </span>
           <span className="text-xs text-apagado">{c.equipe ?? 'Adm'}</span>
         </button>
         {c.servicos.length > 1 && (
@@ -104,6 +140,12 @@ export function EscolherMilitar({ escalaId, vaga, aoFechar }: { escalaId: string
               <ul className="grid max-h-80 gap-1.5 overflow-y-auto">
                 {aptos.map(itemDe)}
               </ul>
+            )}
+            {emChoque.length > 0 && (
+              <section aria-labelledby="em-choque-titulo" className="grid gap-1.5">
+                <h3 id="em-choque-titulo" className="text-sm font-medium">Em choque com esta vaga</h3>
+                <ul className="grid max-h-80 gap-2 overflow-y-auto">{emChoque.map((c) => <ItemEmChoque key={c.militarId} c={c} dataDaVaga={vaga.data} salvando={salvando} aoResolver={(s) => void resolver(c, s)} />)}</ul>
+              </section>
             )}
             {paraAcumular.length > 0 && (
               <section aria-labelledby="acumular-titulo" className="grid gap-1.5">
@@ -148,5 +190,29 @@ export function EscolherMilitar({ escalaId, vaga, aoFechar }: { escalaId: string
         {erro && <p role="alert" className="text-sm text-alerta">{erro}</p>}
       </DialogContent>
     </Dialog>
+  );
+}
+
+/** Quem só não pode porque choca: a placa com a frase do que choca e, quando dá para resolver, o botão de tirar de lá e escalar aqui. */
+function ItemEmChoque({ c, dataDaVaga, salvando, aoResolver }: { c: CandidatoEmChoque; dataDaVaga: string; salvando: boolean; aoResolver: (s: CandidatoEmChoque['servicos'][number]) => void }) {
+  // o serviço que mostra: o primeiro que dá para resolver (o Saldo, para o Adm no expediente); senão, o primeiro
+  const s = c.servicos.find((x) => x.choque.podeResolver) ?? c.servicos[0]!;
+  const ch = s.choque;
+  const frase = ch.tipo === 'expediente'
+    ? 'De expediente neste dia.'
+    : `Já está em ${ch.servico} das ${textoHora(ch.inicio)} às ${textoHora(ch.fim)}${ch.data === dataDaVaga ? '' : ` do dia ${ch.data.slice(8)}/${ch.data.slice(5, 7)}`} (${ch.escala}, ${ch.unidadeSigla}).`;
+  const botao = ch.tipo === 'alocacao' ? `Tirar de ${ch.servico} e escalar aqui` : 'Tirar do expediente e escalar aqui';
+  return (
+    <li className="grid gap-1.5">
+      <Placa
+        patente={c.posto} nome={c.nomeGuerra} matricula={c.matricula} estado="choque" choque={frase}
+        antesDaMatricula={c.saldos ? <CotaDeSaldo feitos={c.saldos.feitos} total={c.saldos.total} /> : undefined}
+      />
+      {ch.podeResolver && (
+        <Button type="button" variant="secundario" size="sm" disabled={salvando} aria-label={`${botao}: ${c.posto} ${c.nomeGuerra}`} onClick={() => aoResolver(s)} className="justify-self-start">
+          {botao}
+        </Button>
+      )}
+    </li>
   );
 }

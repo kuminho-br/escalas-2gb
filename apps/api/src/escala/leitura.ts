@@ -14,6 +14,7 @@ import { vinculosDaEscala } from '../cadastros/escalas.ts';
 import { feriadosDoAno } from '../cadastros/feriados.ts';
 import { versaoNoMes } from '../cadastros/guarnicoes-regras.ts';
 import { versoesDasGuarnicoes } from '../cadastros/guarnicoes.ts';
+import { cotasDeSaldo } from './cota-de-saldo.ts';
 import { ordemDoMes } from './ordem-do-mes.ts';
 import { sequenciaDePreenchimento } from './ordem.ts';
 import { nomeDaVaga } from './vagas.ts';
@@ -146,6 +147,12 @@ export async function montarEscalaDoMes(c: Consulta, escalaId: string, mes: stri
       acumulaCom: comCard.filter((o) => o.acumuloId !== v.acumuloId).map((o) => o.nome),
     }));
   });
+  // a cota de saldo à vista (6.38): o ocupante de Saldo do Adm traz o "2/6" para a placa
+  const doSaldo = ocupantes.filter((o) => o.servico.nome.trim().toLowerCase() === 'saldo');
+  if (doSaldo.length) {
+    const cotas = await cotasDeSaldo(c, escala.unidade_id, doSaldo.map((o) => o.militarId), mes);
+    for (const o of doSaldo) o.saldos = cotas.get(o.militarId)!;
+  }
   const remocoes: RemocaoDoMes[] = (
     await c.query<{ id: string; militar_id: string; nome_guerra: string; servico: string; data: string; turno_id: string }>(
       `select r.id, r.militar_id, m.nome_guerra, s.nome as servico, to_char(r.data, 'YYYY-MM-DD') as data, r.turno_id

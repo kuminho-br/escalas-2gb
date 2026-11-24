@@ -4,7 +4,7 @@ import { act, fireEvent, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { mesAtual } from '@/lib/meses';
-import { abrir, chamadasA, corpoEnviado, EU_EXEMPLO, simularApi, trava } from './apoio';
+import { abrir, chamadasA, corpoEnviado, EU_EXEMPLO, responderConfirmacao, simularApi, trava } from './apoio';
 
 // Escala fictícia de 3 dias, uma guarnição (ABT: Motorista 1–1 CNH D, Combatente 1–2), duas faixas por dia.
 const MES = mesAtual();
@@ -400,6 +400,7 @@ describe('escolher militar e remover', () => {
       { militarId: 'm-yuri', posto: 'CB', nomeGuerra: 'YURI', matricula: '990003-3', equipe: null, jornada: 'adm', servicos: [{ servicoId: 's1', turnoId: 't-a', nome: 'Pronto' }, { servicoId: 's2', turnoId: 't-jes', nome: 'JES' }] },
     ],
     semVoluntariado: [],
+    emChoque: [],
     fora: [{ motivo: 'Afastado', quantidade: 3 }, { motivo: 'Sem a CNH exigida', quantidade: 2 }, { motivo: 'Choque de horário', quantidade: 1 }], acumular: [],
   };
   // a escala depois de escalar o ZULU de Combatente no dia 2, faixa do dia
@@ -458,6 +459,147 @@ describe('escolher militar e remover', () => {
     );
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
     expect(within(secaoDoDia(2)).getAllByText('ZULU').length).toBeGreaterThan(0);
+  });
+
+  describe('a cota de saldo (6.38)', () => {
+    it('na lista de candidatos, o militar do Adm traz a barra na frente da matrícula; o do Pronto não', async () => {
+      const comCota = {
+        ...CANDIDATOS,
+        aptos: [CANDIDATOS.aptos[0], { ...CANDIDATOS.aptos[1], saldos: { feitos: 2, total: 6 } }],
+      };
+      api(ESCALA, { [rotaCandidatos]: { status: 200, corpo: comCota } });
+      abrir('/escala-do-mes');
+      await screen.findByRole('region', { name: 'Dia 2' });
+      const dialogo = await abrirVaga();
+      const yuri = (await within(dialogo).findByRole('button', { name: /YURI/ })).closest('li')!;
+      const barra = within(yuri).getByRole('img', { name: '2 de 6 saldos no mês' });
+      expect(within(yuri).getByText('990003-3').firstElementChild).toBe(barra);
+      expect(within((await within(dialogo).findByRole('button', { name: /ZULU/ })).closest('li')!).queryByRole('img')).toBeNull();
+    });
+
+    it('na placa do ocupante de Saldo, o número "2/6" fica ao lado da etiqueta do Saldo; acima do total é "7/6"; o Pronto não traz número', async () => {
+      const doSaldo = (nome: string, saldos?: { feitos: number; total: number }): OcupanteDaVaga => ({ ...ocupante(nome), servico: { id: 's3', nome: 'Saldo', cor: '#2B7BB9' }, ...(saldos ? { saldos } : {}) });
+      const c = card(true, true);
+      c.funcoes[0]!.ocupantes = [doSaldo('MOTOR', { feitos: 2, total: 6 })];
+      c.funcoes[1]!.ocupantes = [doSaldo('COMB', { feitos: 7, total: 6 }), ocupante('PRONTOX')];
+      const escala: EscalaDoMes = { ...ESCALA, dias: ESCALA.dias.map((d, i) => (i !== 1 ? d : { ...d, faixas: [faixa(false, c), d.faixas[1]!] })) };
+      api(escala);
+      abrir('/escala-do-mes');
+      const regiao = await screen.findByRole('region', { name: 'Dia 2' });
+      const placa = (nome: string) => within(regiao).getAllByText(nome)[0]!.closest('[data-placa]') as HTMLElement;
+      expect(within(placa('MOTOR')).getByText('2/6')).toBeInTheDocument();
+      expect(placa('MOTOR').textContent).toMatch(/2\/6/);
+      expect(within(placa('COMB')).getByText('7/6')).toHaveClass('text-pendencia');
+      expect(within(placa('PRONTOX')).queryByText(/\d\/\d/)).toBeNull();
+    });
+  });
+
+  describe('resolver o choque (6.38)', () => {
+    const doDia = `${MES}-02`;
+    const alocacao = (extra: Record<string, unknown> = {}) => ({ tipo: 'alocacao', alocacaoId: 'a-jes', servico: 'JES', data: doDia, inicio: '09:00', fim: '17:00', escala: 'Extra', unidadeSigla: '1ª SB', podeResolver: true, ...extra });
+    const EM_CHOQUE = {
+      ...CANDIDATOS,
+      fora: [],
+      emChoque: [
+        { militarId: 'm-xavier', posto: 'SD', nomeGuerra: 'XAVIER', matricula: '990004-4', equipe: 'Alfa', jornada: 'pronto', servicos: [{ servicoId: 's1', turnoId: 't-a', nome: 'Pronto', choque: alocacao() }] },
+        { militarId: 'm-walter', posto: 'SD', nomeGuerra: 'WALTER', matricula: '990005-5', equipe: 'Alfa', jornada: 'pronto', servicos: [{ servicoId: 's1', turnoId: 't-a', nome: 'Pronto', choque: alocacao({ alocacaoId: 'a-gb', escala: 'Ordinário', unidadeSigla: '2º GB', podeResolver: false }) }] },
+        {
+          militarId: 'm-admir', posto: 'CB', nomeGuerra: 'ADMIR', matricula: '990006-6', equipe: null, jornada: 'adm', saldos: { feitos: 3, total: 6 },
+          servicos: [
+            { servicoId: 's3', turnoId: 't-saldo', nome: 'Saldo', choque: { tipo: 'expediente', data: doDia, podeResolver: true } },
+            { servicoId: 's1', turnoId: 't-a', nome: 'Pronto', choque: { tipo: 'expediente', data: doDia, podeResolver: false } },
+          ],
+        },
+        { militarId: 'm-jesadm', posto: 'SD', nomeGuerra: 'JESADM', matricula: '990007-7', equipe: null, jornada: 'adm', servicos: [{ servicoId: 's2', turnoId: 't-jes', nome: 'JES', choque: { tipo: 'expediente', data: doDia, podeResolver: false } }] },
+      ],
+    };
+    const linhaDe = (dialogo: HTMLElement, nome: string) => within(dialogo).getByText(nome).closest('li')!;
+    const abrirComChoque = async (extra: Parameters<typeof simularApi>[0] = {}) => {
+      const f = api(ESCALA, { [rotaCandidatos]: { status: 200, corpo: EM_CHOQUE }, ...extra });
+      abrir('/escala-do-mes');
+      await screen.findByRole('region', { name: 'Dia 2' });
+      const dialogo = await abrirVaga();
+      await within(dialogo).findByRole('heading', { name: 'Em choque com esta vaga' });
+      return { f, dialogo };
+    };
+
+    it('o militar em choque aparece à parte, com o que choca (serviço, horário, escala e unidade); só tem botão quando dá para resolver', async () => {
+      const { dialogo } = await abrirComChoque();
+      const xavier = linhaDe(dialogo, 'XAVIER');
+      expect(xavier).toHaveTextContent('Já está em JES das 09h às 17h (Extra, 1ª SB).');
+      expect(within(xavier).getByRole('button', { name: /^Tirar de JES e escalar aqui/ })).toBeInTheDocument();
+      const walter = linhaDe(dialogo, 'WALTER');
+      expect(walter).toHaveTextContent('Já está em JES das 09h às 17h (Ordinário, 2º GB).');
+      expect(within(walter).queryByRole('button')).toBeNull();
+      // o Adm: só o Saldo pode tirar do expediente; o Pronto e o JES ficam só com o motivo
+      const admir = linhaDe(dialogo, 'ADMIR');
+      expect(admir).toHaveTextContent('De expediente neste dia.');
+      expect(within(admir).getByRole('img', { name: '3 de 6 saldos no mês' })).toBeInTheDocument();
+      expect(within(admir).getByRole('button', { name: /^Tirar do expediente e escalar aqui/ })).toBeInTheDocument();
+      const jes = linhaDe(dialogo, 'JESADM');
+      expect(jes).toHaveTextContent('De expediente neste dia.');
+      expect(within(jes).queryByRole('button')).toBeNull();
+    });
+
+    it('o botão pede a confirmação com a frase fixa; Cancelar não manda nada; confirmar manda o pedido, fecha e o aviso tem "Desfazer", que desfaz as duas pontas', async () => {
+      const { f, dialogo } = await abrirComChoque({
+        'POST /api/escalas/e1/alocacoes': { status: 201, corpo: { ...COM_ZULU, desfazer: { alocacaoId: 'a-nova', remocaoId: 'r-1' } } },
+        'POST /api/resolucoes/desfazer': { status: 200, corpo: ESCALA },
+      });
+      await userEvent.click(within(linhaDe(dialogo, 'XAVIER')).getByRole('button', { name: /^Tirar de JES e escalar aqui/ }));
+      const confirmacao = await screen.findByRole('dialog', { name: new RegExp(`SD XAVIER está em JES, 02/${MES.slice(5)} das 09h às 17h \\(Extra\\)\\. Tirar de lá e escalar aqui\\?`) });
+      await userEvent.click(within(confirmacao).getByRole('button', { name: 'Cancelar' }));
+      expect(chamadasA(f, 'POST /api/escalas/e1/alocacoes')).toBe(0);
+      await userEvent.click(within(linhaDe(screen.getByRole('dialog', { name: 'Escolher militar' }), 'XAVIER')).getByRole('button', { name: /^Tirar de JES e escalar aqui/ }));
+      await responderConfirmacao('Tirar e escalar');
+      await waitFor(() =>
+        expect(corpoEnviado(f, 'POST /api/escalas/e1/alocacoes')).toEqual({ militarId: 'm-xavier', data: doDia, turnoId: 't-a', guarnicaoId: 'g-abt', funcaoId: 'f-comb', resolverChoque: { alocacaoId: 'a-jes' } }),
+      );
+      await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Escolher militar' })).toBeNull());
+      expect(await screen.findByText('SD XAVIER saiu de JES e foi escalado aqui.')).toBeInTheDocument();
+      await userEvent.click(await screen.findByRole('button', { name: 'Desfazer' }));
+      await waitFor(() => expect(corpoEnviado(f, 'POST /api/resolucoes/desfazer')).toEqual({ alocacaoId: 'a-nova', remocaoId: 'r-1' }));
+    });
+
+    it('do expediente: o botão do Saldo manda o turno do Saldo com `expediente`, e o "Desfazer" vai sem remoção', async () => {
+      const { f, dialogo } = await abrirComChoque({
+        'POST /api/escalas/e1/alocacoes': { status: 201, corpo: { ...COM_ZULU, desfazer: { alocacaoId: 'a-nova', remocaoId: null } } },
+        'POST /api/resolucoes/desfazer': { status: 200, corpo: ESCALA },
+      });
+      await userEvent.click(within(linhaDe(dialogo, 'ADMIR')).getByRole('button', { name: /^Tirar do expediente e escalar aqui/ }));
+      const confirmacao = await screen.findByRole('dialog');
+      expect(confirmacao).toHaveTextContent(`CB ADMIR está de expediente em 02/${MES.slice(5)}. Tirar do expediente e escalar em Saldo?`);
+      await responderConfirmacao('Tirar e escalar');
+      await waitFor(() =>
+        expect(corpoEnviado(f, 'POST /api/escalas/e1/alocacoes')).toEqual({ militarId: 'm-admir', data: doDia, turnoId: 't-saldo', guarnicaoId: 'g-abt', funcaoId: 'f-comb', resolverChoque: { expediente: true } }),
+      );
+      expect(await screen.findByText('CB ADMIR saiu do expediente e foi escalado em Saldo.')).toBeInTheDocument();
+      await userEvent.click(await screen.findByRole('button', { name: 'Desfazer' }));
+      await waitFor(() => expect(corpoEnviado(f, 'POST /api/resolucoes/desfazer')).toEqual({ alocacaoId: 'a-nova', remocaoId: null }));
+    });
+
+    it('a recusa da API (a vaga foi ocupada, a escala mudou) aparece no diálogo, e nada fecha', async () => {
+      const { dialogo } = await abrirComChoque({ 'POST /api/escalas/e1/alocacoes': { status: 409, corpo: { erro: 'A função Combatente já está completa nesta guarnição.' } } });
+      await userEvent.click(within(linhaDe(dialogo, 'XAVIER')).getByRole('button', { name: /^Tirar de JES e escalar aqui/ }));
+      await responderConfirmacao('Tirar e escalar');
+      expect(await within(screen.getByRole('dialog', { name: 'Escolher militar' })).findByText('A função Combatente já está completa nesta guarnição.')).toBeInTheDocument();
+    });
+
+    it('a busca também filtra quem está em choque', async () => {
+      const { dialogo } = await abrirComChoque();
+      await userEvent.type(within(dialogo).getByLabelText('Buscar por nome ou matrícula'), 'walt');
+      expect(within(dialogo).getByText('WALTER')).toBeInTheDocument();
+      expect(within(dialogo).queryByText('XAVIER')).toBeNull();
+    });
+
+    it('sem ninguém em choque, a seção nem aparece', async () => {
+      api(ESCALA, { [rotaCandidatos]: { status: 200, corpo: CANDIDATOS } });
+      abrir('/escala-do-mes');
+      await screen.findByRole('region', { name: 'Dia 2' });
+      const dialogo = await abrirVaga();
+      await within(dialogo).findByRole('button', { name: /ZULU/ });
+      expect(within(dialogo).queryByRole('heading', { name: 'Em choque com esta vaga' })).toBeNull();
+    });
   });
 
   it('quem pode entrar em mais de um serviço escolhe o serviço; o primeiro vem marcado', async () => {

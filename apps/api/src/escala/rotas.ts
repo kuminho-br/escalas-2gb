@@ -1,5 +1,5 @@
 // Escala do mês: leitura (aqui) e, nas tarefas seguintes, candidatos, escalar e remover.
-import { Data, Hora, Id, Mes, NovaAlocacao, NovaPreEscala, NovoAcumulo, OrdemDeEscalacaoEntrada, Troca, mesPorExtenso } from 'contratos';
+import { DesfazerResolucao, Data, Hora, Id, Mes, NovaAlocacao, NovaPreEscala, NovoAcumulo, OrdemDeEscalacaoEntrada, Troca, mesPorExtenso } from 'contratos';
 import { z } from 'zod';
 import { Hono } from 'hono';
 import { CADASTRO, exigirPapel, exigirSessao, unidadeDoRegistro, type AmbienteApi } from '../acesso.ts';
@@ -7,8 +7,9 @@ import { exigirLeituraDaEscala } from '../visao/leitura.ts';
 import type { Auth } from '../auth.ts';
 import { comUsuario, type Banco } from '../banco/banco.ts';
 import { mesPassado } from '../cadastros/guarnicoes.ts';
+import { hojeRecife } from '../datas.ts';
 import { lerCorpo, respostaDoErroDoBanco } from '../erros.ts';
-import { acumular, desfazerRemocao, devolverRemocao, escalar, Recusa, remover, tirarAcumulo } from './alocacoes.ts';
+import { acumular, desfazerRemocao, desfazerResolucao, devolverRemocao, escalar, escalarResolvendo, NAO_DA_PARA_DESFAZER, Proibida, Recusa, remover, tirarAcumulo } from './alocacoes.ts';
 import { avaliarCandidatos } from './elegibilidade.ts';
 import { montarEscalaDoMes } from './leitura.ts';
 import { gravarOrdem, ordemDoMes } from './ordem-do-mes.ts';
@@ -21,7 +22,7 @@ const ConsultaDeCandidatos = z.object({ data: Data, inicio: Hora, fim: Hora, gua
 export function rotasEscalaDoMes(dep: { banco: Banco; auth: Auth }): Hono<AmbienteApi> {
   const r = new Hono<AmbienteApi>();
   const sessao = exigirSessao(dep.banco, dep.auth);
-  for (const caminho of ['/escalas/:id/mes/*', '/escalas/:id/alocacoes', '/alocacoes/*', '/remocoes/*', '/acumulos/*', '/escalas/:id/ordem/*']) r.use(caminho, sessao);
+  for (const caminho of ['/escalas/:id/mes/*', '/escalas/:id/alocacoes', '/alocacoes/*', '/remocoes/*', '/resolucoes/*', '/acumulos/*', '/escalas/:id/ordem/*']) r.use(caminho, sessao);
 
   r.get('/escalas/:id/mes/:mes', async (c) => {
     const id = c.req.param('id');
@@ -118,7 +119,7 @@ export function rotasEscalaDoMes(dep: { banco: Banco; auth: Auth }): Hono<Ambien
       )
     ).rows.length;
     if (!existe) return c.json({ erro: 'Esta faixa não existe nesta escala.' }, 400);
-    return c.json(await avaliarCandidatos(dep.banco, { escalaId: id, data, inicio, fim, guarnicaoId: guarnicaoId ?? null, funcaoId: funcaoId ?? null }));
+    return c.json(await avaliarCandidatos(dep.banco, { escalaId: id, data, inicio, fim, guarnicaoId: guarnicaoId ?? null, funcaoId: funcaoId ?? null }, { usuarioId: c.get('usuarioId'), hoje: hojeRecife() }));
   });
 
   /** A escala de rodada de cotas (a dos oficiais) só se lança em Oficiais: a pré-escala, o escalar, o remover e o trocar das praças não mexem nela. */
@@ -143,8 +144,33 @@ export function rotasEscalaDoMes(dep: { banco: Banco; auth: Auth }): Hono<Ambien
       return c.json({ erro: texto, campos: { [campo]: texto } }, 400);
     }
     try {
-      const mes = await comUsuario(dep.banco, c.get('usuarioId'), (tx) => escalar(tx, id, d));
+      const { resolverChoque, ...vaga } = d;
+      if (resolverChoque) {
+        // tirar de lá e escalar aqui (6.38): as duas coisas na mesma transação; uma recusa desfaz as duas
+        const feito = await comUsuario(dep.banco, c.get('usuarioId'), (tx) => escalarResolvendo(tx, id, vaga, resolverChoque, c.get('usuarioId'), hojeRecife()));
+        return c.json({ ...(await montarEscalaDoMes(dep.banco, id, feito.mes)), desfazer: feito.desfazer }, 201);
+      }
+      const mes = await comUsuario(dep.banco, c.get('usuarioId'), (tx) => escalar(tx, id, vaga));
       return c.json(await montarEscalaDoMes(dep.banco, id, mes), 201);
+    } catch (e) {
+      if (e instanceof Recusa) return c.json({ erro: e.message }, 409);
+      if (e instanceof Proibida) return c.json({ erro: e.message }, 403);
+      return respostaDoErroDoBanco(c, e);
+    }
+  });
+
+  /** "Desfazer" a resolução do choque: tira o serviço novo e devolve o de lá; 409 se a escala mudou desde então. */
+  r.post('/resolucoes/desfazer', async (c) => {
+    const corpo = await lerCorpo(c, DesfazerResolucao);
+    if (!corpo.ok) return corpo.resposta;
+    const unidadeId = await unidadeDoRegistro(dep.banco, 'alocacao', corpo.dados.alocacaoId);
+    // a alocação que já não existe: a mesma frase de quando a escala mudou (ninguém precisa saber se foi apagada ou nunca existiu)
+    if (!unidadeId) return c.json({ erro: NAO_DA_PARA_DESFAZER }, 409);
+    const negado = await exigirPapel(c, unidadeId, CADASTRO);
+    if (negado) return negado;
+    try {
+      const { escalaId, mes } = await comUsuario(dep.banco, c.get('usuarioId'), (tx) => desfazerResolucao(tx, corpo.dados));
+      return c.json(await montarEscalaDoMes(dep.banco, escalaId, mes));
     } catch (e) {
       if (e instanceof Recusa) return c.json({ erro: e.message }, 409);
       return respostaDoErroDoBanco(c, e);
