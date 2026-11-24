@@ -58,6 +58,7 @@
 | [superpowers/specs/2026-11-24-choque-universal-design.md](superpowers/specs/2026-11-24-choque-universal-design.md) | Choque de horário universal, o expediente do Adm e a cota de saldo à vista | PLANEJAMENTO | aprovado |
 | [superpowers/specs/2026-11-24-pre-escala-turnos-e-expediente-design.md](superpowers/specs/2026-11-24-pre-escala-turnos-e-expediente-design.md) | A pré-escala só nos turnos e com o expediente do Adm | PLANEJAMENTO | aprovado |
 | [superpowers/specs/2026-11-24-deploy-so-com-codigo-design.md](superpowers/specs/2026-11-24-deploy-so-com-codigo-design.md) | Deploy só quando o código muda (caminho 1 do Vercel) | PLANEJAMENTO | aprovado |
+| [superpowers/specs/2026-11-24-peculio-geral-e-atualizacao-em-lote-design.md](superpowers/specs/2026-11-24-peculio-geral-e-atualizacao-em-lote-design.md) | Pecúlio Geral: as views, a pesquisa com filtros e a atualização em lote | PLANEJAMENTO | aprovado |
 
 ## Controle da documentação
 
