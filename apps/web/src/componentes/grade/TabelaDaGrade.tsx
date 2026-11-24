@@ -2,7 +2,6 @@ import { mesPorExtenso, type GradeDoMes, type GrupoDaGrade, type LinhaDaGrade } 
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import { Fragment, useEffect, useRef } from 'react';
 import { hoje } from '@/lib/meses';
-import { textoDuracao } from '@/lib/turnos';
 import { cn } from '@/lib/utils';
 import { BarraComparativa } from './BarraComparativa';
 import { CelulaDaGrade } from './CelulaDaGrade';
@@ -23,21 +22,18 @@ function bordasDoDia(grade: GradeDoMes, i: number): string[] {
   return [segunda ? 'border-l border-l-[#C9CED6]' : '', vesperaDeSegunda ? '' : 'border-r border-r-[#EEF0F3]'];
 }
 
-/** PJES, Diárias e Voluntariado: larguras fixas de verdade (w, min-w e max-w iguais; só w seria um mínimo) para as três se empilharem presas à direita (right-44 = 4rem + 7rem; right-28 = 7rem). */
+/** PJES e Diárias: larguras fixas de verdade (w, min-w e max-w iguais; só w seria um mínimo) para as duas se empilharem presas à direita (right-16 = 4rem). */
 const COLUNAS_FINAIS = [
-  { nome: 'PJES', largura: 'w-16 min-w-16 max-w-16', direita: 'min-[1440px]:right-44', separador: 'min-[1440px]:border-l min-[1440px]:border-l-linha' },
-  { nome: 'Diárias', largura: 'w-16 min-w-16 max-w-16', direita: 'min-[1440px]:right-28', separador: '' },
-  { nome: 'Voluntariado', largura: 'w-28 min-w-28 max-w-28', direita: 'min-[1440px]:right-0', separador: '' },
+  { nome: 'PJES', largura: 'w-16 min-w-16 max-w-16', direita: 'min-[1440px]:right-16', separador: 'min-[1440px]:border-l min-[1440px]:border-l-linha' },
+  { nome: 'Diárias', largura: 'w-16 min-w-16 max-w-16', direita: 'min-[1440px]:right-0', separador: '' },
 ] as const;
 const CELULA_FINAL = 'border-b border-b-[#EEF0F3] bg-superficie px-2 py-1 group-hover:bg-[#F7F7F8] min-[1440px]:sticky min-[1440px]:z-10';
 
 /** O fundo leve da marca (linha e coluna da célula escolhida) nas partes presas, que são opacas: o mesmo tom vinho, já misturado com o branco. */
 const FUNDO_DA_MARCA_NO_CABECALHO = 'bg-[#F7EFEF]';
 
-const horas = (l: LinhaDaGrade) => (l.horasTiradas === 0 && l.horasPedidas === 0 ? '–' : `${textoDuracao(l.horasTiradas)} de ${textoDuracao(l.horasPedidas)}`);
-
 /**
- * A grade: uma linha por militar (o nome fica fixo à esquerda), uma coluna por dia, e no fim PJES, Diárias e Voluntariado. `grupos` são os
+ * A grade: uma linha por militar (o nome fica fixo à esquerda), uma coluna por dia, e no fim PJES e Diárias. `grupos` são os
  * que aparecem (o filtro de equipes já aplicado); `maximos` vêm da grade inteira.
  */
 export function TabelaDaGrade({ grade, grupos, maximos, escolhida, aoEscolher, recolhidas, aoAlternar }: {
@@ -50,7 +46,7 @@ export function TabelaDaGrade({ grade, grupos, maximos, escolhida, aoEscolher, r
   recolhidas: Set<string>;
   aoAlternar: (chave: string) => void;
 }) {
-  const colunas = grade.dias.length + 4;
+  const colunas = grade.dias.length + 3;
   // o dia de hoje, só no mês corrente; ao abrir, a tabela rola até ele uma vez (trocar o filtro ou atualizar os dados não rola de novo)
   const diaDeHoje = hoje();
   const temHoje = grade.dias.some((d) => d.data === diaDeHoje);
@@ -64,8 +60,8 @@ export function TabelaDaGrade({ grade, grupos, maximos, escolhida, aoEscolher, r
   return (
     // a tabela rola nas duas direções dentro da própria caixa: assim o cabeçalho dos dias e a coluna "Militar" grudam nela (com
     // `overflow-x-auto` e a página rolando na vertical, o cabeçalho não tinha onde grudar). Vale também no celular. O `scroll-p*` deixa folga
-    // para as partes presas (cabeçalho, coluna Militar e, a partir de 1440px, as três colunas finais): a célula que rola à vista não para debaixo delas.
-    <div data-rolagem="grade" className="max-h-[calc(100dvh-13rem)] scroll-pt-16 scroll-pl-52 overflow-auto min-[1440px]:scroll-pr-60">
+    // para as partes presas (cabeçalho, coluna Militar e, a partir de 1440px, as duas colunas finais): a célula que rola à vista não para debaixo delas.
+    <div data-rolagem="grade" className="max-h-[calc(100dvh-13rem)] scroll-pt-16 scroll-pl-52 overflow-auto min-[1440px]:scroll-pr-32">
       <table aria-label={`Grade geral de ${mesPorExtenso(grade.mes)}`} className="w-full border-separate border-spacing-0 font-cond">
         <thead>
           <tr>
@@ -94,7 +90,7 @@ export function TabelaDaGrade({ grade, grupos, maximos, escolhida, aoEscolher, r
                 </th>
               );
             })}
-            {/* a partir de 1440px as três colunas finais ficam presas à direita, empilhadas: Voluntariado (7rem), Diárias e PJES (4rem cada) */}
+            {/* a partir de 1440px as duas colunas finais ficam presas à direita, empilhadas: Diárias e PJES (4rem cada) */}
             {COLUNAS_FINAIS.map((c) => (
               <th key={c.nome} scope="col" className={cn('sticky top-0 z-20 border-b border-linha bg-superficie px-2 pt-2 pb-1.5 text-center text-sm font-medium text-apagado min-[1440px]:z-30', c.largura, c.direita, c.separador)}>{c.nome}</th>
             ))}
@@ -152,7 +148,6 @@ export function TabelaDaGrade({ grade, grupos, maximos, escolhida, aoEscolher, r
                   })}
                   <td className={cn(CELULA_FINAL, COLUNAS_FINAIS[0].largura, COLUNAS_FINAIS[0].direita, COLUNAS_FINAIS[0].separador)}><BarraComparativa valor={l.pjes} maximo={maximos.pjes} /></td>
                   <td className={cn(CELULA_FINAL, COLUNAS_FINAIS[1].largura, COLUNAS_FINAIS[1].direita)}><BarraComparativa valor={l.diarias} maximo={maximos.diarias} /></td>
-                  <td className={cn(CELULA_FINAL, COLUNAS_FINAIS[2].largura, COLUNAS_FINAIS[2].direita, 'overflow-hidden text-right text-sm font-semibold text-ellipsis whitespace-nowrap')} title={horas(l)}>{horas(l)}</td>
                 </tr>
                 );
               })}
