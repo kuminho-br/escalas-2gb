@@ -1,4 +1,4 @@
-import { render, screen, within } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { CartaoDaGuarnicao, FuncaoDoCartao } from '@/componentes/CartaoDaGuarnicao';
@@ -69,7 +69,8 @@ describe('Placa', () => {
     expect(screen.getByRole('menu')).toBeInTheDocument();
     await userEvent.keyboard('{Escape}');
     expect(screen.queryByRole('menu')).toBeNull();
-    expect(botao).toHaveFocus();
+    // o menu devolve o foco ao botão depois de fechar (o Radix usa um setTimeout): espera, como no teste da confirmação
+    await waitFor(() => expect(botao).toHaveFocus());
   });
 
   it('sem ações, a placa não tem botão; o rótulo das ações pode vir de quem usa', () => {

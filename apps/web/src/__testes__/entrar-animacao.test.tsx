@@ -95,7 +95,8 @@ describe('entrar com a animação', () => {
     expect(cartaoEscondido()).toBe(false);
     expect(screen.getByLabelText('E-mail')).toHaveValue('andrade@exemplo.test');
     expect(screen.getByLabelText('Senha')).toHaveValue('senha-qualquer-123');
-    expect(screen.getByLabelText('Senha')).toHaveFocus();
+    // o foco vai para a senha por um efeito, depois de o cartão voltar: espera o efeito rodar
+    await waitFor(() => expect(screen.getByLabelText('Senha')).toHaveFocus());
     // a animação que termina em erro não conta para as 12 h
     expect(localStorage.getItem(CHAVE)).toBeNull();
   });
