@@ -56,6 +56,7 @@
 | [superpowers/specs/2026-11-24-ficha-da-escala-e-militar-externo-design.md](superpowers/specs/2026-11-24-ficha-da-escala-e-militar-externo-design.md) | Ficha do militar na escala, Escala do mês e militar externo | PLANEJAMENTO | aprovado |
 | [superpowers/specs/2026-11-24-choque-universal-design.md](superpowers/specs/2026-11-24-choque-universal-design.md) | Choque de horário universal, o expediente do Adm e a cota de saldo à vista | PLANEJAMENTO | aprovado |
 | [superpowers/specs/2026-11-24-pre-escala-turnos-e-expediente-design.md](superpowers/specs/2026-11-24-pre-escala-turnos-e-expediente-design.md) | A pré-escala só nos turnos e com o expediente do Adm | PLANEJAMENTO | aprovado |
+| [superpowers/specs/2026-11-24-deploy-so-com-codigo-design.md](superpowers/specs/2026-11-24-deploy-so-com-codigo-design.md) | Deploy só quando o código muda (caminho 1 do Vercel) | PLANEJAMENTO | aprovado |
 
 ## Controle da documentação
 
@@ -93,9 +94,11 @@
 | [superpowers/plans/2026-11-24-fase6-37-choque-universal.md](superpowers/plans/2026-11-24-fase6-37-choque-universal.md) | Entregas 6.37 e 6.38: choque universal; resolver o choque e a cota de saldo | DESENVOLVIMENTO | planejado |
 | [superpowers/plans/2026-11-24-fase6-39-choque-nos-oficiais.md](superpowers/plans/2026-11-24-fase6-39-choque-nos-oficiais.md) | Entrega 6.39: choque na escala dos oficiais | DESENVOLVIMENTO | planejado |
 | [superpowers/plans/2026-11-24-fase6-40-pre-escala-turnos-e-expediente.md](superpowers/plans/2026-11-24-fase6-40-pre-escala-turnos-e-expediente.md) | Entrega 6.40: a pré-escala só nos turnos e com o expediente | DESENVOLVIMENTO | planejado |
+| [superpowers/plans/2026-11-24-fase6-41-deploy-so-com-codigo.md](superpowers/plans/2026-11-24-fase6-41-deploy-so-com-codigo.md) | Entrega 6.41: o deploy é pulado quando o PR só mexe em documentação | DESENVOLVIMENTO | planejado |
 | [superpowers/plans/2026-11-18-fase4-escala.md](superpowers/plans/2026-11-18-fase4-escala.md) | Fase 4: montagem da escala (entregas 1 a 4.3) | DESENVOLVIMENTO | concluído |
 | [superpowers/plans/2026-11-20-roadmap-documentacao.md](superpowers/plans/2026-11-20-roadmap-documentacao.md) | Roadmap da documentação | DOCUMENTAÇÃO | em execução |
 | [superpowers/plans/2026-11-24-revisao-da-documentacao.md](superpowers/plans/2026-11-24-revisao-da-documentacao.md) | Revisão geral da documentação de 24/11: o que foi corrigido e o que pede ação | DOCUMENTAÇÃO | vigente |
+| [superpowers/plans/2026-11-24-pool-de-feedbacks-do-piloto.md](superpowers/plans/2026-11-24-pool-de-feedbacks-do-piloto.md) | Pool de feedbacks do piloto de dezembro (agrupados até virar plano) | PLANEJAMENTO | ativo |
 
 ## Telas e mockups
 
