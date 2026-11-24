@@ -33,6 +33,11 @@ export type FichaDeConsulta = LinhaDaConsulta & {
   dadosDaEscala?: { motorista: boolean; cnh: string[]; voluntarioJes: boolean };
   comportamento?: { comportamento: string | null; boletim: string | null };
   podeAbrirFichaCompleta: boolean;
+  /**
+   * O botão do militar externo (6.33): só vem quando a ficha é pedida com a unidade de trabalho (`?unidade=`), quem pede é gestor nela ou acima e o militar não é
+   * da unidade (nem de uma de baixo). `vinculoId` nulo = pode trazer para a escala de `unidadeSigla`; com id = já está, e o gestor pode tirar.
+   */
+  externo?: { unidadeSigla: string; vinculoId: string | null };
 };
 
 /** A unidade na lista de escolha da busca, na ordem da árvore. */

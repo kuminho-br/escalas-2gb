@@ -2,7 +2,7 @@
 // ficha mostra só os blocos que a borda das camadas libera para quem pede (a chave de um bloco que a pessoa não vê fica ausente). CPF,
 // nascimento e endereço nem são lidos do banco aqui: não há como vazarem por esta rota.
 import type { FichaDeConsulta, LinhaDaConsulta, PeriodoDaConsulta, ResultadoDaConsulta, UnidadeDaConsulta } from 'contratos';
-import { CADASTRO, ehAdministrador, temPapel } from '../acesso.ts';
+import { CADASTRO, ehAdministrador, GESTAO, temPapel } from '../acesso.ts';
 import { COM_CAMINHO, paraUnidade, porCaminho, type LinhaDaUnidade } from '../arvore.ts';
 import type { Consulta } from '../banco/banco.ts';
 import { blocosDaUnidade } from './visao.ts';
@@ -66,7 +66,7 @@ type LinhaDaFicha = LinhaBanco & {
 };
 
 /** A ficha de consulta de um militar, só com os blocos que `usuarioId` vê; null se o militar não existe. */
-export async function fichaDeConsulta(c: Consulta, usuarioId: string, militarId: string, hoje: string): Promise<FichaDeConsulta | null> {
+export async function fichaDeConsulta(c: Consulta, usuarioId: string, militarId: string, hoje: string, unidadeDeTrabalho?: string): Promise<FichaDeConsulta | null> {
   const m = (await c.query<LinhaDaFicha>(
     `select ${COLUNAS}, (select f.nome from funcao_militar f where f.id = m.funcao_militar_id) as funcao, un.id as unidade_id, m.telefone, m.email, m.email_pessoal, m.comportamento, m.comportamento_boletim, m.motorista, m.cnh, m.voluntario_jes
        ${DO_MILITAR_HOJE} where m.id = $2`,
@@ -76,6 +76,15 @@ export async function fichaDeConsulta(c: Consulta, usuarioId: string, militarId:
   const blocos = await blocosDaUnidade(c, usuarioId, m.unidade_id, hoje);
   const ficha: FichaDeConsulta = { ...paraLinha(m), // sem lotação (o militar recém-criado, o administrador da instalação) só o administrador abre a ficha, para dar a primeira
     podeAbrirFichaCompleta: m.unidade_id ? await temPapel(c, usuarioId, m.unidade_id, CADASTRO, hoje) : await ehAdministrador(c, usuarioId, hoje) };
+
+  // o militar externo: o gestor da unidade de trabalho (ou acima) vê o botão de trazer ou tirar, desde que o militar não seja da unidade nem de uma de baixo
+  if (unidadeDeTrabalho && m.unidade_id && (await temPapel(c, usuarioId, unidadeDeTrabalho, GESTAO, hoje))) {
+    const alvo = (await c.query<{ sigla: string; da_unidade: boolean }>('select a.sigla, u.caminho <@ a.caminho as da_unidade from unidade a join unidade u on u.id = $2 where a.id = $1', [unidadeDeTrabalho, m.unidade_id])).rows[0];
+    if (alvo && !alvo.da_unidade) {
+      const vinculo = (await c.query<{ id: string }>('select id from vinculo_externo where militar_id = $1 and unidade_id = $2 and desde <= $3::date and (ate is null or ate >= $3::date)', [militarId, unidadeDeTrabalho, hoje])).rows[0];
+      ficha.externo = { unidadeSigla: alvo.sigla, vinculoId: vinculo?.id ?? null };
+    }
+  }
 
   if (blocos.has('contato')) ficha.contato = { telefone: m.telefone, email: m.email, emailPessoal: m.email_pessoal };
 

@@ -195,7 +195,8 @@ export async function planejarPreEscala(
       const { avaliados } = await avaliarFaixa(c, { escalaId, data, inicio: t.inicio, fim: t.fim, guarnicaoId: null, funcaoId: null });
       const candidatos: Avaliado[] = [];
       for (const a of avaliados) {
-        if (a.candidato.jornada !== 'pronto' || a.candidato.equipe !== daEquipe.nome || a.militarMotivo !== null) continue;
+        // o externo (de outra unidade, trazido pelo gestor) é só de serviço extra, lançado à mão: a pré-escala do Pronto nunca o põe
+        if (a.externo || a.candidato.jornada !== 'pronto' || a.candidato.equipe !== daEquipe.nome || a.militarMotivo !== null) continue;
         if (a.porTurno.find((p) => p.turno.turnoId === t.turno_id)?.motivo !== null) continue;
         if (removidos.has(`${a.candidato.militarId}|${data}|${t.turno_id}`)) {
           previa.removidosQueNaoVoltam++;
