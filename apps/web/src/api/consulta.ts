@@ -23,5 +23,9 @@ export const consultaDaBusca = (texto: string, unidadeId: string) => {
 };
 
 /** A ficha de consulta: só os blocos que a pessoa vê. */
-export const consultaDaFicha = (id: string) =>
-  queryOptions({ queryKey: ['consulta', 'militar', id], queryFn: () => pedir<FichaDeConsulta>('GET', `/api/consulta/militares/${id}`) });
+/** `unidadeId`: a unidade de trabalho, para a ficha dizer se o gestor pode trazer o militar para a escala dela (o militar externo). */
+export const consultaDaFicha = (id: string, unidadeId?: string) =>
+  queryOptions({
+    queryKey: ['consulta', 'militar', id, unidadeId ?? null],
+    queryFn: () => pedir<FichaDeConsulta>('GET', `/api/consulta/militares/${id}${unidadeId ? `?unidade=${unidadeId}` : ''}`),
+  });

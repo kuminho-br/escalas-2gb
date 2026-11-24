@@ -57,6 +57,21 @@ function api(extra: Parameters<typeof simularApi>[0] = {}) {
 }
 
 describe('lista de militares', () => {
+  const EXTERNO = linha({ id: 'm9', matricula: '990009-9', nomeGuerra: 'FORASTEIRO', equipe: 'Externo', jornada: 'pronto', pendencias: [], externo: { lotacaoSigla: '2ª SB' } });
+
+  it('6.33: o militar externo aparece com a etiqueta "Externo · 2ª SB", a equipe "Externo" no filtro, e leva à ficha da Consulta (a ficha da escala é da lotação dele)', async () => {
+    api({ 'GET /api/unidades/u-1sb/militares': { status: 200, corpo: [...LISTA, EXTERNO] } });
+    abrir('/militares');
+    const item = (await screen.findByText('FORASTEIRO')).closest('li')!;
+    expect(within(item).getByText('Externo · 2ª SB')).toBeInTheDocument();
+    expect(within(item).queryByText(/EXTERNO/)).toBeNull();
+    expect(within(item).getByRole('link')).toHaveAttribute('href', '/consulta/m9');
+    expect(within(item).queryByLabelText(/Cadastro incompleto/)).toBeNull();
+    await userEvent.selectOptions(screen.getByLabelText('Equipe'), 'Externo');
+    expect(screen.getByText('FORASTEIRO')).toBeInTheDocument();
+    expect(screen.queryByText('ANDRADE')).toBeNull();
+  });
+
   it('lista mostra situação e pendência', async () => {
     api();
     abrir('/militares');
