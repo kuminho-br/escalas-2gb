@@ -11,7 +11,7 @@ const script = join(dirname(fileURLToPath(import.meta.url)), 'deploy-so-com-codi
 const git = (cwd, ...args) => execFileSync('git', ['-c', 'user.name=teste', '-c', 'user.email=teste@exemplo.test', '-c', 'commit.gpgsign=false', ...args], { cwd, encoding: 'utf8' }).trim();
 
 /** Monta o repositório (commit 1 com a base) e aplica `mudar` no commit 2; devolve o código de saída do script e o commit anterior. */
-function rodar(mudar, { semReferencia = false } = {}) {
+function rodar(mudar, { semReferencia = false, ambiente = '' } = {}) {
   const pasta = mkdtempSync(join(tmpdir(), 'deploy-'));
   try {
     git(pasta, 'init', '-q');
@@ -25,7 +25,7 @@ function rodar(mudar, { semReferencia = false } = {}) {
     mudar(pasta);
     git(pasta, 'add', '-A');
     git(pasta, 'commit', '-q', '--allow-empty', '-m', 'mudança');
-    const r = spawnSync('bash', [script], { cwd: pasta, env: { ...process.env, VERCEL_GIT_PREVIOUS_SHA: semReferencia ? '' : anterior }, encoding: 'utf8' });
+    const r = spawnSync('bash', [script], { cwd: pasta, env: { ...process.env, VERCEL_ENV: ambiente, VERCEL_GIT_PREVIOUS_SHA: semReferencia ? '' : anterior }, encoding: 'utf8' });
     return r.status;
   } finally {
     rmSync(pasta, { recursive: true, force: true });
@@ -56,6 +56,25 @@ for (const [nome, mudar, esperado] of casos) {
   if (!ok) falhas++;
   console.log(`${ok ? 'ok   ' : 'FALHA'} ${nome} -> ${saida} (esperado ${esperado})`);
 }
+// 6.43: os PRs não geram prévia (VERCEL_ENV=preview pula sempre); a produção segue a regra da 6.41; sem a variável também
+const codigo = (p) => escreve(p, 'apps/api/src/a.ts');
+const documento = (p) => escreve(p, 'docs/x.md');
+const porAmbiente = [
+  ['prévia de PR com código mudado: pula (0)', codigo, { ambiente: 'preview' }, 0],
+  ['prévia de PR só com documentação: pula (0)', documento, { ambiente: 'preview' }, 0],
+  ['prévia de PR sem a referência do deploy anterior: pula (0), a prévia nunca faz deploy', codigo, { ambiente: 'preview', semReferencia: true }, 0],
+  ['Review Focus 1: produção com código mudado: deploy (1)', codigo, { ambiente: 'production' }, 1],
+  ['produção só com documentação: pula (0)', documento, { ambiente: 'production' }, 0],
+  ['produção sem a referência do deploy anterior: deploy (1)', documento, { ambiente: 'production', semReferencia: true }, 1],
+  ['Review Focus 2: sem VERCEL_ENV e com código mudado: deploy (1), não pula tudo', codigo, { ambiente: '' }, 1],
+  ['outro valor de VERCEL_ENV (development) com código mudado: deploy (1), só "preview" pula', codigo, { ambiente: 'development' }, 1],
+];
+for (const [nome, mudar, opcoes, esperado] of porAmbiente) {
+  const saida = rodar(mudar, opcoes);
+  const ok = saida === esperado;
+  if (!ok) falhas++;
+  console.log(`${ok ? 'ok   ' : 'FALHA'} ${nome} -> ${saida} (esperado ${esperado})`);
+}
 // Review Focus 3: sem a referência do deploy anterior, o script faz o deploy e não dá erro
 const semRef = rodar((p) => escreve(p, 'docs/x.md'), { semReferencia: true });
 const okRef = semRef === 1;
@@ -68,7 +87,7 @@ try {
   writeFileSync(join(pasta, 'a.md'), 'a');
   git(pasta, 'add', '-A');
   git(pasta, 'commit', '-q', '-m', 'um');
-  const r = spawnSync('bash', [script], { cwd: pasta, env: { ...process.env, VERCEL_GIT_PREVIOUS_SHA: '0123456789abcdef0123456789abcdef01234567' }, encoding: 'utf8' });
+  const r = spawnSync('bash', [script], { cwd: pasta, env: { ...process.env, VERCEL_ENV: '', VERCEL_GIT_PREVIOUS_SHA: '0123456789abcdef0123456789abcdef01234567' }, encoding: 'utf8' });
   const ok = r.status === 1;
   if (!ok) falhas++;
   console.log(`${ok ? 'ok   ' : 'FALHA'} referência que não está no clone: deploy (1) -> ${r.status} (esperado 1)`);
