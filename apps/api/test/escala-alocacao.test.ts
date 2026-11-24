@@ -171,6 +171,110 @@ describe('remover e desfazer', () => {
   });
 });
 
+describe('remover com "Desfazer" (6.21, P1)', () => {
+  const DESFEZ_TUDO = 'A escala mudou desde então. Não dá mais para desfazer.';
+  const alocacaoDe = (e: EscalaDoMes, d: number, funcao: string, nome: string) =>
+    faixaA(e, d).guarnicoes.find((g) => g.nome === 'ABT')!.funcoes.find((f) => f.funcao === funcao)!.ocupantes.find((o) => o.nomeGuerra === nome)!.alocacaoId;
+  const remover = async (alocacaoId: string) => {
+    const r = await api.pedir('escalante', 'DELETE', `/api/alocacoes/${alocacaoId}`);
+    expect(r.status).toBe(200);
+    return (await r.json()) as EscalaDoMes & { remocaoId: string };
+  };
+
+  it('remover devolve a escala do mês e o id da remoção, para o aviso poder desfazer', async () => {
+    const criada: EscalaDoMes = await (await escalar('UM', dia(24))).json();
+    const removida = await remover(alocacaoDe(criada, 24, 'Combatente', 'UM'));
+    expect(removida.remocaoId).toBe(faixaA(removida, 24).removidos[0]!.remocaoId);
+  });
+
+  it('desfazer devolve o militar à mesma vaga (dia, turno, guarnição e função) e tira a marca de removido, numa transação', async () => {
+    const criada: EscalaDoMes = await (await escalar('DOIS', dia(25))).json();
+    const removida = await remover(alocacaoDe(criada, 25, 'Combatente', 'DOIS'));
+    expect(ocupantes(removida, 25, 'Combatente')).toEqual([]);
+    const r = await api.pedir('escalante', 'POST', `/api/remocoes/${removida.remocaoId}/desfazer`);
+    expect(r.status).toBe(200);
+    const devolvida: EscalaDoMes = await r.json();
+    expect(ocupantes(devolvida, 25, 'Combatente')).toEqual(['DOIS']);
+    expect(faixaA(devolvida, 25).removidos).toEqual([]);
+    const linhas = (await api.banco.query<{ guarnicao_id: string; funcao_id: string; turno_id: string }>('select guarnicao_id, funcao_id, turno_id from alocacao where militar_id = $1 and data = $2::date', [militar.DOIS, dia(25)])).rows;
+    expect(linhas).toEqual([{ guarnicao_id: abt, funcao_id: combatente, turno_id: turnoA }]);
+    expect((await api.banco.query('select 1 from remocao where id = $1', [removida.remocaoId])).rows).toHaveLength(0);
+  });
+
+  it('Review Focus 2: com a vaga ocupada por outro depois da remoção, desfazer é 409 com a frase, e nada muda', async () => {
+    const criada: EscalaDoMes = await (await escalar('TRES', dia(17))).json();
+    // a função Combatente tem 2 lugares: TRES sai, QUATRO e REMOVIDO ocupam os dois
+    const removida = await remover(alocacaoDe(criada, 17, 'Combatente', 'TRES'));
+    expect((await escalar('QUATRO', dia(17))).status).toBe(201);
+    expect((await escalar('REMOVIDO', dia(17))).status).toBe(201);
+    const antes = (await api.banco.query('select id from alocacao where data = $1::date order by id', [dia(17)])).rows;
+    const r = await api.pedir('escalante', 'POST', `/api/remocoes/${removida.remocaoId}/desfazer`);
+    expect(r.status).toBe(409);
+    expect((await r.json()).erro).toBe(DESFEZ_TUDO);
+    expect((await api.banco.query('select id from alocacao where data = $1::date order by id', [dia(17)])).rows).toEqual(antes);
+    expect((await api.banco.query('select 1 from remocao where id = $1', [removida.remocaoId])).rows).toHaveLength(1);
+  });
+
+  it('com a guarnição fora da faixa (a escala mudou), desfazer é 409 com a frase e a remoção continua', async () => {
+    const criada: EscalaDoMes = await (await escalar('VOLTA', dia(27))).json();
+    const removida = await remover(alocacaoDe(criada, 27, 'Combatente', 'VOLTA'));
+    // as vinculações do mês passam a ter só a Outra na faixa do dia
+    const vinculos = (itens: unknown[]) => api.pedir('escalante', 'PUT', `/api/escalas/${escalaId}/vinculos/${atual}`, { itens });
+    expect((await vinculos([{ guarnicaoId: outra, ...FAIXA_A }])).status).toBe(200);
+    try {
+      const r = await api.pedir('escalante', 'POST', `/api/remocoes/${removida.remocaoId}/desfazer`);
+      expect(r.status).toBe(409);
+      expect((await r.json()).erro).toBe(DESFEZ_TUDO);
+      expect((await api.banco.query('select 1 from remocao where id = $1', [removida.remocaoId])).rows).toHaveLength(1);
+    } finally {
+      // volta as vinculações do cenário, passe o que passar
+      expect((await vinculos([{ guarnicaoId: abt, ...FAIXA_A }, { guarnicaoId: abt, ...FAIXA_B }, { guarnicaoId: outra, ...FAIXA_A }])).status).toBe(200);
+    }
+  });
+
+  it('quem acumulava volta também às vagas acumuladas', async () => {
+    const criada: EscalaDoMes = await (await escalar('CNHD', dia(23))).json();
+    const id = alocacaoDe(criada, 23, 'Combatente', 'CNHD');
+    expect((await api.pedir('escalante', 'POST', `/api/alocacoes/${id}/acumulos`, { guarnicaoId: abt, funcaoId: motorista })).status).toBe(201);
+    const removida = await remover(id);
+    expect((await api.banco.query('select 1 from alocacao_acumulo')).rows.length).toBe(0);
+    const r = await api.pedir('escalante', 'POST', `/api/remocoes/${removida.remocaoId}/desfazer`);
+    expect(r.status).toBe(200);
+    const devolvida: EscalaDoMes = await r.json();
+    expect(ocupantes(devolvida, 23, 'Motorista')).toEqual(['CNHD']);
+    expect(ocupantes(devolvida, 23, 'Combatente')).toEqual(['CNHD']);
+  });
+
+  it('quem estava em "Sem guarnição" volta a ficar sem guarnição', async () => {
+    const criada = await (await escalar('JESSEM', dia(21), { guarnicaoId: null, funcaoId: null, turnoId: turnoB })).json();
+    const sem = (criada as EscalaDoMes).dias[20]!.faixas.find((f) => f.inicio === FAIXA_B.inicio)!.semPosto[0]!;
+    const removida = await remover(sem.alocacaoId);
+    const r = await api.pedir('escalante', 'POST', `/api/remocoes/${removida.remocaoId}/desfazer`);
+    expect(r.status).toBe(200);
+    const linhas = (await api.banco.query<{ guarnicao_id: string | null; funcao_id: string | null }>('select guarnicao_id, funcao_id from alocacao where militar_id = $1 and data = $2::date', [militar.JESSEM, dia(21)])).rows;
+    expect(linhas).toEqual([{ guarnicao_id: null, funcao_id: null }]);
+  });
+
+  it('uma remoção antiga (sem a vaga guardada) não dá para desfazer: 409 com a frase; "Permitir de novo" continua valendo', async () => {
+    const turno = (await api.banco.query<{ servico_id: string }>('select servico_id from turno where id = $1', [turnoA])).rows[0]!;
+    const antiga = (await api.banco.query<{ id: string }>(
+      'insert into remocao (militar_id, escala_id, servico_id, turno_id, data) values ($1, $2, $3, $4, $5::date) returning id',
+      [militar.NAOJES, escalaId, turno.servico_id, turnoA, dia(19)],
+    )).rows[0]!.id;
+    const r = await api.pedir('escalante', 'POST', `/api/remocoes/${antiga}/desfazer`);
+    expect(r.status).toBe(409);
+    expect((await r.json()).erro).toBe(DESFEZ_TUDO);
+    expect((await api.pedir('escalante', 'DELETE', `/api/remocoes/${antiga}`)).status).toBe(200);
+  });
+
+  it('quem não é da seção recebe 403 ao desfazer; remoção que não existe é 404', async () => {
+    const criada: EscalaDoMes = await (await escalar('UM', dia(18))).json();
+    const removida = await remover(alocacaoDe(criada, 18, 'Combatente', 'UM'));
+    expect((await api.pedir('semPapel', 'POST', `/api/remocoes/${removida.remocaoId}/desfazer`)).status).toBe(403);
+    expect((await api.pedir('escalante', 'POST', '/api/remocoes/00000000-0000-4000-8000-000000000000/desfazer')).status).toBe(404);
+  });
+});
+
 describe('acesso', () => {
   it('quem não é da seção recebe 403 ao escalar, remover e desfazer', async () => {
     expect((await escalar('VOLTA', dia(22), {}, 'semPapel')).status).toBe(403);

@@ -8,7 +8,7 @@ import type { Auth } from '../auth.ts';
 import { comUsuario, type Banco } from '../banco/banco.ts';
 import { mesPassado } from '../cadastros/guarnicoes.ts';
 import { lerCorpo, respostaDoErroDoBanco } from '../erros.ts';
-import { acumular, desfazerRemocao, escalar, Recusa, remover, tirarAcumulo } from './alocacoes.ts';
+import { acumular, desfazerRemocao, devolverRemocao, escalar, Recusa, remover, tirarAcumulo } from './alocacoes.ts';
 import { avaliarCandidatos } from './elegibilidade.ts';
 import { montarEscalaDoMes } from './leitura.ts';
 import { gravarOrdem, ordemDoMes } from './ordem-do-mes.ts';
@@ -159,8 +159,25 @@ export function rotasEscalaDoMes(dep: { banco: Banco; auth: Auth }): Hono<Ambien
     const negado = await exigirPapel(c, unidadeId, CADASTRO);
     if (negado) return negado;
     if (await daRodadaDaAlocacao(id)) return c.json({ erro: MSG_RODADA }, 409);
-    const { escalaId, mes } = await comUsuario(dep.banco, c.get('usuarioId'), (tx) => remover(tx, id, c.get('usuarioId')));
-    return c.json(await montarEscalaDoMes(dep.banco, escalaId, mes));
+    const { escalaId, mes, remocaoId } = await comUsuario(dep.banco, c.get('usuarioId'), (tx) => remover(tx, id, c.get('usuarioId')));
+    // a escala do mês e o id da remoção: o aviso da tela usa o id para o "Desfazer"
+    return c.json({ ...(await montarEscalaDoMes(dep.banco, escalaId, mes)), remocaoId });
+  });
+
+  /** "Desfazer" a remoção: devolve o militar à mesma vaga e tira a marca de removido; 409 se a escala mudou desde então. */
+  r.post('/remocoes/:id/desfazer', async (c) => {
+    const id = c.req.param('id');
+    const unidadeId = await unidadeDoRegistro(dep.banco, 'remocao', id);
+    if (!unidadeId) return c.json({ erro: 'Remoção não encontrada.' }, 404);
+    const negado = await exigirPapel(c, unidadeId, CADASTRO);
+    if (negado) return negado;
+    try {
+      const { escalaId, mes } = await comUsuario(dep.banco, c.get('usuarioId'), (tx) => devolverRemocao(tx, id));
+      return c.json(await montarEscalaDoMes(dep.banco, escalaId, mes));
+    } catch (e) {
+      if (e instanceof Recusa) return c.json({ erro: e.message }, 409);
+      return respostaDoErroDoBanco(c, e);
+    }
   });
 
   r.delete('/remocoes/:id', async (c) => {
