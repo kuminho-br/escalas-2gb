@@ -9,6 +9,7 @@ import { CampoDeMes } from '@/componentes/CampoDeMes';
 import { OrdemDeEscalacao } from '@/componentes/escalas/OrdemDeEscalacao';
 import { Label } from '@/componentes/ui/label';
 import { mesAtual } from '@/lib/meses';
+import { Moldura } from '@/componentes/Moldura';
 
 export const Route = createFileRoute('/_app/escalas_/$id/ordem')({
   validateSearch: (s: Record<string, unknown>): { mes?: string } => ({ mes: typeof s.mes === 'string' && Mes.safeParse(s.mes).success ? s.mes : undefined }),
@@ -26,11 +27,10 @@ function Ordem() {
 
   return (
     <ProvedorDePendencias>
-      <section className="grid gap-4">
-        <div>
-          <Link to="/escalas/$id" params={{ id }} className="text-sm font-medium text-vinho underline underline-offset-2">Voltar para a escala</Link>
-          <h1 className="font-cond text-titulo leading-tight font-semibold">Ordem de escalação{escala.data ? ` — ${escala.data.nome}` : ''}</h1>
-        </div>
+      <Moldura
+        titulo={`Ordem de escalação${escala.data ? ` — ${escala.data.nome}` : ''}`}
+        antes={<Link to="/escalas/$id" params={{ id }} className="text-sm font-medium text-vinho underline underline-offset-2">Voltar para a escala</Link>}
+      >
         <div className="grid gap-1.5">
           <Label htmlFor="oe-mes">Vale a partir de</Label>
           <CampoDeMes id="oe-mes" valor={mes} aoMudar={(m) => void navigate({ search: { mes: m } })} />
@@ -39,7 +39,7 @@ function Ordem() {
         {escala.error && <p role="alert" className="text-alerta">{mensagemDe(escala.error)}</p>}
         {ordem.error && <p role="alert" className="text-alerta">{mensagemDe(ordem.error)}</p>}
         {ordem.data && <OrdemDeEscalacao key={`${id}|${mes}`} escalaId={id} mes={mes} dados={ordem.data} />}
-      </section>
+      </Moldura>
     </ProvedorDePendencias>
   );
 }

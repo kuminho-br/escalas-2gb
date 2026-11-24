@@ -16,6 +16,7 @@ import { dataBr, mesAtual } from '@/lib/meses';
 import { correspondeABusca, normalizarBusca } from '@/lib/texto';
 import { cn } from '@/lib/utils';
 import { classeItemEscolhido } from '@/componentes/ListaDetalhe';
+import { Moldura } from '@/componentes/Moldura';
 
 export const Route = createFileRoute('/_app/peculio')({
   component: Peculio,
@@ -50,24 +51,27 @@ function Peculio() {
   const unico = busca.trim() !== '' && filtrados.length === 1 ? filtrados[0]! : null;
 
   return (
-    <section>
-      <header className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="font-cond text-titulo leading-tight font-semibold">Pecúlio</h1>
-        <div className="flex flex-wrap gap-2">
-          {/* a importação é de quem cuida do pessoal (nível acima das seções), a mesma regra do cadastro de militar novo */}
-          {podeCadastrarMilitar(eu) && <ImportarPlanilha cadastro="peculio" rotulo="o Pecúlio" unidadeId={unidade.id} aoConcluir={() => atualizarPeculio(queryClient)} />}
-          {podeCadastrarMilitar(eu) && (
-            <Button onClick={() => setNovo(true)}>
-              <UserPlus aria-hidden />
-              Novo militar
-            </Button>
-          )}
-          {novo && <NovoMilitar eu={eu} aoFechar={() => setNovo(false)} />}
-        </div>
-      </header>
+    <Moldura
+      titulo="Pecúlio"
+      acaoPrincipal={
+        <>
+          <div className="flex flex-wrap gap-2">
+              {/* a importação é de quem cuida do pessoal (nível acima das seções), a mesma regra do cadastro de militar novo */}
+              {podeCadastrarMilitar(eu) && <ImportarPlanilha cadastro="peculio" rotulo="o Pecúlio" unidadeId={unidade.id} aoConcluir={() => atualizarPeculio(queryClient)} />}
+              {podeCadastrarMilitar(eu) && (
+                <Button onClick={() => setNovo(true)}>
+                  <UserPlus aria-hidden />
+                  Novo militar
+                </Button>
+              )}
+              {novo && <NovoMilitar eu={eu} aoFechar={() => setNovo(false)} />}
+            </div>
+        </>
+      }
+    >
 
-      {lista.isPending && <p className="mt-6 text-apagado">Carregando…</p>}
-      {lista.error && <p role="alert" className="mt-6 text-alerta">{mensagemDe(lista.error)}</p>}
+      {lista.isPending && <p className="text-apagado">Carregando…</p>}
+      {lista.error && <p role="alert" className="text-alerta">{mensagemDe(lista.error)}</p>}
       {lista.data && (
         <div className={cn('mt-6 grid items-start gap-6', lista.data.aniversariantes && 'lg:grid-cols-[1fr_20rem]')}>
           <div className="rounded-xl border border-linha bg-superficie">
@@ -127,7 +131,7 @@ function Peculio() {
           )}
         </div>
       )}
-    </section>
+    </Moldura>
   );
 }
 

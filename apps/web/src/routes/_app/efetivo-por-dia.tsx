@@ -22,6 +22,7 @@ import { Input } from '@/componentes/ui/input';
 import { Label } from '@/componentes/ui/label';
 import { guardarUltimoDia, janelaDoDia, ultimoDiaVisto } from '@/lib/efetivo';
 import { diaDaSemanaPorExtenso, hoje, somarDias } from '@/lib/meses';
+import { Moldura } from '@/componentes/Moldura';
 
 export const Route = createFileRoute('/_app/efetivo-por-dia')({
   validateSearch: (s: Record<string, unknown>): { data?: string } => ({ data: typeof s.data === 'string' && Data.safeParse(s.data).success ? s.data : undefined }),
@@ -147,8 +148,7 @@ function EfetivoPorDia() {
     };
   };
   return (
-    <section className="grid gap-4">
-      <h1 className="font-cond text-titulo leading-tight font-semibold">Efetivo por dia</h1>
+    <Moldura titulo="Efetivo por dia">
       <div className="flex flex-wrap items-end gap-3">
         <Button type="button" variant="secundario" size="icon" aria-label="Dia anterior" onClick={() => irPara(somarDias(data, -1))}>
           <ChevronLeft aria-hidden />
@@ -250,6 +250,6 @@ function EfetivoPorDia() {
           {voltando && <ConfirmarVoltarAoPadrao salvando={salvando} erro={erroNoDialogo} aoVoltar={() => void voltarAoPadrao()} aoFechar={() => setVoltando(false)} />}
         </>
       )}
-    </section>
+    </Moldura>
   );
 }

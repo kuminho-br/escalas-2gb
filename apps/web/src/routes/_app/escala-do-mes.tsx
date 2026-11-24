@@ -19,6 +19,7 @@ import { Button } from '@/componentes/ui/button';
 import { Label } from '@/componentes/ui/label';
 import { mesAtual } from '@/lib/meses';
 import { cn } from '@/lib/utils';
+import { Moldura } from '@/componentes/Moldura';
 
 export const Route = createFileRoute('/_app/escala-do-mes')({
   validateSearch: (s: Record<string, unknown>): { escala?: string; mes?: string; dia?: string } => ({
@@ -95,13 +96,12 @@ function EscalaDoMes() {
   if (escalas.error) return <p role="alert" className="text-alerta">{mensagemDe(escalas.error)}</p>;
   if (!escalaId) {
     return (
-      <section>
-        <h1 className="font-cond text-titulo leading-tight font-semibold">Escala do mês</h1>
+      <Moldura titulo="Escala do mês">
         {/* numa unidade só de consulta a pessoa não cria escala: sem o link */}
-        <p className="mt-4 text-apagado">
+        <p className="text-apagado">
           Nenhuma escala ativa.{!soConsulta && <> Crie uma em <Link to="/escalas" className="font-medium text-vinho underline underline-offset-2">Escalas</Link>.</>}
         </p>
-      </section>
+      </Moldura>
     );
   }
 
@@ -109,8 +109,7 @@ function EscalaDoMes() {
   // as cotas dos serviços que aparecem nos turnos das faixas do mês
   const servicosDaEscala = [...new Set((dados.data?.dias ?? []).flatMap((d) => d.faixas.flatMap((f) => f.turnos.map((t) => t.servicoId))))];
   return (
-    <section className="grid gap-4">
-      <h1 className="font-cond text-titulo leading-tight font-semibold">Escala do mês</h1>
+    <Moldura titulo="Escala do mês">
       <div className="flex flex-wrap items-end gap-3">
         <div className="grid gap-1.5">
           <Label htmlFor="em-escala">Escala</Label>
@@ -154,6 +153,6 @@ function EscalaDoMes() {
       )}
       {gerando && <GerarPreEscala escalaId={escalaId} mes={mes} aoFechar={() => setGerando(false)} aoGravar={setGravadas} />}
       {vaga && <EscolherMilitar key={`${vaga.data}|${vaga.inicio}|${vaga.guarnicaoId}|${vaga.funcaoId}`} escalaId={escalaId} vaga={vaga} aoFechar={() => setVaga(null)} />}
-    </section>
+    </Moldura>
   );
 }

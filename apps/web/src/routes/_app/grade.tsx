@@ -15,6 +15,7 @@ import { useEhCelular } from '@/lib/useEhCelular';
 import { mesAtual } from '@/lib/meses';
 import { normalizarBusca } from '@/lib/texto';
 import { cn } from '@/lib/utils';
+import { Moldura } from '@/componentes/Moldura';
 
 export const Route = createFileRoute('/_app/grade')({
   validateSearch: buscaDaGrade,
@@ -76,8 +77,7 @@ function GradeGeral() {
   }, [militarEscolhido, diaEscolhido, gradeCarregada]);
 
   return (
-    <section className="grid gap-4">
-      <h1 className="font-cond text-titulo leading-tight font-semibold">Grade geral</h1>
+    <Moldura titulo="Grade geral">
       <div className="flex flex-wrap items-end gap-3">
         <div className="grid gap-1.5">
           <Label htmlFor="gg-mes">Mês</Label>
@@ -144,6 +144,6 @@ function GradeGeral() {
           )}
         </div>
       )}
-    </section>
+    </Moldura>
   );
 }

@@ -13,6 +13,7 @@ import { ListaDoVoluntariado } from '@/componentes/voluntariado/ListaDoVoluntari
 import { mesAtual } from '@/lib/meses';
 import { useEhCelular } from '@/lib/useEhCelular';
 import { proximoQueFalta } from '@/lib/voluntariado';
+import { Moldura } from '@/componentes/Moldura';
 
 export const Route = createFileRoute('/_app/voluntariado')({
   validateSearch: (s: Record<string, unknown>): { mes?: string; militar?: string } => ({
@@ -51,8 +52,7 @@ function Voluntariado() {
 
   return (
     <ProvedorDePendencias>
-      <section className="grid gap-4">
-        <h1 className="font-cond text-titulo leading-tight font-semibold">Voluntariado</h1>
+      <Moldura titulo="Voluntariado">
         <div className="grid gap-1.5">
           <Label htmlFor="vo-mes">Mês</Label>
           <CampoDeMes id="vo-mes" valor={mes} aoMudar={(m) => void navigate({ search: { mes: m } })} />
@@ -108,7 +108,7 @@ function Voluntariado() {
             )}
           </div>
         )}
-      </section>
+      </Moldura>
     </ProvedorDePendencias>
   );
 }

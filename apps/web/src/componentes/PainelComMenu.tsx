@@ -12,13 +12,13 @@ export type SecaoDoMenu = { valor: string; nome: string };
 export function PainelComMenu({ secoes, valor, aoEscolher, rotulo, children }: { secoes: SecaoDoMenu[]; valor: string; aoEscolher: (valor: string) => void; rotulo: string; children: ReactNode }) {
   if (secoes.length <= 1) {
     return (
-      <Tabs value={valor} onValueChange={aoEscolher} className="mt-6 gap-0">
+      <Tabs value={valor} onValueChange={aoEscolher} className="gap-0">
         {children}
       </Tabs>
     );
   }
   return (
-    <Tabs value={valor} onValueChange={aoEscolher} orientation="vertical" className="mt-6 flex-col gap-4 md:flex-row md:gap-10">
+    <Tabs value={valor} onValueChange={aoEscolher} orientation="vertical" className="flex-col gap-4 md:flex-row md:gap-10">
       {/* celular: uma lista de opções no alto */}
       <div className="md:hidden">
         <Selecao aria-label={rotulo} value={valor} onChange={(e) => aoEscolher(e.target.value)}>

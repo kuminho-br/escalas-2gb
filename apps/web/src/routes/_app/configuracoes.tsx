@@ -16,6 +16,7 @@ import { Label } from '@/componentes/ui/label';
 import { PainelComMenu } from '@/componentes/PainelComMenu';
 import { TabsContent } from '@/componentes/ui/tabs';
 import { ABAS_DA_ESCALA, type AbaDaEscala } from '@/lib/configuracoes';
+import { Moldura } from '@/componentes/Moldura';
 
 const ABAS = ['preferencias', 'postos', 'funcoes', 'situacoes', 'tipos', 'quem-ve-o-que'] as const;
 /** As seções que saíram daqui para o módulo Estrutura: o endereço antigo leva a elas. */
@@ -58,10 +59,7 @@ function Configuracoes() {
   const navigate = Route.useNavigate();
 
   return (
-    <section>
-      <header className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="font-cond text-titulo leading-tight font-semibold">Configurações</h1>
-      </header>
+    <Moldura titulo="Configurações">
       <PainelComMenu secoes={secoes} valor={aba} rotulo="Seção das configurações" aoEscolher={(v) => void navigate({ search: { aba: ABAS.find((a) => a === v) }, replace: true })}>
         <TabsContent value="preferencias">
           <AnimacaoDeEntrada />
@@ -92,7 +90,7 @@ function Configuracoes() {
           </TabsContent>
         )}
       </PainelComMenu>
-    </section>
+    </Moldura>
   );
 }
 

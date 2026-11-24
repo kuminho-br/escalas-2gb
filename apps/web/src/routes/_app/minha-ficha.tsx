@@ -10,6 +10,7 @@ import { CampoDeTelefone } from '@/componentes/CamposDeContato';
 import { Secao } from '@/componentes/militares/Secao';
 import { mascararCep, mascararCpf } from '@/lib/militares';
 import { Button } from '@/componentes/ui/button';
+import { Moldura } from '@/componentes/Moldura';
 
 export const Route = createFileRoute('/_app/minha-ficha')({
   component: MinhaFichaTela,
@@ -35,8 +36,7 @@ function MinhaFichaTela() {
   if (isPending) return <p className="text-apagado">Carregando…</p>;
   if (error) return <p role="alert" className="text-alerta">{mensagemDe(error)}</p>;
   return (
-    <div className="mx-auto max-w-3xl">
-      <h1 className="mb-4 font-cond text-3xl font-semibold">Minha ficha</h1>
+    <Moldura titulo="Minha ficha" leitura>
       <div className="divide-y divide-linha rounded-lg border border-linha bg-superficie">
         <Secao titulo="Identificação">
           <Dados>
@@ -92,7 +92,7 @@ function MinhaFichaTela() {
           </Dados>
         </Secao>
       </div>
-    </div>
+    </Moldura>
   );
 }
 

@@ -8,6 +8,7 @@ import { Selecao } from '@/componentes/Selecao';
 import { Button } from '@/componentes/ui/button';
 import { Input } from '@/componentes/ui/input';
 import { Label } from '@/componentes/ui/label';
+import { Moldura } from '@/componentes/Moldura';
 
 export const MSG_BUSCA_CURTA = 'Digite pelo menos 3 letras ou escolha uma unidade.';
 export const MSG_HA_MAIS = 'Há mais militares. Refine a busca.';
@@ -30,14 +31,11 @@ export const Route = createFileRoute('/_app/consulta')({
 function Consulta() {
   const { texto = '', unidade = '' } = Route.useSearch();
   return (
-    <section>
-      <header>
-        <h1 className="font-cond text-titulo leading-tight font-semibold">Consulta de militares</h1>
-      </header>
+    <Moldura titulo="Consulta de militares">
       {/* key: voltar ou avançar no navegador põe os campos no que a busca do endereço diz */}
       <Formulario key={`${texto}|${unidade}`} texto={texto} unidade={unidade} />
       <Resultado texto={texto} unidade={unidade} />
-    </section>
+    </Moldura>
   );
 }
 

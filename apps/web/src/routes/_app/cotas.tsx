@@ -18,6 +18,7 @@ import { Input } from '@/componentes/ui/input';
 import { Label } from '@/componentes/ui/label';
 import { mesAtual } from '@/lib/meses';
 import { Radio } from '@/componentes/ui/radio';
+import { Moldura } from '@/componentes/Moldura';
 
 export const Route = createFileRoute('/_app/cotas')({
   component: Cotas,
@@ -68,22 +69,25 @@ function Cotas() {
   }
 
   return (
-    <section>
-      <header className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="font-cond text-titulo leading-tight font-semibold">Cotas</h1>
-        {!soConsulta && (
-          <div className="flex flex-wrap gap-2">
-            <ImportarPlanilha cadastro="cotas" rotulo="as cotas" aoConcluir={() => atualizarCotas(queryClient)} />
-            <Button variant="secundario" disabled={copiando} onClick={() => void copiar()}>Copiar do mês anterior</Button>
-            <Button onClick={() => setDialogo({})}>
-              <Plus aria-hidden />
-              Adicionar cota
-            </Button>
-          </div>
-        )}
-      </header>
+    <Moldura
+      titulo="Cotas"
+      acaoPrincipal={
+        <>
+          {!soConsulta && (
+              <div className="flex flex-wrap gap-2">
+                <ImportarPlanilha cadastro="cotas" rotulo="as cotas" aoConcluir={() => atualizarCotas(queryClient)} />
+                <Button variant="secundario" disabled={copiando} onClick={() => void copiar()}>Copiar do mês anterior</Button>
+                <Button onClick={() => setDialogo({})}>
+                  <Plus aria-hidden />
+                  Adicionar cota
+                </Button>
+              </div>
+            )}
+        </>
+      }
+    >
 
-      <div className="mt-6 rounded-xl border border-linha bg-superficie">
+      <div className="rounded-xl border border-linha bg-superficie">
         <div className="flex flex-wrap items-end gap-4 border-b border-linha p-4">
           <div className="grid gap-1.5">
             <Label htmlFor="cotas-mes">Mês</Label>
@@ -129,7 +133,7 @@ function Cotas() {
           aoFechar={() => setDialogo(null)}
         />
       )}
-    </section>
+    </Moldura>
   );
 }
 

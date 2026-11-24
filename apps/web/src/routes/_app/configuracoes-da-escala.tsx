@@ -21,6 +21,7 @@ import { AcoesDosModelos, ListaDeModelos } from '@/componentes/guarnicoes/ListaD
 import { ABAS_DA_ESCALA, type AbaDaEscala as Aba } from '@/lib/configuracoes';
 import { mesAtual } from '@/lib/meses';
 import { Checkbox } from '@/componentes/ui/checkbox';
+import { Moldura } from '@/componentes/Moldura';
 
 
 export const Route = createFileRoute('/_app/configuracoes-da-escala')({
@@ -36,11 +37,14 @@ function ConfiguracoesDaEscala() {
   const navigate = Route.useNavigate();
 
   return (
-    <section>
-      <header className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="font-cond text-titulo leading-tight font-semibold">Configurações da escala</h1>
-        {podeMudar && <ImportarPlanilha cadastro="configuracoes" rotulo="as configurações" aoConcluir={() => queryClient.invalidateQueries({ queryKey: ['parametros'] })} />}
-      </header>
+    <Moldura
+      titulo="Configurações da escala"
+      acaoPrincipal={
+        <>
+          {podeMudar && <ImportarPlanilha cadastro="configuracoes" rotulo="as configurações" aoConcluir={() => queryClient.invalidateQueries({ queryKey: ['parametros'] })} />}
+        </>
+      }
+    >
       <PainelComMenu
         secoes={[{ valor: 'regras', nome: 'Regras do processo' }, { valor: 'voluntariado', nome: 'Voluntariado' }, { valor: 'modelos', nome: 'Modelos de guarnição' }, { valor: 'meta', nome: 'Meta de ativação' }]}
         valor={aba}
@@ -69,7 +73,7 @@ function ConfiguracoesDaEscala() {
           </div>
         </TabsContent>
       </PainelComMenu>
-    </section>
+    </Moldura>
   );
 }
 
