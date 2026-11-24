@@ -99,8 +99,9 @@ describe('entrar', () => {
     expect(screen.getByRole('main')).not.toHaveAttribute('data-cena', 'tocando');
     soltar();
     expect(await screen.findByRole('button', { name: 'Entrar' })).toBeEnabled();
-    // no erro, o foco vai para o campo da senha
-    expect(screen.getByLabelText('Senha')).toHaveFocus();
+    // no erro, o foco vai para o campo da senha. O foco é movido por um efeito (useEffect), que o React roda depois de pôr o botão "Entrar" na tela: conferir no mesmo instante
+    // em que o botão aparece é uma corrida (falhava 1 vez em 6, mais com a máquina ocupada). A conferência é a mesma, só espera o efeito rodar.
+    await waitFor(() => expect(screen.getByLabelText('Senha')).toHaveFocus());
   });
 
   it('entrar mostra erro de rede', async () => {
