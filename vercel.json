@@ -2,5 +2,6 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": null,
   "installCommand": "npm i -g pnpm@12.21.0 && pnpm install --frozen-lockfile",
-  "buildCommand": "node scripts/build-vercel.mjs"
+  "buildCommand": "node scripts/build-vercel.mjs",
+  "ignoreCommand": "bash scripts/deploy-so-com-codigo.sh"
 }
