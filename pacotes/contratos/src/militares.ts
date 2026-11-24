@@ -66,6 +66,9 @@ export function cpfValido(cpf: string): boolean {
 export const MSG_CPF = 'CPF inválido: confira os 11 dígitos.';
 /** CPF: aceita com ou sem pontuação; vira os 11 dígitos. */
 export const Cpf = z.string().trim().transform(digitos).refine(cpfValido, MSG_CPF);
+export const MSG_RG_FUNCIONAL = 'O RG funcional tem de 1 a 20 caracteres: letras, números, ponto e hífen, sem espaços.';
+/** RG funcional: como escrito no documento; sem espaços (nem nas pontas), só letras, números, ponto e hífen. */
+export const RgFuncional = z.string().regex(/^[A-Za-z0-9.-]{1,20}$/, MSG_RG_FUNCIONAL);
 export const MSG_CEP = 'O CEP tem 8 dígitos.';
 export const Cep = z.string().trim().transform(digitos).refine((v) => /^\d{8}$/.test(v), MSG_CEP);
 export const UFS = ['AC', 'AL', 'AP', 'AM', 'BA', 'CE', 'DF', 'ES', 'GO', 'MA', 'MT', 'MS', 'MG', 'PA', 'PB', 'PR', 'PE', 'PI', 'RJ', 'RN', 'RS', 'RO', 'RR', 'SC', 'SP', 'SE', 'TO'] as const;
@@ -132,6 +135,7 @@ export const EdicaoMilitar = z.object({
   sexo: Sexo.nullable().optional(),
   nascimento: Nascimento.nullable().optional(),
   cpf: Cpf.nullable().optional(),
+  rgFuncional: RgFuncional.nullable().optional(),
   endereco: EdicaoDeEndereco.optional(),
   telefone: Telefone.nullable().optional(),
   email: EmailInstitucional.nullable().optional(),
@@ -230,6 +234,8 @@ export type FichaMilitar = LinhaMilitar & {
   nascimento?: Nascimento | null;
   /** 11 dígitos, sem pontuação; a tela mostra 000.000.000-00 */
   cpf?: string | null;
+  /** O RG funcional, como escrito; só para quem cuida do Pecúlio (a chave fica ausente para os outros). */
+  rgFuncional?: string | null;
   endereco?: Endereco;
   /** A função do militar (do catálogo das Configurações), pelo nome; a que foi desativada continua na ficha de quem a tem. null: ainda sem função. */
   funcao: string | null;

@@ -23,9 +23,19 @@ export const consultaDaBusca = (texto: string, unidadeId: string) => {
 };
 
 /** A ficha de consulta: só os blocos que a pessoa vê. */
-/** `unidadeId`: a unidade de trabalho, para a ficha dizer se o gestor pode trazer o militar para a escala dela (o militar externo). */
-export const consultaDaFicha = (id: string, unidadeId?: string) =>
+export const consultaDaFicha = (id: string) =>
   queryOptions({
-    queryKey: ['consulta', 'militar', id, unidadeId ?? null],
-    queryFn: () => pedir<FichaDeConsulta>('GET', `/api/consulta/militares/${id}${unidadeId ? `?unidade=${unidadeId}` : ''}`),
+    queryKey: ['consulta', 'militar', id],
+    queryFn: () => pedir<FichaDeConsulta>('GET', `/api/consulta/militares/${id}`),
+  });
+
+/**
+ * A busca de quem trazer para a escala da unidade de trabalho (Configurações da escala, 6.36): a mesma busca da Consulta, e cada linha diz se o
+ * militar já é da unidade (`daUnidade`). Com menos de 3 letras não há o que buscar.
+ */
+export const consultaParaTrazer = (texto: string, unidadeDeTrabalho: string) =>
+  queryOptions({
+    queryKey: ['consulta', 'militares', 'para-trazer', texto, unidadeDeTrabalho],
+    queryFn: () => pedir<ResultadoDaConsulta>('GET', `/api/consulta/militares?${new URLSearchParams({ texto, unidadeDeTrabalho })}`),
+    retry: deveTentarDeNovoNaBusca,
   });

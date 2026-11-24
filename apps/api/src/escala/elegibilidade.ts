@@ -32,13 +32,11 @@ import { nomeDaVaga } from './vagas.ts';
 export type VagaConsultada = { escalaId: string; data: string; inicio: string; fim: string; guarnicaoId: string | null; funcaoId: string | null };
 
 export type TurnoDaFaixa = { turnoId: string; servicoId: string; nome: string; tipo: Tipo; letra: 'A' | 'B' | 'C'; inicio: string; fim: string };
-/** `externo`: veio de outra unidade pelo vínculo (6.33); a pré-escala e as distribuições do ordinário nunca o põem. */
+/** `externo`: veio de outra unidade pelo vínculo (6.33); é candidato em qualquer serviço lançado à mão (6.36), mas a pré-escala e as distribuições automáticas nunca o põem. */
 export type Avaliado = { externo: boolean; candidato: Omit<Candidato, 'servicos'>; militarMotivo: string | null; porTurno: { turno: TurnoDaFaixa; motivo: string | null }[]; antig: number | null; postoOrdem: number; cnh: string[] };
 
 const NAO_LOTADO = 'Não está lotado na seção neste dia';
 export const JA_ESCALADO = 'Já escalado neste horário';
-/** O externo (de outra unidade, trazido pelo gestor) só tira serviço extra: JES, Diária e PJES. */
-export const SO_SERVICO_EXTRA = 'Externo só em serviço extra';
 /** O motivo "só falta marcar o horário": é a última conferência de cada turno, então ele quer dizer que todas as outras regras passaram. */
 export const SEM_VOLUNTARIADO = 'Não marcou voluntariado neste horário';
 
@@ -173,10 +171,9 @@ export async function avaliarFaixa(c: Consulta, v: VagaConsultada, somenteMilita
       null,
       ordemDosTurnos.map((turno) => {
         let motivo: string | null = null;
-        // o externo só tira serviço extra (JES, Diária, PJES)
-        if (m.externo && turno.tipo === 'ordinario') motivo = SO_SERVICO_EXTRA;
+        // o externo (6.36) é candidato em qualquer serviço lançado à mão, com as regras de todos
         // RN-03: o Saldo é do Adm (a regra e a frase são do motor; aqui sem o código da regra)
-        else if (violacoesSaldo([{ mat: m.id, dia: v.data, servico: turno.nome, turno: turno.letra }], { adm: m.jornada === 'adm' ? { [m.id]: true } : {} }).length) motivo = 'Saldo só para militar do Adm';
+        if (violacoesSaldo([{ mat: m.id, dia: v.data, servico: turno.nome, turno: turno.letra }], { adm: m.jornada === 'adm' ? { [m.id]: true } : {} }).length) motivo = 'Saldo só para militar do Adm';
         else if ((turno.tipo === 'pjes' || exigeVoluntarioJes(turno.nome)) && !m.voluntario_jes) motivo = 'Não é voluntário JES';
         else {
           const candidata: AlocChoque = { mat: m.id, dia: v.data, turno: turno.letra, servico: turno.nome };

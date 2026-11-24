@@ -131,36 +131,36 @@ describe('grade geral: a tabela', () => {
     api();
     abrir(`/?mes=${MES}`);
     const caixa = (await screen.findByRole('table', { name: 'Grade geral de dezembro de 2026' })).closest('[data-rolagem="grade"]');
-    // a coluna Militar (13rem) à esquerda, as três colunas finais (15rem, a partir de 1440px) à direita e o cabeçalho (4rem) em cima
-    expect(caixa).toHaveClass('scroll-pl-52', 'scroll-pt-16', 'min-[1440px]:scroll-pr-60');
+    // a coluna Militar (13rem) à esquerda, as duas colunas finais (8rem, a partir de 1440px) à direita e o cabeçalho (4rem) em cima
+    expect(caixa).toHaveClass('scroll-pl-52', 'scroll-pt-16', 'min-[1440px]:scroll-pr-32');
   });
 
-  it('PJES, Diárias e Voluntariado ficam presos à direita em tela larga', async () => {
+  it('PJES e Diárias ficam presos à direita em tela larga, e não há coluna Voluntariado', async () => {
     api();
     abrir(`/?mes=${MES}`);
     await screen.findByRole('table', { name: 'Grade geral de dezembro de 2026' });
+    expect(screen.queryByRole('columnheader', { name: 'Voluntariado' })).toBeNull();
     // o cabeçalho já gruda em cima em qualquer largura; a borda direita só a partir de 1440px, e as células do corpo grudam junto
-    const cabecalhos = ['PJES', 'Diárias', 'Voluntariado'].map((nome) => screen.getByRole('columnheader', { name: nome }));
-    const direita = ['min-[1440px]:right-44', 'min-[1440px]:right-28', 'min-[1440px]:right-0'];
+    const cabecalhos = ['PJES', 'Diárias'].map((nome) => screen.getByRole('columnheader', { name: nome }));
+    const direita = ['min-[1440px]:right-16', 'min-[1440px]:right-0'];
     cabecalhos.forEach((th, i) => expect(th).toHaveClass('sticky', 'top-0', direita[i]!));
-    const linha = linhaDe('CABO');
-    const finais = [...linha.querySelectorAll<HTMLElement>('td')].slice(-3);
+    // as duas são as últimas colunas da tabela
+    const todos = [...document.querySelectorAll<HTMLElement>('thead th')];
+    expect(todos.slice(-2)).toEqual(cabecalhos);
+    const finais = [...linhaDe('CABO').querySelectorAll<HTMLElement>('td')].slice(-2);
     finais.forEach((td, i) => expect(td).toHaveClass('min-[1440px]:sticky', direita[i]!, 'bg-superficie'));
-    // larguras fixas para os três empilharem sem sobrepor (4rem + 4rem + 7rem)
-    expect(cabecalhos[0]).toHaveClass('w-16');
-    expect(cabecalhos[1]).toHaveClass('w-16');
-    expect(cabecalhos[2]).toHaveClass('w-28');
+    // larguras fixas para as duas empilharem sem sobrepor (4rem + 4rem)
+    cabecalhos.forEach((th) => expect(th).toHaveClass('w-16'));
   });
 
-  it('as três colunas finais têm largura fixa de verdade (min e max iguais), para as presas se empilharem sem se sobrepor', async () => {
+  it('as duas colunas finais têm largura fixa de verdade (min e max iguais), para as presas se empilharem sem se sobrepor', async () => {
     api();
     abrir(`/?mes=${MES}`);
     await screen.findByRole('table', { name: 'Grade geral de dezembro de 2026' });
-    const larguras = [['PJES', 'w-16 min-w-16 max-w-16'], ['Diárias', 'w-16 min-w-16 max-w-16'], ['Voluntariado', 'w-28 min-w-28 max-w-28']] as const;
-    const finais = [...linhaDe('CABO').querySelectorAll<HTMLElement>('td')].slice(-3);
-    larguras.forEach(([nome, classes], i) => {
-      expect(screen.getByRole('columnheader', { name: nome })).toHaveClass(...classes.split(' '));
-      expect(finais[i]).toHaveClass(...classes.split(' '));
+    const finais = [...linhaDe('CABO').querySelectorAll<HTMLElement>('td')].slice(-2);
+    ['PJES', 'Diárias'].forEach((nome, i) => {
+      expect(screen.getByRole('columnheader', { name: nome })).toHaveClass('w-16', 'min-w-16', 'max-w-16');
+      expect(finais[i]).toHaveClass('w-16', 'min-w-16', 'max-w-16');
     });
   });
 
@@ -334,15 +334,6 @@ describe('grade geral: as colunas finais', () => {
     expect(larguras('SD1')).toEqual(['100%', '100%']);
     expect(larguras('BRAVO')).toEqual(['25%', '50%']);
     expect(within(linhaDe('CABO')).getByText('4')).toBeInTheDocument();
-  });
-
-  it('Voluntariado mostra as horas tiradas de pedidas, e traço quando não há nada', async () => {
-    api();
-    abrir(`/?mes=${MES}`);
-    await screen.findByRole('table');
-    expect(within(linhaDe('CABO')).getByText('24h de 60h')).toBeInTheDocument();
-    expect(within(linhaDe('SD1')).getByText('1h30 de 3h')).toBeInTheDocument();
-    expect(within(linhaDe('BRAVO')).getByText('–')).toBeInTheDocument();
   });
 });
 

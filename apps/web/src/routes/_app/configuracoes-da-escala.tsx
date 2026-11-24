@@ -8,6 +8,7 @@ import { consultaParametros, salvarParametro } from '@/api/configuracoes';
 import { podeMudarParametro } from '@/api/eu';
 import { useTrava } from '@/componentes/AlteracoesPendentes';
 import { MetaDeAtivacao } from '@/componentes/configuracoes/MetaDeAtivacao';
+import { MilitaresDeOutrasUnidades } from '@/componentes/configuracoes/MilitaresDeOutrasUnidades';
 import { ImportarPlanilha } from '@/componentes/ImportarPlanilha';
 import { Button } from '@/componentes/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/componentes/ui/dialog';
@@ -57,6 +58,7 @@ function ConfiguracoesDaEscala() {
         </TabsContent>
         <TabsContent value="voluntariado">
           <BlocosDoVoluntariado unidadeId={eu.unidade.id} podeMudar={podeMudar} />
+          <MilitaresDeOutrasUnidades unidadeId={eu.unidade.id} sigla={eu.unidade.sigla} podeMudar={podeMudar} />
         </TabsContent>
         <TabsContent value="modelos">
           <div className="mt-4 grid max-w-xl gap-3">

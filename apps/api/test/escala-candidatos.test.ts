@@ -346,12 +346,13 @@ describe('o militar externo como candidato (6.33)', () => {
     expect(await motivoExt('EXTNAO', D, FAIXA.BIOMA, T('Bioma A'))).toBeNull();
   });
 
-  it('no Pronto e no Saldo (ordinário), o motivo é "Externo só em serviço extra"', async () => {
-    expect(await motivoExt('EXTJES', D, FAIXA.A, T('Pronto A'))).toBe('Externo só em serviço extra');
-    expect(await motivoExt('EXTJES', D, FAIXA.A, T('Saldo A'))).toBe('Externo só em serviço extra');
+  it('6.36: no Pronto o externo também é candidato, com as regras de todos; no Saldo vale a regra do Adm', async () => {
+    expect(await motivoExt('EXTJES', D, FAIXA.A, T('Pronto A'))).toBeNull();
+    expect(await motivoExt('EXTNAO', D, FAIXA.A, T('Pronto A'))).toBeNull();
+    expect(await motivoExt('EXTJES', D, FAIXA.A, T('Saldo A'))).toBe('Saldo só para militar do Adm');
     const r = await avaliarCandidatos(api.banco, vaga(D, FAIXA.A));
-    expect(nomes(r).filter((n) => n.startsWith('EXT'))).toEqual([]);
-    expect(r.fora).toContainEqual({ motivo: 'Externo só em serviço extra', quantidade: expect.any(Number) });
+    expect(nomes(r)).toEqual(expect.arrayContaining(['EXTJES', 'EXTNAO']));
+    expect(r.fora.map((f) => f.motivo)).not.toContain('Externo só em serviço extra');
   });
 
   it('Review Focus 1: o serviço do externo na própria unidade conta: no mesmo horário ou por cima dele é choque, mesmo noutra seção', async () => {
@@ -369,12 +370,15 @@ describe('o militar externo como candidato (6.33)', () => {
     expect(nomes(await avaliarCandidatos(api.banco, vaga(dia(11), FAIXA.JES)))).not.toContain('EXTSAIU');
   });
 
-  it('escalar o externo à mão: num JES passa (201) e a alocação fica; no Pronto é 409 com o motivo; tirar o vínculo depois não apaga o lançamento', async () => {
+  it('escalar o externo à mão: num JES e no Pronto passa (201), no Saldo de quem não é do Adm é 409 com o motivo; tirar o vínculo depois não apaga o lançamento', async () => {
     const ok = await api.pedir('escalante', 'POST', `/api/escalas/${escalaId}/alocacoes`, { militarId: externo.EXTJES, data: dia(15), turnoId: T('JES A'), guarnicaoId: null, funcaoId: null });
     expect(ok.status).toBe(201);
-    const pronto = await api.pedir('escalante', 'POST', `/api/escalas/${escalaId}/alocacoes`, { militarId: externo.EXTJES, data: dia(15), turnoId: T('Pronto A'), guarnicaoId: null, funcaoId: null });
-    expect(pronto.status).toBe(409);
-    expect((await pronto.json()).erro).toBe('Externo só em serviço extra');
+    // 6.36: no Pronto, à mão, também passa (a escala dele na unidade de origem e o voluntariado não entram)
+    const pronto = await api.pedir('escalante', 'POST', `/api/escalas/${escalaId}/alocacoes`, { militarId: externo.EXTJES, data: dia(16), turnoId: T('Pronto A'), guarnicaoId: null, funcaoId: null });
+    expect(pronto.status).toBe(201);
+    const saldo = await api.pedir('escalante', 'POST', `/api/escalas/${escalaId}/alocacoes`, { militarId: externo.EXTJES, data: dia(17), turnoId: T('Saldo A'), guarnicaoId: null, funcaoId: null });
+    expect(saldo.status).toBe(409);
+    expect((await saldo.json()).erro).toBe('Saldo só para militar do Adm');
     const vinculo = (await api.banco.query<{ id: string }>('select id from vinculo_externo where militar_id = $1', [externo.EXTJES])).rows[0]!.id;
     expect((await api.pedir('admin', 'DELETE', `/api/unidades/${api.ids.secao}/externos/${vinculo}`)).status).toBe(204);
     expect((await api.banco.query('select 1 from alocacao where militar_id = $1 and data = $2::date', [externo.EXTJES, dia(15)])).rows).toHaveLength(1);

@@ -224,6 +224,47 @@ describe('dados pessoais: CPF, nascimento e endereço', () => {
   });
 });
 
+describe('RG funcional nos dados pessoais (6.36)', () => {
+  const AJUDA = 'Registro geral do militar nos órgãos estaduais de segurança pública.';
+
+  it('o campo aparece com o rótulo e a ajuda, mostra o que está gravado e grava só ele quando muda', async () => {
+    const f = api({ 'GET /api/militares/m1': { status: 200, corpo: { ...FICHA, rgFuncional: '12345-6' } }, 'PATCH /api/militares/m1': { status: 200, corpo: FICHA } });
+    abrir('/militares/m1?de=peculio');
+    const campo = await screen.findByLabelText('RG funcional');
+    expect(campo).toHaveValue('12345-6');
+    expect(screen.getByText(AJUDA)).toBeInTheDocument();
+    await userEvent.clear(campo);
+    await userEvent.type(campo, '7788');
+    await userEvent.click(screen.getByRole('button', { name: 'Salvar dados pessoais' }));
+    await waitFor(() => expect(corpoEnviado(f, 'PATCH /api/militares/m1')).toEqual({ rgFuncional: '7788' }));
+  });
+
+  it('apagar o campo limpa (manda null)', async () => {
+    const f = api({ 'GET /api/militares/m1': { status: 200, corpo: { ...FICHA, rgFuncional: '12345-6' } }, 'PATCH /api/militares/m1': { status: 200, corpo: FICHA } });
+    abrir('/militares/m1?de=peculio');
+    await userEvent.clear(await screen.findByLabelText('RG funcional'));
+    await userEvent.click(screen.getByRole('button', { name: 'Salvar dados pessoais' }));
+    await waitFor(() => expect(corpoEnviado(f, 'PATCH /api/militares/m1')).toEqual({ rgFuncional: null }));
+  });
+
+  it('caractere que o contrato recusa aparece no campo, sem ir ao servidor', async () => {
+    const f = api({ 'PATCH /api/militares/m1': { status: 200, corpo: FICHA } });
+    abrir('/militares/m1?de=peculio');
+    await userEvent.type(await screen.findByLabelText('RG funcional'), '12 34');
+    await userEvent.click(screen.getByRole('button', { name: 'Salvar dados pessoais' }));
+    expect(await screen.findByText('O RG funcional tem de 1 a 20 caracteres: letras, números, ponto e hífen, sem espaços.')).toBeInTheDocument();
+    expect(chamadasA(f, 'PATCH /api/militares/m1')).toBe(0);
+  });
+
+  it('o erro da API (RG funcional repetido) aparece no campo', async () => {
+    api({ 'PATCH /api/militares/m1': { status: 409, corpo: { erro: 'Este RG funcional já é de BARRETO.', campos: { rgFuncional: 'Este RG funcional já é de BARRETO.' } } } });
+    abrir('/militares/m1?de=peculio');
+    await userEvent.type(await screen.findByLabelText('RG funcional'), '555');
+    await userEvent.click(screen.getByRole('button', { name: 'Salvar dados pessoais' }));
+    expect((await screen.findAllByText('Este RG funcional já é de BARRETO.')).length).toBeGreaterThan(0);
+  });
+});
+
 describe('listas que não carregam explicam o botão apagado', () => {
   const MSG = 'Não deu para carregar a lista. Recarregue a página.';
 

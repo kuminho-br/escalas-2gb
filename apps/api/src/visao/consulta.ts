@@ -30,8 +30,8 @@ export async function unidadesDaConsulta(c: Consulta, hoje: string): Promise<Uni
   return rows.map(paraUnidade).sort(porCaminho).map((u) => ({ id: u.id, sigla: u.sigla, nivel: u.nivel }));
 }
 
-type LinhaBanco = { id: string; posto: string; nome_guerra: string; nome_completo: string | null; matricula: string; lotacao: string | null; quadro: string | null };
-const paraLinha = (m: LinhaBanco): LinhaDaConsulta => ({ id: m.id, postoGrad: m.posto, nomeGuerra: m.nome_guerra, nomeCompleto: m.nome_completo, matricula: m.matricula, lotacao: m.lotacao, quadro: m.quadro });
+type LinhaBanco = { id: string; posto: string; nome_guerra: string; nome_completo: string | null; matricula: string; lotacao: string | null; quadro: string | null; da_unidade?: boolean | null };
+const paraLinha = (m: LinhaBanco): LinhaDaConsulta => ({ id: m.id, postoGrad: m.posto, nomeGuerra: m.nome_guerra, nomeCompleto: m.nome_completo, matricula: m.matricula, lotacao: m.lotacao, quadro: m.quadro, ...(m.da_unidade == null ? {} : { daUnidade: m.da_unidade }) });
 
 /** O período de hoje, com a sigla da unidade e a do quadro: a lotação e o quadro que a consulta mostra. */
 const DO_MILITAR_HOJE = `
@@ -46,16 +46,17 @@ const COLUNAS = 'm.id, p.sigla as posto, m.nome_guerra, m.nome_completo, m.matri
  * Busca militares da corporação pelo nome de guerra, o nome completo ou a matrícula (todas as palavras do texto precisam aparecer), sem
  * diferenciar maiúsculas nem acentos; a matrícula acha com ou sem o hífen (990001-1 ou 9900011). Com `unidadeId`, só quem está lotado hoje nela ou numa de baixo.
  */
-export async function buscarMilitares(c: Consulta, d: { texto: string; unidadeId: string | null; hoje: string }): Promise<ResultadoDaConsulta> {
+export async function buscarMilitares(c: Consulta, d: { texto: string; unidadeId: string | null; hoje: string; unidadeDeTrabalho?: string | null }): Promise<ResultadoDaConsulta> {
   const { rows } = await c.query<LinhaBanco>(
-    `select ${COLUNAS} ${DO_MILITAR_HOJE}
+    // com a unidade de trabalho (6.36), cada linha diz se o militar já é dela (lotado nela ou numa de baixo): quem já é não precisa ser trazido
+    `select ${COLUNAS}, case when $6::uuid is null then null else coalesce(un.caminho <@ (select caminho from unidade where id = $6::uuid), false) end as da_unidade ${DO_MILITAR_HOJE}
       where ($2::uuid is null or un.caminho <@ (select caminho from unidade where id = $2::uuid))
         and not exists (
           select 1 from unnest($3::text[]) as w(t)
            where upper(translate(m.nome_guerra || ' ' || coalesce(m.nome_completo, '') || ' ' || m.matricula || ' ' || replace(m.matricula, '-', ''), $4, $5)) not like '%' || w.t || '%' escape '\\')
       order by m.nome_guerra, m.matricula
       limit ${LIMITE_DA_BUSCA + 1}`,
-    [d.hoje, d.unidadeId, palavrasDaBusca(d.texto), COM_ACENTO, SEM_ACENTO],
+    [d.hoje, d.unidadeId, palavrasDaBusca(d.texto), COM_ACENTO, SEM_ACENTO, d.unidadeDeTrabalho ?? null],
   );
   return { militares: rows.slice(0, LIMITE_DA_BUSCA).map(paraLinha), haMais: rows.length > LIMITE_DA_BUSCA };
 }
