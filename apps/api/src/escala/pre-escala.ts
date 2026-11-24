@@ -1,7 +1,7 @@
 // Pré-escala do Pronto (entrega 3.1): a equipe do dia 1, a prévia do que entra e as alocações que a gravação criaria.
 // O banco é traduzido para o que o motor recebe (matrícula = id do militar, equipe = nome do ciclo ALFA…DELTA pela ordem do ciclo).
 import { mesParaData, textoFaixa, type PreviaDaPreEscala } from 'contratos';
-import { CICLO_EQUIPES, detectarEquipeInicial, diasDoMes, equipeDoDia, mesAnterior, normalizar, preencherVagas, PRE_ESCALA, proximoMes, type Militar } from 'dominio';
+import { CICLO_EQUIPES, detectarEquipeInicial, diasDoMes, equipeDoDia, mesAnterior, mesVizinho, normalizar, preencherVagas, PRE_ESCALA, type Militar } from 'dominio';
 import type { Consulta } from '../banco/banco.ts';
 import { vinculosDaEscala } from '../cadastros/escalas.ts';
 import { versaoNoMes } from '../cadastros/guarnicoes-regras.ts';
@@ -64,7 +64,7 @@ async function equipeJaNoMes(c: Consulta, unidadeId: string, mes: string, equipe
        from alocacao a join servico s on s.id = a.servico_id join turno t on t.id = a.turno_id
        join rastreio l on l.militar_id = a.militar_id and l.unidade_id = $1 and l.jornada = 'pronto' and l.desde <= a.data and (l.ate is null or l.ate >= a.data)
       where s.unidade_id = $1 and t.letra = 'A' and a.data >= $2::date and a.data < $3::date`,
-    [unidadeId, mesParaData(mes), mesParaData(proximoMes(mes))],
+    [unidadeId, mesParaData(mes), mesParaData(mesVizinho(mes, 1))],
   );
   const votos = new Map<string, number>();
   for (const r of rows) {
@@ -135,7 +135,7 @@ export async function planejarPreEscala(
   }
 
   const inicioDoMes = mesParaData(mes);
-  const inicioDoSeguinte = mesParaData(proximoMes(mes));
+  const inicioDoSeguinte = mesParaData(mesVizinho(mes, 1));
   const membros = (
     await c.query<{ equipe_id: string; n: number }>(
       `select l.equipe_id, count(distinct l.militar_id)::int as n from rastreio l join militar m on m.id = l.militar_id

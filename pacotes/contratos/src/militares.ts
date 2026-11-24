@@ -18,7 +18,7 @@ export const Sexo = z.enum(['M', 'F']);
 const DIAS_DE_CADA_MES = [31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
 const ehBissexto = (ano: number) => (ano % 4 === 0 && ano % 100 !== 0) || ano % 400 === 0;
 /**
- * Nascimento: dia e mês, e o ano (opcional). Sem o ano, 29 de fevereiro vale (não há como saber se ele é bissexto); com o ano, a data precisa existir.
+ * Nascimento: dia e mês, e o ano (opcional). Sem o ano, 29 de fevereiro vale no contrato (a planilha pode trazer só dia e mês), mas a ficha (PATCH) pede o ano: 29/02 só existe em ano bissexto; com o ano, a data precisa existir.
  */
 export const Nascimento = z
   .object({
@@ -35,7 +35,13 @@ export const EmailInstitucional = z
   .string()
   .trim()
   .max(120, 'Use no máximo 120 caracteres.')
-  .regex(/^[^@ ]+@bombeiros[.]pe[.]gov[.]br$/i, 'Use o e-mail institucional (@bombeiros.pe.gov.br).');
+  .regex(/^[^@\s]+@bombeiros[.]pe[.]gov[.]br$/i, 'Use o e-mail institucional (@bombeiros.pe.gov.br).');
+/** E-mail pessoal (opcional): sem regra de domínio, só o formato (sem espaço, tab nem quebra de linha). Não pode ser o institucional de ninguém: a API confere. */
+export const EmailPessoal = z
+  .string()
+  .trim()
+  .max(120, 'Use no máximo 120 caracteres.')
+  .regex(/^[^@\s]+@[^@\s]+[.][^@\s]+$/, 'Use um e-mail válido.');
 export const COMPORTAMENTOS = ['Excepcional', 'Ótimo', 'Bom', 'Insuficiente', 'Mau'] as const;
 export const Comportamento = z.enum(COMPORTAMENTOS);
 export type Comportamento = z.infer<typeof Comportamento>;
@@ -129,6 +135,7 @@ export const EdicaoMilitar = z.object({
   endereco: EdicaoDeEndereco.optional(),
   telefone: Telefone.nullable().optional(),
   email: EmailInstitucional.nullable().optional(),
+  emailPessoal: EmailPessoal.nullable().optional(),
   comportamento: Comportamento.nullable().optional(),
   comportamentoBoletim: BoletimDoComportamento.nullable().optional(),
   antiguidade: Antiguidade.optional(),
@@ -186,6 +193,8 @@ export type LinhaMilitar = {
   ativo: boolean;
   situacao: string;
   pendencias: string[];
+  /** O dia em que a lotação que a lista mostra começa, quando ele ainda não chegou ('Lotação a partir de dd/mm/aaaa'); null (ou ausente) se já valia. */
+  lotacaoAPartirDe?: string | null;
 };
 
 /** Uma linha do módulo Pecúlio: o militar lotado na unidade (ou numa de baixo) com os dados de contato e as pendências do cadastro. */
@@ -200,6 +209,8 @@ export type ItemDoPeculio = {
   telefone: string | null;
   email: string | null;
   pendencias: string[];
+  /** O dia em que esta lotação começa, quando ainda não chegou; null (ou ausente) se já valia. */
+  lotacaoAPartirDe?: string | null;
 };
 export type AniversarianteDoMes = { militarId: string; posto: string; nomeGuerra: string; dia: number; lotacao: string };
 /**
@@ -229,6 +240,8 @@ export type FichaMilitar = LinhaMilitar & {
   situacaoDoMilitar: { id: string; nome: string; escalavel: boolean } | null;
   telefone: string | null;
   email: string | null;
+  /** O e-mail pessoal (opcional); o institucional é o `email`. */
+  emailPessoal?: string | null;
   comportamento: Comportamento | null;
   comportamentoBoletim: string | null;
   antiguidade: number | null;

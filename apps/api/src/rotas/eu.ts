@@ -55,7 +55,7 @@ async function lotacaoDeHoje(c: Consulta, usuarioId: string, hoje: string): Prom
 }
 
 type LinhaDaFicha = {
-  posto: string; nome_guerra: string; nome_completo: string | null; matricula: string; telefone: string | null; email: string | null; sexo: 'M' | 'F' | null;
+  posto: string; nome_guerra: string; nome_completo: string | null; matricula: string; telefone: string | null; email: string | null; email_pessoal: string | null; sexo: 'M' | 'F' | null;
   nascimento_dia: number | null; nascimento_mes: number | null; nascimento_ano: number | null; cpf: string | null;
   cep: string | null; logradouro: string | null; numero: string | null; complemento: string | null; bairro: string | null; cidade: string | null; uf: string | null;
   quadro: string | null; situacao_nome: string | null; comportamento: string | null; comportamento_boletim: string | null;
@@ -66,7 +66,7 @@ type LinhaDaFicha = {
 /** A ficha do próprio militar (o da sessão), só com o que ele pode ver; a situação é a do período do rastreio que cobre hoje. */
 async function minhaFicha(c: Consulta, usuarioId: string, hoje: string): Promise<MinhaFicha | null> {
   const { rows } = await c.query<LinhaDaFicha>(
-    `select p.sigla as posto, m.nome_guerra, m.nome_completo, m.matricula, m.telefone, m.email, m.sexo, m.nascimento_dia, m.nascimento_mes, m.nascimento_ano, m.cpf,
+    `select p.sigla as posto, m.nome_guerra, m.nome_completo, m.matricula, m.telefone, m.email, m.email_pessoal, m.sexo, m.nascimento_dia, m.nascimento_mes, m.nascimento_ano, m.cpf,
             m.cep, m.logradouro, m.numero, m.complemento, m.bairro, m.cidade, m.uf, q.sigla as quadro, sm.nome as situacao_nome,
             m.comportamento, m.comportamento_boletim, m.motorista, m.cnh, m.voluntario_jes,
             (select f.nome from funcao_militar f where f.id = m.funcao_militar_id) as funcao, m.abono_permanencia,
@@ -90,6 +90,7 @@ async function minhaFicha(c: Consulta, usuarioId: string, hoje: string): Promise
     matricula: m.matricula,
     telefone: m.telefone,
     email: m.email,
+    emailPessoal: m.email_pessoal,
     sexo: m.sexo,
     nascimento: m.nascimento_dia !== null && m.nascimento_mes !== null ? { dia: m.nascimento_dia, mes: m.nascimento_mes, ...(m.nascimento_ano !== null ? { ano: m.nascimento_ano } : {}) } : null,
     cpf: m.cpf,
@@ -152,14 +153,14 @@ export function rotasEu(banco: Banco, auth: Auth): Hono {
   r.patch('/telefone', async (c) => {
     const sessao = await auth.api.getSession({ headers: c.req.raw.headers });
     if (!sessao) return c.json({ erro: 'Não autenticado' }, 401);
-    const corpo = await lerCorpo(c, NovoTelefone);
-    if (!corpo.ok) return corpo.resposta;
-    // com a senha provisória pendente, a resposta é a mesma das outras rotas: crie a senha (e não "não autenticado")
+    // com a senha provisória pendente, a resposta é a mesma das outras rotas: crie a senha (e não "não autenticado"); vem antes do 400 do contrato
     const u = (await banco.query<{ ativo: boolean; provisoria: boolean; vencida: boolean }>(
       'select ativo, senha_provisoria_ate is not null as provisoria, coalesce(senha_provisoria_ate < now(), false) as vencida from usuario where id = $1',
       [sessao.user.id],
     )).rows[0];
     if (u?.ativo && u.provisoria) return c.json({ erro: u.vencida ? MSG_SENHA_VENCIDA : MSG_CRIE_A_SENHA }, 403);
+    const corpo = await lerCorpo(c, NovoTelefone);
+    if (!corpo.ok) return corpo.resposta;
     const ficha = await comUsuario(banco, sessao.user.id, async (tx) => {
       const { rows } = await tx.query(
         'update militar set telefone = $2 where id = (select militar_id from usuario where id = $1 and ativo and senha_provisoria_ate is null) returning id',

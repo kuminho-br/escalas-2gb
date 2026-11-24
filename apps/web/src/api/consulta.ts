@@ -1,5 +1,6 @@
 import { queryOptions } from '@tanstack/react-query';
 import type { FichaDeConsulta, ResultadoDaConsulta, UnidadeDaConsulta } from 'contratos';
+import { deveTentarDeNovoNaBusca } from '@/lib/consultas';
 import { pedir } from './cliente';
 
 /** As unidades da corporação, na ordem da árvore, para escolher onde buscar. */
@@ -17,6 +18,7 @@ export const consultaDaBusca = (texto: string, unidadeId: string) => {
   return queryOptions({
     queryKey: ['consulta', 'militares', texto, unidadeId],
     queryFn: () => pedir<ResultadoDaConsulta>('GET', `/api/consulta/militares?${params}`),
+    retry: deveTentarDeNovoNaBusca,
   });
 };
 

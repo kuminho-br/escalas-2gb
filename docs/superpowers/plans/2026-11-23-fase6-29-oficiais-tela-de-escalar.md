@@ -54,3 +54,19 @@
 
 - [ ] **Step 1: testes:** a etapa atual em texto e o botão da próxima ação no cabeçalho (um só principal); "Como funciona o mês" abre e fecha a explicação das quatro etapas; o calendário sem caixa por dia, com os dois turnos colados; nome em 15 px e patente em 13 px; a placa do turno sem a etiqueta "Saldo" escrita (a faixa de cor diz o serviço, e a dica e o leitor de tela dizem o nome); os dias vermelhos com a legenda acima do calendário; nenhuma rolagem de lado em 390 px (Review Focus 5).
 - [ ] **Step 2:** FAIL. **Step 3:** implementar. **Step 4:** PASS; as verificações do fim de entrega; conferir no navegador e fotografar as três larguras para o PR. **Step 5:** commit `Fase 6.29: a tela dos oficiais nas diretrizes gerais` e abrir o PR.
+
+---
+
+# Entrega 6.29.1 — Ajustes do usuário na tela dos oficiais (23/11/2026)
+
+Branch `fase6-29-1-ajustes-oficiais`, a partir da `main`. Sem migração. Antes de seguir a 6.20.
+
+### Task 4: três ajustes
+
+**Files:** `apps/api/src/oficiais/participantes.ts` e `leitura.ts`, `apps/web/src/componentes/oficiais/ListaDeCotas.tsx` e `EscalaDoMes.tsx`; Test `apps/api/test/oficiais*.test.ts`, `apps/web/src/__testes__/oficiais.test.tsx`
+
+- [ ] **Step 1: testes:**
+  - Sai o texto "cota menor: …" da linha do oficial (a cota continua a mesma).
+  - **Elegíveis só da unidade da escala e das de baixo.** Um oficial QOC lotado numa unidade **acima** da unidade da escala (ex.: na DInter/1, com a escala na 1ª SB) não aparece na lista nem é aceito na participação (400 "Este oficial não é elegível neste mês."). A unidade de referência é a da escala, não a escolhida no seletor. Conferir também o mês já gravado: quem está fora deixa de aparecer como elegível (os lançamentos já feitos ficam).
+  - **Como as cotas foram calculadas:** sai o parágrafo solto do pé da lista ("56 turnos para a rodada de Saldo…") e entra o botão discreto "Como as cotas foram calculadas", que abre um painel recolhível com a conta do mês, em frases curtas: turnos do mês; menos os de JES; turnos para a rodada de Saldo; quantos participam; a divisão (inteira e quebrada); quantos sobraram depois do arredondamento e para quem foram (os mais modernos); os dias de afastamento que reduziram a cota de alguém (o que saiu da linha do oficial); e "O saldo aparece na lista, mas ainda não entra na conta.".
+- [ ] **Step 2:** FAIL. **Step 3:** implementar (skill `frontend-design:frontend-design`). **Step 4:** PASS; `pnpm test && pnpm typecheck && pnpm build:vercel`; conferir no navegador. **Step 5:** commit `Fase 6.29.1: ajustes da tela dos oficiais` e abrir o PR.

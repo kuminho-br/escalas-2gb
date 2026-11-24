@@ -128,6 +128,7 @@ function AlterarSituacao({ ficha, unidadeAtualId, aoFechar }: { ficha: FichaMili
                 {(secoes.data ?? (unidadeId ? [{ id: unidadeId, sigla: atual?.unidadeSigla ?? '…', nome: '' }] : [])).map((s) => <option key={s.id} value={s.id}>{s.sigla}</option>)}
               </Selecao>
               {avisoDaLista(secoes) && <p className="text-xs text-alerta">{avisoDaLista(secoes)}</p>}
+              {secoes.isError && <Button type="button" size="sm" variant="outline" className="justify-self-start" disabled={secoes.isFetching} onClick={() => void secoes.refetch()}>Tentar de novo</Button>}
               {!ficha.podeEditar.peculio && <p className="text-xs text-apagado">{`A lotação, o quadro e a situação são alterados por quem tem nível de acesso em ${ficha.podeEditar.unidadeDeCima ?? 'uma unidade acima'}.`}</p>}
             </div>
             <div className="grid gap-1.5">

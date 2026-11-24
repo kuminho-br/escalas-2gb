@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { createFileRoute, Link, redirect } from '@tanstack/react-router';
 import { Mes, somarMeses } from 'contratos';
-import { ehGestorOuAdministrador } from '@/api/eu';
+import { ehGestorNaUnidade } from '@/api/eu';
 import { mensagemDe } from '@/api/cliente';
 import { consultaEscalaDosOficiais, consultaSaldoDosOficiais } from '@/api/oficiais';
 import { CampoDeMes } from '@/componentes/CampoDeMes';
@@ -17,9 +17,9 @@ type Aba = 'escala' | 'saldo';
 const ABAS: Aba[] = ['escala', 'saldo'];
 
 export const Route = createFileRoute('/_app/oficiais')({
-  // o auxiliar não usa esta tela: volta ao início com o aviso, como nos outros módulos (a API confere o papel de qualquer jeito)
+  // quem não tem nível de gestão na unidade escolhida (ou acima dela) volta ao início com o aviso, como nos outros módulos (a API confere o papel de qualquer jeito)
   beforeLoad: ({ context }) => {
-    if (!ehGestorOuAdministrador(context.eu)) throw redirect({ to: '/', search: { aviso: 'outro-papel' } });
+    if (!ehGestorNaUnidade(context.eu)) throw redirect({ to: '/', search: { aviso: 'outro-papel' } });
   },
   validateSearch: (s: Record<string, unknown>): { mes?: string; aba?: Aba; escala?: string } => ({
     mes: typeof s.mes === 'string' && Mes.safeParse(s.mes).success ? s.mes : undefined,

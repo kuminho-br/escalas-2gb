@@ -1,11 +1,15 @@
-/** Mês corrente no relógio do navegador, 'aaaa-mm'. */
-export function mesAtual(agora: Date = new Date()): string {
-  return `${agora.getFullYear()}-${String(agora.getMonth() + 1).padStart(2, '0')}`;
+const FORMATO_RECIFE = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Recife', year: 'numeric', month: '2-digit', day: '2-digit' });
+
+/** Hoje, 'aaaa-mm-dd', no fuso de Recife (o mesmo da API), seja qual for o fuso do navegador. É o "hoje" único do site. */
+export function hoje(agora: Date = new Date()): string {
+  // pelas partes, e não pelo texto pronto: a ordem do formato pronto já variou entre versões de navegador
+  const p = Object.fromEntries(FORMATO_RECIFE.formatToParts(agora).map((x) => [x.type, x.value]));
+  return `${p.year}-${p.month}-${p.day}`;
 }
 
-/** Hoje no relógio do navegador, 'aaaa-mm-dd'. */
-export function hoje(agora: Date = new Date()): string {
-  return `${mesAtual(agora)}-${String(agora.getDate()).padStart(2, '0')}`;
+/** Mês corrente, 'aaaa-mm', no fuso de Recife. */
+export function mesAtual(agora: Date = new Date()): string {
+  return hoje(agora).slice(0, 7);
 }
 
 /** Soma (ou tira) dias de uma data 'aaaa-mm-dd'. */

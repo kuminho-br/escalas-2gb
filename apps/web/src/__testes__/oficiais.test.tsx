@@ -3,6 +3,7 @@ import { cleanup, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { EuDaApi } from '@/api/eu';
+import { guardarUnidade } from '@/lib/unidade-de-trabalho';
 import { abrir, chamadasA, corpoEnviado, EU_EXEMPLO, simularApi, trava } from './apoio';
 
 // Dados fictícios (D7): o 2º GB, oficiais 990xxx-x.
@@ -55,6 +56,17 @@ describe('o item Oficiais e a rota', () => {
     const router = abrir(`/oficiais?mes=${MES}`);
     await waitFor(() => expect(router.state.location.pathname).toBe('/'));
     // o aviso aparece uma vez e sai do endereço (6.16)
+    expect(await screen.findByText('Essa área é de outro nível de acesso.')).toBeInTheDocument();
+  });
+
+  it('item 20 (6.18): o gestor de outra seção, que não alcança a unidade escolhida, também volta ao início com o aviso', async () => {
+    const outraSecao = { id: 'u-2sb', sigla: '2ª SB', caminho: ['CBMPE', 'DGO', 'DInter/1', '2º GB', '2ª SB'], nivel: 4, tipo: 'secao' };
+    const naPrimeira = { id: 'u-1sb', sigla: '1ª SB', caminho: ['CBMPE', 'DGO', 'DInter/1', '2º GB', '1ª SB'], nivel: 4, tipo: 'secao' };
+    // o nível é só na 2ª SB, e a pessoa trabalha na 1ª SB (a unidade guardada na aba)
+    guardarUnidade('u-1sb');
+    simularApi(rotas({ ...EU_EXEMPLO, papeis: [{ papel: 'gestor', unidadeId: 'u-2sb', unidadeSigla: '2ª SB' }], unidades: [naPrimeira, outraSecao] }));
+    const router = abrir(`/oficiais?mes=${MES}`);
+    await waitFor(() => expect(router.state.location.pathname).toBe('/'));
     expect(await screen.findByText('Essa área é de outro nível de acesso.')).toBeInTheDocument();
   });
 

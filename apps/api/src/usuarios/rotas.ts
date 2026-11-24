@@ -59,10 +59,12 @@ export async function montarAcesso(c: Consulta, militarId: string): Promise<Aces
   const papeis = m.usuario_id
     ? (await c.query<{ id: string; papel: PapelDoMilitar['papel']; unidade_id: string; sigla: string; desde: string; ate: string | null; ultimo_gestor: boolean }>(
         `select pu.id, pu.papel, pu.unidade_id, un.sigla, to_char(pu.desde, 'YYYY-MM-DD') as desde, to_char(pu.ate, 'YYYY-MM-DD') as ate,
-                -- gestor vigente com "até" marcado, sem outro gestor vigente na unidade que dure mais: o último dela
+                -- gestor vigente com "até" marcado, sem outro gestor na unidade (ou numa acima dela) que dure mais: o último dela. O outro conta mesmo que só comece
+                -- depois de hoje, desde que comece até o dia seguinte ao fim deste (sem buraco entre os dois)
                 (pu.papel = 'gestor' and pu.ate is not null and pu.ate >= $2::date and pu.desde <= $2::date and not exists (
-                   select 1 from papel_usuario o where o.unidade_id = pu.unidade_id and o.papel = 'gestor' and o.id <> pu.id
-                      and o.desde <= $2::date and (o.ate is null or o.ate > pu.ate))) as ultimo_gestor
+                   select 1 from papel_usuario o join unidade ua on ua.id = o.unidade_id
+                    where o.papel = 'gestor' and o.id <> pu.id and ua.caminho @> un.caminho
+                      and o.desde <= pu.ate + 1 and (o.ate is null or o.ate > pu.ate))) as ultimo_gestor
            from papel_usuario pu join unidade un on un.id = pu.unidade_id
           where pu.usuario_id = $1 order by pu.desde desc, un.sigla, pu.papel`,
         [m.usuario_id, hojeRecife()],

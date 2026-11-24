@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { createFileRoute, Link, Outlet, useParams, useSearch } from '@tanstack/react-router';
 import type { LinhaMilitar } from 'contratos';
-import { Briefcase, CalendarOff, Car, Clock, IdCard, TriangleAlert } from 'lucide-react';
+import { Briefcase, CalendarClock, CalendarOff, Car, Clock, IdCard, TriangleAlert } from 'lucide-react';
 import { EtiquetaDeDado } from '@/componentes/EtiquetaDeDado';
 import { useMemo, useState } from 'react';
 import { mensagemDe } from '@/api/cliente';
@@ -10,7 +10,7 @@ import { classeItemEscolhido, ListaDetalhe } from '@/componentes/ListaDetalhe';
 import { Selecao } from '@/componentes/Selecao';
 import { Input } from '@/componentes/ui/input';
 import { Label } from '@/componentes/ui/label';
-import { mesAtual } from '@/lib/meses';
+import { dataBr, mesAtual } from '@/lib/meses';
 import { NOME_JORNADA } from '@/lib/militares';
 import { correspondeABusca, normalizarBusca } from '@/lib/texto';
 import { cn } from '@/lib/utils';
@@ -131,6 +131,7 @@ function ItemMilitar({ m, escolhido }: { m: LinhaMilitar; escolhido: boolean }) 
           {m.jornada && <EtiquetaDeDado icone={m.jornada === 'adm' ? Briefcase : Clock}>{`${NOME_JORNADA[m.jornada]}${m.equipe ? ` · ${m.equipe.toUpperCase()}` : ''}`}</EtiquetaDeDado>}
           {m.motorista && <EtiquetaDeDado icone={Car}>{`Motorista ${m.motorista}`}</EtiquetaDeDado>}
           {!disponivel && <EtiquetaDeDado icone={CalendarOff}>{m.situacao}</EtiquetaDeDado>}
+          {m.lotacaoAPartirDe && <EtiquetaDeDado icone={CalendarClock}>{`Lotação a partir de ${dataBr(m.lotacaoAPartirDe)}`}</EtiquetaDeDado>}
         </span>
       </Link>
     </li>
