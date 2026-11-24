@@ -1,6 +1,6 @@
 # Ficha do militar na escala, Escala do mês e militar externo — design
 
-24/11/2026 · decisões do usuário no mesmo dia (formulário) · plano das partes 1 e 2: `docs/superpowers/plans/2026-11-24-fase6-32-ficha-da-escala.md` (entrega 6.32); parte 3: a escrever · para o piloto das escalas de dezembro de 2026
+24/11/2026 · decisões do usuário no mesmo dia (formulário) · plano das partes 1 e 2: `docs/superpowers/plans/2026-11-24-fase6-32-ficha-da-escala.md` (entrega 6.32); parte 3: `docs/superpowers/plans/2026-11-24-fase6-33-militar-externo.md` (entrega 6.33) · para o piloto das escalas de dezembro de 2026
 
 ## Por quê
 
