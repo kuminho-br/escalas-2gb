@@ -9,7 +9,7 @@
 <link rel="stylesheet" href="inicio.css">
 <style>
 /* Área "Tela inicial" do Manual de Identidade Visual, versão 3. A tela em si está em inicio.css e inicio.js (a área "Entrada" pousa nela).
-   Layout: a cena do combate num quadro com margens (3:1, até 300 px), que encolhe ao rolar até uma barra; dentro dela,
+   Layout: a cena do combate num quadro com margens (3:1, até 400 px), que encolhe ao rolar até uma barra; dentro dela,
    à esquerda a saudação e os próximos serviços em cartões, à direita os avisos num painel de vidro escuro.
    Embaixo da cena, só os atalhos e o detalhe do próximo serviço. */
 .ini-controles{display:flex;flex-wrap:wrap;align-items:center;gap:8px 20px}
@@ -37,13 +37,17 @@
     <span class="rot">Ver como</span>
     <label class="marcar"><input type="radio" name="perfil" value="escalante" checked><span>Escalante da 1ª SB</span></label>
     <label class="marcar"><input type="radio" name="perfil" value="militar"><span>Militar sem nível de acesso</span></label>
+    <span class="rot">Teto da cena</span>
+    <label class="marcar"><input type="radio" name="teto" value="300"><span>300 px (site hoje)</span></label>
+    <label class="marcar"><input type="radio" name="teto" value="400" checked><span>400 px</span></label>
+    <label class="marcar"><input type="radio" name="teto" value="0"><span>Sem teto</span></label>
   </div>
 </header>
 
 <section class="bloco largo" id="tela">
   <div class="regra">
     <h2>A tela</h2>
-    <p>Passe os avisos pelas setas e role dentro do quadro para ver a cena encolher. No celular, os cartões rolam de lado e os avisos descem para logo abaixo da cena. A chegada pela animação do login está na área <a class="elo" href="../entrada/index.html">Entrada</a>.</p>
+    <p>Passe os avisos pelas setas e role dentro do quadro para ver a cena encolher. Troque o teto da cena nos controles acima para comparar: com 300 px os bombeiros somem nas telas largas; com 400 aparecem. No celular, os cartões rolam de lado e os avisos descem para logo abaixo da cena. A chegada pela animação do login está na área <a class="elo" href="../entrada/index.html">Entrada</a>.</p>
   </div>
   <div class="ini-quadros">
     <figure><div class="ini" data-tela data-perfil="escalante"></div><figcaption>Computador, 1280 px de largura.</figcaption></figure>
@@ -79,7 +83,7 @@
   <div class="prancha">
     <div class="sup">
       <ul class="regras-da-casa">
-        <li><b>A cena</b>Num quadro com margens, na proporção 3:1 e com até 300 px de altura (250 no celular). Ao rolar, vira uma barra de 64 px com a saudação curta, o próximo serviço e o título do aviso mais recente.</li>
+        <li><b>A cena</b>Num quadro com margens, na proporção 3:1 e com até 400 px de altura (250 no celular). Ao rolar, vira uma barra de 64 px com a saudação curta, o próximo serviço e o título do aviso mais recente.</li>
         <li><b>Próximos serviços</b>Dentro da cena, embaixo da saudação: um cartão por serviço, com o dia da semana, o dia do mês, o nome do serviço e o horário do turno, no fundo da cor do serviço. O mais próximo tem o contorno branco. Mostra até seis.</li>
         <li><b>Avisos</b>Dentro da cena, à direita, num painel de vidro escuro com a borda de cima em vinho. Um aviso por vez, com setas e pontos para passar; o fixado vem primeiro. Não passam sozinhos. Quem tem nível de acesso vê "Publicar aviso".</li>
         <li><b>Atalhos</b>Um por módulo, com uma linha do que está acontecendo nele. Já estão no site.</li>
@@ -100,7 +104,7 @@
       <table class="tabela ini-muda">
         <thead><tr><th scope="col">Item</th><th scope="col" class="quebra">O que muda</th><th scope="col" class="quebra">De onde vêm os dados</th></tr></thead>
         <tbody>
-          <tr><td>Cena</td><td class="quebra">Como está no site. No celular, a altura passa de 200 para 250 px, para os cartões caberem embaixo da saudação.</td><td class="quebra">Já existe.</td></tr>
+          <tr><td>Cena</td><td class="quebra">No computador, o teto da altura sobe de 300 para 400 px, para os bombeiros aparecerem nas telas largas (seu pedido de 25/11). No celular, a altura passa de 200 para 250 px, para os cartões caberem embaixo da saudação.</td><td class="quebra">Já existe; muda só a altura.</td></tr>
           <tr><td>Próximos serviços</td><td class="quebra">Novo, dentro da cena: os cartões. Na barra encolhida, o próximo serviço em uma linha.</td><td class="quebra">Da Minha escala (fase 7, já no site): data, início e fim do turno, nome e cor do serviço.</td></tr>
           <tr><td>Avisos</td><td class="quebra">Novo, dentro da cena.</td><td class="quebra">Precisa de cadastro novo: título, texto, autor, data, unidade, fixado e até quando vale.</td></tr>
           <tr><td>Atalhos</td><td class="quebra">Como estão no site.</td><td class="quebra">Já existem.</td></tr>
@@ -125,9 +129,13 @@
 (function () {
   'use strict';
   var telas = Array.prototype.slice.call(document.querySelectorAll('[data-tela]'));
-  telas.forEach(function (t) { window.TelaInicial.montar(t, { saudacao: 'Bom dia', data: 'Quarta-feira, 25 de novembro de 2026' }); });
+  var alcas = telas.map(function (t) { return window.TelaInicial.montar(t, { saudacao: 'Bom dia', data: 'Quarta-feira, 25 de novembro de 2026' }); });
   document.querySelectorAll('input[name="perfil"]').forEach(function (r) {
     r.addEventListener('change', function () { telas.forEach(function (t) { t.setAttribute('data-perfil', r.value); }); });
+  });
+  // o teto da cena no computador: 300 (site hoje), 400 (proposta) ou só a proporção 3:1
+  document.querySelectorAll('input[name="teto"]').forEach(function (r) {
+    r.addEventListener('change', function () { window.TelaInicial.TETO = Number(r.value); alcas.forEach(function (a) { a.medir(); }); });
   });
   // a amostra do cartão: os mesmos cartões da cena, fora dela
   var amostra = document.querySelector('[data-amostra]');

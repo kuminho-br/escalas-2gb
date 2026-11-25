@@ -89,8 +89,8 @@
       min = parseFloat(cs.getPropertyValue('--faixa-min')) || 64;
       margem = parseFloat(cs.getPropertyValue('--margem')) || 24;
       var dentro = w - 2 * margem;
-      // computador: 3:1, até 300 px; celular: a saudação e os cartões cabem em 250 px
-      alto = Math.round(w <= 600 ? 250 : Math.min(300, dentro / 3));
+      // computador: 3:1, até o teto (400 px; era 300 no site, subiu a pedido do usuário em 25/11); celular: a saudação e os cartões cabem em 250 px
+      alto = Math.round(w <= 600 ? 250 : Math.min(window.TelaInicial.TETO || 1e9, dentro / 3));
       espaco.style.height = (alto + margem) + 'px';
       pintar();
       if (o.aoMedir) o.aoMedir();
@@ -124,5 +124,6 @@
     };
   }
 
-  window.TelaInicial = { montar: montar, PROXIMOS: PROXIMOS, AVISOS: AVISOS };
+  // TETO: altura máxima da cena no computador, em px (0 = sem teto, só a proporção 3:1)
+  window.TelaInicial = { montar: montar, PROXIMOS: PROXIMOS, AVISOS: AVISOS, TETO: 400 };
 })();
