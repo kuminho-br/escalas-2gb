@@ -222,6 +222,53 @@ describe('o teto de 500 linhas', () => {
   });
 });
 
+describe('a busca sem corte (6.54, buscar/todos)', () => {
+  const ROTA_TODOS = '/api/consulta/militares/buscar/todos';
+  const todos = (quem: Quem, corpo: unknown) => (typeof quem === 'string' ? api.pedir(quem, 'POST', ROTA_TODOS, corpo) : quem.pedir('POST', ROTA_TODOS, corpo));
+
+  it('Review Focus 3: com mais de 500 no filtro, "buscar" devolve 500 e haMais, e "buscar/todos" devolve todos, sem haMais, na mesma ordem', async () => {
+    const gb9 = (await api.banco.query<{ id: string }>("select id from unidade where sigla = '9º GB'")).rows[0]!.id;
+    const filtro = { unidades: [{ id: gb9, comAsDeBaixo: true }] };
+    const cortada = await buscar('admin', filtro);
+    expect(cortada.militares).toHaveLength(500);
+    const r = await todos('admin', filtro);
+    expect(r.status).toBe(200);
+    const inteira: ResultadoDaBusca = await r.json();
+    expect(inteira.haMais).toBe(false);
+    expect(inteira.militares.length).toBeGreaterThan(520);
+    expect(inteira.militares.slice(0, 500).map((m) => m.id)).toEqual(cortada.militares.map((m) => m.id));
+  });
+
+  it('quem não tem nível de acesso (o militar comum) recebe 403 com a frase fixa', async () => {
+    const gb9 = (await api.banco.query<{ id: string }>("select id from unidade where sigla = '9º GB'")).rows[0]!.id;
+    const r = await todos('semPapel', { unidades: [{ id: gb9, comAsDeBaixo: true }] });
+    expect(r.status).toBe(403);
+    expect(await r.json()).toEqual({ erro: 'Só quem tem nível de acesso vê o resultado inteiro.' });
+  });
+
+  it('sem filtro nenhum, 400 "Escolha pelo menos um filtro." como na outra rota', async () => {
+    const r = await todos('admin', {});
+    expect(r.status).toBe(400);
+    expect(await r.json()).toEqual({ erro: 'Escolha pelo menos um filtro.' });
+  });
+
+  it('acima de 5000 militares: 400 "Mais de 5000 militares. Afine a busca."', async () => {
+    const postoId = (await api.banco.query<{ id: string }>("select id from posto_grad where sigla = 'SD'")).rows[0]!.id;
+    const gbTeto = await inserir(api.banco, 'unidade', { tipo: 'grupamento', sigla: '8º GB', nome: '8º Grupamento', mae_id: api.ids.raiz, desde: '2026-11-01' });
+    await api.banco.query(
+      `insert into militar (matricula, posto_grad_id, nome_guerra)
+       select '97' || lpad(g::text, 4, '0') || '-' || (g % 10), $1, 'TETO' || g from generate_series(1, 5001) g`,
+      [postoId],
+    );
+    await api.banco.query(`insert into rastreio (militar_id, unidade_id, jornada, desde) select id, $1, 'adm', $2 from militar where nome_guerra like 'TETO%'`, [gbTeto, dia1]);
+    const r = await todos('admin', { unidades: [{ id: gbTeto, comAsDeBaixo: true }] });
+    expect(r.status).toBe(400);
+    expect(await r.json()).toEqual({ erro: 'Mais de 5000 militares. Afine a busca.' });
+    // a busca cortada de sempre não muda
+    expect((await buscar('admin', { unidades: [{ id: gbTeto, comAsDeBaixo: true }] })).haMais).toBe(true);
+  }, 60_000);
+});
+
 describe('a borda de visão', () => {
   it('Review Focus 4: o militar comum manda filtro restrito e ele é ignorado (nem erro, nem vazamento)', async () => {
     const r = await buscar('semPapel', { unidades: [{ id: api.ids.gb, comAsDeBaixo: true }], voluntarioJes: true, cadastroIncompleto: true, jornada: 'pronto', motorista: true, matriculas: ['995901-1'] });

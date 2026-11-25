@@ -30,6 +30,9 @@ export const consultaDaBuscaComFiltros = (filtros: FiltrosDaBusca) =>
     retry: deveTentarDeNovoNaBusca,
   });
 
+/** A lista inteira do filtro, sem o corte de 500 (6.54): para "Selecionar todos" e para a exportação. Só quem tem nível de acesso; até 5000 militares. */
+export const buscarTodos = (filtros: FiltrosDaBusca) => pedir<ResultadoDaBusca>('POST', '/api/consulta/militares/buscar/todos', filtros);
+
 /** A ficha de consulta: só os blocos que a pessoa vê. */
 export const consultaDaFicha = (id: string) =>
   queryOptions({

@@ -5,7 +5,7 @@ import { ListFilter, Network, Search, FileText } from 'lucide-react';
 import { useLayoutEffect, useRef, useState, type FormEvent } from 'react';
 import { ehMilitarComum } from '@/api/eu';
 import { mensagemDe } from '@/api/cliente';
-import { consultaDaBusca, consultaDaBuscaComFiltros, consultaUnidadesDaBusca } from '@/api/consulta';
+import { buscarTodos, consultaDaBusca, consultaDaBuscaComFiltros, consultaUnidadesDaBusca } from '@/api/consulta';
 import { EscolherUnidade } from '@/componentes/EscolherUnidade';
 import { ArquivoDeMatriculas } from '@/componentes/peculio/ArquivoDeMatriculas';
 import { ArvoreDeMarcar, type Marca } from '@/componentes/peculio/ArvoreDeMarcar';
@@ -238,7 +238,7 @@ function ResultadoDosFiltros({ filtros, nivel, endereco }: { filtros: FiltrosDaB
       ) : (
         <>
           {/* a seleção é de quem tem nível de acesso: o militar comum (que também cai aqui pela árvore) vê só a lista */}
-          {nivel && <SelecionarEstes militares={militares} haMais={haMais} />}
+          {nivel && <SelecionarEstes key={JSON.stringify(filtros)} militares={militares} haMais={haMais} filtros={filtros} />}
           <ListaDeMilitares rotulo="Militares encontrados">
             {militares.map((m) => <LinhaDaPesquisa key={m.id} m={m} selecionavel={nivel} texto={endereco.texto} unidade={endereco.unidade} />)}
           </ListaDeMilitares>
@@ -248,16 +248,39 @@ function ResultadoDosFiltros({ filtros, nivel, endereco }: { filtros: FiltrosDaB
   );
 }
 
-/** "Selecionar estes {n}": as linhas da tela sobre as quais a pessoa tem nível de acesso. Com "mais de 500", são só as mostradas, e a tela diz isso (nunca "todos"). */
-function SelecionarEstes({ militares, haMais }: { militares: LinhaDaBusca[]; haMais: boolean }) {
+/**
+ * "Selecionar estes {n}": as linhas da tela sobre as quais a pessoa tem nível de acesso. Com "mais de 500" a tela só mostra 500, e o botão vira "Selecionar todos" (6.54): busca a
+ * lista inteira do filtro (até 5000) e seleciona quem a pessoa pode alterar; passando de 5000, a API pede para afinar a busca.
+ */
+function SelecionarEstes({ militares, haMais, filtros }: { militares: LinhaDaBusca[]; haMais: boolean; filtros: FiltrosDaBusca }) {
   const { incluir } = useSelecao();
+  const [buscando, setBuscando] = useState(false);
+  const [erro, setErro] = useState<string | null>(null);
+  const [foraDoFiltro, setForaDoFiltro] = useState<number | null>(null);
   const alteraveis = militares.filter((m) => m.podeAlterar);
-  const fora = militares.length - alteraveis.length;
-  if (alteraveis.length === 0 && fora === 0) return null;
+  const fora = haMais && foraDoFiltro !== null ? foraDoFiltro : militares.length - alteraveis.length;
+  const selecionarTodos = async () => {
+    setBuscando(true);
+    setErro(null);
+    try {
+      const inteira = (await buscarTodos(filtros)).militares;
+      incluir(inteira.filter((m) => m.podeAlterar));
+      setForaDoFiltro(inteira.filter((m) => !m.podeAlterar).length);
+    } catch (e) {
+      setErro(mensagemDe(e));
+    } finally {
+      setBuscando(false);
+    }
+  };
+  if (alteraveis.length === 0 && fora === 0 && !haMais) return null;
   return (
     <div className="mb-3 flex flex-wrap items-center gap-x-4 gap-y-1">
-      {alteraveis.length > 0 && <Button type="button" variant="secundario" onClick={() => incluir(alteraveis)}>{`Selecionar estes ${alteraveis.length}`}</Button>}
-      {haMais && <span className="text-apoio text-apagado">{`Só os ${militares.length} mostrados. Afine a busca para pegar os outros.`}</span>}
+      {haMais ? (
+        <Button type="button" variant="secundario" disabled={buscando} onClick={() => void selecionarTodos()}>{buscando ? 'Buscando…' : 'Selecionar todos'}</Button>
+      ) : (
+        alteraveis.length > 0 && <Button type="button" variant="secundario" onClick={() => incluir(alteraveis)}>{`Selecionar estes ${alteraveis.length}`}</Button>
+      )}
+      {erro && <span role="alert" className="text-apoio text-alerta">{erro}</span>}
       {fora > 0 && <span className="text-apoio text-apagado">{fora === 1 ? '1 militar fica de fora: você não tem nível de acesso sobre ele.' : `${fora} militares ficam de fora: você não tem nível de acesso sobre eles.`}</span>}
     </div>
   );

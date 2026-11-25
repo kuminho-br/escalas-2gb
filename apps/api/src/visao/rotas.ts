@@ -91,6 +91,14 @@ export function rotasVisao(dep: { banco: Banco; auth: Auth; limiteDeBuscas?: num
     return resposta.ok ? c.json(resposta.resultado) : c.json({ erro: resposta.erro }, resposta.status);
   });
 
+  // 6.54: a lista inteira do filtro (sem o corte de 500, até 5000), para "Selecionar todos" e as contagens da exportação; só de quem tem nível de acesso
+  r.post('/consulta/militares/buscar/todos', limiteDaBusca, async (c) => {
+    const corpo = await lerCorpo(c, FiltrosDaBusca);
+    if (!corpo.ok) return corpo.resposta;
+    const resposta = await buscarComFiltros(c.get('banco'), c.get('usuarioId'), corpo.dados, hojeRecife(), { semCorte: true });
+    return resposta.ok ? c.json(resposta.resultado) : c.json({ erro: resposta.erro }, resposta.status);
+  });
+
   r.get('/consulta/militares/:id', async (c) => {
     const id = c.req.param('id');
     // `?unidade=`: a unidade de trabalho de quem pede, para a ficha dizer se ele pode trazer o militar para a escala dela (o militar externo)
