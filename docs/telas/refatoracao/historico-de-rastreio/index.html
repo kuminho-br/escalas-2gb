@@ -1,0 +1,342 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Histórico de rastreio</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Semi+Condensed:wght@500;600;700&display=swap">
+<link rel="stylesheet" href="../pecas.css">
+<style>
+/* Área "Histórico de rastreio" do Manual de Identidade Visual: uma seção da ficha do militar.
+   Layout: a ficha num painel só, com as seções uma embaixo da outra. Na seção do rastreio, em cima o quadro "Hoje"
+   (a situação que vale agora) e embaixo a linha do tempo, com o trilho à esquerda como é hoje. Cada mudança é um bloco:
+   a data, uma linha por campo que mudou e quem fez. A forma do ponto diz se a mudança vale agora, já passou, é o
+   primeiro registro ou ainda não vale; o trilho tracejado é o que ainda não aconteceu e o trilho interrompido, os dias sem lotação. */
+.rs-controles{display:flex;flex-wrap:wrap;align-items:center;gap:8px 20px}
+.rs-controles .rot{font-weight:500}
+.rs-quadros{display:grid;gap:24px;grid-template-columns:minmax(0,1fr)}
+.rs-quadros figure{min-width:0}
+.rs-quadros .celular{justify-self:center;width:390px;max-width:100%}
+.rs-quadros figcaption{margin-top:8px;font-size:var(--t13);line-height:18px;color:var(--pg-apagado)}
+
+/* a ficha: um painel, as seções separadas por uma linha fina */
+.fic{container:fic/inline-size;max-width:760px;background:var(--superficie);color:var(--tinta);color-scheme:light;border:1px solid var(--linha);border-radius:var(--raio-sup)}
+.fic :focus-visible{outline-color:var(--tinta)}
+.fic > * + *{border-top:1px solid var(--linha)}
+.fic-cab{display:grid;gap:2px;padding:16px}
+.fic-cab h2{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 10px;font:600 var(--t28)/32px var(--cond)}
+.fic-cab h2 .patente{color:var(--apagado)}
+.fic-cab h2 .matricula{font:400 var(--t15)/22px var(--texto);color:var(--apagado)}
+.fic-cab p{color:var(--apagado)}
+.fic-sec{padding:10px 16px}
+.fic-sec > header{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.fic-sec h3{flex:1;min-width:0;font:600 var(--t17)/24px var(--cond)}
+.fic-sec h3 button{display:flex;align-items:center;gap:8px;width:100%;min-height:var(--h);padding:0;border:0;border-radius:var(--raio);background:none;text-align:left;cursor:pointer}
+.fic-sec h3 .i{color:var(--apagado);transition:transform .15s}
+.fic-sec h3 button[aria-expanded="true"] .i{transform:rotate(90deg)}
+.fic-sec h3 .nome{flex:none}
+.fic-sec .resumo{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font:400 var(--t15)/22px var(--texto);color:var(--apagado)}
+.fic-sec .corpo{padding:6px 0 10px}
+.fic-sec .corpo > p{color:var(--apagado)}
+.fic-afastamento{display:flex;flex-wrap:wrap;gap:2px 12px}
+.fic-afastamento b{font-weight:600}
+.fic-afastamento span{color:var(--apagado)}
+
+/* o quadro "Hoje": a situação que vale agora, com a lotação em destaque */
+.rs-hoje{display:grid;gap:10px;padding:12px 16px 14px;border-radius:var(--raio);background:var(--passa)}
+.rs-quando{display:flex;align-items:center;gap:8px;font-size:var(--t13);line-height:18px;color:var(--apagado)}
+.rs-quando::before{content:"";flex:none;width:10px;height:10px;border-radius:50%;background:var(--tinta)}
+.rs-quando b{font-weight:600;color:var(--tinta)}
+.rs-hoje.sem-lotacao .rs-quando::before{background:none;border:2px solid var(--encaixe)}
+.rs-pares{display:grid;grid-template-columns:repeat(5,auto);justify-content:start;align-items:baseline;gap:10px 36px;margin:0}
+.rs-pares > div{display:grid;min-width:0}
+.rs-pares dt{font-size:var(--t13);line-height:18px;color:var(--apagado)}
+.rs-pares dd{margin:0;font:600 var(--t17)/26px var(--cond);overflow-wrap:anywhere}
+.rs-pares .lotacao dd{font-size:var(--t20)}
+.rs-pares dd.sem{font-weight:500;color:var(--apagado)}
+@container fic (max-width:520px){
+  .rs-pares{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 16px}
+  .rs-pares .lotacao{grid-column:1 / -1}
+  .fic-cab h2{font-size:var(--t20);line-height:26px}
+}
+
+/* a linha do tempo: o trilho à esquerda; cada evento desenha o seu trecho, até o ponto do evento seguinte */
+.rs-linha{display:grid;gap:24px;margin:20px 0 0;padding:0 0 0 28px}
+.rs-ev{position:relative}
+.rs-ev::before{content:"";position:absolute;left:-22px;top:11px;bottom:-35px;border-left:2px solid var(--linha)}
+.rs-ev:last-child::before,.rs-ev.inicio::before{display:none}
+.rs-ev.ate-o-vao::before{bottom:-8px}
+.rs-ponto{position:absolute;top:7px;left:-25px;width:8px;height:8px;border-radius:50%;background:var(--encaixe);box-shadow:0 0 0 3px var(--superficie)}
+.rs-ev.agora .rs-ponto{top:5px;left:-27px;width:12px;height:12px;background:var(--tinta)}
+.rs-ev.inicio .rs-ponto{top:6px;left:-26px;width:10px;height:10px;border:2px solid var(--encaixe);background:var(--superficie)}
+.rs-ev.marcada .rs-ponto{top:5px;left:-27px;width:12px;height:12px;border:2px solid var(--tinta);background:var(--superficie)}
+.rs-ev.marcada::before{border-left:2px dashed var(--encaixe)}
+.rs-ev.agora.inicio .rs-ponto{border:0;background:var(--tinta);top:5px;left:-27px;width:12px;height:12px}
+.rs-ev h4{display:flex;flex-wrap:wrap;align-items:center;gap:2px 10px;font:600 var(--t15)/22px var(--cond);color:var(--apagado)}
+.rs-ev.agora h4 time,.rs-ev.marcada h4 time{color:var(--tinta)}
+.rs-ev h4 .diz{font:400 var(--t13)/18px var(--texto)}
+.rs-mud{display:grid;grid-template-columns:64px minmax(0,1fr);gap:0 8px;margin:4px 0 0}
+.rs-mud dt{font-size:var(--t13);line-height:22px;color:var(--apagado)}
+.rs-mud dd{margin:0;color:var(--apagado);overflow-wrap:anywhere}
+.rs-mud dd b{font-weight:600;color:var(--tinta)}
+.rs-mud .seta{margin:0 6px}
+.rs-inteira{margin-top:4px;color:var(--apagado)}
+.rs-autor{margin-top:4px;font-size:var(--t13);line-height:18px;color:var(--apagado)}
+/* os dias sem lotação: o trilho para e recomeça; no lugar do ponto, nada */
+.rs-vao{color:var(--apagado)}
+.rs-vao::before{display:none}
+.rs-mais{margin-left:-14px}
+.rs-mais::before{display:none}
+.rs-sem{margin-top:16px;color:var(--apagado)}
+
+/* como ler: uma marca de cada, com o que ela diz */
+.rs-marcas{display:grid;gap:0}
+.rs-marcas li{display:grid;grid-template-columns:44px 132px minmax(0,1fr);align-items:center;gap:0 8px;min-height:44px;padding:6px 0;border-top:1px solid var(--linha)}
+.rs-marcas li:first-child{border-top:0}
+.rs-marcas .mostra{position:relative;justify-self:center;width:12px;height:44px}
+.rs-marcas .mostra::before{content:"";position:absolute;left:5px;top:0;bottom:0;border-left:2px solid var(--linha)}
+.rs-marcas .mostra i{position:absolute;left:50%;top:50%;border-radius:50%;transform:translate(-50%,-50%);box-shadow:0 0 0 3px var(--superficie)}
+.rs-marcas .agora i{width:12px;height:12px;background:var(--tinta)}
+.rs-marcas .antes i{width:8px;height:8px;background:var(--encaixe)}
+.rs-marcas .inicio i{width:10px;height:10px;border:2px solid var(--encaixe);background:var(--superficie)}
+.rs-marcas .inicio::before{bottom:50%}
+.rs-marcas .marcada i{width:12px;height:12px;border:2px solid var(--tinta);background:var(--superficie)}
+.rs-marcas .marcada::before{border-left:2px dashed var(--encaixe)}
+.rs-marcas .vao::before{bottom:auto;height:10px}
+.rs-marcas .vao::after{content:"";position:absolute;left:5px;bottom:0;height:10px;border-left:2px solid var(--linha)}
+.rs-marcas b{font:600 var(--t15)/22px var(--cond)}
+.rs-marcas span.diz{color:var(--apagado)}
+@media (max-width:560px){.rs-marcas li{grid-template-columns:44px minmax(0,1fr)}.rs-marcas span.diz{grid-column:2}}
+.rs-muda td:first-child{font-weight:600;white-space:nowrap}
+.tabela code{font:inherit;font-weight:500}
+.rs-decidir{display:grid;gap:12px;padding-left:22px;list-style:decimal}
+.rs-decidir b{display:block;font-weight:600}
+</style>
+</head>
+<body>
+<div class="pagina">
+
+<header class="abre">
+  <p class="de-quem"><a class="voltar" href="../index.html">Manual de Identidade Visual</a></p>
+  <h1>Histórico de rastreio</h1>
+  <p>Uma seção da ficha do militar: onde ele está hoje (lotação, equipe, jornada, quadro e situação) e as mudanças que o levaram até aí, com a data e quem fez.</p>
+  <p class="menor">Versão 1, em revisão por você. A linha do tempo à esquerda continua. O que muda é o quadro "Hoje" no alto, uma mudança por bloco e os afastamentos fora da linha. Os nomes, as matrículas e as datas são fictícios.</p>
+  <div class="rs-controles" role="radiogroup" aria-label="Exemplo">
+    <span class="rot">Exemplo</span>
+    <label class="marcar"><input type="radio" name="exemplo" value="comum" checked><span>Comum</span></label>
+    <label class="marcar"><input type="radio" name="exemplo" value="marcada"><span>Com mudança marcada</span></label>
+    <label class="marcar"><input type="radio" name="exemplo" value="longo"><span>Histórico longo</span></label>
+    <label class="marcar"><input type="radio" name="exemplo" value="vazio"><span>Sem lotação</span></label>
+  </div>
+</header>
+
+<section class="bloco largo" id="secao">
+  <div class="regra">
+    <h2>A seção na ficha</h2>
+    <p>Clique no título para recolher e abrir. Recolhida, a seção mostra só a unidade e a jornada; aberta, esse texto some, porque a situação completa está logo embaixo. Os afastamentos ficam só na seção deles.</p>
+  </div>
+  <div class="rs-quadros">
+    <figure><div class="fic" data-ficha></div><figcaption>Computador. As outras seções aparecem só para dar o contexto.</figcaption></figure>
+    <figure class="celular"><div class="fic" data-ficha></div><figcaption>Celular, 390 px.</figcaption></figure>
+  </div>
+</section>
+
+<section class="bloco" id="marcas">
+  <div class="regra">
+    <h2>Como ler a linha do tempo</h2>
+    <p>A forma do ponto diz o que a mudança é. Nenhuma marca depende só da cor.</p>
+    <p class="nota">Hoje o ponto vermelho cai no item mais novo da lista, mesmo quando ele ainda não começou. Agora o ponto cheio fica na mudança que vale no dia de hoje.</p>
+  </div>
+  <div class="prancha">
+    <div class="sup">
+      <ul class="rs-marcas">
+        <li><span class="mostra agora"><i></i></span><b>Vale agora</b><span class="diz">A mudança que pôs o militar na situação de hoje. É a mesma marca do quadro "Hoje". Só uma por histórico.</span></li>
+        <li><span class="mostra antes"><i></i></span><b>Anterior</b><span class="diz">Mudança que já foi substituída por outra.</span></li>
+        <li><span class="mostra inicio"><i></i></span><b>Primeiro registro</b><span class="diz">A situação com que o militar entrou no sistema. Fecha o trilho.</span></li>
+        <li><span class="mostra marcada"><i></i></span><b>Marcada</b><span class="diz">Mudança com data futura: aparece no alto, com o aviso "Ainda não vale" e o trilho tracejado até a de agora.</span></li>
+        <li><span class="mostra vao"></span><b>Sem lotação</b><span class="diz">Dias entre o fim de uma lotação e o começo da outra: o trilho para e recomeça.</span></li>
+      </ul>
+    </div>
+    <div class="sup rolagem" style="padding:0">
+      <table class="tabela">
+        <thead><tr><th scope="col">Parte</th><th scope="col" class="quebra">Medidas</th></tr></thead>
+        <tbody>
+          <tr><td>Quadro "Hoje"</td><td class="quebra">Fundo <code>passa</code>, raio 6, folga de 12 px em cima e 16 dos lados. A frase em 13 px. Rótulos em 13 px, <code>apagado</code>; valores em 17 px estreita, 600; a lotação em 20 px. O que falta ("Sem equipe") em 500, <code>apagado</code>. No celular, a lotação numa linha e os outros em duas colunas.</td></tr>
+          <tr><td>Trilho</td><td class="quebra">2 px, <code>linha</code>, a 7 px da borda da seção; o texto começa a 28 px. Tracejado em <code>encaixe</code> entre a mudança marcada e a de agora.</td></tr>
+          <tr><td>Pontos</td><td class="quebra">Vale agora: 12 px, cheio, <code>tinta</code>. Anterior: 8 px, cheio, <code>encaixe</code>. Primeiro registro: 10 px, vazado, borda de 2 px <code>encaixe</code>. Marcada: 12 px, vazado, borda de 2 px <code>tinta</code>.</td></tr>
+          <tr><td>Evento</td><td class="quebra">24 px entre um e outro. Data em 15 px estreita, 600 (<code>tinta</code> na que vale agora e na marcada; <code>apagado</code> nas outras). Uma linha por campo: rótulo de 64 px em 13 px, o valor antigo em <code>apagado</code> e o novo em 600, <code>tinta</code>. Quem fez, em 13 px, <code>apagado</code>.</td></tr>
+          <tr><td>Histórico longo</td><td class="quebra">Os 5 itens mais novos e um botão discreto, "Ver todo o histórico (n)"; aberto, o botão vira "Mostrar só os mais novos".</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section class="bloco" id="o-que-muda">
+  <div class="regra">
+    <h2>O que muda em relação à tela de hoje</h2>
+    <p>Hoje a situação aparece duas vezes (no título e na primeira linha), a mudança, o início e o afastamento têm a mesma cara, e tudo o que mudou vai numa linha só, separado por pontos.</p>
+    <p class="nota">O formulário de "Alterar situação" não muda, nem quem pode usá-lo. Nada aqui pede dado novo: tudo já vem na ficha.</p>
+  </div>
+  <div class="prancha">
+    <div class="sup rolagem" style="padding:0">
+      <table class="tabela rs-muda">
+        <thead><tr><th scope="col">Item</th><th scope="col" class="quebra">Hoje</th><th scope="col" class="quebra">Como fica</th><th scope="col" class="quebra">De onde vem</th></tr></thead>
+        <tbody>
+          <tr><td>Texto ao lado do título</td><td class="quebra">A situação inteira, sempre à vista.</td><td class="quebra">Recolhida: só a unidade e a jornada ("1ª SB · Pronto"). Aberta: some.</td><td class="quebra">Pedido seu.</td></tr>
+          <tr><td>Situação de hoje</td><td class="quebra">Uma linha de texto: "Situação atual: 1ª SB · Equipe ALFA · Pronto · QBMG · Ativa (desde 12/08/2026)".</td><td class="quebra">Um quadro no alto, com a lotação em destaque e equipe, jornada, quadro e situação cada um com o seu rótulo.</td><td class="quebra">Proposta da PLANEJAMENTO e da DESIGN.</td></tr>
+          <tr><td>Afastamentos</td><td class="quebra">Entram na linha do tempo, misturados com as mudanças.</td><td class="quebra">Saem da linha do tempo. Ficam só na seção Afastamentos.</td><td class="quebra">Decisão sua.</td></tr>
+          <tr><td>Cada mudança</td><td class="quebra">Tudo numa linha: "Lotação DGO → 1ª SB · Equipe nenhuma → ALFA".</td><td class="quebra">Uma linha por campo que mudou, com o valor novo em destaque, e quem fez embaixo.</td><td class="quebra">Proposta.</td></tr>
+          <tr><td>Marcas</td><td class="quebra">Ponto vermelho no item mais novo, mesmo se ele ainda não começou; os outros, todos iguais.</td><td class="quebra">Uma marca para cada caso: vale agora, anterior, primeiro registro e marcada. O ponto cheio passa a ser escuro.</td><td class="quebra">Proposta. A cor segue o Manual: o vermelho fica para a marca e o botão principal.</td></tr>
+          <tr><td>Espaço</td><td class="quebra">12 px entre os itens.</td><td class="quebra">24 px entre os eventos, sem caixas.</td><td class="quebra">Pedido seu.</td></tr>
+          <tr><td>Textos</td><td class="quebra">"Equipe nenhuma", "Quadro nenhum".</td><td class="quebra">"sem equipe", "sem quadro".</td><td class="quebra">Proposta.</td></tr>
+          <tr><td>Histórico longo</td><td class="quebra">Mostra tudo.</td><td class="quebra">Os 5 itens mais novos e "Ver todo o histórico (n)". Muda o comportamento.</td><td class="quebra">Proposta.</td></tr>
+          <tr><td>Dias sem lotação</td><td class="quebra">Uma linha de texto igual às outras.</td><td class="quebra">O trilho para e recomeça, com a frase ao lado.</td><td class="quebra">Proposta.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section class="fecho" id="decidir">
+  <h2>O que precisa da sua palavra</h2>
+  <ol class="rs-decidir">
+    <li><b>O texto ao lado do título some quando a seção abre: só aqui ou em todas as seções da ficha?</b>Recomendo em todas: em qualquer uma, o texto repete o que está logo embaixo. No exemplo já está assim.</li>
+    <li><b>O quadro se chama "Hoje", no lugar de "Situação atual"?</b>Recomendo "Hoje": "Situação" já é o nome de um dos campos (Ativa), e os dois juntos confundem.</li>
+    <li><b>O histórico longo começa com os 5 itens mais novos?</b>Recomendo que sim. A alternativa é mostrar tudo sempre, como hoje.</li>
+  </ol>
+  <p>Com a sua aprovação, a seção vai à PLANEJAMENTO, que planeja a entrega. <a class="voltar" href="../index.html">Voltar ao Manual</a></p>
+</section>
+
+</div>
+
+<script src="../pecas.js"></script>
+<script>
+(function () {
+  'use strict';
+  // Exemplo da seção "Histórico de rastreio". O dia de hoje do exemplo é 24/11/2026. Dados fictícios.
+  var HOJE = '2026-11-24';
+  var CAMPOS = [['u', 'Lotação'], ['e', 'Equipe'], ['j', 'Jornada'], ['q', 'Quadro'], ['s', 'Situação']];
+  var SEM = { e: 'sem equipe', q: 'sem quadro' };
+  // cada período: desde (e até, quando a lotação terminou antes da seguinte), unidade, equipe, jornada, quadro, situação e quem lançou
+  var COMUM = [
+    { desde: '2022-03-14', u: 'DGO', e: null, j: 'ADM', q: null, s: 'Ativa' },
+    { desde: '2025-02-03', u: 'DGO', e: null, j: 'ADM', q: 'QBMG', s: 'Ativa', por: 'CAP LINS em 03/02/2025 às 14:02' },
+    { desde: '2026-08-12', u: '1ª SB', e: 'ALFA', j: 'Pronto', q: 'QBMG', s: 'Ativa', por: 'MAJ BARRETO em 10/08/2026 às 09:15' }
+  ];
+  var EXEMPLOS = {
+    comum: COMUM,
+    marcada: COMUM.concat([{ desde: '2027-01-01', u: '1ª SB', e: 'BRAVO', j: 'Pronto', q: 'QBMG', s: 'Ativa', por: 'MAJ BARRETO em 23/11/2026 às 16:30' }]),
+    longo: [
+      { desde: '2019-02-11', u: '2ª SB', e: 'CHARLIE', j: 'Pronto', q: null, s: 'Ativa' },
+      { desde: '2020-06-01', u: '2ª SB', e: 'DELTA', j: 'Pronto', q: null, s: 'Ativa', por: 'CAP LINS em 29/05/2020 às 11:20' },
+      { desde: '2021-03-15', u: '2ª SB', e: 'DELTA', j: 'Pronto', q: 'QBMG', s: 'Ativa', por: 'CAP LINS em 15/03/2021 às 08:47' },
+      { desde: '2022-01-10', u: 'DGO', e: null, j: 'ADM', q: 'QBMG', s: 'Ativa', por: 'MAJ BARRETO em 07/01/2022 às 15:05' },
+      { desde: '2023-07-03', ate: '2025-02-28', u: '3ª SB', e: 'ALFA', j: 'Pronto', q: 'QBMG', s: 'Ativa', por: 'MAJ BARRETO em 30/06/2023 às 10:12' },
+      { desde: '2025-03-10', u: '1ª SB', e: 'BRAVO', j: 'Pronto', q: 'QBMG', s: 'Ativa', por: '1º TEN MOURA em 10/03/2025 às 09:30' },
+      { desde: '2025-09-01', u: '1ª SB', e: 'ALFA', j: 'Pronto', q: 'QBMG', s: 'Ativa', por: '1º TEN MOURA em 28/08/2025 às 17:44' },
+      { desde: '2026-04-06', u: '1ª SB', e: null, j: 'ADM', q: 'QBMG', s: 'Ativa', por: 'MAJ BARRETO em 02/04/2026 às 13:18' },
+      { desde: '2026-08-12', u: '1ª SB', e: 'ALFA', j: 'Pronto', q: 'QBMG', s: 'Ativa', por: 'MAJ BARRETO em 10/08/2026 às 09:15' }
+    ],
+    vazio: []
+  };
+  var NOVOS = 5;
+  var estado = { exemplo: 'comum' };
+
+  function ic(nome) { return '<svg class="i" aria-hidden="true"><use href="#i-' + nome + '"/></svg>'; }
+  function br(d) { return d.slice(8, 10) + '/' + d.slice(5, 7) + '/' + d.slice(0, 4); }
+  function somar(d, n) { var x = new Date(d + 'T00:00:00Z'); x.setUTCDate(x.getUTCDate() + n); return x.toISOString().slice(0, 10); }
+  function valor(p, c) { return p[c] || SEM[c]; }
+  // o período que cobre o dia de hoje: uma mudança marcada para depois ainda não vale
+  function atual(ps) { for (var i = ps.length - 1; i >= 0; i--) if (ps[i].desde <= HOJE) return ps[i].ate && ps[i].ate < HOJE ? null : ps[i]; return null; }
+
+  // os itens da linha do tempo, do mais novo para o mais velho: cada período, e os dias sem lotação entre dois deles
+  function itens(ps) {
+    var lista = [], agora = atual(ps);
+    ps.forEach(function (p, i) {
+      lista.push({ tipo: i === 0 ? 'inicio' : 'mudanca', p: p, antes: ps[i - 1], vale: p === agora ? 'agora' : p.desde > HOJE ? 'marcada' : 'antes' });
+      var seguinte = ps[i + 1];
+      if (p.ate && seguinte && somar(p.ate, 1) < seguinte.desde) lista.push({ tipo: 'vao', de: somar(p.ate, 1), ate: somar(seguinte.desde, -1) });
+    });
+    return lista.reverse();
+  }
+
+  function quadroHoje(ps) {
+    var p = atual(ps);
+    if (!p) return '<div class="rs-hoje sem-lotacao"><p class="rs-quando"><span><b>Hoje</b>, sem lotação</span></p></div>';
+    return '<div class="rs-hoje"><p class="rs-quando"><span><b>Hoje</b>, desde ' + br(p.desde) + '</span></p><dl class="rs-pares">' +
+      CAMPOS.map(function (c) { return '<div' + (c[0] === 'u' ? ' class="lotacao"' : '') + '><dt>' + c[1] + '</dt><dd' + (p[c[0]] ? '' : ' class="sem"') + '>' + (p[c[0]] || SEM[c[0]].replace(/^s/, 'S')) + '</dd></div>'; }).join('') +
+      '</dl></div>';
+  }
+
+  function evento(it, classes) {
+    if (it.tipo === 'vao') {
+      var mesmoAno = it.de.slice(0, 4) === it.ate.slice(0, 4);
+      return '<li class="rs-ev rs-vao">Sem lotação de ' + (mesmoAno ? br(it.de).slice(0, 5) : br(it.de)) + ' a ' + br(it.ate) + '</li>';
+    }
+    var p = it.p, corpo;
+    if (it.tipo === 'inicio') {
+      corpo = '<p class="rs-inteira">' + CAMPOS.map(function (c) { return p[c[0]]; }).filter(Boolean).join(' · ') + '</p>';
+    } else {
+      var mudou = CAMPOS.filter(function (c) { return p[c[0]] !== it.antes[c[0]]; });
+      corpo = mudou.length ? '<dl class="rs-mud">' + mudou.map(function (c) {
+        return '<dt>' + c[1] + '</dt><dd><span class="so-leitor">de </span>' + valor(it.antes, c[0]) + '<span class="seta" aria-hidden="true">→</span><span class="so-leitor"> para </span><b>' + valor(p, c[0]) + '</b></dd>';
+      }).join('') + '</dl>' : '<p class="rs-inteira">Sem mudança na situação</p>';
+    }
+    var diz = it.vale === 'marcada' ? '<span class="etiqueta neutra">Ainda não vale</span>' : it.tipo === 'inicio' ? '<span class="diz">Primeiro registro</span>' : '';
+    return '<li class="rs-ev ' + it.vale + (it.tipo === 'inicio' ? ' inicio' : '') + (classes || '') + '"><span class="rs-ponto" aria-hidden="true"></span>' +
+      '<h4><time datetime="' + p.desde + '">' + br(p.desde) + '</time>' + diz + (it.vale === 'agora' ? '<span class="so-leitor">, vale agora</span>' : '') + '</h4>' + corpo +
+      (p.por ? '<p class="rs-autor">por ' + p.por + '</p>' : '') + '</li>';
+  }
+
+  function linha(ps, tudo) {
+    var todos = itens(ps);
+    if (!todos.length) return '<p class="rs-sem">Para lançar a primeira lotação, use "Alterar situação".</p>';
+    var longo = todos.length > NOVOS, mostra = longo && !tudo ? todos.slice(0, NOVOS) : todos;
+    var h = mostra.map(function (it, i) {
+      var seguinte = mostra[i + 1], extra = '';
+      if (seguinte && seguinte.tipo === 'vao') extra = ' ate-o-vao';
+      return evento(it, extra);
+    }).join('');
+    if (longo) h += '<li class="rs-ev rs-mais"><button type="button" class="botao discreto" data-tudo>' + (tudo ? 'Mostrar só os mais novos' : 'Ver todo o histórico (' + todos.length + ')') + '</button></li>';
+    return '<ol class="rs-linha" aria-label="Mudanças, da mais nova para a mais antiga">' + h + '</ol>';
+  }
+
+  function secao(id, nome, resumo, corpo, aberta, acao) {
+    return '<section class="fic-sec" data-secao="' + id + '"><header><h3><button type="button" aria-expanded="' + aberta + '" aria-controls="' + id + '">' + ic('dir') + '<span class="nome">' + nome + '</span>' +
+      (!aberta && resumo ? '<span class="resumo">' + resumo + '</span>' : '') + '</button></h3>' + (aberta && acao ? acao : '') + '</header>' +
+      (aberta ? '<div class="corpo" id="' + id + '">' + corpo + '</div>' : '') + '</section>';
+  }
+
+  function montar(raiz, n) {
+    var abertas = raiz.abertas || (raiz.abertas = { afastamentos: true, rastreio: true });
+    var ps = EXEMPLOS[estado.exemplo], p = atual(ps);
+    var resumoDaFicha = p ? [p.u, p.e ? 'Equipe ' + p.e : null, p.j].filter(Boolean).join(' · ') : 'Sem lotação';
+    raiz.innerHTML =
+      '<header class="fic-cab"><h2><span><span class="patente">2º SGT</span> RAMALHO</span><span class="matricula">990012-3</span></h2><p>' + resumoDaFicha + '</p></header>' +
+      secao('f' + n + '-motorista', 'Motorista', 'Categoria D', '<p>Categoria D.</p>', !!abertas.motorista) +
+      secao('f' + n + '-afastamentos', 'Afastamentos', '1 marcado', '<p class="fic-afastamento"><b>Férias</b><span>16/12/2026 a 30/12/2026</span></p>', !!abertas.afastamentos) +
+      secao('f' + n + '-rastreio', 'Histórico de rastreio', p ? p.u + ' · ' + p.j : 'Sem lotação', quadroHoje(ps) + linha(ps, raiz.tudo), !!abertas.rastreio,
+        '<button type="button" class="botao secundario">Alterar situação</button>') +
+      secao('f' + n + '-acesso', 'Acesso ao sistema', 'Sem acesso', '<p>Sem acesso ao sistema.</p>', !!abertas.acesso);
+  }
+
+  var fichas = [].slice.call(document.querySelectorAll('[data-ficha]'));
+  fichas.forEach(function (raiz, n) {
+    montar(raiz, n);
+    raiz.addEventListener('click', function (e) {
+      var titulo = e.target.closest('h3 button'), tudo = e.target.closest('[data-tudo]'), foco = null;
+      if (titulo) { var id = titulo.closest('[data-secao]').dataset.secao.replace(/^f\d+-/, ''); raiz.abertas[id] = !raiz.abertas[id]; foco = '[data-secao$="-' + id + '"] h3 button'; }
+      else if (tudo) { raiz.tudo = !raiz.tudo; foco = '[data-tudo]'; }
+      else return;
+      montar(raiz, n);
+      var alvo = raiz.querySelector(foco); if (alvo) alvo.focus();
+    });
+  });
+  document.querySelectorAll('input[name="exemplo"]').forEach(function (r) {
+    r.addEventListener('change', function () { estado.exemplo = r.value; fichas.forEach(function (raiz, n) { raiz.tudo = false; raiz.abertas.rastreio = true; montar(raiz, n); }); });
+  });
+})();
+</script>
+</body>
+</html>
