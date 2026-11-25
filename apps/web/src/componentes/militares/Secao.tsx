@@ -24,7 +24,7 @@ function guardarNaMemoria(titulo: string, recolhida: boolean) {
 
 /**
  * Bloco da ficha (dentro do FichaPainel, que desenha a moldura e as linhas entre os blocos): título, conteúdo e, opcionalmente, ações à direita do título.
- * Toda seção recolhe e abre pelo botão do título, que mostra o `resumo`. Começa aberta (ou recolhida, com `recolhidaDeInicio`), a menos que a pessoa já tenha escolhido:
+ * Toda seção recolhe e abre pelo botão do título, que mostra o `resumo` só com a seção recolhida (aberta, o conteúdo logo abaixo já diz o mesmo). Começa aberta (ou recolhida, com `recolhidaDeInicio`), a menos que a pessoa já tenha escolhido:
  * a escolha de cada seção fica guardada no navegador (`localStorage['ficha:recolhidas']`, por título) e vale nas fichas de todos os militares. As `acoes` só aparecem com a seção aberta.
  */
 export function Secao({ titulo, acoes, resumo, recolhidaDeInicio = false, children }: { titulo: string; acoes?: ReactNode; resumo?: string; recolhidaDeInicio?: boolean; children: ReactNode }) {
@@ -41,7 +41,7 @@ export function Secao({ titulo, acoes, resumo, recolhidaDeInicio = false, childr
           <button type="button" aria-expanded={aberta} aria-controls={idConteudo} onClick={alternar} className="flex w-full items-center gap-2 text-left">
             <ChevronRight className={cn('size-4 shrink-0 transition-transform', aberta && 'rotate-90')} aria-hidden />
             <span>{titulo}</span>
-            {resumo && <span className="truncate font-sans text-sm font-normal text-apagado">{resumo}</span>}
+            {!aberta && resumo && <span className="truncate font-sans text-sm font-normal text-apagado">{resumo}</span>}
           </button>
         </h3>
         {aberta && acoes}

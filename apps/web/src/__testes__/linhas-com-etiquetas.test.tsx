@@ -53,7 +53,7 @@ describe('a lista do Pecúlio', () => {
 });
 
 describe('a lista de Militares', () => {
-  it('linha 2: o nome completo em 15 px; linha 3: matrícula, jornada e equipe ("Pronto · BRAVO", "Adm") e "Motorista B", em etiquetas com ícone', async () => {
+  it('linha 2: o nome completo em 15 px; linha 3: matrícula, jornada e equipe ("Pronto · BRAVO", "ADM") e "Motorista B", em etiquetas com ícone', async () => {
     simularApi({
       '/api/eu': { status: 200, corpo: GESTOR },
       'GET /api/unidades/u-1sb/militares': { status: 200, corpo: MILITARES },
@@ -67,7 +67,7 @@ describe('a lista de Militares', () => {
     expect(a.getByText('Pronto · BRAVO').closest('[data-etiqueta]')).toHaveClass('bg-passa', 'border-linha');
     expect(a.getByText('Motorista B').closest('[data-etiqueta]')!.querySelector('svg')).not.toBeNull();
     const b = within(linhaDe('BARRETO'));
-    expect(b.getByText('Adm')).toBeInTheDocument();
+    expect(b.getByText('ADM')).toBeInTheDocument();
     expect(b.queryByText(/Motorista/)).toBeNull();
     expect(linhaDe('ANDRADE').innerHTML).not.toMatch(/text-xs|text-\[11px\]|text-\[12px\]/);
   });

@@ -142,7 +142,7 @@ function Identificacao({ s }: { s: Servico }) {
         <div className="grid gap-1">
           <label htmlFor="sv-tira" className="flex items-center gap-2 text-sm font-medium">
             <Checkbox id="sv-tira" checked={tira} onChange={(e) => setTira(e.target.checked)} aria-describedby="sv-tira-ajuda" />
-            Pode tirar o militar do Adm do expediente
+            Pode tirar o militar do ADM do expediente
           </label>
           <p id="sv-tira-ajuda" className="text-apoio text-apagado">Ligada: lançar este serviço no horário do expediente tira o militar do expediente do dia, depois de confirmar. Desligada: é choque.</p>
         </div>

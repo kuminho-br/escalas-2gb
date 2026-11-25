@@ -1,7 +1,8 @@
 import type { FichaMilitar } from 'contratos';
 import { hoje } from '@/lib/meses';
 
-export const NOME_JORNADA = { pronto: 'Pronto', adm: 'Adm' } as const;
+/** O nome da jornada na tela. O expediente se escreve "ADM" (decisão do usuário de 24/11/2026, 6.46). */
+export const NOME_JORNADA = { pronto: 'Pronto', adm: 'ADM' } as const;
 
 /** O primeiro período que só começa depois de hoje (uma lotação já marcada), ou null. */
 export function proximoPeriodo(lotacoes: FichaMilitar['rastreio']): FichaMilitar['rastreio'][number] | null {

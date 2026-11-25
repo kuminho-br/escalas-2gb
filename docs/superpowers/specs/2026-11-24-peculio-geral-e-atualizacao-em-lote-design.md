@@ -1,6 +1,6 @@
 # Pecúlio Geral: as views, a pesquisa com filtros e a atualização em lote — design
 
-24/11/2026 · decisões do usuário no mesmo dia (feedbacks do piloto e brainstorming) · entregas depois do piloto de dezembro, na fase 7 ou antes dela, a combinar · plano: a escrever · absorve os itens 4, 5 e 6 do pool (`docs/superpowers/plans/2026-11-24-pool-de-feedbacks-do-piloto.md`)
+24/11/2026 · decisões do usuário no mesmo dia (feedbacks do piloto e brainstorming) · entregas 6.50, 6.51 e 6.52, depois da 7.2 (decisão do usuário, 25/11/2026) · planos: `docs/superpowers/plans/2026-11-25-fase6-50-…` a `fase6-52-…` · absorve os itens 4, 5 e 6 do pool (`docs/superpowers/plans/2026-11-24-pool-de-feedbacks-do-piloto.md`)
 
 ## Por quê
 
@@ -27,7 +27,7 @@ Dois problemas apareceram ao preparar a escala de dezembro:
 
 "Pecúlio da unidade" e "Pesquisar militares" usam **o mesmo componente de busca**, com o mesmo resultado (uma linha por militar, como a lista do Pecúlio de hoje). A diferença é o alcance: a primeira começa na unidade de trabalho; a segunda, na corporação. O arquivo de matrículas e a árvore ficam só na segunda.
 
-**Filtros** (a resposta do usuário aos filtros ainda não veio; esta é a proposta): nome, nome de guerra ou matrícula (texto); lotação (uma unidade, com "e as de baixo"); posto/graduação; quadro; jornada; equipe; situação do militar; voluntário JES; no quadro de motoristas e categoria de CNH; função; afastado hoje; cadastro incompleto. Os filtros se somam. A API devolve no máximo 500 linhas e avisa para afinar a busca quando passa disso.
+**Filtros** (confirmados pelo usuário em 25/11/2026): nome, nome de guerra ou matrícula (texto); lotação (uma unidade, com "e as de baixo"); posto/graduação; quadro; jornada; equipe; situação do militar; voluntário JES; no quadro de motoristas e categoria de CNH; função; afastado hoje; cadastro incompleto. Os filtros se somam. A API devolve no máximo 500 linhas e avisa para afinar a busca quando passa disso.
 
 **A árvore:** a árvore de unidades (a mesma da Estrutura), com uma marca por nó; marcar um nó inclui os militares lotados nele; um segundo controle no nó inclui as unidades de baixo. É uma forma de preencher o filtro de lotação com várias unidades de uma vez.
 
@@ -37,7 +37,7 @@ Dois problemas apareceram ao preparar a escala de dezembro:
 
 **Duas rotas, um componente.** O "Pecúlio da unidade" continua carregando a lista da unidade de uma vez (`GET /unidades/:u/peculio`, que também calcula as pendências) e filtrando no navegador, como hoje; "incluir as de baixo" vira parâmetro dessa rota. O "Pesquisar militares" vai ao servidor por "Buscar", pela rota da Consulta com os filtros novos. O que é um só é o componente da tela (os filtros, a lista, a seleção), não a rota.
 
-**A borda de visão** (o que cada conta vê de cada militar) continua valendo: a Consulta é para toda conta. Os filtros além de texto e lotação, as colunas de contato e as pendências de cadastro aparecem só para quem tem nível de acesso (gestão ou auxiliar em alguma unidade); o militar comum vê o que a Consulta mostra hoje. A lista de filtros acima é proposta da PLANEJAMENTO; o usuário corrige ao validar.
+**A borda de visão** (o que cada conta vê de cada militar) continua valendo: a Consulta é para toda conta. Os filtros além de texto e lotação, as colunas de contato e as pendências de cadastro aparecem só para quem tem nível de acesso (gestão ou auxiliar em alguma unidade); o militar comum vê o que a Consulta mostra hoje.
 
 ### A seleção
 
@@ -91,6 +91,6 @@ Linhas com divisória ou cartões num painel: **a DESIGN decide o padrão**, que
 
 ## O que fica para o plano
 
-- A divisão em entregas. Sugestão: (a) Pecúlio Geral com as três views, a ficha no lugar e a lista (front-end, no Fable); (b) a pesquisa com filtros, árvore e arquivo, com a seleção; (c) a atualização em lote (API e tela). A ordem (a), (b), (c), depois do piloto.
+- A divisão em entregas. Sugestão: (a) Pecúlio Geral com as três views, a ficha no lugar e a lista (front-end); (b) a pesquisa com filtros, árvore e arquivo, com a seleção; (c) a atualização em lote (API e tela). A ordem (a), (b), (c), depois do piloto.
 - As rotas novas (`POST /peculio/lote/previa`, `POST /peculio/lote/aplicar`, ou nomes equivalentes) e o formato de entrada (ids dos militares, campos e valores, "a partir de").
 - Os textos das recusas da prévia.

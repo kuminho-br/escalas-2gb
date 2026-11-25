@@ -106,7 +106,7 @@ export function EscolherMilitar({ escalaId, vaga, aoFechar }: { escalaId: string
             {c.saldos && <CotaDeSaldo feitos={c.saldos.feitos} total={c.saldos.total} />}
             {c.matricula}
           </span>
-          <span className="text-xs text-apagado">{c.equipe ?? 'Adm'}</span>
+          <span className="text-xs text-apagado">{c.equipe ?? 'ADM'}</span>
           {c.noTurno && <span className="text-apoio font-medium text-pendencia">No turno, sem guarnição</span>}
         </button>
         {c.servicos.length > 1 && (

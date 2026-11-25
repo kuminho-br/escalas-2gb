@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-> **Modelo (decisão do usuário, 24/11/2026): front-end no Fable.** Se a sessão estiver em outro modelo, avise o usuário antes de começar e espere. Revisão final no Opus.
+> **Modelo: Sonnet** (o padrão, decisão do usuário de 25/11/2026). Revisão final no Opus.
 
 **Goal:** a seção "Histórico de rastreio" da ficha do militar passa a seguir o mockup da DESIGN: um quadro "Hoje" no alto, a linha do tempo com uma mudança por bloco (uma linha por campo que mudou e quem fez), marcas diferentes para cada caso, os afastamentos fora da linha e o histórico longo cortado nos 5 mais novos.
 

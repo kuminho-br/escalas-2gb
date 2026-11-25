@@ -101,7 +101,8 @@ Design: `docs/superpowers/specs/2026-11-21-usuarios-e-modulos-design.md`. Plano:
 | 32 a 36 | Ficha na escala; Escala do mês no ordinário; militar externo; testes instáveis; RG funcional (0041), Grade sem Voluntariado | mescladas (#192 a #199) |
 | 37 a 40 | Choque universal (0042); resolver o choque; cota de saldo; choque nos Oficiais; pré-escala só nos turnos e com o expediente (0043) | mescladas (#201 a #212) |
 | 41 a 45, 47, 48 | Deploy só com código e só da `main`; tela inicial; dia vermelho só no ordinário; escolher a unidade pela árvore; lista de quem está hoje | mescladas (até #230) |
-| 46 e 49 | Ajustes da Grade; histórico de rastreio pelo mockup | 46 em execução; 49 planejada |
+| 46 e 49 | Ajustes da Grade; histórico de rastreio pelo mockup | 46 mesclada (#233); 49 planejada |
+| 50 a 52 | Pecúlio Geral: as três telas e a ficha no lugar; a pesquisa com filtros, árvore, arquivo e seleção; a atualização em lote | planejadas (depois da 7.2) |
 
 ## Refatoração da interface · fundação concluída
 
@@ -114,10 +115,10 @@ Design: `docs/superpowers/specs/2026-11-25-fase7-visualizacao-de-escalas-design.
 | Entrega | O que traz | Situação |
 |---|---|---|
 | 1 | API do voluntariado: a coleta por unidade e mês, o militar marca o próprio, o registro das correções (0044) | planejada |
-| 2 | Telas: Meu voluntariado (área pessoal), outro horário no dia, o interruptor da coleta, as correções | planejada (Fable) |
+| 2 | Telas: Meu voluntariado (área pessoal), outro horário no dia, o interruptor da coleta, as correções | planejada |
 | 3 | API da prévia: lançar e recolher por escala e mês, o passado com justificativa e registro, as leituras da corporação (0045) | planejada |
-| 4 | Montagem: "Lançar prévia", o motivo do passado, as alterações no passado | planejada (Fable) |
-| 5 | Módulo Visualização: Minha escala e Escalas | planejada (Fable) |
+| 4 | Montagem: "Lançar prévia", o motivo do passado, as alterações no passado | planejada |
+| 5 | Módulo Visualização: Minha escala e Escalas | planejada |
 
 Planos: `docs/superpowers/plans/2026-11-25-fase7-1-…` a `fase7-5-…`. A 1 e a 2 são a prioridade. O .xlsx é a fase 8; a comparação com outro militar entra com a Escala por militar (fase 8) e a busca por permutantes, na fase 9.
 
