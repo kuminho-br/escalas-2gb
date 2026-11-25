@@ -7,6 +7,8 @@ import { consultaVoluntariadoDoMes, consultaVoluntariadoDoMilitar, lancarVolunta
 import { ProvedorDePendencias } from '@/componentes/AlteracoesPendentes';
 import { CampoDeMes } from '@/componentes/CampoDeMes';
 import { Label } from '@/componentes/ui/label';
+import { RegistroDeCorrecoes } from '@/componentes/voluntariado/RegistroDeCorrecoes';
+import { useConfirmar } from '@/componentes/resposta/useConfirmar';
 import { CalendarioDoVoluntariado } from '@/componentes/voluntariado/CalendarioDoVoluntariado';
 import { guiaJaFechado, lembrarGuiaFechado } from '@/componentes/voluntariado/GuiaComoMarcar';
 import { ListaDoVoluntariado } from '@/componentes/voluntariado/ListaDoVoluntariado';
@@ -30,6 +32,7 @@ function Voluntariado() {
   const busca = Route.useSearch();
   const navigate = Route.useNavigate();
   const queryClient = useQueryClient();
+  const confirmar = useConfirmar();
   // o voluntariado se lança antes de o mês começar: a tela abre no mês seguinte
   const mes = busca.mes ?? somarMeses(mesAtual(), 1);
   const lista = useQuery(consultaVoluntariadoDoMes(eu.unidade.id, mes));
@@ -89,6 +92,8 @@ function Voluntariado() {
                     lembrarGuiaFechado();
                   }}
                   aoSalvar={async (faixas, soltarPendencia) => {
+                    // o mês que o próprio militar preencheu só se altera sabendo que a alteração fica registrada; cancelar deixa a marcação na tela
+                    if (aberto.peloMilitar && !(await confirmar({ titulo: 'Alterar o voluntariado do militar?', texto: 'Este mês foi preenchido pelo militar. A sua alteração fica registrada.', verbo: 'Alterar' }))) return;
                     setTodosLancados(false);
                     const nova = await lancarVoluntariado(queryClient, eu.unidade.id, aberto.militarId, mes, faixas);
                     soltarPendencia();
@@ -105,6 +110,7 @@ function Voluntariado() {
                   }}
                 />
               )}
+              {aberto.correcoes > 0 && <RegistroDeCorrecoes key={`${aberto.militarId}|${mes}`} militarId={aberto.militarId} mes={mes} />}
               {!celular && todosLancados && <p role="status" className="text-sm text-apagado">Todos os militares deste mês foram lançados.</p>}
             </div>
             )}

@@ -7,7 +7,7 @@ export type Marcas = Map<string, Faixa[]>;
 export type Estado = 'cheio' | 'parcial' | 'vazio';
 
 const DIA = 1440;
-const horaDe = (min: number): string => `${String(Math.floor(min / 60)).padStart(2, '0')}:${String(min % 60).padStart(2, '0')}`;
+export const horaDe = (min: number): string => `${String(Math.floor(min / 60)).padStart(2, '0')}:${String(min % 60).padStart(2, '0')}`;
 const minutosDe = (hora: string): number => Number(hora.slice(0, 2)) * 60 + Number(hora.slice(3));
 
 /** As faixas do dia, unidas. */
@@ -107,4 +107,55 @@ export function proximoQueFalta(militares: MilitarDoVoluntariado[], atualId: str
   const i = militares.findIndex((m) => m.militarId === atualId);
   const faltam = (m: MilitarDoVoluntariado) => !m.lancado && m.militarId !== atualId;
   return [...militares.slice(i + 1), ...militares.slice(0, Math.max(i, 0))].find(faltam)?.militarId ?? null;
+}
+
+/** Os cortes do dia: os começos e os fins dos blocos (os blocos cobrem o dia inteiro, então uma faixa que começa e termina num corte é feita de blocos inteiros). */
+export const cortesDosBlocos = (blocos: Faixa[]): number[] => [...new Set(blocos.flatMap((b) => [b.inicio, b.fim]))].sort((a, b) => a - b);
+
+const alinhada = (f: Faixa, cortes: number[]) => cortes.includes(f.inicio) && cortes.includes(f.fim);
+
+/** As faixas do dia que não são feitas de blocos inteiros (começam ou terminam fora de um corte): os "outros horários" do dia, unidas e em ordem. */
+export const faixasForaDosBlocos = (c: Marcas, dia: string, cortes: number[]): Faixa[] => doDia(c, dia).filter((f) => !alinhada(f, cortes));
+
+/** Marca o bloco (sem inverter: quem já tem o bloco inteiro fica como está). */
+export function marcarBloco(c: Marcas, dia: string, bloco: Faixa): Marcas {
+  const novo: Marcas = new Map(c);
+  novo.set(dia, unirFaixas([...(novo.get(dia) ?? []), { inicio: bloco.inicio, fim: bloco.fim }]));
+  return novo;
+}
+
+/** As duas camadas do mês juntas: o que o militar marcou em blocos inteiros e os outros horários; o que encosta ou cobre vira uma faixa só. */
+export function juntar(marcas: Marcas, extras: Marcas): Marcas {
+  const novo: Marcas = new Map();
+  for (const d of new Set([...marcas.keys(), ...extras.keys()])) novo.set(d, unirFaixas([...(marcas.get(d) ?? []), ...(extras.get(d) ?? [])]));
+  return novo;
+}
+
+/**
+ * Separa o mês marcado em duas camadas: os blocos inteiros (o que a faixa cobre de blocos do dia) e os outros horários (o que sobra fora deles). O calendário edita cada
+ * camada por um caminho (os blocos, pelos cliques; os outros horários, pelo painel do dia), e `juntar` devolve o mês inteiro, sem uma camada desfazer a outra.
+ */
+export function dividirMarcas(c: Marcas, blocos: Faixa[]): { marcas: Marcas; extras: Marcas } {
+  const marcas: Marcas = new Map();
+  const extras: Marcas = new Map();
+  for (const dia of c.keys()) {
+    const faixas = doDia(c, dia);
+    const inteiros = blocos.filter((b) => faixas.some((f) => f.inicio <= b.inicio && b.fim <= f.fim));
+    if (inteiros.length) marcas.set(dia, unirFaixas(inteiros));
+    const resto = unirFaixas(inteiros.reduce((r, b) => semOBloco(r, b), faixas));
+    if (resto.length) extras.set(dia, resto);
+  }
+  return { marcas, extras };
+}
+
+const HORA = /^([01]\d|2[0-3]):[0-5]\d$/;
+/** Um horário digitado: o erro de cada campo (null = valeu) e as faixas em minutos quando os dois estão certos. `fim` aceita "24:00". */
+export function validarHorario(inicio: string, fim: string): { erroInicio: string | null; erroFim: string | null; faixa: Faixa | null } {
+  const formato = 'Use a hora no formato HH:MM.';
+  const erroInicio = HORA.test(inicio) ? null : formato;
+  const erroFim = HORA.test(fim) || fim === '24:00' ? null : formato;
+  if (erroInicio || erroFim) return { erroInicio, erroFim, faixa: null };
+  const faixa = { inicio: minutosDe(inicio), fim: minutosDe(fim) };
+  if (faixa.fim <= faixa.inicio) return { erroInicio: null, erroFim: 'O fim precisa ser depois do início.', faixa: null };
+  return { erroInicio: null, erroFim: null, faixa };
 }

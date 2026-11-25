@@ -37,7 +37,7 @@ const PAINEL: PainelDoDia = {
 };
 const ROTA_GRADE = `GET /api/unidades/u-1sb/grade/${MES}`;
 const ROTA_PAINEL = `GET /api/unidades/u-1sb/grade/${MES}/militares/m-CABO/dias/${DIA}`;
-const ESCALA: EscalaDoMes = { escalaId: 'e-ord', nome: 'Ordinário', mes: MES, dias: [], resumo: { preenchidas: 0, obrigatorias: 0, obrigatoriasVazias: 0 } };
+const ESCALA: EscalaDoMes = { escalaId: 'e-ord', nome: 'Ordinário', mes: MES, dias: [], resumo: { preenchidas: 0, obrigatorias: 0, obrigatoriasVazias: 0 }, previa: null, podeAlterarPassado: false };
 const ABERTA = `/grade?mes=${MES}&militar=m-CABO&dia=${DIA}`;
 
 function api(painel: PainelDoDia = PAINEL, extra: Parameters<typeof simularApi>[0] = {}) {

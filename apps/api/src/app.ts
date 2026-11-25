@@ -21,6 +21,7 @@ import { rotasEfetivo } from './efetivo/rotas.ts';
 import { rotasOficiais } from './oficiais/rotas.ts';
 import { rotasEscalaDoMes } from './escala/rotas.ts';
 import { rotasGrade } from './grade/rotas.ts';
+import { rotasPrevias } from './escala/previas-rotas.ts';
 import { rotasVoluntariado } from './voluntariado/rotas.ts';
 import { rotasVisao } from './visao/rotas.ts';
 import { rotasEu } from './rotas/eu.ts';
@@ -73,6 +74,7 @@ export function criarApp(dep: Dependencias): Hono {
     app.route('/api', rotasTiposDeUnidade(comAuth));
     app.route('/api', rotasEscalas(comAuth));
     app.route('/api', rotasEscalaDoMes(comAuth));
+    app.route('/api', rotasPrevias(comAuth));
     app.route('/api', rotasEfetivo(comAuth));
     app.route('/api', rotasGrade(comAuth));
     app.route('/api', rotasOficiais(comAuth));

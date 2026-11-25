@@ -389,6 +389,56 @@ describe('configurações: blocos do voluntariado', () => {
   });
 });
 
+describe('configurações: a coleta do voluntariado (7.2)', () => {
+  const atual = mesAtual();
+  const MESES = [atual, somarMeses(atual, 1), somarMeses(atual, 2)];
+  const doMes = (mes: string, coletaAberta: boolean) => ({ [`GET /api/unidades/u-1sb/voluntariado/${mes}`]: { status: 200, corpo: { mes, militares: [], coletaAberta } } });
+  const aba = async () => {
+    abrir('/configuracoes-da-escala');
+    await userEvent.click(await screen.findByRole('tab', { name: 'Voluntariado' }));
+  };
+  const coleta = (mes: string) => screen.findByRole('checkbox', { name: `Aceitar o voluntariado de ${mesPorExtenso(mes)}` });
+
+  it('a aba tem um interruptor por mês (o atual e os dois seguintes), com o estado que a API diz', async () => {
+    api({ [`GET ${ESCALAS}`]: { status: 200, corpo: ESCALAS_LISTA }, ...doMes(MESES[0]!, false), ...doMes(MESES[1]!, true), ...doMes(MESES[2]!, false) }, GESTOR);
+    await aba();
+    await waitFor(async () => expect(await coleta(MESES[1]!)).toBeChecked());
+    expect(await coleta(MESES[0]!)).not.toBeChecked();
+    expect(await coleta(MESES[2]!)).not.toBeChecked();
+  });
+
+  it('o gestor liga a coleta: o PUT sai na hora e o interruptor mostra o estado novo', async () => {
+    const f = api({
+      [`GET ${ESCALAS}`]: { status: 200, corpo: ESCALAS_LISTA }, ...doMes(MESES[0]!, false), ...doMes(MESES[1]!, false), ...doMes(MESES[2]!, false),
+      [`PUT /api/unidades/u-1sb/voluntariado/${MESES[1]}/coleta`]: { status: 200, corpo: { mes: MESES[1], militares: [], coletaAberta: true } },
+    }, GESTOR);
+    await aba();
+    await userEvent.click(await coleta(MESES[1]!));
+    await waitFor(() => expect(corpoEnviado(f, `PUT /api/unidades/u-1sb/voluntariado/${MESES[1]}/coleta`)).toEqual({ aberta: true }));
+    await waitFor(async () => expect(await coleta(MESES[1]!)).toBeChecked());
+  });
+
+  it('o escalante vê o estado e não muda: o interruptor fica desabilitado, com a frase de quem muda', async () => {
+    api({ [`GET ${ESCALAS}`]: { status: 200, corpo: ESCALAS_LISTA }, ...doMes(MESES[0]!, true), ...doMes(MESES[1]!, false), ...doMes(MESES[2]!, false) });
+    await aba();
+    await waitFor(async () => expect(await coleta(MESES[0]!)).toBeChecked());
+    expect(await coleta(MESES[0]!)).toBeDisabled();
+    expect(screen.getByText(/Só o gestor liga ou desliga a coleta/)).toBeInTheDocument();
+  });
+
+  it('o erro da API aparece e o interruptor volta ao que estava', async () => {
+    api({
+      [`GET ${ESCALAS}`]: { status: 200, corpo: ESCALAS_LISTA }, 'GET /api/unidades/u-1sb/externos': { status: 200, corpo: [] },
+      ...doMes(MESES[0]!, false), ...doMes(MESES[1]!, false), ...doMes(MESES[2]!, false),
+      [`PUT /api/unidades/u-1sb/voluntariado/${MESES[0]}/coleta`]: { status: 403, corpo: { erro: 'Você não tem permissão nesta seção.' } },
+    }, GESTOR);
+    await aba();
+    await userEvent.click(await coleta(MESES[0]!));
+    expect(await screen.findByRole('alert')).toHaveTextContent('Você não tem permissão nesta seção.');
+    expect(await coleta(MESES[0]!)).not.toBeChecked();
+  });
+});
+
 describe('meta de ativação', () => {
   const META = '/api/unidades/u-1sb/meta-padrao';
   const modelo = (id: string, nome: string, ativa = true): LinhaGuarnicao => ({ id, nome, viatura: null, prioridade: null, ativa, minimo: 1, maximo: 1, aPartirDe: null });

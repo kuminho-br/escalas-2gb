@@ -38,6 +38,7 @@ const ESCALA: EscalaDoMes = {
     dia(3, null, [faixa(false, card(true, true)), faixa(true, card(true, true))]),
   ],
   resumo: { preenchidas: 9, obrigatorias: 12, obrigatoriasVazias: 3 },
+  previa: null, podeAlterarPassado: false,
 };
 
 function api(escala: EscalaDoMes = ESCALA, extra: Parameters<typeof simularApi>[0] = {}) {
