@@ -197,6 +197,19 @@ describe('EscolherUnidade', () => {
     expect(itens(screen.getByRole('tree', { name: 'Unidade' }))).toEqual(['CBMPE', 'DGO, em CBMPE', 'DInter/1, em DGO', '2º GB, em DInter/1', 'DivOp, em 2º GB', '1ª SB, em DivOp', '2ª SB, em DivOp']);
   });
 
+  it('sem nenhuma unidade (a lista ainda não chegou, ou falhou), a caixa diz que não há o que escolher, em vez de abrir vazia', async () => {
+    render(<Caixa unidades={[]} />);
+    await userEvent.click(screen.getByRole('combobox', { name: 'Unidade' }));
+    expect(await screen.findByText('Nenhuma unidade para escolher.')).toBeInTheDocument();
+  });
+
+  it('o campo diz ao leitor de tela que abre uma caixa, e a caixa tem o nome do campo', async () => {
+    render(<Caixa />);
+    expect(screen.getByRole('combobox', { name: 'Unidade' })).toHaveAttribute('aria-haspopup', 'dialog');
+    await abrirCaixa();
+    expect(screen.getByRole('dialog', { name: 'Unidade' })).toBeInTheDocument();
+  });
+
   it('Review Focus 1: a sigla repetida fica cada uma no seu lugar, sem sufixo, e o nome para o leitor de tela diz a unidade de cima', async () => {
     render(<Caixa inicial="da1" />);
     expect(screen.getByRole('combobox', { name: 'Unidade' })).toHaveTextContent('1º GB / DA');

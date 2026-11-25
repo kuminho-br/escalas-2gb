@@ -76,7 +76,7 @@ export function Topo({ eu, aoAbrirMenu, botaoDoMenu, semTrilho = false }: { eu: 
               <ChevronDown className="size-4 shrink-0 text-apagado" aria-hidden />
             </Popover.Trigger>
             <Popover.Portal>
-              <Popover.Content align="start" sideOffset={4} collisionPadding={16} className={`${classeDaCaixaDaArvore} font-sans`} onOpenAutoFocus={focarNaArvore}>
+              <Popover.Content align="start" sideOffset={4} collisionPadding={16} className={`${classeDaCaixaDaArvore} font-sans`} aria-label="Escolher a unidade" onOpenAutoFocus={focarNaArvore}>
                 {/* as unidades de trabalho e, num grupo à parte, as só de consulta: cada grupo é uma árvore */}
                 <PainelDaArvore
                   valor={eu.unidade.id}

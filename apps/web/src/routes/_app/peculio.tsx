@@ -43,24 +43,26 @@ function Peculio() {
   // a lista aparece de 100 em 100 (a busca e o filtro olham a lista inteira); mudar o filtro volta aos 100 primeiros
   const [limite, setLimite] = useState(100);
   // o filtro "Lotação" é a árvore (6.45): a unidade do Pecúlio e as de baixo, como a pessoa as tem; a lotação de alguém da lista que não está
-  // na árvore dela entra solta, para nunca faltar no filtro
+  // na árvore dela (uma unidade encerrada, por exemplo) entra debaixo da unidade do Pecúlio: nunca falta no filtro, e filtrar pela de cima a pega
   const unidadesDoFiltro = useMemo(() => {
     const conhecidas = new Map<string, UnidadeDaArvore>([...eu.unidades, ...eu.unidadesSoConsulta].map((u) => [u.id, u]));
     const daUnidade = abaixoDe([...conhecidas.values()], unidade.id);
     const doFiltro = [...conhecidas.values()].filter((u) => daUnidade.has(u.id));
     for (const m of lista.data?.militares ?? []) {
-      if (!doFiltro.some((u) => u.id === m.lotacaoId)) doFiltro.push({ id: m.lotacaoId, sigla: m.lotacao, maeId: null });
+      if (!doFiltro.some((u) => u.id === m.lotacaoId)) doFiltro.push({ id: m.lotacaoId, sigla: m.lotacao, maeId: m.lotacaoId === unidade.id ? null : unidade.id });
     }
     return doFiltro;
   }, [eu.unidades, eu.unidadesSoConsulta, unidade.id, lista.data]);
+  // o filtro só vale enquanto a unidade escolhida está na árvore: ao trocar de unidade no Topo, ele volta a "Todas" em vez de esvaziar a lista
+  const filtro = unidadesDoFiltro.some((u) => u.id === lotacao) ? lotacao : '';
   const filtrados = useMemo(() => {
     const b = normalizarBusca(busca);
     // escolher um nó filtra por ele e pelas unidades de baixo
-    const doNo = lotacao ? abaixoDe(unidadesDoFiltro, lotacao) : null;
+    const doNo = filtro ? abaixoDe(unidadesDoFiltro, filtro) : null;
     return (lista.data?.militares ?? []).filter(
       (m) => (!doNo || doNo.has(m.lotacaoId)) && (!b || correspondeABusca(`${m.nomeGuerra} ${m.nomeCompleto ?? ''} ${m.matricula}`, busca)),
     );
-  }, [lista.data, busca, lotacao, unidadesDoFiltro]);
+  }, [lista.data, busca, filtro, unidadesDoFiltro]);
   // com texto na busca e um resultado só, ele fica em destaque e o Enter abre a ficha (a ficha nunca abre sozinha)
   const unico = busca.trim() !== '' && filtrados.length === 1 ? filtrados[0]! : null;
 
@@ -106,7 +108,7 @@ function Peculio() {
               </div>
               <div className="grid gap-1">
                 <Label htmlFor="filtro-lotacao" className="text-xs text-apagado">Lotação</Label>
-                <EscolherUnidade id="filtro-lotacao" rotulo="Lotação" unidades={unidadesDoFiltro} valor={lotacao} aoEscolher={(id) => { setLotacao(id); setLimite(100); }} permiteLimpar textoVazio="Todas" />
+                <EscolherUnidade id="filtro-lotacao" rotulo="Lotação" unidades={unidadesDoFiltro} valor={filtro} aoEscolher={(id) => { setLotacao(id); setLimite(100); }} permiteLimpar textoVazio="Todas" />
               </div>
             </div>
             <p className="px-4 pt-3 text-apoio text-apagado">{filtrados.length > limite ? `Mostrando ${limite} de ${filtrados.length}` : `${filtrados.length} de ${lista.data.militares.length}`} militares</p>

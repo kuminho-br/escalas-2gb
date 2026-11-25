@@ -89,7 +89,7 @@ describe('módulo Pecúlio', () => {
     expect(lista.queryByText('CÁBRAL')).toBeNull();
     await userEvent.clear(screen.getByLabelText('Buscar por nome ou matrícula'));
     // o filtro é pela árvore (6.45): a lotação que a pessoa não tem na árvore dela (a 2ª SB) entra pela lista, e nunca some
-    await escolherNaArvore(screen.getByLabelText('Lotação'), '2ª SB');
+    await escolherNaArvore(screen.getByLabelText('Lotação'), '2ª SB, em 2º GB');
     expect(lista.getByText('BARRETO')).toBeInTheDocument();
     expect(lista.queryByText('ANDRADE')).toBeNull();
     expect(screen.getByText('1 de 3 militares')).toBeInTheDocument();
@@ -131,6 +131,17 @@ describe('módulo Pecúlio', () => {
     await userEvent.click(await screen.findByRole('button', { name: 'Limpar' }));
     expect(screen.getByText('3 de 3 militares')).toBeInTheDocument();
     expect(screen.getByLabelText('Lotação')).toHaveTextContent('Todas');
+  });
+
+  it('6.45: a lotação que não está na árvore da pessoa (uma unidade encerrada, por exemplo) fica debaixo da unidade do Pecúlio: filtrar por ela não esconde ninguém', async () => {
+    const comAntiga: ListaDoPeculio = { ...LISTA, militares: [...LISTA.militares, { ...LISTA.militares[0]!, militarId: 'm4', matricula: '990004-4', nomeGuerra: 'DUARTE', lotacao: 'SB-ANTIGA', lotacaoId: 'u-antiga' }] };
+    api(GESTOR_GB, comAntiga);
+    abrir('/peculio');
+    await militares();
+    expect(screen.getByText('4 de 4 militares')).toBeInTheDocument();
+    await userEvent.click(screen.getByLabelText('Lotação'));
+    await userEvent.click(await screen.findByRole('treeitem', { name: 'SB-ANTIGA, em 2º GB' }));
+    expect(screen.getByText('1 de 4 militares')).toBeInTheDocument();
   });
 
   it('clicar no militar abre a ficha dele (a mesma ficha)', async () => {

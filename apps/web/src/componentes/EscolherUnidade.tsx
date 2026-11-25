@@ -122,6 +122,7 @@ export function PainelDaArvore({ grupos, valor, aoLimpar }: { grupos: GrupoDaArv
           </div>
         ))}
         {nada && <p className="px-2.5 py-2 text-apoio text-apagado">Nenhuma unidade com essa sigla.</p>}
+        {todos.length === 0 && <p className="px-2.5 py-2 text-apoio text-apagado">Nenhuma unidade para escolher.</p>}
       </div>
     </div>
   );
@@ -285,7 +286,7 @@ export function EscolherUnidade({
           disabled={disabled}
           // uma caixa de escolha: o nome vem do rótulo do campo (`<label htmlFor>`; sem `id`, do próprio `rotulo`) e o valor é o texto à vista
           role="combobox"
-          aria-haspopup="tree"
+          aria-haspopup="dialog"
           aria-expanded={aberto}
           aria-label={id ? undefined : rotulo}
           className={cn(
@@ -301,7 +302,7 @@ export function EscolherUnidade({
         </button>
       </Popover.Trigger>
       <Popover.Portal>
-        <Popover.Content align="start" sideOffset={4} collisionPadding={16} className={classeDaCaixaDaArvore} onOpenAutoFocus={focarNaArvore}>
+        <Popover.Content align="start" sideOffset={4} collisionPadding={16} className={classeDaCaixaDaArvore} aria-label={rotulo} onOpenAutoFocus={focarNaArvore}>
           <PainelDaArvore grupos={[{ rotulo, nos, aoEscolher: escolher }]} valor={valor} aoLimpar={permiteLimpar && valor ? () => escolher('') : undefined} />
         </Popover.Content>
       </Popover.Portal>
