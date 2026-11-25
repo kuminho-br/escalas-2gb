@@ -68,6 +68,21 @@
 .ent-palco[data-modo="cel"] .ent-card form{padding:16px 22px 28px}
 .ent-palco[data-modo="cel"] .ent-card input,.ent-palco[data-modo="cel"] .ent-card .botao.principal{height:46px}
 
+/* enquadramento do login (seu pedido de 25/11: a marca não pode cobrir as bandeiras e o branco precisa de contraste no céu).
+   a = como estava; b = bandeiras livres (a marca desce para a parte baixa, sobre o véu denso); c = a fachada e a estátua, sem as bandeiras */
+.ent-marca h1,.ent-marca p{text-shadow:0 1px 3px rgba(0,0,0,.4)}
+.ent-palco[data-enq="b"]:not([data-modo="cel"]) .ent-fundo img{object-position:center 18%}
+.ent-palco[data-enq="b"]:not([data-modo="cel"]) .ent-fundo::after{background:linear-gradient(180deg,rgba(28,36,48,.10) 0%,rgba(111,20,20,.28) 38%,rgba(111,20,20,.90) 100%),linear-gradient(90deg,rgba(111,20,20,.40) 0%,rgba(111,20,20,0) 55%)}
+.ent-palco[data-enq="b"]:not([data-modo="cel"]) .ent-marca{align-self:end;padding-bottom:12px}
+.ent-palco[data-enq="c"]:not([data-modo="cel"]) .ent-fundo img{transform:scale(1.6);transform-origin:52% 90%}
+.ent-palco[data-modo="cel"][data-enq="b"] .ent-fundo img{object-position:38% 50%}
+.ent-palco[data-modo="cel"][data-enq="b"] .ent-fundo::after{background:linear-gradient(180deg,rgba(28,36,48,.12) 0%,rgba(111,20,20,.22) 28%,rgba(111,20,20,.86) 50%,rgba(111,20,20,.95) 100%)}
+.ent-palco[data-modo="cel"][data-enq="b"] .ent-marca{margin-top:auto;padding-bottom:22px;gap:8px}
+.ent-palco[data-modo="cel"][data-enq="b"] .ent-marca img{width:64px}
+.ent-palco[data-modo="cel"][data-enq="b"] .ent-card{margin-top:0}
+.ent-palco[data-modo="cel"][data-enq="c"] .ent-fundo img{object-position:76% 50%}
+.ent-palco[data-modo="cel"][data-enq="c"] .ent-fundo::after{background:linear-gradient(180deg,rgba(111,20,20,.78) 0%,rgba(111,20,20,.50) 38%,rgba(111,20,20,.92) 100%)}
+
 .ent-muda td:first-child{font-weight:600;white-space:nowrap}
 .ent-muda code{font:inherit;font-weight:500}
 </style>
@@ -79,12 +94,13 @@
 <header class="abre">
   <p class="de-quem"><a class="voltar" href="../index.html">Manual de Identidade Visual</a></p>
   <h1>Entrada</h1>
-  <p>O login e a animação das mangueiras, do clique em Entrar até a tela inicial. Versão 2: a foto nova do quartel no fundo do login, o dobro de brasas, três em cada quatro esfriando até virar cinza, e o pouso no quadro da tela inicial.</p>
+  <p>O login e a animação das mangueiras, do clique em Entrar até a tela inicial. Versão 2: a foto nova do quartel no fundo do login (três enquadramentos para você escolher), o dobro de brasas, três em cada quatro esfriando até virar cinza, e o pouso no quadro da tela inicial.</p>
   <p class="menor">Em revisão por você. A animação toca inteira uma vez a cada 12 h, pela escolha da pessoa; o resto do tempo a entrada é curta. Nada mudou no site. Nome, e-mail e senha são de exemplo.</p>
   <div class="ent-controles" role="group" aria-label="Controles do teste">
     <span class="grupo" role="radiogroup" aria-label="Tela"><label class="marcar"><input type="radio" name="modo" value="pc" checked><span>Computador</span></label><label class="marcar"><input type="radio" name="modo" value="cel"><span>Celular</span></label></span>
     <span class="grupo" role="radiogroup" aria-label="Senha"><label class="marcar"><input type="radio" name="senha" value="certa" checked><span>Senha certa</span></label><label class="marcar"><input type="radio" name="senha" value="errada"><span>Senha errada</span></label></span>
     <span class="grupo" role="radiogroup" aria-label="Servidor"><label class="marcar"><input type="radio" name="servidor" value="rapido" checked><span>Servidor rápido</span></label><label class="marcar"><input type="radio" name="servidor" value="lento"><span>Servidor lento</span></label></span>
+    <span class="grupo" role="radiogroup" aria-label="Enquadramento da foto"><span class="rot">Foto</span><label class="marcar"><input type="radio" name="enq" value="b" checked><span>Bandeiras livres</span></label><label class="marcar"><input type="radio" name="enq" value="c"><span>Fachada</span></label><label class="marcar"><input type="radio" name="enq" value="a"><span>Como estava</span></label></span>
     <span class="grupo"><label class="marcar"><input type="checkbox" data-curta><span>Entrada curta</span></label><label class="marcar"><input type="checkbox" data-calmo><span>Sem movimento</span></label></span>
     <button type="button" class="botao secundario" data-repetir>Repetir</button>
   </div>
@@ -97,7 +113,7 @@
   </div>
   <div class="ent-area" data-area>
     <div class="ent-moldura" data-moldura>
-      <div class="ent-palco" data-palco data-modo="pc">
+      <div class="ent-palco" data-palco data-modo="pc" data-enq="b">
         <div class="ini" data-home data-perfil="escalante"></div>
         <div class="ent-login" data-login>
           <div class="ent-fundo"><img src="../img/quartel.jpg" alt=""><span class="credito">Quartel do 2º GB</span></div>
@@ -140,7 +156,8 @@
       <table class="tabela ent-muda">
         <thead><tr><th scope="col">Item</th><th scope="col" class="quebra">Hoje</th><th scope="col" class="quebra">Versão 2</th></tr></thead>
         <tbody>
-          <tr><td>Foto do login</td><td class="quebra">O quartel nublado, com as setas da galeria do celular gravadas embaixo.</td><td class="quebra">A foto que você mandou em 23/11: o quartel ao sol, com as três bandeiras. Só no fundo do login; a animação e a cena final não mudam. No computador, enquadrada para as bandeiras e a fachada ficarem à vista à direita do véu vinho.</td></tr>
+          <tr><td>Foto do login</td><td class="quebra">O quartel nublado, com as setas da galeria do celular gravadas embaixo.</td><td class="quebra">A foto que você mandou em 23/11: o quartel ao sol, com as três bandeiras. Só no fundo do login; a animação e a cena final não mudam. O enquadramento está em aberto: veja os três nos controles do palco e em "O que precisa da sua palavra".</td></tr>
+          <tr><td>Marca sobre a foto</td><td class="quebra">Branco direto sobre a foto.</td><td class="quebra">O nome e a linha de baixo ganham uma sombra leve, e a marca fica sobre a parte densa do véu vinho, nunca sobre o céu aberto (seu pedido de 25/11: o branco perdia o contraste no azul).</td></tr>
           <tr><td>Brasas do ambiente</td><td class="quebra">44, todas iguais.</td><td class="quebra">88, em três profundidades: as pequenas mais lentas e apagadas, ao fundo; as grandes mais rápidas e fortes, na frente.</td></tr>
           <tr><td>Brasas do botão Entrar</td><td class="quebra">26.</td><td class="quebra">52.</td></tr>
           <tr><td>Cinza</td><td class="quebra">22 pontos descendo.</td><td class="quebra">44. E três em cada quatro brasas esfriam na subida: de alaranjada passa a vermelha e termina cinza, sem brilho, antes de sair do quadro. Uma em cada quatro apaga ainda alaranjada (sua escolha de 25/11).</td></tr>
@@ -178,7 +195,7 @@
   <div class="prancha">
     <div class="sup">
       <ul class="regras-da-casa">
-        <li><b>A foto no login</b>No computador, o véu vinho cobre a metade esquerda e as bandeiras ficam à direita, atrás do cartão. Se preferir as bandeiras à mostra, o cartão vai para a esquerda e a marca para a direita.</li>
+        <li><b>O enquadramento da foto</b>Três para comparar, no controle "Foto" acima do palco. <b>Bandeiras livres</b> (a minha recomendação): as três bandeiras inteiras no céu, no alto; a marca desce para a parte baixa, sobre as árvores e o véu denso, onde o branco lê bem. No celular, o brasão fica menor e a marca encosta no cartão. <b>Fachada</b>: a foto aproximada na estátua e no prédio, sem as bandeiras; a marca onde estava. <b>Como estava</b>: a marca no alto, cobrindo as bandeiras e sem contraste no céu, só para comparar.</li>
         <li><b>Uma entrega só</b>A foto, as brasas e o pouso no quadro novo vão juntos à PLANEJAMENTO, como uma entrega pequena. Os cartões dos próximos serviços e os avisos são entregas da tela inicial, não desta.</li>
       </ul>
     </div>
@@ -624,12 +641,14 @@ form.addEventListener('submit',function(e){ e.preventDefault();
 $('[data-repetir]').addEventListener('click',voltarAoLogin);
 [].forEach.call(document.querySelectorAll('input[name="modo"]'),function(r){ r.addEventListener('change',function(){ modo=r.value; medir(); voltarAoLogin(); }); });
 [].forEach.call(document.querySelectorAll('input[name="senha"],input[name="servidor"],[data-curta],[data-calmo]'),function(el){ el.addEventListener('change',function(){ if(!raf) voltarAoLogin(); }); });
+[].forEach.call(document.querySelectorAll('input[name="enq"]'),function(r){ r.addEventListener('change',function(){ palco.setAttribute('data-enq',r.value); if(!raf) voltarAoLogin(); }); });
 try{ if(window.matchMedia('(prefers-reduced-motion: reduce)').matches) opCalmo.checked=true; }catch(e){}
 var largAnt=area.clientWidth;
 function reMedir(forcar){ if(!L||(!forcar&&area.clientWidth===largAnt)) return; largAnt=area.clientWidth; medir(); if(CEN) CEN.D0=L.D0; if(!raf) aplicar(estado(CEN?tVisto:-1,CEN||{D0:L.D0})); }
 if(window.ResizeObserver){ new ResizeObserver(function(){ reMedir(false); }).observe(area); } else window.addEventListener('resize',function(){ reMedir(false); });
 
 if(Q.modo==='cel'){ modo='cel'; document.querySelector('input[name="modo"][value="cel"]').checked=true; }
+if(Q.enq){ palco.setAttribute('data-enq',Q.enq); var rEnq=document.querySelector('input[name="enq"][value="'+Q.enq+'"]'); if(rEnq) rEnq.checked=true; }
 medir(); aplicar(estado(-1,{D0:L.D0}));
 IMG.onload=function(){ preparar();
   if(CAPTURA){ CEN={ok:Q.senha!=='errada',resp:Q.lento==='1'?4.0:.6,calmo:false,direta:Q.direta==='1',D0:L.D0}; tVisto=parseFloat(Q.t); aplicar(estado(tVisto,CEN)); }
