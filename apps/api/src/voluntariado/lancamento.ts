@@ -7,6 +7,14 @@ import type { Consulta } from '../banco/banco.ts';
 const minutosDe = (hora: string) => Number(hora.slice(0, 2)) * 60 + Number(hora.slice(3));
 
 /**
+ * Trava o par militar e mês até o fim da transação: o escalante e o próprio militar não gravam o mesmo mês ao mesmo tempo (um esperaria o outro). Sem isso, o
+ * escalante poderia ler `pelo_militar` antes da marcação do militar e gravar sem registro, ou as faixas dos dois se misturariam. Pode ser chamada mais de uma vez.
+ */
+export async function travarMes(tx: Consulta, militarId: string, mes: string): Promise<void> {
+  await tx.query('select pg_advisory_xact_lock(hashtext($1))', [`voluntariado:${militarId}:${mes}`]);
+}
+
+/**
  * Na mesma transação: apaga todas as faixas do militar no mês (de qualquer origem, inclusive importação), grava as novas com a origem dada — `manual`
  * (o escalante lançou) ou `militar` (ele mesmo marcou), as de um mesmo dia que se tocam viram uma só — e registra quem lançou e quando. Lista vazia vale:
  * o militar passa a "já lançado" com 0 horas. `pelo_militar` vira verdadeiro quando o militar marca e nunca volta a falso: quem corrige depois é o escalante,
@@ -14,6 +22,7 @@ const minutosDe = (hora: string) => Number(hora.slice(0, 2)) * 60 + Number(hora.
  */
 export async function lancar(tx: Consulta, militarId: string, mes: string, faixas: FaixaDeDisponibilidade[], usuarioId: string, origem: 'manual' | 'militar' = 'manual'): Promise<void> {
   const inicio = mesParaData(mes);
+  await travarMes(tx, militarId, mes);
   await tx.query(`delete from disponibilidade where militar_id = $1 and data >= $2::date and data < ($2::date + interval '1 month')`, [militarId, inicio]);
   const porDia = new Map<string, Faixa[]>();
   for (const f of faixas) porDia.set(f.data, [...(porDia.get(f.data) ?? []), { inicio: minutosDe(f.inicio), fim: minutosDe(f.fim) }]);

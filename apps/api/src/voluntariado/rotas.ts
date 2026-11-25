@@ -9,7 +9,7 @@ import { hojeRecife } from '../datas.ts';
 import { lerCorpo, respostaDoErroDoBanco } from '../erros.ts';
 import { lerRegistro, mesmasFaixas, registrar } from '../registro.ts';
 import { coletaAberta, mensagemColetaFechada, mensagemNaoLotado, mensagemSoAPartirDe, mudarColeta } from './coleta.ts';
-import { lancar } from './lancamento.ts';
+import { lancar, travarMes } from './lancamento.ts';
 import { faixasDoMes, lotadosNoMes, meuVoluntariado, unidadeDoMilitarNoMes, voluntariadoDoMes, voluntariadoDoMilitar } from './leitura.ts';
 
 const MES_INVALIDO = 'Mês inválido: use o formato aaaa-mm.';
@@ -73,6 +73,7 @@ export function rotasVoluntariado(dep: { banco: Banco; auth: Auth }): Hono<Ambie
     if (!(await lotadosNoMes(dep.banco, unidadeId, mes, id)).length) return c.json({ erro: `Este militar não está lotado na seção em ${mesPorExtenso(mes)}.` }, 409);
     try {
       await comUsuario(dep.banco, c.get('usuarioId'), async (tx) => {
+        await travarMes(tx, id, mes);
         // o mês que o próprio militar preencheu só é corrigido com registro (e só se a correção muda alguma faixa); o que o escalante lançou ele mesmo segue sem registro
         const peloMilitar = (await tx.query<{ pelo_militar: boolean }>('select pelo_militar from voluntariado_lancamento where militar_id = $1 and mes = $2::date', [id, mesParaData(mes)])).rows[0]?.pelo_militar === true;
         const antes = peloMilitar ? await faixasDoMes(tx, id, mes) : [];

@@ -1,6 +1,7 @@
 import { mesPorExtenso, somarMeses, type MeuVoluntariado, type RegistroDeAlteracao, type VoluntariadoDoMes } from 'contratos';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { hojeRecife } from '../src/datas.ts';
+import { lancar } from '../src/voluntariado/lancamento.ts';
 import { inserir, situacaoDoMilitar } from './banco-teste.ts';
 import { entrarComo, montarApi, type ApiDeTeste, type Pessoa } from './apoio-api.ts';
 
@@ -306,5 +307,15 @@ describe('o registro das correções do escalante', () => {
     expect((await marcador.pedir('GET', `/api/militares/${alvo.militarId}/voluntariado/${mes}/registro`)).status).toBe(403);
     expect((await api.pedir('escalante', 'GET', `/api/militares/${alvo.militarId}/voluntariado/2026-13/registro`)).status).toBe(400);
     expect((await api.pedir('escalante', 'GET', `/api/militares/00000000-0000-4000-8000-000000000000/voluntariado/${mes}/registro`)).status).toBe(404);
+  });
+
+  it('a gravação do mês trava o par militar e mês até o fim da transação: o escalante e o militar não gravam o mesmo mês ao mesmo tempo', async () => {
+    const travas = await api.banco.transacao(async (tx) => {
+      await lancar(tx, alvo.militarId, mes, [], api.usuarios.escalante);
+      return Number((await tx.query<{ n: number }>("select count(*)::int as n from pg_locks where locktype = 'advisory'")).rows[0]!.n);
+    });
+    expect(travas).toBeGreaterThan(0);
+    const depois = Number((await api.banco.query<{ n: number }>("select count(*)::int as n from pg_locks where locktype = 'advisory'")).rows[0]!.n);
+    expect(depois).toBe(0);
   });
 });
