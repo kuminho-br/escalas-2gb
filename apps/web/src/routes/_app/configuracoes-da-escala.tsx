@@ -7,6 +7,7 @@ import { atualizarEscalas, consultaEscalas, marcarBlocosDoVoluntariado } from '@
 import { consultaParametros, salvarParametro } from '@/api/configuracoes';
 import { podeMudarParametro } from '@/api/eu';
 import { useTrava } from '@/componentes/AlteracoesPendentes';
+import { ColetaDoVoluntariado } from '@/componentes/configuracoes/ColetaDoVoluntariado';
 import { MetaDeAtivacao } from '@/componentes/configuracoes/MetaDeAtivacao';
 import { MilitaresDeOutrasUnidades } from '@/componentes/configuracoes/MilitaresDeOutrasUnidades';
 import { ImportarPlanilha } from '@/componentes/ImportarPlanilha';
@@ -57,6 +58,7 @@ function ConfiguracoesDaEscala() {
           <RegrasDoProcesso unidadeId={eu.unidade.id} sigla={eu.unidade.sigla} podeMudar={podeMudar} />
         </TabsContent>
         <TabsContent value="voluntariado">
+          <ColetaDoVoluntariado unidadeId={eu.unidade.id} podeMudar={podeMudar} />
           <BlocosDoVoluntariado unidadeId={eu.unidade.id} podeMudar={podeMudar} />
           <MilitaresDeOutrasUnidades unidadeId={eu.unidade.id} sigla={eu.unidade.sigla} podeMudar={podeMudar} />
         </TabsContent>

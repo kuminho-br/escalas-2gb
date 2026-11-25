@@ -24,6 +24,9 @@ import {
 import { ehGestorNaUnidade, ehMilitarComum, type Eu, type EuDaApi } from '@/api/eu';
 import { mesPorExtenso } from '@/lib/saudacao';
 
+/** O nome do mês de um 'aaaa-mm' ('2026-12' -> 'dezembro'). */
+const nomeDoMes = (mes: string) => mesPorExtenso(new Date(`${mes}-15T12:00:00Z`));
+
 export type Item = { nome: string; icone: LucideIcon; para?: LinkProps['to']; /** O item só aparece para quem passa neste teste (sem ele, todos veem). */ ve?: (eu: Eu | EuDaApi) => boolean };
 export type IdModulo = 'escalas' | 'peculio' | 'visualizacao' | 'minha-ficha' | 'configuracoes' | 'estrutura';
 
@@ -105,7 +108,19 @@ export const MODULOS: Modulo[] = [
   },
   // a árvore de unidades (entrega 6.26): quem tem nível de acesso a vê; só quem tem poder sobre ela a edita (cada unidade diz o que a pessoa pode fazer)
   { id: 'estrutura', nome: 'Estrutura', situacao: () => 'A árvore de unidades', rota: '/estrutura', icone: Network, ve: temPapel, itens: [] },
-  { id: 'visualizacao', nome: 'Visualização de escalas', situacao: () => 'Chega com a fase 7', rota: null, icone: Eye, ve: () => true, itens: [] },
+  // a Visualização é de todos (a fase 7): o militar vê o que é dele, sem entrar no módulo de escalas. Por ora, só o próprio voluntariado
+  {
+    id: 'visualizacao',
+    nome: 'Visualização de escalas',
+    situacao: (eu) => {
+      const aberta = eu.coletasAbertas?.[0];
+      return aberta ? `O voluntariado de ${nomeDoMes(aberta)} está aberto` : 'Seu voluntariado';
+    },
+    rota: '/meu-voluntariado',
+    icone: Eye,
+    ve: () => true,
+    itens: [[{ nome: 'Meu voluntariado', icone: CalendarCheck, para: '/meu-voluntariado', ve: (eu) => Boolean(eu.militar) }]],
+  },
   { id: 'minha-ficha', nome: 'Minha ficha', situacao: () => 'Seus dados e o seu telefone', rota: '/minha-ficha', icone: UserRound, ve: () => true, itens: [] },
   // o painel das configurações gerais (entrega 6.26): todos abrem, e cada seção só aparece para quem a vê; as configurações da escala ficam no módulo de escalas
   { id: 'configuracoes', nome: 'Configurações', situacao: () => 'Suas preferências', rota: '/configuracoes', icone: Settings, ve: () => true, itens: [] },
@@ -127,6 +142,7 @@ export function moduloDoEndereco(caminho: string, busca: Record<string, unknown>
   // a Consulta de militares (e a ficha de consulta) é uma tela do Pecúlio; o endereço antigo continua valendo
   if (primeiro === 'consulta') return porId('peculio');
   if (primeiro === 'estrutura') return porId('estrutura');
+  if (primeiro === 'meu-voluntariado') return porId('visualizacao');
   // o modelo de guarnição abre de dentro das configurações da escala (o endereço antigo /configuracoes/modelos-de-guarnicao/:id continua valendo)
   if (primeiro === 'configuracoes') return (caminho.split('/')[2] ?? '').toLowerCase() === 'modelos-de-guarnicao' ? porId('escalas') : porId('configuracoes');
   if (primeiro === 'militares' && busca.de === 'peculio') return porId('peculio');

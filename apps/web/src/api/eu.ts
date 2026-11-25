@@ -20,6 +20,8 @@ export interface EuDaApi {
   trocarSenha: boolean;
   /** Tem nível de acesso vigente, mas só em unidades que foram extintas: a tela "Sem lotação" explica. */
   nivelSoEmUnidadeExtinta: boolean;
+  /** Os meses (aaaa-mm), do atual em diante, em que a coleta do voluntariado está aberta na seção da pessoa (7.1); a API sempre manda, mas as respostas antigas não têm. */
+  coletasAbertas?: string[];
 }
 
 /**

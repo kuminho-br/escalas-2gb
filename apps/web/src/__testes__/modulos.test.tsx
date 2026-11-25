@@ -16,8 +16,8 @@ describe('os módulos e quem os vê', () => {
     for (const papel of ['escalante', 'gestor_lateral', 'gestor', 'administrador'] as const) expect(quemVe(comPapel(papel))).toEqual(['escalas', 'peculio', 'estrutura', 'visualizacao', 'minha-ficha', 'configuracoes']);
   });
 
-  it('só a Visualização não tem rota', () => {
-    expect(MODULOS.map((m) => [m.id, m.rota])).toEqual([['escalas', '/grade'], ['peculio', '/peculio'], ['estrutura', '/estrutura'], ['visualizacao', null], ['minha-ficha', '/minha-ficha'], ['configuracoes', '/configuracoes']]);
+  it('cada módulo tem a sua rota (a Visualização abre em Meu voluntariado, 7.2)', () => {
+    expect(MODULOS.map((m) => [m.id, m.rota])).toEqual([['escalas', '/grade'], ['peculio', '/peculio'], ['estrutura', '/estrutura'], ['visualizacao', '/meu-voluntariado'], ['minha-ficha', '/minha-ficha'], ['configuracoes', '/configuracoes']]);
   });
 });
 
@@ -50,7 +50,8 @@ describe('o módulo de cada endereço', () => {
     const minha = moduloDoEndereco('/minha-ficha', {})!;
     expect(minha.id).toBe('minha-ficha');
     expect(minha.itens).toEqual([]);
-    expect(MODULOS.find((m) => m.id === 'visualizacao')!.itens).toEqual([]);
+    expect(MODULOS.find((m) => m.id === 'visualizacao')!.itens.map((b) => b.map((i) => i.nome))).toEqual([['Meu voluntariado']]);
+    expect(id('/meu-voluntariado')).toBe('visualizacao');
   });
 
   it('o endereço com maiúsculas vale o mesmo (o roteador não diferencia), então a barreira também pega', () => {
