@@ -180,10 +180,11 @@ function Arvore({ rotulo, nos, valor, abertos, aoAlternar, aoEscolher }: { rotul
         aria-disabled={n.passagem || undefined}
         tabIndex={n.id === doTab ? 0 : -1}
         onFocus={(e) => { if (e.target === e.currentTarget) setFoco(n.id); }}
+        // o clique é do nó mais de dentro: não sobe para a mãe, que tem o mesmo tratamento
+        onClick={(e) => { e.stopPropagation(); escolher(n); }}
         className="group/no rounded-sm outline-none"
       >
         <div
-          onClick={() => escolher(n)}
           style={{ paddingLeft: `${0.25 + n.nivel * 1}rem` }}
           className={cn(
             'flex min-h-9 items-center gap-1 rounded-sm pr-2.5 text-corpo select-none group-focus-visible/no:outline-2 group-focus-visible/no:-outline-offset-2 group-focus-visible/no:outline-tinta',

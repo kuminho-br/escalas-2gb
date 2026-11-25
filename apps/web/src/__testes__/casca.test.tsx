@@ -294,20 +294,40 @@ describe('revisão 3: falhas ao abrir o sistema', () => {
 describe('unidade de trabalho (fase 6)', () => {
   const unidade = (id: string, sigla: string, nivel: number) => ({ id, sigla, nivel, caminho: ['CBMPE', 'DGO', 'DInter/1', ...(nivel === 3 ? [] : ['2º GB']), sigla].slice(0, nivel + 1), tipo: nivel === 3 ? 'grupamento' : 'secao', maeId: null as string | null });
   const GB = { id: 'u-gb', sigla: '2º GB', nivel: 3, caminho: ['CBMPE', 'DGO', 'DInter/1', '2º GB'], tipo: 'grupamento', maeId: null };
-  const SB1 = EU_EXEMPLO.unidades[0]!;
-  const SB2 = { ...unidade('u-2sb', '2ª SB', 4), caminho: ['CBMPE', 'DGO', 'DInter/1', '2º GB', '2ª SB'] };
+  const SB1 = { ...EU_EXEMPLO.unidades[0]!, maeId: 'u-gb' };
+  const SB2 = { ...unidade('u-2sb', '2ª SB', 4), caminho: ['CBMPE', 'DGO', 'DInter/1', '2º GB', '2ª SB'], maeId: 'u-gb' };
   const GESTOR: EuDaApi = { ...EU_EXEMPLO, papeis: [{ papel: 'gestor', unidadeId: 'u-gb', unidadeSigla: '2º GB' }], unidades: [GB, SB1, SB2] };
 
   afterEach(() => localStorage.clear());
 
-  it('com mais de uma unidade, o topo tem o seletor com recuo por nível (Review Focus 4)', async () => {
+  it('6.45: com mais de uma unidade, o seletor do topo é a árvore, que abre nó a nó, com "Abrir tudo"; a unidade atual vem marcada', async () => {
     simularApi({ '/api/eu': { status: 200, corpo: GESTOR }, 'GET /api/unidades/u-gb/militares': { status: 200, corpo: [] } });
     abrir('/militares');
     await userEvent.click(await screen.findByRole('button', { name: /Unidade de trabalho/ }));
-    const itens = await screen.findAllByRole('menuitem');
-    const unidades = itens.filter((i) => i.hasAttribute('data-nivel'));
-    expect(unidades.map((i) => i.textContent)).toEqual(['2º GB', '1ª SB', '2ª SB']);
-    expect(unidades.map((i) => i.getAttribute('data-nivel'))).toEqual(['0', '1', '1']);
+    const arvore = await screen.findByRole('tree', { name: 'Unidade de trabalho' });
+    const itens = within(arvore).getAllByRole('treeitem');
+    expect(itens.map((i) => i.getAttribute('aria-label'))).toEqual(['2º GB', '1ª SB, em 2º GB', '2ª SB, em 2º GB']);
+    expect(itens.map((i) => i.getAttribute('aria-level'))).toEqual(['1', '2', '2']);
+    expect(itens[0]).toHaveAttribute('aria-selected', 'true');
+    // nó a nó: fechar o grupamento esconde as seções; "Abrir tudo" mostra todas de novo
+    await userEvent.click(within(arvore).getByRole('button', { name: 'Fechar 2º GB' }));
+    expect(within(arvore).getAllByRole('treeitem')).toHaveLength(1);
+    await userEvent.click(screen.getByRole('button', { name: 'Abrir tudo' }));
+    expect(within(arvore).getAllByRole('treeitem')).toHaveLength(3);
+  });
+
+  it('6.45: a unidade de cima que a pessoa não alcança entra como passagem, apagada, e dá lugar às dela (com a árvore da corporação)', async () => {
+    const arvoreInteira = [
+      { id: 'u-cbmpe', sigla: 'CBMPE', nivel: 0, maeId: null }, { id: 'u-gb', sigla: '2º GB', nivel: 1, maeId: 'u-cbmpe' },
+      { id: 'u-1sb', sigla: '1ª SB', nivel: 2, maeId: 'u-gb' }, { id: 'u-2sb', sigla: '2ª SB', nivel: 2, maeId: 'u-gb' }, { id: 'u-3sb', sigla: '3ª SB', nivel: 2, maeId: 'u-gb' },
+    ];
+    const duasSecoes: EuDaApi = { ...EU_EXEMPLO, papeis: [{ papel: 'escalante', unidadeId: 'u-1sb', unidadeSigla: '1ª SB' }, { papel: 'escalante', unidadeId: 'u-2sb', unidadeSigla: '2ª SB' }], unidades: [SB1, SB2] };
+    simularApi({ '/api/eu': { status: 200, corpo: duasSecoes }, 'GET /api/unidades/u-1sb/militares': { status: 200, corpo: [] }, 'GET /api/consulta/unidades': { status: 200, corpo: arvoreInteira } });
+    abrir('/militares');
+    await userEvent.click(await screen.findByRole('button', { name: /Unidade de trabalho/ }));
+    const arvore = await screen.findByRole('tree', { name: 'Unidade de trabalho' });
+    await waitFor(() => expect(within(arvore).getAllByRole('treeitem').map((i) => i.getAttribute('aria-label'))).toEqual(['CBMPE', '2º GB, em CBMPE', '1ª SB, em 2º GB', '2ª SB, em 2º GB']));
+    expect(within(arvore).getByRole('treeitem', { name: '2º GB, em CBMPE' })).toHaveAttribute('aria-disabled', 'true');
   });
 
   it('escolher outra unidade guarda e leva para a lista da tela', async () => {
@@ -319,7 +339,7 @@ describe('unidade de trabalho (fase 6)', () => {
     });
     const router = abrir('/militares/abc');
     await userEvent.click(await screen.findByRole('button', { name: /Unidade de trabalho/ }));
-    await userEvent.click(await screen.findByRole('menuitem', { name: /^1ª SB/ }));
+    await userEvent.click(await screen.findByRole('treeitem', { name: /^1ª SB/ }));
     await waitFor(() => expect(router.state.location.pathname).toBe('/militares'));
     expect(localStorage.getItem('unidade-de-trabalho')).toBe('u-1sb');
     expect(await screen.findByRole('button', { name: /Unidade de trabalho: CBMPE \/ DGO \/ DInter\/1 \/ 2º GB \/ 1ª SB/ })).toBeInTheDocument();
@@ -343,7 +363,7 @@ describe('unidade de trabalho (fase 6)', () => {
     const router = abrir('/militares/m1');
     await userEvent.type(await screen.findByLabelText('Telefone'), '(81) 9');
     await userEvent.click(screen.getByRole('button', { name: /Unidade de trabalho/ }));
-    await userEvent.click(await screen.findByRole('menuitem', { name: /^1ª SB/ }));
+    await userEvent.click(await screen.findByRole('treeitem', { name: /^1ª SB/ }));
     expect(confirmar).toHaveBeenCalled();
     expect(localStorage.getItem('unidade-de-trabalho')).toBeNull();
     expect(router.state.location.pathname).toBe('/militares/m1');
