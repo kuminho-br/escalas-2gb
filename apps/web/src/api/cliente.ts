@@ -122,6 +122,29 @@ export async function enviarArquivo<T>(caminho: string, arquivo: File): Promise<
   return resposta<T>(r);
 }
 
+/**
+ * Baixa o arquivo que a API devolve a um POST (a exportação para Excel, 6.54): lê o corpo como arquivo e o entrega ao navegador com o nome dado. Erro da API (JSON) vira `ErroApi`,
+ * como em qualquer outro pedido.
+ */
+export async function baixarArquivo(caminho: string, corpo: unknown, nome: string): Promise<void> {
+  let r: Response;
+  try {
+    r = await fetch(caminho, { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(corpo) });
+  } catch {
+    throw new ErroApi(SEM_CONEXAO, 0);
+  }
+  if (r.status === 401) sessaoTerminou(caminho);
+  if (!r.ok) return resposta<void>(r);
+  const url = URL.createObjectURL(await r.blob());
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = nome;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
 /** Mensagem de um erro qualquer, para mostrar na tela. */
 export function mensagemDe(e: unknown): string {
   return e instanceof ErroApi ? e.message : 'Algo deu errado. Tente de novo.';

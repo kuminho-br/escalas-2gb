@@ -10,6 +10,7 @@ import { EscolherUnidade } from '@/componentes/EscolherUnidade';
 import { ArquivoDeMatriculas } from '@/componentes/peculio/ArquivoDeMatriculas';
 import { ArvoreDeMarcar, type Marca } from '@/componentes/peculio/ArvoreDeMarcar';
 import { usePesquisaDoPeculio } from '@/componentes/peculio/EstadoDaPesquisa';
+import { ExportarMilitares } from '@/componentes/peculio/ExportarMilitares';
 import { PainelDeSelecionados, useSelecao } from '@/componentes/peculio/Selecao';
 import { Checkbox } from '@/componentes/ui/checkbox';
 import { contarExtras, EXTRAS_VAZIOS, extrasParaFiltros, FiltrosDaPesquisa, type Extras } from '@/componentes/peculio/FiltrosDaPesquisa';
@@ -94,6 +95,7 @@ function Consulta() {
         aoLimpar={limpar}
       />
       {nivel && <PainelDeSelecionados />}
+      {nivel && <ExportarMilitares filtros={temBusca(vigentes) ? vigentes : null} />}
       <Resultado filtros={vigentes} nivel={nivel} endereco={{ texto, unidade }} />
     </Moldura>
   );
@@ -199,6 +201,9 @@ function ehBuscaSimples(f: FiltrosDaBusca): boolean {
   return filtrosAlemDoTexto.length === 0 && (u.length === 0 || (u.length === 1 && u[0]!.comAsDeBaixo));
 }
 
+/** Os filtros em vigor dizem o que buscar (texto de 3 letras ou mais, uma unidade ou qualquer outro filtro)? */
+const temBusca = (filtros: FiltrosDaBusca): boolean => (filtros.texto ?? '').length >= 3 || Boolean(filtros.unidades?.length) || Object.keys(filtros).some((k) => k !== 'texto' && k !== 'unidades');
+
 function Resultado({ filtros, nivel, endereco }: { filtros: FiltrosDaBusca; nivel: boolean; endereco: { texto: string; unidade: string } }) {
   if (!nivel && ehBuscaSimples(filtros)) return <ResultadoSimples texto={filtros.texto ?? ''} unidade={filtros.unidades?.[0]?.id ?? ''} />;
   return <ResultadoDosFiltros filtros={filtros} nivel={nivel} endereco={endereco} />;
@@ -223,7 +228,7 @@ function ResultadoSimples({ texto, unidade }: { texto: string; unidade: string }
 }
 
 function ResultadoDosFiltros({ filtros, nivel, endereco }: { filtros: FiltrosDaBusca; nivel: boolean; endereco: { texto: string; unidade: string } }) {
-  const tem = (filtros.texto ?? '').length >= 3 || Boolean(filtros.unidades?.length) || Object.keys(filtros).some((k) => k !== 'texto' && k !== 'unidades');
+  const tem = temBusca(filtros);
   const busca = useQuery({ ...consultaDaBuscaComFiltros(filtros), enabled: tem });
   if (!tem) return <p className="mt-8 max-w-xl text-apagado">Busque pelo nome, pelo nome de guerra ou pela matrícula. Para ver quem está lotado numa unidade, escolha a unidade em “Lotados em”.</p>;
   if (busca.isPending) return <p className="mt-8 text-apagado">Buscando…</p>;
