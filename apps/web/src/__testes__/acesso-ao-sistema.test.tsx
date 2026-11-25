@@ -2,7 +2,7 @@ import type { AcessoDoMilitar, FichaMilitar } from 'contratos';
 import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
-import { abrir, chamadasA, corpoEnviado, EU_EXEMPLO, simularApi, responderConfirmacao } from './apoio';
+import { abrir, chamadasA, corpoEnviado, escolherNaArvore, EU_EXEMPLO, simularApi, responderConfirmacao } from './apoio';
 
 const FICHA: FichaMilitar = {
   id: 'm1', matricula: '990001-1', posto: 'SD', quadro: { id: 'q-qbmg', sigla: 'QBMG' }, nomeGuerra: 'ANDRADE', equipe: 'Alfa', jornada: 'pronto', motorista: null, voluntarioJes: false, ativo: true, situacao: 'Disponível', pendencias: [],
@@ -83,7 +83,7 @@ describe('Acesso ao sistema', () => {
   it('lista os níveis de acesso com "Auxiliar administrativo" e dá nível de acesso', async () => {
     const dada: AcessoDoMilitar = { ...ACESSO, papeis: [{ id: 'p1', papel: 'escalante', unidadeId: 'u-1sb', unidadeSigla: '1ª SB', desde: '2026-11-01', ate: null, podeEncerrar: true, ultimoGestorAte: null }] };
     const f = api(
-      { papeis: [{ id: 'p0', papel: 'gestor', unidadeId: 'u-gb', unidadeSigla: '2º GB', desde: '2026-01-01', ate: '2026-06-30', podeEncerrar: true, ultimoGestorAte: null }], papeisQuePodeDar: ['gestor', 'escalante'], unidadesParaPapel: [{ id: 'u-gb', sigla: '2º GB', nivel: 3, tipo: 'grupamento', maeId: null, maeSigla: 'DInter/1', aceitaLateral: false }, { id: 'u-1sb', sigla: '1ª SB', nivel: 4, tipo: 'secao', maeId: null, maeSigla: '2º GB', aceitaLateral: true }] },
+      { papeis: [{ id: 'p0', papel: 'gestor', unidadeId: 'u-gb', unidadeSigla: '2º GB', desde: '2026-01-01', ate: '2026-06-30', podeEncerrar: true, ultimoGestorAte: null }], papeisQuePodeDar: ['gestor', 'escalante'], unidadesParaPapel: [{ id: 'u-gb', sigla: '2º GB', nivel: 3, tipo: 'grupamento', maeId: null, maeSigla: 'DInter/1', aceitaLateral: false }, { id: 'u-1sb', sigla: '1ª SB', nivel: 4, tipo: 'secao', maeId: 'u-gb', maeSigla: '2º GB', aceitaLateral: true }] },
       { 'POST /api/militares/m1/papeis': { status: 201, corpo: dada } },
     );
     abrir('/militares/m1');
@@ -92,18 +92,20 @@ describe('Acesso ao sistema', () => {
     expect(b.getByText('de 01/01/2026 a 30/06/2026')).toBeInTheDocument();
     await userEvent.click(b.getByRole('button', { name: 'Dar nível de acesso' }));
     await userEvent.selectOptions(b.getByLabelText('Nível de acesso'), 'Auxiliar administrativo');
-    await userEvent.selectOptions(b.getByLabelText('Unidade'), 'u-1sb');
+    // 6.45: a unidade do nível de acesso é escolhida pela árvore
+    expect(b.getByLabelText('Unidade').tagName).not.toBe('SELECT');
+    await escolherNaArvore(b.getByLabelText('Unidade'), '1ª SB, em 2º GB');
     expect(b.getByLabelText('A partir de')).toBeInTheDocument();
     await userEvent.click(b.getAllByRole('button', { name: 'Dar nível de acesso' }).at(-1)!);
     await waitFor(() => expect(corpoEnviado(f, 'POST /api/militares/m1/papeis')).toMatchObject({ papel: 'escalante', unidadeId: 'u-1sb' }));
   });
 
-  it('escolher o quinto nível deixa na lista só as unidades que o aceitam, com a unidade de cima quando a sigla se repete (6.25)', async () => {
+  it('escolher o quinto nível deixa escolhíveis só as unidades que o aceitam (as outras ficam de passagem); a sigla repetida fica no grupamento dela, sem sufixo (6.25, 6.45)', async () => {
     const unidades = [
-      { id: 'u-gb', sigla: '2º GB', nivel: 3, tipo: 'grupamento', maeId: null, maeSigla: 'DInter/1', aceitaLateral: false }, { id: 'u-1sb', sigla: '1ª SB', nivel: 4, tipo: 'secao', maeId: null, maeSigla: '2º GB', aceitaLateral: true },
-      { id: 'u-da', sigla: 'DA', nivel: 4, tipo: 'divisao', maeId: null, maeSigla: '2º GB', aceitaLateral: true }, { id: 'u-divop', sigla: 'DivOp', nivel: 4, tipo: 'divisao', maeId: null, maeSigla: '2º GB', aceitaLateral: true }, { id: 'u-3sb', sigla: '3ª SB', nivel: 5, tipo: 'secao', maeId: null, maeSigla: 'DA', aceitaLateral: true },
+      { id: 'u-gb', sigla: '2º GB', nivel: 3, tipo: 'grupamento', maeId: null, maeSigla: 'DInter/1', aceitaLateral: false }, { id: 'u-1sb', sigla: '1ª SB', nivel: 4, tipo: 'secao', maeId: 'u-gb', maeSigla: '2º GB', aceitaLateral: true },
+      { id: 'u-da', sigla: 'DA', nivel: 4, tipo: 'divisao', maeId: 'u-gb', maeSigla: '2º GB', aceitaLateral: true }, { id: 'u-divop', sigla: 'DivOp', nivel: 4, tipo: 'divisao', maeId: 'u-gb', maeSigla: '2º GB', aceitaLateral: true }, { id: 'u-3sb', sigla: '3ª SB', nivel: 5, tipo: 'secao', maeId: 'u-da', maeSigla: 'DA', aceitaLateral: true },
       // outro grupamento, com as mesmas siglas de divisão
-      { id: 'u-gb9', sigla: '9º GB', nivel: 3, tipo: 'grupamento', maeId: null, maeSigla: 'DInter/9', aceitaLateral: false }, { id: 'u-da9', sigla: 'DA', nivel: 4, tipo: 'divisao', maeId: null, maeSigla: '9º GB', aceitaLateral: true },
+      { id: 'u-gb9', sigla: '9º GB', nivel: 3, tipo: 'grupamento', maeId: null, maeSigla: 'DInter/9', aceitaLateral: false }, { id: 'u-da9', sigla: 'DA', nivel: 4, tipo: 'divisao', maeId: 'u-gb9', maeSigla: '9º GB', aceitaLateral: true },
     ];
     const f = api(
       { papeis: [{ id: 'p0', papel: 'gestor_lateral', unidadeId: 'u-da', unidadeSigla: 'DA', desde: '2026-11-01', ate: null, podeEncerrar: true, ultimoGestorAte: null }], papeisQuePodeDar: ['gestor', 'gestor_lateral', 'escalante'], unidadesParaPapel: unidades },
@@ -113,27 +115,38 @@ describe('Acesso ao sistema', () => {
     const b = within(await bloco());
     expect(await b.findByText('Coordenador')).toBeInTheDocument();
     await userEvent.click(b.getByRole('button', { name: 'Dar nível de acesso' }));
-    const opcoes = () => within(b.getByLabelText('Unidade')).getAllByRole('option').map((o) => o.textContent?.trim());
-    // a sigla que se repete (a "DA" de cada grupamento, sem o recuo da árvore) diz de qual unidade de cima é
-    expect(opcoes()).toEqual(['2º GB', '1ª SB', 'DA (2º GB)', 'DivOp', '3ª SB', '9º GB', 'DA (9º GB)']);
+    // abre a árvore inteira e devolve o nome de cada nó, com a marca das passagens (as que não se pode escolher)
+    const arvore = async () => {
+      await userEvent.click(b.getByLabelText('Unidade'));
+      await screen.findByRole('tree', { name: 'Unidade' });
+      const abrirTudo = screen.queryByRole('button', { name: 'Abrir tudo' });
+      if (abrirTudo) await userEvent.click(abrirTudo);
+      localStorage.removeItem('arvore:aberta-toda');
+      const nos = screen.getAllByRole('treeitem').map((i) => `${i.getAttribute('aria-label')}${i.getAttribute('aria-disabled') ? ' (passagem)' : ''}`);
+      await userEvent.keyboard('{Escape}');
+      return nos;
+    };
+    // a sigla que se repete (a "DA" de cada grupamento) fica debaixo do grupamento dela
+    const TODAS = ['2º GB', '1ª SB, em 2º GB', 'DA, em 2º GB', '3ª SB, em DA', 'DivOp, em 2º GB', '9º GB', 'DA, em 9º GB'];
+    expect(await arvore()).toEqual(TODAS);
     await userEvent.selectOptions(b.getByLabelText('Nível de acesso'), 'Coordenador');
-    // o grupamento (onde quem dá está dentro, e não acima) fica de fora; as unidades de qualquer tipo ficam
-    expect(opcoes()).toEqual(['1ª SB', 'DA (2º GB)', 'DivOp', '3ª SB', 'DA (9º GB)']);
-    expect(b.getByLabelText('Unidade')).toHaveValue('u-1sb');
-    await userEvent.selectOptions(b.getByLabelText('Unidade'), 'u-divop');
+    // o grupamento (onde quem dá está dentro, e não acima) não aceita o quinto nível: fica de passagem; as unidades de qualquer tipo ficam
+    expect(await arvore()).toEqual(['2º GB (passagem)', '1ª SB, em 2º GB', 'DA, em 2º GB', '3ª SB, em DA', 'DivOp, em 2º GB', '9º GB (passagem)', 'DA, em 9º GB']);
+    expect(b.getByLabelText('Unidade')).toHaveTextContent('2º GB / 1ª SB');
+    await escolherNaArvore(b.getByLabelText('Unidade'), 'DivOp, em 2º GB');
     await userEvent.click(b.getAllByRole('button', { name: 'Dar nível de acesso' }).at(-1)!);
     await waitFor(() => expect(corpoEnviado(f, 'POST /api/militares/m1/papeis')).toMatchObject({ papel: 'gestor_lateral', unidadeId: 'u-divop' }));
     // de volta a "Gestor", a lista inteira volta
     await userEvent.click(await b.findByRole('button', { name: 'Dar nível de acesso' }));
     await userEvent.selectOptions(b.getByLabelText('Nível de acesso'), 'Coordenador');
     await userEvent.selectOptions(b.getByLabelText('Nível de acesso'), 'Gestor');
-    expect(opcoes()).toEqual(['2º GB', '1ª SB', 'DA (2º GB)', 'DivOp', '3ª SB', '9º GB', 'DA (9º GB)']);
+    expect(await arvore()).toEqual(TODAS);
   });
 
   it('o erro de "O nível não existe na unidade raiz." aparece no campo da unidade', async () => {
     const msg = 'O nível não existe na unidade raiz.';
     api(
-      { papeisQuePodeDar: ['gestor_lateral'], unidadesParaPapel: [{ id: 'u-da', sigla: 'DA', nivel: 4, tipo: 'divisao', maeId: null, maeSigla: '2º GB', aceitaLateral: true }] },
+      { papeisQuePodeDar: ['gestor_lateral'], unidadesParaPapel: [{ id: 'u-da', sigla: 'DA', nivel: 4, tipo: 'divisao', maeId: 'u-gb', maeSigla: '2º GB', aceitaLateral: true }] },
       { 'POST /api/militares/m1/papeis': { status: 400, corpo: { erro: msg, campos: { unidadeId: msg } } } },
     );
     abrir('/militares/m1');
@@ -159,7 +172,7 @@ describe('um formulário por vez no Acesso ao sistema', () => {
       { id: 'p2', papel: 'gestor', unidadeId: 'u-gb', unidadeSigla: '2º GB', desde: '2026-10-01', ate: null, podeEncerrar: true, ultimoGestorAte: null },
     ],
     papeisQuePodeDar: ['gestor', 'escalante'],
-    unidadesParaPapel: [{ id: 'u-gb', sigla: '2º GB', nivel: 3, tipo: 'grupamento', maeId: null, maeSigla: 'DInter/1', aceitaLateral: false }, { id: 'u-1sb', sigla: '1ª SB', nivel: 4, tipo: 'secao', maeId: null, maeSigla: '2º GB', aceitaLateral: true }],
+    unidadesParaPapel: [{ id: 'u-gb', sigla: '2º GB', nivel: 3, tipo: 'grupamento', maeId: null, maeSigla: 'DInter/1', aceitaLateral: false }, { id: 'u-1sb', sigla: '1ª SB', nivel: 4, tipo: 'secao', maeId: 'u-gb', maeSigla: '2º GB', aceitaLateral: true }],
   };
   const encerrar = (b: { getAllByRole: (papel: 'button', o: { name: string }) => HTMLElement[] }) => b.getAllByRole('button', { name: 'Encerrar' }) as HTMLButtonElement[];
 
@@ -260,7 +273,7 @@ describe('um formulário por vez no Acesso ao sistema', () => {
 });
 
 describe('o "até" ao dar o nível de acesso (6.8)', () => {
-  const PODE: Partial<AcessoDoMilitar> = { papeisQuePodeDar: ['escalante'], unidadesParaPapel: [{ id: 'u-1sb', sigla: '1ª SB', nivel: 4, tipo: 'secao', maeId: null, maeSigla: '2º GB', aceitaLateral: true }] };
+  const PODE: Partial<AcessoDoMilitar> = { papeisQuePodeDar: ['escalante'], unidadesParaPapel: [{ id: 'u-1sb', sigla: '1ª SB', nivel: 4, tipo: 'secao', maeId: 'u-gb', maeSigla: '2º GB', aceitaLateral: true }] };
   const dada: AcessoDoMilitar = { ...ACESSO, papeis: [{ id: 'p1', papel: 'escalante', unidadeId: 'u-1sb', unidadeSigla: '1ª SB', desde: '2026-11-01', ate: '2026-12-31', podeEncerrar: true, ultimoGestorAte: null }] };
 
   it('o campo "Até (opcional)" fica ao lado de "A partir de", e preenchido vai no corpo', async () => {
@@ -339,7 +352,7 @@ describe('Acesso ao sistema: acabamento (6.16)', () => {
   });
 
   it('item 8: dar ou encerrar um nível atualiza o seletor de unidade (o /api/eu é pedido de novo, sem recarregar a página)', async () => {
-    const f = api({ papeis: [nivel()], papeisQuePodeDar: ['escalante'], unidadesParaPapel: [{ id: 'u-1sb', sigla: '1ª SB', nivel: 4, tipo: 'secao', maeId: null, maeSigla: '2º GB', aceitaLateral: true }] }, {
+    const f = api({ papeis: [nivel()], papeisQuePodeDar: ['escalante'], unidadesParaPapel: [{ id: 'u-1sb', sigla: '1ª SB', nivel: 4, tipo: 'secao', maeId: 'u-gb', maeSigla: '2º GB', aceitaLateral: true }] }, {
       'POST /api/militares/m1/papeis': { status: 201, corpo: ACESSO },
       'POST /api/papeis/p1/encerrar': { status: 200, corpo: ACESSO },
     });

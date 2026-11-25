@@ -8,10 +8,11 @@ import { atualizarPeculio, consultaPeculio, podeCadastrarMilitar, unidadeDoPecul
 import { EtiquetaDeDado } from '@/componentes/EtiquetaDeDado';
 import { ImportarPlanilha } from '@/componentes/ImportarPlanilha';
 import { NovoMilitar } from '@/componentes/militares/NovoMilitar';
-import { Selecao } from '@/componentes/Selecao';
+import { EscolherUnidade } from '@/componentes/EscolherUnidade';
 import { Button } from '@/componentes/ui/button';
 import { Input } from '@/componentes/ui/input';
 import { Label } from '@/componentes/ui/label';
+import { abaixoDe, type UnidadeDaArvore } from '@/lib/arvore-de-unidades';
 import { dataBr, mesAtual } from '@/lib/meses';
 import { correspondeABusca, normalizarBusca } from '@/lib/texto';
 import { cn } from '@/lib/utils';
@@ -41,13 +42,25 @@ function Peculio() {
   const [novo, setNovo] = useState(false);
   // a lista aparece de 100 em 100 (a busca e o filtro olham a lista inteira); mudar o filtro volta aos 100 primeiros
   const [limite, setLimite] = useState(100);
-  const lotacoes = useMemo(() => [...new Set((lista.data?.militares ?? []).map((m) => m.lotacao))].sort(), [lista.data]);
+  // o filtro "Lotação" é a árvore (6.45): a unidade do Pecúlio e as de baixo, como a pessoa as tem; a lotação de alguém da lista que não está
+  // na árvore dela entra solta, para nunca faltar no filtro
+  const unidadesDoFiltro = useMemo(() => {
+    const conhecidas = new Map<string, UnidadeDaArvore>([...eu.unidades, ...eu.unidadesSoConsulta].map((u) => [u.id, u]));
+    const daUnidade = abaixoDe([...conhecidas.values()], unidade.id);
+    const doFiltro = [...conhecidas.values()].filter((u) => daUnidade.has(u.id));
+    for (const m of lista.data?.militares ?? []) {
+      if (!doFiltro.some((u) => u.id === m.lotacaoId)) doFiltro.push({ id: m.lotacaoId, sigla: m.lotacao, maeId: null });
+    }
+    return doFiltro;
+  }, [eu.unidades, eu.unidadesSoConsulta, unidade.id, lista.data]);
   const filtrados = useMemo(() => {
     const b = normalizarBusca(busca);
+    // escolher um nó filtra por ele e pelas unidades de baixo
+    const doNo = lotacao ? abaixoDe(unidadesDoFiltro, lotacao) : null;
     return (lista.data?.militares ?? []).filter(
-      (m) => (!lotacao || m.lotacao === lotacao) && (!b || correspondeABusca(`${m.nomeGuerra} ${m.nomeCompleto ?? ''} ${m.matricula}`, busca)),
+      (m) => (!doNo || doNo.has(m.lotacaoId)) && (!b || correspondeABusca(`${m.nomeGuerra} ${m.nomeCompleto ?? ''} ${m.matricula}`, busca)),
     );
-  }, [lista.data, busca, lotacao]);
+  }, [lista.data, busca, lotacao, unidadesDoFiltro]);
   // com texto na busca e um resultado só, ele fica em destaque e o Enter abre a ficha (a ficha nunca abre sozinha)
   const unico = busca.trim() !== '' && filtrados.length === 1 ? filtrados[0]! : null;
 
@@ -76,7 +89,7 @@ function Peculio() {
       {lista.data && (
         <div className={cn('mt-6 grid items-start gap-6', lista.data.aniversariantes && 'lg:grid-cols-[1fr_20rem]')}>
           <div className="rounded-xl border border-linha bg-superficie">
-            <div className="grid gap-2 border-b border-linha p-3 sm:grid-cols-[1fr_12rem]">
+            <div className="grid gap-2 border-b border-linha p-3 sm:grid-cols-[1fr_14rem]">
               <div className="grid gap-1">
                 <Label htmlFor="busca-peculio" className="sr-only">Buscar por nome ou matrícula</Label>
                 <Input
@@ -93,10 +106,7 @@ function Peculio() {
               </div>
               <div className="grid gap-1">
                 <Label htmlFor="filtro-lotacao" className="text-xs text-apagado">Lotação</Label>
-                <Selecao id="filtro-lotacao" value={lotacao} onChange={(e) => { setLotacao(e.target.value); setLimite(100); }}>
-                  <option value="">Todas</option>
-                  {lotacoes.map((l) => <option key={l} value={l}>{l}</option>)}
-                </Selecao>
+                <EscolherUnidade id="filtro-lotacao" rotulo="Lotação" unidades={unidadesDoFiltro} valor={lotacao} aoEscolher={(id) => { setLotacao(id); setLimite(100); }} permiteLimpar textoVazio="Todas" />
               </div>
             </div>
             <p className="px-4 pt-3 text-apoio text-apagado">{filtrados.length > limite ? `Mostrando ${limite} de ${filtrados.length}` : `${filtrados.length} de ${lista.data.militares.length}`} militares</p>

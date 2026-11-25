@@ -2,7 +2,7 @@ import type { EfeitoDeMover, NoDaArvore, TipoDeUnidadeComUso } from 'contratos';
 import { cleanup, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
-import { abrir, chamadasA, corpoEnviado, EU_EXEMPLO, simularApi } from './apoio';
+import { abrir, chamadasA, corpoEnviado, EU_EXEMPLO, nosDaArvore, simularApi } from './apoio';
 
 // Entrega 6.25, Task 4: a árvore de unidades, editável. Dados fictícios.
 const GB = { id: 'u-gb', sigla: '2º GB', caminho: ['CBMPE', 'DGO', 'DInter/1', '2º GB'], nivel: 3, tipo: 'grupamento', maeId: null };
@@ -343,8 +343,12 @@ describe('o auxiliar na Estrutura (6.25)', () => {
     const f = comEstrutura({}, dois);
     abrir('/estrutura');
     const seletor = await screen.findByLabelText('Árvore de');
-    expect(within(seletor).getAllByRole('option').map((o) => o.textContent)).toEqual(['2º GB', '9º GB']);
-    fireEvent.change(seletor, { target: { value: 'u-gb9' } });
+    // 6.45: as árvores que a pessoa pode ver também se escolhem pela árvore, e não numa lista plana
+    expect(seletor.tagName).not.toBe('SELECT');
+    await userEvent.click(seletor);
+    await screen.findByRole('tree', { name: 'Árvore de' });
+    expect(nosDaArvore()).toEqual(['2º GB', '9º GB']);
+    await userEvent.click(screen.getByRole('treeitem', { name: '9º GB' }));
     await waitFor(() => expect(f.mock.calls.map(([e]) => String(e)).filter((e) => e.includes('estrutura'))).toContain('/api/estrutura?raiz=u-gb9'));
   });
 });

@@ -47,6 +47,23 @@ export function abrir(caminho: string) {
   return router;
 }
 
+/**
+ * Escolhe uma unidade num campo de árvore (6.45): abre a caixa, abre todos os níveis e clica no nó de nome `nome` (o nome que o leitor de tela diz:
+ * "1ª SB, em DivOp"; a do alto, só a sigla).
+ */
+export async function escolherNaArvore(campo: HTMLElement, nome: string | RegExp) {
+  await userEvent.click(campo);
+  await screen.findAllByRole('tree');
+  const abrirTudo = screen.queryByRole('button', { name: 'Abrir tudo' });
+  if (abrirTudo) await userEvent.click(abrirTudo);
+  // "Abrir tudo" fica lembrado no navegador: aqui é só um atalho do teste, e não pode valer para o teste seguinte
+  localStorage.removeItem('arvore:aberta-toda');
+  await userEvent.click(await screen.findByRole('treeitem', { name: nome }));
+}
+
+/** Os nomes dos nós à vista na árvore aberta (o que o leitor de tela diz de cada um), na ordem. */
+export const nosDaArvore = () => screen.getAllByRole('treeitem').map((i) => i.getAttribute('aria-label'));
+
 /** Corpo JSON da última chamada a 'METODO /caminho'. */
 export function corpoEnviado(fetchFalso: ReturnType<typeof simularApi>, rota: string): unknown {
   const [metodo, caminho] = rota.split(' ');

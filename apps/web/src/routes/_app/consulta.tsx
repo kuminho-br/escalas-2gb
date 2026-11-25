@@ -4,7 +4,7 @@ import { Search } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
 import { mensagemDe } from '@/api/cliente';
 import { consultaDaBusca, consultaUnidadesDaBusca } from '@/api/consulta';
-import { Selecao } from '@/componentes/Selecao';
+import { EscolherUnidade } from '@/componentes/EscolherUnidade';
 import { Button } from '@/componentes/ui/button';
 import { Input } from '@/componentes/ui/input';
 import { Label } from '@/componentes/ui/label';
@@ -54,8 +54,6 @@ function Formulario({ texto, unidade }: { texto: string; unidade: string }) {
     setErro(null);
     void navigate({ search: { texto: campo.trim() || undefined, unidade: escolhida || undefined } });
   };
-  // o recuo usa espaço que o navegador não junta: toda unidade "DA" e "DivOp" existe em cada grupamento, e só o recuo diz de qual é
-  const menor = Math.min(...(unidades.data ?? []).map((u) => u.nivel));
   return (
     <form onSubmit={buscar} className="mt-6 grid max-w-3xl gap-3 sm:grid-cols-[1fr_14rem_auto] sm:items-end" role="search">
       <div className="grid gap-1.5">
@@ -72,10 +70,8 @@ function Formulario({ texto, unidade }: { texto: string; unidade: string }) {
       </div>
       <div className="grid gap-1.5">
         <Label htmlFor="consulta-unidade">Lotados em</Label>
-        <Selecao id="consulta-unidade" value={escolhida} onChange={(e) => setEscolhida(e.target.value)}>
-          <option value="">Toda a corporação</option>
-          {(unidades.data ?? []).map((u) => <option key={u.id} value={u.id}>{`${'\u00a0\u00a0'.repeat(u.nivel - menor)}${u.sigla}`}</option>)}
-        </Selecao>
+        {/* pela árvore, nó a nó (6.45): a busca pega a unidade escolhida e as de baixo; sem unidade, toda a corporação */}
+        <EscolherUnidade id="consulta-unidade" rotulo="Lotados em" unidades={unidades.data ?? []} valor={escolhida} aoEscolher={setEscolhida} permiteLimpar textoVazio="Toda a corporação" />
       </div>
       <Button type="submit">
         <Search aria-hidden />

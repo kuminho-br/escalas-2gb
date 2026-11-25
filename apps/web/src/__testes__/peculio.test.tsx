@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest';
 import type { Eu, EuDaApi } from '@/api/eu';
 import { podeCadastrarMilitar, secoesDoCadastro, unidadeDoPeculio } from '@/api/peculio';
 import { hoje, mesAtual } from '@/lib/meses';
-import { abrir, chamadasA, corpoEnviado, EU_EXEMPLO, simularApi } from './apoio';
+import { abrir, chamadasA, corpoEnviado, escolherNaArvore, EU_EXEMPLO, nosDaArvore, simularApi } from './apoio';
 
 const MES = mesAtual();
 const comUnidade = (e: EuDaApi): Eu => ({ ...e, unidade: e.unidades[0]!, soConsulta: false });
@@ -88,11 +88,49 @@ describe('módulo Pecúlio', () => {
     expect(lista.getByText('BARRETO')).toBeInTheDocument();
     expect(lista.queryByText('CÁBRAL')).toBeNull();
     await userEvent.clear(screen.getByLabelText('Buscar por nome ou matrícula'));
-    // o filtro traz as lotações que aparecem na lista
-    await userEvent.selectOptions(screen.getByLabelText('Lotação'), '2ª SB');
+    // o filtro é pela árvore (6.45): a lotação que a pessoa não tem na árvore dela (a 2ª SB) entra pela lista, e nunca some
+    await escolherNaArvore(screen.getByLabelText('Lotação'), '2ª SB');
     expect(lista.getByText('BARRETO')).toBeInTheDocument();
     expect(lista.queryByText('ANDRADE')).toBeNull();
     expect(screen.getByText('1 de 3 militares')).toBeInTheDocument();
+  });
+
+  it('6.45: o filtro "Lotação" é a árvore, nó a nó: escolher um nó filtra por ele e pelos de baixo, e "Limpar" volta a "Todas"; nenhuma lista plana', async () => {
+    const comArvore: EuDaApi = {
+      ...GESTOR_GB,
+      unidades: [
+        { id: 'u-gb', sigla: '2º GB', caminho: ['CBMPE', 'DGO', 'DInter/1', '2º GB'], nivel: 3, tipo: 'grupamento', maeId: 'u-di' },
+        { id: 'u-divop', sigla: 'DivOp', caminho: ['CBMPE', 'DGO', 'DInter/1', '2º GB', 'DivOp'], nivel: 4, tipo: 'divisao', maeId: 'u-gb' },
+        { id: 'u-1sb', sigla: '1ª SB', caminho: ['CBMPE', 'DGO', 'DInter/1', '2º GB', 'DivOp', '1ª SB'], nivel: 5, tipo: 'secao', maeId: 'u-divop' },
+        { id: 'u-2sb', sigla: '2ª SB', caminho: ['CBMPE', 'DGO', 'DInter/1', '2º GB', '2ª SB'], nivel: 4, tipo: 'secao', maeId: 'u-gb' },
+      ],
+    };
+    api(comArvore);
+    abrir('/peculio');
+    const lista = await militares();
+    const filtro = screen.getByLabelText('Lotação');
+    expect(filtro.tagName).not.toBe('SELECT');
+    expect(filtro).toHaveTextContent('Todas');
+    await userEvent.click(filtro);
+    await screen.findByRole('tree', { name: 'Lotação' });
+    // nó a nó: o grupamento e o primeiro nível; a 1ª SB (dentro da DivOp) só aparece ao abrir a divisão
+    expect(nosDaArvore()).toEqual(['2º GB', '2ª SB, em 2º GB', 'DivOp, em 2º GB']);
+    await userEvent.click(screen.getByRole('button', { name: 'Abrir DivOp' }));
+    expect(nosDaArvore()).toEqual(['2º GB', '2ª SB, em 2º GB', 'DivOp, em 2º GB', '1ª SB, em DivOp']);
+    // a divisão pega a seção de baixo: ANDRADE e CÁBRAL são da 1ª SB
+    await userEvent.click(screen.getByRole('treeitem', { name: 'DivOp, em 2º GB' }));
+    expect(screen.getByText('2 de 3 militares')).toBeInTheDocument();
+    expect(lista.queryByText('BARRETO')).toBeNull();
+    expect(screen.getByLabelText('Lotação')).toHaveTextContent('2º GB / DivOp');
+    // o grupamento pega tudo
+    await escolherNaArvore(screen.getByLabelText('Lotação'), '2º GB');
+    expect(screen.getByText('3 de 3 militares')).toBeInTheDocument();
+    await escolherNaArvore(screen.getByLabelText('Lotação'), '2ª SB, em 2º GB');
+    expect(screen.getByText('1 de 3 militares')).toBeInTheDocument();
+    await userEvent.click(screen.getByLabelText('Lotação'));
+    await userEvent.click(await screen.findByRole('button', { name: 'Limpar' }));
+    expect(screen.getByText('3 de 3 militares')).toBeInTheDocument();
+    expect(screen.getByLabelText('Lotação')).toHaveTextContent('Todas');
   });
 
   it('clicar no militar abre a ficha dele (a mesma ficha)', async () => {
@@ -362,7 +400,10 @@ describe('o Novo militar, no Pecúlio', () => {
     await userEvent.selectOptions(dialogo.getByLabelText('Posto-graduação'), 'CB');
     await userEvent.type(dialogo.getByLabelText('Nome completo'), 'Novo da Silva');
     await userEvent.type(dialogo.getByLabelText('Nome de guerra'), 'novo');
-    await userEvent.selectOptions(dialogo.getByLabelText('Unidade'), '2ª SB');
+    // 6.45: a unidade é escolhida pela árvore, e nenhuma vem escolhida por acaso
+    expect(dialogo.getByLabelText('Unidade')).toHaveTextContent('Escolha a unidade');
+    expect(dialogo.getByRole('button', { name: 'Criar' })).toBeDisabled();
+    await escolherNaArvore(dialogo.getByLabelText('Unidade'), '2ª SB');
     fireEvent.change(dialogo.getByLabelText('Lotado desde'), { target: { value: '2026-12-15' } });
     await userEvent.click(dialogo.getByRole('button', { name: 'Criar' }));
     await waitFor(() =>
@@ -404,6 +445,7 @@ describe('o Novo militar, no Pecúlio', () => {
     await userEvent.type(dialogo.getByLabelText('Matrícula'), '990010-0');
     await userEvent.type(dialogo.getByLabelText('Nome completo'), 'Novo da Silva');
     await userEvent.type(dialogo.getByLabelText('Nome de guerra'), 'NOVO');
+    await escolherNaArvore(dialogo.getByLabelText('Unidade'), '1ª SB');
     await userEvent.click(dialogo.getByRole('button', { name: 'Criar' }));
     const desde = dialogo.getByLabelText('Lotado desde');
     expect(await dialogo.findByText('Use uma data que exista no calendário.')).toBeInTheDocument();

@@ -2,7 +2,7 @@ import type { FichaDeConsulta, LinhaDaConsulta, UnidadeDaConsulta } from 'contra
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
-import { abrir, chamadasA, EU_EXEMPLO, simularApi } from './apoio';
+import { abrir, chamadasA, escolherNaArvore, EU_EXEMPLO, nosDaArvore, simularApi } from './apoio';
 
 // Entrega 6.11, Task 7: a consulta de militares (todo militar com conta) e a ficha de consulta, só para leitura. Dados fictícios (D7).
 const COMUM = { ...EU_EXEMPLO, papeis: [], lotacao: EU_EXEMPLO.unidades[0]! };
@@ -13,7 +13,7 @@ const linha = (id: string, nomeGuerra: string, extra: Partial<LinhaDaConsulta> =
   id, postoGrad: 'SD', nomeGuerra, nomeCompleto: `Fulano de Tal ${nomeGuerra}`, matricula: '990001-1', lotacao: '1ª SB', quadro: 'QBMG', ...extra,
 });
 const UNIDADES: UnidadeDaConsulta[] = [
-  { id: 'u-cbmpe', sigla: 'CBMPE', nivel: 0, maeId: null }, { id: 'u-gb', sigla: '2º GB', nivel: 3, maeId: null }, { id: 'u-divop', sigla: 'DivOp', nivel: 4, maeId: null }, { id: 'u-1sb', sigla: '1ª SB', nivel: 5, maeId: null },
+  { id: 'u-cbmpe', sigla: 'CBMPE', nivel: 0, maeId: null }, { id: 'u-gb', sigla: '2º GB', nivel: 3, maeId: 'u-cbmpe' }, { id: 'u-divop', sigla: 'DivOp', nivel: 4, maeId: 'u-gb' }, { id: 'u-1sb', sigla: '1ª SB', nivel: 5, maeId: 'u-divop' },
 ];
 const BUSCA = 'GET /api/consulta/militares';
 
@@ -41,22 +41,29 @@ describe('a consulta de militares', () => {
     expect(pedidos(f)).toHaveLength(0);
   });
 
-  it('o seletor de unidade traz "Toda a corporação" e a árvore, com recuo', async () => {
-    api();
+  it('6.45: "Lotados em" começa em "Toda a corporação" e abre a árvore nó a nó, com "Abrir tudo"; nenhuma lista plana', async () => {
+    const f = api();
     abrir('/consulta');
     const unidade = await screen.findByLabelText('Lotados em');
-    await waitFor(() => expect(within(unidade).getAllByRole('option')).toHaveLength(5));
-    expect(within(unidade).getAllByRole('option').map((o) => o.textContent?.trim())).toEqual(['Toda a corporação', 'CBMPE', '2º GB', 'DivOp', '1ª SB']);
-    expect(unidade).toHaveValue('');
+    expect(unidade).toHaveTextContent('Toda a corporação');
+    expect(unidade.tagName).not.toBe('SELECT');
+    await waitFor(() => expect(chamadasA(f, 'GET /api/consulta/unidades')).toBe(1));
+    await userEvent.click(unidade);
+    await screen.findByRole('tree', { name: 'Lotados em' });
+    await waitFor(() => expect(nosDaArvore()).toEqual(['CBMPE', '2º GB, em CBMPE']));
+    await userEvent.click(screen.getByRole('button', { name: 'Abrir tudo' }));
+    expect(nosDaArvore()).toEqual(['CBMPE', '2º GB, em CBMPE', 'DivOp, em 2º GB', '1ª SB, em DivOp']);
   });
 
-  it('o recuo da árvore usa espaço que o navegador não junta: as divisões de cada grupamento têm a mesma sigla e só o recuo diz de qual é', async () => {
-    api();
+  it('6.45: "Limpar" tira a unidade e volta a "Toda a corporação"', async () => {
+    const f = api();
     abrir('/consulta');
-    const unidade = await screen.findByLabelText('Lotados em');
-    await waitFor(() => expect(within(unidade).getAllByRole('option')).toHaveLength(5));
-    const nbsp = (n: number) => ' '.repeat(n);
-    expect(within(unidade).getAllByRole('option').map((o) => o.textContent)).toEqual(['Toda a corporação', 'CBMPE', `${nbsp(6)}2º GB`, `${nbsp(8)}DivOp`, `${nbsp(10)}1ª SB`]);
+    await waitFor(() => expect(chamadasA(f, 'GET /api/consulta/unidades')).toBe(1));
+    await escolherNaArvore(await screen.findByLabelText('Lotados em'), 'DivOp, em 2º GB');
+    expect(screen.getByLabelText('Lotados em')).toHaveTextContent('2º GB / DivOp');
+    await userEvent.click(screen.getByLabelText('Lotados em'));
+    await userEvent.click(await screen.findByRole('button', { name: 'Limpar' }));
+    expect(screen.getByLabelText('Lotados em')).toHaveTextContent('Toda a corporação');
   });
 
   it('busca por texto: mostra a identificação de cada militar, e a lotação e o quadro quando há', async () => {
@@ -84,8 +91,8 @@ describe('a consulta de militares', () => {
   it('com a unidade escolhida, manda a unidade; só a unidade já basta', async () => {
     const f = api();
     abrir('/consulta');
-    await waitFor(() => expect(within(screen.getByLabelText('Lotados em')).getAllByRole('option')).toHaveLength(5));
-    await userEvent.selectOptions(screen.getByLabelText('Lotados em'), 'u-divop');
+    await waitFor(() => expect(chamadasA(f, 'GET /api/consulta/unidades')).toBe(1));
+    await escolherNaArvore(screen.getByLabelText('Lotados em'), 'DivOp, em 2º GB');
     await userEvent.click(screen.getByRole('button', { name: 'Buscar' }));
     await screen.findByRole('list', { name: 'Militares encontrados' });
     expect([...pedidos(f)[0]!.entries()]).toEqual([['unidadeId', 'u-divop']]);
@@ -127,7 +134,7 @@ describe('a consulta de militares', () => {
     await screen.findByRole('list', { name: 'Militares encontrados' });
     expect([...pedidos(f)[0]!.entries()]).toEqual([['texto', 'andrade'], ['unidadeId', 'u-divop']]);
     expect(screen.getByLabelText('Nome, nome de guerra ou matrícula')).toHaveValue('andrade');
-    await waitFor(() => expect(screen.getByLabelText('Lotados em')).toHaveValue('u-divop'));
+    await waitFor(() => expect(screen.getByLabelText('Lotados em')).toHaveTextContent('2º GB / DivOp'));
   });
 
   it('um endereço com texto curto e sem unidade não pede nada', async () => {

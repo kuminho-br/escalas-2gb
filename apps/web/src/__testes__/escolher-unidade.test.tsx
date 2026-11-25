@@ -68,7 +68,7 @@ function Caixa({ unidades = TODAS, todas, inicial = '', permiteLimpar = false }:
   );
 }
 const abrirCaixa = async () => {
-  await userEvent.click(screen.getByRole('button', { name: /^Unidade/ }));
+  await userEvent.click(screen.getByRole('combobox', { name: 'Unidade' }));
   return screen.findByRole('tree', { name: 'Unidade' });
 };
 const itens = (arvore: HTMLElement) => within(arvore).getAllByRole('treeitem').map((i) => i.getAttribute('aria-label'));
@@ -93,7 +93,7 @@ describe('EscolherUnidade', () => {
 
   it('o caminho da escolhida já vem aberto, e ela vem marcada; o botão mostra a sigla com a unidade de cima', async () => {
     render(<Caixa inicial="sb2" />);
-    expect(screen.getByRole('button', { name: /^Unidade/ })).toHaveTextContent('DivOp / 2ª SB');
+    expect(screen.getByRole('combobox', { name: 'Unidade' })).toHaveTextContent('DivOp / 2ª SB');
     const arvore = await abrirCaixa();
     expect(itens(arvore)).toEqual(['CBMPE', 'DGO, em CBMPE', 'DInter/1, em DGO', '1º GB, em DInter/1', '2º GB, em DInter/1', 'DA, em 2º GB', 'DivOp, em 2º GB', '1ª SB, em DivOp', '2ª SB, em DivOp', '10ª SB, em DivOp']);
     expect(within(arvore).getByRole('treeitem', { name: '2ª SB, em DivOp' })).toHaveAttribute('aria-selected', 'true');
@@ -188,9 +188,18 @@ describe('EscolherUnidade', () => {
     expect(screen.getByTestId('valor')).toHaveTextContent('sb2');
   });
 
+  it('se a árvore da corporação chega com a caixa já aberta (rede lenta), as passagens novas vêm abertas: o que é escolhível continua à vista', async () => {
+    const permitidas = [u('sb1', '1ª SB', 'divop'), u('sb2', '2ª SB', 'divop')];
+    const { rerender } = render(<Caixa unidades={permitidas} />);
+    const arvore = await abrirCaixa();
+    expect(itens(arvore)).toEqual(['1ª SB', '2ª SB']);
+    rerender(<Caixa unidades={permitidas} todas={TODAS} />);
+    expect(itens(screen.getByRole('tree', { name: 'Unidade' }))).toEqual(['CBMPE', 'DGO, em CBMPE', 'DInter/1, em DGO', '2º GB, em DInter/1', 'DivOp, em 2º GB', '1ª SB, em DivOp', '2ª SB, em DivOp']);
+  });
+
   it('Review Focus 1: a sigla repetida fica cada uma no seu lugar, sem sufixo, e o nome para o leitor de tela diz a unidade de cima', async () => {
     render(<Caixa inicial="da1" />);
-    expect(screen.getByRole('button', { name: /^Unidade/ })).toHaveTextContent('1º GB / DA');
+    expect(screen.getByRole('combobox', { name: 'Unidade' })).toHaveTextContent('1º GB / DA');
     const arvore = await abrirCaixa();
     await userEvent.click(screen.getByRole('button', { name: 'Abrir tudo' }));
     expect(within(arvore).getByRole('treeitem', { name: 'DA, em 1º GB' })).toHaveAttribute('aria-selected', 'true');
@@ -203,7 +212,7 @@ describe('EscolherUnidade', () => {
     await abrirCaixa();
     await userEvent.click(screen.getByRole('button', { name: 'Limpar' }));
     expect(screen.getByTestId('valor')).toHaveTextContent('');
-    expect(screen.getByRole('button', { name: /^Unidade/ })).toHaveTextContent('Todas');
+    expect(screen.getByRole('combobox', { name: 'Unidade' })).toHaveTextContent('Todas');
     await abrirCaixa();
     expect(screen.queryByRole('button', { name: 'Limpar' })).toBeNull();
   });

@@ -68,6 +68,14 @@ export function PainelDaArvore({ grupos, valor, aoLimpar }: { grupos: GrupoDaArv
   const todos = arvores.flatMap(todosOsNos);
   const [abertaToda, setAbertaToda] = useState(lembraAbertaToda);
   const [abertos, setAbertos] = useState(() => (abertaToda ? new Set(todos.map((n) => n.id)) : abertosDeInicio(arvores, valor)));
+  // se a árvore muda com a caixa aberta (a lista da corporação chegou depois, e com ela as passagens), o que vem aberto é refeito: sem isso, uma
+  // passagem nova nasceria fechada e esconderia as unidades que a pessoa pode escolher
+  const forma = todos.map((n) => `${n.id}${n.passagem ? '*' : ''}`).join('|');
+  const [formaVista, setFormaVista] = useState(forma);
+  if (formaVista !== forma) {
+    setFormaVista(forma);
+    setAbertos(abertaToda ? new Set(todos.map((n) => n.id)) : abertosDeInicio(arvores, valor));
+  }
   const [busca, setBusca] = useState('');
   const buscada = normalizarBusca(busca);
   const temOQueAbrir = todos.some((n) => n.filhos.length > 0);
@@ -182,12 +190,13 @@ function Arvore({ rotulo, nos, valor, abertos, aoAlternar, aoEscolher }: { rotul
         onFocus={(e) => { if (e.target === e.currentTarget) setFoco(n.id); }}
         // o clique é do nó mais de dentro: não sobe para a mãe, que tem o mesmo tratamento
         onClick={(e) => { e.stopPropagation(); escolher(n); }}
-        className="group/no rounded-sm outline-none"
+        // o contorno do foco é da linha do próprio nó (o filho direto), e não dos nós de dentro dele
+        className="rounded-sm outline-none"
       >
         <div
           style={{ paddingLeft: `${0.25 + n.nivel * 1}rem` }}
           className={cn(
-            'flex min-h-9 items-center gap-1 rounded-sm pr-2.5 text-corpo select-none group-focus-visible/no:outline-2 group-focus-visible/no:-outline-offset-2 group-focus-visible/no:outline-tinta',
+            'flex min-h-9 items-center gap-1 rounded-sm pr-2.5 text-corpo select-none [li:focus-visible>&]:outline-2 [li:focus-visible>&]:-outline-offset-2 [li:focus-visible>&]:outline-tinta',
             n.passagem ? 'text-apagado' : 'cursor-pointer text-tinta hover:bg-passa',
             escolhido && 'bg-passa font-semibold',
           )}
@@ -242,7 +251,7 @@ export function EscolherUnidade({
   id, rotulo, unidades, todas, valor, aoEscolher, permiteLimpar = false, textoVazio = 'Escolha a unidade', textoDoValor, disabled, className, ...resto
 }: {
   id?: string;
-  /** O nome do campo para o leitor de tela (o mesmo do rótulo à vista). */
+  /** O nome da árvore para o leitor de tela (o mesmo do rótulo à vista); sem `id`, também o nome do campo. */
   rotulo: string;
   unidades: UnidadeDaArvore[];
   todas?: UnidadeDaArvore[];
@@ -274,7 +283,11 @@ export function EscolherUnidade({
           id={id}
           type="button"
           disabled={disabled}
-          aria-label={`${rotulo}: ${texto}`}
+          // uma caixa de escolha: o nome vem do rótulo do campo (`<label htmlFor>`; sem `id`, do próprio `rotulo`) e o valor é o texto à vista
+          role="combobox"
+          aria-haspopup="tree"
+          aria-expanded={aberto}
+          aria-label={id ? undefined : rotulo}
           className={cn(
             'flex h-(--altura-controle) w-full min-w-0 items-center gap-2 rounded-controle border border-encaixe bg-superficie px-3 text-left text-corpo transition-colors hover:border-tinta disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-2 aria-invalid:border-alerta',
             className,
