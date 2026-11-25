@@ -104,7 +104,7 @@ Design: `docs/superpowers/specs/2026-11-21-usuarios-e-modulos-design.md`. Plano:
 | 46 e 49 | Ajustes da Grade; histórico de rastreio pelo mockup | mescladas (#233, #239, #242 o acabamento) |
 | 50 a 52 | Pecúlio Geral: as três telas e a ficha no lugar; a pesquisa com filtros, árvore, arquivo e seleção; a atualização em lote | 50, 51 e 52 mescladas (#244, #246, #248) |
 | 53 | Acabamento do piloto: o filtro de CNH pela hierarquia, o motivo do passado uma vez por ação, "ADM" e "24:00", controles soltos do voluntariado e do Pecúlio, a atualização em lote | mesclada (#261) |
-| 54 | Exportar militares para Excel em Pesquisar militares (os campos escolhidos, com as colunas da importação) e a busca sem corte para "Selecionar estes N" | em execução |
+| 54 | Exportar militares para Excel em Pesquisar militares (os campos escolhidos, com as colunas da importação) e a busca sem corte para "Selecionar estes N" | mesclada (#264) |
 | 55 | Tela inicial: os próximos serviços do militar (cartão com dia da semana, dia, serviço e horário, na cor do serviço), sobre a Minha escala da 7.5 | aguarda o mockup da DESIGN |
 | 56 | Tela inicial: o quadro de avisos, com o cadastro de avisos (a modelagem do aviso passa pela CONCEPÇÃO antes do plano) | planejada |
 
@@ -161,7 +161,7 @@ Planos: `docs/superpowers/plans/2026-11-25-fase7-1-…` a `fase7-5-…` (a 3.1 �
 ## Fase 10 — Regras novas · planejada
 
 - Regras validadas no laboratório, na ordem em que forem aprovadas: operações por função (B38/RN-81), equilíbrio de situações boas e ruins na compulsória (RN-43), causas de não ativação.
-- Tela de Ajuda com o roteiro do mês.
+- A ajuda distribuída pelas telas, onde for necessária (não há tela de Ajuda), incluindo o roteiro do mês.
 - A importação do Google Forms saiu do roadmap; volta só se o voluntariado marcado pelo próprio militar (fase 7) não pegar.
 
 ## Fase 11 — Institucionalização · planejada
@@ -169,7 +169,7 @@ Planos: `docs/superpowers/plans/2026-11-25-fase7-1-…` a `fase7-5-…` (a 3.1 �
 - Estrutura acima do GB (CBMPE › DGO › Diretorias › GB), com o seletor de unidade.
 - Escalas, guarnições e cotas em qualquer nível.
 - Acesso por unidade acima do GB, com um gestor por nível.
-- Tela de Histórico, sobre a auditoria que existe desde a fase 1.
+- Tela de Histórico, sobre a auditoria que existe desde a fase 1 (fora do trilho do módulo de escala; o lugar se decide na fase 11).
 - Antiguidade acima do GB, pelos almanaques.
 - Servidor do Estado: cópia do banco, implantação, retirada do ambiente de teste. CPF e data de nascimento entram aqui (D7).
 
