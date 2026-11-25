@@ -43,4 +43,4 @@ export type FichaDeConsulta = LinhaDaConsulta & {
 };
 
 /** A unidade na lista de escolha da busca, na ordem da árvore. */
-export type UnidadeDaConsulta = { id: string; sigla: string; nivel: number };
+export type UnidadeDaConsulta = { id: string; sigla: string; nivel: number; maeId: string | null };

@@ -5,7 +5,7 @@ import { QueryClient } from '@tanstack/react-query';
 import { describe, expect, it, vi } from 'vitest';
 import { atualizarMilitares } from '@/api/militares';
 import { hoje, mesAtual, somarDias } from '@/lib/meses';
-import { abrir, chamadasA, corpoEnviado, EU_EXEMPLO, simularApi, trava, responderConfirmacao } from './apoio';
+import { abrir, chamadasA, corpoEnviado, escolherNaArvore, EU_EXEMPLO, nosDaArvore, simularApi, trava, responderConfirmacao } from './apoio';
 
 const linha = (l: Partial<LinhaMilitar>): LinhaMilitar => ({
   id: 'm1', matricula: '990001-1', posto: 'SD', quadro: { id: 'q-qbmg', sigla: 'QBMG' }, nomeGuerra: 'ANDRADE', equipe: 'Alfa', jornada: 'pronto', motorista: null,
@@ -617,7 +617,9 @@ describe('alterar situação', () => {
     const f = rotas();
     abrir('/militares/m1');
     const dialogo = await abrirODialogo();
-    expect(dialogo.getByLabelText('Lotação')).toHaveValue('u-1sb');
+    // 6.45: a lotação é escolhida pela árvore; o campo mostra a unidade de hoje
+    expect(dialogo.getByLabelText('Lotação')).toHaveTextContent('1ª SB');
+    expect(dialogo.getByLabelText('Lotação').tagName).not.toBe('SELECT');
     await waitFor(() => expect(dialogo.getByLabelText('Equipe')).toHaveValue('e-alfa'));
     expect(dialogo.getByLabelText('Jornada')).toHaveValue('pronto');
     expect(dialogo.getByLabelText('A partir de')).toHaveValue(hoje());
@@ -649,7 +651,7 @@ describe('alterar situação', () => {
     const f = rotas();
     abrir('/militares/m1');
     const dialogo = await abrirODialogo();
-    await userEvent.selectOptions(dialogo.getByLabelText('Lotação'), 'u-2sb');
+    await escolherNaArvore(dialogo.getByLabelText('Lotação'), '2ª SB');
     await waitFor(() => expect(within(dialogo.getByLabelText('Equipe')).getByRole('option', { name: 'Delta' })).toBeInTheDocument());
     expect(within(dialogo.getByLabelText('Equipe')).queryByRole('option', { name: 'Bravo' })).toBeNull();
     expect(dialogo.getByLabelText('Equipe')).toHaveValue('');
@@ -1366,17 +1368,20 @@ describe('o rastreio da ficha: acabamento (6.16, Task 4)', () => {
 
 describe('mover pela hierarquia e quem moveu (6.23)', () => {
   const SITUACOES = [{ id: 'sit-ativa', nome: 'Ativa', escalavel: true, ativo: true }];
-  // a mesma sigla "2ª SB" em dois grupamentos: o formulário acha a do militar pelo id, e a lista diz de qual grupamento é cada uma
+  // a mesma sigla "2ª SB" em dois grupamentos: o formulário acha a do militar pelo id, e a árvore põe cada uma debaixo do grupamento dela (6.45)
   const SECOES = [
-    { id: 'u-2sb-outro', sigla: '2ª SB (1º GB)', nome: '2ª Seção' },
-    { id: 'u-2sb', sigla: '2ª SB (2º GB)', nome: '2ª Seção' },
-    { id: 'u-1sb', sigla: '1ª SB', nome: '1ª Seção' },
+    { id: 'u-2sb-outro', sigla: '2ª SB', nome: '2ª Seção', maeId: 'u-gb1' },
+    { id: 'u-2sb', sigla: '2ª SB', nome: '2ª Seção', maeId: 'u-gb' },
+    { id: 'u-1sb', sigla: '1ª SB', nome: '1ª Seção', maeId: 'u-gb' },
   ];
+  // a árvore da corporação: dá lugar às seções (os grupamentos entram como passagem, não escolhíveis)
+  const ARVORE = { 'GET /api/consulta/unidades': { status: 200, corpo: [{ id: 'u-gb1', sigla: '1º GB', nivel: 0, maeId: null }, { id: 'u-gb', sigla: '2º GB', nivel: 0, maeId: null }, ...SECOES.map((s) => ({ id: s.id, sigla: s.sigla, nivel: 1, maeId: s.maeId }))] } };
   const periodo = { id: 'r1', unidadeId: 'u-2sb', unidadeSigla: '2ª SB', equipe: null, jornada: 'adm' as const, desde: '2026-01-05', ate: null, quadro: 'QBMG', situacao: 'Ativa', alteradoPor: { patente: 'MAJ', nomeGuerra: 'BARRETO' }, alteradoEm: '2026-11-23T09:15:42' };
   const comPeriodo = () => api({
     'GET /api/militares/m1': { status: 200, corpo: { ...FICHA, rastreio: [periodo] } },
     'GET /api/situacoes-do-militar': { status: 200, corpo: SITUACOES },
     'GET /api/unidades-de-lotacao': { status: 200, corpo: SECOES },
+    ...ARVORE,
   });
 
   it('o histórico de rastreio mostra "por MAJ BARRETO em 23/11/2026 às 09:15"', async () => {
@@ -1386,16 +1391,21 @@ describe('mover pela hierarquia e quem moveu (6.23)', () => {
     expect(await screen.findByText('por MAJ BARRETO em 23/11/2026 às 09:15')).toBeInTheDocument();
   });
 
-  it('"Alterar situação" sugere a lotação do militar pelo id (não pela sigla repetida) e mostra o grupamento nas siglas repetidas', async () => {
+  it('"Alterar situação" sugere a lotação do militar pelo id (não pela sigla repetida), e a árvore põe cada sigla repetida no grupamento dela, sem sufixo (Review Focus 1)', async () => {
     comPeriodo();
     abrir('/militares/m1');
     await userEvent.click(await screen.findByRole('button', { name: /Histórico de rastreio/ }));
     await userEvent.click(await screen.findByRole('button', { name: 'Alterar situação' }));
     const caixa = within(await screen.findByRole('dialog'));
     const lotacao = caixa.getByLabelText('Lotação');
-    await within(lotacao).findByRole('option', { name: '2ª SB (2º GB)' });
-    expect(lotacao).toHaveDisplayValue('2ª SB (2º GB)');
-    expect(within(lotacao).getAllByRole('option').map((o) => o.textContent)).toEqual(['2ª SB (1º GB)', '2ª SB (2º GB)', '1ª SB']);
+    await waitFor(() => expect(lotacao).toHaveTextContent('2º GB / 2ª SB'));
+    await userEvent.click(lotacao);
+    await screen.findByRole('tree', { name: 'Lotação' });
+    // os grupamentos são passagem (já vêm abertos); a seção do militar vem marcada, e a de mesma sigla do outro grupamento, não
+    expect(nosDaArvore()).toEqual(['1º GB', '2ª SB, em 1º GB', '2º GB', '1ª SB, em 2º GB', '2ª SB, em 2º GB']);
+    expect(screen.getByRole('treeitem', { name: '2ª SB, em 2º GB' })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByRole('treeitem', { name: '2ª SB, em 1º GB' })).toHaveAttribute('aria-selected', 'false');
+    expect(screen.getByRole('treeitem', { name: '2º GB' })).toHaveAttribute('aria-disabled', 'true');
   });
 
   it('militar só com período futuro: a lotação sugerida é a desse período, e não a unidade da tela (achado da revisão final)', async () => {
@@ -1404,24 +1414,25 @@ describe('mover pela hierarquia e quem moveu (6.23)', () => {
       'GET /api/militares/m1': { status: 200, corpo: { ...FICHA, rastreio: [futuro] } },
       'GET /api/situacoes-do-militar': { status: 200, corpo: SITUACOES },
       'GET /api/unidades-de-lotacao': { status: 200, corpo: SECOES },
+      ...ARVORE,
     });
     abrir('/militares/m1');
     await userEvent.click(await screen.findByRole('button', { name: /Histórico de rastreio/ }));
     await userEvent.click(await screen.findByRole('button', { name: 'Alterar situação' }));
     const lotacao = within(await screen.findByRole('dialog')).getByLabelText('Lotação');
-    await within(lotacao).findByRole('option', { name: '2ª SB (2º GB)' });
-    expect(lotacao).toHaveDisplayValue('2ª SB (2º GB)');
+    await waitFor(() => expect(lotacao).toHaveTextContent('2º GB / 2ª SB'));
   });
 
   it('6.24: militar sem nenhum período, com a unidade da tela sendo o CBMPE (não é seção): o formulário pede a escolha da seção, para o administrador dar a primeira lotação', async () => {
     // o administrador trabalha na raiz: a unidade da tela é o CBMPE
-    const ADMIN = { ...EU_EXEMPLO, papeis: [{ papel: 'administrador' as const, unidadeId: 'u-raiz', unidadeSigla: 'CBMPE' }], unidades: [{ id: 'u-raiz', sigla: 'CBMPE', caminho: ['CBMPE'], nivel: 0, tipo: 'raiz' }] };
+    const ADMIN = { ...EU_EXEMPLO, papeis: [{ papel: 'administrador' as const, unidadeId: 'u-raiz', unidadeSigla: 'CBMPE' }], unidades: [{ id: 'u-raiz', sigla: 'CBMPE', caminho: ['CBMPE'], nivel: 0, tipo: 'raiz', maeId: null }] };
     const f = api({
       '/api/eu': { status: 200, corpo: ADMIN },
       'GET /api/unidades/u-raiz/equipes': { status: 200, corpo: [] },
       'GET /api/militares/m1': { status: 200, corpo: { ...FICHA, rastreio: [], podeEditar: { peculio: true, escala: true, unidadeDeCima: null } } },
       'GET /api/situacoes-do-militar': { status: 200, corpo: SITUACOES },
       'GET /api/unidades-de-lotacao': { status: 200, corpo: SECOES },
+      ...ARVORE,
       'POST /api/militares/m1/situacao': { status: 201, corpo: FICHA },
     });
     abrir('/militares/m1');
@@ -1430,12 +1441,10 @@ describe('mover pela hierarquia e quem moveu (6.23)', () => {
     await userEvent.click(await screen.findByRole('button', { name: 'Alterar situação' }));
     const caixa = within(await screen.findByRole('dialog'));
     const lotacao = caixa.getByLabelText('Lotação');
-    await within(lotacao).findByRole('option', { name: '1ª SB' });
     // a unidade da tela (CBMPE) não é seção e o militar não tem lotação: a pessoa escolhe (nenhuma seção vem escolhida por acaso), e o Salvar espera a escolha
-    expect(lotacao).toHaveValue('');
-    expect(within(lotacao).getAllByRole('option')[0]).toHaveTextContent('Escolha a unidade');
+    expect(lotacao).toHaveTextContent('Escolha a unidade');
     expect(caixa.getByRole('button', { name: 'Salvar' })).toBeDisabled();
-    await userEvent.selectOptions(lotacao, 'u-2sb');
+    await escolherNaArvore(lotacao, '2ª SB, em 2º GB');
     expect(caixa.getByRole('button', { name: 'Salvar' })).toBeEnabled();
     await userEvent.click(caixa.getByRole('button', { name: 'Salvar' }));
     await waitFor(() => expect(corpoEnviado(f, 'POST /api/militares/m1/situacao')).toMatchObject({ unidadeId: 'u-2sb' }));

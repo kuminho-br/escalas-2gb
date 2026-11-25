@@ -11,7 +11,8 @@ import { Button } from '@/componentes/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/componentes/ui/dialog';
 import { Input } from '@/componentes/ui/input';
 import { hoje, mesAtual } from '@/lib/meses';
-import { Radio } from '@/componentes/ui/radio';
+import { PainelDaArvore } from '@/componentes/EscolherUnidade';
+import { montarArvore } from '@/lib/arvore-de-unidades';
 
 /** A janela de uma ação sobre uma unidade: some quando a ação grava, e quem a abriu atualiza a árvore. */
 type Comum = { no: NoDaArvore; aoFechar: () => void };
@@ -146,9 +147,9 @@ function Lista({ titulo, itens }: { titulo: string; itens: string[] }) {
   );
 }
 
-/** As unidades de uma árvore, em linha, com o recuo: o destino de um "mover". */
-function achatar(no: NoDaArvore, profundidade = 0): { no: NoDaArvore; profundidade: number }[] {
-  return [{ no, profundidade }, ...no.filhas.flatMap((f) => achatar(f, profundidade + 1))];
+/** As unidades de uma árvore, em linha, cada uma com a unidade de cima: de onde sai a árvore de destino de um "mover". */
+function achatar(no: NoDaArvore, maeId: string | null = null): { no: NoDaArvore; maeId: string | null }[] {
+  return [{ no, maeId }, ...no.filhas.flatMap((f) => achatar(f, no.id))];
 }
 const dentroDe = (no: NoDaArvore): Set<string> => new Set(achatar(no).map((x) => x.no.id));
 
@@ -162,7 +163,9 @@ export function MoverUnidade({ no, arvore, aoFechar }: Comum & { arvore: NoDaArv
   const { salvando, travar } = useTrava();
   const [destino, setDestino] = useState('');
   const proprias = dentroDe(no);
-  const opcoes = achatar(arvore).filter((x) => x.no.podeEditar && !proprias.has(x.no.id));
+  // os destinos são as unidades que a pessoa edita, fora a própria unidade e as de baixo; o resto da árvore só dá lugar a elas (passagem)
+  const foraDaPropria = achatar(arvore).filter((x) => !proprias.has(x.no.id)).map((x) => ({ id: x.no.id, sigla: x.no.sigla, maeId: x.maeId, podeEditar: x.no.podeEditar }));
+  const destinos = montarArvore(foraDaPropria.filter((x) => x.podeEditar), foraDaPropria);
   const efeito = useQuery({ ...consultaEfeitoDeMover(no.id, destino), enabled: destino !== '' });
   const mover = travar(async () => {
     limpar();
@@ -178,18 +181,13 @@ export function MoverUnidade({ no, arvore, aoFechar }: Comum & { arvore: NoDaArv
   return (
     <Janela titulo={`Mover ${no.sigla} para…`} descricao="Escolha a unidade de cima nova. A mudança vale na hora para quem tem nível de acesso nelas." aoFechar={aoFechar}>
       <form onSubmit={(ev: FormEvent) => { ev.preventDefault(); void mover(); }} className="grid gap-3">
-        <fieldset className="grid gap-0.5">
-          <legend className="mb-1 text-sm font-medium">Unidade de cima</legend>
-          <div className="max-h-60 overflow-y-auto rounded-md border border-linha p-1">
-            {opcoes.map(({ no: o, profundidade }) => (
-              <label key={o.id} className="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-sm hover:bg-fundo/70" style={{ paddingLeft: `${0.5 + profundidade * 1}rem` }}>
-                <Radio name="destino" value={o.id} checked={destino === o.id} onChange={() => setDestino(o.id)} />
-                <span className="font-cond font-semibold">{o.sigla}</span>
-                <span className="min-w-0 truncate text-apagado">{o.nome}</span>
-              </label>
-            ))}
+        {/* pela árvore, nó a nó (6.45): a unidade que a pessoa não edita mas fica no caminho entra de passagem, e cada destino aparece no lugar dele */}
+        <div className="grid gap-1">
+          <p className="text-sm font-medium">Unidade de cima</p>
+          <div className="max-h-72 overflow-hidden rounded-md border border-linha">
+            <PainelDaArvore valor={destino} grupos={[{ rotulo: 'Unidade de cima', nos: destinos, aoEscolher: setDestino }]} />
           </div>
-        </fieldset>
+        </div>
         {destino !== '' && efeito.isPending && <p className="text-sm text-apagado">Calculando o que muda…</p>}
         {efeito.error && <p role="alert" className="text-sm text-alerta">{mensagemDe(efeito.error)}</p>}
         {e && (

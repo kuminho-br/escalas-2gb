@@ -146,14 +146,14 @@ describe('mover a lotação pela hierarquia (6.23)', () => {
 });
 
 describe('a lista de destinos (6.23)', () => {
-  it('traz todas as unidades abaixo das unidades em que a pessoa tem nível, de qualquer grupamento, com o grupamento quando a sigla se repete', async () => {
+  it('traz todas as unidades abaixo das unidades em que a pessoa tem nível, de qualquer grupamento; a sigla que se repete vem como é, cada uma com a sua unidade de cima (6.45)', async () => {
     const quem = await ator('gestor', api.ids.raiz);
-    const lista: { id: string; sigla: string }[] = await (await quem.pedir('GET', '/api/unidades-de-lotacao')).json();
+    const lista: { id: string; sigla: string; maeId: string | null }[] = await (await quem.pedir('GET', '/api/unidades-de-lotacao')).json();
+    expect(new Set(lista.filter((s) => s.sigla === '2ª SB').map((s) => s.maeId)).size).toBe(2);
     const siglas = lista.map((s) => s.sigla);
     expect(lista.map((s) => s.id)).toEqual(expect.arrayContaining([u.sb2, u.sbDoOutroGb, u.naDA, u.naDivOp, u.secaoSemDivisao]));
-    expect(siglas).toContain('2ª SB (2º GB)');
-    expect(siglas).toContain('2ª SB (1º GB)');
-    // as que não se repetem ficam só com a sigla
+    expect(siglas.filter((s) => s === '2ª SB')).toHaveLength(2);
+    expect(siglas.some((s) => s.includes('('))).toBe(false);
     expect(siglas).toContain('SB-DA-1');
   });
 

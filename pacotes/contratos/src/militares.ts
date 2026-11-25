@@ -178,7 +178,8 @@ export type NovoPosto = z.infer<typeof NovoPosto>;
 /** QOC, QOA ou QBMG, com os postos-graduações que pertencem a ele (o mesmo posto pode estar em mais de um quadro). */
 export type Quadro = { id: string; sigla: string; nome: string; postoGradIds: string[]; /** Quem está nele tem a camada de visão do oficial (QOC e QOA nascem marcados). */ oficial: boolean };
 /** Unidade, de qualquer tipo, em que o usuário pode lotar um militar (as que ele pode cadastrar). */
-export type UnidadeDeLotacao = { id: string; sigla: string; nome: string };
+/** A sigla vem como é (sem a unidade de cima entre parênteses): quem escolhe vê a árvore, montada com `maeId` (6.45). */
+export type UnidadeDeLotacao = { id: string; sigla: string; nome: string; maeId: string | null };
 export type Equipe = { id: string; nome: string; ordemCiclo: number };
 
 export type LinhaMilitar = {
@@ -212,6 +213,8 @@ export type ItemDoPeculio = {
   nomeCompleto: string | null;
   /** a sigla da unidade em que ele está lotado no mês */
   lotacao: string;
+  /** o id dessa unidade: o filtro pela árvore pega a unidade escolhida e as de baixo (6.45) */
+  lotacaoId: string;
   telefone: string | null;
   email: string | null;
   pendencias: string[];

@@ -393,21 +393,19 @@ export function rotasMilitares(dep: { banco: Banco; auth: Auth }): Hono<Ambiente
 
   r.get('/quadros', async (c) => c.json(await lerQuadros(dep.banco)));
 
-  // as unidades em que a pessoa pode lotar um militar, de qualquer tipo: as que ela pode cadastrar (o administrador, todas). A sigla que se repete
-  // (a "1ª SB" de cada grupamento) leva a unidade de cima: "1ª SB (2º GB)"
+  // as unidades em que a pessoa pode lotar um militar, de qualquer tipo: as que ela pode cadastrar (o administrador, todas). Cada uma com a unidade de
+  // cima (`maeId`): o site mostra a árvore, e a sigla que se repete (a "1ª SB" de cada grupamento) fica no lugar dela, sem sufixo (6.45)
   r.get('/unidades-de-lotacao', async (c) => {
     const negado = await exigirAlgumPapel(c);
     if (negado) return negado;
     const hoje = hojeRecife();
-    const { rows } = await dep.banco.query<UnidadeDeLotacao & { cima: string | null }>(
-      `select u.id, u.sigla, u.nome, (select m.sigla from unidade m where m.id = u.mae_id) as cima
-         from unidade u where (u.ate is null or u.ate >= $1::date) order by u.sigla, u.caminho`,
+    const { rows } = await dep.banco.query<UnidadeDeLotacao>(
+      `select u.id, u.sigla, u.nome, u.mae_id as "maeId" from unidade u where (u.ate is null or u.ate >= $1::date) order by u.sigla, u.caminho`,
       [hoje],
     );
-    const permitidas: (UnidadeDeLotacao & { cima: string | null })[] = [];
+    const permitidas: UnidadeDeLotacao[] = [];
     for (const u of rows) if (await temPapel(dep.banco, c.get('usuarioId'), u.id, CADASTRO, hoje)) permitidas.push(u);
-    const repetidas = new Set(permitidas.map((u) => u.sigla.toLowerCase()).filter((sigla, i, todas) => todas.indexOf(sigla) !== i));
-    return c.json(permitidas.map(({ cima, ...u }): UnidadeDeLotacao => (repetidas.has(u.sigla.toLowerCase()) && cima ? { ...u, sigla: `${u.sigla} (${cima})` } : u)));
+    return c.json(permitidas);
   });
 
   r.get('/unidades/:u/equipes', async (c) => {
@@ -505,6 +503,7 @@ export function rotasMilitares(dep: { banco: Banco; auth: Auth }): Hono<Ambiente
         nomeGuerra: m.nome_guerra,
         nomeCompleto: m.nome_completo,
         lotacao: m.lotacao,
+        lotacaoId: m.lotacao_id,
         telefone: m.telefone,
         email: m.email,
         ...aPartirDe(m, mes),

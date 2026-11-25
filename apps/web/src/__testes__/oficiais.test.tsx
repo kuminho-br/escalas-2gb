@@ -7,7 +7,7 @@ import { guardarUnidade } from '@/lib/unidade-de-trabalho';
 import { abrir, chamadasA, corpoEnviado, EU_EXEMPLO, responderConfirmacao, simularApi, trava } from './apoio';
 
 // Dados fictícios (D7): o 2º GB, oficiais 990xxx-x.
-const UNIDADE = { id: 'u-gb', sigla: '2º GB', caminho: ['CBMPE', 'DGO', 'DInter/1', '2º GB'], nivel: 3, tipo: 'grupamento' };
+const UNIDADE = { id: 'u-gb', sigla: '2º GB', caminho: ['CBMPE', 'DGO', 'DInter/1', '2º GB'], nivel: 3, tipo: 'grupamento', maeId: null };
 const comPapel = (papel: 'administrador' | 'gestor' | 'escalante'): EuDaApi => ({
   ...EU_EXEMPLO,
   papeis: [{ papel, unidadeId: 'u-gb', unidadeSigla: '2º GB' }],
@@ -60,8 +60,8 @@ describe('o item Oficiais e a rota', () => {
   });
 
   it('item 20 (6.18): o gestor de outra seção, que não alcança a unidade escolhida, também volta ao início com o aviso', async () => {
-    const outraSecao = { id: 'u-2sb', sigla: '2ª SB', caminho: ['CBMPE', 'DGO', 'DInter/1', '2º GB', '2ª SB'], nivel: 4, tipo: 'secao' };
-    const naPrimeira = { id: 'u-1sb', sigla: '1ª SB', caminho: ['CBMPE', 'DGO', 'DInter/1', '2º GB', '1ª SB'], nivel: 4, tipo: 'secao' };
+    const outraSecao = { id: 'u-2sb', sigla: '2ª SB', caminho: ['CBMPE', 'DGO', 'DInter/1', '2º GB', '2ª SB'], nivel: 4, tipo: 'secao', maeId: null };
+    const naPrimeira = { id: 'u-1sb', sigla: '1ª SB', caminho: ['CBMPE', 'DGO', 'DInter/1', '2º GB', '1ª SB'], nivel: 4, tipo: 'secao', maeId: null };
     // o nível é só na 2ª SB, e a pessoa trabalha na 1ª SB (a unidade guardada na aba)
     guardarUnidade('u-1sb');
     simularApi(rotas({ ...EU_EXEMPLO, papeis: [{ papel: 'gestor', unidadeId: 'u-2sb', unidadeSigla: '2ª SB' }], unidades: [naPrimeira, outraSecao] }));

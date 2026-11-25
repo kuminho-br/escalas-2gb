@@ -27,7 +27,7 @@ export function palavrasDaBusca(texto: string): string[] {
 /** A árvore da corporação, para a pessoa escolher a unidade da busca: as vigentes, na ordem da árvore. */
 export async function unidadesDaConsulta(c: Consulta, hoje: string): Promise<UnidadeDaConsulta[]> {
   const { rows } = await c.query<LinhaDaUnidade>(`${COM_CAMINHO} where u.ate is null or u.ate >= $1::date`, [hoje]);
-  return rows.map(paraUnidade).sort(porCaminho).map((u) => ({ id: u.id, sigla: u.sigla, nivel: u.nivel }));
+  return rows.map(paraUnidade).sort(porCaminho).map((u) => ({ id: u.id, sigla: u.sigla, nivel: u.nivel, maeId: u.maeId }));
 }
 
 type LinhaBanco = { id: string; posto: string; nome_guerra: string; nome_completo: string | null; matricula: string; lotacao: string | null; quadro: string | null; da_unidade?: boolean | null };

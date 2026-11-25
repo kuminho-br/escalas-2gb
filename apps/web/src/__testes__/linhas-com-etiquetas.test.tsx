@@ -8,8 +8,8 @@ import { abrir, EU_EXEMPLO, simularApi } from './apoio';
 const EMAIL_LONGO = 'maria.de.souza.lima.da.silva@bombeiros.pe.gov.br';
 const PECULIO: ListaDoPeculio = {
   militares: [
-    { militarId: 'm1', matricula: '990001-1', posto: 'SD', nomeGuerra: 'ANDRADE', nomeCompleto: 'João da Silva Andrade', lotacao: '1ª SB', telefone: '(81) 99999-0001', email: EMAIL_LONGO, pendencias: [] },
-    { militarId: 'm2', matricula: '990002-2', posto: 'CB', nomeGuerra: 'BARRETO', nomeCompleto: 'Maria Barreto', lotacao: '1ª SB', telefone: null, email: null, pendencias: ['Sem telefone'] },
+    { militarId: 'm1', matricula: '990001-1', posto: 'SD', nomeGuerra: 'ANDRADE', nomeCompleto: 'João da Silva Andrade', lotacao: '1ª SB', lotacaoId: 'u-1sb', telefone: '(81) 99999-0001', email: EMAIL_LONGO, pendencias: [] },
+    { militarId: 'm2', matricula: '990002-2', posto: 'CB', nomeGuerra: 'BARRETO', nomeCompleto: 'Maria Barreto', lotacao: '1ª SB', lotacaoId: 'u-1sb', telefone: null, email: null, pendencias: ['Sem telefone'] },
   ],
 };
 const MILITARES: LinhaMilitar[] = [

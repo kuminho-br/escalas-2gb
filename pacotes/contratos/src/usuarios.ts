@@ -41,7 +41,7 @@ export type AcessoDoMilitar = {
    * `tipo` é só o nome do tipo da unidade. `maeSigla` é a sigla da unidade de cima (as siglas se repetem entre unidades de cima diferentes).
    * `aceitaLateral`: quem olha pode dar o quinto nível (`gestor_lateral`) nesta unidade (não é a raiz e, fora o administrador, ele é gestor de uma unidade acima).
    */
-  unidadesParaPapel: { id: string; sigla: string; nivel: number; tipo: string; maeSigla: string | null; aceitaLateral: boolean }[];
+  unidadesParaPapel: { id: string; sigla: string; nivel: number; tipo: string; maeId: string | null; maeSigla: string | null; aceitaLateral: boolean }[];
 };
 
 /** A senha provisória, que aparece uma vez, e até quando vale (instante ISO). */
@@ -57,7 +57,8 @@ export type EncerrarPapel = z.infer<typeof EncerrarPapel>;
 
 /** Uma unidade em que a pessoa trabalha: as siglas desde a raiz e o nível (0 = raiz). */
 /** `tipo` é o tipo da unidade (`grupamento`, `divisao`, `secao`…). */
-export type UnidadeDeTrabalho = { id: string; sigla: string; caminho: string[]; nivel: number; tipo: string };
+/** `maeId` é a unidade de cima (null na raiz): com ela o site monta a árvore para a pessoa escolher nó a nó (6.45). */
+export type UnidadeDeTrabalho = { id: string; sigla: string; caminho: string[]; nivel: number; tipo: string; maeId: string | null };
 
 /** Só o telefone se altera na Minha ficha; qualquer outro campo no corpo é recusado. */
 export const NovoTelefone = z.object({ telefone: Telefone.nullable() }).strict();

@@ -4,8 +4,10 @@ import type { AcessoDoMilitar, FichaMilitar, Papel, SituacaoDoAcesso } from 'con
 import { useState } from 'react';
 import { atualizarAcesso, consultaAcesso, darPapel, desativarAcesso, encerrarPapel, gerarSenhaProvisoria } from '@/api/acesso';
 import { camposDe, mensagemDe } from '@/api/cliente';
+import { consultaUnidadesDaBusca } from '@/api/consulta';
 import { consultaEu } from '@/api/eu';
 import { Campo } from '@/componentes/Campo';
+import { EscolherUnidade } from '@/componentes/EscolherUnidade';
 import { Selecao } from '@/componentes/Selecao';
 import { Button } from '@/componentes/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/componentes/ui/dialog';
@@ -206,6 +208,8 @@ function DarPapel({ acesso, erros, aberto, desligado, aoAbrir, aoFechar, aoDar }
 }) {
   const [papel, setPapel] = useState<Papel>(acesso.papeisQuePodeDar[0]!);
   const [unidadeId, setUnidadeId] = useState('');
+  // a árvore da corporação dá lugar às unidades que a pessoa pode dar (as de cima entram como passagem)
+  const arvore = useQuery(consultaUnidadesDaBusca).data;
   const [desde, setDesde] = useState(hoje());
   const [ate, setAte] = useState('');
   // cada vez que o formulário abre, os campos voltam ao começo (o "Até" do anterior não pode ir junto sem a pessoa ver)
@@ -217,10 +221,9 @@ function DarPapel({ acesso, erros, aberto, desligado, aoAbrir, aoFechar, aoDar }
     aoAbrir();
   };
   if (!aberto) return <div><Button type="button" variant="secundario" size="sm" disabled={desligado} onClick={abrir}>Dar nível de acesso</Button></div>;
-  // o quinto nível vale em qualquer unidade menos a raiz, e só onde quem dá está acima (a API diz em `aceitaLateral`). A sigla que se repete
-  // (a "1ª SB" de cada grupamento, sem o recuo da árvore) leva a unidade de cima: "1ª SB (2º GB)"
+  // o quinto nível vale em qualquer unidade menos a raiz, e só onde quem dá está acima (a API diz em `aceitaLateral`). A escolha é pela árvore (6.45):
+  // a unidade que não aceita o nível escolhido fica de passagem (apagada), dando lugar às de baixo, e a sigla que se repete fica no lugar dela
   const unidades = papel === 'gestor_lateral' ? acesso.unidadesParaPapel.filter((u) => u.aceitaLateral) : acesso.unidadesParaPapel;
-  const menor = Math.min(...unidades.map((u) => u.nivel));
   // a unidade escolhida só vale se continua na lista (uma unidade não vai junto quando o nível passa a ser o do quinto nível)
   const unidade = unidades.find((u) => u.id === unidadeId)?.id ?? unidades[0]?.id ?? '';
   return (
@@ -234,9 +237,7 @@ function DarPapel({ acesso, erros, aberto, desligado, aoAbrir, aoFechar, aoDar }
         </Selecao>
       </Campo>
       <Campo id="np-unidade" rotulo="Unidade" erro={erros.unidadeId}>
-        <Selecao id="np-unidade" value={unidade} onChange={(e) => setUnidadeId(e.target.value)}>
-          {unidades.map((u) => <option key={u.id} value={u.id}>{`${'  '.repeat(u.nivel - menor)}${u.sigla}${u.maeSigla && unidades.some((o) => o.id !== u.id && o.sigla === u.sigla) ? ` (${u.maeSigla})` : ''}`}</option>)}
-        </Selecao>
+        <EscolherUnidade id="np-unidade" rotulo="Unidade" unidades={unidades} todas={[...(arvore ?? []), ...acesso.unidadesParaPapel]} valor={unidade} aoEscolher={setUnidadeId} />
       </Campo>
       <Campo id="np-desde" rotulo="A partir de" erro={erros.desde}>
         <Input id="np-desde" type="date" value={desde} onChange={(e) => setDesde(e.target.value)} />

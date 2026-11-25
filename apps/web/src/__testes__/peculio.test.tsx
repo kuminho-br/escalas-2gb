@@ -5,20 +5,20 @@ import { describe, expect, it } from 'vitest';
 import type { Eu, EuDaApi } from '@/api/eu';
 import { podeCadastrarMilitar, secoesDoCadastro, unidadeDoPeculio } from '@/api/peculio';
 import { hoje, mesAtual } from '@/lib/meses';
-import { abrir, chamadasA, corpoEnviado, EU_EXEMPLO, simularApi } from './apoio';
+import { abrir, chamadasA, corpoEnviado, escolherNaArvore, EU_EXEMPLO, nosDaArvore, simularApi } from './apoio';
 
 const MES = mesAtual();
 const comUnidade = (e: EuDaApi): Eu => ({ ...e, unidade: e.unidades[0]!, soConsulta: false });
 const GESTOR_GB: EuDaApi = {
   ...EU_EXEMPLO,
   papeis: [{ papel: 'gestor', unidadeId: 'u-gb', unidadeSigla: '2º GB' }, { papel: 'escalante', unidadeId: 'u-1sb', unidadeSigla: '1ª SB' }],
-  unidades: [{ id: 'u-gb', sigla: '2º GB', caminho: ['CBMPE', 'DGO', 'DInter/1', '2º GB'], nivel: 3, tipo: 'grupamento' }, ...EU_EXEMPLO.unidades],
+  unidades: [{ id: 'u-gb', sigla: '2º GB', caminho: ['CBMPE', 'DGO', 'DInter/1', '2º GB'], nivel: 3, tipo: 'grupamento', maeId: null }, ...EU_EXEMPLO.unidades],
 };
 const LISTA: ListaDoPeculio = {
   militares: [
-    { militarId: 'm1', matricula: '990001-1', posto: 'SD', nomeGuerra: 'ANDRADE', nomeCompleto: 'João da Silva Andrade', lotacao: '1ª SB', telefone: '(81) 99999-0001', email: 'andrade@bombeiros.pe.gov.br', pendencias: [] },
-    { militarId: 'm2', matricula: '990002-2', posto: 'CB', nomeGuerra: 'BARRETO', nomeCompleto: null, lotacao: '2ª SB', telefone: null, email: null, pendencias: ['Nome completo em falta'] },
-    { militarId: 'm3', matricula: '990003-3', posto: 'SD', nomeGuerra: 'CÁBRAL', nomeCompleto: 'Carlos Cabral Neto', lotacao: '1ª SB', telefone: null, email: null, pendencias: [] },
+    { militarId: 'm1', matricula: '990001-1', posto: 'SD', nomeGuerra: 'ANDRADE', nomeCompleto: 'João da Silva Andrade', lotacao: '1ª SB', lotacaoId: 'u-1sb', telefone: '(81) 99999-0001', email: 'andrade@bombeiros.pe.gov.br', pendencias: [] },
+    { militarId: 'm2', matricula: '990002-2', posto: 'CB', nomeGuerra: 'BARRETO', nomeCompleto: null, lotacao: '2ª SB', lotacaoId: 'u-2sb', telefone: null, email: null, pendencias: ['Nome completo em falta'] },
+    { militarId: 'm3', matricula: '990003-3', posto: 'SD', nomeGuerra: 'CÁBRAL', nomeCompleto: 'Carlos Cabral Neto', lotacao: '1ª SB', lotacaoId: 'u-1sb', telefone: null, email: null, pendencias: [] },
   ],
   aniversariantes: [
     { militarId: 'm2', posto: 'CB', nomeGuerra: 'BARRETO', dia: 5, lotacao: '2ª SB' },
@@ -88,11 +88,60 @@ describe('módulo Pecúlio', () => {
     expect(lista.getByText('BARRETO')).toBeInTheDocument();
     expect(lista.queryByText('CÁBRAL')).toBeNull();
     await userEvent.clear(screen.getByLabelText('Buscar por nome ou matrícula'));
-    // o filtro traz as lotações que aparecem na lista
-    await userEvent.selectOptions(screen.getByLabelText('Lotação'), '2ª SB');
+    // o filtro é pela árvore (6.45): a lotação que a pessoa não tem na árvore dela (a 2ª SB) entra pela lista, e nunca some
+    await escolherNaArvore(screen.getByLabelText('Lotação'), '2ª SB, em 2º GB');
     expect(lista.getByText('BARRETO')).toBeInTheDocument();
     expect(lista.queryByText('ANDRADE')).toBeNull();
     expect(screen.getByText('1 de 3 militares')).toBeInTheDocument();
+  });
+
+  it('6.45: o filtro "Lotação" é a árvore, nó a nó: escolher um nó filtra por ele e pelos de baixo, e "Limpar" volta a "Todas"; nenhuma lista plana', async () => {
+    const comArvore: EuDaApi = {
+      ...GESTOR_GB,
+      unidades: [
+        { id: 'u-gb', sigla: '2º GB', caminho: ['CBMPE', 'DGO', 'DInter/1', '2º GB'], nivel: 3, tipo: 'grupamento', maeId: 'u-di' },
+        { id: 'u-divop', sigla: 'DivOp', caminho: ['CBMPE', 'DGO', 'DInter/1', '2º GB', 'DivOp'], nivel: 4, tipo: 'divisao', maeId: 'u-gb' },
+        { id: 'u-1sb', sigla: '1ª SB', caminho: ['CBMPE', 'DGO', 'DInter/1', '2º GB', 'DivOp', '1ª SB'], nivel: 5, tipo: 'secao', maeId: 'u-divop' },
+        { id: 'u-2sb', sigla: '2ª SB', caminho: ['CBMPE', 'DGO', 'DInter/1', '2º GB', '2ª SB'], nivel: 4, tipo: 'secao', maeId: 'u-gb' },
+      ],
+    };
+    api(comArvore);
+    abrir('/peculio');
+    const lista = await militares();
+    const filtro = screen.getByLabelText('Lotação');
+    expect(filtro.tagName).not.toBe('SELECT');
+    expect(filtro).toHaveTextContent('Todas');
+    await userEvent.click(filtro);
+    await screen.findByRole('tree', { name: 'Lotação' });
+    // nó a nó: o grupamento e o primeiro nível; a 1ª SB (dentro da DivOp) só aparece ao abrir a divisão
+    expect(nosDaArvore()).toEqual(['2º GB', '2ª SB, em 2º GB', 'DivOp, em 2º GB']);
+    await userEvent.click(screen.getByRole('button', { name: 'Abrir DivOp' }));
+    expect(nosDaArvore()).toEqual(['2º GB', '2ª SB, em 2º GB', 'DivOp, em 2º GB', '1ª SB, em DivOp']);
+    // a divisão pega a seção de baixo: ANDRADE e CÁBRAL são da 1ª SB
+    await userEvent.click(screen.getByRole('treeitem', { name: 'DivOp, em 2º GB' }));
+    expect(screen.getByText('2 de 3 militares')).toBeInTheDocument();
+    expect(lista.queryByText('BARRETO')).toBeNull();
+    expect(screen.getByLabelText('Lotação')).toHaveTextContent('2º GB / DivOp');
+    // o grupamento pega tudo
+    await escolherNaArvore(screen.getByLabelText('Lotação'), '2º GB');
+    expect(screen.getByText('3 de 3 militares')).toBeInTheDocument();
+    await escolherNaArvore(screen.getByLabelText('Lotação'), '2ª SB, em 2º GB');
+    expect(screen.getByText('1 de 3 militares')).toBeInTheDocument();
+    await userEvent.click(screen.getByLabelText('Lotação'));
+    await userEvent.click(await screen.findByRole('button', { name: 'Limpar' }));
+    expect(screen.getByText('3 de 3 militares')).toBeInTheDocument();
+    expect(screen.getByLabelText('Lotação')).toHaveTextContent('Todas');
+  });
+
+  it('6.45: a lotação que não está na árvore da pessoa (uma unidade encerrada, por exemplo) fica debaixo da unidade do Pecúlio: filtrar por ela não esconde ninguém', async () => {
+    const comAntiga: ListaDoPeculio = { ...LISTA, militares: [...LISTA.militares, { ...LISTA.militares[0]!, militarId: 'm4', matricula: '990004-4', nomeGuerra: 'DUARTE', lotacao: 'SB-ANTIGA', lotacaoId: 'u-antiga' }] };
+    api(GESTOR_GB, comAntiga);
+    abrir('/peculio');
+    await militares();
+    expect(screen.getByText('4 de 4 militares')).toBeInTheDocument();
+    await userEvent.click(screen.getByLabelText('Lotação'));
+    await userEvent.click(await screen.findByRole('treeitem', { name: 'SB-ANTIGA, em 2º GB' }));
+    expect(screen.getByText('1 de 4 militares')).toBeInTheDocument();
   });
 
   it('clicar no militar abre a ficha dele (a mesma ficha)', async () => {
@@ -269,12 +318,12 @@ describe('Enter na busca do Pecúlio', () => {
 });
 
 describe('quem cadastra militar: nível de acesso numa unidade acima da seção', () => {
-  const DI = { id: 'u-di', sigla: 'DInter/1', caminho: ['CBMPE', 'DGO', 'DInter/1'], nivel: 2, tipo: 'diretoria_integrada' };
+  const DI = { id: 'u-di', sigla: 'DInter/1', caminho: ['CBMPE', 'DGO', 'DInter/1'], nivel: 2, tipo: 'diretoria_integrada', maeId: null };
   it('o auxiliar só da seção não pode, esteja a seção no nível que estiver da árvore', () => {
     const daSecao = (nivel: number): EuDaApi => ({
       ...EU_EXEMPLO,
       papeis: [{ papel: 'escalante', unidadeId: 'u-sec', unidadeSigla: 'SEC-X' }],
-      unidades: [{ id: 'u-sec', sigla: 'SEC-X', caminho: ['CBMPE', 'DGO', 'DInter/1', 'SEC-X'].slice(0, nivel + 1), nivel, tipo: 'secao' }],
+      unidades: [{ id: 'u-sec', sigla: 'SEC-X', caminho: ['CBMPE', 'DGO', 'DInter/1', 'SEC-X'].slice(0, nivel + 1), nivel, tipo: 'secao', maeId: null }],
     });
     expect(podeCadastrarMilitar(daSecao(3))).toBe(false);
     expect(podeCadastrarMilitar(daSecao(4))).toBe(false);
@@ -284,14 +333,14 @@ describe('quem cadastra militar: nível de acesso numa unidade acima da seção'
     const gestorDaDiretoria: EuDaApi = {
       ...EU_EXEMPLO,
       papeis: [{ papel: 'gestor', unidadeId: 'u-di', unidadeSigla: 'DInter/1' }],
-      unidades: [DI, { id: 'u-sec', sigla: 'SEC-X', caminho: ['CBMPE', 'DGO', 'DInter/1', 'SEC-X'], nivel: 3, tipo: 'grupamento' }],
+      unidades: [DI, { id: 'u-sec', sigla: 'SEC-X', caminho: ['CBMPE', 'DGO', 'DInter/1', 'SEC-X'], nivel: 3, tipo: 'grupamento', maeId: null }],
     };
     expect(podeCadastrarMilitar(gestorDaDiretoria)).toBe(true);
     expect(podeCadastrarMilitar(GESTOR_GB)).toBe(true);
   });
 
   it('6.31: quem tem nível de acesso na raiz (que não tem unidade de cima) também cadastra na própria raiz; fora da raiz, a própria unidade do nível continua de fora', () => {
-    const RAIZ = { id: 'u-raiz', sigla: 'CBMPE', caminho: ['CBMPE'], nivel: 0, tipo: 'corporacao' };
+    const RAIZ = { id: 'u-raiz', sigla: 'CBMPE', caminho: ['CBMPE'], nivel: 0, tipo: 'corporacao', maeId: null };
     const adminDaRaiz: EuDaApi = { ...EU_EXEMPLO, papeis: [{ papel: 'administrador', unidadeId: 'u-raiz', unidadeSigla: 'CBMPE' }], unidades: [RAIZ] };
     expect(podeCadastrarMilitar(adminDaRaiz)).toBe(true);
     expect(secoesDoCadastro(adminDaRaiz, [{ id: 'u-raiz', sigla: 'CBMPE', nome: '' }]).map((x) => x.sigla)).toEqual(['CBMPE']);
@@ -301,7 +350,7 @@ describe('quem cadastra militar: nível de acesso numa unidade acima da seção'
 
   it('as seções do diálogo são só as que estão abaixo de um nível de acesso da pessoa', () => {
     const eu: EuDaApi = { ...GESTOR_GB, papeis: [{ papel: 'gestor', unidadeId: 'u-gb', unidadeSigla: '2º GB' }, { papel: 'escalante', unidadeId: 'u-outra', unidadeSigla: '9ª SB' }],
-      unidades: [GESTOR_GB.unidades[0]!, { id: 'u-1sb', sigla: '1ª SB', caminho: ['CBMPE', 'DGO', 'DInter/1', '2º GB', '1ª SB'], nivel: 4, tipo: 'secao' }, { id: 'u-outra', sigla: '9ª SB', caminho: ['CBMPE', 'DGO', 'DInter/9', '9º GB', '9ª SB'], nivel: 4, tipo: 'secao' }] };
+      unidades: [GESTOR_GB.unidades[0]!, { id: 'u-1sb', sigla: '1ª SB', caminho: ['CBMPE', 'DGO', 'DInter/1', '2º GB', '1ª SB'], nivel: 4, tipo: 'secao', maeId: null }, { id: 'u-outra', sigla: '9ª SB', caminho: ['CBMPE', 'DGO', 'DInter/9', '9º GB', '9ª SB'], nivel: 4, tipo: 'secao', maeId: null }] };
     const secoes = [{ id: 'u-1sb', sigla: '1ª SB', nome: '' }, { id: 'u-outra', sigla: '9ª SB', nome: '' }, { id: 'u-x', sigla: 'X', nome: '' }];
     expect(secoesDoCadastro(eu, secoes).map((x) => x.sigla)).toEqual(['1ª SB']);
   });
@@ -317,7 +366,7 @@ describe('o Novo militar, no Pecúlio', () => {
   const SECOES = [{ id: 'u-1sb', sigla: '1ª SB', nome: '1ª Seção de Bombeiros' }, { id: 'u-2sb', sigla: '2ª SB', nome: '2ª Seção de Bombeiros' }];
   const FICHA_CRIADA = { id: 'm9' };
   // o gestor do 2º GB alcança as duas seções (a lista de unidades dele traz a árvore de baixo)
-  const GB_COM_SECOES: EuDaApi = { ...GESTOR_GB, unidades: [...GESTOR_GB.unidades, { id: 'u-2sb', sigla: '2ª SB', caminho: ['CBMPE', 'DGO', 'DInter/1', '2º GB', '2ª SB'], nivel: 4, tipo: 'secao' }] };
+  const GB_COM_SECOES: EuDaApi = { ...GESTOR_GB, unidades: [...GESTOR_GB.unidades, { id: 'u-2sb', sigla: '2ª SB', caminho: ['CBMPE', 'DGO', 'DInter/1', '2º GB', '2ª SB'], nivel: 4, tipo: 'secao', maeId: null }] };
   const rotas = (extra: Parameters<typeof simularApi>[0] = {}) =>
     api(GB_COM_SECOES, LISTA, { 'GET /api/postos': { status: 200, corpo: POSTOS }, 'GET /api/quadros': { status: 200, corpo: QUADROS }, 'GET /api/unidades-de-lotacao': { status: 200, corpo: SECOES }, ...extra });
   async function abrirODialogo() {
@@ -362,7 +411,10 @@ describe('o Novo militar, no Pecúlio', () => {
     await userEvent.selectOptions(dialogo.getByLabelText('Posto-graduação'), 'CB');
     await userEvent.type(dialogo.getByLabelText('Nome completo'), 'Novo da Silva');
     await userEvent.type(dialogo.getByLabelText('Nome de guerra'), 'novo');
-    await userEvent.selectOptions(dialogo.getByLabelText('Unidade'), '2ª SB');
+    // 6.45: a unidade é escolhida pela árvore, e nenhuma vem escolhida por acaso
+    expect(dialogo.getByLabelText('Unidade')).toHaveTextContent('Escolha a unidade');
+    expect(dialogo.getByRole('button', { name: 'Criar' })).toBeDisabled();
+    await escolherNaArvore(dialogo.getByLabelText('Unidade'), '2ª SB');
     fireEvent.change(dialogo.getByLabelText('Lotado desde'), { target: { value: '2026-12-15' } });
     await userEvent.click(dialogo.getByRole('button', { name: 'Criar' }));
     await waitFor(() =>
@@ -404,6 +456,7 @@ describe('o Novo militar, no Pecúlio', () => {
     await userEvent.type(dialogo.getByLabelText('Matrícula'), '990010-0');
     await userEvent.type(dialogo.getByLabelText('Nome completo'), 'Novo da Silva');
     await userEvent.type(dialogo.getByLabelText('Nome de guerra'), 'NOVO');
+    await escolherNaArvore(dialogo.getByLabelText('Unidade'), '1ª SB');
     await userEvent.click(dialogo.getByRole('button', { name: 'Criar' }));
     const desde = dialogo.getByLabelText('Lotado desde');
     expect(await dialogo.findByText('Use uma data que exista no calendário.')).toBeInTheDocument();
@@ -422,7 +475,7 @@ describe('o Novo militar, no Pecúlio', () => {
 describe('a lista com mais de 100 militares (6.17, item 23)', () => {
   const muitos: ListaDoPeculio = {
     militares: Array.from({ length: 250 }, (_, i) => ({
-      militarId: `m${i}`, matricula: `99${String(1000 + i).padStart(4, '0')}-${i % 10}`, posto: 'SD', nomeGuerra: `NOME${String(i).padStart(3, '0')}`, nomeCompleto: `Fulano ${i}`, lotacao: '1ª SB', telefone: null, email: null, pendencias: [],
+      militarId: `m${i}`, matricula: `99${String(1000 + i).padStart(4, '0')}-${i % 10}`, posto: 'SD', nomeGuerra: `NOME${String(i).padStart(3, '0')}`, nomeCompleto: `Fulano ${i}`, lotacao: '1ª SB', lotacaoId: 'u-1sb', telefone: null, email: null, pendencias: [],
     })),
   };
   const linhas = async () => (await militares()).getAllByRole('listitem');
