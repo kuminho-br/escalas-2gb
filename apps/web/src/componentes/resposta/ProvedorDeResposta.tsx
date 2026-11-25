@@ -1,6 +1,6 @@
 import { CircleAlert, X } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { mensagemDe } from '@/api/cliente';
+import { foiCancelado, mensagemDe } from '@/api/cliente';
 import { Button } from '@/componentes/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/componentes/ui/dialog';
 import { Input } from '@/componentes/ui/input';
@@ -128,7 +128,8 @@ export function ProvedorDeResposta({ children }: { children: ReactNode }) {
     if (!f) return;
     // o desfazer vale uma vez só; se a API o recusa ("A escala mudou desde então…"), o motivo aparece num aviso de erro
     setAviso(null);
-    void f().catch((e: unknown) => avisar({ texto: e instanceof Error ? e.message : mensagemDe(e), erro: true }));
+    // desistir do diálogo do motivo (7.4) não é erro: o aviso já saiu e nada mais aparece
+    void f().catch((e: unknown) => { if (!foiCancelado(e)) avisar({ texto: e instanceof Error ? e.message : mensagemDe(e), erro: true }); });
   }, [aviso, avisar]);
   return (
     <ContextoDeResposta.Provider value={valor}>

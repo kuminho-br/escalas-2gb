@@ -349,6 +349,19 @@ describe('efetivo por dia: a meta do dia pela própria tela', () => {
     expect(within(aviso).getByRole('button', { name: 'Desfazer' })).toBeInTheDocument();
   });
 
+  it('achado da revisão (7.4): cancelar o motivo da desativação num dia que já começou não mostra erro nenhum', async () => {
+    const pedido = { status: 400, corpo: { erro: 'Diga o motivo da alteração (pelo menos 10 letras).', campos: { justificativa: 'Diga o motivo da alteração (pelo menos 10 letras).' } } };
+    const f = api(EFETIVO, EU_EXEMPLO, { ...rotas, [DESATIVAR]: pedido });
+    abrir(`/efetivo-por-dia?data=${DIA}`);
+    await userEvent.click(within(await screen.findByRole('region', { name: '2º Resgate' })).getByRole('button', { name: 'Desativar guarnição' }));
+    const dialogo = await screen.findByRole('dialog', { name: 'Alterar o passado' });
+    await userEvent.click(within(dialogo).getByRole('button', { name: 'Cancelar' }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    expect(screen.queryByText('Algo deu errado. Tente de novo.')).toBeNull();
+    expect(screen.queryByRole('alert')).toBeNull();
+    expect(chamadasA(f, DESATIVAR)).toBe(1);
+  });
+
   it('com gente escalada, pergunta "Desativar a ACO?"; "Desativar" envia e "Cancelar" não', async () => {
     const f = api(EFETIVO, EU_EXEMPLO, rotas);
     abrir(`/efetivo-por-dia?data=${DIA}`);

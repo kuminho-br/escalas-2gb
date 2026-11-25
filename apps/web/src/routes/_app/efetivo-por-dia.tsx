@@ -3,7 +3,7 @@ import { createFileRoute } from '@tanstack/react-router';
 import { Data, type DesfazerDesativacao, type FuncaoNoEfetivo, type GuarnicaoNoEfetivo, type OpcaoDaVaga, type TrechoNoEfetivo } from 'contratos';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { mensagemDe } from '@/api/cliente';
+import { foiCancelado, mensagemDe } from '@/api/cliente';
 import { consultaEfetivoDoDia, desativar, desfazerDesativacao, gravarMetaDoDia, voltarMetaAoPadrao } from '@/api/efetivo-do-dia';
 import { CotasRestantes } from '@/componentes/CotasRestantes';
 import { AdicionarGuarnicao } from '@/componentes/efetivo-por-dia/AdicionarGuarnicao';
@@ -104,7 +104,7 @@ function EfetivoPorDia() {
       await gravarMetaDoDia(queryClient, eu.unidade.id, data, lista);
       setAdicionando(false);
     } catch (x) {
-      (noDialogo ? setErroNoDialogo : setErro)(mensagemDe(x));
+      (noDialogo ? setErroNoDialogo : setErro)(foiCancelado(x) ? null : mensagemDe(x));
     }
   });
   const mover = (i: number, passo: -1 | 1) => {
@@ -121,7 +121,7 @@ function EfetivoPorDia() {
       setDesativando(null);
       setAviso({ texto: `${g.nome} desativada.`, desfazer: r.desfazer });
     } catch (x) {
-      (noDialogo ? setErroNoDialogo : setErro)(mensagemDe(x));
+      (noDialogo ? setErroNoDialogo : setErro)(foiCancelado(x) ? null : mensagemDe(x));
     }
   });
   const desfazerUltima = travar(async () => {
@@ -131,7 +131,7 @@ function EfetivoPorDia() {
       await desfazerDesativacao(queryClient, eu.unidade.id, data, aviso.desfazer);
       limparAviso();
     } catch (x) {
-      setErroDoAviso(mensagemDe(x));
+      setErroDoAviso(foiCancelado(x) ? null : mensagemDe(x));
     }
   });
   const controlesDa = (g: GuarnicaoNoEfetivo) => {

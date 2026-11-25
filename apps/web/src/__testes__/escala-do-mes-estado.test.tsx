@@ -280,6 +280,19 @@ describe('o motivo do passado (Task 2)', () => {
     expect(JSON.parse(String(envios[1]![1]!.body))).toEqual({ justificativa: MOTIVO });
   });
 
+  it('achado da revisão: cancelar o diálogo depois de "Desfazer" não mostra erro nenhum ("Cancelado.") e deixa tudo como estava', async () => {
+    const f = api(ESCALA({ estado: 'previa', em: EM }, GESTOR), { 'DELETE /api/alocacoes/a-MOTOR': ok });
+    fila(f, 'POST /api/remocoes/r-MOTOR/desfazer', [pedido, { status: 200, corpo: ESCALA({ estado: 'previa', em: EM }, GESTOR) }]);
+    abrir('/escala-do-mes');
+    await removerMotorista();
+    await userEvent.click(await screen.findByRole('button', { name: 'Desfazer' }));
+    await userEvent.click(within(await diagolo()).getByRole('button', { name: 'Cancelar' }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    expect(screen.queryByText(/Cancelado/)).toBeNull();
+    expect(screen.queryByText('Algo deu errado. Tente de novo.')).toBeNull();
+    expect(chamadasA(f, 'POST /api/remocoes/r-MOTOR/desfazer')).toBe(1);
+  });
+
   it('Review Focus 3: a regra é do site todo (a Grade, o painel do dia, o efetivo): qualquer chamada de mudança que a API responder com o 400 da justificativa abre o mesmo diálogo', async () => {
     const f = api(ESCALA({ estado: 'previa', em: EM }, GESTOR));
     fila(f, 'POST /api/alocacoes/a-X/trocar', [pedido, { status: 200, corpo: { escalas: [] } }]);
