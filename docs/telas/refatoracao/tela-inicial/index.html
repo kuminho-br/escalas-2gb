@@ -6,135 +6,22 @@
 <title>Tela inicial</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Semi+Condensed:wght@500;600;700&display=swap">
 <link rel="stylesheet" href="../pecas.css">
+<link rel="stylesheet" href="inicio.css">
 <style>
-/* Área "Tela inicial" do Manual de Identidade Visual, versão 2.
+/* Área "Tela inicial" do Manual de Identidade Visual, versão 3. A tela em si está em inicio.css e inicio.js (a área "Entrada" pousa nela).
    Layout: a cena do combate num quadro com margens (3:1, até 300 px), que encolhe ao rolar até uma barra; dentro dela,
-   à esquerda a saudação e os próximos serviços em quadradinhos, à direita os avisos num painel de vidro escuro.
+   à esquerda a saudação e os próximos serviços em cartões, à direita os avisos num painel de vidro escuro.
    Embaixo da cena, só os atalhos e o detalhe do próximo serviço. */
 .ini-controles{display:flex;flex-wrap:wrap;align-items:center;gap:8px 20px}
 .ini-controles .rot{font-weight:500}
 .ini-quadros{display:grid;gap:24px;grid-template-columns:minmax(0,1fr)}
 .ini-quadros .celular{justify-self:center;width:390px;max-width:100%}
 .ini-quadros figcaption{margin-top:8px;font-size:var(--t13);line-height:18px;color:var(--pg-apagado)}
-
-/* ---------- a tela ---------- */
-.ini{--faixa-min:64px;--margem:24px;--topo:56px;container-type:inline-size;container-name:inicio;position:relative;height:820px;overflow:hidden;background:var(--fundo);color:var(--tinta);color-scheme:light;border:1px solid var(--pg-linha);border-radius:var(--raio-sup)}
-.celular .ini{height:780px;--margem:12px}
-.ini-topo{position:absolute;top:0;left:0;right:0;z-index:7;display:flex;align-items:center;gap:12px;height:var(--topo);padding:0 24px;background:var(--superficie);border-bottom:1px solid var(--linha)}
-.ini-topo img{width:32px;height:32px;object-fit:contain;flex:none}
-.ini-topo .sistema{font:600 var(--t17)/1 var(--cond);white-space:nowrap}
-.ini-topo .unidade{display:flex;align-items:center;gap:4px;min-width:0;padding:6px 8px;font:500 var(--t15)/1 var(--cond);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.ini-topo .quem{margin-left:auto;display:flex;align-items:center;gap:4px;font:600 var(--t15)/1 var(--cond);white-space:nowrap}
-.ini-topo .i{color:var(--apagado)}
-.ini-rola{position:absolute;inset:var(--topo) 0 0;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin}
-/* o fundo atrás da faixa, para o conteúdo não aparecer na margem de cima quando ela encolhe */
-.ini-capa{position:absolute;top:var(--topo);left:0;right:0;z-index:4;height:calc(var(--margem) + var(--alto,240px));background:var(--fundo)}
-
-/* a cena: um quadro com margens; a altura vem do script (--alto) */
-.ini-faixa{position:absolute;top:calc(var(--topo) + var(--margem));left:var(--margem);right:var(--margem);z-index:5;height:var(--alto,240px);overflow:hidden;border-radius:var(--raio-sup);background:#1a0d0c url(../img/boas-vindas.jpg) center 66%/cover no-repeat;color:var(--claro);box-shadow:var(--apoiada)}
-.ini-faixa::before{content:"";position:absolute;inset:0;background:linear-gradient(100deg,rgba(28,36,48,.88) 0%,rgba(28,36,48,.45) 38%,rgba(28,36,48,0) 62%)}
-.ini-faixa::after{content:"";position:absolute;inset:0;background:rgba(28,36,48,.62);opacity:var(--e,0)}
-.ini-alta{position:absolute;inset:0;z-index:1;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,340px);gap:24px;align-items:end;padding:28px 28px 24px;opacity:calc(1 - var(--e,0) * 2.2);transform:translateY(calc(var(--e,0) * -16px))}
-.ini-saudacao{display:grid;gap:4px;align-self:start}
-.ini-saudacao h1{font:600 var(--t40)/44px var(--cond);text-wrap:balance}
-.ini-saudacao p{font-size:var(--t17);line-height:24px;color:color-mix(in srgb,var(--claro) 90%,transparent)}
-
-/* próximos serviços: um quadradinho por serviço, com a marca da Grade */
-.ini-proximos{grid-column:1;display:grid;gap:8px;align-self:end}
-.ini-proximos > small{font:500 var(--t13)/1 var(--texto);color:color-mix(in srgb,var(--claro) 82%,transparent)}
-.ini-proximos ol{display:flex;flex-wrap:wrap;gap:8px}
-.ini-proximos li{display:grid;justify-items:center;gap:3px;width:60px;padding:8px 0 9px;border-radius:var(--raio);background:color-mix(in srgb,var(--tinta) 62%,transparent);border:1px solid color-mix(in srgb,var(--claro) 20%,transparent);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
-.ini-proximos li small{font:500 var(--t13)/1 var(--texto);color:color-mix(in srgb,var(--claro) 82%,transparent)}
-.ini-proximos li b{font:600 var(--t20)/1 var(--cond)}
-.ini-proximos li.primeiro{background:var(--claro);color:var(--tinta);border-color:var(--claro)}
-.ini-proximos li.primeiro small{color:var(--apagado)}
-/* a marca da Grade, como é hoje: quadradinho na cor do serviço com a letra do turno */
-.ini-marca{display:inline-grid;place-items:center;width:20px;height:18px;border-radius:3px;background:var(--servico);color:var(--claro);font:700 11px/1 var(--cond)}
-
-/* avisos: painel de vidro escuro sobre o chão molhado da cena */
-.ini-avisos{grid-column:2;grid-row:1/span 2;align-self:end;display:grid;gap:8px;padding:14px 16px 12px;border-radius:var(--raio-sup);background:color-mix(in srgb,var(--tinta) 72%,transparent);border:1px solid color-mix(in srgb,var(--claro) 18%,transparent);border-top:3px solid var(--vinho);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}
-.ini-avisos header{display:flex;align-items:center;gap:8px}
-.ini-avisos h2{font:600 var(--t17)/1 var(--cond)}
-.ini-avisos .conta{font-size:var(--t13);color:color-mix(in srgb,var(--claro) 78%,transparent)}
-.ini-avisos .passar{margin-left:auto;display:flex;gap:2px}
-.ini-avisos .passar button{display:grid;place-items:center;width:28px;height:28px;border:0;border-radius:var(--raio);background:none;color:var(--claro);cursor:pointer}
-.ini-avisos .passar button:hover{background:color-mix(in srgb,var(--claro) 16%,transparent)}
-.ini-avisos .passar button:focus-visible{outline:2px solid var(--claro);outline-offset:1px}
-.ini-aviso{display:grid;gap:3px;min-height:86px}
-.ini-aviso b{font:600 var(--t17)/22px var(--cond)}
-.ini-aviso p{font-size:var(--t15);line-height:21px;color:color-mix(in srgb,var(--claro) 92%,transparent)}
-.ini-aviso small{font-size:var(--t13);line-height:18px;color:color-mix(in srgb,var(--claro) 74%,transparent)}
-.ini-aviso .fixado{display:inline-flex;align-items:center;gap:6px}
-.ini-avisos .rodape{display:flex;align-items:center;gap:6px}
-.ini-avisos .pontos{display:flex;gap:5px}
-.ini-avisos .pontos i{width:6px;height:6px;border-radius:50%;background:color-mix(in srgb,var(--claro) 35%,transparent)}
-.ini-avisos .pontos i.atual{background:var(--claro)}
-.ini-avisos .publicar{margin-left:auto;padding:0;border:0;background:none;color:var(--claro);font:500 var(--t13)/1 var(--texto);text-decoration:underline;text-underline-offset:3px;cursor:pointer}
-
-/* a barra, quando a cena encolhe */
-.ini-curta{position:absolute;left:20px;right:20px;bottom:0;height:var(--faixa-min);z-index:2;display:flex;align-items:center;gap:16px;opacity:calc((var(--e,0) - .55) * 2.4);pointer-events:none}
-.ini-curta b{font:600 var(--t20)/1 var(--cond);white-space:nowrap}
-.ini-curta span{font-size:var(--t15);color:color-mix(in srgb,var(--claro) 86%,transparent);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.ini-curta .aviso-curto{margin-left:auto;display:flex;align-items:center;gap:6px;max-width:40%;font-size:var(--t13)}
-
-.ini-corpo{display:grid;gap:28px;padding:20px var(--margem) 48px;grid-template-columns:minmax(0,1fr)}
-
-/* atalhos dos módulos */
-.ini-atalhos{display:grid;gap:8px;grid-template-columns:repeat(3,minmax(0,1fr))}
-.ini-atalhos a{display:grid;grid-template-columns:36px minmax(0,1fr);grid-template-rows:auto auto;column-gap:12px;align-items:center;min-height:64px;padding:10px 14px;border:1px solid var(--linha);border-radius:var(--raio);background:var(--superficie);color:var(--tinta);text-decoration:none}
-.ini-atalhos a:hover{border-color:var(--encaixe);background:var(--passa)}
-.ini-atalhos .im{grid-row:span 2;width:22px;height:22px;justify-self:center;color:var(--vinho)}
-.ini-atalhos b{font:600 var(--t17)/20px var(--cond)}
-.ini-atalhos small{font-size:var(--t13);line-height:18px;color:var(--apagado);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.ini-atalhos a[aria-disabled="true"]{background:transparent;border-style:dashed;color:var(--apagado);cursor:default}
-.ini-atalhos a[aria-disabled="true"] .im{color:var(--apagado)}
-
-/* o detalhe do próximo serviço */
-.ini-bloco{display:grid;gap:14px;min-width:0;max-width:760px}
-.ini-bloco h2{font:600 var(--t20)/26px var(--cond)}
-.ini-servico{display:grid;grid-template-columns:auto minmax(0,1fr);gap:4px 24px;padding:20px 22px;background:var(--superficie);border:1px solid var(--linha);border-radius:var(--raio-sup);box-shadow:var(--apoiada)}
-.ini-servico .dia{grid-row:span 4;display:grid;justify-items:center;align-content:start;min-width:84px;padding:10px 24px 10px 0;border-right:1px solid var(--linha)}
-.ini-servico .dia small{font:500 var(--t15)/1 var(--texto);color:var(--apagado)}
-.ini-servico .dia b{font:600 56px/1 var(--cond)}
-.ini-servico .dia span{font:500 var(--t13)/1 var(--texto);color:var(--apagado)}
-.ini-servico .quando{font:600 var(--t20)/26px var(--cond)}
-.ini-servico .onde{color:var(--apagado)}
-.ini-servico .junto{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
-.ini-servico .junto .placa{width:auto;min-width:0;padding-right:12px;cursor:default}
-.ini-servico .junto .placa.eu{border-color:var(--tinta);box-shadow:0 0 0 1px var(--tinta)}
-.ini-servico .acoes{margin-top:8px}
-
-/* quem não tem nível de acesso não vê o que é da escala */
-.ini[data-perfil="militar"] [data-so="escalante"],.ini[data-perfil="escalante"] [data-so="militar"]{display:none}
-
-@container inicio (max-width:900px){
-  .ini-alta{grid-template-columns:minmax(0,1fr) minmax(0,300px)}
-  .ini-saudacao h1{font:600 var(--t28)/32px var(--cond)}
-}
-/* no celular a cena fica com a saudação e os próximos serviços, e os avisos descem logo abaixo, no mesmo vidro escuro */
-@container inicio (max-width:600px){
-  .ini-topo{padding:0 12px;gap:8px}
-  .ini-topo .sistema{display:none}
-  .ini-alta{grid-template-columns:minmax(0,1fr);padding:18px 16px 16px;gap:12px}
-  .ini-saudacao h1{font:600 var(--t28)/32px var(--cond)}
-  .ini-saudacao p{font-size:var(--t15);line-height:22px}
-  .ini-proximos li{width:54px}
-  .ini-alta .ini-avisos{display:none}
-  .ini-curta{left:14px;right:14px;gap:10px}
-  .ini-curta b{font-size:var(--t17)}
-  .ini-curta .aviso-curto{display:none}
-  .ini-corpo{padding:16px var(--margem) 40px;gap:24px}
-  .ini-corpo .ini-avisos{grid-column:auto;grid-row:auto;background:var(--tinta);color:var(--claro)}
-  .ini-atalhos{grid-template-columns:repeat(2,minmax(0,1fr))}
-  .ini-atalhos a{grid-template-columns:28px minmax(0,1fr);column-gap:8px;min-height:56px;padding:8px 10px}
-  .ini-atalhos small{white-space:normal}
-  .ini-servico{grid-template-columns:minmax(0,1fr);padding:16px}
-  .ini-servico .dia{grid-row:auto;display:flex;align-items:baseline;gap:10px;justify-items:start;padding:0 0 10px;border-right:0;border-bottom:1px solid var(--linha);margin-bottom:6px}
-  .ini-servico .dia b{font-size:var(--t40)}
-}
-@container inicio (min-width:601px){.ini-corpo > .ini-avisos{display:none}}
-
 .ini-muda td:first-child{font-weight:600;white-space:nowrap}
+/* o cartão em tamanho natural, fora da cena, para ler as medidas */
+.ini-amostra{display:flex;flex-wrap:wrap;align-items:flex-start;gap:16px 28px}
+.ini-amostra ol{display:flex;flex-wrap:wrap;gap:8px;padding:14px;border-radius:var(--raio-sup);background:#2a2f38}
+.ini-amostra .medidas{display:grid;gap:6px;font-size:var(--t13);line-height:18px;color:var(--apagado);max-width:46ch}
 </style>
 </head>
 <body>
@@ -145,7 +32,7 @@
   <p class="de-quem"><a class="voltar" href="../index.html">Manual de Identidade Visual</a></p>
   <h1>Tela inicial</h1>
   <p>A primeira tela depois da entrada. A cena do combate recebe a pessoa com a saudação, os próximos serviços dela e os avisos da unidade. Embaixo, os módulos a um clique e o detalhe do próximo serviço.</p>
-  <p class="menor">Versão 2, aprovada por você em 24/11/2026. A cena ficou menor, num quadro com margens, e continua encolhendo quando a pessoa rola. A mesma tela vale para todos: o que a pessoa não usa não aparece. Os nomes e os avisos são fictícios.</p>
+  <p class="menor">Versão 3, em revisão por você. O que mudou da versão 2 (aprovada em 24/11/2026): o quadradinho do serviço virou um cartão com o dia da semana, o dia do mês, o nome do serviço e o horário do turno, com o fundo na cor do serviço (seu pedido de 25/11). A cena menor e os atalhos já estão no site (entrega 6.42). Os nomes e os avisos são fictícios.</p>
   <div class="ini-controles" role="group" aria-label="Ver a tela como">
     <span class="rot">Ver como</span>
     <label class="marcar"><input type="radio" name="perfil" value="escalante" checked><span>Escalante da 1ª SB</span></label>
@@ -156,11 +43,31 @@
 <section class="bloco largo" id="tela">
   <div class="regra">
     <h2>A tela</h2>
-    <p>Passe os avisos pelas setas e role dentro do quadro para ver a cena encolher. No celular, os avisos descem para logo abaixo da cena.</p>
+    <p>Passe os avisos pelas setas e role dentro do quadro para ver a cena encolher. No celular, os cartões rolam de lado e os avisos descem para logo abaixo da cena. A chegada pela animação do login está na área <a class="elo" href="../entrada/index.html">Entrada</a>.</p>
   </div>
   <div class="ini-quadros">
     <figure><div class="ini" data-tela data-perfil="escalante"></div><figcaption>Computador, 1280 px de largura.</figcaption></figure>
     <figure class="celular"><div class="ini" data-tela data-perfil="escalante"></div><figcaption>Celular, 390 px.</figcaption></figure>
+  </div>
+</section>
+
+<section class="bloco" id="cartao">
+  <div class="regra">
+    <h2>O cartão do serviço</h2>
+    <p>Quatro informações, nesta ordem: o dia da semana, o dia do mês, o nome do serviço e o horário do turno. O fundo é a cor do serviço. O mais próximo ganha um contorno branco.</p>
+    <p class="nota">A letra do turno sai do cartão: o horário diz mais para quem lê. Ela continua na Grade e no detalhe do próximo serviço.</p>
+  </div>
+  <div class="prancha">
+    <div class="peca ini-amostra">
+      <ol data-amostra aria-label="Cartões de exemplo"></ol>
+      <div class="medidas">
+        <span>112 px de largura no computador, 104 no celular; cantos de 6 px.</span>
+        <span>Dia da semana em 13 px; dia do mês em 28 px estreita, 600; serviço em 15 px estreita, 600; horário em 13 px, 500.</span>
+        <span>O fundo é a cor do serviço com 16% de tinta, para o texto branco ler bem até nas cores claras (Bioma). A marca da Grade continua com a cor pura.</span>
+        <span>Horário no formato "7h às 19h"; com minutos, "7h30 às 19h30". O nome do serviço que não cabe é cortado com reticências.</span>
+        <span>Até seis cartões. No computador cabem cinco na cena larga e quatro na de 900 px; no celular a fila rola de lado.</span>
+      </div>
+    </div>
   </div>
 </section>
 
@@ -172,11 +79,11 @@
   <div class="prancha">
     <div class="sup">
       <ul class="regras-da-casa">
-        <li><b>A cena</b>Num quadro com margens, na proporção 3:1 e com até 300 px de altura. Ao rolar, vira uma barra de 64 px com a saudação curta e o título do aviso mais recente.</li>
-        <li><b>Próximos serviços</b>Dentro da cena, embaixo da saudação: um quadradinho por serviço, com o dia da semana, o dia e a marca da Grade (a letra é o turno, a cor é o serviço). O mais próximo fica em branco. Mostra até seis.</li>
+        <li><b>A cena</b>Num quadro com margens, na proporção 3:1 e com até 300 px de altura (250 no celular). Ao rolar, vira uma barra de 64 px com a saudação curta, o próximo serviço e o título do aviso mais recente.</li>
+        <li><b>Próximos serviços</b>Dentro da cena, embaixo da saudação: um cartão por serviço, com o dia da semana, o dia do mês, o nome do serviço e o horário do turno, no fundo da cor do serviço. O mais próximo tem o contorno branco. Mostra até seis.</li>
         <li><b>Avisos</b>Dentro da cena, à direita, num painel de vidro escuro com a borda de cima em vinho. Um aviso por vez, com setas e pontos para passar; o fixado vem primeiro. Não passam sozinhos. Quem tem nível de acesso vê "Publicar aviso".</li>
-        <li><b>Atalhos</b>Um por módulo, com uma linha do que está acontecendo nele. Substituem os cartões grandes de hoje.</li>
-        <li><b>Seu próximo serviço</b>O detalhe do primeiro quadradinho: turno, guarnição, função e quem vai junto.</li>
+        <li><b>Atalhos</b>Um por módulo, com uma linha do que está acontecendo nele. Já estão no site.</li>
+        <li><b>Seu próximo serviço</b>O detalhe do primeiro cartão: serviço, horário, turno, guarnição, função e quem vai junto.</li>
       </ul>
     </div>
   </div>
@@ -185,19 +92,20 @@
 <section class="bloco" id="o-que-muda">
   <div class="regra">
     <h2>O que muda em relação à tela de hoje</h2>
-    <p>Hoje a tela tem a cena alta, de ponta a ponta, e um cartão grande por módulo. Num notebook, a cena ocupa quase metade da tela e os cartões ficam cortados.</p>
-    <p class="nota">Cada item diz de onde vêm os dados. O que precisa de cadastro novo vai à PLANEJAMENTO antes de entrar num plano.</p>
+    <p>Hoje o site já tem a cena menor no quadro que encolhe e os atalhos dos módulos (entrega 6.42). Falta o que está dentro da cena.</p>
+    <p class="nota">Cada item diz de onde vêm os dados. Os avisos precisam de cadastro novo.</p>
   </div>
   <div class="prancha">
     <div class="sup rolagem" style="padding:0">
       <table class="tabela ini-muda">
         <thead><tr><th scope="col">Item</th><th scope="col" class="quebra">O que muda</th><th scope="col" class="quebra">De onde vêm os dados</th></tr></thead>
         <tbody>
-          <tr><td>Cena</td><td class="quebra">Menor, num quadro com margens e cantos arredondados, e encolhe ao rolar. A animação do login passa a pousar neste quadro: o ponto de pouso e o recorte da imagem mudam junto.</td><td class="quebra">Já existe.</td></tr>
-          <tr><td>Próximos serviços</td><td class="quebra">Novo, dentro da cena.</td><td class="quebra">Da escala publicada, que chega com a fase 7. Até lá, os quadradinhos não aparecem.</td></tr>
+          <tr><td>Cena</td><td class="quebra">Como está no site. No celular, a altura passa de 200 para 250 px, para os cartões caberem embaixo da saudação.</td><td class="quebra">Já existe.</td></tr>
+          <tr><td>Próximos serviços</td><td class="quebra">Novo, dentro da cena: os cartões. Na barra encolhida, o próximo serviço em uma linha.</td><td class="quebra">Da Minha escala (fase 7, já no site): data, início e fim do turno, nome e cor do serviço.</td></tr>
           <tr><td>Avisos</td><td class="quebra">Novo, dentro da cena.</td><td class="quebra">Precisa de cadastro novo: título, texto, autor, data, unidade, fixado e até quando vale.</td></tr>
-          <tr><td>Atalhos</td><td class="quebra">Os cartões grandes viram uma fila de atalhos, com uma linha de situação em cada um.</td><td class="quebra">Os módulos já existem; a situação vem da escala do mês e do Pecúlio.</td></tr>
-          <tr><td>Seu próximo serviço</td><td class="quebra">Novo, embaixo dos atalhos.</td><td class="quebra">Da escala publicada (fase 7).</td></tr>
+          <tr><td>Atalhos</td><td class="quebra">Como estão no site.</td><td class="quebra">Já existem.</td></tr>
+          <tr><td>Seu próximo serviço</td><td class="quebra">Novo, embaixo dos atalhos: o detalhe do primeiro cartão.</td><td class="quebra">Da Minha escala (fase 7): a guarnição do turno e quem vai junto.</td></tr>
+          <tr><td>Chegada pelo login</td><td class="quebra">A animação pousa neste quadro, com os cartões e os avisos entrando depois da saudação. Está na área Entrada.</td><td class="quebra">Já existe (entrega 6.4); muda na versão 2 da animação.</td></tr>
         </tbody>
       </table>
     </div>
@@ -206,115 +114,25 @@
 
 <section class="fecho">
   <h2>O que vem depois</h2>
-  <p>A tela inicial foi à PLANEJAMENTO em partes: a cena menor e os atalhos entram na entrega 6.42; os avisos esperam o cadastro deles; os próximos serviços esperam a fase 7. <a class="voltar" href="../index.html">Voltar ao Manual</a></p>
+  <p>Com a sua aprovação, a PLANEJAMENTO planeja os próximos serviços (o dado já existe) e, depois, os avisos (que precisam do cadastro). <a class="voltar" href="../index.html">Voltar ao Manual</a></p>
 </section>
 
 </div>
 
 <script src="../pecas.js"></script>
+<script src="inicio.js"></script>
 <script>
 (function () {
   'use strict';
-  function ic(n) { return '<svg class="i" aria-hidden="true"><use href="#i-' + n + '"/></svg>'; }
-  function im(n) { return '<svg class="im" aria-hidden="true"><use href="#m-' + n + '"/></svg>'; }
-  function placa(posto, nome, cor, eu) { return '<span class="placa parada' + (eu ? ' eu' : '') + '" style="--servico:' + cor + '"><span class="quem"><span class="posto">' + posto + '</span><span class="nome">' + nome + '</span></span>' + (eu ? '<span class="serv">você</span>' : '') + '</span>'; }
-  var PROXIMOS = [['qui', 26, 'A', 'var(--pronto)', 'Pronto'], ['sáb', 28, 'B', 'var(--pronto)', 'Pronto'], ['dom', 29, 'A', 'var(--jes)', 'JES'], ['ter', '1º', 'B', 'var(--pronto)', 'Pronto'], ['qui', 3, 'A', 'var(--pronto)', 'Pronto']];
-  var AVISOS = [
-    { titulo: 'ABT-014 em manutenção', texto: 'Até sexta, 28, a guarnição de ABT sai na ABT-009.', quem: '2º TEN MARQUES, 23/11', fixado: true },
-    { titulo: 'Instrução de APH', texto: 'Sexta, 27, às 14h, no auditório. Para quem estiver de folga.', quem: '1º SGT FALCÃO, 22/11' },
-    { titulo: 'Voluntariado de dezembro aberto', texto: 'O formulário fica aberto até domingo, 30.', quem: '2º TEN MARQUES, 20/11' }
-  ];
-
-  function painelDeAvisos() {
-    return '<section class="ini-avisos" aria-label="Avisos" data-avisos>' +
-      '<header><h2>Avisos</h2><span class="conta">' + AVISOS.length + ' da 1ª SB</span><span class="passar"><button type="button" data-passo="-1" aria-label="Aviso anterior">' + ic('esq') + '</button><button type="button" data-passo="1" aria-label="Próximo aviso">' + ic('dir') + '</button></span></header>' +
-      '<div class="ini-aviso" aria-live="polite" data-aviso></div>' +
-      '<div class="rodape"><span class="pontos" aria-hidden="true">' + AVISOS.map(function () { return '<i></i>'; }).join('') + '</span><button type="button" class="publicar" data-so="escalante">Publicar aviso</button></div>' +
-    '</section>';
-  }
-
-  function tela() {
-    var p = PROXIMOS[0];
-    return '' +
-      '<header class="ini-topo"><img src="../img/brasao-cbmpe.png" alt=""><span class="sistema">Escalas 2º GB</span><span class="unidade">CBMPE / 2º GB / 1ª SB' + ic('baixo') + '</span><span class="quem">CB ALMEIDA' + ic('baixo') + '</span></header>' +
-      '<div class="ini-capa" aria-hidden="true"></div>' +
-      '<div class="ini-faixa" data-faixa>' +
-        '<div class="ini-alta">' +
-          '<div class="ini-saudacao"><h1>Bom dia, CB ALMEIDA</h1><p>Terça-feira, 24 de novembro de 2026</p></div>' +
-          '<div class="ini-proximos"><small>Seus próximos serviços</small><ol>' + PROXIMOS.map(function (s, i) {
-            return '<li class="' + (i === 0 ? 'primeiro' : '') + '" title="' + s[4] + ', turno ' + s[2] + '"><small>' + s[0] + '</small><b>' + s[1] + '</b><span class="ini-marca" style="--servico:' + s[3] + '">' + s[2] + '</span></li>';
-          }).join('') + '</ol></div>' +
-          painelDeAvisos() +
-        '</div>' +
-        '<div class="ini-curta" aria-hidden="true"><b>Bom dia, CB ALMEIDA</b><span>Próximo serviço: quinta, 26, turno A</span><span class="aviso-curto">' + ic('alerta') + AVISOS[0].titulo + '</span></div>' +
-      '</div>' +
-      '<div class="ini-rola" data-rola tabindex="0" aria-label="Tela inicial">' +
-        '<div data-espaco></div>' +
-        '<div class="ini-corpo">' +
-          painelDeAvisos() +
-          '<nav class="ini-atalhos" aria-label="Módulos">' +
-            '<a href="#tela" data-so="escalante">' + im('grade') + '<b>Confecção de escalas</b><small>Escala Operacional de novembro</small></a>' +
-            '<a href="#tela">' + im('peculio') + '<b>Pecúlio</b><small data-so="escalante">Contatos e cadastros da 1ª SB</small><small data-so="militar">Consulta de militares</small></a>' +
-            '<a href="#tela" data-so="escalante">' + im('estrutura') + '<b>Estrutura</b><small>1ª SB e 4 seções</small></a>' +
-            '<a href="#tela" aria-disabled="true">' + im('ver') + '<b>Visualização de escalas</b><small>Chega com a fase 7</small></a>' +
-            '<a href="#tela">' + im('ficha') + '<b>Minha ficha</b><small>Seus dados e o seu telefone</small></a>' +
-            '<a href="#tela">' + im('config') + '<b>Configurações</b><small>Suas preferências</small></a>' +
-          '</nav>' +
-          '<section class="ini-bloco" aria-labelledby="proximo"><h2 id="proximo">Seu próximo serviço</h2>' +
-            '<div class="ini-servico">' +
-              '<div class="dia"><small>quinta</small><b>26</b><span>de novembro</span></div>' +
-              '<p class="quando">Turno A, das 07h às 19h</p>' +
-              '<p class="onde">Pronto, equipe Alfa. Na ABT, como motorista.</p>' +
-              '<div class="junto">' + placa('2º SGT', 'RAMALHO', 'var(--pronto)') + placa('CB', 'ALMEIDA', 'var(--pronto)', true) + placa('SD', 'CORREIA', 'var(--pronto)') + '</div>' +
-              '<div class="acoes"><a class="elo" href="#tela">Ver minha escala do mês</a></div>' +
-            '</div>' +
-          '</section>' +
-        '</div>' +
-      '</div>';
-  }
-
-  function montar(raiz) {
-    raiz.innerHTML = tela();
-    var rola = raiz.querySelector('[data-rola]'), faixa = raiz.querySelector('[data-faixa]'), espaco = raiz.querySelector('[data-espaco]');
-    var alto = 0, min = 0, margem = 0, quadro = 0, n = 0;
-    function medir() {
-      var cs = getComputedStyle(raiz), w = raiz.clientWidth;
-      min = parseFloat(cs.getPropertyValue('--faixa-min')) || 64;
-      margem = parseFloat(cs.getPropertyValue('--margem')) || 24;
-      var dentro = w - 2 * margem;
-      // computador: 3:1, até 300 px; celular: a saudação e os próximos serviços cabem em 230 px
-      alto = Math.round(w <= 600 ? 230 : Math.min(300, dentro / 3));
-      espaco.style.height = (alto + margem) + 'px';
-      pintar();
-    }
-    function pintar() {
-      quadro = 0;
-      var s = rola.scrollTop, h = Math.max(min, alto - s), e = Math.min(1, s / Math.max(1, alto - min));
-      raiz.style.setProperty('--alto', h + 'px');
-      raiz.style.setProperty('--e', e.toFixed(3));
-    }
-    // os avisos passam só pelas setas, nunca sozinhos
-    function mostrar() {
-      var a = AVISOS[n];
-      raiz.querySelectorAll('[data-aviso]').forEach(function (el) {
-        el.innerHTML = (a.fixado ? '<small class="fixado">' + ic('alerta') + 'Fixado</small>' : '') + '<b>' + a.titulo + '</b><p>' + a.texto + '</p><small>' + a.quem + '</small>';
-      });
-      raiz.querySelectorAll('[data-avisos] .pontos').forEach(function (ps) { Array.prototype.forEach.call(ps.children, function (p, i) { p.className = i === n ? 'atual' : ''; }); });
-    }
-    raiz.addEventListener('click', function (e) {
-      var b = e.target.closest('[data-passo]'); if (!b) return;
-      n = (n + Number(b.getAttribute('data-passo')) + AVISOS.length) % AVISOS.length; mostrar();
-    });
-    rola.addEventListener('scroll', function () { if (!quadro) quadro = requestAnimationFrame(pintar); }, { passive: true });
-    if (window.ResizeObserver) new ResizeObserver(medir).observe(raiz);
-    medir(); mostrar();
-  }
-
   var telas = Array.prototype.slice.call(document.querySelectorAll('[data-tela]'));
-  telas.forEach(montar);
+  telas.forEach(function (t) { window.TelaInicial.montar(t, { saudacao: 'Bom dia', data: 'Quarta-feira, 25 de novembro de 2026' }); });
   document.querySelectorAll('input[name="perfil"]').forEach(function (r) {
     r.addEventListener('change', function () { telas.forEach(function (t) { t.setAttribute('data-perfil', r.value); }); });
   });
+  // a amostra do cartão: os mesmos cartões da cena, fora dela
+  var amostra = document.querySelector('[data-amostra]');
+  var cena = document.querySelector('[data-tela] .ini-proximos ol');
+  if (amostra && cena) amostra.innerHTML = cena.innerHTML;
 })();
 </script>
 </body>

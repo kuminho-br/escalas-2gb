@@ -1,0 +1,640 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Entrada</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Semi+Condensed:wght@500;600;700&display=swap">
+<link rel="stylesheet" href="../pecas.css">
+<link rel="stylesheet" href="../tela-inicial/inicio.css">
+<style>
+/* Área "Entrada" do Manual de Identidade Visual: o login e a animação das mangueiras, versão 2, pousando na tela inicial (versão 3).
+   Layout: um palco só (computador ou celular) com a tela inicial por baixo e o login por cima; a animação é desenhada num canvas
+   que cobre o palco e encolhe até o quadro da cena. O motor é o do mockup aprovado em 22/11/2026 (docs/telas/transicao-login). */
+.ent-controles{display:flex;flex-wrap:wrap;align-items:center;gap:8px 20px}
+.ent-controles .rot{font-weight:500}
+.ent-controles .grupo{display:inline-flex;flex-wrap:wrap;align-items:center;gap:8px}
+.ent-area{display:flex;justify-content:center;min-width:0}
+.ent-moldura{position:relative;overflow:hidden;border-radius:var(--raio-sup);border:1px solid var(--pg-linha);background:#1C2430;box-sizing:content-box}
+.ent-moldura.cel{border:10px solid #1C2430;border-radius:46px;box-shadow:0 20px 50px rgba(28,36,48,.25)}
+.ent-palco{position:absolute;left:0;top:0;transform-origin:0 0;overflow:hidden;background:var(--fundo);color:var(--tinta);color-scheme:light;font:400 var(--t15)/22px var(--texto)}
+.ent-moldura.cel .ent-palco{border-radius:36px}
+/* a tela inicial fica num contexto próprio: as camadas dela (quadro, topo) não passam por cima do login */
+.ent-palco .ini{position:absolute;inset:0;z-index:1;isolation:isolate;height:auto;border:0;border-radius:0}
+.ent-estado{min-height:22px;font-weight:500;color:var(--pg-apagado)}
+.ent-estado b{color:var(--pg-tinta);font-weight:600}
+
+/* o login, por cima da tela inicial */
+.ent-login{position:absolute;inset:0;z-index:2;overflow:hidden;background:#3a2626}
+.ent-fundo{position:absolute;inset:0}
+.ent-fundo img{display:block;width:100%;height:100%;max-width:none;object-fit:cover;object-position:center 46%}
+.ent-fundo::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,rgba(111,20,20,.92) 0%,rgba(111,20,20,.70) 42%,rgba(28,36,48,.25) 100%)}
+.ent-fundo .credito{position:absolute;right:8px;bottom:8px;padding:2px 6px;border-radius:4px;background:rgba(28,36,48,.62);color:var(--claro);font-size:11.5px;line-height:14px}
+.ent-escuro{position:absolute;inset:0;background:radial-gradient(ellipse at 50% 58%,#2b0d0b 0%,#150605 46%,#070202 100%);opacity:0}
+.ent-entorno{position:absolute;left:-900px;top:0;width:901px;height:1024px;transform-origin:900px 0;opacity:0;display:block}
+.ent-foto{position:absolute;left:0;top:0;width:1536px;height:1024px;max-width:none;transform-origin:0 0;opacity:0;display:block}
+.ent-ui{position:absolute;inset:0;display:grid;grid-template-columns:1fr 400px;gap:40px;align-items:center;padding:48px 80px;transform-origin:50% 50%}
+.ent-marca{color:var(--claro);display:grid;gap:18px;align-content:center;max-width:600px}
+.ent-marca img{width:132px;height:auto;display:block;filter:drop-shadow(0 4px 14px rgba(0,0,0,.35))}
+.ent-marca h1{font:600 48px/1.05 var(--cond);letter-spacing:-.01em;text-wrap:balance}
+.ent-marca h1 span{white-space:nowrap}
+.ent-marca p{font-size:var(--t17);line-height:26px;color:color-mix(in srgb,var(--claro) 86%,transparent)}
+.ent-card{background:var(--superficie);border-radius:var(--raio-sup);overflow:hidden;box-shadow:0 1px 2px rgba(28,36,48,.08),0 18px 40px rgba(0,0,0,.28)}
+.ent-card header{background:var(--vinho);color:var(--claro);padding:18px 24px}
+.ent-card header h2{font:600 24px/1.2 var(--cond)}
+.ent-card header p{font-size:var(--t13);line-height:18px;color:color-mix(in srgb,var(--claro) 80%,transparent)}
+.ent-card form{display:grid;gap:16px;padding:24px}
+.ent-card label{display:block;font-size:var(--t13);line-height:18px;font-weight:500;margin-bottom:6px}
+.ent-card input{width:100%;height:40px;border:1px solid var(--encaixe);border-radius:var(--raio);background:var(--superficie);color:var(--tinta);padding:0 12px;font:400 var(--t15) var(--texto)}
+.ent-card input:focus-visible{outline:2px solid var(--tinta);outline-offset:1px}
+.ent-card .erro{font-size:var(--t13);line-height:18px;color:var(--alerta)}
+.ent-card .esqueci{justify-self:start;font-size:var(--t13);color:var(--vinho);text-decoration:underline;text-underline-offset:2px}
+.ent-card .botao.principal{width:100%;height:40px;cursor:pointer}
+.ent-card .botao.principal:disabled{background:var(--vinho-escuro);color:var(--claro);cursor:progress}
+.ent-tela{position:absolute;left:0;top:0;width:100%;height:100%;z-index:3;pointer-events:none;display:block}
+.ent-conectando{position:absolute;left:0;right:0;bottom:11%;z-index:4;text-align:center;color:var(--claro);font:600 var(--t20)/1 var(--cond);letter-spacing:.04em;opacity:0;pointer-events:none;text-shadow:0 0 14px rgba(255,170,80,.75)}
+/* o celular: a foto em cima, a marca e o cartão subindo sobre ela */
+.ent-palco[data-modo="cel"] .ent-fundo img{object-position:center 30%}
+.ent-palco[data-modo="cel"] .ent-fundo::after{background:linear-gradient(180deg,rgba(111,20,20,.55) 0%,rgba(111,20,20,.35) 35%,rgba(111,20,20,.92) 100%)}
+.ent-palco[data-modo="cel"] .ent-fundo .credito{top:12px;right:8px;bottom:auto}
+.ent-palco[data-modo="cel"] .ent-ui{display:flex;flex-direction:column;padding:0;gap:0;align-items:stretch}
+.ent-palco[data-modo="cel"] .ent-marca{margin-top:118px;padding:0 22px;gap:10px;max-width:none}
+.ent-palco[data-modo="cel"] .ent-marca img{width:84px}
+.ent-palco[data-modo="cel"] .ent-marca h1{font-size:32px}
+.ent-palco[data-modo="cel"] .ent-marca p{font-size:var(--t15);line-height:22px}
+.ent-palco[data-modo="cel"] .ent-card{margin-top:auto;border-radius:22px 22px 0 0;box-shadow:0 -10px 40px rgba(0,0,0,.25)}
+.ent-palco[data-modo="cel"] .ent-card header{background:none;color:var(--tinta);padding:22px 22px 0}
+.ent-palco[data-modo="cel"] .ent-card header p{color:var(--apagado)}
+.ent-palco[data-modo="cel"] .ent-card form{padding:16px 22px 28px}
+.ent-palco[data-modo="cel"] .ent-card input,.ent-palco[data-modo="cel"] .ent-card .botao.principal{height:46px}
+
+.ent-muda td:first-child{font-weight:600;white-space:nowrap}
+.ent-muda code{font:inherit;font-weight:500}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false"><defs><symbol id="m-ficha" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4.5 20.5v-1a6 6 0 0 1 6-6h3a6 6 0 0 1 6 6v1"/></symbol><symbol id="m-peculio" viewBox="0 0 24 24"><rect x="3.5" y="4.5" width="17" height="15" rx="2"/><circle cx="12" cy="10.5" r="2.5"/><path d="M8 16.5a4 4 0 0 1 8 0M8 2.5v3M16 2.5v3"/></symbol><symbol id="m-ver" viewBox="0 0 24 24"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12Z"/><circle cx="12" cy="12" r="3"/></symbol></defs></svg>
+<div class="pagina">
+
+<header class="abre">
+  <p class="de-quem"><a class="voltar" href="../index.html">Manual de Identidade Visual</a></p>
+  <h1>Entrada</h1>
+  <p>O login e a animação das mangueiras, do clique em Entrar até a tela inicial. Versão 2: a foto nova do quartel no fundo do login, o dobro de brasas, que agora esfriam até virar cinza e demoram mais para sumir, e o pouso no quadro menor da tela inicial.</p>
+  <p class="menor">Em revisão por você. A animação toca inteira uma vez a cada 12 h, pela escolha da pessoa; o resto do tempo a entrada é curta. Nada mudou no site. Nome, e-mail e senha são de exemplo.</p>
+  <div class="ent-controles" role="group" aria-label="Controles do teste">
+    <span class="grupo" role="radiogroup" aria-label="Tela"><label class="marcar"><input type="radio" name="modo" value="pc" checked><span>Computador</span></label><label class="marcar"><input type="radio" name="modo" value="cel"><span>Celular</span></label></span>
+    <span class="grupo" role="radiogroup" aria-label="Senha"><label class="marcar"><input type="radio" name="senha" value="certa" checked><span>Senha certa</span></label><label class="marcar"><input type="radio" name="senha" value="errada"><span>Senha errada</span></label></span>
+    <span class="grupo" role="radiogroup" aria-label="Servidor"><label class="marcar"><input type="radio" name="servidor" value="rapido" checked><span>Servidor rápido</span></label><label class="marcar"><input type="radio" name="servidor" value="lento"><span>Servidor lento</span></label></span>
+    <span class="grupo"><label class="marcar"><input type="checkbox" data-curta><span>Entrada curta</span></label><label class="marcar"><input type="checkbox" data-calmo><span>Sem movimento</span></label></span>
+    <button type="button" class="botao secundario" data-repetir>Repetir</button>
+  </div>
+</header>
+
+<section class="bloco largo" id="palco">
+  <div class="regra">
+    <h2>Do clique em Entrar à tela inicial</h2>
+    <p>Clique em Entrar no palco. Com a senha certa e o servidor rápido, a tela inicial chega em cerca de 2,6 s e as brasas ficam mais 6 s sobre a cena. Embaixo do palco aparece o nome do quadro que está passando.</p>
+  </div>
+  <div class="ent-area" data-area>
+    <div class="ent-moldura" data-moldura>
+      <div class="ent-palco" data-palco data-modo="pc">
+        <div class="ini" data-home data-perfil="escalante"></div>
+        <div class="ent-login" data-login>
+          <div class="ent-fundo"><img src="../img/quartel.jpg" alt=""><span class="credito">Quartel do 2º GB</span></div>
+          <div class="ent-escuro" data-escuro></div>
+          <canvas class="ent-entorno" data-entorno width="901" height="1024" aria-hidden="true"></canvas>
+          <img class="ent-foto" data-foto src="../img/boas-vindas.jpg" alt="">
+          <div class="ent-ui" data-ui>
+            <div class="ent-marca">
+              <img src="../img/brasao-2gb.png" alt="Brasão do 2º Grupamento de Bombeiros">
+              <h1>Sistema de Gestão <span>- 2º GB</span></h1>
+              <p>2º Grupamento de Bombeiros · Corpo de Bombeiros Militar de Pernambuco</p>
+            </div>
+            <div class="ent-card">
+              <header><h2>Entrar</h2><p>Use o e-mail cadastrado pela sua seção.</p></header>
+              <form data-form novalidate>
+                <div><label for="ent-email">E-mail</label><input id="ent-email" name="email" type="email" autocomplete="off" value="almeida@exemplo.com"></div>
+                <div><label for="ent-senha">Senha</label><input id="ent-senha" name="senha" type="password" autocomplete="off" value="exemplo193"></div>
+                <p class="erro" data-erro role="alert" hidden></p>
+                <button class="botao principal" type="submit" data-entrar>Entrar</button>
+                <a class="esqueci" href="#palco">Esqueci minha senha</a>
+              </form>
+            </div>
+          </div>
+        </div>
+        <canvas class="ent-tela" data-tela aria-hidden="true" hidden></canvas>
+        <p class="ent-conectando" data-conectando aria-hidden="true">Entrando…</p>
+      </div>
+    </div>
+  </div>
+  <p class="ent-estado" data-estado aria-live="polite"></p>
+</section>
+
+<section class="bloco" id="o-que-muda">
+  <div class="regra">
+    <h2>O que muda na versão 2</h2>
+    <p>Seus pedidos de 23/11 e 25/11, mais o que o quadro novo da tela inicial obriga. As mangueiras, a junta, a batida, a água, a senha errada e a regra das 12 h ficam como estão.</p>
+  </div>
+  <div class="prancha">
+    <div class="sup rolagem" style="padding:0">
+      <table class="tabela ent-muda">
+        <thead><tr><th scope="col">Item</th><th scope="col" class="quebra">Hoje</th><th scope="col" class="quebra">Versão 2</th></tr></thead>
+        <tbody>
+          <tr><td>Foto do login</td><td class="quebra">O quartel nublado, com as setas da galeria do celular gravadas embaixo.</td><td class="quebra">A foto que você mandou em 23/11: o quartel ao sol, com as três bandeiras. Só no fundo do login; a animação e a cena final não mudam. No computador, enquadrada para as bandeiras e a fachada ficarem à vista à direita do véu vinho.</td></tr>
+          <tr><td>Brasas do ambiente</td><td class="quebra">44, todas iguais.</td><td class="quebra">88, em três profundidades: as pequenas mais lentas e apagadas, ao fundo; as grandes mais rápidas e fortes, na frente.</td></tr>
+          <tr><td>Brasas do botão Entrar</td><td class="quebra">26.</td><td class="quebra">52.</td></tr>
+          <tr><td>Cinza</td><td class="quebra">22 pontos descendo.</td><td class="quebra">44. E cada brasa esfria na subida: de alaranjada passa a vermelha e termina cinza, sem brilho, antes de sair do quadro.</td></tr>
+          <tr><td>Quanto duram depois do pouso</td><td class="quebra">4 s, apagando nos últimos 1,6 s.</td><td class="quebra">6 s, apagando nos últimos 2,4 s (50% a mais).</td></tr>
+          <tr><td>Sobre a saudação</td><td class="quebra">Com toda a força, por baixo do texto.</td><td class="quebra">Por cima de tudo, mas a um terço da força sobre o nome e a data, com a borda suave. No resto do quadro, força inteira.</td></tr>
+          <tr><td>Onde pousa</td><td class="quebra">Na faixa alta, de ponta a ponta.</td><td class="quebra">No quadro da tela inicial de hoje: 3:1, até 300 px, com margens e cantos de 12 px, e a imagem cortada como no site (centrada, a 66% na vertical). A barra do topo e os atalhos aparecem em volta enquanto a câmera se afasta.</td></tr>
+          <tr><td>O que entra depois do pouso</td><td class="quebra">A saudação e os cartões dos módulos.</td><td class="quebra">A saudação, com os cartões dos próximos serviços e os avisos junto dela; embaixo, os atalhos e o próximo serviço entram em fila.</td></tr>
+          <tr><td>Entrada curta e sem movimento</td><td class="quebra">Sem a sequência e sem efeitos.</td><td class="quebra">Igual.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section class="bloco" id="fora">
+  <div class="regra">
+    <h2>O que não entrou</h2>
+    <p>Para você saber o que continua igual ao mockup de 22/11.</p>
+  </div>
+  <div class="prancha">
+    <div class="sup">
+      <ul class="regras-da-casa">
+        <li><b>A chegada e o enchimento da mangueira</b>Os pedidos R1 e R4 de 20/11 esperam as capturas do vídeo do quartel (a mangueira vazia junto da junta, a água entrando, a metade e a cheia).</li>
+        <li><b>Defeitos antigos</b>A boca do anel chapada antes do engate e a sombra leve embaixo da mangueira no afastamento. Ficam para quando a junta for refeita com as fotos novas.</li>
+        <li><b>Velocidade no celular</b>O dobro de partículas pesa. Antes de ir ao plano, meço num celular lento simulado; se travar, a proposta é reduzir as partículas só nos aparelhos fracos.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section class="bloco" id="decidir">
+  <div class="regra">
+    <h2>O que precisa da sua palavra</h2>
+  </div>
+  <div class="prancha">
+    <div class="sup">
+      <ul class="regras-da-casa">
+        <li><b>A foto no login</b>No computador, o véu vinho cobre a metade esquerda e as bandeiras ficam à direita, atrás do cartão. Se preferir as bandeiras à mostra, o cartão vai para a esquerda e a marca para a direita.</li>
+        <li><b>As brasas que viram cinza</b>Todas esfriam. Se preferir que só parte delas vire cinza e as outras apaguem ainda alaranjadas, é um número para mudar.</li>
+        <li><b>Uma entrega só</b>A foto, as brasas e o pouso no quadro novo vão juntos à PLANEJAMENTO, como uma entrega pequena. Os cartões dos próximos serviços e os avisos são entregas da tela inicial, não desta.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section class="fecho">
+  <h2>O que vem depois</h2>
+  <p>Com a sua aprovação, a especificação da animação (<code>docs/superpowers/specs/2026-11-20-transicao-login-design.md</code>) ganha a versão 2 e a PLANEJAMENTO planeja a entrega. <a class="voltar" href="../index.html">Voltar ao Manual</a></p>
+</section>
+
+</div>
+
+<script src="../pecas.js"></script>
+<script src="../tela-inicial/inicio.js"></script>
+<script>
+(function(){
+'use strict';
+var $=function(sel,raiz){return (raiz||document).querySelector(sel);};
+var palco=$('[data-palco]'), moldura=$('[data-moldura]'), area=$('[data-area]'), login=$('[data-login]'), ui=$('[data-ui]'), escuro=$('[data-escuro]'),
+    entorno=$('[data-entorno]'), foto=$('[data-foto]'), tela=$('[data-tela]'), ctx=tela.getContext('2d'), estadoEl=$('[data-estado]'),
+    form=$('[data-form]'), erroEl=$('[data-erro]'), btEntrar=$('[data-entrar]'), conect=$('[data-conectando]'), homeEl=$('[data-home]');
+
+/* parâmetros de captura (só para conferência local: ?t=1.2&modo=cel&senha=errada&lento=1&direta=1) */
+var Q={}; (location.search||'').replace(/^\?/,'').split('&').forEach(function(kv){ if(!kv) return; var p=kv.split('='); Q[decodeURIComponent(p[0])]=decodeURIComponent(p[1]||'1'); });
+var CAPTURA=Q.t!=null;
+
+/* a tela inicial por baixo (inicio.js), com as camadas da chegada */
+var H=null, faixa, titulo, saud, cards, brasasEl, bctx, lampejo, risco;
+H=window.TelaInicial.montar(homeEl,{chegada:true,img:'../img/',saudacao:'Bom dia',data:'Quarta-feira, 25 de novembro de 2026',aoMedir:function(){ if(H) reMedir(true); }});
+faixa=H.faixa; titulo=H.titulo; saud=H.saudacao; cards=H.cartoes; brasasEl=$('[data-brasas]',faixa); bctx=brasasEl.getContext('2d'); lampejo=$('[data-lampejo]',faixa); risco=$('[data-risco]',faixa);
+
+/* ---------- utilidades ---------- */
+function clamp01(v){return v<0?0:v>1?1:v;}
+function lerp(a,b,u){return a+(b-a)*u;}
+function ss(a,b,x){var t=clamp01((x-a)/(b-a));return t*t*(3-2*t);}
+function eOut3(u){u=clamp01(u);return 1-Math.pow(1-u,3);}
+function eOut2(u){u=clamp01(u);return 1-(1-u)*(1-u);}
+function eIn2(u){u=clamp01(u);return u*u;}
+function eIn3(u){u=clamp01(u);return u*u*u;}
+function eIO3(u){u=clamp01(u);return u<.5?4*u*u*u:1-Math.pow(-2*u+2,3)/2;}
+function tab(T){return function(x){var i,a,b,n=T.length;
+  if(x<=T[0][0]){a=T[0];b=T[1];}
+  else if(x>=T[n-1][0]){a=T[n-2];b=T[n-1];}
+  else{for(i=1;i<n;i++){if(x<=T[i][0]){a=T[i-1];b=T[i];break;}}}
+  return a[1]+(x-a[0])*(b[1]-a[1])/(b[0]-a[0]);};}
+function cv(w,h){var c=document.createElement('canvas');c.width=Math.ceil(w);c.height=Math.ceil(h);return c;}
+/* sorteio fixo: a mesma partícula tem sempre os mesmos números, então cada quadro depende só do tempo */
+function rnd(i,k){ var v=Math.sin(i*127.1+k*311.7)*43758.5453; return v-Math.floor(v); }
+var DOIS_PI=Math.PI*2;
+
+/* ---------- geometria medida na imagem final (coordenadas da imagem, 1536 x 1024) ---------- */
+var IW=1536, IH=1024, POS_V=.66, RAIO=12;
+/* a imagem cobre o quadro, centrada e a 66% na vertical: a mesma conta do site (recorte.ts) */
+function recorteDaFaixa(bw,bh){ var s=Math.max(bw/IW,bh/IH); return {s:s,x0:(IW-bw/s)/2,y0:(IH-bh/s)*POS_V}; }
+var FOCO={x:310,y:741};
+var EIXO=(function(){var x=.985,y=-.172,l=Math.sqrt(x*x+y*y);return {x:x/l,y:y/l};})();
+var XE=-300, XL=284;
+var ANEL={x:310,y:741,rx:83,ry:109,rot:.04};
+function espelho(x){ var m; if(x>=0) return x; m=(-x-1)%300; return m<150?m:299-m; }
+var topL=tab([[-400,718],[0,694],[50,691],[100,687],[150,683],[200,679],[230,676],[260,674],[300,674]]);
+var botL=tab([[-400,939],[0,875],[50,867],[100,858],[150,848],[200,838],[230,832],[260,825],[284,819],[300,817]]);
+var PONTA=[[289,677],[294,692],[297,716],[298,745],[296,774],[291,800],[286,815]];
+var topR=tab([[365,664],[400,661],[450,657],[500,651.5],[550,647],[600,644],[650,641.5],[700,640],[750,639],[800,638],[850,636.5],[880,635]]);
+var botR=tab([[365,780],[400,766],[450,745],[500,726],[550,711],[600,698],[650,688],[700,676],[750,666],[800,660],[850,654],[880,649]]);
+var CURVA=[[880,642,13],[900,640,14],[915,636,14],[925,630,14.5],[937,618,15],[950,600,15],[962,584,15],[975,568,15],[988,553,15],[1000,541.5,15],[1013,531,14.5]];
+var TRECHO2=[[1036,518.5,14],[1042,516.5,14],[1067,507.5,13.5],[1092,501,13],[1117,496,12.5],[1123,495,12.5]];
+var P_LUVA=[[290,700],[300,692],[314,694],[325,702],[333,718],[337,745],[334,770],[326,787],[314,797],[300,801],[289,793],[295,745]];
+var P_GARRA_C=[[292,679],[300,671],[331,671],[334,688],[321,693],[306,699],[293,698]];
+var P_GARRA_B=[[296,794],[330,788],[338,796],[337,813],[311,821],[297,819]];
+var ACHATADA=0.56;
+function achatE(x){return ACHATADA+(1-ACHATADA)*ss(30,262,x);}
+function achatD(x){return ACHATADA+(1-ACHATADA)*(1-ss(430,650,x));}
+var LINHA=CURVA.concat(TRECHO2);
+function eixoMang(x){ var i,a,b,u;
+  if(x<=XL) return [(topL(x)+botL(x))/2,(botL(x)-topL(x))/2];
+  if(x<380){ u=(x-XL)/(380-XL); return [lerp((topL(XL)+botL(XL))/2,(topR(380)+botR(380))/2,u),lerp((botL(XL)-topL(XL))/2,(botR(380)-topR(380))/2,u)]; }
+  if(x<=880) return [(topR(x)+botR(x))/2,(botR(x)-topR(x))/2];
+  for(i=1;i<LINHA.length;i++){ if(x<=LINHA[i][0]){ a=LINHA[i-1]; b=LINHA[i]; u=(x-a[0])/(b[0]-a[0]); return [lerp(a[1],b[1],u),lerp(a[2],b[2],u)/2]; } }
+  a=LINHA[LINHA.length-1]; return [a[1],a[2]/2]; }
+
+/* ---------- recortes da imagem ---------- */
+var IMG=new Image(), PRONTO=false, R={};
+function tracar(g,polys){ g.beginPath(); polys.forEach(function(p){ var n=p.length, i, c, e;
+  var m=function(i){var a=p[i%n],b=p[(i+1)%n];return [(a[0]+b[0])/2,(a[1]+b[1])/2];};
+  var s=m(0); g.moveTo(s[0],s[1]);
+  for(i=1;i<=n;i++){c=p[i%n];e=m(i);g.quadraticCurveTo(c[0],c[1],e[0],e[1]);}
+  g.closePath(); }); }
+function inchar(p,k){ var cx=0,cy=0; p.forEach(function(q){cx+=q[0];cy+=q[1];}); cx/=p.length; cy/=p.length; return p.map(function(q){return [cx+(q[0]-cx)*k,cy+(q[1]-cy)*k];}); }
+function suavizar(g){ try{ if('filter' in g) g.filter='blur(0.7px)'; }catch(e){} }
+function recorte(polys,x,y,w,h){ var c=cv(w,h), g=c.getContext('2d');
+  g.drawImage(IMG,x,y,w,h,0,0,w,h);
+  g.globalCompositeOperation='destination-in'; g.translate(-x,-y); suavizar(g); tracar(g,polys); g.fill();
+  return {c:c,x:x,y:y,w:w,h:h}; }
+function lados(pts){ var up=[],dn=[],i,a,b,tx,ty,l,p,w;
+  for(i=0;i<pts.length;i++){ a=pts[Math.max(0,i-1)]; b=pts[Math.min(pts.length-1,i+1)]; tx=b[0]-a[0]; ty=b[1]-a[1]; l=Math.sqrt(tx*tx+ty*ty)||1; tx/=l; ty/=l; p=pts[i]; w=p[2]/2;
+    up.push([p[0]+ty*w,p[1]-tx*w]); dn.push([p[0]-ty*w,p[1]+tx*w]); }
+  return {up:up,dn:dn}; }
+function contornoE(g,x0,m){ var x,i;
+  g.moveTo(x0,topL(x0)-m); for(x=x0+4;x<XL;x+=4) g.lineTo(x,topL(x)-m); g.lineTo(XL,topL(XL)-m);
+  for(i=0;i<PONTA.length;i++) g.lineTo(PONTA[i][0]+m,PONTA[i][1]);
+  g.lineTo(XL,botL(XL)+m); for(x=XL-4;x>x0;x-=4) g.lineTo(x,botL(x)+m); g.lineTo(x0,botL(x0)+m); g.closePath(); }
+function elipseAnel(g,f){ g.beginPath(); g.ellipse(ANEL.x-3,ANEL.y,(ANEL.rx-2)*f,ANEL.ry*f,ANEL.rot,0,DOIS_PI); g.ellipse(ANEL.x+4,ANEL.y,(ANEL.rx-3)*f,ANEL.ry*f,ANEL.rot,0,DOIS_PI); }
+function fazMangEsq(){ var X0=XE,Y0=640,W=304-XE,H=320,c=cv(W,H),g=c.getContext('2d'),x,sx,s0,s1,d0,d1;
+  for(x=X0;x<0;x++){ sx=espelho(x); s0=topL(sx)-3; s1=botL(sx)+3; d0=topL(x)-3; d1=botL(x)+3;
+    g.drawImage(IMG,sx,s0,1,s1-s0,x-X0,d0-Y0,1,d1-d0); }
+  g.drawImage(IMG,0,Y0,304,H,-X0,0,304,H);
+  g.globalCompositeOperation='destination-in'; g.translate(-X0,-Y0); suavizar(g); g.beginPath(); contornoE(g,X0,1); g.fill();
+  return {c:c,x:X0,y:Y0,w:W,h:H}; }
+function fazMangDir(){ var X0=360,Y0=480,W=772,H=320,c=cv(W,H),g=c.getContext('2d'),x,i,l1=lados(CURVA),l2=lados(TRECHO2);
+  g.drawImage(IMG,X0,Y0,W,H,0,0,W,H);
+  g.globalCompositeOperation='destination-in'; g.translate(-X0,-Y0); suavizar(g); g.beginPath(); g.moveTo(365,topR(365)-1);
+  for(x=381;x<880;x+=16) g.lineTo(x,topR(x)-1); g.lineTo(880,topR(880)-1);
+  for(i=1;i<l1.up.length;i++) g.lineTo(l1.up[i][0],l1.up[i][1]);
+  for(i=l1.dn.length-1;i>=1;i--) g.lineTo(l1.dn[i][0],l1.dn[i][1]);
+  g.lineTo(880,botR(880)+1); for(x=864;x>365;x-=16) g.lineTo(x,botR(x)+1); g.lineTo(365,botR(365)+1);
+  g.closePath();
+  g.moveTo(l2.up[0][0],l2.up[0][1]); for(i=1;i<l2.up.length;i++) g.lineTo(l2.up[i][0],l2.up[i][1]);
+  for(i=l2.dn.length-1;i>=0;i--) g.lineTo(l2.dn[i][0],l2.dn[i][1]); g.closePath();
+  g.fill();
+  return {c:c,x:X0,y:Y0,w:W,h:H}; }
+function fazAnel(){ var X0=218,Y0=620,W=190,H=250,c=cv(W,H),g=c.getContext('2d');
+  g.drawImage(IMG,X0,Y0,W,H,0,0,W,H);
+  g.translate(-X0,-Y0); suavizar(g);
+  g.globalCompositeOperation='destination-in'; elipseAnel(g,1.012); g.fill();
+  g.globalCompositeOperation='destination-out'; g.beginPath(); contornoE(g,200,2); g.fill();
+  tracar(g,[inchar(P_LUVA,1.07),inchar(P_GARRA_C,1.12),inchar(P_GARRA_B,1.12)]); g.fill();
+  return {c:c,x:X0,y:Y0,w:W,h:H}; }
+function inflar(spr,topF,botF,x1,x2,f,out){ var g=out.getContext('2d'),a=x1-spr.x,b=x2-spr.x,x,t,bt,h,k;
+  g.setTransform(1,0,0,1,0,0); g.clearRect(0,0,out.width,out.height);
+  if(a>0) g.drawImage(spr.c,0,0,a,spr.h,0,0,a,spr.h);
+  if(b<spr.w) g.drawImage(spr.c,b,0,spr.w-b,spr.h,b,0,spr.w-b,spr.h);
+  for(x=x1;x<x2;x++){ k=f(x); t=topF(x)-spr.y-3; bt=botF(x)-spr.y+3; h=bt-t;
+    g.drawImage(spr.c,x-spr.x,t,1,h,x-spr.x,bt-k*h,1,k*h); } }
+function fazEntorno(){ var g=entorno.getContext('2d'), x, sx, a, b;
+  for(x=-900;x<0;x++){ sx=espelho(x); g.drawImage(IMG,sx,0,1,IH,x+900,0,1,IH);
+    a=topL(sx)-8; b=topL(Math.max(x,XE))+6; if(b>a) g.drawImage(IMG,sx,636,1,30,x+900,a,1,b-a); }
+  g.drawImage(IMG,0,0,1,IH,900,0,1,IH); }
+function preparar(){
+  fazEntorno();
+  R.mangE=fazMangEsq(); R.mangD=fazMangDir();
+  R.mangEv=cv(R.mangE.w,R.mangE.h); inflar(R.mangE,topL,botL,XE,XL,achatE,R.mangEv);
+  R.mangDv=cv(R.mangD.w,R.mangD.h); inflar(R.mangD,topR,botR,365,880,achatD,R.mangDv);
+  R.tmpE=cv(R.mangE.w,R.mangE.h); R.tmpD=cv(R.mangD.w,R.mangD.h);
+  R.anel=fazAnel();
+  R.luva=recorte([P_LUVA],284,686,60,122);
+  R.garraC=recorte([P_GARRA_C],286,664,54,42);
+  R.garraB=recorte([P_GARRA_B],290,782,54,46);
+  R.luz=cv(190,250); R.luzG=R.luz.getContext('2d');
+  PRONTO=true;
+}
+
+/* ---------- linha do tempo (função pura do tempo, em segundos desde o clique) ---------- */
+/* versão 2: as brasas ficam 6,3 s depois do pouso (50% a mais que os 4,2 s de hoje) e apagam nos últimos 2,4 s */
+var T={ui:.28,a0:.10,imp:.50,w0:.52,w1:.70,press:1.05,zoomIni:.42,zoom:1.30,brasas:6.3,apaga:2.4};
+function ida(t,D0){ var dL,dR,b=0;
+  if(t<T.imp){ dL=lerp(D0,0,eIn3((t-T.a0)/(T.imp-T.a0))); dR=lerp(D0,0,eIn3((t-T.a0-.03)/(T.imp-T.a0-.03))); }
+  else { dL=dR=0; if(t<T.imp+.14) b=5*Math.sin(Math.PI*(t-T.imp)/.14); }
+  return {dL:dL+b,dR:dR+b,tw:eOut3((t-T.w0)/(T.w1-T.w0))}; }
+function posFrente(v){ if(v<.36) return lerp(XE-60,300,eIn2(v/.36)); if(v<.46) return lerp(300,400,(v-.36)/.1); return lerp(400,1160,eOut2((v-.46)/.54)); }
+function estado(t,c){
+  var D0=c.D0, s={t:t,fase:'login',nome:'',loginA:1,uiA:1,escuro:0,dL:D0,dR:D0,vL:0,vR:0,tw:0,ti:-1,carga:0,linhas:0,espera:0,espA:0,
+    ta:-1,frente:-1e9,tranco:0,zp:0,fotoA:0,txtA:0,th:-1,terr:-1,modsT:0,amb:0,visivel:false,erro:false,fim:false,ocupado:false};
+  if(t<0) return s;
+  var tr=c.resp, f, g, te, f0, ut, r, tp, z0, z1, v, zl;
+  s.ocupado=true;
+  if(c.direta){
+    tr=Math.max(tr,.25);
+    if(t<tr){ s.nome='Esperando o servidor'; return s; }
+    if(!c.ok){ s.erro=true; s.fim=true; s.ocupado=false; s.nome='Senha errada: a mensagem aparece no cartão'; return s; }
+    s.txtA=1; s.modsT=9; s.loginA=1-ss(tr,tr+.3,t); s.nome=c.calmo?'Sem movimento: a tela inicial aparece direto':'Entrada curta: a tela inicial aparece direto';
+    if(t>=tr+.3){ s.fase='home'; s.fim=true; s.ocupado=false; }
+    return s;
+  }
+  s.visivel=true; s.uiA=1-ss(0,T.ui,t); s.escuro=ss(0,.4,t); s.amb=ss(.05,.6,t);
+  te=c.ok?Infinity:Math.max(tr,T.w1+.15);
+  if(t>=T.imp) s.ti=t-T.imp;
+  if(t<te){
+    f=ida(t,D0); g=ida(t-.02,D0); s.dL=f.dL; s.dR=f.dR; s.vL=g.dL-f.dL; s.vR=g.dR-f.dR; s.tw=f.tw;
+    s.linhas=ss(T.a0+.04,T.a0+.16,t)*(1-ss(T.imp-.05,T.imp+.03,t));
+    if(t<T.imp) s.carga=ss(T.imp-.16,T.imp,t);
+    s.nome=t<T.a0?'Quadro 1: o cartão se desfaz e a tela escurece':t<T.imp?'Quadro 2: as mangueiras entram pelas laterais':t<T.w1?'Quadro 3: os engates batem e travam':'Quadro 3a: travado, esperando o servidor';
+    tp=Math.max(T.w1+.2,tr);
+    if(t>T.w1+.2&&t<tp){ s.espera=ss(T.w1+.2,T.w1+.6,t); s.espA=ss(T.w1+.9,T.w1+1.3,t); }
+    if(c.ok&&t>=tp){
+      s.ta=t-tp; v=s.ta/T.press; z0=tp+T.zoomIni; z1=z0+T.zoom;
+      s.frente=posFrente(v); s.tranco=Math.sin(Math.PI*clamp01((v-.34)/.16)); s.nome='Quadro 4: a água entra e a mangueira enche';
+      if(t>=z0){ zl=clamp01((t-z0)/T.zoom); s.zp=eIO3(zl); s.fotoA=ss(.15,.7,zl); s.modsT=(t-(z0+.55*T.zoom))/.75; s.nome='Quadro 5: a câmera se afasta até o quadro da tela inicial'; }
+      if(t>=z1){ s.fase='home'; s.th=t-z1; s.txtA=ss(0,.3,s.th); s.ocupado=false; s.amb=1-ss(T.brasas-T.apaga,T.brasas,s.th); s.nome=s.th<T.brasas?'Quadro 6: a tela inicial, com as brasas esfriando sobre a cena':'Tela inicial parada'; }
+      if(t>=z1+T.brasas){ s.fim=true; }
+    }
+    return s;
+  }
+  f0=ida(te,D0); s.terr=t-te; ut=.16; r=(t-te-.12-ut)/.5;
+  s.tw=f0.tw*(1-eIO3((t-te-.12)/ut));
+  s.dL=lerp(Math.max(0,f0.dL),D0,eIn3(r)); s.dR=lerp(Math.max(0,f0.dR),D0,eIn3(r));
+  s.escuro=ss(0,.4,te)*(1-ss(te+.5,te+.85,t)); s.amb=1-ss(te+.3,te+.8,t);
+  s.uiA=ss(te+.55,te+.9,t); s.erro=t>=te+.55; s.visivel=r<1;
+  s.nome='Senha errada: os engates destravam e as mangueiras recuam';
+  if(t>=te+.95){ s.fim=true; s.ocupado=false; s.nome='Senha errada: o cartão volta com a mensagem'; }
+  return s;
+}
+
+/* ---------- palco, câmera e desenho ---------- */
+var MODOS={pc:{W:1280,H:800,s0:1.2,fy:.55},cel:{W:390,H:800,s0:.86,fy:.68}};
+var L=null, modo='pc', escala=1, PR=1;
+function medir(){
+  var M=MODOS[modo], aw=area.clientWidth, borda=modo==='cel'?20:2;
+  escala=Math.min(1,(aw-borda)/M.W);
+  moldura.className='ent-moldura'+(modo==='cel'?' cel':'');
+  moldura.style.width=(M.W*escala)+'px'; moldura.style.height=(M.H*escala)+'px';
+  palco.style.width=M.W+'px'; palco.style.height=M.H+'px'; palco.style.transform='scale('+escala+')';
+  palco.setAttribute('data-modo',modo);
+  H.rola.scrollTop=0;
+  var pr=palco.getBoundingClientRect(), fr=faixa.getBoundingClientRect(), br=btEntrar.getBoundingClientRect(), sr=saud.getBoundingClientRect();
+  var bx=(fr.left-pr.left)/escala, by=(fr.top-pr.top)/escala, bw=fr.width/escala, bh=fr.height/escala;
+  /* o quadro da tela inicial é o fim da câmera: a imagem cortada como no site */
+  var rc=recorteDaFaixa(bw,bh), s1=rc.s;
+  var t1={x:bx-rc.x0*s1,y:by-rc.y0*s1}, s0=M.s0, t0={x:M.W/2-FOCO.x*s0,y:M.fy*M.H-FOCO.y*s0};
+  var q={x:(t1.x-t0.x)/(s0-s1),y:(t1.y-t0.y)/(s0-s1)}, P={x:s0*q.x+t0.x,y:s0*q.y+t0.y};
+  L={W:M.W,H:M.H,bx:bx,by:by,bw:bw,bh:bh,s0:s0,s1:s1,q:q,P:P,D0:(M.W/2)/s0+330,
+     bt:{x:(br.left+br.width/2-pr.left)/escala,y:(br.top+br.height/2-pr.top)/escala,w:br.width/escala},
+     /* onde as brasas ficam mais fracas: a saudação (nome e data) */
+     fraca:{x:(sr.left-pr.left)/escala,y:(sr.top-pr.top)/escala,w:sr.width/escala,h:sr.height/escala}};
+  var dpr=Math.min(window.devicePixelRatio||1,2); PR=escala*dpr;
+  var cw=Math.round(M.W*PR), ch=Math.round(M.H*PR);
+  if(tela.width!==cw||tela.height!==ch){ tela.width=cw; tela.height=ch; }
+  cw=Math.round(bw*PR); ch=Math.round(bh*PR);
+  if(brasasEl.width!==cw||brasasEl.height!==ch){ brasasEl.width=cw; brasasEl.height=ch; }
+}
+function camera(p){ var s=L.s0*Math.pow(L.s1/L.s0,p); return {s:s,tx:L.P.x-s*L.q.x,ty:L.P.y-s*L.q.y}; }
+function peca(sgn,d,k){ ctx.translate(sgn*EIXO.x*d,sgn*EIXO.y*d); ctx.translate(FOCO.x,FOCO.y); ctx.scale(k,k); ctx.translate(-FOCO.x,-FOCO.y); }
+function el(g,x,y,rx,ry){ g.beginPath(); g.ellipse(x,y,rx,ry,ANEL.rot,0,DOIS_PI); g.fill(); }
+function bocaAnel(g){ var gr;
+  gr=g.createLinearGradient(240,640,380,850); gr.addColorStop(0,'#c39545'); gr.addColorStop(.4,'#a37226'); gr.addColorStop(.75,'#7a4f14'); gr.addColorStop(1,'#3d2507');
+  g.fillStyle=gr; el(g,ANEL.x,ANEL.y,ANEL.rx-1,ANEL.ry-1);
+  gr=g.createLinearGradient(250,660,350,830); gr.addColorStop(0,'#7d5417'); gr.addColorStop(.5,'#9a6c22'); gr.addColorStop(1,'#b88a38');
+  g.fillStyle=gr; el(g,303,741,58,93);
+  g.fillStyle='#0f0b0a'; el(g,299,742,48,83);
+  g.fillStyle='#2a201c'; el(g,299,742,44,77);
+  g.fillStyle='#0f0b0a'; el(g,299,742,40,71);
+  gr=g.createLinearGradient(280,680,320,810); gr.addColorStop(0,'#1b0f08'); gr.addColorStop(.6,'#3a2109'); gr.addColorStop(1,'#7a4d12');
+  g.fillStyle=gr; el(g,298,742,35,64);
+  g.fillStyle='rgba(8,4,3,.84)'; el(g,301,739,28,55); }
+function mangueira(spr,vazia,tmp,topF,botF,x1,x2,achat,u,cheiaEm){
+  if(u<=x1-5){ ctx.drawImage(vazia,spr.x,spr.y); return; }
+  if(u>=cheiaEm){ ctx.drawImage(spr.c,spr.x,spr.y); return; }
+  inflar(spr,topF,botF,x1,x2,function(x){ var a=achat(x), w=1-ss(u-150,u,x), o=x<u-70?.05*Math.sin(Math.PI*clamp01((u-70-x)/140)):0; return a+(1-a)*w+o*w; },tmp);
+  ctx.drawImage(tmp,spr.x,spr.y); }
+function pecaDireita(s,d,alfa,kj){ var k=1-.26*Math.min(1,d/L.D0);
+  ctx.save(); ctx.globalAlpha=alfa; peca(1,d,k);
+  mangueira(R.mangD,R.mangDv,R.tmpD,topR,botR,365,880,achatD,s.frente,1062);
+  ctx.translate(FOCO.x,FOCO.y); ctx.scale(kj,kj); ctx.translate(-FOCO.x,-FOCO.y);
+  bocaAnel(ctx); ctx.drawImage(R.anel.c,R.anel.x,R.anel.y);
+  ctx.restore(); }
+function pecaEsquerda(s,d,alfa,kj){ var k=1+.16*Math.min(1,d/L.D0), th=(Math.PI/2)*(1-s.tw), sn=Math.sin(th), cs=1-Math.cos(th);
+  ctx.save(); ctx.globalAlpha=alfa; peca(-1,d,k);
+  if(th>.5) ctx.drawImage(R.garraB.c,R.garraB.x-32*sn,R.garraB.y-60*cs);
+  mangueira(R.mangE,R.mangEv,R.tmpE,topL,botL,XE,XL,achatE,s.frente,482);
+  ctx.translate(FOCO.x,FOCO.y); ctx.scale(kj,kj); ctx.translate(-FOCO.x,-FOCO.y);
+  ctx.drawImage(R.luva.c,R.luva.x,R.luva.y);
+  if(th<=.5) ctx.drawImage(R.garraB.c,R.garraB.x-32*sn,R.garraB.y-60*cs);
+  ctx.drawImage(R.garraC.c,R.garraC.x+32*sn,R.garraC.y+60*cs);
+  ctx.restore(); }
+function luzEngate(cor,alfa,pos){ var g=R.luzG, x, gr;
+  g.setTransform(1,0,0,1,0,0); g.globalCompositeOperation='source-over'; g.clearRect(0,0,190,250);
+  g.drawImage(R.anel.c,0,0); g.drawImage(R.luva.c,R.luva.x-218,R.luva.y-620); g.drawImage(R.garraC.c,R.garraC.x-218,R.garraC.y-620); g.drawImage(R.garraB.c,R.garraB.x-218,R.garraB.y-620);
+  g.globalCompositeOperation='source-in';
+  if(pos==null){ g.fillStyle='rgba('+cor+','+alfa+')'; g.fillRect(0,0,190,250); }
+  else { x=lerp(-90,280,pos); gr=g.createLinearGradient(x-56,0,x+56,50); gr.addColorStop(0,'rgba('+cor+',0)'); gr.addColorStop(.5,'rgba('+cor+','+alfa+')'); gr.addColorStop(1,'rgba('+cor+',0)'); g.fillStyle=gr; g.fillRect(0,0,190,250); }
+  ctx.drawImage(R.luz,218,620); }
+function brilhoRedondo(x,y,r,cor,a){ if(a<=.004) return; var gr=ctx.createRadialGradient(x,y,0,x,y,r);
+  gr.addColorStop(0,'rgba('+cor+','+a+')'); gr.addColorStop(.4,'rgba('+cor+','+(a*.38)+')'); gr.addColorStop(1,'rgba('+cor+',0)');
+  ctx.fillStyle=gr; ctx.fillRect(x-r,y-r,2*r,2*r); }
+
+/* ---------- efeitos ---------- */
+var OURO='255,226,170', BRANCO='255,246,228', AGUA='205,232,255', VERM='255,70,50';
+function raios(a,rot){ var i,ang,len,m,gr; if(a<=.004) return;
+  for(i=0;i<9;i++){ ang=rot+i*DOIS_PI/9+(rnd(i,7)-.5)*.3; len=200+150*rnd(i,8); m=.045+.05*rnd(i,9);
+    gr=ctx.createRadialGradient(FOCO.x,FOCO.y,24,FOCO.x,FOCO.y,len); gr.addColorStop(0,'rgba('+OURO+','+a+')'); gr.addColorStop(1,'rgba('+OURO+',0)');
+    ctx.fillStyle=gr; ctx.beginPath(); ctx.moveTo(FOCO.x,FOCO.y);
+    ctx.lineTo(FOCO.x+len*.8*Math.cos(ang-m),FOCO.y+len*Math.sin(ang-m)); ctx.lineTo(FOCO.x+len*.8*Math.cos(ang+m),FOCO.y+len*Math.sin(ang+m)); ctx.closePath(); ctx.fill(); } }
+function onda(ti){ var u=ti/.46, r, a; if(u<=0||u>=1) return;
+  r=46+215*eOut3(u); a=.42*(1-u)*(1-u);
+  ctx.strokeStyle='rgba('+OURO+','+a+')'; ctx.lineWidth=9*(1-u)+1; ctx.beginPath(); ctx.ellipse(FOCO.x,FOCO.y,r*.77,r,ANEL.rot,0,DOIS_PI); ctx.stroke();
+  u=(ti-.06)/.4; if(u>0&&u<1){ r=40+150*eOut3(u); ctx.strokeStyle='rgba('+BRANCO+','+(.3*(1-u)*(1-u))+')'; ctx.lineWidth=2.5; ctx.beginPath(); ctx.ellipse(FOCO.x,FOCO.y,r*.77,r,ANEL.rot,0,DOIS_PI); ctx.stroke(); } }
+function faiscas(ti,n,cor,forca){ var i,ang,v,vida,tau,u,d,d0,x,y,x0,y0,k=3.4,gv=460;
+  ctx.lineCap='round';
+  for(i=0;i<n;i++){ vida=.32+.5*rnd(i,12); tau=ti-.03*rnd(i,13); if(tau<=0||tau>=vida) continue;
+    ang=rnd(i,10)*DOIS_PI; v=forca*(.35+.65*rnd(i,11)); u=tau/vida;
+    d=v/k*(1-Math.exp(-k*tau)); d0=v/k*(1-Math.exp(-k*Math.max(0,tau-.035)));
+    x=FOCO.x+Math.cos(ang)*d*.8; y=FOCO.y+Math.sin(ang)*d+.5*gv*tau*tau;
+    x0=FOCO.x+Math.cos(ang)*d0*.8; y0=FOCO.y+Math.sin(ang)*d0+.5*gv*Math.pow(Math.max(0,tau-.035),2);
+    ctx.strokeStyle='rgba('+(cor||(u<.25?BRANCO:u<.6?'255,206,120':'255,140,50'))+','+(Math.pow(1-u,1.4)*.95)+')';
+    ctx.lineWidth=2*(1-u)+.6; ctx.beginPath(); ctx.moveTo(x0,y0); ctx.lineTo(x,y); ctx.stroke(); } }
+function espera(s){ var p=.5+.5*Math.sin(s.t*5.2), i, ang, a=s.espera;
+  ctx.strokeStyle='rgba('+OURO+','+(a*(.10+.14*p))+')'; ctx.lineWidth=7; ctx.beginPath(); ctx.ellipse(FOCO.x,FOCO.y,(ANEL.rx+10)*1,(ANEL.ry+10),ANEL.rot,0,DOIS_PI); ctx.stroke();
+  for(i=0;i<6;i++){ ang=s.t*2.3+i*DOIS_PI/6; brilhoRedondo(FOCO.x+(ANEL.rx+12)*Math.cos(ang),FOCO.y+(ANEL.ry+12)*Math.sin(ang),13,BRANCO,a*(.55-.07*i)); } }
+function agua(s){ var x=s.frente, e, i, v, tau, u, px, py, a=1-ss(.75,1,s.ta/T.press), n=34, xb, eb;
+  if(x>XE&&x<1150&&a>0){ for(i=0;i<4;i++){ e=eixoMang(x-i*34); brilhoRedondo(x-i*30,e[0],Math.min(78,Math.max(20,e[1]*1.15)),AGUA,a*(.34-.075*i)); } }
+  for(i=0;i<n;i++){ v=.05+.9*(i+rnd(i,20))/n; tau=s.ta-v*T.press; if(tau<=0||tau>=.5) continue;
+    xb=posFrente(v); if(xb<-40||xb>1130) continue; eb=eixoMang(xb); u=tau/.5;
+    px=xb+(-50+90*rnd(i,21))*tau; py=eb[0]-eb[1]*.8+(-130-150*rnd(i,22))*tau+.5*560*tau*tau;
+    ctx.fillStyle='rgba('+AGUA+','+(.75*(1-u))+')'; ctx.beginPath(); ctx.arc(px,py,(1.2+1.6*rnd(i,23))*(1-.4*u),0,DOIS_PI); ctx.fill(); } }
+
+/* brasas e cinza do ambiente, versão 2 (em pixels do palco; servem para a animação e para o quadro da tela inicial).
+   O dobro de brasas, em três profundidades; cada uma esfria na subida (alaranjada, vermelha, cinza) e apaga antes de sair do quadro.
+   `fraca` é o retângulo da saudação: ali as brasas ficam a um terço da força, com a borda suave. */
+var N_BRASAS=88, N_CINZA=44;
+function dentro(x,y,f){ var m=24; if(!f) return 0;
+  return ss(f.x-m,f.x,x)*(1-ss(f.x+f.w,f.x+f.w+m,x))*ss(f.y-m,f.y,y)*(1-ss(f.y+f.h,f.y+f.h+m,y)); }
+var N_QUADRO=64;   /* depois do pouso, mais estas só dentro do quadro: o campo do palco inteiro deixa um terço delas na cena */
+function brasas(g,t,W,H,amp,fraca,sem,n){ var i,a,b,c,d,prof,vel,ciclo,u,x,y,r,al,q,cr,cg,cb,k=sem||0;
+  if(amp<=.004) return;
+  for(i=0;i<(n||N_BRASAS);i++){ a=rnd(i+k,1); b=rnd(i+k,2); c=rnd(i+k,3); d=rnd(i+k,4);
+    prof=d;                                             /* 0 = ao fundo (pequena, lenta, apagada); 1 = na frente */
+    vel=26+118*prof; ciclo=(H+80)/vel; u=((t+a*ciclo*7)/ciclo)%1;
+    y=H+30-u*(H+80); x=(a*1.1-.05)*W+(14+16*prof)*Math.sin(t*(.7+c)+b*DOIS_PI)+u*46*(c-.35);
+    r=.8+2.4*prof*prof;
+    q=1-ss(.42,.9,u);                                   /* 1 = quente, 0 = cinza */
+    al=amp*(.25+.75*prof)*(.6+.4*Math.sin(t*(6+8*d)+a*40))*Math.sqrt(Math.sin(Math.PI*Math.min(1,u*1.12)));
+    al*=1-.68*dentro(x,y,fraca);
+    if(al<=.004) continue;
+    if(q>.02){                                          /* quente: luz somada, de alaranjada a vermelha */
+      cr=255; cg=Math.round(lerp(96,196,q)); cb=Math.round(lerp(40,110,q));
+      g.globalCompositeOperation='lighter';
+      g.fillStyle='rgba(255,150,60,'+(al*.16*q)+')'; g.beginPath(); g.arc(x,y,r*3.4,0,DOIS_PI); g.fill();
+      g.fillStyle='rgba('+cr+','+cg+','+cb+','+(al*q)+')'; g.beginPath(); g.arc(x,y,r,0,DOIS_PI); g.fill(); }
+    if(q<.98){                                          /* fria: cinza opaca, sem brilho, que vai sumindo */
+      g.globalCompositeOperation='source-over';
+      g.fillStyle='rgba(172,166,160,'+(al*(1-q)*.8)+')'; g.beginPath(); g.arc(x,y,r*.9,0,DOIS_PI); g.fill(); } }
+  g.globalCompositeOperation='source-over';
+  for(i=0;i<N_CINZA;i++){ a=rnd(i+k,31); b=rnd(i+k,32); c=rnd(i+k,33);
+    vel=14+26*b; ciclo=(H+40)/vel; u=((t+a*ciclo*5)/ciclo)%1;
+    y=-20+u*(H+40); x=a*W+34*Math.sin(t*(.4+.5*c)+b*DOIS_PI);
+    al=amp*.26*Math.sin(Math.PI*u)*(1-.68*dentro(x,y,fraca));
+    g.fillStyle='rgba(190,180,172,'+al+')'; g.beginPath(); g.arc(x,y,.8+1.1*c,0,DOIS_PI); g.fill(); } }
+/* o cartão se desfaz: brasas sobem do botão Entrar (o dobro: 52) */
+function estouroBotao(t){ var i,ang,v,vida,u,x,y,n=52;
+  ctx.globalCompositeOperation='lighter';
+  for(i=0;i<n;i++){ vida=.45+.5*rnd(i,41); if(t>=vida) continue; u=t/vida; ang=-Math.PI/2+(rnd(i,42)-.5)*2.6; v=70+190*rnd(i,43);
+    x=L.bt.x+(rnd(i,44)-.5)*L.bt.w+Math.cos(ang)*v*t; y=L.bt.y+Math.sin(ang)*v*t-40*t*t;
+    ctx.fillStyle='rgba(255,186,96,'+(.9*(1-u))+')'; ctx.beginPath(); ctx.arc(x,y,1+1.8*rnd(i,45)*(1-u),0,DOIS_PI); ctx.fill(); }
+  ctx.globalCompositeOperation='source-over'; }
+function linhasVel(s,fy){ var i,y,len,x,dir,a,p;
+  ctx.lineCap='round';
+  for(i=0;i<20;i++){ dir=i%2?1:-1; y=fy+(rnd(i,51)-.5)*430; len=80+190*rnd(i,52); p=((s.t*(2.4+2.2*rnd(i,53))+rnd(i,54))%1);
+    x=dir>0?lerp(-len,L.W/2-40,p):lerp(L.W+len,L.W/2+40,p); a=s.linhas*.2*Math.sin(Math.PI*p);
+    ctx.strokeStyle='rgba(255,236,214,'+a+')'; ctx.lineWidth=1+1.4*rnd(i,55); ctx.beginPath(); ctx.moveTo(x,y); ctx.lineTo(x-dir*len,y+dir*len*.17); ctx.stroke(); } }
+function tremor(s){ var x=0,y=0,a;
+  if(s.ti>=0&&s.ti<.5){ a=6*Math.exp(-s.ti/.11); x+=a*Math.sin(s.ti*96); y+=a*.7*Math.cos(s.ti*73); }
+  if(s.terr>=0&&s.terr<.4){ a=5*Math.exp(-s.terr/.1); x+=a*Math.sin(s.terr*118); }
+  y+=Math.sin(s.tranco*Math.PI)*1.6;
+  return {x:x,y:y}; }
+function desenhar(s,cam){
+  var i, kj=1+.03*s.tranco, tr=tremor(s), fy=cam.s*FOCO.y+cam.ty, luzGeral=1-s.zp, a;
+  ctx.setTransform(1,0,0,1,0,0); ctx.clearRect(0,0,tela.width,tela.height);
+  if(!s.visivel||!PRONTO) return;
+  ctx.setTransform(PR,0,0,PR,0,0);
+  if(s.linhas>0) linhasVel(s,fy);
+  ctx.setTransform(PR*cam.s,0,0,PR*cam.s,PR*(cam.tx+tr.x),PR*(cam.ty+tr.y));
+  if(s.vR>3){ for(i=4;i>=1;i--) pecaDireita(s,s.dR+s.vR*i*.2,.14,1); }
+  pecaDireita(s,s.dR,1,kj);
+  if(s.vL>3){ for(i=4;i>=1;i--) pecaEsquerda(s,s.dL+s.vL*i*.2,.14,1); }
+  pecaEsquerda(s,s.dL,1,kj);
+  ctx.globalCompositeOperation='lighter';
+  if(s.carga>0) brilhoRedondo(FOCO.x-10,FOCO.y,36+70*s.carga,BRANCO,.5*s.carga);
+  if(s.ti>=0){
+    a=Math.exp(-s.ti/.10);
+    if(s.ti<.6){ brilhoRedondo(FOCO.x,FOCO.y,430,BRANCO,.5*a); luzEngate(BRANCO,.28*Math.exp(-s.ti/.2),null); }
+    raios((.2*Math.exp(-s.ti/.32)+.035*s.espera)*luzGeral,.35*s.ti);
+    onda(s.ti);
+    if(s.ti<.9) faiscas(s.ti,64,null,620);
+    brilhoRedondo(FOCO.x,FOCO.y,190,OURO,.09*luzGeral*ss(.1,.5,s.ti));
+  }
+  if(s.espera>0){ espera(s); luzEngate(BRANCO,.5*s.espera,((s.t*.7)%1.6)/1.0-.2); }
+  if(s.ta>=0) agua(s);
+  if(s.terr>=0){ a=Math.exp(-s.terr/.16); brilhoRedondo(FOCO.x,FOCO.y,300,VERM,.4*a); luzEngate(VERM,.6*a,null); if(s.terr<.7) faiscas(s.terr,22,VERM,380); }
+  ctx.globalCompositeOperation='source-over';
+  ctx.setTransform(PR,0,0,PR,0,0);
+  brasas(ctx,s.t,L.W,L.H,s.amb,null);
+  if(s.t<1) estouroBotao(s.t);
+}
+function desenharBrasasHome(s){
+  bctx.setTransform(1,0,0,1,0,0); bctx.clearRect(0,0,brasasEl.width,brasasEl.height);
+  if(s.fase!=='home'||s.th<0||s.amb<=0) return;
+  bctx.setTransform(PR,0,0,PR,-L.bx*PR,-L.by*PR); brasas(bctx,s.t,L.W,L.H,s.amb,L.fraca,0);
+  /* as brasas do quadro chegam em 0,6 s, para não saltarem no instante do pouso */
+  var j=ss(0,.6,s.th); if(j<=0) return;
+  bctx.setTransform(PR,0,0,PR,0,0);
+  brasas(bctx,s.t,L.bw,L.bh,s.amb*j,{x:L.fraca.x-L.bx,y:L.fraca.y-L.by,w:L.fraca.w,h:L.fraca.h},300,N_QUADRO); }
+var ultimoNome='';
+function aplicar(s){
+  var cam=camera(s.zp), lam=(L.s0-cam.s)/(L.s0-L.s1), naHome=s.fase==='home', i, o, clip='none', tf, fr, k;
+  if(s.zp>0) clip='inset('+(lam*L.by).toFixed(2)+'px '+(lam*(L.W-L.bx-L.bw)).toFixed(2)+'px '+(lam*(L.H-L.by-L.bh)).toFixed(2)+'px '+(lam*L.bx).toFixed(2)+'px round '+(lam*RAIO).toFixed(2)+'px)';
+  login.style.clipPath=clip; login.style.webkitClipPath=clip; tela.style.clipPath=clip; tela.style.webkitClipPath=clip;
+  login.hidden=naHome; tela.hidden=naHome||!s.visivel; homeEl.inert=!naHome;
+  login.style.opacity=s.loginA;
+  k=1-s.uiA;
+  ui.style.opacity=s.uiA; ui.style.transform=s.visivel&&k>0?'scale('+(1+.05*k).toFixed(4)+')':'none'; ui.style.filter=s.visivel&&k>.01&&k<.999?'blur('+(7*k).toFixed(2)+'px)':'none';
+  ui.style.visibility=s.uiA<.004?'hidden':'visible';
+  escuro.style.opacity=(s.escuro*.94).toFixed(3);
+  fr=s.ti>=0&&s.ti<.3?4.5*Math.exp(-s.ti/.07):0;
+  tela.style.filter=fr>.35?'drop-shadow('+fr.toFixed(2)+'px 0 0 rgba(255,70,40,.5)) drop-shadow(-'+fr.toFixed(2)+'px 0 0 rgba(70,200,255,.4))':'none';
+  conect.style.opacity=(naHome?0:s.espA).toFixed(3);
+  tf='translate('+cam.tx.toFixed(3)+'px,'+cam.ty.toFixed(3)+'px) scale('+cam.s.toFixed(5)+')';
+  foto.style.transform=tf; entorno.style.transform=tf; foto.style.opacity=s.fotoA.toFixed(3); entorno.style.opacity=s.fotoA.toFixed(3);
+  /* o que está dentro da cena (saudação, cartões e avisos) chega junto, pelo --cheg da tela inicial */
+  homeEl.style.setProperty('--cheg',s.txtA.toFixed(3));
+  if(naHome&&s.th>=0){
+    lampejo.style.opacity=(.34*(1-ss(0,.4,s.th))).toFixed(3);
+    o=clamp01(s.th/.75); risco.style.opacity=(Math.sin(Math.PI*o)*.9).toFixed(3); risco.style.transform='translateX('+lerp(-110,230,eOut2(o)).toFixed(1)+'%)';
+    k=1-eOut3(s.th/.38); titulo.style.transform='scale('+(1+.16*k).toFixed(4)+')';
+    titulo.style.textShadow='0 0 '+(26*(1-ss(.2,1.3,s.th))).toFixed(1)+'px rgba(255,190,110,'+(.85*(1-ss(.2,1.3,s.th))).toFixed(3)+')';
+  } else { lampejo.style.opacity=0; risco.style.opacity=0; titulo.style.transform='none'; titulo.style.textShadow='none'; }
+  /* os atalhos e o próximo serviço entram em fila durante o afastamento */
+  for(i=0;i<cards.length;i++){ o=naHome&&s.modsT>=9?1:ss(i*.14,i*.14+.6,s.modsT); cards[i].style.opacity=o; cards[i].style.transform=o<1?'translateY('+((1-o)*14).toFixed(2)+'px)':'none'; }
+  btEntrar.disabled=s.ocupado; btEntrar.textContent=s.ocupado?'Entrando…':'Entrar';
+  if(s.erro){ erroEl.textContent='E-mail ou senha incorretos.'; erroEl.hidden=false; }
+  if(!naHome) desenhar(s,cam);
+  desenharBrasasHome(s);
+  if(s.nome!==ultimoNome){ ultimoNome=s.nome; estadoEl.innerHTML=s.nome?'<b>'+s.nome+'</b>':'Tela de login. Clique em <b>Entrar</b> no palco.'; }
+}
+
+/* ---------- controle ---------- */
+var CEN=null, t0=0, raf=0, tVisto=-1, focou=false, pendente=false, FALHOU=false;
+var marcado=function(nome,valor){ var r=document.querySelector('input[name="'+nome+'"][value="'+valor+'"]'); return !!(r&&r.checked); };
+var opCurta=$('[data-curta]'), opCalmo=$('[data-calmo]');
+function cenario(){ return {ok:marcado('senha','certa'),resp:marcado('servidor','lento')?4.0:.6,calmo:opCalmo.checked,direta:opCurta.checked||opCalmo.checked,D0:L.D0}; }
+function parar(){ if(raf){ cancelAnimationFrame(raf); raf=0; } }
+function voltarAoLogin(){ parar(); CEN=null; tVisto=-1; pendente=false; erroEl.hidden=true; H.rola.scrollTop=0; aplicar(estado(-1,{D0:L.D0})); }
+function quadro(agora){ var t=(agora-t0)/1000, s=estado(t,CEN); tVisto=t; aplicar(s);
+  if(!focou&&(s.fase==='home'||s.fim)){ focou=true; focoFinal(s); }
+  if(s.fim){ raf=0; return; } raf=requestAnimationFrame(quadro); }
+function focoFinal(s){ try{ if(s.erro) form.senha.focus({preventScroll:true}); else if(s.fase==='home') titulo.focus({preventScroll:true}); }catch(e){} }
+function iniciar(){ if(raf) return; if(!PRONTO&&!FALHOU){ pendente=true; btEntrar.disabled=true; btEntrar.textContent='Entrando…'; return; } pendente=false; CEN=cenario(); if(FALHOU) CEN.direta=true; erroEl.hidden=true; focou=false; t0=performance.now(); raf=requestAnimationFrame(quadro); }
+form.addEventListener('submit',function(e){ e.preventDefault();
+  if(!form.email.value.trim()||!form.senha.value){ erroEl.textContent='Informe e-mail e senha.'; erroEl.hidden=false; (form.email.value.trim()?form.senha:form.email).focus(); return; }
+  iniciar(); });
+$('[data-repetir]').addEventListener('click',voltarAoLogin);
+[].forEach.call(document.querySelectorAll('input[name="modo"]'),function(r){ r.addEventListener('change',function(){ modo=r.value; medir(); voltarAoLogin(); }); });
+[].forEach.call(document.querySelectorAll('input[name="senha"],input[name="servidor"],[data-curta],[data-calmo]'),function(el){ el.addEventListener('change',function(){ if(!raf) voltarAoLogin(); }); });
+try{ if(window.matchMedia('(prefers-reduced-motion: reduce)').matches) opCalmo.checked=true; }catch(e){}
+var largAnt=area.clientWidth;
+function reMedir(forcar){ if(!L||(!forcar&&area.clientWidth===largAnt)) return; largAnt=area.clientWidth; medir(); if(CEN) CEN.D0=L.D0; if(!raf) aplicar(estado(CEN?tVisto:-1,CEN||{D0:L.D0})); }
+if(window.ResizeObserver){ new ResizeObserver(function(){ reMedir(false); }).observe(area); } else window.addEventListener('resize',function(){ reMedir(false); });
+
+if(Q.modo==='cel'){ modo='cel'; document.querySelector('input[name="modo"][value="cel"]').checked=true; }
+medir(); aplicar(estado(-1,{D0:L.D0}));
+IMG.onload=function(){ preparar();
+  if(CAPTURA){ CEN={ok:Q.senha!=='errada',resp:Q.lento==='1'?4.0:.6,calmo:false,direta:Q.direta==='1',D0:L.D0}; tVisto=parseFloat(Q.t); aplicar(estado(tVisto,CEN)); }
+  else if(pendente) iniciar(); };
+IMG.onerror=function(){ FALHOU=true; if(pendente) iniciar(); };
+IMG.src='../img/boas-vindas.jpg';
+})();
+</script>
+</body>
+</html>

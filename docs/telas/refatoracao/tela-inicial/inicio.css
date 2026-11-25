@@ -1,0 +1,126 @@
+/* A tela inicial do Manual de Identidade Visual (versão 3): a cena do combate num quadro com margens, que encolhe ao rolar;
+   dentro dela, a saudação, os próximos serviços em cartões e os avisos; embaixo, os atalhos e o detalhe do próximo serviço.
+   Compartilhada pela área "Tela inicial" e pela área "Entrada" (onde a animação do login pousa neste quadro). */
+.ini{--faixa-min:64px;--margem:24px;--topo:56px;container-type:inline-size;container-name:inicio;position:relative;height:820px;overflow:hidden;background:var(--fundo);color:var(--tinta);color-scheme:light;border:1px solid var(--pg-linha);border-radius:var(--raio-sup)}
+.celular .ini{height:780px;--margem:12px}
+.ini-topo{position:absolute;top:0;left:0;right:0;z-index:7;display:flex;align-items:center;gap:12px;height:var(--topo);padding:0 24px;background:var(--superficie);border-bottom:1px solid var(--linha)}
+.ini-topo img{width:32px;height:32px;object-fit:contain;flex:none}
+.ini-topo .sistema{font:600 var(--t17)/1 var(--cond);white-space:nowrap}
+.ini-topo .unidade{display:flex;align-items:center;gap:4px;min-width:0;padding:6px 8px;font:500 var(--t15)/1 var(--cond);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ini-topo .quem{margin-left:auto;display:flex;align-items:center;gap:4px;font:600 var(--t15)/1 var(--cond);white-space:nowrap}
+.ini-topo .i{color:var(--apagado)}
+.ini-rola{position:absolute;inset:var(--topo) 0 0;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin}
+/* o fundo atrás da faixa, para o conteúdo não aparecer na margem de cima quando ela encolhe */
+.ini-capa{position:absolute;top:var(--topo);left:0;right:0;z-index:4;height:calc(var(--margem) + var(--alto,240px));background:var(--fundo)}
+
+/* a cena: um quadro com margens; a altura vem do script (--alto) */
+.ini-faixa{position:absolute;top:calc(var(--topo) + var(--margem));left:var(--margem);right:var(--margem);z-index:5;height:var(--alto,240px);overflow:hidden;border-radius:var(--raio-sup);background:#1a0d0c url(../img/boas-vindas.jpg) center 66%/cover no-repeat;color:var(--claro);box-shadow:var(--apoiada)}
+.ini-faixa::before{content:"";position:absolute;inset:0;background:linear-gradient(100deg,rgba(28,36,48,.88) 0%,rgba(28,36,48,.45) 38%,rgba(28,36,48,0) 62%)}
+.ini-faixa::after{content:"";position:absolute;inset:0;background:rgba(28,36,48,.62);opacity:var(--e,0)}
+/* --cheg: a chegada pela animação do login (1 = tudo à vista) */
+.ini-alta{position:absolute;inset:0;z-index:1;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,340px);gap:24px;align-items:end;padding:28px 28px 24px;opacity:calc((1 - var(--e,0) * 2.2) * var(--cheg,1));transform:translateY(calc(var(--e,0) * -16px))}
+.ini-saudacao{display:grid;gap:4px;align-self:start}
+.ini-saudacao h1{font:600 var(--t40)/44px var(--cond);text-wrap:balance;transform-origin:0 60%;outline:0}
+.ini-saudacao p{font-size:var(--t17);line-height:24px;color:color-mix(in srgb,var(--claro) 90%,transparent)}
+
+/* próximos serviços: um cartão por serviço, com o fundo na cor do serviço (decisão do usuário, 25/11/2026) */
+.ini-proximos{grid-column:1;display:grid;gap:8px;align-self:end;min-width:0}
+.ini-proximos > small{font:500 var(--t13)/1 var(--texto);color:color-mix(in srgb,var(--claro) 82%,transparent)}
+.ini-proximos ol{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;padding:2px 2px 3px;margin:-2px -2px -3px}
+.ini-proximos ol::-webkit-scrollbar{display:none}
+/* a cor do serviço, um pouco mais funda, para o texto branco ler bem em qualquer serviço (a marca da Grade usa a cor pura) */
+.ini-cartao{flex:none;display:grid;gap:2px;width:112px;padding:8px 10px 9px;border-radius:var(--raio);background:color-mix(in srgb,var(--servico) 84%,var(--tinta));color:var(--claro);box-shadow:var(--apoiada)}
+.ini-cartao .quando{display:flex;align-items:baseline;justify-content:space-between;gap:6px}
+.ini-cartao .quando small{font:500 var(--t13)/1 var(--texto);color:color-mix(in srgb,var(--claro) 88%,transparent)}
+.ini-cartao .quando b{font:600 var(--t28)/28px var(--cond)}
+.ini-cartao .nome{font:600 var(--t15)/18px var(--cond);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ini-cartao .hora{font:500 var(--t13)/16px var(--texto);color:color-mix(in srgb,var(--claro) 92%,transparent);white-space:nowrap}
+.ini-cartao.primeiro{box-shadow:0 0 0 2px var(--claro),var(--apoiada)}
+
+/* avisos: painel de vidro escuro sobre o chão molhado da cena */
+.ini-avisos{grid-column:2;grid-row:1/span 2;align-self:end;display:grid;gap:8px;padding:14px 16px 12px;border-radius:var(--raio-sup);background:color-mix(in srgb,var(--tinta) 72%,transparent);border:1px solid color-mix(in srgb,var(--claro) 18%,transparent);border-top:3px solid var(--vinho);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}
+.ini-avisos header{display:flex;align-items:center;gap:8px}
+.ini-avisos h2{font:600 var(--t17)/1 var(--cond)}
+.ini-avisos .conta{font-size:var(--t13);color:color-mix(in srgb,var(--claro) 78%,transparent)}
+.ini-avisos .passar{margin-left:auto;display:flex;gap:2px}
+.ini-avisos .passar button{display:grid;place-items:center;width:28px;height:28px;border:0;border-radius:var(--raio);background:none;color:var(--claro);cursor:pointer}
+.ini-avisos .passar button:hover{background:color-mix(in srgb,var(--claro) 16%,transparent)}
+.ini-avisos .passar button:focus-visible{outline:2px solid var(--claro);outline-offset:1px}
+.ini-aviso{display:grid;gap:3px;min-height:86px}
+.ini-aviso b{font:600 var(--t17)/22px var(--cond)}
+.ini-aviso p{font-size:var(--t15);line-height:21px;color:color-mix(in srgb,var(--claro) 92%,transparent)}
+.ini-aviso small{font-size:var(--t13);line-height:18px;color:color-mix(in srgb,var(--claro) 74%,transparent)}
+.ini-aviso .fixado{display:inline-flex;align-items:center;gap:6px}
+.ini-avisos .rodape{display:flex;align-items:center;gap:6px}
+.ini-avisos .pontos{display:flex;gap:5px}
+.ini-avisos .pontos i{width:6px;height:6px;border-radius:50%;background:color-mix(in srgb,var(--claro) 35%,transparent)}
+.ini-avisos .pontos i.atual{background:var(--claro)}
+.ini-avisos .publicar{margin-left:auto;padding:0;border:0;background:none;color:var(--claro);font:500 var(--t13)/1 var(--texto);text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+
+/* a barra, quando a cena encolhe */
+.ini-curta{position:absolute;left:20px;right:20px;bottom:0;height:var(--faixa-min);z-index:2;display:flex;align-items:center;gap:16px;opacity:calc((var(--e,0) - .55) * 2.4);pointer-events:none}
+.ini-curta b{font:600 var(--t20)/1 var(--cond);white-space:nowrap}
+.ini-curta span{font-size:var(--t15);color:color-mix(in srgb,var(--claro) 86%,transparent);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ini-curta .aviso-curto{margin-left:auto;display:flex;align-items:center;gap:6px;max-width:40%;font-size:var(--t13)}
+
+/* as camadas da chegada (só na área "Entrada"): o lampejo e o risco de luz por baixo do texto, as brasas por cima de tudo */
+.ini-lampejo{position:absolute;inset:0;z-index:1;opacity:0;background:#ffecd0;pointer-events:none}
+.ini-risco{position:absolute;top:0;bottom:0;left:0;z-index:1;width:42%;opacity:0;background:linear-gradient(100deg,rgba(255,236,205,0) 0%,rgba(255,236,205,.42) 50%,rgba(255,236,205,0) 100%);pointer-events:none}
+.ini-brasas{position:absolute;inset:0;z-index:3;width:100%;height:100%;display:block;pointer-events:none}
+
+.ini-corpo{display:grid;gap:28px;padding:20px var(--margem) 48px;grid-template-columns:minmax(0,1fr)}
+
+/* atalhos dos módulos */
+.ini-atalhos{display:grid;gap:8px;grid-template-columns:repeat(3,minmax(0,1fr))}
+.ini-atalhos a{display:grid;grid-template-columns:36px minmax(0,1fr);grid-template-rows:auto auto;column-gap:12px;align-items:center;min-height:64px;padding:10px 14px;border:1px solid var(--linha);border-radius:var(--raio);background:var(--superficie);color:var(--tinta);text-decoration:none}
+.ini-atalhos a:hover{border-color:var(--encaixe);background:var(--passa)}
+.ini-atalhos .im{grid-row:span 2;width:22px;height:22px;justify-self:center;color:var(--vinho)}
+.ini-atalhos b{font:600 var(--t17)/20px var(--cond)}
+.ini-atalhos small{font-size:var(--t13);line-height:18px;color:var(--apagado);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ini-atalhos a[aria-disabled="true"]{background:transparent;border-style:dashed;color:var(--apagado);cursor:default}
+.ini-atalhos a[aria-disabled="true"] .im{color:var(--apagado)}
+
+/* o detalhe do próximo serviço */
+.ini-bloco{display:grid;gap:14px;min-width:0;max-width:760px}
+.ini-bloco h2{font:600 var(--t20)/26px var(--cond)}
+.ini-servico{display:grid;grid-template-columns:auto minmax(0,1fr);gap:4px 24px;padding:20px 22px;background:var(--superficie);border:1px solid var(--linha);border-radius:var(--raio-sup);box-shadow:var(--apoiada)}
+.ini-servico .dia{grid-row:span 4;display:grid;justify-items:center;align-content:start;min-width:84px;padding:10px 24px 10px 0;border-right:1px solid var(--linha)}
+.ini-servico .dia small{font:500 var(--t15)/1 var(--texto);color:var(--apagado)}
+.ini-servico .dia b{font:600 56px/1 var(--cond)}
+.ini-servico .dia span{font:500 var(--t13)/1 var(--texto);color:var(--apagado)}
+.ini-servico .quando{font:600 var(--t20)/26px var(--cond)}
+.ini-servico .onde{color:var(--apagado)}
+.ini-servico .junto{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.ini-servico .junto .placa{width:auto;min-width:0;padding-right:12px;cursor:default}
+.ini-servico .junto .placa.eu{border-color:var(--tinta);box-shadow:0 0 0 1px var(--tinta)}
+.ini-servico .acoes{margin-top:8px}
+
+/* quem não tem nível de acesso não vê o que é da escala */
+.ini[data-perfil="militar"] [data-so="escalante"],.ini[data-perfil="escalante"] [data-so="militar"]{display:none}
+
+@container inicio (max-width:900px){
+  .ini-alta{grid-template-columns:minmax(0,1fr) minmax(0,300px)}
+  .ini-saudacao h1{font:600 var(--t28)/32px var(--cond)}
+}
+/* no celular a cena fica com a saudação e os cartões, que rolam de lado; os avisos descem logo abaixo, no mesmo vidro escuro */
+@container inicio (max-width:600px){
+  .ini-topo{padding:0 12px;gap:8px}
+  .ini-topo .sistema{display:none}
+  .ini-alta{grid-template-columns:minmax(0,1fr);padding:18px 16px 16px;gap:12px}
+  .ini-saudacao h1{font:600 var(--t28)/32px var(--cond)}
+  .ini-saudacao p{font-size:var(--t15);line-height:22px}
+  .ini-cartao{width:104px}
+  .ini-alta .ini-avisos{display:none}
+  .ini-curta{left:14px;right:14px;gap:10px}
+  .ini-curta b{font-size:var(--t17)}
+  .ini-curta .aviso-curto{display:none}
+  .ini-corpo{padding:16px var(--margem) 40px;gap:24px}
+  .ini-corpo .ini-avisos{grid-column:auto;grid-row:auto;background:var(--tinta);color:var(--claro)}
+  .ini-atalhos{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .ini-atalhos a{grid-template-columns:28px minmax(0,1fr);column-gap:8px;min-height:56px;padding:8px 10px}
+  .ini-atalhos small{white-space:normal}
+  .ini-servico{grid-template-columns:minmax(0,1fr);padding:16px}
+  .ini-servico .dia{grid-row:auto;display:flex;align-items:baseline;gap:10px;justify-items:start;padding:0 0 10px;border-right:0;border-bottom:1px solid var(--linha);margin-bottom:6px}
+  .ini-servico .dia b{font-size:var(--t40)}
+}
+@container inicio (min-width:601px){.ini-corpo > .ini-avisos{display:none}}
