@@ -257,6 +257,16 @@ describe('a ficha de consulta', () => {
     expect(blocos()).toEqual(['Identificação']);
   });
 
+  it('6.50: a ficha completa responde 404 (quem nunca foi lotado não aparece para ela), e a ficha de consulta abre mesmo assim', async () => {
+    api({
+      'GET /api/militares/m1': { status: 404, corpo: { erro: 'Militar não encontrado.' } },
+      'GET /api/consulta/militares/m1': { status: 200, corpo: { ...FICHA_MINIMA, lotacao: null, quadro: null } },
+    });
+    abrir('/peculio/militar/m1?de=pesquisa&texto=andr');
+    expect(await screen.findByText('Sem lotação hoje')).toBeInTheDocument();
+    expect(screen.queryByText('Militar não encontrado.')).toBeNull();
+  });
+
   it('militar que não existe mostra a mensagem da API', async () => {
     api({ 'GET /api/consulta/militares/m1': { status: 404, corpo: { erro: 'Militar não encontrado.' } } });
     abrir('/peculio/militar/m1');

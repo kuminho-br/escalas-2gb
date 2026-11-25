@@ -27,7 +27,7 @@ import { mesPorExtenso } from '@/lib/saudacao';
 /** O nome do mês de um 'aaaa-mm' ('2026-12' -> 'dezembro'). */
 const nomeDoMes = (mes: string) => mesPorExtenso(new Date(`${mes}-15T12:00:00Z`));
 
-export type Item = { nome: string; icone: LucideIcon; para?: LinkProps['to']; /** O item só aparece para quem passa neste teste (sem ele, todos veem). */ ve?: (eu: Eu | EuDaApi) => boolean };
+export type Item = { nome: string; icone: LucideIcon; para?: LinkProps['to']; /** O item só aparece para quem passa neste teste (sem ele, todos veem). */ ve?: (eu: Eu | EuDaApi) => boolean; /** Só o endereço exato deixa o item destacado (e não os de baixo dele, que são itens à parte). */ exato?: boolean };
 export type IdModulo = 'escalas' | 'peculio' | 'visualizacao' | 'minha-ficha' | 'configuracoes' | 'estrutura';
 
 /**
@@ -101,7 +101,7 @@ export const MODULOS: Modulo[] = [
     icone: Contact,
     ve: () => true,
     itens: [[
-      { nome: 'Pecúlio da unidade', icone: Contact, para: '/peculio', ve: temPapel },
+      { nome: 'Pecúlio da unidade', icone: Contact, para: '/peculio', ve: temPapel, exato: true },
       { nome: 'Pesquisar militares', icone: Search, para: '/peculio/pesquisar' },
       { nome: 'Aniversários', icone: Cake, para: '/peculio/aniversarios', ve: temPapel },
     ]],

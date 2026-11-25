@@ -23,12 +23,15 @@ const SO_DO_GB: ListaDoPeculio = { militares: [LISTA.militares[1]!] };
 const ROTA = '/api/unidades/u-gb/peculio';
 
 /** A lista de baixo (ligado) e a só da unidade (abaixo=nao) são duas respostas: a simulação ignora a query, então o pedido é olhado aqui. */
-function api(soDireto: ListaDoPeculio = SO_DO_GB, comAsDeBaixo: ListaDoPeculio = LISTA) {
+function api(soDireto: ListaDoPeculio = SO_DO_GB, comAsDeBaixo: ListaDoPeculio = LISTA, espera?: Promise<unknown>) {
   const f = simularApi({ '/api/eu': { status: 200, corpo: GESTOR_GB }, [`GET ${ROTA}`]: { status: 200, corpo: comAsDeBaixo } });
   const padrao = f.getMockImplementation()!;
   f.mockImplementation(async (entrada, init) => {
     const url = typeof entrada === 'string' ? entrada : entrada instanceof URL ? entrada.href : entrada.url;
-    if (url.includes(ROTA) && url.includes('abaixo=nao')) return new Response(JSON.stringify(soDireto), { status: 200, headers: { 'Content-Type': 'application/json' } });
+    if (url.includes(ROTA) && url.includes('abaixo=nao')) {
+      await espera;
+      return new Response(JSON.stringify(soDireto), { status: 200, headers: { 'Content-Type': 'application/json' } });
+    }
     return padrao(entrada, init);
   });
   return f;
@@ -134,5 +137,32 @@ describe('a lista com divisória e o lugar dos aniversários (6.50)', () => {
     abrir('/peculio');
     await screen.findByRole('list', { name: 'Militares do Pecúlio' });
     expect(screen.queryByRole('heading', { name: 'Aniversariantes do mês' })).toBeNull();
+  });
+});
+
+describe('achados da revisão da 6.50', () => {
+  it('mudar o interruptor não desmonta a caixa: ela continua na tela, com o foco, enquanto a lista nova chega', async () => {
+    let chegou!: () => void;
+    const espera = new Promise<void>((r) => (chegou = r));
+    api(SO_DO_GB, LISTA, espera);
+    abrir('/peculio');
+    const caixa = await interruptor();
+    await userEvent.click(caixa);
+    // a resposta ainda não chegou: a caixa é a mesma (o foco do teclado não se perde) e a busca não some
+    expect(caixa).toBeInTheDocument();
+    expect(caixa).toHaveFocus();
+    expect(screen.getByRole('textbox', { name: 'Buscar por nome ou matrícula' })).toBeInTheDocument();
+    chegou();
+    const lista = await screen.findByRole('list', { name: 'Militares do Pecúlio' });
+    await waitFor(() => expect(within(lista).getAllByRole('listitem')).toHaveLength(1));
+    expect(caixa).toBeInTheDocument();
+  });
+
+  it('no trilho, só o item da tela aberta fica destacado: em "Pesquisar militares", o "Pecúlio da unidade" não', async () => {
+    simularApi({ '/api/eu': { status: 200, corpo: GESTOR_GB }, 'GET /api/consulta/unidades': { status: 200, corpo: [] } });
+    abrir('/peculio/pesquisar');
+    const pesquisar = await screen.findByRole('link', { name: 'Pesquisar militares' });
+    expect(pesquisar).toHaveAttribute('aria-current', 'page');
+    expect(screen.getByRole('link', { name: 'Pecúlio da unidade' })).not.toHaveAttribute('aria-current');
   });
 });

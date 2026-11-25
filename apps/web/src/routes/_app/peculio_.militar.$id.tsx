@@ -20,7 +20,7 @@ export const Route = createFileRoute('/_app/peculio_/militar/$id')({
 
 /**
  * A ficha de um militar dentro do Pecúlio Geral: completa (com Dados pessoais e Comportamento) para quem tem nível de acesso sobre ele, e de consulta para os outros,
- * na mesma rota. A API decide: quem não tem o nível recebe 403 na ficha completa, e a tela mostra a de consulta, que traz só o que a pessoa pode ver.
+ * na mesma rota. A API decide: quem não tem o nível recebe 403 (ou 404, se o militar não tem lotação) na ficha completa, e a tela mostra a de consulta, que traz só o que a pessoa pode ver (e diz se o militar não existe).
  */
 function FichaNoPeculio() {
   const { id } = Route.useParams();
@@ -31,7 +31,8 @@ function FichaNoPeculio() {
   const voltarPara = daPesquisa ? ('/peculio/pesquisar' as const) : ('/peculio' as const);
   const voltarBusca = daPesquisa ? { texto, unidade } : undefined;
   if (completa.isPending) return <Espera className="p-4" />;
-  if (completa.error instanceof ErroApi && completa.error.status === 403) return <FichaDeConsulta id={id} voltarPara={voltarPara} voltarBusca={voltarBusca} />;
+  // 403: sem nível de acesso sobre ele; 404: a ficha completa só enxerga quem tem lotação (quem nunca foi lotado aparece na pesquisa, e a consulta o mostra)
+  if (completa.error instanceof ErroApi && (completa.error.status === 403 || completa.error.status === 404)) return <FichaDeConsulta id={id} voltarPara={voltarPara} voltarBusca={voltarBusca} />;
   if (completa.error) return <p role="alert" className="p-4 text-alerta">{mensagemDe(completa.error)}</p>;
   return <FichaCompleta ficha={completa.data} eu={eu} completa voltarPara={voltarPara} voltarBusca={voltarBusca} />;
 }

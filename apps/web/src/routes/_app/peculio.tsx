@@ -107,54 +107,55 @@ function Peculio() {
       }
     >
 
-      {lista.isPending && <Espera />}
-      {lista.error && <p role="alert" className="text-alerta">{mensagemDe(lista.error)}</p>}
-      {lista.data && (
-        <div className="mt-6 grid gap-3">
-          <div className="grid gap-2 sm:grid-cols-[1fr_14rem]">
-            <div className="grid gap-1">
-              <Label htmlFor="busca-peculio" className="sr-only">Buscar por nome ou matrícula</Label>
-              <Input
-                id="busca-peculio"
-                placeholder="Buscar por nome ou matrícula"
-                value={busca}
-                onChange={(e) => { setBusca(e.target.value); setLimite(100); }}
-                className="bg-superficie"
-                onKeyDown={(e) => {
-                  if (e.key !== 'Enter' || !unico) return;
-                  e.preventDefault();
-                  void navigate({ to: '/peculio/militar/$id', params: { id: unico.militarId }, search: {} });
-                }}
-              />
-            </div>
-            <div className="grid gap-1">
-              <Label htmlFor="filtro-lotacao" className="text-xs text-apagado">Lotação</Label>
-              <EscolherUnidade id="filtro-lotacao" rotulo="Lotação" unidades={unidadesDoFiltro} valor={filtro} aoEscolher={(id) => { setLotacao(id); setLimite(100); }} permiteLimpar textoVazio="Todas" />
-            </div>
+      {/* os controles ficam sempre na tela: ao mudar "Incluir as unidades de baixo" só a lista espera a resposta (a caixa não some, e o foco do teclado fica nela) */}
+      <div className="mt-6 grid gap-3">
+        <div className="grid gap-2 sm:grid-cols-[1fr_14rem]">
+          <div className="grid gap-1">
+            <Label htmlFor="busca-peculio" className="sr-only">Buscar por nome ou matrícula</Label>
+            <Input
+              id="busca-peculio"
+              placeholder="Buscar por nome ou matrícula"
+              value={busca}
+              onChange={(e) => { setBusca(e.target.value); setLimite(100); }}
+              className="bg-superficie"
+              onKeyDown={(e) => {
+                if (e.key !== 'Enter' || !unico) return;
+                e.preventDefault();
+                void navigate({ to: '/peculio/militar/$id', params: { id: unico.militarId }, search: {} });
+              }}
+            />
           </div>
-          <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
-            <p className="text-apoio text-apagado">{filtrados.length > limite ? `Mostrando ${limite} de ${filtrados.length}` : `${filtrados.length} de ${lista.data.militares.length}`} militares</p>
-            {/* ligado: a unidade e as de baixo; desligado: só quem está lotado direto nela (a lembrança fica no navegador) */}
-            <div className="flex items-center gap-2">
-              <Checkbox id="incluir-as-de-baixo" checked={incluirAsDeBaixo} onChange={(e) => mudarIncluirAsDeBaixo(e.target.checked)} />
-              <Label htmlFor="incluir-as-de-baixo">Incluir as unidades de baixo</Label>
-            </div>
+          <div className="grid gap-1">
+            <Label htmlFor="filtro-lotacao" className="text-xs text-apagado">Lotação</Label>
+            <EscolherUnidade id="filtro-lotacao" rotulo="Lotação" unidades={unidadesDoFiltro} valor={filtro} aoEscolher={(id) => { setLotacao(id); setLimite(100); }} permiteLimpar textoVazio="Todas" />
           </div>
-          <ListaDeMilitares rotulo="Militares do Pecúlio">
-            {filtrados.slice(0, limite).map((m) => <ItemDoPeculioNaLista key={m.militarId} m={m} destaque={m.militarId === unico?.militarId} />)}
-            {lista.data.militares.length === 0 && (
-              <li className="p-4 text-apagado">
-                {incluirAsDeBaixo
-                  ? 'Nenhum militar lotado. Cadastre com "Novo militar" ou use "Importar".'
-                  : `Nenhum militar lotado direto em ${unidade.sigla}. Ligue "Incluir as unidades de baixo".`}
-              </li>
-            )}
-          </ListaDeMilitares>
-          {filtrados.length > limite && (
-            <div><Button type="button" variant="secundario" onClick={() => setLimite((n) => n + 100)}>Mostrar mais</Button></div>
-          )}
         </div>
-      )}
+        <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+          <p className="text-apoio text-apagado">{lista.data ? `${filtrados.length > limite ? `Mostrando ${limite} de ${filtrados.length}` : `${filtrados.length} de ${lista.data.militares.length}`} militares` : ''}</p>
+          {/* ligado: a unidade e as de baixo; desligado: só quem está lotado direto nela (a lembrança fica no navegador) */}
+          <div className="flex items-center gap-2">
+            <Checkbox id="incluir-as-de-baixo" checked={incluirAsDeBaixo} onChange={(e) => mudarIncluirAsDeBaixo(e.target.checked)} />
+            <Label htmlFor="incluir-as-de-baixo">Incluir as unidades de baixo</Label>
+          </div>
+        </div>
+        {lista.isPending && <Espera />}
+        {lista.error && <p role="alert" className="text-alerta">{mensagemDe(lista.error)}</p>}
+        {lista.data && (
+        <ListaDeMilitares rotulo="Militares do Pecúlio">
+          {filtrados.slice(0, limite).map((m) => <ItemDoPeculioNaLista key={m.militarId} m={m} destaque={m.militarId === unico?.militarId} />)}
+          {lista.data.militares.length === 0 && (
+            <li className="p-4 text-apagado">
+              {incluirAsDeBaixo
+                ? 'Nenhum militar lotado. Cadastre com "Novo militar" ou use "Importar".'
+                : `Nenhum militar lotado direto em ${unidade.sigla}. Ligue "Incluir as unidades de baixo".`}
+            </li>
+          )}
+        </ListaDeMilitares>
+        )}
+        {lista.data && filtrados.length > limite && (
+          <div><Button type="button" variant="secundario" onClick={() => setLimite((n) => n + 100)}>Mostrar mais</Button></div>
+        )}
+      </div>
     </Moldura>
   );
 }
