@@ -5,7 +5,7 @@ import type { Contexto, Importador } from './tipos.ts';
 const LINHAS_COM_OPCOES = 1001;
 const LARGURA_AJUDA = 5;
 
-function cabecalho(ws: ExcelJS.Worksheet, colunas: { rotulo: string; opcoes?: string[]; texto?: boolean }[]) {
+export function cabecalho(ws: ExcelJS.Worksheet, colunas: { rotulo: string; opcoes?: string[]; texto?: boolean }[]) {
   const linha = ws.addRow(colunas.map((c) => c.rotulo));
   linha.font = { bold: true, color: { argb: 'FFFFFFFF' } };
   linha.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF8E1B1B' } };

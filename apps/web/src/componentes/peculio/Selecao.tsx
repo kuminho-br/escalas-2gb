@@ -1,4 +1,4 @@
-import type { LinhaDaBusca } from 'contratos';
+import { LIMITE_DO_LOTE, type LinhaDaBusca } from 'contratos';
 import { X } from 'lucide-react';
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { Button } from '@/componentes/ui/button';
@@ -30,7 +30,7 @@ export function SelecaoDeMilitares({ ativa = true, children }: { ativa?: boolean
       selecionados,
       tem: (id) => selecionados.some((s) => s.id === id),
       alternar: (linha) => setSelecionados((atual) => (atual.some((s) => s.id === linha.id) ? atual.filter((s) => s.id !== linha.id) : [...atual, linha])),
-      incluir: (linhas) => setSelecionados((atual) => [...atual, ...linhas.filter((l) => !atual.some((s) => s.id === l.id))]),
+      incluir: (linhas) => setSelecionados((atual) => { const ja = new Set(atual.map((s) => s.id)); return [...atual, ...linhas.filter((l) => !ja.has(l.id))]; }),
       tirar: (id) => setSelecionados((atual) => atual.filter((s) => s.id !== id)),
       limpar: () => setSelecionados([]),
     }),
@@ -52,15 +52,18 @@ export function PainelDeSelecionados() {
   const [lote, setLote] = useState(false);
   if (selecionados.length === 0 && !lote) return null;
   const titulo = `Selecionados (${selecionados.length})`;
+  // "Selecionar todos" (6.54) pode passar do que o lote aceita: avisa aqui, em vez de a API recusar depois de a pessoa preencher tudo
+  const passouDoLote = selecionados.length > LIMITE_DO_LOTE;
   return (
     <section aria-labelledby="selecionados-titulo" className="mt-6 max-w-3xl rounded-xl border border-linha bg-superficie">
       <div className="flex items-center justify-between gap-3 border-b border-linha px-4 py-2">
         <h2 id="selecionados-titulo" className="font-cond text-lg font-semibold">{titulo}</h2>
         <div className="flex items-center gap-2">
-          <Button type="button" onClick={() => setLote(true)}>Atualizar em lote</Button>
+          <Button type="button" disabled={passouDoLote} onClick={() => setLote(true)}>Atualizar em lote</Button>
           <Button type="button" variant="discreto" onClick={limpar}>Limpar</Button>
         </div>
       </div>
+      {passouDoLote && <p className="border-b border-linha px-4 py-2 text-apoio text-apagado">{`A atualização em lote vai até ${LIMITE_DO_LOTE} militares. Tire alguns da seleção.`}</p>}
       <ul className="max-h-60 divide-y divide-linha overflow-auto">
         {selecionados.map((s) => (
           <li key={s.id} className="flex items-center gap-2 px-4 py-2">

@@ -3,13 +3,13 @@
 // (jornada, equipe, situação, voluntário JES, motorista e CNH, função, afastamento, cadastro incompleto), só enxergam os militares lotados onde a pessoa tem nível de acesso
 // (ou abaixo): assim ninguém descobre por um filtro o que a ficha não lhe mostra.
 import { categoriasQueHabilitam } from 'dominio';
-import { LIMITE_DA_BUSCA_COM_FILTROS, type FiltrosDaBusca, type LinhaDaBusca, type ResultadoDaBusca } from 'contratos';
+import { LIMITE_DA_BUSCA_COM_FILTROS, LIMITE_DA_BUSCA_SEM_CORTE, type FiltrosDaBusca, type LinhaDaBusca, type ResultadoDaBusca } from 'contratos';
 import { ehAdministrador, papeisVigentes } from '../acesso.ts';
 import type { Consulta } from '../banco/banco.ts';
 import { COM_ACENTO, LIMITE_DA_BUSCA, palavrasDaBusca, SEM_ACENTO } from './consulta.ts';
 
 /** O que a busca devolve, ou o erro que a rota repete (com o status). */
-export type RespostaDaBusca = { ok: true; resultado: ResultadoDaBusca } | { ok: false; status: 400 | 404; erro: string };
+export type RespostaDaBusca = { ok: true; resultado: ResultadoDaBusca } | { ok: false; status: 400 | 403 | 404; erro: string };
 
 /** A matrícula só com os dígitos: "990012-3" e "9900123" são a mesma; sem dígito nenhum, vale o texto (vai para as não encontradas). */
 const chaveDaMatricula = (m: string) => m.replace(/\D/g, '') || m;
@@ -19,12 +19,17 @@ type Linha = {
   equipe: string | null; jornada: 'pronto' | 'adm' | null; situacao: string | null; unidade_id: string | null; pode_alterar: boolean;
 };
 
-export async function buscarComFiltros(c: Consulta, usuarioId: string, f: FiltrosDaBusca, hoje: string): Promise<RespostaDaBusca> {
+/**
+ * `semCorte` (6.54): a lista inteira do filtro, sem o corte de 500 (para "Selecionar todos" e para a exportação). Só de quem tem nível de acesso (403 para os outros) e até 5000
+ * militares (acima, 400 pedindo para afinar a busca).
+ */
+export async function buscarComFiltros(c: Consulta, usuarioId: string, f: FiltrosDaBusca, hoje: string, opcoes: { semCorte?: boolean } = {}): Promise<RespostaDaBusca> {
   const admin = await ehAdministrador(c, usuarioId, hoje);
   const temNivel = admin || (await papeisVigentes(c, usuarioId, hoje)).length > 0;
   const texto = (f.texto ?? '').trim();
   // quem tem nível de acesso recebe até 500 linhas; o militar comum, as 50 de sempre da Consulta (a varredura da corporação não rende mais por esta rota)
-  const limite = temNivel ? LIMITE_DA_BUSCA_COM_FILTROS : LIMITE_DA_BUSCA;
+  if (opcoes.semCorte && !temNivel) return { ok: false, status: 403, erro: 'Só quem tem nível de acesso vê o resultado inteiro.' };
+  const limite = opcoes.semCorte ? LIMITE_DA_BUSCA_SEM_CORTE : temNivel ? LIMITE_DA_BUSCA_COM_FILTROS : LIMITE_DA_BUSCA;
   const unidades = f.unidades ?? [];
   // o que só quem tem nível de acesso usa; os arrays vazios valem como "sem filtro"
   const restritos = temNivel
@@ -106,6 +111,7 @@ export async function buscarComFiltros(c: Consulta, usuarioId: string, f: Filtro
       limit ${limite + 1}`,
     p,
   );
+  if (opcoes.semCorte && rows.length > limite) return { ok: false, status: 400, erro: `Mais de ${LIMITE_DA_BUSCA_SEM_CORTE} militares. Afine a busca.` };
   const militares: LinhaDaBusca[] = rows.slice(0, limite).map((m) => ({
     id: m.id, postoGrad: m.posto, nomeGuerra: m.nome_guerra, nomeCompleto: m.nome_completo, matricula: m.matricula, lotacao: m.lotacao, quadro: m.quadro,
     equipe: m.equipe, jornada: m.jornada, situacao: m.situacao, unidadeId: m.unidade_id, podeAlterar: m.pode_alterar,

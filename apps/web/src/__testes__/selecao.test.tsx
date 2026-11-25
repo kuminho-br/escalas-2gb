@@ -79,15 +79,57 @@ describe('a seleção na pesquisa (6.51)', () => {
     expect(await screen.findByRole('heading', { name: 'Selecionados (3)' })).toBeInTheDocument();
   });
 
-  it('Review Focus 2: com "mais de 500", "Selecionar estes 500" pega só as linhas da tela, e a tela diz isso (nunca "todos")', async () => {
+  /** `buscar/todos` (6.54): a lista inteira do filtro; o `fila` da `api` só atende o `buscar` cortado. */
+  function comTodos(f: ReturnType<typeof api>, resposta: { status: number; corpo: unknown }) {
+    const padrao = f.getMockImplementation()!;
+    f.mockImplementation(async (entrada, init) => {
+      if (String(entrada).endsWith('/api/consulta/militares/buscar/todos')) return new Response(JSON.stringify(resposta.corpo), { status: resposta.status, headers: { 'Content-Type': 'application/json' } });
+      return padrao(entrada, init);
+    });
+  }
+
+  it('Review Focus 3 (6.54): com "mais de 500", o botão é "Selecionar todos": busca a lista inteira do filtro, seleciona os que a pessoa pode alterar, e a frase "Só os 500 mostrados" some', async () => {
     const quinhentos = Array.from({ length: 500 }, (_, i) => linha(`m${i}`, `M${i}`));
-    api([resultado(quinhentos, true)]);
+    const inteira = [...Array.from({ length: 520 }, (_, i) => linha(`m${i}`, `M${i}`)), linha('x1', 'FORA1', { podeAlterar: false })];
+    const f = api([resultado(quinhentos, true)]);
+    comTodos(f, { status: 200, corpo: resultado(inteira) });
     abrir('/peculio/pesquisar');
     await buscar('abc');
-    await userEvent.click(await screen.findByRole('button', { name: 'Selecionar estes 500' }));
-    expect(await screen.findByRole('heading', { name: 'Selecionados (500)' })).toBeInTheDocument();
-    expect(screen.getByText('Só os 500 mostrados. Afine a busca para pegar os outros.')).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /todos/i })).toBeNull();
+    expect(screen.queryByRole('button', { name: /Selecionar estes/ })).toBeNull();
+    await userEvent.click(await screen.findByRole('button', { name: 'Selecionar todos' }));
+    expect(await screen.findByRole('heading', { name: 'Selecionados (520)' })).toBeInTheDocument();
+    expect(screen.queryByText(/Só os 500 mostrados/)).toBeNull();
+    const chamada = f.mock.calls.find(([e]) => String(e).endsWith('/api/consulta/militares/buscar/todos'))!;
+    expect(JSON.parse(String(chamada[1]!.body))).toMatchObject({ texto: 'abc' });
+    expect(await screen.findByText('1 militar fica de fora: você não tem nível de acesso sobre ele.')).toBeInTheDocument();
+  });
+
+  it('achado da revisão (6.54): com mais de 500 selecionados, "Atualizar em lote" fica travado com a frase do limite (a atualização vai até 500)', async () => {
+    const quinhentos = Array.from({ length: 500 }, (_, i) => linha(`m${i}`, `M${i}`));
+    const inteira = Array.from({ length: 520 }, (_, i) => linha(`m${i}`, `M${i}`));
+    const f = api([resultado(quinhentos, true)]);
+    comTodos(f, { status: 200, corpo: resultado(inteira) });
+    abrir('/peculio/pesquisar');
+    await buscar('abc');
+    await userEvent.click(await screen.findByRole('button', { name: 'Selecionar todos' }));
+    await screen.findByRole('heading', { name: 'Selecionados (520)' });
+    expect(screen.getByRole('button', { name: 'Atualizar em lote' })).toBeDisabled();
+    expect(screen.getByText('A atualização em lote vai até 500 militares. Tire alguns da seleção.')).toBeInTheDocument();
+    for (let i = 0; i < 20; i++) await userEvent.click(screen.getByRole('button', { name: `Tirar SD M${i}` }));
+    await screen.findByRole('heading', { name: 'Selecionados (500)' });
+    expect(screen.getByRole('button', { name: 'Atualizar em lote' })).toBeEnabled();
+    expect(screen.queryByText(/vai até 500 militares/)).toBeNull();
+  });
+
+  it('"Selecionar todos" com mais de 5000: a mensagem da API aparece e a seleção não muda', async () => {
+    const quinhentos = Array.from({ length: 500 }, (_, i) => linha(`m${i}`, `M${i}`));
+    const f = api([resultado(quinhentos, true)]);
+    comTodos(f, { status: 400, corpo: { erro: 'Mais de 5000 militares. Afine a busca.' } });
+    abrir('/peculio/pesquisar');
+    await buscar('abc');
+    await userEvent.click(await screen.findByRole('button', { name: 'Selecionar todos' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('Mais de 5000 militares. Afine a busca.');
+    expect(screen.queryByRole('heading', { name: /^Selecionados/ })).toBeNull();
   });
 
   it('quem o usuário não pode alterar aparece sem marca para usar, e fica fora de "Selecionar estes"', async () => {

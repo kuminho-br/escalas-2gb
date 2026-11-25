@@ -21,3 +21,4 @@ export * from './visao.ts';
 export * from './consulta.ts';
 export * from './lote.ts';
 export * from './externos.ts';
+export * from './exportacao.ts';

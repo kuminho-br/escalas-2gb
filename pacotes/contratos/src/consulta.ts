@@ -49,6 +49,8 @@ export type UnidadeDaConsulta = { id: string; sigla: string; nivel: number; maeI
 
 /** A busca com filtros devolve no máximo isto; com mais, `haMais` e a tela pede para afinar a busca (6.51). */
 export const LIMITE_DA_BUSCA_COM_FILTROS = 500;
+/** A busca sem corte (a lista inteira do filtro, para selecionar e exportar, 6.54) vai até isto; com mais, a pessoa afina a busca. */
+export const LIMITE_DA_BUSCA_SEM_CORTE = 5000;
 
 /**
  * Os filtros da busca de "Pesquisar militares" (6.51); somam-se. Só `texto` e `unidades` (a lotação, cada uma com ou sem as de baixo) valem para toda conta:
