@@ -19,4 +19,5 @@ export * from './oficiais.ts';
 export * from './estrutura.ts';
 export * from './visao.ts';
 export * from './consulta.ts';
+export * from './lote.ts';
 export * from './externos.ts';
