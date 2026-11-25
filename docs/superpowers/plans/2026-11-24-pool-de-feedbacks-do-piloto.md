@@ -17,9 +17,9 @@
 | 1 | 24/11 | usuário | Grade geral: linha mais forte separando a área que rola (dias e alocações) da fixa (militar, PJES, Diárias e o cabeçalho das datas); padrão de UI com a DESIGN, para toda tabela com rolagem | secundária | mesclado (#233) | 6.46 |
 | 2 | 24/11 | usuário | A barra de saldo do Adm fica à direita da matrícula, alinhada à direita na célula do militar (hoje está antes) | secundária | mesclado (#233) | 6.46 |
 | 3 | 24/11 | usuário | Os filtros de equipe da Grade (Todas, ALFA…) sem identidade visual: repensar; "Adm" vira "ADM" | secundária | mesclado (#233) | 6.46 |
-| 4 | 24/11 | usuário | Pecúlio reestruturado: o módulo vira "Pecúlio Geral", com as views "Pecúlio da unidade" (a de hoje, com um botão para incluir as unidades de baixo), "Pesquisar militares" (a corporação inteira, com vários filtros) e "Aniversários" (calendário) | secundária | planejado | 6.50 |
-| 5 | 24/11 | usuário | A lista de militares do Pecúlio precisa de linha divisória entre os itens, ou cartões dentro de um painel | secundária | planejado | 6.50 |
-| 6 | 24/11 | usuário | A ficha completa aberta pela busca do Pecúlio leva à aba Militares das escalas; deve abrir no próprio Pecúlio | secundária | planejado | 6.50 |
+| 4 | 24/11 | usuário | Pecúlio reestruturado: o módulo vira "Pecúlio Geral", com as views "Pecúlio da unidade" (a de hoje, com um botão para incluir as unidades de baixo), "Pesquisar militares" (a corporação inteira, com vários filtros) e "Aniversários" (calendário) | secundária | mesclado (#244) | 6.50 |
+| 5 | 24/11 | usuário | A lista de militares do Pecúlio precisa de linha divisória entre os itens, ou cartões dentro de um painel | secundária | mesclado (#244) | 6.50 |
+| 6 | 24/11 | usuário | A ficha completa aberta pela busca do Pecúlio leva à aba Militares das escalas; deve abrir no próprio Pecúlio | secundária | mesclado (#244) | 6.50 |
 | 7 | 24/11 | DESIGN | Tela inicial, versão 2, aprovada: cena menor que encolhe ao rolar e atalhos dos módulos (avisos e próximos serviços ficam para depois) | secundária | planejado | 6.42 (Fable) |
 | 8 | 24/11 | usuário | Atualização em lote no Pecúlio Geral: seleção não contígua (filtros, árvore, arquivo de matrículas, unidade com as de baixo) e campos com valores; ferramenta da SP; nasce da relotação depois da importação | secundária | planejado | 6.51 e 6.52 |
 | 9 | 24/11 | usuário | Seletor de unidade do Topo (CBMPE / DGO / DInter/1 / 2º GB …): abrir a hierarquia nó a nó, um nível por vez (a árvore vai crescer e a lista inteira não cabe), e um botão no começo que abre a hierarquia toda de uma vez, à escolha de quem usa | secundária | planejado | 6.45 (Fable) |
@@ -35,6 +35,7 @@
 | 19 | 25/11 | DESENVOLVIMENTO | 7.3: "permitir de novo" no passado pede justificativa mas não grava linha; troca entre escalas diferentes deixa o lado futuro fora do registro; a frase "em sem guarnição"; o GET da pré-escala conta turnos já começados; lacunas de teste | secundária | aberto (parte cai com a refeitura da prévia) | — |
 | 20 | 25/11 | DESENVOLVIMENTO | 7.2: linha de "Outro horário" só com o início não mostra o erro no campo; o fim "00:00" é recusado (o resto do sistema trata como 24h); o item "Meu voluntariado" tem um teste que não ocorre | secundária | aberto | — |
 | 21 | 25/11 | DESENVOLVIMENTO | Configurações da escala › Voluntariado: os blocos do voluntariado e os militares de outras unidades ainda aparecem ligáveis para o gestor de OUTRA unidade (a API dá 403); estender a regra "gestor na unidade" da 6.49.1 a esses controles. "Ainda não vale" herda a fonte estreita (falta font-sans) | secundária | aberto | — |
+| 22 | 25/11 | DESENVOLVIMENTO | Pecúlio da unidade com "Incluir as unidades de baixo" desligado: o filtro de lotação ainda oferece as unidades de baixo e pode dar "0 de N" sem explicação; o botão "Abrir a ficha completa" da ficha de consulta aponta para a mesma página | secundária | aberto | — |
 
 ## Já conhecidos antes do pool
 
