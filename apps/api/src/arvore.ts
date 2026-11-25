@@ -12,7 +12,7 @@ export const porCaminho = (a: UnidadeDeTrabalho, b: UnidadeDeTrabalho) => {
   return a.caminho.length - b.caminho.length;
 };
 
-export const COM_CAMINHO = `select u.id, u.sigla, u.tipo, array(select a.sigla from unidade a where a.caminho @> u.caminho order by nlevel(a.caminho)) as caminho from unidade u`;
-export type LinhaDaUnidade = { id: string; sigla: string; tipo: string; caminho: string[] };
-export const paraUnidade = (r: LinhaDaUnidade): UnidadeDeTrabalho => ({ id: r.id, sigla: r.sigla, caminho: r.caminho, nivel: r.caminho.length - 1, tipo: r.tipo });
+export const COM_CAMINHO = `select u.id, u.sigla, u.tipo, u.mae_id, array(select a.sigla from unidade a where a.caminho @> u.caminho order by nlevel(a.caminho)) as caminho from unidade u`;
+export type LinhaDaUnidade = { id: string; sigla: string; tipo: string; mae_id: string | null; caminho: string[] };
+export const paraUnidade = (r: LinhaDaUnidade): UnidadeDeTrabalho => ({ id: r.id, sigla: r.sigla, caminho: r.caminho, nivel: r.caminho.length - 1, tipo: r.tipo, maeId: r.mae_id });
 

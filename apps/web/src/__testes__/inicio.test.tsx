@@ -141,7 +141,7 @@ describe('tela inicial', () => {
   });
 
   it('numa unidade só de consulta, o atalho da Confecção diz que é só para ver', async () => {
-    const unidade = { id: 'u-2sb', sigla: '2ª SB', caminho: ['CBMPE', 'DGO', 'DInter/1', '2º GB', '2ª SB'], nivel: 4, tipo: 'secao' };
+    const unidade = { id: 'u-2sb', sigla: '2ª SB', caminho: ['CBMPE', 'DGO', 'DInter/1', '2º GB', '2ª SB'], nivel: 4, tipo: 'secao', maeId: null };
     simularApi({ '/api/eu': { status: 200, corpo: { ...comum, unidades: [unidade], unidadesSoConsulta: [unidade] } } });
     abrir('/');
     await screen.findByRole('heading', { level: 1 });

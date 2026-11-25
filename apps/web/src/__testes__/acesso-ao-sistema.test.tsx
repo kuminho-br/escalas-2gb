@@ -83,7 +83,7 @@ describe('Acesso ao sistema', () => {
   it('lista os níveis de acesso com "Auxiliar administrativo" e dá nível de acesso', async () => {
     const dada: AcessoDoMilitar = { ...ACESSO, papeis: [{ id: 'p1', papel: 'escalante', unidadeId: 'u-1sb', unidadeSigla: '1ª SB', desde: '2026-11-01', ate: null, podeEncerrar: true, ultimoGestorAte: null }] };
     const f = api(
-      { papeis: [{ id: 'p0', papel: 'gestor', unidadeId: 'u-gb', unidadeSigla: '2º GB', desde: '2026-01-01', ate: '2026-06-30', podeEncerrar: true, ultimoGestorAte: null }], papeisQuePodeDar: ['gestor', 'escalante'], unidadesParaPapel: [{ id: 'u-gb', sigla: '2º GB', nivel: 3, tipo: 'grupamento', maeSigla: 'DInter/1', aceitaLateral: false }, { id: 'u-1sb', sigla: '1ª SB', nivel: 4, tipo: 'secao', maeSigla: '2º GB', aceitaLateral: true }] },
+      { papeis: [{ id: 'p0', papel: 'gestor', unidadeId: 'u-gb', unidadeSigla: '2º GB', desde: '2026-01-01', ate: '2026-06-30', podeEncerrar: true, ultimoGestorAte: null }], papeisQuePodeDar: ['gestor', 'escalante'], unidadesParaPapel: [{ id: 'u-gb', sigla: '2º GB', nivel: 3, tipo: 'grupamento', maeId: null, maeSigla: 'DInter/1', aceitaLateral: false }, { id: 'u-1sb', sigla: '1ª SB', nivel: 4, tipo: 'secao', maeId: null, maeSigla: '2º GB', aceitaLateral: true }] },
       { 'POST /api/militares/m1/papeis': { status: 201, corpo: dada } },
     );
     abrir('/militares/m1');
@@ -100,10 +100,10 @@ describe('Acesso ao sistema', () => {
 
   it('escolher o quinto nível deixa na lista só as unidades que o aceitam, com a unidade de cima quando a sigla se repete (6.25)', async () => {
     const unidades = [
-      { id: 'u-gb', sigla: '2º GB', nivel: 3, tipo: 'grupamento', maeSigla: 'DInter/1', aceitaLateral: false }, { id: 'u-1sb', sigla: '1ª SB', nivel: 4, tipo: 'secao', maeSigla: '2º GB', aceitaLateral: true },
-      { id: 'u-da', sigla: 'DA', nivel: 4, tipo: 'divisao', maeSigla: '2º GB', aceitaLateral: true }, { id: 'u-divop', sigla: 'DivOp', nivel: 4, tipo: 'divisao', maeSigla: '2º GB', aceitaLateral: true }, { id: 'u-3sb', sigla: '3ª SB', nivel: 5, tipo: 'secao', maeSigla: 'DA', aceitaLateral: true },
+      { id: 'u-gb', sigla: '2º GB', nivel: 3, tipo: 'grupamento', maeId: null, maeSigla: 'DInter/1', aceitaLateral: false }, { id: 'u-1sb', sigla: '1ª SB', nivel: 4, tipo: 'secao', maeId: null, maeSigla: '2º GB', aceitaLateral: true },
+      { id: 'u-da', sigla: 'DA', nivel: 4, tipo: 'divisao', maeId: null, maeSigla: '2º GB', aceitaLateral: true }, { id: 'u-divop', sigla: 'DivOp', nivel: 4, tipo: 'divisao', maeId: null, maeSigla: '2º GB', aceitaLateral: true }, { id: 'u-3sb', sigla: '3ª SB', nivel: 5, tipo: 'secao', maeId: null, maeSigla: 'DA', aceitaLateral: true },
       // outro grupamento, com as mesmas siglas de divisão
-      { id: 'u-gb9', sigla: '9º GB', nivel: 3, tipo: 'grupamento', maeSigla: 'DInter/9', aceitaLateral: false }, { id: 'u-da9', sigla: 'DA', nivel: 4, tipo: 'divisao', maeSigla: '9º GB', aceitaLateral: true },
+      { id: 'u-gb9', sigla: '9º GB', nivel: 3, tipo: 'grupamento', maeId: null, maeSigla: 'DInter/9', aceitaLateral: false }, { id: 'u-da9', sigla: 'DA', nivel: 4, tipo: 'divisao', maeId: null, maeSigla: '9º GB', aceitaLateral: true },
     ];
     const f = api(
       { papeis: [{ id: 'p0', papel: 'gestor_lateral', unidadeId: 'u-da', unidadeSigla: 'DA', desde: '2026-11-01', ate: null, podeEncerrar: true, ultimoGestorAte: null }], papeisQuePodeDar: ['gestor', 'gestor_lateral', 'escalante'], unidadesParaPapel: unidades },
@@ -133,7 +133,7 @@ describe('Acesso ao sistema', () => {
   it('o erro de "O nível não existe na unidade raiz." aparece no campo da unidade', async () => {
     const msg = 'O nível não existe na unidade raiz.';
     api(
-      { papeisQuePodeDar: ['gestor_lateral'], unidadesParaPapel: [{ id: 'u-da', sigla: 'DA', nivel: 4, tipo: 'divisao', maeSigla: '2º GB', aceitaLateral: true }] },
+      { papeisQuePodeDar: ['gestor_lateral'], unidadesParaPapel: [{ id: 'u-da', sigla: 'DA', nivel: 4, tipo: 'divisao', maeId: null, maeSigla: '2º GB', aceitaLateral: true }] },
       { 'POST /api/militares/m1/papeis': { status: 400, corpo: { erro: msg, campos: { unidadeId: msg } } } },
     );
     abrir('/militares/m1');
@@ -159,7 +159,7 @@ describe('um formulário por vez no Acesso ao sistema', () => {
       { id: 'p2', papel: 'gestor', unidadeId: 'u-gb', unidadeSigla: '2º GB', desde: '2026-10-01', ate: null, podeEncerrar: true, ultimoGestorAte: null },
     ],
     papeisQuePodeDar: ['gestor', 'escalante'],
-    unidadesParaPapel: [{ id: 'u-gb', sigla: '2º GB', nivel: 3, tipo: 'grupamento', maeSigla: 'DInter/1', aceitaLateral: false }, { id: 'u-1sb', sigla: '1ª SB', nivel: 4, tipo: 'secao', maeSigla: '2º GB', aceitaLateral: true }],
+    unidadesParaPapel: [{ id: 'u-gb', sigla: '2º GB', nivel: 3, tipo: 'grupamento', maeId: null, maeSigla: 'DInter/1', aceitaLateral: false }, { id: 'u-1sb', sigla: '1ª SB', nivel: 4, tipo: 'secao', maeId: null, maeSigla: '2º GB', aceitaLateral: true }],
   };
   const encerrar = (b: { getAllByRole: (papel: 'button', o: { name: string }) => HTMLElement[] }) => b.getAllByRole('button', { name: 'Encerrar' }) as HTMLButtonElement[];
 
@@ -260,7 +260,7 @@ describe('um formulário por vez no Acesso ao sistema', () => {
 });
 
 describe('o "até" ao dar o nível de acesso (6.8)', () => {
-  const PODE: Partial<AcessoDoMilitar> = { papeisQuePodeDar: ['escalante'], unidadesParaPapel: [{ id: 'u-1sb', sigla: '1ª SB', nivel: 4, tipo: 'secao', maeSigla: '2º GB', aceitaLateral: true }] };
+  const PODE: Partial<AcessoDoMilitar> = { papeisQuePodeDar: ['escalante'], unidadesParaPapel: [{ id: 'u-1sb', sigla: '1ª SB', nivel: 4, tipo: 'secao', maeId: null, maeSigla: '2º GB', aceitaLateral: true }] };
   const dada: AcessoDoMilitar = { ...ACESSO, papeis: [{ id: 'p1', papel: 'escalante', unidadeId: 'u-1sb', unidadeSigla: '1ª SB', desde: '2026-11-01', ate: '2026-12-31', podeEncerrar: true, ultimoGestorAte: null }] };
 
   it('o campo "Até (opcional)" fica ao lado de "A partir de", e preenchido vai no corpo', async () => {
@@ -339,7 +339,7 @@ describe('Acesso ao sistema: acabamento (6.16)', () => {
   });
 
   it('item 8: dar ou encerrar um nível atualiza o seletor de unidade (o /api/eu é pedido de novo, sem recarregar a página)', async () => {
-    const f = api({ papeis: [nivel()], papeisQuePodeDar: ['escalante'], unidadesParaPapel: [{ id: 'u-1sb', sigla: '1ª SB', nivel: 4, tipo: 'secao', maeSigla: '2º GB', aceitaLateral: true }] }, {
+    const f = api({ papeis: [nivel()], papeisQuePodeDar: ['escalante'], unidadesParaPapel: [{ id: 'u-1sb', sigla: '1ª SB', nivel: 4, tipo: 'secao', maeId: null, maeSigla: '2º GB', aceitaLateral: true }] }, {
       'POST /api/militares/m1/papeis': { status: 201, corpo: ACESSO },
       'POST /api/papeis/p1/encerrar': { status: 200, corpo: ACESSO },
     });

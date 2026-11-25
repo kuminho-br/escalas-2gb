@@ -95,9 +95,12 @@ describe('lotar um militar em qualquer unidade', () => {
     expect((await lotacoes('990786-6'))).toEqual([]);
   });
 
-  it('a lista de unidades para a lotação mostra a unidade de cima quando a sigla se repete', async () => {
-    const lista: { sigla: string }[] = await (await api.pedir('admin', 'GET', '/api/unidades-de-lotacao')).json();
-    expect(lista.map((u) => u.sigla)).toEqual(expect.arrayContaining(['1ª SB (2º GB)', '1ª SB (9º GB)', '2º GB', 'DA']));
+  it('a lista de unidades para a lotação traz a sigla como é, e a que se repete se distingue pela unidade de cima (maeId), que monta a árvore (6.45)', async () => {
+    const lista: { sigla: string; maeId: string | null }[] = await (await api.pedir('admin', 'GET', '/api/unidades-de-lotacao')).json();
+    expect(lista.map((u) => u.sigla)).toEqual(expect.arrayContaining(['1ª SB', '2º GB', 'DA']));
+    const repetidas = lista.filter((u) => u.sigla === '1ª SB');
+    expect(repetidas.length).toBeGreaterThanOrEqual(2);
+    expect(new Set(repetidas.map((u) => u.maeId)).size).toBe(repetidas.length);
   });
 });
 

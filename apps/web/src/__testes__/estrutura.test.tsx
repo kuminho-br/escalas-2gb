@@ -5,10 +5,10 @@ import { describe, expect, it } from 'vitest';
 import { abrir, chamadasA, corpoEnviado, EU_EXEMPLO, simularApi } from './apoio';
 
 // Entrega 6.25, Task 4: a árvore de unidades, editável. Dados fictícios.
-const GB = { id: 'u-gb', sigla: '2º GB', caminho: ['CBMPE', 'DGO', 'DInter/1', '2º GB'], nivel: 3, tipo: 'grupamento' };
+const GB = { id: 'u-gb', sigla: '2º GB', caminho: ['CBMPE', 'DGO', 'DInter/1', '2º GB'], nivel: 3, tipo: 'grupamento', maeId: null };
 const SB1 = EU_EXEMPLO.unidades[0]!;
 const GESTOR_GB = { ...EU_EXEMPLO, papeis: [{ papel: 'gestor' as const, unidadeId: 'u-gb', unidadeSigla: '2º GB' }], unidades: [GB, SB1] };
-const ADMIN = { ...EU_EXEMPLO, papeis: [{ papel: 'administrador' as const, unidadeId: 'raiz', unidadeSigla: 'CBMPE' }], unidades: [{ id: 'raiz', sigla: 'CBMPE', caminho: ['CBMPE'], nivel: 0, tipo: 'corporacao' }, GB, SB1] };
+const ADMIN = { ...EU_EXEMPLO, papeis: [{ papel: 'administrador' as const, unidadeId: 'raiz', unidadeSigla: 'CBMPE' }], unidades: [{ id: 'raiz', sigla: 'CBMPE', caminho: ['CBMPE'], nivel: 0, tipo: 'corporacao', maeId: null }, GB, SB1] };
 
 const TIPOS: TipoDeUnidadeComUso[] = [
   { id: 't-gb', codigo: 'grupamento', nome: 'Grupamento', ordem: 3, unidades: 1 },
@@ -339,7 +339,7 @@ describe('o auxiliar na Estrutura (6.25)', () => {
   });
 
   it('quem tem nível em duas árvores separadas escolhe de qual quer ver', async () => {
-    const dois = { ...GESTOR_GB, papeis: [{ papel: 'gestor' as const, unidadeId: 'u-gb', unidadeSigla: '2º GB' }, { papel: 'gestor' as const, unidadeId: 'u-gb9', unidadeSigla: '9º GB' }], unidades: [GB, { id: 'u-gb9', sigla: '9º GB', caminho: ['CBMPE', 'DGO', 'DInter/9', '9º GB'], nivel: 3, tipo: 'grupamento' }] };
+    const dois = { ...GESTOR_GB, papeis: [{ papel: 'gestor' as const, unidadeId: 'u-gb', unidadeSigla: '2º GB' }, { papel: 'gestor' as const, unidadeId: 'u-gb9', unidadeSigla: '9º GB' }], unidades: [GB, { id: 'u-gb9', sigla: '9º GB', caminho: ['CBMPE', 'DGO', 'DInter/9', '9º GB'], nivel: 3, tipo: 'grupamento', maeId: null }] };
     const f = comEstrutura({}, dois);
     abrir('/estrutura');
     const seletor = await screen.findByLabelText('Árvore de');

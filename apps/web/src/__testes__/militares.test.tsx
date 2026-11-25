@@ -1415,7 +1415,7 @@ describe('mover pela hierarquia e quem moveu (6.23)', () => {
 
   it('6.24: militar sem nenhum período, com a unidade da tela sendo o CBMPE (não é seção): o formulário pede a escolha da seção, para o administrador dar a primeira lotação', async () => {
     // o administrador trabalha na raiz: a unidade da tela é o CBMPE
-    const ADMIN = { ...EU_EXEMPLO, papeis: [{ papel: 'administrador' as const, unidadeId: 'u-raiz', unidadeSigla: 'CBMPE' }], unidades: [{ id: 'u-raiz', sigla: 'CBMPE', caminho: ['CBMPE'], nivel: 0, tipo: 'raiz' }] };
+    const ADMIN = { ...EU_EXEMPLO, papeis: [{ papel: 'administrador' as const, unidadeId: 'u-raiz', unidadeSigla: 'CBMPE' }], unidades: [{ id: 'u-raiz', sigla: 'CBMPE', caminho: ['CBMPE'], nivel: 0, tipo: 'raiz', maeId: null }] };
     const f = api({
       '/api/eu': { status: 200, corpo: ADMIN },
       'GET /api/unidades/u-raiz/equipes': { status: 200, corpo: [] },

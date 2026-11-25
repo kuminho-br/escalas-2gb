@@ -12,13 +12,13 @@ const comUnidade = (e: EuDaApi): Eu => ({ ...e, unidade: e.unidades[0]!, soConsu
 const GESTOR_GB: EuDaApi = {
   ...EU_EXEMPLO,
   papeis: [{ papel: 'gestor', unidadeId: 'u-gb', unidadeSigla: '2º GB' }, { papel: 'escalante', unidadeId: 'u-1sb', unidadeSigla: '1ª SB' }],
-  unidades: [{ id: 'u-gb', sigla: '2º GB', caminho: ['CBMPE', 'DGO', 'DInter/1', '2º GB'], nivel: 3, tipo: 'grupamento' }, ...EU_EXEMPLO.unidades],
+  unidades: [{ id: 'u-gb', sigla: '2º GB', caminho: ['CBMPE', 'DGO', 'DInter/1', '2º GB'], nivel: 3, tipo: 'grupamento', maeId: null }, ...EU_EXEMPLO.unidades],
 };
 const LISTA: ListaDoPeculio = {
   militares: [
-    { militarId: 'm1', matricula: '990001-1', posto: 'SD', nomeGuerra: 'ANDRADE', nomeCompleto: 'João da Silva Andrade', lotacao: '1ª SB', telefone: '(81) 99999-0001', email: 'andrade@bombeiros.pe.gov.br', pendencias: [] },
-    { militarId: 'm2', matricula: '990002-2', posto: 'CB', nomeGuerra: 'BARRETO', nomeCompleto: null, lotacao: '2ª SB', telefone: null, email: null, pendencias: ['Nome completo em falta'] },
-    { militarId: 'm3', matricula: '990003-3', posto: 'SD', nomeGuerra: 'CÁBRAL', nomeCompleto: 'Carlos Cabral Neto', lotacao: '1ª SB', telefone: null, email: null, pendencias: [] },
+    { militarId: 'm1', matricula: '990001-1', posto: 'SD', nomeGuerra: 'ANDRADE', nomeCompleto: 'João da Silva Andrade', lotacao: '1ª SB', lotacaoId: 'u-1sb', telefone: '(81) 99999-0001', email: 'andrade@bombeiros.pe.gov.br', pendencias: [] },
+    { militarId: 'm2', matricula: '990002-2', posto: 'CB', nomeGuerra: 'BARRETO', nomeCompleto: null, lotacao: '2ª SB', lotacaoId: 'u-2sb', telefone: null, email: null, pendencias: ['Nome completo em falta'] },
+    { militarId: 'm3', matricula: '990003-3', posto: 'SD', nomeGuerra: 'CÁBRAL', nomeCompleto: 'Carlos Cabral Neto', lotacao: '1ª SB', lotacaoId: 'u-1sb', telefone: null, email: null, pendencias: [] },
   ],
   aniversariantes: [
     { militarId: 'm2', posto: 'CB', nomeGuerra: 'BARRETO', dia: 5, lotacao: '2ª SB' },
@@ -269,12 +269,12 @@ describe('Enter na busca do Pecúlio', () => {
 });
 
 describe('quem cadastra militar: nível de acesso numa unidade acima da seção', () => {
-  const DI = { id: 'u-di', sigla: 'DInter/1', caminho: ['CBMPE', 'DGO', 'DInter/1'], nivel: 2, tipo: 'diretoria_integrada' };
+  const DI = { id: 'u-di', sigla: 'DInter/1', caminho: ['CBMPE', 'DGO', 'DInter/1'], nivel: 2, tipo: 'diretoria_integrada', maeId: null };
   it('o auxiliar só da seção não pode, esteja a seção no nível que estiver da árvore', () => {
     const daSecao = (nivel: number): EuDaApi => ({
       ...EU_EXEMPLO,
       papeis: [{ papel: 'escalante', unidadeId: 'u-sec', unidadeSigla: 'SEC-X' }],
-      unidades: [{ id: 'u-sec', sigla: 'SEC-X', caminho: ['CBMPE', 'DGO', 'DInter/1', 'SEC-X'].slice(0, nivel + 1), nivel, tipo: 'secao' }],
+      unidades: [{ id: 'u-sec', sigla: 'SEC-X', caminho: ['CBMPE', 'DGO', 'DInter/1', 'SEC-X'].slice(0, nivel + 1), nivel, tipo: 'secao', maeId: null }],
     });
     expect(podeCadastrarMilitar(daSecao(3))).toBe(false);
     expect(podeCadastrarMilitar(daSecao(4))).toBe(false);
@@ -284,14 +284,14 @@ describe('quem cadastra militar: nível de acesso numa unidade acima da seção'
     const gestorDaDiretoria: EuDaApi = {
       ...EU_EXEMPLO,
       papeis: [{ papel: 'gestor', unidadeId: 'u-di', unidadeSigla: 'DInter/1' }],
-      unidades: [DI, { id: 'u-sec', sigla: 'SEC-X', caminho: ['CBMPE', 'DGO', 'DInter/1', 'SEC-X'], nivel: 3, tipo: 'grupamento' }],
+      unidades: [DI, { id: 'u-sec', sigla: 'SEC-X', caminho: ['CBMPE', 'DGO', 'DInter/1', 'SEC-X'], nivel: 3, tipo: 'grupamento', maeId: null }],
     };
     expect(podeCadastrarMilitar(gestorDaDiretoria)).toBe(true);
     expect(podeCadastrarMilitar(GESTOR_GB)).toBe(true);
   });
 
   it('6.31: quem tem nível de acesso na raiz (que não tem unidade de cima) também cadastra na própria raiz; fora da raiz, a própria unidade do nível continua de fora', () => {
-    const RAIZ = { id: 'u-raiz', sigla: 'CBMPE', caminho: ['CBMPE'], nivel: 0, tipo: 'corporacao' };
+    const RAIZ = { id: 'u-raiz', sigla: 'CBMPE', caminho: ['CBMPE'], nivel: 0, tipo: 'corporacao', maeId: null };
     const adminDaRaiz: EuDaApi = { ...EU_EXEMPLO, papeis: [{ papel: 'administrador', unidadeId: 'u-raiz', unidadeSigla: 'CBMPE' }], unidades: [RAIZ] };
     expect(podeCadastrarMilitar(adminDaRaiz)).toBe(true);
     expect(secoesDoCadastro(adminDaRaiz, [{ id: 'u-raiz', sigla: 'CBMPE', nome: '' }]).map((x) => x.sigla)).toEqual(['CBMPE']);
@@ -301,7 +301,7 @@ describe('quem cadastra militar: nível de acesso numa unidade acima da seção'
 
   it('as seções do diálogo são só as que estão abaixo de um nível de acesso da pessoa', () => {
     const eu: EuDaApi = { ...GESTOR_GB, papeis: [{ papel: 'gestor', unidadeId: 'u-gb', unidadeSigla: '2º GB' }, { papel: 'escalante', unidadeId: 'u-outra', unidadeSigla: '9ª SB' }],
-      unidades: [GESTOR_GB.unidades[0]!, { id: 'u-1sb', sigla: '1ª SB', caminho: ['CBMPE', 'DGO', 'DInter/1', '2º GB', '1ª SB'], nivel: 4, tipo: 'secao' }, { id: 'u-outra', sigla: '9ª SB', caminho: ['CBMPE', 'DGO', 'DInter/9', '9º GB', '9ª SB'], nivel: 4, tipo: 'secao' }] };
+      unidades: [GESTOR_GB.unidades[0]!, { id: 'u-1sb', sigla: '1ª SB', caminho: ['CBMPE', 'DGO', 'DInter/1', '2º GB', '1ª SB'], nivel: 4, tipo: 'secao', maeId: null }, { id: 'u-outra', sigla: '9ª SB', caminho: ['CBMPE', 'DGO', 'DInter/9', '9º GB', '9ª SB'], nivel: 4, tipo: 'secao', maeId: null }] };
     const secoes = [{ id: 'u-1sb', sigla: '1ª SB', nome: '' }, { id: 'u-outra', sigla: '9ª SB', nome: '' }, { id: 'u-x', sigla: 'X', nome: '' }];
     expect(secoesDoCadastro(eu, secoes).map((x) => x.sigla)).toEqual(['1ª SB']);
   });
@@ -317,7 +317,7 @@ describe('o Novo militar, no Pecúlio', () => {
   const SECOES = [{ id: 'u-1sb', sigla: '1ª SB', nome: '1ª Seção de Bombeiros' }, { id: 'u-2sb', sigla: '2ª SB', nome: '2ª Seção de Bombeiros' }];
   const FICHA_CRIADA = { id: 'm9' };
   // o gestor do 2º GB alcança as duas seções (a lista de unidades dele traz a árvore de baixo)
-  const GB_COM_SECOES: EuDaApi = { ...GESTOR_GB, unidades: [...GESTOR_GB.unidades, { id: 'u-2sb', sigla: '2ª SB', caminho: ['CBMPE', 'DGO', 'DInter/1', '2º GB', '2ª SB'], nivel: 4, tipo: 'secao' }] };
+  const GB_COM_SECOES: EuDaApi = { ...GESTOR_GB, unidades: [...GESTOR_GB.unidades, { id: 'u-2sb', sigla: '2ª SB', caminho: ['CBMPE', 'DGO', 'DInter/1', '2º GB', '2ª SB'], nivel: 4, tipo: 'secao', maeId: null }] };
   const rotas = (extra: Parameters<typeof simularApi>[0] = {}) =>
     api(GB_COM_SECOES, LISTA, { 'GET /api/postos': { status: 200, corpo: POSTOS }, 'GET /api/quadros': { status: 200, corpo: QUADROS }, 'GET /api/unidades-de-lotacao': { status: 200, corpo: SECOES }, ...extra });
   async function abrirODialogo() {
@@ -422,7 +422,7 @@ describe('o Novo militar, no Pecúlio', () => {
 describe('a lista com mais de 100 militares (6.17, item 23)', () => {
   const muitos: ListaDoPeculio = {
     militares: Array.from({ length: 250 }, (_, i) => ({
-      militarId: `m${i}`, matricula: `99${String(1000 + i).padStart(4, '0')}-${i % 10}`, posto: 'SD', nomeGuerra: `NOME${String(i).padStart(3, '0')}`, nomeCompleto: `Fulano ${i}`, lotacao: '1ª SB', telefone: null, email: null, pendencias: [],
+      militarId: `m${i}`, matricula: `99${String(1000 + i).padStart(4, '0')}-${i % 10}`, posto: 'SD', nomeGuerra: `NOME${String(i).padStart(3, '0')}`, nomeCompleto: `Fulano ${i}`, lotacao: '1ª SB', lotacaoId: 'u-1sb', telefone: null, email: null, pendencias: [],
     })),
   };
   const linhas = async () => (await militares()).getAllByRole('listitem');

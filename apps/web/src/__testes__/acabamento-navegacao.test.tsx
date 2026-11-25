@@ -6,9 +6,9 @@ import type { EuDaApi } from '@/api/eu';
 import { abrir, EU_EXEMPLO, simularApi } from './apoio';
 
 // Entrega 6.16, Task 3: unidade de trabalho e navegação.
-const GB = { id: 'u-gb', sigla: '2º GB', nivel: 3, caminho: ['CBMPE', 'DGO', 'DInter/1', '2º GB'], tipo: 'grupamento' };
+const GB = { id: 'u-gb', sigla: '2º GB', nivel: 3, caminho: ['CBMPE', 'DGO', 'DInter/1', '2º GB'], tipo: 'grupamento', maeId: null };
 const SB1 = EU_EXEMPLO.unidades[0]!;
-const SB2 = { id: 'u-2sb', sigla: '2ª SB', nivel: 4, caminho: ['CBMPE', 'DGO', 'DInter/1', '2º GB', '2ª SB'], tipo: 'secao' };
+const SB2 = { id: 'u-2sb', sigla: '2ª SB', nivel: 4, caminho: ['CBMPE', 'DGO', 'DInter/1', '2º GB', '2ª SB'], tipo: 'secao', maeId: null };
 const GESTOR: EuDaApi = { ...EU_EXEMPLO, papeis: [{ papel: 'gestor', unidadeId: 'u-gb', unidadeSigla: '2º GB' }], unidades: [GB, SB1, SB2] };
 const linha = (id: string, nome: string): LinhaMilitar => ({
   id, matricula: `990${id.slice(1).padStart(3, '0')}-1`, posto: 'SD', quadro: null, nomeGuerra: nome, equipe: null, jornada: 'adm', motorista: null, voluntarioJes: false, ativo: true, situacao: 'Disponível', pendencias: [],

@@ -8,7 +8,7 @@ import { escolherUnidade, guardarUnidade, guardarUnidadeDeConsulta, lerUnidadeDe
 import { abrir, chamadasA, EU_EXEMPLO, simularApi } from './apoio';
 
 // Entrega 6.12, Task 9: as telas de escala numa unidade só de consulta. Dados fictícios (D7).
-const unidade = (id: string, sigla: string, nivel: number, tipo: string, caminho: string[]): UnidadeDeTrabalho => ({ id, sigla, nivel, tipo, caminho });
+const unidade = (id: string, sigla: string, nivel: number, tipo: string, caminho: string[]): UnidadeDeTrabalho => ({ id, sigla, nivel, tipo, caminho, maeId: null });
 const GB = unidade('u-gb', '2º GB', 3, 'grupamento', ['CBMPE', 'DGO', 'DInter/1', '2º GB']);
 const DIVOP = unidade('u-divop', 'DivOp', 4, 'divisao', [...GB.caminho, 'DivOp']);
 const SB1 = unidade('u-1sb', '1ª SB', 5, 'secao', [...DIVOP.caminho, '1ª SB']);

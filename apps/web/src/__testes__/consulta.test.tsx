@@ -13,7 +13,7 @@ const linha = (id: string, nomeGuerra: string, extra: Partial<LinhaDaConsulta> =
   id, postoGrad: 'SD', nomeGuerra, nomeCompleto: `Fulano de Tal ${nomeGuerra}`, matricula: '990001-1', lotacao: '1ª SB', quadro: 'QBMG', ...extra,
 });
 const UNIDADES: UnidadeDaConsulta[] = [
-  { id: 'u-cbmpe', sigla: 'CBMPE', nivel: 0 }, { id: 'u-gb', sigla: '2º GB', nivel: 3 }, { id: 'u-divop', sigla: 'DivOp', nivel: 4 }, { id: 'u-1sb', sigla: '1ª SB', nivel: 5 },
+  { id: 'u-cbmpe', sigla: 'CBMPE', nivel: 0, maeId: null }, { id: 'u-gb', sigla: '2º GB', nivel: 3, maeId: null }, { id: 'u-divop', sigla: 'DivOp', nivel: 4, maeId: null }, { id: 'u-1sb', sigla: '1ª SB', nivel: 5, maeId: null },
 ];
 const BUSCA = 'GET /api/consulta/militares';
 
