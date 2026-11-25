@@ -673,6 +673,18 @@ Quatro tabelas, todas com auditoria (a função `registrar_auditoria` ganhou um 
 - **`militar`** ganha `funcao_militar_id` (FK para `funcao_militar`, vazia para quem não tem função) e `abono_permanencia` (`boolean not null default false`). Só quem cuida do Pecúlio altera os dois, pela ficha e pelas colunas FUNÇÃO e ABONO DE PERMANÊNCIA da planilha.
 - **`posto_grad.sigla` sem o sufixo " BM"** (0034): tira o " BM" de cada sigla, exceto quando já existe um posto com a sigla resultante. As migrações antigas (0007 e 0026) continuam como estavam, e o motor aceita as duas formas ao ordenar. A migração pode rodar de novo.
 
+### Fase 7.1: voluntariado_coleta e registro_de_alteracao (migração `0044_coleta_do_voluntariado_e_registro`)
+
+- **`voluntariado_coleta`:** a coleta do voluntariado, uma linha por unidade e mês (PK `unidade_id, mes`; `mes` é o dia 1). Existir a linha é estar aberta; fechar é apagá-la. Guarda `aberta_por` (usuário) e `aberta_em`. O `id` só serve à auditoria. A API trata como fechada a coleta de um mês que já passou.
+- **`voluntariado_lancamento`** ganha `pelo_militar` (`boolean not null default false`): o lançamento do mês foi feito pelo próprio militar. Só a correção do escalante sobre um mês com `pelo_militar` vai para o registro.
+- **`registro_de_alteracao`:** o registro das exceções, só de acréscimo (a aplicação não atualiza nem apaga; por isso não tem gatilho de auditoria, ele próprio é o histórico). Colunas: `em`, `usuario_id`, `unidade_id`, `tipo` (`voluntariado_corrigido` ou `escala_no_passado`), `militar_id`, `escala_id`, `mes` (dia 1), `data`, `antes` e `depois` (`jsonb`) e `justificativa`. Checks: `escala_no_passado` exige a escala e a justificativa com pelo menos 10 letras; `voluntariado_corrigido` exige o militar. Índices por `(escala_id, mes)` e por `(militar_id, mes)`.
+
+### Fase 7.3 e 7.3.1: escala_previa, que virou escala_estado (migrações `0045_escala_previa` e `0046_escala_estado`)
+
+- **`escala_previa`** (0045) guardava a prévia lançada de uma escala num mês (existir a linha era estar lançada). A 0046 copiou as linhas para `escala_estado`, como prévias, e apagou a tabela.
+- **`escala_estado`** (0046): o estado de uma escala num mês (PK `escala_id, mes`; `mes` é o dia 1). Sem linha, a escala é **rascunho**; com linha, `estado` é `previa`, `publicada`, `retificada` ou `remessada`. `em_retificacao` (`boolean`, padrão falso) acende sozinho na primeira mudança de uma escala publicada ou retificada e apaga quando o gestor republica; o check só o aceita em `publicada` e `retificada`. Guarda `mudou_por` e `mudou_em`; o `id` só serve à auditoria.
+- **Regras da API, sem coluna:** fora do rascunho, a alocação num turno que já começou pede gestor, coordenador ou administrador e uma justificativa, e grava uma linha `escala_no_passado` em `registro_de_alteracao`; numa escala remessada, só o administrador altera. O expediente sem escala e a rodada dos oficiais ficam fora da trava.
+
 ## Mudanças em relação ao ER proposto (v0.8)
 
 **Entram**
