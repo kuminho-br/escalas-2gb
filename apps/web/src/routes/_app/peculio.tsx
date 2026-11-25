@@ -102,7 +102,7 @@ function Peculio() {
                   onKeyDown={(e) => {
                     if (e.key !== 'Enter' || !unico) return;
                     e.preventDefault();
-                    void navigate({ to: '/militares/$id', params: { id: unico.militarId }, search: { de: 'peculio' } });
+                    void navigate({ to: '/peculio/militar/$id', params: { id: unico.militarId }, search: {} });
                   }}
                 />
               </div>
@@ -152,9 +152,9 @@ function ItemDoPeculioNaLista({ m, destaque }: { m: ItemDoPeculio; destaque: boo
   return (
     <li>
       <Link
-        to="/militares/$id"
+        to="/peculio/militar/$id"
         params={{ id: m.militarId }}
-        search={{ de: 'peculio' }}
+        search={{}}
         aria-current={destaque ? 'true' : undefined}
         className={cn('grid gap-0.5 rounded-lg px-3 py-2 hover:bg-accent', destaque && classeItemEscolhido)}
       >

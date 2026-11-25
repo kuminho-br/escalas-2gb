@@ -11,20 +11,25 @@ const FORA_DO_MENU: Record<string, string> = {
   'sem-lotacao': 'Sem lotação',
   'efetivo-do-dia': 'Efetivo do dia',
   guarnicoes: 'Guarnições',
+  // os endereços antigos da consulta redirecionam para a pesquisa do Pecúlio Geral
+  consulta: 'Pesquisar militares',
 };
 
-/** O primeiro trecho de cada endereço do menu e o nome dele: '/grade' → 'Grade geral'. */
+/** O endereço de cada item do menu, sem a barra do começo, e o nome dele: 'grade' → 'Grade geral', 'peculio/pesquisar' → 'Pesquisar militares'. */
 const DO_MENU = new Map<string, string>(
   MODULOS.flatMap((m) => [...m.itens.flat(), ...(m.pe ?? []), ...(m.rota && m.itens.length === 0 ? [{ nome: m.nome, para: m.rota }] : [])])
     .filter((i): i is typeof i & { para: string } => typeof i.para === 'string')
-    .map((i) => [i.para.split('/')[1]!, i.nome]),
+    .map((i) => [i.para.slice(1), i.nome]),
 );
 
 export function tituloDaAba(caminho: string): string {
   const partes = caminho.split('/').filter(Boolean);
   const primeiro = (partes[0] ?? '').toLowerCase();
   if (!primeiro) return NOME_DO_SISTEMA;
-  // a ficha de um militar (/militares/:id) leva "Militar", e não o nome dele
-  const nome = primeiro === 'militares' && partes.length > 1 ? 'Militar' : (FORA_DO_MENU[primeiro] ?? DO_MENU.get(primeiro));
+  // a ficha de um militar (/militares/:id, /peculio/militar/:id) leva "Militar", e não o nome dele
+  const daFicha = (primeiro === 'militares' && partes.length > 1) || (primeiro === 'peculio' && (partes[1] ?? '').toLowerCase() === 'militar');
+  // o item do menu pelos dois primeiros trechos ('peculio/pesquisar') e, sem ele, pelo primeiro ('grade')
+  const doMenu = DO_MENU.get(partes.slice(0, 2).join('/').toLowerCase()) ?? DO_MENU.get(primeiro);
+  const nome = daFicha ? 'Militar' : (FORA_DO_MENU[primeiro] ?? doMenu);
   return nome ? `${nome} · ${NOME_DO_SISTEMA}` : NOME_DO_SISTEMA;
 }

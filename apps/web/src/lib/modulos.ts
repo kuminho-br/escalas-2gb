@@ -4,6 +4,7 @@ import {
   CalendarDays,
   CircleHelp,
   Clock,
+  Cake,
   Contact,
   Eye,
   FileText,
@@ -90,15 +91,16 @@ export const MODULOS: Modulo[] = [
   // no trilho; quem tem nível vê a lista do Pecúlio e a Consulta
   {
     id: 'peculio',
-    nome: 'Pecúlio',
-    situacao: (eu) => (temPapel(eu) ? 'Contatos e cadastros' : 'Consulta de militares'),
+    nome: 'Pecúlio Geral',
+    situacao: (eu) => (temPapel(eu) ? 'Contatos e cadastros' : 'Pesquisar militares'),
     rota: '/peculio',
-    rotaDe: (eu) => (temPapel(eu) ? '/peculio' : '/consulta'),
+    rotaDe: (eu) => (temPapel(eu) ? '/peculio' : '/peculio/pesquisar'),
     icone: Contact,
     ve: () => true,
     itens: [[
-      { nome: 'Pecúlio', icone: Contact, para: '/peculio', ve: temPapel },
-      { nome: 'Consulta de militares', icone: Search, para: '/consulta' },
+      { nome: 'Pecúlio da unidade', icone: Contact, para: '/peculio', ve: temPapel },
+      { nome: 'Pesquisar militares', icone: Search, para: '/peculio/pesquisar' },
+      { nome: 'Aniversários', icone: Cake, para: '/peculio/aniversarios', ve: temPapel },
     ]],
   },
   // a árvore de unidades (entrega 6.26): quem tem nível de acesso a vê; só quem tem poder sobre ela a edita (cada unidade diz o que a pessoa pode fazer)

@@ -15,12 +15,15 @@ describe('o título da aba', () => {
     expect(tituloDaAba('/militares')).toBe(`Militares · ${SISTEMA}`);
     expect(tituloDaAba('/militares/abc')).toBe(`Militar · ${SISTEMA}`);
     expect(tituloDaAba('/entrar')).toBe(`Entrar · ${SISTEMA}`);
-    expect(tituloDaAba('/peculio')).toBe(`Pecúlio · ${SISTEMA}`);
+    expect(tituloDaAba('/peculio')).toBe(`Pecúlio da unidade · ${SISTEMA}`);
+    expect(tituloDaAba('/peculio/aniversarios')).toBe(`Aniversários · ${SISTEMA}`);
+    expect(tituloDaAba('/peculio/militar/abc')).toBe(`Militar · ${SISTEMA}`);
     expect(tituloDaAba('/minha-ficha')).toBe(`Minha ficha · ${SISTEMA}`);
     expect(tituloDaAba('/configuracoes')).toBe(`Configurações · ${SISTEMA}`);
-    // a consulta e a ficha de consulta: o nome da tela, e nunca o do militar
-    expect(tituloDaAba('/consulta')).toBe(`Consulta de militares · ${SISTEMA}`);
-    expect(tituloDaAba('/consulta/abc')).toBe(`Consulta de militares · ${SISTEMA}`);
+    // a pesquisa e a ficha dentro do Pecúlio: o nome da tela, e nunca o do militar (os endereços antigos da consulta valem o mesmo)
+    expect(tituloDaAba('/peculio/pesquisar')).toBe(`Pesquisar militares · ${SISTEMA}`);
+    expect(tituloDaAba('/consulta')).toBe(`Pesquisar militares · ${SISTEMA}`);
+    expect(tituloDaAba('/consulta/abc')).toBe(`Pesquisar militares · ${SISTEMA}`);
     expect(tituloDaAba('/')).toBe(SISTEMA);
   });
 

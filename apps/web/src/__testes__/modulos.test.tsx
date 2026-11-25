@@ -8,7 +8,7 @@ const COMUM: EuDaApi = { ...EU_EXEMPLO, papeis: [] };
 const quemVe = (eu: EuDaApi) => MODULOS.filter((m) => m.ve({ ...eu, unidade: eu.unidades[0]! })).map((m) => m.id);
 
 describe('os módulos e quem os vê', () => {
-  it('o militar comum vê o Pecúlio (só a Consulta), a Visualização, a Minha ficha e as Configurações', () => {
+  it('o militar comum vê o Pecúlio Geral (só a pesquisa), a Visualização, a Minha ficha e as Configurações', () => {
     expect(quemVe(COMUM)).toEqual(['peculio', 'visualizacao', 'minha-ficha', 'configuracoes']);
   });
 
@@ -65,9 +65,9 @@ describe('o módulo de cada endereço', () => {
     expect(id('/nao-existe')).toBeNull();
   });
 
-  it('o trilho da Confecção tem os blocos de hoje e o do Pecúlio, o Pecúlio e a Consulta', () => {
+  it('o trilho da Confecção tem os blocos de hoje e o do Pecúlio Geral, as três telas (6.50)', () => {
     const nomes = (m: string) => MODULOS.find((x) => x.id === m)!.itens.flat().map((i) => i.nome);
     expect(nomes('escalas')).toEqual(['Grade geral', 'Escala do mês', 'Efetivo por dia', 'Oficiais', 'Voluntariado', 'Cotas', 'Militares', 'Turnos', 'Escalas', 'Feriados']);
-    expect(nomes('peculio')).toEqual(['Pecúlio', 'Consulta de militares']);
+    expect(nomes('peculio')).toEqual(['Pecúlio da unidade', 'Pesquisar militares', 'Aniversários']);
   });
 });

@@ -23,7 +23,9 @@ export const Route = createFileRoute('/_app')({
     if (modulo && !modulo.ve(eu)) throw redirect({ to: '/', search: { aviso: 'outro-papel' } });
     // o Pecúlio é de todos, mas a lista do Pecúlio (e a ficha aberta por ela) é de quem tem nível de acesso: quem não tem só tem a Consulta
     const primeiro = (location.pathname.split('/')[1] ?? '').toLowerCase();
-    if (modulo?.id === 'peculio' && primeiro !== 'consulta' && ehMilitarComum(eu)) throw redirect({ to: '/', search: { aviso: 'outro-papel' } });
+    // quem não tem nível de acesso só abre a pesquisa e a ficha de consulta dentro dele (a lista da unidade e os aniversários são de quem tem nível); /consulta redireciona
+    const segundo = (location.pathname.split('/')[2] ?? '').toLowerCase();
+    if (modulo?.id === 'peculio' && primeiro !== 'consulta' && ehMilitarComum(eu) && !['pesquisar', 'militar'].includes(segundo)) throw redirect({ to: '/', search: { aviso: 'outro-papel' } });
     // numa unidade só de consulta a Confecção abre só nas telas de leitura: as outras (Militares, Turnos, Escalas, Feriados, Oficiais, Configurações) levam à Grade geral
     if (eu.soConsulta && modulo?.id === 'escalas' && !TELAS_DE_LEITURA.has((location.pathname.split('/')[1] ?? '').toLowerCase())) throw redirect({ to: '/grade' });
     return { eu };
