@@ -274,6 +274,44 @@ describe('com a prévia lançada', () => {
   });
 });
 
+describe('o efetivo do dia: desativar uma guarnição também respeita a trava (achado da revisão)', () => {
+  const d = 8;
+  let desfazer: Record<string, unknown>;
+  beforeAll(async () => {
+    expect((await api.pedir('admin', 'PUT', `${secao()}/meta-do-dia/${dia(d)}`, { guarnicoes: [abt, ar] })).status).toBe(200);
+    expect((await escalar('gestorGb', 'M1', d, { justificativa: MOTIVO })).status).toBe(201);
+  });
+  const desativar = (quem: Quem, extra: Record<string, unknown> = {}) => api.pedir(quem, 'POST', `${secao()}/meta-do-dia/${dia(d)}/desativar`, { guarnicaoId: abt, ...extra });
+
+  it('o escalante recebe 403 com a frase fixa e a alocação continua no lugar', async () => {
+    const r = await desativar('escalante');
+    expect(r.status).toBe(403);
+    expect(((await r.json()) as { erro: string }).erro).toBe(MSG_SO_GESTOR);
+    expect(await alocacaoDe('M1', d)).toBeTruthy();
+  });
+
+  it('o gestor sem justificativa recebe 400 no campo; com ela passa, tira o militar da guarnição e grava o registro', async () => {
+    const sem = await desativar('gestorGb');
+    expect(sem.status).toBe(400);
+    expect(((await sem.json()) as { campos: Record<string, string> }).campos.justificativa).toBe(MSG_MOTIVO);
+    expect(await alocacaoDe('M1', d)).toBeTruthy();
+    const { r, novos } = await sozinho(() => desativar('gestorGb', { justificativa: MOTIVO }));
+    expect(r.status).toBe(200);
+    expect(novos.map((x) => x.texto)).toEqual([`Tirou SD-PS M1 de ABT (Combatente), dia 0${d}, 08:00`]);
+    desfazer = ((await r.json()) as { desfazer: Record<string, unknown> }).desfazer;
+  });
+
+  it('desfazer a desativação é outra mudança no passado: o escalante recebe 403; o gestor, com justificativa, devolve o militar e registra', async () => {
+    const negado = await api.pedir('escalante', 'POST', `${secao()}/meta-do-dia/${dia(d)}/desfazer-desativacao`, desfazer);
+    expect(negado.status).toBe(403);
+    const sem = await api.pedir('gestorGb', 'POST', `${secao()}/meta-do-dia/${dia(d)}/desfazer-desativacao`, desfazer);
+    expect(sem.status).toBe(400);
+    const { r, novos } = await sozinho(() => api.pedir('gestorGb', 'POST', `${secao()}/meta-do-dia/${dia(d)}/desfazer-desativacao`, { ...desfazer, justificativa: MOTIVO }));
+    expect(r.status).toBe(200);
+    expect(novos.map((x) => x.texto)).toEqual([`Pôs SD-PS M1 em ABT (Combatente), dia 0${d}, 08:00`]);
+  });
+});
+
 describe('a pré-escala numa escala com prévia lançada só preenche o que ainda não começou', () => {
   it('sem registro, e o que já passou fica como está', async () => {
     agora(15, 12);

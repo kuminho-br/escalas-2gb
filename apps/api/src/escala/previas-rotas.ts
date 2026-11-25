@@ -2,7 +2,8 @@
 // Não toca nas camadas de visão da "escala em montagem": o que não foi lançado continua só de quem já via.
 import { Mes, mesParaData, type EscalaDoMes, type MeuServico, type MinhaEscala, type PreviaDaLista } from 'contratos';
 import { Hono } from 'hono';
-import { CADASTRO, exigirPapel, exigirSessao, unidadeDoRegistro, type AmbienteApi } from '../acesso.ts';
+import { exigirSessao, unidadeDoRegistro, type AmbienteApi } from '../acesso.ts';
+import { exigirLeituraDaEscala } from '../visao/leitura.ts';
 import type { Auth } from '../auth.ts';
 import type { Banco } from '../banco/banco.ts';
 import { hojeRecife } from '../datas.ts';
@@ -66,12 +67,12 @@ export function rotasPrevias(dep: { banco: Banco; auth: Auth }): Hono<AmbienteAp
     return c.json(paraACorporacao(await montarEscalaDoMes(dep.banco, id, mes)));
   });
 
-  /** As alterações no passado da escala no mês, da mais nova para a mais velha: de quem tem nível de acesso na unidade da escala (ou acima); o militar comum não lê. */
+  /** As alterações no passado da escala no mês, da mais nova para a mais velha: de quem lê a escala da unidade (nível de acesso nela ou acima, ou a camada de visão da escala em montagem); o militar comum não lê. */
   r.get('/escalas/:id/mes/:mes/registro', async (c) => {
     const id = c.req.param('id');
     const unidadeId = await unidadeDoRegistro(dep.banco, 'escala', id);
     if (!unidadeId) return c.json({ erro: 'Escala não encontrada.' }, 404);
-    const negado = await exigirPapel(c, unidadeId, CADASTRO);
+    const negado = await exigirLeituraDaEscala(c, unidadeId);
     if (negado) return negado;
     const mes = c.req.param('mes');
     if (!Mes.safeParse(mes).success) return c.json({ erro: MES_INVALIDO }, 400);

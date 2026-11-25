@@ -2,6 +2,7 @@
 // diante) e os dias diferentes (lista própria, que pode ser vazia).
 import { z } from 'zod';
 import { Data, Id } from './comum.ts';
+import { Justificativa } from './escala-do-mes.ts';
 
 const semRepetidos = (o: { guarnicoes: string[] }): boolean => new Set(o.guarnicoes).size === o.guarnicoes.length;
 const REPETIDO = { message: 'Este modelo aparece duas vezes na meta.', path: ['guarnicoes'] };
@@ -15,7 +16,7 @@ export const NovaMetaDoDia = z.object({ guarnicoes: z.array(Id).max(100) }).refi
 export type NovaMetaDoDia = z.infer<typeof NovaMetaDoDia>;
 
 /** Desativar uma guarnição no dia: sai da meta do dia e desescala quem está nela (alocações e acúmulos, com a marca de remoção). */
-export const DesativarGuarnicao = z.object({ guarnicaoId: Id });
+export const DesativarGuarnicao = z.object({ guarnicaoId: Id, justificativa: Justificativa });
 export type DesativarGuarnicao = z.infer<typeof DesativarGuarnicao>;
 
 /** Uma alocação que a desativação tirou, para o "Desfazer" recriá-la (recriar a alocação apaga a marca de remoção: é um gatilho do banco). */
@@ -52,6 +53,8 @@ export const DesfazerDesativacao = z
     acumulos: z.array(AcumuloDesfeito).max(500),
     // um cliente que ainda não conhece as promovidas (a tela de antes da 4.4) manda sem elas: vale como nenhuma
     promovidas: z.array(PromovidaDesfeita).max(500).default([]),
+    // só pedida quando o dia já começou numa escala com prévia lançada (a trava do passado, 7.3)
+    justificativa: Justificativa,
   })
   .refine((d) => new Set(d.metaAntes.guarnicoes).size === d.metaAntes.guarnicoes.length, { message: REPETIDO.message, path: ['metaAntes', 'guarnicoes'] });
 export type DesfazerDesativacao = z.infer<typeof DesfazerDesativacao>;

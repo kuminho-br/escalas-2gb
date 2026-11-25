@@ -12,7 +12,7 @@ import { lerCorpo, respostaDoErroDoBanco } from '../erros.ts';
 import { acumular, desfazerRemocao, desfazerResolucao, devolverRemocao, escalar, escalarResolvendo, NAO_DA_PARA_DESFAZER, Proibida, Recusa, remover, tirarAcumulo, voltarAoTurno } from './alocacoes.ts';
 import { avaliarCandidatos } from './elegibilidade.ts';
 import { montarEscalaDoMes } from './leitura.ts';
-import { comPassado, semOsQueJaComecaram, SemJustificativa, tocadoDaAlocacao, tocadoDaRemocao, tocadoDoAcumulo, type Tocado } from './passado.ts';
+import { comPassado, justificativaDoCorpo, respostaDoPassado, semOsQueJaComecaram, tocadoDaAlocacao, tocadoDaRemocao, tocadoDoAcumulo, type Tocado } from './passado.ts';
 import { mudarPrevia } from './previa.ts';
 import { gravarOrdem, ordemDoMes } from './ordem-do-mes.ts';
 import { planejarPreEscala, PreEscalaInvalida } from './pre-escala.ts';
@@ -20,23 +20,6 @@ import { NaoEncontrada, opcoesDeTroca, trocar } from './trocar.ts';
 
 const MSG_RODADA = 'Esta escala é uma rodada de cotas: os lançamentos dela são feitos em Oficiais.';
 const ConsultaDeCandidatos = z.object({ data: Data, inicio: Hora, fim: Hora, guarnicaoId: Id.optional(), funcaoId: Id.optional() });
-
-/** A resposta para a trava do passado (403 se não é gestor; 400 no campo da justificativa); null se o erro é outro. */
-function respostaDoPassado(c: Context<AmbienteApi>, e: unknown): Response | null {
-  if (e instanceof Proibida) return c.json({ erro: e.message }, 403);
-  if (e instanceof SemJustificativa) return c.json({ erro: e.message, campos: { justificativa: e.message } }, 400);
-  return null;
-}
-
-/** A justificativa do corpo das rotas que não têm corpo de dados (os DELETE e os POST de desfazer): opcional, e ignorada se o corpo não vier. */
-async function justificativaDoCorpo(c: Context<AmbienteApi>): Promise<string | undefined> {
-  try {
-    const r = z.object({ justificativa: Justificativa }).safeParse(await c.req.json());
-    return r.success ? r.data.justificativa : undefined;
-  } catch {
-    return undefined;
-  }
-}
 
 export function rotasEscalaDoMes(dep: { banco: Banco; auth: Auth }): Hono<AmbienteApi> {
   const r = new Hono<AmbienteApi>();

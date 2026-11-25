@@ -1,6 +1,9 @@
 // O passado de uma escala com prévia lançada (fase 7.3): um turno que já começou só é alterado por gestor, coordenador ou administrador, com justificativa, e a mudança
 // fica no registro (`registro_de_alteracao`). Escala sem prévia lançada naquele mês, alocação sem escala (o expediente da pré-escala) e a rodada dos oficiais ficam fora.
-import { GESTAO, temPapel } from '../acesso.ts';
+import { Justificativa } from 'contratos';
+import type { Context } from 'hono';
+import { z } from 'zod';
+import { GESTAO, temPapel, type AmbienteApi } from '../acesso.ts';
 import type { Consulta } from '../banco/banco.ts';
 import { agoraRecife, hojeRecife } from '../datas.ts';
 import { registrar } from '../registro.ts';
@@ -168,4 +171,21 @@ export async function semOsQueJaComecaram<T extends { escalaId?: string | null; 
   if (!(await previaDoMes(c, escalaId, mes))) return novas;
   const turnos = new Map((await c.query<{ id: string; inicio: string }>("select id, to_char(inicio, 'HH24:MI') as inicio from turno where id = any($1::uuid[])", [[...new Set(novas.map((n) => n.turnoId))]])).rows.map((t) => [t.id, t.inicio]));
   return novas.filter((n) => n.escalaId === null || !jaComecou(n.data, turnos.get(n.turnoId) ?? '00:00', agora));
+}
+
+/** A resposta para a trava do passado (403 se não é gestor; 400 no campo da justificativa); null se o erro é outro. */
+export function respostaDoPassado(c: Context<AmbienteApi>, e: unknown): Response | null {
+  if (e instanceof Proibida) return c.json({ erro: e.message }, 403);
+  if (e instanceof SemJustificativa) return c.json({ erro: e.message, campos: { justificativa: e.message } }, 400);
+  return null;
+}
+
+/** A justificativa do corpo das rotas que não têm corpo de dados (os DELETE e os POST de desfazer): opcional, e ignorada se o corpo não vier. */
+export async function justificativaDoCorpo(c: Context<AmbienteApi>): Promise<string | undefined> {
+  try {
+    const r = z.object({ justificativa: Justificativa }).safeParse(await c.req.json());
+    return r.success ? r.data.justificativa : undefined;
+  } catch {
+    return undefined;
+  }
 }
