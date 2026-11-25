@@ -50,7 +50,6 @@ Só perguntas em aberto. Quando uma é respondida, a resposta vai para a regra e
 | P-11 | RN-43 | Falta o catálogo completo das situações boas e ruins (a RN-43 já define a mecânica de peso). |
 | P-12 | RN-45 | Situações boas e ruins do Adm. |
 | P-15 | RN-52 a RN-80 | Validar as regras trazidas do normativo e das planilhas antigas. |
-| P-17 | RN-85 | Até onde o passado fica travado e que correções continuam permitidas nele? |
 | P-18 | RN-90 | Quais funções contam como difíceis ou específicas e que preferência elas dão? |
 | P-30 | RN-108 | O mesmo modelo de guarnição mais de uma vez no mesmo dia (ex.: APH-1 e APH-2): completar a primeira antes de começar a segunda? Decisão tomada em 20/11 de tratar na fase 8; o design falta. |
 | P-32 | RS-01 | Escala do dia: formato de saída, campos de cada linha, ordem (por horário ou por escala), se entram vagas vazias e militares sem função. |
@@ -59,7 +58,10 @@ Só perguntas em aberto. Quando uma é respondida, a resposta vai para a regra e
 | P-35 | RN-35 | A cota tem um campo "prioridade" (vem da importação e ordena as operações na distribuição automática), mas nenhuma regra diz para que serve. O que ela significa para o escalante? O usuário ainda não sabe (21/11/2026); talvez não sirva para nada e o campo deva ser removido. |
 | P-33 | RN-102 × RN-108 | Relação entre a ordem de ativação (meta) e a ordem de escalação (vagas): adiada pelo usuário em 20/11; hoje a ordem de escalação é tratada como teste. |
 
-Respondidas na conferência de 21/11/2026 (saíram da tabela): P-25 (o acúmulo conta como vaga preenchida, com a marca "acumula com …"; RN-104), P-28 (a ligação por nome com a aba da planilha não existe no sistema novo), P-29 (a ordem de escalação por vaga cobre a prioridade global das funções; RN-102) e P-31 (a prioridade da guarnição deixou de ser editável; só vale como ordem padrão).
+Perguntas que já saíram da tabela:
+
+- Na conferência de 21/11/2026: P-25 (o acúmulo conta como vaga preenchida, com a marca "acumula com …"; RN-104), P-28 (a ligação por nome com a aba da planilha não existe no sistema novo), P-29 (a ordem de escalação por vaga cobre a prioridade global das funções; RN-102) e P-31 (a prioridade da guarnição deixou de ser editável; só vale como ordem padrão).
+- Na segunda conferência, em 25/11/2026: P-17 (o passado é o turno que já começou; fora do rascunho, só o gestor, o coordenador ou o administrador o altera, com justificativa e registro; RN-85).
 
 ## Regras que saíram
 

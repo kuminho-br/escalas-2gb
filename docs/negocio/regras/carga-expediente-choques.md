@@ -1,8 +1,8 @@
 # Regras — carga horária, Adm, pré-escala e choques
 
-Carga horária e saldos, expediente do Adm, pré-escala, choques de horário (RN-15 a RN-20, RN-22 a RN-26, RN-44, RN-84, RN-85, RN-91, RN-112, RN-113).
+Carga horária e saldos, expediente do Adm, pré-escala, choques de horário (RN-15 a RN-20, RN-22 a RN-26, RN-44, RN-84, RN-91, RN-112, RN-113).
 
-Quem cuida: DOCUMENTAÇÃO. Conferido contra o sistema novo em 21/11/2026; choque, expediente e pré-escala revistos em 24/11/2026 (6.37 a 6.40). Índice e colunas: [LEIAME](LEIAME.md).
+Quem cuida: DOCUMENTAÇÃO. Conferido contra o sistema novo em 21/11/2026; choque, expediente e pré-escala revistos em 24/11/2026 (6.37 a 6.40). A trava do passado (RN-85) foi para [estados-e-visualizacao.md](estados-e-visualizacao.md) em 25/11/2026. Índice e colunas: [LEIAME](LEIAME.md).
 
 ## Carga horária e saldos
 
@@ -34,7 +34,6 @@ A pré-escala é uma sugestão automática que o escalante sempre revisa.
 | RN-84 | A pré-escala é um guia, não a escala final: depois dela o escalante altera o que quiser, e as alterações passam pelas mesmas regras de alocação. | Confirmada | Funciona | Ambas |
 | RN-113 | Gerar a pré-escala de novo não sobrescreve o que já está escalado: só completa as lacunas (no Pronto e no expediente). | Confirmada | Funciona | Automação |
 | RN-112 | Gerar de novo não devolve um militar a um dia e turno de onde o escalante o tirou. A remoção vale para o militar (militar, dia, serviço, turno), não para a vaga; vale também para o expediente. Pôr o militar de volta à mão apaga a remoção. | Confirmada | Funciona | Automação |
-| RN-85 | Dias de hoje em diante se alteram livremente; os passados ficam travados, porque o serviço já aconteceu. Falta definir que correções continuam permitidas no passado (P-17). | A esclarecer | Não existe hoje: escalar e trocar aceitam qualquer data (ligado à publicação, fase 7) | Suporte |
 
 ## Choques e encadeamento de serviços
 
