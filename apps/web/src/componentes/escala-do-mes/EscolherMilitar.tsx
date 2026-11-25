@@ -1,7 +1,7 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { mesPorExtenso, textoFaixa, textoHora, type Candidato, type CandidatoEmChoque } from 'contratos';
 import { useState } from 'react';
-import { mensagemDe } from '@/api/cliente';
+import { foiCancelado, mensagemDe } from '@/api/cliente';
 import { acumular, consultaCandidatos, desfazerResolucao, escalar, escalarResolvendoChoque, voltarAoTurno } from '@/api/escala-do-mes';
 import { useTrava } from '@/componentes/AlteracoesPendentes';
 import { CotaDeSaldo } from '@/componentes/CotaDeSaldo';
@@ -43,7 +43,7 @@ export function EscolherMilitar({ escalaId, vaga, aoFechar }: { escalaId: string
       }
       aoFechar(true);
     } catch (e) {
-      setErro(mensagemDe(e));
+      setErro(foiCancelado(e) ? null : mensagemDe(e));
     }
   });
 
@@ -68,7 +68,7 @@ export function EscolherMilitar({ escalaId, vaga, aoFechar }: { escalaId: string
       });
       aoFechar(true);
     } catch (e) {
-      setErro(mensagemDe(e));
+      setErro(foiCancelado(e) ? null : mensagemDe(e));
     }
   });
 
@@ -78,7 +78,7 @@ export function EscolherMilitar({ escalaId, vaga, aoFechar }: { escalaId: string
       await acumular(queryClient, alocacaoId, { guarnicaoId: vaga.guarnicaoId, funcaoId: vaga.funcaoId });
       aoFechar(true);
     } catch (e) {
-      setErro(mensagemDe(e));
+      setErro(foiCancelado(e) ? null : mensagemDe(e));
     }
   });
 

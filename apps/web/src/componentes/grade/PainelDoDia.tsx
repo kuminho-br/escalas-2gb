@@ -2,7 +2,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { textoFaixa, type OpcaoDeServico } from 'contratos';
 import { X } from 'lucide-react';
 import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
-import { mensagemDe } from '@/api/cliente';
+import { foiCancelado, mensagemDe } from '@/api/cliente';
 import { escalar, removerAlocacao } from '@/api/escala-do-mes';
 import { consultaPainelDoDia } from '@/api/grade';
 import { useTrava } from '@/componentes/AlteracoesPendentes';
@@ -43,7 +43,7 @@ export function PainelDoDia({ unidadeId, militarId, data, aoFechar }: { unidadeI
       await escalar(queryClient, o.escalaId, { militarId, data, turnoId, guarnicaoId: o.guarnicaoId, funcaoId: o.funcaoId });
       setAdicionando(false);
     } catch (e) {
-      setErro(mensagemDe(e));
+      setErro(foiCancelado(e) ? null : mensagemDe(e));
     }
   });
   const remover = travar(async (alocacaoId: string) => {
@@ -51,7 +51,7 @@ export function PainelDoDia({ unidadeId, militarId, data, aoFechar }: { unidadeI
     try {
       await removerAlocacao(queryClient, alocacaoId);
     } catch (e) {
-      setErro(mensagemDe(e));
+      setErro(foiCancelado(e) ? null : mensagemDe(e));
     }
   });
 

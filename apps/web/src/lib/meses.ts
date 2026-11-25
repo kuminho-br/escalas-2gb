@@ -38,3 +38,16 @@ export function dataBr(data: string): string {
   const [a, m, d] = data.split('-');
   return `${d}/${m}/${a}`;
 }
+
+const FORMATO_DATA_E_HORA = new Intl.DateTimeFormat('pt-BR', { timeZone: 'America/Recife', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false });
+
+/** Um instante (ISO, UTC) no fuso de Recife: '2026-11-20T15:00:00.000Z' -> '20/11 às 12:00'. */
+export function dataEHoraBr(instante: string): string {
+  const p = Object.fromEntries(FORMATO_DATA_E_HORA.formatToParts(new Date(instante)).map((x) => [x.type, x.value]));
+  return `${p.day}/${p.month} às ${p.hour}:${p.minute}`;
+}
+
+/** Só o dia e o mês de um instante (ISO, UTC), no fuso de Recife: '2026-11-20T15:00:00.000Z' -> '20/11'. */
+export function diaEMesBr(instante: string): string {
+  return dataEHoraBr(instante).slice(0, 5);
+}

@@ -2,7 +2,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { Data, Mes, type OcupanteDaVaga } from 'contratos';
 import { useEffect, useState } from 'react';
-import { mensagemDe } from '@/api/cliente';
+import { foiCancelado, mensagemDe } from '@/api/cliente';
 import { consultaCotas } from '@/api/cotas';
 import { acumular, consultaEscalaDoMes, desfazerRemocao, devolverRemocao, removerAlocacao, tirarAcumulo } from '@/api/escala-do-mes';
 import { restantesPorServico } from '@/lib/cotas';
@@ -14,6 +14,7 @@ import type { VagaDaTela } from '@/componentes/escala-do-mes/CardDaGuarnicao';
 type DaVaga = Omit<VagaDaTela, 'data' | 'inicio' | 'fim'>;
 import { DiaDaEscalaVista } from '@/componentes/escala-do-mes/DiaDaEscala';
 import { EscolherMilitar } from '@/componentes/escala-do-mes/EscolherMilitar';
+import { EstadoDaEscala } from '@/componentes/escala-do-mes/EstadoDaEscala';
 import { GerarPreEscala } from '@/componentes/escala-do-mes/GerarPreEscala';
 import { CampoDeMes } from '@/componentes/CampoDeMes';
 import { CotasRestantes } from '@/componentes/CotasRestantes';
@@ -84,7 +85,7 @@ function EscalaDoMes() {
     try {
       avisar(await tirar(o, guarnicao, daVaga));
     } catch (e) {
-      avisar({ texto: mensagemDe(e), erro: true });
+      if (!foiCancelado(e)) avisar({ texto: mensagemDe(e), erro: true });
     }
   }
   // "Trocar militar": tira quem está na vaga (sem perguntar: a pessoa acabou de escolher trocar) e abre a escolha da mesma vaga em seguida;
@@ -95,7 +96,7 @@ function EscalaDoMes() {
       setTrocando(await tirar(o, guarnicao, daVaga));
       setVaga(daVaga);
     } catch (e) {
-      avisar({ texto: mensagemDe(e), erro: true });
+      if (!foiCancelado(e)) avisar({ texto: mensagemDe(e), erro: true });
     }
   }
   async function desfazer(remocaoId: string) {
@@ -103,7 +104,7 @@ function EscalaDoMes() {
     try {
       await desfazerRemocao(queryClient, remocaoId);
     } catch (e) {
-      setErro(mensagemDe(e));
+      setErro(foiCancelado(e) ? null : mensagemDe(e));
     }
   }
 
@@ -150,6 +151,7 @@ function EscalaDoMes() {
         </Button>
       </div>
 
+      {dados.data && <EstadoDaEscala escala={dados.data} soConsulta={soConsulta} />}
       <CotasRestantes cotas={restantesPorServico(cotas.data ?? [], servicosDaEscala)} />
       {gravadas !== null && <p role="status" className="text-sm text-apagado">Pré-escala gravada: {gravadas} {gravadas === 1 ? 'serviço' : 'serviços'}.</p>}
       {erro && <p role="alert" className="text-alerta">{erro}</p>}

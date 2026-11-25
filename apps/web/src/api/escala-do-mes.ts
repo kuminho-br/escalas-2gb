@@ -1,5 +1,5 @@
 import { keepPreviousData, queryOptions, type QueryClient } from '@tanstack/react-query';
-import type { AlocacaoResolvida, Candidatos, DesfazerResolucao, EscalaDoMes, NovaAlocacao, NovoAcumulo, OpcoesDeTroca, PreviaDaPreEscala, RemocaoFeita, ResultadoDaTroca, Troca } from 'contratos';
+import type { AlocacaoResolvida, Candidatos, DesfazerResolucao, EscalaDoMes, NovaAlocacao, NovoAcumulo, OpcoesDeTroca, PreviaDaPreEscala, RegistroDeAlteracao, RemocaoFeita, ResultadoDaTroca, Troca } from 'contratos';
 import { pedir } from './cliente';
 
 export const consultaEscalaDoMes = (escalaId: string, mes: string) =>
@@ -24,6 +24,8 @@ function atualizarQuemDependeDaEscala(queryClient: QueryClient) {
   void queryClient.invalidateQueries({ queryKey: ['cotas'] });
   void queryClient.invalidateQueries({ queryKey: ['efetivo-do-dia'] });
   void queryClient.invalidateQueries({ queryKey: ['grade'] });
+  // uma alteração justificada no passado grava uma linha no registro: a lista das alterações no passado volta a ser buscada
+  void queryClient.invalidateQueries({ queryKey: ['registro-do-passado'] });
 }
 
 function guardar(queryClient: QueryClient, e: EscalaDoMes): EscalaDoMes {
@@ -139,3 +141,12 @@ export async function gravarPreEscala(queryClient: QueryClient, escalaId: string
     throw e;
   }
 }
+
+/** As passagens de estado da escala no mês (7.3.1): a API devolve a escala do mês já com o estado novo. */
+export const lancarPrevia = (queryClient: QueryClient, escalaId: string, mes: string) => gravando(queryClient, pedir<EscalaDoMes>('POST', `/api/escalas/${escalaId}/mes/${mes}/previa`));
+export const publicarEscala = (queryClient: QueryClient, escalaId: string, mes: string) => gravando(queryClient, pedir<EscalaDoMes>('POST', `/api/escalas/${escalaId}/mes/${mes}/publicar`));
+export const republicarEscala = (queryClient: QueryClient, escalaId: string, mes: string) => gravando(queryClient, pedir<EscalaDoMes>('POST', `/api/escalas/${escalaId}/mes/${mes}/republicar`));
+
+/** As alterações no passado da escala no mês, da mais nova para a mais velha (quem lê a escala da unidade as lê; o militar comum recebe 403). */
+export const consultaRegistroDoPasado = (escalaId: string, mes: string) =>
+  queryOptions({ queryKey: ['registro-do-passado', escalaId, mes], queryFn: () => pedir<RegistroDeAlteracao[]>('GET', `/api/escalas/${escalaId}/mes/${mes}/registro`), retry: false });
