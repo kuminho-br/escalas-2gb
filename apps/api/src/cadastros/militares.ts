@@ -143,11 +143,23 @@ function diaDeReferencia(mes: string): string {
   return hoje < primeiro ? primeiro : hoje > ultimo ? ultimo : hoje;
 }
 
-/** `$2` e `$3` são os limites do mês e `$4`, o dia de referência; `quem` é a coluna do militar e `sub`, a condição extra sobre a unidade do período. */
-const PERIODO_DO_DIA = (quem: string, sub = '') =>
-  `(select x.id from rastreio x ${sub ? 'join unidade ux on ux.id = x.unidade_id join unidade alvo2 on alvo2.id = $1' : ''}
-     where x.militar_id = ${quem} and x.desde <= $3 and (x.ate is null or x.ate >= $2) ${sub}
+/** `$2` e `$3` são os limites do mês e `$4`, o dia de referência; `quem` é a coluna do militar. O período do militar que vale no dia; sem ele, o mais novo que toca o mês. */
+const PERIODO_DO_DIA = (quem: string) =>
+  `(select x.id from rastreio x
+     where x.militar_id = ${quem} and x.desde <= $3 and (x.ate is null or x.ate >= $2)
      order by (x.desde <= $4 and (x.ate is null or x.ate >= $4)) desc, x.desde desc limit 1)`;
+
+/**
+ * O período que põe o militar na lista da unidade `$1` (6.48): o que vale no dia de referência (`$4`), se for nela ou numa de baixo; sem ele, a
+ * próxima chegada à unidade (ou a uma de baixo) depois desse dia, ainda no mês (até `$3`), que a lista mostra como "Lotação a partir de".
+ * Quem saiu (subiu para uma unidade de cima, foi para outra ou ficou sem período) não entra: o período antigo que toca o mês não conta.
+ */
+const PERIODO_NA_UNIDADE = (quem: string) => {
+  const naSubarvore = `from rastreio x join unidade ux on ux.id = x.unidade_id join unidade alvo2 on alvo2.id = $1 where x.militar_id = ${quem} and alvo2.caminho @> ux.caminho`;
+  return `coalesce(
+    (select x.id ${naSubarvore} and x.desde <= $4 and (x.ate is null or x.ate >= $4) limit 1),
+    (select x.id ${naSubarvore} and x.desde > $4 and x.desde <= $3 order by x.desde limit 1))`;
+};
 
 const SELECT_MILITAR = `
   select m.id, m.matricula, p.sigla as posto, m.posto_grad_id, l.quadro_id, (select q.sigla from quadro q where q.id = l.quadro_id) as quadro_sigla, m.nome_guerra, m.nome_completo, m.sexo, m.nascimento_dia, m.nascimento_mes, m.nascimento_ano,
@@ -437,7 +449,7 @@ export function rotasMilitares(dep: { banco: Banco; auth: Auth }): Hono<Ambiente
          left join equipe e on e.id = l.equipe_id
          left join situacao_militar sm on sm.id = l.situacao_id
         where alvo.caminho @> un.caminho and l.desde <= $3 and (l.ate is null or l.ate >= $2)
-          and l.id = ${PERIODO_DO_DIA('m.id', 'and alvo2.caminho @> ux.caminho')}
+          and l.id = ${PERIODO_NA_UNIDADE('m.id')}
         order by p.ordem desc, m.antiguidade asc nulls last, m.nome_guerra`,
       [u, primeiro, ultimo, diaDeReferencia(mes)],
     );
@@ -485,7 +497,7 @@ export function rotasMilitares(dep: { banco: Banco; auth: Auth }): Hono<Ambiente
          left join equipe e on e.id = l.equipe_id
          left join situacao_militar sm on sm.id = l.situacao_id
         where alvo.caminho @> un.caminho and l.desde <= $3 and (l.ate is null or l.ate >= $2)
-          and l.id = ${PERIODO_DO_DIA('m.id', 'and alvo2.caminho @> ux.caminho')}
+          and l.id = ${PERIODO_NA_UNIDADE('m.id')}
         order by p.ordem desc, m.antiguidade asc nulls last, m.nome_guerra`,
       [u, primeiro, ultimo, diaDeReferencia(mes)],
     );
