@@ -25,6 +25,7 @@
 | 9 | 24/11 | usuário | Seletor de unidade do Topo (CBMPE / DGO / DInter/1 / 2º GB …): abrir a hierarquia nó a nó, um nível por vez (a árvore vai crescer e a lista inteira não cabe), e um botão no começo que abre a hierarquia toda de uma vez, à escolha de quem usa | secundária | aberto | — |
 | 10 | 24/11 | usuário | A caixa "Lotação" do Pecúlio (lista plana: Todas, 1ª SB, 2ª SB, 7ª SB, DGO, DInter/1) não serve mais na árvore genérica: sai, e entra a escolha pela árvore. Revisão geral de quem ainda usa a lista plana de unidades: Pecúlio e Consulta ("Lotados em"), ficha (Alterar situação e Novo militar), Acesso ao sistema (unidade do nível de acesso) | secundária | aberto | — |
 | 11 | 24/11 | usuário | "Alterar situação" na ficha: a lotação de destino (lista plana com "DA (1º GB)", "DA (2º GB)" …) tem de seguir a lógica da árvore genérica, escolhida nó a nó | secundária | aberto (junto com o 10) | — |
+| 12 | 24/11 | usuário | Escala dos oficiais: o dia vermelho só conta no serviço do tipo ordinário (Saldo); JES, PJES e Diária são extra e não contam | secundária | planejado | 6.44 |
 
 ## Já conhecidos antes do pool
 
