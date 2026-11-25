@@ -1,6 +1,6 @@
 # Regras — cotas, voluntariado e permutas
 
-Cotas de PJES e diárias, voluntariado por faixa de horário, distribuição dos extras, situações boas e ruins, permutas (RN-33 a RN-43, RN-45 a RN-48, RN-82, RN-86 a RN-90, RN-105 a RN-107, RN-114).
+Cotas de PJES e diárias, voluntariado por faixa de horário, distribuição dos extras, situações boas e ruins, permutas (RN-33 a RN-43, RN-45 a RN-48, RN-82, RN-86 a RN-90, RN-105 a RN-107, RN-114, RN-117).
 
 Quem cuida: DOCUMENTAÇÃO. Conferido contra o sistema novo em 21/11/2026. Índice e colunas: [LEIAME](LEIAME.md).
 
@@ -53,6 +53,7 @@ Um serviço é bom ou ruim conforme se encaixa na escala individual do militar, 
 |---|---|---|---|---|
 | RN-43 | A qualidade de um serviço é avaliada pela combinação com os demais serviços do militar. Ideia de peso (sem catálogo completo, P-11): −1 para uma vantagem recebida, +1 para uma desvantagem; ser motorista é desvantagem grande (ex.: −3). Quanto mais negativo o saldo, mais preferência na próxima alocação. | Confirmada | Fase 10 | Ambas |
 | RN-45 | Existem situações boas e ruins também para o Adm; ainda não levantadas (P-12). | A esclarecer | — | Ambas |
+| RN-117 | Na escala dos oficiais, o **dia vermelho** (dia ruim que ninguém quer tirar, marcado pelo escalante, todos com o mesmo peso) só conta quando o lugar é de serviço do **tipo ordinário** (o Saldo). JES, PJES e Diária são extra e pagam a mais, então não contam. Vale para a contagem do mês e para o acumulado dos meses encerrados; o tipo do serviço decide, não o nome. (Decisão de 24/11/2026.) | Confirmada | Funciona (6.44): coluna "Vermelhos" da escala e Painel de saldo | Suporte |
 
 Catálogo de situações (inicial):
 

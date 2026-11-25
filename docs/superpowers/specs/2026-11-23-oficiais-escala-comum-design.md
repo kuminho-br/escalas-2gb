@@ -13,7 +13,7 @@ O usuário: "A escala dos oficiais é montada como qualquer outra escala. A estr
 3. "Cota" aqui não é a "Cota" das operações.
 4. A ordem de antiguidade é sugerida: o sistema conduz, não trava.
 5. Botão **"Abrir o mês"**: antes dele as cotas não mudam; depois dele, mudam sozinhas quando a participação ou um afastamento muda. Sai o "Calcular cotas".
-6. **Dias vermelhos:** dias ruins, que ninguém quer tirar. O escalante marca ao abrir o mês; todos têm o mesmo peso; o sistema conta quantos cada oficial tirou. Nasce nos oficiais, mas serve para outras escalas depois.
+6. **Dias vermelhos:** dias ruins, que ninguém quer tirar. O escalante marca ao abrir o mês; todos têm o mesmo peso; o sistema conta quantos cada oficial tirou, **só nos lugares de serviço do tipo ordinário** (o Saldo): JES, PJES e Diária são extra e não contam (6.44, RN-117). Nasce nos oficiais, mas serve para outras escalas depois.
 7. **Defeito:** mudar a antiguidade não reordena quem já está marcado em "Participa"; hoje é preciso desmarcar e marcar.
 8. Sai a aba "Regras" do alto: o botão "Regras" já está à direita.
 9. O usuário delegou à PLANEJAMENTO o caminho de montagem e a divisão em entregas ("modo acelerado").
@@ -28,7 +28,7 @@ O usuário: "A escala dos oficiais é montada como qualquer outra escala. A estr
 - **Nome na tela:** o painel "Cotas" passa a "Cota de saldo".
 - **Antiguidade sugerida:** o cartão "Vez de escolher" continua e já vem escolhido no lançamento, mas o escalante pode lançar para qualquer participante; a tela avisa "Fora da ordem: a vez era de {patente nome}." sem impedir.
 - **Telas de praças:** continuam mostrando só QBMG (decisão de 22/11); as alocações dos oficiais não aparecem na Grade nem na Escala do mês das praças.
-- **Dias vermelhos:** marcados e desmarcados enquanto o mês não está encerrado; contam por oficial no mês (no painel) e no acumulado (no Painel de saldo); não mudam a cota.
+- **Dias vermelhos:** marcados e desmarcados enquanto o mês não está encerrado; contam por oficial no mês (no painel) e no acumulado (no Painel de saldo), só nos lugares de serviço do tipo ordinário (o Saldo; JES, PJES e Diária não contam; vale o tipo do serviço, não o nome, e o serviço de um mês migrado, ordinário, conta); não mudam a cota.
 - **Mês já existente:** a migração cria, para cada unidade com mês de oficiais gravado, a escala "Oficiais de operações" com o serviço que o mês usava e `rodada_de_cotas`, e passa os lançamentos de hoje para alocações, com as coberturas.
 
 ## Não objetivos

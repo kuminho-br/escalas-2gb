@@ -48,6 +48,7 @@ export function RegrasDosOficiais() {
         <ul>
           <li>Dia vermelho é um dia ruim, que ninguém quer tirar. O escalante marca no calendário do mês, até o mês ser encerrado.</li>
           <li>Todos os dias vermelhos pesam igual. O sistema só conta quantos cada oficial tirou, no mês e no acumulado do painel de saldo.</li>
+          <li>Só conta o lugar tirado no Saldo. JES, PJES e Diária são extra e não entram na conta.</li>
           <li>Os dias vermelhos não mudam a cota de ninguém.</li>
         </ul>
       </section>

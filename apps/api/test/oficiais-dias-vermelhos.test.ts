@@ -5,6 +5,7 @@ import { montarApi, type ApiDeTeste } from './apoio-api.ts';
 import { escalaDaRodada, type RodadaDeTeste } from './apoio-oficiais.ts';
 
 // Entrega 6.28: os dias vermelhos da escala dos oficiais. Dados fictícios (D7): oficiais 9906xx-x no 2º GB. Março e abril de 2027.
+// Entrega 6.44: o dia vermelho só conta no serviço de tipo ordinário (o Saldo); JES (pjes) e Diária são extra e não contam. Filtra pelo tipo, não pelo nome.
 let api: ApiDeTeste;
 const posto: Record<string, string> = {};
 const quadro: Record<string, string> = {};
@@ -91,20 +92,21 @@ describe('marcar os dias vermelhos', () => {
 });
 
 describe('a contagem por oficial', () => {
-  it('conta os lugares tomados em dia vermelho, de JES ou de Saldo, e não conta os outros dias', async () => {
+  it('6.44: conta só os lugares tomados no Saldo (ordinário) em dia vermelho; o JES no dia vermelho não conta, e os dois no mesmo dia contam uma vez', async () => {
     await marcar('2027-03', ['2027-03-07', '2027-03-14']);
-    expect((await lancar('2027-03', '2027-03-07', 'A', 'a', 'jes')).status).toBe(200);
-    expect((await lancar('2027-03', '2027-03-14', 'B', 'a')).status).toBe(200);
-    expect((await lancar('2027-03', '2027-03-15', 'A', 'a')).status).toBe(200);
+    expect((await lancar('2027-03', '2027-03-07', 'A', 'a', 'jes')).status).toBe(200); // JES num dia vermelho: não conta
+    expect((await lancar('2027-03', '2027-03-14', 'B', 'a')).status).toBe(200); // Saldo num dia vermelho: conta
+    expect((await lancar('2027-03', '2027-03-14', 'A', 'a', 'jes')).status).toBe(200); // JES no mesmo dia vermelho do Saldo: segue 1
+    expect((await lancar('2027-03', '2027-03-15', 'A', 'a')).status).toBe(200); // Saldo fora do dia vermelho: não conta
     expect((await lancar('2027-03', '2027-03-07', 'B', 'b')).status).toBe(200);
     const e = await ler('2027-03');
-    expect(vermelhosDe(e, 'a')).toBe(2);
+    expect(vermelhosDe(e, 'a')).toBe(1);
     expect(vermelhosDe(e, 'b')).toBe(1);
   });
 
   it('desmarcar o dia tira da contagem; marcar de novo volta', async () => {
-    expect(vermelhosDe(await (await marcar('2027-03', ['2027-03-14'])).json(), 'a')).toBe(1);
-    expect(vermelhosDe(await (await marcar('2027-03', ['2027-03-07', '2027-03-14'])).json(), 'a')).toBe(2);
+    expect(vermelhosDe(await (await marcar('2027-03', ['2027-03-14'])).json(), 'b')).toBe(0);
+    expect(vermelhosDe(await (await marcar('2027-03', ['2027-03-07', '2027-03-14'])).json(), 'b')).toBe(1);
   });
 
   it('os dias vermelhos não mudam a cota de saldo', async () => {
@@ -129,9 +131,9 @@ describe('a contagem por oficial', () => {
 });
 
 describe('o acumulado no painel de saldo', () => {
-  it('soma os dias vermelhos tirados nos meses encerrados', async () => {
+  it('6.44: soma os dias vermelhos tirados no Saldo nos meses encerrados, com a mesma regra do mês (o JES não conta)', async () => {
     const lista = await painel();
-    expect(lista.find((o) => o.militarId === ids.a)!.vermelhos).toBe(2);
+    expect(lista.find((o) => o.militarId === ids.a)!.vermelhos).toBe(1);
     expect(lista.find((o) => o.militarId === ids.b)!.vermelhos).toBe(1);
   });
 
@@ -140,6 +142,39 @@ describe('o acumulado no painel de saldo', () => {
     await marcar('2027-04', ['2027-04-04']);
     await lancar('2027-04', '2027-04-04', 'A', 'a');
     expect(vermelhosDe(await ler('2027-04'), 'a')).toBe(1);
-    expect((await painel()).find((o) => o.militarId === ids.a)!.vermelhos).toBe(2);
+    expect((await painel()).find((o) => o.militarId === ids.a)!.vermelhos).toBe(1);
+  });
+});
+
+// 6.44, Review Focus 1: vale o tipo do serviço, não o nome. O serviço de um mês migrado (de outro nome, ordinário) conta; o que não é ordinário não conta, seja qual for o nome.
+describe('o tipo do serviço, não o nome', () => {
+  let plantao = '';
+  const doMes = async (mes: string) => vermelhosDe(await ler(mes), 'a');
+  const doPainel = async () => (await painel()).find((o) => o.militarId === ids.a)!.vermelhos;
+  const tipo = (servicoId: string, t: 'ordinario' | 'pjes' | 'diaria') => api.banco.query('update servico set tipo = $2 where id = $1', [servicoId, t]);
+
+  beforeAll(async () => {
+    // um serviço ordinário que não é o Saldo, como o que um mês migrado usava, ligado à escala; o oficial 'a' tomou nele um dia vermelho de cada mês
+    plantao = await inserir(api.banco, 'servico', { unidade_id: api.ids.gb, nome: 'Plantão dos oficiais', tipo: 'ordinario', cor: '#8A94A1' });
+    await api.banco.query('insert into escala_servico (escala_id, servico_id, ordem) values ($1, $2, 3)', [rodada.escalaId, plantao]);
+    const turno = await inserir(api.banco, 'turno', { servico_id: plantao, letra: 'A', inicio: '07:00', fim: '19:00' });
+    for (const dia of ['2027-03-07', '2027-04-04']) {
+      await inserir(api.banco, 'alocacao', { militar_id: ids.a, escala_id: rodada.escalaId, servico_id: plantao, turno_id: turno, data: dia, origem: 'distribuicao' });
+    }
+  });
+
+  it('um serviço ordinário de outro nome conta, no mês e no acumulado', async () => {
+    expect(await doMes('2027-04')).toBe(2); // o Saldo e o Plantão, no dia vermelho 04-04
+    expect(await doPainel()).toBe(2); // o Saldo do 03-14 e o Plantão do 03-07, nos meses encerrados
+  });
+
+  it('o mesmo serviço, se não for ordinário (Diária ou PJES), deixa de contar, qualquer que seja o nome', async () => {
+    for (const t of ['diaria', 'pjes'] as const) {
+      await tipo(plantao, t);
+      expect(await doMes('2027-04'), t).toBe(1);
+      expect(await doPainel(), t).toBe(1);
+    }
+    await tipo(plantao, 'ordinario');
+    expect(await doMes('2027-04')).toBe(2);
   });
 });

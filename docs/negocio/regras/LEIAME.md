@@ -26,7 +26,7 @@ O andamento do trabalho (planejado, em execução) é do roadmap, não deste cat
 
 ## Como mudar o catálogo
 
-- O ID nunca é reaproveitado. A próxima regra nova é a **RN-117**; o próximo requisito, o **RS-08**.
+- O ID nunca é reaproveitado. A próxima regra nova é a **RN-118**; o próximo requisito, o **RS-08**.
 - Regra que deixa de valer vai para "Regras que saíram", em [normativo-a-validar.md](normativo-a-validar.md), com o motivo. Regra trocada por outra fica no lugar, como `Substituída por RN-XX`.
 - Decisão do usuário que cria ou muda uma regra ganha uma linha em [decisoes.md](../../decisoes.md), no mesmo PR (sem adendos).
 - O código deve citar o ID da regra que implementa (ex.: `// RN-36`).
