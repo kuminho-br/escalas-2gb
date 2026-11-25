@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest';
 import { abrir, chamadasA, corpoEnviado, EU_EXEMPLO, simularApi } from './apoio';
 
 // Entrega 6.25, Task 4: o cadastro "Tipos de unidade" (só o administrador). Dados fictícios.
-const ADMIN = { ...EU_EXEMPLO, papeis: [{ papel: 'administrador' as const, unidadeId: 'raiz', unidadeSigla: 'CBMPE' }], unidades: [{ id: 'raiz', sigla: 'CBMPE', caminho: ['CBMPE'], nivel: 0, tipo: 'corporacao' }] };
+const ADMIN = { ...EU_EXEMPLO, papeis: [{ papel: 'administrador' as const, unidadeId: 'raiz', unidadeSigla: 'CBMPE' }], unidades: [{ id: 'raiz', sigla: 'CBMPE', caminho: ['CBMPE'], nivel: 0, tipo: 'corporacao', maeId: null }] };
 const GESTOR = { ...EU_EXEMPLO, papeis: [{ papel: 'gestor' as const, unidadeId: 'u-1sb', unidadeSigla: '1ª SB' }] };
 const TIPOS: TipoDeUnidadeComUso[] = [
   { id: 't-div', codigo: 'divisao', nome: 'Divisão', ordem: 4, unidades: 2 },

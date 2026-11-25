@@ -22,7 +22,7 @@ const idDe = async (sigla: string) => (await api.banco.query<{ id: string }>('se
 describe('GET /api/eu: unidades de trabalho e lotação', () => {
   it('o auxiliar da 1ª SB tem só a 1ª SB', async () => {
     const r = await eu('escalante');
-    expect(r.unidades).toEqual([{ id: api.ids.secao, sigla: '1ª SB', caminho: expect.arrayContaining(['CBMPE', '2º GB', '1ª SB']), nivel: expect.any(Number), tipo: 'secao' }]);
+    expect(r.unidades).toEqual([{ id: api.ids.secao, sigla: '1ª SB', caminho: expect.arrayContaining(['CBMPE', '2º GB', '1ª SB']), nivel: expect.any(Number), tipo: 'secao', maeId: expect.any(String) }]);
     const u = r.unidades[0]!;
     expect(u.caminho.at(0)).toBe('CBMPE');
     expect(u.caminho.at(-1)).toBe('1ª SB');

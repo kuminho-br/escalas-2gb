@@ -6,7 +6,7 @@ import { mensagemDe } from '@/api/cliente';
 import { consultaEstrutura, consultaTiposDeUnidade } from '@/api/estrutura';
 import { ExcluirUnidade, ExtinguirUnidade, MoverUnidade, NovaUnidadeAbaixo, RenomearUnidade } from '@/componentes/configuracoes/AcoesDaEstrutura';
 import { Campo } from '@/componentes/Campo';
-import { Selecao } from '@/componentes/Selecao';
+import { EscolherUnidade } from '@/componentes/EscolherUnidade';
 import { Button } from '@/componentes/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/componentes/ui/dropdown-menu';
 import { Espera } from '@/componentes/resposta/Espera';
@@ -45,14 +45,14 @@ export function Estrutura({ raizes }: { raizes: UnidadeDeTrabalho[] }) {
   const seletor = raizes.length > 1 && (
     <div className="mb-4 max-w-xs">
       <Campo id="estrutura-raiz" rotulo="Árvore de">
-        <Selecao id="estrutura-raiz" value={raizId} onChange={(e) => { setAcao(null); setFechadas(null); setRaizId(e.target.value); }}>
-          {raizes.map((r) => <option key={r.id} value={r.id}>{r.sigla}</option>)}
-        </Selecao>
+        {/* também pela árvore (6.45): as unidades em que a pessoa tem nível, cada uma no lugar dela */}
+        <EscolherUnidade id="estrutura-raiz" rotulo="Árvore de" unidades={raizes} valor={raizId ?? ''} aoEscolher={(id) => { setAcao(null); setFechadas(null); setRaizId(id); }} />
       </Campo>
     </div>
   );
-  if (isPending) return <>{seletor}<Espera className="py-6" /></>;
-  if (error) return <>{seletor}<p role="alert" className="py-6 text-alerta">{mensagemDe(error)}</p></>;
+  // o seletor fica no mesmo lugar enquanto a árvore carrega e depois: se mudasse de lugar, seria recriado, e a caixa de escolha aberta se fecharia
+  if (isPending) return <div className="max-w-3xl">{seletor}<Espera className="py-6" /></div>;
+  if (error) return <div className="max-w-3xl">{seletor}<p role="alert" className="py-6 text-alerta">{mensagemDe(error)}</p></div>;
 
   const recolhidas = fechadas?.raiz === arvore.id ? fechadas.ids : recolhidasNoComeco(arvore);
   const alternar = (id: string) => {

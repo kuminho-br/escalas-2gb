@@ -4,11 +4,11 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { abrir, EU_EXEMPLO, simularApi } from './apoio';
 
 // Entrega 6.26: as configurações gerais saem do módulo de escalas para um painel aberto pela tela inicial; as de escala ficam no módulo. Dados fictícios.
-const GB = { id: 'u-gb', sigla: '2º GB', caminho: ['CBMPE', 'DGO', 'DInter/1', '2º GB'], nivel: 3, tipo: 'grupamento' };
+const GB = { id: 'u-gb', sigla: '2º GB', caminho: ['CBMPE', 'DGO', 'DInter/1', '2º GB'], nivel: 3, tipo: 'grupamento', maeId: null };
 const COMUM = { ...EU_EXEMPLO, papeis: [] };
 const AUXILIAR = EU_EXEMPLO;
 const GESTOR = { ...EU_EXEMPLO, papeis: [{ papel: 'gestor' as const, unidadeId: 'u-gb', unidadeSigla: '2º GB' }], unidades: [GB, ...EU_EXEMPLO.unidades] };
-const ADMIN = { ...EU_EXEMPLO, papeis: [{ papel: 'administrador' as const, unidadeId: 'raiz', unidadeSigla: 'CBMPE' }], unidades: [{ id: 'raiz', sigla: 'CBMPE', caminho: ['CBMPE'], nivel: 0, tipo: 'corporacao' }, GB, ...EU_EXEMPLO.unidades] };
+const ADMIN = { ...EU_EXEMPLO, papeis: [{ papel: 'administrador' as const, unidadeId: 'raiz', unidadeSigla: 'CBMPE' }], unidades: [{ id: 'raiz', sigla: 'CBMPE', caminho: ['CBMPE'], nivel: 0, tipo: 'corporacao', maeId: null }, GB, ...EU_EXEMPLO.unidades] };
 const NO = { id: 'u-gb', sigla: '2º GB', nome: '2º Grupamento', tipo: { codigo: 'grupamento', nome: 'Grupamento', ordem: 3 }, desde: '2026-01-01', ate: null, filhas: [], podeEditar: true, podeReorganizar: false, ligados: { unidades: 0, militaresHoje: 0, historico: [] } };
 
 function api(eu: typeof EU_EXEMPLO, extra: Parameters<typeof simularApi>[0] = {}) {

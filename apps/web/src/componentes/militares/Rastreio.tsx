@@ -3,6 +3,8 @@ import type { FichaMilitar } from 'contratos';
 import { useState, type FormEvent } from 'react';
 import { mensagemDe } from '@/api/cliente';
 import { alterarSituacao, atualizarMilitares, consultaEquipes, consultaQuadros, consultaUnidadesDeLotacao, consultaSituacoesDoMilitar } from '@/api/militares';
+import { consultaUnidadesDaBusca } from '@/api/consulta';
+import { EscolherUnidade } from '@/componentes/EscolherUnidade';
 import { useTrava } from '@/componentes/AlteracoesPendentes';
 import { Selecao } from '@/componentes/Selecao';
 import { Button } from '@/componentes/ui/button';
@@ -56,6 +58,8 @@ export function Rastreio({ ficha, unidadeId }: { ficha: FichaMilitar; unidadeId:
 function AlterarSituacao({ ficha, unidadeAtualId, aoFechar }: { ficha: FichaMilitar; unidadeAtualId: string; aoFechar: () => void }) {
   const queryClient = useQueryClient();
   const secoes = useQuery(consultaUnidadesDeLotacao);
+  // a árvore da corporação dá lugar às unidades de lotação (as de cima entram como passagem)
+  const todas = useQuery(consultaUnidadesDaBusca);
   const atual = periodoAtual(ficha.rastreio);
   // a lotação sugerida é a do período de hoje (achada pelo id: a mesma sigla existe em mais de um grupamento); sem ela, a unidade em que a tela trabalha
   // sem período de hoje (só um marcado para depois), vale o período aberto; a unidade da tela (que pode ser o grupamento ou o CBMPE) só entra se nada mais houver
@@ -116,18 +120,20 @@ function AlterarSituacao({ ficha, unidadeAtualId, aoFechar }: { ficha: FichaMili
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="grid gap-1.5">
               <Label htmlFor="rs-lotacao">Lotação</Label>
-              <Selecao
+              {/* pela árvore, nó a nó (6.45): as unidades em que a pessoa pode lotar, no lugar delas; enquanto a lista não chega, o campo mostra a lotação de hoje */}
+              <EscolherUnidade
                 id="rs-lotacao"
-                value={unidadeId}
+                rotulo="Lotação"
+                unidades={secoes.data ?? []}
+                todas={todas.data}
+                valor={unidadeId}
+                textoDoValor={atual?.unidadeSigla ?? '…'}
                 disabled={!ficha.podeEditar.peculio}
-                onChange={(e) => {
-                  setEscolhida(e.target.value);
+                aoEscolher={(id) => {
+                  setEscolhida(id);
                   setEquipeEscolhida('');
                 }}
-              >
-                {unidadeId === '' && <option value="">Escolha a unidade</option>}
-                {(secoes.data ?? (unidadeId ? [{ id: unidadeId, sigla: atual?.unidadeSigla ?? '…', nome: '' }] : [])).map((s) => <option key={s.id} value={s.id}>{s.sigla}</option>)}
-              </Selecao>
+              />
               {avisoDaLista(secoes) && <p className="text-xs text-alerta">{avisoDaLista(secoes)}</p>}
               {secoes.isError && <Button type="button" size="sm" variant="secundario" className="justify-self-start" disabled={secoes.isFetching} onClick={() => void secoes.refetch()}>Tentar de novo</Button>}
               {!ficha.podeEditar.peculio && <p className="text-xs text-apagado">{`A lotação, o quadro e a situação são alterados por quem tem nível de acesso ${ficha.podeEditar.unidadeDeCima ? `em ${ficha.podeEditar.unidadeDeCima}` : 'na raiz'}.`}</p>}

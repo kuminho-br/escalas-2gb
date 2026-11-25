@@ -2,13 +2,13 @@ import type { EfeitoDeMover, NoDaArvore, TipoDeUnidadeComUso } from 'contratos';
 import { cleanup, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
-import { abrir, chamadasA, corpoEnviado, EU_EXEMPLO, simularApi } from './apoio';
+import { abrir, chamadasA, corpoEnviado, EU_EXEMPLO, nosDaArvore, simularApi } from './apoio';
 
 // Entrega 6.25, Task 4: a árvore de unidades, editável. Dados fictícios.
-const GB = { id: 'u-gb', sigla: '2º GB', caminho: ['CBMPE', 'DGO', 'DInter/1', '2º GB'], nivel: 3, tipo: 'grupamento' };
+const GB = { id: 'u-gb', sigla: '2º GB', caminho: ['CBMPE', 'DGO', 'DInter/1', '2º GB'], nivel: 3, tipo: 'grupamento', maeId: null };
 const SB1 = EU_EXEMPLO.unidades[0]!;
 const GESTOR_GB = { ...EU_EXEMPLO, papeis: [{ papel: 'gestor' as const, unidadeId: 'u-gb', unidadeSigla: '2º GB' }], unidades: [GB, SB1] };
-const ADMIN = { ...EU_EXEMPLO, papeis: [{ papel: 'administrador' as const, unidadeId: 'raiz', unidadeSigla: 'CBMPE' }], unidades: [{ id: 'raiz', sigla: 'CBMPE', caminho: ['CBMPE'], nivel: 0, tipo: 'corporacao' }, GB, SB1] };
+const ADMIN = { ...EU_EXEMPLO, papeis: [{ papel: 'administrador' as const, unidadeId: 'raiz', unidadeSigla: 'CBMPE' }], unidades: [{ id: 'raiz', sigla: 'CBMPE', caminho: ['CBMPE'], nivel: 0, tipo: 'corporacao', maeId: null }, GB, SB1] };
 
 const TIPOS: TipoDeUnidadeComUso[] = [
   { id: 't-gb', codigo: 'grupamento', nome: 'Grupamento', ordem: 3, unidades: 1 },
@@ -204,6 +204,14 @@ describe('a árvore de unidades (6.25)', () => {
   });
 });
 
+/** Os destinos que se pode escolher em "Mover para…": os nós da árvore que não são só passagem, com todos os níveis abertos. */
+async function destinos(janela: HTMLElement) {
+  const abrirTudo = within(janela).queryByRole('button', { name: 'Abrir tudo' });
+  if (abrirTudo) await userEvent.click(abrirTudo);
+  localStorage.removeItem('arvore:aberta-toda');
+  return within(janela).getAllByRole('treeitem').filter((i) => !i.getAttribute('aria-disabled')).map((i) => i.getAttribute('data-no'));
+}
+
 describe('mover para… (6.25)', () => {
   it('abre a árvore de destino só com as unidades permitidas (sem a própria unidade e as de baixo) e mostra o efeito antes de salvar', async () => {
     const f = comEstrutura({ 'GET /api/unidades/u-da/efeito-de-mover': { status: 200, corpo: EFEITO }, 'PATCH /api/unidades/u-da': { status: 200, corpo: ARVORE } });
@@ -211,11 +219,12 @@ describe('mover para… (6.25)', () => {
     await abrirMenu('DA');
     await userEvent.click(screen.getByRole('menuitem', { name: 'Mover para…' }));
     const janela = await screen.findByRole('dialog', { name: 'Mover DA para…' });
-    // a DA e a 3ª SB (dentro dela) não são destino
-    expect(within(janela).getAllByRole('radio').map((r) => r.getAttribute('value'))).toEqual(['u-gb', 'u-1sb', 'u-divop']);
+    // 6.45: o destino se escolhe pela árvore, e não numa lista com recuo; a DA e a 3ª SB (dentro dela) não são destino
+    expect(within(janela).queryAllByRole('radio')).toEqual([]);
+    expect(await destinos(janela)).toEqual(['u-gb', 'u-1sb', 'u-divop']);
     // sem escolher, não há o que confirmar
     expect(within(janela).getByRole('button', { name: 'Mover' })).toBeDisabled();
-    await userEvent.click(within(janela).getByRole('radio', { name: /DivOp/ }));
+    await userEvent.click(within(janela).getByRole('treeitem', { name: /^DivOp/ }));
     const efeito = await within(janela).findByLabelText('O que muda');
     expect(within(efeito).getByText('Passam a alcançar a unidade')).toBeInTheDocument();
     expect(within(efeito).getByText('SD LATERAL, Coordenador em DivOp')).toBeInTheDocument();
@@ -242,7 +251,9 @@ describe('mover para… (6.25)', () => {
     await abrirMenu('DA');
     await userEvent.click(screen.getByRole('menuitem', { name: 'Mover para…' }));
     const janela = await screen.findByRole('dialog');
-    expect(within(janela).getAllByRole('radio').map((r) => r.getAttribute('value'))).toEqual(['u-gb', 'u-1sb']);
+    expect(await destinos(janela)).toEqual(['u-gb', 'u-1sb']);
+    // a que ele não edita não é destino nem aparece (não está no caminho de nenhuma que ele edita)
+    expect(within(janela).queryByRole('treeitem', { name: /FORA/ })).toBeNull();
   });
 
   it('o erro ao mover aparece na janela, que continua aberta', async () => {
@@ -251,7 +262,7 @@ describe('mover para… (6.25)', () => {
     await abrirMenu('DA');
     await userEvent.click(screen.getByRole('menuitem', { name: 'Mover para…' }));
     const janela = await screen.findByRole('dialog');
-    await userEvent.click(within(janela).getByRole('radio', { name: /DivOp/ }));
+    await userEvent.click(within(janela).getByRole('treeitem', { name: /^DivOp/ }));
     await within(janela).findByLabelText('O que muda');
     await userEvent.click(within(janela).getByRole('button', { name: 'Mover' }));
     expect(await within(janela).findByRole('alert')).toHaveTextContent('Uma unidade não pode ficar abaixo de si mesma.');
@@ -266,7 +277,7 @@ describe('erros que a API aponta num campo sem campo na janela (revisão final)'
     await abrirMenu('DA');
     await userEvent.click(screen.getByRole('menuitem', { name: 'Mover para…' }));
     const janela = await screen.findByRole('dialog');
-    await userEvent.click(within(janela).getByRole('radio', { name: /DivOp/ }));
+    await userEvent.click(within(janela).getByRole('treeitem', { name: /^DivOp/ }));
     await within(janela).findByLabelText('O que muda');
     await userEvent.click(within(janela).getByRole('button', { name: 'Mover' }));
     expect(await within(janela).findByRole('alert')).toHaveTextContent(aviso);
@@ -339,12 +350,16 @@ describe('o auxiliar na Estrutura (6.25)', () => {
   });
 
   it('quem tem nível em duas árvores separadas escolhe de qual quer ver', async () => {
-    const dois = { ...GESTOR_GB, papeis: [{ papel: 'gestor' as const, unidadeId: 'u-gb', unidadeSigla: '2º GB' }, { papel: 'gestor' as const, unidadeId: 'u-gb9', unidadeSigla: '9º GB' }], unidades: [GB, { id: 'u-gb9', sigla: '9º GB', caminho: ['CBMPE', 'DGO', 'DInter/9', '9º GB'], nivel: 3, tipo: 'grupamento' }] };
+    const dois = { ...GESTOR_GB, papeis: [{ papel: 'gestor' as const, unidadeId: 'u-gb', unidadeSigla: '2º GB' }, { papel: 'gestor' as const, unidadeId: 'u-gb9', unidadeSigla: '9º GB' }], unidades: [GB, { id: 'u-gb9', sigla: '9º GB', caminho: ['CBMPE', 'DGO', 'DInter/9', '9º GB'], nivel: 3, tipo: 'grupamento', maeId: null }] };
     const f = comEstrutura({}, dois);
     abrir('/estrutura');
     const seletor = await screen.findByLabelText('Árvore de');
-    expect(within(seletor).getAllByRole('option').map((o) => o.textContent)).toEqual(['2º GB', '9º GB']);
-    fireEvent.change(seletor, { target: { value: 'u-gb9' } });
+    // 6.45: as árvores que a pessoa pode ver também se escolhem pela árvore, e não numa lista plana
+    expect(seletor.tagName).not.toBe('SELECT');
+    await userEvent.click(seletor);
+    await screen.findByRole('tree', { name: 'Árvore de' });
+    expect(nosDaArvore()).toEqual(['2º GB', '9º GB']);
+    await userEvent.click(screen.getByRole('treeitem', { name: '9º GB' }));
     await waitFor(() => expect(f.mock.calls.map(([e]) => String(e)).filter((e) => e.includes('estrutura'))).toContain('/api/estrutura?raiz=u-gb9'));
   });
 });

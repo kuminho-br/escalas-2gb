@@ -186,7 +186,7 @@ describe('a busca', () => {
     expect(siglas.indexOf('DivOp')).toBeLessThan(siglas.indexOf('1ª SB'));
     expect(unidades.find((u) => u.sigla === '1ª SB')!.nivel).toBe(unidades.find((u) => u.sigla === 'DivOp')!.nivel + 1);
     expect(unidades.find((u) => u.sigla === '3ª SB')!.nivel).toBe(unidades.find((u) => u.sigla === '2º GB')!.nivel + 1);
-    expect(Object.keys(unidades[0]!).sort()).toEqual(['id', 'nivel', 'sigla']);
+    expect(Object.keys(unidades[0]!).sort()).toEqual(['id', 'maeId', 'nivel', 'sigla']);
     // as unidades extintas não entram
     const extinta = await inserir(api.banco, 'unidade', { tipo: 'secao', sigla: '8ª SB', nome: '8ª Seção', mae_id: api.ids.gb, desde: '2020-01-01', ate: '2020-12-31' });
     expect(((await (await pedir('semPapel', '/api/consulta/unidades')).json()) as UnidadeDaConsulta[]).map((u) => u.id)).not.toContain(extinta);

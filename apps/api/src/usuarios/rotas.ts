@@ -99,12 +99,12 @@ async function quemPodeDar(c: Consulta, usuarioId: string, hoje: string): Promis
     filtro = `and exists (select 1 from papel_usuario pu join unidade a on a.id = pu.unidade_id where pu.usuario_id = $1 and pu.papel in ('gestor', 'gestor_lateral') and ${vigente} and a.caminho @> u.caminho)`;
     aceitaLateral = `exists (select 1 from papel_usuario pu join unidade a on a.id = pu.unidade_id where pu.usuario_id = $1 and pu.papel = 'gestor' and ${vigente} and a.caminho @> u.caminho and a.id <> u.id)`;
   }
-  const { rows } = await c.query<{ id: string; sigla: string; nivel: number; tipo: string; mae_sigla: string | null; aceita_lateral: boolean }>(
-    `select u.id, u.sigla, u.tipo, (select m.sigla from unidade m where m.id = u.mae_id) as mae_sigla, nlevel(u.caminho) - 1 as nivel, ${aceitaLateral} as aceita_lateral
+  const { rows } = await c.query<{ id: string; sigla: string; nivel: number; tipo: string; mae_id: string | null; mae_sigla: string | null; aceita_lateral: boolean }>(
+    `select u.id, u.sigla, u.tipo, u.mae_id, (select m.sigla from unidade m where m.id = u.mae_id) as mae_sigla, nlevel(u.caminho) - 1 as nivel, ${aceitaLateral} as aceita_lateral
        from unidade u where (u.ate is null or u.ate >= $2::date) and $1::uuid is not null ${filtro} order by u.caminho`,
     [usuarioId, hoje],
   );
-  return { papeisQuePodeDar, unidadesParaPapel: rows.map((u) => ({ id: u.id, sigla: u.sigla, nivel: Number(u.nivel), tipo: u.tipo, maeSigla: u.mae_sigla, aceitaLateral: u.aceita_lateral })) };
+  return { papeisQuePodeDar, unidadesParaPapel: rows.map((u) => ({ id: u.id, sigla: u.sigla, nivel: Number(u.nivel), tipo: u.tipo, maeId: u.mae_id, maeSigla: u.mae_sigla, aceitaLateral: u.aceita_lateral })) };
 }
 
 /** O acesso do militar, com o que quem pede pode dar. */
