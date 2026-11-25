@@ -15,11 +15,11 @@ import {
 import { coluna } from './planilha.ts';
 import type { ColunaModelo, Importador } from './tipos.ts';
 
-const ABA = 'PECÚLIO';
+export const ABA = 'PECÚLIO';
 const SIM_NAO = ['SIM', 'NÃO'];
 
 // rótulos lidos por planejar e escritos no cabeçalho do modelo, na ordem da ficha: uma lista só
-const COLUNAS = {
+export const COLUNAS = {
   mat: { rotulo: 'MATRÍCULA', obrigatoria: true, ajuda: '6 dígitos, hífen e 1 dígito (ex.: 123456-7). Sem o hífen, o sistema corrige e avisa.' },
   posto: { rotulo: 'POSTO/GRAD', obrigatoria: false, ajuda: 'Sigla do posto ou graduação, como na lista abaixo. Obrigatório para militar novo.' },
   completo: { rotulo: 'NOME COMPLETO', obrigatoria: false, ajuda: 'O nome completo do militar (até 120 caracteres).' },
@@ -124,17 +124,24 @@ async function existentes(tx: Consulta, mes: string): Promise<Map<string, Existe
   return new Map(rows.map((r) => [r.matricula, r]));
 }
 
+/** O nome da unidade na planilha: a sigla, e com a unidade de cima ("1ª SB (2º GB)") quando a sigla se repete na lista. A exportação (6.54) escreve do mesmo jeito. */
+export function comRotulo(unidades: { id: string; sigla: string; mae: string | null }[]) {
+  return unidades.map((u) => ({ id: u.id, sigla: u.sigla, rotulo: u.mae && unidades.filter((o) => normalizar(o.sigla) === normalizar(u.sigla)).length > 1 ? `${u.sigla} (${u.mae})` : u.sigla }));
+}
+
 /** As listas de valores da unidade (postos, lotações, quadros, situações e equipes), para ler as células e para a AJUDA do modelo. */
 async function catalogos(tx: Consulta, unidadeId: string) {
   const postos = (await tx.query<{ id: string; sigla: string }>('select id, sigla from posto_grad order by ordem')).rows;
   // qualquer unidade em vigor da importação, de qualquer tipo; a sigla que se repete leva a unidade de cima
-  const unidades = (
-    await tx.query<{ id: string; sigla: string; mae: string | null }>(
-      `select s.id, s.sigla, m.sigla as mae from unidade s join unidade u on u.id = $1 and s.caminho <@ u.caminho left join unidade m on m.id = s.mae_id
-        where s.ate is null or s.ate >= $2::date order by nlevel(s.caminho), s.sigla`,
-      [unidadeId, hojeRecife()],
-    )
-  ).rows.map((u, _, todas) => ({ id: u.id, sigla: u.sigla, rotulo: u.mae && todas.filter((o) => normalizar(o.sigla) === normalizar(u.sigla)).length > 1 ? `${u.sigla} (${u.mae})` : u.sigla }));
+  const unidades = comRotulo(
+    (
+      await tx.query<{ id: string; sigla: string; mae: string | null }>(
+        `select s.id, s.sigla, m.sigla as mae from unidade s join unidade u on u.id = $1 and s.caminho <@ u.caminho left join unidade m on m.id = s.mae_id
+          where s.ate is null or s.ate >= $2::date order by nlevel(s.caminho), s.sigla`,
+        [unidadeId, hojeRecife()],
+      )
+    ).rows,
+  );
   const quadros = (
     await tx.query<{ id: string; sigla: string; posto_grad_ids: string[] }>(
       'select q.id, q.sigla, array_agg(qp.posto_grad_id) as posto_grad_ids from quadro q join quadro_posto_grad qp on qp.quadro_id = q.id group by q.id, q.sigla order by q.sigla',

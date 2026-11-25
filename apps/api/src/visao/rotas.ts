@@ -1,6 +1,6 @@
 // A borda das camadas de visão e a marca "de oficiais" dos quadros (entrega 6.11): só o administrador lê e ajusta. Nada aqui dá permissão de gravar
 // a quem apenas vê.
-import { FiltrosDaBusca, MarcaDeOficiais, NovaBorda } from 'contratos';
+import { FiltrosDaBusca, MarcaDeOficiais, NovaBorda, PedidoDeExportacao } from 'contratos';
 import { Hono } from 'hono';
 import { exigirAdministradorRaiz, exigirSessao, type AmbienteApi } from '../acesso.ts';
 import type { Auth } from '../auth.ts';
@@ -11,6 +11,7 @@ import { hojeRecife } from '../datas.ts';
 import { limitarPorConta } from '../limites.ts';
 import { buscarComFiltros } from './busca.ts';
 import { buscarMilitares, fichaDeConsulta, unidadesDaConsulta } from './consulta.ts';
+import { exportarMilitares } from './exportar.ts';
 import { carregarBorda, lerBorda } from './visao.ts';
 
 const SO_ADMINISTRADOR = 'Só o administrador do sistema ajusta quem vê o quê.';
@@ -97,6 +98,18 @@ export function rotasVisao(dep: { banco: Banco; auth: Auth; limiteDeBuscas?: num
     if (!corpo.ok) return corpo.resposta;
     const resposta = await buscarComFiltros(c.get('banco'), c.get('usuarioId'), corpo.dados, hojeRecife(), { semCorte: true });
     return resposta.ok ? c.json(resposta.resultado) : c.json({ erro: resposta.erro }, resposta.status);
+  });
+
+  // 6.54: a planilha (.xlsx) com as colunas da importação do Pecúlio; sai a busca, a seleção ou as duas, só para quem tem nível de acesso
+  r.post('/consulta/militares/exportar', async (c) => {
+    const corpo = await lerCorpo(c, PedidoDeExportacao);
+    if (!corpo.ok) return corpo.resposta;
+    const hoje = hojeRecife();
+    const resposta = await exportarMilitares(c.get('banco'), c.get('usuarioId'), corpo.dados, hoje);
+    if (!resposta.ok) return c.json({ erro: resposta.erro }, resposta.status);
+    return new Response(resposta.arquivo, {
+      headers: { 'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'Content-Disposition': `attachment; filename="militares-${hoje}.xlsx"` },
+    });
   });
 
   r.get('/consulta/militares/:id', async (c) => {
