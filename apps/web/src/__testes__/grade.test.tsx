@@ -82,7 +82,7 @@ describe('grade geral: o dia de hoje (N0.4, achado T4)', () => {
     abrir(`/grade?mes=${MES}`);
     await screen.findByRole('table', { name: 'Grade geral de dezembro de 2026' });
     await waitFor(() => expect(rolar).toHaveBeenCalledTimes(1));
-    await userEvent.click(within(screen.getByRole('group', { name: 'Equipes' })).getByRole('button', { name: 'Bravo' }));
+    await userEvent.click(within(screen.getByRole('group', { name: 'Equipe' })).getByRole('button', { name: 'Bravo' }));
     await screen.findByRole('rowheader', { name: /BRAVO/ });
     expect(rolar).toHaveBeenCalledTimes(1);
   });
@@ -103,7 +103,7 @@ describe('grade geral: a tabela', () => {
     api();
     abrir(`/?mes=${MES}`);
     await screen.findByRole('table', { name: 'Grade geral de dezembro de 2026' });
-    expect([...document.querySelectorAll('tr[data-grupo]')].map((g) => g.querySelector('strong')?.textContent)).toEqual(['Alfa', 'Bravo', 'Adm']);
+    expect([...document.querySelectorAll('tr[data-grupo]')].map((g) => g.querySelector('strong')?.textContent)).toEqual(['Alfa', 'Bravo', 'ADM']);
     expect(screen.getAllByRole('rowheader').map((h) => h.textContent)).toEqual(expect.arrayContaining([expect.stringContaining('CABO'), expect.stringContaining('ADM')]));
     const b = within(celula('CABO', 2, 'Pronto A')).getByText('A');
     // a cor do serviço aparece com o contraste de 4,5:1 com o texto (o valor salvo, #2F8F5B, não muda)
@@ -168,8 +168,9 @@ describe('grade geral: a tabela', () => {
     api();
     abrir(`/?mes=${MES}`);
     await screen.findByRole('table', { name: 'Grade geral de dezembro de 2026' });
-    const alfa = document.querySelector<HTMLElement>('tr[data-grupo="eq-alfa"] th[scope="colgroup"] [data-nome-do-grupo]')!;
-    expect(alfa).toHaveClass('sticky', 'left-4');
+    // 6.46: a faixa da equipe tem a mesma coluna presa das linhas (é ela que gruda à esquerda), para a fronteira da rolagem passar contínua
+    const alfa = document.querySelector<HTMLElement>('tr[data-grupo="eq-alfa"] td:first-child [data-nome-do-grupo]')!;
+    expect(alfa.closest('td')).toHaveClass('sticky', 'left-0');
     expect(alfa).toHaveTextContent('Alfa');
     expect(alfa).toHaveTextContent('2 militares');
     expect(alfa.querySelector('strong')).toHaveClass('text-tinta', 'font-bold');
@@ -313,7 +314,7 @@ describe('grade geral: a legenda', () => {
     api();
     abrir(`/?mes=${MES}`);
     const legenda = await screen.findByRole('list', { name: 'Legenda' });
-    expect(within(legenda).getAllByRole('listitem').map((i) => i.textContent)).toEqual(['JES', 'Pronto', 'Expediente do Adm', 'Choque de horário']);
+    expect(within(legenda).getAllByRole('listitem').map((i) => i.textContent)).toEqual(['JES', 'Pronto', 'Expediente do ADM', 'Choque de horário']);
   });
 
   it('com o filtro, a legenda acompanha os grupos que aparecem', async () => {
@@ -338,7 +339,7 @@ describe('grade geral: as colunas finais', () => {
 });
 
 describe('a cota de saldo na Grade geral (6.38)', () => {
-  it('a linha do Adm traz a barra da cota na frente da matrícula, com o leitor de tela dizendo "{n} de {total} saldos no mês"; a do Pronto não tem barra', async () => {
+  it('6.46: a linha do ADM traz a matrícula à esquerda e a barra da cota depois dela, encostada à direita, a 12 px da fronteira; a do Pronto, sem barra, tem a matrícula no mesmo lugar', async () => {
     const g: GradeDoMes = {
       ...GRADE,
       grupos: [
@@ -350,11 +351,171 @@ describe('a cota de saldo na Grade geral (6.38)', () => {
     abrir(`/?mes=${MES}`);
     await screen.findByRole('table', { name: 'Grade geral de dezembro de 2026' });
     const barra = within(linhaDe('ADM')).getByRole('img', { name: '2 de 6 saldos no mês' });
-    // na frente da matrícula: a barra é a primeira coisa da linha da matrícula
+    // a matrícula vem antes da barra na ordem do documento, e a linha das duas espalha: matrícula à esquerda, barra à direita
     const matricula = within(linhaDe('ADM')).getByText('990001-1');
-    expect(matricula.firstElementChild).toBe(barra);
+    expect(matricula.compareDocumentPosition(barra) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    const linhaDaMatricula = barra.parentElement!;
+    expect(linhaDaMatricula).toContainElement(matricula);
+    expect(linhaDaMatricula).toHaveClass('flex', 'justify-between');
+    // a célula tem 12 px de folga à direita, até a fronteira
+    expect(linhaDe('ADM').querySelector('th')).toHaveClass('pr-3');
+    // a barra continua com 28 por 6 px
+    expect(barra).toHaveClass('w-7', 'h-1.5');
+    // Review Focus 3: no Pronto, a matrícula fica no mesmo lugar (a mesma linha, a mesma folga), sem barra
+    const doPronto = within(linhaDe('CABO')).getByText('990001-1');
+    expect(doPronto.parentElement).toHaveClass('flex', 'justify-between');
+    expect(doPronto.className).toBe(matricula.className);
+    expect(linhaDe('CABO').querySelector('th')).toHaveClass('pr-3');
     expect(within(linhaDe('SOBRA')).getByRole('img', { name: '7 de 6 saldos no mês' })).toHaveAttribute('data-estado', 'acima');
     expect(within(linhaDe('CABO')).queryByRole('img')).toBeNull();
+  });
+});
+
+// 6.46: a fronteira entre o fixo e o que rola é uma linha de 2 px no token `encaixe` (regra do Manual: "Tabela com rolagem")
+describe('a fronteira da rolagem na Grade geral (6.46)', () => {
+  const abrirGrade = async () => {
+    api();
+    abrir(`/?mes=${MES}`);
+    await screen.findByRole('table', { name: 'Grade geral de dezembro de 2026' });
+  };
+  const FRONTEIRA_A_DIREITA = ['border-r-2', 'border-r-encaixe'];
+  const FRONTEIRA_DO_PJES = ['min-[1440px]:border-l-2', 'min-[1440px]:border-l-encaixe'];
+
+  it('a coluna do militar tem a borda direita de 2 px encaixe no cabeçalho, em cada linha e na faixa de cada equipe (contínua)', async () => {
+    await abrirGrade();
+    expect(screen.getByRole('columnheader', { name: 'Militar' })).toHaveClass(...FRONTEIRA_A_DIREITA);
+    expect(linhaDe('CABO').querySelector('th')).toHaveClass(...FRONTEIRA_A_DIREITA);
+    for (const chave of ['eq-alfa', 'eq-bravo', 'adm']) {
+      const daFaixa = document.querySelector<HTMLElement>(`tr[data-grupo="${chave}"] td:first-child`)!;
+      expect(daFaixa, chave).toHaveClass('sticky', 'left-0', ...FRONTEIRA_A_DIREITA);
+    }
+    // a linha fraca de antes saiu da fronteira
+    expect(linhaDe('CABO').querySelector('th')).not.toHaveClass('border-r-linha');
+  });
+
+  it('Review Focus 2: com a equipe recolhida, a faixa continua com a fronteira (sem buraco)', async () => {
+    await abrirGrade();
+    await userEvent.click(within(document.querySelector<HTMLElement>('tr[data-grupo="eq-alfa"]')!).getByRole('button'));
+    expect(document.querySelector('tr[data-grupo="eq-alfa"] td:first-child')).toHaveClass(...FRONTEIRA_A_DIREITA);
+  });
+
+  it('a base do cabeçalho tem 2 px encaixe na largura toda: "Militar", cada dia, PJES e Diárias', async () => {
+    await abrirGrade();
+    const cabecalhos = screen.getAllByRole('columnheader');
+    expect(cabecalhos.length).toBe(GRADE.dias.length + 3);
+    for (const c of cabecalhos) expect(c, c.textContent ?? '').toHaveClass('border-b-2', 'border-b-encaixe');
+  });
+
+  it('Review Focus 1: a fronteira à esquerda de PJES só existe quando a coluna fica presa (1440 px ou mais), e atravessa a faixa da equipe; Diárias não tem', async () => {
+    await abrirGrade();
+    expect(screen.getByRole('columnheader', { name: 'PJES' })).toHaveClass(...FRONTEIRA_DO_PJES);
+    const finais = [...linhaDe('CABO').querySelectorAll('td')].slice(-2);
+    expect(finais[0]).toHaveClass(...FRONTEIRA_DO_PJES);
+    expect(finais[1]!.className).not.toMatch(/border-l-encaixe/);
+    // abaixo de 1440 px nada disso vale: a classe só existe com o prefixo
+    expect(finais[0]!.className.split(' ')).not.toContain('border-l-2');
+    const daFaixa = [...document.querySelectorAll<HTMLElement>('tr[data-grupo="eq-alfa"] td')].slice(-2);
+    expect(daFaixa[0]).toHaveClass(...FRONTEIRA_DO_PJES, 'min-[1440px]:sticky', 'min-[1440px]:right-16');
+    expect(daFaixa[1]).toHaveClass('min-[1440px]:sticky', 'min-[1440px]:right-0');
+  });
+
+  it('as linhas de dentro continuam fracas: entre dias, entre militares e a de segunda-feira', async () => {
+    await abrirGrade();
+    expect(celula('CABO', 8, 'sem serviço').closest('td')).toHaveClass('border-b-[#EEF0F3]', 'border-r-[#EEF0F3]');
+    expect(celula('CABO', 7, 'sem serviço').closest('td')).toHaveClass('border-l-[#C9CED6]');
+  });
+});
+
+// 6.46: os filtros de equipe são um grupo segmentado (regra do Manual: "Grupo de filtro"), e a jornada Adm se escreve "ADM"
+describe('o grupo de filtro das equipes (6.46)', () => {
+  const abrirGrade = async (busca = '') => {
+    api();
+    abrir(`/grade?mes=${MES}${busca}`);
+    await screen.findByRole('table', { name: 'Grade geral de dezembro de 2026' });
+    return screen.getByRole('group', { name: 'Equipe' });
+  };
+
+  it('tem o rótulo "Equipe" à vista, "Todas" como primeiro segmento, igual aos outros, e os segmentos numa caixa só', async () => {
+    const grupo = await abrirGrade();
+    expect(screen.getByText('Equipe')).toBeVisible();
+    const segmentos = within(grupo).getAllByRole('button');
+    expect(segmentos.map((b) => b.textContent)).toEqual(['Todas', 'Alfa', 'Bravo', 'ADM']);
+    // os nomes aparecem em caixa alta (pelo estilo: o nome continua o do cadastro para o leitor de tela)
+    for (const b of segmentos) expect(b).toHaveClass('uppercase');
+    // uma caixa só, com a borda de encaixe, e os segmentos colados (sem vão), separados por uma linha fina
+    const caixa = segmentos[0]!.parentElement!;
+    expect(caixa).toHaveClass('border', 'border-encaixe', 'rounded-controle', 'overflow-hidden');
+    expect(caixa.className).not.toMatch(/\bgap-(?!px)/);
+    expect(segmentos.every((b) => b.parentElement === caixa)).toBe(true);
+  });
+
+  it('o escolhido tem aria-pressed, fundo tinta, texto branco e a marca de visto antes do nome; o não escolhido guarda o lugar do visto (a largura não muda)', async () => {
+    const grupo = await abrirGrade(`&equipes=${encodeURIComponent('["eq-bravo"]')}`);
+    const bravo = within(grupo).getByRole('button', { name: 'Bravo' });
+    expect(bravo).toHaveAttribute('aria-pressed', 'true');
+    expect(bravo).toHaveClass('aria-pressed:bg-tinta', 'aria-pressed:text-white');
+    const visto = (b: HTMLElement) => b.querySelector<SVGElement>('svg')!;
+    expect(visto(bravo)).toHaveAttribute('aria-hidden', 'true');
+    expect(bravo.firstElementChild).toBe(visto(bravo));
+    const alfa = within(grupo).getByRole('button', { name: 'Alfa' });
+    expect(alfa).toHaveAttribute('aria-pressed', 'false');
+    // o visto existe nos dois (o mesmo espaço), só fica invisível no que não está marcado
+    expect(visto(alfa)).toHaveClass('invisible');
+    expect(visto(bravo)).not.toHaveClass('invisible');
+    expect(visto(bravo)).toHaveClass('size-3.5');
+    // "Todas" não está marcado quando há outro escolhido
+    expect(within(grupo).getByRole('button', { name: 'Todas' })).toHaveAttribute('aria-pressed', 'false');
+  });
+
+  it('"Todas" fica marcado quando nenhum outro está, e clicar nele limpa a escolha', async () => {
+    const grupo = await abrirGrade(`&equipes=${encodeURIComponent('["eq-bravo"]')}`);
+    await userEvent.click(within(grupo).getByRole('button', { name: 'Todas' }));
+    await waitFor(() => expect(within(grupo).getByRole('button', { name: 'Todas' })).toHaveAttribute('aria-pressed', 'true'));
+    expect(within(grupo).getByRole('button', { name: 'Bravo' })).toHaveAttribute('aria-pressed', 'false');
+  });
+
+  it('Review Focus 4: no celular são três por linha, com 44 px de altura, e a última linha estica; do computador em diante, a altura de controle numa linha só', async () => {
+    const grupo = await abrirGrade();
+    const segmentos = within(grupo).getAllByRole('button');
+    const caixa = segmentos[0]!.parentElement!;
+    expect(caixa).toHaveClass('grid', 'grid-cols-6', 'sm:flex');
+    for (const b of segmentos) expect(b).toHaveClass('col-span-2', 'h-11', 'sm:h-(--altura-controle)');
+    // quatro segmentos: três na primeira linha e o último sozinho, esticado até o fim
+    expect(segmentos.at(-1)).toHaveClass('max-sm:col-span-6');
+    expect(segmentos[2]!.className).not.toMatch(/max-sm:col-span-(3|6)/);
+  });
+});
+
+describe('a jornada se escreve "ADM" (6.46)', () => {
+  it('a faixa da equipe, o filtro e a legenda da Grade dizem "ADM"; nenhum "Adm" sobra na tela', async () => {
+    api();
+    abrir(`/grade?mes=${MES}`);
+    await screen.findByRole('table', { name: 'Grade geral de dezembro de 2026' });
+    expect([...document.querySelectorAll('tr[data-grupo]')].map((g) => g.querySelector('strong')?.textContent)).toEqual(['Alfa', 'Bravo', 'ADM']);
+    expect(screen.getByRole('button', { name: 'ADM' })).toBeInTheDocument();
+    expect(document.body.textContent).not.toMatch(/\bAdm\b/);
+  });
+
+  it('Review Focus 5: nenhum arquivo do site escreve "Adm" num texto de tela (a jornada vem de NOME_JORNADA, que diz "ADM")', async () => {
+    const { readdirSync, readFileSync, statSync } = await import('node:fs');
+    const { join, relative, sep } = await import('node:path');
+    const { NOME_JORNADA } = await import('@/lib/militares');
+    expect(NOME_JORNADA.adm).toBe('ADM');
+    const raiz = join(__dirname, '..');
+    const arquivos = (pasta: string): string[] => readdirSync(pasta).flatMap((n) => {
+      const p = join(pasta, n);
+      if (statSync(p).isDirectory()) return n === '__testes__' ? [] : arquivos(p);
+      return /\.tsx?$/.test(n) ? [p] : [];
+    });
+    const achados: string[] = [];
+    for (const a of arquivos(raiz)) {
+      readFileSync(a, 'utf8').split('\n').forEach((linha, i) => {
+        // os comentários do código podem dizer "Adm"; o que vai para a tela (texto de JSX ou de string), não
+        const semComentario = linha.replace(/\/\/.*$/, '').replace(/^\s*\/?\*.*$/, '').replace(/\{\/\*.*?\*\/\}/g, '');
+        if (/\bAdm\b/.test(semComentario)) achados.push(`${relative(raiz, a).split(sep).join('/')}:${i + 1}: ${linha.trim().slice(0, 100)}`);
+      });
+    }
+    expect(achados).toEqual([]);
   });
 });
 
@@ -377,7 +538,7 @@ describe('grade geral: o filtro de equipes e o clique', () => {
     abrir(`/?mes=${MES}&equipes=${encodeURIComponent('["adm"]')}`);
     await screen.findByRole('rowheader', { name: /ADM/ });
     expect(screen.queryByRole('rowheader', { name: /CABO/ })).toBeNull();
-    expect(screen.getByRole('button', { name: 'Adm' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('button', { name: 'ADM' })).toHaveAttribute('aria-pressed', 'true');
   });
 
   it('o endereço antigo ?equipe=bravo continua filtrando', async () => {
@@ -409,7 +570,7 @@ describe('grade geral: o filtro de equipes e o clique', () => {
   it('ligar todas uma a uma volta para "Todas"', async () => {
     api();
     const router = abrir(`/?mes=${MES}`);
-    for (const nome of ['Alfa', 'Bravo', 'Adm']) await userEvent.click(await screen.findByRole('button', { name: nome }));
+    for (const nome of ['Alfa', 'Bravo', 'ADM']) await userEvent.click(await screen.findByRole('button', { name: nome }));
     await waitFor(() => expect(screen.getByRole('button', { name: 'Todas' })).toHaveAttribute('aria-pressed', 'true'));
     expect((router.state.location.search as { equipes?: string[] }).equipes).toBeUndefined();
     expect(screen.getByRole('button', { name: 'Alfa' })).toHaveAttribute('aria-pressed', 'false');

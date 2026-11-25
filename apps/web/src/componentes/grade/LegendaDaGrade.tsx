@@ -18,7 +18,7 @@ export function LegendaDaGrade({ grupos }: { grupos: GrupoDaGrade[] }) {
       {temExpediente && (
         <li className="inline-flex items-center gap-1.5">
           <span aria-hidden className="size-3 rounded-[3px] bg-[#8A94A1]" />
-          Expediente do Adm
+          Expediente do ADM
         </li>
       )}
       {temChoque && (

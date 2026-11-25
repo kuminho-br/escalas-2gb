@@ -9,13 +9,16 @@ import {
   type OcupanteDaVaga,
 } from 'contratos';
 import { diaDaSemana, diasDoMes } from 'dominio';
+import { GESTAO, temPapel } from '../acesso.ts';
 import type { Consulta } from '../banco/banco.ts';
+import { hojeRecife } from '../datas.ts';
 import { vinculosDaEscala } from '../cadastros/escalas.ts';
 import { feriadosDoAno } from '../cadastros/feriados.ts';
 import { versaoNoMes } from '../cadastros/guarnicoes-regras.ts';
 import { versoesDasGuarnicoes } from '../cadastros/guarnicoes.ts';
 import { cotasDeSaldo } from './cota-de-saldo.ts';
 import { ordemDoMes } from './ordem-do-mes.ts';
+import { previaLancada } from './previa.ts';
 import { sequenciaDePreenchimento } from './ordem.ts';
 import { nomeDaVaga } from './vagas.ts';
 
@@ -35,7 +38,8 @@ function frasesDoQueFalta(funcoes: FuncaoNoCard[]): string[] {
   });
 }
 
-export async function montarEscalaDoMes(c: Consulta, escalaId: string, mes: string): Promise<EscalaDoMes> {
+/** `usuarioId`: quem pede (para `podeAlterarPassado`); sem ele, falso. */
+export async function montarEscalaDoMes(c: Consulta, escalaId: string, mes: string, usuarioId?: string): Promise<EscalaDoMes> {
   const escala = (await c.query<{ id: string; nome: string; unidade_id: string }>('select id, nome, unidade_id from escala where id = $1', [escalaId])).rows[0]!;
   const servicos = (
     await c.query<{ id: string; nome: string; cor: string }>(
@@ -200,5 +204,11 @@ export async function montarEscalaDoMes(c: Consulta, escalaId: string, mes: stri
     obrigatoriasVazias += vaziasDoDia;
     return { data, diaDaSemana: diaDaSemana(data), feriado: feriados.get(data) ?? null, faixas: faixasDoDia, obrigatoriasVazias: vaziasDoDia };
   });
-  return { escalaId, nome: escala.nome, mes, dias, resumo: { preenchidas, obrigatorias, obrigatoriasVazias } };
+  const previa = await previaLancada(c, escalaId, mes);
+  const podeAlterarPassado = usuarioId ? await temPapel(c, usuarioId, escala.unidade_id, GESTAO, hojeRecife()) : false;
+  return {
+    escalaId, nome: escala.nome, mes, dias, resumo: { preenchidas, obrigatorias, obrigatoriasVazias },
+    previa: previa ? { em: previa.em, por: previa.por ? `${previa.por.patente} ${previa.por.nomeGuerra}` : null } : null,
+    podeAlterarPassado,
+  };
 }

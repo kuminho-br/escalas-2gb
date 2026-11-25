@@ -3,10 +3,6 @@ import { NOME_JORNADA } from '@/lib/militares';
 import { somarDias } from '@/lib/meses';
 
 type Periodo = FichaMilitar['rastreio'][number];
-type Afastamento = FichaMilitar['afastamentos'][number];
-
-/** `quando` é a data de começo ('aaaa-mm-dd'): o período do rastreio e o afastamento, no dia em que começam. */
-export type ItemDaLinhaDoTempo = { quando: string; tipo: 'situacao' | 'intervalo' | 'afastamento'; texto: string; /** "por MAJ BARRETO em 23/11/2026 às 09:15", quando a auditoria sabe quem fez */ autor?: string };
 
 const ddmm = (d: string) => `${d.slice(8, 10)}/${d.slice(5, 7)}`;
 export const ddmmaaaa = (d: string) => `${ddmm(d)}/${d.slice(0, 4)}`;
@@ -17,44 +13,78 @@ export function textoDoAutor(p: Pick<Periodo, 'alteradoPor' | 'alteradoEm'>): st
   return `por ${p.alteradoPor.patente} ${p.alteradoPor.nomeGuerra} em ${ddmmaaaa(p.alteradoEm.slice(0, 10))} às ${p.alteradoEm.slice(11, 16)}`;
 }
 
-/** A situação inteira de um período, como no primeiro item da linha do tempo: "1ª SB · Equipe Alfa · Pronto · QBMG · Ativa". */
+/** A situação inteira de um período numa frase: "1ª SB · Equipe Alfa · Pronto · QBMG · Ativa". */
 export const situacaoInteira = (p: Pick<Periodo, 'unidadeSigla' | 'equipe' | 'jornada' | 'quadro' | 'situacao'>): string =>
   [p.unidadeSigla, p.equipe ? `Equipe ${p.equipe}` : null, NOME_JORNADA[p.jornada], p.quadro, p.situacao].filter(Boolean).join(' · ');
 
-/** Só o que mudou do período anterior para este: "Equipe Alfa → Bravo", "Lotação 2ª SB → 1ª SB · Jornada Adm → Pronto". */
-function oQueMudou(antes: Periodo, depois: Periodo): string {
-  const partes: string[] = [];
-  if (antes.unidadeSigla !== depois.unidadeSigla) partes.push(`Lotação ${antes.unidadeSigla} → ${depois.unidadeSigla}`);
-  if (antes.equipe !== depois.equipe) partes.push(`Equipe ${antes.equipe ?? 'nenhuma'} → ${depois.equipe ?? 'nenhuma'}`);
-  if (antes.jornada !== depois.jornada) partes.push(`Jornada ${NOME_JORNADA[antes.jornada]} → ${NOME_JORNADA[depois.jornada]}`);
-  if (antes.quadro !== depois.quadro) partes.push(`Quadro ${antes.quadro ?? 'nenhum'} → ${depois.quadro ?? 'nenhum'}`);
-  if (antes.situacao !== depois.situacao) partes.push(`Situação ${antes.situacao} → ${depois.situacao}`);
-  return partes.length ? partes.join(' · ') : 'Sem mudança na situação';
+/** Os campos da situação de um período, na ordem em que a tela os mostra. */
+export type Campo = 'lotacao' | 'equipe' | 'jornada' | 'quadro' | 'situacao';
+export const CAMPOS: Campo[] = ['lotacao', 'equipe', 'jornada', 'quadro', 'situacao'];
+export const ROTULO_DO_CAMPO: Record<Campo, string> = { lotacao: 'Lotação', equipe: 'Equipe', jornada: 'Jornada', quadro: 'Quadro', situacao: 'Situação' };
+/** O que a tela diz no lugar de um campo que falta (no meio da frase, em minúsculo). */
+export const SEM_O_CAMPO: Partial<Record<Campo, string>> = { equipe: 'sem equipe', quadro: 'sem quadro' };
+
+/** O período que cobre o dia (uma mudança marcada para depois ainda não vale, e um período já terminado também não); null se nenhum cobre. */
+export function periodoAtual(rastreio: Periodo[], dia: string): Periodo | null {
+  return rastreio.find((p) => p.desde <= dia && (!p.ate || p.ate >= dia)) ?? null;
 }
 
-function textoDoAfastamento(a: Afastamento): string {
-  const mesmoAno = a.inicio.slice(0, 4) === a.fim.slice(0, 4);
-  return `Afastamento: ${a.tipo} (${mesmoAno ? `${ddmm(a.inicio)} a ${ddmm(a.fim)}` : `${ddmmaaaa(a.inicio)} a ${ddmmaaaa(a.fim)}`})`;
+/** O valor de um campo no período; null quando falta (equipe e quadro). A jornada vem pelo nome ("Pronto", "ADM"). */
+export function valorDoCampo(p: Periodo, campo: Campo): string | null {
+  switch (campo) {
+    case 'lotacao': return p.unidadeSigla;
+    case 'equipe': return p.equipe;
+    case 'jornada': return NOME_JORNADA[p.jornada];
+    case 'quadro': return p.quadro;
+    case 'situacao': return p.situacao;
+  }
+}
+
+const comoSeLe = (p: Periodo, campo: Campo) => valorDoCampo(p, campo) ?? SEM_O_CAMPO[campo] ?? '';
+
+/** Um campo que mudou de um período para o seguinte; os valores já vêm como a tela os diz ("sem equipe"). */
+export type Mudanca = { campo: Campo; antes: string; depois: string };
+
+/**
+ * Um item da linha do tempo. `vale`: `agora` é o período que cobre hoje (só um por histórico), `marcada` é o de data futura e `antes` o que já foi substituído.
+ * `inicio` é o primeiro registro (a situação inteira, `inteira`, e nenhuma mudança); `mudanca` traz só os campos que mudaram do período anterior.
+ * `vao` são os dias entre o fim de um período e o começo do seguinte, sem lotação.
+ */
+export type EventoDoRastreio =
+  | { tipo: 'inicio' | 'mudanca'; desde: string; vale: 'agora' | 'antes' | 'marcada'; inteira: string; mudancas: Mudanca[]; autor?: string }
+  | { tipo: 'vao'; de: string; ate: string; texto: string };
+
+/** "Sem lotação de 01/03 a 09/03/2025" (o ano nas duas datas só quando o intervalo atravessa a virada). */
+function textoDoVao(de: string, ate: string): string {
+  const mesmoAno = de.slice(0, 4) === ate.slice(0, 4);
+  return `Sem lotação de ${mesmoAno ? ddmm(de) : ddmmaaaa(de)} a ${ddmmaaaa(ate)}`;
 }
 
 /**
- * O rastreio e os afastamentos numa lista só, do mais novo para o mais velho. Cada período vira um item (o primeiro diz a situação inteira, os
- * outros só o que mudou) e cada afastamento vira um item no dia em que começa: um afastamento que atravessa uma mudança de equipe aparece uma vez.
- * No mesmo dia, a mudança de situação vem antes do afastamento.
+ * Os períodos do rastreio como eventos, do mais novo para o mais velho (os vãos sem lotação ficam entre os dois períodos que separam). Cada mudança diz só os campos
+ * que mudaram em relação ao período anterior, na ordem Lotação, Equipe, Jornada, Quadro, Situação. `dia` é o dia de hoje (parâmetro para testar sem relógio).
  */
-export function linhaDoTempoDoMilitar(rastreio: Periodo[], afastamentos: Afastamento[]): ItemDaLinhaDoTempo[] {
+export function eventosDoRastreio(rastreio: Periodo[], dia: string): EventoDoRastreio[] {
   const periodos = [...rastreio].sort((a, b) => (a.desde < b.desde ? -1 : a.desde > b.desde ? 1 : 0));
-  const situacoes = periodos.map((p, i): ItemDaLinhaDoTempo => ({ quando: p.desde, tipo: 'situacao', texto: i === 0 ? situacaoInteira(p) : oQueMudou(periodos[i - 1]!, p), autor: textoDoAutor(p) }));
-  // o intervalo entre um período que terminou e o seguinte: a pessoa ficou sem lotação nesses dias
-  const intervalos = periodos.flatMap((p, i): ItemDaLinhaDoTempo[] => {
-    const proximo = periodos[i + 1];
-    if (!p.ate || !proximo || somarDias(p.ate, 1) >= proximo.desde) return [];
-    const de = somarDias(p.ate, 1);
-    const ate = somarDias(proximo.desde, -1);
-    const mesmoAno = de.slice(0, 4) === ate.slice(0, 4);
-    return [{ quando: de, tipo: 'intervalo', texto: `Sem lotação de ${mesmoAno ? ddmm(de) : ddmmaaaa(de)} a ${mesmoAno ? ddmm(ate) : ddmmaaaa(ate)}` }];
+  const agora = periodoAtual(periodos, dia);
+  const eventos: EventoDoRastreio[] = [];
+  periodos.forEach((p, i) => {
+    const anterior = periodos[i - 1];
+    eventos.push({
+      tipo: anterior ? 'mudanca' : 'inicio',
+      desde: p.desde,
+      vale: p === agora ? 'agora' : p.desde > dia ? 'marcada' : 'antes',
+      inteira: CAMPOS.map((c) => valorDoCampo(p, c)).filter(Boolean).join(' · '),
+      mudancas: anterior ? CAMPOS.filter((c) => valorDoCampo(anterior, c) !== valorDoCampo(p, c)).map((campo) => ({ campo, antes: comoSeLe(anterior, campo), depois: comoSeLe(p, campo) })) : [],
+      autor: textoDoAutor(p),
+    });
+    const seguinte = periodos[i + 1];
+    // os dias entre o fim deste período e o começo do seguinte: a pessoa ficou sem lotação
+    if (p.ate && seguinte && somarDias(p.ate, 1) < seguinte.desde) {
+      const de = somarDias(p.ate, 1);
+      const ate = somarDias(seguinte.desde, -1);
+      eventos.push({ tipo: 'vao', de, ate, texto: textoDoVao(de, ate) });
+    }
   });
-  const afastados = afastamentos.map((a): ItemDaLinhaDoTempo => ({ quando: a.inicio, tipo: 'afastamento', texto: textoDoAfastamento(a) }));
-  const ordemDoTipo = { situacao: 0, intervalo: 1, afastamento: 2 };
-  return [...situacoes, ...intervalos, ...afastados].sort((a, b) => (a.quando !== b.quando ? (a.quando < b.quando ? 1 : -1) : ordemDoTipo[a.tipo] - ordemDoTipo[b.tipo]));
+  return eventos.reverse();
 }

@@ -4,10 +4,11 @@ import { Hono, type Context } from 'hono';
 import { CADASTRO, GESTAO, exigirPapel, exigirSessao, type AmbienteApi } from '../acesso.ts';
 import { exigirLeituraDaEscala } from '../visao/leitura.ts';
 import type { Auth } from '../auth.ts';
-import { comUsuario, type Banco } from '../banco/banco.ts';
+import { comUsuario, type Banco, type Consulta } from '../banco/banco.ts';
 import { hojeRecife } from '../datas.ts';
 import { lerCorpo, respostaDoErroDoBanco } from '../erros.ts';
 import { Recusa } from '../escala/alocacoes.ts';
+import { comPassado, respostaDoPassado, tocadoDaAlocacao, type Tocado } from '../escala/passado.ts';
 import { montarEfetivoDoDia } from './efetivo-do-dia.ts';
 import { DadosInvalidos, desativar, desfazerDesativacao, gravarMetaDoDia, gravarMetaPadrao, metaDoDia, modelosForaDaSecao, versoesDaMetaPadrao, voltarMetaAoPadrao } from './meta.ts';
 
@@ -88,9 +89,22 @@ export function rotasEfetivo(dep: { banco: Banco; auth: Auth }): Hono<AmbienteAp
     if (!corpo.ok) return corpo.resposta;
     const usuarioId = c.get('usuarioId');
     try {
-      const desfazer = await comUsuario(dep.banco, usuarioId, (tx) => desativar(tx, u, data, corpo.dados.guarnicaoId, usuarioId));
+      // os turnos que a desativação toca: os das alocações da unidade neste dia que estão na guarnição ou acumulam nela (sai ou vira outra vaga)
+      const tocar = async (tx: Consulta): Promise<Tocado[]> =>
+        (
+          await tx.query<{ escala_id: string; data: string; turno_id: string }>(
+            `select distinct a.escala_id, to_char(a.data, 'YYYY-MM-DD') as data, a.turno_id
+               from alocacao a join escala e on e.id = a.escala_id
+              where e.unidade_id = $1 and a.data = $2::date
+                and (a.guarnicao_id = $3 or exists (select 1 from alocacao_acumulo x where x.alocacao_id = a.id and x.guarnicao_id = $3))`,
+            [u, data, corpo.dados.guarnicaoId],
+          )
+        ).rows.map((x) => ({ escalaId: x.escala_id, data: x.data, turnoId: x.turno_id }));
+      const desfazer = await comUsuario(dep.banco, usuarioId, (tx) => comPassado(tx, usuarioId, tocar, corpo.dados.justificativa, () => desativar(tx, u, data, corpo.dados.guarnicaoId, usuarioId)));
       return c.json({ efetivo: await montarEfetivoDoDia(dep.banco, u, data), desfazer });
     } catch (e) {
+      const p = respostaDoPassado(c, e);
+      if (p) return p;
       if (e instanceof Recusa) return c.json({ erro: e.message }, 409);
       return respostaDoErroDoBanco(c, e);
     }
@@ -106,9 +120,17 @@ export function rotasEfetivo(dep: { banco: Banco; auth: Auth }): Hono<AmbienteAp
     const corpo = await lerCorpo(c, DesfazerDesativacao);
     if (!corpo.ok) return corpo.resposta;
     try {
-      await comUsuario(dep.banco, c.get('usuarioId'), (tx) => desfazerDesativacao(tx, u, data, corpo.dados));
+      const d = corpo.dados;
+      // os turnos que o "Desfazer" toca: os das alocações que voltam e os das alocações que perderam um acúmulo ou foram promovidas
+      const tocar = async (tx: Consulta): Promise<Tocado[]> => [
+        ...d.alocacoes.map((a) => ({ escalaId: a.escalaId, data: a.data, turnoId: a.turnoId })),
+        ...(await Promise.all([...new Set([...d.acumulos.map((x) => x.alocacaoId), ...d.promovidas.map((x) => x.alocacaoId)])].map((id) => tocadoDaAlocacao(tx, id)))).flat(),
+      ];
+      await comUsuario(dep.banco, c.get('usuarioId'), (tx) => comPassado(tx, c.get('usuarioId'), tocar, d.justificativa, () => desfazerDesativacao(tx, u, data, d)));
       return c.json(await montarEfetivoDoDia(dep.banco, u, data));
     } catch (e) {
+      const p = respostaDoPassado(c, e);
+      if (p) return p;
       if (e instanceof DadosInvalidos) return c.json({ erro: 'Os dados para desfazer não são desta seção.' }, 400);
       if (e instanceof Recusa) return c.json({ erro: e.message }, 409);
       return respostaDoErroDoBanco(c, e);
