@@ -1,7 +1,7 @@
 import { somarMeses, type EscalaDoMes } from 'contratos';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { hojeRecife } from '../src/datas.ts';
-import { lerRegistro } from '../src/registro.ts';
+import { lerRegistro, textoDaAlteracaoNoPassado } from '../src/registro.ts';
 import { inserir } from './banco-teste.ts';
 import { entrarComo, montarApi, type ApiDeTeste, type Pessoa } from './apoio-api.ts';
 
@@ -221,7 +221,7 @@ describe('com a prévia lançada', () => {
     it('trocar por um militar livre: a frase diz quem saiu e quem entrou na mesma vaga', async () => {
       const { r, novos } = await sozinho(() => api.pedir('gestorGb', 'POST', `/api/alocacoes/${id.M4}/trocar`, { militarId: militar.M11, turnoId: turnoA, justificativa: MOTIVO }));
       expect(r.status).toBe(200);
-      expect(novos.map((x) => x.texto)).toEqual(['Trocou SD-PS M4 por SD-PS M11 em sem guarnição, dia 11, 08:00']);
+      expect(novos.map((x) => x.texto)).toEqual(['Trocou SD-PS M4 por SD-PS M11 no turno, sem guarnição, dia 11, 08:00']);
     });
 
     it('acumular e tirar o acúmulo', async () => {
@@ -236,7 +236,7 @@ describe('com a prévia lançada', () => {
     it('voltar ao turno (desfazer o movimento para a vaga): a vaga perde o militar e o "sem guarnição" ganha', async () => {
       const { r, novos } = await sozinho(() => api.pedir('gestorGb', 'POST', `/api/alocacoes/${id.M6}/voltar-ao-turno`, { guarnicaoId: abt, funcaoId: combatente, justificativa: MOTIVO }));
       expect(r.status).toBe(200);
-      expect(novos.map((x) => x.texto).sort()).toEqual(['Pôs SD-PS M6 em sem guarnição, dia 13, 08:00', 'Tirou SD-PS M6 de ABT (Combatente), dia 13, 08:00']);
+      expect(novos.map((x) => x.texto).sort()).toEqual(['Pôs SD-PS M6 no turno, sem guarnição, dia 13, 08:00', 'Tirou SD-PS M6 de ABT (Combatente), dia 13, 08:00']);
     });
 
     it('o coordenador e o administrador também passam (cada um com a sua justificativa)', async () => {
@@ -327,7 +327,9 @@ describe('a pré-escala numa escala com prévia lançada só preenche o que aind
 });
 
 const estadoAgora = async () => ((await (await api.pedir('escalante', 'GET', `/api/escalas/${escala}/mes/${mes}`)).json()) as { estado: { estado: string; emRetificacao: boolean } }).estado;
-const poNoEstado = (estado: string, emRetificacao = false) => api.banco.query('update escala_estado set estado = $3, em_retificacao = $4 where escala_id = $1 and mes = $2::date', [escala, `${mes}-01`, estado, emRetificacao]);
+const poNoEstado = (estado: string, emRetificacao = false) =>
+  api.banco.query('insert into escala_estado (escala_id, mes, estado, em_retificacao) values ($1, $2::date, $3, $4) on conflict (escala_id, mes) do update set estado = $3, em_retificacao = $4', [escala, `${mes}-01`, estado, emRetificacao]);
+const rascunhar = () => api.banco.query('delete from escala_estado where escala_id = $1 and mes = $2::date', [escala, `${mes}-01`]);
 const SEM_POSTO = { guarnicao: null, funcao: null } as const;
 const MSG_REMESSADA = 'Esta escala já foi remessada. Só o administrador altera.';
 
@@ -446,5 +448,65 @@ describe('a pré-escala numa escala publicada (7.3.1)', () => {
     const novas = (await api.banco.query<{ data: string; turno_id: string }>("select to_char(data, 'YYYY-MM-DD') as data, turno_id from alocacao where origem = 'pre_escala' and escala_id = $1", [escala])).rows;
     expect(novas.filter((n) => n.data < dia(15) || (n.data === dia(15) && n.turno_id === turnoA))).toEqual([]);
     expect(await estadoAgora()).toMatchObject({ estado: 'publicada', emRetificacao: true });
+  });
+});
+
+describe('o acabamento da 7.3 (7.3.1, Task 4)', () => {
+  const vaga = (militares: string[], extra: Record<string, unknown> = {}) => ({ data: dia(13), inicio: '08:00', guarnicao: null, funcao: null, militares: militares.map((n) => ({ patente: 'SD', nomeGuerra: n, matricula: n })), ...extra });
+  it('a frase de quem está sem guarnição não diz "em sem guarnição": "no turno, sem guarnição"', () => {
+    expect(textoDaAlteracaoNoPassado(null, vaga(['M1']))).toBe('Pôs SD M1 no turno, sem guarnição, dia 13, 08:00');
+    expect(textoDaAlteracaoNoPassado(vaga(['M1']), null)).toBe('Tirou SD M1 do turno, sem guarnição, dia 13, 08:00');
+    expect(textoDaAlteracaoNoPassado(vaga(['M1']), vaga(['M2']))).toBe('Trocou SD M1 por SD M2 no turno, sem guarnição, dia 13, 08:00');
+    expect(textoDaAlteracaoNoPassado(null, vaga(['M1'], { guarnicao: 'ABT', funcao: 'Combatente' }))).toBe('Pôs SD M1 em ABT (Combatente), dia 13, 08:00');
+  });
+
+  it('"Permitir de novo" no passado, que pede justificativa, grava uma linha no registro', async () => {
+    await poNoEstado('previa');
+    agora(15, 12);
+    await criarMilitar('PERMITIR');
+    const id = await inserir(api.banco, 'alocacao', { militar_id: militar.PERMITIR, escala_id: escala, servico_id: pronto, turno_id: turnoA, data: dia(10), origem: 'manual' });
+    const tirou = await api.pedir('gestorGb', 'DELETE', `/api/alocacoes/${id}`, { justificativa: MOTIVO });
+    expect(tirou.status).toBe(200);
+    const remocaoId = ((await tirou.json()) as { remocaoId: string }).remocaoId;
+    expect((await api.pedir('escalante', 'DELETE', `/api/remocoes/${remocaoId}`)).status).toBe(403);
+    expect((await api.pedir('gestorGb', 'DELETE', `/api/remocoes/${remocaoId}`)).status).toBe(400);
+    const { r, novos } = await sozinho(() => api.pedir('gestorGb', 'DELETE', `/api/remocoes/${remocaoId}`, { justificativa: MOTIVO }));
+    expect(r.status).toBe(200);
+    expect(novos.map((x) => x.texto)).toEqual(['Permitiu de novo SD-PS PERMITIR no turno, sem guarnição, dia 10, 08:00']);
+    expect(novos[0]).toMatchObject({ justificativa: MOTIVO });
+  });
+
+  it('a troca entre escalas diferentes registra os dois lados, também o que é futuro', async () => {
+    await poNoEstado('previa');
+    const segunda = (await (await api.pedir('escalante', 'POST', `${secao()}/escalas`, { nome: 'Ordinário 2' })).json()).id as string;
+    expect((await api.pedir('escalante', 'PUT', `/api/escalas/${segunda}/servicos`, { servicoIds: [pronto] })).status).toBe(200);
+    expect((await api.pedir('escalante', 'POST', `/api/escalas/${segunda}/mes/${mes}/previa`)).status).toBe(200);
+    agora(15, 12);
+    await criarMilitar('TROCA1');
+    await criarMilitar('TROCA2');
+    // o turno A do dia 15 (já começou) na escala principal, e o B (20:00, não começou) na segunda
+    const a = await inserir(api.banco, 'alocacao', { militar_id: militar.TROCA1, escala_id: escala, servico_id: pronto, turno_id: turnoA, data: dia(15), origem: 'manual' });
+    const b = await inserir(api.banco, 'alocacao', { militar_id: militar.TROCA2, escala_id: segunda, servico_id: pronto, turno_id: turnoB, data: dia(15), origem: 'manual' });
+    expect((await api.pedir('escalante', 'POST', `/api/alocacoes/${a}/trocar`, { comAlocacaoId: b, justificativa: MOTIVO })).status).toBe(403);
+    const r = await api.pedir('gestorGb', 'POST', `/api/alocacoes/${a}/trocar`, { comAlocacaoId: b, justificativa: MOTIVO });
+    expect(r.status, JSON.stringify(await r.clone().json())).toBe(200);
+    const doPassado = (await registros()).filter((x) => x.data === dia(15)).map((x) => x.texto);
+    const doFuturo = (await lerRegistro(api.banco, { escalaId: segunda, mes, tipo: 'escala_no_passado' })).map((x) => x.texto);
+    expect(doPassado.some((t) => t.includes('08:00'))).toBe(true);
+    expect(doFuturo.length).toBeGreaterThan(0);
+    expect(doFuturo.every((t) => t.includes('20:00'))).toBe(true);
+  });
+
+  it('o GET da pré-escala não conta os turnos que já começaram (o POST não os preenche): a prévia confere com o que será gravado', async () => {
+    agora(15, 12);
+    await api.banco.query("delete from alocacao where origem = 'pre_escala' and escala_id = $1", [escala]);
+    await rascunhar();
+    const contar = async () => ((await (await api.pedir('escalante', 'GET', `/api/escalas/${escala}/mes/${mes}/pre-escala?equipe=${equipe}`)).json()) as { entramNoTurno: number }).entramNoTurno;
+    const emRascunho = await contar();
+    await poNoEstado('publicada');
+    const publicada = await contar();
+    expect(publicada).toBeLessThan(emRascunho);
+    const gravadas = ((await (await api.pedir('escalante', 'POST', `/api/escalas/${escala}/mes/${mes}/pre-escala`, { equipeDia1Id: equipe })).json()) as { gravadas: number }).gravadas;
+    expect(gravadas).toBeGreaterThanOrEqual(publicada);
   });
 });

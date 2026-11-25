@@ -77,7 +77,8 @@ export async function conferirPassado(
   }
   const retificar: Retificar[] = [...estados].flatMap(([k, estado]) => (estado === 'publicada' || estado === 'retificada' ? [{ escalaId: k.split('|')[0]!, mes: k.split('|')[1]! }] : []));
   if (!travadas.size) return { registro: null, retificar };
-  const doPassado = alvos.filter((a) => travadas.has(`${a.escalaId}|${a.mes}`));
+  // a troca entre escalas diferentes é um ato só: com um lado travado, o registro cobre também o lado das outras escalas que não são rascunho (a justificativa vale para o ato inteiro)
+  const doPassado = alvos.filter((a) => estados.get(`${a.escalaId}|${a.mes}`) !== 'rascunho');
   const hoje = hojeRecife();
   if (remessada && !(await ehAdministrador(c, usuarioId, hoje))) throw new Proibida(MSG_SO_ADMINISTRADOR);
   for (const unidadeId of new Set(doPassado.map((a) => a.unidadeId))) {
@@ -154,12 +155,17 @@ async function registrarDiferencas(tx: Consulta, usuarioId: string, justificativ
  */
 export async function comPassado<T>(
   tx: Consulta, usuarioId: string, tocar: Tocado[] | ((tx: Consulta) => Promise<Tocado[]>), justificativa: string | undefined, fazer: () => Promise<T>, agora = agoraRecife(),
+  /** Uma linha de registro que o retrato das vagas não pega (o "Permitir de novo"): chamada depois da mudança, só quando há registro. */
+  maisRegistro?: (tx: Consulta, registro: { justificativa: string; alvos: Alvo[] }) => Promise<void>,
 ): Promise<T> {
   const lista = typeof tocar === 'function' ? await tocar(tx) : tocar;
   const { registro, retificar } = await conferirPassado(tx, usuarioId, lista, justificativa, agora);
   const antes = registro ? await retratar(tx, registro.alvos) : null;
   const resultado = await fazer();
-  if (registro && antes) await registrarDiferencas(tx, usuarioId, registro.justificativa, antes, await retratar(tx, registro.alvos));
+  if (registro && antes) {
+    await registrarDiferencas(tx, usuarioId, registro.justificativa, antes, await retratar(tx, registro.alvos));
+    await maisRegistro?.(tx, registro);
+  }
   // a mudança valeu (uma recusada ou desfeita por erro não chega aqui): a escala publicada passa a "em retificação"
   await marcarRetificacao(tx, retificar);
   return resultado;
@@ -175,6 +181,31 @@ export async function tocadoDaAlocacao(c: Consulta, alocacaoId: string): Promise
 export async function tocadoDaRemocao(c: Consulta, remocaoId: string): Promise<Tocado[]> {
   const { rows } = await c.query<{ escala_id: string | null; data: string; turno_id: string }>("select escala_id, to_char(data, 'YYYY-MM-DD') as data, turno_id from remocao where id = $1", [remocaoId]);
   return rows.map((r) => ({ escalaId: r.escala_id, data: r.data, turnoId: r.turno_id }));
+}
+
+/** O que o registro diz de uma remoção que vai ser desfeita ("Permitir de novo"): lido antes de ela sumir. */
+export type RemocaoParaORegistro = { escalaId: string; unidadeId: string; data: string; inicio: string; servico: string; turno: string; guarnicao: string | null; funcao: string | null; militar: { patente: string; nomeGuerra: string; matricula: string } };
+
+export async function lerRemocaoParaORegistro(c: Consulta, remocaoId: string): Promise<RemocaoParaORegistro | null> {
+  const r = (
+    await c.query<{ escala_id: string | null; unidade_id: string; data: string; inicio: string; servico: string; letra: string; guarnicao: string | null; funcao: string | null; patente: string; nome_guerra: string; matricula: string }>(
+      `select r.escala_id, e.unidade_id, to_char(r.data, 'YYYY-MM-DD') as data, to_char(t.inicio, 'HH24:MI') as inicio, s.nome as servico, t.letra, g.nome as guarnicao, f.nome as funcao, p.sigla as patente, m.nome_guerra, m.matricula
+         from remocao r join escala e on e.id = r.escala_id join turno t on t.id = r.turno_id join servico s on s.id = r.servico_id join militar m on m.id = r.militar_id join posto_grad p on p.id = m.posto_grad_id
+         left join guarnicao g on g.id = r.guarnicao_id left join funcao f on f.id = r.funcao_id
+        where r.id = $1`,
+      [remocaoId],
+    )
+  ).rows[0];
+  if (!r || !r.escala_id) return null;
+  return { escalaId: r.escala_id, unidadeId: r.unidade_id, data: r.data, inicio: r.inicio, servico: r.servico, turno: r.letra, guarnicao: r.guarnicao, funcao: r.funcao, militar: { patente: r.patente, nomeGuerra: r.nome_guerra, matricula: r.matricula } };
+}
+
+/** Uma linha de registro: "Permitiu de novo SD FULANO em ABT (Motorista), dia 03, 08:00" (a justificativa do "Permitir de novo" no passado). */
+export async function registrarPermissao(tx: Consulta, usuarioId: string, justificativa: string, r: RemocaoParaORegistro): Promise<void> {
+  await registrar(tx, {
+    usuarioId, unidadeId: r.unidadeId, tipo: 'escala_no_passado', escalaId: r.escalaId, mes: r.data.slice(0, 7), data: r.data, antes: null, justificativa,
+    depois: { data: r.data, inicio: r.inicio, servico: r.servico, turno: r.turno, guarnicao: r.guarnicao, funcao: r.funcao, militares: [], permitiuDeNovo: r.militar },
+  });
 }
 
 /** O turno do acúmulo (o da alocação dele). */

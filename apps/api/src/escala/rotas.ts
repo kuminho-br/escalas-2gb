@@ -12,7 +12,7 @@ import { lerCorpo, respostaDoErroDoBanco } from '../erros.ts';
 import { acumular, desfazerRemocao, desfazerResolucao, devolverRemocao, escalar, escalarResolvendo, NAO_DA_PARA_DESFAZER, Proibida, Recusa, remover, tirarAcumulo, voltarAoTurno } from './alocacoes.ts';
 import { avaliarCandidatos } from './elegibilidade.ts';
 import { montarEscalaDoMes } from './leitura.ts';
-import { comPassado, justificativaDoCorpo, respostaDoPassado, semOsQueJaComecaram, tocadoDaAlocacao, tocadoDaRemocao, tocadoDoAcumulo, type Tocado } from './passado.ts';
+import { comPassado, justificativaDoCorpo, lerRemocaoParaORegistro, registrarPermissao, respostaDoPassado, semOsQueJaComecaram, tocadoDaAlocacao, tocadoDaRemocao, tocadoDoAcumulo, type RemocaoParaORegistro, type Tocado } from './passado.ts';
 import { marcarRetificacao, mudarEstado, MSG_SO_GESTOR_PUBLICA } from './estado.ts';
 import { gravarOrdem, ordemDoMes } from './ordem-do-mes.ts';
 import { planejarPreEscala, PreEscalaInvalida } from './pre-escala.ts';
@@ -74,9 +74,16 @@ export function rotasEscalaDoMes(dep: { banco: Banco; auth: Auth }): Hono<Ambien
     const equipe = c.req.query('equipe');
     if (equipe !== undefined && !Id.safeParse(equipe).success) return c.json({ erro: 'Equipe inválida.', campos: { equipe: 'Equipe inválida.' } }, 400);
     try {
-      return c.json((await planejarPreEscala(dep.banco, id, mes, equipe ?? null)).previa);
+      const plano = await planejarPreEscala(dep.banco, id, mes, equipe ?? null);
+      // fora do rascunho, o que já começou não é preenchido (o POST não os grava): a prévia conta só o que será gravado
+      const { novas } = await semOsQueJaComecaram(dep.banco, c.get('usuarioId'), id, mes, plano.novas);
+      plano.previa.entramNoTurno = novas.filter((n) => n.escalaId !== null).length;
+      plano.previa.entramNoExpediente = novas.filter((n) => n.escalaId === null).length;
+      return c.json(plano.previa);
     } catch (e) {
       if (e instanceof PreEscalaInvalida) return c.json({ erro: e.message, campos: { equipe: e.message } }, 400);
+      if (e instanceof Proibida) return c.json({ erro: e.message }, 403);
+      if (e instanceof Recusa) return c.json({ erro: e.message }, 409);
       throw e;
     }
   });
@@ -286,7 +293,19 @@ export function rotasEscalaDoMes(dep: { banco: Banco; auth: Auth }): Hono<Ambien
     if (negado) return negado;
     const justificativa = await justificativaDoCorpo(c);
     try {
-      const { escalaId, mes } = await comUsuario(dep.banco, c.get('usuarioId'), (tx) => comPassado(tx, c.get('usuarioId'), (t) => tocadoDaRemocao(t, id), justificativa, () => desfazerRemocao(tx, id)));
+      // "Permitir de novo" no passado: a remoção é lida antes de sumir, para o registro dizer quem voltou a poder ser escalado
+      let permitida: RemocaoParaORegistro | null = null;
+      const { escalaId, mes } = await comUsuario(dep.banco, c.get('usuarioId'), (tx) =>
+        comPassado(
+          tx, c.get('usuarioId'),
+          async (t) => {
+            permitida = await lerRemocaoParaORegistro(t, id);
+            return tocadoDaRemocao(t, id);
+          },
+          justificativa, () => desfazerRemocao(tx, id), undefined,
+          async (t, registro) => { if (permitida) await registrarPermissao(t, c.get('usuarioId'), registro.justificativa, permitida); },
+        ),
+      );
       if (escalaId === null) return c.json({ escalaId: null });
       return c.json(await montarEscalaDoMes(dep.banco, escalaId, mes, c.get('usuarioId')));
     } catch (e) {
