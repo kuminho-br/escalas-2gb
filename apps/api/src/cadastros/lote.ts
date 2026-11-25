@@ -115,12 +115,15 @@ async function calcular(c: Consulta, usuarioId: string, lote: LoteDeMilitares, h
       const unidadeId = k.unidadeId ?? aberto.unidade_id;
       const mudaUnidade = unidadeId !== aberto.unidade_id;
       let equipeId: string | null = aberto.equipe_id;
+      // o nome da equipe como está cadastrado ("Alfa"), mesmo que o lote tenha sido digitado "alfa"
+      let equipeNova: string | null = null;
       if (k.equipe !== undefined) {
         if (k.equipe === null) equipeId = null;
         else {
-          const e = (await c.query<{ id: string }>('select id from equipe where unidade_id = $1 and upper(nome) = upper($2)', [unidadeId, k.equipe])).rows[0];
+          const e = (await c.query<{ id: string; nome: string }>('select id, nome from equipe where unidade_id = $1 and upper(nome) = upper($2)', [unidadeId, k.equipe])).rows[0];
           if (!e) { fora(`A equipe ${k.equipe} não existe em ${nomes.unidades.get(unidadeId) ?? 'a unidade'}.`); continue; }
           equipeId = e.id;
+          equipeNova = e.nome;
         }
       } else if (mudaUnidade) {
         // lotação marcada sem equipe marcada: todos chegam sem equipe (decisão do usuário, 24/11/2026)
@@ -142,7 +145,7 @@ async function calcular(c: Consulta, usuarioId: string, lote: LoteDeMilitares, h
         item.rastreio = d;
         item.unidadeAberta = aberto.unidade_id;
         if (muda.unidade) { de.push(`Lotação: ${nomes.unidades.get(aberto.unidade_id)}`); para.push(`Lotação: ${nomes.unidades.get(unidadeId)}`); }
-        if (muda.equipe) { de.push(`Equipe: ${aberto.equipe_id ? ((await c.query<{ nome: string }>('select nome from equipe where id = $1', [aberto.equipe_id])).rows[0]?.nome ?? '—') : 'sem equipe'}`); para.push(`Equipe: ${equipeId ? k.equipe : 'sem equipe'}`); }
+        if (muda.equipe) { de.push(`Equipe: ${aberto.equipe_id ? ((await c.query<{ nome: string }>('select nome from equipe where id = $1', [aberto.equipe_id])).rows[0]?.nome ?? '—') : 'sem equipe'}`); para.push(`Equipe: ${equipeNova ?? 'sem equipe'}`); }
         if (muda.jornada) { de.push(`Jornada: ${nomeDaJornada(aberto.jornada)}`); para.push(`Jornada: ${nomeDaJornada(jornada)}`); }
         if (muda.quadro) { de.push(`Quadro: ${aberto.quadro_id ? nomes.quadros.get(aberto.quadro_id) : 'sem quadro'}`); para.push(`Quadro: ${quadroId ? nomes.quadros.get(quadroId) : 'sem quadro'}`); }
         if (muda.situacao) { de.push(`Situação: ${nomes.situacoes.get(aberto.situacao_id)}`); para.push(`Situação: ${nomes.situacoes.get(situacaoId)}`); }
@@ -169,7 +172,7 @@ async function calcular(c: Consulta, usuarioId: string, lote: LoteDeMilitares, h
     itens.push(item);
     mudam.push({ ...linhaDe(m), de: de.join(' · '), para: para.join(' · ') });
   }
-  const assinatura = createHash('sha256').update(JSON.stringify({ campos: k, desde: lote.desde ?? null, mudam: mudam.map((x) => [x.id, x.para]).sort() })).digest('hex');
+  const assinatura = createHash('sha256').update(JSON.stringify({ campos: k, desde: lote.desde ?? null, mudam: mudam.map((x) => [x.id, x.de, x.para]).sort() })).digest('hex');
   return { previa: { mudam, ficamDeFora, chegamSemEquipe, assinatura }, itens };
 }
 
