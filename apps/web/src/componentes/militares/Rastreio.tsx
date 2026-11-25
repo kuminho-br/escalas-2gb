@@ -11,46 +11,161 @@ import { Button } from '@/componentes/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/componentes/ui/dialog';
 import { Input } from '@/componentes/ui/input';
 import { Label } from '@/componentes/ui/label';
-import { ddmmaaaa, linhaDoTempoDoMilitar, situacaoInteira } from '@/lib/linha-do-tempo-militar';
+import { CAMPOS, ddmmaaaa, eventosDoRastreio, periodoAtual as periodoDoDia, ROTULO_DO_CAMPO, SEM_O_CAMPO, valorDoCampo, type EventoDoRastreio } from '@/lib/linha-do-tempo-militar';
 import { hoje } from '@/lib/meses';
-import { proximoPeriodo } from '@/lib/militares';
+import { NOME_JORNADA, proximoPeriodo } from '@/lib/militares';
+import { cn } from '@/lib/utils';
 import { avisoDaLista, Secao } from './Secao';
 
-/** A situação de hoje: o período que cobre o dia de hoje (uma mudança marcada para depois ainda não vale). */
-function periodoAtual(rastreio: FichaMilitar['rastreio']) {
-  const dia = hoje();
-  return rastreio.find((p) => p.desde <= dia && (!p.ate || p.ate >= dia)) ?? null;
-}
+/** Quantos itens (mudanças e vãos juntos) a linha do tempo mostra antes de "Ver todo o histórico". */
+const MAIS_NOVOS = 5;
 
-/** "Histórico de rastreio": a situação atual (lotação, equipe, jornada, quadro e situação) e a linha do tempo, com "Alterar situação". */
+/** A situação de hoje: o período que cobre o dia de hoje (uma mudança marcada para depois ainda não vale). */
+const periodoAtual = (rastreio: FichaMilitar['rastreio']) => periodoDoDia(rastreio, hoje());
+
+/**
+ * "Histórico de rastreio": o quadro "Hoje" (a situação que vale agora) e a linha do tempo das mudanças, com "Alterar situação". Recolhida, a seção mostra só a unidade e a jornada;
+ * aberta, esse texto some, porque o quadro diz tudo.
+ */
 export function Rastreio({ ficha, unidadeId }: { ficha: FichaMilitar; unidadeId: string }) {
   const [alterando, setAlterando] = useState(false);
-  const atual = periodoAtual(ficha.rastreio);
+  const dia = hoje();
+  const atual = periodoDoDia(ficha.rastreio, dia);
   const proximo = proximoPeriodo(ficha.rastreio);
-  const situacaoAtual = atual ? `${situacaoInteira(atual)} (desde ${ddmmaaaa(atual.desde)})` : proximo ? `Lotação a partir de ${ddmmaaaa(proximo.desde)}` : 'Sem lotação';
-  const itens = linhaDoTempoDoMilitar(ficha.rastreio, ficha.afastamentos);
+  const resumo = atual ? `${atual.unidadeSigla} · ${NOME_JORNADA[atual.jornada]}` : proximo ? `Lotação a partir de ${ddmmaaaa(proximo.desde)}` : 'Sem lotação';
+  const eventos = eventosDoRastreio(ficha.rastreio, dia);
   return (
     <Secao
       titulo="Histórico de rastreio"
       recolhidaDeInicio
-      resumo={situacaoAtual}
+      resumo={resumo}
       // alterar a situação (lotação, equipe, jornada, quadro) é de quem tem nível de acesso acima da lotação; a SB só vê o histórico
       acoes={ficha.podeEditar.peculio ? <Button size="sm" variant="secundario" onClick={() => setAlterando(true)}>Alterar situação</Button> : undefined}
     >
-      <p className="mb-3 text-sm">Situação atual: {situacaoAtual}</p>
-      <ol className="relative grid gap-3 border-l-2 border-linha pl-4">
-        {itens.map((i, n) => (
-          <li key={`${i.tipo}-${i.quando}-${n}`} className="relative">
-            <span className={`absolute top-1.5 -left-[1.4rem] size-2.5 rounded-full ${n === 0 ? 'bg-vinho' : 'bg-linha'}`} aria-hidden />
-            <span className="mr-2 font-cond text-apagado">{ddmmaaaa(i.quando)}</span>
-            <span className={i.tipo === 'situacao' ? 'font-medium' : 'text-apagado'}>{i.texto}</span>
-            {i.autor && <span className="block text-apoio leading-[18px] text-apagado">{i.autor}</span>}
-          </li>
-        ))}
-        {itens.length === 0 && <li className="text-apagado">Sem lotação registrada.</li>}
-      </ol>
+      <div className="@container">
+        {eventos.length > 0 && <QuadroHoje atual={atual} proximo={proximo} />}
+        <LinhaDoTempo eventos={eventos} />
+      </div>
       {alterando && <AlterarSituacao ficha={ficha} unidadeAtualId={unidadeId} aoFechar={() => setAlterando(false)} />}
     </Secao>
+  );
+}
+
+/** O quadro "Hoje": desde quando vale a situação e os cinco campos, a lotação em destaque. Sem lotação hoje, só a primeira linha (com o ponto vazado). */
+function QuadroHoje({ atual, proximo }: { atual: FichaMilitar['rastreio'][number] | null; proximo: FichaMilitar['rastreio'][number] | null }) {
+  if (!atual) {
+    return (
+      <section aria-label="Situação de hoje" className="rounded-controle bg-passa px-4 pt-3 pb-3.5">
+        <p className="flex items-center gap-2 text-xs text-apagado">
+          <span className="size-2.5 flex-none rounded-full border-2 border-encaixe" aria-hidden />
+          <span><b className="font-semibold text-tinta">Hoje</b>, sem lotação{proximo ? ` · lotação a partir de ${ddmmaaaa(proximo.desde)}` : ''}</span>
+        </p>
+      </section>
+    );
+  }
+  return (
+    <section aria-label="Situação de hoje" className="grid gap-2.5 rounded-controle bg-passa px-4 pt-3 pb-3.5">
+      <p className="flex items-center gap-2 text-xs text-apagado">
+        <span className="size-2.5 flex-none rounded-full bg-tinta" aria-hidden />
+        <span><b className="font-semibold text-tinta">Hoje</b>, desde {ddmmaaaa(atual.desde)}</span>
+      </p>
+      <dl className="m-0 grid grid-cols-2 items-baseline gap-x-4 gap-y-2.5 @min-[521px]:grid-cols-[repeat(5,auto)] @min-[521px]:justify-start @min-[521px]:gap-x-9">
+        {CAMPOS.map((campo) => {
+          const valor = valorDoCampo(atual, campo);
+          return (
+            <div key={campo} className={cn('grid min-w-0', campo === 'lotacao' && 'col-span-2 @min-[521px]:col-span-1')}>
+              <dt className="text-xs text-apagado">{ROTULO_DO_CAMPO[campo]}</dt>
+              <dd className={cn('m-0 font-cond font-semibold [overflow-wrap:anywhere]', campo === 'lotacao' ? 'text-bloco' : 'text-nome', !valor && 'font-medium text-apagado')}>
+                {valor ?? (SEM_O_CAMPO[campo] ?? '').replace(/^s/, 'S')}
+              </dd>
+            </div>
+          );
+        })}
+      </dl>
+    </section>
+  );
+}
+
+// o ponto de cada marca (a forma diz o que é; nenhuma depende só da cor) e o trecho do trilho de cada evento, até o ponto do seguinte
+const PONTO = {
+  antes: 'top-[7px] left-[-25px] size-2 bg-encaixe',
+  inicio: 'top-[6px] left-[-26px] size-2.5 border-2 border-encaixe bg-superficie',
+  agora: 'top-[5px] left-[-27px] size-3 bg-tinta',
+  marcada: 'top-[5px] left-[-27px] size-3 border-2 border-tinta bg-superficie',
+} as const;
+const TRILHO = "before:absolute before:left-[-22px] before:top-[11px] before:border-l-2 before:content-['']";
+
+/** Uma mudança (ou o primeiro registro, ou os dias sem lotação) da linha do tempo. */
+function Evento({ e, trilho }: { e: EventoDoRastreio; trilho: 'ate-o-proximo' | 'ate-o-vao' | 'nenhum' }) {
+  if (e.tipo === 'vao') {
+    return <li data-tipo="vao" className="text-apagado">{e.texto}</li>;
+  }
+  const marca = e.tipo === 'inicio' && e.vale !== 'agora' ? 'inicio' : e.vale === 'agora' ? 'agora' : e.vale === 'marcada' ? 'marcada' : 'antes';
+  return (
+    <li
+      data-tipo={e.tipo}
+      data-vale={e.vale}
+      data-trilho={trilho}
+      className={cn(
+        'relative',
+        trilho !== 'nenhum' && TRILHO,
+        trilho === 'ate-o-proximo' && 'before:-bottom-[35px]',
+        trilho === 'ate-o-vao' && 'before:-bottom-2',
+        e.vale === 'marcada' ? 'before:border-dashed before:border-encaixe' : 'before:border-linha',
+      )}
+    >
+      <span data-ponto className={cn('absolute rounded-full shadow-[0_0_0_3px_var(--color-superficie)]', PONTO[marca])} aria-hidden />
+      <h4 className={cn('flex flex-wrap items-center gap-x-2.5 gap-y-0.5 font-cond text-corpo font-semibold', e.vale === 'agora' || e.vale === 'marcada' ? 'text-tinta' : 'text-apagado')}>
+        <time dateTime={e.desde}>{ddmmaaaa(e.desde)}</time>
+        {e.vale === 'marcada' && <span className="rounded-controle bg-passa px-2 font-sans text-xs font-normal text-apagado">Ainda não vale</span>}
+        {e.tipo === 'inicio' && e.vale !== 'marcada' && <span className="font-sans text-xs font-normal">Primeiro registro</span>}
+        {e.vale === 'agora' && <span className="sr-only">, vale agora</span>}
+      </h4>
+      {e.tipo === 'inicio' ? (
+        <p className="mt-1 text-apagado">{e.inteira}</p>
+      ) : e.mudancas.length === 0 ? (
+        <p className="mt-1 text-apagado">Sem mudança na situação</p>
+      ) : (
+        <dl className="m-0 mt-1 grid grid-cols-[64px_minmax(0,1fr)] gap-x-2">
+          {e.mudancas.map((m) => (
+            <div key={m.campo} className="contents">
+              <dt className="text-xs leading-[22px] text-apagado">{ROTULO_DO_CAMPO[m.campo]}</dt>
+              <dd className="m-0 text-apagado [overflow-wrap:anywhere]">
+                <span className="sr-only">de </span>
+                {m.antes}
+                <span className="mx-1.5" aria-hidden>→</span>
+                <span className="sr-only"> para </span>
+                <b className="font-semibold text-tinta">{m.depois}</b>
+              </dd>
+            </div>
+          ))}
+        </dl>
+      )}
+      {e.autor && <p className="mt-1 text-xs text-apagado">{e.autor}</p>}
+    </li>
+  );
+}
+
+/** As mudanças do mais novo para o mais velho; com mais de 5 itens, os 5 mais novos e "Ver todo o histórico (n)" (o estado vale só para esta ficha). */
+function LinhaDoTempo({ eventos }: { eventos: EventoDoRastreio[] }) {
+  const [tudo, setTudo] = useState(false);
+  if (eventos.length === 0) return <p className="mt-4 text-apagado">Para lançar a primeira lotação, use "Alterar situação".</p>;
+  const longo = eventos.length > MAIS_NOVOS;
+  const mostrados = longo && !tudo ? eventos.slice(0, MAIS_NOVOS) : eventos;
+  return (
+    <ol aria-label="Mudanças, da mais nova para a mais antiga" className="mt-5 grid list-none gap-6 pl-7">
+      {mostrados.map((e, i) => {
+        const seguinte = mostrados[i + 1];
+        // o trilho vai até o ponto do seguinte; o primeiro registro o fecha; antes de um vão à vista, ele para antes e recomeça depois dele
+        const trilho = e.tipo === 'inicio' || (i === mostrados.length - 1 && !longo) ? 'nenhum' : seguinte?.tipo === 'vao' ? 'ate-o-vao' : 'ate-o-proximo';
+        return <Evento key={e.tipo === 'vao' ? `vao-${e.de}` : `${e.tipo}-${e.desde}`} e={e} trilho={e.tipo === 'vao' ? 'nenhum' : trilho} />;
+      })}
+      {longo && (
+        <li className="-ml-3.5">
+          <Button variant="discreto" size="sm" onClick={() => setTudo(!tudo)}>{tudo ? 'Mostrar só os mais novos' : `Ver todo o histórico (${eventos.length})`}</Button>
+        </li>
+      )}
+    </ol>
   );
 }
 

@@ -141,10 +141,13 @@ describe('o quadro e a situação no rastreio', () => {
     expect(screen.queryByRole('checkbox', { name: 'Ativo' })).toBeNull();
   });
 
-  it('a situação atual mostra o quadro e a situação', async () => {
+  it('o quadro "Hoje" mostra o quadro e a situação (6.49)', async () => {
     api();
     abrir('/militares/m1');
-    expect((await screen.findAllByText(/1ª SB · Equipe Alfa · Pronto · QBMG · Ativa/)).length).toBeGreaterThan(0);
+    await userEvent.click(await screen.findByRole('button', { name: /Histórico de rastreio/ }));
+    const hojeDoMilitar = within(await screen.findByRole('region', { name: 'Situação de hoje' }));
+    expect(hojeDoMilitar.getByText('Quadro', { selector: 'dt' }).nextElementSibling).toHaveTextContent('QBMG');
+    expect(hojeDoMilitar.getByText('Situação', { selector: 'dt' }).nextElementSibling).toHaveTextContent('Ativa');
   });
 
   it('"Alterar situação" tem Quadro (só os do posto) e Situação (só as ativas)', async () => {
@@ -589,7 +592,7 @@ describe('ficha do militar', () => {
     expect(titulos.some((t) => t.startsWith('Lotação'))).toBe(false);
     const botao = screen.getByRole('button', { name: /Histórico de rastreio/ });
     expect(botao).toHaveAttribute('aria-expanded', 'false');
-    expect(within(botao).getByText('1ª SB · Equipe Alfa · Pronto · QBMG · Ativa (desde 01/11/2026)')).toBeInTheDocument();
+    expect(within(botao).getByText('1ª SB · Pronto')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Alterar situação' })).toBeNull();
     await userEvent.click(botao);
     expect(botao).toHaveAttribute('aria-expanded', 'true');
@@ -641,7 +644,8 @@ describe('alterar situação', () => {
     rotas({ 'GET /api/militares/m1': { status: 200, corpo: ficha } });
     abrir('/militares/m1');
     await userEvent.click(await screen.findByRole('button', { name: /Histórico de rastreio/ }));
-    expect(screen.getByText('Situação atual: 1ª SB · Equipe Alfa · Pronto · QBMG · Ativa (desde 01/11/2026)')).toBeInTheDocument();
+    expect(screen.getByRole('region', { name: 'Situação de hoje' })).toHaveTextContent('Hoje, desde 01/11/2026');
+    expect(within(screen.getByRole('region', { name: 'Situação de hoje' })).getByText('Equipe', { selector: 'dt' }).nextElementSibling).toHaveTextContent('Alfa');
     // a linha do tempo mostra o dia da mudança
     const dia = `${amanha.slice(8)}/${amanha.slice(5, 7)}/${amanha.slice(0, 4)}`;
     expect(screen.getByText(dia)).toBeInTheDocument();
@@ -956,13 +960,13 @@ describe('afastamento com motivo e boletim (fase 5)', () => {
     await waitFor(() => expect(corpoEnviado(f, POST)).toEqual({ tipoAfastamentoId: 't-ferias', inicio: '2027-01-05', fim: '2027-01-09' }));
   });
 
-  it('a linha do tempo do rastreio mostra o tipo do afastamento, nunca o motivo', async () => {
+  it('a linha do tempo do rastreio não traz os afastamentos (ficam só na seção deles), nem o motivo (6.49)', async () => {
     api({ ...TIPOS, 'GET /api/militares/m1': { status: 200, corpo: { ...FICHA, ...COM_MOTIVO } } });
     abrir('/militares/m1');
     const botao = await screen.findByRole('button', { name: /Histórico de rastreio/ });
     await userEvent.click(botao);
     const bloco = within(document.getElementById(botao.getAttribute('aria-controls')!)!);
-    expect(bloco.getByText('Afastamento: LTS (01/12 a 10/12)')).toBeInTheDocument();
+    expect(bloco.queryByText(/Afastamento: LTS/)).toBeNull();
     expect(bloco.queryByText(/Cirurgia programada/)).toBeNull();
     expect(bloco.queryByText(/BG 12\/2026/)).toBeNull();
   });
@@ -1008,12 +1012,11 @@ describe('ficha em painel único', () => {
     expect(id).toBeTruthy();
     await userEvent.click(botao);
     const bloco = within(document.getElementById(id!)!);
-    expect(bloco.getByText('Situação atual: 1ª SB · Equipe Alfa · Pronto · QBMG · Ativa (desde 01/11/2026)')).toBeInTheDocument();
-    // do mais novo para o mais velho: o afastamento de dezembro, depois a situação de novembro
+    expect(bloco.getByRole('region', { name: 'Situação de hoje' })).toHaveTextContent('Hoje, desde 01/11/2026');
+    // só o rastreio (o afastamento fica na seção dele): o primeiro registro, com a situação inteira
     const itens = bloco.getAllByRole('listitem').map((li) => li.textContent ?? '');
-    expect(itens).toHaveLength(2);
-    expect(itens[0]).toContain('Afastamento: Férias (01/12 a 10/12)');
-    expect(itens[1]).toContain('1ª SB · Equipe Alfa · Pronto');
+    expect(itens).toHaveLength(1);
+    expect(itens[0]).toContain('1ª SB · Alfa · Pronto · QBMG · Ativa');
   });
 });
 
@@ -1353,7 +1356,7 @@ describe('o rastreio da ficha: acabamento (6.16, Task 4)', () => {
     comRastreio([periodo('r2', '2026-09-01', null, 'QBMG', 'Ativa'), periodo('r1', '2026-03-01', '2026-06-30', 'QBMG', 'Ativa')]);
     abrir('/militares/m1');
     await userEvent.click(await screen.findByRole('button', { name: /Histórico de rastreio/ }));
-    expect(await screen.findByText('Sem lotação de 01/07 a 31/08')).toBeInTheDocument();
+    expect(await screen.findByText('Sem lotação de 01/07 a 31/08/2026')).toBeInTheDocument();
   });
 
   it('item 12: enquanto a lista de seções carrega, o "Salvar" do "Alterar situação" fica desligado, e liga quando ela chega', async () => {
@@ -1437,7 +1440,7 @@ describe('mover pela hierarquia e quem moveu (6.23)', () => {
     });
     abrir('/militares/m1');
     await userEvent.click(await screen.findByRole('button', { name: /Histórico de rastreio/ }));
-    expect(await screen.findByText('Situação atual: Sem lotação')).toBeInTheDocument();
+    expect(await screen.findByText('Para lançar a primeira lotação, use "Alterar situação".')).toBeInTheDocument();
     await userEvent.click(await screen.findByRole('button', { name: 'Alterar situação' }));
     const caixa = within(await screen.findByRole('dialog'));
     const lotacao = caixa.getByLabelText('Lotação');
@@ -1533,7 +1536,7 @@ describe('toda seção da ficha recolhe, e a tela lembra (6.32)', () => {
     api();
     abrir('/militares/m1');
     await screen.findByText('Férias');
-    expect(within(botaoDa('Histórico de rastreio')).getByText('1ª SB · Equipe Alfa · Pronto · QBMG · Ativa (desde 01/11/2026)')).toBeInTheDocument();
+    expect(within(botaoDa('Histórico de rastreio')).getByText('1ª SB · Pronto')).toBeInTheDocument();
   });
 
   it('o que a pessoa recolheu fica recolhido ao abrir a ficha de outro militar, e o que ela abriu (o histórico) fica aberto', async () => {
