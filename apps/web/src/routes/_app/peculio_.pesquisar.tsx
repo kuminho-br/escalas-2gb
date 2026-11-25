@@ -134,7 +134,10 @@ function Formulario({
   const alternar = (p: Exclude<Painel, null>) => setPainel((atual) => (atual === p ? null : p));
   const buscar = (e: FormEvent) => {
     e.preventDefault();
-    setErro(aoBuscar(campo, escolhida));
+    const problema = aoBuscar(campo, escolhida);
+    setErro(problema);
+    // buscou: o painel aberto (árvore, arquivo, filtros) se fecha, para o resultado aparecer logo abaixo; o que ele montou fica resumido nos botões
+    if (!problema) setPainel(null);
   };
   const nExtras = contarExtras(extras);
   const limpar = () => {
