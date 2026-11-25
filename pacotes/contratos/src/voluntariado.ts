@@ -30,9 +30,17 @@ export type MilitarDoVoluntariado = {
   /** soma das faixas do mês, em horas, depois de unir as que se tocam */
   horas: number;
   dias: number;
+  /** o mês foi preenchido pelo próprio militar (na área pessoal) */
+  peloMilitar: boolean;
+  /** quantas vezes o escalante corrigiu o que o militar marcou neste mês (as linhas do registro) */
+  correcoes: number;
 };
 
-export type VoluntariadoDoMes = { mes: string; militares: MilitarDoVoluntariado[] };
+export type VoluntariadoDoMes = { mes: string; militares: MilitarDoVoluntariado[]; /** a unidade aceita o preenchimento do militar neste mês */ coletaAberta: boolean };
+
+/** Abre (true) ou fecha (false) a coleta do voluntariado da unidade num mês. */
+export const ColetaDoVoluntariado = z.object({ aberta: z.boolean() });
+export type ColetaDoVoluntariado = z.infer<typeof ColetaDoVoluntariado>;
 
 export type VoluntariadoDoMilitar = {
   militarId: string;
@@ -44,4 +52,26 @@ export type VoluntariadoDoMilitar = {
   blocos: { inicio: string; fim: string }[];
   /** dias do mês em que a equipe dele não está de serviço; null se for do Adm, sem equipe do ciclo ou se a equipe do dia 1 não pôde ser descoberta */
   folgas: string[] | null;
+};
+
+/** O que o militar vê do próprio voluntariado na área pessoal. `podeMarcar` falso vem com o `motivo` em texto pronto. */
+export type MeuVoluntariado = VoluntariadoDoMilitar & {
+  coletaAberta: boolean;
+  podeMarcar: boolean;
+  motivo: string | null;
+  voluntarioJes: boolean;
+  unidadeSigla: string;
+};
+
+/** Uma linha do registro das exceções (correção do voluntariado; alteração no passado da escala, na fase 7.3). `texto` é a frase pronta para a tela. */
+export type RegistroDeAlteracao = {
+  id: string;
+  em: string;
+  por: { patente: string; nomeGuerra: string } | null;
+  tipo: 'voluntariado_corrigido' | 'escala_no_passado';
+  data: string | null;
+  antes: unknown;
+  depois: unknown;
+  justificativa: string | null;
+  texto: string;
 };
