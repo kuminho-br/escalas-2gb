@@ -1,5 +1,7 @@
 // A consulta de militares (entrega 6.11): todo militar com conta busca qualquer militar da corporação e vê só os blocos que a borda das camadas de
 // visão libera. CPF, nascimento e endereço nunca vêm aqui. Um bloco que a pessoa não vê não vem na resposta: a chave fica ausente.
+import { z } from 'zod';
+import { CategoriaCnh, Jornada } from './militares.ts';
 
 /** A linha da busca: só a Identificação. */
 export type LinhaDaConsulta = {
@@ -44,3 +46,42 @@ export type FichaDeConsulta = LinhaDaConsulta & {
 
 /** A unidade na lista de escolha da busca, na ordem da árvore. */
 export type UnidadeDaConsulta = { id: string; sigla: string; nivel: number; maeId: string | null };
+
+/** A busca com filtros devolve no máximo isto; com mais, `haMais` e a tela pede para afinar a busca (6.51). */
+export const LIMITE_DA_BUSCA_COM_FILTROS = 500;
+
+/**
+ * Os filtros da busca de "Pesquisar militares" (6.51); somam-se. Só `texto` e `unidades` (a lotação, cada uma com ou sem as de baixo) valem para toda conta:
+ * os outros só existem para quem tem nível de acesso em alguma unidade (para os demais a API os ignora, sem erro). `matriculas` vem do arquivo da tela.
+ */
+export const FiltrosDaBusca = z.object({
+  texto: z.string().trim().max(80).optional(),
+  unidades: z.array(z.object({ id: z.string().uuid(), comAsDeBaixo: z.boolean() })).max(200).optional(),
+  matriculas: z.array(z.string().trim().min(1).max(20)).max(2000).optional(),
+  postoGradIds: z.array(z.string().uuid()).max(100).optional(),
+  quadroIds: z.array(z.string().uuid()).max(20).optional(),
+  jornada: Jornada.optional(),
+  equipe: z.string().trim().min(1).max(40).optional(),
+  situacaoIds: z.array(z.string().uuid()).max(50).optional(),
+  voluntarioJes: z.boolean().optional(),
+  motorista: z.boolean().optional(),
+  cnh: z.array(CategoriaCnh).max(5).optional(),
+  funcaoIds: z.array(z.string().uuid()).max(100).optional(),
+  afastadoHoje: z.boolean().optional(),
+  cadastroIncompleto: z.boolean().optional(),
+});
+export type FiltrosDaBusca = z.infer<typeof FiltrosDaBusca>;
+
+/**
+ * A linha da busca com filtros: a identificação de sempre e, para quem tem nível de acesso sobre a lotação do militar, a situação dele. `podeAlterar`: quem pede tem nível de
+ * acesso acima da lotação do militar (a atualização em lote, 6.52, só mexe nesses).
+ */
+export type LinhaDaBusca = LinhaDaConsulta & {
+  equipe: string | null;
+  jornada: 'pronto' | 'adm' | null;
+  situacao: string | null;
+  unidadeId: string | null;
+  podeAlterar: boolean;
+};
+/** `naoEncontradas`: as matrículas do arquivo que não são de nenhum militar (como vieram, sem repetir). */
+export type ResultadoDaBusca = { militares: LinhaDaBusca[]; haMais: boolean; naoEncontradas: string[] };
