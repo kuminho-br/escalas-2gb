@@ -105,6 +105,10 @@ export type EscalaDoMes = {
   mes: string;
   dias: DiaDaEscala[];
   resumo: { preenchidas: number; obrigatorias: number; obrigatoriasVazias: number };
+  /** a prévia lançada desta escala neste mês (`por`: "SD FULANO"); null = ainda é rascunho, que a corporação não vê */
+  previa: { em: string; por: string | null } | null;
+  /** quem pede é gestor, coordenador ou administrador da unidade: só esses alteram um turno que já começou, numa escala com prévia lançada */
+  podeAlterarPassado: boolean;
 };
 
 export type Candidato = {
