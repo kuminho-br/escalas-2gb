@@ -12,6 +12,21 @@
       faixa.querySelectorAll('[role="tab"]').forEach(function (x) { x.setAttribute('aria-selected', String(x === b)); });
     });
   });
+  // grupo de filtro: mais de um segmento pode ficar marcado; com nenhum ou com todos, vale "Todas" (como a Grade faz hoje)
+  document.querySelectorAll('[data-filtro]').forEach(function (grupo) {
+    var todas = grupo.querySelector('[data-todas]');
+    var partes = [].slice.call(grupo.querySelectorAll('button:not([data-todas])'));
+    grupo.addEventListener('click', function (e) {
+      var b = e.target.closest('button'); if (!b) return;
+      if (b !== todas) b.setAttribute('aria-pressed', String(b.getAttribute('aria-pressed') !== 'true'));
+      var ligadas = partes.filter(function (x) { return x.getAttribute('aria-pressed') === 'true'; });
+      if (b === todas || ligadas.length === 0 || ligadas.length === partes.length) {
+        partes.forEach(function (x) { x.setAttribute('aria-pressed', 'false'); }); ligadas = [];
+      }
+      todas.setAttribute('aria-pressed', String(ligadas.length === 0));
+      grupo.dispatchEvent(new CustomEvent('filtro', { bubbles: true, detail: ligadas.map(function (x) { return x.dataset.chave; }) }));
+    });
+  });
   // contador: menos, valor e mais
   document.querySelectorAll('[data-passo]').forEach(function (passo) {
     var saida = passo.querySelector('output'), bs = passo.querySelectorAll('button');

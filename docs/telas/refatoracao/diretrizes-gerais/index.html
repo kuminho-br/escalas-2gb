@@ -384,7 +384,7 @@
       <div class="tripla">
         <div class="caso">
           <div class="campo"><span class="rot">Jornada</span><span class="seletor" role="combobox" aria-expanded="true" aria-label="Jornada" tabindex="-1">Pronto<svg class="i"><use href="#i-baixo"/></svg></span></div>
-          <div class="lista-aberta" role="listbox" aria-label="Jornada"><span role="option" aria-selected="false">Adm</span><span role="option" aria-selected="true" class="e-passa">Pronto<svg class="i"><use href="#i-ok"/></svg></span></div>
+          <div class="lista-aberta" role="listbox" aria-label="Jornada"><span role="option" aria-selected="false">ADM</span><span role="option" aria-selected="true" class="e-passa">Pronto<svg class="i"><use href="#i-ok"/></svg></span></div>
           <small>Lista de opções, aberta. Abre para cima quando falta espaço embaixo.</small>
         </div>
         <div class="caso">
@@ -420,10 +420,25 @@
       <div class="sup fila" style="gap:12px 28px">
         <label class="marcar"><input type="checkbox" id="m-jes" checked><span>Voluntário JES</span></label>
         <label class="marcar"><input type="checkbox" id="m-falta"><span>Só o que falta</span></label>
-        <span class="fila" role="radiogroup" aria-label="Jornada"><label class="marcar"><input type="radio" name="m-jornada" id="m-adm"><span>Adm</span></label><label class="marcar"><input type="radio" name="m-jornada" id="m-pronto" checked><span>Pronto</span></label></span>
+        <span class="fila" role="radiogroup" aria-label="Jornada"><label class="marcar"><input type="radio" name="m-jornada" id="m-adm"><span>ADM</span></label><label class="marcar"><input type="radio" name="m-jornada" id="m-pronto" checked><span>Pronto</span></label></span>
         <span class="fila" style="gap:8px"><span id="p-rot">Mínimo na função</span><span class="passo" role="group" aria-labelledby="p-rot" data-passo><button type="button" aria-label="Diminuir"><svg class="i"><use href="#i-menos"/></svg></button><output aria-live="polite">1</output><button type="button" aria-label="Aumentar"><svg class="i"><use href="#i-mais"/></svg></button></span></span>
       </div>
       <p class="leg">O mais e o menos passam de 24 para 36 px.</p>
+    </div>
+
+    <div class="peca" id="grupo-de-filtro">
+      <h3>Grupo de filtro</h3>
+      <div class="sup" style="display:grid;gap:20px">
+        <div class="caso">
+          <div class="campo"><span class="rot" id="gf-rot">Equipe</span><div class="grupo-filtro" role="group" aria-labelledby="gf-rot" data-filtro style="justify-self:start"><button type="button" aria-pressed="false" data-todas><svg class="i"><use href="#i-ok"/></svg>Todas</button><button type="button" aria-pressed="true" data-chave="ALFA"><svg class="i"><use href="#i-ok"/></svg>ALFA</button><button type="button" aria-pressed="false" data-chave="BRAVO"><svg class="i"><use href="#i-ok"/></svg>BRAVO</button><button type="button" aria-pressed="true" data-chave="CHARLIE"><svg class="i"><use href="#i-ok"/></svg>CHARLIE</button><button type="button" aria-pressed="false" data-chave="DELTA"><svg class="i"><use href="#i-ok"/></svg>DELTA</button><button type="button" aria-pressed="false" data-chave="ADM"><svg class="i"><use href="#i-ok"/></svg>ADM</button></div></div>
+          <small>No computador, com duas equipes marcadas. Clique para marcar e desmarcar.</small>
+        </div>
+        <div class="caso" style="max-width:358px">
+          <div class="campo"><span class="rot" id="gf-rot-c">Equipe</span><div class="grupo-filtro no-celular" role="group" aria-labelledby="gf-rot-c" data-filtro><button type="button" aria-pressed="true" data-todas><svg class="i"><use href="#i-ok"/></svg>Todas</button><button type="button" aria-pressed="false" data-chave="ALFA"><svg class="i"><use href="#i-ok"/></svg>ALFA</button><button type="button" aria-pressed="false" data-chave="BRAVO"><svg class="i"><use href="#i-ok"/></svg>BRAVO</button><button type="button" aria-pressed="false" data-chave="CHARLIE"><svg class="i"><use href="#i-ok"/></svg>CHARLIE</button><button type="button" aria-pressed="false" data-chave="DELTA"><svg class="i"><use href="#i-ok"/></svg>DELTA</button><button type="button" aria-pressed="false" data-chave="ADM"><svg class="i"><use href="#i-ok"/></svg>ADM</button></div></div>
+          <small>No celular: três por linha, com 44 px de altura.</small>
+        </div>
+      </div>
+      <p class="leg">Um filtro, uma caixa: o rótulo em cima e os segmentos juntos, com a borda dos campos e a letra dos nomes. Mais de um pode ficar marcado. O marcado tem fundo tinta, texto branco e o visto, e não muda de largura. "Todas" é o primeiro segmento e fica marcado quando nenhuma equipe está. Primeiro uso: as equipes da Grade geral.</p>
     </div>
 
     <div class="peca">
@@ -447,12 +462,27 @@
               <tr><td>2º SGT</td><td class="nome">RAMALHO</td><td>990012-3</td><td>Pronto</td><td class="num">120</td><td></td></tr>
               <tr><td>CB</td><td class="nome">VIEIRA</td><td>990027-5</td><td>Pronto</td><td class="num">96</td><td></td></tr>
               <tr><td>SD</td><td class="nome">BARROS</td><td>990038-9</td><td>Pronto</td><td class="num">108</td><td><span class="etiqueta falta">Falta a CNH</span></td></tr>
-              <tr><td>SD</td><td class="nome">PIMENTEL</td><td>990044-1</td><td>Adm</td><td class="num">8</td><td></td></tr>
+              <tr><td>SD</td><td class="nome">PIMENTEL</td><td>990044-1</td><td>ADM</td><td class="num">8</td><td></td></tr>
             </tbody>
           </table>
         </div>
       </div>
       <p class="leg">Quando não cabem, as abas rolam dentro da própria faixa e a tabela dentro do próprio quadro: a página nunca rola de lado. A pendência só aparece em quem tem pendência.</p>
+    </div>
+
+    <div class="peca" id="tabela-com-rolagem">
+      <h3>Tabela com rolagem</h3>
+      <div class="sup">
+        <div class="faixa-de-filtros">
+          <div class="campo"><span class="rot">Mês</span><span class="mes"><button type="button" aria-label="Mês anterior"><svg class="i"><use href="#i-esq"/></svg></button><output>dezembro de 2026</output><button type="button" aria-label="Próximo mês"><svg class="i"><use href="#i-dir"/></svg></button></span></div>
+          <div class="campo"><label for="tr-busca">Buscar militar</label><input type="search" id="tr-busca" placeholder="Nome ou matrícula" autocomplete="off"></div>
+          <div class="campo"><span class="rot" id="tr-rot">Equipe</span><div class="grupo-filtro" role="group" aria-labelledby="tr-rot" data-filtro id="tr-filtro"><button type="button" aria-pressed="true" data-todas><svg class="i"><use href="#i-ok"/></svg>Todas</button><button type="button" aria-pressed="false" data-chave="ALFA"><svg class="i"><use href="#i-ok"/></svg>ALFA</button><button type="button" aria-pressed="false" data-chave="BRAVO"><svg class="i"><use href="#i-ok"/></svg>BRAVO</button><button type="button" aria-pressed="false" data-chave="CHARLIE"><svg class="i"><use href="#i-ok"/></svg>CHARLIE</button><button type="button" aria-pressed="false" data-chave="DELTA"><svg class="i"><use href="#i-ok"/></svg>DELTA</button><button type="button" aria-pressed="false" data-chave="ADM"><svg class="i"><use href="#i-ok"/></svg>ADM</button></div></div>
+        </div>
+        <div class="rola-presa" tabindex="0" role="region" aria-label="Exemplo de tabela com rolagem"><table class="tabela-presa" id="tr-grade" aria-label="Grade geral de dezembro de 2026, do dia 1 ao dia 16"></table></div>
+        <p class="leg" id="tr-vazio" hidden style="margin-top:12px">Ninguém com esse nome nas equipes escolhidas.</p>
+      </div>
+      <p class="leg">A linha mais forte marca onde a rolagem começa: à direita da coluna do militar, embaixo do cabeçalho das datas e, na tela larga (1440 px ou mais), à esquerda de PJES e Diárias, que ficam presas. Tem 2 px, na cor do encaixe, e é contínua: atravessa a faixa de cada equipe. As linhas de dentro continuam mais fracas que ela. Vale para toda tabela que tem parte presa; a que rola inteira não tem essa linha.</p>
+      <p class="leg">Na célula do militar, a matrícula fica à esquerda e a barra da cota de saldo encostada à direita, a 12 px da linha. Role o quadro para os lados e para baixo. No exemplo, PJES e Diárias ficam presas sempre que cabem, para mostrar a linha.</p>
     </div>
 
     <div class="peca">
@@ -625,30 +655,30 @@
   var HABILITA = { A: ['A'], B: ['B'], C: ['C', 'B'], D: ['D', 'C', 'B'], E: ['E', 'D', 'C', 'B'] };
   var SEMANA = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
   var P = {
-    ramalho: { posto: '2º SGT', nome: 'RAMALHO', mat: '990012-3', serv: 'Pronto', cnh: 'D', eq: 'Alfa' },
-    dantas: { posto: 'CB', nome: 'DANTAS', mat: '990025-9', serv: 'Pronto', cnh: 'D', eq: 'Alfa' },
-    vieira: { posto: 'CB', nome: 'VIEIRA', mat: '990027-5', serv: 'Pronto', cnh: 'B', eq: 'Alfa' },
-    falcao: { posto: '1º SGT', nome: 'FALCÃO', mat: '990007-1', serv: 'Pronto', cnh: 'D', eq: 'Alfa' },
-    correia: { posto: 'SD', nome: 'CORREIA', mat: '990051-0', serv: 'Pronto', cnh: null, eq: 'Alfa' },
-    moura: { posto: 'SD', nome: 'MOURA', mat: '990046-2', serv: 'JES', cnh: 'B', eq: 'Alfa' },
-    siqueira: { posto: '2º SGT', nome: 'SIQUEIRA', mat: '990014-6', serv: 'Pronto', cnh: 'B', eq: 'Bravo' },
-    brandao: { posto: '3º SGT', nome: 'BRANDÃO', mat: '990016-2', serv: 'Pronto', cnh: 'D', eq: 'Bravo' },
-    rezende: { posto: 'SD', nome: 'REZENDE', mat: '990041-7', serv: 'Pronto', cnh: null, eq: 'Bravo' },
-    leal: { posto: 'SD', nome: 'LEAL', mat: '990047-0', serv: 'Saldo', cnh: 'B', eq: 'Adm' },
-    monteiro: { posto: 'SUB TEN', nome: 'MONTEIRO', mat: '990003-2', serv: 'Pronto', cnh: 'D', eq: 'Bravo' },
-    amorim: { posto: 'SD', nome: 'AMORIM', mat: '990043-3', serv: 'Pronto', cnh: null, eq: 'Bravo' },
-    freire: { posto: 'SD', nome: 'FREIRE', mat: '990050-5', serv: 'JES', cnh: null, eq: 'Bravo' },
-    tavares: { posto: 'CB', nome: 'TAVARES', mat: '990031-4', serv: 'Pronto', cnh: 'D', eq: 'Bravo' },
-    nogueira: { posto: 'SD', nome: 'NOGUEIRA', mat: '990049-6', serv: 'JES', cnh: 'B', eq: 'Alfa' },
-    lacerda: { posto: '3º SGT', nome: 'LACERDA', mat: '990018-7', serv: 'JES', cnh: 'E', eq: 'Alfa' },
-    pimentel: { posto: 'SD', nome: 'PIMENTEL', mat: '990044-1', serv: 'Saldo', cnh: 'D', eq: 'Adm' },
-    azevedo: { posto: 'CB', nome: 'AZEVEDO', mat: '990029-8', serv: 'Pronto', cnh: 'D', eq: 'Bravo', fora: true },
-    barros: { posto: 'SD', nome: 'BARROS', mat: '990038-9', serv: 'Pronto', cnh: null, eq: 'Alfa' }
+    ramalho: { posto: '2º SGT', nome: 'RAMALHO', mat: '990012-3', serv: 'Pronto', cnh: 'D', eq: 'ALFA' },
+    dantas: { posto: 'CB', nome: 'DANTAS', mat: '990025-9', serv: 'Pronto', cnh: 'D', eq: 'ALFA' },
+    vieira: { posto: 'CB', nome: 'VIEIRA', mat: '990027-5', serv: 'Pronto', cnh: 'B', eq: 'ALFA' },
+    falcao: { posto: '1º SGT', nome: 'FALCÃO', mat: '990007-1', serv: 'Pronto', cnh: 'D', eq: 'ALFA' },
+    correia: { posto: 'SD', nome: 'CORREIA', mat: '990051-0', serv: 'Pronto', cnh: null, eq: 'ALFA' },
+    moura: { posto: 'SD', nome: 'MOURA', mat: '990046-2', serv: 'JES', cnh: 'B', eq: 'ALFA' },
+    siqueira: { posto: '2º SGT', nome: 'SIQUEIRA', mat: '990014-6', serv: 'Pronto', cnh: 'B', eq: 'BRAVO' },
+    brandao: { posto: '3º SGT', nome: 'BRANDÃO', mat: '990016-2', serv: 'Pronto', cnh: 'D', eq: 'BRAVO' },
+    rezende: { posto: 'SD', nome: 'REZENDE', mat: '990041-7', serv: 'Pronto', cnh: null, eq: 'BRAVO' },
+    leal: { posto: 'SD', nome: 'LEAL', mat: '990047-0', serv: 'Saldo', cnh: 'B', eq: 'ADM' },
+    monteiro: { posto: 'SUB TEN', nome: 'MONTEIRO', mat: '990003-2', serv: 'Pronto', cnh: 'D', eq: 'BRAVO' },
+    amorim: { posto: 'SD', nome: 'AMORIM', mat: '990043-3', serv: 'Pronto', cnh: null, eq: 'BRAVO' },
+    freire: { posto: 'SD', nome: 'FREIRE', mat: '990050-5', serv: 'JES', cnh: null, eq: 'BRAVO' },
+    tavares: { posto: 'CB', nome: 'TAVARES', mat: '990031-4', serv: 'Pronto', cnh: 'D', eq: 'BRAVO' },
+    nogueira: { posto: 'SD', nome: 'NOGUEIRA', mat: '990049-6', serv: 'JES', cnh: 'B', eq: 'ALFA' },
+    lacerda: { posto: '3º SGT', nome: 'LACERDA', mat: '990018-7', serv: 'JES', cnh: 'E', eq: 'ALFA' },
+    pimentel: { posto: 'SD', nome: 'PIMENTEL', mat: '990044-1', serv: 'Saldo', cnh: 'D', eq: 'ADM' },
+    azevedo: { posto: 'CB', nome: 'AZEVEDO', mat: '990029-8', serv: 'Pronto', cnh: 'D', eq: 'BRAVO', fora: true },
+    barros: { posto: 'SD', nome: 'BARROS', mat: '990038-9', serv: 'Pronto', cnh: null, eq: 'ALFA' }
   };
   // a equipe do dia: quem ocupa cada função quando ninguém falta
   var EQUIPE = {
-    Alfa: { abtCmt: 'ramalho', abtMot: 'dantas', abtAux: ['vieira'], aphMot: 'falcao', aphSoc: ['correia', 'moura'] },
-    Bravo: { abtCmt: 'siqueira', abtMot: 'brandao', abtAux: ['rezende', 'leal'], aphMot: 'monteiro', aphSoc: ['amorim', 'freire'] }
+    ALFA: { abtCmt: 'ramalho', abtMot: 'dantas', abtAux: ['vieira'], aphMot: 'falcao', aphSoc: ['correia', 'moura'] },
+    BRAVO: { abtCmt: 'siqueira', abtMot: 'brandao', abtAux: ['rezende', 'leal'], aphMot: 'monteiro', aphSoc: ['amorim', 'freire'] }
   };
   var RESERVA = ['tavares', 'nogueira', 'lacerda', 'pimentel', 'azevedo', 'barros'];
   // o exemplo tem um dia de cada mês: 24/11/2026 (terça) e 3/12/2026 (quinta)
@@ -678,7 +708,7 @@
   function mesNovo(qual, vazio, inverte) {
     var info = MESES[qual], alfa = info.alfaDeDia !== !!inverte;
     return { gerado: !vazio, dias: [{ n: info.dia, dow: info.dow,
-      faixas: [faixaNova(qual, 'A', '07h às 19h', alfa ? 'Alfa' : 'Bravo', vazio), faixaNova(qual, 'B', '19h às 07h', alfa ? 'Bravo' : 'Alfa', vazio)] }] };
+      faixas: [faixaNova(qual, 'A', '07h às 19h', alfa ? 'ALFA' : 'BRAVO', vazio), faixaNova(qual, 'B', '19h às 07h', alfa ? 'BRAVO' : 'ALFA', vazio)] }] };
   }
   function ic(nome, extra) { return '<svg class="i' + (extra ? ' ' + extra : '') + '" aria-hidden="true"><use href="#i-' + nome + '"/></svg>'; }
   function im(nome) { return '<svg class="im" aria-hidden="true"><use href="#m-' + nome + '"/></svg>'; }
@@ -914,8 +944,8 @@
           '<h4 id="' + id + '-g-t">Gerar pré-escala</h4>' +
           '<p>Coloca no Pronto a equipe de cada dia, nas vagas pela ordem de escalação. Quem já está escalado não é mexido.</p>' +
           '<div class="campo" role="radiogroup" aria-labelledby="' + id + '-g-eq"><span class="rot" id="' + id + '-g-eq">Equipe do dia 1</span><span class="fila">' +
-            ['Alfa', 'Bravo'].map(function (e, i) { return '<label class="marcar"><input type="radio" name="' + id + '-equipe" id="' + id + '-eq-' + i + '" value="' + e + '"' + (i === 0 ? ' checked' : '') + (m.gerado ? ' disabled' : '') + '><span>' + e + '</span></label>'; }).join('') + '</span>' +
-            '<p class="ajuda">' + (m.gerado ? 'O Pronto deste mês já começa com a equipe Alfa no dia 1.' : 'Pelo mês anterior, o dia 1 é da equipe Alfa.') + '</p></div>' +
+            ['ALFA', 'BRAVO'].map(function (e, i) { return '<label class="marcar"><input type="radio" name="' + id + '-equipe" id="' + id + '-eq-' + i + '" value="' + e + '"' + (i === 0 ? ' checked' : '') + (m.gerado ? ' disabled' : '') + '><span>' + e + '</span></label>'; }).join('') + '</span>' +
+            '<p class="ajuda">' + (m.gerado ? 'O Pronto deste mês já começa com a equipe ALFA no dia 1.' : 'Pelo mês anterior, o dia 1 é da equipe ALFA.') + '</p></div>' +
           '<div class="resumo"><p>' + (entram === 1 ? 'Entra 1 serviço' : 'Entram ' + entram + ' serviços') + ' de Pronto.</p>' +
             '<p>' + (vazias === 1 ? 'Fica 1 vaga obrigatória vazia' : 'Ficam ' + vazias + ' vagas obrigatórias vazias') + ' e ' + plural(soltos, 'militar', 'militares') + ' sem guarnição.</p></div>' +
           '<div class="acoes"><button type="button" class="botao secundario" data-acao="fechar-dialogo">Cancelar</button><button type="button" class="botao principal" data-acao="gravar">Gravar pré-escala</button></div>' +
@@ -930,7 +960,7 @@
       if (devolver) gerarBt.focus();
     }
     function gravar() {
-      var bravo = veu.querySelector('input[value="Bravo"]'), inverte = !!(bravo && bravo.checked);
+      var bravo = veu.querySelector('input[value="BRAVO"]'), inverte = !!(bravo && bravo.checked);
       fecharDialogo(false); calarAviso(); guardado = null;
       esperando = true; area.scrollTop = 0; desenhar();
       setTimeout(function () {
@@ -1015,6 +1045,79 @@
 
   var campoApagar = document.getElementById('apagar-matricula'), botaoApagar = document.getElementById('apagar-botao');
   if (campoApagar && botaoApagar) campoApagar.addEventListener('input', function () { botaoApagar.disabled = campoApagar.value.trim() !== '990049-6'; });
+})();
+</script>
+<script>
+(function () {
+  'use strict';
+  // Exemplo da tabela com rolagem: um pedaço da Grade geral (16 dias de dezembro de 2026), com dados fictícios.
+  var tabela = document.getElementById('tr-grade'); if (!tabela) return;
+  var SIGLA = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+  var DIAS = 16, PRIMEIRO = 2; // 1º de dezembro de 2026 cai numa terça
+  var COR = { p: 'var(--pronto)', j: 'var(--jes)', s: 'var(--saldo)', x: 'var(--pe-seguro)', b: 'var(--bioma)', e: 'var(--expediente)' };
+  // "de" é o dia do primeiro turno A da equipe: A de dia, B na noite seguinte e duas folgas. Os serviços fora do Pronto vão em "mais": [dia, cor, letra].
+  var GRUPOS = [
+    { nome: 'ALFA', de: 1, linhas: [
+      { pat: '2º SGT', nome: 'RAMALHO', mat: '990012-3', mais: [[8, 'j', 'A'], [12, 'x', 'A']], pjes: 2, diarias: 0 },
+      { pat: 'CB', nome: 'VIEIRA', mat: '990027-5', mais: [[4, 'b', 'A']], pjes: 0, diarias: 1 },
+      { pat: 'SD', nome: 'BARROS', mat: '990038-9', mais: [[11, 'j', 'B']], pjes: 1, diarias: 0 }] },
+    { nome: 'BRAVO', de: 2, linhas: [
+      { pat: '3º SGT', nome: 'TAVARES', mat: '990063-2', mais: [[8, 'x', 'B']], pjes: 3, diarias: 0 },
+      { pat: 'SD', nome: 'GUSMÃO', mat: '990072-4', mais: [[5, 'j', 'A'], [12, 'b', 'A']], pjes: 0, diarias: 2 }] },
+    { nome: 'CHARLIE', de: 3, linhas: [
+      { pat: '1º SGT', nome: 'LACERDA', mat: '990085-6', mais: [[9, 'x', 'A']], pjes: 1, diarias: 1 },
+      { pat: 'CB', nome: 'PEDROSA', mat: '990091-8', mais: [[13, 'j', 'B']], pjes: 2, diarias: 0 }] },
+    { nome: 'DELTA', de: 4, linhas: [
+      { pat: '2º SGT', nome: 'ARRUDA', mat: '990104-0', mais: [], pjes: 0, diarias: 0 },
+      { pat: 'SD', nome: 'NOGUEIRA', mat: '990118-2', mais: [[10, 'j', 'A'], [14, 'x', 'A']], pjes: 4, diarias: 1 }] },
+    { nome: 'ADM', linhas: [
+      { pat: '1º SGT', nome: 'QUEIROGA', mat: '990056-7', saldo: [6, 6], mais: [[5, 's', 'A'], [12, 's', 'A'], [13, 's', 'B']], pjes: 1, diarias: 0 },
+      { pat: 'SD', nome: 'PIMENTEL', mat: '990044-1', saldo: [2, 6], mais: [[6, 's', 'B'], [12, 's', 'B']], pjes: 0, diarias: 1 }] }
+  ];
+  var todas = GRUPOS.reduce(function (a, g) { return a.concat(g.linhas); }, []);
+  var maxP = Math.max.apply(null, todas.map(function (l) { return l.pjes; }));
+  var maxD = Math.max.apply(null, todas.map(function (l) { return l.diarias; }));
+  function semana(d) { return (PRIMEIRO + d - 1) % 7; }
+  // a linha clara à direita de cada dia e a mais forte à esquerda da segunda-feira, como na Grade de hoje
+  function classes(d) { return 'dia' + (semana(d) === 1 ? ' seg' : '') + (d < DIAS && semana(d + 1) === 1 ? ' vespera' : ''); }
+  function marca(cor, letra) { return '<span class="marca" style="--servico:' + COR[cor] + '">' + (letra || '') + '</span>'; }
+  function conta(v, max) { return '<span class="conta" style="--feito:' + (max ? v / max * 100 : 0) + '%"><span>' + v + '</span></span>'; }
+  function doDia(g, l, d) {
+    var m = '';
+    if (g.de) { if ((d - g.de) % 4 === 0) m += marca('p', 'A'); if ((d - g.de + 3) % 4 === 0) m += marca('p', 'B'); }
+    else if (semana(d) > 0 && semana(d) < 6) m += marca('e');
+    l.mais.forEach(function (x) { if (x[0] === d) m += marca(x[1], x[2]); });
+    return m;
+  }
+  var h = '<thead><tr><th scope="col" class="quem">Militar</th>', d, s;
+  for (d = 1; d <= DIAS; d++) { s = semana(d); h += '<th scope="col" class="' + classes(d) + (s === 0 || s === 6 ? ' fds' : '') + '"><b>' + d + '</b>' + SIGLA[s] + '</th>'; }
+  h += '<th scope="col" class="fim pjes">PJES</th><th scope="col" class="fim diarias">Diárias</th></tr></thead>';
+  GRUPOS.forEach(function (g) {
+    h += '<tbody data-grupo="' + g.nome + '"><tr class="faixa"><th scope="rowgroup" class="quem"><span class="nome-do-grupo"><strong>' + g.nome + '</strong><small>' + g.linhas.length + ' militares</small></span></th><td colspan="' + DIAS + '"></td><td class="fim pjes"></td><td class="fim diarias"></td></tr>';
+    g.linhas.forEach(function (l) {
+      var frase = l.saldo ? l.saldo[0] + ' de ' + l.saldo[1] + ' saldos no mês' : '';
+      h += '<tr data-busca="' + (l.nome + ' ' + l.mat).toLowerCase() + '"><th scope="row" class="quem"><span class="l1"><span>' + l.pat + '</span><strong>' + l.nome + '</strong></span><span class="l2"><span>' + l.mat + '</span>' +
+        (l.saldo ? '<span class="cota' + (l.saldo[0] > l.saldo[1] ? ' acima' : '') + '" role="img" aria-label="' + frase + '" title="' + frase + '" style="--feito:' + Math.min(100, l.saldo[0] / l.saldo[1] * 100) + '%"></span>' : '') + '</span></th>';
+      for (d = 1; d <= DIAS; d++) h += '<td class="' + classes(d) + '"><span class="marcas">' + doDia(g, l, d) + '</span></td>';
+      h += '<td class="fim pjes">' + conta(l.pjes, maxP) + '</td><td class="fim diarias">' + conta(l.diarias, maxD) + '</td></tr>';
+    });
+    h += '</tbody>';
+  });
+  tabela.innerHTML = h;
+
+  // o filtro de equipe e a busca valem juntos; a equipe sem ninguém à vista some
+  var escolhidas = [], busca = document.getElementById('tr-busca'), vazio = document.getElementById('tr-vazio');
+  function filtrar() {
+    var texto = busca.value.trim().toLowerCase(), alguem = false;
+    [].forEach.call(tabela.tBodies, function (corpo) {
+      var dentro = !escolhidas.length || escolhidas.indexOf(corpo.dataset.grupo) >= 0, n = 0;
+      [].forEach.call(corpo.querySelectorAll('tr[data-busca]'), function (tr) { tr.hidden = !!texto && tr.dataset.busca.indexOf(texto) < 0; if (!tr.hidden) n++; });
+      corpo.hidden = !dentro || n === 0; if (!corpo.hidden) alguem = true;
+    });
+    tabela.parentNode.hidden = !alguem; vazio.hidden = alguem;
+  }
+  document.getElementById('tr-filtro').addEventListener('filtro', function (e) { escolhidas = e.detail; filtrar(); });
+  busca.addEventListener('input', filtrar);
 })();
 </script>
 </body>

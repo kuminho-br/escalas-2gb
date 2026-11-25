@@ -22,7 +22,7 @@ Valem acima deste documento as diretrizes do usuário de 23/11/2026, na seção 
 | `vinho-escuro` | `#6F1414` | O vinho com o mouse em cima |
 | `tinta` | `#1C2430` | Texto, ações secundárias, item escolhido e contorno de foco |
 | `apagado` | `#5B6675` | Texto de apoio |
-| `encaixe` | `#7D8A9C` | Contorno: borda de campo e de botão secundário, vaga opcional |
+| `encaixe` | `#7D8A9C` | Contorno: borda de campo e de botão secundário, vaga opcional e a fronteira da rolagem nas tabelas |
 | `linha` | `#D8DDE4` | Divisórias e o fundo do botão apagado |
 | `fundo` | `#EDEFF2` | A página |
 | `passa` | `#F3F5F8` | O único cinza de painel: mouse em cima, fim de semana, etiqueta neutra |
@@ -109,6 +109,9 @@ Só a guarnição tem caixa: o cartão, um por guarnição em cada turno, com a 
 | Envio de arquivo | Vazio: borda tracejada de 1 px `encaixe` e botão secundário. Com arquivo: borda cheia `linha`, o nome em peso 600 e "Trocar" |
 | Abas | Linha de 1 px embaixo da faixa; aba na altura de controle, `apagado`, peso 500; a escolhida em `tinta`, peso 600, com 2 px embaixo; a faixa rola dentro dela mesma |
 | Tabela | Cabeçalho em 13 px, peso 500, `apagado`; linha de 44 px; mouse em cima, `passa`; números à direita; a tabela rola dentro do próprio quadro |
+| Tabela com rolagem | Decisão da DESIGN a pedido do usuário (24/11/2026; entrega 6.46), primeiro uso na Grade geral. Onde há parte presa (cabeçalho ou coluna), a fronteira entre o que fica e o que rola é uma linha de 2 px `encaixe`, contínua. Na Grade: à direita da coluna do militar, embaixo do cabeçalho das datas (na largura toda) e, com 1440 px ou mais, à esquerda de PJES. As duas verticais atravessam a faixa de cada equipe. As linhas de dentro ficam mais fracas que ela. Sem token novo. A tabela que rola inteira não tem fronteira |
+| Célula do militar (Grade) | Patente e nome em cima; embaixo, a matrícula à esquerda e a barra da cota de saldo encostada à direita, a 12 px da fronteira (entrega 6.46). A barra é a de hoje, com 28 por 6 px. O militar do Pronto, sem barra, fica com a matrícula no mesmo lugar |
+| Grupo de filtro | Decisão da DESIGN a pedido do usuário (24/11/2026; entrega 6.46), primeiro uso nas equipes da Grade geral. Rótulo em cima ("Equipe"), como nos campos. Os segmentos numa caixa só: borda de 1 px `encaixe`, raio 6, altura de controle e 1 px `linha` entre eles. Nome em 15 px estreita, 600, escrito como no cadastro (ALFA, ADM). Mais de um pode ficar marcado (`aria-pressed`): o marcado tem fundo `tinta`, texto branco e um visto de 14 px antes do nome, e não muda de largura. "Todas" é o primeiro segmento, marcado quando nenhum outro está. Mouse em cima: `passa`. Foco por dentro do segmento (branco sobre o marcado). No celular, três por linha, com 44 px, e a última linha estica até o fim |
 | Linha de lista de militares | Decisão da PLANEJAMENTO com aval do usuário (23/11/2026; item 32 da 6.17, `docs/decisoes.md`). Três linhas: patente (13 px, `apagado`) e nome de guerra (17 px estreita, 600); o nome completo em 15 px, `tinta`; os dados em etiquetas de dado. Pecúlio: matrícula, telefone e e-mail. Militares: matrícula, jornada e equipe, e a CNH ("Motorista B"). O dado que falta vira etiqueta âmbar ("Sem telefone"), junto do aviso de cadastro incompleto. Sem uma cor por tipo de dado |
 | Linha de etapas | Decisão da PLANEJAMENTO a pedido do usuário (23/11/2026; item 33 da 6.17), primeiro uso na Escala dos oficiais. Passos numa lista, com `aria-current="step"` no atual. Círculo de 24 px: feito, com visto em `tinta`; atual, cheio de `tinta` com o número em branco; por vir, borda `encaixe` e número `apagado`. Nome em 15 px (o atual em 600, `tinta`; os outros `apagado`) e uma frase de 13 px embaixo. Entre os passos, uma linha de 2 px com ponta de seta. A ação do próximo passo, em botão principal, fica sobre a seta que sai do passo atual. No celular, em coluna. O vinho fica só no botão: o passo atual em `tinta` segue a regra do item escolhido |
 | Etiqueta de dado | Como a etiqueta (24 px, raio 6, 13 px, peso 500), com fundo `passa`, borda de 1 px `linha`, texto `tinta` e um ícone de 14 px, em `apagado`, antes do texto |
@@ -157,6 +160,7 @@ Tomadas pela DESIGN dentro da direção aprovada. O usuário vê todas no mockup
 6. O feriado deixa de ser escrito em vermelho, que passa a ser só de erro: fica em `apagado`, com um ponto na régua e no calendário.
 7. O nível da estrutura que ainda não tem brasão usa o do nível de cima.
 8. A marca da Grade não destaca o dia de hoje (decisão do usuário de 23/11/2026); o fim de semana fica em `passa`.
+9. O filtro marcado é `tinta`, não vinho: vale a decisão 1. A fronteira da rolagem usa `encaixe`, sem cinza novo: o `#8A94A3` cogitado fica a um passo dele e dá 3,1 de contraste, contra 3,5.
 
 ## Propostas de mudança de comportamento
 
@@ -194,6 +198,7 @@ A página de cada área é um documento completo; o índice é publicado como a 
 ## Pendências
 
 - Grade geral: a cor do serviço sozinha pode não bastar quando há muitos serviços. Resolver na área da Grade geral.
+- Grade geral: as cores soltas das linhas de dentro e da faixa da equipe (`#EEF0F3`, `#C9CED6` e `#F1F3F6`) ficam como estão na 6.46. Viram token, ou não, na área da Grade geral.
 
 - Aprovação do mockup pelo usuário.
 - Confirmar que o cartão da guarnição traz a origem do serviço, para a regra do nome do serviço na placa.
