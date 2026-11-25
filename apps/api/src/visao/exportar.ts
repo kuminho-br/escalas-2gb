@@ -1,7 +1,7 @@
 // A exportação de militares para Excel (entrega 6.54): POST /api/consulta/militares/exportar. A planilha tem as colunas da importação do Pecúlio (aba PECÚLIO, mesmos rótulos e ordem),
 // então dá para exportar, corrigir no Excel e importar de volta. Cada célula segue o que a ficha mostraria a quem exporta (as camadas de visão, 6.11): o que a pessoa não vê sai
 // vazio, e na importação célula vazia não muda nada. A MATRÍCULA sai sempre.
-import { COLUNAS_DA_EXPORTACAO, LIMITE_DA_EXPORTACAO, type BlocoDaExportacao, type PedidoDeExportacao } from 'contratos';
+import { COLUNAS_DA_EXPORTACAO, LIMITE_DA_EXPORTACAO, mesParaData, type BlocoDaExportacao, type PedidoDeExportacao } from 'contratos';
 import ExcelJS from 'exceljs';
 import { CADASTRO, ehAdministrador, papeisVigentes, temPapel } from '../acesso.ts';
 import type { Consulta } from '../banco/banco.ts';
@@ -38,29 +38,29 @@ export async function exportarMilitares(c: Consulta, usuarioId: string, pedido: 
   }
   if (ids.size > LIMITE_DA_EXPORTACAO) return { ok: false, status: 400, erro: `Mais de ${LIMITE_DA_EXPORTACAO} militares. Afine a busca.` };
 
-  // o período de hoje, como a ficha e a pesquisa mostram (a lotação, a jornada, a equipe, o quadro e a situação); sem período que cubra hoje, a lotação é a do mais recente e o resto sai vazio.
-  // Com uma mudança marcada para depois, a planilha traz o que vale hoje: reimportá-la mostra na prévia a diferença para o período futuro, e nada grava sem confirmar
+  // o que a importação lê (a planilha é o arquivo dela): a lotação do mês de hoje (ou a mais recente) e, do período aberto, a jornada, a equipe, o quadro e a situação. Com uma mudança
+  // marcada para depois, saem os valores do período aberto: assim exportar e importar o mesmo arquivo não desfaz a mudança marcada nem cria equipe na seção errada
   const { rows } = await c.query<Linha>(
     `select m.id, m.matricula, p.sigla as posto, m.nome_completo, m.nome_guerra, m.antiguidade, m.sexo, m.nascimento_dia, m.nascimento_mes, m.nascimento_ano, m.cpf, m.cep, m.logradouro,
             m.numero, m.complemento, m.bairro, m.cidade, m.uf, m.telefone, m.email, m.email_pessoal, m.comportamento, m.comportamento_boletim, m.motorista, m.cnh, m.voluntario_jes,
             fm.nome as funcao, m.abono_permanencia, l.unidade_id, un.sigla as unidade_sigla, mae.sigla as unidade_mae,
-            case when l.vale then aq.sigla end as quadro, case when l.vale then asm.nome end as situacao, case when l.vale then l.jornada end as jornada, case when l.vale then ae.nome end as equipe
+            aq.sigla as quadro, asm.nome as situacao, a.jornada, ae.nome as equipe
        from militar m
        join posto_grad p on p.id = m.posto_grad_id
        left join funcao_militar fm on fm.id = m.funcao_militar_id
        left join lateral (
-         select r.unidade_id, r.jornada, r.equipe_id, r.quadro_id, r.situacao_id, (r.desde <= $2::date and (r.ate is null or r.ate >= $2::date)) as vale
-           from rastreio r where r.militar_id = m.id
+         select r.unidade_id from rastreio r where r.militar_id = m.id
           order by (r.desde <= $2::date and (r.ate is null or r.ate >= $2::date)) desc, r.desde desc limit 1
        ) l on true
        left join unidade un on un.id = l.unidade_id
        left join unidade mae on mae.id = un.mae_id
-       left join equipe ae on ae.id = l.equipe_id
-       left join quadro aq on aq.id = l.quadro_id
-       left join situacao_militar asm on asm.id = l.situacao_id
+       left join rastreio a on a.militar_id = m.id and a.ate is null
+       left join equipe ae on ae.id = a.equipe_id
+       left join quadro aq on aq.id = a.quadro_id
+       left join situacao_militar asm on asm.id = a.situacao_id
       where m.id = any($1::uuid[])
       order by m.nome_guerra, m.matricula`,
-    [[...ids], hoje],
+    [[...ids], mesParaData(hoje.slice(0, 7))],
   );
 
   // o nome da lotação como a importação escreve na AJUDA (a unidade de cima quando a sigla se repete): os rótulos de todas as unidades em vigor, lidos uma vez

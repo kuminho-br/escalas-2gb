@@ -24,6 +24,18 @@ describe('o limite de buscas por minuto', () => {
     expect((await buscar('escalante')).status).toBe(200);
   });
 
+  it('6.54: a exportação conta no mesmo limite (30 por minuto por conta) e a resposta não fica em cache', async () => {
+    const exportar = () => api.pedir('gestorGb', 'POST', '/api/consulta/militares/exportar', { filtros: { texto: 'abc' }, colunas: ['NOME DE GUERRA'] });
+    for (let i = 0; i < 30; i++) {
+      const r = await exportar();
+      expect(r.status, `exportação ${i + 1}`).toBe(200);
+      if (i === 0) expect(r.headers.get('cache-control')).toBe('no-store');
+    }
+    const r = await exportar();
+    expect(r.status).toBe(429);
+    expect((await r.json()).erro).toBe(FRASE);
+  });
+
   it('o limite é só da lista: a ficha de consulta e as unidades não contam', async () => {
     expect((await api.pedir('semPapel', 'GET', '/api/consulta/unidades')).status).toBe(200);
   });

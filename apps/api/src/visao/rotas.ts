@@ -100,15 +100,15 @@ export function rotasVisao(dep: { banco: Banco; auth: Auth; limiteDeBuscas?: num
     return resposta.ok ? c.json(resposta.resultado) : c.json({ erro: resposta.erro }, resposta.status);
   });
 
-  // 6.54: a planilha (.xlsx) com as colunas da importação do Pecúlio; sai a busca, a seleção ou as duas, só para quem tem nível de acesso
-  r.post('/consulta/militares/exportar', async (c) => {
+  // 6.54: a planilha (.xlsx) com as colunas da importação do Pecúlio; sai a busca, a seleção ou as duas, só para quem tem nível de acesso. Mesmo limite por minuto da busca, e sem cache
+  r.post('/consulta/militares/exportar', limiteDaBusca, async (c) => {
     const corpo = await lerCorpo(c, PedidoDeExportacao);
     if (!corpo.ok) return corpo.resposta;
     const hoje = hojeRecife();
     const resposta = await exportarMilitares(c.get('banco'), c.get('usuarioId'), corpo.dados, hoje);
     if (!resposta.ok) return c.json({ erro: resposta.erro }, resposta.status);
     return new Response(resposta.arquivo, {
-      headers: { 'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'Content-Disposition': `attachment; filename="militares-${hoje}.xlsx"` },
+      headers: { 'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'Content-Disposition': `attachment; filename="militares-${hoje}.xlsx"`, 'Cache-Control': 'no-store' },
     });
   });
 

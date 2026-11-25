@@ -104,6 +104,23 @@ describe('a seleção na pesquisa (6.51)', () => {
     expect(await screen.findByText('1 militar fica de fora: você não tem nível de acesso sobre ele.')).toBeInTheDocument();
   });
 
+  it('achado da revisão (6.54): com mais de 500 selecionados, "Atualizar em lote" fica travado com a frase do limite (a atualização vai até 500)', async () => {
+    const quinhentos = Array.from({ length: 500 }, (_, i) => linha(`m${i}`, `M${i}`));
+    const inteira = Array.from({ length: 520 }, (_, i) => linha(`m${i}`, `M${i}`));
+    const f = api([resultado(quinhentos, true)]);
+    comTodos(f, { status: 200, corpo: resultado(inteira) });
+    abrir('/peculio/pesquisar');
+    await buscar('abc');
+    await userEvent.click(await screen.findByRole('button', { name: 'Selecionar todos' }));
+    await screen.findByRole('heading', { name: 'Selecionados (520)' });
+    expect(screen.getByRole('button', { name: 'Atualizar em lote' })).toBeDisabled();
+    expect(screen.getByText('A atualização em lote vai até 500 militares. Tire alguns da seleção.')).toBeInTheDocument();
+    for (let i = 0; i < 20; i++) await userEvent.click(screen.getByRole('button', { name: `Tirar SD M${i}` }));
+    await screen.findByRole('heading', { name: 'Selecionados (500)' });
+    expect(screen.getByRole('button', { name: 'Atualizar em lote' })).toBeEnabled();
+    expect(screen.queryByText(/vai até 500 militares/)).toBeNull();
+  });
+
   it('"Selecionar todos" com mais de 5000: a mensagem da API aparece e a seleção não muda', async () => {
     const quinhentos = Array.from({ length: 500 }, (_, i) => linha(`m${i}`, `M${i}`));
     const f = api([resultado(quinhentos, true)]);
