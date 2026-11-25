@@ -2,7 +2,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { Data, Mes, type OcupanteDaVaga } from 'contratos';
 import { useEffect, useState } from 'react';
-import { foiCancelado, mensagemDe } from '@/api/cliente';
+import { foiCancelado, justificativa, mensagemDe } from '@/api/cliente';
 import { consultaCotas } from '@/api/cotas';
 import { acumular, consultaEscalaDoMes, desfazerRemocao, devolverRemocao, removerAlocacao, tirarAcumulo } from '@/api/escala-do-mes';
 import { restantesPorServico } from '@/lib/cotas';
@@ -48,6 +48,8 @@ function EscalaDoMes() {
   const queryClient = useQueryClient();
   const avisar = useAviso();
   const [trocando, setTrocando] = useState<{ texto: string; desfazer: () => Promise<void> } | null>(null);
+  // o motivo que o "Trocar militar" já pediu ao tirar (num turno passado): o escalar que vem em seguida o leva, e a pessoa não digita de novo
+  const [motivoDaTroca, setMotivoDaTroca] = useState<string | undefined>(undefined);
   const [soVazias, setSoVazias] = useState(false);
   const [vaga, setVaga] = useState<VagaDaTela | null>(null);
   const [erro, setErro] = useState<string | null>(null);
@@ -93,7 +95,10 @@ function EscalaDoMes() {
   async function trocar(o: OcupanteDaVaga, guarnicao: string, daVaga: VagaDaTela) {
     setErro(null);
     try {
+      const antes = justificativa.ultimo()?.n;
       setTrocando(await tirar(o, guarnicao, daVaga));
+      const depois = justificativa.ultimo();
+      setMotivoDaTroca(depois && depois.n !== antes ? depois.texto : undefined);
       setVaga(daVaga);
     } catch (e) {
       if (!foiCancelado(e)) avisar({ texto: mensagemDe(e), erro: true });
@@ -172,8 +177,10 @@ function EscalaDoMes() {
           key={`${vaga.data}|${vaga.inicio}|${vaga.guarnicaoId}|${vaga.funcaoId}`}
           escalaId={escalaId}
           vaga={vaga}
+          justificativa={motivoDaTroca}
           aoFechar={(escolheu) => {
             setVaga(null);
+            setMotivoDaTroca(undefined);
             // desistiu da escolha depois de "Trocar militar": a vaga ficou vazia, e o aviso oferece o "Desfazer"
             if (trocando && !escolheu) avisar(trocando);
             setTrocando(null);

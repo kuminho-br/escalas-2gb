@@ -81,6 +81,9 @@ export function PainelDeSelecionados() {
             // aplicou: a seleção acabou, e a pesquisa e o Pecúlio buscam de novo (o que mudou já aparece)
             if (aplicou) {
               limpar();
+              // as fichas já lidas (a de consulta e a completa) saem do cache: abrir uma delas espera a leitura nova, em vez de mostrar o dado de antes do lote
+              queryClient.removeQueries({ queryKey: ['consulta', 'militar'] });
+              queryClient.removeQueries({ queryKey: ['militar'] });
               void queryClient.invalidateQueries({ queryKey: ['consulta'] });
               void queryClient.invalidateQueries({ queryKey: ['peculio'] });
               void queryClient.invalidateQueries({ queryKey: ['militares'] });

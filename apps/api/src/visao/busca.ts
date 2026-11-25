@@ -2,6 +2,7 @@
 // todas. Os outros filtros existem para quem tem nível de acesso em alguma unidade (para os demais são ignorados, sem erro) e, quando revelam o que a Identificação não mostra
 // (jornada, equipe, situação, voluntário JES, motorista e CNH, função, afastamento, cadastro incompleto), só enxergam os militares lotados onde a pessoa tem nível de acesso
 // (ou abaixo): assim ninguém descobre por um filtro o que a ficha não lhe mostra.
+import { categoriasQueHabilitam } from 'dominio';
 import { LIMITE_DA_BUSCA_COM_FILTROS, type FiltrosDaBusca, type LinhaDaBusca, type ResultadoDaBusca } from 'contratos';
 import { ehAdministrador, papeisVigentes } from '../acesso.ts';
 import type { Consulta } from '../banco/banco.ts';
@@ -77,7 +78,8 @@ export async function buscarComFiltros(c: Consulta, usuarioId: string, f: Filtro
   if (r.situacaoIds) onde.push(`r.situacao_id = any(${par(r.situacaoIds, '::uuid[]')})`);
   if (r.voluntarioJes !== undefined) onde.push(`m.voluntario_jes = ${par(r.voluntarioJes)}`);
   if (r.motorista !== undefined) onde.push(`m.motorista = ${par(r.motorista)}`);
-  if (r.cnh) onde.push(`m.cnh && ${par(r.cnh, '::text[]')}`);
+  // a CNH pela hierarquia do CTB (decisão de 25/11/2026): pedir B traz quem tem B ou uma categoria que a habilite (C, D, E); A só A
+  if (r.cnh) onde.push(`m.cnh && ${par(categoriasQueHabilitam(r.cnh), '::text[]')}`);
   if (r.funcaoIds) onde.push(`m.funcao_militar_id = any(${par(r.funcaoIds, '::uuid[]')})`);
   if (r.afastadoHoje !== undefined) {
     onde.push(`${r.afastadoHoje ? '' : 'not '}exists (select 1 from afastamento af where af.militar_id = m.id and af.inicio <= ${pHoje} and af.fim >= ${pHoje})`);

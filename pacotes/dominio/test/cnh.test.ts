@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { cnhAtende, cnhHabilitadas, cnhParaEscala, motivoDaCnh } from '../src/cnh.ts';
+import { categoriasQueHabilitam, cnhAtende, cnhHabilitadas, cnhParaEscala, motivoDaCnh } from '../src/cnh.ts';
 
 describe('cnh: hierarquia do CTB (RN-12)', () => {
   it('categoria maior atende a menor; a menor não atende a maior', () => {
@@ -53,3 +53,20 @@ describe('motivoDaCnh: por que o militar não serve para a vaga de condutor (6.1
   });
 });
 
+
+describe('categoriasQueHabilitam: o filtro de CNH pela hierarquia do CTB (6.53)', () => {
+  it('pedir uma categoria traz ela e as que a habilitam: B traz B, C, D e E; C traz C, D e E; D traz D e E; E só E; A só A', () => {
+    expect(categoriasQueHabilitam(['B'])).toEqual(['B', 'C', 'D', 'E']);
+    expect(categoriasQueHabilitam(['C'])).toEqual(['C', 'D', 'E']);
+    expect(categoriasQueHabilitam(['D'])).toEqual(['D', 'E']);
+    expect(categoriasQueHabilitam(['E'])).toEqual(['E']);
+    expect(categoriasQueHabilitam(['A'])).toEqual(['A']);
+  });
+
+  it('várias categorias somam, sem repetir e em ordem; nada pedido, nada devolvido; categoria desconhecida não habilita ninguém', () => {
+    expect(categoriasQueHabilitam(['A', 'B'])).toEqual(['A', 'B', 'C', 'D', 'E']);
+    expect(categoriasQueHabilitam(['C', 'B'])).toEqual(['B', 'C', 'D', 'E']);
+    expect(categoriasQueHabilitam([])).toEqual([]);
+    expect(categoriasQueHabilitam(['X'])).toEqual([]);
+  });
+});

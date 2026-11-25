@@ -42,6 +42,8 @@ export function OutroHorario({ dia, faixas, aoMudar, soLeitura = false, celular 
   const abrirOuFechar = (v: boolean) => {
     // ao abrir, o painel mostra o que o dia tem; um rascunho com erro fica como a pessoa deixou
     if (v && !comErro) setLinhas(faixas.map(deFaixa));
+    // ao fechar, toda linha conta como vista: ao reabrir, o erro da que ficou pela metade aparece no campo
+    if (!v) setLinhas((ls) => ls.map((l) => ({ ...l, tocadoInicio: true, tocadoFim: true })));
     setAberto(v);
   };
   const mudar = (novas: Linha[]) => {

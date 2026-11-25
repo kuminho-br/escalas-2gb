@@ -111,6 +111,12 @@ describe('a prévia', () => {
     expect(motivoDe(p, 'E3')).toBe('A equipe alfa não existe em 3ª SB.');
   });
 
+  it('6.53 (b): a equipe aparece como está cadastrada ("Alfa"), mesmo digitada "alfa"', async () => {
+    await militar('EQ1', sb1);
+    const p = await verPrevia(gestorGb, lote(['EQ1'], { equipe: 'alfa' }, hoje));
+    expect(p.mudam[0]!.para).toBe('Equipe: Alfa');
+  });
+
   it('lotação marcada sem equipe marcada: todos chegam sem equipe, e a prévia conta quantos', async () => {
     await militar('L1', sb1, { equipe: alfa1 });
     await militar('L2', sb1);
@@ -211,6 +217,21 @@ describe('aplicar', () => {
     const r = await aplicar(gestorGb, { ...corpo, assinatura: 'qualquer-outra' });
     expect(r.status).toBe(409);
     expect((await periodos('G1'))[0]!.jornada).toBe('adm');
+  });
+
+  it('6.53 (c): a assinatura guarda o "de" e o "para": se o militar mudou entre a prévia e o aplicar, o aplicar recusa (409) mesmo com o "para" igual', async () => {
+    await militar('AS1', sb1);
+    const antiga = await inserir(api.banco, 'funcao_militar', { nome: 'Função antiga da assinatura' });
+    const outra = await inserir(api.banco, 'funcao_militar', { nome: 'Outra função da assinatura' });
+    const alvo = await inserir(api.banco, 'funcao_militar', { nome: 'Função nova da assinatura' });
+    await api.banco.query('update militar set funcao_militar_id = $2 where id = $1', [m.AS1, antiga]);
+    const corpo = lote(['AS1'], { funcaoMilitarId: alvo });
+    const p = await verPrevia(gestorGb, corpo);
+    // alguém mudou a função dele pela ficha: o "para" da prévia continua o mesmo, o "de" não
+    await api.banco.query('update militar set funcao_militar_id = $2 where id = $1', [m.AS1, outra]);
+    const r = await aplicar(gestorGb, { ...corpo, assinatura: p.assinatura });
+    expect(r.status).toBe(409);
+    expect((await api.banco.query<{ funcao_militar_id: string }>('select funcao_militar_id from militar where id = $1', [m.AS1])).rows[0]!.funcao_militar_id).toBe(outra);
   });
 
   it('campos simples (voluntário JES, abono, comportamento, função) mudam pelo mesmo caminho da ficha', async () => {

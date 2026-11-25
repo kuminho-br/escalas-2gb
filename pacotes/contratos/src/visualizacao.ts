@@ -17,6 +17,8 @@ export type MeuServico = {
   servico: string;
   escala: string;
   unidadeSigla: string;
+  /** o id da unidade da escala: a tela distingue duas unidades de mesma sigla pela unidade de cima (6.53) */
+  unidadeId: string;
   estado: EstadoVisivel;
   emRetificacao: boolean;
   guarnicao: string | null;

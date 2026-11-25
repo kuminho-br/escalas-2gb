@@ -119,7 +119,7 @@ function Evento({ e, trilho }: { e: EventoDoRastreio; trilho: 'ate-o-proximo' | 
       <span data-ponto data-marca={marca} className={cn('absolute rounded-full shadow-[0_0_0_3px_var(--color-superficie)]', PONTO[marca])} aria-hidden />
       <h4 className="flex flex-wrap items-center gap-x-2.5 gap-y-0.5 font-cond text-corpo font-semibold text-apagado">
         <time dateTime={e.desde} className={cn((e.vale === 'agora' || e.vale === 'marcada') && 'text-tinta')}>{ddmmaaaa(e.desde)}</time>
-        {e.vale === 'marcada' && <Etiqueta tipo="neutra">Ainda não vale</Etiqueta>}
+        {e.vale === 'marcada' && <Etiqueta tipo="neutra" className="font-sans">Ainda não vale</Etiqueta>}
         {e.tipo === 'inicio' && e.vale !== 'marcada' && <span className="font-sans text-xs font-normal">Primeiro registro</span>}
         {e.vale === 'agora' && <span className="sr-only">, vale agora</span>}
       </h4>

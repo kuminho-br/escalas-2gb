@@ -2,7 +2,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { mesPorExtenso, type EscalaDoMes } from 'contratos';
 import { useEffect, useRef, useState } from 'react';
 import { foiCancelado, mensagemDe } from '@/api/cliente';
-import { consultaRegistroDoPasado, lancarPrevia, publicarEscala, republicarEscala } from '@/api/escala-do-mes';
+import { consultaRegistroDoPasado, gravacoesDaTela, lancarPrevia, publicarEscala, republicarEscala } from '@/api/escala-do-mes';
 import { Button } from '@/componentes/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/componentes/ui/dialog';
 import { Etiqueta } from '@/componentes/ui/etiqueta';
@@ -43,15 +43,22 @@ export function EstadoDaEscala({ escala, soConsulta }: { escala: EscalaDoMes; so
   const registro = useQuery(consultaRegistroDoPasado(escala.escalaId, escala.mes));
   const alteracoes = registro.data ?? [];
   const antes = useRef<{ chave: string; emRetificacao: boolean } | null>(null);
+  const gravacoesVistas = useRef(gravacoesDaTela());
   const chave = `${escala.escalaId}|${escala.mes}`;
 
-  // o aviso da primeira mudança: a etiqueta acende sem a pessoa recarregar a página (a resposta da mudança traz o estado novo); abrir a escala já em retificação não avisa
+  // o aviso da primeira mudança: a etiqueta acende sem a pessoa recarregar a página (a resposta da mudança traz o estado novo); abrir a escala já em retificação não avisa, e quando a
+  // retificação chega por uma nova leitura (outra pessoa mexeu), só a etiqueta acende: o aviso é de quem fez a gravação nesta tela
   useEffect(() => {
     const a = antes.current;
+    const gravouAqui = gravacoesDaTela() !== gravacoesVistas.current;
     if (!estado.emRetificacao || (a && a.chave !== chave)) setAviso(false);
-    else if (a && a.chave === chave && !a.emRetificacao) setAviso(true);
+    else if (a && a.chave === chave && !a.emRetificacao && gravouAqui) setAviso(true);
     antes.current = { chave, emRetificacao: estado.emRetificacao };
   }, [chave, estado.emRetificacao]);
+  // a cada desenho, as gravações já vistas: assim uma gravação antiga (que não acendeu nada) não conta para uma transição que veio de outra leitura
+  useEffect(() => {
+    gravacoesVistas.current = gravacoesDaTela();
+  });
   // outra escala ou outro mês: o que era da anterior (o erro, o painel do registro) não vale
   useEffect(() => {
     setErro(null);

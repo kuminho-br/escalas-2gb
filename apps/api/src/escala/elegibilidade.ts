@@ -176,7 +176,7 @@ export async function avaliarFaixa(c: Consulta, v: VagaConsultada, somenteMilita
         let conflito: Conflito | undefined;
         // o externo (6.36) é candidato em qualquer serviço lançado à mão, com as regras de todos
         // RN-03: o Saldo é do Adm (a regra e a frase são do motor; aqui sem o código da regra)
-        if (violacoesSaldo([{ mat: m.id, dia: v.data, servico: turno.nome, turno: turno.letra }], { adm: m.jornada === 'adm' ? { [m.id]: true } : {} }).length) motivo = 'Saldo só para militar do Adm';
+        if (violacoesSaldo([{ mat: m.id, dia: v.data, servico: turno.nome, turno: turno.letra }], { adm: m.jornada === 'adm' ? { [m.id]: true } : {} }).length) motivo = 'Saldo só para militar do ADM';
         else if ((turno.tipo === 'pjes' || exigeVoluntarioJes(turno.nome)) && !m.voluntario_jes) motivo = 'Não é voluntário JES';
         else {
           const choque = choqueDoTurno({ militarId: m.id, data: v.data, turno, existentes, expediente, regras, porChave, poePorCima: !!v.tirarDoExpediente && turno.tira });

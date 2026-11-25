@@ -42,9 +42,6 @@ export function FichaDeConsulta({ id, voltarPara, voltarBusca }: { id: string; v
       acoes={
         <>
           <Button asChild variant="discreto" size="sm"><Link to={voltarPara} search={voltarBusca}>Voltar</Link></Button>
-          {f.podeAbrirFichaCompleta && (
-            <Button asChild variant="secundario" size="sm"><Link to="/peculio/militar/$id" params={{ id: f.id }}>Abrir a ficha completa</Link></Button>
-          )}
         </>
       }
     >

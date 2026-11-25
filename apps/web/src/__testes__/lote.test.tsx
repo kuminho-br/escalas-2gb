@@ -207,6 +207,43 @@ describe('o painel Atualizar em lote (6.52)', () => {
   });
 });
 
+describe('depois de aplicar, a ficha lê de novo (6.53, item d)', () => {
+  it('a ficha aberta antes do lote não volta com o dado velho: ao abrir de novo, espera a leitura nova', async () => {
+    const f = api({ 'GET /api/militares/m1': { status: 403, corpo: { erro: 'sem' } } });
+    const base = f.getMockImplementation()!;
+    const consultaM1 = (c: unknown) => String(c).endsWith('/api/consulta/militares/m1');
+    const ficha = (lotacao: string) => ({ id: 'm1', postoGrad: 'SD', nomeGuerra: 'ANDRADE', nomeCompleto: null, matricula: '990001-1', lotacao, quadro: null, podeAbrirFichaCompleta: false });
+    let leituras = 0;
+    f.mockImplementation(async (c, i) => {
+      if (!consultaM1(c)) return base(c, i);
+      leituras++;
+      // a segunda leitura demora: se a ficha mostrar algo antes dela, é o dado velho
+      if (leituras > 1) await new Promise((r) => setTimeout(r, 400));
+      return new Response(JSON.stringify(ficha(leituras === 1 ? 'LOTACAO-ANTIGA' : 'LOTACAO-NOVA')), { status: 200, headers: { 'content-type': 'application/json' } });
+    });
+    const router = abrir('/peculio/pesquisar');
+    await selecionarTodos();
+    await userEvent.click(screen.getByRole('link', { name: /ANDRADE/ }));
+    expect(await screen.findByText('LOTACAO-ANTIGA')).toBeInTheDocument();
+    await userEvent.click(await screen.findByRole('link', { name: 'Voltar' }));
+    await waitFor(() => expect(router.state.location.pathname).toBe('/peculio/pesquisar'));
+    const p = await abrirPainel();
+    await userEvent.click(p.getByRole('checkbox', { name: 'Voluntário JES' }));
+    await userEvent.click(p.getByRole('button', { name: 'Continuar' }));
+    await userEvent.selectOptions(await p.findByLabelText('Voluntário JES'), 'sim');
+    await userEvent.click(p.getByRole('button', { name: 'Ver a prévia' }));
+    await userEvent.click(await p.findByRole('button', { name: 'Aplicar a 2 militares' }));
+    await p.findByText('2 militares alterados');
+    await userEvent.click(p.getByRole('button', { name: 'Fechar' }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    // a seleção acabou; abre o militar de novo pela busca
+    await userEvent.click(await screen.findByRole('link', { name: /ANDRADE/ }));
+    await waitFor(() => expect(router.state.location.pathname).toBe('/peculio/militar/m1'));
+    expect(screen.queryByText('LOTACAO-ANTIGA')).toBeNull();
+    expect(await screen.findByText('LOTACAO-NOVA')).toBeInTheDocument();
+  });
+});
+
 describe('a pesquisa e a seleção sobrevivem a abrir uma ficha (6.51, item a)', () => {
   it('a seleção, a busca e o que foi montado voltam quando a pessoa abre um militar e volta', async () => {
     api({ 'GET /api/militares/m1': { status: 403, corpo: { erro: 'sem' } }, 'GET /api/consulta/militares/m1': { status: 200, corpo: { id: 'm1', postoGrad: 'SD', nomeGuerra: 'ANDRADE', nomeCompleto: null, matricula: '990001-1', lotacao: '1ª SB', quadro: null, podeAbrirFichaCompleta: false } } });

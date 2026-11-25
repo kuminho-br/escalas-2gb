@@ -322,7 +322,7 @@ describe('os dados da escala, o quadro e a situação na planilha do Pecúlio (T
   it('EQUIPE com JORNADA ADM é ignorada com o motivo, e a jornada entra; passar para ADM esvazia a equipe (Review Focus 3)', async () => {
     const previa = await importar([{ 'MATRÍCULA': '990402-2', 'JORNADA': 'ADM', 'EQUIPE': 'BRAVO' }], true);
     expect(previa.ignoradas).toEqual([{ linha: 2, chave: '990402-2', coluna: 'EQUIPE', motivo: 'No expediente não há equipe.' }]);
-    expect(previa.alterados[0].mudancas).toEqual(['jornada: Pronto → Adm', 'equipe: bravo → sem equipe']);
+    expect(previa.alterados[0].mudancas).toEqual(['jornada: Pronto → ADM', 'equipe: bravo → sem equipe']);
     expect((await rastreio('990402-2')).at(-1)).toMatchObject({ jornada: 'adm', equipe: null });
     // quem já é ADM também não recebe equipe
     expect((await importar([{ 'MATRÍCULA': '990402-2', 'EQUIPE': 'BRAVO' }])).ignoradas).toEqual([expect.objectContaining({ motivo: 'No expediente não há equipe.' })]);

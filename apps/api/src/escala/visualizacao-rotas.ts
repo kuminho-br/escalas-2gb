@@ -93,10 +93,10 @@ export function rotasVisualizacao(dep: { banco: Banco; auth: Auth }): Hono<Ambie
     if (!militarId) return c.json({ erro: 'Esta conta não é de um militar.' }, 404);
     const inicio = mesParaData(mes);
     const { rows } = await dep.banco.query<{
-      id: string; data: string; inicio: string; fim: string; servico: string; escala: string; sigla: string; escala_id: string; turno_id: string; guarnicao_id: string | null; guarnicao: string | null; funcao: string | null;
+      id: string; data: string; inicio: string; fim: string; servico: string; escala: string; sigla: string; unidade_id: string; escala_id: string; turno_id: string; guarnicao_id: string | null; guarnicao: string | null; funcao: string | null;
       estado: MeuServico['estado']; em_retificacao: boolean;
     }>(
-      `select a.id, to_char(a.data, 'YYYY-MM-DD') as data, to_char(t.inicio, 'HH24:MI') as inicio, to_char(t.fim, 'HH24:MI') as fim, s.nome as servico, e.nome as escala, u.sigla,
+      `select a.id, to_char(a.data, 'YYYY-MM-DD') as data, to_char(t.inicio, 'HH24:MI') as inicio, to_char(t.fim, 'HH24:MI') as fim, s.nome as servico, e.nome as escala, u.sigla, u.id as unidade_id,
               a.escala_id, a.turno_id, a.guarnicao_id, g.nome as guarnicao, f.nome as funcao, k.estado, k.em_retificacao
          from alocacao a join escala e on e.id = a.escala_id
          join escala_estado k on k.escala_id = a.escala_id and k.mes = $2::date
@@ -124,7 +124,7 @@ export function rotasVisualizacao(dep: { banco: Banco; auth: Auth }): Hono<Ambie
             )
           ).rows.map((o) => ({ patente: o.patente, nomeGuerra: o.nome_guerra, funcao: o.funcao, eu: o.militar_id === militarId }))
         : [];
-      servicos.push({ alocacaoId: x.id, data: x.data, inicio: x.inicio, fim: x.fim, servico: x.servico, escala: x.escala, unidadeSigla: x.sigla, estado: x.estado, emRetificacao: x.em_retificacao, guarnicao: x.guarnicao, funcao: x.funcao, composicao });
+      servicos.push({ alocacaoId: x.id, data: x.data, inicio: x.inicio, fim: x.fim, servico: x.servico, escala: x.escala, unidadeSigla: x.sigla, unidadeId: x.unidade_id, estado: x.estado, emRetificacao: x.em_retificacao, guarnicao: x.guarnicao, funcao: x.funcao, composicao });
     }
     const minha: MinhaEscala = { mes, servicos };
     return c.json(minha);

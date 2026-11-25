@@ -166,3 +166,37 @@ describe('achados da revisão da 6.50', () => {
     expect(screen.getByRole('link', { name: 'Pecúlio da unidade' })).not.toHaveAttribute('aria-current');
   });
 });
+
+describe('o filtro de lotação com o interruptor desligado (6.53, item 22)', () => {
+  const COM_ARVORE: EuDaApi = {
+    ...GESTOR_GB,
+    unidades: [
+      { id: 'u-gb', sigla: '2º GB', caminho: ['CBMPE', 'DGO', 'DInter/1', '2º GB'], nivel: 3, tipo: 'grupamento', maeId: null },
+      { id: 'u-1sb', sigla: '1ª SB', caminho: ['CBMPE', 'DGO', 'DInter/1', '2º GB', '1ª SB'], nivel: 4, tipo: 'secao', maeId: 'u-gb' },
+    ],
+  };
+  const abrirOFiltro = async () => {
+    await userEvent.click(await screen.findByLabelText('Lotação'));
+    await screen.findAllByRole('tree');
+    const abrirTudo = screen.queryByRole('button', { name: 'Abrir tudo' });
+    if (abrirTudo) await userEvent.click(abrirTudo);
+    localStorage.removeItem('arvore:aberta-toda');
+    return screen.getAllByRole('treeitem').map((i) => i.getAttribute('aria-label'));
+  };
+
+  it('ligado, o filtro oferece a unidade e as de baixo; desligado, só a unidade', async () => {
+    const f = simularApi({ '/api/eu': { status: 200, corpo: COM_ARVORE }, [`GET ${ROTA}`]: { status: 200, corpo: LISTA } });
+    const padrao = f.getMockImplementation()!;
+    f.mockImplementation(async (e, i) => (String(e).includes(ROTA) && String(e).includes('abaixo=nao')
+      ? new Response(JSON.stringify(SO_DO_GB), { status: 200, headers: { 'Content-Type': 'application/json' } })
+      : padrao(e, i)));
+    abrir('/peculio');
+    const ligado = await abrirOFiltro();
+    expect(ligado.some((n) => n?.startsWith('1ª SB'))).toBe(true);
+    await userEvent.keyboard('{Escape}');
+    await userEvent.click(await interruptor());
+    await screen.findByText('BARRETO');
+    const desligado = await abrirOFiltro();
+    expect(desligado).toEqual(['2º GB']);
+  });
+});

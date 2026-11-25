@@ -197,6 +197,8 @@ describe('a minha escala', () => {
     // o dia 6 (ABT, Combatente), o dia 9 (sem guarnição) e o dia 12 (da outra seção, que traz o PEDRO como externo): a Rascunho (dia 7) e a dos oficiais (dia 15, não lançada) ficam de fora
     expect(m.servicos.map((x) => [x.data, x.escala, x.unidadeSigla])).toEqual([[dia(6), 'Ordinário', '1ª SB'], [dia(9), 'Ordinário', '1ª SB'], [dia(12), 'Da outra', 'SEC-OUTRA']]);
     expect(m.servicos[0]).toMatchObject({ inicio: '08:00', fim: '20:00', servico: 'Pronto', guarnicao: 'ABT', funcao: 'Combatente' });
+    // 6.53: a unidade vem com o id, para a tela distinguir duas unidades de mesma sigla
+    expect(m.servicos.map((x) => x.unidadeId)).toEqual([api.ids.secao, api.ids.secao, outra]);
     expect(m.servicos[0]!.composicao.map((c) => [c.nomeGuerra, c.funcao, c.eu]).sort()).toEqual([['COLEGA', 'Combatente', false], ['MOTORISTA', 'Motorista', false], ['PEDRO', 'Combatente', true]]);
     expect(m.servicos[0]!.composicao.map((c) => [c.nomeGuerra, c.patente]).sort()).toEqual([['COLEGA', 'SD-PV'], ['MOTORISTA', 'SD-PV'], ['PEDRO', 'SD']]);
     expect(m.servicos[1]).toMatchObject({ guarnicao: null, funcao: null, composicao: [] });

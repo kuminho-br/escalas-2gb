@@ -37,7 +37,7 @@ async function mexendoNaEscala<T>(queryClient: QueryClient, pedido: Promise<T>):
   try {
     return await pedido;
   } finally {
-    for (const queryKey of [['escala-do-mes'], ['cotas'], ['candidatos'], ['grade']]) void queryClient.invalidateQueries({ queryKey });
+    for (const queryKey of [['escala-do-mes'], ['cotas'], ['candidatos'], ['grade'], ['registro-do-passado']]) void queryClient.invalidateQueries({ queryKey });
     await atualizar(queryClient);
   }
 }

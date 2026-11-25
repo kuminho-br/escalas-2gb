@@ -77,6 +77,8 @@ describe('os filtros na tela', () => {
       expect(screen.getByLabelText(rotulo), rotulo).toBeInTheDocument();
     }
     for (const c of ['A', 'B', 'C', 'D', 'E']) expect(screen.getByRole('checkbox', { name: `CNH ${c}` })).toBeInTheDocument();
+    // a ajuda do filtro de CNH (6.53): a hierarquia do CTB
+    expect(screen.getByText('Inclui quem tem uma categoria que habilita a escolhida.')).toBeInTheDocument();
   });
 
   it('a busca só sai no "Buscar": mexer nos filtros não pede nada', async () => {

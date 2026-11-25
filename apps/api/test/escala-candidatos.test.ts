@@ -237,7 +237,7 @@ describe('quem pode ocupar a vaga', () => {
 describe('regras do motor que a lista aplica: Saldo só para o Adm (RN-03) e uma diária por dia (RN-36)', () => {
   it('o Saldo é recusado para quem não é do Adm e, para o Adm, no fim de semana (sem expediente) é aceito', async () => {
     const fim = diasDoMes(atual).find((d) => d > dia(16) && (diaDaSemana(d) === 0 || diaDaSemana(d) === 6))!;
-    expect(await motivo('APTO', D, FAIXA.A, T('Saldo A'))).toBe('Saldo só para militar do Adm');
+    expect(await motivo('APTO', D, FAIXA.A, T('Saldo A'))).toBe('Saldo só para militar do ADM');
     expect(await motivo('ADMIN', fim, FAIXA.A, T('Saldo A'))).toBeNull();
   });
 
@@ -388,7 +388,7 @@ describe('o militar externo como candidato (6.33)', () => {
   it('6.36: no Pronto o externo também é candidato, com as regras de todos; no Saldo vale a regra do Adm', async () => {
     expect(await motivoExt('EXTJES', D, FAIXA.A, T('Pronto A'))).toBeNull();
     expect(await motivoExt('EXTNAO', D, FAIXA.A, T('Pronto A'))).toBeNull();
-    expect(await motivoExt('EXTJES', D, FAIXA.A, T('Saldo A'))).toBe('Saldo só para militar do Adm');
+    expect(await motivoExt('EXTJES', D, FAIXA.A, T('Saldo A'))).toBe('Saldo só para militar do ADM');
     const r = await avaliarCandidatos(api.banco, vaga(D, FAIXA.A));
     expect(nomes(r)).toEqual(expect.arrayContaining(['EXTJES', 'EXTNAO']));
     expect(r.fora.map((f) => f.motivo)).not.toContain('Externo só em serviço extra');
@@ -417,7 +417,7 @@ describe('o militar externo como candidato (6.33)', () => {
     expect(pronto.status).toBe(201);
     const saldo = await api.pedir('escalante', 'POST', `/api/escalas/${escalaId}/alocacoes`, { militarId: externo.EXTJES, data: dia(17), turnoId: T('Saldo A'), guarnicaoId: null, funcaoId: null });
     expect(saldo.status).toBe(409);
-    expect((await saldo.json()).erro).toBe('Saldo só para militar do Adm');
+    expect((await saldo.json()).erro).toBe('Saldo só para militar do ADM');
     const vinculo = (await api.banco.query<{ id: string }>('select id from vinculo_externo where militar_id = $1', [externo.EXTJES])).rows[0]!.id;
     expect((await api.pedir('admin', 'DELETE', `/api/unidades/${api.ids.secao}/externos/${vinculo}`)).status).toBe(204);
     expect((await api.banco.query('select 1 from alocacao where militar_id = $1 and data = $2::date', [externo.EXTJES, dia(15)])).rows).toHaveLength(1);
