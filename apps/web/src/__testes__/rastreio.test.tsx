@@ -240,11 +240,75 @@ describe('a linha do tempo', () => {
     });
   });
 
-  it('sem nenhum período: a orientação para lançar a primeira lotação', async () => {
+  it('sem nenhum período: o quadro "Hoje, sem lotação" (ponto vazado) e a orientação para lançar a primeira lotação (6.49.1)', async () => {
     mostrar(ficha([]));
     await userEvent.click(screen.getByRole('button', { name: /Histórico de rastreio/ }));
+    expect(screen.getByRole('region', { name: 'Situação de hoje' })).toHaveTextContent('Hoje, sem lotação');
     expect(screen.getByText('Para lançar a primeira lotação, use "Alterar situação".')).toBeInTheDocument();
     expect(screen.queryByRole('list', { name: /Mudanças/ })).toBeNull();
+  });
+});
+
+describe('o acabamento do histórico (6.49.1)', () => {
+  const ponto = (li: HTMLElement) => li.querySelector('[data-ponto]') as HTMLElement;
+
+  it('a forma do ponto de cada caso: vale agora (12 px cheio), anterior (8 px), primeiro registro (10 px vazado) e marcada (12 px vazado, borda escura)', async () => {
+    mostrar(ficha([...COMUM.map((p) => (p.id === 'r3' ? { ...p, ate: '2026-12-31' } : p)), periodo(4, '2027-01-01', null, { equipe: 'BRAVO' })]));
+    const lista = await abrir();
+    const [marcada, agora, antes, inicio] = within(lista).getAllByRole('listitem');
+    expect(ponto(marcada!)).toHaveAttribute('data-marca', 'marcada');
+    expect(ponto(marcada!).className).toContain('size-3');
+    expect(ponto(marcada!).className).toContain('border-tinta');
+    expect(ponto(agora!)).toHaveAttribute('data-marca', 'agora');
+    expect(ponto(agora!).className).toContain('size-3');
+    expect(ponto(agora!).className).toContain('bg-tinta');
+    expect(ponto(antes!)).toHaveAttribute('data-marca', 'antes');
+    expect(ponto(antes!).className).toContain('size-2 ');
+    expect(ponto(inicio!)).toHaveAttribute('data-marca', 'inicio');
+    expect(ponto(inicio!).className).toContain('size-2.5');
+    expect(ponto(inicio!).className).toContain('border-encaixe');
+  });
+
+  it('o primeiro registro que ainda não vale (um período só, de data futura) leva o ponto de "marcada", e não o de primeiro registro', async () => {
+    mostrar(ficha([periodo(1, '2027-01-01', null)]));
+    const lista = await abrir();
+    const [unico] = within(lista).getAllByRole('listitem');
+    expect(unico!.getAttribute('data-tipo')).toBe('inicio');
+    expect(ponto(unico!)).toHaveAttribute('data-marca', 'marcada');
+    expect(within(unico!).getByText('Ainda não vale')).toBeInTheDocument();
+  });
+
+  it('o primeiro registro que também vale agora: ponto cheio, e só a data fica em tinta ("Primeiro registro" fica apagado)', async () => {
+    mostrar(ficha([periodo(1, '2026-03-01', null)]));
+    const lista = await abrir();
+    const [unico] = within(lista).getAllByRole('listitem');
+    expect(ponto(unico!)).toHaveAttribute('data-marca', 'agora');
+    expect(unico!.querySelector('time')!.className).toMatch(/text-tinta/);
+    expect(unico!.querySelector('h4')!.className).not.toMatch(/text-tinta/);
+    expect(unico!.querySelector('h4')!.className).toMatch(/text-apagado/);
+  });
+
+  it('o trilho do evento marcado é tracejado (em encaixe) e o dos outros é contínuo (em linha)', async () => {
+    mostrar(ficha([...COMUM.map((p) => (p.id === 'r3' ? { ...p, ate: '2026-12-31' } : p)), periodo(4, '2027-01-01', null, { equipe: 'BRAVO' })]));
+    const lista = await abrir();
+    const [marcada, agora] = within(lista).getAllByRole('listitem');
+    expect(marcada!.className).toMatch(/before:border-dashed/);
+    expect(marcada!.className).toMatch(/before:border-encaixe/);
+    expect(agora!.className).not.toMatch(/before:border-dashed/);
+    expect(agora!.className).toMatch(/before:border-linha/);
+  });
+
+  it('"Ainda não vale" é a etiqueta neutra do sistema (24 px, peso 500)', async () => {
+    mostrar(ficha([...COMUM.map((p) => (p.id === 'r3' ? { ...p, ate: '2026-12-31' } : p)), periodo(4, '2027-01-01', null, { equipe: 'BRAVO' })]));
+    const lista = await abrir();
+    const etiqueta = within(lista).getByText('Ainda não vale').closest('[data-etiqueta]')!;
+    expect(etiqueta).toHaveAttribute('data-tipo', 'neutra');
+  });
+
+  it('a lista continua uma lista para o leitor de tela mesmo sem marcadores (role explícito)', async () => {
+    mostrar(ficha(COMUM));
+    const lista = await abrir();
+    expect(lista).toHaveAttribute('role', 'list');
   });
 });
 
