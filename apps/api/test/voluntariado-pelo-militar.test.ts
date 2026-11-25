@@ -91,6 +91,20 @@ describe('a coleta do voluntariado', () => {
   });
 });
 
+describe('a coleta esquecida em um mês que passou', () => {
+  it('não conta como aberta (lista do mês, Meu voluntariado) e o gestor consegue fechá-la; abrir mês passado continua recusado', async () => {
+    await inserir(api.banco, 'voluntariado_coleta', { unidade_id: api.ids.secao, mes: `${passado}-01` });
+    expect((await doMes(passado)).coletaAberta).toBe(false);
+    expect((await meu(marcador, passado)).coletaAberta).toBe(false);
+    const fechou = await coleta('gestorGb', passado, false);
+    expect(fechou.status).toBe(200);
+    expect(((await fechou.json()) as VoluntariadoDoMes).coletaAberta).toBe(false);
+    const { rows } = await api.banco.query('select 1 from voluntariado_coleta where unidade_id = $1 and mes = $2::date', [api.ids.secao, `${passado}-01`]);
+    expect(rows).toHaveLength(0);
+    expect((await coleta('gestorGb', passado, true)).status).toBe(409);
+  });
+});
+
 describe('o militar marca o próprio voluntariado', () => {
   it('com a coleta fechada ele vê o mês, não marca, e a resposta traz o motivo em texto pronto (409 ao tentar)', async () => {
     await fechar();
@@ -168,6 +182,20 @@ describe('o militar marca o próprio voluntariado', () => {
     const r = await marcar(sem, mes, [{ data: dia(mes, 5), inicio: '08:00', fim: '16:00' }]);
     expect(r.status).toBe(409);
     expect(((await r.json()) as { erro: string }).erro).toBe(`Você não está lotado em nenhuma seção em ${mesPorExtenso(mes)}.`);
+  });
+
+  it('lotado mas com situação que não permite escala: o texto fala da situação, não de falta de lotação (409)', async () => {
+    const licenciado = await entrarComo(api, { matricula: '990956-6', nome: 'SITUACAO' });
+    await inserir(api.banco, 'rastreio', { militar_id: licenciado.militarId, unidade_id: api.ids.secao, jornada: 'pronto', desde: `${atual}-01`, situacao_id: await situacaoDoMilitar(api.banco, 'Desativado') });
+    await abrir();
+    const texto = `A sua situação em ${mesPorExtenso(mes)} não permite escala. Fale com quem cuida do seu cadastro.`;
+    const v = await licenciado.pedir('GET', `/api/eu/voluntariado/${mes}`);
+    expect(v.status).toBe(409);
+    expect(((await v.json()) as { erro: string }).erro).toBe(texto);
+    const r = await marcar(licenciado, mes, [{ data: dia(mes, 5), inicio: '08:00', fim: '16:00' }]);
+    expect(r.status).toBe(409);
+    expect(((await r.json()) as { erro: string }).erro).toBe(texto);
+    await fechar();
   });
 
   it('o mês fora do formato é 400, e sem sessão é 401', async () => {

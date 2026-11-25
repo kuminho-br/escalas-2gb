@@ -98,6 +98,16 @@ export async function voluntariadoDoMes(c: Consulta, unidadeId: string, mes: str
   };
 }
 
+/** O militar tem lotação nesta seção em algum dia do mês, qualquer que seja a situação dele (quem não pode ser escalado também está lotado). */
+export async function temLotacaoNoMes(c: Consulta, unidadeId: string, mes: string, militarId: string): Promise<boolean> {
+  const inicio = mesParaData(mes);
+  const { rows } = await c.query(
+    `select 1 from rastreio where militar_id = $1 and unidade_id = $2 and desde <= ($3::date + interval '1 month' - interval '1 day')::date and (ate is null or ate >= $3::date) limit 1`,
+    [militarId, unidadeId, inicio],
+  );
+  return rows.length > 0;
+}
+
 /** A disponibilidade do militar no mês, as faixas de cada dia unidas, em ordem de data. */
 export async function faixasDoMes(c: Consulta, militarId: string, mes: string): Promise<FaixaDeDisponibilidade[]> {
   const { rows } = await c.query<{ data: string; inicio_min: number; fim_min: number }>(

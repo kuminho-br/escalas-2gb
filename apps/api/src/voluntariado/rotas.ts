@@ -8,9 +8,9 @@ import { comUsuario, type Banco, type Consulta } from '../banco/banco.ts';
 import { hojeRecife } from '../datas.ts';
 import { lerCorpo, respostaDoErroDoBanco } from '../erros.ts';
 import { lerRegistro, mesmasFaixas, registrar } from '../registro.ts';
-import { coletaAberta, mensagemColetaFechada, mensagemNaoLotado, mensagemSoAPartirDe, mudarColeta } from './coleta.ts';
+import { coletaAberta, mensagemColetaFechada, mensagemNaoLotado, mensagemSemEscala, mensagemSoAPartirDe, mudarColeta } from './coleta.ts';
 import { lancar, travarMes } from './lancamento.ts';
-import { faixasDoMes, lotadosNoMes, meuVoluntariado, unidadeDoMilitarNoMes, voluntariadoDoMes, voluntariadoDoMilitar } from './leitura.ts';
+import { faixasDoMes, lotadosNoMes, meuVoluntariado, temLotacaoNoMes, unidadeDoMilitarNoMes, voluntariadoDoMes, voluntariadoDoMilitar } from './leitura.ts';
 
 const MES_INVALIDO = 'Mês inválido: use o formato aaaa-mm.';
 
@@ -21,6 +21,12 @@ function faixasForaDoMes(faixas: FaixaDeDisponibilidade[], mes: string): Record<
     if (f.data.slice(0, 7) !== mes) campos[`faixas.${i}`] = `Use um dia de ${mesPorExtenso(mes)}.`;
   });
   return campos;
+}
+
+/** Sem poder ser escalado no mês: a frase certa (sem lotação na seção, ou lotado mas com uma situação que não permite escala); null se pode. */
+async function semEscala(banco: Consulta, conta: { militarId: string; unidadeId: string }, mes: string): Promise<string | null> {
+  if ((await lotadosNoMes(banco, conta.unidadeId, mes, conta.militarId)).length) return null;
+  return (await temLotacaoNoMes(banco, conta.unidadeId, mes, conta.militarId)) ? mensagemSemEscala(mes) : mensagemNaoLotado(mes);
 }
 
 /** O militar da conta (a sessão) e a seção em que ele fica no mês; ou a resposta de erro: 404 se a conta não é de um militar, 409 se ele não está lotado. */
@@ -110,7 +116,8 @@ export function rotasVoluntariado(dep: { banco: Banco; auth: Auth }): Hono<Ambie
     const corpo = await lerCorpo(c, ColetaDoVoluntariado);
     if (!corpo.ok) return corpo.resposta;
     const mesAtual = hojeRecife().slice(0, 7);
-    if (mes < mesAtual) return c.json({ erro: `A coleta só abre a partir de ${mesPorExtenso(mesAtual)}.` }, 409);
+    // abrir mês que passou não vale; fechar vale sempre (uma coleta esquecida precisa poder ser fechada)
+    if (corpo.dados.aberta && mes < mesAtual) return c.json({ erro: `A coleta só abre a partir de ${mesPorExtenso(mesAtual)}.` }, 409);
     try {
       await comUsuario(dep.banco, c.get('usuarioId'), (tx) => mudarColeta(tx, unidadeId, mes, corpo.dados.aberta, c.get('usuarioId')));
     } catch (e) {
@@ -127,7 +134,8 @@ export function rotasVoluntariado(dep: { banco: Banco; auth: Auth }): Hono<Ambie
     if (conta instanceof Response) return conta;
     const mesAtual = hojeRecife().slice(0, 7);
     // mês passado só se lê; de hoje em diante, quem não está lotado na seção no mês não tem o que marcar
-    if (mes >= mesAtual && !(await lotadosNoMes(dep.banco, conta.unidadeId, mes, conta.militarId)).length) return c.json({ erro: mensagemNaoLotado(mes) }, 409);
+    const semGet = mes >= mesAtual ? await semEscala(dep.banco, conta, mes) : null;
+    if (semGet) return c.json({ erro: semGet }, 409);
     return c.json(await meuVoluntariado(dep.banco, conta.militarId, conta.unidadeId, mes, mesAtual));
   });
 
@@ -143,7 +151,8 @@ export function rotasVoluntariado(dep: { banco: Banco; auth: Auth }): Hono<Ambie
     if (mes < mesAtual) return c.json({ erro: mensagemSoAPartirDe(mesAtual) }, 409);
     const conta = await contaNoMes(c, dep.banco, mes);
     if (conta instanceof Response) return conta;
-    if (!(await lotadosNoMes(dep.banco, conta.unidadeId, mes, conta.militarId)).length) return c.json({ erro: mensagemNaoLotado(mes) }, 409);
+    const semPut = await semEscala(dep.banco, conta, mes);
+    if (semPut) return c.json({ erro: semPut }, 409);
     if (!(await coletaAberta(dep.banco, conta.unidadeId, mes))) return c.json({ erro: mensagemColetaFechada(mes) }, 409);
     try {
       await comUsuario(dep.banco, c.get('usuarioId'), (tx) => lancar(tx, conta.militarId, mes, corpo.dados.faixas, c.get('usuarioId'), 'militar'));
