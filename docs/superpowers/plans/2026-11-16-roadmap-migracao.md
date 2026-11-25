@@ -103,6 +103,7 @@ Design: `docs/superpowers/specs/2026-11-21-usuarios-e-modulos-design.md`. Plano:
 | 41 a 45, 47, 48 | Deploy só com código e só da `main`; tela inicial; dia vermelho só no ordinário; escolher a unidade pela árvore; lista de quem está hoje | mescladas (até #230) |
 | 46 e 49 | Ajustes da Grade; histórico de rastreio pelo mockup | mescladas (#233, #239, #242 o acabamento) |
 | 50 a 52 | Pecúlio Geral: as três telas e a ficha no lugar; a pesquisa com filtros, árvore, arquivo e seleção; a atualização em lote | 50, 51 e 52 mescladas (#244, #246, #248) |
+| 53 | Acabamento do piloto: o filtro de CNH pela hierarquia, o motivo do passado uma vez por ação, "ADM" e "24:00", controles soltos do voluntariado e do Pecúlio, a atualização em lote | em execução |
 
 ## Refatoração da interface · fundação concluída
 
