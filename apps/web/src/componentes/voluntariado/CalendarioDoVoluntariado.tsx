@@ -1,4 +1,5 @@
 import { mesPorExtenso, somarMeses, type FaixaDeDisponibilidade, type MilitarDoVoluntariado, type VoluntariadoDoMilitar } from 'contratos';
+import type { ReactNode } from 'react';
 import { diaDaSemana, diasDoMes, type Faixa } from 'dominio';
 import { useEffect, useRef, useState } from 'react';
 import { flushSync } from 'react-dom';
@@ -31,8 +32,11 @@ export function CalendarioDoVoluntariado({
   aoAbrirGuia,
   aoFecharGuia,
   soLeitura = false,
+  proprio = false,
+  avisoDoCabecalho,
 }: {
-  militar: MilitarDoVoluntariado;
+  /** quem se marca; na tela do próprio militar só o nome e o posto importam */
+  militar: Pick<MilitarDoVoluntariado, 'posto' | 'nomeGuerra' | 'equipe' | 'jornada' | 'voluntarioJes'>;
   mes: string;
   dados: VoluntariadoDoMilitar;
   /** grava e segue; `soltarPendencia` tira o aviso de alteração pendente antes de navegar */
@@ -46,6 +50,10 @@ export function CalendarioDoVoluntariado({
   aoFecharGuia?: () => void;
   /** Unidade só de consulta: o mês se vê e não se marca (sem guia, atalhos, "Limpar" nem "Salvar"). */
   soLeitura?: boolean;
+  /** O militar marcando o próprio mês (Meu voluntariado): o botão é só "Salvar" (não há "próximo militar"), e o cabeçalho diz o que a tela pede. */
+  proprio?: boolean;
+  /** O texto sob o nome, no lugar do da equipe (Meu voluntariado diz a unidade e o aviso do voluntário JES). */
+  avisoDoCabecalho?: ReactNode;
 }) {
   const doServidor = marcasDoServidor(dados.faixas);
   const [marcas, setMarcas] = useState<Marcas>(doServidor);
@@ -119,7 +127,7 @@ export function CalendarioDoVoluntariado({
     <section className="grid content-start gap-4 rounded-xl border border-linha bg-superficie p-4">
       <header className="grid gap-1">
         <h2 className="font-cond text-2xl leading-tight font-semibold">{`${militar.posto} ${militar.nomeGuerra}`}</h2>
-        <p className="text-sm text-apagado">{`${equipe}${aviso}`}</p>
+        <p className="text-sm text-apagado">{avisoDoCabecalho ?? `${equipe}${aviso}`}</p>
         {!soLeitura && <button type="button" onClick={() => aoAbrirGuia?.()} className="justify-self-start rounded text-sm text-vinho underline underline-offset-2">Como marcar</button>}
       </header>
 
@@ -296,8 +304,8 @@ export function CalendarioDoVoluntariado({
       {!soLeitura && (
       <div className="flex flex-wrap items-center gap-2">
         <Button type="button" size="sm" variant="secundario" onClick={() => setMarcas((m) => marcarDias(m, fimDeSemana(mes)))}>Todos os sábados e domingos</Button>
-        {dados.folgas && militar.equipe && (
-          <Button type="button" size="sm" variant="secundario" onClick={() => setMarcas((m) => marcarDias(m, dados.folgas!))}>{`Dias de folga da equipe ${militar.equipe}`}</Button>
+        {dados.folgas && (proprio || militar.equipe) && (
+          <Button type="button" size="sm" variant="secundario" onClick={() => setMarcas((m) => marcarDias(m, dados.folgas!))}>{proprio ? 'Dias de folga da minha equipe' : `Dias de folga da equipe ${militar.equipe}`}</Button>
         )}
         <Button type="button" size="sm" variant="secundario" disabled={dados.doMesAnterior.length === 0} onClick={() => setMarcas(copiarDoMes(dados.doMesAnterior, mes))}>
           {`Copiar de ${mesPorExtenso(anterior)}`}
@@ -309,10 +317,10 @@ export function CalendarioDoVoluntariado({
         <p className="text-sm break-words text-apagado">{textoDoRodape(marcas)}</p>
         {!soLeitura && (
           <>
-            {!celular && <p className="text-xs text-apagado">Atalhos de teclado: setas movem, espaço marca, Enter salva e passa ao próximo.</p>}
+            {!celular && <p className="text-xs text-apagado">{proprio ? 'Atalhos de teclado: setas movem, espaço marca, Enter salva.' : 'Atalhos de teclado: setas movem, espaço marca, Enter salva e passa ao próximo.'}</p>}
             <div className="flex flex-wrap items-center gap-2">
               <Button type="button" variant="secundario" onClick={() => setMarcas(new Map())} disabled={salvando}>Limpar</Button>
-              <Button type="button" onClick={() => void gravar()} disabled={salvando}>{celular ? 'Salvar' : 'Salvar e ir para o próximo'}</Button>
+              <Button type="button" onClick={() => void gravar()} disabled={salvando}>{celular || proprio ? 'Salvar' : 'Salvar e ir para o próximo'}</Button>
               <EtiquetaPendente sujo={sujo} />
             </div>
             {erro && <p role="alert" className="text-sm text-alerta">{erro}</p>}
