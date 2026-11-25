@@ -97,7 +97,7 @@ const textoNascimento = (n: { dia: number; mes: number; ano?: number | null } | 
 const ehBissexto = (a: number) => (a % 4 === 0 && a % 100 !== 0) || a % 400 === 0;
 const simNao = (b: boolean) => (b ? 'sim' : 'não');
 const textoCnh = (c: string[]) => (c.length ? [...c].sort().join('') : 'nenhuma');
-const NOME_JORNADA = { pronto: 'Pronto', adm: 'Adm' } as const;
+const NOME_JORNADA = { pronto: 'Pronto', adm: 'ADM' } as const;
 
 async function existentes(tx: Consulta, mes: string): Promise<Map<string, Existente>> {
   const primeiro = mesParaData(mes);

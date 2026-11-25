@@ -11,7 +11,7 @@ const MES = mesAtual();
 const COMUM = { ...EU_EXEMPLO, papeis: [] };
 const dia = (n: number) => `${MES}-${String(n).padStart(2, '0')}`;
 const servico = (id: string, d: number, extra: Partial<MeuServico> = {}): MeuServico => ({
-  alocacaoId: id, data: dia(d), inicio: '08:00', fim: '20:00', servico: 'Pronto', escala: 'Ordinário', unidadeSigla: '1ª SB', estado: 'publicada', emRetificacao: false, guarnicao: 'ABT', funcao: 'Combatente',
+  alocacaoId: id, data: dia(d), inicio: '08:00', fim: '20:00', servico: 'Pronto', escala: 'Ordinário', unidadeSigla: '1ª SB', unidadeId: 'u-1sb', estado: 'publicada', emRetificacao: false, guarnicao: 'ABT', funcao: 'Combatente',
   composicao: [{ patente: 'SD', nomeGuerra: 'ANDRADE', funcao: 'Combatente', eu: true }, { patente: '3º SGT', nomeGuerra: 'COLEGA', funcao: 'Motorista', eu: false }], ...extra,
 });
 const ROTA = `GET /api/eu/escala/${MES}`;
@@ -63,6 +63,28 @@ describe('a Minha escala (7.5)', () => {
     abrir('/minha-escala');
     expect(within(await secaoDoDia(10)).getByText('20:00 até 08:00 do dia seguinte')).toBeInTheDocument();
     expect(screen.queryByRole('region', { name: 'Dia 11' })).toBeNull();
+  });
+
+  it('6.53: o serviço que termina à meia-noite diz "às 24:00" (e o que passa da meia-noite continua "até 08:00 do dia seguinte")', async () => {
+    api([servico('a1', 10, { inicio: '16:00', fim: '00:00' }), servico('a2', 11, { inicio: '20:00', fim: '08:00' })]);
+    abrir('/minha-escala');
+    expect(within(await secaoDoDia(10)).getByText('16:00 às 24:00')).toBeInTheDocument();
+    expect(within(await secaoDoDia(11)).getByText('20:00 até 08:00 do dia seguinte')).toBeInTheDocument();
+  });
+
+  it('6.53: duas unidades de mesma sigla no mês mostram a unidade de cima ("1ª SB, em DivOp"); com a sigla sem repetir, só a sigla', async () => {
+    const f = api([servico('a1', 6), servico('a2', 7, { unidadeId: 'u-1sb-3gb' }), servico('a3', 8, { unidadeSigla: 'DA', unidadeId: 'u-da' })]);
+    const padrao = f.getMockImplementation()!;
+    f.mockImplementation(async (e, i) => (String(e).endsWith('/api/consulta/unidades')
+      ? new Response(JSON.stringify([
+        { id: 'u-gb', sigla: '2º GB', nivel: 3, maeId: null }, { id: 'u-3gb', sigla: '3º GB', nivel: 3, maeId: null }, { id: 'u-divop', sigla: 'DivOp', nivel: 4, maeId: 'u-gb' }, { id: 'u-da', sigla: 'DA', nivel: 4, maeId: 'u-gb' },
+        { id: 'u-1sb', sigla: '1ª SB', nivel: 5, maeId: 'u-divop' }, { id: 'u-1sb-3gb', sigla: '1ª SB', nivel: 4, maeId: 'u-3gb' },
+      ]), { status: 200, headers: { 'Content-Type': 'application/json' } })
+      : padrao(e, i)));
+    abrir('/minha-escala');
+    expect(await within(await secaoDoDia(6)).findByText(/Ordinário · 1ª SB, em DivOp/)).toBeInTheDocument();
+    expect(within(await secaoDoDia(7)).getByText(/Ordinário · 1ª SB, em 3º GB/)).toBeInTheDocument();
+    expect(within(await secaoDoDia(8)).getByText(/Ordinário · DA$/)).toBeInTheDocument();
   });
 
   it('Review Focus 2: dois serviços no mesmo dia aparecem os dois, em ordem de hora', async () => {

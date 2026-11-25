@@ -14,6 +14,7 @@ import { Label } from '@/componentes/ui/label';
 import { EtiquetaDoEstado } from '@/componentes/visualizacao/EtiquetaDoEstado';
 import { abaixoDe } from '@/lib/arvore-de-unidades';
 import { mesAtual } from '@/lib/meses';
+import { rotuloDaUnidade } from '@/lib/rotulo-da-unidade';
 
 export const Route = createFileRoute('/_app/escalas-da-corporacao')({
   validateSearch: (s: Record<string, unknown>): { mes?: string } => ({ mes: typeof s.mes === 'string' && Mes.safeParse(s.mes).success ? s.mes : undefined }),
@@ -38,12 +39,8 @@ function EscalasDaCorporacao() {
   // um bloco por unidade (pelo id): duas unidades com a mesma sigla não se juntam, e o título diz de qual é ("1ª SB, em DivOp") quando a sigla se repete
   const porUnidade = new Map<string, EscalaVisivel[]>();
   for (const e of aMostrar) porUnidade.set(e.unidadeId, [...(porUnidade.get(e.unidadeId) ?? []), e]);
-  const siglas = [...porUnidade.values()].map((l) => l[0]!.unidadeSigla);
-  const tituloDe = (e: EscalaVisivel) => {
-    if (siglas.filter((x) => x === e.unidadeSigla).length < 2) return e.unidadeSigla;
-    const mae = unidades.data?.find((u) => u.id === unidades.data?.find((x) => x.id === e.unidadeId)?.maeId)?.sigla;
-    return mae ? `${e.unidadeSigla}, em ${mae}` : e.unidadeSigla;
-  };
+  const doMes = aMostrar.map((e) => ({ id: e.unidadeId, sigla: e.unidadeSigla }));
+  const tituloDe = (e: EscalaVisivel) => rotuloDaUnidade({ id: e.unidadeId, sigla: e.unidadeSigla }, doMes, unidades.data);
 
   return (
     <Moldura titulo="Escalas">

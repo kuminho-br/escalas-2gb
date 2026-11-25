@@ -199,7 +199,7 @@ export async function montarGradeDoMes(c: Consulta, unidadeId: string, mes: stri
     // a linha fica se ele pode ser escalado em algum dos períodos dela (ou se já tem escala no mês)
     if (!periodos.some((p) => p.ativo) && !temAlocacaoNoMes(l.id)) continue;
     const linha = montarLinha(l, l.jornada, periodos, periodosDoMilitar.get(l.id)! > 1);
-    if (l.jornada === 'adm') poe('adm', 'Adm', 1_000_000, linha, l.antiguidade);
+    if (l.jornada === 'adm') poe('adm', 'ADM', 1_000_000, linha, l.antiguidade);
     else if (l.equipeId) poe(l.equipeId, l.equipe ?? '', l.ordemCiclo ?? 0, linha, l.antiguidade);
     else poe('sem-equipe', 'Sem equipe', 999_999, linha, l.antiguidade);
   }

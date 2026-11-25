@@ -25,8 +25,8 @@ export const PARAM_CATALOGO: DefParametro[] = [
     descricao: 'Horas que todo militar precisa cumprir no mês.',
   },
   {
-    chave: 'SALDOS_ADM_POR_MILITAR', grupo: 'Adm', rotulo: 'Saldos por militar do Adm', tipo: 'inteiro', padrao: 6, min: 0, max: 31,
-    descricao: 'Quantos saldos cada militar do Adm tira por mês. O escalante aloca os saldos à mão.',
+    chave: 'SALDOS_ADM_POR_MILITAR', grupo: 'ADM', rotulo: 'Saldos por militar do ADM', tipo: 'inteiro', padrao: 6, min: 0, max: 31,
+    descricao: 'Quantos saldos cada militar do ADM tira por mês. O escalante aloca os saldos à mão.',
   },
   {
     chave: 'ADM_CUMPRE_CARGA', grupo: 'Adm', rotulo: 'Adm cumpre a carga mensal', tipo: 'simnao', padrao: false,
