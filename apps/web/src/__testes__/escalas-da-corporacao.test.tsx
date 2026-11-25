@@ -46,6 +46,29 @@ function api(extra: Parameters<typeof simularApi>[0] = {}, eu: unknown = COMUM) 
 }
 const lista = async (nome: string) => within(await screen.findByRole('region', { name: nome }));
 
+describe('achado da revisão: unidades com a mesma sigla', () => {
+  it('duas unidades com a mesma sigla (a 1ª SB do 2º GB e a do 3º GB) não se juntam num bloco só: cada uma é um bloco, com a unidade de cima no título', async () => {
+    const duas: EscalaVisivel[] = [visivel('e1', 'Ordinário', 'u-1sb', '1ª SB'), visivel('e5', 'Ordinário', 'u-1sb-3gb', '1ª SB')];
+    api({
+      'GET /api/consulta/unidades': { status: 200, corpo: [...UNIDADES, { id: 'u-1sb-3gb', sigla: '1ª SB', nivel: 4, maeId: 'u-3gb' }] },
+      [`GET /api/visualizacao/escalas/${MES}`]: { status: 200, corpo: duas },
+    });
+    abrir('/escalas-da-corporacao');
+    await lista('1ª SB');
+    await userEvent.click(screen.getByLabelText('Escalas da unidade'));
+    await userEvent.click(await screen.findByRole('button', { name: 'Limpar' }));
+    expect(await screen.findByRole('region', { name: '1ª SB, em DivOp' })).toBeInTheDocument();
+    expect(screen.getByRole('region', { name: '1ª SB, em 3º GB' })).toBeInTheDocument();
+    expect(within(screen.getByRole('region', { name: '1ª SB, em 3º GB' })).getAllByRole('link')).toHaveLength(1);
+  });
+
+  it('com o filtro da lotação escondendo tudo, a tela diz para limpar o filtro', async () => {
+    api({ [`GET /api/visualizacao/escalas/${MES}`]: { status: 200, corpo: [visivel('e4', 'Ordinário do 3º GB', 'u-3gb', '3º GB')] } });
+    abrir('/escalas-da-corporacao');
+    expect(await screen.findByText(/^Nenhuma escala desta unidade está aberta para você neste mês\. Limpe o filtro para ver as outras\.$/)).toBeInTheDocument();
+  });
+});
+
 describe('as Escalas da corporação (7.5)', () => {
   it('a lista começa filtrada na unidade de lotação da pessoa e nas de baixo, por unidade, cada escala com o estado', async () => {
     api();

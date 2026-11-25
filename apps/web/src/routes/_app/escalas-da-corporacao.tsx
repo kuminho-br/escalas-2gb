@@ -35,8 +35,15 @@ function EscalasDaCorporacao() {
   const doFiltro = filtro ? abaixoDe(unidades.data ?? [], filtro) : null;
   const todas = escalas.data ?? [];
   const aMostrar = todas.filter((e) => !doFiltro || doFiltro.has(e.unidadeId));
+  // um bloco por unidade (pelo id): duas unidades com a mesma sigla não se juntam, e o título diz de qual é ("1ª SB, em DivOp") quando a sigla se repete
   const porUnidade = new Map<string, EscalaVisivel[]>();
-  for (const e of aMostrar) porUnidade.set(e.unidadeSigla, [...(porUnidade.get(e.unidadeSigla) ?? []), e]);
+  for (const e of aMostrar) porUnidade.set(e.unidadeId, [...(porUnidade.get(e.unidadeId) ?? []), e]);
+  const siglas = [...porUnidade.values()].map((l) => l[0]!.unidadeSigla);
+  const tituloDe = (e: EscalaVisivel) => {
+    if (siglas.filter((x) => x === e.unidadeSigla).length < 2) return e.unidadeSigla;
+    const mae = unidades.data?.find((u) => u.id === unidades.data?.find((x) => x.id === e.unidadeId)?.maeId)?.sigla;
+    return mae ? `${e.unidadeSigla}, em ${mae}` : e.unidadeSigla;
+  };
 
   return (
     <Moldura titulo="Escalas">
@@ -55,9 +62,9 @@ function EscalasDaCorporacao() {
       {escalas.data && todas.length === 0 && <p className="max-w-xl text-apagado">{`Nenhuma escala de ${mesPorExtenso(mes)} está aberta para você.`}</p>}
       {escalas.data && todas.length > 0 && aMostrar.length === 0 && <p className="max-w-xl text-apagado">Nenhuma escala desta unidade está aberta para você neste mês. Limpe o filtro para ver as outras.</p>}
       <div className="grid max-w-3xl gap-4">
-        {[...porUnidade].map(([sigla, lista]) => (
-          <section key={sigla} aria-label={sigla} className="grid gap-1.5">
-            <h2 className="font-cond text-lg font-semibold">{sigla}</h2>
+        {[...porUnidade].map(([unidadeId, lista]) => (
+          <section key={unidadeId} aria-label={tituloDe(lista[0]!)} className="grid gap-1.5">
+            <h2 className="font-cond text-lg font-semibold">{tituloDe(lista[0]!)}</h2>
             <ul className="divide-y divide-linha rounded-xl border border-linha bg-superficie">
               {lista.map((e) => (
                 <li key={e.escalaId}>
