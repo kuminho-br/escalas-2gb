@@ -65,7 +65,7 @@ export function rotasDaVarredura(hono: Hono, ids: Record<string, string>, outra:
   for (const r of hono.routes) {
     if (r.method === 'ALL' || !r.path.startsWith('/api/')) continue;
     if (!(r.path.includes(':u') || r.path.includes(':id'))) continue;
-    if (['/api/sistema', '/api/situacoes-do-militar', '/api/funcoes-do-militar', '/api/postos', '/api/quadros', '/api/consulta', '/api/tipos-de-unidade', '/api/previas'].some((p) => r.path.startsWith(p))) continue;
+    if (['/api/sistema', '/api/situacoes-do-militar', '/api/funcoes-do-militar', '/api/postos', '/api/quadros', '/api/consulta', '/api/tipos-de-unidade', '/api/visualizacao'].some((p) => r.path.startsWith(p))) continue;
     const recurso = /^\/api\/([a-z]+)\/:id/.exec(r.path)?.[1];
     if (r.path.includes(':id') && !(recurso && ids[recurso])) throw new Error(`recurso sem registro de teste: ${r.path}`);
     const caminho = r.path.replace(':u', outra).replace(':id', recurso ? ids[recurso]! : 'x').replace(':mes', mes).replace(':cadastro', 'feriados');

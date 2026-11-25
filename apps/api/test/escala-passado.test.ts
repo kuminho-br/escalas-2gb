@@ -1,7 +1,8 @@
 import { somarMeses, type EscalaDoMes } from 'contratos';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
+import { conferirPassado } from '../src/escala/passado.ts';
 import { hojeRecife } from '../src/datas.ts';
-import { lerRegistro } from '../src/registro.ts';
+import { lerRegistro, textoDaAlteracaoNoPassado } from '../src/registro.ts';
 import { inserir } from './banco-teste.ts';
 import { entrarComo, montarApi, type ApiDeTeste, type Pessoa } from './apoio-api.ts';
 
@@ -103,7 +104,7 @@ afterAll(async () => {
   await api.fechar();
 });
 
-describe('sem prévia lançada, nada muda', () => {
+describe('em rascunho (sem prévia lançada), nada muda', () => {
   it('o escalante escala, remove e desfaz no passado como sempre', async () => {
     expect((await escalar('escalante', 'M1', 9)).status).toBe(201);
     const r = await api.pedir('escalante', 'DELETE', `/api/alocacoes/${await alocacaoDe('M1', 9)}`);
@@ -221,7 +222,7 @@ describe('com a prévia lançada', () => {
     it('trocar por um militar livre: a frase diz quem saiu e quem entrou na mesma vaga', async () => {
       const { r, novos } = await sozinho(() => api.pedir('gestorGb', 'POST', `/api/alocacoes/${id.M4}/trocar`, { militarId: militar.M11, turnoId: turnoA, justificativa: MOTIVO }));
       expect(r.status).toBe(200);
-      expect(novos.map((x) => x.texto)).toEqual(['Trocou SD-PS M4 por SD-PS M11 em sem guarnição, dia 11, 08:00']);
+      expect(novos.map((x) => x.texto)).toEqual(['Trocou SD-PS M4 por SD-PS M11 no turno, sem guarnição, dia 11, 08:00']);
     });
 
     it('acumular e tirar o acúmulo', async () => {
@@ -236,7 +237,7 @@ describe('com a prévia lançada', () => {
     it('voltar ao turno (desfazer o movimento para a vaga): a vaga perde o militar e o "sem guarnição" ganha', async () => {
       const { r, novos } = await sozinho(() => api.pedir('gestorGb', 'POST', `/api/alocacoes/${id.M6}/voltar-ao-turno`, { guarnicaoId: abt, funcaoId: combatente, justificativa: MOTIVO }));
       expect(r.status).toBe(200);
-      expect(novos.map((x) => x.texto).sort()).toEqual(['Pôs SD-PS M6 em sem guarnição, dia 13, 08:00', 'Tirou SD-PS M6 de ABT (Combatente), dia 13, 08:00']);
+      expect(novos.map((x) => x.texto).sort()).toEqual(['Pôs SD-PS M6 no turno, sem guarnição, dia 13, 08:00', 'Tirou SD-PS M6 de ABT (Combatente), dia 13, 08:00']);
     });
 
     it('o coordenador e o administrador também passam (cada um com a sua justificativa)', async () => {
@@ -326,13 +327,205 @@ describe('a pré-escala numa escala com prévia lançada só preenche o que aind
   });
 });
 
-describe('prévia recolhida', () => {
-  it('Review Focus 4: a trava some (o escalante volta a alterar o passado) e o registro já gravado continua legível', async () => {
+const estadoAgora = async () => ((await (await api.pedir('escalante', 'GET', `/api/escalas/${escala}/mes/${mes}`)).json()) as { estado: { estado: string; emRetificacao: boolean } }).estado;
+const poNoEstado = (estado: string, emRetificacao = false) =>
+  api.banco.query('insert into escala_estado (escala_id, mes, estado, em_retificacao) values ($1, $2::date, $3, $4) on conflict (escala_id, mes) do update set estado = $3, em_retificacao = $4', [escala, `${mes}-01`, estado, emRetificacao]);
+const rascunhar = () => api.banco.query('delete from escala_estado where escala_id = $1 and mes = $2::date', [escala, `${mes}-01`]);
+const SEM_POSTO = { guarnicao: null, funcao: null } as const;
+const MSG_REMESSADA = 'Esta escala já foi remessada. Só o administrador altera.';
+
+describe('publicada e retificada (7.3.1): o passado trava e a retificação acende sozinha', () => {
+  // a pré-escala do bloco anterior ocupou os militares do cenário: ela sai, e quem está livre volta a poder ser escalado
+  beforeAll(async () => {
+    await api.banco.query("delete from alocacao where origem = 'pre_escala' and escala_id = $1", [escala]);
+  });
+
+  it('Review Focus 2: o escalante altera um turno futuro da escala publicada, e ela passa a "em retificação", sem registro', async () => {
     agora(15, 12);
-    const gravados = await registros();
-    expect(gravados.length).toBeGreaterThan(0);
-    expect((await api.pedir('escalante', 'DELETE', `/api/escalas/${escala}/mes/${mes}/previa`)).status).toBe(200);
-    expect((await api.pedir('escalante', 'DELETE', `/api/alocacoes/${await alocacaoDe('M10', 14)}`)).status).toBe(200);
-    expect(await registros()).toEqual(gravados);
+    expect((await api.pedir('gestorGb', 'POST', `/api/escalas/${escala}/mes/${mes}/publicar`)).status).toBe(200);
+    expect(await estadoAgora()).toEqual({ estado: 'publicada', emRetificacao: false, em: expect.any(String), por: 'SD GESTORGB' });
+    const antes = (await registros()).length;
+    expect((await escalar('escalante', 'M17', 20, SEM_POSTO)).status).toBe(201);
+    expect(await estadoAgora()).toMatchObject({ estado: 'publicada', emRetificacao: true });
+    expect((await registros()).length).toBe(antes);
+  });
+
+  it('Review Focus 2: a mudança recusada (turno que já começou, escalante: 403) não acende nada', async () => {
+    expect((await api.pedir('gestorGb', 'POST', `/api/escalas/${escala}/mes/${mes}/republicar`)).status).toBe(200);
+    expect(await estadoAgora()).toMatchObject({ estado: 'retificada', emRetificacao: false });
+    const r = await escalar('escalante', 'M18', 10, SEM_POSTO);
+    expect(r.status).toBe(403);
+    expect(((await r.json()) as { erro: string }).erro).toBe(MSG_SO_GESTOR);
+    expect(await estadoAgora()).toMatchObject({ estado: 'retificada', emRetificacao: false });
+  });
+
+  it('Review Focus 4: depois de republicar (retificada), uma nova mudança acende de novo', async () => {
+    expect((await escalar('escalante', 'M18', 21, SEM_POSTO)).status).toBe(201);
+    expect(await estadoAgora()).toMatchObject({ estado: 'retificada', emRetificacao: true });
+  });
+
+  for (const estado of ['publicada', 'retificada'] as const) {
+    it(`em ${estado}, o turno que já começou: o escalante recebe 403 e o gestor passa com a justificativa e deixa registro`, async () => {
+      await poNoEstado(estado);
+      agora(15, 12);
+      const r = await escalar('escalante', 'M19', 10, SEM_POSTO);
+      expect(r.status).toBe(403);
+      expect(((await r.json()) as { erro: string }).erro).toBe(MSG_SO_GESTOR);
+      expect(await estadoAgora()).toMatchObject({ estado, emRetificacao: false });
+      const sem = await escalar('gestorGb', 'M19', 10, SEM_POSTO);
+      expect(sem.status).toBe(400);
+      const { r: ok, novos } = await sozinho(() => escalar('gestorGb', 'M19', 10, { ...SEM_POSTO, justificativa: MOTIVO }));
+      expect(ok.status).toBe(201);
+      expect(novos).toHaveLength(1);
+      expect(novos[0]!.texto).toContain('M19');
+      // a mudança que valeu (o gestor, no passado) também deixa a escala em retificação
+      expect(await estadoAgora()).toMatchObject({ estado, emRetificacao: true });
+      expect((await api.pedir('gestorGb', 'DELETE', `/api/alocacoes/${await alocacaoDe('M19', 10)}`, { justificativa: MOTIVO })).status).toBe(200);
+    });
+  }
+
+  it('Review Focus 2: na prévia a mudança nunca acende a retificação', async () => {
+    await poNoEstado('previa');
+    expect((await escalar('escalante', 'M20', 22, SEM_POSTO)).status).toBe(201);
+    expect(await estadoAgora()).toMatchObject({ estado: 'previa', emRetificacao: false });
+    expect((await api.pedir('escalante', 'DELETE', `/api/alocacoes/${await alocacaoDe('M20', 22)}`)).status).toBe(200);
+    expect(await estadoAgora()).toMatchObject({ estado: 'previa', emRetificacao: false });
+  });
+
+  it('em rascunho nada trava, nada se registra e nada acende (a escala sem linha)', async () => {
+    await api.banco.query('delete from escala_estado where escala_id = $1 and mes = $2::date', [escala, `${mes}-01`]);
+    const antes = (await registros()).length;
+    expect((await escalar('escalante', 'M20', 9, SEM_POSTO)).status).toBe(201);
+    expect((await api.pedir('escalante', 'DELETE', `/api/alocacoes/${await alocacaoDe('M20', 9)}`)).status).toBe(200);
+    expect((await registros()).length).toBe(antes);
+    expect(await estadoAgora()).toMatchObject({ estado: 'rascunho', emRetificacao: false });
+  });
+});
+
+describe('remessada (7.3.1): só o administrador altera', () => {
+  beforeAll(async () => {
+    await inserir(api.banco, 'escala_estado', { escala_id: escala, mes: `${mes}-01`, estado: 'remessada' });
+  });
+
+  it('Review Focus 5: o gestor e o escalante recebem 403 em qualquer mudança, de turno passado ou futuro', async () => {
+    agora(15, 12);
+    for (const quem of ['escalante', 'gestorGb'] as const) {
+      for (const d of [10, 22]) {
+        const r = await escalar(quem, 'M17', d, quem === 'gestorGb' ? { ...SEM_POSTO, justificativa: MOTIVO } : SEM_POSTO);
+        expect(r.status, `${quem} dia ${d}`).toBe(403);
+        expect(((await r.json()) as { erro: string }).erro).toBe(MSG_REMESSADA);
+      }
+    }
+    expect((await api.pedir('escalante', 'DELETE', `/api/alocacoes/${await alocacaoDe('M17', 20)}`)).status).toBe(403);
+    expect((await estadoAgora()).emRetificacao).toBe(false);
+  });
+
+  it('Review Focus 5: o administrador passa, com justificativa, e deixa registro (sem acender retificação: não é publicada)', async () => {
+    expect((await escalar('admin', 'M20', 22, SEM_POSTO)).status).toBe(400);
+    const { r, novos } = await sozinho(() => escalar('admin', 'M20', 22, { ...SEM_POSTO, justificativa: MOTIVO }));
+    expect(r.status).toBe(201);
+    expect(novos).toHaveLength(1);
+    expect(novos[0]!.texto).toContain('M20');
+    expect(await estadoAgora()).toMatchObject({ estado: 'remessada', emRetificacao: false });
+  });
+
+  it('a pré-escala numa escala remessada é recusada: 403 para o escalante, e 409 para o administrador (ele altera pelas alocações)', async () => {
+    const e = await api.pedir('escalante', 'POST', `/api/escalas/${escala}/mes/${mes}/pre-escala`, { equipeDia1Id: equipe });
+    expect(e.status).toBe(403);
+    expect(((await e.json()) as { erro: string }).erro).toBe(MSG_REMESSADA);
+    expect((await api.pedir('admin', 'POST', `/api/escalas/${escala}/mes/${mes}/pre-escala`, { equipeDia1Id: equipe })).status).toBe(409);
+  });
+});
+
+describe('a pré-escala numa escala publicada (7.3.1)', () => {
+  it('só preenche o que ainda não começou e deixa a escala em retificação', async () => {
+    await poNoEstado('publicada');
+    agora(15, 12);
+    await api.banco.query("delete from alocacao where origem = 'pre_escala' and escala_id = $1", [escala]);
+    const r = await api.pedir('escalante', 'POST', `/api/escalas/${escala}/mes/${mes}/pre-escala`, { equipeDia1Id: equipe });
+    expect(r.status).toBe(201);
+    expect(((await r.json()) as { gravadas: number }).gravadas).toBeGreaterThan(0);
+    // nenhum turno que já começou foi preenchido (dia antes do 15, ou o A do próprio 15)
+    const novas = (await api.banco.query<{ data: string; turno_id: string }>("select to_char(data, 'YYYY-MM-DD') as data, turno_id from alocacao where origem = 'pre_escala' and escala_id = $1", [escala])).rows;
+    expect(novas.filter((n) => n.data < dia(15) || (n.data === dia(15) && n.turno_id === turnoA))).toEqual([]);
+    expect(await estadoAgora()).toMatchObject({ estado: 'publicada', emRetificacao: true });
+  });
+});
+
+describe('o acabamento da 7.3 (7.3.1, Task 4)', () => {
+  const vaga = (militares: string[], extra: Record<string, unknown> = {}) => ({ data: dia(13), inicio: '08:00', guarnicao: null, funcao: null, militares: militares.map((n) => ({ patente: 'SD', nomeGuerra: n, matricula: n })), ...extra });
+  it('a frase de quem está sem guarnição não diz "em sem guarnição": "no turno, sem guarnição"', () => {
+    expect(textoDaAlteracaoNoPassado(null, vaga(['M1']))).toBe('Pôs SD M1 no turno, sem guarnição, dia 13, 08:00');
+    expect(textoDaAlteracaoNoPassado(vaga(['M1']), null)).toBe('Tirou SD M1 do turno, sem guarnição, dia 13, 08:00');
+    expect(textoDaAlteracaoNoPassado(vaga(['M1']), vaga(['M2']))).toBe('Trocou SD M1 por SD M2 no turno, sem guarnição, dia 13, 08:00');
+    expect(textoDaAlteracaoNoPassado(null, vaga(['M1'], { guarnicao: 'ABT', funcao: 'Combatente' }))).toBe('Pôs SD M1 em ABT (Combatente), dia 13, 08:00');
+  });
+
+  it('"Permitir de novo" no passado, que pede justificativa, grava uma linha no registro', async () => {
+    await poNoEstado('previa');
+    agora(15, 12);
+    await criarMilitar('PERMITIR');
+    const id = await inserir(api.banco, 'alocacao', { militar_id: militar.PERMITIR, escala_id: escala, servico_id: pronto, turno_id: turnoA, data: dia(10), origem: 'manual' });
+    const tirou = await api.pedir('gestorGb', 'DELETE', `/api/alocacoes/${id}`, { justificativa: MOTIVO });
+    expect(tirou.status).toBe(200);
+    const remocaoId = ((await tirou.json()) as { remocaoId: string }).remocaoId;
+    expect((await api.pedir('escalante', 'DELETE', `/api/remocoes/${remocaoId}`)).status).toBe(403);
+    expect((await api.pedir('gestorGb', 'DELETE', `/api/remocoes/${remocaoId}`)).status).toBe(400);
+    const { r, novos } = await sozinho(() => api.pedir('gestorGb', 'DELETE', `/api/remocoes/${remocaoId}`, { justificativa: MOTIVO }));
+    expect(r.status).toBe(200);
+    expect(novos.map((x) => x.texto)).toEqual(['Permitiu de novo SD-PS PERMITIR no turno, sem guarnição, dia 10, 08:00']);
+    expect(novos[0]).toMatchObject({ justificativa: MOTIVO });
+  });
+
+  it('a troca entre escalas diferentes registra os dois lados, também o que é futuro', async () => {
+    await poNoEstado('previa');
+    const segunda = (await (await api.pedir('escalante', 'POST', `${secao()}/escalas`, { nome: 'Ordinário 2' })).json()).id as string;
+    expect((await api.pedir('escalante', 'PUT', `/api/escalas/${segunda}/servicos`, { servicoIds: [pronto] })).status).toBe(200);
+    expect((await api.pedir('escalante', 'POST', `/api/escalas/${segunda}/mes/${mes}/previa`)).status).toBe(200);
+    agora(15, 12);
+    await criarMilitar('TROCA1');
+    await criarMilitar('TROCA2');
+    // o turno A do dia 15 (já começou) na escala principal, e o B (20:00, não começou) na segunda
+    const a = await inserir(api.banco, 'alocacao', { militar_id: militar.TROCA1, escala_id: escala, servico_id: pronto, turno_id: turnoA, data: dia(15), origem: 'manual' });
+    const b = await inserir(api.banco, 'alocacao', { militar_id: militar.TROCA2, escala_id: segunda, servico_id: pronto, turno_id: turnoB, data: dia(15), origem: 'manual' });
+    expect((await api.pedir('escalante', 'POST', `/api/alocacoes/${a}/trocar`, { comAlocacaoId: b, justificativa: MOTIVO })).status).toBe(403);
+    const r = await api.pedir('gestorGb', 'POST', `/api/alocacoes/${a}/trocar`, { comAlocacaoId: b, justificativa: MOTIVO });
+    expect(r.status, JSON.stringify(await r.clone().json())).toBe(200);
+    const doPassado = (await registros()).filter((x) => x.data === dia(15)).map((x) => x.texto);
+    const doFuturo = (await lerRegistro(api.banco, { escalaId: segunda, mes, tipo: 'escala_no_passado' })).map((x) => x.texto);
+    expect(doPassado.some((t) => t.includes('08:00'))).toBe(true);
+    expect(doFuturo.length).toBeGreaterThan(0);
+    expect(doFuturo.every((t) => t.includes('20:00'))).toBe(true);
+  });
+
+  it('o GET da pré-escala não conta os turnos que já começaram (o POST não os preenche): a prévia confere com o que será gravado', async () => {
+    agora(15, 12);
+    await api.banco.query("delete from alocacao where origem = 'pre_escala' and escala_id = $1", [escala]);
+    await rascunhar();
+    const contar = async () => ((await (await api.pedir('escalante', 'GET', `/api/escalas/${escala}/mes/${mes}/pre-escala?equipe=${equipe}`)).json()) as { entramNoTurno: number }).entramNoTurno;
+    const emRascunho = await contar();
+    await poNoEstado('publicada');
+    const publicada = await contar();
+    expect(publicada).toBeLessThan(emRascunho);
+    const gravadas = ((await (await api.pedir('escalante', 'POST', `/api/escalas/${escala}/mes/${mes}/pre-escala`, { equipeDia1Id: equipe })).json()) as { gravadas: number }).gravadas;
+    expect(gravadas).toBeGreaterThanOrEqual(publicada);
+  });
+});
+
+describe('achado da revisão da 7.3.1: a gestão só é exigida onde algum turno já começou', () => {
+  it('um ato que toca duas escalas de unidades diferentes (uma com turno que começou, outra só com turno futuro): o gestor da primeira passa, e o registro cobre os dois lados', async () => {
+    const outra = await inserir(api.banco, 'unidade', { tipo: 'secao', sigla: 'SEC-Y', nome: 'Seção Y', mae_id: api.ids.gb, desde: '2026-11-01' });
+    const servicoY = await inserir(api.banco, 'servico', { unidade_id: outra, nome: 'Plantão Y', tipo: 'ordinario', cor: '#3C5F9C' });
+    const turnoY = await inserir(api.banco, 'turno', { servico_id: servicoY, letra: 'A', inicio: '08:00', fim: '20:00' });
+    const escalaY = await inserir(api.banco, 'escala', { unidade_id: outra, nome: 'Da Y', titulo: 'Da Y', militares_doc: 'todos', dias_doc: 'todos' });
+    await poNoEstado('previa');
+    await api.banco.query("insert into escala_estado (escala_id, mes, estado) values ($1, $2::date, 'previa')", [escalaY, `${mes}-01`]);
+    agora(15, 12);
+    const tocados = [{ escalaId: escala, data: dia(10), turnoId: turnoA }, { escalaId: escalaY, data: dia(25), turnoId: turnoY }];
+    // o coordenador é gestor da 1ª SB (onde o turno já começou) e não tem nada na SEC-Y (onde o turno é futuro): passa, com a justificativa
+    const r = await conferirPassado(api.banco, coordenador.usuarioId, tocados, MOTIVO, relogio.agora);
+    expect(r.registro?.alvos.map((a) => a.escalaId).sort()).toEqual([escala, escalaY].sort());
+    // sem gestão onde o turno começou, continua 403
+    await expect(conferirPassado(api.banco, api.usuarios.escalante, tocados, MOTIVO, relogio.agora)).rejects.toThrow('Este turno já começou. Só o gestor altera o passado.');
   });
 });

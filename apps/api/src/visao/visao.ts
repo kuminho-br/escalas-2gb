@@ -22,7 +22,7 @@ export async function lerBorda(c: Consulta): Promise<Borda> {
 }
 
 /** Está, hoje, num quadro marcado como "de oficiais"? Vale o quadro do período do rastreio de hoje: uma mudança marcada para depois não conta ainda. */
-async function ehOficial(c: Consulta, usuarioId: string, hoje: string): Promise<boolean> {
+export async function ehOficial(c: Consulta, usuarioId: string, hoje: string): Promise<boolean> {
   const { rows } = await c.query<{ ok: boolean }>(
     `select exists (
        select 1 from usuario u

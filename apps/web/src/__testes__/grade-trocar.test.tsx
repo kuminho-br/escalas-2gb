@@ -36,7 +36,7 @@ const TROCAS: OpcoesDeTroca = {
     ],
   }],
 };
-const ESCALA: EscalaDoMes = { escalaId: 'e-ord', nome: 'Ordinário', mes: MES, dias: [], resumo: { preenchidas: 0, obrigatorias: 0, obrigatoriasVazias: 0 }, previa: null, podeAlterarPassado: false };
+const ESCALA: EscalaDoMes = { escalaId: 'e-ord', nome: 'Ordinário', mes: MES, dias: [], resumo: { preenchidas: 0, obrigatorias: 0, obrigatoriasVazias: 0 }, estado: { estado: 'rascunho', emRetificacao: false, em: null, por: null }, podePublicar: false, podeAlterarPassado: false };
 const ROTA_GRADE = `GET /api/unidades/u-1sb/grade/${MES}`;
 const POST = 'POST /api/alocacoes/a-1/trocar';
 const ABERTA = `/grade?mes=${MES}&militar=m-CABO&dia=${DIA}`;

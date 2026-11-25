@@ -1,16 +1,19 @@
-// O passado de uma escala com prévia lançada (fase 7.3): um turno que já começou só é alterado por gestor, coordenador ou administrador, com justificativa, e a mudança
-// fica no registro (`registro_de_alteracao`). Escala sem prévia lançada naquele mês, alocação sem escala (o expediente da pré-escala) e a rodada dos oficiais ficam fora.
+// O passado de uma escala que não é rascunho (fases 7.3 e 7.3.1): um turno que já começou só é alterado por gestor, coordenador ou administrador, com justificativa, e a mudança
+// fica no registro (`registro_de_alteracao`); numa escala remessada, qualquer turno só o administrador altera. Escala em rascunho (sem linha em `escala_estado`), alocação sem escala
+// (o expediente da pré-escala) e a rodada dos oficiais ficam fora. A mudança numa escala publicada ou retificada também a põe em retificação, na mesma transação.
 import { Justificativa } from 'contratos';
 import type { Context } from 'hono';
 import { z } from 'zod';
-import { GESTAO, temPapel, type AmbienteApi } from '../acesso.ts';
+import { ehAdministrador, GESTAO, temPapel, type AmbienteApi } from '../acesso.ts';
 import type { Consulta } from '../banco/banco.ts';
 import { agoraRecife, hojeRecife } from '../datas.ts';
 import { registrar } from '../registro.ts';
-import { Proibida } from './alocacoes.ts';
+import { Proibida, Recusa } from './alocacoes.ts';
+import { estadoParaAlterar, marcarRetificacao, MSG_JA_REMESSADA } from './estado.ts';
 
 export const MSG_SO_GESTOR = 'Este turno já começou. Só o gestor altera o passado.';
 export const MSG_DIGA_O_MOTIVO = 'Diga o motivo da alteração (pelo menos 10 letras).';
+export const MSG_SO_ADMINISTRADOR = 'Esta escala já foi remessada. Só o administrador altera.';
 
 /** A justificativa que faltou (ou é curta demais): 400 no campo `justificativa`. */
 export class SemJustificativa extends Error {
@@ -43,31 +46,48 @@ async function alvosDe(c: Consulta, tocados: Tocado[]): Promise<Alvo[]> {
 /** O turno de `data` com início `inicio` já começou em `agora`? (A hora em que ele começa já conta: o que começou há um minuto é passado.) */
 export const jaComecou = (data: string, inicio: string, agora: { dia: string; minutos: number }): boolean => data < agora.dia || (data === agora.dia && minutosDe(inicio) <= agora.minutos);
 
-/** A escala tem a prévia lançada no mês? */
-async function previaDoMes(c: Consulta, escalaId: string, mes: string): Promise<boolean> {
-  return (await c.query('select 1 from escala_previa where escala_id = $1 and mes = $2::date', [escalaId, `${mes}-01`])).rows.length > 0;
-}
+/** Uma escala e mês que a mudança deixa em retificação (a escala está publicada ou retificada). */
+export type Retificar = { escalaId: string; mes: string };
 
 /**
- * Quais dos turnos tocados já começaram numa escala com a prévia lançada naquele mês? Nenhum: null (pode seguir sem registro). Algum: só gestor, coordenador ou administrador
- * da unidade da escala seguem (senão `Proibida`, 403), e com a justificativa de pelo menos 10 letras (senão `SemJustificativa`, 400); devolve a justificativa e TODOS os turnos tocados
- * das escalas travadas (a troca entre um turno que começou e um que não começou vale inteira, e o registro cobre os dois lados).
+ * A trava do passado, por escala e mês tocados, conforme o estado: em **rascunho** nada trava nem se registra; em **prévia, publicada e retificada**, o turno que já começou só passa
+ * gestor, coordenador ou administrador da unidade (senão `Proibida`, 403), com justificativa de pelo menos 10 letras (senão `SemJustificativa`, 400); em **remessada**, qualquer turno,
+ * passado ou futuro, só passa o administrador (`Proibida`), também com justificativa. Devolve a justificativa e TODOS os turnos tocados das escalas travadas (a troca entre um turno que
+ * começou e um que não começou vale inteira, e o registro cobre os dois lados) e quais escalas a mudança põe em retificação (as tocadas que estão publicadas ou retificadas).
  */
 export async function conferirPassado(
   c: Consulta, usuarioId: string, tocados: Tocado[], justificativa: string | undefined, agora = agoraRecife(),
-): Promise<null | { justificativa: string; alvos: Alvo[] }> {
+): Promise<{ registro: null | { justificativa: string; alvos: Alvo[] }; retificar: Retificar[] }> {
   const alvos = await alvosDe(c, tocados);
+  const estados = new Map<string, Awaited<ReturnType<typeof estadoParaAlterar>>['estado']>();
+  for (const a of alvos) {
+    const k = `${a.escalaId}|${a.mes}`;
+    if (!estados.has(k)) estados.set(k, (await estadoParaAlterar(c, a.escalaId, a.mes)).estado);
+  }
   const travadas = new Set<string>();
-  for (const a of alvos) if (jaComecou(a.data, a.inicio, agora) && (await previaDoMes(c, a.escalaId, a.mes))) travadas.add(`${a.escalaId}|${a.mes}`);
-  if (!travadas.size) return null;
-  const doPassado = alvos.filter((a) => travadas.has(`${a.escalaId}|${a.mes}`));
+  let remessada = false;
+  for (const a of alvos) {
+    const k = `${a.escalaId}|${a.mes}`;
+    const estado = estados.get(k)!;
+    if (estado === 'rascunho') continue;
+    if (estado === 'remessada') {
+      travadas.add(k);
+      remessada = true;
+    } else if (jaComecou(a.data, a.inicio, agora)) travadas.add(k);
+  }
+  const retificar: Retificar[] = [...estados].flatMap(([k, estado]) => (estado === 'publicada' || estado === 'retificada' ? [{ escalaId: k.split('|')[0]!, mes: k.split('|')[1]! }] : []));
+  if (!travadas.size) return { registro: null, retificar };
+  // a troca entre escalas diferentes é um ato só: com um lado travado, o registro cobre também o lado das outras escalas que não são rascunho (a justificativa vale para o ato inteiro)
+  const doPassado = alvos.filter((a) => estados.get(`${a.escalaId}|${a.mes}`) !== 'rascunho');
   const hoje = hojeRecife();
-  for (const unidadeId of new Set(doPassado.map((a) => a.unidadeId))) {
+  if (remessada && !(await ehAdministrador(c, usuarioId, hoje))) throw new Proibida(MSG_SO_ADMINISTRADOR);
+  // a gestão é exigida onde algum turno já começou (ou na escala remessada): numa escala em que todos os turnos tocados são futuros, o gestor de outra unidade não precisa ser gestor dela
+  for (const unidadeId of new Set(doPassado.filter((a) => travadas.has(`${a.escalaId}|${a.mes}`)).map((a) => a.unidadeId))) {
     if (!(await temPapel(c, usuarioId, unidadeId, GESTAO, hoje))) throw new Proibida(MSG_SO_GESTOR);
   }
   const motivo = (justificativa ?? '').trim();
   if (motivo.length < 10) throw new SemJustificativa();
-  return { justificativa: motivo, alvos: doPassado };
+  return { registro: { justificativa: motivo, alvos: doPassado }, retificar };
 }
 
 type Ocupante = { militarId: string; patente: string; nomeGuerra: string; matricula: string };
@@ -136,13 +156,19 @@ async function registrarDiferencas(tx: Consulta, usuarioId: string, justificativ
  */
 export async function comPassado<T>(
   tx: Consulta, usuarioId: string, tocar: Tocado[] | ((tx: Consulta) => Promise<Tocado[]>), justificativa: string | undefined, fazer: () => Promise<T>, agora = agoraRecife(),
+  /** Uma linha de registro que o retrato das vagas não pega (o "Permitir de novo"): chamada depois da mudança, só quando há registro. */
+  maisRegistro?: (tx: Consulta, registro: { justificativa: string; alvos: Alvo[] }) => Promise<void>,
 ): Promise<T> {
   const lista = typeof tocar === 'function' ? await tocar(tx) : tocar;
-  const trava = await conferirPassado(tx, usuarioId, lista, justificativa, agora);
-  if (!trava) return fazer();
-  const antes = await retratar(tx, trava.alvos);
+  const { registro, retificar } = await conferirPassado(tx, usuarioId, lista, justificativa, agora);
+  const antes = registro ? await retratar(tx, registro.alvos) : null;
   const resultado = await fazer();
-  await registrarDiferencas(tx, usuarioId, trava.justificativa, antes, await retratar(tx, trava.alvos));
+  if (registro && antes) {
+    await registrarDiferencas(tx, usuarioId, registro.justificativa, antes, await retratar(tx, registro.alvos));
+    await maisRegistro?.(tx, registro);
+  }
+  // a mudança valeu (uma recusada ou desfeita por erro não chega aqui): a escala publicada passa a "em retificação"
+  await marcarRetificacao(tx, retificar);
   return resultado;
 }
 
@@ -158,6 +184,31 @@ export async function tocadoDaRemocao(c: Consulta, remocaoId: string): Promise<T
   return rows.map((r) => ({ escalaId: r.escala_id, data: r.data, turnoId: r.turno_id }));
 }
 
+/** O que o registro diz de uma remoção que vai ser desfeita ("Permitir de novo"): lido antes de ela sumir. */
+export type RemocaoParaORegistro = { escalaId: string; unidadeId: string; data: string; inicio: string; servico: string; turno: string; guarnicao: string | null; funcao: string | null; militar: { patente: string; nomeGuerra: string; matricula: string } };
+
+export async function lerRemocaoParaORegistro(c: Consulta, remocaoId: string): Promise<RemocaoParaORegistro | null> {
+  const r = (
+    await c.query<{ escala_id: string | null; unidade_id: string; data: string; inicio: string; servico: string; letra: string; guarnicao: string | null; funcao: string | null; patente: string; nome_guerra: string; matricula: string }>(
+      `select r.escala_id, e.unidade_id, to_char(r.data, 'YYYY-MM-DD') as data, to_char(t.inicio, 'HH24:MI') as inicio, s.nome as servico, t.letra, g.nome as guarnicao, f.nome as funcao, p.sigla as patente, m.nome_guerra, m.matricula
+         from remocao r join escala e on e.id = r.escala_id join turno t on t.id = r.turno_id join servico s on s.id = r.servico_id join militar m on m.id = r.militar_id join posto_grad p on p.id = m.posto_grad_id
+         left join guarnicao g on g.id = r.guarnicao_id left join funcao f on f.id = r.funcao_id
+        where r.id = $1`,
+      [remocaoId],
+    )
+  ).rows[0];
+  if (!r || !r.escala_id) return null;
+  return { escalaId: r.escala_id, unidadeId: r.unidade_id, data: r.data, inicio: r.inicio, servico: r.servico, turno: r.letra, guarnicao: r.guarnicao, funcao: r.funcao, militar: { patente: r.patente, nomeGuerra: r.nome_guerra, matricula: r.matricula } };
+}
+
+/** Uma linha de registro: "Permitiu de novo SD FULANO em ABT (Motorista), dia 03, 08:00" (a justificativa do "Permitir de novo" no passado). */
+export async function registrarPermissao(tx: Consulta, usuarioId: string, justificativa: string, r: RemocaoParaORegistro): Promise<void> {
+  await registrar(tx, {
+    usuarioId, unidadeId: r.unidadeId, tipo: 'escala_no_passado', escalaId: r.escalaId, mes: r.data.slice(0, 7), data: r.data, antes: null, justificativa,
+    depois: { data: r.data, inicio: r.inicio, servico: r.servico, turno: r.turno, guarnicao: r.guarnicao, funcao: r.funcao, militares: [], permitiuDeNovo: r.militar },
+  });
+}
+
 /** O turno do acúmulo (o da alocação dele). */
 export async function tocadoDoAcumulo(c: Consulta, acumuloId: string): Promise<Tocado[]> {
   const { rows } = await c.query<{ escala_id: string | null; data: string; turno_id: string }>(
@@ -166,11 +217,23 @@ export async function tocadoDoAcumulo(c: Consulta, acumuloId: string): Promise<T
   return rows.map((r) => ({ escalaId: r.escala_id, data: r.data, turnoId: r.turno_id }));
 }
 
-/** A pré-escala (em lote) numa escala com a prévia lançada só preenche os turnos que ainda não começaram, sem registro; os lançamentos sem escala (o expediente) passam. */
-export async function semOsQueJaComecaram<T extends { escalaId?: string | null; data: string; turnoId: string }>(c: Consulta, escalaId: string, mes: string, novas: T[], agora = agoraRecife()): Promise<T[]> {
-  if (!(await previaDoMes(c, escalaId, mes))) return novas;
+/**
+ * A pré-escala (em lote) fora do rascunho só preenche os turnos que ainda não começaram, sem registro; os lançamentos sem escala (o expediente) passam. Numa escala remessada nada entra
+ * (`Proibida` para quem não é administrador; para o administrador, `Recusa`: ele altera pelas alocações, com justificativa). `retificar`: as escalas que o preenchimento põe em retificação.
+ */
+export async function semOsQueJaComecaram<T extends { escalaId?: string | null; data: string; turnoId: string }>(
+  c: Consulta, usuarioId: string, escalaId: string, mes: string, novas: T[], agora = agoraRecife(),
+): Promise<{ novas: T[]; retificar: Retificar[] }> {
+  const estado = (await estadoParaAlterar(c, escalaId, mes)).estado;
+  if (estado === 'rascunho') return { novas, retificar: [] };
+  if (estado === 'remessada') {
+    if (!(await ehAdministrador(c, usuarioId, hojeRecife()))) throw new Proibida(MSG_SO_ADMINISTRADOR);
+    throw new Recusa(`${MSG_JA_REMESSADA} Altere pelas alocações, com justificativa.`);
+  }
   const turnos = new Map((await c.query<{ id: string; inicio: string }>("select id, to_char(inicio, 'HH24:MI') as inicio from turno where id = any($1::uuid[])", [[...new Set(novas.map((n) => n.turnoId))]])).rows.map((t) => [t.id, t.inicio]));
-  return novas.filter((n) => n.escalaId === null || !jaComecou(n.data, turnos.get(n.turnoId) ?? '00:00', agora));
+  const futuras = novas.filter((n) => n.escalaId === null || !jaComecou(n.data, turnos.get(n.turnoId) ?? '00:00', agora));
+  const poeEmRetificacao = (estado === 'publicada' || estado === 'retificada') && futuras.some((n) => n.escalaId !== null);
+  return { novas: futuras, retificar: poeEmRetificacao ? [{ escalaId, mes }] : [] };
 }
 
 /** A resposta para a trava do passado (403 se não é gestor; 400 no campo da justificativa); null se o erro é outro. */

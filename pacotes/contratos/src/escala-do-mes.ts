@@ -109,11 +109,19 @@ export type EscalaDoMes = {
   mes: string;
   dias: DiaDaEscala[];
   resumo: { preenchidas: number; obrigatorias: number; obrigatoriasVazias: number };
-  /** a prévia lançada desta escala neste mês (`por`: "SD FULANO"); null = ainda é rascunho, que a corporação não vê */
-  previa: { em: string; por: string | null } | null;
-  /** quem pede é gestor, coordenador ou administrador da unidade: só esses alteram um turno que já começou, numa escala com prévia lançada */
+  /** o estado da escala neste mês (7.3.1): rascunho, prévia, publicada, retificada ou remessada, e se está em retificação */
+  estado: EstadoDoMes;
+  /** quem pede é gestor, coordenador ou administrador da unidade: só esses publicam e republicam */
+  podePublicar: boolean;
+  /** quem pede é gestor, coordenador ou administrador da unidade: só esses alteram um turno que já começou, numa escala que não é rascunho */
   podeAlterarPassado: boolean;
 };
+
+/** Os cinco estados da escala de um mês: sem linha no banco é rascunho (só quem monta a escala vê). */
+export const EstadoDaEscala = z.enum(['rascunho', 'previa', 'publicada', 'retificada', 'remessada']);
+export type EstadoDaEscala = z.infer<typeof EstadoDaEscala>;
+/** `emRetificacao`: só verdadeiro em publicada ou retificada ("Escala em retificação"); `em` e `por` (ex.: "SD FULANO") são da última passagem de estado, nulos no rascunho. */
+export type EstadoDoMes = { estado: EstadoDaEscala; emRetificacao: boolean; em: string | null; por: string | null };
 
 export type Candidato = {
   militarId: string;

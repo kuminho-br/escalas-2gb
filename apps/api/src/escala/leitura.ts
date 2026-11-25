@@ -18,7 +18,7 @@ import { versaoNoMes } from '../cadastros/guarnicoes-regras.ts';
 import { versoesDasGuarnicoes } from '../cadastros/guarnicoes.ts';
 import { cotasDeSaldo } from './cota-de-saldo.ts';
 import { ordemDoMes } from './ordem-do-mes.ts';
-import { previaLancada } from './previa.ts';
+import { estadoDoMes } from './estado.ts';
 import { sequenciaDePreenchimento } from './ordem.ts';
 import { nomeDaVaga } from './vagas.ts';
 
@@ -204,11 +204,13 @@ export async function montarEscalaDoMes(c: Consulta, escalaId: string, mes: stri
     obrigatoriasVazias += vaziasDoDia;
     return { data, diaDaSemana: diaDaSemana(data), feriado: feriados.get(data) ?? null, faixas: faixasDoDia, obrigatoriasVazias: vaziasDoDia };
   });
-  const previa = await previaLancada(c, escalaId, mes);
-  const podeAlterarPassado = usuarioId ? await temPapel(c, usuarioId, escala.unidade_id, GESTAO, hojeRecife()) : false;
+  const estado = await estadoDoMes(c, escalaId, mes);
+  // quem pede é do nível de gestão da unidade: publica, republica e altera o passado
+  const ehGestor = usuarioId ? await temPapel(c, usuarioId, escala.unidade_id, GESTAO, hojeRecife()) : false;
   return {
     escalaId, nome: escala.nome, mes, dias, resumo: { preenchidas, obrigatorias, obrigatoriasVazias },
-    previa: previa ? { em: previa.em, por: previa.por ? `${previa.por.patente} ${previa.por.nomeGuerra}` : null } : null,
-    podeAlterarPassado,
+    estado,
+    podePublicar: ehGestor,
+    podeAlterarPassado: ehGestor,
   };
 }

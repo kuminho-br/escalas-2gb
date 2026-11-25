@@ -1,12 +1,12 @@
-import { somarMeses, type EscalaDoMes, type MinhaEscala, type PreviaDaLista, type RegistroDeAlteracao } from 'contratos';
+import { somarMeses, type EscalaDoMes, type EscalaVisivel, type MinhaEscala, type RegistroDeAlteracao } from 'contratos';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { hojeRecife } from '../src/datas.ts';
 import { registrar } from '../src/registro.ts';
 import { inserir } from './banco-teste.ts';
 import { entrarComo, montarApi, type ApiDeTeste, type Pessoa } from './apoio-api.ts';
 
-// Cenário fictício (D7): a 1ª SB tem duas escalas (a Ordinário, que terá a prévia lançada, e a Rascunho, que não) e a ABT (Motorista e Combatente); a SEC-OUTRA, irmã dela,
-// tem a escala "Da outra", que traz o militar PEDRO da 1ª SB como externo. O PEDRO tem conta e não tem nível de acesso (o militar comum).
+// Entrega 7.3.1, Task 3: quem vê cada estado da escala. Cenário fictício (D7): a 1ª SB tem duas escalas (a Ordinário, que terá a prévia lançada, e a Rascunho, que não), a dos oficiais e a ABT
+// (Motorista e Combatente); a SEC-OUTRA, irmã dela, tem a escala "Da outra", que traz o militar PEDRO da 1ª SB como externo. O PEDRO tem conta e não tem nível de acesso (o militar comum).
 let api: ApiDeTeste;
 let ordinario: string;
 let rascunho: string;
@@ -25,11 +25,15 @@ const mes = somarMeses(atual, 1);
 const dia = (n: number) => `${mes}-${String(n).padStart(2, '0')}`;
 const secao = () => `/api/unidades/${api.ids.secao}`;
 const A = { inicio: '08:00', fim: '20:00' };
-const MSG_SEM_PREVIA = 'Esta escala ainda não tem prévia lançada.';
+const MSG_NAO_ABERTA = 'Esta escala não está aberta para você.';
 const lancar = (id: string, m = mes) => api.pedir('escalante', 'POST', `/api/escalas/${id}/mes/${m}/previa`);
-const recolher = (id: string, m = mes) => api.pedir('escalante', 'DELETE', `/api/escalas/${id}/mes/${m}/previa`);
-const lista = async (quem: Pessoa = pedro, m = mes): Promise<PreviaDaLista[]> => (await quem.pedir('GET', `/api/previas/${m}`)).json();
-const daPrevia = (quem: Pessoa, id: string, m = mes) => quem.pedir('GET', `/api/previas/escalas/${id}/mes/${m}`);
+const publicar = (id: string, m = mes) => api.pedir('gestorGb', 'POST', `/api/escalas/${id}/mes/${m}/publicar`);
+/** Volta a escala do mês a rascunho (apaga a linha do estado): a API não tem essa passagem, só o teste precisa dela para reusar o cenário. */
+const rascunhar = (id: string, m = mes) => api.banco.query('delete from escala_estado where escala_id = $1 and mes = $2::date', [id, `${m}-01`]);
+const poNoEstado = (id: string, estado: string, emRetificacao = false) =>
+  api.banco.query('insert into escala_estado (escala_id, mes, estado, em_retificacao) values ($1, $2::date, $3, $4) on conflict (escala_id, mes) do update set estado = $3, em_retificacao = $4', [id, `${mes}-01`, estado, emRetificacao]);
+const lista = async (quem: Pessoa = pedro, m = mes): Promise<EscalaVisivel[]> => (await quem.pedir('GET', `/api/visualizacao/escalas/${m}`)).json();
+const daPrevia = (quem: Pessoa, id: string, m = mes) => quem.pedir('GET', `/api/visualizacao/escalas/${id}/mes/${m}`);
 const minha = async (quem: Pessoa = pedro, m = mes): Promise<MinhaEscala> => (await quem.pedir('GET', `/api/eu/escala/${m}`)).json();
 
 let seq = 0;
@@ -90,23 +94,23 @@ afterAll(async () => {
   await api.fechar();
 });
 
-describe('as prévias lançadas, lidas por qualquer conta', () => {
-  it('sem prévia lançada, a lista do mês é vazia e a escala não abre (404 com a frase fixa)', async () => {
+describe('o que a conta lê de cada estado', () => {
+  it('rascunho: a lista do mês é vazia e a escala não abre para o militar comum (404 com a frase fixa)', async () => {
     expect(await lista()).toEqual([]);
     const r = await daPrevia(pedro, ordinario);
     expect(r.status).toBe(404);
-    expect(((await r.json()) as { erro: string }).erro).toBe(MSG_SEM_PREVIA);
+    expect(((await r.json()) as { erro: string }).erro).toBe(MSG_NAO_ABERTA);
   });
 
-  it('lançada, o militar comum vê na lista (com a unidade, o mês e quando) e abre a escala em leitura; a que não foi lançada continua escondida', async () => {
+  it('prévia: o militar lotado na unidade vê na lista (com a unidade, o mês, o estado e quando) e abre a escala em leitura; o rascunho continua escondido', async () => {
     expect((await lancar(ordinario)).status).toBe(200);
     const l = await lista();
-    expect(l).toEqual([expect.objectContaining({ escalaId: ordinario, nome: 'Ordinário', unidadeId: api.ids.secao, unidadeSigla: '1ª SB', mes, dosOficiais: false })]);
-    expect(Date.now() - new Date(l[0]!.lancadaEm).getTime()).toBeLessThan(60_000);
+    expect(l).toEqual([expect.objectContaining({ escalaId: ordinario, nome: 'Ordinário', unidadeId: api.ids.secao, unidadeSigla: '1ª SB', mes, estado: 'previa', emRetificacao: false, dosOficiais: false })]);
+    expect(Date.now() - new Date(l[0]!.em).getTime()).toBeLessThan(60_000);
     const r = await daPrevia(pedro, ordinario);
     expect(r.status).toBe(200);
     const e = (await r.json()) as EscalaDoMes;
-    expect(e).toMatchObject({ escalaId: ordinario, mes, podeAlterarPassado: false });
+    expect(e).toMatchObject({ escalaId: ordinario, mes, podeAlterarPassado: false, podePublicar: false, estado: { estado: 'previa' } });
     const combatentes = e.dias[5]!.faixas[0]!.guarnicoes[0]!.funcoes.find((f) => f.funcao === 'Combatente')!.ocupantes.map((o) => o.nomeGuerra).sort();
     expect(combatentes).toEqual(['COLEGA', 'PEDRO']);
     expect((await daPrevia(pedro, rascunho)).status).toBe(404);
@@ -125,28 +129,13 @@ describe('as prévias lançadas, lidas por qualquer conta', () => {
   });
 
   it('sem sessão, 401', async () => {
-    expect((await api.app.request(`http://localhost:8787/api/previas/${mes}`, { headers: { Origin: 'http://localhost:8787' } })).status).toBe(401);
+    expect((await api.app.request(`http://localhost:8787/api/visualizacao/escalas/${mes}`, { headers: { Origin: 'http://localhost:8787' } })).status).toBe(401);
   });
 
   it('o mês fora do formato é 400; escala inexistente é 404', async () => {
-    expect((await pedro.pedir('GET', '/api/previas/2026-13')).status).toBe(400);
+    expect((await pedro.pedir('GET', '/api/visualizacao/escalas/2026-13')).status).toBe(400);
     expect((await daPrevia(pedro, '00000000-0000-4000-8000-000000000000')).status).toBe(404);
     expect((await daPrevia(pedro, ordinario, '2026-13')).status).toBe(400);
-  });
-
-  it('Review Focus 5: a escala dos oficiais, lançada, aparece como "dos oficiais" e qualquer conta a lê; não lançada, 404', async () => {
-    expect((await daPrevia(pedro, oficiais)).status).toBe(404);
-    expect((await lancar(oficiais)).status).toBe(200);
-    expect((await lista()).find((x) => x.escalaId === oficiais)).toMatchObject({ dosOficiais: true });
-    expect((await daPrevia(pedro, oficiais)).status).toBe(200);
-    await recolher(oficiais);
-  });
-
-  it('Review Focus 4: recolhida, a escala some da lista e a leitura volta a 404', async () => {
-    expect((await recolher(ordinario)).status).toBe(200);
-    expect(await lista()).toEqual([]);
-    expect((await daPrevia(pedro, ordinario)).status).toBe(404);
-    await lancar(ordinario);
   });
 
   it('a lista é do mês pedido, de todas as unidades que não foram extintas', async () => {
@@ -194,10 +183,10 @@ describe('o registro das alterações no passado', () => {
     expect((await api.pedir('escalante', 'GET', `/api/escalas/${ordinario}/mes/2026-13/registro`)).status).toBe(400);
   });
 
-  it('Review Focus 4: recolhida a prévia, o registro já gravado continua legível', async () => {
-    await recolher(ordinario);
+  it('o registro já gravado continua legível em qualquer estado (aqui, com a escala publicada)', async () => {
+    await poNoEstado(ordinario, 'publicada');
     expect((await (await api.pedir('escalante', 'GET', `/api/escalas/${ordinario}/mes/${mes}/registro`)).json() as unknown[]).length).toBe(2);
-    await lancar(ordinario);
+    await poNoEstado(ordinario, 'previa');
   });
 });
 
@@ -213,11 +202,16 @@ describe('a minha escala', () => {
     expect(m.servicos[1]).toMatchObject({ guarnicao: null, funcao: null, composicao: [] });
   });
 
-  it('o serviço numa escala que não foi lançada não aparece; lançada, passa a aparecer; recolhida, some de novo', async () => {
+  it('o serviço numa escala em rascunho não aparece; na prévia, passa a aparecer com o estado, e em retificação traz a marca', async () => {
     expect((await minha()).servicos.some((x) => x.escala === 'Rascunho')).toBe(false);
     await lancar(rascunho);
-    expect((await minha()).servicos.map((x) => x.data)).toContain(dia(7));
-    await recolher(rascunho);
+    const naPrevia = (await minha()).servicos.find((x) => x.data === dia(7))!;
+    expect(naPrevia).toMatchObject({ estado: 'previa', emRetificacao: false });
+    await publicar(rascunho);
+    expect((await minha()).servicos.find((x) => x.data === dia(7))).toMatchObject({ estado: 'publicada', emRetificacao: false });
+    await poNoEstado(rascunho, 'publicada', true);
+    expect((await minha()).servicos.find((x) => x.data === dia(7))).toMatchObject({ estado: 'publicada', emRetificacao: true });
+    await rascunhar(rascunho);
     expect((await minha()).servicos.map((x) => x.data)).not.toContain(dia(7));
   });
 
@@ -230,5 +224,82 @@ describe('a minha escala', () => {
   it('cada conta lê só a própria escala', async () => {
     const outro = await entrarComo(api, { matricula: '990983-3', nome: 'OUTRO' });
     expect((await minha(outro)).servicos).toEqual([]);
+  });
+});
+
+describe('quem vê cada estado (Review Focus 3)', () => {
+  let acima: Pessoa;
+  let irma: Pessoa;
+  let oficialDaSecao: Pessoa;
+  let naSecao: Pessoa;
+  beforeAll(async () => {
+    const lotar = async (p: Pessoa, unidadeId: string, quadro: string | null = null) =>
+      inserir(api.banco, 'rastreio', { militar_id: p.militarId, unidade_id: unidadeId, jornada: 'adm', desde: `${atual}-01`, ...(quadro ? { quadro_id: quadro } : {}) });
+    acima = await entrarComo(api, { matricula: '990991-1', nome: 'ACIMA' });
+    await lotar(acima, api.ids.gb);
+    irma = await entrarComo(api, { matricula: '990992-2', nome: 'IRMA' });
+    await lotar(irma, outra);
+    naSecao = await entrarComo(api, { matricula: '990993-3', nome: 'NASECAO' });
+    await lotar(naSecao, api.ids.secao);
+    oficialDaSecao = await entrarComo(api, { matricula: '990994-4', nome: 'OFICIAL', posto: 'CAP' });
+    const qoc = (await api.banco.query<{ id: string }>("select id from quadro where sigla = 'QOC'")).rows[0]!.id;
+    await lotar(oficialDaSecao, api.ids.secao, qoc);
+  });
+
+  it('prévia: o militar lotado na unidade (ou abaixo dela) vê; o lotado em unidade acima ou irmã não vê', async () => {
+    await poNoEstado(ordinario, 'previa');
+    expect((await daPrevia(naSecao, ordinario)).status).toBe(200);
+    expect((await lista(naSecao)).some((x) => x.escalaId === ordinario)).toBe(true);
+    for (const quem of [acima, irma]) {
+      const r = await daPrevia(quem, ordinario);
+      expect(r.status).toBe(404);
+      expect(((await r.json()) as { erro: string }).erro).toBe(MSG_NAO_ABERTA);
+      expect((await lista(quem)).some((x) => x.escalaId === ordinario)).toBe(false);
+    }
+  });
+
+  it('prévia: o militar de OUTRA unidade que está escalado nela naquele mês vê (o PEDRO, da 1ª SB, na escala da SEC-OUTRA)', async () => {
+    await poNoEstado(daOutra, 'previa');
+    expect((await daPrevia(pedro, daOutra)).status).toBe(200);
+    expect((await lista(pedro)).some((x) => x.escalaId === daOutra)).toBe(true);
+    // quem é da 1ª SB e não está escalado nela não vê
+    expect((await daPrevia(naSecao, daOutra)).status).toBe(404);
+  });
+
+  it('prévia dos oficiais: só o oficial lotado na unidade vê; o militar não oficial lotado na mesma unidade, não', async () => {
+    await poNoEstado(oficiais, 'previa');
+    expect((await daPrevia(oficialDaSecao, oficiais)).status).toBe(200);
+    expect((await lista(oficialDaSecao)).find((x) => x.escalaId === oficiais)).toMatchObject({ dosOficiais: true, estado: 'previa' });
+    expect((await daPrevia(naSecao, oficiais)).status).toBe(404);
+    expect((await lista(naSecao)).some((x) => x.escalaId === oficiais)).toBe(false);
+  });
+
+  it('publicada, retificada e remessada: toda conta lê (a de cima, a irmã, o não oficial até a escala dos oficiais), e a lista traz o estado e a etiqueta de retificação', async () => {
+    for (const [estado, emRetificacao] of [['publicada', false], ['retificada', false], ['publicada', true], ['remessada', false]] as const) {
+      await poNoEstado(ordinario, estado, emRetificacao);
+      await poNoEstado(oficiais, estado, emRetificacao);
+      for (const quem of [acima, irma, naSecao]) {
+        expect((await daPrevia(quem, ordinario)).status, `${estado} ordinário`).toBe(200);
+        expect((await daPrevia(quem, oficiais)).status, `${estado} oficiais`).toBe(200);
+        expect((await lista(quem)).find((x) => x.escalaId === ordinario), estado).toMatchObject({ estado, emRetificacao });
+      }
+      expect(((await (await daPrevia(irma, ordinario)).json()) as EscalaDoMes).estado).toMatchObject({ estado, emRetificacao });
+    }
+    await poNoEstado(ordinario, 'previa');
+    await poNoEstado(oficiais, 'previa');
+  });
+
+  it('rascunho: o militar comum recebe 404, e quem tem nível de acesso na unidade lê pela rota de montagem de hoje', async () => {
+    await rascunhar(rascunho);
+    expect((await daPrevia(pedro, rascunho)).status).toBe(404);
+    expect((await daPrevia(naSecao, rascunho)).status).toBe(404);
+    expect((await lista(pedro)).some((x) => x.escalaId === rascunho)).toBe(false);
+    expect((await api.pedir('escalante', 'GET', `/api/escalas/${rascunho}/mes/${mes}`)).status).toBe(200);
+  });
+
+  it('quem lê a escala em montagem por nível de acesso lê em qualquer estado (aqui, o escalante pela rota da corporação, até na prévia de outra seção)', async () => {
+    await poNoEstado(ordinario, 'previa');
+    expect((await api.pedir('escalante', 'GET', `/api/visualizacao/escalas/${ordinario}/mes/${mes}`)).status).toBe(200);
+    expect((await api.pedir('escalante', 'GET', `/api/visualizacao/escalas/${rascunho}/mes/${mes}`)).status).toBe(200);
   });
 });
