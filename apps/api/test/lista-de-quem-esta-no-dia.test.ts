@@ -84,6 +84,18 @@ describe('a lista de Militares mostra quem está na unidade no dia de referênci
   });
 });
 
+describe('a antiguidade repetida da ficha segue a mesma regra (6.48)', () => {
+  it('o colega de mesma antiguidade que já saiu da unidade não é mais acusado na ficha; o que continua, é', async () => {
+    const { secao, gb } = api.ids;
+    const a = await militar('ANTIG48A', [[secao, '2026-01-01', null]]);
+    const saiu = await militar('ANTIG48B', [[secao, '2026-03-01', '2026-03-19'], [gb, '2026-03-20', null]]);
+    const ficou = await militar('ANTIG48C', [[secao, '2026-01-01', null]]);
+    await api.banco.query('update militar set antiguidade = 9648 where id = any($1::uuid[])', [[a, saiu, ficou]]);
+    const ficha = await (await api.pedir('admin', 'GET', `/api/militares/${a}?mes=${PASSADO}`)).json();
+    expect(ficha.antiguidadeRepetidaCom).toEqual(['ANTIG48C']);
+  });
+});
+
 describe('a lista do Pecúlio segue a mesma regra (6.48)', () => {
   it('quem subiu, foi para a irmã ou saiu não aparece no Pecúlio da seção; quem subiu aparece no do grupamento, com a lotação de lá', async () => {
     expect(nomes((await peculio(api.ids.secao, PASSADO)).militares)).toEqual(['T48FICA']);

@@ -212,11 +212,11 @@ async function carregarFicha(c: Consulta, id: string, mes: string, usuarioId: st
   );
   // a CNH é do militar: aparece mesmo fora do quadro de motoristas (só não vale para a escala)
   const cnh = [...m.cnh].sort();
-  // compara com os ativos lotados, no mês, na mesma unidade; sem lotação ou inativo, não compara
+  // compara com os ativos que estão na mesma unidade no dia de referência (a mesma regra da lista, 6.48: quem já saiu não conta); sem lotação ou inativo, não compara
   const colegas = await c.query<{ id: string; nome_guerra: string; antiguidade: number | null }>(
     `select distinct m2.id, m2.nome_guerra, m2.antiguidade
        from rastreio l0
-       join rastreio l2 on l2.unidade_id = l0.unidade_id and l2.desde <= $3 and (l2.ate is null or l2.ate >= $2)
+       join rastreio l2 on l2.unidade_id = l0.unidade_id and l2.id = ${PERIODO_DO_DIA('l2.militar_id')}
        join situacao_militar sm2 on sm2.id = l2.situacao_id and sm2.escalavel
        join militar m2 on m2.id = l2.militar_id
       where l0.militar_id = $1 and l0.id = ${PERIODO_DO_DIA('l0.militar_id')}
@@ -478,7 +478,7 @@ export function rotasMilitares(dep: { banco: Banco; auth: Auth }): Hono<Ambiente
     ]);
   });
 
-  // O módulo Pecúlio: os militares lotados em :u e nas unidades de baixo no mês, com os dados de contato, e os aniversariantes do mês.
+  // O módulo Pecúlio: os militares que estão em :u e nas unidades de baixo no dia de referência do mês (ou chegam depois dele, ainda no mês), com os dados de contato, e os aniversariantes do mês.
   // Quem tem papel de cadastro em :u lê; quem edita cada bloco é o dono dele (a ficha diz).
   r.get('/unidades/:u/peculio', async (c) => {
     const u = c.req.param('u');
