@@ -32,7 +32,7 @@
 | Documento | Para que serve | Quem cuida | Situação |
 |---|---|---|---|
 | [decisoes.md](decisoes.md) | Registro de decisões da fase em andamento: uma linha por decisão, da mais nova para a mais velha, com onde está o resultado | PLANEJAMENTO | vigente |
-| [decisoes/fases-0-a-4.md](decisoes/fases-0-a-4.md) e [decisoes/fase-5.md](decisoes/fase-5.md) | Decisões das fases já fechadas (16 a 21/11/2026) | PLANEJAMENTO | concluído |
+| [decisoes/fases-0-a-4.md](decisoes/fases-0-a-4.md), [decisoes/fase-5.md](decisoes/fase-5.md) e [decisoes/fase-7.md](decisoes/fase-7.md) | Decisões das fases já fechadas (fases 0 a 5, de 16 a 21/11/2026; fase 7, de 24 e 25/11/2026) | PLANEJAMENTO | concluído |
 | [superpowers/specs/2026-11-16-migracao-design.md](superpowers/specs/2026-11-16-migracao-design.md) | Como o sistema é pensado hoje: decisões técnicas (D1 a D7), atores, cadastros, montagem da escala e módulos | PLANEJAMENTO | vigente |
 | [superpowers/specs/2026-11-16-esquema-banco.md](superpowers/specs/2026-11-16-esquema-banco.md) | Esquema do banco: diagrama ER e uma seção por tabela | DESENVOLVIMENTO | vigente (em dia até a migração 0022) |
 | [superpowers/specs/2026-11-16-telas.md](superpowers/specs/2026-11-16-telas.md) | Identidade visual, navegação e cada tela | PLANEJAMENTO | vigente |
@@ -110,8 +110,8 @@
 | [superpowers/plans/2026-11-25-fase6-50-peculio-geral-as-telas.md](superpowers/plans/2026-11-25-fase6-50-peculio-geral-as-telas.md) | Entrega 6.50: o Pecúlio Geral, as três telas, a ficha no lugar e a lista | DESENVOLVIMENTO | mesclado |
 | [superpowers/plans/2026-11-25-fase6-51-peculio-geral-pesquisa-e-selecao.md](superpowers/plans/2026-11-25-fase6-51-peculio-geral-pesquisa-e-selecao.md) | Entrega 6.51: a pesquisa com filtros, a árvore, o arquivo e a seleção | DESENVOLVIMENTO | mesclado (#246) |
 | [superpowers/plans/2026-11-25-fase6-52-atualizacao-em-lote.md](superpowers/plans/2026-11-25-fase6-52-atualizacao-em-lote.md) | Entrega 6.52: a atualização em lote, com prévia | DESENVOLVIMENTO | mesclado (#248) |
-| [superpowers/plans/2026-11-25-fase6-53-acabamento-do-piloto.md](superpowers/plans/2026-11-25-fase6-53-acabamento-do-piloto.md) | Entrega 6.53: acabamento do piloto (CNH pela hierarquia, o motivo do passado, textos e controles) | DESENVOLVIMENTO | em execução |
-| [superpowers/plans/2026-11-25-fase6-54-exportar-militares.md](superpowers/plans/2026-11-25-fase6-54-exportar-militares.md) | Entrega 6.54: exportar militares para Excel e a busca sem corte | DESENVOLVIMENTO | planejado |
+| [superpowers/plans/2026-11-25-fase6-53-acabamento-do-piloto.md](superpowers/plans/2026-11-25-fase6-53-acabamento-do-piloto.md) | Entrega 6.53: acabamento do piloto (CNH pela hierarquia, o motivo do passado, textos e controles) | DESENVOLVIMENTO | mesclado (#261) |
+| [superpowers/plans/2026-11-25-fase6-54-exportar-militares.md](superpowers/plans/2026-11-25-fase6-54-exportar-militares.md) | Entrega 6.54: exportar militares para Excel e a busca sem corte | DESENVOLVIMENTO | em execução |
 | [superpowers/plans/2026-11-25-fase7-1-api-do-voluntariado-pelo-militar.md](superpowers/plans/2026-11-25-fase7-1-api-do-voluntariado-pelo-militar.md) | Entrega 7.1: a coleta, o militar marca o próprio voluntariado e o registro das correções | DESENVOLVIMENTO | mesclado |
 | [superpowers/plans/2026-11-25-fase7-2-telas-do-voluntariado.md](superpowers/plans/2026-11-25-fase7-2-telas-do-voluntariado.md) | Entrega 7.2: Meu voluntariado, outro horário no dia, a coleta e as correções | DESENVOLVIMENTO | mesclado |
 | [superpowers/plans/2026-11-25-fase7-3-api-da-escala-previa.md](superpowers/plans/2026-11-25-fase7-3-api-da-escala-previa.md) | Entrega 7.3: lançar a prévia, o passado com justificativa, o registro e as leituras | DESENVOLVIMENTO | mesclado |
