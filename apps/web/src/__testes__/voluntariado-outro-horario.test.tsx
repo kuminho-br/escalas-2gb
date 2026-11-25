@@ -242,3 +242,50 @@ describe('achados da revisão da 7.2', () => {
     expect(painel.getByLabelText('Fim do horário 1')).toHaveValue('08:00');
   });
 });
+
+describe('achados do pool (6.53, item 20): o fim "00:00" e a linha só com o início', () => {
+  it('fechar o painel com a linha só com o início: ao abrir de novo, o erro está no campo do fim (e o botão do dia continua marcado com erro)', async () => {
+    api();
+    await abrirOMilitar();
+    const painel = await abrirOPainel(5);
+    await userEvent.click(painel.getByRole('button', { name: 'Adicionar horário' }));
+    await userEvent.type(painel.getByLabelText('Início do horário 1'), '0930');
+    await userEvent.keyboard('{Escape}');
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Horários extras do dia 5' })).toBeNull());
+    const reaberto = await abrirOPainel(5);
+    expect(await reaberto.findByRole('alert')).toHaveTextContent('Use a hora no formato HH:MM.');
+    expect(reaberto.getByLabelText('Fim do horário 1')).toHaveAttribute('aria-invalid', 'true');
+  });
+
+  it('Review Focus 4: o fim 00:00 vale 24:00 (20:00 às 00:00 é aceito e vai como 24:00); início e fim iguais continuam recusados, também 00:00 e 00:00', async () => {
+    const f = api();
+    await abrirOMilitar();
+    const painel = await abrirOPainel(5);
+    await userEvent.click(painel.getByRole('button', { name: 'Adicionar horário' }));
+    await preencher(painel, 1, '20:00', '00:00');
+    expect(painel.queryByRole('alert')).toBeNull();
+    await preencher(painel, 1, '10:00', '10:00');
+    expect(painel.getByRole('alert')).toHaveTextContent('O fim precisa ser depois do início.');
+    await preencher(painel, 1, '00:00', '00:00');
+    expect(painel.getByRole('alert')).toHaveTextContent('O fim precisa ser depois do início.');
+    await preencher(painel, 1, '20:00', '00:00');
+    await userEvent.keyboard('{Escape}');
+    await userEvent.click(salvar());
+    await waitFor(() => expect(corpoEnviado(f, `PUT /api/militares/m3/voluntariado/${MES}`)).toEqual({ faixas: [faixa(dia(5), '20:00', '24:00')] }));
+  });
+
+  it('a linha só com o início (o fim vazio) mostra o erro no campo do fim ao sair do início, e o painel não deixa a pessoa achar que está tudo certo', async () => {
+    api();
+    await abrirOMilitar();
+    const painel = await abrirOPainel(5);
+    await userEvent.click(painel.getByRole('button', { name: 'Adicionar horário' }));
+    await userEvent.type(painel.getByLabelText('Início do horário 1'), '0930');
+    await userEvent.tab();
+    // o foco foi para o fim, que ainda está vazio: sem erro enquanto a pessoa vai digitar
+    expect(painel.queryByRole('alert')).toBeNull();
+    // saiu do fim sem preencher: o erro aparece no campo
+    await userEvent.tab();
+    expect(await painel.findByRole('alert')).toHaveTextContent('Use a hora no formato HH:MM.');
+    expect(painel.getByLabelText('Fim do horário 1')).toHaveAttribute('aria-invalid', 'true');
+  });
+});

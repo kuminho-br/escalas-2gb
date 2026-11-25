@@ -60,8 +60,8 @@ function ConfiguracoesDaEscala() {
         <TabsContent value="voluntariado">
           {/* a coleta é do gestor NA unidade de trabalho (ou de uma acima dela): gestor só em outra unidade vê o estado e não muda */}
           <ColetaDoVoluntariado unidadeId={eu.unidade.id} podeMudar={ehGestorNaUnidade(eu)} />
-          <BlocosDoVoluntariado unidadeId={eu.unidade.id} podeMudar={podeMudar} />
-          <MilitaresDeOutrasUnidades unidadeId={eu.unidade.id} sigla={eu.unidade.sigla} podeMudar={podeMudar} />
+          <BlocosDoVoluntariado unidadeId={eu.unidade.id} podeMudar={ehGestorNaUnidade(eu)} />
+          <MilitaresDeOutrasUnidades unidadeId={eu.unidade.id} sigla={eu.unidade.sigla} podeMudar={ehGestorNaUnidade(eu)} />
         </TabsContent>
         <TabsContent value="modelos">
           <div className="mt-4 grid max-w-xl gap-3">

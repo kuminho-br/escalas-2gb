@@ -67,13 +67,14 @@ function Peculio() {
   // na árvore dela (uma unidade encerrada, por exemplo) entra debaixo da unidade do Pecúlio: nunca falta no filtro, e filtrar pela de cima a pega
   const unidadesDoFiltro = useMemo(() => {
     const conhecidas = new Map<string, UnidadeDaArvore>([...eu.unidades, ...eu.unidadesSoConsulta].map((u) => [u.id, u]));
-    const daUnidade = abaixoDe([...conhecidas.values()], unidade.id);
+    // com o interruptor desligado só a unidade do Pecúlio está na lista (as de baixo não aparecem como opção)
+    const daUnidade = incluirAsDeBaixo ? abaixoDe([...conhecidas.values()], unidade.id) : new Set([unidade.id]);
     const doFiltro = [...conhecidas.values()].filter((u) => daUnidade.has(u.id));
     for (const m of lista.data?.militares ?? []) {
       if (!doFiltro.some((u) => u.id === m.lotacaoId)) doFiltro.push({ id: m.lotacaoId, sigla: m.lotacao, maeId: m.lotacaoId === unidade.id ? null : unidade.id });
     }
     return doFiltro;
-  }, [eu.unidades, eu.unidadesSoConsulta, unidade.id, lista.data]);
+  }, [eu.unidades, eu.unidadesSoConsulta, unidade.id, lista.data, incluirAsDeBaixo]);
   // o filtro só vale enquanto a unidade escolhida está na árvore: ao trocar de unidade no Topo, ele volta a "Todas" em vez de esvaziar a lista
   const filtro = unidadesDoFiltro.some((u) => u.id === lotacao) ? lotacao : '';
   const filtrados = useMemo(() => {

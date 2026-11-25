@@ -235,12 +235,13 @@ describe('a ficha de consulta', () => {
     expect(itens[0]!.textContent).toBe('LTSde 10/12/2026 a 20/12/2026');
   });
 
-  it('"Abrir a ficha completa" só aparece quando a API diz que pode, e leva à ficha (a quem tem nível de acesso)', async () => {
-    // quem tem nível de acesso na lotação do militar: o auxiliar (a barreira do módulo de escalas deixa passar)
+  it('6.53: a ficha de consulta nunca oferece "Abrir a ficha completa": a rota já tentou a completa, e o botão levaria à mesma página', async () => {
+    // a API de consulta diz que pode, mas a ficha completa respondeu 403 (a rota caiu na de consulta): o botão apontaria para esta mesma página
     api({ '/api/eu': { status: 200, corpo: EU_EXEMPLO }, 'GET /api/consulta/militares/m1': { status: 200, corpo: FICHA_COMPLETA } });
     abrir('/peculio/militar/m1');
-    const link = await screen.findByRole('link', { name: 'Abrir a ficha completa' });
-    expect(link).toHaveAttribute('href', '/peculio/militar/m1');
+    await screen.findByRole('heading', { level: 2, name: /ANDRADE/ });
+    expect(screen.queryByRole('link', { name: 'Abrir a ficha completa' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Abrir a ficha completa' })).toBeNull();
   });
 
   it('"Voltar à busca" leva ao mesmo resultado', async () => {

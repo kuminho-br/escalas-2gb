@@ -437,6 +437,20 @@ describe('configurações: a coleta do voluntariado (7.2)', () => {
     expect(screen.getByText(/Só o gestor liga ou desliga a coleta/)).toBeInTheDocument();
   });
 
+  it('Review Focus 5 (6.53): o gestor de OUTRA unidade vê os blocos do voluntariado e os militares de outras unidades sem poder ligar, desligar, trazer nem tirar', async () => {
+    const outra = { id: 'u-outra', sigla: 'OUTRA', caminho: ['CBMPE', 'DGO', 'OUTRA'], nivel: 2, tipo: 'divisao' as const, maeId: null };
+    const gestorDeOutra = { ...EU_EXEMPLO, papeis: [{ papel: 'escalante' as const, unidadeId: 'u-1sb', unidadeSigla: '1ª SB' }, { papel: 'gestor' as const, unidadeId: 'u-outra', unidadeSigla: 'OUTRA' }], unidades: [...EU_EXEMPLO.unidades, outra] };
+    const f = api({ [`GET ${ESCALAS}`]: { status: 200, corpo: ESCALAS_LISTA }, 'GET /api/unidades/u-1sb/externos': { status: 200, corpo: [{ vinculoId: 'v1', militarId: 'm-ext', posto: 'SD', nomeGuerra: 'EXTERNO', matricula: '990005-5', lotacaoSigla: '2ª SB', desde: '2026-11-20' }] }, ...doMes(MESES[0]!, false), ...doMes(MESES[1]!, false), ...doMes(MESES[2]!, false) }, gestorDeOutra);
+    await aba();
+    const marcas = await screen.findAllByRole('checkbox', { name: /entra nos blocos do voluntariado/ });
+    for (const marca of marcas) expect(marca).toBeDisabled();
+    expect(screen.getAllByText(/Só o gestor ou o administrador muda\./).length).toBeGreaterThan(0);
+    expect(await screen.findByText('EXTERNO', { exact: false })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /^Tirar / })).toBeNull();
+    expect(screen.queryByLabelText(/Nome, nome de guerra ou matrícula/i)).toBeNull();
+    expect(f.mock.calls.some(([, init]) => init?.method && init.method !== 'GET')).toBe(false);
+  });
+
   it('o gestor da unidade de trabalho (ou de uma acima dela) liga normalmente', async () => {
     const acima = { id: 'u-gb', sigla: '2º GB', caminho: ['CBMPE', 'DGO', 'DInter/1', '2º GB'], nivel: 3, tipo: 'grupamento' as const, maeId: null };
     const gestorAcima = { ...EU_EXEMPLO, papeis: [{ papel: 'escalante' as const, unidadeId: 'u-1sb', unidadeSigla: '1ª SB' }, { papel: 'gestor' as const, unidadeId: 'u-gb', unidadeSigla: '2º GB' }], unidades: [acima, ...EU_EXEMPLO.unidades] };
