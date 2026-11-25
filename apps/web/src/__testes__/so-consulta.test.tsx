@@ -77,14 +77,14 @@ const EFETIVO: EfetivoDoDia = {
   }],
   desativadas: [{ guarnicaoId: 'g9', nome: 'Antiga', viatura: null }], cotas: [],
 };
-const MILITARES: MilitarDoVoluntariado[] = [{ militarId: 'm1', posto: 'SD', nomeGuerra: 'CABRAL', matricula: '990021-1', equipe: 'Alfa', jornada: 'pronto', voluntarioJes: true, lancado: true, horas: 12, dias: 1 }];
+const MILITARES: MilitarDoVoluntariado[] = [{ militarId: 'm1', posto: 'SD', nomeGuerra: 'CABRAL', matricula: '990021-1', equipe: 'Alfa', jornada: 'pronto', voluntarioJes: true, lancado: true, horas: 12, dias: 1, peloMilitar: false, correcoes: 0 }];
 const MES_DO_VOLUNTARIADO = (() => {
   const d = new Date();
   const proximo = new Date(d.getFullYear(), d.getMonth() + 1, 1);
   return `${proximo.getFullYear()}-${String(proximo.getMonth() + 1).padStart(2, '0')}`;
 })();
 const BLOCOS = [{ inicio: '00:00', fim: '12:00' }, { inicio: '12:00', fim: '24:00' }];
-const LISTA: VoluntariadoDoMes = { mes: MES_DO_VOLUNTARIADO, militares: MILITARES };
+const LISTA: VoluntariadoDoMes = { mes: MES_DO_VOLUNTARIADO, militares: MILITARES, coletaAberta: false };
 const DO_MILITAR: VoluntariadoDoMilitar = {
   militarId: 'm1', mes: MES_DO_VOLUNTARIADO, faixas: [{ data: `${MES_DO_VOLUNTARIADO}-05`, inicio: '00:00', fim: '12:00' }], doMesAnterior: [], blocos: BLOCOS, folgas: null,
 };

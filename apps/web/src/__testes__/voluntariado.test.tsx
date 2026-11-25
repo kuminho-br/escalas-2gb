@@ -11,10 +11,10 @@ import { abrir, chamadasA, corpoEnviado, EU_EXEMPLO, simularApi, trava } from '.
 // Cenário fictício: 5 militares, 2 já lançados; o mês de lançamento é o mês seguinte ao atual.
 const MES = somarMeses(mesAtual(), 1);
 const militar = (id: string, nomeGuerra: string, extra: Partial<MilitarDoVoluntariado> = {}): MilitarDoVoluntariado => ({
-  militarId: id, posto: 'SD', nomeGuerra, matricula: `99002${id.slice(1)}-1`, equipe: 'Alfa', jornada: 'pronto', voluntarioJes: true, lancado: false, horas: 0, dias: 0, ...extra,
+  militarId: id, posto: 'SD', nomeGuerra, matricula: `99002${id.slice(1)}-1`, equipe: 'Alfa', jornada: 'pronto', voluntarioJes: true, lancado: false, horas: 0, dias: 0, peloMilitar: false, correcoes: 0, ...extra,
 });
 const LISTA: VoluntariadoDoMes = {
-  mes: MES,
+  mes: MES, coletaAberta: false,
   militares: [
     militar('m3', 'ANDRADE', { voluntarioJes: false }),
     militar('m1', 'CABRAL', { lancado: true, horas: 48, dias: 9 }),
@@ -103,7 +103,7 @@ describe('voluntariado: calendário e salvar', () => {
   });
 
   it('sem militares na seção no mês, a tela diz isso', async () => {
-    api({}, { mes: MES, militares: [] });
+    api({}, { mes: MES, militares: [], coletaAberta: false });
     abrir('/voluntariado');
     expect(await screen.findByText('Nenhum militar neste mês')).toBeInTheDocument();
   });
