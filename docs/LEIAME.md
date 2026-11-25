@@ -32,7 +32,7 @@
 | Documento | Para que serve | Quem cuida | Situação |
 |---|---|---|---|
 | [decisoes.md](decisoes.md) | Registro de decisões da fase em andamento: uma linha por decisão, da mais nova para a mais velha, com onde está o resultado | PLANEJAMENTO | vigente |
-| [decisoes/fases-0-a-4.md](decisoes/fases-0-a-4.md) e [decisoes/fase-5.md](decisoes/fase-5.md) | Decisões das fases já fechadas (16 a 21/11/2026) | PLANEJAMENTO | concluído |
+| [decisoes/fases-0-a-4.md](decisoes/fases-0-a-4.md), [decisoes/fase-5.md](decisoes/fase-5.md) e [decisoes/fase-7.md](decisoes/fase-7.md) | Decisões das fases já fechadas (fases 0 a 5, de 16 a 21/11/2026; fase 7, de 24 e 25/11/2026) | PLANEJAMENTO | concluído |
 | [superpowers/specs/2026-11-16-migracao-design.md](superpowers/specs/2026-11-16-migracao-design.md) | Como o sistema é pensado hoje: decisões técnicas (D1 a D7), atores, cadastros, montagem da escala e módulos | PLANEJAMENTO | vigente |
 | [superpowers/specs/2026-11-16-esquema-banco.md](superpowers/specs/2026-11-16-esquema-banco.md) | Esquema do banco: diagrama ER e uma seção por tabela | DESENVOLVIMENTO | vigente (em dia até a migração 0022) |
 | [superpowers/specs/2026-11-16-telas.md](superpowers/specs/2026-11-16-telas.md) | Identidade visual, navegação e cada tela | PLANEJAMENTO | vigente |
