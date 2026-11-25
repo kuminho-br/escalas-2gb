@@ -211,7 +211,7 @@ function ehBuscaSimples(f: FiltrosDaBusca): boolean {
 
 function Resultado({ filtros, nivel }: { filtros: FiltrosDaBusca; nivel: boolean }) {
   if (!nivel && ehBuscaSimples(filtros)) return <ResultadoSimples texto={filtros.texto ?? ''} unidade={filtros.unidades?.[0]?.id ?? ''} />;
-  return <ResultadoDosFiltros filtros={filtros} />;
+  return <ResultadoDosFiltros filtros={filtros} nivel={nivel} />;
 }
 
 function ResultadoSimples({ texto, unidade }: { texto: string; unidade: string }) {
@@ -232,7 +232,7 @@ function ResultadoSimples({ texto, unidade }: { texto: string; unidade: string }
   );
 }
 
-function ResultadoDosFiltros({ filtros }: { filtros: FiltrosDaBusca }) {
+function ResultadoDosFiltros({ filtros, nivel }: { filtros: FiltrosDaBusca; nivel: boolean }) {
   const tem = (filtros.texto ?? '').length >= 3 || Boolean(filtros.unidades?.length) || Object.keys(filtros).some((k) => k !== 'texto' && k !== 'unidades');
   const busca = useQuery({ ...consultaDaBuscaComFiltros(filtros), enabled: tem });
   if (!tem) return <p className="mt-8 max-w-xl text-apagado">Busque pelo nome, pelo nome de guerra ou pela matrícula. Para ver quem está lotado numa unidade, escolha a unidade em “Lotados em”.</p>;
@@ -247,9 +247,10 @@ function ResultadoDosFiltros({ filtros }: { filtros: FiltrosDaBusca }) {
         <p className="max-w-xl text-apagado">Nenhum militar encontrado. Confira o nome ou a matrícula, ou escolha outra unidade.</p>
       ) : (
         <>
-          <SelecionarEstes militares={militares} haMais={haMais} />
+          {/* a seleção é de quem tem nível de acesso: o militar comum (que também cai aqui pela árvore) vê só a lista */}
+          {nivel && <SelecionarEstes militares={militares} haMais={haMais} />}
           <ListaDeMilitares rotulo="Militares encontrados">
-            {militares.map((m) => <LinhaDaPesquisa key={m.id} m={m} selecionavel texto={filtros.texto ?? ''} unidade={filtros.unidades?.length === 1 ? filtros.unidades[0]!.id : ''} />)}
+            {militares.map((m) => <LinhaDaPesquisa key={m.id} m={m} selecionavel={nivel} texto={filtros.texto ?? ''} unidade={filtros.unidades?.length === 1 ? filtros.unidades[0]!.id : ''} />)}
           </ListaDeMilitares>
         </>
       )}

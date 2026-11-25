@@ -166,6 +166,23 @@ describe('pela árvore', () => {
   });
 });
 
+describe('achado da revisão da 6.51', () => {
+  it('o militar comum que busca pela árvore (vai pelo POST) não vê marca de seleção nem a frase "ficam de fora"', async () => {
+    const dele = { ...RESULTADO, militares: [linha('m1', 'ANDRADE', { podeAlterar: false }), linha('m2', 'BARRETO', { podeAlterar: false })] };
+    api({ [BUSCAR]: { status: 200, corpo: dele } }, COMUM);
+    abrir('/peculio/pesquisar');
+    await userEvent.click(await screen.findByRole('button', { name: 'Pela árvore' }));
+    await userEvent.click(await screen.findByRole('checkbox', { name: 'Marcar 2º GB' }));
+    await userEvent.click(screen.getByRole('checkbox', { name: 'Marcar 3º GB' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Buscar' }));
+    await screen.findByRole('list', { name: 'Militares encontrados' });
+    expect(screen.getByText('ANDRADE')).toBeInTheDocument();
+    expect(screen.queryByRole('checkbox')).toBeNull();
+    expect(screen.queryByText(/ficam? de fora/)).toBeNull();
+    expect(screen.queryByRole('button', { name: /Selecionar estes/ })).toBeNull();
+  });
+});
+
 describe('por arquivo de matrículas', () => {
   const arquivo = (conteudo: string) => new File([conteudo], 'matriculas.csv', { type: 'text/csv' });
 
