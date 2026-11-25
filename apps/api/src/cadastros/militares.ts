@@ -485,6 +485,8 @@ export function rotasMilitares(dep: { banco: Banco; auth: Auth }): Hono<Ambiente
     const mes = mesDaConsulta(c);
     if (!Mes.safeParse(mes).success) return c.json({ erro: 'Mês inválido: use o formato aaaa-mm.' }, 400);
     const { primeiro, ultimo } = limitesDoMes(mes);
+    // `?abaixo=nao`: só os lotados direto na unidade; qualquer outro valor (ou nenhum) traz também os das unidades de baixo (6.50)
+    const soDiretos = c.req.query('abaixo') === 'nao';
     const { rows } = await dep.banco.query<LinhaBanco & { lotacao: string; lotacao_id: string }>(
       `${SELECT_MILITAR}, un.sigla as lotacao, un.id as lotacao_id
          from rastreio l
@@ -494,7 +496,7 @@ export function rotasMilitares(dep: { banco: Banco; auth: Auth }): Hono<Ambiente
          join posto_grad p on p.id = m.posto_grad_id
          left join equipe e on e.id = l.equipe_id
          left join situacao_militar sm on sm.id = l.situacao_id
-        where alvo.caminho @> un.caminho and l.desde <= $3 and (l.ate is null or l.ate >= $2)
+        where ${soDiretos ? 'un.id = alvo.id' : 'alvo.caminho @> un.caminho'} and l.desde <= $3 and (l.ate is null or l.ate >= $2)
           and l.id = ${PERIODO_NA_UNIDADE('m.id')}
         order by p.ordem desc, m.antiguidade asc nulls last, m.nome_guerra`,
       [u, primeiro, ultimo, diaDeReferencia(mes)],

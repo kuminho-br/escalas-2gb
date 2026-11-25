@@ -9,6 +9,7 @@ import { Button } from '@/componentes/ui/button';
 import { Input } from '@/componentes/ui/input';
 import { Label } from '@/componentes/ui/label';
 import { Moldura } from '@/componentes/Moldura';
+import { classeDaLinhaDeMilitar, ListaDeMilitares } from '@/componentes/peculio/ListaDeMilitares';
 
 export const MSG_BUSCA_CURTA = 'Digite pelo menos 3 letras ou escolha uma unidade.';
 export const MSG_HA_MAIS = 'Há mais militares. Refine a busca.';
@@ -94,11 +95,10 @@ function Resultado({ texto, unidade }: { texto: string; unidade: string }) {
     <div className="mt-6 max-w-3xl">
       {haMais && <p role="status" className="mb-3 rounded-md bg-pendencia-fundo px-3 py-2 text-sm text-pendencia">{MSG_HA_MAIS}</p>}
       {/* o mesmo desenho da lista do Pecúlio: posto e nome de guerra, a lotação no canto, e embaixo o nome completo, a matrícula e o quadro */}
-      <div className="rounded-xl border border-linha bg-superficie">
-        <ul aria-label="Militares encontrados" className="p-2">
+      <ListaDeMilitares rotulo="Militares encontrados">
           {militares.map((m) => (
             <li key={m.id}>
-              <Link to="/peculio/militar/$id" params={{ id: m.id }} search={{ de: 'pesquisa', texto: texto || undefined, unidade: unidade || undefined }} className="grid gap-0.5 rounded-lg px-3 py-2 hover:bg-accent">
+              <Link to="/peculio/militar/$id" params={{ id: m.id }} search={{ de: 'pesquisa', texto: texto || undefined, unidade: unidade || undefined }} className={classeDaLinhaDeMilitar}>
                 <span className="flex items-center gap-2">
                   <span className="font-cond text-apoio text-apagado">{m.postoGrad}</span>
                   <span className="font-cond text-base font-semibold">{m.nomeGuerra}</span>
@@ -112,8 +112,7 @@ function Resultado({ texto, unidade }: { texto: string; unidade: string }) {
               </Link>
             </li>
           ))}
-        </ul>
-      </div>
+      </ListaDeMilitares>
     </div>
   );
 }

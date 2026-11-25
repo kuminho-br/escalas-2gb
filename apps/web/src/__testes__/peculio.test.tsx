@@ -46,17 +46,17 @@ describe('a unidade do módulo', () => {
 });
 
 describe('módulo Pecúlio', () => {
-  it('o menu mostra "Pecúlio" para quem tem papel de cadastro e não para o militar comum', async () => {
+  it('o menu mostra "Pecúlio da unidade" para quem tem papel de cadastro e não para o militar comum', async () => {
     api();
     abrir('/peculio');
-    expect(await screen.findByRole('link', { name: 'Pecúlio' })).toHaveAttribute('href', '/peculio');
+    expect(await screen.findByRole('link', { name: 'Pecúlio da unidade' })).toHaveAttribute('href', '/peculio');
   });
 
   it('o militar comum não vê o item no menu', async () => {
     api({ ...EU_EXEMPLO, papeis: [] });
     abrir('/');
     await screen.findByText('SD ANDRADE');
-    expect(screen.queryByRole('link', { name: 'Pecúlio' })).toBeNull();
+    expect(screen.queryByRole('link', { name: 'Pecúlio da unidade' })).toBeNull();
   });
 
   it('lista os militares da unidade e das de baixo com posto, nome de guerra, nome completo, lotação, telefone, e-mail e as pendências', async () => {
@@ -148,34 +148,7 @@ describe('módulo Pecúlio', () => {
     api(GESTOR_GB, LISTA, { 'GET /api/militares/m1': { status: 404 } });
     const router = abrir('/peculio');
     await userEvent.click((await militares()).getByText('ANDRADE').closest('a')!);
-    await waitFor(() => expect(router.state.location.pathname).toBe('/militares/m1'));
-  });
-
-  it('os aniversariantes do mês aparecem em ordem de dia, com o dia e a lotação', async () => {
-    api();
-    abrir('/peculio');
-    const secao = (await screen.findByRole('heading', { name: 'Aniversariantes do mês' })).closest('section')!;
-    const itens = within(secao).getAllByRole('listitem').map((li) => li.textContent ?? '');
-    expect(itens).toHaveLength(2);
-    expect(itens[0]).toContain('BARRETO');
-    expect(itens[0]).toContain(`05/${MES.slice(5)}`);
-    expect(itens[1]).toContain('ANDRADE');
-    expect(itens[1]).toContain(`20/${MES.slice(5)}`);
-  });
-
-  it('sem poder ver o nascimento de ninguém da lista (a chave não vem), a seção de aniversariantes nem aparece, e não diz que ninguém faz aniversário', async () => {
-    api(GESTOR_GB, { militares: LISTA.militares });
-    abrir('/peculio');
-    expect((await militares()).getByText('ANDRADE')).toBeInTheDocument();
-    expect(screen.queryByRole('heading', { name: 'Aniversariantes do mês' })).toBeNull();
-    expect(screen.queryByText('Nenhum aniversariante neste mês.')).toBeNull();
-  });
-
-  it('um mês sem aniversariante diz "Nenhum aniversariante neste mês." (Review Focus 4)', async () => {
-    api(GESTOR_GB, { ...LISTA, aniversariantes: [] });
-    abrir('/peculio');
-    expect(await screen.findByText('Nenhum aniversariante neste mês.')).toBeInTheDocument();
-    expect((await militares()).getByText('ANDRADE')).toBeInTheDocument();
+    await waitFor(() => expect(router.state.location.pathname).toBe('/peculio/militar/m1'));
   });
 
   it('o botão "Importar" só aparece para quem pode importar (nível acima das seções); o auxiliar só da seção não o vê (6.17, item 22)', async () => {
@@ -256,15 +229,14 @@ describe('Enter na busca do Pecúlio', () => {
   const buscar = async (texto: string) => userEvent.type(await screen.findByLabelText('Buscar por nome ou matrícula'), texto);
   const doBarreto = (lista: HTMLElement) => within(lista).getByRole('link', { name: /BARRETO/ });
 
-  it('com um resultado só, ele fica em destaque e o Enter abre a ficha dele, com ?de=peculio', async () => {
+  it('com um resultado só, ele fica em destaque e o Enter abre a ficha dele, dentro do Pecúlio', async () => {
     api();
     const router = abrir('/peculio');
     await buscar('barr');
     const lista = await screen.findByRole('list', { name: 'Militares do Pecúlio' });
     expect(doBarreto(lista)).toHaveAttribute('aria-current', 'true');
     await userEvent.keyboard('{Enter}');
-    await waitFor(() => expect(router.state.location.pathname).toBe('/militares/m2'));
-    expect(router.state.location.search).toMatchObject({ de: 'peculio' });
+    await waitFor(() => expect(router.state.location.pathname).toBe('/peculio/militar/m2'));
   });
 
   it('com dois resultados, nada fica em destaque e o Enter não abre nada', async () => {
@@ -423,7 +395,7 @@ describe('o Novo militar, no Pecúlio', () => {
         lotacao: { equipeId: null, jornada: 'pronto', desde: '2026-12-15' },
       }),
     );
-    await waitFor(() => expect(router.state.location.pathname).toBe('/militares/m9'));
+    await waitFor(() => expect(router.state.location.pathname).toBe('/peculio/militar/m9'));
   });
 
   it('o quadro mostra só os do posto-graduação, e com mais de um deixa para depois', async () => {

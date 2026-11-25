@@ -27,6 +27,7 @@ export function FichaCompleta({ ficha, eu, completa, voltarPara, voltarBusca }: 
         complemento={<span className="font-cond text-apagado">{ficha.matricula}</span>}
         voltarPara={voltarPara}
         voltarBusca={voltarBusca}
+        voltarSempre={completa}
         resumo={resumoDaLotacao(ficha.rastreio)}
         aviso={ficha.pendencias.length > 0 && <AvisoDeCadastro ficha={ficha} />}
       >

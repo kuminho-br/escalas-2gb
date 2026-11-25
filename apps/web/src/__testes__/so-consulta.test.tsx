@@ -286,7 +286,7 @@ describe('o trilho e o endereço numa unidade só de consulta', () => {
   it('o Pecúlio, que é de outro módulo, continua aberto: a unidade dele é a do nível de acesso mais alto', async () => {
     const f = api(CHEFE, { [`GET /api/unidades/u-divop/peculio`]: { status: 200, corpo: { militares: [] } } });
     const router = abrirEmConsulta('/peculio');
-    await screen.findByRole('heading', { name: 'Pecúlio' });
+    await screen.findByRole('heading', { name: 'Pecúlio da unidade' });
     expect(router.state.location.pathname).toBe('/peculio');
     await waitFor(() => expect(chamadasA(f, 'GET /api/unidades/u-divop/peculio')).toBeGreaterThan(0));
   });
@@ -298,8 +298,8 @@ describe('quem só tem unidades de consulta: o oficial, com a marca ligada', () 
     abrir('/');
     const cartao = await screen.findByRole('link', { name: /Confecção de escalas/ });
     expect(cartao).toHaveAttribute('href', '/grade');
-    // o Pecúlio é de todos; sem nível de acesso, o cartão leva direto à Consulta de militares
-    expect(screen.getByRole('link', { name: /Pecúlio/ })).toHaveAttribute('href', '/consulta');
+    // o Pecúlio Geral é de todos; sem nível de acesso, o cartão leva direto à pesquisa de militares
+    expect(screen.getByRole('link', { name: /Pecúlio Geral/ })).toHaveAttribute('href', '/peculio/pesquisar');
   });
 
   it('sem nenhuma unidade de consulta, o cartão não aparece (o militar comum de sempre)', async () => {

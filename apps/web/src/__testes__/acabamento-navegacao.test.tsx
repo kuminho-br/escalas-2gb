@@ -96,20 +96,25 @@ describe('o aviso "Essa área é de outro nível de acesso." (6.16, Task 3)', ()
   });
 });
 
-describe('a ficha aberta pelo Pecúlio (6.16, Task 3)', () => {
-  it('item 5: clicar em outro militar da lista mantém ?de=peculio, e o trilho continua o do Pecúlio', async () => {
+describe('a ficha aberta pelo Pecúlio Geral (6.16, Task 3; 6.50)', () => {
+  it('a ficha dentro do Pecúlio mantém o trilho do Pecúlio Geral (sem o da Confecção) e o Voltar leva à lista da unidade', async () => {
     simularApi({
       '/api/eu': { status: 200, corpo: EU_EXEMPLO },
-      'GET /api/unidades/u-1sb/militares': { status: 200, corpo: [linha('m1', 'ANDRADE'), linha('m2', 'BARRETO')] },
       'GET /api/militares/m1': { status: 404, corpo: { erro: 'Militar não encontrado.' } },
-      'GET /api/militares/m2': { status: 404, corpo: { erro: 'Militar não encontrado.' } },
+    });
+    const router = abrir('/peculio/militar/m1');
+    const trilho = await screen.findByRole('navigation', { name: 'Navegação principal' });
+    expect(within(trilho).getByRole('link', { name: 'Pecúlio da unidade' })).toBeInTheDocument();
+    expect(within(trilho).queryByRole('link', { name: 'Grade geral' })).toBeNull();
+    expect(router.state.location.pathname).toBe('/peculio/militar/m1');
+  });
+
+  it('o endereço antigo /militares/$id?de=peculio leva à ficha dentro do Pecúlio, sem tela em branco', async () => {
+    simularApi({
+      '/api/eu': { status: 200, corpo: EU_EXEMPLO },
+      'GET /api/militares/m1': { status: 404, corpo: { erro: 'Militar não encontrado.' } },
     });
     const router = abrir('/militares/m1?de=peculio');
-    await userEvent.click(await screen.findByRole('link', { name: /BARRETO/ }));
-    await waitFor(() => expect(router.state.location.pathname).toBe('/militares/m2'));
-    expect(router.state.location.search).toMatchObject({ de: 'peculio' });
-    const trilho = screen.getByRole('navigation', { name: 'Navegação principal' });
-    expect(within(trilho).getByRole('link', { name: 'Pecúlio' })).toBeInTheDocument();
-    expect(within(trilho).queryByRole('link', { name: 'Grade geral' })).toBeNull();
+    await waitFor(() => expect(router.state.location.pathname).toBe('/peculio/militar/m1'));
   });
 });
