@@ -31,7 +31,7 @@ export function ExportarMilitares({ filtros }: { filtros: FiltrosDaBusca | null 
   if (!temBusca && selecionados.length === 0) return null;
   return (
     <>
-      <Button type="button" variant="secundario" className="mt-4" onClick={() => setAberta(true)}>
+      <Button type="button" variant="secundario" className="mt-4 justify-self-start" onClick={() => setAberta(true)}>
         <FileSpreadsheet aria-hidden />
         Exportar
       </Button>

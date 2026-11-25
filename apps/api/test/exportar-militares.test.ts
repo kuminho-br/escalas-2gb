@@ -1,7 +1,7 @@
 import { COLUNAS_DA_EXPORTACAO } from 'contratos';
 import ExcelJS from 'exceljs';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { hojeRecife } from '../src/datas.ts';
+import { hojeRecife, somarDias } from '../src/datas.ts';
 import { COLUNAS } from '../src/importacao/peculio.ts';
 import { inserir } from './banco-teste.ts';
 import { montarApi, type ApiDeTeste, type Quem } from './apoio-api.ts';
@@ -142,6 +142,22 @@ describe('o formato de cada célula (o que a importação lê)', () => {
     expect(ws.getColumn(col('NASCIMENTO')).numFmt).toBe('@');
     expect(ws.getColumn(col('CPF')).numFmt).toBe('@');
     expect(ws.getCell(2, col('ANTIGUIDADE')).type).toBe(ExcelJS.ValueType.Number);
+  });
+});
+
+describe('o período de hoje (como a ficha e a pesquisa mostram)', () => {
+  it('com uma mudança marcada para depois, a planilha traz a equipe, a jornada, o quadro e a situação de HOJE, não os do período futuro', async () => {
+    const alfa = await inserir(api.banco, 'equipe', { unidade_id: sb2, nome: 'Alfa', ordem_ciclo: 1 });
+    const bravo = await inserir(api.banco, 'equipe', { unidade_id: sb2, nome: 'Bravo', ordem_ciclo: 2 });
+    const postoId = (await api.banco.query<{ id: string }>("select id from posto_grad where sigla = 'SD'")).rows[0]!.id;
+    const id = await inserir(api.banco, 'militar', { matricula: '990990-0', posto_grad_id: postoId, nome_guerra: 'MARCADO', nome_completo: 'Fulano MARCADO', antiguidade: 999 });
+    await inserir(api.banco, 'rastreio', { militar_id: id, unidade_id: sb2, jornada: 'pronto', desde: dia1, ate: somarDias(hoje, 10), quadro_id: quadros.QBMG, equipe_id: alfa });
+    await inserir(api.banco, 'rastreio', { militar_id: id, unidade_id: sb2, jornada: 'adm', desde: somarDias(hoje, 11), quadro_id: quadros.QBMG });
+    m.MARCADO = id;
+    const l = deMatricula((await lerArquivo(await exportar('gestorGb', { ids: [id], colunas: TODAS }))).linhas, 'MARCADO');
+    expect(l).toMatchObject({ 'JORNADA': 'PRONTO', 'EQUIPE': 'Alfa', 'QUADRO': 'QBMG', 'LOTAÇÃO': '2ª SB' });
+    expect(l['SITUAÇÃO']).not.toBe('');
+    void bravo;
   });
 });
 
