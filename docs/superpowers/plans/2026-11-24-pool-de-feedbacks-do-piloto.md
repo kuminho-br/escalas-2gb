@@ -26,6 +26,7 @@
 | 10 | 24/11 | usuário | A caixa "Lotação" do Pecúlio (lista plana: Todas, 1ª SB, 2ª SB, 7ª SB, DGO, DInter/1) não serve mais na árvore genérica: sai, e entra a escolha pela árvore. Revisão geral de quem ainda usa a lista plana de unidades: Pecúlio e Consulta ("Lotados em"), ficha (Alterar situação e Novo militar), Acesso ao sistema (unidade do nível de acesso) | secundária | aberto | — |
 | 11 | 24/11 | usuário | "Alterar situação" na ficha: a lotação de destino (lista plana com "DA (1º GB)", "DA (2º GB)" …) tem de seguir a lógica da árvore genérica, escolhida nó a nó | secundária | aberto (junto com o 10) | — |
 | 12 | 24/11 | usuário | Escala dos oficiais: o dia vermelho só conta no serviço do tipo ordinário (Saldo); JES, PJES e Diária são extra e não contam | secundária | planejado | 6.44 |
+| 13 | 24/11 | usuário | Memorial de cálculo dos oficiais: a frase da sobra lista do mais antigo para o mais moderno; a cota começa pelo mais moderno, então a lista começa por ele | secundária | planejado | 6.44 |
 
 ## Já conhecidos antes do pool
 

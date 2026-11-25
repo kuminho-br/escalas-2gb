@@ -24,6 +24,12 @@
 1. **Mês migrado de outro serviço** (a 6.27 criou escalas com o serviço que o mês usava): o serviço do mês antigo é ordinário e continua contando.
 2. **Acumulado** (Painel de saldo): mesma regra que o mês.
 
+### Task 0: a ordem da sobra no memorial (acréscimo do usuário, 24/11)
+
+**Files:** Modify `apps/web/src/componentes/oficiais/MemorialDeCalculo.tsx` (e o painel "Como as cotas foram calculadas", se repetir a frase); Test `apps/web/src/__testes__/oficiais.test.tsx`
+
+- [ ] **Step 1:** confirmar que quem recebe a sobra são os mais modernos (se não, parar e avisar a PLANEJAMENTO); testes: a frase "…entregues aos mais modernos da ordem: …" lista do mais moderno para o mais antigo (3 sobras). **Step 2:** FAIL. **Step 3:** implementar. **Step 4:** PASS. **Step 5:** commit `Fase 6.44: a sobra listada a partir do mais moderno`.
+
 ### Task 1
 
 **Files:** Modify `apps/api/src/oficiais/leitura.ts`; Test `apps/api/test/oficiais*.test.ts`
