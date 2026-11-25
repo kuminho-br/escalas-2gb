@@ -405,10 +405,10 @@ describe('voluntariado: celular', () => {
     const rotulos = document.querySelector('[data-rotulos-dos-cortes]') as HTMLElement;
     const linhaDeRotulos = rotulos.parentElement as HTMLElement;
     expect(linhaDeRotulos.parentElement).toHaveClass('sticky', 'top-0');
-    expect(linhaDeRotulos).toHaveClass('grid-cols-[3.5rem_1fr]', 'border', 'p-1.5');
+    expect(linhaDeRotulos).toHaveClass('grid-cols-[3.5rem_1fr_2.75rem]', 'border', 'p-1.5');
     expect(rotulos).toHaveClass('border');
     const linhaDoDia = bloco(5, '08h', '16h').closest('[data-linha-do-dia]') as HTMLElement;
-    expect(linhaDoDia).toHaveClass('grid-cols-[3.5rem_1fr]', 'border', 'p-1.5');
+    expect(linhaDoDia).toHaveClass('grid-cols-[3.5rem_1fr_2.75rem]', 'border', 'p-1.5');
     expect((bloco(5, '08h', '16h').parentElement as HTMLElement)).toHaveClass('border');
   });
 

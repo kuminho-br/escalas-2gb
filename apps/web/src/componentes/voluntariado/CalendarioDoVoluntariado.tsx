@@ -5,10 +5,11 @@ import { flushSync } from 'react-dom';
 import { mensagemDe } from '@/api/cliente';
 import { EtiquetaPendente, usePendencia, useSincronizar, useTrava } from '@/componentes/AlteracoesPendentes';
 import { Button } from '@/componentes/ui/button';
-import { alternarBloco, copiarDoMes, estadoDoBloco, faixasParaEnviar, fimDeSemana, marcarDias, marcasDoServidor, textoDoRodape, tirarBloco, type Estado, type Marcas } from '@/lib/voluntariado';
+import { alternarBloco, comOutrasDoDia, copiarDoMes, cortesDosBlocos, estadoDoBloco, faixasForaDosBlocos, faixasParaEnviar, fimDeSemana, horaDe, marcarDias, marcasDoServidor, textoDoRodape, tirarBloco, type Estado, type Marcas } from '@/lib/voluntariado';
 import { cn } from '@/lib/utils';
 import { useEhCelular } from '@/lib/useEhCelular';
 import { CLASSE_DA_TECLA, GuiaComoMarcar } from './GuiaComoMarcar';
+import { OutroHorario } from './OutroHorario';
 
 const SEMANA = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'];
 const hh = (min: number) => `${String(Math.floor(min / 60)).padStart(2, '0')}h`;
@@ -58,9 +59,15 @@ export function CalendarioDoVoluntariado({
   });
   const { salvando, travar } = useTrava();
   const [erro, setErro] = useState<string | null>(null);
+  // os dias com um "outro horário" que ainda tem erro: enquanto houver, o mês não se salva
+  const [comErroNoDia, setComErroNoDia] = useState<Set<string>>(new Set());
 
   const gravar = travar(async () => {
     setErro(null);
+    if (comErroNoDia.size > 0) {
+      setErro('Corrija os horários com erro antes de salvar.');
+      return;
+    }
     try {
       await aoSalvar(faixasParaEnviar(marcas), () => flushSync(() => setSalvo(assinatura(marcas))));
     } catch (e) {
@@ -103,7 +110,7 @@ export function CalendarioDoVoluntariado({
   const blocos = dados.blocos.map((b) => ({ inicio: minutosDe(b.inicio), fim: minutosDe(b.fim) === 0 ? 1440 : minutosDe(b.fim) }));
   const equipe = militar.jornada === 'adm' ? 'Adm.' : militar.equipe ? `Equipe ${militar.equipe}.` : 'Sem equipe.';
   const aviso = militar.voluntarioJes ? '' : ' Não é voluntário JES: os horários valem só para diárias.';
-  const cortes = [...new Set(blocos.flatMap((b) => [b.inicio, b.fim]))].sort((a, b) => a - b);
+  const cortes = cortesDosBlocos(blocos);
   const rotuloDoBloco = (dia: number, b: Faixa) => `Dia ${dia}, ${hh(b.inicio)} às ${hh(b.fim === 1440 ? 1440 : b.fim)}`;
   // celular: um dia por linha, só toque (o arrasto não vale: deslizar o dedo rola a página)
   const celular = useEhCelular();
@@ -121,7 +128,7 @@ export function CalendarioDoVoluntariado({
       {/* só no celular: a régua dos cortes, parada no topo da rolagem, com as mesmas colunas e bordas das linhas dos dias (no computador, o horário aparece ao passar o mouse e no guia) */}
       {celular && (
       <div aria-hidden className="sticky top-0 z-10 grid gap-1 bg-superficie">
-        <div className="grid grid-cols-[3.5rem_1fr] gap-2 rounded-md border border-transparent p-1.5">
+        <div className="grid grid-cols-[3.5rem_1fr_2.75rem] gap-x-2 rounded-md border border-transparent p-1.5">
           <span />
           <div data-rotulos-dos-cortes className="relative h-4 border border-transparent text-xs text-apagado">
             {cortes.map((c, i) => {
@@ -132,6 +139,7 @@ export function CalendarioDoVoluntariado({
               );
             })}
           </div>
+          <span />
         </div>
       </div>
       )}
@@ -149,14 +157,15 @@ export function CalendarioDoVoluntariado({
               key={d}
               data-linha-do-dia={d}
               className={cn(
-                celular ? 'grid grid-cols-[3.5rem_1fr] items-center gap-2 rounded-md border p-1.5' : 'grid gap-1.5 rounded-md border p-1.5',
+                celular ? 'grid grid-cols-[3.5rem_1fr_2.75rem] items-center gap-x-2 gap-y-1 rounded-md border p-1.5' : 'grid gap-1.5 rounded-md border p-1.5',
                 fds && 'bg-black/[0.03]',
                 algum ? 'border-tinta' : 'border-linha',
               )}
             >
-
+              {/* o número do dia e, do lado oposto, o botão "Outro horário" (no celular a linha tem três colunas: número, blocos, botão) */}
+              <div className={cn(celular ? 'contents' : 'flex items-center justify-between gap-1')}>
               {soLeitura ? (
-                <span data-dia={d} className={cn('justify-self-start font-cond text-base font-semibold', celular ? 'flex h-10 items-center' : 'min-h-7 min-w-8 px-1')}>
+                <span data-dia={d} className={cn('justify-self-start font-cond text-base font-semibold', celular ? 'col-start-1 row-start-1 flex h-10 items-center' : 'min-h-7 min-w-8 px-1')}>
                   {n}
                   {celular && <span data-diasemana className="ml-1 text-xs font-normal text-apagado">{SEMANA[diaDaSemana(d)]}</span>}
                 </span>
@@ -186,14 +195,32 @@ export function CalendarioDoVoluntariado({
                   // uma tecla: igual em qualquer estado do dia; ao apertar "afunda"
                   CLASSE_DA_TECLA,
                   'justify-self-start hover:border-apagado hover:bg-accent active:translate-y-px active:shadow-none',
-                  celular ? 'h-10' : 'min-h-7 min-w-8',
+                  celular ? 'col-start-1 row-start-1 h-10' : 'min-h-7 min-w-8',
                 )}
               >
                 {n}
                 {celular && <span data-diasemana className="ml-1 text-xs font-normal text-apagado">{SEMANA[diaDaSemana(d)]}</span>}
               </button>
               )}
-              <div className="flex h-7 rounded border border-linha" style={{ touchAction: 'manipulation' }}>
+              <div className={cn(celular && 'col-start-3 row-start-1')}>
+                <OutroHorario
+                  dia={n}
+                  celular={celular}
+                  soLeitura={soLeitura}
+                  faixas={faixasForaDosBlocos(marcas, d, cortes)}
+                  aoMudar={(outras, comErro) => {
+                    setMarcas((m) => comOutrasDoDia(m, d, outras, cortes));
+                    setComErroNoDia((s) => {
+                      const novo = new Set(s);
+                      if (comErro) novo.add(d);
+                      else novo.delete(d);
+                      return novo;
+                    });
+                  }}
+                />
+              </div>
+              </div>
+              <div className={cn('flex h-7 rounded border border-linha', celular && 'col-start-2 row-start-1')} style={{ touchAction: 'manipulation' }}>
                 {blocos.map((b, k) => {
                   const e = todos[k]!;
                   if (soLeitura) {
@@ -256,6 +283,11 @@ export function CalendarioDoVoluntariado({
                   );
                 })}
               </div>
+              {faixasForaDosBlocos(marcas, d, cortes).length > 0 && (
+                <p data-outras className={cn('flex flex-wrap gap-x-2 text-xs leading-4 text-apagado', celular && 'col-span-2 col-start-2 row-start-2')}>
+                  {faixasForaDosBlocos(marcas, d, cortes).map((f) => <span key={f.inicio}>{`${horaDe(f.inicio)} às ${horaDe(f.fim)}`}</span>)}
+                </p>
+              )}
             </div>
           );
         })}
