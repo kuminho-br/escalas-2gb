@@ -104,6 +104,9 @@ Design: `docs/superpowers/specs/2026-11-21-usuarios-e-modulos-design.md`. Plano:
 | 46 e 49 | Ajustes da Grade; histórico de rastreio pelo mockup | mescladas (#233, #239, #242 o acabamento) |
 | 50 a 52 | Pecúlio Geral: as três telas e a ficha no lugar; a pesquisa com filtros, árvore, arquivo e seleção; a atualização em lote | 50, 51 e 52 mescladas (#244, #246, #248) |
 | 53 | Acabamento do piloto: o filtro de CNH pela hierarquia, o motivo do passado uma vez por ação, "ADM" e "24:00", controles soltos do voluntariado e do Pecúlio, a atualização em lote | em execução |
+| 54 | Exportar militares para Excel em Pesquisar militares (os campos escolhidos, com as colunas da importação) e a busca sem corte para "Selecionar estes N" | plano pronto, depois da 6.53 |
+| 55 | Tela inicial: os próximos serviços do militar (cartão com dia da semana, dia, serviço e horário, na cor do serviço), sobre a Minha escala da 7.5 | aguarda o mockup da DESIGN |
+| 56 | Tela inicial: o quadro de avisos, com o cadastro de avisos (a modelagem do aviso passa pela CONCEPÇÃO antes do plano) | planejada |
 
 ## Refatoração da interface · fundação concluída
 
