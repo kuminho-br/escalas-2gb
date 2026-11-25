@@ -99,21 +99,27 @@ Design: `docs/superpowers/specs/2026-11-21-usuarios-e-modulos-design.md`. Plano:
 | 25 e 26 | Árvore genérica (0035); configurações gerais | mescladas (#167, #171) |
 | 22 a 24, 27 a 31 | Oficiais (refeitos, escala comum 0036, dias vermelhos 0037, tela de escalar, memorial 0039); mover na hierarquia; admin como militar; raiz sem "nível acima" | mescladas (#157 a #185) |
 | 32 a 36 | Ficha na escala; Escala do mês no ordinário; militar externo; testes instáveis; RG funcional (0041), Grade sem Voluntariado | mescladas (#192 a #199) |
-| 37 a 40 | Choque universal (0042); resolver o choque; cota de saldo; choque nos Oficiais; pré-escala só nos turnos e com o expediente | 37 e 38 em execução; 39 e 40 planejadas |
+| 37 a 40 | Choque universal (0042); resolver o choque; cota de saldo; choque nos Oficiais; pré-escala só nos turnos e com o expediente (0043) | mescladas (#201 a #212) |
+| 41 a 45, 47, 48 | Deploy só com código e só da `main`; tela inicial; dia vermelho só no ordinário; escolher a unidade pela árvore; lista de quem está hoje | mescladas (até #230) |
+| 46 e 49 | Ajustes da Grade; histórico de rastreio pelo mockup | 46 em execução; 49 planejada |
 
 ## Refatoração da interface · fundação concluída
 
 Spec: `docs/superpowers/specs/2026-11-23-refatoracao-da-interface-design.md`. N0 = 6.19; N1 e N2 = 6.20 e 6.21 (plano `2026-11-23-fundacao-da-interface.md`). As telas seguem as áreas do Manual de Identidade Visual: Grade geral e Escala do mês antes do piloto; moldura, fichas e celular entre as duas.
 
-## Fase 7 — Visualização de escalas · planejada
+## Fase 7 — Visualização de escalas · planos prontos
 
-- **Prioridade (24/11):** o próprio militar marca o voluntariado; o lançamento pelo escalante continua.
-- **Escala prévia** (era "escala publicada"): à vista e alterável no mês; o passado só por gestor, administrador ou coordenador, com registro (24/11). O .xlsx é a fase 8.
-- As escalas publicadas da unidade.
-- A Minha escala: os próprios serviços, com quem compõe cada guarnição. É a Escala por militar com um militar só, e as duas telas são desenhadas juntas (fase 8).
-- Na área pessoal, a comparação da própria escala com a de outro militar entra com a Escala por militar (fase 8); a busca por permutantes, na fase 9.
+Design: `docs/superpowers/specs/2026-11-25-fase7-visualizacao-de-escalas-design.md` (decisões do usuário de 24 e 25/11).
 
-**Decidido (24/11):** a escala prévia não trava; o "dia passado travado" vale para o escalante.
+| Entrega | O que traz | Situação |
+|---|---|---|
+| 1 | API do voluntariado: a coleta por unidade e mês, o militar marca o próprio, o registro das correções (0044) | planejada |
+| 2 | Telas: Meu voluntariado (área pessoal), outro horário no dia, o interruptor da coleta, as correções | planejada (Fable) |
+| 3 | API da prévia: lançar e recolher por escala e mês, o passado com justificativa e registro, as leituras da corporação (0045) | planejada |
+| 4 | Montagem: "Lançar prévia", o motivo do passado, as alterações no passado | planejada (Fable) |
+| 5 | Módulo Visualização: Minha escala e Escalas | planejada (Fable) |
+
+Planos: `docs/superpowers/plans/2026-11-25-fase7-1-…` a `fase7-5-…`. A 1 e a 2 são a prioridade. O .xlsx é a fase 8; a comparação com outro militar entra com a Escala por militar (fase 8) e a busca por permutantes, na fase 9.
 
 ## Fase 8 — Primeiro mês real · planejada
 
