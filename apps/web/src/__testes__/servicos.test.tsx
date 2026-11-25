@@ -229,10 +229,10 @@ describe('serviços', () => {
     );
   });
 
-  it('6.37: a opção "Pode tirar o militar do Adm do expediente" vem com a ajuda, mostra o que está gravado e grava ao ligar', async () => {
+  it('6.37: a opção "Pode tirar o militar do ADM do expediente" vem com a ajuda, mostra o que está gravado e grava ao ligar', async () => {
     const f = api({ 'PATCH /api/servicos/s3': { status: 200, corpo: { ...BIOMA, tiraDoExpediente: true } } });
     abrir('/servicos/s3');
-    const opcao = await screen.findByRole('checkbox', { name: 'Pode tirar o militar do Adm do expediente' });
+    const opcao = await screen.findByRole('checkbox', { name: 'Pode tirar o militar do ADM do expediente' });
     expect(opcao).not.toBeChecked();
     expect(screen.getByText('Ligada: lançar este serviço no horário do expediente tira o militar do expediente do dia, depois de confirmar. Desligada: é choque.')).toBeInTheDocument();
     await userEvent.click(opcao);
@@ -243,7 +243,7 @@ describe('serviços', () => {
   it('6.37: o Saldo, que vem ligado, aparece marcado', async () => {
     api({ 'GET /api/servicos/s3': { status: 200, corpo: servico({ id: 's3', nome: 'Saldo', tiraDoExpediente: true, fixo: true }) } });
     abrir('/servicos/s3');
-    expect(await screen.findByRole('checkbox', { name: 'Pode tirar o militar do Adm do expediente' })).toBeChecked();
+    expect(await screen.findByRole('checkbox', { name: 'Pode tirar o militar do ADM do expediente' })).toBeChecked();
   });
 
   it('remover turno pede à API e mostra o erro dela', async () => {

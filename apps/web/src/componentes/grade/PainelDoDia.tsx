@@ -71,7 +71,7 @@ export function PainelDoDia({ unidadeId, militarId, data, aoFechar }: { unidadeI
             {p && (
               <>
                 <p className="mt-1 text-sm text-apagado">
-                  Matrícula {p.militar.matricula}, {p.militar.equipe ? `equipe ${p.militar.equipe}, ` : ''}jornada {p.militar.jornada === 'adm' ? 'Adm' : 'Pronto'}
+                  Matrícula {p.militar.matricula}, {p.militar.equipe ? `equipe ${p.militar.equipe}, ` : ''}jornada {p.militar.jornada === 'adm' ? 'ADM' : 'Pronto'}
                 </p>
                 <div className="mt-2 flex flex-wrap gap-1.5">
                   {p.militar.cnh.length > 0 && <span className="rounded border border-linha px-1.5 text-xs">CNH {[...p.militar.cnh].sort().at(-1)}</span>}

@@ -626,7 +626,7 @@ describe('alterar situação', () => {
     expect(dialogo.getByLabelText('A partir de')).toHaveAttribute('type', 'date');
     expect(dialogo.getByText('A situação atual termina no dia anterior ao escolhido. No mesmo dia do período aberto, ele é substituído.')).toBeInTheDocument();
     await userEvent.selectOptions(dialogo.getByLabelText('Equipe'), 'Bravo');
-    await userEvent.selectOptions(dialogo.getByLabelText('Jornada'), 'Adm');
+    await userEvent.selectOptions(dialogo.getByLabelText('Jornada'), 'ADM');
     await userEvent.click(dialogo.getByRole('button', { name: 'Salvar' }));
     await waitFor(() => expect(corpoEnviado(f, 'POST /api/militares/m1/situacao')).toEqual({ unidadeId: 'u-1sb', equipeId: 'e-bravo', jornada: 'adm', desde: hoje() }));
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());

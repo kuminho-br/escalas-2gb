@@ -101,7 +101,7 @@ export function CalendarioDoVoluntariado({
   const anterior = somarMeses(mes, -1);
   const brancos = diaDaSemana(dias[0]!);
   const blocos = dados.blocos.map((b) => ({ inicio: minutosDe(b.inicio), fim: minutosDe(b.fim) === 0 ? 1440 : minutosDe(b.fim) }));
-  const equipe = militar.jornada === 'adm' ? 'Adm.' : militar.equipe ? `Equipe ${militar.equipe}.` : 'Sem equipe.';
+  const equipe = militar.jornada === 'adm' ? 'ADM.' : militar.equipe ? `Equipe ${militar.equipe}.` : 'Sem equipe.';
   const aviso = militar.voluntarioJes ? '' : ' Não é voluntário JES: os horários valem só para diárias.';
   const cortes = [...new Set(blocos.flatMap((b) => [b.inicio, b.fim]))].sort((a, b) => a - b);
   const rotuloDoBloco = (dia: number, b: Faixa) => `Dia ${dia}, ${hh(b.inicio)} às ${hh(b.fim === 1440 ? 1440 : b.fim)}`;
