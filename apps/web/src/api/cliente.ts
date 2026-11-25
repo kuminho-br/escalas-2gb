@@ -46,7 +46,44 @@ async function resposta<T>(r: Response): Promise<T> {
   return dados as T;
 }
 
+/** A pessoa desistiu do diálogo do motivo: a mudança não foi feita. As telas ignoram em silêncio (`foiCancelado`). */
+export class Cancelado extends Error {
+  constructor() {
+    super('Cancelado.');
+  }
+}
+export const foiCancelado = (e: unknown): boolean => e instanceof Cancelado;
+
+/**
+ * Quem pede o motivo de uma alteração no passado (7.4): o diálogo da casca. Quando a API recusa uma mudança com 400 no campo `justificativa` (o turno já começou e quem muda é gestor),
+ * `pedir` entrega ao diálogo a mensagem e a função que repete a chamada com o texto; o diálogo a chama, mostra o erro do campo se a API recusar o texto, e resolve ou rejeita com `Cancelado`.
+ */
+export type PedirJustificativa = <T>(mensagem: string, tentar: (justificativa: string) => Promise<T>) => Promise<T>;
+let justificador: PedirJustificativa | null = null;
+export const justificativa = {
+  /** A casca registra o diálogo ao montar e o tira ao desmontar; devolve a função que desfaz o registro. */
+  registrar(fn: PedirJustificativa): () => void {
+    justificador = fn;
+    return () => {
+      if (justificador === fn) justificador = null;
+    };
+  },
+};
+
 export async function pedir<T>(metodo: 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE', caminho: string, corpo?: unknown): Promise<T> {
+  try {
+    return await pedirUma<T>(metodo, caminho, corpo);
+  } catch (e) {
+    // só as mudanças: a API pede o motivo de alterar o passado com 400 no campo `justificativa`, e o diálogo repete a chamada com o texto
+    if (metodo !== 'GET' && e instanceof ErroApi && e.status === 400 && e.campos?.justificativa && justificador) {
+      const base = corpo !== null && typeof corpo === 'object' ? (corpo as Record<string, unknown>) : {};
+      return justificador<T>(e.campos.justificativa, (texto) => pedirUma<T>(metodo, caminho, { ...base, justificativa: texto }));
+    }
+    throw e;
+  }
+}
+
+async function pedirUma<T>(metodo: 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE', caminho: string, corpo?: unknown): Promise<T> {
   let r: Response;
   try {
     r = await fetch(caminho, {

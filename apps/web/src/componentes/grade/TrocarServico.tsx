@@ -1,7 +1,7 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { Candidato, EscaladoNoDia } from 'contratos';
 import { useState } from 'react';
-import { mensagemDe } from '@/api/cliente';
+import { foiCancelado, mensagemDe } from '@/api/cliente';
 import { consultaTrocas, trocar } from '@/api/escala-do-mes';
 import { useTrava } from '@/componentes/AlteracoesPendentes';
 import { Selecao } from '@/componentes/Selecao';
@@ -33,7 +33,7 @@ export function TrocarServico({ alocacaoId, nomeAtual, acumulaCom, aoFechar }: {
       await trocar(queryClient, alocacaoId, escolha.tipo === 'livre' ? { militarId: escolha.livre.militarId, turnoId: escolha.turnoId } : { comAlocacaoId: escolha.alocacaoId });
       aoFechar();
     } catch (e) {
-      setErro(mensagemDe(e));
+      setErro(foiCancelado(e) ? null : mensagemDe(e));
     }
   });
 

@@ -1,7 +1,7 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { textoFaixa, type TrechoNoEfetivo } from 'contratos';
 import { useState } from 'react';
-import { mensagemDe } from '@/api/cliente';
+import { foiCancelado, mensagemDe } from '@/api/cliente';
 import { removerAlocacao, tirarAcumulo } from '@/api/escala-do-mes';
 import { useTrava } from '@/componentes/AlteracoesPendentes';
 import { Button } from '@/componentes/ui/button';
@@ -24,7 +24,7 @@ export function AlocacoesDoTrecho({ funcao, trecho, aoFechar }: { funcao: string
       else await removerAlocacao(queryClient, a.alocacaoId);
       aoFechar();
     } catch (e) {
-      setErro(mensagemDe(e));
+      setErro(foiCancelado(e) ? null : mensagemDe(e));
     }
   });
   return (
