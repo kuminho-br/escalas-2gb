@@ -27,13 +27,14 @@
 | 11 | 24/11 | usuário | "Alterar situação" na ficha: a lotação de destino (lista plana com "DA (1º GB)", "DA (2º GB)" …) tem de seguir a lógica da árvore genérica, escolhida nó a nó | secundária | planejado | 6.45 (Fable) |
 | 12 | 24/11 | usuário | Escala dos oficiais: o dia vermelho só conta no serviço do tipo ordinário (Saldo); JES, PJES e Diária são extra e não contam | secundária | planejado | 6.44 |
 | 13 | 24/11 | usuário | Memorial de cálculo dos oficiais: a frase da sobra lista do mais antigo para o mais moderno; a cota começa pelo mais moderno, então a lista começa por ele | secundária | planejado | 6.44 |
-| 14 | 24/11 | usuário | Histórico de rastreio da ficha: mais separação entre as situações; resumo recolhido só com unidade e jornada; resumo some quando aberta; afastamentos saem da linha do tempo; a linha do tempo fica | secundária | mesclado (#239); acabamento na 6.49.1 | 6.49 |
+| 14 | 24/11 | usuário | Histórico de rastreio da ficha: mais separação entre as situações; resumo recolhido só com unidade e jornada; resumo some quando aberta; afastamentos saem da linha do tempo; a linha do tempo fica | secundária | mesclado (#239, #242) | 6.49 e 6.49.1 |
 | 15 | 24/11 | usuário | DEFEITO: a aba Militares da 1ª SB mostra militares que hoje estão lotados acima (quem passou pela unidade no mês); deve mostrar só quem está lá hoje | principal | planejado | 6.48 |
 | 16 | 25/11 | DESENVOLVIMENTO | Ainda aparece "Adm" em textos que vêm do servidor e do motor ("Saldo só para militar do Adm" no Escolher militar; rótulos das Configurações da escala; a importação do Pecúlio): passar a "ADM" | secundária | aberto | — |
 | 17 | 25/11 | DESENVOLVIMENTO | Filtros de equipe da Grade: o corte do celular está em 640 px (o resto do site usa 768) e o nome fica um pouco à direita do centro no segmento não marcado; a DESIGN decide | secundária | aberto | — |
 | 18 | 25/11 | DESENVOLVIMENTO | Acabamento da 6.46: testes do grupo com 5 segmentos e da soma das colunas da faixa da equipe; comentários desatualizados; "ADM" escrito à mão no painel do dia | secundária | aberto | — |
 | 19 | 25/11 | DESENVOLVIMENTO | 7.3: "permitir de novo" no passado pede justificativa mas não grava linha; troca entre escalas diferentes deixa o lado futuro fora do registro; a frase "em sem guarnição"; o GET da pré-escala conta turnos já começados; lacunas de teste | secundária | aberto (parte cai com a refeitura da prévia) | — |
 | 20 | 25/11 | DESENVOLVIMENTO | 7.2: linha de "Outro horário" só com o início não mostra o erro no campo; o fim "00:00" é recusado (o resto do sistema trata como 24h); o item "Meu voluntariado" tem um teste que não ocorre | secundária | aberto | — |
+| 21 | 25/11 | DESENVOLVIMENTO | Configurações da escala › Voluntariado: os blocos do voluntariado e os militares de outras unidades ainda aparecem ligáveis para o gestor de OUTRA unidade (a API dá 403); estender a regra "gestor na unidade" da 6.49.1 a esses controles. "Ainda não vale" herda a fonte estreita (falta font-sans) | secundária | aberto | — |
 
 ## Já conhecidos antes do pool
 
