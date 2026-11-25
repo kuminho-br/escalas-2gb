@@ -84,16 +84,18 @@ export interface Lancamento {
   turnoId: string;
   militarId: string;
   saiuMilitarId: string | null;
+  /** O serviço é do tipo ordinário (o Saldo, ou o serviço de um mês migrado): só nele o dia vermelho conta. */
+  ordinario: boolean;
 }
 export async function lancamentosDoMes(c: Consulta, escalaId: string, mes: string): Promise<Lancamento[]> {
   const { inicio, fim } = limitesDoMes(mes);
-  const { rows } = await c.query<{ id: string; dia: string; letra: string; servico_id: string; turno_id: string; militar_id: string; saiu: string | null }>(
-    `select a.id, to_char(a.data, 'YYYY-MM-DD') as dia, t.letra, a.servico_id, a.turno_id, a.militar_id, cb.saiu_militar_id as saiu
-       from alocacao a join turno t on t.id = a.turno_id left join oficiais_cobertura cb on cb.alocacao_id = a.id
+  const { rows } = await c.query<{ id: string; dia: string; letra: string; servico_id: string; turno_id: string; militar_id: string; saiu: string | null; ordinario: boolean }>(
+    `select a.id, to_char(a.data, 'YYYY-MM-DD') as dia, t.letra, a.servico_id, a.turno_id, a.militar_id, cb.saiu_militar_id as saiu, sv.tipo = 'ordinario' as ordinario
+       from alocacao a join turno t on t.id = a.turno_id join servico sv on sv.id = a.servico_id left join oficiais_cobertura cb on cb.alocacao_id = a.id
       where a.escala_id = $1 and a.data between $2::date and $3::date order by a.data, t.letra`,
     [escalaId, inicio, fim],
   );
-  return rows.map((r) => ({ id: r.id, dia: r.dia, letra: r.letra, servicoId: r.servico_id, turnoId: r.turno_id, militarId: r.militar_id, saiuMilitarId: r.saiu }));
+  return rows.map((r) => ({ id: r.id, dia: r.dia, letra: r.letra, servicoId: r.servico_id, turnoId: r.turno_id, militarId: r.militar_id, saiuMilitarId: r.saiu, ordinario: r.ordinario }));
 }
 
 /** A cota de JES da unidade no mês e quantos JES já foram lançados nele, em todas as escalas da unidade (só informa; nada bloqueia). */
@@ -193,7 +195,8 @@ export async function lerEscala(c: Consulta, unidadeId: string, mes: string, esc
 
   const escolhidos = (id: string) => lancados.filter((l) => l.militarId === id && !ehJes(l)).length;
   const jesDe = (id: string) => lancados.filter((l) => l.militarId === id && ehJes(l)).length;
-  const vermelhosDe = (id: string) => lancados.filter((l) => l.militarId === id && ehVermelho.has(l.dia)).length;
+  // RN-117: o dia vermelho só conta no serviço de tipo ordinário (6.44); JES, PJES e Diária são extra
+  const vermelhosDe = (id: string) => lancados.filter((l) => l.militarId === id && l.ordinario && ehVermelho.has(l.dia)).length;
   const montar = (militarId: string, ordem: number, cota: Cota | null, dias: number, participa: boolean): OficialDoMes => {
     const p = porId.get(militarId);
     const x = extras.get(militarId);
@@ -319,12 +322,13 @@ export async function lerSaldo(c: Consulta, unidadeId: string, hoje = hojeRecife
     [unidadeId, escala?.id ?? null],
   );
 
-  // os lugares em dia vermelho que cada oficial tirou nos meses encerrados da escala
+  // os lugares em dia vermelho que cada oficial tirou nos meses encerrados da escala, só em serviço de tipo ordinário (RN-117, 6.44)
   const vermelhosDoOficial = new Map<string, number>();
   if (escala) {
     const { rows } = await c.query<{ militar_id: string; n: number }>(
       `select a.militar_id, count(*)::int as n
          from alocacao a
+         join servico sv on sv.id = a.servico_id and sv.tipo = 'ordinario'
          join dia_vermelho d on d.escala_id = a.escala_id and d.dia = a.data
          join oficiais_mes m on m.escala_id = a.escala_id and m.mes = date_trunc('month', a.data)::date and m.encerrada_em is not null
         where a.escala_id = $1 group by a.militar_id`,

@@ -1010,6 +1010,20 @@ describe('as regras', () => {
     const ex = screen.getByRole('table', { name: 'Exemplo de 62 turnos' });
     for (const n of ['8,25', '4,26', '−0,26']) expect(within(ex).getAllByText(n).length).toBeGreaterThan(0);
   });
+
+  it('6.44: o texto dos dias vermelhos diz que só conta o lugar tirado no Saldo; JES, PJES e Diária não entram na conta', async () => {
+    simularApi({
+      '/api/eu': { status: 200, corpo: GESTOR },
+      [`GET ${URL_MES}`]: { status: 200, corpo: escala() },
+      'GET /api/unidades/u-gb/oficiais-saldo': { status: 200, corpo: [] },
+      'GET /api/unidades/u-gb/servicos': { status: 200, corpo: [SERVICO] },
+    });
+    abrir(`/oficiais?mes=${MES}`);
+    await userEvent.click(await screen.findByRole('button', { name: 'Regras' }));
+    const secao = (await screen.findByRole('heading', { name: 'Os dias vermelhos' })).closest('section')!;
+    expect(secao).toHaveTextContent('Só conta o lugar tirado no Saldo.');
+    expect(secao).toHaveTextContent('JES, PJES e Diária são extra e não entram na conta.');
+  });
 });
 
 // ---- a escala dos oficiais refeita (6.22): nome em destaque, fundo calmo, painel largo ----
