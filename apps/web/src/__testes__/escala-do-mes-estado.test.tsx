@@ -398,6 +398,33 @@ describe('o motivo do passado, uma vez por ação (6.53, Task 2)', () => {
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
   });
 
+  it('achado da revisão: no "Trocar militar", quem escolhe "Acumular" também leva o motivo já digitado (o acúmulo não pede de novo)', async () => {
+    const chefe = { alocacaoId: 'a-CHEFE', militarId: 'm-chefe', posto: 'SGT', nomeGuerra: 'CHEFE', matricula: '990010-1', vaga: 'Chefe ABT' };
+    const f = api(ESCALA({ estado: 'previa', em: EM }, GESTOR), { [rotaCandidatos]: { status: 200, corpo: { ...CANDIDATOS, aptos: [], acumular: [chefe] } } });
+    fila(f, 'DELETE /api/alocacoes/a-MOTOR', [pedido, { status: 200, corpo: SEM_MOTOR({ estado: 'previa', em: EM }, GESTOR) }]);
+    const padrao = f.getMockImplementation()!;
+    f.mockImplementation(async (entrada, init) => {
+      const url = typeof entrada === 'string' ? entrada : entrada instanceof URL ? entrada.href : entrada.url;
+      if (url.endsWith('/api/alocacoes/a-CHEFE/acumulos') && init?.method === 'POST') {
+        const corpo = JSON.parse(String(init.body)) as { justificativa?: string };
+        const r = corpo.justificativa ? { status: 201, corpo: ESCALA({ estado: 'previa', em: EM }, GESTOR) } : pedido;
+        return new Response(JSON.stringify(r.corpo), { status: r.status, headers: { 'Content-Type': 'application/json' } });
+      }
+      return padrao(entrada, init);
+    });
+    abrir('/escala-do-mes');
+    await trocarMotorista();
+    const d = within(await diagolo());
+    await userEvent.type(d.getByLabelText('Motivo'), MOTIVO);
+    await userEvent.click(d.getByRole('button', { name: 'Confirmar' }));
+    const escolha = within(await screen.findByRole('dialog', { name: 'Escolher militar' }));
+    await userEvent.click(await escolha.findByRole('button', { name: /CHEFE/ }));
+    await waitFor(() => expect(chamadasA(f, 'POST /api/alocacoes/a-CHEFE/acumulos')).toBe(1));
+    const envio = f.mock.calls.find(([e, i]) => String(e).endsWith('/api/alocacoes/a-CHEFE/acumulos') && i?.method === 'POST')!;
+    expect(JSON.parse(String(envio[1]!.body))).toMatchObject({ justificativa: MOTIVO });
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+  });
+
   it('Review Focus 1: cancelar o diálogo do motivo no "Trocar militar" não tira ninguém e não abre a escolha', async () => {
     const f = api(ESCALA({ estado: 'previa', em: EM }, GESTOR), { [rotaCandidatos]: { status: 200, corpo: CANDIDATOS } });
     fila(f, 'DELETE /api/alocacoes/a-MOTOR', [pedido, { status: 200, corpo: SEM_MOTOR({ estado: 'previa', em: EM }, GESTOR) }]);

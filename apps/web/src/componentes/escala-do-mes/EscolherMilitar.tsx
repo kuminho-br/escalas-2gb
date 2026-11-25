@@ -76,7 +76,7 @@ export function EscolherMilitar({ escalaId, vaga, justificativa, aoFechar }: { e
   const acumulando = travar(async (alocacaoId: string) => {
     setErro(null);
     try {
-      await acumular(queryClient, alocacaoId, { guarnicaoId: vaga.guarnicaoId, funcaoId: vaga.funcaoId });
+      await acumular(queryClient, alocacaoId, { guarnicaoId: vaga.guarnicaoId, funcaoId: vaga.funcaoId, ...(justificativa ? { justificativa } : {}) });
       aoFechar(true);
     } catch (e) {
       setErro(foiCancelado(e) ? null : mensagemDe(e));
