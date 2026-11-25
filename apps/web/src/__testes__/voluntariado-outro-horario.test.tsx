@@ -141,12 +141,12 @@ describe('o botão do dia: "Outro horário" (7.2)', () => {
       expect(f.mock.calls.some(([, init]) => init?.method === 'PUT')).toBe(false);
     });
 
-    it('fora do formato HH:MM também: o erro diz como escrever, e corrigir libera o salvar', async () => {
+    it('uma hora que não existe (25:00) também: o erro diz como escrever, e corrigir libera o salvar', async () => {
       const f = api();
       await abrirOMilitar();
       const painel = await abrirOPainel(5);
       await userEvent.click(painel.getByRole('button', { name: 'Adicionar horário' }));
-      await preencher(painel, 1, '9h', '11:00');
+      await preencher(painel, 1, '25:00', '11:00');
       expect(painel.getByRole('alert')).toHaveTextContent('Use a hora no formato HH:MM.');
       await preencher(painel, 1, '09:00', '11:00');
       expect(painel.queryByRole('alert')).toBeNull();
@@ -162,5 +162,83 @@ describe('o botão do dia: "Outro horário" (7.2)', () => {
     const painel = await abrirOPainel(12);
     await userEvent.click(painel.getByRole('button', { name: 'Tirar o horário 1' }));
     expect(within(celaDoDia(12)).queryByText('09:30 às 11:00')).toBeNull();
+  });
+});
+
+describe('achados da revisão da 7.2', () => {
+  it('C1: editar o "outro horário" depois de ele ter encostado num bloco marcado não desmarca o bloco', async () => {
+    api();
+    await abrirOMilitar();
+    await userEvent.click(bloco(5, '08h', '16h'));
+    const painel = await abrirOPainel(5);
+    await userEvent.click(painel.getByRole('button', { name: 'Adicionar horário' }));
+    await preencher(painel, 1, '07:00', '09:00');
+    expect(within(celaDoDia(5)).getByText('07:00 às 16:00')).toBeInTheDocument();
+    // corrigir o fim passa por um estado inválido ("09:0"): o bloco continua marcado em todo o caminho
+    const fim = painel.getByLabelText('Fim do horário 1');
+    await userEvent.clear(fim);
+    await userEvent.type(fim, '0930');
+    expect(bloco(5, '08h', '16h')).toHaveAttribute('data-estado', 'cheio');
+    expect(within(celaDoDia(5)).getByText('07:00 às 16:00')).toBeInTheDocument();
+    // tirar o horário devolve o dia ao que o bloco marcava
+    await userEvent.click(painel.getByRole('button', { name: 'Tirar o horário 1' }));
+    expect(bloco(5, '08h', '16h')).toHaveAttribute('data-estado', 'cheio');
+    expect(celaDoDia(5).querySelector('[data-outras]')).toBeNull();
+  });
+
+  it('C2: no celular só se digitam números: "0930" vira 09:30 sozinho, e o horário vale', async () => {
+    const f = api();
+    await abrirOMilitar();
+    const painel = await abrirOPainel(5);
+    await userEvent.click(painel.getByRole('button', { name: 'Adicionar horário' }));
+    await userEvent.type(painel.getByLabelText('Início do horário 1'), '0930');
+    await userEvent.type(painel.getByLabelText('Fim do horário 1'), '1100');
+    expect(painel.getByLabelText('Início do horário 1')).toHaveValue('09:30');
+    expect(painel.getByLabelText('Fim do horário 1')).toHaveValue('11:00');
+    expect(painel.queryByRole('alert')).toBeNull();
+    await userEvent.keyboard('{Escape}');
+    await userEvent.click(salvar());
+    await waitFor(() => expect(corpoEnviado(f, `PUT /api/militares/m3/voluntariado/${MES}`)).toEqual({ faixas: [faixa(dia(5), '09:30', '11:00')] }));
+  });
+
+  it('I1: Enter dentro do painel não salva o mês', async () => {
+    const f = api();
+    await abrirOMilitar();
+    const painel = await abrirOPainel(5);
+    await userEvent.click(painel.getByRole('button', { name: 'Adicionar horário' }));
+    await userEvent.type(painel.getByLabelText('Início do horário 1'), '0930{Enter}');
+    await userEvent.type(painel.getByLabelText('Fim do horário 1'), '1100{Enter}');
+    expect(f.mock.calls.some(([, init]) => init?.method === 'PUT')).toBe(false);
+    // e o Enter no botão do relógio abre o painel, em vez de salvar
+    await userEvent.keyboard('{Escape}');
+    botaoDoDia(6).focus();
+    await userEvent.keyboard('{Enter}');
+    expect(await screen.findByRole('dialog', { name: 'Horários extras do dia 6' })).toBeInTheDocument();
+    expect(f.mock.calls.some(([, init]) => init?.method === 'PUT')).toBe(false);
+  });
+
+  it('I2: "Limpar" desfaz também os outros horários e o erro que ficou num painel: o salvar sai e o painel reabre vazio', async () => {
+    const f = api({}, doMilitar({ faixas: [faixa(dia(12), '09:30', '11:00')] }));
+    await abrirOMilitar();
+    const painel = await abrirOPainel(12);
+    await userEvent.click(painel.getByRole('button', { name: 'Adicionar horário' }));
+    await userEvent.type(painel.getByLabelText('Início do horário 2'), '13');
+    await userEvent.keyboard('{Escape}');
+    await userEvent.click(screen.getByRole('button', { name: 'Limpar' }));
+    expect(within(celaDoDia(12)).queryByText('09:30 às 11:00')).toBeNull();
+    await userEvent.click(salvar());
+    await waitFor(() => expect(corpoEnviado(f, `PUT /api/militares/m3/voluntariado/${MES}`)).toEqual({ faixas: [] }));
+    const reaberto = await abrirOPainel(12);
+    expect(reaberto.queryByLabelText('Início do horário 1')).toBeNull();
+  });
+
+  it('uma faixa gravada que mistura blocos e horário solto (07:00 às 16:00) abre separada: o bloco 08–16 marcado e o "outro horário" 07:00 às 08:00 no painel', async () => {
+    api({}, doMilitar({ faixas: [faixa(dia(5), '07:00', '16:00')] }));
+    await abrirOMilitar();
+    expect(within(celaDoDia(5)).getByText('07:00 às 16:00')).toBeInTheDocument();
+    expect(bloco(5, '08h', '16h')).toHaveAttribute('data-estado', 'cheio');
+    const painel = await abrirOPainel(5);
+    expect(painel.getByLabelText('Início do horário 1')).toHaveValue('07:00');
+    expect(painel.getByLabelText('Fim do horário 1')).toHaveValue('08:00');
   });
 });

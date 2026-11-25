@@ -7,6 +7,11 @@ import { horaDe, validarHorario } from '@/lib/voluntariado';
 import { cn } from '@/lib/utils';
 
 type Linha = { inicio: string; fim: string; tocadoInicio: boolean; tocadoFim: boolean };
+/** Só números: a pessoa digita "0930" e a tela escreve "09:30" (o teclado do celular não tem os dois-pontos). */
+const mascarar = (texto: string): string => {
+  const digitos = texto.replace(/\D/g, '').slice(0, 4);
+  return digitos.length > 2 ? `${digitos.slice(0, 2)}:${digitos.slice(2)}` : digitos;
+};
 const vazia = (l: Linha) => l.inicio === '' && l.fim === '';
 const deFaixa = (f: Faixa): Linha => ({ inicio: horaDe(f.inicio), fim: horaDe(f.fim), tocadoInicio: true, tocadoFim: true });
 
@@ -84,7 +89,7 @@ export function OutroHorario({ dia, faixas, aoMudar, soLeitura = false, celular 
                       readOnly={soLeitura}
                       aria-invalid={c.erroInicio ? true : undefined}
                       aria-describedby={c.erroInicio ? idErro : undefined}
-                      onChange={(e) => editar(i, 'inicio', e.target.value)}
+                      onChange={(e) => editar(i, 'inicio', mascarar(e.target.value))}
                       onBlur={() => deixar(i, 'inicio')}
                       className={cn('h-(--altura-controle) w-20 rounded-controle border border-encaixe bg-superficie px-2 text-center text-corpo', c.erroInicio && 'border-alerta')}
                     />
@@ -98,7 +103,7 @@ export function OutroHorario({ dia, faixas, aoMudar, soLeitura = false, celular 
                       readOnly={soLeitura}
                       aria-invalid={c.erroFim ? true : undefined}
                       aria-describedby={c.erroFim ? idErro : undefined}
-                      onChange={(e) => editar(i, 'fim', e.target.value)}
+                      onChange={(e) => editar(i, 'fim', mascarar(e.target.value))}
                       onBlur={() => deixar(i, 'fim')}
                       className={cn('h-(--altura-controle) w-20 rounded-controle border border-encaixe bg-superficie px-2 text-center text-corpo', c.erroFim && 'border-alerta')}
                     />

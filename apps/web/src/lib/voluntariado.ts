@@ -117,11 +117,35 @@ const alinhada = (f: Faixa, cortes: number[]) => cortes.includes(f.inicio) && co
 /** As faixas do dia que não são feitas de blocos inteiros (começam ou terminam fora de um corte): os "outros horários" do dia, unidas e em ordem. */
 export const faixasForaDosBlocos = (c: Marcas, dia: string, cortes: number[]): Faixa[] => doDia(c, dia).filter((f) => !alinhada(f, cortes));
 
-/** O dia com os outros horários trocados pelos dados (os blocos inteiros ficam); o que encosta ou cobre vira uma faixa só. */
-export function comOutrasDoDia(c: Marcas, dia: string, outras: Faixa[], cortes: number[]): Marcas {
+/** Marca o bloco (sem inverter: quem já tem o bloco inteiro fica como está). */
+export function marcarBloco(c: Marcas, dia: string, bloco: Faixa): Marcas {
   const novo: Marcas = new Map(c);
-  novo.set(dia, unirFaixas([...doDia(c, dia).filter((f) => alinhada(f, cortes)), ...outras]));
+  novo.set(dia, unirFaixas([...(novo.get(dia) ?? []), { inicio: bloco.inicio, fim: bloco.fim }]));
   return novo;
+}
+
+/** As duas camadas do mês juntas: o que o militar marcou em blocos inteiros e os outros horários; o que encosta ou cobre vira uma faixa só. */
+export function juntar(marcas: Marcas, extras: Marcas): Marcas {
+  const novo: Marcas = new Map();
+  for (const d of new Set([...marcas.keys(), ...extras.keys()])) novo.set(d, unirFaixas([...(marcas.get(d) ?? []), ...(extras.get(d) ?? [])]));
+  return novo;
+}
+
+/**
+ * Separa o mês marcado em duas camadas: os blocos inteiros (o que a faixa cobre de blocos do dia) e os outros horários (o que sobra fora deles). O calendário edita cada
+ * camada por um caminho (os blocos, pelos cliques; os outros horários, pelo painel do dia), e `juntar` devolve o mês inteiro, sem uma camada desfazer a outra.
+ */
+export function dividirMarcas(c: Marcas, blocos: Faixa[]): { marcas: Marcas; extras: Marcas } {
+  const marcas: Marcas = new Map();
+  const extras: Marcas = new Map();
+  for (const dia of c.keys()) {
+    const faixas = doDia(c, dia);
+    const inteiros = blocos.filter((b) => faixas.some((f) => f.inicio <= b.inicio && b.fim <= f.fim));
+    if (inteiros.length) marcas.set(dia, unirFaixas(inteiros));
+    const resto = unirFaixas(inteiros.reduce((r, b) => semOBloco(r, b), faixas));
+    if (resto.length) extras.set(dia, resto);
+  }
+  return { marcas, extras };
 }
 
 const HORA = /^([01]\d|2[0-3]):[0-5]\d$/;
