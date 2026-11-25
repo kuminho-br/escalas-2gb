@@ -449,6 +449,64 @@ ul,ol{padding:0;list-style:none}
 .regras-da-casa b{font:600 var(--t17)/24px var(--cond)}
 .tabela td.quebra,.tabela th.quebra{white-space:normal;min-width:180px;padding-block:10px;line-height:20px}
 
+/* grupo de filtro: os segmentos numa caixa só, na letra dos nomes; mais de um pode ficar marcado.
+   O segmento não muda de largura ao ser marcado: a folga dos lados diminui o tanto que o visto ocupa (14 + 4 px, metade de cada lado). */
+.grupo-filtro{display:inline-flex;gap:1px;height:var(--h);max-width:100%;border:1px solid var(--encaixe);border-radius:var(--raio);background:var(--linha);overflow:hidden}
+.grupo-filtro button{display:inline-flex;align-items:center;justify-content:center;gap:4px;flex:none;height:100%;padding:0 19px;border:0;background:var(--superficie);color:var(--tinta);font:600 var(--t15)/1 var(--cond);white-space:nowrap;cursor:pointer}
+.grupo-filtro button .i{display:none;width:14px;height:14px;stroke-width:2.5}
+.grupo-filtro button:hover{background:var(--passa)}
+.grupo-filtro button[aria-pressed="true"]{padding:0 10px;background:var(--tinta);color:var(--claro)}
+.grupo-filtro button[aria-pressed="true"] .i{display:block}
+.grupo-filtro button:focus-visible{outline:2px solid var(--tinta);outline-offset:-2px}
+.grupo-filtro button[aria-pressed="true"]:focus-visible{outline-color:var(--claro);outline-offset:-4px}
+/* no celular: três por linha, na altura de toque; a última linha estica até o fim, sem buraco */
+.grupo-filtro.no-celular{display:flex;flex-wrap:wrap;width:100%;height:auto}
+.grupo-filtro.no-celular button{flex:1 0 30%;height:44px}
+@media (max-width:560px){.grupo-filtro{display:flex;flex-wrap:wrap;width:100%;height:auto}.grupo-filtro button{flex:1 0 30%;height:44px}}
+
+/* tabela com rolagem: o que fica preso (o cabeçalho e as colunas das pontas) é separado do que rola por uma linha de 2 px encaixe, contínua.
+   As duas linhas de dentro (a de cada dia e a de segunda-feira) e o fundo da faixa da equipe são os de hoje: cores soltas no site, que ficam para a área da Grade geral. */
+.rola-presa{max-height:392px;overflow:auto;border:1px solid var(--linha);border-radius:var(--raio-sup);background:var(--superficie);scrollbar-width:thin}
+.tabela-presa{width:100%;border-collapse:separate;border-spacing:0;font-family:var(--cond)}
+.tabela-presa th,.tabela-presa td{background:var(--superficie)}
+.tabela-presa thead th{position:sticky;top:0;z-index:2;min-width:48px;padding:8px 1px 6px;border-bottom:2px solid var(--encaixe);font:500 var(--t13)/18px var(--cond);color:var(--apagado);text-align:center;white-space:nowrap}
+.tabela-presa thead th b{display:block;font:600 16px/20px var(--cond);color:var(--tinta)}
+.tabela-presa thead th.fds,.tabela-presa thead th.fds b{color:var(--vinho)}
+.tabela-presa .quem{position:sticky;left:0;z-index:1;min-width:208px;padding:4px 12px 4px 16px;border-right:2px solid var(--encaixe);text-align:left;font-weight:400}
+.tabela-presa thead .quem{z-index:3;padding:8px 12px 6px 16px;vertical-align:bottom;text-align:left}
+.tabela-presa .fim{position:sticky;z-index:1;width:64px;min-width:64px;max-width:64px;padding:4px 8px}
+.tabela-presa .fim.pjes{right:64px;border-left:2px solid var(--encaixe)}
+.tabela-presa .fim.diarias{right:0}
+.tabela-presa thead .fim{z-index:3;padding:8px 1px 6px}
+.tabela-presa tbody td,.tabela-presa tbody th{border-bottom:1px solid #EEF0F3}
+.tabela-presa td.dia{padding:4px 1px;border-right:1px solid #EEF0F3}
+.tabela-presa .seg{border-left:1px solid #C9CED6}
+.tabela-presa .vespera{border-right:0}
+.tabela-presa thead th.dia{border-right:1px solid #EEF0F3}
+.tabela-presa thead th.vespera{border-right:0}
+.tabela-presa .marcas{display:flex;align-items:center;justify-content:space-evenly;height:28px}
+.tabela-presa .faixa th,.tabela-presa .faixa td{background:#F1F3F6;border-bottom:0;padding-block:6px}
+.tabela-presa .nome-do-grupo{display:inline-flex;align-items:center;gap:8px;white-space:nowrap}
+.tabela-presa .nome-do-grupo::before{content:"";width:3px;height:16px;border-radius:2px;background:var(--vinho)}
+.tabela-presa .nome-do-grupo strong{font:700 var(--t15)/1 var(--cond);color:var(--tinta)}
+.tabela-presa .nome-do-grupo small{font:400 var(--t13)/1 var(--cond);color:var(--apagado)}
+.tabela-presa .l1{display:flex;align-items:baseline;gap:6px;white-space:nowrap}
+.tabela-presa .l1 span{font-size:var(--t13);color:var(--apagado)}
+.tabela-presa .l1 strong{font:600 var(--t15)/20px var(--cond);color:var(--tinta)}
+.tabela-presa .l2{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:var(--t13);line-height:18px;color:var(--apagado)}
+.tabela-presa .conta{position:relative;display:grid;place-items:center;height:24px;border-radius:4px;background:rgba(28,36,48,.04);font:600 var(--t15)/1 var(--cond);color:var(--tinta);overflow:hidden}
+.tabela-presa .conta::before{content:"";position:absolute;inset:0 auto 0 0;width:var(--feito,0%);background:rgba(142,27,27,.2)}
+.tabela-presa .conta span{position:relative}
+/* a cota de saldo do Adm: a barra pequena de hoje, agora encostada à direita, a 12 px da fronteira */
+.cota{position:relative;flex:none;width:28px;height:6px;border-radius:3px;background:rgba(28,36,48,.1);overflow:hidden}
+.cota::after{content:"";position:absolute;inset:0 auto 0 0;width:var(--feito,0%);border-radius:3px;background:var(--vinho)}
+.cota.acima::after{width:100%;background:var(--pendencia)}
+.faixa-de-filtros{display:flex;flex-wrap:wrap;align-items:flex-end;gap:12px 16px;margin-bottom:12px}
+.faixa-de-filtros .campo input[type="search"]{width:224px;max-width:100%}
+/* sem largura para prender as duas pontas: PJES e Diárias rolam com os dias, como no site abaixo de 1440 px */
+@media (max-width:720px){.tabela-presa .fim{position:static}.tabela-presa .fim.pjes{border-left:0}}
+@media (max-width:560px){.faixa-de-filtros .campo{flex:1 1 100%}.faixa-de-filtros .campo input[type="search"]{width:100%}.faixa-de-filtros .mes{justify-content:space-between}}
+
 /* (fica no fim para vencer a regra de .funcao) */
 /* cartão estreito: o rótulo da função vai para cima dos lugares, numa linha */
 @container cartao (max-width:339px){.funcao{grid-template-columns:minmax(0,1fr);gap:4px}.funcao .rotulo{flex-direction:row;gap:6px;min-height:0}}

@@ -12,6 +12,7 @@
 .area-linha p{grid-column:1;max-width:72ch}
 .area-linha .pedido{font-size:var(--t13);line-height:18px;color:var(--apagado)}
 .area-linha .pedido b{font-weight:600;color:var(--pendencia)}
+.area-linha .pedido a{color:var(--tinta);text-decoration:underline;text-underline-offset:3px}
 .area-linha .estado{grid-column:2;grid-row:1;justify-self:end}
 .etiqueta.feita{background:var(--tinta);border-color:transparent;color:var(--claro)}
 .legenda-de-estado{display:flex;flex-wrap:wrap;gap:8px 18px;align-items:center;font-size:var(--t13);color:var(--apagado)}
@@ -30,7 +31,7 @@
   <p class="de-quem"><img src="img/brasao-2gb.png" alt="" width="32" height="34">Sistema de Escalas do 2º GB. Refatoração da interface.</p>
   <h1>Manual de Identidade Visual</h1>
   <p>O manual da interface das Escalas do 2º GB, em seções. As diretrizes gerais valem para todas as telas; depois vem uma área para cada tela principal, com o mockup dela e a lista do que muda em relação à tela de hoje. As telas são desenhadas uma por vez.</p>
-  <p class="menor">Mockup é guia de desenho e de identidade, não gabarito: a implementação adequa cada peça ao software que existe. Nenhuma tela do site mudou ainda. Atualizado em 23/11/2026.</p>
+  <p class="menor">Mockup é guia de desenho e de identidade, não gabarito: a implementação adequa cada peça ao software que existe. Atualizado em 24/11/2026.</p>
 </header>
 
 <section class="bloco largo" id="areas">
@@ -54,6 +55,7 @@
         <span class="estado etiqueta neutra">Por fazer, é a próxima</span>
         <p>O mês inteiro à vista, os totais compactos e o painel do dia por cima da tabela.</p>
         <p class="pedido"><b>Já pedido por você:</b> sem a marca do dia de hoje; a tabela continua abrindo no dia. A marca de cada dia fica como é hoje: quadradinho na cor do serviço, com a letra do turno.</p>
+        <p class="pedido"><b>Já decidido para a entrega 6.46</b> (DESIGN, a pedido seu, 24/11/2026): a <a href="diretrizes-gerais/index.html#tabela-com-rolagem">fronteira da rolagem</a> é uma linha de 2 px na cor do encaixe, contínua, à direita da coluna do militar, embaixo do cabeçalho das datas e, na tela larga, à esquerda de PJES. Na célula do militar, a matrícula fica à esquerda e a barra da cota de saldo encostada à direita. As equipes viram um <a href="diretrizes-gerais/index.html#grupo-de-filtro">grupo de filtro</a> com o rótulo "Equipe"; a marcada fica em tinta, com visto. "Adm" passa a "ADM".</p>
       </div>
 
       <div class="area-linha">
@@ -107,9 +109,10 @@
 
       <div class="area-linha">
         <h3><a href="tela-inicial/index.html">Tela inicial</a> e moldura</h3>
-        <span class="estado etiqueta falta">Tela inicial em revisão por você</span>
-        <p>O início que mostra o que falta no mês e o cartão "Configurações", o menu (com "Configurações da escala" no módulo de escalas), o topo, o seletor de unidade e o roteiro de preparação da primeira escala.</p>
+        <span class="estado etiqueta feita">Tela inicial aprovada</span>
+        <p>A cena de combate menor, com a saudação, os próximos serviços e os avisos dentro dela; embaixo, os atalhos dos módulos e o próximo serviço. Da moldura: o menu (com "Configurações da escala" no módulo de escalas), o topo, o seletor de unidade e o roteiro de preparação da primeira escala.</p>
         <p class="pedido"><b>Já pedido por você:</b> o brasão e o nome do topo do menu acompanham a unidade escolhida. O desenho do topo já está nas diretrizes gerais.</p>
+        <p class="pedido"><b>Aprovada por você</b> em 24/11/2026. A cena menor e os atalhos entram na entrega 6.42; os avisos esperam o cadastro e os próximos serviços, a fase 7.</p>
       </div>
 
       <div class="area-linha">
