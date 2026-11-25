@@ -8,6 +8,7 @@ import { EscolherUnidade } from '@/componentes/EscolherUnidade';
 import { useTrava } from '@/componentes/AlteracoesPendentes';
 import { Selecao } from '@/componentes/Selecao';
 import { Button } from '@/componentes/ui/button';
+import { Etiqueta } from '@/componentes/ui/etiqueta';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/componentes/ui/dialog';
 import { Input } from '@/componentes/ui/input';
 import { Label } from '@/componentes/ui/label';
@@ -43,7 +44,7 @@ export function Rastreio({ ficha, unidadeId }: { ficha: FichaMilitar; unidadeId:
       acoes={ficha.podeEditar.peculio ? <Button size="sm" variant="secundario" onClick={() => setAlterando(true)}>Alterar situação</Button> : undefined}
     >
       <div className="@container">
-        {eventos.length > 0 && <QuadroHoje atual={atual} proximo={proximo} />}
+        <QuadroHoje atual={atual} proximo={proximo} />
         <LinhaDoTempo eventos={eventos} />
       </div>
       {alterando && <AlterarSituacao ficha={ficha} unidadeAtualId={unidadeId} aoFechar={() => setAlterando(false)} />}
@@ -100,7 +101,8 @@ function Evento({ e, trilho }: { e: EventoDoRastreio; trilho: 'ate-o-proximo' | 
   if (e.tipo === 'vao') {
     return <li data-tipo="vao" className="text-apagado">{e.texto}</li>;
   }
-  const marca = e.tipo === 'inicio' && e.vale !== 'agora' ? 'inicio' : e.vale === 'agora' ? 'agora' : e.vale === 'marcada' ? 'marcada' : 'antes';
+  // a ordem importa: o que vale agora e o que ainda não vale pesam mais que ser o primeiro registro (o mockup deixa a marca "marcada" vencer a do início)
+  const marca = e.vale === 'agora' ? 'agora' : e.vale === 'marcada' ? 'marcada' : e.tipo === 'inicio' ? 'inicio' : 'antes';
   return (
     <li
       data-tipo={e.tipo}
@@ -114,10 +116,10 @@ function Evento({ e, trilho }: { e: EventoDoRastreio; trilho: 'ate-o-proximo' | 
         e.vale === 'marcada' ? 'before:border-dashed before:border-encaixe' : 'before:border-linha',
       )}
     >
-      <span data-ponto className={cn('absolute rounded-full shadow-[0_0_0_3px_var(--color-superficie)]', PONTO[marca])} aria-hidden />
-      <h4 className={cn('flex flex-wrap items-center gap-x-2.5 gap-y-0.5 font-cond text-corpo font-semibold', e.vale === 'agora' || e.vale === 'marcada' ? 'text-tinta' : 'text-apagado')}>
-        <time dateTime={e.desde}>{ddmmaaaa(e.desde)}</time>
-        {e.vale === 'marcada' && <span className="rounded-controle bg-passa px-2 font-sans text-xs font-normal text-apagado">Ainda não vale</span>}
+      <span data-ponto data-marca={marca} className={cn('absolute rounded-full shadow-[0_0_0_3px_var(--color-superficie)]', PONTO[marca])} aria-hidden />
+      <h4 className="flex flex-wrap items-center gap-x-2.5 gap-y-0.5 font-cond text-corpo font-semibold text-apagado">
+        <time dateTime={e.desde} className={cn((e.vale === 'agora' || e.vale === 'marcada') && 'text-tinta')}>{ddmmaaaa(e.desde)}</time>
+        {e.vale === 'marcada' && <Etiqueta tipo="neutra">Ainda não vale</Etiqueta>}
         {e.tipo === 'inicio' && e.vale !== 'marcada' && <span className="font-sans text-xs font-normal">Primeiro registro</span>}
         {e.vale === 'agora' && <span className="sr-only">, vale agora</span>}
       </h4>
@@ -153,7 +155,7 @@ function LinhaDoTempo({ eventos }: { eventos: EventoDoRastreio[] }) {
   const longo = eventos.length > MAIS_NOVOS;
   const mostrados = longo && !tudo ? eventos.slice(0, MAIS_NOVOS) : eventos;
   return (
-    <ol aria-label="Mudanças, da mais nova para a mais antiga" className="mt-5 grid list-none gap-6 pl-7">
+    <ol role="list" aria-label="Mudanças, da mais nova para a mais antiga" className="mt-5 grid list-none gap-6 pl-7">
       {mostrados.map((e, i) => {
         const seguinte = mostrados[i + 1];
         // o trilho vai até o ponto do seguinte; o primeiro registro o fecha; antes de um vão à vista, ele para antes e recomeça depois dele
