@@ -65,7 +65,7 @@ describe('lista de militares', () => {
     const item = (await screen.findByText('FORASTEIRO')).closest('li')!;
     expect(within(item).getByText('Externo · 2ª SB')).toBeInTheDocument();
     expect(within(item).queryByText(/EXTERNO/)).toBeNull();
-    expect(within(item).getByRole('link')).toHaveAttribute('href', '/consulta/m9');
+    expect(within(item).getByRole('link')).toHaveAttribute('href', '/peculio/militar/m9');
     expect(within(item).queryByLabelText(/Cadastro incompleto/)).toBeNull();
     await userEvent.selectOptions(screen.getByLabelText('Equipe'), 'Externo');
     expect(screen.getByText('FORASTEIRO')).toBeInTheDocument();

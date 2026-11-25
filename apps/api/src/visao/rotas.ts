@@ -1,6 +1,6 @@
 // A borda das camadas de visão e a marca "de oficiais" dos quadros (entrega 6.11): só o administrador lê e ajusta. Nada aqui dá permissão de gravar
 // a quem apenas vê.
-import { MarcaDeOficiais, NovaBorda } from 'contratos';
+import { FiltrosDaBusca, MarcaDeOficiais, NovaBorda } from 'contratos';
 import { Hono } from 'hono';
 import { exigirAdministradorRaiz, exigirSessao, type AmbienteApi } from '../acesso.ts';
 import type { Auth } from '../auth.ts';
@@ -9,6 +9,7 @@ import { lerQuadros } from '../cadastros/quadros.ts';
 import { lerCorpo } from '../erros.ts';
 import { hojeRecife } from '../datas.ts';
 import { limitarPorConta } from '../limites.ts';
+import { buscarComFiltros } from './busca.ts';
 import { buscarMilitares, fichaDeConsulta, unidadesDaConsulta } from './consulta.ts';
 import { carregarBorda, lerBorda } from './visao.ts';
 
@@ -80,6 +81,14 @@ export function rotasVisao(dep: { banco: Banco; auth: Auth; limiteDeBuscas?: num
       return c.json({ erro: 'Unidade não encontrada.' }, 404);
     }
     return c.json(await buscarMilitares(c.get('banco'), { texto, unidadeId, hoje: hojeRecife(), unidadeDeTrabalho }));
+  });
+
+  // 6.51: a busca com filtros (vários, a lotação em várias unidades, o arquivo de matrículas); no corpo, porque matrículas e unidades não cabem no endereço. Mesmo limite por minuto
+  r.post('/consulta/militares/buscar', limiteDaBusca, async (c) => {
+    const corpo = await lerCorpo(c, FiltrosDaBusca);
+    if (!corpo.ok) return corpo.resposta;
+    const resposta = await buscarComFiltros(c.get('banco'), c.get('usuarioId'), corpo.dados, hojeRecife());
+    return resposta.ok ? c.json(resposta.resultado) : c.json({ erro: resposta.erro }, resposta.status);
   });
 
   r.get('/consulta/militares/:id', async (c) => {

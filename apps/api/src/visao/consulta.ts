@@ -13,8 +13,8 @@ const MAXIMO_DE_PALAVRAS = 8;
 
 // Maiúsculas sem acento, igual no texto da busca (aqui) e no nome guardado (no banco, com translate + upper): os acentos que o português usa.
 const GRUPOS: [string, string][] = [['ÁÀÂÃÄáàâãä', 'A'], ['ÉÈÊËéèêë', 'E'], ['ÍÌÎÏíìîï', 'I'], ['ÓÒÔÕÖóòôõö', 'O'], ['ÚÙÛÜúùûü', 'U'], ['Çç', 'C'], ['Ññ', 'N']];
-const COM_ACENTO = GRUPOS.map(([letras]) => letras).join('');
-const SEM_ACENTO = GRUPOS.map(([letras, base]) => base.repeat(letras.length)).join('');
+export const COM_ACENTO = GRUPOS.map(([letras]) => letras).join('');
+export const SEM_ACENTO = GRUPOS.map(([letras, base]) => base.repeat(letras.length)).join('');
 const semAcento = (t: string) => [...t].map((ch) => { const i = COM_ACENTO.indexOf(ch); return i >= 0 ? SEM_ACENTO[i]! : ch; }).join('').replace(/[a-z]/g, (x) => x.toUpperCase());
 /** `%`, `_` e `\` valem como letras na busca: sem isto, "%%%" acharia a corporação inteira. */
 const comoLetras = (t: string) => t.replace(/[\\%_]/g, '\\$&');

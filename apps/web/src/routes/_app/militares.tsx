@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { createFileRoute, Link, Outlet, useParams, useSearch } from '@tanstack/react-router';
+import { createFileRoute, Link, Outlet, useParams } from '@tanstack/react-router';
 import type { LinhaMilitar } from 'contratos';
 import { ArrowRightLeft, Briefcase, CalendarClock, CalendarOff, Car, Clock, IdCard, TriangleAlert } from 'lucide-react';
 import { EtiquetaDeDado } from '@/componentes/EtiquetaDeDado';
@@ -104,8 +104,6 @@ function ListaDeMilitares({ unidadeId, escolhido }: { unidadeId: string; escolhi
 }
 
 function ItemMilitar({ m, escolhido }: { m: LinhaMilitar; escolhido: boolean }) {
-  // a ficha aberta pelo Pecúlio continua sendo do Pecúlio ao passar para outro militar da lista
-  const { de } = useSearch({ strict: false }) as { de?: 'peculio' };
   const disponivel = m.situacao === 'Disponível';
   const externo = m.externo;
   const classe = cn('grid gap-0.5 rounded-lg px-3 py-2 hover:bg-accent', escolhido && classeItemEscolhido);
@@ -113,7 +111,7 @@ function ItemMilitar({ m, escolhido }: { m: LinhaMilitar; escolhido: boolean }) 
     <li>
       {m.externo ? (
         // o militar externo é de outra unidade: a ficha da escala é da lotação dele, e aqui só se consulta
-        <Link to="/consulta/$id" params={{ id: m.id }} className={classe}>
+        <Link to="/peculio/militar/$id" params={{ id: m.id }} search={{}} className={classe}>
         <span className="flex items-center gap-2">
           <span className="font-cond text-apoio text-apagado">{m.posto}</span>
           <span className="font-cond text-base font-semibold">{m.nomeGuerra}</span>
@@ -136,7 +134,7 @@ function ItemMilitar({ m, escolhido }: { m: LinhaMilitar; escolhido: boolean }) 
         </span>
         </Link>
       ) : (
-        <Link to="/militares/$id" params={{ id: m.id }} search={de === 'peculio' ? { de } : undefined} className={classe} aria-current={escolhido ? 'page' : undefined}>
+        <Link to="/militares/$id" params={{ id: m.id }} className={classe} aria-current={escolhido ? 'page' : undefined}>
         <span className="flex items-center gap-2">
           <span className="font-cond text-apoio text-apagado">{m.posto}</span>
           <span className="font-cond text-base font-semibold">{m.nomeGuerra}</span>
