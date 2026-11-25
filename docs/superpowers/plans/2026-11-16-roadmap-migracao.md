@@ -35,7 +35,7 @@
 | 4. Montagem da escala | Montar e conferir a escala do mês à mão, nas telas de trabalho | Você e os escalantes | concluída |
 | 5. Pecúlio | A base de militares do 2º GB inteiro e o módulo Pecúlio | Você e a administração do GB | concluída |
 | 6. Usuários e módulos | Tipos de usuário, contas, acesso por lotação, tela inicial | Todos os militares | em execução (ajustes do piloto) |
-| 7. Visualização de escalas | Publicar a escala, publicações, Minha escala, próprio voluntariado | Todos os militares | planejada |
+| 7. Visualização de escalas | Estados da escala (prévia, publicada, retificada), Minha escala, próprio voluntariado | Todos os militares | planejada |
 | 8. Primeiro mês real | Distribuições automáticas, documento, Escala por militar e o piloto | ~5 escalantes (piloto 1ª SB) | planejada |
 | 9. Operação diária | Efetivo por dia na operação, permutas, escala executada | Escalantes | planejada |
 | 10. Regras novas | Regras validadas no laboratório e a tela de Ajuda | Escalantes | planejada |
@@ -116,11 +116,12 @@ Design: `docs/superpowers/specs/2026-11-25-fase7-visualizacao-de-escalas-design.
 |---|---|---|
 | 1 | API do voluntariado: a coleta por unidade e mês, o militar marca o próprio, o registro das correções (0044) | mesclada (#235) |
 | 2 | Telas: Meu voluntariado (área pessoal), outro horário no dia, o interruptor da coleta, as correções | mesclada (#240) |
-| 3 | API da prévia: lançar e recolher por escala e mês, o passado com justificativa e registro, as leituras da corporação (0045) | mesclada (#238); a refazer com os estados da escala (25/11) |
-| 4 | Montagem: "Lançar prévia", o motivo do passado, as alterações no passado | plano a reescrever (estados da escala) |
-| 5 | Módulo Visualização: Minha escala e Escalas | plano a reescrever (estados da escala) |
+| 3 | API da prévia: lançar e recolher por escala e mês, o passado com justificativa e registro, as leituras da corporação (0045) | mesclada (#238); refeita pela 3.1 |
+| 3.1 | API dos estados da escala: rascunho, prévia (unidade e as de baixo), publicada, retificada e remessada; a trava do passado fora do rascunho; a retificação automática; as leituras (0046) | plano pronto, em execução |
+| 4 | Montagem: o estado da escala, "Lançar prévia", "Publicar", "Republicar", o motivo do passado, as alterações no passado | plano pronto, depois da 3.1 |
+| 5 | Módulo Visualização: Minha escala e Escalas, com o estado | plano pronto, depois da 3.1 |
 
-Planos: `docs/superpowers/plans/2026-11-25-fase7-1-…` a `fase7-5-…`. A 1 e a 2 são a prioridade. O .xlsx é a fase 8; a comparação com outro militar entra com a Escala por militar (fase 8) e a busca por permutantes, na fase 9.
+Planos: `docs/superpowers/plans/2026-11-25-fase7-1-…` a `fase7-5-…` (a 3.1 é `fase7-3-1-…`). **Os estados da escala:** rascunho (só quem monta vê), prévia (a unidade e as de baixo; o passado trava), publicada (toda a corporação; mudança vira retificação, com a etiqueta "Escala em retificação" até o gestor republicar), retificada e remessada (a remessa aos superiores é da fase 9). Só o gestor publica. A 1 e a 2 são a prioridade. O .xlsx é a fase 8; a comparação com outro militar entra com a Escala por militar (fase 8) e a busca por permutantes, na fase 9.
 
 ## Fase 8 — Primeiro mês real · planejada
 
@@ -149,6 +150,7 @@ Planos: `docs/superpowers/plans/2026-11-25-fase7-1-…` a `fase7-5-…`. A 1 e a
 - Permutas registradas (a Grade geral já trata a troca entre dois ordinários como permuta).
 - **Busca por permutantes** (área pessoal): o militar escolhe um dia do mês e o sistema mostra quem está disponível para permutar com ele. Depende das specs de permutas, feitas no começo desta fase.
 - Escala executada: gerar e enviar até o dia 5 do mês seguinte.
+- **Remessar a escala** (estado "remessada", criado na 7.3.1): o botão que envia a escala cumprida aos superiores, para comprovar carga horária ou cotas; depois dele só o administrador altera.
 
 **Entrega:** o escalante passa o mês inteiro no sistema, do dia 1 ao envio da escala executada.
 
