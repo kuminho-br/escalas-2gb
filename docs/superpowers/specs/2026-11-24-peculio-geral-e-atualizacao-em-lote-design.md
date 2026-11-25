@@ -91,6 +91,6 @@ Linhas com divisória ou cartões num painel: **a DESIGN decide o padrão**, que
 
 ## O que fica para o plano
 
-- A divisão em entregas. Sugestão: (a) Pecúlio Geral com as três views, a ficha no lugar e a lista (front-end, no Fable); (b) a pesquisa com filtros, árvore e arquivo, com a seleção; (c) a atualização em lote (API e tela). A ordem (a), (b), (c), depois do piloto.
+- A divisão em entregas. Sugestão: (a) Pecúlio Geral com as três views, a ficha no lugar e a lista (front-end); (b) a pesquisa com filtros, árvore e arquivo, com a seleção; (c) a atualização em lote (API e tela). A ordem (a), (b), (c), depois do piloto.
 - As rotas novas (`POST /peculio/lote/previa`, `POST /peculio/lote/aplicar`, ou nomes equivalentes) e o formato de entrada (ids dos militares, campos e valores, "a partir de").
 - Os textos das recusas da prévia.

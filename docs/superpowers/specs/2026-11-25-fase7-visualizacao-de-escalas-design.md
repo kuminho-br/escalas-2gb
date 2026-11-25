@@ -81,10 +81,10 @@ O usuário entregou o "como". Cada escolha abaixo é minha e pode ser corrigida 
 | Entrega | O que traz | Modelo | Migração |
 |---|---|---|---|
 | 7.1 | API do voluntariado: a coleta, o militar marca o próprio, o registro das correções | Sonnet | 0044 |
-| 7.2 | Telas do voluntariado: Meu voluntariado, o botão do dia, o interruptor da coleta, o registro | Fable | — |
+| 7.2 | Telas do voluntariado: Meu voluntariado, o botão do dia, o interruptor da coleta, o registro | Sonnet | — |
 | 7.3 | API da prévia: lançar e recolher, a trava do passado com justificativa, o registro, as leituras para a corporação e a Minha escala | Sonnet | 0045 |
-| 7.4 | Tela da montagem: "Lançar prévia", a justificativa, "Alterações no passado" | Fable | — |
-| 7.5 | Módulo Visualização: Minha escala e Escalas | Fable | — |
+| 7.4 | Tela da montagem: "Lançar prévia", a justificativa, "Alterações no passado" | Sonnet | — |
+| 7.5 | Módulo Visualização: Minha escala e Escalas | Sonnet | — |
 
 Ordem: 7.1, 7.2, 7.3, 7.4, 7.5. A 7.1 e a 7.2 são a prioridade e já servem ao piloto (coletar o voluntariado de janeiro).
 
