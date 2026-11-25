@@ -27,7 +27,7 @@
 | 11 | 24/11 | usuário | "Alterar situação" na ficha: a lotação de destino (lista plana com "DA (1º GB)", "DA (2º GB)" …) tem de seguir a lógica da árvore genérica, escolhida nó a nó | secundária | planejado | 6.45 (Fable) |
 | 12 | 24/11 | usuário | Escala dos oficiais: o dia vermelho só conta no serviço do tipo ordinário (Saldo); JES, PJES e Diária são extra e não contam | secundária | planejado | 6.44 |
 | 13 | 24/11 | usuário | Memorial de cálculo dos oficiais: a frase da sobra lista do mais antigo para o mais moderno; a cota começa pelo mais moderno, então a lista começa por ele | secundária | planejado | 6.44 |
-| 14 | 24/11 | usuário | Histórico de rastreio da ficha: mais separação entre as situações; resumo recolhido só com unidade e jornada; resumo some quando aberta; afastamentos saem da linha do tempo; a linha do tempo fica | secundária | mockup da DESIGN (aguarda aprovação) | — |
+| 14 | 24/11 | usuário | Histórico de rastreio da ficha: mais separação entre as situações; resumo recolhido só com unidade e jornada; resumo some quando aberta; afastamentos saem da linha do tempo; a linha do tempo fica | secundária | planejado (mockup parcialmente aprovado em 25/11) | 6.49 (Fable) |
 | 15 | 24/11 | usuário | DEFEITO: a aba Militares da 1ª SB mostra militares que hoje estão lotados acima (quem passou pela unidade no mês); deve mostrar só quem está lá hoje | principal | planejado | 6.48 |
 
 ## Já conhecidos antes do pool
