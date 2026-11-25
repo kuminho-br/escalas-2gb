@@ -1,13 +1,13 @@
-import { useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { mesPorExtenso, type EscalaDoMes } from 'contratos';
 import { useEffect, useRef, useState } from 'react';
 import { foiCancelado, mensagemDe } from '@/api/cliente';
-import { lancarPrevia, publicarEscala, republicarEscala } from '@/api/escala-do-mes';
+import { consultaRegistroDoPasado, lancarPrevia, publicarEscala, republicarEscala } from '@/api/escala-do-mes';
 import { Button } from '@/componentes/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/componentes/ui/dialog';
 import { Etiqueta } from '@/componentes/ui/etiqueta';
 import { diaEMesBr } from '@/lib/meses';
-import { AlteracoesNoPassado } from './AlteracoesNoPassado';
+import { BotaoDasAlteracoesNoPassado, ListaDasAlteracoesNoPassado } from './AlteracoesNoPassado';
 
 type Passagem = 'previa' | 'publicar' | 'republicar';
 const NOMES = { rascunho: 'Rascunho', previa: 'Prévia', publicada: 'Publicada', retificada: 'Retificada', remessada: 'Remessada' } as const;
@@ -39,6 +39,9 @@ export function EstadoDaEscala({ escala, soConsulta }: { escala: EscalaDoMes; so
   const [registroAberto, setRegistroAberto] = useState(false);
   const [aviso, setAviso] = useState(false);
   const trava = useRef(false);
+  // as alterações no passado: sem nenhuma (ou sem permissão para ler o registro), nada aparece
+  const registro = useQuery(consultaRegistroDoPasado(escala.escalaId, escala.mes));
+  const alteracoes = registro.data ?? [];
   const antes = useRef<{ chave: string; emRetificacao: boolean } | null>(null);
   const chave = `${escala.escalaId}|${escala.mes}`;
 
@@ -96,8 +99,9 @@ export function EstadoDaEscala({ escala, soConsulta }: { escala: EscalaDoMes; so
         {podeLancar && <Button type="button" variant="secundario" size="sm" onClick={() => setConfirmando('previa')}>Lançar prévia</Button>}
         {podePublicarAgora && <Button type="button" variant="secundario" size="sm" onClick={() => setConfirmando('publicar')}>Publicar</Button>}
         {podeRepublicar && <Button type="button" variant="secundario" size="sm" onClick={() => setConfirmando('republicar')}>Republicar</Button>}
-        <AlteracoesNoPassado escalaId={escala.escalaId} mes={escala.mes} aberto={registroAberto} aoAlternar={() => setRegistroAberto((a) => !a)} />
+        {alteracoes.length > 0 && <BotaoDasAlteracoesNoPassado total={alteracoes.length} aberto={registroAberto} aoAlternar={() => setRegistroAberto((a) => !a)} />}
       </div>
+      {registroAberto && alteracoes.length > 0 && <ListaDasAlteracoesNoPassado linhas={alteracoes} />}
       {aviso && <p role="status" className="basis-full text-apoio text-pendencia">Esta escala está publicada. Ela ficou em retificação até o gestor republicar.</p>}
       {erro && <p role="alert" className="basis-full text-sm text-alerta">{erro}</p>}
       <Dialog open={confirmando !== null} onOpenChange={(o) => { if (!o && !ocupado) setConfirmando(null); }}>
