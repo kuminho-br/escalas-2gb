@@ -61,7 +61,7 @@ const FAIXA: FaixaDoDia = {
   removidos: [{ remocaoId: 'r1', militarId: 'm-x', nomeGuerra: 'REMOVIDO', servico: 'Pronto' }],
 };
 const DIA_DA_ESCALA: DiaDaEscala = { data: dia(1), diaDaSemana: 2, feriado: null, faixas: [FAIXA], obrigatoriasVazias: 1 };
-const ESCALA: EscalaDoMes = { escalaId: 'e1', nome: 'Ordinário', mes: MES, dias: [DIA_DA_ESCALA], resumo: { preenchidas: 1, obrigatorias: 2, obrigatoriasVazias: 1 }, previa: null, podeAlterarPassado: false };
+const ESCALA: EscalaDoMes = { escalaId: 'e1', nome: 'Ordinário', mes: MES, dias: [DIA_DA_ESCALA], resumo: { preenchidas: 1, obrigatorias: 2, obrigatoriasVazias: 1 }, estado: { estado: 'rascunho', emRetificacao: false, em: null, por: null }, podePublicar: false, podeAlterarPassado: false };
 const ESCALAS: LinhaEscala[] = [{ id: 'e1', nome: 'Ordinário', ativa: true, servicos: ['Pronto'], montaBlocosVoluntariado: true, distribuicao: 'pre_escala' }];
 const COTAS: Cota[] = [{ id: 'c1', mes: MES, servicoId: 'sv-jes', quantidade: 30, origem: 'interna', prioridade: 1, servico: 'JES', cor: '#6E56A8', distribuidas: 12 }];
 const DIA_DO_EFETIVO = hoje();
