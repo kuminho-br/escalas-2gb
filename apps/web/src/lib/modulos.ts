@@ -4,6 +4,7 @@ import {
   CalendarDays,
   CircleHelp,
   Clock,
+  Cake,
   Contact,
   Eye,
   FileText,
@@ -26,7 +27,7 @@ import { mesPorExtenso } from '@/lib/saudacao';
 /** O nome do mês de um 'aaaa-mm' ('2026-12' -> 'dezembro'). */
 const nomeDoMes = (mes: string) => mesPorExtenso(new Date(`${mes}-15T12:00:00Z`));
 
-export type Item = { nome: string; icone: LucideIcon; para?: LinkProps['to']; /** O item só aparece para quem passa neste teste (sem ele, todos veem). */ ve?: (eu: Eu | EuDaApi) => boolean };
+export type Item = { nome: string; icone: LucideIcon; para?: LinkProps['to']; /** O item só aparece para quem passa neste teste (sem ele, todos veem). */ ve?: (eu: Eu | EuDaApi) => boolean; /** Só o endereço exato deixa o item destacado (e não os de baixo dele, que são itens à parte). */ exato?: boolean };
 export type IdModulo = 'escalas' | 'peculio' | 'visualizacao' | 'minha-ficha' | 'configuracoes' | 'estrutura';
 
 /**
@@ -93,15 +94,16 @@ export const MODULOS: Modulo[] = [
   // no trilho; quem tem nível vê a lista do Pecúlio e a Consulta
   {
     id: 'peculio',
-    nome: 'Pecúlio',
-    situacao: (eu) => (temPapel(eu) ? 'Contatos e cadastros' : 'Consulta de militares'),
+    nome: 'Pecúlio Geral',
+    situacao: (eu) => (temPapel(eu) ? 'Contatos e cadastros' : 'Pesquisar militares'),
     rota: '/peculio',
-    rotaDe: (eu) => (temPapel(eu) ? '/peculio' : '/consulta'),
+    rotaDe: (eu) => (temPapel(eu) ? '/peculio' : '/peculio/pesquisar'),
     icone: Contact,
     ve: () => true,
     itens: [[
-      { nome: 'Pecúlio', icone: Contact, para: '/peculio', ve: temPapel },
-      { nome: 'Consulta de militares', icone: Search, para: '/consulta' },
+      { nome: 'Pecúlio da unidade', icone: Contact, para: '/peculio', ve: temPapel, exato: true },
+      { nome: 'Pesquisar militares', icone: Search, para: '/peculio/pesquisar' },
+      { nome: 'Aniversários', icone: Cake, para: '/peculio/aniversarios', ve: temPapel },
     ]],
   },
   // a árvore de unidades (entrega 6.26): quem tem nível de acesso a vê; só quem tem poder sobre ela a edita (cada unidade diz o que a pessoa pode fazer)

@@ -21,6 +21,9 @@ function api(extra: Parameters<typeof simularApi>[0] = {}) {
   return simularApi({
     '/api/eu': { status: 200, corpo: COMUM },
     'GET /api/consulta/unidades': { status: 200, corpo: UNIDADES },
+    // quem não tem nível de acesso sobre o militar recebe 403 na ficha completa, e a tela mostra a de consulta (6.50)
+    'GET /api/militares/m1': { status: 403, corpo: { erro: 'Você não tem permissão nesta seção.' } },
+    'GET /api/militares/m9': { status: 403, corpo: { erro: 'Você não tem permissão nesta seção.' } },
     [BUSCA]: { status: 200, corpo: { militares: [linha('m1', 'ANDRADE'), linha('m2', 'BARRETO', { postoGrad: '3º SGT', lotacao: null, quadro: null, nomeCompleto: null })], haMais: false } },
     ...extra,
   });
@@ -33,8 +36,8 @@ const campoDaBusca = () => screen.findByLabelText('Nome, nome de guerra ou matr�
 describe('a consulta de militares', () => {
   it('o militar comum abre a consulta; antes de buscar, a tela orienta e nada é pedido', async () => {
     const f = api();
-    abrir('/consulta');
-    expect(await screen.findByRole('heading', { level: 1, name: 'Consulta de militares' })).toBeInTheDocument();
+    abrir('/peculio/pesquisar');
+    expect(await screen.findByRole('heading', { level: 1, name: 'Pesquisar militares' })).toBeInTheDocument();
     expect(screen.getByText(/Busque pelo nome, pelo nome de guerra ou pela matrícula/)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Buscar' })).toBeInTheDocument();
     await waitFor(() => expect(chamadasA(f, 'GET /api/consulta/unidades')).toBe(1));
@@ -43,7 +46,7 @@ describe('a consulta de militares', () => {
 
   it('6.45: "Lotados em" começa em "Toda a corporação" e abre a árvore nó a nó, com "Abrir tudo"; nenhuma lista plana', async () => {
     const f = api();
-    abrir('/consulta');
+    abrir('/peculio/pesquisar');
     const unidade = await screen.findByLabelText('Lotados em');
     expect(unidade).toHaveTextContent('Toda a corporação');
     expect(unidade.tagName).not.toBe('SELECT');
@@ -57,7 +60,7 @@ describe('a consulta de militares', () => {
 
   it('6.45: "Limpar" tira a unidade e volta a "Toda a corporação"', async () => {
     const f = api();
-    abrir('/consulta');
+    abrir('/peculio/pesquisar');
     await waitFor(() => expect(chamadasA(f, 'GET /api/consulta/unidades')).toBe(1));
     await escolherNaArvore(await screen.findByLabelText('Lotados em'), 'DivOp, em 2º GB');
     expect(screen.getByLabelText('Lotados em')).toHaveTextContent('2º GB / DivOp');
@@ -68,7 +71,7 @@ describe('a consulta de militares', () => {
 
   it('busca por texto: mostra a identificação de cada militar, e a lotação e o quadro quando há', async () => {
     const f = api();
-    abrir('/consulta');
+    abrir('/peculio/pesquisar');
     await userEvent.type(await campoDaBusca(), 'andr');
     await userEvent.click(screen.getByRole('button', { name: 'Buscar' }));
     const lista = await screen.findByRole('list', { name: 'Militares encontrados' });
@@ -90,7 +93,7 @@ describe('a consulta de militares', () => {
 
   it('com a unidade escolhida, manda a unidade; só a unidade já basta', async () => {
     const f = api();
-    abrir('/consulta');
+    abrir('/peculio/pesquisar');
     await waitFor(() => expect(chamadasA(f, 'GET /api/consulta/unidades')).toBe(1));
     await escolherNaArvore(screen.getByLabelText('Lotados em'), 'DivOp, em 2º GB');
     await userEvent.click(screen.getByRole('button', { name: 'Buscar' }));
@@ -100,7 +103,7 @@ describe('a consulta de militares', () => {
 
   it('texto curto e nenhuma unidade: mostra a mensagem fixa e não pede nada à API', async () => {
     const f = api();
-    abrir('/consulta');
+    abrir('/peculio/pesquisar');
     await userEvent.type(await campoDaBusca(), 'an');
     await userEvent.click(screen.getByRole('button', { name: 'Buscar' }));
     const erro = await screen.findByRole('alert');
@@ -116,21 +119,21 @@ describe('a consulta de militares', () => {
 
   it('com mais de 50, o aviso "Há mais militares. Refine a busca." aparece acima da lista', async () => {
     api({ [BUSCA]: { status: 200, corpo: { militares: [linha('m1', 'ANDRADE')], haMais: true } } });
-    abrir('/consulta?texto=andrade');
+    abrir('/peculio/pesquisar?texto=andrade');
     expect(await screen.findByRole('status')).toHaveTextContent(AVISO_MAIS);
     expect(screen.getByRole('list', { name: 'Militares encontrados' })).toBeInTheDocument();
   });
 
   it('sem o aviso quando não há mais; sem resultado, a tela orienta', async () => {
     api({ [BUSCA]: { status: 200, corpo: { militares: [], haMais: false } } });
-    abrir('/consulta?texto=zzz');
+    abrir('/peculio/pesquisar?texto=zzz');
     expect(await screen.findByText(/Nenhum militar encontrado\. Confira o nome ou a matrícula/)).toBeInTheDocument();
     expect(screen.queryByText(AVISO_MAIS)).toBeNull();
   });
 
   it('a busca fica no endereço: abrir /consulta?texto=...&unidade=... já mostra o resultado e preenche os campos', async () => {
     const f = api();
-    abrir('/consulta?texto=andrade&unidade=u-divop');
+    abrir('/peculio/pesquisar?texto=andrade&unidade=u-divop');
     await screen.findByRole('list', { name: 'Militares encontrados' });
     expect([...pedidos(f)[0]!.entries()]).toEqual([['texto', 'andrade'], ['unidadeId', 'u-divop']]);
     expect(screen.getByLabelText('Nome, nome de guerra ou matrícula')).toHaveValue('andrade');
@@ -139,25 +142,25 @@ describe('a consulta de militares', () => {
 
   it('um endereço com texto curto e sem unidade não pede nada', async () => {
     const f = api();
-    abrir('/consulta?texto=ab');
-    await screen.findByRole('heading', { level: 1, name: 'Consulta de militares' });
+    abrir('/peculio/pesquisar?texto=ab');
+    await screen.findByRole('heading', { level: 1, name: 'Pesquisar militares' });
     expect(screen.getByText(/Busque pelo nome/)).toBeInTheDocument();
     expect(pedidos(f)).toHaveLength(0);
   });
 
   it('erro da API aparece na tela', async () => {
     api({ [BUSCA]: { status: 404, corpo: { erro: 'Unidade não encontrada.' } } });
-    abrir('/consulta?unidade=x');
+    abrir('/peculio/pesquisar?unidade=x');
     expect(await screen.findByRole('alert')).toHaveTextContent('Unidade não encontrada.');
   });
 
   it('cada linha leva à ficha de consulta, e o endereço guarda a busca para o "Voltar"', async () => {
     api();
-    const router = abrir('/consulta?texto=andrade');
+    const router = abrir('/peculio/pesquisar?texto=andrade');
     const link = (await screen.findAllByRole('link', { name: /ANDRADE/ }))[0]!;
-    expect(link).toHaveAttribute('href', '/consulta/m1?texto=andrade');
+    expect(link).toHaveAttribute('href', '/peculio/militar/m1?de=pesquisa&texto=andrade');
     await userEvent.click(link);
-    await waitFor(() => expect(router.state.location.pathname).toBe('/consulta/m1'));
+    await waitFor(() => expect(router.state.location.pathname).toBe('/peculio/militar/m1'));
   });
 });
 
@@ -183,7 +186,7 @@ describe('a ficha de consulta', () => {
 
   it('o militar comum recebe só a identificação: nenhum outro bloco, nenhum botão de editar, nenhuma frase de "sem acesso"', async () => {
     ficha(FICHA_MINIMA);
-    abrir('/consulta/m1');
+    abrir('/peculio/militar/m1');
     await screen.findByRole('heading', { level: 2, name: /ANDRADE/ });
     expect(blocos()).toEqual(['Identificação']);
     expect(screen.getByText('Fulano de Tal ANDRADE')).toBeInTheDocument();
@@ -199,7 +202,7 @@ describe('a ficha de consulta', () => {
 
   it('com todos os blocos, mostra contato, situação com o histórico, afastamentos, dados da escala e comportamento', async () => {
     ficha(FICHA_COMPLETA);
-    abrir('/consulta/m1');
+    abrir('/peculio/militar/m1');
     await screen.findByRole('heading', { level: 2, name: /ANDRADE/ });
     expect(blocos()).toEqual(['Identificação', 'Contato', 'Situação', 'Afastamentos', 'Dados da escala', 'Comportamento']);
     expect(screen.getByText('(81) 99999-0001')).toBeInTheDocument();
@@ -227,7 +230,7 @@ describe('a ficha de consulta', () => {
 
   it('afastamentos sem motivo nem boletim (o oficial): só o tipo e o período', async () => {
     ficha({ ...FICHA_MINIMA, afastamentos: [{ tipo: 'LTS', inicio: '2026-12-10', fim: '2026-12-20' }] });
-    abrir('/consulta/m1');
+    abrir('/peculio/militar/m1');
     const itens = within(await screen.findByRole('list', { name: 'Afastamentos' })).getAllByRole('listitem');
     expect(itens[0]!.textContent).toBe('LTSde 10/12/2026 a 20/12/2026');
   });
@@ -235,38 +238,46 @@ describe('a ficha de consulta', () => {
   it('"Abrir a ficha completa" só aparece quando a API diz que pode, e leva à ficha (a quem tem nível de acesso)', async () => {
     // quem tem nível de acesso na lotação do militar: o auxiliar (a barreira do módulo de escalas deixa passar)
     api({ '/api/eu': { status: 200, corpo: EU_EXEMPLO }, 'GET /api/consulta/militares/m1': { status: 200, corpo: FICHA_COMPLETA } });
-    const router = abrir('/consulta/m1');
+    abrir('/peculio/militar/m1');
     const link = await screen.findByRole('link', { name: 'Abrir a ficha completa' });
-    expect(link).toHaveAttribute('href', '/militares/m1');
-    await userEvent.click(link);
-    await waitFor(() => expect(router.state.location.pathname).toBe('/militares/m1'));
+    expect(link).toHaveAttribute('href', '/peculio/militar/m1');
   });
 
   it('"Voltar à busca" leva ao mesmo resultado', async () => {
     ficha(FICHA_MINIMA);
-    abrir('/consulta/m1?texto=andrade&unidade=u-divop');
-    const voltar = await screen.findByRole('link', { name: 'Voltar à busca' });
-    expect(voltar).toHaveAttribute('href', '/consulta?texto=andrade&unidade=u-divop');
+    abrir('/peculio/militar/m1?de=pesquisa&texto=andrade&unidade=u-divop');
+    const voltar = await screen.findByRole('link', { name: 'Voltar' });
+    expect(voltar).toHaveAttribute('href', '/peculio/pesquisar?texto=andrade&unidade=u-divop');
   });
 
   it('o militar sem lotação hoje: o resumo diz isso e só a identificação aparece', async () => {
     ficha({ ...FICHA_MINIMA, lotacao: null, quadro: null });
-    abrir('/consulta/m1');
+    abrir('/peculio/militar/m1');
     expect(await screen.findByText('Sem lotação hoje')).toBeInTheDocument();
     expect(blocos()).toEqual(['Identificação']);
   });
 
+  it('6.50: a ficha completa responde 404 (quem nunca foi lotado não aparece para ela), e a ficha de consulta abre mesmo assim', async () => {
+    api({
+      'GET /api/militares/m1': { status: 404, corpo: { erro: 'Militar não encontrado.' } },
+      'GET /api/consulta/militares/m1': { status: 200, corpo: { ...FICHA_MINIMA, lotacao: null, quadro: null } },
+    });
+    abrir('/peculio/militar/m1?de=pesquisa&texto=andr');
+    expect(await screen.findByText('Sem lotação hoje')).toBeInTheDocument();
+    expect(screen.queryByText('Militar não encontrado.')).toBeNull();
+  });
+
   it('militar que não existe mostra a mensagem da API', async () => {
     api({ 'GET /api/consulta/militares/m1': { status: 404, corpo: { erro: 'Militar não encontrado.' } } });
-    abrir('/consulta/m1');
+    abrir('/peculio/militar/m1');
     expect(await screen.findByRole('alert')).toHaveTextContent('Militar não encontrado.');
   });
 
   it('o título da aba é o da consulta, sem o nome do militar', async () => {
     ficha(FICHA_MINIMA);
-    abrir('/consulta/m1');
+    abrir('/peculio/militar/m1');
     await screen.findByRole('heading', { level: 2, name: /ANDRADE/ });
-    await waitFor(() => expect(document.title).toBe('Consulta de militares · Sistema de Gestão - 2º GB'));
+    await waitFor(() => expect(document.title).toBe('Militar · Sistema de Gestão - 2º GB'));
     expect(document.title).not.toMatch(/ANDRADE/);
   });
 });
@@ -275,7 +286,7 @@ describe('o militar externo não é mais trazido pela ficha de consulta (6.36)',
   it('mesmo quando a API manda a chave externo, a ficha não tem os botões de trazer e de tirar da escala (isso agora é nas configurações da escala)', async () => {
     const FICHA: FichaDeConsulta = { ...linha('m1', 'ANDRADE', { lotacao: '2ª SB' }), podeAbrirFichaCompleta: false, externo: { unidadeSigla: '1ª SB', vinculoId: null } };
     api({ 'GET /api/consulta/militares/m1': { status: 200, corpo: FICHA } });
-    abrir('/consulta/m1');
+    abrir('/peculio/militar/m1');
     await screen.findByRole('heading', { level: 2, name: /ANDRADE/ });
     expect(screen.queryByRole('button', { name: /Trazer para a escala/ })).toBeNull();
     expect(screen.queryByRole('button', { name: /Tirar da escala/ })).toBeNull();

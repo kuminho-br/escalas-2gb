@@ -66,7 +66,7 @@ export function NovoMilitar({ eu, aoFechar }: { eu: Eu; aoFechar: () => void }) 
       atualizarMilitares(queryClient);
       atualizarPeculio(queryClient);
       aoFechar();
-      await navigate({ to: '/militares/$id', params: { id: ficha.id }, search: { de: 'peculio' } });
+      await navigate({ to: '/peculio/militar/$id', params: { id: ficha.id }, search: {} });
     } catch (err) {
       setErro(mensagemDe(err));
       setCampos(camposDe(err));

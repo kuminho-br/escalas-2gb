@@ -114,11 +114,11 @@ describe('tela inicial', () => {
     // a unidade não entra na frase: já está no Topo, e o artigo erraria o gênero ("da 2º GB")
     expect(within(nav).getByRole('link', { name: /Confecção de escalas/ })).toHaveTextContent('Escalas de novembro');
     expect(within(nav).getByRole('link', { name: /Confecção de escalas/ })).not.toHaveTextContent('1ª SB');
-    expect(within(nav).getByRole('link', { name: /Pecúlio/ })).toHaveAttribute('href', '/peculio');
-    expect(within(nav).getByRole('link', { name: /Pecúlio/ })).toHaveTextContent('Contatos e cadastros');
+    expect(within(nav).getByRole('link', { name: /Pecúlio Geral/ })).toHaveAttribute('href', '/peculio');
+    expect(within(nav).getByRole('link', { name: /Pecúlio Geral/ })).toHaveTextContent('Contatos e cadastros');
     expect(within(nav).getByRole('link', { name: /Estrutura/ })).toHaveAttribute('href', '/estrutura');
-    // a Consulta de militares não é um atalho: é uma tela do Pecúlio
-    expect(within(nav).queryByRole('link', { name: /^Consulta de militares/ })).toBeNull();
+    // a pesquisa não é um atalho: é uma tela do Pecúlio Geral
+    expect(within(nav).queryByRole('link', { name: /^Pesquisar militares/ })).toBeNull();
     expect(within(nav).getByRole('link', { name: /Minha ficha/ })).toHaveAttribute('href', '/minha-ficha');
     const visualizacao = screen.getByText('Visualização de escalas').closest('li')!;
     expect(within(visualizacao).getByRole('link')).toHaveAttribute('href', '/meu-voluntariado');
@@ -128,15 +128,15 @@ describe('tela inicial', () => {
     expect(within(nav).queryByText('Abrir')).toBeNull();
   });
 
-  it('o militar comum vê quatro atalhos: Pecúlio (que leva direto à Consulta), Visualização, Minha ficha e Configurações (Review Focus 5)', async () => {
+  it('o militar comum vê quatro atalhos: Pecúlio Geral (que leva direto à pesquisa), Visualização, Minha ficha e Configurações (Review Focus 5)', async () => {
     simularApi({ '/api/eu': { status: 200, corpo: comum } });
     abrir('/');
     await screen.findByRole('heading', { level: 1 });
     const nav = screen.getByRole('navigation', { name: 'Módulos' });
-    expect(within(nav).getAllByRole('listitem').map((li) => li.querySelector('b')?.textContent)).toEqual(['Pecúlio', 'Visualização de escalas', 'Minha ficha', 'Configurações']);
-    const peculio = within(nav).getByRole('link', { name: /Pecúlio/ });
-    expect(peculio).toHaveAttribute('href', '/consulta');
-    expect(peculio).toHaveTextContent('Consulta de militares');
+    expect(within(nav).getAllByRole('listitem').map((li) => li.querySelector('b')?.textContent)).toEqual(['Pecúlio Geral', 'Visualização de escalas', 'Minha ficha', 'Configurações']);
+    const peculio = within(nav).getByRole('link', { name: /Pecúlio Geral/ });
+    expect(peculio).toHaveAttribute('href', '/peculio/pesquisar');
+    expect(peculio).toHaveTextContent('Pesquisar militares');
     expect(screen.queryByText('Confecção de escalas')).toBeNull();
   });
 

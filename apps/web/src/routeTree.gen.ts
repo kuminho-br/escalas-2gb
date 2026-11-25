@@ -39,10 +39,13 @@ import { Route as AppGuarnicoesIndexRouteImport } from './routes/_app/guarnicoes
 import { Route as AppGuarnicoesIdRouteImport } from './routes/_app/guarnicoes/$id'
 import { Route as AppMilitaresIndexRouteImport } from './routes/_app/militares/index'
 import { Route as AppMilitaresIdRouteImport } from './routes/_app/militares/$id'
+import { Route as AppPeculioAniversariosRouteImport } from './routes/_app/peculio_.aniversarios'
+import { Route as AppPeculioPesquisarRouteImport } from './routes/_app/peculio_.pesquisar'
 import { Route as AppServicosIndexRouteImport } from './routes/_app/servicos/index'
 import { Route as AppServicosIdRouteImport } from './routes/_app/servicos/$id'
 import { Route as AppConfiguracoesModelosDeGuarnicaoIdRouteImport } from './routes/_app/configuracoes_.modelos-de-guarnicao.$id'
 import { Route as AppEscalasIdOrdemRouteImport } from './routes/_app/escalas_.$id.ordem'
+import { Route as AppPeculioMilitarIdRouteImport } from './routes/_app/peculio_.militar.$id'
 
 const AppRoute = AppRouteImport.update({
   id: '/_app',
@@ -194,6 +197,16 @@ const AppMilitaresIdRoute = AppMilitaresIdRouteImport.update({
   path: '/$id',
   getParentRoute: () => AppMilitaresRoute,
 } as any)
+const AppPeculioAniversariosRoute = AppPeculioAniversariosRouteImport.update({
+  id: '/peculio_/aniversarios',
+  path: '/peculio/aniversarios',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppPeculioPesquisarRoute = AppPeculioPesquisarRouteImport.update({
+  id: '/peculio_/pesquisar',
+  path: '/peculio/pesquisar',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppServicosIndexRoute = AppServicosIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -213,6 +226,11 @@ const AppConfiguracoesModelosDeGuarnicaoIdRoute =
 const AppEscalasIdOrdemRoute = AppEscalasIdOrdemRouteImport.update({
   id: '/escalas_/$id/ordem',
   path: '/escalas/$id/ordem',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppPeculioMilitarIdRoute = AppPeculioMilitarIdRouteImport.update({
+  id: '/peculio_/militar/$id',
+  path: '/peculio/militar/$id',
   getParentRoute: () => AppRoute,
 } as any)
 
@@ -243,6 +261,8 @@ export interface FileRoutesByFullPath {
   '/escalas/$id': typeof AppEscalasIdRoute
   '/guarnicoes/$id': typeof AppGuarnicoesIdRoute
   '/militares/$id': typeof AppMilitaresIdRoute
+  '/peculio/aniversarios': typeof AppPeculioAniversariosRoute
+  '/peculio/pesquisar': typeof AppPeculioPesquisarRoute
   '/servicos/$id': typeof AppServicosIdRoute
   '/escalas/': typeof AppEscalasIndexRoute
   '/guarnicoes/': typeof AppGuarnicoesIndexRoute
@@ -250,6 +270,7 @@ export interface FileRoutesByFullPath {
   '/servicos/': typeof AppServicosIndexRoute
   '/configuracoes/modelos-de-guarnicao/$id': typeof AppConfiguracoesModelosDeGuarnicaoIdRoute
   '/escalas/$id/ordem': typeof AppEscalasIdOrdemRoute
+  '/peculio/militar/$id': typeof AppPeculioMilitarIdRoute
 }
 export interface FileRoutesByTo {
   '/criar-senha': typeof CriarSenhaRoute
@@ -275,6 +296,8 @@ export interface FileRoutesByTo {
   '/escalas/$id': typeof AppEscalasIdRoute
   '/guarnicoes/$id': typeof AppGuarnicoesIdRoute
   '/militares/$id': typeof AppMilitaresIdRoute
+  '/peculio/aniversarios': typeof AppPeculioAniversariosRoute
+  '/peculio/pesquisar': typeof AppPeculioPesquisarRoute
   '/servicos/$id': typeof AppServicosIdRoute
   '/escalas': typeof AppEscalasIndexRoute
   '/guarnicoes': typeof AppGuarnicoesIndexRoute
@@ -282,6 +305,7 @@ export interface FileRoutesByTo {
   '/servicos': typeof AppServicosIndexRoute
   '/configuracoes/modelos-de-guarnicao/$id': typeof AppConfiguracoesModelosDeGuarnicaoIdRoute
   '/escalas/$id/ordem': typeof AppEscalasIdOrdemRoute
+  '/peculio/militar/$id': typeof AppPeculioMilitarIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -312,6 +336,8 @@ export interface FileRoutesById {
   '/_app/escalas/$id': typeof AppEscalasIdRoute
   '/_app/guarnicoes/$id': typeof AppGuarnicoesIdRoute
   '/_app/militares/$id': typeof AppMilitaresIdRoute
+  '/_app/peculio_/aniversarios': typeof AppPeculioAniversariosRoute
+  '/_app/peculio_/pesquisar': typeof AppPeculioPesquisarRoute
   '/_app/servicos/$id': typeof AppServicosIdRoute
   '/_app/escalas/': typeof AppEscalasIndexRoute
   '/_app/guarnicoes/': typeof AppGuarnicoesIndexRoute
@@ -319,6 +345,7 @@ export interface FileRoutesById {
   '/_app/servicos/': typeof AppServicosIndexRoute
   '/_app/configuracoes_/modelos-de-guarnicao/$id': typeof AppConfiguracoesModelosDeGuarnicaoIdRoute
   '/_app/escalas_/$id/ordem': typeof AppEscalasIdOrdemRoute
+  '/_app/peculio_/militar/$id': typeof AppPeculioMilitarIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -349,6 +376,8 @@ export interface FileRouteTypes {
     | '/escalas/$id'
     | '/guarnicoes/$id'
     | '/militares/$id'
+    | '/peculio/aniversarios'
+    | '/peculio/pesquisar'
     | '/servicos/$id'
     | '/escalas/'
     | '/guarnicoes/'
@@ -356,6 +385,7 @@ export interface FileRouteTypes {
     | '/servicos/'
     | '/configuracoes/modelos-de-guarnicao/$id'
     | '/escalas/$id/ordem'
+    | '/peculio/militar/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/criar-senha'
@@ -381,6 +411,8 @@ export interface FileRouteTypes {
     | '/escalas/$id'
     | '/guarnicoes/$id'
     | '/militares/$id'
+    | '/peculio/aniversarios'
+    | '/peculio/pesquisar'
     | '/servicos/$id'
     | '/escalas'
     | '/guarnicoes'
@@ -388,6 +420,7 @@ export interface FileRouteTypes {
     | '/servicos'
     | '/configuracoes/modelos-de-guarnicao/$id'
     | '/escalas/$id/ordem'
+    | '/peculio/militar/$id'
   id:
     | '__root__'
     | '/_app'
@@ -417,6 +450,8 @@ export interface FileRouteTypes {
     | '/_app/escalas/$id'
     | '/_app/guarnicoes/$id'
     | '/_app/militares/$id'
+    | '/_app/peculio_/aniversarios'
+    | '/_app/peculio_/pesquisar'
     | '/_app/servicos/$id'
     | '/_app/escalas/'
     | '/_app/guarnicoes/'
@@ -424,6 +459,7 @@ export interface FileRouteTypes {
     | '/_app/servicos/'
     | '/_app/configuracoes_/modelos-de-guarnicao/$id'
     | '/_app/escalas_/$id/ordem'
+    | '/_app/peculio_/militar/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -645,6 +681,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppMilitaresIdRouteImport
       parentRoute: typeof AppMilitaresRoute
     }
+    '/_app/peculio_/aniversarios': {
+      id: '/_app/peculio_/aniversarios'
+      path: '/peculio/aniversarios'
+      fullPath: '/peculio/aniversarios'
+      preLoaderRoute: typeof AppPeculioAniversariosRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/peculio_/pesquisar': {
+      id: '/_app/peculio_/pesquisar'
+      path: '/peculio/pesquisar'
+      fullPath: '/peculio/pesquisar'
+      preLoaderRoute: typeof AppPeculioPesquisarRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/servicos/': {
       id: '/_app/servicos/'
       path: '/'
@@ -671,6 +721,13 @@ declare module '@tanstack/react-router' {
       path: '/escalas/$id/ordem'
       fullPath: '/escalas/$id/ordem'
       preLoaderRoute: typeof AppEscalasIdOrdemRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/peculio_/militar/$id': {
+      id: '/_app/peculio_/militar/$id'
+      path: '/peculio/militar/$id'
+      fullPath: '/peculio/militar/$id'
+      preLoaderRoute: typeof AppPeculioMilitarIdRouteImport
       parentRoute: typeof AppRoute
     }
   }
@@ -740,9 +797,12 @@ interface AppRouteChildren {
   AppIndexRoute: typeof AppIndexRoute
   AppConsultaIdRoute: typeof AppConsultaIdRoute
   AppGuarnicoesIdRoute: typeof AppGuarnicoesIdRoute
+  AppPeculioAniversariosRoute: typeof AppPeculioAniversariosRoute
+  AppPeculioPesquisarRoute: typeof AppPeculioPesquisarRoute
   AppGuarnicoesIndexRoute: typeof AppGuarnicoesIndexRoute
   AppConfiguracoesModelosDeGuarnicaoIdRoute: typeof AppConfiguracoesModelosDeGuarnicaoIdRoute
   AppEscalasIdOrdemRoute: typeof AppEscalasIdOrdemRoute
+  AppPeculioMilitarIdRoute: typeof AppPeculioMilitarIdRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
@@ -767,10 +827,13 @@ const AppRouteChildren: AppRouteChildren = {
   AppIndexRoute: AppIndexRoute,
   AppConsultaIdRoute: AppConsultaIdRoute,
   AppGuarnicoesIdRoute: AppGuarnicoesIdRoute,
+  AppPeculioAniversariosRoute: AppPeculioAniversariosRoute,
+  AppPeculioPesquisarRoute: AppPeculioPesquisarRoute,
   AppGuarnicoesIndexRoute: AppGuarnicoesIndexRoute,
   AppConfiguracoesModelosDeGuarnicaoIdRoute:
     AppConfiguracoesModelosDeGuarnicaoIdRoute,
   AppEscalasIdOrdemRoute: AppEscalasIdOrdemRoute,
+  AppPeculioMilitarIdRoute: AppPeculioMilitarIdRoute,
 }
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)

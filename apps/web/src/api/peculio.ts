@@ -3,9 +3,15 @@ import type { ListaDoPeculio } from 'contratos';
 import { pedir } from './cliente';
 import type { Eu } from './eu';
 
-/** O módulo Pecúlio: os militares lotados na unidade e nas de baixo no mês, e os aniversariantes do mês. */
-export const consultaPeculio = (unidadeId: string, mes: string) =>
-  queryOptions({ queryKey: ['peculio', unidadeId, mes], queryFn: () => pedir<ListaDoPeculio>('GET', `/api/unidades/${unidadeId}/peculio?mes=${mes}`) });
+/**
+ * O Pecúlio da unidade: os militares lotados na unidade e nas de baixo no mês (`incluirAsDeBaixo`, o padrão) ou só os lotados direto nela
+ * (`abaixo=nao`), e os aniversariantes do mês.
+ */
+export const consultaPeculio = (unidadeId: string, mes: string, incluirAsDeBaixo = true) =>
+  queryOptions({
+    queryKey: ['peculio', unidadeId, mes, incluirAsDeBaixo],
+    queryFn: () => pedir<ListaDoPeculio>('GET', `/api/unidades/${unidadeId}/peculio?mes=${mes}${incluirAsDeBaixo ? '' : '&abaixo=nao'}`),
+  });
 
 /**
  * A unidade do módulo: a mais alta em que a pessoa tem papel (o 2º GB para quem cuida do pessoal, a 1ª SB para o escalante da seção),

@@ -18,7 +18,8 @@ function ItemTrilho({ item, aoNavegar }: { item: Item; aoNavegar: () => void }) 
         onClick={aoNavegar}
         className={cn(classeItem, 'text-white/85 hover:bg-white/10 hover:text-white')}
         activeProps={{ className: 'bg-white/15 font-medium text-white' }}
-              >
+        activeOptions={item.exato ? { exact: true } : undefined}
+      >
         <Icone className="size-5" strokeWidth={1.75} aria-hidden />
         {item.nome}
       </Link>

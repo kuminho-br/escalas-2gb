@@ -10,6 +10,7 @@ import { ImportarPlanilha } from '@/componentes/ImportarPlanilha';
 import { NovoMilitar } from '@/componentes/militares/NovoMilitar';
 import { EscolherUnidade } from '@/componentes/EscolherUnidade';
 import { Button } from '@/componentes/ui/button';
+import { Checkbox } from '@/componentes/ui/checkbox';
 import { Input } from '@/componentes/ui/input';
 import { Label } from '@/componentes/ui/label';
 import { abaixoDe, type UnidadeDaArvore } from '@/lib/arvore-de-unidades';
@@ -18,17 +19,27 @@ import { correspondeABusca, normalizarBusca } from '@/lib/texto';
 import { cn } from '@/lib/utils';
 import { classeItemEscolhido } from '@/componentes/ListaDetalhe';
 import { Moldura } from '@/componentes/Moldura';
+import { classeDaLinhaDeMilitar, ListaDeMilitares } from '@/componentes/peculio/ListaDeMilitares';
 import { Espera } from '@/componentes/resposta/Espera';
 
 export const Route = createFileRoute('/_app/peculio')({
   component: Peculio,
 });
 
-const dois = (n: number) => String(n).padStart(2, '0');
+const CHAVE_DAS_DE_BAIXO = 'peculio:incluir-as-de-baixo';
+
+/** "Incluir as unidades de baixo" começa ligado; a última escolha da pessoa fica lembrada no navegador (sem armazenamento, liga). */
+function lembradoIncluirAsDeBaixo(): boolean {
+  try {
+    return window.localStorage.getItem(CHAVE_DAS_DE_BAIXO) !== 'nao';
+  } catch {
+    return true;
+  }
+}
 
 /**
- * O módulo Pecúlio: todos os militares da unidade do usuário e das de baixo (o 2º GB para quem cuida do pessoal), com a busca, o filtro
- * por lotação e os aniversariantes do mês. Clicar num militar abre a ficha dele, que é a mesma de sempre (cada bloco é editado pelo seu dono).
+ * O Pecúlio da unidade (parte do Pecúlio Geral): os militares da unidade do usuário e, se ele quiser, das de baixo (o 2º GB para quem cuida do pessoal),
+ * com a busca e o filtro por lotação. Os aniversários têm tela própria. Clicar num militar abre a ficha dele (cada bloco é editado pelo seu dono).
  */
 function Peculio() {
   const { eu } = Route.useRouteContext();
@@ -36,7 +47,17 @@ function Peculio() {
   const navigate = useNavigate();
   const unidade = unidadeDoPeculio(eu);
   const mes = mesAtual();
-  const lista = useQuery(consultaPeculio(unidade.id, mes));
+  const [incluirAsDeBaixo, setIncluirAsDeBaixo] = useState(lembradoIncluirAsDeBaixo);
+  const lista = useQuery(consultaPeculio(unidade.id, mes, incluirAsDeBaixo));
+  const mudarIncluirAsDeBaixo = (ligado: boolean) => {
+    setIncluirAsDeBaixo(ligado);
+    setLimite(100);
+    try {
+      window.localStorage.setItem(CHAVE_DAS_DE_BAIXO, ligado ? 'sim' : 'nao');
+    } catch {
+      /* sem armazenamento: a escolha vale só até sair da tela */
+    }
+  };
   const [busca, setBusca] = useState('');
   const [lotacao, setLotacao] = useState('');
   const [novo, setNovo] = useState(false);
@@ -68,7 +89,7 @@ function Peculio() {
 
   return (
     <Moldura
-      titulo="Pecúlio"
+      titulo="Pecúlio da unidade"
       acaoPrincipal={
         <>
           <div className="flex flex-wrap gap-2">
@@ -86,64 +107,55 @@ function Peculio() {
       }
     >
 
-      {lista.isPending && <Espera />}
-      {lista.error && <p role="alert" className="text-alerta">{mensagemDe(lista.error)}</p>}
-      {lista.data && (
-        <div className={cn('mt-6 grid items-start gap-6', lista.data.aniversariantes && 'lg:grid-cols-[1fr_20rem]')}>
-          <div className="rounded-xl border border-linha bg-superficie">
-            <div className="grid gap-2 border-b border-linha p-3 sm:grid-cols-[1fr_14rem]">
-              <div className="grid gap-1">
-                <Label htmlFor="busca-peculio" className="sr-only">Buscar por nome ou matrícula</Label>
-                <Input
-                  id="busca-peculio"
-                  placeholder="Buscar por nome ou matrícula"
-                  value={busca}
-                  onChange={(e) => { setBusca(e.target.value); setLimite(100); }}
-                  onKeyDown={(e) => {
-                    if (e.key !== 'Enter' || !unico) return;
-                    e.preventDefault();
-                    void navigate({ to: '/militares/$id', params: { id: unico.militarId }, search: { de: 'peculio' } });
-                  }}
-                />
-              </div>
-              <div className="grid gap-1">
-                <Label htmlFor="filtro-lotacao" className="text-xs text-apagado">Lotação</Label>
-                <EscolherUnidade id="filtro-lotacao" rotulo="Lotação" unidades={unidadesDoFiltro} valor={filtro} aoEscolher={(id) => { setLotacao(id); setLimite(100); }} permiteLimpar textoVazio="Todas" />
-              </div>
-            </div>
-            <p className="px-4 pt-3 text-apoio text-apagado">{filtrados.length > limite ? `Mostrando ${limite} de ${filtrados.length}` : `${filtrados.length} de ${lista.data.militares.length}`} militares</p>
-            <ul aria-label="Militares do Pecúlio" className="p-2">
-              {filtrados.slice(0, limite).map((m) => <ItemDoPeculioNaLista key={m.militarId} m={m} destaque={m.militarId === unico?.militarId} />)}
-              {lista.data.militares.length === 0 && <li className="p-3 text-apagado">Nenhum militar lotado. Cadastre com "Novo militar" ou use "Importar".</li>}
-            </ul>
-            {filtrados.length > limite && (
-              <div className="px-4 pb-3"><Button type="button" variant="secundario" onClick={() => setLimite((n) => n + 100)}>Mostrar mais</Button></div>
-            )}
+      {/* os controles ficam sempre na tela: ao mudar "Incluir as unidades de baixo" só a lista espera a resposta (a caixa não some, e o foco do teclado fica nela) */}
+      <div className="mt-6 grid gap-3">
+        <div className="grid gap-2 sm:grid-cols-[1fr_14rem]">
+          <div className="grid gap-1">
+            <Label htmlFor="busca-peculio" className="sr-only">Buscar por nome ou matrícula</Label>
+            <Input
+              id="busca-peculio"
+              placeholder="Buscar por nome ou matrícula"
+              value={busca}
+              onChange={(e) => { setBusca(e.target.value); setLimite(100); }}
+              className="bg-superficie"
+              onKeyDown={(e) => {
+                if (e.key !== 'Enter' || !unico) return;
+                e.preventDefault();
+                void navigate({ to: '/peculio/militar/$id', params: { id: unico.militarId }, search: {} });
+              }}
+            />
           </div>
-
-          {/* o nascimento é de quem cuida do Pecúlio: sem poder ver o de ninguém da lista, a seção nem aparece (e não diz que ninguém faz aniversário) */}
-          {lista.data.aniversariantes && (
-          <section className="rounded-xl border border-linha bg-superficie p-4">
-            <h2 className="font-cond text-lg font-semibold">Aniversariantes do mês</h2>
-            {lista.data.aniversariantes.length === 0 ? (
-              <p className="mt-2 text-sm text-apagado">Nenhum aniversariante neste mês.</p>
-            ) : (
-              <ul className="mt-2 grid gap-1.5 text-sm">
-                {lista.data.aniversariantes.map((a) => (
-                  <li key={a.militarId} className="flex items-baseline gap-2">
-                    <span className="w-12 shrink-0 font-cond font-semibold">{`${dois(a.dia)}/${mes.slice(5)}`}</span>
-                    <span>
-                      <span className="text-apagado">{a.posto}</span> <span className="font-medium">{a.nomeGuerra}</span>
-                    </span>
-                    <span className="ml-auto text-xs text-apagado">{a.lotacao}</span>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </section>
-          )}
+          <div className="grid gap-1">
+            <Label htmlFor="filtro-lotacao" className="text-xs text-apagado">Lotação</Label>
+            <EscolherUnidade id="filtro-lotacao" rotulo="Lotação" unidades={unidadesDoFiltro} valor={filtro} aoEscolher={(id) => { setLotacao(id); setLimite(100); }} permiteLimpar textoVazio="Todas" />
+          </div>
         </div>
-      )}
+        <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+          <p className="text-apoio text-apagado">{lista.data ? `${filtrados.length > limite ? `Mostrando ${limite} de ${filtrados.length}` : `${filtrados.length} de ${lista.data.militares.length}`} militares` : ''}</p>
+          {/* ligado: a unidade e as de baixo; desligado: só quem está lotado direto nela (a lembrança fica no navegador) */}
+          <div className="flex items-center gap-2">
+            <Checkbox id="incluir-as-de-baixo" checked={incluirAsDeBaixo} onChange={(e) => mudarIncluirAsDeBaixo(e.target.checked)} />
+            <Label htmlFor="incluir-as-de-baixo">Incluir as unidades de baixo</Label>
+          </div>
+        </div>
+        {lista.isPending && <Espera />}
+        {lista.error && <p role="alert" className="text-alerta">{mensagemDe(lista.error)}</p>}
+        {lista.data && (
+        <ListaDeMilitares rotulo="Militares do Pecúlio">
+          {filtrados.slice(0, limite).map((m) => <ItemDoPeculioNaLista key={m.militarId} m={m} destaque={m.militarId === unico?.militarId} />)}
+          {lista.data.militares.length === 0 && (
+            <li className="p-4 text-apagado">
+              {incluirAsDeBaixo
+                ? 'Nenhum militar lotado. Cadastre com "Novo militar" ou use "Importar".'
+                : `Nenhum militar lotado direto em ${unidade.sigla}. Ligue "Incluir as unidades de baixo".`}
+            </li>
+          )}
+        </ListaDeMilitares>
+        )}
+        {lista.data && filtrados.length > limite && (
+          <div><Button type="button" variant="secundario" onClick={() => setLimite((n) => n + 100)}>Mostrar mais</Button></div>
+        )}
+      </div>
     </Moldura>
   );
 }
@@ -152,11 +164,11 @@ function ItemDoPeculioNaLista({ m, destaque }: { m: ItemDoPeculio; destaque: boo
   return (
     <li>
       <Link
-        to="/militares/$id"
+        to="/peculio/militar/$id"
         params={{ id: m.militarId }}
-        search={{ de: 'peculio' }}
+        search={{}}
         aria-current={destaque ? 'true' : undefined}
-        className={cn('grid gap-0.5 rounded-lg px-3 py-2 hover:bg-accent', destaque && classeItemEscolhido)}
+        className={cn(classeDaLinhaDeMilitar, destaque && classeItemEscolhido)}
       >
         <span className="flex items-center gap-2">
           <span className="font-cond text-apoio text-apagado">{m.posto}</span>
