@@ -2,14 +2,15 @@ import { useQuery } from '@tanstack/react-query';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import type { FiltrosDaBusca, LinhaDaBusca, LinhaDaConsulta } from 'contratos';
 import { ListFilter, Network, Search, FileText } from 'lucide-react';
-import { useEffect, useRef, useState, type FormEvent } from 'react';
+import { useLayoutEffect, useRef, useState, type FormEvent } from 'react';
 import { ehMilitarComum } from '@/api/eu';
 import { mensagemDe } from '@/api/cliente';
 import { consultaDaBusca, consultaDaBuscaComFiltros, consultaUnidadesDaBusca } from '@/api/consulta';
 import { EscolherUnidade } from '@/componentes/EscolherUnidade';
 import { ArquivoDeMatriculas } from '@/componentes/peculio/ArquivoDeMatriculas';
 import { ArvoreDeMarcar, type Marca } from '@/componentes/peculio/ArvoreDeMarcar';
-import { PainelDeSelecionados, SelecaoDeMilitares, useSelecao } from '@/componentes/peculio/Selecao';
+import { usePesquisaDoPeculio } from '@/componentes/peculio/EstadoDaPesquisa';
+import { PainelDeSelecionados, useSelecao } from '@/componentes/peculio/Selecao';
 import { Checkbox } from '@/componentes/ui/checkbox';
 import { contarExtras, EXTRAS_VAZIOS, extrasParaFiltros, FiltrosDaPesquisa, type Extras } from '@/componentes/peculio/FiltrosDaPesquisa';
 import { Button } from '@/componentes/ui/button';
@@ -43,22 +44,16 @@ function Consulta() {
   const { texto = '', unidade = '' } = Route.useSearch();
   const navigate = useNavigate({ from: Route.fullPath });
   const chaveDoEndereco = `${texto}|${unidade}`;
-  // o que a pessoa montou além do texto e da unidade; fica aqui (e não no formulário) para sobreviver ao "Buscar", que muda o endereço
-  const [marcas, setMarcas] = useState<Marca[]>([]);
-  const [matriculas, setMatriculas] = useState<string[]>([]);
-  const [extras, setExtras] = useState<Extras>(EXTRAS_VAZIOS);
-  // a busca em vigor; null = vale o endereço (texto e unidade), que é como a pessoa volta da ficha
-  const [aplicados, setAplicados] = useState<FiltrosDaBusca | null>(null);
-  const ultima = useRef(chaveDoEndereco);
-  useEffect(() => {
-    // o endereço mudou por fora (voltar ou avançar no navegador): vale o que ele diz, sem o que a tela tinha montado
-    if (ultima.current === chaveDoEndereco) return;
-    ultima.current = chaveDoEndereco;
-    setMarcas([]);
-    setMatriculas([]);
-    setExtras(EXTRAS_VAZIOS);
-    setAplicados(null);
-  }, [chaveDoEndereco]);
+  // o que a pessoa montou (marcas da árvore, arquivo, "Mais filtros", a busca em vigor) vive acima das rotas (6.52): abrir a ficha e voltar não o perde
+  const { estado, mudar, reiniciar } = usePesquisaDoPeculio();
+  // o endereço mudou por fora (voltar ou avançar no navegador, ou outro caminho até aqui): vale o que ele diz, sem o que estava montado. O "Buscar" muda o endereço e a chave
+  // do estado juntos, então não cai aqui. Só o endereço faz o efeito rodar de novo (as funções do estado são estáveis).
+  const chaveDoEstado = useRef(estado.chave);
+  chaveDoEstado.current = estado.chave;
+  useLayoutEffect(() => {
+    if (chaveDoEstado.current !== chaveDoEndereco) reiniciar(chaveDoEndereco);
+  }, [chaveDoEndereco, reiniciar]);
+  const { marcas, matriculas, extras, aplicados } = estado;
 
   const buscar = (campo: string, escolhida: string): string | null => {
     const f: FiltrosDaBusca = {
@@ -68,25 +63,21 @@ function Consulta() {
       ...(nivel ? extrasParaFiltros(extras) : {}),
     };
     if (campo.trim().length < 3 && !f.unidades?.length && !f.matriculas?.length && contarExtras(extras) === 0) return MSG_BUSCA_CURTA;
-    const novaChave = `${campo.trim()}|${marcas.length ? '' : escolhida}`;
-    ultima.current = novaChave;
-    setAplicados(f);
-    void navigate({ search: { texto: campo.trim() || undefined, unidade: (marcas.length ? '' : escolhida) || undefined } });
+    // o endereço guarda só o texto e a unidade escolhida no campo (as marcas da árvore ficam no estado, que o acompanha pela chave)
+    const novoTexto = campo.trim();
+    const novaUnidade = marcas.length ? '' : escolhida;
+    mudar({ aplicados: f, chave: `${novoTexto}|${novaUnidade}` });
+    void navigate({ search: { texto: novoTexto || undefined, unidade: novaUnidade || undefined } });
     return null;
   };
   const limpar = () => {
-    ultima.current = '|';
-    setMarcas([]);
-    setMatriculas([]);
-    setExtras(EXTRAS_VAZIOS);
-    setAplicados(null);
+    reiniciar('|');
     void navigate({ search: { texto: undefined, unidade: undefined } });
   };
 
   const vigentes: FiltrosDaBusca = aplicados ?? { ...(texto ? { texto } : {}), ...(unidade ? { unidades: [{ id: unidade, comAsDeBaixo: true }] } : {}) };
   return (
     <Moldura titulo="Pesquisar militares">
-     <SelecaoDeMilitares>
       {/* key: voltar ou avançar no navegador põe os campos no que a busca do endereço diz */}
       <Formulario
         key={chaveDoEndereco}
@@ -94,17 +85,16 @@ function Consulta() {
         unidade={unidade}
         nivel={nivel}
         marcas={marcas}
-        aoMarcar={setMarcas}
+        aoMarcar={(m) => mudar({ marcas: m })}
         matriculas={matriculas}
-        aoLerArquivo={setMatriculas}
+        aoLerArquivo={(m) => mudar({ matriculas: m })}
         extras={extras}
-        aoMudarExtras={setExtras}
+        aoMudarExtras={(e) => mudar({ extras: e })}
         aoBuscar={buscar}
         aoLimpar={limpar}
       />
       {nivel && <PainelDeSelecionados />}
-      <Resultado filtros={vigentes} nivel={nivel} />
-     </SelecaoDeMilitares>
+      <Resultado filtros={vigentes} nivel={nivel} endereco={{ texto, unidade }} />
     </Moldura>
   );
 }
@@ -209,9 +199,9 @@ function ehBuscaSimples(f: FiltrosDaBusca): boolean {
   return filtrosAlemDoTexto.length === 0 && (u.length === 0 || (u.length === 1 && u[0]!.comAsDeBaixo));
 }
 
-function Resultado({ filtros, nivel }: { filtros: FiltrosDaBusca; nivel: boolean }) {
+function Resultado({ filtros, nivel, endereco }: { filtros: FiltrosDaBusca; nivel: boolean; endereco: { texto: string; unidade: string } }) {
   if (!nivel && ehBuscaSimples(filtros)) return <ResultadoSimples texto={filtros.texto ?? ''} unidade={filtros.unidades?.[0]?.id ?? ''} />;
-  return <ResultadoDosFiltros filtros={filtros} nivel={nivel} />;
+  return <ResultadoDosFiltros filtros={filtros} nivel={nivel} endereco={endereco} />;
 }
 
 function ResultadoSimples({ texto, unidade }: { texto: string; unidade: string }) {
@@ -232,7 +222,7 @@ function ResultadoSimples({ texto, unidade }: { texto: string; unidade: string }
   );
 }
 
-function ResultadoDosFiltros({ filtros, nivel }: { filtros: FiltrosDaBusca; nivel: boolean }) {
+function ResultadoDosFiltros({ filtros, nivel, endereco }: { filtros: FiltrosDaBusca; nivel: boolean; endereco: { texto: string; unidade: string } }) {
   const tem = (filtros.texto ?? '').length >= 3 || Boolean(filtros.unidades?.length) || Object.keys(filtros).some((k) => k !== 'texto' && k !== 'unidades');
   const busca = useQuery({ ...consultaDaBuscaComFiltros(filtros), enabled: tem });
   if (!tem) return <p className="mt-8 max-w-xl text-apagado">Busque pelo nome, pelo nome de guerra ou pela matrícula. Para ver quem está lotado numa unidade, escolha a unidade em “Lotados em”.</p>;
@@ -250,7 +240,7 @@ function ResultadoDosFiltros({ filtros, nivel }: { filtros: FiltrosDaBusca; nive
           {/* a seleção é de quem tem nível de acesso: o militar comum (que também cai aqui pela árvore) vê só a lista */}
           {nivel && <SelecionarEstes militares={militares} haMais={haMais} />}
           <ListaDeMilitares rotulo="Militares encontrados">
-            {militares.map((m) => <LinhaDaPesquisa key={m.id} m={m} selecionavel={nivel} texto={filtros.texto ?? ''} unidade={filtros.unidades?.length === 1 ? filtros.unidades[0]!.id : ''} />)}
+            {militares.map((m) => <LinhaDaPesquisa key={m.id} m={m} selecionavel={nivel} texto={endereco.texto} unidade={endereco.unidade} />)}
           </ListaDeMilitares>
         </>
       )}

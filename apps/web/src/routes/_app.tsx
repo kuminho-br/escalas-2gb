@@ -1,4 +1,5 @@
 import { createFileRoute, Outlet, redirect, useLocation } from '@tanstack/react-router';
+import { PesquisaDoPeculio } from '@/componentes/peculio/EstadoDaPesquisa';
 import { useRef, useState } from 'react';
 import { consultaEu, ehMilitarComum, type Eu } from '@/api/eu';
 import { ProvedorDeResposta } from '@/componentes/resposta/ProvedorDeResposta';
@@ -55,7 +56,10 @@ function Casca() {
         <main className="flex-1 px-4 py-6 md:px-8">
           {/* a faixa das telas de escala numa unidade só de consulta: a pessoa vê e não altera nada */}
           {eu.soConsulta && modulo?.id === 'escalas' && <FaixaSoConsulta unidade={eu.unidade.sigla} />}
-          <Outlet />
+          {/* a pesquisa do Pecúlio e a seleção vivem aqui, acima das rotas: abrir a ficha de um militar e voltar não as perde; sair do módulo as zera */}
+          <PesquisaDoPeculio ativa={modulo?.id === 'peculio'}>
+            <Outlet />
+          </PesquisaDoPeculio>
         </main>
       </div>
     </div>
