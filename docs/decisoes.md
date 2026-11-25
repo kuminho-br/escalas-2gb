@@ -17,6 +17,7 @@ Siglas dos documentos:
 
 | Data | Decisão | Onde está |
 |---|---|---|
+| 24/11/2026 | Escala dos oficiais: a frase das sobras (no memorial e em "Como as cotas foram calculadas") lista os nomes do mais moderno para o mais antigo, a ordem em que a sobra é entregue. A distribuição já era assim; só a frase mudou. Entrega 6.44. | Oficiais, Cota de saldo; memorial de cálculo |
 | 24/11/2026 | O dia vermelho da escala dos oficiais só conta quando o serviço é do tipo ordinário (o Saldo); JES, PJES e Diária são extra e não contam, no mês e no acumulado. Entrega 6.44. | `superpowers/specs/2026-11-23-oficiais-escala-comum-design.md`, decisão 6; RN-117 |
 | 24/11/2026 | Pecúlio Geral: três views (Pecúlio da unidade, Pesquisar militares, Aniversários); a ficha completa abre no próprio Pecúlio; atualização em lote na tela da pesquisa, ferramenta da SP, com seleção não contígua e prévia obrigatória; lotação em lote sem equipe marcada deixa todos sem equipe. Depois do piloto. | `docs/superpowers/specs/2026-11-24-peculio-geral-e-atualizacao-em-lote-design.md` |
 | 24/11/2026 | Deploys no Vercel: um deploy é cada build (prévia de cada envio a um PR e cada merge na main). Para caber no limite de 100 por dia: PR só de documentos não faz deploy (6.41) e os PRs não geram prévia; só a main faz deploy (6.43). Merge: testes verdes (com o build:vercel do CI) e, depois do merge, o deploy de produção conferido antes de migrar. | `docs/superpowers/plans/2026-11-24-fase6-43-sem-previas.md` |

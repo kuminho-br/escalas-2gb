@@ -59,6 +59,7 @@ export function ListaDeCotas({ escala: e, aoOrdenar, aoMarcar, desabilitado, esc
   const marcar = (o: Oficial, participa: boolean) =>
     aoMarcar?.(participa ? e.oficiais.filter((x) => x.participa || x.militarId === o.militarId).map((x) => x.militarId) : marcados.filter((id) => id !== o.militarId));
   const total = e.lugaresDeSaldo;
+  // a sobra é entregue a partir do mais moderno da ordem de escolha; a frase da conta lista nessa ordem
   const comSobra = e.oficiais.filter((o) => o.sobra);
   const sobras = comSobra.length;
   // a conta do mês, em frases curtas: turnos do mês, menos os de JES, os que sobram para a rodada, quem participa, a divisão, as sobras e os afastamentos
@@ -71,7 +72,7 @@ export function ListaDeCotas({ escala: e, aoOrdenar, aoMarcar, desabilitado, esc
     `Sobram ${total} turnos para a rodada de Saldo.`,
     `Participam ${e.oficiais.filter((o) => o.cota !== null).length} oficiais.`,
     `A divisão, pela presença de cada um, dá ${total - sobras} turnos inteiros e uma parte quebrada.`,
-    ...(sobras > 0 ? [`Depois do arredondamento sobraram ${sobras}, entregues aos ${sobras} mais modernos: ${comSobra.map((o) => o.nomeGuerra).join(', ')}.`] : []),
+    ...(sobras > 0 ? [`Depois do arredondamento sobraram ${sobras}, entregues aos ${sobras} mais modernos: ${[...comSobra].reverse().map((o) => o.nomeGuerra).join(', ')}.`] : []),
     ...e.oficiais.flatMap((o) => { const f = frasesDaCotaMenor(o); return f ? [`${o.nomeGuerra}: ${f.replace('cota menor: ', 'cota menor, ')}.`] : []; }),
     'O saldo aparece na lista, mas ainda não entra na conta.',
   ];

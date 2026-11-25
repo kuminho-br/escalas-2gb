@@ -1233,6 +1233,16 @@ describe('acabamento do painel e da troca de turno (6.17, itens 21, 26 e 34)', (
     expect(screen.queryByRole('list', { name: 'Como as cotas foram calculadas' })).toBeNull();
   });
 
+  it('6.44: com 3 sobras, a frase lista do mais moderno para o mais antigo, a ordem em que a sobra é entregue', async () => {
+    // a ordem de escolha é a de antiguidade (o mais antigo primeiro): ALFA, BRAVO, CHARLIE, DELTA e ECHO; as sobras vão para os três últimos
+    const delta = oficial({ militarId: 'm-4', nomeGuerra: 'DELTA', posto: 'CAP', ordem: 4, matricula: '990104-4', semAntiguidade: true, cota: 21, sobra: true });
+    const echo = oficial({ militarId: 'm-5', nomeGuerra: 'ECHO', posto: 'CAP', ordem: 5, matricula: '990105-5', semAntiguidade: true, cota: 21, sobra: true });
+    abrirEscala(escala({ oficiais: [O1, { ...O2, sobra: false }, { ...O3, sobra: true }, delta, echo] }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Como as cotas foram calculadas' }));
+    const conta = within(screen.getByRole('list', { name: 'Como as cotas foram calculadas' })).getAllByRole('listitem').map((li) => li.textContent);
+    expect(conta).toContain('Depois do arredondamento sobraram 3, entregues aos 3 mais modernos: ECHO, DELTA, CHARLIE.');
+  });
+
   it('antes de abrir o mês (sem cotas) não há o botão da conta', async () => {
     abrirEscala(escala({ etapa: 'nao-aberto', abertaEm: null, vez: null, turnos: [], oficiais: [{ ...O1, cota: null, devido: null }, O3] }));
     await screen.findByRole('list', { name: 'Cotas de janeiro de 2027' });
@@ -1455,6 +1465,13 @@ describe('o memorial de cálculo (6.30)', () => {
     const tabela = screen.getByRole('table', { name: 'Quanto deu para cada oficial' });
     expect(within(tabela).getAllByText('20,50')).toHaveLength(2);
     expect(within(tabela).getByText('Férias, 17/01 a 31/01')).toBeInTheDocument();
+  });
+
+  it('6.44: com 3 sobras, a frase do memorial lista do mais moderno para o mais antigo (a conta grava a ordem de escolha, do mais antigo)', async () => {
+    const p = (militarId: string, nomeGuerra: string, sobra: boolean) => ({ militarId, patente: 'CAP', nomeGuerra, diasNoMes: 31, afastamentos: [], devido: 12.4, cota: sobra ? 13 : 12, sobra });
+    const conta = { turnos: 62, jes: 0, rodada: 62, sobraram: 3, participantes: [p('m-1', 'ALFA', false), p('m-2', 'BRAVO', false), p('m-3', 'CHARLIE', true), p('m-4', 'DELTA', true), p('m-5', 'ECHO', true)] };
+    await abrirMemorial({ ...MEMORIAL, contaAtual: conta, registros: [] });
+    expect(await screen.findByText('Depois do arredondamento sobraram 3, entregues aos mais modernos da ordem: ECHO, DELTA, CHARLIE.')).toBeInTheDocument();
   });
 
   it('os serviços do mês por oficial: JES, Saldo e coberturas', async () => {

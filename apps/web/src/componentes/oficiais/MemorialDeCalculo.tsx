@@ -27,7 +27,8 @@ export function frasesDaConta(c: ContaDasCotas): string[] {
     `Participam ${c.participantes.length} oficiais.`,
   ];
   if (c.sobraram > 0) {
-    const quem = c.participantes.filter((p) => p.sobra).map((p) => p.nomeGuerra).join(', ');
+    // a conta grava os participantes na ordem de escolha (do mais antigo); a sobra é entregue a partir do mais moderno, e a frase segue essa ordem
+    const quem = c.participantes.filter((p) => p.sobra).map((p) => p.nomeGuerra).reverse().join(', ');
     frases.push(`Depois do arredondamento sobraram ${c.sobraram}, entregues aos mais modernos da ordem: ${quem}.`);
   }
   return frases;
