@@ -75,7 +75,7 @@ function ListaDeMilitares({ unidadeId, escolhido }: { unidadeId: string; escolhi
             <Selecao id="filtro-jornada" value={jornada} onChange={(e) => setJornada(e.target.value)}>
               <option value="">Todas</option>
               <option value="pronto">Pronto</option>
-              <option value="adm">Adm</option>
+              <option value="adm">ADM</option>
             </Selecao>
           </div>
         </div>

@@ -31,12 +31,12 @@ describe('linhaDoTempoDoMilitar', () => {
   });
 
   it('o primeiro período diz a situação inteira; sem equipe, a equipe não aparece', () => {
-    expect(linhaDoTempoDoMilitar([periodo('r1', '2026-03-01', null, '2ª SB', null, 'adm')], [])).toEqual([{ quando: '2026-03-01', tipo: 'situacao', texto: '2ª SB · Adm · QBMG · Ativa' }]);
+    expect(linhaDoTempoDoMilitar([periodo('r1', '2026-03-01', null, '2ª SB', null, 'adm')], [])).toEqual([{ quando: '2026-03-01', tipo: 'situacao', texto: '2ª SB · ADM · QBMG · Ativa' }]);
   });
 
   it('muda a lotação e a jornada juntas: diz só o que mudou, na ordem lotação, equipe, jornada', () => {
     const rastreio = [periodo('r1', '2026-01-01', '2026-02-28', '2ª SB', null, 'adm'), periodo('r2', '2026-03-01', null, '1ª SB', null, 'pronto')];
-    expect(linhaDoTempoDoMilitar(rastreio, []).map((i) => i.texto)).toEqual(['Lotação 2ª SB → 1ª SB · Jornada Adm → Pronto', '2ª SB · Adm · QBMG · Ativa']);
+    expect(linhaDoTempoDoMilitar(rastreio, []).map((i) => i.texto)).toEqual(['Lotação 2ª SB → 1ª SB · Jornada ADM → Pronto', '2ª SB · ADM · QBMG · Ativa']);
   });
 
   it('mudança só de quadro e de situação diz o que mudou', () => {

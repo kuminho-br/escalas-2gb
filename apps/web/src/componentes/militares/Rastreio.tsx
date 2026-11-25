@@ -149,7 +149,7 @@ function AlterarSituacao({ ficha, unidadeAtualId, aoFechar }: { ficha: FichaMili
               <Label htmlFor="rs-jornada">Jornada</Label>
               <Selecao id="rs-jornada" value={jornada} onChange={(e) => setJornada(e.target.value === 'adm' ? 'adm' : 'pronto')}>
                 <option value="pronto">Pronto</option>
-                <option value="adm">Adm</option>
+                <option value="adm">ADM</option>
               </Selecao>
             </div>
             <div className="grid gap-1.5">

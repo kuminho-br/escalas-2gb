@@ -52,7 +52,7 @@ export function TrocarServico({ alocacaoId, nomeAtual, acumulaCom, aoFechar }: {
         >
           <span className="text-xs text-apagado">{c.posto}</span>
           <span className="font-cond text-base font-semibold">{c.nomeGuerra}</span>
-          <span className="text-xs text-apagado">{c.equipe ?? 'Adm'}</span>
+          <span className="text-xs text-apagado">{c.equipe ?? 'ADM'}</span>
         </button>
         {c.servicos.length > 1 && (
           <Selecao aria-label={`Serviço de ${c.nomeGuerra}`} value={turnoId} onChange={(e) => setTurnoDe({ ...turnoDe, [c.militarId]: e.target.value })} className="w-28">
