@@ -1,8 +1,8 @@
 # Regras — cotas, voluntariado e permutas
 
-Cotas de PJES e diárias, voluntariado por faixa de horário, distribuição dos extras, situações boas e ruins, permutas (RN-33 a RN-43, RN-45 a RN-48, RN-82, RN-86 a RN-90, RN-105 a RN-107, RN-114, RN-117).
+Cotas de PJES e diárias, voluntariado por faixa de horário, distribuição dos extras, situações boas e ruins, permutas (RN-33 a RN-43, RN-45 a RN-48, RN-82, RN-86 a RN-90, RN-105 a RN-107, RN-114, RN-122 a RN-124).
 
-Quem cuida: DOCUMENTAÇÃO. Conferido contra o sistema novo em 21/11/2026. Índice e colunas: [LEIAME](LEIAME.md).
+Quem cuida: DOCUMENTAÇÃO. Conferido contra o sistema novo em 21/11/2026; voluntariado revisto na segunda conferência, em 25/11/2026 (fase 7). O dia vermelho (RN-117) foi para [escala-dos-oficiais.md](escala-dos-oficiais.md). Índice e colunas: [LEIAME](LEIAME.md).
 
 ## Cotas de PJES e diárias
 
@@ -21,16 +21,19 @@ A SB recebe cotas de PJES e diárias e é obrigada a executá-las. Cota é o lim
 
 ## Voluntariado
 
-O voluntariado diz em que horários o militar aceita tirar PJES e diárias. No sistema novo ele é marcado por faixa de horário: hoje o escalante lança; na fase 7, o próprio militar marca.
+O voluntariado diz em que horários o militar aceita tirar PJES e diárias. É marcado por faixa de horário. Desde a fase 7, o próprio militar marca na área pessoal (Meu voluntariado), enquanto a coleta do mês está aberta; o escalante lança por quem não marcou.
 
 | ID | Regra | Situação | No sistema novo | Barreira |
 |---|---|---|---|---|
-| RN-39 | O voluntariado é mensal: a cada mês, o militar diz quando pretende tirar JES e diárias. Lançar substitui o mês inteiro daquele militar. | Confirmada | Funciona (lançado pelo escalante); o próprio militar marca na fase 7 | Base |
+| RN-39 | O voluntariado é mensal: a cada mês, o militar diz quando pretende tirar JES e diárias. Ele marca na área pessoal, não no módulo de escalas, e o dado é o mesmo que o escalante lança. Lançar substitui o mês inteiro daquele militar. Quem tem nível de acesso e marca o próprio voluntariado pela área pessoal conta como militar. | Confirmada | Funciona (7.1 e 7.2): Meu voluntariado, no módulo Visualização de escalas | Base |
+| RN-122 | A coleta do voluntariado é por unidade e mês: o gestor (ou o coordenador, ou o administrador) da unidade a abre e fecha em Configurações da escala › Voluntariado; o escalante não. O militar marca o mês quando a coleta daquele mês está aberta na unidade em que ele está lotado no mês. Sem data limite: fecha quando o gestor desliga. Coleta fechada: o militar vê o que marcou e não altera ("A coleta de dezembro está fechada. Fale com o escalante da sua seção."). Mês passado nunca aceita. Com a coleta aberta, a tela inicial avisa no atalho do módulo. | Confirmada | Funciona (7.1 e 7.2) | Base |
+| RN-123 | O escalante pode corrigir o que o militar marcou, mas é exceção: a correção fica no registro (RN-120), com as faixas de antes e as de depois, quem e quando, sem justificativa. Lançar por quem não marcou não gera registro. | Confirmada | Funciona (7.1 e 7.2) | Suporte |
+| RN-124 | O voluntariado é do militar, não da seção: o que ele marca vale para todas as seções que o escalam (a dele e as que o trazem como externo, RN-32). Os blocos da tela pessoal vêm das configurações da seção de lotação dele. | Confirmada | Funciona (7.1 e 7.2) | Base |
 | RN-105 | O voluntariado é marcado por faixas de horário de cada dia (00h a 24h), não por turno. Um turno vale para o militar se toda a duração estiver coberta; o turno que passa da meia-noite usa o dia seguinte (o Pronto B do dia 5 pede 20h–24h do dia 5 e 00h–08h do dia 6). | Confirmada | Funciona | Base |
 | RN-106 | Flexibilidade do voluntariado: parâmetro em horas cheias (0 a 3, padrão 0), em qualquer nível. Com N horas, também fica apto quem deixa até N horas sem cobrir no começo ou no fim do turno; buraco no meio continua barrando. Vale para a lista "Escolher militar" e para a pré-escala (hoje sem efeito nela: a única pré-escala é a do Pronto, que não pede voluntariado). Não afrouxa choque, descanso nem as outras regras. | Confirmada | Funciona | Ambas |
-| RN-107 | Os blocos do dia, na tela do voluntariado, vêm dos horários dos turnos dos serviços que pedem voluntariado (PJES e diária, ativos), nas escalas marcadas para montar os blocos. Por padrão, todas entram. | Confirmada | Funciona | Base |
+| RN-107 | Os blocos do dia, na tela do voluntariado, vêm dos horários dos turnos dos serviços que pedem voluntariado (PJES e diária, ativos), nas escalas marcadas para montar os blocos. Por padrão, todas entram. Fora dos blocos, o botão "Outro horário" de cada dia (ícone de relógio) marca faixas próprias ("das 08:00 às 12:00"), que aparecem também para o escalante, que pode usar o mesmo botão. | Confirmada | Funciona (o "Outro horário" desde a 7.2) | Base |
 | RN-47 | O militar escolhe o dia e o turno no formulário mensal. | Substituída por RN-105 | — | Base |
-| RN-46 | O cadastro do militar tem o atributo "voluntário JES" (sim/não). Só é escalado em JES e PJES quem o tem, inclusive à mão: o sistema bloqueia. Diária não exige o atributo (RN-04). | Confirmada | Funciona | Ambas |
+| RN-46 | O cadastro do militar tem o atributo "voluntário JES" (sim/não), que só a SP edita (RN-135). Só é escalado em JES e PJES quem o tem, inclusive à mão: o sistema bloqueia. O militar sem o atributo marca o voluntariado mesmo assim; quem barra é a escala. Diária não exige o atributo (RN-04). | Confirmada | Funciona | Ambas |
 | RN-48 | O escalante pode escalar à mão quem não marcou voluntariado naquele horário, porque combina direto com o militar: a lista mostra esses militares num grupo à parte ("Mostrar"). Só o voluntariado é contornável; as outras regras e o atributo "voluntário JES" continuam valendo. A pré-escala nunca escala quem está fora do voluntariado. | Confirmada | Funciona | Suporte |
 
 ## Distribuição dos extras
@@ -53,7 +56,6 @@ Um serviço é bom ou ruim conforme se encaixa na escala individual do militar, 
 |---|---|---|---|---|
 | RN-43 | A qualidade de um serviço é avaliada pela combinação com os demais serviços do militar. Ideia de peso (sem catálogo completo, P-11): −1 para uma vantagem recebida, +1 para uma desvantagem; ser motorista é desvantagem grande (ex.: −3). Quanto mais negativo o saldo, mais preferência na próxima alocação. | Confirmada | Fase 10 | Ambas |
 | RN-45 | Existem situações boas e ruins também para o Adm; ainda não levantadas (P-12). | A esclarecer | — | Ambas |
-| RN-117 | Na escala dos oficiais, o **dia vermelho** (dia ruim que ninguém quer tirar, marcado pelo escalante, todos com o mesmo peso) só conta quando o lugar é de serviço do **tipo ordinário** (o Saldo). JES, PJES e Diária são extra e pagam a mais, então não contam. Vale para a contagem do mês e para o acumulado dos meses encerrados; o tipo do serviço decide, não o nome. (Decisão de 24/11/2026.) | Confirmada | Funciona (6.44): coluna "Vermelhos" da escala e Painel de saldo | Suporte |
 
 Catálogo de situações (inicial):
 

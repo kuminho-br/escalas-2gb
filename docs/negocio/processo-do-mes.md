@@ -1,6 +1,6 @@
 # Processo do mês — diagrama de atividades
 
-Fonte: Diagrama de Atividades do claude.ai (v0.2, rascunho de 15/11/2026), colhido em 20/11/2026; a tabela de versões não veio (histórico no git). Quem cuida: DOCUMENTAÇÃO. As pontas soltas E1 a E8 seguem em aberto.
+Fonte: Diagrama de Atividades do claude.ai (v0.2, rascunho de 15/11/2026), colhido em 20/11/2026; a tabela de versões não veio (histórico no git). Quem cuida: DOCUMENTAÇÃO. As pontas soltas E1 a E7 seguem em aberto (a E8 foi respondida); a seção 4 foi refeita para o sistema novo em 25/11/2026.
 
 ## 1. Escopo
 
@@ -90,35 +90,36 @@ flowchart TB
   E11 --> FIM
 ```
 
-## 4. Onde cada atividade toca o sistema (estado em 15/11, do protótipo)
+## 4. Onde cada atividade toca o sistema novo (25/11/2026)
 
-Cruzamento feito em 15/11 com o protótipo (P13 a P19). Não muda o fluxo: mostra o que o escalante já fazia pelo sistema e o que ainda fazia por fora. A situação no sistema novo está no [roadmap](../superpowers/plans/2026-11-16-roadmap-migracao.md).
+Cruzamento com a `main` depois da 7.5. Não muda o fluxo da seção 2, que é o que o usuário contou: mostra o que o escalante já faz no sistema e o que ainda faz por fora. O andamento está no [roadmap](../superpowers/plans/2026-11-16-roadmap-migracao.md); as regras, no [catálogo](regras/LEIAME.md).
 
-| # | Atividade | No sistema hoje | Situação |
+| # | Atividade | No sistema novo | Situação |
 |---|---|---|---|
-| 1 | Disparo do formulário | Nenhum registro de disparo pelo sistema | Fora do sistema |
-| 3 | Meta de ativação | Abas GUARNIÇÕES e GUARNIÇÕES POR ESCALA (composição, mínimo, máximo, vínculo com vigência) | Cadastro feito; a ativação automática ainda não |
-| 4 | Transcrição dos voluntários | Aba VOLUNTARIADO (DATA, MATRÍCULA, TURNO, SERVIÇO ACEITO) | Transcrição manual |
-| 5 | Cotas e operações do mês | Aba COTAS (mês, serviço, quantidade, origem) | Feito (RN-33 a RN-35) |
-| 6 | Alterações no cadastro dos militares | Aba MILITARES | Feito; afastamentos ainda sem aba |
-| 7 | Quais escalas produzir | Aba ESCALAS e painel "Escalas de Serviço" | Feito; escala com N serviços (RN-100) |
-| 8 | Pré-escala (Pronto, Saldo, JES) | Menu "Escala Automática": "Gerar Pronto" e "Gerar Adm" | Feito |
-| 9–10 | Operações extraordinárias na grade | Menu "Escala Automática": "Gerar operações" (fase voluntária, depois compulsória) | Feito |
-| 11 | Conferência e assinatura do Chefe | Nenhum registro: "quem assina" foi retirado do sistema (RN-27) | Fora do sistema |
-| 12 | Publicação da pré-escala | Aba IMPRESSÃO (uma escala por mês); documentos da escala pedidos no RS-01 | Em parte |
-| 13–14 | Permutas | Registro do par de permutantes (RN-86 a RN-88) e tela de permutas (RS-02) | A implementar; ver E8 |
-| 15 | Realocações ao longo do mês | "Mostrar Grade Geral" e aba ESCALA, com bloqueio de choques e das regras da escala manual; "Conferir Integridade" | Feito; trava de dias passados a esclarecer (RN-85) |
-| 16 | Envio da escala executada | Nenhum registro; a escala do dia (RS-01, B76) é corte por dia, não o envio mensal | Fora do sistema |
+| 1 | Disparo do formulário | O gestor abre a coleta do voluntariado do mês (RN-122); a tela inicial avisa os militares | Feito (7.1 e 7.2) |
+| 2 | Militares preenchem o voluntariado | Meu voluntariado, na área pessoal (RN-39) | Feito (7.2) |
+| 3 | Meta de ativação | Meta padrão e meta do dia, no Efetivo por dia (RN-108) | Feito |
+| 4 | Transcrição dos voluntários | Deixa de existir para quem marca; o escalante lança por quem não marcou, e a correção do que o militar marcou fica no registro (RN-123) | Feito |
+| 5 | Cotas e operações do mês | Tela Cotas; a diária é o próprio serviço (RN-33 a RN-35, RN-83) | Feito |
+| 6 | Alterações no cadastro dos militares | Pecúlio (a SP), Habilitações na ficha da escala (a seção) e afastamentos (RN-135, RN-136) | Feito |
+| 7 | Quais escalas produzir | Cadastro de Escalas, com os serviços de cada uma (RN-100) | Feito |
+| 8 | Pré-escala | Pronto nos turnos e expediente do ADM; o Saldo e o JES do ADM à mão (RN-13, RN-20, RN-22) | Feito; a distribuição nas vagas e o JES do Pronto, fase 8 |
+| 9–10 | Operações extraordinárias | Lançadas à mão na Escala do mês, com as cotas restantes à vista (RN-114) | Em parte: a distribuição pelas cotas é da fase 8 |
+| 11 | Conferência e assinatura do Chefe | O gestor publica (RN-119); a assinatura fica fora do sistema (RN-27) | Em parte |
+| 12 | Publicação | Estados da escala: prévia (unidade e as de baixo) e publicada (corporação) (RN-118) | Feito (7.3.1 a 7.5); o documento .xlsx, fase 8 |
+| 13–14 | Permutas | Troca de dois ordinários na Grade geral; o registro da permuta e a busca por permutantes, fase 9 (RN-86 a RN-88) | Em parte |
+| 15 | Realocações ao longo do mês | Mudança numa escala publicada abre a retificação; o turno que já começou só o gestor altera, com justificativa e registro (RN-85, RN-119, RN-120) | Feito |
+| 16 | Envio da escala executada | Estado "remessada" existe; o botão de remessa e a escala executada, fase 9 | Fase 9 |
 
 ## 5. EM ABERTO
 
 Pontos que não podem ser afirmados sem confirmação do usuário:
 
-- **E1 — Disparo do formulário (dia 20):** quem dispara (Escalante? automático?). O diagrama parte do evento "dia 20" sem ator.
-- **E2 — Momento da assinatura do Chefe da SB:** o usuário disse que ele confere e assina "após a escala produzida". Assina a pré-escala antes de publicar (como desenhado), a escala final ao fim do mês, ou ambas?
+- **E1 — Disparo do formulário (dia 20):** no sistema novo, quem abre a coleta é o gestor da unidade (RN-122, decisão de 25/11/2026). Fica em aberto se o dia 20 continua sendo a data (a coleta não tem prazo automático).
+- **E2 — Momento da assinatura do Chefe da SB:** no sistema novo, quem publica é o gestor (RN-119). Fica em aberto se a assinatura acompanha a publicação, a escala final ao fim do mês, ou as duas.
 - **E3 — Permutas:** o diagrama as coloca depois da publicação da pré-escala; confirmar. Também não foi dito o que acontece quando o Chefe reprova (o desenho devolve ao militar, mas isso é suposição) nem quem registra a permuta aprovada na planilha (desenhado como Escalante, em "Realoca, corrige e altera").
 - **E4 — Envio às instâncias superiores:** quem envia (Escalante ou Chefe da SB) e quais são as instâncias.
 - **E5 — Ordem dos passos 3 a 7:** as verificações e cadastros foram listados nesta ordem pelo usuário; confirmar se a ordem é obrigatória ou se algum passo pode ocorrer em paralelo.
 - **E6 — Desvios e exceções:** o diagrama cobre só o fluxo principal (militar não preenche o formulário, escala reprovada na conferência, voluntariado insuficiente para a meta de ativação etc. não foram descritos).
 - **E7 — Processos vizinhos:** o usuário indicou que outros processos alimentam este; quais são e o que entregam não foi levantado.
-- **E8 — Quem aprova a permuta:** o usuário disse em 14/11 que o Chefe da SB recebe as demandas de permuta e as aprova ou reprova; o catálogo (RN-88) diz que o registro pelo escalante já é a aprovação. As duas coisas podem conviver (o Chefe aprova fora do sistema e o escalante registra), mas isso não foi confirmado. Assunto para a REGRAS DE NEGÓCIO.
+- **E8 — Quem aprova a permuta:** respondida pela RN-88: o Chefe aprova fora do sistema, e o escalante registra só a troca já aprovada.

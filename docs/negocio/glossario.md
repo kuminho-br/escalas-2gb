@@ -1,113 +1,153 @@
-# Glossário — Sistema de Escalas 2º GB
-Fonte: Glossário do claude.ai (v0.9, 15/11/2026), colhido em 20/11/2026. Quem cuida: DOCUMENTAÇÃO. A tabela de versões não veio: o histórico fica no git. Perguntas em aberto e divergências: [glossario-pendencias.md](glossario-pendencias.md).
+# Glossário — Sistema de Gestão - 2º GB
+
+Os termos do domínio na linguagem do sistema novo. Quem cuida: DOCUMENTAÇÃO. Reescrito na segunda conferência, em 25/11/2026 (`main` depois da 7.5); a versão do protótipo, colhida do claude.ai em 20/11/2026, fica no git. Perguntas em aberto: [glossario-pendencias.md](glossario-pendencias.md). As regras citadas estão no [catálogo](regras/LEIAME.md).
 
 ## Como ler
-Cada termo tem uma definição curta e um status. **Confirmado** = regra confirmada ou já em uso no sistema. **A implementar** = definido pelo PLANEJAMENTO ou pelo catálogo, ainda não está no sistema. **EM ABERTO** = falta confirmar; a pergunta está na última seção.
 
-Regra de vocabulário: na interface usa-se sempre **escala**, nunca "matriz" (RN-30). "Matriz" só aparece no código e na documentação técnica.
+- **Situação:** `Em uso` (já está no sistema), `Fase N` (definido, entra na fase N do roadmap) ou `Em aberto (Gx)` (falta confirmar; a pergunta está nas pendências).
+- Na tela, diz-se **escala** (nunca "matriz"), **nível de acesso** (nunca "papel"), **patente** na placa do militar (posto ou graduação, sem "BM") e **ADM** para a jornada administrativa.
+- Princípio (usuário, 14/11/2026): o sistema deixa o usuário cadastrar, em vez de copiar o modelo atual da escala real. A escala real serve para conferir se o cadastro comporta a realidade.
 
-Princípio de projeto (decisão do usuário, 14/11): preocupar-se em deixar o usuário cadastrar, em vez de replicar o modelo atual da escala real. A escala real de outubro/2026 serve para validar se o cadastro comporta a realidade, não como fonte de constantes no sistema.
+## Unidades e acesso
 
-## Organização e pessoas
-| Termo | Definição | Status |
-| --- | --- | --- |
-| GB | Grupamento de Bombeiros. O sistema atende o 2º GB. | Confirmado |
-| SB | Subdivisão do GB; o foco atual é a 1ª SB (Caruaru). Significado da sigla não registrado. | EM ABERTO (P1) |
-| OME | GB ao qual o militar pertence. A maioria é 2º GB; pode haver militar de fora. | Confirmado |
-| Seção | SB onde o militar está lotado (1ª SB, 2ª SB…). | Confirmado |
-| OUTRAS SEÇÕES | Bloco da escala com militares lotados em outra seção que servem na 1ª SB. Tratamento ainda não definido (RN-32). | EM ABERTO (P8) |
-| Escalante | Usuário do sistema: militar que monta as escalas ordinárias e extraordinárias. | Confirmado |
-| Militar | Pessoa escalável, identificada pela matrícula. Tem posto/graduação, nome de guerra, OME, seção, telefone, jornada, equipe e motorista. | Confirmado |
-| Antiguidade | Ordem de precedência entre militares: primeiro o posto/graduação (CEL … CAP, 1º TEN, 2º TEN, ASP, ST, 1º SGT, 2º SGT, 3º SGT, CB, SD), depois a coluna ANTIG. (2°GB) de MILITARES, depois a ordem do cadastro (RN-101). Ordena os militares dentro da equipe na grade geral e na lista "sem função" da aba ESCALA (P17, P19). Na sandbox a ANTIG. está vazia, então vale o posto. | Confirmado |
-| Matrícula | Identificador único do militar (chave da tabela MILITARES). | Confirmado |
-| Jornada | Regime do militar: PRONTO ou ADM. No normativo: jornada especial (Pronto) e jornada regular (Adm) (RN-57, RN-59, a esclarecer). | Confirmado |
-| Pronto | Efetivo operacional que roda nas equipes em regime 24x72. Na situação padrão emenda os turnos A e B: 08h do dia D às 08h do dia D+1 (RN-44). | Confirmado |
-| Adm | Efetivo administrativo, de expediente 08h–16h em dias úteis. | Confirmado |
-| Adm hipotecado | Termo do normativo: militar do Adm hipotecado para o Pronto, 2º na ordem de preenchimento do normativo (RN-69, RN-71, a esclarecer). Relação com o Saldo não definida. | EM ABERTO (P21) |
-| Equipe | Grupo do Pronto: Alfa, Bravo, Charlie ou Delta. Vazia para Adm e externos. | Confirmado |
-| Ciclo de equipes (24x72) | Uma equipe por dia, na ordem Alfa → Bravo → Charlie → Delta: 24h de serviço (turnos A e B) e 72h de folga. | Confirmado |
-| Motorista | Coluna MOTORISTA da aba MILITARES (sim/não): o militar é do quadro de motoristas. A CNH é do militar, esteja ou não no quadro; para a escala, só vale com o militar no quadro. A função motorista exige a categoria de CNH pedida pela guarnição, com ou sem viatura (RN-12); na grade de guarnição só aparece quem tem CNH compatível (B38, PR #4). | Confirmado |
-| CNH | Categorias da carteira do militar (A a E), na coluna CNH de MILITARES; a notação junta letras: "AD" = A e D (B59). Em GUARNIÇÕES, a coluna CNH diz a categoria exigida de quem ocupa a função (RN-12). Hierarquia do CTB, fixa no código e não cadastrável (decisão do usuário, 14/11): E habilita D, C e B; D habilita C e B; C habilita B; A habilita só A. O posto aceita quem tem a categoria exigida ou outra que a habilite, e a hierarquia vale sobre cada letra da notação ("AD" vale A, D, C e B). Na main desde a P19 (B71). | Confirmado |
-| Voluntário JES | Atributo do militar (sim/não), coluna VOLUNTÁRIO JES da aba MILITARES. Só quem o tem pode ser escalado em JES, inclusive manualmente: o sistema bloqueia a gravação (RN-46, Implementada; B23, PR #3, 18/10). Diárias não exigem o atributo (RN-04): na distribuição de cotas, o não voluntário é barrado só nas vagas de JES (P18, B50). | Confirmado |
-| Afastamento | Período em que o militar não pode ser escalado: matrícula, tipo, início e fim (diretriz do PLANEJAMENTO). A RN-52 (a esclarecer) propõe licenças (paternidade/maternidade, especial, núpcias, luto), LTS, RTS e outros afastamentos legais, indisponíveis para qualquer escala. Ainda sem aba. | EM ABERTO (P10) |
-| Permuta | Troca de serviço entre um par de permutantes: os dois militares e os dois serviços ficam registrados juntos e mudam na mesma operação (RN-86). Só no mesmo mês, limite que é parâmetro (RN-87). Só é aceita se a escala continuar respeitando as regras; o registro pelo escalante já é a aprovação (RN-88). Tela de controle de permutas (RS-02). As marcações da planilha antiga (PERMUTA, ENTROU, SÓ 1ºT, SÓ 2ºT) seguem sem significado registrado. | A implementar (P11) |
+| Termo | Definição | Situação |
+|---|---|---|
+| Árvore de unidades | A estrutura da corporação, da raiz (CBMPE) às seções, editável pela tela Estrutura. Toda unidade se comporta igual, qualquer que seja o tipo (RN-134). | Em uso |
+| Unidade | Um nó da árvore: sigla, nome, tipo, unidade de cima, início e fim. A sigla não se repete entre irmãs. Com histórico, é extinta, não apagada. | Em uso |
+| Tipo de unidade | Só um nome (Corporação, Grupamento, Divisão, Seção…), num cadastro do administrador. Nenhuma regra depende dele. | Em uso |
+| GB | Grupamento de Bombeiros. O uso começa pelo 2º GB; os outros, na fase 11 (RN-27). | Em uso |
+| Divisão | Unidade entre o grupamento e as seções: DA (Divisão Administrativa) e DivOp (Divisão Operacional). Conta como unidade acima das suas seções. | Em uso |
+| SB | Seção do GB (1ª a 7ª SB). O piloto é a 1ª SB. | Em uso; a sigla, Em aberto (G1) |
+| SP | A seção de pessoal: quem tem nível de acesso numa unidade acima da lotação do militar e, por isso, cuida da ficha dele no Pecúlio (RN-135). | Em uso |
+| Nível de acesso | O que a pessoa edita: administrador, coordenador, gestor ou auxiliar administrativo, dado numa unidade, válido nela e nas de baixo, por período (RN-115). | Em uso |
+| Administrador | Nível dado na raiz, válido em toda a árvore; cuida dos catálogos do sistema. Continua sendo um militar como os outros. | Em uso |
+| Coordenador | O quinto nível: edita como o gestor na sua unidade e abaixo, e vê as unidades irmãs. Nome técnico `gestor_lateral`. | Em uso |
+| Gestor | Nível de quem chefia a unidade no sistema: o que o auxiliar faz, mais publicar a escala, alterar o passado, abrir a coleta, trazer o externo, a meta padrão e dar níveis. | Em uso |
+| Auxiliar administrativo | Nome, na tela, do nível de quem monta a escala. Nos textos de ajuda, é **o escalante**; no banco, `escalante`. | Em uso |
+| Militar comum | Quem não tem nível de acesso vigente. Vê o que é dele, a consulta e as escalas que o estado permite. | Em uso |
+| Camada de visão | De onde vem o direito de **ver** o que a pessoa não edita: todos, oficial e coordenador. As camadas se somam (RN-133). | Em uso |
+| Borda | A tabela de Configurações › Quem vê o quê: que bloco da ficha (Identificação, Contato, Situação…) cada camada vê. | Em uso |
+| Módulo | Cartão da tela inicial: Confecção de escalas, Visualização de escalas, Pecúlio, Estrutura, Configurações e Minha ficha. | Em uso |
+| Senha provisória | Senha gerada na ficha do militar para o primeiro acesso: aparece uma vez, vale 7 dias e só serve para criar a senha (RS-08). | Em uso |
+
+## O militar
+
+| Termo | Definição | Situação |
+|---|---|---|
+| Militar | Pessoa do cadastro, identificada pela matrícula. Todo usuário é um militar. | Em uso |
+| Matrícula | O identificador do militar. Nos testes, só fictícias (`990xxx-x`). | Em uso |
+| Pecúlio | A ficha do militar e o módulo que cuida dela; é a origem dos dados do militar (RN-135). A planilha do Pecúlio importa tudo, e só a matrícula é obrigatória. | Em uso |
+| Ficha da escala | A ficha do militar vista no módulo de escalas: a seção edita só as Habilitações e vê o resto. A ficha completa fica no Pecúlio. | Em uso |
+| Posto/graduação (patente) | O posto do oficial ou a graduação da praça. Dá a primeira ordem de antiguidade; sigla e nome editáveis pelo administrador. | Em uso |
+| Antiguidade | A "Ordem" do Pecúlio, o lugar no ranking do GB. As listas vão do mais antigo ao mais moderno: posto, depois a antiguidade (RN-101, RN-116). | Em uso |
+| Quadro | QOC, QOA ou QBMG; todo militar tem um. Os quadros "de oficiais" (QOC e QOA) dão a camada de visão do oficial e a escala dos oficiais (RN-137). | Em uso |
+| Rastreio | O histórico do militar por período: lotação, equipe, jornada, quadro e situação. A escala de um dia usa o período daquele dia (RN-136). | Em uso |
+| Lotação | Só a unidade em que o militar está, em qualquer ponto da árvore. | Em uso |
+| Situação do militar | Ativa, Reserva, Agregado, Adido…: catálogo com "pode ser escalado". Não é o tipo de afastamento. | Em uso |
+| Afastamento | Período em que o militar não é escalado: tipo (Férias, LTS, Curso, Adido, Agregado, L.E, DTS, Outro), início e fim, motivo curto (sem diagnóstico) e boletim. | Em uso; os tipos do normativo, Em aberto (G4) |
+| Jornada | O regime do militar no período: Pronto ou ADM. | Em uso |
+| Pronto | Efetivo operacional, em equipes de 24 h de serviço por 72 h de folga. Na situação padrão emenda os turnos A e B: 08h do dia D às 08h de D+1 (RN-44). | Em uso |
+| ADM | Efetivo administrativo, de expediente em dia útil (hoje 08h às 16h). Por ora, o oficial segue a mesma jornada (P-37). | Em uso |
+| Equipe | Grupo do Pronto (Alfa, Bravo, Charlie, Delta), da unidade. Vazia para o ADM. O militar externo aparece na equipe "Externo". | Em uso |
+| Ciclo de equipes | Uma equipe por dia, em rodízio. A equipe do dia 1 vem dos últimos dias do mês anterior (RN-22). | Em uso |
+| Habilitações | Bloco da ficha com o quadro de motoristas e a CNH; o único que a seção edita (RN-12). | Em uso |
+| Quadro de motoristas | Marca de quem dirige para a escala. A CNH só vale para a escala com o militar no quadro. | Em uso |
+| CNH | A carteira do militar (A a E). Hierarquia do CTB, fixa no código: A é isolada; C habilita B; D habilita C e B; E habilita D, C e B. | Em uso |
+| Voluntário JES | Atributo do militar, editado só pela SP. Sem ele, o militar não é escalado em JES nem em PJES, nem à mão (RN-46). | Em uso |
+| Militar externo | Militar de outra unidade trazido pelo gestor para tirar serviço aqui, sem mudar a lotação, até alguém tirar (RN-32). | Em uso |
 
 ## Serviços e turnos
-A aba TURNOS é a fonte oficial de serviços, horários e durações (RN-01): 9 serviços, 5 tipos, 17 turnos.
 
-| Termo | Definição | Status |
-| --- | --- | --- |
-| Tipo de serviço | Categoria do serviço: Ordinário, PJES ou Diária, na coluna TIPO DE SERVIÇO da aba TURNOS. O tipo "PJES Externo" deixou de existir (RN-35), e o CPRH passou a PJES, como a sandbox já usa (catálogo rev. 160). Não aparece na célula da escala (RN-02). Funciona também como configuração: só serviço do tipo Diária choca com o expediente do Adm (RN-25; decisão do usuário, 14/11). | Confirmado |
-| Serviço | O que se lança na escala: Pronto, Adm, Saldo, JES, Defensoria, CPRH, Bioma, PE Seguro, Eleições. Serviço e turno são cadastros separados, e só o serviço do tipo Diária tem operação (RN-83, a implementar: hoje a aba TURNOS junta os dois). | Confirmado |
-| Turno | Letra (A, B, C) que identifica um horário **dentro de um serviço**. A mesma letra tem horas diferentes por serviço (Pronto A 08–20; Adm A 08–16). | Confirmado |
-| 1ºT / 2ºT | Notação da planilha antiga. No Pronto: 1ºT = turno A, 2ºT = turno B. No Adm: turno A. | Confirmado |
-| Ordinário | Tipo dos serviços regulares: Pronto (A 08–20, B 20–08, 12h), Adm (A 08–16, 8h) e Saldo. | Confirmado |
-| Saldo | Serviço Ordinário em que um militar do Adm cobre um turno do Pronto (A 08–20 / B 20–08). Só militar do Adm pode tirar (RN-03): na escala manual, a lista só oferece Saldo ao Adm e a gravação bloqueia o contrário (B22, PR #3). Padrão de 6 por militar do Adm/mês (RN-18). É a 3ª camada da ordem de alocação (RN-13). Na escala automática do Adm, um Saldo no turno A tira o Adm daquele dia (RN-91). | Confirmado |
-| PJES | Tipo que reúne JES, Defensoria e CPRH. Significado da sigla não registrado. | EM ABERTO (P2) |
-| JES | Serviço do tipo PJES: A 08–20, B 20–08 (12h). Não conta na carga horária, salvo o voluntário escalado de forma compulsória sem ter preenchido o formulário, que tem a escala abatida da carga (RN-16, RN-41). Só para voluntário JES: o sistema bloqueia (RN-46). Hoje as cotas de JES reforçam o efetivo da meta de ativação (RN-95). | Confirmado |
-| Defensoria | Serviço do tipo PJES: A 07–19 (12h). | Confirmado |
-| Serviço externo | Serviço de uma cota de origem externa: os militares tiram, mas não conta na cota da SB (RN-05, RN-34). A origem (interna ou externa) é atributo da cota, não do serviço nem do turno; o tipo "PJES Externo" deixa de existir (RN-35). | A implementar |
-| Origem do serviço | Rótulo do serviço que levou o militar ao posto (PRONTO, SALDO, PJES), usado depois da função na impressão ("MOTORISTA - PJES"; RN-13). Coluna ORIGEM da aba TURNOS (B49), mantida na P19 depois da remoção do B40; sem ela, vale o nome do serviço. Não confundir com a origem da cota (interna/externa, RN-35). | EM ABERTO (P26) |
-| CPRH | Serviço do tipo PJES (antes "PJES Externo"), A 08–20 (12h). Se a cota é interna ou externa é atributo da cota (RN-35). | Confirmado |
-| Diária | Serviço de 8h: Bioma e PE Seguro (A 00–08, B 08–16, C 16–00) e Eleições (A 07–15, B 15–23), além de operações sazonais. Pertence a uma operação (RN-83). Cada cota de diária corresponde a 1 alocação num turno de operação; tira quem preencheu o formulário do mês, sem precisar ser voluntário JES (RN-04, na main desde a P18, B50). Máximo de uma por dia, contada pela data de início do turno (RN-36). Não conta na carga horária, salvo a exceção da RN-16. É o único tipo que choca com o expediente do Adm (RN-25). | Confirmado |
-| Dobradinha | Duas diárias de dias diferentes emendadas, ex.: 16h–00h do dia D + 00h–08h do dia D+1. É permitida (RN-37). | Confirmado |
+| Termo | Definição | Situação |
+|---|---|---|
+| Serviço | De onde vem a hora: Pronto, Expediente, Saldo, JES, as diárias e os PJES. Cadastro da unidade, com nome, tipo, cor e turnos (RN-01, RN-83). | Em uso |
+| Serviço fixo | Pronto, Saldo, JES e Expediente: o sistema os cria em cada unidade, e o usuário não muda o nome nem o tipo (RN-111). | Em uso |
+| Tipo de serviço | Ordinário, PJES ou Diária. Decide regras (o dia vermelho, o voluntário JES), mas não aparece na marca da escala (RN-02). | Em uso |
+| Turno | Letra (A, B, C) com início e fim, dentro de um serviço. A mesma letra tem horários diferentes em serviços diferentes. | Em uso |
+| Ordinário | Tipo do serviço regular: Pronto, Expediente e Saldo. | Em uso |
+| Expediente | O serviço do ADM em dia útil. A pré-escala o lança, sem escala; o expediente calculado conta para o choque (RN-19, RN-20). | Em uso |
+| Saldo | Serviço ordinário em que um militar do ADM cobre um turno do Pronto; só o ADM tira (RN-03). Pode tirar o militar do expediente do dia, com confirmação (RN-25). Na escala dos oficiais, é o serviço da cota de saldo. Não confundir com o saldo do oficial. | Em uso |
+| Cota de saldo do ADM | Quantos saldos cada militar do ADM deve tirar no mês (parâmetro, padrão 6), mostrada numa barra ("2/6") que não trava (RN-18). | Em uso |
+| PJES | Tipo dos serviços extras de jornada especial: JES, Defensoria, CPRH… Exige o voluntário JES. | Em uso; a sigla, Em aberto (G2) |
+| JES | Serviço do tipo PJES de 12 h (A 08–20, B 20–08). Não conta na carga horária (RN-16). | Em uso |
+| Diária | Serviço extra pago por cota, em geral de 8 h (Bioma, PE Seguro, Eleições). Uma por dia, pela data de início do turno (RN-36); não exige o voluntário JES (RN-04). A diária é o próprio serviço: não há campo "operação". | Em uso |
+| Dobradinha | Duas diárias de dias diferentes emendadas (16h–00h do dia D e 00h–08h de D+1). É permitida (RN-37). | Em uso |
 
-## Escalas e alocação
-| Termo | Definição | Status |
-| --- | --- | --- |
-| Metas do sistema | Todo o sistema serve a duas metas: (1) ativar as guarnições definidas para ativação (RN-49); (2) escalar as cotas enviadas pela diretoria, internas e externas (RN-50). | Confirmado |
-| Barreiras | Base = cadastro e modelo de dados; Suporte = o sistema ajuda o escalante a não errar; Automação = o sistema faz sozinho. A automação nunca impede o escalante de fechar a escala. | Confirmado |
-| Alocação | Registro de um militar num serviço e turno numa data, com função e unidade opcionais. A tabela ALOCAÇÕES é a fonte da verdade. Chave: matrícula + data + serviço + turno, na main desde a P13 (PR #1, 14/10). A coluna UNIDADE guarda a guarnição (PR #4). | Confirmado |
-| Escala | Visão mensal das alocações: militares nas linhas, dias nas colunas. Cada militar tem um número fixo de linhas, sem coluna de turno (parâmetro Linhas por militar, padrão 2; P13). Célula com serviço e horário, ex.: "Pronto 08–20", e botão "Ocultar linhas vazias" (RN-02). Aba GRADE GERAL (ex-ESCALA DO MÊS, B52), aberta pelo menu "Mostrar Grade Geral" (RN-30, P17). Cada serviço tem uma cor, e Pronto, Saldo e JES usam tons de verde; dentro da equipe os militares seguem a antiguidade (RN-101; P17). Essa visão é saída do sistema a partir das alocações, não a entidade: a entidade estrutural que agrupa os serviços é a Escala de serviço, abaixo (decisão do usuário, 14/11). | Confirmado |
-| Escala ordinária | Escala dos serviços do tipo Ordinário (Pronto, Adm, Saldo). | EM ABERTO (P5) |
-| Escala extraordinária | Escala dos demais serviços (PJES, serviço externo, Diária), com funções por vaga. | EM ABERTO (P5) |
-| Escala do ordinário | Documento da escala no formato oficial (aba ESCALA DO ORDINÁRIO, ex-ESCALA OPERACIONAL; B40). Descartado pelo usuário em 14/11 e removido do código na P19 (B70); a aba que sobrou na sandbox é para apagar à mão. Não confundir com a Escala do dia (RS-01, B76). | Descartado |
-| Escala de serviço | Agrupamento estrutural de um ou mais serviços que compartilham uma mesma demanda operacional (RN-100) — não é rótulo de visualização, embora tenha atributos de publicação. Ex.: a escala do Ordinário agrupa Pronto, JES e Saldo, que disputam as mesmas guarnições sem triplicar postos (decisão do usuário, 14/11). Cadastro na aba ESCALAS, de duas formas que se somam: uma linha com SERVIÇOS = "Pronto, JES, Saldo" ou uma linha por serviço com a mesma ESCALA; a ordem dos serviços é a do cadastro. TÍTULO, MILITARES e DIAS são da escala e valem da 1ª linha que os preenche. Painel "Escalas de Serviço"; a grade de vagas por dia e função fica na aba ESCALA (ex-GUARNIÇÃO, B52). Na main desde a P18 (B63). | Confirmado |
-| Sem função | Militar alocado num turno da escala sem posto na grade de guarnição, ex.: um 2º chefe quando o ABT já tem chefe (P18). Aparece na coluna SEM FUNÇÃO (TURNO × GUARNIÇÃO) da aba ESCALA, um militar por célula, agrupado por guarnição e por antiguidade; quem não tem guarnição vem no fim do turno (P19, B68). | Confirmado |
-| Escala do dia | Corte de um dia específico atravessando todas as escalas (Ordinário, Bioma, PE Seguro, Defensoria, CPRH…), pedido pelo usuário em 14/11 como exportação (RS-01, card B76). Formato, campos, ordenação e se inclui vagas vazias e militares sem função ainda não foram definidos (P-32 do catálogo). Não confundir com a Escala do ordinário (B40, descartada) nem com a aba IMPRESSÃO, que imprime uma escala por mês. | EM ABERTO (P28) |
-| Pré-escala | Sugestão automática do mês seguinte a partir do atual: Pronto pelo ciclo de equipes e, se ligado, o Adm em dias úteis. O escalante sempre revisa. Na interface fica no menu "Escala Automática", com os botões "Gerar Pronto" (ex-"Gerar pré-escala"), "Gerar Adm" e "Gerar operações" (P17). | Confirmado |
-| Dias passados | A pré-escala é um guia: o escalante altera o que quiser, sem quebrar as regras de alocação (RN-84). De hoje em diante a escala é livre; de ontem para trás fica travada (RN-85, a esclarecer). | EM ABERTO (P23) |
-| Equipe do dia 01 | Equipe que abre o mês, detectada pelo mês anterior; o escalante pode trocar. | Confirmado |
-| Expediente do Adm | Presença implícita do Adm em todo dia útil, no horário do serviço Adm cadastrado em TURNOS (hoje turno A, 08–16), para quem não cumpre a carga (ADM\_CUMPRE\_CARGA = NÃO; RN-17). Não é gravada, serve para checar choques: só choca com serviço do tipo Diária; PJES (JES, Defensoria, CPRH) e Ordinário não chocam. Um Saldo no mesmo horário ou um Adm de verdade no dia dispensa o expediente daquele dia (RN-25; P18, B67; decisão do usuário, 14/11). | Confirmado |
-| Carga horária mensal | 160h por militar do Pronto no mês, como parâmetro (RN-15). JES e diárias não contam, salvo para o voluntário escalado de forma compulsória sem formulário: a escala é abatida da carga, em valor parametrizado (RN-16, RN-41). Hoje o Adm cumpre só os saldos (RN-17), e a distribuição do Adm na pré-escala só se aplica com a RN-17 ligada (RN-20). | Confirmado |
-| Meta de ativação | Meta 1 do sistema: guarnições a ativar, com prioridade e efetivo mínimo e máximo por função, configuráveis pelo usuário (RN-07 a RN-11); o vínculo com as escalas fica em GUARNIÇÕES POR ESCALA (RN-09). Mínimo e máximo são editáveis a cada mês na aba GUARNIÇÕES, sem retroagir (RN-93). Atingido o mínimo, o restante do Pronto e do JES completa as guarnições até o máximo, na ordem de prioridade; o excedente vai 1 a 1 (RN-92). A ativação efetiva depende de condições avaliadas na geração, por mais de um motivo: falta de efetivo (RN-10), viatura indisponível ou calendário da operação — as duas últimas ainda não catalogadas (decisão do usuário, 14/11). O cadastro e a conferência existem, mas a ativação automática (motor da meta e ordem Pronto → JES → Saldo) ainda não foi feita (relatório P18): hoje a demanda do mês são os postos da grade de guarnição. | A implementar |
-| Apoio Operacional Aquartelado | Guarnição obrigatória do ordinário, ligada à meta de ativação. Existe sem viatura, e a CNH exigida do motorista ACO continua valendo (RN-96, RN-12). "Despachante" é função cadastrada; o nome do posto externo não importa (P-24 do catálogo). Guarnição vista em out/2026: 1 motorista ACO, 2 despachantes de centro de operações e 1 adjunto de dia, preenchida por Pronto, Saldo ou PJES; pode variar um pouco (RN-96). | Confirmado |
-| Ordem de alocação | Para atingir a meta de ativação: 1º ordinário do Pronto, 2º JES do Pronto, 3º Saldo do Adm (RN-13). Prevalece sobre a ordem do normativo, que não é usada (RN-69). | Confirmado |
-| Ordem de montagem | Para montar a escala: 1º serviços do Pronto, 2º JES do Pronto, 3º JES do Adm (RN-38). | Confirmado |
-| Cota | Quantidade de serviço extraordinário (PJES e diárias) de um mês numa SB, que ela é obrigada a executar além da carga normal; a cota não caracteriza o serviço (RN-33). Cada cota tem mês, SB, serviço, quantidade e origem (RN-35) e diz se conta para a meta de ativação (RN-95, RS-05). As internas são preenchidas antes das externas (RN-89). Na main desde a P14: aba COTAS (mês, SB, operação, serviço, quantidade, origem, prioridade); as linhas de JES ainda não são distribuídas. | Confirmado |
-| Cota externa | Serviços recebidos que os militares precisam tirar, mas que não entram na cota da SB (RN-34). A origem externa é atributo da cota (RN-35). | Confirmado |
-| Operação | Característica do serviço do tipo Diária (RN-83), não da cota (RN-35). Ex.: PE Seguro, Bioma, Têxtil, Defensoria, CPRH. Cada turno de operação tem vagas por função (RN-81), e cada vaga preenchida consome 1 cota (RN-82, Implementada). O código da P14 ainda liga a cota à operação pelo nome de uma escala da aba ESCALAS (D10). | EM ABERTO (P20) |
-| Formulário de voluntariado | Formulário mensal em que o voluntário indica o dia e o turno em que pretende tirar JES e diárias (RN-39, RN-47). Na main como aba VOLUNTARIADO: DATA (data inteira do plantão), MATRÍCULA, TURNO e SERVIÇO ACEITO (B31, PR #3). Desde a P18 (B50), as linhas de quem não é voluntário JES valem para as diárias, mas não para o JES. | Confirmado |
-| Fase voluntária / compulsória | Os extras são alocados primeiro entre os voluntários, respeitando o formulário, e depois de forma compulsória até cumprir as cotas (RN-40). Na compulsória só entra o voluntário que preencheu o formulário do mês (RN-41). Na main desde a P14 (PR #2, 14/10), como etapa 4 "Operações" da pré-escala; RN-40 e RN-41 Implementadas. O bug de leitura da aba VOLUNTARIADO foi corrigido com a coluna DATA (B31, PR #3, 18/10). | Confirmado |
-| Situação boa / ruim | Qualidade de um serviço pela combinação com os demais serviços do militar, catalogada (S-01, S-02…) para equilibrar a fase compulsória (RN-42, RN-43). | A implementar |
-| Guarnição | Conjunto de militares que tripula uma viatura ou posto num turno. É a entidade cadastrada e ativada; a viatura é atributo opcional (RN-07, RN-96). Cadastro na aba GUARNIÇÕES (ex-VIATURAS): uma linha por guarnição e função, com vigência, viatura, tipo, ativar, prioridade, CNH, mínimo e máximo (RN-08, RN-10 a RN-12, RN-93; PR #4). Ex.: AR mínimo 3 (motorista, chefe, socorrista), máximo 5. Guarnição sem PRIORIDADE vai por último (comportamento atual); manter isso ou exigir o valor está em aberto (P27). | Confirmado |
-| Guarnição por escala | Vínculo entre uma escala/turno e as guarnições que a servem: aba GUARNIÇÕES POR ESCALA (ex-MODELOS DE GUARNIÇÃO), com vigência, escala, turno e guarnição, casada pelo nome com o cadastro (RN-09, RN-93; B58, PR #4). As vagas por função vêm da composição da guarnição e não se repetem aqui (RN-81). Ex. (RN-81): PE Seguro, motorista, chefe e 2 socorristas; Bioma, motorista, chefe e 2 combatentes; Defensoria, chefe e auxiliar. O vínculo é explícito e cadastrado, não derivado: nem todo turno de uma escala tem guarnições vinculadas, e a causa de uma guarnição não ser ativada pode ser o efetivo, a viatura ou o calendário da operação (decisão do usuário, 14/11). | Confirmado |
-| Ativação | Instância de uma guarnição efetivamente ativada numa escala × turno (termo proposto pelo usuário, 14/11). A prioridade de ativação (RN-08) é atributo da instância, não do tipo de guarnição: se duas instâncias do mesmo tipo são ativadas na mesma escala, uma deve ser completada antes da outra começar. Decisão do usuário: não implementar agora, por ser baixa a chance de duas guarnições iguais na mesma escala; enquanto não houver, tipo e instância se confundem sem prejuízo. | A implementar (adiado) |
-| Unidade tática | Bloco do documento oficial da escala que agrupa as funções de um turno (ex.: INCÊNDIO, PRÉ-HOSPITALAR, SALVAMENTO). Em 14/11 o usuário disse, de passagem, que a escala do Ordinário possui as guarnições aquartelado, incêndio, APH e salvamento; o catálogo aguarda a confirmação formal para fechar (P-28, card B72). | EM ABERTO (P25) |
-| Viatura / Unidade | Viatura: atributo opcional da guarnição (ABT/ABTS, AR, ACO, UT incêndio, UT APH…); há guarnição sem viatura, ex.: motorista ACO (RN-07, RN-96). Unidade: coluna UNIDADE de ALOCAÇÕES, com o nome da guarnição em que o militar está (PR #4). | EM ABERTO (P7) |
-| Função | Papel do militar na vaga: chefe, motorista, socorrista, combatente, auxiliar, despachante… A lista é cadastro do usuário e muda com o tempo (RN-94). Na main (PR #4), as funções de cada escala/turno vêm da composição das guarnições vinculadas, são atribuídas pelo menu "Alocar em Função" (B36) e aparecem como nota na célula da grade geral (B48). Só a função de motorista tem requisito (CNH, RN-12). Acúmulo (ex.: "Motorista / Chefe") é permitido em guarnição reduzida; "Motorista 12H" não é função. O RS-06 pede coluna Função com lista suspensa na grade (D16). | Confirmado |
+## Escalas e montagem
 
-## Validações e configurações
-| Termo | Definição | Status |
-| --- | --- | --- |
-| Choque de horários | Dois serviços do mesmo militar com horários que se sobrepõem, pelos horários reais da aba TURNOS. Encostar (fim = início) não é choque. Bloqueia a gravação (RN-23). | Confirmado |
-| Regras da escala manual | Além do choque, a gravação da escala bloqueia: Saldo para quem não é do Adm (RN-03), duas diárias com início no mesmo dia (RN-36) e JES para não voluntário (RN-46). Na main desde o PR #3 (18/10). Na grade de guarnição, motorista só com CNH compatível, considerada a hierarquia do CTB (RN-12; B38, B71). | Confirmado |
-| Emenda | Serviço que começa na hora em que outro termina. JES → Pronto é proibido; Pronto → JES é permitido (RN-24). Diária → diária de outro dia é permitida (dobradinha, RN-37). | Confirmado |
-| Integridade dos dados | Conferência só de leitura: choques, emendas proibidas, catálogo de turnos e escala × tabela. | Confirmado |
-| Atualizar estrutura | Menu "Escalas - 2º GB > Atualizar estrutura": único ponto do sistema que cria ou muda abas e colunas (RS-07; P19, B69). Mostra o que falta, pede uma confirmação, aplica as migrações (14 hoje) e mostra um relatório passo a passo; rodado de novo, diz "Nada a fazer". Os botões de criar, converter e migrar dos painéis foram retirados. | Confirmado |
-| Feriado | Data cadastrada na aba FERIADOS; tira o dia do expediente do Adm. Tratamento dos pontos facultativos não definido. | EM ABERTO (P13) |
-| Dia útil | Dia que não é sábado, domingo nem feriado. | Confirmado |
-| Parâmetro | Valor do sistema que muda com o tempo, ajustado no painel Configurações (RN-28): carga mensal, saldos do Adm, seção padrão e linhas por militar (P13, na main). A aba hoje se chama CONFIGURAÇÕES; as diretrizes do PLANEJAMENTO a chamam de PARÂMETROS. | EM ABERTO (P16) |
-| Vigência | Mês a partir do qual o valor de um parâmetro passa a valer. | Confirmado |
-| Normativos | Portaria do Comando Geral nº 314/2025 e Decreto nº 46.331/2018. Regras de descanso e de bloco da PCG 314 ficam para depois (RN-26). As regras tiradas deles (RN-52 a RN-80) aguardam validação dos escalantes (P-15 do catálogo). | Confirmado |
-| Requisito de sistema (RS) | O que o sistema precisa oferecer para cumprir as regras (telas, documentos, desempenho), com ID RS-XX, separado das regras RN-XX. Ex.: RS-01 documentos da escala, incluindo a escala do dia (B76); RS-02 tela de permutas; RS-03 página de regras; RS-07 menu "Atualizar estrutura" (P19). | Confirmado |
+| Termo | Definição | Situação |
+|---|---|---|
+| Escala | Agrupamento de serviços que guarnecem os mesmos modelos de guarnição (ex.: o Ordinário agrupa Pronto, JES e Saldo). A demanda é da escala (RN-100). | Em uso |
+| Distribuição da escala | Como a escala é preenchida: pela pré-escala (as escalas de praças) ou pela rodada de cotas (a escala dos oficiais). | Em uso |
+| Alocação | Um militar num serviço e turno numa data, com guarnição e função quando ocupa uma vaga. | Em uso |
+| Modelo de guarnição | O molde de um posto operacional: funções com mínimo, máximo e CNH, com versões por mês (RN-10, RN-11, RN-93). | Em uso |
+| Guarnição | O modelo que ganhou militares num dia. Só conta como ativada se cada função tem o mínimo em todo o horário (RN-109). | Em uso |
+| Vaga | Um lugar de uma função num modelo (modelo + função + nº da vaga). | Em uso |
+| Função | O que o militar faz na vaga (chefe, motorista, socorrista…). Catálogo da unidade (RN-94). Não confundir com a função do militar no Pecúlio. | Em uso |
+| Meta de ativação | A lista dos modelos que devem sair num dia, com a ordem de ativação. Nasce da meta padrão do nível e muda por dia (RN-108). | Em uso |
+| Ordem de escalação | A sequência das vagas, por escala e mês. A tela existe; quem a usará é a automação da fase 8 (RN-102). | Fase 8 |
+| Acúmulo | Um militar já escalado na faixa ocupando também outra vaga vazia, com a marca "acumula com …" (RN-104). | Em uso |
+| Pré-escala | A sugestão automática do mês: põe a equipe do dia nos turnos do Pronto e o ADM no expediente; o escalante distribui nas vagas à mão. Gerar de novo só completa lacunas e respeita as remoções (RN-22, RN-112, RN-113). | Em uso |
+| Choque | Dois serviços do mesmo militar com horários sobrepostos, em qualquer unidade; o expediente conta. Trava a alocação, não o fechamento da escala (RN-23). | Em uso |
+| Emenda | Serviço que começa quando outro termina. JES seguido de Pronto é proibido; Pronto seguido de JES é permitido (RN-24). | Em uso |
+| Carga horária mensal | 160 h do Pronto no mês, parâmetro (RN-15); quem a usa são as distribuições. | Fase 8 |
+| Escala do mês | Tela de montagem de uma escala, dia a dia, com um cartão por guarnição em cada turno. | Em uso |
+| Efetivo por dia | Tela do dia: a meta de ativação e as guarnições ativadas. | Em uso |
+| Grade geral | Tela de todos os militares no mês, com a marca de cada dia (a cor é o serviço, a letra é o turno). | Em uso |
+| Escala por militar | Tela de militares escolhidos, comparados no mês. | Fase 8 |
+| Permuta | Troca de serviço entre um par de militares, no mesmo mês, aprovada pelo chefe fora do sistema (RN-86 a RN-88). | Fase 9 |
 
-## Termos técnicos (não usar na interface)
-| Termo | Definição |
-| --- | --- |
-| Matriz | Nome interno da escala exibida (aba GRADE GERAL, ex-ESCALA DO MÊS). Na tela: "escala". Desde a P13 (main, 14/10), a grade não tem coluna TURNO. |
-| ALOCAÇÕES | Aba da tabela de alocações, fonte da verdade (ex-ALOCAÇÕES TABULADAS, B52). |
-| \_BASE\_MATRIZ | Aba oculta com a cópia de referência da escala carregada; serve para saber o que o usuário mudou. |
-| Sincronia | Gravação na tabela só do que o usuário alterou na escala, comparando referência, escala atual e tabela. |
-| Conflito | A mesma célula foi alterada por outra pessoa na tabela; a mudança não é gravada. |
-| Inválida | Serviço inexistente para aquele turno no catálogo; a mudança não é gravada. |
+## Cotas e voluntariado
+
+| Termo | Definição | Situação |
+|---|---|---|
+| Cota | Quantas vezes se pode escalar militares num serviço extra (PJES ou diária) num mês; a unidade é obrigada a executá-la. Cada vaga preenchida consome uma (RN-33, RN-82). Não confundir com a cota de saldo. | Em uso |
+| Origem da cota | Interna ou externa. A externa os militares tiram, mas não conta na cota da unidade (RN-34, RN-35). | Em uso |
+| Cota restante | Quantidade do mês menos as alocações no serviço ("JES: restam 26 de 40") (RN-114). | Em uso |
+| Voluntariado | Em que faixas de horário de cada dia o militar aceita tirar JES e diárias, por mês. É do militar e vale em todas as seções que o escalam (RN-105, RN-124). | Em uso |
+| Bloco do dia | Faixa de horário pronta para marcar, vinda dos turnos dos serviços que pedem voluntariado (RN-107). | Em uso |
+| Outro horário | Botão do dia para marcar faixas fora dos blocos. | Em uso |
+| Coleta | O período em que o militar pode marcar o próprio voluntariado de um mês, aberto e fechado pelo gestor da unidade (RN-122). | Em uso |
+| Fase voluntária e compulsória | Os extras vão primeiro a quem marcou voluntariado, depois de forma compulsória, até cumprir as cotas (RN-40, RN-41). | Fase 8 |
+| Situação boa ou ruim | A qualidade de um serviço pela combinação com os outros do militar, para equilibrar a compulsória (RN-42, RN-43). | Fase 10 |
+
+## Estados da escala
+
+| Termo | Definição | Situação |
+|---|---|---|
+| Rascunho | A escala em começo, que só quem monta vê. Não tem trava do passado. | Em uso |
+| Prévia | A escala mostrada à unidade e às de baixo; ainda pode mudar. | Em uso |
+| Publicada | A versão final esperada, vista por toda a corporação. Só o gestor publica. | Em uso |
+| Escala em retificação | Etiqueta da escala publicada que mudou e ainda não foi republicada; ela continua visível. | Em uso |
+| Retificada | A escala republicada depois de uma correção. | Em uso |
+| Remessada | A escala cumprida e enviada aos superiores; só o administrador a altera. | O estado, Em uso; a remessa, Fase 9 |
+| Passado | O turno que já começou. Fora do rascunho, só o gestor o altera, com justificativa (RN-85). | Em uso |
+| Registro de alteração | O valor antigo, o novo, quem, quando e por quê, de cada exceção: o passado e a correção do voluntariado (RN-120). | Em uso |
+| Minha escala | Os próprios serviços do militar no mês, com quem compõe a guarnição (RN-121). | Em uso |
+| Escala executada | A escala como foi cumprida, enviada até o dia 5 do mês seguinte. | Fase 9 |
+
+## Escala dos oficiais
+
+| Termo | Definição | Situação |
+|---|---|---|
+| Rodada de cotas | O jeito de distribuir da escala dos oficiais: JES à mão, o resto em Saldo pela cota de saldo (RN-125, RN-127). | Em uso |
+| Elegível e participante | Elegível é o oficial (QOC ou QOA) da unidade ou de baixo; participante é quem o gestor escolhe para o mês (RN-126). | Em uso |
+| Cota de saldo (oficiais) | Quantos turnos de Saldo cada oficial deve tirar no mês: o devido arredondado para baixo, com a sobra do mais moderno para o mais antigo. | Em uso |
+| Presença e devido | Presença: a parte do mês em que o oficial participa sem afastamento. Devido: os lugares do mês na proporção da presença, com casas decimais. | Em uso |
+| Abrir o mês, fechar a escala, encerrar o mês | Os três momentos do mês dos oficiais (RN-128). | Em uso |
+| Cobertura | Troca de nome num turno depois de fechada a escala: quem cobre ganha, quem sai não deve. | Em uso |
+| Saldo do oficial | O que ele tirou menos o que devia, acumulado entre os meses; pode ser negativo (RN-129). Não é o serviço Saldo. | Em uso |
+| Dia vermelho | Dia ruim, que ninguém quer tirar, marcado pelo escalante; conta só no serviço ordinário (RN-117). | Em uso |
+| Memorial de cálculo | O registro de cada recálculo das cotas: motivo, quem e a conta (RN-131). | Em uso |
+
+## Configurações
+
+| Termo | Definição | Situação |
+|---|---|---|
+| Parâmetro | Valor que muda com o tempo (carga mensal, saldos do ADM, flexibilidade do voluntariado…), com vigência, válido na unidade e nas de baixo; a mais próxima vence (RN-28). | Em uso |
+| Vigência | O mês a partir do qual um valor vale. Mês passado é recusado. | Em uso |
+| Feriado | Data da unidade (ou de uma de cima) que tira o dia do expediente. | Em uso; pontos facultativos, Em aberto (G5) |
+| Dia útil | Dia que não é sábado, domingo nem feriado. | Em uso |
+| Normativos | A Portaria do Comando Geral nº 314/2025 e o Decreto nº 46.331/2018. As regras tiradas deles (RN-52 a RN-80) aguardam validação (P-15). | Em uso |
+| Regra (RN) e requisito (RS) | A regra de negócio vale mesmo sem sistema; o requisito é o que o sistema oferece para cumpri-la. IDs nunca reaproveitados. | Em uso |
+| Barreiras | Suporte: o sistema ajuda o escalante a não errar. Automação: o sistema faz sozinho. Base: o cadastro que sustenta as duas. A automação nunca impede o escalante de fechar a escala. | Em uso |

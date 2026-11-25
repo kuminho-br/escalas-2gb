@@ -2,14 +2,19 @@
 
 Referência única das regras de negócio do sistema de escalas. Quem cuida: DOCUMENTAÇÃO.
 
-Origem: catálogo do claude.ai (rev. 160, 15/11/2026), feito para o protótipo. Em 21/11/2026 cada regra foi conferida contra o sistema novo (design, specs da fase 4 e código da `main` depois da entrega 4.6), e entraram as regras novas da fase 4 (RN-102 em diante).
+Origem: catálogo do claude.ai (rev. 160, 15/11/2026), feito para o protótipo. Depois disso, duas conferências contra o sistema novo:
+
+- **21/11/2026:** cada regra conferida contra o design, as specs da fase 4 e a `main` depois da 4.6; entram as regras da fase 4 (RN-102 a RN-116).
+- **25/11/2026:** conferência com a `main` depois da 7.5; entram as regras do acesso, do cadastro do militar, da escala dos oficiais, do voluntariado marcado pelo militar e dos estados da escala (RN-117 a RN-137 e RS-08).
 
 | Arquivo | O que tem |
 |---|---|
 | [servicos-e-guarnicoes.md](servicos-e-guarnicoes.md) | Serviços e escalas, modelos de guarnição, meta de ativação, ordem de escalação e acúmulo |
 | [carga-expediente-choques.md](carga-expediente-choques.md) | Carga horária, saldos, expediente do Adm, pré-escala e choques |
-| [cotas-voluntariado-permutas.md](cotas-voluntariado-permutas.md) | Cotas, voluntariado por faixa de horário, distribuição dos extras, situações boas e ruins, permutas |
-| [sistema-e-interface.md](sistema-e-interface.md) | Escopo, cadastros, configurações, interface e requisitos RS-XX |
+| [cotas-voluntariado-permutas.md](cotas-voluntariado-permutas.md) | Cotas, voluntariado (a coleta e o que o militar marca), distribuição dos extras, situações boas e ruins, permutas |
+| [estados-e-visualizacao.md](estados-e-visualizacao.md) | Estados da escala (rascunho a remessada), a trava do passado, o registro e a Minha escala |
+| [escala-dos-oficiais.md](escala-dos-oficiais.md) | Escala dos oficiais: participantes, cota de saldo, momentos do mês, saldo, dias vermelhos e memorial |
+| [sistema-e-interface.md](sistema-e-interface.md) | Escopo e árvore de unidades, níveis de acesso e camadas de visão, cadastro do militar, configurações, interface e requisitos RS-XX |
 | [normativo-a-validar.md](normativo-a-validar.md) | Regras do normativo (a validar), pendências P-XX e regras que saíram |
 
 Regra de negócio (RN) é como o serviço funciona no quartel: valeria mesmo sem sistema. Requisito de sistema (RS) é o que o sistema tem de oferecer para dar conta delas.
@@ -26,7 +31,7 @@ O andamento do trabalho (planejado, em execução) é do roadmap, não deste cat
 
 ## Como mudar o catálogo
 
-- O ID nunca é reaproveitado. A próxima regra nova é a **RN-118**; o próximo requisito, o **RS-08**.
+- O ID nunca é reaproveitado. A próxima regra nova é a **RN-138**; o próximo requisito, o **RS-09**.
 - Regra que deixa de valer vai para "Regras que saíram", em [normativo-a-validar.md](normativo-a-validar.md), com o motivo. Regra trocada por outra fica no lugar, como `Substituída por RN-XX`.
 - Decisão do usuário que cria ou muda uma regra ganha uma linha em [decisoes.md](../../decisoes.md), no mesmo PR (sem adendos).
 - O código deve citar o ID da regra que implementa (ex.: `// RN-36`).
