@@ -9,6 +9,7 @@ import { COM_CAMINHO, paraUnidade, porCaminho, type LinhaDaUnidade } from '../ar
 import { hojeRecife } from '../datas.ts';
 import { lerCorpo } from '../erros.ts';
 import { unidadesComEscalaEmMontagem } from '../visao/visao.ts';
+import { coletasAbertasDoMilitar } from '../voluntariado/leitura.ts';
 import { MSG_CRIE_A_SENHA, MSG_SENHA_VENCIDA } from '../usuarios/mensagens.ts';
 
 export interface Eu {
@@ -29,6 +30,8 @@ export interface Eu {
   trocarSenha: boolean;
   /** Tem nível de acesso vigente, mas só em unidades que foram extintas: a tela "Sem lotação" explica. */
   nivelSoEmUnidadeExtinta: boolean;
+  /** Os meses (aaaa-mm), do mês atual em diante, em que a coleta do voluntariado está aberta na seção da pessoa: ela pode marcar o próprio voluntariado. */
+  coletasAbertas: string[];
 }
 
 /** As unidades dos papéis vigentes e as de baixo (as extintas não entram). */
@@ -113,8 +116,8 @@ export function rotasEu(banco: Banco, auth: Auth): Hono {
   r.get('/', async (c) => {
     const sessao = await auth.api.getSession({ headers: c.req.raw.headers });
     if (!sessao) return c.json({ erro: 'Não autenticado' }, 401);
-    const { rows } = await banco.query<{ id: string; nome: string; email: string; matricula: string; posto: string; nome_guerra: string; trocar_senha: boolean }>(
-      `select u.id, u.nome, u.email, m.matricula, p.sigla as posto, m.nome_guerra, u.senha_provisoria_ate is not null as trocar_senha
+    const { rows } = await banco.query<{ id: string; militar_id: string; nome: string; email: string; matricula: string; posto: string; nome_guerra: string; trocar_senha: boolean }>(
+      `select u.id, u.militar_id, u.nome, u.email, m.matricula, p.sigla as posto, m.nome_guerra, u.senha_provisoria_ate is not null as trocar_senha
          from usuario u join militar m on m.id = u.militar_id join posto_grad p on p.id = m.posto_grad_id
         where u.id = $1 and u.ativo`,
       [sessao.user.id],
@@ -137,6 +140,7 @@ export function rotasEu(banco: Banco, auth: Auth): Hono {
       lotacao,
       trocarSenha: u.trocar_senha,
       nivelSoEmUnidadeExtinta: papeis.length > 0 && dosPapeis.length === 0,
+      coletasAbertas: await coletasAbertasDoMilitar(banco, u.militar_id, `${hoje.slice(0, 7)}`),
     };
     return c.json(eu);
   });
