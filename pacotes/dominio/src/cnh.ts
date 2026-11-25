@@ -44,6 +44,18 @@ export const CNH_CATEGORIAS = 'ABCDE';
 /** Hierarquia do CTB (RN-12), fixa no código: cada categoria -> as que ela habilita. */
 export const CNH_HABILITA: Record<string, string[]> = { E: ['E', 'D', 'C', 'B'], D: ['D', 'C', 'B'], C: ['C', 'B'], B: ['B'], A: ['A'] };
 
+/**
+ * As categorias que servem a quem pede `pedidas` (o filtro de CNH da pesquisa, 6.53): cada uma delas e as que a habilitam, em ordem. ['B'] -> ['B','C','D','E']; ['A'] -> ['A']; ['E'] -> ['E'].
+ * Categoria desconhecida não habilita ninguém.
+ */
+export function categoriasQueHabilitam(pedidas: string[]): string[] {
+  const pedidasN = pedidas.map((x) => normalizar(x));
+  return Object.entries(CNH_HABILITA)
+    .filter(([, habilita]) => habilita.some((h) => pedidasN.includes(h)))
+    .map(([categoria]) => categoria)
+    .sort();
+}
+
 /** As categorias que o militar pode dirigir, pela hierarquia. ['A','D'] -> ['A','D','C','B']. */
 export function cnhHabilitadas(doMilitar: unknown[] | null | undefined): string[] {
   const out: string[] = [];

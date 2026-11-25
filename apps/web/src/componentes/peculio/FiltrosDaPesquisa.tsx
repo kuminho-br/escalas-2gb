@@ -112,6 +112,7 @@ export function FiltrosDaPesquisa({ valor, aoMudar }: { valor: Extras; aoMudar: 
       <SimNao id="f-motorista" rotulo="No quadro de motoristas" valor={valor.motorista} aoMudar={(v) => mudar({ motorista: v })} />
       <fieldset className="grid gap-1.5">
         <legend className="text-corpo font-medium">Categoria de CNH</legend>
+        <p className="text-apoio text-apagado">Inclui quem tem uma categoria que habilita a escolhida.</p>
         <div className="flex flex-wrap gap-3 pt-1">
           {['A', 'B', 'C', 'D', 'E'].map((c) => (
             <label key={c} className="flex items-center gap-1.5 text-corpo">

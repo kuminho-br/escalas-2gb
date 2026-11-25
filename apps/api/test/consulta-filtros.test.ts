@@ -12,6 +12,7 @@ let sb1: string; // dentro da DivOp
 let sb2: string; // dentro da DA
 let sb3: string; // direto no 2º GB
 let sb9: string; // de outro grupamento
+let sb9b: string; // irmã da 9ª SB, só para a CNH pela hierarquia (6.53)
 const hoje = hojeRecife();
 const dia1 = `${hoje.slice(0, 7)}-01`;
 const quadro: Record<string, string> = {};
@@ -54,6 +55,7 @@ beforeAll(async () => {
   await api.banco.query('update unidade set mae_id = $2 where id = $1', [sb2, da]);
   const gb9 = await inserir(api.banco, 'unidade', { tipo: 'grupamento', sigla: '9º GB', nome: '9º Grupamento', mae_id: api.ids.raiz, desde: '2026-11-01' });
   sb9 = await inserir(api.banco, 'unidade', { tipo: 'secao', sigla: '9ª SB', nome: '9ª Seção', mae_id: gb9, desde: '2026-11-01' });
+  sb9b = await inserir(api.banco, 'unidade', { tipo: 'secao', sigla: '9ª SB-B', nome: '9ª Seção B', mae_id: gb9, desde: '2026-11-01' });
 
   const equipeA = await inserir(api.banco, 'equipe', { unidade_id: sb1, nome: 'Alfa', ordem_ciclo: 1 });
   const afastada = (await api.banco.query<{ id: string }>("select id from situacao_militar where nome <> 'Ativa' limit 1")).rows[0]!.id;
@@ -67,6 +69,8 @@ beforeAll(async () => {
   await militar('DOGB', '995904-4', sb3, { jornada: 'adm', posto: '3º SGT' });
   await militar('OUTRO', '995905-5', sb9, { jornada: 'adm', mil: { voluntario_jes: true } });
   // cada pendência de cadastro, sozinha
+  // a CNH pela hierarquia (6.53): quem só tem E, D, C, B ou A, todos no 9º GB
+  for (const [nome, cnh, n] of [['SOE', 'E', 1], ['SOA', 'A', 2], ['SOB', 'B', 3], ['SOC', 'C', 4]] as const) await militar(nome, `99592${n}-${n}`, sb9b, { jornada: 'adm', mil: { cnh: [cnh] } });
   await militar('SEMEQUIPE', '995911-1', sb1, { jornada: 'pronto' });
   await militar('SEMQUADRO', '995912-2', sb1, { jornada: 'adm', quadro: null });
   await militar('MOTSEMCNH', '995913-3', sb1, { jornada: 'adm', mil: { motorista: true, cnh: [] } });
@@ -134,7 +138,8 @@ describe('cada filtro, sozinho', () => {
     expect(nomes(await buscar('gestorGb', { ...unidade, voluntarioJes: true }))).toEqual(['ALFA1']);
     expect(nomes(await buscar('admin', { ...unidade, voluntarioJes: true }))).toEqual(['ALFA1', 'OUTRO']);
     expect(nomes(await buscar('gestorGb', { ...unidade, motorista: true }))).toEqual(['ALFA1', 'MOTSEMCNH']);
-    expect(nomes(await buscar('gestorGb', { ...unidade, cnh: ['B', 'C'] }))).toEqual(['ALFA2']);
+    // a CNH pela hierarquia: B traz quem tem B ou uma que a habilite (o ALFA1 tem D)
+    expect(nomes(await buscar('gestorGb', { ...unidade, cnh: ['B', 'C'] }))).toEqual(['ALFA1', 'ALFA2']);
     expect(nomes(await buscar('gestorGb', { ...unidade, funcaoIds: await ids("select id from funcao_militar where nome = 'Chefe de seção'") }))).toEqual(['ALFA1']);
   });
 
@@ -156,6 +161,24 @@ describe('cada filtro, sozinho', () => {
 
   it('dois filtros somam: pronto e motorista', async () => {
     expect(nomes(await buscar('gestorGb', { unidades: [{ id: api.ids.gb, comAsDeBaixo: true }], jornada: 'pronto', motorista: true }))).toEqual(['ALFA1']);
+  });
+});
+
+describe('o filtro de CNH segue a hierarquia do CTB (6.53)', () => {
+  const dosNove = async () => ({ unidades: [{ id: sb9b, comAsDeBaixo: false }] });
+
+  it('B traz B, C, D e E, e não traz quem só tem A; C não traz quem só tem B; E só E; A só A', async () => {
+    const u = await dosNove();
+    expect(nomes(await buscar('admin', { ...u, cnh: ['B'] }))).toEqual(['SOB', 'SOC', 'SOE']);
+    expect(nomes(await buscar('admin', { ...u, cnh: ['C'] }))).toEqual(['SOC', 'SOE']);
+    expect(nomes(await buscar('admin', { ...u, cnh: ['E'] }))).toEqual(['SOE']);
+    expect(nomes(await buscar('admin', { ...u, cnh: ['A'] }))).toEqual(['SOA']);
+  });
+
+  it('Review Focus 3: A e B juntos trazem quem tem A ou quem tem qualquer categoria que habilite B; o que só tem A não aparece no filtro B', async () => {
+    const u = await dosNove();
+    expect(nomes(await buscar('admin', { ...u, cnh: ['A', 'B'] }))).toEqual(['SOA', 'SOB', 'SOC', 'SOE']);
+    expect(nomes(await buscar('admin', { ...u, cnh: ['B'] }))).not.toContain('SOA');
   });
 });
 
