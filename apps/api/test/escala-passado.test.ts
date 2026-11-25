@@ -1,5 +1,6 @@
 import { somarMeses, type EscalaDoMes } from 'contratos';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
+import { conferirPassado } from '../src/escala/passado.ts';
 import { hojeRecife } from '../src/datas.ts';
 import { lerRegistro, textoDaAlteracaoNoPassado } from '../src/registro.ts';
 import { inserir } from './banco-teste.ts';
@@ -508,5 +509,23 @@ describe('o acabamento da 7.3 (7.3.1, Task 4)', () => {
     expect(publicada).toBeLessThan(emRascunho);
     const gravadas = ((await (await api.pedir('escalante', 'POST', `/api/escalas/${escala}/mes/${mes}/pre-escala`, { equipeDia1Id: equipe })).json()) as { gravadas: number }).gravadas;
     expect(gravadas).toBeGreaterThanOrEqual(publicada);
+  });
+});
+
+describe('achado da revisão da 7.3.1: a gestão só é exigida onde algum turno já começou', () => {
+  it('um ato que toca duas escalas de unidades diferentes (uma com turno que começou, outra só com turno futuro): o gestor da primeira passa, e o registro cobre os dois lados', async () => {
+    const outra = await inserir(api.banco, 'unidade', { tipo: 'secao', sigla: 'SEC-Y', nome: 'Seção Y', mae_id: api.ids.gb, desde: '2026-11-01' });
+    const servicoY = await inserir(api.banco, 'servico', { unidade_id: outra, nome: 'Plantão Y', tipo: 'ordinario', cor: '#3C5F9C' });
+    const turnoY = await inserir(api.banco, 'turno', { servico_id: servicoY, letra: 'A', inicio: '08:00', fim: '20:00' });
+    const escalaY = await inserir(api.banco, 'escala', { unidade_id: outra, nome: 'Da Y', titulo: 'Da Y', militares_doc: 'todos', dias_doc: 'todos' });
+    await poNoEstado('previa');
+    await api.banco.query("insert into escala_estado (escala_id, mes, estado) values ($1, $2::date, 'previa')", [escalaY, `${mes}-01`]);
+    agora(15, 12);
+    const tocados = [{ escalaId: escala, data: dia(10), turnoId: turnoA }, { escalaId: escalaY, data: dia(25), turnoId: turnoY }];
+    // o coordenador é gestor da 1ª SB (onde o turno já começou) e não tem nada na SEC-Y (onde o turno é futuro): passa, com a justificativa
+    const r = await conferirPassado(api.banco, coordenador.usuarioId, tocados, MOTIVO, relogio.agora);
+    expect(r.registro?.alvos.map((a) => a.escalaId).sort()).toEqual([escala, escalaY].sort());
+    // sem gestão onde o turno começou, continua 403
+    await expect(conferirPassado(api.banco, api.usuarios.escalante, tocados, MOTIVO, relogio.agora)).rejects.toThrow('Este turno já começou. Só o gestor altera o passado.');
   });
 });

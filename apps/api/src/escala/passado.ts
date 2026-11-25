@@ -9,7 +9,7 @@ import type { Consulta } from '../banco/banco.ts';
 import { agoraRecife, hojeRecife } from '../datas.ts';
 import { registrar } from '../registro.ts';
 import { Proibida, Recusa } from './alocacoes.ts';
-import { estadoDoMes, marcarRetificacao, MSG_JA_REMESSADA } from './estado.ts';
+import { estadoParaAlterar, marcarRetificacao, MSG_JA_REMESSADA } from './estado.ts';
 
 export const MSG_SO_GESTOR = 'Este turno já começou. Só o gestor altera o passado.';
 export const MSG_DIGA_O_MOTIVO = 'Diga o motivo da alteração (pelo menos 10 letras).';
@@ -59,10 +59,10 @@ export async function conferirPassado(
   c: Consulta, usuarioId: string, tocados: Tocado[], justificativa: string | undefined, agora = agoraRecife(),
 ): Promise<{ registro: null | { justificativa: string; alvos: Alvo[] }; retificar: Retificar[] }> {
   const alvos = await alvosDe(c, tocados);
-  const estados = new Map<string, Awaited<ReturnType<typeof estadoDoMes>>['estado']>();
+  const estados = new Map<string, Awaited<ReturnType<typeof estadoParaAlterar>>['estado']>();
   for (const a of alvos) {
     const k = `${a.escalaId}|${a.mes}`;
-    if (!estados.has(k)) estados.set(k, (await estadoDoMes(c, a.escalaId, a.mes)).estado);
+    if (!estados.has(k)) estados.set(k, (await estadoParaAlterar(c, a.escalaId, a.mes)).estado);
   }
   const travadas = new Set<string>();
   let remessada = false;
@@ -81,7 +81,8 @@ export async function conferirPassado(
   const doPassado = alvos.filter((a) => estados.get(`${a.escalaId}|${a.mes}`) !== 'rascunho');
   const hoje = hojeRecife();
   if (remessada && !(await ehAdministrador(c, usuarioId, hoje))) throw new Proibida(MSG_SO_ADMINISTRADOR);
-  for (const unidadeId of new Set(doPassado.map((a) => a.unidadeId))) {
+  // a gestão é exigida onde algum turno já começou (ou na escala remessada): numa escala em que todos os turnos tocados são futuros, o gestor de outra unidade não precisa ser gestor dela
+  for (const unidadeId of new Set(doPassado.filter((a) => travadas.has(`${a.escalaId}|${a.mes}`)).map((a) => a.unidadeId))) {
     if (!(await temPapel(c, usuarioId, unidadeId, GESTAO, hoje))) throw new Proibida(MSG_SO_GESTOR);
   }
   const motivo = (justificativa ?? '').trim();
@@ -223,7 +224,7 @@ export async function tocadoDoAcumulo(c: Consulta, acumuloId: string): Promise<T
 export async function semOsQueJaComecaram<T extends { escalaId?: string | null; data: string; turnoId: string }>(
   c: Consulta, usuarioId: string, escalaId: string, mes: string, novas: T[], agora = agoraRecife(),
 ): Promise<{ novas: T[]; retificar: Retificar[] }> {
-  const estado = (await estadoDoMes(c, escalaId, mes)).estado;
+  const estado = (await estadoParaAlterar(c, escalaId, mes)).estado;
   if (estado === 'rascunho') return { novas, retificar: [] };
   if (estado === 'remessada') {
     if (!(await ehAdministrador(c, usuarioId, hojeRecife()))) throw new Proibida(MSG_SO_ADMINISTRADOR);

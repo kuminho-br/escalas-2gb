@@ -28,9 +28,21 @@ export async function estadoDoMes(c: Consulta, escalaId: string, mes: string): P
  * A passagem de estado: lançar a prévia (do rascunho), publicar (do rascunho ou da prévia) e republicar (de uma escala em retificação). Repetir a mesma passagem não é erro
  * (lançar a prévia de uma prévia, publicar uma publicada); a que volta ou pula a regra lança `Recusa` (409) com a frase fixa. Duas passagens ao mesmo tempo na mesma escala e mês esperam uma pela outra.
  */
+/** A chave da trava do estado de uma escala num mês: a passagem a toma exclusiva; quem altera a escala, compartilhada. */
+export const chaveDoEstado = (escalaId: string, mes: string) => `estado|${escalaId}|${mesParaData(mes)}`;
+
+/**
+ * Lê o estado para decidir uma alteração (a trava do passado, a retificação): antes, toma a trava COMPARTILHADA da chave da passagem de estado, que dura até o fim da transação. Assim uma passagem
+ * (publicar, republicar) em curso espera as alterações que já leram o estado, e uma alteração espera a passagem: ninguém grava contra um estado que já mudou.
+ */
+export async function estadoParaAlterar(tx: Consulta, escalaId: string, mes: string): Promise<EstadoDoMes> {
+  await tx.query('select pg_advisory_xact_lock_shared(hashtext($1))', [chaveDoEstado(escalaId, mes)]);
+  return estadoDoMes(tx, escalaId, mes);
+}
+
 export async function mudarEstado(tx: Consulta, escalaId: string, mes: string, para: 'previa' | 'publicada' | 'republicar', usuarioId: string): Promise<void> {
   const data = mesParaData(mes);
-  await tx.query('select pg_advisory_xact_lock(hashtext($1))', [`estado|${escalaId}|${data}`]);
+  await tx.query('select pg_advisory_xact_lock(hashtext($1))', [chaveDoEstado(escalaId, mes)]);
   const atual = (await tx.query<{ estado: EstadoDoMes['estado']; em_retificacao: boolean }>('select estado, em_retificacao from escala_estado where escala_id = $1 and mes = $2::date', [escalaId, data])).rows[0];
   const grava = (estado: 'previa' | 'publicada' | 'retificada') =>
     tx.query(
