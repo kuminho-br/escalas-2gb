@@ -104,7 +104,7 @@ describe('tela inicial', () => {
   });
 
   // 6.42: os cartões grandes viram uma fila de atalhos, cada um com o nome do módulo e uma linha de situação montada com o que a tela já sabe
-  it('mostra um atalho por módulo visível, num nav "Módulos", com a situação da unidade e do mês; a Visualização leva a Meu voluntariado (7.2)', async () => {
+  it('mostra um atalho por módulo visível, num nav "Módulos", com a situação da unidade e do mês; a Visualização leva a Minha escala (7.5)', async () => {
     vi.useFakeTimers({ toFake: ['Date'], now: new Date('2026-11-19T13:30:00Z') });
     simularApi({ '/api/eu': { status: 200, corpo: comPapel } });
     abrir('/');
@@ -121,8 +121,8 @@ describe('tela inicial', () => {
     expect(within(nav).queryByRole('link', { name: /^Pesquisar militares/ })).toBeNull();
     expect(within(nav).getByRole('link', { name: /Minha ficha/ })).toHaveAttribute('href', '/minha-ficha');
     const visualizacao = screen.getByText('Visualização de escalas').closest('li')!;
-    expect(within(visualizacao).getByRole('link')).toHaveAttribute('href', '/meu-voluntariado');
-    expect(within(visualizacao).getByText('Seu voluntariado')).toBeInTheDocument();
+    expect(within(visualizacao).getByRole('link')).toHaveAttribute('href', '/minha-escala');
+    expect(within(visualizacao).getByText('Sua escala e o seu voluntariado')).toBeInTheDocument();
     // saíram os cartões grandes: nenhum h2 de módulo, nenhum "Abrir"
     expect(within(nav).queryByRole('heading')).toBeNull();
     expect(within(nav).queryByText('Abrir')).toBeNull();

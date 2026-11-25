@@ -22,17 +22,20 @@ import { Route as AppEfetivoDoDiaRouteImport } from './routes/_app/efetivo-do-di
 import { Route as AppEfetivoPorDiaRouteImport } from './routes/_app/efetivo-por-dia'
 import { Route as AppEscalaDoMesRouteImport } from './routes/_app/escala-do-mes'
 import { Route as AppEscalasRouteImport } from './routes/_app/escalas'
+import { Route as AppEscalasDaCorporacaoRouteImport } from './routes/_app/escalas-da-corporacao'
 import { Route as AppEstruturaRouteImport } from './routes/_app/estrutura'
 import { Route as AppFeriadosRouteImport } from './routes/_app/feriados'
 import { Route as AppGradeRouteImport } from './routes/_app/grade'
 import { Route as AppMeuVoluntariadoRouteImport } from './routes/_app/meu-voluntariado'
 import { Route as AppMilitaresRouteImport } from './routes/_app/militares'
+import { Route as AppMinhaEscalaRouteImport } from './routes/_app/minha-escala'
 import { Route as AppMinhaFichaRouteImport } from './routes/_app/minha-ficha'
 import { Route as AppOficiaisRouteImport } from './routes/_app/oficiais'
 import { Route as AppPeculioRouteImport } from './routes/_app/peculio'
 import { Route as AppServicosRouteImport } from './routes/_app/servicos'
 import { Route as AppVoluntariadoRouteImport } from './routes/_app/voluntariado'
 import { Route as AppConsultaIdRouteImport } from './routes/_app/consulta_.$id'
+import { Route as AppEscalasDaCorporacaoIdRouteImport } from './routes/_app/escalas-da-corporacao_.$id'
 import { Route as AppEscalasIndexRouteImport } from './routes/_app/escalas/index'
 import { Route as AppEscalasIdRouteImport } from './routes/_app/escalas/$id'
 import { Route as AppGuarnicoesIndexRouteImport } from './routes/_app/guarnicoes/index'
@@ -112,6 +115,11 @@ const AppEscalasRoute = AppEscalasRouteImport.update({
   path: '/escalas',
   getParentRoute: () => AppRoute,
 } as any)
+const AppEscalasDaCorporacaoRoute = AppEscalasDaCorporacaoRouteImport.update({
+  id: '/escalas-da-corporacao',
+  path: '/escalas-da-corporacao',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppEstruturaRoute = AppEstruturaRouteImport.update({
   id: '/estrutura',
   path: '/estrutura',
@@ -135,6 +143,11 @@ const AppMeuVoluntariadoRoute = AppMeuVoluntariadoRouteImport.update({
 const AppMilitaresRoute = AppMilitaresRouteImport.update({
   id: '/militares',
   path: '/militares',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppMinhaEscalaRoute = AppMinhaEscalaRouteImport.update({
+  id: '/minha-escala',
+  path: '/minha-escala',
   getParentRoute: () => AppRoute,
 } as any)
 const AppMinhaFichaRoute = AppMinhaFichaRouteImport.update({
@@ -167,6 +180,12 @@ const AppConsultaIdRoute = AppConsultaIdRouteImport.update({
   path: '/consulta/$id',
   getParentRoute: () => AppRoute,
 } as any)
+const AppEscalasDaCorporacaoIdRoute =
+  AppEscalasDaCorporacaoIdRouteImport.update({
+    id: '/escalas-da-corporacao_/$id',
+    path: '/escalas-da-corporacao/$id',
+    getParentRoute: () => AppRoute,
+  } as any)
 const AppEscalasIndexRoute = AppEscalasIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -247,17 +266,20 @@ export interface FileRoutesByFullPath {
   '/efetivo-por-dia': typeof AppEfetivoPorDiaRoute
   '/escala-do-mes': typeof AppEscalaDoMesRoute
   '/escalas': typeof AppEscalasRouteWithChildren
+  '/escalas-da-corporacao': typeof AppEscalasDaCorporacaoRoute
   '/estrutura': typeof AppEstruturaRoute
   '/feriados': typeof AppFeriadosRoute
   '/grade': typeof AppGradeRoute
   '/meu-voluntariado': typeof AppMeuVoluntariadoRoute
   '/militares': typeof AppMilitaresRouteWithChildren
+  '/minha-escala': typeof AppMinhaEscalaRoute
   '/minha-ficha': typeof AppMinhaFichaRoute
   '/oficiais': typeof AppOficiaisRoute
   '/peculio': typeof AppPeculioRoute
   '/servicos': typeof AppServicosRouteWithChildren
   '/voluntariado': typeof AppVoluntariadoRoute
   '/consulta/$id': typeof AppConsultaIdRoute
+  '/escalas-da-corporacao/$id': typeof AppEscalasDaCorporacaoIdRoute
   '/escalas/$id': typeof AppEscalasIdRoute
   '/guarnicoes/$id': typeof AppGuarnicoesIdRoute
   '/militares/$id': typeof AppMilitaresIdRoute
@@ -283,16 +305,19 @@ export interface FileRoutesByTo {
   '/efetivo-do-dia': typeof AppEfetivoDoDiaRoute
   '/efetivo-por-dia': typeof AppEfetivoPorDiaRoute
   '/escala-do-mes': typeof AppEscalaDoMesRoute
+  '/escalas-da-corporacao': typeof AppEscalasDaCorporacaoRoute
   '/estrutura': typeof AppEstruturaRoute
   '/feriados': typeof AppFeriadosRoute
   '/grade': typeof AppGradeRoute
   '/meu-voluntariado': typeof AppMeuVoluntariadoRoute
+  '/minha-escala': typeof AppMinhaEscalaRoute
   '/minha-ficha': typeof AppMinhaFichaRoute
   '/oficiais': typeof AppOficiaisRoute
   '/peculio': typeof AppPeculioRoute
   '/voluntariado': typeof AppVoluntariadoRoute
   '/': typeof AppIndexRoute
   '/consulta/$id': typeof AppConsultaIdRoute
+  '/escalas-da-corporacao/$id': typeof AppEscalasDaCorporacaoIdRoute
   '/escalas/$id': typeof AppEscalasIdRoute
   '/guarnicoes/$id': typeof AppGuarnicoesIdRoute
   '/militares/$id': typeof AppMilitaresIdRoute
@@ -321,11 +346,13 @@ export interface FileRoutesById {
   '/_app/efetivo-por-dia': typeof AppEfetivoPorDiaRoute
   '/_app/escala-do-mes': typeof AppEscalaDoMesRoute
   '/_app/escalas': typeof AppEscalasRouteWithChildren
+  '/_app/escalas-da-corporacao': typeof AppEscalasDaCorporacaoRoute
   '/_app/estrutura': typeof AppEstruturaRoute
   '/_app/feriados': typeof AppFeriadosRoute
   '/_app/grade': typeof AppGradeRoute
   '/_app/meu-voluntariado': typeof AppMeuVoluntariadoRoute
   '/_app/militares': typeof AppMilitaresRouteWithChildren
+  '/_app/minha-escala': typeof AppMinhaEscalaRoute
   '/_app/minha-ficha': typeof AppMinhaFichaRoute
   '/_app/oficiais': typeof AppOficiaisRoute
   '/_app/peculio': typeof AppPeculioRoute
@@ -333,6 +360,7 @@ export interface FileRoutesById {
   '/_app/voluntariado': typeof AppVoluntariadoRoute
   '/_app/': typeof AppIndexRoute
   '/_app/consulta_/$id': typeof AppConsultaIdRoute
+  '/_app/escalas-da-corporacao_/$id': typeof AppEscalasDaCorporacaoIdRoute
   '/_app/escalas/$id': typeof AppEscalasIdRoute
   '/_app/guarnicoes/$id': typeof AppGuarnicoesIdRoute
   '/_app/militares/$id': typeof AppMilitaresIdRoute
@@ -362,17 +390,20 @@ export interface FileRouteTypes {
     | '/efetivo-por-dia'
     | '/escala-do-mes'
     | '/escalas'
+    | '/escalas-da-corporacao'
     | '/estrutura'
     | '/feriados'
     | '/grade'
     | '/meu-voluntariado'
     | '/militares'
+    | '/minha-escala'
     | '/minha-ficha'
     | '/oficiais'
     | '/peculio'
     | '/servicos'
     | '/voluntariado'
     | '/consulta/$id'
+    | '/escalas-da-corporacao/$id'
     | '/escalas/$id'
     | '/guarnicoes/$id'
     | '/militares/$id'
@@ -398,16 +429,19 @@ export interface FileRouteTypes {
     | '/efetivo-do-dia'
     | '/efetivo-por-dia'
     | '/escala-do-mes'
+    | '/escalas-da-corporacao'
     | '/estrutura'
     | '/feriados'
     | '/grade'
     | '/meu-voluntariado'
+    | '/minha-escala'
     | '/minha-ficha'
     | '/oficiais'
     | '/peculio'
     | '/voluntariado'
     | '/'
     | '/consulta/$id'
+    | '/escalas-da-corporacao/$id'
     | '/escalas/$id'
     | '/guarnicoes/$id'
     | '/militares/$id'
@@ -435,11 +469,13 @@ export interface FileRouteTypes {
     | '/_app/efetivo-por-dia'
     | '/_app/escala-do-mes'
     | '/_app/escalas'
+    | '/_app/escalas-da-corporacao'
     | '/_app/estrutura'
     | '/_app/feriados'
     | '/_app/grade'
     | '/_app/meu-voluntariado'
     | '/_app/militares'
+    | '/_app/minha-escala'
     | '/_app/minha-ficha'
     | '/_app/oficiais'
     | '/_app/peculio'
@@ -447,6 +483,7 @@ export interface FileRouteTypes {
     | '/_app/voluntariado'
     | '/_app/'
     | '/_app/consulta_/$id'
+    | '/_app/escalas-da-corporacao_/$id'
     | '/_app/escalas/$id'
     | '/_app/guarnicoes/$id'
     | '/_app/militares/$id'
@@ -562,6 +599,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppEscalasRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/escalas-da-corporacao': {
+      id: '/_app/escalas-da-corporacao'
+      path: '/escalas-da-corporacao'
+      fullPath: '/escalas-da-corporacao'
+      preLoaderRoute: typeof AppEscalasDaCorporacaoRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/estrutura': {
       id: '/_app/estrutura'
       path: '/estrutura'
@@ -595,6 +639,13 @@ declare module '@tanstack/react-router' {
       path: '/militares'
       fullPath: '/militares'
       preLoaderRoute: typeof AppMilitaresRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/minha-escala': {
+      id: '/_app/minha-escala'
+      path: '/minha-escala'
+      fullPath: '/minha-escala'
+      preLoaderRoute: typeof AppMinhaEscalaRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/minha-ficha': {
@@ -637,6 +688,13 @@ declare module '@tanstack/react-router' {
       path: '/consulta/$id'
       fullPath: '/consulta/$id'
       preLoaderRoute: typeof AppConsultaIdRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/escalas-da-corporacao_/$id': {
+      id: '/_app/escalas-da-corporacao_/$id'
+      path: '/escalas-da-corporacao/$id'
+      fullPath: '/escalas-da-corporacao/$id'
+      preLoaderRoute: typeof AppEscalasDaCorporacaoIdRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/escalas/': {
@@ -784,11 +842,13 @@ interface AppRouteChildren {
   AppEfetivoPorDiaRoute: typeof AppEfetivoPorDiaRoute
   AppEscalaDoMesRoute: typeof AppEscalaDoMesRoute
   AppEscalasRoute: typeof AppEscalasRouteWithChildren
+  AppEscalasDaCorporacaoRoute: typeof AppEscalasDaCorporacaoRoute
   AppEstruturaRoute: typeof AppEstruturaRoute
   AppFeriadosRoute: typeof AppFeriadosRoute
   AppGradeRoute: typeof AppGradeRoute
   AppMeuVoluntariadoRoute: typeof AppMeuVoluntariadoRoute
   AppMilitaresRoute: typeof AppMilitaresRouteWithChildren
+  AppMinhaEscalaRoute: typeof AppMinhaEscalaRoute
   AppMinhaFichaRoute: typeof AppMinhaFichaRoute
   AppOficiaisRoute: typeof AppOficiaisRoute
   AppPeculioRoute: typeof AppPeculioRoute
@@ -796,6 +856,7 @@ interface AppRouteChildren {
   AppVoluntariadoRoute: typeof AppVoluntariadoRoute
   AppIndexRoute: typeof AppIndexRoute
   AppConsultaIdRoute: typeof AppConsultaIdRoute
+  AppEscalasDaCorporacaoIdRoute: typeof AppEscalasDaCorporacaoIdRoute
   AppGuarnicoesIdRoute: typeof AppGuarnicoesIdRoute
   AppPeculioAniversariosRoute: typeof AppPeculioAniversariosRoute
   AppPeculioPesquisarRoute: typeof AppPeculioPesquisarRoute
@@ -814,11 +875,13 @@ const AppRouteChildren: AppRouteChildren = {
   AppEfetivoPorDiaRoute: AppEfetivoPorDiaRoute,
   AppEscalaDoMesRoute: AppEscalaDoMesRoute,
   AppEscalasRoute: AppEscalasRouteWithChildren,
+  AppEscalasDaCorporacaoRoute: AppEscalasDaCorporacaoRoute,
   AppEstruturaRoute: AppEstruturaRoute,
   AppFeriadosRoute: AppFeriadosRoute,
   AppGradeRoute: AppGradeRoute,
   AppMeuVoluntariadoRoute: AppMeuVoluntariadoRoute,
   AppMilitaresRoute: AppMilitaresRouteWithChildren,
+  AppMinhaEscalaRoute: AppMinhaEscalaRoute,
   AppMinhaFichaRoute: AppMinhaFichaRoute,
   AppOficiaisRoute: AppOficiaisRoute,
   AppPeculioRoute: AppPeculioRoute,
@@ -826,6 +889,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppVoluntariadoRoute: AppVoluntariadoRoute,
   AppIndexRoute: AppIndexRoute,
   AppConsultaIdRoute: AppConsultaIdRoute,
+  AppEscalasDaCorporacaoIdRoute: AppEscalasDaCorporacaoIdRoute,
   AppGuarnicoesIdRoute: AppGuarnicoesIdRoute,
   AppPeculioAniversariosRoute: AppPeculioAniversariosRoute,
   AppPeculioPesquisarRoute: AppPeculioPesquisarRoute,

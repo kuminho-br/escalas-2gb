@@ -135,20 +135,20 @@ describe('Meu voluntariado (7.2)', () => {
 });
 
 describe('o atalho da Visualização na tela inicial (7.2)', () => {
-  it('é um link para Meu voluntariado, e a situação avisa quando há coleta aberta', async () => {
+  it('é um link para Minha escala (7.5), e a situação avisa quando há coleta aberta', async () => {
     api();
     abrir('/');
     await screen.findByRole('heading', { level: 1 });
     const atalho = screen.getByText('Visualização de escalas').closest('a')!;
-    expect(atalho).toHaveAttribute('href', '/meu-voluntariado');
+    expect(atalho).toHaveAttribute('href', '/minha-escala');
     expect(within(atalho).getByText(/^O voluntariado de .+ está aberto$/)).toBeInTheDocument();
   });
 
-  it('sem coleta aberta, a situação é "Seu voluntariado"', async () => {
+  it('sem coleta aberta, a situação é "Sua escala e o seu voluntariado"', async () => {
     simularApi({ '/api/eu': { status: 200, corpo: { ...COMUM, coletasAbertas: [] } } });
     abrir('/');
     await screen.findByRole('heading', { level: 1 });
     const atalho = screen.getByText('Visualização de escalas').closest('a')!;
-    expect(within(atalho).getByText('Seu voluntariado')).toBeInTheDocument();
+    expect(within(atalho).getByText('Sua escala e o seu voluntariado')).toBeInTheDocument();
   });
 });
