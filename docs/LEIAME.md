@@ -101,6 +101,8 @@
 | [superpowers/plans/2026-11-24-fase6-42-tela-inicial.md](superpowers/plans/2026-11-24-fase6-42-tela-inicial.md) | Entrega 6.42: a tela inicial, versão 2 (cena menor e atalhos), no Fable | DESENVOLVIMENTO | planejado |
 | [superpowers/plans/2026-11-24-fase6-43-sem-previas.md](superpowers/plans/2026-11-24-fase6-43-sem-previas.md) | Entrega 6.43: os PRs não geram prévia no Vercel; só a main faz deploy | DESENVOLVIMENTO | planejado |
 | [superpowers/plans/2026-11-24-fase6-44-dia-vermelho-so-ordinario.md](superpowers/plans/2026-11-24-fase6-44-dia-vermelho-so-ordinario.md) | Entrega 6.44: o dia vermelho só conta no serviço ordinário | DESENVOLVIMENTO | planejado |
+| [superpowers/plans/2026-11-24-fase6-45-escolher-unidade-pela-arvore.md](superpowers/plans/2026-11-24-fase6-45-escolher-unidade-pela-arvore.md) | Entrega 6.45: escolher a unidade pela árvore, nó a nó (Topo e fim das listas planas) | DESENVOLVIMENTO | planejado |
+| [superpowers/plans/2026-11-24-fase6-47-sem-deploy-nas-branches.md](superpowers/plans/2026-11-24-fase6-47-sem-deploy-nas-branches.md) | Entrega 6.47: o Vercel não cria deploy nas branches dos PRs | DESENVOLVIMENTO | planejado |
 | [superpowers/plans/2026-11-18-fase4-escala.md](superpowers/plans/2026-11-18-fase4-escala.md) | Fase 4: montagem da escala (entregas 1 a 4.3) | DESENVOLVIMENTO | concluído |
 | [superpowers/plans/2026-11-20-roadmap-documentacao.md](superpowers/plans/2026-11-20-roadmap-documentacao.md) | Roadmap da documentação | DOCUMENTAÇÃO | em execução |
 | [superpowers/plans/2026-11-24-revisao-da-documentacao.md](superpowers/plans/2026-11-24-revisao-da-documentacao.md) | Revisão geral da documentação de 24/11: o que foi corrigido e o que pede ação | DOCUMENTAÇÃO | vigente |
