@@ -2,6 +2,7 @@ import type { LinkProps } from '@tanstack/react-router';
 import {
   CalendarCheck,
   CalendarDays,
+  Layers,
   CircleHelp,
   Clock,
   Cake,
@@ -108,18 +109,24 @@ export const MODULOS: Modulo[] = [
   },
   // a árvore de unidades (entrega 6.26): quem tem nível de acesso a vê; só quem tem poder sobre ela a edita (cada unidade diz o que a pessoa pode fazer)
   { id: 'estrutura', nome: 'Estrutura', situacao: () => 'A árvore de unidades', rota: '/estrutura', icone: Network, ve: temPapel, itens: [] },
-  // a Visualização é de todos (a fase 7): o militar vê o que é dele, sem entrar no módulo de escalas. Por ora, só o próprio voluntariado
+  // a Visualização é de todos (a fase 7): o militar vê o que é dele e as escalas abertas à corporação, sem entrar no módulo de escalas
   {
     id: 'visualizacao',
     nome: 'Visualização de escalas',
     situacao: (eu) => {
       const aberta = eu.coletasAbertas?.[0];
-      return aberta ? `O voluntariado de ${nomeDoMes(aberta)} está aberto` : 'Seu voluntariado';
+      return aberta ? `O voluntariado de ${nomeDoMes(aberta)} está aberto` : 'Sua escala e o seu voluntariado';
     },
-    rota: '/meu-voluntariado',
+    rota: '/minha-escala',
+    // a conta sem militar (o administrador de instalação) não tem escala própria: abre nas escalas da corporação
+    rotaDe: (eu) => (eu.militar ? '/minha-escala' : '/escalas-da-corporacao'),
     icone: Eye,
     ve: () => true,
-    itens: [[{ nome: 'Meu voluntariado', icone: CalendarCheck, para: '/meu-voluntariado', ve: (eu) => Boolean(eu.militar) }]],
+    itens: [[
+      { nome: 'Minha escala', icone: CalendarDays, para: '/minha-escala', ve: (eu) => Boolean(eu.militar) },
+      { nome: 'Meu voluntariado', icone: CalendarCheck, para: '/meu-voluntariado', ve: (eu) => Boolean(eu.militar) },
+      { nome: 'Escalas', icone: Layers, para: '/escalas-da-corporacao' },
+    ]],
   },
   { id: 'minha-ficha', nome: 'Minha ficha', situacao: () => 'Seus dados e o seu telefone', rota: '/minha-ficha', icone: UserRound, ve: () => true, itens: [] },
   // o painel das configurações gerais (entrega 6.26): todos abrem, e cada seção só aparece para quem a vê; as configurações da escala ficam no módulo de escalas
@@ -142,7 +149,7 @@ export function moduloDoEndereco(caminho: string, busca: Record<string, unknown>
   // a Consulta de militares (e a ficha de consulta) é uma tela do Pecúlio; o endereço antigo continua valendo
   if (primeiro === 'consulta') return porId('peculio');
   if (primeiro === 'estrutura') return porId('estrutura');
-  if (primeiro === 'meu-voluntariado') return porId('visualizacao');
+  if (primeiro === 'meu-voluntariado' || primeiro === 'minha-escala' || primeiro === 'escalas-da-corporacao') return porId('visualizacao');
   // o modelo de guarnição abre de dentro das configurações da escala (o endereço antigo /configuracoes/modelos-de-guarnicao/:id continua valendo)
   if (primeiro === 'configuracoes') return (caminho.split('/')[2] ?? '').toLowerCase() === 'modelos-de-guarnicao' ? porId('escalas') : porId('configuracoes');
   if (primeiro === 'militares' && busca.de === 'peculio') return porId('peculio');
