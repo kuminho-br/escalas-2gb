@@ -2,9 +2,10 @@ import type { CardDaGuarnicao, DiaDaEscala, EscalaDoMes, EstadoDoMes, FaixaDoDia
 import { mesPorExtenso } from 'contratos';
 import { cleanup, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import type { EuDaApi } from '@/api/eu';
-import { pedir } from '@/api/cliente';
+import { foiCancelado, pedir } from '@/api/cliente';
+import { desativar } from '@/api/efetivo-do-dia';
 import { mesAtual } from '@/lib/meses';
 import { abrir, chamadasA, EU_EXEMPLO, simularApi } from './apoio';
 
@@ -351,5 +352,115 @@ describe('as alterações no passado (Task 3)', () => {
     expect(screen.queryByRole('button', { name: /^Alterações no passado/ })).toBeNull();
     await removerMotorista();
     expect(await screen.findByRole('button', { name: 'Alterações no passado (1)' })).toBeInTheDocument();
+  });
+});
+
+describe('o motivo do passado, uma vez por ação (6.53, Task 2)', () => {
+  const pedido = { status: 400, corpo: { erro: 'Diga o motivo da alteração (pelo menos 10 letras).', campos: { justificativa: 'Diga o motivo da alteração (pelo menos 10 letras).' } } };
+  const diagolo = () => screen.findByRole('dialog', { name: 'Alterar o passado' });
+  const ZULU = { militarId: 'm-zulu', posto: 'SD', nomeGuerra: 'ZULU', matricula: '990002-2', equipe: 'Alfa', jornada: 'pronto', servicos: [{ servicoId: 's1', turnoId: 't-a', nome: 'Pronto' }] };
+  const CANDIDATOS = { aptos: [ZULU], semVoluntariado: [], emChoque: [], fora: [], acumular: [] };
+  const rotaCandidatos = `GET /api/escalas/e1/mes/${MES}/candidatos`;
+  const trocarMotorista = async () => {
+    const d1 = await screen.findByRole('region', { name: 'Dia 1' });
+    await userEvent.click(within(d1.querySelector('[data-faixa]') as HTMLElement).getByRole('button', { name: /^Ações de MOTOR/ }));
+    await userEvent.click(await screen.findByRole('menuitem', { name: 'Trocar militar' }));
+  };
+  /** O POST de escalar só passa com o motivo no corpo (senão, o 400 do passado): a prova de que o motivo da primeira chamada foi adiante. */
+  function escalarExigindoMotivo(f: ReturnType<typeof simularApi>) {
+    const padrao = f.getMockImplementation()!;
+    f.mockImplementation(async (entrada, init) => {
+      const url = typeof entrada === 'string' ? entrada : entrada instanceof URL ? entrada.href : entrada.url;
+      if (url.endsWith('/api/escalas/e1/alocacoes') && init?.method === 'POST') {
+        const corpo = JSON.parse(String(init.body)) as { justificativa?: string };
+        const r = corpo.justificativa ? { status: 201, corpo: ESCALA({ estado: 'previa', em: EM }, GESTOR) } : pedido;
+        return new Response(JSON.stringify(r.corpo), { status: r.status, headers: { 'Content-Type': 'application/json' } });
+      }
+      return padrao(entrada, init);
+    });
+  }
+
+  it('Review Focus 1: "Trocar militar" num turno passado pede o motivo uma vez; o escalar já sai com o motivo digitado no tirar, e o aviso de retificação não se repete', async () => {
+    const f = api(ESCALA({ estado: 'previa', em: EM }, GESTOR), { [rotaCandidatos]: { status: 200, corpo: CANDIDATOS } });
+    fila(f, 'DELETE /api/alocacoes/a-MOTOR', [pedido, { status: 200, corpo: SEM_MOTOR({ estado: 'previa', em: EM }, GESTOR) }]);
+    escalarExigindoMotivo(f);
+    abrir('/escala-do-mes');
+    await trocarMotorista();
+    const d = within(await diagolo());
+    await userEvent.type(d.getByLabelText('Motivo'), MOTIVO);
+    await userEvent.click(d.getByRole('button', { name: 'Confirmar' }));
+    const escolha = within(await screen.findByRole('dialog', { name: 'Escolher militar' }));
+    await userEvent.click(await escolha.findByRole('button', { name: /ZULU/ }));
+    await waitFor(() => expect(chamadasA(f, 'POST /api/escalas/e1/alocacoes')).toBe(1));
+    const envio = f.mock.calls.find(([e, i]) => String(e).endsWith('/api/escalas/e1/alocacoes') && i?.method === 'POST')!;
+    expect(JSON.parse(String(envio[1]!.body))).toMatchObject({ militarId: 'm-zulu', justificativa: MOTIVO });
+    // o motivo foi pedido uma vez só: nenhum diálogo do passado ficou ou voltou
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+  });
+
+  it('Review Focus 1: cancelar o diálogo do motivo no "Trocar militar" não tira ninguém e não abre a escolha', async () => {
+    const f = api(ESCALA({ estado: 'previa', em: EM }, GESTOR), { [rotaCandidatos]: { status: 200, corpo: CANDIDATOS } });
+    fila(f, 'DELETE /api/alocacoes/a-MOTOR', [pedido, { status: 200, corpo: SEM_MOTOR({ estado: 'previa', em: EM }, GESTOR) }]);
+    abrir('/escala-do-mes');
+    await trocarMotorista();
+    await userEvent.click(within(await diagolo()).getByRole('button', { name: 'Cancelar' }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    expect(screen.queryByRole('dialog', { name: 'Escolher militar' })).toBeNull();
+    expect(screen.queryByText('SD MOTOR saiu de Motorista da ABT.')).toBeNull();
+    expect(chamadasA(f, 'DELETE /api/alocacoes/a-MOTOR')).toBe(1);
+    expect(within(secaoDoDia(1).querySelector('[data-faixa]') as HTMLElement).getByRole('button', { name: /^Ações de MOTOR/ })).toBeInTheDocument();
+  });
+
+  it('Review Focus 2: um segundo pedido de motivo com o diálogo aberto cancela o primeiro em silêncio, e só o segundo fica aberto; nenhuma promessa fica pendurada', async () => {
+    const f = api(ESCALA({ estado: 'previa', em: EM }, GESTOR));
+    fila(f, 'POST /api/alocacoes/a-X/trocar', [pedido, { status: 200, corpo: { escalas: [] } }]);
+    fila(f, 'POST /api/alocacoes/a-Y/trocar', [pedido, { status: 200, corpo: { escalas: ['y'] } }]);
+    abrir('/escala-do-mes');
+    await screen.findByRole('region', { name: 'Dia 1' });
+    const primeiro = pedir('POST', '/api/alocacoes/a-X/trocar', { comAlocacaoId: 'a-1' });
+    await diagolo();
+    const segundo = pedir('POST', '/api/alocacoes/a-Y/trocar', { comAlocacaoId: 'a-2' });
+    await expect(primeiro).rejects.toSatisfy((e: unknown) => foiCancelado(e));
+    expect(screen.getAllByRole('dialog', { name: 'Alterar o passado' })).toHaveLength(1);
+    const d = within(await diagolo());
+    await userEvent.type(d.getByLabelText('Motivo'), MOTIVO);
+    await userEvent.click(d.getByRole('button', { name: 'Confirmar' }));
+    await expect(segundo).resolves.toEqual({ escalas: ['y'] });
+    // só o segundo foi repetido com o motivo
+    expect(chamadasA(f, 'POST /api/alocacoes/a-X/trocar')).toBe(1);
+    expect(chamadasA(f, 'POST /api/alocacoes/a-Y/trocar')).toBe(2);
+  });
+
+  it('o aviso "ficou em retificação" aparece só quando a retificação veio de uma gravação desta tela: uma nova leitura (outra pessoa mexeu) só acende a etiqueta', async () => {
+    const f = api(ESCALA({ estado: 'publicada', em: EM }, GESTOR));
+    fila(f, ROTA_MES, [{ status: 200, corpo: ESCALA({ estado: 'publicada', em: EM }, GESTOR) }, { status: 200, corpo: ESCALA({ estado: 'publicada', em: EM, emRetificacao: true }, GESTOR) }]);
+    abrir('/escala-do-mes');
+    const bloco = await screen.findByRole('region', { name: 'Estado da escala' });
+    expect(within(bloco).queryByText('Escala em retificação')).toBeNull();
+    // outra pessoa mexeu: a janela volta ao foco e a escala é lida de novo
+    window.dispatchEvent(new Event('visibilitychange'));
+    expect(await within(bloco).findByText('Escala em retificação')).toBeInTheDocument();
+    expect(within(bloco).queryByText(/ficou em retificação/)).toBeNull();
+  });
+
+  it('depois de "Lançar prévia", a mesma mudança em dia passado passa a abrir o diálogo (em rascunho não abria)', async () => {
+    const f = api(ESCALA({}, GESTOR), { [`POST /api/escalas/e1/mes/${MES}/previa`]: { status: 200, corpo: ESCALA({ estado: 'previa', em: EM }, GESTOR) } });
+    fila(f, 'DELETE /api/alocacoes/a-MOTOR', [{ status: 200, corpo: SEM_MOTOR() }, pedido, { status: 200, corpo: SEM_MOTOR({ estado: 'previa', em: EM }, GESTOR) }]);
+    abrir('/escala-do-mes');
+    await removerMotorista();
+    expect(await screen.findByText('SD MOTOR saiu de Motorista da ABT.')).toBeInTheDocument();
+    expect(screen.queryByRole('dialog', { name: 'Alterar o passado' })).toBeNull();
+    await userEvent.click(await screen.findByRole('button', { name: 'Lançar prévia' }));
+    await userEvent.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Lançar prévia' }));
+    await waitFor(() => expect(chamadasA(f, `POST /api/escalas/e1/mes/${MES}/previa`)).toBe(1));
+    await removerMotorista();
+    expect(await diagolo()).toBeInTheDocument();
+  });
+
+  it('uma mudança pelo Efetivo por dia também invalida a lista de alterações no passado', async () => {
+    simularApi({ 'POST /api/unidades/u-1sb/meta-do-dia/2026-12-01/desativar': { status: 200, corpo: { efetivo: { data: '2026-12-01', guarnicoes: [], desativadas: [], cotas: [], meta: { origem: 'dia', total: 0, ativadas: 0 } }, desfazer: {} } } });
+    const invalidar = vi.fn();
+    await desativar({ invalidateQueries: invalidar, setQueryData: () => undefined } as never, 'u-1sb', '2026-12-01', 'g1').catch(() => undefined);
+    expect(invalidar.mock.calls.map(([o]) => (o as { queryKey: unknown[] }).queryKey[0])).toContain('registro-do-passado');
   });
 });

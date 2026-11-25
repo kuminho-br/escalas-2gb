@@ -17,7 +17,7 @@ import type { VagaDaTela } from './CardDaGuarnicao';
 import { Espera } from '@/componentes/resposta/Espera';
 
 /** "Escolher militar": só quem pode ocupar a vaga (CNH, choque, afastamento, voluntariado, lotação) e, no rodapé, quantos ficaram de fora e por quê. */
-export function EscolherMilitar({ escalaId, vaga, aoFechar }: { escalaId: string; vaga: VagaDaTela; /** `escolheu`: fechou porque escalou (ou acumulou) alguém; sem ele, a pessoa desistiu. */ aoFechar: (escolheu?: boolean) => void }) {
+export function EscolherMilitar({ escalaId, vaga, justificativa, aoFechar }: { escalaId: string; vaga: VagaDaTela; /** O motivo que o "Trocar militar" já pediu ao tirar quem estava na vaga (turno passado): vai junto ao escalar, para a pessoa não digitar de novo. */ justificativa?: string; /** `escolheu`: fechou porque escalou (ou acumulou) alguém; sem ele, a pessoa desistiu. */ aoFechar: (escolheu?: boolean) => void }) {
   const queryClient = useQueryClient();
   const avisar = useAviso();
   const confirmar = useConfirmar();
@@ -33,7 +33,7 @@ export function EscolherMilitar({ escalaId, vaga, aoFechar }: { escalaId: string
   const escolher = travar(async (militarId: string, turnoId: string, noTurno?: { alocacaoId: string }, quem?: string) => {
     setErro(null);
     try {
-      await escalar(queryClient, escalaId, { militarId, data: vaga.data, turnoId, guarnicaoId: vaga.guarnicaoId, funcaoId: vaga.funcaoId });
+      await escalar(queryClient, escalaId, { militarId, data: vaga.data, turnoId, guarnicaoId: vaga.guarnicaoId, funcaoId: vaga.funcaoId, ...(justificativa ? { justificativa } : {}) });
       // quem estava no turno sem guarnição (6.40) foi movido para a vaga: o aviso diz e o "Desfazer" o devolve ao turno
       if (noTurno) {
         avisar({
@@ -61,6 +61,7 @@ export function EscolherMilitar({ escalaId, vaga, aoFechar }: { escalaId: string
       const { desfazer } = await escalarResolvendoChoque(queryClient, escalaId, {
         militarId: c.militarId, data: vaga.data, turnoId: s.turnoId, guarnicaoId: vaga.guarnicaoId, funcaoId: vaga.funcaoId,
         resolverChoque: ch.tipo === 'alocacao' ? { alocacaoId: ch.alocacaoId } : { expediente: true },
+        ...(justificativa ? { justificativa } : {}),
       });
       avisar({
         texto: ch.tipo === 'alocacao' ? `${quem} saiu de ${ch.servico} e foi escalado aqui.` : `${quem} saiu do expediente e foi escalado em ${s.nome}.`,

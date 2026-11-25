@@ -19,18 +19,24 @@ export function JustificarPassado({ children }: { children: ReactNode }) {
   const [gravando, setGravando] = useState(false);
   // o clique duplo em "Confirmar" não repete a mudança: a trava vale já, antes do próximo desenho
   const trava = useRef(false);
+  // o pedido aberto agora: um segundo pedido com o diálogo aberto cancela o primeiro em silêncio (nenhuma promessa fica pendurada)
+  const atual = useRef<Aberta | null>(null);
 
   useEffect(() => {
     const pedir: PedirJustificativa = (_mensagem, tentar) =>
       new Promise((resolver, rejeitar) => {
+        atual.current?.rejeitar(new Cancelado());
+        const nova: Aberta = { tentar: tentar as Aberta['tentar'], resolver: resolver as Aberta['resolver'], rejeitar };
+        atual.current = nova;
         setTexto('');
         setErro(null);
-        setAberta({ tentar: tentar as Aberta['tentar'], resolver: resolver as Aberta['resolver'], rejeitar });
+        setAberta(nova);
       });
     return registro.registrar(pedir);
   }, []);
 
   const fechar = () => {
+    atual.current = null;
     setAberta(null);
     setTexto('');
     setErro(null);
@@ -46,7 +52,9 @@ export function JustificarPassado({ children }: { children: ReactNode }) {
     setGravando(true);
     setErro(null);
     try {
-      aberta.resolver(await aberta.tentar(texto.trim()));
+      const resposta = await aberta.tentar(texto.trim());
+      registro.aceito(texto.trim());
+      aberta.resolver(resposta);
       fechar();
     } catch (e) {
       if (e instanceof ErroApi && e.status === 400 && e.campos?.justificativa) {

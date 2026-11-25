@@ -60,7 +60,16 @@ export const foiCancelado = (e: unknown): boolean => e instanceof Cancelado;
  */
 export type PedirJustificativa = <T>(mensagem: string, tentar: (justificativa: string) => Promise<T>) => Promise<T>;
 let justificador: PedirJustificativa | null = null;
+let ultimoMotivo: { n: number; texto: string } | null = null;
 export const justificativa = {
+  /** O diálogo avisa o motivo que a API aceitou: quem encadeia duas chamadas da mesma ação (o "Trocar militar") leva o texto adiante em vez de pedir de novo. */
+  aceito(texto: string): void {
+    ultimoMotivo = { n: (ultimoMotivo?.n ?? 0) + 1, texto };
+  },
+  /** O último motivo aceito, com um número que sobe a cada um (quem compara antes e depois de uma chamada sabe se ela pediu o motivo). */
+  ultimo(): { n: number; texto: string } | null {
+    return ultimoMotivo;
+  },
   /** A casca registra o diálogo ao montar e o tira ao desmontar; devolve a função que desfaz o registro. */
   registrar(fn: PedirJustificativa): () => void {
     justificador = fn;

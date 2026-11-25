@@ -28,7 +28,12 @@ function atualizarQuemDependeDaEscala(queryClient: QueryClient) {
   void queryClient.invalidateQueries({ queryKey: ['registro-do-passado'] });
 }
 
+let gravacoes = 0;
+/** Quantas gravações desta tela já deram certo (sobe a cada uma): o aviso "ficou em retificação" só vale quando uma gravação feita aqui acendeu a etiqueta, e não quando outra pessoa mexeu e a escala foi lida de novo. */
+export const gravacoesDaTela = () => gravacoes;
+
 function guardar(queryClient: QueryClient, e: EscalaDoMes): EscalaDoMes {
+  gravacoes++;
   // o expediente do Adm lançado pela pré-escala não é de nenhuma escala (6.40): a API devolve só o id da remoção, sem escala do mês para guardar
   if (e.escalaId) atualizarEscalaDoMes(queryClient, e.escalaId, e.mes, e);
   void queryClient.invalidateQueries({ queryKey: ['candidatos'] });
@@ -102,6 +107,7 @@ export const consultaTrocas = (alocacaoId: string) =>
 export async function trocar(queryClient: QueryClient, alocacaoId: string, troca: Troca): Promise<ResultadoDaTroca> {
   try {
     const resultado = await pedir<ResultadoDaTroca>('POST', `/api/alocacoes/${alocacaoId}/trocar`, troca);
+    gravacoes++;
     queryClient.removeQueries({ queryKey: ['trocas', alocacaoId] });
     return resultado;
   } catch (e) {
