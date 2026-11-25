@@ -102,6 +102,7 @@ Design: `docs/superpowers/specs/2026-11-21-usuarios-e-modulos-design.md`. Plano:
 | 37 a 40 | Choque universal (0042); resolver o choque; cota de saldo; choque nos Oficiais; pré-escala só nos turnos e com o expediente (0043) | mescladas (#201 a #212) |
 | 41 a 45, 47, 48 | Deploy só com código e só da `main`; tela inicial; dia vermelho só no ordinário; escolher a unidade pela árvore; lista de quem está hoje | mescladas (até #230) |
 | 46 e 49 | Ajustes da Grade; histórico de rastreio pelo mockup | 46 mesclada (#233); 49 planejada |
+| 50 a 52 | Pecúlio Geral: as três telas e a ficha no lugar; a pesquisa com filtros, árvore, arquivo e seleção; a atualização em lote | planejadas (depois da 7.2) |
 
 ## Refatoração da interface · fundação concluída
 
