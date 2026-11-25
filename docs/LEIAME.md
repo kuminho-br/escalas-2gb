@@ -59,6 +59,7 @@
 | [superpowers/specs/2026-11-24-pre-escala-turnos-e-expediente-design.md](superpowers/specs/2026-11-24-pre-escala-turnos-e-expediente-design.md) | A pré-escala só nos turnos e com o expediente do Adm | PLANEJAMENTO | aprovado |
 | [superpowers/specs/2026-11-24-deploy-so-com-codigo-design.md](superpowers/specs/2026-11-24-deploy-so-com-codigo-design.md) | Deploy só quando o código muda (caminho 1 do Vercel) | PLANEJAMENTO | aprovado |
 | [superpowers/specs/2026-11-24-peculio-geral-e-atualizacao-em-lote-design.md](superpowers/specs/2026-11-24-peculio-geral-e-atualizacao-em-lote-design.md) | Pecúlio Geral: as views, a pesquisa com filtros e a atualização em lote | PLANEJAMENTO | aprovado |
+| [superpowers/specs/2026-11-25-fase7-visualizacao-de-escalas-design.md](superpowers/specs/2026-11-25-fase7-visualizacao-de-escalas-design.md) | Fase 7: o militar marca o voluntariado, a escala prévia e a visualização de escalas | PLANEJAMENTO | aprovado |
 
 ## Controle da documentação
 
@@ -106,6 +107,11 @@
 | [superpowers/plans/2026-11-24-fase6-46-ajustes-da-grade.md](superpowers/plans/2026-11-24-fase6-46-ajustes-da-grade.md) | Entrega 6.46: a fronteira da rolagem, a cota de saldo e os filtros de equipe da Grade | DESENVOLVIMENTO | planejado |
 | [superpowers/plans/2026-11-24-fase6-48-lista-de-quem-esta-hoje.md](superpowers/plans/2026-11-24-fase6-48-lista-de-quem-esta-hoje.md) | Entrega 6.48 (defeito): a lista de Militares mostra quem está na unidade no dia | DESENVOLVIMENTO | mesclado |
 | [superpowers/plans/2026-11-25-fase6-49-historico-de-rastreio.md](superpowers/plans/2026-11-25-fase6-49-historico-de-rastreio.md) | Entrega 6.49: o histórico de rastreio com o quadro "Hoje", uma mudança por bloco e as marcas | DESENVOLVIMENTO | planejado |
+| [superpowers/plans/2026-11-25-fase7-1-api-do-voluntariado-pelo-militar.md](superpowers/plans/2026-11-25-fase7-1-api-do-voluntariado-pelo-militar.md) | Entrega 7.1: a coleta, o militar marca o próprio voluntariado e o registro das correções | DESENVOLVIMENTO | planejado |
+| [superpowers/plans/2026-11-25-fase7-2-telas-do-voluntariado.md](superpowers/plans/2026-11-25-fase7-2-telas-do-voluntariado.md) | Entrega 7.2: Meu voluntariado, outro horário no dia, a coleta e as correções | DESENVOLVIMENTO | planejado |
+| [superpowers/plans/2026-11-25-fase7-3-api-da-escala-previa.md](superpowers/plans/2026-11-25-fase7-3-api-da-escala-previa.md) | Entrega 7.3: lançar a prévia, o passado com justificativa, o registro e as leituras | DESENVOLVIMENTO | planejado |
+| [superpowers/plans/2026-11-25-fase7-4-lancar-previa-na-montagem.md](superpowers/plans/2026-11-25-fase7-4-lancar-previa-na-montagem.md) | Entrega 7.4: "Lançar prévia" na montagem, o motivo do passado e as alterações no passado | DESENVOLVIMENTO | planejado |
+| [superpowers/plans/2026-11-25-fase7-5-minha-escala-e-escalas.md](superpowers/plans/2026-11-25-fase7-5-minha-escala-e-escalas.md) | Entrega 7.5: Minha escala e Escalas, no módulo Visualização | DESENVOLVIMENTO | planejado |
 | [superpowers/plans/2026-11-18-fase4-escala.md](superpowers/plans/2026-11-18-fase4-escala.md) | Fase 4: montagem da escala (entregas 1 a 4.3) | DESENVOLVIMENTO | concluído |
 | [superpowers/plans/2026-11-20-roadmap-documentacao.md](superpowers/plans/2026-11-20-roadmap-documentacao.md) | Roadmap da documentação | DOCUMENTAÇÃO | em execução |
 | [superpowers/plans/2026-11-24-revisao-da-documentacao.md](superpowers/plans/2026-11-24-revisao-da-documentacao.md) | Revisão geral da documentação de 24/11: o que foi corrigido e o que pede ação | DOCUMENTAÇÃO | vigente |
