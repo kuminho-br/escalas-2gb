@@ -29,7 +29,8 @@ async function militar(chave: string, matricula: string, desde = dia1) {
 }
 const alteracao = (extra: Record<string, unknown> = {}) => ({ unidadeId: sb1, equipeId: null, jornada: 'adm' as const, desde: hoje, ...extra });
 const conferir = (quem: Pessoa, chave: string, d: Record<string, unknown> = {}) => conferirAlteracaoDeSituacao(api.banco, quem.usuarioId, m[chave]!, alteracao(d), hoje);
-const aplicar = (chave: string, d: Record<string, unknown> = {}) => comUsuario(api.banco, gestorGb.usuarioId, (tx) => aplicarAlteracaoDeSituacao(tx, gestorGb.usuarioId, m[chave]!, alteracao(d)));
+const aplicar = (chave: string, d: Record<string, unknown> = {}, unidadeAbertaConferida?: string | null) =>
+  comUsuario(api.banco, gestorGb.usuarioId, (tx) => aplicarAlteracaoDeSituacao(tx, gestorGb.usuarioId, m[chave]!, alteracao(d), unidadeAbertaConferida));
 const periodos = async (chave: string) =>
   (await api.banco.query<{ desde: string; ate: string | null; jornada: string }>("select to_char(desde,'YYYY-MM-DD') as desde, to_char(ate,'YYYY-MM-DD') as ate, jornada from rastreio where militar_id = $1 order by desde", [m[chave]])).rows;
 
@@ -44,7 +45,7 @@ beforeAll(async () => {
   gestorGb = await entrarComo(api, { matricula: '995001-1', nome: 'CGESTOR', nivel: { papel: 'gestor', unidadeId: api.ids.gb } });
   escalanteSb = await entrarComo(api, { matricula: '995002-2', nome: 'CESCAL', nivel: { papel: 'escalante', unidadeId: sb1 } });
   semPapel = await entrarComo(api, { matricula: '995003-3', nome: 'CSEMPAPEL' });
-  for (const [i, c] of ['PODE', 'MESMODIA', 'DEPOIS', 'ANTES', 'QUADRO', 'OUTRO'].entries()) await militar(c, `99510${i}-${i}`);
+  for (const [i, c] of ['PODE', 'MESMODIA', 'DEPOIS', 'ANTES', 'QUADRO', 'OUTRO', 'MUDOU'].entries()) await militar(c, `99510${i}-${i}`);
   // ANTES tem o período aberto começando amanhã
   await api.banco.query('update rastreio set desde = $2 where militar_id = $1', [m.ANTES, somarDias(hoje, 1)]);
 });
@@ -100,6 +101,14 @@ describe('aplicarAlteracaoDeSituacao: grava na transação', () => {
   it('quadro: um quadro que não serve ao posto lança a recusa no campo quadroId', async () => {
     // o QOC não tem o soldado
     await expect(aplicar('QUADRO', { quadroId: quadroOficial })).rejects.toMatchObject({ motivo: { codigo: 'quadro', status: 400, campo: 'quadroId' } });
+  });
+
+  it('achado da revisão: a unidade do período aberto trocou entre a conferência e a gravação: 409 "mudou", e a transferência de outra pessoa não é desfeita', async () => {
+    // a conferência viu o militar na 1ª SB; antes da gravação, outra pessoa o passou para a 2ª SB (onde quem aplica também tem cadastro)
+    await api.banco.query('update rastreio set unidade_id = $2 where militar_id = $1 and ate is null', [m.MUDOU, sb2]);
+    await expect(aplicar('MUDOU', { unidadeId: sb1 }, sb1)).rejects.toMatchObject({ motivo: { codigo: 'mudou', status: 409 } });
+    const aberta = (await api.banco.query<{ unidade_id: string }>('select unidade_id from rastreio where militar_id = $1 and ate is null', [m.MUDOU])).rows;
+    expect(aberta).toEqual([{ unidade_id: sb2 }]);
   });
 
   it('a situação escolhida vale no período novo', async () => {

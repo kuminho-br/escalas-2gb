@@ -43,7 +43,7 @@ function comCache(c: Consulta): Consulta {
 type Mil = { id: string; posto: string; posto_grad_id: string; nome_guerra: string; matricula: string; voluntario_jes: boolean; funcao_militar_id: string | null; abono_permanencia: boolean; comportamento: string | null };
 type Aberto = { militar_id: string; unidade_id: string; equipe_id: string | null; jornada: 'pronto' | 'adm'; quadro_id: string | null; situacao_id: string; desde: string };
 type Simples = { voluntarioJes?: boolean; funcao?: { id: string | null }; abonoPermanencia?: boolean; comportamento?: string };
-type Item = { id: string; rastreio?: AlteracaoDeSituacao; simples?: Simples };
+type Item = { id: string; rastreio?: AlteracaoDeSituacao; /** a unidade do período aberto que o cálculo viu */ unidadeAberta?: string; simples?: Simples };
 type Calculo = { previa: PreviaDoLote; itens: Item[] };
 
 const linhaDe = (m: Pick<Mil, 'id' | 'posto' | 'nome_guerra' | 'matricula'>) => ({ id: m.id, posto: m.posto, nomeGuerra: m.nome_guerra, matricula: m.matricula });
@@ -140,6 +140,7 @@ async function calcular(c: Consulta, usuarioId: string, lote: LoteDeMilitares, h
         const recusa = await conferirAlteracaoDeSituacao(c, usuarioId, m.id, d, hoje);
         if (recusa) { fora(recusa.codigo === 'sem_permissao' || recusa.codigo === 'nao_achou' ? MSG_SEM_NIVEL : recusa.texto); continue; }
         item.rastreio = d;
+        item.unidadeAberta = aberto.unidade_id;
         if (muda.unidade) { de.push(`Lotação: ${nomes.unidades.get(aberto.unidade_id)}`); para.push(`Lotação: ${nomes.unidades.get(unidadeId)}`); }
         if (muda.equipe) { de.push(`Equipe: ${aberto.equipe_id ? ((await c.query<{ nome: string }>('select nome from equipe where id = $1', [aberto.equipe_id])).rows[0]?.nome ?? '—') : 'sem equipe'}`); para.push(`Equipe: ${equipeId ? k.equipe : 'sem equipe'}`); }
         if (muda.jornada) { de.push(`Jornada: ${nomeDaJornada(aberto.jornada)}`); para.push(`Jornada: ${nomeDaJornada(jornada)}`); }
@@ -196,10 +197,14 @@ export function rotasDoLote(dep: { banco: Banco; auth: Auth }): Hono<AmbienteApi
       const resultado = await comUsuario(dep.banco, usuarioId, async (tx): Promise<ResultadoDoLote> => {
         // dois "Aplicar" ao mesmo tempo (clique duplo, duas pessoas) esperam um pelo outro: o segundo refaz a conferência já com o que o primeiro gravou, e a prévia dele deixa de valer
         await tx.query('select pg_advisory_xact_lock(hashtext($1))', ['peculio-lote']);
+        // as linhas que o lote vai ler e gravar ficam travadas ANTES do cálculo: uma alteração pela ficha enquanto o lote roda espera, em vez de ser desfeita pelo que o lote leu antes dela
+        const ids = [...new Set(lote.militarIds)];
+        await tx.query('select id from militar where id = any($1::uuid[]) order by id for update', [ids]);
+        await tx.query('select id from rastreio where militar_id = any($1::uuid[]) and ate is null order by id for update', [ids]);
         const calculo = await calcular(comCache(tx), usuarioId, lote, hojeRecife());
         if (calculo.previa.assinatura !== assinatura) throw new RecusaDoLote(409, MSG_LISTA_MUDOU);
         for (const it of calculo.itens) {
-          if (it.rastreio) await aplicarAlteracaoDeSituacao(tx, usuarioId, it.id, it.rastreio);
+          if (it.rastreio) await aplicarAlteracaoDeSituacao(tx, usuarioId, it.id, it.rastreio, it.unidadeAberta);
           if (it.simples) {
             const s = it.simples;
             await tx.query(

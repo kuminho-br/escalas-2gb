@@ -718,9 +718,11 @@ export function rotasMilitares(dep: { banco: Banco; auth: Auth }): Hono<Ambiente
     const d = corpo.dados;
     const motivo = await conferirAlteracaoDeSituacao(dep.banco, c.get('usuarioId'), id, d, hojeRecife());
     if (motivo) return c.json(corpoDaRecusa(motivo), motivo.status);
+    // a unidade do período aberto que a conferência viu: se outra gravação a trocar até a transação, a resposta é 409
+    const unidadeAberta = (await dep.banco.query<{ unidade_id: string }>('select unidade_id from rastreio where militar_id = $1 and ate is null', [id])).rows[0]?.unidade_id ?? null;
     try {
       const resultado = await comUsuario(dep.banco, c.get('usuarioId'), async (tx) => {
-        const { criado } = await aplicarAlteracaoDeSituacao(tx, c.get('usuarioId'), id, d);
+        const { criado } = await aplicarAlteracaoDeSituacao(tx, c.get('usuarioId'), id, d, unidadeAberta);
         return { ficha: await carregarFicha(tx, id, d.desde.slice(0, 7), c.get('usuarioId')), criado };
       });
       return c.json(resultado.ficha, resultado.criado ? 201 : 200);

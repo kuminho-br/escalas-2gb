@@ -141,10 +141,20 @@ export async function conferirAlteracaoDeSituacao(c: Consulta, usuarioId: string
  * Grava a alteração dentro da transação `tx`, lendo o período aberto com a linha travada (duas alterações ao mesmo tempo não se atropelam). No dia do período aberto, substitui o período;
  * depois dele, fecha o aberto na véspera e abre outro; antes dele, recusa. Lança `RecusaDaAlteracao` (e a transação desfaz tudo) se algo mudou desde a conferência.
  */
-export async function aplicarAlteracaoDeSituacao(tx: Consulta, usuarioId: string, militarId: string, d: AlteracaoDeSituacao): Promise<{ criado: boolean }> {
+export async function aplicarAlteracaoDeSituacao(
+  tx: Consulta,
+  usuarioId: string,
+  militarId: string,
+  d: AlteracaoDeSituacao,
+  /** A unidade do período aberto que a conferência viu (a que o papel foi conferido); se ela mudou desde então, 409. Sem ela, vale só a conferência do papel na unidade de agora. */
+  unidadeAbertaConferida?: string | null,
+): Promise<{ criado: boolean }> {
   const aberta = await periodoAberto(tx, militarId);
-  // outra gravação trocou a unidade do período aberto entre a conferência e agora, para uma que a pessoa não alcança: confere de novo
-  if (aberta && aberta.unidade_id !== d.unidadeId && (await papelDeCadastroNaUnidade(tx, usuarioId, aberta.unidade_id, hojeRecife()))) throw new RecusaDaAlteracao(recusa('mudou', MSG_SITUACAO_MUDOU, 409));
+  // outra gravação trocou a unidade do período aberto entre a conferência e agora: o que foi conferido já não vale, e a pessoa refaz com a ficha atualizada
+  if (aberta && aberta.unidade_id !== d.unidadeId) {
+    const mudou = unidadeAbertaConferida === undefined ? Boolean(await papelDeCadastroNaUnidade(tx, usuarioId, aberta.unidade_id, hojeRecife())) : aberta.unidade_id !== unidadeAbertaConferida;
+    if (mudou) throw new RecusaDaAlteracao(recusa('mudou', MSG_SITUACAO_MUDOU, 409));
+  }
   if (aberta && d.desde < aberta.desde) throw new RecusaDaAlteracao(recusa('data', MSG_PERIODO_ANTES(aberta.desde), 400, 'desde'));
   // o quadro precisa conter o posto (o posto não tem histórico: vale o de agora)
   let quadroId = aberta?.quadro_id ?? null;
