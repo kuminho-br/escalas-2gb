@@ -1,7 +1,9 @@
 import type { LinhaDaBusca } from 'contratos';
 import { X } from 'lucide-react';
-import { createContext, useContext, useMemo, useState, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { Button } from '@/componentes/ui/button';
+import { useQueryClient } from '@tanstack/react-query';
+import { AtualizarEmLote } from './AtualizarEmLote';
 
 type Contexto = {
   selecionados: LinhaDaBusca[];
@@ -15,10 +17,14 @@ const SelecaoContext = createContext<Contexto | null>(null);
 
 /**
  * A seleção de militares de "Pesquisar militares" (6.51): quem a pessoa marcou fica selecionado mesmo quando ela muda os filtros ou carrega um arquivo, e é assim que o
- * conjunto fica não contíguo (busca, marca, busca de novo, marca mais). Vive só na tela: some ao sair, e não é gravada. É a entrada da atualização em lote (6.52).
+ * conjunto fica não contíguo (busca, marca, busca de novo, marca mais). Vive acima das rotas do Pecúlio (abrir uma ficha e voltar não a perde): some ao sair do módulo, e não é gravada. É a entrada da atualização em lote (6.52).
  */
-export function SelecaoDeMilitares({ children }: { children: ReactNode }) {
+export function SelecaoDeMilitares({ ativa = true, children }: { ativa?: boolean; children: ReactNode }) {
   const [selecionados, setSelecionados] = useState<LinhaDaBusca[]>([]);
+  // fora do módulo Pecúlio a seleção some
+  useEffect(() => {
+    if (!ativa) setSelecionados([]);
+  }, [ativa]);
   const valor = useMemo<Contexto>(
     () => ({
       selecionados,
@@ -42,13 +48,18 @@ export function useSelecao(): Contexto {
 /** O painel "Selecionados ({n})": quem está dentro, com "Tirar" em cada um e "Limpar". Sem ninguém, nem aparece. */
 export function PainelDeSelecionados() {
   const { selecionados, tirar, limpar } = useSelecao();
-  if (selecionados.length === 0) return null;
+  const queryClient = useQueryClient();
+  const [lote, setLote] = useState(false);
+  if (selecionados.length === 0 && !lote) return null;
   const titulo = `Selecionados (${selecionados.length})`;
   return (
     <section aria-labelledby="selecionados-titulo" className="mt-6 max-w-3xl rounded-xl border border-linha bg-superficie">
       <div className="flex items-center justify-between gap-3 border-b border-linha px-4 py-2">
         <h2 id="selecionados-titulo" className="font-cond text-lg font-semibold">{titulo}</h2>
-        <Button type="button" variant="discreto" onClick={limpar}>Limpar</Button>
+        <div className="flex items-center gap-2">
+          <Button type="button" onClick={() => setLote(true)}>Atualizar em lote</Button>
+          <Button type="button" variant="discreto" onClick={limpar}>Limpar</Button>
+        </div>
       </div>
       <ul className="max-h-60 divide-y divide-linha overflow-auto">
         {selecionados.map((s) => (
@@ -63,6 +74,20 @@ export function PainelDeSelecionados() {
           </li>
         ))}
       </ul>
+      {lote && (
+        <AtualizarEmLote
+          aoFechar={(aplicou) => {
+            setLote(false);
+            // aplicou: a seleção acabou, e a pesquisa e o Pecúlio buscam de novo (o que mudou já aparece)
+            if (aplicou) {
+              limpar();
+              void queryClient.invalidateQueries({ queryKey: ['consulta'] });
+              void queryClient.invalidateQueries({ queryKey: ['peculio'] });
+              void queryClient.invalidateQueries({ queryKey: ['militares'] });
+            }
+          }}
+        />
+      )}
     </section>
   );
 }

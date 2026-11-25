@@ -100,13 +100,13 @@ describe('a seleção na pesquisa (6.51)', () => {
     expect(screen.getByText('1 militar fica de fora: você não tem nível de acesso sobre ele.')).toBeInTheDocument();
   });
 
-  it('a seleção some ao sair da tela', async () => {
+  it('a seleção some ao sair do módulo Pecúlio (abrir uma ficha e voltar não a perde: ver lote.test.tsx)', async () => {
     api([resultado([linha('m1', 'ANDRADE')])]);
     const router = abrir('/peculio/pesquisar');
     await buscar('abc');
     await userEvent.click(await marca('SD ANDRADE'));
     await screen.findByRole('heading', { name: 'Selecionados (1)' });
-    await router.navigate({ to: '/peculio' });
+    await router.navigate({ to: '/' });
     await router.navigate({ to: '/peculio/pesquisar' });
     await buscar('abc');
     await marca('SD ANDRADE');
