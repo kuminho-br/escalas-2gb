@@ -426,6 +426,25 @@ describe('configurações: a coleta do voluntariado (7.2)', () => {
     expect(screen.getByText(/Só o gestor liga ou desliga a coleta/)).toBeInTheDocument();
   });
 
+  it('M3: quem é gestor em OUTRA unidade vê o interruptor da coleta desabilitado (só o gestor da unidade de trabalho liga)', async () => {
+    // gestor numa unidade que não alcança a 1ª SB (a unidade de trabalho): podeMudarParametro diria sim, mas a coleta é do gestor NA unidade
+    const outra = { id: 'u-outra', sigla: 'OUTRA', caminho: ['CBMPE', 'DGO', 'OUTRA'], nivel: 2, tipo: 'divisao' as const, maeId: null };
+    const gestorDeOutra = { ...EU_EXEMPLO, papeis: [{ papel: 'escalante' as const, unidadeId: 'u-1sb', unidadeSigla: '1ª SB' }, { papel: 'gestor' as const, unidadeId: 'u-outra', unidadeSigla: 'OUTRA' }], unidades: [...EU_EXEMPLO.unidades, outra] };
+    api({ [`GET ${ESCALAS}`]: { status: 200, corpo: ESCALAS_LISTA }, ...doMes(MESES[0]!, true), ...doMes(MESES[1]!, false), ...doMes(MESES[2]!, false) }, gestorDeOutra);
+    await aba();
+    await waitFor(async () => expect(await coleta(MESES[0]!)).toBeChecked());
+    expect(await coleta(MESES[0]!)).toBeDisabled();
+    expect(screen.getByText(/Só o gestor liga ou desliga a coleta/)).toBeInTheDocument();
+  });
+
+  it('o gestor da unidade de trabalho (ou de uma acima dela) liga normalmente', async () => {
+    const acima = { id: 'u-gb', sigla: '2º GB', caminho: ['CBMPE', 'DGO', 'DInter/1', '2º GB'], nivel: 3, tipo: 'grupamento' as const, maeId: null };
+    const gestorAcima = { ...EU_EXEMPLO, papeis: [{ papel: 'escalante' as const, unidadeId: 'u-1sb', unidadeSigla: '1ª SB' }, { papel: 'gestor' as const, unidadeId: 'u-gb', unidadeSigla: '2º GB' }], unidades: [acima, ...EU_EXEMPLO.unidades] };
+    api({ [`GET ${ESCALAS}`]: { status: 200, corpo: ESCALAS_LISTA }, ...doMes(MESES[0]!, false), ...doMes(MESES[1]!, false), ...doMes(MESES[2]!, false) }, gestorAcima);
+    await aba();
+    await waitFor(async () => expect(await coleta(MESES[0]!)).toBeEnabled());
+  });
+
   it('o erro da API aparece e o interruptor volta ao que estava', async () => {
     api({
       [`GET ${ESCALAS}`]: { status: 200, corpo: ESCALAS_LISTA }, 'GET /api/unidades/u-1sb/externos': { status: 200, corpo: [] },

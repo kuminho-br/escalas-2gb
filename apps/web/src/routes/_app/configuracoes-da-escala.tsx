@@ -5,7 +5,7 @@ import { useState, type FormEvent } from 'react';
 import { mensagemDe } from '@/api/cliente';
 import { atualizarEscalas, consultaEscalas, marcarBlocosDoVoluntariado } from '@/api/escalas';
 import { consultaParametros, salvarParametro } from '@/api/configuracoes';
-import { podeMudarParametro } from '@/api/eu';
+import { ehGestorNaUnidade, podeMudarParametro } from '@/api/eu';
 import { useTrava } from '@/componentes/AlteracoesPendentes';
 import { ColetaDoVoluntariado } from '@/componentes/configuracoes/ColetaDoVoluntariado';
 import { MetaDeAtivacao } from '@/componentes/configuracoes/MetaDeAtivacao';
@@ -58,7 +58,8 @@ function ConfiguracoesDaEscala() {
           <RegrasDoProcesso unidadeId={eu.unidade.id} sigla={eu.unidade.sigla} podeMudar={podeMudar} />
         </TabsContent>
         <TabsContent value="voluntariado">
-          <ColetaDoVoluntariado unidadeId={eu.unidade.id} podeMudar={podeMudar} />
+          {/* a coleta é do gestor NA unidade de trabalho (ou de uma acima dela): gestor só em outra unidade vê o estado e não muda */}
+          <ColetaDoVoluntariado unidadeId={eu.unidade.id} podeMudar={ehGestorNaUnidade(eu)} />
           <BlocosDoVoluntariado unidadeId={eu.unidade.id} podeMudar={podeMudar} />
           <MilitaresDeOutrasUnidades unidadeId={eu.unidade.id} sigla={eu.unidade.sigla} podeMudar={podeMudar} />
         </TabsContent>
