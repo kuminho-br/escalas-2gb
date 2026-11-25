@@ -117,8 +117,8 @@ Design: `docs/superpowers/specs/2026-11-25-fase7-visualizacao-de-escalas-design.
 | 1 | API do voluntariado: a coleta por unidade e mês, o militar marca o próprio, o registro das correções (0044) | mesclada (#235) |
 | 2 | Telas: Meu voluntariado (área pessoal), outro horário no dia, o interruptor da coleta, as correções | mesclada (#240) |
 | 3 | API da prévia: lançar e recolher por escala e mês, o passado com justificativa e registro, as leituras da corporação (0045) | mesclada (#238); refeita pela 3.1 |
-| 3.1 | API dos estados da escala: rascunho, prévia (unidade e as de baixo), publicada, retificada e remessada; a trava do passado fora do rascunho; a retificação automática; as leituras (0046) | plano pronto, em execução |
-| 4 | Montagem: o estado da escala, "Lançar prévia", "Publicar", "Republicar", o motivo do passado, as alterações no passado | plano pronto, depois da 3.1 |
+| 3.1 | API dos estados da escala: rascunho, prévia (unidade e as de baixo), publicada, retificada e remessada; a trava do passado fora do rascunho; a retificação automática; as leituras (0046) | mesclada (#251) |
+| 4 | Montagem: o estado da escala, "Lançar prévia", "Publicar", "Republicar", o motivo do passado, as alterações no passado | em execução |
 | 5 | Módulo Visualização: Minha escala e Escalas, com o estado | plano pronto, depois da 3.1 |
 
 Planos: `docs/superpowers/plans/2026-11-25-fase7-1-…` a `fase7-5-…` (a 3.1 é `fase7-3-1-…`). **Os estados da escala:** rascunho (só quem monta vê), prévia (a unidade e as de baixo; o passado trava), publicada (toda a corporação; mudança vira retificação, com a etiqueta "Escala em retificação" até o gestor republicar), retificada e remessada (a remessa aos superiores é da fase 9). Só o gestor publica. A 1 e a 2 são a prioridade. O .xlsx é a fase 8; a comparação com outro militar entra com a Escala por militar (fase 8) e a busca por permutantes, na fase 9.
