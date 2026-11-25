@@ -13,6 +13,9 @@ type CategoriaCnh = z.infer<typeof Categoria>;
 export const ResolverChoque = z.union([z.object({ alocacaoId: Id }), z.object({ expediente: z.literal(true) })]);
 export type ResolverChoque = z.infer<typeof ResolverChoque>;
 
+/** O motivo de alterar o passado de uma escala com prévia lançada (mínimo de 10 letras; a API confere e responde 400 no campo `justificativa`). Fora disso é ignorado. */
+export const Justificativa = z.string().trim().optional();
+
 /** Escalar um militar numa vaga: o turno diz serviço e horário; guarnição e função dizem a vaga (ambas nulas = sem posto). */
 export const NovaAlocacao = z.object({
   militarId: Id,
@@ -21,11 +24,12 @@ export const NovaAlocacao = z.object({
   guarnicaoId: Id.nullable(),
   funcaoId: Id.nullable(),
   resolverChoque: ResolverChoque.optional(),
+  justificativa: Justificativa,
 });
 export type NovaAlocacao = z.infer<typeof NovaAlocacao>;
 
 /** Acumular: o militar de uma alocação ocupa também esta vaga (a alocação vem na rota). */
-export const NovoAcumulo = z.object({ guarnicaoId: Id, funcaoId: Id });
+export const NovoAcumulo = z.object({ guarnicaoId: Id, funcaoId: Id, justificativa: Justificativa });
 export type NovoAcumulo = z.infer<typeof NovoAcumulo>;
 
 /** A cota de saldo do militar do Adm no mês (6.38): quantos Saldos ele tem (em qualquer escala) e o total do parâmetro "Saldos por militar do Adm". `feitos` pode passar de `total`. */
@@ -96,7 +100,7 @@ export type RemocaoFeita = EscalaDoMes & { remocaoId: string };
 export type AlocacaoResolvida = EscalaDoMes & { desfazer: { alocacaoId: string; remocaoId: string | null } };
 
 /** "Desfazer" a resolução: tira a alocação nova e devolve a de lá. */
-export const DesfazerResolucao = z.object({ alocacaoId: Id, remocaoId: Id.nullable() });
+export const DesfazerResolucao = z.object({ alocacaoId: Id, remocaoId: Id.nullable(), justificativa: Justificativa });
 export type DesfazerResolucao = z.infer<typeof DesfazerResolucao>;
 
 export type EscalaDoMes = {
@@ -105,6 +109,10 @@ export type EscalaDoMes = {
   mes: string;
   dias: DiaDaEscala[];
   resumo: { preenchidas: number; obrigatorias: number; obrigatoriasVazias: number };
+  /** a prévia lançada desta escala neste mês (`por`: "SD FULANO"); null = ainda é rascunho, que a corporação não vê */
+  previa: { em: string; por: string | null } | null;
+  /** quem pede é gestor, coordenador ou administrador da unidade: só esses alteram um turno que já começou, numa escala com prévia lançada */
+  podeAlterarPassado: boolean;
 };
 
 export type Candidato = {
@@ -146,7 +154,7 @@ export type Candidatos = {
 };
 
 /** Trocar uma alocação: pôr um militar livre no lugar (com o turno escolhido, da mesma faixa) ou trocar de lugar com quem já está escalado no dia. */
-export const Troca = z.union([z.object({ militarId: Id, turnoId: Id }), z.object({ comAlocacaoId: Id })]);
+export const Troca = z.union([z.object({ militarId: Id, turnoId: Id, justificativa: Justificativa }), z.object({ comAlocacaoId: Id, justificativa: Justificativa })]);
 export type Troca = z.infer<typeof Troca>;
 
 /** Um militar já escalado no dia, com onde ele está ("Ordinário, 20h–08h, Motorista do ABT"); `permuta` quando os dois serviços são ordinários. */

@@ -1,17 +1,19 @@
 // Escala do mês: leitura (aqui) e, nas tarefas seguintes, candidatos, escalar e remover.
-import { DesfazerResolucao, Data, Hora, Id, Mes, NovaAlocacao, NovaPreEscala, NovoAcumulo, OrdemDeEscalacaoEntrada, Troca, mesPorExtenso } from 'contratos';
+import { DesfazerResolucao, Data, Hora, Id, Justificativa, Mes, NovaAlocacao, NovaPreEscala, NovoAcumulo, OrdemDeEscalacaoEntrada, Troca, mesPorExtenso } from 'contratos';
 import { z } from 'zod';
-import { Hono } from 'hono';
+import { Hono, type Context } from 'hono';
 import { CADASTRO, exigirPapel, exigirSessao, unidadeDoRegistro, type AmbienteApi } from '../acesso.ts';
 import { exigirLeituraDaEscala } from '../visao/leitura.ts';
 import type { Auth } from '../auth.ts';
-import { comUsuario, type Banco } from '../banco/banco.ts';
+import { comUsuario, type Banco, type Consulta } from '../banco/banco.ts';
 import { mesPassado } from '../cadastros/guarnicoes.ts';
 import { hojeRecife } from '../datas.ts';
 import { lerCorpo, respostaDoErroDoBanco } from '../erros.ts';
 import { acumular, desfazerRemocao, desfazerResolucao, devolverRemocao, escalar, escalarResolvendo, NAO_DA_PARA_DESFAZER, Proibida, Recusa, remover, tirarAcumulo, voltarAoTurno } from './alocacoes.ts';
 import { avaliarCandidatos } from './elegibilidade.ts';
 import { montarEscalaDoMes } from './leitura.ts';
+import { comPassado, justificativaDoCorpo, respostaDoPassado, semOsQueJaComecaram, tocadoDaAlocacao, tocadoDaRemocao, tocadoDoAcumulo, type Tocado } from './passado.ts';
+import { mudarPrevia } from './previa.ts';
 import { gravarOrdem, ordemDoMes } from './ordem-do-mes.ts';
 import { planejarPreEscala, PreEscalaInvalida } from './pre-escala.ts';
 import { NaoEncontrada, opcoesDeTroca, trocar } from './trocar.ts';
@@ -32,8 +34,27 @@ export function rotasEscalaDoMes(dep: { banco: Banco; auth: Auth }): Hono<Ambien
     if (negado) return negado;
     const mes = c.req.param('mes');
     if (!Mes.safeParse(mes).success) return c.json({ erro: 'Mês inválido: use o formato aaaa-mm.' }, 400);
-    return c.json(await montarEscalaDoMes(dep.banco, id, mes));
+    return c.json(await montarEscalaDoMes(dep.banco, id, mes, c.get('usuarioId')));
   });
+
+  /** Lança (POST) ou recolhe (DELETE) a prévia da escala no mês: lançada, a corporação lê a escala. Repetir não é erro. */
+  for (const metodo of ['post', 'delete'] as const) {
+    r[metodo]('/escalas/:id/mes/:mes/previa', async (c) => {
+      const id = c.req.param('id');
+      const unidadeId = await unidadeDoRegistro(dep.banco, 'escala', id);
+      if (!unidadeId) return c.json({ erro: 'Escala não encontrada.' }, 404);
+      const negado = await exigirPapel(c, unidadeId, CADASTRO);
+      if (negado) return negado;
+      const mes = c.req.param('mes');
+      if (!Mes.safeParse(mes).success) return c.json({ erro: 'Mês inválido: use o formato aaaa-mm.' }, 400);
+      try {
+        await comUsuario(dep.banco, c.get('usuarioId'), (tx) => mudarPrevia(tx, id, mes, metodo === 'post', c.get('usuarioId')));
+      } catch (e) {
+        return respostaDoErroDoBanco(c, e);
+      }
+      return c.json(await montarEscalaDoMes(dep.banco, id, mes, c.get('usuarioId')));
+    });
+  }
 
   /** A prévia da pré-escala do Pronto: o que a gravação criaria, o que ficaria de fora e a equipe do dia 1 (a escolhida em `?equipe=` ou a detectada). */
   r.get('/escalas/:id/mes/:mes/pre-escala', async (c) => {
@@ -74,8 +95,10 @@ export function rotasEscalaDoMes(dep: { banco: Banco; auth: Auth }): Hono<Ambien
     try {
       const gravadas = await comUsuario(dep.banco, c.get('usuarioId'), async (tx) => {
         await tx.query('select pg_advisory_xact_lock(hashtext($1))', [`pre-escala|${id}|${mes}`]);
-        const { novas, conflito } = await planejarPreEscala(tx, id, mes, corpo.dados.equipeDia1Id);
-        if (conflito) throw new Recusa(conflito);
+        const planejada = await planejarPreEscala(tx, id, mes, corpo.dados.equipeDia1Id);
+        if (planejada.conflito) throw new Recusa(planejada.conflito);
+        // com a prévia lançada, o que já começou não é preenchido (e não deixa registro)
+        const novas = await semOsQueJaComecaram(tx, id, mes, planejada.novas);
         if (!novas.length) return 0;
         const { rows } = await tx.query<{ id: string }>(
           `insert into alocacao (militar_id, escala_id, servico_id, turno_id, data, guarnicao_id, funcao_id, origem)
@@ -87,7 +110,7 @@ export function rotasEscalaDoMes(dep: { banco: Banco; auth: Auth }): Hono<Ambien
         );
         return rows.length;
       });
-      return c.json({ escala: await montarEscalaDoMes(dep.banco, id, mes), gravadas }, 201);
+      return c.json({ escala: await montarEscalaDoMes(dep.banco, id, mes, c.get('usuarioId')), gravadas }, 201);
     } catch (e) {
       if (e instanceof PreEscalaInvalida) return c.json({ erro: e.message, campos: { equipeDia1Id: e.message } }, 400);
       if (e instanceof Recusa) return c.json({ erro: e.message }, 409);
@@ -145,15 +168,19 @@ export function rotasEscalaDoMes(dep: { banco: Banco; auth: Auth }): Hono<Ambien
       return c.json({ erro: texto, campos: { [campo]: texto } }, 400);
     }
     try {
-      const { resolverChoque, ...vaga } = d;
+      const { resolverChoque, justificativa, ...vaga } = d;
+      // os turnos que a mudança toca: o da vaga e, se tira o militar de outro serviço, o de lá
+      const tocar = async (tx: Consulta): Promise<Tocado[]> => [{ escalaId: id, data: vaga.data, turnoId: vaga.turnoId }, ...(resolverChoque && 'alocacaoId' in resolverChoque ? await tocadoDaAlocacao(tx, resolverChoque.alocacaoId) : [])];
       if (resolverChoque) {
         // tirar de lá e escalar aqui (6.38): as duas coisas na mesma transação; uma recusa desfaz as duas
-        const feito = await comUsuario(dep.banco, c.get('usuarioId'), (tx) => escalarResolvendo(tx, id, vaga, resolverChoque, c.get('usuarioId'), hojeRecife()));
-        return c.json({ ...(await montarEscalaDoMes(dep.banco, id, feito.mes)), desfazer: feito.desfazer }, 201);
+        const feito = await comUsuario(dep.banco, c.get('usuarioId'), (tx) => comPassado(tx, c.get('usuarioId'), tocar, justificativa, () => escalarResolvendo(tx, id, vaga, resolverChoque, c.get('usuarioId'), hojeRecife())));
+        return c.json({ ...(await montarEscalaDoMes(dep.banco, id, feito.mes, c.get('usuarioId'))), desfazer: feito.desfazer }, 201);
       }
-      const mes = await comUsuario(dep.banco, c.get('usuarioId'), (tx) => escalar(tx, id, vaga));
-      return c.json(await montarEscalaDoMes(dep.banco, id, mes), 201);
+      const mes = await comUsuario(dep.banco, c.get('usuarioId'), (tx) => comPassado(tx, c.get('usuarioId'), tocar, justificativa, () => escalar(tx, id, vaga)));
+      return c.json(await montarEscalaDoMes(dep.banco, id, mes, c.get('usuarioId')), 201);
     } catch (e) {
+      const p = respostaDoPassado(c, e);
+      if (p) return p;
       if (e instanceof Recusa) return c.json({ erro: e.message }, 409);
       if (e instanceof Proibida) return c.json({ erro: e.message }, 403);
       return respostaDoErroDoBanco(c, e);
@@ -168,12 +195,14 @@ export function rotasEscalaDoMes(dep: { banco: Banco; auth: Auth }): Hono<Ambien
     if (!unidadeId) return c.json({ erro: NAO_DA_PARA_DESFAZER }, 409);
     const negado = await exigirPapel(c, unidadeId, CADASTRO);
     if (negado) return negado;
-    const corpo = await lerCorpo(c, z.object({ guarnicaoId: Id, funcaoId: Id }));
+    const corpo = await lerCorpo(c, z.object({ guarnicaoId: Id, funcaoId: Id, justificativa: Justificativa }));
     if (!corpo.ok) return corpo.resposta;
     try {
-      const { escalaId, mes } = await comUsuario(dep.banco, c.get('usuarioId'), (tx) => voltarAoTurno(tx, id, corpo.dados));
-      return c.json(await montarEscalaDoMes(dep.banco, escalaId, mes));
+      const { escalaId, mes } = await comUsuario(dep.banco, c.get('usuarioId'), (tx) => comPassado(tx, c.get('usuarioId'), (t) => tocadoDaAlocacao(t, id), corpo.dados.justificativa, () => voltarAoTurno(tx, id, corpo.dados)));
+      return c.json(await montarEscalaDoMes(dep.banco, escalaId, mes, c.get('usuarioId')));
     } catch (e) {
+      const p = respostaDoPassado(c, e);
+      if (p) return p;
       if (e instanceof Recusa) return c.json({ erro: e.message }, 409);
       return respostaDoErroDoBanco(c, e);
     }
@@ -189,9 +218,11 @@ export function rotasEscalaDoMes(dep: { banco: Banco; auth: Auth }): Hono<Ambien
     const negado = await exigirPapel(c, unidadeId, CADASTRO);
     if (negado) return negado;
     try {
-      const { escalaId, mes } = await comUsuario(dep.banco, c.get('usuarioId'), (tx) => desfazerResolucao(tx, corpo.dados));
-      return c.json(await montarEscalaDoMes(dep.banco, escalaId, mes));
+      const { escalaId, mes } = await comUsuario(dep.banco, c.get('usuarioId'), (tx) => comPassado(tx, c.get('usuarioId'), async (t) => [...(await tocadoDaAlocacao(t, corpo.dados.alocacaoId)), ...(corpo.dados.remocaoId ? await tocadoDaRemocao(t, corpo.dados.remocaoId) : [])], corpo.dados.justificativa, () => desfazerResolucao(tx, corpo.dados)));
+      return c.json(await montarEscalaDoMes(dep.banco, escalaId, mes, c.get('usuarioId')));
     } catch (e) {
+      const p = respostaDoPassado(c, e);
+      if (p) return p;
       if (e instanceof Recusa) return c.json({ erro: e.message }, 409);
       return respostaDoErroDoBanco(c, e);
     }
@@ -205,11 +236,18 @@ export function rotasEscalaDoMes(dep: { banco: Banco; auth: Auth }): Hono<Ambien
     const negado = await exigirPapel(c, unidadeId, CADASTRO);
     if (negado) return negado;
     if (await daRodadaDaAlocacao(id)) return c.json({ erro: MSG_RODADA }, 409);
-    const { escalaId, mes, remocaoId } = await comUsuario(dep.banco, c.get('usuarioId'), (tx) => remover(tx, id, c.get('usuarioId')));
-    // a escala do mês e o id da remoção: o aviso da tela usa o id para o "Desfazer"
-    // o expediente lançado pela pré-escala não é de nenhuma escala (6.40): só o id da remoção
-    if (escalaId === null) return c.json({ escalaId: null, remocaoId });
-    return c.json({ ...(await montarEscalaDoMes(dep.banco, escalaId, mes)), remocaoId });
+    const justificativa = await justificativaDoCorpo(c);
+    try {
+      const { escalaId, mes, remocaoId } = await comUsuario(dep.banco, c.get('usuarioId'), (tx) => comPassado(tx, c.get('usuarioId'), (t) => tocadoDaAlocacao(t, id), justificativa, () => remover(tx, id, c.get('usuarioId'))));
+      // a escala do mês e o id da remoção: o aviso da tela usa o id para o "Desfazer"
+      // o expediente lançado pela pré-escala não é de nenhuma escala (6.40): só o id da remoção
+      if (escalaId === null) return c.json({ escalaId: null, remocaoId });
+      return c.json({ ...(await montarEscalaDoMes(dep.banco, escalaId, mes, c.get('usuarioId'))), remocaoId });
+    } catch (e) {
+      const p = respostaDoPassado(c, e);
+      if (p) return p;
+      throw e;
+    }
   });
 
   /** "Desfazer" a remoção: devolve o militar à mesma vaga e tira a marca de removido; 409 se a escala mudou desde então. */
@@ -219,11 +257,14 @@ export function rotasEscalaDoMes(dep: { banco: Banco; auth: Auth }): Hono<Ambien
     if (!unidadeId) return c.json({ erro: 'Remoção não encontrada.' }, 404);
     const negado = await exigirPapel(c, unidadeId, CADASTRO);
     if (negado) return negado;
+    const justificativa = await justificativaDoCorpo(c);
     try {
-      const { escalaId, mes } = await comUsuario(dep.banco, c.get('usuarioId'), (tx) => devolverRemocao(tx, id));
+      const { escalaId, mes } = await comUsuario(dep.banco, c.get('usuarioId'), (tx) => comPassado(tx, c.get('usuarioId'), (t) => tocadoDaRemocao(t, id), justificativa, () => devolverRemocao(tx, id)));
       if (escalaId === null) return c.json({ escalaId: null });
-      return c.json(await montarEscalaDoMes(dep.banco, escalaId, mes));
+      return c.json(await montarEscalaDoMes(dep.banco, escalaId, mes, c.get('usuarioId')));
     } catch (e) {
+      const p = respostaDoPassado(c, e);
+      if (p) return p;
       if (e instanceof Recusa) return c.json({ erro: e.message }, 409);
       return respostaDoErroDoBanco(c, e);
     }
@@ -235,9 +276,16 @@ export function rotasEscalaDoMes(dep: { banco: Banco; auth: Auth }): Hono<Ambien
     if (!unidadeId) return c.json({ erro: 'Remoção não encontrada.' }, 404);
     const negado = await exigirPapel(c, unidadeId, CADASTRO);
     if (negado) return negado;
-    const { escalaId, mes } = await comUsuario(dep.banco, c.get('usuarioId'), (tx) => desfazerRemocao(tx, id));
-    if (escalaId === null) return c.json({ escalaId: null });
-    return c.json(await montarEscalaDoMes(dep.banco, escalaId, mes));
+    const justificativa = await justificativaDoCorpo(c);
+    try {
+      const { escalaId, mes } = await comUsuario(dep.banco, c.get('usuarioId'), (tx) => comPassado(tx, c.get('usuarioId'), (t) => tocadoDaRemocao(t, id), justificativa, () => desfazerRemocao(tx, id)));
+      if (escalaId === null) return c.json({ escalaId: null });
+      return c.json(await montarEscalaDoMes(dep.banco, escalaId, mes, c.get('usuarioId')));
+    } catch (e) {
+      const p = respostaDoPassado(c, e);
+      if (p) return p;
+      throw e;
+    }
   });
 
   /** Quem pode ocupar a vaga de uma alocação (livres) e quem já está escalado no mesmo dia (para trocar de lugar). */
@@ -263,9 +311,18 @@ export function rotasEscalaDoMes(dep: { banco: Banco; auth: Auth }): Hono<Ambien
     const corpo = await lerCorpo(c, Troca);
     if (!corpo.ok) return corpo.resposta;
     try {
-      const escalas = await comUsuario(dep.banco, c.get('usuarioId'), (tx) => trocar(tx, id, corpo.dados, c.get('usuarioId')));
+      const troca = corpo.dados;
+      // a troca toca a alocação, e o turno escolhido (o militar livre entra nele) ou a alocação com quem ela troca de lugar
+      const tocar = async (t: Consulta): Promise<Tocado[]> => {
+        const a = await tocadoDaAlocacao(t, id);
+        if ('comAlocacaoId' in troca) return [...a, ...(await tocadoDaAlocacao(t, troca.comAlocacaoId))];
+        return [...a, ...a.map((x) => ({ ...x, turnoId: troca.turnoId }))];
+      };
+      const escalas = await comUsuario(dep.banco, c.get('usuarioId'), (tx) => comPassado(tx, c.get('usuarioId'), tocar, troca.justificativa, () => trocar(tx, id, troca, c.get('usuarioId'))));
       return c.json({ escalas });
     } catch (e) {
+      const p = respostaDoPassado(c, e);
+      if (p) return p;
       if (e instanceof NaoEncontrada) return c.json({ erro: 'Alocação não encontrada.' }, 404);
       if (e instanceof Recusa) return c.json({ erro: e.message }, 409);
       return respostaDoErroDoBanco(c, e);
@@ -283,9 +340,11 @@ export function rotasEscalaDoMes(dep: { banco: Banco; auth: Auth }): Hono<Ambien
     const corpo = await lerCorpo(c, NovoAcumulo);
     if (!corpo.ok) return corpo.resposta;
     try {
-      const { escalaId, mes } = await comUsuario(dep.banco, c.get('usuarioId'), (tx) => acumular(tx, id, corpo.dados));
-      return c.json(await montarEscalaDoMes(dep.banco, escalaId, mes), 201);
+      const { escalaId, mes } = await comUsuario(dep.banco, c.get('usuarioId'), (tx) => comPassado(tx, c.get('usuarioId'), (t) => tocadoDaAlocacao(t, id), corpo.dados.justificativa, () => acumular(tx, id, corpo.dados)));
+      return c.json(await montarEscalaDoMes(dep.banco, escalaId, mes, c.get('usuarioId')), 201);
     } catch (e) {
+      const p = respostaDoPassado(c, e);
+      if (p) return p;
       if (e instanceof Recusa) return c.json({ erro: e.message }, 409);
       return respostaDoErroDoBanco(c, e);
     }
@@ -298,8 +357,15 @@ export function rotasEscalaDoMes(dep: { banco: Banco; auth: Auth }): Hono<Ambien
     if (!unidadeId) return c.json({ erro: 'Acúmulo não encontrado.' }, 404);
     const negado = await exigirPapel(c, unidadeId, CADASTRO);
     if (negado) return negado;
-    const { escalaId, mes } = await comUsuario(dep.banco, c.get('usuarioId'), (tx) => tirarAcumulo(tx, id));
-    return c.json(await montarEscalaDoMes(dep.banco, escalaId, mes));
+    const justificativa = await justificativaDoCorpo(c);
+    try {
+      const { escalaId, mes } = await comUsuario(dep.banco, c.get('usuarioId'), (tx) => comPassado(tx, c.get('usuarioId'), (t) => tocadoDoAcumulo(t, id), justificativa, () => tirarAcumulo(tx, id)));
+      return c.json(await montarEscalaDoMes(dep.banco, escalaId, mes, c.get('usuarioId')));
+    } catch (e) {
+      const p = respostaDoPassado(c, e);
+      if (p) return p;
+      throw e;
+    }
   });
 
   /** A ordem de escalação em vigor no mês, com as vagas da escala e a vez de cada uma. */

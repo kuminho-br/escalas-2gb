@@ -66,7 +66,25 @@ export async function lerRegistro(c: Consulta, filtro: { militarId?: string; esc
       texto:
         r.tipo === 'voluntariado_corrigido'
           ? textoDaCorrecaoDoVoluntariado((r.antes ?? []) as FaixaDeDisponibilidade[], (r.depois ?? []) as FaixaDeDisponibilidade[])
-          : (r.justificativa ?? ''),
+          : textoDaAlteracaoNoPassado(r.antes as RetratoDaVaga | null, r.depois as RetratoDaVaga | null),
     }),
   );
+}
+
+type RetratoDaVaga = { data: string; inicio: string; guarnicao: string | null; funcao: string | null; militares: { patente: string; nomeGuerra: string; matricula: string }[] };
+
+/** A frase da alteração no passado da escala: "Tirou 2º SGT RAMALHO de ABT (Motorista), dia 03, 08:00" (ou "Pôs … em …", ou "Trocou … por … em …"). */
+export function textoDaAlteracaoNoPassado(antes: RetratoDaVaga | null, depois: RetratoDaVaga | null): string {
+  const base = depois ?? antes;
+  if (!base) return '';
+  const de = antes?.militares ?? [];
+  const para = depois?.militares ?? [];
+  const tiraram = de.filter((m) => !para.some((x) => x.matricula === m.matricula));
+  const puseram = para.filter((m) => !de.some((x) => x.matricula === m.matricula));
+  const nomes = (l: typeof de) => l.map((m) => `${m.patente} ${m.nomeGuerra}`).join(' e ');
+  const vaga = base.guarnicao ? (base.funcao ? `${base.guarnicao} (${base.funcao})` : base.guarnicao) : 'sem guarnição';
+  const quando = `dia ${base.data.slice(8, 10)}, ${base.inicio}`;
+  if (tiraram.length && puseram.length) return `Trocou ${nomes(tiraram)} por ${nomes(puseram)} em ${vaga}, ${quando}`;
+  if (tiraram.length) return `Tirou ${nomes(tiraram)} de ${vaga}, ${quando}`;
+  return `Pôs ${nomes(puseram)} em ${vaga}, ${quando}`;
 }
