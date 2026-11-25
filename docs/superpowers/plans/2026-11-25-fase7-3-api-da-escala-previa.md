@@ -1,5 +1,7 @@
 # API da escala prévia (7.3): lançar a prévia, o passado com justificativa, o registro e as leituras — plano de implementação
 
+> **Refeita em parte pela 7.3.1** (`2026-11-25-fase7-3-1-api-dos-estados-da-escala.md`, 25/11): o modelo "prévia lançada: a corporação vê e o passado trava" deu lugar aos cinco estados da escala. Este plano fica como o registro do que a 7.3 entregou.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 > **Modelo:** Sonnet (entrega sem tela). Revisão final no Opus.
