@@ -24,6 +24,8 @@ Em ordem de prioridade. Cada item traz alternativas e a recomendação.
 
 ### 1. Documentos de negócio atrasados frente à fase 6
 
+**Feito em 25/11/2026** (segunda conferência, depois da fase 7): catálogo com a RN-117 a RN-137 e o RS-08, casos de uso, glossário e pendências do glossário reescritos, processo do mês com a seção 4 do sistema novo.
+
 Desde 21/11, só a 6.37 mexeu no catálogo e no glossário. Ficaram de fora, entre outras, estas decisões:
 
 - níveis de acesso no lugar de papéis, com o quinto nível (coordenador) e as camadas de visão (todos, oficial, chefe de divisão);

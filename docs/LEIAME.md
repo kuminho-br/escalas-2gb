@@ -22,10 +22,10 @@
 
 | Documento | Para que serve | Quem cuida | Situação |
 |---|---|---|---|
-| [negocio/regras/LEIAME.md](negocio/regras/LEIAME.md) | Catálogo de regras (RN-XX), dividido por assunto (o LEIAME da pasta lista os arquivos) | DOCUMENTAÇÃO | vigente |
-| [negocio/glossario.md](negocio/glossario.md) | Termos do domínio, com definição e status | DOCUMENTAÇÃO | vigente |
-| [negocio/glossario-pendencias.md](negocio/glossario-pendencias.md) | Perguntas em aberto e divergências do glossário | DOCUMENTAÇÃO | vigente |
-| [negocio/processo-do-mes.md](negocio/processo-do-mes.md) | Diagrama de atividades do mês, do formulário à escala executada | DOCUMENTAÇÃO | rascunho (E1 a E8 em aberto) |
+| [negocio/regras/LEIAME.md](negocio/regras/LEIAME.md) | Catálogo de regras (RN-XX), dividido por assunto (o LEIAME da pasta lista os arquivos); segunda conferência em 25/11/2026 | DOCUMENTAÇÃO | vigente |
+| [negocio/glossario.md](negocio/glossario.md) | Termos do domínio na linguagem do sistema novo (reescrito em 25/11/2026) | DOCUMENTAÇÃO | vigente |
+| [negocio/glossario-pendencias.md](negocio/glossario-pendencias.md) | Perguntas em aberto do glossário (G1 a G9) e divergências | DOCUMENTAÇÃO | vigente |
+| [negocio/processo-do-mes.md](negocio/processo-do-mes.md) | Diagrama de atividades do mês, do formulário à escala executada | DOCUMENTAÇÃO | rascunho (E1 a E7 em aberto) |
 
 ## Sistema
 
@@ -41,7 +41,7 @@
 | [superpowers/specs/2026-11-20-meta-de-ativacao-design.md](superpowers/specs/2026-11-20-meta-de-ativacao-design.md) | Meta de ativação e Efetivo do dia | PLANEJAMENTO | concluído |
 | [superpowers/specs/2026-11-20-grade-geral-design.md](superpowers/specs/2026-11-20-grade-geral-design.md) | Grade geral (entrega 4) | PLANEJAMENTO | concluído |
 | [superpowers/specs/2026-11-20-grade-geral-ux-design.md](superpowers/specs/2026-11-20-grade-geral-ux-design.md) | Ajustes de interface da grade geral | PLANEJAMENTO | concluído |
-| [casos-de-uso.md](casos-de-uso.md) | Quem pode fazer o quê, um diagrama por tipo de usuário (militar comum, auxiliar administrativo, gestor, administrador) | DOCUMENTAÇÃO | vigente (atualizar com a fase 6) |
+| [casos-de-uso.md](casos-de-uso.md) | Quem pode fazer o quê: os módulos, a matriz e um diagrama para o militar comum e cada nível de acesso (auxiliar, gestor, coordenador, administrador) | DOCUMENTAÇÃO | vigente (conferido em 25/11/2026) |
 | [superpowers/specs/2026-11-20-sintese-design-e-roadmap-design.md](superpowers/specs/2026-11-20-sintese-design-e-roadmap-design.md) | Intervenção para sintetizar o design e o roadmap | DOCUMENTAÇÃO (desenho); PLANEJAMENTO (execução) | vigente |
 | [superpowers/specs/2026-11-20-limpeza-da-fase-3-design.md](superpowers/specs/2026-11-20-limpeza-da-fase-3-design.md) | Limpeza das pendências da fase 3 | PLANEJAMENTO | vigente |
 | [superpowers/specs/2026-11-20-peculio-design.md](superpowers/specs/2026-11-20-peculio-design.md) | Pecúlio do 2º GB (fase 5): estrutura da ficha, rastreio e interface com a escala | PLANEJAMENTO | vigente |

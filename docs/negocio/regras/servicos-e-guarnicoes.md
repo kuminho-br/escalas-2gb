@@ -2,7 +2,7 @@
 
 Serviços e escalas, modelos de guarnição, meta de ativação, ordem de escalação e acúmulo (RN-01 a RN-13, RN-81, RN-83, RN-92 a RN-96, RN-100, RN-102 a RN-104, RN-108 a RN-111).
 
-Quem cuida: DOCUMENTAÇÃO. Conferido contra o sistema novo em 21/11/2026. Índice e colunas: [LEIAME](LEIAME.md).
+Quem cuida: DOCUMENTAÇÃO. Conferido contra o sistema novo em 21/11/2026; ordem de escalação revista em 24/11/2026 (6.40) e segunda conferência em 25/11/2026. Índice e colunas: [LEIAME](LEIAME.md).
 
 ## Serviços e escalas
 
@@ -41,7 +41,7 @@ O modelo de guarnição é o molde do posto operacional: funções com mínimo, 
 |---|---|---|---|---|
 | RN-10 | Cada função do modelo tem um mínimo; abaixo dele a guarnição não é ativada (RN-109). Há outras causas de não ativação, ainda não catalogadas (viatura indisponível, a operação não ocorre no dia); a lista será cadastrável. | Confirmada | Funciona o mínimo; as causas, fase 10 | Ambas |
 | RN-11 | Cada função tem um máximo; acima dele não se aloca mais ninguém. Máximo vazio vale o mínimo; não existe "sem limite". | Confirmada | Funciona | Ambas |
-| RN-12 | A CNH é do militar, esteja ou não no quadro de motoristas. Para a escala, a função que exige CNH só aceita militar do quadro de motoristas com a categoria exigida ou outra que a habilite, com ou sem viatura. Hierarquia do CTB, fixa no código: A é isolada; B habilita B; C habilita C e B; D habilita D, C e B; E habilita E, D, C e B. Na ficha marca-se a carteira; as habilitadas aparecem marcadas, mas só a carteira é gravada. | Confirmada | Funciona | Ambas |
+| RN-12 | A CNH é do militar, esteja ou não no quadro de motoristas. Para a escala, a função que exige CNH só aceita militar do quadro de motoristas com a categoria exigida ou outra que a habilite, com ou sem viatura. Hierarquia do CTB, fixa no código: A é isolada; B habilita B; C habilita C e B; D habilita D, C e B; E habilita E, D, C e B. Na ficha, o bloco **Habilitações** (era "Motorista") tem o quadro de motoristas e a carteira; as categorias habilitadas aparecem marcadas, mas só a carteira é gravada. É o único bloco da ficha que a seção edita (RN-135). | Confirmada | Funciona (Habilitações desde a 6.32) | Ambas |
 | RN-93 | Mínimos e máximos de cada modelo, e o vínculo da escala com os modelos, valem por mês (versões). Mudar a partir de um mês não mexe nos meses anteriores. | Confirmada | Funciona | Base |
 | RN-94 | As funções são um catálogo da unidade, não fixo no código; renomear uma função muda o nome em todos os modelos. Funções podem exigir requisitos (CNH) e ter militares escassos. "Motorista 12H" não é função: é o motorista comum num serviço de 12h. | Confirmada | Funciona | Base |
 | RN-96 | O Apoio Operacional Aquartelado é guarnição obrigatória do Ordinário: na escala real de outubro/2026, sempre 1 motorista ACO, 2 despachantes e 1 adjunto de dia, preenchidos por militares de origens variadas (Pronto, Saldo, PJES). Existe sem viatura, e a CNH exigida continua valendo. | Confirmada | Funciona (é um modelo cadastrado) | Base |
