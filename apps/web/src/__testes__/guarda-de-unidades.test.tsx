@@ -9,6 +9,10 @@ const RAIZ = join(__dirname, '..');
 const EXCECOES: Record<string, string> = {
   'componentes/PainelComMenu.tsx': 'as "seções" são as partes de um painel (o menu do celular), não unidades',
 };
+// quem lê a lista de unidades só para escrever o nome (a unidade de cada serviço), sem escolher unidade nenhuma
+const SO_LE_O_NOME: Record<string, string> = {
+  'routes/_app/minha-escala.tsx': 'a Minha escala escreve a unidade de cada serviço com o nome completo (6.53); não tem escolha de unidade',
+};
 
 function arquivos(pasta: string): string[] {
   return readdirSync(pasta).flatMap((n) => {
@@ -37,7 +41,7 @@ describe('a guarda das listas de unidades (6.45)', () => {
   it('as consultas de unidades só alimentam a árvore: quem as usa não tem <select> de unidade', () => {
     // os cinco lugares de lista plana (e o seletor da Estrutura) usam o EscolherUnidade; o Topo, o painel da árvore
     const usam = arquivos(RAIZ).filter((a) => /consultaUnidadesDeLotacao|unidadesParaPapel|consultaUnidadesDaBusca|raizesDaEstrutura/.test(readFileSync(a, 'utf8'))).map((a) => relative(RAIZ, a).split(sep).join('/'));
-    const semArvore = usam.filter((rel) => !/EscolherUnidade|PainelDaArvore/.test(readFileSync(join(RAIZ, rel), 'utf8')) && rel !== 'routes/_app/estrutura.tsx');
+    const semArvore = usam.filter((rel) => !/EscolherUnidade|PainelDaArvore/.test(readFileSync(join(RAIZ, rel), 'utf8')) && rel !== 'routes/_app/estrutura.tsx' && !(rel in SO_LE_O_NOME));
     expect(semArvore).toEqual([]);
   });
 
