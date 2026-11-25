@@ -121,6 +121,7 @@
 | [telas/refatoracao/index.html](telas/refatoracao/index.html) | Manual de Identidade Visual: o índice das seções (uma por tela, mais as diretrizes gerais), com o estado de cada uma | DESIGN | vigente |
 | [telas/refatoracao/diretrizes-gerais/index.html](telas/refatoracao/diretrizes-gerais/index.html) | Área "Diretrizes gerais": identidade, cores, letra, ícones, placa e encaixe, componentes, resposta do sistema e moldura da tela (dados fictícios) | DESIGN | aprovado |
 | [telas/refatoracao/tela-inicial/index.html](telas/refatoracao/tela-inicial/index.html) | Área "Tela inicial": a cena de combate menor, com a saudação, os próximos serviços e os avisos; embaixo, os atalhos e o próximo serviço (dados fictícios) | DESIGN | aprovado |
+| [telas/refatoracao/historico-de-rastreio/index.html](telas/refatoracao/historico-de-rastreio/index.html) | Área "Histórico de rastreio", seção da ficha do militar: o quadro "Hoje" e a linha do tempo das mudanças, sem os afastamentos (dados fictícios) | DESIGN | em revisão pelo usuário |
 
 As versões v5 a v11 dos esboços ficam só na pasta local `.superpowers/` (fora do git) e estão superadas pela v12.
 
