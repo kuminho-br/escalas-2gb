@@ -35,7 +35,7 @@
 | 4. Montagem da escala | Montar e conferir a escala do mês à mão, nas telas de trabalho | Você e os escalantes | concluída |
 | 5. Pecúlio | A base de militares do 2º GB inteiro e o módulo Pecúlio | Você e a administração do GB | concluída |
 | 6. Usuários e módulos | Tipos de usuário, contas, acesso por lotação, tela inicial | Todos os militares | em execução (ajustes do piloto) |
-| 7. Visualização de escalas | Estados da escala (prévia, publicada, retificada), Minha escala, próprio voluntariado | Todos os militares | planejada |
+| 7. Visualização de escalas | Estados da escala (prévia, publicada, retificada), Minha escala, próprio voluntariado | Todos os militares | concluída |
 | 8. Primeiro mês real | Distribuições automáticas, documento, Escala por militar e o piloto | ~5 escalantes (piloto 1ª SB) | planejada |
 | 9. Operação diária | Efetivo por dia na operação, permutas, escala executada | Escalantes | planejada |
 | 10. Regras novas | Regras validadas no laboratório e a tela de Ajuda | Escalantes | planejada |
@@ -108,7 +108,7 @@ Design: `docs/superpowers/specs/2026-11-21-usuarios-e-modulos-design.md`. Plano:
 
 Spec: `docs/superpowers/specs/2026-11-23-refatoracao-da-interface-design.md`. N0 = 6.19; N1 e N2 = 6.20 e 6.21 (plano `2026-11-23-fundacao-da-interface.md`). As telas seguem as áreas do Manual de Identidade Visual: Grade geral e Escala do mês antes do piloto; moldura, fichas e celular entre as duas.
 
-## Fase 7 — Visualização de escalas · em execução
+## Fase 7 — Visualização de escalas · concluída
 
 Design: `docs/superpowers/specs/2026-11-25-fase7-visualizacao-de-escalas-design.md` (decisões do usuário de 24 e 25/11).
 
@@ -119,7 +119,7 @@ Design: `docs/superpowers/specs/2026-11-25-fase7-visualizacao-de-escalas-design.
 | 3 | API da prévia: lançar e recolher por escala e mês, o passado com justificativa e registro, as leituras da corporação (0045) | mesclada (#238); refeita pela 3.1 |
 | 3.1 | API dos estados da escala: rascunho, prévia (unidade e as de baixo), publicada, retificada e remessada; a trava do passado fora do rascunho; a retificação automática; as leituras (0046) | mesclada (#251) |
 | 4 | Montagem: o estado da escala, "Lançar prévia", "Publicar", "Republicar", o motivo do passado, as alterações no passado | mesclada (#253) |
-| 5 | Módulo Visualização: Minha escala e Escalas, com o estado | em execução |
+| 5 | Módulo Visualização: Minha escala e Escalas, com o estado | mesclada (#255) |
 
 Planos: `docs/superpowers/plans/2026-11-25-fase7-1-…` a `fase7-5-…` (a 3.1 é `fase7-3-1-…`). **Os estados da escala:** rascunho (só quem monta vê), prévia (a unidade e as de baixo; o passado trava), publicada (toda a corporação; mudança vira retificação, com a etiqueta "Escala em retificação" até o gestor republicar), retificada e remessada (a remessa aos superiores é da fase 9). Só o gestor publica. A 1 e a 2 são a prioridade. O .xlsx é a fase 8; a comparação com outro militar entra com a Escala por militar (fase 8) e a busca por permutantes, na fase 9.
 
