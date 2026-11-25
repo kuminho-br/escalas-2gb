@@ -35,6 +35,7 @@ const LEITURAS = [
   '/api/unidades/:u/efetivo-do-dia/:data',
   '/api/unidades/:u/voluntariado/:mes',
   '/api/militares/:id/voluntariado/:mes',
+  '/api/militares/:id/voluntariado/:mes/registro',
 ];
 /** Os mesmos GET, com os endereços de verdade da seção alheia. */
 const enderecos = () => [
@@ -46,6 +47,7 @@ const enderecos = () => [
   `/api/unidades/${outra}/efetivo-do-dia/${mes}-05`,
   `/api/unidades/${outra}/voluntariado/${mes}`,
   `/api/militares/${ids.militares}/voluntariado/${mes}`,
+  `/api/militares/${ids.militares}/voluntariado/${mes}/registro`,
 ];
 const ler = (quem: Pessoa | 'admin' | 'gestorGb' | 'escalante' | 'semPapel', caminho: string) =>
   typeof quem === 'string' ? api.pedir(quem, 'GET', caminho) : quem.pedir('GET', caminho);

@@ -1,4 +1,4 @@
-import { mesPorExtenso, somarMeses, type MeuVoluntariado, type VoluntariadoDoMes } from 'contratos';
+import { mesPorExtenso, somarMeses, type MeuVoluntariado, type RegistroDeAlteracao, type VoluntariadoDoMes } from 'contratos';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { hojeRecife } from '../src/datas.ts';
 import { inserir, situacaoDoMilitar } from './banco-teste.ts';
@@ -229,5 +229,82 @@ describe('o aviso da coleta aberta em /api/eu', () => {
     await abrir(mes);
     expect(((await (await sem.pedir('GET', '/api/eu')).json()) as { coletasAbertas: string[] }).coletasAbertas).toEqual([]);
     await fechar(mes);
+  });
+});
+
+describe('o registro das correções do escalante', () => {
+  let alvo: Pessoa;
+  let seq = 0;
+  const f = (n: number, inicio: string, fim: string) => ({ data: dia(mes, n), inicio, fim });
+  const corrigir = (militarId: string, faixas: { data: string; inicio: string; fim: string }[]) => api.pedir('escalante', 'PUT', `/api/militares/${militarId}/voluntariado/${mes}`, { faixas });
+  const registro = async (militarId: string): Promise<RegistroDeAlteracao[]> => (await api.pedir('escalante', 'GET', `/api/militares/${militarId}/voluntariado/${mes}/registro`)).json();
+  const naLista = async (militarId: string) => (await doMes()).militares.find((m) => m.militarId === militarId)!;
+
+  beforeAll(async () => {
+    alvo = await entrarComo(api, { matricula: '990961-1', nome: 'ALVO' });
+    await lotar(alvo.militarId, api.ids.secao);
+    await abrir();
+    await marcar(alvo, mes, [f(5, '08:00', '16:00'), f(5, '16:00', '24:00'), f(6, '00:00', '08:00')]);
+  });
+
+  it('a correção do escalante num mês que o militar preencheu cria uma linha: quem, quando, o antes, o depois e a frase pronta', async () => {
+    const r = await corrigir(alvo.militarId, [f(5, '08:00', '16:00'), f(7, '08:00', '16:00')]);
+    expect(r.status).toBe(200);
+    const [linha, ...resto] = await registro(alvo.militarId);
+    expect(resto).toEqual([]);
+    expect(linha).toMatchObject({
+      tipo: 'voluntariado_corrigido',
+      por: { patente: 'SD', nomeGuerra: 'ESCALANTE' },
+      data: null,
+      justificativa: null,
+      antes: [f(5, '08:00', '24:00'), f(6, '00:00', '08:00')],
+      depois: [f(5, '08:00', '16:00'), f(7, '08:00', '16:00')],
+      texto: 'Tirou 2 faixas e pôs 2 em 3 dias',
+    });
+    expect(Date.now() - new Date(linha!.em).getTime()).toBeLessThan(60_000);
+    // o escalante só corrige: o que o militar marcou não some sem rastro, e a lista do mês conta a correção
+    expect(await naLista(alvo.militarId)).toMatchObject({ peloMilitar: true, correcoes: 1 });
+  });
+
+  it('Review Focus 4: corrigir sem mudar nada (as mesmas faixas) não cria registro', async () => {
+    const r = await corrigir(alvo.militarId, [f(7, '08:00', '16:00'), f(5, '08:00', '16:00')]);
+    expect(r.status).toBe(200);
+    expect((await registro(alvo.militarId)).length).toBe(1);
+  });
+
+  it('Review Focus 3: o militar marca de novo depois da correção: o registro antigo fica e a nova marcação não cria outro', async () => {
+    const antes = await registro(alvo.militarId);
+    expect((await marcar(alvo, mes, [f(10, '08:00', '16:00')])).status).toBe(200);
+    expect(await registro(alvo.militarId)).toEqual(antes);
+    expect(await naLista(alvo.militarId)).toMatchObject({ peloMilitar: true, correcoes: 1 });
+  });
+
+  it('uma segunda correção cria outra linha, e a lista vem da mais nova para a mais velha', async () => {
+    expect((await corrigir(alvo.militarId, [f(10, '08:00', '16:00'), f(11, '16:00', '24:00')])).status).toBe(200);
+    const linhas = await registro(alvo.militarId);
+    expect(linhas.map((l) => l.texto)).toEqual(['Pôs 1 faixa em 1 dia', 'Tirou 2 faixas e pôs 2 em 3 dias']);
+    expect(linhas[0]!.antes).toEqual([f(10, '08:00', '16:00')]);
+    expect((await naLista(alvo.militarId)).correcoes).toBe(2);
+  });
+
+  it('a frase quando só tira faixas', async () => {
+    expect((await corrigir(alvo.militarId, [f(10, '08:00', '16:00')])).status).toBe(200);
+    expect((await registro(alvo.militarId))[0]!.texto).toBe('Tirou 1 faixa em 1 dia');
+  });
+
+  it('Review Focus 2: o escalante que lança um mês que o militar não preencheu fica como hoje: sem registro e sem "pelo militar"', async () => {
+    seq++;
+    const id = await inserir(api.banco, 'militar', { matricula: `99097${seq}-${seq}`, posto_grad_id: posto, nome_guerra: `SEMCONTA${seq}` });
+    await lotar(id, api.ids.secao);
+    expect((await corrigir(id, [f(3, '08:00', '16:00')])).status).toBe(200);
+    expect((await corrigir(id, [f(4, '08:00', '16:00')])).status).toBe(200);
+    expect(await registro(id)).toEqual([]);
+    expect(await naLista(id)).toMatchObject({ lancado: true, peloMilitar: false, correcoes: 0 });
+  });
+
+  it('só quem lê a escala da seção lê o registro: o escalante lê; o militar comum recebe 403; mês ou militar inválido dão 400 e 404', async () => {
+    expect((await marcador.pedir('GET', `/api/militares/${alvo.militarId}/voluntariado/${mes}/registro`)).status).toBe(403);
+    expect((await api.pedir('escalante', 'GET', `/api/militares/${alvo.militarId}/voluntariado/2026-13/registro`)).status).toBe(400);
+    expect((await api.pedir('escalante', 'GET', `/api/militares/00000000-0000-4000-8000-000000000000/voluntariado/${mes}/registro`)).status).toBe(404);
   });
 });

@@ -99,7 +99,7 @@ export async function voluntariadoDoMes(c: Consulta, unidadeId: string, mes: str
 }
 
 /** A disponibilidade do militar no mês, as faixas de cada dia unidas, em ordem de data. */
-async function faixasDoMes(c: Consulta, militarId: string, mes: string): Promise<FaixaDeDisponibilidade[]> {
+export async function faixasDoMes(c: Consulta, militarId: string, mes: string): Promise<FaixaDeDisponibilidade[]> {
   const { rows } = await c.query<{ data: string; inicio_min: number; fim_min: number }>(
     `select to_char(data, 'YYYY-MM-DD') as data, inicio_min, fim_min from disponibilidade
       where militar_id = $1 and data >= $2::date and data < ($2::date + interval '1 month') order by data, inicio_min`,

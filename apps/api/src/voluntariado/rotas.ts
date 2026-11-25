@@ -1,5 +1,5 @@
 // Voluntariado lançado à mão: ler a lista do mês e as marcações de um militar, e lançar o mês de um militar.
-import { ColetaDoVoluntariado, LancamentoDeVoluntariado, Mes, mesPorExtenso, type FaixaDeDisponibilidade } from 'contratos';
+import { ColetaDoVoluntariado, LancamentoDeVoluntariado, Mes, mesParaData, mesPorExtenso, type FaixaDeDisponibilidade } from 'contratos';
 import { Hono, type Context } from 'hono';
 import { CADASTRO, GESTAO, exigirPapel, exigirSessao, type AmbienteApi } from '../acesso.ts';
 import { exigirLeituraDaEscala } from '../visao/leitura.ts';
@@ -7,9 +7,10 @@ import type { Auth } from '../auth.ts';
 import { comUsuario, type Banco, type Consulta } from '../banco/banco.ts';
 import { hojeRecife } from '../datas.ts';
 import { lerCorpo, respostaDoErroDoBanco } from '../erros.ts';
+import { lerRegistro, mesmasFaixas, registrar } from '../registro.ts';
 import { coletaAberta, mensagemColetaFechada, mensagemNaoLotado, mensagemSoAPartirDe, mudarColeta } from './coleta.ts';
 import { lancar } from './lancamento.ts';
-import { lotadosNoMes, meuVoluntariado, unidadeDoMilitarNoMes, voluntariadoDoMes, voluntariadoDoMilitar } from './leitura.ts';
+import { faixasDoMes, lotadosNoMes, meuVoluntariado, unidadeDoMilitarNoMes, voluntariadoDoMes, voluntariadoDoMilitar } from './leitura.ts';
 
 const MES_INVALIDO = 'Mês inválido: use o formato aaaa-mm.';
 
@@ -71,11 +72,31 @@ export function rotasVoluntariado(dep: { banco: Banco; auth: Auth }): Hono<Ambie
     if (Object.keys(campos).length) return c.json({ erro: 'Confira os campos destacados.', campos }, 400);
     if (!(await lotadosNoMes(dep.banco, unidadeId, mes, id)).length) return c.json({ erro: `Este militar não está lotado na seção em ${mesPorExtenso(mes)}.` }, 409);
     try {
-      await comUsuario(dep.banco, c.get('usuarioId'), (tx) => lancar(tx, id, mes, corpo.dados.faixas, c.get('usuarioId')));
+      await comUsuario(dep.banco, c.get('usuarioId'), async (tx) => {
+        // o mês que o próprio militar preencheu só é corrigido com registro (e só se a correção muda alguma faixa); o que o escalante lançou ele mesmo segue sem registro
+        const peloMilitar = (await tx.query<{ pelo_militar: boolean }>('select pelo_militar from voluntariado_lancamento where militar_id = $1 and mes = $2::date', [id, mesParaData(mes)])).rows[0]?.pelo_militar === true;
+        const antes = peloMilitar ? await faixasDoMes(tx, id, mes) : [];
+        await lancar(tx, id, mes, corpo.dados.faixas, c.get('usuarioId'));
+        if (!peloMilitar) return;
+        const depois = await faixasDoMes(tx, id, mes);
+        if (!mesmasFaixas(antes, depois)) await registrar(tx, { usuarioId: c.get('usuarioId'), unidadeId, tipo: 'voluntariado_corrigido', militarId: id, mes, antes, depois });
+      });
     } catch (e) {
       return respostaDoErroDoBanco(c, e);
     }
     return c.json(await voluntariadoDoMes(dep.banco, unidadeId, mes));
+  });
+
+  /** As correções que o escalante fez no voluntariado que o militar marcou, da mais nova para a mais velha. */
+  r.get('/militares/:id/voluntariado/:mes/registro', async (c) => {
+    const id = c.req.param('id');
+    const mes = c.req.param('mes');
+    if (!Mes.safeParse(mes).success) return c.json({ erro: MES_INVALIDO }, 400);
+    const unidadeId = await unidadeDoMilitarNoMes(dep.banco, id, mes);
+    if (!unidadeId) return c.json({ erro: 'Militar não encontrado.' }, 404);
+    const negado = await exigirLeituraDaEscala(c, unidadeId);
+    if (negado) return negado;
+    return c.json(await lerRegistro(dep.banco, { militarId: id, mes, tipo: 'voluntariado_corrigido' }));
   });
 
   /** O gestor (ou o coordenador, ou o administrador) abre e fecha a coleta do mês da unidade; devolve a lista do mês. */
