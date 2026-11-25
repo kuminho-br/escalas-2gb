@@ -17,13 +17,19 @@ function Grupo({ titulo, militares, abertoId, mes, soLeitura }: { titulo: string
                 to="/voluntariado"
                 search={{ mes, militar: m.militarId }}
                 aria-current={m.militarId === abertoId ? 'true' : undefined}
-                className={cn('flex items-baseline gap-2 rounded-md border px-3 py-2 text-sm hover:bg-accent', m.militarId === abertoId ? 'border-vinho bg-vinho/5' : 'border-linha')}
+                className={cn('flex flex-wrap items-baseline gap-x-2 rounded-md border px-3 py-2 text-sm hover:bg-accent', m.militarId === abertoId ? 'border-vinho bg-vinho/5' : 'border-linha')}
               >
                 <span className="text-xs text-apagado">{m.posto}</span>
                 <span className="font-cond text-base font-semibold">{m.nomeGuerra}</span>
                 <span className="ml-auto text-xs text-apagado">
                   {m.militarId === abertoId && !soLeitura ? 'lançando' : m.lancado ? `${m.dias} ${m.dias === 1 ? 'dia' : 'dias'}` : ''}
                 </span>
+                {m.peloMilitar && (
+                  <span className="basis-full text-xs text-apagado">
+                    Preenchido pelo militar
+                    {m.correcoes > 0 && ` · Corrigido ${m.correcoes} ${m.correcoes === 1 ? 'vez' : 'vezes'}`}
+                  </span>
+                )}
               </Link>
             </li>
           ))}
