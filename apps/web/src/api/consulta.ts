@@ -1,5 +1,5 @@
 import { queryOptions } from '@tanstack/react-query';
-import type { FichaDeConsulta, ResultadoDaConsulta, UnidadeDaConsulta } from 'contratos';
+import type { FichaDeConsulta, FiltrosDaBusca, ResultadoDaBusca, ResultadoDaConsulta, UnidadeDaConsulta } from 'contratos';
 import { deveTentarDeNovoNaBusca } from '@/lib/consultas';
 import { pedir } from './cliente';
 
@@ -21,6 +21,14 @@ export const consultaDaBusca = (texto: string, unidadeId: string) => {
     retry: deveTentarDeNovoNaBusca,
   });
 };
+
+/** A busca com filtros (6.51): vai no corpo, porque as unidades e as matrículas do arquivo não cabem no endereço. Mesmo limite de buscas por minuto. */
+export const consultaDaBuscaComFiltros = (filtros: FiltrosDaBusca) =>
+  queryOptions({
+    queryKey: ['consulta', 'militares', 'filtros', filtros],
+    queryFn: () => pedir<ResultadoDaBusca>('POST', '/api/consulta/militares/buscar', filtros),
+    retry: deveTentarDeNovoNaBusca,
+  });
 
 /** A ficha de consulta: só os blocos que a pessoa vê. */
 export const consultaDaFicha = (id: string) =>
