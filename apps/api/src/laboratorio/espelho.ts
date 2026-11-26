@@ -1,0 +1,111 @@
+import type { Banco, Consulta } from '../banco/banco.ts';
+import { quadroParaOPosto } from '../cadastros/quadros.ts';
+import { cargaExemploEm } from '../carga/exemplo.ts';
+import { ESPELHO_PAPEL, SCHEMA_ESPELHO } from './constantes.ts';
+
+export { ESPELHO_PAPEL, SCHEMA_ESPELHO };
+
+/**
+ * Cria o papel de banco do espelho e dá a ele só o que é do espelho. É o isolamento feito pelo banco: a API assume este papel ao falar com o
+ * espelho (6.59), e qualquer consulta do papel a uma tabela do real é negada, mesmo que o código erre o caminho.
+ * - nenhum privilégio sobre as tabelas e sequências do `public`; o uso do schema `public` fica só para os tipos e operadores das extensões
+ *   (`ltree`, `btree_gist`);
+ * - todos os privilégios sobre o que há no `laboratorio` e, pelo privilégio padrão, sobre o que as próximas migrações criarem lá;
+ * - o usuário que conecta recebe o direito de assumi-lo (`set role`).
+ * Pode rodar de novo. Chamada ao fim de `migrar`, depois que o espelho existe.
+ */
+export async function prepararPapelDoEspelho(c: Consulta): Promise<void> {
+  await c.exec(`
+    do $$ begin
+      if not exists (select 1 from pg_roles where rolname = '${ESPELHO_PAPEL}') then
+        create role ${ESPELHO_PAPEL} nologin;
+      end if;
+    end $$;
+    grant ${ESPELHO_PAPEL} to current_user;
+    revoke all on all tables in schema public from ${ESPELHO_PAPEL};
+    revoke all on all sequences in schema public from ${ESPELHO_PAPEL};
+    grant usage on schema public to ${ESPELHO_PAPEL};
+    grant usage on schema ${SCHEMA_ESPELHO} to ${ESPELHO_PAPEL};
+    grant all on all tables in schema ${SCHEMA_ESPELHO} to ${ESPELHO_PAPEL};
+    grant all on all sequences in schema ${SCHEMA_ESPELHO} to ${ESPELHO_PAPEL};
+    grant all on all functions in schema ${SCHEMA_ESPELHO} to ${ESPELHO_PAPEL};
+    alter default privileges in schema ${SCHEMA_ESPELHO} grant all on tables to ${ESPELHO_PAPEL};
+    alter default privileges in schema ${SCHEMA_ESPELHO} grant all on sequences to ${ESPELHO_PAPEL};
+    alter default privileges in schema ${SCHEMA_ESPELHO} grant all on functions to ${ESPELHO_PAPEL};
+  `);
+}
+
+type Nivel = 'administrador' | 'gestor' | 'gestor_lateral' | 'escalante' | 'militar';
+
+/** Os usuários de teste, um por nível de acesso. Nomes e matrículas fictícios (990xxx-x); ninguém entra com eles, a 6.59 injeta a sessão. */
+const PERFIS: { nome: string; nivel: Nivel; unidade: string | null; posto: string; matricula: string; guerra: string; email: string }[] = [
+  { nome: 'Administrador de teste', nivel: 'administrador', unidade: null, posto: 'CAP', matricula: '990101-1', guerra: 'TESTE ADM', email: 'administrador@laboratorio.invalid' },
+  { nome: 'Gestor de teste', nivel: 'gestor', unidade: '2º GB', posto: 'MAJ', matricula: '990102-2', guerra: 'TESTE GESTOR', email: 'gestor@laboratorio.invalid' },
+  { nome: 'Quinto nível de teste', nivel: 'gestor_lateral', unidade: '1ª SB', posto: '1º TEN', matricula: '990103-3', guerra: 'TESTE QUINTO', email: 'quinto-nivel@laboratorio.invalid' },
+  { nome: 'Auxiliar administrativo de teste', nivel: 'escalante', unidade: '1ª SB', posto: 'ST', matricula: '990104-4', guerra: 'TESTE AUX', email: 'auxiliar@laboratorio.invalid' },
+  { nome: 'Militar de teste', nivel: 'militar', unidade: null, posto: 'SD', matricula: '990105-5', guerra: 'TESTE MILITAR', email: 'militar@laboratorio.invalid' },
+];
+
+/** Cria os cinco usuários de teste que ainda faltam, lotados na 1ª SB e com o nível dado. Devolve quantos existem. */
+async function criarPerfisDeTeste(tx: Consulta, mes: string): Promise<number> {
+  const secao = (await tx.query<{ id: string }>("select id from unidade where sigla = '1ª SB'")).rows[0]?.id;
+  if (!secao) throw new Error('Unidade 1ª SB não encontrada no espelho.');
+  for (const p of PERFIS) {
+    if ((await tx.query('select 1 from usuario where email = $1', [p.email])).rows.length) continue;
+    const posto = (await tx.query<{ id: string }>('select id from posto_grad where sigla = $1', [p.posto])).rows[0]?.id;
+    if (!posto) throw new Error(`Posto não encontrado no espelho: ${p.posto}`);
+    const militar = (
+      await tx.query<{ id: string }>(
+        'insert into militar (matricula, posto_grad_id, nome_guerra, antiguidade) values ($1, $2, $3, $4) returning id',
+        [p.matricula, posto, p.guerra, 100 + PERFIS.indexOf(p)],
+      )
+    ).rows[0]!.id;
+    const usuario = (
+      await tx.query<{ id: string }>('insert into usuario (nome, email, militar_id) values ($1, $2, $3) returning id', [p.nome, p.email, militar])
+    ).rows[0]!.id;
+    const quadro = await quadroParaOPosto(tx, posto, undefined, null);
+    await tx.query("insert into rastreio (militar_id, unidade_id, jornada, desde, quadro_id) values ($1, $2, 'adm', $3, $4)", [
+      militar, secao, mes, 'erro' in quadro ? null : quadro.quadroId,
+    ]);
+    if (p.nivel !== 'militar') {
+      await tx.query(
+        `insert into papel_usuario (usuario_id, unidade_id, papel, desde)
+         select $1::uuid, id, $2, $3::date from unidade where ${p.unidade === null ? 'mae_id is null' : 'sigla = $4'}`,
+        p.unidade === null ? [usuario, p.nivel, mes] : [usuario, p.nivel, mes, p.unidade],
+      );
+    }
+  }
+  return (await tx.query<{ n: number }>("select count(*)::int as n from usuario where email like '%@laboratorio.invalid'")).rows[0]!.n;
+}
+
+/**
+ * A carga do espelho: os militares fictícios (a mesma carga de exemplo de sempre, 990001 a 990053) e os cinco usuários de teste, tudo no `laboratorio`.
+ * Recusa se o espelho não existir: sem ele o `search_path` cairia no `public`, e a carga fictícia nunca vai para o real. Repetível: não duplica.
+ */
+export async function cargaDoEspelho(banco: Banco, mes: string): Promise<{ militares: number; perfis: number }> {
+  return banco.transacao(async (tx) => {
+    await tx.exec(`set local search_path to ${SCHEMA_ESPELHO}, public`);
+    const alvo = (await tx.query<{ s: string | null }>('select current_schema() as s')).rows[0]!.s;
+    if (alvo !== SCHEMA_ESPELHO) throw new Error('A carga de teste só roda no espelho (schema laboratorio), e ele não existe neste banco.');
+    const { militares } = await cargaExemploEm(tx, mes);
+    const perfis = await criarPerfisDeTeste(tx, mes);
+    return { militares, perfis };
+  });
+}
+
+export interface PerfilDeTeste {
+  usuarioId: string;
+  nome: string;
+  /** o nível de acesso: `administrador`, `gestor`, `gestor_lateral`, `escalante` ou `militar` (militar comum, sem nível) */
+  nivel: string;
+}
+
+/** Os usuários de teste do espelho, com o nível de cada um, na ordem do mais alto ao militar comum (o seletor de perfil da 6.59). */
+export async function perfisDeTeste(c: Consulta): Promise<PerfilDeTeste[]> {
+  const { rows } = await c.query<PerfilDeTeste>(
+    `select u.id as "usuarioId", u.nome, coalesce(p.papel, 'militar') as nivel
+       from ${SCHEMA_ESPELHO}.usuario u left join ${SCHEMA_ESPELHO}.papel_usuario p on p.usuario_id = u.id
+      order by array_position(array['administrador', 'gestor', 'gestor_lateral', 'escalante', 'militar']::text[], coalesce(p.papel, 'militar')), u.nome`,
+  );
+  return rows;
+}

@@ -1,12 +1,13 @@
 import { readdirSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { prepararPapelDoEspelho } from '../laboratorio/espelho.ts';
+import { SCHEMA_ESPELHO } from '../laboratorio/constantes.ts';
 import type { Banco, Consulta } from './banco.ts';
 
 export const PASTA_MIGRACOES = join(dirname(fileURLToPath(import.meta.url)), '..', '..', 'banco', 'migracoes');
 
-/** O espelho do banco (Laboratório, 6.58): a mesma estrutura do real, só com dados de teste. O real continua no `public`, onde ficam também as extensões. */
-export const SCHEMA_ESPELHO = 'laboratorio';
+export { SCHEMA_ESPELHO };
 
 /** Os arquivos .sql da pasta, em ordem de nome, que ainda não estão em `feitas`. */
 function pendentesDe(pasta: string, feitas: Set<string>): string[] {
@@ -33,7 +34,10 @@ export async function migrar(banco: Banco, pasta = PASTA_MIGRACOES, opcoes: { es
       await tx.query('insert into migracao_aplicada (nome) values ($1)', [nome]);
     });
   }
-  if (opcoes.espelho !== false) await migrarEspelho(banco, pasta);
+  if (opcoes.espelho !== false) {
+    await migrarEspelho(banco, pasta);
+    await prepararPapelDoEspelho(banco);
+  }
   return pendentes;
 }
 
