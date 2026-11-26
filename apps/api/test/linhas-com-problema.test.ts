@@ -192,15 +192,15 @@ describe('acabamento da planilha (pool 34)', () => {
   });
 
   it('(b) linha recusada que também tem célula ignorada: motivos e soluções alinhados, um por linha da célula; sem solução, a linha fica vazia', async () => {
-    const linha = ['9908', 'SD', 'Sem Matricula Boa', 'SEMMAT2', '31/02', '', '1ª SB']; // matrícula inválida (recusada) e NASCIMENTO ignorado
+    const linha = ['990892-2', 'XYZ', 'Posto Ruim', 'POSTORUIM2', '31/02', '', '1ª SB']; // militar novo com posto que não existe: recusada (sem posto) e a célula POSTO/GRAD ignorada
     const { abas } = await abrirArquivo(await erros('gestorGb', api.ids.gb, 'peculio', await planilha({ 'PECÚLIO': [CAB_PECULIO, linha] })));
     const motivos = abas['PECÚLIO']![1]![7]!.split(String.fromCharCode(10));
     const solucoes = abas['PECÚLIO']![1]![8]!.split(String.fromCharCode(10));
     expect(motivos).toHaveLength(2);
     expect(solucoes).toHaveLength(2);
-    expect(motivos[0]).toContain('Matrícula inválida');
+    expect(motivos[0]).toMatch(/posto/i);
     expect(solucoes[0]).not.toBe('');
-    expect(motivos[1]).toMatch(/^NASCIMENTO: /);
+    expect(motivos[1]).toMatch(/^POSTO\/GRAD: /);
     expect(solucoes[1]).toBe('');
   });
 
