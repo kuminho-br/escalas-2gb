@@ -49,25 +49,34 @@ async function percorrer(tx: Consulta, todas: Ligacao[], tabela: string, coluna:
   if (apagar && linhas.length) await tx.query(`delete from ${nome(tabela)} where ${nome(coluna)} = any($1)`, [valores]);
 }
 
-async function rodar(tx: Consulta, militarId: string, apagar: boolean): Promise<Map<string, number>> {
+async function rodar(tx: Consulta, militarIds: string[], apagar: boolean): Promise<Map<string, number>> {
   const contas = new Map<string, Set<string>>();
   const todas = await ligacoes(tx);
   const visitadas = new Set<string>();
   // a permuta precisa de exatamente 2 itens: a que tem um item dele sai inteira (os dois itens), e a alocação do outro militar fica
   const permutas = (
     await tx.query<{ permuta_id: string }>(
-      'select distinct permuta_id from permuta_item where militar_original_id = $1 or alocacao_id in (select id from alocacao where militar_id = $1)',
-      [militarId],
+      'select distinct permuta_id from permuta_item where militar_original_id = any($1) or alocacao_id in (select id from alocacao where militar_id = any($1))',
+      [militarIds],
     )
   ).rows.map((r) => r.permuta_id);
   await percorrer(tx, todas, 'permuta', 'id', permutas, apagar, contas, visitadas);
-  await percorrer(tx, todas, 'militar', 'id', [militarId], apagar, contas, visitadas);
+  await percorrer(tx, todas, 'militar', 'id', militarIds, apagar, contas, visitadas);
+  // as contagens saem na ordem em que as tabelas foram esvaziadas: o que depende vem antes do que é dependido
   return new Map([...contas].map(([t, l]) => [t, l.size]));
+}
+
+/**
+ * O que sai (ou, com `apagar`, o que é apagado) com vários militares de uma vez, na ordem da exclusão: cada linha conta uma vez, mesmo alcançada por
+ * dois deles (a permuta entre dois militares, por exemplo). É o que a separação dos dados de teste (6.58) usa.
+ */
+export async function contagemParaVarios(tx: Consulta, militarIds: string[], apagar: boolean): Promise<Map<string, number>> {
+  return militarIds.length ? rodar(tx, militarIds, apagar) : new Map();
 }
 
 /** O que sai junto: as mesmas contagens que `apagarMilitar` apaga. */
 export async function oQueVaiJunto(tx: Consulta, militarId: string): Promise<OQueVaiJunto> {
-  const c = await rodar(tx, militarId, false);
+  const c = await rodar(tx, [militarId], false);
   const de = (t: string) => c.get(t) ?? 0;
   // a sessão e a senha fazem parte da conta (temConta): não entram em "outros"
   const contados = ['militar', 'alocacao', 'afastamento', 'rastreio', 'usuario', 'papel_usuario', 'sessao', 'conta'];
@@ -82,5 +91,5 @@ export async function oQueVaiJunto(tx: Consulta, militarId: string): Promise<OQu
 }
 
 export async function apagarMilitar(tx: Consulta, militarId: string): Promise<void> {
-  await rodar(tx, militarId, true);
+  await rodar(tx, [militarId], true);
 }
