@@ -5,6 +5,7 @@ import { useState, type ReactNode } from 'react';
 import { camposDe, mensagemDe } from '@/api/cliente';
 import { alterarTelefone, consultaMinhaFicha } from '@/api/minha-ficha';
 import { Campo } from '@/componentes/Campo';
+import { TrocarSenha } from '@/componentes/acesso/TrocarSenha';
 import { erroDoTelefone, mascararTelefone } from '@/lib/mascaras';
 import { CampoDeTelefone } from '@/componentes/CamposDeContato';
 import { Secao } from '@/componentes/militares/Secao';
@@ -91,6 +92,9 @@ function MinhaFichaTela() {
             <Dado rotulo="CNH" valor={[...f.cnh, ...f.cnhPorHierarquia.map((c) => `${c} (pela hierarquia)`)].join(', ')} />
             <Dado rotulo="Voluntário JES" valor={f.voluntarioJes ? 'Sim' : 'Não'} />
           </Dados>
+        </Secao>
+        <Secao titulo="Senha">
+          <TrocarSenha />
         </Secao>
       </div>
     </Moldura>
