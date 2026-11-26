@@ -120,7 +120,7 @@ Design: `docs/superpowers/specs/2026-11-21-usuarios-e-modulos-design.md`. Plano:
 | 67 | Entrada v2 (login): a foto nova do quartel por plataforma, as brasas que esfriam até virar cinza (59, por 4,2 s), mais fracas sobre a saudação, e o pouso no quadro da tela inicial v3 | plano pronto (mockup aprovado em 26/11); junto com a 6.61; aguarda a ordem do usuário |
 | 68 | Primeiro acesso e "Esqueci minha senha" por código no e-mail institucional (Brevo): o militar cria a própria senha; a senha provisória fica como reserva; os requisitos da senha à vista (migração 0051) | plano pronto; o usuário põe a chave do Brevo no Vercel antes da validação; aguarda a ordem do usuário |
 | 69 | Histórico de rastreio: "Cancelar" e "Editar mudança" (na fase de testes o administrador mexe em qualquer período) e o aviso de militar do Pronto sem equipe, na pré-escala e em "Alterar situação" | mesclada (#292); sem migração |
-| 70 | Afastados na Grade geral: um traço na célula de cada dia de afastamento (a API manda os períodos com o tipo) e a célula inteira do nome do militar clicável, sem sublinhado | plano pronto (pedido urgente do usuário, 26/11); sem migração; aguarda a ordem do usuário |
+| 70 | Grade geral redesenhada e menu lateral novo: o afastado (traço no dia, com o período na dica), a célula do nome clicável, a borda espessa e escura entre a área fixa e a que rola, a legenda com a cor certa e o menu pelo mockup da DESIGN (com os itens de hoje) | plano a reescrever: aguarda o redesenho da DESIGN (pedido do usuário, 26/11); sem migração |
 
 **Ordem de execução das entregas com plano pronto** (26/11/2026, a pedido do usuário; o critério é o piloto de dezembro). Cada uma só começa quando o usuário mandar:
 

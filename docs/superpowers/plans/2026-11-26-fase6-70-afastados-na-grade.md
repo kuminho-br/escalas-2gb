@@ -1,5 +1,7 @@
 # Afastados na Grade geral (6.70) — plano de implementação
 
+> **EM ESPERA (26/11/2026).** O usuário pediu à DESIGN o redesenho completo da Grade geral e do menu lateral. Este plano será reescrito com o mockup aprovado; não executar esta versão.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 > **Modelo: Sonnet** (o padrão, decisão do usuário de 25/11/2026). Revisão final no Opus.
