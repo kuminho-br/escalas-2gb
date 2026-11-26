@@ -137,7 +137,7 @@ describe('a lista com divisória e o lugar dos aniversários (6.50)', () => {
 
   it('a pesquisa usa a mesma peça: divisória entre as linhas', async () => {
     const COMUM = { ...EU_EXEMPLO, papeis: [] };
-    const linha: LinhaDaConsulta = { id: 'm1', postoGrad: 'SD', nomeGuerra: 'ANDRADE', nomeCompleto: 'Fulano', matricula: '990001-1', lotacao: '1ª SB', quadro: 'QBMG' };
+    const linha: LinhaDaConsulta = { id: 'm1', postoGrad: 'SD', nomeGuerra: 'ANDRADE', nomeCompleto: 'Fulano', matricula: '990001-1', lotacao: '1ª SB', lotacaoCaminho: '1ª SB', quadro: 'QBMG' };
     simularApi({
       '/api/eu': { status: 200, corpo: COMUM },
       'GET /api/consulta/unidades': { status: 200, corpo: [] },

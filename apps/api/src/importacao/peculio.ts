@@ -12,7 +12,7 @@ import {
   cpfMascarado, lerAntiguidade, lerCep, lerCnh, lerComportamento, lerCpf, lerEmail, lerEmailPessoal, lerEquipe, lerFuncao, lerJornada, lerNascimento, lerNomeDeGuerra, lerPosto, lerQuadro,
   lerSexo, lerSimNao, lerSituacao, lerTelefone, lerTexto, lerUf, matriculaDe, type Leitura,
 } from './peculio-colunas.ts';
-import { acharPeloCaminho, menorCaminhoUnico, unidadesDoCaminho } from './caminho-da-unidade.ts';
+import { acharPeloCaminho, rotulosDasUnidades, unidadesDoCaminho } from './caminho-da-unidade.ts';
 import { coluna } from './planilha.ts';
 import type { ColunaModelo, Importador } from './tipos.ts';
 
@@ -133,7 +133,8 @@ async function catalogos(tx: Consulta, unidadeId: string) {
   const noAlcance = new Set(
     (await tx.query<{ id: string }>('select s.id from unidade s join unidade u on u.id = $1 and s.caminho <@ u.caminho', [unidadeId])).rows.map((r) => r.id),
   );
-  const unidades = todas.filter((x) => noAlcance.has(x.id)).map((x) => ({ ...x, sigla: x.siglas.at(-1)!, rotulo: menorCaminhoUnico(x, todas) }));
+  const rotulos = rotulosDasUnidades(todas);
+  const unidades = todas.filter((x) => noAlcance.has(x.id)).map((x) => ({ ...x, sigla: x.siglas.at(-1)!, rotulo: rotulos.get(x.id)! }));
   const quadros = (
     await tx.query<{ id: string; sigla: string; posto_grad_ids: string[] }>(
       'select q.id, q.sigla, array_agg(qp.posto_grad_id) as posto_grad_ids from quadro q join quadro_posto_grad qp on qp.quadro_id = q.id group by q.id, q.sigla order by q.sigla',

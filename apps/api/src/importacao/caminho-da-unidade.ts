@@ -6,12 +6,15 @@ import type { Leitura } from './peculio-colunas.ts';
 /** Uma unidade com as siglas da raiz até ela (a última é a dela). */
 export type UnidadeDoCaminho = { id: string; siglas: string[] };
 
-/** As unidades em vigor da corporação, cada uma com o caminho de siglas desde a raiz. */
-export async function unidadesDoCaminho(c: Consulta, hoje: string): Promise<UnidadeDoCaminho[]> {
+/**
+ * As unidades em vigor da corporação, cada uma com o caminho de siglas desde a raiz. `tambem` são ids de unidades que entram mesmo extintas: a lotação de um militar pode estar numa
+ * unidade que já acabou, e o rótulo dela precisa do caminho (e da conta de quem tem a mesma sigla).
+ */
+export async function unidadesDoCaminho(c: Consulta, hoje: string, tambem: string[] = []): Promise<UnidadeDoCaminho[]> {
   const { rows } = await c.query<UnidadeDoCaminho>(
     `select u.id, array(select a.sigla from unidade a where a.caminho @> u.caminho order by nlevel(a.caminho)) as siglas
-       from unidade u where u.ate is null or u.ate >= $1::date order by nlevel(u.caminho), u.sigla`,
-    [hoje],
+       from unidade u where u.ate is null or u.ate >= $1::date or u.id = any($2::uuid[]) order by nlevel(u.caminho), u.sigla`,
+    [hoje, tambem],
   );
   return rows;
 }
@@ -70,6 +73,11 @@ export function rotulosDasUnidades(todas: UnidadeDoCaminho[]): Map<string, strin
     rotulos.set(u.id, rotulo);
   }
   return rotulos;
+}
+
+/** O rótulo (menor caminho único) de cada unidade em vigor e das extintas dadas, lido do banco de uma vez: uma leitura das unidades por pedido. */
+export async function rotulosDoBanco(c: Consulta, hoje: string, tambem: (string | null)[] = []): Promise<Map<string, string>> {
+  return rotulosDasUnidades(await unidadesDoCaminho(c, hoje, tambem.filter((x): x is string => !!x)));
 }
 
 /**

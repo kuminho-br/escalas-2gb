@@ -4,6 +4,7 @@
 import type { FichaDeConsulta, LinhaDaConsulta, PeriodoDaConsulta, ResultadoDaConsulta, UnidadeDaConsulta } from 'contratos';
 import { CADASTRO, ehAdministrador, GESTAO, temPapel } from '../acesso.ts';
 import { COM_CAMINHO, paraUnidade, porCaminho, type LinhaDaUnidade } from '../arvore.ts';
+import { rotulosDoBanco } from '../importacao/caminho-da-unidade.ts';
 import type { Consulta } from '../banco/banco.ts';
 import { blocosDaUnidade } from './visao.ts';
 
@@ -30,8 +31,8 @@ export async function unidadesDaConsulta(c: Consulta, hoje: string): Promise<Uni
   return rows.map(paraUnidade).sort(porCaminho).map((u) => ({ id: u.id, sigla: u.sigla, nivel: u.nivel, maeId: u.maeId }));
 }
 
-type LinhaBanco = { id: string; posto: string; nome_guerra: string; nome_completo: string | null; matricula: string; lotacao: string | null; quadro: string | null; da_unidade?: boolean | null };
-const paraLinha = (m: LinhaBanco): LinhaDaConsulta => ({ id: m.id, postoGrad: m.posto, nomeGuerra: m.nome_guerra, nomeCompleto: m.nome_completo, matricula: m.matricula, lotacao: m.lotacao, quadro: m.quadro, ...(m.da_unidade == null ? {} : { daUnidade: m.da_unidade }) });
+type LinhaBanco = { id: string; posto: string; nome_guerra: string; nome_completo: string | null; matricula: string; lotacao: string | null; quadro: string | null; unidade_id: string | null; da_unidade?: boolean | null };
+const paraLinha = (m: LinhaBanco, rotulos: Map<string, string>): LinhaDaConsulta => ({ id: m.id, postoGrad: m.posto, nomeGuerra: m.nome_guerra, nomeCompleto: m.nome_completo, matricula: m.matricula, lotacao: m.lotacao, quadro: m.quadro, lotacaoCaminho: m.unidade_id ? (rotulos.get(m.unidade_id) ?? m.lotacao) : null, ...(m.da_unidade == null ? {} : { daUnidade: m.da_unidade }) });
 
 /** O período de hoje, com a sigla da unidade e a do quadro: a lotação e o quadro que a consulta mostra. */
 const DO_MILITAR_HOJE = `
@@ -40,7 +41,7 @@ const DO_MILITAR_HOJE = `
   left join rastreio r on r.militar_id = m.id and r.desde <= $1::date and (r.ate is null or r.ate >= $1::date)
   left join unidade un on un.id = r.unidade_id
   left join quadro q on q.id = r.quadro_id`;
-const COLUNAS = 'm.id, p.sigla as posto, m.nome_guerra, m.nome_completo, m.matricula, un.sigla as lotacao, q.sigla as quadro';
+const COLUNAS = 'm.id, p.sigla as posto, m.nome_guerra, m.nome_completo, m.matricula, un.sigla as lotacao, un.id as unidade_id, q.sigla as quadro';
 
 /**
  * Busca militares da corporação pelo nome de guerra, o nome completo ou a matrícula (todas as palavras do texto precisam aparecer), sem
@@ -58,24 +59,26 @@ export async function buscarMilitares(c: Consulta, d: { texto: string; unidadeId
       limit ${LIMITE_DA_BUSCA + 1}`,
     [d.hoje, d.unidadeId, palavrasDaBusca(d.texto), COM_ACENTO, SEM_ACENTO, d.unidadeDeTrabalho ?? null],
   );
-  return { militares: rows.slice(0, LIMITE_DA_BUSCA).map(paraLinha), haMais: rows.length > LIMITE_DA_BUSCA };
+  // a unidade de cada um pelo menor caminho que a identifica (uma leitura das unidades por busca)
+  const rotulos = rows.some((m) => m.unidade_id) ? await rotulosDoBanco(c, d.hoje, rows.map((m) => m.unidade_id)) : new Map<string, string>();
+  return { militares: rows.slice(0, LIMITE_DA_BUSCA).map((m) => paraLinha(m, rotulos)), haMais: rows.length > LIMITE_DA_BUSCA };
 }
 
 type LinhaDaFicha = LinhaBanco & {
-  funcao: string | null; unidade_id: string | null; telefone: string | null; email: string | null; email_pessoal: string | null; comportamento: string | null; comportamento_boletim: string | null;
+  funcao: string | null; telefone: string | null; email: string | null; email_pessoal: string | null; comportamento: string | null; comportamento_boletim: string | null;
   motorista: boolean; cnh: string[]; voluntario_jes: boolean;
 };
 
 /** A ficha de consulta de um militar, só com os blocos que `usuarioId` vê; null se o militar não existe. */
 export async function fichaDeConsulta(c: Consulta, usuarioId: string, militarId: string, hoje: string, unidadeDeTrabalho?: string): Promise<FichaDeConsulta | null> {
   const m = (await c.query<LinhaDaFicha>(
-    `select ${COLUNAS}, (select f.nome from funcao_militar f where f.id = m.funcao_militar_id) as funcao, un.id as unidade_id, m.telefone, m.email, m.email_pessoal, m.comportamento, m.comportamento_boletim, m.motorista, m.cnh, m.voluntario_jes
+    `select ${COLUNAS}, (select f.nome from funcao_militar f where f.id = m.funcao_militar_id) as funcao, m.telefone, m.email, m.email_pessoal, m.comportamento, m.comportamento_boletim, m.motorista, m.cnh, m.voluntario_jes
        ${DO_MILITAR_HOJE} where m.id = $2`,
     [hoje, militarId],
   )).rows[0];
   if (!m) return null;
   const blocos = await blocosDaUnidade(c, usuarioId, m.unidade_id, hoje);
-  const ficha: FichaDeConsulta = { ...paraLinha(m), // sem lotação (o militar recém-criado, o administrador da instalação) só o administrador abre a ficha, para dar a primeira
+  const ficha: FichaDeConsulta = { ...paraLinha(m, m.unidade_id ? await rotulosDoBanco(c, hoje, [m.unidade_id]) : new Map()), // sem lotação (o militar recém-criado, o administrador da instalação) só o administrador abre a ficha, para dar a primeira
     podeAbrirFichaCompleta: m.unidade_id ? await temPapel(c, usuarioId, m.unidade_id, CADASTRO, hoje) : await ehAdministrador(c, usuarioId, hoje) };
 
   // o militar externo: o gestor da unidade de trabalho (ou acima) vê o botão de trazer ou tirar, desde que o militar não seja da unidade nem de uma de baixo

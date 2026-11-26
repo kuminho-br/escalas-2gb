@@ -65,7 +65,7 @@ type Passo = 'campos' | 'valores' | 'previa' | 'resultado';
 /**
  * "Atualizar em lote" (6.52): um painel de quatro passos sobre a seleção da pesquisa. Campos (o que muda), Valores (um por campo), Prévia (quem muda, quem fica de fora e por quê) e
  * Resultado. A prévia é obrigatória; "Aplicar" grava tudo ou nada, e a lista que mudou desde a prévia volta ao passo da prévia com o aviso. Não há "Desfazer".
- * `aoFechar(true)` diz que algo foi aplicado: a seleção é limpa e a busca recarrega.
+ * `aoFechar(true)` diz que algo foi aplicado: a seleção continua com os mesmos militares (lidos de novo) e a busca recarrega.
  */
 export function AtualizarEmLote({ aoFechar }: { aoFechar: (aplicou: boolean) => void }) {
   const { selecionados } = useSelecao();
