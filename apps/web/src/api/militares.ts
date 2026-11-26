@@ -25,6 +25,9 @@ export const consultaExclusao = (id: string) => queryOptions({ queryKey: ['milit
 export const apagarMilitar = (id: string, matricula: string) => pedir('DELETE', `/api/militares/${id}`, { matricula });
 export const editarPosto = (id: string, d: NovoPosto) => pedir<Posto>('PATCH', `/api/postos/${id}`, d);
 export const alterarSituacao = (id: string, d: AlteracaoDeSituacao) => pedir<FichaMilitar>('POST', `/api/militares/${id}/situacao`, d);
+/** Cancelar (apagar) e editar um período do histórico de rastreio: a mudança que ainda não vale e, na fase de testes, qualquer um para o administrador. */
+export const cancelarMudanca = (id: string, periodoId: string) => pedir<FichaMilitar>('DELETE', `/api/militares/${id}/rastreio/${periodoId}`);
+export const editarMudanca = (id: string, periodoId: string, d: AlteracaoDeSituacao) => pedir<FichaMilitar>('PUT', `/api/militares/${id}/rastreio/${periodoId}`, d);
 export const criarAfastamento = (militarId: string, d: NovoAfastamento) => pedir('POST', `/api/militares/${militarId}/afastamentos`, d);
 export const editarAfastamento = (id: string, d: EdicaoAfastamento) => pedir('PATCH', `/api/afastamentos/${id}`, d);
 export const apagarAfastamento = (id: string) => pedir('DELETE', `/api/afastamentos/${id}`);

@@ -8,7 +8,7 @@ import { periodoAberto } from './periodo-aberto.ts';
 import { quadroParaOPosto } from './quadros.ts';
 
 export type MotivoDeRecusa = {
-  codigo: 'sem_permissao' | 'sem_periodo' | 'equipe' | 'data' | 'quadro' | 'situacao' | 'nada_muda' | 'nao_achou' | 'mudou';
+  codigo: 'sem_permissao' | 'sem_periodo' | 'equipe' | 'data' | 'quadro' | 'situacao' | 'nada_muda' | 'nao_achou' | 'mudou' | 'ja_vale' | 'unico';
   texto: string;
   /** O campo da tela a que a recusa se refere (`equipeId`, `situacaoId`, `desde`, `quadroId`). */
   campo?: string;

@@ -8,7 +8,7 @@ const FICHA: FichaMilitar = {
   id: 'm1', matricula: '990001-1', posto: 'SD', quadro: { id: 'q-qbmg', sigla: 'QBMG' }, nomeGuerra: 'ANDRADE', equipe: 'Alfa', jornada: 'pronto', motorista: null, voluntarioJes: false, ativo: true, situacao: 'Disponível', pendencias: [],
   podeEditar: { peculio: true, escala: true, unidadeDeCima: '2º GB' },
   postoGradId: 'p-sd', veDadosRestritos: true, cpf: null, endereco: { cep: null, logradouro: null, numero: null, complemento: null, bairro: null, cidade: null, uf: null }, situacaoDoMilitar: { id: 'sit-ativa', nome: 'Ativa', escalavel: true }, nomeCompleto: 'João da Silva Andrade', sexo: 'M', nascimento: null, telefone: null, email: 'andrade@bombeiros.pe.gov.br', comportamento: null, comportamentoBoletim: null, antiguidade: 3, antiguidadeRepetidaCom: [], funcao: null, funcaoMilitarId: null, abonoPermanencia: false, noQuadroDeMotoristas: false, cnh: [], cnhPorHierarquia: [],
-  rastreio: [{ id: 'l1', unidadeId: 'u-1sb', unidadeSigla: '1ª SB', alteradoPor: null, alteradoEm: null, equipe: 'Alfa', jornada: 'pronto', desde: '2026-11-01', quadro: 'QBMG', situacao: 'Ativa', ate: null }], afastamentos: [],
+  rastreio: [{ id: 'l1', unidadeId: 'u-1sb', unidadeSigla: '1ª SB', alteradoPor: null, alteradoEm: null, podeMexer: false, equipe: 'Alfa', jornada: 'pronto', desde: '2026-11-01', quadro: 'QBMG', situacao: 'Ativa', ate: null }], afastamentos: [],
 };
 const ACESSO: AcessoDoMilitar = {
   situacao: 'sem-acesso', email: 'andrade@bombeiros.pe.gov.br', senhaProvisoriaAte: null, papeis: [], podeGerarSenha: true, podeDesativar: true, papeisQuePodeDar: [], unidadesParaPapel: [],

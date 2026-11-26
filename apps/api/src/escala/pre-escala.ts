@@ -79,6 +79,24 @@ async function equipeJaNoMes(c: Consulta, unidadeId: string, mes: string, equipe
 }
 
 /**
+ * Os militares do Pronto lotados na seção em algum dia do mês (mesmo filtro de situação e de quadro da pré-escala) que, nesse período, não têm equipe do ciclo:
+ * a pré-escala só põe no turno quem tem. "Posto NOME", do posto mais alto ao mais baixo e depois pelo nome.
+ */
+async function militaresDoProntoSemEquipe(c: Consulta, unidadeId: string, equipes: EquipeDoCiclo[], inicioDoMes: string, inicioDoSeguinte: string): Promise<string[]> {
+  const { rows } = await c.query<{ sigla: string; nome_guerra: string }>(
+    `select p.sigla, m.nome_guerra
+       from militar m join posto_grad p on p.id = m.posto_grad_id
+      where exists (
+        select 1 from rastreio l
+         where l.militar_id = m.id and l.unidade_id = $1 and l.jornada = 'pronto' and ${PODE_SER_ESCALADO} and ${SO_QBMG_OU_SEM_QUADRO}
+           and (l.equipe_id is null or not (l.equipe_id = any($4::uuid[]))) and l.desde < $3::date and (l.ate is null or l.ate >= $2::date))
+      order by p.ordem, m.nome_guerra`,
+    [unidadeId, inicioDoMes, inicioDoSeguinte, equipes.map((e) => e.id)],
+  );
+  return rows.map((r) => `${r.sigla} ${r.nome_guerra}`);
+}
+
+/**
  * A prévia da pré-escala do Pronto e as alocações que a gravação criaria. Nunca mexe no que já está escalado: a vaga ocupada
  * (inclusive por acúmulo) sai da lista, quem já está no horário não é candidato e quem o escalante removeu não volta ao dia e turno de onde saiu.
  * `equipeDia1Id` nulo vale a equipe que já está no Pronto do mês e, sem ela, a detectada pelo mês anterior; sem nenhuma, a prévia vem
@@ -143,6 +161,8 @@ export async function planejarPreEscala(
   for (const e of equipes) {
     if (!membros.some((m) => m.equipe_id === e.id)) previa.avisos.push(`A equipe ${e.nome} não tem militares do Pronto na seção; nenhum serviço foi gerado para os dias dela.`);
   }
+  const semEquipe = await militaresDoProntoSemEquipe(c, unidadeId, equipes, inicioDoMes, inicioDoSeguinte);
+  if (semEquipe.length) previa.avisos.push(semEquipe.length === 1 ? `1 militar do Pronto está sem equipe e não entra na pré-escala: ${semEquipe[0]}.` : `${semEquipe.length} militares do Pronto estão sem equipe e não entram na pré-escala: ${semEquipe.join(', ')}.`);
 
   const removidos = new Set(
     (

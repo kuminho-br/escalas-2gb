@@ -20,7 +20,7 @@ const FICHA: FichaMilitar = {
   ...linha({ motorista: 'D' }),
   podeEditar: { peculio: true, escala: true, unidadeDeCima: '2º GB' },
   postoGradId: 'p-sd', veDadosRestritos: true, cpf: null, endereco: { cep: null, logradouro: null, numero: null, complemento: null, bairro: null, cidade: null, uf: null }, situacaoDoMilitar: { id: 'sit-ativa', nome: 'Ativa', escalavel: true }, nomeCompleto: 'João da Silva Andrade', sexo: 'M', nascimento: { dia: 15, mes: 3 }, telefone: '(81) 99999-0000', email: 'andrade@bombeiros.pe.gov.br', comportamento: 'Bom', comportamentoBoletim: 'BG 01/2026', antiguidade: 3, antiguidadeRepetidaCom: [], funcao: null, funcaoMilitarId: null, abonoPermanencia: false, noQuadroDeMotoristas: true, cnh: ['D'], cnhPorHierarquia: ['C', 'B'],
-  rastreio: [{ id: 'l1', unidadeId: 'u-1sb', unidadeSigla: '1ª SB', alteradoPor: null, alteradoEm: null, equipe: 'Alfa', jornada: 'pronto', desde: '2026-11-01', quadro: 'QBMG', situacao: 'Ativa', ate: null }],
+  rastreio: [{ id: 'l1', unidadeId: 'u-1sb', unidadeSigla: '1ª SB', alteradoPor: null, alteradoEm: null, podeMexer: false, equipe: 'Alfa', jornada: 'pronto', desde: '2026-11-01', quadro: 'QBMG', situacao: 'Ativa', ate: null }],
   afastamentos: [{ id: 'a1', tipo: 'Férias', tipoAfastamentoId: 't-ferias', inicio: '2026-12-01', fim: '2026-12-10', motivo: null, boletim: null }],
 };
 
@@ -1319,7 +1319,7 @@ describe('o rastreio da ficha: acabamento (6.16, Task 4)', () => {
     { id: 'sit-reserva', nome: 'Reserva', escalavel: false, ativo: true },
   ];
   const SECOES = [{ id: 'u-1sb', sigla: '1ª SB', nome: '1ª Seção de Bombeiros' }];
-  const periodo = (id: string, desde: string, ate: string | null, quadro: string, situacao: string) => ({ id, unidadeId: 'u-1sb', unidadeSigla: '1ª SB', alteradoPor: null, alteradoEm: null, equipe: null, jornada: 'adm' as const, desde, ate, quadro, situacao });
+  const periodo = (id: string, desde: string, ate: string | null, quadro: string, situacao: string) => ({ id, unidadeId: 'u-1sb', unidadeSigla: '1ª SB', alteradoPor: null, alteradoEm: null, podeMexer: false, equipe: null, jornada: 'adm' as const, desde, ate, quadro, situacao });
   const comRastreio = (rastreio: FichaMilitar['rastreio'], rotas: Parameters<typeof simularApi>[0] = {}) =>
     api({
       'GET /api/militares/m1': { status: 200, corpo: { ...FICHA, rastreio } },
@@ -1379,7 +1379,7 @@ describe('mover pela hierarquia e quem moveu (6.23)', () => {
   ];
   // a árvore da corporação: dá lugar às seções (os grupamentos entram como passagem, não escolhíveis)
   const ARVORE = { 'GET /api/consulta/unidades': { status: 200, corpo: [{ id: 'u-gb1', sigla: '1º GB', nivel: 0, maeId: null }, { id: 'u-gb', sigla: '2º GB', nivel: 0, maeId: null }, ...SECOES.map((s) => ({ id: s.id, sigla: s.sigla, nivel: 1, maeId: s.maeId }))] } };
-  const periodo = { id: 'r1', unidadeId: 'u-2sb', unidadeSigla: '2ª SB', equipe: null, jornada: 'adm' as const, desde: '2026-01-05', ate: null, quadro: 'QBMG', situacao: 'Ativa', alteradoPor: { patente: 'MAJ', nomeGuerra: 'BARRETO' }, alteradoEm: '2026-11-23T09:15:42' };
+  const periodo = { id: 'r1', unidadeId: 'u-2sb', unidadeSigla: '2ª SB', equipe: null, jornada: 'adm' as const, desde: '2026-01-05', ate: null, quadro: 'QBMG', situacao: 'Ativa', alteradoPor: { patente: 'MAJ', nomeGuerra: 'BARRETO' }, alteradoEm: '2026-11-23T09:15:42', podeMexer: false };
   const comPeriodo = () => api({
     'GET /api/militares/m1': { status: 200, corpo: { ...FICHA, rastreio: [periodo] } },
     'GET /api/situacoes-do-militar': { status: 200, corpo: SITUACOES },
@@ -1579,5 +1579,146 @@ describe('toda seção da ficha recolhe, e a tela lembra (6.32)', () => {
     expect(await screen.findByRole('button', { name: 'Alterar situação' })).toBeInTheDocument();
     await userEvent.click(botaoDa('Histórico de rastreio'));
     expect(screen.queryByRole('button', { name: 'Alterar situação' })).toBeNull();
+  });
+});
+
+describe('cancelar e editar uma mudança do rastreio, e o aviso de quem fica sem equipe', () => {
+  const br = (d: string) => `${d.slice(8, 10)}/${d.slice(5, 7)}/${d.slice(0, 4)}`;
+  const SECOES = [{ id: 'u-1sb', sigla: '1ª SB', nome: '1ª Seção de Bombeiros' }];
+  const futuro = () => somarDias(hoje(), 10);
+  const periodo = (id: string, desde: string, ate: string | null, o: Partial<FichaMilitar['rastreio'][number]> = {}): FichaMilitar['rastreio'][number] => ({
+    id, unidadeId: 'u-1sb', unidadeSigla: '1ª SB', alteradoPor: null, alteradoEm: null, podeMexer: false, equipe: 'Alfa', jornada: 'pronto', desde, ate, quadro: 'QBMG', situacao: 'Ativa', ...o,
+  });
+  /** O período de hoje e uma mudança marcada para daqui a 10 dias (a que o gestor pode cancelar e editar). */
+  const doisPeriodos = (marcada: Partial<FichaMilitar['rastreio'][number]> = {}, vigente: Partial<FichaMilitar['rastreio'][number]> = {}) => [
+    periodo('r2', futuro(), null, { podeMexer: true, ...marcada }),
+    periodo('r1', somarDias(hoje(), -60), somarDias(futuro(), -1), vigente),
+  ];
+  const comRastreio = (rastreio: FichaMilitar['rastreio'], rotas: Parameters<typeof simularApi>[0] = {}) =>
+    api({
+      'GET /api/militares/m1': { status: 200, corpo: { ...FICHA, rastreio } },
+      'GET /api/unidades-de-lotacao': { status: 200, corpo: SECOES },
+      ...rotas,
+    });
+  const abrirHistorico = async () => {
+    abrir('/militares/m1');
+    await userEvent.click(await screen.findByRole('button', { name: /Histórico de rastreio/ }));
+  };
+  const item = (desde: string) => screen.getByText(br(desde), { selector: 'time' }).closest('li')!;
+
+  it('só a mudança que a ficha diz que pode ser mexida traz "Editar" e "Cancelar"; as outras não', async () => {
+    comRastreio(doisPeriodos());
+    await abrirHistorico();
+    const marcada = within(item(futuro()));
+    expect(marcada.getByRole('button', { name: `Editar a mudança de ${br(futuro())}` })).toBeInTheDocument();
+    expect(marcada.getByRole('button', { name: `Cancelar a mudança de ${br(futuro())}` })).toBeInTheDocument();
+    const vigente = within(item(somarDias(hoje(), -60)));
+    expect(vigente.queryByRole('button')).toBeNull();
+  });
+
+  it('o administrador (fase de testes) vê "Editar" e "Apagar" também no que já vale', async () => {
+    comRastreio(doisPeriodos({}, { podeMexer: true }));
+    await abrirHistorico();
+    const vigente = within(item(somarDias(hoje(), -60)));
+    expect(vigente.getByRole('button', { name: `Editar a mudança de ${br(somarDias(hoje(), -60))}` })).toBeInTheDocument();
+    expect(vigente.getByRole('button', { name: `Apagar o período de ${br(somarDias(hoje(), -60))}` })).toBeInTheDocument();
+    expect(vigente.queryByRole('button', { name: /^Cancelar/ })).toBeNull();
+  });
+
+  it('o único registro não se cancela (só se edita)', async () => {
+    comRastreio([periodo('r2', futuro(), null, { podeMexer: true })]);
+    await abrirHistorico();
+    expect(within(item(futuro())).getByRole('button', { name: /^Editar/ })).toBeInTheDocument();
+    expect(within(item(futuro())).queryByRole('button', { name: /^Cancelar/ })).toBeNull();
+  });
+
+  it('"Cancelar" pede a confirmação e apaga a mudança; o histórico é buscado de novo', async () => {
+    const f = comRastreio(doisPeriodos(), { 'DELETE /api/militares/m1/rastreio/r2': { status: 200, corpo: { ...FICHA, rastreio: [periodo('r1', somarDias(hoje(), -60), null)] } } });
+    await abrirHistorico();
+    await userEvent.click(within(item(futuro())).getByRole('button', { name: /^Cancelar/ }));
+    const dialogo = within(await screen.findByRole('dialog', { name: 'Cancelar esta mudança?' }));
+    expect(dialogo.getByText(/volta a valer/)).toBeInTheDocument();
+    expect(chamadasA(f, 'DELETE /api/militares/m1/rastreio/r2')).toBe(0);
+    await userEvent.click(dialogo.getByRole('button', { name: 'Cancelar mudança' }));
+    await waitFor(() => expect(chamadasA(f, 'DELETE /api/militares/m1/rastreio/r2')).toBe(1));
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+  });
+
+  it('"Voltar" fecha a confirmação sem apagar nada; o erro da API aparece na janela', async () => {
+    const f = comRastreio(doisPeriodos(), { 'DELETE /api/militares/m1/rastreio/r2': { status: 403, corpo: { erro: 'Você não tem permissão nos cadastros de 1ª SB.' } } });
+    await abrirHistorico();
+    await userEvent.click(within(item(futuro())).getByRole('button', { name: /^Cancelar/ }));
+    await userEvent.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Voltar' }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    expect(chamadasA(f, 'DELETE /api/militares/m1/rastreio/r2')).toBe(0);
+    await userEvent.click(within(item(futuro())).getByRole('button', { name: /^Cancelar/ }));
+    const dialogo = within(await screen.findByRole('dialog'));
+    await userEvent.click(dialogo.getByRole('button', { name: 'Cancelar mudança' }));
+    expect(await dialogo.findByRole('alert')).toHaveTextContent('Você não tem permissão nos cadastros de 1ª SB.');
+  });
+
+  it('"Apagar" um período que já vale (fase de testes) pede a confirmação com outro texto', async () => {
+    const f = comRastreio(doisPeriodos({}, { podeMexer: true }), { 'DELETE /api/militares/m1/rastreio/r1': { status: 200, corpo: FICHA } });
+    await abrirHistorico();
+    await userEvent.click(within(item(somarDias(hoje(), -60))).getByRole('button', { name: /^Apagar/ }));
+    const dialogo = within(await screen.findByRole('dialog', { name: 'Apagar este período?' }));
+    await userEvent.click(dialogo.getByRole('button', { name: 'Apagar' }));
+    await waitFor(() => expect(chamadasA(f, 'DELETE /api/militares/m1/rastreio/r1')).toBe(1));
+  });
+
+  it('"Editar" abre o formulário com os valores da mudança e grava com PUT; mudar a data vai no corpo', async () => {
+    const f = comRastreio(doisPeriodos(), { 'PUT /api/militares/m1/rastreio/r2': { status: 200, corpo: FICHA } });
+    await abrirHistorico();
+    await userEvent.click(within(item(futuro())).getByRole('button', { name: /^Editar/ }));
+    const caixa = within(await screen.findByRole('dialog', { name: 'Editar mudança' }));
+    expect(caixa.getByLabelText('A partir de')).toHaveValue(futuro());
+    expect(caixa.getByLabelText('Jornada')).toHaveDisplayValue('Pronto');
+    await waitFor(() => expect(caixa.getByLabelText('Equipe')).toHaveDisplayValue('Alfa'));
+    fireEvent.change(caixa.getByLabelText('A partir de'), { target: { value: somarDias(hoje(), 15) } });
+    await userEvent.selectOptions(caixa.getByLabelText('Jornada'), 'adm');
+    await waitFor(() => expect(caixa.getByRole('button', { name: 'Salvar' })).toBeEnabled());
+    await userEvent.click(caixa.getByRole('button', { name: 'Salvar' }));
+    await waitFor(() => expect(chamadasA(f, 'PUT /api/militares/m1/rastreio/r2')).toBe(1));
+    expect(chamadasA(f, 'POST /api/militares/m1/situacao')).toBe(0);
+    expect(corpoEnviado(f, 'PUT /api/militares/m1/rastreio/r2')).toEqual({ unidadeId: 'u-1sb', equipeId: 'e-alfa', jornada: 'adm', desde: somarDias(hoje(), 15) });
+  });
+
+  it('o erro da data aparece na janela de edição', async () => {
+    comRastreio(doisPeriodos(), { 'PUT /api/militares/m1/rastreio/r2': { status: 400, corpo: { erro: `Use uma data a partir de ${br(somarDias(hoje(), -59))}.` } } });
+    await abrirHistorico();
+    await userEvent.click(within(item(futuro())).getByRole('button', { name: /^Editar/ }));
+    const caixa = within(await screen.findByRole('dialog', { name: 'Editar mudança' }));
+    await waitFor(() => expect(caixa.getByRole('button', { name: 'Salvar' })).toBeEnabled());
+    await userEvent.click(caixa.getByRole('button', { name: 'Salvar' }));
+    expect(await caixa.findByRole('alert')).toHaveTextContent(`Use uma data a partir de ${br(somarDias(hoje(), -59))}.`);
+  });
+
+  it('"Alterar situação" avisa, mas deixa salvar, quando a lotação é do Pronto e fica sem equipe', async () => {
+    const f = comRastreio([periodo('r1', somarDias(hoje(), -60), null, { jornada: 'adm', equipe: null })], { 'POST /api/militares/m1/situacao': { status: 201, corpo: FICHA } });
+    await abrirHistorico();
+    await userEvent.click(await screen.findByRole('button', { name: 'Alterar situação' }));
+    const caixa = within(await screen.findByRole('dialog', { name: 'Alterar situação' }));
+    const aviso = 'Sem equipe, o militar não entra na pré-escala do Pronto.';
+    expect(caixa.queryByText(aviso)).toBeNull();
+    await userEvent.selectOptions(caixa.getByLabelText('Jornada'), 'pronto');
+    expect(caixa.getByText(aviso)).toBeInTheDocument();
+    await waitFor(() => expect(caixa.getByRole('button', { name: 'Salvar' })).toBeEnabled());
+    await userEvent.click(caixa.getByRole('button', { name: 'Salvar' }));
+    await waitFor(() => expect(chamadasA(f, 'POST /api/militares/m1/situacao')).toBe(1));
+  });
+
+  it('o aviso some quando uma equipe é escolhida, e não existe para o Adm', async () => {
+    comRastreio([periodo('r1', somarDias(hoje(), -60), null, { jornada: 'pronto', equipe: null })]);
+    await abrirHistorico();
+    await userEvent.click(await screen.findByRole('button', { name: 'Alterar situação' }));
+    const caixa = within(await screen.findByRole('dialog', { name: 'Alterar situação' }));
+    const aviso = 'Sem equipe, o militar não entra na pré-escala do Pronto.';
+    expect(caixa.getByText(aviso)).toBeInTheDocument();
+    await waitFor(() => expect(caixa.getByRole('option', { name: 'Alfa' })).toBeInTheDocument());
+    await userEvent.selectOptions(caixa.getByLabelText('Equipe'), 'Alfa');
+    expect(caixa.queryByText(aviso)).toBeNull();
+    await userEvent.selectOptions(caixa.getByLabelText('Equipe'), '');
+    await userEvent.selectOptions(caixa.getByLabelText('Jornada'), 'adm');
+    expect(caixa.queryByText(aviso)).toBeNull();
   });
 });

@@ -51,7 +51,7 @@ export type Mudanca = { campo: Campo; antes: string; depois: string };
  * `vao` são os dias entre o fim de um período e o começo do seguinte, sem lotação.
  */
 export type EventoDoRastreio =
-  | { tipo: 'inicio' | 'mudanca'; desde: string; vale: 'agora' | 'antes' | 'marcada'; inteira: string; mudancas: Mudanca[]; autor?: string }
+  | { tipo: 'inicio' | 'mudanca'; id: string; podeMexer: boolean; desde: string; vale: 'agora' | 'antes' | 'marcada'; inteira: string; mudancas: Mudanca[]; autor?: string }
   | { tipo: 'vao'; de: string; ate: string; texto: string };
 
 /** "Sem lotação de 01/03 a 09/03/2025" (o ano nas duas datas só quando o intervalo atravessa a virada). */
@@ -72,6 +72,8 @@ export function eventosDoRastreio(rastreio: Periodo[], dia: string): EventoDoRas
     const anterior = periodos[i - 1];
     eventos.push({
       tipo: anterior ? 'mudanca' : 'inicio',
+      id: p.id,
+      podeMexer: p.podeMexer,
       desde: p.desde,
       vale: p === agora ? 'agora' : p.desde > dia ? 'marcada' : 'antes',
       inteira: CAMPOS.map((c) => valorDoCampo(p, c)).filter(Boolean).join(' · '),
