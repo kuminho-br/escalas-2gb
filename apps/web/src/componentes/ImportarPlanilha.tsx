@@ -30,7 +30,7 @@ function mensagemDaConfirmacao(e: unknown): string {
 
 /** Importar da planilha sandbox: escolher o .xlsx, ver o que vai entrar e importar. */
 /** `unidadeId`: a unidade da importação, quando não é a unidade em que as telas trabalham (o módulo Pecúlio importa pelo 2º GB). */
-export function ImportarPlanilha({ cadastro, rotulo, aoConcluir, unidadeId }: { cadastro: string; rotulo: string; aoConcluir: () => void; unidadeId?: string }) {
+export function ImportarPlanilha({ cadastro, rotulo, aoConcluir, unidadeId, destino }: { cadastro: string; rotulo: string; aoConcluir: () => void; unidadeId?: string; destino?: string }) {
   // a unidade em que a tela trabalha: a mesma conta do `_app` (a escolha vale por aba, então as duas leituras coincidem)
   const { data: eu } = useQuery(consultaEu);
   const [aberto, setAberto] = useState(false);
@@ -122,6 +122,7 @@ export function ImportarPlanilha({ cadastro, rotulo, aoConcluir, unidadeId }: { 
         <DialogHeader>
           <DialogTitle>Importar {rotulo} da planilha</DialogTitle>
           <DialogDescription>Nada é gravado antes de você conferir o que vai entrar.</DialogDescription>
+          {destino && <p className="text-sm font-medium">{`Unidade da importação: ${destino} e as de baixo.`}</p>}
         </DialogHeader>
 
         {etapa.tipo === 'escolher' && (

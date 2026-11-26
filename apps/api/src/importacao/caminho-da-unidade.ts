@@ -38,6 +38,38 @@ export function menorCaminhoUnico(u: UnidadeDoCaminho, todas: UnidadeDoCaminho[]
 }
 
 /**
+ * O `menorCaminhoUnico` de todas as unidades de uma vez (a busca escreve a unidade de vários militares): normaliza as siglas uma só vez e agrupa as unidades pela última sigla, então só
+ * compara entre as que podem se confundir. O resultado é, unidade por unidade, o mesmo de `menorCaminhoUnico`.
+ */
+export function rotulosDasUnidades(todas: UnidadeDoCaminho[]): Map<string, string> {
+  const normalizadas = new Map(todas.map((u) => [u.id, u.siglas.map(normalizar)]));
+  const porUltima = new Map<string, UnidadeDoCaminho[]>();
+  for (const u of todas) {
+    const ultima = normalizadas.get(u.id)!.at(-1)!;
+    porUltima.set(ultima, [...(porUltima.get(ultima) ?? []), u]);
+  }
+  const rotulos = new Map<string, string>();
+  for (const u of todas) {
+    const minhas = normalizadas.get(u.id)!;
+    const grupo = porUltima.get(minhas.at(-1)!)!;
+    let rotulo = u.siglas.join(' / ');
+    for (let k = 1; k <= minhas.length; k++) {
+      const pedacos = minhas.slice(-k);
+      const iguais = grupo.filter((o) => {
+        const dela = normalizadas.get(o.id)!;
+        return pedacos.length <= dela.length && pedacos.every((p, i) => p === dela[dela.length - pedacos.length + i]);
+      });
+      if (iguais.length === 1) {
+        rotulo = u.siglas.slice(-k).join(' / ');
+        break;
+      }
+    }
+    rotulos.set(u.id, rotulo);
+  }
+  return rotulos;
+}
+
+/**
  * Lê a unidade de uma célula: vale qualquer pedaço final do caminho que aponte uma unidade só entre as do `alcance` (a unidade da importação e as de baixo); o caminho inteiro também.
  * O formato antigo "SIGLA (MÃE)" não vale (a importação é contrato). `todas` serve para escrever os caminhos na mensagem de unidade ambígua.
  */

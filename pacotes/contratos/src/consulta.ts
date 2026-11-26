@@ -83,6 +83,8 @@ export type LinhaDaBusca = LinhaDaConsulta & {
   jornada: 'pronto' | 'adm' | null;
   situacao: string | null;
   unidadeId: string | null;
+  /** A unidade de hoje pelo menor caminho que a identifica na corporação inteira ("2º GB / 1ª SB"; "CBMPE" na raiz), como na exportação; null sem lotação (6.62). */
+  lotacaoCaminho: string | null;
   podeAlterar: boolean;
 };
 /** `naoEncontradas`: as matrículas do arquivo que não são de nenhum militar (como vieram, sem repetir). */

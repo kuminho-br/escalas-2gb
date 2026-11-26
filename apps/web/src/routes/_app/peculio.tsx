@@ -95,7 +95,7 @@ function Peculio() {
         <>
           <div className="flex flex-wrap gap-2">
               {/* a importação é de quem cuida do pessoal (nível acima das seções), a mesma regra do cadastro de militar novo */}
-              {podeCadastrarMilitar(eu) && <ImportarPlanilha cadastro="peculio" rotulo="o Pecúlio" unidadeId={unidade.id} aoConcluir={() => atualizarPeculio(queryClient)} />}
+              {podeCadastrarMilitar(eu) && <ImportarPlanilha cadastro="peculio" rotulo="o Pecúlio" unidadeId={unidade.id} destino={unidade.sigla} aoConcluir={() => atualizarPeculio(queryClient)} />}
               {podeCadastrarMilitar(eu) && (
                 <Button onClick={() => setNovo(true)}>
                   <UserPlus aria-hidden />
