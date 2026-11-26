@@ -41,8 +41,7 @@
       '<header class="ini-topo">' +
         '<a class="topo-marca" href="#tela" aria-label="Ir para o início"><img src="' + o.img + 'brasao-2gb.png" alt=""><span class="sistema">Sistema de Gestão <span>- 2º GB</span></span></a>' +
         '<span class="divisa" aria-hidden="true"></span>' +
-        '<button type="button" class="unidade" aria-label="Unidade de trabalho: CBMPE / 2º GB / 1ª SB">' +
-          '<span class="caminho" aria-hidden="true"><span>CBMPE</span>' + ic('dir') + '<span>2º GB</span>' + ic('dir') + '</span><b>1ª SB</b>' + ic('baixo') + '</button>' +
+        '<nav class="ini-unidade" data-unidade aria-label="Unidade de trabalho"></nav>' +
         '<button type="button" class="quem"><span class="iniciais" aria-hidden="true">A</span><span class="nome"><b>CB ALMEIDA</b><small class="nivel">Escalante</small></span>' + ic('baixo') + '</button>' +
       '</header>' +
       '<div class="ini-capa" aria-hidden="true"></div>' +
@@ -85,10 +84,105 @@
    * Monta a tela dentro de `raiz` (um .ini). opcoes: img (pasta das imagens, com a barra), saudacao, data, chegada (acrescenta as camadas
    * da animação do login). Devolve as alças: faixa, rola, titulo, saudacao, cartoes (o que entra em fila depois do pouso) e medir().
    */
+  /*
+   * A unidade em degraus (pedido do usuário, 25/11): um botão por nível da hierarquia, separados por ›. Cada degrau abre só as unidades
+   * que ficam dentro do degrau anterior; escolhida uma, o próximo nível abre sozinho, até a folha (a SB). Proposta de mudança de
+   * comportamento: hoje o site abre a árvore inteira numa caixa só (EscolherUnidade, 6.45).
+   * Regras do mockup: só aparecem as unidades a que a pessoa tem acesso ou que levam a uma delas; um nível com uma opção só vira texto
+   * (não há o que escolher); "passagem" é a unidade acima das da pessoa, que só serve para descer (não vira a unidade de trabalho).
+   * Hierarquia de exemplo: o caminho CBMPE / DGO / DInter/1 / 2º GB / 1ª SB é o do sistema; as unidades vizinhas são fictícias.
+   */
+  var ARVORE = { sigla: 'CBMPE', nome: 'Corpo de Bombeiros Militar de Pernambuco', filhos: [
+    { sigla: 'DGO', nome: 'Diretoria de Gestão Operacional', filhos: [
+      { sigla: 'DInter/1', nome: 'Diretoria do Interior 1', filhos: [
+        { sigla: '2º GB', nome: '2º Grupamento de Bombeiros', filhos: [
+          { sigla: '1ª SB', nome: 'Caruaru', acesso: 'trabalho' },
+          { sigla: '2ª SB', nome: 'Seção de exemplo', acesso: 'trabalho' },
+          { sigla: '3ª SB', nome: 'Seção de exemplo', acesso: 'consulta' }
+        ] },
+        { sigla: '4º GB', nome: 'Grupamento de exemplo', acesso: 'consulta', filhos: [
+          { sigla: '1ª SB', nome: 'Seção de exemplo' }, { sigla: '2ª SB', nome: 'Seção de exemplo' }
+        ] }
+      ] }
+    ] }
+  ] };
+  var NOME_DO_NIVEL = ['corporação', 'diretoria', 'diretoria regional', 'grupamento', 'seção'];
+  (function herdar(n, acesso) { n.acesso = n.acesso || acesso; (n.filhos || []).forEach(function (f) { herdar(f, n.acesso); }); })(ARVORE);
+  function alcanca(n) { return !!n.acesso || (n.filhos || []).some(alcanca); }
+  function filhosDe(n) { return (n.filhos || []).filter(alcanca); }
+  function caminhoAte(siglas) { var n = ARVORE, c = [n]; siglas.slice(1).forEach(function (s) { n = filhosDe(n).filter(function (f) { return f.sigla === s; })[0]; c.push(n); }); return c; }
+
+  function montarUnidade(raiz, nav) {
+    var caminho = caminhoAte(['CBMPE', 'DGO', 'DInter/1', '2º GB', '1ª SB']);
+    var atual = caminho.slice();          // a unidade de trabalho de fato (o caminho pode estar a meio, numa passagem)
+    var aberto = -1;                       // o degrau com a lista aberta
+    var aviso = '';
+    function opcoesDo(i) { return i === 0 ? [ARVORE] : filhosDe(caminho[i - 1]); }
+    function desenhar() {
+      var h = '<ol class="degraus">', ultimo = caminho[caminho.length - 1];
+      caminho.forEach(function (n, i) {
+        var ops = opcoesDo(i), folha = i === caminho.length - 1;
+        h += '<li class="degrau' + (folha ? ' atual' : '') + '">' + (i ? '<span class="sep" aria-hidden="true">›</span>' : '');
+        if (ops.length > 1) h += '<button type="button" data-degrau="' + i + '" aria-expanded="' + (aberto === i) + '" aria-haspopup="listbox"' + (folha ? ' aria-current="location"' : '') + '><span>' + n.sigla + '</span>' + ic('baixo') + '</button>';
+        else h += '<span class="fixo"' + (folha ? ' aria-current="location"' : '') + '>' + n.sigla + '</span>';
+        if (aberto === i) h += lista(i);
+        h += '</li>';
+      });
+      // o próximo nível: tracejado, com o nome do nível; quando o degrau atual é passagem, ele é obrigatório
+      if (filhosDe(ultimo).length) {
+        var j = caminho.length, falta = !ultimo.acesso;
+        h += '<li class="degrau"><span class="sep" aria-hidden="true">›</span><button type="button" class="proximo' + (falta ? ' falta' : '') + '" data-degrau="' + j + '" aria-expanded="' + (aberto === j) + '" aria-haspopup="listbox">' +
+          (falta ? 'Escolha a ' + NOME_DO_NIVEL[j] : NOME_DO_NIVEL[j].charAt(0).toUpperCase() + NOME_DO_NIVEL[j].slice(1)) + ic('baixo') + '</button>' + (aberto === j ? lista(j) : '') + '</li>';
+      }
+      h += '</ol>';
+      nav.innerHTML = h + '<p class="sr-only" role="status">' + aviso + '</p>';
+      nav.classList.toggle('aberta', aberto >= 0);
+      var foco = nav.querySelector('.lista button[aria-selected="true"]') || nav.querySelector('.lista button');
+      if (foco && aberto >= 0) foco.focus();
+    }
+    function lista(i) {
+      var de = i === 0 ? '' : caminho[i - 1].sigla;
+      return '<div class="lista" role="listbox" aria-label="' + (de ? 'Unidades dentro de ' + de : 'Corporação') + '">' +
+        (de ? '<p class="de">Dentro de ' + de + '</p>' : '') +
+        opcoesDo(i).map(function (n, k) {
+          var esc = caminho[i] === n, desce = filhosDe(n).length > 0;
+          return '<button type="button" role="option" data-opcao="' + k + '" aria-selected="' + esc + '"><span class="txt"><b>' + n.sigla + '</b><small>' + n.nome + '</small></span>' +
+            (n.acesso === 'consulta' ? '<span class="etq">Só consulta</span>' : '') + (esc ? ic('ok') : desce ? ic('dir') : '') + '</button>';
+        }).join('') + '</div>';
+    }
+    nav.addEventListener('click', function (e) {
+      var d = e.target.closest('[data-degrau]'), op = e.target.closest('[data-opcao]');
+      if (op) {
+        var n = opcoesDo(aberto)[Number(op.getAttribute('data-opcao'))];
+        caminho = caminho.slice(0, aberto).concat(n);
+        if (n.acesso) { atual = caminho.slice(); aviso = 'Unidade de trabalho: ' + atual.map(function (x) { return x.sigla; }).join(' / ') + (n.acesso === 'consulta' ? ', só consulta' : ''); }
+        // escolheu e tem mais abaixo: o próximo nível abre sozinho, até a folha
+        aberto = filhosDe(n).length ? caminho.length : -1;
+        desenhar(); if (aberto < 0) focarUltimo(); return;
+      }
+      if (d) { var i = Number(d.getAttribute('data-degrau')); aberto = aberto === i ? -1 : i; desenhar(); if (aberto < 0) focarUltimo(); }
+    });
+    function fechar() {
+      if (aberto < 0) return;
+      // fechou no meio do caminho, numa passagem: volta à unidade de trabalho que valia
+      if (!caminho[caminho.length - 1].acesso) caminho = atual.slice();
+      aberto = -1; desenhar(); focarUltimo();
+    }
+    function focarUltimo() { var b = nav.querySelectorAll('.degrau [data-degrau]'); if (b.length) b[b.length - 1].focus(); }
+    nav.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') { e.preventDefault(); fechar(); return; }
+      var bs = Array.prototype.slice.call(nav.querySelectorAll('.lista button')), k = bs.indexOf(document.activeElement);
+      if (k >= 0 && (e.key === 'ArrowDown' || e.key === 'ArrowUp')) { e.preventDefault(); bs[(k + (e.key === 'ArrowDown' ? 1 : bs.length - 1)) % bs.length].focus(); }
+    });
+    raiz.addEventListener('click', function (e) { if (aberto >= 0 && e.target.isConnected && !nav.contains(e.target)) fechar(); });
+    desenhar();
+  }
+
   function montar(raiz, opcoes) {
     var o = opcoes || {};
     o.img = o.img || '../img/'; o.saudacao = o.saudacao || 'Bom dia'; o.data = o.data || 'Quarta-feira, 25 de novembro de 2026';
     raiz.innerHTML = tela(o);
+    montarUnidade(raiz, raiz.querySelector('[data-unidade]'));
     var rola = raiz.querySelector('[data-rola]'), faixa = raiz.querySelector('[data-faixa]'), espaco = raiz.querySelector('[data-espaco]');
     var alto = 0, min = 0, margem = 0, quadro = 0, n = 0;
     function medir() {

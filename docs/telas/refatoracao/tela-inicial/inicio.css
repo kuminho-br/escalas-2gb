@@ -13,11 +13,31 @@
 .ini-topo .sistema{font:600 var(--t17)/1 var(--cond);letter-spacing:-.005em;white-space:nowrap}
 .ini-topo .sistema span{white-space:nowrap}
 .ini-topo .divisa{width:1px;height:24px;background:var(--linha);flex:none}
-.ini-topo .unidade{display:flex;align-items:center;gap:6px;min-width:0;height:34px;padding:0 10px 0 12px;border:1px solid var(--linha);border-radius:var(--raio);font:500 var(--t15)/1 var(--cond);white-space:nowrap}
-.ini-topo .unidade:hover,.ini-topo .quem:hover{background:var(--fundo)}
-.ini-topo .caminho{display:flex;align-items:center;gap:6px;min-width:0;color:var(--apagado);overflow:hidden}
-.ini-topo .caminho .i{width:12px;height:12px;opacity:.7}
-.ini-topo .unidade b{font-weight:600;color:var(--tinta)}
+/* a unidade em degraus (25/11): um botão por nível, separados por ›; o nível sem escolha é texto; o próximo nível vem tracejado */
+.ini-unidade{position:relative;min-width:0}
+.ini-unidade .sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+.ini-unidade .degraus{display:flex;align-items:center;gap:4px;margin:0;padding:0;list-style:none;font:500 var(--t15)/1 var(--cond);white-space:nowrap}
+.ini-unidade .degrau{position:relative;display:flex;align-items:center;gap:4px}
+.ini-unidade .sep{color:var(--encaixe);font-size:var(--t17);padding:0 1px}
+.ini-unidade .fixo{padding:0 4px;color:var(--apagado)}
+.ini-unidade .degrau>button{display:flex;align-items:center;gap:4px;height:32px;padding:0 6px 0 10px;border:1px solid var(--linha);border-radius:var(--raio);color:var(--apagado)}
+.ini-unidade .degrau>button .i{width:14px;height:14px}
+.ini-unidade .degrau>button:hover,.ini-unidade .degrau>button[aria-expanded="true"]{background:var(--fundo);color:var(--tinta)}
+.ini-unidade .atual>button{color:var(--tinta);font-weight:600;border-color:var(--encaixe)}
+.ini-unidade .atual>.fixo{color:var(--tinta);font-weight:600}
+.ini-unidade .proximo{border-style:dashed!important;color:var(--apagado)}
+.ini-unidade .proximo.falta{border-color:var(--vinho)!important;color:var(--vinho)}
+.ini-unidade .lista{position:absolute;top:calc(100% + 6px);left:0;z-index:9;display:grid;gap:2px;min-width:290px;max-width:340px;padding:6px;border:1px solid var(--linha);border-radius:var(--raio-sup);background:var(--superficie);box-shadow:0 12px 32px rgba(28,36,48,.16);white-space:normal}
+.ini-unidade .lista .de{margin:0;padding:6px 8px 4px;font:500 var(--t13)/1 var(--texto);color:var(--apagado)}
+.ini-unidade .lista button{display:flex;align-items:center;gap:10px;width:100%;padding:8px;border-radius:var(--raio);text-align:left}
+.ini-unidade .lista button:hover,.ini-unidade .lista button:focus-visible{background:var(--fundo)}
+.ini-unidade .lista button[aria-selected="true"]{box-shadow:inset 3px 0 0 var(--vinho)}
+.ini-unidade .lista .txt{display:grid;gap:3px;flex:1;min-width:0}
+.ini-unidade .lista .txt b{font:600 var(--t15)/1 var(--cond);color:var(--tinta)}
+.ini-unidade .lista .txt small{font:400 var(--t13)/1.2 var(--texto);color:var(--apagado)}
+.ini-unidade .lista .etq{padding:3px 6px;border-radius:4px;background:var(--fundo);font:500 11.5px/1 var(--texto);color:var(--apagado)}
+.ini-unidade .lista .i{width:16px;height:16px}
+.ini-topo .quem:hover{background:var(--fundo)}
 .ini-topo .quem{margin-left:auto;display:flex;align-items:center;gap:10px;height:42px;padding:0 8px 0 4px;border-radius:var(--raio);white-space:nowrap;text-align:left}
 .ini-topo .iniciais{display:grid;place-items:center;width:32px;height:32px;border-radius:50%;background:var(--vinho);color:var(--claro);font:600 var(--t15)/1 var(--cond);flex:none}
 .ini-topo .nome{display:grid;gap:2px}
@@ -121,8 +141,16 @@
 /* no celular a cena fica com a saudação e os cartões, que rolam de lado; os avisos descem logo abaixo, no mesmo vidro escuro */
 @container inicio (max-width:600px){
   .ini-topo{padding:3px 12px 0;gap:8px}
-  .ini-topo .sistema,.ini-topo .divisa,.ini-topo .caminho,.ini-topo .nome{display:none}
-  .ini-topo .unidade{padding:0 8px 0 10px}
+  .ini-topo .sistema,.ini-topo .divisa,.ini-topo .nome{display:none}
+  /* celular: fechado, só o último degrau; aberto, os degraus descem num painel da largura da tela, um embaixo do outro */
+  .ini-unidade:not(.aberta) .degrau:not(.atual),.ini-unidade:not(.aberta) .sep{display:none}
+  .ini-unidade:not(.aberta) .atual>.fixo{display:flex;align-items:center;height:32px;padding:0 10px;border:1px solid var(--encaixe);border-radius:var(--raio)}
+  .ini-unidade.aberta{position:absolute;left:0;right:0;top:100%;z-index:9;padding:12px;background:var(--superficie);border-bottom:1px solid var(--linha);box-shadow:0 12px 32px rgba(28,36,48,.16)}
+  .ini-unidade.aberta .degraus{flex-direction:column;align-items:stretch;gap:6px}
+  .ini-unidade.aberta .degrau{flex-wrap:wrap}
+  .ini-unidade.aberta .sep{display:none}
+  .ini-unidade.aberta .fixo{font-size:var(--t13);padding:0 2px}
+  .ini-unidade.aberta .lista{position:static;width:100%;max-width:none;box-shadow:none;margin-top:4px}
   .ini-topo .quem{padding:0 4px;gap:4px}
   .ini-alta{grid-template-columns:minmax(0,1fr);padding:18px 16px 16px;gap:12px}
   .ini-saudacao h1{font:600 var(--t28)/32px var(--cond)}
