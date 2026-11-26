@@ -6,4 +6,4 @@ Situação: `rascunho` (registrada, com perguntas em aberto), `modelada` (esclar
 
 | Ideia | Origem | Situação |
 |---|---|---|
-| [Laboratório](laboratorio.md) | usuário, 25/11/2026 | modelada |
+| [Laboratório](laboratorio.md) | usuário, 25/11/2026 | no roadmap (6.58 a 6.60) |

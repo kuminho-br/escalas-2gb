@@ -1,6 +1,6 @@
 # Laboratório
 
-25/11/2026 · modelada · CONCEPÇÃO · origem: usuário (25/11/2026) · documento de requisitos
+25/11/2026 · no roadmap (6.58 a 6.60) · CONCEPÇÃO · origem: usuário (25/11/2026) · documento de requisitos
 
 ## A ideia
 

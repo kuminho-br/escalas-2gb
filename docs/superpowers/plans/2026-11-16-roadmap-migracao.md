@@ -108,6 +108,9 @@ Design: `docs/superpowers/specs/2026-11-21-usuarios-e-modulos-design.md`. Plano:
 | 55 | Tela inicial: os próximos serviços do militar (cartão com dia da semana, dia, serviço e horário, na cor do serviço), sobre a Minha escala da 7.5 | aguarda o mockup da DESIGN |
 | 56 | Tela inicial: o quadro de avisos, com o cadastro de avisos (a modelagem do aviso passa pela CONCEPÇÃO antes do plano) | planejada |
 | 57 | Planilhas: a unidade pelo caminho de siglas ("2º GB / 1ª SB"); toda importação devolve a planilha das linhas com problema, com o motivo; o trilho sem Histórico e Ajuda | mesclada (#267) |
+| 58 | Laboratório 1: o espelho do banco (schema `laboratorio`, mesma estrutura do real, só dados de teste) e a separação: os militares fictícios `990…` saem do banco real. **Tem prazo: antes da montagem de dezembro** | planejada, aguarda a ordem do usuário para a DESENVOLVIMENTO |
+| 59 | Laboratório 2: o cartão na tela inicial, o perfil de teste, a faixa "Laboratório: dados de teste. Nada aqui vale." e o sistema inteiro sobre o espelho, com o isolamento provado; "Recomeçar" | planejada |
+| 60 | Laboratório 3: as ferramentas em teste e o retorno (texto e nota de 1 a 5), com a lista de retornos para o administrador | planejada |
 
 ## Refatoração da interface · fundação concluída
 
