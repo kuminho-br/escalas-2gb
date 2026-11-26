@@ -14,7 +14,7 @@
 
 ## Global Constraints
 
-- Branch `fase6-60-ferramentas-e-retorno`, a partir da `main` com a 6.59 mesclada. Migração `0048` (as duas tabelas), só com autorização do usuário.
+- Branch `fase6-60-ferramentas-e-retorno`, a partir da `main` com a 6.59 mesclada. Migração `0049` (as duas tabelas), só com autorização do usuário.
 - **No real:** `ferramenta_teste` e `retorno_laboratorio`. As migrações valem para os dois schemas (6.58), então as duas tabelas existem também no espelho, **vazias e sem uso**; as rotas só leem e gravam as do real.
 - **Quem cadastra, muda a situação e lê a lista de retornos:** o administrador **real**. **Quem lê as ferramentas e deixa retorno:** todo militar com conta, no Laboratório (exige a sessão no Laboratório).
 - **Situação da ferramenta:** `em teste`, `encerrada` ou `virou módulo`. Só `em teste` aceita retorno; as outras aparecem na lista, apagadas, para consulta.
@@ -35,7 +35,7 @@
 
 ### Task 1: as ferramentas e o retorno na API
 
-**Files:** Create `apps/api/banco/migracoes/0048_laboratorio_ferramentas_e_retorno.sql`, `apps/api/src/laboratorio/ferramentas.ts`, `apps/api/src/laboratorio/retornos.ts`, `pacotes/contratos/src/laboratorio.ts`; Modify as rotas do real (onde a 6.59 pôs o `/api/laboratorio`), `pacotes/contratos/src/index.ts`; Test `apps/api/test/laboratorio-retorno.test.ts`
+**Files:** Create `apps/api/banco/migracoes/0049_laboratorio_ferramentas_e_retorno.sql`, `apps/api/src/laboratorio/ferramentas.ts`, `apps/api/src/laboratorio/retornos.ts`, `pacotes/contratos/src/laboratorio.ts`; Modify as rotas do real (onde a 6.59 pôs o `/api/laboratorio`), `pacotes/contratos/src/index.ts`; Test `apps/api/test/laboratorio-retorno.test.ts`
 
 **Interfaces (Produces):**
 - Tabelas: `ferramenta_teste (id uuid pk, nome text not null, o_que_testar text not null, caminho text null, situacao text not null check (situacao in ('em_teste','encerrada','virou_modulo')) default 'em_teste', inicio date not null default current_date, fim date null)`; `retorno_laboratorio (id uuid pk, ferramenta_id uuid not null references ferramenta_teste, usuario_id uuid not null references usuario(id), perfil_de_teste text not null, tela text not null, texto text not null check (char_length(texto) between 1 and 2000), nota smallint not null check (nota between 1 and 5), criado_em timestamptz not null default now())`; índice por `(ferramenta_id, criado_em desc)`. Auditoria na `ferramenta_teste` (mesmo gatilho das outras); `retorno_laboratorio` sem edição nem exclusão (gatilho que recusa `update` e `delete`).

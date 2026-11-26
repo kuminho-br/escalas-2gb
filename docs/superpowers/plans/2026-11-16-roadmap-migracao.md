@@ -105,12 +105,13 @@ Design: `docs/superpowers/specs/2026-11-21-usuarios-e-modulos-design.md`. Plano:
 | 50 a 52 | Pecúlio Geral: as três telas e a ficha no lugar; a pesquisa com filtros, árvore, arquivo e seleção; a atualização em lote | 50, 51 e 52 mescladas (#244, #246, #248) |
 | 53 | Acabamento do piloto: o filtro de CNH pela hierarquia, o motivo do passado uma vez por ação, "ADM" e "24:00", controles soltos do voluntariado e do Pecúlio, a atualização em lote | mesclada (#261) |
 | 54 | Exportar militares para Excel em Pesquisar militares (os campos escolhidos, com as colunas da importação) e a busca sem corte para "Selecionar estes N" | mesclada (#264) |
-| 55 | Tela inicial: os próximos serviços do militar (cartão com dia da semana, dia, serviço e horário, na cor do serviço), sobre a Minha escala da 7.5 | sem plano; o mockup v3 da DESIGN está em revisão pelo usuário (branch `docs-manual-entrada-v2`, sem PR); o plano sai com a aprovação |
-| 56 | Tela inicial: o quadro de avisos, com o cadastro de avisos (a modelagem do aviso passa pela CONCEPÇÃO antes do plano) | sem plano; aguarda a modelagem da CONCEPÇÃO |
+| 55 | Tela inicial: os próximos serviços do militar (cartão com dia da semana, dia, serviço e horário, na cor do serviço), sobre a Minha escala da 7.5 | plano pronto (mockup v3 aprovado em 26/11, sem o cabeçalho); em execução |
+| 56 | Tela inicial: o quadro de avisos, com o cadastro de avisos (a modelagem do aviso passa pela CONCEPÇÃO antes do plano) | plano pronto (regras do aviso fechadas com o usuário em 26/11, migração 0047); depois da 6.55 |
 | 57 | Planilhas: a unidade pelo caminho de siglas ("2º GB / 1ª SB"); toda importação devolve a planilha das linhas com problema, com o motivo; o trilho sem Histórico e Ajuda | mesclada (#267) |
 | 58 | Laboratório 1: o espelho do banco (schema `laboratorio`, mesma estrutura do real, só dados de teste) e a separação: os militares fictícios `990…` saem do banco real. **Tem prazo: antes da montagem de dezembro** | plano pronto; aguarda a ordem do usuário para a DESENVOLVIMENTO |
 | 59 | Laboratório 2: o cartão na tela inicial, o perfil de teste, a faixa "Laboratório: dados de teste. Nada aqui vale." e o sistema inteiro sobre o espelho, com o isolamento provado; "Recomeçar" | plano pronto; depois da 6.58 |
 | 60 | Laboratório 3: as ferramentas em teste e o retorno (texto e nota de 1 a 5), com a lista de retornos para o administrador | plano pronto; depois da 6.59 |
+| 61 | Cabeçalho novo do mockup v3 da tela inicial: fio vinho, brasão do 2º GB, o nome "Sistema de Gestão - 2º GB" e a unidade em degraus (um botão por nível, cada um abre só as unidades de dentro do anterior), no lugar do seletor da 6.45 | sem plano; depois da 6.56 |
 
 ## Refatoração da interface · fundação concluída
 
