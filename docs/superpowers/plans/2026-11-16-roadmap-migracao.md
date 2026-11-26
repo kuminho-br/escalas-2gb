@@ -9,7 +9,7 @@
 **Como ler:**
 - Este documento é só o mapa: a ordem das fases, a situação de cada entrega e onde está cada coisa.
 - O porquê de cada decisão está em `docs/decisoes.md`.
-- Cada fase tem um plano de tarefas, escrito por entrega, só quando ela está para começar. Plano pedido pelo usuário vai direto ao GitHub, é mesclado e vai para a execução (Sonnet executa, Opus revisa).
+- Cada fase tem um plano de tarefas, escrito por entrega, só quando ela está para começar. Plano pedido pelo usuário vai direto ao GitHub e é mesclado; vai para a execução só quando o usuário mandar (Sonnet executa, Opus revisa).
 - Ao terminar uma entrega, a DESENVOLVIMENTO envia o branch; a PLANEJAMENTO abre o PR, mescla e avisa a VALIDAÇÃO, que monta os testes de navegador para o usuário.
 - Não há datas: a ordem importa mais que o prazo.
 
