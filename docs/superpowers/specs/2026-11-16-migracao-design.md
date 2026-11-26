@@ -64,7 +64,7 @@ Como o sistema novo é pensado hoje. A ordem das fases está no roadmap (`docs/s
 - **Teste:** o ambiente usado pelos escalantes recebe dados reais. Hoje são os da 1ª SB; com o Pecúlio (fase 5), os do 2º GB inteiro. Os dados já estão em contas pessoais do Google, então o teste não piora a situação.
 - **Campos:** o que o sistema usa e os campos do Pecúlio, **menos o CPF e o ano de nascimento** (o aniversário fica só com dia e mês). CPF e data de nascimento entram só no servidor do Estado (fase 11). TELEFONE não é carregado.
 - **Afastamentos:** só período e tipo, sem motivo de saúde (sem CID, sem laudo).
-- **Desenvolvimento, testes, GitHub e prévias:** só dados fictícios, com matrículas numa faixa que não existe (começando em `990`). Hoje são 53 militares da 1ª SB; com o Pecúlio, o conjunto cresce para o GB inteiro, nas mesmas proporções. Serviços, guarnições, escalas e estrutura são os reais.
+- **Desenvolvimento, testes, GitHub e prévias:** só dados fictícios. A matrícula `990…` existe de verdade (26/11/2026): o que é de teste tem a marca `de_teste`. Hoje são 53 militares da 1ª SB; com o Pecúlio, o conjunto cresce para o GB inteiro, nas mesmas proporções. Serviços, guarnições, escalas e estrutura são os reais.
 - **Arquivos de origem** (Pecúlio, almanaques) ficam em `docs/fontes de dados/`, fora do Git.
 - **Descartadas (Pecúlio):** levar tudo, inclusive CPF e nascimento; levar só o que a escala usa.
 - **Salvaguardas não adotadas:** apagar o banco de teste com data marcada; anuência escrita do Chefe da SB.

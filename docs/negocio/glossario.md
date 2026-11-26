@@ -35,7 +35,7 @@ Os termos do domínio na linguagem do sistema novo. Quem cuida: DOCUMENTAÇÃO. 
 | Termo | Definição | Situação |
 |---|---|---|
 | Militar | Pessoa do cadastro, identificada pela matrícula. Todo usuário é um militar. | Em uso |
-| Matrícula | O identificador do militar. Nos testes, só fictícias (`990xxx-x`). | Em uso |
+| Matrícula | O identificador do militar. Não diz se o militar é de teste (a faixa `990xxx-x` é de militares reais); no banco, quem diz é a marca `de_teste`. | Em uso |
 | Pecúlio | A ficha do militar e o módulo que cuida dela; é a origem dos dados do militar (RN-135). A planilha do Pecúlio importa tudo, e só a matrícula é obrigatória. | Em uso |
 | Ficha da escala | A ficha do militar vista no módulo de escalas: a seção edita só as Habilitações e vê o resto. A ficha completa fica no Pecúlio. | Em uso |
 | Posto/graduação (patente) | O posto do oficial ou a graduação da praça. Dá a primeira ordem de antiguidade; sigla e nome editáveis pelo administrador. | Em uso |
