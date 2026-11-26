@@ -37,7 +37,14 @@
   function tela(o) {
     var p = PROXIMOS[0];
     return '' +
-      '<header class="ini-topo"><img src="' + o.img + 'brasao-cbmpe.png" alt=""><span class="sistema">Escalas 2º GB</span><span class="unidade">CBMPE / 2º GB / 1ª SB' + ic('baixo') + '</span><span class="quem">CB ALMEIDA' + ic('baixo') + '</span></header>' +
+      // o cabeçalho (versão 3, 25/11): a marca do sistema, a unidade como um botão de verdade e a pessoa com as iniciais
+      '<header class="ini-topo">' +
+        '<a class="topo-marca" href="#tela" aria-label="Ir para o início"><img src="' + o.img + 'brasao-2gb.png" alt=""><span class="sistema">Sistema de Gestão <span>- 2º GB</span></span></a>' +
+        '<span class="divisa" aria-hidden="true"></span>' +
+        '<button type="button" class="unidade" aria-label="Unidade de trabalho: CBMPE / 2º GB / 1ª SB">' +
+          '<span class="caminho" aria-hidden="true"><span>CBMPE</span>' + ic('dir') + '<span>2º GB</span>' + ic('dir') + '</span><b>1ª SB</b>' + ic('baixo') + '</button>' +
+        '<button type="button" class="quem"><span class="iniciais" aria-hidden="true">A</span><span class="nome"><b>CB ALMEIDA</b><small class="nivel">Escalante</small></span>' + ic('baixo') + '</button>' +
+      '</header>' +
       '<div class="ini-capa" aria-hidden="true"></div>' +
       '<div class="ini-faixa" data-faixa>' +
         (o.chegada ? '<div class="ini-lampejo" data-lampejo aria-hidden="true"></div><div class="ini-risco" data-risco aria-hidden="true"></div>' : '') +

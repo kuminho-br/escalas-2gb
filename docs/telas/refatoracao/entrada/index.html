@@ -73,8 +73,10 @@
 .ent-palco:not([data-modo="cel"]) .ent-fundo img{object-position:center 18%}
 .ent-palco:not([data-modo="cel"]) .ent-fundo::after{background:linear-gradient(180deg,rgba(28,36,48,.10) 0%,rgba(111,20,20,.28) 38%,rgba(111,20,20,.90) 100%),linear-gradient(90deg,rgba(111,20,20,.40) 0%,rgba(111,20,20,0) 55%)}
 .ent-palco:not([data-modo="cel"]) .ent-marca{align-self:end;padding-bottom:12px}
-.ent-palco[data-modo="cel"] .ent-fundo img{object-position:32% 0}
-.ent-palco[data-modo="cel"] .ent-fundo::after{background:linear-gradient(180deg,rgba(28,36,48,.08) 0%,rgba(111,20,20,.18) 26%,rgba(111,20,20,.88) 44%,rgba(111,20,20,.96) 100%)}
+/* celular (25/11, segunda tentativa): sem as bandeiras e sem céu; a fachada, a estátua e o jardim, como no recorte que o usuário mandou.
+   A foto (1280 x 960) é ampliada 1,06 vez e posta de modo que o pedaço x 500-870, y 430-960 caia sobre a parte de cima do palco */
+.ent-palco[data-modo="cel"] .ent-fundo img{position:absolute;width:1357px;height:1018px;left:-530px;top:-456px;object-fit:fill}
+.ent-palco[data-modo="cel"] .ent-fundo::after{background:linear-gradient(180deg,rgba(111,20,20,.20) 0%,rgba(111,20,20,.24) 24%,rgba(111,20,20,.86) 44%,rgba(111,20,20,.96) 100%)}
 .ent-palco[data-modo="cel"] .ent-marca{margin-top:auto;padding:0 22px 20px;display:grid;grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"nome brasao" "linha brasao";column-gap:14px;row-gap:6px;align-items:center}
 .ent-palco[data-modo="cel"] .ent-marca img{grid-area:brasao;width:72px}
 .ent-palco[data-modo="cel"] .ent-marca h1{grid-area:nome;font-size:28px}
@@ -153,7 +155,7 @@
       <table class="tabela ent-muda">
         <thead><tr><th scope="col">Item</th><th scope="col" class="quebra">Hoje</th><th scope="col" class="quebra">Versão 2</th></tr></thead>
         <tbody>
-          <tr><td>Foto do login</td><td class="quebra">O quartel nublado, com as setas da galeria do celular gravadas embaixo.</td><td class="quebra">A foto que você mandou em 23/11: o quartel ao sol, com as três bandeiras. Só no fundo do login; a animação e a cena final não mudam. Um enquadramento por plataforma. No computador, as bandeiras livres no céu, com a marca embaixo (sua escolha de 25/11). No celular, as bandeiras no alto e a marca encostada no cartão, com o texto à esquerda e o brasão à direita. Sem a etiqueta "Quartel do 2º GB".</td></tr>
+          <tr><td>Foto do login</td><td class="quebra">O quartel nublado, com as setas da galeria do celular gravadas embaixo.</td><td class="quebra">A foto que você mandou em 23/11: o quartel ao sol, com as três bandeiras. Só no fundo do login; a animação e a cena final não mudam. Um enquadramento por plataforma. No computador, as bandeiras livres no céu, com a marca embaixo (sua escolha de 25/11). No celular, sem bandeiras e sem céu: a fachada, a estátua e o jardim (o recorte que você mandou em 25/11), com a marca encostada no cartão, o texto à esquerda e o brasão à direita. Sem a etiqueta "Quartel do 2º GB".</td></tr>
           <tr><td>Marca sobre a foto</td><td class="quebra">Branco direto sobre a foto.</td><td class="quebra">O nome e a linha de baixo ganham uma sombra leve, e a marca fica sobre a parte densa do véu vinho, nunca sobre o céu aberto (seu pedido de 25/11: o branco perdia o contraste no azul).</td></tr>
           <tr><td>Brasas do ambiente</td><td class="quebra">44, todas iguais.</td><td class="quebra">88, em três profundidades: as pequenas mais lentas e apagadas, ao fundo; as grandes mais rápidas e fortes, na frente.</td></tr>
           <tr><td>Brasas do botão Entrar</td><td class="quebra">26.</td><td class="quebra">52.</td></tr>
@@ -192,7 +194,7 @@
   <div class="prancha">
     <div class="sup">
       <ul class="regras-da-casa">
-        <li><b>O login no celular</b>As bandeiras ficam no alto, livres. O nome e a linha de baixo descem até encostar no cartão, à esquerda, e o brasão vai para a direita, sobre o véu vinho denso. O computador já está aprovado.</li>
+        <li><b>O login no celular</b>Segunda tentativa: sem as bandeiras e sem céu, só a fachada, a estátua e o jardim, como no recorte que você mandou. O nome e a linha de baixo encostam no cartão, à esquerda, e o brasão fica à direita, sobre o véu vinho denso. O computador já está aprovado.</li>
         <li><b>Uma entrega só</b>A foto, as brasas e o pouso no quadro novo vão juntos à PLANEJAMENTO, como uma entrega pequena. Os cartões dos próximos serviços e os avisos são entregas da tela inicial, não desta.</li>
       </ul>
     </div>

@@ -3,12 +3,28 @@
    Compartilhada pela área "Tela inicial" e pela área "Entrada" (onde a animação do login pousa neste quadro). */
 .ini{--faixa-min:64px;--margem:24px;--topo:56px;container-type:inline-size;container-name:inicio;position:relative;height:820px;overflow:hidden;background:var(--fundo);color:var(--tinta);color-scheme:light;border:1px solid var(--pg-linha);border-radius:var(--raio-sup)}
 .celular .ini{height:780px;--margem:12px}
-.ini-topo{position:absolute;top:0;left:0;right:0;z-index:7;display:flex;align-items:center;gap:12px;height:var(--topo);padding:0 24px;background:var(--superficie);border-bottom:1px solid var(--linha)}
-.ini-topo img{width:32px;height:32px;object-fit:contain;flex:none}
-.ini-topo .sistema{font:600 var(--t17)/1 var(--cond);white-space:nowrap}
-.ini-topo .unidade{display:flex;align-items:center;gap:4px;min-width:0;padding:6px 8px;font:500 var(--t15)/1 var(--cond);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.ini-topo .quem{margin-left:auto;display:flex;align-items:center;gap:4px;font:600 var(--t15)/1 var(--cond);white-space:nowrap}
-.ini-topo .i{color:var(--apagado)}
+/* o cabeçalho, versão 3 (25/11): um fio vinho no alto amarra o topo à identidade; à esquerda a marca do sistema (o brasão do 2º GB, como no login),
+   depois a unidade como um botão com contorno, e à direita a pessoa, com as iniciais num círculo vinho e o nível de acesso embaixo do nome */
+.ini-topo{position:absolute;top:0;left:0;right:0;z-index:7;display:flex;align-items:center;gap:16px;height:var(--topo);padding:3px 24px 0;background:var(--superficie);border-bottom:1px solid var(--linha);box-shadow:inset 0 3px 0 var(--vinho)}
+.ini-topo button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+.ini-topo :is(a,button):focus-visible{outline:2px solid var(--tinta);outline-offset:2px}
+.ini-topo .topo-marca{display:flex;align-items:center;gap:10px;flex:none;border-radius:var(--raio);color:var(--tinta);text-decoration:none}
+.ini-topo .topo-marca img{width:34px;height:34px;object-fit:contain;flex:none}
+.ini-topo .sistema{font:600 var(--t17)/1 var(--cond);letter-spacing:-.005em;white-space:nowrap}
+.ini-topo .sistema span{white-space:nowrap}
+.ini-topo .divisa{width:1px;height:24px;background:var(--linha);flex:none}
+.ini-topo .unidade{display:flex;align-items:center;gap:6px;min-width:0;height:34px;padding:0 10px 0 12px;border:1px solid var(--linha);border-radius:var(--raio);font:500 var(--t15)/1 var(--cond);white-space:nowrap}
+.ini-topo .unidade:hover,.ini-topo .quem:hover{background:var(--fundo)}
+.ini-topo .caminho{display:flex;align-items:center;gap:6px;min-width:0;color:var(--apagado);overflow:hidden}
+.ini-topo .caminho .i{width:12px;height:12px;opacity:.7}
+.ini-topo .unidade b{font-weight:600;color:var(--tinta)}
+.ini-topo .quem{margin-left:auto;display:flex;align-items:center;gap:10px;height:42px;padding:0 8px 0 4px;border-radius:var(--raio);white-space:nowrap;text-align:left}
+.ini-topo .iniciais{display:grid;place-items:center;width:32px;height:32px;border-radius:50%;background:var(--vinho);color:var(--claro);font:600 var(--t15)/1 var(--cond);flex:none}
+.ini-topo .nome{display:grid;gap:2px}
+.ini-topo .nome b{font:600 var(--t15)/1 var(--cond)}
+.ini-topo .nome small{font:500 var(--t13)/1 var(--texto);color:var(--apagado)}
+.ini[data-perfil="militar"] .ini-topo .nivel{display:none}
+.ini-topo .i{color:var(--apagado);flex:none}
 .ini-rola{position:absolute;inset:var(--topo) 0 0;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin}
 /* o fundo atrás da faixa, para o conteúdo não aparecer na margem de cima quando ela encolhe */
 .ini-capa{position:absolute;top:var(--topo);left:0;right:0;z-index:4;height:calc(var(--margem) + var(--alto,240px));background:var(--fundo)}
@@ -104,8 +120,10 @@
 }
 /* no celular a cena fica com a saudação e os cartões, que rolam de lado; os avisos descem logo abaixo, no mesmo vidro escuro */
 @container inicio (max-width:600px){
-  .ini-topo{padding:0 12px;gap:8px}
-  .ini-topo .sistema{display:none}
+  .ini-topo{padding:3px 12px 0;gap:8px}
+  .ini-topo .sistema,.ini-topo .divisa,.ini-topo .caminho,.ini-topo .nome{display:none}
+  .ini-topo .unidade{padding:0 8px 0 10px}
+  .ini-topo .quem{padding:0 4px;gap:4px}
   .ini-alta{grid-template-columns:minmax(0,1fr);padding:18px 16px 16px;gap:12px}
   .ini-saudacao h1{font:600 var(--t28)/32px var(--cond)}
   .ini-saudacao p{font-size:var(--t15);line-height:22px}
