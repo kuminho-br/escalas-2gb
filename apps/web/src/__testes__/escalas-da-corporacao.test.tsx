@@ -117,6 +117,34 @@ describe('as Escalas da corporação (7.5)', () => {
     expect(screen.getByRole('link', { name: 'Voltar às escalas' })).toBeInTheDocument();
   });
 
+  it('(pool 27 c) a escala aberta só para leitura com vaga vazia: a vaga aparece como aviso ("Vaga livre", "Vaga opcional"), nunca como botão de escolher', async () => {
+    const comVagas: CardDaGuarnicao = {
+      ...card,
+      funcoes: [{ funcaoId: 'f1', funcao: 'Motorista', minimo: 1, maximo: 1, cnhExigida: null, ocupantes: [] }, { funcaoId: 'f2', funcao: 'Combatente', minimo: 1, maximo: 2, cnhExigida: null, ocupantes: [ocupante('COMBATE')] }],
+    };
+    const escala: EscalaDoMes = { ...ESCALA, dias: [{ ...dia, faixas: [{ ...faixa, guarnicoes: [comVagas] }] }] };
+    api({ [`GET /api/visualizacao/escalas/e3/mes/${MES}`]: { status: 200, corpo: escala } });
+    abrir('/escalas-da-corporacao/e3');
+    const diaUm = within(await screen.findByRole('region', { name: 'Dia 1' }));
+    expect(await diaUm.findByText('Vaga livre')).toBeInTheDocument(); // a obrigatória do Motorista
+    expect(diaUm.getByText('Vaga opcional')).toBeInTheDocument(); // a segunda do Combatente
+    expect(screen.queryByRole('button', { name: /Escolher militar/ })).toBeNull();
+    expect(screen.queryByRole('button', { name: /Vaga opcional/ })).toBeNull();
+  });
+
+  it('(pool 27 d) enquanto as unidades carregam, a lista mostra a espera e não só a lotação da pessoa', async () => {
+    let liberar!: () => void;
+    const espera = new Promise<void>((r) => { liberar = r; });
+    api({ 'GET /api/consulta/unidades': { status: 200, corpo: UNIDADES, espera } });
+    abrir('/escalas-da-corporacao');
+    // as escalas já chegaram (a 1ª SB e as outras), mas o filtro da lotação ainda não sabe quais unidades ficam abaixo dela: nenhuma lista, só a espera
+    expect(await screen.findByRole('status')).toBeInTheDocument();
+    expect(screen.queryByRole('region')).toBeNull();
+    liberar();
+    expect(await lista('1ª SB')).toBeTruthy();
+    expect(screen.queryByRole('status')).toBeNull();
+  });
+
   it('a linha do estado de cada estado, com o texto fixo', async () => {
     for (const [estado, texto] of [['previa', 'Prévia lançada em 20/11. Pode mudar até o dia do serviço.'], ['retificada', 'Republicada em 20/11.'], ['remessada', 'Remessada em 20/11.']] as const) {
       const { cleanup } = await import('@testing-library/react');

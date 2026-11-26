@@ -14,6 +14,8 @@ export type LinhaDaConsulta = {
   lotacao: string | null;
   /** A sigla do quadro do período de hoje; null sem quadro. */
   quadro: string | null;
+  /** A unidade de hoje pelo menor caminho que a identifica na corporação inteira ("2º GB / 1ª SB"; "CBMPE" na raiz), como na exportação; null sem lotação (6.62, 6.65). */
+  lotacaoCaminho: string | null;
   /** Só vem quando a busca é pedida com a unidade de trabalho: o militar já é dela (lotado nela ou numa de baixo), então não há o que trazer. */
   daUnidade?: boolean;
 };
@@ -83,8 +85,6 @@ export type LinhaDaBusca = LinhaDaConsulta & {
   jornada: 'pronto' | 'adm' | null;
   situacao: string | null;
   unidadeId: string | null;
-  /** A unidade de hoje pelo menor caminho que a identifica na corporação inteira ("2º GB / 1ª SB"; "CBMPE" na raiz), como na exportação; null sem lotação (6.62). */
-  lotacaoCaminho: string | null;
   podeAlterar: boolean;
 };
 /** `naoEncontradas`: as matrículas do arquivo que não são de nenhum militar (como vieram, sem repetir). */

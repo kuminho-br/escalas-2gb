@@ -38,7 +38,7 @@ export function FichaDeConsulta({ id, voltarPara, voltarBusca }: { id: string; v
       complemento={<span className="font-cond text-apagado">{f.matricula}</span>}
       voltarPara={voltarPara}
       voltarBusca={voltarBusca}
-      resumo={f.lotacao ? `Lotado em ${f.lotacao}${f.quadro ? `, ${f.quadro}` : ''}` : 'Sem lotação hoje'}
+      resumo={f.lotacao ? `Lotado em ${f.lotacaoCaminho ?? f.lotacao}${f.quadro ? `, ${f.quadro}` : ''}` : 'Sem lotação hoje'}
       acoes={
         <>
           <Button asChild variant="discreto" size="sm"><Link to={voltarPara} search={voltarBusca}>Voltar</Link></Button>
@@ -59,7 +59,7 @@ function Blocos({ f }: { f: FichaDeConsultaDados }) {
           <Dado rotulo="Nome de guerra">{f.nomeGuerra}</Dado>
           <Dado rotulo="Nome completo">{f.nomeCompleto}</Dado>
           <Dado rotulo="Matrícula">{f.matricula}</Dado>
-          <Dado rotulo="Lotação">{f.lotacao}</Dado>
+          <Dado rotulo="Lotação">{f.lotacaoCaminho ?? f.lotacao}</Dado>
           <Dado rotulo="Quadro">{f.quadro}</Dado>
         </Dados>
       </Secao>

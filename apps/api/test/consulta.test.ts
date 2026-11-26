@@ -17,7 +17,7 @@ const dia1 = `${hoje.slice(0, 7)}-01`;
 const alvo: Record<string, string> = {};
 const quadro: Record<string, string> = {};
 const pessoa = {} as Record<'oficial' | 'chefe' | 'auxiliarDoGb', Pessoa>;
-const SO_IDENTIFICACAO = ['id', 'postoGrad', 'nomeGuerra', 'nomeCompleto', 'matricula', 'lotacao', 'quadro', 'podeAbrirFichaCompleta'];
+const SO_IDENTIFICACAO = ['id', 'postoGrad', 'nomeGuerra', 'nomeCompleto', 'matricula', 'lotacao', 'lotacaoCaminho', 'quadro', 'podeAbrirFichaCompleta'];
 const PROIBIDAS = ['cpf', 'nascimento', 'endereco'];
 
 type Quem = 'admin' | 'gestorGb' | 'escalante' | 'semPapel' | Pessoa;
@@ -115,7 +115,7 @@ describe('a busca', () => {
   it('a linha traz só a identificação: posto, nomes, matrícula, lotação e quadro', async () => {
     const r = await buscar('semPapel', 'texto=andrade');
     expect(r).toEqual({
-      militares: [{ id: alvo.ANDRADE, postoGrad: 'SD', nomeGuerra: 'ANDRADE', nomeCompleto: 'João da Silva Andrade', matricula: '990821-1', lotacao: '2ª SB', quadro: 'QBMG' }],
+      militares: [{ id: alvo.ANDRADE, postoGrad: 'SD', nomeGuerra: 'ANDRADE', nomeCompleto: 'João da Silva Andrade', matricula: '990821-1', lotacao: '2ª SB', lotacaoCaminho: '2ª SB', quadro: 'QBMG' }],
       haMais: false,
     });
   });
@@ -172,7 +172,7 @@ describe('a busca', () => {
 
   it('o militar sem lotação aparece na busca por texto, só com a identificação (Review Focus 3)', async () => {
     const r = await buscar('semPapel', 'texto=sem%20lotacao');
-    expect(r.militares).toEqual([{ id: alvo.SEMLOTACAO, postoGrad: 'SD', nomeGuerra: 'SEMLOTACAO', nomeCompleto: 'Pessoa Sem Lotação Hoje', matricula: '990823-3', lotacao: null, quadro: null }]);
+    expect(r.militares).toEqual([{ id: alvo.SEMLOTACAO, postoGrad: 'SD', nomeGuerra: 'SEMLOTACAO', nomeCompleto: 'Pessoa Sem Lotação Hoje', matricula: '990823-3', lotacao: null, lotacaoCaminho: null, quadro: null }]);
   });
 
   it('a unidade de escolha: a árvore da corporação inteira, na ordem da árvore, para qualquer pessoa com conta', async () => {

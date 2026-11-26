@@ -1,5 +1,5 @@
 import type { ResultadoDaBusca } from 'contratos';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { hojeRecife } from '../src/datas.ts';
 import { menorCaminhoUnico, rotulosDasUnidades, unidadesDoCaminho, type UnidadeDoCaminho } from '../src/importacao/caminho-da-unidade.ts';
 import { inserir } from './banco-teste.ts';
@@ -9,6 +9,8 @@ import { montarApi, type ApiDeTeste } from './apoio-api.ts';
 let api: ApiDeTeste;
 const hoje = hojeRecife();
 const dia1 = `${hoje.slice(0, 7)}-01`;
+let extinta = '';
+let gb4 = '';
 const buscar = async (texto: string): Promise<ResultadoDaBusca> => (await api.pedir('admin', 'POST', '/api/consulta/militares/buscar', { texto })).json();
 
 beforeAll(async () => {
@@ -25,6 +27,15 @@ beforeAll(async () => {
   await militar('NOGB2', '990801-1', api.ids.secao);
   await militar('NOGB3', '990802-2', sb3);
   await militar('NOGB', '990803-3', api.ids.gb);
+  // uma "1ª SB" extinta, no 4º GB (extinto também), com um militar que ainda aparece nela
+  gb4 = await inserir(api.banco, 'unidade', { tipo: 'grupamento', sigla: '4º GB', nome: 'Quarto Grupamento', mae_id: mae, desde: '2019-01-01', ate: '2019-12-31' });
+  extinta = await inserir(api.banco, 'unidade', { tipo: 'secao', sigla: '1ª SB', nome: 'Primeira Seção do 4º GB', mae_id: gb4, desde: '2019-01-01', ate: '2019-12-31' });
+  await militar('NAEXTINTA', '990805-5', extinta);
+  // a "9ª SB" em vigor (única) e uma "9ª SB" extinta com a mesma sigla: o rótulo da em vigor não depende de a extinta estar no resultado
+  const sb9 = await inserir(api.banco, 'unidade', { tipo: 'secao', sigla: '9ª SB', nome: 'Nona Seção', mae_id: gb3, desde: '2020-01-01' });
+  const sb9ext = await inserir(api.banco, 'unidade', { tipo: 'secao', sigla: '9ª SB', nome: 'Nona Seção extinta', mae_id: gb4, desde: '2019-01-01', ate: '2019-12-31' });
+  await militar('NA9ATIVA', '990806-6', sb9);
+  await militar('NA9EXT', '990807-7', sb9ext);
   const sem = await inserir(api.banco, 'militar', { matricula: '990804-4', posto_grad_id: posto, nome_guerra: 'SEMLOTA', antiguidade: 1 });
   expect(sem).toBeTruthy();
 });
@@ -55,6 +66,50 @@ describe('a unidade pelo menor caminho na busca', () => {
       const u = todas.find((x) => x.id === m.unidadeId)!;
       expect(m.lotacaoCaminho).toBe(menorCaminhoUnico(u, todas));
     }
+  });
+});
+
+describe('acabamento da busca (6.65, pool 52)', () => {
+  it('(c) uma busca lê as unidades uma vez só, mesmo com militares em várias unidades', async () => {
+    const espiao = vi.spyOn(api.banco, 'query');
+    await buscar('NOGB');
+    const leituras = espiao.mock.calls.filter(([sql]) => String(sql).includes('nlevel(a.caminho)')).length;
+    espiao.mockRestore();
+    expect(leituras).toBe(1);
+  });
+
+  it('(f) o militar numa unidade extinta tem o caminho dela, não a sigla pura: a extinta entra no cálculo do rótulo', async () => {
+    const r = await buscar('NAEXTINTA');
+    expect(r.militares[0]!.unidadeId).toBe(extinta);
+    // a sigla "1ª SB" se repete (as duas em vigor e a extinta): o caminho a distingue
+    expect(r.militares[0]!.lotacaoCaminho).toBe('4º GB / 1ª SB');
+    // as unidades em vigor não mudam de rótulo por causa da extinta
+    const outros = await buscar('NOGB');
+    expect(outros.militares.find((m) => m.nomeGuerra === 'NOGB2')!.lotacaoCaminho).toBe('2º GB / 1ª SB');
+  });
+
+  it('(f, revisão) a unidade em vigor tem o mesmo rótulo com ou sem a extinta no resultado; a extinta se distingue da em vigor', async () => {
+    const sozinha = await buscar('NA9ATIVA');
+    const junto = await buscar('NA9');
+    const de = (r: ResultadoDaBusca, n: string) => r.militares.find((m) => m.nomeGuerra === n)!.lotacaoCaminho;
+    expect(de(sozinha, 'NA9ATIVA')).toBe('9ª SB');
+    expect(de(junto, 'NA9ATIVA')).toBe('9ª SB'); // a extinta não a obriga a ficar com o caminho
+    expect(de(junto, 'NA9EXT')).toBe('4º GB / 9ª SB');
+    // a mesma conta na ficha de consulta e na busca simples
+    const simples = (await (await api.pedir('admin', 'GET', '/api/consulta/militares?texto=NA9')).json()) as { militares: { nomeGuerra: string; lotacaoCaminho: string | null }[] };
+    expect(simples.militares.find((m) => m.nomeGuerra === 'NA9ATIVA')!.lotacaoCaminho).toBe('9ª SB');
+  });
+
+  it('(g) a busca simples (GET /api/consulta/militares) também traz o caminho, e a ficha de consulta', async () => {
+    const lista = (await (await api.pedir('admin', 'GET', '/api/consulta/militares?texto=NOGB')).json()) as { militares: { nomeGuerra: string; lotacaoCaminho: string | null; id: string }[] };
+    const de = (n: string) => lista.militares.find((m) => m.nomeGuerra === n)!;
+    expect(de('NOGB2').lotacaoCaminho).toBe('2º GB / 1ª SB');
+    expect(de('NOGB3').lotacaoCaminho).toBe('3º GB / 1ª SB');
+    expect(de('NOGB').lotacaoCaminho).toBe('2º GB');
+    const ficha = (await (await api.pedir('admin', 'GET', `/api/consulta/militares/${de('NOGB3').id}`)).json()) as { lotacaoCaminho: string | null };
+    expect(ficha.lotacaoCaminho).toBe('3º GB / 1ª SB');
+    const sem = (await (await api.pedir('admin', 'GET', '/api/consulta/militares?texto=SEMLOTA')).json()) as { militares: { lotacaoCaminho: string | null }[] };
+    expect(sem.militares[0]!.lotacaoCaminho).toBeNull();
   });
 });
 

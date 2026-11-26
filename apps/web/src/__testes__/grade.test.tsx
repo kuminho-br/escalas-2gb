@@ -273,14 +273,14 @@ describe('grade geral: a tabela', () => {
   it('uma grade sem linhas ou sem colunas não quebra com uma célula escolhida (Review Focus 5)', () => {
     const escolhida = { militarId: 'm-CABO', dia: dia(2) };
     const maximos = { pjes: 0, diarias: 0 };
-    const semLinhas = render(<TabelaDaGrade grade={{ ...GRADE, grupos: [] }} grupos={[]} maximos={maximos} escolhida={escolhida} aoEscolher={() => {}} recolhidas={new Set()} aoAlternar={() => {}} />);
+    const semLinhas = render(<TabelaDaGrade grade={{ ...GRADE, grupos: [] }} grupos={[]} maximos={maximos} escolhida={escolhida} aoEscolher={() => {}} aoAbrirFicha={() => {}} recolhidas={new Set()} aoAlternar={() => {}} />);
     expect(semLinhas.container.querySelector('[data-linha-marcada]')).toBeNull();
     // o dia escolhido não está nas colunas (a grade do mês não tem nenhum dia): nada é marcado e nada quebra
-    const semDias = render(<TabelaDaGrade grade={{ ...GRADE, dias: [] }} grupos={GRADE.grupos} maximos={maximos} escolhida={escolhida} aoEscolher={() => {}} recolhidas={new Set()} aoAlternar={() => {}} />);
+    const semDias = render(<TabelaDaGrade grade={{ ...GRADE, dias: [] }} grupos={GRADE.grupos} maximos={maximos} escolhida={escolhida} aoEscolher={() => {}} aoAbrirFicha={() => {}} recolhidas={new Set()} aoAlternar={() => {}} />);
     expect(semDias.container.querySelector('[data-coluna-marcada]')).toBeNull();
     expect(semDias.container.querySelector('[data-linha-marcada]')).not.toBeNull();
     // militar que não está na grade: nenhuma linha marcada
-    const semMilitar = render(<TabelaDaGrade grade={GRADE} grupos={GRADE.grupos} maximos={maximos} escolhida={{ militarId: 'm-NINGUEM', dia: dia(2) }} aoEscolher={() => {}} recolhidas={new Set()} aoAlternar={() => {}} />);
+    const semMilitar = render(<TabelaDaGrade grade={GRADE} grupos={GRADE.grupos} maximos={maximos} escolhida={{ militarId: 'm-NINGUEM', dia: dia(2) }} aoEscolher={() => {}} aoAbrirFicha={() => {}} recolhidas={new Set()} aoAlternar={() => {}} />);
     expect(semMilitar.container.querySelector('[data-linha-marcada]')).toBeNull();
     expect(semMilitar.container.querySelector('[data-coluna-marcada]')).not.toBeNull();
   });
@@ -354,16 +354,18 @@ describe('a cota de saldo na Grade geral (6.38)', () => {
     // a matrícula vem antes da barra na ordem do documento, e a linha das duas espalha: matrícula à esquerda, barra à direita
     const matricula = within(linhaDe('ADM')).getByText('990001-1');
     expect(matricula.compareDocumentPosition(barra) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    const linhaDaMatricula = barra.parentElement!;
+    // a matrícula (dentro do botão do militar) à esquerda e a barra à direita, na segunda linha de uma grade de duas colunas
+    const linhaDaMatricula = barra.parentElement!.parentElement!;
     expect(linhaDaMatricula).toContainElement(matricula);
-    expect(linhaDaMatricula).toHaveClass('flex', 'justify-between');
+    expect(linhaDaMatricula).toHaveClass('grid', 'items-end');
+    expect(barra.parentElement).toHaveClass('col-start-2', 'row-start-2');
     // a célula tem 12 px de folga à direita, até a fronteira
     expect(linhaDe('ADM').querySelector('th')).toHaveClass('pr-3');
     // a barra continua com 28 por 6 px
     expect(barra).toHaveClass('w-7', 'h-1.5');
     // Review Focus 3: no Pronto, a matrícula fica no mesmo lugar (a mesma linha, a mesma folga), sem barra
     const doPronto = within(linhaDe('CABO')).getByText('990001-1');
-    expect(doPronto.parentElement).toHaveClass('flex', 'justify-between');
+    expect(doPronto.parentElement!.parentElement).toHaveClass('grid', 'items-end');
     expect(doPronto.className).toBe(matricula.className);
     expect(linhaDe('CABO').querySelector('th')).toHaveClass('pr-3');
     expect(within(linhaDe('SOBRA')).getByRole('img', { name: '7 de 6 saldos no mês' })).toHaveAttribute('data-estado', 'acima');
@@ -478,11 +480,11 @@ describe('o grupo de filtro das equipes (6.46)', () => {
     const grupo = await abrirGrade();
     const segmentos = within(grupo).getAllByRole('button');
     const caixa = segmentos[0]!.parentElement!;
-    expect(caixa).toHaveClass('grid', 'grid-cols-6', 'sm:flex');
-    for (const b of segmentos) expect(b).toHaveClass('col-span-2', 'h-11', 'sm:h-(--altura-controle)');
+    expect(caixa).toHaveClass('grid', 'grid-cols-6', 'md:flex');
+    for (const b of segmentos) expect(b).toHaveClass('col-span-2', 'h-11', 'md:h-(--altura-controle)');
     // quatro segmentos: três na primeira linha e o último sozinho, esticado até o fim
-    expect(segmentos.at(-1)).toHaveClass('max-sm:col-span-6');
-    expect(segmentos[2]!.className).not.toMatch(/max-sm:col-span-(3|6)/);
+    expect(segmentos.at(-1)).toHaveClass('max-md:col-span-6');
+    expect(segmentos[2]!.className).not.toMatch(/max-md:col-span-(3|6)/);
   });
 });
 
@@ -502,17 +504,19 @@ describe('a jornada se escreve "ADM" (6.46)', () => {
     const { NOME_JORNADA } = await import('@/lib/militares');
     expect(NOME_JORNADA.adm).toBe('ADM');
     const raiz = join(__dirname, '..');
+    // os textos que a API manda para a tela (as mensagens dos esquemas) estão nos contratos: a varredura olha o site e os contratos
+    const contratos = join(__dirname, '..', '..', '..', '..', 'pacotes', 'contratos', 'src');
     const arquivos = (pasta: string): string[] => readdirSync(pasta).flatMap((n) => {
       const p = join(pasta, n);
       if (statSync(p).isDirectory()) return n === '__testes__' ? [] : arquivos(p);
       return /\.tsx?$/.test(n) ? [p] : [];
     });
     const achados: string[] = [];
-    for (const a of arquivos(raiz)) {
+    for (const a of [...arquivos(raiz), ...arquivos(contratos)]) {
       readFileSync(a, 'utf8').split('\n').forEach((linha, i) => {
         // os comentários do código podem dizer "Adm"; o que vai para a tela (texto de JSX ou de string), não
         const semComentario = linha.replace(/\/\/.*$/, '').replace(/^\s*\/?\*.*$/, '').replace(/\{\/\*.*?\*\/\}/g, '');
-        if (/\bAdm\b/.test(semComentario)) achados.push(`${relative(raiz, a).split(sep).join('/')}:${i + 1}: ${linha.trim().slice(0, 100)}`);
+        if (/\bAdm\b/.test(semComentario)) achados.push(`${relative(join(raiz, '..', '..', '..'), a).split(sep).join('/')}:${i + 1}: ${linha.trim().slice(0, 100)}`);
       });
     }
     expect(achados).toEqual([]);

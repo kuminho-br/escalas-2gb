@@ -52,6 +52,8 @@ function Peculio() {
   const mudarIncluirAsDeBaixo = (ligado: boolean) => {
     setIncluirAsDeBaixo(ligado);
     setLimite(100);
+    // a lotação escolhida some da árvore ao desligar; ao religar o filtro recomeça em "Todas", e não volta à de antes
+    setLotacao('');
     try {
       window.localStorage.setItem(CHAVE_DAS_DE_BAIXO, ligado ? 'sim' : 'nao');
     } catch {

@@ -8,6 +8,7 @@ import { ehMilitarComum } from '@/api/eu';
 import { consultaGrade } from '@/api/grade';
 import { CampoDeMes } from '@/componentes/CampoDeMes';
 import { LegendaDaGrade } from '@/componentes/grade/LegendaDaGrade';
+import { FichaNaGrade } from '@/componentes/grade/FichaNaGrade';
 import { PainelDoDia } from '@/componentes/grade/PainelDoDia';
 import { TabelaDaGrade, maximosDaGrade, nomeDoGrupo } from '@/componentes/grade/TabelaDaGrade';
 import { Input } from '@/componentes/ui/input';
@@ -110,6 +111,7 @@ function GradeGeral() {
               maximos={maximosDaGrade(grade.grupos)}
               escolhida={escolhida}
               aoEscolher={(militar, dia) => void navigate({ search: (s) => ({ ...s, militar, dia }) })}
+              aoAbrirFicha={eu.soConsulta ? undefined : (militar) => void navigate({ search: (s) => ({ ...s, ficha: militar }) })}
               recolhidas={procura ? new Set() : recolhidas}
               aoAlternar={alternarRecolhida}
             />
@@ -130,24 +132,25 @@ function GradeGeral() {
           )}
         </div>
       )}
+      {busca.ficha && !eu.soConsulta && <FichaNaGrade militarId={busca.ficha} eu={eu} aoFechar={() => void navigate({ search: (s) => ({ ...s, ficha: undefined }) })} />}
     </Moldura>
   );
 }
 
 /**
  * O grupo de filtro das equipes (6.46; Manual, "Grupo de filtro"): o rótulo em cima e os segmentos numa caixa só. Mais de um pode ficar marcado; o
- * marcado tem fundo `tinta`, texto branco e um visto antes do nome, e não muda de largura (o lugar do visto é guardado). "Todas" é o primeiro
- * segmento, marcado quando nenhum outro está. No celular, três por linha, com 44 px, e a última linha estica até o fim.
+ * marcado tem fundo `tinta`, texto branco e um visto antes do nome, e não muda de largura (o lugar do visto é guardado, e no não marcado o mesmo espaço vale dos dois lados, para o nome
+ * ficar no centro). "Todas" é o primeiro segmento, marcado quando nenhum outro está. Abaixo de 768 px (o corte do resto do site), três por linha, com 44 px, e a última linha estica até o fim.
  */
 function FiltroDeEquipes({ grupos, ligadas, aoAlternar }: { grupos: GrupoDaGrade[]; ligadas: string[]; aoAlternar: (chave: string | undefined) => void }) {
   const segmentos: { chave: string | undefined; nome: string }[] = [{ chave: undefined, nome: 'Todas' }, ...grupos.map((g) => ({ chave: g.chave, nome: nomeDoGrupo(g) }))];
   // no celular (três por linha, numa grade de seis colunas): o que sobra na última linha estica até o fim
   const sobra = segmentos.length % 3;
-  const estica = (i: number) => (sobra === 1 && i === segmentos.length - 1 ? 'max-sm:col-span-6' : sobra === 2 && i >= segmentos.length - 2 ? 'max-sm:col-span-3' : '');
+  const estica = (i: number) => (sobra === 1 && i === segmentos.length - 1 ? 'max-md:col-span-6' : sobra === 2 && i >= segmentos.length - 2 ? 'max-md:col-span-3' : '');
   return (
-    <div className="grid gap-1.5 max-sm:w-full">
+    <div className="grid gap-1.5 max-md:w-full">
       <span id="gg-equipe" className="text-corpo font-medium">Equipe</span>
-      <div role="group" aria-labelledby="gg-equipe" className="grid grid-cols-6 gap-px overflow-hidden rounded-controle border border-encaixe bg-linha sm:flex">
+      <div role="group" aria-labelledby="gg-equipe" className="grid grid-cols-6 gap-px overflow-hidden rounded-controle border border-encaixe bg-linha md:flex">
         {segmentos.map((s, i) => {
           const ligado = s.chave === undefined ? ligadas.length === 0 : ligadas.includes(s.chave);
           return (
@@ -157,12 +160,14 @@ function FiltroDeEquipes({ grupos, ligadas, aoAlternar }: { grupos: GrupoDaGrade
               aria-pressed={ligado}
               onClick={() => aoAlternar(s.chave)}
               className={cn(
-                'col-span-2 inline-flex h-11 items-center justify-center gap-1.5 bg-superficie px-3 font-cond text-corpo font-semibold whitespace-nowrap uppercase transition-colors hover:bg-passa focus-visible:-outline-offset-2 aria-pressed:bg-tinta aria-pressed:text-white aria-pressed:focus-visible:outline-white sm:h-(--altura-controle)',
+                'col-span-2 inline-flex h-11 items-center justify-center gap-1.5 bg-superficie px-3 font-cond text-corpo font-semibold whitespace-nowrap uppercase transition-colors hover:bg-passa focus-visible:-outline-offset-2 aria-pressed:bg-tinta aria-pressed:text-white aria-pressed:focus-visible:outline-white md:h-(--altura-controle)',
                 estica(i),
               )}
             >
               <Check aria-hidden className={cn('size-3.5 shrink-0', !ligado && 'invisible')} strokeWidth={2.5} />
               {s.nome}
+              {/* no segmento não marcado o espaço do visto vale dos dois lados: o nome fica no centro */}
+              {!ligado && <span aria-hidden data-espaco-do-visto className="size-3.5 shrink-0" />}
             </button>
           );
         })}

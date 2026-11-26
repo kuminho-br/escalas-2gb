@@ -11,6 +11,8 @@ import { Button } from '@/componentes/ui/button';
 import { estiloDaCor } from '@/lib/cores';
 import { listaComE } from '@/lib/escala';
 import { dataPorExtenso } from '@/lib/meses';
+import { NOME_JORNADA } from '@/lib/militares';
+import { useConfirmar } from '@/componentes/resposta/useConfirmar';
 import { AdicionarServico } from './AdicionarServico';
 import { TrocarServico } from './TrocarServico';
 import { Espera } from '@/componentes/resposta/Espera';
@@ -21,6 +23,7 @@ import { Espera } from '@/componentes/resposta/Espera';
  */
 export function PainelDoDia({ unidadeId, militarId, data, aoFechar }: { unidadeId: string; militarId: string; data: string; aoFechar: () => void }) {
   const queryClient = useQueryClient();
+  const confirmar = useConfirmar();
   // numa unidade só de consulta o painel mostra o dia e nada mais: sem trocar, remover nem adicionar
   const soConsulta = useSoConsulta();
   const painel = useQuery(consultaPainelDoDia(unidadeId, data.slice(0, 7), militarId, data));
@@ -46,7 +49,9 @@ export function PainelDoDia({ unidadeId, militarId, data, aoFechar }: { unidadeI
       setErro(foiCancelado(e) ? null : mensagemDe(e));
     }
   });
-  const remover = travar(async (alocacaoId: string) => {
+  const remover = travar(async (alocacaoId: string, doExpediente = false) => {
+    // o expediente lançado (sem escala) sai sem pôr nada no lugar: o calculado volta a valer e o choque, se houver, continua
+    if (doExpediente && !(await confirmar({ titulo: 'Tirar do expediente?', texto: 'Nada entra no lugar. Se houver choque nesse horário, ele continua.', verbo: 'Tirar' }))) return;
     setErro(null);
     try {
       await removerAlocacao(queryClient, alocacaoId);
@@ -71,7 +76,7 @@ export function PainelDoDia({ unidadeId, militarId, data, aoFechar }: { unidadeI
             {p && (
               <>
                 <p className="mt-1 text-sm text-apagado">
-                  Matrícula {p.militar.matricula}, {p.militar.equipe ? `equipe ${p.militar.equipe}, ` : ''}jornada {p.militar.jornada === 'adm' ? 'ADM' : 'Pronto'}
+                  Matrícula {p.militar.matricula}, {p.militar.equipe ? `equipe ${p.militar.equipe}, ` : ''}jornada {NOME_JORNADA[p.militar.jornada]}
                 </p>
                 <div className="mt-2 flex flex-wrap gap-1.5">
                   {p.militar.cnh.length > 0 && <span className="rounded border border-linha px-1.5 text-xs">CNH {[...p.militar.cnh].sort().at(-1)}</span>}
@@ -114,8 +119,8 @@ export function PainelDoDia({ unidadeId, militarId, data, aoFechar }: { unidadeI
                             <Button type="button" variant="secundario" size="sm" disabled={salvando} onClick={() => setTrocando({ alocacaoId: s.alocacaoId, acumulaCom: s.acumulaCom })}>
                               Trocar
                             </Button>
-                            <Button type="button" variant="secundario" size="sm" disabled={salvando} onClick={() => void remover(s.alocacaoId)}>
-                              Remover
+                            <Button type="button" variant="secundario" size="sm" disabled={salvando} onClick={() => void remover(s.alocacaoId, s.escalaId === null)}>
+                              {s.escalaId === null ? 'Tirar do expediente' : 'Remover'}
                             </Button>
                           </span>
                         )}
@@ -123,8 +128,8 @@ export function PainelDoDia({ unidadeId, militarId, data, aoFechar }: { unidadeI
                       <p className="text-sm">{s.escala} · {s.guarnicao ? `${s.guarnicao}, ${s.funcao}` : 'sem guarnição'}</p>
                       {s.acumulaCom.length > 0 && <p className="text-xs text-apagado">Acumula {listaComE(s.acumulaCom)}.</p>}
                       {/* os avisos do "Remover", como na Escala do mês */}
-                      {!soConsulta && <p className="text-xs text-apagado">Ele não volta para este turno quando a pré-escala for gerada de novo.</p>}
-                      {!soConsulta && s.acumulaCom.length > 0 && <p className="text-xs text-apagado">Sai também de: {listaComE(s.acumulaCom)}.</p>}
+                      {!soConsulta && s.escalaId !== null && <p className="text-xs text-apagado">Ele não volta para este turno quando a pré-escala for gerada de novo.</p>}
+                      {!soConsulta && s.escalaId !== null && s.acumulaCom.length > 0 && <p className="text-xs text-apagado">Sai também de: {listaComE(s.acumulaCom)}.</p>}
                     </li>
                   ))}
                 </ul>

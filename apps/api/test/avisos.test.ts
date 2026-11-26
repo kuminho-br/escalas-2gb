@@ -1,5 +1,5 @@
 import type { Aviso, QuadroDeAvisos } from 'contratos';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { criarApp } from '../src/app.ts';
 import { inserir } from './banco-teste.ts';
 import { entrarComo, montarApi, type ApiDeTeste, type Pessoa } from './apoio-api.ts';
@@ -251,5 +251,64 @@ describe('a auditoria', () => {
       { acao: 'insert', usuario_id: gente.ESCSB!.usuarioId },
       { acao: 'update', usuario_id: gente.GESTORSB!.usuarioId },
     ]);
+  });
+});
+
+describe('acabamento do quadro de avisos (6.65, pool 51)', () => {
+  const auditados = async (id: string) => (await api.banco.query<{ n: number }>("select count(*)::int as n from auditoria where tabela = 'aviso' and registro_id = $1", [id])).rows[0]!.n;
+
+  it('(a) editar ou retirar um aviso vencido é 404, "Aviso não encontrado.", como o retirado; PATCH com valeAte null não o reativa', async () => {
+    const a = (await (await publicar('ESCSB', 'SB', { titulo: 'Vence logo', valeAte: '2027-03-11' })).json()) as Aviso;
+    const antes = relogio;
+    relogio = dia('2027-03-12'); // venceu ontem
+    try {
+      for (const r of [await gente.ESCSB!.pedir('PATCH', `/api/avisos/${a.id}`, { valeAte: null }), await gente.ESCSB!.pedir('PATCH', `/api/avisos/${a.id}`, { titulo: 'Reativado' }), await gente.GESTORSB!.pedir('POST', `/api/avisos/${a.id}/retirar`)]) {
+        expect(r.status).toBe(404);
+        expect(((await r.json()) as { erro: string }).erro).toBe('Aviso não encontrado.');
+      }
+      expect((await api.banco.query<{ titulo: string; vale_ate: string }>("select titulo, to_char(vale_ate, 'YYYY-MM-DD') as vale_ate from aviso where id = $1", [a.id])).rows[0]).toEqual({ titulo: 'Vence logo', vale_ate: '2027-03-11' });
+    } finally {
+      relogio = antes;
+    }
+  });
+
+  it('(b) a edição que perde a corrida para a retirada não altera o aviso retirado e responde 404', async () => {
+    const a = (await (await publicar('ESCSB', 'SB', { titulo: 'Corrida', texto: 'Texto original.' })).json()) as Aviso;
+    const original = api.banco.transacao.bind(api.banco);
+    // a retirada chega depois de a rota ler o aviso e antes do update dela (dentro da mesma transação, no começo)
+    const espiao = vi.spyOn(api.banco, 'transacao').mockImplementation((fn) => original(async (tx) => {
+      await tx.query("update aviso set retirado_em = now(), retirado_por = $2 where id = $1", [a.id, gente.GESTORSB!.usuarioId]);
+      return fn(tx);
+    }));
+    try {
+      const r = await gente.ESCSB!.pedir('PATCH', `/api/avisos/${a.id}`, { titulo: 'Mudou depois de retirado' });
+      expect(r.status).toBe(404);
+      expect(((await r.json()) as { erro: string }).erro).toBe('Aviso não encontrado.');
+    } finally {
+      espiao.mockRestore();
+    }
+    expect((await api.banco.query<{ titulo: string }>('select titulo from aviso where id = $1', [a.id])).rows[0]!.titulo).toBe('Corrida');
+  });
+
+  it('(c) publicar em unidade extinta é 400 "Esta unidade não existe mais."; quem só tem nível nela não vê "Publicar aviso"', async () => {
+    ids.EXT = await inserir(api.banco, 'unidade', { tipo: 'secao', sigla: 'EXT', nome: 'Seção extinta', mae_id: ids.GB, desde: '2020-01-01', ate: '2021-12-31' });
+    await pessoa('GESTOREXT', 'SB', { papel: 'gestor', unidade: 'EXT' });
+    expect((await quadro('GESTOREXT')).podePublicar).toBe(false);
+    const r = await publicar('GESTOREXT', 'EXT');
+    expect(r.status).toBe(400);
+    expect(((await r.json()) as { erro: string }).erro).toBe('Esta unidade não existe mais.');
+    // quem tem nível numa unidade em vigor continua vendo o botão
+    expect((await quadro('ESCSB')).podePublicar).toBe(true);
+  });
+
+  it('(d) editar sem mudar nada (corpo vazio, ou os mesmos valores) não grava na auditoria', async () => {
+    const a = (await (await publicar('ESCSB', 'SB', { titulo: 'Sem mudança', texto: 'Igual.', fixado: true })).json()) as Aviso;
+    const antes = await auditados(a.id);
+    expect((await gente.ESCSB!.pedir('PATCH', `/api/avisos/${a.id}`, {})).status).toBe(200);
+    expect((await gente.ESCSB!.pedir('PATCH', `/api/avisos/${a.id}`, { titulo: 'Sem mudança', fixado: true })).status).toBe(200);
+    expect(await auditados(a.id)).toBe(antes);
+    // mudar de verdade grava
+    expect(((await (await gente.ESCSB!.pedir('PATCH', `/api/avisos/${a.id}`, { titulo: 'Com mudança' })).json()) as Aviso).titulo).toBe('Com mudança');
+    expect(await auditados(a.id)).toBe(antes + 1);
   });
 });
