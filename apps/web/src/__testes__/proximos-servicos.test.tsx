@@ -1,7 +1,10 @@
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { render, screen, within } from '@testing-library/react';
 import type { MeuServico } from 'contratos';
 import { describe, expect, it } from 'vitest';
 import { ProximosServicos } from '@/componentes/inicio/ProximosServicos';
+import { razaoDeContraste } from '@/lib/cores';
 import { diaDaSemanaCurto, diaDaSemanaLongo, diaDoMes, diaPorExtenso, fundoDoCartao, horarioCurto, rotuloDoCartao } from '@/lib/proximos-servicos';
 
 // 6.55: o texto dos cartões dos próximos serviços e os cartões. Datas e nomes fictícios.
@@ -38,6 +41,8 @@ describe('o texto dos cartões', () => {
     expect(horarioCurto('16:00', '00:00')).toBe('16h às 24h');
     expect(horarioCurto('19:00', '07:00')).toBe('19h às 7h');
     expect(horarioCurto('08:05', '17:00')).toBe('8h05 às 17h');
+    // o dia todo: do meio-dia da meia-noite à meia-noite seguinte (pool 36 g)
+    expect(horarioCurto('00:00', '00:00')).toBe('0h às 24h');
   });
 
   it('o rótulo de leitura de tela: dia da semana por extenso, dia, serviço e horário', () => {
@@ -75,11 +80,46 @@ describe('o fundo do cartão', () => {
   });
 });
 
+describe('o fundo do cartão usa a conta de contraste do site (pool 36 d)', () => {
+  it('sem cópia da conta de contraste nem da tinta escrita à mão', () => {
+    const codigo = readFileSync(join(process.cwd(), 'src', 'lib', 'proximos-servicos.ts'), 'utf8');
+    expect(codigo).toMatch(/from '\.\/cores'/);
+    expect(codigo).not.toMatch(/0x1c/i);
+    expect(codigo).not.toMatch(/\*\* 2\.4/);
+  });
+});
+
+describe('o título sobre a foto da cena (pool 36 h)', () => {
+  // a foto da cena (boas-vindas.jpg), no canto de baixo à esquerda onde fica o título: 99% dos pontos têm luminância até 0,51 (medido na foto; o máximo, 0,94, são pontos soltos).
+  // O cinza dessa luminância é o #BEBEBE; o degradê da cena põe a tinta por cima na proporção `via-tinta/NN` (o canto de baixo à esquerda fica no meio do degradê).
+  const FOTO_CLARA = '#BEBEBE';
+  const mistura = (alfa: number) => {
+    const tinta = [0x1c, 0x24, 0x30];
+    return `#${[0xbe, 0xbe, 0xbe].map((c, i) => Math.round(c * (1 - alfa) + tinta[i]! * alfa).toString(16).padStart(2, '0')).join('')}`;
+  };
+
+  it('o título é branco puro (não esmaecido) e passa de 4,5:1 sobre a foto clara com a tinta do degradê no canto', () => {
+    const cena = readFileSync(join(process.cwd(), 'src', 'routes', '_app', 'index.tsx'), 'utf8');
+    const alfa = Number(/via-tinta\/(\d+)/.exec(cena)![1]) / 100;
+    expect(razaoDeContraste('#FFFFFF', mistura(alfa))).toBeGreaterThanOrEqual(4.5);
+    // a conta é de verdade: sem a tinta do degradê, a foto clara sozinha não passa
+    expect(razaoDeContraste('#FFFFFF', FOTO_CLARA)).toBeLessThan(4.5);
+    render(<ProximosServicos servicos={[servico('2026-11-26')]} />);
+    const titulo = screen.getByText('Seus próximos serviços');
+    expect(titulo.className).toMatch(/(^| )text-white( |$)/);
+    expect(titulo.className).not.toMatch(/text-white\//);
+  });
+});
+
 describe('os cartões', () => {
   it('mostra o título, um cartão por serviço com o rótulo de leitura e as quatro informações', () => {
     render(<ProximosServicos servicos={[servico('2026-11-26'), servico('2026-12-01', { inicio: '19:00', fim: '07:00', turno: 'A' })]} />);
     expect(screen.getByText('Seus próximos serviços')).toBeInTheDocument();
-    const lista = screen.getByRole('list', { name: 'Seus próximos serviços' });
+    const secao = screen.getByRole('region', { name: 'Seus próximos serviços' });
+    const lista = within(secao).getByRole('list');
+    // o título é lido uma vez só: a seção leva o nome e a lista não repete (pool 36 f)
+    expect(lista).not.toHaveAttribute('aria-labelledby');
+    expect(secao.getAttribute('aria-labelledby')).toBeTruthy();
     const itens = within(lista).getAllByRole('listitem');
     expect(itens).toHaveLength(2);
     const primeiro = screen.getByText('quinta, 26, Pronto, das 7h às 19h').closest('li')!;
@@ -122,9 +162,12 @@ describe('os cartões', () => {
 
   it('a fila rola de lado, sem barra de rolagem visível', () => {
     render(<ProximosServicos servicos={[servico('2026-11-26')]} />);
-    const lista = screen.getByRole('list', { name: 'Seus próximos serviços' });
+    const lista = screen.getByRole('list');
     expect(lista.className).toMatch(/overflow-x-auto/);
-    expect(lista.className).toMatch(/\[scrollbar-width:none\]/);
+    // a barra só some no celular; no computador ela aparece (pool 36 e)
+    expect(lista.className).toMatch(/max-md:\[scrollbar-width:none\]/);
+    expect(lista.className).toMatch(/max-md:\[&::-webkit-scrollbar\]:hidden/);
+    expect(lista.className).not.toMatch(/(^| )\[scrollbar-width:none\]/);
   });
 
   it('só desenha até seis, mesmo que cheguem mais', () => {

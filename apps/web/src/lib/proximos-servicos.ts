@@ -1,5 +1,6 @@
 // O texto dos cartões dos próximos serviços na tela inicial (6.55): puro, sem React. Datas 'aaaa-mm-dd', horas 'hh:mm'.
 import type { MeuServico } from 'contratos';
+import { razaoDeContraste, TINTA } from './cores';
 
 const SEMANA_CURTA = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'];
 const SEMANA_LONGA = ['domingo', 'segunda', 'terça', 'quarta', 'quinta', 'sexta', 'sábado'];
@@ -36,7 +37,7 @@ function horaCurta(hora: string): string {
 
 /** O horário do turno: '7h às 19h', '7h30 às 19h30'; fim à meia-noite é '24h' ('16h às 24h'); o turno que vira o dia é escrito como é ('19h às 7h'). */
 export function horarioCurto(inicio: string, fim: string): string {
-  const fimTexto = fim === '00:00' && inicio !== '00:00' ? '24h' : horaCurta(fim);
+  const fimTexto = fim === '00:00' ? '24h' : horaCurta(fim);
   return `${horaCurta(inicio)} às ${fimTexto}`;
 }
 
@@ -45,23 +46,21 @@ export function rotuloDoCartao(s: Pick<MeuServico, 'data' | 'servico' | 'inicio'
   return `${diaDaSemanaLongo(s.data)}, ${diaDoMes(s.data)}, ${s.servico}, das ${horarioCurto(s.inicio, s.fim)}`;
 }
 
-// a tinta do sistema (--color-tinta) e a conta de contraste do texto branco sobre o fundo
-const TINTA = [0x1c, 0x24, 0x30] as const;
-const luz = (rgb: readonly number[]) => {
-  const [r, g, b] = rgb.map((c) => { const v = c / 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; });
-  return 0.2126 * r! + 0.7152 * g! + 0.0722 * b!;
-};
-const contrasteComBranco = (rgb: readonly number[]) => 1.05 / (luz(rgb) + 0.05);
-
 /** A parte da cor do serviço no fundo do cartão: 84% (16% de tinta), e menos se a cor for clara demais para o texto branco chegar a 4,5:1. */
 const PARTE_DA_COR = 84;
 const PASSO = 4;
 
+const canais = (hex: string) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
+/** A cor com `parte`% dela e o resto de tinta, em #RRGGBB (a mesma mistura em sRGB do `color-mix` que vai para o CSS). */
+const misturaComTinta = (cor: string, parte: number): string => {
+  const tinta = canais(TINTA);
+  const c = canais(cor).map((v, i) => Math.round((v * parte) / 100 + (tinta[i]! * (100 - parte)) / 100));
+  return `#${c.map((v) => v.toString(16).padStart(2, '0')).join('')}`;
+};
+
 /** O fundo do cartão: a cor do serviço misturada com a tinta (84% da cor); a cor clara ganha mais tinta, até o texto branco ler com 4,5:1. */
 export function fundoDoCartao(cor: string): string {
-  const rgb = [1, 3, 5].map((i) => parseInt(cor.slice(i, i + 2), 16));
   let parte = PARTE_DA_COR;
-  const mistura = (p: number) => rgb.map((c, i) => Math.round((c * p) / 100 + (TINTA[i]! * (100 - p)) / 100));
-  while (parte > 0 && contrasteComBranco(mistura(parte)) < 4.5) parte -= PASSO;
+  while (parte > 0 && razaoDeContraste('#FFFFFF', misturaComTinta(cor, parte)) < 4.5) parte -= PASSO;
   return `color-mix(in srgb, ${cor} ${Math.max(parte, 0)}%, var(--color-tinta))`;
 }

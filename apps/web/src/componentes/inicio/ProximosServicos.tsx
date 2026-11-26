@@ -11,11 +11,11 @@ export function ProximosServicos({ servicos }: { servicos: MeuServico[] }) {
   const titulo = useId();
   return (
     <section aria-labelledby={titulo} className="grid min-w-0 gap-2">
-      <small id={titulo} className="text-apoio leading-none font-medium text-white/80">Seus próximos serviços</small>
+      <small id={titulo} className="text-apoio leading-none font-medium text-white">Seus próximos serviços</small>
       {servicos.length === 0 ? (
         <p className="text-corpo text-white/90">Nenhum serviço marcado para você.</p>
       ) : (
-        <ol aria-labelledby={titulo} className="-mx-0.5 -mt-0.5 -mb-[3px] flex gap-2 overflow-x-auto px-0.5 pt-0.5 pb-[3px] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <ol className="-mx-0.5 -mt-0.5 -mb-[3px] flex gap-2 overflow-x-auto px-0.5 pt-0.5 pb-[3px] max-md:[scrollbar-width:none] max-md:[&::-webkit-scrollbar]:hidden">
           {servicos.slice(0, LIMITE_DE_PROXIMOS).map((s, i) => (
             <li
               key={s.alocacaoId}

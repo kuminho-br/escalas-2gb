@@ -4,9 +4,9 @@ import { useId } from 'react';
 import { Placa } from '@/componentes/Placa';
 import { diaPorExtenso, horarioCurto } from '@/lib/proximos-servicos';
 
-/** "Turno B. Na ABT, como combatente.": o turno (menos o `U`), e a guarnição com a função quando há; sem nenhum dos dois, nada. */
+/** "Turno B. Na ABT, como combatente.": o turno, e a guarnição com a função quando há. */
 function ondeEComo(s: MeuServico): string {
-  const turno = s.turno === 'U' ? '' : `Turno ${s.turno}.`;
+  const turno = `Turno ${s.turno}.`;
   const guarnicao = s.guarnicao ? (s.funcao ? `Na ${s.guarnicao}, como ${s.funcao.toLowerCase()}.` : `Na ${s.guarnicao}.`) : '';
   return [turno, guarnicao].filter(Boolean).join(' ');
 }

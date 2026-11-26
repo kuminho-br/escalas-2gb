@@ -131,7 +131,7 @@ function Inicio() {
           <img src="/boas-vindas.jpg" alt="" className="absolute inset-0 size-full object-cover" style={{ objectPosition: `center ${POSICAO_VERTICAL * 100}%` }} />
           {/* ao encolher, a cena escurece um pouco, para a saudação e a linha do próximo serviço lerem bem sobre a imagem clara */}
           <div aria-hidden className="escurece pointer-events-none absolute inset-0" />
-          <div data-chegada={chegadaDaSaudacao} className="saudacao-da-chegada saudacao absolute inset-0 grid grid-cols-[minmax(0,1fr)] grid-rows-[auto_auto_1fr] bg-gradient-to-br from-tinta/90 via-tinta/40 to-transparent px-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,340px)] md:px-7">
+          <div data-chegada={chegadaDaSaudacao} className="saudacao-da-chegada saudacao absolute inset-0 grid grid-cols-[minmax(0,1fr)] grid-rows-[auto_auto_1fr] bg-gradient-to-br from-tinta/90 via-tinta/55 to-transparent px-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,340px)] md:px-7">
             <h1 ref={titulo} tabIndex={-1} className="col-start-1 origin-[0_60%] font-cond font-semibold text-balance outline-none">{`${saudacao(agora)}, ${eu.militar.postoGrad} ${eu.militar.nomeGuerra}`}</h1>
             <p className="data col-start-1 text-corpo text-white/90 md:text-nome">{dataPorExtenso(agora)}</p>
             {/* os cartões entram junto com a saudação (o mesmo data-chegada) e somem antes da barra */}
