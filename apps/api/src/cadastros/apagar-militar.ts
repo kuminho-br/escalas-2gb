@@ -8,7 +8,10 @@ type Ligacao = { tabela: string; coluna: string; alvo: string; alvoColuna: strin
 
 async function ligacoes(tx: Consulta): Promise<Ligacao[]> {
   const { rows } = await tx.query<{ tabela: string; coluna: string; alvo: string; alvo_coluna: string; aceita_vazio: boolean }>(
-    `select c.conrelid::regclass::text as tabela, a.attname as coluna, c.confrelid::regclass::text as alvo, fa.attname as alvo_coluna, not a.attnotnull as aceita_vazio
+    `select c.conrelid::regclass::text as tabela, a.attname as coluna, c.confrelid::regclass::text as alvo, fa.attname as alvo_coluna,
+            -- aceita vazio só a coluna sem "not null" que não entra em nenhuma regra (check) da tabela: se entra (o "quem retirou" que anda junto da data,
+            -- o militar que a correção do voluntariado pede), esvaziar a quebraria, e a linha sai junto
+            (not a.attnotnull and not exists (select 1 from pg_constraint k where k.conrelid = c.conrelid and k.contype = 'c' and a.attnum = any(k.conkey))) as aceita_vazio
        from pg_constraint c
        join pg_attribute a on a.attrelid = c.conrelid and a.attnum = c.conkey[1]
        join pg_attribute fa on fa.attrelid = c.confrelid and fa.attnum = c.confkey[1]
@@ -27,7 +30,9 @@ const nome = (n: string) => {
  * Percorre o que sai junto com as linhas de `tabela` em que `coluna` está em `valores`: devolve quantas linhas de cada tabela seriam apagadas e,
  * com `apagar`, apaga (e esvazia as referências que aceitam vazio). Tudo na transação de quem chama.
  */
-async function percorrer(tx: Consulta, todas: Ligacao[], tabela: string, coluna: string, valores: unknown[], apagar: boolean, contas: Map<string, Set<string>>, visitadas: Set<string>) {
+type Anulacao = { tabela: string; coluna: string; alvos: unknown[] };
+
+async function percorrer(tx: Consulta, todas: Ligacao[], tabela: string, coluna: string, valores: unknown[], apagar: boolean, contas: Map<string, Set<string>>, visitadas: Set<string>, anulacoes: Anulacao[]) {
   if (!valores.length) return;
   const chave = `${tabela}.${coluna}:${valores.join(',')}`;
   if (visitadas.has(chave)) return;
@@ -37,9 +42,10 @@ async function percorrer(tx: Consulta, todas: Ligacao[], tabela: string, coluna:
     if (!alvos.length) continue;
     if (l.aceitaVazio) {
       if (apagar) await tx.query(`update ${nome(l.tabela)} set ${nome(l.coluna)} = null where ${nome(l.coluna)} = any($1)`, [alvos]);
+      else anulacoes.push({ tabela: l.tabela, coluna: l.coluna, alvos });
       continue;
     }
-    await percorrer(tx, todas, l.tabela, l.coluna, alvos, apagar, contas, visitadas);
+    await percorrer(tx, todas, l.tabela, l.coluna, alvos, apagar, contas, visitadas, anulacoes);
   }
   // cada linha conta uma vez, mesmo alcançada por dois caminhos (as mesmas contagens no GET e no DELETE)
   const linhas = (await tx.query<{ l: string }>(`select ctid::text as l from ${nome(tabela)} where ${nome(coluna)} = any($1)`, [valores])).rows.map((r) => r.l);
@@ -49,10 +55,13 @@ async function percorrer(tx: Consulta, todas: Ligacao[], tabela: string, coluna:
   if (apagar && linhas.length) await tx.query(`delete from ${nome(tabela)} where ${nome(coluna)} = any($1)`, [valores]);
 }
 
-async function rodar(tx: Consulta, militarIds: string[], apagar: boolean): Promise<Map<string, number>> {
+type Passagem = { contagem: Map<string, number>; /** só na simulação: as linhas que FICAM e perdem a referência (a coluna vira vazia) */ anuladas: { tabela: string; coluna: string; quantidade: number }[] };
+
+async function rodar(tx: Consulta, militarIds: string[], apagar: boolean): Promise<Passagem> {
   const contas = new Map<string, Set<string>>();
   const todas = await ligacoes(tx);
   const visitadas = new Set<string>();
+  const anulacoes: Anulacao[] = [];
   // a permuta precisa de exatamente 2 itens: a que tem um item dele sai inteira (os dois itens), e a alocação do outro militar fica
   const permutas = (
     await tx.query<{ permuta_id: string }>(
@@ -60,10 +69,22 @@ async function rodar(tx: Consulta, militarIds: string[], apagar: boolean): Promi
       [militarIds],
     )
   ).rows.map((r) => r.permuta_id);
-  await percorrer(tx, todas, 'permuta', 'id', permutas, apagar, contas, visitadas);
-  await percorrer(tx, todas, 'militar', 'id', militarIds, apagar, contas, visitadas);
+  await percorrer(tx, todas, 'permuta', 'id', permutas, apagar, contas, visitadas, anulacoes);
+  await percorrer(tx, todas, 'militar', 'id', militarIds, apagar, contas, visitadas, anulacoes);
   // as contagens saem na ordem em que as tabelas foram esvaziadas: o que depende vem antes do que é dependido
-  return new Map([...contas].map(([t, l]) => [t, l.size]));
+  const contagem = new Map([...contas].map(([t, l]) => [t, l.size] as [string, number]));
+  // as linhas que só perdem a referência: as que não saem junto, contadas uma vez por tabela e coluna
+  const porColuna = new Map<string, { tabela: string; coluna: string; linhas: Set<string> }>();
+  for (const a of anulacoes) {
+    const saem = contas.get(a.tabela) ?? new Set<string>();
+    const { rows } = await tx.query<{ l: string }>(`select ctid::text as l from ${nome(a.tabela)} where ${nome(a.coluna)} = any($1)`, [a.alvos]);
+    const chave = `${a.tabela}.${a.coluna}`;
+    const g = porColuna.get(chave) ?? { tabela: a.tabela, coluna: a.coluna, linhas: new Set<string>() };
+    for (const r of rows) if (!saem.has(r.l)) g.linhas.add(r.l);
+    porColuna.set(chave, g);
+  }
+  const anuladas = [...porColuna.values()].filter((g) => g.linhas.size > 0).map((g) => ({ tabela: g.tabela, coluna: g.coluna, quantidade: g.linhas.size }));
+  return { contagem, anuladas };
 }
 
 /**
@@ -71,12 +92,17 @@ async function rodar(tx: Consulta, militarIds: string[], apagar: boolean): Promi
  * dois deles (a permuta entre dois militares, por exemplo). É o que a separação dos dados de teste (6.58) usa.
  */
 export async function contagemParaVarios(tx: Consulta, militarIds: string[], apagar: boolean): Promise<Map<string, number>> {
-  return militarIds.length ? rodar(tx, militarIds, apagar) : new Map();
+  return militarIds.length ? (await rodar(tx, militarIds, apagar)).contagem : new Map();
+}
+
+/** As linhas que FICAM mas perdem a referência a um dos militares (a coluna vira vazia: o "quem marcou" de uma alocação, por exemplo). Só lê. */
+export async function referenciasQueViramVazias(tx: Consulta, militarIds: string[]): Promise<{ tabela: string; coluna: string; quantidade: number }[]> {
+  return militarIds.length ? (await rodar(tx, militarIds, false)).anuladas : [];
 }
 
 /** O que sai junto: as mesmas contagens que `apagarMilitar` apaga. */
 export async function oQueVaiJunto(tx: Consulta, militarId: string): Promise<OQueVaiJunto> {
-  const c = await rodar(tx, [militarId], false);
+  const c = (await rodar(tx, [militarId], false)).contagem;
   const de = (t: string) => c.get(t) ?? 0;
   // a sessão e a senha fazem parte da conta (temConta): não entram em "outros"
   const contados = ['militar', 'alocacao', 'afastamento', 'rastreio', 'usuario', 'papel_usuario', 'sessao', 'conta'];

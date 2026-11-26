@@ -8,7 +8,7 @@ import { migrar } from '../src/banco/migrar.ts';
 import { oQueVaiJunto } from '../src/cadastros/apagar-militar.ts';
 import { cargaExemplo } from '../src/carga/exemplo.ts';
 import { cargaDoEspelho } from '../src/laboratorio/espelho.ts';
-import { listarRegistrosDeTeste, removerRegistrosDeTeste, separarTeste } from '../src/laboratorio/separar.ts';
+import { listarRegistrosDeTeste, referenciasQueSoPerdemAutoria, removerRegistrosDeTeste, separarTeste } from '../src/laboratorio/separar.ts';
 import { bancoDeTeste, inserir } from './banco-teste.ts';
 
 // 6.58: tirar os registros de teste (matrículas 990…) do banco real, sem mexer em nenhum militar real nem na auditoria.
@@ -48,15 +48,28 @@ async function montar(b: Banco) {
   await inserir(b, 'voluntariado_lancamento', { militar_id: t1, mes: MES });
   const usuarioTeste = await inserir(b, 'usuario', { nome: 'SD ANDRADE', email: 'andrade@exemplo.test', militar_id: t1 });
   await inserir(b, 'conta', { usuario_id: usuarioTeste, conta_id: usuarioTeste, provedor_id: 'credential', senha: 'x' });
-  await inserir(b, 'papel_usuario', { usuario_id: usuarioTeste, unidade_id: secao, papel: 'escalante', desde: '2026-12-01' });
+  await inserir(b, 'papel_usuario', { usuario_id: usuarioTeste, unidade_id: secao, papel: 'escalante', desde: '2020-01-01' });
   await b.transacao(async (tx) => {
     const permuta = (await tx.query<{ id: string }>("insert into permuta (mes) values ('2026-12-01') returning id")).rows[0]!.id;
     await tx.query('insert into permuta_item (permuta_id, alocacao_id, militar_original_id) values ($1, $2, $3), ($1, $4, $5)', [permuta, aloc1, t1, alocRealNaPermuta, reais[1]]);
   });
+  // uma permuta já feita: a alocação X, que era do real, está com o de teste; a Y, que era do de teste, está com o real. Cada item aponta para o outro lado
+  const t3 = await um("select id from militar where matricula = '990003-3'");
+  const alocX = await inserir(b, 'alocacao', { militar_id: t3, escala_id: escala, servico_id: servico, turno_id: turno, data: '2026-12-08', origem: 'permuta' });
+  const alocY = await inserir(b, 'alocacao', { militar_id: reais[0], escala_id: escala, servico_id: servico, turno_id: turno, data: '2026-12-09', origem: 'permuta' });
+  await b.transacao(async (tx) => {
+    const permuta = (await tx.query<{ id: string }>("insert into permuta (mes) values ('2026-12-01') returning id")).rows[0]!.id;
+    await tx.query('insert into permuta_item (permuta_id, alocacao_id, militar_original_id) values ($1, $2, $3), ($1, $4, $5)', [permuta, alocX, reais[0], alocY, t3]);
+  });
+  // uma alocação REAL marcada (presença) por uma conta de teste: a linha fica, só perde o "quem marcou"; e uma de teste marcada pela mesma conta, que sai
+  const alocPresenca = await inserir(b, 'alocacao', { militar_id: reais[2], escala_id: escala, servico_id: servico, turno_id: turno, data: '2026-12-07', origem: 'manual', presenca_por: usuarioTeste });
+  await inserir(b, 'alocacao', { militar_id: t3, escala_id: escala, servico_id: servico, turno_id: turno, data: '2026-12-07', origem: 'manual', presenca_por: usuarioTeste });
   // um usuário real, com nível de administrador, para provar que fica
   const admin = await inserir(b, 'usuario', { nome: 'CAP REAL', email: 'real@exemplo.test', militar_id: reais[2] });
-  await inserir(b, 'papel_usuario', { usuario_id: admin, unidade_id: await um('select id from unidade where mae_id is null'), papel: 'administrador', desde: '2026-12-01' });
-  return { reais, alocReal, alocRealNaPermuta, escala };
+  await inserir(b, 'papel_usuario', { usuario_id: admin, unidade_id: await um('select id from unidade where mae_id is null'), papel: 'administrador', desde: '2020-01-01' });
+  // o escalante real corrigiu o voluntariado de um militar de teste: o registro tem o militar de teste e a regra "voluntariado_corrigido pede militar"
+  await inserir(b, 'registro_de_alteracao', { usuario_id: admin, unidade_id: secao, tipo: 'voluntariado_corrigido', militar_id: t2, mes: MES, antes: '[]', depois: '[]' });
+  return { reais, alocReal, alocRealNaPermuta, escala, alocY, alocPresenca, usuarioTeste, t2, secao, admin };
 }
 
 /** A contagem de todas as tabelas do real, para provar que nada mudou. */
@@ -81,15 +94,16 @@ describe('listar o que é de teste', () => {
     const q = (t: string) => lista.find((l) => l.tabela === t)?.quantidade ?? 0;
     expect(q('militar')).toBe(53);
     expect(q('rastreio')).toBe(53);
-    expect(q('alocacao')).toBe(2);
+    expect(q('alocacao')).toBe(4); // a do t1, a do t2, a X (com o de teste) e a do t3 marcada pela conta de teste
     expect(q('afastamento')).toBe(1);
     expect(q('voluntariado_lancamento')).toBe(1);
     expect(q('usuario')).toBe(1);
     expect(q('conta')).toBe(1);
     expect(q('papel_usuario')).toBe(1);
     // a permuta com um militar real sai inteira (a permuta precisa de dois itens); a alocação do real fica
-    expect(q('permuta')).toBe(1);
-    expect(q('permuta_item')).toBe(2);
+    expect(q('registro_de_alteracao')).toBe(1);
+    expect(q('permuta')).toBe(2);
+    expect(q('permuta_item')).toBe(4);
     // nada que é só do real entra: os serviços, as equipes, as escalas e os militares 880… não são listados
     for (const t of ['servico', 'equipe', 'escala', 'unidade', 'posto_grad']) expect(q(t), t).toBe(0);
     // a ordem é a da exclusão: o que depende vem antes do que é dependido
@@ -114,7 +128,7 @@ describe('listar o que é de teste', () => {
 
 describe('tirar o que é de teste', () => {
   it('deixa o real sem nenhuma 990… e os militares reais intactos, com tudo o que era deles', async () => {
-    const { reais, alocReal, alocRealNaPermuta } = await montar(banco);
+    const { reais, alocReal, alocRealNaPermuta, alocY, alocPresenca } = await montar(banco);
     const foto = await fotografia(banco);
     const removidos = await removerRegistrosDeTeste(banco);
 
@@ -126,6 +140,8 @@ describe('tirar o que é de teste', () => {
     expect(await n('select count(*)::int as n from afastamento where militar_id = $1', [reais[0]])).toBe(1);
     expect(await n('select count(*)::int as n from voluntariado_lancamento where militar_id = $1', [reais[1]])).toBe(1);
     expect(await n('select count(*)::int as n from alocacao where id = any($1)', [[alocReal, alocRealNaPermuta]])).toBe(2);
+    expect(await n('select count(*)::int as n from alocacao where id = any($1)', [[alocY, alocPresenca]])).toBe(2);
+    expect(await n('select count(*)::int as n from registro_de_alteracao')).toBe(0);
     expect(await n("select count(*)::int as n from usuario where email = 'real@exemplo.test'")).toBe(1);
     expect(await n("select count(*)::int as n from papel_usuario where papel = 'administrador'")).toBe(1);
     // o que é do real e não depende de militar fica: serviços, equipes, escala
@@ -169,6 +185,74 @@ describe('tirar o que é de teste', () => {
     await expect(removerRegistrosDeTeste(banco)).rejects.toThrow('barrado de propósito');
     expect(await fotografia(banco)).toEqual(antes);
   });
+
+  it('a referência que só aponta para a conta de teste fica, sem o "quem marcou"; a lista diz quantas linhas reais mudam', async () => {
+    const { alocPresenca } = await montar(banco);
+    // só a alocação REAL entra: a de teste, marcada pela mesma conta, sai de qualquer jeito e não conta
+    expect(await referenciasQueSoPerdemAutoria(banco)).toEqual([{ tabela: 'alocacao', coluna: 'presenca_por', quantidade: 1 }]);
+    await removerRegistrosDeTeste(banco);
+    const linha = (await banco.query<{ presenca_por: string | null }>('select presenca_por from alocacao where id = $1', [alocPresenca])).rows[0]!;
+    expect(linha.presenca_por).toBeNull();
+    expect(await referenciasQueSoPerdemAutoria(banco)).toEqual([]);
+  });
+
+  it('o registro de alteração do voluntariado de um militar de teste sai junto, e a limpeza não trava na regra "pede militar"', async () => {
+    const { t2 } = await montar(banco);
+    expect(await n('select count(*)::int as n from registro_de_alteracao where militar_id = $1', [t2])).toBe(1);
+    await expect(removerRegistrosDeTeste(banco)).resolves.toBeDefined();
+    expect(await n('select count(*)::int as n from registro_de_alteracao')).toBe(0);
+  });
+
+  it('a permuta já feita (com a alocação trocada de lado) sai inteira e a alocação do real fica', async () => {
+    const { alocY } = await montar(banco);
+    await removerRegistrosDeTeste(banco);
+    expect(await n('select count(*)::int as n from permuta')).toBe(0);
+    expect(await n('select count(*)::int as n from permuta_item')).toBe(0);
+    expect(await n('select count(*)::int as n from alocacao where id = $1', [alocY])).toBe(1);
+  });
+});
+
+describe('os cuidados antes de apagar', () => {
+  it('a lista diz quais contas de teste têm nível de acesso e quais linhas reais só perdem a autoria', async () => {
+    await montar(banco);
+    const linhas: string[] = [];
+    await separarTeste(banco, { aplicar: false, escrever: (l) => linhas.push(l) });
+    const texto = linhas.join('\n');
+    expect(texto).toMatch(/Contas de teste com nível de acesso:/);
+    expect(texto).toMatch(/escalante: 1/);
+    expect(texto).toMatch(/alocacao\.presenca_por: 1/);
+  });
+
+  it('recusa aplicar se a limpeza deixaria o sistema sem nenhum administrador', async () => {
+    const { usuarioTeste, admin } = await montar(banco);
+    // o único administrador é a conta de teste
+    await banco.query('delete from papel_usuario where usuario_id = $1', [admin]);
+    await inserir(banco, 'papel_usuario', { usuario_id: usuarioTeste, unidade_id: await um('select id from unidade where mae_id is null'), papel: 'administrador', desde: '2020-01-01' });
+    const antes = await fotografia(banco);
+    await expect(separarTeste(banco, { aplicar: true, confirmarMilitares: 53, escrever: () => {} })).rejects.toThrow(/nenhum administrador/);
+    expect(await fotografia(banco)).toEqual(antes);
+    // com um administrador real, passa
+    await inserir(banco, 'papel_usuario', { usuario_id: admin, unidade_id: await um('select id from unidade where mae_id is null'), papel: 'administrador', desde: '2020-01-01' });
+    await expect(separarTeste(banco, { aplicar: true, confirmarMilitares: 53, escrever: () => {} })).resolves.toMatchObject({ restantes: 0 });
+  });
+
+  it('o administrador real com o nível vencido não conta como quem fica', async () => {
+    const { usuarioTeste, admin } = await montar(banco);
+    const raiz = await um('select id from unidade where mae_id is null');
+    await banco.query('delete from papel_usuario where usuario_id = $1', [admin]);
+    await inserir(banco, 'papel_usuario', { usuario_id: admin, unidade_id: raiz, papel: 'administrador', desde: '2020-01-01', ate: '2020-12-31' });
+    await inserir(banco, 'papel_usuario', { usuario_id: usuarioTeste, unidade_id: raiz, papel: 'administrador', desde: '2020-01-01' });
+    await expect(separarTeste(banco, { aplicar: true, confirmarMilitares: 53, escrever: () => {} })).rejects.toThrow(/nenhum administrador/);
+  });
+
+  it('aplicar exige a quantidade de militares conferida na lista', async () => {
+    await montar(banco);
+    const antes = await fotografia(banco);
+    await expect(separarTeste(banco, { aplicar: true, escrever: () => {} })).rejects.toThrow(/--aplicar=53/);
+    await expect(separarTeste(banco, { aplicar: true, confirmarMilitares: 52, escrever: () => {} })).rejects.toThrow(/--aplicar=53/);
+    expect(await fotografia(banco)).toEqual(antes);
+    await expect(separarTeste(banco, { aplicar: true, confirmarMilitares: 53, escrever: () => {} })).resolves.toMatchObject({ aplicado: true, restantes: 0 });
+  });
 });
 
 describe('a separação inteira (o que o script faz)', () => {
@@ -195,14 +279,14 @@ describe('a separação inteira (o que o script faz)', () => {
   it('com aplicar tira, e a conferência final diz que não restou nenhuma 990…', async () => {
     await montar(banco);
     const linhas: string[] = [];
-    const r = await separarTeste(banco, { aplicar: true, escrever: (l) => linhas.push(l) });
+    const r = await separarTeste(banco, { aplicar: true, confirmarMilitares: 53, escrever: (l) => linhas.push(l) });
     expect(r.aplicado).toBe(true);
     expect(r.restantes).toBe(0);
     expect(await n("select count(*)::int as n from militar where matricula like '990%'")).toBe(0);
     expect(linhas.join('\n')).toMatch(/matrículas 990… no banco real: 0/);
     // repetir: nada a tirar
     const outra: string[] = [];
-    const r2 = await separarTeste(banco, { aplicar: true, escrever: (l) => outra.push(l) });
+    const r2 = await separarTeste(banco, { aplicar: true, confirmarMilitares: 0, escrever: (l) => outra.push(l) });
     expect(r2.registros).toEqual([]);
     expect(outra.join('\n')).toMatch(/Nada de teste no banco real/);
   });

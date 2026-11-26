@@ -10,7 +10,10 @@ export { ESPELHO_PAPEL, SCHEMA_ESPELHO };
  * espelho (6.59), e qualquer consulta do papel a uma tabela do real é negada, mesmo que o código erre o caminho.
  * - nenhum privilégio sobre as tabelas e sequências do `public`; o uso do schema `public` fica só para os tipos e operadores das extensões
  *   (`ltree`, `btree_gist`);
- * - todos os privilégios sobre o que há no `laboratorio` e, pelo privilégio padrão, sobre o que as próximas migrações criarem lá;
+ * - todos os privilégios sobre o que há no `laboratorio` (menos o registro de migrações dele, que é do executor) e, pelo privilégio padrão, sobre o que as
+ *   próximas migrações criarem lá;
+ * - toda função do espelho (os gatilhos de auditoria, por exemplo) fixa o `search_path` dele: o nome de tabela sem schema, dentro dela, é sempre o do
+ *   espelho, mesmo que a sessão que grava não tenha o caminho do espelho. Uma função recriada por uma migração nova perde o ajuste, e este preparo o refaz;
  * - o usuário que conecta recebe o direito de assumi-lo (`set role`).
  * Pode rodar de novo. Chamada ao fim de `migrar`, depois que o espelho existe.
  */
@@ -32,6 +35,16 @@ export async function prepararPapelDoEspelho(c: Consulta): Promise<void> {
     alter default privileges in schema ${SCHEMA_ESPELHO} grant all on tables to ${ESPELHO_PAPEL};
     alter default privileges in schema ${SCHEMA_ESPELHO} grant all on sequences to ${ESPELHO_PAPEL};
     alter default privileges in schema ${SCHEMA_ESPELHO} grant all on functions to ${ESPELHO_PAPEL};
+    revoke all on ${SCHEMA_ESPELHO}.migracao_aplicada from ${ESPELHO_PAPEL};
+    do $$ declare f record; begin
+      for f in
+        select p.proname, pg_get_function_identity_arguments(p.oid) as args
+          from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+         where n.nspname = '${SCHEMA_ESPELHO}' and not exists (select 1 from pg_depend d where d.objid = p.oid and d.deptype = 'e')
+      loop
+        execute format('alter function %I.%I(%s) set search_path = ${SCHEMA_ESPELHO}, public', '${SCHEMA_ESPELHO}', f.proname, f.args);
+      end loop;
+    end $$;
   `);
 }
 
@@ -87,6 +100,8 @@ export async function cargaDoEspelho(banco: Banco, mes: string): Promise<{ milit
     await tx.exec(`set local search_path to ${SCHEMA_ESPELHO}, public`);
     const alvo = (await tx.query<{ s: string | null }>('select current_schema() as s')).rows[0]!.s;
     if (alvo !== SCHEMA_ESPELHO) throw new Error('A carga de teste só roda no espelho (schema laboratorio), e ele não existe neste banco.');
+    // como o papel do espelho: se a carga escrevesse no real por engano, o banco negaria
+    await tx.exec(`set local role ${ESPELHO_PAPEL}`);
     const { militares } = await cargaExemploEm(tx, mes);
     const perfis = await criarPerfisDeTeste(tx, mes);
     return { militares, perfis };

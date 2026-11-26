@@ -3,9 +3,9 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { bancoPglite } from '../src/banco/pglite.ts';
-import { migrar, PASTA_MIGRACOES } from '../src/banco/migrar.ts';
+import { PASTA_MIGRACOES } from '../src/banco/migrar.ts';
 import type { Banco } from '../src/banco/banco.ts';
-import { inserir } from './banco-teste.ts';
+import { inserir, migrarReal as migrar } from './banco-teste.ts';
 
 // Dados fictícios (D7). Migra até a 0028, insere militares com quadro e com `ativo` à moda antiga e aplica a 0029 em diante.
 async function migrarAte(banco: Banco, limite: string) {

@@ -52,6 +52,17 @@ describe('a carga de teste do espelho', () => {
     expect(await n("select count(*)::int as n from public.militar where matricula like '990%'")).toBe(0);
   });
 
+  it('a carga roda como o papel do espelho: se ela escrevesse no real, o banco negaria', async () => {
+    await banco.exec(`
+      create table laboratorio.zz_quem (quem text);
+      create function laboratorio.zz_registra() returns trigger language plpgsql as $$ begin insert into laboratorio.zz_quem values (current_user); return null; end $$;
+      create trigger zz_quem after insert on laboratorio.militar for each row execute function laboratorio.zz_registra();`);
+    await banco.exec(`grant all on laboratorio.zz_quem to ${ESPELHO_PAPEL}`);
+    await cargaDoEspelho(banco, MES);
+    const { rows } = await banco.query<{ quem: string; n: number }>('select quem, count(*)::int as n from laboratorio.zz_quem group by quem');
+    expect(rows).toEqual([{ quem: ESPELHO_PAPEL, n: 58 }]);
+  });
+
   it('um usuário por nível de acesso, lotado e sem senha; o administrador de teste é administrador na raiz do espelho', async () => {
     await cargaDoEspelho(banco, MES);
     const perfis = await perfisDeTeste(banco);
@@ -118,12 +129,14 @@ describe('quando a carga de teste pode rodar', () => {
 describe('o papel de banco do espelho', () => {
   it('não tem privilégio algum nas tabelas do real e tem todos nas do espelho (definição)', async () => {
     await cargaDoEspelho(banco, MES);
-    for (const t of ['militar', 'usuario', 'papel_usuario', 'rastreio', 'auditoria', 'unidade', 'migracao_aplicada']) {
+    for (const t of ['militar', 'usuario', 'papel_usuario', 'rastreio', 'auditoria', 'unidade']) {
       for (const priv of ['select', 'insert', 'update', 'delete']) {
         expect(await pode(`public.${t}`, priv), `public.${t} ${priv}`).toBe(false);
         expect(await pode(`laboratorio.${t}`, priv), `laboratorio.${t} ${priv}`).toBe(true);
       }
     }
+    // o registro de migrações do espelho não é dele: apagar uma linha ali faria o próximo migrar reaplicar o arquivo
+    for (const priv of ['select', 'insert', 'update', 'delete']) expect(await pode('laboratorio.migracao_aplicada', priv), `migracao_aplicada ${priv}`).toBe(false);
     // só usa o public para os tipos e operadores das extensões
     expect((await banco.query<{ ok: boolean }>("select has_schema_privilege($1, 'public', 'usage') as ok", [ESPELHO_PAPEL])).rows[0]!.ok).toBe(true);
   });
@@ -169,6 +182,23 @@ describe('o papel de banco do espelho', () => {
     await migrar(banco, pasta);
     expect(await pode('laboratorio.zz_dupla', 'select')).toBe(true);
     expect(await pode('public.zz_dupla', 'select')).toBe(false);
+  });
+
+  it('as funções do espelho fixam o caminho dele: gravar no espelho numa sessão sem o caminho não vaza para o real', async () => {
+    // sessão com o caminho padrão (public), escrevendo em laboratorio.unidade pelo nome completo
+    const audRealAntes = await n('select count(*)::int as n from public.auditoria');
+    const audEspelhoAntes = await n('select count(*)::int as n from laboratorio.auditoria');
+    await banco.exec("insert into laboratorio.unidade (tipo, sigla, nome, mae_id, desde) select 'secao', 'ZZ', 'Seção de prova', id, '2026-12-01' from laboratorio.unidade where mae_id is null");
+    expect(await n('select count(*)::int as n from laboratorio.auditoria')).toBe(audEspelhoAntes + 1);
+    expect(await n('select count(*)::int as n from public.auditoria')).toBe(audRealAntes);
+    expect(await n("select count(*)::int as n from public.unidade where sigla = 'ZZ'")).toBe(0);
+    // uma função que um arquivo novo recriar também fica com o caminho fixo depois do preparo
+    const pasta = mkdtempSync(join(tmpdir(), 'migracoes-funcao-'));
+    writeFileSync(join(pasta, '0100_funcao.sql'), 'create or replace function registrar_auditoria() returns trigger language plpgsql as $$ begin insert into auditoria (tabela, registro_id, acao) values (tg_table_name, gen_random_uuid(), lower(tg_op)); return null; end $$;');
+    await migrar(banco, pasta);
+    await banco.exec("insert into laboratorio.unidade (tipo, sigla, nome, mae_id, desde) select 'secao', 'ZY', 'Outra seção', id, '2026-12-01' from laboratorio.unidade where mae_id is null");
+    expect(await n("select count(*)::int as n from laboratorio.auditoria where tabela = 'unidade' and registro_id is not null and depois is null")).toBe(1);
+    expect(await n('select count(*)::int as n from public.auditoria')).toBeGreaterThanOrEqual(audRealAntes); // o real recriou a dele também
   });
 
   it('preparar o papel de novo não faz mal', async () => {

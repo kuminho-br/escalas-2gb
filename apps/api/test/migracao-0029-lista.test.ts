@@ -3,10 +3,10 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { bancoPglite } from '../src/banco/pglite.ts';
-import { migrar, PASTA_MIGRACOES } from '../src/banco/migrar.ts';
+import { PASTA_MIGRACOES } from '../src/banco/migrar.ts';
 import type { Banco } from '../src/banco/banco.ts';
 import { lotadosNoMes } from '../src/voluntariado/leitura.ts';
-import { inserir } from './banco-teste.ts';
+import { inserir, migrarReal as migrar } from './banco-teste.ts';
 
 // Entrega 6.16, Task 4, item 7: nenhum militar das telas de escala some com a migração 0029 (quadro e situação por período). Dados fictícios (D7).
 // A lista "de antes" é escrita à mão, com a regra do banco antigo (militar.ativo e quadro no militar); a "de depois" vem do código de hoje.

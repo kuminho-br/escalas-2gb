@@ -3,9 +3,9 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { bancoPglite } from '../src/banco/pglite.ts';
-import { migrar, PASTA_MIGRACOES } from '../src/banco/migrar.ts';
+import { PASTA_MIGRACOES } from '../src/banco/migrar.ts';
 import type { Banco } from '../src/banco/banco.ts';
-import { inserir } from './banco-teste.ts';
+import { inserir, migrarReal as migrar } from './banco-teste.ts';
 
 // Entrega 6.27, Task 1: a escala dos oficiais vira escala comum. Migra até a 0035, grava um mês completo do jeito antigo (escolhas, cobertura, mês encerrado
 // com saldo) e aplica a 0036. Dados fictícios (D7).
