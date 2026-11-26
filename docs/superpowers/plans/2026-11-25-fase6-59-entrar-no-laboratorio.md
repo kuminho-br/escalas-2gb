@@ -23,6 +23,12 @@
 - **Modo do site por aba:** o modo vive na aba (`sessionStorage`), não no navegador inteiro; duas abas, uma no real e outra no Laboratório, não se misturam. Ao abrir uma aba nova, sempre no real.
 - Nenhum dado pessoal real em repositório, teste ou CI. Antes de enviar: `pnpm test && pnpm typecheck && pnpm build:vercel`. Enviar a branch uma vez só, no fim.
 
+**Herança da 6.58 (notas da DESENVOLVIMENTO, 26/11).** O que ficou para esta entrega decidir e cobrir com teste:
+- **Toda conexão do espelho** assume o papel `laboratorio_app` e fixa `search_path = laboratorio, public` (Task 1/2). Nada de pedido ao espelho com o papel da API real.
+- **Espelho atrasado:** `migracoes-pendentes.ts` só olha o `public`. Passa a olhar também o `laboratorio`. Se o espelho estiver atrás, o Laboratório responde "O Laboratório está em manutenção." e o real segue normal (Task 2).
+- **Leitura do catálogo:** o "apagar militar" e o `estrutura.ts` leem o catálogo pelo caminho da sessão, e o `tabelasLigadas` fica em cache de módulo com o caminho da primeira chamada. No espelho, as tabelas do `public` aparecem qualificadas. O cache passa a ter uma entrada por schema, e há teste de "apagar militar" no espelho que não toca o real (Task 2).
+- **Migração nova:** a 0048 (e toda migração daqui em diante) é escrita sem `public.` e, quando consulta o catálogo, usa `current_schema()` (ex.: `to_regclass(current_schema() || '.x')`). Quem garante é o teste de estrutura igual da 6.58.
+
 ## Review Focus
 
 1. **Escrita que cruza (a falha que não pode acontecer):** pedido ao `/api/lab/*` que grava (cadastro, escala, importação) deixa o `public` **idêntico** antes e depois; pedido ao real não deixa marca no `laboratorio` (Task 2).
