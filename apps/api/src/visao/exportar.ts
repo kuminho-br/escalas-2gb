@@ -5,7 +5,8 @@ import { COLUNAS_DA_EXPORTACAO, LIMITE_DA_EXPORTACAO, mesParaData, type BlocoDaE
 import ExcelJS from 'exceljs';
 import { CADASTRO, ehAdministrador, papeisVigentes, temPapel } from '../acesso.ts';
 import type { Consulta } from '../banco/banco.ts';
-import { COLUNAS, ABA, comRotulo } from '../importacao/peculio.ts';
+import { menorCaminhoUnico, unidadesDoCaminho } from '../importacao/caminho-da-unidade.ts';
+import { COLUNAS, ABA } from '../importacao/peculio.ts';
 import { cabecalho } from '../importacao/modelo.ts';
 import { buscarComFiltros } from './busca.ts';
 import { blocosDaUnidade } from './visao.ts';
@@ -63,13 +64,9 @@ export async function exportarMilitares(c: Consulta, usuarioId: string, pedido: 
     [[...ids], mesParaData(hoje.slice(0, 7))],
   );
 
-  // o nome da lotação como a importação escreve na AJUDA (a unidade de cima quando a sigla se repete): os rótulos de todas as unidades em vigor, lidos uma vez
-  const unidades = comRotulo(
-    (await c.query<{ id: string; sigla: string; mae: string | null }>(
-      'select u.id, u.sigla, m.sigla as mae from unidade u left join unidade m on m.id = u.mae_id where u.ate is null or u.ate >= $1::date', [hoje],
-    )).rows,
-  );
-  const rotuloDe = new Map(unidades.map((u) => [u.id, u.rotulo]));
+  // a lotação pelo caminho de siglas (6.57): o menor pedaço único na corporação inteira, que qualquer importação que alcance a unidade reconhece
+  const todas = await unidadesDoCaminho(c, hoje);
+  const rotuloDe = new Map(todas.map((u) => [u.id, menorCaminhoUnico(u, todas)]));
 
   // o que a pessoa vê, por lotação (uma vez por unidade, não por militar)
   const visao = new Map<string, { blocos: Awaited<ReturnType<typeof blocosDaUnidade>>; completa: boolean }>();

@@ -70,7 +70,7 @@ describe('lotar um militar em qualquer unidade', () => {
     expect((await lotacoes('990783-3')).map((l) => l.sigla)).toEqual(['2º GB']);
   });
 
-  it('a importação do Pecúlio resolve a LOTAÇÃO em qualquer unidade abaixo da importada; a sigla repetida pede a unidade de cima', async () => {
+  it('a importação do Pecúlio resolve a LOTAÇÃO em qualquer unidade abaixo da importada; a sigla repetida pede o caminho com a unidade de cima (6.57)', async () => {
     const gb9 = await inserir(api.banco, 'unidade', { tipo: 'grupamento', sigla: '9º GB', nome: '9º Grupamento', mae_id: api.ids.raiz, desde: '2026-11-01' });
     await inserir(api.banco, 'unidade', { tipo: 'secao', sigla: '1ª SB', nome: '1ª Seção do 9º GB', mae_id: gb9, desde: '2026-11-01' });
     const cab = ['MATRÍCULA', 'POSTO/GRAD', 'NOME COMPLETO', 'NOME DE GUERRA', 'LOTAÇÃO'];
@@ -78,14 +78,14 @@ describe('lotar um militar em qualquer unidade', () => {
       ['990784-4', 'SD', 'Um de Tal', 'UMGB', '2º GB'],
       ['990785-5', 'SD', 'Dois de Tal', 'DOISDA', 'DA'],
       ['990786-6', 'SD', 'Tres de Tal', 'TRESAMB', '1ª SB'],
-      ['990787-7', 'SD', 'Quatro de Tal', 'QUATRO', '1ª SB (9º GB)'],
+      ['990787-7', 'SD', 'Quatro de Tal', 'QUATRO', '9º GB / 1ª SB'],
     ];
     const enviar = async (confirmar: boolean) =>
       api.pedir('admin', 'POST', `/api/unidades/${api.ids.raiz}/importacao/peculio${confirmar ? '?confirmar=1' : ''}`, formulario(await planilha({ 'PECÚLIO': [cab, ...linhas] })));
     const previa = await (await enviar(false)).json();
     // a ambígua não cria o militar: a prévia diz para usar a sigla com a unidade de cima
-    expect(previa.ignoradas.find((i: { chave: string }) => i.chave === '990786-6').motivo).toContain('há mais de uma "1ª SB"');
-    expect(previa.ignoradas.find((i: { chave: string }) => i.chave === '990786-6').motivo).toContain('1ª SB (2º GB)');
+    expect(previa.ignoradas.find((i: { chave: string }) => i.chave === '990786-6').motivo).toContain('Há mais de uma "1ª SB"');
+    expect(previa.ignoradas.find((i: { chave: string }) => i.chave === '990786-6').motivo).toContain('2º GB / 1ª SB');
     expect(previa.problemas.map((p: { mensagem: string }) => p.mensagem).join(' ')).toContain('sem lotação');
     expect((await (await enviar(true)).json()).gravados).toBe(3);
     expect((await lotacoes('990784-4')).map((l) => l.sigla)).toEqual(['2º GB']);
