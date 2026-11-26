@@ -47,6 +47,8 @@ export async function criarRegistrosAlheios(api: ApiDeTeste, outra: string): Pro
   ids.papeis = await inserir(api.banco, 'papel_usuario', { usuario_id: api.usuarios.semPapel, unidade_id: outra, papel: 'escalante', desde: '2026-11-01' });
   // a árvore de unidades (6.25): mover, extinguir, excluir e renomear a unidade alheia
   ids.unidades = outra;
+  // um aviso da unidade alheia (6.56): editar e retirar é de quem tem nível de acesso nela (ou acima) ou do autor
+  ids.avisos = (await pelaRaiz(api, 'POST', '/api/avisos', { unidadeId: outra, titulo: 'Alheio', texto: 'Aviso da unidade alheia.', fixado: false })).id;
   // acúmulo da alocação alheia (Fase 4.1.1)
   ids.acumulos = await inserir(api.banco, 'alocacao_acumulo', { alocacao_id: ids.alocacoes, guarnicao_id: ids.guarnicoes, funcao_id: ids.funcoes });
   return ids;
