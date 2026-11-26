@@ -22,6 +22,7 @@ import { rotasEfetivo } from './efetivo/rotas.ts';
 import { rotasOficiais } from './oficiais/rotas.ts';
 import { rotasEscalaDoMes } from './escala/rotas.ts';
 import { rotasGrade } from './grade/rotas.ts';
+import { rotasAvisos } from './avisos/rotas.ts';
 import { rotasVisualizacao } from './escala/visualizacao-rotas.ts';
 import { rotasVoluntariado } from './voluntariado/rotas.ts';
 import { rotasVisao } from './visao/rotas.ts';
@@ -79,6 +80,7 @@ export function criarApp(dep: Dependencias): Hono {
     app.route('/api', rotasEscalas(comAuth));
     app.route('/api', rotasEscalaDoMes(comAuth));
     app.route('/api', rotasVisualizacao({ ...comAuth, agora: dep.agora }));
+    app.route('/api', rotasAvisos({ ...comAuth, agora: dep.agora }));
     app.route('/api', rotasEfetivo(comAuth));
     app.route('/api', rotasGrade(comAuth));
     app.route('/api', rotasOficiais(comAuth));
