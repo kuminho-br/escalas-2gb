@@ -131,13 +131,27 @@ describe('editar uma mudança que ainda não vale', () => {
   it('a data não passa do começo do anterior nem do fim do próprio período: 400 no campo desde, e nada muda', async () => {
     const m = await militar([{ desde: mais(-60), ate: mais(9) }, { desde: mais(10), ate: mais(30) }, { desde: mais(31), ate: null }]);
     const antes = await linhas(m.id);
-    const cedo = await editar('gestorGb', m.id, m.ids[1]!, { desde: mais(-60) });
+    const cedo = await editar('admin', m.id, m.ids[1]!, { desde: mais(-60) });
     expect(cedo.status).toBe(400);
     expect(await texto(cedo)).toBe(`Use uma data a partir de ${brasil(mais(-59))}.`);
     const tarde = await editar('gestorGb', m.id, m.ids[1]!, { desde: mais(31) });
     expect(tarde.status).toBe(400);
     expect(await texto(tarde)).toBe(`Use uma data até ${brasil(mais(30))}.`);
     expect(await linhas(m.id)).toEqual(antes);
+  });
+
+  it('achado da revisão: o gestor não leva a mudança para uma data que já passou (reescreveria o histórico): 400 no campo desde; o administrador pode (fase de testes)', async () => {
+    const m = await militar([{ desde: mais(-60), ate: mais(9) }, { desde: mais(10), ate: null }]);
+    const antes = await linhas(m.id);
+    for (const dia of [mais(-30), hoje]) {
+      const r = await editar('gestorGb', m.id, m.ids[1]!, { desde: dia });
+      expect(r.status).toBe(400);
+      expect(await texto(r)).toBe('Use uma data depois de hoje.');
+    }
+    expect(await linhas(m.id)).toEqual(antes);
+    expect((await editar('gestorGb', m.id, m.ids[1]!, { desde: mais(1) })).status).toBe(200);
+    expect((await editar('admin', m.id, m.ids[1]!, { desde: mais(-30) })).status).toBe(200);
+    expect(await linhas(m.id)).toMatchObject([{ desde: mais(-60), ate: mais(-31) }, { desde: mais(-30), ate: null }]);
   });
 
   it('sem mudar a data, o anterior não é tocado; o quadro e a situação que não vêm continuam os do período', async () => {

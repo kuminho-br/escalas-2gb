@@ -12,6 +12,7 @@ import { ADMINISTRADOR_MEXE_EM_QUALQUER_PERIODO } from './fase-de-testes.ts';
 import { quadroParaOPosto } from './quadros.ts';
 
 export const MSG_JA_VALE = ADMINISTRADOR_MEXE_EM_QUALQUER_PERIODO ? 'Só o administrador mexe numa mudança que já vale.' : 'Só dá para mexer numa mudança que ainda não vale.';
+export const MSG_DATA_DEPOIS_DE_HOJE = 'Use uma data depois de hoje.';
 export const MSG_PERIODO_NAO_ACHADO = 'Mudança não encontrada.';
 export const MSG_UNICO_REGISTRO = 'Este é o único registro do militar. Use "Alterar situação" no lugar de apagá-lo.';
 export const MSG_DATA_ATE = (ate: string) => `Use uma data até ${ate.slice(8, 10)}/${ate.slice(5, 7)}/${ate.slice(0, 4)}.`;
@@ -38,7 +39,7 @@ async function periodosTravados(tx: Consulta, militarId: string): Promise<Period
  * Confere quem pode mexer neste período (o mesmo nível de acesso de "Alterar situação": papel de cadastro sobre o militar, na unidade do período e na do período vizinho que a mudança toca,
  * e ser dono do Pecúlio dele) e devolve o período com o anterior e o seguinte. Lança a recusa, com a frase da tela, se não pode.
  */
-async function conferirAcesso(tx: Consulta, usuarioId: string, militarId: string, periodoId: string, hoje: string): Promise<{ todos: Periodo[]; p: Periodo; anterior?: Periodo; seguinte?: Periodo }> {
+async function conferirAcesso(tx: Consulta, usuarioId: string, militarId: string, periodoId: string, hoje: string): Promise<{ todos: Periodo[]; p: Periodo; anterior?: Periodo; seguinte?: Periodo; administrador: boolean }> {
   const noMilitar = await papelDeCadastroNoMilitar(tx, usuarioId, militarId, hoje);
   if (noMilitar) throw new RecusaDaAlteracao(noMilitar);
   const todos = UUID.test(periodoId) ? await periodosTravados(tx, militarId) : [];
@@ -47,14 +48,15 @@ async function conferirAcesso(tx: Consulta, usuarioId: string, militarId: string
   const p = todos[i]!;
   const anterior = todos[i - 1];
   const seguinte = todos[i + 1];
-  if (!podeMexerNoPeriodo(await ehAdministrador(tx, usuarioId, hoje), p.desde, hoje)) throw recusa('ja_vale', MSG_JA_VALE, 403);
+  const administrador = await ehAdministrador(tx, usuarioId, hoje);
+  if (!podeMexerNoPeriodo(administrador, p.desde, hoje)) throw recusa('ja_vale', MSG_JA_VALE, 403);
   for (const u of new Set([p.unidade_id, anterior?.unidade_id].filter((x): x is string => Boolean(x)))) {
     const negado = await papelDeCadastroNaUnidade(tx, usuarioId, u, hoje);
     if (negado) throw new RecusaDaAlteracao(negado);
   }
   const naoEDono = await donoDoPeculioDoMilitar(tx, usuarioId, militarId, FRASE_CAMPO, hoje);
   if (naoEDono) throw new RecusaDaAlteracao(naoEDono);
-  return { todos, p, anterior, seguinte };
+  return { todos, p, anterior, seguinte, administrador };
 }
 
 /** O anterior é contíguo ao período (termina na véspera do começo dele). */
@@ -76,7 +78,9 @@ export async function cancelarPeriodo(tx: Consulta, usuarioId: string, militarId
  * fica depois do começo do anterior e não passa do fim do próprio período. Quadro e situação que `d` não traz continuam os do período.
  */
 export async function editarPeriodo(tx: Consulta, usuarioId: string, militarId: string, periodoId: string, d: AlteracaoDeSituacao, hoje: string): Promise<void> {
-  const { p, anterior } = await conferirAcesso(tx, usuarioId, militarId, periodoId, hoje);
+  const { p, anterior, administrador } = await conferirAcesso(tx, usuarioId, militarId, periodoId, hoje);
+  // a mudança que ainda não vale não vai para uma data que já passou: isso reescreveria o histórico (só o administrador, na fase de testes)
+  if (!(ADMINISTRADOR_MEXE_EM_QUALQUER_PERIODO && administrador) && d.desde <= hoje) throw recusa('data', MSG_DATA_DEPOIS_DE_HOJE, 400, 'desde');
   const noDestino = await papelDeCadastroNaUnidade(tx, usuarioId, d.unidadeId, hoje);
   if (noDestino) throw new RecusaDaAlteracao(noDestino);
   if (d.equipeId) {
