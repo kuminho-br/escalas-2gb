@@ -19,10 +19,11 @@ export function ProximosServicos({ servicos }: { servicos: MeuServico[] }) {
           {servicos.slice(0, LIMITE_DE_PROXIMOS).map((s, i) => (
             <li
               key={s.alocacaoId}
-              aria-label={rotuloDoCartao(s)}
               style={{ background: fundoDoCartao(s.cor) }}
               className={cn('grid w-[104px] flex-none gap-0.5 rounded-controle px-2.5 pt-2 pb-[9px] text-white shadow-apoiada md:w-[112px]', i === 0 && 'ring-2 ring-white')}
             >
+              {/* o rótulo é um texto só para a leitura de tela (o aria-label de um <li> nem todo leitor lê); o desenho do cartão fica escondido dela */}
+              <span className="sr-only">{rotuloDoCartao(s)}</span>
               <div aria-hidden className="grid gap-0.5">
                 <div className="flex items-baseline justify-between gap-1.5">
                   <small className="text-apoio leading-none font-medium text-white/90">{diaDaSemanaCurto(s.data)}</small>

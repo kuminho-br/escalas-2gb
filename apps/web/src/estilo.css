@@ -190,6 +190,12 @@
   font-size: calc(1.75rem - 0.5rem * var(--e));
   line-height: calc(2rem - 0.5rem * var(--e));
 }
+/* no celular, com a linha do próximo serviço, a barra tem duas linhas (a saudação e a linha embaixo dela): a saudação sobe */
+@media (max-width: 47.99rem) {
+  .cena-inicial[data-com-linha] .saudacao {
+    padding-top: calc(1.125rem - 0.5625rem * var(--e));
+  }
+}
 .cena-inicial .escurece {
   background: color-mix(in srgb, var(--color-tinta) 62%, transparent);
   opacity: var(--e);

@@ -44,6 +44,14 @@ describe('os próximos serviços na tela inicial', () => {
     expect(avisos.textContent).toBe('');
   });
 
+  it('a coluna dos avisos só existe a partir de 1024 px: antes disso a saudação e os cartões têm a largura toda (a 768 px os cartões ficavam cortados)', async () => {
+    const titulo = await abrirComServicos([servico('2026-11-26')]);
+    const grade = titulo.parentElement!;
+    expect(grade.className).toMatch(/lg:grid-cols-\[minmax\(0,1fr\)_minmax\(0,340px\)\]/);
+    expect(grade.className).not.toMatch(/md:grid-cols-/);
+    expect(grade.querySelector('[data-lugar-dos-avisos]')!.className).toMatch(/hidden lg:/);
+  });
+
   it('sem serviço, a cena diz que não há nenhum marcado, e não há barra nem detalhe', async () => {
     const titulo = await abrirComServicos([]);
     expect(await screen.findByText('Nenhum serviço marcado para você.')).toBeInTheDocument();
@@ -64,6 +72,29 @@ describe('os próximos serviços na tela inicial', () => {
     await waitFor(() => expect(titulo.closest<HTMLElement>('[data-faixa-boas-vindas]')!.style.getPropertyValue('--e')).toBe('1'));
     // a barra repete o que os cartões e o detalhe já dizem: a leitura de tela a pula
     expect(barra).toHaveAttribute('aria-hidden', 'true');
+  });
+
+  it('no celular a linha da barra fica embaixo da saudação, na largura toda (sem sobrepor o nome); no computador, à direita', async () => {
+    const titulo = await abrirComServicos([servico('2026-11-26')]);
+    const cena = titulo.closest<HTMLElement>('[data-faixa-boas-vindas]')!;
+    const barra = await waitFor(() => {
+      const b = cena.querySelector<HTMLElement>('[data-barra-do-servico]');
+      expect(b).not.toBeNull();
+      return b!;
+    });
+    expect(cena).toHaveAttribute('data-com-linha');
+    expect(barra.className).toMatch(/(^| )left-4( |$)/);
+    expect(barra.className).toMatch(/(^| )right-4( |$)/);
+    expect(barra.className).toMatch(/md:left-auto/);
+    // com o prefixo também no celular: cabe, porque a linha tem a largura toda
+    expect(barra.querySelector('.hidden')).toBeNull();
+    expect(barra).toHaveTextContent('Próximo serviço: quinta, 26, Pronto, 7h às 19h');
+  });
+
+  it('sem serviço a cena não leva a marca da linha (a saudação continua centrada na barra)', async () => {
+    const titulo = await abrirComServicos([]);
+    await screen.findByText('Nenhum serviço marcado para você.');
+    expect(titulo.closest('[data-faixa-boas-vindas]')).not.toHaveAttribute('data-com-linha');
   });
 
   it('o bloco "Seu próximo serviço" fica embaixo dos atalhos, com o dia, o serviço, o turno, a guarnição e a função', async () => {

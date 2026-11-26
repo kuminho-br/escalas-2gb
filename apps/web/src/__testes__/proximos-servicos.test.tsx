@@ -82,12 +82,16 @@ describe('os cartões', () => {
     const lista = screen.getByRole('list', { name: 'Seus próximos serviços' });
     const itens = within(lista).getAllByRole('listitem');
     expect(itens).toHaveLength(2);
-    const primeiro = within(lista).getByRole('listitem', { name: 'quinta, 26, Pronto, das 7h às 19h' });
+    const primeiro = screen.getByText('quinta, 26, Pronto, das 7h às 19h').closest('li')!;
     expect(primeiro).toHaveTextContent('qui');
     expect(primeiro).toHaveTextContent('26');
     expect(primeiro).toHaveTextContent('Pronto');
     expect(primeiro).toHaveTextContent('7h às 19h');
-    expect(within(lista).getByRole('listitem', { name: 'terça, 1º, Pronto, das 19h às 7h' })).toHaveTextContent('1º');
+    expect(screen.getByText('terça, 1º, Pronto, das 19h às 7h').closest('li')).toHaveTextContent('1º');
+    // o rótulo é um texto só para a leitura de tela, dentro do cartão (o aria-label de um <li> não é lido por todos os leitores); o visual fica escondido deles
+    expect(screen.getByText('quinta, 26, Pronto, das 7h às 19h').className).toMatch(/sr-only/);
+    expect(primeiro.querySelector('[aria-hidden]')).not.toBeNull();
+    expect(primeiro).not.toHaveAttribute('aria-label');
   });
 
   it('só o primeiro tem o contorno branco de 2 px', () => {
