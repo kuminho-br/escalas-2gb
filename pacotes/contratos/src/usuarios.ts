@@ -60,6 +60,15 @@ export const MSG_ENVIO_FORA_DO_AR = 'O envio de códigos está fora do ar agora.
 /** O aviso das duas telas, sempre à vista depois do pedido. */
 export const AVISO_DO_CODIGO = 'Se o código não chegar em 5 minutos, procure no spam. Se ainda assim não chegar, procure a Seção de Pessoal.';
 
+export const MSG_CODIGO_INVALIDO = 'Código inválido ou vencido. Peça outro.';
+/** Criar a senha com o código que chegou por e-mail. O código é de 6 números; a senha segue as regras da `NovaSenha`. */
+export const SenhaPeloCodigo = z.object({
+  email: z.string().trim().email('Digite o e-mail institucional completo.'),
+  codigo: z.string().trim().regex(/^\d{6}$/, MSG_CODIGO_INVALIDO),
+  novaSenha: NovaSenha.shape.novaSenha,
+});
+export type SenhaPeloCodigo = z.infer<typeof SenhaPeloCodigo>;
+
 export const NovoPapel = z.object({ papel: Papel, unidadeId: z.string().uuid('Escolha a unidade.'), desde: Data, ate: Data.nullable().optional() });
 export type NovoPapel = z.infer<typeof NovoPapel>;
 export const EncerrarPapel = z.object({ ate: Data });
