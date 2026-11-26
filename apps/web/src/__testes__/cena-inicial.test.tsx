@@ -5,18 +5,21 @@ import { desenhar, pousoNaFaixa } from '@/lib/transicao-login/cena';
 
 // 6.42: a cena da tela inicial num quadro que encolhe ao rolar. As contas ficam puras para o site e a animação do login usarem a mesma.
 describe('a altura do quadro', () => {
-  it('no computador é 3:1 da largura do quadro, até 300 px', () => {
+  it('no computador é 3:1 da largura do quadro, até 400 px (6.55: os bombeiros aparecem nas telas largas)', () => {
     expect(alturaDaCena(900, false)).toBe(300);
-    expect(alturaDaCena(1200, false)).toBe(ALTURA_MAXIMA);
+    expect(alturaDaCena(1200, false)).toBe(400);
+    expect(alturaDaCena(1500, false)).toBe(ALTURA_MAXIMA);
+    expect(ALTURA_MAXIMA).toBe(400);
     expect(alturaDaCena(600, false)).toBe(200);
   });
 
   it('sem medida (largura 0, antes do layout) vale o máximo', () => {
-    expect(alturaDaCena(0, false)).toBe(300);
+    expect(alturaDaCena(0, false)).toBe(400);
   });
 
-  it('no celular é fixa: a saudação cabe e a cena não toma a tela', () => {
+  it('no celular é fixa, em 250 px: a saudação e os cartões cabem e a cena não toma a tela', () => {
     expect(alturaDaCena(366, true)).toBe(ALTURA_NO_CELULAR);
+    expect(ALTURA_NO_CELULAR).toBe(250);
     expect(ALTURA_NO_CELULAR).toBeLessThan(ALTURA_MAXIMA);
   });
 });
@@ -49,10 +52,22 @@ describe('o recorte da imagem no quadro (Review Focus 1)', () => {
     expect(r.y0).toBeCloseTo((IH - 512) * 0.66, 6);
   });
 
-  it('no celular (366 por 200) a conta é a mesma', () => {
-    const r = recorteDaFaixa(366, 200);
-    expect(r.escala).toBeCloseTo(366 / IW, 6);
-    expect(r.y0).toBeCloseTo((IH - 200 / r.escala) * 0.66, 6);
+  it('no celular (366 por 250) o quadro é mais alto que a imagem: ela cobre pela altura e corta dos lados, centrada', () => {
+    const r = recorteDaFaixa(366, ALTURA_NO_CELULAR);
+    expect(r.escala).toBeCloseTo(ALTURA_NO_CELULAR / IH, 6);
+    expect(r.y0).toBe(0);
+    expect(r.x0).toBeCloseTo((IW - 366 / r.escala) / 2, 6);
+  });
+
+  it('a animação do login pousa no quadro novo: a conta do recorte usa a altura da cena (400 px no computador largo, 250 no celular), sem salto no fim', () => {
+    const grande = recorteDaFaixa(1200, alturaDaCena(1200, false));
+    expect(grande.escala).toBeCloseTo(1200 / IW, 6);
+    expect(grande.y0).toBeCloseTo((IH - 400 / grande.escala) * 0.66, 6);
+    // a silhueta do pouso é o próprio quadro: a mesma altura que a tela mede
+    const faixa = { x: 24, y: 80, width: 1200, height: alturaDaCena(1200, false) } as DOMRect;
+    expect(faixa.height).toBe(400);
+    const pequeno = recorteDaFaixa(366, alturaDaCena(366, true));
+    expect(pequeno.escala).toBeCloseTo(250 / IH, 6);
   });
 
   it('um quadro mais alto que a imagem (1,5:1) corta dos lados, centrado', () => {

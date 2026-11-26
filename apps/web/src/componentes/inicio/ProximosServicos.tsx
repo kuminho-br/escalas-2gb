@@ -26,7 +26,7 @@ export function ProximosServicos({ servicos }: { servicos: MeuServico[] }) {
               <div aria-hidden className="grid gap-0.5">
                 <div className="flex items-baseline justify-between gap-1.5">
                   <small className="text-apoio leading-none font-medium text-white/90">{diaDaSemanaCurto(s.data)}</small>
-                  <b className="font-cond text-[28px] leading-7 font-semibold">{diaDoMes(s.data)}</b>
+                  <b className="font-cond text-titulo leading-7 font-semibold">{diaDoMes(s.data)}</b>
                 </div>
                 <span className="truncate font-cond text-corpo leading-[18px] font-semibold">{s.servico}</span>
                 <span className="text-apoio leading-4 font-medium whitespace-nowrap text-white/90">{horarioCurto(s.inicio, s.fim)}</span>

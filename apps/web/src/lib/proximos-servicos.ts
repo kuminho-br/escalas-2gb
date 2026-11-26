@@ -12,6 +12,15 @@ export const diaDaSemanaCurto = (data: string): string => SEMANA_CURTA[diaDaSema
 /** '2026-11-26' -> 'quinta' (sem "-feira": é o que o cartão e a barra dizem) */
 export const diaDaSemanaLongo = (data: string): string => SEMANA_LONGA[diaDaSemana(data)]!;
 
+const MESES = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
+
+/** O dia por extenso do detalhe: '2026-11-26' -> 'quinta-feira, 26 de novembro'; '2026-12-01' -> 'terça-feira, 1º de dezembro'. Segunda a sexta levam "-feira"; sábado e domingo não. */
+export function diaPorExtenso(data: string): string {
+  const n = diaDaSemana(data);
+  const semana = n === 0 || n === 6 ? SEMANA_LONGA[n]! : `${SEMANA_LONGA[n]}-feira`;
+  return `${semana}, ${diaDoMes(data)} de ${MESES[Number(data.slice(5, 7)) - 1]}`;
+}
+
 /** '2026-12-01' -> '1º'; os outros dias, só o número: '2026-12-02' -> '2' */
 export function diaDoMes(data: string): string {
   const dia = Number(data.slice(8, 10));

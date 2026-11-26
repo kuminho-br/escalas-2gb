@@ -2,7 +2,7 @@ import { render, screen, within } from '@testing-library/react';
 import type { MeuServico } from 'contratos';
 import { describe, expect, it } from 'vitest';
 import { ProximosServicos } from '@/componentes/inicio/ProximosServicos';
-import { diaDaSemanaCurto, diaDaSemanaLongo, diaDoMes, fundoDoCartao, horarioCurto, rotuloDoCartao } from '@/lib/proximos-servicos';
+import { diaDaSemanaCurto, diaDaSemanaLongo, diaDoMes, diaPorExtenso, fundoDoCartao, horarioCurto, rotuloDoCartao } from '@/lib/proximos-servicos';
 
 // 6.55: o texto dos cartões dos próximos serviços e os cartões. Datas e nomes fictícios.
 const servico = (data: string, extra: Partial<MeuServico> = {}): MeuServico => ({
@@ -24,6 +24,12 @@ describe('o texto dos cartões', () => {
     expect(diaDoMes('2026-12-02')).toBe('2');
     expect(diaDoMes('2026-11-30')).toBe('30');
     expect(diaDoMes('2026-11-26')).toBe('26');
+  });
+
+  it('o dia por extenso do detalhe: com "-feira" de segunda a sexta, o mês por extenso e o 1º', () => {
+    expect(diaPorExtenso('2026-11-26')).toBe('quinta-feira, 26 de novembro');
+    expect(diaPorExtenso('2026-11-28')).toBe('sábado, 28 de novembro');
+    expect(diaPorExtenso('2026-12-01')).toBe('terça-feira, 1º de dezembro');
   });
 
   it('o horário: sem minutos, com minutos, fim à meia-noite e turno que vira o dia', () => {
