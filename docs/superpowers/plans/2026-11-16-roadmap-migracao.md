@@ -107,6 +107,7 @@ Design: `docs/superpowers/specs/2026-11-21-usuarios-e-modulos-design.md`. Plano:
 | 54 | Exportar militares para Excel em Pesquisar militares (os campos escolhidos, com as colunas da importação) e a busca sem corte para "Selecionar estes N" | mesclada (#264) |
 | 55 | Tela inicial: os próximos serviços do militar (cartão com dia da semana, dia, serviço e horário, na cor do serviço), sobre a Minha escala da 7.5 | aguarda o mockup da DESIGN |
 | 56 | Tela inicial: o quadro de avisos, com o cadastro de avisos (a modelagem do aviso passa pela CONCEPÇÃO antes do plano) | planejada |
+| 57 | Planilhas: a unidade pelo caminho de siglas ("2º GB / 1ª SB"); toda importação devolve a planilha das linhas com problema, com o motivo; o trilho sem Histórico e Ajuda | em execução (antes da 55, que espera o mockup) |
 
 ## Refatoração da interface · fundação concluída
 
