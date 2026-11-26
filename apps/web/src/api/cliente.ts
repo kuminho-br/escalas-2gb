@@ -133,6 +133,23 @@ export async function baixarArquivo(caminho: string, corpo: unknown, nome: strin
   } catch {
     throw new ErroApi(SEM_CONEXAO, 0);
   }
+  return entregarArquivo(r, caminho, nome);
+}
+
+/** Como `baixarArquivo`, para um pedido que envia um arquivo (a planilha das linhas com problema da importação, 6.57): reenvia o arquivo e baixa o que a API devolve. */
+export async function baixarEnvio(caminho: string, arquivo: File, nome: string): Promise<void> {
+  const corpo = new FormData();
+  corpo.append('arquivo', arquivo);
+  let r: Response;
+  try {
+    r = await fetch(caminho, { method: 'POST', credentials: 'include', body: corpo });
+  } catch {
+    throw new ErroApi(SEM_CONEXAO, 0);
+  }
+  return entregarArquivo(r, caminho, nome);
+}
+
+async function entregarArquivo(r: Response, caminho: string, nome: string): Promise<void> {
   if (r.status === 401) sessaoTerminou(caminho);
   if (!r.ok) return resposta<void>(r);
   const url = URL.createObjectURL(await r.blob());
@@ -142,7 +159,8 @@ export async function baixarArquivo(caminho: string, corpo: unknown, nome: strin
   document.body.appendChild(a);
   a.click();
   a.remove();
-  URL.revokeObjectURL(url);
+  // adiar o revogar: alguns navegadores cancelam o download se a URL some logo depois do clique
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
 /** Mensagem de um erro qualquer, para mostrar na tela. */

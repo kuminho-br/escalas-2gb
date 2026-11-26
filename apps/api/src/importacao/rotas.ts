@@ -1,5 +1,5 @@
 // GET /api/unidades/:u/importacao/:cadastro/modelo — planilha em branco, com a ajuda.
-// POST /api/unidades/:u/importacao/:cadastro — prévia (sem gravar) ou, com ?confirmar=1, gravação.
+// POST /api/unidades/:u/importacao/:cadastro — prévia (sem gravar) ou, com ?confirmar=1, gravação; com ?erros=1, a planilha das linhas com problema (6.57), sem gravar.
 // Sem estado: a confirmação recebe o mesmo arquivo e refaz o plano antes de gravar.
 import { normalizar } from 'dominio';
 import { Hono } from 'hono';
@@ -8,6 +8,7 @@ import { CADASTRO, exigirPapel, exigirPapelDeCimaDasSecoes, exigirSessao, type A
 import type { Auth } from '../auth.ts';
 import { comUsuario, type Banco } from '../banco/banco.ts';
 import { hojeRecife } from '../datas.ts';
+import { planilhaDasLinhasComProblema } from './linhas-com-problema.ts';
 import { gerarModelo } from './modelo.ts';
 import { lerPlanilha, type Aba } from './planilha.ts';
 import type { Importador } from './tipos.ts';
@@ -70,6 +71,21 @@ export function rotasImportacao(dep: { banco: Banco; auth: Auth }, importadores:
     }
 
     const hoje = hojeRecife();
+    // 6.57: a planilha das linhas com problema; refaz a prévia só de leitura e nunca grava
+    if (c.req.query('erros') === '1') {
+      const planilhaDeErros = await dep.banco.transacao(async (tx) => {
+        await tx.query('set transaction read only');
+        const { previa } = await imp.planejar(abas, { tx, unidadeId, hoje, usuarioId: c.get('usuarioId') });
+        // só o Pecúlio ignora célula por célula, e tem uma aba só
+        return planilhaDasLinhasComProblema(abas, imp.abas, { problemas: previa.problemas, ignoradas: previa.ignoradas ?? [] }, imp.abas[0] ?? null);
+      });
+      if (!planilhaDeErros) return c.json({ erro: 'Nenhuma linha com problema nesta planilha.' }, 400);
+      return c.body(planilhaDeErros, 200, {
+        'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        'Content-Disposition': `attachment; filename="${c.req.param('cadastro')}-linhas-com-problema-${hoje}.xlsx"`,
+        'Cache-Control': 'no-store',
+      });
+    }
     if (c.req.query('confirmar') !== '1') {
       const previa = await dep.banco.transacao(async (tx) => {
         await tx.query('set transaction read only');
