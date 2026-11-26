@@ -1,10 +1,11 @@
 import type { ListaDoPeculio } from 'contratos';
 import { cleanup, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it } from 'vitest';
+import { afterAll, beforeEach, describe, expect, it } from 'vitest';
 import type { Eu, EuDaApi } from '@/api/eu';
 import { podeCadastrarMilitar, secoesDoCadastro, unidadeDoPeculio } from '@/api/peculio';
 import { hoje, mesAtual } from '@/lib/meses';
+import { guardarUnidade } from '@/lib/unidade-de-trabalho';
 import { abrir, chamadasA, corpoEnviado, escolherNaArvore, EU_EXEMPLO, nosDaArvore, simularApi } from './apoio';
 
 const MES = mesAtual();
@@ -38,14 +39,47 @@ const militares = async () => within(await screen.findByRole('list', { name: 'Mi
 const chamadasDaLista = (f: ReturnType<typeof simularApi>) => f.mock.calls.map(([e]) => String(e)).filter((u) => u.includes('/peculio'));
 
 describe('a unidade do módulo', () => {
-  it('é a mais alta em que a pessoa tem papel: o 2º GB para quem cuida do pessoal, a 1ª SB para o escalante da seção', () => {
-    expect(unidadeDoPeculio(comUnidade(GESTOR_GB))).toEqual({ id: 'u-gb', sigla: '2º GB' });
+  const noTopo = (e: EuDaApi, id: string): Eu => ({ ...e, unidade: e.unidades.find((u) => u.id === id)!, soConsulta: false });
+  const ADMIN: EuDaApi = { ...GESTOR_GB, papeis: [{ papel: 'administrador', unidadeId: 'u-cbmpe', unidadeSigla: 'CBMPE' }], unidades: [{ id: 'u-cbmpe', sigla: 'CBMPE', caminho: ['CBMPE'], nivel: 0, tipo: 'corporacao', maeId: null }, ...GESTOR_GB.unidades] };
+
+  it('é a unidade de trabalho escolhida no Topo, quando a pessoa tem nível de acesso nela ou acima (nunca sobe sozinha)', () => {
+    // o administrador da raiz com a 1ª SB no Topo: só a 1ª SB, não a corporação inteira (Review Focus 1)
+    expect(unidadeDoPeculio(noTopo(ADMIN, 'u-1sb'))).toEqual({ id: 'u-1sb', sigla: '1ª SB' });
+    // trocar o Topo para o 2º GB muda a unidade
+    expect(unidadeDoPeculio(noTopo(ADMIN, 'u-gb'))).toEqual({ id: 'u-gb', sigla: '2º GB' });
+    expect(unidadeDoPeculio(noTopo(ADMIN, 'u-cbmpe'))).toEqual({ id: 'u-cbmpe', sigla: 'CBMPE' });
+    // o gestor com nível no 2º GB e na 1ª SB, com a 1ª SB no Topo: a 1ª SB, não a de cima (Review Focus 2)
+    expect(unidadeDoPeculio(noTopo(GESTOR_GB, 'u-1sb'))).toEqual({ id: 'u-1sb', sigla: '1ª SB' });
+    expect(unidadeDoPeculio(noTopo(GESTOR_GB, 'u-gb'))).toEqual({ id: 'u-gb', sigla: '2º GB' });
     expect(unidadeDoPeculio(comUnidade(EU_EXEMPLO))).toEqual({ id: 'u-1sb', sigla: '1ª SB' });
+  });
+
+  it('o militar comum e quem só consulta seguem como antes: a unidade dele, e o nível mais alto na unidade só de consulta', () => {
     expect(unidadeDoPeculio(comUnidade({ ...EU_EXEMPLO, papeis: [] }))).toEqual({ id: 'u-1sb', sigla: '1ª SB' });
+    const soConsulta: Eu = { ...GESTOR_GB, papeis: [{ papel: 'gestor', unidadeId: 'u-gb', unidadeSigla: '2º GB' }], unidade: { id: 'u-3sb', sigla: '3ª SB', caminho: ['CBMPE', 'DGO', 'DInter/1', '3º GB', '3ª SB'], nivel: 4, tipo: 'secao', maeId: null }, soConsulta: true };
+    expect(unidadeDoPeculio(soConsulta)).toEqual({ id: 'u-gb', sigla: '2º GB' });
   });
 });
 
 describe('módulo Pecúlio', () => {
+  // o Pecúlio abre na unidade do Topo: estes testes são de quem trabalha no 2º GB (o gestor do 2º GB, que também tem nível na 1ª SB)
+  beforeEach(() => guardarUnidade('u-gb'));
+  afterAll(() => guardarUnidade(''));
+
+  it('o administrador da raiz com a 1ª SB no Topo vê o Pecúlio só da 1ª SB (a lista pede a 1ª SB, não a corporação)', async () => {
+    const admin: EuDaApi = { ...EU_EXEMPLO, papeis: [{ papel: 'administrador', unidadeId: 'u-cbmpe', unidadeSigla: 'CBMPE' }], unidades: [{ id: 'u-cbmpe', sigla: 'CBMPE', caminho: ['CBMPE'], nivel: 0, tipo: 'corporacao', maeId: null }, ...EU_EXEMPLO.unidades] };
+    const f = simularApi({ '/api/eu': { status: 200, corpo: admin }, 'GET /api/unidades/u-1sb/peculio': { status: 200, corpo: LISTA } });
+    guardarUnidade('u-1sb');
+    try {
+      abrir('/peculio');
+      await militares();
+      expect(chamadasDaLista(f)[0]).toContain('/api/unidades/u-1sb/peculio');
+      expect(chamadasDaLista(f).some((u) => u.includes('u-cbmpe'))).toBe(false);
+    } finally {
+      guardarUnidade('u-gb');
+    }
+  });
+
   it('o menu mostra "Pecúlio da unidade" para quem tem papel de cadastro e não para o militar comum', async () => {
     api();
     abrir('/peculio');
