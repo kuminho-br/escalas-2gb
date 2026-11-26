@@ -6,21 +6,21 @@ do $$
 declare
   c record;
 begin
-  if to_regclass('lotacao') is not null and to_regclass('rastreio') is null then
+  if to_regclass(current_schema() || '.lotacao') is not null and to_regclass(current_schema() || '.rastreio') is null then
     alter table lotacao rename to rastreio;
   end if;
   -- restrições (a de não sobrepor e as de chave arrastam o índice junto) com o nome novo
-  for c in select conname from pg_constraint where conrelid = to_regclass('rastreio') and conname like 'lotacao%' loop
+  for c in select conname from pg_constraint where conrelid = to_regclass(current_schema() || '.rastreio') and conname like 'lotacao%' loop
     execute format('alter table rastreio rename constraint %I to %I', c.conname, 'rastreio' || substr(c.conname, length('lotacao') + 1));
   end loop;
-  if exists (select 1 from pg_trigger where tgrelid = to_regclass('rastreio') and tgname = 'lotacao_equipe') then
+  if exists (select 1 from pg_trigger where tgrelid = to_regclass(current_schema() || '.rastreio') and tgname = 'lotacao_equipe') then
     alter trigger lotacao_equipe on rastreio rename to rastreio_equipe;
   end if;
-  if to_regprocedure('lotacao_equipe_da_unidade()') is not null then
+  if to_regprocedure(current_schema() || '.lotacao_equipe_da_unidade()') is not null then
     alter function lotacao_equipe_da_unidade() rename to rastreio_equipe_da_unidade;
   end if;
   -- a CNH é do militar, esteja ou não no quadro de motoristas: sai "motorista or cardinality(cnh) = 0"
-  for c in select conname from pg_constraint where conrelid = 'militar'::regclass and contype = 'c' and pg_get_constraintdef(oid) like '%cardinality%' loop
+  for c in select conname from pg_constraint where conrelid = to_regclass(current_schema() || '.militar') and contype = 'c' and pg_get_constraintdef(oid) like '%cardinality%' loop
     execute format('alter table militar drop constraint %I', c.conname);
   end loop;
 end $$;

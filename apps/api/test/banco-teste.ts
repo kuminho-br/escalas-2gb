@@ -1,11 +1,11 @@
 import type { Banco, Consulta } from '../src/banco/banco.ts';
 import { bancoPglite } from '../src/banco/pglite.ts';
-import { migrar } from '../src/banco/migrar.ts';
+import { migrar, PASTA_MIGRACOES } from '../src/banco/migrar.ts';
 
-/** Banco novo em memória, com todas as migrações aplicadas. */
+/** Banco novo em memória, com todas as migrações aplicadas no real (sem o espelho, que dobraria o tempo de cada banco; os testes do espelho o pedem à parte). */
 export async function bancoDeTeste(): Promise<Banco> {
   const banco = await bancoPglite();
-  await migrar(banco);
+  await migrar(banco, PASTA_MIGRACOES, { espelho: false });
   return banco;
 }
 

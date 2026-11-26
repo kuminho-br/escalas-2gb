@@ -6,7 +6,7 @@ declare c record;
 begin
   for c in
     select conname from pg_constraint
-     where conrelid = to_regclass('rastreio') and contype = 'c' and pg_get_constraintdef(oid) ilike '%extract(day from desde)%'
+     where conrelid = to_regclass(current_schema() || '.rastreio') and contype = 'c' and pg_get_constraintdef(oid) ilike '%extract(day from desde)%'
   loop
     execute format('alter table rastreio drop constraint %I', c.conname);
   end loop;
