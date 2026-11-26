@@ -1,3 +1,5 @@
+// Aplica as migrações pendentes. Elas valem para o real (schema public) e para o espelho do Laboratório (schema laboratorio), no mesmo passo:
+// a primeira execução depois da 6.58 também cria o espelho e o papel de banco dele. Usa DATABASE_URL.
 import { bancoPg } from '../src/banco/banco.ts';
 import { migrar } from '../src/banco/migrar.ts';
 
