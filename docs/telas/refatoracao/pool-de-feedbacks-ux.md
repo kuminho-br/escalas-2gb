@@ -15,7 +15,9 @@
 | # | Data | Tela | Pedido | Muda o comportamento? | Estado |
 |---|---|---|---|---|---|
 | 1 | 26/11 | Grade geral | A célula inteira do nome do militar é clicável (hoje só o texto do nome e a matrícula respondem). Ao passar o mouse, não sublinhar o nome: marcar a célula toda de outro jeito. | Sim: o clique vale na célula inteira. | aberto |
-| 2 | 26/11 | Grade geral | Marcar quem está afastado. Nos dias de afastamento, um traço (ou marca parecida) na célula do dia. Hoje o afastamento só aparece no painel do dia, depois do clique. | Sim: a Grade passa a mostrar o afastamento. **A API da Grade precisa trazer o afastamento por dia** (hoje só o painel do dia traz). | aberto |
+| 2 | 26/11 | Grade geral | Marcar quem está afastado. Nos dias de afastamento, um traço (ou marca parecida) na célula do dia. Hoje o afastamento só aparece no painel do dia, depois do clique. | Sim: a Grade passa a mostrar o afastamento. **A API da Grade precisa trazer o afastamento por dia** (hoje só o painel do dia traz). | **urgente: enviado à PLANEJAMENTO em 26/11** (pedido do usuário, fora da fila dos 5) |
+
+Proposta de desenho do item 2 (sem mockup; a PLANEJAMENTO pode pedir um à DESIGN): em cada dia coberto por afastamento, um traço horizontal no meio da célula, na cor apagada do Manual, sem fundo. Dias seguidos formam uma linha contínua de ponta a ponta, que se lê como uma faixa de ausência. O tipo ("Férias", "LTS"…) vai como texto para leitor de tela e como dica ao passar o mouse; o painel do dia já diz "Afastado: Férias". Para a API, sugestão: mandar por militar os períodos {tipo, início, fim}, e não um campo por dia, para a Grade do mês não pesar.
 
 Observação do item 1: na tela de hoje o sublinhado vem de `hover:underline` no botão do nome (`TabelaDaGrade.tsx`); o botão ocupa só o texto, e não a célula.
 
