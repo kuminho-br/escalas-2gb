@@ -203,6 +203,8 @@
       var l = busca(s.valendo);
       if (!l) return '<p class="pq-dica">Busque pela matrícula ou pelo nome de guerra. Para ver quem está lotado numa unidade, escolha a unidade em "Lotados em".</p>';
       if (!l.length) return '<p class="pq-dica">Nenhum militar encontrado. Confira o texto e os critérios em uso.' + (!s.valendo.onde.completo && s.valendo.texto.trim().length >= 3 ? ' O nome completo está desligado nos critérios.' : '') + '</p>';
+      // a lista segue em ordem de nome de guerra e matrícula (o agrupamento é só do painel)
+      l = l.slice().sort(function (x, y) { return x.guerra.localeCompare(y.guerra, "pt-BR") || x.mat.localeCompare(y.mat); });
       var livres = l.filter(function (m) { return !m.fora && !s.sel[m.id]; }), fora = l.filter(function (m) { return m.fora; }).length;
       var topo = '<div class="pq-topo-lista">' + (op.nivel && livres.length ? '<button type="button" class="botao secundario" data-sel-todos>Selecionar estes ' + livres.length + '</button>' : '') +
         (op.nivel && fora ? '<span class="pq-fora">' + (fora === 1 ? '1 fica de fora: você não tem nível de acesso sobre ele.' : fora + ' ficam de fora: você não tem nível de acesso sobre eles.') + '</span>' : '') +
