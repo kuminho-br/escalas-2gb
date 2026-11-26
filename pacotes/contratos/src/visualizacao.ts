@@ -15,6 +15,10 @@ export type MeuServico = {
   inicio: string;
   fim: string;
   servico: string;
+  /** a cor do serviço (#RRGGBB), que a tela inicial usa no fundo do cartão (6.55) */
+  cor: string;
+  /** a letra do turno (A, B ou C; U é só da leitura antiga) */
+  turno: 'A' | 'B' | 'C' | 'U';
   escala: string;
   unidadeSigla: string;
   /** o id da unidade da escala: a tela distingue duas unidades de mesma sigla pela unidade de cima (6.53) */
@@ -27,3 +31,9 @@ export type MeuServico = {
 };
 
 export type MinhaEscala = { mes: string; servicos: MeuServico[] };
+
+/** Quantos serviços a tela inicial mostra nos cartões. */
+export const LIMITE_DE_PROXIMOS = 6;
+
+/** Os próximos serviços do militar da conta (os que ainda não acabaram), em ordem de data e início, atravessando o mês (6.55). */
+export type ProximosServicos = { servicos: MeuServico[] };

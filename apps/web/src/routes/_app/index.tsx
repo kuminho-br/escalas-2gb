@@ -1,9 +1,14 @@
+import { useQuery } from '@tanstack/react-query';
 import { createFileRoute, Link, redirect, useNavigate } from '@tanstack/react-router';
 import { useEffect, useLayoutEffect, useRef, useState, type RefObject } from 'react';
 import type { Eu } from '@/api/eu';
+import { consultaProximosServicos } from '@/api/visualizacao';
+import { ProximosServicos } from '@/componentes/inicio/ProximosServicos';
+import { SeuProximoServico } from '@/componentes/inicio/SeuProximoServico';
 import { MODULOS, type Modulo } from '@/lib/modulos';
 import { buscaDaGrade, temBuscaDaGrade, type BuscaDaGrade } from '@/lib/busca-da-grade';
 import { alturaDaCena, quadroAoRolar } from '@/lib/cena-inicial';
+import { diaDaSemanaLongo, diaDoMes, horarioCurto } from '@/lib/proximos-servicos';
 import { dataPorExtenso, saudacao } from '@/lib/saudacao';
 import { useTransicao } from '@/lib/transicao-login/armazem';
 import { POSICAO_VERTICAL } from '@/lib/transicao-login/recorte';
@@ -27,7 +32,7 @@ const TOPO = 56;
 const MARGEM = 24;
 
 /**
- * A cena num quadro que encolhe ao rolar (6.42): a altura cheia vem da largura (3:1, até 300 px), e a cada rolagem o quadro perde o que a
+ * A cena num quadro que encolhe ao rolar (6.42): a altura cheia vem da largura (3:1, até 400 px desde a 6.55), e a cada rolagem o quadro perde o que a
  * página subiu, até virar uma barra de 64 px. O quadro fica grudado abaixo do Topo; um espaçador compensa o que ele encolheu, para o que a pessoa
  * rola não mudar de tamanho enquanto rola. Escreve direto nos estilos (sem estado do React): é um quadro por rolagem. Mede antes da primeira
  * pintura (`useLayoutEffect`), para a tela não nascer com o quadro de um tamanho e saltar para outro.
@@ -79,6 +84,9 @@ function Inicio() {
     void navigate({ to: '/', search: (s: Record<string, unknown>) => ({ ...s, aviso: undefined }) as never, replace: true });
   }, [avisoDoEndereco, navigate]);
   const agora = new Date();
+  // os próximos serviços (6.55): se a API não responde (404 de conta que não é de militar, ou erro), a área inteira some, sem mensagem
+  const proximos = useQuery(consultaProximosServicos()).data?.servicos;
+  const primeiro = proximos?.[0];
   // a chegada pela animação do login: a cena pousa nesta faixa; a saudação entra no pouso e recebe o foco, e os cartões sobem durante o afastamento
   const { fase, cartoes } = useTransicao();
   const titulo = useRef<HTMLHeadingElement>(null);
@@ -95,13 +103,26 @@ function Inicio() {
       {/* o que gruda abaixo do Topo é este bloco, com o fundo da página: ele cobre a margem entre o Topo e o quadro enquanto o conteúdo passa por baixo */}
       <div className="sticky z-10 bg-fundo" style={{ top: TOPO, paddingTop: MARGEM }}>
         {/* a altura das classes é a cheia, para a tela já nascer do tamanho certo; o script a sobrescreve ao medir e ao rolar */}
-        <section ref={quadro} data-faixa-boas-vindas className="cena-inicial relative h-[200px] overflow-hidden rounded-superficie bg-tinta text-white shadow-apoiada md:h-[300px]">
+        <section ref={quadro} data-faixa-boas-vindas data-com-linha={primeiro ? '' : undefined} className="cena-inicial relative h-[250px] overflow-hidden rounded-superficie bg-tinta text-white shadow-apoiada md:h-[400px]">
           {/* a cena final da animação do login: a imagem cobre o quadro, centrada, a 66% na vertical. A animação pousa nesta mesma conta (recorte.ts) */}
           <img src="/boas-vindas.jpg" alt="" className="absolute inset-0 size-full object-cover" style={{ objectPosition: `center ${POSICAO_VERTICAL * 100}%` }} />
-          <div data-chegada={chegadaDaSaudacao} className="saudacao-da-chegada saudacao absolute inset-0 flex flex-col bg-gradient-to-br from-tinta/90 via-tinta/40 to-transparent px-4 md:px-7">
-            <h1 ref={titulo} tabIndex={-1} className="origin-[0_60%] font-cond font-semibold text-balance outline-none">{`${saudacao(agora)}, ${eu.militar.postoGrad} ${eu.militar.nomeGuerra}`}</h1>
-            <p className="data text-corpo text-white/90 md:text-nome">{dataPorExtenso(agora)}</p>
+          {/* ao encolher, a cena escurece um pouco, para a saudação e a linha do próximo serviço lerem bem sobre a imagem clara */}
+          <div aria-hidden className="escurece pointer-events-none absolute inset-0" />
+          <div data-chegada={chegadaDaSaudacao} className="saudacao-da-chegada saudacao absolute inset-0 grid grid-cols-[minmax(0,1fr)] grid-rows-[auto_auto_1fr] bg-gradient-to-br from-tinta/90 via-tinta/40 to-transparent px-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,340px)] md:px-7">
+            <h1 ref={titulo} tabIndex={-1} className="col-start-1 origin-[0_60%] font-cond font-semibold text-balance outline-none">{`${saudacao(agora)}, ${eu.militar.postoGrad} ${eu.militar.nomeGuerra}`}</h1>
+            <p className="data col-start-1 text-corpo text-white/90 md:text-nome">{dataPorExtenso(agora)}</p>
+            {/* os cartões entram junto com a saudação (o mesmo data-chegada) e somem antes da barra */}
+            {proximos && <div className="proximos-da-cena col-start-1 min-w-0 self-end pb-4 md:pb-6"><ProximosServicos servicos={proximos} /></div>}
+            {/* o lugar dos avisos (6.56): à direita da cena, vazio por enquanto */}
+            <div data-lugar-dos-avisos aria-hidden className="hidden lg:col-start-2 lg:row-span-3 lg:row-start-1 lg:block" />
           </div>
+          {/* a barra, quando o quadro encolhe: a saudação já é o título menor; aqui entra o próximo serviço (a leitura de tela o encontra nos cartões e no detalhe) */}
+          {primeiro && (
+            <p data-barra-do-servico aria-hidden className="barra-do-servico pointer-events-none absolute right-4 bottom-2 left-4 flex h-[18px] items-center md:right-7 md:bottom-0 md:left-auto md:h-16 md:max-w-[55%]">
+              {/* no celular a linha fica embaixo da saudação, na largura toda; no computador, à direita dela */}
+              <span className="truncate text-apoio text-white md:text-corpo">{`Próximo serviço: ${diaDaSemanaLongo(primeiro.data)}, ${diaDoMes(primeiro.data)}, ${primeiro.servico}, ${horarioCurto(primeiro.inicio, primeiro.fim)}`}</span>
+            </p>
+          )}
         </section>
       </div>
       <div ref={espaco} data-espaco-da-cena aria-hidden />
@@ -118,6 +139,8 @@ function Inicio() {
           ))}
         </ul>
       </nav>
+      {/* o detalhe do primeiro cartão (6.55) */}
+      {primeiro && <div data-chegada={chegadaDosCartoes} className="cartao-da-chegada pb-8 md:pb-10"><SeuProximoServico servico={primeiro} /></div>}
     </div>
   );
 }

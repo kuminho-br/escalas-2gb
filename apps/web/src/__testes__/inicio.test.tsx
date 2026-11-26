@@ -66,31 +66,31 @@ describe('tela inicial', () => {
       const faixa = await quadro();
       expect(faixa.className).toMatch(/rounded-superficie/);
       // antes de o script medir, o quadro já nasce com a altura cheia (sem salto na primeira pintura)
-      expect(faixa.className.split(' ')).toEqual(expect.arrayContaining(['h-[200px]', 'md:h-[300px]']));
+      expect(faixa.className.split(' ')).toEqual(expect.arrayContaining(['h-[250px]', 'md:h-[400px]']));
       expect(faixa.className).not.toMatch(/aspect-/);
       const img = faixa.querySelector('img')!;
       expect(img.className).toMatch(/object-cover/);
       expect(img.style.objectPosition).toBe('center 66%');
     });
 
-    it('sem rolagem tem a altura cheia (300 px no computador); ao rolar encolhe até 64 px e não passa disso; voltar ao topo devolve o tamanho', async () => {
+    it('sem rolagem tem a altura cheia (400 px no computador); ao rolar encolhe até 64 px e não passa disso; voltar ao topo devolve o tamanho', async () => {
       const faixa = await quadro();
-      await waitFor(() => expect(faixa.style.height).toBe('300px'));
+      await waitFor(() => expect(faixa.style.height).toBe('400px'));
       rolar(118);
-      await waitFor(() => expect(faixa.style.height).toBe('182px'));
+      await waitFor(() => expect(faixa.style.height).toBe('282px'));
       rolar(5000);
       await waitFor(() => expect(faixa.style.height).toBe('64px'));
       expect(faixa.style.getPropertyValue('--e')).toBe('1');
       rolar(0);
-      await waitFor(() => expect(faixa.style.height).toBe('300px'));
+      await waitFor(() => expect(faixa.style.height).toBe('400px'));
     });
 
     it('com menos movimento, o quadro não tem tamanho intermediário: muda do cheio para a barra', async () => {
       vi.stubGlobal('matchMedia', (q: string) => ({ matches: q.includes('prefers-reduced-motion'), media: q, addEventListener: () => {}, removeEventListener: () => {} }));
       const faixa = await quadro();
       rolar(100);
-      await waitFor(() => expect(faixa.style.height).toBe('300px'));
-      rolar(130);
+      await waitFor(() => expect(faixa.style.height).toBe('400px'));
+      rolar(180);
       await waitFor(() => expect(faixa.style.height).toBe('64px'));
     });
 
@@ -99,7 +99,7 @@ describe('tela inicial', () => {
       rolar(5000);
       await waitFor(() => expect(faixa.style.height).toBe('64px'));
       const espaco = document.querySelector<HTMLElement>('[data-espaco-da-cena]')!;
-      expect(espaco.style.height).toBe('236px');
+      expect(espaco.style.height).toBe('336px');
     });
   });
 

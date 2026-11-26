@@ -1,11 +1,11 @@
 // As contas do quadro da cena na tela inicial (6.42): a altura cheia pela largura, e quanto ele encolhe conforme a pessoa rola.
 
-/** A altura cheia no computador: 3:1 da largura do quadro, até isto. */
-export const ALTURA_MAXIMA = 300;
+/** A altura cheia no computador: 3:1 da largura do quadro, até isto (400 desde a 6.55: os bombeiros aparecem nas telas largas). */
+export const ALTURA_MAXIMA = 400;
 /** A barra em que o quadro vira ao rolar. */
 export const ALTURA_MINIMA = 64;
-/** No celular a altura é fixa: só a saudação e a data moram no quadro, e a cena não pode tomar a tela. */
-export const ALTURA_NO_CELULAR = 200;
+/** No celular a altura é fixa: a saudação, a data e os cartões dos próximos serviços moram no quadro, e a cena não pode tomar a tela. */
+export const ALTURA_NO_CELULAR = 250;
 const PROPORCAO = 3;
 
 /** A altura cheia do quadro. Sem medida (largura 0, antes do layout) vale o máximo, para a tela nascer do tamanho certo. */

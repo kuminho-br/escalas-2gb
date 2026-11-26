@@ -190,6 +190,23 @@
   font-size: calc(1.75rem - 0.5rem * var(--e));
   line-height: calc(2rem - 0.5rem * var(--e));
 }
+/* no celular, com a linha do próximo serviço, a barra tem duas linhas (a saudação e a linha embaixo dela): a saudação sobe */
+@media (max-width: 47.99rem) {
+  .cena-inicial[data-com-linha] .saudacao {
+    padding-top: calc(1.125rem - 0.5625rem * var(--e));
+  }
+}
+.cena-inicial .escurece {
+  background: color-mix(in srgb, var(--color-tinta) 62%, transparent);
+  opacity: var(--e);
+}
+.cena-inicial .proximos-da-cena {
+  opacity: calc(1 - var(--e) * 2.2);
+}
+/* a linha do próximo serviço na barra: aparece quando o quadro passa da metade do caminho até a barra */
+.cena-inicial .barra-do-servico {
+  opacity: calc((var(--e) - 0.55) * 2.4);
+}
 .cena-inicial .data {
   overflow: hidden;
   max-height: calc(1.5rem * (1 - var(--e)));
@@ -198,6 +215,7 @@
 @media (min-width: 48rem) {
   .cena-inicial .saudacao {
     padding-top: calc(2rem - 0.75rem * var(--e));
+    column-gap: 1.5rem;
   }
   .cena-inicial h1 {
     font-size: calc(2.5rem - 1.25rem * var(--e));
