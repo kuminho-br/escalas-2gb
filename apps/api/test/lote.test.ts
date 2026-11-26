@@ -165,7 +165,7 @@ describe('aplicar', () => {
   });
 
   it('Review Focus 1: para um militar só, o lote e o "Alterar situação" deixam o rastreio igual (no mesmo dia e em dia posterior)', async () => {
-    for (const [chave, desde] of [['F1', hoje], ['F2', dia1], ['F3', dia1], ['F4', hoje]] as const) await militar(chave, sb1, { desde: chave === 'F2' || chave === 'F3' ? dia1 : hoje });
+    for (const chave of ['F1', 'F2', 'F3', 'F4']) await militar(chave, sb1, { desde: chave === 'F2' || chave === 'F3' ? dia1 : hoje });
     // no mesmo dia do período aberto (substitui): F1 pela ficha, F4 pelo lote; em dia posterior (fecha e abre): F2 pela ficha, F3 pelo lote
     const ficha = (chave: string, desde: string) => gestorGb.pedir('POST', `/api/militares/${m[chave]}/situacao`, { unidadeId: sb2, equipeId: alfa2, jornada: 'pronto', desde });
     expect((await ficha('F1', hoje)).status).toBeLessThan(300);

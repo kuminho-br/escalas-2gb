@@ -4,7 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { EuDaApi } from '@/api/eu';
 import { mesAtual } from '@/lib/meses';
-import { abrir, EU_EXEMPLO, simularApi } from './apoio';
+import { abrir, escolherNaArvore, EU_EXEMPLO, simularApi } from './apoio';
 
 // Entrega 6.50, Task 3: o Pecúlio da unidade com "Incluir as unidades de baixo" à escolha e a lista com divisória (a mesma peça da pesquisa). Dados fictícios (D7).
 const MES = mesAtual();
@@ -94,6 +94,22 @@ describe('Incluir as unidades de baixo (6.50)', () => {
     expect(await interruptor()).toBeChecked();
     await userEvent.click(await interruptor());
     expect(await interruptor()).not.toBeChecked();
+  });
+
+  it('(pool 30 f) religar "Incluir as unidades de baixo" não traz de volta a lotação escolhida antes: o filtro volta a "Todas"', async () => {
+    api();
+    abrir('/peculio');
+    const itens = async () => within(await screen.findByRole('list', { name: 'Militares do Pecúlio' }));
+    await escolherNaArvore(await screen.findByLabelText('Lotação'), /1ª SB/);
+    await waitFor(async () => expect((await itens()).getAllByRole('listitem')).toHaveLength(1));
+    expect((await itens()).getByText('ANDRADE')).toBeInTheDocument();
+    // desliga (o filtro sai de cena) e religa: a lista inteira, e não a de antes
+    await userEvent.click(await interruptor());
+    await waitFor(async () => expect((await itens()).queryByText('ANDRADE')).toBeNull());
+    await userEvent.click(await interruptor());
+    await waitFor(async () => expect((await itens()).getAllByRole('listitem')).toHaveLength(2));
+    expect((await itens()).getByText('ANDRADE')).toBeInTheDocument();
+    expect((await itens()).getByText('BARRETO')).toBeInTheDocument();
   });
 
   it('Review Focus 4: desligado numa unidade sem ninguém lotado direto nela, a lista diz isso e como achar os de baixo', async () => {

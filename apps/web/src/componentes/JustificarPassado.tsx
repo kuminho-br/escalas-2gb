@@ -10,7 +10,7 @@ type Aberta = { tentar: (texto: string) => Promise<unknown>; resolver: (v: unkno
 /**
  * "Alterar o passado" (7.4): o diálogo do motivo, único para o site todo. Mexer num turno que já começou, numa escala que não é rascunho, pede o motivo a quem pode (gestor, coordenador,
  * administrador); a API responde 400 no campo `justificativa`, `pedir` chama este diálogo e repete a mudança com o texto. Assim nenhuma tela precisa saber de antemão se o turno é passado.
- * Cancelar rejeita com `Cancelado`, e a escala fica como estava; o motivo curto demais volta como erro do campo, com o diálogo aberto e o texto digitado.
+ * Cancelar rejeita com `Cancelado`, e a escala fica como estava; um pedido novo com o diálogo aberto cancela o anterior, mas com o anterior gravando é o novo que é recusado, com aviso; o motivo curto demais volta como erro do campo, com o diálogo aberto e o texto digitado.
  */
 export function JustificarPassado({ children }: { children: ReactNode }) {
   const [aberta, setAberta] = useState<Aberta | null>(null);
@@ -25,6 +25,11 @@ export function JustificarPassado({ children }: { children: ReactNode }) {
   useEffect(() => {
     const pedir: PedirJustificativa = (_mensagem, tentar) =>
       new Promise((resolver, rejeitar) => {
+        // com o primeiro gravando, cancelá-lo deixaria a resposta dele sem destino e o diálogo do segundo fecharia sozinho: o segundo é recusado, com aviso, e o primeiro termina
+        if (trava.current) {
+          rejeitar(new Error('Espere o registro do motivo anterior terminar e tente de novo.'));
+          return;
+        }
         atual.current?.rejeitar(new Cancelado());
         const nova: Aberta = { tentar: tentar as Aberta['tentar'], resolver: resolver as Aberta['resolver'], rejeitar };
         atual.current = nova;

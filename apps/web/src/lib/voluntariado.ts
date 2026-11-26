@@ -152,8 +152,9 @@ const HORA = /^([01]\d|2[0-3]):[0-5]\d$/;
 /** Um horário digitado: o erro de cada campo (null = valeu) e as faixas em minutos quando os dois estão certos. `fim` aceita "24:00", e "00:00" também vale como 24:00 (das 20:00 às 00:00). */
 export function validarHorario(inicio: string, fim: string): { erroInicio: string | null; erroFim: string | null; faixa: Faixa | null } {
   const formato = 'Use a hora no formato HH:MM.';
-  const erroInicio = HORA.test(inicio) ? null : formato;
-  const erroFim = HORA.test(fim) || fim === '24:00' ? null : formato;
+  // o campo vazio diz o que falta; a hora mal escrita diz como escrever
+  const erroInicio = inicio.trim() === '' ? 'Falta a hora do início.' : HORA.test(inicio) ? null : formato;
+  const erroFim = fim.trim() === '' ? 'Falta a hora do fim.' : HORA.test(fim) || fim === '24:00' ? null : formato;
   if (erroInicio || erroFim) return { erroInicio, erroFim, faixa: null };
   // "00:00" no fim é a meia-noite que fecha o dia; início e fim iguais (também 00:00 e 00:00) não são um horário
   if (inicio === fim) return { erroInicio: null, erroFim: 'O fim precisa ser depois do início.', faixa: null };
