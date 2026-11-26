@@ -33,8 +33,10 @@ function EscalasDaCorporacao() {
   const escalas = useQuery(consultaEscalasVisiveis(mes));
   const unidades = useQuery(consultaUnidadesDaBusca);
   const [filtro, setFiltro] = useState(eu.lotacao?.id ?? '');
+  // com o filtro da lotação ligado, a lista espera a árvore das unidades: sem ela não se sabe o que fica abaixo da lotação, e a lista mostraria só a própria
+  const esperandoUnidades = !!filtro && unidades.isPending;
   const doFiltro = filtro ? abaixoDe(unidades.data ?? [], filtro) : null;
-  const todas = escalas.data ?? [];
+  const todas = esperandoUnidades ? [] : (escalas.data ?? []);
   const aMostrar = todas.filter((e) => !doFiltro || doFiltro.has(e.unidadeId));
   // um bloco por unidade (pelo id): duas unidades com a mesma sigla não se juntam, e o título diz de qual é ("1ª SB, em DivOp") quando a sigla se repete
   const porUnidade = new Map<string, EscalaVisivel[]>();
@@ -54,9 +56,9 @@ function EscalasDaCorporacao() {
           <EscolherUnidade id="ec-unidade" rotulo="Escalas da unidade" unidades={unidades.data ?? []} valor={filtro} aoEscolher={setFiltro} permiteLimpar textoVazio="Todas as unidades" textoDoValor={eu.lotacao?.sigla} className="w-64" />
         </div>
       </div>
-      {escalas.isPending && <Espera />}
+      {(escalas.isPending || esperandoUnidades) && <Espera />}
       {escalas.error && <p role="alert" className="text-alerta">{mensagemDe(escalas.error)}</p>}
-      {escalas.data && todas.length === 0 && <p className="max-w-xl text-apagado">{`Nenhuma escala de ${mesPorExtenso(mes)} está aberta para você.`}</p>}
+      {escalas.data && !esperandoUnidades && todas.length === 0 && <p className="max-w-xl text-apagado">{`Nenhuma escala de ${mesPorExtenso(mes)} está aberta para você.`}</p>}
       {escalas.data && todas.length > 0 && aMostrar.length === 0 && <p className="max-w-xl text-apagado">Nenhuma escala desta unidade está aberta para você neste mês. Limpe o filtro para ver as outras.</p>}
       <div className="grid max-w-3xl gap-4">
         {[...porUnidade].map(([unidadeId, lista]) => (
