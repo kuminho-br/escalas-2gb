@@ -106,7 +106,8 @@ function Inicio() {
   const proximos = useQuery(consultaProximosServicos()).data?.servicos;
   const primeiro = proximos?.[0];
   // os avisos (6.56): idem; sem resposta, o painel não aparece
-  const avisos = useQuery(consultaAvisos()).data;
+  const dosAvisos = useQuery(consultaAvisos()).data;
+  const avisos = Array.isArray(dosAvisos?.avisos) ? dosAvisos : undefined;
   const primeiroAviso = avisos?.avisos[0];
   const larga = useTelaLarga();
   // a chegada pela animação do login: a cena pousa nesta faixa; a saudação entra no pouso e recebe o foco, e os cartões sobem durante o afastamento

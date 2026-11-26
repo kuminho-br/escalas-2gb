@@ -147,6 +147,14 @@ describe('o painel de avisos', () => {
     expect(within(p).queryByRole('button', { name: 'Retirar' })).toBeNull();
   });
 
+  it('resposta que não tem a forma esperada (corpo vazio): nenhum painel e a tela inicial não quebra', async () => {
+    simularApi({ '/api/eu': { status: 200, corpo: EU_EXEMPLO }, [ROTA]: { status: 200, corpo: {} } });
+    abrir('/');
+    await screen.findByRole('heading', { level: 1 });
+    await screen.findByRole('navigation', { name: 'Módulos' });
+    expect(screen.queryByRole('region', { name: 'Avisos' })).toBeNull();
+  });
+
   it('API sem resposta (404 ou erro): nenhum painel e a tela inicial segue igual', async () => {
     simularApi({ '/api/eu': { status: 200, corpo: EU_EXEMPLO }, [ROTA]: { status: 500, corpo: { erro: 'falhou' } } });
     abrir('/');
