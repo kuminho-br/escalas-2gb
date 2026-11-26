@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Grade geral</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Semi+Condensed:wght@500;600;700&display=swap">
+<link rel="stylesheet" href="../pecas.css">
+<link rel="stylesheet" href="grade.css">
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><symbol id="i-ficha" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4.5 20.5v-1a6 6 0 0 1 6-6h3a6 6 0 0 1 6 6v1"/></symbol></svg>
+<div class="pagina">
+
+<header class="abre">
+  <p class="de-quem"><a class="voltar" href="../index.html">Manual de Identidade Visual</a></p>
+  <h1>Grade geral e menu lateral</h1>
+  <p>A Grade inteira redesenhada, junto com o menu. A ideia: o que é normal fica calado (o expediente, os fins de semana) e o que foge do normal fala alto (serviço, afastado, choque). Uma borda escura e grossa diz onde a rolagem começa.</p>
+  <p class="menor">Versão 1, para você revisar. Desenhada sobre a tela de hoje, com a lista de itens do menu de hoje. Cada mudança de comportamento está marcada como proposta. Os nomes e as matrículas são inventados.</p>
+  <div class="gg-controles">
+    <div role="radiogroup" aria-label="Menu"><span class="rot">Menu do computador</span>
+      <label class="marcar"><input type="radio" name="menu" value="largo" checked><span>Largo</span></label>
+      <label class="marcar"><input type="radio" name="menu" value="recolhido"><span>Recolhido</span></label></div>
+    <div role="radiogroup" aria-label="Tamanho"><span class="rot">Tamanho da tela</span>
+      <label class="marcar"><input type="radio" name="tam" value="ajustado" checked><span>Reduzida para caber</span></label>
+      <label class="marcar"><input type="radio" name="tam" value="real"><span>Tamanho real (rola de lado)</span></label></div>
+  </div>
+</header>
+
+<section class="bloco largo" id="tela">
+  <div class="regra">
+    <h2>A tela, no computador</h2>
+    <p>Experimente: passe o mouse no nome de um militar (a célula toda responde), role a tabela para os lados e veja a sombra nascer sob a borda, passe o mouse no traço do afastado (a dica mostra o período inteiro) e clique num dia para abrir o painel. Ao abrir o painel, o menu recolhe sozinho para dar lugar.</p>
+    <p class="nota">Dezembro de 2026, com "hoje" em 3/12. O menu é o de hoje: Grade geral, Escala do mês, Efetivo por dia, Oficiais, Voluntariado, Cotas, Militares, Turnos, Escalas, Feriados e Configurações da escala.</p>
+  </div>
+  <div class="gg-quadros">
+    <figure><div class="gg-palco" data-palco><div class="gg" data-gg="pc"></div></div><figcaption>Computador, 1440 px. Equipes ALFA e BRAVO (Pronto) e ADM. Há três militares afastados no exemplo: Férias, Licença que vem de novembro e uma LTS de mês inteiro.</figcaption></figure>
+  </div>
+</section>
+
+<section class="bloco largo" id="celular">
+  <div class="regra">
+    <h2>No celular</h2>
+    <p>O celular tem desenho próprio: alvos de 44 px, o nome numa coluna mais estreita e o painel do dia como uma folha que sobe de baixo, com a célula escolhida ainda à vista no alto. O menu abre de lado, com a mesma lista do computador.</p>
+    <p class="nota">Toque numa célula para abrir a folha e no ≡ para abrir o menu.</p>
+  </div>
+  <div class="gg-celulares">
+    <figure><div class="gg" data-gg="cel"></div><figcaption>Grade.</figcaption></figure>
+    <figure><div class="gg" data-gg="cel-folha"></div><figcaption>Dia de quem está afastado. A folha sobe até dois terços; em cima ficam só a linha escolhida e o cabeçalho dos dias.</figcaption></figure>
+    <figure><div class="gg" data-gg="cel-servicos"></div><figcaption>Dia com dois serviços e um choque. Os horários aparecem na primeira tela da folha, sem rolar.</figcaption></figure>
+    <figure><div class="gg" data-gg="cel-menu"></div><figcaption>Menu aberto.</figcaption></figure>
+  </div>
+</section>
+
+<section class="bloco largo" id="borda">
+  <div class="regra">
+    <h2>A borda da área que rola</h2>
+    <p>Você pediu uma borda mais grossa, em cor escura. Fica assim: 3 px na cor <b>tinta</b> (hoje, 2 px no tom <b>encaixe</b>), nos mesmos três lugares: à direita da coluna Militar, embaixo do cabeçalho dos dias e à esquerda de PJES. Ao rolar, uma sombra leve nasce do lado das partes presas.</p>
+    <p class="nota"><b>Proposta:</b> o padrão novo vale para toda tabela com rolagem do sistema (a "Tabela com rolagem" da entrega 6.46 passa a usar um único valor, 3 px em tinta).</p>
+  </div>
+  <div class="gg-lado">
+    <figure><div class="gg-borda hoje" aria-hidden="true"><div class="h">1 &nbsp; 2 &nbsp; 3 &nbsp; 4 &nbsp; 5 &nbsp; 6 &nbsp; 7 &nbsp; 8</div><div class="e">Militar<small>coluna fixa</small></div><div class="c"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div></div><figcaption>Hoje: 2 px em tom claro. Mistura-se com as linhas de dentro.</figcaption></figure>
+    <figure><div class="gg-borda novo" aria-hidden="true"><div class="h">1 &nbsp; 2 &nbsp; 3 &nbsp; 4 &nbsp; 5 &nbsp; 6 &nbsp; 7 &nbsp; 8</div><div class="e">Militar<small>coluna fixa</small></div><div class="c"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div></div><figcaption>Como fica: 3 px em tinta, com sombra quando há mais por baixo.</figcaption></figure>
+  </div>
+</section>
+
+<section class="bloco largo" id="recusa">
+  <div class="regra">
+    <h2>A recusa da troca</h2>
+    <p>Hoje a recusa fala de um jeito só e não diz qual dos dois militares é o problema. Proposta: o texto nomeia quem é e o motivo, e a linha dele fica marcada no diálogo.</p>
+    <p class="nota"><b>Proposta de texto.</b> Troca simples: "Não dá para trocar: FIGUEIREDO já tem Saldo das 07h às 13h neste dia." Permuta: "Não dá para permutar: JÚLIO ficaria com o Pronto B (19h às 07h) e já está no Pronto A deste dia."</p>
+  </div>
+  <div class="gg-lado">
+    <figure><div class="gg-dialogo" role="group" aria-label="Exemplo: troca recusada"><h5>Trocar o Pronto A de CAVALCANTE</h5>
+      <div class="opcao">3º Sgt DUARTE <small></small></div>
+      <div class="opcao problema">3º Sgt FIGUEIREDO <small>Saldo das 07h às 13h</small></div>
+      <p class="msg"><svg class="i" aria-hidden="true"><use href="#i-alerta"/></svg><span role="alert">Não dá para trocar: FIGUEIREDO já tem Saldo das 07h às 13h neste dia.</span></p>
+      <div style="display:flex;gap:8px;justify-content:flex-end"><button type="button" class="botao secundario">Voltar</button><button type="button" class="botao principal" disabled>Trocar</button></div></div><figcaption>A linha do militar que impede a troca ganha o contorno e o motivo.</figcaption></figure>
+  </div>
+</section>
+
+<section class="bloco" id="o-que-muda">
+  <div class="regra">
+    <h2>O que muda em relação à tela de hoje</h2>
+    <p>Dezesseis mudanças. As que mexem no comportamento estão em negrito.</p>
+    <p class="nota">"Seu pedido" é o que você disse. "Pendência" saiu do pool do piloto ou do código. "Proposta" é da DESIGN ou da PLANEJAMENTO, e você decide.</p>
+  </div>
+  <div class="prancha">
+    <div class="sup rolagem" style="padding:0">
+      <table class="tabela gg-muda">
+        <thead><tr><th scope="col">Item</th><th scope="col" class="quebra">Hoje</th><th scope="col" class="quebra">Como fica</th><th scope="col" class="quebra">De onde vem</th></tr></thead>
+        <tbody>
+          <tr><td>Borda da rolagem</td><td class="quebra">2 px, tom claro.</td><td class="quebra">3 px em tinta, com sombra ao rolar. Vale para toda tabela com rolagem.</td><td class="quebra">Seu pedido. "Vale para todas" é proposta.</td></tr>
+          <tr><td>Afastado</td><td class="quebra">Só aparece no painel, depois do clique.</td><td class="quebra">Um traço de lado a lado, contínuo entre dias seguidos, com o tipo no primeiro dia ("Férias"). Quem está afastado o mês todo tem o nome em tom apagado. <b>A Grade passa a mostrar o afastamento; a API manda os períodos.</b></td><td class="quebra">Seu pedido. O tom apagado do nome é proposta.</td></tr>
+          <tr><td>Dica do afastado</td><td class="quebra">Não há.</td><td class="quebra">Ao passar o mouse: "Férias: 10 a 19/12", com o período inteiro, mesmo quando começa ou termina em outro mês.</td><td class="quebra">Você já aprovou.</td></tr>
+          <tr><td>Célula do nome</td><td class="quebra">Só o texto responde ao clique, e o nome é sublinhado ao passar o mouse.</td><td class="quebra">A célula inteira é um botão, sem sublinhado. Ao passar o mouse: fundo vinho suave e o ícone da ficha no canto. No teclado, contorno por dentro. <b>O clique vale na célula toda.</b></td><td class="quebra">Seu pedido.</td></tr>
+          <tr><td>Expediente do ADM</td><td class="quebra">Quadrado cinza escuro em todo dia útil: um paredão de cinza em que nada se destaca.</td><td class="quebra">Um tom claro e menor, sem letra. Serviço, afastado e choque aparecem por cima do calado.</td><td class="quebra">Proposta da DESIGN.</td></tr>
+          <tr><td>Fim de semana e feriado</td><td class="quebra">Só o número vermelho no cabeçalho.</td><td class="quebra">A coluna inteira ganha um fundo levemente mais escuro. O feriado leva um ponto vinho no cabeçalho.</td><td class="quebra">Proposta da DESIGN.</td></tr>
+          <tr><td>Legenda</td><td class="quebra">No pé da tabela, onde ninguém olha; mostra a cor crua do serviço, e as células, a ajustada.</td><td class="quebra">Numa linha acima da tabela, com os mesmos quadradinhos das células (cor ajustada e letra), o traço do afastado e o contorno do choque.</td><td class="quebra">Pendência do pool do piloto.</td></tr>
+          <tr><td>Faixa da equipe</td><td class="quebra">Nome e quantidade de militares.</td><td class="quebra">Acrescenta "2 afastados hoje" quando há. <b>Comportamento novo (conta de hoje).</b></td><td class="quebra">Ideia da PLANEJAMENTO. Proposta.</td></tr>
+          <tr><td>Filtro dos afastados</td><td class="quebra">Não há.</td><td class="quebra">"Esconder quem está afastado o mês todo", para ver só quem dá para escalar. <b>Filtro novo.</b></td><td class="quebra">Ideia da PLANEJAMENTO. Regra em pergunta abaixo.</td></tr>
+          <tr><td>Painel do dia</td><td class="quebra">"Afastado: Férias", numa linha.</td><td class="quebra">Faixa âmbar com o período ("Férias, de 10 a 19/12/2026"). Ao adicionar serviço a quem está afastado, um aviso, sem bloquear. <b>Aviso novo.</b></td><td class="quebra">Ideia da PLANEJAMENTO. Proposta.</td></tr>
+          <tr><td>Menu</td><td class="quebra">Trilho de 84 px, com o ícone e o nome pequeno embaixo.</td><td class="quebra">Largo (232 px), com o brasão e o nome da unidade no alto, os rótulos ao lado e o item ativo em destaque. Um botão "Recolher menu" volta ao trilho de hoje. Abrir o painel do dia recolhe o menu sozinho (só em tela mais estreita que 1440 px). <b>Muda o comportamento.</b></td><td class="quebra">Seu pedido (o modelo do mockup). O recolher sozinho é proposta.</td></tr>
+          <tr><td>Equipes do cadastro</td><td class="quebra">Os botões vêm das equipes que existem no mês.</td><td class="quebra">Com a 6.64, vêm do cadastro. Até seis equipes, botões lado a lado; com mais, um botão "Equipes" com lista de marcação.</td><td class="quebra">Encaixe com a 6.64. Proposta.</td></tr>
+          <tr><td>Cabeçalho</td><td class="quebra">Caminho de siglas e o nome da pessoa.</td><td class="quebra">O da 6.61 (versão 3 da tela inicial): fio vinho, unidade em degraus e a pessoa com as iniciais. Sem a marca, que dentro do módulo fica no topo do menu.</td><td class="quebra">Encaixe com a 6.61. Proposta.</td></tr>
+          <tr><td>Celular</td><td class="quebra">O painel cobre a tela toda.</td><td class="quebra">Folha que sobe de baixo, até dois terços, com a célula escolhida à vista no alto e o botão de adicionar fixo no pé. <b>Muda o comportamento.</b></td><td class="quebra">Pendência do toque (o horário por baixo da janela). Proposta.</td></tr>
+          <tr><td>Recusa da troca</td><td class="quebra">Texto genérico, sem dizer quem.</td><td class="quebra">Nomeia o militar e o motivo, e marca a linha dele no diálogo.</td><td class="quebra">Pendência.</td></tr>
+          <tr><td>Itens do menu</td><td class="quebra">—</td><td class="quebra">A lista de hoje. Ficam de fora "Estrutura" (virou um módulo próprio, na tela inicial), "Histórico" (está dentro da ficha do militar) e "Ajuda" (ainda não existe).</td><td class="quebra">Conferido no código.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section class="fecho" id="decidir">
+  <h2>Para você decidir</h2>
+  <ul>
+    <li><b>Esconder quem está afastado o mês todo.</b> Foi a regra que escolhi para o filtro (quem não dá para escalar em dia nenhum). Serve, ou você quer outra, como esconder quem está afastado no dia escolhido?</li>
+    <li><b>O menu recolher sozinho ao abrir o painel</b> (só em tela mais estreita que 1440 px). Aceita, ou prefere que o menu só mude quando você mandar?</li>
+    <li><b>O horário no toque.</b> Entendi que, no celular, o horário do serviço ficava escondido por baixo da janela do painel. A folha de baixo resolve, com o horário no alto. Era isso mesmo, ou era outra coisa?</li>
+    <li><b>O expediente calado.</b> Aceita o expediente em tom claro e menor, para o que foge do normal se destacar?</li>
+    <li><b>A borda de 3 px em tinta para toda tabela com rolagem.</b> Aceita como padrão do sistema?</li>
+  </ul>
+  <p>Com a sua aprovação, a PLANEJAMENTO reescreve o plano da 6.70 com tudo isso. <a class="voltar" href="../index.html">Voltar ao Manual</a></p>
+</section>
+</div>
+<script src="../pecas.js"></script>
+<script src="grade.js"></script>
+<script>
+(function () {
+  'use strict';
+  var pc = window.Grade.montar(document.querySelector('[data-gg="pc"]'), { n: 'pc' });
+  var cel = window.Grade.montar(document.querySelector('[data-gg="cel"]'), { cel: true, n: 'c1' });
+  window.Grade.montar(document.querySelector('[data-gg="cel-folha"]'), { cel: true, n: 'c2', sel: { p: 'b2', d: 3 } });
+  window.Grade.montar(document.querySelector('[data-gg="cel-servicos"]'), { cel: true, n: 'c4', sel: { p: 'a4', d: 13 } });
+  window.Grade.montar(document.querySelector('[data-gg="cel-menu"]'), { cel: true, n: 'c3', menuAberto: true });
+  var real = function () { return document.querySelector('input[name="tam"]:checked').value === 'real'; };
+  var palco = document.querySelector('[data-palco]');
+  var ajustar = window.Grade.palco(palco, palco.firstElementChild, real);
+  document.querySelector('.gg-controles').addEventListener('change', function (e) {
+    if (e.target.name === 'menu') pc.definir({ menu: e.target.value });
+    if (e.target.name === 'tam') ajustar();
+    ajustar();
+  });
+})();
+</script>
+</body>
+</html>

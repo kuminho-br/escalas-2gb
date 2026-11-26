@@ -1,0 +1,260 @@
+/* Área "Grade geral" do Manual (versão 1): a Grade e o menu lateral redesenhados.
+   A tela é desenhada no tamanho real (1440 px no computador, 390 px no celular) e o Manual a reduz para caber na página.
+   Ideia do desenho: o que é normal fica calado (o expediente, os fins de semana) e o que foge do normal fala alto (serviço, afastado, choque);
+   uma borda escura e grossa diz onde a rolagem começa. */
+
+.gg-controles{display:grid;gap:6px}
+.gg-controles > div{display:flex;flex-wrap:wrap;align-items:center;gap:0 18px}
+.gg-controles .rot{min-width:150px;font-weight:500}
+.gg-quadros{display:grid;gap:32px;grid-template-columns:minmax(0,1fr);min-width:0}
+.gg-quadros figure{min-width:0}
+.gg-quadros figcaption{margin-top:8px;font-size:var(--t13);line-height:18px;color:var(--pg-apagado);max-width:80ch}
+.gg-palco{position:relative;min-width:0;overflow:clip;border:1px solid var(--pg-linha);border-radius:var(--raio-sup)}
+.gg-palco.real{overflow:auto}
+.gg-palco .gg{zoom:1}
+.gg-celulares{display:flex;flex-wrap:wrap;gap:28px;align-items:flex-start}
+.gg-celulares figure{flex:none}
+
+/* a tela */
+.gg{position:relative;display:flex;width:1440px;height:840px;background:var(--fundo);color:var(--tinta);color-scheme:light;font:400 var(--t15)/22px var(--texto);--w-nome:208px;--w-dia:46px;--w-fim:64px}
+.gg *{box-sizing:border-box}
+.gg :focus-visible{outline:2px solid var(--tinta);outline-offset:2px}
+.gg button{font:inherit;color:inherit}
+.gg .i{width:16px;height:16px}
+
+/* o menu: largo, com os nomes; recolhido, o trilho de hoje (ícone com o nome embaixo) */
+.gg-menu{flex:none;display:flex;flex-direction:column;gap:12px;width:240px;padding:16px 12px 12px;background:var(--vinho);color:var(--claro);overflow:hidden;transition:width .18s ease}
+.gg-menu :focus-visible{outline-color:var(--claro)}
+.gg-menu a{color:inherit;text-decoration:none}
+.gg-casa{display:grid;grid-template-columns:40px minmax(0,1fr);align-items:center;gap:10px;padding:4px 6px 6px;border-radius:var(--raio)}
+.gg-casa img{width:40px;height:40px;object-fit:contain}
+.gg-casa b{display:block;font:600 var(--t17)/20px var(--cond);white-space:nowrap}
+.gg-casa small{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;line-clamp:2;overflow:hidden;font:400 var(--t13)/16px var(--texto);color:color-mix(in srgb,var(--claro) 84%,transparent)}
+.gg-menu ul{display:grid;gap:2px;margin:0;padding:0;list-style:none}
+.gg-menu ul + ul{padding-top:10px;border-top:1px solid color-mix(in srgb,var(--claro) 24%,transparent)}
+.gg-menu li a{display:flex;align-items:center;gap:10px;height:40px;padding:0 10px;border-radius:var(--raio);color:color-mix(in srgb,var(--claro) 92%,transparent);font-size:var(--t15)}
+.gg-menu li a:hover{background:color-mix(in srgb,var(--claro) 12%,transparent);color:var(--claro)}
+.gg-menu li a .i{width:20px;height:20px;stroke-width:1.75;flex:none}
+.gg-menu li.atual a{background:var(--claro);color:var(--vinho);font-weight:600}
+.gg-menu .pe{margin-top:auto}
+.gg-recolher{display:flex;align-items:center;gap:12px;height:36px;padding:0 12px;border:0;border-radius:var(--raio);background:transparent;color:color-mix(in srgb,var(--claro) 80%,transparent);font-size:var(--t13);cursor:pointer}
+.gg-recolher:hover{background:color-mix(in srgb,var(--claro) 12%,transparent);color:var(--claro)}
+.gg-recolher .i{transition:transform .18s}
+.gg.recolhido .gg-menu{width:84px;padding-inline:6px}
+.gg.recolhido .gg-casa{grid-template-columns:minmax(0,1fr);justify-items:center;gap:2px;padding:2px 0 4px}
+.gg.recolhido .gg-casa img{width:44px;height:44px}
+.gg.recolhido .gg-casa b{font-size:var(--t13);line-height:14px}
+.gg.recolhido .gg-casa small{display:none}
+.gg.recolhido .gg-menu li a{flex-direction:column;justify-content:center;gap:2px;height:auto;min-height:52px;padding:6px 2px;text-align:center;font:500 11.5px/1.15 var(--cond)}
+.gg.recolhido .gg-recolher{flex-direction:column;justify-content:center;height:44px;gap:2px;padding:0;font:500 11.5px/1 var(--cond)}
+.gg.recolhido .gg-recolher .i{transform:rotate(180deg)}
+.gg.recolhido .gg-recolher span{font-size:11.5px}
+
+/* o cabeçalho da 6.61 (versão 3 da tela inicial), sem a marca: dentro do módulo a marca fica no topo do menu */
+.gg-main{flex:1;min-width:0;display:flex;flex-direction:column;min-height:0}
+.gg-topo{flex:none;display:flex;align-items:center;gap:16px;height:56px;padding:3px 24px 0;background:var(--superficie);border-bottom:1px solid var(--linha);box-shadow:inset 0 3px 0 var(--vinho)}
+.gg-degraus{display:flex;align-items:center;gap:4px;margin:0;padding:0;list-style:none;font:500 var(--t15)/1 var(--cond);white-space:nowrap;min-width:0}
+.gg-degraus li{display:flex;align-items:center;gap:4px}
+.gg-degraus .sep{color:var(--encaixe);font-size:var(--t17)}
+.gg-degraus button{display:flex;align-items:center;gap:4px;height:32px;padding:0 6px 0 10px;border:1px solid var(--linha);border-radius:var(--raio);background:none;color:var(--apagado);cursor:pointer}
+.gg-degraus .atual button{color:var(--tinta);font-weight:600;border-color:var(--encaixe)}
+.gg-quem{margin-left:auto;display:flex;align-items:center;gap:10px;height:42px;padding:0 8px 0 4px;border:0;border-radius:var(--raio);background:none;white-space:nowrap;cursor:pointer}
+.gg-quem .ini{display:grid;place-items:center;width:30px;height:30px;border-radius:50%;background:var(--vinho);color:var(--claro);font:600 var(--t15)/1 var(--cond)}
+.gg-quem b{display:block;font:600 var(--t15)/16px var(--cond);text-align:left}
+.gg-quem small{display:block;font:400 var(--t13)/14px var(--texto);color:var(--apagado);text-align:left}
+
+/* a página */
+.gg-pag{flex:1;min-height:0;display:grid;grid-template-rows:auto auto auto minmax(0,1fr);align-content:start;gap:12px;padding:18px 24px 16px;min-width:0}
+.gg-pag h3{font:600 var(--t28)/32px var(--cond)}
+.gg-barra{display:flex;flex-wrap:wrap;align-items:flex-end;gap:12px}
+.gg-barra .direita{margin-left:auto;align-self:center}
+.gg-barra .campo input[type="search"]{width:224px;background:var(--superficie)}
+.gg-mes{display:inline-flex;align-items:center;height:var(--h);border:1px solid var(--encaixe);border-radius:var(--raio);background:var(--superficie)}
+.gg-mes button{display:grid;place-items:center;width:34px;height:100%;border:0;background:none;cursor:pointer}
+.gg-mes span{display:inline-flex;align-items:center;gap:8px;padding:0 6px;font:600 var(--t15)/1 var(--cond)}
+.gg-leg{display:flex;flex-wrap:wrap;align-items:center;gap:6px 18px;margin:0;padding:0;list-style:none;font:400 var(--t13)/16px var(--texto);color:var(--apagado)}
+.gg-leg li{display:inline-flex;align-items:center;gap:6px}
+.gg-leg .gg-tr{position:relative;width:26px;height:16px}
+.gg-leg .gg-tr::before{content:"";position:absolute;left:0;right:0;top:50%;height:3px;margin-top:-1.5px;border-radius:2px;background:var(--apagado)}
+.gg-leg .gg-ch{width:20px;height:16px;border-radius:3px;background:var(--alerta-fundo);box-shadow:inset 0 0 0 2px var(--alerta)}
+
+.gg-quadro{display:grid;grid-template-columns:minmax(0,1fr);gap:16px;align-items:start;min-height:0}
+.gg.painel .gg-quadro{grid-template-columns:minmax(0,1fr) 380px}
+.gg-tab{min-width:0;min-height:0;border:1px solid var(--linha);border-radius:var(--raio-sup);background:var(--superficie);overflow:hidden}
+.gg-rola{overflow:auto;max-height:var(--alt,560px);scrollbar-width:thin}
+
+/* a tabela */
+.gg-t{table-layout:fixed;width:calc(var(--w-nome) + 31 * var(--w-dia) + 2 * var(--w-fim));border-collapse:separate;border-spacing:0;font-family:var(--cond)}
+.gg-t th,.gg-t td{background:var(--superficie);padding:0;font-weight:400}
+.gg-t thead th{position:sticky;top:0;z-index:3;height:48px;padding:6px 0 4px;border-bottom:3px solid var(--tinta);font:500 var(--t13)/16px var(--cond);color:var(--apagado);text-align:center;white-space:nowrap;vertical-align:bottom}
+.gg-t thead th b{display:block;font:600 16px/20px var(--cond);color:var(--tinta)}
+.gg-t thead th.fds,.gg-t thead th.fds b{color:var(--vinho)}
+.gg-t thead th.fer::after{content:"";display:block;width:4px;height:4px;margin:2px auto 0;border-radius:50%;background:var(--vinho)}
+.gg-t thead th.dia.fds{background:var(--passa)}
+.gg-t .nome{position:sticky;left:0;z-index:2;width:var(--w-nome);border-right:3px solid var(--tinta)}
+.gg-t thead .nome{z-index:4;padding-left:16px;text-align:left;vertical-align:bottom}
+.gg-t .fim{position:sticky;z-index:2;width:var(--w-fim);padding:0 8px}
+.gg-t .fim.pjes{right:var(--w-fim);border-left:3px solid var(--tinta)}
+.gg-t .fim.diar{right:0}
+.gg-t thead .fim{z-index:4;padding:6px 0 4px;text-align:center}
+/* ao rolar, uma sombra leve nasce do lado das partes presas: mostra que há mais por baixo */
+.gg-rola.rolou-e .nome{box-shadow:7px 0 8px -7px rgba(28,36,48,.45)}
+.gg-rola.rolou-d .fim.pjes{box-shadow:-7px 0 8px -7px rgba(28,36,48,.45)}
+.gg-t tbody tr > *{border-bottom:1px solid #EEF0F3}
+.gg-t td.c{position:relative;height:44px;border-right:1px solid #EEF0F3;text-align:center}
+.gg-t td.c.fds{background:var(--passa)}
+.gg-t td.c.seg{border-left:1px solid #C9CED6}
+.gg-t td.c.vespera{border-right:0}
+.gg-t tr.lm > th.nome,.gg-t tr.lm > td.c:not(.fds),.gg-t tr.lm > td.fim{background:#F7F7F8}
+.gg-t td.c.cm{background:#F7EFEF}
+
+/* a célula do nome: um botão só, da borda à borda */
+.gg-nb{display:grid;grid-template-columns:minmax(0,1fr) auto;grid-template-rows:auto auto;column-gap:6px;align-content:center;width:100%;height:44px;padding:2px 10px 2px 16px;border:0;background:transparent;text-align:left;cursor:pointer}
+.gg-nb:hover{background:rgba(142,27,27,.08)}
+.gg-nb:focus-visible{outline:2px solid var(--tinta);outline-offset:-4px;background:rgba(142,27,27,.08)}
+.gg-nb .l1{grid-column:1;grid-row:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.gg-nb .l1 small{margin-right:6px;font:400 var(--t13)/1 var(--cond);color:var(--apagado)}
+.gg-nb .l1 strong{font:600 var(--t15)/1.2 var(--cond)}
+.gg-nb .mat{grid-column:1;grid-row:2;font:400 12px/1.2 var(--cond);color:var(--apagado)}
+.gg-nb .ficha{grid-column:2;grid-row:1;justify-self:end;width:16px;height:16px;color:var(--vinho);opacity:0;transition:opacity .12s}
+.gg-nb:hover .ficha,.gg-nb:focus-visible .ficha{opacity:1}
+.gg-nb .cota{grid-column:2;grid-row:2;justify-self:end;align-self:center;position:relative;width:28px;height:6px;border-radius:3px;background:rgba(0,0,0,.08);overflow:hidden}
+.gg-nb .cota i{position:absolute;inset:0 auto 0 0;border-radius:3px;background:var(--vinho)}
+.gg-nb .cota.acima i{background:var(--pendencia)}
+.gg-nb.apagado .l1 strong{color:var(--apagado)}
+
+/* a faixa de cada equipe */
+.gg-t tr.faixa > *{height:34px;border-bottom:0;background:#F1F3F6}
+.gg-t tr.faixa .nome{padding:0 0 0 16px}
+.gg-eq{display:inline-flex;align-items:center;gap:8px;white-space:nowrap}
+.gg-eq::before{content:"";width:3px;height:16px;border-radius:2px;background:var(--vinho)}
+.gg-eq button{display:inline-flex;align-items:center;gap:4px;padding:0;border:0;background:none;cursor:pointer}
+.gg-eq button:hover strong{text-decoration:underline}
+.gg-eq strong{font:700 var(--t15)/1 var(--cond)}
+.gg-eq small{font:400 var(--t13)/1 var(--cond);color:var(--apagado)}
+.gg-resumo{position:sticky;left:calc(var(--w-nome) + 14px);display:inline-flex;align-items:center;gap:6px;font:500 var(--t13)/1 var(--cond);color:var(--apagado)}
+.gg-resumo .tr{display:inline-block;width:16px;height:3px;border-radius:2px;background:var(--apagado)}
+
+/* a célula do dia */
+.gg-cb{position:relative;display:flex;align-items:center;justify-content:center;gap:2px;width:100%;height:100%;border:0;background:transparent;cursor:pointer}
+.gg-cb:hover{background:rgba(28,36,48,.06)}
+.gg-cb:focus-visible{outline:2px solid var(--tinta);outline-offset:-3px}
+.gg-q{position:relative;z-index:1;display:grid;place-items:center;flex:none;width:20px;height:18px;border-radius:3px;font:700 11px/1 var(--cond);color:#fff}
+/* o expediente: um tom claro, menor, sem letra: o normal fica calado */
+.gg-q.exp{height:12px;background:#D9DEE5}
+.gg-cb.choque{background:var(--alerta-fundo);box-shadow:inset 0 0 0 2px var(--alerta)}
+.gg-t td.sel .gg-cb{background:rgba(142,27,27,.15);box-shadow:inset 0 0 0 2px var(--vinho)}
+.gg-t td.sel .gg-cb.choque{box-shadow:inset 0 0 0 2px var(--alerta)}
+/* o afastado: um traço de lado a lado, que continua nas células vizinhas; o rótulo fica no primeiro dia do período */
+.gg-af{position:absolute;left:0;right:0;top:58%;height:3px;margin-top:-1.5px;background:var(--apagado);pointer-events:none}
+.gg-af.comeca{left:5px;border-radius:2px 0 0 2px}
+.gg-af.termina{right:5px;border-radius:0 2px 2px 0}
+.gg-af.comeca.termina{border-radius:2px}
+.gg-af-rot{position:absolute;left:4px;top:5px;z-index:2;font:600 11px/1 var(--cond);color:var(--apagado);white-space:nowrap;pointer-events:none}
+.gg-barra-c{position:relative;display:block;height:24px;overflow:hidden;border-radius:4px;background:rgba(0,0,0,.04)}
+.gg-barra-c i{position:absolute;inset:0 auto 0 0;background:rgba(142,27,27,.2)}
+.gg-barra-c b{position:relative;display:grid;place-items:center;height:100%;font:600 var(--t13)/1 var(--cond)}
+
+/* a dica da célula do afastado (no site, o title da célula) */
+.gg-dica{position:fixed;z-index:1000;padding:6px 10px;border-radius:var(--raio);background:var(--tinta);color:var(--claro);font:500 var(--t13)/16px var(--texto);white-space:nowrap;pointer-events:none;box-shadow:var(--por-cima)}
+
+/* o painel do dia */
+.gg-pd{position:sticky;top:0;display:flex;flex-direction:column;max-height:var(--alt-pd,640px);overflow:auto;border:1px solid var(--linha);border-radius:var(--raio-sup);background:var(--superficie)}
+.gg-pd > * + *{border-top:1px solid var(--linha)}
+.gg-pd header{display:flex;align-items:flex-start;gap:12px;padding:16px}
+.gg-pd header div{flex:1;min-width:0}
+.gg-pd h4{font:600 var(--t20)/26px var(--cond)}
+.gg-pd .sub{margin-top:2px;font-size:var(--t13);line-height:18px;color:var(--apagado)}
+.gg-pd .chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.gg-pd .chips span{padding:0 6px;border:1px solid var(--linha);border-radius:4px;font-size:12px;line-height:20px}
+.gg-pd section{display:grid;gap:8px;padding:16px;font-size:var(--t13);line-height:18px}
+.gg-pd section .data{font:600 var(--t15)/20px var(--texto)}
+.gg-afastado{display:flex;align-items:flex-start;gap:8px;padding:8px 10px;border-radius:var(--raio);background:var(--pendencia-fundo);color:var(--pendencia);font-size:var(--t13);line-height:18px}
+.gg-afastado .i{margin-top:1px}
+.gg-afastado b{font-weight:600}
+.gg-servico{display:grid;gap:4px;padding:10px 12px;border:1px solid var(--linha);border-radius:8px}
+.gg-servico .topo{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.gg-servico .tag{padding:0 6px;border-radius:4px;font:600 var(--t13)/20px var(--cond);color:#fff}
+.gg-servico .acoes{margin-left:auto;display:flex;gap:6px}
+.gg-servico .botao{min-height:28px;padding:0 10px;font-size:var(--t13)}
+.gg-aviso-af{display:flex;align-items:flex-start;gap:8px;color:var(--pendencia);font-size:var(--t13);line-height:18px}
+.gg-aviso-af .i{margin-top:1px}
+
+/* o toast da ficha (no site, a ficha abre por cima da Grade) */
+.gg-toast{position:absolute;left:50%;bottom:20px;z-index:40;transform:translateX(-50%);padding:8px 14px;border-radius:var(--raio);background:var(--tinta);color:var(--claro);font-size:var(--t13);line-height:18px;box-shadow:var(--por-cima)}
+
+/* o celular */
+.gg.cel{width:390px;height:780px;flex-direction:column;overflow:hidden;--w-nome:148px;--w-dia:44px;--w-fim:52px}
+.gg.cel .gg-topo{gap:8px;padding:3px 10px 0 6px}
+.gg.cel .gg-topo .botao.so-icone{width:44px;min-height:44px}
+.gg.cel .gg-uni{display:flex;align-items:center;gap:4px;height:36px;padding:0 6px 0 10px;border:1px solid var(--encaixe);border-radius:var(--raio);background:none;font:600 var(--t15)/1 var(--cond);cursor:pointer}
+.gg.cel .gg-quem{padding:0 2px}
+.gg.cel .gg-pag{display:flex;flex-direction:column;gap:8px;padding:12px 12px 0;overflow:hidden}
+.gg.cel .gg-pag h3{font-size:var(--t20);line-height:26px}
+.gg.cel .gg-barra{display:grid;grid-template-columns:minmax(0,1fr);gap:8px}
+.gg.cel .gg-barra .campo > label,.gg.cel .gg-barra .campo > .rot{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+.gg.cel .gg-t .fim{position:static}
+.gg.cel .gg-t .fim.pjes{border-left:0}
+.gg.cel .gg-barra .direita{margin-left:0}
+.gg.cel .gg-barra .campo input[type="search"]{width:100%;height:44px}
+.gg.cel .gg-mes{height:44px;width:100%;justify-content:space-between}
+.gg.cel .gg-mes button{width:48px}
+.gg.cel .grupo-filtro{display:flex;flex-wrap:wrap;width:100%;height:auto}
+.gg.cel .grupo-filtro button{flex:1 0 20%;height:44px;padding:0 6px}
+.gg.cel .gg-leg{flex-wrap:nowrap;overflow-x:auto;gap:4px 12px;white-space:nowrap;scrollbar-width:none}
+.gg.cel .gg-leg li{flex:none}
+.gg.cel .gg-quadro{flex:1;min-height:0;display:block}
+.gg.cel .gg-tab{height:100%;display:flex;flex-direction:column}
+.gg.cel .gg-rola{flex:1;max-height:none}
+.gg.cel .gg-t td.c{height:48px}
+.gg.cel .gg-nb{height:48px;padding-left:12px}
+.gg.cel .gg-nb .ficha{display:none}
+.gg.cel .gg-q{width:22px;height:20px}
+.gg.cel .gg-q.exp{height:12px}
+.gg.cel.com-folha .gg-pag{pointer-events:none}
+/* com a folha aberta, o alto da tela fica só com a tabela: o cabeçalho dos dias e a linha escolhida, à vista acima da folha */
+.gg.cel.com-folha .gg-pag h3,.gg.cel.com-folha .gg-barra,.gg.cel.com-folha .gg-leg{display:none}
+.gg.cel .gg-eq small{display:none}
+.gg-folha .gg-pd header{padding:10px 4px 12px}
+.gg-folha .gg-pd .chips{margin-top:4px}
+.gg-veu{position:absolute;inset:0;z-index:20;background:rgba(28,36,48,.28)}
+.gg-folha{position:absolute;left:0;right:0;bottom:0;z-index:25;display:flex;flex-direction:column;max-height:64%;border-radius:16px 16px 0 0;background:var(--fundo);box-shadow:var(--por-cima)}
+.gg-folha .puxador{flex:none;width:40px;height:4px;margin:8px auto 0;border-radius:2px;background:var(--encaixe)}
+.gg-folha .miolo{flex:1;min-height:0;overflow:auto;padding:8px 12px 0}
+.gg-folha .gg-pd{position:static;max-height:none;overflow:visible;border:0;border-radius:0;background:transparent}
+.gg-folha .gg-pd > * + *{border-top:1px solid var(--linha)}
+.gg-folha .rodape{flex:none;padding:10px 12px calc(10px + env(safe-area-inset-bottom,0px));border-top:1px solid var(--linha);background:var(--superficie)}
+.gg-folha .rodape .botao{width:100%;min-height:44px}
+.gg-folha .botao.so-icone{width:44px;min-height:44px}
+.gg.cel .gg-menu{position:absolute;inset:0 auto 0 0;z-index:25;width:288px;max-width:84%}
+.gg.cel.menu-aberto .gg-veu{z-index:24}
+
+/* os quadros de explicação */
+.gg-lado{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px;align-items:start}
+.gg-lado figure{min-width:0}
+.gg-lado figcaption{margin-top:6px;font-size:var(--t13);line-height:18px;color:var(--apagado)}
+.gg-borda{position:relative;color:var(--tinta);height:150px;overflow:hidden;border:1px solid var(--linha);border-radius:var(--raio-sup);background:var(--superficie)}
+.gg-borda .e{position:absolute;inset:0 auto 0 0;width:120px;display:grid;align-content:center;gap:2px;padding-left:12px;background:var(--superficie);font:600 var(--t15)/20px var(--cond);border-right:var(--f)}
+.gg-borda .e small{display:block;font:400 12px/16px var(--cond);color:var(--apagado)}
+.gg-borda .c{position:absolute;inset:40px 0 0 120px;display:grid;grid-template-columns:repeat(8,1fr);align-content:start;gap:0}
+.gg-borda .c i{height:36px;border-right:1px solid #EEF0F3;border-bottom:1px solid #EEF0F3}
+.gg-borda .h{position:absolute;inset:0 0 auto 0;height:40px;border-bottom:var(--f);background:var(--superficie);padding:10px 0 0 132px;font:500 var(--t13)/16px var(--cond);color:var(--apagado);letter-spacing:.02em}
+.gg-borda.hoje{--f:2px solid var(--encaixe)}
+.gg-borda.novo{--f:3px solid var(--tinta)}
+.gg-borda.novo .e{box-shadow:7px 0 8px -7px rgba(28,36,48,.45)}
+.gg-dialogo{color:var(--tinta);display:grid;gap:12px;padding:18px;border:1px solid var(--linha);border-radius:var(--raio-sup);background:var(--superficie);box-shadow:var(--por-cima);max-width:440px}
+.gg-dialogo h5{font:600 var(--t20)/26px var(--cond)}
+.gg-dialogo .opcao{display:flex;align-items:center;gap:10px;padding:8px 10px;border:1px solid var(--linha);border-radius:var(--raio);font-size:var(--t15)}
+.gg-dialogo .opcao.problema{border-color:var(--alerta);background:var(--alerta-fundo)}
+.gg-dialogo .opcao small{margin-left:auto;color:var(--alerta);font-size:var(--t13)}
+.gg-dialogo .msg{display:flex;gap:8px;align-items:flex-start;color:var(--alerta);font-size:var(--t13);line-height:18px}
+.gg-dialogo .msg .i{margin-top:1px}
+.gg-muda td,.gg-muda th{vertical-align:top}
+@media (max-width:640px){.gg-controles .rot{min-width:0;width:100%}}
+@media (prefers-reduced-motion:reduce){.gg-menu,.gg-recolher .i,.gg-nb .ficha{transition:none}}
+/* no celular de verdade as telas de 390 px são reduzidas para caber na página, sem rolar de lado */
+@media (max-width:440px){.gg-celulares .gg.cel{zoom:.9}.gg-palco{border-radius:var(--raio)}}
+.gg-celulares{max-width:100%}
+.gg-celulares figure{flex:none;width:390px;max-width:100%;min-width:0}
+.gg-celulares figcaption{margin-top:8px;font-size:var(--t13);line-height:18px;color:var(--pg-apagado)}
+@media (max-width:440px){.gg-celulares figure{width:351px}}
