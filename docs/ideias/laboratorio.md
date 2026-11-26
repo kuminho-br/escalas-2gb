@@ -24,7 +24,7 @@ Diferente das outras ideias, esta não fica no pool: vai direto para a PLANEJAME
 ## Objetivos
 
 1. Um espelho do banco, no mesmo banco de hoje, com a estrutura sempre igual à do real e registros só de teste.
-2. Os militares fictícios (matrículas `990…`) e qualquer outro registro de teste saem do banco real e passam a viver no espelho, **antes do piloto de dezembro**.
+2. Os militares de teste (marcados `de_teste` no cadastro) e qualquer outro registro de teste saem do banco real e passam a viver no espelho, **antes do piloto de dezembro**.
 3. O cartão **Laboratório** na tela inicial, que abre o sistema sobre o espelho.
 4. Uma lista das ferramentas em teste dentro do Laboratório.
 5. Um retorno em cada ferramenta, com o nome de quem testou, que o administrador lê numa lista.
@@ -48,13 +48,13 @@ Diferente das outras ideias, esta não fica no pool: vai direto para a PLANEJAME
 
 - **Onde fica:** uma área à parte dentro do banco atual, com todas as tabelas do real.
 - **A estrutura acompanha o real:** toda migração vale para o real e para o espelho, no mesmo passo. Não há migração só de um lado.
-- **Os registros são só de teste:** a carga do espelho é a dos dados fictícios de hoje (militares `990…`, unidades, serviços, guarnições, escalas), mais o que as ferramentas em teste precisarem.
+- **Os registros são só de teste:** a carga do espelho é a dos dados fictícios de hoje (os militares de teste, unidades, serviços, guarnições, escalas), mais o que as ferramentas em teste precisarem.
 - **Usuários de teste:** o espelho tem um usuário de teste por nível de acesso (administrador, gestor, quinto nível, auxiliar administrativo e militar comum), já lotados e com os níveis dados.
 - **Recomeçar (proposta da CONCEPÇÃO):** o administrador pode repor o espelho à carga inicial, quando os testes o deixarem bagunçado.
 
 ## A separação para dezembro
 
-- **Conferir o banco real:** listar o que é registro de teste (militares `990…` e o que estiver ligado a eles, contas e escalas de teste).
+- **Conferir o banco real:** listar o que é registro de teste (militares marcados como teste e o que estiver ligado a eles, contas e escalas de teste).
 - **Levar ao espelho e tirar do real**, antes de começar a montagem de dezembro.
 - Depois disso, o banco real só recebe dados reais. Os testes automáticos e as prévias continuam com dados fictícios, como hoje.
 - **Prazo:** antes do piloto. É o único ponto desta ideia que corre junto com dezembro.
@@ -125,7 +125,7 @@ O desenho acima é só para mostrar a ideia; a tela é com a DESIGN e a DESENVOL
 
 - **Isolamento:** nenhuma gravação feita no Laboratório chega ao banco real; nenhuma leitura no Laboratório traz registro do real. As exceções são só a lista de ferramentas em teste (leitura) e o retorno (gravação), que ficam no real.
 - **Estrutura:** depois de cada migração, o espelho tem as mesmas tabelas e colunas do real.
-- **Separação para dezembro:** depois da limpeza, o banco real não tem nenhuma matrícula `990…`.
+- **Separação para dezembro:** depois da limpeza, o banco real não tem nenhum militar marcado como teste.
 - **Perfil de teste:** com cada perfil, o Laboratório mostra o que aquele nível vê; a conta real não ganha nenhum acesso no sistema real.
 - **Recomeçar:** repor o espelho não apaga nenhum retorno.
 
