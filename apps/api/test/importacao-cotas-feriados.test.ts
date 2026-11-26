@@ -190,7 +190,7 @@ describe('importação de cotas', () => {
     ]);
     expect(previa.novos).toHaveLength(1);
     expect(previa.problemas).toEqual([
-      { aba: 'COTAS', linha: 3, mensagem: 'Cota repetida: JES (interna) em dezembro de 2027', solucao: 'Some as quantidades numa linha só.' },
+      { aba: 'COTAS', linha: 3, mensagem: 'Cota repetida: JES (interna) em dezembro de 2027', solucao: 'Apague a linha repetida e mantenha só a certa.' },
     ]);
   });
 

@@ -250,7 +250,7 @@ export const importadorPeculio: Importador<Plano> = {
       const matricula = mat.valor;
       if (mat.corrigida) avisos.push(`Matrícula ${bruta} corrigida para ${matricula} (linha ${l.linha}).`);
       if (vistos.has(matricula)) {
-        problema(`Matrícula ${matricula} repetida na planilha.`, 'Deixe uma linha só por militar.');
+        problema(`Matrícula ${matricula} repetida na planilha.`, 'Apague a linha repetida e mantenha só a certa.');
         continue;
       }
       vistos.add(matricula);

@@ -160,7 +160,7 @@ export const importadorCotas: Importador<Plano> = {
       }
       const chave = `${mes}|${servico.id}|${origem}`;
       if (vistas.has(chave)) {
-        problema(`Cota repetida: ${servico.nome} (${origem}) em ${mesPorExtenso(mes)}`, 'Some as quantidades numa linha só.');
+        problema(`Cota repetida: ${servico.nome} (${origem}) em ${mesPorExtenso(mes)}`, 'Apague a linha repetida e mantenha só a certa.');
         continue;
       }
       vistas.add(chave);

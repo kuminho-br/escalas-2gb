@@ -1,6 +1,5 @@
 // A unidade pelo caminho de siglas nas planilhas (6.57): "2º GB / 1ª SB". Uma peça só para as duas pontas (a importação lê, a exportação, o modelo e a AJUDA escrevem), para a leitura
 // e a escrita nunca se desencontrarem. O banco garante que duas irmãs em vigor não têm a mesma sigla, então o caminho de siglas desde a raiz é único.
-import { normalizar } from 'dominio';
 import type { Consulta } from '../banco/banco.ts';
 import type { Leitura } from './peculio-colunas.ts';
 
@@ -21,7 +20,11 @@ export async function unidadesDoCaminho(c: Consulta, hoje: string): Promise<Unid
 const SEPARADOR = /\s+\/\s*|\s*\/\s+/;
 export const separarCaminho = (texto: string): string[] => texto.split(SEPARADOR).map((s) => s.trim()).filter(Boolean);
 
-const mesmas = (a: string, b: string) => normalizar(a) === normalizar(b);
+/**
+ * A sigla como se compara: sem maiúsculas, acentos nem espaços, mas com o "º" e o "ª" (duas irmãs "1º SB" e "1ª SB" são unidades diferentes, e o banco as aceita).
+ */
+const normalizarSigla = (s: string): string => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toUpperCase().replace(/[^A-Z0-9ºª]/g, '');
+const mesmas = (a: string, b: string) => normalizarSigla(a) === normalizarSigla(b);
 /** O caminho da unidade termina com estes pedaços (sem diferenciar maiúsculas nem acentos)? */
 const terminaCom = (u: UnidadeDoCaminho, pedacos: string[]) => pedacos.length <= u.siglas.length && pedacos.every((p, i) => mesmas(p, u.siglas[u.siglas.length - pedacos.length + i]!));
 
@@ -42,7 +45,7 @@ export function menorCaminhoUnico(u: UnidadeDoCaminho, todas: UnidadeDoCaminho[]
  * compara entre as que podem se confundir. O resultado é, unidade por unidade, o mesmo de `menorCaminhoUnico`.
  */
 export function rotulosDasUnidades(todas: UnidadeDoCaminho[]): Map<string, string> {
-  const normalizadas = new Map(todas.map((u) => [u.id, u.siglas.map(normalizar)]));
+  const normalizadas = new Map(todas.map((u) => [u.id, u.siglas.map(normalizarSigla)]));
   const porUltima = new Map<string, UnidadeDoCaminho[]>();
   for (const u of todas) {
     const ultima = normalizadas.get(u.id)!.at(-1)!;

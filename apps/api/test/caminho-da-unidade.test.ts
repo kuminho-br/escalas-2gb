@@ -1,7 +1,7 @@
 import ExcelJS from 'exceljs';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { hojeRecife } from '../src/datas.ts';
-import { acharPeloCaminho, menorCaminhoUnico, separarCaminho, unidadesDoCaminho, type UnidadeDoCaminho } from '../src/importacao/caminho-da-unidade.ts';
+import { acharPeloCaminho, menorCaminhoUnico, rotulosDasUnidades, separarCaminho, unidadesDoCaminho, type UnidadeDoCaminho } from '../src/importacao/caminho-da-unidade.ts';
 import { inserir } from './banco-teste.ts';
 import { montarApi, type ApiDeTeste } from './apoio-api.ts';
 import { formulario, planilha } from './planilha-teste.ts';
@@ -47,6 +47,39 @@ describe('menorCaminhoUnico (como a unidade sai na planilha)', () => {
   it('sem repetição na corporação, a sigla sozinha basta; maiúsculas e acentos não diferenciam', () => {
     expect(menorCaminhoUnico(SB_GB2, [DINTER, GB2, SB_GB2])).toBe('1ª SB');
     expect(menorCaminhoUnico(SB_GB2, [u('x', 'CBMPE', '1ª sb'), SB_GB2])).toBe('2º GB / 1ª SB');
+  });
+});
+
+describe('o "º" e o "ª" distinguem as irmãs (pool 34 e)', () => {
+  const PAI = u('pai', 'CBMPE', '2º GB');
+  const SB_O = u('sb-o', 'CBMPE', '2º GB', '1º SB');
+  const SB_A = u('sb-a', 'CBMPE', '2º GB', '1ª SB');
+  const todas = [u('raiz', 'CBMPE'), PAI, SB_O, SB_A];
+
+  it('o caminho de cada uma é único e a leitura distingue as duas', () => {
+    expect(menorCaminhoUnico(SB_O, todas)).toBe('1º SB');
+    expect(menorCaminhoUnico(SB_A, todas)).toBe('1ª SB');
+    expect(rotulosDasUnidades(todas).get('sb-o')).toBe('1º SB');
+    expect(rotulosDasUnidades(todas).get('sb-a')).toBe('1ª SB');
+    expect(acharPeloCaminho('1º SB', [PAI, SB_O, SB_A], todas)).toEqual({ valor: SB_O });
+    expect(acharPeloCaminho('1ª sb', [PAI, SB_O, SB_A], todas)).toEqual({ valor: SB_A });
+  });
+
+  it('maiúsculas e acentos continuam sem diferenciar', () => {
+    expect(acharPeloCaminho('1ª SÉ', [u('x', 'CBMPE', '1ª Sé')], [u('x', 'CBMPE', '1ª Sé')])).toEqual({ valor: u('x', 'CBMPE', '1ª Sé') });
+  });
+});
+
+describe('rotulosDasUnidades com muitas unidades (pool 34 d)', () => {
+  it('1.000 unidades saem em menos de 0,2 s, com o mesmo rótulo de menorCaminhoUnico', () => {
+    const grupos = Array.from({ length: 50 }, (_, g) => u(`gb${g}`, 'CBMPE', `${g + 1}º GB`));
+    const todas: UnidadeDoCaminho[] = [u('raiz', 'CBMPE'), ...grupos];
+    for (const g of grupos) for (let s = 0; s < 19; s++) todas.push(u(`${g.id}-s${s}`, ...g.siglas, `${s + 1}ª SB`));
+    expect(todas.length).toBeGreaterThanOrEqual(1000);
+    const t0 = performance.now();
+    const rotulos = rotulosDasUnidades(todas);
+    expect(performance.now() - t0).toBeLessThan(200);
+    for (const x of [todas[5]!, todas[300]!, todas[999]!]) expect(rotulos.get(x.id)).toBe(menorCaminhoUnico(x, todas));
   });
 });
 
