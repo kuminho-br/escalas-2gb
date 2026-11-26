@@ -6,11 +6,11 @@
 
 **Goal:** fechar os achados menores das revisões que ficaram abertos no pool e acrescentar o pedido do usuário de abrir a ficha do militar pela Grade geral.
 
-**Architecture:** cinco lotes independentes, um por área. Cada lote é uma tarefa com o seu teste. Nenhum muda regra de negócio. Os achados que ainda esperam decisão do usuário ficaram de fora (no fim deste plano).
+**Architecture:** seis lotes independentes, um por área. Cada lote é uma tarefa com o seu teste. Nenhum muda regra de negócio. Os achados que ainda esperam decisão do usuário ficaram de fora (no fim deste plano).
 
 **Tech Stack:** Hono, Postgres/PGlite, React, TanStack Query, Vitest.
 
-**Spec:** o pool (`docs/superpowers/plans/2026-11-24-pool-de-feedbacks-do-piloto.md`), itens 17, 18, 25, 27, 30, 34, 35 e 36, com as decisões pequenas desta sessão (marcadas "decidido pela PLANEJAMENTO" abaixo, a confirmar pelo usuário quando voltar).
+**Spec:** o pool (`docs/superpowers/plans/2026-11-24-pool-de-feedbacks-do-piloto.md`), itens 17, 18, 25, 27, 30, 34, 35, 36 e 51, com as decisões pequenas desta sessão (marcadas "decidido pela PLANEJAMENTO" abaixo, a confirmar pelo usuário quando voltar).
 
 ## Global Constraints
 
@@ -87,7 +87,25 @@
   - (30 f) No Pecúlio, religar "e as de baixo" não traz de volta a lotação escolhida antes; o filtro volta a "Todas".
   - (30 g) A varredura de "Adm" olha também os contratos. O título de teste invertido é corrigido, a variável sem uso sai, e as matrículas de teste 9959xx passam à faixa 990xxx-x.
 - [ ] **Step 2:** FAIL. **Step 3:** implementar. **Step 4:** PASS. Rodar as verificações do fim de entrega. Conferir no navegador, em 1440 e 390 px: a ficha pela Grade, a tela inicial depois de trocar de conta, a ficha de consulta e o "Outro horário".
-- [ ] **Step 5:** commit `Fase 6.65: acabamento do Pecúlio, da consulta e do voluntariado (pool 30)`. Enviar a branch à PLANEJAMENTO.
+- [ ] **Step 5:** commit `Fase 6.65: acabamento do Pecúlio, da consulta e do voluntariado (pool 30)`.
+
+### Task 6: o quadro de avisos (pool 51)
+
+**Files:** Modify `apps/api/src/avisos/avisos.ts`, `apps/api/src/avisos/rotas.ts`, `apps/web/src/componentes/inicio/QuadroDeAvisos.tsx`, `apps/web/src/componentes/inicio/JanelaDoAviso.tsx`; Test `apps/api/test/avisos.test.ts`, `apps/web/src/__testes__/quadro-de-avisos.test.tsx`
+
+- [ ] **Step 1: testes:**
+  - (a) Editar ou retirar aviso vencido: 404 "Aviso não encontrado.", como o retirado.
+  - (b) A edição concorrente com a retirada não altera o retirado (`retirado_em is null` no update) e responde 404.
+  - (c) Publicar em unidade extinta: 400 "Esta unidade não existe mais.". `podePublicar` só conta unidades em vigor.
+  - (d) Editar sem mudar nada não grava na auditoria.
+  - (e) O painel guarda o aviso exibido pelo id: quem publica passa a ver o próprio aviso; fixar na edição mantém o mesmo à vista; retirar mostra o vizinho, sem contagem errada.
+  - (f) Os pontos não são paradas de Tab (as setas bastam). Os botões escuros têm foco visível. A troca de aviso é anunciada ao leitor de tela. Depois de retirar, o foco vai para o painel.
+  - (g) O título do aviso na barra aparece a partir de 1024 px, como o painel.
+  - (h) A janela não fecha ao cruzar 1024 px (uma instância só do painel).
+  - (i) Os testes de largura medem o que dizem, e o erro da API num campo aparece na janela.
+  - (k) As alturas de linha e a borda vêm dos tokens.
+  - Fica como está: (j), porque o id é um UUID e o risco é baixo.
+- [ ] **Step 2:** FAIL. **Step 3:** implementar. **Step 4:** PASS. Rodar as verificações do fim de entrega e conferir no navegador o painel em 1100 e 390 px. **Step 5:** commit `Fase 6.65: acabamento do quadro de avisos (pool 51)`. Enviar a branch à PLANEJAMENTO.
 
 ## Fora deste plano (esperam decisão ou outra sessão)
 
