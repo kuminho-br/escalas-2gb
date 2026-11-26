@@ -151,6 +151,7 @@
 | [telas/refatoracao/tela-inicial/index.html](telas/refatoracao/tela-inicial/index.html) | Área "Tela inicial": a cena de combate menor, com a saudação, os próximos serviços em cartões e os avisos; embaixo, os atalhos e o próximo serviço (dados fictícios). A tela em si está em `inicio.css` e `inicio.js`, que a área Entrada reaproveita | DESIGN | versão 3 em revisão pelo usuário |
 | [telas/refatoracao/entrada/index.html](telas/refatoracao/entrada/index.html) | Área "Entrada": o login com a foto nova do quartel e a animação das mangueiras, versão 2 (brasas em dobro, que viram cinza), pousando no quadro da tela inicial (dados fictícios) | DESIGN | versão 2 em revisão pelo usuário |
 | [telas/refatoracao/historico-de-rastreio/index.html](telas/refatoracao/historico-de-rastreio/index.html) | Área "Histórico de rastreio", seção da ficha do militar: o quadro "Hoje" e a linha do tempo das mudanças, sem os afastamentos (dados fictícios) | DESIGN | em revisão pelo usuário |
+| [telas/refatoracao/pesquisar/index.html](telas/refatoracao/pesquisar/index.html) | Área "Pesquisar militares", versão 2: "Selecionados" em painel lateral com agrupamento, Importar e Exportar no alto, o botão "Critérios de pesquisa" com a marca âmbar (dados fictícios) | DESIGN | em revisão pelo usuário |
 
 As versões v5 a v11 dos esboços ficam só na pasta local `.superpowers/` (fora do git) e estão superadas pela v12.
 
