@@ -166,7 +166,7 @@ describe('casca', () => {
 });
 
 describe('trilho', () => {
-  const NOMES = ['Grade geral', 'Escala do mês', 'Efetivo por dia', 'Voluntariado', 'Cotas', 'Militares', 'Turnos', 'Escalas', 'Feriados', 'Configurações da escala', 'Histórico', 'Ajuda'];
+  const NOMES = ['Grade geral', 'Escala do mês', 'Efetivo por dia', 'Voluntariado', 'Cotas', 'Militares', 'Turnos', 'Escalas', 'Feriados', 'Configurações da escala'];
   const menu = () => screen.getByRole('navigation', { name: 'Navegação principal' });
 
   it('no computador o menu é um trilho de 84 px', async () => {
@@ -182,6 +182,9 @@ describe('trilho', () => {
     abrir('/grade');
     await screen.findByText('SD ANDRADE');
     for (const nome of NOMES) expect(within(menu()).getByText(nome)).toBeInTheDocument();
+    // 6.57: os ícones apagados "Histórico" e "Ajuda" (que não levavam a lugar nenhum) saíram do trilho
+    expect(within(menu()).queryByText('Histórico')).toBeNull();
+    expect(within(menu()).queryByText('Ajuda')).toBeNull();
     expect(within(menu()).getByRole('link', { name: 'Militares' })).toHaveAttribute('href', '/militares');
     expect(within(menu()).getByRole('link', { name: 'Escala do mês' })).toHaveAttribute('href', '/escala-do-mes');
     expect(within(menu()).getByRole('link', { name: 'Efetivo por dia' })).toHaveAttribute('href', '/efetivo-por-dia');

@@ -44,6 +44,11 @@ export interface Importador<P> {
   papeis?: Papel[];
   /** Só quem tem papel numa unidade acima das seções da unidade importada (o dono dos blocos do Pecúlio): a rota recusa os outros com 403. */
   exigeDonoDoPeculio?: boolean;
+  /**
+   * Várias linhas formam uma coisa só (as funções de uma guarnição, os vínculos de uma escala): a gravação substitui o conjunto, então reenviar só a linha corrigida apagaria as outras.
+   * A planilha das linhas com problema (6.57) sai com o arquivo INTEIRO, e MOTIVO e COMO CORRIGIR só nas linhas com problema.
+   */
+  arquivoInteiro?: boolean;
   /** Planilha em branco que o escalante baixa na tela de importação. */
   modelo: ModeloImportacao;
   /** A prévia; `ignoradas` pode faltar (a rota completa com a lista vazia). */

@@ -104,6 +104,7 @@ async function guarnicoesDaUnidade(ctx: Contexto) {
 
 export const importadorServicosEscalas: Importador<Plano> = {
   abas: [ABA_T, ABA_E, ABA_V],
+  arquivoInteiro: true,
 
   modelo: {
     abas: [

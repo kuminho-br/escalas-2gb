@@ -2,14 +2,18 @@ import { useQuery } from '@tanstack/react-query';
 import { LIMITE_DA_IMPORTACAO_MB, MENSAGEM_ARQUIVO_GRANDE, type Previa, type ResultadoImportacao } from 'contratos';
 import { Download, FileUp } from 'lucide-react';
 import { useRef, useState, type FormEvent } from 'react';
-import { enviarArquivo, ErroApi, mensagemDe } from '@/api/cliente';
+import { baixarEnvio, enviarArquivo, ErroApi, mensagemDe } from '@/api/cliente';
 import { consultaEu } from '@/api/eu';
 import { Button } from '@/componentes/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/componentes/ui/dialog';
 import { EnvioDeArquivo } from '@/componentes/ui/envio-de-arquivo';
+import { hoje } from '@/lib/meses';
 import { escolherUnidade, lerUnidadeGuardada } from '@/lib/unidade-de-trabalho';
 
-type Etapa = { tipo: 'escolher' } | { tipo: 'previa'; previa: Previa } | { tipo: 'feito'; gravados: number };
+type Etapa = { tipo: 'escolher' } | { tipo: 'previa'; previa: Previa } | { tipo: 'feito'; gravados: number; comProblema: boolean };
+/** A importação teve linha recusada ou célula ignorada: há o que corrigir e enviar de novo. */
+// (o problema da planilha inteira, na linha 1, como a coluna que falta, não vai no arquivo: o botão não conta com ele)
+const temProblema = (p: Pick<Previa, 'problemas' | 'ignoradas'>) => p.problemas.some((x) => x.linha >= 2) || p.ignoradas.length > 0;
 
 /**
  * O que fazer depois de uma confirmação que falhou: repetir só resolve quando o problema é da conexão ou do sistema; quando o servidor
@@ -73,7 +77,7 @@ export function ImportarPlanilha({ cadastro, rotulo, aoConcluir, unidadeId }: { 
         const r = await enviarArquivo<ResultadoImportacao>(`${caminho}?confirmar=1`, arquivo);
         // gravou mesmo que o diálogo tenha fechado: a lista por trás precisa atualizar
         aoConcluir();
-        if (minha === rodada.current) setEtapa({ tipo: 'feito', gravados: r.gravados });
+        if (minha === rodada.current) setEtapa({ tipo: 'feito', gravados: r.gravados, comProblema: temProblema(r) });
       } else {
         const previa = await enviarArquivo<Previa>(caminho, arquivo);
         if (minha === rodada.current) setEtapa({ tipo: 'previa', previa });
@@ -82,6 +86,21 @@ export function ImportarPlanilha({ cadastro, rotulo, aoConcluir, unidadeId }: { 
       if (minha === rodada.current) setErro(confirmar ? mensagemDaConfirmacao(e) : mensagemDe(e));
     } finally {
       if (confirmar) confirmando.current = false;
+      if (minha === rodada.current) setEnviando(false);
+    }
+  }
+
+  /** A planilha das linhas com problema (6.57): o mesmo arquivo, reenviado com `?erros=1`, volta só com as linhas que a pessoa precisa corrigir. */
+  async function baixarLinhasComProblema() {
+    if (!arquivo) return;
+    setErro(null);
+    setEnviando(true);
+    const minha = rodada.current;
+    try {
+      await baixarEnvio(`${caminho}?erros=1`, arquivo, `${cadastro}-linhas-com-problema-${hoje()}.xlsx`);
+    } catch (e) {
+      if (minha === rodada.current) setErro(mensagemDe(e));
+    } finally {
       if (minha === rodada.current) setEnviando(false);
     }
   }
@@ -128,11 +147,13 @@ export function ImportarPlanilha({ cadastro, rotulo, aoConcluir, unidadeId }: { 
           </form>
         )}
 
-        {etapa.tipo === 'previa' && <PreviaImportacao previa={etapa.previa} erro={erro} enviando={enviando} aoImportar={() => void chamar(true)} />}
+        {etapa.tipo === 'previa' && <PreviaImportacao previa={etapa.previa} erro={erro} enviando={enviando} aoImportar={() => void chamar(true)} aoBaixarProblemas={() => void baixarLinhasComProblema()} />}
 
         {etapa.tipo === 'feito' && (
           <div className="grid gap-4">
             <p className="font-medium">{etapa.gravados} registros gravados.</p>
+            {etapa.comProblema && <BotaoDasLinhasComProblema enviando={enviando} aoBaixar={() => void baixarLinhasComProblema()} />}
+            {erro && <p role="alert" className="text-sm text-alerta">{erro}</p>}
             <DialogFooter>
               <Button onClick={() => abrirOuFechar(false)}>Fechar</Button>
             </DialogFooter>
@@ -143,7 +164,17 @@ export function ImportarPlanilha({ cadastro, rotulo, aoConcluir, unidadeId }: { 
   );
 }
 
-function PreviaImportacao({ previa, erro, enviando, aoImportar }: { previa: Previa; erro: string | null; enviando: boolean; aoImportar: () => void }) {
+/** "Baixar as linhas com problema": só as linhas recusadas ou com célula ignorada, com o motivo e como corrigir, para corrigir no Excel e enviar de novo. */
+function BotaoDasLinhasComProblema({ enviando, aoBaixar }: { enviando: boolean; aoBaixar: () => void }) {
+  return (
+    <Button type="button" variant="secundario" className="justify-self-start" disabled={enviando} onClick={aoBaixar}>
+      <Download aria-hidden />
+      Baixar as linhas com problema
+    </Button>
+  );
+}
+
+function PreviaImportacao({ previa, erro, enviando, aoImportar, aoBaixarProblemas }: { previa: Previa; erro: string | null; enviando: boolean; aoImportar: () => void; aoBaixarProblemas: () => void }) {
   const gravar = previa.novos.length + previa.alterados.length;
   return (
     <div className="grid gap-4 text-sm">
@@ -223,6 +254,7 @@ function PreviaImportacao({ previa, erro, enviando, aoImportar }: { previa: Prev
         </section>
       )}
 
+      {temProblema(previa) && <BotaoDasLinhasComProblema enviando={enviando} aoBaixar={aoBaixarProblemas} />}
       {erro && <p role="alert" className="text-alerta">{erro}</p>}
       <DialogFooter>
         {gravar === 0 ? (

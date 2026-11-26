@@ -10,8 +10,9 @@ import type { Consulta } from '../banco/banco.ts';
 import { hojeRecife } from '../datas.ts';
 import {
   cpfMascarado, lerAntiguidade, lerCep, lerCnh, lerComportamento, lerCpf, lerEmail, lerEmailPessoal, lerEquipe, lerFuncao, lerJornada, lerNascimento, lerNomeDeGuerra, lerPosto, lerQuadro,
-  lerSexo, lerSigla, lerSimNao, lerSituacao, lerTelefone, lerTexto, lerUf, matriculaDe, type Leitura,
+  lerSexo, lerSimNao, lerSituacao, lerTelefone, lerTexto, lerUf, matriculaDe, type Leitura,
 } from './peculio-colunas.ts';
+import { acharPeloCaminho, menorCaminhoUnico, unidadesDoCaminho } from './caminho-da-unidade.ts';
 import { coluna } from './planilha.ts';
 import type { ColunaModelo, Importador } from './tipos.ts';
 
@@ -40,7 +41,7 @@ export const COLUNAS = {
   bairro: { rotulo: 'BAIRRO', obrigatoria: false, ajuda: 'Até 120 caracteres.' },
   cidade: { rotulo: 'CIDADE', obrigatoria: false, ajuda: 'Até 120 caracteres.' },
   uf: { rotulo: 'UF', obrigatoria: false, ajuda: 'Sigla do estado (ex.: PE).', texto: true },
-  lotacao: { rotulo: 'LOTAÇÃO', obrigatoria: false, ajuda: 'Sigla da unidade do militar (de qualquer tipo), como na lista abaixo. Obrigatória para militar novo. Para quem já existe, a lotação não muda por aqui: use "Alterar situação" na ficha.' },
+  lotacao: { rotulo: 'LOTAÇÃO', obrigatoria: false, ajuda: 'A unidade do militar (de qualquer tipo): a sigla ou, se ela se repete, com a unidade de cima separada por " / " (ex.: 2º GB / 1ª SB), como na lista abaixo. Obrigatória para militar novo. Para quem já existe, a lotação não muda por aqui: use "Alterar situação" na ficha.' },
   quadro: { rotulo: 'QUADRO', obrigatoria: false, ajuda: 'Sigla de um quadro que tenha o posto do militar (lista abaixo). Para quem já existe, vale a partir de hoje.' },
   situacao: { rotulo: 'SITUAÇÃO', obrigatoria: false, ajuda: 'O nome de uma situação do catálogo (lista abaixo). Para quem já existe, vale a partir de hoje.' },
   jornada: { rotulo: 'JORNADA', obrigatoria: false, ajuda: 'PRONTO (turnos de 12h) ou ADM (expediente). Para quem já existe, vale a partir de hoje.', opcoes: ['PRONTO', 'ADM'] },
@@ -124,24 +125,15 @@ async function existentes(tx: Consulta, mes: string): Promise<Map<string, Existe
   return new Map(rows.map((r) => [r.matricula, r]));
 }
 
-/** O nome da unidade na planilha: a sigla, e com a unidade de cima ("1ª SB (2º GB)") quando a sigla se repete na lista. A exportação (6.54) escreve do mesmo jeito. */
-export function comRotulo(unidades: { id: string; sigla: string; mae: string | null }[]) {
-  return unidades.map((u) => ({ id: u.id, sigla: u.sigla, rotulo: u.mae && unidades.filter((o) => normalizar(o.sigla) === normalizar(u.sigla)).length > 1 ? `${u.sigla} (${u.mae})` : u.sigla }));
-}
-
 /** As listas de valores da unidade (postos, lotações, quadros, situações e equipes), para ler as células e para a AJUDA do modelo. */
 async function catalogos(tx: Consulta, unidadeId: string) {
   const postos = (await tx.query<{ id: string; sigla: string }>('select id, sigla from posto_grad order by ordem')).rows;
-  // qualquer unidade em vigor da importação, de qualquer tipo; a sigla que se repete leva a unidade de cima
-  const unidades = comRotulo(
-    (
-      await tx.query<{ id: string; sigla: string; mae: string | null }>(
-        `select s.id, s.sigla, m.sigla as mae from unidade s join unidade u on u.id = $1 and s.caminho <@ u.caminho left join unidade m on m.id = s.mae_id
-          where s.ate is null or s.ate >= $2::date order by nlevel(s.caminho), s.sigla`,
-        [unidadeId, hojeRecife()],
-      )
-    ).rows,
+  // qualquer unidade em vigor da importação, de qualquer tipo, pelo caminho de siglas (6.57): `rotulo` é como ela sai na planilha (o menor pedaço único na corporação inteira)
+  const todas = await unidadesDoCaminho(tx, hojeRecife());
+  const noAlcance = new Set(
+    (await tx.query<{ id: string }>('select s.id from unidade s join unidade u on u.id = $1 and s.caminho <@ u.caminho', [unidadeId])).rows.map((r) => r.id),
   );
+  const unidades = todas.filter((x) => noAlcance.has(x.id)).map((x) => ({ ...x, sigla: x.siglas.at(-1)!, rotulo: menorCaminhoUnico(x, todas) }));
   const quadros = (
     await tx.query<{ id: string; sigla: string; posto_grad_ids: string[] }>(
       'select q.id, q.sigla, array_agg(qp.posto_grad_id) as posto_grad_ids from quadro q join quadro_posto_grad qp on qp.quadro_id = q.id group by q.id, q.sigla order by q.sigla',
@@ -156,7 +148,7 @@ async function catalogos(tx: Consulta, unidadeId: string) {
     )
   ).rows;
   const funcoes = (await tx.query<{ id: string; nome: string }>('select id, nome from funcao_militar where ativo order by nome')).rows;
-  return { postos, unidades, quadros, situacoes, equipes, funcoes };
+  return { postos, unidades, todas, quadros, situacoes, equipes, funcoes };
 }
 
 export const importadorPeculio: Importador<Plano> = {
@@ -172,7 +164,7 @@ export const importadorPeculio: Importador<Plano> = {
       return [
         { titulo: 'Como a planilha é lida', itens: ['Só a matrícula é obrigatória. Célula vazia não altera nada. Dado inválido é ignorado e aparece no resumo.'] },
         { titulo: 'Postos e graduações (coluna POSTO/GRAD)', itens: c.postos.map((p) => p.sigla) },
-        { titulo: 'Lotações desta importação (coluna LOTAÇÃO)', itens: c.unidades.map((u) => u.rotulo) },
+        { titulo: 'Lotações desta importação (coluna LOTAÇÃO): a sigla, ou com a unidade de cima quando a sigla se repete (ex.: 2º GB / 1ª SB)', itens: c.unidades.map((u) => u.rotulo) },
         { titulo: 'Quadros (coluna QUADRO)', itens: c.quadros.map((q) => `${q.sigla}: ${c.postos.filter((p) => q.postoGradIds.includes(p.id)).map((p) => p.sigla).join(', ')}`) },
         { titulo: 'Situações (coluna SITUAÇÃO)', itens: c.situacoes.map((s) => s.nome) },
         { titulo: 'Funções do militar (coluna FUNÇÃO)', itens: c.funcoes.length ? c.funcoes.map((f) => f.nome) : ['Ainda não há funções: o administrador as cadastra em Configurações.'] },
@@ -203,7 +195,6 @@ export const importadorPeculio: Importador<Plano> = {
     }
 
     const cat = await catalogos(tx, unidadeId);
-    const raiz = (await tx.query<{ sigla: string }>('select sigla from unidade where id = $1', [unidadeId])).rows[0]!.sigla;
     const ja = await existentes(tx, mes);
     // e-mails e CPFs já usados, para ignorar a célula antes de o banco recusar a gravação (o e-mail também pode estar no usuário de outro militar)
     const emailsEmUso = new Map((await tx.query<{ email: string; matricula: string }>('select lower(email) as email, matricula from militar where email is not null')).rows.map((r) => [r.email, r.matricula]));
@@ -275,7 +266,7 @@ export const importadorPeculio: Importador<Plano> = {
 
       const posto = ler('posto', lerPosto(texto('posto'), cat.postos));
       const nomeGuerra = ler('guerra', lerNomeDeGuerra(texto('guerra')));
-      const lotacao = ler('lotacao', lerSigla(texto('lotacao'), cat.unidades, `Lotação (${raiz} e as de baixo):`));
+      const lotacao = ler('lotacao', acharPeloCaminho(texto('lotacao'), cat.unidades, cat.todas));
 
       // militar novo: sem posto, nome de guerra ou lotação válidos, não é criado (a prévia diz qual faltou)
       if (!e) {

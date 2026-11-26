@@ -219,21 +219,21 @@ describe('a volta completa (exportar, importar de volta)', () => {
 });
 
 describe('a sigla que se repete na corporação', () => {
-  it('leva a unidade de cima ("1ª SB (6º GB)"), como o importador escreve na AJUDA', async () => {
+  it('leva o caminho de siglas ("6º GB / 1ª SB"), o menor pedaço único, como o importador escreve na AJUDA (6.57)', async () => {
     const outroGb = await inserir(api.banco, 'unidade', { tipo: 'grupamento', sigla: '6º GB', nome: '6º Grupamento', mae_id: api.ids.raiz, desde: '2026-11-01' });
     const sbRepetida = await inserir(api.banco, 'unidade', { tipo: 'secao', sigla: '1ª SB', nome: '1ª Seção do 6º', mae_id: outroGb, desde: '2026-11-01' });
     await militar('REPETIDA', sbRepetida);
     const mae = (await api.banco.query<{ sigla: string }>('select m.sigla from unidade u join unidade m on m.id = u.mae_id where u.id = $1', [sb1])).rows[0]!.sigla;
     const { linhas } = await lerArquivo(await exportar('admin', { ids: [m.REPETIDA, m.FORMATO], colunas: ['NOME DE GUERRA', 'LOTAÇÃO'] }));
-    expect(deMatricula(linhas, 'REPETIDA')['LOTAÇÃO']).toBe('1ª SB (6º GB)');
-    expect(deMatricula(linhas, 'FORMATO')['LOTAÇÃO']).toBe(`1ª SB (${mae})`);
+    expect(deMatricula(linhas, 'REPETIDA')['LOTAÇÃO']).toBe('6º GB / 1ª SB');
+    expect(deMatricula(linhas, 'FORMATO')['LOTAÇÃO']).toBe(`${mae} / 1ª SB`);
   });
 
-  it('limite conhecido: a importação do 2º GB, onde a sigla é única, não reconhece o rótulo com a unidade de cima: só a célula LOTAÇÃO é ignorada, e nada muda no militar', async () => {
+  it('6.57: a importação do 2º GB, onde a sigla é única, reconhece a LOTAÇÃO exportada com o caminho: nenhuma célula ignorada e nada muda', async () => {
     const r = await exportar('gestorGb', { ids: [m.FORMATO], colunas: TODAS });
     const r2 = await api.pedir('gestorGb', 'POST', `/api/unidades/${api.ids.gb}/importacao/peculio`, formulario(await r.arrayBuffer()));
     const previa = await r2.json();
-    expect(previa.ignoradas.map((x: { coluna: string }) => x.coluna)).toEqual(['LOTAÇÃO']);
+    expect(previa.ignoradas).toEqual([]);
     expect(previa.alterados).toEqual([]);
     expect(previa.iguais).toBe(1);
   });

@@ -18,10 +18,9 @@ export function matriculaDe(bruto: string): { valor: string | null; corrigida: b
   return { valor: null, corrigida: false };
 }
 
-/** Um item com sigla (posto, lotação, quadro), achado pela sigla sem acento nem caixa. `rotulo` é como a lista o mostra quando a sigla se repete ("1ª SB (2º GB)"). */
-type ComSigla = { id: string; sigla: string; rotulo?: string };
-const nomeNaLista = (i: ComSigla) => i.rotulo ?? i.sigla;
-const lista = (itens: ComSigla[]) => itens.map(nomeNaLista).join(', ');
+/** Um item com sigla (posto, quadro), achado pela sigla sem acento nem caixa. A unidade (lotação) é lida pelo caminho de siglas, em `caminho-da-unidade.ts`. */
+type ComSigla = { id: string; sigla: string };
+const lista = (itens: ComSigla[]) => itens.map((i) => i.sigla).join(', ');
 
 /** O posto pela sigla, sem diferenciar maiúsculas nem acentos. O posto não leva "BM" (a sigla antiga "SD BM" não vale mais: a importação é contrato). */
 export function lerPosto(texto: string, postos: ComSigla[]): Leitura<ComSigla> {
@@ -29,17 +28,6 @@ export function lerPosto(texto: string, postos: ComSigla[]): Leitura<ComSigla> {
   const porChave = new Map(postos.map((p) => [normalizar(p.sigla), p]));
   const p = porChave.get(normalizar(texto));
   return p ? valor(p) : motivo(`Posto "${texto}" não existe. Use uma destas siglas: ${lista(postos)}.`);
-}
-
-export function lerSigla(texto: string, itens: ComSigla[], oQue: string): Leitura<ComSigla> {
-  if (!texto) return VAZIO;
-  const t = normalizar(texto);
-  const exato = itens.find((i) => normalizar(nomeNaLista(i)) === t);
-  if (exato) return valor(exato);
-  // a sigla que se repete na lista só vale com a unidade de cima: o sistema não adivinha qual das duas é
-  const mesmaSigla = itens.filter((i) => normalizar(i.sigla) === t);
-  if (mesmaSigla.length > 1) return motivo(`${oQue} há mais de uma "${texto}". Use uma destas: ${lista(mesmaSigla)}.`);
-  return mesmaSigla[0] ? valor(mesmaSigla[0]) : motivo(`${oQue} "${texto}" não é desta importação. Use uma destas siglas: ${lista(itens)}.`);
 }
 
 /** Texto livre curto (nome completo, boletim, partes do endereço). */
