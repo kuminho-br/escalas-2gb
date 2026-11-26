@@ -6,6 +6,7 @@ import { categoriasQueHabilitam } from 'dominio';
 import { LIMITE_DA_BUSCA_COM_FILTROS, LIMITE_DA_BUSCA_SEM_CORTE, type FiltrosDaBusca, type LinhaDaBusca, type ResultadoDaBusca } from 'contratos';
 import { ehAdministrador, papeisVigentes } from '../acesso.ts';
 import type { Consulta } from '../banco/banco.ts';
+import { rotulosDasUnidades, unidadesDoCaminho } from '../importacao/caminho-da-unidade.ts';
 import { COM_ACENTO, LIMITE_DA_BUSCA, palavrasDaBusca, SEM_ACENTO } from './consulta.ts';
 
 /** O que a busca devolve, ou o erro que a rota repete (com o status). */
@@ -112,9 +113,11 @@ export async function buscarComFiltros(c: Consulta, usuarioId: string, f: Filtro
     p,
   );
   if (opcoes.semCorte && rows.length > limite) return { ok: false, status: 400, erro: `Mais de ${LIMITE_DA_BUSCA_SEM_CORTE} militares. Afine a busca.` };
+  // a unidade de cada militar pelo menor caminho que a identifica; o cálculo é feito uma vez por busca, para as unidades da corporação
+  const rotulos = rows.some((m) => m.unidade_id) ? rotulosDasUnidades(await unidadesDoCaminho(c, hoje)) : new Map<string, string>();
   const militares: LinhaDaBusca[] = rows.slice(0, limite).map((m) => ({
     id: m.id, postoGrad: m.posto, nomeGuerra: m.nome_guerra, nomeCompleto: m.nome_completo, matricula: m.matricula, lotacao: m.lotacao, quadro: m.quadro,
-    equipe: m.equipe, jornada: m.jornada, situacao: m.situacao, unidadeId: m.unidade_id, podeAlterar: m.pode_alterar,
+    equipe: m.equipe, jornada: m.jornada, situacao: m.situacao, unidadeId: m.unidade_id, lotacaoCaminho: m.unidade_id ? (rotulos.get(m.unidade_id) ?? m.lotacao) : null, podeAlterar: m.pode_alterar,
   }));
 
   let naoEncontradas: string[] = [];

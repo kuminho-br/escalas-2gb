@@ -73,7 +73,7 @@ export function PainelDeSelecionados() {
           <li key={s.id} className="flex items-center gap-2 px-4 py-2">
             <span className="font-cond text-apoio text-apagado">{s.postoGrad}</span>
             <span className="font-cond font-semibold">{s.nomeGuerra}</span>
-            <span className="ml-auto rounded border border-linha px-1.5 font-cond text-xs">{s.lotacao ?? 'Sem lotação'}</span>
+            <span className="ml-auto rounded border border-linha px-1.5 font-cond text-xs">{s.lotacaoCaminho ?? s.lotacao ?? 'Sem lotação'}</span>
             <Button type="button" variant="discreto" size="sm" aria-label={`Tirar ${s.postoGrad} ${s.nomeGuerra}`} onClick={() => tirar(s.id)}>
               <X aria-hidden />
               Tirar

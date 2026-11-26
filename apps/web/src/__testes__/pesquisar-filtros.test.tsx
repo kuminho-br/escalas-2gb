@@ -13,7 +13,7 @@ const UNIDADES: UnidadeDaConsulta[] = [
   { id: 'u-1sb', sigla: '1ª SB', nivel: 5, maeId: 'u-divop' }, { id: 'u-3gb', sigla: '3º GB', nivel: 3, maeId: 'u-cbmpe' },
 ];
 const linha = (id: string, nomeGuerra: string, extra: Partial<LinhaDaBusca> = {}): LinhaDaBusca => ({
-  id, postoGrad: 'SD', nomeGuerra, nomeCompleto: `Fulano ${nomeGuerra}`, matricula: '990001-1', lotacao: '1ª SB', quadro: 'QBMG', equipe: 'Alfa', jornada: 'pronto', situacao: 'Ativa', unidadeId: 'u-1sb', podeAlterar: true, ...extra,
+  id, postoGrad: 'SD', nomeGuerra, nomeCompleto: `Fulano ${nomeGuerra}`, matricula: '990001-1', lotacao: '1ª SB', quadro: 'QBMG', equipe: 'Alfa', jornada: 'pronto', situacao: 'Ativa', unidadeId: 'u-1sb', lotacaoCaminho: '1ª SB', podeAlterar: true, ...extra,
 });
 const RESULTADO: ResultadoDaBusca = { militares: [linha('m1', 'ANDRADE'), linha('m2', 'BARRETO')], haMais: false, naoEncontradas: [] };
 const BUSCAR = 'POST /api/consulta/militares/buscar';

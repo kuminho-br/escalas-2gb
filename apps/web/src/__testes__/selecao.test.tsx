@@ -8,7 +8,7 @@ import { abrir, EU_EXEMPLO, simularApi } from './apoio';
 const NIVEL = { ...EU_EXEMPLO, papeis: [{ papel: 'gestor' as const, unidadeId: 'u-gb', unidadeSigla: '2º GB' }] };
 const COMUM = { ...EU_EXEMPLO, papeis: [] };
 const linha = (id: string, nomeGuerra: string, extra: Partial<LinhaDaBusca> = {}): LinhaDaBusca => ({
-  id, postoGrad: 'SD', nomeGuerra, nomeCompleto: `Fulano ${nomeGuerra}`, matricula: '990001-1', lotacao: '1ª SB', quadro: 'QBMG', equipe: null, jornada: 'adm', situacao: 'Ativa', unidadeId: 'u-1sb', podeAlterar: true, ...extra,
+  id, postoGrad: 'SD', nomeGuerra, nomeCompleto: `Fulano ${nomeGuerra}`, matricula: '990001-1', lotacao: '1ª SB', quadro: 'QBMG', equipe: null, jornada: 'adm', situacao: 'Ativa', unidadeId: 'u-1sb', lotacaoCaminho: '1ª SB', podeAlterar: true, ...extra,
 });
 const resultado = (militares: LinhaDaBusca[], haMais = false): ResultadoDaBusca => ({ militares, haMais, naoEncontradas: [] });
 
@@ -49,6 +49,26 @@ describe('a seleção na pesquisa (6.51)', () => {
     // o ANDRADE não está mais no resultado, e segue no painel
     expect(screen.queryByRole('checkbox', { name: 'Selecionar SD ANDRADE' })).toBeNull();
     expect(within(painel()!).getByText('ANDRADE')).toBeInTheDocument();
+  });
+
+  it('6.62, Review Focus 4: a placa da unidade, na lista e no painel, é o menor caminho que a identifica ("2º GB / 1ª SB" e "3º GB / 1ª SB"), e cai na sigla quando o caminho não vem', async () => {
+    api([resultado([
+      linha('m1', 'ANDRADE', { lotacaoCaminho: '2º GB / 1ª SB' }),
+      linha('m2', 'BARRETO', { lotacaoCaminho: '3º GB / 1ª SB' }),
+      linha('m3', 'CABRAL', { lotacaoCaminho: null }),
+    ])]);
+    abrir('/peculio/pesquisar');
+    await buscar('abc');
+    const lista = within(await screen.findByRole('list', { name: 'Militares encontrados' }));
+    expect(lista.getByText('2º GB / 1ª SB')).toBeInTheDocument();
+    expect(lista.getByText('3º GB / 1ª SB')).toBeInTheDocument();
+    // sem o caminho, a sigla de hoje
+    expect(lista.getByText('1ª SB')).toBeInTheDocument();
+    await userEvent.click(await marca('SD ANDRADE'));
+    await userEvent.click(await marca('SD BARRETO'));
+    const selecionados = within(screen.getByRole('region', { name: /^Selecionados/ }));
+    expect(selecionados.getByText('2º GB / 1ª SB')).toBeInTheDocument();
+    expect(selecionados.getByText('3º GB / 1ª SB')).toBeInTheDocument();
   });
 
   it('marcar de novo desmarca; "Tirar" tira um do painel (e a marca da linha acompanha); "Limpar" esvazia', async () => {

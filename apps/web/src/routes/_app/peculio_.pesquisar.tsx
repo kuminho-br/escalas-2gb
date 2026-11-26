@@ -325,7 +325,7 @@ function LinhaDaPesquisa({ m, texto, unidade, selecionavel = false }: { m: Linha
         <span className="flex items-center gap-2">
           <span className="font-cond text-apoio text-apagado">{m.postoGrad}</span>
           <span className="font-cond text-base font-semibold">{m.nomeGuerra}</span>
-          <span className="ml-auto rounded border border-linha px-1.5 font-cond text-xs">{m.lotacao ?? 'Sem lotação'}</span>
+          <span className="ml-auto rounded border border-linha px-1.5 font-cond text-xs">{m.lotacaoCaminho ?? m.lotacao ?? 'Sem lotação'}</span>
         </span>
         <span className="flex flex-wrap gap-x-3 text-xs text-apagado">
           {m.nomeCompleto && <span>{m.nomeCompleto}</span>}

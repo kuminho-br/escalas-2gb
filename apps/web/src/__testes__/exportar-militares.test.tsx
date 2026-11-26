@@ -10,7 +10,7 @@ import { abrir, EU_EXEMPLO, simularApi } from './apoio';
 const NIVEL = { ...EU_EXEMPLO, papeis: [{ papel: 'gestor' as const, unidadeId: 'u-gb', unidadeSigla: '2º GB' }] };
 const COMUM = { ...EU_EXEMPLO, papeis: [] };
 const linha = (id: string, nomeGuerra: string): LinhaDaBusca => ({
-  id, postoGrad: 'SD', nomeGuerra, nomeCompleto: `Fulano ${nomeGuerra}`, matricula: '990001-1', lotacao: '1ª SB', quadro: 'QBMG', equipe: null, jornada: 'adm', situacao: 'Ativa', unidadeId: 'u-1sb', podeAlterar: true,
+  id, postoGrad: 'SD', nomeGuerra, nomeCompleto: `Fulano ${nomeGuerra}`, matricula: '990001-1', lotacao: '1ª SB', quadro: 'QBMG', equipe: null, jornada: 'adm', situacao: 'Ativa', unidadeId: 'u-1sb', lotacaoCaminho: '1ª SB', podeAlterar: true,
 });
 const resultado = (militares: LinhaDaBusca[]): ResultadoDaBusca => ({ militares, haMais: false, naoEncontradas: [] });
 const BUSCA = resultado([linha('m1', 'ANDRADE'), linha('m2', 'BARRETO')]);

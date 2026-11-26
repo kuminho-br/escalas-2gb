@@ -7,7 +7,7 @@ import { abrir, escolherNaArvore, EU_EXEMPLO, simularApi } from './apoio';
 // Entrega 6.52, Task 3: o painel "Atualizar em lote" sobre a seleção da pesquisa. Dados fictícios (D7).
 const NIVEL = { ...EU_EXEMPLO, papeis: [{ papel: 'gestor' as const, unidadeId: 'u-gb', unidadeSigla: '2º GB' }] };
 const linha = (id: string, nomeGuerra: string): LinhaDaBusca => ({
-  id, postoGrad: 'SD', nomeGuerra, nomeCompleto: `Fulano ${nomeGuerra}`, matricula: '990001-1', lotacao: '1ª SB', quadro: 'QBMG', equipe: null, jornada: 'adm', situacao: 'Ativa', unidadeId: 'u-1sb', podeAlterar: true,
+  id, postoGrad: 'SD', nomeGuerra, nomeCompleto: `Fulano ${nomeGuerra}`, matricula: '990001-1', lotacao: '1ª SB', quadro: 'QBMG', equipe: null, jornada: 'adm', situacao: 'Ativa', unidadeId: 'u-1sb', lotacaoCaminho: '1ª SB', podeAlterar: true,
 });
 const BUSCA: ResultadoDaBusca = { militares: [linha('m1', 'ANDRADE'), linha('m2', 'BARRETO')], haMais: false, naoEncontradas: [] };
 const PREVIA: PreviaDoLote = {
@@ -151,7 +151,7 @@ describe('o painel Atualizar em lote (6.52)', () => {
   it('6.62, Review Focus 3: o lote que muda a lotação de um selecionado o deixa na seleção, com a lotação nova; os dados vêm de uma nova leitura', async () => {
     api();
     const base = globalThis.fetch;
-    const NOVA: ResultadoDaBusca = { ...BUSCA, militares: [{ ...linha('m1', 'ANDRADE'), lotacao: '2ª SB', unidadeId: 'u-2sb' }, linha('m2', 'BARRETO')] };
+    const NOVA: ResultadoDaBusca = { ...BUSCA, militares: [{ ...linha('m1', 'ANDRADE'), lotacao: '2ª SB', lotacaoCaminho: '2ª SB', unidadeId: 'u-2sb' }, linha('m2', 'BARRETO')] };
     let aplicado = false;
     const pedidos: unknown[] = [];
     vi.stubGlobal('fetch', async (e: RequestInfo | URL, init?: RequestInit) => {
