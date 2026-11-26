@@ -40,6 +40,8 @@ export interface Dependencias {
   intervaloMs?: number;
   /** Buscas por minuto, por conta, na consulta de militares (padrão 30); os testes da consulta, que buscam mais que isso, sobem o limite. */
   limiteDeBuscas?: number;
+  /** O relógio das rotas que dependem de "agora" (os próximos serviços); sem ele, a hora de verdade. Os testes o trocam. */
+  agora?: () => Date;
 }
 
 export function criarApp(dep: Dependencias): Hono {
@@ -76,7 +78,7 @@ export function criarApp(dep: Dependencias): Hono {
     app.route('/api', rotasTiposDeUnidade(comAuth));
     app.route('/api', rotasEscalas(comAuth));
     app.route('/api', rotasEscalaDoMes(comAuth));
-    app.route('/api', rotasVisualizacao(comAuth));
+    app.route('/api', rotasVisualizacao({ ...comAuth, agora: dep.agora }));
     app.route('/api', rotasEfetivo(comAuth));
     app.route('/api', rotasGrade(comAuth));
     app.route('/api', rotasOficiais(comAuth));

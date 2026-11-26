@@ -11,7 +11,7 @@ const MES = mesAtual();
 const COMUM = { ...EU_EXEMPLO, papeis: [] };
 const dia = (n: number) => `${MES}-${String(n).padStart(2, '0')}`;
 const servico = (id: string, d: number, extra: Partial<MeuServico> = {}): MeuServico => ({
-  alocacaoId: id, data: dia(d), inicio: '08:00', fim: '20:00', servico: 'Pronto', escala: 'Ordinário', unidadeSigla: '1ª SB', unidadeId: 'u-1sb', estado: 'publicada', emRetificacao: false, guarnicao: 'ABT', funcao: 'Combatente',
+  alocacaoId: id, data: dia(d), inicio: '08:00', fim: '20:00', servico: 'Pronto', cor: '#2F8F5B', turno: 'A', escala: 'Ordinário', unidadeSigla: '1ª SB', unidadeId: 'u-1sb', estado: 'publicada', emRetificacao: false, guarnicao: 'ABT', funcao: 'Combatente',
   composicao: [{ patente: 'SD', nomeGuerra: 'ANDRADE', funcao: 'Combatente', eu: true }, { patente: '3º SGT', nomeGuerra: 'COLEGA', funcao: 'Motorista', eu: false }], ...extra,
 });
 const ROTA = `GET /api/eu/escala/${MES}`;

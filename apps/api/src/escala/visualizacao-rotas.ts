@@ -1,12 +1,12 @@
 // A visualização de escalas para a corporação (fases 7.3 e 7.3.1): a lista do mês, a escala em leitura, o registro das alterações no passado e a escala do próprio militar. Quem vê cada
 // estado está em `visibilidade.ts`; não toca nas camadas de visão da "escala em montagem": o rascunho continua só de quem já via.
-import { Mes, mesParaData, type EscalaDoMes, type EscalaVisivel, type MeuServico, type MinhaEscala } from 'contratos';
+import { LIMITE_DE_PROXIMOS, Mes, mesParaData, type EscalaDoMes, type EscalaVisivel, type MeuServico, type MinhaEscala, type ProximosServicos } from 'contratos';
 import { Hono } from 'hono';
 import { exigirSessao, unidadeDoRegistro, type AmbienteApi } from '../acesso.ts';
 import { exigirLeituraDaEscala } from '../visao/leitura.ts';
 import type { Auth } from '../auth.ts';
 import type { Banco } from '../banco/banco.ts';
-import { hojeRecife } from '../datas.ts';
+import { agoraRecife, hojeRecife, somarDias } from '../datas.ts';
 import { lerRegistro } from '../registro.ts';
 import { montarEscalaDoMes } from './leitura.ts';
 import { podeVerEscala, visibilidadeDoMes } from './visibilidade.ts';
@@ -37,10 +37,65 @@ function paraACorporacao(e: EscalaDoMes): EscalaDoMes {
   };
 }
 
-export function rotasVisualizacao(dep: { banco: Banco; auth: Auth }): Hono<AmbienteApi> {
+const MSG_NAO_E_MILITAR = 'Esta conta não é de um militar.';
+
+type LinhaDoServico = {
+  id: string; data: string; inicio: string; fim: string; servico: string; cor: string; turno: MeuServico['turno']; escala: string; sigla: string; unidade_id: string; escala_id: string; turno_id: string;
+  guarnicao_id: string | null; guarnicao: string | null; funcao: string | null; estado: MeuServico['estado']; em_retificacao: boolean;
+};
+
+/** As colunas dos serviços do militar e o que se junta a elas (as mesmas para a escala do mês e para os próximos serviços); quem chama põe o `where` e a ordem. */
+const SERVICOS_DO_MILITAR = `select a.id, to_char(a.data, 'YYYY-MM-DD') as data, to_char(t.inicio, 'HH24:MI') as inicio, to_char(t.fim, 'HH24:MI') as fim, s.nome as servico, s.cor, t.letra as turno, e.nome as escala, u.sigla, u.id as unidade_id,
+              a.escala_id, a.turno_id, a.guarnicao_id, g.nome as guarnicao, f.nome as funcao, k.estado, k.em_retificacao
+         from alocacao a join escala e on e.id = a.escala_id
+         join escala_estado k on k.escala_id = a.escala_id and k.mes = date_trunc('month', a.data)::date
+         join servico s on s.id = a.servico_id join turno t on t.id = a.turno_id join unidade u on u.id = e.unidade_id
+         left join guarnicao g on g.id = a.guarnicao_id left join funcao f on f.id = a.funcao_id`;
+
+const minutosDe = (hora: string) => Number(hora.slice(0, 2)) * 60 + Number(hora.slice(3, 5));
+
+/** O serviço já acabou em `agora`? O fim é o dia mais a hora do fim; quando o fim não é depois do início (o turno que vira o dia, ou termina à meia-noite), é no dia seguinte. */
+function jaAcabou(x: { data: string; inicio: string; fim: string }, agora: { dia: string; minutos: number }): boolean {
+  const fimNoDiaSeguinte = minutosDe(x.fim) <= minutosDe(x.inicio);
+  const diaDoFim = fimNoDiaSeguinte ? somarDias(x.data, 1) : x.data;
+  return diaDoFim < agora.dia || (diaDoFim === agora.dia && minutosDe(x.fim) <= agora.minutos);
+}
+
+/** O militar da conta, ou null (a conta não é de um militar). */
+async function militarDaConta(banco: Banco, usuarioId: string): Promise<string | null> {
+  return (await banco.query<{ militar_id: string }>('select militar_id from usuario where id = $1 and ativo', [usuarioId])).rows[0]?.militar_id ?? null;
+}
+
+/** Cada linha como serviço do militar, com quem compõe a guarnição daquele turno. */
+async function comComposicao(banco: Banco, militarId: string, rows: LinhaDoServico[]): Promise<MeuServico[]> {
+  const servicos: MeuServico[] = [];
+  for (const x of rows) {
+    const composicao = x.guarnicao_id
+      ? (
+          await banco.query<{ patente: string; nome_guerra: string; funcao: string | null; militar_id: string }>(
+            `select * from (
+               select p.sigla as patente, m.nome_guerra, f.nome as funcao, m.id as militar_id
+                 from alocacao a join militar m on m.id = a.militar_id join posto_grad p on p.id = m.posto_grad_id left join funcao f on f.id = a.funcao_id
+                where a.escala_id = $1 and a.data = $2::date and a.turno_id = $3 and a.guarnicao_id = $4
+               union all
+               select p.sigla, m.nome_guerra, f.nome, m.id
+                 from alocacao_acumulo y join alocacao a on a.id = y.alocacao_id join militar m on m.id = a.militar_id join posto_grad p on p.id = m.posto_grad_id left join funcao f on f.id = y.funcao_id
+                where a.escala_id = $1 and a.data = $2::date and a.turno_id = $3 and y.guarnicao_id = $4
+             ) todos order by nome_guerra, funcao`,
+            [x.escala_id, x.data, x.turno_id, x.guarnicao_id],
+          )
+        ).rows.map((o) => ({ patente: o.patente, nomeGuerra: o.nome_guerra, funcao: o.funcao, eu: o.militar_id === militarId }))
+      : [];
+    servicos.push({ alocacaoId: x.id, data: x.data, inicio: x.inicio, fim: x.fim, servico: x.servico, cor: x.cor, turno: x.turno, escala: x.escala, unidadeSigla: x.sigla, unidadeId: x.unidade_id, estado: x.estado, emRetificacao: x.em_retificacao, guarnicao: x.guarnicao, funcao: x.funcao, composicao });
+  }
+  return servicos;
+}
+
+/** `agora`: o relógio (os testes o trocam). */
+export function rotasVisualizacao(dep: { banco: Banco; auth: Auth; agora?: () => Date }): Hono<AmbienteApi> {
   const r = new Hono<AmbienteApi>();
   const sessao = exigirSessao(dep.banco, dep.auth);
-  for (const caminho of ['/visualizacao/*', '/eu/escala/*', '/escalas/:id/mes/:mes/registro']) r.use(caminho, sessao);
+  for (const caminho of ['/visualizacao/*', '/eu/escala/*', '/eu/proximos-servicos', '/escalas/:id/mes/:mes/registro']) r.use(caminho, sessao);
 
   /** As escalas que a conta pode ver no mês (as que já saíram do rascunho e que a regra de `visibilidade.ts` abre para ela), de todas as unidades que não foram extintas. */
   r.get('/visualizacao/escalas/:mes', async (c) => {
@@ -89,45 +144,34 @@ export function rotasVisualizacao(dep: { banco: Banco; auth: Auth }): Hono<Ambie
   r.get('/eu/escala/:mes', async (c) => {
     const mes = c.req.param('mes');
     if (!Mes.safeParse(mes).success) return c.json({ erro: MES_INVALIDO }, 400);
-    const militarId = (await dep.banco.query<{ militar_id: string }>('select militar_id from usuario where id = $1 and ativo', [c.get('usuarioId')])).rows[0]?.militar_id;
-    if (!militarId) return c.json({ erro: 'Esta conta não é de um militar.' }, 404);
-    const inicio = mesParaData(mes);
-    const { rows } = await dep.banco.query<{
-      id: string; data: string; inicio: string; fim: string; servico: string; escala: string; sigla: string; unidade_id: string; escala_id: string; turno_id: string; guarnicao_id: string | null; guarnicao: string | null; funcao: string | null;
-      estado: MeuServico['estado']; em_retificacao: boolean;
-    }>(
-      `select a.id, to_char(a.data, 'YYYY-MM-DD') as data, to_char(t.inicio, 'HH24:MI') as inicio, to_char(t.fim, 'HH24:MI') as fim, s.nome as servico, e.nome as escala, u.sigla, u.id as unidade_id,
-              a.escala_id, a.turno_id, a.guarnicao_id, g.nome as guarnicao, f.nome as funcao, k.estado, k.em_retificacao
-         from alocacao a join escala e on e.id = a.escala_id
-         join escala_estado k on k.escala_id = a.escala_id and k.mes = $2::date
-         join servico s on s.id = a.servico_id join turno t on t.id = a.turno_id join unidade u on u.id = e.unidade_id
-         left join guarnicao g on g.id = a.guarnicao_id left join funcao f on f.id = a.funcao_id
+    const militarId = await militarDaConta(dep.banco, c.get('usuarioId'));
+    if (!militarId) return c.json({ erro: MSG_NAO_E_MILITAR }, 404);
+    const { rows } = await dep.banco.query<LinhaDoServico>(
+      `${SERVICOS_DO_MILITAR}
         where a.militar_id = $1 and a.data >= $2::date and a.data < ($2::date + interval '1 month')
         order by a.data, t.inicio, s.nome`,
-      [militarId, inicio],
+      [militarId, mesParaData(mes)],
     );
-    const servicos: MeuServico[] = [];
-    for (const x of rows) {
-      const composicao = x.guarnicao_id
-        ? (
-            await dep.banco.query<{ patente: string; nome_guerra: string; funcao: string | null; militar_id: string }>(
-              `select * from (
-                 select p.sigla as patente, m.nome_guerra, f.nome as funcao, m.id as militar_id
-                   from alocacao a join militar m on m.id = a.militar_id join posto_grad p on p.id = m.posto_grad_id left join funcao f on f.id = a.funcao_id
-                  where a.escala_id = $1 and a.data = $2::date and a.turno_id = $3 and a.guarnicao_id = $4
-                 union all
-                 select p.sigla, m.nome_guerra, f.nome, m.id
-                   from alocacao_acumulo y join alocacao a on a.id = y.alocacao_id join militar m on m.id = a.militar_id join posto_grad p on p.id = m.posto_grad_id left join funcao f on f.id = y.funcao_id
-                  where a.escala_id = $1 and a.data = $2::date and a.turno_id = $3 and y.guarnicao_id = $4
-               ) todos order by nome_guerra, funcao`,
-              [x.escala_id, x.data, x.turno_id, x.guarnicao_id],
-            )
-          ).rows.map((o) => ({ patente: o.patente, nomeGuerra: o.nome_guerra, funcao: o.funcao, eu: o.militar_id === militarId }))
-        : [];
-      servicos.push({ alocacaoId: x.id, data: x.data, inicio: x.inicio, fim: x.fim, servico: x.servico, escala: x.escala, unidadeSigla: x.sigla, unidadeId: x.unidade_id, estado: x.estado, emRetificacao: x.em_retificacao, guarnicao: x.guarnicao, funcao: x.funcao, composicao });
-    }
-    const minha: MinhaEscala = { mes, servicos };
+    const minha: MinhaEscala = { mes, servicos: await comComposicao(dep.banco, militarId, rows) };
     return c.json(minha);
+  });
+
+  /** Os próximos serviços do militar da conta (6.55): os que ainda não acabaram em Recife (o em andamento conta), nas mesmas escalas da Minha escala, em ordem de data e início, até `LIMITE_DE_PROXIMOS`, atravessando o mês. */
+  r.get('/eu/proximos-servicos', async (c) => {
+    const militarId = await militarDaConta(dep.banco, c.get('usuarioId'));
+    if (!militarId) return c.json({ erro: MSG_NAO_E_MILITAR }, 404);
+    const agora = agoraRecife(dep.agora?.());
+    // o que já acabou só pode estar entre ontem (o turno que vira o dia) e hoje: o limite do SQL sobra para os dois dias, e o corte final é feito aqui
+    const { rows } = await dep.banco.query<LinhaDoServico>(
+      `${SERVICOS_DO_MILITAR}
+        where a.militar_id = $1 and a.data >= $2::date
+        order by a.data, t.inicio, s.nome
+        limit 40`,
+      [militarId, somarDias(agora.dia, -1)],
+    );
+    const proximos = rows.filter((x) => !jaAcabou(x, agora)).slice(0, LIMITE_DE_PROXIMOS);
+    const resposta: ProximosServicos = { servicos: await comComposicao(dep.banco, militarId, proximos) };
+    return c.json(resposta);
   });
 
   return r;
