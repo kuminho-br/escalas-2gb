@@ -106,6 +106,8 @@ function Inicio() {
         <section ref={quadro} data-faixa-boas-vindas className="cena-inicial relative h-[250px] overflow-hidden rounded-superficie bg-tinta text-white shadow-apoiada md:h-[400px]">
           {/* a cena final da animação do login: a imagem cobre o quadro, centrada, a 66% na vertical. A animação pousa nesta mesma conta (recorte.ts) */}
           <img src="/boas-vindas.jpg" alt="" className="absolute inset-0 size-full object-cover" style={{ objectPosition: `center ${POSICAO_VERTICAL * 100}%` }} />
+          {/* ao encolher, a cena escurece um pouco, para a saudação e a linha do próximo serviço lerem bem sobre a imagem clara */}
+          <div aria-hidden className="escurece pointer-events-none absolute inset-0" />
           <div data-chegada={chegadaDaSaudacao} className="saudacao-da-chegada saudacao absolute inset-0 grid grid-cols-[minmax(0,1fr)] grid-rows-[auto_auto_1fr] bg-gradient-to-br from-tinta/90 via-tinta/40 to-transparent px-4 md:grid-cols-[minmax(0,1fr)_minmax(0,340px)] md:px-7">
             <h1 ref={titulo} tabIndex={-1} className="col-start-1 origin-[0_60%] font-cond font-semibold text-balance outline-none">{`${saudacao(agora)}, ${eu.militar.postoGrad} ${eu.militar.nomeGuerra}`}</h1>
             <p className="data col-start-1 text-corpo text-white/90 md:text-nome">{dataPorExtenso(agora)}</p>
@@ -116,8 +118,9 @@ function Inicio() {
           </div>
           {/* a barra, quando o quadro encolhe: a saudação já é o título menor; aqui entra o próximo serviço (a leitura de tela o encontra nos cartões e no detalhe) */}
           {primeiro && (
-            <p data-barra-do-servico aria-hidden className="barra-do-servico pointer-events-none absolute right-4 bottom-0 flex h-16 max-w-[45%] items-center md:right-7 md:max-w-[55%]">
-              <span className="truncate text-corpo text-white/90">{`Próximo serviço: ${diaDaSemanaLongo(primeiro.data)}, ${diaDoMes(primeiro.data)}, ${primeiro.servico}, ${horarioCurto(primeiro.inicio, primeiro.fim)}`}</span>
+            <p data-barra-do-servico aria-hidden className="barra-do-servico pointer-events-none absolute right-4 bottom-0 flex h-16 max-w-[50%] items-center md:right-7 md:max-w-[55%]">
+              {/* no celular não há lugar para o prefixo: a linha começa no dia */}
+              <span className="truncate text-apoio text-white md:text-corpo"><span className="hidden md:inline">Próximo serviço: </span>{`${diaDaSemanaLongo(primeiro.data)}, ${diaDoMes(primeiro.data)}, ${primeiro.servico}, ${horarioCurto(primeiro.inicio, primeiro.fim)}`}</span>
             </p>
           )}
         </section>

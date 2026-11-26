@@ -190,6 +190,10 @@
   font-size: calc(1.75rem - 0.5rem * var(--e));
   line-height: calc(2rem - 0.5rem * var(--e));
 }
+.cena-inicial .escurece {
+  background: color-mix(in srgb, var(--color-tinta) 62%, transparent);
+  opacity: var(--e);
+}
 .cena-inicial .proximos-da-cena {
   opacity: calc(1 - var(--e) * 2.2);
 }
