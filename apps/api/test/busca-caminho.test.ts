@@ -10,6 +10,7 @@ let api: ApiDeTeste;
 const hoje = hojeRecife();
 const dia1 = `${hoje.slice(0, 7)}-01`;
 let extinta = '';
+let gb4 = '';
 const buscar = async (texto: string): Promise<ResultadoDaBusca> => (await api.pedir('admin', 'POST', '/api/consulta/militares/buscar', { texto })).json();
 
 beforeAll(async () => {
@@ -27,9 +28,14 @@ beforeAll(async () => {
   await militar('NOGB3', '990802-2', sb3);
   await militar('NOGB', '990803-3', api.ids.gb);
   // uma "1ª SB" extinta, no 4º GB (extinto também), com um militar que ainda aparece nela
-  const gb4 = await inserir(api.banco, 'unidade', { tipo: 'grupamento', sigla: '4º GB', nome: 'Quarto Grupamento', mae_id: mae, desde: '2019-01-01', ate: '2019-12-31' });
+  gb4 = await inserir(api.banco, 'unidade', { tipo: 'grupamento', sigla: '4º GB', nome: 'Quarto Grupamento', mae_id: mae, desde: '2019-01-01', ate: '2019-12-31' });
   extinta = await inserir(api.banco, 'unidade', { tipo: 'secao', sigla: '1ª SB', nome: 'Primeira Seção do 4º GB', mae_id: gb4, desde: '2019-01-01', ate: '2019-12-31' });
   await militar('NAEXTINTA', '990805-5', extinta);
+  // a "9ª SB" em vigor (única) e uma "9ª SB" extinta com a mesma sigla: o rótulo da em vigor não depende de a extinta estar no resultado
+  const sb9 = await inserir(api.banco, 'unidade', { tipo: 'secao', sigla: '9ª SB', nome: 'Nona Seção', mae_id: gb3, desde: '2020-01-01' });
+  const sb9ext = await inserir(api.banco, 'unidade', { tipo: 'secao', sigla: '9ª SB', nome: 'Nona Seção extinta', mae_id: gb4, desde: '2019-01-01', ate: '2019-12-31' });
+  await militar('NA9ATIVA', '990806-6', sb9);
+  await militar('NA9EXT', '990807-7', sb9ext);
   const sem = await inserir(api.banco, 'militar', { matricula: '990804-4', posto_grad_id: posto, nome_guerra: 'SEMLOTA', antiguidade: 1 });
   expect(sem).toBeTruthy();
 });
@@ -80,6 +86,18 @@ describe('acabamento da busca (6.65, pool 52)', () => {
     // as unidades em vigor não mudam de rótulo por causa da extinta
     const outros = await buscar('NOGB');
     expect(outros.militares.find((m) => m.nomeGuerra === 'NOGB2')!.lotacaoCaminho).toBe('2º GB / 1ª SB');
+  });
+
+  it('(f, revisão) a unidade em vigor tem o mesmo rótulo com ou sem a extinta no resultado; a extinta se distingue da em vigor', async () => {
+    const sozinha = await buscar('NA9ATIVA');
+    const junto = await buscar('NA9');
+    const de = (r: ResultadoDaBusca, n: string) => r.militares.find((m) => m.nomeGuerra === n)!.lotacaoCaminho;
+    expect(de(sozinha, 'NA9ATIVA')).toBe('9ª SB');
+    expect(de(junto, 'NA9ATIVA')).toBe('9ª SB'); // a extinta não a obriga a ficar com o caminho
+    expect(de(junto, 'NA9EXT')).toBe('4º GB / 9ª SB');
+    // a mesma conta na ficha de consulta e na busca simples
+    const simples = (await (await api.pedir('admin', 'GET', '/api/consulta/militares?texto=NA9')).json()) as { militares: { nomeGuerra: string; lotacaoCaminho: string | null }[] };
+    expect(simples.militares.find((m) => m.nomeGuerra === 'NA9ATIVA')!.lotacaoCaminho).toBe('9ª SB');
   });
 
   it('(g) a busca simples (GET /api/consulta/militares) também traz o caminho, e a ficha de consulta', async () => {

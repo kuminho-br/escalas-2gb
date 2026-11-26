@@ -4,7 +4,7 @@ import type { Consulta } from '../banco/banco.ts';
 import type { Leitura } from './peculio-colunas.ts';
 
 /** Uma unidade com as siglas da raiz até ela (a última é a dela). */
-export type UnidadeDoCaminho = { id: string; siglas: string[] };
+export type UnidadeDoCaminho = { id: string; siglas: string[]; /** a unidade já acabou (só vem quando ela entrou por `tambem`) */ extinta?: boolean };
 
 /**
  * As unidades em vigor da corporação, cada uma com o caminho de siglas desde a raiz. `tambem` são ids de unidades que entram mesmo extintas: a lotação de um militar pode estar numa
@@ -12,7 +12,7 @@ export type UnidadeDoCaminho = { id: string; siglas: string[] };
  */
 export async function unidadesDoCaminho(c: Consulta, hoje: string, tambem: string[] = []): Promise<UnidadeDoCaminho[]> {
   const { rows } = await c.query<UnidadeDoCaminho>(
-    `select u.id, array(select a.sigla from unidade a where a.caminho @> u.caminho order by nlevel(a.caminho)) as siglas
+    `select u.id, array(select a.sigla from unidade a where a.caminho @> u.caminho order by nlevel(a.caminho)) as siglas, (u.ate is not null and u.ate < $1::date) as extinta
        from unidade u where u.ate is null or u.ate >= $1::date or u.id = any($2::uuid[]) order by nlevel(u.caminho), u.sigla`,
     [hoje, tambem],
   );
@@ -26,7 +26,7 @@ export const separarCaminho = (texto: string): string[] => texto.split(SEPARADOR
 /**
  * A sigla como se compara: sem maiúsculas, acentos nem espaços, mas com o "º" e o "ª" (duas irmãs "1º SB" e "1ª SB" são unidades diferentes, e o banco as aceita).
  */
-const normalizarSigla = (s: string): string => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toUpperCase().replace(/[^A-Z0-9ºª]/g, '');
+const normalizarSigla = (s: string): string => s.replace(/°/g, 'º').normalize('NFD').replace(/[̀-ͯ]/g, '').toUpperCase().replace(/[^A-Z0-9ºª]/g, '');
 const mesmas = (a: string, b: string) => normalizarSigla(a) === normalizarSigla(b);
 /** O caminho da unidade termina com estes pedaços (sem diferenciar maiúsculas nem acentos)? */
 const terminaCom = (u: UnidadeDoCaminho, pedacos: string[]) => pedacos.length <= u.siglas.length && pedacos.every((p, i) => mesmas(p, u.siglas[u.siglas.length - pedacos.length + i]!));
@@ -77,7 +77,12 @@ export function rotulosDasUnidades(todas: UnidadeDoCaminho[]): Map<string, strin
 
 /** O rótulo (menor caminho único) de cada unidade em vigor e das extintas dadas, lido do banco de uma vez: uma leitura das unidades por pedido. */
 export async function rotulosDoBanco(c: Consulta, hoje: string, tambem: (string | null)[] = []): Promise<Map<string, string>> {
-  return rotulosDasUnidades(await unidadesDoCaminho(c, hoje, tambem.filter((x): x is string => !!x)));
+  const todas = await unidadesDoCaminho(c, hoje, tambem.filter((x): x is string => !!x));
+  const emVigor = todas.filter((u) => !u.extinta);
+  // as em vigor se rotulam só entre si (o rótulo delas é o da exportação, qualquer que seja o resultado da busca); cada extinta, contra as em vigor e ela mesma
+  const rotulos = rotulosDasUnidades(emVigor);
+  for (const e of todas.filter((u) => u.extinta)) rotulos.set(e.id, rotulosDasUnidades([...emVigor, e]).get(e.id)!);
+  return rotulos;
 }
 
 /**

@@ -111,7 +111,7 @@ function GradeGeral() {
               maximos={maximosDaGrade(grade.grupos)}
               escolhida={escolhida}
               aoEscolher={(militar, dia) => void navigate({ search: (s) => ({ ...s, militar, dia }) })}
-              aoAbrirFicha={(militar) => void navigate({ search: (s) => ({ ...s, ficha: militar }) })}
+              aoAbrirFicha={eu.soConsulta ? undefined : (militar) => void navigate({ search: (s) => ({ ...s, ficha: militar }) })}
               recolhidas={procura ? new Set() : recolhidas}
               aoAlternar={alternarRecolhida}
             />
@@ -132,7 +132,7 @@ function GradeGeral() {
           )}
         </div>
       )}
-      {busca.ficha && <FichaNaGrade militarId={busca.ficha} eu={eu} aoFechar={() => void navigate({ search: (s) => ({ ...s, ficha: undefined }) })} />}
+      {busca.ficha && !eu.soConsulta && <FichaNaGrade militarId={busca.ficha} eu={eu} aoFechar={() => void navigate({ search: (s) => ({ ...s, ficha: undefined }) })} />}
     </Moldura>
   );
 }

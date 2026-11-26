@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { mensagemDe } from '@/api/cliente';
 import type { Eu } from '@/api/eu';
 import { consultaFicha } from '@/api/militares';
@@ -12,8 +12,14 @@ import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/compone
  */
 export function FichaNaGrade({ militarId, eu, aoFechar }: { militarId: string; eu: Eu; aoFechar: () => void }) {
   const { data: ficha, error, isPending } = useQuery(consultaFicha(militarId));
+  const queryClient = useQueryClient();
+  // a ficha edita equipe, jornada e afastamentos: ao fechar, a Grade busca de novo para mostrar o que mudou
+  const fechar = () => {
+    void queryClient.invalidateQueries({ queryKey: ['grade'] });
+    aoFechar();
+  };
   return (
-    <Dialog open onOpenChange={(aberta) => !aberta && aoFechar()}>
+    <Dialog open onOpenChange={(aberta) => !aberta && fechar()}>
       {/* sem gatilho, o Radix não devolve o foco: ele volta ao militar que abriu a ficha */}
       <DialogContent
         className="max-h-[90dvh] max-w-3xl gap-0 overflow-y-auto p-0 sm:max-w-3xl"

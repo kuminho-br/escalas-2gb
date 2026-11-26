@@ -65,6 +65,13 @@ describe('o "º" e o "ª" distinguem as irmãs (pool 34 e)', () => {
     expect(acharPeloCaminho('1ª sb', [PAI, SB_O, SB_A], todas)).toEqual({ valor: SB_A });
   });
 
+  it('o grau "°" (o que o teclado dá) vale como "º"; "ª" continua outra coisa', () => {
+    const gb2 = u('g', 'CBMPE', '2º GB');
+    const sb = u('s', 'CBMPE', '2º GB', '1ª SB');
+    expect(acharPeloCaminho('2° GB / 1ª SB', [gb2, sb], [gb2, sb])).toEqual({ valor: sb });
+    expect(acharPeloCaminho('1° SB', [u('o', 'CBMPE', '1º SB'), u('a', 'CBMPE', '1ª SB')], [])).toEqual({ valor: u('o', 'CBMPE', '1º SB') });
+  });
+
   it('maiúsculas e acentos continuam sem diferenciar', () => {
     expect(acharPeloCaminho('1ª SÉ', [u('x', 'CBMPE', '1ª Sé')], [u('x', 'CBMPE', '1ª Sé')])).toEqual({ valor: u('x', 'CBMPE', '1ª Sé') });
   });

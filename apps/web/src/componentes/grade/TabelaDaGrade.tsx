@@ -55,8 +55,8 @@ export function TabelaDaGrade({ grade, grupos, maximos, escolhida, aoEscolher, a
   maximos: { pjes: number; diarias: number };
   escolhida: { militarId: string; dia: string } | null;
   aoEscolher: (militarId: string, dia: string) => void;
-  /** Clicar no militar (posto, nome e matrícula) abre a ficha dele, por cima da Grade. */
-  aoAbrirFicha: (militarId: string) => void;
+  /** Clicar no militar (posto, nome e matrícula) abre a ficha dele, por cima da Grade. Sem ela (quem só consulta a unidade), o militar é só texto. */
+  aoAbrirFicha?: (militarId: string) => void;
   /** As chaves das equipes recolhidas (só a faixa aparece) e o clique no nome da equipe. */
   recolhidas: Set<string>;
   aoAlternar: (chave: string) => void;
@@ -136,19 +136,29 @@ export function TabelaDaGrade({ grade, grupos, maximos, escolhida, aoEscolher, a
                   <th scope="row" className={cn('sticky left-0 z-10 min-w-[13rem] border-b border-b-[#EEF0F3] py-1 pr-3 pl-4 text-left font-normal', FRONTEIRA_DO_MILITAR, linhaMarcada ? FUNDO_DA_MARCA_NO_CABECALHO : 'bg-superficie group-hover:bg-[#F7F7F8]')}>
                     {/* o posto, o nome e a matrícula são um botão: abre a ficha do militar. A matrícula fica à esquerda e a barra da cota de saldo encostada à direita, a 12 px da fronteira; sem barra (o Pronto), a matrícula fica no mesmo lugar */}
                     <div className="grid grid-cols-[minmax(0,1fr)_auto] items-end gap-x-1.5">
-                      <button
-                        type="button"
-                        data-abrir-ficha
-                        aria-label={`Abrir a ficha de ${l.posto} ${l.nomeGuerra}`}
-                        onClick={() => aoAbrirFicha(l.militarId)}
-                        className="col-start-1 row-span-2 grid cursor-pointer justify-items-start rounded text-left outline-none hover:underline focus-visible:ring-2 focus-visible:ring-tinta"
-                      >
-                        <span className="flex items-baseline gap-1.5 whitespace-nowrap">
-                          <span className="text-sm text-apagado">{l.posto}</span>
-                          <strong className="text-[15px] leading-tight font-semibold">{l.nomeGuerra}</strong>
-                        </span>
-                        <span className="text-xs text-apagado">{l.matricula}</span>
-                      </button>
+                      {aoAbrirFicha ? (
+                        <button
+                          type="button"
+                          data-abrir-ficha
+                          aria-label={`Abrir a ficha de ${l.posto} ${l.nomeGuerra}`}
+                          onClick={() => aoAbrirFicha(l.militarId)}
+                          className="col-start-1 row-span-2 grid cursor-pointer justify-items-start rounded text-left outline-none hover:underline focus-visible:ring-2 focus-visible:ring-tinta"
+                        >
+                          <span className="flex items-baseline gap-1.5 whitespace-nowrap">
+                            <span className="text-sm text-apagado">{l.posto}</span>
+                            <strong className="text-[15px] leading-tight font-semibold">{l.nomeGuerra}</strong>
+                          </span>
+                          <span className="text-xs text-apagado">{l.matricula}</span>
+                        </button>
+                      ) : (
+                        <div className="col-start-1 row-span-2 grid justify-items-start text-left">
+                          <span className="flex items-baseline gap-1.5 whitespace-nowrap">
+                            <span className="text-sm text-apagado">{l.posto}</span>
+                            <strong className="text-[15px] leading-tight font-semibold">{l.nomeGuerra}</strong>
+                          </span>
+                          <span className="text-xs text-apagado">{l.matricula}</span>
+                        </div>
+                      )}
                       {l.saldos && <span className="col-start-2 row-start-2"><CotaDeSaldo feitos={l.saldos.feitos} total={l.saldos.total} /></span>}
                     </div>
                   </th>

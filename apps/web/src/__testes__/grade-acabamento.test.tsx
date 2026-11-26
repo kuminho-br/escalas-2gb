@@ -3,6 +3,7 @@ import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
 import { TabelaDaGrade, maximosDaGrade } from '@/componentes/grade/TabelaDaGrade';
+import { guardarUnidadeDeConsulta } from '@/lib/unidade-de-trabalho';
 import { abrir, chamadasA, EU_EXEMPLO, responderConfirmacao, simularApi } from './apoio';
 
 // 6.65, Task 3: a ficha pela Grade (pool 35), o filtro de equipes (17 e 18) e "Tirar do expediente" (K1). Dezembro de 2026; matrículas fictícias 990xxx-x.
@@ -108,6 +109,32 @@ describe('a ficha pela Grade (pool 35)', () => {
     abrir(`/grade?mes=${MES}&ficha=m-SOLDADO`);
     const janela = await screen.findByRole('dialog', { name: 'Ficha do militar' });
     expect(await within(janela).findByRole('alert')).toHaveTextContent('Sem permissão para ver esta ficha.');
+  });
+});
+
+describe('a ficha pela Grade: o que a revisão achou (6.65)', () => {
+  it('quem só consulta a unidade não ganha o botão da ficha (a ficha da escala é de quem tem nível: seria uma janela de "sem permissão")', async () => {
+    const SO_CONSULTA = { ...EU_EXEMPLO, papeis: [], unidades: [], lotacao: null, unidadesSoConsulta: [{ id: 'u-2sb', sigla: '2ª SB', caminho: ['CBMPE', '2ª SB'], nivel: 4, tipo: 'secao', maeId: null }] };
+    simularApi({ ...ROTAS, '/api/eu': { status: 200, corpo: SO_CONSULTA }, [`GET /api/unidades/u-2sb/grade/${MES}`]: { status: 200, corpo: GRADE } });
+    guardarUnidadeDeConsulta('u-2sb');
+    try {
+      abrir(`/grade?mes=${MES}`);
+      await screen.findByRole('rowheader', { name: /SOLDADO/ });
+      expect(screen.queryByRole('button', { name: /Abrir a ficha de/ })).toBeNull();
+      expect(screen.getByRole('rowheader', { name: /SOLDADO/ })).toHaveTextContent('990002-2');
+    } finally {
+      guardarUnidadeDeConsulta(null);
+    }
+  });
+
+  it('ao fechar a janela, a Grade é buscada de novo (o que se mudou na ficha, como a equipe, já aparece)', async () => {
+    const f = simularApi(ROTAS);
+    abrir(`/grade?mes=${MES}`);
+    await userEvent.click(await screen.findByRole('button', { name: 'Abrir a ficha de SD SOLDADO' }));
+    await screen.findByRole('dialog', { name: 'Ficha do militar' });
+    const antes = chamadasA(f, `GET /api/unidades/u-1sb/grade/${MES}`);
+    await userEvent.keyboard('{Escape}');
+    await waitFor(() => expect(chamadasA(f, `GET /api/unidades/u-1sb/grade/${MES}`)).toBeGreaterThan(antes));
   });
 });
 
