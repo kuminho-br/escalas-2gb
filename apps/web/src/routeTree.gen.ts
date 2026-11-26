@@ -12,6 +12,8 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as CriarSenhaRouteImport } from './routes/criar-senha'
 import { Route as EntrarRouteImport } from './routes/entrar'
+import { Route as EsqueciASenhaRouteImport } from './routes/esqueci-a-senha'
+import { Route as PrimeiroAcessoRouteImport } from './routes/primeiro-acesso'
 import { Route as SemLotacaoRouteImport } from './routes/sem-lotacao'
 import { Route as AppIndexRouteImport } from './routes/_app/index'
 import { Route as AppConfiguracoesRouteImport } from './routes/_app/configuracoes'
@@ -62,6 +64,16 @@ const CriarSenhaRoute = CriarSenhaRouteImport.update({
 const EntrarRoute = EntrarRouteImport.update({
   id: '/entrar',
   path: '/entrar',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EsqueciASenhaRoute = EsqueciASenhaRouteImport.update({
+  id: '/esqueci-a-senha',
+  path: '/esqueci-a-senha',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PrimeiroAcessoRoute = PrimeiroAcessoRouteImport.update({
+  id: '/primeiro-acesso',
+  path: '/primeiro-acesso',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SemLotacaoRoute = SemLotacaoRouteImport.update({
@@ -257,6 +269,8 @@ export interface FileRoutesByFullPath {
   '/': typeof AppIndexRoute
   '/criar-senha': typeof CriarSenhaRoute
   '/entrar': typeof EntrarRoute
+  '/esqueci-a-senha': typeof EsqueciASenhaRoute
+  '/primeiro-acesso': typeof PrimeiroAcessoRoute
   '/sem-lotacao': typeof SemLotacaoRoute
   '/configuracoes': typeof AppConfiguracoesRoute
   '/configuracoes-da-escala': typeof AppConfiguracoesDaEscalaRoute
@@ -297,6 +311,8 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/criar-senha': typeof CriarSenhaRoute
   '/entrar': typeof EntrarRoute
+  '/esqueci-a-senha': typeof EsqueciASenhaRoute
+  '/primeiro-acesso': typeof PrimeiroAcessoRoute
   '/sem-lotacao': typeof SemLotacaoRoute
   '/configuracoes': typeof AppConfiguracoesRoute
   '/configuracoes-da-escala': typeof AppConfiguracoesDaEscalaRoute
@@ -337,6 +353,8 @@ export interface FileRoutesById {
   '/_app': typeof AppRouteWithChildren
   '/criar-senha': typeof CriarSenhaRoute
   '/entrar': typeof EntrarRoute
+  '/esqueci-a-senha': typeof EsqueciASenhaRoute
+  '/primeiro-acesso': typeof PrimeiroAcessoRoute
   '/sem-lotacao': typeof SemLotacaoRoute
   '/_app/configuracoes': typeof AppConfiguracoesRoute
   '/_app/configuracoes-da-escala': typeof AppConfiguracoesDaEscalaRoute
@@ -381,6 +399,8 @@ export interface FileRouteTypes {
     | '/'
     | '/criar-senha'
     | '/entrar'
+    | '/esqueci-a-senha'
+    | '/primeiro-acesso'
     | '/sem-lotacao'
     | '/configuracoes'
     | '/configuracoes-da-escala'
@@ -421,6 +441,8 @@ export interface FileRouteTypes {
   to:
     | '/criar-senha'
     | '/entrar'
+    | '/esqueci-a-senha'
+    | '/primeiro-acesso'
     | '/sem-lotacao'
     | '/configuracoes'
     | '/configuracoes-da-escala'
@@ -460,6 +482,8 @@ export interface FileRouteTypes {
     | '/_app'
     | '/criar-senha'
     | '/entrar'
+    | '/esqueci-a-senha'
+    | '/primeiro-acesso'
     | '/sem-lotacao'
     | '/_app/configuracoes'
     | '/_app/configuracoes-da-escala'
@@ -503,6 +527,8 @@ export interface RootRouteChildren {
   AppRoute: typeof AppRouteWithChildren
   CriarSenhaRoute: typeof CriarSenhaRoute
   EntrarRoute: typeof EntrarRoute
+  EsqueciASenhaRoute: typeof EsqueciASenhaRoute
+  PrimeiroAcessoRoute: typeof PrimeiroAcessoRoute
   SemLotacaoRoute: typeof SemLotacaoRoute
 }
 
@@ -527,6 +553,20 @@ declare module '@tanstack/react-router' {
       path: '/entrar'
       fullPath: '/entrar'
       preLoaderRoute: typeof EntrarRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/esqueci-a-senha': {
+      id: '/esqueci-a-senha'
+      path: '/esqueci-a-senha'
+      fullPath: '/esqueci-a-senha'
+      preLoaderRoute: typeof EsqueciASenhaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/primeiro-acesso': {
+      id: '/primeiro-acesso'
+      path: '/primeiro-acesso'
+      fullPath: '/primeiro-acesso'
+      preLoaderRoute: typeof PrimeiroAcessoRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/sem-lotacao': {
@@ -906,6 +946,8 @@ const rootRouteChildren: RootRouteChildren = {
   AppRoute: AppRouteWithChildren,
   CriarSenhaRoute: CriarSenhaRoute,
   EntrarRoute: EntrarRoute,
+  EsqueciASenhaRoute: EsqueciASenhaRoute,
+  PrimeiroAcessoRoute: PrimeiroAcessoRoute,
   SemLotacaoRoute: SemLotacaoRoute,
 }
 export const routeTree = rootRouteImport

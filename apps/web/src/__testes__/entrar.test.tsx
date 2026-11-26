@@ -129,12 +129,12 @@ describe('entrar', () => {
 });
 
 describe('entrar: esqueci a senha e senha provisória vencida', () => {
-  it('Esqueci minha senha mostra a orientação', async () => {
+  it('Esqueci minha senha é um link para a tela do código por e-mail (6.68), e a orientação antiga saiu do login', async () => {
     simularApi({ '/api/eu': { status: 401 } });
     abrir('/entrar');
+    expect(await screen.findByRole('link', { name: 'Esqueci minha senha' })).toHaveAttribute('href', '/esqueci-a-senha');
+    expect(screen.getByRole('link', { name: 'Primeiro acesso' })).toHaveAttribute('href', '/primeiro-acesso');
     expect(screen.queryByText('Peça uma senha nova ao auxiliar administrativo da sua seção.')).toBeNull();
-    await userEvent.click(await screen.findByRole('button', { name: 'Esqueci minha senha' }));
-    expect(screen.getByText('Peça uma senha nova ao auxiliar administrativo da sua seção.')).toBeInTheDocument();
   });
 
   it('senha provisória vencida mostra a mensagem do servidor (Review Focus 5)', async () => {
