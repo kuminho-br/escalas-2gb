@@ -14,13 +14,13 @@ export const consultaPeculio = (unidadeId: string, mes: string, incluirAsDeBaixo
   });
 
 /**
- * A unidade do módulo: a unidade em que as telas trabalham (a escolhida no Topo), quando a pessoa tem nível de acesso nela ou numa unidade acima dela; nunca sobe sozinha
+ * A unidade do módulo: a unidade em que as telas trabalham (a escolhida no Topo), quando a pessoa tem nível de acesso nela ou numa unidade acima dela (se não é só de consulta); nunca sobe sozinha
  * para a unidade de cima só porque tem nível lá (o administrador da raiz com a 1ª SB no Topo vê a 1ª SB, e não a corporação inteira). Numa unidade só de consulta
  * (que não é de nenhum nível de acesso da pessoa), vale o nível dela na unidade mais alta; sem nível, a própria unidade das telas.
  */
 export function unidadeDoPeculio(eu: Eu): { id: string; sigla: string } {
-  const temNivelNelaOuAcima = eu.papeis.some((p) => eu.unidade.caminho.includes(p.unidadeSigla));
-  if (!temNivelNelaOuAcima && eu.soConsulta && eu.papeis.length > 0) {
+  // unidade só de consulta é, por definição, a que a pessoa não tem nível nela nem acima (comparar a sigla erraria com a mesma sigla em dois grupamentos)
+  if (eu.soConsulta && eu.papeis.length > 0) {
     const nivelDe = (id: string) => eu.unidades.find((u) => u.id === id)?.nivel ?? Number.MAX_SAFE_INTEGER;
     const maisAlto = [...eu.papeis].sort((a, b) => nivelDe(a.unidadeId) - nivelDe(b.unidadeId))[0]!;
     return { id: maisAlto.unidadeId, sigla: maisAlto.unidadeSigla };

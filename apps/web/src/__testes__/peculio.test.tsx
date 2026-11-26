@@ -54,6 +54,18 @@ describe('a unidade do módulo', () => {
     expect(unidadeDoPeculio(comUnidade(EU_EXEMPLO))).toEqual({ id: 'u-1sb', sigla: '1ª SB' });
   });
 
+  it('Review Focus 4 (achado da revisão): com a mesma sigla em dois grupamentos, quem só consulta a seção do outro vale pelo nível mais alto dele, e não pela sigla que coincide', () => {
+    // nível na "1ª SB" do 3º GB; no Topo, para consulta, a "1ª SB" do 2º GB (a sigla coincide, a unidade não é dele)
+    const eu: Eu = {
+      ...GESTOR_GB,
+      papeis: [{ papel: 'escalante', unidadeId: 'u-1sb-gb3', unidadeSigla: '1ª SB' }],
+      unidades: [{ id: 'u-1sb-gb3', sigla: '1ª SB', caminho: ['CBMPE', 'DGO', 'DInter/1', '3º GB', '1ª SB'], nivel: 4, tipo: 'secao', maeId: null }],
+      unidade: { id: 'u-1sb-gb2', sigla: '1ª SB', caminho: ['CBMPE', 'DGO', 'DInter/1', '2º GB', '1ª SB'], nivel: 4, tipo: 'secao', maeId: null },
+      soConsulta: true,
+    };
+    expect(unidadeDoPeculio(eu)).toEqual({ id: 'u-1sb-gb3', sigla: '1ª SB' });
+  });
+
   it('o militar comum e quem só consulta seguem como antes: a unidade dele, e o nível mais alto na unidade só de consulta', () => {
     expect(unidadeDoPeculio(comUnidade({ ...EU_EXEMPLO, papeis: [] }))).toEqual({ id: 'u-1sb', sigla: '1ª SB' });
     const soConsulta: Eu = { ...GESTOR_GB, papeis: [{ papel: 'gestor', unidadeId: 'u-gb', unidadeSigla: '2º GB' }], unidade: { id: 'u-3sb', sigla: '3ª SB', caminho: ['CBMPE', 'DGO', 'DInter/1', '3º GB', '3ª SB'], nivel: 4, tipo: 'secao', maeId: null }, soConsulta: true };
@@ -203,6 +215,8 @@ describe('módulo Pecúlio', () => {
     const dialogo = within(await screen.findByRole('dialog'));
     expect(dialogo.getByText('Importar o Pecúlio da planilha')).toBeInTheDocument();
     expect(dialogo.getByRole('link', { name: 'Baixar modelo' })).toHaveAttribute('href', '/api/unidades/u-gb/importacao/peculio/modelo');
+    // a janela diz em que unidade a importação cai (a do Topo)
+    expect(dialogo.getByText('Unidade da importação: 2º GB e as de baixo.')).toBeInTheDocument();
   });
 
   describe('a prévia da importação do Pecúlio (6.13)', () => {
