@@ -125,6 +125,12 @@
 | [superpowers/plans/2026-11-24-revisao-da-documentacao.md](superpowers/plans/2026-11-24-revisao-da-documentacao.md) | Revisão geral da documentação de 24/11: o que foi corrigido e o que pede ação | DOCUMENTAÇÃO | vigente |
 | [superpowers/plans/2026-11-24-pool-de-feedbacks-do-piloto.md](superpowers/plans/2026-11-24-pool-de-feedbacks-do-piloto.md) | Pool de feedbacks do piloto de dezembro (agrupados até virar plano) | PLANEJAMENTO | ativo |
 
+## Ideias
+
+| Documento | Para que serve | Quem cuida | Situação |
+|---|---|---|---|
+| [ideias/LEIAME.md](ideias/LEIAME.md) | Ideias novas de domínio ou escopo, antes do roadmap: uma por arquivo, com perguntas em aberto e esboço da estrutura | CONCEPÇÃO | vigente |
+
 ## Telas e mockups
 
 | Documento | Para que serve | Quem cuida | Situação |
