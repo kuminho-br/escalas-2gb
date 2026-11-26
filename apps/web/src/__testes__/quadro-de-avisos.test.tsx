@@ -1,4 +1,4 @@
-import { screen, waitFor, within } from '@testing-library/react';
+import { act, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { Aviso, QuadroDeAvisos } from 'contratos';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -81,7 +81,7 @@ describe('o painel de avisos', () => {
     expect(within(p).getByText('Aviso 1')).toBeInTheDocument();
   });
 
-  it('o texto longo, com linhas em branco, não estoura a cena: rola dentro do aviso e guarda as quebras', async () => {
+  it('o texto longo, com linhas em branco: tem as classes de rolar dentro do aviso e de guardar as quebras, e a cena segue com a altura que o quadro mede', async () => {
     const longo = `${'Linha comprida. '.repeat(20)}\n\nSegundo parágrafo.\n\nTerceiro parágrafo.`;
     const { cena } = await abrirComAvisos(quadro([aviso(1, { texto: longo, titulo: 'T'.repeat(80) })]));
     const p = await painel();
@@ -115,7 +115,7 @@ describe('o painel de avisos', () => {
     expect(within(p).queryByRole('button', { name: 'Publicar aviso' })).toBeNull();
   });
 
-  it('o painel dentro da cena cabe nela: a altura é limitada à da cena e o texto rola dentro do aviso (1024 a 1200 px)', async () => {
+  it('o painel dentro da cena tem as classes que o limitam à altura da cena e fazem o texto rolar dentro do aviso (o jsdom não mede; as medidas se conferem nas fotos, 1024 a 1200 px)', async () => {
     await abrirComAvisos(quadro([aviso(1, { podeAlterar: true, titulo: 'T'.repeat(80), texto: 'x '.repeat(200) })], true));
     const p = await painel();
     expect(p.className).toMatch(/max-h-full/);
@@ -168,7 +168,7 @@ describe('o painel de avisos', () => {
 describe('a barra encolhida e o celular', () => {
   afterEach(() => vi.unstubAllGlobals());
 
-  it('a barra encolhida mostra o título do primeiro aviso só no computador', async () => {
+  it('a barra encolhida mostra o título do primeiro aviso só a partir de 1024 px, como o painel (pool 51 g)', async () => {
     const { cena } = await abrirComAvisos(quadro([aviso(1, { titulo: 'Reunião geral' }), aviso(2)]));
     const barra = await waitFor(() => {
       const b = cena.querySelector<HTMLElement>('[data-barra-do-aviso]');
@@ -176,7 +176,7 @@ describe('a barra encolhida e o celular', () => {
       return b!;
     });
     expect(barra).toHaveTextContent('Reunião geral');
-    expect(barra.className).toMatch(/hidden md:inline/);
+    expect(barra.className).toMatch(/hidden lg:inline/);
   });
 
   it('no celular o painel fica logo abaixo da cena, e não dentro dela', async () => {
@@ -244,7 +244,8 @@ describe('a janela de publicar, editar e retirar', () => {
     const janela = await screen.findByRole('dialog', { name: 'Publicar aviso' });
     await userEvent.type(within(janela).getByLabelText('Título'), 'X');
     await userEvent.type(within(janela).getByLabelText('Texto'), 'Y');
-    await userEvent.type(within(janela).getByLabelText('Vale até (opcional)'), '2020-01-01');
+    // uma data que ainda não passou: a janela a deixa seguir, e quem recusa é a API (o erro do campo vem de lá)
+    await userEvent.type(within(janela).getByLabelText('Vale até (opcional)'), FUTURA);
     await userEvent.click(within(janela).getByRole('button', { name: 'Publicar' }));
     expect(await within(janela).findByText('A data já passou.')).toBeInTheDocument();
     expect(within(janela).getByLabelText('Vale até (opcional)')).toHaveAttribute('aria-invalid', 'true');
@@ -290,5 +291,113 @@ describe('a janela de publicar, editar e retirar', () => {
     await userEvent.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Retirar' }));
     await waitFor(() => expect(chamadasA(fetchFalso, 'POST /api/avisos/av-1/retirar')).toBe(1));
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+  });
+});
+
+describe('acabamento do painel de avisos (6.65, pool 51)', () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  /** A lista da API que muda quando a tela grava: `depois` é a lista que o GET passa a devolver depois do primeiro POST ou PATCH. */
+  const comListaQueMuda = async (antes: Aviso[], depois: Aviso[], rotas: Record<string, unknown>) => {
+    const f = simularApi({ '/api/eu': { status: 200, corpo: EU_EXEMPLO }, [ROTA]: { status: 200, corpo: quadro(antes, true) }, ...rotas } as Parameters<typeof simularApi>[0]);
+    const padrao = f.getMockImplementation()!;
+    let gravou = false;
+    f.mockImplementation(async (entrada, init) => {
+      const metodo = (init?.method ?? 'GET').toUpperCase();
+      if (metodo !== 'GET') gravou = true;
+      const url = typeof entrada === 'string' ? entrada : entrada instanceof URL ? entrada.href : entrada.url;
+      if (metodo === 'GET' && new URL(url, 'http://localhost').pathname === '/api/avisos' && gravou) {
+        return new Response(JSON.stringify(quadro(depois, true)), { status: 200, headers: { 'Content-Type': 'application/json' } });
+      }
+      return padrao(entrada, init);
+    });
+    abrir('/');
+    await screen.findByRole('heading', { level: 1 });
+    return f;
+  };
+
+  it('(e) quem publica passa a ver o próprio aviso', async () => {
+    await comListaQueMuda([aviso(1), aviso(2)], [aviso(1), aviso(2), aviso(9, { titulo: 'Meu aviso novo' })], { 'POST /api/avisos': { status: 201, corpo: aviso(9, { titulo: 'Meu aviso novo' }) } });
+    await userEvent.click(within(await painel()).getByRole('button', { name: 'Publicar aviso' }));
+    const janela = await screen.findByRole('dialog', { name: 'Publicar aviso' });
+    await userEvent.type(within(janela).getByLabelText('Título'), 'Meu aviso novo');
+    await userEvent.type(within(janela).getByLabelText('Texto'), 'Corpo.');
+    await userEvent.click(within(janela).getByRole('button', { name: 'Publicar' }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    await waitFor(async () => expect(await painel()).toHaveTextContent('Meu aviso novo'));
+    expect(await painel()).toHaveTextContent('3 de 3');
+  });
+
+  it('(e) fixar na edição mantém o mesmo aviso à vista, mesmo que ele vá para o começo da lista', async () => {
+    await comListaQueMuda(
+      [aviso(1), aviso(2, { podeAlterar: true }), aviso(3)],
+      [aviso(2, { podeAlterar: true, fixado: true }), aviso(1), aviso(3)],
+      { 'PATCH /api/avisos/av-2': { status: 200, corpo: aviso(2, { fixado: true }) } },
+    );
+    await userEvent.click(within(await painel()).getByRole('button', { name: 'Próximo aviso' }));
+    expect(await painel()).toHaveTextContent('2 de 3');
+    await userEvent.click(within(await painel()).getByRole('button', { name: 'Editar' }));
+    const janela = await screen.findByRole('dialog', { name: 'Editar aviso' });
+    await userEvent.click(within(janela).getByRole('checkbox', { name: 'Fixar no topo' }));
+    await userEvent.click(within(janela).getByRole('button', { name: 'Salvar' }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    await waitFor(async () => expect(await painel()).toHaveTextContent('1 de 3'));
+    expect(within(await painel()).getByText('Aviso 2')).toBeInTheDocument();
+    expect(within(await painel()).getByText('Fixado')).toBeInTheDocument();
+  });
+
+  it('(e) retirar mostra o vizinho, sem contagem errada ("3 de 2"), e leva o foco ao painel (f)', async () => {
+    await comListaQueMuda(
+      [aviso(1), aviso(2), aviso(3, { podeAlterar: true })],
+      [aviso(1), aviso(2)],
+      { 'POST /api/avisos/av-3/retirar': { status: 204 } },
+    );
+    const p = await painel();
+    await userEvent.click(within(p).getByRole('button', { name: 'Aviso anterior' })); // dá a volta: o último, o 3
+    expect(await painel()).toHaveTextContent('3 de 3');
+    await userEvent.click(within(await painel()).getByRole('button', { name: 'Retirar' }));
+    await userEvent.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Retirar' }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    await waitFor(async () => expect(await painel()).toHaveTextContent('2 de 2'));
+    expect(await painel()).not.toHaveTextContent('3 de 2');
+    expect(within(await painel()).getByText('Aviso 2')).toBeInTheDocument();
+    await waitFor(async () => expect(await painel()).toHaveFocus());
+  });
+
+  it('(f) os pontos não são paradas de Tab, os botões escuros têm contorno branco no foco e a troca de aviso é anunciada', async () => {
+    await abrirComAvisos(quadro([aviso(1, { podeAlterar: true }), aviso(2)], true));
+    const p = await painel();
+    for (const ponto of within(p).getAllByRole('button', { name: /^Ir ao aviso/ })) expect(ponto).toHaveAttribute('tabindex', '-1');
+    for (const nome of ['Editar', 'Retirar', 'Publicar aviso', 'Próximo aviso', 'Aviso anterior']) expect(within(p).getByRole('button', { name: nome }).className, nome).toMatch(/focus-visible:outline-white/);
+    const anuncio = p.querySelector('[aria-live="polite"]')!;
+    expect(anuncio.className).toMatch(/sr-only/);
+    await userEvent.click(within(p).getByRole('button', { name: 'Próximo aviso' }));
+    expect(anuncio).toHaveTextContent('Aviso 2 de 2: Aviso 2');
+  });
+
+  it('(k) as alturas de linha e a borda de cima vêm dos tokens do sistema, sem medida à mão', async () => {
+    await abrirComAvisos(quadro([aviso(1, { podeAlterar: true })], true));
+    const p = await painel();
+    const classes = [p, ...p.querySelectorAll('*')].map((e) => e.getAttribute('class') ?? '').join(' ');
+    expect(classes).not.toMatch(/leading-\[/);
+    expect(classes).not.toMatch(/border-t-\[/);
+  });
+
+  it('(h) a janela aberta não fecha quando a tela cruza 1024 px', async () => {
+    let larga = true;
+    const ouvintes = new Set<() => void>();
+    vi.stubGlobal('matchMedia', (q: string) => ({
+      get matches() { return larga; }, media: q, addEventListener: (_: string, f: () => void) => ouvintes.add(f), removeEventListener: (_: string, f: () => void) => ouvintes.delete(f),
+    }));
+    const { cena } = await abrirComAvisos(quadro([aviso(1)], true), { 'POST /api/avisos': { status: 201, corpo: aviso(9) } });
+    await userEvent.click(within(await painel()).getByRole('button', { name: 'Publicar aviso' }));
+    const janela = await screen.findByRole('dialog', { name: 'Publicar aviso' });
+    await userEvent.type(within(janela).getByLabelText('Título'), 'Digitado antes');
+    larga = false;
+    act(() => ouvintes.forEach((f) => f()));
+    // o painel passou para baixo da cena (outra posição), e a janela segue aberta com o que foi digitado
+    await waitFor(async () => expect(cena.contains(await painel())).toBe(false));
+    expect(screen.getByRole('dialog', { name: 'Publicar aviso' })).toBeInTheDocument();
+    expect(within(screen.getByRole('dialog', { name: 'Publicar aviso' })).getByLabelText('Título')).toHaveValue('Digitado antes');
   });
 });

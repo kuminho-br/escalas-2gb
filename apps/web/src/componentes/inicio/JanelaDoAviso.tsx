@@ -32,7 +32,10 @@ function recusadosPeloEsquema(erros: { path: PropertyKey[]; message: string }[])
  * A janela dos avisos (6.56): "Publicar aviso" (unidade da árvore, título, texto, fixar no topo e "vale até" opcional), "Editar aviso" (a mesma, com a unidade parada: para mudar de unidade,
  * retire o aviso e publique outro) e a confirmação de retirar, na própria janela. Erro da API fica na janela, que continua aberta.
  */
-export function JanelaDoAviso({ eu, modo, aoFechar }: { eu: Eu; modo: ModoDaJanela; aoFechar: () => void }) {
+/** O que a janela fez com sucesso: publicou (com o aviso novo), editou ou retirou. */
+export type Concluido = { tipo: 'publicar'; aviso: Aviso } | { tipo: 'editar' | 'retirar' };
+
+export function JanelaDoAviso({ eu, modo, aoFechar, aoConcluir }: { eu: Eu; modo: ModoDaJanela; aoFechar: () => void; aoConcluir?: (feito: Concluido) => void }) {
   const queryClient = useQueryClient();
   const todas = useQuery(consultaUnidadesDaBusca);
   const aviso = modo.tipo === 'publicar' ? null : modo.aviso;
@@ -61,9 +64,15 @@ export function JanelaDoAviso({ eu, modo, aoFechar }: { eu: Eu; modo: ModoDaJane
     setCampos({});
     setGravando(true);
     try {
-      if (aviso) await mudarAviso(aviso.id, conferido.data);
-      else await publicarAviso({ unidadeId: unidade, titulo: dados.titulo, texto: dados.texto, fixado, valeAte: dados.valeAte });
+      let feito: Concluido;
+      if (aviso) {
+        await mudarAviso(aviso.id, conferido.data);
+        feito = { tipo: 'editar' };
+      } else {
+        feito = { tipo: 'publicar', aviso: await publicarAviso({ unidadeId: unidade, titulo: dados.titulo, texto: dados.texto, fixado, valeAte: dados.valeAte }) };
+      }
       atualizarAvisos(queryClient);
+      aoConcluir?.(feito);
       aoFechar();
     } catch (err) {
       setErro(mensagemDe(err));
@@ -80,6 +89,7 @@ export function JanelaDoAviso({ eu, modo, aoFechar }: { eu: Eu; modo: ModoDaJane
     try {
       await retirarAviso(modo.aviso.id);
       atualizarAvisos(queryClient);
+      aoConcluir?.({ tipo: 'retirar' });
       aoFechar();
     } catch (err) {
       setErro(mensagemDe(err));

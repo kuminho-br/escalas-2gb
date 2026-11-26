@@ -1,6 +1,6 @@
 // O texto dos cartões dos próximos serviços na tela inicial (6.55): puro, sem React. Datas 'aaaa-mm-dd', horas 'hh:mm'.
 import type { MeuServico } from 'contratos';
-import { razaoDeContraste, TINTA } from './cores';
+import { razaoDeContraste, TEXTO_CLARO, TINTA } from './cores';
 
 const SEMANA_CURTA = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'];
 const SEMANA_LONGA = ['domingo', 'segunda', 'terça', 'quarta', 'quinta', 'sexta', 'sábado'];
@@ -61,6 +61,6 @@ const misturaComTinta = (cor: string, parte: number): string => {
 /** O fundo do cartão: a cor do serviço misturada com a tinta (84% da cor); a cor clara ganha mais tinta, até o texto branco ler com 4,5:1. */
 export function fundoDoCartao(cor: string): string {
   let parte = PARTE_DA_COR;
-  while (parte > 0 && razaoDeContraste('#FFFFFF', misturaComTinta(cor, parte)) < 4.5) parte -= PASSO;
+  while (parte > 0 && razaoDeContraste(TEXTO_CLARO, misturaComTinta(cor, parte)) < 4.5) parte -= PASSO;
   return `color-mix(in srgb, ${cor} ${Math.max(parte, 0)}%, var(--color-tinta))`;
 }
