@@ -6,11 +6,11 @@
 
 **Goal:** fechar os achados menores das revisões que ficaram abertos no pool e acrescentar o pedido do usuário de abrir a ficha do militar pela Grade geral.
 
-**Architecture:** seis lotes independentes, um por área. Cada lote é uma tarefa com o seu teste. Nenhum muda regra de negócio. Os achados que ainda esperam decisão do usuário ficaram de fora (no fim deste plano).
+**Architecture:** sete lotes independentes, um por área. Cada lote é uma tarefa com o seu teste. Nenhum muda regra de negócio. Os achados que ainda esperam decisão do usuário ficaram de fora (no fim deste plano).
 
 **Tech Stack:** Hono, Postgres/PGlite, React, TanStack Query, Vitest.
 
-**Spec:** o pool (`docs/superpowers/plans/2026-11-24-pool-de-feedbacks-do-piloto.md`), itens 17, 18, 25, 27, 30, 34, 35, 36 e 51, com as decisões pequenas desta sessão (marcadas "decidido pela PLANEJAMENTO" abaixo, a confirmar pelo usuário quando voltar).
+**Spec:** o pool (`docs/superpowers/plans/2026-11-24-pool-de-feedbacks-do-piloto.md`), itens 17, 18, 25, 27, 30, 34, 35, 36, 51 e 52, com as decisões pequenas desta sessão (marcadas "decidido pela PLANEJAMENTO" abaixo, a confirmar pelo usuário quando voltar).
 
 ## Global Constraints
 
@@ -105,7 +105,23 @@
   - (i) Os testes de largura medem o que dizem, e o erro da API num campo aparece na janela.
   - (k) As alturas de linha e a borda vêm dos tokens.
   - Fica como está: (j), porque o id é um UUID e o risco é baixo.
-- [ ] **Step 2:** FAIL. **Step 3:** implementar. **Step 4:** PASS. Rodar as verificações do fim de entrega e conferir no navegador o painel em 1100 e 390 px. **Step 5:** commit `Fase 6.65: acabamento do quadro de avisos (pool 51)`. Enviar a branch à PLANEJAMENTO.
+- [ ] **Step 2:** FAIL. **Step 3:** implementar. **Step 4:** PASS. Rodar as verificações do fim de entrega e conferir no navegador o painel em 1100 e 390 px. **Step 5:** commit `Fase 6.65: acabamento do quadro de avisos (pool 51)`.
+
+### Task 7: o Pecúlio e a pesquisa (pool 52)
+
+**Files:** Modify `apps/web/src/componentes/peculio/AtualizarEmLote.tsx`, `apps/web/src/componentes/peculio/Selecao.tsx`, `apps/api/src/visao/exportar.ts`, `apps/api/src/importacao/peculio.ts`, a busca simples (`apps/api/src/visao/`) e a placa da unidade; Test os testes da 6.62
+
+- [ ] **Step 1: testes:**
+  - (a) Se a releitura dos selecionados falha, o painel avisa em vez de mostrar a lotação antiga em silêncio.
+  - (b) O teste do lote usa matrículas diferentes, e o fetch falso confere o corpo: vão as matrículas certas e a troca é pelo id.
+  - (c) Uma busca lê as unidades uma vez só (contar as consultas).
+  - (d) A exportação e a importação do Pecúlio usam `rotulosDasUnidades`, sem custo O(n²) (1.000 unidades abaixo de 0,2 s).
+  - (f) A unidade extinta entra no cálculo do rótulo.
+  - (g) A busca simples do militar comum devolve `lotacaoCaminho`, e a placa mostra o caminho em toda a tela.
+  - (h) A placa com caminho longo não espreme o nome em 360 px (o caminho corta com reticências e o nome não encolhe).
+  - (i)/(j) Comentário velho corrigido; o `afterAll` usa `esquecerUnidadeDaAba`; teste de tela da abertura padrão do gestor do GB na 1ª SB.
+  - Fica como está: (e), enquanto a leitura de todas as unidades não pesar; (k), que espera o usuário.
+- [ ] **Step 2:** FAIL. **Step 3:** implementar. **Step 4:** PASS. Rodar as verificações do fim de entrega. **Step 5:** commit `Fase 6.65: acabamento do Pecúlio e da pesquisa (pool 52)`. Enviar a branch à PLANEJAMENTO.
 
 ## Fora deste plano (esperam decisão ou outra sessão)
 
