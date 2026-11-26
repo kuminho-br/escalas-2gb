@@ -111,10 +111,11 @@ Design: `docs/superpowers/specs/2026-11-21-usuarios-e-modulos-design.md`. Plano:
 | 58 | Laboratório 1: o espelho do banco (schema `laboratorio`, mesma estrutura do real, só dados de teste) e a separação: os militares fictícios `990…` saem do banco real. **Tem prazo: antes da montagem de dezembro** | plano pronto; aguarda a ordem do usuário para a DESENVOLVIMENTO |
 | 59 | Laboratório 2: o cartão na tela inicial, o perfil de teste, a faixa "Laboratório: dados de teste. Nada aqui vale." e o sistema inteiro sobre o espelho, com o isolamento provado; "Recomeçar" | plano pronto; depois da 6.58 |
 | 60 | Laboratório 3: as ferramentas em teste e o retorno (texto e nota de 1 a 5), com a lista de retornos para o administrador | plano pronto; depois da 6.59 |
-| 61 | Cabeçalho novo do mockup v3 da tela inicial: fio vinho, brasão do 2º GB, o nome "Sistema de Gestão - 2º GB" e a unidade em degraus (um botão por nível, cada um abre só as unidades de dentro do anterior), no lugar do seletor da 6.45 | sem plano; depois da 6.56 |
-| 62 | Pecúlio: o Pecúlio da unidade abre na unidade do Topo (defeito), o lote não desfaz a seleção (defeito), a unidade pelo menor caminho na pesquisa e remover uma mudança do histórico de rastreio | plano pronto; aguarda a ordem do usuário |
-| 63 | Pesquisar militares, segunda versão: "Selecionados" em painel lateral, com a matrícula e o agrupamento; "Exportar" perto de "Importar"; o botão "Critérios de pesquisa", com o nome completo desligado por padrão e a marca dos filtros ativos | sem plano; aguarda o mockup da DESIGN |
+| 61 | Cabeçalho novo do mockup v3 da tela inicial: fio vinho, brasão do 2º GB, o nome "Sistema de Gestão - 2º GB" e a unidade em degraus (um botão por nível, cada um abre só as unidades de dentro do anterior), no lugar do seletor da 6.45 | plano pronto; aguarda a ordem do usuário |
+| 62 | Pecúlio: o Pecúlio da unidade abre na unidade do Topo (defeito), o lote não desfaz a seleção (defeito), a unidade pelo menor caminho na pesquisa e remover uma mudança do histórico de rastreio | enviada à DESENVOLVIMENTO, depois da 6.56 |
+| 63 | Pesquisar militares, segunda versão: "Selecionados" em painel lateral, com a matrícula e o agrupamento; "Exportar" perto de "Importar"; o botão "Critérios de pesquisa", com o nome completo desligado por padrão e a marca dos filtros ativos; Importar e Exportar no alto | plano pronto (mockup aprovado em 26/11); depois da 6.62; aguarda a ordem do usuário |
 | 64 | Equipes como cadastro: Alfa a Delta (Pronto, 1×3), ADM e Externa (só operações), herdadas da corporação, no lugar do texto solto | sem plano; aguarda a modelagem da CONCEPÇÃO (urgente) |
+| 65 | Acabamento das revisões (os menores das 6.46, 6.53, 6.55, 6.57 e da 7.x) e a ficha do militar pela Grade geral | plano pronto; depois da 6.56; aguarda a ordem do usuário |
 
 ## Refatoração da interface · fundação concluída
 
