@@ -3,13 +3,11 @@ import {
   CalendarCheck,
   CalendarDays,
   Layers,
-  CircleHelp,
   Clock,
   Cake,
   Contact,
   Eye,
   FileText,
-  History,
   LayoutGrid,
   ListTree,
   Medal,
@@ -87,8 +85,6 @@ export const MODULOS: Modulo[] = [
     ],
     pe: [
       { nome: 'Configurações da escala', icone: Settings, para: '/configuracoes-da-escala' },
-      { nome: 'Histórico', icone: History },
-      { nome: 'Ajuda', icone: CircleHelp },
     ],
   },
   // o Pecúlio é do militar com conta, e a Consulta de militares é uma tela dele (entrega 6.26): quem não tem nível de acesso entra direto na Consulta e vê só ela
