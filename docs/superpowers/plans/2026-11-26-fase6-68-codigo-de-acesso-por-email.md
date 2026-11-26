@@ -4,7 +4,7 @@
 
 > **Modelo: Sonnet** (o padrão, decisão do usuário de 25/11/2026). Revisão final no Opus.
 
-**Goal:** o militar cria a própria senha sem depender do auxiliar. Em "Primeiro acesso" ou "Esqueci minha senha", ele digita o e-mail institucional e recebe um código. Com o código, ele cria a senha e entra. A senha provisória gerada pelo auxiliar ou pelo gestor continua existindo, como reserva.
+**Goal:** o militar cria a própria senha sem depender do auxiliar, e quem está logado troca a própria senha na Minha ficha. Em "Primeiro acesso" ou "Esqueci minha senha", ele digita o e-mail institucional e recebe um código. Com o código, ele cria a senha e entra. A senha provisória gerada pelo auxiliar ou pelo gestor continua existindo, como reserva.
 
 **Architecture:**
 - **Na API:** duas rotas públicas novas em `apps/api/src/acesso-por-email/`:
@@ -15,6 +15,7 @@
   - `pedido_de_codigo`: com auditoria, sem o código. Serve para os limites, a cota do dia e o registro do pedido e da conclusão.
   - `codigo_de_acesso`: sem auditoria. Guarda só o resumo (HMAC) do código.
 - **No site:** duas telas públicas (`/primeiro-acesso` e `/esqueci-a-senha`) com o mesmo cartão do login. A lista dos requisitos da senha vai também para a tela de criar senha que já existe.
+- **Trocar a senha logado** (pool 50, decisão do usuário de 26/11): na Minha ficha, pela rota `change-password` do better-auth que já está montada (Task 5).
 
 **Tech Stack:** Hono, Postgres/PGlite, better-auth (`hashPassword`), zod (`contratos`), `fetch` para a API do Brevo, React, TanStack Router, Vitest.
 
@@ -26,7 +27,8 @@
 ## Global Constraints
 
 - Branch `fase6-68-codigo-de-acesso-por-email`, a partir da `main`.
-- **Migração `0051_codigo_de_acesso.sql`.** Se a 6.66 (0050) ainda não tiver entrado, usar o número livre seguinte. Aplicar no banco de teste só com a autorização do usuário.
+- **Migração `0051_codigo_de_acesso.sql`** (a 0050 ficou livre com a 6.66 descartada; a 6.64 usa a 0052; se a 0051 estiver ocupada, o próximo número livre). Aplicar no banco só com a autorização do usuário.
+- **A migração vale para o real e para o espelho** (6.58): escrita sem `public.`; ao consultar o catálogo, usar `current_schema()`. O teste de estrutura igual do espelho continua verde.
 - **Segredo:** a chave do Brevo vem da variável de ambiente `BREVO_API_KEY`, posta pelo usuário no Vercel.
   - O remetente vem de `EMAIL_REMETENTE` (o endereço verificado no Brevo).
   - O nome do remetente é fixo: "Sistema de Gestão - 2º GB".
@@ -57,7 +59,7 @@
   - **cota do dia:** o plano gratuito do Brevo envia 300 por dia. Com 280 envios no dia (fuso de Recife), o envio fica "fora do ar" até a meia-noite.
 - **Envio fora do ar** (sem chave ou com a cota do dia cheia):
   - vale para todos, cadastrados ou não, então não revela nada;
-  - 503 "O envio de códigos está fora do ar agora. Peça uma senha provisória ao auxiliar administrativo da sua seção.".
+  - 503 "O envio de códigos está fora do ar agora. Procure a Seção de Pessoal.".
 - **Criar a senha com o código:** e-mail, código e senha nova (as regras da `NovaSenha`, pelo menos 10 caracteres).
   - **Se der certo:**
     - cria o usuário e a conta, se faltarem (`garantirUsuario`, como a senha provisória);
@@ -73,7 +75,7 @@
   - assunto "Seu código de acesso ao Sistema de Gestão - 2º GB";
   - texto: "Seu código é {código}. Ele vale por 15 minutos e serve uma vez. Se você não pediu este código, ignore este e-mail: sua senha não muda.";
   - versão em texto e em HTML simples, sem link e sem imagem.
-- **Aviso de spam nas telas** (decisão do usuário; texto definido pela PLANEJAMENTO): "O e-mail sai de um endereço do Gmail e pode cair no spam ou no lixo eletrônico. Se não chegar em 5 minutos, procure lá. Se não chegar de jeito nenhum, peça uma senha provisória ao auxiliar administrativo da sua seção."
+- **Aviso nas telas** (decisão do usuário de 26/11: breve, sem exagero, sem citar o Gmail enquanto o remetente não estiver definido): "Se o código não chegar em 5 minutos, procure no spam. Se ainda assim não chegar, procure a Seção de Pessoal." É o mesmo aviso para qualquer e-mail digitado, então não revela se ele está numa ficha; e cobre também a ficha sem e-mail ou com o e-mail errado.
 - **Requisitos da senha à vista** (pool 49):
   - nas telas de criar senha (a de hoje, `/criar-senha`, e as duas novas), cada requisito aparece numa lista e fica marcado quando cumprido: "Pelo menos 10 caracteres" e "As duas senhas iguais";
   - as regras não mudam: a lista mostra as que já existem.
@@ -82,7 +84,7 @@
   - no login, "Esqueci minha senha" passa a levar à tela nova (hoje só mostra o texto de pedir ao auxiliar), e entra o link "Primeiro acesso";
   - decidido pela PLANEJAMENTO: sem mockup da DESIGN, porque as telas reaproveitam o cartão do login sem desenho novo. A DESIGN pode revisar depois.
 - **Ordem com a 6.67:** as duas mexem em `entrar.tsx`. Quem for depois traz a outra da `main` antes de começar.
-- **Nos testes:** nunca chamar o Brevo; o envio falso guarda as mensagens. E-mails fictícios do domínio institucional, só com matrículas da faixa `990xxx-x`.
+- **Nos testes:** nunca chamar o Brevo; o envio falso guarda as mensagens. E-mails fictícios do domínio institucional e nomes fictícios. O militar de teste tem a marca `de_teste` quando a 6.58 já estiver na `main`; nenhum teste grava no banco real.
 - Antes de enviar: `pnpm test && pnpm typecheck && pnpm build:vercel`. Enviar a branch uma vez só, no fim.
 - **Depois do merge** (para a VALIDAÇÃO, com o usuário):
   - o usuário põe `BREVO_API_KEY` e `EMAIL_REMETENTE` no Vercel;
@@ -209,7 +211,7 @@ O fluxo, nas duas telas (só o título muda: "Primeiro acesso" e "Esqueci minha 
    - os campos "Código (6 números)", "Senha nova" e "Repita a senha nova", com os requisitos;
    - o botão "Criar senha e entrar";
    - os links "Pedir outro código" e "Usar outro e-mail";
-   - sempre à vista: "Não chegou? Peça uma senha provisória ao auxiliar administrativo da sua seção.".
+   - sempre à vista: o aviso das telas ("Se o código não chegar em 5 minutos, procure no spam. Se ainda assim não chegar, procure a Seção de Pessoal.").
 3. **Sucesso:** entra com o e-mail e a senha nova e vai para o início, como o login. A animação de entrada segue a regra de hoje.
 
 - [ ] **Step 1: testes:**
@@ -217,7 +219,7 @@ O fluxo, nas duas telas (só o título muda: "Primeiro acesso" e "Esqueci minha 
   - o fluxo inteiro com a API falsa;
   - a frase da API aparece igual para qualquer e-mail;
   - o aviso de spam na etapa 2;
-  - 429 e 503 mostram as frases de `contratos`, e o 503 mostra o caminho do auxiliar;
+  - 429 e 503 mostram as frases de `contratos` (o 503 manda procurar a Seção de Pessoal);
   - o código inválido mostra a frase no campo do código;
   - os requisitos marcam conforme a pessoa digita, inclusive em `/criar-senha`;
   - "Criar senha e entrar" só habilita com os requisitos cumpridos;
@@ -230,10 +232,23 @@ O fluxo, nas duas telas (só o título muda: "Primeiro acesso" e "Esqueci minha 
   - o código errado cinco vezes;
   - o envio fora do ar.
 
-  Commit `Fase 6.68: as telas de primeiro acesso e esqueci minha senha`. Enviar a branch à PLANEJAMENTO.
+  Commit `Fase 6.68: as telas de primeiro acesso e esqueci minha senha`.
+
+
+### Task 5: trocar a senha estando logado (pool 50)
+
+**Files:** Create `apps/web/src/componentes/acesso/TrocarSenha.tsx`; Modify `apps/web/src/routes/_app/minha-ficha.tsx` (o bloco "Senha" com o botão), `pacotes/contratos/src/usuarios.ts` (`TrocarSenha` e as frases); Test `apps/api/test/trocar-senha.test.ts`, `apps/web/src/__testes__/trocar-senha.test.tsx`.
+
+**Interfaces:**
+- Consumes: `RequisitosDaSenha` (Task 4); a rota `POST /api/auth/change-password` do better-auth, já montada em `apps/api/src/app.ts` com a guarda que a recusa (403) enquanto há senha provisória pendente.
+- Produces: em `contratos`, `TrocarSenha = z.object({ senhaAtual: z.string().min(1), novaSenha: z.string().min(10, 'Use pelo menos 10 caracteres.') })`; o site chama a rota com `{ currentPassword, newPassword, revokeOtherSessions: true }` e traduz a recusa de senha atual errada para "A senha atual não confere.".
+- Na Minha ficha, um bloco "Senha" com o botão "Trocar senha", que abre uma janela com "Senha atual", "Senha nova", "Repita a senha nova", os requisitos à vista e o botão "Trocar senha". Depois de trocar: a mensagem "Senha trocada. As outras sessões abertas foram encerradas." e esta sessão continua.
+- A troca invalida o código de acesso pendente do militar (a Task 1 apaga a linha de `codigo_de_acesso`): quem trocou a senha não fica com um código esquecido valendo. A guarda de `app.ts` faz isso depois que a troca do better-auth der certo.
+
+- [ ] **Step 1: testes.** API: trocar com a senha atual certa grava a nova (o login com a nova funciona e com a antiga não); com a senha atual errada é recusado e nada muda; com a senha nova curta é recusado; as outras sessões do militar caem e a desta continua; com senha provisória pendente continua 403 (a guarda de hoje); o código pendente do militar deixa de valer depois da troca. Site: o botão aparece na Minha ficha; os requisitos marcam enquanto digita; "Trocar senha" só habilita com eles cumpridos; senha atual errada mostra "A senha atual não confere." no campo; sucesso mostra a mensagem e fecha; cabe em 360 px.
+- [ ] **Step 2:** FAIL. **Step 3:** implementar (skill de design; a janela segue as outras janelas da Minha ficha). **Step 4:** PASS e as verificações do fim de entrega. Commit `Fase 6.68: trocar a senha na Minha ficha`. Enviar a branch à PLANEJAMENTO.
 
 ## Fora deste plano
 
-- Pool 50, a parte de **trocar a senha estando logado** (na Minha ficha): aguarda o usuário dizer se quer.
 - O envio pelo servidor institucional, com domínio próprio e sem o risco de spam: na ida ao servidor do Estado.
 - O e-mail pessoal como caminho de reserva: decisão do usuário, só o institucional recebe.
