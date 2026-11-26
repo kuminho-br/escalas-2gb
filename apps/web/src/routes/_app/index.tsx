@@ -1,8 +1,10 @@
 import { useQuery } from '@tanstack/react-query';
 import { createFileRoute, Link, redirect, useNavigate } from '@tanstack/react-router';
-import { useEffect, useLayoutEffect, useRef, useState, type RefObject } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore, type RefObject } from 'react';
 import type { Eu } from '@/api/eu';
+import { consultaAvisos } from '@/api/avisos';
 import { consultaProximosServicos } from '@/api/visualizacao';
+import { QuadroDeAvisos } from '@/componentes/inicio/QuadroDeAvisos';
 import { ProximosServicos } from '@/componentes/inicio/ProximosServicos';
 import { SeuProximoServico } from '@/componentes/inicio/SeuProximoServico';
 import { MODULOS, type Modulo } from '@/lib/modulos';
@@ -50,6 +52,8 @@ function useQuadroQueEncolhe(quadro: RefObject<HTMLElement | null>, espaco: RefO
       const { altura, encolhido } = quadroAoRolar(alturaCheia, window.scrollY, menos);
       el.style.height = `${altura}px`;
       el.style.setProperty('--e', String(encolhido));
+      // passada a metade do caminho, o painel de avisos sai da cena: o estilo o esconde, e ele deixa de receber foco e clique
+      el.toggleAttribute('data-encolhida', encolhido > 0.45);
       esp.style.height = `${alturaCheia - altura}px`;
     };
     const medir = () => {
@@ -71,6 +75,20 @@ function useQuadroQueEncolhe(quadro: RefObject<HTMLElement | null>, espaco: RefO
   }, [quadro, espaco]);
 }
 
+/** A tela é larga (1024 px ou mais)? Então o painel de avisos fica na cena, à direita; senão desce para logo abaixo dela. Sem `matchMedia` (testes), vale larga. */
+const LARGA = '(min-width: 1024px)';
+function useTelaLarga(): boolean {
+  return useSyncExternalStore(
+    (aviso) => {
+      const m = typeof window.matchMedia === 'function' ? window.matchMedia(LARGA) : null;
+      m?.addEventListener?.('change', aviso);
+      return () => m?.removeEventListener?.('change', aviso);
+    },
+    () => (typeof window.matchMedia === 'function' ? window.matchMedia(LARGA).matches : true),
+    () => true,
+  );
+}
+
 /** A tela inicial: a cena num quadro que encolhe ao rolar e um atalho por módulo que a pessoa pode usar (docs/telas/refatoracao/tela-inicial/index.html). */
 function Inicio() {
   const { eu } = Route.useRouteContext();
@@ -87,6 +105,11 @@ function Inicio() {
   // os próximos serviços (6.55): se a API não responde (404 de conta que não é de militar, ou erro), a área inteira some, sem mensagem
   const proximos = useQuery(consultaProximosServicos()).data?.servicos;
   const primeiro = proximos?.[0];
+  // os avisos (6.56): idem; sem resposta, o painel não aparece
+  const dosAvisos = useQuery(consultaAvisos()).data;
+  const avisos = Array.isArray(dosAvisos?.avisos) ? dosAvisos : undefined;
+  const primeiroAviso = avisos?.avisos[0];
+  const larga = useTelaLarga();
   // a chegada pela animação do login: a cena pousa nesta faixa; a saudação entra no pouso e recebe o foco, e os cartões sobem durante o afastamento
   const { fase, cartoes } = useTransicao();
   const titulo = useRef<HTMLHeadingElement>(null);
@@ -113,19 +136,28 @@ function Inicio() {
             <p className="data col-start-1 text-corpo text-white/90 md:text-nome">{dataPorExtenso(agora)}</p>
             {/* os cartões entram junto com a saudação (o mesmo data-chegada) e somem antes da barra */}
             {proximos && <div className="proximos-da-cena col-start-1 min-w-0 self-end pb-4 md:pb-6"><ProximosServicos servicos={proximos} /></div>}
-            {/* o lugar dos avisos (6.56): à direita da cena, vazio por enquanto */}
-            <div data-lugar-dos-avisos aria-hidden className="hidden lg:col-start-2 lg:row-span-3 lg:row-start-1 lg:block" />
+            {/* o lugar dos avisos (6.56): à direita da cena, a partir de 1024 px; abaixo disso o painel desce para logo abaixo da cena */}
+            <div data-lugar-dos-avisos className="hidden lg:col-start-2 lg:row-span-3 lg:row-start-1 lg:flex lg:items-end lg:pb-6">
+              {larga && avisos && <QuadroDeAvisos eu={eu} quadro={avisos} className="w-full" />}
+            </div>
           </div>
           {/* a barra, quando o quadro encolhe: a saudação já é o título menor; aqui entra o próximo serviço (a leitura de tela o encontra nos cartões e no detalhe) */}
-          {primeiro && (
-            <p data-barra-do-servico aria-hidden className="barra-do-servico pointer-events-none absolute right-4 bottom-2 left-4 flex h-[18px] items-center md:right-7 md:bottom-0 md:left-auto md:h-16 md:max-w-[55%]">
-              {/* no celular a linha fica embaixo da saudação, na largura toda; no computador, à direita dela */}
-              <span className="truncate text-apoio text-white md:text-corpo">{`Próximo serviço: ${diaDaSemanaLongo(primeiro.data)}, ${diaDoMes(primeiro.data)}, ${primeiro.servico}, ${horarioCurto(primeiro.inicio, primeiro.fim)}`}</span>
+          {(primeiro || primeiroAviso) && (
+            <p data-barra-do-servico={primeiro ? '' : undefined} aria-hidden className="barra-do-servico pointer-events-none absolute right-4 bottom-2 left-4 flex h-[18px] items-center gap-4 md:right-7 md:bottom-0 md:left-auto md:h-16 md:max-w-[75%]">
+              {/* no celular a linha fica embaixo da saudação, na largura toda; no computador, à direita dela, e o título do primeiro aviso depois (só no computador) */}
+              {primeiro && <span className="min-w-0 truncate text-apoio text-white md:text-corpo">{`Próximo serviço: ${diaDaSemanaLongo(primeiro.data)}, ${diaDoMes(primeiro.data)}, ${primeiro.servico}, ${horarioCurto(primeiro.inicio, primeiro.fim)}`}</span>}
+              {primeiroAviso && <span data-barra-do-aviso className="hidden md:inline max-w-[40%] min-w-0 shrink-0 truncate text-corpo font-medium text-white">{primeiroAviso.titulo}</span>}
             </p>
           )}
         </section>
       </div>
       <div ref={espaco} data-espaco-da-cena aria-hidden />
+      {/* abaixo de 1024 px o painel de avisos fica logo abaixo da cena, na largura da coluna */}
+      {!larga && avisos && (avisos.avisos.length > 0 || avisos.podePublicar) && (
+        <div data-chegada={chegadaDosCartoes} className="cartao-da-chegada mt-4">
+          <QuadroDeAvisos eu={eu} quadro={avisos} className="bg-tinta backdrop-blur-none" />
+        </div>
+      )}
       {aviso === 'outro-papel' && (
         <p role="status" className="mt-4 rounded-controle bg-pendencia-fundo px-3 py-2 text-sm text-pendencia">Essa área é de outro nível de acesso.</p>
       )}
