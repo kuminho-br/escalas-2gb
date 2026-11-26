@@ -117,6 +117,7 @@ Design: `docs/superpowers/specs/2026-11-21-usuarios-e-modulos-design.md`. Plano:
 | 64 | Equipes como cadastro: Alfa a Delta (Pronto, 1×3), ADM e Externa (só operações), herdadas da corporação, no lugar do texto solto | sem plano; aguarda a modelagem da CONCEPÇÃO (urgente) |
 | 65 | Acabamento das revisões (os menores das 6.46, 6.53, 6.55, 6.57 e da 7.x) e a ficha do militar pela Grade geral | plano pronto; depois da 6.56; aguarda a ordem do usuário |
 | 66 | Remover uma mudança do histórico de rastreio: o gestor remove o que ainda não vale, o administrador qualquer linha, sempre com motivo (migração 0050, no registro de alterações) | plano pronto; depois da 6.62; o merge aguarda a autorização da migração |
+| 67 | Entrada v2 (login): a foto nova do quartel por plataforma, as brasas que esfriam até virar cinza (59, por 4,2 s), mais fracas sobre a saudação, e o pouso no quadro da tela inicial v3 | plano pronto (mockup aprovado em 26/11); junto com a 6.61; aguarda a ordem do usuário |
 
 ## Refatoração da interface · fundação concluída
 
