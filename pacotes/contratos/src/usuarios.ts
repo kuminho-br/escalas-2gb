@@ -69,6 +69,12 @@ export const SenhaPeloCodigo = z.object({
 });
 export type SenhaPeloCodigo = z.infer<typeof SenhaPeloCodigo>;
 
+/** Trocar a senha estando logado (Minha ficha): a senha atual e a nova. */
+export const TrocarSenha = z.object({ senhaAtual: z.string().min(1, 'Digite a senha atual.'), novaSenha: z.string().min(10, 'Use pelo menos 10 caracteres.') });
+export type TrocarSenha = z.infer<typeof TrocarSenha>;
+export const MSG_SENHA_ATUAL_ERRADA = 'A senha atual não confere.';
+export const MSG_SENHA_TROCADA = 'Senha trocada. As outras sessões abertas foram encerradas.';
+
 export const NovoPapel = z.object({ papel: Papel, unidadeId: z.string().uuid('Escolha a unidade.'), desde: Data, ate: Data.nullable().optional() });
 export type NovoPapel = z.infer<typeof NovoPapel>;
 export const EncerrarPapel = z.object({ ate: Data });

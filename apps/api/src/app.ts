@@ -66,7 +66,9 @@ export function criarApp(dep: Dependencias): Hono {
       if (sessao && (await dep.banco.query('select 1 from usuario where id = $1 and senha_provisoria_ate is not null', [sessao.user.id])).rows.length) {
         return c.json({ erro: MSG_CRIE_A_SENHA }, 403);
       }
-      return next();
+      await next();
+      // quem trocou a senha não fica com um código por e-mail esquecido, ainda valendo
+      if (sessao && c.res.status === 200) await dep.banco.query('delete from codigo_de_acesso where militar_id = (select militar_id from usuario where id = $1)', [sessao.user.id]);
     });
     app.on(['GET', 'POST'], '/api/auth/*', (c) => auth.handler(c.req.raw));
     if (dep.segredo) app.route('/api', rotasAcessoPorEmail({ banco: dep.banco, segredo: dep.segredo, enviarEmail: dep.enviarEmail ?? null, agora: dep.agora }));
