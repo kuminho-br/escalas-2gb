@@ -14,7 +14,7 @@
 
 ## Global Constraints
 
-- Branch `fase6-59-entrar-no-laboratorio`, a partir da `main` com a 6.58 mesclada **e a migração/limpeza dela já aplicadas**. Migração `0047` (a sessão no Laboratório), aplicada nos dois schemas pelo executor da 6.58; **só com autorização do usuário**, como sempre.
+- Branch `fase6-59-entrar-no-laboratorio`, a partir da `main` com a 6.58 mesclada **e a migração/limpeza dela já aplicadas**. Migração `0048` (a sessão no Laboratório), aplicada nos dois schemas pelo executor da 6.58; **só com autorização do usuário**, como sempre.
 - **O que cruza (únicas exceções ao isolamento):** a lista das ferramentas em teste (leitura) e o retorno (gravação), ambos no real, na 6.60. Nesta entrega não cruza nada.
 - **Quem entra:** todo militar que tem conta (proposta da CONCEPÇÃO, aceita). Qualquer um escolhe qualquer perfil, inclusive o de administrador.
 - **Quem age no Laboratório:** o perfil de teste, com o nível dele. A conta real não vale ali, e o perfil não vale no real.
@@ -35,7 +35,7 @@
 
 ### Task 1: a sessão no Laboratório
 
-**Files:** Create `apps/api/banco/migracoes/0047_laboratorio_sessao.sql`, `apps/api/src/laboratorio/sessao.ts`; Test `apps/api/test/laboratorio-sessao.test.ts`
+**Files:** Create `apps/api/banco/migracoes/0048_laboratorio_sessao.sql`, `apps/api/src/laboratorio/sessao.ts`; Test `apps/api/test/laboratorio-sessao.test.ts`
 
 **Interfaces (Produces):**
 - Tabela `laboratorio_sessao (usuario_id uuid primary key references usuario(id) on delete cascade, perfil_id uuid not null, desde timestamptz not null default now())`. **Usuario e perfil são de mundos diferentes**: `usuario_id` é a conta real; `perfil_id` é um usuário do espelho e, por isso, **sem chave estrangeira** (a tabela existe também no espelho, sem uso lá).
