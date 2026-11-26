@@ -11,6 +11,7 @@ import { EU_EXEMPLO, simularApi } from './apoio';
 const CAMINHO = '/api/unidades/u-1sb/importacao/militares';
 const SEM_PROBLEMA = { novos: [{ chave: '990001-1', descricao: 'SD ANDRADE' }], alterados: [], iguais: 0, ignoradas: [], problemas: [], avisos: [] };
 const COM_PROBLEMA = { ...SEM_PROBLEMA, problemas: [{ aba: 'MILITARES', linha: 7, mensagem: 'Matrícula inválida: "12-3".', solucao: 'Use 6 dígitos, hífen e 1 dígito.' }] };
+const SO_DA_PLANILHA = { ...SEM_PROBLEMA, problemas: [{ aba: 'MILITARES', linha: 1, mensagem: 'Falta a coluna MATRÍCULA.', solucao: 'Use o modelo desta tela.' }] };
 const SO_IGNORADA = { ...SEM_PROBLEMA, ignoradas: [{ linha: 3, chave: '990001-1', coluna: 'TELEFONE', motivo: 'Use no máximo 20 caracteres.' }] };
 
 function montar() {
@@ -71,6 +72,14 @@ describe('o botão "Baixar as linhas com problema"', () => {
     montar();
     await verPrevia();
     expect(await screen.findByRole('button', { name: BOTAO })).toBeInTheDocument();
+  });
+
+  it('achado da revisão: com só um problema da planilha inteira (coluna que falta, linha 1), não aparece: o arquivo não teria linha nenhuma', async () => {
+    api(SO_DA_PLANILHA);
+    montar();
+    await verPrevia();
+    await screen.findByText(/Falta a coluna MATRÍCULA/);
+    expect(screen.queryByRole('button', { name: BOTAO })).toBeNull();
   });
 
   it('sem linha com problema nem célula ignorada, não aparece', async () => {

@@ -12,7 +12,8 @@ import { escolherUnidade, lerUnidadeGuardada } from '@/lib/unidade-de-trabalho';
 
 type Etapa = { tipo: 'escolher' } | { tipo: 'previa'; previa: Previa } | { tipo: 'feito'; gravados: number; comProblema: boolean };
 /** A importação teve linha recusada ou célula ignorada: há o que corrigir e enviar de novo. */
-const temProblema = (p: Pick<Previa, 'problemas' | 'ignoradas'>) => p.problemas.length > 0 || p.ignoradas.length > 0;
+// (o problema da planilha inteira, na linha 1, como a coluna que falta, não vai no arquivo: o botão não conta com ele)
+const temProblema = (p: Pick<Previa, 'problemas' | 'ignoradas'>) => p.problemas.some((x) => x.linha >= 2) || p.ignoradas.length > 0;
 
 /**
  * O que fazer depois de uma confirmação que falhou: repetir só resolve quando o problema é da conexão ou do sistema; quando o servidor

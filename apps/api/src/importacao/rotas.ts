@@ -77,7 +77,7 @@ export function rotasImportacao(dep: { banco: Banco; auth: Auth }, importadores:
         await tx.query('set transaction read only');
         const { previa } = await imp.planejar(abas, { tx, unidadeId, hoje, usuarioId: c.get('usuarioId') });
         // só o Pecúlio ignora célula por célula, e tem uma aba só
-        return planilhaDasLinhasComProblema(abas, imp.abas, { problemas: previa.problemas, ignoradas: previa.ignoradas ?? [] }, imp.abas[0] ?? null);
+        return planilhaDasLinhasComProblema(abas, imp.abas, { problemas: previa.problemas, ignoradas: previa.ignoradas ?? [] }, imp.abas[0] ?? null, imp.arquivoInteiro ?? false);
       });
       if (!planilhaDeErros) return c.json({ erro: 'Nenhuma linha com problema nesta planilha.' }, 400);
       return c.body(planilhaDeErros, 200, {

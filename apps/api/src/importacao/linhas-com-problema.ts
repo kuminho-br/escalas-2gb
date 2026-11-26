@@ -5,15 +5,23 @@ import ExcelJS from 'exceljs';
 import { cabecalho } from './modelo.ts';
 import type { Aba } from './planilha.ts';
 
+/** 'dd/mm/aaaa' (o texto que a leitura da planilha guarda da data do Excel) como a data, em UTC; outro formato dá null. */
+function dataDoTexto(texto: string): Date | null {
+  const m = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(texto);
+  return m ? new Date(Date.UTC(Number(m[3]), Number(m[2]) - 1, Number(m[1]))) : null;
+}
+
 export const COLUNA_MOTIVO = 'MOTIVO';
 export const COLUNA_COMO_CORRIGIR = 'COMO CORRIGIR';
 
 /**
  * O arquivo das linhas com problema, ou null se nenhuma linha tem problema. `ordem` são as abas da importação (as do arquivo enviado, na ordem do cadastro); `abaDasIgnoradas` é a aba
  * onde caem as células ignoradas (só o Pecúlio as tem). Linha recusada: MOTIVO é a mensagem e COMO CORRIGIR a solução; linha com célula ignorada: um "coluna: motivo" por linha da célula.
- * Problema sem linha de dados (da planilha inteira, como a coluna que falta) não entra: já aparece na tela. Toda célula sai como texto, como foi lida.
+ * Problema sem linha de dados (da planilha inteira, como a coluna que falta) não entra: já aparece na tela. Toda célula sai como texto, como foi lida; a que o Excel tinha transformado em data
+ * volta como data (a mesma marca que a importação usa para ignorá-la: como texto, passaria a valer). Com `arquivoInteiro` (cadastros em que várias linhas formam uma coisa só), saem todas as
+ * linhas das abas, e o motivo só nas que têm problema.
  */
-export async function planilhaDasLinhasComProblema(abas: Record<string, Aba>, ordem: string[], previa: Pick<Previa, 'problemas' | 'ignoradas'>, abaDasIgnoradas: string | null): Promise<ArrayBuffer | null> {
+export async function planilhaDasLinhasComProblema(abas: Record<string, Aba>, ordem: string[], previa: Pick<Previa, 'problemas' | 'ignoradas'>, abaDasIgnoradas: string | null, arquivoInteiro = false): Promise<ArrayBuffer | null> {
   // por aba, por número de linha: os motivos e as soluções
   const achados = new Map<string, Map<number, { motivos: string[]; solucoes: string[] }>>();
   const da = (aba: string, linha: number) => {
@@ -40,10 +48,12 @@ export async function planilhaDasLinhasComProblema(abas: Record<string, Aba>, or
     const porLinha = achados.get(nome);
     for (const l of aba.linhas) {
       const a = porLinha?.get(l.linha);
-      if (!a) continue;
-      total++;
-      const linha = ws.addRow([...aba.cab.map((_, i) => l.celulas[i] ?? ''), a.motivos.join('\n'), a.solucoes.join('\n')]);
-      linha.eachCell({ includeEmpty: true }, (cel) => { cel.numFmt = '@'; });
+      if (!a && !arquivoInteiro) continue;
+      if (a) total++;
+      // a célula que o Excel tinha transformado em data volta como data: assim a importação a reconhece de novo (como texto, "15/03/2026" passaria a valer)
+      const celulas = aba.cab.map((_, i): string | Date => (l.datas?.[i] ? (dataDoTexto(l.celulas[i] ?? '') ?? l.celulas[i] ?? '') : (l.celulas[i] ?? '')));
+      const linha = ws.addRow([...celulas, a?.motivos.join('\n') ?? '', a?.solucoes.join('\n') ?? '']);
+      linha.eachCell({ includeEmpty: true }, (cel) => { cel.numFmt = cel.value instanceof Date ? 'dd/mm/yyyy' : '@'; });
       const ultimas = aba.cab.length;
       linha.getCell(ultimas + 1).alignment = { wrapText: true, vertical: 'top' };
       linha.getCell(ultimas + 2).alignment = { wrapText: true, vertical: 'top' };

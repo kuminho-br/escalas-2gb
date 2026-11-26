@@ -83,6 +83,7 @@ function recusasDoContrato(
 
 export const importadorGuarnicoes: Importador<Plano> = {
   abas: [ABA],
+  arquivoInteiro: true,
 
   modelo: {
     abas: [{ nome: ABA, colunas: Object.values(COLUNAS) }],

@@ -19,7 +19,7 @@ async function abrirArquivo(r: Response) {
   const abas: Record<string, string[][]> = {};
   wb.eachSheet((ws) => {
     const linhas: string[][] = [];
-    ws.eachRow({ includeEmpty: false }, (row) => linhas.push((row.values as unknown[]).slice(1).map((v) => String(v ?? ''))));
+    ws.eachRow({ includeEmpty: false }, (row) => linhas.push(Array.from({ length: ws.columnCount }, (_, i) => row.getCell(i + 1).text)));
     abas[ws.name] = linhas;
   });
   return { wb, abas };
@@ -106,7 +106,7 @@ describe('a importação com várias abas (Serviços e escalas)', () => {
   const CAB_E = ['ESCALA', 'SERVIÇOS', 'TÍTULO', 'MILITARES', 'DIAS'];
   const CAB_V = ['VIGÊNCIA (A PARTIR DE)', 'ESCALA', 'TURNO', 'GUARNIÇÃO'];
 
-  it('Review Focus 4: só a linha com problema sai, na sua aba; as outras abas saem só com o cabeçalho; a AJUDA não entra', async () => {
+  it('Review Focus 4 (achado C1 da revisão): o cadastro em que várias linhas formam uma coisa só (serviços e escalas) devolve o arquivo INTEIRO, com MOTIVO e COMO CORRIGIR só na linha com problema; a AJUDA não entra', async () => {
     const arquivo = await planilha({
       TURNOS: [CAB_T, ['Pronto', 'A', '08:00', '20:00', 12, 'Ordinário', ''], ['Pronto', 'Z', '20:00', '08:00', 12, 'Ordinário', '']],
       ESCALAS: [CAB_E, ['Ordinário', 'Pronto', 'ESCALA ORDINÁRIA', 'TODOS', 'TODOS']],
@@ -115,11 +115,15 @@ describe('a importação com várias abas (Serviços e escalas)', () => {
     const { abas } = await abrirArquivo(await erros('escalante', api.ids.secao, 'servicos-escalas', arquivo));
     expect(Object.keys(abas)).toEqual(['TURNOS', 'ESCALAS', 'GUARNIÇÕES POR ESCALA']);
     expect(abas.TURNOS![0]).toEqual([...CAB_T, 'MOTIVO', 'COMO CORRIGIR']);
-    expect(abas.TURNOS).toHaveLength(2);
-    expect(abas.TURNOS![1]![1]).toBe('Z');
-    expect(abas.TURNOS![1]![7]).toContain('Turno "Z"');
-    expect(abas.TURNOS![1]![8]).toBe('Use A, B ou C na coluna TURNO.');
-    expect(abas.ESCALAS).toEqual([[...CAB_E, 'MOTIVO', 'COMO CORRIGIR']]);
+    // as duas linhas de TURNOS saem (reenviar só a corrigida apagaria a outra); só a do turno "Z" tem motivo
+    expect(abas.TURNOS).toHaveLength(3);
+    expect(abas.TURNOS![1]!.slice(0, 2)).toEqual(['Pronto', 'A']);
+    expect(abas.TURNOS![1]!.slice(7)).toEqual(['', '']);
+    expect(abas.TURNOS![2]![1]).toBe('Z');
+    expect(abas.TURNOS![2]![7]).toContain('Turno "Z"');
+    expect(abas.TURNOS![2]![8]).toBe('Use A, B ou C na coluna TURNO.');
+    expect(abas.ESCALAS).toHaveLength(2);
+    expect(abas.ESCALAS![1]!.slice(5)).toEqual(['', '']);
     expect(abas['GUARNIÇÕES POR ESCALA']).toEqual([[...CAB_V, 'MOTIVO', 'COMO CORRIGIR']]);
   });
 
@@ -127,5 +131,44 @@ describe('a importação com várias abas (Serviços e escalas)', () => {
     const arquivo = await planilha({ TURNOS: [CAB_T, ['Pronto', 'Z', '20:00', '08:00', 12, 'Ordinário', '']], ESCALAS: [CAB_E], 'GUARNIÇÕES POR ESCALA': [CAB_V] });
     const r = await erros('escalante', api.ids.secao, 'servicos-escalas', arquivo);
     expect(r.headers.get('content-disposition')).toContain(`servicos-escalas-linhas-com-problema-${hoje}.xlsx`);
+  });
+});
+
+describe('Guarnições: a guarnição é de várias linhas (achado C1 da revisão)', () => {
+  const CAB_G = ['VIGÊNCIA', 'GUARNIÇÃO', 'VIATURA', 'TIPO', 'ATIVAR', 'PRIORIDADE', 'CNH', 'FUNÇÃO', 'MÍNIMO', 'MÁXIMO'];
+  it('o arquivo traz as duas linhas da guarnição, só a da viatura grande demais com motivo; corrigido, entra com a guarnição inteira', async () => {
+    await api.banco.query("insert into funcao (unidade_id, nome) select $1, 'Motorista' where not exists (select 1 from funcao where unidade_id = $1 and nome = 'Motorista')", [api.ids.gb]);
+    const arquivo = await planilha({
+      'GUARNIÇÕES': [CAB_G, ['', 'Guarnição Duas', 'x'.repeat(80), 'Auto', 'SIM', 2, 'D', 'Motorista', 1, 1], ['', 'Guarnição Duas', '', '', '', '', '', 'Combatente', 2, 3]],
+    });
+    const r = await erros('escalante', api.ids.secao, 'guarnicoes', arquivo);
+    const { wb, abas } = await abrirArquivo(r);
+    expect(abas['GUARNIÇÕES']).toHaveLength(3);
+    expect(abas['GUARNIÇÕES']![1]![10]).toContain('Viatura de Guarnição Duas grande demais');
+    expect(abas['GUARNIÇÕES']![2]!.slice(10)).toEqual(['', '']);
+    expect(abas['GUARNIÇÕES']![2]![7]).toBe('Combatente');
+    // a volta: a viatura corrigida, o arquivo reenviado entra com as duas funções
+    wb.getWorksheet('GUARNIÇÕES')!.getRow(2).getCell(3).value = 'VTR-1';
+    const corrigido = await wb.xlsx.writeBuffer();
+    const previa = await (await api.pedir('escalante', 'POST', `/api/unidades/${api.ids.secao}/importacao/guarnicoes`, formulario(new Uint8Array(corrigido as ArrayBuffer).slice().buffer))).json();
+    expect(previa.problemas).toEqual([]);
+    expect(previa.novos).toHaveLength(1);
+  });
+});
+
+describe('a célula que o Excel transformou em data (achado I1 da revisão)', () => {
+  it('volta como data de verdade (a mesma marca que a importação usa para ignorá-la), não como texto que passaria a valer', async () => {
+    const nascimento = new Date(Date.UTC(2026, 2, 15));
+    const linhas: Celula[][] = [['990881-1', 'XYZ', 'Posto Ruim', 'DATADOEXCEL', nascimento, '', '1ª SB']];
+    const arquivo = await planilha({ 'PECÚLIO': [CAB_PECULIO, ...linhas] });
+    const { wb } = await abrirArquivo(await erros('gestorGb', api.ids.gb, 'peculio', arquivo));
+    const celula = wb.getWorksheet('PECÚLIO')!.getRow(2).getCell(5);
+    expect(celula.value).toBeInstanceOf(Date);
+    expect((celula.value as Date).toISOString().slice(0, 10)).toBe('2026-03-15');
+    // corrigido o posto e reenviado, o NASCIMENTO continua ignorado (era data do Excel), em vez de entrar como 2026
+    wb.getWorksheet('PECÚLIO')!.getRow(2).getCell(2).value = 'SD';
+    const corrigido = await wb.xlsx.writeBuffer();
+    const previa = await (await api.pedir('gestorGb', 'POST', `/api/unidades/${api.ids.gb}/importacao/peculio`, formulario(new Uint8Array(corrigido as ArrayBuffer).slice().buffer))).json();
+    expect(previa.ignoradas).toEqual([expect.objectContaining({ coluna: 'NASCIMENTO' })]);
   });
 });
