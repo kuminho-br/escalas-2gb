@@ -200,6 +200,12 @@
   background: color-mix(in srgb, var(--color-tinta) 62%, transparent);
   opacity: var(--e);
 }
+.cena-inicial [data-lugar-dos-avisos] {
+  opacity: calc(1 - var(--e) * 2.2);
+}
+.cena-inicial[data-encolhida] [data-lugar-dos-avisos] {
+  visibility: hidden;
+}
 .cena-inicial .proximos-da-cena {
   opacity: calc(1 - var(--e) * 2.2);
 }

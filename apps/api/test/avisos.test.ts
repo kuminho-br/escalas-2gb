@@ -16,7 +16,7 @@ const FRASE_403 = 'Você não tem nível de acesso nesta unidade.';
 /** Uma conta fictícia, lotada na unidade (ou sem lotação) e com ou sem nível de acesso. */
 async function pessoa(nome: string, lotada: string | null, nivel?: { papel: string; unidade: string }) {
   seq++;
-  const p = await entrarComo(api, { matricula: `99${String(7000 + seq)}-${seq % 10}`, nome, nivel: nivel ? { papel: nivel.papel, unidadeId: ids[nivel.unidade]! } : undefined });
+  const p = await entrarComo(api, { matricula: `990${String(700 + seq)}-${seq % 10}`, nome, nivel: nivel ? { papel: nivel.papel, unidadeId: ids[nivel.unidade]! } : undefined });
   if (lotada) await inserir(api.banco, 'rastreio', { militar_id: p.militarId, unidade_id: ids[lotada], jornada: 'pronto', desde: '2020-01-01' });
   gente[nome] = p;
   return p;

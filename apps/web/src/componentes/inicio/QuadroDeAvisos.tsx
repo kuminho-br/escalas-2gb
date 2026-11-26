@@ -30,7 +30,7 @@ export function QuadroDeAvisos({ eu, quadro, className }: { eu: Eu; quadro: Quad
 
   return (
     <>
-      <section aria-labelledby={titulo} className={cn('grid min-w-0 gap-2 rounded-superficie border border-t-[3px] border-white/20 border-t-vinho bg-tinta/70 px-4 pt-3.5 pb-3 text-white backdrop-blur-sm', className)}>
+      <section aria-labelledby={titulo} className={cn('grid max-h-full min-w-0 grid-rows-[auto_minmax(0,1fr)_auto] gap-2 rounded-superficie border border-t-[3px] border-white/20 border-t-vinho bg-tinta/70 px-4 pt-3.5 pb-3 text-white backdrop-blur-sm', className)}>
         <header className="flex items-center gap-2">
           <h2 id={titulo} className="font-cond text-nome leading-none font-semibold">Avisos</h2>
           {total > 0 && <span className="text-apoio text-white/80">{`${indice + 1} de ${total}`}</span>}
@@ -46,9 +46,9 @@ export function QuadroDeAvisos({ eu, quadro, className }: { eu: Eu; quadro: Quad
           )}
         </header>
         {atual ? (
-          <article className="grid min-w-0 gap-1">
+          <article className="grid min-h-0 min-w-0 grid-rows-[auto_minmax(0,1fr)_auto_auto] gap-1">
             <b className="line-clamp-2 font-cond text-nome leading-[22px] font-semibold break-words">{atual.titulo}</b>
-            <p className="max-h-24 overflow-y-auto [scrollbar-color:var(--color-encaixe)_transparent] [scrollbar-width:thin] text-corpo leading-[21px] break-words whitespace-pre-line text-white/90">{atual.texto}</p>
+            <p className="max-h-24 min-h-0 overflow-y-auto [scrollbar-color:var(--color-encaixe)_transparent] [scrollbar-width:thin] text-corpo leading-[21px] break-words whitespace-pre-line text-white/90">{atual.texto}</p>
             <small className="flex flex-wrap items-center gap-x-2 text-apoio leading-[18px] text-white/75">
               <span>{`${atual.autor.patente} ${atual.autor.nomeGuerra}, ${diaEMesBr(atual.publicadoEm)}, ${atual.unidadeSigla}`}</span>
               {atual.fixado && (

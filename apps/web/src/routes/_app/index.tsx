@@ -52,6 +52,8 @@ function useQuadroQueEncolhe(quadro: RefObject<HTMLElement | null>, espaco: RefO
       const { altura, encolhido } = quadroAoRolar(alturaCheia, window.scrollY, menos);
       el.style.height = `${altura}px`;
       el.style.setProperty('--e', String(encolhido));
+      // passada a metade do caminho, o painel de avisos sai da cena: o estilo o esconde, e ele deixa de receber foco e clique
+      el.toggleAttribute('data-encolhida', encolhido > 0.45);
       esp.style.height = `${alturaCheia - altura}px`;
     };
     const medir = () => {

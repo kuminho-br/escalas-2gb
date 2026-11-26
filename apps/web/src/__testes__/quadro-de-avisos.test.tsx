@@ -17,6 +17,8 @@ const abrirComAvisos = async (q: QuadroDeAvisos, extra: Record<string, unknown> 
   const titulo = await screen.findByRole('heading', { level: 1 });
   return { fetchFalso, cena: titulo.closest<HTMLElement>('[data-faixa-boas-vindas]')! };
 };
+/** Uma data que ainda não passou, seja qual for o dia em que o teste roda (a janela recusa a que já passou). */
+const FUTURA = `${new Date().getFullYear() + 1}-06-30`;
 const painel = () => screen.findByRole('region', { name: 'Avisos' });
 
 describe('o painel de avisos', () => {
@@ -113,6 +115,28 @@ describe('o painel de avisos', () => {
     expect(within(p).queryByRole('button', { name: 'Publicar aviso' })).toBeNull();
   });
 
+  it('o painel dentro da cena cabe nela: a altura é limitada à da cena e o texto rola dentro do aviso (1024 a 1200 px)', async () => {
+    await abrirComAvisos(quadro([aviso(1, { podeAlterar: true, titulo: 'T'.repeat(80), texto: 'x '.repeat(200) })], true));
+    const p = await painel();
+    expect(p.className).toMatch(/max-h-full/);
+    expect(p.className).toMatch(/grid-rows-\[auto_minmax\(0,1fr\)_auto\]/);
+    const texto = within(p).getByText(/x x x/);
+    expect(texto.className).toMatch(/min-h-0/);
+    expect(texto.className).toMatch(/overflow-y-auto/);
+  });
+
+  it('ao encolher, o painel sai da cena: some e deixa de receber foco e clique (a cena ganha data-encolhida)', async () => {
+    const { cena } = await abrirComAvisos(quadro([aviso(1)], true));
+    await painel();
+    expect(cena).not.toHaveAttribute('data-encolhida');
+    Object.defineProperty(window, 'scrollY', { value: 5000, configurable: true });
+    window.dispatchEvent(new Event('scroll'));
+    await waitFor(() => expect(cena).toHaveAttribute('data-encolhida'));
+    Object.defineProperty(window, 'scrollY', { value: 0, configurable: true });
+    window.dispatchEvent(new Event('scroll'));
+    await waitFor(() => expect(cena).not.toHaveAttribute('data-encolhida'));
+  });
+
   it('Editar e Retirar só aparecem no aviso que a conta pode alterar', async () => {
     await abrirComAvisos(quadro([aviso(1, { podeAlterar: true }), aviso(2)], true));
     const p = await painel();
@@ -171,11 +195,11 @@ describe('a janela de publicar, editar e retirar', () => {
     await userEvent.type(within(janela).getByLabelText('Título'), 'Reunião às 9h');
     await userEvent.type(within(janela).getByLabelText('Texto'), 'Na sala de reuniões.');
     await userEvent.click(within(janela).getByRole('checkbox', { name: 'Fixar no topo' }));
-    await userEvent.type(within(janela).getByLabelText('Vale até (opcional)'), '2026-12-31');
+    await userEvent.type(within(janela).getByLabelText('Vale até (opcional)'), FUTURA);
     const antes = chamadasA(fetchFalso, ROTA);
     await userEvent.click(within(janela).getByRole('button', { name: 'Publicar' }));
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
-    expect(corpoEnviado(fetchFalso, 'POST /api/avisos')).toEqual({ unidadeId: 'u-1sb', titulo: 'Reunião às 9h', texto: 'Na sala de reuniões.', fixado: true, valeAte: '2026-12-31' });
+    expect(corpoEnviado(fetchFalso, 'POST /api/avisos')).toEqual({ unidadeId: 'u-1sb', titulo: 'Reunião às 9h', texto: 'Na sala de reuniões.', fixado: true, valeAte: FUTURA });
     await waitFor(() => expect(chamadasA(fetchFalso, ROTA)).toBeGreaterThan(antes));
   });
 
@@ -230,20 +254,20 @@ describe('a janela de publicar, editar e retirar', () => {
   });
 
   it('Editar abre "Editar aviso" com os valores, a unidade parada, e salva pelo PATCH', async () => {
-    const { fetchFalso } = await abrirComAvisos(quadro([aviso(1, { podeAlterar: true, fixado: true, valeAte: '2026-12-31' })]), { 'PATCH /api/avisos/av-1': { status: 200, corpo: aviso(1) } });
+    const { fetchFalso } = await abrirComAvisos(quadro([aviso(1, { podeAlterar: true, fixado: true, valeAte: FUTURA })]), { 'PATCH /api/avisos/av-1': { status: 200, corpo: aviso(1) } });
     await userEvent.click(within(await painel()).getByRole('button', { name: 'Editar' }));
     const janela = await screen.findByRole('dialog', { name: 'Editar aviso' });
     expect(within(janela).getByLabelText('Título')).toHaveValue('Aviso 1');
     expect(within(janela).getByLabelText('Texto')).toHaveValue('Texto do aviso 1.');
     expect(within(janela).getByRole('checkbox', { name: 'Fixar no topo' })).toBeChecked();
-    expect(within(janela).getByLabelText('Vale até (opcional)')).toHaveValue('2026-12-31');
+    expect(within(janela).getByLabelText('Vale até (opcional)')).toHaveValue(FUTURA);
     // a unidade não muda na edição
     expect(within(janela).getByRole('combobox', { name: 'Unidade' })).toBeDisabled();
     await userEvent.clear(within(janela).getByLabelText('Título'));
     await userEvent.type(within(janela).getByLabelText('Título'), 'Título novo');
     await userEvent.click(within(janela).getByRole('button', { name: 'Salvar' }));
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
-    expect(corpoEnviado(fetchFalso, 'PATCH /api/avisos/av-1')).toEqual({ titulo: 'Título novo', texto: 'Texto do aviso 1.', fixado: true, valeAte: '2026-12-31' });
+    expect(corpoEnviado(fetchFalso, 'PATCH /api/avisos/av-1')).toEqual({ titulo: 'Título novo', texto: 'Texto do aviso 1.', fixado: true, valeAte: FUTURA });
   });
 
   it('Retirar pede a confirmação na própria janela; confirmar retira, cancelar não', async () => {
