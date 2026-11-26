@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Pesquisar militares</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Semi+Condensed:wght@500;600;700&display=swap">
+<link rel="stylesheet" href="../pecas.css">
+<link rel="stylesheet" href="pesquisar.css">
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><symbol id="i-filtro" viewBox="0 0 24 24"><path d="M3 5h18M6 12h12M10 19h4"/></symbol></svg>
+<div class="pagina">
+
+<header class="abre">
+  <p class="de-quem"><a class="voltar" href="../index.html">Manual de Identidade Visual</a></p>
+  <h1>Pesquisar militares</h1>
+  <p>A tela do Pecúlio que busca qualquer militar da corporação, junta uma seleção para a atualização em lote e exporta para o Excel. Esta é a segunda versão, com os seus pedidos de 26/11 (entrega 6.63 no roadmap).</p>
+  <p class="menor">Versão 2, aprovada por você em 26/11/2026 (entrega 6.63). Desenhada sobre a tela de hoje, com a placa da unidade pelo caminho ("2º GB / 1ª SB"), que vem antes, na 6.62. Os nomes e as matrículas são fictícios.</p>
+  <div class="pq-controles">
+    <div role="radiogroup" aria-label="Quem usa"><span class="rot">Quem usa</span>
+      <label class="marcar"><input type="radio" name="nivel" value="sim" checked><span>Com nível de acesso</span></label>
+      <label class="marcar"><input type="radio" name="nivel" value="nao"><span>Militar sem nível de acesso</span></label></div>
+  </div>
+</header>
+
+<section class="bloco largo" id="tela">
+  <div class="regra">
+    <h2>A tela</h2>
+    <p>Experimente: busque "souza" e veja que vem um militar só. Depois, em "Critérios de pesquisa", ligue o nome completo e busque de novo: vêm três, com o trecho marcado onde a busca achou.</p>
+    <p class="nota">Cada critério em uso vira uma etiqueta embaixo da barra; o x tira o critério e busca de novo. A marca âmbar no botão diz quantos são.</p>
+  </div>
+  <div class="pq-quadros">
+    <figure><div class="pq" data-pq></div><figcaption>Computador. A seleção do exemplo já tem seis militares, e a jornada Pronto está em uso.</figcaption></figure>
+    <figure class="celular"><div class="pq" data-pq></div><figcaption>Celular, 390 px. Os critérios e os selecionados abrem numa folha por cima da tela.</figcaption></figure>
+  </div>
+</section>
+
+<section class="bloco" id="o-que-muda">
+  <div class="regra">
+    <h2>O que muda em relação à tela de hoje</h2>
+    <p>Hoje são três botões de filtro soltos, o painel "Selecionados" fica em cima da lista e empurra o resultado para baixo, e "Exportar" aparece entre os dois.</p>
+    <p class="nota">A janela de exportar, a atualização em lote, a ficha e quem pode selecionar quem não mudam.</p>
+  </div>
+  <div class="prancha">
+    <div class="sup rolagem" style="padding:0">
+      <table class="tabela pq-muda">
+        <thead><tr><th scope="col">Item</th><th scope="col" class="quebra">Hoje</th><th scope="col" class="quebra">Como fica</th><th scope="col" class="quebra">De onde vem</th></tr></thead>
+        <tbody>
+          <tr><td>Selecionados</td><td class="quebra">Painel acima da lista, que só aparece com alguém dentro.</td><td class="quebra">Painel lateral à direita, parado enquanto a lista rola. Fica sempre à vista para quem tem nível de acesso, mesmo vazio, com a orientação (decidido por você em 26/11). No celular, uma barra embaixo ("6 selecionados", Ver) abre o painel numa folha. <b>Muda o comportamento</b> (aparece vazio).</td><td class="quebra">Pedido seu (item 37). Sempre à vista: proposta, para a lista não pular de lado na primeira marca.</td></tr>
+          <tr><td>Linha do painel</td><td class="quebra">Posto, nome de guerra e lotação.</td><td class="quebra">A matrícula na frente do nome, em coluna alinhada. Agrupado por unidade, a lotação sai da linha porque já está no título do grupo.</td><td class="quebra">Pedido seu (item 41).</td></tr>
+          <tr><td>Agrupar</td><td class="quebra">Não há.</td><td class="quebra">"Agrupar por" no alto do painel: sem grupo, unidade, equipe ou posto. Começa por unidade. Cada grupo tem o título com a quantidade. Vale só para o painel: a lista de resultados continua em ordem de nome de guerra e matrícula. <b>Comportamento novo.</b></td><td class="quebra">Pedido seu, com as opções sugeridas pela VALIDAÇÃO (item 42).</td></tr>
+          <tr><td>Exportar e Importar</td><td class="quebra">Exportar entre a busca e a lista, só depois de uma busca. Importar fica no Pecúlio da unidade.</td><td class="quebra">Os dois no alto, ao lado do título, sempre no mesmo lugar. <b>Importar nesta tela é novidade</b>, decidida por você em 26/11.</td><td class="quebra">Pedido seu (item 38).</td></tr>
+          <tr><td>Critérios de pesquisa</td><td class="quebra">Três botões: "Pela árvore", "Por arquivo de matrículas" e "Mais filtros", cada um abre o seu painel.</td><td class="quebra">Um botão só, "Critérios de pesquisa", com quatro abas: Nome e matrícula, Pela árvore, Arquivo de matrículas e Outros filtros. Cada aba mostra quantos critérios dela estão em uso. O painel tem "Buscar" embaixo.</td><td class="quebra">Pedido seu (item 39).</td></tr>
+          <tr><td>Onde o texto procura</td><td class="quebra">Nome completo, nome de guerra e matrícula, sempre juntos.</td><td class="quebra">Matrícula e nome de guerra ligados; nome completo desligado, e a pessoa liga na aba Nome e matrícula. O rótulo do campo acompanha ("Matrícula ou nome de guerra"). O trecho achado fica marcado na linha. <b>Muda o comportamento.</b></td><td class="quebra">Pedido seu (item 39). O trecho marcado é proposta.</td></tr>
+          <tr><td>Filtros em uso</td><td class="quebra">Só o número em "Mais filtros (2)" e frases soltas ("1 unidade marcada").</td><td class="quebra">Marca âmbar no botão com a quantidade, e uma etiqueta por critério embaixo da barra ("Equipe: ALFA"), com x para tirar. Com dois ou mais, "Limpar critérios".</td><td class="quebra">Pedido seu (item 40). As etiquetas com x são proposta.</td></tr>
+          <tr><td>Lotação na linha</td><td class="quebra">Só a seção ("1ª SB").</td><td class="quebra">O caminho ("2º GB / 1ª SB").</td><td class="quebra">Entrega 6.62.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section class="fecho" id="decidir">
+  <h2>O que você decidiu</h2>
+  <ul>
+    <li>O campo de busca (matrícula e nome de guerra) fica na barra. "Critérios de pesquisa" leva só os critérios.</li>
+    <li>"Agrupar por" vale só para o painel Selecionados. A lista segue em ordem de nome de guerra e matrícula.</li>
+    <li>"Importar" entra nesta tela, ao lado de "Exportar".</li>
+    <li>No painel, a matrícula vai na frente do nome. O painel fica sempre à vista, mesmo vazio, com a orientação.</li>
+  </ul>
+  <p>Decidido em 26/11/2026. A PLANEJAMENTO escreve o plano da entrega 6.63. <a class="voltar" href="../index.html">Voltar ao Manual</a></p>
+</section>
+</div>
+<script src="../pecas.js"></script>
+<script src="pesquisar.js"></script>
+<script>
+(function () {
+  'use strict';
+  // decidido em 26/11/2026: o campo na barra, o agrupamento só no painel, a matrícula na frente do nome
+  var op = { campoDentro: false, agruparLista: false, matAbaixo: false, nivel: true };
+  var telas = [];
+  function montarTodas() { telas = Array.prototype.map.call(document.querySelectorAll('[data-pq]'), function (r) { return window.Pesquisar.montar(r, op); }); }
+  document.querySelector('.pq-controles').addEventListener('change', function (e) {
+    var n = e.target.name, v = e.target.value;
+    if (n === 'nivel') { op.nivel = v === 'sim'; document.querySelectorAll('[data-pq]').forEach(function (r) { r.replaceWith(r.cloneNode(false)); }); montarTodas(); return; }
+    telas.forEach(function (t) { t.redesenhar(); });
+  });
+  montarTodas();
+})();
+</script>
+</body>
+</html>

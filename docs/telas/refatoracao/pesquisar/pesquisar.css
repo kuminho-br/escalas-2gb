@@ -1,0 +1,145 @@
+/* Área "Pesquisar militares" (versão 2) do Manual: a tela do Pecúlio Geral.
+   Layout: o título com Importar e Exportar à direita; embaixo, a barra de busca (texto, "Lotados em", o botão
+   "Critérios de pesquisa" com a marca âmbar e "Buscar"); a linha dos critérios em uso; o painel dos critérios,
+   que abre por baixo da barra; e o corpo em duas colunas: a lista de resultados e, à direita, o painel lateral
+   "Selecionados". No celular (até 600 px), os critérios e os selecionados abrem numa folha por cima da tela. */
+
+.pq-quadros{display:grid;gap:32px;grid-template-columns:minmax(0,1fr)}
+.pq-quadros figure{min-width:0}
+.pq-quadros .celular{justify-self:center;width:390px;max-width:100%}
+.pq-quadros figcaption{margin-top:8px;font-size:var(--t13);line-height:18px;color:var(--pg-apagado)}
+.pq-controles{display:grid;gap:6px}
+.pq-controles > div{display:flex;flex-wrap:wrap;align-items:center;gap:0 18px}
+.pq-controles .rot{min-width:170px;font-weight:500}
+
+/* a tela */
+.pq{position:relative;container:pq/inline-size;min-width:0;padding:20px 24px 28px;background:var(--fundo);color:var(--tinta);color-scheme:light;border:1px solid var(--pg-linha);border-radius:var(--raio-sup)}
+.pq :focus-visible{outline:2px solid var(--tinta);outline-offset:2px}
+.pq-cab{display:flex;flex-wrap:wrap;align-items:center;gap:10px 16px}
+.pq-cab h3{margin-right:auto;font:600 var(--t28)/32px var(--cond)}
+.pq-acoes{display:flex;gap:8px}
+
+/* a barra de busca */
+.pq-busca{display:grid;grid-template-columns:minmax(0,1fr) 220px auto auto;align-items:end;gap:10px;margin-top:18px}
+.pq-busca.so-botao{grid-template-columns:220px auto auto;justify-content:start}
+.pq-busca .campo input{background:var(--superficie)}
+.pq-escolha{width:100%;height:var(--h);padding:0 32px 0 12px;border:1px solid var(--encaixe);border-radius:var(--raio);background:var(--superficie) no-repeat right 10px center/14px url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%235B6675' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");color:var(--tinta);font:inherit;appearance:none;-webkit-appearance:none;cursor:pointer}
+.pq-escolha:hover{border-color:var(--tinta)}
+.pq-crit-bt[aria-expanded="true"]{border-color:var(--tinta);box-shadow:0 0 0 1px var(--tinta)}
+/* a marca âmbar: quantos critérios estão valendo além do texto e de "Lotados em" */
+.pq-conta{display:inline-grid;place-items:center;min-width:22px;height:22px;padding:0 6px;border-radius:11px;background:var(--pendencia-fundo);color:var(--pendencia);font:600 var(--t13)/1 var(--texto)}
+.pq-erro{margin-top:8px;font-size:var(--t13);color:var(--alerta)}
+
+/* os critérios em uso: um por etiqueta, cada um com o seu x */
+.pq-ativos{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;margin-top:10px}
+.pq-ativos > span:first-child{font-size:var(--t13);color:var(--apagado)}
+.pq-chip{display:inline-flex;align-items:center;gap:2px;height:28px;padding:0 2px 0 10px;border:1px solid var(--linha);border-radius:14px;background:var(--superficie);font:500 var(--t13)/1 var(--texto)}
+.pq-chip b{font-weight:600}
+.pq-chip button{display:grid;place-items:center;width:24px;height:24px;border:0;border-radius:50%;background:none;color:var(--apagado);cursor:pointer}
+.pq-chip button:hover{background:var(--passa);color:var(--tinta)}
+.pq-chip button .i{width:13px;height:13px}
+
+/* o painel dos critérios, por baixo da barra */
+.pq-crit{margin-top:12px;border:1px solid var(--linha);border-radius:var(--raio-sup);background:var(--superficie);box-shadow:var(--apoiada)}
+.pq-crit-cab{display:none}
+.pq-abas{display:flex;gap:2px;padding:6px 8px 0;border-bottom:1px solid var(--linha);overflow-x:auto}
+.pq-abas button{display:inline-flex;align-items:center;gap:6px;height:40px;padding:0 12px;border:0;border-bottom:2px solid transparent;background:none;color:var(--apagado);font:600 var(--t15)/1 var(--cond);white-space:nowrap;cursor:pointer}
+.pq-abas button:hover{color:var(--tinta)}
+.pq-abas button[aria-selected="true"]{border-bottom-color:var(--vinho);color:var(--tinta)}
+.pq-abas .pq-conta{min-width:18px;height:18px;font-size:12px}
+.pq-aba{padding:16px}
+.pq-aba > p{color:var(--apagado);max-width:60ch}
+.pq-aba > p + *{margin-top:12px}
+.pq-onde-texto{display:grid;gap:2px}
+.pq-onde-texto .marcar small{color:var(--apagado);font-size:var(--t13)}
+.pq-arvore{display:grid;gap:0}
+.pq-arvore .filho{padding-left:28px}
+.pq-arquivo{display:grid;gap:8px;justify-items:start;padding:16px;border:1px dashed var(--encaixe);border-radius:var(--raio);background:var(--passa)}
+.pq-arquivo p{color:var(--apagado)}
+.pq-outros{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px 16px}
+.pq-outros .campo > label{font-size:var(--t13);line-height:18px}
+.pq-cnh{display:flex;flex-wrap:wrap;gap:0 14px}
+.pq-crit-pe{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:12px 16px;border-top:1px solid var(--linha)}
+.pq-crit-pe .botao.principal{margin-left:auto}
+
+/* o corpo: a lista e o painel lateral */
+.pq-corpo{display:grid;grid-template-columns:minmax(0,1fr) 320px;align-items:start;gap:20px;margin-top:20px}
+.pq-corpo.sem-painel{grid-template-columns:minmax(0,1fr)}
+.pq-topo-lista{display:flex;flex-wrap:wrap;align-items:center;gap:6px 14px;margin-bottom:10px}
+.pq-topo-lista .total{margin-left:auto;font-size:var(--t13);color:var(--apagado)}
+.pq-fora{font-size:var(--t13);color:var(--apagado)}
+.pq-dica{max-width:52ch;color:var(--apagado)}
+.pq-grupo + .pq-grupo{margin-top:16px}
+.pq-grupo h4{display:flex;align-items:baseline;gap:8px;margin:0 0 6px 4px;font:600 var(--t15)/22px var(--cond)}
+.pq-grupo h4 small{font:400 var(--t13)/18px var(--texto);color:var(--apagado)}
+.pq-lista{border:1px solid var(--linha);border-radius:var(--raio-sup);background:var(--superficie);overflow:hidden}
+.pq-lista li{display:flex;align-items:stretch}
+.pq-lista li + li{border-top:1px solid var(--linha)}
+.pq-lista .marcar{flex:none;justify-content:center;width:48px}
+.pq-lista .marcar input:disabled{background:var(--passa);border-color:var(--linha);cursor:not-allowed}
+.pq-linha{display:grid;gap:2px;flex:1;min-width:0;padding:8px 14px 8px 0;color:inherit;text-decoration:none}
+.pq-lista li:hover{background:var(--passa)}
+.pq-linha .l1{display:flex;align-items:center;gap:8px;min-width:0}
+.pq-linha .posto{font:500 var(--t13)/18px var(--cond);color:var(--apagado)}
+.pq-linha .nome{font:600 var(--t17)/24px var(--cond);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pq-lot{margin-left:auto;flex:none;padding:1px 6px;border:1px solid var(--linha);border-radius:4px;font:500 var(--t13)/18px var(--cond);white-space:nowrap}
+.pq-linha .l2{display:flex;flex-wrap:wrap;gap:0 12px;font-size:var(--t13);line-height:18px;color:var(--apagado)}
+.pq mark{background:var(--pendencia-fundo);color:inherit;border-radius:2px}
+
+/* o painel lateral "Selecionados" */
+.pq-sel{position:sticky;top:16px;display:grid;grid-template-rows:auto auto minmax(0,1fr) auto;max-height:640px;border:1px solid var(--linha);border-radius:var(--raio-sup);background:var(--superficie);box-shadow:var(--apoiada)}
+.pq-sel-cab{display:flex;align-items:center;gap:8px;padding:10px 8px 10px 16px;border-bottom:1px solid var(--linha)}
+.pq-sel-cab h4{margin-right:auto;font:600 var(--t20)/26px var(--cond)}
+.pq-sel-agrupar{display:flex;align-items:center;gap:8px;padding:8px 16px;border-bottom:1px solid var(--linha);font-size:var(--t13);color:var(--apagado)}
+.pq-sel-agrupar .pq-escolha{width:auto;height:32px;font-size:var(--t13)}
+.pq-sel-lista{overflow:auto;padding:4px 0}
+.pq-sel-lista h5{position:sticky;top:0;display:flex;align-items:baseline;gap:6px;padding:8px 16px 4px;background:var(--superficie);font:600 var(--t13)/18px var(--texto);color:var(--apagado)}
+.pq-sel-lista li{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:0 4px;min-height:36px;padding:0 6px 0 16px}
+.pq-sel-lista li:hover{background:var(--passa)}
+.pq-sel-quem{display:flex;align-items:baseline;gap:6px;min-width:0}
+.pq-sel-quem .mat{flex:none;width:68px;font:400 var(--t13)/18px var(--texto);font-variant-numeric:tabular-nums;color:var(--apagado)}
+.pq-sel-quem .posto{flex:none;font:500 var(--t13)/18px var(--cond);color:var(--apagado)}
+.pq-sel-quem b{font:600 var(--t15)/22px var(--cond);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pq-sel-quem .lot{margin-left:auto;flex:none;font:500 var(--t13)/18px var(--cond);color:var(--apagado)}
+/* matrícula embaixo: o nome em cima, e a matrícula com a unidade na linha de baixo */
+.pq-sel.mat-abaixo .pq-sel-quem{display:grid;gap:0;padding:4px 0}
+.pq-sel.mat-abaixo .pq-sel-quem .l2{display:flex;gap:10px;font-size:var(--t13);line-height:18px;color:var(--apagado);font-variant-numeric:tabular-nums}
+.pq-sel-tirar{display:grid;place-items:center;width:32px;height:32px;border:0;border-radius:var(--raio);background:none;color:var(--apagado);cursor:pointer}
+.pq-sel-tirar:hover{background:color-mix(in srgb,var(--tinta) 8%,transparent);color:var(--tinta)}
+.pq-sel-vazio{padding:16px;color:var(--apagado)}
+.pq-sel-pe{padding:12px 16px;border-top:1px solid var(--linha)}
+.pq-sel-pe .botao{width:100%}
+.pq-sel-barra,.pq-folha-fecha{display:none}
+
+/* celular: a barra empilha, e os critérios e os selecionados viram folha por cima */
+@container pq (max-width:600px){
+  .pq-cab h3{font-size:var(--t20);line-height:26px}
+  .pq-acoes .botao span{display:none}
+  .pq-acoes .botao{width:var(--h);padding:0}
+  .pq-busca,.pq-busca.so-botao{grid-template-columns:minmax(0,1fr) auto}
+  .pq-busca .pq-texto{grid-column:1 / -1}
+  .pq-busca .pq-onde{grid-column:1 / -1}
+  .pq-busca .pq-crit-bt{justify-self:stretch}
+  .pq-corpo{grid-template-columns:minmax(0,1fr)}
+  .pq-crit,.pq-sel{position:absolute;inset:0;z-index:5;margin:0;max-height:none;border:0;border-radius:var(--raio-sup);box-shadow:none}
+  .pq-crit{display:grid;grid-template-rows:auto auto minmax(0,1fr) auto}
+  .pq-crit[hidden],.pq-sel:not(.aberta){display:none}
+  .pq-crit-cab{display:flex;align-items:center;gap:8px;padding:12px 8px 4px 16px}
+  .pq-crit-cab h4{margin-right:auto;font:600 var(--t20)/26px var(--cond)}
+  .pq-aba{overflow:auto}
+  .pq-outros{grid-template-columns:minmax(0,1fr)}
+  .pq-folha-fecha{display:grid}
+  .pq-sel-barra{position:sticky;bottom:0;z-index:4;margin-top:16px;display:flex;align-items:center;gap:8px;min-height:48px;padding:6px 6px 6px 16px;border-radius:var(--raio-sup);background:var(--tinta);color:var(--claro);box-shadow:var(--por-cima)}
+  .pq-sel-barra b{margin-right:auto;font:600 var(--t17)/22px var(--cond)}
+  .pq-sel-barra .botao{background:var(--superficie);color:var(--tinta)}
+  .pq-sel-barra[hidden]{display:none}
+  .pq-lot{font-size:12px}
+}
+.celular .pq{height:780px;overflow:auto;padding:16px}
+.pq.com-folha{overflow:hidden}
+
+/* a página do Manual */
+.pq-muda td:first-child{font-weight:600;white-space:nowrap}
+.pq-decidir{display:grid;gap:12px;padding-left:22px;list-style:decimal}
+.pq-decidir b{display:block;font-weight:600}
+.pq fieldset{margin:0;padding:0;border:0;min-width:0}
